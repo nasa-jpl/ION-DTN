@@ -1,0 +1,64 @@
+# bprc configuration file for host1 in a 2node test.
+#	Command: % bpadmin host1.bprc
+#	This command should be run AFTER ionadmin and BEFORE ipnadmin
+#	or dtnadmin.
+#
+#	Ohio University, Oct 2008
+
+# Initialization command (command 1).
+#	Use ipn:1.0 as the custodian endpoint of this node.
+#	That is, scheme IPN with element_number 1 and service number 0
+#	(ipn requires custodian service to be zero).
+#	Note that this EID must be understood by the node itself, so be sure
+#	to add the scheme below.
+1 ipn:1.0
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	The scheme's number is 1.  Note that this number is defined for
+#	Compressed Bundle Header Encoding (CBHE) schemes ONLY.  All other
+#	schemes (dtn for example) should use number -1.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 1 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:1.0 ipn:1.1 and ipn:1.2 on the local node.
+#	ipn:1.0 is expected for custodian traffic.  The rest are usually
+#	used for specific applications (such as bpsink).
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to dump them 'x', as opposed to
+#	queueing them (use 'q' instead of 'x' to queue).
+a endpoint ipn 1.0 x
+a endpoint ipn 1.1 x
+a endpoint ipn 1.2 x
+
+# Add a protocol. 
+#	Add the protocol named stcp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, tcp on ethernet) for payload, and 100 bytes for overhead.
+a protocol stcp 1400 100
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the stcp protocol.
+#	The induct will listen at this host's IP address (private testbed).
+#	The induct will listen on port 4556, the IANA assigned default DTN
+#	TCP convergence layer port.
+#	The induct itself is implemented by the 'stcpcli' command.
+a induct stcp 10.1.1.1:4556 stcpcli
+
+# Add an outduct. (send to yourself)
+#	Add an outduct to send bundles using the stcp protocol.
+#	The outduct will connect to the IP address 10.1.1.1 using the
+#	IANA assigned default DTN TCP port of 4556.
+#	The outduct itself is implemented by the 'stcpclo' command.
+a outduct stcp 10.1.1.1:4556 stcpclo
+
+# Add an outduct. (send to host2)
+#	Add an outduct to send bundles using the stcp protocol.
+#	The outduct will connect to the IP address 10.1.1.2 using the
+#	IANA assigned default DTN TCP port of 4556.
+#	The outduct itself is implemented by the 'stcpclo' command.
+a outduct stcp 10.1.1.2:4556 stcpclo
+

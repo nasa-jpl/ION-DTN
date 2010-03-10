@@ -1,0 +1,84 @@
+# bprc configuration file for host2 in a 3node ltp/stcp test.
+#	Command: % bpadmin host2.bprc
+#	This command should be run AFTER ionadmin and ltpadmin and 
+#	BEFORE ipnadmin or dtnadmin.
+#
+#	Ohio University, Oct 2008
+
+# Initialization command (command 1).
+#	Use ipn:2.0 as the custodian endpoint of this node.
+#	That is, scheme IPN with element_number 2 and service number 0
+#	(ipn requires custodian service is zero).
+#	Note that this EID must be understood by the node itself, so be sure
+#	to add the scheme below.
+1 ipn:2.0
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	The scheme's number is 1.  Note that this number is defined for
+#	Compressed Bundle Header Encoding (CBHE) schemes ONLY.  All other
+#	schemes (dtn for example) should use number -1.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 1 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:2.0 ipn:2.1 and ipn:2.2 on the local node.
+#	ipn:2.0 is expected for custodian traffic.  The rest are usually
+#	used for specific applications (such as bpsink).
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+a endpoint ipn 2.0 x
+a endpoint ipn 2.1 x
+a endpoint ipn 2.2 x
+
+# Add a protocol. 
+#	Add the protocol named ltp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, udp on ethernet) for payload, and 100 bytes for overhead.
+a protocol ltp 1400 100
+
+# Add a protocol. 
+#	Add the protocol named stcp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, stcp on ethernet) for payload, and 100 bytes for overhead.
+a protocol stcp 1400 100
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the ltp protocol.
+#	The duct's name is 2 (this is for future changing/deletion of the
+#	induct). 
+#	The induct itself is implemented by the 'ltpcli' command.
+a induct ltp 2 ltpcli
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the stcp protocol.
+#	The induct will listen at this host's IP address (private testbed).
+#	The induct will listen on port 4556, the IANA assigned default DTN
+#	TCP convergence layer port.
+#	The induct itself is implemented by the 'stcpcli' command.
+a induct stcp 10.1.1.2:4556 stcpcli
+
+# Add an outduct. (send to yourself)
+#	Add an outduct to send bundles using the stcp protocol.
+#	The outduct will connect to the IP address 10.1.1.2 using the
+#	IANA assigned default DTN TCP port of 4556.
+#	The outduct itself is implemented by the 'stcpclo' command.
+a outduct stcp 10.1.1.2:4556 stcpclo
+
+# Add an outduct. (send to host3)
+#	Add an outduct to send bundles using the stcp protocol.
+#	The outduct will connect to the IP address 10.1.1.3 using the
+#	IANA assigned default DTN TCP port of 4556.
+#	The outduct itself is implemented by the 'stcpclo' command.
+a outduct stcp 10.1.1.3:4556 stcpclo
+
+# Add an outduct. (send to host1)
+#	Add an outduct to send bundles using the ltp protocol.
+#	The duct's name is 1 (this is for future changing/deletion of the
+#	outduct). The name should correpsond to a span (in your ltprc).
+#	The outduct itself is implemented by the 'ltpclo' command.
+a outduct ltp 1 ltpclo

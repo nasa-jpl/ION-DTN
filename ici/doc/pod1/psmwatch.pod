@@ -1,0 +1,62 @@
+=head1 NAME
+
+psmwatch - PSM memory partition activity monitor
+
+=head1 SYNOPSIS
+
+B<psmwatch> I<partition_name> I<interval> I<count> [ verbose ]
+
+=head1 DESCRIPTION
+
+For I<count> interations, B<psmwatch> sleeps I<interval> seconds and then
+invokes the psm_print_trace() function (see psm(3)) to report on PSM dynamic
+memory management activity in the PSM-managed memory partition identified
+by I<partition_name> during that interval.  If the optional B<verbose>
+parameter is specified, the printed PSM activity trace will be verbose
+as described in psm(3).
+
+B<psmwatch> is helpful for detecting and diagnosing memory leaks.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item 0
+
+B<psmwatch> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to psm.
+
+ION system error.  One possible cause is that ION has not yet been
+initialized on the local computer; run ionadmin(1) to correct this.
+
+=item Can't start trace.
+
+Insufficient ION working memory to contain trace information.  Reinitialize
+ION with more memory.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+psm(3), sdrwatch(1)

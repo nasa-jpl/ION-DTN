@@ -1,0 +1,1333 @@
+/*
+
+	bpadmin.c:	BP node adminstration interface.
+
+									*/
+/*									*/
+/*	Copyright (c) 2003, California Institute of Technology.		*/
+/*	All rights reserved.						*/
+/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
+/*									*/
+
+#include "bpP.h"
+
+static Sdr		sdr = NULL;
+static int		echo = 0;
+static BpDB		*bpConstants;
+static PsmPartition	ionwm;
+static BpVdb		*vdb;
+static char		*huh = "?";
+
+static void	printText(char *text)
+{
+	if (echo)
+	{
+		writeMemo(text);
+	}
+
+	puts(text);
+}
+
+static void	handleQuit()
+{
+	printText("Please enter command 'q' to stop the program.");
+}
+
+static void	printSyntaxError(int lineNbr)
+{
+	char	buffer[80];
+
+	sprintf(buffer, "Syntax error at line %d of bpadmin.c", lineNbr);
+	printText(buffer);
+}
+
+#define	SYNTAX_ERROR	printSyntaxError(__LINE__)
+
+static void	printUsage()
+{
+	puts("Valid commands are:");
+	puts("\tq\tQuit");
+	puts("\th\tHelp");
+	puts("\t?\tHelp");
+	puts("\t1\tInitialize");
+	puts("\t   1");
+	puts("\ta\tAdd");
+	puts("\t   a scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
+	puts("\t   a endpoint <endpoint name> {q|x} ['<recv script>']");
+	puts("\t   a protocol <protocol name> <payload bytes per frame> \
+<overhead bytes per frame> [<nominal data rate, in bytes/sec>]");
+	puts("\t   a induct <protocol name> <duct name> '<CLI command>'");
+	puts("\t   a outduct <protocol name> <duct name> '<CLO command>'");
+	puts("\tc\tChange");
+	puts("\t   c scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
+	puts("\t   c endpoint <endpoint name> {q|x} ['<recv script>']");
+	puts("\t   c induct <protocol name> <duct name> '<CLI command>'");
+	puts("\t   c outduct <protocol name> <duct name> '<CLO command>'");
+	puts("\td\tDelete");
+	puts("\ti\tInfo");
+	puts("\t   {d|i} scheme <scheme name>");
+	puts("\t   {d|i} endpoint <endpoint name>");
+	puts("\t   {d|i} protocol <protocol name>");
+	puts("\t   {d|i} induct <protocol name> <duct name>");
+	puts("\t   {d|i} outduct <protocol name> <duct name>");
+	puts("\tl\tList");
+	puts("\t   l scheme");
+	puts("\t   l endpoint");
+	puts("\t   l protocol");
+	puts("\t   l induct [<protocol name>]");
+	puts("\t   l outduct [<protocol name>]");
+	puts("\tr\tRun another admin program");
+	puts("\t   r '<admin command>'");
+	puts("\ts\tStart");
+	puts("\tx\tStop");
+	puts("\t   {s|x}");
+	puts("\t   {s|x} scheme <scheme name>");
+	puts("\t   {s|x} protocol <protocol name>");
+	puts("\t   {s|x} induct <protocol name> <duct name>");
+	puts("\t   {s|x} outduct <protocol name> <duct name>");
+	puts("\tw\tWatch BP activity");
+	puts("\t   w { 0 | 1 | <activity spec> }");
+	puts("\t\tActivity spec is a string of all requested activity \
+indication characters, e.g., acz~.  See man(5) for bprc.");
+	puts("\te\tEnable or disable echo of printed output to log file");
+	puts("\t   e { 0 | 1 }");
+	puts("\t#\tComment");
+	puts("\t   # <comment text, ignored by the program>");
+}
+
+static void	initializeBp(int tokenCount, char **tokens)
+{
+	if (tokenCount != 1)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (ionAttach() < 0)
+	{
+		putErrmsg("bpadmin can't attach to ION.", NULL);
+		return;
+	}
+
+	if (bpInit() < 0)
+	{
+		putErrmsg("bpadmin can't initialize BP.", NULL);
+		return;
+	}
+
+	sdr = getIonsdr();
+	bpConstants = getBpConstants();
+	vdb = getBpVdb();
+	ionwm = getIonwm();
+}
+
+static int	attachToBp()
+{
+	if (sdr == NULL)
+	{
+		if (bpAttach() < 0)
+		{
+			printText("BP not initialized yet.");
+			return -1;
+		}
+
+		sdr = getIonsdr();
+		bpConstants = getBpConstants();
+		ionwm = getIonwm();
+		vdb = getBpVdb();
+	}
+
+	return 0;
+}
+
+static void	executeStart(int tokenCount, char **tokens)
+{
+	if (attachToBp() < 0) return;
+	if (strcmp(tokens[1], "scheme") == 0)
+	{
+		bpStartScheme(tokens[2]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "protocol") == 0)
+	{
+		bpStartProtocol(tokens[2]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "induct") == 0)
+	{
+		bpStartInduct(tokens[2], tokens[3]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "outduct") == 0)
+	{
+		bpStartOutduct(tokens[2], tokens[3]);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	executeStop(int tokenCount, char **tokens)
+{
+	if (attachToBp() < 0) return;
+	if (strcmp(tokens[1], "scheme") == 0)
+	{
+		bpStopScheme(tokens[2]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "protocol") == 0)
+	{
+		bpStopProtocol(tokens[2]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "induct") == 0)
+	{
+		bpStopInduct(tokens[2], tokens[3]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "outduct") == 0)
+	{
+		bpStopOutduct(tokens[2], tokens[3]);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	executeAdd(int tokenCount, char **tokens)
+{
+	char		*script;
+	BpRecvRule	rule;
+	long		nominalRate = 0;
+
+	if (attachToBp() < 0) return;
+	if (tokenCount < 2)
+	{
+		printText("Add what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "scheme") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		addScheme(tokens[2], tokens[3], tokens[4]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "endpoint") == 0)
+	{
+		switch (tokenCount)
+		{
+		case 5:
+			script = tokens[4];
+			break;
+
+		case 4:
+			script = NULL;
+			break;
+
+		default:
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (*(tokens[3]) == 'q')
+		{
+			rule = EnqueueBundle;
+		}
+		else
+		{
+			rule = DiscardBundle;
+		}
+
+		addEndpoint(tokens[2], rule, script);
+		return;
+	}
+
+	if (strcmp(tokens[1], "protocol") == 0)
+	{
+		if (tokenCount < 5 || tokenCount > 6)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (tokenCount == 6)
+		{
+			nominalRate = atol(tokens[5]);
+		}
+
+		addProtocol(tokens[2], atoi(tokens[3]), atoi(tokens[4]),
+				nominalRate);
+		return;
+	}
+
+	if (strcmp(tokens[1], "induct") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		addInduct(tokens[2], tokens[3], tokens[4]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "outduct") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		addOutduct(tokens[2], tokens[3], tokens[4]);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	executeChange(int tokenCount, char **tokens)
+{
+	char		*script;
+	BpRecvRule	rule;
+
+	if (attachToBp() < 0) return;
+	if (tokenCount < 2)
+	{
+		printText("Change what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "scheme") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		updateScheme(tokens[2], tokens[3], tokens[4]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "endpoint") == 0)
+	{
+		switch (tokenCount)
+		{
+		case 5:
+			script = tokens[4];
+			break;
+
+		case 4:
+			script = NULL;
+			break;
+
+		default:
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (*(tokens[3]) == 'q')
+		{
+			rule = EnqueueBundle;
+		}
+		else
+		{
+			rule = DiscardBundle;
+		}
+
+		updateEndpoint(tokens[2], rule, script);
+		return;
+	}
+
+	if (strcmp(tokens[1], "induct") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		updateInduct(tokens[2], tokens[3], tokens[4]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "outduct") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		updateOutduct(tokens[2], tokens[3], tokens[4]);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	executeDelete(int tokenCount, char **tokens)
+{
+	if (attachToBp() < 0) return;
+	if (tokenCount < 2)
+	{
+		printText("Delete what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "scheme") == 0)
+	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		removeScheme(tokens[2]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "endpoint") == 0)
+	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		removeEndpoint(tokens[2]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "protocol") == 0)
+	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		removeProtocol(tokens[2]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "induct") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		removeInduct(tokens[2], tokens[3]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "outduct") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		removeOutduct(tokens[2], tokens[3]);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	printScheme(VScheme *vscheme)
+{
+		OBJ_POINTER(Scheme, scheme);
+	char	fwdCmdBuffer[SDRSTRING_BUFSZ];
+	char	*fwdCmd;
+	char	admAppCmdBuffer[SDRSTRING_BUFSZ];
+	char	*admAppCmd;
+	char	buffer[1024];
+
+	GET_OBJ_POINTER(sdr, Scheme, scheme, sdr_list_data(sdr,
+			vscheme->schemeElt));
+	if (sdr_string_read(sdr, fwdCmdBuffer, scheme->fwdCmd) < 0)
+	{
+		fwdCmd = huh;
+	}
+	else
+	{
+		fwdCmd = fwdCmdBuffer;
+	}
+
+	if (sdr_string_read(sdr, admAppCmdBuffer, scheme->admAppCmd) < 0)
+	{
+		admAppCmd = huh;
+	}
+	else
+	{
+		admAppCmd = admAppCmdBuffer;
+	}
+
+	sprintf(buffer, "%.8s\tfwdpid: %d cmd: %.256s  admpid: %d cmd %.256s",
+			scheme->name, vscheme->fwdPid, fwdCmd,
+			vscheme->admAppPid, admAppCmd);
+	printText(buffer);
+}
+
+static void	infoScheme(int tokenCount, char **tokens)
+{
+	VScheme		*vscheme;
+	PsmAddress	elt;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	findScheme(tokens[2], &vscheme, &elt);
+	if (elt == 0)
+	{
+		printText("Unknown scheme.");
+		return;
+	}
+
+	printScheme(vscheme);
+}
+
+static void	printEndpoint(VEndpoint *vpoint)
+{
+		OBJ_POINTER(Endpoint, endpoint);
+		OBJ_POINTER(Scheme, scheme);
+	char	buffer[512];
+	char	recvRule;
+	char	recvScriptBuffer[SDRSTRING_BUFSZ];
+	char	*recvScript = recvScriptBuffer;
+
+	GET_OBJ_POINTER(sdr, Endpoint, endpoint, sdr_list_data(sdr,
+			vpoint->endpointElt));
+	GET_OBJ_POINTER(sdr, Scheme, scheme, endpoint->scheme);
+	if (endpoint->recvRule == EnqueueBundle)
+	{
+		recvRule = 'q';
+	}
+	else
+	{
+		recvRule = 'x';
+	}
+
+	if (endpoint->recvScript == 0)
+	{
+		recvScriptBuffer[0] = '\0';
+	}
+	else
+	{
+		if (sdr_string_read(sdr, recvScriptBuffer, endpoint->recvScript)
+			       	< 0)
+		{
+			recvScript = huh;
+		}
+	}
+
+	sprintf(buffer, "%.8s:%.128s  %d\trule: %c  script: %.256s",
+			scheme->name, endpoint->nss, vpoint->appPid,
+			recvRule, recvScript);
+	printText(buffer);
+}
+
+static void	infoEndpoint(int tokenCount, char **tokens)
+{
+	VEndpoint	*vpoint;
+	PsmAddress	elt;
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	findEndpoint(tokens[2], tokens[3], NULL, &vpoint, &elt);
+	if (elt == 0)
+	{
+		printText("Unknown endpoint.");
+		return;
+	}
+
+	printEndpoint(vpoint);
+}
+
+static void	printProtocol(ClProtocol *protocol)
+{
+	printText(protocol->name);
+}
+
+static void	infoProtocol(int tokenCount, char **tokens)
+{
+	Object		elt;
+	ClProtocol	clpbuf;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	fetchProtocol(tokens[2], &clpbuf, &elt);
+	if (elt == 0)
+	{
+		printText("Unknown protocol.");
+		return;
+	}
+
+	printProtocol(&clpbuf);
+}
+
+static void	printInduct(VInduct *vduct)
+{
+		OBJ_POINTER(Induct, duct);
+		OBJ_POINTER(ClProtocol, clp);
+	char	cliCmdBuffer[SDRSTRING_BUFSZ];
+	char	*cliCmd;
+	char	buffer[1024];
+
+	GET_OBJ_POINTER(sdr, Induct, duct, sdr_list_data(sdr,
+			vduct->inductElt));
+	GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
+	if (sdr_string_read(sdr, cliCmdBuffer, duct->cliCmd) < 0)
+	{
+		cliCmd = huh;
+	}
+	else
+	{
+		cliCmd = cliCmdBuffer;
+	}
+
+	sprintf(buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s", clp->name,
+			duct->name, vduct->cliPid, cliCmd);
+	printText(buffer);
+}
+
+static void	infoInduct(int tokenCount, char **tokens)
+{
+	VInduct		*vduct;
+	PsmAddress	elt;
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	findInduct(tokens[2], tokens[3], &vduct, &elt);
+	if (elt == 0)
+	{
+		printText("Unknown induct.");
+		return;
+	}
+
+	printInduct(vduct);
+}
+
+static void	printOutduct(VOutduct *vduct)
+{
+		OBJ_POINTER(Outduct, duct);
+		OBJ_POINTER(ClProtocol, clp);
+	char	cloCmdBuffer[SDRSTRING_BUFSZ];
+	char	*cloCmd;
+	char	buffer[1024];
+
+	GET_OBJ_POINTER(sdr, Outduct, duct, sdr_list_data(sdr,
+			vduct->outductElt));
+	GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
+	if (duct->cloCmd == 0)
+	{
+		cloCmd = huh;
+	}
+	else if (sdr_string_read(sdr, cloCmdBuffer, duct->cloCmd) < 0)
+	{
+		cloCmd = huh;
+	}
+	else
+	{
+		cloCmd = cloCmdBuffer;
+	}
+
+	sprintf(buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s", clp->name,
+			duct->name, vduct->cloPid, cloCmd);
+	printText(buffer);
+}
+
+static void	infoOutduct(int tokenCount, char **tokens)
+{
+	VOutduct	*vduct;
+	PsmAddress	elt;
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	findOutduct(tokens[2], tokens[3], &vduct, &elt);
+	if (elt == 0)
+	{
+		printText("Unknown outduct.");
+		return;
+	}
+
+	printOutduct(vduct);
+}
+
+static void	executeInfo(int tokenCount, char **tokens)
+{
+	if (attachToBp() < 0) return;
+	if (tokenCount < 2)
+	{
+		printText("Information on what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "scheme") == 0)
+	{
+		infoScheme(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "endpoint") == 0)
+	{
+		infoEndpoint(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "protocol") == 0)
+	{
+		infoProtocol(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "induct") == 0)
+	{
+		infoInduct(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "outduct") == 0)
+	{
+		infoOutduct(tokenCount, tokens);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	listSchemes(int tokenCount, char **tokens)
+{
+	PsmAddress	elt;
+	VScheme		*vscheme;
+
+	if (tokenCount != 2)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	for (elt = sm_list_first(ionwm, vdb->schemes); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vscheme = (VScheme *) psp(ionwm, sm_list_data(ionwm, elt));
+		printScheme(vscheme);
+	}
+}
+
+static void	listEndpointsForScheme(VScheme *vscheme)
+{
+	PsmAddress	elt;
+	VEndpoint	*vpoint;
+
+	for (elt = sm_list_first(ionwm, vscheme->endpoints); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vpoint = (VEndpoint *) psp(ionwm, sm_list_data(ionwm, elt));
+		printEndpoint(vpoint);
+	}
+}
+
+static void	listEndpoints(int tokenCount, char **tokens)
+{
+	VScheme		*vscheme;
+	PsmAddress	elt;
+
+	switch (tokenCount)
+	{
+	case 2:
+		for (elt = sm_list_first(ionwm, vdb->schemes); elt;
+				elt = sm_list_next(ionwm, elt))
+		{
+			vscheme = (VScheme *) psp(ionwm,
+					sm_list_data(ionwm, elt));
+			listEndpointsForScheme(vscheme);
+		}
+
+		break;
+
+	case 3:
+		findScheme(tokens[2], &vscheme, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown scheme.");
+			return;
+		}
+
+		listEndpointsForScheme(vscheme);
+		break;
+
+	default:
+		SYNTAX_ERROR;
+	}
+}
+
+static void	listProtocols(int tokenCount, char **tokens)
+{
+	Object	elt;
+		OBJ_POINTER(ClProtocol, clp);
+
+	if (tokenCount != 2)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	for (elt = sdr_list_first(sdr, bpConstants->protocols); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, ClProtocol, clp, sdr_list_data(sdr, elt));
+		printProtocol(clp);
+	}
+}
+
+static void	listInductsForProtocol(char *protocolName)
+{
+	VInduct		*vduct;
+	PsmAddress	elt;
+
+	for (elt = sm_list_first(ionwm, vdb->inducts); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vduct = (VInduct *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (strcmp(vduct->protocolName, protocolName) == 0)
+		{
+			printInduct(vduct);
+		}
+	}
+}
+
+static void	listInducts(int tokenCount, char **tokens)
+{
+	ClProtocol	clpbuf;
+	Object		elt;
+
+	switch (tokenCount)
+	{
+	case 2:
+		for (elt = sdr_list_first(sdr, bpConstants->protocols); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			sdr_read(sdr, (char *) &clpbuf,
+				sdr_list_data(sdr, elt), sizeof(ClProtocol));
+			listInductsForProtocol(clpbuf.name);
+		}
+
+		break;
+
+	case 3:
+		fetchProtocol(tokens[2], &clpbuf, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown protocol.");
+			return;
+		}
+
+		listInductsForProtocol(clpbuf.name);
+		break;
+
+	default:
+		SYNTAX_ERROR;
+	}
+}
+
+static void	listOutductsForProtocol(char *protocolName)
+{
+	VOutduct	*vduct;
+	PsmAddress	elt;
+
+	for (elt = sm_list_first(ionwm, vdb->outducts); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vduct = (VOutduct *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (strcmp(vduct->protocolName, protocolName) == 0)
+		{
+			printOutduct(vduct);
+		}
+	}
+}
+
+static void	listOutducts(int tokenCount, char **tokens)
+{
+	ClProtocol	clpbuf;
+	Object		elt;
+
+	switch (tokenCount)
+	{
+	case 2:
+		for (elt = sdr_list_first(sdr, bpConstants->protocols); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			sdr_read(sdr, (char *) &clpbuf,
+				sdr_list_data(sdr, elt), sizeof(ClProtocol));
+			listOutductsForProtocol(clpbuf.name);
+		}
+
+		break;
+
+	case 3:
+		fetchProtocol(tokens[2], &clpbuf, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown protocol.");
+			return;
+		}
+
+		listOutductsForProtocol(clpbuf.name);
+		break;
+
+	default:
+		SYNTAX_ERROR;
+	}
+}
+
+static void	executeList(int tokenCount, char **tokens)
+{
+	if (attachToBp() < 0) return;
+	if (tokenCount < 2)
+	{
+		printText("List what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "scheme") == 0)
+	{
+		listSchemes(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "endpoint") == 0)
+	{
+		listEndpoints(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "protocol") == 0)
+	{
+		listProtocols(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "induct") == 0)
+	{
+		listInducts(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "outduct") == 0)
+	{
+		listOutducts(tokenCount, tokens);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	executeRun(int tokenCount, char **tokens)
+{
+	if (attachToBp() < 0) return;
+	if (tokenCount < 2)
+	{
+		printText("Run what?");
+		return;
+	}
+
+	if (pseudoshell(tokens[1]) < 0)
+	{
+		printText("pseudoshell failed.");
+	}
+	else
+	{
+		snooze(1);	/*	Give script time to finish.	*/
+	}
+}
+
+static void	switchWatch(int tokenCount, char **tokens)
+{
+	char	buffer[80];
+	char	*cursor;
+
+	if (attachToBp() < 0) return;
+	if (tokenCount < 2)
+	{
+		printText("Switch watch in what way?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "1") == 0)
+	{
+		vdb->watching = -1;
+		return;
+	}
+
+	vdb->watching = 0;
+	if (strcmp(tokens[1], "0") == 0)
+	{
+		return;
+	}
+
+	cursor = tokens[1];
+	while (*cursor)
+	{
+		switch (*cursor)
+		{
+		case 'a':
+			vdb->watching |= WATCH_a;
+			break;
+
+		case 'b':
+			vdb->watching |= WATCH_b;
+			break;
+
+		case 'c':
+			vdb->watching |= WATCH_c;
+			break;
+
+		case 'm':
+			vdb->watching |= WATCH_m;
+			break;
+
+		case 'w':
+			vdb->watching |= WATCH_w;
+			break;
+
+		case 'x':
+			vdb->watching |= WATCH_x;
+			break;
+
+		case 'y':
+			vdb->watching |= WATCH_y;
+			break;
+
+		case 'z':
+			vdb->watching |= WATCH_z;
+			break;
+
+		case '~':
+			vdb->watching |= WATCH_abandon;
+			break;
+
+		case '!':
+			vdb->watching |= WATCH_expire;
+			break;
+
+		case '&':
+			vdb->watching |= WATCH_refusal;
+			break;
+
+		case '#':
+			vdb->watching |= WATCH_timeout;
+			break;
+
+		default:
+			sprintf(buffer, "Invalid watch char %c.", *cursor);
+			printText(buffer);
+		}
+
+		cursor++;
+	}
+}
+
+static void	switchEcho(int tokenCount, char **tokens)
+{
+	if (tokenCount < 2)
+	{
+		printText("Echo on or off?");
+		return;
+	}
+
+	switch (*(tokens[1]))
+	{
+	case '0':
+		echo = 0;
+		break;
+
+	case '1':
+		echo = 1;
+		break;
+
+	default:
+		printText("Echo on or off?");
+	}
+}
+
+static int	processLine(char *line)
+{
+	int	lineLength;
+	int	tokenCount;
+	char	*cursor;
+	int	i;
+	char	*tokens[9];
+
+	if (line == NULL) return 0;
+
+	lineLength = strlen(line);
+	if (lineLength <= 0) return 0;
+
+	if (line[lineLength - 1] == 0x0a)	/*	LF (newline)	*/
+	{
+		line[lineLength - 1] = '\0';	/*	lose it		*/
+		lineLength--;
+		if (lineLength <= 0) return 0;
+	}
+
+	if (line[lineLength - 1] == 0x0d)	/*	CR (DOS text)	*/
+	{
+		line[lineLength - 1] = '\0';	/*	lose it		*/
+		lineLength--;
+		if (lineLength <= 0) return 0;
+	}
+
+	tokenCount = 0;
+	for (cursor = line, i = 0; i < 9; i++)
+	{
+		if (*cursor == '\0')
+		{
+			tokens[i] = NULL;
+		}
+		else
+		{
+			findToken(&cursor, &(tokens[i]));
+			tokenCount++;
+		}
+	}
+
+	if (tokenCount == 0)
+	{
+		return 0;
+	}
+
+	/*	Skip over any trailing whitespace.			*/
+
+	while (isspace((int) *cursor))
+	{
+		cursor++;
+	}
+
+	/*	Make sure we've parsed everything.			*/
+
+	if (*cursor != '\0')
+	{
+		printText("Too many tokens.");
+		return 0;
+	}
+
+	/*	Have parsed the command.  Now execute it.		*/
+
+	switch (*(tokens[0]))		/*	Command code.		*/
+	{
+		case 0:			/*	Empty line.		*/
+		case '#':		/*	Comment.		*/
+			return 0;
+
+		case '?':
+		case 'h':
+			printUsage();
+			return 0;
+
+		case '1':
+			initializeBp(tokenCount, tokens);
+			return 0;
+
+		case 'x':
+			if (attachToBp() < 0)
+			{
+				return 0;
+			}
+
+			if (tokenCount > 1)
+			{
+				executeStop(tokenCount, tokens);
+			}
+			else
+			{
+				bpStop();
+			}
+
+			return 0;
+
+		case 's':
+			if (attachToBp() < 0)
+			{
+				return 0;
+			}
+
+			if (tokenCount > 1)
+			{
+				executeStart(tokenCount, tokens);
+			}
+			else
+			{
+				if (bpStart() < 0)
+				{
+					putErrmsg("can't start BP.", NULL);
+					return 0;
+				}
+			}
+
+			return 0;
+
+		case 'a':
+			executeAdd(tokenCount, tokens);
+			return 0;
+
+		case 'c':
+			executeChange(tokenCount, tokens);
+			return 0;
+
+		case 'd':
+			executeDelete(tokenCount, tokens);
+			return 0;
+
+		case 'i':
+			executeInfo(tokenCount, tokens);
+			return 0;
+
+		case 'l':
+			executeList(tokenCount, tokens);
+			return 0;
+
+		case 'r':
+			executeRun(tokenCount, tokens);
+			return 0;
+
+		case 'w':
+			switchWatch(tokenCount, tokens);
+			return 0;
+
+		case 'e':
+			switchEcho(tokenCount, tokens);
+			return 0;
+
+		case 'q':
+			return -1;	/*	End program.		*/
+
+		default:
+			printText("Invalid command.  Enter '?' for help.");
+			return 0;
+	}
+}
+
+#if defined (VXWORKS) || defined (RTEMS)
+int	bpadmin(int a1, int a2, int a3, int a4, int a5,
+		int a6, int a7, int a8, int a9, int a10)
+{
+	char		*cmdFileName = (char *) a1;
+#else
+int	main(int argc, char **argv)
+{
+	char		*cmdFileName = (argc > 1 ? argv[1] : NULL);
+#endif
+	FILE		*cmdFile;
+	char		line[256];
+
+	if (cmdFileName == NULL)		/*	Interactive.	*/
+	{
+		isignal(SIGINT, handleQuit);
+		while (1)
+		{
+			printf(": ");
+			if (fgets(line, sizeof line, stdin) == NULL)
+			{
+				if (feof(stdin))
+				{
+					break;
+				}
+
+				perror("bpadmin fgets failed");
+				break;		/*	Out of loop.	*/
+			}
+
+			if (processLine(line))
+			{
+				break;		/*	Out of loop.	*/
+			}
+		}
+	}
+	else if (strcmp(cmdFileName, ".") == 0)	/*	Shutdown.	*/
+	{
+		if (attachToBp() == 0)
+		{
+			bpStop();
+		}
+	}
+	else					/*	Scripted.	*/
+	{
+		cmdFile = fopen(cmdFileName, "r");
+		if (cmdFile == NULL)
+		{
+			perror("Can't open command file");
+		}
+		else
+		{
+			while (1)
+			{
+				if (fgets(line, sizeof line, cmdFile) == NULL)
+				{
+					if (feof(cmdFile))
+					{
+						break;	/*	Loop.	*/
+					}
+
+					perror("bpadmin fgets failed");
+					break;		/*	Loop.	*/
+				}
+
+				if (line[0] == '#')	/*	Comment.*/
+				{
+					continue;
+				}
+
+				if (processLine(line))
+				{
+					break;	/*	Out of loop.	*/
+				}
+			}
+
+			fclose(cmdFile);
+		}
+	}
+
+	writeErrmsgMemos();
+	printText("Stopping bpadmin.");
+	bp_detach();
+	return 0;
+}

@@ -1,0 +1,206 @@
+#!/bin/bash
+#
+# ionstart
+# David Young
+# Aug 10, 2008
+#
+# Program will start ion using a configuration file specified in the command
+# line arguments.  The configuration file must be tagged with lines delimiting
+# which sections of the file are configuration commands for the various ion
+# administration interfaces.
+
+# the location of the awkscript.
+# defining the environment variable AWKSCRIPT before running this script
+# will work (for things like make test) before installation
+if [[ ! -r "${AWKSCRIPT}" ]] ; then
+	SUBFOLDER=`dirname "${0}"`
+	# assuming this bash script is installed with the usual binaries from autoconf
+	AWKSCRIPT="${SUBFOLDER}/../share/ion/ionstart.awk"
+	if [[ ! -r "${AWKSCRIPT}" ]] ; then
+		echo
+		echo "Didn't find awk script in ${AWKSCRIPT} now searching locally..."
+		# assume the bash script is in the same location as the awk script
+		AWKSCRIPT="${SUBFOLDER}/ionstart.awk"
+		if [[ ! -r "${AWKSCRIPT}" ]] ; then
+			echo
+			echo "Cannot find the location of the awk script."
+			echo "I thought it would be ${AWKSCRIPT} , but nothing is there."
+			echo "Set the environment variable AWKSCRIPT or edit me in ${0}"
+			exit 1
+		fi
+	fi
+fi
+
+function USAGE {
+	echo
+	echo "IONSTART: Interplanetary Overlay Network startup script"
+	echo "USAGE:"
+	echo "	ionstart [-I config] [-t tag] [-b bprc] [-c cfdprc] [-d dtn2rc]"
+	echo "	         [-i ionrc] [-l ltprc] [-p ipnrc] [-s ionsecrc]"
+	echo
+	echo "	Defined configurations will be run in the following order:"
+	echo "	config, ionrc, ionsecrc, ltprc, bprc, ipnrc, dtn2rc"
+	echo
+	echo "	-I config	Specifies file containing the configuration for each"
+	echo "			ion administration program. Each section must be"
+	echo "			preceded by: ## begin programname tag"
+	echo "			and proceeded by: ## end programname tag"
+	echo
+	echo "	-t tag		Optional tag, used to specify which sections are used"
+	echo "			in config file.  If unspecified, sections with no tag"
+	echo "			are used."
+	echo
+	echo "	-b bprc		Specifies file bprc to be used to configure bpadmin."
+	echo "	-c cfdprc	Specifies file cfdprc to be used to configure cfdpadmin."
+	echo "	-d dtn2rc	Specifies file dtn2rc to be used to configure dtn2admin."
+	echo "	-i ionrc	Specifies file ionrc to be used to configure ionadmin."
+	echo "	-l ltprc	Specifies file ltprc to be used to configure ltpadmin."
+	echo "	-p ipnrc	Specifies file ipnrc to be used to configure ipnadmin."
+	echo "	-s ionsecrc	Specifies file ionsecrc to be used to configure ionsecadmin."
+}
+
+# check for all the options
+
+while getopts ":t:i:c:I:d:p:b:l:s:h" options; do
+	case $options in
+		t ) TAG="${OPTARG}";;
+		i ) IONRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The ionrc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		c ) CFDPRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The cfdprc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		d ) DTN2RC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The dtn2rc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		p ) IPNRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The ipnrc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		s ) IONSECRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The ionsecrc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		b ) BPRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The bprc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		l ) LTPRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The ltprc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		I ) CONFIGFILE="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The config file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		h ) USAGE
+			exit 1;;
+		\? ) USAGE
+			exit 1;;
+		* ) USAGE
+			exit 1;;
+	esac
+done
+
+if [[ -z "${CONFIGFILE}" && -z "${IONRC}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${DTN2RC}" ]] ; then
+	echo
+	echo "You must define some configuration files for input, use any combination of the"
+	echo "-b -c -d -i -I -l -p -s options to define them."
+	USAGE
+	exit 1
+fi
+
+if [[ "${failure}" == "TRUE" ]] ; then
+	exit 1
+fi
+
+if [[ ! -z "${CONFIGFILE}" ]] ; then
+	echo
+	echo "Now running startup script using ${CONFIGFILE}"
+	awk -f "${AWKSCRIPT}" -v configfile="${CONFIGFILE}" -v tag="${TAG}" "${CONFIGFILE}"
+fi
+
+if [[ ! -z "${IONRC}" ]] ; then
+	echo
+	echo "Now running ionadmin using ${IONRC}"
+	ionadmin "${IONRC}"
+	sleep 1
+fi
+
+if [[ ! -z "${IONSECRC}" ]] ; then
+	echo
+	echo "Now running ionsecadmin using ${IONSECRC}"
+	ionsecadmin "${IONSECRC}"
+	sleep 1
+fi
+
+if [[ ! -z "${LTPRC}" ]] ; then
+	echo
+	echo "Now running ltpadmin using ${LTPRC}"
+	ltpadmin "${LTPRC}"
+	sleep 1
+fi
+
+if [[ ! -z "${BPRC}" ]] ; then
+	echo
+	echo "Now running bpadmin using ${BPRC}"
+	bpadmin "${BPRC}"
+	sleep 1
+fi
+
+if [[ ! -z "${CFDPRC}" ]] ; then
+	echo
+	echo "Now running cfdpadmin using ${CFDPRC}"
+	cfdpadmin "${CFDPRC}"
+	sleep 1
+fi
+
+if [[ ! -z "${IPNRC}" ]] ; then
+	echo
+	echo "Now running ipnadmin using ${IPNRC}"
+	ipnadmin "${IPNRC}"
+	sleep 1
+	ROUTINGCOMMAND="true"
+fi
+
+if [[ ! -z "${DTN2RC}" ]] ; then
+	echo
+	echo "Now running dtn2admin using ${DTN2RC}"
+	dtn2admin ${DTN2NODE} "${DTN2RC}"
+	sleep 1
+	ROUTINGCOMMAND="true"
+fi
+
+# if dtn2admin or ipnadmin were run as separate programs, bpadmin should be started
+# afterwards as per the bug discovered by Andrew.Jenkins@colorado.edu
+# this has since been fixed
+#if [[ ! -z "${ROUTINGCOMMAND}" ]] ; then
+#	echo
+#	echo "Now running bpadmin again to start the node."
+#	echo "s" | bpadmin
+#fi
+
+echo
+echo "ION startup script completed."
+echo "You may find that the ION node has not started. If this is the case,"
+echo "some errors may have been reported to the console."
+echo "Further erros may be found in the file ion.log"

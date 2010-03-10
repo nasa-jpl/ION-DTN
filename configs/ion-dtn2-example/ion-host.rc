@@ -1,0 +1,67 @@
+
+## begin ionadmin
+# Initialization command
+1 1 ""
+
+# Start ION
+s
+
+# Add contacts (1-2 connected for 1 hr, 100 kbps)
+a contact +1 +3600 1 1 100000
+a contact +1 +3600 1 2 100000
+a contact +1 +3600 2 1 100000
+# Assign ranges (for the next hour, 1 second or less OWLT)
+a range +1 +3600 1 1 1
+a range +1 +3600 1 2 1
+a range +1 +3600 2 2 1
+
+# Assign production/consumption rates (dummy)
+m production 100000
+m consumption 100000
+## end ionadmin
+
+
+## begin bpadmin
+1 
+
+# Add scheme (DTN w/EIDs)
+a scheme dtn 'dtn2fw' 'dtn2adminep'
+# the scheme will use the "gethostname" command and
+# automatically create the custodian eid dtn://<hostname>.dtn
+# NOTE: in this situation, the host was named host1. your
+# configuration will be different.
+
+# Alert ION which endpoints are on this host
+a endpoint dtn://host1.dtn/sink q
+a endpoint dtn://host1.dtn/ping q
+
+# add the tcp convergence layer and outducts
+# note that your IPs will be different
+a protocol tcp 1400 100
+a induct tcp 10.1.1.8:4556 tcpcli
+#loopback outduct
+a outduct tcp 10.1.1.8:4556 tcpclo
+# outduct to dtn2 node
+a outduct tcp 10.1.1.7:4556 tcpclo
+
+# start daemons
+s
+## end bpadmin
+
+## begin ipnadmin
+# this may not be necessary
+a plan 1 tcp/10.1.1.8:4556
+a plan 2 tcp/10.1.1.7:4556
+## end ipnadmin
+
+## begin dtn2admin
+# note that the "dtn:" is omitted from the routing plans.
+a plan //host1.dtn x tcp/10.1.1.8:4556
+a plan //dtn2box.dtn x tcp/10.1.1.7:4556
+
+# plans support an * character as a wildcard.
+# a default route would look like this
+# a plan //* f dtn://dtn2box.dtn
+# this will use dtn2box.dtn as the "next hop"
+## end dtn2admin
+

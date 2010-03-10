@@ -1,0 +1,177 @@
+=head1 NAME
+
+ionsecrc - ION security policy management commands file
+
+=head1 DESCRIPTION
+
+ION security policy management commands are passed to B<ionsecadmin> either
+in a file of text lines or interactively at B<ionsecadmin>'s command prompt
+(:).  Commands are interpreted line-by line, with exactly one command per
+line.  The formats and effects of the ION security policy management commands
+are described below.
+
+=head1 COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by ionsecadmin to
+be logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<1>
+
+The B<initialize> command.  Until this command is executed, the local ION
+node has no security policy database and most I<ionsecadmin> commands will fail.
+
+=item B<a key> I<key_name> I<file_name>
+
+The B<add key> command.  This command adds a named key value to the
+security policy database.  The content of I<file_name> is taken as the
+value of the key.  Named keys can be referenced by other elements of the
+security policy database.
+
+=item B<c key> I<key_name> I<file_name>
+
+The B<change key> command.  This command changes the value of the named
+key, obtaining the new key value from the content of I<file_name>.
+
+=item B<d key> I<key_name>
+
+The B<delete key> command.  This command deletes the key identified by I<name>.
+
+=item B<i key> I<key_name>
+
+This command will print information about the named key, i.e., the length of
+its current value.
+
+=item B<l key>
+
+This command lists all keys in the security policy database.
+
+=item B<a babrxrule> I<eid_expr> I<ciphersuite_name> I<key_name>
+
+The B<add babrxrule> command.  This command adds a rule specifying the
+manner in which Bundle Authentication Block (BAB) validation will be applied
+to all bundles received from any endpoint whose ID matches I<eid_expr>.
+If the last character of I<eid_expr> is the wild-card character '*'
+then a sending endpoint ID matches this EID expression when all
+characters of I<eid_expr> prior to the last are equal to the corresponding
+characters of that endpoint ID; otherwise the rule pertains only to bundles
+whose sending EID is exactly equal to I<eid_expr>.
+
+If I<ciphersuite_name> is a zero-length string ('') then BAB validation
+is disabled for I<eid_expr>: all bundles from matching endpoints will be
+immediately deemed authentic.  Otherwise, a bundle from a matching endpoint
+will only be deemed authentic if it contains a BAB computed via the
+ciphersuite named by I<ciphersuite_name> using a key value that is
+identical to the current value of the key named I<key_name> in the
+local security policy database.
+
+=item B<c babrxrule> I<eid_expr> I<ciphersuite_name> I<key_name>
+
+The B<change babrxrule> command.  This command changes the ciphersuite
+name and/or key name for the BAB reception rule pertaining to I<eid_expr>.
+Note that I<eid_expr> must exactly match the EID expression of the rule
+that is to be modified, including any terminating wild-card character.
+
+=item B<d babrxrule> I<eid_expr>
+
+The B<delete babrxrule> command.  This command deletes the BAB reception
+rule pertaining to I<eid_expr>.  Note that I<eid_expr> must exactly match
+the EID expression of the rule that is to be deleted, including any
+terminating wild-card character.
+
+=item B<d babrxrule> I<eid_expr>
+
+This command will print information (the ciphersuite and key names) about the
+BAB reception rule pertaining to I<eid_expr>.
+
+=item B<l babrxrule>
+
+This command lists all BAB reception rules in the security policy database.
+
+=item B<a babtxrule> I<eid_expr> I<ciphersuite_name> I<key_name>
+
+The B<add babtxrule> command.  This command adds a rule specifying the
+manner in which Bundle Authentication Block (BAB) production will be applied
+to all bundles sent to any endpoint whose ID matches I<eid_expr>.
+If the last character of I<eid_expr> is the wild-card character '*'
+then a receiving endpoint ID matches this EID expression when all
+characters of I<eid_expr> prior to the last are equal to the corresponding
+characters of that endpoint ID; otherwise the rule pertains only to bundles
+whose receiving EID is exactly equal to I<eid_expr>.
+
+If I<ciphersuite_name> is a zero-length string ('') then BAB production
+is disabled for I<eid_expr>: BABs will be omitted from all bundles sent to
+matching endpoints.  Otherwise, each bundle sent to any matching endpoint
+will contain a BAB computed via the ciphersuite named by I<ciphersuite_name>
+using a key value that is identical to the current value of the key named
+I<key_name> in the local security policy database.
+
+=item B<c babtxrule> I<eid_expr> I<ciphersuite_name> I<key_name>
+
+The B<change babtxrule> command.  This command changes the ciphersuite
+name and/or key name for the BAB transmission rule pertaining to I<eid_expr>.
+Note that I<eid_expr> must exactly match the EID expression of the rule
+that is to be modified, including any terminating wild-card character.
+
+=item B<d babtxrule> I<eid_expr>
+
+The B<delete babtxrule> command.  This command deletes the BAB transmission
+rule pertaining to I<eid_expr>.  Note that I<eid_expr> must exactly match
+the EID expression of the rule that is to be deleted, including any
+terminating wild-card character.
+
+=item B<d babtxrule> I<eid_expr>
+
+This command will print information (the ciphersuite and key names) about the
+BAB transmission rule pertaining to I<eid_expr>.
+
+=item B<l babtxrule>
+
+This command lists all BAB transmission rules in the security policy database.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item a key BABKEY ./babkey.txt
+
+Adds a new key named "BABKEY" whose value is the content of the file
+"./babkey.txt".
+
+=item a babrxrule ipn:19.* HMAC_SHA1 BABKEY
+
+Adds a BAB reception rule requiring that all bundles received from
+node number 19 contain Bundle Authentication Blocks computed via the
+HMAC_SHA1 ciphersuite using a key value that is identical to the current
+value of the key named "BABKEY" in the local security policy database.
+
+=item c babrxrule ipn:19.* '' ''
+
+Changes the a BAB reception rule pertaining to all bundles received from
+node number 19.  BAB checking is disabled; these bundles will be
+automatically deemed authentic.
+
+=back
+
+=head1 SEE ALSO
+
+ionsecadmin(1)

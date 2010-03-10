@@ -1,0 +1,103 @@
+=head1 NAME
+
+udpclo - UDP-based BP convergence layer output task
+
+=head1 SYNOPSIS
+
+B<udpclo>
+
+=head1 DESCRIPTION
+
+B<udpclo> is a background "daemon" task that extracts bundles from the
+queues of bundles ready for transmission via UDP to remote bundle protocol
+agents, encapsulates them in UDP datagrams, and sends those datagrams to
+the appropriate remote UDP sockets as indicated by the host names and
+UDP port numbers (destination induct names) associated with the bundles
+by the routing daemons that enqueued them.
+
+Note that B<udpclo> is a "promiscuous" CLO daemon, able to transmit bundles
+to any UDP destination induct.  Its duct name is '*' rather than
+the induct name of any single UDP destination induct to which it might be
+dedicated, so scheme configuration directives that cite this outduct must
+provide destination induct IDs.  For the UDP convergence-layer protocol,
+destination induct IDs are identical to induct names, i.e., they are of
+the form I<local_hostname>[:I<local_port_nbr>].
+
+B<udpclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.  B<udpclo> can also be
+spawned and terminated in response to START and STOP commands that pertain
+specifically to the UDP convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item 0
+
+B<udpclo> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<udpclo>.
+
+=item 1
+
+B<udpclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<udpclo>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item udpclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No memory for UDP buffer in udpclo.
+
+ION system error.  Check errtext, correct problem, and restart UDP.
+
+=item No such udp duct.
+
+No UDP outduct with duct name '*' has been added to the BP database.  Use
+B<bpadmin> to stop the UDP convergence-layer protocol, add the outduct, and
+then restart the UDP protocol.
+
+=item CLO task is already started for this engine.
+
+Redundant initiation of B<udpclo>.
+
+=item CLO can't open UDP socket
+
+Operating system error.  Check errtext, correct problem, and restart B<udpclo>.
+
+=item CLO write() error on socket
+
+Operating system error.  Check errtext, correct problem, and restart B<udpclo>.
+
+=item Bundle is too big for UDP CLA.
+
+Configuration error: bundles that are too large for UDP transmission (i.e.,
+larger than 65535 bytes) are being enqueued for B<udpclo>.  Change routing.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), udpcli(1)

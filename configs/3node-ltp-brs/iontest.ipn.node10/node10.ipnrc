@@ -1,0 +1,6 @@
+# Node 10 has an LTP/UDP/IP loopback route.
+# It talks to node 5 by BRSS -- it is the BRS server.
+# Routes to all other nodes are computed dynamically from the contact graph.
+#
+a plan 10 node10 x ltp/10
+a plan 5 node5 x brss/brss.jpl.nasa.gov:5001,5

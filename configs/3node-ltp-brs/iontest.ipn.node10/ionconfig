@@ -1,0 +1,8 @@
+wmSize 5000000
+wmAddress 0
+#	configFlags = 15 means that ION's data store is in DRAM with
+#	automatic write-through to a file, SDR transactions are reversible,
+#	and object boundaries are enforced.
+configFlags 15
+heapWords 5000000
+pathName /usr/ion

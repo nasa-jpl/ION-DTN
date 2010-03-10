@@ -1,0 +1,81 @@
+# shell script to populate RTEMS build directory with sym links to source files.
+#!/bin/bash
+ln -s ../ici/library/platform.c
+ln -s ../ici/library/platform_sm.c
+ln -s ../ici/library/memmgr.c
+ln -s ../ici/library/llcv.c
+ln -s ../ici/library/lyst.c
+ln -s ../ici/library/lystP.h
+ln -s ../ici/library/psm.c
+ln -s ../ici/library/smlist.c
+ln -s ../ici/library/ion.c
+ln -s ../ici/library/ionsec.c
+ln -s ../ici/library/rfx.c
+ln -s ../ici/library/zco.c
+ln -s ../ici/sdr/sdrtable.c
+ln -s ../ici/sdr/sdrhash.c
+ln -s ../ici/sdr/sdrxn.c
+ln -s ../ici/sdr/sdrP.h
+ln -s ../ici/sdr/sdrmgt.c
+ln -s ../ici/sdr/sdrstring.c
+ln -s ../ici/sdr/sdrlist.c
+ln -s ../ici/sdr/sdrcatlg.c
+ln -s ../ici/daemon/rfxclock.c
+ln -s ../ici/utils/ionadmin.c
+ln -s ../ici/utils/ionsecadmin.c
+ln -s ../ici/utils/sdrmend.c
+ln -s ../bp/library/libbp.c
+ln -s ../bp/library/libbpP.c
+ln -s ../bp/library/bpP.h
+ln -s ../bp/library/ecos.c
+ln -s ../bp/library/ecos.h
+ln -s ../bp/library/bsp.c
+ln -s ../bp/library/ionbsp.h
+ln -s ../bp/library/BAB_HMAC/hmac.c
+ln -s ../bp/library/BAB_HMAC/hmac.h
+ln -s ../bp/library/BAB_HMAC/sha1.c
+ln -s ../bp/library/BAB_HMAC/sha1.h
+ln -s ../bp/library/sample.bpextensions.c bpextensions.c
+ln -s ../bp/daemon/bpclock.c
+ln -s ../bp/utils/bpadmin.c
+ln -s ../bp/utils/bpstats.c
+ln -s ../bp/utils/bptrace.c
+ln -s ../bp/utils/bplist.c
+ln -s ../bp/utils/lgagent.c
+ln -s ../bp/test/bpsource.c
+ln -s ../bp/test/bpsink.c
+ln -s ../bp/ipn/ipnadmin.c
+ln -s ../bp/ipn/libipnfw.c
+ln -s ../bp/ipn/ipnfw.c
+ln -s ../bp/ipn/ipnfw.h
+ln -s ../bp/dtn2/libdtn2fw.c
+ln -s ../bp/dtn2/dtn2fw.h
+ln -s ../bp/ipn/ipnadminep.c
+ln -s ../bp/cgr/libcgr.c
+ln -s ../bp/ltp/ltpcli.c
+ln -s ../bp/ltp/ltpclo.c
+ln -s ../bp/ltp/ltpcla.h
+ln -s ../ltp/library/libltp.c
+ln -s ../ltp/library/libltpP.c
+ln -s ../ltp/library/ltpP.h
+ln -s ../ltp/daemon/ltpclock.c
+ln -s ../ltp/daemon/ltpmeter.c
+ln -s ../ltp/utils/ltpadmin.c
+ln -s ../cfdp/library/libcfdp.c
+ln -s ../cfdp/library/libcfdpops.c
+ln -s ../cfdp/library/libcfdpP.c
+ln -s ../cfdp/library/cfdpP.h
+ln -s ../cfdp/bp/bputa.c
+ln -s ../cfdp/daemon/cfdpclock.c
+ln -s ../cfdp/utils/cfdpadmin.c
+
+# Optional extra stuff for testing.
+
+# ln -s ../ici/library/sptrace.c
+# ln -s ../bp/test/bpdriver.c
+# ln -s ../bp/test/bpecho.c
+# ln -s ../bp/test/bpcounter.c
+# ln -s ../bp/test/bpsource.c
+# ln -s ../bp/test/bpsink.c
+# ln -s ../bp/utils/bpsendfile.c
+# ln -s ../bp/utils/bprecvfile.c

@@ -1,0 +1,11 @@
+# Node 5 has a BRSC loopback route (i.e., it sends bundles to itself via
+# the BRS server at node 10).  It also talks to node 10 by BRSC to
+# the BRS server at node 10.
+# It talks to node 7 by LTP/UDP/IP.
+# For all other nodes it uses a default route: via node 7.  There is no
+# dynamic route computation.
+#
+a plan 5  node5 x brsc/brss.jpl.nasa.gov:5001_5
+a plan 10 node10 x brsc/brss.jpl.nasa.gov:5001_5
+a plan 7 node7 x ltp/7
+a group 1 9999 7

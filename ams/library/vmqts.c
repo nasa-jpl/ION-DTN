@@ -1,0 +1,278 @@
+/*
+	vmqts.c:	functions implementing VMQ (vxWorks message
+			queue) transport service for AMS.
+
+	Author: Scott Burleigh, JPL
+
+	Copyright (c) 2005, California Institute of Technology.
+	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
+	acknowledged.
+									*/
+#if defined (VXWORKS) || defined (RTEMS)
+
+#include "amsP.h"
+
+#define	VMQTS_MAX_MSG_LEN	65535
+
+typedef MSG_Q_ID		VmqTsep;
+
+/*	*	*	*	MAMS stuff	*	*	*	*/
+
+/*	VMQ is not suitable as a primary transport service: the
+ *	endpoint ID for the configuration server can't be specified
+ *	before the endpoint is created, so it can't be advertised in
+ *	the MIB to registrars and nodes.  There may be some clever
+ *	way around this, using indirection and artificial message
+ *	queue IDs, but the ability to use VMQ as the PTS doesn't
+ *	seem to be worth the extra complexity.  We just don't do it.	*/
+
+static int	vmqComputeCsepName(char *endpointSpec, char *endpointName)
+{
+	putErrmsg("Sorry, no PTS support implemented in vmqts.", NULL);
+	return -1;
+}
+
+int	vmqMamsInit(MamsInterface *tsif)
+{
+	putErrmsg("Sorry, no PTS support implemented in vmqts.", NULL);
+	return -1;
+}
+
+static void	*vmqMamsReceiver(void *parm)
+{
+	putErrmsg("Sorry, no PTS support implemented in vmqts.", NULL);
+	return NULL;
+}
+
+static int	vmqParseMamsEndpoint(MamsEndpoint *ep)
+{
+	putErrmsg("Sorry, no PTS support implemented in vmqts.", NULL);
+	return -1;
+}
+
+static void	vmqClearMamsEndpoint(MamsEndpoint *ep)
+{
+	putErrmsg("Sorry, no PTS support implemented in vmqts.", NULL);
+}
+
+static int	vmqSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
+			int msgLen)
+{
+	putErrmsg("Sorry, no PTS support implemented in vmqts.", NULL);
+	return -1;
+}
+
+/*	*	*	*	AMS stuff	*	*	*	*/
+
+static int	vmqAmsInit(AmsInterface *tsif, char *epspec)
+{
+	MSG_Q_ID	vmqSap;
+	char		endpointNameText[32];
+
+#ifdef VXMP
+	vmqSap = msgQSmCreate(1, VMQTS_MAX_MSG_LEN, MSG_Q_FIFO);
+#else
+	vmqSap = msgQCreate(1, VMQTS_MAX_MSG_LEN, MSG_Q_FIFO);
+#endif
+	if (vmqSap == NULL)
+	{
+		putSysErrmsg("vmqts can't open AMS SAP", NULL);
+		return -1;
+	}
+
+	tsif->diligence = AmsAssured;
+	tsif->sequence = AmsTransmissionOrder;
+	sprintf(endpointNameText, "%u", vmqSap);
+	tsif->ept = MTAKE(strlen(endpointNameText));
+	if (tsif->ept == NULL)
+	{
+		msgQDelete(vmqSap);
+		putSysErrmsg(NoMemoryMemo, NULL);
+		return -1;
+	}
+
+	strcpy(tsif->ept, endpointNameText);
+	tsif->sap = vmqSap;
+	return 0;
+}
+
+static void	*vmqAmsReceiver(void *parm)
+{
+	AmsInterface	*tsif = (AmsInterface *) parm;
+	MSG_Q_ID	vmqSap;
+	AmsSAP		*amsSap;
+	char		*buffer;
+	sigset_t	signals;
+	int		length;
+	int		errnbr;
+
+	vmqSap = (MSG_Q_ID) (tsif->sap);
+	amsSap = tsif->amsSap;
+	buffer = MTAKE(VMQTS_MAX_MSG_LEN);
+	if (buffer == NULL)
+	{
+		putSysErrmsg(NoMemoryMemo, NULL);
+		return NULL;
+	}
+
+	sigfillset(&signals);
+	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+	while (1)
+	{
+		length = msgQReceive(vmqSap, buffer, VMQTS_MAX_MSG_LEN,
+				WAIT_FOREVER);
+		if (length == ERROR)
+		{
+			msgQDelete(vmqSap);
+			MRELEASE(buffer);
+			tsif->sap = NULL;
+			return NULL;
+		}
+
+		/*	Got an AMS message.				*/
+
+		if (enqueueAmsMsg(amsSap, buffer, length) < 0)
+		{
+			putErrmsg("vmqts discarded AMS message.", NULL);
+		}
+	}
+}
+
+static int	vmqParseAmsEndpoint(AmsEndpoint *dp)
+{
+	VmqTsep	tsep;
+
+	if (dp == NULL || dp->ept == NULL)
+	{
+		errno = EINVAL;
+		putErrmsg("vmqts can't parse AMS endpoint.", NULL);
+		return -1;
+	}
+
+	if (sscanf(dp->ept, "%u", &tsep) != 1)
+	{
+		errno = EINVAL;
+		putErrmsg("vmqts found AMS endpoint name invalid.", dp->ept);
+		return -1;
+	}
+
+	dp->tsep = MTAKE(sizeof(VmqTsep));
+	if (dp->tsep == NULL)
+	{
+		putSysErrmsg("vmqts can't record parsed AMS endpoint name.",
+				NULL);
+		return -1;
+	}
+
+	memcpy((char *) (dp->tsep), (char *) &tsep, sizeof(VmqTsep));
+
+	/*	Also parse out the service mode of this endpoint.	*/
+
+	dp->diligence = AmsAssured;
+	dp->sequence = AmsTransmissionOrder;
+	return 0;
+}
+
+static void	vmqClearAmsEndpoint(AmsEndpoint *dp)
+{
+	if (dp->tsep)
+	{
+		MRELEASE(dp->tsep);
+	}
+}
+
+static int	vmqSendAms(AmsEndpoint *dp, AmsSAP *sap,
+			unsigned char flowLabel, char *header,
+			int headerLen, char *content, int contentLen)
+{
+	static char	vmqAmsBuf[VMQTS_MAX_MSG_LEN];
+	int		len;
+	VmqTsep		*tsep;
+	unsigned short	checksum;
+
+	if (dp == NULL || sap == NULL || header == NULL || headerLen < 0
+	|| contentLen < 0 || (contentLen > 0 && content == NULL)
+	|| (len = (headerLen + contentLen + 2)) > VMQTS_MAX_MSG_LEN)
+	{
+		errno = EINVAL;
+		putErrmsg("Can't use VMQ to send AMS message.", NULL);
+		return -1;
+	}
+
+	tsep = (VmqTsep *) (dp->tsep);
+//printf("in vmqSendAms, tsep is %d.\n", (int) tsep);
+	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
+	{
+		return 0;
+	}
+
+	memcpy(vmqAmsBuf, header, headerLen);
+	if (contentLen > 0)
+	{
+		memcpy(vmqAmsBuf + headerLen, content, contentLen);
+	}
+
+	checksum = computeAmsChecksum((unsigned char *) vmqAmsBuf,
+			headerLen + contentLen);
+	checksum = htons(checksum);
+	memcpy(vmqAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
+	if (msgQSend(*tsep, vmqAmsBuf, len, WAIT_FOREVER, MSG_PRI_NORMAL)
+			== ERROR)
+	{
+//puts("vmqSendAms failed.");
+		return -1;
+	}
+
+//puts("vmqSendAms succeeded.");
+	return 0;
+}
+
+static void	vmqShutdown(void *sap)
+{
+	MSG_Q_ID	vmqSap = (MSG_Q_ID) sap;
+
+	msgQDelete(vmqSap);
+}
+
+void	vmqtsLoadTs(TransSvc *ts)
+{
+	char		ownHostName[MAXHOSTNAMELEN + 1];
+	unsigned int	ipAddress;
+	static char	vmqName[32];
+
+	/*	NOTE: VX message queue endpoints are uniquely
+	 *	identified by MSG_Q_ID (a pointer to a message
+	 *	queue structure, as returned by msgQCreate or
+	 *	msgQSmCreate) within transport service name,
+	 *	which is different for each memory space within
+	 *	which message queues can be created.  We assume
+	 *	that IP address can be used as the unique identifier
+	 *	of each such message space.  For a shared-memory
+	 *	message queue, the message space identifier needs
+	 *	to uniquely identify the set of processors sharing
+	 *	access to the memory board in which the shared-memory
+	 *	message queues are constructed; IP address may not
+	 *	be sufficient for this purpose, in which case some
+	 *	other unique identifier will be needed, e.g.,
+	 *	spacecraft ID.  We haven't yet figured out how to
+	 *	implement this.						*/
+
+	getNameOfHost(ownHostName, sizeof ownHostName);
+	ipAddress = getInternetAddress(ownHostName);
+	sprintf(vmqName, "vmq%u", ipAddress);
+	ts->name = vmqName;
+	ts->csepNameFn = vmqComputeCsepName;
+	ts->mamsInitFn = vmqMamsInit;
+	ts->mamsReceiverFn = vmqMamsReceiver;
+	ts->parseMamsEndpointFn = vmqParseMamsEndpoint;
+	ts->clearMamsEndpointFn = vmqClearMamsEndpoint;
+	ts->sendMamsFn = vmqSendMams;
+	ts->amsInitFn = vmqAmsInit;
+	ts->amsReceiverFn = vmqAmsReceiver;
+	ts->parseAmsEndpointFn = vmqParseAmsEndpoint;
+	ts->clearAmsEndpointFn = vmqClearAmsEndpoint;
+	ts->sendAmsFn = vmqSendAms;
+	ts->shutdownFn = vmqShutdown;
+}
+
+#endif

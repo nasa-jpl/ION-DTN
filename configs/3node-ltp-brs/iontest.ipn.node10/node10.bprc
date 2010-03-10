@@ -1,0 +1,13 @@
+1 ipn:10.0
+a scheme ipn 1 'ipnfw' 'ipnadminep'
+a endpoint ipn 10.0 x
+a endpoint ipn 10.1 x
+a endpoint ipn 10.2 x
+a protocol ltp 1400 100
+a induct ltp 10 ltpcli
+a outduct ltp 10 ltpclo
+a protocol brss 1400 100
+a induct brss brss.jpl.nasa.gov:5001 brsscla
+a outduct brss brss.jpl.nasa.gov:5001 ''
+r 'ipnadmin node10.ipnrc'
+s

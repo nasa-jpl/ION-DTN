@@ -1,0 +1,7 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.1 q
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4556 udpcli
+a outduct udp * udpclo
+s

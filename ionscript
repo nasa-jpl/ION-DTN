@@ -1,0 +1,265 @@
+#!/bin/bash
+#
+# ionscript
+# David Young
+# Sep 20, 2008
+#
+# The program will manage the various configuration files needed to start an
+# ion node.  It will take several specified rc files (man ionrc ltprc bprc ipnrc
+# dtn2rc) and put them into a single large configuration file with the
+# appropriate section markers as needed by ionstart.sh.
+# The program can also perform the opposite function: take a single large
+# formatted configuration file, as would be used by ionstart.sh, and split it
+# into individual components.
+# The program supports the optional TAG for storing more than one configuration
+# into the same file (only in the larger file) and also supports appending to
+# the larger file, to fully utilize this feature.
+# The program also tries it's best to clean out the marker lines when splitting
+# a large configuration into a smaller one. NOTE: this will remove any lines
+# from the configuration which start with '##'
+
+# the location of the awkscript.
+# defining the environment variable AWKSCRIPT before running this script
+# will work (for things like make test) before installation
+if [[ ! -r "${AWKSCRIPT}" ]] ; then
+	SUBFOLDER=`dirname "${0}"`
+	# assuming this bash script is installed with the usual binaries from autoconf
+	AWKSCRIPT="${SUBFOLDER}/../share/ion/ionstart.awk"
+	if [[ ! -r "${AWKSCRIPT}" ]] ; then
+		echo
+		echo "Didn't find awk script in ${AWKSCRIPT} now searching locally..."
+		# assume the bash script is in the same location as the awk script
+		AWKSCRIPT="${SUBFOLDER}/ionstart.awk"
+		if [[ ! -r "${AWKSCRIPT}" ]] ; then
+			echo
+			echo "Cannot find the location of the awk script."
+			echo "I thought it would be ${AWKSCRIPT} , but nothing is there."
+			echo "Set the environment variable AWKSCRIPT or edit me in ${0}"
+			exit 1
+		fi
+	fi
+fi
+
+function USAGE {
+	echo
+	echo "IONSCRIPT: Interplanetary Overlay Network configuration creation script."
+	echo "USAGE:"
+	echo "	ionscript <-I input | -O output> [-a] [-t tag] [-b bprc] [-c cfdprc]"
+	echo "	          [-d dtn2rc] [-i ionrc] [-l ltprc] [-p ipnrc] [-s ionsecrc]"
+	echo
+	echo "	-I input	Specifies file containing the configuration for each"
+	echo "			ion administration program. Each section must be"
+	echo "			preceded by: ## begin programname tag"
+	echo "			and proceeded by: ## end programname tag"
+	echo "			If this INPUT option is defined, then the files"
+	echo "			defined in -b -d -i -l -p will be OUTPUT with the"
+	echo "			appropriate configuration section."
+	echo
+	echo "	-O output	Specifies file to contain the configuration for each"
+	echo "			ion administration program. Each section will be"
+	echo "			preceded by: ## begin programname tag"
+	echo "			and proceeded by: ## end programname tag"
+	echo "			If this OUTPUT option is defined, then the files"
+	echo "			defined in -b -d -i -l -p will be be used to add"
+	echo "			an appropriate configuration section to output."
+	echo
+	echo "	-t tag		Optional tag, used to specify which sections are used"
+	echo "			in config file.  If unspecified, sections with no tag"
+	echo "			are used."
+	echo
+	echo "	-a		Specifies if the output files are to be appended to"
+	echo "			instead of overwritten."
+	echo
+	echo "	-b bprc		Specifies file bprc to be used with bpadmin."
+	echo "			Default filename is input|output.tag.bprc."
+	echo "	-c cfdprc	Specifies file cfdprc to be used with cfdpadmin."
+	echo "			Default filename is input|output.tag.cfdprc."
+	echo "	-d dtn2rc	Specifies file dtn2rc to be used with dtn2admin."
+	echo "			Default filename is input|output.tag.dtn2rc."
+	echo "	-i ionrc	Specifies file ionrc to be used with ionadmin."
+	echo "			Default filename is input|output.tag.ionrc."
+	echo "	-l ltprc	Specifies file ltprc to be used with ltpadmin."
+	echo "			Default filename is input|output.tag.ltprc."
+	echo "	-p ipnrc	Specifies file ipnrc to be used with ipnadmin."
+	echo "			Default filename is input|output.tag.ipnrc."
+	echo "	-s ionsecrc	Specifies file ionsecrc to be used with ionsecadmin."
+	echo "			Default filename is input|output.tag.ionsecrc."
+}
+
+# check for all the options
+while getopts ":i:d:c:p:b:l:I:O:t:s:ha" options; do
+	case $options in
+		I ) INPUTFILE="${OPTARG}"
+			DEFAULTBASEFILE="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The inputfile ${OPTARG} can't be read."
+				failure="TRUE"
+			fi
+			if [[ -n "${OUTPUTFILE}" ]] ; then
+				echo
+				echo "You cannot define both -I input and -O output."
+				USAGE
+				exit 1
+			fi;;
+		O ) OUTPUTFILE="${OPTARG}"
+			DEFAULTBASEFILE="${OPTARG}"
+			if [[ -n "${INPUTFILE}" ]] ; then
+				echo
+				echo "You cannot define both -I input and -O output."
+				USAGE
+				exit 1
+			fi;;
+		t ) TAG="${OPTARG}";;
+#ignore the individual file options, because you don't know what they should be.
+		a ) ;;
+		b ) ;;
+		c ) ;;
+		d ) ;;
+		i ) ;;
+		l ) ;;
+		p ) ;;
+		s ) ;;
+		h ) USAGE
+			exit 1;;
+		\? ) USAGE
+			exit 1;;
+		* ) USAGE
+			exit 1;;
+	esac
+done
+
+if [[ -z "${INPUTFILE}" && -z "${OUTPUTFILE}" ]] ; then
+	echo
+	echo "You must define either -I input or -O output."
+	USAGE
+	exit 1
+fi
+
+# now the script is either going to fill an -O OUTPUT file with the contents of
+# -i -d -p -b -l OR the script will use the -I INPUT file and split into component
+# parts to be put into -i -d -p -b -l 
+
+# fill in the default base filenames
+if [[ -n "${TAG}" ]] ; then
+	DEFAULTBASEFILE="${DEFAULTBASEFILE}.${TAG}"
+fi
+IONRC="${DEFAULTBASEFILE}.ionrc"
+LTPRC="${DEFAULTBASEFILE}.ltprc"
+BPRC="${DEFAULTBASEFILE}.bprc"
+CFDPRC="${DEFAULTBASEFILE}.cfdprc"
+IPNRC="${DEFAULTBASEFILE}.ipnrc"
+DTN2RC="${DEFAULTBASEFILE}.dtn2rc"
+IONSECRC="${DEFAULTBASEFILE}.ionsecrc"
+
+# reset options index to reuse getopts
+OPTIND=1
+options=""
+while getopts ":i:d:c:p:b:l:I:O:t:s:ha" options; do
+	case $options in
+		i ) IONRC="${OPTARG}";;
+		d ) DTN2RC="${OPTARG}";;
+		p ) IPNRC="${OPTARG}";;
+		b ) BPRC="${OPTARG}";;
+		c ) CFDPRC="${OPTARG}";;
+		l ) LTPRC="${OPTARG}";;
+		s ) IONSECRC="${OPTARG}";;
+		a ) append="TRUE";;
+# the input, output, tag options have already been used, ignore them
+		I ) ;;
+		O ) ;;
+		t ) ;;
+		h ) USAGE
+			exit 1;;
+		\? ) USAGE
+			exit 1;;
+		* ) USAGE
+			exit 1;;
+	esac
+done
+
+# if there is an input file, we will convert INPUTFILE -> ionrc, dtn2rc, ipnrc, etc
+if [[ -n "${INPUTFILE}" ]] ; then
+	echo
+	echo "I will now split the large input configuration file into its component parts."
+	echo
+	awk -f "${AWKSCRIPT}" -v configfile="${INPUTFILE}" -v tag="${TAG}" -v echo="cat" -v append="${append}" -v ionrc="${IONRC}" -v ltprc="${LTPRC}" -v bprc="${BPRC}" -v cfdprc="${CFDPRC}" -v ipnrc="${IPNRC}" -v dtn2rc="${DTN2RC}" -v ionsecrc="${IONSECRC}" "${INPUTFILE}"
+else
+# there is an OUTPUTFILE, which will contain the contents of ionrc, dtn2rc, ipnrc etc.
+	datenow=`date`
+	if [[ "${append}" == "TRUE" ]] ; then
+		echo
+		echo "I will now append the individual configuration files into one large file."
+		echo "## File modified by ${0}" >>"${OUTPUTFILE}"
+		echo "## ${datenow}" >>"${OUTPUTFILE}"
+		echo "## Run the following command to start ION node:" >>"${OUTPUTFILE}"
+		echo "##	% ionstart -I \"${OUTPUTFILE}\"" >>"${OUTPUTFILE}"
+		
+	else
+		echo
+		echo "I will now create a new configuration file."
+		echo "## File created by ${0}" >"${OUTPUTFILE}"
+		echo "## ${datenow}" >>"${OUTPUTFILE}"
+		echo "## Run the following command to start ION node:" >>"${OUTPUTFILE}"
+		echo "##	% ionstart -I \"${OUTPUTFILE}\"" >>"${OUTPUTFILE}"
+	fi
+	if [[ -r "${IONRC}" ]] ; then
+		echo
+		echo "Appending ${IONRC} into ${OUTPUTFILE}."
+		echo >>"${OUTPUTFILE}"
+		echo "## begin ionadmin ${TAG}" >>"${OUTPUTFILE}"
+		cat "${IONRC}" >>"${OUTPUTFILE}"
+		echo "## end ionadmin ${TAG}" >>"${OUTPUTFILE}"
+	fi
+	if [[ -r "${IONSECRC}" ]] ; then
+		echo
+		echo "Appending ${IONSECRC} into ${OUTPUTFILE}."
+		echo >>"${OUTPUTFILE}"
+		echo "## begin ionsecadmin ${TAG}" >>"${OUTPUTFILE}"
+		cat "${IONRC}" >>"${OUTPUTFILE}"
+		echo "## end ionsecadmin ${TAG}" >>"${OUTPUTFILE}"
+	fi
+	if [[ -r "${LTPRC}" ]] ; then
+		echo
+		echo "Appending ${LTPRC} into ${OUTPUTFILE}."
+		echo >>"${OUTPUTFILE}"
+		echo "## begin ltpadmin ${TAG}" >>"${OUTPUTFILE}"
+		cat "${LTPRC}" >>"${OUTPUTFILE}"
+		echo "## end ltpadmin ${TAG}" >>"${OUTPUTFILE}"
+	fi
+	if [[ -r "${BPRC}" ]] ; then
+		echo
+		echo "Appending ${BPRC} into ${OUTPUTFILE}."
+		echo >>"${OUTPUTFILE}"
+		echo "## begin bpadmin ${TAG}" >>"${OUTPUTFILE}"
+		cat "${BPRC}" >>"${OUTPUTFILE}"
+		echo "## end bpadmin ${TAG}" >>"${OUTPUTFILE}"
+	fi
+	if [[ -r "${CFDPRC}" ]] ; then
+		echo
+		echo "Appending ${CFDPRC} into ${OUTPUTFILE}."
+		echo >>"${OUTPUTFILE}"
+		echo "## begin cfdpadmin ${TAG}" >>"${OUTPUTFILE}"
+		cat "${CFDPRC}" >>"${OUTPUTFILE}"
+		echo "## end cfdpadmin ${TAG}" >>"${OUTPUTFILE}"
+	fi
+	if [[ -r "${IPNRC}" ]] ; then
+		echo
+		echo "Appending ${IPNRC} into ${OUTPUTFILE}."
+		echo >>"${OUTPUTFILE}"
+		echo "## begin ipnadmin ${TAG}" >>"${OUTPUTFILE}"
+		cat "${IPNRC}" >>"${OUTPUTFILE}"
+		echo "## end ipnadmin ${TAG}" >>"${OUTPUTFILE}"
+	fi
+	if [[ -r "${DTN2RC}" ]] ; then
+		echo
+		echo "Appending ${DTN2RC} into ${OUTPUTFILE}."
+		echo >>"${OUTPUTFILE}"
+		echo "## begin dtn2admin ${TAG}" >>"${OUTPUTFILE}"
+		cat "${DTN2RC}" >>"${OUTPUTFILE}"
+		echo "## end dtn2admin ${TAG}" >>"${OUTPUTFILE}"
+	fi
+fi
+
+echo
+echo "ION configuration creation script completed."

@@ -1,0 +1,11 @@
+# shell script to remove all of my IPC keys
+#!/bin/bash
+bpadmin		.
+sleep 1
+ltpadmin	.
+sleep 1
+ionadmin	.
+sleep 1
+for Q in `ipcs -q | grep $USER | awk '{ print $2 }'`; do ipcrm msg $Q; done
+for M in `ipcs -m | grep $USER | awk '{ print $2 }'`; do ipcrm shm $M; done
+for S in `ipcs -s | grep $USER | awk '{ print $2 }'`; do ipcrm sem $S; done

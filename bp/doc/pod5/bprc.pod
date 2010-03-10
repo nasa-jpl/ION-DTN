@@ -1,0 +1,352 @@
+=head1 NAME
+
+bprc - Bundle Protocol management commands file
+
+=head1 DESCRIPTION
+
+Bundle Protocol management commands are passed to B<bpadmin> either in a file of
+text lines or interactively at B<bpadmin>'s command prompt (:).  Commands
+are interpreted line-by line, with exactly one command per line.  The formats
+and effects of the Bundle Protocol management commands are described below.
+
+=head1 GENERAL COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by bpadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<1>
+
+The B<initialize> command.  Until this command is executed, Bundle Protocol
+is not in operation on the local ION node and most I<bpadmin> commands will
+fail.
+
+=item B<r> 'I<command_text>'
+
+The B<run> command.  This command will execute I<command_text> as if it
+had been typed at a console prompt.  It is used to, for example, run
+another administrative program.
+
+=item B<s>
+
+The B<start> command.  This command starts all schemes and all protocols
+on the local node.
+
+=item B<x>
+
+The B<stop> command.  This command stops all schemes and all protocols
+on the local node.
+
+=item B<w> { 0 | 1 | I<activity_spec> }
+
+The B<BP watch> command.  This command enables and disables production of
+a continuous stream of user-selected Bundle Protocol activity indication
+characters.  A watch parameter of "1" selects
+all BP activity indication characters; "0" de-selects all BP activity
+indication characters; any other I<activity_spec> such as "acz~" selects
+all activity indication characters in the string, de-selecting all
+others.  BP will print each selected activity indication character to
+B<stdout> every time a processing event of the associated type occurs:
+
+B<a>	bundle is queued for forwarding
+
+B<b>	bundle is queued for transmission
+
+B<c>	bundle is popped from its transmission queue
+
+B<m>	custody acceptance signal is received
+
+B<w>	custody of bundle is accepted
+
+B<x>	custody of bundle is refused
+
+B<y>	bundle is accepted upon arrival
+
+B<z>	bundle is queued for delivery to an application
+
+B<~>	bundle is abandoned (discarded) on attempt to forward it
+
+B<!>	bundle is destroyed due to TTL expiration
+
+B<&>	custody refusal signal is received
+
+B<#>	custodial bundle is queued for re-forwarding due to CL protocol failure
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 SCHEME COMMANDS
+
+=over 4
+
+=item B<a scheme> I<scheme_name> 'I<forwarder_command>' 'I<admin_app_command>'
+
+The B<add scheme> command.  This command declares an endpoint naming
+"scheme" for use in endpoint IDs, which are structured as URIs:
+I<scheme_name>:I<scheme-specific_part>.  I<forwarder_command> will be
+executed when the scheme is started on this node, to initiate operation
+of a forwarding daemon for this scheme.  I<admin_app_command> will also
+be executed when the scheme is started on this node, to initiate
+operation of a daemon that opens a custodian endpoint identified within
+this scheme so that it can receive and process custody signals and bundle
+status reports.
+
+=item B<c scheme> I<scheme_name> 'I<forwarder_command>' 'I<admin_app_command>'
+
+The B<change scheme> command.  This command sets the indicated scheme's 
+I<forwarder_command> and I<admin_app_command> to the strings provided
+as arguments.
+
+=item B<d scheme> I<scheme_name>
+
+The B<delete scheme> command.  This command deletes the scheme identified
+by I<scheme_name>.  The command will fail if any bundles identified in
+this scheme are pending forwarding, transmission, or delivery.
+
+=item B<i scheme> I<scheme_name>
+
+This command will print information (number and commands) about
+the endpoint naming scheme identified by I<scheme_name>.
+
+=item B<l scheme>
+
+This command lists all declared endpoint naming schemes.
+
+=item B<s scheme> I<scheme_name>
+
+The B<start scheme> command.  This command starts the forwarder and
+administrative endpoint tasks for the indicated scheme task on the local node.
+
+=item B<x scheme> I<scheme_name>
+
+The B<stop scheme> command.  This command stops the forwarder and
+administrative endpoint tasks for the indicated scheme task on the local node.
+
+=back
+
+=head1 ENDPOINT COMMANDS
+
+=over 4
+
+=item B<a endpoint> I<endpoint_ID> { q | x } ['I<recv_script>']
+
+The B<add endpoint> command.  This command establishes a DTN endpoint named
+I<endpoint_ID> on the local node.  The remaining parameters indicate
+what is to be done when bundles destined for this endpoint arrive at a time
+when no application has got the endpoint open for bundle reception.  If 'x',
+then such bundles are to be discarded silently and immediately.  If 'q',
+then such bundles are to be enqueued for later delivery and, if I<recv_script>
+is provided, I<recv_script> is to be executed.
+
+=item B<c endpoint> I<endpoint_ID> { q | x } ['I<recv_script>']
+
+The B<change endpoint> command.  This command changes the action that is
+to be taken when bundles destined for this endpoint arrive at a time
+when no application has got the endpoint open for bundle reception, as
+described above.
+
+=item B<d endpoint> I<endpoint_ID>
+
+The B<delete endpoint> command.  This command deletes the endpoint identified
+by I<endpoint_ID>.  The command will fail if any bundles are currently
+pending delivery to this endpoint.
+
+=item B<i endpoint> I<endpoint_ID>
+
+This command will print information (disposition and script) about
+the endpoint identified by I<endpoint_ID>.
+
+=item B<l endpoint>
+
+This command lists all local endpoints, regardless of scheme name.
+
+=back
+
+=head1 PROTOCOL COMMANDS
+
+=over 4
+
+=item B<a protocol> I<protocol_name> I<payload_bytes_per_frame> I<overhead_bytes_per_frame> [I<nominal_data_rate>]
+
+The B<add protocol> command.  This command establishes access to the named
+convergence layer protocol at the local node.  The I<payload_bytes_per_frame>
+and I<overhead_bytes_per_frame> arguments are used in calculating the
+estimated transmission capacity consumption of each bundle, to aid in
+route computation and congestion forecasting.
+
+The optional I<nominal_data_rate> argument overrides the hard-coded default
+continuous data rate for the indicated protocol, for purposes of rate
+control.  For all CL protocols other than LTP, the protocol's applicable
+nominal continuous data rate is the data rate that is always used for
+rate control over links served by that protocol; data rates are not
+extracted from contact graph information.  This is because only the LTP
+induct and outduct throttles can be dynamically adjusted in response
+to changes in data rate between the local node and its neighbors,
+because (currently) there is no mechanism for mapping neighbor node
+number to the duct name for any other CL protocol.  For LTP, duct name
+is simply LTP engine number which, by convention, is identical to node
+number.  For all other CL protocols, the nominal data rate in each
+induct and outduct throttle is initially set to the protocol's configured
+nominal data rate and is never subsequently modified.
+
+=item B<d protocol> I<protocol_name>
+
+The B<delete protocol> command.  This command deletes the convergence layer
+protocol identified by I<protocol_name>.  The command will fail if any ducts
+are still locally declared for this protocol.
+
+=item B<i protocol> I<protocol_name>
+
+This command will print information about the convergence layer protocol
+identified by I<protocol_name>.
+
+=item B<l protocol>
+
+This command lists all convergence layer protocols that can currently
+be utilized at the local node.
+
+=item B<s protocol> I<protocol_name>
+
+The B<start protocol> command.  This command starts all induct and outduct
+tasks for inducts and outducts that have been defined for the indicated
+CL protocol on the local node.
+
+=item B<x protocol> I<protocol_name>
+
+The B<stop protocol> command.  This command stops all induct and outduct
+tasks for inducts and outducts that have been defined for the indicated
+CL protocol on the local node.
+
+=back
+
+=head1 INDUCT COMMANDS
+
+=over 4
+
+=item B<a induct> I<protocol_name> I<duct_name> 'I<CLI_command>'
+
+The B<add induct> command.  This command establishes a "duct" for reception
+of bundles via the indicated CL protocol.  The duct's data acquisition
+structure is used and populated by the "induct" task whose operation is
+initiated by I<CLI_command> at the time the duct is started.
+
+=item B<c induct> I<protocol_name> I<duct_name> 'I<CLI_command>'
+
+The B<change induct> command.  This command changes the command that is
+used to initiate operation of the induct task for the indicated duct.
+
+=item B<d induct> I<protocol_name> I<duct_name>
+
+The B<delete induct> command.  This command deletes the induct identified
+by I<protocol_name> and I<duct_name>.  The command will fail if any bundles
+are currently pending acquisition via this induct.
+
+=item B<i induct> I<protocol_name> I<duct_name>
+
+This command will print information (the CLI command) about
+the induct identified by I<protocol_name> and I<duct_name>.
+
+=item B<l induct> [I<protocol_name>]
+
+If I<protocol_name> is specified, this command lists all inducts
+established locally for the indicated CL protocol.  Otherwise it lists
+all locally established inducts, regardless of protocol.
+
+=item B<s induct> I<protocol_name> I<duct_name>
+
+The B<start induct> command.  This command starts the indicated induct 
+task as defined for the indicated CL protocol on the local node.
+
+=item B<x induct> I<protocol_name> I<duct_name>
+
+The B<stop induct> command.  This command stops the indicated induct 
+task as defined for the indicated CL protocol on the local node.
+
+=back
+
+=head1 OUTDUCT COMMANDS
+
+=over 4
+
+=item B<a outduct> I<protocol_name> I<duct_name> 'I<CLO_command>'
+
+The B<add outduct> command.  This command establishes a "duct" for transmission
+of bundles via the indicated CL protocol.  The duct's data transmission
+structure is serviced by the "outduct" task whose operation is
+initiated by I<CLO_command> at the time the duct is started.
+
+=item B<c outduct> I<protocol_name> I<duct_name> 'I<CLO_command>'
+
+The B<change outduct> command.  This command changes the command that is
+used to initiate operation of the outduct task for the indicated duct.
+
+=item B<d outduct> I<protocol_name> I<duct_name>
+
+The B<delete outduct> command.  This command deletes the outduct identified
+by I<protocol_name> and I<duct_name>.  The command will fail if any bundles
+are currently pending transmission via this outduct.
+
+=item B<i outduct> I<protocol_name> I<duct_name>
+
+This command will print information (the CLO command) about
+the outduct identified by I<protocol_name> and I<duct_name>.
+
+=item B<l outduct> [I<protocol_name>]
+
+If I<protocol_name> is specified, this command lists all outducts
+established locally for the indicated CL protocol.  Otherwise it lists
+all locally established outducts, regardless of protocol.
+
+=item B<s outduct> I<protocol_name> I<duct_name>
+
+The B<start outduct> command.  This command starts the indicated outduct 
+task as defined for the indicated CL protocol on the local node.
+
+=item B<x outduct> I<protocol_name> I<duct_name>
+
+The B<stop outduct> command.  This command stops the indicated outduct 
+task as defined for the indicated CL protocol on the local node.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item a scheme ipn 'ipnfw' 'ipnadminep'
+
+Declares the "ipn" scheme on the local node.
+
+=item a protocol udp 1400 100 16384
+
+Establishes access to the "udp" convergence layer protocol on the local
+node, estimating the number of payload bytes per ultimate (lowest-layer)
+frame to be 1400 with 100 bytes of total overhead (BP, UDP, IP, AOS) per
+lowest-layer frame, and setting the default nominal data rate to be 16384
+bytes per second.
+
+=item r 'ipnadmin flyby.ipnrc'
+
+Runs the administrative program I<ipnadmin> from within I<bpadmin>.
+
+=back
+
+=head1 SEE ALSO
+
+bpadmin(1), ipnadmin(1), dtn2admin(1)

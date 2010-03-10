@@ -1,0 +1,10 @@
+1 ipn:7.0
+a scheme ipn 1 'ipnfw' 'ipnadminep'
+a endpoint ipn 7.0 x
+a endpoint ipn 7.1 x
+a endpoint ipn 7.2 x
+a protocol ltp 1400 100
+a induct ltp 7 ltpcli
+a outduct ltp 5 ltpclo
+r 'ipnadmin node7.ipnrc'
+s

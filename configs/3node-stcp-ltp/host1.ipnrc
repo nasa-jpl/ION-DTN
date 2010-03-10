@@ -1,0 +1,34 @@
+# ipnrc configuration file for host1 in a 3node ltp/tcp test. 
+#	Essentially, this is the IPN scheme's routing table.
+#	Command: % ipnadmin host1.ipnrc
+#	This command should be run AFTER bpadmin (likely to be run last).
+#
+#	Ohio University, Oct 2008
+
+# Add services
+#	Add service 0 (i.e. ipn:1.0) called 'admin.'
+#	Add service 1 (ipn:1.1) called 'test1.'
+#	Add service 2 (ipn:1.2) called 'test2.'
+#	See your bprc file for endpoint IDs you should use.
+a service 0 admin
+a service 1 test1
+a service 2 test2
+
+# Add an egress plan.
+#	Bundles to be transmitted to element number 1 (that is, yourself).
+#	This element is named 'host1.'
+#	The plan is to queue for transmission (x) on protocol 'ltp' using
+#	the outduct identified as '1.'
+#	See your bprc file or bpadmin for outducts/protocols you can use.
+a plan 1 host1 x ltp/1
+
+# Add other egress plans.
+#	Bundles for elemetn 2 can be transmitted directly to host2 using
+#	ltp outduct identified as '2.' See bprc file for available outducts
+#	and/or protocols.
+a plan 2 host2 x ltp/2
+
+# Add a group static route
+#	host 3 is not a neighbor to host1, but it is a neighbor to host2.
+#	send bundles for 3 via 2.
+a group 3 3 2

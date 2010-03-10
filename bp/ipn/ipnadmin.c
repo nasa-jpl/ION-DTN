@@ -1,0 +1,1086 @@
+/*
+	ipnadmin.c:	BP routing adminstration interface for
+			the IPN endpoint ID scheme.
+									*/
+/*									*/
+/*	Copyright (c) 2006, California Institute of Technology.		*/
+/*	All rights reserved.						*/
+/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
+/*									*/
+
+#include "ipnfw.h"
+
+static Sdr	sdr = NULL;
+static int	echo = 0;
+static IpnDB	*ipnConstants;
+static char	*huh = "?";
+
+static void	printText(char *text)
+{
+	if (echo)
+	{
+		writeMemo(text);
+	}
+
+	puts(text);
+}
+
+static void	handleQuit()
+{
+	printText("Please enter command 'q' to stop the program.");
+}
+
+static void	printSyntaxError(int lineNbr)
+{
+	char	buffer[80];
+
+	sprintf(buffer, "Syntax error at line %d of ipnadmin.c", lineNbr);
+	printText(buffer);
+}
+
+#define	SYNTAX_ERROR	printSyntaxError(__LINE__)
+
+static void	printUsage()
+{
+	puts("Syntax of 'duct expression' is:");
+	puts("\t<protocol name>/<outduct name>[,<dest induct name>]");
+	puts("Syntax of 'qualifier' is:");
+	puts("\t{ <source service nbr> | * } { <source node nbr> | * }");
+	puts("Valid commands are:");
+	puts("\tq\tQuit");
+	puts("\th\tHelp");
+	puts("\t?\tHelp");
+	puts("\ta\tAdd");
+	puts("\t   a plan <node nbr> <default duct expression>");
+	puts("\t   a planrule <node nbr> <qualifier> <duct expression>");
+	puts("\t   a group <first node nbr> <last node nbr> <endpoint ID>");
+	puts("\t   a grouprule <first node nbr> <last node nbr> <qualifier> \
+<endpoint ID>");
+	puts("\tc\tChange");
+	puts("\t   c plan <node nbr> <default duct expression>");
+	puts("\t   c planrule <node nbr> <qualifier> <duct expression>");
+	puts("\t   c group <first node nbr> <last node nbr> <endpoint ID>");
+	puts("\t   c grouprule <first node nbr> <last node nbr> <qualifier> \
+<endpoint ID>");
+	puts("\td\tDelete");
+	puts("\ti\tInfo");
+	puts("\t   {d|i} plan <node nbr>");
+	puts("\t   {d|i} planrule <node nbr> <qualifier>");
+	puts("\t   {d|i} group <first node nbr> <last node nbr>");
+	puts("\t   {d|i} grouprule <first node nbr> <last node nbr> \
+<qualifier>");
+	puts("\tl\tList");
+	puts("\t   l group");
+	puts("\t   l plan");
+	puts("\t   l planrule <node nbr>");
+	puts("\t   l grouprule <first node nbr> <last node nbr>");
+	puts("\te\tEnable or disable echo of printed output to log file");
+	puts("\t   e { 0 | 1 }");
+	puts("\t#\tComment");
+	puts("\t   # <comment text>");
+}
+
+static int	parseDuctExpression(char *token, DuctExpression *expression)
+{
+	char		*cursor = NULL;
+	char		*protocolName;
+	char		*outductName;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+
+	if (token == NULL || expression == NULL)
+	{
+		errno = EINVAL;
+		return -1;
+	}
+
+	memset((char *) expression, 0, sizeof(DuctExpression));
+	protocolName = token;
+	cursor = strchr(token, '/');
+	if (cursor == NULL)
+	{
+		putErrmsg("Malformed duct expression: <protocol>/<duct name>",
+				protocolName);
+		return 0;
+	}
+
+	*cursor = '\0';		/*	Delimit protocol name.	*/
+	cursor++;
+	outductName = cursor;
+
+	/*	If there's a destination duct name, note end of
+	 *	outduct name and start of destination duct name.*/
+
+	cursor = strchr(cursor, ',');
+	if (cursor == NULL)
+	{
+		/*	End of token delimits outduct name.	*/
+
+		expression->destDuctName = NULL;
+	}
+	else
+	{
+		*cursor = '\0';	/*	Delimit outduct name.	*/
+		cursor++;
+		expression->destDuctName = cursor;
+	}
+
+	findOutduct(protocolName, outductName, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		putErrmsg("Unknown outduct.", outductName);
+		return 0;
+	}
+
+	expression->outductElt = vduct->outductElt;
+	return 1;
+}
+
+static void	executeAdd(int tokenCount, char **tokens)
+{
+	DuctExpression	expression;
+	int		sourceServiceNbr;
+	int		sourceNodeNbr;
+
+	if (tokenCount < 2)
+	{
+		printText("Add what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (parseDuctExpression(tokens[3], &expression) == 0)
+		{
+			return;
+		}
+
+		ipn_addPlan(atoi(tokens[2]), &expression);
+		return;
+	}
+
+	if (strcmp(tokens[1], "planrule") == 0)
+	{
+		if (tokenCount != 6)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (strcmp(tokens[3], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = atoi(tokens[3]);
+		}
+
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = atoi(tokens[4]);
+		}
+
+		if (parseDuctExpression(tokens[5], &expression) == 0)
+		{
+			return;
+		}
+
+		ipn_addPlanRule(atoi(tokens[2]), sourceServiceNbr,
+				sourceNodeNbr, &expression);
+		return;
+	}
+
+	if (strcmp(tokens[1], "group") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		ipn_addGroup(atoi(tokens[2]), atoi(tokens[3]), tokens[4]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "grouprule") == 0)
+	{
+		if (tokenCount != 7)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = atoi(tokens[4]);
+		}
+
+		if (strcmp(tokens[5], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = atoi(tokens[5]);
+		}
+
+		ipn_addGroupRule(atoi(tokens[2]), atoi(tokens[3]),
+				sourceServiceNbr, sourceNodeNbr, tokens[6]);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	executeChange(int tokenCount, char **tokens)
+{
+	DuctExpression	expression;
+	int		sourceServiceNbr;
+	int		sourceNodeNbr;
+
+	if (tokenCount < 2)
+	{
+		printText("Change what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (parseDuctExpression(tokens[3], &expression) == 0)
+		{
+			return;
+		}
+
+		ipn_updatePlan(atoi(tokens[2]), &expression);
+		return;
+	}
+
+	if (strcmp(tokens[1], "planrule") == 0)
+	{
+		if (tokenCount != 6)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (strcmp(tokens[3], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = atoi(tokens[3]);
+		}
+
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = atoi(tokens[4]);
+		}
+
+		if (parseDuctExpression(tokens[5], &expression) == 0)
+		{
+			return;
+		}
+
+		ipn_updatePlanRule(atoi(tokens[2]), sourceServiceNbr,
+				sourceNodeNbr, &expression);
+		return;
+	}
+
+	if (strcmp(tokens[1], "group") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		ipn_updateGroup(atoi(tokens[2]), atoi(tokens[3]), tokens[4]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "grouprule") == 0)
+	{
+		if (tokenCount != 7)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = atoi(tokens[4]);
+		}
+
+		if (strcmp(tokens[5], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = atoi(tokens[5]);
+		}
+
+		ipn_updateGroupRule(atoi(tokens[2]), atoi(tokens[3]),
+				sourceServiceNbr, sourceNodeNbr, tokens[6]);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	executeDelete(int tokenCount, char **tokens)
+{
+	int	sourceServiceNbr;
+	int	sourceNodeNbr;
+
+	if (tokenCount < 2)
+	{
+		printText("Delete what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		ipn_removePlan(atoi(tokens[2]));
+		return;
+	}
+
+	if (strcmp(tokens[1], "planrule") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (strcmp(tokens[3], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = atoi(tokens[3]);
+		}
+
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = atoi(tokens[4]);
+		}
+
+		ipn_removePlanRule(atoi(tokens[2]), sourceServiceNbr,
+				sourceNodeNbr);
+		return;
+	}
+
+	if (strcmp(tokens[1], "group") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		ipn_removeGroup(atoi(tokens[2]), atoi(tokens[3]));
+		return;
+	}
+
+	if (strcmp(tokens[1], "grouprule") == 0)
+	{
+		if (tokenCount != 6)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = atoi(tokens[4]);
+		}
+
+		if (strcmp(tokens[5], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = atoi(tokens[5]);
+		}
+
+		ipn_removeGroupRule(atoi(tokens[2]), atoi(tokens[3]),
+				sourceServiceNbr, sourceNodeNbr);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	printDirective(char *context, FwdDirective *dir)
+{
+	Object	ductObj;
+		OBJ_POINTER(Outduct, duct);
+		OBJ_POINTER(ClProtocol, clp);
+	char	string[SDRSTRING_BUFSZ + 1];
+	char	buffer[1024];
+
+	switch (dir->action)
+	{
+	case xmit:
+		ductObj = sdr_list_data(sdr, dir->outductElt);
+		GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
+		GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
+		if (dir->destDuctName == 0)
+		{
+			string[0] = '\0';
+		}
+		else
+		{
+			string[0] = ',';
+			if (sdr_string_read(sdr, string + 1,
+					dir->destDuctName) < 0)
+			{
+				strcpy(string + 1, huh);
+			}
+		}
+
+		sprintf(buffer, "%.80s x %.8s/%.128s%.128s", context,
+				clp->name, duct->name, string);
+		printText(buffer);
+		break;
+
+	case fwd:
+		if (sdr_string_read(sdr, string, dir->eid) < 0)
+		{
+			strcpy(string, huh);
+		}
+
+		sprintf(buffer, "%.80s f %.255s", context, string);
+		printText(buffer);
+		break;
+
+	default:
+		sprintf(buffer, "%.128s ?", context);
+		printText(buffer);
+	}
+}
+
+static void	printPlan(IpnPlan *plan)
+{
+	char	context[32];
+
+	sprintf(context, "%lu", plan->nodeNbr);
+	printDirective(context, &plan->defaultDirective);
+}
+
+static void	infoPlan(int tokenCount, char **tokens)
+{
+	int	nodeNbr;
+	Object	planAddr;
+	Object	elt;
+		OBJ_POINTER(IpnPlan, plan);
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	nodeNbr = atoi(tokens[2]);
+	ipn_findPlan(nodeNbr, &planAddr, &elt);
+	if (elt == 0)
+	{
+		printText("Unknown node.");
+		return;
+	}
+
+	GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
+	printPlan(plan);
+}
+
+static void	printRule(IpnRule *rule)
+{
+	char	sourceServiceString[21];
+	char	sourceNodeString[21];
+	char	context[80];
+
+	if (rule->srcServiceNbr == 0)
+	{
+		strcpy(sourceServiceString, "*");
+	}
+	else
+	{
+		sprintf(sourceServiceString,"%ld", rule->srcServiceNbr);
+	}
+
+	if (rule->srcNodeNbr == 0)
+	{
+		strcpy(sourceNodeString, "*");
+	}
+	else
+	{
+		sprintf(sourceNodeString,"%ld", rule->srcNodeNbr);
+	}
+
+	sprintf(context, "rule for service %s from node %s =",
+			sourceServiceString, sourceNodeString);
+	printDirective(context, &rule->directive);
+}
+
+static void	infoPlanRule(int tokenCount, char **tokens)
+{
+	unsigned long	nodeNbr;
+	Object		planAddr;
+	Object		elt;
+			OBJ_POINTER(IpnPlan, plan);
+	long		sourceServiceNbr;
+	long		sourceNodeNbr;
+	Object		ruleAddr;
+			OBJ_POINTER(IpnRule, rule);
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	nodeNbr = atoi(tokens[2]);
+	ipn_findPlan(nodeNbr, &planAddr, &elt);
+	if (elt == 0)
+	{
+		printText("Unknown node.");
+		return;
+	}
+
+	GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
+	printPlan(plan);
+	if (strcmp(tokens[3], "*") == 0)
+	{
+		sourceServiceNbr = -1;
+	}
+	else
+	{
+		sourceServiceNbr = atoi(tokens[3]);
+	}
+
+	if (strcmp(tokens[4], "*") == 0)
+	{
+		sourceNodeNbr = -1;
+	}
+	else
+	{
+		sourceNodeNbr = atoi(tokens[4]);
+	}
+
+	ipn_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
+			&ruleAddr, &elt);
+	if (elt == 0)
+	{
+		printText("Unknown rule.");
+		return;
+	}
+
+	GET_OBJ_POINTER(sdr, IpnRule, rule, ruleAddr);
+	printRule(rule);
+}
+
+static void	printGroup(IpnGroup *group)
+{
+	char	eidString[SDRSTRING_BUFSZ];
+	char	buffer[384];
+
+	sdr_string_read(sdr, eidString, group->defaultDirective.eid);
+	sprintf(buffer, "From %lu through %lu, forward via %.256s.",
+		group->firstNodeNbr, group->lastNodeNbr, eidString);
+	printText(buffer);
+}
+
+static void	infoGroup(int tokenCount, char **tokens)
+{
+	unsigned long	firstNodeNbr;
+	unsigned long	lastNodeNbr;
+	Object		elt;
+			OBJ_POINTER(IpnGroup, group);
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	firstNodeNbr = atoi(tokens[2]);
+	lastNodeNbr = atoi(tokens[3]);
+	if (lastNodeNbr < firstNodeNbr)
+	{
+		printText("Unknown group.");
+		return;
+	}
+
+	for (elt = sdr_list_first(sdr, ipnConstants->groups); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
+		if (group->firstNodeNbr == firstNodeNbr
+		&& group->lastNodeNbr == lastNodeNbr)
+		{
+			printGroup(group);
+			return;
+		}
+	}
+
+	printText("Unknown group.");
+}
+
+static void	infoGroupRule(int tokenCount, char **tokens)
+{
+	unsigned long	firstNodeNbr;
+	unsigned long	lastNodeNbr;
+	Object		groupAddr;
+	Object		elt;
+			OBJ_POINTER(IpnGroup, group);
+	long		sourceServiceNbr;
+	long		sourceNodeNbr;
+	Object		ruleAddr;
+			OBJ_POINTER(IpnRule, rule);
+
+	if (tokenCount != 6)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	firstNodeNbr = atoi(tokens[2]);
+	lastNodeNbr = atoi(tokens[3]);
+	ipn_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
+	if (elt == 0)
+	{
+		printText("Unknown node.");
+		return;
+	}
+
+	GET_OBJ_POINTER(sdr, IpnGroup, group, groupAddr);
+	printGroup(group);
+	if (strcmp(tokens[4], "*") == 0)
+	{
+		sourceServiceNbr = -1;
+	}
+	else
+	{
+		sourceServiceNbr = atoi(tokens[4]);
+	}
+
+	if (strcmp(tokens[5], "*") == 0)
+	{
+		sourceNodeNbr = -1;
+	}
+	else
+	{
+		sourceNodeNbr = atoi(tokens[5]);
+	}
+
+	ipn_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
+			sourceNodeNbr, group, &ruleAddr, &elt);
+	if (elt == 0)
+	{
+		printText("Unknown rule.");
+		return;
+	}
+
+	GET_OBJ_POINTER(sdr, IpnRule, rule, ruleAddr);
+	printRule(rule);
+}
+
+static void	executeInfo(int tokenCount, char **tokens)
+{
+	if (tokenCount < 2)
+	{
+		printText("Information on what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		infoPlan(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "planrule") == 0)
+	{
+		infoPlanRule(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "group") == 0)
+	{
+		infoGroup(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "grouprule") == 0)
+	{
+		infoGroupRule(tokenCount, tokens);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	listPlans()
+{
+	Object	elt;
+		OBJ_POINTER(IpnPlan, plan);
+
+	for (elt = sdr_list_first(sdr, ipnConstants->plans); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnPlan, plan, sdr_list_data(sdr, elt));
+		printPlan(plan);
+	}
+}
+
+static void	listRules(Object rules)
+{
+	Object	elt;
+		OBJ_POINTER(IpnRule, rule);
+
+	for (elt = sdr_list_first(sdr, rules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnRule, rule, sdr_list_data(sdr, elt));
+		printRule(rule);
+	}
+}
+
+static void	listGroups()
+{
+	Object	elt;
+		OBJ_POINTER(IpnGroup, group);
+
+	for (elt = sdr_list_first(sdr, ipnConstants->groups); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
+		printGroup(group);
+	}
+}
+
+static void	executeList(int tokenCount, char **tokens)
+{
+	unsigned long	nodeNbr;
+	Object		planAddr;
+	Object		elt;
+			OBJ_POINTER(IpnPlan, plan);
+
+	if (tokenCount < 2)
+	{
+		printText("List what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		listPlans();
+		return;
+	}
+
+	if (strcmp(tokens[1], "planrule") == 0)
+	{
+		if (tokenCount < 3)
+		{
+			printText("Must specify node nbr for rules list.");
+			return;
+		}
+
+		nodeNbr = atoi(tokens[2]);
+		ipn_findPlan(nodeNbr, &planAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown node.");
+			return;
+		}
+
+		GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
+		printPlan(plan);
+		listRules(plan->rules);
+		return;
+	}
+
+	if (strcmp(tokens[1], "group") == 0)
+	{
+		listGroups();
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	switchEcho(int tokenCount, char **tokens)
+{
+	if (tokenCount < 2)
+	{
+		printText("Echo on or off?");
+		return;
+	}
+
+	switch (*(tokens[1]))
+	{
+	case '0':
+		echo = 0;
+		break;
+
+	case '1':
+		echo = 1;
+		break;
+
+	default:
+		printText("Echo on or off?");
+	}
+}
+
+static int	processLine(char *line)
+{
+	int	lineLength;
+	int	tokenCount;
+	char	*cursor;
+	int	i;
+	char	*tokens[9];
+
+	if (line == NULL) return 0;
+
+	lineLength = strlen(line);
+	if (lineLength <= 0) return 0;
+
+	if (line[lineLength - 1] == 0x0a)	/*	LF (newline)	*/
+	{
+		line[lineLength - 1] = '\0';	/*	lose it		*/
+		lineLength--;
+		if (lineLength <= 0) return 0;
+	}
+
+	if (line[lineLength - 1] == 0x0d)	/*	CR (DOS text)	*/
+	{
+		line[lineLength - 1] = '\0';	/*	lose it		*/
+		lineLength--;
+		if (lineLength <= 0) return 0;
+	}
+
+	tokenCount = 0;
+	for (cursor = line, i = 0; i < 9; i++)
+	{
+		if (*cursor == '\0')
+		{
+			tokens[i] = NULL;
+		}
+		else
+		{
+			findToken(&cursor, &(tokens[i]));
+			tokenCount++;
+		}
+	}
+
+	if (tokenCount == 0)
+	{
+		return 0;
+	}
+
+	/*	Skip over any trailing whitespace.			*/
+
+	while (isspace((int) *cursor))
+	{
+		cursor++;
+	}
+
+	/*	Make sure we've parsed everything.			*/
+
+	if (*cursor != '\0')
+	{
+		printText("Too many tokens.");
+		return 0;
+	}
+
+	/*	Have parsed the command.  Now execute it.		*/
+
+	switch (*(tokens[0]))		/*	Command code.		*/
+	{
+		case 0:			/*	Empty line.		*/
+		case '#':		/*	Comment.		*/
+			return 0;
+
+		case '?':
+		case 'h':
+			printUsage();
+			return 0;
+
+		case 'a':
+			executeAdd(tokenCount, tokens);
+			return 0;
+
+		case 'c':
+			executeChange(tokenCount, tokens);
+			return 0;
+
+		case 'd':
+			executeDelete(tokenCount, tokens);
+			return 0;
+
+		case 'i':
+			executeInfo(tokenCount, tokens);
+			return 0;
+
+		case 'l':
+			executeList(tokenCount, tokens);
+			return 0;
+
+		case 'e':
+			switchEcho(tokenCount, tokens);
+			return 0;
+
+		case 'q':
+			return -1;	/*	End program.		*/
+
+		default:
+			printText("Invalid command.  Enter '?' for help.");
+			return 0;
+	}
+}
+
+static int	run_ipnadmin(char *cmdFileName)
+{
+	FILE	*cmdFile;
+	char	line[256];
+
+	if (bpAttach() < 0)
+	{
+		putErrmsg("ipnadmin can't attach to BP", NULL);
+		return 1;
+	}
+
+	sdr = getIonsdr();
+	if (ipnInit() < 0)
+	{
+		putErrmsg("ipnadmin can't initialize routing database", NULL);
+		return 1;
+	}
+
+	ipnConstants = getIpnConstants();
+	if (cmdFileName == NULL)	/*	Interactive.		*/
+	{
+		isignal(SIGINT, handleQuit);
+		while (1)
+		{
+			printf(": ");
+			if (fgets(line, sizeof line, stdin) == NULL)
+			{
+				if (feof(stdin))
+				{
+					break;
+				}
+
+				putSysErrmsg("ipnadmin fgets failed", NULL);
+				break;		/*	Out of loop.	*/
+			}
+
+			if (processLine(line))
+			{
+				break;		/*	Out of loop.	*/
+			}
+		}
+	}
+	else				/*	Scripted.		*/
+	{
+		cmdFile = fopen(cmdFileName, "r");
+		if (cmdFile == NULL)
+		{
+			putSysErrmsg("Can't open command file", cmdFileName);
+		}
+		else
+		{
+			while (1)
+			{
+				if (fgets(line, sizeof line, cmdFile) == NULL)
+				{
+					if (feof(cmdFile))
+					{
+						break;
+					}
+
+					putSysErrmsg("ipnadmin fgets failed",
+							NULL);
+					break;		/*	Loop.	*/
+				}
+
+				if (line[0] == '#')	/*	Comment.*/
+				{
+					continue;
+				}
+
+				if (processLine(line))
+				{
+					break;		/*	Loop.	*/
+				}
+			}
+
+			fclose(cmdFile);
+		}
+	}
+
+	writeErrmsgMemos();
+	printText("Stopping ipnadmin.");
+	bp_detach();
+	return 0;
+}
+
+#if defined (VXWORKS) || defined (RTEMS)
+int	ipnadmin(int a1, int a2, int a3, int a4, int a5,
+		int a6, int a7, int a8, int a9, int a10)
+{
+	char	*cmdFileName = (char *) a1;
+#else
+int	main(int argc, char **argv)
+{
+	char	*cmdFileName = argc > 1 ? argv[1] : NULL;
+#endif
+	return run_ipnadmin(cmdFileName);
+}

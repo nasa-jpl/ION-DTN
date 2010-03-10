@@ -1,0 +1,2 @@
+export IONDIR="$PWD/.."
+export PATH=$IONDIR:$PATH

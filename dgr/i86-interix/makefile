@@ -1,0 +1,78 @@
+INCL = ../include
+API = ../library
+TEST = ../test
+
+# OPT = -g -Wall -Dinterix -DINITIAL_RETARD=2
+OPT = -g -Wall -Dinterix
+CC = gcc $(OPT) -I$(API) -I$(TEST) -I$(INCL) -I/opt/include
+LDFLAGS = -fPIC -shared
+LD = gcc $(LDFLAGS)
+
+LIBDGROBJS = \
+	libdgr.o
+
+PUBINCLS = \
+	$(INCL)/dgr.h
+
+RUNTIMES = file2dgr dgr2file file2tcp tcp2file file2udp udp2file
+
+ALL = check libdgr.so $(RUNTIMES)
+
+all:		$(ALL)
+
+check:		$(PUBINCLS)
+		rm -f *.o
+		touch check
+
+clean:
+		rm -f *.o
+		rm -f $(ALL)
+		rm -f ./lib/*
+		rm -f ./bin/*
+
+install:
+		cp ../include/* $(ROOT)/include
+		cp lib/* $(ROOT)/lib
+		cp bin/* $(ROOT)/bin
+
+#	-	-	Test executables	-	-	-	-
+
+file2dgr:	file2dgr.o libdgr.so $(TEST)/file2dgr.h
+		$(CC) -o file2dgr file2dgr.o -L./lib -L/opt/lib -ldgr -lici -lpthread
+		cp file2dgr ./bin
+
+dgr2file:	dgr2file.o libdgr.so $(TEST)/file2dgr.h
+		$(CC) -o dgr2file dgr2file.o -L./lib -L/opt/lib -ldgr -lici -lpthread
+		cp dgr2file ./bin
+
+tcp2file:	tcp2file.o $(TEST)/file2tcp.h
+		$(CC) -o tcp2file tcp2file.o -L/opt/lib -L./lib -lici -lpthread
+		cp tcp2file ./bin
+
+file2tcp:	file2tcp.o $(TEST)/file2tcp.h
+		$(CC) -o file2tcp file2tcp.o -L/opt/lib -L./lib -lici -lpthread
+		cp file2tcp ./bin
+
+udp2file:	udp2file.o $(TEST)/file2udp.h
+		$(CC) -o udp2file udp2file.o -L/opt/lib -L./lib -lici -lpthread
+		cp udp2file ./bin
+
+file2udp:	file2udp.o $(TEST)/file2udp.h
+		$(CC) -o file2udp file2udp.o -L/opt/lib -L./lib -lici -lpthread
+		cp file2udp ./bin
+
+#	-	-	Libraries	-	-	-	-	-
+
+libdgr.so:	$(LIBDGROBJS)
+		$(LD) -o libdgr.so $(LIBDGROBJS)
+		cp libdgr.so ./lib
+
+#	-	-	Object modules	-	-	-	-	-
+
+.SUFFIXES:	.c .o .h
+
+.PATH.c:	$(API) $(TEST)
+.PATH.h:	$(INCL) $(API) $(TEST)
+
+.c.o:
+		$(CC) -o $(.PREFIX).o -c $(.IMPSRC)

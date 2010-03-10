@@ -1,0 +1,10052 @@
+/*
+ *	libbpP.c:	functions enabling the implementation of
+ *			ION-BP bundle forwarders.
+ *
+ *	Copyright (c) 2006, California Institute of Technology.
+ *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
+ *	acknowledged.
+ *
+ *	Author: Scott Burleigh, JPL
+ *
+ *	Modification History:
+ *	Date	  Who	What
+ *	06-17-03  SCB	Original development.
+ *	05-30-04  SCB	Revision per version 3 of Bundle Protocol spec.
+ *	01-09-06  SCB	Revision per version 4 of Bundle Protocol spec.
+ *	12-29-06  SCB	Revision per version 5 of Bundle Protocol spec.
+ *	07-31-07  SCB	Revision per version 6 of Bundle Protocol spec.
+ */
+
+#include "bpP.h"
+
+#define MAX_STARVATION		10
+#define NOMINAL_BYTES_PER_SEC	(256 * 1024)
+#define NOMINAL_PRIMARY_BLKSIZE	29
+
+#define SDR_LIST_OVERHEAD	(WORD_SIZE * 4)
+#define SDR_LIST_ELT_OVERHEAD	(WORD_SIZE * 4)
+#define XMIT_REF_OVERHEAD	((WORD_SIZE * 4) + SDR_LIST_ELT_OVERHEAD)
+#define	BASE_BUNDLE_OVERHEAD	(sizeof(Bundle) \
+				+ SDR_LIST_OVERHEAD	/*	xmitRefs*/ \
+				+ XMIT_REF_OVERHEAD	/*	one Ref	*/)
+
+static int		sendCtSignal(Bundle *bundle, char *dictionary,
+				int succeeded, BpCtReason reasonCode);
+#ifdef BP_EXTENDED
+#include "bpextensions.c"
+#else
+#include "noextensions.c"
+#endif
+
+/*	*	*	Globals used by BP service.	*	*	*/
+
+static int		bpVersion = 6;
+static int		bpMemIdx = -1;	/*	Memory manager.		*/
+static Sdr		bpSdr = NULL;
+static Object		bpdbObject = 0;
+static BpDB		bpConstantsBuf;
+static BpDB		*bpConstants = &bpConstantsBuf;
+static PsmPartition	bpwm = NULL;	/*	Shared memory for stats.*/
+static BpVdb		*bpVdb = NULL;
+
+static char		*nullEid = "dtn:none";
+
+static char		*NullParmsMemo = "BP error: null input parameter(s)";
+static char		*TooShortMemo = "BP error: not enough to parse.";
+static char		*DBErrorMemo = "BP error: database access problem.";
+static char		VersionMemo[80];
+
+/*	Note that ION currently supports CBHE compression only for
+ *	a single DTN endpoint scheme.					*/
+
+static char		*cbheSchemeName = CBHE_SCHEME_NAME;
+
+/*	This is the scheme name for the legacy endpoint naming scheme
+ *	developed for the DTN2 implementation.				*/
+
+static char		*dtn2SchemeName = DTN2_SCHEME_NAME;
+
+/*	*	*	BP service control functions	*	*	*/
+
+static void	resetEndpoint(VEndpoint *vpoint)
+{
+	if (vpoint->semaphore == SM_SEM_NONE)
+	{
+		vpoint->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+	}
+	else
+	{
+		sm_SemUnend(vpoint->semaphore);
+
+		/*	Endpoint might get reset multiple times without
+		 *	being stopped, e.g., when scheme is raised.
+		 *	Give semaphore to prevent deadlock when this
+		 *	happens.					*/
+
+		sm_SemGive(vpoint->semaphore);
+	}
+
+	sm_SemTake(vpoint->semaphore);			/*	Lock.	*/
+	vpoint->appPid = -1;
+}
+
+static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)
+{
+	Object		endpointObj;
+	Endpoint	endpoint;
+	VEndpoint	*vpoint;
+	PsmAddress	vpointElt;
+	PsmAddress	addr;
+
+	endpointObj = sdr_list_data(bpSdr, endpointElt);
+	sdr_read(bpSdr, (char *) &endpoint, endpointObj, sizeof(Endpoint));
+	addr = psm_malloc(bpwm, sizeof(VEndpoint));
+	if (addr == 0)
+	{
+		return -1;
+	}
+
+	vpointElt = sm_list_insert_last(bpwm, vscheme->endpoints, addr);
+	if (vpointElt == 0)
+	{
+		psm_free(bpwm, addr);
+		return -1;
+	}
+
+	vpoint = (VEndpoint *) psp(bpwm, addr);
+	memset((char *) vpoint, 0, sizeof(VEndpoint));
+	vpoint->endpointElt = endpointElt;
+	strcpy(vpoint->nss, endpoint.nss);
+	vpoint->semaphore = SM_SEM_NONE;
+	resetEndpoint(vpoint);
+	return 0;
+}
+
+static void	dropEndpoint(VEndpoint *vpoint, PsmAddress vpointElt)
+{
+	PsmAddress	vpointAddr;
+
+	vpointAddr = sm_list_data(bpwm, vpointElt);
+	if (vpoint->semaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vpoint->semaphore);
+	}
+
+	sm_list_delete(bpwm, vpointElt, NULL, NULL);
+	psm_free(bpwm, vpointAddr);
+}
+
+static void	resetScheme(VScheme *vscheme)
+{
+	PsmAddress	elt;
+	PsmAddress	endpointAddr;
+	VEndpoint	*vpoint;
+
+	if (vscheme->semaphore == SM_SEM_NONE)
+	{
+		vscheme->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+	}
+	else
+	{
+		sm_SemUnend(vscheme->semaphore);
+	}
+
+	sm_SemTake(vscheme->semaphore);			/*	Lock.	*/
+	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		endpointAddr = sm_list_data(bpwm, elt);
+		vpoint = (VEndpoint *) psp(bpwm, endpointAddr);
+		resetEndpoint(vpoint);
+	}
+
+	vscheme->fwdPid = -1;
+	vscheme->admAppPid = -1;
+}
+
+static int	raiseScheme(Object schemeElt)
+{
+	Object		schemeObj;
+	Scheme		scheme;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	PsmAddress	addr;
+	Object		elt;
+
+	schemeObj = sdr_list_data(bpSdr, schemeElt);
+	sdr_read(bpSdr, (char *) &scheme, schemeObj, sizeof(Scheme));
+	findScheme(scheme.name, &vscheme, &vschemeElt);
+	if (vschemeElt)		/*	Scheme is already raised.	*/
+	{
+		return 0;
+	}
+
+	addr = psm_malloc(bpwm, sizeof(VScheme));
+	if (addr == 0)
+	{
+		return -1;
+	}
+
+	vschemeElt = sm_list_insert_last(bpwm, bpVdb->schemes, addr);
+	if (vschemeElt == 0)
+	{
+		psm_free(bpwm, addr);
+		return -1;
+	}
+
+	vscheme = (VScheme *) psp(bpwm, addr);
+	memset((char *) vscheme, 0, sizeof(VScheme));
+	vscheme->schemeElt = schemeElt;
+	strcpy(vscheme->name, scheme.name);
+	vscheme->cbhe = scheme.cbhe;
+	vscheme->endpoints = sm_list_create(bpwm);
+	if (vscheme->endpoints == 0)
+	{
+		sm_list_delete(bpwm, vschemeElt, NULL, NULL);
+		psm_free(bpwm, addr);
+		return -1;
+	}
+
+	for (elt = sdr_list_first(bpSdr, scheme.endpoints); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		if (raiseEndpoint(vscheme, elt) < 0)
+		{
+			sm_list_destroy(bpwm, vscheme->endpoints, NULL, NULL);
+			sm_list_delete(bpwm, vschemeElt, NULL, NULL);
+			psm_free(bpwm, addr);
+			return -1;
+		}
+	}
+
+	if (vscheme->cbhe)
+	{
+		bpVdb->cbheScheme = addr;
+	}
+
+	vscheme->semaphore = SM_SEM_NONE;
+	resetScheme(vscheme);
+	return 0;
+}
+
+static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
+{
+	PsmAddress	vschemeAddr;
+	PsmAddress	elt;
+	PsmAddress	nextElt;
+	PsmAddress	endpointAddr;
+	VEndpoint	*vpoint;
+
+	vschemeAddr = sm_list_data(bpwm, vschemeElt);
+	if (vscheme->semaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vscheme->semaphore);
+	}
+
+	/*	Drop all endpoints for this scheme.			*/
+
+	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt; elt = nextElt)
+	{
+		nextElt = sm_list_next(bpwm, elt);
+		endpointAddr = sm_list_data(bpwm, elt);
+		vpoint = (VEndpoint *) psp(bpwm, endpointAddr);
+		dropEndpoint(vpoint, elt);
+	}
+
+	if (strcmp(vscheme->name, cbheSchemeName) == 0)
+	{
+		bpVdb->cbheScheme = 0;
+	}
+
+	sm_list_delete(bpwm, vschemeElt, NULL, NULL);
+	psm_free(bpwm, vschemeAddr);
+}
+
+static void	startScheme(VScheme *vscheme)
+{
+	char		hostNameBuf[MAXHOSTNAMELEN + 1];
+	MetaEid		metaEid;
+	VScheme		*vscheme2;
+	PsmAddress	vschemeElt;
+	VEndpoint	*vpoint;
+	PsmAddress	vpointElt;
+	Scheme		scheme;
+	char		cmdString[SDRSTRING_BUFSZ];
+
+	/*	Compute custodian EID for this scheme.			*/
+
+	if (strcmp(vscheme->name, cbheSchemeName) == 0)
+	{
+		sprintf(vscheme->custodianEidString, "%.8s:%lu.0",
+				cbheSchemeName, getOwnNodeNbr());
+	}
+	else if (strcmp(vscheme->name, dtn2SchemeName) == 0)
+	{
+#ifdef ION_NO_DNS
+		strcpy(hostNameBuf, "localhost");
+#else
+		getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
+#endif
+		sprintf(vscheme->custodianEidString, "%.15s://%.60s.dtn",
+				dtn2SchemeName, hostNameBuf);
+	}
+	else	/*	Unknown scheme; no known custodian EID format.	*/
+	{
+		strcpy(vscheme->custodianEidString, nullEid);
+	}
+
+	if (parseEidString(vscheme->custodianEidString,
+			&metaEid, &vscheme2, &vschemeElt) == 0)
+	{
+		putErrmsg("Malformed custodian EID string.", NULL);
+		vscheme->custodianSchemeNameLength = 0;
+		vscheme->custodianNssLength = 0;
+	}
+	else
+	{
+		vscheme->custodianSchemeNameLength = metaEid.schemeNameLength;
+		vscheme->custodianNssLength = metaEid.nssLength;
+
+		/*	Make sure endpoint exists for custodian EID.	*/
+
+		findEndpoint(vscheme->name, metaEid.nss, vscheme, &vpoint,
+				&vpointElt);
+		restoreEidString(&metaEid);
+		if (vpointElt == 0)
+		{
+			if (addEndpoint(vscheme->custodianEidString,
+					EnqueueBundle, NULL) < 1)
+			{
+				putErrmsg("Can't add custodian endpoint.",
+						vscheme->custodianEidString);
+			}
+		}
+	}
+
+	/*	Start forwarder and administrative endpoint daemons.	*/
+
+	sdr_read(bpSdr, (char *) &scheme, sdr_list_data(bpSdr,
+			vscheme->schemeElt), sizeof(Scheme));
+	if (scheme.fwdCmd != 0)
+	{
+		sdr_string_read(bpSdr, cmdString, scheme.fwdCmd);
+		vscheme->fwdPid = pseudoshell(cmdString);
+	}
+
+	if (scheme.admAppCmd != 0)
+	{
+		sdr_string_read(bpSdr, cmdString, scheme.admAppCmd);
+		vscheme->admAppPid = pseudoshell(cmdString);
+	}
+}
+
+static void	stopScheme(VScheme *vscheme)
+{
+	PsmAddress	elt;
+	PsmAddress	endpointAddr;
+	VEndpoint	*vpoint;
+
+	if (vscheme->semaphore != SM_SEM_NONE)
+	{
+		sm_SemEnd(vscheme->semaphore);	/*	Stop fwd.	*/
+	}
+
+	if (vscheme->admAppPid > 0)
+	{
+		sm_TaskKill(vscheme->admAppPid, SIGTERM);
+	}
+
+	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		endpointAddr = sm_list_data(bpwm, elt);
+		vpoint = (VEndpoint *) psp(bpwm, endpointAddr);
+		if (vpoint->semaphore != SM_SEM_NONE)
+		{
+			sm_SemEnd(vpoint->semaphore);
+		}
+	}
+}
+
+static void	waitForScheme(VScheme *vscheme)
+{
+	if (vscheme->fwdPid > 0)
+	{
+		while (sm_TaskExists(vscheme->fwdPid))
+		{
+			microsnooze(1000000);
+		}
+	}
+
+	if (vscheme->admAppPid > 0)
+	{
+		while (sm_TaskExists(vscheme->admAppPid))
+		{
+			microsnooze(1000000);
+		}
+	}
+}
+
+static void	resetInduct(VInduct *vduct)
+{
+	if (vduct->acqThrottle.semaphore == SM_SEM_NONE)
+	{
+		vduct->acqThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
+				SM_SEM_FIFO);
+	}
+	else
+	{
+		sm_SemUnend(vduct->acqThrottle.semaphore);
+	}
+
+	sm_SemTake(vduct->acqThrottle.semaphore);	/*	Lock.	*/
+	vduct->cliPid = -1;
+}
+
+static int	raiseInduct(Object inductElt)
+{
+	Object		inductObj;
+	Induct		duct;
+	ClProtocol	protocol;
+	VInduct		*vduct;
+	PsmAddress	vductElt;
+	PsmAddress	addr;
+
+	inductObj = sdr_list_data(bpSdr, inductElt);
+	sdr_read(bpSdr, (char *) &duct, inductObj, sizeof(Induct));
+	sdr_read(bpSdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
+	findInduct(protocol.name, duct.name, &vduct, &vductElt);
+	if (vductElt)		/*	Duct is already raised.		*/
+	{
+		return 0;
+	}
+
+	addr = psm_malloc(bpwm, sizeof(VInduct));
+	if (addr == 0)
+	{
+		return -1;
+	}
+
+	vductElt = sm_list_insert_last(bpwm, bpVdb->inducts, addr);
+	if (vductElt == 0)
+	{
+		psm_free(bpwm, addr);
+		return -1;
+	}
+
+	vduct = (VInduct *) psp(bpwm, addr);
+	memset((char *) vduct, 0, sizeof(VInduct));
+	vduct->inductElt = inductElt;
+	strcpy(vduct->protocolName, protocol.name);
+	strcpy(vduct->ductName, duct.name);
+	vduct->acqThrottle.semaphore = SM_SEM_NONE;
+	resetInduct(vduct);
+	return 0;
+}
+
+static void	dropInduct(VInduct *vduct, PsmAddress vductElt)
+{
+	PsmAddress	vductAddr;
+
+	vductAddr = sm_list_data(bpwm, vductElt);
+	if (vduct->acqThrottle.semaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vduct->acqThrottle.semaphore);
+	}
+
+	sm_list_delete(bpwm, vductElt, NULL, NULL);
+	psm_free(bpwm, vductAddr);
+}
+
+static void	startInduct(VInduct *vduct)
+{
+	Induct	induct;
+	char	cmdString[SDRSTRING_BUFSZ + 1 + MAX_CL_DUCT_NAME_LEN + 1];
+
+	sdr_read(bpSdr, (char *) &induct, sdr_list_data(bpSdr,
+			vduct->inductElt), sizeof(Induct));
+	if (induct.cliCmd != 0)
+	{
+		sdr_string_read(bpSdr, cmdString, induct.cliCmd);
+		strcat(cmdString, " ");
+		strcat(cmdString, induct.name);
+		vduct->cliPid = pseudoshell(cmdString);
+	}
+}
+
+static void	stopInduct(VInduct *vduct)
+{
+	if (vduct->cliPid > 0)
+	{
+		sm_TaskKill(vduct->cliPid, SIGTERM);
+	}
+
+	if (vduct->acqThrottle.semaphore != SM_SEM_NONE)
+	{
+		sm_SemEnd(vduct->acqThrottle.semaphore);
+	}
+}
+
+static void	waitForInduct(VInduct *vduct)
+{
+	if (vduct->cliPid > 0)
+	{
+		while (sm_TaskExists(vduct->cliPid))
+		{
+			microsnooze(1000000);
+		}
+	}
+}
+
+static void	resetOutduct(VOutduct *vduct)
+{
+	if (vduct->semaphore == SM_SEM_NONE)
+	{
+		vduct->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+	}
+	else
+	{
+		sm_SemUnend(vduct->semaphore);
+	}
+
+	sm_SemTake(vduct->semaphore);			/*	Lock.	*/
+	if (vduct->xmitThrottle.semaphore == SM_SEM_NONE)
+	{
+		vduct->xmitThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
+				SM_SEM_FIFO);
+	}
+	else
+	{
+		sm_SemUnend(vduct->xmitThrottle.semaphore);
+	}
+
+	sm_SemTake(vduct->xmitThrottle.semaphore);	/*	Lock.	*/
+	vduct->cloPid = -1;
+}
+
+static int	raiseOutduct(Object outductElt)
+{
+	Object		outductObj;
+	Outduct		duct;
+	ClProtocol	protocol;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+	PsmAddress	addr;
+
+	outductObj = sdr_list_data(bpSdr, outductElt);
+	sdr_read(bpSdr, (char *) &duct, outductObj, sizeof(Outduct));
+	sdr_read(bpSdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
+	findOutduct(protocol.name, duct.name, &vduct, &vductElt);
+	if (vductElt)		/*	Duct is already raised.		*/
+	{
+		return 0;
+	}
+
+	addr = psm_malloc(bpwm, sizeof(VOutduct));
+	if (addr == 0)
+	{
+		return -1;
+	}
+
+	vductElt = sm_list_insert_last(bpwm, bpVdb->outducts, addr);
+	if (vductElt == 0)
+	{
+		psm_free(bpwm, addr);
+		return -1;
+	}
+
+	vduct = (VOutduct *) psp(bpwm, addr);
+	memset((char *) vduct, 0, sizeof(VOutduct));
+	vduct->outductElt = outductElt;
+	strcpy(vduct->protocolName, protocol.name);
+	strcpy(vduct->ductName, duct.name);
+	vduct->semaphore = SM_SEM_NONE;
+	vduct->xmitThrottle.semaphore = SM_SEM_NONE;
+	resetOutduct(vduct);
+	return 0;
+}
+
+static void	dropOutduct(VOutduct *vduct, PsmAddress vductElt)
+{
+	PsmAddress	vductAddr;
+
+	vductAddr = sm_list_data(bpwm, vductElt);
+	if (vduct->semaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vduct->semaphore);
+	}
+
+	if (vduct->xmitThrottle.semaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vduct->xmitThrottle.semaphore);
+	}
+
+	sm_list_delete(bpwm, vductElt, NULL, NULL);
+	psm_free(bpwm, vductAddr);
+}
+
+static void	startOutduct(VOutduct *vduct)
+{
+	Outduct	outduct;
+	char	cmdString[SDRSTRING_BUFSZ + 1 + MAX_CL_DUCT_NAME_LEN + 1];
+
+	sdr_read(bpSdr, (char *) &outduct, sdr_list_data(bpSdr,
+			vduct->outductElt), sizeof(Outduct));
+	if (outduct.cloCmd != 0)
+	{
+		sdr_string_read(bpSdr, cmdString, outduct.cloCmd);
+		strcat(cmdString, " ");
+		strcat(cmdString, outduct.name);
+		vduct->cloPid = pseudoshell(cmdString);
+	}
+}
+
+static void	stopOutduct(VOutduct *vduct)
+{
+	if (vduct->semaphore != SM_SEM_NONE)	/*	Stop CLO.	*/
+	{
+		sm_SemEnd(vduct->semaphore);
+	}
+
+	if (vduct->xmitThrottle.semaphore != SM_SEM_NONE)
+	{
+		sm_SemEnd(vduct->xmitThrottle.semaphore);
+	}
+}
+
+static void	waitForOutduct(VOutduct *vduct)
+{
+	if (vduct->cloPid > 0)
+	{
+		while (sm_TaskExists(vduct->cloPid))
+		{
+			microsnooze(1000000);
+		}
+	}
+}
+
+static int	raiseProtocol(Address addr)
+{
+		OBJ_POINTER(ClProtocol, protocol);
+	Object	elt;
+
+	GET_OBJ_POINTER(bpSdr, ClProtocol, protocol, addr);
+	for (elt = sdr_list_first(bpSdr, protocol->inducts); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		if (raiseInduct(elt) < 0)
+		{
+			putErrmsg("Can't raise induct.", NULL);
+			return -1;
+		}
+	}
+
+	for (elt = sdr_list_first(bpSdr, protocol->outducts); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		if (raiseOutduct(elt) < 0)
+		{
+			putErrmsg("Can't raise outduct.", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+static int	initializeVdb()
+{
+	PsmAddress	bpVdbAddress;
+	Object		elt;
+	Object		addr;
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+
+	/*	Create and catalogue the BpVdb object in bpwm.	*/
+
+	bpVdbAddress = psm_zalloc(bpwm, sizeof(BpVdb));
+	if (bpVdbAddress == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Can't allocate for dynamic database.", NULL);
+		return -1;
+	}
+
+	bpVdb = (BpVdb *) psp(bpwm, bpVdbAddress);
+	memset((char *) bpVdb, 0, sizeof(BpVdb));
+	bpVdb->creationTimeSec = 0;
+	bpVdb->bundleCounter = 0;
+	bpVdb->clockPid = -1;
+	bpVdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
+			SM_SEM_FIFO);
+	sm_SemTake(bpVdb->productionThrottle.semaphore);
+	bpVdb->productionThrottle.nominalRate = 0;
+	if ((bpVdb->schemes = sm_list_create(bpwm)) == 0
+	|| (bpVdb->inducts = sm_list_create(bpwm)) == 0
+	|| (bpVdb->outducts = sm_list_create(bpwm)) == 0
+	|| psm_catlg(bpwm, BP_VDBNAME, bpVdbAddress) < 1)
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Can't initialize volatile database.", NULL);
+		return -1;
+	}
+
+	/*	Raise all schemes and all of their endpoints.		*/
+
+	for (elt = sdr_list_first(bpSdr, bpConstants->schemes); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		if (raiseScheme(elt) < 0)
+		{
+			sdr_exit_xn(bpSdr);
+			putErrmsg("Can't raise all schemes.", NULL);
+			return -1;
+		}
+	}
+
+	/*	Raise all ducts for all convergence-layer adapters.	*/
+
+	for (elt = sdr_list_first(bpSdr, bpConstants->protocols); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		addr = sdr_list_data(bpSdr, elt);
+		if (raiseProtocol(addr) < 0)
+		{
+			sdr_exit_xn(bpSdr);
+			putErrmsg("Can't raise all protocols.", NULL);
+			return -1;
+		}
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	return 0;
+}
+
+int	bpInit()
+{
+	BpDB		bpdbBuf;
+	PsmAddress	bpVdbAddress;
+
+	if (ionAttach() < 0)
+	{
+		putErrmsg("BP can't attach to ION.", NULL);
+		return -1;
+	}
+
+	bpSdr = getIonsdr();
+
+	/*	Recover the BP database, creating it if necessary.	*/
+
+	sdr_begin_xn(bpSdr);
+	bpdbObject = sdr_find(bpSdr, BP_DBNAME, NULL);
+	switch (bpdbObject)
+	{
+	case -1:		/*	SDR error.			*/
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("Can't search for BP database in SDR", NULL);
+		return -1;
+
+	case 0:			/*	Not found; must create new DB.	*/
+		bpdbObject = sdr_malloc(bpSdr, sizeof(BpDB));
+		if (bpdbObject == 0)
+		{
+			sdr_cancel_xn(bpSdr);
+			putErrmsg("No space for database.", NULL);
+			return -1;
+		}
+
+		/*	Initialize the non-volatile database.		*/
+
+		memset((char *) &bpdbBuf, 0, sizeof(BpDB));
+		bpdbBuf.schemes = sdr_list_create(bpSdr);
+		bpdbBuf.protocols = sdr_list_create(bpSdr);
+		bpdbBuf.timeline = sdr_list_create(bpSdr);
+		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
+		sdr_write(bpSdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
+		sdr_catlg(bpSdr, BP_DBNAME, 0, bpdbObject);
+		if (sdr_end_xn(bpSdr))
+		{
+			putErrmsg("Can't create BP database.", NULL);
+			return -1;
+		}
+
+		break;
+
+	default:		/*	Found DB in the SDR.		*/
+		sdr_exit_xn(bpSdr);
+	}
+
+	/*	Load constants into a conveniently accessed structure.
+	 *	Note that this CANNOT be treated as a current database
+	 *	image in later processing.				*/
+
+	sdr_read(bpSdr, (char *) bpConstants, bpdbObject, sizeof(BpDB));
+
+	/*	Locate volatile database, initializing as necessary.	*/
+
+	bpwm = getIonwm();
+	bpMemIdx = getIonMemoryMgr();
+	bpVdbAddress = psm_locate(bpwm, BP_VDBNAME);
+	if (bpVdbAddress == 0)
+	{
+		if (initializeVdb() < 0)
+		{
+			putErrmsg("BP can't initialize bpVdb.", NULL);
+			return -1;
+		}
+	}
+	else
+	{
+		bpVdb = (BpVdb *) psp(bpwm, bpVdbAddress);
+	}
+
+	if (secAttach() < 0)
+	{
+		writeMemo("[?] Warning: running without bundle security.");
+	}
+	else
+	{
+		writeMemo("[i] Bundle security is enabled.");
+	}
+
+	return 0;		/*	BP service is now available.	*/
+}
+
+Object	getBpDbObject()
+{
+	return bpdbObject;
+}
+
+BpDB	*getBpConstants()
+{
+	if (bpdbObject == 0)
+	{
+		return NULL;
+	}
+
+	return bpConstants;
+}
+
+BpVdb	*getBpVdb()
+{
+	return bpVdb;
+}
+
+int	bpStart()
+{
+	char		cmdString[SDRSTRING_BUFSZ];
+	PsmAddress	elt;
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+
+	/*	Start the bundle expiration clock if necessary.		*/
+
+	if (bpVdb->clockPid < 1 || sm_TaskExists(bpVdb->clockPid) == 0)
+	{
+		sdr_string_read(bpSdr, cmdString, bpConstants->clockCmd);
+		bpVdb->clockPid = pseudoshell(cmdString);
+	}
+
+	/*	Start forwarders and admin endpoints for all schemes.	*/
+
+	for (elt = sm_list_first(bpwm, bpVdb->schemes); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		startScheme((VScheme *) psp(bpwm, sm_list_data(bpwm, elt)));
+	}
+
+	/*	Start all ducts for all convergence-layer adapters.	*/
+
+	for (elt = sm_list_first(bpwm, bpVdb->inducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		startInduct((VInduct *) psp(bpwm, sm_list_data(bpwm, elt)));
+	}
+
+	for (elt = sm_list_first(bpwm, bpVdb->outducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		startOutduct((VOutduct *) psp(bpwm, sm_list_data(bpwm, elt)));
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	return 0;
+}
+
+void	bpStop()		/*	Reverses bpStart.		*/
+{
+	PsmAddress	elt;
+	VScheme		*vscheme;
+	VInduct		*vinduct;
+	VOutduct	*voutduct;
+
+	/*	Tell all BP processes to stop.				*/
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	if (bpVdb->productionThrottle.semaphore != SM_SEM_NONE)
+	{
+		sm_SemEnd(bpVdb->productionThrottle.semaphore);
+	}
+
+	for (elt = sm_list_first(bpwm, bpVdb->schemes); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
+		stopScheme(vscheme);
+	}
+
+	for (elt = sm_list_first(bpwm, bpVdb->inducts); elt; elt = 
+			sm_list_next(bpwm, elt))
+	{
+		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		stopInduct(vinduct);
+	}
+
+	for (elt = sm_list_first(bpwm, bpVdb->outducts); elt; elt = 
+			sm_list_next(bpwm, elt))
+	{
+		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		stopOutduct(voutduct);
+	}
+
+	if (bpVdb->clockPid > 0)
+	{
+		sm_TaskKill(bpVdb->clockPid, SIGTERM);
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+
+	/*	Wait until all BP processes have stopped.		*/
+
+	for (elt = sm_list_first(bpwm, bpVdb->schemes); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
+		waitForScheme(vscheme);
+	}
+
+	for (elt = sm_list_first(bpwm, bpVdb->inducts); elt; elt = 
+			sm_list_next(bpwm, elt))
+	{
+		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		waitForInduct(vinduct);
+	}
+
+	for (elt = sm_list_first(bpwm, bpVdb->outducts); elt; elt = 
+			sm_list_next(bpwm, elt))
+	{
+		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		waitForOutduct(voutduct);
+	}
+
+	if (bpVdb->clockPid > 0)
+	{
+		while (sm_TaskExists(bpVdb->clockPid))
+		{
+			microsnooze(100000);
+		}
+	}
+
+	/*	Now erase all the tasks and reset the semaphores.	*/
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	bpVdb->clockPid = -1;
+	if (bpVdb->productionThrottle.semaphore == SM_SEM_NONE)
+	{
+		bpVdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
+				SM_SEM_FIFO);
+	}
+	else
+	{
+		sm_SemUnend(bpVdb->productionThrottle.semaphore);
+	}
+
+	sm_SemTake(bpVdb->productionThrottle.semaphore);/*	Lock.	*/
+	for (elt = sm_list_first(bpwm, bpVdb->schemes); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
+		resetScheme(vscheme);
+	}
+
+	for (elt = sm_list_first(bpwm, bpVdb->inducts); elt; elt = 
+			sm_list_next(bpwm, elt))
+	{
+		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		resetInduct(vinduct);
+	}
+
+	for (elt = sm_list_first(bpwm, bpVdb->outducts); elt; elt = 
+			sm_list_next(bpwm, elt))
+	{
+		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		resetOutduct(voutduct);
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+}
+
+int	bpAttach()
+{
+	PsmAddress	bpVdbAddress;
+
+	if (ionAttach() < 0)
+	{
+		putErrmsg("BP can't attach to ION.", NULL);
+		return -1;
+	}
+
+	bpSdr = getIonsdr();
+
+	/*	Locate the BP database.					*/
+
+	sdr_begin_xn(bpSdr);
+	bpdbObject = sdr_find(bpSdr, BP_DBNAME, NULL);
+	if (bpdbObject == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Can't find BP database.", NULL);
+		return -1;
+	}
+
+	sdr_exit_xn(bpSdr);
+
+	/*	Load constants into a conveniently accessed structure.
+	 *	Note that this is NOT a current database image.		*/
+
+	sdr_read(bpSdr, (char *) bpConstants, bpdbObject, sizeof(BpDB));
+
+	/*	Locate the BP volatile database.			*/
+
+	bpwm = getIonwm();
+	bpMemIdx = getIonMemoryMgr();
+	bpVdbAddress = psm_locate(bpwm, BP_VDBNAME);
+	if (bpVdbAddress == 0)
+	{
+		putErrmsg("BP volatile database not found.", NULL);
+		return -1;
+	}
+	else
+	{
+		bpVdb = (BpVdb *) psp(bpwm, bpVdbAddress);
+	}
+
+	sprintf(VersionMemo, "Wrong bundle version (should be %d).", bpVersion);
+	secAttach();
+	return 0;		/*	BP service is now available.	*/
+}
+
+/*	*	*	Database occupancy functions	*	*	*/
+
+void	manageProductionThrottle(BpVdb *bpVdb)
+{
+	IonDB		iondb;
+	Throttle	*throttle;
+	long		occupancy;
+	long		unoccupied;
+
+	sdr_read(bpSdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	throttle = &(bpVdb->productionThrottle);
+	if (iondb.maxForecastInTransit > iondb.currentOccupancy)
+	{
+		occupancy = iondb.maxForecastInTransit;
+	}
+	else
+	{
+		occupancy = iondb.currentOccupancy;
+	}
+
+	unoccupied = iondb.occupancyCeiling - occupancy;
+	throttle->capacity = unoccupied - iondb.receptionSpikeReserve;
+	if (throttle->capacity > 0)
+	{
+		sm_SemGive(throttle->semaphore);
+	}
+}
+
+static void	noteBundleInserted(Bundle *bundle)
+{
+	ionOccupy(bundle->dbTotal);
+	manageProductionThrottle(getBpVdb());
+}
+
+static void	noteBundleRemoved(Bundle *bundle)
+{
+	ionVacate(bundle->dbTotal);
+	manageProductionThrottle(getBpVdb());
+}
+
+/*	*	*	Useful utility functions	*	*	*/
+
+int	parseClassOfService(char *token, unsigned int *priority,
+		unsigned int *ordinal, unsigned int *unreliable,
+		unsigned int *critical)
+{
+	int	count;
+
+	REQUIRE(token);
+	REQUIRE(priority);
+	REQUIRE(ordinal);
+	REQUIRE(unreliable);
+	REQUIRE(critical);
+	count = sscanf(token, "%u.%u.%u.%u", priority, ordinal, unreliable,
+			critical);
+	switch (count)
+	{
+	case 4:
+		if ((*critical != 0 && *critical != 1)
+		|| (*unreliable != 0 && *unreliable != 1))
+		{
+			return 0;	/*	Invalid format.		*/
+		}
+
+		/*	Intentional fall-through to next case.		*/
+
+	case 2:
+		if (*ordinal > 254)
+		{
+			return 0;	/*	Invalid format.		*/
+		}
+
+		/*	Intentional fall-through to next case.		*/
+
+	case 1:
+		if (*priority > 2)
+		{
+			return 0;	/*	Invalid format.		*/
+		}
+
+		break;
+
+	default:
+		return 0;		/*	Invalid format.		*/
+	}
+
+	return 1;
+}
+
+void	getCurrentDtnTime(DtnTime *dt)
+{
+	time_t	currentTime;
+
+	currentTime = getUTCTime();
+	dt->seconds = currentTime - EPOCH_2000_SEC;	/*	30 yrs	*/
+	dt->nanosec = 0;
+}
+
+void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
+{
+	int	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+#ifdef ION_BANDWIDTH_RESERVED
+	Scalar	maxBulkBacklog;
+	Scalar	bulkBacklog;
+#endif
+	int	i;
+
+	if (priority == 0)
+	{
+		copyScalar(backlog, &(duct->urgentBacklog));
+		addToScalar(backlog, &(duct->stdBacklog));
+		addToScalar(backlog, &(duct->bulkBacklog));
+		return;
+	}
+
+	if (priority == 1)
+	{
+		copyScalar(backlog, &(duct->urgentBacklog));
+		addToScalar(backlog, &(duct->stdBacklog));
+#ifdef ION_BANDWIDTH_RESERVED
+		/*	Additional backlog is the applicable bulk
+		 *	backlog, which is the entire bulk backlog
+		 *	or 1/2 of the std backlog, whichever is less.	*/
+
+		copyScalar(&maxBulkBacklog, &(duct->stdBacklog));
+		divideScalar(&maxBulkBacklog, 2);
+		copyScalar(&bulkBacklog, &maxBulkBacklog);
+		subtractFromScalar(&maxBulkBacklog, &(duct->bulkBacklog));
+		if (scalarIsValid(&maxBulkBacklog))
+		{
+			/*	Current bulk backlog is less than half
+			 *	of the current std backlog.		*/
+
+			copyScalar(&bulkBacklog, &(duct->bulkBacklog));
+		}
+
+		addToScalar(backlog, &bulkBacklog);
+#endif
+		return;
+	}
+
+	/*	Priority is 2, i.e., urgent (expedited).		*/
+
+	if ((i = bundle->extendedCOS.ordinal) == 0)
+	{
+		copyScalar(backlog, &(duct->urgentBacklog));
+		return;
+	}
+
+	/*	Bundle has non-zero ordinal, so it may jump ahead of
+	 *	some other urgent bundles.  Compute sum of backlogs
+	 *	for this and all higher ordinals.			*/
+
+	loadScalar(backlog, 0);
+	while (i < 256)
+	{
+		addToScalar(backlog, &(duct->ordinals[i].backlog));
+		i++;
+	}
+}
+
+int	putBpString(BpString *bpString, char *string)
+{
+	if (bpString == NULL || string == NULL)
+	{
+		return -1;
+	}
+
+checkSafety(bpSdr);
+	bpString->textLength = strlen(string);
+	bpString->text = sdr_malloc(bpSdr, bpString->textLength);
+	if (bpString->text == 0)
+	{
+		return -1;
+	}
+
+	sdr_write(bpSdr, bpString->text, string, bpString->textLength);
+	return 0;
+}
+
+char	*getBpString(BpString *bpString)
+{
+	char	*string;
+
+	if (bpString == NULL || bpString->text == 0 || bpString->textLength < 1)
+	{
+		return NULL;
+	}
+
+	string = MTAKE(bpString->textLength + 1);
+	if (string == NULL)
+	{
+		return (char *) bpString;	/*	Out of memory.	*/
+	}
+
+	sdr_read(bpSdr, string, bpString->text, bpString->textLength);
+	*(string + bpString->textLength) = '\0';
+	return string;
+}
+
+char	*retrieveDictionary(Bundle *bundle)
+{
+	char	*dictionary;
+
+	if (bundle->dictionary == 0)
+	{
+		return NULL;
+	}
+
+	dictionary = MTAKE(bundle->dictionaryLength);
+	if (dictionary == NULL)
+	{
+		return (char *) bundle;		/*	Out of memory.	*/
+	}
+
+	sdr_read(bpSdr, dictionary, bundle->dictionary,
+			bundle->dictionaryLength);
+	return dictionary;
+}
+
+void	releaseDictionary(char *dictionary)
+{
+	if (dictionary)
+	{
+		MRELEASE(dictionary);
+	}
+}
+
+int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
+		PsmAddress *vschemeElt)
+{
+	char	*uri;
+
+	if (eidString == NULL || metaEid == NULL
+	|| vscheme == NULL || vschemeElt == NULL)
+	{
+		errno = EINVAL;
+		putSysErrmsg(NullParmsMemo, NULL);
+		return -1;
+	}
+
+	/*	Handle special case of null endpoint ID.		*/
+
+	if (strlen(eidString) == 8 && strcmp(eidString, nullEid) == 0)
+	{
+		metaEid->nullEndpoint = 1;
+		metaEid->colon = NULL;
+		metaEid->schemeName = "dtn";
+		metaEid->schemeNameLength = 3;
+		metaEid->nss = "none";
+		metaEid->nssLength = 4;
+		metaEid->nodeNbr = 0;
+		metaEid->serviceNbr = 0;
+		return 1;
+	}
+
+	/*	EID string does not identify the null endpoint.		*/
+
+	metaEid->nullEndpoint = 0;
+#if BP_URI_RFC
+	if (strncmp(eid, "dtn::", 5) != 0)
+	{
+		errno = EINVAL;
+		putSysErrmsg("Don't know how to parse this EID", eidString);
+		return 0;
+	}
+
+	uri = eidString + 5;
+#else
+	uri = eidString;
+#endif
+	metaEid->colon = strchr(uri, ':');
+	if (metaEid->colon == NULL)
+	{
+		errno = EINVAL;
+		putSysErrmsg("Malformed EID", eidString);
+		return 0;
+	}
+
+	*(metaEid->colon) = '\0';
+	metaEid->schemeName = uri;
+	metaEid->schemeNameLength = metaEid->colon - uri;
+	metaEid->nss = metaEid->colon + 1;
+	metaEid->nssLength = strlen(metaEid->nss);
+
+	/*	Look up scheme of endpoint URI.				*/
+
+	findScheme(metaEid->schemeName, vscheme, vschemeElt);
+	if (*vschemeElt == 0)
+	{
+		*(metaEid->colon) = ':';
+		errno = EINVAL;
+		putSysErrmsg("Don't know how to parse endpoint URI", eidString);
+		return 0;
+	}
+
+	metaEid->cbhe = (*vscheme)->cbhe;
+	if (!metaEid->cbhe)		/*	Non-CBHE.		*/
+	{
+		metaEid->nodeNbr = 0;
+		metaEid->serviceNbr = 0;
+		return 1;
+	}
+
+	/*	A CBHE-conformant endpoint URI.				*/
+
+	if (sscanf(metaEid->nss, "%20lu.%20lu", &(metaEid->nodeNbr),
+			&(metaEid->serviceNbr)) < 2
+	|| metaEid->nodeNbr == 0	/*	Must use "dtn:none".	*/
+	|| metaEid->nodeNbr > MAX_CBHE_NODE_NBR
+	|| metaEid->serviceNbr > MAX_CBHE_SERVICE_NBR)
+	{
+		*(metaEid->colon) = ':';
+		errno = EINVAL;
+		putSysErrmsg("Malformed CBHE-conformant URI", eidString);
+		return 0;
+	}
+
+	return 1;
+}
+
+void	restoreEidString(MetaEid *metaEid)
+{
+	if (metaEid)
+	{
+		if (metaEid->colon)
+		{
+			*(metaEid->colon) = ':';
+		}
+
+		memset((char *) metaEid, 0, sizeof(MetaEid));
+	}
+}
+
+static char	*printCbheEid(CbheEid *eid)
+{
+	char	*schemeName;
+	int	eidLength;
+	char	*decoration;
+	char	*eidString;
+
+	if (eid == NULL)
+	{
+		errno = EINVAL;
+		putSysErrmsg(NullParmsMemo, NULL);
+		return NULL;
+	}
+
+	schemeName = cbheSchemeName;
+	eidLength = strlen(schemeName);
+#if BP_URI_RFC
+	/*	Printed EID string is
+	 *
+	 *	   dtn::<schemename>:<elementnbr>.<servicenbr>\0
+	 *
+	 *	so max EID string length is 5 for "dtn::" plus
+	 *	length of schemename plus 1 for ':' plus max
+	 *	length of nodeNbr (which is a 64-bit number, so
+	 *	20 digits) plus 1 for '.' plus max length of
+	 *	serviceNbr (which is a 64-bit number, so 20 digits)
+	 *	plus 1 for the terminating NULL.			*/
+
+	eidLength += 48;
+	decoration = "dtn::";
+#else
+	eidLength += 43;
+	decoration = "";
+#endif
+	eidString = MTAKE(eidLength);
+	if (eidString == NULL)
+	{
+		putErrmsg("Can't create CBHE EID string.", NULL);
+		return NULL;
+	}
+
+	if (eid->nodeNbr == 0)
+	{
+		strcpy(eidString, nullEid);
+	}
+	else
+	{
+		sprintf(eidString, "%s%s:%lu.%lu", decoration, schemeName,
+				eid->nodeNbr, eid->serviceNbr);
+	}
+
+	return eidString;
+}
+
+static char	*printDtnEid(DtnEid *eid, char *dictionary)
+{
+	int	schemeNameLength;
+	int	nssLength;
+	int	eidLength;
+	char	*decoration;
+	char	*eidString;
+
+	if (dictionary == NULL)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return NULL;
+	}
+
+	schemeNameLength = strlen(dictionary + eid->schemeNameOffset);
+	nssLength = strlen(dictionary + eid->nssOffset);
+	eidLength = schemeNameLength + nssLength + 2;
+#if BP_URI_RFC
+	eidLength += 5;
+	decoration = "dtn::";
+#else
+	decoration = "";
+#endif
+	eidString = MTAKE(eidLength);
+	if (eidString == NULL)
+	{
+		return NULL;
+	}
+
+	sprintf(eidString, "%s%s:%s", decoration,
+			dictionary + eid->schemeNameOffset,
+			dictionary + eid->nssOffset);
+	return eidString;
+}
+
+char	*printEid(EndpointId *eid, char *dictionary)
+{
+	if (eid == NULL)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return NULL;
+	}
+
+	if (eid->cbhe)
+	{
+		return printCbheEid(&eid->c);
+	}
+	else
+	{
+		return printDtnEid(&(eid->d), dictionary);
+	}
+}
+
+BpEidLookupFn	*senderEidLookupFunctions(BpEidLookupFn fn)
+{
+	static BpEidLookupFn	fns[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+	int			i;
+
+	if (fn == NULL)		/*	Requesting pointer to table.	*/
+	{
+		return fns;
+	}
+
+	for (i = 0; i < 16; i++)
+	{
+		if (fns[i] == fn)
+		{
+			break;		/*	Already in table.	*/
+		}
+
+		if (fns[i] == NULL)
+		{
+			fns[i] = fn;	/*	Add to table.		*/
+			break;
+		}
+	}
+
+	if (i == 16)
+	{
+		writeMemo("[?] EID lookup functions table is full.");
+	}
+
+	return NULL;
+}
+
+void	getSenderEid(char **eidBuffer, char *neighborClId)
+{
+	char		*uriBuffer;
+	BpEidLookupFn	*lookupFns;
+	int		i;
+	BpEidLookupFn	lookupEid;
+
+	REQUIRE(eidBuffer);
+	REQUIRE(*eidBuffer);
+	REQUIRE(*neighborClId);
+	uriBuffer = *eidBuffer;
+#ifdef BP_URI_RFC
+	strcpy(*uriBuffer, "dtn::");
+	uriBuffer += 5;
+#endif
+	lookupFns = senderEidLookupFunctions(NULL);
+	for (i = 0; i < 16; i++)
+	{
+		lookupEid = lookupFns[i];
+		if (lookupEid == NULL)
+		{
+			break;		/*	Reached end of table.	*/
+		}
+
+		switch (lookupEid(uriBuffer, neighborClId))
+		{
+		case -1:
+			putErrmsg("Failed getting sender EID.", NULL);
+			sm_Abort();
+
+		case 0:
+			continue;	/*	No match yet.		*/
+
+		default:
+			return;		/*	Figured out sender EID.	*/
+		}
+	}
+
+	*eidBuffer = NULL;	/*	Sender EID not found.		*/
+}
+
+int	clIdMatches(char *neighborClId, FwdDirective *dir)
+{
+	Sdr	sdr = getIonsdr();
+	char	*firstNonNumeric;
+	char	ductNameBuffer[SDRSTRING_BUFSZ];
+	char	*ductClId;
+	Object	ductObj;
+		OBJ_POINTER(Outduct, duct);
+	int	neighborIdLen;
+	int	ductIdLen;
+	int	idLen;
+	int	ignore;
+
+	if (dir->action == fwd)
+	{
+		return 0;
+	}
+
+	/*	This is a directive for transmission to a neighbor.	*/
+
+	neighborIdLen = strlen(neighborClId);
+	if (dir->destDuctName)
+	{
+		if (sdr_string_read(sdr, ductNameBuffer, dir->destDuctName) < 0)
+		{
+			putErrmsg("Missing dest duct name.", NULL);
+			return -1;		/*	DB error.	*/
+		}
+
+		ductClId = ductNameBuffer;
+	}
+	else
+	{
+		ductObj = sdr_list_data(sdr, dir->outductElt);
+		GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
+		ductClId = duct->name;
+	}
+
+	ductIdLen = strlen(ductClId);
+	// oK(strtol(ductClId, &firstNonNumeric, 0));
+	// must we store this value? silly compiler warnings.
+	ignore = strtol(ductClId, &firstNonNumeric, 0);
+	if (*firstNonNumeric == '\0')
+	{
+		/*	Neighbor CL ID is a number, e.g., an LTP
+		 *	engine number.  IDs must be the same length
+		 *	in order to match.				*/
+
+		 if (ductIdLen != neighborIdLen)
+		 {
+			 return 0;	/*	Different numbers.	*/
+		 }
+
+		 idLen = ductIdLen;
+	}
+	else
+	{
+		/*	IDs are character strings, e.g., hostnames.
+		 *	Matches if shorter string matches the leading
+		 *	characters of longer string.			*/
+
+		idLen = neighborIdLen < ductIdLen ? neighborIdLen : ductIdLen;
+	}
+
+	if (strncmp(neighborClId, ductClId, idLen) == 0)
+	{
+		return 1;		/*	Found neighbor's duct.	*/
+	}
+
+	return 0;			/*	A different neighbor.	*/
+}
+
+int	startBpTask(Object cmd, Object cmdParms, int *pid)
+{
+	char	buffer[600];
+	char	cmdString[SDRSTRING_BUFSZ];
+	char	parmsString[SDRSTRING_BUFSZ];
+
+	if (sdr_string_read(bpSdr, cmdString, cmd) < 0)
+	{
+		putErrmsg(DBErrorMemo, NULL);
+		return -1;
+	}
+
+	if (cmdParms == 0)
+	{
+		strcpy(buffer, cmdString);
+	}
+	else
+	{
+		if (sdr_string_read(bpSdr, parmsString, cmdParms) < 0)
+		{
+			putErrmsg(DBErrorMemo, NULL);
+			return -1;
+		}
+
+		sprintf(buffer, "%s %s", cmdString, parmsString);
+	}
+
+	*pid = pseudoshell(buffer);
+	if (*pid < 0)
+	{
+		putErrmsg("Can't start task", buffer);
+		return -1;
+	}
+
+	return 0;
+}
+
+static void	lookUpDestScheme(Bundle *bundle, char *dictionary,
+			VScheme **vscheme)
+{
+	PsmAddress	addr;
+	char		*schemeName;
+	PsmAddress	elt;
+
+	if (dictionary == NULL)
+	{
+		*vscheme = NULL;	/*	Default.		*/
+		if (!bundle->destination.cbhe)
+		{
+			return;		/*	Can't determine scheme.	*/
+		}
+
+		addr = bpVdb->cbheScheme;
+		if (addr == 0)
+		{
+			return;		/*	Not active.		*/
+		}
+
+		*vscheme = (VScheme *) psp(bpwm, addr);
+		return;
+	}
+
+	schemeName = dictionary + bundle->destination.d.schemeNameOffset;
+	for (elt = sm_list_first(bpwm, bpVdb->schemes); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		*vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (strcmp((*vscheme)->name, schemeName) == 0)
+		{
+			return;
+		}
+	}
+
+	if (elt == 0)			/*	No match found.		*/
+	{
+		*vscheme = NULL;
+	}
+}
+
+void	noteStateStats(int stateIdx, Bundle *bundle)
+{
+	int		priority;
+	BpClassStats	*stats;
+	
+	if (stateIdx < 0 || stateIdx > 7 || bundle == NULL)
+	{
+		return;
+	}
+
+	if (bundle->bundleProcFlags & BDL_IS_ADMIN)
+	{
+		priority = 3;		/*	Isolate admin traffic.	*/
+	}
+	else
+	{
+		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	}
+
+	stats = &(bpVdb->stateStats[stateIdx].stats[priority]);
+	stats->bytes += bundle->payload.length;
+	stats->bundles++;
+}
+
+static void	clearStateStats(int stateIdx)
+{
+	BpStateStats	*state;
+	int		i;
+	
+	if (stateIdx < 0 || stateIdx > 7)
+	{
+		return;
+	}
+
+	state = &(bpVdb->stateStats[stateIdx]);
+	for (i = 0; i < 4; i++)
+	{
+		state->stats[i].bytes = 0;
+		state->stats[i].bundles = 0;
+	}
+}
+
+void	clearAllStateStats()
+{
+	int		i;
+	BpStateStats	*state;
+	time_t		currentTime;
+
+	for (i = 0; i < 8; i++)
+	{
+		state = &(bpVdb->stateStats[i]);
+		if (state->stats[0].bundles > 0
+		|| state->stats[1].bundles > 0
+		|| state->stats[2].bundles > 0
+		|| state->stats[3].bundles > 0)
+		{
+			break;	/*	Found activity.			*/
+		}
+	}
+
+	if (i == 8)		/*	No activity.			*/
+	{
+		return;		/*	Don't clear.			*/
+	}
+
+	currentTime = getUTCTime();
+	for (i = 0; i < 8; i++)
+	{
+		clearStateStats(i);
+	}
+
+	bpVdb->statsStartTime = currentTime;
+}
+
+static void	reportStateStats(int stateIdx)
+{
+	time_t		startTime;
+	time_t		currentTime;
+	char		fromTimestamp[20];
+	char		toTimestamp[20];
+	BpStateStats	*state;
+	char		buffer[256];
+	static char	*classnames[] =
+		{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "ctt", "exp" };
+	
+	if (stateIdx < 0 || stateIdx > 7)
+	{
+		return;
+	}
+
+	currentTime = getUTCTime();
+	writeTimestampLocal(currentTime, toTimestamp);
+	startTime = bpVdb->statsStartTime;
+	writeTimestampLocal(startTime, fromTimestamp);
+	state = &(bpVdb->stateStats[stateIdx]);
+	isprintf(buffer, sizeof buffer, "[x] %s from %s to %s: (0) %u %lu (1) \
+%u %lu (2) %u %lu (@) %u %lu", classnames[stateIdx], fromTimestamp, toTimestamp,
+			state->stats[0].bundles, state->stats[0].bytes,
+			state->stats[1].bundles, state->stats[1].bytes,
+			state->stats[2].bundles, state->stats[2].bytes,
+			state->stats[3].bundles, state->stats[3].bytes);
+	writeMemo(buffer);
+}
+
+void	reportAllStateStats()
+{
+	int		i;
+	BpStateStats	*state;
+
+	for (i = 0; i < 8; i++)
+	{
+		state = &(bpVdb->stateStats[i]);
+		if (state->stats[0].bundles > 0
+		|| state->stats[1].bundles > 0
+		|| state->stats[2].bundles > 0
+		|| state->stats[3].bundles > 0)
+		{
+			break;	/*	Found activity.			*/
+		}
+	}
+
+	if (i == 8)		/*	No activity.			*/
+	{
+		return;		/*	Don't report.			*/
+	}
+
+	for (i = 0; i < 8; i++)
+	{
+		reportStateStats(i);
+	}
+}
+
+static ExtensionDef	*findExtensionDef(unsigned char type, unsigned char idx)
+{
+	int		i;
+	ExtensionDef	*def;
+
+	if (type == 0) return NULL;
+	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
+	{
+		if (def->type == type && def->listIdx == idx)
+		{
+			return def;
+		}
+	}
+
+	return NULL;
+}
+
+int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
+		char *blockData)
+{
+	unsigned long	blkProcFlags = blk->blkProcFlags;
+	Sdnv		blkProcFlagsSdnv;
+	unsigned long	dataLength = blk->dataLength;
+	Sdnv		dataLengthSdnv;
+	int		listLength;
+	LystElt		elt;
+	unsigned long	offset;
+	Sdnv		offsetSdnv;
+	unsigned long	referenceCount;
+	Sdnv		referenceCountSdnv;
+	Object		newElt;
+	char		*blkBuffer;
+	char		*cursor;
+
+	if (blk->bytes)
+	{
+		sdr_free(bpSdr, blk->bytes);
+	}
+
+	blk->bytes = 0;
+	if (blk->eidReferences)
+	{
+		sdr_list_destroy(bpSdr, blk->eidReferences, NULL, NULL);
+	}
+
+	blk->eidReferences = 0;
+	encodeSdnv(&blkProcFlagsSdnv, blkProcFlags);
+	encodeSdnv(&dataLengthSdnv, dataLength);
+	blk->length = 1 + blkProcFlagsSdnv.length + dataLengthSdnv.length
+			+ dataLength;
+	if (eidReferences != NULL)
+	{
+		listLength = lyst_length(eidReferences);
+
+		/*	Each reference is a pair of offsets, i.e., two
+		 *	list elements.					*/
+
+		if (listLength & 0x00000001)	/*	Not pairs.	*/
+		{
+			putErrmsg("Invalid EID references list.", NULL);
+			return -1;
+		}
+
+		blkProcFlags |= BLK_HAS_EID_REFERENCES;
+		referenceCount = (listLength >> 1) & 0x7fffffff;
+		encodeSdnv(&referenceCountSdnv, referenceCount);
+		blk->length += referenceCountSdnv.length;
+		blk->eidReferences = sdr_list_create(bpSdr);
+		if (blk->eidReferences == 0)
+		{
+			putErrmsg("No space for EID references list.", NULL);
+			return -1;
+		}
+
+		for (elt = lyst_first(eidReferences); elt; elt = lyst_next(elt))
+		{
+			offset = (unsigned long) lyst_data(elt);
+			encodeSdnv(&offsetSdnv, offset);
+			blk->length += offsetSdnv.length;
+			newElt = sdr_list_insert_last(bpSdr,
+					blk->eidReferences, offset);
+		}
+	}
+
+	blk->bytes = sdr_malloc(bpSdr, blk->length);
+	if (blk->bytes == 0)
+	{
+		putErrmsg("No space for block.", itoa(blk->length));
+		return -1;
+	}
+
+	blkBuffer = MTAKE(blk->length);
+	if (blkBuffer == NULL)
+	{
+		putErrmsg("No space for block buffer.", itoa(blk->length));
+		return -1;
+	}
+
+	*blkBuffer = blk->type;
+	cursor = blkBuffer + 1;
+	memcpy(cursor, blkProcFlagsSdnv.text, blkProcFlagsSdnv.length);
+	cursor += blkProcFlagsSdnv.length;
+	if (eidReferences)
+	{
+		memcpy(cursor, referenceCountSdnv.text,
+				referenceCountSdnv.length);
+		cursor += referenceCountSdnv.length;
+		for (elt = lyst_first(eidReferences); elt; elt = lyst_next(elt))
+		{
+			offset = (unsigned long) lyst_data(elt);
+			encodeSdnv(&offsetSdnv, offset);
+			memcpy(cursor, offsetSdnv.text, offsetSdnv.length);
+			cursor += offsetSdnv.length;
+		}
+	}
+
+	memcpy(cursor, dataLengthSdnv.text, dataLengthSdnv.length);
+	cursor += dataLengthSdnv.length;
+	memcpy(cursor, blockData, dataLength);
+	sdr_write(bpSdr, blk->bytes, blkBuffer, blk->length);
+	MRELEASE(blkBuffer);
+	return 0;
+}
+
+void	discardExtensionBlock(AcqExtBlock *blk)
+{
+	blk->length = 0;
+}
+
+void	scratchExtensionBlock(ExtensionBlock *blk)
+{
+	blk->length = 0;
+}
+
+void	suppressExtensionBlock(ExtensionBlock *blk)
+{
+	blk->suppressed = 1;
+}
+
+void	restoreExtensionBlock(ExtensionBlock *blk)
+{
+	blk->suppressed = 0;
+}
+
+/*	*	*	Bundle destruction functions	*	*	*/
+
+static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
+{
+	Object	elt;
+	Object	nextElt;
+	Object	fragObj;
+	Bundle	fragment;
+
+	for (elt = sdr_list_first(bpSdr, incomplete->fragments); elt;
+			elt = nextElt)
+	{
+		nextElt = sdr_list_next(bpSdr, elt);
+		fragObj = (Object) sdr_list_data(bpSdr, elt);
+		sdr_stage(bpSdr, (char *) &fragment, fragObj, sizeof(Bundle));
+		fragment.fragmentElt = 0;	/*	Lose constraint.*/
+		fragment.incompleteElt = 0;
+		sdr_write(bpSdr, fragObj, (char *) &fragment, sizeof(Bundle));
+		if (bpDestroyBundle(fragObj, 0) < 0)
+		{
+			putErrmsg("Can't destroy incomplete bundle.", NULL);
+			return -1;
+		}
+
+		sdr_list_delete(bpSdr, elt, NULL, NULL);
+	}
+
+	sdr_free(bpSdr, sdr_list_data(bpSdr, incElt));
+	sdr_list_delete(bpSdr, incElt, NULL, NULL);
+	return 0;
+}
+
+static void	removeBundleFromQueue(Object ductXmitElt, Bundle *bundle,
+			ClProtocol *protocol, Object outductObj,
+			Outduct *outduct)
+{
+	int		backlogDecrement;
+	OrdinalState	*ord;
+
+	sdr_list_delete(bpSdr, ductXmitElt, NULL, NULL);
+
+	/*	Removal from queue reduces outduct's backlog.		*/
+
+	backlogDecrement = computeECCC(guessBundleSize(bundle), protocol);
+	switch (COS_FLAGS(bundle->bundleProcFlags) & 0x03)
+	{
+	case 0:				/*	Bulk priority.		*/
+		reduceScalar(&(outduct->bulkBacklog), backlogDecrement);
+		break;
+
+	case 1:				/*	Standard priority.	*/
+		reduceScalar(&(outduct->stdBacklog), backlogDecrement);
+		break;
+
+	default:			/*	Urgent priority.	*/
+		ord = &(outduct->ordinals[bundle->extendedCOS.ordinal]);
+		reduceScalar(&(ord->backlog), backlogDecrement);
+		if (ord->lastForOrdinal == ductXmitElt)
+		{
+			ord->lastForOrdinal = 0;
+		}
+
+		reduceScalar(&(outduct->urgentBacklog), backlogDecrement);
+	}
+
+	sdr_write(bpSdr, outductObj, (char *) outduct, sizeof(Outduct));
+}
+
+static void	purgeDuctXmitElt(Bundle *bundle, Object ductXmitElt)
+{
+	Object		queue;
+	Object		outductObj;
+	Outduct		outduct;
+	ClProtocol	protocol;
+
+	queue = sdr_list_list(bpSdr, ductXmitElt);
+	outductObj = sdr_list_user_data(bpSdr, queue);
+	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
+	sdr_read(bpSdr, (char *) &protocol, outduct.protocol,
+			sizeof(ClProtocol));
+	removeBundleFromQueue(ductXmitElt, bundle, &protocol, outductObj,
+			&outduct);
+}
+
+static void	purgeXmitRefs(Bundle *bundle)
+{
+	Object	elt;
+	Object	nextElt;
+	Object	xrAddr;
+		OBJ_POINTER(XmitRef, xr);
+
+	if (bundle->xmitRefs == 0)
+	{
+		return;
+	}
+
+	bundle->xmitsNeeded = 0;
+
+	/*	Remove bundle from all transmission queues.		*/
+
+	for (elt = sdr_list_first(bpSdr, bundle->xmitRefs); elt; elt = nextElt)
+	{
+		nextElt = sdr_list_next(bpSdr, elt);
+		xrAddr = sdr_list_data(bpSdr, elt);
+		sdr_list_delete(bpSdr, elt, NULL, NULL);
+		GET_OBJ_POINTER(bpSdr, XmitRef, xr, xrAddr);
+		purgeDuctXmitElt(bundle, xr->ductXmitElt);
+		if (xr->destDuctName)
+		{
+			sdr_free(bpSdr, xr->destDuctName);
+		}
+
+		sdr_free(bpSdr, xrAddr);
+	}
+}
+
+static void	purgeStationsStack(Bundle *bundle)
+{
+	Object	elt;
+	Object	addr;
+
+	if (bundle->stations == 0)
+	{
+		return;
+	}
+
+	/*	Remove bundle from all transmission queues.		*/
+
+	while (1)
+	{
+		elt = sdr_list_first(bpSdr, bundle->stations);
+		if (elt == 0)
+		{
+			return;
+		}
+
+		addr = sdr_list_data(bpSdr, elt);
+		sdr_list_delete(bpSdr, elt, NULL, NULL);
+		sdr_free(bpSdr, addr);	/*	It's an sdrstring.	*/
+	}
+}
+
+static void	deleteExtensionBlock(Object elt, unsigned int listIdx)
+{
+	Object		blkAddr;
+			OBJ_POINTER(ExtensionBlock, blk);
+	ExtensionDef	*def;
+
+	blkAddr = sdr_list_data(bpSdr, elt);
+	sdr_list_delete(bpSdr, elt, NULL, NULL);
+	GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk, blkAddr);
+	def = findExtensionDef(blk->type, listIdx);
+	if (def && def->release)
+	{
+		def->release(blk);
+	}
+
+	if (blk->eidReferences)
+	{
+		sdr_list_destroy(bpSdr, blk->eidReferences, NULL, NULL);
+	}
+
+	if (blk->bytes)
+	{
+		sdr_free(bpSdr, blk->bytes);
+	}
+
+	sdr_free(bpSdr, blkAddr);
+}
+
+static void	destroyExtensionBlocks(Bundle *bundle)
+{
+	int	i;
+	Object	elt;
+
+	for (i = 0; i < 2; i++)
+	{
+		if (bundle->extensions[i] == 0)
+		{
+			continue;
+		}
+
+		while (1)
+		{
+			elt = sdr_list_first(bpSdr, bundle->extensions[i]);
+			if (elt == 0)
+			{
+				break;
+			}
+
+			deleteExtensionBlock(elt, i);
+		}
+
+		sdr_list_destroy(bpSdr, bundle->extensions[i], NULL, NULL);
+	}
+}
+
+int	bpDestroyBundle(Object bundleObj, int ttlExpired)
+{
+	Bundle	bundle;
+		OBJ_POINTER(IncompleteBundle, incomplete);
+	char	*dictionary;
+	int	result;
+	Object	elt;
+
+checkSafety(bpSdr);
+	if (bundleObj == 0)
+	{
+		errno = EINVAL;
+		putSysErrmsg(NullParmsMemo, NULL);
+		return -1;		/*	Implementation error!	*/
+	}
+
+	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+
+	/*	Special handling for TTL expiration.			*/
+
+	if (ttlExpired)
+	{
+		/*	FORCES removal of all references to bundle.	*/
+
+		if (bundle.fwdQueueElt)
+		{
+			sdr_list_delete(bpSdr, bundle.fwdQueueElt, NULL, NULL);
+			bundle.fwdQueueElt = 0;
+		}
+
+		if (bundle.fragmentElt)
+		{
+			sdr_list_delete(bpSdr, bundle.fragmentElt, NULL, NULL);
+			bundle.fragmentElt = 0;
+
+			/*	If this is the last fragment of an
+			 *	Incomplete, destroy the Incomplete.	*/
+
+			GET_OBJ_POINTER(bpSdr, IncompleteBundle, incomplete,
+				sdr_list_data(bpSdr, bundle.incompleteElt));
+			if (sdr_list_length(bpSdr, incomplete->fragments) == 0)
+			{
+				if (destroyIncomplete(incomplete,
+						bundle.incompleteElt) < 0)
+				{
+					putErrmsg(DBErrorMemo, NULL);
+					return -1;
+				}
+			}
+
+			bundle.incompleteElt = 0;
+		}
+
+		if (bundle.dlvQueueElt)
+		{
+			sdr_list_delete(bpSdr, bundle.dlvQueueElt, NULL, NULL);
+			bundle.dlvQueueElt = 0;
+		}
+
+		/*	Remove any remaining transmission references.	*/
+
+		if (bundle.xmitRefs)
+		{
+			purgeXmitRefs(&bundle);
+		}
+
+		/*	Notify sender, if so requested or if custodian.	*/
+
+		noteStateStats(BPSTATS_EXPIRE, &bundle);
+		if (bpVdb->watching & WATCH_expire)
+		{
+			putchar('!');
+			fflush(stdout);
+		}
+
+		if (bundle.custodyTaken
+		|| (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT))
+		{
+			bundle.statusRpt.flags |= BP_DELETED_RPT;
+			bundle.statusRpt.reasonCode = SrLifetimeExpired;
+			getCurrentDtnTime(&bundle.statusRpt.deletionTime);
+			if ((dictionary = retrieveDictionary(&bundle))
+					== (char *) &bundle)
+			{
+				putErrmsg("Can't retrieve dictionary.", NULL);
+				return -1;
+			}
+
+			result = sendStatusRpt(&bundle, dictionary);
+			releaseDictionary(dictionary);
+		       	if (result < 0)
+			{
+				putErrmsg("can't send deletion notice", NULL);
+				return -1;
+			}
+		}
+
+		bundle.custodyTaken = 0;
+	}
+
+	/*	Check for any remaining constraints on deletion.	*/
+
+	if (bundle.dlvQueueElt || bundle.fragmentElt || bundle.fwdQueueElt
+	|| bundle.xmitsNeeded > 0 || bundle.custodyTaken)
+	{
+		return 0;	/*	Can't destroy bundle yet.	*/
+	}
+
+	/*	Remove bundle from timeline.				*/
+
+	sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.timelineElt));
+	sdr_list_delete(bpSdr, bundle.timelineElt, NULL, NULL);
+
+	/*	Turn off automatic re-forwarding.			*/
+
+	if (bundle.overdueElt)
+	{
+		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
+		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+	}
+
+	if (bundle.ctDueElt)
+	{
+		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
+		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+	}
+
+	/*	Remove bundle from applications' bundle tracking lists.	*/
+
+	if (bundle.trackingElts)
+	{
+		while (1)
+		{
+			elt = sdr_list_first(bpSdr, bundle.trackingElts);
+			if (elt == 0)
+			{
+				break;	/*	No more tracking elts.	*/
+			}
+
+			/*	Data in list element is the address
+			 *	of a list element (in a list used by
+			 *	some application) that references this
+			 *	bundle.  Delete that list element,
+			 *	which is no longer usable.		*/
+
+			sdr_list_delete(bpSdr, sdr_list_data(bpSdr, elt),
+					NULL, NULL);
+
+			/*	Now delete this list element as well.	*/
+
+			sdr_list_delete(bpSdr, elt, NULL, NULL);
+		}
+
+		sdr_list_destroy(bpSdr, bundle.trackingElts, NULL, NULL);
+	}
+
+	/*	Remove BP's own reference to the bundle's payload
+	 *	ZCO.  There may still be some application reference
+	 *	to this ZCO, but if not then deleting the bundle's
+	 *	reference will implicitly destroy the ZCO itself.	*/
+
+	if (bundle.payload.content)
+	{
+		zco_destroy_reference(bpSdr, bundle.payload.content);
+	}
+
+	/*	Destroy all SDR objects managed for this bundle and
+	 *	free space occupied by the bundle itself.		*/
+
+	if (bundle.clDossier.senderEid.text)
+	{
+		sdr_free(bpSdr, bundle.clDossier.senderEid.text);
+	}
+
+	if (bundle.dictionary)
+	{
+		sdr_free(bpSdr, bundle.dictionary);
+	}
+
+	if (bundle.xmitRefs)
+	{
+		sdr_list_destroy(bpSdr, bundle.xmitRefs, NULL, NULL);
+	}
+
+	destroyExtensionBlocks(&bundle);
+	purgeStationsStack(&bundle);
+	if (bundle.stations)
+	{
+		sdr_list_destroy(bpSdr, bundle.stations, NULL, NULL);
+	}
+
+	sdr_free(bpSdr, bundleObj);
+	noteBundleRemoved(&bundle);
+	return 0;
+}
+
+/*	*	*	BP database mgt and access functions	*	*/
+
+int	findBundle(char *sourceEid, BpTimestamp *creationTime,
+		unsigned long fragmentOffset, unsigned long fragmentLength,
+		Object *bundleAddr, Object *timelineElt)
+{
+	Object	elt;
+		OBJ_POINTER(BpEvent, event);
+		OBJ_POINTER(Bundle, bundle);
+	int	dictionaryBuflen = 0;
+	char	*dictionary = NULL;
+	char	*eidString;
+	int	result;
+
+checkSafety(bpSdr);
+	*timelineElt = 0;
+	for (elt = sdr_list_first(bpSdr, bpConstants->timeline); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		GET_OBJ_POINTER(bpSdr, BpEvent, event,
+				sdr_list_data(bpSdr, elt));
+		if (event->type != expiredTTL)
+		{
+			continue;
+		}
+
+		/*	Event references a bundle that still exists.	*/
+
+		*bundleAddr = event->ref;
+		GET_OBJ_POINTER(bpSdr, Bundle, bundle, *bundleAddr);
+
+		/*	See if bundle's ID matches search arguments.	*/
+
+		if (bundle->id.creationTime.seconds != creationTime->seconds
+		|| bundle->id.creationTime.count != creationTime->count)
+		{
+			continue;	/*	Different time tags.	*/
+		}
+
+		if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+		{
+			if (fragmentLength == 0)
+			{
+				continue;	/*	Fragment n.g.	*/
+			}
+
+			if (bundle->id.fragmentOffset != fragmentOffset)
+			{
+				continue;	/*	Wrong fragment.	*/
+			}
+
+			if (bundle->payload.length != fragmentLength)
+			{
+				continue;	/*	Wrong fragment.	*/
+			}
+		}
+		else	/*	This bundle is not a fragment.		*/
+		{
+			if (fragmentLength != 0)
+			{
+				continue;	/*	Need fragment.	*/
+			}
+		}
+
+		/*	Note: we don't use retrieveDictionary() here
+		 *	because it would allocate dictionary buffer
+		 *	space every time.  This is faster.		*/
+
+		if (bundle->dictionaryLength == 0)	/*	CBHE.	*/
+		{
+			dictionary = NULL;
+		}
+		else
+		{
+			if (bundle->dictionaryLength > dictionaryBuflen)
+			{
+				if (dictionary)
+				{
+					MRELEASE(dictionary);
+					dictionary = NULL;
+				}
+
+				dictionaryBuflen = bundle->dictionaryLength;
+				dictionary = MTAKE(dictionaryBuflen);
+				if (dictionary == NULL)
+				{
+					putErrmsg("Can't retrieve dictionary.",
+							itoa(dictionaryBuflen));
+					return -1;
+				}
+			}
+
+			sdr_read(bpSdr, dictionary, bundle->dictionary,
+					bundle->dictionaryLength);
+		}
+
+		eidString = printEid(&(bundle->id.source), dictionary);
+		if (eidString == NULL)
+		{
+			putErrmsg("Can't print EID string.", NULL);
+			if (dictionary)
+			{
+				MRELEASE(dictionary);
+			}
+
+			return -1;
+		}
+
+		result = strcmp(eidString, sourceEid);
+		MRELEASE(eidString);
+		if (result != 0)	/*	Different sources.	*/
+		{
+			continue;
+		}
+
+		/*	Found the matching bundle.			*/
+
+		*timelineElt = elt;
+		break;
+	}
+
+	if (dictionary)
+	{
+		MRELEASE(dictionary);
+	}
+
+	return 0;
+}
+
+void	findScheme(char *schemeName, VScheme **scheme, PsmAddress *schemeElt)
+{
+	PsmAddress	elt;
+
+	for (elt = sm_list_first(bpwm, bpVdb->schemes); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		*scheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (strcmp((*scheme)->name, schemeName) == 0)
+		{
+			break;
+		}
+	}
+
+	*schemeElt = elt;
+}
+
+int	addScheme(char *schemeName, char *fwdCmd, char *admAppCmd)
+{
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	Scheme		schemeBuf;
+	Object		addr;
+	Object		schemeElt;
+
+	if (schemeName == NULL || *schemeName == 0)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (strlen(schemeName) > MAX_SCHEME_NAME_LEN)
+	{
+		putErrmsg("Scheme name is too long.", schemeName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (fwdCmd)
+	{
+		if (*fwdCmd == '\0')
+		{
+			fwdCmd = NULL;
+		}
+		else
+		{
+			if (strlen(fwdCmd) > MAX_SDRSTRING)
+			{
+				putErrmsg("forwarder command string too long.",
+						fwdCmd);
+				errno = EINVAL;
+				return 0;
+			}
+		}
+	}
+
+	if (admAppCmd)
+	{
+		if (*admAppCmd == '\0')
+		{
+			admAppCmd = NULL;
+		}
+		else
+		{
+			if (strlen(admAppCmd) > MAX_SDRSTRING)
+			{
+				putErrmsg("adminep command string too long.",
+						admAppCmd);
+				errno = EINVAL;
+				return 0;
+			}
+		}
+	}
+
+	sdr_begin_xn(bpSdr);
+	findScheme(schemeName, &vscheme, &vschemeElt);
+	if (vschemeElt != 0)	/*	This is a known scheme.		*/
+	{
+		putErrmsg("Duplicate scheme, already in database.", schemeName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	All parameters validated, okay to add the scheme.	*/
+
+	memset((char *) &schemeBuf, 0, sizeof(Scheme));
+	strcpy(schemeBuf.name, schemeName);
+	if (strcmp(schemeName, cbheSchemeName) == 0)
+	{
+		schemeBuf.cbhe = 1;
+	}
+
+	if (fwdCmd)
+	{
+		schemeBuf.fwdCmd = sdr_string_create(bpSdr, fwdCmd);
+	}
+
+	if (admAppCmd)
+	{
+		schemeBuf.admAppCmd = sdr_string_create(bpSdr, admAppCmd);
+	}
+
+	schemeBuf.forwardQueue = sdr_list_create(bpSdr);
+	schemeBuf.endpoints = sdr_list_create(bpSdr);
+	addr = sdr_malloc(bpSdr, sizeof(Scheme));
+	if (addr == 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("No space for scheme", NULL);
+		return -1;
+	}
+
+	sdr_write(bpSdr, addr, (char *) &schemeBuf, sizeof(Scheme));
+	schemeElt = sdr_list_insert_last(bpSdr, bpConstants->schemes, addr);
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't add scheme.", schemeName);
+		return -1;
+	}
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	if (raiseScheme(schemeElt) < 0)
+	{
+		putErrmsg("Can't raise scheme.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	return 1;
+}
+
+int	updateScheme(char *schemeName, char *fwdCmd, char *admAppCmd)
+{
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	Scheme		schemeBuf;
+	Object		addr;
+
+	if (schemeName == NULL || *schemeName == 0)
+	{
+		putErrmsg(NullParmsMemo, schemeName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (fwdCmd)
+	{
+		if (*fwdCmd == '\0')
+		{
+			fwdCmd = NULL;
+		}
+		else
+		{
+			if (strlen(fwdCmd) > MAX_SDRSTRING)
+			{
+				putErrmsg("forwarder command string too long.",
+						fwdCmd);
+				errno = EINVAL;
+				return 0;
+			}
+		}
+	}
+
+	if (admAppCmd)
+	{
+		if (*admAppCmd == '\0')
+		{
+			admAppCmd = NULL;
+		}
+		else
+		{
+			if (strlen(admAppCmd) > MAX_SDRSTRING)
+			{
+				putErrmsg("adminep command string too long.",
+						admAppCmd);
+				errno = EINVAL;
+				return 0;
+			}
+		}
+	}
+
+	sdr_begin_xn(bpSdr);
+	findScheme(schemeName, &vscheme, &vschemeElt);
+	if (vschemeElt == 0)	/*	This is an unknown scheme.	*/
+	{
+		putErrmsg("Unknown scheme, not in database.", schemeName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	All parameters validated, okay to update the scheme.
+	 *	First wipe out current cmds, then establish new ones.	*/
+
+	addr = (Object) sdr_list_data(bpSdr, vscheme->schemeElt);
+	sdr_stage(bpSdr, (char *) &schemeBuf, addr, sizeof(Scheme));
+	if (schemeBuf.fwdCmd)
+	{
+		sdr_free(bpSdr, schemeBuf.fwdCmd);
+		schemeBuf.fwdCmd = 0;
+	}
+
+	if (fwdCmd)
+	{
+		schemeBuf.fwdCmd = sdr_string_create(bpSdr, fwdCmd);
+	}
+
+	if (schemeBuf.admAppCmd)
+	{
+		sdr_free(bpSdr, schemeBuf.admAppCmd);
+		schemeBuf.admAppCmd = 0;
+	}
+
+	if (admAppCmd)
+	{
+		schemeBuf.admAppCmd = sdr_string_create(bpSdr, admAppCmd);
+	}
+
+	sdr_write(bpSdr, addr, (char *) &schemeBuf, sizeof(Scheme));
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't update scheme.", schemeName);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	removeScheme(char *schemeName)
+{
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	Object		schemeElt;
+	Object		addr;
+	Scheme		schemeBuf;
+
+	if (schemeName == NULL)
+	{
+		putErrmsg(NullParmsMemo, schemeName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	/*	Must stop the scheme before trying to remove it.	*/
+
+	sdr_begin_xn(bpSdr);		/*	Lock memory.		*/
+	findScheme(schemeName, &vscheme, &vschemeElt);
+	if (vschemeElt == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Unknown scheme, not in database.", schemeName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	/*	All parameters validated.				*/
+
+	stopScheme(vscheme);
+	sdr_exit_xn(bpSdr);
+	waitForScheme(vscheme);
+	sdr_begin_xn(bpSdr);
+	resetScheme(vscheme);
+	schemeElt = vscheme->schemeElt;
+	addr = sdr_list_data(bpSdr, schemeElt);
+	sdr_read(bpSdr, (char *) &schemeBuf, addr, sizeof(Scheme));
+	if (sdr_list_length(bpSdr, schemeBuf.forwardQueue) != 0)
+	{
+		putErrmsg("Scheme has backlog, can't be removed.", schemeName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	if (sdr_list_length(bpSdr, schemeBuf.endpoints) != 0)
+	{
+		putErrmsg("Scheme has endpoints, can't be removed.",
+				schemeName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	Okay to remove this scheme from the database.		*/
+
+	dropScheme(vscheme, vschemeElt);
+	if (schemeBuf.fwdCmd)
+	{
+		sdr_free(bpSdr, schemeBuf.fwdCmd);
+	}
+
+	if (schemeBuf.admAppCmd)
+	{
+		sdr_free(bpSdr, schemeBuf.admAppCmd);
+	}
+
+	sdr_list_destroy(bpSdr, schemeBuf.forwardQueue, NULL, NULL);
+	sdr_list_destroy(bpSdr, schemeBuf.endpoints, NULL, NULL);
+	sdr_free(bpSdr, addr);
+	sdr_list_delete(bpSdr, schemeElt, NULL, NULL);
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't remove scheme.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	bpStartScheme(char *name)
+{
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	int		result = 1;
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	findScheme(name, &vscheme, &vschemeElt);
+	if (vschemeElt == 0)
+	{
+		putErrmsg("Unknown scheme, not in database.", name);
+		errno = EINVAL;
+		result = 0;
+	}
+	else
+	{
+		startScheme(vscheme);
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	return result;
+}
+
+void	bpStopScheme(char *name)
+{
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	findScheme(name, &vscheme, &vschemeElt);
+	if (vschemeElt == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Unknown scheme, not in database.", name);
+		return;
+	}
+
+	stopScheme(vscheme);
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	waitForScheme(vscheme);
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	resetScheme(vscheme);
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+}
+
+void	findEndpoint(char *schemeName, char *nss, VScheme *vscheme,
+		VEndpoint **vpoint, PsmAddress *vpointElt)
+{
+	PsmAddress	elt;
+
+	if (vscheme == NULL)
+	{
+		findScheme(schemeName, &vscheme, &elt);
+		if (elt == 0)
+		{
+			*vpointElt = 0;
+			return;
+		}
+	}
+
+	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		*vpoint = (VEndpoint *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (strcmp((*vpoint)->nss, nss) == 0)
+		{
+			break;
+		}
+	}
+
+	*vpointElt = elt;
+}
+
+int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
+{
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	elt;
+	VEndpoint	*vpoint;
+	Endpoint	endpointBuf;
+	Scheme		scheme;
+	Object		addr;
+	Object		endpointElt;
+
+	if (eid == NULL || *eid == 0)
+	{
+		errno = EINVAL;
+		putSysErrmsg(NullParmsMemo, NULL);
+		return -1;
+	}
+
+	if (parseEidString(eid, &metaEid, &vscheme, &elt) == 0)
+	{
+		errno = EINVAL;
+		putSysErrmsg("Can't parse the EID", eid);
+		return 0;
+	}
+
+	if (strlen(metaEid.nss) > MAX_NSS_LEN)
+	{
+		errno = EINVAL;
+		putSysErrmsg("Endpoint nss is too long", metaEid.nss);
+		return 0;
+	}
+
+	sdr_begin_xn(bpSdr);
+	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &elt);
+	if (elt != 0)	/*	This is a known endpoint.	*/
+	{
+		errno = EINVAL;
+		putSysErrmsg("Duplicate endpoint, already in database", eid);
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	All parameters validated, okay to add the endpoint.	*/
+
+	memset((char *) &endpointBuf, 0, sizeof(Endpoint));
+	strcpy(endpointBuf.nss, metaEid.nss);
+	restoreEidString(&metaEid);
+	endpointBuf.recvRule = recvRule;
+	if (script)
+	{
+		endpointBuf.recvScript = sdr_string_create(bpSdr, script);
+	}
+
+	endpointBuf.incompletes = sdr_list_create(bpSdr);
+	endpointBuf.deliveryQueue = sdr_list_create(bpSdr);
+	endpointBuf.scheme = (Object) sdr_list_data(bpSdr, vscheme->schemeElt);
+	addr = sdr_malloc(bpSdr, sizeof(Endpoint));
+	if (addr == 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("No space for endpoint.", NULL);
+		return -1;
+	}
+
+	sdr_read(bpSdr, (char *) &scheme, endpointBuf.scheme, sizeof(Scheme));
+	endpointElt = sdr_list_insert_last(bpSdr, scheme.endpoints, addr);
+	sdr_write(bpSdr, addr, (char *) &endpointBuf, sizeof(Endpoint));
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't add endpoint.", eid);
+		return -1;
+	}
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	if (raiseEndpoint(vscheme, endpointElt) < 0)
+	{
+		putErrmsg("Can't raise endpoint.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	return 1;
+}
+
+int	updateEndpoint(char *eid, BpRecvRule recvRule, char *script)
+{
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	elt;
+	VEndpoint	*vpoint;
+	Object		addr;
+	Endpoint	endpointBuf;
+
+	if (eid == NULL || *eid == 0)
+	{
+		errno = EINVAL;
+		putSysErrmsg(NullParmsMemo, NULL);
+		return -1;
+	}
+
+	if (parseEidString(eid, &metaEid, &vscheme, &elt) == 0)
+	{
+		errno = EINVAL;
+		putSysErrmsg("Can't parse the EID", eid);
+		return 0;
+	}
+
+	sdr_begin_xn(bpSdr);
+	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &elt);
+	restoreEidString(&metaEid);
+	if (elt == 0)		/*	This is an unknown endpoint.	*/
+	{
+		putErrmsg("Unknown endpoint, not in database.", eid);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	All parameters validated, okay to update the endpoint.
+	 *	First wipe out current parms, then establish new ones.	*/
+
+	addr = (Object) sdr_list_data(bpSdr, vpoint->endpointElt);
+	sdr_stage(bpSdr, (char *) &endpointBuf, addr, sizeof(Endpoint));
+	endpointBuf.recvRule = recvRule;
+	if (endpointBuf.recvScript)
+	{
+		sdr_free(bpSdr, endpointBuf.recvScript);
+		endpointBuf.recvScript = 0;
+	}
+
+	if (script)
+	{
+		endpointBuf.recvScript = sdr_string_create(bpSdr, script);
+	}
+
+	sdr_write(bpSdr, addr, (char *) &endpointBuf, sizeof(Endpoint));
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't update endpoint.", eid);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	removeEndpoint(char *eid)
+{
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	elt;
+	VEndpoint	*vpoint;
+	Object		endpointElt;
+	Object		addr;
+	Endpoint	endpointBuf;
+
+	if (eid == NULL || *eid == 0)
+	{
+		errno = EINVAL;
+		putSysErrmsg(NullParmsMemo, NULL);
+		return -1;
+	}
+
+	if (parseEidString(eid, &metaEid, &vscheme, &elt) == 0)
+	{
+		errno = EINVAL;
+		putSysErrmsg("Can't parse the EID", eid);
+		return 0;
+	}
+
+	sdr_begin_xn(bpSdr);
+	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &elt);
+	restoreEidString(&metaEid);
+	if (elt == 0)			/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Unknown endpoint.", eid);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (vpoint->appPid > 0 && sm_TaskExists(vpoint->appPid))
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Endpoint can't be removed while open.",
+				itoa(vpoint->appPid));
+		errno = EINVAL;
+		return 0;
+	}
+
+	endpointElt = vpoint->endpointElt;
+	addr = (Object) sdr_list_data(bpSdr, endpointElt);
+	sdr_read(bpSdr, (char *) &endpointBuf, addr, sizeof(Endpoint));
+	if (sdr_list_length(bpSdr, endpointBuf.incompletes) != 0)
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Endpoint has incomplete bundles pending.", eid);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (sdr_list_length(bpSdr, endpointBuf.deliveryQueue) != 0)
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Endpoint has non-empty delivery queue.", eid);
+		errno = EINVAL;
+		return 0;
+	}
+
+	/*	Okay to remove this endpoint from the database.		*/
+
+	dropEndpoint(vpoint, elt);
+	sdr_list_destroy(bpSdr, endpointBuf.incompletes, NULL, NULL);
+	sdr_list_destroy(bpSdr, endpointBuf.deliveryQueue, NULL, NULL);
+	sdr_free(bpSdr, addr);
+	sdr_list_delete(bpSdr, endpointElt, NULL, NULL);
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't remove endpoint.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+void	fetchProtocol(char *protocolName, ClProtocol *clp, Object *clpElt)
+{
+	Object	elt;
+
+	for (elt = sdr_list_first(bpSdr, bpConstants->protocols); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		sdr_read(bpSdr, (char *) clp, sdr_list_data(bpSdr, elt),
+				sizeof(ClProtocol));
+		if (strcmp(clp->name, protocolName) == 0)
+		{
+			break;
+		}
+	}
+
+	*clpElt = elt;
+}
+
+int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
+		long nominalRate)
+{
+	ClProtocol	clpbuf;
+	Object		elt;
+	Object		addr;
+
+	if (protocolName == NULL || *protocolName == 0)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (strlen(protocolName) > MAX_CL_PROTOCOL_NAME_LEN)
+	{
+		putErrmsg("Protocol name is too long.", protocolName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (payloadPerFrame < 1 || ohdPerFrame < 1)
+	{
+		putErrmsg("Per-frame payload and overhead must be > 0.",
+				protocolName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	sdr_begin_xn(bpSdr);
+	fetchProtocol(protocolName, &clpbuf, &elt);
+	if (elt != 0)		/*	This is a known protocol.	*/
+	{
+		putErrmsg("Duplicate protocol, already in database.",
+				protocolName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	All parameters validated, okay to add the protocol.	*/
+
+	memset((char *) &clpbuf, 0, sizeof(ClProtocol));
+	strcpy(clpbuf.name, protocolName);
+	clpbuf.payloadBytesPerFrame = payloadPerFrame;
+	clpbuf.overheadPerFrame = ohdPerFrame;
+	clpbuf.nominalRate = nominalRate;
+	clpbuf.inducts = sdr_list_create(bpSdr);
+	clpbuf.outducts = sdr_list_create(bpSdr);
+	addr = sdr_malloc(bpSdr, sizeof(ClProtocol));
+	if (addr == 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("No space for protocol.", NULL);
+		return -1;
+	}
+
+	sdr_write(bpSdr, addr, (char *) &clpbuf, sizeof(ClProtocol));
+	sdr_list_insert_last(bpSdr, bpConstants->protocols, addr);
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't add protocol.", protocolName);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	removeProtocol(char *protocolName)
+{
+	ClProtocol	clpbuf;
+	Object		elt;
+	Object		addr;
+
+	if (protocolName == NULL)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return 0;
+	}
+
+	sdr_begin_xn(bpSdr);
+	fetchProtocol(protocolName, &clpbuf, &elt);
+	if (elt == 0)				/*	Not found.	*/
+	{
+		putErrmsg("Unknown protocol.", protocolName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	if (sdr_list_length(bpSdr, clpbuf.inducts) != 0
+	|| sdr_list_length(bpSdr, clpbuf.outducts) != 0)
+	{
+		putErrmsg("Protocol has ducts, can't be removed.",
+				protocolName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	Okay to remove this protocol from the database.		*/
+
+	addr = (Object) sdr_list_data(bpSdr, elt);
+	sdr_list_destroy(bpSdr, clpbuf.inducts, NULL, NULL);
+	sdr_list_destroy(bpSdr, clpbuf.outducts, NULL, NULL);
+	sdr_free(bpSdr, addr);
+	sdr_list_delete(bpSdr, elt, NULL, NULL);
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't remove protocol.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	bpStartProtocol(char *name)
+{
+	PsmAddress	elt;
+	VInduct		*vinduct;
+	VOutduct	*voutduct;
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	for (elt = sm_list_first(bpwm, bpVdb->inducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (strcmp((vinduct)->protocolName, name) == 0)
+		{
+			startInduct(vinduct);
+		}
+	}
+
+	for (elt = sm_list_first(bpwm, bpVdb->outducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (strcmp((voutduct)->protocolName, name) == 0)
+		{
+			startOutduct(voutduct);
+		}
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	return 1;
+}
+
+void	bpStopProtocol(char *name)
+{
+	PsmAddress	elt;
+	VInduct		*vinduct;
+	VOutduct	*voutduct;
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	for (elt = sm_list_first(bpwm, bpVdb->inducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (strcmp(vinduct->protocolName, name) == 0)
+		{
+			stopInduct(vinduct);
+			sdr_exit_xn(bpSdr);
+			waitForInduct(vinduct);
+			sdr_begin_xn(bpSdr);
+			resetInduct(vinduct);
+		}
+	}
+
+	for (elt = sm_list_first(bpwm, bpVdb->outducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (strcmp(voutduct->protocolName, name) == 0)
+		{
+			stopOutduct(voutduct);
+			sdr_exit_xn(bpSdr);
+			waitForOutduct(voutduct);
+			sdr_begin_xn(bpSdr);
+			resetOutduct(voutduct);
+		}
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+}
+
+void	findInduct(char *protocolName, char *ductName, VInduct **vduct,
+		PsmAddress *vductElt)
+{
+	PsmAddress	elt;
+
+	for (elt = sm_list_first(bpwm, bpVdb->inducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		*vduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (strcmp((*vduct)->protocolName, protocolName) == 0
+		&& strcmp((*vduct)->ductName, ductName) == 0)
+		{
+			break;
+		}
+	}
+
+	*vductElt = elt;
+}
+
+int	addInduct(char *protocolName, char *ductName, char *cliCmd)
+{
+	ClProtocol	clpbuf;
+	Object		clpElt;
+	VInduct		*vduct;
+	PsmAddress	vductElt;
+	Induct		ductBuf;
+	Object		addr;
+	Object		elt;
+
+	if (protocolName == NULL || *protocolName == 0 || ductName == NULL
+	|| *ductName == 0 || cliCmd == NULL || *cliCmd == 0)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (strlen(ductName) > MAX_CL_DUCT_NAME_LEN)
+	{
+		putErrmsg("Induct name is too long.", ductName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (strlen(cliCmd) > MAX_SDRSTRING)
+	{
+		putErrmsg("CLI command string is too long.", cliCmd);
+		errno = EINVAL;
+		return 0;
+	}
+
+	sdr_begin_xn(bpSdr);
+	fetchProtocol(protocolName, &clpbuf, &clpElt);
+	if (clpElt == 0)
+	{
+		putErrmsg("Protocol is unknown.", protocolName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt != 0)	/*	This is a known duct.		*/
+	{
+		putErrmsg("Duplicate induct, already in database.", ductName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	All parameters validated, okay to add the duct.		*/
+
+	memset((char *) &ductBuf, 0, sizeof(Induct));
+	strcpy(ductBuf.name, ductName);
+	ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
+	ductBuf.protocol = (Object) sdr_list_data(bpSdr, clpElt);
+	addr = sdr_malloc(bpSdr, sizeof(Induct));
+	if (addr == 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("No space for induct.", NULL);
+		return -1;
+	}
+
+	elt = sdr_list_insert_last(bpSdr, clpbuf.inducts, addr);
+	sdr_write(bpSdr, addr, (char *) &ductBuf, sizeof(Induct));
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't add induct.", ductName);
+		return -1;
+	}
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	if (raiseInduct(elt) < 0)
+	{
+		putErrmsg("Can't raise induct.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	return 1;
+}
+
+int	updateInduct(char *protocolName, char *ductName, char *cliCmd)
+{
+	VInduct		*vduct;
+	PsmAddress	vductElt;
+	Object		addr;
+	Induct		ductBuf;
+
+	if (protocolName == NULL || *protocolName == 0 || ductName == NULL
+	|| *ductName == 0 || cliCmd == NULL || *cliCmd == 0)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (strlen(cliCmd) > MAX_SDRSTRING)
+	{
+		putErrmsg("CLI command string is too long.", cliCmd);
+		errno = EINVAL;
+		return 0;
+	}
+
+	sdr_begin_xn(bpSdr);
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		putErrmsg("Unknown induct, not in database.", ductName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	All parameters validated, okay to update the duct.
+	 *	First wipe out current cliCmd, then establish new one.	*/
+
+	addr = (Object) sdr_list_data(bpSdr, vduct->inductElt);
+	sdr_stage(bpSdr, (char *) &ductBuf, addr, sizeof(Induct));
+	if (ductBuf.cliCmd)
+	{
+		sdr_free(bpSdr, ductBuf.cliCmd);
+		ductBuf.cliCmd = 0;
+	}
+
+	ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
+	sdr_write(bpSdr, addr, (char *) &ductBuf, sizeof(Induct));
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't update induct.", ductName);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	removeInduct(char *protocolName, char *ductName)
+{
+	VInduct		*vduct;
+	PsmAddress	vductElt;
+	Object		ductElt;
+	Object		addr;
+	Induct		inductBuf;
+
+	if (protocolName == NULL || ductName == NULL)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return 0;
+	}
+
+	/*	Must stop the induct before trying to remove it.	*/
+
+	sdr_begin_xn(bpSdr);	/*	Lock memory.			*/
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Unknown duct, not in database.", ductName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	/*	All parameters validated.				*/
+
+	stopInduct(vduct);
+	sdr_exit_xn(bpSdr);
+	waitForInduct(vduct);
+	sdr_begin_xn(bpSdr);
+	resetInduct(vduct);
+	ductElt = vduct->inductElt;
+	addr = sdr_list_data(bpSdr, ductElt);
+	sdr_read(bpSdr, (char *) &inductBuf, addr, sizeof(Induct));
+
+	/*	Okay to remove this duct from the database.		*/
+
+	dropInduct(vduct, vductElt);
+	if (inductBuf.cliCmd)
+	{
+		sdr_free(bpSdr, inductBuf.cliCmd);
+	}
+
+	sdr_free(bpSdr, addr);
+	sdr_list_delete(bpSdr, ductElt, NULL, NULL);
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't remove duct.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	bpStartInduct(char *protocolName, char *ductName)
+{
+	VInduct		*vduct;
+	PsmAddress	vductElt;
+	int		result = 1;
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		putErrmsg("Unknown induct, not in database.", ductName);
+		errno = EINVAL;
+		result = 0;
+	}
+	else
+	{
+		startInduct(vduct);
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	return result;
+}
+
+void	bpStopInduct(char *protocolName, char *ductName)
+{
+	VInduct		*vduct;
+	PsmAddress	vductElt;
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		putErrmsg("Unknown induct, not in database.", ductName);
+		return;
+	}
+
+	stopInduct(vduct);
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	waitForInduct(vduct);
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	resetInduct(vduct);
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+}
+
+void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
+		PsmAddress *vductElt)
+{
+	PsmAddress	elt;
+
+	for (elt = sm_list_first(bpwm, bpVdb->outducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		*vduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (strcmp((*vduct)->protocolName, protocolName) == 0
+		&& strcmp((*vduct)->ductName, ductName) == 0)
+		{
+			break;
+		}
+	}
+
+	*vductElt = elt;
+}
+
+int	addOutduct(char *protocolName, char *ductName, char *cloCmd)
+{
+	ClProtocol	clpbuf;
+	Object		clpElt;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+	Outduct		ductBuf;
+	Object		addr;
+	Object		elt;
+
+	if (protocolName == NULL || *protocolName == 0 || ductName == NULL
+	|| *ductName == 0)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (strlen(ductName) > MAX_CL_DUCT_NAME_LEN)
+	{
+		putErrmsg("Outduct name is too long.", ductName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (cloCmd)
+	{
+		if (*cloCmd == '\0')
+		{
+			cloCmd = NULL;
+		}
+		else
+		{
+			if (strlen(cloCmd) > MAX_SDRSTRING)
+			{
+				putErrmsg("CLO command string too long.",
+						cloCmd);
+				errno = EINVAL;
+				return 0;
+			}
+		}
+	}
+
+	sdr_begin_xn(bpSdr);
+	fetchProtocol(protocolName, &clpbuf, &clpElt);
+	if (clpElt == 0)
+	{
+		putErrmsg("Protocol is unknown.", protocolName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt != 0)	/*	This is a known duct.		*/
+	{
+		putErrmsg("Duplicate outduct, already in database.", ductName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	All parameters validated, okay to add the duct.		*/
+
+	memset((char *) &ductBuf, 0, sizeof(Outduct));
+	strcpy(ductBuf.name, ductName);
+	if (cloCmd)
+	{
+		ductBuf.cloCmd = sdr_string_create(bpSdr, cloCmd);
+	}
+
+	ductBuf.bulkQueue = sdr_list_create(bpSdr);
+	ductBuf.stdQueue = sdr_list_create(bpSdr);
+	ductBuf.urgentQueue = sdr_list_create(bpSdr);
+	ductBuf.protocol = (Object) sdr_list_data(bpSdr, clpElt);
+	addr = sdr_malloc(bpSdr, sizeof(Outduct));
+	if (addr == 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("No space for outduct.", NULL);
+		return -1;
+	}
+
+	elt = sdr_list_insert_last(bpSdr, clpbuf.outducts, addr);
+	sdr_write(bpSdr, addr, (char *) &ductBuf, sizeof(Outduct));
+
+	/*	Record duct's address in the "user data" of each
+	 *	queue so that we can easily navigate from a duct
+	 *	queue element back to the duct via the queue.		*/
+
+	sdr_list_user_data_set(bpSdr, ductBuf.bulkQueue, addr);
+	sdr_list_user_data_set(bpSdr, ductBuf.stdQueue, addr);
+	sdr_list_user_data_set(bpSdr, ductBuf.urgentQueue, addr);
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't add outduct.", ductName);
+		return -1;
+	}
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	if (raiseOutduct(elt) < 0)
+	{
+		putErrmsg("Can't raise outduct.", NULL);
+		sdr_exit_xn(bpSdr);
+		return -1;
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	return 0;
+}
+
+int	updateOutduct(char *protocolName, char *ductName, char *cloCmd)
+{
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+	Object		addr;
+	Outduct		ductBuf;
+
+	if (protocolName == NULL || *protocolName == 0 || ductName == NULL
+	|| *ductName == 0)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return 0;
+	}
+
+	if (cloCmd)
+	{
+		if (*cloCmd == '\0')
+		{
+			cloCmd = NULL;
+		}
+		else
+		{
+			if (strlen(cloCmd) > MAX_SDRSTRING)
+			{
+				putErrmsg("CLO command string too long.",
+						cloCmd);
+				errno = EINVAL;
+				return 0;
+			}
+		}
+	}
+
+	sdr_begin_xn(bpSdr);
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		putErrmsg("Unknown outduct, not in database.", ductName);
+		errno = EINVAL;
+		return sdr_end_xn(bpSdr);
+	}
+
+	/*	All parameters validated, okay to update the duct.
+	 *	First wipe out current cloCmd, then establish new one.	*/
+
+	addr = (Object) sdr_list_data(bpSdr, vduct->outductElt);
+	sdr_stage(bpSdr, (char *) &ductBuf, addr, sizeof(Outduct));
+	if (ductBuf.cloCmd)
+	{
+		sdr_free(bpSdr, ductBuf.cloCmd);
+		ductBuf.cloCmd = 0;
+	}
+
+	if (cloCmd)
+	{
+		ductBuf.cloCmd = sdr_string_create(bpSdr, cloCmd);
+	}
+
+	sdr_write(bpSdr, addr, (char *) &ductBuf, sizeof(Outduct));
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't update outduct.", ductName);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	removeOutduct(char *protocolName, char *ductName)
+{
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+	Object		ductElt;
+	Object		addr;
+	Outduct		outductBuf;
+
+	if (protocolName == NULL || ductName == NULL)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return 0;
+	}
+
+	/*	Must stop the outduct before trying to remove it.	*/
+
+	sdr_begin_xn(bpSdr);	/*	Lock memory.			*/
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Unknown outduct, not in database.", ductName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	/*	All parameters validated.				*/
+
+	stopOutduct(vduct);
+	sdr_exit_xn(bpSdr);
+	waitForOutduct(vduct);
+	sdr_begin_xn(bpSdr);
+	resetOutduct(vduct);
+	ductElt = vduct->outductElt;
+	addr = sdr_list_data(bpSdr, ductElt);
+	sdr_read(bpSdr, (char *) &outductBuf, addr, sizeof(Outduct));
+	if (sdr_list_length(bpSdr, outductBuf.bulkQueue) != 0
+	|| sdr_list_length(bpSdr, outductBuf.stdQueue) != 0
+	|| sdr_list_length(bpSdr, outductBuf.urgentQueue) != 0)
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Outduct has data to transmit.", ductName);
+		errno = EINVAL;
+		return 0;
+	}
+
+	/*	Okay to remove this duct from the database.		*/
+
+	dropOutduct(vduct, vductElt);
+	if (outductBuf.cloCmd)
+	{
+		sdr_free(bpSdr, outductBuf.cloCmd);
+	}
+
+	sdr_list_destroy(bpSdr, outductBuf.bulkQueue, NULL, NULL);
+	sdr_list_destroy(bpSdr, outductBuf.stdQueue, NULL, NULL);
+	sdr_list_destroy(bpSdr, outductBuf.urgentQueue, NULL,NULL);
+	sdr_free(bpSdr, addr);
+	sdr_list_delete(bpSdr, ductElt, NULL, NULL);
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't remove outduct.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	bpStartOutduct(char *protocolName, char *ductName)
+{
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+	int		result = 1;
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		putErrmsg("Unknown outduct, not in database.", ductName);
+		errno = EINVAL;
+		result = 0;
+	}
+	else
+	{
+		startOutduct(vduct);
+	}
+
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	return result;
+}
+
+void	bpStopOutduct(char *protocolName, char *ductName)
+{
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		putErrmsg("Unknown outduct, not in database.", ductName);
+		return;
+	}
+
+	stopOutduct(vduct);
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	waitForOutduct(vduct);
+	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	resetOutduct(vduct);
+	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+}
+
+static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
+			Object *incompleteAddr, Object *incompleteElt)
+{
+	char		*argDictionary;
+			OBJ_POINTER(Endpoint, endpoint);
+	Object		elt;
+			OBJ_POINTER(IncompleteBundle, incomplete);
+			OBJ_POINTER(Bundle, fragment);
+	char		*fragDictionary;
+	int		result;
+
+checkSafety(bpSdr);
+	if ((argDictionary = retrieveDictionary(bundle)) == (char *) bundle)
+	{
+		putErrmsg("Can't retrieve dictionary.", NULL);
+		return -1;
+	}
+	
+	*incompleteElt = 0;
+	GET_OBJ_POINTER(bpSdr, Endpoint, endpoint, 
+			sdr_list_data(bpSdr, vpoint->endpointElt));
+	for (elt = sdr_list_first(bpSdr, endpoint->incompletes); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		*incompleteAddr = sdr_list_data(bpSdr, elt);
+		GET_OBJ_POINTER(bpSdr, IncompleteBundle, incomplete, 
+				*incompleteAddr);
+
+		/*	See if ID of Incomplete's first fragment
+		 *	matches ID of the bundle we're looking for.	*/
+
+		GET_OBJ_POINTER(bpSdr, Bundle, fragment, sdr_list_data(bpSdr,
+				sdr_list_first(bpSdr, incomplete->fragments)));
+
+		/*	First compare source endpoint IDs.		*/
+
+		if (fragment->id.source.cbhe != bundle->id.source.cbhe)
+		{
+			continue;
+		}
+
+		if (fragment->id.source.cbhe == 1)
+		{
+			if (fragment->id.source.c.nodeNbr !=
+					bundle->id.source.c.nodeNbr
+			|| fragment->id.source.c.serviceNbr !=
+					bundle->id.source.c.serviceNbr)
+			{
+				continue;
+			}
+		}
+		else	/*	Non-CBHE endpoint ID expression.	*/
+		{
+			if ((fragDictionary = retrieveDictionary(fragment))
+					== (char *) fragment)
+			{
+				releaseDictionary(argDictionary);
+				putErrmsg("Can't retrieve dictionary.", NULL);
+				return -1;
+			}
+	
+			result = (strcmp(fragDictionary +
+				fragment->id.source.d.schemeNameOffset,
+				argDictionary +
+				bundle->id.source.d.schemeNameOffset) != 0)
+				|| (strcmp(fragDictionary +
+				fragment->id.source.d.nssOffset,
+				argDictionary +
+				bundle->id.source.d.nssOffset) != 0);
+			releaseDictionary(fragDictionary);
+			if (result != 0)
+			{
+				continue;
+			}
+		}
+
+		/*	Compare creation times.				*/
+
+		if (fragment->id.creationTime.seconds ==
+				bundle->id.creationTime.seconds
+		&& fragment->id.creationTime.count ==
+				bundle->id.creationTime.count)
+		{
+			*incompleteElt = elt;	/*	Got it.		*/
+			break;
+		}
+	}
+
+	releaseDictionary(argDictionary);
+	return 0;
+}
+
+Object	insertBpTimelineEvent(BpEvent *newEvent)
+{
+	Address	addr;
+	Object	elt;
+		OBJ_POINTER(BpEvent, event);
+
+checkSafety(bpSdr);
+	addr = sdr_malloc(bpSdr, sizeof(BpEvent));
+	if (addr == 0)
+	{
+		putSysErrmsg("No space for timeline event", NULL);
+		return 0;
+	}
+
+	sdr_write(bpSdr, addr, (char *) newEvent, sizeof(BpEvent));
+	for (elt = sdr_list_last(bpSdr, bpConstants->timeline); elt;
+			elt = sdr_list_prev(bpSdr, elt))
+	{
+		GET_OBJ_POINTER(bpSdr, BpEvent, event,
+				sdr_list_data(bpSdr, elt));
+		if (event->time <= newEvent->time)
+		{
+			return sdr_list_insert_after(bpSdr, elt, addr);
+		}
+	}
+
+	return sdr_list_insert_first(bpSdr, bpConstants->timeline, addr);
+}
+
+int	enqueueToDuct(FwdDirective *directive, Bundle *bundle, Object bundleObj,
+		char *stationEid)
+{
+	PsmPartition	ionwm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
+	PsmAddress	vductElt;
+	VOutduct	*vduct;
+	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+
+	/*	First find matching vduct for this outduct.		*/
+
+	for (vductElt = sm_list_first(ionwm, vdb->outducts); vductElt;
+			vductElt = sm_list_next(ionwm, vductElt))
+	{
+		vduct = (VOutduct *) psp(ionwm,
+				sm_list_data(ionwm, vductElt));
+		if (vduct->outductElt == directive->outductElt)
+		{
+			break;
+		}
+	}
+
+	if (vductElt == 0)
+	{
+		putErrmsg("Can't enqueue to duct; duct is closed.", NULL);
+		return 0;
+	}
+
+	/*	Retrieve destination induct name, if applicable.	*/
+
+	if (directive->destDuctName)
+	{
+		if (sdr_string_read(bpSdr, destDuctName,
+				directive->destDuctName) < 0)
+		{
+			putErrmsg("Can't retrieve dest duct name.", NULL);
+			return -1;
+		}
+	}
+	else
+	{
+		destDuctName[0] = '\0';
+	}
+
+	/*	Enqueue bundle on this duct.				*/
+
+	if (bpEnqueue(bundleObj, bundle, stationEid, vduct, destDuctName) < 0)
+	{
+		putErrmsg("Can't enqueue bundle.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+/*	*	*	Bundle origination functions	*	*	*/
+
+static int	setBundleTTL(Bundle *bundle, Object bundleObj)
+{
+	BpEvent	event;
+
+checkSafety(bpSdr);
+	/*	Schedule purge of this bundle on expiration of its
+	 *	time-to-live.  Bundle expiration time is event time.	*/
+
+	event.type = expiredTTL;
+	event.time = bundle->expirationTime + EPOCH_2000_SEC;
+	event.ref = bundleObj;
+	bundle->timelineElt = insertBpTimelineEvent(&event);
+	if (bundle->timelineElt == 0)
+	{
+		putErrmsg("Can't schedule bundle's TTL expiration.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	insertExtensionBlock(ExtensionDef *def, ExtensionBlock *newBlk,
+			Object blkAddr, Bundle *bundle, unsigned char listIdx)
+{
+	int	result;
+	Object	elt;
+		OBJ_POINTER(ExtensionBlock, blk);
+
+	if (def == NULL)	/*	Don't care where this goes.	*/
+	{
+		if (listIdx == 0)
+		{
+			/*	Insert after all pre-payload blocks
+			 *	inserted by the local node and after
+			 *	all preceding pre-payload blocks
+			 *	inserted by upstream nodes.		*/
+
+			newBlk->rank = 255;
+		}
+		else
+		{
+			/*	Insert *before* all post-payload blocks
+			 *	inserted by the local node and after
+			 *	all preceding post-payload blocks
+			 *	inserted by upstream nodes.		*/
+
+			newBlk->rank = 0;
+		}
+	}
+	else			/*	Order in list is important.	*/
+	{
+		newBlk->rank =
+			((unsigned long) def - (unsigned long) extensions)
+				/ sizeof(ExtensionDef);
+	}
+
+	for (elt = sdr_list_first(bpSdr, bundle->extensions[listIdx]);
+			elt; elt = sdr_list_next(bpSdr, elt))
+	{
+		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk,
+				sdr_list_data(bpSdr, elt));
+		if (blk->rank > newBlk->rank)
+		{
+			break;	/*	Found a higher-ranking block.	*/
+		}
+	}
+
+	if (elt)	/*	Add before first higher-ranking block.	*/
+	{
+		result = sdr_list_insert_before(bpSdr, elt, blkAddr);
+	}
+	else		/*	There is no higher-ranking block.	*/
+	{
+		result = sdr_list_insert_last(bpSdr,
+				bundle->extensions[listIdx], blkAddr);
+	}
+
+	if (result == 0)
+	{
+		putErrmsg("Failed inserting extension block.", NULL);
+		return -1;
+	}
+
+	sdr_write(bpSdr, blkAddr, (char *) newBlk, sizeof(ExtensionBlock));
+	return 0;
+}
+
+static int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
+{
+	int		i;
+	Object		elt;
+	Object		blkAddr;
+			OBJ_POINTER(ExtensionBlock, oldBlk);
+	Object		newBlkAddr;
+	ExtensionBlock	newBlk;
+	char		*buf = NULL;
+	unsigned int	buflen = 0;
+	ExtensionDef	*def;
+
+	for (i = 0; i < 2; i++)
+	{
+		newBundle->extensions[i] = sdr_list_create(bpSdr);
+		if (newBundle->extensions[i] == 0)
+		{
+			putErrmsg("No space for extensions list.", NULL);
+			return -1;
+		}
+
+		if (oldBundle->extensions[i] == 0)
+		{
+			continue;
+		}
+
+		for (elt = sdr_list_first(bpSdr, oldBundle->extensions[i]); elt;
+				elt = sdr_list_next(bpSdr, elt))
+		{
+			blkAddr = sdr_list_data(bpSdr, elt);
+			GET_OBJ_POINTER(bpSdr, ExtensionBlock, oldBlk, blkAddr);
+			if (oldBlk->length > buflen)
+			{
+				if (buf)
+				{
+					MRELEASE(buf);
+				}
+
+				buflen = oldBlk->length;
+				buf = MTAKE(buflen);
+				if (buf == NULL)
+				{
+					putErrmsg("Extension too big to copy.",
+							itoa(buflen));
+					return -1;
+				}
+			}
+
+			memset((char *) &newBlk, 0, sizeof(ExtensionBlock));
+			newBlk.type = oldBlk->type;
+			newBlk.blkProcFlags = oldBlk->blkProcFlags;
+			newBlk.dataLength = oldBlk->dataLength;
+			if (oldBlk->eidReferences == 0)
+			{
+				newBlk.eidReferences = 0;
+			}
+			else
+			{
+				newBlk.eidReferences = sdr_list_create(bpSdr);
+				if (newBlk.eidReferences == 0)
+				{
+					putErrmsg("No space for EID refs list.",
+							NULL);
+					return -1;
+				}
+
+				for (elt = sdr_list_first(bpSdr,
+						oldBlk->eidReferences); elt;
+						elt = sdr_list_next(bpSdr, elt))
+				{
+					if (sdr_list_insert_last(bpSdr,
+						newBlk.eidReferences,
+						sdr_list_data(bpSdr, elt)) == 0)
+					{
+						putErrmsg("No space for EIDR.",
+							NULL);
+						return -1;
+					}
+				}
+			}
+
+			newBlk.length = oldBlk->length;
+			newBlk.bytes = sdr_malloc(bpSdr, newBlk.length);
+			if (newBlk.bytes == 0)
+			{
+				putErrmsg("No space for block.",
+						utoa(newBlk.length));
+				return -1;
+			}
+
+			sdr_read(bpSdr, buf, oldBlk->bytes, buflen);
+			sdr_write(bpSdr, newBlk.bytes, buf, buflen);
+			def = findExtensionDef(oldBlk->type, i);
+			if (def && def->copy)
+			{
+				/*	Must copy extension object.	*/
+
+				def->copy(&newBlk, oldBlk);
+			}
+			else
+			{
+				newBlk.object = 0;
+				newBlk.size = 0;
+			}
+
+			newBlkAddr = sdr_malloc(bpSdr, sizeof(ExtensionBlock));
+			if (newBlkAddr == 0
+			|| insertExtensionBlock(def, &newBlk, newBlkAddr,
+					newBundle, i) < 0)
+			{
+				putErrmsg("Failed copying ext. block.", NULL);
+				return -1;
+			}
+		}
+
+		newBundle->extensionsLength[i] = oldBundle->extensionsLength[i];
+	}
+
+	if (buf)
+	{
+		MRELEASE(buf);
+	}
+
+	return 0;
+}
+
+static int	copyBundle(Bundle *newBundle, Object *newBundleObj,
+			Bundle *oldBundle)
+{
+	char	*dictionaryBuffer;
+
+	*newBundleObj = sdr_malloc(bpSdr, sizeof(Bundle));
+	if (*newBundleObj == 0)
+	{
+		putSysErrmsg("Can't create copy of bundle", NULL);
+		return -1;
+	}
+
+	memcpy((char *) newBundle, (char *) oldBundle, sizeof(Bundle));
+	if (oldBundle->dictionary)	/*	Must copy dictionary.	*/
+	{
+		dictionaryBuffer = retrieveDictionary(oldBundle);
+		if (dictionaryBuffer == (char *) oldBundle)
+		{
+			putSysErrmsg("Can't retrieve dictionary", NULL);
+			return -1;
+		}
+
+		newBundle->dictionary = sdr_malloc(bpSdr,
+				oldBundle->dictionaryLength);
+		if (newBundle->dictionary == 0)
+		{
+			releaseDictionary(dictionaryBuffer);
+			putSysErrmsg("Can't create copy of dictionary", NULL);
+			return -1;
+		}
+
+		sdr_write(bpSdr, newBundle->dictionary, dictionaryBuffer,
+				oldBundle->dictionaryLength);
+		releaseDictionary(dictionaryBuffer);
+	}
+
+	if (copyExtensionBlocks(newBundle, oldBundle) < 0)
+	{
+		putErrmsg("Can't copy extensions.", NULL);
+		return -1;
+	}
+
+	if (setBundleTTL(newBundle, *newBundleObj) < 0)
+	{
+		putSysErrmsg("Can't insert copy of bundle into timeline", NULL);
+		return -1;
+	}
+
+	newBundle->payload.content = zco_add_reference(bpSdr,
+			oldBundle->payload.content);
+	if (newBundle->payload.content == 0)
+	{
+		putSysErrmsg("Can't add reference to payload content", NULL);
+		return -1;
+	}
+
+	/*	Note that, since we don't copy the payload but instead
+	 *	just add a reference to it, total database occupancy
+	 *	increases by only the new bundle's overhead size.	*/
+
+	newBundle->dbTotal = newBundle->dbOverhead;
+	noteBundleInserted(newBundle);
+	return 0;
+}
+
+static void	adjustDbOverhead(Bundle *bundle, unsigned int oldLength,
+			unsigned int newLength, unsigned int oldSize,
+			unsigned int newSize)
+{
+	bundle->dbOverhead -= oldLength;
+	bundle->dbOverhead += newLength;
+	bundle->dbOverhead -= oldSize;
+	bundle->dbOverhead += newSize;
+}
+
+static int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
+{
+	int			oldDbOverhead;
+	int			i;
+	Object			elt;
+	Object			nextElt;
+	Object			blkAddr;
+	ExtensionBlock		blk;
+	ExtensionDef		*def;
+	BpExtBlkProcessFn	processExtension;
+	unsigned int		oldLength;
+	unsigned int		oldSize;
+	unsigned int		wasSuppressed;
+
+	oldDbOverhead = bundle->dbOverhead;
+	for (i = 0; i < 2; i++)
+	{
+		if (bundle->extensions[i] == 0)
+		{
+			continue;
+		}
+
+		for (elt = sdr_list_first(bpSdr, bundle->extensions[i]); elt;
+				elt = nextElt)
+		{
+			nextElt = sdr_list_next(bpSdr, elt);
+			blkAddr = sdr_list_data(bpSdr, elt);
+			sdr_stage(bpSdr, (char *) &blk, blkAddr,
+					sizeof(ExtensionBlock));
+			def = findExtensionDef(blk.type, i);
+			if (def == NULL
+			|| (processExtension = def->process[fnIdx]) == NULL)
+			{
+				continue;
+			}
+
+			oldLength = blk.length;
+			oldSize = blk.size;
+			wasSuppressed = blk.suppressed;
+			if (processExtension(&blk, bundle, context) < 0)
+			{
+				putErrmsg("Failed processing extension block.",
+						def->name);
+				return -1;
+			}
+
+			if (blk.length == 0)	/*	Scratched.	*/
+			{
+				bundle->extensionsLength[i] -= oldLength;
+				adjustDbOverhead(bundle, oldLength, 0,
+						oldSize, 0);
+				deleteExtensionBlock(elt, i);
+				continue;
+			}
+
+			/*	Revise aggregate extensions length as
+			 *	necessary.				*/
+
+			if (wasSuppressed)
+			{
+				if (!blk.suppressed)	/*	restore	*/
+				{
+					bundle->extensionsLength[i]
+							+= blk.length;
+				}
+
+				/*	Still suppressed: no change.	*/
+			}
+			else	/*	Wasn't suppressed before.	*/
+			{
+				if (!blk.suppressed)
+				{
+					/*	Still not suppressed,
+					 *	but length may have
+					 *	changed.  Subtract the
+					 *	old length and add the
+					 *	new length.		*/
+
+					bundle->extensionsLength[i]
+							-= oldLength;
+					bundle->extensionsLength[i]
+							+= blk.length;
+				}
+				else	/*	Newly suppressed.	*/
+				{
+					bundle->extensionsLength[i]
+							-= oldLength;
+				}
+			}
+
+			if (blk.length != oldLength || blk.size != oldSize)
+			{
+				adjustDbOverhead(bundle, oldLength, blk.length,
+						oldSize, blk.size);
+			}
+
+			sdr_write(bpSdr, blkAddr, (char *) &blk,
+					sizeof(ExtensionBlock));
+		}
+	}
+
+	if (bundle->dbOverhead != oldDbOverhead)
+	{
+		noteBundleRemoved(bundle);
+		bundle->dbTotal -= oldDbOverhead;
+		bundle->dbTotal += bundle->dbOverhead;
+		noteBundleInserted(bundle);
+	}
+
+	return 0;
+}
+
+int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
+{
+	Object		elt;
+	char		eidBuf[SDRSTRING_BUFSZ];
+	MetaEid		stationMetaEid;
+	Object		stationEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	Bundle		newBundle;
+	Object		newBundleObj;
+	Scheme		schemeBuf;
+
+	if (bundle->fwdQueueElt || bundle->xmitsNeeded > 0)
+	{
+		/*	Bundle is already being forwarded.  An
+		 *	additional CT signal indicating custody
+		 *	refusal has been received, and we haven't
+		 *	yet finished responding to the prior one.
+		 *	So nothing to do at this point.			*/
+
+		return 0;
+	}
+
+	if (strlen(eid) >= SDRSTRING_BUFSZ)
+	{
+		/*	EID is too long to insert into the stations
+		 *	stack, which is only sdrstrings.  We cannot
+		 *	forward this bundle.
+		 *
+		 *	Must write the bundle to the SDR in order to
+		 *	destroy it successfully.  This might already
+		 *	have been done by deliverBundle() as invoked
+		 *	by dispatchBundle(), in which case our write
+		 *	here is redundant but harmless.  However, we
+		 *	have no assurance that this happened.		*/
+
+		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+		return bpAbandon(bundleObj, bundle);
+	}
+
+	/*	Prevent routing loop: eid must not already be in the
+	 *	bundle's stations stack.				*/
+
+	for (elt = sdr_list_first(bpSdr, bundle->stations); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		sdr_string_read(bpSdr, eidBuf, sdr_list_data(bpSdr, elt));
+		if (strcmp(eidBuf, eid) == 0)	/*	Routing loop.	*/
+		{
+			sdr_write(bpSdr, bundleObj, (char *) bundle,
+					sizeof(Bundle));
+			return bpAbandon(bundleObj, bundle);
+		}
+	}
+
+checkSafety(bpSdr);
+	if (parseEidString(eid, &stationMetaEid, &vscheme, &vschemeElt) == 0)
+	{
+		/*	Can't forward: can't make sense of this EID.	*/
+
+		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+		return bpAbandon(bundleObj, bundle);
+	}
+
+	restoreEidString(&stationMetaEid);
+	if (stationMetaEid.nullEndpoint)
+	{
+		/*	Forwarder has determined that the bundle
+		 *	should be forwarded to the bit bucket, so
+		 *	we must do so.					*/
+
+		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+		return bpAbandon(bundleObj, bundle);
+	}
+
+	/*	We're going to queue this bundle for processing by
+	 *	the forwarder for the station EID's scheme name.
+	 *	Push the station EID onto the stations stack in case
+	 *	we need to do further re-queuing and check for routing
+	 *	loops again.						*/
+
+	stationEid = sdr_string_create(bpSdr, eid);
+	if (stationEid == 0
+	|| sdr_list_insert_first(bpSdr, bundle->stations, stationEid) == 0)
+	{
+		putErrmsg("Can't push EID onto stations stack.", NULL);
+		return -1;
+	}
+
+	/*	Make copy of bundle as necessary.			*/
+
+	if (bundle->dlvQueueElt || bundle->fragmentElt)
+	{
+		/*	Bundle is already queued for delivery as well.
+		 *	Delivery and forwarding will affect the bundle
+		 *	in incompatible ways, so we must create a copy
+		 *	of the bundle and forward the copy.		*/
+
+		if (copyBundle(&newBundle, &newBundleObj, bundle) < 0)
+		{
+			putErrmsg("Can't create copy of bundle.", NULL);
+			return -1;
+		}
+
+		bundleObj = newBundleObj;
+		bundle = &newBundle;
+		bundle->fragmentElt = 0;
+		bundle->dlvQueueElt = 0;
+		bundle->incompleteElt = 0;
+	}
+
+	/*	Do any forwarding-triggered extension block processing
+	 *	that is necessary.					*/
+
+	if (processExtensionBlocks(bundle, PROCESS_ON_FORWARD, NULL) < 0)
+	{
+		putErrmsg("Can't process extensions.", "forward");
+		return -1;
+	}
+
+	/*	Queue this bundle for the scheme-specific forwarder.	*/
+
+	sdr_read(bpSdr, (char *) &schemeBuf, sdr_list_data(bpSdr,
+			vscheme->schemeElt), sizeof(Scheme));
+	bundle->fwdQueueElt = sdr_list_insert_last(bpSdr,
+			schemeBuf.forwardQueue, bundleObj);
+	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+
+	/*	Wake up the scheme-specific forwarder as necessary.	*/
+
+	if (vscheme->semaphore != SM_SEM_NONE)
+	{
+		sm_SemGive(vscheme->semaphore);
+	}
+
+	return 0;
+}
+
+static void	loadCbheEids(Bundle *bundle, MetaEid *destMetaEid,
+		MetaEid *sourceMetaEid, MetaEid *reportToMetaEid)
+{
+	/*	Destination.						*/
+
+	bundle->destination.cbhe = 1;
+	bundle->destination.c.nodeNbr = destMetaEid->nodeNbr;
+	bundle->destination.c.serviceNbr = destMetaEid->serviceNbr;
+
+	/*	Custodian (none).					*/
+
+	bundle->custodian.cbhe = 1;
+	bundle->custodian.c.nodeNbr = 0;
+	bundle->custodian.c.serviceNbr = 0;
+
+	/*	Source.							*/
+
+	bundle->id.source.cbhe = 1;
+	if (sourceMetaEid == NULL)	/*	Anonymous.		*/
+	{
+		bundle->id.source.c.nodeNbr = 0;
+		bundle->id.source.c.serviceNbr = 0;
+	}
+	else
+	{
+		bundle->id.source.c.nodeNbr = sourceMetaEid->nodeNbr;
+		bundle->id.source.c.serviceNbr = sourceMetaEid->serviceNbr;
+	}
+
+	/*	Report-to.						*/
+
+	bundle->reportTo.cbhe = 1;
+	if (reportToMetaEid == NULL)
+	{
+		if (sourceMetaEid)	/*	Default to source.	*/
+		{
+			bundle->reportTo.c.nodeNbr = sourceMetaEid->nodeNbr;
+			bundle->reportTo.c.serviceNbr
+					= sourceMetaEid->serviceNbr;
+		}
+		else			/*	None.			*/
+		{
+			bundle->reportTo.c.nodeNbr = 0;
+			bundle->reportTo.c.serviceNbr = 0;
+		}
+	}
+	else
+	{
+		bundle->reportTo.c.nodeNbr = reportToMetaEid->nodeNbr;
+		bundle->reportTo.c.serviceNbr = reportToMetaEid->serviceNbr;
+	}
+}
+
+static int	addStringToDictionary(char **strings, int *stringLengths,
+			int *stringCount, unsigned long *dictionaryLength,
+			char *string, int stringLength)
+{
+	int	offset = 0;
+	int	i;
+
+	for (i = 0; i < *stringCount; i++)
+	{
+		if (strcmp(strings[i], string) == 0)	/*	have it	*/
+		{
+			return offset;
+		}
+
+		/*	Try the next one.				*/
+
+		offset += (stringLengths[i] + 1);
+	}
+
+	/*	Must append the string to the dictionary.		*/
+
+	strings[i] = string;
+	stringLengths[i] = stringLength;
+	(*stringCount)++;
+	(*dictionaryLength) += (stringLength + 1);
+	return offset;
+}
+
+static char	*loadDtnEids(Bundle *bundle, MetaEid *destMetaEid,
+			MetaEid *sourceMetaEid, MetaEid *reportToMetaEid)
+{
+	char	*strings[8];
+	int	stringLengths[8];
+	int	stringCount = 0;
+	char	*dictionary;
+	char	*cursor;
+	int	i;
+
+	bundle->dictionaryLength = 0;
+
+	/*	Custodian (none).					*/
+
+	bundle->custodian.cbhe = 0;
+	bundle->custodian.d.schemeNameOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+			&bundle->dictionaryLength, "dtn", 3);
+	bundle->custodian.d.nssOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+			&bundle->dictionaryLength, "none", 4);
+
+	/*	Destination.						*/
+
+	bundle->destination.cbhe = 0;
+	bundle->destination.d.schemeNameOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+			&bundle->dictionaryLength, destMetaEid->schemeName,
+			destMetaEid->schemeNameLength);
+	bundle->destination.d.nssOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+			&bundle->dictionaryLength, destMetaEid->nss,
+			destMetaEid->nssLength);
+
+	/*	Source.							*/
+
+	bundle->id.source.cbhe = 0;
+	if (sourceMetaEid == NULL)	/*	Anonymous.		*/
+	{
+		/*	Custodian is known to be "none".		*/
+
+		bundle->id.source.d.schemeNameOffset
+				= bundle->custodian.d.schemeNameOffset;
+		bundle->id.source.d.nssOffset
+				= bundle->custodian.d.nssOffset;
+	}
+	else
+	{
+		bundle->id.source.d.schemeNameOffset
+			= addStringToDictionary(strings, stringLengths,
+				&stringCount, &bundle->dictionaryLength,
+				sourceMetaEid->schemeName,
+				sourceMetaEid->schemeNameLength);
+		bundle->id.source.d.nssOffset
+			= addStringToDictionary(strings, stringLengths,
+				&stringCount, &bundle->dictionaryLength,
+				sourceMetaEid->nss,
+				sourceMetaEid->nssLength);
+	}
+
+	/*	Report-to.						*/
+
+	bundle->reportTo.cbhe = 0;
+	if (reportToMetaEid == NULL)
+	{
+		if (sourceMetaEid)	/*	Default to source.	*/
+		{
+			bundle->reportTo.d.schemeNameOffset
+					= bundle->id.source.d.schemeNameOffset;
+			bundle->reportTo.d.nssOffset
+					= bundle->id.source.d.nssOffset;
+		}
+		else			/*	None.			*/
+		{
+			/*	Custodian is known to be "none".	*/
+
+			bundle->reportTo.d.schemeNameOffset
+					= bundle->custodian.d.schemeNameOffset;
+			bundle->reportTo.d.nssOffset
+					= bundle->custodian.d.nssOffset;
+		}
+	}
+	else
+	{
+		bundle->reportTo.d.schemeNameOffset
+			= addStringToDictionary(strings, stringLengths,
+				&stringCount, &bundle->dictionaryLength,
+				reportToMetaEid->schemeName,
+				reportToMetaEid->schemeNameLength);
+		bundle->reportTo.d.nssOffset
+			= addStringToDictionary(strings, stringLengths,
+				&stringCount, &bundle->dictionaryLength,
+				reportToMetaEid->nss,
+				reportToMetaEid->nssLength);
+	}
+
+	bundle->dbOverhead += bundle->dictionaryLength;
+
+	/*	Now concatenate all the strings into a dictionary.	*/
+
+	dictionary = MTAKE(bundle->dictionaryLength);
+	if (dictionary == NULL)
+	{
+		putErrmsg("No memory for dictionary.", NULL);
+		return NULL;
+	}
+
+	cursor = dictionary;
+	for (i = 0; i < stringCount; i++)
+	{
+		memcpy(cursor, strings[i], stringLengths[i]);
+		cursor += stringLengths[i];
+		*cursor = '\0';
+		cursor++;
+	}
+
+	return dictionary;
+}
+
+Object	findExtensionBlock(Bundle *bundle, unsigned int type, unsigned int idx)
+{
+	Object	elt;
+	Object	addr;
+		OBJ_POINTER(ExtensionBlock, blk);
+
+	for (elt = sdr_list_first(bpSdr, bundle->extensions[idx]); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		addr = sdr_list_data(bpSdr, elt);
+		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk, addr);
+		if (blk->type == type)
+		{
+			return elt;
+		}
+	}
+
+	return 0;
+}
+
+static int	attachExtensionBlock(ExtensionDef *def, ExtensionBlock *blk,
+			Bundle *bundle)
+{
+	Object	blkAddr;
+	int	additionalOverhead;
+
+	blk->type = def->type;
+	blkAddr = sdr_malloc(bpSdr, sizeof(ExtensionBlock));
+	if (blkAddr == 0
+	|| insertExtensionBlock(def, blk, blkAddr, bundle, def->listIdx) < 0)
+	{
+		putErrmsg("Failed attaching extension block.", NULL);
+		return -1;
+	}
+
+	bundle->extensionsLength[def->listIdx] += blk->length;
+	additionalOverhead = SDR_LIST_ELT_OVERHEAD + sizeof(ExtensionBlock)
+			+ blk->length + blk->size;
+	bundle->dbOverhead += additionalOverhead;
+	return 0;
+}
+
+int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
+		char *reportToEidString, int lifespan, int classOfService,
+		BpCustodySwitch custodySwitch, unsigned char srrFlagsByte,
+		int ackRequested, BpExtendedCOS *extendedCOS, Object adu,
+		Object *bundleObj, int adminRecordType)
+{
+	int		bundleProcFlags = BDL_DEST_IS_SINGLETON;
+			/*	Note: for now, we have no way of
+			 *	recognizing non-singleton destination
+			 *	endpoints.				*/
+	unsigned int	srrFlags = srrFlagsByte;
+	int		aduLength;
+	Bundle		bundle;
+	int		nonCbheEidCount = 0;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	MetaEid		destMetaEid;
+	char		sourceEidString[MAX_EID_LEN];
+	MetaEid		tempMetaEid;
+	VScheme		*vscheme2;
+	PsmAddress	vschemeElt2;
+	MetaEid		reportToMetaEidBuf;
+	MetaEid		*reportToMetaEid;
+	DtnTime		currentDtnTime;
+	char		*dictionary;
+	int		i;
+	ExtensionDef	*def;
+	ExtensionBlock	blk;
+
+	*bundleObj = 0;
+	if (destEidString == NULL || *destEidString == 0 || lifespan <= 0)
+	{
+		errno = EINVAL;
+		putSysErrmsg(NullParmsMemo, NULL);
+		return -1;
+	}
+
+	/*	The bundle protocol specification authorizes the
+	 *	implementation to issue bundles whose source endpoint
+	 *	ID is "dtn:none".  Since this could result in the
+	 *	presence in the network of bundles lacking unique IDs,
+	 *	making custody transfer and meaningful status reporting
+	 *	impossible, this option is supported only when custody
+	 *	transfer and status reporting are not requested.
+	 *
+	 *	To simplify processing, reduce all representations of
+	 *	null source endpoint to a sourceMetaEid value of NULL.	*/
+
+	if (sourceMetaEid)
+	{
+		if (sourceMetaEid->nullEndpoint)
+		{
+			sourceMetaEid = NULL;
+		}
+	}
+
+	if (srrFlags != 0 || custodySwitch != NoCustodyRequested)
+	{
+		if (sourceMetaEid == NULL)
+		{
+			errno = EINVAL;
+			putSysErrmsg("Source can't be anonymous when asking \
+for custody transfer and/or status reports", NULL);
+			return -1;
+		}
+
+		if (adminRecordType != 0)
+		{
+			errno = EINVAL;
+			putSysErrmsg("Can't ask for custody transfer and/or \
+status reports for admin records", NULL);
+			return -1;
+		}
+	}
+
+	if (lifespan > MAX_TTL_SEC)
+	{
+		errno = EINVAL;
+		putSysErrmsg("TTL limit (17,280,000 sec) exceeded",
+				itoa(lifespan));
+		return -1;
+	}
+
+	if (sourceMetaEid == NULL)
+	{
+		bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
+	}
+
+	if (ackRequested)
+	{
+		bundleProcFlags |= BDL_APP_ACK_REQUEST;
+	}
+
+	if (custodySwitch != NoCustodyRequested)
+	{
+		bundleProcFlags |= BDL_IS_CUSTODIAL;
+	}
+
+	/*	Figure out how to express all endpoint IDs.		*/
+
+	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
+			== 0)
+	{
+		errno = EINVAL;
+		putSysErrmsg("Destination EID is malformed", destEidString);
+		return 0;
+	}
+
+	if (destMetaEid.nullEndpoint)	/*	Do not send bundle.	*/
+	{
+		zco_destroy_reference(bpSdr, adu);
+		errno = 0;
+		return 1;
+	}
+
+	if (!destMetaEid.cbhe
+	|| strcmp(destMetaEid.schemeName, cbheSchemeName) != 0)
+	{
+		nonCbheEidCount++;
+	}
+
+	if (adminRecordType != 0)
+	{
+		bundleProcFlags |= BDL_IS_ADMIN;
+
+		/*	Administrative bundles must not be anonymous.
+		 *	Recipient needs to know source of the status
+		 *	report or custody signal; use own custodian
+		 *	EID for the scheme cited by the destination
+		 *	EID.						*/
+
+		if (sourceMetaEid == NULL)
+		{
+			strcpy(sourceEidString, vscheme->custodianEidString);
+			parseEidString(sourceEidString, &tempMetaEid,
+					&vscheme2, &vschemeElt2);
+			sourceMetaEid = &tempMetaEid;
+		}
+	}
+
+	if (sourceMetaEid != NULL)	/*	Not "dtn:none".		*/
+	{
+		/*	Submitted by application on open endpoint.	*/
+
+		if (sourceMetaEid->cbhe)
+		{
+			if (strcmp(sourceMetaEid->schemeName,
+					destMetaEid.schemeName) != 0)
+			{
+				nonCbheEidCount++;
+			}
+		}
+	}
+
+	if (reportToEidString == NULL)	/*	default to source	*/
+	{
+		reportToMetaEid = NULL;
+	}
+	else
+	{
+		if (parseEidString(reportToEidString, &reportToMetaEidBuf,
+				&vscheme, &vschemeElt) == 0)
+		{
+			restoreEidString(&destMetaEid);
+			errno = EINVAL;
+			putSysErrmsg("Report-to EID is malformed",
+					reportToEidString);
+			return 0;
+		}
+
+		reportToMetaEid = &reportToMetaEidBuf;
+		if (reportToMetaEid->cbhe)
+		{
+			if (strcmp(reportToMetaEid->schemeName,
+					destMetaEid.schemeName) != 0)
+			{
+				nonCbheEidCount++;
+			}
+		}
+	}
+
+	/*	Create the outbound bundle.				*/
+
+	memset((char *) &bundle, 0, sizeof(Bundle));
+	bundle.dbOverhead = BASE_BUNDLE_OVERHEAD;
+
+	/*	The bundle protocol specification authorizes the
+	 *	implementation to fragment an ADU to satisfy, for
+	 *	example, MIB-specified requirements for routing
+	 *	granularity.  This would result in multiple ZCOs,
+	 *	multiple bundles, multiple calls to bpDequeue in
+	 *	the CLO, multiple bundle catenations.  It would
+	 *	degrade performance, as there would have to be a
+	 *	lot of zco_copy activity up and down the stack;
+	 *	there would be more processing.  So in this BP
+	 *	implementation we choose instead to leave ADU
+	 *	fragment granularity decisions to the application.	*/
+
+	aduLength = zco_length(bpSdr, adu);
+	if (aduLength < 0)
+	{
+		restoreEidString(&destMetaEid);
+		restoreEidString(reportToMetaEid);
+		putErrmsg("Can't get length of ADU.", NULL);
+		return -1;
+	}
+
+	if (nonCbheEidCount == 0)
+	{
+		dictionary = NULL;
+		loadCbheEids(&bundle, &destMetaEid, sourceMetaEid,
+				reportToMetaEid);
+	}
+	else	/*	Not all endpoints are in same CBHE scheme.	*/
+	{
+		dictionary = loadDtnEids(&bundle, &destMetaEid, sourceMetaEid,
+				reportToMetaEid);
+		if (dictionary == NULL)
+		{
+			restoreEidString(&destMetaEid);
+			restoreEidString(reportToMetaEid);
+			sdr_cancel_xn(bpSdr);
+			putErrmsg("Can't load dictionary.", NULL);
+			return -1;
+		}
+	}
+
+	restoreEidString(&destMetaEid);
+	restoreEidString(reportToMetaEid);
+	bundle.id.fragmentOffset = 0;
+	bundle.custodyTaken = 0;
+	bundle.catenated = 0;
+	bundle.bundleProcFlags = bundleProcFlags;
+	bundle.bundleProcFlags += (classOfService << 7);
+	bundle.bundleProcFlags += (srrFlags << 14);
+
+	/*	Note: bundle is not a fragment when initially created,
+	 *	so totalAduLength is left at zero.			*/
+
+	bundle.payloadBlockProcFlags = BLK_MUST_BE_COPIED;
+	bundle.payload.length = aduLength;
+	bundle.payload.content = adu;
+	bundle.xmitsNeeded = 0;
+
+	/*	Bundle is almost fully constructed at this point.	*/
+
+	sdr_begin_xn(bpSdr);
+	getCurrentDtnTime(&currentDtnTime);
+	if (currentDtnTime.seconds != bpVdb->creationTimeSec)
+	{
+		bpVdb->creationTimeSec = currentDtnTime.seconds;
+		bpVdb->bundleCounter = 0;
+	}
+
+	bundle.id.creationTime.seconds = bpVdb->creationTimeSec;
+	bundle.id.creationTime.count = ++(bpVdb->bundleCounter);
+	bundle.expirationTime = bundle.id.creationTime.seconds + lifespan;
+	if (dictionary)
+	{
+		bundle.dictionary = sdr_malloc(bpSdr, bundle.dictionaryLength);
+		if (bundle.dictionary == 0)
+		{
+			sdr_cancel_xn(bpSdr);
+			putSysErrmsg("No space for dictionary", NULL);
+			MRELEASE(dictionary);
+			return -1;
+		}
+
+		sdr_write(bpSdr, bundle.dictionary, dictionary,
+				bundle.dictionaryLength);
+		MRELEASE(dictionary);
+	}
+
+	bundle.extensions[0] = sdr_list_create(bpSdr);
+	bundle.extensionsLength[0] = 0;
+	bundle.extensions[1] = sdr_list_create(bpSdr);
+	bundle.extensionsLength[1] = 0;
+	bundle.stations = sdr_list_create(bpSdr);
+	bundle.trackingElts = sdr_list_create(bpSdr);
+	bundle.xmitRefs = sdr_list_create(bpSdr);
+	*bundleObj = sdr_malloc(bpSdr, sizeof(Bundle));
+	if (*bundleObj == 0
+	|| bundle.xmitRefs == 0
+	|| bundle.stations == 0
+	|| bundle.trackingElts == 0
+	|| bundle.extensions[0] == 0
+	|| bundle.extensions[1] == 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("No space for bundle object", NULL);
+		return -1;
+	}
+
+	if (setBundleTTL(&bundle, *bundleObj) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("Can't insert new bundle into timeline", NULL);
+		return -1;
+	}
+
+	if (extendedCOS)
+	{
+		bundle.extendedCOS.flowLabel = extendedCOS->flowLabel;
+		bundle.extendedCOS.flags = extendedCOS->flags;
+		bundle.extendedCOS.ordinal = extendedCOS->ordinal;
+	}
+
+	/*	Insert all applicable extension blocks into the bundle.	*/
+
+	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
+	{
+		if (def->type != 0 && def->offer != NULL)
+		{
+			memset((char *) &blk, 0, sizeof(ExtensionBlock));
+			blk.type = def->type;
+			if (def->offer(&blk, &bundle) < 0)
+			{
+				sdr_cancel_xn(bpSdr);
+				putErrmsg("Failed offering extension block.",
+						NULL);
+				return -1;
+			}
+
+			if (blk.length == 0 && blk.size == 0)
+			{
+				continue;
+			}
+
+			if (attachExtensionBlock(def, &blk, &bundle) < 0)
+			{
+				sdr_cancel_xn(bpSdr);
+				putErrmsg("Failed attaching extension block.",
+						NULL);
+				return -1;
+			}
+		}
+	}
+
+	bundle.dbTotal = bundle.dbOverhead;
+	if (bundle.payload.content)
+	{
+		bundle.dbTotal += zco_occupancy(bpSdr, bundle.payload.content);
+	}
+
+	noteBundleInserted(&bundle);
+	sdr_write(bpSdr, *bundleObj, (char *) &bundle, sizeof(Bundle));
+
+	/*	Note: custodial reporting, as requested, is perfomed
+	 *	by the destination scheme's forwarder.			*/
+
+	if (forwardBundle(*bundleObj, &bundle, destEidString) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't queue bundle for forwarding.", NULL);
+		return -1;
+	}
+
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't send bundle.", NULL);
+		return -1;
+	}
+
+	noteStateStats(BPSTATS_SOURCE, &bundle);
+	if (bpVdb->watching & WATCH_a)
+	{
+		putchar('a');
+		fflush(stdout);
+	}
+
+	return 1;
+}
+
+/*	*	*	Bundle reception functions	*	*	*/
+
+int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
+		BpCtReason reasonCode)
+{
+	char		*custodianEid;
+	unsigned int	ttl;	/*	Original bundle's TTL.		*/
+	BpExtendedCOS	ecos = { 0, 0, 255 };
+	Object		payloadZco;
+	Object		bundleObj;
+	int		result;
+
+	if (bundle->custodian.cbhe)
+	{
+		if (bundle->custodian.c.nodeNbr == 0)
+		{
+			return 0;	/*	No current custodian.	*/
+		}
+
+		custodianEid = printEid(&bundle->custodian, dictionary);
+	}
+	else
+	{
+		custodianEid = printEid(&bundle->custodian, dictionary);
+		if (strcmp(custodianEid, nullEid) == 0)
+		{
+			MRELEASE(custodianEid);
+			return 0;
+		}
+	}
+
+	/*	There is a current custodian, so construct and send
+	 *	the signal.						*/
+
+	bundle->ctSignal.succeeded = succeeded;
+	bundle->ctSignal.reasonCode = reasonCode;
+	getCurrentDtnTime(&bundle->ctSignal.signalTime);
+	if (bundle->ctSignal.creationTime.seconds == 0)
+	{
+		bundle->ctSignal.creationTime.seconds
+				= bundle->id.creationTime.seconds;
+		bundle->ctSignal.creationTime.count
+				= bundle->id.creationTime.count;
+		if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+		{
+			bundle->ctSignal.isFragment = 1;
+			bundle->ctSignal.fragmentOffset =
+					bundle->id.fragmentOffset;
+			bundle->ctSignal.fragmentLength =
+					bundle->payload.length;
+		}
+		else
+		{
+			bundle->ctSignal.isFragment = 0;
+			bundle->ctSignal.fragmentOffset = 0;
+			bundle->ctSignal.fragmentLength = 0;
+		}
+	}
+
+	ttl = bundle->expirationTime - bundle->id.creationTime.seconds;
+	if (ttl < 1)
+	{
+		ttl = 1;
+	}
+
+	bundle->ctSignal.sourceEid = printEid(&bundle->id.source, dictionary);
+	result = bpConstructCtSignal(&(bundle->ctSignal), &payloadZco);
+	MRELEASE(bundle->ctSignal.sourceEid);
+	if (result < 0)
+	{
+		MRELEASE(custodianEid);
+		putErrmsg("Can't construct custody transfer signal.", NULL);
+		return -1;
+	}
+
+	result = bpSend(NULL, custodianEid, NULL, ttl, BP_EXPEDITED_PRIORITY,
+			NoCustodyRequested, 0, 0, &ecos, payloadZco,
+			&bundleObj, BP_CUSTODY_SIGNAL);
+	MRELEASE(custodianEid);
+       	switch (result)
+	{
+	case -1:
+		putErrmsg("Can't send custody transfer signal.", NULL);
+		return -1;
+
+	case 0:
+		putErrmsg("Custody transfer signal not transmitted.", NULL);
+
+			/*	Intentional fall-through to next case.	*/
+
+	default:
+		return 0;
+	}
+}
+
+int	sendStatusRpt(Bundle *bundle, char *dictionary)
+{
+	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	unsigned int	ttl;	/*	Original bundle's TTL.		*/
+	BpExtendedCOS	ecos = { 0, 0, bundle->extendedCOS.ordinal };
+	Object		payloadZco;
+	char		*reportToEid;
+	Object		bundleObj;
+	int		result;
+
+	if (bundle->statusRpt.creationTime.seconds == 0)
+	{
+		bundle->statusRpt.creationTime.seconds
+				= bundle->id.creationTime.seconds;
+		bundle->statusRpt.creationTime.count
+				= bundle->id.creationTime.count;
+		if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+		{
+			bundle->statusRpt.isFragment = 1;
+			bundle->statusRpt.fragmentOffset =
+					bundle->id.fragmentOffset;
+			bundle->statusRpt.fragmentLength =
+					bundle->payload.length;
+		}
+		else
+		{
+			bundle->statusRpt.isFragment = 0;
+			bundle->statusRpt.fragmentOffset = 0;
+			bundle->statusRpt.fragmentLength = 0;
+		}
+	}
+
+	ttl = bundle->expirationTime - bundle->id.creationTime.seconds;
+	if (ttl < 1) ttl = 1;
+	bundle->statusRpt.sourceEid = printEid(&bundle->id.source, dictionary);
+	result = bpConstructStatusRpt(&(bundle->statusRpt), &payloadZco);
+	MRELEASE(bundle->statusRpt.sourceEid);
+	if (result < 0)
+	{
+		putErrmsg("Can't construct status report.", NULL);
+		return -1;
+	}
+
+	reportToEid = printEid(&bundle->reportTo, dictionary);
+	result = bpSend(NULL, reportToEid, NULL, ttl, priority,
+			NoCustodyRequested, 0, 0, &ecos, payloadZco,
+			&bundleObj, BP_STATUS_REPORT);
+	MRELEASE(reportToEid);
+       	switch (result)
+	{
+	case -1:
+		putErrmsg("Can't send status report.", NULL);
+		return -1;
+
+	case 0:
+		putErrmsg("Status report not transmitted.", NULL);
+
+			/*	Intentional fall-through to next case.	*/
+
+	default:
+		break;
+	}
+
+	/*	Erase flags and times in case another status report for
+	 *	the same bundle needs to be sent later.			*/
+
+	bundle->statusRpt.flags = 0;
+	bundle->statusRpt.reasonCode = 0;
+	memset(&bundle->statusRpt.receiptTime, 0, sizeof(struct timespec));
+	memset(&bundle->statusRpt.acceptanceTime, 0, sizeof(struct timespec));
+	memset(&bundle->statusRpt.forwardTime, 0, sizeof(struct timespec));
+	memset(&bundle->statusRpt.deliveryTime, 0, sizeof(struct timespec));
+	memset(&bundle->statusRpt.deletionTime, 0, sizeof(struct timespec));
+	return 0;
+}
+
+static void	lookUpDestEndpoint(Bundle *bundle, char *dictionary,
+			VScheme *vscheme, VEndpoint **vpoint)
+{
+	char		nssBuf[42];
+	char		*nss;
+	PsmAddress	elt;
+
+	if (dictionary == NULL)
+	{
+		sprintf(nssBuf, "%lu.%lu", bundle->destination.c.nodeNbr,
+				bundle->destination.c.serviceNbr);
+		nss = nssBuf;
+	}
+	else
+	{
+		nss = dictionary + bundle->destination.d.nssOffset;
+	}
+
+	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		*vpoint = (VEndpoint *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (strcmp((*vpoint)->nss, nss) == 0)
+		{
+			break;
+		}
+	}
+
+	if (elt == 0)			/*	No match found.		*/
+	{
+		*vpoint = NULL;
+	}
+}
+
+static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
+			VEndpoint *vpoint)
+{
+		OBJ_POINTER(Endpoint, endpoint);
+	char	scriptBuf[SDRSTRING_BUFSZ];
+
+	GET_OBJ_POINTER(bpSdr, Endpoint, endpoint, sdr_list_data(bpSdr,
+				vpoint->endpointElt));
+	if (vpoint->appPid < 1)		/*	Not open by any app.	*/
+	{
+		/*	Execute reanimation script, if any.		*/
+
+		if (endpoint->recvScript != 0)
+		{
+			if (sdr_string_read(bpSdr, scriptBuf,
+					endpoint->recvScript) < 0)
+			{
+				putErrmsg(DBErrorMemo, NULL);
+				return -1;
+			}
+
+			if (pseudoshell(scriptBuf) < 0)
+			{
+				putErrmsg("Script execution failed.", NULL);
+				return -1;
+			}
+		}
+
+		if (endpoint->recvRule == DiscardBundle)
+		{
+			sdr_write(bpSdr, bundleObj, (char *) bundle,
+					sizeof(Bundle));
+			return 0;
+		}
+	}
+
+	/*	Queue bundle up for delivery when requested by
+	 *	application.						*/
+
+	bundle->dlvQueueElt = sdr_list_insert_last(bpSdr,
+			endpoint->deliveryQueue, bundleObj);
+	if (bundle->dlvQueueElt == 0)
+	{
+		putErrmsg("can't append to delivery queue", NULL);
+		return -1;
+	}
+
+	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	if (vpoint->semaphore != SM_SEM_NONE)
+	{
+		sm_SemGive(vpoint->semaphore);
+	}
+
+	return 0;
+}
+
+static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
+			Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
+{
+	Object		elt;
+			OBJ_POINTER(Bundle, fragment);
+	unsigned int	endOfFurthestFragment;
+	unsigned int	endOfFragment;
+	Bundle		aggregateBundle;
+	Object		aggregateBundleObj;
+	int		buflen = 65536;
+	char		*buffer;
+	unsigned int	aggregateAduLength;
+	Object		fragmentObj;
+	Bundle		fragBuf;
+	ZcoReader	reader;
+	unsigned int	bytesToSkip;
+	unsigned int	bytesToExtract;
+	int		bytesExtracted;
+	unsigned int	bytesToCopy;
+	Object		extent;
+
+	/*	First look for fragment insertion point and insert
+	 *	the new bundle at this point.				*/
+
+	for (elt = sdr_list_first(bpSdr, incomplete->fragments); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		GET_OBJ_POINTER(bpSdr, Bundle, fragment,
+				sdr_list_data(bpSdr, elt));
+		if (fragment->id.fragmentOffset > bundle->id.fragmentOffset)
+		{
+			break;	/*	Insert before this one.		*/
+		}
+	}
+
+	if (elt)
+	{
+		bundle->fragmentElt = sdr_list_insert_before(bpSdr, elt,
+				bundleObj);
+	}
+	else
+	{
+		bundle->fragmentElt = sdr_list_insert_last(bpSdr,
+				incomplete->fragments, bundleObj);
+	}
+
+	if (bundle->fragmentElt == 0)
+	{
+		putSysErrmsg("Can't insert bundle into fragments list", NULL);
+		return -1;
+	}
+
+	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+
+	/*	Now see if entire ADU has been received.		*/
+
+	endOfFurthestFragment = 0;
+	for (elt = sdr_list_first(bpSdr, incomplete->fragments); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		GET_OBJ_POINTER(bpSdr, Bundle, fragment,
+				sdr_list_data(bpSdr, elt));
+		if (fragment->id.fragmentOffset > endOfFurthestFragment)
+		{
+			break;	/*	Found a gap.			*/
+		}
+
+		endOfFragment = fragment->id.fragmentOffset
+				+ fragment->payload.length;
+		if (endOfFragment > endOfFurthestFragment)
+		{
+			endOfFurthestFragment = endOfFragment;
+		}
+	}
+
+	if (elt || endOfFurthestFragment < incomplete->totalAduLength)
+	{
+		return 0;	/*	Nothing more to do for now.	*/
+	}
+
+	/*	Have now received all bytes of the original ADU, so
+	 *	reconstruct the original ADU as the payload of the
+	 *	first fragment for the bundle.
+	 *
+	 *	First retrieve that first fragment and make it no
+	 *	longer fragmentary.					*/
+
+	buffer = MTAKE(buflen);
+	if (buffer == NULL)
+	{
+		putSysErrmsg("Can't create buffer for ADU reassembly", NULL);
+		return -1;
+	}
+
+	elt = sdr_list_first(bpSdr, incomplete->fragments);
+	aggregateBundleObj = sdr_list_data(bpSdr, elt);
+	sdr_stage(bpSdr, (char *) &aggregateBundle, aggregateBundleObj,
+			sizeof(Bundle));
+	sdr_list_delete(bpSdr, aggregateBundle.fragmentElt, NULL, NULL);
+	aggregateBundle.fragmentElt = 0;
+	aggregateBundle.incompleteElt = 0;
+	aggregateBundle.totalAduLength = 0;
+	aggregateBundle.bundleProcFlags &= ~BDL_IS_FRAGMENT;
+
+	/*	Back out of database occupancy this bundle's
+	 *	original size, then change its size to reflect the
+	 *	size of the reassembled ADU.				*/
+
+	noteBundleRemoved(&aggregateBundle);
+	aggregateAduLength = aggregateBundle.payload.length;
+	aggregateBundle.payload.length = incomplete->totalAduLength;
+
+	/*	Now collect payload data from all remaining fragments,
+	 *	discarding overlaps, and destroy the fragments.		*/
+
+	for (elt = sdr_list_next(bpSdr, elt); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		fragmentObj = sdr_list_data(bpSdr, elt);
+		sdr_stage(bpSdr, (char *) &fragBuf, fragmentObj,
+				sizeof(Bundle));
+		bytesToSkip = aggregateAduLength - fragBuf.id.fragmentOffset;
+		if (bytesToSkip > fragBuf.payload.length)
+		{
+			bytesToSkip = fragBuf.payload.length;
+		}
+
+		bytesToCopy = fragBuf.payload.length - bytesToSkip;
+		aggregateAduLength += bytesToCopy;
+		zco_start_receiving(bpSdr, fragBuf.payload.content, &reader);
+		while (bytesToSkip > 0)
+		{
+			bytesToExtract = buflen;
+			if (bytesToExtract > bytesToSkip)
+			{
+				bytesToExtract = bytesToSkip;
+			}
+
+			bytesExtracted = zco_receive_source(bpSdr, &reader,
+					bytesToExtract, buffer);
+			if (bytesExtracted < 0)
+			{
+				zco_stop_receiving(bpSdr, &reader);
+				MRELEASE(buffer);
+				putSysErrmsg("Can't extract from ADU fragment",
+						NULL);
+				return -1;
+			}
+
+			bytesToSkip -= bytesExtracted;
+		}
+
+		while (bytesToCopy > 0)
+		{
+			bytesToExtract = buflen;
+			if (bytesToExtract > bytesToCopy)
+			{
+				bytesToExtract = bytesToCopy;
+			}
+
+			bytesExtracted = zco_receive_source(bpSdr, &reader,
+					bytesToExtract, buffer);
+			if (bytesExtracted < 0)
+			{
+				zco_stop_receiving(bpSdr, &reader);
+				MRELEASE(buffer);
+				putSysErrmsg("Can't extract from ADU fragment",
+						NULL);
+				return -1;
+			}
+
+			extent = sdr_insert(bpSdr, buffer, bytesExtracted);
+			if (extent == 0)
+			{
+				zco_stop_receiving(bpSdr, &reader);
+				MRELEASE(buffer);
+				putSysErrmsg("Can't copy fragment content",
+						NULL);
+				return -1;
+			}
+
+			zco_append_extent(bpSdr,
+				aggregateBundle.payload.content,
+				ZcoSdrSource, extent, 0, bytesExtracted);
+			bytesToCopy -= bytesExtracted;
+		}
+
+		zco_stop_receiving(bpSdr, &reader);
+		sdr_list_delete(bpSdr, fragBuf.fragmentElt, NULL, NULL);
+		fragBuf.fragmentElt = 0;
+		sdr_write(bpSdr, fragmentObj, (char *) &fragBuf,
+				sizeof(Bundle));
+		if (bpDestroyBundle(fragmentObj, 0) < 0)
+		{
+			MRELEASE(buffer);
+			putSysErrmsg("Can't destroy fragment", NULL);
+			return -1;
+		}
+	}
+
+	MRELEASE(buffer);
+
+	/*	Note effect on database occupancy of bundle's
+	 *	revised size.						*/
+
+	aggregateBundle.dbTotal = aggregateBundle.dbOverhead;
+	if (aggregateBundle.payload.content)
+	{
+		aggregateBundle.dbTotal += zco_occupancy(bpSdr,
+				aggregateBundle.payload.content);
+	}
+
+	noteBundleInserted(&aggregateBundle);
+
+	/*	Deliver the aggregate bundle to the endpoint.		*/
+
+	if (enqueueForDelivery(aggregateBundleObj, &aggregateBundle, vpoint))
+	{
+		putErrmsg("Reassembled bundle delivery failed.", NULL);
+		return -1;
+	}
+
+	/*	Finally, destroy the IncompleteBundle and return.	*/
+
+	if (destroyIncomplete(incomplete, incElt) < 0)
+	{
+		putSysErrmsg("can't destroy incomplete bundle", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
+			VEndpoint *vpoint)
+{
+	IncompleteBundle	incomplete;
+	Object			incObj;
+				OBJ_POINTER(Endpoint, endpoint);
+
+	incomplete.fragments = sdr_list_create(bpSdr);
+	if (incomplete.fragments == 0)
+	{
+		putSysErrmsg("no space for fragments list", NULL);
+		return -1;
+	}
+
+	incomplete.totalAduLength = bundle->totalAduLength;
+	incObj = sdr_malloc(bpSdr, sizeof(IncompleteBundle));
+	if (incObj == 0)
+	{
+		putSysErrmsg("no space for incomplete object", NULL);
+		return -1;
+	}
+
+	sdr_write(bpSdr, incObj, (char *) &incomplete,
+			sizeof(IncompleteBundle));
+	GET_OBJ_POINTER(bpSdr, Endpoint, endpoint, sdr_list_data(bpSdr,
+			vpoint->endpointElt));
+	bundle->incompleteElt =
+		sdr_list_insert_last(bpSdr, endpoint->incompletes, incObj);
+	if (bundle->incompleteElt == 0)
+	{
+		putSysErrmsg("no space for list element for incomplete", NULL);
+		return -1;
+	}
+
+	/*	Bundle becomes first element in the fragments list.	*/
+
+	bundle->fragmentElt = sdr_list_insert_last(bpSdr, incomplete.fragments,
+			bundleObj);
+	if (bundle->fragmentElt == 0)
+	{
+		putSysErrmsg("no space for fragment list elt", NULL);
+		return -1;
+	}
+
+	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	return 0;
+}
+
+static int	deliverBundle(Object bundleObj, Bundle *bundle,
+			VEndpoint *vpoint)
+{
+	char	*dictionary;
+	int	result;
+	Object	incompleteAddr = 0;
+		OBJ_POINTER(IncompleteBundle, incomplete);
+	Object	elt;
+
+checkSafety(bpSdr);
+
+	/*	Regardless of delivery outcome, current custodian
+	 *	(if any) may now release custody.  NOTE: the local
+	 *	node has NOT taken custody of this bundle.		*/
+
+	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+	{
+		if ((dictionary = retrieveDictionary(bundle))
+				== (char *) bundle)
+		{
+			putErrmsg("Can't retrieve dictionary.", NULL);
+			return -1;
+		}
+
+		result = sendCtSignal(bundle, dictionary, 1, 0);
+		releaseDictionary(dictionary);
+		if (result < 0)
+		{
+			putSysErrmsg("Can't send custody signal", NULL);
+			return -1;
+		}
+	}
+
+	/*	Next check to see if we've already got one or more
+	 *	fragments of this bundle; if so, invoke reassembly
+	 *	(which may or may not result in delivery of a new
+	 *	reconstructed original bundle to the application)
+	 *	and return for possible forwarding of this fragment.	*/
+
+	if (findIncomplete(bundle, vpoint, &incompleteAddr, &elt) < 0)
+	{
+		putErrmsg(DBErrorMemo, NULL);
+		return -1;
+	}
+
+	if (elt)	/*	Matching IncompleteBundle found.	*/
+	{
+		GET_OBJ_POINTER(bpSdr, IncompleteBundle, incomplete,
+				incompleteAddr);
+		return extendIncomplete(incomplete, elt, bundleObj, bundle,
+				vpoint);
+	}
+
+	/*	No existing incomplete bundle to extend.  But if the
+	 *	current bundle is a fragment we still can't do anything
+	 *	with it; start a new IncompleteBundle and return for
+	 *	possible forwarding of this fragment.			*/
+
+	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+	{
+		return createIncompleteBundle(bundleObj, bundle, vpoint);
+	}
+
+	/*	Bundle is not a fragment, so we can deliver it right
+	 *	away if that's the current policy for this endpoint.	*/
+
+	return enqueueForDelivery(bundleObj, bundle, vpoint);
+}
+
+static int	patchExtensionBlocks(Bundle *bundle)
+{
+	int		i;
+	ExtensionDef	*def;
+	ExtensionBlock	blk;
+
+	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
+	{
+		if (def->type != 0 && def->offer != NULL
+		&& findExtensionBlock(bundle, def->type, def->listIdx) == 0)
+		{
+			/*	This is a type of extension block that
+			 *	the local node normally offers, which
+			 *	is missing from the received bundle.
+			 *	Insert a block of this type if it is
+			 *	appropriate.				*/
+
+			memset((char *) &blk, 0, sizeof(ExtensionBlock));
+			blk.type = def->type;
+			if (def->offer(&blk, bundle) < 0)
+			{
+				putErrmsg("Failed offering patch block.",
+						NULL);
+				return -1;
+			}
+
+			if (blk.length == 0 && blk.size == 0)
+			{
+				continue;
+			}
+
+			if (attachExtensionBlock(def, &blk, bundle) < 0)
+			{
+				putErrmsg("Failed attaching patch block.",
+						NULL);
+				return -1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+static int	dispatchBundle(Object bundleObj, Bundle *bundle)
+{
+	char		*dictionary;
+	VScheme		*vscheme;
+	VEndpoint	*vpoint;
+	char		*eidString;
+	int		result;
+
+checkSafety(bpSdr);
+	if ((dictionary = retrieveDictionary(bundle)) == (char *) bundle)
+	{
+		putErrmsg("Can't retrieve dictionary.", NULL);
+		return -1;
+	}
+
+	lookUpDestScheme(bundle, dictionary, &vscheme);
+	if (vscheme != NULL)	/*	Destination might be local.	*/
+	{
+		lookUpDestEndpoint(bundle, dictionary, vscheme, &vpoint);
+		if (vpoint != NULL)	/*	Destination is here.	*/
+		{
+			if (deliverBundle(bundleObj, bundle, vpoint) < 0)
+			{
+				releaseDictionary(dictionary);
+				putSysErrmsg("Bundle delivery failed.", NULL);
+				return -1;
+			}
+
+			noteStateStats(BPSTATS_DELIVER, bundle);
+			if (bpVdb->watching & WATCH_z)
+			{
+				putchar('z');
+				fflush(stdout);
+			}
+
+			if (bundle->bundleProcFlags & BDL_DEST_IS_SINGLETON)
+			{
+				/*	Can't be forwarded to any other
+				 *	node.  Destroy the bundle as
+				 *	necessary.			*/
+
+				releaseDictionary(dictionary);
+
+				/*	Note that we have to write the
+				 *	bundle to the SDR in order to
+				 *	destroy it successfully: the
+				 *	deliverBundle() function will
+				 *	normally do this (in which case
+				 *	our write here is redundant but
+				 *	harmless) but might not have
+				 *	done so in the event that the
+				 *	endpoint is not currently active
+				 *	(i.e., is not currently opened
+				 *	by any application) and the
+				 *	delivery failure action for this
+				 *	endpoint is DiscardBundle.	*/
+
+				sdr_write(bpSdr, bundleObj, (char *) bundle,
+						sizeof(Bundle));
+				if (bpDestroyBundle(bundleObj, 0) < 0)
+				{
+					putSysErrmsg("can't destroy bundle",
+							NULL);
+					return -1;
+				}
+
+				return 0;
+			}
+		}
+		else	/*	Not deliverable at this node.		*/
+		{
+			if (bundle->destination.cbhe
+			&& bundle->destination.c.nodeNbr == getOwnNodeNbr())
+			{
+				/*	Destination is known to be the
+				 *	local bundle agent.  Since the
+				 *	bundle can't be delivered, it
+				 *	must be abandoned.  It can't
+				 *	be forwarded, as this would be
+				 *	an infinite forwarding loop.
+				 *	But must first accept it, to
+				 *	prevent current custodian from
+				 *	re-forwarding it endlessly back
+				 *	to the local bundle agent.	*/
+
+				releaseDictionary(dictionary);
+				if (bpAccept(bundle) < 0)
+				{
+					putErrmsg("Failed dispatching bundle.",
+							NULL);
+					return -1;
+				}
+
+				/*	As above, must write the bundle
+				 *	to the SDR in order to destroy
+				 *	it successfully.		*/
+
+				sdr_write(bpSdr, bundleObj, (char *) bundle,
+						sizeof(Bundle));
+				return bpAbandon(bundleObj, bundle);
+			}
+		}
+	}
+
+	/*	There may be a non-local destination.			*/
+
+	eidString = printEid(&bundle->destination, dictionary);
+	if (eidString == NULL)
+	{
+		putErrmsg("Can't print destination EID.", NULL);
+		return -1;
+	}
+
+	if (patchExtensionBlocks(bundle) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't insert missing extensions.", NULL);
+		return -1;
+	}
+
+	result = forwardBundle(bundleObj, bundle, eidString);
+	MRELEASE(eidString);
+	releaseDictionary(dictionary);
+	if (result < 0)
+	{
+		putErrmsg("Can't enqueue bundle for forwarding.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+/*	*	*	Bundle acquisition functions	*	*	*/
+
+AcqWorkArea	*bpGetAcqArea(VInduct *vduct)
+{
+	AcqWorkArea	*work;
+	int		i;
+
+	work = (AcqWorkArea *) MTAKE(sizeof(AcqWorkArea));
+	if (work)
+	{
+		work->vduct = vduct;
+		for (i = 0; i < 2; i++)
+		{
+			work->extBlocks[i] = lyst_create_using(bpMemIdx);
+			if (work->extBlocks[i] == NULL)
+			{
+				MRELEASE(work);
+				work = NULL;
+				break;
+			}
+		}
+	}
+
+	return work;
+}
+
+static void	deleteAcqExtBlock(LystElt elt, unsigned int listIdx)
+{
+	AcqExtBlock	*blk;
+	ExtensionDef	*def;
+
+	blk = (AcqExtBlock *) lyst_data(elt);
+	def = findExtensionDef(blk->type, listIdx);
+	if (def && def->clear)
+	{
+		def->clear(blk);
+	}
+
+	if (blk->eidReferences)
+	{
+		lyst_destroy(blk->eidReferences);
+	}
+
+	MRELEASE(blk);
+	lyst_delete(elt);
+}
+
+static void	clearAcqArea(AcqWorkArea *work)
+{
+	int		i;
+	LystElt		elt;
+
+	if (work->dictionary)
+	{
+		MRELEASE(work->dictionary);
+		work->dictionary = NULL;
+	}
+
+	if (work->senderEid)
+	{
+		MRELEASE(work->senderEid);
+		work->senderEid = NULL;
+	}
+
+	/*	Destroy all extension blocks in the work area.		*/
+
+	for (i = 0; i < 2; i++)
+	{
+		work->bundle.extensionsLength[i] = 0;
+		while (1)
+		{
+			elt = lyst_first(work->extBlocks[i]);
+			if (elt == NULL)
+			{
+				break;
+			}
+
+			deleteAcqExtBlock(elt, i);
+		}
+	}
+}
+
+void	bpReleaseAcqArea(AcqWorkArea *work)
+{
+	clearAcqArea(work);
+	lyst_destroy(work->extBlocks[0]);
+	lyst_destroy(work->extBlocks[1]);
+	MRELEASE(work);
+}
+
+int	bpBeginAcq(AcqWorkArea *work, int authentic, char *senderEid)
+{
+	if (work == NULL)
+	{
+		errno = EINVAL;
+		putSysErrmsg("Can't initialize work area", NULL);
+		return -1;
+	}
+
+	/*	Re-initialize the work area.				*/
+
+	memset((char *) &(work->bundle), 0, sizeof(Bundle));
+	clearAcqArea(work);
+	work->currentExtBlocksList = PRE_PAYLOAD;
+	work->decision = AcqTBD;
+	work->lastBlockParsed = 0;
+	work->payloadBytesAcquired = 0;
+	work->malformed = 0;
+	work->mustAbort = 0;
+	work->authentic = authentic ? 1 : 0;
+	if (senderEid)
+	{
+		work->senderEid = MTAKE(strlen(senderEid) + 1);
+		if (work->senderEid == NULL)
+		{
+			putErrmsg("Can't copy sender EID.", NULL);
+			return -1;
+		}
+
+		strcpy(work->senderEid, senderEid);
+	}
+
+	errno = 0;
+	return 1;
+}
+
+int	guessBundleSize(Bundle *bundle)
+{
+	return (NOMINAL_PRIMARY_BLKSIZE
+		+ bundle->dictionaryLength
+		+ bundle->extensionsLength[PRE_PAYLOAD]
+		+ bundle->payload.length
+		+ bundle->extensionsLength[POST_PAYLOAD]);
+}
+
+int	computeECCC(int bundleSize, ClProtocol *protocol)
+{
+	int	framesNeeded;
+
+	/*	Compute estimated consumption of contact capacity.	*/
+
+	framesNeeded = bundleSize / protocol->payloadBytesPerFrame;
+	framesNeeded += (bundleSize % protocol->payloadBytesPerFrame) ? 1 : 0;
+	framesNeeded += (framesNeeded == 0) ? 1 : 0;
+	return bundleSize + (protocol->overheadPerFrame * framesNeeded);
+}
+
+static int	applyRecvRateControl(AcqWorkArea *work)
+{
+	Bundle		*bundle = &(work->bundle);
+			OBJ_POINTER(Induct, induct);
+			OBJ_POINTER(ClProtocol, protocol);
+	Throttle	*throttle;
+	int		recvLength;
+
+	sdr_begin_xn(bpSdr);		/*	Just to lock memory.	*/
+	GET_OBJ_POINTER(bpSdr, Induct, induct, sdr_list_data(bpSdr,
+			work->vduct->inductElt));
+	GET_OBJ_POINTER(bpSdr, ClProtocol, protocol, induct->protocol);
+	recvLength = computeECCC(bundle->payload.length
+			+ NOMINAL_PRIMARY_BLKSIZE, protocol);
+	throttle = &(work->vduct->acqThrottle);
+	while (throttle->capacity <= 0)
+	{
+		sdr_exit_xn(bpSdr);
+		if (sm_SemTake(throttle->semaphore) < 0)
+		{
+			putErrmsg("CLI can't take throttle semaphore.", NULL);
+			return -1;
+		}
+
+		if (sm_SemEnded(throttle->semaphore))
+		{
+			putErrmsg("Induct has been stopped.", NULL);
+			return -1;
+		}
+
+		sdr_begin_xn(bpSdr);
+	}
+
+	throttle->capacity -= recvLength;
+	if (throttle->capacity > 0)
+	{
+		sm_SemGive(throttle->semaphore);
+	}
+
+	sdr_exit_xn(bpSdr);		/*	Release memory.		*/
+	return 0;
+}
+
+static int	acquirePrimaryBlock(AcqWorkArea *work)
+{
+	Bundle		*bundle;
+	int		bytesToParse;
+	int		unparsedBytes;
+	unsigned char	*cursor;
+	int		version;
+	unsigned long	residualBlockLength;
+	int		i;
+	unsigned long	eidSdnvValues[8];
+	unsigned long	lifetime;
+	int		bytesParsed;
+
+	/*	Create the inbound bundle.				*/
+
+	bundle = &(work->bundle);
+	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
+	bundle->custodyTaken = 0;
+	bundle->catenated = 0;
+	bytesToParse = work->bytesBuffered;
+	unparsedBytes = bytesToParse;
+	cursor = (unsigned char *) (work->buffer);
+
+	/*	Start parsing the primary block.			*/
+
+	if (unparsedBytes < MIN_PRIMARY_BLK_LENGTH)
+	{
+		putErrmsg(TooShortMemo, NULL);
+		return 0;
+	}
+
+	version = *cursor;
+	cursor++; unparsedBytes--;
+	if (version != bpVersion)
+	{
+		putErrmsg(VersionMemo, itoa(version));
+		return 0;
+	}
+
+	extractSdnv(&(bundle->bundleProcFlags), &cursor, &unparsedBytes);
+
+	/*	Note status report information as necessary.		*/
+
+	if (SRR_FLAGS(bundle->bundleProcFlags) & BP_RECEIVED_RPT)
+	{
+		bundle->statusRpt.flags |= BP_RECEIVED_RPT;
+		getCurrentDtnTime(&(bundle->statusRpt.receiptTime));
+	}
+
+	/*	Get length of rest of primary block.			*/
+
+	extractSdnv(&residualBlockLength, &cursor, &unparsedBytes);
+
+	/*	Get all EID SDNV values.				*/
+
+	for (i = 0; i < 8; i++)
+	{
+		extractSdnv(&(eidSdnvValues[i]), &cursor, &unparsedBytes);
+	}
+
+	/*	Get creation timestamp, lifetime, dictionary length.
+	 *	Expiration time is creation time plus interval.		*/
+
+	extractSdnv(&(bundle->id.creationTime.seconds), &cursor,
+			&unparsedBytes);
+	bundle->expirationTime = bundle->id.creationTime.seconds;
+
+	extractSdnv(&(bundle->id.creationTime.count), &cursor,
+			&unparsedBytes);
+
+	extractSdnv(&(lifetime), &cursor, &unparsedBytes);
+	bundle->expirationTime += lifetime;
+
+	extractSdnv(&(bundle->dictionaryLength), &cursor, &unparsedBytes);
+	bundle->dbOverhead += bundle->dictionaryLength;
+
+	/*	Get the dictionary, if present.				*/
+
+	if (unparsedBytes < bundle->dictionaryLength)
+	{
+		putErrmsg(TooShortMemo, NULL);
+		return 0;
+	}
+
+	if (bundle->dictionaryLength == 0)	/*	CBHE		*/
+	{
+		bundle->destination.cbhe = 1;
+		bundle->destination.c.nodeNbr = eidSdnvValues[0];
+		bundle->destination.c.serviceNbr = eidSdnvValues[1];
+		bundle->id.source.cbhe = 1;
+		bundle->id.source.c.nodeNbr = eidSdnvValues[2];
+		bundle->id.source.c.serviceNbr = eidSdnvValues[3];
+		bundle->reportTo.cbhe = 1;
+		bundle->reportTo.c.nodeNbr = eidSdnvValues[4];
+		bundle->reportTo.c.serviceNbr = eidSdnvValues[5];
+		bundle->custodian.cbhe = 1;
+		bundle->custodian.c.nodeNbr = eidSdnvValues[6];
+		bundle->custodian.c.serviceNbr = eidSdnvValues[7];
+	}
+	else
+	{
+		work->dictionary = MTAKE(bundle->dictionaryLength);
+		if (work->dictionary == NULL)
+		{
+			putSysErrmsg("No memory for dictionary", NULL);
+			return -1;
+		}
+
+		memcpy(work->dictionary, cursor, bundle->dictionaryLength);
+		cursor += bundle->dictionaryLength;
+		unparsedBytes -= bundle->dictionaryLength;
+		bundle->destination.cbhe = 0;
+		bundle->destination.d.schemeNameOffset = eidSdnvValues[0];
+		bundle->destination.d.nssOffset = eidSdnvValues[1];
+		bundle->id.source.cbhe = 0;
+		bundle->id.source.d.schemeNameOffset = eidSdnvValues[2];
+		bundle->id.source.d.nssOffset = eidSdnvValues[3];
+		bundle->reportTo.cbhe = 0;
+		bundle->reportTo.d.schemeNameOffset = eidSdnvValues[4];
+		bundle->reportTo.d.nssOffset = eidSdnvValues[5];
+		bundle->custodian.cbhe = 0;
+		bundle->custodian.d.schemeNameOffset = eidSdnvValues[6];
+		bundle->custodian.d.nssOffset = eidSdnvValues[7];
+	}
+
+	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+	{
+		extractSdnv(&(bundle->id.fragmentOffset), &cursor,
+				&unparsedBytes);
+		extractSdnv(&(bundle->totalAduLength), &cursor,
+				&unparsedBytes);
+	}
+	else
+	{
+		bundle->id.fragmentOffset = 0;
+		bundle->totalAduLength = 0;
+	}
+
+	/*	Have got primary block.  Save it, then shift the
+	 *	rest of the bundle bytes to the start of the buffer
+	 *	before parsing next block.				*/
+
+	bytesParsed = bytesToParse - unparsedBytes;
+	work->primaryBlockLength =
+		bytesParsed > BP_AVG_HEADER ? BP_AVG_HEADER : bytesParsed;
+	memcpy(work->primaryBlockBytes, work->buffer, work->primaryBlockLength);
+	bytesToParse = work->bytesBuffered - bytesParsed;
+	memcpy(work->buffer, work->buffer + bytesParsed, bytesToParse);
+	work->bytesBuffered -= bytesParsed;
+	return 1;
+}
+
+static int acquireExtent(AcqWorkArea *work, char *bytes, int length)
+{
+	Object	extent;
+
+	work->payloadBytesAcquired += length;
+	sdr_begin_xn(bpSdr);
+	extent = sdr_insert(bpSdr, bytes, length);
+	if (extent == 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("CLI can't write extent to SDR", itoa(length));
+		return -1;
+	}
+
+	zco_append_extent(bpSdr, work->bundle.payload.content, ZcoSdrSource,
+			extent, 0, length);
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putSysErrmsg("CLI failure acquiring extent", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
+			unsigned char *startOfBlock, unsigned long blockLength,
+			unsigned char blkType, unsigned long blkProcFlags,
+			Lyst eidReferences, unsigned long dataLength,
+			unsigned char *cursor)
+{
+	Bundle		*bundle = &(work->bundle);
+	int		blkSize;
+	AcqExtBlock	*blk;
+	Sdnv		blkProcFlagsSdnv;
+	int		i;
+	LystElt		elt;
+	int		additionalOverhead;
+
+	blkSize = sizeof(AcqExtBlock) + (blockLength - 1);
+	blk = (AcqExtBlock *) MTAKE(blkSize);
+	if (blk == NULL)
+	{
+		putErrmsg("Can't acquire extension block.", itoa(blkSize));
+		return -1;
+	}
+
+	/*	Populate the extension block structure.			*/
+
+	memset((char *) blk, 0, sizeof(AcqExtBlock));
+	blk->type = blkType;
+	blk->blkProcFlags = blkProcFlags;
+	blk->eidReferences = eidReferences;
+	blk->dataLength = dataLength;
+	blk->length = blockLength;
+	memcpy(blk->bytes, startOfBlock, blockLength);
+
+	/*	Block processing flags may already have been modified.	*/
+
+	encodeSdnv(&blkProcFlagsSdnv, blkProcFlags);
+	memcpy(blk->bytes + 1, blkProcFlagsSdnv.text, blkProcFlagsSdnv.length);
+
+	/*	Store extension block within bundle.			*/
+
+	i = work->currentExtBlocksList;
+	elt = lyst_insert_last(work->extBlocks[i], blk);
+	if (elt == NULL)
+	{
+		MRELEASE(blk);
+		putErrmsg("Can't acquire extension block.", NULL);
+		return -1;
+	}
+
+	/*	Block-specific processing.				*/
+
+	if (def && def->acquire)
+	{
+		switch (def->acquire(blk, work))
+		{
+		case 0:		/*	Malformed block.		*/
+			work->malformed = 1;
+			break;
+
+		case 1:		/*	No problem.			*/
+			break;
+		
+		default:	/*	System failure.			*/
+			lyst_delete(elt);
+			MRELEASE(blk);
+			putErrmsg("Can't accept extension block.",
+					itoa(blkType));
+			return -1;
+		}
+
+		if (blk->length == 0)	/*	Discarded.		*/
+		{
+			deleteAcqExtBlock(elt, i);
+			return 0;
+		}
+	}
+
+	/*	Note that this calculation of dbObverhead is tentative,
+	 *	to aid in making acquisition decisions.  The real
+	 *	calculation happens when the bundle is accepted and
+	 *	the extension blocks are recorded.			*/
+
+	bundle->extensionsLength[i] += blk->length;
+	additionalOverhead = SDR_LIST_ELT_OVERHEAD + sizeof(ExtensionBlock)
+			+ blk->length + blk->size;
+	bundle->dbOverhead += additionalOverhead;
+	return 0;
+}
+
+static int	acquireOtherBlocks(AcqWorkArea *work)
+{
+	Bundle		*bundle = &(work->bundle);
+	int		bytesToParse;
+	int		unparsedBytes;
+	int		bytesParsed;
+	unsigned char	*cursor;
+	int		payloadBytesDue;
+	unsigned char	blkType;
+	unsigned long	blkProcFlags;
+	Lyst		eidReferences = NULL;
+	unsigned long	eidReferencesCount;
+	unsigned long	schemeOffset;
+	unsigned long	nssOffset;
+	unsigned long	dataLength;
+	int		payloadBytes;
+			OBJ_POINTER(IonDB, iondb);
+	ExtensionDef	*def;
+	unsigned char	*startOfBlock;
+	unsigned long	lengthOfBlock;
+
+	if (work->malformed || work->mustAbort)
+	{
+		work->bytesBuffered = 0;	/*	Ignore all.	*/
+		return 1;
+	}
+
+	while (work->bytesBuffered > 0)
+	{
+		bytesToParse = work->bytesBuffered;
+		unparsedBytes = bytesToParse;
+		cursor = (unsigned char *) (work->buffer);
+		payloadBytesDue = bundle->payload.length -
+				work->payloadBytesAcquired;
+		if (payloadBytesDue)
+		{
+			/*	Still acquiring payload bytes.		*/
+
+			if (unparsedBytes > payloadBytesDue)
+			{
+				payloadBytes = payloadBytesDue;
+			}
+			else
+			{
+				payloadBytes = unparsedBytes;
+			}
+
+			if (work->decision == AcqOK)
+			{
+				if (acquireExtent(work, (char *) cursor,
+						payloadBytes))
+				{
+					putSysErrmsg("can't extend ZCO", NULL);
+					return -1;
+				}
+			}
+			else
+			{
+				/*	Simulate acquisition, so that
+				 *	bpEndAcq can distinguish
+				 *	between congestion control and
+				 *	a genuinely incomplete payload.	*/
+
+				work->payloadBytesAcquired += payloadBytes;
+			}
+
+			cursor += payloadBytes;
+			unparsedBytes -= payloadBytes;
+
+			/*	Shift any remaining bytes to front of
+			 *	buffer for parsing of next block.	*/
+
+			bytesParsed = bytesToParse - unparsedBytes;
+			bytesToParse = work->bytesBuffered - bytesParsed;
+			memcpy(work->buffer, work->buffer + bytesParsed,
+					bytesToParse);
+			work->bytesBuffered -= bytesParsed;
+			continue;
+		}
+
+		/*	Ready to acquire a new block.			*/
+
+		if (work->lastBlockParsed)
+		{
+			return 1;	/*	Should be done now.	*/
+		}
+
+		if (unparsedBytes < 3)
+		{
+			return 1;	/*	Need more data.		*/
+		}
+
+		startOfBlock = cursor;
+		blkType = *cursor;
+		cursor++; unparsedBytes--;
+
+		extractSdnv(&blkProcFlags, &cursor, &unparsedBytes);
+		if (blkProcFlags & BLK_IS_LAST)
+		{
+			work->lastBlockParsed = 1;
+		}
+
+		if (blkProcFlags & BLK_HAS_EID_REFERENCES)
+		{
+			eidReferences = lyst_create_using(bpMemIdx);
+			if (eidReferences == NULL)
+			{
+				return -1;
+			}
+
+			extractSdnv(&eidReferencesCount, &cursor,
+				&unparsedBytes);
+			while (eidReferencesCount > 0)
+			{
+				extractSdnv(&schemeOffset, &cursor,
+					&unparsedBytes);
+				if (lyst_insert_last(eidReferences,
+						(void *) schemeOffset) == NULL)
+				{
+					return -1;
+				}
+
+				extractSdnv(&nssOffset, &cursor,
+					&unparsedBytes);
+				if (lyst_insert_last(eidReferences,
+						(void *) nssOffset) == NULL)
+				{
+					return -1;
+				}
+
+				eidReferencesCount--;
+			}
+		}
+
+		extractSdnv(&dataLength, &cursor, &unparsedBytes);
+		lengthOfBlock = (cursor - startOfBlock) + dataLength;
+		if (blkType == 1)	/*	Payload block.		*/
+		{
+			work->currentExtBlocksList = POST_PAYLOAD;
+			if (eidReferences)	/*	Invalid, but...	*/
+			{
+				lyst_destroy(eidReferences);
+				eidReferences = NULL;
+			}
+
+			bundle->payloadBlockProcFlags = blkProcFlags;
+			bundle->payload.length = dataLength;
+
+			/*	Note: length of payload bytes currently
+			 *	in the buffer is up to unparsedBytes,
+			 *	starting at cursor.			*/
+
+			if (unparsedBytes > bundle->payload.length)
+			{
+				payloadBytes = bundle->payload.length;
+			}
+			else
+			{
+				payloadBytes = unparsedBytes;
+			}
+
+			/*	Wait until expected capacity is enough.	*/
+
+			if (applyRecvRateControl(work) < 0)
+			{
+				putErrmsg("Can't apply rate control.", NULL);
+				return -1;
+			}
+
+			/*	Guard against congestion collapse.
+			 *
+			 *	NOTE: the payload of an inbound bundle
+			 *	is always acquired into SDR, never
+			 *	into a file, so payload.length is a
+			 *	good first approximation of payload
+			 *	content occupancy.  It omits the
+			 *	sizes of some ZCO navigation objects,
+			 *	but for all but the smallest bundles
+			 *	that increment of occupancy is in the
+			 *	noise.					*/
+
+			GET_OBJ_POINTER(bpSdr, IonDB, iondb, getIonDbObject());
+			if (iondb->currentOccupancy + bundle->dbOverhead
+					+ bundle->payload.length
+					> iondb->occupancyCeiling)
+			{
+				/*	Not enough space for bundle.	*/
+
+				work->decision = AcqNG;
+
+				/*	Simulate acquisition, so that
+				 *	bpEndAcq can distinguish
+				 *	between congestion control and
+				 *	a genuinely incomplete payload.	*/
+
+				work->payloadBytesAcquired += payloadBytes;
+			}
+			else	/*	Acquiring this bundle.		*/
+			{
+				work->decision = AcqOK;
+
+				/*	Start acquiring payload in
+				 *	SDR heap space.			*/
+
+				sdr_begin_xn(bpSdr);
+				bundle->payload.content = zco_create(bpSdr,
+						ZcoSdrSource, 0, 0, 0);
+				if (sdr_end_xn(bpSdr) < 0
+				|| bundle->payload.content == 0)
+				{
+					putSysErrmsg("can't create ZCO", NULL);
+					return -1;
+				}
+
+				if (payloadBytes == 0)
+				{
+					break;
+				}
+
+				if (acquireExtent(work, (char *) cursor,
+						payloadBytes))
+				{
+					putSysErrmsg("can't extend ZCO", NULL);
+					return -1;
+				}
+			}
+
+			cursor += payloadBytes;
+			unparsedBytes -= payloadBytes;
+		}
+		else	/*	This is an extension block.		*/
+		{
+			if (unparsedBytes < dataLength)
+			{
+				return 1;	/*	Need more data.	*/
+			}
+
+			def = findExtensionDef(blkType,
+					work->currentExtBlocksList);
+			if (def)
+			{
+				if (acquireExtensionBlock(work, def,
+						startOfBlock, lengthOfBlock,
+						blkType, blkProcFlags,
+						eidReferences, dataLength,
+						cursor) < 0)
+				{
+					return -1;
+				}
+			}
+			else	/*	An unrecognized extension.	*/
+			{
+				if (blkProcFlags & BLK_REPORT_IF_NG)
+				{
+					if (bundle->bundleProcFlags
+							& BDL_IS_ADMIN)
+					{
+						/*	RFC 5050 4.3	*/
+
+						work->mustAbort = 1;
+					}
+					else
+					{
+						bundle->statusRpt.flags
+							|= BP_RECEIVED_RPT;
+						bundle->statusRpt.reasonCode =
+							SrBlockUnintelligible;
+						getCurrentDtnTime(&bundle->
+							statusRpt.receiptTime);
+					}
+				}
+
+				if (bundle->payload.content != 0)
+				{
+					if ((blkProcFlags & BLK_MUST_BE_COPIED)
+							== 0)
+					{
+						/*	RFC 5050 4.3	*/
+
+						work->mustAbort = 1;
+					}
+				}
+
+				if (blkProcFlags & BLK_ABORT_IF_NG)
+				{
+					work->mustAbort = 1;
+				}
+				else
+				{
+					if ((blkProcFlags & BLK_REMOVE_IF_NG)
+							== 0)
+					{
+						blkProcFlags |=
+							BLK_FORWARDED_OPAQUE;
+						if (acquireExtensionBlock(work,
+							def, startOfBlock,
+							lengthOfBlock, blkType,
+							blkProcFlags,
+							eidReferences,
+							dataLength, cursor) < 0)
+						{
+							return -1;
+						}
+					}
+				}
+			}
+
+			eidReferences = NULL;
+			cursor += dataLength;
+			unparsedBytes -= dataLength;
+		}
+
+		/*	Have gotten to the end of this block.  Shift
+		 *	remaining bytes to front of buffer for parsing
+		 *	of next block.					*/
+
+		bytesParsed = bytesToParse - unparsedBytes;
+		bytesToParse = work->bytesBuffered - bytesParsed;
+		memcpy(work->buffer, work->buffer + bytesParsed, bytesToParse);
+		work->bytesBuffered -= bytesParsed;
+	}
+
+	return 1;
+}
+
+static int	acqFromWork(AcqWorkArea *work)
+{
+	Bundle	*bundle = &(work->bundle);
+
+	/*	On any parsing error, just turn on the malformed flag,
+	 *	ignore all remaining buffered bytes (to make room for
+	 *	more data if necessary), and continue.  At bpEndAcq
+	 *	the malformed indicator will cause all appropriate
+	 *	cleanup.						*/
+
+	if (bundle->expirationTime == 0)	/*	No Primary yet.	*/
+	{
+		switch (acquirePrimaryBlock(work))
+		{
+		case 1:				/*	No problem.	*/
+			break;
+
+		case 0:				/*	Parsing failed.	*/
+			work->malformed = 1;
+			work->bytesBuffered = 0;
+			return 0;
+
+		default:			/*	System failure.	*/
+			return -1;
+		}
+	}
+
+	if (work->bytesBuffered > 0)
+	{
+		switch (acquireOtherBlocks(work))
+		{
+		case 1:				/*	No problem.	*/
+			break;
+
+		case 0:				/*	Parsing failed.	*/
+			work->malformed = 1;
+			work->bytesBuffered = 0;
+			return 0;
+
+		default:			/*	System failure.	*/
+			return -1;
+		}
+	}
+
+	return 1;
+}
+
+int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
+{
+	int	bytesToAdd;
+
+	if (work == NULL || bytes == NULL || length < 1)
+	{
+		putErrmsg("Can't continue bundle acquisition.", NULL);
+		errno = EINVAL;
+		return -1;
+	}
+
+	while (length + work->bytesBuffered > sizeof work->buffer)
+	{
+		bytesToAdd = sizeof work->buffer - work->bytesBuffered;
+		memcpy(work->buffer + work->bytesBuffered, bytes, bytesToAdd);
+		work->bytesBuffered += bytesToAdd;
+		bytes += bytesToAdd;
+		length -= bytesToAdd;
+		switch (acqFromWork(work))
+		{
+		case 1:				/*	No problem.	*/
+			break;
+
+		case 0:				/*	Parsing failed.	*/
+			return 0;
+
+		default:			/*	System failure.	*/
+			putErrmsg("Bundle acquisition failed.", NULL);
+			return -1;
+		}
+	}
+
+	if (length > 0)
+	{
+		memcpy(work->buffer + work->bytesBuffered, bytes, length);
+		work->bytesBuffered += length;
+	}
+
+	return 1;
+}
+
+static int	abortBundleAcq(Bundle *bundle)
+{
+	if (bundle->payload.content)
+	{
+		sdr_begin_xn(bpSdr);
+		zco_destroy_reference(bpSdr, bundle->payload.content);
+		if (sdr_end_xn(bpSdr) < 0)
+		{
+			putSysErrmsg("can't destroy payload", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+static int	discardReceivedBundle(Bundle *bundle, BpCtReason ctReason,
+			BpSrReason srReason, char *dictionary)
+{
+	/*	If we must discard the bundle, we send any reception
+	 *	status report(s) previously noted and we discard the
+	 *	bundle's payload content; if custody acceptance
+	 *	was requested, we also send a "refusal" custody signal.
+	 *	We may also send send a deletion status report if
+	 *	requested.  Note that a request for custody acceptance
+	 *	does NOT trigger transmission of a deletion status
+	 *	report, because that report is only sent when a
+	 *	custodian deletes a bundle for which it has taken
+	 *	custody; custody of the bundle has not been accepted
+	 *	in this case.
+	 *
+	 *	Note that negative status reporting is performed here
+	 *	(in the CLI) before the bundle is enqueued for forwarding,
+	 *	but that positive reporting is performed later by the
+	 *	forwarder because it applies to bundles sourced locally
+	 *	as well as to bundles accepted from other endpoints.	*/
+
+	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+	{
+		if (sendCtSignal(bundle, dictionary, 0, ctReason) < 0)
+		{
+			putSysErrmsg("Can't send custody signal", NULL);
+			return -1;
+		}
+
+		if (bpVdb->watching & WATCH_x)
+		{
+			putchar('x');
+			fflush(stdout);
+		}
+	}
+
+	if (srReason != 0
+	&& (SRR_FLAGS(bundle->bundleProcFlags) & BP_DELETED_RPT))
+	{
+		bundle->statusRpt.flags |= BP_DELETED_RPT;
+		bundle->statusRpt.reasonCode = srReason;
+		getCurrentDtnTime(&bundle->statusRpt.deletionTime);
+	}
+
+	if (bundle->statusRpt.flags)
+	{
+		if (sendStatusRpt(bundle, dictionary) < 0)
+		{
+			putSysErrmsg("Can't send status report", NULL);
+			return -1;
+		}
+	}
+
+	errno = EMSGSIZE;
+	return abortBundleAcq(bundle);
+}
+
+static void	initAuthenticity(AcqWorkArea *work)
+{
+	Object	secdbObj;
+		OBJ_POINTER(SecDB, secdb);
+	Object	ruleAddr;
+	Object	elt;
+		OBJ_POINTER(BabRxRule, rule);
+	char	senderEid[256];
+
+	if (work->authentic)		/*	Asserted by CL.		*/
+	{
+		return;
+	}
+
+	/*	Bundle is not yet considered authentic.			*/
+
+	secdbObj = getSecDbObject();
+	if (secdbObj == 0)
+	{
+		work->authentic = 1;	/*	No security, proceed.	*/
+		return;
+	}
+
+	GET_OBJ_POINTER(bpSdr, SecDB, secdb, secdbObj);
+	if (sdr_list_length(bpSdr, secdb->babRxRules) == 0)
+	{
+		work->authentic = 1;	/*	No rules, proceed.	*/
+		return;
+	}
+
+	if (work->senderEid == NULL)	/*	Can't authenticate.	*/
+	{
+		return;			/*	So can't be authentic.	*/
+	}
+
+	sec_get_babRxRule(work->senderEid, &ruleAddr, &elt);
+	if (elt)
+	{
+		GET_OBJ_POINTER(bpSdr, BabRxRule, rule, ruleAddr);
+		sdr_string_read(bpSdr, senderEid, rule->xmitEid);
+		if (rule->ciphersuiteName[0] == '\0')
+		{
+			work->authentic = 1;	/*	Trusted node.	*/
+		}
+	}
+}
+
+static int	checkExtensionBlocks(AcqWorkArea *work)
+{
+	Bundle		*bundle = &(work->bundle);
+	int		i;
+	LystElt		elt;
+	LystElt		nextElt;
+	AcqExtBlock	*blk;
+	ExtensionDef	*def;
+	unsigned long	oldLength;
+
+	initAuthenticity(work);		/*	Set default.		*/
+	bundle->clDossier.authentic = work->authentic;
+	for (i = 0; i < 2; i++)
+	{
+		for (elt = lyst_first(work->extBlocks[i]); elt; elt = nextElt)
+		{
+			nextElt = lyst_next(elt);
+			blk = (AcqExtBlock *) lyst_data(elt);
+			def = findExtensionDef(blk->type, i);
+			if (def == NULL || def->check == NULL)
+			{
+				continue;
+			}
+
+			oldLength = blk->length;
+			switch (def->check(blk, work))
+			{
+			case 2:		/*	Bundle is authentic.	*/
+				bundle->clDossier.authentic = 1;
+				break;
+
+			case 1:		/*	Bundle is inauthentic.	*/
+				bundle->clDossier.authentic = 0;
+				break;
+
+			case 0:		/*	No additional info.	*/
+				break;
+
+			default:
+				putErrmsg("Failed checking extension block.",
+						def->name);
+				return -1;
+			}
+
+			if (blk->length == 0)	/*	Discarded.	*/
+			{
+				bundle->extensionsLength[i] -= oldLength;
+				deleteAcqExtBlock(elt, i);
+				continue;
+			}
+
+			/*	Revise aggregate extensions length as
+			 *	necessary.				*/
+
+			if (blk->length != oldLength)
+			{
+				bundle->extensionsLength[i] -= oldLength;
+				bundle->extensionsLength[i] += blk->length;
+			}
+		}
+	}
+
+	return 0;
+}
+
+static int	recordExtensionBlocks(AcqWorkArea *work)
+{
+	Bundle		*bundle = &(work->bundle);
+	int		i;
+	LystElt		elt;
+	AcqExtBlock	*oldBlk;
+	ExtensionBlock	newBlk;
+	int		headerLength;
+	ExtensionDef	*def;
+	Object		newBlkAddr;
+	int		additionalOverhead;
+
+	for (i = 0; i < 2; i++)
+	{
+		bundle->extensions[i] = sdr_list_create(bpSdr);
+		if (bundle->extensions[i] == 0)
+		{
+			putErrmsg("No space for extensions list.", NULL);
+			return -1;
+		}
+
+		bundle->extensionsLength[i] = 0;
+		for (elt = lyst_first(work->extBlocks[i]); elt;
+				elt = lyst_next(elt))
+		{
+			oldBlk = (AcqExtBlock *) lyst_data(elt);
+			memset((char *) &newBlk, 0, sizeof(ExtensionBlock));
+			newBlk.type = oldBlk->type;
+			newBlk.blkProcFlags = oldBlk->blkProcFlags;
+			newBlk.dataLength = oldBlk->dataLength;
+			headerLength = oldBlk->length - oldBlk->dataLength;
+			if (serializeExtBlk(&newBlk, oldBlk->eidReferences,
+				(char *) (oldBlk->bytes + headerLength)) < 0)
+			{
+				putErrmsg("No space for block.", NULL);
+				return -1;
+			}
+
+			def = findExtensionDef(oldBlk->type, i);
+			if (def && def->record)
+			{
+				/*	Record extension object.	*/
+
+				def->record(&newBlk, oldBlk);
+			}
+			else
+			{
+				newBlk.object = 0;
+			}
+
+			newBlkAddr = sdr_malloc(bpSdr, sizeof(ExtensionBlock));
+			if (newBlkAddr == 0
+			|| insertExtensionBlock(def, &newBlk, newBlkAddr,
+					bundle, i) < 0)
+			{
+				putErrmsg("Failed recording ext. block.", NULL);
+				return -1;
+			}
+
+			bundle->extensionsLength[i] += newBlk.length;
+			additionalOverhead = SDR_LIST_ELT_OVERHEAD
+					+ sizeof(ExtensionBlock)
+					+ newBlk.length + newBlk.size;
+			bundle->dbOverhead += additionalOverhead;
+		}
+	}
+
+	return 0;
+}
+
+static char	*getCustodialSchemeName(Bundle *bundle)
+{
+	/*	Note: the code for retrieving the custodial scheme
+	 *	name for a bundle -- for which purpose we use the
+	 *	bundle's destination EID scheme name -- will need
+	 *	to be made more general in the event that we end up
+	 *	supporting schemes other than "ipn" and "dtn", but
+	 *	for now it's the simplest and most efficient approach.	*/
+
+	if (bundle != NULL && bundle->destination.cbhe)
+	{
+		return cbheSchemeName;
+	}
+
+	return dtn2SchemeName;
+}
+
+int	bpEndAcq(AcqWorkArea *work)
+{
+	Bundle		*bundle;
+	char		*custodialSchemeName;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	int		result;
+	char		*eidString;
+	Object		bundleAddr;
+	Object		timelineElt;
+	MetaEid		senderMetaEid;
+	Object		bundleObj;
+
+	if (work == NULL)
+	{
+		putErrmsg("Can't finish bundle acquisition.", NULL);
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (work->bytesBuffered > 0)
+	{
+		switch (acqFromWork(work))
+		{
+		case 1:				/*	No problem.	*/
+			break;
+
+		case 0:				/*	Parsing failed.	*/
+			errno = EMSGSIZE;
+			return 0;
+
+		default:			/*	System failure.	*/
+			putErrmsg("Bundle acquisition failed.", NULL);
+			return -1;
+		}
+	}
+
+	/*	Check bundle for problems.				*/
+
+	bundle = &(work->bundle);
+	if (work->malformed || work->lastBlockParsed == 0)
+	{
+		putErrmsg("Malformed bundle.", NULL);
+		errno = EMSGSIZE;
+		return abortBundleAcq(bundle);
+	}
+
+	if (bundle->payload.length > work->payloadBytesAcquired)
+	{
+		putErrmsg("Incomplete bundle payload.",
+			itoa(work->payloadBytesAcquired
+				- bundle->payload.length));
+		errno = EMSGSIZE;
+		return abortBundleAcq(bundle);
+	}
+
+	if (checkExtensionBlocks(work) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't check bundle authenticity.", NULL);
+		return -1;
+	}
+
+	if (bundle->clDossier.authentic == 0)
+	{
+		putErrmsg("Bundle appears inauthentic.", NULL);
+		errno = EMSGSIZE;
+		return abortBundleAcq(bundle);
+	}
+
+	/*	Unintelligible extension headers don't make a bundle
+	 *	malformed, but they may make it necessary to discard
+	 *	the bundle.						*/
+
+	if (work->mustAbort)
+	{
+		errno = EMSGSIZE;
+		return discardReceivedBundle(bundle, CtBlockUnintelligible,
+				SrBlockUnintelligible, work->dictionary);
+	}
+
+	/*	Bundle acquisition was uneventful but bundle may not
+	 *	have been acquired due to insufficient resources.
+	 *	Did we accept this bundle for forwarding, or are we
+	 *	too congested?  If the latter, we discard the bundle.	*/
+
+	if (work->decision == AcqNG)	/*	Out of space.		*/
+	{
+		errno = ENOSPC;
+		return discardReceivedBundle(bundle, CtDepletedStorage,
+				SrDepletedStorage, work->dictionary);
+	}
+
+	/*	Redundant reception of a custodial bundle after
+	 *	we have already taken custody forces us to discard
+	 *	this bundle and refuse custody, but we don't report
+	 *	deletion of the bundle because it's not really deleted
+	 *	-- we still have a local copy for which we have
+	 *	accepted custody.					*/
+
+	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+	{
+		eidString = printEid(&(bundle->custodian), work->dictionary);
+		if (eidString == NULL)
+		{
+			putErrmsg("Can't print custodian EID string.", NULL);
+			return -1;
+		}
+
+		custodialSchemeName = getCustodialSchemeName(bundle);
+		findScheme(custodialSchemeName, &vscheme, &vschemeElt);
+		if (vschemeElt != 0
+		&& strcmp(eidString, vscheme->custodianEidString) == 0)
+		{
+			/*	Bundle's current custodian is self.	*/
+
+			MRELEASE(eidString);
+		}
+		else
+		{
+			/*	NOT a case of the current custodian
+			 *	receiving the bundle.			*/
+
+			MRELEASE(eidString);
+			eidString = printEid(&(bundle->id.source),
+					work->dictionary);
+			if (eidString == NULL)
+			{
+				putErrmsg("Can't print source EID string.",
+						NULL);
+				return -1;
+			}
+
+			sdr_begin_xn(bpSdr);
+			result = findBundle(eidString,
+				&(bundle->id.creationTime),
+				bundle->id.fragmentOffset,
+				(bundle->bundleProcFlags & BDL_IS_FRAGMENT ?
+					bundle->payload.length : 0),
+				&bundleAddr, &timelineElt);
+			MRELEASE(eidString);
+			sdr_exit_xn(bpSdr);
+			if (result < 0)
+			{
+				putErrmsg("Can't fetch bundle.", NULL);
+				return -1;
+			}
+
+			if (timelineElt)	/*	Redundant.	*/
+			{
+				errno = EMSGSIZE;
+				return discardReceivedBundle(bundle,
+					CtRedundantReception, 0,
+					work->dictionary);
+			}
+		}
+	}
+
+	/*	We have decided to accept the bundle rather than
+	 *	simply discard it, so now we commit it to SDR space.
+	 *	Re-do calculation of dbOverhead, since the extension
+	 *	recording function may result in extension scratchpad
+	 *	objects of different sizes than were calculated during
+	 *	extension block acquisition.				*/
+
+	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
+	sdr_begin_xn(bpSdr);
+	if (work->senderEid)
+	{
+		putBpString(&bundle->clDossier.senderEid, work->senderEid);
+		parseEidString(work->senderEid, &senderMetaEid, &vscheme,
+				&vschemeElt);
+		bundle->clDossier.senderNodeNbr = senderMetaEid.nodeNbr;
+		restoreEidString(&senderMetaEid);
+		bundle->dbOverhead += bundle->clDossier.senderEid.textLength;
+	}
+
+	bundle->stations = sdr_list_create(bpSdr);
+	bundle->trackingElts = sdr_list_create(bpSdr);
+	bundle->xmitRefs = sdr_list_create(bpSdr);
+	bundleObj = sdr_malloc(bpSdr, sizeof(Bundle));
+	if (bundleObj == 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("No space for bundle object.", NULL);
+		return -1;
+	}
+
+	if (setBundleTTL(bundle, bundleObj) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't insert new bundle into timeline.", NULL);
+		return -1;
+	}
+
+	if (bundle->dictionaryLength > 0)
+	{
+		bundle->dictionary = sdr_malloc(bpSdr,
+				bundle->dictionaryLength);
+		if (bundle->dictionary == 0)
+		{
+			sdr_cancel_xn(bpSdr);
+			putErrmsg("Can't store dictionary.", NULL);
+			return -1;
+		}
+
+		sdr_write(bpSdr, bundle->dictionary, work->dictionary,
+				bundle->dictionaryLength);
+		bundle->dbOverhead += bundle->dictionaryLength;
+	}
+
+	if (recordExtensionBlocks(work) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't record extensions.", NULL);
+		return -1;
+	}
+
+	bundle->dbTotal = bundle->dbOverhead;
+	if (bundle->payload.content)
+	{
+		bundle->dbTotal += zco_occupancy(bpSdr,
+				bundle->payload.content);
+	}
+
+	noteBundleInserted(bundle);
+	noteStateStats(BPSTATS_RECEIVE, bundle);
+	if (bpVdb->watching & WATCH_y)
+	{
+		putchar('y');
+		fflush(stdout);
+	}
+
+	/*	Other decisions and reporting are left to the
+	 *	forwarder, as they depend on route availability.
+	 *
+	 *	Note that at this point we have NOT yet written
+	 *	the bundle structure itself into the SDR space we
+	 *	have allocated for it (bundleObj), because it may
+	 *	still change in the course of dispatching.		*/
+
+	if (dispatchBundle(bundleObj, bundle) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't dispatch bundle.", NULL);
+		return -1;
+	}
+
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't acquire bundle.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+/*	*	*	Administrative payload functions	*	*/
+
+int	bpConstructCtSignal(BpCtSignal *csig, Object *zcoRef)
+{
+	unsigned char	adminRecordFlag = (BP_CUSTODY_SIGNAL << 4);
+	Sdnv		fragmentOffsetSdnv;
+	Sdnv		fragmentLengthSdnv;
+	Sdnv		signalTimeSecondsSdnv;
+	Sdnv		signalTimeNanosecSdnv;
+	Sdnv		creationTimeSecondsSdnv;
+	Sdnv		creationTimeCountSdnv;
+	int		eidLength;
+	Sdnv		eidLengthSdnv;
+	int		ctSignalLength;
+	char		*buffer;
+	char		*cursor;
+	Object		sourceData;
+
+	if (csig == NULL || zcoRef == NULL)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (csig->isFragment)
+	{
+		adminRecordFlag |= BP_BDL_IS_A_FRAGMENT;
+		encodeSdnv(&fragmentOffsetSdnv, csig->fragmentOffset);
+		encodeSdnv(&fragmentLengthSdnv, csig->fragmentLength);
+	}
+	else
+	{
+		fragmentOffsetSdnv.length = 0;
+		fragmentLengthSdnv.length = 0;
+	}
+
+	encodeSdnv(&signalTimeSecondsSdnv, csig->signalTime.seconds);
+	encodeSdnv(&signalTimeNanosecSdnv, csig->signalTime.nanosec);
+	encodeSdnv(&creationTimeSecondsSdnv, csig->creationTime.seconds);
+	encodeSdnv(&creationTimeCountSdnv, csig->creationTime.count);
+	eidLength = strlen(csig->sourceEid);
+	encodeSdnv(&eidLengthSdnv, eidLength);
+
+	ctSignalLength = 2 + fragmentOffsetSdnv.length +
+			fragmentLengthSdnv.length +
+			signalTimeSecondsSdnv.length +
+			signalTimeNanosecSdnv.length +
+			creationTimeSecondsSdnv.length +
+			creationTimeCountSdnv.length +
+			eidLengthSdnv.length +
+			eidLength;
+	buffer = MTAKE(ctSignalLength);
+	if (buffer == NULL)
+	{
+		putErrmsg("Can't construct CT signal.", NULL);
+		return -1;
+	}
+
+	cursor = buffer;
+
+	*cursor = (char) adminRecordFlag;
+	cursor++;
+
+	*cursor = csig->reasonCode | (csig->succeeded << 7);
+	cursor++;
+
+	memcpy(cursor, fragmentOffsetSdnv.text, fragmentOffsetSdnv.length);
+	cursor += fragmentOffsetSdnv.length;
+
+	memcpy(cursor, fragmentLengthSdnv.text, fragmentLengthSdnv.length);
+	cursor += fragmentLengthSdnv.length;
+
+	memcpy(cursor, signalTimeSecondsSdnv.text,
+			signalTimeSecondsSdnv.length);
+	cursor += signalTimeSecondsSdnv.length;
+
+	memcpy(cursor, signalTimeNanosecSdnv.text,
+			signalTimeNanosecSdnv.length);
+	cursor += signalTimeNanosecSdnv.length;
+
+	memcpy(cursor, creationTimeSecondsSdnv.text,
+			creationTimeSecondsSdnv.length);
+	cursor += creationTimeSecondsSdnv.length;
+
+	memcpy(cursor, creationTimeCountSdnv.text,
+			creationTimeCountSdnv.length);
+	cursor += creationTimeCountSdnv.length;
+
+	memcpy(cursor, eidLengthSdnv.text, eidLengthSdnv.length);
+	cursor += eidLengthSdnv.length;
+
+	memcpy(cursor, csig->sourceEid, eidLength);
+	cursor += eidLength;
+
+	sdr_begin_xn(bpSdr);
+	sourceData = sdr_malloc(bpSdr, ctSignalLength);
+	if (sourceData == 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		MRELEASE(buffer);
+		putSysErrmsg("No space for source data", NULL);
+		return -1;
+	}
+
+	sdr_write(bpSdr, sourceData, buffer, ctSignalLength);
+	MRELEASE(buffer);
+	*zcoRef = zco_create(bpSdr, ZcoSdrSource, sourceData, 0,
+			ctSignalLength);
+	if (sdr_end_xn(bpSdr) < 0 || *zcoRef == 0)
+	{
+		putErrmsg("can't create CT signal.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	bpParseCtSignal(BpCtSignal *csig, unsigned char *cursor,
+			int unparsedBytes, int isFragment)
+{
+	unsigned char	head1;
+	unsigned long	eidLength;
+
+	memset((char *) csig, 0, sizeof(BpCtSignal));
+	csig->isFragment = isFragment;
+
+	if (unparsedBytes < 1)
+	{
+		putErrmsg(TooShortMemo, NULL);
+		errno = EMSGSIZE;
+		return 0;
+	}
+
+	head1 = *cursor;
+	cursor++;
+	unparsedBytes -= 1;
+	csig->succeeded = ((head1 & 0x80) > 0);
+	csig->reasonCode = head1 & 0x7f;
+
+	if (isFragment)
+	{
+		extractSdnv(&(csig->fragmentOffset), &cursor, &unparsedBytes);
+		extractSdnv(&(csig->fragmentLength), &cursor, &unparsedBytes);
+	}
+
+	extractSdnv(&(csig->signalTime.seconds), &cursor, &unparsedBytes);
+	extractSdnv(&(csig->signalTime.nanosec), &cursor, &unparsedBytes);
+	extractSdnv(&(csig->creationTime.seconds), &cursor, &unparsedBytes);
+	extractSdnv(&(csig->creationTime.count), &cursor, &unparsedBytes);
+	extractSdnv(&eidLength, &cursor, &unparsedBytes);
+	if (unparsedBytes != eidLength)
+	{
+		putErrmsg("EID bytes missing...",
+				itoa(eidLength - unparsedBytes));
+		errno = EMSGSIZE;
+		return 0;
+	}
+
+	csig->sourceEid = MTAKE(eidLength + 1);
+	if (csig->sourceEid == NULL)
+	{
+		putErrmsg("Can't acquire CT signal source EID.", NULL);
+		return -1;
+	}
+
+	memcpy(csig->sourceEid, cursor, eidLength);
+	csig->sourceEid[eidLength] = '\0';
+	return 1;
+}
+
+void	bpEraseCtSignal(BpCtSignal *csig)
+{
+	MRELEASE(csig->sourceEid);
+}
+
+int	bpConstructStatusRpt(BpStatusRpt *rpt, Object *zcoRef)
+{
+	unsigned char	adminRecordFlag = (BP_STATUS_REPORT << 4);
+	Sdnv		fragmentOffsetSdnv;
+	Sdnv		fragmentLengthSdnv;
+	Sdnv		receiptTimeSecondsSdnv;
+	Sdnv		receiptTimeNanosecSdnv;
+	Sdnv		custodyTimeSecondsSdnv;
+	Sdnv		custodyTimeNanosecSdnv;
+	Sdnv		forwardTimeSecondsSdnv;
+	Sdnv		forwardTimeNanosecSdnv;
+	Sdnv		deliveryTimeSecondsSdnv;
+	Sdnv		deliveryTimeNanosecSdnv;
+	Sdnv		deletionTimeSecondsSdnv;
+	Sdnv		deletionTimeNanosecSdnv;
+	Sdnv		creationTimeSecondsSdnv;
+	Sdnv		creationTimeCountSdnv;
+	int		eidLength;
+	Sdnv		eidLengthSdnv;
+	int		rptLength;
+	char		*buffer;
+	char		*cursor;
+	Object		sourceData;
+
+	if (rpt == NULL || zcoRef == NULL)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (rpt->isFragment)
+	{
+		adminRecordFlag |= BP_BDL_IS_A_FRAGMENT;
+		encodeSdnv(&fragmentOffsetSdnv, rpt->fragmentOffset);
+		encodeSdnv(&fragmentLengthSdnv, rpt->fragmentLength);
+	}
+	else
+	{
+		fragmentOffsetSdnv.length = 0;
+		fragmentLengthSdnv.length = 0;
+	}
+
+	if (rpt->flags & BP_RECEIVED_RPT)
+	{
+		encodeSdnv(&receiptTimeSecondsSdnv, rpt->receiptTime.seconds);
+		encodeSdnv(&receiptTimeNanosecSdnv, rpt->receiptTime.nanosec);
+	}
+	else
+	{
+		receiptTimeSecondsSdnv.length = 0;
+		receiptTimeNanosecSdnv.length = 0;
+	}
+
+	if (rpt->flags & BP_CUSTODY_RPT)
+	{
+		encodeSdnv(&custodyTimeSecondsSdnv,rpt->acceptanceTime.seconds);
+		encodeSdnv(&custodyTimeNanosecSdnv,rpt->acceptanceTime.nanosec);
+	}
+	else
+	{
+		custodyTimeSecondsSdnv.length = 0;
+		custodyTimeNanosecSdnv.length = 0;
+	}
+
+	if (rpt->flags & BP_FORWARDED_RPT)
+	{
+		encodeSdnv(&forwardTimeSecondsSdnv, rpt->forwardTime.seconds);
+		encodeSdnv(&forwardTimeNanosecSdnv, rpt->forwardTime.nanosec);
+	}
+	else
+	{
+		forwardTimeSecondsSdnv.length = 0;
+		forwardTimeNanosecSdnv.length = 0;
+	}
+
+	if (rpt->flags & BP_DELIVERED_RPT)
+	{
+		encodeSdnv(&deliveryTimeSecondsSdnv, rpt->deliveryTime.seconds);
+		encodeSdnv(&deliveryTimeNanosecSdnv, rpt->deliveryTime.nanosec);
+	}
+	else
+	{
+		deliveryTimeSecondsSdnv.length = 0;
+		deliveryTimeNanosecSdnv.length = 0;
+	}
+
+	if (rpt->flags & BP_DELETED_RPT)
+	{
+		encodeSdnv(&deletionTimeSecondsSdnv, rpt->deletionTime.seconds);
+		encodeSdnv(&deletionTimeNanosecSdnv, rpt->deletionTime.nanosec);
+	}
+	else
+	{
+		deletionTimeSecondsSdnv.length = 0;
+		deletionTimeNanosecSdnv.length = 0;
+	}
+
+	encodeSdnv(&creationTimeSecondsSdnv, rpt->creationTime.seconds);
+	encodeSdnv(&creationTimeCountSdnv, rpt->creationTime.count);
+	eidLength = strlen(rpt->sourceEid);
+	encodeSdnv(&eidLengthSdnv, eidLength);
+
+	rptLength = 3 + fragmentOffsetSdnv.length +
+			fragmentLengthSdnv.length +
+			receiptTimeSecondsSdnv.length +
+			receiptTimeNanosecSdnv.length +
+			custodyTimeSecondsSdnv.length +
+			custodyTimeNanosecSdnv.length +
+			forwardTimeSecondsSdnv.length +
+			forwardTimeNanosecSdnv.length +
+			deliveryTimeSecondsSdnv.length +
+			deliveryTimeNanosecSdnv.length +
+			deletionTimeSecondsSdnv.length +
+			deletionTimeNanosecSdnv.length +
+			creationTimeSecondsSdnv.length +
+			creationTimeCountSdnv.length +
+			eidLengthSdnv.length +
+			eidLength;
+	buffer = MTAKE(rptLength);
+	if (buffer == NULL)
+	{
+		putErrmsg("Can't construct status report.", NULL);
+		return -1;
+	}
+
+	cursor = buffer;
+
+	*cursor = (char) adminRecordFlag;
+	cursor++;
+
+	*cursor = rpt->flags;
+	cursor++;
+
+	*cursor = rpt->reasonCode;
+	cursor++;
+
+	memcpy(cursor, fragmentOffsetSdnv.text, fragmentOffsetSdnv.length);
+	cursor += fragmentOffsetSdnv.length;
+
+	memcpy(cursor, fragmentLengthSdnv.text, fragmentLengthSdnv.length);
+	cursor += fragmentLengthSdnv.length;
+
+	memcpy(cursor, receiptTimeSecondsSdnv.text,
+			receiptTimeSecondsSdnv.length);
+	cursor += receiptTimeSecondsSdnv.length;
+
+	memcpy(cursor, receiptTimeNanosecSdnv.text,
+			receiptTimeNanosecSdnv.length);
+	cursor += receiptTimeNanosecSdnv.length;
+
+	memcpy(cursor, custodyTimeSecondsSdnv.text,
+			custodyTimeSecondsSdnv.length);
+	cursor += custodyTimeSecondsSdnv.length;
+
+	memcpy(cursor, custodyTimeNanosecSdnv.text,
+			custodyTimeNanosecSdnv.length);
+	cursor += custodyTimeNanosecSdnv.length;
+
+	memcpy(cursor, forwardTimeSecondsSdnv.text,
+			forwardTimeSecondsSdnv.length);
+	cursor += forwardTimeSecondsSdnv.length;
+
+	memcpy(cursor, forwardTimeNanosecSdnv.text,
+			forwardTimeNanosecSdnv.length);
+	cursor += forwardTimeNanosecSdnv.length;
+
+	memcpy(cursor, deliveryTimeSecondsSdnv.text,
+			deliveryTimeSecondsSdnv.length);
+	cursor += deliveryTimeSecondsSdnv.length;
+
+	memcpy(cursor, deliveryTimeNanosecSdnv.text,
+			deliveryTimeNanosecSdnv.length);
+	cursor += deliveryTimeNanosecSdnv.length;
+
+	memcpy(cursor, deletionTimeSecondsSdnv.text,
+			deletionTimeSecondsSdnv.length);
+	cursor += deletionTimeSecondsSdnv.length;
+
+	memcpy(cursor, deletionTimeNanosecSdnv.text,
+			deletionTimeNanosecSdnv.length);
+	cursor += deletionTimeNanosecSdnv.length;
+
+	memcpy(cursor, creationTimeSecondsSdnv.text,
+			creationTimeSecondsSdnv.length);
+	cursor += creationTimeSecondsSdnv.length;
+
+	memcpy(cursor, creationTimeCountSdnv.text,
+			creationTimeCountSdnv.length);
+	cursor += creationTimeCountSdnv.length;
+
+	memcpy(cursor, eidLengthSdnv.text, eidLengthSdnv.length);
+	cursor += eidLengthSdnv.length;
+
+	memcpy(cursor, rpt->sourceEid, eidLength);
+	cursor += eidLength;
+
+	sdr_begin_xn(bpSdr);
+	sourceData = sdr_malloc(bpSdr, rptLength);
+	if (sourceData == 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		MRELEASE(buffer);
+		putSysErrmsg("No space for source data", NULL);
+		return -1;
+	}
+
+	sdr_write(bpSdr, sourceData, buffer, rptLength);
+	MRELEASE(buffer);
+	*zcoRef = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, rptLength);
+	if (sdr_end_xn(bpSdr) < 0 || *zcoRef == 0)
+	{
+		putErrmsg("can't create status report.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	bpParseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
+	       		int unparsedBytes, int isFragment)
+{
+	unsigned long	eidLength;
+
+	memset((char *) rpt, 0, sizeof(BpStatusRpt));
+	rpt->isFragment = isFragment;
+
+	if (unparsedBytes < 2)
+	{
+		putErrmsg(TooShortMemo, NULL);
+		errno = EMSGSIZE;
+		return 0;
+	}
+
+	rpt->flags = *cursor;
+	cursor++;
+	rpt->reasonCode = *cursor;
+	cursor++;
+	unparsedBytes -= 2;
+
+	if (isFragment)
+	{
+		extractSdnv(&(rpt->fragmentOffset), &cursor, &unparsedBytes);
+		extractSdnv(&(rpt->fragmentLength), &cursor, &unparsedBytes);
+	}
+
+	if (rpt->flags & BP_RECEIVED_RPT)
+	{
+		extractSdnv(&(rpt->receiptTime.seconds), &cursor,
+				&unparsedBytes);
+		extractSdnv(&(rpt->receiptTime.nanosec), &cursor,
+				&unparsedBytes);
+	}
+
+	if (rpt->flags & BP_CUSTODY_RPT)
+	{
+		extractSdnv(&(rpt->acceptanceTime.seconds), &cursor,
+				&unparsedBytes);
+		extractSdnv(&(rpt->acceptanceTime.nanosec), &cursor,
+				&unparsedBytes);
+	}
+
+	if (rpt->flags & BP_FORWARDED_RPT)
+	{
+		extractSdnv(&(rpt->forwardTime.seconds), &cursor,
+				&unparsedBytes);
+		extractSdnv(&(rpt->forwardTime.nanosec), &cursor,
+				&unparsedBytes);
+	}
+
+	if (rpt->flags & BP_DELIVERED_RPT)
+	{
+		extractSdnv(&(rpt->deliveryTime.seconds), &cursor,
+				&unparsedBytes);
+		extractSdnv(&(rpt->deliveryTime.nanosec), &cursor,
+				&unparsedBytes);
+	}
+
+	if (rpt->flags & BP_DELETED_RPT)
+	{
+		extractSdnv(&(rpt->deletionTime.seconds), &cursor,
+				&unparsedBytes);
+		extractSdnv(&(rpt->deletionTime.nanosec), &cursor,
+				&unparsedBytes);
+	}
+
+	extractSdnv(&(rpt->creationTime.seconds), &cursor, &unparsedBytes);
+	extractSdnv(&(rpt->creationTime.count), &cursor, &unparsedBytes);
+	extractSdnv(&eidLength, &cursor, &unparsedBytes);
+	if (unparsedBytes != eidLength)
+	{
+		putErrmsg("EID bytes missing...",
+				itoa(eidLength - unparsedBytes));
+		errno = EMSGSIZE;
+		return 0;
+	}
+
+
+	rpt->sourceEid = MTAKE(eidLength + 1);
+	if (rpt->sourceEid == NULL)
+	{
+		putErrmsg("Can't read status report source EID.", NULL);
+		return -1;
+	}
+
+	memcpy(rpt->sourceEid, cursor, eidLength);
+	rpt->sourceEid[eidLength] = '\0';
+	return 1;
+}
+
+void	bpEraseStatusRpt(BpStatusRpt *rpt)
+{
+	MRELEASE(rpt->sourceEid);
+}
+
+int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
+		BpCtSignal *csig, Object payload)
+{
+	unsigned int	buflen;
+	char		*buffer;
+	ZcoReader	reader;
+	char		*cursor;
+	int		bytesToParse;
+	int		unparsedBytes;
+	int		bundleIsFragment;
+	int		result;
+
+	if (adminRecordType == NULL || rpt == NULL || csig == NULL
+	|| payload == 0)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		errno = EINVAL;
+		return -1;
+	}
+
+	sdr_begin_xn(bpSdr);
+	buflen = zco_source_data_length(bpSdr, payload);
+	if ((buffer = MTAKE(buflen)) == NULL)
+	{
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("Can't start parsing admin record", NULL);
+		return -1;
+	}
+
+	zco_start_receiving(bpSdr, payload, &reader);
+	bytesToParse = zco_receive_source(bpSdr, &reader, buflen, buffer);
+	if (bytesToParse < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		MRELEASE(buffer);
+		putSysErrmsg("Can't receive admin record", NULL);
+		return -1;
+	}
+
+	cursor = buffer;
+	unparsedBytes = bytesToParse;
+	if (unparsedBytes < 1)
+	{
+		sdr_cancel_xn(bpSdr);
+		MRELEASE(buffer);
+		putErrmsg("Incoming admin record too short.", NULL);
+		errno = EMSGSIZE;
+		result = 0;
+	}
+	else
+	{
+		*adminRecordType = (*cursor >> 4 ) & 0x0f;
+		bundleIsFragment = *cursor & 0x01;
+		cursor++;
+		unparsedBytes--;
+		switch (*adminRecordType)
+		{
+		case BP_STATUS_REPORT:
+			result = bpParseStatusRpt(rpt, (unsigned char *) cursor,
+					unparsedBytes, bundleIsFragment);
+			break;
+
+		case BP_CUSTODY_SIGNAL:
+			result = bpParseCtSignal(csig, (unsigned char *) cursor,
+					unparsedBytes, bundleIsFragment);
+			break;
+
+		default:
+			putErrmsg("Unknown admin record type.",
+					itoa(*adminRecordType));
+			errno = EMSGSIZE;
+			result = 0;
+		}
+	}
+
+	MRELEASE(buffer);
+	zco_stop_receiving(bpSdr, &reader);
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't update status report after parsing.", NULL);
+		return -1;
+	}
+
+	return result;
+}
+
+/*	*	*	Bundle catenation functions	*	*	*/
+
+static Object	catenateBundle(Bundle *bundle)
+{
+	Sdnv		bundleProcFlagsSdnv;
+	int		residualBlkLength;
+	Sdnv		residualBlkLengthSdnv;
+	Sdnv		eidSdnvs[8];
+	int		totalLengthOfEidSdnvs;
+	Sdnv		creationTimestampTimeSdnv;
+	Sdnv		creationTimestampCountSdnv;
+	unsigned long	lifetime;
+	Sdnv		lifetimeSdnv;
+	Sdnv		dictionaryLengthSdnv;
+	Sdnv		fragmentOffsetSdnv;
+	Sdnv		totalAduLengthSdnv;
+	Sdnv		blkProcFlagsSdnv;
+	Sdnv		payloadLengthSdnv;
+	int		totalHeaderLength;
+	int		totalTrailerLength;
+	unsigned char	*buffer;
+	unsigned char	*cursor;
+	int		i;
+	Object		elt;
+	Object		nextElt;
+	Object		blkAddr;
+	ExtensionBlock	blk;
+	unsigned char	*flagbyte;
+
+checkSafety(bpSdr);
+
+	/*	We assume that the bundle to be issued is valid:
+	 *	either it was sourced locally (in which case we
+	 *	created it ourselves, so it should be valid) or
+	 *	else it was received from elsewhere (in which case
+	 *	it was created by the acquisition functions, which
+	 *	would have discarded the inbound bundle if it were
+	 *	not well-formed).					*/
+
+	encodeSdnv(&bundleProcFlagsSdnv, bundle->bundleProcFlags);
+	totalLengthOfEidSdnvs = 0;
+	if (bundle->dictionaryLength == 0)
+	{
+		encodeSdnv(&(eidSdnvs[0]), bundle->destination.c.nodeNbr);
+		totalLengthOfEidSdnvs += eidSdnvs[0].length;
+		encodeSdnv(&(eidSdnvs[1]), bundle->destination.c.serviceNbr);
+		totalLengthOfEidSdnvs += eidSdnvs[1].length;
+		encodeSdnv(&(eidSdnvs[2]), bundle->id.source.c.nodeNbr);
+		totalLengthOfEidSdnvs += eidSdnvs[2].length;
+		encodeSdnv(&(eidSdnvs[3]), bundle->id.source.c.serviceNbr);
+		totalLengthOfEidSdnvs += eidSdnvs[3].length;
+		encodeSdnv(&(eidSdnvs[4]), bundle->reportTo.c.nodeNbr);
+		totalLengthOfEidSdnvs += eidSdnvs[4].length;
+		encodeSdnv(&(eidSdnvs[5]), bundle->reportTo.c.serviceNbr);
+		totalLengthOfEidSdnvs += eidSdnvs[5].length;
+		encodeSdnv(&(eidSdnvs[6]), bundle->custodian.c.nodeNbr);
+		totalLengthOfEidSdnvs += eidSdnvs[6].length;
+		encodeSdnv(&(eidSdnvs[7]), bundle->custodian.c.serviceNbr);
+		totalLengthOfEidSdnvs += eidSdnvs[7].length;
+	}
+	else
+	{
+		encodeSdnv(&(eidSdnvs[0]),
+				bundle->destination.d.schemeNameOffset);
+		totalLengthOfEidSdnvs += eidSdnvs[0].length;
+		encodeSdnv(&(eidSdnvs[1]),
+				bundle->destination.d.nssOffset);
+		totalLengthOfEidSdnvs += eidSdnvs[1].length;
+		encodeSdnv(&(eidSdnvs[2]),
+				bundle->id.source.d.schemeNameOffset);
+		totalLengthOfEidSdnvs += eidSdnvs[2].length;
+		encodeSdnv(&(eidSdnvs[3]),
+				bundle->id.source.d.nssOffset);
+		totalLengthOfEidSdnvs += eidSdnvs[3].length;
+		encodeSdnv(&(eidSdnvs[4]),
+				bundle->reportTo.d.schemeNameOffset);
+		totalLengthOfEidSdnvs += eidSdnvs[4].length;
+		encodeSdnv(&(eidSdnvs[5]),
+				bundle->reportTo.d.nssOffset);
+		totalLengthOfEidSdnvs += eidSdnvs[5].length;
+		encodeSdnv(&(eidSdnvs[6]),
+				bundle->custodian.d.schemeNameOffset);
+		totalLengthOfEidSdnvs += eidSdnvs[6].length;
+		encodeSdnv(&(eidSdnvs[7]),
+				bundle->custodian.d.nssOffset);
+		totalLengthOfEidSdnvs += eidSdnvs[7].length;
+	}
+
+	encodeSdnv(&creationTimestampTimeSdnv, bundle->id.creationTime.seconds);
+	encodeSdnv(&creationTimestampCountSdnv, bundle->id.creationTime.count);
+	lifetime = bundle->expirationTime - bundle->id.creationTime.seconds;
+	encodeSdnv(&lifetimeSdnv, lifetime);
+	encodeSdnv(&dictionaryLengthSdnv, bundle->dictionaryLength);
+	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+	{
+		encodeSdnv(&fragmentOffsetSdnv, bundle->id.fragmentOffset);
+		encodeSdnv(&totalAduLengthSdnv, bundle->totalAduLength);
+	}
+	else
+	{
+		fragmentOffsetSdnv.length = 0;
+		totalAduLengthSdnv.length = 0;
+	}
+
+	residualBlkLength = totalLengthOfEidSdnvs +
+			creationTimestampTimeSdnv.length +
+			creationTimestampCountSdnv.length +
+			lifetimeSdnv.length +
+			dictionaryLengthSdnv.length +
+			bundle->dictionaryLength +
+			fragmentOffsetSdnv.length +
+			totalAduLengthSdnv.length;
+	encodeSdnv(&residualBlkLengthSdnv, residualBlkLength);
+	encodeSdnv(&blkProcFlagsSdnv, bundle->payloadBlockProcFlags);
+	encodeSdnv(&payloadLengthSdnv, bundle->payload.length);
+	totalHeaderLength = 1 + bundleProcFlagsSdnv.length
+			+ residualBlkLengthSdnv.length
+			+ residualBlkLength
+			+ bundle->extensionsLength[PRE_PAYLOAD]
+			+ 1 + blkProcFlagsSdnv.length
+			+ payloadLengthSdnv.length;
+	buffer = MTAKE(totalHeaderLength);
+	if (buffer == NULL)
+	{
+		putErrmsg("Can't construct bundle header.", NULL);
+		return 0;
+	}
+
+	cursor = buffer;
+
+	/*	Construct primary block.				*/
+
+	*cursor = bpVersion;
+	cursor++;
+
+	memcpy(cursor, bundleProcFlagsSdnv.text, bundleProcFlagsSdnv.length);
+	cursor += bundleProcFlagsSdnv.length;
+
+	memcpy(cursor, residualBlkLengthSdnv.text,
+			residualBlkLengthSdnv.length);
+	cursor += residualBlkLengthSdnv.length;
+
+	for (i = 0; i < 8; i++)
+	{
+		memcpy(cursor, eidSdnvs[i].text, eidSdnvs[i].length);
+		cursor += eidSdnvs[i].length;
+	}
+
+	memcpy(cursor, creationTimestampTimeSdnv.text,
+			creationTimestampTimeSdnv.length);
+	cursor += creationTimestampTimeSdnv.length;
+
+	memcpy(cursor, creationTimestampCountSdnv.text,
+			creationTimestampCountSdnv.length);
+	cursor += creationTimestampCountSdnv.length;
+
+	memcpy(cursor, lifetimeSdnv.text, lifetimeSdnv.length);
+	cursor += lifetimeSdnv.length;
+
+	memcpy(cursor, dictionaryLengthSdnv.text, dictionaryLengthSdnv.length);
+	cursor += dictionaryLengthSdnv.length;
+
+	if (bundle->dictionaryLength > 0)
+	{
+		sdr_read(bpSdr, (char *) cursor, bundle->dictionary,
+				bundle->dictionaryLength);
+		cursor += bundle->dictionaryLength;
+	}
+
+	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+	{
+		memcpy(cursor, fragmentOffsetSdnv.text,
+				fragmentOffsetSdnv.length);
+		cursor += fragmentOffsetSdnv.length;
+		memcpy(cursor, totalAduLengthSdnv.text,
+				totalAduLengthSdnv.length);
+		cursor += totalAduLengthSdnv.length;
+	}
+
+	/*	Insert pre-payload extension blocks.			*/
+
+	for (elt = sdr_list_first(bpSdr, bundle->extensions[PRE_PAYLOAD]);
+			elt; elt = sdr_list_next(bpSdr, elt))
+	{
+		blkAddr = sdr_list_data(bpSdr, elt);
+		sdr_read(bpSdr, (char *) &blk, blkAddr, sizeof(ExtensionBlock));
+		if (blk.suppressed)
+		{
+			continue;
+		}
+
+		sdr_read(bpSdr, (char *) cursor, blk.bytes, blk.length);
+		cursor += blk.length;
+	}
+
+	/*	Construct payload block.				*/
+
+	*cursor = 1;			/*	payload block type	*/
+	cursor++;
+
+	totalTrailerLength = bundle->extensionsLength[POST_PAYLOAD];
+	if (totalTrailerLength == 0)
+	{
+		blkProcFlagsSdnv.text[blkProcFlagsSdnv.length - 1]
+				|= BLK_IS_LAST;
+	}
+	else	/*	Turn off the BLK_IS_LAST flag.			*/
+	{
+		blkProcFlagsSdnv.text[blkProcFlagsSdnv.length - 1]
+				&= ~BLK_IS_LAST;
+	}
+
+	memcpy(cursor, blkProcFlagsSdnv.text, blkProcFlagsSdnv.length);
+	cursor += blkProcFlagsSdnv.length;
+
+	memcpy(cursor, payloadLengthSdnv.text, payloadLengthSdnv.length);
+	cursor += payloadLengthSdnv.length;
+
+	/*	Prepend header (all blocks) to bundle ZCO.		*/
+
+	zco_prepend_header(bpSdr, bundle->payload.content, (char *) buffer,
+			totalHeaderLength);
+	MRELEASE(buffer);
+
+	/*	Append all trailing extension blocks (if any) to
+	 *	bundle ZCO.						*/
+
+	if (totalTrailerLength > 0)
+	{
+		buffer = MTAKE(totalTrailerLength);
+		if (buffer == NULL)
+		{
+			putSysErrmsg("Can't construct bundle trailer.", NULL);
+			return 0;
+		}
+
+		cursor = buffer;
+		for (elt = sdr_list_first(bpSdr,
+			bundle->extensions[POST_PAYLOAD]); elt; elt = nextElt)
+		{
+			nextElt = sdr_list_next(bpSdr, elt);
+			blkAddr = sdr_list_data(bpSdr, elt);
+			sdr_read(bpSdr, (char *) &blk, blkAddr,
+					sizeof(ExtensionBlock));
+			if (blk.suppressed)
+			{
+				continue;
+			}
+
+			sdr_read(bpSdr, (char *) cursor, blk.bytes, blk.length);
+
+			/*	Find last byte in the SDNV for the
+			 *	block's processing flags; if this is
+			 *	the last block in the bundle, turn on
+			 *	the BLK_IS_LAST flag -- else turn that
+			 *	flag off.				*/
+
+			for (i = 1, flagbyte = cursor + 1;
+					i <= blk.length; i++, flagbyte++)
+			{
+				if (((*flagbyte) & 0x80) == 0)
+				{
+					if (nextElt == 0)
+					{
+						(*flagbyte) |= BLK_IS_LAST;
+					}
+					else
+					{
+						(*flagbyte) &= ~BLK_IS_LAST;
+					}
+
+					break;	/*	Last SDNV byte.	*/
+				}
+			}
+
+			cursor += blk.length;
+		}
+
+		zco_append_trailer(bpSdr, bundle->payload.content,
+				(char *) buffer, totalTrailerLength);
+		MRELEASE(buffer);
+	}
+
+	return zco_add_reference(bpSdr, bundle->payload.content);
+}
+
+/*	*	*	Bundle transmission queue functions	*	*/
+
+static int	signalCustodyAcceptance(Bundle *bundle)
+{
+	char	*dictionary;
+	int	result;
+
+	if ((dictionary = retrieveDictionary(bundle)) == (char *) bundle)
+	{
+		putErrmsg("Can't retrieve dictionary.", NULL);
+		return -1;
+	}
+
+	result = sendCtSignal(bundle, dictionary, 1, 0);
+	releaseDictionary(dictionary);
+	if (result < 0)
+	{
+		putSysErrmsg("can't send custody signal", NULL);
+	}
+
+	return result;
+}
+
+static int	insertNonCbheCustodian(Bundle *bundle, VScheme *vscheme)
+{
+	char	*oldDictionary;
+	char	*string;
+	int	stringLength;
+	char	*strings[8];
+	int	stringLengths[8];
+	int	stringCount = 0;
+	char	*newDictionary;
+	char	*cursor;
+	int	i;
+
+	if ((oldDictionary = retrieveDictionary(bundle)) == (char *) bundle)
+	{
+		putErrmsg("Can't retrieve old dictionary for bundle.", NULL);
+		return -1;
+	}
+
+	bundle->dbOverhead -= bundle->dictionaryLength;
+	bundle->dictionaryLength = 0;
+	sdr_free(bpSdr, bundle->dictionary);
+
+	/*	Build new table of all strings currently in the
+	 *	dictionary except the current custodian.  Append
+	 *	the new custodian EID to that table.			*/
+
+	string = oldDictionary + bundle->destination.d.schemeNameOffset;
+	stringLength = strlen(string);
+	bundle->destination.d.schemeNameOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+			&bundle->dictionaryLength, string, stringLength);
+	string = oldDictionary + bundle->destination.d.nssOffset;
+	stringLength = strlen(string);
+	bundle->destination.d.nssOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+			&bundle->dictionaryLength, string, stringLength);
+	string = oldDictionary + bundle->id.source.d.schemeNameOffset;
+	stringLength = strlen(string);
+	bundle->id.source.d.schemeNameOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+			&bundle->dictionaryLength, string, stringLength);
+	string = oldDictionary + bundle->id.source.d.nssOffset;
+	stringLength = strlen(string);
+	bundle->id.source.d.nssOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+			&bundle->dictionaryLength, string, stringLength);
+	string = oldDictionary + bundle->reportTo.d.schemeNameOffset;
+	stringLength = strlen(string);
+	bundle->reportTo.d.schemeNameOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+			&bundle->dictionaryLength, string, stringLength);
+	string = oldDictionary + bundle->reportTo.d.nssOffset;
+	stringLength = strlen(string);
+	bundle->reportTo.d.nssOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+			&bundle->dictionaryLength, string, stringLength);
+	bundle->custodian.d.schemeNameOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+		&bundle->dictionaryLength, vscheme->custodianEidString,
+			vscheme->custodianSchemeNameLength);
+	bundle->custodian.d.nssOffset
+		= addStringToDictionary(strings, stringLengths, &stringCount,
+		&bundle->dictionaryLength, vscheme->custodianEidString
+			+ (vscheme->custodianSchemeNameLength + 1),
+			vscheme->custodianNssLength);
+
+	/*	Now concatenate all of these strings into the new
+	 *	dictionary.						*/
+
+	newDictionary = MTAKE(bundle->dictionaryLength);
+	if (newDictionary == NULL)
+	{
+		MRELEASE(oldDictionary);
+		putErrmsg("No memory for new dictionary.", NULL);
+		return -1;
+	}
+
+	bundle->dictionary = sdr_malloc(bpSdr, bundle->dictionaryLength);
+	if (bundle->dictionary == 0)
+	{
+		MRELEASE(newDictionary);
+		MRELEASE(oldDictionary);
+		putErrmsg("No space for dictionary.", NULL);
+		return -1;
+	}
+
+	cursor = newDictionary;
+	for (i = 0; i < stringCount; i++)
+	{
+		memcpy(cursor, strings[i], stringLengths[i]);
+		cursor += stringLengths[i];
+		*cursor = '\0';
+		cursor++;
+	}
+
+	MRELEASE(oldDictionary);
+	sdr_write(bpSdr, bundle->dictionary, newDictionary,
+			bundle->dictionaryLength);
+	MRELEASE(newDictionary);
+	bundle->dbOverhead += bundle->dictionaryLength;
+	return 0;
+}
+
+static int	takeCustody(Bundle *bundle)
+{
+	char		*custodialSchemeName;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+
+	custodialSchemeName = getCustodialSchemeName(bundle);
+	findScheme(custodialSchemeName, &vscheme, &vschemeElt);
+	if (vschemeElt == 0
+	|| strcmp(vscheme->custodianEidString, nullEid) == 0)
+	{
+		return 0;	/*	Can't take custody; no EID.	*/
+	}
+
+	if (signalCustodyAcceptance(bundle) < 0)
+	{
+		putErrmsg("Can't signal custody acceptance.", NULL);
+		return -1;
+	}
+
+	bundle->custodyTaken = 1;
+	if (SRR_FLAGS(bundle->bundleProcFlags) & BP_CUSTODY_RPT)
+	{
+		bundle->statusRpt.flags |= BP_CUSTODY_RPT;
+		getCurrentDtnTime(&(bundle->statusRpt.acceptanceTime));
+	}
+
+	if (bpVdb->watching & WATCH_w)
+	{
+		putchar('w');
+		fflush(stdout);
+	}
+
+	/*	Insert Endpoint ID of custodial endpoint.		*/
+
+	if (bundle->dictionaryLength > 0)
+	{
+		return insertNonCbheCustodian(bundle, vscheme);
+	}
+
+	bundle->custodian.cbhe = 1;
+	bundle->custodian.c.nodeNbr = getOwnNodeNbr();
+	bundle->custodian.c.serviceNbr = 0;
+	if (processExtensionBlocks(bundle, PROCESS_ON_TAKE_CUSTODY, NULL) < 0)
+	{
+		putErrmsg("Can't process extensions.", "take custody");
+		return -1;
+	}
+
+	return 0;
+}
+
+int	bpAccept(Bundle *bundle)
+{
+	char	*dictionary;
+	int	result;
+
+checkSafety(bpSdr);
+	purgeStationsStack(bundle);
+	if (bundle->catenated)	/*	Re-forwarding custodial bundle.	*/
+	{
+		zco_discard_first_header(bpSdr, bundle->payload.content);
+		if (bundle->extensionsLength[POST_PAYLOAD] > 0)
+		{
+			zco_discard_last_trailer(bpSdr,
+					bundle->payload.content);
+		}
+
+		bundle->catenated = 0;
+		return 0;
+	}
+
+	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+	{
+		if (takeCustody(bundle) < 0)
+		{
+			putSysErrmsg("can't take custody of bundle", NULL);
+			return -1;
+		}
+	}
+
+	/*	Send any status report that is requested: custody
+	 *	acceptance, if applicable, and reception as previously
+	 *	noted, if applicable.					*/
+
+	if (bundle->statusRpt.flags)
+	{
+		if ((dictionary = retrieveDictionary(bundle))
+				== (char *) bundle)
+		{
+			putErrmsg("Can't retrieve dictionary.", NULL);
+			return -1;
+		}
+
+		result = sendStatusRpt(bundle, dictionary);
+		releaseDictionary(dictionary);
+	       	if (result < 0)
+		{
+			putSysErrmsg("can't send status report", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+static Object	enqueueUrgentBundle(Outduct *duct, int ordinal,
+			Object xmitRefAddr, int backlogIncrement)
+{
+	OrdinalState	*ord = &(duct->ordinals[ordinal]);
+	Object		lastElt = 0;	// initialized to avoid warning
+	int		i;
+	Object		xmitElt;
+
+	/*	Enqueue the new bundle immediately after the last
+	 *	currently enqueued bundle whose ordinal is equal to
+	 *	or greater than that of the new bundle.			*/
+
+	for (i = ordinal; i < 256; i++)
+	{
+		lastElt = duct->ordinals[i].lastForOrdinal;
+		if (lastElt)
+		{
+			break;
+		}
+	}
+
+	if (i == 256)	/*	No more urgent bundle to enqueue after.	*/
+	{
+		xmitElt = sdr_list_insert_first(bpSdr, duct->urgentQueue,
+				xmitRefAddr);
+	}
+	else		/*	Enqueue after this one.			*/
+	{
+		xmitElt = sdr_list_insert_after(bpSdr, lastElt, xmitRefAddr);
+	}
+
+	if (xmitElt)
+	{
+		ord->lastForOrdinal = xmitElt;
+		increaseScalar(&(ord->backlog), backlogIncrement);
+	}
+
+	return xmitElt;
+}
+
+int	bpEnqueue(Object bundleObj, Bundle *bundle, char *proxNodeEid,
+		VOutduct *vduct, char *destDuctName)
+{
+	Object		xmitRefAddr;
+	XmitRef		xr;
+	Object		ductAddr;
+	Outduct		duct;
+	int		backlogIncrement;
+	ClProtocol	protocol;
+	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+
+	/*      Forwarder arrived at a duct to transmit the bundle
+	 *      on, so construct a transmission reference.		*/
+
+checkSafety(bpSdr);
+	if (bundleObj == 0 || bundle == NULL || vduct == NULL
+	|| proxNodeEid == NULL || *proxNodeEid == '\0'
+	|| strlen(proxNodeEid) >= SDRSTRING_BUFSZ)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		return -1;
+	}
+
+	xmitRefAddr = sdr_malloc(bpSdr, sizeof(XmitRef));
+	if (xmitRefAddr == 0)
+	{
+		return -1;
+	}
+
+	xr.bundleObj = bundleObj;
+	xr.proxNodeEid = sdr_string_create(bpSdr, proxNodeEid);
+	if (destDuctName && *destDuctName != '\0')
+	{
+		xr.destDuctName = sdr_string_create(bpSdr, destDuctName);
+	}
+	else
+	{
+		xr.destDuctName = 0;
+	}
+
+	if (processExtensionBlocks(bundle, PROCESS_ON_ENQUEUE, NULL) < 0)
+	{
+		putErrmsg("Can't process extensions.", "enqueue");
+		return -1;
+	}
+
+	ductAddr = sdr_list_data(bpSdr, vduct->outductElt);
+	sdr_stage(bpSdr, (char *) &duct, ductAddr, sizeof(Outduct));
+	sdr_read(bpSdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
+	backlogIncrement = computeECCC(guessBundleSize(bundle), &protocol);
+
+	/*	Insert bundle's xmitRef into the appropriate
+	 *	transmission queue of the selected Duct.		*/
+
+	switch (priority)
+	{
+	case 0:
+		xr.ductXmitElt = sdr_list_insert_last(bpSdr, duct.bulkQueue,
+				xmitRefAddr);
+		increaseScalar(&duct.bulkBacklog, backlogIncrement);
+		break;
+
+	case 1:
+		xr.ductXmitElt = sdr_list_insert_last(bpSdr, duct.stdQueue,
+				xmitRefAddr);
+		increaseScalar(&duct.stdBacklog, backlogIncrement);
+		break;
+
+	default:
+		xr.ductXmitElt = enqueueUrgentBundle(&duct,
+				bundle->extendedCOS.ordinal, xmitRefAddr,
+				backlogIncrement);
+		increaseScalar(&duct.urgentBacklog, backlogIncrement);
+	}
+
+	sdr_write(bpSdr, ductAddr, (char *) &duct, sizeof(Outduct));
+	xr.bundleXmitElt = sdr_list_insert_last(bpSdr, bundle->xmitRefs,
+			xmitRefAddr);
+	sdr_write(bpSdr, xmitRefAddr, (char *) &xr, sizeof(XmitRef));
+	bundle->xmitsNeeded += 1;
+	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	if (vduct->semaphore != SM_SEM_NONE)	/*	Wake up CLO.	*/
+	{
+		sm_SemGive(vduct->semaphore);
+	}
+
+	noteStateStats(BPSTATS_FORWARD, bundle);
+	if (bpVdb->watching & WATCH_b)
+	{
+		putchar('b');
+		fflush(stdout);
+	}
+
+	return 0;
+}
+
+static void	releaseCustody(Object bundleAddr, Bundle *bundle)
+{
+	bundle->custodyTaken = 0;
+	if (bundle->ctDueElt)
+	{
+		/*	Bundle was transmitted before "CT due" alarm
+		 *	went off, so disable the alarm.			*/
+
+		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle->ctDueElt));
+		sdr_list_delete(bpSdr, bundle->ctDueElt, NULL, NULL);
+		bundle->ctDueElt = 0;
+	}
+
+	sdr_write(bpSdr, bundleAddr, (char *) bundle, sizeof(Bundle));
+}
+
+int	bpAbandon(Object bundleObj, Bundle *bundle)
+{
+	char 	*dictionary = NULL;
+	int	result1 = 0;
+	int	result2 = 0;
+
+	dictionary = retrieveDictionary(bundle);
+	if (dictionary == (char *) bundle)
+	{
+		putErrmsg("Can't retrieve dictionary.", NULL);
+		return -1;
+	}
+
+	if (SRR_FLAGS(bundle->bundleProcFlags) & BP_DELETED_RPT)
+	{
+		bundle->statusRpt.flags |= BP_DELETED_RPT;
+		bundle->statusRpt.reasonCode = SrNoKnownRoute;
+		getCurrentDtnTime(&bundle->statusRpt.deletionTime);
+	}
+
+	if (bundle->statusRpt.flags)
+	{
+		result1 = sendStatusRpt(bundle, dictionary);
+		if (result1 < 0)
+		{
+			putErrmsg("Can't send status report.", NULL);
+		}
+	}
+
+	if (bundle->custodyTaken)
+	{
+		releaseCustody(bundleObj, bundle);
+	}
+	else
+	{
+		if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+		{
+			result2 = sendCtSignal(bundle, dictionary, 0,
+					CtNoKnownRoute);
+			if (result2 < 0)
+			{
+				putErrmsg("Can't send custody signal.", NULL);
+			}
+		}
+	}
+
+	releaseDictionary(dictionary);
+	if (bpDestroyBundle(bundleObj, 0) < 0)
+	{
+		putErrmsg("can't destroy bundle", NULL);
+		return -1;
+	}
+
+	if (bpVdb->watching & WATCH_abandon)
+	{
+		putchar('~');
+		fflush(stdout);
+	}
+
+	return ((result1 + result2) == 0 ? 0 : -1);
+}
+
+#ifdef ION_BANDWIDTH_RESERVED
+static void	selectNextBundleForTransmission(Outflow *flows,
+			Outflow **winner, Object *eltp)
+{
+	Outflow		*flow;
+	Object		elt;
+	Outflow		*selectedFlow;
+	unsigned int	selectedFlowSvc;
+	int		i;
+	unsigned int	svcProvided;
+        int             selectedFlowNbr;
+
+	*winner = NULL;		/*	Default.			*/
+	*eltp = 0;		/*	Default.			*/
+
+	/*	If any priority traffic, choose it.			*/
+
+	flow = flows + EXPEDITED_FLOW;
+	elt = sdr_list_first(bpSdr, flow->outboundBundles);
+	if (elt)
+	{
+		/*	*winner remains NULL to indicate that the
+		 *	urgent flow was selected.  Prevents resync.	*/
+
+		*eltp = elt;
+		return;
+	}
+
+	/*	Otherwise send next PDU on the least heavily serviced
+		non-empty non-urgent flow, if any.			*/
+
+	selectedFlow = NULL;
+	selectedFlowSvc = (unsigned int) -1;
+	for (i = 0; i < EXPEDITED_FLOW; i++)
+	{
+		flow = flows + i;
+		if (sdr_list_length(bpSdr, flow->outboundBundles) == 0)
+		{
+			continue;	/*	Nothing ready to send.	*/
+		}
+
+		/*	Consider flow as transmission candidate.	*/
+
+		svcProvided = flow->totalBytesSent / flow->svcFactor;
+		if (svcProvided < selectedFlowSvc) 
+		{
+			selectedFlow = flow;
+			selectedFlowSvc = svcProvided;
+			selectedFlowNbr = i;
+		}
+	}
+
+	/*	At this point, selectedFlow (if any) is the flow for
+	 *	which the smallest value of svcProvided was calculated,
+	 *	and selectedFlowSvc is that value.			*/
+
+	if (selectedFlow)
+	{
+		*winner = selectedFlow;
+		*eltp = sdr_list_first(bpSdr, selectedFlow->outboundBundles);
+	}
+}
+
+static void	resyncFlows(Outflow *flows)
+{
+	unsigned int	minSvcProvided;
+	unsigned int	maxSvcProvided;
+	int		i;
+	Outflow		*flow;
+	unsigned int	svcProvided;
+
+	/*	Reset all flows if too unbalanced.			*/
+
+	minSvcProvided = (unsigned int) -1;
+	maxSvcProvided = 0;
+	for (i = 0; i < EXPEDITED_FLOW; i++)
+	{
+		flow = flows + i;
+		svcProvided = flow->totalBytesSent / flow->svcFactor;
+		if (svcProvided < minSvcProvided)
+		{
+			minSvcProvided = svcProvided;
+		}
+
+		if (svcProvided > maxSvcProvided)
+		{
+			maxSvcProvided = svcProvided;
+		}
+	}
+
+	if ((maxSvcProvided - minSvcProvided) >
+			(MAX_STARVATION * NOMINAL_BYTES_PER_SEC))
+	{
+	/*	The most heavily serviced flow is at least
+		MAX_STARVATION seconds ahead of the least
+		serviced flow, so any sustained spike in
+		traffic on the least serviced flow would
+		starve the most serviced flow for at least
+		MAX_STARVATION seconds.  To prevent this,
+		we level the playing field by resetting all
+		flows' totalBytesSent to zero.				*/
+
+		for (i = 0; i < EXPEDITED_FLOW; i++)
+		{
+			flows[i].totalBytesSent = 0;
+		}
+	}
+}
+#else		/*	Strict priority, which is the default.		*/
+static void	selectNextBundleForTransmission(Outflow *flows,
+			Outflow **winner, Object *eltp)
+{
+	int	i;
+	Outflow	*flow;
+	Object	elt;
+
+	*winner = NULL;		/*	N/A for strict priority.	*/
+	*eltp = 0;		/*	Default: nothing ready.		*/
+	i = EXPEDITED_FLOW;	/*	Start with highest priority.	*/
+	while (1)
+	{
+		flow = flows + i;
+		elt = sdr_list_first(bpSdr, flow->outboundBundles);
+		if (elt)
+		{
+			*eltp = elt;
+			return;	/*	Got highest-priority bundle.	*/
+		}
+
+		i--;		/*	Try next lower priority flow.	*/
+		if (i < 0)
+		{
+			return;	/*	Nothing is queued.		*/
+		}
+	}
+}
+#endif
+
+static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
+			Outduct *outduct, Object outductObj,
+			Object *bundleObj, Bundle *bundle,
+			Object *proxNodeEid, Object *destDuctName)
+{
+	ClProtocol	protocol;
+	Outflow		*selectedFlow;
+	Object		xmitElt;
+	Object		xrAddr;
+	XmitRef		xr;
+	unsigned long	neighborNodeNbr;
+	IonNode		*destNode;
+	PsmAddress	nextNode;
+	PsmAddress	snubElt;
+	PsmAddress	nextSnub;
+	IonSnub		*snub;
+
+checkSafety(bpSdr);
+	sdr_read(bpSdr, (char *) &protocol, outduct->protocol,
+			sizeof(ClProtocol));
+	while (1)	/*	Might do multiple reforwards.		*/
+	{
+		selectNextBundleForTransmission(flows, &selectedFlow, &xmitElt);
+		if (xmitElt == 0)		/*	Nothing ready.	*/
+		{
+			sdr_exit_xn(bpSdr);
+
+			/*	Wait until forwarder announces an outbound
+		 	*	bundle by giving duct's semaphore.	*/
+
+			if (sm_SemTake(vduct->semaphore) < 0)
+			{
+				putErrmsg("CLO can't take duct semaphore.",
+						NULL);
+				return -1;
+			}
+
+			if (sm_SemEnded(vduct->semaphore))
+			{
+				writeMemo("[i] Outduct has been stopped.");
+				return -1;
+			}
+
+			sdr_begin_xn(bpSdr);
+			sdr_stage(bpSdr, (char *) outduct, outductObj,
+					sizeof(Outduct));
+			continue;	/*	Should succeed now.	*/
+		}
+
+		/*	Got next outbound transmission.  Remove it
+		 *	from the queue for this duct and from the list
+		 *	of transmissions for the referenced bundle.
+		 *	Do NOT delete destDuctName (if present); it
+		 *	must be passed back to bpDequeue.		*/
+
+		xrAddr = sdr_list_data(bpSdr, xmitElt);
+		sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
+		sdr_free(bpSdr, xrAddr);
+		sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
+		sdr_stage(bpSdr, (char *) bundle, xr.bundleObj, sizeof(Bundle));
+#ifdef ION_BANDWIDTH_RESERVED
+		if (selectedFlow != NULL)	/*	Not urgent.	*/
+		{
+			selectedFlow->totalBytesSent += bundle->payload.length;
+			resyncFlows(flows);
+		}
+#endif
+		removeBundleFromQueue(xmitElt, bundle, &protocol, outductObj,
+				outduct);
+
+		/*	If the neighbor for this duct has begun
+		 *	snubbing bundles for the indicated destination
+		 *	since this bundle was enqueued to this duct,
+		 *	re-forward the bundle on a different route
+		 *	(if possible).  Note that we can only track
+		 *	snubs for CBHE-conformant destination nodes.	*/
+
+		if (bundle->id.source.cbhe)
+		{
+			neighborNodeNbr = strtoul(vduct->ductName, NULL, 0);
+			destNode = findNode(getIonVdb(),
+				bundle->id.source.c.nodeNbr, &nextNode);
+			if (destNode)	/*	Node might have snubs.	*/
+			{
+				/*	Check list of nodes that have
+				 *	been refusing bundles for this
+				 *	destination.			*/
+
+				for (snubElt = sm_list_first(bpwm,
+						destNode->snubs); snubElt;
+						snubElt = nextSnub)
+				{
+					nextSnub = sm_list_next(bpwm, snubElt);
+					snub = (IonSnub *) psp(bpwm,
+						sm_list_data(bpwm, snubElt));
+					if (snub->nodeNbr < neighborNodeNbr)
+					{
+						continue;
+					}
+
+					if (snub->nodeNbr == neighborNodeNbr)
+					{
+						break;
+					}
+
+					nextSnub = 0;	/*	End.	*/
+				}
+
+				if (snubElt)
+				{
+					/*	This neighbor has been
+					 *	refusing custody of
+					 *	bundles for this
+					 *	destination.		*/
+
+					if (bpReforwardBundle(xr.bundleObj) < 0)
+					{
+						putErrmsg("Snub refwd failed.",
+								NULL);
+						return -1;
+					}
+
+					/*	Try next bundle.	*/
+
+					if (sdr_end_xn(bpSdr) < 0)
+					{
+						putErrmsg("Reforward failed.",
+								NULL);
+						return -1;
+					}
+
+					sdr_begin_xn(bpSdr);
+					sdr_stage(bpSdr, (char *) outduct,
+						outductObj, sizeof(Outduct));
+					continue;
+				}
+			}
+		}
+
+		/*	Return this bundle to the CLO.			*/
+
+		*bundleObj = xr.bundleObj;
+		*proxNodeEid = xr.proxNodeEid;
+		*destDuctName = xr.destDuctName;
+		return 0;
+	}
+}
+
+int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
+		BpExtendedCOS *extendedCOS, char *destDuctName)
+{
+	Object		outductObj;
+	Outduct		outduct;
+			OBJ_POINTER(ClProtocol, protocol);
+	Object		bundleObj;
+	Bundle		bundle;
+	Object		proxNodeEidObj;
+	Object		destDuctNameObj;
+	char		proxNodeEid[SDRSTRING_BUFSZ];
+	DequeueContext	context;
+	char		*dictionary;
+	int		result;
+	int		xmitLength;
+
+	if (vduct == NULL || flows == NULL || bundleZco == NULL
+	|| extendedCOS == NULL || destDuctName == NULL)
+	{
+		putErrmsg(NullParmsMemo, NULL);
+		return -1;
+	}
+
+	*bundleZco = 0;			/*	Default behavior.	*/
+	*destDuctName = '\0';		/*	Default behavior.	*/
+	sdr_begin_xn(bpSdr);
+
+	/*	Transmission rate control: wait for capacity.		*/
+
+	while (vduct->xmitThrottle.capacity <= 0)
+	{
+		sdr_exit_xn(bpSdr);
+		if (sm_SemTake(vduct->xmitThrottle.semaphore) < 0)
+		{
+			putErrmsg("CLO can't take throttle semaphore.", NULL);
+			return -1;
+		}
+
+		if (sm_SemEnded(vduct->xmitThrottle.semaphore))
+		{
+			writeMemo("[i] Outduct has been stopped.");
+			return -1;
+		}
+
+		sdr_begin_xn(bpSdr);
+	}
+
+	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
+	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
+	GET_OBJ_POINTER(bpSdr, ClProtocol, protocol, outduct.protocol);
+
+	/*	Get a transmittable bundle.				*/
+
+	if (getOutboundBundle(flows, vduct, &outduct, outductObj,
+		&bundleObj, &bundle, &proxNodeEidObj, &destDuctNameObj) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		writeMemo("[?] CLO can't get next outbound bundle.");
+		return -1;
+	}
+
+	if (proxNodeEidObj)
+	{
+		sdr_string_read(bpSdr, proxNodeEid, proxNodeEidObj);
+		sdr_free(bpSdr, proxNodeEidObj);
+	}
+	else
+	{
+		proxNodeEid[0] = '\0';
+	}
+
+	context.protocolName = protocol->name;
+	context.proxNodeEid = proxNodeEid;
+	if (processExtensionBlocks(&bundle, PROCESS_ON_DEQUEUE, &context) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't process extensions.", "dequeue");
+		return -1;
+	}
+
+	bundle.xmitsNeeded -= 1;
+	if (bundle.overdueElt)
+	{
+		/*	Bundle was transmitted before "overdue"
+		 *	alarm went off, so disable the alarm.		*/
+
+		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
+		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		bundle.overdueElt = 0;
+	}
+
+	/*	This bundle may have been queued for transmission via
+	 *	multiple outducts, in which case it might have been
+	 *	catenated for transmission by a previous bpDequeue().
+	 *	If so, strip off the BP header and trailer: the
+	 *	extension blocks for the bundle we are issuing now
+	 *	may be entirely different.
+	 *
+	 *	NOTE the potential for problems here!  If the
+	 *	previously catenated bundle is still in the system
+	 *	and liable to retransmission, by rebuilding its
+	 *	header and trailer we may corrupt the retransmission
+	 *	of that earlier catenated bundle.  The only way to
+	 *	avoid this is to create entirely new, distinct copies
+	 *	of the bundle rather than use the zero-copy system
+	 *	and reference counting.  For the foreseeable future
+	 *	this should be no problem, since we're not doing any
+	 *	flooding or multicast or even any "critical bundle"
+	 *	routing.  But in more complex topologies and operating
+	 *	scenarios this problem will have to be addressed.	*/
+
+	if (bundle.catenated)
+	{
+		zco_discard_first_header(bpSdr, bundle.payload.content);
+		if (bundle.extensionsLength[POST_PAYLOAD] > 0)
+		{
+			zco_discard_last_trailer(bpSdr, bundle.payload.content);
+		}
+	}
+
+	/*	In any case, we now serialize the bundle header and
+	 *	prepend that header to the payload of the bundle;
+	 *	if there are post-payload extension blocks we also
+	 *	serialize them into a single trailer and append it
+	 *	to the payload.  The output of the catenateBundle
+	 *	function is a new ZCO reference to the ZCO that was
+	 *	originally just the payload of the selected bundle
+	 *	but is now the fully catenated bundle, ready for
+	 *	transmission.						*/
+
+	*bundleZco = catenateBundle(&bundle);
+	bundle.catenated = 1;
+
+	/*	Some final extension-block processing may be necessary
+	 *	after catenation of the bundle, notably BAB hash
+	 *	calculation.						*/
+
+	if (processExtensionBlocks(&bundle, PROCESS_ON_TRANSMIT, NULL) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't process extensions.", "dequeue");
+		return -1;
+	}
+
+	/*	We assume that the CLO that's getting this outbound
+	 *	bundle is actually going to forward it now, so at
+	 *	this point we send any applicable forwarding notice.	*/
+
+	if (SRR_FLAGS(bundle.bundleProcFlags) & BP_FORWARDED_RPT)
+	{
+		bundle.statusRpt.flags |= BP_FORWARDED_RPT;
+		getCurrentDtnTime(&bundle.statusRpt.forwardTime);
+		if ((dictionary = retrieveDictionary(&bundle))
+				== (char *) &bundle)
+		{
+			sdr_cancel_xn(bpSdr);
+			putErrmsg("Can't retrieve dictionary.", NULL);
+			return -1;
+		}
+
+		result = sendStatusRpt(&bundle, dictionary);
+		releaseDictionary(dictionary);
+	       	if (result < 0)
+		{
+			sdr_cancel_xn(bpSdr);
+			putSysErrmsg("can't send status report", NULL);
+			return -1;
+		}
+	}
+
+	/*	That's the end of the changes to the bundle.		*/
+
+	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+
+	/*	Track this transmission event.				*/
+
+	noteStateStats(BPSTATS_XMIT, &bundle);
+	if (bpVdb->watching & WATCH_c)
+	{
+		putchar('c');
+		fflush(stdout);
+	}
+
+	/*	Consume estimated transmission capacity.		*/
+
+	xmitLength = computeECCC(bundle.payload.length
+			+ NOMINAL_PRIMARY_BLKSIZE, protocol);
+	vduct->xmitThrottle.capacity -= xmitLength;
+	if (vduct->xmitThrottle.capacity > 0)
+	{
+		sm_SemGive(vduct->xmitThrottle.semaphore);
+	}
+
+	/*	Return the outbound buffer's extended class of service.	*/
+
+	memcpy((char *) extendedCOS, (char *) &bundle.extendedCOS,
+			sizeof(BpExtendedCOS));
+
+	/*	Note destination duct name for this bundle, if any.	*/
+
+	if (destDuctNameObj)
+	{
+		sdr_string_read(bpSdr, destDuctName, destDuctNameObj);
+		sdr_free(bpSdr, destDuctNameObj);
+	}
+
+	/*	At this point the bundle object is subject to
+	 *	destruction unless the bundle is pending delivery,
+	 *	the bundle is pending another transmission, or custody
+	 *	of the bundle has been accepted.  Note that the
+	 *	bundle's *payload* object (the ZCO we are delivering
+	 *	for transmission) is protected from destruction in any
+	 *	case because *bundleZco is an additional reference to
+	 *	that reference-counted ZCO.				*/
+
+	if (bpDestroyBundle(bundleObj, 0) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putSysErrmsg("can't destroy bundle", NULL);
+		return -1;
+	}
+
+	if (sdr_end_xn(bpSdr))
+	{
+		putErrmsg("Can't get outbound bundle", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	bufAdvance(int length, unsigned int *bundleLength,
+			unsigned char **cursor, unsigned char *endOfBuffer)
+{
+	*cursor += length;
+	if (*cursor > endOfBuffer)
+	{
+		putErrmsg("Bundle truncated.", itoa(endOfBuffer - *cursor));
+		*bundleLength = 0;
+		return -1;
+	}
+
+	*bundleLength += length;
+	return 0;
+}
+
+static void	semiParseBundle(unsigned char **cursor, Bundle *image,
+			char **dictionary, unsigned int *bundleLength,
+			unsigned char *endOfBuffer, int primaryBlockOnly)
+{
+	int		sdnvLength;
+	unsigned long	longNumber;
+	int		i;
+	unsigned long	eidSdnvValues[8];
+	int		lastBlock;
+	unsigned long	blockProcFlags;
+	unsigned long	eidReferencesCount;
+	unsigned long	blockDataLength;
+
+	memset((char *) image, 0, sizeof(Bundle));
+
+	/*	Skip over version number.				*/
+
+	if (bufAdvance(1, bundleLength, cursor, endOfBuffer)) return;
+
+	/*	Parse out the bundle processing flags.			*/
+
+	sdnvLength = decodeSdnv(&(image->bundleProcFlags), *cursor);
+	if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer)) return;
+
+	/*	Skip over remaining primary block length.		*/
+
+	sdnvLength = decodeSdnv(&longNumber, *cursor);
+	if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer)) return;
+
+	/*	Get all EID SDNV values.				*/
+
+	for (i = 0; i < 8; i++)
+	{
+		sdnvLength = decodeSdnv(&(eidSdnvValues[i]), *cursor);
+		if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer))
+		{
+			return;
+		}
+	}
+
+	/*	Get creation time.					*/
+
+	sdnvLength = decodeSdnv(&(image->id.creationTime.seconds), *cursor);
+	if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer)) return;
+	sdnvLength = decodeSdnv(&(image->id.creationTime.count), *cursor);
+	if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer)) return;
+
+	/*	Skip over lifetime.					*/
+
+	sdnvLength = decodeSdnv(&longNumber, *cursor);
+	if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer)) return;
+
+	/*	Get dictionary length.					*/
+
+	sdnvLength = decodeSdnv(&(image->dictionaryLength), *cursor);
+	if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer)) return;
+
+	/*	Get the dictionary, if present, and get the source
+	 *	endpoint ID.						*/
+
+	if (*cursor + image->dictionaryLength > endOfBuffer)
+	{
+		*bundleLength = 0;
+		putErrmsg("Bundle truncated.", itoa(endOfBuffer -
+				(*cursor + image->dictionaryLength)));
+		return;
+	}
+
+	if (image->dictionaryLength == 0)		/*	CBHE	*/
+	{
+		*dictionary = NULL;
+		image->id.source.cbhe = 1;
+		image->id.source.c.nodeNbr = eidSdnvValues[2];
+		image->id.source.c.serviceNbr = eidSdnvValues[3];
+	}
+	else
+	{
+		*dictionary = (char *) *cursor;
+		*bundleLength += image->dictionaryLength;
+		*cursor += image->dictionaryLength;
+		image->id.source.cbhe = 0;
+		image->id.source.d.schemeNameOffset = eidSdnvValues[2];
+		image->id.source.d.nssOffset = eidSdnvValues[3];
+	}
+
+	/*	Get fragment offset and total ADU length, if present.	*/
+
+	if (image->bundleProcFlags & BDL_IS_FRAGMENT)
+	{
+		sdnvLength = decodeSdnv(&(image->id.fragmentOffset), *cursor);
+		if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer))
+		{
+			return;
+		}
+
+		sdnvLength = decodeSdnv(&(image->totalAduLength), *cursor);
+		if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer))
+		{
+			return;
+		}
+	}
+	else
+	{
+		image->id.fragmentOffset = 0;
+		image->totalAduLength = 0;
+	}
+
+	if (primaryBlockOnly)
+	{
+		return;		/*	Don't need total bundle length.	*/
+	}
+
+	/*	Skip over all non-primary blocks in bundle, to get
+	 *	total bundle length and move to start of next bundle.	*/
+
+	lastBlock = 0;
+	while (!lastBlock)
+	{
+		/*	Skip over block type.				*/
+
+		if (bufAdvance(1, bundleLength, cursor, endOfBuffer)) return;
+
+		/*	Parse out the block processing flags.		*/
+
+		sdnvLength = decodeSdnv(&blockProcFlags, *cursor);
+		if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer))
+		{
+			return;
+		}
+
+		if (blockProcFlags & BLK_IS_LAST)
+		{
+			lastBlock = 1;
+		}
+
+		/*	Skip over EID-reference field.			*/
+
+		if (blockProcFlags & BLK_HAS_EID_REFERENCES)
+		{
+			/*	Parse out the EID references count.	*/
+
+			sdnvLength = decodeSdnv(&eidReferencesCount, *cursor);
+			if (bufAdvance(sdnvLength, bundleLength,
+					cursor, endOfBuffer)) return;
+
+			/*	Skip over all EID references.		*/
+
+			while (eidReferencesCount > 0)
+			{
+				sdnvLength = decodeSdnv(&longNumber, *cursor);
+				if (bufAdvance(sdnvLength, bundleLength, cursor,
+						endOfBuffer)) return;
+				sdnvLength = decodeSdnv(&longNumber, *cursor);
+				if (bufAdvance(sdnvLength, bundleLength, cursor,
+						endOfBuffer)) return;
+				eidReferencesCount--;
+			}
+		}
+
+		/*	Parse out the block data length.		*/
+
+		sdnvLength = decodeSdnv(&blockDataLength, *cursor);
+		if (bufAdvance(sdnvLength, bundleLength, cursor, endOfBuffer))
+		{
+			return;
+		}
+
+		/*	Skip over block data.				*/
+
+		if (bufAdvance(blockDataLength, bundleLength, cursor,
+				endOfBuffer))
+		{
+			return;
+		}
+	}
+}
+
+int	bpIdentify(Object bundleZco, Object *bundleObj)
+{
+	char		*buffer;
+	Object		clone;
+	ZcoReader	reader;
+	int		bytesRead;
+	unsigned char	*cursor;
+	Bundle		image;
+	char		*dictionary;
+	unsigned char	*bufend;
+	unsigned int	headerLen;
+	char		*sourceEid;
+	int		result;
+	Object		timelineElt;
+
+	buffer = MTAKE(BP_AVG_HEADER);
+	if (buffer == NULL)
+	{
+		putErrmsg("Can't create buffer for reading bundle ID.", NULL);
+		return -1;
+	}
+
+	/*	Must use a *different* ZCO reference for extraction,
+	 *	because the CLO needs the original for transmission.	*/
+
+	clone = zco_add_reference(bpSdr, bundleZco);
+	if (clone == 0)
+	{
+		MRELEASE(buffer);
+		putErrmsg("Can't clone the catenated bundle.", NULL);
+		return -1;
+	}
+
+	zco_start_receiving(bpSdr, clone, &reader);
+	bytesRead = zco_receive_source(bpSdr, &reader, BP_AVG_HEADER, buffer);
+	zco_stop_receiving(bpSdr, &reader);
+	if (bytesRead < 0)
+	{
+		MRELEASE(buffer);
+		putErrmsg("Can't extract header from catenated bundle.", NULL);
+		return -1;
+	}
+
+	zco_destroy_reference(bpSdr, clone);
+
+	/*	Now parse bundle ID out of the header buffer.		*/
+
+	cursor = (unsigned char *) buffer;
+	bufend = cursor + BP_AVG_HEADER;
+	headerLen = 0;
+	semiParseBundle(&cursor, &image, &dictionary, &headerLen, bufend, 1);
+	if (headerLen == 0)
+	{
+		MRELEASE(buffer);
+		putErrmsg("Can't read bundle ID: header truncated.", NULL);
+		return 0;
+	}
+
+	/*	Recreate the source EID.				*/
+
+	sourceEid = printEid(&image.id.source, dictionary);
+	MRELEASE(buffer);
+	if (sourceEid == NULL)
+	{
+		if (errno == EINVAL)
+		{
+			putErrmsg("Can't get bundle ID: buffer corrupted.",
+					NULL);
+			return 0;
+		}
+
+		putErrmsg("No memory for source EID.", NULL);
+		return -1;
+	}
+
+	/*	Now use this bundle ID to find the bundle.		*/
+
+	sdr_begin_xn(bpSdr);
+	result = findBundle(sourceEid, &image.id.creationTime,
+			image.id.fragmentOffset,
+			image.totalAduLength == 0 ? 0 : image.payload.length,
+			bundleObj, &timelineElt);
+	sdr_exit_xn(bpSdr);
+	MRELEASE(sourceEid);
+	if (result < 0)
+	{
+		putErrmsg("Failed seeking bundle.", NULL);
+		return -1;
+	}
+
+	if (timelineElt == 0)		/*	Probably TTL expired.	*/
+	{
+		return 0;
+	}
+
+	return headerLen;
+}
+
+int	bpMemo(Object bundleObj, int interval)
+{
+	Bundle	bundle;
+	BpEvent	event;
+
+	if (bundleObj == 0 || interval < 1)
+	{
+		errno = EINVAL;
+		putSysErrmsg("Can't post ctDue event", itoa(interval));
+		return 0;
+	}
+
+	sdr_begin_xn(bpSdr);
+	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+	event.type = ctDue;
+	event.time = getUTCTime() + interval;
+	event.ref = bundleObj;
+	bundle.ctDueElt = insertBpTimelineEvent(&event);
+	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Failed posting ctDue event.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	bpHandleXmitFailure(char *buffer, int bufferLength)
+{
+	unsigned char	*endOfBuffer = (unsigned char *) buffer + bufferLength;
+	unsigned char	*cursor = (unsigned char *) buffer;
+	Bundle		image;
+	char		*dictionary;
+	unsigned int	bundleLength;
+	char		*sourceEid;
+	int		result;
+	Object		bundleAddr;
+	Object		timelineElt;
+			OBJ_POINTER(Bundle, bundle);
+
+	while (bufferLength > 0)
+	{
+		bundleLength = 0;
+		semiParseBundle(&cursor, &image, &dictionary, &bundleLength,
+				endOfBuffer, 0);
+		if (bundleLength == 0)
+		{
+			putErrmsg("xmit failure not fully handled: truncated.",
+					NULL);
+			return 0;
+		}
+
+		bufferLength -= bundleLength;	/*	Ready for next.	*/
+
+		/*	Have semi-parsed a bundle ID out of the buffer.
+		 *	Now, if the identified bundle is one for which
+		 *	custody transfer is requested OR one that is
+		 *	a custody signal or bundle status report, find
+		 *	the bundle and re-queue it for forwarding and
+		 *	eventual retransmission.			*/
+
+		if (!(image.bundleProcFlags
+			& (BDL_IS_CUSTODIAL | BDL_IS_ADMIN)))
+		{
+			continue;	/*	No need to retransmit.	*/
+		}
+
+		sourceEid = printEid(&image.id.source, dictionary);
+		if (sourceEid == NULL)
+		{
+			if (errno == EINVAL)
+			{
+				putErrmsg("xmit failure not fully handled: \
+bundle buffer corrupted.", NULL);
+				return 0;
+			}
+
+			putErrmsg("No memory for source EID.", NULL);
+			return -1;
+		}
+
+		sdr_begin_xn(bpSdr);
+		result = findBundle(sourceEid, &image.id.creationTime,
+				image.id.fragmentOffset,
+				image.totalAduLength == 0 ? 0
+					: image.payload.length,
+				&bundleAddr, &timelineElt);
+		MRELEASE(sourceEid);
+		if (result < 0)
+		{
+			sdr_exit_xn(bpSdr);
+			putErrmsg("Failed seeking bundle.", NULL);
+			return -1;
+		}
+
+		if (timelineElt == 0)	/*	Probably TTL expired.	*/
+		{
+			sdr_exit_xn(bpSdr);
+			continue;	/*	No such bundle.		*/
+		}
+
+		GET_OBJ_POINTER(bpSdr, Bundle, bundle, bundleAddr);
+		noteStateStats(BPSTATS_TIMEOUT, bundle);
+		if (bpVdb->watching & WATCH_timeout)
+		{
+			putchar('#');
+			fflush(stdout);
+		}
+
+		if (bpReforwardBundle(bundleAddr) < 0)
+		{
+			sdr_cancel_xn(bpSdr);
+			putErrmsg("Failed trying to re-forward bundle.", NULL);
+			return -1;
+		}
+
+		if (sdr_end_xn(bpSdr) < 0)
+		{
+			putErrmsg("Can't handle transmission failure.", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+int	bpReforwardBundle(Object bundleAddr)
+{
+	Bundle	bundle;
+	char	*dictionary;
+	char	*eidString;
+	int	result;
+
+checkSafety(bpSdr);
+	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
+	{
+		/*	If the bundle is critical it has already
+		 *	been queued for transmission on all possible
+		 *	routes; re-forwarding would only delay
+		 *	transmission.  So return immediately.		*/
+
+		return 0;
+	}
+
+	/*	Non-critical bundle, so let's compute another route
+	 *	for it.							*/
+
+	if (bundle.overdueElt)
+	{
+		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
+		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		bundle.overdueElt = 0;
+	}
+
+	if (bundle.ctDueElt)
+	{
+		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
+		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		bundle.ctDueElt = 0;
+	}
+
+	purgeXmitRefs(&bundle);
+	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+	if ((dictionary = retrieveDictionary(&bundle)) == (char *) &bundle)
+	{
+		putErrmsg("Can't retrieve dictionary.", NULL);
+		return -1;
+	}
+
+	eidString = printEid(&bundle.destination, dictionary);
+	if (eidString == NULL)
+	{
+		putErrmsg("Can't print destination EID.", NULL);
+		return -1;
+	}
+		
+	result = forwardBundle(bundleAddr, &bundle, eidString);
+	MRELEASE(eidString);
+	releaseDictionary(dictionary);
+	return result;
+}
+
+/*	*	*	Admin endpoint managment functions	*	*/
+
+/*	This function provides standard functionality for an
+ *	application task that receives and handles adminstrative
+ *	bundles.							*/
+
+static BpSAP	sap;
+
+static void	shutDownAdminApp()
+{
+	sm_SemEnd(sap->recvSemaphore);
+}
+
+static int	defaultSrh(BpDelivery *dlv, BpStatusRpt *rpt)
+{
+	return 0;
+}
+
+static int	defaultCsh(BpDelivery *dlv, BpCtSignal *cts)
+{
+	return 0;
+}
+
+static void	noteSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
+{
+	IonVdb		*ionVdb;
+	IonNode		*node;
+	PsmAddress	nextNode;
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+
+	if (bundle->destination.cbhe == 0	/*	No node nbr.	*/
+	|| (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
+	{
+		/*	For non-cbhe bundles we have no node number,
+		 *	so we can't manage routing snubs.  If the
+		 *	bundle is critical then it was already sent
+		 *	on all possible routes, so there's no point
+		 *	in responding to the routing snub.		*/
+
+		return;
+	}
+
+	/*	Reopen the option of routing back to the neighbor
+	 *	from which we orginally received the bundle.		*/
+
+	bundle->returnToSender = 1;
+	sdr_write(bpSdr, bundleAddr, (char *) bundle, sizeof(Bundle));
+
+	/*	Find the affected destination node.			*/
+
+	ionVdb = getIonVdb();
+	node = findNode(ionVdb, bundle->destination.c.nodeNbr, &nextNode);
+	if (node == NULL)
+	{
+		return;		/*	Weird, but let it go for now.	*/
+	}
+
+	/*	Figure out who the snubbing neighbor is and create a
+	 *	Snub object to prevent future routing to that neighbor.	*/
+
+	if (parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt) == 0
+	|| !metaEid.cbhe)	/*	Non-CBHE, somehow.		*/
+	{
+		return;		/*	Can't construct a Snub.		*/
+	}
+
+	addSnub(node, metaEid.nodeNbr);
+}
+
+static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
+{
+	IonVdb		*ionVdb;
+	IonNode		*node;
+	PsmAddress	nextNode;
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+
+	if (bundle->destination.cbhe == 0	/*	No node nbr.	*/
+	|| (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
+	{
+		/*	For non-cbhe bundles we have no node number,
+		 *	so we can't manage routing snubs.  If the
+		 *	bundle is critical then it was already sent
+		 *	on all possible routes, so there's no point
+		 *	in responding to the routing snub.		*/
+
+		return;
+	}
+
+	/*	Find the affected destination node.			*/
+
+	ionVdb = getIonVdb();
+	node = findNode(ionVdb, bundle->destination.c.nodeNbr, &nextNode);
+	if (node == NULL)
+	{
+		return;		/*	Weird, but let it go for now.	*/
+	}
+
+	/*	If there are no longer any snubs for this destination,
+	 *	don't bother to look for this one.			*/
+
+	if (sm_list_length(getIonwm(), node->snubs) == 0)
+	{
+		return;
+	}
+
+	/*	Figure out who the non-snubbing neighbor is and remove
+	 *	any snub currently registered for that neighbor.	*/
+
+	if (parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt) == 0
+	|| !metaEid.cbhe)	/*	Non-CBHE, somehow.		*/
+	{
+		return;		/*	Can't locate any Snub.		*/
+	}
+
+	removeSnub(node, metaEid.nodeNbr);
+}
+
+int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
+		CtSignalCB handleCtSignal)
+{
+	int		running = 1;
+	BpDelivery	dlv;
+	int		adminRecType;
+	BpStatusRpt	rpt;
+	BpCtSignal	cts;
+	Object		timelineElt;
+	Object		bundleAddr;
+	Bundle		bundleBuf;
+	Bundle		*bundle = &bundleBuf;
+	char		*dictionary;
+	char		*eidString;
+	int		result;
+
+	if (adminEid == NULL)
+	{
+		putErrmsg("Missing administrative endpoint ID.", NULL);
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (handleStatusRpt == NULL)
+	{
+		handleStatusRpt = defaultSrh;
+	}
+
+	if (handleCtSignal == NULL)
+	{
+		handleCtSignal = defaultCsh;
+	}
+
+	if (bp_open(adminEid, &sap) < 0)
+	{
+		putErrmsg("Can't open admin endpoint.", adminEid);
+		return -1;
+	}
+
+	sm_TaskVarAdd((int *) &sap);
+	isignal(SIGTERM, shutDownAdminApp);
+	while (running && !(sm_SemEnded(sap->recvSemaphore)))
+	{
+		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
+		{
+			writeMemo("[?] Admin bundle reception failed.");
+			running = 0;
+			continue;
+		}
+
+		if (dlv.result == BpReceptionInterrupted)
+		{
+			continue;
+		}
+
+		if (dlv.adminRecord == 0)
+		{
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		switch (bpParseAdminRecord(&adminRecType, &rpt, &cts, dlv.adu))
+		{
+		case 1: 			/*	No problem.	*/
+			break;
+
+		case 0:				/*	Parsing failed.	*/
+			putSysErrmsg("Malformed admin record.", NULL);
+			bp_release_delivery(&dlv, 1);
+			continue;
+
+		default:			/*	System failure.	*/
+			putErrmsg("Failed parsing admin record.", NULL);
+			running = 0;
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		switch (adminRecType)
+		{
+		case 1:		/*	Status report.			*/
+			if (handleStatusRpt(&dlv, &rpt) < 0)
+			{
+				putSysErrmsg("Status report handler failed",
+						NULL);
+				running = 0;
+				break;		/*	Out of switch.	*/
+			}
+
+			bpEraseStatusRpt(&rpt);
+			break;			/*	Out of switch.	*/
+
+		case 2:		/*	Custody signal.			*/
+
+			/*	Node-defined handler is given a
+			 *	chance to respond to the custody signal
+			 *	before the standard procedures are
+			 *	invoked; it can, for example, adjust
+			 *	routing tables.  If the handler fails,
+			 *	it aborts handling of this custody
+			 *	signal and all subsequent administrative
+			 *	bundles.				*/
+
+			if (handleCtSignal(&dlv, &cts) < 0)
+			{
+				putSysErrmsg("Custody signal handler failed",
+						NULL);
+				running = 0;
+				bpEraseCtSignal(&cts);
+				break;		/*	Out of switch.	*/
+			}
+
+			sdr_begin_xn(bpSdr);
+			if (findBundle(cts.sourceEid, &cts.creationTime,
+					cts.fragmentOffset, cts.fragmentLength,
+					&bundleAddr, &timelineElt) < 0)
+			{
+				sdr_exit_xn(bpSdr);
+				putErrmsg("Can't fetch bundle.", NULL);
+				running = 0;
+				bpEraseCtSignal(&cts);
+				break;		/*	Out of switch.	*/
+			}
+
+			if (timelineElt == 0)
+			{
+				/*	No such bundle; ignore CTS.	*/
+
+				sdr_exit_xn(bpSdr);
+				bpEraseCtSignal(&cts);
+				break;		/*	Out of switch.	*/
+			}
+
+			/*	If custody was accepted, or if custody
+			 *	was refused due to redundant reception
+			 *	(meaning the receiver had previously
+			 *	accepted custody and we just never got
+			 *	the signal) we destroy the copy of the
+			 *	bundle retained here.  Otherwise we
+			 *	immediately re-dispatch the bundle,
+			 *	hoping that a change in the condition
+			 *	of the network (reduced congestion,
+			 *	revised routing) has occurred since
+			 *	the previous transmission so that
+			 *	re-transmission will succeed.		*/
+
+			sdr_stage(bpSdr, (char *) bundle, bundleAddr,
+					sizeof(Bundle));
+			if (cts.succeeded
+			|| cts.reasonCode == CtRedundantReception)
+			{
+				if (bpVdb->watching & WATCH_m)
+				{
+					putchar('m');
+					fflush(stdout);
+				}
+
+				forgetSnub(bundle, bundleAddr,
+						dlv.bundleSourceEid);
+				releaseCustody(bundleAddr, bundle);
+				if (bpDestroyBundle(bundleAddr, 0) < 0)
+				{
+					sdr_cancel_xn(bpSdr);
+					putSysErrmsg("can't destroy bundle",
+							NULL);
+					running = 0;
+					bpEraseCtSignal(&cts);
+					break;	/*	Out of switch.	*/
+				}
+			}
+			else	/*	Custody refused; try again.	*/
+			{
+				noteSnub(bundle, bundleAddr,
+						dlv.bundleSourceEid);
+				if ((dictionary = retrieveDictionary(bundle))
+						== (char *) bundle)
+				{
+					sdr_cancel_xn(bpSdr);
+					putErrmsg("Can't retrieve dictionary.",
+							NULL);
+					running = 0;
+					bpEraseCtSignal(&cts);
+					break;	/*	Out of switch.	*/
+				}
+
+				eidString = printEid(&bundle->destination,
+						dictionary);
+				if (eidString == NULL)
+				{
+					sdr_cancel_xn(bpSdr);
+					putErrmsg("Can't print dest EID.",
+							NULL);
+					running = 0;
+					bpEraseCtSignal(&cts);
+					break;	/*	Out of switch.	*/
+				}
+
+				result = forwardBundle(bundleAddr, bundle,
+						eidString);
+				MRELEASE(eidString);
+				releaseDictionary(dictionary);
+				if (result < 0)
+				{
+					sdr_cancel_xn(bpSdr);
+					putSysErrmsg("can't re-queue bundle \
+for forwarding", NULL);
+					running = 0;
+					bpEraseCtSignal(&cts);
+					break;	/*	Out of switch.	*/
+				}
+
+				noteStateStats(BPSTATS_REFUSE, &bundleBuf);
+				if (bpVdb->watching & WATCH_refusal)
+				{
+					putchar('&');
+					fflush(stdout);
+				}
+			}
+
+			bpEraseCtSignal(&cts);
+			if (sdr_end_xn(bpSdr) < 0)
+			{
+				putSysErrmsg("can't handle custody signal",
+						NULL);
+				running = 0;
+			}
+
+			break;			/*	Out of switch.	*/
+
+		default:	/*	Unknown admin payload type.	*/
+			break;			/*	Out of switch.	*/
+		}
+
+		bp_release_delivery(&dlv, 1);
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
+	}
+
+	writeErrmsgMemos();
+	return 0;
+}

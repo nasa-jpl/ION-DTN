@@ -1,0 +1,111 @@
+=head1 NAME
+
+llcv - library for manipulating linked-list condition variable objects
+
+=head1 SYNOPSIS
+
+    #include "llcv.h"
+
+    typedef struct llcv_str
+    {
+	Lyst		list;
+	pthread_mutex_t	mutex;
+	pthread_cond_t	cv;
+    } *Llcv;
+
+    typedef int	(*LlcvPredicate)(Llcv);
+
+    [see description for available functions]
+
+=head1 DESCRIPTION
+
+A "linked-list condition variable" object (LLCV) is an inter-thread
+communication mechanism that pairs a process-private linked list in
+memory with a condition variable as provided by the pthreads library.
+LLCVs echo in thread programming the standard ION inter-process or
+inter-task communication model that pairs shared-memory semaphores
+with linked lists in shared memory or shared non-volatile storage.
+As in the semaphore/list model, variable-length messages may be
+transmitted; the resources allocated to the communication mechanism
+grow and shrink to accommodate changes in data rate; the rate at
+which messages are issued is completely decoupled from the rate at
+which messages are received and processed.  That is, there is no flow
+control, no blocking, and therefore no possibility of deadlock or
+"deadly embrace".  Traffic spikes are handled without impact on
+processing rate, provided sufficient memory is provided to
+accommodate the peak backlog.
+
+An LLCV comprises a Lyst, a mutex, and a condition variable.  The Lyst
+may be in either private or shared memory, but the Lyst itself is not
+shared with other processes.  The reader thread waits on the condition
+variable until signaled by a writer that some condition is now true.  The
+standard Lyst API functions are used to populate and drain the linked
+list.  In order to protect linked list integrity, each thread must call
+llcv_lock() before operating on the Lyst and llcv_unlock() afterwards.  The
+other llcv functions merely effect flow signaling in a way that makes it
+unnecessary for the reader to poll or busy-wait on the Lyst.
+
+=over 4
+
+=item Llcv llcv_open(Lyst list, Llcv llcv)
+
+Opens an LLCV, initializing as necessary.  The I<list> argument must point
+to an existing Lyst, which may reside in either private or shared dynamic
+memory.  I<llcv> must point to an existing llcv_str management object, which
+may reside in either static or dynamic (private or shared) memory -- but
+I<NOT> in stack space.  Returns I<llcv> on success, NULL on any error. 
+
+=item void llcv_lock(Llcv llcv)
+
+Locks the LLCV's Lyst so that it may be updated or examined safely by the
+calling thread.  Fails silently on any error.
+
+=item void llcv_unlock(Llcv llcv)
+
+Unlocks the LLCV's Lyst so that another thread may lock and update or examine
+it.  Fails silently on any error.
+
+=item int llcv_wait(Llcv llcv, LlcvPredicate cond, int microseconds)
+
+Returns when the Lyst encapsulated within the LLCV meets the indicated
+condition.  If I<microseconds> is non-negative, will return -1 and set
+I<errno> to ETIMEDOUT when the indicated number of microseconds has
+passed, if and only if the indicated condition has not been met by that
+time.  Negative values of the microseconds argument other than LLCV_BLOCKING
+(defined as -1) are illegal.  Returns -1 on any error.
+
+=item void llcv_signal(Llcv llcv, LlcvPredicate cond)
+
+Locks the indicated LLCV's Lyst; tests (evaluates) the indicated condition
+with regard to that LLCV; if the condition is true, signals to the waiting
+reader on this LLCV (if any) that the Lyst encapsulated in the indicated
+LLCV now meets the indicated condition; and unlocks the Lyst.
+
+=item void llcv_signal_while_locked(Llcv llcv, LlcvPredicate cond)
+
+Same as llcv_signal() except does not lock the Llcv's mutex before
+signalling or unlock afterwards.  For use when the Llcv is already
+locked; prevents deadlock.
+
+=item void llcv_close(Llcv llcv)
+
+Destroys the indicated LLCV's mutex and condition variable.  Fails silently
+(and has no effect) if a reader is currently waiting on the Llcv.
+
+=item int llcv_lyst_is_empty(Llcv Llcv)
+
+A built-in "convenience" predicate, for use when calling llcv_wait(),
+llcv_signal(), or llcv_signal_while_locked().  Returns true if the length
+of the indicated LLCV's encapsulated Lyst is zero, false otherwise.
+
+=item int llcv_lyst_not_empty(Llcv Llcv)
+
+A built-in "convenience" predicate, for use when calling llcv_wait(),
+llcv_signal(), or llcv_signal_while_locked().  Returns true if the length
+of the LLCV's encapsulated Lyst is non-zero, false otherwise.
+
+=back
+
+=head1 SEE ALSO
+
+lyst(3)

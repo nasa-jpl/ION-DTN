@@ -1,0 +1,196 @@
+=head1 NAME
+
+zco - library for manipulating zero-copy objects
+
+=head1 SYNOPSIS
+
+    #include "zco.h"
+
+    typedef enum
+    {
+	ZcoFileSource = 1,
+	ZcoSdrSource
+    } ZcoMedium;
+
+    [see description for available functions]
+
+=head1 DESCRIPTION
+
+"Zero-copy objects" (ZCOs) are abstract data access representations
+designed to minimize I/O in the encapsulation of application source
+data within one or more layers of communication protocol structure.  ZCOs
+are constructed within the heap space of an SDR to which implementations
+of all layers of the stack must have access.  Each ZCO contains information
+enabling access to the source data object, together with (a) a linked list
+of zero or more "extents" that reference portions of this source data
+object and (b) linked lists of protocol header and trailer capsules.  The
+concatenation of the headers (in ascending stack sequence), source data
+object extents, and trailers (in descending stack sequence) is what is to
+be transmitted.
+
+The source data object may be either a file (identified by pathname
+stored in a "file reference" object in SDR heap) or an array of bytes
+in SDR heap space (identified by SDR address).  Each protocol header
+or trailer capsule indicates the length and the address (within SDR
+heap space) of a single protocol header or trailer at some layer of the stack.
+
+ZCOs are not directly exposed to applications.  Instead, applications
+operate on ZcoReferences; multiple ZcoReferences may, invisibly to
+the applications, refer to the same ZCO.  When the last reference to
+a given ZCO is destroyed -- either explicitly or (when the entire
+ZCO has been read and copied via this reference) implicitly -- the
+ZCO itself is automatically destroyed.
+
+But NOTE: to reduce code size and complexity and minimize processing
+overhead, the ZCO functions are NOT mutexed.  It is in general NOT SAFE
+for multiple threads or processes to be operating on the same ZCO
+concurrently, whether using the same Zco reference or multiple
+references.  However, multiple threads or processes of overlying
+protocol (e.g, multiple final destination endpoints) MAY safely use
+different ZcoReferences to receive the source data of a ZCO
+concurrently once the length of that data -- with regard to that
+layer of protocol -- has been firmly established.
+
+Note also that ZCO can more broadly be used as a general-purpose
+reference counting system for non-volatile data objects, where a
+need for such a system is identified.
+
+=over 4
+
+=item Object zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
+
+Creates and returns a new file reference object, which can be used as the
+source data extent location for creating a ZCO whose source data object is
+the file identified by I<pathName>.  I<cleanupScript>, if not NULL, is invoked
+at the time that the last ZCO that cites this file reference is destroyed
+[normally upon delivery either down to the "ZCO transition layer" of the
+protocol stack or up to a ZCO-capable application].  Maximum length of
+I<cleanupScript> is 255.  Returns SDR location of file reference object
+on success, 0 on any error.
+
+=item void zco_destroy_file_ref(Sdr sdr, Object fileRef)
+
+If the file reference object residing at location I<fileRef> within
+the indicated Sdr is no longer in use (no longer referenced by any ZCO),
+destroys this file reference object immediately.  Otherwise, flags this
+file reference object for destruction as soon as the last reference to
+it is removed.
+
+=item Object zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium, Object firstExtentLocation, unsigned int firstExtentOffset, unsigned int firstExtentLength)
+
+Creates a new ZCO.  I<firstExtentLocation> and I<firstExtentLength>
+must either both be zero (indicating that zco_append_extent() will be used to
+insert the first source data extent later) or else both be non-zero.
+If I<firstExtentLocation> is non-zero, then (a) I<firstExtentLocation> must
+be the SDR location of a file reference object if I<firstExtentSourceMedium> is
+ZcoFileSource and must otherwise be the SDR location of the source data itself,
+and (b) I<firstExtentOffset> indicates how many leading bytes of the source
+data object should be skipped over when adding the initial source data extent
+to the new ZCO.  On success, returns the SDR location of the first reference
+to the new ZCO.  Returns 0 on any error.
+
+=item void zco_append_extent(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium, Object location, unsigned int offset, unsigned int length)
+
+Appends the indicated source data extent to the indicated ZCO, as described
+for zco_create().  Both the I<location> and I<length> of the source data
+must be non-zero.
+
+=item void zco_prepend_header(Sdr sdr, Object zcoRef, char *header, unsigned int length)
+
+=item void zco_append_trailer(Sdr sdr, Object zcoRef, char *trailer, unsigned int length)
+
+=item void zco_discard_first_header(Sdr sdr, Object zcoRef)
+
+=item void zco_discard_last_trailer(Sdr sdr, Object zcoRef)
+
+These functions attach and remove the ZCO's headers and trailers.  I<header>
+and I<trailer> are assumed to be arrays of octets, not necessarily text.  
+Attaching a header or trailer causes it to be written to the SDR.
+
+=item Object zco_add_reference(Sdr sdr, Object zcoRef)
+
+Creates an additional reference to the referenced ZCO and adds 1 to that
+ZCO's reference count.  Returns SDR location of the new ZcoReference on
+success, 0 on any error.
+
+=item void zco_destroy_reference(Sdr sdr, Object zcoRef)
+
+Explicitly destroys the indicated Zco reference.  When the ZCO's last
+reference is destroyed, the ZCO itself is automatically destroyed.
+
+=item unsigned int zco_length(Sdr sdr, Object zcoRef)
+
+Returns length of entire ZCO, including all headers and trailers and
+all source data extents.  This is the size of the object that would be
+formed by concatenating the text of all headers, trailers, and source
+data extents into a single serialized object.
+
+=item unsigned int zco_source_data_length(Sdr sdr, Object zcoRef)
+
+Returns length of entire ZCO minus the lengths of all attached headers and
+trailers.  This is the size of the object that would be formed by
+concatenating the text of all source data extents into a single
+serialized object.
+
+=item unsigned int zco_occupancy(Sdr sdr, Object zcoRef)
+
+Returns the number of bytes of SDR heap space occupied by the ZCO identified
+by I<zcoRef>, plus the size of this reference to that ZCO.  It includes the
+sizes of the ZCO, ZCO header/trailer capsule, and ZCO extent objects
+themselves; it includes the ZCO's share of any applicable ZCO file
+reference overhead (the number of bytes of SDR heap space occupied by
+any ZCO file reference objects that the extents of the ZCO point to);
+and it B<omits> the sizes of all source data extents that do not occupy
+SDR heap space (i.e., ones that reside in files to which ZCO extent
+objects refer).
+
+=item unsigned int zco_nbr_of_refs(Sdr sdr, Object zcoRef)
+
+Returns the number of ZCO reference objects that currently refer to the
+ZCO identified by I<zcoRef>.
+
+=item void zco_start_transmitting(Sdr sdr, Object zcoRef, ZcoReader *reader)
+
+Used by underlying protocol layer to start extraction of an outbound ZCO's
+bytes (both from header and trailer capsules and from source data extents) for
+"transmission" -- i.e., the copying of bytes into a memory buffer for
+delivery to some non-ZCO-aware protocol implementation.  Initializes
+reading after the last byte of the total concatenated ZCO object that
+has already been read via this ZCO reference, if any.  Populates I<reader>,
+which is used to keep track of "transmission" progress via this ZCO reference.
+
+=item int zco_transmit(Sdr sdr, ZcoReader *reader, unsigned int length, char *buffer)
+
+Copies I<length> as-yet-uncopied bytes of the total concatenated ZCO
+(referenced by I<reader>) into I<buffer>.  Returns the number of bytes
+copied, or -1 on any error.
+
+=item void zco_stop_transmitting(Sdr sdr, ZcoReader *reader)
+
+Terminates extraction of this outbound ZCO's bytes for transmission.
+
+=item void zco_start_receiving(Sdr sdr, Object zcoRef, ZcoReader *reader)
+
+Used by overlying protocol layer to start extraction of an inbound ZCO's
+bytes for "reception" -- i.e., the copying of bytes into a memory buffer
+for delivery to a protocol header parser, to a protocol trailer parser,
+or to the ultimate recipient (application).  Initializes reading of
+headers, source data, and trailers after the last byte of such content
+that has already been read via this ZCO reference, if any.  Populates
+I<reader>, which is used to keep track of "reception" progress via this
+ZCO reference.
+
+=item int zco_receive_source(Sdr sdr, ZcoReader *reader, unsigned int length, char *buffer)
+
+Copies I<length> as-yet-uncopied bytes of source data from ZCO extents into
+I<buffer>.  Returns number of bytes copied, or -1 on any error.
+
+=item void zco_stop_receiving(Sdr sdr, ZcoReader *reader)
+
+Terminates extraction of this inbound ZCO's bytes for reception.
+
+=back
+
+=head1 SEE ALSO
+
+sdr(3)

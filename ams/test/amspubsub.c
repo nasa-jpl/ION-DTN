@@ -1,0 +1,125 @@
+/*
+	amspubsub.c:	an AMS test program for VxWorks.  Contains
+			two functions: amssub(), which subscribes to
+			messages on a given subject, and amspub(),
+			which publishes one message on a given subject.
+ 									*/
+/*	Copyright (c) 2006, California Institute of Technology.		*/
+/*	All rights reserved.						*/
+/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
+
+#include "ams.h"
+
+int	amssub(int a1, int a2, int a3, int a4, int a5,
+		int a6, int a7, int a8, int a9, int a10)
+{
+	char		*applicationName = (char *) a1;
+	char		*authorityName = (char *) a2;
+	char		*subjectName = (char *) a3;
+	AmsNode		me;
+	int		subjectNbr;
+	AmsEvent	event;
+	int		cn, un, nn, sn, len, ct, pr, fl;
+	char		*txt;
+	AmsMsgType	mt;
+
+	if (applicationName == NULL
+	|| authorityName == NULL
+	|| subjectName == NULL)
+	{
+		fputs("Usage: amssub \"<application name>\", \"<authority \
+name>\", \"<subject name>\"\n", stdout);
+		return 0;
+	}
+
+	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, applicationName,
+			authorityName, "", "log", &me) < 0)
+	{
+		putSysErrmsg("amssub can't register", NULL);
+		return -1;
+	}
+
+	subjectNbr = ams_lookup_subject_nbr(me, subjectName);
+	if (subjectNbr < 0)
+	{
+		ams_unregister(me);
+		putErrmsg("Subject is unknown.", subjectName);
+		return -1;
+	}
+
+	if (ams_subscribe(me, 0, 0, 0, subjectNbr, 8, 0, AmsTransmissionOrder,
+				AmsAssured) < 0)
+	{
+		ams_unregister(me);
+		putSysErrmsg("amssub can't subscribe", NULL);
+		return -1;
+	}
+
+	while (1)
+	{
+		if (ams_get_event(me, AMS_BLOCKING, &event) < 0)
+		{
+			ams_unregister(me);
+			putSysErrmsg("amssub can't get event", NULL);
+			return -1;
+		}
+
+		if (ams_get_event_type(event) == AMS_MSG_EVT)
+		{
+			ams_parse_msg(event, &cn, &un, &nn, &sn, &len, &txt,
+					&ct, &mt, &pr, &fl);
+			fprintf(stdout, "msg length %d content '%s'\n",
+					len, txt);
+		}
+
+		ams_recycle_event(event);
+	}
+}
+
+int	amspub(int a1, int a2, int a3, int a4, int a5,
+		int a6, int a7, int a8, int a9, int a10)
+{
+	char		*applicationName = (char *) a1;
+	char		*authorityName = (char *) a2;
+	char		*subjectName = (char *) a3;
+	char		*msgText = (char *) a4;
+	AmsNode		me;
+	int		subjectNbr;
+
+	if (applicationName == NULL
+	|| authorityName == NULL
+	|| subjectName == NULL
+	|| msgText == NULL)
+	{
+		fputs("Usage: amspub \"<application name>\", \"<authority \
+name>\", \"<subject name>\", \"<message text>\"\n", stdout);
+		return 0;
+	}
+
+	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, applicationName,
+			authorityName, "", "shell", &me) < 0)
+	{
+		putSysErrmsg("amspub can't register", NULL);
+		return -1;
+	}
+
+	subjectNbr = ams_lookup_subject_nbr(me, subjectName);
+	if (subjectNbr < 0)
+	{
+		putErrmsg("Subject is unknown.", subjectName);
+		ams_unregister(me);
+		return -1;
+	}
+
+	snooze(1);	/*	Wait for subscriptions to arrive.	*/
+	if (ams_publish(me, subjectNbr, 0, 0, strlen(msgText) + 1, msgText, 0)
+			< 0)
+	{
+		putErrmsg("Unable to publish message.", NULL);
+	}
+
+	snooze(1);
+	writeErrmsgMemos();
+	ams_unregister(me);
+	return 0;
+}

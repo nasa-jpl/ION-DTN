@@ -1,0 +1,153 @@
+## File created by ../../../../branches/release-1.0_r203/ionscript
+## Wed Oct 29 17:28:46 EDT 2008
+## Run the following command to start ION node:
+##	% ionstart -I "host2.rc"
+
+## begin ionadmin 
+# ionrc configuration file for host2 in a 2node stcp test.
+#	This uses stcp as the primary convergence layer.
+#	command: % ionadmin host2.ionrc
+# 	This command should be run FIRST.
+#
+#	Ohio University, Oct 2008
+
+# Initialization command (command 1). 
+#	Set this node to be node 2 (as in ipn:2).
+#	Use default sdr configuration (empty configuration file name "").
+1 2 ""
+
+# start ion node
+s
+
+# Add a contact.
+# 	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself
+#	It will transmit 100000 bytes/second.
+a contact +1 +3600 1 1 100000
+
+# Add more contacts.
+#	They will connect 1 to 2, 2 to 1, and 2 to itself
+#	Note that contacts are unidirectional, so order matters.
+a contact +1 +3600 1 2 100000
+a contact +1 +3600 2 1 100000
+a contact +1 +3600 2 2 100000
+
+# Add a range. This is the physical distance between nodes.
+#	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself.
+#	Data on the link is expected to take 1 second to reach the other
+#	end (One Way Light Time).
+a range +1 +3600 1 1 1
+
+# Add more ranges.
+#	We will assume every range is one second.
+#	Note that ranges cover both directions, so you only need define
+#	one range for any combination of nodes.
+a range +1 +3600 2 2 1
+a range +1 +3600 2 1 1
+
+# set this node to consume and produce a mean of 1000000 bytes/second.
+m production 1000000
+m consumption 1000000
+## end ionadmin 
+
+## begin bpadmin 
+# bprc configuration file for host2 in a 2node test.
+#	Command: % bpadmin host2.bprc
+#	This command should be run AFTER ionadmin and BEFORE ipnadmin
+#	or dtnadmin.
+#
+#	Ohio University, Oct 2008
+
+# Initialization command (command 1).
+#	Use ipn:2.0 as the custodian endpoint of this node.
+#	That is, scheme IPN with element_number 2 and service number 0
+#	(ipn requires custodian service to be zero).
+#	Note that this EID must be understood by the node itself, so be sure
+#	to add the scheme below.
+1 ipn:2.0
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	The scheme's number is 1.  Note that this number is defined for
+#	Compressed Bundle Header Encoding (CBHE) schemes ONLY.  All other
+#	schemes (dtn for example) should use number -1.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 1 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:2.0 ipn:2.1 and ipn:2.2 on the local node.
+#	ipn:2.0 is expected for custodian traffic.  The rest are usually
+#	used for specific applications (such as bpsink).
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to dump them 'x', as opposed to
+#	queueing them (use 'q' instead of 'x' to queue).
+a endpoint ipn 2.0 x
+a endpoint ipn 2.1 x
+a endpoint ipn 2.2 x
+
+# Add a protocol. 
+#	Add the protocol named stcp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, stcp on ethernet) for payload, and 100 bytes for overhead.
+a protocol stcp 1400 100
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the stcp protocol.
+#	The induct will listen at this host's IP address (private testbed).
+#	The induct will listen on port 4556, the IANA assigned default DTN
+#	TCP convergence layer port.
+#	The induct itself is implemented by the 'stcpcli' command.
+a induct stcp 10.1.1.2:4556 stcpcli
+
+# Add an outduct. (send to yourself)
+#	Add an outduct to send bundles using the stcp protocol.
+#	The outduct will connect to the IP address 10.1.1.2 using the
+#	IANA assigned default DTN TCP port of 4556.
+#	The outduct itself is implemented by the 'stcpclo' command.
+a outduct stcp 10.1.1.2:4556 stcpclo
+
+# Add an outduct. (send to host1)
+#	Add an outduct to send bundles using the stcp protocol.
+#	The outduct will connect to the IP address 10.1.1.1 using the
+#	IANA assigned default DTN TCP port of 4556.
+#	The outduct itself is implemented by the 'stcpclo' command.
+a outduct stcp 10.1.1.1:4556 stcpclo
+
+## end bpadmin 
+
+## begin ipnadmin 
+# ipnrc configuration file for host1 in the 2node stcp network.
+#	Essentially, this is the IPN scheme's routing table.
+#	Command: % ipnadmin host2.ipnrc
+#	This command should be run AFTER bpadmin (likely to be run last).
+#
+#	Ohio University, Oct 2008
+
+# Add services
+#	Add service 0 (i.e. ipn:2.0) called 'admin.'
+#	Add service 1 (ipn:2.1) called 'test1.'
+#	Add service 2 (ipn:2.2) called 'test2.'
+#	See your bprc file for endpoint IDs you should use.
+a service 0 admin
+a service 1 test1
+a service 2 test2
+
+# Add an egress plan. (to yourself)
+#	Bundles to be transmitted to element number 2 (that is, yourself).
+#	This element is named 'host2.'
+#	The plan is to queue for transmission (x) on protocol 'stcp' using
+#	the outduct identified as '10.1.1.2:4556'
+#	See your bprc file or bpadmin for outducts/protocols you can use.
+a plan 2 host2 x stcp/10.1.1.2:4556
+
+# Add an egress plan. (to the other host)
+#	Bundles to be transmitted to element number 1 (the other node).
+#	This element is named 'host1.'
+#	The plan is to queue for transmission (x) on protocol 'stcp' using
+#	the outduct identified as '10.1.1.1:4556'
+#	See your bprc file or bpadmin for outducts/protocols you can use.
+a plan 1 host1 x stcp/10.1.1.1:4556
+## end ipnadmin 

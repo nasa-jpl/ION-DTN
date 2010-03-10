@@ -1,0 +1,251 @@
+Release Notes for ION 2.1.0
+March 9, 2010
+
+GENERAL
+
+The ION [interplanetary overlay network] software is a suite of communication
+protocol implementations designed to support mission operation communications
+across an end-to-end interplanetary network, which might include on-board
+(flight) subnets, in-situ planetary or lunar networks, proximity links, deep
+space links, and terrestrial internets.  Included in the ION softwarex
+distribution are the following packages:
+
+	ici [interplanetary communication infrastructure], a set of libraries
+	that provide flight-software-compatible support for functions on which
+	the other packages rely, such as dynamic memory management, non-volatile
+	storage management, and inter-task communication via shared memory.
+	The ici libraries are designed to make the porting of IPN software to
+	multiple operating systems - Linux, VxWorks, Solaris, etc. - as easy as
+	possible. Ici now includes zco [zero-copy object], a library that 
+	minimizes the copying of application data as it is encapsulated in 
+	multiple layers of protocol structure while traversing the protocol
+	stack.
+
+	bp [bundle protocol], an implementation of the Delay-Tolerant
+	Networking (DTN) architecture's Bundle Protocol.
+
+	dgr [datagram retransmission], a UDP reliability system that
+	implements congestion control and is designed for relatively high
+	performance.
+
+	ltp [licklider transmission protocol], a DTN convergence layer for
+	reliable transmission over links characterized by long or highly
+	variable delay.
+	
+	ams - an implementation of the CCSDS Asynchronous Message Service.
+
+	cfdp - a class-1 (Unacknowledged) implementation of the CCSDS File
+	Delivery Protocol.
+
+Features included:
+
+	cgr - Contract graph routing: a method of dynamic routing designed for
+	space based applications of ION, but still usable for terrestrial
+	applications. It computes routes using scheduled communication and deals
+	with time-varying network topology.
+
+	brs - Bundle relay service: provides interconnectivity between networks
+	that do not allow servers (those behind NAT for example). For more
+	information, check man brsscla and man brsccla.
+
+----------------------
+NOTES ON RELEASE 2.1.0
+----------------------
+
+- Port to FreeBSD and RTEMS (via manual makefiles).
+
+- Various fixes and tweaks.
+
+- Added comprehensive automated testing suite.
+
+- Fixed various compiler bugs
+
+- Modified custodian EID generated from dtn://hostname to dtn://hostname.dtn
+
+- Modified the loopback and ion-dtn2 configuration files for the new command syntax.
+
+- Added BSP implementation using "stub" versions of hmac and sha1 for public release.
+
+- Added CFDP implementation.
+
+- Bug fixes in LTP, BRS, and some BP applications.
+
+- Tweaks related to running on VxWorks.
+
+- Added assertions.
+
+- Bug fixes in the TCP convergence layer, particularly in the interest of interoperability
+  with dtn2.
+
+--------------------
+NOTES ON RELEASE 2.0
+--------------------
+
+- Based on JPL revision 255:6443ed8258e1
+
+- Converted underlying version control system to Mercurial from Subversion.
+
+- Add ionsecadmin for managing the security policy database.
+
+- Added better support for cross-scheme routing.
+
+- Add support for the previous-hop-node extension.
+
+- Update route computation to current CBHE draft standard.
+
+- Addresses memory leak problem identified by U. of Colorado in long-duration
+  tests.
+
+- LTP heavily modified to become more flexible and powerful.
+
+- dtnadmin and associated utilities renamed to dtn2admin.
+
+- Configuration file syntax changes slightly in ionadmin, bpadmin, ipnadmin,
+  dtn2admin; heavily changes syntax of ltpadmin.  Included ION-LTP-Configuration
+  document and spreadsheet to explain new syntax and calculate values.
+
+- Bug fixes.
+
+- Documentation updates.
+
+- Various testing applications in earlier releases are split from the ion release.
+
+---------------------
+NOTES FOR RELEASE 1.1 
+---------------------
+
+- Based on JPL revision 226.
+
+- Experimental new tcp convergence layer compatible with the standard defined
+  by draft-irtf-dtnrg-tcp-clayer-02.  This convergence layer is titled tcp,
+  with other programs tcpcli tcpclo, and is suitable for connectivity with the
+  DTN2 reference implementation.  Currently only unidirectional, unacknowledged
+  communication is supported.  Some bugs still present.
+
+- ION-specific tcp-based convergence layer is renamed stcp (stcpcli stcpclo)
+  and still functions as expected.
+
+- Adds user-contributed applications bping bping bpmon bpalive.
+
+- some LTP related bugs are not yet squashed.
+
+- Updates to various user-contrib programs; added a bpmon_query program to work
+  with SNMP.
+
+- Revise LTP to use randomly selected session numbers rather than recycling small
+  session numbers - prevent data loss and corruption due to application of late-
+  arriving segments to sessions that are re-using the session numbers of earlier
+  sessions.
+
+- added the bplive program
+
+- Updated for sbp_api.h and abp_api.c
+
+- brought over basic working draft-tcpcl standards-compliant code with help of
+  patch submitted by Andrew.Jenkins@colorado.edu
+
+- manually applied patches from seb@highlab.com, adding sanity-checks and more
+  consistent comment-line detection to the admin programs
+
+- Add fixes to eliminate compiler warnings, per Ohio U.  Remove all ppc-vxworks
+  makefile directories, replacing them with arch-vxworks5 directories because
+  the VxWorks build varies with VxWorks version number and not with the hardware
+  platform that you build for.  Add "expat", which is needed by AMS and is not
+  provided with VxWorks.  Fix segfault bug in dtnfw reported by U. of Colorado.
+  Fix bug in support for trackingElts list.
+
+- applied the patch from Andrew.Jenkins@colorado.edu about dtnfw's rule/plan but
+
+- added new ION.pdf to the in-development release
+
+- overhauled ionstart, ionscript, ionstart.awk to account for the dtnadmin need for
+  a node name as well as the bpadmin/dtnadmin/ipnadmin startup order bug found by
+  Andrew.Jenkins@colorado.edu
+
+- Revise routing to match applicable backlog (based on bundle's priority; not
+  necessarily total backlog) against aggregate capacity when determining route
+  viability.  [Per JIRA item DINET-107]  Add implementation of extension block
+  for extended class of service, which includes an additional 256 "ordinal"
+  priority sub-levels within priority 2.
+
+- Upgrade AMS implementation to Red Book 2.
+
+- Add interface for inserting BP extensions.
+
+-------------------------
+NOTES ON RELEASE 1.0_r203
+-------------------------
+
+- Based on jpl r203.
+
+- Adds LTP package.
+
+- Supports contact graph routing.
+
+- Compilation changed to autoconf and automake; compilation tested on: 
+  Ubuntu 7.04, 7.10, 8.04, Gentoo, Fedora 3, Fedora 7, OSX 10.5, and Solaris 10.
+
+- Killm updated to work on OSX 10.4, due to an ipcs incompatibility; also 
+  updated to make sure all processes are killed.
+
+- Removed multiple compiler warnings.
+
+- Includes bundle relay programs brsscla and brsccla; brsscla acts as the 
+  server, brsccla acts as the client. 
+
+- Zco package rolled into ici.
+
+- Ionscript added for configuration file management; ionstart and ionstop
+  rewritten.
+
+- Various bug fixes.
+
+- 2008-11-11 Added the ION Design and Operation manual v1.6.
+
+--------------------
+NOTES ON RELEASE 0.3
+--------------------
+
+- Based on jpl r105.
+
+- Simplified and cleaned up SDR implementation in the ici package.
+
+- ion package and utilities renamed to "bp" for "bundle protocol."
+
+- Restructured congestion control to be based on rate control.
+
+- Implements BP version 6.
+
+- Revised the zco package.
+
+- Added capability for dynamic routing based on network topology that changes
+  with the passage of time.
+
+- Fixed various bugs.
+
+- All administrative and application errors are reported to ion.log
+
+- Added ionstart and ionstop scripts.
+
+--------------------
+NOTES ON RELEASE 0.2
+--------------------
+
+- The ion package, which implements the DTN Bundle Protocol (BP), has been
+  upgraded to conform to BP version 5, submitted to IETF in December 2006.
+  The changes are almost exclusively internal to the software and protocol: 
+  the format of bundles exchanged through the delay-tolerant network is altered,
+  but the API for ION is mostly unchanged.  Note that this release of ION is 
+  not interoperable with implementations of BP version 4.
+
+- The Remote AMS functionality of AMS has been upgraded to conform to the 
+  specification most recently posted to the public documents list of the CCSDS 
+  CWE site for AMS.  The API for AMS is unchanged.
+
+- A variety of miscellaneous bugs have been fixed.
+
+--------------------
+NOTES ON RELEASE 0.1
+--------------------
+
+- Initial code released for review.

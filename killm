@@ -1,0 +1,127 @@
+#!/bin/bash
+# shell script to remove all of my IPC keys
+# Modified by Robert Martin to work on Mac 10.4, due to IPCS requiring sudo to list any 
+# shared memory usage, even if you own it; also modified using Jim Wyllie's "kill 
+# all related processes" idea
+
+OS_VERS=""
+NOT_KILLED=""
+PS_LIST=""
+KILLPROCESSLIST="amsbenchr lt-amsbenchr \
+	amsbenchs lt-amsbenchs \
+	amsd lt-amsd \
+	amshello lt-amshello \
+	amslog lt-amslog \
+	amslogport lt-amslogport \
+	amsshell lt-amsshell \
+	bpadmin lt-bpadmin \
+	bpclock lt-bpclock \
+	bpcounter lt-bpcounter \
+	bpdriver lt-bpdriver \
+	bpecho lt-bpecho \
+	bprecvfile lt-bprecvfile \
+	bpsendfile lt-bpsendfile \
+	bpsink lt-bpsink \
+	bpsource lt-bpsource \
+	bpstats lt-bpstats \
+	bptrace lt-bptrace \
+	brsccla lt-brsccla \
+	brsscla lt-brsscla \
+	bputa lt-bputa \
+	cfdpadmin lt-cfdpadmin \
+	cfdpclock lt-cfdpclock \
+	cfdptest lt-cfdptest \
+	dgr2file lt-dgr2file \
+	dgrcla lt-dgrcla \
+	dtn2admin lt-dtn2admin \
+	dtn2adminep lt-dtn2adminep \
+	dtn2fw lt-dtn2fw \
+	file2dgr lt-file2dgr \
+	file2sdr lt-file2sdr \
+	file2sm lt-file2sm \
+	file2tcp lt-file2tcp \
+	file2udp lt-file2udp \
+	ionadmin lt-ionadmin \
+	ipnadmin lt-ipnadmin \
+	ipnadminep lt-ipnadminep \
+	ipnfw lt-ipnfw \
+	lgagent lt-lgagent \
+	lgsend lt-lgsend \
+	ltpadmin lt-ltpadmin \
+	ltpcli lt-ltpcli \
+	ltpclo lt-ltpclo \
+	ltpclock lt-ltpclock \
+	ltpcounter lt-ltpcounter \
+	ltpdriver lt-ltpdriver \
+	ltpmeter lt-ltpmeter \
+	owltsim lt-owltsim \
+	owlttb lt-owlttb \
+	psmshell lt-psmshell \
+	psmwatch lt-psmwatch \
+	ramstest lt-ramstest \
+	rfxclock lt-rfxclock \
+	sdr2file lt-sdr2file \
+	sdrmend lt-sdrmend \
+	sdrwatch lt-sdrwatch \
+	sm2file lt-sm2file \
+	smlistsh lt-smlistsh \
+	tcpcli lt-tcpcli \
+	tcpclo lt-tcpclo \
+	stcpcli lt-stcpcli \
+	stcpclo lt-stcpclo \
+	tcp2file lt-tcp2file \
+	udpcli lt-udpcli \
+	udpclo lt-udpclo \
+	udplsi lt-udplsi \
+	udplso lt-udplso \
+	udp2file lt-udp2file \
+	"
+
+sw_vers 2> /dev/null > /dev/null
+
+#if sw_vers ran, then we're on a mac system
+if [[ ! $? ]]; then  
+	OS_VERS=`sw_vers | grep 10.4`
+fi
+
+echo "Sending TERM to ${KILLPROCESSLIST}..."
+for THECOMMAND in ${KILLPROCESSLIST}; do
+       killall "${THECOMMAND}" &> /dev/null
+done
+
+sleep 2
+
+echo "Sending KILL to the processes..."
+for THECOMMAND in ${KILLPROCESSLIST}; do
+        killall -9 "${THECOMMAND}" &> /dev/null
+done
+
+sleep 2
+
+PS_LIST=`ps -e`
+
+echo "Checking if all processes ended..."
+for THECOMMAND in ${KILLPROCESSLIST}; do
+	NOT_KILLED=`echo "${PS_LIST}" | grep '${THECOMMAND}' | grep -v grep`
+	if [[ "$NOT_KILLED" ]]; then
+		echo "Unknown error: process '${THECOMMAND}' not killed...try rebooting?"
+	fi
+	NOT_KILLED=""
+done
+
+echo "Deleting shared memory to remove SDR..."
+
+if [[ -z "$OS_VERS" ]]; then 
+	# For mac 10.5 and Linux
+	for Q in `ipcs -q | grep $USER | awk '{ print $2 }'`; do ipcrm -q $Q; done
+	for M in `ipcs -m | grep $USER | awk '{ print $2 }'`; do ipcrm -m $M; done
+	for S in `ipcs -s | grep $USER | awk '{ print $2 }'`; do ipcrm -s $S; done
+else
+	# For mac 10.4, since ipcs on it is weird.
+	echo "Since ipcs on Apple OSX 10.4 is weird, this script (killm) needs to use sudo, and will ask for your password"
+	for Q in `sudo ipcs -q | grep $USER | awk '{ print $3 }'`; do ipcrm -Q $Q; done
+	for M in `sudo ipcs -m | grep $USER | awk '{ print $3 }'`; do ipcrm -M $M; done
+	for S in `sudo ipcs -s | grep $USER | awk '{ print $3 }'`; do ipcrm -S $S; done
+fi
+
+echo "Killm completed."	

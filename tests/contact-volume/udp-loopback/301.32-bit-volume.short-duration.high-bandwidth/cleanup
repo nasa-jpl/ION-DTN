@@ -1,0 +1,2 @@
+#!/bin/bash
+rm -f ion.log ionreceivefile.txt ionsendfile.txt 

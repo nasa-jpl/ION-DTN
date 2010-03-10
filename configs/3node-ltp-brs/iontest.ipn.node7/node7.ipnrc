@@ -1,0 +1,4 @@
+# Node 7 has no loopback route.  It talks to node 5 by LTP/UDP/IP.
+# Routes to all other nodes are computed dynamically from the contact graph.
+#
+a plan 5 node5 x ltp/5

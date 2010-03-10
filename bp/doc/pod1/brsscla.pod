@@ -1,0 +1,149 @@
+=head1 NAME
+
+brsscla - BRSS-based BP convergence layer adapter (input and output) task
+
+=head1 SYNOPSIS
+
+B<brsscla> I<local_hostname>[:I<local_port_nbr>][ I<first_duct_nbr_in_scope>[ I<last_duct_nbr_in_scope>]]
+
+=head1 DESCRIPTION
+
+BRSS is the "server" side of the Bundle Relay Service (BRS) convergence
+layer protocol for BP.  It is complemented by BRSC, the "client" side of
+the BRS convergence layer protocol for BP.
+
+B<brsscla> is a background "daemon" task that spawns two plus N threads:
+one that handles BRSS client connections and spawns sockets for continued data
+interchange with connected clients; one that handles BRSS protocol output
+by transmitting over those spawned sockets to the associated clients; and
+one input thread for each spawned socket, to handle BRSS protocol input from 
+the associated connected client.
+
+The connection thread simply accepts connections on a TCP socket bound to
+I<local_hostname> and I<local_port_nbr> and spawns reception threads.  The
+default value for I<local_port_nbr>, if omitted, is 80.
+
+Each reception thread receives over the socket connection the node number
+of the connecting client (in SDNV representation), followed by a 32-bit time
+tag and a 160-bit HMAC-SHA1 digest of that time tag.  The node number must
+be in the range I<first_duct_nbr_in_scope> through I<last_duct_nbr_in_scope>
+inclusive; when omitted, I<first_duct_nbr_in_scope> defaults to 1 and
+I<last_duct_nbr_in_scope> defaults to I<first_duct_nbr_in_scope> plus 255.
+The receiving thread also checks the time tag, requiring that it differ from
+the current time by no more than BRSTERM (default value 5) seconds.  It then
+recomputes the digest
+value using the HMAC-SHA1 key named "I<node_number>.brs" as recorded in the
+ION security database (see ionsecrc(5)), requiring that the supplied and
+computed digests be identical.  If all registration conditions are met, the
+receiving thread sends the client a countersign -- a similarly computed
+HMAC-SHA1 digest, for the time tag that is 1 second later than the provided
+time tag -- to assure the client of its own authenticity, then commences
+receiving bundles over the connected socket.  Each bundle received on the
+connection is preceded by its length, a 32-bit unsigned integer in network
+byte order.  The received bundles are passed to the bundle protocol agent
+on the local ION node.
+
+The output thread extracts bundles from the queues of bundles ready for
+transmission via BRSS to remote bundle protocol agents, finds the connected
+clients whose node numbers match the proximate receiver node numbers assigned
+to the bundles by the routing daemons that enqueued them, and transmits the
+bundles over the sockets to those clients.  Each transmitted bundle is
+preceded by its length, a 32-bit unsigned integer in network byte order.
+
+Note that B<brsscla> is a "promiscuous" convergence layer daemon, able to
+transmit bundles to any BRSS destination induct for which it has received
+a connection.  Its sole outduct's name is the name of the corresponding induct,
+rather than the induct name of any single BRSS destination induct to which the
+outduct might be dedicated, so scheme configuration directives that cite this
+outduct must provide destination induct IDs.  For the BRS convergence-layer
+protocol, destination induct IDs are simply the node numbers of connected
+clients.
+
+B<brsscla> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.  B<brsscla> can also be
+spawned and terminated in response to START and STOP commands that pertain
+specifically to the BRSS convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item 0
+
+B<brsscla> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart the BRSS protocol.
+
+=item 1
+
+B<brsscla> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart the BRSS protocol.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item brsscla can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such brss induct.
+
+No BRSS induct with duct name matching I<local_hostname> and I<local_port_nbr>
+has been added to the BP database.  Use B<bpadmin> to stop the BRSS
+convergence-layer protocol, add the induct, and then restart the BRSS protocol.
+
+=item CLI task is already started for this duct.
+
+Redundant initiation of B<brsscla>.
+
+=item No such brss outduct.
+
+No BRSS outduct with duct name matching I<local_hostname> and I<local_port_nbr>
+has been added to the BP database.  Use B<bpadmin> to stop the BRSS
+convergence-layer protocol, add the outduct, and then restart the BRSS protocol.
+
+=item Can't get IP address for host
+
+Operating system error.  Check errtext, correct problem, and restart BRSS.
+
+=item Can't open TCP socket
+
+Operating system error -- unable to open TCP socket for accepting connections.
+Check errtext, correct problem, and restart BRSS.
+
+=item Can't initialize socket (note: must be root for port 80)
+
+Operating system error.  Check errtext, correct problem, and restart BRSS.
+
+=item brsscla can't create sender thread
+
+Operating system error.  Check errtext, correct problem, and restart BRSS.
+
+=item brsscla can't create access thread
+
+Operating system error.  Check errtext, correct problem, and restart BRSS.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), brsccla(1)

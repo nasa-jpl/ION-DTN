@@ -1,0 +1,49 @@
+# ltprc configuration file for host1 in a 3node ltp/tcp test.
+#	Command: % ltpadmin host1.ltprc
+#	This command should be run AFTER ionadmin and BEFORE bpadmin.
+#
+#	Ohio University, Oct 2008
+
+# Initialization command (command 1). 
+# Establishes the LTP retransmission window. 
+# (Prohibiting LTP from seizing all available storage).
+#	A maximum of 32 sessions.  A session is assumed to be around one
+#	second of transmission.  This value should be estimated at the sum
+#	of maximum round-trip times (in seconds) for all "spans."
+#	Suggest throwing 20% higher number of sessions to account for extra-
+#	long sessions which contain an actual retransmission.
+#	Set a block size limit of 131072 bytes.  The block size is around
+#	the amount of data expected to be sent in a session.  Determine
+#	this with the maximum amount of data (in bytes) transferred in one
+#	second on your fastest available link.
+1 32 131072
+
+# Add a span. (a connection) 
+#	Identify the span as engine number 1.
+#	Use 1400 byte segments (assuming a standard ethernet frame
+#	underlying this link and accounting for ip/udp/eth header overhead).
+#	Use a nominal block size of 10000 bytes.  This is the amount of data
+#	(which can span several bundles) sent in a session.  You should
+#	consider this to be the maximum number of bytes sent in one second
+#	on the link. (you can also use the block size limit in the
+#	initialization command).
+#	Use the command 'udplso 10.1.1.1:1113' to implement the link
+#	itself.  In this case, we use udp to connect to the local machine
+#	(loopback) using port 1113 (defined by IANA as the default UDP port
+#	for Licklider Transmission Protocol).  The single quote is
+#	important, don't use double quotes.
+a span 1 1400 10000 'udplso 10.1.1.1:1113'
+
+# Add another span. (to host2) 
+#	Identify the span as engine number 2.
+#	Use the command 'udplso 10.1.1.2:1113' to implement the link
+#	itself.  In this case, we use udp to connect to host2 using the
+#	default port.
+a span 2 1400 10000 'udplso 10.1.1.2:1113'
+
+# Start command.
+#	This command actually runs the link service output commands
+#	(defined above, in the "a span" commands).
+#	Also starts the link service INPUT task 'udplsi 10.1.1.1:1113' to
+#	listen locally on UDP port 1113 for incoming LTP traffic.
+s 'udplsi 10.1.1.1:1113'

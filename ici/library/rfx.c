@@ -1,0 +1,1538 @@
+/*
+
+	rfx.c:	API for managing ION's time-ordered lists of
+		contacts and ranges.
+
+	Author:	Scott Burleigh, JPL
+
+	Copyright (c) 2007, California Institute of Technology.
+	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
+	acknowledged.
+
+									*/
+#include "rfx.h"
+#include "lyst.h"
+
+typedef struct
+{
+	time_t	time;
+	long	prevXmitRate;
+	long	xmitRate;
+	int	fromNeighbor;		/*	Boolean.		*/
+} RateChange;
+
+int	rfx_system_is_started()
+{
+	IonVdb	*vdb = getIonVdb();
+
+	return (vdb && vdb->clockPid > 0) ? 1 : 0;
+}
+
+IonNeighbor	*findNeighbor(IonVdb *ionvdb, unsigned long nodeNbr,
+			PsmAddress *nextElt)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	IonNeighbor	*neighbor;
+
+	REQUIRE(ionvdb);
+	REQUIRE(nextElt);
+	for (elt = sm_list_first(ionwm, ionvdb->neighbors); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		neighbor = (IonNeighbor *) psp(ionwm, sm_list_data(ionwm, elt));
+		REQUIRE(neighbor);
+		if (neighbor->nodeNbr < nodeNbr)
+		{
+			continue;
+		}
+
+		if (neighbor->nodeNbr > nodeNbr)
+		{
+			break;
+		}
+
+		return neighbor;
+	}
+
+	*nextElt = elt;
+	return NULL;
+}
+
+IonNeighbor	*addNeighbor(IonVdb *ionvdb, unsigned long nodeNbr,
+			PsmAddress nextElt)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	addr;
+	PsmAddress	elt;
+	IonNeighbor	*neighbor;
+	IonNode		*node;
+	PsmAddress	nextNode;
+
+	addr = psm_zalloc(ionwm, sizeof(IonNeighbor));
+	if (addr == 0)
+	{
+		putErrmsg("Can't add neighbor.", NULL);
+		return NULL;
+	}
+
+	if (nextElt)
+	{
+		elt = sm_list_insert_before(ionwm, nextElt, addr);
+	}
+	else
+	{
+		elt = sm_list_insert_last(ionwm, ionvdb->neighbors, addr);
+	}
+
+	if (elt == 0)
+	{
+		psm_free(ionwm, addr);
+		putErrmsg("Can't add neighbor.", NULL);
+		return NULL;
+	}
+
+	neighbor = (IonNeighbor *) psp(ionwm, addr);
+	memset((char *) neighbor, 0, sizeof(IonNeighbor));
+	neighbor->nodeNbr = nodeNbr;
+	node = findNode(ionvdb, nodeNbr, &nextNode);
+	if (node == NULL)
+	{
+		node = addNode(ionvdb, nodeNbr, nextNode);
+		if (node == NULL)
+		{
+			putErrmsg("Can't add neighbor.", NULL);
+			return NULL;
+		}
+	}
+
+	neighbor->node = psa(ionwm, node);
+	return neighbor;
+}
+
+IonNode	*findNode(IonVdb *ionvdb, unsigned long nodeNbr, PsmAddress *nextElt)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	IonNode		*node;
+
+	REQUIRE(ionvdb);
+	REQUIRE(nextElt);
+	for (elt = sm_list_first(ionwm, ionvdb->nodes); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		node = (IonNode *) psp(ionwm, sm_list_data(ionwm, elt));
+		REQUIRE(node);
+		if (node->nodeNbr < nodeNbr)
+		{
+			continue;
+		}
+
+		if (node->nodeNbr > nodeNbr)
+		{
+			break;
+		}
+
+		return node;
+	}
+
+	*nextElt = elt;
+	return NULL;
+}
+
+IonNode	*addNode(IonVdb *ionvdb, unsigned long nodeNbr, PsmAddress nextElt)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	addr;
+	PsmAddress	elt;
+	IonNode		*node;
+
+	addr = psm_zalloc(ionwm, sizeof(IonNode));
+	if (addr == 0)
+	{
+		putErrmsg("Can't add node.", NULL);
+		return NULL;
+	}
+
+	if (nextElt)
+	{
+		elt = sm_list_insert_before(ionwm, nextElt, addr);
+	}
+	else
+	{
+		elt = sm_list_insert_last(ionwm, ionvdb->nodes, addr);
+	}
+
+	if (elt == 0)
+	{
+		psm_free(ionwm, addr);
+		putErrmsg("Can't add node.", NULL);
+		return NULL;
+	}
+
+	node = (IonNode *) psp(ionwm, addr);
+	REQUIRE(node);
+	node->nodeNbr = nodeNbr;
+	node->xmits = sm_list_create(ionwm);
+	node->origins = sm_list_create(ionwm);
+	node->snubs = sm_list_create(ionwm);
+	return node;
+}
+
+IonOrigin	*findOrigin(IonNode *node, unsigned long neighborNodeNbr,
+			PsmAddress *nextElt)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	IonOrigin	*origin;
+
+	REQUIRE(node);
+	REQUIRE(nextElt);
+	for (elt = sm_list_first(ionwm, node->origins); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		origin = (IonOrigin *) psp(ionwm, sm_list_data(ionwm, elt));
+		REQUIRE(origin);
+		if (origin->nodeNbr < neighborNodeNbr)
+		{
+			continue;
+		}
+
+		if (origin->nodeNbr > neighborNodeNbr)
+		{
+			break;
+		}
+
+		return origin;
+	}
+
+	*nextElt = elt;
+	return NULL;
+}
+
+IonOrigin	*addOrigin(IonNode *node, unsigned long neighborNodeNbr,
+			PsmAddress nextElt)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	addr;
+	PsmAddress	elt;
+	IonOrigin	*origin;
+
+	REQUIRE(node);
+	addr = psm_zalloc(ionwm, sizeof(IonOrigin));
+	if (addr == 0)
+	{
+		putErrmsg("Can't add origin.", NULL);
+		return NULL;
+	}
+
+	if (nextElt)
+	{
+		elt = sm_list_insert_before(ionwm, nextElt, addr);
+	}
+	else
+	{
+		elt = sm_list_insert_last(ionwm, node->origins, addr);
+	}
+
+	if (elt == 0)
+	{
+		psm_free(ionwm, addr);
+		putErrmsg("Can't add origin.", NULL);
+		return NULL;
+	}
+
+	origin = (IonOrigin *) psp(ionwm, addr);
+	REQUIRE(origin);
+	origin->nodeNbr = neighborNodeNbr;
+	origin->owlt = 0;
+	return origin;
+}
+
+static void	noteXmit(IonNode *node, IonContact *contact)
+{
+	IonOrigin	*origin;
+	PsmAddress	originAddr;
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	nextElt;
+	PsmAddress	elt;
+	IonXmit		*xmit;
+	IonXmit		*prevXmit;
+	Object		iondbObj;
+	IonDB		iondb;
+	PsmAddress	addr;
+	time_t		currentTime;
+	int		secRemaining;
+	Scalar		capacity;
+
+	origin = findOrigin(node, contact->fromNode, &nextElt);
+	if (origin == NULL)
+	{
+		origin = addOrigin(node, contact->fromNode, nextElt);
+		if (origin == NULL)
+		{
+			putErrmsg("Can't create origin for xmit.", NULL);
+			return;
+		}
+	}
+
+	originAddr = psa(ionwm, origin);
+
+	/*	Find insertion point in xmits list.			*/
+
+	nextElt = 0;
+	prevXmit = NULL;
+	for (elt = sm_list_first(ionwm, node->xmits); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		xmit = (IonXmit *) psp(ionwm, sm_list_data(ionwm, elt));
+		REQUIRE(xmit);
+		if (xmit->fromTime > contact->fromTime)
+		{
+			nextElt = elt;
+			break;	/*	Have found insertion point.	*/
+		}
+
+		if (xmit->origin == originAddr)
+		{
+			if (xmit->fromTime == contact->fromTime)
+			{
+				/*	This xmit is already loaded;
+				 *	no need to load again.		*/
+
+				return;
+			}
+
+			/*	This is a prior xmit for the same
+			 *	origin.  Remember it, in case it's
+			 *	the last prior xmit for the same
+			 *	origin.					*/
+
+			prevXmit = xmit;
+		}
+	}
+
+	addr = psm_zalloc(ionwm, sizeof(IonXmit));
+	if (addr == 0)
+	{
+		putErrmsg("Can't add xmit.", NULL);
+		return;
+	}
+
+	if (nextElt)
+	{
+		elt = sm_list_insert_before(ionwm, nextElt, addr);
+	}
+	else
+	{
+		elt = sm_list_insert_last(ionwm, node->xmits, addr);
+	}
+
+	if (elt == 0)
+	{
+		psm_free(ionwm, addr);
+		putErrmsg("Can't add xmit.", NULL);
+		return;
+	}
+
+	xmit = (IonXmit *) psp(ionwm, addr);
+	REQUIRE(xmit);
+	xmit->origin = originAddr;
+	xmit->fromTime = contact->fromTime;
+	xmit->toTime = contact->toTime;
+	xmit->xmitRate = contact->xmitRate;
+
+	/*	If node is a neighbor, must note this addition in
+	 *	the aggregated capacities of all subsequent xmits
+	 *	from the local node to this neighbor.			*/
+
+	iondbObj = getIonDbObject();
+	sdr_read(getIonsdr(), (char *) &iondb, iondbObj, sizeof(IonDB));
+	if (origin->nodeNbr != iondb.ownNodeNbr)
+	{
+		loadScalar(&(xmit->aggrCapacity), 0);
+		return;	/*	Node isn't a neighbor, capacity N/A.	*/
+	}
+
+	/*	Compute amount of transmission capacity gained.		*/
+
+	currentTime = getUTCTime();
+	if (currentTime > xmit->toTime)
+	{
+		secRemaining = 0;
+	}
+	else
+	{
+		if (currentTime > xmit->fromTime)
+		{
+			secRemaining = xmit->toTime - currentTime;
+		}
+		else
+		{
+			secRemaining = xmit->toTime - xmit->fromTime;
+		}
+	}
+
+	loadScalar(&capacity, secRemaining);
+	multiplyScalar(&capacity, xmit->xmitRate);
+
+	/*	Compute aggregate capacity for this new xmit itself:
+	 *	its own capacity plus the aggregate capacities of all
+	 *	earlier xmits from the local node to this neighbor.	*/
+
+	copyScalar(&(xmit->aggrCapacity), &capacity);
+	if (prevXmit)
+	{
+		addToScalar(&(xmit->aggrCapacity), &(prevXmit->aggrCapacity));
+	}
+
+	/*	Fwd-propagate the change in aggregate capacity.		*/
+
+	for (elt = nextElt; elt; elt = sm_list_next(ionwm, elt))
+	{
+		xmit = (IonXmit *) psp(ionwm, sm_list_data(ionwm, elt));
+		REQUIRE(xmit);
+		if (xmit->origin == originAddr)
+		{
+			addToScalar(&(xmit->aggrCapacity), &capacity);
+		}
+	}
+}
+
+void	forgetXmit(IonNode *node, IonContact *contact)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	PsmAddress	addr;
+	IonXmit		*xmit;
+	PsmAddress	originAddr;
+	IonOrigin	*origin;
+	PsmAddress	nextElt;
+	Object		iondbObj;
+	IonDB		iondb;
+	time_t		currentTime;
+	int		secRemaining;
+	Scalar		capacity;
+
+	REQUIRE(node);
+	REQUIRE(contact);
+	for (elt = sm_list_first(ionwm, node->xmits); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		addr = sm_list_data(ionwm, elt);
+		xmit = (IonXmit *) psp(ionwm, addr);
+		REQUIRE(xmit);
+		if (xmit->fromTime > contact->fromTime)
+		{
+			return;		/*	Xmit not found.		*/
+		}
+
+		originAddr = xmit->origin;
+		origin = (IonOrigin *) psp(ionwm, originAddr);
+		REQUIRE(origin);
+		if (origin->nodeNbr == contact->fromNode)
+		{
+			if (xmit->fromTime == contact->fromTime)
+			{
+				break;	/*	Found the xmit.		*/
+			}
+		}
+	}
+
+	if (elt == 0)
+	{
+		return;			/*	Xmit not found.		*/
+	}
+
+	nextElt = sm_list_next(ionwm, elt);
+	sm_list_delete(ionwm, elt, NULL, NULL);
+
+	/*	If node is a neighbor, must note this removal in
+	 *	the aggregated capacities of all subsequent xmits
+	 *	from the local node to this neighbor.			*/
+
+	iondbObj = getIonDbObject();
+	sdr_read(getIonsdr(), (char *) &iondb, iondbObj, sizeof(IonDB));
+	if (origin->nodeNbr != iondb.ownNodeNbr)
+	{
+		/*	Node isn't a neighbor, capacity doesn't matter.	*/
+
+		psm_free(ionwm, addr);
+		return;
+	}
+
+	/*	Compute amount of transmission capacity lost.		*/
+
+	currentTime = getUTCTime();
+	if (currentTime > xmit->toTime)
+	{
+		secRemaining = 0;
+	}
+	else
+	{
+		if (currentTime > xmit->fromTime)
+		{
+			secRemaining = xmit->toTime - currentTime;
+		}
+		else
+		{
+			secRemaining = xmit->toTime - xmit->fromTime;
+		}
+	}
+
+	loadScalar(&capacity, secRemaining);
+	multiplyScalar(&capacity, xmit->xmitRate);
+	psm_free(ionwm, addr);
+
+	/*	Fwd-propagate the change in aggregate capacity.		*/
+
+	for (elt = nextElt; elt; elt = sm_list_next(ionwm, elt))
+	{
+		xmit = (IonXmit *) psp(ionwm, sm_list_data(ionwm, elt));
+		REQUIRE(xmit);
+		if (xmit->origin == originAddr)
+		{
+			subtractFromScalar(&(xmit->aggrCapacity), &capacity);
+		}
+	}
+}
+
+void	addSnub(IonNode *node, unsigned long neighborNodeNbr)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	nextElt;
+	PsmAddress	elt;
+	IonSnub		*snub;
+	PsmAddress	addr;
+
+	/*	Find insertion point in snubs list.			*/
+
+	REQUIRE(node);
+	nextElt = 0;
+	for (elt = sm_list_first(ionwm, node->snubs); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		snub = (IonSnub *) psp(ionwm, sm_list_data(ionwm, elt));
+		REQUIRE(snub);
+		if (snub->nodeNbr < neighborNodeNbr)
+		{
+			continue;
+		}
+
+		if (snub->nodeNbr > neighborNodeNbr)
+		{
+			nextElt = elt;
+			break;	/*	Have found insertion point.	*/
+		}
+
+		return;		/*	Snub has already been added.	*/
+	}
+
+	addr = psm_zalloc(ionwm, sizeof(IonSnub));
+	if (addr == 0)
+	{
+		putErrmsg("Can't add snub.", NULL);
+		return;
+	}
+
+	if (nextElt)
+	{
+		elt = sm_list_insert_before(ionwm, nextElt, addr);
+	}
+	else
+	{
+		elt = sm_list_insert_last(ionwm, node->snubs, addr);
+	}
+
+	if (elt == 0)
+	{
+		psm_free(ionwm, addr);
+		putErrmsg("Can't add snub.", NULL);
+		return;
+	}
+
+	snub = (IonSnub *) psp(ionwm, addr);
+	REQUIRE(snub);
+	snub->nodeNbr = neighborNodeNbr;
+	snub->probeIsDue = 0;
+	postProbeEvent(node, snub);	/*	Initial probe event.	*/
+}
+
+void	removeSnub(IonNode *node, unsigned long neighborNodeNbr)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	PsmAddress	addr;
+	IonSnub		*snub;
+
+	REQUIRE(node);
+	for (elt = sm_list_first(ionwm, node->snubs); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		addr = sm_list_data(ionwm, elt);
+		snub = (IonSnub *) psp(ionwm, addr);
+		REQUIRE(snub);
+		if (snub->nodeNbr < neighborNodeNbr)
+		{
+			continue;
+		}
+
+		if (snub->nodeNbr > neighborNodeNbr)
+		{
+			return;	/*	Snub not found.			*/
+		}
+
+		break;		/*	Found the snub to remove.	*/
+	}
+
+	if (elt == 0)
+	{
+		return;			/*	Snub not found.		*/
+	}
+
+	sm_list_delete(ionwm, elt, NULL, NULL);
+	psm_free(ionwm, addr);
+}
+
+PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	addr;
+	IonProbe	*probe;
+	IonVdb		*ionvdb;
+	IonNeighbor	*neighbor;
+	PsmAddress	nextElt;
+	unsigned int	rtlt;		/*	Round-trip light time.	*/
+	int		interval = 6;	/*	Minimum 6-sec interval.	*/
+	PsmAddress	elt;
+	IonProbe	*pr;
+
+	REQUIRE(node);
+	REQUIRE(snub);
+	addr = psm_zalloc(ionwm, sizeof(IonProbe));
+	if (addr == 0)
+	{
+		putErrmsg("Can't create probe event.", NULL);
+		return 0;
+	}
+
+	probe = (IonProbe *) psp(ionwm, addr);
+	REQUIRE(probe);
+	probe->time = getUTCTime();
+	probe->destNodeNbr = node->nodeNbr;
+	probe->neighborNodeNbr = snub->nodeNbr;
+
+	/*	Schedule next probe of this snubbing neighbor for the
+	 *	time that is the current time plus 4x the one-way
+	 *	light time from the local node to the neighbor (but
+	 *	at least 6 seconds).					*/
+	 
+	ionvdb = getIonVdb();
+	neighbor = findNeighbor(ionvdb, snub->nodeNbr, &nextElt);
+	if (neighbor)
+	{
+		rtlt = (neighbor->owlt) << 2;
+		if (rtlt > interval)
+		{
+			interval = rtlt;
+		}
+	}
+
+	probe->time += interval;
+	for (elt = sm_list_last(ionwm, ionvdb->probes); elt;
+			elt = sm_list_prev(ionwm, elt))
+	{
+		pr = (IonProbe *) psp(ionwm, sm_list_data(ionwm, elt));
+		REQUIRE(pr);
+		if (pr->time <= probe->time)
+		{
+			return sm_list_insert_after(ionwm, elt, addr);
+		}
+	}
+
+	return sm_list_insert_first(ionwm, ionvdb->probes, addr);
+}
+
+void	checkForCongestion()
+{
+	time_t		forecastTime;
+	PsmPartition	ionwm;
+	int		ionMemIdx;
+	Lyst		neighbors;
+	Lyst		changes;
+	Sdr		sdr;
+	Object		iondbObj;
+	IonDB		iondb;
+	long		maxForecastOccupancy;
+	long		maxForecastInTransit;
+	long		netGrowthPerSec;
+	IonVdb		*ionvdb;
+	PsmAddress	elt1;
+	IonNeighbor	*neighbor;
+	Object		elt2;
+	IonContact	contact;
+	unsigned long	neighborNodeNbr;
+	LystElt		elt3;
+	IonNeighbor	*np = NULL;
+	RateChange	*newChange;
+	LystElt		elt4;
+	RateChange	*change;
+	time_t		alarmTime = 0;
+	long		delta;
+	char		timestampBuffer[TIMESTAMPBUFSZ];
+	char		alarmBuffer[TIMESTAMPBUFSZ + 32];
+
+	forecastTime = getUTCTime();
+	ionwm = getIonwm();
+	ionMemIdx = getIonMemoryMgr();
+	neighbors = lyst_create_using(ionMemIdx);
+	changes = lyst_create_using(ionMemIdx);
+	if (neighbors == NULL || changes == NULL)
+	{
+		return;			/*	Out of memory.		*/
+	}
+
+	sdr = getIonsdr();
+	iondbObj = getIonDbObject();
+	sdr_begin_xn(sdr);
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+       	maxForecastOccupancy = iondb.currentOccupancy;
+       	maxForecastInTransit = iondb.currentOccupancy;
+	netGrowthPerSec = iondb.productionRate - iondb.consumptionRate;
+	ionvdb = getIonVdb();
+	for (elt1 = sm_list_first(ionwm, ionvdb->neighbors); elt1;
+			elt1 = sm_list_next(ionwm, elt1))
+	{
+		neighbor = (IonNeighbor*) psp(ionwm, sm_list_data(ionwm, elt1));
+		REQUIRE(neighbor);
+		netGrowthPerSec += neighbor->recvRate;
+		netGrowthPerSec -= neighbor->xmitRate;
+		np = (IonNeighbor *) MTAKE(sizeof(IonNeighbor));
+		if (np == NULL)
+		{
+			sdr_cancel_xn(sdr);
+			return;		/*	Out of memory.		*/
+		}
+
+		memcpy((char *) np, (char *) neighbor, sizeof(IonNeighbor));
+		if (lyst_insert_last(neighbors, np) == NULL)
+		{
+			sdr_cancel_xn(sdr);
+			return;		/*	Out of memory.		*/
+		}
+	}
+
+	/*	Have now got *current* occupancy and growth rate.
+	 *	Next, extract list of all relevant growth rate changes.	*/
+
+	for (elt2 = sdr_list_first(sdr, iondb.contacts); elt2;
+			elt2 = sdr_list_next(sdr, elt2))
+	{
+		sdr_read(sdr, (char *) &contact, sdr_list_data(sdr, elt2),
+				sizeof(IonContact));
+		if (contact.toTime < forecastTime)
+		{
+			continue;	/*	Happened in the past.	*/
+		}
+
+		if (contact.fromNode == contact.toNode)
+		{
+			/*	This is a loopback contact, which
+			 *	has no net effect on congestion.
+			 *	Ignore it.				*/
+
+			continue;
+		}
+
+		if (contact.fromNode == iondb.ownNodeNbr)
+		{
+			neighborNodeNbr = contact.toNode;
+		}
+		else if (contact.toNode == iondb.ownNodeNbr)
+		{
+			neighborNodeNbr = contact.fromNode;
+		}
+		else
+		{
+			continue;	/*	Don't care about this.	*/
+		}
+
+		/*	Find affected neighbor; add if necessary.	*/
+
+		for (elt3 = lyst_first(neighbors); elt3; elt3 = lyst_next(elt3))
+		{
+			np = (IonNeighbor *) lyst_data(elt3);
+			if (np->nodeNbr == neighborNodeNbr)
+			{
+				break;
+			}
+		}
+
+		if (elt3 == NULL)	/*	This is a new neighbor.	*/
+		{
+			np = (IonNeighbor *) MTAKE(sizeof(IonNeighbor));
+			if (np == NULL)
+			{
+				sdr_cancel_xn(sdr);
+				return;	/*	Out of memory.		*/
+			}
+
+			memset((char *) np, 0, sizeof(IonNeighbor));
+			np->nodeNbr = neighborNodeNbr;
+			if (lyst_insert_last(neighbors, np) == NULL)
+			{
+				sdr_cancel_xn(sdr);
+				return;	/*	Out of memory.		*/
+			}
+		}
+
+		/*	Now insert rate change(s).			*/
+
+		if (contact.fromTime < forecastTime)
+		{
+			/*	The start of this contact is already
+			 *	reflected in current netGrowthPerSec,
+			 *	so ignore it; just prepare for adding
+			 *	RateChange for end of contact.		*/
+
+			elt4 = lyst_first(changes);
+		}
+		else
+		{
+			/*	Insert RateChange for start of contact.	*/
+
+			newChange = (RateChange *) MTAKE(sizeof(RateChange));
+			if (newChange == NULL)
+			{
+				sdr_cancel_xn(sdr);
+				return;		/*	Out of memory.	*/
+			}
+
+			newChange->time = contact.fromTime;
+			newChange->xmitRate = contact.xmitRate;
+			if (contact.fromNode == iondb.ownNodeNbr)
+			{
+				newChange->fromNeighbor = 0;
+				newChange->prevXmitRate = np->xmitRate;
+			}
+			else
+			{
+				newChange->fromNeighbor = 1;
+				newChange->prevXmitRate = np->recvRate;
+			}
+
+			for (elt4 = lyst_first(changes); elt4;
+				elt4 = lyst_next(elt4))
+			{
+				change = (RateChange *) lyst_data(elt4);
+				if (change->time > newChange->time)
+				{
+					break;
+				}
+			}
+
+			if (elt4)
+			{
+				elt4 = lyst_insert_before(elt4, newChange);
+			}
+			else
+			{
+				elt4 = lyst_insert_last(changes, newChange);
+			}
+
+			if (elt4 == NULL)
+			{
+				sdr_cancel_xn(sdr);
+				return;	/*	Out of memory.		*/
+			}
+		}
+
+		/*	Insert RateChange for end of contact.	*/
+
+		newChange = (RateChange *) MTAKE(sizeof(RateChange));
+		if (newChange == NULL)
+		{
+			sdr_cancel_xn(sdr);
+			return;		/*	Out of memory.		*/
+		}
+
+		newChange->time = contact.toTime;
+		newChange->xmitRate = 0;
+		if (contact.fromNode == iondb.ownNodeNbr)
+		{
+			newChange->fromNeighbor = 0;
+			newChange->prevXmitRate = np->xmitRate;
+		}
+		else
+		{
+			newChange->fromNeighbor = 1;
+			newChange->prevXmitRate = np->recvRate;
+		}
+
+		while (elt4)
+		{
+			change = (RateChange *) lyst_data(elt4);
+			if (change->time > newChange->time)
+			{
+				break;
+			}
+
+			elt4 = lyst_next(elt4);
+		}
+
+		if (elt4)
+		{
+			elt4 = lyst_insert_before(elt4, newChange);
+		}
+		else
+		{
+			elt4 = lyst_insert_last(changes, newChange);
+		}
+
+		if (elt4 == NULL)
+		{
+			sdr_cancel_xn(sdr);
+			return;		/*	Out of memory.		*/
+		}
+	}
+
+	/*	Now revise occupancy level over time as growth occurs
+	 *	and growth rates change.				*/
+
+	for (elt4 = lyst_first(changes); elt4; elt4 = lyst_next(elt4))
+	{
+		change = (RateChange *) lyst_data(elt4);
+
+		/*	Let occupancy level change per current rate
+		 *	up to time of next rate change.			*/
+
+		while (forecastTime < change->time)
+		{
+			forecastTime++;
+			if (iondb.horizon > 0 && forecastTime > iondb.horizon)
+			{
+				break;	/*	Stop advancing time.	*/
+			}
+
+			maxForecastOccupancy += netGrowthPerSec;
+			if (maxForecastOccupancy < 0)
+			{
+				maxForecastOccupancy = 0;
+			}
+
+			/*	The in-transit high-water mark is the
+			 *	total occupancy high-water mark less
+			 *	the estimated occupancy due to local
+			 *	bundle origination, i.e. all bundles
+			 *	originating at other nodes that were
+			 *	received at this node and have not yet
+			 *	been either forwarded or delivered.
+			 *	It constitutes the available margin
+			 *	for local bundle origination and, as
+			 *	such, is the basis for local bundle
+			 *	admission control.			*/
+
+			maxForecastInTransit +=
+				(netGrowthPerSec - iondb.productionRate);
+			if (maxForecastInTransit < 0)
+			{
+				maxForecastInTransit = 0;
+			}
+
+			if (maxForecastOccupancy > iondb.occupancyCeiling
+			&& alarmTime == 0)
+			{
+				alarmTime = forecastTime;
+				break;	/*	Stop advancing time.	*/
+			}
+		}
+
+		if ((iondb.horizon > 0 && forecastTime > iondb.horizon)
+		|| alarmTime != 0)
+		{
+			break;		/*	Stop forecast.		*/
+		}
+
+		/*	Forecast time has caught up to time of change.	*/
+
+		delta = change->xmitRate - change->prevXmitRate;
+		if (change->fromNeighbor)
+		{
+			netGrowthPerSec += delta;
+		}
+		else
+		{
+			netGrowthPerSec -= delta;
+		}
+	}
+
+	/*	Have determined final net growth rate as of end of
+	 *	last scheduled contact.					*/
+
+	if (netGrowthPerSec > 0 && alarmTime == 0)
+	{
+		/*	Unconstrained growth; will max out eventually,
+		 *	just need to determine when.			*/
+
+		while (1)
+		{
+			forecastTime++;
+			if (iondb.horizon > 0 && forecastTime > iondb.horizon)
+			{
+				break;	/*	Stop forecast.		*/
+			}
+
+			maxForecastOccupancy += netGrowthPerSec;
+			if (maxForecastOccupancy > iondb.occupancyCeiling)
+			{
+				alarmTime = forecastTime;
+				break;
+			}
+
+			maxForecastInTransit +=
+				(netGrowthPerSec - iondb.productionRate);
+			if (maxForecastInTransit < 0)
+			{
+				maxForecastInTransit = 0;
+			}
+		}
+	}
+
+	if (alarmTime == 0)
+	{
+		writeMemo("[i] No congestion collapse predicted.");
+	}
+	else
+	{
+		/*	Have determined time at which occupancy limit
+		 *	will be exceeded.				*/
+
+		writeTimestampUTC(alarmTime, timestampBuffer);
+		sprintf(alarmBuffer, "[i] Congestion collapse forecast: %s.",
+				timestampBuffer);
+		writeMemo(alarmBuffer);
+		if (iondb.alarmScript)
+		{
+			sdr_string_read(sdr, alarmBuffer, iondb.alarmScript);
+			pseudoshell(alarmBuffer);
+		}
+	}
+
+	/*	In any case, update maxForecastOccupancy and InTransit.	*/
+
+	iondb.maxForecastOccupancy = maxForecastOccupancy;
+	iondb.maxForecastInTransit = maxForecastInTransit;
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Failed on check for congestion.", NULL);
+	}
+
+	/*	Release memory used for neighbors and changes lists.	*/
+
+	elt3 = lyst_first(neighbors);
+	while (elt3)
+	{
+		np = (IonNeighbor *) lyst_data(elt3);
+		MRELEASE(np);
+		lyst_delete(elt3);
+		elt3 = lyst_first(neighbors);
+	}
+
+	lyst_destroy(neighbors);
+	elt4 = lyst_first(changes);
+	while (elt4)
+	{
+		change = (RateChange *) lyst_data(elt4);
+		MRELEASE(change);
+		lyst_delete(elt4);
+		elt4 = lyst_first(changes);
+	}
+
+	lyst_destroy(changes);
+}
+
+Object	rfx_insert_contact(time_t fromTime, time_t toTime,
+		unsigned long fromNode, unsigned long toNode,
+		unsigned long xmitRate)
+{
+	Sdr		sdr;
+	Object		iondbObj;
+	IonDB		iondb;
+	Object		elt;
+	Object		obj;
+	IonContact	contact;
+	Object		newElt = 0;
+	IonVdb		*ionvdb;
+	IonNode		*node;
+	PsmAddress	nextElt;
+
+	REQUIRE(toTime > fromTime);
+	sdr = getIonsdr();
+	iondbObj = getIonDbObject();
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_begin_xn(sdr);
+	for (elt = sdr_list_first(sdr, iondb.contacts); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
+		if (contact.fromTime < fromTime)
+		{
+			continue;
+		}
+
+		if (contact.fromTime > fromTime)
+		{
+			break;
+		}
+
+		if (contact.fromNode < fromNode)
+		{
+			continue;
+		}
+
+		if (contact.fromNode > fromNode)
+		{
+			break;
+		}
+
+		if (contact.toNode < toNode)
+		{
+			continue;
+		}
+
+		if (contact.toNode > toNode)
+		{
+			break;
+		}
+
+		/*	Contact has been located in database.		*/
+
+		sdr_cancel_xn(sdr);
+		if (contact.xmitRate == xmitRate)
+		{
+			return elt;
+		}
+
+		putErrmsg("Current data rate for this interval not revised.",
+				utoa(contact.xmitRate));
+		return 0;
+	}
+
+	/*	Contact isn't already in database; okay to add.		*/
+
+	contact.fromTime = fromTime;
+	contact.toTime = toTime;
+	contact.fromNode = fromNode;
+	contact.toNode = toNode;
+	contact.xmitRate = xmitRate;
+	obj = sdr_malloc(sdr, sizeof(IonContact));
+	if (obj)
+	{
+		sdr_write(sdr, obj, (char *) &contact, sizeof(IonContact));
+		if (elt)
+		{
+			newElt = sdr_list_insert_before(sdr, elt, obj);
+		}
+		else
+		{
+			newElt = sdr_list_insert_last(sdr, iondb.contacts, obj);
+		}
+	}
+
+	/*	If contact bears on routing, note xmit.			*/
+
+	if (toNode != iondb.ownNodeNbr		/*	To remote node.	*/
+	|| fromNode == iondb.ownNodeNbr)	/*	Loopback.	*/
+	{
+		ionvdb = getIonVdb();
+		node = findNode(ionvdb, contact.toNode, &nextElt);
+		if (node == NULL)
+		{
+			node = addNode(ionvdb, contact.toNode, nextElt);
+			if (node == NULL)
+			{
+				sdr_cancel_xn(sdr);
+				putErrmsg("Can't add xmit.", NULL);
+				return 0;
+			}
+		}
+
+		noteXmit(node, &contact);
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't insert contact.", NULL);
+		return 0;
+	}
+
+	return newElt;
+}
+
+char	*rfx_print_contact(Object obj, char *buffer)
+{
+	Sdr		sdr;
+	IonContact	contact;
+	char		fromTimeBuffer[TIMESTAMPBUFSZ];
+	char		toTimeBuffer[TIMESTAMPBUFSZ];
+
+	REQUIRE(obj);
+	REQUIRE(buffer);
+	sdr = getIonsdr();
+	sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
+	writeTimestampUTC(contact.fromTime, fromTimeBuffer);
+	writeTimestampUTC(contact.toTime, toTimeBuffer);
+	sprintf(buffer, "From %20s to %20s the xmit rate from node %10lu to \
+node %10lu is %10lu bytes/sec.", fromTimeBuffer, toTimeBuffer, contact.fromNode,
+			contact.toNode, contact.xmitRate);
+	return buffer;
+}
+
+void	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
+		unsigned long toNode)
+{
+	Sdr		sdr;
+	Object		iondbObj;
+	IonDB		iondb;
+	Object		elt;
+	Object		obj;
+	IonContact	contact;
+	IonVdb		*ionvdb;
+	IonNode		*node;
+	PsmAddress	nextElt;
+
+	sdr = getIonsdr();
+	iondbObj = getIonDbObject();
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_begin_xn(sdr);
+	for (elt = sdr_list_first(sdr, iondb.contacts); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
+		if (contact.fromTime < fromTime)
+		{
+			continue;
+		}
+
+		if (contact.fromTime > fromTime)
+		{
+			break;
+		}
+
+		if (contact.fromNode < fromNode)
+		{
+			continue;
+		}
+
+		if (contact.fromNode > fromNode)
+		{
+			break;
+		}
+
+		if (contact.toNode < toNode)
+		{
+			continue;
+		}
+
+		if (contact.toNode > toNode)
+		{
+			break;
+		}
+
+		/*	Contact has been located in database.		*/
+
+		sdr_free(sdr, obj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
+
+		/*	If recipient is another node, remove xmit.	*/
+
+		if (toNode != iondb.ownNodeNbr)
+		{
+			ionvdb = getIonVdb();
+			node = findNode(ionvdb, toNode, &nextElt);
+			if (node)
+			{
+				forgetXmit(node, &contact);
+			}
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't remove contact.", NULL);
+		}
+
+		return;
+	}
+
+	sdr_cancel_xn(sdr);
+	putErrmsg("Contact not found in database.", NULL);
+}
+
+Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
+		unsigned long toNode, unsigned int owlt)
+{
+	unsigned long	nodeNbr;
+	Sdr		sdr;
+	Object		iondbObj;
+	IonDB		iondb;
+	Object		elt;
+	Object		obj;
+	IonRange	range;
+	Object		newElt = 0;
+
+	if (fromNode == toNode)
+	{
+		return 0;	/*	Loopback OWLT is always zero.	*/
+	}
+
+	REQUIRE(toTime > fromTime);
+	if (fromNode > toNode)	/*	Convert to canonical form.	*/
+	{
+		nodeNbr = fromNode;
+		fromNode = toNode;
+		toNode = nodeNbr;
+	}
+
+	sdr = getIonsdr();
+	iondbObj = getIonDbObject();
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_begin_xn(sdr);
+	for (elt = sdr_list_first(sdr, iondb.ranges); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
+		if (range.fromTime < fromTime)
+		{
+			continue;
+		}
+
+		if (range.fromTime > fromTime)
+		{
+			break;
+		}
+
+		if (range.fromNode < fromNode)
+		{
+			continue;
+		}
+
+		if (range.fromNode > fromNode)
+		{
+			break;
+		}
+
+		if (range.toNode < toNode)
+		{
+			continue;
+		}
+
+		if (range.toNode > toNode)
+		{
+			break;
+		}
+
+		/*	Range has been located in database.		*/
+
+		sdr_cancel_xn(sdr);
+		if (range.owlt == owlt)
+		{
+			return elt;
+		}
+
+		putErrmsg("Current range for this interval not revised.",
+				utoa(range.owlt));
+		return 0;
+	}
+
+	/*	Range isn't already in database; okay to add.		*/
+
+	range.fromTime = fromTime;
+	range.toTime = toTime;
+	range.fromNode = fromNode;
+	range.toNode = toNode;
+	range.owlt = owlt;
+	obj = sdr_malloc(sdr, sizeof(IonRange));
+	if (obj)
+	{
+		sdr_write(sdr, obj, (char *) &range, sizeof(IonRange));
+		if (elt)
+		{
+			newElt = sdr_list_insert_before(sdr, elt, obj);
+		}
+		else
+		{
+			newElt = sdr_list_insert_last(sdr, iondb.ranges, obj);
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't insert range.", NULL);
+		return 0;
+	}
+
+	return newElt;
+}
+
+char	*rfx_print_range(Object obj, char *buffer)
+{
+	Sdr		sdr;
+	IonRange	range;
+	char		fromTimeBuffer[TIMESTAMPBUFSZ];
+	char		toTimeBuffer[TIMESTAMPBUFSZ];
+
+	REQUIRE(obj);
+	REQUIRE(buffer);
+	sdr = getIonsdr();
+	sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
+	writeTimestampUTC(range.fromTime, fromTimeBuffer);
+	writeTimestampUTC(range.toTime, toTimeBuffer);
+	sprintf(buffer, "From %20s to %20s the OWLT from node %10lu to node \
+%10lu is %10u seconds.", fromTimeBuffer, toTimeBuffer, range.fromNode,
+			range.toNode, range.owlt);
+	return buffer;
+}
+
+void	rfx_remove_range(time_t fromTime, unsigned long fromNode,
+		unsigned long toNode)
+{
+	Sdr		sdr;
+	Object		iondbObj;
+	IonDB		iondb;
+	Object		elt;
+	Object		obj;
+	IonRange	range;
+
+	sdr = getIonsdr();
+	iondbObj = getIonDbObject();
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_begin_xn(sdr);
+	for (elt = sdr_list_first(sdr, iondb.ranges); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
+		if (range.fromTime < fromTime)
+		{
+			continue;
+		}
+
+		if (range.fromTime > fromTime)
+		{
+			break;
+		}
+
+		if (range.fromNode < fromNode)
+		{
+			continue;
+		}
+
+		if (range.fromNode > fromNode)
+		{
+			break;
+		}
+
+		if (range.toNode < toNode)
+		{
+			continue;
+		}
+
+		if (range.toNode > toNode)
+		{
+			break;
+		}
+
+		/*	Range has been located in database.		*/
+
+		sdr_free(sdr, obj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't remove range.", NULL);
+		}
+
+		return;
+	}
+
+	sdr_cancel_xn(sdr);
+	putErrmsg("Range not found in database.", NULL);
+}
+
+int	rfx_start()
+{
+	Sdr		sdr;
+	IonVdb		*vdb;
+	Object		iondbObj;
+	IonDB		iondb;
+	Object		elt;
+	Object		obj;
+	IonContact	contact;
+	IonNode		*node;
+	PsmAddress	nextElt;
+
+	sdr = getIonsdr();
+	vdb = getIonVdb();
+
+	/*	Reload all xmit objects, as necessary.			*/
+
+	iondbObj = getIonDbObject();
+	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	for (elt = sdr_list_first(sdr, iondb.contacts); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
+
+		/*	If contact bears on routing, note xmit.		*/
+
+		if (contact.toNode != iondb.ownNodeNbr
+		|| contact.fromNode == iondb.ownNodeNbr)
+		{
+			node = findNode(vdb, contact.toNode, &nextElt);
+			if (node == NULL)
+			{
+				node = addNode(vdb, contact.toNode, nextElt);
+				if (node == NULL)
+				{
+					sdr_cancel_xn(sdr);
+					putErrmsg("Can't reload xmit.", NULL);
+					return 0;
+				}
+			}
+
+			noteXmit(node, &contact);
+		}
+	}
+
+	/*	Start the rfx clock if necessary.			*/
+
+	if (vdb->clockPid < 1 || sm_TaskExists(vdb->clockPid) == 0)
+	{
+		vdb->clockPid = pseudoshell("rfxclock");
+	}
+
+	sdr_cancel_xn(sdr);	/*	Unlock memory.			*/
+	return 0;
+}
+
+void	rfx_stop()
+{
+	IonVdb	*vdb;
+
+	vdb = getIonVdb();
+	if (vdb->clockPid > 0)
+	{
+		sm_TaskKill(vdb->clockPid, SIGTERM);
+		while (sm_TaskExists(vdb->clockPid))
+		{
+			microsnooze(100000);
+		}
+
+		vdb->clockPid = -1;
+	}
+}

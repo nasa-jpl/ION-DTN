@@ -1,0 +1,220 @@
+/*
+
+	psmshell.c:	a "psm" memory allocation test driver.
+
+									*/
+/*									*/
+/*	Copyright (c) 1997, California Institute of Technology.		*/
+/*	All rights reserved.						*/
+/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
+/*									*/
+
+#include <platform.h>
+#include <psm.h>
+
+#define CELL_COUNT	100
+
+static int	run_psmshell(short partitionSize)
+{
+	unsigned int	length;
+	char		*space;
+	PsmAddress	*cells;		/*	Array.			*/
+	PsmPartition	partition = NULL;
+	char		line[256];
+	int		count;
+	char		command;
+	PsmUsageSummary	summary;
+	int		cell;
+	unsigned int	size;
+
+	if (sm_ipc_init() < 0)
+	{
+		writeErrmsgMemos();
+		puts("IPC initialization failed.");
+		return 0;
+	}
+
+	length = 1024 * partitionSize;
+	printf("psmshell: partition size is %u\n", length);
+	space = calloc(1, length);
+	if (space == NULL)
+	{
+		puts("psmshell: can't allocate space; quitting");
+		return 0;
+	}
+
+	cells = (PsmAddress *) calloc(CELL_COUNT, sizeof(PsmAddress));
+	if (cells == NULL)
+	{
+		free(space);
+		puts("psmshell: can't allocate test variables; quitting");
+		return 0;
+	}
+
+	if (psm_manage(space, length, "psmshell", &partition) == Refused)
+	{
+		free(space);
+		free(cells);
+		return 1;
+	}
+
+	while (1)
+	{
+		printf(": ");
+		if (fgets(line, 256, stdin) == NULL)
+		{
+			perror("psmshell fgets failed");
+			psm_erase(partition);
+			free(space);
+			free(cells);
+			return 1;
+		}
+
+		count = sscanf(line, "%c %d %d", &command, &cell, &size);
+		switch (count)
+		{
+		case 0:
+			puts("psmshell: empty line ignored");
+			continue;
+
+		case 1:
+			switch (command)
+			{
+			case 'h':
+			case '?':
+				puts("psmshell valid commands are:");
+				puts("   malloc - m <cell nbr> <size>");
+				puts("   zalloc - z <cell nbr> <size>");
+				puts("   print  - p <cell nbr>");
+				puts("   free   - f <cell nbr>");
+				puts("   panic  - !");
+				puts("   relax  - .");
+				puts("   usage  - u");
+				puts("   help   - h or ?");
+				puts("   quit   - q");
+				continue;
+
+			case '!':
+				psm_panic(partition);
+				continue;
+
+			case '.':
+				psm_relax(partition);
+				continue;
+
+			case 'u':
+				psm_usage(partition, &summary);
+				psm_report(&summary);
+				continue;
+
+			case 'q':
+				psm_unmanage(partition);
+				free(space);
+				free(cells);
+				return 0;
+
+			default:
+				puts("psmshell: invalid command");
+				continue;
+			}
+
+		case 2:
+			if (cell < 0 || cell >= CELL_COUNT)
+			{
+				printf("psmshell: cell nbr must be 0-%d\n",
+						CELL_COUNT - 1);
+				continue;
+			}
+
+			switch (command)
+			{
+			case 'f':
+				psm_free(partition, cells[cell]);
+				cells[cell] = 0;
+				break;
+
+			case 'p':
+				printf("0x%lx\n", cells[cell]);
+				break;
+
+			default:
+				puts("psmshell: invalid command");
+			}
+
+			continue;
+
+		case 3:
+			if (cell < 0 || cell >= CELL_COUNT)
+			{
+				printf("psmshell: cell nbr must be 0-%d\n",
+						CELL_COUNT - 1);
+				continue;
+			}
+
+			if (cells[cell])
+			{
+				puts("psmshell: no allocation, cell not empty");
+				continue;
+			}
+
+			switch (command)
+			{
+			case 'm':
+				cells[cell] = psm_malloc(partition, size);
+				if (cells[cell] == 0)
+				{
+					puts("psmshell: allocation failed");
+					cells[cell] = 0;
+				}
+				else
+				{
+					memset(psp(partition, cells[cell]),
+							0, size);
+				}
+
+				continue;
+
+			case 'z':
+				cells[cell] = psm_zalloc(partition, size);
+				if (cells[cell] == 0)
+				{
+					puts("psmshell: allocation failed");
+					cells[cell] = 0;
+				}
+				else
+				{
+					memset(psp(partition, cells[cell])
+							, 0, size);
+				}
+
+				continue;
+			}
+
+			/*	Deliberate fall-through to default.	*/
+
+		default:
+			puts("psmshell: invalid command");
+		}
+	}
+}
+
+#if defined (VXWORKS) || defined (RTEMS)
+int	psmshell(int a1, int a2, int a3, int a4, int a5,
+		int a6, int a7, int a8, int a9, int a10)
+{
+	short	partitionSize = a1;
+#else
+int	main(int argc, char **argv)
+{
+	short	partitionSize;
+
+	if (argc < 2)
+	{
+		puts("Usage: psmshell <partition size in kilobytes>");
+		return 0;
+	}
+
+	partitionSize = atoi(argv[1]);
+#endif
+	return run_psmshell(partitionSize);
+}
