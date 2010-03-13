@@ -91,8 +91,9 @@ int	main(int argc, char **argv)
 		switch (type)
 		{
 		case LtpExportSessionCanceled:
-			sprintf(buffer, "Transmission canceled: source engine \
-%lu, session %lu, reason code %d.", sessionId.sourceEngineId,
+			isprintf(buffer, sizeof buffer, "Transmission \
+canceled: source engine %lu, session %lu, reason code %d.",
+					sessionId.sourceEngineId,
 					sessionId.sessionNbr, reasonCode);
 			writeMemo(buffer);
 			if (data)
@@ -103,19 +104,18 @@ int	main(int argc, char **argv)
 			break;
 
 		case LtpImportSessionCanceled:
-sessionsCanceled++;
-			sprintf(buffer, "Reception canceled: source engine \
-%lu, session %lu, reason code %d.", sessionId.sourceEngineId,
+			sessionsCanceled++;
+			isprintf(buffer, sizeof buffer, "Reception canceled: \
+source engine %lu, session %lu, reason code %d.", sessionId.sourceEngineId,
 					sessionId.sessionNbr, reasonCode);
 			writeMemo(buffer);
 			break;
 
 		case LtpRecvGreenSegment:
-			sprintf(buffer, "Green segment received, discarded: \
-source engine %lu, session %lu, offset %lu, length %lu, eob=%d.",
-					sessionId.sourceEngineId,
-					sessionId.sessionNbr,
-					dataOffset, dataLength, endOfBlock);
+			isprintf(buffer, sizeof buffer, "Green segment \
+received, discarded: source engine %lu, session %lu, offset %lu, length %lu, \
+eob=%d.", sessionId.sourceEngineId, sessionId.sessionNbr, dataOffset,
+					dataLength, endOfBlock);
 			writeMemo(buffer);
 			ltp_release_data(data);
 			break;

@@ -49,12 +49,10 @@ typedef struct
 static void	sptracePrint(char *txt)
 {
 	char	buffer[256];
-	int	len;
 
-	memset(buffer, 0, sizeof buffer);
-	len = sprintf(buffer, "sptrace (pid %d) ", sm_TaskIdSelf());
-	strncpy(buffer + len, txt, sizeof buffer - (len + 1));
-	putErrmsg(buffer, NULL);
+	isprintf(buffer, sizeof buffer, "sptrace (pid %d) %s", sm_TaskIdSelf(),
+			txt);
+	writeMemo(buffer);
 }
 
 PsmPartition	sptrace_start(int smkey, int smsize, char *sm,
@@ -62,15 +60,15 @@ PsmPartition	sptrace_start(int smkey, int smsize, char *sm,
 {
 	int		nameLen;
 	int		smid;
+	PsmMgtOutcome	outcome;
 	TraceHeader	*trh;
 	PsmAddress	traceHeaderAddress;
 
-	REQUIRE(trace);
-	REQUIRE(smsize > 0);
-	REQUIRE(name);
+	CHKNULL(trace);
+	CHKNULL(smsize > 0);
+	CHKNULL(name);
 	if ((nameLen = strlen(name)) < 1 || nameLen > 31)
 	{
-		errno = EINVAL;
 		sptracePrint("start: name must be 1-31 characters.");
 		return NULL;
 	}
@@ -79,24 +77,29 @@ PsmPartition	sptrace_start(int smkey, int smsize, char *sm,
 
 	if (sm_ShmAttach(smkey, smsize, &sm, &smid) < 0)
 	{
-		sptracePrint("start: can't attach shared memory for trace");
+		sptracePrint("start: can't attach shared memory for trace.");
 		return NULL;
 	}
 
 	/*	Manage the shared memory region.  "Trace" argument
 	 *	is normally NULL.					*/
 
-	switch (psm_manage(sm, smsize, name, &trace))
+	if (psm_manage(sm, smsize, name, &trace, &outcome) < 0)
+	{
+		sptracePrint("start: shared memory mgt failed.");
+		return NULL;
+	}
+
+	switch (outcome)
 	{
 	case Refused:
-		sptracePrint("start: can't psm_manage shared memory");
+		sptracePrint("start: can't psm_manage shared memory.");
 		return NULL;
 
 	case Redundant:
 		trh = (TraceHeader *) psp(trace, psm_get_root(trace));
 		if (trh == NULL || strcmp(name, trh->name) != 0)
 		{
-			errno = EINVAL;
 			sptracePrint("start: shared memory used otherwise.");
 			return NULL;
 		}
@@ -120,10 +123,10 @@ PsmPartition	sptrace_start(int smkey, int smsize, char *sm,
 
 	oK(psm_set_root(trace, traceHeaderAddress));
 	trh = (TraceHeader *) psp(trace, traceHeaderAddress);
-	REQUIRE(trh);
+	CHKNULL(trh);
 	trh->traceSmId = smid;
 	memset(trh->name, 0, sizeof trh->name);
-	strcpy(trh->name, name);
+	istrcpy(trh->name, name, sizeof trh->name);
 	trh->opCount = 0;
 	trh->files = sm_list_create(trace);
 	if (trh->files == 0)
@@ -151,14 +154,14 @@ PsmPartition	sptrace_join(int smkey, int smsize, char *sm,
 {
 	int		nameLen;
 	int		smid;
+	PsmMgtOutcome	outcome;
 	TraceHeader	*trh;
 
-	REQUIRE(trace);
-	REQUIRE(smsize > 0);
-	REQUIRE(name);
+	CHKNULL(trace);
+	CHKNULL(smsize > 0);
+	CHKNULL(name);
 	if ((nameLen = strlen(name)) < 1 || nameLen > 31)
 	{
-		errno = EINVAL;
 		sptracePrint("start: name must be 1-31 characters.");
 		return NULL;
 	}
@@ -167,23 +170,28 @@ PsmPartition	sptrace_join(int smkey, int smsize, char *sm,
 
 	if (sm_ShmAttach(smkey, smsize, (char **) &sm, &smid) < 0)
 	{
-		sptracePrint("join: can't attach shared memory for trace");
+		sptracePrint("join: can't attach shared memory for trace.");
 		return NULL;
 	}
 
 	/*	Examine the shared memory region.			*/
 
-	switch (psm_manage(sm, smsize, name, &trace))
+	if (psm_manage(sm, smsize, name, &trace, &outcome) < 0)
+	{
+		sptracePrint("join: shared memory mgt failed.");
+		return NULL;
+	}
+
+	switch (outcome)
 	{
 	case Refused:
-		sptracePrint("join: can't psm_manage shared memory");
+		sptracePrint("join: can't psm_manage shared memory.");
 		return NULL;
 
 	case Redundant:
 		trh = (TraceHeader *) psp(trace, psm_get_root(trace));
 		if (trh == NULL || strcmp(name, trh->name) != 0)
 		{
-			errno = EINVAL;
 			sptracePrint("join: shared memory used otherwise.");
 			return NULL;
 		}
@@ -194,7 +202,6 @@ PsmPartition	sptrace_join(int smkey, int smsize, char *sm,
 		break;
 	}
 
-	errno = EINVAL;
 	sptracePrint("join: trace episode not yet started.");
 	return NULL;
 }
@@ -203,8 +210,8 @@ static void	discardEvent(PsmPartition trace)
 {
 	char	buffer[256];
 
-	sprintf(buffer, "sptrace (pid %d) logging: not enough memory for \
-trace, ignoring event.", sm_TaskIdSelf());
+	isprintf(buffer, sizeof buffer, "sptrace (pid %d) logging: not enough \
+memory for trace, ignoring event.", sm_TaskIdSelf());
 	writeMemo(buffer);
 }
 
@@ -214,6 +221,7 @@ static PsmAddress	findFileName(PsmPartition trace, TraceHeader *trh,
 	PsmAddress	elt;
 	PsmAddress	filenameAddress;
 	char		*filename;
+	int		buflen;
 
 	for (elt = sm_list_first(trace, trh->files); elt;
 			elt = sm_list_next(trace, elt))
@@ -228,7 +236,8 @@ static PsmAddress	findFileName(PsmPartition trace, TraceHeader *trh,
 
 	/*	This is a source file we haven't heard of before.	*/
 
-	filenameAddress = psm_zalloc(trace, strlen(sourceFileName) + 1);
+	buflen = strlen(sourceFileName) + 1;
+	filenameAddress = psm_zalloc(trace, buflen);
 	if (filenameAddress == 0)
 	{
 		discardEvent(trace);
@@ -237,7 +246,7 @@ static PsmAddress	findFileName(PsmPartition trace, TraceHeader *trh,
 
 	/*	Add this source file to the list for the trace.		*/
 
-	strcpy((char *) psp(trace, filenameAddress), sourceFileName);
+	istrcpy((char *) psp(trace, filenameAddress), sourceFileName, buflen);
 	if (sm_list_insert_last(trace, trh->files, filenameAddress) == 0)
 	{
 		discardEvent(trace);
@@ -255,6 +264,7 @@ static void	logEvent(PsmPartition trace, int opType, unsigned long
 	TraceHeader	*trh;
 	PsmAddress	itemAddr;
 	TraceItem	*item;
+	int		buflen;
 	PsmAddress	elt;
 
 	if (eltp)
@@ -276,14 +286,15 @@ static void	logEvent(PsmPartition trace, int opType, unsigned long
 	memset((char *) item, 0, sizeof(TraceItem));
 	if (msg)
 	{
-		item->msg = psm_zalloc(trace, strlen(msg) + 1);
+		buflen = strlen(msg) + 1;
+		item->msg = psm_zalloc(trace, buflen);
 		if (item->msg == 0)
 		{
 			discardEvent(trace);
 			return;
 		}
 
-		strcpy((char *) psp(trace, item->msg), msg);
+		istrcpy((char *) psp(trace, item->msg), msg, buflen);
 	}
 
 	item->taskId = sm_TaskIdSelf();
@@ -346,7 +357,7 @@ void	sptrace_log_free(PsmPartition trace, unsigned long addr,
 		{
 			refitem = (TraceItem *) psp(trace,
 					sm_list_data(trace, elt));
-			REQUIRE(refitem);
+			CHKVOID(refitem);
 			if (refitem->objectAddress != item->objectAddress)
 			{
 				elt = sm_list_prev(trace, elt);
@@ -389,29 +400,33 @@ void	sptrace_report(PsmPartition trace, int verbose)
 	TraceItem	*item;
 	char		*fileName;
 	char		buffer[384];
+	int		len;
 	char		buf2[256];
 
 	if (!trace) return;
 	traceHeaderAddress = psm_get_root(trace);
 	trh = (TraceHeader *) psp(trace, traceHeaderAddress);
-	REQUIRE(trh);
+	CHKVOID(trh);
 	for (elt = sm_list_first(trace, trh->log); elt;
 			elt = sm_list_next(trace, elt))
 	{
 		item = (TraceItem *) psp(trace, sm_list_data(trace, elt));
-		REQUIRE(item);
+		CHKVOID(item);
 		fileName = (char *) psp(trace, item->fileName);
-		sprintf(buffer, "(%5d) at line %6d of %32.32s (pid %5d): ",
-			item->opNbr, item->lineNbr, fileName, item->taskId);
+		isprintf(buffer, sizeof buffer, "(%5d) at line %6d of %32.32s \
+(pid %5d): ", item->opNbr, item->lineNbr, fileName, item->taskId);
+		len = strlen(buffer);
 		switch (item->opType)
 		{
 		case OP_ALLOCATE:
-			sprintf(buf2, "allocated object %6ld of size %6d, ",
-					item->objectAddress, item->objectSize);
-			strcat(buffer, buf2);
+			isprintf(buf2, sizeof buf2, "allocated object %6ld of \
+size %6d, ", item->objectAddress, item->objectSize);
+			istrcpy(buffer + len, buf2, sizeof buffer - len);
 			if (item->refOpNbr == 0)
 			{
-				strcat(buffer, "never freed");
+				len = strlen(buffer);
+				istrcpy(buffer + len, "never freed",
+						sizeof buffer - len);
 			}
 			else
 			{
@@ -420,29 +435,34 @@ void	sptrace_report(PsmPartition trace, int verbose)
 					continue;
 				}
 
+				len = strlen(buffer);
 				fileName = (char *) psp(trace,
 						item->refFileName);
-				sprintf(buf2, "freed in (%5d) at line %6d of \
-%32.32s (pid %5d)", item->refOpNbr, item->refLineNbr, fileName,
+				isprintf(buf2, sizeof buf2, "freed in (%5d) \
+at line %6d of %32.32s (pid %5d)", item->refOpNbr, item->refLineNbr, fileName,
 					 	item->refTaskId);
-				strcat(buffer, buf2);
+				istrcpy(buffer + len, buf2,
+						sizeof buffer - len);
 			}
 
 			break;
 
 		case OP_MEMO:
-			sprintf(buf2, " re %6ld, '%.128s'", item->objectAddress,
+			isprintf(buf2, sizeof buf2, "re %6ld, '%.128s'",
+					item->objectAddress,
 					(char *) psp(trace, item->msg));
-			strcat(buffer, buf2);
+			istrcpy(buffer + len, buf2, sizeof buffer - len);
 			break;
 
 		case OP_FREE:
-			sprintf(buf2, "freed object %6ld, ",
+			isprintf(buf2, sizeof buf2, "freed object %6ld, ",
 					item->objectAddress);
-			strcat(buffer, buf2);
+			istrcpy(buffer + len, buf2, sizeof buffer - len);
 			if (item->refOpNbr == 0)
 			{
-				strcat(buffer, "not currently allocated");
+				len = strlen(buffer);
+				istrcpy(buffer + len, "not currently allocated",
+						sizeof buffer - len);
 			}
 			else
 			{
@@ -451,13 +471,15 @@ void	sptrace_report(PsmPartition trace, int verbose)
 					continue;
 				}
 
+				len = strlen(buffer);
 				fileName = (char *) psp(trace,
 						item->refFileName);
-				REQUIRE(fileName);
-				sprintf(buf2, "allocated in (%5d) at line \
-%6d of %32.32s (pid %5d)", item->refOpNbr, item->refLineNbr, fileName,
-						item->refTaskId);
-				strcat(buffer, buf2);
+				CHKVOID(fileName);
+				isprintf(buf2, sizeof buf2, "allocated in \
+(%5d) at line %6d of %32.32s (pid %5d)", item->refOpNbr, item->refLineNbr,
+						fileName, item->refTaskId);
+				istrcpy(buffer + len, buf2,
+						sizeof buffer - len);
 			}
 
 			break;
@@ -479,13 +501,13 @@ void	sptrace_clear(PsmPartition trace)
 	if (!trace) return;
 	traceHeaderAddress = psm_get_root(trace);
 	trh = (TraceHeader *) psp(trace, traceHeaderAddress);
-	REQUIRE(trh);
+	CHKVOID(trh);
 	for (elt = sm_list_first(trace, trh->log); elt; elt = nextElt)
 	{
 		nextElt = sm_list_next(trace, elt);
 		itemAddress = sm_list_data(trace, elt);
 		item = (TraceItem *) psp(trace, itemAddress);
-		REQUIRE(item);
+		CHKVOID(item);
 		if (item->opType == OP_ALLOCATE || item->opType == OP_FREE)
 		{
 			if (item->refOpNbr == 0)
@@ -496,7 +518,7 @@ void	sptrace_clear(PsmPartition trace)
 			/*	Delete matched activity from log.	*/
 
 			psm_free(trace, itemAddress);
-			sm_list_delete(trace, elt, (SmListDeleteFn) NULL, NULL);
+			CHKVOID(sm_list_delete(trace, elt, NULL, NULL) == 0);
 		}
 	}
 }

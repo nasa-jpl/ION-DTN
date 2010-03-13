@@ -48,7 +48,7 @@ along with the conversion functions psa() and psp().
 
 =over 4
 
-=item PsmMgtOutcome  psm_manage(char *start, unsigned int length, char *name, PsmPartition *partitionPointer)
+=item int  psm_manage(char *start, unsigned int length, char *name, PsmPartition *partitionPointer, PsmMgtOutcome *outcome)
 
 Puts the I<length> bytes of memory at I<start> under PSM management,
 associating this memory partition with the identifying string I<name>
@@ -67,13 +67,13 @@ psm_manage() will use malloc() to allocate this structure dynamically
 from local memory and will store a pointer to the structure in
 I<*partitionPointer>.
 
-psm_manage() formats the managed memory as necessary and returns a
-value of type PsmMgtOutcome.  A return value of Redundant means that
-the memory at I<start> is already under PSM management with the same name
-and size.  A return value of Refused means that PSM was unable to
-put the memory at I<start> under PSM management as directed; a diagnostic
-message was posted to the message pool (see discussion of putErrmsg() in
-platform(3)).
+psm_manage() formats the managed memory as necessary and returns -1 on any
+error, 0 otherwise.  The outcome to the attempt to manage memory is placed
+in I<outcome>.  An outcome of Redundant means that the memory at I<start>
+is already under PSM management with the same name and size.  An outcome
+of Refused means that PSM was unable to put the memory at I<start> under
+PSM management as directed; a diagnostic message was posted to the message
+pool (see discussion of putErrmsg() in platform(3)).
 
 =item char *psm_name(PsmPartition partition)
 
@@ -171,7 +171,7 @@ Erases the current value of the root word of the indicated partition.
 
 Allocates space for an object catalog in the indicated partition
 and establishes the new catalog as the partition's root object.  Returns
-0 on success, -1 on any failure (e.g., the partition already has
+0 on success, -1 on any error (e.g., the partition already has
 some other root object).
 
 =item int psm_catlg(PsmPartition partition, char *objName, PsmAddress objLocation)
@@ -179,18 +179,21 @@ some other root object).
 Inserts an entry for the indicated object into the catalog that is the root
 object for this partition.  The length of I<objName> cannot exceed 32 bytes,
 and I<objName> must be unique in the catalog.  Returns 0 on success, -1 on
-any failure.
+any error.
 
-=item void psm_uncatlg(PsmPartition partition, char *objName)
+=item int psm_uncatlg(PsmPartition partition, char *objName)
 
 Removes the entry for the named object from the catalog that is the root
-object for this partition, if that object is found in the catalog.
+object for this partition, if that object is found in the catalog.  Returns
+0 on success, -1 on any error.
 
-=item PsmAddress psm_locate(PsmPartition partition, char *objName)
+=item int psm_locate(PsmPartition partition, char *objName, PsmAddress *objLocation, PsmAddress *entryElt)
 
-Returns the address associated with I<objName> in the catalog that is the root
-object for this partition, if that object is found in the catalog.  If
-I<objName> is not in the catalog, returns zero.
+Places in I<*objLocation> the address associated with I<objName> in the
+catalog that is the root object for this partition and places in I<*entryElt>
+the address of the list element that points to this catalog entry.  If I<name>
+is not found in catalog, set I<*entryElt> to zero.  Returns 0 on success, -1
+on any error.
 
 =item void psm_usage(PsmPartition partition, PsmUsageSummary *summary)
 

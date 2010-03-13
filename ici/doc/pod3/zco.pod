@@ -89,15 +89,15 @@ data object should be skipped over when adding the initial source data extent
 to the new ZCO.  On success, returns the SDR location of the first reference
 to the new ZCO.  Returns 0 on any error.
 
-=item void zco_append_extent(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium, Object location, unsigned int offset, unsigned int length)
+=item int zco_append_extent(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium, Object location, unsigned int offset, unsigned int length)
 
 Appends the indicated source data extent to the indicated ZCO, as described
 for zco_create().  Both the I<location> and I<length> of the source data
-must be non-zero.
+must be non-zero.  Returns 0 on success, -1 on any error.
 
-=item void zco_prepend_header(Sdr sdr, Object zcoRef, char *header, unsigned int length)
+=item int zco_prepend_header(Sdr sdr, Object zcoRef, char *header, unsigned int length)
 
-=item void zco_append_trailer(Sdr sdr, Object zcoRef, char *trailer, unsigned int length)
+=item int zco_append_trailer(Sdr sdr, Object zcoRef, char *trailer, unsigned int length)
 
 =item void zco_discard_first_header(Sdr sdr, Object zcoRef)
 
@@ -105,7 +105,8 @@ must be non-zero.
 
 These functions attach and remove the ZCO's headers and trailers.  I<header>
 and I<trailer> are assumed to be arrays of octets, not necessarily text.  
-Attaching a header or trailer causes it to be written to the SDR.
+Attaching a header or trailer causes it to be written to the SDR.  The
+prepend and append functions return 0 on success, -1 on any error.
 
 =item Object zco_add_reference(Sdr sdr, Object zcoRef)
 

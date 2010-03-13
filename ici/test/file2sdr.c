@@ -75,7 +75,7 @@ static int	run_file2sdr(int configFlags, char *fileName)
 	unsigned long	usec;
 	int		rate;
 
-	sprintf(sdrName, "%s%d", TEST_SDR_NAME, configFlags);
+	isprintf(sdrName, sizeof sdrName, "%s%d", TEST_SDR_NAME, configFlags);
 	sdr_initialize(TEST_WM_SIZE, NULL, SM_NO_KEY, NULL);
 	sdr_load_profile(sdrName, configFlags, TEST_HEAP_WORDS, SM_NO_KEY,
 			TEST_PATH_NAME);

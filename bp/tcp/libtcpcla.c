@@ -166,7 +166,7 @@ static int	sendLargeBundleByTCP(int *bundleSocket,
 	char		*from;
 	int		bytesSent;
 
-	sprintf(fileName, "bundle.%lu", bundleZco);
+	isprintf(fileName, sizeof fileName, "bundle.%lu", bundleZco);
 	bundleFile = fopen(fileName, "w+");
 	if (bundleFile == NULL)
 	{
@@ -467,7 +467,7 @@ static int	sendLargeBundleByTCPCL(int *bundleSocket,
 	char		*from;
 	int		bytesSent;
 
-	sprintf(fileName, "bundle.%lu", bundleZco);
+	isprintf(fileName, sizeof fileName, "bundle.%lu", bundleZco);
 	bundleFile = fopen(fileName, "w+");
 	if (bundleFile == NULL)
 	{
@@ -968,23 +968,25 @@ int sendContactHeader(int *bundleSocket, unsigned char *buffer)
 	int bytesSent;
 	uint16_t keepaliveIntervalNBO = htons(tcpDesiredKeepAlivePeriod);
 	Sdnv eidLength;
+	int	custodianEidStringLen;
 	char    *custodianEidString;
 	int     custodianEidLength;
 	char    hostNameBuf[MAXHOSTNAMELEN + 1];
 
         getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
-	custodianEidString = MTAKE(strlen(hostNameBuf) + 11);
-	sprintf(custodianEidString, "dtn://%.60s.dtn", hostNameBuf);
+	custodianEidStringLen = strlen(hostNameBuf) + 11;
+	custodianEidString = MTAKE(custodianEidStringLen);
+	isprintf(custodianEidString, custodianEidStringLen, "dtn://%.60s.dtn",
+			hostNameBuf);
 	custodianEidLength = strlen(custodianEidString);
-
-
 	if(TCPCLA_BUFSZ < (18 + (custodianEidLength)))
 	{
-		putSysErrmsg("Buffer size not big enough for contact header",NULL);
+		putSysErrmsg("Buffer size not big enough for contact header",
+				NULL);
 		return -1;
 	}
 
-	strcpy((char*)buffer,TCPCLA_MAGIC); 	//Magic='dtn!'
+	istrcpy((char*) buffer, TCPCLA_MAGIC, TCPCLA_BUFSZ); 	//Magic='dtn!'
 	bytesToSend = TCPCLA_MAGIC_SIZE;
 	*(buffer + bytesToSend) =  TCPCLA_ID_VERSION;
 	bytesToSend++;

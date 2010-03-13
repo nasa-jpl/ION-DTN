@@ -50,7 +50,7 @@ static int	udpComputeCsepName(char *endpointSpec, char *endpointName)
 		}
 	}
 
-	sprintf(endpointName, "%s:%hu", hostName, portNbr);
+	isprintf(endpointName, MAX_EP_NAME + 1, "%s:%hu", hostName, portNbr);
 	return 0;
 }
 
@@ -64,6 +64,7 @@ static int	udpMamsInit(MamsInterface *tsif)
 	socklen_t		nameLength;
 	int			fd;
 	char			endpointNameText[32];
+	int			eptLen;
 	long			longfd;
 
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
@@ -110,9 +111,11 @@ static int	udpMamsInit(MamsInterface *tsif)
 	portNbr = ntohs(portNbr);
 	memcpy((char *) &ipAddress, (char *) &(inetName->sin_addr.s_addr), 4);
 	ipAddress = ntohl(ipAddress);
-	sprintf(endpointNameText, "%s:%hu", hostName, portNbr);
+	isprintf(endpointNameText, sizeof endpointNameText, "%s:%hu", hostName,
+			portNbr);
 //printf("resulting ept is '%s'.\n", endpointNameText);
-	tsif->ept = MTAKE(strlen(endpointNameText) + 1);
+	eptLen = strlen(endpointNameText) + 1;
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		close(fd);
@@ -120,7 +123,7 @@ static int	udpMamsInit(MamsInterface *tsif)
 		return -1;
 	}
 
-	strcpy(tsif->ept, endpointNameText);
+	istrcpy(tsif->ept, endpointNameText, eptLen);
 	longfd = fd;
 	tsif->sap = (void *) longfd;
 	return 0;
@@ -190,6 +193,7 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	socklen_t		nameLength;
 	int			fd;
 	char			endpointNameText[32];
+	int			eptLen;
 	long			longfd;
 
 	if (strcmp(epspec, "@") == 0)	/*	Default.		*/
@@ -241,8 +245,10 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	ipAddress = ntohl(ipAddress);
 	tsif->diligence = AmsBestEffort;
 	tsif->sequence = AmsArrivalOrder;
-	sprintf(endpointNameText, "%s:%hu", hostName, portNbr);
-	tsif->ept = MTAKE(strlen(endpointNameText));
+	isprintf(endpointNameText, sizeof endpointNameText, "%s:%hu", hostName,
+			portNbr);
+	eptLen = strlen(endpointNameText) + 1;
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		close(fd);
@@ -250,7 +256,7 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 		return -1;
 	}
 
-	strcpy(tsif->ept, endpointNameText);
+	istrcpy(tsif->ept, endpointNameText, eptLen);
 	longfd = fd;
 	tsif->sap = (void *) longfd;
 	return 0;
@@ -326,7 +332,7 @@ static int	udpParseMamsEndpoint(MamsEndpoint *ep)
 
 	colon = strchr(ep->ept, ':');
 	*colon = '\0';
-	strcpy(hostName, ep->ept);
+	istrcpy(hostName, ep->ept, sizeof hostName);
 	*colon = ':';
 	tsep.portNbr = atoi(colon + 1);
 	tsep.ipAddress = getInternetAddress(hostName);
@@ -367,7 +373,7 @@ static int	udpParseAmsEndpoint(AmsEndpoint *dp)
 
 	colon = strchr(dp->ept, ':');
 	*colon = '\0';
-	strcpy(hostName, dp->ept);
+	istrcpy(hostName, dp->ept, sizeof hostName);
 	*colon = ':';
 	tsep.portNbr = atoi(colon + 1);
 	tsep.ipAddress = getInternetAddress(hostName);

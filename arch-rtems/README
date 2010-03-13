@@ -89,3 +89,18 @@ Then use the following command to run the demo.
 The ION daemons will start running and a test execution of bpsource will
 send a loopback bundle via LTP to bpsink, which will print the text in the
 bundle payload.
+
+The ION RTEMS Makefile is configured to optimize the resulting executable.
+To see the actual size of the executable (with the debugging information 
+inserted by the compiler removed):
+
+$ cd o-optimize
+$ cp ion.exe stripped.ion.exe
+$ sparc-rtems4.9-strip stripped.ion.exe
+$ ls -l stripped.ion.exe
+$ sparc-rtems4.9-size stripped.ion.exe
+
+Optimization can make source-level debugging more difficult, because key
+variables may be held in registers rather than in memory.  To disable
+optimization, remove the "-O2" parameter from the CFLAGS variable in the
+Makefile and rebuild.

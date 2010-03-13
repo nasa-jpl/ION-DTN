@@ -21,6 +21,8 @@ static PsmAddress	smlistsh_list;
 
 static void	attach(unsigned long key, unsigned long length)
 {
+	PsmMgtOutcome	outcome;
+
 	if (smlistsh_partition != NULL)
 	{
 		puts("Already attached.  Detach and try again.");
@@ -36,7 +38,8 @@ static void	attach(unsigned long key, unsigned long length)
 	}
 
 	if (psm_manage((char *) smlistsh_space, (unsigned int) length,
-			"smlistsh", &smlistsh_partition) == Refused)
+			"smlistsh", &smlistsh_partition, &outcome) < 0
+	|| outcome == Refused)
 	{
 		puts("psm_manage failed.");
 	}
@@ -241,8 +244,8 @@ int	main(int argc, char **argv)
 					break;
 				}
 
-				sm_list_delete(smlistsh_partition,
-					(PsmAddress) arg1, NULL, NULL);
+				CHKZERO(sm_list_delete(smlistsh_partition,
+					(PsmAddress) arg1, NULL, NULL) == 0);
 				break;
 
 			default:

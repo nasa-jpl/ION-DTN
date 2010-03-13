@@ -45,7 +45,7 @@ int		clearCount = 0;
 PsmUsageSummary	psmsummary;
 SdrUsageSummary	sdrsummary;
 #endif
-	sprintf(sdrName, "%s%d", TEST_SDR_NAME, configFlags);
+	isprintf(sdrName, sizeof sdrName, "%s%d", TEST_SDR_NAME, configFlags);
 	sdr_initialize(TEST_WM_SIZE, NULL, SM_NO_KEY, NULL);
 	sdr_load_profile(sdrName, configFlags, TEST_HEAP_WORDS, SM_NO_KEY,
 			TEST_PATH_NAME);
@@ -96,7 +96,8 @@ psm_start_trace(sdrwm, 5000000, NULL);
 	cycleObj = sdr_list_data(sdr, cycleListElt);
 	sdr_read(sdr, (char *) &currentCycle, cycleObj, sizeof(Cycle));
 	printf("working on cycle %d.\n", currentCycle.cycleNbr);
-	sprintf(fileName, "file_copy_%d", currentCycle.cycleNbr);
+	isprintf(fileName, sizeof fileName, "file_copy_%d",
+			currentCycle.cycleNbr);
 	outputFile = fopen(fileName, "a");
 	if (outputFile == NULL)
 	{
@@ -212,7 +213,7 @@ if (lineCount > 100)
 			sdr_read(sdr, (char *) &currentCycle, cycleObj,
 					sizeof(Cycle));
 			printf("working on cycle %d.\n", currentCycle.cycleNbr);
-			sprintf(fileName, "file_copy_%d",
+			isprintf(fileName, sizeof fileName, "file_copy_%d",
 					currentCycle.cycleNbr);
 			outputFile = fopen(fileName, "a");
 			if (outputFile == NULL)

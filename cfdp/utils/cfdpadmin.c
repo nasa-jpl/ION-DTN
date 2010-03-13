@@ -33,7 +33,8 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	sprintf(buffer, "Syntax error at line %d of cfdpadmin.c", lineNbr);
+	isprintf(buffer, sizeof buffer,
+			"Syntax error at line %d of cfdpadmin.c", lineNbr);
 	printText(buffer);
 }
 
@@ -408,11 +409,12 @@ static void	executeInfo()
 	if (attachToCfdp() < 0) return;
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 	GET_OBJ_POINTER(sdr, CfdpDB, db, getCfdpDbObject());
-	sprintf(buffer, "xncount=%lu, maxtrnbr=%lu, fillchar=0x%x, \
-discard=%hu, requirecrc=%hu, segsize=%hu, mtusize = %hu, inactivity=%u, \
-ckperiod=%u, maxtimeouts=%u", db->transactionCounter, db->maxTransactionNbr,
-			db->fillCharacter, db->discardIncompleteFile,
-			db->crcRequired, db->maxFileDataLength, db->mtuSize,
+	isprintf(buffer, sizeof buffer, "xncount=%lu, maxtrnbr=%lu, \
+fillchar=0x%x, discard=%hu, requirecrc=%hu, segsize=%hu, mtusize = %hu, \
+inactivity=%u, ckperiod=%u, maxtimeouts=%u", db->transactionCounter,
+			db->maxTransactionNbr, db->fillCharacter,
+			db->discardIncompleteFile, db->crcRequired,
+			db->maxFileDataLength, db->mtuSize,
 			db->transactionInactivityLimit, db->checkTimerPeriod,
 			db->checkTimeoutLimit);
 	sdr_exit_xn(sdr);
@@ -457,7 +459,8 @@ static void	switchWatch(int tokenCount, char **tokens)
 			break;
 
 		default:
-			sprintf(buffer, "Invalid watch char %c.", *cursor);
+			isprintf(buffer, sizeof buffer,
+					"Invalid watch char %c.", *cursor);
 			printText(buffer);
 		}
 

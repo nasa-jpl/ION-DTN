@@ -99,7 +99,8 @@ static void	setSourceFileName(int tokenCount, char **tokens)
 		return;
 	}
 
-	sprintf(sourceFileNameBuf, "%.255s", tokens[1]);
+	isprintf(sourceFileNameBuf, sizeof sourceFileNameBuf, "%.255s",
+			tokens[1]);
 	sourceFileName = sourceFileNameBuf;
 }
 
@@ -111,7 +112,7 @@ static void	setDestFileName(int tokenCount, char **tokens)
 		return;
 	}
 
-	sprintf(destFileNameBuf, "%.255s", tokens[1]);
+	isprintf(destFileNameBuf, sizeof destFileNameBuf, "%.255s", tokens[1]);
 	destFileName = destFileNameBuf;
 }
 
@@ -573,7 +574,6 @@ static int	runCfdptestInteractive()
 	cfdp_interrupt();
 	pthread_join(receiverThread, NULL);
 	puts("Stopping cfdptest.");
-	ionDetach();
 	return 0;
 }
 
@@ -628,9 +628,10 @@ name> <destination file name> [<time-to-live, in seconds> [<priority: 0, 1, 2> \
 	}
 
 	cfdp_compress_number(&destinationEntityNbr, destNode);
-	sprintf(sourceFileNameBuf, "%.255s", sourcePath);
+	isprintf(sourceFileNameBuf, sizeof sourceFileNameBuf, "%.255s",
+			sourcePath);
 	sourceFileName = sourceFileNameBuf;
-	sprintf(destFileNameBuf, "%.255s", destPath);
+	isprintf(destFileNameBuf, sizeof destFileNameBuf, "%.255s", destPath);
 	destFileName = destFileNameBuf;
 	utParms.classOfService = priority;
 	utParms.extendedCOS.ordinal = ordinal;

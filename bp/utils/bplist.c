@@ -38,7 +38,7 @@ static void	printBytes(char *text, int length)
 
 	while (1)
 	{
-		sprintf(line, "(%6d)", bytesPrinted);
+		isprintf(line, sizeof line, "(%6d)", bytesPrinted);
 		memset(line + 8, ' ', 92);
 		high = 10;
 		low = 11;
@@ -162,7 +162,7 @@ static void	printBundle(Sdr sdr, Bundle *bundle)
 
 	dictionary = retrieveDictionary(bundle);
 	printf("\n**** Bundle\n");
-	eid = printEid(&(bundle->id.source), dictionary);
+	oK(printEid(&(bundle->id.source), dictionary, &eid));
 	printf("Source EID      '%s'\n", eid);
 	MRELEASE(eid);
 	printf("Creation sec   %10lu   count %10lu   frag offset %10lu\n",
@@ -189,13 +189,13 @@ static void	printBundle(Sdr sdr, Bundle *bundle)
 			& BP_BEST_EFFORT ? 1 : 0);
 	printf("Critical:               %d\n", bundle->extendedCOS.flags
 			& BP_MINIMUM_LATENCY ? 1 : 0);
-	eid = printEid(&(bundle->destination), dictionary);
+	oK(printEid(&(bundle->destination), dictionary, &eid));
 	printf("Destination EID '%s'\n", eid);
 	MRELEASE(eid);
-	eid = printEid(&(bundle->reportTo), dictionary);
+	oK(printEid(&(bundle->reportTo), dictionary, &eid));
 	printf("Report-to EID   '%s'\n", eid);
 	MRELEASE(eid);
-	eid = printEid(&(bundle->custodian), dictionary);
+	oK(printEid(&(bundle->custodian), dictionary, &eid));
 	printf("Custodian EID   '%s'\n", eid);
 	MRELEASE(eid);
 	printf("Expiration sec %10lu\n", bundle->expirationTime);
@@ -296,8 +296,9 @@ int	main(int argc, char **argv)
 				return 0;
 			}
 
-			sprintf(msgbuf, "reporting on bundles in outduct \
-'%.64s' of protocol '%.16s', priority %d.", ductName, protocolName, priority);
+			isprintf(msgbuf, sizeof msgbuf, "reporting on bundles \
+in outduct '%.64s' of protocol '%.16s', priority %d.", ductName, protocolName,
+					priority);
 			writeMemo(msgbuf);
 		}
 	}
@@ -331,7 +332,8 @@ int	main(int argc, char **argv)
 
 		if (count)
 		{
-			sprintf(msgbuf, "Count is %ld.", bundlesCount);
+			isprintf(msgbuf, sizeof msgbuf, "Count is %ld.",
+					bundlesCount);
 			writeMemo(msgbuf);
 		}
 	}
@@ -346,7 +348,7 @@ int	main(int argc, char **argv)
 		{
 			addr = sdr_list_data(sdr, vduct->outductElt);
 			GET_OBJ_POINTER(sdr, Outduct, duct, addr);
-			REQUIRE(duct);
+			CHKZERO(duct);
 			switch (priority)
 			{
 			case 2:
@@ -363,7 +365,7 @@ int	main(int argc, char **argv)
 
 			if (count)
 			{
-				sprintf(msgbuf, "Count is %ld.",
+				isprintf(msgbuf, sizeof msgbuf, "Count is %ld.",
 						sdr_list_length(sdr, list));
 				sdr_exit_xn(sdr);
 			}

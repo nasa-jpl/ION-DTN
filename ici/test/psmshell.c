@@ -19,6 +19,7 @@ static int	run_psmshell(short partitionSize)
 	unsigned int	length;
 	char		*space;
 	PsmAddress	*cells;		/*	Array.			*/
+	PsmMgtOutcome	outcome;
 	PsmPartition	partition = NULL;
 	char		line[256];
 	int		count;
@@ -51,7 +52,8 @@ static int	run_psmshell(short partitionSize)
 		return 0;
 	}
 
-	if (psm_manage(space, length, "psmshell", &partition) == Refused)
+	if (psm_manage(space, length, "psmshell", &partition, &outcome) < 0
+	|| outcome == Refused)
 	{
 		free(space);
 		free(cells);
@@ -70,7 +72,7 @@ static int	run_psmshell(short partitionSize)
 			return 1;
 		}
 
-		count = sscanf(line, "%c %d %d", &command, &cell, &size);
+		count = sscanf(line, "%c %d %u", &command, &cell, &size);
 		switch (count)
 		{
 		case 0:

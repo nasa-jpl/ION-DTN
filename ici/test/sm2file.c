@@ -23,6 +23,7 @@ int	main(int argc, char **argv)
 	char		*wmspace;
 	int		wmid;
 	PsmPartition	wm = NULL;
+	PsmMgtOutcome	outcome;
 	PsmAddress	testlist;
 	sm_SemId	semaphore;
 	int		cycleNbr = 1;
@@ -43,7 +44,8 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 	
-	if (psm_manage(wmspace, 10000000, "file2sm", &wm) == Refused)
+	if (psm_manage(wmspace, 10000000, "file2sm", &wm, &outcome) < 0
+	|| outcome == Refused)
 	{
 		puts("can't manage shared memory");
 		return 0;
@@ -70,7 +72,7 @@ int	main(int argc, char **argv)
 	}
 
 	printf("working on cycle %d\n", cycleNbr);
-	sprintf(fileName, "file_copy_%d", cycleNbr);
+	isprintf(fileName, sizeof fileName, "file_copy_%d", cycleNbr);
 	outputFile = fopen(fileName, "a");
 	if (outputFile == NULL)
 	{
@@ -98,7 +100,8 @@ int	main(int argc, char **argv)
 			fclose(outputFile);
 			cycleNbr++;
 			printf("working on cycle %d\n", cycleNbr);
-			sprintf(fileName, "file_copy_%d", cycleNbr);
+			isprintf(fileName, sizeof fileName, "file_copy_%d",
+					cycleNbr);
 			outputFile = fopen(fileName, "a");
 			if (outputFile == NULL)
 			{
@@ -119,6 +122,7 @@ int	main(int argc, char **argv)
 		/*	Delete line from shared memory list.		*/
 
 		psm_free(wm, lineAddress);
-		sm_list_delete(wm, lineListElt, (SmListDeleteFn) NULL, NULL);
+		CHKZERO(sm_list_delete(wm, lineListElt, (SmListDeleteFn) NULL,
+				NULL) == 0);
 	}
 }

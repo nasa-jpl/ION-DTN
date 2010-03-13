@@ -338,7 +338,7 @@ printf("CS got msg of type %d from role %d.\n", msg->type, msg->roleNbr);
 
 		supplement[0] = (char) ((msg->unitNbr >> 8) & 0xff);
 		supplement[1] = (char) (msg->unitNbr & 0xff);
-		strcpy(supplement + 2, ept);
+		istrcpy(supplement + 2, ept, supplementLength - 2);
 		cellspec = NULL;
 		for (i = 0; i <= MaxUnitNbr; i++)
 		{
@@ -378,7 +378,7 @@ printf("CS got msg of type %d from role %d.\n", msg->type, msg->roleNbr);
 
 			cellspec[0] = (char) ((unit->nbr >> 8) & 0xff);
 			cellspec[1] = (char) (unit->nbr & 0xff);
-			strcpy(cellspec + 2, ept);
+			istrcpy(cellspec + 2, ept, cellspecLength - 2);
 			if (sendMamsMsg(&endpoint, &(csState->tsif), cell_spec,
 					0, cellspecLength, cellspec) < 0)
 			{
@@ -458,7 +458,7 @@ printf("CS got msg of type %d from role %d.\n", msg->type, msg->roleNbr);
 
 		supplement[0] = (char) ((unit->nbr >> 8) & 0xff);
 		supplement[1] = (char) (unit->nbr & 0xff);
-		strcpy(supplement + 2, ept);
+		istrcpy(supplement + 2, ept, supplementLength - 2);
 		result = sendMamsMsg(&endpoint, &(csState->tsif), cell_spec,
 			       	msg->memo, supplementLength, supplement);
 		MRELEASE(supplement);
@@ -936,6 +936,7 @@ static void	*rsHeartbeat(void *parm)
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cv;
 	sigset_t	signals;
+	int		supplementLen;
 	char		*ept;
 	int		beatsSinceResync = -1;
 	struct timeval	workTime;
@@ -974,9 +975,17 @@ static void	*rsHeartbeat(void *parm)
 		}
 		else	/*	Try to reconnect to config server.	*/
 		{
-			ept = rsState->tsif.ept;
+			supplementLen = strlen(rsState->tsif.ept) + 1;
+			ept = MTAKE(supplementLen);
+			if (ept == NULL)
+			{
+				putErrmsg(NoMemoryMemo, NULL);
+				return NULL;
+			}
+
+			istrcpy(ept, rsState->tsif.ept, supplementLen);
 			enqueueMsgToCS(rsState, announce_registrar, 0,
-					strlen(ept) + 1, ept);
+					supplementLen, ept);
 		}
 
 		rsState->heartbeatsMissed++;
@@ -1723,8 +1732,8 @@ static int	startRegistrar(RsState *rsState)
 
 	if (i > MaxVentureNbr)
 	{
-		sprintf(ventureName, "%s(%s)", rsState->rsAppName,
-				rsState->rsAuthName);
+		isprintf(ventureName, sizeof ventureName, "%s(%s)",
+				rsState->rsAppName, rsState->rsAuthName);
 		putErrmsg("Can't start registrar: no such message space.",
 				ventureName);
 		errno = EINVAL;
@@ -1862,7 +1871,7 @@ static int	run_amsd(char *mibSource, char *mName, char *memory,
 	if (strcmp(csEndpointSpec, "@") == 0)
 	{
 		getNameOfHost(ownHostName, sizeof ownHostName);
-		sprintf(eps, "%s:2357", ownHostName);
+		isprintf(eps, sizeof eps, "%s:2357", ownHostName);
 		csEndpointSpec = eps;
 	}
 

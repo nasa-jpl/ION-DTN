@@ -12,9 +12,8 @@
 #include "rfx.h"
 
 #define	ION_DEFAULT_SM_KEY	((255 * 256) + 1)
+#define	ION_SM_NAME		"ionwm"
 #define	ION_DEFAULT_SDR_NAME	"ion"
-#define	ION_DBNAME		"iondb"
-#define	ION_VDBNAME		"ionvdb"
 #ifndef ION_SDR_MARGIN
 #define	ION_SDR_MARGIN		(20)	/*	Percent.		*/
 #endif
@@ -27,23 +26,141 @@
 #define timestampInFormat	"%4d/%2d/%2d-%2d:%2d:%2d"
 #define timestampOutFormat	"%.4d/%.2d/%.2d-%.2d:%.2d:%.2d"
 
-static char		*ionDbName = ION_DBNAME;
-static Sdr		ionsdr = NULL;
-static Object		iondbObject = 0;
-static IonDB		ionConstantsBuf;
-static IonDB		*ionConstants = &ionConstantsBuf;
-static int		ionSmId = 0;
-static PsmView		ionWorkingMemory;
-static PsmPartition	ionwm = NULL;
-static int		ionMemory = -1;	/*	Memory manager index	*/
-static IonVdb		*ionvdb = NULL;
+extern void	sdr_eject_xn(Sdr);
 
-extern void		sdr_eject_xn(Sdr);
+static char	*_iondbName()
+{
+	return "iondb";
+}
+
+static char	*_ionvdbName()
+{
+	return "ionvdb";
+}
+
+/*	*	*	Datatbase access	 *	*	*	*/
+
+static Sdr	_ionsdr(Sdr *newSdr)
+{
+	static Sdr	sdr = NULL;
+
+	if (newSdr)
+	{
+		if (*newSdr == NULL)	/*	Detaching.		*/
+		{
+			sdr = NULL;
+		}
+		else			/*	Initializing.		*/
+		{
+			if (sdr == NULL)
+			{
+				sdr = *newSdr;
+			}
+		}
+	}
+
+	return sdr;
+}
+
+static Object	_iondbObject(Object *newDbObj)
+{
+	static Object	obj = 0;
+
+	if (newDbObj)
+	{
+		obj = *newDbObj;
+	}
+
+	return obj;
+}
+
+static IonDB	*_ionConstants()
+{
+	static IonDB	buf;
+	static IonDB	*db = NULL;
+
+	if (db == NULL)
+	{
+		/*	Load constants into a conveniently accessed
+		 *	structure.  Note that this CANNOT be treated
+		 *	as a current database image in later
+		 *	processing.					*/
+
+		sdr_read(_ionsdr(NULL), (char *) &buf, _iondbObject(NULL),
+				sizeof(IonDB));
+		db = &buf;
+	}
+
+	return db;
+}
 
 /*	*	*	Memory access	 *	*	*	*	*/
 
-static void	*allocFromIonMemory(char *fileName, int lineNbr, size_t length)
+static int	_ionMemory(int *memmgrIdx)
 {
+	static int	idx = -1;
+
+	if (memmgrIdx)
+	{
+		idx = *memmgrIdx;
+	}
+
+	return idx;
+}
+
+static PsmPartition	_ionwm(sm_WmParms *parms)
+{
+	static int		ionSmId = 0;
+	static PsmView		ionWorkingMemory;
+	static PsmPartition	ionwm = NULL;
+	static int		memmgrIdx;
+	static MemAllocator	wmtake = allocFromIonMemory;
+	static MemDeallocator	wmrelease = releaseToIonMemory;
+	static MemAtoPConverter	wmatop = ionMemAtoP;
+	static MemPtoAConverter	wmptoa = ionMemPtoA;
+
+	if (parms)
+	{
+		if (parms->wmSize == -1)	/*	Destroy.	*/
+		{
+			if (ionwm)
+			{
+				memmgr_destroy(ionSmId, &ionwm);
+			}
+
+			ionSmId = 0;
+			ionwm = NULL;
+			memmgrIdx = -1;
+			oK(_ionMemory(&memmgrIdx));
+			return NULL;
+		}
+
+		/*	Opening ION working memory.			*/
+
+		if (ionwm)			/*	Redundant.	*/
+		{
+			return ionwm;
+		}
+
+		ionwm = &ionWorkingMemory;
+		if (memmgr_open(parms->wmKey, parms->wmSize,
+				&parms->wmAddress, &ionSmId, parms->wmName,
+				&ionwm, &memmgrIdx, wmtake, wmrelease,
+				wmatop, wmptoa) < 0)
+		{
+			putErrmsg("Can't open ION working memory.", NULL);
+			return NULL;
+		}
+
+		oK(_ionMemory(&memmgrIdx));
+	}
+
+	return ionwm;
+}
+
+void	*allocFromIonMemory(char *fileName, int lineNbr, size_t length)
+{
+	PsmPartition	ionwm = _ionwm(NULL);
 	PsmAddress	address;
 	void		*block;
 
@@ -59,40 +176,83 @@ static void	*allocFromIonMemory(char *fileName, int lineNbr, size_t length)
 	return block;
 }
 
-static void	releaseToIonMemory(char *fileName, int lineNbr, void *block)
+void	releaseToIonMemory(char *fileName, int lineNbr, void *block)
 {
+	PsmPartition	ionwm = _ionwm(NULL);
+
 	Psm_free(fileName, lineNbr, ionwm, psa(ionwm, (char *) block));
 }
 
-static void	*ionMemAtoP(unsigned long address)
+void	*ionMemAtoP(unsigned long address)
 {
-	return (void *) psp(ionwm, address);
+	return (void *) psp(_ionwm(NULL), address);
 }
 
-static unsigned long ionMemPtoA(void *pointer)
+unsigned long ionMemPtoA(void *pointer)
 {
-	return (unsigned long) psa(ionwm, pointer);
+	return (unsigned long) psa(_ionwm(NULL), pointer);
 }
 
-/*	Note that these global variables are NOT static.  They are
- *	referenced by functions throughout ION, through invocations
- *	of the MTAKE and MRELEASE macros.				*/
-MemAllocator		wmtake = allocFromIonMemory;
-MemDeallocator		wmrelease = releaseToIonMemory;
-MemAtoPConverter	wmatop = ionMemAtoP;
-MemPtoAConverter	wmptoa = ionMemPtoA;
-
-static int	openIonMemory(int wmKey, long wmSize, char *wmAddress) 
+static IonVdb	*_ionvdb(char **name)
 {
-	ionwm = &ionWorkingMemory;
-	if (memmgr_open(wmKey, wmSize, &wmAddress, &ionSmId, "ionwm",
-		&ionwm, &ionMemory, wmtake, wmrelease, wmatop, wmptoa) < 0)
+	static IonVdb	*vdb = NULL;
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	Sdr		sdr;
+	PsmPartition	ionwm;
+
+	if (name)
 	{
-		putErrmsg("Can't open ION working memory.", NULL);
-		return -1;
+		if (*name == NULL)	/*	Terminating.		*/
+		{
+			vdb = NULL;
+			return vdb;
+		}
+
+		/*	Attaching to volatile database.			*/
+
+		ionwm = _ionwm(NULL);
+		if (psm_locate(ionwm, *name, &vdbAddress, &elt) < 0)
+		{
+			putErrmsg("Failed searching for vdb.", NULL);
+			return vdb;
+		}
+
+		if (elt)
+		{
+			vdb = (IonVdb *) psp(ionwm, vdbAddress);
+			return vdb;
+		}
+
+		/*	ION volatile database doesn't exist yet.	*/
+
+		sdr = _ionsdr(NULL);
+		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		vdbAddress = psm_zalloc(ionwm, sizeof(IonVdb));
+		if (vdbAddress == 0)
+		{
+			sdr_cancel_xn(sdr);
+			putErrmsg("No space for volatile database.", NULL);
+			return NULL;
+		}
+
+		vdb = (IonVdb *) psp(ionwm, vdbAddress);
+		memset((char *) vdb, 0, sizeof(IonVdb));
+		if ((vdb->nodes = sm_list_create(ionwm)) == 0
+		|| (vdb->neighbors = sm_list_create(ionwm)) == 0
+		|| (vdb->probes = sm_list_create(ionwm)) == 0
+		|| psm_catlg(ionwm, *name, vdbAddress) < 0)
+		{
+			sdr_cancel_xn(sdr);
+			putErrmsg("Can't initialize volatile database.", NULL);
+			return NULL;
+		}
+
+		vdb->deltaFromUTC = (_ionConstants())->deltaFromUTC;
+		sdr_cancel_xn(sdr);	/*	Unlock memory.		*/
 	}
 
-	return ionMemory;
+	return vdb;
 }
 
 /*	*	*	Initialization	* 	*	*	*	*/
@@ -164,40 +324,6 @@ static void	ionRedirectMemos()
 }
 #endif
 
-static int	initializeVdb()
-{
-	Sdr		sdr = getIonsdr();
-	PsmAddress	vdbAddress;
-
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
-
-	/*	Create and catalogue the IonVdb object in ionwm.	*/
-
-	vdbAddress = psm_zalloc(ionwm, sizeof(IonVdb));
-	if (vdbAddress == 0)
-	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't allocate for dynamic database.", NULL);
-		return -1;
-	}
-
-	ionvdb = (IonVdb *) psp(ionwm, vdbAddress);
-	memset((char *) ionvdb, 0, sizeof(IonVdb));
-	if ((ionvdb->nodes = sm_list_create(ionwm)) == 0
-	|| (ionvdb->neighbors = sm_list_create(ionwm)) == 0
-	|| (ionvdb->probes = sm_list_create(ionwm)) == 0
-	|| psm_catlg(ionwm, ION_VDBNAME, vdbAddress) < 1)
-	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't initialize volatile database.", NULL);
-		return -1;
-	}
-
-	ionvdb->deltaFromUTC = ionConstants->deltaFromUTC;
-	sdr_cancel_xn(sdr);	/*	Unlock memory.			*/
-	return 0;
-}
-
 static int	checkNodeListParms(IonParms *parms, char *wdName,
 			unsigned long nodeNbr)
 {
@@ -266,18 +392,18 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 
 	while (1)
 	{
-		lineLen = igets(nodeListFile, lineBuf, sizeof lineBuf);
-		if (lineLen < 0)
+		if (igets(nodeListFile, lineBuf, sizeof lineBuf, &lineLen)
+				== NULL)
 		{
-			close(nodeListFile);
-			putSysErrmsg("Failed reading ion_nodes file",
-					nodeListFileName);
-			return -1;
-		}
+			if (lineLen < 0)
+			{
+				close(nodeListFile);
+				putErrmsg("Failed reading ion_nodes file.",
+						nodeListFileName);
+				return -1;
+			}
 
-		if (lineLen == 0)		/*	End of file.	*/
-		{
-			break;			/*	Out of loop.	*/
+			break;		/*	End of file.		*/
 		}
 
 		lineNbr++;
@@ -394,7 +520,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 	close(nodeListFile);
 	if (result < 0)
 	{
-		putSysErrmsg("Failed writing to ion_nodes file", NULL);
+		putErrmsg("Failed writing to ion_nodes file.", NULL);
 		return -1;
 	}
 
@@ -403,10 +529,15 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 
 int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 {
-	IonDB		iondbBuf;
 	char		wdname[256];
-	PsmAddress	vdbAddress;
+	Sdr		ionsdr;
+	Object		iondbObject;
+	IonDB		iondbBuf;
+	sm_WmParms	ionwmParms;
+	char		*ionvdbName = _ionvdbName();
 
+	CHKERR(parms);
+	CHKERR(ownNodeNbr);
 	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
@@ -439,10 +570,12 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		return -1;
 	}
 
+	ionsdr = _ionsdr(&ionsdr);
+
 	/*	Recover the ION database, creating it if necessary.	*/
 
 	sdr_begin_xn(ionsdr);
-	iondbObject = sdr_find(ionsdr, ionDbName, NULL);
+	iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
 	switch (iondbObject)
 	{
 	case -1:		/*	SDR error.			*/
@@ -482,7 +615,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 
 		sdr_write(ionsdr, iondbObject, (char *) &iondbBuf,
 				sizeof(IonDB));
-		sdr_catlg(ionsdr, ION_DBNAME, 0, iondbObject);
+		sdr_catlg(ionsdr, _iondbName(), 0, iondbObject);
 		if (sdr_end_xn(ionsdr))
 		{
 			putErrmsg("Can't create ION database.", NULL);
@@ -495,32 +628,25 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		sdr_exit_xn(ionsdr);
 	}
 
-	/*	Load constants into a conveniently accessed structure.
-	 *	Note that this CANNOT be treated as a current database
-	 *	image in later processing.				*/
-
-	sdr_read(ionsdr, (char *) ionConstants, iondbObject, sizeof(IonDB));
+	oK(_iondbObject(&iondbObject));
+	oK(_ionConstants());
 
 	/*	Open ION shared-memory partition.			*/
 
-	if (openIonMemory(parms->wmKey, parms->wmSize, parms->wmAddress) < 0)
+	ionwmParms.wmKey = parms->wmKey;
+	ionwmParms.wmSize = parms->wmSize;
+	ionwmParms.wmAddress = parms->wmAddress;
+	ionwmParms.wmName = ION_SM_NAME;
+	if (_ionwm(&ionwmParms) == NULL)
 	{
 		putErrmsg("ION memory configuration failed.", NULL);
 		return -1;
 	}
 
-	vdbAddress = psm_locate(ionwm, ION_VDBNAME);
-	if (vdbAddress == 0)
+	if (_ionvdb(&ionvdbName) == NULL)
 	{
-		if (initializeVdb() < 0)
-		{
-			putErrmsg("ION can't initialize vdb.", NULL);
-			return -1;
-		}
-	}
-	else
-	{
-		ionvdb = (IonVdb *) psp(ionwm, vdbAddress);
+		putErrmsg("ION can't initialize vdb.", NULL);
+		return -1;
 	}
 
 	ionRedirectMemos();
@@ -529,12 +655,17 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 
 int	ionAttach()
 {
+	Sdr		ionsdr = _ionsdr(NULL);
+	Object		iondbObject = _iondbObject(NULL);
+	PsmPartition	ionwm = _ionwm(NULL);
+	IonVdb		*ionvdb = _ionvdb(NULL);
 	char		*wdname;
 	char		wdnamebuf[256];
 	IonParms	parms;
-	PsmAddress	vdbAddress;
+	sm_WmParms	ionwmParms;
+	char		*ionvdbName = _ionvdbName();
 
-	if (ionsdr && iondbObject && ionSmId && ionwm && ionMemory != -1)
+	if (ionsdr && iondbObject && ionwm && ionvdb)
 	{
 		return 0;	/*	Already attached.		*/
 	}
@@ -572,44 +703,49 @@ int	ionAttach()
 			putErrmsg("Can't start using SDR for ION.", NULL);
 			return -1;
 		}
+
+		oK(_ionsdr(&ionsdr));
 	}
 
-	sdr_begin_xn(ionsdr);		/*	Lock database.		*/
 	if (iondbObject == 0)
 	{
-		iondbObject = sdr_find(ionsdr, ionDbName, NULL);
+		sdr_begin_xn(ionsdr);	/*	Lock database.		*/
+		iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
+		sdr_exit_xn(ionsdr);	/*	Unlock database.	*/
 		if (iondbObject == 0)
 		{
-			sdr_exit_xn(ionsdr);
 			putErrmsg("ION database not found.", NULL);
+			return -1;
+		}
+
+		oK(_iondbObject(&iondbObject));
+	}
+
+	oK(_ionConstants());
+
+	/*	Open ION shared-memory partition.			*/
+
+	if (ionwm == NULL)
+	{
+		ionwmParms.wmKey = parms.wmKey;
+		ionwmParms.wmSize = 0;
+		ionwmParms.wmAddress = NULL;
+		ionwmParms.wmName = ION_SM_NAME;
+		ionwm = _ionwm(&ionwmParms);
+		if (ionwm == NULL)
+		{
+			putErrmsg("Can't open access to ION memory.", NULL);
 			return -1;
 		}
 	}
 
-	sdr_exit_xn(ionsdr);		/*	Unlock database.	*/
-
-	/*	Load constants into a conveniently accessed structure.
-	 *	Note that this is NOT a current database image.		*/
-
-	sdr_read(ionsdr, (char *) ionConstants, iondbObject, sizeof(IonDB));
-
-	/*	Open ION shared-memory partition.			*/
-
-	if (openIonMemory(parms.wmKey, 0, NULL) < 0)
+	if (ionvdb == NULL)
 	{
-		putErrmsg("Can't open access to ION memory.", NULL);
-		return -1;
-	}
-
-	vdbAddress = psm_locate(ionwm, ION_VDBNAME);
-	if (vdbAddress == 0)
-	{
-		putErrmsg("ION volatile database not found.", NULL);
-		return -1;
-	}
-	else
-	{
-		ionvdb = (IonVdb *) psp(ionwm, vdbAddress);
+		if (_ionvdb(&ionvdbName) == NULL)
+		{
+			putErrmsg("ION volatile database not found.", NULL);
+			return -1;
+		}
 	}
 
 	ionRedirectMemos();
@@ -621,23 +757,21 @@ void	ionDetach()
 #if defined (VXWORKS) || defined (RTEMS)
 	return;
 #else
+	Sdr	ionsdr = _ionsdr(NULL);
+
 	if (ionsdr)
 	{
 		sdr_stop_using(ionsdr);
-		ionsdr = NULL;
+		ionsdr = NULL;		/*	To reset to NULL.	*/
+		oK(_ionsdr(&ionsdr));
 	}
-
-	iondbObject = 0;
-	ionSmId = 0;
-	ionwm = NULL;
-	ionMemory = -1;
-	ionvdb = NULL;
 #endif
 }
 
 void	ionProd(unsigned long fromNode, unsigned long toNode,
 		unsigned long xmitRate, unsigned int owlt)
 {
+	Sdr	ionsdr = _ionsdr(NULL);
 	time_t	fromTime;
 	time_t	toTime;
 	Object	elt;
@@ -647,7 +781,7 @@ void	ionProd(unsigned long fromNode, unsigned long toNode,
 	{
 		if (ionAttach() < 0)
 		{
-			putErrmsg("Node not initialized yet.", NULL);
+			writeMemo("[?] ionProd: node not initialized yet.");
 			return;
 		}
 	}
@@ -657,7 +791,8 @@ void	ionProd(unsigned long fromNode, unsigned long toNode,
 	elt = rfx_insert_range(fromTime, toTime, fromNode, toNode, owlt);
        	if (elt == 0)
 	{
-		putErrmsg("ionProd: range insertion failed.", utoa(owlt));
+		writeMemoNote("[?] ionProd: range insertion failed.",
+				utoa(owlt));
 		return;
 	}
 
@@ -666,7 +801,8 @@ void	ionProd(unsigned long fromNode, unsigned long toNode,
 	elt = rfx_insert_contact(fromTime, toTime, fromNode, toNode, xmitRate);
 	if (elt == 0)
 	{
-		putErrmsg("ionProd: contact insertion failed.", utoa(xmitRate));
+		writeMemoNote("[?] ionProd: contact insertion failed.",
+				utoa(xmitRate));
 		return;
 	}
 
@@ -676,99 +812,112 @@ void	ionProd(unsigned long fromNode, unsigned long toNode,
 
 void	ionEject()
 {
-	sdr_eject_xn(ionsdr);
+	sdr_eject_xn(_ionsdr(NULL));
 }
 
 void	ionTerminate()
 {
-	if (ionwm)
+	Sdr		sdr = _ionsdr(NULL);
+	Object		obj = 0;
+	sm_WmParms	ionwmParms;
+	char		*ionvdbName = NULL;
+
+	if (sdr)
 	{
-		memmgr_destroy(ionSmId, &ionwm);
+		sdr_destroy(sdr);
+		sdr = NULL;
+		oK(_ionsdr(&sdr));	/*	To reset to NULL.	*/
 	}
 
-	sdr_destroy(ionsdr);
-	ionsdr = NULL;
-	iondbObject = 0;
-	ionSmId = 0;
-	ionwm = NULL;
-	ionMemory = -1;
-	ionvdb = NULL;
+	oK(_iondbObject(&obj));
+	ionwmParms.wmKey = 0;
+	ionwmParms.wmSize = -1;
+	ionwmParms.wmAddress = NULL;
+	oK(_ionwm(&ionwmParms));
+	oK(_ionvdb(&ionvdbName));
 }
 
 Sdr	getIonsdr()
 {
-	return ionsdr;
+	return _ionsdr(NULL);
 }
 
 Object	getIonDbObject()
 {
-	return iondbObject;
+	return _iondbObject(NULL);
 }
 
 PsmPartition	getIonwm()
 {
-	return ionwm;
+	return _ionwm(NULL);
 }
 
 int	getIonMemoryMgr()
 {
-	return ionMemory;
+	return _ionMemory(NULL);
 }
 
 IonVdb	*getIonVdb()
 {
-	return ionvdb;
+	return _ionvdb(NULL);
 }
 
 char	*getIonWorkingDirectory()
 {
-	if (ionConstants == NULL)
+	IonDB	*snapshot = _ionConstants();
+
+	if (snapshot == NULL)
 	{
 		return ".";
 	}
 
-	return ionConstants->workingDirectoryName;
+	return snapshot->workingDirectoryName;
 }
 
 unsigned long	getOwnNodeNbr()
 {
-	if (ionConstants == NULL)
+	IonDB	*snapshot = _ionConstants();
+
+	if (snapshot == NULL)
 	{
 		return 0;
 	}
 
-	return ionConstants->ownNodeNbr;
+	return snapshot->ownNodeNbr;
 }
 
 /*	*	*	Shared-memory tracing 	*	*	*	*/
 
 int	startIonMemTrace(int size)
 {
-	return psm_start_trace(ionwm, size, NULL);
+	return psm_start_trace(_ionwm(NULL), size, NULL);
 }
 
 void	printIonMemTrace(int verbose)
 {
-	psm_print_trace(ionwm, verbose);
+	psm_print_trace(_ionwm(NULL), verbose);
 }
 
 void	clearIonMemTrace(int verbose)
 {
-	psm_clear_trace(ionwm);
+	psm_clear_trace(_ionwm(NULL));
 }
 
 void	stopIonMemTrace(int verbose)
 {
-	psm_stop_trace(ionwm);
+	psm_stop_trace(_ionwm(NULL));
 }
 
 /*	*	*	Space management 	*	*	*	*/
 
 void	ionOccupy(int size)
 {
+	Sdr	ionsdr = _ionsdr(NULL);
+	Object	iondbObject = _iondbObject(NULL);
 	IonDB	iondbBuf;
 
-	REQUIRE(ionLocked());
+	CHKVOID(ionLocked());
+	CHKVOID(size >= 0);
 	sdr_stage(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
 	if (iondbBuf.currentOccupancy + size < 0)/*	Overflow.	*/
 	{
@@ -784,9 +933,12 @@ void	ionOccupy(int size)
 
 void	ionVacate(int size)
 {
+	Sdr	ionsdr = _ionsdr(NULL);
+	Object	iondbObject = _iondbObject(NULL);
 	IonDB	iondbBuf;
 
-	REQUIRE(ionLocked());
+	CHKVOID(ionLocked());
+	CHKVOID(size >= 0);
 	sdr_stage(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
 	if (size > iondbBuf.currentOccupancy)	/*	Underflow.	*/
 	{
@@ -802,8 +954,13 @@ void	ionVacate(int size)
 
 /*	*	*	Timestamp handling 	*	*	*	*/
 
-void	setDeltaFromUTC(int newDelta)
+int	setDeltaFromUTC(int newDelta)
 {
+	Sdr	ionsdr = _ionsdr(NULL);
+	Object	iondbObject = _iondbObject(NULL);
+	IonDB	*ionConstants = _ionConstants();
+	IonVdb	*ionvdb = _ionvdb(NULL);
+
 	sdr_begin_xn(ionsdr);
 	sdr_stage(ionsdr, (char *) ionConstants, iondbObject, sizeof(IonDB));
 	ionConstants->deltaFromUTC = newDelta;
@@ -811,13 +968,16 @@ void	setDeltaFromUTC(int newDelta)
 	if (sdr_end_xn(ionsdr) < 0)
 	{
 		putErrmsg("Can't change delta from UTC.", NULL);
+		return -1;
 	}
 
 	ionvdb->deltaFromUTC = newDelta;
+	return 0;
 }
 
 time_t	getUTCTime()
 {
+	IonVdb	*ionvdb = _ionvdb(NULL);
 	time_t	clocktime;
 #if defined(FSWCLOCK)
 #include "fswutc.c"
@@ -893,8 +1053,9 @@ void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 {
 	struct tm	ts;
 
+	CHKVOID(timestampBuffer);
 	localtime_r(&timestamp, &ts);
-	sprintf(timestampBuffer, timestampOutFormat,
+	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
 			ts.tm_hour, ts.tm_min, ts.tm_sec);
 }
@@ -903,8 +1064,9 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 {
 	struct tm	ts;
 
+	CHKVOID(timestampBuffer);
 	gmtime_r(&timestamp, &ts);
-	sprintf(timestampBuffer, timestampOutFormat,
+	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
 			ts.tm_hour, ts.tm_min, ts.tm_sec);
 }
@@ -916,9 +1078,9 @@ int	_extractSdnv(unsigned long *into, unsigned char **from, int *remnant,
 {
 	int	sdnvLength;
 
+	CHKZERO(into && from && remnant);
 	if (*remnant < 1)
 	{
-		errno = EMSGSIZE;
 		putErrmsg("Missing SDNV at line...", itoa(lineNbr));
 		return 0;
 	}
@@ -926,7 +1088,6 @@ int	_extractSdnv(unsigned long *into, unsigned char **from, int *remnant,
 	sdnvLength = decodeSdnv(into, *from);
 	if (sdnvLength < 1)
 	{
-		errno = EMSGSIZE;
 		putErrmsg("Invalid SDNV at line...", itoa(lineNbr));
 		return 0;
 	}
@@ -940,7 +1101,7 @@ int	_extractSdnv(unsigned long *into, unsigned char **from, int *remnant,
 
 int	ionLocked()
 {
-	return sdr_in_xn(ionsdr);	/*	Boolean.		*/
+	return sdr_in_xn(_ionsdr(NULL));	/*	Boolean.	*/
 }
 
 /*	*	*	SDR configuration	*	*	*	*/
@@ -950,7 +1111,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	char	ownHostName[MAXHOSTNAMELEN + 1];
 	char	*endOfHostName;
 	char	configFileNameBuffer[PATHLENMAX + 1 + 9 + 1];
-	FILE	*configFile;
+	int	configFile;
 	char	buffer[512];
 	int	lineNbr;
 	char	line[256];
@@ -963,13 +1124,14 @@ int	readIonParms(char *configFileName, IonParms *parms)
 
 	/*	Set defaults.						*/
 
+	CHKERR(parms);
 	memset((char *) parms, 0, sizeof(IonParms));
 	parms->wmSize = 5000000;
 	parms->wmAddress = 0;		/*	Dyamically allocated.	*/
 	parms->configFlags = SDR_IN_DRAM;
 	parms->heapWords = 250000;
 	parms->heapKey = SM_NO_KEY;
-	strcpy(parms->pathName, "/usr/ion");
+	istrcpy(parms->pathName, "/usr/ion", sizeof parms->pathName);
 
 	/*	Determine name of config file.				*/
 
@@ -991,14 +1153,15 @@ int	readIonParms(char *configFileName, IonParms *parms)
 			*endOfHostName = 0;
 		}
 
-		sprintf(configFileNameBuffer, "%.256s.ionconfig", ownHostName);
+		isprintf(configFileNameBuffer, sizeof configFileNameBuffer,
+				"%.256s.ionconfig", ownHostName);
 		configFileName = configFileNameBuffer;
 	}
 
 	/*	Get overrides from config file.				*/
 
-	configFile = fopen(configFileName, "r");
-	if (configFile == NULL)
+	configFile = open(configFileName, O_RDONLY, 0777);
+	if (configFile < 0)
 	{
 		if (errno == ENOENT)	/*	No overrides apply.	*/
 		{
@@ -1007,40 +1170,41 @@ int	readIonParms(char *configFileName, IonParms *parms)
 			return 0;
 		}
 
-		sprintf(buffer, "[?] admin pgm can't open SDR config file \
-'%.255s': %.64s", configFileName, system_error_msg());
+		isprintf(buffer, sizeof buffer, "[?] admin pgm can't open SDR \
+config file '%.255s': %.64s", configFileName, system_error_msg());
 		writeMemo(buffer);
 		return -1;
 	}
 
-	sprintf(buffer, "[i] admin pgm using SDR parm overrides from %.255s.",
-			configFileName);
+	isprintf(buffer, sizeof buffer, "[i] admin pgm using SDR parm \
+overrides from %.255s.", configFileName);
 	writeMemo(buffer);
 	lineNbr = 0;
 	while (1)
 	{
-		if (fgets(line, sizeof line, configFile) == NULL)
+		if (igets(configFile, line, sizeof line, &lineLength) == NULL)
 		{
-			if (feof(configFile))
+			if (lineLength == 0)
 			{
 				result = 0;
 				printIonParms(parms);
-				break;
+			}
+			else
+			{
+				result = -1;
+				writeErrMemo("admin pgm SDR config file igets \
+failed");
 			}
 
-			writeErrMemo("admin pgm SDR config file fgets failed");
-			result = -1;
-			break;
+			break;			/*	Done.		*/
 		}
 
 		lineNbr++;
-		lineLength = strlen(line) - 1;	/*	lose newline	*/
 		if (lineLength < 1)
 		{
-			continue;
+			continue;		/*	Empty line.	*/
 		}
 
-		line[lineLength] = '\0';	/*	delimit line	*/
 		if (line[0] == '#')		/*	Comment only.	*/
 		{
 			continue;
@@ -1062,8 +1226,8 @@ int	readIonParms(char *configFileName, IonParms *parms)
 
 		if (tokenCount != 2)
 		{
-			sprintf(buffer, "[?] incomplete SDR configuration \
-file line (%d).", lineNbr);
+			isprintf(buffer, sizeof buffer, "[?] incomplete SDR \
+configuration file line (%d).", lineNbr);
 			writeMemo(buffer);
 			result = -1;
 			break;
@@ -1119,14 +1283,14 @@ file line (%d).", lineNbr);
 			continue;
 		}
 
-		sprintf(buffer, "[?] unknown SDR config keyword '%.32s' at \
-line %d.", tokens[0], lineNbr);
+		isprintf(buffer, sizeof buffer, "[?] unknown SDR config \
+keyword '%.32s' at line %d.", tokens[0], lineNbr);
 		writeMemo(buffer);
 		result = -1;
 		break;
 	}
 
-	fclose(configFile);
+	close(configFile);
 	return result;
 }
 
@@ -1134,21 +1298,29 @@ void	printIonParms(IonParms *parms)
 {
 	char	buffer[512];
 
-	sprintf(buffer, "wmKey:           %d", parms->wmKey);
+	CHKVOID(parms);
+	isprintf(buffer, sizeof buffer, "wmKey:           %d",
+			parms->wmKey);
 	writeMemo(buffer);
-	sprintf(buffer, "wmSize:          %ld", parms->wmSize);
+	isprintf(buffer, sizeof buffer, "wmSize:          %ld",
+			parms->wmSize);
 	writeMemo(buffer);
-	sprintf(buffer, "wmAddress:       %0lx", (unsigned long)
-			parms->wmAddress);
+	isprintf(buffer, sizeof buffer, "wmAddress:       %0lx",
+			(unsigned long) parms->wmAddress);
 	writeMemo(buffer);
-	sprintf(buffer, "sdrName:        '%s'", parms->sdrName);
+	isprintf(buffer, sizeof buffer, "sdrName:        '%s'",
+			parms->sdrName);
 	writeMemo(buffer);
-	sprintf(buffer, "configFlags:     %d", parms->configFlags);
+	isprintf(buffer, sizeof buffer, "configFlags:     %d",
+		       parms->configFlags);
 	writeMemo(buffer);
-	sprintf(buffer, "heapWords:       %ld", parms->heapWords);
+	isprintf(buffer, sizeof buffer, "heapWords:       %ld",
+			parms->heapWords);
 	writeMemo(buffer);
-	sprintf(buffer, "heapKey:         %d", parms->heapKey);
+	isprintf(buffer, sizeof buffer, "heapKey:         %d",
+			parms->heapKey);
 	writeMemo(buffer);
-	sprintf(buffer, "pathName:       '%.256s'", parms->pathName);
+	isprintf(buffer, sizeof buffer, "pathName:       '%.256s'",
+			parms->pathName);
 	writeMemo(buffer);
 }

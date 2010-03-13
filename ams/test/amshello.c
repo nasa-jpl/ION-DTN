@@ -44,7 +44,7 @@ static int	runPitcher()
 	AmsDiligence	diligence;
 	char		buffer[80];
 
-	sprintf(buffer, "Hello from %d.", (int) getpid());
+	isprintf(buffer, sizeof buffer, "Hello from %d.", (int) getpid());
 	textlen = strlen(buffer) + 1;
 	ams_register(NULL,NULL,NULL,NULL,0,"amsdemo","test","","pitch",&me);
 	while (1)

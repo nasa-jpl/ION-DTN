@@ -126,16 +126,7 @@ static ObjectScale	scaleOf(Sdr sdrv, Address addr, Ohd *ohd)
 		an object by verifying that its overhead words indicate
 		that the object is LARGE_IN_USE.			*/
 
-	if (sdrv->sdr->configFlags & SDR_IN_DRAM)
-	{
-		map = (SdrMap *) (sdrv->dbsm);
-	}
-	else
-	{
-		sdrFetch(mapImage, 0);
-		map = &mapImage;
-	}
-
+	map = _mapImage(sdrv);
 	if (addr >= map->startOfSmallPool
 	&& addr < map->endOfSmallPool)
 	{
@@ -199,19 +190,8 @@ void	sdr_stage(Sdr sdrv, char *into, Object from, long length)
 	LystElt		elt;
 	ObjectExtent	*extent;
 
-	if (length < 0 || (length > 0 && into == NULL) || from == 0)
-	{
-		putErrmsg(apiErrMsg, NULL);
-		crashXn(sdrv);
-		return;
-	}
-
-	if (sdr_in_xn(sdrv) == 0)
-	{
-		putErrmsg(notInXnMsg, NULL);
-		return;
-	}
-
+	CHKVOID(sdr_in_xn(sdrv));
+	XNCHKVOID(!(length < 0 || (length > 0 && into == NULL) || from == 0));
 	sdr = sdrv->sdr;
 	if ((sdr->configFlags & SDR_BOUNDED) == 0)/*	No staging.	*/
 	{
@@ -223,7 +203,7 @@ void	sdr_stage(Sdr sdrv, char *into, Object from, long length)
 	if (addr < 0 || to < addr || (to == addr && length != 0)
 			|| to > sdr->sdrSize)
 	{
-		putErrmsg(violationMsg, "stage");
+		putErrmsg(_violationMsg(), "stage");
 		crashXn(sdrv);
 		return;
 	}
@@ -249,7 +229,7 @@ void	sdr_stage(Sdr sdrv, char *into, Object from, long length)
 		if (noteKnownObject(sdrv, addr,
 			addr + ohd.leading.userDataSize) == NULL)
 		{
-			putErrmsg(noMemoryMsg, NULL);
+			putErrmsg(_noMemoryMsg(), NULL);
 			crashXn(sdrv);
 			return;
 		}
@@ -269,19 +249,17 @@ void	sdr_stage(Sdr sdrv, char *into, Object from, long length)
 int	sdr_start_trace(Sdr sdrv, long shmSize, char *shm)
 {
 #ifndef SDR_TRACE
-	errno = EINVAL;
-	putErrmsg(noTraceMsg, NULL);
+	putErrmsg(_noTraceMsg(), NULL);
 	return -1;
 #else
 	SdrState	*sdr;
 
-	REQUIRE(sdrv);
+	CHKERR(sdrv);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKERR(takeSdr(sdr) == 0);
 	if (shmSize < 1)	/*	Must allocate some space.	*/
         {
 		releaseSdr(sdr);
-		errno = EINVAL;
 		putErrmsg("Need some shared memory to start trace.", NULL);
 		return -1;
 	}
@@ -291,7 +269,6 @@ int	sdr_start_trace(Sdr sdrv, long shmSize, char *shm)
 		if (sdr->traceSize != shmSize)
         	{
 			releaseSdr(sdr);
-			errno = EINVAL;
 			putErrmsg("Asserted trace memory size doesn't match \
 actual.", NULL);
 			return -1;
@@ -331,9 +308,9 @@ void	sdr_print_trace(Sdr sdrv, int verbose)
 	SdrState	*sdr;
 	SdrUsageSummary	summary;
 
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKVOID(takeSdr(sdr) == 0);
 	sptrace_report(sdrv->trace, verbose);
 	sdr_usage(sdrv, &summary);
 	sdr_report(&summary);
@@ -348,9 +325,9 @@ void	sdr_clear_trace(Sdr sdrv)
 #else
 	SdrState	*sdr;
 
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKVOID(takeSdr(sdr) == 0);
 	sptrace_clear(sdrv->trace);
 	releaseSdr(sdr);
 #endif
@@ -363,9 +340,9 @@ void	sdr_stop_trace(Sdr sdrv)
 #else
 	SdrState	*sdr;
 
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKVOID(takeSdr(sdr) == 0);
 	if (sdrv->trace)
 	{
 		sptrace_stop(sdrv->trace);
@@ -384,7 +361,7 @@ void	joinTrace(Sdr sdrv, char *sourceFileName, int lineNbr)
 #else
 	SdrState	*sdr;
 
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
 	if (sdrv->trace == NULL)
 	{
@@ -427,13 +404,8 @@ Object	_sdrzalloc(Sdr sdrv, unsigned long nbytes)
 	Address		newEnd;
 	u_long		newUnassigned;
 
-	if (nbytes == 0 || nbytes > SMALL_BLK_LIMIT)
-	{
-		errno = EINVAL;
-		putErrmsg(apiErrMsg, "number of bytes");
-		crashXn(sdrv);
-		return 0;
-	}
+	CHKZERO(sdrv);
+	XNCHKZERO(!(nbytes == 0 || nbytes > SMALL_BLK_LIMIT));
 
 	/*	Increase nbytes to align it properly: must
 		be an integral multiple of SMALL_BLOCK_OHD.
@@ -450,17 +422,8 @@ Object	_sdrzalloc(Sdr sdrv, unsigned long nbytes)
 	/*	At this point nbytes is correctly aligned and
 		we have the correct bucket number.			*/
 
-	REQUIRE(sdrv);
-	if (sdrv->sdr->configFlags & SDR_IN_DRAM)
-	{
-		map = (SdrMap *) (sdrv->dbsm);
-	}
-	else
-	{
-		sdrFetch(mapImage, 0);
-		map = &mapImage;
-	}
-
+	CHKZERO(sdrv);
+	map = _mapImage(sdrv);
 	ohdAddress = map->firstSmallFree[i];
 	if (ohdAddress != 0)
 	{
@@ -486,7 +449,6 @@ Object	_sdrzalloc(Sdr sdrv, unsigned long nbytes)
 	if (map->unassignedSpace < increment
 	|| (map->endOfSmallPool + increment) > SMALL_POOL_TOP)
 	{
-		errno = ENOSPC;			/*	No space left.	*/
 		putErrmsg("No space left in small pool.", NULL);
 		crashXn(sdrv);
 		return 0;
@@ -528,6 +490,7 @@ static int	computeBucket(u_int userDataSize)
 
 static void	insertFreeBlock(Sdr sdrv, Address leader, Address trailer)
 {
+	SdrMap	*map = _mapImage(sdrv);
 	BigOhd1	leading;
 	BigOhd2	trailing;
 	int	bucket;
@@ -564,6 +527,7 @@ static void	insertFreeBlock(Sdr sdrv, Address leader, Address trailer)
 static void	removeFromBucket(Sdr sdrv, int bucket, Address leader,
 				Address trailer)
 {
+	SdrMap	*map = _mapImage(sdrv);
 	BigOhd1	leading;
 	BigOhd2	trailing;
 	Address	nextLeader;
@@ -626,15 +590,7 @@ static Object	mallocLarge(Sdr sdrv, unsigned long nbytes)
 	nbytes += (LG_OHD_SIZE - 1);	/*	to force carry if nec.	*/
 	nbytes >>= LARGE_ORDER1;	/*	truncate		*/
 	nbytes <<= LARGE_ORDER1;	/*	restore size		*/
-	if (sdrv->sdr->configFlags & SDR_IN_DRAM)
-	{
-		map = (SdrMap *) (sdrv->dbsm);
-	}
-	else
-	{
-		sdrFetch(mapImage, 0);
-		map = &mapImage;
-	}
+	map = _mapImage(sdrv);
 
 	/*	Determine which bucket a block of this size would be
 		stored in if free, but then (unless nbytes is the
@@ -681,7 +637,6 @@ static Object	mallocLarge(Sdr sdrv, unsigned long nbytes)
 
 		/*	Can't allocate block from unassigned space.	*/
 
-		errno = ENOSPC;		/*	No space left.		*/
 		crashXn(sdrv);
 		return 0;
 	}
@@ -738,15 +693,8 @@ Object	_sdrmalloc(Sdr sdrv, unsigned long nbytes)
 	ObjectScale	scale;
 	Ohd		ohd;
 
-	if (nbytes == 0 || nbytes > (LARGE_BLK_LIMIT))
-	{
-		errno = EINVAL;
-		putErrmsg(apiErrMsg, itoa(nbytes));
-		crashXn(sdrv);
-		return 0;
-	}
-
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
+	XNCHKZERO(!(nbytes == 0 || nbytes > LARGE_BLK_LIMIT));
 	object = mallocLarge(sdrv, nbytes);
 	if (object != 0)
 	{
@@ -758,7 +706,7 @@ Object	_sdrmalloc(Sdr sdrv, unsigned long nbytes)
 			if (noteKnownObject(sdrv, addr,
 				addr + ohd.leading.userDataSize) == NULL)
 			{
-				putErrmsg(noMemoryMsg, NULL);
+				putErrmsg(_noMemoryMsg(), NULL);
 				crashXn(sdrv);
 				return 0;
 			}
@@ -776,9 +724,9 @@ Object	_sdrmalloc(Sdr sdrv, unsigned long nbytes)
 
 Object	Sdr_malloc(char *file, int line, Sdr sdrv, unsigned long nbytes)
 {
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
@@ -791,9 +739,9 @@ Object	Sdr_insert(char *file, int line, Sdr sdrv, char *from,
 {
 	Object	obj;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
@@ -809,6 +757,7 @@ Object	Sdr_insert(char *file, int line, Sdr sdrv, char *from,
 
 static void	freeLarge(Sdr sdrv, Address addr)
 {
+	SdrMap	*map = _mapImage(sdrv);
 	Address	leader;
 	BigOhd1	leading;
 	Address	trailer;
@@ -897,6 +846,7 @@ static void	freeLarge(Sdr sdrv, Address addr)
 void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 {
 	SdrState	*sdr;
+	SdrMap		*map = _mapImage(sdrv);
 	Address		addr = (Address) object;
 	Address		block;
 	Ohd		ohd;
@@ -906,7 +856,7 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 	LystElt		elt;
 	ObjectExtent	*extent;
 
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
 	switch (scaleOf(sdrv, addr, &ohd))
 	{
@@ -980,15 +930,14 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 
 void	Sdr_free(char *file, int line, Sdr sdrv, Object object)
 {
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
+		return;
 	}
-	else
-	{
-		joinTrace(sdrv, file, line);
-		_sdrfree(sdrv, object, UserPut);
-	}
+
+	joinTrace(sdrv, file, line);
+	_sdrfree(sdrv, object, UserPut);
 }
 
 /*	*	Space management utility functions	*	*	*/
@@ -1020,10 +969,10 @@ int	sdrBoundaryViolated(Sdr sdrv, Address from, long length)
 
 long	sdr_object_length(Sdr sdrv, Object object)
 {
-	Address		addr = (Address) object;
-	Ohd		ohd;
+	Address	addr = (Address) object;
+	Ohd	ohd;
 
-	REQUIRE(sdrv);
+	CHKERR(sdrv);
 	switch (scaleOf(sdrv, addr, &ohd))
 	{
 	case SmallObject:
@@ -1045,19 +994,10 @@ long	sdr_unused(Sdr sdrv)
 	long		largePoolSize;
 	long		unused;
 
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
-	if (sdrv->sdr->configFlags & SDR_IN_DRAM)
-	{
-		map = (SdrMap *) (sdrv->dbsm);
-	}
-	else
-	{
-		sdrFetch(mapImage, 0);
-		map = &mapImage;
-	}
-
+	CHKZERO(takeSdr(sdr) == 0);
+	map = _mapImage(sdrv);
 	unused = map->sdrSize - sizeof(SdrMap);
 	smallPoolSize = map->endOfSmallPool - map->startOfSmallPool;
 	largePoolSize = map->endOfLargePool - map->startOfLargePool;
@@ -1081,22 +1021,13 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 	u_long		freeTotal;
 	int		count;
 
-	REQUIRE(usage);
-	REQUIRE(sdrv);
+	CHKVOID(usage);
+	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
-	strcpy(usage->sdrName, sdr->name);
+	CHKVOID(takeSdr(sdr) == 0);
+	istrcpy(usage->sdrName, sdr->name, sizeof usage->sdrName);
 	usage->sdrSize = sdr->sdrSize;
-	if (sdrv->sdr->configFlags & SDR_IN_DRAM)
-	{
-		map = (SdrMap *) (sdrv->dbsm);
-	}
-	else
-	{
-		sdrFetch(mapImage, 0);
-		map = &mapImage;
-	}
-
+	map = _mapImage(sdrv);
 	usage->smallPoolSize = map->endOfSmallPool - map->startOfSmallPool;
 	freeTotal = 0;
 	size = 0;
@@ -1151,11 +1082,12 @@ void	sdr_report(SdrUsageSummary *usage)
 	int	count;
 	char	buf[100];
 
-	REQUIRE(usage);
-	sprintf(buf, "-- sdr '%s' usage report --", usage->sdrName);
+	CHKVOID(usage);
+	isprintf(buf, sizeof buf, "-- sdr '%s' usage report --",
+			usage->sdrName);
 	writeMemo(buf);
 	size = 0;
-	sprintf(buf, "small pool free blocks:");
+	istrcpy(buf, "small pool free blocks:", sizeof buf);
 	writeMemo(buf);
 	for (i = 0; i < SMALL_SIZES; i++)
 	{
@@ -1163,19 +1095,23 @@ void	sdr_report(SdrUsageSummary *usage)
 		count = usage->smallPoolFreeBlockCount[i];
 		if (count > 0)
 		{
-			sprintf(buf, "    %10d of size %10ld", count, size);
+			isprintf(buf, sizeof buf, "    %10d of size %10ld",
+					count, size);
 	                writeMemo(buf);
 		}
 	}
 
-	sprintf(buf, "       total avbl: %10ld", usage->smallPoolFree);
+	isprintf(buf, sizeof buf, "       total avbl: %10ld",
+			usage->smallPoolFree);
 	writeMemo(buf);
-	sprintf(buf, "     total unavbl: %10ld", usage->smallPoolAllocated);
+	isprintf(buf, sizeof buf, "     total unavbl: %10ld",
+			usage->smallPoolAllocated);
 	writeMemo(buf);
-	sprintf(buf, "       total size: %10ld", usage->smallPoolSize);
+	isprintf(buf, sizeof buf, "       total size: %10ld",
+			usage->smallPoolSize);
 	writeMemo(buf);
 	size = WORD_SIZE;
-	sprintf(buf, "large pool free blocks:");
+	istrcpy(buf, "large pool free blocks:", sizeof buf);
 	writeMemo(buf);
 	for (i = 0; i < LARGE_ORDERS; i++)
 	{
@@ -1183,19 +1119,25 @@ void	sdr_report(SdrUsageSummary *usage)
 		count = usage->largePoolFreeBlockCount[i];
 		if (count > 0)
 		{
-			sprintf(buf, "    %10d of order %10ld", count, size);
+			isprintf(buf, sizeof buf, "    %10d of order %10ld",
+					count, size);
 	                writeMemo(buf);
 		}
 	}
 
-	sprintf(buf, "       total avbl: %10ld", usage->largePoolFree);
+	isprintf(buf, sizeof buf, "       total avbl: %10ld",
+			usage->largePoolFree);
         writeMemo(buf);
-	sprintf(buf, "     total unavbl: %10ld", usage->largePoolAllocated);
+	isprintf(buf, sizeof buf, "     total unavbl: %10ld",
+		       	usage->largePoolAllocated);
         writeMemo(buf);
-	sprintf(buf, "       total size: %10ld", usage->largePoolSize);
+	isprintf(buf, sizeof buf, "       total size: %10ld",
+		       	usage->largePoolSize);
         writeMemo(buf);
-	sprintf(buf, "total sdr:         %10ld", usage->sdrSize);
+	isprintf(buf, sizeof buf, "total sdr:         %10ld",
+		       	usage->sdrSize);
         writeMemo(buf);
-	sprintf(buf, "total unused:      %10ld", usage->unusedSize);
+	isprintf(buf, sizeof buf, "total unused:      %10ld",
+		       	usage->unusedSize);
         writeMemo(buf);
 }

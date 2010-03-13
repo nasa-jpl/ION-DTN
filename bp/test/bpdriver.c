@@ -108,7 +108,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	if (aduLength == 1)
 	{
 		randomAduLength = 1;
-		srand((unsigned int) time(NULL));
+		srandom((unsigned int) time(NULL));
 	}
 
 	aduFile = open("bpdriverAduFile", O_WRONLY | O_CREAT | O_TRUNC, 0777);
@@ -167,7 +167,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	{
 		if (randomAduLength)
 		{
-			aduLength = ((rand() % 60) + 1) * 1024;
+			aduLength = ((random() % 60) + 1) * 1024;
 		}
 
 		sdr_begin_xn(sdr);

@@ -454,7 +454,8 @@ fflush(stdout);
 	}
 
 	parms->senderEid = parms->senderEidBuffer;
-	sprintf(parms->senderEidBuffer, "ipn:%lu.0", ductNbr);
+	isprintf(parms->senderEidBuffer, sizeof parms->senderEidBuffer,
+			"ipn:%lu.0", ductNbr);
 
 	/*	Now start receiving bundles.				*/
 

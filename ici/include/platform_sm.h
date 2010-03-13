@@ -15,6 +15,14 @@
 extern "C" {
 #endif
 
+typedef struct
+{
+	int		wmKey;
+	long		wmSize;
+	char		*wmAddress;
+	char		*wmName;
+} sm_WmParms;
+
 typedef int             sm_SemId;
 #define SM_SEM_NONE	(-1)
 
@@ -64,7 +72,7 @@ extern int		sm_TaskSpawn(char *name, char *arg1, char *arg2,
 extern void		sm_TaskKill(int taskId, int sigNbr);
 extern void		sm_TaskDelete(int taskId);
 extern void		sm_Abort();
-extern void		sm_configurePthread(pthread_attr_t *attr,
+extern void		sm_ConfigurePthread(pthread_attr_t *attr,
 				size_t stackSize);
 extern int		pseudoshell(char *commandLine);
 

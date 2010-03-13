@@ -66,7 +66,10 @@ typedef struct
 	unsigned int	lengthCopied;		/*	incl. capsules	*/
 } ZcoReference;
 
-static const char	*badArgsMemo = "Missing/invalid argument(s)";
+static char	*_badArgsMemo()
+{
+	return "Missing/invalid argument(s).";
+}
 
 Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 {
@@ -78,8 +81,8 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 	Object	fileRefObj;
 	FileRef	fileRef;
 
-	REQUIRE(sdr);
-	REQUIRE(pathName);
+	CHKZERO(sdr);
+	CHKZERO(pathName);
 	pathLen = strlen(pathName);
 	if (*pathName != ION_PATH_DELIMITER)
 	{
@@ -111,7 +114,8 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 
 			pathBuf[cwdLen] = ION_PATH_DELIMITER;
 			cwdLen++;	/*	cwdname incl. delimiter	*/
-			strcpy(pathBuf + cwdLen, pathName);
+			istrcpy(pathBuf + cwdLen, pathName,
+					sizeof pathBuf - cwdLen);
 			pathName = pathBuf;
 			pathLen += cwdLen;
 		}
@@ -124,8 +128,7 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 
 	if (scriptLen > 255 || pathLen < 1 || pathLen > 255)
 	{
-		errno = EINVAL;
-		putSysErrmsg(badArgsMemo, NULL);
+		putErrmsg(_badArgsMemo(), NULL);
 		return 0;
 	}
 
@@ -171,8 +174,8 @@ static void	destroyFileReference(Sdr sdr, FileRef *fileRef,
 	{
 		if (pseudoshell(fileRef->cleanupScript) < 0)
 		{
-			putErrmsg("Can't run file reference's cleanup script.",
-					fileRef->cleanupScript);
+			writeMemoNote("[?] Can't run file reference's cleanup \
+script.", fileRef->cleanupScript);
 		}
 	}
 }
@@ -181,8 +184,8 @@ void	zco_destroy_file_ref(Sdr sdr, Object fileRefObj)
 {
 	FileRef	fileRef;
 
-	REQUIRE(sdr);
-	REQUIRE(fileRefObj);
+	CHKVOID(sdr);
+	CHKVOID(fileRefObj);
 	sdr_stage(sdr, (char *) &fileRef, fileRefObj, sizeof(FileRef));
 	if (fileRef.refCount == 0)
 	{
@@ -225,9 +228,9 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 	Zco	zco;
 	Object	zrObj;
 
-	REQUIRE(sdr);
-	REQUIRE(!(firstExtentLocation == 0 && firstExtentLength != 0));
-	REQUIRE(!(firstExtentLength == 0 && firstExtentLocation != 0));
+	CHKZERO(sdr);
+	CHKZERO(!(firstExtentLocation == 0 && firstExtentLength != 0));
+	CHKZERO(!(firstExtentLength == 0 && firstExtentLocation != 0));
 	memset((char *) &zco, 0, sizeof(Zco));
 	zco.occupancy = sizeof(Zco);
 	zcoObj = sdr_malloc(sdr, sizeof(Zco));
@@ -247,15 +250,19 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 
 	if (firstExtentLength)
 	{
-		zco_append_extent(sdr, zrObj, firstExtentSourceMedium,
+		if (zco_append_extent(sdr, zrObj, firstExtentSourceMedium,
 			firstExtentLocation, firstExtentOffset,
-				firstExtentLength);
+				firstExtentLength) < 0)
+		{
+			putErrmsg("Can't append initial extent.", NULL);
+			return 0;
+		}
 	}
 
 	return zrObj;
 }
 
-void	zco_append_extent(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
+int	zco_append_extent(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
 		Object location, unsigned int offset, unsigned int length)
 {
 	ZcoReference	ref;
@@ -265,10 +272,10 @@ void	zco_append_extent(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
 	SourceExtent	prevExtent;
 	FileRef		fileRef;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
-	REQUIRE(location);
-	REQUIRE(length);
+	CHKERR(sdr);
+	CHKERR(zcoRef);
+	CHKERR(location);
+	CHKERR(length);
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	extent.sourceMedium = sourceMedium;
 	extent.location = location;
@@ -279,7 +286,7 @@ void	zco_append_extent(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
 	if (extentObj == 0)
 	{
 		putErrmsg("No space for extent.", NULL);
-		return;
+		return -1;
 	}
 
 	sdr_write(sdr, extentObj, (char *) &extent, sizeof(SourceExtent));
@@ -313,9 +320,10 @@ void	zco_append_extent(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
 	zco.sourceLength += length;
 	zco.totalLength += length;
 	sdr_write(sdr, ref.zcoObj, (char *) &zco, sizeof(Zco));
+	return 0;
 }
 
-void	zco_prepend_header(Sdr sdr, Object zcoRef, char *text,
+int	zco_prepend_header(Sdr sdr, Object zcoRef, char *text,
 		unsigned int length)
 {
 	Capsule		header;
@@ -323,16 +331,16 @@ void	zco_prepend_header(Sdr sdr, Object zcoRef, char *text,
 	Object		capsuleObj;
 	Zco		zco;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
-	REQUIRE(text);
-	REQUIRE(length);
+	CHKERR(sdr);
+	CHKERR(zcoRef);
+	CHKERR(text);
+	CHKERR(length);
 	header.length = length;
 	header.text = sdr_malloc(sdr, length);
 	if (header.text == 0)
 	{
 		putErrmsg("No space for header text.", NULL);
-		return;
+		return -1;
 	}
 
 	sdr_write(sdr, header.text, text, length);
@@ -345,7 +353,7 @@ void	zco_prepend_header(Sdr sdr, Object zcoRef, char *text,
 	if (capsuleObj == 0)
 	{
 		putErrmsg("No space for capsule.", NULL);
-		return;
+		return -1;
 	}
 
 	sdr_write(sdr, capsuleObj, (char *) &header, sizeof(Capsule));
@@ -366,6 +374,7 @@ void	zco_prepend_header(Sdr sdr, Object zcoRef, char *text,
 	zco.firstHeader = capsuleObj;
 	zco.totalLength += length;
 	sdr_write(sdr, ref.zcoObj, (char *) &zco, sizeof(Zco));
+	return 0;
 }
 
 void	zco_discard_first_header(Sdr sdr, Object zcoRef)
@@ -375,13 +384,13 @@ void	zco_discard_first_header(Sdr sdr, Object zcoRef)
 	Object		obj;
 	Capsule		capsule;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
+	CHKVOID(sdr);
+	CHKVOID(zcoRef);
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	sdr_stage(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
 	if (zco.firstHeader == 0)
 	{
-		putErrmsg("No header to discard.", NULL);
+		writeMemo("[?] No header to discard.");
 		return;
 	}
 
@@ -407,7 +416,7 @@ void	zco_discard_first_header(Sdr sdr, Object zcoRef)
 	sdr_write(sdr, ref.zcoObj, (char *) &zco, sizeof(Zco));
 }
 
-void	zco_append_trailer(Sdr sdr, Object zcoRef, char *text,
+int	zco_append_trailer(Sdr sdr, Object zcoRef, char *text,
 		unsigned int length)
 {
 	ZcoReference	ref;
@@ -415,16 +424,16 @@ void	zco_append_trailer(Sdr sdr, Object zcoRef, char *text,
 	Object		capsuleObj;
 	Zco		zco;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
-	REQUIRE(text);
-	REQUIRE(length);
+	CHKERR(sdr);
+	CHKERR(zcoRef);
+	CHKERR(text);
+	CHKERR(length);
 	trailer.length = length;
 	trailer.text = sdr_malloc(sdr, length);
 	if (trailer.text == 0)
 	{
 		putErrmsg("No space for trailer text.", NULL);
-		return;
+		return -1;
 	}
 
 	sdr_write(sdr, trailer.text, text, length);
@@ -437,7 +446,7 @@ void	zco_append_trailer(Sdr sdr, Object zcoRef, char *text,
 	if (capsuleObj == 0)
 	{
 		putErrmsg("No space for capsule.", NULL);
-		return;
+		return -1;
 	}
 
 	sdr_write(sdr, capsuleObj, (char *) &trailer, sizeof(Capsule));
@@ -458,6 +467,7 @@ void	zco_append_trailer(Sdr sdr, Object zcoRef, char *text,
 	zco.lastTrailer = capsuleObj;
 	zco.totalLength += length;
 	sdr_write(sdr, ref.zcoObj, (char *) &zco, sizeof(Zco));
+	return 0;
 }
 
 void	zco_discard_last_trailer(Sdr sdr, Object zcoRef)
@@ -467,13 +477,13 @@ void	zco_discard_last_trailer(Sdr sdr, Object zcoRef)
 	Object		obj;
 	Capsule		capsule;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
+	CHKVOID(sdr);
+	CHKVOID(zcoRef);
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	sdr_stage(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
 	if (zco.lastTrailer == 0)
 	{
-		putErrmsg("No trailer to discard.", NULL);
+		writeMemo("[?] No trailer to discard.");
 		return;
 	}
 
@@ -503,8 +513,8 @@ Object	zco_add_reference(Sdr sdr, Object zcoRef)
 {
 	ZcoReference	ref;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
+	CHKZERO(sdr);
+	CHKZERO(zcoRef);
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	return addReference(sdr, ref.zcoObj);
 }
@@ -596,12 +606,6 @@ static void	destroyZco(Sdr sdr, Object zcoObj)
 	Capsule		capsule;
 
 	sdr_read(sdr, (char *) &zco, zcoObj, sizeof(Zco));
-	if (zco.refCount > 0)
-	{
-		putErrmsg("Can't destroy zco, refCount is not 0.",
-				utoa(zco.refCount));
-		return;
-	}
 
 	/*	Destroy all source data extents.			*/
 
@@ -638,8 +642,8 @@ void	zco_destroy_reference(Sdr sdr, Object zcoRef)
 	ZcoReference	ref;
 	Zco		zco;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
+	CHKVOID(sdr);
+	CHKVOID(zcoRef);
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	sdr_free(sdr, zcoRef);
 	sdr_stage(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
@@ -656,8 +660,8 @@ unsigned int	zco_length(Sdr sdr, Object zcoRef)
 	ZcoReference	ref;
 	Zco		zco;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
+	CHKZERO(sdr);
+	CHKZERO(zcoRef);
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	sdr_read(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
 	return zco.totalLength;
@@ -668,8 +672,8 @@ unsigned int	zco_source_data_length(Sdr sdr, Object zcoRef)
 	ZcoReference	ref;
 	Zco		zco;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
+	CHKZERO(sdr);
+	CHKZERO(zcoRef);
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	sdr_read(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
 	return zco.sourceLength;
@@ -684,8 +688,8 @@ unsigned int	zco_occupancy(Sdr sdr, Object zcoRef)
 	SourceExtent	extent;
 	FileRef		fileRef;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
+	CHKZERO(sdr);
+	CHKZERO(zcoRef);
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	sdr_read(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
 	occupancy = zco.occupancy + sizeof(ZcoReference);
@@ -718,8 +722,8 @@ unsigned int	zco_nbr_of_refs(Sdr sdr, Object zcoRef)
 	ZcoReference	ref;
 	Zco		zco;
 
-	REQUIRE(sdr);
-	REQUIRE(zcoRef);
+	CHKZERO(sdr);
+	CHKZERO(zcoRef);
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	sdr_read(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
 	return zco.refCount;
@@ -739,7 +743,7 @@ void	zco_strip(Sdr sdr, Object zcoRef)
 
 	if (sdr == NULL || zcoRef == 0)
 	{
-		putSysErrmsg(badArgsMemo, NULL);
+		putErrmsg(_badArgsMemo(), NULL);
 		return;
 	}
 
@@ -852,7 +856,7 @@ void	zco_concatenate(Sdr sdr, Object aggregateZcoRef, Object atomicZcoRef)
 
 	if (sdr == NULL || aggregateZcoRef == 0 || atomicZcoRef == 0)
 	{
-		putSysErrmsg(badArgsMemo, NULL);
+		putErrmsg(_badArgsMemo(), NULL);
 		return;
 	}
 
@@ -950,8 +954,7 @@ Object	zco_copy(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
 	if (sdr == NULL || zcoRef == 0 || buffer == NULL || bufferLength == 0
 	|| length == 0)
 	{
-		errno = EINVAL;
-		putSysErrmsg(badArgsMemo, NULL);
+		putErrmsg(_badArgsMemo(), NULL);
 		return 0;
 	}
 
@@ -961,8 +964,7 @@ Object	zco_copy(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
 	sdr_read(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
 	if ((offset + length) > zco.totalLength)
 	{
-		errno = EINVAL;
-		putSysErrmsg("Offset + length exceeds zco length",
+		putErrmsg("Offset + length exceeds zco length",
 				utoa(offset + length));
 		return 0;
 	}
@@ -979,15 +981,13 @@ Object	zco_copy(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
 	{
 		if (*buffer == 0)
 		{
-			errno = EINVAL;
-			putSysErrmsg("No file name for new zco", NULL);
+			putErrmsg("No file name for new zco", NULL);
 			return 0;
 		}
 
 		if (strlen(buffer) > 250)
 		{
-			errno = EINVAL;
-			putSysErrmsg("zco file name too long, exceeds 250",
+			putErrmsg("zco file name too long, exceeds 250",
 					itoa(strlen(buffer)));
 			return 0;
 		}
@@ -1001,8 +1001,9 @@ Object	zco_copy(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
 
 		fileRef.refCount = 0;
 		fileRef.okayToDestroy = 0;
-		strcpy(fileRef.pathName, buffer);
-		sprintf(fileRef.cleanupScript, "rm %s", buffer);
+		istrcpy(fileRef.pathName, buffer, sizeof fileRef.pathName);
+		isprintf(fileRef.cleanupScript, sizeof fileRef.cleanupScript,
+				"rm %s", buffer);
 	}
 
 	newZcoObj = sdr_malloc(sdr, sizeof(Zco));
@@ -1029,8 +1030,13 @@ Object	zco_copy(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
 		}
 
 		sdr_write(sdr, fileRefObj, (char *) &fileRef, sizeof(FileRef));
-		zco_append_extent(sdr, newZcoObj, sourceMedium, fileRefObj,
-				0, length);
+		if (zco_append_extent(sdr, newZcoObj, sourceMedium, fileRefObj,
+				0, length) < 0)
+		{
+			fclose(file);
+			putErrmsg("Can't append extent.", NULL);
+			return 0;
+		}
 	}
 
 	/*	Now copy extents of source data as requested.		*/
@@ -1098,9 +1104,15 @@ Object	zco_copy(Sdr sdr, Object zcoRef, ZcoMedium sourceMedium,
 				}
 
 				sdr_write(sdr, textObj, buffer, copyLength);
-				zco_append_extent(sdr, newZcoObj,
+				if (zco_append_extent(sdr, newZcoObj,
 						sourceMedium, textObj,
-						0, copyLength);
+						0, copyLength) < 0)
+				{
+					putErrmsg("Can't append extent.",
+							NULL);
+					return 0;
+				}
+
 				break;
 
 			default:
@@ -1132,8 +1144,8 @@ data to file", NULL);
 
 void	zco_start_transmitting(Sdr sdr, Object zcoRef, ZcoReader *reader)
 {
-	REQUIRE(zcoRef);
-	REQUIRE(reader);
+	CHKVOID(zcoRef);
+	CHKVOID(reader);
 	reader->reference = zcoRef;
 }
 
@@ -1150,10 +1162,10 @@ int	zco_transmit(Sdr sdr, ZcoReader *reader, unsigned int length,
 	unsigned int	bytesAvbl;
 	SourceExtent	extent;
 
-	REQUIRE(sdr);
-	REQUIRE(reader);
-	REQUIRE(length);
-	REQUIRE(buffer);
+	CHKZERO(sdr);
+	CHKZERO(reader);
+	CHKZERO(length);
+	CHKZERO(buffer);
 	sdr_stage(sdr, (char *) &ref, reader->reference, sizeof(ZcoReference));
 	sdr_read(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
 	bytesToSkip = ref.lengthCopied;
@@ -1275,8 +1287,8 @@ void	zco_stop_transmitting(Sdr sdr, ZcoReader *reader)
 
 void	zco_start_receiving(Sdr sdr, Object zcoRef, ZcoReader *reader)
 {
-	REQUIRE(zcoRef);
-	REQUIRE(reader);
+	CHKVOID(zcoRef);
+	CHKVOID(reader);
 	reader->reference = zcoRef;
 }
 #if 0
@@ -1294,8 +1306,7 @@ int	zco_receive_headers(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 	if (sdr == NULL || reader == NULL || length < 1 || buffer == NULL)
 	{
-		errno = EINVAL;
-		putSysErrmsg(badArgsMemo, utoa(length));
+		putErrmsg(_badArgsMemo(), utoa(length));
 		return -1;
 	}
 
@@ -1364,7 +1375,7 @@ void	zco_restore_source(Sdr sdr, ZcoReader *reader, unsigned int length)
 
 	if (sdr == NULL || reader == NULL || length < 1)
 	{
-		putSysErrmsg(badArgsMemo, utoa(length));
+		putErrmsg(_badArgsMemo(), utoa(length));
 		return;
 	}
 
@@ -1373,7 +1384,7 @@ void	zco_restore_source(Sdr sdr, ZcoReader *reader, unsigned int length)
 	if (length > zco.headersLength)
 	{
 		delta = length - zco.headersLength;
-		putSysErrmsg("would make aggregate header length negative",
+		putErrmsg("would make aggregate header length negative",
 				utoa(delta));
 		return;
 	}
@@ -1393,7 +1404,7 @@ void	zco_delimit_source(Sdr sdr, ZcoReader *reader, unsigned int length)
 
 	if (sdr == NULL || reader == NULL || length < 1)
 	{
-		putSysErrmsg(badArgsMemo, utoa(length));
+		putErrmsg(_badArgsMemo(), utoa(length));
 		return;
 	}
 
@@ -1436,10 +1447,10 @@ int	zco_receive_source(Sdr sdr, ZcoReader *reader, unsigned int length,
 	Object		obj;
 	SourceExtent	extent;
 
-	REQUIRE(sdr);
-	REQUIRE(reader);
-	REQUIRE(length);
-	REQUIRE(buffer);
+	CHKZERO(sdr);
+	CHKZERO(reader);
+	CHKZERO(length);
+	CHKZERO(buffer);
 	sdr_stage(sdr, (char *) &ref, reader->reference, sizeof(ZcoReference));
 	sdr_read(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
 	bytesToSkip = zco.headersLength + ref.sourceLengthCopied;
@@ -1503,8 +1514,7 @@ int	zco_receive_trailers(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 	if (sdr == NULL || reader == NULL || length < 1 || buffer == NULL)
 	{
-		errno = EINVAL;
-		putSysErrmsg(badArgsMemo, utoa(length));
+		putErrmsg(_badArgsMemo(), utoa(length));
 		return -1;
 	}
 

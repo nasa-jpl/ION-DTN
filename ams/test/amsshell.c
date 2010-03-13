@@ -109,7 +109,7 @@ static void	handleCommand(AmsNode me, char *mode)
 			return;
 		}
 
-		strcpy(subjectName, subjectNameString);
+		istrcpy(subjectName, subjectNameString, sizeof subjectName);
 		break;
 
 	default:

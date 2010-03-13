@@ -157,8 +157,10 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 		return -1;
 	}
 
-	strcpy(sap.endpointMetaEid.schemeName, metaEid.schemeName);
-	strcpy(sap.endpointMetaEid.nss, metaEid.nss);
+	istrcpy(sap.endpointMetaEid.schemeName, metaEid.schemeName,
+			sizeof sap.endpointMetaEid.schemeName);
+	istrcpy(sap.endpointMetaEid.nss, metaEid.nss,
+			sizeof sap.endpointMetaEid.nss);
 	restoreEidString(&metaEid);
 	sap.recvSemaphore = vpoint->semaphore;
 	memcpy((char *) *bpsapPtr, (char *) &sap, sizeof(Sap));
@@ -544,14 +546,21 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	if (dictionary == (char *) &bundle)
 	{
 		sdr_cancel_xn(sdr);
-		putSysErrmsg("Can't retrieve dictionary.", NULL);
+		putErrmsg("Can't retrieve dictionary.", NULL);
 		return -1;
 	}
 
 	/*	Now fill in the data indication structure.		*/
 
 	dlvBuffer->result = BpPayloadPresent;
-	dlvBuffer->bundleSourceEid = printEid(&bundle.id.source, dictionary);
+	if (printEid(&bundle.id.source, dictionary,
+			&dlvBuffer->bundleSourceEid) < 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't print source EID.", NULL);
+		return -1;
+	}
+
 	dlvBuffer->bundleCreationTime.seconds = bundle.id.creationTime.seconds;
 	dlvBuffer->bundleCreationTime.count = bundle.id.creationTime.count;
 	dlvBuffer->adminRecord = bundle.bundleProcFlags & BDL_IS_ADMIN;
@@ -573,7 +582,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		if (result < 0)
 		{
 			sdr_cancel_xn(sdr);
-			putSysErrmsg("Can't send status report", NULL);
+			putErrmsg("Can't send status report", NULL);
 			return -1;
 		}
 	}

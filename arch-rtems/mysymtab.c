@@ -40,40 +40,39 @@ typedef struct
 	int	stackSize;
 } SymTabEntry;
 
-static SymTabEntry	symbols[] =
-{
-	{ "ionadmin",	(FUNCPTR) ionadmin,	ICI_PRIORITY,	32768 },
-	{ "rfxclock",	(FUNCPTR) rfxclock,	ICI_PRIORITY,	32768 },
-	{ "ionsecadmin",(FUNCPTR) ionsecadmin,	ICI_PRIORITY,	32768 },
-	{ "ltpadmin",	(FUNCPTR) ltpadmin,	ICI_PRIORITY,	32768 },
-	{ "ltpclock",	(FUNCPTR) ltpclock,	ICI_PRIORITY,	32768 },
-	{ "ltpmeter",	(FUNCPTR) ltpmeter,	ICI_PRIORITY,	32768 },
-	{ "pmqlsi",	(FUNCPTR) pmqlsi,	ICI_PRIORITY,	32768 },
-	{ "pmqlso",	(FUNCPTR) pmqlso,	ICI_PRIORITY,	32768 },
-	{ "bpadmin",	(FUNCPTR) bpadmin,	ICI_PRIORITY,	32768 },
-	{ "bpclock",	(FUNCPTR) bpclock,	ICI_PRIORITY,	4096  },
-	{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
-	{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },
-	{ "ipnadmin",	(FUNCPTR) ipnadmin,	ICI_PRIORITY,	32768 },
-	{ "ipnfw",	(FUNCPTR) ipnfw,	ICI_PRIORITY,	65536 },
-	{ "ipnadminep",	(FUNCPTR) ipnadminep,	ICI_PRIORITY,	24576 },
-	{ "lgagent",	(FUNCPTR) lgagent,	ICI_PRIORITY,	24576 },
-	{ "bpsource",	(FUNCPTR) bpsource,	ICI_PRIORITY,	4096  },
-	{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  },
-	{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
-	{ "cfdpclock",	(FUNCPTR) cfdpclock,	ICI_PRIORITY,	24576 },
-	{ "bputa",	(FUNCPTR) bputa,	ICI_PRIORITY,	24576 }
-};
-
-static int	numSymbols = sizeof symbols / sizeof(SymTabEntry);
-
 FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 {
-	int	i;
+	static SymTabEntry	symbols[] =
+	{
+		{ "ionadmin",	(FUNCPTR) ionadmin,	ICI_PRIORITY,	32768 },
+		{ "rfxclock",	(FUNCPTR) rfxclock,	ICI_PRIORITY,	32768 },
+		{ "ionsecadmin",(FUNCPTR) ionsecadmin,	ICI_PRIORITY,	32768 },
+		{ "ltpadmin",	(FUNCPTR) ltpadmin,	ICI_PRIORITY,	32768 },
+		{ "ltpclock",	(FUNCPTR) ltpclock,	ICI_PRIORITY,	32768 },
+		{ "ltpmeter",	(FUNCPTR) ltpmeter,	ICI_PRIORITY,	32768 },
+		{ "pmqlsi",	(FUNCPTR) pmqlsi,	ICI_PRIORITY,	32768 },
+		{ "pmqlso",	(FUNCPTR) pmqlso,	ICI_PRIORITY,	32768 },
+		{ "bpadmin",	(FUNCPTR) bpadmin,	ICI_PRIORITY,	32768 },
+		{ "bpclock",	(FUNCPTR) bpclock,	ICI_PRIORITY,	4096  },
+		{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
+		{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },
+		{ "ipnadmin",	(FUNCPTR) ipnadmin,	ICI_PRIORITY,	32768 },
+		{ "ipnfw",	(FUNCPTR) ipnfw,	ICI_PRIORITY,	65536 },
+		{ "ipnadminep",	(FUNCPTR) ipnadminep,	ICI_PRIORITY,	24576 },
+		{ "lgagent",	(FUNCPTR) lgagent,	ICI_PRIORITY,	24576 },
+		{ "bpsource",	(FUNCPTR) bpsource,	ICI_PRIORITY,	4096  },
+		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  },
+		{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
+		{ "cfdpclock",	(FUNCPTR) cfdpclock,	ICI_PRIORITY,	24576 },
+		{ "bputa",	(FUNCPTR) bputa,	ICI_PRIORITY,	24576 }
+	};
 
-	REQUIRE(name);
-	REQUIRE(priority);
-	REQUIRE(stackSize);
+	static int	numSymbols = sizeof symbols / sizeof(SymTabEntry);
+	int		i;
+
+	CHKNULL(name);
+	CHKNULL(priority);
+	CHKNULL(stackSize);
 	for (i = 0; i < numSymbols; i++)
 	{
 		if (strcmp(name, symbols[i].name) == 0)

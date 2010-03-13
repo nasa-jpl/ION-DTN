@@ -207,8 +207,8 @@ int	main(int argc, char *argv[])
 
 			if (sm_SemEnded(vspan->bufFullSemaphore))
 			{
-				sprintf(memo, "[i] LTP meter to engine %lu is \
-stopped.", remoteEngineId);
+				isprintf(memo, sizeof memo, "[i] LTP meter to \
+engine %lu is stopped.", remoteEngineId);
 				writeMemo(memo);
 				running = 0;
 				continue;

@@ -44,7 +44,8 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 #else
 	decoration = "";
 #endif
-	sprintf(stationEid, "%.5sipn:%lu.%lu", decoration, nodeNbr, serviceNbr);
+	isprintf(stationEid, sizeof stationEid, "%.5sipn:%lu.%lu", decoration,
+			nodeNbr, serviceNbr);
 
 	/*	Is neighbor refusing to be a station for bundles?	*/
 

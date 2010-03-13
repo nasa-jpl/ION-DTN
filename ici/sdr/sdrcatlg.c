@@ -23,8 +23,6 @@
 #include "sdrlist.h"
 #include "sdr.h"
 
-static const char	*catlgMsg = "can't catalog item in SDR";
-
 /*	Private definition of SDR catalogue management structure.	*/
 
 typedef struct
@@ -48,27 +46,26 @@ static int	compareCatalogueEntries(Sdr sdrv, Address entryAddr, void *arg)
 void	Sdr_catlg(char *file, int line, Sdr sdrv, char *name, int type,
 		Object object)
 {
+	SdrMap		*map = _mapImage(sdrv);
 	Object		catalogue;
 	CatalogueEntry	entry;
 	Object		elt;
 	Object		addr;
 	int		result;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return;
 	}
 
-	if (name == NULL || strlen(name) > MAX_SDR_NAME || object == 0)
+	if (object == 0 || name == NULL || strlen(name) > MAX_SDR_NAME)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, apiErrMsg, NULL);
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, _apiErrMsg(), sdrv));
 		return;
 	}
 
-	strcpy(entry.name, name);
+	istrcpy(entry.name, name, sizeof entry.name);
 	entry.type = type;
 	entry.object = object;
 	sdrFetch(catalogue, ADDRESS_OF(catalogue));
@@ -77,9 +74,7 @@ void	Sdr_catlg(char *file, int line, Sdr sdrv, char *name, int type,
 		catalogue = sdr_list_create(sdrv);
 		if (catalogue == 0)
 		{
-			_putErrmsg(file, line, "Can't create SDR catalogue.",
-					NULL);
-			crashXn(sdrv);
+			oK(_iEnd(file, line, "catalogue"));
 			return;
 		}
 
@@ -93,7 +88,6 @@ void	Sdr_catlg(char *file, int line, Sdr sdrv, char *name, int type,
 		result = compareCatalogueEntries(sdrv, (Address) addr, &entry);
 		if (result == 0)
 		{
-			errno = EINVAL;
 			_putErrmsg(file, line, "item is already in catalog",
 					name);
 			crashXn(sdrv);
@@ -111,7 +105,7 @@ void	Sdr_catlg(char *file, int line, Sdr sdrv, char *name, int type,
 	addr = _sdrzalloc(sdrv, sizeof entry);
 	if (addr == 0)
 	{
-		_putErrmsg(file, line, "can't create catalog entry", NULL);
+		oK(_iEnd(file, line, "addr"));
 		return;
 	}
 
@@ -121,7 +115,7 @@ void	Sdr_catlg(char *file, int line, Sdr sdrv, char *name, int type,
 		if (Sdr_list_insert_before(file, line, sdrv, elt,
 					(Address) addr) == 0)
 		{
-			_putErrmsg(file, line, catlgMsg, name);
+			oK(_iEnd(file, line, name));
 			return;
 		}
 	}
@@ -130,7 +124,7 @@ void	Sdr_catlg(char *file, int line, Sdr sdrv, char *name, int type,
 		if (Sdr_list_insert_last(file, line, sdrv, catalogue,
 					(Address) addr) == 0)
 		{
-			_putErrmsg(file, line, catlgMsg, name);
+			oK(_iEnd(file, line, name));
 			return;
 		}
 	}
@@ -138,19 +132,12 @@ void	Sdr_catlg(char *file, int line, Sdr sdrv, char *name, int type,
 
 static Object	catlgLookup(Sdr sdrv, char *name)
 {
+	SdrMap		*map = _mapImage(sdrv);
 	CatalogueEntry	entry;
 	Object		catalogue;
 
-	if (name == NULL || strlen(name) > MAX_SDR_NAME)
-	{
-		errno = EINVAL;
-		putErrmsg(apiErrMsg, "name");
-		crashXn(sdrv);
-		return 0;
-	}
-
-	REQUIRE(sdrv);
-	strcpy(entry.name, name);
+	XNCHKZERO(!(name == NULL || strlen(name) > MAX_SDR_NAME));
+	istrcpy(entry.name, name, sizeof entry.name);
 	sdrFetch(catalogue, ADDRESS_OF(catalogue));
 	if (catalogue == 0)
 	{
@@ -167,9 +154,9 @@ Object	sdr_find(Sdr sdrv, char *name, int *type)
 	Object		elt;
 	CatalogueEntry	entry;
 
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKZERO(takeSdr(sdr) == 0);
 	elt = catlgLookup(sdrv, name);
 	if (elt)
 	{
@@ -191,9 +178,9 @@ void	Sdr_uncatlg(char *file, int line, Sdr sdrv, char *name)
 {
 	Object	elt;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return;
 	}
 
@@ -208,14 +195,14 @@ void	Sdr_uncatlg(char *file, int line, Sdr sdrv, char *name)
 Object	sdr_read_catlg(Sdr sdrv, char *name, int *type, Object *object,
 		Object prev_elt)
 {
+	SdrMap		*map = _mapImage(sdrv);
 	SdrState	*sdr;
 	Object		catalogue;
 	Object		elt;
 	CatalogueEntry	entry;
 
-	REQUIRE(sdrv);
+	CHKZERO(sdr_in_xn(sdrv));
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
 	if (prev_elt == 0)
 	{
 		sdrFetch(catalogue, ADDRESS_OF(catalogue));
@@ -228,14 +215,13 @@ Object	sdr_read_catlg(Sdr sdrv, char *name, int *type, Object *object,
 
 	if (elt == 0)
 	{
-		releaseSdr(sdr);
 		return elt;
 	}
 
 	sdrFetch(entry, sdr_list_data(sdrv, elt));
 	if (name)
 	{
-		strcpy(name, entry.name);
+		istrcpy(name, entry.name, sizeof entry.name);
 	}
 
 	if (type)

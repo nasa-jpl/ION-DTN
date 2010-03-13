@@ -336,7 +336,7 @@ static void	handleDatagram(struct sockaddr_in *inetName, int *contentLength,
 	ipAddress = ntohl(ipAddress);
 	portNbr = inetName->sin_port;
 	portNbr = ntohs(portNbr);
-	sprintf(gwEidBuffer, "%u:%hu", ipAddress, portNbr);
+	isprintf(gwEidBuffer, sizeof gwEidBuffer, "%u:%hu", ipAddress, portNbr);
 	fromGWay = Look_Up_NeighborRemoteRAMS(gWay, gwEidBuffer);
 	if (fromGWay == NULL)
 	{
@@ -543,7 +543,7 @@ printf("bp_open succeeds\n");
 		break;
 
 	case RamsUdp:
-		strcpy(gwEid, mib->localContinuumGwEid);
+		istrcpy(gwEid, mib->localContinuumGwEid, sizeof gwEid);
 		parseSocketSpec(gwEid, &portNbr, &ipAddress);
 		portNbr = htons(portNbr);
 		ipAddress = htonl(ipAddress);
@@ -2300,7 +2300,7 @@ int	SendMessageViaBp(RamsGateway *gWay, RamsNode *ramsNode,
 			classOfService, custodySwitch, 0, 0, &ecos,
 			bundleZco, &newBundle) < 1)
 	{
-		sprintf(errorMsg, "can not send message to %s",
+		isprintf(errorMsg, sizeof errorMsg, "cannot send message to %s",
 				ramsNode->gwEid);
 		ErrMsg(errorMsg);
 		return 0;
@@ -2320,7 +2320,7 @@ int	SendMessageViaUdp(RamsGateway *gWay, RamsNode *ramsNode,
 	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
 	char			errorMsg[128];
 
-	strcpy(gwEid, ramsNode->gwEid);
+	istrcpy(gwEid, ramsNode->gwEid, sizeof gwEid);
 	parseSocketSpec(gwEid, &portNbr, &ipAddress);
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
@@ -2338,8 +2338,8 @@ int	SendMessageViaUdp(RamsGateway *gWay, RamsNode *ramsNode,
 				continue;	/*	Retry.		*/
 			}
 
-			sprintf(errorMsg, "can not send message to %s",
-					ramsNode->gwEid);
+			isprintf(errorMsg, sizeof errorMsg,
+				"cannot send message to %s", ramsNode->gwEid);
 			ErrMsg(errorMsg);
 			return 0;
 		}
@@ -2409,7 +2409,8 @@ EnvelopeHeader(envelope, Env_ControlCode));
 	ramsNode = Look_Up_DeclaredRemoteRAMS(gWay, continuumId);
 	if (ramsNode == NULL)
 	{
-		sprintf(errorMsg, "continuum %d not exist", continuumId);
+		isprintf(errorMsg, sizeof errorMsg, "continuum %d does not \
+exist", continuumId);
 		ErrMsg(errorMsg);
 printf("<SendMessageToContinuum> continuum %d not declared yet\n", continuumId);
 		return 0;

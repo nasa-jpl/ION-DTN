@@ -33,7 +33,8 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	sprintf(buffer, "Syntax error at line %d of ionsecadmin.c", lineNbr);
+	isprintf(buffer, sizeof buffer, "Syntax error at line %d of \
+ionsecadmin.c", lineNbr);
 	printText(buffer);
 }
 
@@ -277,7 +278,8 @@ static void	printKey(Object keyAddr)
 	char	buf[128];
 
 	GET_OBJ_POINTER(sdr, SecKey, key, keyAddr);
-	sprintf(buf, "key name '%.31s' length %d", key->name, key->length);
+	isprintf(buf, sizeof buf, "key name '%.31s' length %d", key->name,
+			key->length);
 	printText(buf);
 }
 
@@ -289,8 +291,9 @@ static void	printBabTxRule(Object ruleAddr)
 
 	GET_OBJ_POINTER(sdr, BabTxRule, rule, ruleAddr);
 	sdr_string_read(sdr, eidbuf, rule->recvEid);
-	sprintf(buf, "txrule eid '%.255s' ciphersuite '%.31s' key name '%.31s'",
-			eidbuf, rule->ciphersuiteName, rule->keyName);
+	isprintf(buf, sizeof buf, "txrule eid '%.255s' ciphersuite '%.31s' \
+			key name '%.31s'", eidbuf, rule->ciphersuiteName,
+			rule->keyName);
 	printText(buf);
 }
 
@@ -302,8 +305,8 @@ static void	printBabRxRule(Object ruleAddr)
 
 	GET_OBJ_POINTER(sdr, BabRxRule, rule, ruleAddr);
 	sdr_string_read(sdr, eidbuf, rule->xmitEid);
-	sprintf(buf, "rxrule eid '%.255s' ciphersuite '%.31s' key name '%.31s'",
-			eidbuf, rule->ciphersuiteName, rule->keyName);
+	isprintf(buf, sizeof buf, "rxrule eid '%.255s' ciphersuite '%.31s' \
+key name '%.31s'", eidbuf, rule->ciphersuiteName, rule->keyName);
 	printText(buf);
 }
 

@@ -22,8 +22,6 @@
 #include "sdrP.h"
 #include "sdrtable.h"
 
-static const char	*badAddressMsg = "can't access item at address zero";
-
 /*		Private definition of SDR table structure.		*/
 
 typedef struct
@@ -42,18 +40,16 @@ Object	Sdr_table_create(char *file, int line, Sdr sdrv, int rowSize,
 	SdrTable	tableBuffer;
 	Object		table;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (rowSize < 1 || rowCount < 1)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, apiErrMsg, NULL);
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, _apiErrMsg(), sdrv));
 		return 0;
 	}
 
@@ -63,14 +59,14 @@ Object	Sdr_table_create(char *file, int line, Sdr sdrv, int rowSize,
 	tableBuffer.rows = _sdrmalloc(sdrv, rowSize * rowCount);
 	if (tableBuffer.rows == 0)
 	{
-		_putErrmsg(file, line, "can't create table rows", NULL);
+		oK(_iEnd(file, line, "tableBuffer.rows"));
 		return 0;
 	}
 
 	table = _sdrzalloc(sdrv, sizeof tableBuffer);
 	if (table == 0)
 	{
-		_putErrmsg(file, line, "can't create table object", NULL);
+		oK(_iEnd(file, line, "table"));
 		return 0;
 	}
 
@@ -83,17 +79,10 @@ Address	sdr_table_user_data(Sdr sdrv, Object table)
 	SdrState	*sdr;
 	SdrTable	tableBuffer;
 
-	if (table == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "table");
-		crashXn(sdrv);
-		return 0;
-	}
-
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
+	CHKZERO(table);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(tableBuffer, (Address) table);
 	releaseSdr(sdr);
 	return tableBuffer.userData;
@@ -104,18 +93,16 @@ void	Sdr_table_user_data_set(char *file, int line, Sdr sdrv, Object table,
 {
 	SdrTable	tableBuffer;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (table == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "table");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "table", sdrv));
 		return;
 	}
 
@@ -130,17 +117,12 @@ void	sdr_table_dimensions(Sdr sdrv, Object table, int *rowSize,
 	SdrState	*sdr;
 	SdrTable	tableBuffer;
 
-	if (table == 0 || rowSize == NULL || rowCount == NULL)
-	{
-		errno = EINVAL;
-		putErrmsg(apiErrMsg, NULL);
-		crashXn(sdrv);
-		return;
-	}
-
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
+	CHKVOID(table);
+	CHKVOID(rowSize);
+	CHKVOID(rowCount);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKVOID(takeSdr(sdr) == 0);
 	sdrFetch(tableBuffer, (Address) table);
 	releaseSdr(sdr);
 	*rowSize = tableBuffer.rowSize;
@@ -149,20 +131,13 @@ void	sdr_table_dimensions(Sdr sdrv, Object table, int *rowSize,
 
 void	sdr_table_stage(Sdr sdrv, Object table)
 {
-	SdrState	*sdr = sdrv->sdr;
+	SdrState	*sdr;
 	SdrTable	tableBuffer;
 
-	if (table == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "table");
-		crashXn(sdrv);
-		return;
-	}
-
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
+	CHKVOID(table);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKVOID(takeSdr(sdr) == 0);
 	sdrFetch(tableBuffer, (Address) table);
 	sdr_stage(sdrv, NULL, tableBuffer.rows, 0);
 	releaseSdr(sdr);
@@ -174,27 +149,13 @@ Address	sdr_table_row(Sdr sdrv, Object table, unsigned int rowNbr)
 	SdrTable	tableBuffer;
 	Address		addr;
 
-	if (table == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "table");
-		crashXn(sdrv);
-		return -1;
-	}
-
-	REQUIRE(sdrv);
+	CHKERR(sdrv);
+	CHKERR(table);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKERR(takeSdr(sdr) == 0);
 	sdrFetch(tableBuffer, (Address) table);
 	releaseSdr(sdr);
-	if (rowNbr >= tableBuffer.rowCount)
-	{
-		errno = EINVAL;
-		putErrmsg("Invalid table row number.", utoa(rowNbr));
-		crashXn(sdrv);
-		return -1;
-	}
-
+	CHKERR(rowNbr < tableBuffer.rowCount);
 	addr = ((Address) (tableBuffer.rows)) + (rowNbr * tableBuffer.rowSize);
 	return addr;
 }
@@ -203,18 +164,16 @@ void	Sdr_table_destroy(char *file, int line, Sdr sdrv, Object table)
 {
 	SdrTable	tableBuffer;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (table == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "table");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, _apiErrMsg(), sdrv));
 		return;
 	}
 

@@ -11,19 +11,48 @@
 									*/
 #include "ionsec.h"
 
-#define SEC_DBNAME	"secdb"
+static char	*_secDbName()
+{
+	return "secdb";
+}
 
-static char	*secDbName = SEC_DBNAME;
-static Object	secdbObject = 0;
-static SecDB	secConstantsBuf;
-static SecDB	*secConstants = NULL;
+static Object	_secdbObject(Object *newDbObj)
+{
+	static Object	obj = 0;
+	
+	if (newDbObj)
+	{
+		obj = *newDbObj;
+	}
+	
+	return obj;
+}
 
-static char	*NullParmsMemo = "ION security error: null input parameter(s).";
+static SecDB	*_secConstants()
+{
+	static SecDB	buf;
+	static SecDB	*db = NULL;
+
+	if (db == NULL)
+	{
+		sdr_read(getIonsdr(), (char *) &buf, _secdbObject(0),
+				sizeof(SecDB));
+		db = &buf;
+	}
+
+	return db;
+}
+
+static char	*_NullParmsMemo()
+{
+	return "ION security error: null input parameter(s).";
+}
 
 int	secInitialize()
 {
-	SecDB	secdbBuf;
 	Sdr	ionsdr;
+	Object	secdbObject;
+	SecDB	secdbBuf;
 
 	if (ionAttach() < 0)
 	{
@@ -33,12 +62,12 @@ int	secInitialize()
 
 	ionsdr = getIonsdr();
 	sdr_begin_xn(ionsdr);
-	secdbObject = sdr_find(ionsdr, secDbName, NULL);
+	secdbObject = sdr_find(ionsdr, _secDbName(), NULL);
 	switch (secdbObject)
 	{
 	case -1:		/*	SDR error.			*/
 		sdr_cancel_xn(ionsdr);
-		putErrmsg("Can't seek SEC database in SDR.", NULL);
+		putErrmsg("Can't seek security database in SDR.", NULL);
 		return -1;
 
 	case 0:			/*	Not found must create new DB.	*/
@@ -62,10 +91,10 @@ int	secInitialize()
 
 		sdr_write(ionsdr, secdbObject, (char *) &secdbBuf,
 				sizeof(SecDB));
-		sdr_catlg(ionsdr, secDbName, 0, secdbObject);
+		sdr_catlg(ionsdr, _secDbName(), 0, secdbObject);
 		if (sdr_end_xn(ionsdr))
 		{
-			putErrmsg("Can't create Security database.", NULL);
+			putErrmsg("Can't create security database.", NULL);
 			return -1;
 		}
 
@@ -75,19 +104,15 @@ int	secInitialize()
 		sdr_exit_xn(ionsdr);
 	}
 
-	secConstants = &secConstantsBuf;
-	sdr_read(ionsdr, (char *) secConstants, secdbObject, sizeof(SecDB));
+	oK(_secdbObject(&secdbObject));
+	oK(_secConstants());
 	return 0;
 }
 
 int	secAttach()
 {
 	Sdr	ionsdr;
-
-	if (secConstants)
-	{
-		return 0;
-	}
+	Object	secdbObject;
 
 	if (ionAttach() < 0)
 	{
@@ -96,39 +121,42 @@ int	secAttach()
 	}
 
 	ionsdr = getIonsdr();
-	sdr_begin_xn(ionsdr);
+	secdbObject = _secdbObject(NULL);
 	if (secdbObject == 0)
 	{
-		secdbObject = sdr_find(ionsdr, secDbName, NULL);
+		sdr_begin_xn(ionsdr);
+		secdbObject = sdr_find(ionsdr, _secDbName(), NULL);
+		sdr_exit_xn(ionsdr);
 		if (secdbObject == 0)
 		{
-			sdr_exit_xn(ionsdr);
+			putErrmsg("Can't find ION security database.", NULL);
 			return -1;
 		}
+
+		oK(_secdbObject(&secdbObject));
 	}
 
-	sdr_exit_xn(ionsdr);
-	secConstants = &secConstantsBuf;
-	sdr_read(ionsdr, (char *) secConstants, secdbObject, sizeof(SecDB));
+	oK(_secConstants());
 	return 0;
 
 }
 
 Object	getSecDbObject()
 {
-	return secdbObject;
+	return _secdbObject(NULL);
 }
 
 void	ionClear(char *eid)
 {
 	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
 	Object	elt;
 	Object	ruleObj;
 		OBJ_POINTER(BabRxRule, rule);
 
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] ionClear: can't attach to ION security.");
 		return;
 	}
 
@@ -141,7 +169,7 @@ void	ionClear(char *eid)
 		sdr_begin_xn(sdr);
 		while (1)
 		{
-			elt = sdr_list_first(sdr, secConstants->babRxRules);
+			elt = sdr_list_first(sdr, secdb->babRxRules);
 			if (elt == 0)
 			{
 				break;
@@ -156,11 +184,12 @@ void	ionClear(char *eid)
 
 		if (sdr_end_xn(sdr) < 0)
 		{
-			putErrmsg("Failed deleting BABRX rules.", NULL);
+			writeMemo("[?] ionClear: failed deleting BABRX rules.");
 		}
 		else
 		{
-			writeMemo("No remaining BAB reception rules.");
+			writeMemo("[i] ionClear: no remaining BAB reception \
+rules.");
 		}
 
 		return;
@@ -171,17 +200,19 @@ void	ionClear(char *eid)
 
 	if (sec_updateBabRxRule(eid, "", "") < 1)
 	{
-		putErrmsg("Unable to clear BAB reception rule.", eid);
+		writeMemoNote("[?] ionClear: can't clear BAB reception rule.",
+				eid);
 	}
 	else
 	{
-		writeMemo("Cleared BAB reception rule.");
+		writeMemo("[i] ionClear: cleared BAB reception rule.");
 	}
 }
 
 static Object	locateKey(char *keyName, Object *nextKey)
 {
 	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
 	Object	elt;
 		OBJ_POINTER(SecKey, key);
 	int	result;
@@ -191,9 +222,9 @@ static Object	locateKey(char *keyName, Object *nextKey)
 	 *	location within the keys list at which such a key
 	 *	should be inserted.					*/
 
-checkSafety(sdr);
+	CHKZERO(ionLocked());
 	if (nextKey) *nextKey = 0;	/*	Default.		*/
-	for (elt = sdr_list_first(sdr, secConstants->keys); elt;
+	for (elt = sdr_list_first(sdr, secdb->keys); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, SecKey, key, sdr_list_data(sdr, elt));
@@ -223,13 +254,13 @@ void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp)
 	/*	This function finds the SecKey for the specified
 	 *	node, if any.						*/
 
-	REQUIRE(keyName);
-	REQUIRE(keyAddr);
-	REQUIRE(eltp);
+	CHKVOID(keyName);
+	CHKVOID(keyAddr);
+	CHKVOID(eltp);
 	*eltp = 0;
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return;
 	}
 
@@ -286,7 +317,8 @@ static int	loadKeyValue(SecKey *key, char *fileName)
 		case 0:
 			MRELEASE(keybuf);
 			close(keyfd);
-			putErrmsg("Key value file truncated.", itoa(length));
+			writeMemoNote("[?] Key value file truncated.",
+					fileName);
 			return 0;
 		}
 
@@ -304,29 +336,30 @@ static int	loadKeyValue(SecKey *key, char *fileName)
 int	sec_addKey(char *keyName, char *fileName)
 {
 	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
 	Object		nextKey;
 	struct stat	statbuf;
 	SecKey		key;
 	Object		keyObj;
 	Object		elt;
 
-	REQUIRE(keyName);
-	REQUIRE(fileName);
+	CHKERR(keyName);
+	CHKERR(fileName);
 	if (*keyName == '\0' || strlen(keyName) > 31)
 	{
-		putErrmsg(NullParmsMemo, NULL);
+		putErrmsg(_NullParmsMemo(), NULL);
 		return -1;
 	}
 
 	if (stat(fileName, &statbuf) < 0)
 	{
-		putErrmsg("Can't stat the key value file.", fileName);
+		writeMemoNote("[?] Can't stat the key value file.", fileName);
 		return 0;
 	}
 
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return 0;
 	}
 
@@ -334,13 +367,13 @@ int	sec_addKey(char *keyName, char *fileName)
 	if (locateKey(keyName, &nextKey) != 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("This key is already defined.", keyName);
+		writeMemoNote("[?] This key is already defined.", keyName);
 		return 0;
 	}
 
 	/*	Okay to add this key to the database.			*/
 
-	strcpy(key.name, keyName);
+	istrcpy(key.name, keyName, sizeof key.name);
 	key.length = statbuf.st_size;
 	switch (loadKeyValue(&key, fileName))
 	{
@@ -369,7 +402,7 @@ int	sec_addKey(char *keyName, char *fileName)
 	}
 	else
 	{
-		elt = sdr_list_insert_last(sdr, secConstants->keys, keyObj);
+		elt = sdr_list_insert_last(sdr, secdb->keys, keyObj);
 	}
 
 	sdr_write(sdr, keyObj, (char *) &key, sizeof(SecKey));
@@ -390,23 +423,23 @@ int	sec_updateKey(char *keyName, char *fileName)
 	SecKey		key;
 	struct stat	statbuf;
 
-	REQUIRE(keyName);
-	REQUIRE(fileName);
+	CHKERR(keyName);
+	CHKERR(fileName);
 	if (*keyName == '\0' || strlen(keyName) > 31)
 	{
-		putErrmsg(NullParmsMemo, NULL);
+		putErrmsg(_NullParmsMemo(), NULL);
 		return -1;
 	}
 
 	if (stat(fileName, &statbuf) < 0)
 	{
-		putErrmsg("Can't stat the key value file.", fileName);
+		writeMemoNote("[?] Can't stat the key value file.", fileName);
 		return 0;
 	}
 
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return 0;
 	}
 
@@ -415,7 +448,7 @@ int	sec_updateKey(char *keyName, char *fileName)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("This key is not defined.", keyName);
+		writeMemoNote("[?] This key is not defined.", keyName);
 		return 0;
 	}
 
@@ -457,10 +490,10 @@ int	sec_removeKey(char *keyName)
 	Object	keyObj;
 		OBJ_POINTER(SecKey, key);
 
-	REQUIRE(keyName);
+	CHKERR(keyName);
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return 0;
 	}
 
@@ -497,12 +530,12 @@ int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 	Object	elt;
 		OBJ_POINTER(SecKey, key);
 
-	REQUIRE(keyName);
-	REQUIRE(keyBufferLength);
-	REQUIRE(keyValueBuffer);
+	CHKERR(keyName);
+	CHKERR(keyBufferLength);
+	CHKERR(keyValueBuffer);
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[i] Can't attach to ION security.");
 		return -1;
 	}
 
@@ -557,6 +590,7 @@ static int	filterEid(char *outputEid, char *inputEid)
 int	sec_get_babTxRule(char *eid, Object *ruleAddr, Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
 	Object	elt;
 		OBJ_POINTER(BabTxRule, rule);
 	int	eidLen;
@@ -568,18 +602,18 @@ int	sec_get_babTxRule(char *eid, Object *ruleAddr, Object *eltp)
 	 *	the specified receiving endpoint, if any.  Wild card
 	 *	match is okay.						*/
 
-	REQUIRE(eid);
-	REQUIRE(ruleAddr);
-	REQUIRE(eltp);
+	CHKERR(eid);
+	CHKERR(ruleAddr);
+	CHKERR(eltp);
 	*eltp = 0;
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return 0;
 	}
 
 	sdr_begin_xn(sdr);
-	for (elt = sdr_list_first(sdr, secConstants->babTxRules); elt;
+	for (elt = sdr_list_first(sdr, secdb->babTxRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		*ruleAddr = sdr_list_data(sdr, elt);
@@ -620,6 +654,7 @@ int	sec_get_babTxRule(char *eid, Object *ruleAddr, Object *eltp)
 static Object	locateBabTxRule(char *eid, Object *nextBabTxRule)
 {
 	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
 	Object	elt;
 		OBJ_POINTER(BabTxRule, rule);
 	char	eidBuffer[SDRSTRING_BUFSZ];
@@ -630,9 +665,9 @@ static Object	locateBabTxRule(char *eid, Object *nextBabTxRule)
 	 *	match.  If none, notes the location within the rules
 	 *	list at which such a rule should be inserted.		*/
 
-checkSafety(sdr);
+	CHKZERO(ionLocked());
 	if (nextBabTxRule) *nextBabTxRule = 0;	/*	Default.	*/
-	for (elt = sdr_list_first(sdr, secConstants->babTxRules); elt;
+	for (elt = sdr_list_first(sdr, secdb->babTxRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, BabTxRule, rule, sdr_list_data(sdr, elt));
@@ -663,13 +698,13 @@ void	sec_findBabTxRule(char *eid, Object *ruleAddr, Object *eltp)
 	/*	This function finds the BabTxRule for the specified
 	 *	endpoint, if any.					*/
 
-	REQUIRE(eid);
-	REQUIRE(ruleAddr);
-	REQUIRE(eltp);
+	CHKVOID(eid);
+	CHKVOID(ruleAddr);
+	CHKVOID(eltp);
 	*eltp = 0;
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return;
 	}
 
@@ -694,49 +729,48 @@ void	sec_findBabTxRule(char *eid, Object *ruleAddr, Object *eltp)
 int	sec_addBabTxRule(char *eid, char *ciphersuiteName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
 	Object		nextBabTxRule;
 	BabTxRule	rule;
 	Object		ruleObj;
 	Object		elt;
 
-	REQUIRE(eid);
-	REQUIRE(ciphersuiteName);
-	REQUIRE(keyName);
+	CHKERR(eid);
+	CHKERR(ciphersuiteName);
+	CHKERR(keyName);
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return 0;
 	}
 
 	if (*eid == '\0' || strlen(eid) >= SDRSTRING_BUFSZ
 	|| strlen(ciphersuiteName) > 31 || strlen(keyName) > 31)
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
+		putErrmsg(_NullParmsMemo(), NULL);
+		return -1;
 	}
 
 	if (filterEid(eid, eid) < 0)
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
+		putErrmsg(_NullParmsMemo(), NULL);
+		return -1;
 	}
 
 	sdr_begin_xn(sdr);
 	if (locateBabTxRule(eid, &nextBabTxRule) != 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("This rule is already defined.", eid);
-		errno = EINVAL;
+		writeMemoNote("[?] This rule is already defined.", eid);
 		return 0;
 	}
 
 	/*	Okay to add this rule to the database.			*/
 
 	rule.recvEid = sdr_string_create(sdr, eid);
-	strcpy(rule.ciphersuiteName, ciphersuiteName);
-	strcpy(rule.keyName, keyName);
+	istrcpy(rule.ciphersuiteName, ciphersuiteName,
+			sizeof rule.ciphersuiteName);
+	istrcpy(rule.keyName, keyName, sizeof rule.keyName);
 	ruleObj = sdr_malloc(sdr, sizeof(BabTxRule));
 	if (ruleObj == 0)
 	{
@@ -751,7 +785,7 @@ int	sec_addBabTxRule(char *eid, char *ciphersuiteName, char *keyName)
 	}
 	else
 	{
-		elt = sdr_list_insert_last(sdr, secConstants->babTxRules,
+		elt = sdr_list_insert_last(sdr, secdb->babTxRules,
 				ruleObj);
 	}
 
@@ -772,28 +806,26 @@ int	sec_updateBabTxRule(char *eid, char *ciphersuiteName, char *keyName)
 	Object		ruleObj;
 	BabTxRule	rule;
 
-	REQUIRE(eid);
-	REQUIRE(ciphersuiteName);
-	REQUIRE(keyName);
+	CHKERR(eid);
+	CHKERR(ciphersuiteName);
+	CHKERR(keyName);
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return 0;
 	}
 
 	if (*eid == '\0' || strlen(eid) >= SDRSTRING_BUFSZ
 	|| strlen(ciphersuiteName) > 31 || strlen(keyName) > 31)
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
+		putErrmsg(_NullParmsMemo(), NULL);
+		return -1;
 	}
 
 	if (filterEid(eid, eid) < 0)
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
+		putErrmsg(_NullParmsMemo(), NULL);
+		return -1;
 	}
 
 	sdr_begin_xn(sdr);
@@ -801,15 +833,15 @@ int	sec_updateBabTxRule(char *eid, char *ciphersuiteName, char *keyName)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("No rule defined for this endpoint.", eid);
-		errno = EINVAL;
+		writeMemoNote("[?] No rule defined for this endpoint.", eid);
 		return 0;
 	}
 
 	ruleObj = sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &rule, ruleObj, sizeof(BabTxRule));
-	strcpy(rule.ciphersuiteName, ciphersuiteName);
-	strcpy(rule.keyName, keyName);
+	istrcpy(rule.ciphersuiteName, ciphersuiteName,
+			sizeof rule.ciphersuiteName);
+	istrcpy(rule.keyName, keyName, sizeof rule.keyName);
 	sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BabTxRule));
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -827,18 +859,17 @@ int	sec_removeBabTxRule(char *eid)
 	Object	ruleObj;
 		OBJ_POINTER(BabTxRule, rule);
 
-	REQUIRE(eid);
+	CHKERR(eid);
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return 0;
 	}
 
 	if (filterEid(eid, eid) < 0)
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
+		putErrmsg(_NullParmsMemo(), NULL);
+		return -1;
 	}
 
 	sdr_begin_xn(sdr);
@@ -866,6 +897,7 @@ int	sec_removeBabTxRule(char *eid)
 int	sec_get_babRxRule(char *eid, Object *ruleAddr, Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
 	Object	elt;
 		OBJ_POINTER(BabRxRule, rule);
 	int	eidLen;
@@ -877,18 +909,18 @@ int	sec_get_babRxRule(char *eid, Object *ruleAddr, Object *eltp)
 	 *	the specified sending endpoint, if any.  Wild card
 	 *	match is okay.						*/
 
-	REQUIRE(eid);
-	REQUIRE(ruleAddr);
-	REQUIRE(eltp);
+	CHKERR(eid);
+	CHKERR(ruleAddr);
+	CHKERR(eltp);
 	*eltp = 0;
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return 0;
 	}
 
 	sdr_begin_xn(sdr);
-	for (elt = sdr_list_first(sdr, secConstants->babRxRules); elt;
+	for (elt = sdr_list_first(sdr, secdb->babRxRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		*ruleAddr = sdr_list_data(sdr, elt);
@@ -929,6 +961,7 @@ int	sec_get_babRxRule(char *eid, Object *ruleAddr, Object *eltp)
 static Object	locateBabRxRule(char *eid, Object *nextBabRxRule)
 {
 	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
 	Object	elt;
 		OBJ_POINTER(BabRxRule, rule);
 	char	eidBuffer[SDRSTRING_BUFSZ];
@@ -939,9 +972,9 @@ static Object	locateBabRxRule(char *eid, Object *nextBabRxRule)
 	 *	match.  If none, notes the location within the rules
 	 *	list at which such a rule should be inserted.		*/
 
-checkSafety(sdr);
+	CHKZERO(ionLocked());
 	if (nextBabRxRule) *nextBabRxRule = 0;	/*	Default.	*/
-	for (elt = sdr_list_first(sdr, secConstants->babRxRules); elt;
+	for (elt = sdr_list_first(sdr, secdb->babRxRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, BabRxRule, rule, sdr_list_data(sdr, elt));
@@ -972,13 +1005,13 @@ void	sec_findBabRxRule(char *eid, Object *ruleAddr, Object *eltp)
 	/*	This function finds the BabRxRule for the specified
 	 *	endpoint, if any.					*/
 
-	REQUIRE(eid);
-	REQUIRE(ruleAddr);
-	REQUIRE(eltp);
+	CHKVOID(eid);
+	CHKVOID(ruleAddr);
+	CHKVOID(eltp);
 	*eltp = 0;
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] Can't attach to ION security.");
 		return;
 	}
 
@@ -1003,49 +1036,48 @@ void	sec_findBabRxRule(char *eid, Object *ruleAddr, Object *eltp)
 int	sec_addBabRxRule(char *eid, char *ciphersuiteName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
 	Object		nextBabRxRule;
 	BabRxRule	rule;
 	Object		ruleObj;
 	Object		elt;
 
-	REQUIRE(eid);
-	REQUIRE(ciphersuiteName);
-	REQUIRE(keyName);
+	CHKERR(eid);
+	CHKERR(ciphersuiteName);
+	CHKERR(keyName);
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
-		return 0;
+		writeMemo("[?] Can't attach to ION security.");
+		return -1;
 	}
 
 	if (*eid == '\0' || strlen(eid) >= SDRSTRING_BUFSZ
 	|| strlen(ciphersuiteName) > 31 || strlen(keyName) > 31)
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
+		putErrmsg(_NullParmsMemo(), NULL);
+		return -1;
 	}
 
 	if (filterEid(eid, eid) < 0)
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
+		putErrmsg(_NullParmsMemo(), NULL);
+		return -1;
 	}
 
 	sdr_begin_xn(sdr);
 	if (locateBabRxRule(eid, &nextBabRxRule) != 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("This rule is already defined.", eid);
-		errno = EINVAL;
+		writeMemoNote("[?] This rule is already defined.", eid);
 		return 0;
 	}
 
 	/*	Okay to add this rule to the database.			*/
 
 	rule.xmitEid = sdr_string_create(sdr, eid);
-	strcpy(rule.ciphersuiteName, ciphersuiteName);
-	strcpy(rule.keyName, keyName);
+	istrcpy(rule.ciphersuiteName, ciphersuiteName,
+			sizeof rule.ciphersuiteName);
+	istrcpy(rule.keyName, keyName, sizeof rule.keyName);
 	ruleObj = sdr_malloc(sdr, sizeof(BabRxRule));
 	if (ruleObj == 0)
 	{
@@ -1060,7 +1092,7 @@ int	sec_addBabRxRule(char *eid, char *ciphersuiteName, char *keyName)
 	}
 	else
 	{
-		elt = sdr_list_insert_last(sdr, secConstants->babRxRules,
+		elt = sdr_list_insert_last(sdr, secdb->babRxRules,
 				ruleObj);
 	}
 
@@ -1081,28 +1113,26 @@ int	sec_updateBabRxRule(char *eid, char *ciphersuiteName, char *keyName)
 	Object		ruleObj;
 	BabRxRule	rule;
 
-	REQUIRE(eid);
-	REQUIRE(ciphersuiteName);
-	REQUIRE(keyName);
+	CHKERR(eid);
+	CHKERR(ciphersuiteName);
+	CHKERR(keyName);
 	if (secAttach() < 0)
 	{
 		putErrmsg("Can't attach to ION security.", NULL);
-		return 0;
+		return -1;
 	}
 
 	if (*eid == '\0' || strlen(eid) >= SDRSTRING_BUFSZ
 	|| strlen(ciphersuiteName) > 31 || strlen(keyName) > 31)
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
+		putErrmsg(_NullParmsMemo(), NULL);
+		return -1;
 	}
 
 	if (filterEid(eid, eid) < 0)
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
+		putErrmsg(_NullParmsMemo(), NULL);
+		return -1;
 	}
 
 	sdr_begin_xn(sdr);
@@ -1110,15 +1140,15 @@ int	sec_updateBabRxRule(char *eid, char *ciphersuiteName, char *keyName)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("No rule defined for this endpoint.", eid);
-		errno = EINVAL;
+		writeMemoNote("No rule defined for this endpoint.", eid);
 		return 0;
 	}
 
 	ruleObj = sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &rule, ruleObj, sizeof(BabRxRule));
-	strcpy(rule.ciphersuiteName, ciphersuiteName);
-	strcpy(rule.keyName, keyName);
+	istrcpy(rule.ciphersuiteName, ciphersuiteName,
+			sizeof rule.ciphersuiteName);
+	istrcpy(rule.keyName, keyName, sizeof rule.keyName);
 	sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BabRxRule));
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -1136,18 +1166,17 @@ int	sec_removeBabRxRule(char *eid)
 	Object	ruleObj;
 		OBJ_POINTER(BabRxRule, rule);
 
-	REQUIRE(eid);
+	CHKERR(eid);
 	if (secAttach() < 0)
 	{
 		putErrmsg("Can't attach to ION security.", NULL);
-		return 0;
+		return -1;
 	}
 
 	if (filterEid(eid, eid) < 0)
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
+		putErrmsg(_NullParmsMemo(), NULL);
+		return -1;
 	}
 
 	sdr_begin_xn(sdr);

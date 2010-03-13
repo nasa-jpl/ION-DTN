@@ -41,25 +41,26 @@ Unwedge, as necessary, the mutex semaphore protecting shared access to the
 indicated list.  For details, see the explanation of the sm_SemUnwedge()
 function in platform(3).
 
-=item void sm_list_clear(PsmPartition partition, PsmAddress list, SmListDeleteFn delete, void *argument);
+=item int sm_list_clear(PsmPartition partition, PsmAddress list, SmListDeleteFn delete, void *argument);
 
 Empty a list.  Frees each element of the list.  If the I<delete> function 
 is non-NULL, that function is called once for each freed element; when
 called, that function is passed the PsmAddress that is the element's data
-and the I<argument> pointer passed to sm_list_clear().
+and the I<argument> pointer passed to sm_list_clear().  Returns 0 on success,
+-1 on any error.
 
-=item void sm_list_destroy(PsmPartition partition, PsmAddress list, SmListDeleteFn delete, void *argument);
+=item int sm_list_destroy(PsmPartition partition, PsmAddress list, SmListDeleteFn delete, void *argument);
 
 Destroy a list.  Same as sm_list_clear(), but additionally frees the list
-structure itself.
+structure itself.  Returns 0 on success, -1 on any error.
 
-=item void sm_list_user_data_set(PsmPartition partition, PsmAddress list, PsmAddress userData);
+=item int sm_list_user_data_set(PsmPartition partition, PsmAddress list, PsmAddress userData);
 
-Set the value of a user data variable associated with the list as a
-whole.  This value may be used for any purpose; it is
-typically used to store the PsmAddress of a shared
-memory block containing data (e.g., state data) which
-the user wishes to associate with the list.
+Set the value of a user data variable associated with the list as a whole.
+This value may be used for any purpose; it is typically used to store the
+PsmAddress of a shared memory block containing data (e.g., state data) which
+the user wishes to associate with the list.  Returns 0 on success, -1 on any
+error.
 
 =item PsmAddress sm_list_user_data(PsmPartition partition, PsmAddress list);
 
@@ -96,12 +97,12 @@ Create a new list element and insert it before/after a given element.
 Returns the PsmAddress of the new element on success, or 0
 on any error.  Disregards any established sort order in the list.
 
-=item void sm_list_delete(PsmPartition partition, PsmAddress elt, SmListDeleteFn delete, void *argument);
+=item int sm_list_delete(PsmPartition partition, PsmAddress elt, SmListDeleteFn delete, void *argument);
 
-Delete an element from a list.  If the I<delete> function 
-is non-NULL, that function is called upon deletion of I<elt>; when
-called, that function is passed the PsmAddress that is the element's data value
-and the I<argument> pointer passed to sm_list_delete().
+Delete an element from a list.  If the I<delete> function is non-NULL, that
+function is called upon deletion of I<elt>; when called, that function is
+passed the PsmAddress that is the element's data value and the I<argument>
+pointer passed to sm_list_delete().  Returns 0 on success, -1 on any error.
 
 =item PsmAddress sm_list_first(PsmPartition partition, PsmAddress list);
 

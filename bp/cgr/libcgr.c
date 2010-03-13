@@ -456,8 +456,8 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 		serviceNbr = 0;
 	}
 
-	sprintf(stationEid, "%.5s%.8s:%lu.%lu", decoration, CBHE_SCHEME_NAME,
-			proxNode->neighborNodeNbr, serviceNbr);
+	isprintf(stationEid, sizeof stationEid, "%.5s%.8s:%lu.%lu", decoration,
+		CBHE_SCHEME_NAME, proxNode->neighborNodeNbr, serviceNbr);
 
 	/*	If this neighbor is a currently snubbing neighbor
 	 *	for this final destination (i.e., one that has been

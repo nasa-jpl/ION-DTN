@@ -115,41 +115,38 @@ typedef struct
 	PsmAddress	address;
 } PsmCatlgEntry;
 
-static const char	*outOfSpaceMsg = "not enough available memory";
-static const char	*cannotAllocateMsg = "can't allocate memory";
-static const char	*badBlockSizeMsg = "can't allocate, illegal block size";
+static char	*_outOfSpaceMsg()
+{
+	return "Not enough available memory.";
+}
+
+static char	*_badBlockSizeMsg()
+{
+	return "Can't allocate, illegal block size.";
+}
+
 #ifndef PSM_TRACE
-static const char	*noTraceMsg = "tracing unavailable; recompile with \
--DPSM_TRACE";
+static char	*_noTraceMsg()
+{
+	return "Tracing unavailable; recompile with -DPSM_TRACE.";
+}
 #endif
 
 /*	*	Non-platform-specific implementation	*	*	*/
 
-static int	lockPartition(PartitionMap *map)
+static void	lockPartition(PartitionMap *map)
 {
 	int	self;
 
-	if (map->status != MANAGED)
-	{
-		errno = EINVAL;
-		putSysErrmsg("partition not managed", NULL);
-		return 0;
-	}
-
+	CHKVOID(map->status == MANAGED);
 	self = sm_TaskIdSelf();
 	if (map->owner != self)
 	{
-		if (sm_SemTake(map->semaphore))
-		{
-			putErrmsg("Can't lock partition.", NULL);
-			return 0;
-		}
-
+		sm_SemTake(map->semaphore);
 		map->owner = self;
 	}
 
 	map->depth++;
-	return 1;
 }
 
 static void	unlockPartition(PartitionMap *map)
@@ -165,24 +162,20 @@ static void	unlockPartition(PartitionMap *map)
 	}
 }
 
-PsmMgtOutcome	psm_manage(char *start, u_long length, char *name,
-			PsmPartition *psmp)
+int	psm_manage(char *start, u_long length, char *name, PsmPartition *psmp,
+		PsmMgtOutcome *outcome)
 {
 	PsmPartition	partition;
 	PartitionMap	*map;
 
-	if (start == NULL)
-	{
-		errno = EINVAL;
-		putSysErrmsg("starting address is NULL", NULL);
-		return Refused;
-	}
-
+	CHKERR(outcome);
+	*outcome = Refused;
+	CHKERR(start != NULL);
 	if ((((unsigned long) start) % LG_OHD_SIZE) != 0)
 	{
-		errno = EINVAL;
-		putSysErrmsg("starting address not double-word-aligned", NULL);
-		return Refused;	/*	Start address misaligned.	*/
+		putErrmsg("Starting address not double-word-aligned.",
+				utoa((unsigned long) start));
+		return -1;	/*	Start address misaligned.	*/
 	}
 
 	/*	Acquire handle to space management structure.		*/
@@ -195,13 +188,7 @@ PsmMgtOutcome	psm_manage(char *start, u_long length, char *name,
 	if (partition == NULL)
 	{
 		partition = (PsmPartition) acquireSystemMemory(sizeof(PsmView));
-		if (partition == NULL)
-		{
-			putSysErrmsg("can't allocate space for partition \
-management structure", NULL);
-			return Refused;
-		}
-
+		CHKERR(partition != NULL);
 		partition->freeNeeded = 1;
 	}
 	else
@@ -216,7 +203,8 @@ management structure", NULL);
 	{
 		*psmp = partition;
 		sm_SemUnwedge(map->semaphore, 3);
-		return Redundant;
+		*outcome = Redundant;
+		return 0;
 	}
 
 	/*	Need to manage and possibly initialize the partition.	*/
@@ -224,36 +212,31 @@ management structure", NULL);
 	if (length % LG_OHD_SIZE)
 	{
 		if (partition->freeNeeded) free(partition);
-		errno = EINVAL;
-		putSysErrmsg("partition length is not an integral number of \
-double words", itoa(length));
-		return Refused;
+		putErrmsg("Partition length is not an integral number of \
+double words.", utoa(length));
+		return -1;
 	}
 
 	if (length < sizeof(PartitionMap))
 	{
 		if (partition->freeNeeded) free(partition);
-		errno = EINVAL;
-		putSysErrmsg("partition length is less than partition map size",
-itoa(length));
-		return Refused;	/*	Partition can't contain map.	*/
+		putErrmsg("Partition length is less than partition map size.",
+utoa(length));
+		return -1;	/*	Partition can't contain map.	*/
 	}
 
 	if (name == NULL)
 	{
 		if (partition->freeNeeded) free(partition);
-		errno = EINVAL;
-		putSysErrmsg("partition name is NULL", NULL);
-		return Refused;
+		putErrmsg("Partition name is NULL.", NULL);
+		return -1;
 	}
 
 	if (strlen(name) > 31)
 	{
 		if (partition->freeNeeded) free(partition);
-		errno = EINVAL;
-		putSysErrmsg("partition name length exceeds 31",
-				itoa(strlen(name)));
-		return Refused;
+		putErrmsg("Partition name length exceeds 31.", name);
+		return -1;
 	}
 
 	switch (map->status)
@@ -262,19 +245,17 @@ itoa(length));
 		if (map->partitionSize != length)
 		{
 			if (partition->freeNeeded) free(partition);
-			errno = EINVAL;
-			putSysErrmsg("asserted partition length doesn't match \
-actual length", itoa(map->partitionSize));
-			return Refused;	/*	Size mismatch.		*/
+			putErrmsg("Asserted partition length doesn't match \
+actual length.", itoa(map->partitionSize));
+			return -1;	/*	Size mismatch.		*/
 		}
 
 		if (strcmp(map->name, name) != 0)
 		{
 			if (partition->freeNeeded) free(partition);
-			errno = EINVAL;
-			putSysErrmsg("asserted partition name doesn't match \
-actual name", map->name);
-			return Refused;	/*	Name mismatch.		*/
+			putErrmsg("Asserted partition name doesn't match \
+actual name.", map->name);
+			return -1;	/*	Name mismatch.		*/
 		}
 
 		break;	/*	Proceed with managing the partition.	*/
@@ -283,7 +264,7 @@ actual name", map->name);
 		map->directory = 0;
 		map->desperate = 0;
 		map->partitionSize = length;
-		strcpy(map->name, name);
+		istrcpy(map->name, name, sizeof map->name);
 		map->startOfSmallPool = sizeof(PartitionMap);
 		map->endOfSmallPool = map->startOfSmallPool;
 		memset((char *) (map->firstSmallFree), 0,
@@ -303,28 +284,29 @@ actual name", map->name);
 	{
 		if (partition->freeNeeded) free(partition);
 		putErrmsg("Can't create semaphore for partition map.", NULL);
-		return Refused;
+		return -1;
 	}
 
 	map->owner = -1;
 	map->depth = 0;
 	map->status = MANAGED;
 	*psmp = partition;
-	return Okay;
+	*outcome = Okay;
+	return 0;
 }
 
 char	*psm_name(PsmPartition partition)
 {
 	PartitionMap	*map;
 
-	REQUIRE(partition);
+	CHKNULL(partition);
 	map = (PartitionMap *) (partition->space);
 	return map->name;
 }
 
 char	*psm_space(PsmPartition partition)
 {
-	REQUIRE(partition);
+	CHKNULL(partition);
 	return partition->space;
 }
 
@@ -332,17 +314,15 @@ void	psm_unmanage(PsmPartition partition)
 {
 	PartitionMap	*map;
 
-	REQUIRE(partition);
+	CHKVOID(partition);
 	map = (PartitionMap *) (partition->space);
 	if (map->status == MANAGED)
 	{
 	/*	Wait for partition to be no longer in use; unmanage.	*/
 
-		if (sm_SemTake(map->semaphore) == 0)
-		{
-			sm_SemDelete(map->semaphore);
-			map->status = INITIALIZED;
-		}
+		sm_SemTake(map->semaphore);
+		sm_SemDelete(map->semaphore);
+		map->status = INITIALIZED;
 	}
 
 	/*	Destroy space management structure if necessary.	*/
@@ -357,7 +337,7 @@ void	psm_erase(PsmPartition partition)
 {
 	PartitionMap	*map;
 
-	REQUIRE(partition);
+	CHKVOID(partition);
 	map = (PartitionMap *) (partition->space);
 	psm_unmanage(partition);	/*	Locks partition.	*/
 	map->status = 0;
@@ -365,14 +345,14 @@ void	psm_erase(PsmPartition partition)
 
 void    *psp(PsmPartition partition, PsmAddress address)
 {
-	REQUIRE(partition);
+	CHKNULL(partition);
 	return (address < sizeof(PartitionMap) ? NULL
 			: (partition->space) + address);
 }
 
 PsmAddress	psa(PsmPartition partition, void *pointer)
 {
-	REQUIRE(partition);
+	CHKZERO(partition);
 	return (((char *) pointer) - (partition->space));
 }
 
@@ -380,74 +360,61 @@ void	psm_panic(PsmPartition partition)
 {
 	PartitionMap	*map;
 
-	REQUIRE(partition);
+	CHKVOID(partition);
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map))
-	{
-		map->desperate = 1;
-		unlockPartition(map);
-	}
+	lockPartition(map);
+	map->desperate = 1;
+	unlockPartition(map);
 }
 
 void	psm_relax(PsmPartition partition)
 {
 	PartitionMap	*map;
 
-	REQUIRE(partition);
+	CHKVOID(partition);
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map))
-	{
-		map->desperate = 0;
-		unlockPartition(map);
-	}
+	lockPartition(map);
+	map->desperate = 0;
+	unlockPartition(map);
 }
 
 int	psm_set_root(PsmPartition partition, PsmAddress root)
 {
 	PartitionMap	*map;
-	int		result = 1;	/*	Success.		*/
+	int		err = 0;
 
-	REQUIRE(partition);
+	CHKERR(partition);
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
+	lockPartition(map);
+	if (map->directory != 0)
 	{
-		putErrmsg("Can't set partition root.", NULL);
-		return -1;
-	}
-
-	if (root == 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg("new partition root value is zero", NULL);
-		result = 0;
-	}
-	else if (map->directory != 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg("partition already has root value; erase it first",
+		putErrmsg("Partition already has root value; erase it first.",
 				NULL);
-		result = 0;
+		err = -1;
 	}
 	else
 	{
+		if (root == 0)
+		{
+			writeMemo("[i] New partition root value is zero.");
+		}
+
 		map->directory = root;
 	}
 
 	unlockPartition(map);
-	return result;
+	return err;
 }
 
 void	psm_erase_root(PsmPartition partition)
 {
 	PartitionMap	*map;
 
-	REQUIRE(partition);
+	CHKVOID(partition);
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map))
-	{
-		map->directory = 0;
-		unlockPartition(map);
-	}
+	lockPartition(map);
+	map->directory = 0;
+	unlockPartition(map);
 }
 
 PsmAddress	psm_get_root(PsmPartition partition)
@@ -455,14 +422,9 @@ PsmAddress	psm_get_root(PsmPartition partition)
 	PartitionMap	*map;
 	PsmAddress	root;
 
-	REQUIRE(partition);
+	CHKZERO(partition);
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
-	{
-		putErrmsg("Can't get partition root.", NULL);
-		return 0;
-	}
-
+	lockPartition(map);
 	root = map->directory;
 	unlockPartition(map);
 	return root;
@@ -473,92 +435,98 @@ int	Psm_add_catlg(char *file, int line, PsmPartition partition)
 	PartitionMap	*map;
 	PsmAddress	catlg;
 
-	REQUIRE(partition);
-	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
+	if (!partition)
 	{
-		putErrmsg("Can't add catalog to partition.", NULL);
+		oK(_iEnd(file, line, "partition"));
 		return -1;
 	}
 
+	map = (PartitionMap *) (partition->space);
+	lockPartition(map);
 	if (map->directory != 0)
 	{
 		unlockPartition(map);
-		errno = EINVAL;
-		putSysErrmsg("partition already has root value; erase it first",
-				NULL);
-		return 0;
+		_putErrmsg(file, line, "Partition already has root value; \
+erase it first.", NULL);
+		return -1;
 	}
 
 	catlg = Sm_list_create(file, line, partition);
 	if (catlg == 0)
 	{
 		unlockPartition(map);
-		putErrmsg("Can't add catalog to partition.", NULL);
+		_putErrmsg(file, line, "Can't add catalog to partition.", NULL);
 		return -1;
 	}
 
 	map->directory = catlg;
 	unlockPartition(map);
-	return 1;
+	return 0;
 }
 
 int	Psm_catlg(char *file, int line, PsmPartition partition, char *name,
 		PsmAddress address)
 {
 	PartitionMap	*map;
+	PsmAddress	objAddress;
+	PsmAddress	elt;
 	PsmCatlgEntry	entry;
 	PsmAddress	entryObj;
-	PsmAddress	elt;
 
-	REQUIRE(partition);
-	REQUIRE(name);
-	REQUIRE(address);
-	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
+	if (!(partition && name && address))
 	{
-		putErrmsg("Can't catalog item.", NULL);
+		oK(_iEnd(file, line, "partition && name && address"));
 		return -1;
 	}
 
+	map = (PartitionMap *) (partition->space);
+	lockPartition(map);
 	if (map->directory == 0)
 	{
 		unlockPartition(map);
-		errno = EINVAL;
-		putSysErrmsg("partition has no catalog", NULL);
-		return 0;
+		_putErrmsg(file, line, "Partition has no catalog.", NULL);
+		return -1;
 	}
 	else if (*name == '\0')
 	{
 		unlockPartition(map);
-		errno = EINVAL;
-		putSysErrmsg("item name length is zero", NULL);
-		return 0;
+		_putErrmsg(file, line, "Item name length is zero.", NULL);
+		return -1;
 	}
 	else if (strlen(name) > 32)
 	{
 		unlockPartition(map);
-		errno = EINVAL;
-		putSysErrmsg("item name length exceeds 32", itoa(strlen(name)));
-		return 0;
+		_putErrmsg(file, line, "Item name length exceeds 32.", name);
+		return -1;
 	}
 
-	entryObj = psm_locate(partition, name);
-	if (entryObj)
+	if (psm_locate(partition, name, &objAddress, &elt) < 0)
 	{
-		unlockPartition(map);	/*	Already in catalog.	*/
-		errno = EINVAL;
-		putSysErrmsg("item is already in catalog", name);
-		return 0;
+		unlockPartition(map);
+		_putErrmsg(file, line, "Failed searching for item in catalog.",
+				name);
+		return -1;
 	}
 
-	strcpy(entry.name, name);
+	if (elt)			 /*	Already in catalog.	*/
+	{
+		unlockPartition(map);
+		if (objAddress == address)
+		{
+			return 0;	/*	Redundant.		*/
+		}
+
+		_putErrmsg(file, line, "Item is already in catalog.", name);
+		return -1;
+	}
+
+	istrcpy(entry.name, name, sizeof entry.name);
 	entry.address = address;
 	entryObj = Psm_malloc(file, line, partition, sizeof(PsmCatlgEntry));
 	if (entryObj == 0)
 	{
 		unlockPartition(map);
-		putErrmsg("Can't create catalog entry.", NULL);
+		_putErrmsg(file, line, "Can't create catalog entry.", NULL);
 		return -1;
 	}
 
@@ -570,33 +538,69 @@ int	Psm_catlg(char *file, int line, PsmPartition partition, char *name,
 	{
 		Psm_free(file, line, partition, entryObj);
 		unlockPartition(map);
-		putErrmsg("Can't append entry to catalog.", NULL);
+		_putErrmsg(file, line, "Can't append entry to catalog.", NULL);
 		return -1;
 	}
 
 	unlockPartition(map);
-	return 1;
+	return 0;
 }
 
-void	Psm_uncatlg(char *file, int line, PsmPartition partition, char *name)
+int	Psm_uncatlg(char *file, int line, PsmPartition partition, char *name)
+{
+	PartitionMap	*map;
+	PsmAddress	objAddress;
+	PsmAddress	elt;
+	PsmAddress	entryObj;
+
+	if (!(partition && name))
+	{
+		oK(_iEnd(file, line, "partition && name"));
+		return -1;
+	}
+
+	map = (PartitionMap *) (partition->space);
+	lockPartition(map);
+	if (psm_locate(partition, name, &objAddress, &elt) < 0)
+	{
+		unlockPartition(map);
+		_putErrmsg(file, line, "Failed searching for item in catalog.",
+				name);
+		return -1;
+	}
+
+	if (elt)
+	{
+		entryObj = sm_list_data(partition, elt);
+		Sm_list_delete(file, line, partition, elt, NULL, NULL);
+		Psm_free(file, line, partition, entryObj);
+	}
+
+	unlockPartition(map);
+	return 0;
+}
+
+int	psm_locate(PsmPartition partition, char *name, PsmAddress *address,
+		PsmAddress *entryElt)
 {
 	PartitionMap	*map;
 	PsmAddress	elt;
 	PsmAddress	entryObj;
 	PsmCatlgEntry	entry;
 
-	REQUIRE(partition);
-	REQUIRE(name);
+	CHKERR(partition);
+	CHKERR(name);
+	CHKERR(address);
+	CHKERR(entryElt);
+	*address = 0;		/*	Default is "not found".		*/
+	*entryElt = 0;		/*	Default is "not found".		*/
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
-	{
-		return;
-	}
-
+	lockPartition(map);
 	if (map->directory == 0)
 	{
 		unlockPartition(map);
-		return;
+		putErrmsg("Partition has no catalog.", NULL);
+		return -1;
 	}
 
 	for (elt = sm_list_first(partition, map->directory); elt;
@@ -607,65 +611,14 @@ void	Psm_uncatlg(char *file, int line, PsmPartition partition, char *name)
 				sizeof(PsmCatlgEntry));
 		if (strcmp(entry.name, name) == 0)
 		{
+			*address = entry.address;
 			break;
 		}
 	}
 
-	if (elt == 0)		/*	Not found in catalog.		*/
-	{
-		unlockPartition(map);
-		return;
-	}
-
-	Sm_list_delete(file, line, partition, elt, (SmListDeleteFn) NULL, NULL);
-	Psm_free(file, line, partition, entryObj);
+	*entryElt = elt;
 	unlockPartition(map);
-}
-
-PsmAddress	psm_locate(PsmPartition partition, char *name)
-{
-	PartitionMap	*map;
-	PsmAddress	elt;
-	PsmAddress	entryObj;
-	PsmCatlgEntry	entry;
-
-	REQUIRE(partition);
-	REQUIRE(name);
-	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
-	{
-		putErrmsg("Can't search for item.", NULL);
-		return 0;
-	}
-
-	if (map->directory == 0)
-	{
-		unlockPartition(map);
-		errno = EINVAL;
-		putSysErrmsg("partition has no catalog", NULL);
-		return 0;
-	}
-
-	for (elt = sm_list_first(partition, map->directory); elt;
-			elt = sm_list_next(partition, elt))
-	{
-		entryObj = sm_list_data(partition, elt);
-		memcpy((char *) &entry, (char *) psp(partition, entryObj),
-				sizeof(PsmCatlgEntry));
-		if (strcmp(entry.name, name) == 0)
-		{
-			break;
-		}
-	}
-
-	if (elt == 0)		/*	Not found in catalog.		*/
-	{
-		unlockPartition(map);
-		return 0;
-	}
-
-	unlockPartition(map);
-	return entry.address;
+	return 0;
 }
 
 static void	removeFromBucket(PartitionMap *map, int bucket,
@@ -815,7 +768,7 @@ static int	traceInProgress(PsmPartition partition)
 			return 0;	/*	Don't trace.		*/
 		}
 
-		if (psm_start_trace(partition, map->traceSize, NULL) < 1)
+		if (psm_start_trace(partition, map->traceSize, NULL) < 0)
 		{
 			return 0;	/*	Fail silently.		*/
 		}
@@ -873,13 +826,14 @@ void	Psm_free(char *file, int line, PsmPartition partition,
 	char			textbuf[100];
 #endif
 
-	REQUIRE(partition);
-	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
+	if (!(partition))
 	{
+		oK(_iEnd(file, line, "partition"));
 		return;
 	}
 
+	map = (PartitionMap *) (partition->space);
+	lockPartition(map);
 	if (address >= map->startOfSmallPool
 	&& address < map->endOfSmallPool)
 	{
@@ -898,7 +852,8 @@ void	Psm_free(char *file, int line, PsmPartition partition,
 		else
 		{
 #ifdef PSM_TRACE
-			sprintf(textbuf, "psm_free failed: block unallocated");
+			istrcpy(textbuf, "psm_free failed: block unallocated",
+					sizeof textbuf);
 			traceMemo(file, line, partition, address, textbuf);
 #endif
 		}
@@ -918,7 +873,8 @@ void	Psm_free(char *file, int line, PsmPartition partition,
 		else
 		{
 #ifdef PSM_TRACE
-			sprintf(textbuf, "psm_free failed: block unallocated");
+			istrcpy(textbuf, "psm_free failed: block unallocated",
+					sizeof textbuf);
 			traceMemo(file, line, partition, address, textbuf);
 #endif
 		}
@@ -926,8 +882,8 @@ void	Psm_free(char *file, int line, PsmPartition partition,
 	else
 	{
 #ifdef PSM_TRACE
-		sprintf(textbuf, "psm_free failed: block not allocated from \
-this partition");
+		istrcpy(textbuf, "psm_free failed: block not allocated from \
+this partition", sizeof textbuf);
 		traceMemo(file, line, partition, address, textbuf);
 #endif
 	}
@@ -1003,8 +959,7 @@ static PsmAddress	mallocLarge(PartitionMap *map, register u_int nbytes)
 
 		if (!(map->desperate))
 		{
-			errno = ENOMEM;
-			putSysErrmsg(outOfSpaceMsg, utoa(nbytes));
+			putErrmsg(_outOfSpaceMsg(), utoa(nbytes));
 			return 0;
 		}
 
@@ -1064,8 +1019,7 @@ static PsmAddress	mallocLarge(PartitionMap *map, register u_int nbytes)
 
 			if (block == 0)
 			{
-				errno = ENOMEM;
-				putSysErrmsg(outOfSpaceMsg, utoa(nbytes));
+				putErrmsg(_outOfSpaceMsg(), utoa(nbytes));
 				return 0;
 			}
 		}
@@ -1109,26 +1063,25 @@ PsmAddress	Psm_malloc(char *file, int line, PsmPartition partition,
 #endif
 	PsmAddress	block;
 
-	REQUIRE(partition);
+	if (!(partition))
+	{
+		oK(_iEnd(file, line, "partition"));
+		return 0;
+	}
+
 	if (nbytes == 0 || nbytes > LARGE_BLK_LIMIT)
 	{
 #ifdef PSM_TRACE
-		sprintf(textbuf, "psm_malloc failed: illegal block size %lu",
-				nbytes);
+		isprintf(textbuf, sizeof textbuf, "psm_malloc failed: illegal \
+block size %lu", nbytes);
 		traceMemo(file, line, partition, 0, textbuf);
 #endif
-		errno = EINVAL;
-		putSysErrmsg(badBlockSizeMsg, utoa(nbytes));
+		_putErrmsg(file, line, _badBlockSizeMsg(), utoa(nbytes));
 		return 0;
 	}
 
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
-	{
-		putErrmsg(cannotAllocateMsg, NULL);
-		return 0;
-	}
-
+	lockPartition(map);
 	block = mallocLarge(map, nbytes);
 #ifdef PSM_TRACE
 	if (block) traceAlloc(file, line, partition, block, nbytes);
@@ -1149,26 +1102,25 @@ PsmAddress	Psm_zalloc(char *file, int line, PsmPartition partition,
 	int			increment;
 	struct small_ohd	*blk;
 
-	REQUIRE(partition);
+	if (!(partition))
+	{
+		oK(_iEnd(file, line, "partition"));
+		return 0;
+	}
+
 	if (nbytes == 0 || nbytes > LARGE_BLK_LIMIT)
 	{
 #ifdef PSM_TRACE
-		sprintf(textbuf, "psm_zalloc failed: illegal block size %lu",
-				nbytes);
+		isprintf(textbuf, sizeof textbuf, "psm_zalloc failed: illegal \
+block size %lu", nbytes);
 		traceMemo(file, line, partition, 0, textbuf);
 #endif
-		errno = EINVAL;
-		putSysErrmsg(badBlockSizeMsg, utoa(nbytes));
+		_putErrmsg(file, line, _badBlockSizeMsg(), utoa(nbytes));
 		return 0;
 	}
 
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
-	{
-		putErrmsg(cannotAllocateMsg, NULL);
-		return 0;
-	}
-
+	lockPartition(map);
 	if (nbytes > SMALL_BLK_LIMIT)
 	{
 		block = mallocLarge(map, nbytes);
@@ -1226,15 +1178,11 @@ void	psm_usage(PsmPartition partition, PsmUsageSummary *usage)
 	u_int		freeTotal;
 	int		count;
 
-	REQUIRE(partition);
-	REQUIRE(usage);
+	CHKVOID(partition);
+	CHKVOID(usage);
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
-	{
-		return;
-	}
-
-	strcpy(usage->partitionName, map->name);
+	lockPartition(map);
+	istrcpy(usage->partitionName, map->name, sizeof usage->partitionName);
 	usage->partitionSize = map->partitionSize;
 	usage->smallPoolSize = map->endOfSmallPool - map->startOfSmallPool;
 	freeTotal = 0;
@@ -1288,8 +1236,8 @@ void	psm_report(PsmUsageSummary *usage)
 	int	count;
 	char	textbuf[100];
 
-	REQUIRE(usage);
-	sprintf(textbuf, "-- partition '%s' usage report --",
+	CHKVOID(usage);
+	isprintf(textbuf, sizeof textbuf, "-- partition '%s' usage report --",
 			usage->partitionName);
 	writeMemo(textbuf);
 	size = 0;
@@ -1300,19 +1248,23 @@ void	psm_report(PsmUsageSummary *usage)
 		count = usage->smallPoolFreeBlockCount[i];
 		if (count > 0)
 		{
-			sprintf(textbuf, "    %10d of size %10ld", count, size);
+			isprintf(textbuf, sizeof textbuf,
+					"    %10d of size %10ld", count, size);
 			writeMemo(textbuf);
 		}
 	}
 
-	sprintf(textbuf, "       total avbl: %10ld", usage->smallPoolFree);
+	isprintf(textbuf, sizeof textbuf,
+			"       total avbl: %10ld", usage->smallPoolFree);
 	writeMemo(textbuf);
-	sprintf(textbuf, "     total unavbl: %10ld", usage->smallPoolAllocated);
+	isprintf(textbuf, sizeof textbuf,
+			"     total unavbl: %10ld", usage->smallPoolAllocated);
 	writeMemo(textbuf);
-	sprintf(textbuf, "       total size: %10ld", usage->smallPoolSize);
+	isprintf(textbuf, sizeof textbuf,
+			"       total size: %10ld", usage->smallPoolSize);
 	writeMemo(textbuf);
 	size = WORD_SIZE;
-	sprintf(textbuf, "large pool free blocks:");
+	istrcpy(textbuf, "large pool free blocks:", sizeof textbuf);
 	writeMemo(textbuf);
 	for (i = 0; i < LARGE_ORDERS; i++)
 	{
@@ -1320,50 +1272,48 @@ void	psm_report(PsmUsageSummary *usage)
 		count = usage->largePoolFreeBlockCount[i];
 		if (count > 0)
 		{
-			sprintf(textbuf, "    %10d of order %10ld", count,
-					size);
+			isprintf(textbuf, sizeof textbuf,
+					"    %10d of order %10ld", count, size);
 			writeMemo(textbuf);
 		}
 	}
 
-	sprintf(textbuf, "       total avbl: %10ld", usage->largePoolFree);
+	isprintf(textbuf, sizeof textbuf,
+			"       total avbl: %10ld", usage->largePoolFree);
 	writeMemo(textbuf);
-	sprintf(textbuf, "     total unavbl: %10ld", usage->largePoolAllocated);
+	isprintf(textbuf, sizeof textbuf,
+			"     total unavbl: %10ld", usage->largePoolAllocated);
 	writeMemo(textbuf);
-	sprintf(textbuf, "       total size: %10ld", usage->largePoolSize);
+	isprintf(textbuf, sizeof textbuf,
+			"       total size: %10ld", usage->largePoolSize);
 	writeMemo(textbuf);
-	sprintf(textbuf, "total partition:   %10ld", usage->partitionSize);
+	isprintf(textbuf, sizeof textbuf,
+			"total partition:   %10ld", usage->partitionSize);
 	writeMemo(textbuf);
-	sprintf(textbuf, "total unused:      %10ld", usage->unusedSize);
+	isprintf(textbuf, sizeof textbuf,
+			"total unused:      %10ld", usage->unusedSize);
 	writeMemo(textbuf);
 }
 
 int	psm_start_trace(PsmPartition partition, long shmSize, char *shm)
 {
 #ifndef PSM_TRACE
-	errno = EINVAL;
-	putSysErrmsg(noTraceMsg, NULL);
-	return 0;
+	putErrmsg(_noTraceMsg(), NULL);
+	return -1;
 #else
 	PartitionMap	*map;
 
-	REQUIRE(partition);
+	CHKERR(partition);
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
-	{
-		putErrmsg("Can't start psm trace.", NULL);
-		return 0;
-	}
-
+	lockPartition(map);
 	if (map->traceSize > 0)	/*	Trace is already enabled.	*/
 	{
 		if (map->traceSize != shmSize)
         	{
 			unlockPartition(map);
-			errno = EINVAL;
-			putSysErrmsg("asserted trace memory size doesn't match \
-actual", itoa(map->traceSize));
-			return 0;	/*	Size mismatch.		*/
+			putErrmsg("Asserted trace memory size doesn't match \
+actual.", itoa(map->traceSize));
+			return -1;	/*	Size mismatch.		*/
 		}
 	}
 	else			/*	Trace is not currently enabled.	*/
@@ -1386,7 +1336,7 @@ actual", itoa(map->traceSize));
 	}
 
 	unlockPartition(map);
-	return 1;
+	return 0;
 #endif
 }
 
@@ -1398,14 +1348,10 @@ void	psm_print_trace(PsmPartition partition, int verbose)
 	PartitionMap	*map;
 	PsmUsageSummary	summary;
 
-	REQUIRE(partition);
+	CHKVOID(partition);
 	map = (PartitionMap *) (partition->space);
 	sptrace_report(partition->trace, verbose);
-	if (lockPartition(map) == 0)
-	{
-		return;
-	}
-
+	lockPartition(map);
 	psm_usage(partition, &summary);
 	unlockPartition(map);
 	psm_report(&summary);
@@ -1419,13 +1365,9 @@ void	psm_clear_trace(PsmPartition partition)
 #else
 	PartitionMap	*map;
 
-	REQUIRE(partition);
+	CHKVOID(partition);
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
-	{
-		return;
-	}
-
+	lockPartition(map);
 	sptrace_clear(partition->trace);
 	unlockPartition(map);
 #endif
@@ -1438,13 +1380,9 @@ void	psm_stop_trace(PsmPartition partition)
 #else
 	PartitionMap	*map;
 
-	REQUIRE(partition);
+	CHKVOID(partition);
 	map = (PartitionMap *) (partition->space);
-	if (lockPartition(map) == 0)
-	{
-		return;
-	}
-
+	lockPartition(map);
 	sptrace_stop(partition->trace);
 	partition->trace = NULL;
 	map->traceSize = 0;			/*	Disable trace.	*/

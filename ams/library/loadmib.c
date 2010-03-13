@@ -108,7 +108,7 @@ static void	noteLoadError(LoadMibState *state, char *text)
 	char		buf[256];
 	XML_Parser	parser = state->parser;
 
-	sprintf(buf, "MIB load error at line %d of file: %s",
+	isprintf(buf, sizeof buf, "MIB load error at line %d of file: %s",
 			(int) XML_GetCurrentLineNumber(parser), text);
 	writeMemo(buf);
 	state->abandoned = 1;
@@ -1313,7 +1313,7 @@ static int	loadMibFromSource(char *mibSource)
 		if (XML_Parse(state.parser, buf, length, done)
 				== XML_STATUS_ERROR)
 		{
-			sprintf(buf, "XML error at line %d.", (int)
+			isprintf(buf, sizeof buf, "XML error at line %d.", (int)
 					XML_GetCurrentLineNumber(state.parser));
 			putSysErrmsg(buf, XML_ErrorString
 					(XML_GetErrorCode(state.parser)));

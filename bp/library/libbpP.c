@@ -116,7 +116,7 @@ static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)
 	vpoint = (VEndpoint *) psp(bpwm, addr);
 	memset((char *) vpoint, 0, sizeof(VEndpoint));
 	vpoint->endpointElt = endpointElt;
-	strcpy(vpoint->nss, endpoint.nss);
+	istrcpy(vpoint->nss, endpoint.nss, sizeof vpoint->nss);
 	vpoint->semaphore = SM_SEM_NONE;
 	resetEndpoint(vpoint);
 	return 0;
@@ -132,7 +132,7 @@ static void	dropEndpoint(VEndpoint *vpoint, PsmAddress vpointElt)
 		sm_SemDelete(vpoint->semaphore);
 	}
 
-	sm_list_delete(bpwm, vpointElt, NULL, NULL);
+	oK(sm_list_delete(bpwm, vpointElt, NULL, NULL));
 	psm_free(bpwm, vpointAddr);
 }
 
@@ -197,12 +197,12 @@ static int	raiseScheme(Object schemeElt)
 	vscheme = (VScheme *) psp(bpwm, addr);
 	memset((char *) vscheme, 0, sizeof(VScheme));
 	vscheme->schemeElt = schemeElt;
-	strcpy(vscheme->name, scheme.name);
+	istrcpy(vscheme->name, scheme.name, sizeof vscheme->name);
 	vscheme->cbhe = scheme.cbhe;
 	vscheme->endpoints = sm_list_create(bpwm);
 	if (vscheme->endpoints == 0)
 	{
-		sm_list_delete(bpwm, vschemeElt, NULL, NULL);
+		oK(sm_list_delete(bpwm, vschemeElt, NULL, NULL));
 		psm_free(bpwm, addr);
 		return -1;
 	}
@@ -212,8 +212,9 @@ static int	raiseScheme(Object schemeElt)
 	{
 		if (raiseEndpoint(vscheme, elt) < 0)
 		{
-			sm_list_destroy(bpwm, vscheme->endpoints, NULL, NULL);
-			sm_list_delete(bpwm, vschemeElt, NULL, NULL);
+			oK(sm_list_destroy(bpwm, vscheme->endpoints, NULL,
+					NULL));
+			oK(sm_list_delete(bpwm, vschemeElt, NULL, NULL));
 			psm_free(bpwm, addr);
 			return -1;
 		}
@@ -258,7 +259,7 @@ static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
 		bpVdb->cbheScheme = 0;
 	}
 
-	sm_list_delete(bpwm, vschemeElt, NULL, NULL);
+	oK(sm_list_delete(bpwm, vschemeElt, NULL, NULL));
 	psm_free(bpwm, vschemeAddr);
 }
 
@@ -277,22 +278,26 @@ static void	startScheme(VScheme *vscheme)
 
 	if (strcmp(vscheme->name, cbheSchemeName) == 0)
 	{
-		sprintf(vscheme->custodianEidString, "%.8s:%lu.0",
-				cbheSchemeName, getOwnNodeNbr());
+		isprintf(vscheme->custodianEidString,
+				sizeof vscheme->custodianEidString,
+				"%.8s:%lu.0", cbheSchemeName, getOwnNodeNbr());
 	}
 	else if (strcmp(vscheme->name, dtn2SchemeName) == 0)
 	{
 #ifdef ION_NO_DNS
-		strcpy(hostNameBuf, "localhost");
+		istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
 #else
 		getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
 #endif
-		sprintf(vscheme->custodianEidString, "%.15s://%.60s.dtn",
-				dtn2SchemeName, hostNameBuf);
+		isprintf(vscheme->custodianEidString,
+				sizeof vscheme->custodianEidString,
+				"%.15s://%.60s.dtn", dtn2SchemeName,
+				hostNameBuf);
 	}
 	else	/*	Unknown scheme; no known custodian EID format.	*/
 	{
-		strcpy(vscheme->custodianEidString, nullEid);
+		istrcpy(vscheme->custodianEidString, nullEid,
+				sizeof vscheme->custodianEidString);
 	}
 
 	if (parseEidString(vscheme->custodianEidString,
@@ -437,8 +442,8 @@ static int	raiseInduct(Object inductElt)
 	vduct = (VInduct *) psp(bpwm, addr);
 	memset((char *) vduct, 0, sizeof(VInduct));
 	vduct->inductElt = inductElt;
-	strcpy(vduct->protocolName, protocol.name);
-	strcpy(vduct->ductName, duct.name);
+	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
+	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
 	vduct->acqThrottle.semaphore = SM_SEM_NONE;
 	resetInduct(vduct);
 	return 0;
@@ -454,22 +459,23 @@ static void	dropInduct(VInduct *vduct, PsmAddress vductElt)
 		sm_SemDelete(vduct->acqThrottle.semaphore);
 	}
 
-	sm_list_delete(bpwm, vductElt, NULL, NULL);
+	oK(sm_list_delete(bpwm, vductElt, NULL, NULL));
 	psm_free(bpwm, vductAddr);
 }
 
 static void	startInduct(VInduct *vduct)
 {
 	Induct	induct;
+	char	cmd[SDRSTRING_BUFSZ];
 	char	cmdString[SDRSTRING_BUFSZ + 1 + MAX_CL_DUCT_NAME_LEN + 1];
 
 	sdr_read(bpSdr, (char *) &induct, sdr_list_data(bpSdr,
 			vduct->inductElt), sizeof(Induct));
 	if (induct.cliCmd != 0)
 	{
-		sdr_string_read(bpSdr, cmdString, induct.cliCmd);
-		strcat(cmdString, " ");
-		strcat(cmdString, induct.name);
+		sdr_string_read(bpSdr, cmd, induct.cliCmd);
+		isprintf(cmdString, sizeof cmdString, "%s %s", cmd,
+				induct.name);
 		vduct->cliPid = pseudoshell(cmdString);
 	}
 }
@@ -558,8 +564,8 @@ static int	raiseOutduct(Object outductElt)
 	vduct = (VOutduct *) psp(bpwm, addr);
 	memset((char *) vduct, 0, sizeof(VOutduct));
 	vduct->outductElt = outductElt;
-	strcpy(vduct->protocolName, protocol.name);
-	strcpy(vduct->ductName, duct.name);
+	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
+	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
 	vduct->semaphore = SM_SEM_NONE;
 	vduct->xmitThrottle.semaphore = SM_SEM_NONE;
 	resetOutduct(vduct);
@@ -581,22 +587,23 @@ static void	dropOutduct(VOutduct *vduct, PsmAddress vductElt)
 		sm_SemDelete(vduct->xmitThrottle.semaphore);
 	}
 
-	sm_list_delete(bpwm, vductElt, NULL, NULL);
+	oK(sm_list_delete(bpwm, vductElt, NULL, NULL));
 	psm_free(bpwm, vductAddr);
 }
 
 static void	startOutduct(VOutduct *vduct)
 {
 	Outduct	outduct;
+	char	cmd[SDRSTRING_BUFSZ];
 	char	cmdString[SDRSTRING_BUFSZ + 1 + MAX_CL_DUCT_NAME_LEN + 1];
 
 	sdr_read(bpSdr, (char *) &outduct, sdr_list_data(bpSdr,
 			vduct->outductElt), sizeof(Outduct));
 	if (outduct.cloCmd != 0)
 	{
-		sdr_string_read(bpSdr, cmdString, outduct.cloCmd);
-		strcat(cmdString, " ");
-		strcat(cmdString, outduct.name);
+		sdr_string_read(bpSdr, cmd, outduct.cloCmd);
+		isprintf(cmdString, sizeof cmdString, "%s %s", cmd,
+				outduct.name);
 		vduct->cloPid = pseudoshell(cmdString);
 	}
 }
@@ -684,7 +691,7 @@ static int	initializeVdb()
 	if ((bpVdb->schemes = sm_list_create(bpwm)) == 0
 	|| (bpVdb->inducts = sm_list_create(bpwm)) == 0
 	|| (bpVdb->outducts = sm_list_create(bpwm)) == 0
-	|| psm_catlg(bpwm, BP_VDBNAME, bpVdbAddress) < 1)
+	|| psm_catlg(bpwm, BP_VDBNAME, bpVdbAddress) < 0)
 	{
 		sdr_exit_xn(bpSdr);
 		putErrmsg("Can't initialize volatile database.", NULL);
@@ -726,6 +733,7 @@ int	bpInit()
 {
 	BpDB		bpdbBuf;
 	PsmAddress	bpVdbAddress;
+	PsmAddress	elt;
 
 	if (ionAttach() < 0)
 	{
@@ -786,8 +794,8 @@ int	bpInit()
 
 	bpwm = getIonwm();
 	bpMemIdx = getIonMemoryMgr();
-	bpVdbAddress = psm_locate(bpwm, BP_VDBNAME);
-	if (bpVdbAddress == 0)
+	if (psm_locate(bpwm, BP_VDBNAME, &bpVdbAddress, &elt) < 0
+	|| elt == 0)
 	{
 		if (initializeVdb() < 0)
 		{
@@ -989,6 +997,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 int	bpAttach()
 {
 	PsmAddress	bpVdbAddress;
+	PsmAddress	elt;
 
 	if (ionAttach() < 0)
 	{
@@ -1020,8 +1029,8 @@ int	bpAttach()
 
 	bpwm = getIonwm();
 	bpMemIdx = getIonMemoryMgr();
-	bpVdbAddress = psm_locate(bpwm, BP_VDBNAME);
-	if (bpVdbAddress == 0)
+	if (psm_locate(bpwm, BP_VDBNAME, &bpVdbAddress, &elt) < 0
+	|| elt == 0)
 	{
 		putErrmsg("BP volatile database not found.", NULL);
 		return -1;
@@ -1031,7 +1040,8 @@ int	bpAttach()
 		bpVdb = (BpVdb *) psp(bpwm, bpVdbAddress);
 	}
 
-	sprintf(VersionMemo, "Wrong bundle version (should be %d).", bpVersion);
+	isprintf(VersionMemo, sizeof VersionMemo,
+			"Wrong bundle version (should be %d).", bpVersion);
 	secAttach();
 	return 0;		/*	BP service is now available.	*/
 }
@@ -1084,11 +1094,11 @@ int	parseClassOfService(char *token, unsigned int *priority,
 {
 	int	count;
 
-	REQUIRE(token);
-	REQUIRE(priority);
-	REQUIRE(ordinal);
-	REQUIRE(unreliable);
-	REQUIRE(critical);
+	CHKZERO(token);
+	CHKZERO(priority);
+	CHKZERO(ordinal);
+	CHKZERO(unreliable);
+	CHKZERO(critical);
 	count = sscanf(token, "%u.%u.%u.%u", priority, ordinal, unreliable,
 			critical);
 	switch (count)
@@ -1204,7 +1214,7 @@ int	putBpString(BpString *bpString, char *string)
 		return -1;
 	}
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	bpString->textLength = strlen(string);
 	bpString->text = sdr_malloc(bpSdr, bpString->textLength);
 	if (bpString->text == 0)
@@ -1370,19 +1380,12 @@ void	restoreEidString(MetaEid *metaEid)
 	}
 }
 
-static char	*printCbheEid(CbheEid *eid)
+static int	printCbheEid(CbheEid *eid, char **result)
 {
 	char	*schemeName;
 	int	eidLength;
 	char	*decoration;
 	char	*eidString;
-
-	if (eid == NULL)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return NULL;
-	}
 
 	schemeName = cbheSchemeName;
 	eidLength = strlen(schemeName);
@@ -1408,23 +1411,24 @@ static char	*printCbheEid(CbheEid *eid)
 	if (eidString == NULL)
 	{
 		putErrmsg("Can't create CBHE EID string.", NULL);
-		return NULL;
+		return -1;
 	}
 
 	if (eid->nodeNbr == 0)
 	{
-		strcpy(eidString, nullEid);
+		istrcpy(eidString, nullEid, eidLength);
 	}
 	else
 	{
-		sprintf(eidString, "%s%s:%lu.%lu", decoration, schemeName,
-				eid->nodeNbr, eid->serviceNbr);
+		isprintf(eidString, eidLength, "%s%s:%lu.%lu", decoration,
+				schemeName, eid->nodeNbr, eid->serviceNbr);
 	}
 
-	return eidString;
+	*result = eidString;
+	return 0;
 }
 
-static char	*printDtnEid(DtnEid *eid, char *dictionary)
+static int	printDtnEid(DtnEid *eid, char *dictionary, char **result)
 {
 	int	schemeNameLength;
 	int	nssLength;
@@ -1432,13 +1436,7 @@ static char	*printDtnEid(DtnEid *eid, char *dictionary)
 	char	*decoration;
 	char	*eidString;
 
-	if (dictionary == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return NULL;
-	}
-
+	CHKERR(dictionary);
 	schemeNameLength = strlen(dictionary + eid->schemeNameOffset);
 	nssLength = strlen(dictionary + eid->nssOffset);
 	eidLength = schemeNameLength + nssLength + 2;
@@ -1451,31 +1449,28 @@ static char	*printDtnEid(DtnEid *eid, char *dictionary)
 	eidString = MTAKE(eidLength);
 	if (eidString == NULL)
 	{
-		return NULL;
+		putErrmsg("Can't create non-CBHE EID string.", NULL);
+		return -1;
 	}
 
-	sprintf(eidString, "%s%s:%s", decoration,
+	isprintf(eidString, eidLength, "%s%s:%s", decoration,
 			dictionary + eid->schemeNameOffset,
 			dictionary + eid->nssOffset);
-	return eidString;
+	*result = eidString;
+	return 0;
 }
 
-char	*printEid(EndpointId *eid, char *dictionary)
+int	printEid(EndpointId *eid, char *dictionary, char **result)
 {
-	if (eid == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return NULL;
-	}
-
+	CHKERR(eid);
+	CHKERR(result);
 	if (eid->cbhe)
 	{
-		return printCbheEid(&eid->c);
+		return printCbheEid(&eid->c, result);
 	}
 	else
 	{
-		return printDtnEid(&(eid->d), dictionary);
+		return printDtnEid(&(eid->d), dictionary, result);
 	}
 }
 
@@ -1518,12 +1513,12 @@ void	getSenderEid(char **eidBuffer, char *neighborClId)
 	int		i;
 	BpEidLookupFn	lookupEid;
 
-	REQUIRE(eidBuffer);
-	REQUIRE(*eidBuffer);
-	REQUIRE(*neighborClId);
+	CHKVOID(eidBuffer);
+	CHKVOID(*eidBuffer);
+	CHKVOID(*neighborClId);
 	uriBuffer = *eidBuffer;
 #ifdef BP_URI_RFC
-	strcpy(*uriBuffer, "dtn::");
+	istrcpy(*uriBuffer, "dtn::", 6);
 	uriBuffer += 5;
 #endif
 	lookupFns = senderEidLookupFunctions(NULL);
@@ -1563,7 +1558,6 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 	int	neighborIdLen;
 	int	ductIdLen;
 	int	idLen;
-	int	ignore;
 
 	if (dir->action == fwd)
 	{
@@ -1591,9 +1585,7 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 	}
 
 	ductIdLen = strlen(ductClId);
-	// oK(strtol(ductClId, &firstNonNumeric, 0));
-	// must we store this value? silly compiler warnings.
-	ignore = strtol(ductClId, &firstNonNumeric, 0);
+	oK(strtol(ductClId, &firstNonNumeric, 0));
 	if (*firstNonNumeric == '\0')
 	{
 		/*	Neighbor CL ID is a number, e.g., an LTP
@@ -1638,7 +1630,7 @@ int	startBpTask(Object cmd, Object cmdParms, int *pid)
 
 	if (cmdParms == 0)
 	{
-		strcpy(buffer, cmdString);
+		istrcpy(buffer, cmdString, sizeof buffer);
 	}
 	else
 	{
@@ -1648,7 +1640,8 @@ int	startBpTask(Object cmd, Object cmdParms, int *pid)
 			return -1;
 		}
 
-		sprintf(buffer, "%s %s", cmdString, parmsString);
+		isprintf(buffer, sizeof buffer, "%s %s", cmdString,
+				parmsString);
 	}
 
 	*pid = pseudoshell(buffer);
@@ -2184,7 +2177,7 @@ int	bpDestroyBundle(Object bundleObj, int ttlExpired)
 	int	result;
 	Object	elt;
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	if (bundleObj == 0)
 	{
 		errno = EINVAL;
@@ -2386,7 +2379,7 @@ int	findBundle(char *sourceEid, BpTimestamp *creationTime,
 	char	*eidString;
 	int	result;
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	*timelineElt = 0;
 	for (elt = sdr_list_first(bpSdr, bpConstants->timeline); elt;
 			elt = sdr_list_next(bpSdr, elt))
@@ -2468,8 +2461,7 @@ checkSafety(bpSdr);
 					bundle->dictionaryLength);
 		}
 
-		eidString = printEid(&(bundle->id.source), dictionary);
-		if (eidString == NULL)
+		if (printEid(&(bundle->id.source), dictionary, &eidString) < 0)
 		{
 			putErrmsg("Can't print EID string.", NULL);
 			if (dictionary)
@@ -2588,7 +2580,7 @@ int	addScheme(char *schemeName, char *fwdCmd, char *admAppCmd)
 	/*	All parameters validated, okay to add the scheme.	*/
 
 	memset((char *) &schemeBuf, 0, sizeof(Scheme));
-	strcpy(schemeBuf.name, schemeName);
+	istrcpy(schemeBuf.name, schemeName, sizeof schemeBuf.name);
 	if (strcmp(schemeName, cbheSchemeName) == 0)
 	{
 		schemeBuf.cbhe = 1;
@@ -2925,7 +2917,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	/*	All parameters validated, okay to add the endpoint.	*/
 
 	memset((char *) &endpointBuf, 0, sizeof(Endpoint));
-	strcpy(endpointBuf.nss, metaEid.nss);
+	istrcpy(endpointBuf.nss, metaEid.nss, sizeof endpointBuf.nss);
 	restoreEidString(&metaEid);
 	endpointBuf.recvRule = recvRule;
 	if (script)
@@ -3164,7 +3156,7 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 	/*	All parameters validated, okay to add the protocol.	*/
 
 	memset((char *) &clpbuf, 0, sizeof(ClProtocol));
-	strcpy(clpbuf.name, protocolName);
+	istrcpy(clpbuf.name, protocolName, sizeof clpbuf.name);
 	clpbuf.payloadBytesPerFrame = payloadPerFrame;
 	clpbuf.overheadPerFrame = ohdPerFrame;
 	clpbuf.nominalRate = nominalRate;
@@ -3376,7 +3368,7 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 	/*	All parameters validated, okay to add the duct.		*/
 
 	memset((char *) &ductBuf, 0, sizeof(Induct));
-	strcpy(ductBuf.name, ductName);
+	istrcpy(ductBuf.name, ductName, sizeof ductBuf.name);
 	ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
 	ductBuf.protocol = (Object) sdr_list_data(bpSdr, clpElt);
 	addr = sdr_malloc(bpSdr, sizeof(Induct));
@@ -3644,7 +3636,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd)
 	/*	All parameters validated, okay to add the duct.		*/
 
 	memset((char *) &ductBuf, 0, sizeof(Outduct));
-	strcpy(ductBuf.name, ductName);
+	istrcpy(ductBuf.name, ductName, sizeof ductBuf.name);
 	if (cloCmd)
 	{
 		ductBuf.cloCmd = sdr_string_create(bpSdr, cloCmd);
@@ -3883,7 +3875,7 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 	char		*fragDictionary;
 	int		result;
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	if ((argDictionary = retrieveDictionary(bundle)) == (char *) bundle)
 	{
 		putErrmsg("Can't retrieve dictionary.", NULL);
@@ -3970,7 +3962,7 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	Object	elt;
 		OBJ_POINTER(BpEvent, event);
 
-checkSafety(bpSdr);
+	CHKZERO(ionLocked());
 	addr = sdr_malloc(bpSdr, sizeof(BpEvent));
 	if (addr == 0)
 	{
@@ -4054,7 +4046,7 @@ static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 {
 	BpEvent	event;
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	/*	Schedule purge of this bundle on expiration of its
 	 *	time-to-live.  Bundle expiration time is event time.	*/
 
@@ -4505,7 +4497,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		}
 	}
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	if (parseEidString(eid, &stationMetaEid, &vscheme, &vschemeElt) == 0)
 	{
 		/*	Can't forward: can't make sense of this EID.	*/
@@ -4963,7 +4955,8 @@ status reports for admin records", NULL);
 
 		if (sourceMetaEid == NULL)
 		{
-			strcpy(sourceEidString, vscheme->custodianEidString);
+			istrcpy(sourceEidString, vscheme->custodianEidString,
+					sizeof sourceEidString);
 			parseEidString(sourceEidString, &tempMetaEid,
 					&vscheme2, &vschemeElt2);
 			sourceMetaEid = &tempMetaEid;
@@ -5215,22 +5208,27 @@ int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 	Object		bundleObj;
 	int		result;
 
+	if (printEid(&bundle->custodian, dictionary, &custodianEid) < 0)
+	{
+		putErrmsg("Can't print CBHE custodian EID.", NULL);
+		return -1;
+	}
+
 	if (bundle->custodian.cbhe)
 	{
 		if (bundle->custodian.c.nodeNbr == 0)
 		{
+			MRELEASE(custodianEid);
 			return 0;	/*	No current custodian.	*/
 		}
 
-		custodianEid = printEid(&bundle->custodian, dictionary);
 	}
 	else
 	{
-		custodianEid = printEid(&bundle->custodian, dictionary);
 		if (strcmp(custodianEid, nullEid) == 0)
 		{
 			MRELEASE(custodianEid);
-			return 0;
+			return 0;	/*	No current custodian.	*/
 		}
 	}
 
@@ -5268,7 +5266,13 @@ int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 		ttl = 1;
 	}
 
-	bundle->ctSignal.sourceEid = printEid(&bundle->id.source, dictionary);
+	if (printEid(&bundle->id.source, dictionary,
+			&bundle->ctSignal.sourceEid) < 0)
+	{
+		putErrmsg("Can't print source EID.", NULL);
+		return -1;
+	}
+
 	result = bpConstructCtSignal(&(bundle->ctSignal), &payloadZco);
 	MRELEASE(bundle->ctSignal.sourceEid);
 	if (result < 0)
@@ -5332,7 +5336,13 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 
 	ttl = bundle->expirationTime - bundle->id.creationTime.seconds;
 	if (ttl < 1) ttl = 1;
-	bundle->statusRpt.sourceEid = printEid(&bundle->id.source, dictionary);
+	if (printEid(&bundle->id.source, dictionary,
+			&bundle->statusRpt.sourceEid) < 0)
+	{
+		putErrmsg("Can't print source EID.", NULL);
+		return -1;
+	}
+
 	result = bpConstructStatusRpt(&(bundle->statusRpt), &payloadZco);
 	MRELEASE(bundle->statusRpt.sourceEid);
 	if (result < 0)
@@ -5341,7 +5351,12 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 		return -1;
 	}
 
-	reportToEid = printEid(&bundle->reportTo, dictionary);
+	if (printEid(&bundle->reportTo, dictionary, &reportToEid) < 0)
+	{
+		putErrmsg("Can't print source EID.", NULL);
+		return -1;
+	}
+
 	result = bpSend(NULL, reportToEid, NULL, ttl, priority,
 			NoCustodyRequested, 0, 0, &ecos, payloadZco,
 			&bundleObj, BP_STATUS_REPORT);
@@ -5383,7 +5398,8 @@ static void	lookUpDestEndpoint(Bundle *bundle, char *dictionary,
 
 	if (dictionary == NULL)
 	{
-		sprintf(nssBuf, "%lu.%lu", bundle->destination.c.nodeNbr,
+		isprintf(nssBuf, sizeof nssBuf, "%lu.%lu",
+				bundle->destination.c.nodeNbr,
 				bundle->destination.c.serviceNbr);
 		nss = nssBuf;
 	}
@@ -5630,7 +5646,7 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 			{
 				zco_stop_receiving(bpSdr, &reader);
 				MRELEASE(buffer);
-				putSysErrmsg("Can't extract from ADU fragment",
+				putErrmsg("Can't extract from ADU fragment.",
 						NULL);
 				return -1;
 			}
@@ -5640,14 +5656,21 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 			{
 				zco_stop_receiving(bpSdr, &reader);
 				MRELEASE(buffer);
-				putSysErrmsg("Can't copy fragment content",
+				putErrmsg("Can't copy fragment content.",
 						NULL);
 				return -1;
 			}
 
-			zco_append_extent(bpSdr,
+			if (zco_append_extent(bpSdr,
 				aggregateBundle.payload.content,
-				ZcoSdrSource, extent, 0, bytesExtracted);
+				ZcoSdrSource, extent, 0, bytesExtracted) < 0)
+			{
+				zco_stop_receiving(bpSdr, &reader);
+				MRELEASE(buffer);
+				putErrmsg("Can't append extent.", NULL);
+				return -1;
+			}
+
 			bytesToCopy -= bytesExtracted;
 		}
 
@@ -5754,7 +5777,7 @@ static int	deliverBundle(Object bundleObj, Bundle *bundle,
 		OBJ_POINTER(IncompleteBundle, incomplete);
 	Object	elt;
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 
 	/*	Regardless of delivery outcome, current custodian
 	 *	(if any) may now release custody.  NOTE: the local
@@ -5865,7 +5888,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 	char		*eidString;
 	int		result;
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	if ((dictionary = retrieveDictionary(bundle)) == (char *) bundle)
 	{
 		putErrmsg("Can't retrieve dictionary.", NULL);
@@ -5963,8 +5986,7 @@ checkSafety(bpSdr);
 
 	/*	There may be a non-local destination.			*/
 
-	eidString = printEid(&bundle->destination, dictionary);
-	if (eidString == NULL)
+	if (printEid(&bundle->destination, dictionary, &eidString) < 0)
 	{
 		putErrmsg("Can't print destination EID.", NULL);
 		return -1;
@@ -6081,6 +6103,8 @@ void	bpReleaseAcqArea(AcqWorkArea *work)
 
 int	bpBeginAcq(AcqWorkArea *work, int authentic, char *senderEid)
 {
+	int	eidLen;
+
 	if (work == NULL)
 	{
 		errno = EINVAL;
@@ -6101,14 +6125,15 @@ int	bpBeginAcq(AcqWorkArea *work, int authentic, char *senderEid)
 	work->authentic = authentic ? 1 : 0;
 	if (senderEid)
 	{
-		work->senderEid = MTAKE(strlen(senderEid) + 1);
+		eidLen = strlen(senderEid) + 1;
+		work->senderEid = MTAKE(eidLen);
 		if (work->senderEid == NULL)
 		{
 			putErrmsg("Can't copy sender EID.", NULL);
 			return -1;
 		}
 
-		strcpy(work->senderEid, senderEid);
+		istrcpy(work->senderEid, senderEid, eidLen);
 	}
 
 	errno = 0;
@@ -6345,8 +6370,8 @@ static int acquireExtent(AcqWorkArea *work, char *bytes, int length)
 		return -1;
 	}
 
-	zco_append_extent(bpSdr, work->bundle.payload.content, ZcoSdrSource,
-			extent, 0, length);
+	oK(zco_append_extent(bpSdr, work->bundle.payload.content, ZcoSdrSource,
+			extent, 0, length));
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putSysErrmsg("CLI failure acquiring extent", NULL);
@@ -7231,8 +7256,8 @@ int	bpEndAcq(AcqWorkArea *work)
 
 	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
 	{
-		eidString = printEid(&(bundle->custodian), work->dictionary);
-		if (eidString == NULL)
+		if (printEid(&(bundle->custodian), work->dictionary,
+				&eidString) < 0)
 		{
 			putErrmsg("Can't print custodian EID string.", NULL);
 			return -1;
@@ -7253,9 +7278,8 @@ int	bpEndAcq(AcqWorkArea *work)
 			 *	receiving the bundle.			*/
 
 			MRELEASE(eidString);
-			eidString = printEid(&(bundle->id.source),
-					work->dictionary);
-			if (eidString == NULL)
+			if (printEid(&(bundle->id.source), work->dictionary,
+					&eidString) < 0)
 			{
 				putErrmsg("Can't print source EID string.",
 						NULL);
@@ -7992,7 +8016,7 @@ static Object	catenateBundle(Bundle *bundle)
 	ExtensionBlock	blk;
 	unsigned char	*flagbyte;
 
-checkSafety(bpSdr);
+	CHKZERO(ionLocked());
 
 	/*	We assume that the bundle to be issued is valid:
 	 *	either it was sourced locally (in which case we
@@ -8183,8 +8207,8 @@ checkSafety(bpSdr);
 
 	/*	Prepend header (all blocks) to bundle ZCO.		*/
 
-	zco_prepend_header(bpSdr, bundle->payload.content, (char *) buffer,
-			totalHeaderLength);
+	oK(zco_prepend_header(bpSdr, bundle->payload.content, (char *) buffer,
+			totalHeaderLength));
 	MRELEASE(buffer);
 
 	/*	Append all trailing extension blocks (if any) to
@@ -8241,8 +8265,8 @@ checkSafety(bpSdr);
 			cursor += blk.length;
 		}
 
-		zco_append_trailer(bpSdr, bundle->payload.content,
-				(char *) buffer, totalTrailerLength);
+		oK(zco_append_trailer(bpSdr, bundle->payload.content,
+				(char *) buffer, totalTrailerLength));
 		MRELEASE(buffer);
 	}
 
@@ -8432,7 +8456,7 @@ int	bpAccept(Bundle *bundle)
 	char	*dictionary;
 	int	result;
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	purgeStationsStack(bundle);
 	if (bundle->catenated)	/*	Re-forwarding custodial bundle.	*/
 	{
@@ -8535,7 +8559,7 @@ int	bpEnqueue(Object bundleObj, Bundle *bundle, char *proxNodeEid,
 	/*      Forwarder arrived at a duct to transmit the bundle
 	 *      on, so construct a transmission reference.		*/
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	if (bundleObj == 0 || bundle == NULL || vduct == NULL
 	|| proxNodeEid == NULL || *proxNodeEid == '\0'
 	|| strlen(proxNodeEid) >= SDRSTRING_BUFSZ)
@@ -8850,7 +8874,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 	PsmAddress	nextSnub;
 	IonSnub		*snub;
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	sdr_read(bpSdr, (char *) &protocol, outduct->protocol,
 			sizeof(ClProtocol));
 	while (1)	/*	Might do multiple reforwards.		*/
@@ -9464,17 +9488,10 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 
 	/*	Recreate the source EID.				*/
 
-	sourceEid = printEid(&image.id.source, dictionary);
+	result = printEid(&image.id.source, dictionary, &sourceEid);
 	MRELEASE(buffer);
-	if (sourceEid == NULL)
+	if (result < 0)
 	{
-		if (errno == EINVAL)
-		{
-			putErrmsg("Can't get bundle ID: buffer corrupted.",
-					NULL);
-			return 0;
-		}
-
 		putErrmsg("No memory for source EID.", NULL);
 		return -1;
 	}
@@ -9570,16 +9587,8 @@ int	bpHandleXmitFailure(char *buffer, int bufferLength)
 			continue;	/*	No need to retransmit.	*/
 		}
 
-		sourceEid = printEid(&image.id.source, dictionary);
-		if (sourceEid == NULL)
+		if (printEid(&image.id.source, dictionary, &sourceEid) < 0)
 		{
-			if (errno == EINVAL)
-			{
-				putErrmsg("xmit failure not fully handled: \
-bundle buffer corrupted.", NULL);
-				return 0;
-			}
-
 			putErrmsg("No memory for source EID.", NULL);
 			return -1;
 		}
@@ -9636,7 +9645,7 @@ int	bpReforwardBundle(Object bundleAddr)
 	char	*eidString;
 	int	result;
 
-checkSafety(bpSdr);
+	CHKERR(ionLocked());
 	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
@@ -9673,8 +9682,7 @@ checkSafety(bpSdr);
 		return -1;
 	}
 
-	eidString = printEid(&bundle.destination, dictionary);
-	if (eidString == NULL)
+	if (printEid(&bundle.destination, dictionary, &eidString) < 0)
 	{
 		putErrmsg("Can't print destination EID.", NULL);
 		return -1;
@@ -9754,7 +9762,7 @@ static void	noteSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 		return;		/*	Can't construct a Snub.		*/
 	}
 
-	addSnub(node, metaEid.nodeNbr);
+	oK(addSnub(node, metaEid.nodeNbr));
 }
 
 static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
@@ -9992,9 +10000,8 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 					break;	/*	Out of switch.	*/
 				}
 
-				eidString = printEid(&bundle->destination,
-						dictionary);
-				if (eidString == NULL)
+				if (printEid(&bundle->destination, dictionary,
+						&eidString) < 0)
 				{
 					sdr_cancel_xn(bpSdr);
 					putErrmsg("Can't print dest EID.",

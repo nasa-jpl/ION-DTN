@@ -185,8 +185,8 @@ static void	*sendBundles(void *parm)
 	*(parms->running) = 0;
 	pthread_kill(parms->mainThread, SIGTERM);
 	writeErrmsgMemos();
-	sprintf(buffer, "[i] dgrcla outduct ended.  %d transmissions failed.",
-			failedTransmissions);
+	isprintf(buffer, sizeof buffer, "[i] dgrcla outduct ended.  %d \
+transmissions failed.", failedTransmissions);
 	writeMemo(buffer);
 	MRELEASE(buffer);
 	return NULL;

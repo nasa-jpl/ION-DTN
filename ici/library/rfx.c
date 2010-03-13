@@ -21,6 +21,11 @@ typedef struct
 	int	fromNeighbor;		/*	Boolean.		*/
 } RateChange;
 
+static char	*_cannotForecast()
+{
+	return "Can't complete congestion forecast.";
+}
+
 int	rfx_system_is_started()
 {
 	IonVdb	*vdb = getIonVdb();
@@ -35,13 +40,13 @@ IonNeighbor	*findNeighbor(IonVdb *ionvdb, unsigned long nodeNbr,
 	PsmAddress	elt;
 	IonNeighbor	*neighbor;
 
-	REQUIRE(ionvdb);
-	REQUIRE(nextElt);
+	CHKNULL(ionvdb);
+	CHKNULL(nextElt);
 	for (elt = sm_list_first(ionwm, ionvdb->neighbors); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		neighbor = (IonNeighbor *) psp(ionwm, sm_list_data(ionwm, elt));
-		REQUIRE(neighbor);
+		CHKNULL(neighbor);
 		if (neighbor->nodeNbr < nodeNbr)
 		{
 			continue;
@@ -116,13 +121,13 @@ IonNode	*findNode(IonVdb *ionvdb, unsigned long nodeNbr, PsmAddress *nextElt)
 	PsmAddress	elt;
 	IonNode		*node;
 
-	REQUIRE(ionvdb);
-	REQUIRE(nextElt);
+	CHKNULL(ionvdb);
+	CHKNULL(nextElt);
 	for (elt = sm_list_first(ionwm, ionvdb->nodes); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		node = (IonNode *) psp(ionwm, sm_list_data(ionwm, elt));
-		REQUIRE(node);
+		CHKNULL(node);
 		if (node->nodeNbr < nodeNbr)
 		{
 			continue;
@@ -171,7 +176,7 @@ IonNode	*addNode(IonVdb *ionvdb, unsigned long nodeNbr, PsmAddress nextElt)
 	}
 
 	node = (IonNode *) psp(ionwm, addr);
-	REQUIRE(node);
+	CHKNULL(node);
 	node->nodeNbr = nodeNbr;
 	node->xmits = sm_list_create(ionwm);
 	node->origins = sm_list_create(ionwm);
@@ -186,13 +191,13 @@ IonOrigin	*findOrigin(IonNode *node, unsigned long neighborNodeNbr,
 	PsmAddress	elt;
 	IonOrigin	*origin;
 
-	REQUIRE(node);
-	REQUIRE(nextElt);
+	CHKNULL(node);
+	CHKNULL(nextElt);
 	for (elt = sm_list_first(ionwm, node->origins); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		origin = (IonOrigin *) psp(ionwm, sm_list_data(ionwm, elt));
-		REQUIRE(origin);
+		CHKNULL(origin);
 		if (origin->nodeNbr < neighborNodeNbr)
 		{
 			continue;
@@ -218,7 +223,7 @@ IonOrigin	*addOrigin(IonNode *node, unsigned long neighborNodeNbr,
 	PsmAddress	elt;
 	IonOrigin	*origin;
 
-	REQUIRE(node);
+	CHKNULL(node);
 	addr = psm_zalloc(ionwm, sizeof(IonOrigin));
 	if (addr == 0)
 	{
@@ -243,13 +248,13 @@ IonOrigin	*addOrigin(IonNode *node, unsigned long neighborNodeNbr,
 	}
 
 	origin = (IonOrigin *) psp(ionwm, addr);
-	REQUIRE(origin);
+	CHKNULL(origin);
 	origin->nodeNbr = neighborNodeNbr;
 	origin->owlt = 0;
 	return origin;
 }
 
-static void	noteXmit(IonNode *node, IonContact *contact)
+static int	noteXmit(IonNode *node, IonContact *contact)
 {
 	IonOrigin	*origin;
 	PsmAddress	originAddr;
@@ -272,7 +277,7 @@ static void	noteXmit(IonNode *node, IonContact *contact)
 		if (origin == NULL)
 		{
 			putErrmsg("Can't create origin for xmit.", NULL);
-			return;
+			return -1;
 		}
 	}
 
@@ -286,7 +291,7 @@ static void	noteXmit(IonNode *node, IonContact *contact)
 			elt = sm_list_next(ionwm, elt))
 	{
 		xmit = (IonXmit *) psp(ionwm, sm_list_data(ionwm, elt));
-		REQUIRE(xmit);
+		CHKERR(xmit);
 		if (xmit->fromTime > contact->fromTime)
 		{
 			nextElt = elt;
@@ -300,7 +305,7 @@ static void	noteXmit(IonNode *node, IonContact *contact)
 				/*	This xmit is already loaded;
 				 *	no need to load again.		*/
 
-				return;
+				return 0;
 			}
 
 			/*	This is a prior xmit for the same
@@ -316,7 +321,7 @@ static void	noteXmit(IonNode *node, IonContact *contact)
 	if (addr == 0)
 	{
 		putErrmsg("Can't add xmit.", NULL);
-		return;
+		return -1;
 	}
 
 	if (nextElt)
@@ -332,11 +337,11 @@ static void	noteXmit(IonNode *node, IonContact *contact)
 	{
 		psm_free(ionwm, addr);
 		putErrmsg("Can't add xmit.", NULL);
-		return;
+		return -1;
 	}
 
 	xmit = (IonXmit *) psp(ionwm, addr);
-	REQUIRE(xmit);
+	CHKERR(xmit);
 	xmit->origin = originAddr;
 	xmit->fromTime = contact->fromTime;
 	xmit->toTime = contact->toTime;
@@ -351,7 +356,7 @@ static void	noteXmit(IonNode *node, IonContact *contact)
 	if (origin->nodeNbr != iondb.ownNodeNbr)
 	{
 		loadScalar(&(xmit->aggrCapacity), 0);
-		return;	/*	Node isn't a neighbor, capacity N/A.	*/
+		return 0;	/*	Not a neighbor, capacity N/A.	*/
 	}
 
 	/*	Compute amount of transmission capacity gained.		*/
@@ -391,12 +396,14 @@ static void	noteXmit(IonNode *node, IonContact *contact)
 	for (elt = nextElt; elt; elt = sm_list_next(ionwm, elt))
 	{
 		xmit = (IonXmit *) psp(ionwm, sm_list_data(ionwm, elt));
-		REQUIRE(xmit);
+		CHKERR(xmit);
 		if (xmit->origin == originAddr)
 		{
 			addToScalar(&(xmit->aggrCapacity), &capacity);
 		}
 	}
+
+	return 0;
 }
 
 void	forgetXmit(IonNode *node, IonContact *contact)
@@ -414,14 +421,14 @@ void	forgetXmit(IonNode *node, IonContact *contact)
 	int		secRemaining;
 	Scalar		capacity;
 
-	REQUIRE(node);
-	REQUIRE(contact);
+	CHKVOID(node);
+	CHKVOID(contact);
 	for (elt = sm_list_first(ionwm, node->xmits); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		addr = sm_list_data(ionwm, elt);
 		xmit = (IonXmit *) psp(ionwm, addr);
-		REQUIRE(xmit);
+		CHKVOID(xmit);
 		if (xmit->fromTime > contact->fromTime)
 		{
 			return;		/*	Xmit not found.		*/
@@ -429,7 +436,7 @@ void	forgetXmit(IonNode *node, IonContact *contact)
 
 		originAddr = xmit->origin;
 		origin = (IonOrigin *) psp(ionwm, originAddr);
-		REQUIRE(origin);
+		CHKVOID(origin);
 		if (origin->nodeNbr == contact->fromNode)
 		{
 			if (xmit->fromTime == contact->fromTime)
@@ -445,7 +452,7 @@ void	forgetXmit(IonNode *node, IonContact *contact)
 	}
 
 	nextElt = sm_list_next(ionwm, elt);
-	sm_list_delete(ionwm, elt, NULL, NULL);
+	oK(sm_list_delete(ionwm, elt, NULL, NULL));
 
 	/*	If node is a neighbor, must note this removal in
 	 *	the aggregated capacities of all subsequent xmits
@@ -489,7 +496,7 @@ void	forgetXmit(IonNode *node, IonContact *contact)
 	for (elt = nextElt; elt; elt = sm_list_next(ionwm, elt))
 	{
 		xmit = (IonXmit *) psp(ionwm, sm_list_data(ionwm, elt));
-		REQUIRE(xmit);
+		CHKVOID(xmit);
 		if (xmit->origin == originAddr)
 		{
 			subtractFromScalar(&(xmit->aggrCapacity), &capacity);
@@ -497,7 +504,7 @@ void	forgetXmit(IonNode *node, IonContact *contact)
 	}
 }
 
-void	addSnub(IonNode *node, unsigned long neighborNodeNbr)
+int	addSnub(IonNode *node, unsigned long neighborNodeNbr)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	nextElt;
@@ -507,13 +514,13 @@ void	addSnub(IonNode *node, unsigned long neighborNodeNbr)
 
 	/*	Find insertion point in snubs list.			*/
 
-	REQUIRE(node);
+	CHKERR(node);
 	nextElt = 0;
 	for (elt = sm_list_first(ionwm, node->snubs); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		snub = (IonSnub *) psp(ionwm, sm_list_data(ionwm, elt));
-		REQUIRE(snub);
+		CHKERR(snub);
 		if (snub->nodeNbr < neighborNodeNbr)
 		{
 			continue;
@@ -525,14 +532,14 @@ void	addSnub(IonNode *node, unsigned long neighborNodeNbr)
 			break;	/*	Have found insertion point.	*/
 		}
 
-		return;		/*	Snub has already been added.	*/
+		return 0;	/*	Snub has already been added.	*/
 	}
 
 	addr = psm_zalloc(ionwm, sizeof(IonSnub));
 	if (addr == 0)
 	{
 		putErrmsg("Can't add snub.", NULL);
-		return;
+		return -1;
 	}
 
 	if (nextElt)
@@ -548,14 +555,15 @@ void	addSnub(IonNode *node, unsigned long neighborNodeNbr)
 	{
 		psm_free(ionwm, addr);
 		putErrmsg("Can't add snub.", NULL);
-		return;
+		return -1;
 	}
 
 	snub = (IonSnub *) psp(ionwm, addr);
-	REQUIRE(snub);
+	CHKERR(snub);
 	snub->nodeNbr = neighborNodeNbr;
 	snub->probeIsDue = 0;
 	postProbeEvent(node, snub);	/*	Initial probe event.	*/
+	return 0;
 }
 
 void	removeSnub(IonNode *node, unsigned long neighborNodeNbr)
@@ -565,13 +573,13 @@ void	removeSnub(IonNode *node, unsigned long neighborNodeNbr)
 	PsmAddress	addr;
 	IonSnub		*snub;
 
-	REQUIRE(node);
+	CHKVOID(node);
 	for (elt = sm_list_first(ionwm, node->snubs); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		addr = sm_list_data(ionwm, elt);
 		snub = (IonSnub *) psp(ionwm, addr);
-		REQUIRE(snub);
+		CHKVOID(snub);
 		if (snub->nodeNbr < neighborNodeNbr)
 		{
 			continue;
@@ -590,7 +598,7 @@ void	removeSnub(IonNode *node, unsigned long neighborNodeNbr)
 		return;			/*	Snub not found.		*/
 	}
 
-	sm_list_delete(ionwm, elt, NULL, NULL);
+	oK(sm_list_delete(ionwm, elt, NULL, NULL));
 	psm_free(ionwm, addr);
 }
 
@@ -607,8 +615,8 @@ PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub)
 	PsmAddress	elt;
 	IonProbe	*pr;
 
-	REQUIRE(node);
-	REQUIRE(snub);
+	CHKZERO(node);
+	CHKZERO(snub);
 	addr = psm_zalloc(ionwm, sizeof(IonProbe));
 	if (addr == 0)
 	{
@@ -617,7 +625,7 @@ PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub)
 	}
 
 	probe = (IonProbe *) psp(ionwm, addr);
-	REQUIRE(probe);
+	CHKZERO(probe);
 	probe->time = getUTCTime();
 	probe->destNodeNbr = node->nodeNbr;
 	probe->neighborNodeNbr = snub->nodeNbr;
@@ -643,7 +651,7 @@ PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub)
 			elt = sm_list_prev(ionwm, elt))
 	{
 		pr = (IonProbe *) psp(ionwm, sm_list_data(ionwm, elt));
-		REQUIRE(pr);
+		CHKZERO(pr);
 		if (pr->time <= probe->time)
 		{
 			return sm_list_insert_after(ionwm, elt, addr);
@@ -653,7 +661,7 @@ PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub)
 	return sm_list_insert_first(ionwm, ionvdb->probes, addr);
 }
 
-void	checkForCongestion()
+int	checkForCongestion()
 {
 	time_t		forecastTime;
 	PsmPartition	ionwm;
@@ -680,7 +688,8 @@ void	checkForCongestion()
 	time_t		alarmTime = 0;
 	long		delta;
 	char		timestampBuffer[TIMESTAMPBUFSZ];
-	char		alarmBuffer[TIMESTAMPBUFSZ + 32];
+	char		alarmBuffer[40 + TIMESTAMPBUFSZ];
+	int		result;
 
 	forecastTime = getUTCTime();
 	ionwm = getIonwm();
@@ -689,7 +698,8 @@ void	checkForCongestion()
 	changes = lyst_create_using(ionMemIdx);
 	if (neighbors == NULL || changes == NULL)
 	{
-		return;			/*	Out of memory.		*/
+		putErrmsg(_cannotForecast() , NULL);
+		return -1;		/*	Out of memory.		*/
 	}
 
 	sdr = getIonsdr();
@@ -704,21 +714,23 @@ void	checkForCongestion()
 			elt1 = sm_list_next(ionwm, elt1))
 	{
 		neighbor = (IonNeighbor*) psp(ionwm, sm_list_data(ionwm, elt1));
-		REQUIRE(neighbor);
+		CHKERR(neighbor);
 		netGrowthPerSec += neighbor->recvRate;
 		netGrowthPerSec -= neighbor->xmitRate;
 		np = (IonNeighbor *) MTAKE(sizeof(IonNeighbor));
 		if (np == NULL)
 		{
 			sdr_cancel_xn(sdr);
-			return;		/*	Out of memory.		*/
+			putErrmsg(_cannotForecast() , NULL);
+			return -1;	/*	Out of memory.		*/
 		}
 
 		memcpy((char *) np, (char *) neighbor, sizeof(IonNeighbor));
 		if (lyst_insert_last(neighbors, np) == NULL)
 		{
 			sdr_cancel_xn(sdr);
-			return;		/*	Out of memory.		*/
+			putErrmsg(_cannotForecast() , NULL);
+			return -1;	/*	Out of memory.		*/
 		}
 	}
 
@@ -774,7 +786,8 @@ void	checkForCongestion()
 			if (np == NULL)
 			{
 				sdr_cancel_xn(sdr);
-				return;	/*	Out of memory.		*/
+				putErrmsg(_cannotForecast() , NULL);
+				return -1;	/*	Out of memory.	*/
 			}
 
 			memset((char *) np, 0, sizeof(IonNeighbor));
@@ -782,7 +795,8 @@ void	checkForCongestion()
 			if (lyst_insert_last(neighbors, np) == NULL)
 			{
 				sdr_cancel_xn(sdr);
-				return;	/*	Out of memory.		*/
+				putErrmsg(_cannotForecast() , NULL);
+				return -1;	/*	Out of memory.	*/
 			}
 		}
 
@@ -805,7 +819,8 @@ void	checkForCongestion()
 			if (newChange == NULL)
 			{
 				sdr_cancel_xn(sdr);
-				return;		/*	Out of memory.	*/
+				putErrmsg(_cannotForecast() , NULL);
+				return -1;	/*	Out of memory.	*/
 			}
 
 			newChange->time = contact.fromTime;
@@ -843,7 +858,8 @@ void	checkForCongestion()
 			if (elt4 == NULL)
 			{
 				sdr_cancel_xn(sdr);
-				return;	/*	Out of memory.		*/
+				putErrmsg(_cannotForecast() , NULL);
+				return -1;	/*	Out of memory.	*/
 			}
 		}
 
@@ -853,7 +869,8 @@ void	checkForCongestion()
 		if (newChange == NULL)
 		{
 			sdr_cancel_xn(sdr);
-			return;		/*	Out of memory.		*/
+			putErrmsg(_cannotForecast() , NULL);
+			return -1;	/*	Out of memory.		*/
 		}
 
 		newChange->time = contact.toTime;
@@ -892,7 +909,8 @@ void	checkForCongestion()
 		if (elt4 == NULL)
 		{
 			sdr_cancel_xn(sdr);
-			return;		/*	Out of memory.		*/
+			putErrmsg(_cannotForecast() , NULL);
+			return -1;	/*	Out of memory.		*/
 		}
 	}
 
@@ -1008,7 +1026,8 @@ void	checkForCongestion()
 		 *	will be exceeded.				*/
 
 		writeTimestampUTC(alarmTime, timestampBuffer);
-		sprintf(alarmBuffer, "[i] Congestion collapse forecast: %s.",
+		isprintf(alarmBuffer, sizeof alarmBuffer,
+				"[i] Congestion collapse forecast: %s.",
 				timestampBuffer);
 		writeMemo(alarmBuffer);
 		if (iondb.alarmScript)
@@ -1023,10 +1042,7 @@ void	checkForCongestion()
 	iondb.maxForecastOccupancy = maxForecastOccupancy;
 	iondb.maxForecastInTransit = maxForecastInTransit;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Failed on check for congestion.", NULL);
-	}
+	result = sdr_end_xn(sdr);
 
 	/*	Release memory used for neighbors and changes lists.	*/
 
@@ -1050,6 +1066,13 @@ void	checkForCongestion()
 	}
 
 	lyst_destroy(changes);
+	if (result < 0)
+	{
+		putErrmsg("Failed on check for congestion.", NULL);
+		return -1;
+	}
+
+	return 0;
 }
 
 Object	rfx_insert_contact(time_t fromTime, time_t toTime,
@@ -1067,7 +1090,7 @@ Object	rfx_insert_contact(time_t fromTime, time_t toTime,
 	IonNode		*node;
 	PsmAddress	nextElt;
 
-	REQUIRE(toTime > fromTime);
+	CHKZERO(toTime > fromTime);
 	sdr = getIonsdr();
 	iondbObj = getIonDbObject();
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
@@ -1178,19 +1201,19 @@ char	*rfx_print_contact(Object obj, char *buffer)
 	char		fromTimeBuffer[TIMESTAMPBUFSZ];
 	char		toTimeBuffer[TIMESTAMPBUFSZ];
 
-	REQUIRE(obj);
-	REQUIRE(buffer);
+	CHKNULL(obj);
+	CHKNULL(buffer);
 	sdr = getIonsdr();
 	sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
 	writeTimestampUTC(contact.fromTime, fromTimeBuffer);
 	writeTimestampUTC(contact.toTime, toTimeBuffer);
-	sprintf(buffer, "From %20s to %20s the xmit rate from node %10lu to \
-node %10lu is %10lu bytes/sec.", fromTimeBuffer, toTimeBuffer, contact.fromNode,
-			contact.toNode, contact.xmitRate);
+	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the xmit rate from \
+node %10lu to node %10lu is %10lu bytes/sec.", fromTimeBuffer, toTimeBuffer,
+			contact.fromNode, contact.toNode, contact.xmitRate);
 	return buffer;
 }
 
-void	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
+int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 		unsigned long toNode)
 {
 	Sdr		sdr;
@@ -1262,13 +1285,15 @@ void	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't remove contact.", NULL);
+			return -1;
 		}
 
-		return;
+		return 0;
 	}
 
 	sdr_cancel_xn(sdr);
-	putErrmsg("Contact not found in database.", NULL);
+	writeMemo("[?] Contact not found in database.");
+	return 0;
 }
 
 Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
@@ -1288,7 +1313,7 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 		return 0;	/*	Loopback OWLT is always zero.	*/
 	}
 
-	REQUIRE(toTime > fromTime);
+	CHKZERO(toTime > fromTime);
 	if (fromNode > toNode)	/*	Convert to canonical form.	*/
 	{
 		nodeNbr = fromNode;
@@ -1385,19 +1410,23 @@ char	*rfx_print_range(Object obj, char *buffer)
 	char		fromTimeBuffer[TIMESTAMPBUFSZ];
 	char		toTimeBuffer[TIMESTAMPBUFSZ];
 
-	REQUIRE(obj);
-	REQUIRE(buffer);
+	if (obj == 0)
+	{
+		return NULL;
+	}
+
+	CHKNULL(buffer);
 	sdr = getIonsdr();
 	sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
 	writeTimestampUTC(range.fromTime, fromTimeBuffer);
 	writeTimestampUTC(range.toTime, toTimeBuffer);
-	sprintf(buffer, "From %20s to %20s the OWLT from node %10lu to node \
-%10lu is %10u seconds.", fromTimeBuffer, toTimeBuffer, range.fromNode,
-			range.toNode, range.owlt);
+	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the OWLT from node \
+%10lu to node %10lu is %10u seconds.", fromTimeBuffer, toTimeBuffer,
+			range.fromNode, range.toNode, range.owlt);
 	return buffer;
 }
 
-void	rfx_remove_range(time_t fromTime, unsigned long fromNode,
+int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 		unsigned long toNode)
 {
 	Sdr		sdr;
@@ -1453,13 +1482,15 @@ void	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't remove range.", NULL);
+			return -1;
 		}
 
-		return;
+		return 0;
 	}
 
 	sdr_cancel_xn(sdr);
-	putErrmsg("Range not found in database.", NULL);
+	writeMemo("[?] Range not found in database.");
+	return 0;
 }
 
 int	rfx_start()
@@ -1501,7 +1532,7 @@ int	rfx_start()
 				{
 					sdr_cancel_xn(sdr);
 					putErrmsg("Can't reload xmit.", NULL);
-					return 0;
+					return -1;
 				}
 			}
 

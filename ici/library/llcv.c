@@ -14,20 +14,20 @@
 
 int	llcv_lyst_is_empty(Llcv llcv)
 {
-	REQUIRE(llcv);
+	CHKZERO(llcv);
 	return (lyst_length(llcv->list) == 0 ? 1 : 0);
 }
 
 int	llcv_lyst_not_empty(Llcv llcv)
 {
-	REQUIRE(llcv);
+	CHKZERO(llcv);
 	return (lyst_length(llcv->list) > 0 ? 1 : 0);
 }
 
 Llcv	llcv_open(Lyst list, Llcv llcv)
 {
-	REQUIRE(list);
-	REQUIRE(llcv);
+	CHKNULL(list);
+	CHKNULL(llcv);
 	if (llcv->list != NULL && pthread_mutex_lock(&llcv->mutex) == 0)
 	{
 		oK(pthread_mutex_unlock(&llcv->mutex));
@@ -53,13 +53,13 @@ Llcv	llcv_open(Lyst list, Llcv llcv)
 
 void	llcv_lock(Llcv llcv)
 {
-	REQUIRE(llcv);
+	CHKVOID(llcv);
 	oK(pthread_mutex_lock(&llcv->mutex));
 }
 
 void	llcv_unlock(Llcv llcv)
 {
-	REQUIRE(llcv);
+	CHKVOID(llcv);
 	oK(pthread_mutex_unlock(&llcv->mutex));
 }
 
@@ -70,9 +70,9 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 	struct timeval	workTime;
 	struct timespec	deadline;
 
-	REQUIRE(llcv);
-	REQUIRE(condition);
-	REQUIRE(usec >= LLCV_BLOCKING);
+	CHKERR(llcv);
+	CHKERR(condition);
+	CHKERR(usec >= LLCV_BLOCKING);
 
 	/*	Lock the mutex to assure stable state when starting
 	 *	to wait.						*/
@@ -153,14 +153,14 @@ pthread_cond error", itoa(usec));
 
 void	llcv_signal(Llcv llcv, LlcvPredicate condition)
 {
-	REQUIRE(llcv);
-	REQUIRE(condition);
+	CHKVOID(llcv);
+	CHKVOID(condition);
 
 	/*	Lock the mutex to assure stable state when signaling.	*/
 
 	if (pthread_mutex_lock(&llcv->mutex))
 	{
-		putSysErrmsg("Can't signal llcv, mutex lock failed", NULL);
+		writeMemo("[?] Can't signal llcv, mutex lock failed.");
 		return;
 	}
 
@@ -170,8 +170,7 @@ void	llcv_signal(Llcv llcv, LlcvPredicate condition)
 	{
 		if (pthread_cond_signal(&llcv->cv))
 		{
-			putSysErrmsg("Can't signal llcv, cond signal failed",
-					NULL);
+			writeMemo("[?] Can't signal llcv, cond signal failed.");
 		}
 	}
 
@@ -182,8 +181,8 @@ void	llcv_signal(Llcv llcv, LlcvPredicate condition)
 
 void	llcv_signal_while_locked(Llcv llcv, LlcvPredicate condition)
 {
-	REQUIRE(llcv);
-	REQUIRE(condition);
+	CHKVOID(llcv);
+	CHKVOID(condition);
 
 	/*	Signal, but only if the condition is true.		*/
 
@@ -191,8 +190,7 @@ void	llcv_signal_while_locked(Llcv llcv, LlcvPredicate condition)
 	{
 		if (pthread_cond_signal(&llcv->cv))
 		{
-			putSysErrmsg("can't signal llcv, cond signal failed",
-					NULL);
+			writeMemo("[?] Can't signal llcv, cond signal failed.");
 		}
 	}
 }
@@ -212,7 +210,7 @@ void	llcv_close(Llcv llcv)
 		oK(pthread_mutex_unlock(&llcv->mutex));
 		if (result != 0 || pthread_mutex_destroy(&llcv->mutex) != 0)
 		{
-			putSysErrmsg("Can't close llcv", NULL);
+			writeMemo("[?] Can't close llcv.");
 			return;
 		}
 

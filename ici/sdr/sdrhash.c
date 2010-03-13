@@ -15,39 +15,6 @@
 #include "sdrtable.h"
 #include "sdrhash.h"
 
-static const char	*badAddressMsg = "can't access item at address zero";
-
-/*	Each row of an SDR hash table contains a linked list of 
- *	key/value pairs.  Given a key, we look up the corresponding
- *	value by hashing from the key to a row number and then
- *	searching through the key/value pairs in the linked list at
- *	that row.  Minimizing the lengths of the lists in the table
- *	minimizes lookup time, but in so doing it either increases
- *	the number of rows in the table (increasing the table's fixed
- *	size) or limits the number of entries.  We try to strike a
- *	balance by computing the number of rows automatically from
- *	A = the estimated total number of entries in the table and
- *	B = the desired mean list length:
- *
- *		1.	Raw preferred row count C = A / B.
- *
- *		2.	Actual row count must be a prime number
- *			in order for the hash function to work
- *			properly, so search the hash dimensions
- *			table for the smallest row count that is
- *			greater than or equal to C.			*/
-
-static const int	hashDimensions[] =
-			{ 71, 131, 257, 521, 1031, 2053, 4099, 8209, 16411 };
-
-/*	Each of the predefined possible hash table dimensions is the
- *	smallest prime number greater than some power of 2, starting
- *	with 2**6 = 64.  16411 is the maximum hash table dimension,
- *	used for any value of C that is greater than 8209; on a 32-bit
- *	machine, this limit assures that the table itself (excluding
- *	the lists at its rows) will occupy no more than 65644 bytes
- *	plus the table header size.					*/
-
 typedef struct
 {
 	Address	value;
@@ -59,6 +26,37 @@ typedef struct
 Object	Sdr_hash_create(char *file, int line, Sdr sdrv, int keyLength,
 		int estNbrOfEntries, int meanSearchLength)
 {
+	/*	Each row of an SDR hash table contains a linked list of 
+ 	*	key/value pairs.  Given a key, we look up the corresponding
+ 	*	value by hashing from the key to a row number and then
+ 	*	searching through the key/value pairs in the linked list at
+ 	*	that row.  Minimizing the lengths of the lists in the table
+ 	*	minimizes lookup time, but in so doing it either increases
+ 	*	the number of rows in the table (increasing the table's fixed
+ 	*	size) or limits the number of entries.  We try to strike a
+ 	*	balance by computing the number of rows automatically from
+ 	*	A = the estimated total number of entries in the table and
+ 	*	B = the desired mean list length:
+ 	*
+ 	*		1.	Raw preferred row count C = A / B.
+ 	*
+ 	*		2.	Actual row count must be a prime number
+ 	*			in order for the hash function to work
+ 	*			properly, so search the hash dimensions
+ 	*			table for the smallest row count that is
+ 	*			greater than or equal to C.		*/
+
+	static const int	hashDimensions[] =
+			{ 71, 131, 257, 521, 1031, 2053, 4099, 8209, 16411 };
+
+	/*	Each of the predefined possible hash table dimensions is the
+ 	*	smallest prime number greater than some power of 2, starting
+ 	*	with 2**6 = 64.  16411 is the maximum hash table dimension,
+ 	*	used for any value of C that is greater than 8209; on a 32-bit
+ 	*	machine, this limit assures that the table itself (excluding
+ 	*	the lists at its rows) will occupy no more than 65644 bytes
+ 	*	plus the table header size.				*/
+
 	int	rawRowCount;
 	int	i;
 	int	rowCount;
@@ -66,18 +64,16 @@ Object	Sdr_hash_create(char *file, int line, Sdr sdrv, int keyLength,
 	Address	rowAddr;
 	Object	listAddr;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (keyLength < 1 || keyLength > 255 || meanSearchLength < 1)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, apiErrMsg, NULL);
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, _apiErrMsg(), sdrv));
 		return 0;
 	}
 
@@ -99,8 +95,7 @@ Object	Sdr_hash_create(char *file, int line, Sdr sdrv, int keyLength,
 	table = Sdr_table_create(file, line, sdrv, sizeof(Object), rowCount);
 	if (table == 0)
 	{
-		_putErrmsg(file, line, "can't create hash table",
-				itoa(rowCount));
+		oK(_iEnd(file, line, itoa(rowCount)));
 		return 0;
 	}
 
@@ -116,9 +111,7 @@ Object	Sdr_hash_create(char *file, int line, Sdr sdrv, int keyLength,
 		listAddr = Sdr_list_create(file, line, sdrv);
 		if (listAddr == 0)
 		{
-			_putErrmsg(file, line, "Can't populate hash table row.",
-					NULL);
-			crashXn(sdrv);
+			oK(_iEnd(file, line, "listAddr"));
 			return 0;
 		}
 
@@ -165,18 +158,16 @@ int	Sdr_hash_insert(char *file, int line, Sdr sdrv, Object hash, char *key,
 	KvPair	kvpair;
 	int	result;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return -1;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (hash == 0 || key == NULL)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "hash");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, _apiErrMsg(), sdrv));
 		return -1;
 	}
 
@@ -208,6 +199,7 @@ int	Sdr_hash_insert(char *file, int line, Sdr sdrv, Object hash, char *key,
 	kvpairAddr = Sdr_malloc(file, line, sdrv, kvpairLength);
 	if (kvpairAddr == 0)
 	{
+		oK(_iEnd(file, line, "kvpairAddr"));
 		return -1;
 	}
 
@@ -220,6 +212,7 @@ int	Sdr_hash_insert(char *file, int line, Sdr sdrv, Object hash, char *key,
 		if (Sdr_list_insert_before(file, line, sdrv, elt, kvpairAddr)
 				== 0)
 		{
+			oK(_iEnd(file, line, "elt"));
 			return -1;
 		}
 	}
@@ -228,6 +221,7 @@ int	Sdr_hash_insert(char *file, int line, Sdr sdrv, Object hash, char *key,
 		if (Sdr_list_insert_last(file, line, sdrv, listAddr, kvpairAddr)
 				== 0)
 		{
+			oK(_iEnd(file, line, "elt"));
 			return -1;
 		}
 	}
@@ -250,17 +244,12 @@ int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value)
 	KvPair		kvpair;
 	int		result;
 
-	if (hash == 0 || key == NULL || value == NULL)
-	{
-		errno = EINVAL;
-		putErrmsg(apiErrMsg, NULL);
-		crashXn(sdrv);
-		return -1;
-	}
-
-	REQUIRE(sdrv);
+	CHKERR(sdrv);
+	CHKERR(hash);
+	CHKERR(key);
+	CHKERR(value);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKERR(takeSdr(sdr) == 0);
 	keyLength = sdr_table_user_data(sdrv, hash);
 	kvpairLength = sizeof(Address) + keyLength;
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
@@ -301,15 +290,8 @@ int	sdr_hash_count(Sdr sdrv, Object hash)
 	Address	rowAddr;
 	Object	listAddr;
 
-	if (hash == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(apiErrMsg, NULL);
-		crashXn(sdrv);
-		return -1;
-	}
-
-	REQUIRE(sdrv);
+	CHKERR(sdrv);
+	CHKERR(hash);
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
 	for (i = 0; i < rowCount; i++)
 	{
@@ -336,18 +318,16 @@ int	Sdr_hash_revise(char *file, int line, Sdr sdrv, Object hash, char *key,
 	KvPair	kvpair;
 	int	result;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return -1;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (hash == 0 || key == NULL)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "hash");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, _apiErrMsg(), sdrv));
 		return -1;
 	}
 
@@ -396,18 +376,16 @@ int	Sdr_hash_remove(char *file, int line, Sdr sdrv, Object hash, char *key)
 	KvPair	kvpair;
 	int	result;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return -1;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (hash == 0 || key == NULL)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "hash");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, _apiErrMsg(), sdrv));
 		return -1;
 	}
 
@@ -449,18 +427,16 @@ void	Sdr_hash_destroy(char *file, int line, Sdr sdrv, Object hash)
 	Address	rowAddr;
 	Object	listAddr;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (hash == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "hash");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "hash", sdrv));
 		return;
 	}
 

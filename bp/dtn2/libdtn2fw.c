@@ -64,7 +64,8 @@ static int	lookupDtn2Eid(char *uriBuffer, char *neighborClId)
 				*lastChar = '\0';
 			}
 
-			sprintf(uriBuffer, "dtn:%.62s", nodeName);
+			isprintf(uriBuffer, SDRSTRING_BUFSZ, "dtn:%.62s",
+					nodeName);
 			return 1;
 		}
 	}
@@ -198,7 +199,7 @@ int	dtn2_lookupDirective(char *nodeName, char *demux, FwdDirective *dirbuf)
 	/*	This function determines the relevant FwdDirective for
 	 *	the specified eid, if any.  Wild card match is okay.	*/
 
-checkSafety(sdr);
+	CHKERR(ionLocked());
 	if (nodeName == NULL || demux == NULL || dirbuf == NULL)
 	{
 		putErrmsg(NullParmsMemo, NULL);
@@ -333,7 +334,7 @@ void	dtn2_findPlan(char *nodeNm, Object *planAddr, Object *eltp)
 	/*	This function finds the Dtn2Plan for the specified
 	 *	node, if any.						*/
 
-checkSafety(sdr);
+	CHKVOID(ionLocked());
 	*eltp = 0;
 	if (nodeNm == NULL)
 	{
@@ -567,7 +568,7 @@ void	dtn2_findRule(char *nodeNm, char *demux, Dtn2Plan *plan,
 	 *	demux token, for the specified destination node, if
 	 *	any.							*/
 
-checkSafety(sdr);
+	CHKVOID(ionLocked());
 	*eltp = 0;
 	if (plan == NULL)
 	{

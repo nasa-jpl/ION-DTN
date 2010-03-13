@@ -67,7 +67,8 @@ static int	acquireBundles(AcqWorkArea *work, unsigned long dataLength,
 	unsigned long	sspOffset;
 	unsigned long	blockDataLength;
 
-	sprintf(engineNbrString, "%lu", senderEngineNbr);
+	isprintf(engineNbrString, sizeof engineNbrString, "%lu",
+			senderEngineNbr);
 	senderEid = senderEidBuffer;
 	getSenderEid(&senderEid, engineNbrString);
 	while (dataLength > 0)

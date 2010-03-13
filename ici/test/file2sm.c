@@ -18,6 +18,7 @@ static int	run_file2sm(char *fileName)
 	char		*wmspace;
 	int		wmid;
 	PsmPartition	wm = NULL;
+	PsmMgtOutcome	outcome;
 	PsmAddress	testlist;
 	sm_SemId	semaphore;
 	FILE		*inputFile;
@@ -44,7 +45,8 @@ static int	run_file2sm(char *fileName)
 		return 0;
 	}
 
-	if (psm_manage(wmspace, 10000000, "file2sm", &wm) == Refused)
+	if (psm_manage(wmspace, 10000000, "file2sm", &wm, &outcome) < 0
+	|| outcome == Refused)
 	{
 		puts("Can't manage shared memory.");
 		return 0;
@@ -110,7 +112,8 @@ static int	run_file2sm(char *fileName)
 					return 0;
 				}
 
-				strcpy((char *) psp(wm, lineAddress), eofLine);
+				istrcpy((char *) psp(wm, lineAddress), eofLine,
+						lineLen);
 				if (sm_list_insert_last(wm, testlist,
 						lineAddress) == 0)
 				{

@@ -47,7 +47,7 @@ extern char		*rfx_print_contact(Object contact, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
-extern void		rfx_remove_contact(time_t fromTime,
+extern int		rfx_remove_contact(time_t fromTime,
 				unsigned long fromNode,
 				unsigned long toNode);
 			/*	Removes the indicated IonContact
@@ -80,7 +80,7 @@ extern char		*rfx_print_range(Object range, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
-extern void		rfx_remove_range(time_t fromTime,
+extern int		rfx_remove_range(time_t fromTime,
 				unsigned long fromNode,
 				unsigned long toNode);
 			/*	Removes the indicated IonRange
@@ -117,14 +117,14 @@ extern IonOrigin	*addOrigin(IonNode *node,
 
 extern void		forgetXmit(IonNode *node, IonContact *contact);
 
-extern void		addSnub(IonNode *node, unsigned long neighborNodeNbr);
+extern int		addSnub(IonNode *node, unsigned long neighborNodeNbr);
 
 extern void		removeSnub(IonNode *node,
 				unsigned long neighborNodeNbr);
 
 extern PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub);
 
-extern void		checkForCongestion();
+extern int		checkForCongestion();
 
 #ifdef __cplusplus
 }

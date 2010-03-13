@@ -34,7 +34,8 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	sprintf(buffer, "Syntax error at line %d of dtn2admin.c", lineNbr);
+	isprintf(buffer, sizeof buffer,
+			"Syntax error at line %d of dtn2admin.c", lineNbr);
 	printText(buffer);
 }
 
@@ -326,13 +327,13 @@ static void	printDirective(char *context, FwdDirective *dir)
 	case fwd:
 		if (sdr_string_read(sdr, eidString, dir->eid) < 1)
 		{
-			sprintf(buffer, "%.256s f ?", context);
+			isprintf(buffer, sizeof buffer, "%.256s f ?", context);
 			printText(buffer);
 		}
 		else
 		{
-			sprintf(buffer, "%.256s f %.256s\n", context,
-					eidString);
+			isprintf(buffer, sizeof buffer, "%.256s f %.256s\n",
+					context, eidString);
 			printText(buffer);
 		}
 
@@ -352,12 +353,13 @@ static void	printDirective(char *context, FwdDirective *dir)
 			if (sdr_string_read(sdr, destDuctName + 1,
 					dir->destDuctName) < 0)
 			{
-				strcpy(destDuctName + 1, huh);
+				istrcpy(destDuctName + 1, huh,
+						sizeof destDuctName - 1);
 			}
 		}
 
-		sprintf(buffer, "%.256s x %.8s.%.128s%.128s\n", context,
-				clp->name, duct->name, destDuctName);
+		isprintf(buffer, sizeof buffer, "%.256s x %.8s.%.128s%.128s\n",
+				context, clp->name, duct->name, destDuctName);
 		printText(buffer);
 		return;
 
@@ -414,15 +416,16 @@ static void	printRule(Dtn2Plan *plan, Dtn2Rule *rule)
 
 	if (sdr_string_read(sdr, toNodeName, plan->nodeName) < 0)
 	{
-		strcpy(toNodeName, huh);
+		istrcpy(toNodeName, huh, sizeof toNodeName);
 	}
 
 	if (sdr_string_read(sdr, demux, rule->demux) < 0)
 	{
-		strcpy(demux, huh);
+		istrcpy(demux, huh, sizeof toNodeName);
 	}
 
-	sprintf(context, "%.64s, for %.32s =", toNodeName, demux);
+	isprintf(context, sizeof context, "%.64s, for %.32s =", toNodeName,
+			demux);
 	printDirective(context, &rule->directive);
 }
 

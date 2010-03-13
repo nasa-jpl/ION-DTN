@@ -139,6 +139,7 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 
 #ifndef VXWORKS6
 typedef int			socklen_t;
+extern long			random();
 #endif
 
 #else				/****	Not VxWorks			****/
@@ -438,9 +439,6 @@ extern void			_postSysErrmsg(const char *, int, const char *,
 #define putErrmsg(txt, arg)	_putErrmsg(__FILE__, __LINE__, txt, arg)
 extern void			_putErrmsg(const char *, int, const char *,
 					const char *);
-#define refuse(txt, arg)	_refuse(__FILE__, __LINE__, txt, arg)
-extern int			_refuse(const char *, int, const char *,
-					const char *);
 #define putSysErrmsg(txt, arg)	_putSysErrmsg(__FILE__, __LINE__, txt, arg)
 extern void			_putSysErrmsg(const char *, int, const char *,
 					const char *);
@@ -448,13 +446,24 @@ extern int			getErrmsg(char *buffer);
 extern void			writeErrmsgMemos();
 extern void			discardErrmsgs();
 
+/*	Return values for error conditions.				*/
+#ifndef CORE_FILE_NEEDED
+#define CORE_FILE_NEEDED	(0)
+#endif
+
+#define iEnd(arg)		_iEnd(__FILE__, __LINE__, arg)
+extern int			_iEnd(const char *, int, const char *);
+extern int			_coreFileNeeded(int *);
+
+#define CHKERR(e)    		if (!(e) && iEnd(#e)) return -1
+#define CHKZERO(e)    		if (!(e) && iEnd(#e)) return 0
+#define CHKNULL(e)    		if (!(e) && iEnd(#e)) return NULL
+#define CHKVOID(e)    		if (!(e) && iEnd(#e)) return
+
 /*	The following macro deals with irrelevant return codes.		*/
 #define oK(x)			(void)(x)
 
-/*	The following assertion macros check for implementation errors.	*/
-extern const char		*reqFailText;
-#define REQUIRE(e)		if (!(e)) putErrmsg(reqFailText, #e), sm_Abort()
-#define CHECKERR(e)    		if (!(e)) return refuse(reqFailText, #e)
+/*	Standard SDNV operations.					*/
 
 typedef struct
 {
@@ -489,7 +498,7 @@ extern char			*istrcpy(char *, char *, size_t);
 extern char			*igetcwd(char *, size_t);
 extern void			isignal(int, void (*)(int));
 extern void			iblock(int);
-extern int			igets(int, char *, int);
+extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 
 extern void			findToken(char **cursorPtr, char **token);

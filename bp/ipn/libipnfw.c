@@ -53,7 +53,8 @@ static int	lookupIpnEid(char *uriBuffer, char *neighborClId)
 			 *	this neighbor, so now we know the
 			 *	neighbor's EID.				*/
 
-			sprintf(uriBuffer, "ipn:%lu.0", plan->nodeNbr);
+			isprintf(uriBuffer, SDRSTRING_BUFSZ,
+					"ipn:%lu.0", plan->nodeNbr);
 			return 1;
 		}
 	}
@@ -162,7 +163,7 @@ void	ipn_findPlan(unsigned long nodeNbr, Object *planAddr, Object *eltp)
 	/*	This function finds the IpnPlan for the specified
 	 *	node, if any.						*/
 
-checkSafety(sdr);
+	CHKVOID(ionLocked());
 	if (nodeNbr == 0 || planAddr == NULL || eltp == NULL)
 	{
 		return;
@@ -398,7 +399,7 @@ void	ipn_findPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	 *	service number and source node number, for the
 	 *	specified destination node number, if any.		*/
 
-checkSafety(sdr);
+	CHKVOID(ionLocked());
 	if (ruleAddr == NULL || eltp == NULL)
 	{
 		return;
@@ -681,7 +682,7 @@ int	ipn_lookupPlanDirective(unsigned long nodeNbr,
 	/*	This function determines the relevant FwdDirective for
 	 *	the specified eid, if any.  Wild card match is okay.	*/
 
-checkSafety(sdr);
+	CHKERR(ionLocked());
 	if (nodeNbr == 0 || dirbuf == NULL)
 	{
 		putErrmsg(NullParmsMemo, NULL);
@@ -771,7 +772,7 @@ void	ipn_findGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	/*	This function finds the IpnGroup for the specified
 	 *	node range, if any.					*/
 
-checkSafety(sdr);
+	CHKVOID(ionLocked());
 	if (firstNodeNbr == 0 || lastNodeNbr < firstNodeNbr
 	|| groupAddr == NULL || eltp == NULL)
 	{
@@ -950,7 +951,7 @@ void	ipn_findGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	 *	service number and source node number, for the
 	 *	specified destination node number, if any.		*/
 
-checkSafety(sdr);
+	CHKVOID(ionLocked());
 	if (ruleAddr == NULL || eltp == NULL)
 	{
 		return;
@@ -1181,7 +1182,7 @@ int	ipn_lookupGroupDirective(unsigned long nodeNbr,
 	/*	This function determines the relevant FwdDirective for
 	 *	the specified eid, if any.  Wild card match is okay.	*/
 
-checkSafety(sdr);
+	CHKERR(ionLocked());
 	if (nodeNbr == 0 || dirbuf == NULL)
 	{
 		putErrmsg(NullParmsMemo, NULL);

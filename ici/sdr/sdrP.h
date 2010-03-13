@@ -44,15 +44,13 @@
 
 #define	INITIALIZED	(0x99999999)
 
-extern const char	*notInXnMsg;
-
 /*	Memory management abstraction.					*/
-#define MTAKE(size)	sdrmtake(__FILE__, __LINE__, size)
-#define MRELEASE(addr)	sdrmrlse(__FILE__, __LINE__, addr)
-extern MemAllocator	sdrmtake;
-extern MemDeallocator	sdrmrlse;
-extern MemAtoPConverter	sdrmatop;
-extern MemPtoAConverter	sdrmptoa;
+#define MTAKE(size)	allocFromSdrMemory(__FILE__, __LINE__, size)
+#define MRELEASE(addr)	releaseToSdrMemory(__FILE__, __LINE__, addr)
+extern void		*allocFromSdrMemory(char *, int, size_t);
+extern void		releaseToSdrMemory(char *, int, void *);
+extern void		*sdrMemAtoP(unsigned long);
+extern unsigned long	sdrMemPtoA(void *);
 
 /*	SdrControlHeader is the object in the root of the SDR working
  *	memory (a shared memory partition) that enables multiple
@@ -63,9 +61,11 @@ typedef struct
 {
 	sm_SemId	lock;	/*	To control access to sdrs list.	*/
 	PsmAddress	sdrs;	/*	An SmList of (SdrState *).	*/
+#if 0
 	int		sdrwmIsPrivate;
 	unsigned long	sdrwmKey;
 	char		sdrwmName[32];
+#endif
 } SdrControlHeader;
 
 /*	SdrState is an object that encapsulates the volatile state of
@@ -159,29 +159,27 @@ typedef struct sdrv_str
 
 typedef enum { UserPut = 0, SystemPut } PutSrc;
 
-extern void		takeSdr(SdrState *sdr);
+extern int		takeSdr(SdrState *sdr);
 extern void		releaseSdr(SdrState *sdr);
 
 extern void		joinTrace(Sdr, char *, int);
 
-extern SdrMap		mapImage;
+extern SdrMap		*_mapImage();
 
 #ifndef SDR_TRACE
-extern const char	*noTraceMsg;
+extern char		*_noTraceMsg();
 #endif
-extern const char	*notInitMsg;
-extern const char	*apiErrMsg;
-extern const char	*notFoundMsg;
-extern const char	*noSemaphoreMsg;
-extern const char	*noMemoryMsg;
-extern const char	*violationMsg;
-extern const char	*notInXnMsg;
 
-#define ADDRESS_OF(X)	(((char *) &(mapImage.X)) - ((char *) &mapImage))
+extern char		*_notInXnMsg();
+extern char		*_apiErrMsg();
+extern char		*_noMemoryMsg();
+extern char		*_violationMsg();
+
+#define ADDRESS_OF(X)	(((char *) &(map->X)) - ((char *) map))
 
 extern void		_sdrput(char*, int, Sdr, Address, char*, long, PutSrc);
 #define	sdrPatch(A,V)	_sdrput(__FILE__, __LINE__, sdrv, (A), (char *) &(V), sizeof (V), SystemPut)
-#define	patchMap(X,V)	_sdrput(__FILE__, __LINE__, sdrv, ADDRESS_OF(X), (char *) &(V), sizeof mapImage.X, SystemPut)
+#define	patchMap(X,V)	_sdrput(__FILE__, __LINE__, sdrv, ADDRESS_OF(X), (char *) &(V), sizeof map->X, SystemPut)
 #define	sdrPut(A,V)	_sdrput(file, line, sdrv, (A), (char *) &(V), sizeof (V), SystemPut)
 
 extern void		_sdrfetch(Sdr, char *, Address, long);

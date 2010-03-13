@@ -33,7 +33,8 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	sprintf(buffer, "Syntax error at line %d of ionadmin.c", lineNbr);
+	isprintf(buffer, sizeof buffer, "Syntax error at line %d of ionadmin.c",
+			lineNbr);
 	printText(buffer);
 }
 
@@ -217,13 +218,13 @@ static void	executeDelete(int tokenCount, char **tokens)
 	toNodeNbr = atol(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		rfx_remove_contact(timestamp, fromNodeNbr, toNodeNbr);
+		oK(rfx_remove_contact(timestamp, fromNodeNbr, toNodeNbr));
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		rfx_remove_range(timestamp, fromNodeNbr, toNodeNbr);
+		oK(rfx_remove_range(timestamp, fromNodeNbr, toNodeNbr));
 		return;
 	}
 
@@ -417,7 +418,7 @@ static void	manageUtcDelta(int tokenCount, char **tokens)
 	}
 
 	newDelta = atoi(tokens[2]);
-	setDeltaFromUTC(newDelta);
+	CHKVOID(setDeltaFromUTC(newDelta) == 0);
 }
 
 static void	manageClockError(int tokenCount, char **tokens)
@@ -625,8 +626,8 @@ static void	manageUsage(int tokenCount, char **tokens)
 	}
 
 	GET_OBJ_POINTER(sdr, IonDB, iondb, getIonDbObject());
-	sprintf(buffer, "current = %ld  limit = %ld  max forecast = %ld",
-			iondb->currentOccupancy, iondb->occupancyCeiling,
+	isprintf(buffer, sizeof buffer, "current = %ld  limit = %ld  max \
+forecast = %ld", iondb->currentOccupancy, iondb->occupancyCeiling,
 			iondb->maxForecastOccupancy);
 	printText(buffer);
 }
@@ -811,7 +812,8 @@ static int	processLine(char *line)
 			return 0;
 
 		case 'v':
-			sprintf(buffer, "ION version %s.", IONVERSIONNUMBER);
+			isprintf(buffer, sizeof buffer, "ION version %s.",
+					IONVERSIONNUMBER);
 			printText(buffer);
 			return 0;
 
@@ -984,7 +986,7 @@ int	main(int argc, char **argv)
 	writeErrmsgMemos();
 	if (attachToNode() == 0)
 	{
-		checkForCongestion();
+		oK(checkForCongestion());
 	}
 	else
 	{

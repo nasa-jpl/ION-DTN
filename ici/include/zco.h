@@ -119,7 +119,7 @@ Object		zco_create(	Sdr sdr,
 			 *	Returns SDR location of a new ZCO
 			 *	reference on success, 0 on any error.	*/
 
-void		zco_append_extent(Sdr sdr,
+int		zco_append_extent(Sdr sdr,
 				Object zcoRef,
 				ZcoMedium sourceMedium,
 				Object location,
@@ -128,7 +128,7 @@ void		zco_append_extent(Sdr sdr,
 			/*	Both location and length must be non-
 			 *	zero.					*/
 
-void		zco_prepend_header(Sdr sdr,
+int		zco_prepend_header(Sdr sdr,
 				Object zcoRef,
 				char *header,
 				unsigned int length);
@@ -136,7 +136,7 @@ void		zco_prepend_header(Sdr sdr,
 void		zco_discard_first_header(Sdr sdr,
 				Object zcoRef);
 
-void		zco_append_trailer(Sdr sdr,
+int		zco_append_trailer(Sdr sdr,
 				Object zcoRef,
 				char *trailer,
 				unsigned int length);

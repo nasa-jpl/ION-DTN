@@ -23,6 +23,7 @@ static void	handleQuit()
 static int	run_psmwatch(char *partitionName, int interval, int verbose)
 {
 	PsmPartition	psm;
+	PsmMgtOutcome	outcome;
 	PsmUsageSummary	psmsummary;
 
 	if (interval > 0)
@@ -41,7 +42,8 @@ static int	run_psmwatch(char *partitionName, int interval, int verbose)
 		return 0;
 	}
 
-	if (psm_manage(NULL, 0, partitionName, &psm) == Refused)
+	if (psm_manage(NULL, 0, partitionName, &psm, &outcome) < 0
+	|| outcome == Refused)
 	{
 		putErrmsg("Can't attach to psm.", NULL);
 		writeErrmsgMemos();

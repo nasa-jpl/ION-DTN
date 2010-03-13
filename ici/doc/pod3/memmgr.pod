@@ -25,7 +25,7 @@ memmgr - memory manager abstraction functions
     MemAtoPConverter memmgr_AtoP  (int mgrId);
     MemPtoAConverter memmgr_PtoA  (int mgrId;
 
-    int memory_open               (int memKey,
+    int memmgr_open               (int memKey,
                                    unsigned long memSize,
                                    char **memPtr,
                                    int *smId,
@@ -36,7 +36,7 @@ memmgr - memory manager abstraction functions
                                    MemDeallocator ffn,
                                    MemAtoPConverter apfn,
                                    MemPtoAConverter pafn);
-    void memory_destroy           (int smId,
+    void memmgr_destroy           (int smId,
                                    PsmPartition *partition);
 
 =head1 DESCRIPTION
@@ -119,7 +119,7 @@ pointer for the manager given by I<mgrId>.
 Return the pointer-to-address converter function
 pointer for the manager given by I<mgrId>.
 
-=item int memory_open(int memKey,
+=item int memmgr_open(int memKey,
                       unsigned long memSize,
                       char **memPtr,
                       int *smId,
@@ -131,15 +131,15 @@ pointer for the manager given by I<mgrId>.
                       MemAtoPConverter apfn,
                       MemPtoAConverter pafn);
 
-memory_open() opens one avenue of access to a PSM managed region of shared
+memmgr_open() opens one avenue of access to a PSM managed region of shared
 memory, initializing as necessary.
 
 In order for multiple tasks to share access to this memory region, all must
-cite the same I<memkey> and I<partitionName> when they call memory_open().  If
+cite the same I<memkey> and I<partitionName> when they call memmgr_open().  If
 shared access is not necessary, then I<memKey> can be SM_NO_KEY and
 I<partitionName> can be any valid partition name.
 
-If it is known that a prior invocation of memory_open() has already
+If it is known that a prior invocation of memmgr_open() has already
 initialized the region, then I<memSize> can be zero and I<memPtr>
 must be NULL.  Otherwise I<memSize> is required and the required value
 of I<memPtr> depends on whether or not the memory that is to be shared
@@ -148,15 +148,15 @@ memory).  If so, then the memory pointer variable that I<memPtr> points
 to must contain the address of that memory region.  Otherwise, I<*memPtr>
 must contain NULL.
 
-memory_open() will allocate system memory as necessary and will in
+memmgr_open() will allocate system memory as necessary and will in
 any case return the address of the shared memory region in I<*memPtr>.
 
 If the shared memory is newly allocated or otherwise not yet under
-PSM management, then memory_open() will invoke psm_manage() to manage
+PSM management, then memmgr_open() will invoke psm_manage() to manage
 the shared memory region.  It will also add a catalogue for the managed
 shared memory region as necessary.
 
-If I<memMgr> is non-NULL, then memory_open() will additionally call
+If I<memMgr> is non-NULL, then memmgr_open() will additionally call
 memmgr_add() to establish a new memory manager for this managed shared
 memory region, as necessary.  The index of the applicable memory manager
 will be returned in I<memMgr>.  If that memory manager is newly created,
@@ -167,9 +167,9 @@ for local private access to this managed shared memory region.
 
 Returns 0 on success, -1 on any error.
 
-=item void memory_destroy(int smId, PsmPartition *partition);
+=item void memmgr_destroy(int smId, PsmPartition *partition);
 
-memory_destroy() terminates all access to a PSM managed region of shared
+memmgr_destroy() terminates all access to a PSM managed region of shared
 memory, invoking psm_erase() to destroy the partition and sm_ShmDestroy()
 to destroy the shared memory object.
 

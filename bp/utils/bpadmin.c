@@ -37,7 +37,8 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	sprintf(buffer, "Syntax error at line %d of bpadmin.c", lineNbr);
+	isprintf(buffer, sizeof buffer, "Syntax error at line %d of bpadmin.c",
+			lineNbr);
 	printText(buffer);
 }
 
@@ -482,8 +483,8 @@ static void	printScheme(VScheme *vscheme)
 		admAppCmd = admAppCmdBuffer;
 	}
 
-	sprintf(buffer, "%.8s\tfwdpid: %d cmd: %.256s  admpid: %d cmd %.256s",
-			scheme->name, vscheme->fwdPid, fwdCmd,
+	isprintf(buffer, sizeof buffer, "%.8s\tfwdpid: %d cmd: %.256s  \
+admpid: %d cmd %.256s", scheme->name, vscheme->fwdPid, fwdCmd,
 			vscheme->admAppPid, admAppCmd);
 	printText(buffer);
 }
@@ -543,9 +544,8 @@ static void	printEndpoint(VEndpoint *vpoint)
 		}
 	}
 
-	sprintf(buffer, "%.8s:%.128s  %d\trule: %c  script: %.256s",
-			scheme->name, endpoint->nss, vpoint->appPid,
-			recvRule, recvScript);
+	isprintf(buffer, sizeof buffer, "%.8s:%.128s  %d\trule: %c  script: \
+%.256s", scheme->name, endpoint->nss, vpoint->appPid, recvRule, recvScript);
 	printText(buffer);
 }
 
@@ -616,8 +616,8 @@ static void	printInduct(VInduct *vduct)
 		cliCmd = cliCmdBuffer;
 	}
 
-	sprintf(buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s", clp->name,
-			duct->name, vduct->cliPid, cliCmd);
+	isprintf(buffer, sizeof buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s",
+			clp->name, duct->name, vduct->cliPid, cliCmd);
 	printText(buffer);
 }
 
@@ -666,8 +666,8 @@ static void	printOutduct(VOutduct *vduct)
 		cloCmd = cloCmdBuffer;
 	}
 
-	sprintf(buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s", clp->name,
-			duct->name, vduct->cloPid, cloCmd);
+	isprintf(buffer, sizeof buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s",
+			clp->name, duct->name, vduct->cloPid, cloCmd);
 	printText(buffer);
 }
 
@@ -1058,7 +1058,8 @@ static void	switchWatch(int tokenCount, char **tokens)
 			break;
 
 		default:
-			sprintf(buffer, "Invalid watch char %c.", *cursor);
+			isprintf(buffer, sizeof buffer,
+					"Invalid watch char %c.", *cursor);
 			printText(buffer);
 		}
 

@@ -40,7 +40,7 @@ static int	parseDtn2Nss(char *nss, char *nodeName, char *demux)
 			return 0;	/*	Too long.		*/
 		}
 
-		strcpy(nodeName, startOfNodeName);
+		istrcpy(nodeName, startOfNodeName, SDRSTRING_BUFSZ);
 		*demux = '\0';
 		return 1;		/*	Fully parsed.		*/
 	}
@@ -51,7 +51,7 @@ static int	parseDtn2Nss(char *nss, char *nodeName, char *demux)
 	}
 
 	*endOfNodeName = '\0';		/*	Temporary.		*/
-	strcpy(nodeName, startOfNodeName);
+	istrcpy(nodeName, startOfNodeName, SDRSTRING_BUFSZ);
 	*endOfNodeName = '/';		/*	Restore original.	*/
 	startOfDemux = endOfNodeName + 1;
 	if (strlen(startOfDemux) >= SDRSTRING_BUFSZ)
@@ -59,7 +59,7 @@ static int	parseDtn2Nss(char *nss, char *nodeName, char *demux)
 		return 0;
 	}
 
-	strcpy(demux, startOfDemux);
+	istrcpy(demux, startOfDemux, SDRSTRING_BUFSZ);
 	return 1;
 }
 

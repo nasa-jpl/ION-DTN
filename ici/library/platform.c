@@ -20,6 +20,16 @@ typedef struct rlock_str
 	short	init;
 } Rlock;		/*	Private-memory semaphore.		*/ 
 
+void	srandom(unsigned int seed)
+{
+	srand(seed);
+}
+
+long	random()
+{
+	return rand();
+}
+
 int	createFile(const char *filename, int flags)
 {
 	int	result;
@@ -41,7 +51,7 @@ int	initResourceLock(ResourceLock *rl)
 {
 	Rlock	*lock = (Rlock *) rl;
 
-	REQUIRE(rl);
+	CHKERR(rl);
 	if (lock->init)
 	{
 		return 0;
@@ -159,7 +169,7 @@ int	gettimeofday(struct timeval *tvp, void *tzp)
 #endif
 	struct timespec	cur_time;
 
-	REQUIRE(tvp);
+	CHKERR(tvp);
 #if 0
 	tickCount = tickGet();
 	ticksPerSec = sysClkRateGet();
@@ -192,7 +202,7 @@ unsigned int	getInternetAddress(char *hostName)
 {
 	int	hostNbr;
 
-	REQUIRE(hostName);
+	CHKZERO(hostName);
 	hostNbr = hostGetByName(hostName);
 	if (hostNbr == ERROR)
 	{
@@ -205,7 +215,7 @@ unsigned int	getInternetAddress(char *hostName)
 
 char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 {
-	REQUIRE(buffer);
+	CHKNULL(buffer);
 	if (hostGetByAddr((int) hostNbr, buffer) < 0)
 	{
 		putSysErrmsg("can't get name for host", utoa(hostNbr));
@@ -219,7 +229,7 @@ int	getNameOfHost(char *buffer, int bufferLength)
 {
 	int	result;
 
-	REQUIRE(buffer);
+	CHKERR(buffer);
 	result = gethostname(buffer, bufferLength);
 	if (result < 0)
 	{
@@ -231,7 +241,7 @@ int	getNameOfHost(char *buffer, int bufferLength)
 
 char	*getNameOfUser(char *buffer)
 {
-	REQUIRE(buffer);
+	CHKNULL(buffer);
 	remCurIdGet(buffer, NULL);
 	return buffer;
 }
@@ -294,8 +304,8 @@ int	strcasecmp(const char *s1, const char *s2)
 {
 	register int c1, c2;
 
-	REQUIRE(s1);
-	REQUIRE(s2);
+	CHKZERO(s1);
+	CHKZERO(s2);
 	for ( ; ; )
 	{
 		/* STDC requires tolower(3) to work for all
@@ -313,8 +323,8 @@ int	strncasecmp(const char *s1, const char *s2, size_t n)
 {
 	register int c1, c2;
 
-	REQUIRE(s1);
-	REQUIRE(s2);
+	CHKZERO(s1);
+	CHKZERO(s2);
 	for ( ; n > 0; --n)
 	{
 		/* STDC requires tolower(3) to work for all
@@ -326,6 +336,7 @@ int	strncasecmp(const char *s1, const char *s2, size_t n)
 		if (c1 == 0) return 0;
 		++s1; ++s2;
 	}
+
 	return 0;
 }
 
@@ -371,7 +382,7 @@ int	initResourceLock(ResourceLock *rl)
 {
 	Rlock	*lock = (Rlock *) rl;
 
-	REQUIRE(rl);
+	CHKERR(rl);
 	if (lock->init)
 	{
 		return 0;
@@ -566,7 +577,7 @@ void	microsnooze(unsigned int usec)
 
 void	getCurrentTime(struct timeval *tvp)
 {
-	REQUIRE(tvp);
+	CHKVOID(tvp);
 	gettimeofday(tvp, NULL);
 }
 
@@ -588,7 +599,8 @@ int	getNameOfHost(char *buffer, int bufferLength)
 {
 	struct utsname	name;
 
-	REQUIRE(buffer);
+	CHKERR(buffer);
+	CHKERR(bufferLength > 0);
 	if (uname(&name) < 0)
 	{
 		*buffer = '\0';
@@ -624,7 +636,7 @@ unsigned int	getInternetAddress(char *hostName)
 	char		textBuffer[1024];
 	int		hostInfoErrno = -1;
 
-	REQUIRE(hostName);
+	CHKZERO(hostName);
 	hostInfo = gethostbyname_r(hostName, &hostInfoBuffer, textBuffer,
 			sizeof textBuffer, &hostInfoErrno);
 	if (hostInfo == NULL)
@@ -635,8 +647,7 @@ unsigned int	getInternetAddress(char *hostName)
 
 	if (hostInfo->h_length != sizeof hostInetAddress)
 	{
-		errno = EINVAL;
-		putSysErrmsg("address length invalid in host info", hostName);
+		putErrmsg("Address length invalid in host info.", hostName);
 		return BAD_HOST_NAME;
 	}
 
@@ -651,7 +662,7 @@ char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 	char		textBuffer[128];
 	int		hostInfoErrno;
 
-	REQUIRE(buffer);
+	CHKNULL(buffer);
 	hostNbr = htonl(hostNbr);
 	hostInfo = gethostbyaddr_r((char *) &hostNbr, sizeof hostNbr, AF_INET,
 			&hostInfoBuffer, textBuffer, sizeof textBuffer,
@@ -712,7 +723,7 @@ unsigned int	getInternetAddress(char *hostName)
 	struct hostent	*hostInfo;
 	unsigned int	hostInetAddress;
 
-	REQUIRE(hostName);
+	CHKZERO(hostName);
 	hostInfo = gethostbyname(hostName);
 	if (hostInfo == NULL)
 	{
@@ -722,8 +733,7 @@ unsigned int	getInternetAddress(char *hostName)
 
 	if (hostInfo->h_length != sizeof hostInetAddress)
 	{
-		errno = EINVAL;
-		putSysErrmsg("address length invalid in host info", hostName);
+		putErrmsg("Address length invalid in host info.", hostName);
 		return BAD_HOST_NAME;
 	}
 
@@ -735,7 +745,7 @@ char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 {
 	struct hostent	*hostInfo;
 
-	REQUIRE(buffer);
+	CHKNULL(buffer);
 	hostNbr = htonl(hostNbr);
 	hostInfo = gethostbyaddr((char *) &hostNbr, sizeof hostNbr, AF_INET);
 	if (hostInfo == NULL)
@@ -797,7 +807,7 @@ unsigned int	getInternetAddress(char *hostName)
 	struct hostent	*hostInfo;
 	unsigned int	hostInetAddress;
 
-	REQUIRE(hostName);
+	CHKZERO(hostName);
 	hostInfo = gethostbyname(hostName);
 	if (hostInfo == NULL)
 	{
@@ -807,8 +817,7 @@ unsigned int	getInternetAddress(char *hostName)
 
 	if (hostInfo->h_length != sizeof hostInetAddress)
 	{
-		errno = EINVAL;
-		putSysErrmsg("address length invalid in host info", hostName);
+		putErrmsg("Address length invalid in host info.", hostName);
 		return BAD_HOST_NAME;
 	}
 
@@ -820,7 +829,7 @@ char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 {
 	struct hostent	*hostInfo;
 
-	REQUIRE(buffer);
+	CHKNULL(buffer);
 	hostNbr = htonl(hostNbr);
 	hostInfo = gethostbyaddr((char *) &hostNbr, sizeof hostNbr, AF_INET);
 	if (hostInfo == NULL)
@@ -837,7 +846,8 @@ int	getNameOfHost(char *buffer, int bufferLength)
 {
 	int	result;
 
-	REQUIRE(buffer);
+	CHKERR(buffer);
+	CHKERR(bufferLength > 0);
 	result = gethostname(buffer, bufferLength);
 	if (result < 0)
 	{
@@ -929,7 +939,7 @@ unsigned int	getInternetAddress(char *hostName)
 	struct hostent	*hostInfo;
 	unsigned int	hostInetAddress;
 
-	REQUIRE(hostName);
+	CHKZERO(hostName);
 	hostInfo = gethostbyname(hostName);
 	if (hostInfo == NULL)
 	{
@@ -939,8 +949,7 @@ unsigned int	getInternetAddress(char *hostName)
 
 	if (hostInfo->h_length != sizeof hostInetAddress)
 	{
-		errno = EINVAL;
-		putSysErrmsg("address length invalid in host info", hostName);
+		putErrmsg("Address length invalid in host info.", hostName);
 		return BAD_HOST_NAME;
 	}
 
@@ -952,7 +961,7 @@ char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 {
 	struct hostent	*hostInfo;
 
-	REQUIRE(buffer);
+	CHKNULL(buffer);
 	hostNbr = htonl(hostNbr);
 	hostInfo = gethostbyaddr((char *) &hostNbr, sizeof hostNbr, AF_INET);
 	if (hostInfo == NULL)
@@ -969,7 +978,8 @@ int	getNameOfHost(char *buffer, int bufferLength)
 {
 	int	result;
 
-	REQUIRE(buffer);
+	CHKERR(buffer);
+	CHKERR(bufferLength > 0);
 	result = gethostname(buffer, bufferLength);
 	if (result < 0)
 	{
@@ -1043,8 +1053,6 @@ int	watchSocket(int fd)
 
 /******************* platform-independent functions *********************/
 
-const char	*reqFailText = "Assertion failed.";
-
 void	*acquireSystemMemory(size_t size)
 {
 	void	*block;
@@ -1117,7 +1125,8 @@ void	writeMemoNote(char *text, char *note)
 
 	if (text)
 	{
-		sprintf(textBuffer, "%.900s: %.64s", text, noteText);
+		isprintf(textBuffer, sizeof textBuffer, "%.900s: %.64s",
+				text, noteText);
 		(_logOneMessage(NULL))(textBuffer);
 	}
 }
@@ -1131,7 +1140,7 @@ char	*itoa(int arg)
 {
 	static char	itoa_str[32];
 
-	sprintf(itoa_str, "%d", arg);
+	isprintf(itoa_str, sizeof itoa_str, "%d", arg);
 	return itoa_str;
 }
 
@@ -1139,7 +1148,7 @@ char	*utoa(unsigned int arg)
 {
 	static char	utoa_str[32];
 
-	sprintf(utoa_str, "%u", arg);
+	isprintf(utoa_str, sizeof utoa_str, "%u", arg);
 	return utoa_str;
 }
 
@@ -1191,7 +1200,7 @@ static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
 	}
 
 	lockResource(&errmsgsLock);
-	sprintf(lineNbrBuffer, "%d", lineNbr);
+	isprintf(lineNbrBuffer, sizeof lineNbrBuffer, "%d", lineNbr);
 	spaceAvbl = ERRMSGS_BUFSIZE - errmsgsLength;
 	spaceForText = 8 + strlen(lineNbrBuffer) + 4 + strlen(fileName)
 			+ 2 + strlen(text);
@@ -1221,12 +1230,12 @@ static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
 	}
 	else
 	{
-		sprintf(errmsgs + errmsgsLength, "at line %s of %s, %s",
-				lineNbrBuffer, fileName, text);
+		isprintf(errmsgs + errmsgsLength, spaceAvbl,
+			"at line %s of %s, %s", lineNbrBuffer, fileName, text);
 		if (arg)
 		{
-			sprintf(errmsgs + errmsgsLength + spaceForText,
-					" (%s)", arg);
+			isprintf(errmsgs + errmsgsLength + spaceForText,
+				spaceAvbl - spaceForText, " (%s)", arg);
 		}
 	}
 
@@ -1248,14 +1257,6 @@ void	_putErrmsg(const char *fileName, int lineNbr, const char *text,
 	writeErrmsgMemos();
 }
 
-int	_refuse(const char *fileName, int lineNbr, const char *text,
-		const char *arg)
-{
-	_postErrmsg(fileName, lineNbr, text, arg);
-	writeErrmsgMemos();
-	return -1;
-}
-
 void	_postSysErrmsg(const char *fileName, int lineNbr, const char *text,
 		const char *arg)
 {
@@ -1274,7 +1275,8 @@ void	_postSysErrmsg(const char *fileName, int lineNbr, const char *text,
 			textLength = maxTextLength;
 		}
 
-		sprintf(textBuffer, "%.*s: %s", textLength, text, sysmsg);
+		isprintf(textBuffer, sizeof textBuffer, "%.*s: %s",
+				textLength, text, sysmsg);
 		_postErrmsg(fileName, lineNbr, textBuffer, arg);
 	}
 }
@@ -1288,7 +1290,7 @@ void	_putSysErrmsg(const char *fileName, int lineNbr, const char *text,
 
 int	getErrmsg(char *buffer)
 {
-	REQUIRE(buffer);
+	CHKZERO(buffer);
 	return _errmsgs(0, NULL, NULL, NULL, buffer);
 }
 
@@ -1345,6 +1347,30 @@ void	discardErrmsgs()
 	}
 }
 
+int	_coreFileNeeded(int *ctrl)
+{
+	static int	coreFileNeeded = CORE_FILE_NEEDED;
+
+	if (ctrl)
+	{
+		coreFileNeeded = *ctrl;
+	}
+
+	return coreFileNeeded;
+}
+
+int	_iEnd(const char *fileName, int lineNbr, const char *arg)
+{
+	_postErrmsg(fileName, lineNbr, "Assertion failed.", arg);
+	writeErrmsgMemos();
+	if (_coreFileNeeded(NULL))
+	{
+		sm_Abort();
+	}
+
+	return 1;
+}
+
 void	encodeSdnv(Sdnv *sdnv, unsigned long val)
 {
 	static unsigned long	sdnvMask = ((unsigned long) -1) / 128;
@@ -1359,7 +1385,7 @@ void	encodeSdnv(Sdnv *sdnv, unsigned long val)
 	 *	shift the remaining value 7 bits to the right and add
 	 *	1 to the imputed SDNV length.				*/
 
-	REQUIRE(sdnv);
+	CHKVOID(sdnv);
 	sdnv->length = 0;
 	remnant = val;
 	do
@@ -1396,8 +1422,8 @@ int	decodeSdnv(unsigned long *val, unsigned char *sdnvTxt)
 	int		sdnvLength = 0;
 	unsigned char	*cursor;
 
-	REQUIRE(val);
-	REQUIRE(sdnvTxt);
+	CHKZERO(val);
+	CHKZERO(sdnvTxt);
 	*val = 0;
 	cursor = sdnvTxt;
 	while (1)
@@ -1432,7 +1458,7 @@ int	decodeSdnv(unsigned long *val, unsigned char *sdnvTxt)
 
 void	loadScalar(Scalar *s, signed int i)
 {
-	REQUIRE(s);
+	CHKVOID(s);
 	if (i < 0)
 	{
 		i = 0 - i;
@@ -1449,7 +1475,7 @@ void	loadScalar(Scalar *s, signed int i)
 
 void	increaseScalar(Scalar *s, signed int i)
 {
-	REQUIRE(s);
+	CHKVOID(s);
 	if (i < 0)
 	{
 		i = 0 - i;
@@ -1465,7 +1491,7 @@ void	increaseScalar(Scalar *s, signed int i)
 
 void	reduceScalar(Scalar *s, signed int i)
 {
-	REQUIRE(s);
+	CHKVOID(s);
 	if (i < 0)
 	{
 		i = 0 - i;
@@ -1484,7 +1510,7 @@ void	multiplyScalar(Scalar *s, signed int i)
 {
 	double	product;
 
-	REQUIRE(s);
+	CHKVOID(s);
 	if (i < 0)
 	{
 		i = 0 - i;
@@ -1499,8 +1525,8 @@ void	divideScalar(Scalar *s, signed int i)
 {
 	double	quotient;
 
-	REQUIRE(s);
-	REQUIRE(i != 0);
+	CHKVOID(s);
+	CHKVOID(i != 0);
 	if (i < 0)
 	{
 		i = 0 - i;
@@ -1513,31 +1539,31 @@ void	divideScalar(Scalar *s, signed int i)
 
 void	copyScalar(Scalar *to, Scalar *from)
 {
-	REQUIRE(to);
-	REQUIRE(from);
+	CHKVOID(to);
+	CHKVOID(from);
 	to->gigs = from->gigs;
 	to->units = from->units;
 }
 
 void	addToScalar(Scalar *s, Scalar *increment)
 {
-	REQUIRE(s);
-	REQUIRE(increment);
+	CHKVOID(s);
+	CHKVOID(increment);
 	increaseScalar(s, increment->units);
 	s->gigs += increment->gigs;
 }
 
 void	subtractFromScalar(Scalar *s, Scalar *decrement)
 {
-	REQUIRE(s);
-	REQUIRE(decrement);
+	CHKVOID(s);
+	CHKVOID(decrement);
 	reduceScalar(s, decrement->units);
 	s->gigs -= decrement->gigs;
 }
 
 int	scalarIsValid(Scalar *s)
 {
-	REQUIRE(s);
+	CHKZERO(s);
 	return (s->gigs >= 0);
 }
 
@@ -1545,9 +1571,9 @@ void	findToken(char **cursorPtr, char **token)
 {
 	char	*cursor;
 
-	REQUIRE(cursorPtr);
-	REQUIRE(*cursorPtr);
-	REQUIRE(token);
+	CHKVOID(cursorPtr);
+	CHKVOID(*cursorPtr);
+	CHKVOID(token);
 	cursor = *cursorPtr;
 	*token = NULL;		/*	The default.			*/
 
@@ -1652,8 +1678,8 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 	char		hostnameBuf[MAXHOSTNAMELEN + 1];
 	unsigned int	i4;
 
-	REQUIRE(portNbr);
-	REQUIRE(ipAddress);
+	CHKVOID(portNbr);
+	CHKVOID(ipAddress);
 	*portNbr = 0;			/*	Use default port nbr.	*/
 	*ipAddress = 0;			/*	Use local host address.	*/
 
@@ -1682,7 +1708,7 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		i4 = getInternetAddress(hostname);
 		if (i4 < 1)		/*	Invalid hostname.	*/
 		{
-			putErrmsg("Can't get IP address.", hostname);
+			writeMemoNote("[?] Can't get IP address.", hostname);
 		}
 		else
 		{
@@ -1702,7 +1728,7 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 	{
 		if (i4 < 1024 || i4 > 65535)
 		{
-			putSysErrmsg("Invalid port number", utoa(i4));
+			writeMemoNote("[?] Invalid port number.", utoa(i4));
 		}
 		else
 		{
@@ -1859,7 +1885,9 @@ int	_isprintf(const char *file, int line, char *buffer, int bufSize,
 	double	dval;
 	void	*vpval;
 
-	REQUIRE(buffer != NULL && format != NULL && bufSize > 0);
+	CHKZERO(buffer != NULL);
+       	CHKZERO(format != NULL);
+       	CHKZERO(bufSize > 0);
 	va_start(args, format);
 	for (cursor = format; *cursor != '\0'; cursor++)
 	{
@@ -2094,7 +2122,9 @@ char	*istrcpy(char *buffer, char *text, size_t bufSize)
 {
 	int	maxText;
 
-	REQUIRE(buffer != NULL && text != NULL && bufSize > 0);
+	CHKNULL(buffer != NULL);
+	CHKNULL(text != NULL);
+	CHKNULL(bufSize > 0);
 	maxText = bufSize - 1;
 	strncpy(buffer, text, maxText);
 	*(buffer + maxText) = '\0';
@@ -2253,33 +2283,48 @@ void	iblock(int signbr)
 	oK(pthread_sigmask(SIG_BLOCK, &signals, NULL));
 }
 
-int	igets(int fd, char *buffer, int buflen)
+char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 {
 	char	*cursor = buffer;
 	int	maxLine = buflen - 1;
-	int	lineLen = 0;
+	int	len;
 
-	CHECKERR(fd >= 0 && buffer != NULL && buflen > 0);
+	if (fd < 0 || buffer == NULL || buflen < 1 || lineLen == NULL)
+	{
+		putErrmsg("Invalid argument(s) passed to igets().", NULL);
+		return NULL;
+	}
+
+	len = 0;
 	while (1)
 	{
 		switch (read(fd, cursor, 1))
 		{
 		case 0:		/*	End of file; also end of line.	*/
+			if (len == 0)		/*	Nothing more.	*/
+			{
+				*lineLen = len;
+				return NULL;	/*	Indicate EOF.	*/
+			}
+
+			/*	End of last line.			*/
+
 			break;			/*	Out of switch.	*/
 
 		case -1:
-			putSysErrmsg("Failed reading line", itoa(lineLen));
-			return -1;
+			putSysErrmsg("Failed reading line", itoa(len));
+			*lineLen = -1;
+			return NULL;
 
 		default:
 			if (*cursor == 0x0a)		/*	LF (nl)	*/
 			{
 				/*	Have reached end of line.	*/
 
-				if (lineLen > 0
-				&& *(buffer + (lineLen - 1)) == 0x0d)
+				if (len > 0
+				&& *(buffer + (len - 1)) == 0x0d)
 				{
-					lineLen--;	/*	Lose CR	*/
+					len--;		/*	Lose CR	*/
 				}
 
 				break;		/*	Out of switch.	*/
@@ -2287,14 +2332,14 @@ int	igets(int fd, char *buffer, int buflen)
 
 			/*	Have not reached end of line yet.	*/
 
-			if (lineLen == maxLine)	/*	Must truncate.	*/
+			if (len == maxLine)	/*	Must truncate.	*/
 			{
 				break;		/*	Out of switch.	*/
 			}
 
 			/*	Okay, include this char in the line...	*/
 
-			lineLen++;
+			len++;
 
 			/*	...and read the next character.		*/
 
@@ -2305,8 +2350,9 @@ int	igets(int fd, char *buffer, int buflen)
 		break;				/*	Out of loop.	*/
 	}
 
-	*(buffer + lineLen) = '\0';
-	return lineLen;
+	*(buffer + len) = '\0';
+	*lineLen = len;
+	return buffer;
 }
 
 int	iputs(int fd, char *string)
@@ -2315,7 +2361,7 @@ int	iputs(int fd, char *string)
 	int	length;
 	int	bytesWritten;
 
-	CHECKERR(fd >= 0 && string != NULL);
+	CHKERR(fd >= 0 && string != NULL);
 	length = strlen(string);
 	while (totalBytesWritten < length)
 	{

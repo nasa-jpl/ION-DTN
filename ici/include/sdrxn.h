@@ -238,6 +238,13 @@ sdr_read(sdr, (char *) &variable, address, sizeof variable)
 #define sdr_get(sdr, variable, pointer) \
 sdr_read(sdr, (char *) &variable, sdr_address(sdr, pointer), sizeof variable)
 
+#define xniEnd(arg)	_xniEnd(__FILE__, __LINE__, arg, sdrv)
+extern int		_xniEnd(const char *, int, const char *, Sdr);
+#define XNCHKERR(e)	if (!(e) && xniEnd(#e)) return -1
+#define XNCHKZERO(e)	if (!(e) && xniEnd(#e)) return 0
+#define XNCHKNULL(e)	if (!(e) && xniEnd(#e)) return NULL
+#define XNCHKVOID(e)	if (!(e) && xniEnd(#e)) return
+
 #ifdef __cplusplus
 }
 #endif

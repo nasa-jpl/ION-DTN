@@ -75,7 +75,7 @@ void	cfdp_compress_number(CfdpNumber *nbr, unsigned long val)
 	unsigned char	text[8];	/*	Reverse-ordered bytes.	*/
 	int		i, j;
 
-	REQUIRE(nbr);
+	CHKVOID(nbr);
 	nbr->length = 0;
 	memset(nbr->buffer, 0, 8);
 	octet = text;
@@ -126,10 +126,10 @@ void	cfdp_decompress_number(unsigned long *val, CfdpNumber *nbr)
 	unsigned char	*octet;
 	unsigned long	result = 0;
 
-	REQUIRE(val);
-	REQUIRE(nbr);
+	CHKVOID(val);
+	CHKVOID(nbr);
 	i = nbr->length;
-	REQUIRE(i >= 0 && i < 9);
+	CHKVOID(i >= 0 && i < 9);
 	*val = 0;
 	for (octet = nbr->buffer; i > 0; i--, octet++)
 	{
@@ -1486,7 +1486,7 @@ int	cfdp_cancel(CfdpTransactionId *transactionId)
 	InFdu	fduBuf;
 	Object	fduElt;
 
-	REQUIRE(transactionId);
+	CHKERR(transactionId);
 	if (transactionId->sourceEntityNbr.length == 0
 	|| transactionId->transactionNbr.length == 0)
 	{
@@ -1545,7 +1545,7 @@ int	cfdp_suspend(CfdpTransactionId *transactionId)
 	CfdpDB	*db = getCfdpConstants();
 	int	reqNbr;
 
-	REQUIRE(transactionId);
+	CHKERR(transactionId);
 	if (transactionId->sourceEntityNbr.length == 0
 	|| transactionId->transactionNbr.length == 0)
 	{
@@ -1627,7 +1627,7 @@ int	cfdp_resume(CfdpTransactionId *transactionId)
 {
 	CfdpDB	*db = getCfdpConstants();
 
-	REQUIRE(transactionId);
+	CHKERR(transactionId);
 	if (transactionId->sourceEntityNbr.length == 0
 	|| transactionId->transactionNbr.length == 0)
 	{
@@ -1668,9 +1668,8 @@ static int	reportOnOutFdu(CfdpTransactionId *transactionId)
 	event.type = CfdpReportInd;
 	memcpy((char *) &event.transactionId, (char *) transactionId,
 			sizeof(CfdpTransactionId));
-	sprintf(reportBuffer, "state %u  size %u  progress %u",
-			(unsigned int) fduBuf.state, fduBuf.fileSize,
-			fduBuf.progress);
+	isprintf(reportBuffer, sizeof reportBuffer, "state %u  size %u  \
+progress %u", (unsigned int) fduBuf.state, fduBuf.fileSize, fduBuf.progress);
 	event.statusReport = sdr_string_create(sdr, reportBuffer);
 	event.reqNbr = getReqNbr();
 	if (enqueueCfdpEvent(&event) < 0)
@@ -1710,8 +1709,8 @@ static int	reportOnInFdu(CfdpTransactionId *transactionId)
 	event.type = CfdpReportInd;
 	memcpy((char *) &event.transactionId, (char *) transactionId,
 			sizeof(CfdpTransactionId));
-	sprintf(reportBuffer, "bytesReceived %u  size %u  progress %u",
-			fduBuf.bytesReceived, fduBuf.fileSize, fduBuf.progress);
+	isprintf(reportBuffer, sizeof reportBuffer, "bytesReceived %u  \
+size %u  progress %u", fduBuf.bytesReceived, fduBuf.fileSize, fduBuf.progress);
 	event.statusReport = sdr_string_create(sdr, reportBuffer);
 	event.reqNbr = getReqNbr();
 	if (enqueueCfdpEvent(&event) < 0)
@@ -1734,7 +1733,7 @@ int	cfdp_report(CfdpTransactionId *transactionId)
 {
 	CfdpDB	*db = getCfdpConstants();
 
-	REQUIRE(transactionId);
+	CHKERR(transactionId);
 	if (transactionId->sourceEntityNbr.length == 0
 	|| transactionId->transactionNbr.length == 0)
 	{
@@ -2070,7 +2069,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset,
 	char	fileName[256];
 	int	fd;
 
-	REQUIRE(transactionId);
+	CHKERR(transactionId);
 	if (transactionId->sourceEntityNbr.length == 0
 	|| transactionId->transactionNbr.length == 0)
 	{
@@ -2079,7 +2078,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset,
 		return 0;
 	}
 
-	REQUIRE(buffer);
+	CHKERR(buffer);
 	if (length < 0
 	|| memcmp((char *) &transactionId->sourceEntityNbr,
 		(char *) &cfdpdb->ownEntityNbr, sizeof(CfdpNumber)) == 0)
@@ -2140,9 +2139,9 @@ int	cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount,
 	unsigned int	i;
 	CfdpExtent	*eptr;
 
-	REQUIRE(transactionId);
-	REQUIRE(extentCount);
-	REQUIRE(extentsArray);
+	CHKERR(transactionId);
+	CHKERR(extentCount);
+	CHKERR(extentsArray);
 	if (transactionId->sourceEntityNbr.length == 0
 	|| transactionId->transactionNbr.length == 0)
 	{

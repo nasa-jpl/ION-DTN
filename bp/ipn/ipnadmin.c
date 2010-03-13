@@ -34,7 +34,8 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	sprintf(buffer, "Syntax error at line %d of ipnadmin.c", lineNbr);
+	isprintf(buffer, sizeof buffer, "Syntax error at line %d of ipnadmin.c",
+			lineNbr);
 	printText(buffer);
 }
 
@@ -482,27 +483,28 @@ static void	printDirective(char *context, FwdDirective *dir)
 			if (sdr_string_read(sdr, string + 1,
 					dir->destDuctName) < 0)
 			{
-				strcpy(string + 1, huh);
+				istrcpy(string + 1, huh, sizeof string - 1);
 			}
 		}
 
-		sprintf(buffer, "%.80s x %.8s/%.128s%.128s", context,
-				clp->name, duct->name, string);
+		isprintf(buffer, sizeof buffer, "%.80s x %.8s/%.128s%.128s",
+				context, clp->name, duct->name, string);
 		printText(buffer);
 		break;
 
 	case fwd:
 		if (sdr_string_read(sdr, string, dir->eid) < 0)
 		{
-			strcpy(string, huh);
+			istrcpy(string, huh, sizeof string);
 		}
 
-		sprintf(buffer, "%.80s f %.255s", context, string);
+		isprintf(buffer, sizeof buffer, "%.80s f %.255s", context,
+				string);
 		printText(buffer);
 		break;
 
 	default:
-		sprintf(buffer, "%.128s ?", context);
+		isprintf(buffer, sizeof buffer, "%.128s ?", context);
 		printText(buffer);
 	}
 }
@@ -511,7 +513,7 @@ static void	printPlan(IpnPlan *plan)
 {
 	char	context[32];
 
-	sprintf(context, "%lu", plan->nodeNbr);
+	isprintf(context, sizeof context, "%lu", plan->nodeNbr);
 	printDirective(context, &plan->defaultDirective);
 }
 
@@ -548,23 +550,25 @@ static void	printRule(IpnRule *rule)
 
 	if (rule->srcServiceNbr == 0)
 	{
-		strcpy(sourceServiceString, "*");
+		istrcpy(sourceServiceString, "*", sizeof sourceServiceString);
 	}
 	else
 	{
-		sprintf(sourceServiceString,"%ld", rule->srcServiceNbr);
+		isprintf(sourceServiceString, sizeof sourceServiceString,
+				"%ld", rule->srcServiceNbr);
 	}
 
 	if (rule->srcNodeNbr == 0)
 	{
-		strcpy(sourceNodeString, "*");
+		istrcpy(sourceNodeString, "*", sizeof sourceNodeString);
 	}
 	else
 	{
-		sprintf(sourceNodeString,"%ld", rule->srcNodeNbr);
+		isprintf(sourceNodeString, sizeof sourceNodeString, "%ld",
+				rule->srcNodeNbr);
 	}
 
-	sprintf(context, "rule for service %s from node %s =",
+	isprintf(context, sizeof context, "rule for service %s from node %s =",
 			sourceServiceString, sourceNodeString);
 	printDirective(context, &rule->directive);
 }
@@ -632,8 +636,8 @@ static void	printGroup(IpnGroup *group)
 	char	buffer[384];
 
 	sdr_string_read(sdr, eidString, group->defaultDirective.eid);
-	sprintf(buffer, "From %lu through %lu, forward via %.256s.",
-		group->firstNodeNbr, group->lastNodeNbr, eidString);
+	isprintf(buffer, sizeof buffer, "From %lu through %lu, forward via \
+%.256s.", group->firstNodeNbr, group->lastNodeNbr, eidString);
 	printText(buffer);
 }
 

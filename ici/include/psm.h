@@ -47,8 +47,9 @@ typedef struct psm_str		/*	Local view of managed memory.	*/
 typedef enum { Okay, Redundant, Refused } PsmMgtOutcome;
 typedef unsigned long	PsmAddress;
 
-extern PsmMgtOutcome	psm_manage(char *, unsigned long, char *,
-					PsmPartition *psmp);
+extern int		psm_manage(char *, unsigned long, char *,
+					PsmPartition *psmp,
+					PsmMgtOutcome *outcome);
 			/*	Arguments are:
 					pointer to start of the
 						memory to manage
@@ -58,6 +59,8 @@ extern PsmMgtOutcome	psm_manage(char *, unsigned long, char *,
 					pointer to variable in which
 						psm space management
 						handle will be returned
+					pointer to variable in which
+						outcome will be returned
 
 		 		A new psm space management structure
 				will be dynamically allocated (and its
@@ -188,18 +191,25 @@ extern int		Psm_catlg(char *, int, PsmPartition, char *objName,
 #define psm_uncatlg(partition, name) \
 Psm_uncatlg(__FILE__, __LINE__, partition, name)
 
-extern void		Psm_uncatlg(char *, int, PsmPartition, char *objName);
+extern int		Psm_uncatlg(char *, int, PsmPartition, char *objName);
 			/*	Removes the entry for the indicated
 			 	object from the catalog that is the
 				root object for this partition, if it
-				exists.					*/
+				exists.  Returns 0 on success, -1 on
+				any failure.				*/
 
-extern PsmAddress	psm_locate(PsmPartition, char *objName);
-			/*	Returns the address associated with
-			 	the indicated object name in the
-				catalog that is the root object for
-				this partition; if name is not found in
-			        catalog, returns zero.			*/
+extern int		psm_locate(PsmPartition, char *objName,
+					PsmAddress *objLocation,
+					PsmAddress *entryElt);
+			/*	Places in "objLocation" the address
+			 	associated with the indicated object
+				name in the catalog that is the root
+				object for this partition and places
+				in "entryElt" the address of the list
+				element that points to this catalog
+				entry; if name is not found in catalog,
+				sets entryElt to zero.  Returns 0 on
+				success, -1 on any failure.		*/
 
 extern void		psm_usage(PsmPartition, PsmUsageSummary *);
 			/*	Loads PsmUsageSummary structure with

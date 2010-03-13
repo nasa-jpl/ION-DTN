@@ -45,23 +45,21 @@ Object	Sdr_string_create(char *file, int line, Sdr sdrv, char *from)
 
 	if (!sdr_in_xn(sdrv))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (from == NULL || (length = strlen(from)) > 255)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, apiErrMsg, itoa(length));
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, from, sdrv));
 		return 0;
 	}
 
 	string = _sdrmalloc(sdrv, length + 1);
 	if (string == 0)
 	{
-		_putErrmsg(file, line, "Can't create SDR string.", from);
+		oK(_iEnd(file, line, from));
 		return 0;
 	}
 
@@ -81,16 +79,14 @@ Object	Sdr_string_dup(char *file, int line, Sdr sdrv, Object from)
 
 	if (!sdr_in_xn(sdrv))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (from == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, apiErrMsg, "original string");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "from", sdrv));
 		return 0;
 	}
 
@@ -99,8 +95,7 @@ Object	Sdr_string_dup(char *file, int line, Sdr sdrv, Object from)
 	string = _sdrmalloc(sdrv, length + 1);
 	if (string == 0)
 	{
-		_putErrmsg(file, line, "Can't duplicate SDR string.",
-				(char *) (stringBuf + 1));
+		oK(_iEnd(file, line, (char *) (stringBuf + 1)));
 		return 0;
 	}
 
@@ -115,17 +110,10 @@ int	sdr_string_length(Sdr sdrv, Object string)
 	SdrState	*sdr;
 	unsigned char	length;
 
-	if (string == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(apiErrMsg, NULL);
-		crashXn(sdrv);
-		return -1;
-	}
-
-	REQUIRE(sdrv);
+	CHKERR(sdrv);
+	CHKERR(string);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKERR(takeSdr(sdr) == 0);
 	sdrFetch(length, (Address) string);
 	releaseSdr(sdr);
 	return length;
@@ -137,17 +125,11 @@ int	sdr_string_read(Sdr sdrv, char *into, Object string)
 	Address		addr = (Address) string;
 	unsigned char	length;
 
-	if (into == NULL || string == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(apiErrMsg, NULL);
-		crashXn(sdrv);
-		return -1;
-	}
-
-	REQUIRE(sdrv);
+	CHKERR(sdrv);
+	CHKERR(into);
+	CHKERR(string);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKERR(takeSdr(sdr) == 0);
 	sdrFetch(length, addr);
 	_sdrfetch(sdrv, into, addr + 1, length);
 	*(into + length) = '\0';

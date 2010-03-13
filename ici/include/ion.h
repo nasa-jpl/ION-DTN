@@ -25,11 +25,6 @@ extern "C" {
 #define IONVERSIONNUMBER "2.1.0"
 #endif
 
-#define	ION_DBNAME	"iondb"
-
-/*	*	TEMPORARY MACRO!	*	*	*	*	*/
-#define checkSafety(x)	REQUIRE(ionLocked())
-
 typedef struct
 {
 	int	wmKey;
@@ -186,13 +181,14 @@ typedef struct
 } IonVdb;
 
 #ifndef MTAKE
-#define MTAKE(size)	wmtake(__FILE__, __LINE__, size)
-#define MRELEASE(addr)	wmrelease(__FILE__, __LINE__, addr)
+#define MTAKE(size)	allocFromIonMemory(__FILE__, __LINE__, size)
+#define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)
 #endif
-extern MemAllocator	wmtake;
-extern MemDeallocator	wmrelease;
-extern MemAtoPConverter	wmatop;
-extern MemPtoAConverter	wmptoa;
+
+extern void		*allocFromIonMemory(char *, int, size_t);
+extern void		releaseToIonMemory(char *, int, void *);
+extern void		*ionMemAtoP(unsigned long);
+extern unsigned long	ionMemPtoA(void *);
 
 extern int		ionInitialize(	IonParms *parms,
 					unsigned long ownNodeNbr);
@@ -222,7 +218,7 @@ extern void		ionVacate(	int size);
 
 #define	TIMESTAMPBUFSZ	20
 
-extern void		setDeltaFromUTC(int newDelta);
+extern int		setDeltaFromUTC(int newDelta);
 extern time_t		getUTCTime();	/*	UTC scale, 1970 epoch.	*/
 
 extern time_t		readTimestampLocal(char *timestampBuffer,

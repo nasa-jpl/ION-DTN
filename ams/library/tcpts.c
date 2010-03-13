@@ -271,6 +271,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	TcptsSap		*sap;
 	socklen_t		buflen;
 	char			endpointNameText[32];
+	int			eptLen;
 
 	if (strcmp(epspec, "@") == 0)	/*	Default.		*/
 	{
@@ -325,8 +326,10 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	portNbr = ntohs(portNbr);
 	tsif->diligence = AmsAssured;
 	tsif->sequence = AmsTransmissionOrder;
-	sprintf(endpointNameText, "%u:%hu", ipAddress, portNbr);
-	tsif->ept = MTAKE(strlen(endpointNameText) + 1);
+	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
+			portNbr);
+	eptLen = strlen(endpointNameText) + 1;
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		putSysErrmsg(NoMemoryMemo, NULL);
@@ -335,7 +338,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 		return -1;
 	}
 
-	strcpy(tsif->ept, endpointNameText);
+	istrcpy(tsif->ept, endpointNameText, eptLen);
 	tsif->sap = (void *) sap;
 	return 0;
 }

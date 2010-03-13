@@ -41,18 +41,18 @@ extern void		sm_list_unwedge(PsmPartition Partition, PsmAddress list,
 				int interval);
 #define sm_list_clear(partition, list, fn, arg) \
 Sm_list_clear(__FILE__, __LINE__, partition, list, fn, arg)
-extern void		Sm_list_clear(char *file, int line,
+extern int		Sm_list_clear(char *file, int line,
 				PsmPartition partition, PsmAddress list,
 				SmListDeleteFn deleteFn, void *argument);
 #define sm_list_destroy(partition, list, fn, arg) \
 Sm_list_destroy(__FILE__, __LINE__, partition, list, fn, arg)
-extern void		Sm_list_destroy(char *file, int line,
+extern int		Sm_list_destroy(char *file, int line,
 				PsmPartition partition, PsmAddress list,
 				SmListDeleteFn deleteFn, void *argument);
 
 extern PsmAddress	sm_list_user_data(PsmPartition partition,
 				PsmAddress list);
-extern void		sm_list_user_data_set(PsmPartition partition,
+extern int		sm_list_user_data_set(PsmPartition partition,
 				PsmAddress list, PsmAddress userData);
 extern int		sm_list_length(PsmPartition partition, PsmAddress list);
 
@@ -86,7 +86,7 @@ extern PsmAddress	Sm_list_insert_after(char *file, int line,
 
 #define sm_list_delete(partition, elt, fn, arg) \
 Sm_list_delete(__FILE__, __LINE__, partition, elt, fn, arg)
-extern void		Sm_list_delete(char *file, int line,
+extern int		Sm_list_delete(char *file, int line,
 				PsmPartition partition, PsmAddress elt,
 			       SmListDeleteFn deleteFn, void *argument);
 

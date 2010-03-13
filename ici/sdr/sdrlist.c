@@ -22,10 +22,6 @@
 #include "sdrP.h"
 #include "sdrlist.h"
 
-static const char	*badAddressMsg = "can't access item at address zero";
-static const char	*listEltMsg = "can't create list element";
-static const char	*corruptionMsg = "structural error in SDR data object";
-
 /*		Private definitions of SDR list structures.		*/
 
 typedef struct
@@ -67,9 +63,9 @@ Object	Sdr_list_create(char *file, int line, Sdr sdrv)
 	Object	list;
 	SdrList	listBuffer;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
@@ -77,7 +73,7 @@ Object	Sdr_list_create(char *file, int line, Sdr sdrv)
 	list = _sdrzalloc(sdrv, sizeof(SdrList));
 	if (list == 0)
 	{
-		_putErrmsg(file, line, "can't create list", NULL);
+		oK(_iEnd(file, line, "list"));
 		return 0;
 	}
 
@@ -94,18 +90,16 @@ void	Sdr_list_destroy(char *file, int line, Sdr sdrv, Object list,
 	Object		next;
 	SdrListElt	eltBuffer;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (list == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "list");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "list", sdrv));
 		return;
 	}
 
@@ -136,17 +130,10 @@ Address	sdr_list_user_data(Sdr sdrv, Object list)
 	SdrState	*sdr;
 	SdrList		listBuffer;
 
-	if (list == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "list");
-		crashXn(sdrv);
-		return 0;
-	}
-
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
+	CHKZERO(list);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(listBuffer, list);
 	releaseSdr(sdr);
 	return listBuffer.userData;
@@ -157,18 +144,16 @@ void	Sdr_list_user_data_set(char *file, int line, Sdr sdrv, Object list,
 {
 	SdrList	listBuffer;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (list == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "list");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "list", sdrv));
 		return;
 	}
 
@@ -182,17 +167,10 @@ long	sdr_list_length(Sdr sdrv, Object list)
 	SdrState	*sdr;
 	SdrList		listBuffer;
 
-	if (list == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "list");
-		crashXn(sdrv);
-		return -1;
-	}
-
-	REQUIRE(sdrv);
+	CHKERR(sdrv);
+	CHKERR(list);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKERR(takeSdr(sdr) == 0);
 	sdrFetch(listBuffer, list);
 	releaseSdr(sdr);
 	return listBuffer.length;
@@ -205,18 +183,16 @@ Object	Sdr_list_insert_first(char *file, int line, Sdr sdrv, Object list,
 	Object		elt;
 	SdrListElt	eltBuffer;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (list == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "list");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "list", sdrv));
 		return 0;
 	}
 
@@ -224,7 +200,7 @@ Object	Sdr_list_insert_first(char *file, int line, Sdr sdrv, Object list,
 	elt = _sdrzalloc(sdrv, sizeof(SdrListElt));
 	if (elt == 0)
 	{
-		_putErrmsg(file, line, listEltMsg, NULL);
+		oK(_iEnd(file, line, "elt"));
 		return 0;
 	}
 
@@ -261,18 +237,16 @@ Object	Sdr_list_insert_last(char *file, int line, Sdr sdrv, Object list,
 	Object		elt;
 	SdrListElt	eltBuffer;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (list == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "list");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "list", sdrv));
 		return 0;
 	}
 
@@ -280,7 +254,7 @@ Object	Sdr_list_insert_last(char *file, int line, Sdr sdrv, Object list,
 	elt = _sdrzalloc(sdrv, sizeof(SdrListElt));
 	if (elt == 0)
 	{
-		_putErrmsg(file, line, listEltMsg, NULL);
+		oK(_iEnd(file, line, "elt"));
 		return 0;
 	}
 
@@ -319,27 +293,23 @@ Object	Sdr_list_insert_before(char *file, int line, Sdr sdrv, Object oldElt,
 	Object		elt;
 	SdrListElt	eltBuffer;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (oldElt == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "list element");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "oldElt", sdrv));
 		return 0;
 	}
 
 	sdrFetch(oldEltBuffer, (Address) oldElt);
 	if ((list = oldEltBuffer.list) == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, corruptionMsg, "list");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "list", sdrv));
 		return 0;
 	}
 
@@ -347,7 +317,7 @@ Object	Sdr_list_insert_before(char *file, int line, Sdr sdrv, Object oldElt,
 	elt = _sdrzalloc(sdrv, sizeof(SdrListElt));
 	if (elt == 0)
 	{
-		_putErrmsg(file, line, listEltMsg, NULL);
+		oK(_iEnd(file, line, "elt"));
 		return 0;
 	}
 
@@ -387,27 +357,23 @@ Object	Sdr_list_insert_after(char *file, int line, Sdr sdrv, Object oldElt,
 	Object		elt;
 	SdrListElt	eltBuffer;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (oldElt == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "list element");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "oldElt", sdrv));
 		return 0;
 	}
 
 	sdrFetch(oldEltBuffer, (Address) oldElt);
 	if ((list = oldEltBuffer.list) == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, corruptionMsg, "list");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "list", sdrv));
 		return 0;
 	}
 
@@ -415,7 +381,7 @@ Object	Sdr_list_insert_after(char *file, int line, Sdr sdrv, Object oldElt,
 	elt = _sdrzalloc(sdrv, sizeof(SdrListElt));
 	if (elt == 0)
 	{
-		_putErrmsg(file, line, listEltMsg, NULL);
+		oK(_iEnd(file, line, "elt"));
 		return 0;
 	}
 
@@ -453,6 +419,18 @@ Object	Sdr_list_insert(char *file, int line, Sdr sdrv, Object list,
 	SdrListElt	eltBuffer;
 	Object		elt;
 
+	if (!(sdr_in_xn(sdrv)))
+	{
+		oK(_iEnd(file, line, _notInXnMsg()));
+		return 0;
+	}
+
+	if (list == 0)
+	{
+		oK(_xniEnd(file, line, "list", sdrv));
+		return 0;
+	}
+
 	/*	If not sorted list, just append to the end of the list.	*/
 
 	if (compare == (SdrListCompareFn) NULL)
@@ -460,27 +438,11 @@ Object	Sdr_list_insert(char *file, int line, Sdr sdrv, Object list,
 		return Sdr_list_insert_last(file, line, sdrv, list, data);
 	}
 
-	/*	Application claims that this list is sorted.		*/
-
-	if (sdr_in_xn(sdrv) == 0)
-	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
-		return 0;
-	}
-
-	if (list == 0)
-	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "list");
-		crashXn(sdrv);
-		return 0;
-	}
-
-	/*	Find position to insert new data into list.  Start
-		from end of list to keep sort stable; sort sequence
-		is implicitly FIFO within key, i.e., we insert
-		element AFTER the last element in the table with the
-		same key value.						*/
+	/*	Application claims that this list is sorted.  Find
+	 *	position to insert new data into list.  Start from end
+	 *	of list to keep sort stable; sort sequence is implicitly
+	 *	FIFO within key, i.e., we insert element AFTER the last
+	 *	element in the table with the same key value.		*/
 
 	sdrFetch(listBuffer, (Address) list);
 	for (elt = listBuffer.last; elt != 0; elt = eltBuffer.prev)
@@ -489,7 +451,7 @@ Object	Sdr_list_insert(char *file, int line, Sdr sdrv, Object list,
 		if (compare(sdrv, eltBuffer.data, argData) <= 0) break;
 	}
 
-	/* insert into list */
+	/*	Insert into list at this point.				*/
 
 	if (elt == 0)
 	{
@@ -508,37 +470,30 @@ void	Sdr_list_delete(char *file, int line, Sdr sdrv, Object elt,
 	Object		next;
 	Object		prev;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (elt == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "list element");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "elt", sdrv));
 		return;
 	}
 
 	sdrFetch(eltBuffer, (Address) elt);
 	if ((list = eltBuffer.list) == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, corruptionMsg, "list");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "list", sdrv));
 		return;
 	}
 
 	sdrFetch(listBuffer, (Address) list);
 	if (listBuffer.length < 1)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, "can't delete list element from empty \
-list", NULL);
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "list non-empty", sdrv));
 		return;
 	}
 
@@ -584,17 +539,10 @@ Object	sdr_list_first(Sdr sdrv, Object list)
 	SdrState	*sdr;
 	SdrList		listBuffer;
 
-	if (list == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "list");
-		crashXn(sdrv);
-		return 0;
-	}
-
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
+	CHKZERO(list);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(listBuffer, (Address) list);
 	releaseSdr(sdr);
 	return listBuffer.first;
@@ -605,17 +553,10 @@ Object	sdr_list_last(Sdr sdrv, Object list)
 	SdrState	*sdr;
 	SdrList		listBuffer;
 
-	if (list == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "list");
-		crashXn(sdrv);
-		return 0;
-	}
-
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
+	CHKZERO(list);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(listBuffer, (Address) list);
 	releaseSdr(sdr);
 	return listBuffer.last;
@@ -626,17 +567,10 @@ Object	sdr_list_next(Sdr sdrv, Object elt)
 	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
-	if (elt == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "list element");
-		crashXn(sdrv);
-		return 0;
-	}
-
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
+	CHKZERO(elt);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(eltBuffer, (Address) elt);
 	releaseSdr(sdr);
 	return eltBuffer.next;
@@ -647,17 +581,10 @@ Object	sdr_list_prev(Sdr sdrv, Object elt)
 	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
-	if (elt == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "list element");
-		crashXn(sdrv);
-		return 0;
-	}
-
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
+	CHKZERO(elt);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(eltBuffer, (Address) elt);
 	releaseSdr(sdr);
 	return eltBuffer.prev;
@@ -670,7 +597,8 @@ Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
 	SdrListElt	elt;
 	int		result;
 
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
+	CHKZERO(fromElt);
 	if (compare)	/* list assumed sorted; bail early if possible	*/
 	{
 		if (reverse)
@@ -744,17 +672,10 @@ Object	sdr_list_list(Sdr sdrv, Object elt)
 	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
-	if (elt == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "list element");
-		crashXn(sdrv);
-		return 0;
-	}
-
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
+	CHKZERO(elt);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(eltBuffer, (Address) elt);
 	releaseSdr(sdr);
 	return eltBuffer.list;
@@ -765,17 +686,10 @@ Address	sdr_list_data(Sdr sdrv, Object elt)
 	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
-	if (elt == 0)
-	{
-		errno = EINVAL;
-		putErrmsg(badAddressMsg, "list element");
-		crashXn(sdrv);
-		return 0;
-	}
-
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
+	CHKZERO(elt);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
+	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(eltBuffer, (Address) elt);
 	releaseSdr(sdr);
 	return eltBuffer.data;
@@ -787,18 +701,16 @@ Address	Sdr_list_data_set(char *file, int line, Sdr sdrv, Object elt,
 	SdrListElt	eltBuffer;
 	Address		old;
 
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
 
 	joinTrace(sdrv, file, line);
 	if (elt == 0)
 	{
-		errno = EINVAL;
-		_putErrmsg(file, line, badAddressMsg, "list element");
-		crashXn(sdrv);
+		oK(_xniEnd(file, line, "elt", sdrv));
 		return 0;
 	}
 

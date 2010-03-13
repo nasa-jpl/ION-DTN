@@ -128,7 +128,7 @@ truncated).
 
 igetcwd() is normally just a wrapper around getcwd(3).  It differs from
 getcwd(3) only when FSWWDNAME is defined, in which case the implementation
-of igetswd() must be supplied in an included file named "wdname.c"; this
+of igetcwd() must be supplied in an included file named "wdname.c"; this
 adaptation option accommodates flight software environments in which the
 current working directory name must be configured rather than discovered
 at run time.
@@ -146,7 +146,7 @@ iblock() simply prevents reception of the indicated signal by the calling
 thread.  It provides a means of controlling which of the threads in a process
 will receive the signal cited in an invocation of isignal().
 
-=item int igets(int fd, char *buffer, int buflen)
+=item char *igets(int fd, char *buffer, int buflen, int *lineLen)
 
 igets() reads a line of text, delimited by a newline character, from I<fd>
 into I<buffer> and writes a NULL character at the end of the string.  The
@@ -157,9 +157,11 @@ character is likewise omitted from the NULL-terminated text line in
 I<buffer>.  End of file is interpreted as an implicit newline, terminating
 the line.  If the number of characters preceding the newline is greater
 than or equal to I<buflen>, only the first (I<buflen> - 1) characters of
-the line are written into I<buffer>.  On error the function returns -1;
-otherwise the function returns the length of the text line in I<buffer>,
-as if from strlen(3).
+the line are written into I<buffer>.  On error the function sets I<*lineLen>
+to -1 and returns NULL.  On reading end-of-file, the function sets I<*lineLen>
+to zero and returns NULL.  Otherwise the function sets I<*lineLen> to the
+length of the text line in I<buffer>, as if from strlen(3), and returns
+I<buffer>.
 
 =item int iputs(int fd, char *string)
 
@@ -279,37 +281,65 @@ Recommended general policy on using the ICI exception reporting functions
 (which the functions in the ION distribution libraries are supposed to
 adhere to) is as follows:
 
-	When returning zero (indicating successful completion of the
-	function) -- even if the result might be interpreted as an
-	operational failure at a higher level (e.g., an object
-	identified by a given string is not found, through no
-	failure of the search function) -- do NOT invoke putErrmsg().
+	In the implementation of any ION library function or any ION
+	task's top-level driver function, any condition that prevents
+	the function from continuing execution toward producing the
+	effect it is designed to produce is considered an "error".
+
+	Detection of an error should result in the printing of an
+	error message and, normally, the immediate return of whatever
+	return value is used to indicate the failure of the function
+	in which the error was detected.  By convention this value
+	is usually -1, but both zero and NULL are appropriate
+	failure indications under some circumstances such as object
+	creation.
+
+	The CHKERR, CHKZERO, CHKNULL, and CHKVOID macros are used to
+	implement this behavior in a standard and lexically terse
+	manner.  Use of these macros offers an additional feature:
+	for debugging purposes, they can easily be configured to
+	call sm_Abort() to terminate immediately with a core dump
+	instead of returning a error indication.  This option is
+	enabled by setting the compiler parameter CORE_FILE_NEEDED
+	to 1 at compilation time.
+
+	In the absence of either any error, the function returns a
+	value that indicates nominal completion.  By convention this
+	value is usually zero, but under some circumstances other
+	values (such as pointers or addresses) are appropriate
+	indications of nominal completion.  Any additional information
+	produced by the function, such as an indication of "success",
+	must be returned as the value of a reference argument.
+
+	So when returning a value that indicates nominal completion
+	of the function -- even if the result might be interpreted
+	as a failure at a higher level (e.g., an object identified
+	by a given string is not found, through no failure of the
+	search function) -- do NOT invoke putErrmsg().
 
 	Use putErrmsg() and putSysErrmsg() only when functions are
-	unable to proceed to normal completion.  Use writeMemo()
+	unable to proceed to nominal completion.  Use writeMemo()
 	or writeMemoNote() if you want to log a message.
 
-	Whenever returning -1 (indicating function failure):
+	Whenever returning a value that indicates an error:
 
 		If the failure is due to the failure of a system call
 		or some other non-ION function, assume that errno
 		has already been set by the function at the lowest
-		layer of the call stack; simply use putSysErrmsg (or
+		layer of the call stack; use putSysErrmsg (or
 		postSysErrmsg if in a hurry) to describe the nature
 		of the activity that failed.  The text of the error
 		message should normally start with a capital letter
 		and should NOT end with a period.
 
 		Otherwise -- i.e., the failure is due to a condition
-		that was detected locally by code within the function
-		that has failed, or the failure is due to the reported
-		failure of some other ION function -- then use
-		putErrmsg (or postErrmg if pressed for time) to
-		describe the nature of the failure condition.  This
-		will aid in tracing the failure through the function
-		stack in which the failure was detected.  The text of
-		the error message should normally start with a capital
-		letter and should end with a period.
+		that was detected within ION -- use putErrmsg (or
+		postErrmg if pressed for time) to describe the nature
+		of the failure condition.  This will aid in tracing
+		the failure through the function stack in which the
+		failure was detected.  The text of the error message
+		should normally start with a capital letter and should
+		end with a period.
 
 	When a failure in a called function is reported to "driver"
 	code in an application program, before continuing or exiting
@@ -320,7 +350,7 @@ adhere to) is as follows:
 
 =item char *system_error_msg( )
 
-Returns a brief text message describing the current system error, as identified
+Returns a brief text string describing the current system error, as identified
 by the current value of errno.
 
 =item void setLogger(Logger usersLoggerName)

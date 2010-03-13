@@ -88,7 +88,8 @@ putchar(dlvmarks[dlv.result]);
 fflush(stdout);
 			if (dlv.result == BpPayloadPresent)
 			{
-				strcpy(sourceEid, dlv.bundleSourceEid);
+				istrcpy(sourceEid, dlv.bundleSourceEid,
+						sizeof sourceEid);
 				bp_release_delivery(&dlv, 1);
 				break;
 			}

@@ -14,8 +14,8 @@ static int	handleStatusRpt(BpDelivery *dlv, BpStatusRpt *rpt)
 {
 	char	memobuf[1024];
 
-	sprintf(memobuf, "[i] bundle (%s), %lu:%lu, %lu status is %d",
-		rpt->sourceEid, rpt->creationTime.seconds,
+	isprintf(memobuf, sizeof memobuf, "[i] bundle (%s), %lu:%lu, %lu \
+status is %d", rpt->sourceEid, rpt->creationTime.seconds,
 		rpt->creationTime.count, rpt->fragmentOffset, rpt->reasonCode);
 	writeMemo(memobuf);
 	return 0;
@@ -31,8 +31,8 @@ static int	handleCtSignal(BpDelivery *dlv, BpCtSignal *cts)
 		/*	Special handling for reason code =
 		 *	CtRedundantTransmission?			*/
 
-		sprintf(memobuf, "custody transfer success at %s: %d",
-				cts->sourceEid, cts->reasonCode);
+		isprintf(memobuf, sizeof memobuf, "custody transfer success \
+at %s: %d", cts->sourceEid, cts->reasonCode);
 	}
 	else	/*	No release of custody.				*/
 	{
@@ -42,8 +42,8 @@ static int	handleCtSignal(BpDelivery *dlv, BpCtSignal *cts)
 		 *	incentive to routing through the sourceEid
 		 *	named in dlv?					*/
 
-		sprintf(memobuf, "[i] custody transfer failure at %s: %d",
-				cts->sourceEid, cts->reasonCode);
+		isprintf(memobuf, sizeof memobuf, "[i] custody transfer \
+failure at %s: %d", cts->sourceEid, cts->reasonCode);
 	}
 
 	writeMemo(memobuf);

@@ -50,8 +50,8 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 	int	i;
 	SmShm	*shm;
 
-	REQUIRE(shmPtr);
-	REQUIRE(id);
+	CHKERR(shmPtr);
+	CHKERR(id);
 
     /* If shared memory segment exists, return its location */
 	if (key != SM_NO_KEY)
@@ -104,8 +104,7 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 		}
 	}
 
-	errno = ENOMEM;
-	putSysErrmsg("too many shared memory segments", itoa(nShmIds));
+	putErrmsg("Too many shared memory segments.", itoa(nShmIds));
 	return -1;
 }
 
@@ -130,8 +129,8 @@ sm_ShmDestroy(int i)
 {
 	SmShm	*shm;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < nShmIds);
+	CHKVOID(i >= 0);
+	CHKVOID(i < nShmIds);
 	shm = _shmTbl() + 1;
 	if (shm->freeNeeded)
 	{
@@ -158,8 +157,8 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 	char		*mem;
 	struct shmid_ds	stat;
 
-	REQUIRE(shmPtr);
-	REQUIRE(id);
+	CHKERR(shmPtr);
+	CHKERR(id);
 
     /* if key is not specified, make up one */
 	if (key == SM_NO_KEY)
@@ -178,14 +177,14 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
     /* create a new shared memory segment, or attach to an existing one */
 	if ((*id = shmget(key, size, IPC_CREAT | 0666)) == -1)
 	{
-		putSysErrmsg("can't get shared memory segment", itoa(key));
+		putSysErrmsg("Can't get shared memory segment", itoa(key));
 		return -1;
 	}
 
     /* determine if the segment has been initialized yet */
 	if (shmctl(*id, IPC_STAT, &stat) == -1)
 	{
-		putSysErrmsg("can't get status of shared memory segment",
+		putSysErrmsg("Can't get status of shared memory segment",
 				itoa(key));
 		return -1;
 	}
@@ -198,7 +197,7 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 
 	if ((long) (mem = shmat(*id, *shmPtr, 0)) == -1)
 	{
-		putSysErrmsg("can't attach shared memory segment", itoa(key));
+		putSysErrmsg("Can't attach shared memory segment", itoa(key));
 		return -1;
 	}
 
@@ -216,7 +215,7 @@ sm_ShmDetach(char *shmPtr)
 {
 	if (shmdt(shmPtr) < 0)
 	{
-		putSysErrmsg("can't detach shared memory segment", NULL);
+		putSysErrmsg("Can't detach shared memory segment", NULL);
 	}
 }
 
@@ -225,7 +224,7 @@ sm_ShmDestroy(int id)
 {
 	if (shmctl(id, IPC_RMID, NULL) < 0)
 	{
-		putSysErrmsg("can't destroy shared memory segment", itoa(id));
+		putSysErrmsg("Can't destroy shared memory segment", itoa(id));
 	}
 }
 
@@ -306,8 +305,7 @@ static int	copyArgs(int argc, char **argv)
 
 	if (argc > _argBuffersAvbl(NULL))
 	{
-		errno = E2BIG;
-		putSysErrmsg("No available argument buffers", NULL);
+		putErrmsg("No available argument buffers.", NULL);
 		return -1;
 	}
 
@@ -328,7 +326,7 @@ static int	copyArgs(int argc, char **argv)
 
 		while (1)
 		{
-			REQUIRE(i < ARG_BUFFER_CT);
+			CHKERR(i < ARG_BUFFER_CT);
 			if (buf->ownerTid != 0)	/*	Unavailable.	*/
 			{
 				i++;
@@ -510,7 +508,7 @@ static int	initializeIpc()
 
 	if (taskDeleteHookAdd((FUNCPTR) releaseArgBuffers) == ERROR)
 	{
-		putSysErrmsg("can't register releaseArgBuffers", NULL);
+		putSysErrmsg("Can't register releaseArgBuffers", NULL);
 		return -1;
 	}
 
@@ -547,7 +545,7 @@ static MSG_Q_ID	_ipcSemaphore(int stop)
 		ipcSem = msgQCreate(1, 1, MSG_Q_FIFO);
 		if (ipcSem == NULL)
 		{
-			putSysErrmsg("can't initialize IPC semaphore", NULL);
+			putSysErrmsg("Can't initialize IPC semaphore", NULL);
 		}
 		else
 		{
@@ -591,7 +589,7 @@ static SEM_ID	_ipcSemaphore(int stop)
 		ipcSem = semBCreate(SEM_Q_FIFO, SEM_EMPTY);
 		if (ipcSem == NULL)
 		{
-			putSysErrmsg("can't initialize IPC semaphore", NULL);
+			putSysErrmsg("Can't initialize IPC semaphore", NULL);
 		}
 		else
 		{
@@ -704,7 +702,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 			if (semId == NULL)
 			{
 				giveIpcLock();
-				putSysErrmsg("can't create semaphore",
+				putSysErrmsg("Can't create semaphore",
 						itoa(key));
 				return SM_SEM_NONE;
 			}
@@ -719,8 +717,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	}
 
 	giveIpcLock();
-	errno = ENOMEM;
-	putErrmsg("too many semaphores", itoa(nSemIds));
+	putErrmsg("Too many semaphores.", itoa(nSemIds));
 	return SM_SEM_NONE;
 }
 
@@ -729,8 +726,8 @@ void	sm_SemDelete(sm_SemId i)
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < nSemIds);
+	CHKVOID(i >= 0);
+	CHKVOID(i < nSemIds);
 	sem = semTbl + i;
 	takeIpcLock();
 #ifdef MSAP
@@ -740,7 +737,7 @@ void	sm_SemDelete(sm_SemId i)
 #endif
 	{
 		giveIpcLock();
-		putSysErrmsg("can't delete semaphore", itoa(i));
+		putSysErrmsg("Can't delete semaphore", itoa(i));
 		return;
 	}
 
@@ -754,8 +751,8 @@ int	sm_SemTake(sm_SemId i)
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < nSemIds);
+	CHKERR(i >= 0);
+	CHKERR(i < nSemIds);
 	sem = semTbl + i;
 #ifdef MSAP
 	char	nullMsg[1];
@@ -765,7 +762,7 @@ int	sm_SemTake(sm_SemId i)
 	if (semTake(sem->id, WAIT_FOREVER) == ERROR)
 #endif
 	{
-		putSysErrmsg("can't take semaphore", itoa(i));
+		putSysErrmsg("Can't take semaphore", itoa(i));
 		return -1;
 	}
 
@@ -777,8 +774,8 @@ void	sm_SemGive(sm_SemId i)
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < nSemIds);
+	CHKVOID(i >= 0);
+	CHKVOID(i < nSemIds);
 	sem = semTbl + i;
 #ifdef MSAP
 	char	nullMsg[1] = "";
@@ -789,7 +786,7 @@ void	sm_SemGive(sm_SemId i)
 	if (semGive(sem->id) == ERROR)
 #endif
 	{
-		putSysErrmsg("can't give semaphore", itoa(i));
+		putSysErrmsg("Can't give semaphore", itoa(i));
 	}
 }
 
@@ -798,8 +795,8 @@ void	sm_SemEnd(sm_SemId i)
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < nSemIds);
+	CHKVOID(i >= 0);
+	CHKVOID(i < nSemIds);
 	sem = semTbl + i;
 	sem->ended = 1;
 	sm_SemGive(i);
@@ -811,8 +808,8 @@ int	sm_SemEnded(sm_SemId i)
 	SmSem	*sem;
 	int	ended;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < nSemIds);
+	CHKZERO(i >= 0);
+	CHKZERO(i < nSemIds);
 	sem = semTbl + i;
 	ended = sem->ended;
 	if (ended)
@@ -828,8 +825,8 @@ void	sm_SemUnend(sm_SemId i)
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < nSemIds);
+	CHKVOID(i >= 0);
+	CHKVOID(i < nSemIds);
 	sem = semTbl + i;
 	sem->ended = 0;
 }
@@ -860,7 +857,7 @@ void	sm_TaskSuspend()
 {
 	if (taskSuspend(sm_TaskIdSelf()) == ERROR)
 	{
-		putSysErrmsg("can't suspend task (self)", NULL);
+		putSysErrmsg("Can't suspend task (self)", NULL);
 	}
 }
 
@@ -868,7 +865,7 @@ void	sm_TaskDelay(int seconds)
 {
 	if (taskDelay(seconds * sysClkRateGet()) == ERROR)
 	{
-		putSysErrmsg("can't pause task", itoa(seconds));
+		putSysErrmsg("Can't pause task", itoa(seconds));
 	}
 }
 
@@ -886,31 +883,29 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 	int	result;
 #ifdef PRIVATE_SYMTAB
 
-	REQUIRE(name);
+	CHKERR(name);
 	if ((entryPoint = sm_FindFunction(name, &priority, &stackSize)) == NULL)
 	{
-		sprintf(namebuf, "_%s", name);
+		isprintf(namebuf, sizeof namebuf, "_%s", name);
 		if ((entryPoint = sm_FindFunction(namebuf, &priority,
 				&stackSize)) == NULL)
 		{
-			errno = EINVAL;
-			putSysErrmsg("Can't spawn task; function not in \
-private symbol table; must be added to mysymtab.c", name);
+			putErrmsg("Can't spawn task; function not in private \
+symbol table; must be added to mysymtab.c.", name);
 			return -1;
 		}
 	}
 #else
 	SYM_TYPE	type;
 
-	REQUIRE(name);
+	CHKERR(name);
 	if (symFindByName(sysSymTbl, name, (char **) &entryPoint, &type)
 			== ERROR)
 	{
-		sprintf(namebuf, "_%s", name);
+		isprintf(namebuf, sizeof namebuf, "_%s", name);
 		if (symFindByName(sysSymTbl, namebuf, (char **) &entryPoint,
 				&type) == ERROR)
 		{
-			errno = EINVAL;
 			putSysErrmsg("Can't spawn task; function not in \
 VxWorks symbol table", name);
 			return -1;
@@ -934,7 +929,7 @@ VxWorks symbol table", name);
 			(int) arg9, (int) arg10);
 	if (result == ERROR)
 	{
-		putSysErrmsg("failed spawning task", name);
+		putSysErrmsg("Failed spawning task", name);
 	}
 
 	return result;
@@ -951,7 +946,7 @@ void	sm_TaskDelete(int task)
 	{
 		if (taskDelete(task) == ERROR)
 		{
-			putSysErrmsg("failed deleting task", itoa(task));
+			putSysErrmsg("Failed deleting task", itoa(task));
 		}
 	}
 }
@@ -960,7 +955,7 @@ void	sm_Abort()
 {
 	char	string[32];
 
-	sprintf(string, "tt %d", taskIdSelf());
+	isprintf(string, sizeof string, "tt %d", taskIdSelf());
 	pseudoshell(string);
 	snooze(2);
 	oK(taskDelete(taskIdSelf()));
@@ -978,9 +973,8 @@ void	sm_Abort()
 #ifdef noipc			/****	Cygwin without cygserver.	****/
 static int	needIPC(char *svcname)
 {
-	errno = ENOSYS;
-	putSysErrmsg("Service unavailable, 'platform' compiled without IPC; \
-install cygserver and remake without the -Dnoipc option", svcname);
+	putErrmsg("Service unavailable, 'platform' compiled without IPC; \
+install cygserver and remake without the -Dnoipc option.", svcname);
 	return -1;
 }
 #else				/*	IPC system is provided by O/S.	*/
@@ -1065,7 +1059,7 @@ static sem_t	*_ipcSemaphore(int stop)
 	{
 		if (sem_init(&ipcSem, 0, 0) < 0)
 		{
-			putSysErrmsg("can't initialize IPC semaphore", NULL);
+			putSysErrmsg("Can't initialize IPC semaphore", NULL);
 			return NULL;
 		}
 
@@ -1146,7 +1140,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 			if (sem_init(&(sem->semobj), 0, 0) < 0)
 			{
 				giveIpcLock();
-				putSysErrmsg("can't init semaphore", NULL);
+				putSysErrmsg("Can't init semaphore", NULL);
 				return SM_SEM_NONE;
 			}
 
@@ -1160,8 +1154,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	}
 
 	giveIpcLock();
-	errno = ENOMEM;
-	putErrmsg("too many semaphores", itoa(SEM_NSEMS_MAX));
+	putErrmsg("Too many semaphores.", itoa(SEM_NSEMS_MAX));
 	return SM_SEM_NONE;
 }
 
@@ -1170,13 +1163,13 @@ void	sm_SemDelete(sm_SemId i)
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem = semTbl + i;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < SEM_NSEMS_MAX);
+	CHKVOID(i >= 0);
+	CHKVOID(i < SEM_NSEMS_MAX);
 	takeIpcLock();
 	if (sem_destroy(&(sem->semobj)) < 0)
 	{
 		giveIpcLock();
-		putSysErrmsg("can't destroy semaphore", itoa(i));
+		putSysErrmsg("Can't destroy semaphore", itoa(i));
 		return;
 	}
 
@@ -1191,12 +1184,12 @@ int	sm_SemTake(sm_SemId i)
 	SmSem	*sem = semTbl + i;
 	int	result;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < SEM_NSEMS_MAX);
+	CHKERR(i >= 0);
+	CHKERR(i < SEM_NSEMS_MAX);
 	result = sem_wait(sem->id);
 	if (result < 0)
 	{
-		putSysErrmsg("can't take semaphore", itoa(i));
+		putSysErrmsg("Can't take semaphore", itoa(i));
 	}
 
 	return result;
@@ -1207,11 +1200,11 @@ void	sm_SemGive(sm_SemId i)
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem = semTbl + i;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < SEM_NSEMS_MAX);
+	CHKVOID(i >= 0);
+	CHKVOID(i < SEM_NSEMS_MAX);
 	if (sem_post(sem->id) < 0)
 	{
-		putSysErrmsg("can't give semaphore", itoa(i));
+		putSysErrmsg("Can't give semaphore", itoa(i));
 	}
 }
 
@@ -1220,8 +1213,8 @@ void	sm_SemEnd(sm_SemId i)
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem = semTbl + i;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < SEM_NSEMS_MAX);
+	CHKVOID(i >= 0);
+	CHKVOID(i < SEM_NSEMS_MAX);
 	sem->ended = 1;
 	sm_SemGive(i);
 }
@@ -1232,8 +1225,8 @@ int	sm_SemEnded(sm_SemId i)
 	SmSem	*sem = semTbl + i;
 	int	ended;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < SEM_NSEMS_MAX);
+	CHKZERO(i >= 0);
+	CHKZERO(i < SEM_NSEMS_MAX);
 	ended = sem->ended;
 	if (ended)
 	{
@@ -1248,8 +1241,8 @@ void	sm_SemUnend(sm_SemId i)
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem = semTbl + i;
 
-	REQUIRE(i >= 0);
-	REQUIRE(i < SEM_NSEMS_MAX);
+	CHKVOID(i >= 0);
+	CHKVOID(i < SEM_NSEMS_MAX);
 	sem->ended = 0;
 }
 
@@ -1496,9 +1489,8 @@ sm_SemId	sm_SemCreate(int key, int semType)
 			if (semSetIdx == sembase->currSemSet)
 			{
 				giveIpcLock();
-				errno = ENOMEM;	/*	No rows avbl.	*/
 				putErrmsg("Too many semaphore sets, can't \
-manage the new one", NULL);
+manage the new one.", NULL);
 				return SM_SEM_NONE;
 			}
 
@@ -1522,9 +1514,9 @@ void	sm_SemDelete(sm_SemId i)
 	IciSemaphore	*sem;
 	IciSemaphoreSet	*semset;
 
-	REQUIRE(sembase);
-	REQUIRE(i >= 0);
-	REQUIRE(i < sembase->semaphoresCount);
+	CHKVOID(sembase);
+	CHKVOID(i >= 0);
+	CHKVOID(i < sembase->semaphoresCount);
 	takeIpcLock();
 	sem = sembase->semaphores + i;
 	sem->key = -1;
@@ -1545,7 +1537,7 @@ void	sm_SemDelete(sm_SemId i)
 
 		if (semctl(semset->semid, 0, IPC_RMID, NULL) < 0)
 		{
-			putSysErrmsg("can't delete semaphore set",
+			putSysErrmsg("Can't delete semaphore set",
 					itoa(semset->semid));
 		}
 
@@ -1566,14 +1558,13 @@ int	sm_SemTake(sm_SemId i)
 	int		result;
 	struct sembuf	sem_op[2] = { {0,0,0}, {0,1,0} };
 
-	REQUIRE(sembase);
-	REQUIRE(i >= 0);
-	REQUIRE(i < sembase->semaphoresCount);
+	CHKERR(sembase);
+	CHKERR(i >= 0);
+	CHKERR(i < sembase->semaphoresCount);
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
 	{
-		errno = EINVAL;
-		putSysErrmsg("can't take deleted semaphore", itoa(i));
+		putErrmsg("Can't take deleted semaphore.", itoa(i));
 		return -1;
 	}
 
@@ -1589,7 +1580,7 @@ int	sm_SemTake(sm_SemId i)
 				continue;
 			}
 
-			putSysErrmsg("can't take semaphore", itoa(i));
+			putSysErrmsg("Can't take semaphore", itoa(i));
 		}
 
 		return result;
@@ -1603,13 +1594,13 @@ void	sm_SemGive(sm_SemId i)
 	IciSemaphoreSet	*semset;
 	struct sembuf	sem_op = { 0, -1, IPC_NOWAIT };
 
-	REQUIRE(sembase);
-	REQUIRE(i >= 0);
-	REQUIRE(i < sembase->semaphoresCount);
+	CHKVOID(sembase);
+	CHKVOID(i >= 0);
+	CHKVOID(i < sembase->semaphoresCount);
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
 	{
-		putErrmsg("can't give deleted semaphore", itoa(i));
+		writeMemoNote("[?] Can't give deleted semaphore", itoa(i));
 		return;
 	}
 
@@ -1619,7 +1610,7 @@ void	sm_SemGive(sm_SemId i)
 	{
 		if (errno != EAGAIN)
 		{
-			putSysErrmsg("can't give semaphore", itoa(i));
+			writeMemoNote("[?] Can't give semaphore", itoa(i));
 		}
 	}
 }
@@ -1629,9 +1620,9 @@ void	sm_SemEnd(sm_SemId i)
 	SemaphoreBase	*sembase = _sembase(0);
 	IciSemaphore	*sem;
 
-	REQUIRE(sembase);
-	REQUIRE(i >= 0);
-	REQUIRE(i < sembase->semaphoresCount);
+	CHKVOID(sembase);
+	CHKVOID(i >= 0);
+	CHKVOID(i < sembase->semaphoresCount);
 	sem = sembase->semaphores + i;
 	sem->ended = 1;
 	sm_SemGive(i);
@@ -1643,9 +1634,9 @@ int	sm_SemEnded(sm_SemId i)
 	IciSemaphore	*sem;
 	int		ended;
 
-	REQUIRE(sembase);
-	REQUIRE(i >= 0);
-	REQUIRE(i < sembase->semaphoresCount);
+	CHKZERO(sembase);
+	CHKZERO(i >= 0);
+	CHKZERO(i < sembase->semaphoresCount);
 	sem = sembase->semaphores + i;
 	ended = sem->ended;
 	if (ended)
@@ -1661,9 +1652,9 @@ void	sm_SemUnend(sm_SemId i)
 	SemaphoreBase	*sembase = _sembase(0);
 	IciSemaphore	*sem;
 
-	REQUIRE(sembase);
-	REQUIRE(i >= 0);
-	REQUIRE(i < sembase->semaphoresCount);
+	CHKVOID(sembase);
+	CHKVOID(i >= 0);
+	CHKVOID(i < sembase->semaphoresCount);
 	sem = sembase->semaphores + i;
 	sem->ended = 0;
 }
@@ -1795,22 +1786,20 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 	pthread_t		thread;
 
 #ifdef PRIVATE_SYMTAB
-	REQUIRE(name);
+	CHKERR(name);
 	if ((entryPoint = sm_FindFunction(name, &priority, &stackSize)) == NULL)
 	{
-		sprintf(namebuf, "_%s", name);
+		isprintf(namebuf, sizeof namebuf, "_%s", name);
 		if ((entryPoint = sm_FindFunction(namebuf, &priority,
 				&stackSize)) == NULL)
 		{
-			errno = EINVAL;
-			putSysErrmsg("Can't spawn task; function not in \
-private symbol table; must be added to mysymtab.c", name);
+			putErrmsg("Can't spawn task; function not in \
+private symbol table; must be added to mysymtab.c.", name);
 			return -1;
 		}
 	}
 #else
-	errno = EINVAL;
-	putSysErrmsg("Can't spawn task; no ION private symbol table.", name);
+	putErrmsg("Can't spawn task; no ION private symbol table.", name);
 	return -1;
 #endif
 	for (i = 0, parms = spawnsArray; i < MAX_SPAWNS; i++, parms++)
@@ -1838,10 +1827,12 @@ private symbol table; must be added to mysymtab.c", name);
 	parms->arg8 = (int) arg8;
 	parms->arg9 = (int) arg9;
 	parms->arg10 = (int) arg10;
-	sm_configurePthread(&attr, stackSize);
-	if (pthread_create(&thread, &attr, rtemsDriverThread, (void *) parms))
+	sm_ConfigurePthread(&attr, stackSize);
+	errno = pthread_create(&thread, &attr, rtemsDriverThread,
+			(void *) parms);
+	if (errno)
 	{
-		putSysErrmsg("failed spawning task", name);
+		putSysErrmsg("Failed spawning task", name);
 		return -1;
 	}
 
@@ -1861,6 +1852,14 @@ void	sm_TaskDelete(int task)
 	}
 
 	pthread_cancel((pthread_t) task);
+
+	/*	NOTE: one RTEMS implementation option would be to
+	 *	use rtems_extension_create to add an extension set
+	 *	whose thread_delete function prints the contents of
+	 *	the task control block of the deleted task.  In this
+	 *	case, calling sm_TaskDelete would result in the
+	 *	printing of some potentially useful diagnostic
+	 *	information.						*/
 }
 
 void	sm_Abort()
@@ -1914,11 +1913,11 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 {
 	int	pid;
 
-	REQUIRE(name);
+	CHKERR(name);
 	switch (pid = fork())
 	{
 	case -1:		/*	Error.				*/
-		putSysErrmsg("can't fork new process", name);
+		putSysErrmsg("Can't fork new process", name);
 		return -1;
 
 	case 0:			/*	This is the child process.	*/
@@ -1927,7 +1926,7 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 
 		/*	Can only get to this code if execlp fails.	*/
 
-		putSysErrmsg("can't execute new process, exiting...", name);
+		putSysErrmsg("Can't execute new process, exiting...", name);
 		return 0;
 
 	default:		/*	This is the parent process.	*/
@@ -1944,7 +1943,8 @@ void	sm_TaskDelete(int task)
 {
 	if (task <= 1)
 	{
-		putErrmsg("can't delete invalid process ID", itoa(task));
+		writeMemoNote("[?] Can't delete invalid process ID",
+				itoa(task));
 		return;
 	}
 
@@ -1963,13 +1963,12 @@ void	sm_Abort()
 
 /******************* platform-independent functions ***********************/
 
-void	sm_configurePthread(pthread_attr_t *attr, size_t stackSize)
+void	sm_ConfigurePthread(pthread_attr_t *attr, size_t stackSize)
 {
 	struct sched_param	parms;
 
-	REQUIRE(attr);
+	CHKVOID(attr);
 	oK(pthread_attr_init(attr));
-	oK(pthread_attr_setinheritsched(attr, PTHREAD_EXPLICIT_SCHED));
 	oK(pthread_attr_setschedpolicy(attr, SCHED_FIFO));
 	parms.sched_priority = sched_get_priority_min(SCHED_FIFO);
 	oK(pthread_attr_setschedparam(attr, &parms));
@@ -2019,9 +2018,10 @@ int	sm_SemUnwedge(sm_SemId semid, int interval)
 	pthread_cond_t	cv;
 	UnwedgeParms	parms;
 	int		result = 0;	/*	Semaphore not wedged.	*/
+	pthread_attr_t	attr;
 	pthread_t	unwedgeThread;
 
-	REQUIRE(interval > 0);
+	CHKERR(interval > 0);
 	if (sm_ipc_init())	/*	Shouldn't be needed, but okay.	*/
 	{
 		putErrmsg("Can't initialize IPC.", NULL);
@@ -2053,7 +2053,9 @@ int	sm_SemUnwedge(sm_SemId semid, int interval)
 	/*	Spawn a separate thread that hangs on the semaphore
 	 *	if it is wedged.					*/
 
-	if (pthread_create(&unwedgeThread, NULL, checkSemaphore, &parms))
+	sm_ConfigurePthread(&attr, 0);
+	errno = pthread_create(&unwedgeThread, &attr, checkSemaphore, &parms);
+	if (errno)
 	{
 		oK(pthread_mutex_destroy(&mutex));
 		oK(pthread_cond_destroy(&cv));
@@ -2119,16 +2121,15 @@ int	pseudoshell(char *commandLine)
 	int	argc = 0;
 	int	pid;
 
-	REQUIRE(commandLine);
+	CHKERR(commandLine);
 	length = strlen(commandLine);
 	if (length > 255)		/*	Too long to parse.	*/
 	{
-		errno = EINVAL;
 		putErrmsg("Command length exceeds 255 bytes.", itoa(length));
-		return ERROR;
+		return -1;
 	}
 
-	strcpy(buffer, commandLine);
+	istrcpy(buffer, commandLine, sizeof buffer);
 	for (cursor = buffer, i = 0; i < 11; i++)
 	{
 		if (*cursor == '\0')
@@ -2154,9 +2155,8 @@ int	pseudoshell(char *commandLine)
 
 	if (*cursor != '\0')		/*	Too many args.	*/
 	{
-		errno = EINVAL;
-		putSysErrmsg("More than 11 args in command", commandLine);
-		return ERROR;
+		putErrmsg("More than 11 args in command.", commandLine);
+		return -1;
 	}
 #if defined (VXWORKS) || defined (RTEMS)
 	takeIpcLock();
@@ -2164,14 +2164,14 @@ int	pseudoshell(char *commandLine)
 	{
 		giveIpcLock();
 		putErrmsg("Can't copy args of command.", commandLine);
-		return ERROR;
+		return -1;
 	}
 #endif
 	pid = sm_TaskSpawn(argv[0], argv[1], argv[2], argv[3],
 			argv[4], argv[5], argv[6], argv[7], argv[8],
 			argv[9], argv[10], 0, 0);
 #if defined (VXWORKS) || defined (RTEMS)
-	if (pid == ERROR)
+	if (pid == -1)
 	{
 		tagArgBuffers(0);
 	}

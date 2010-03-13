@@ -34,7 +34,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 	char		completionText[80];
 
 	fileCount++;
-	sprintf(fileName, "testfile%d", fileCount);
+	isprintf(fileName, sizeof fileName, "testfile%d", fileCount);
 	contentLength = zco_source_data_length(sdr, dlv->adu);
 	testFile = fopen(fileName, "w");
 	if (testFile == NULL)
@@ -86,8 +86,8 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 		return -1;
 	}
 
-	sprintf(completionText, "bprecvfile has created '%s', size %d.",
-			fileName, contentLength);
+	isprintf(completionText, sizeof completionText, "bprecvfile has \
+created '%s', size %d.", fileName, contentLength);
 	writeMemo(completionText);
 	return 0;
 }

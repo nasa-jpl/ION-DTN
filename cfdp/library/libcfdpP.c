@@ -192,7 +192,7 @@ int	getReqNbr()
 	Object	dbObj = getCfdpDbObject();
 	CfdpDB	db;
 
-checkSafety(cfdpSdr);
+	CHKERR(ionLocked());
 	sdr_stage(cfdpSdr, (char *) &db, dbObj, sizeof(CfdpDB));
 	db.requestCounter++;
 	sdr_write(cfdpSdr, dbObj, (char *) &db, sizeof(CfdpDB));
@@ -287,6 +287,7 @@ int	cfdpInit()
 	CfdpDB		cfdpdbBuf;
 	int		i;
 	PsmAddress	cfdpVdbAddress;
+	PsmAddress	elt;
 
 	if (ionAttach() < 0)
 	{
@@ -377,8 +378,8 @@ int	cfdpInit()
 
 	cfdpwm = getIonwm();
 	cfdpMemIdx = getIonMemoryMgr();
-	cfdpVdbAddress = psm_locate(cfdpwm, CFDP_VDBNAME);
-	if (cfdpVdbAddress == 0)
+	if (psm_locate(cfdpwm, CFDP_VDBNAME, &cfdpVdbAddress, &elt) < 0
+	|| elt == 0)
 	{
 		if (initializeVdb(cfdpConstants) < 0)
 		{
@@ -517,6 +518,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 int	cfdpAttach()
 {
 	PsmAddress	cfdpVdbAddress;
+	PsmAddress	elt;
 
 	if (ionAttach() < 0)
 	{
@@ -548,8 +550,8 @@ int	cfdpAttach()
 
 	cfdpwm = getIonwm();
 	cfdpMemIdx = getIonMemoryMgr();
-	cfdpVdbAddress = psm_locate(cfdpwm, CFDP_VDBNAME);
-	if (cfdpVdbAddress == 0)
+	if (psm_locate(cfdpwm, CFDP_VDBNAME, &cfdpVdbAddress, &elt) < 0
+	|| elt == 0)
 	{
 		putErrmsg("CFDP volatile database not found.", NULL);
 		return -1;
@@ -706,7 +708,7 @@ void	cfdpScrub()
 	Object		elt;
 	MetadataList	list;
 
-checkSafety(cfdpSdr);
+	CHKVOID(ionLocked());
 	elt = sdr_list_first(cfdpSdr, cfdpConstants->usrmsgLists);
 	while (elt)
 	{
@@ -1224,14 +1226,14 @@ static int	abandonInFdu(CfdpTransactionId *transactionId,
 }
 
 static void	frCreateFile(char *firstFileName, char *secondFileName,
-			FilestoreResponse *resp, char *msgBuf)
+			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
 	int	fd = open(firstFileName, O_CREAT, 00777);
 
 	if (fd < 0)
 	{
 		resp->status = 1;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 	}
 	else
 	{
@@ -1240,22 +1242,22 @@ static void	frCreateFile(char *firstFileName, char *secondFileName,
 }
 
 static void	frDeleteFile(char *firstFileName, char *secondFileName,
-			FilestoreResponse *resp, char *msgBuf)
+			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
 	if (unlink(firstFileName) < 0)
 	{
 		resp->status = 1;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 	}
 }
 
 static void	frRenameFile(char *firstFileName, char *secondFileName,
-			FilestoreResponse *resp, char *msgBuf)
+			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
 	if (checkFile(firstFileName) != 1)
 	{
 		resp->status = 1;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 		return;
 	}
 
@@ -1268,12 +1270,13 @@ static void	frRenameFile(char *firstFileName, char *secondFileName,
 	if (rename(firstFileName, secondFileName) < 0)
 	{
 		resp->status = 3;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 	}
 }
 
 static void	frCopyFile(char *firstFileName, char *secondFileName,
-			FilestoreResponse *resp, char *msgBuf, int flag)
+			FilestoreResponse *resp, char *msgBuf, int bufLen,
+			int flag)
 {
 	char	*buf;
 	int	destFd;
@@ -1285,7 +1288,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 	if ((buf = MTAKE(10000)) == NULL)
 	{
 		resp->status = 3;
-		strcpy(msgBuf, "No space for buffer.");
+		istrcpy(msgBuf, "No space for buffer.", bufLen);
 		return;
 	}
 
@@ -1294,7 +1297,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 	{
 		MRELEASE(buf);
 		resp->status = 3;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 		return;
 	}
 
@@ -1304,7 +1307,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 		close(destFd);
 		MRELEASE(buf);
 		resp->status = 3;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 		return;
 	}
 
@@ -1315,7 +1318,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 		{
 		case -1:
 			resp->status = 3;
-			sprintf(msgBuf, "%.255s", system_error_msg());
+			isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 			writing = 0;
 			break;			/*	Out of switch.	*/
 
@@ -1330,7 +1333,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 				if (bytesWritten < 0)
 				{
 					resp->status = 3;
-					sprintf(msgBuf, "%.255s",
+					isprintf(msgBuf, bufLen, "%.255s",
 						system_error_msg());
 					writing = 0;
 					break;	/*	Out of loop.	*/
@@ -1347,47 +1350,49 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 }
 
 static void	frAppendFile(char *firstFileName, char *secondFileName,
-			FilestoreResponse *resp, char *msgBuf)
+			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
 	if (checkFile(firstFileName) != 1)
 	{
 		resp->status = 1;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 		return;
 	}
 
 	if (checkFile(secondFileName) != 1)
 	{
 		resp->status = 2;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 		return;
 	}
 
-	frCopyFile(firstFileName, secondFileName, resp, msgBuf, O_APPEND);
+	frCopyFile(firstFileName, secondFileName, resp, msgBuf, bufLen,
+			O_APPEND);
 }
 
 static void	frReplaceFile(char *firstFileName, char *secondFileName,
-			FilestoreResponse *resp, char *msgBuf)
+			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
 	if (checkFile(firstFileName) != 1)
 	{
 		resp->status = 1;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 		return;
 	}
 
 	if (checkFile(secondFileName) != 1)
 	{
 		resp->status = 2;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 		return;
 	}
 
-	frCopyFile(firstFileName, secondFileName, resp, msgBuf, O_TRUNC);
+	frCopyFile(firstFileName, secondFileName, resp, msgBuf, bufLen,
+			O_TRUNC);
 }
 
 static void	frCreateDirectory(char *firstFileName, char *secondFileName,
-			FilestoreResponse *resp, char *msgBuf)
+			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
 #ifdef VXWORKS
 	if (mkdir(firstFileName) < 0)
@@ -1396,22 +1401,22 @@ static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 #endif
 	{
 		resp->status = 1;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 	}
 }
 
 static void	frRemoveDirectory(char *firstFileName, char *secondFileName,
-			FilestoreResponse *resp, char *msgBuf)
+			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
 	if (rmdir(firstFileName) < 0)
 	{
 		resp->status = 1;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 	}
 }
 
 static void	frDenyFile(char *firstFileName, char *secondFileName,
-			FilestoreResponse *resp, char *msgBuf)
+			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
 	if (checkFile(firstFileName) != 1)
 	{
@@ -1421,12 +1426,12 @@ static void	frDenyFile(char *firstFileName, char *secondFileName,
 	if (unlink(firstFileName) < 0)
 	{
 		resp->status = 1;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 	}
 }
 
 static void	frDenyDirectory(char *firstFileName, char *secondFileName,
-			FilestoreResponse *resp, char *msgBuf)
+			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
 	if (checkFile(firstFileName) != 1)
 	{
@@ -1436,7 +1441,7 @@ static void	frDenyDirectory(char *firstFileName, char *secondFileName,
 	if (rmdir(firstFileName) < 0)
 	{
 		resp->status = 1;
-		sprintf(msgBuf, "%.255s", system_error_msg());
+		isprintf(msgBuf, bufLen, "%.255s", system_error_msg());
 	}
 }
 
@@ -1526,52 +1531,52 @@ static int	executeFilestoreRequests(InFdu *fdu,
 		{
 		case CfdpCreateFile:
 			frCreateFile(firstFileName, secondFileName, &resp,
-					msgBuf);
+					msgBuf, sizeof msgBuf);
 			break;
 
 		case CfdpDeleteFile:
 			frDeleteFile(firstFileName, secondFileName, &resp,
-					msgBuf);
+					msgBuf, sizeof msgBuf);
 			break;
 
 		case CfdpRenameFile:
 			frRenameFile(firstFileName, secondFileName, &resp,
-					msgBuf);
+					msgBuf, sizeof msgBuf);
 			break;
 
 		case CfdpAppendFile:
 			frAppendFile(firstFileName, secondFileName, &resp,
-					msgBuf);
+					msgBuf, sizeof msgBuf);
 			break;
 
 		case CfdpReplaceFile:
 			frReplaceFile(firstFileName, secondFileName, &resp,
-					msgBuf);
+					msgBuf, sizeof msgBuf);
 			break;
 
 		case CfdpCreateDirectory:
 			frCreateDirectory(firstFileName, secondFileName, &resp,
-					msgBuf);
+					msgBuf, sizeof msgBuf);
 			break;
 
 		case CfdpRemoveDirectory:
 			frRemoveDirectory(firstFileName, secondFileName, &resp,
-					msgBuf);
+					msgBuf, sizeof msgBuf);
 			break;
 
 		case CfdpDenyFile:
 			frDenyFile(firstFileName, secondFileName, &resp,
-					msgBuf);
+					msgBuf, sizeof msgBuf);
 			break;
 
 		case CfdpDenyDirectory:
 			frDenyDirectory(firstFileName, secondFileName, &resp,
-					msgBuf);
+					msgBuf, sizeof msgBuf);
 			break;
 
 		default:
 			resp.status = 15;
-			strcpy(msgBuf, "Invalid action code.");
+			istrcpy(msgBuf, "Invalid action code.", sizeof msgBuf);
 		}
 
 		if (resp.status != 0)	/*	Request failed.		*/
@@ -1606,7 +1611,8 @@ static void	renameWorkingFile(InFdu *fduBuf)
 	sdr_string_read(cfdpSdr, destFileName, fduBuf->destFileName);
 	if (rename(workingFileName, destFileName) < 0)
 	{
-		sprintf(renameErrBuffer, "CFDP can't rename '%s' to '%s'",
+		isprintf(renameErrBuffer, sizeof renameErrBuffer,
+				"CFDP can't rename '%s' to '%s'",
 				workingFileName, destFileName);
 		putSysErrmsg(renameErrBuffer, NULL);
 	}
@@ -1620,7 +1626,7 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 	char		workingFileName[256];
 	char		reportBuffer[256];
 
-checkSafety(cfdpSdr);
+	CHKERR(ionLocked());
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpTransactionFinishedInd;
 	memcpy((char *) &event.transactionId, (char *) &fduBuf->transactionId,
@@ -1714,8 +1720,8 @@ checkSafety(cfdpSdr);
 		}
 	}
 
-	sprintf(reportBuffer, "bytesReceived %u  size %u  progress %u",
-		fduBuf->bytesReceived, fduBuf->fileSize, fduBuf->progress);
+	isprintf(reportBuffer, sizeof reportBuffer, "bytesReceived %u  size \
+%u  progress %u", fduBuf->bytesReceived, fduBuf->fileSize, fduBuf->progress);
 	event.statusReport = sdr_string_create(cfdpSdr, reportBuffer);
 	event.reqNbr = getReqNbr();
 	if (enqueueCfdpEvent(&event) < 0)
@@ -1734,7 +1740,7 @@ int	enqueueCfdpEvent(CfdpEvent *event)
 {
 	Object	eventObj;
 
-checkSafety(cfdpSdr);
+	CHKERR(ionLocked());
 	eventObj = sdr_malloc(cfdpSdr, sizeof(CfdpEvent));
 	if (eventObj == 0)
 	{
@@ -1933,8 +1939,13 @@ static Object	selectOutPdu(OutFdu *fdu, int *pduIsFileData)
 				return 0;
 			}
 
-			zco_append_extent(cfdpSdr, pdu, ZcoFileSource,
-					fdu->fileRef, fdu->progress, length);
+			if (zco_append_extent(cfdpSdr, pdu, ZcoFileSource,
+				fdu->fileRef, fdu->progress, length) < 0)
+			{
+				putErrmsg("Can't append extent.", NULL);
+				return 0;
+			}
+
 			sdr_list_delete(cfdpSdr, elt, NULL, NULL);
 			fdu->progress += length;
 			*pduIsFileData = 1;
@@ -2037,7 +2048,8 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 	/*	Prepend header to pdu.					*/
 
-	zco_prepend_header(cfdpSdr, *pdu, (char *) pduHeader, pduHeaderLength);
+	oK(zco_prepend_header(cfdpSdr, *pdu, (char *) pduHeader,
+			pduHeaderLength));
 
 	/*	If CRC required, compute CRC and append to pdu.		*/
 
@@ -2051,7 +2063,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 		crc = computeCRC((unsigned char *) crcComputationBuf,
 				pduHeaderLength + pduSourceDataLength);
 		crc = htons(crc);
-		zco_append_trailer(cfdpSdr, *pdu, (char *) &crc, 2);
+		oK(zco_append_trailer(cfdpSdr, *pdu, (char *) &crc, 2));
 	}
 
 	/*	Rewrite FDU and exit.					*/
@@ -2126,7 +2138,7 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 	return completeInFdu(fdu, fduObj, fduElt, CfdpNoError, 0);
 }
 
-static int	getFileName(InFdu *fdu, char *stringBuf)
+static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 {
 	unsigned long	sourceEntityId;
 	unsigned long	transactionNbr;
@@ -2137,7 +2149,7 @@ static int	getFileName(InFdu *fdu, char *stringBuf)
 				&fdu->transactionId.sourceEntityNbr);
 		cfdp_decompress_number(&transactionNbr,
 				&fdu->transactionId.transactionNbr);
-		sprintf(stringBuf, "%s%ccfdp.%lu.%lu",
+		isprintf(stringBuf, bufLen, "%s%ccfdp.%lu.%lu",
 				getIonWorkingDirectory(), ION_PATH_DELIMITER,
 				sourceEntityId, transactionNbr);
 		fdu->workingFileName = sdr_string_create(cfdpSdr, stringBuf);
@@ -2177,7 +2189,7 @@ static int	writeSegmentData(InFdu *fdu, unsigned char **cursor,
 
 	if (cfdpVdb->corruptionModulus)
 	{
-		remainder = rand() % cfdpVdb->corruptionModulus;
+		remainder = random() % cfdpVdb->corruptionModulus;
 		if (remainder == 0)
 		{
 			(**cursor)++;	/*	Introduce corruption.	*/
@@ -2365,7 +2377,7 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 
 	/*	Open the file if necessary.				*/
 
-	if (getFileName(fdu, stringBuf) < 0)
+	if (getFileName(fdu, stringBuf, sizeof stringBuf) < 0)
 	{
 		putErrmsg("Can't get file name.", NULL);
 		return -1;
@@ -2373,7 +2385,7 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 
 	if (stringBuf[0] == ION_PATH_DELIMITER)	/*	Absolute path.	*/
 	{
-		strcpy(workingNameBuffer, stringBuf);
+		istrcpy(workingNameBuffer, stringBuf, sizeof workingNameBuffer);
 	}
 	else
 	{
@@ -2389,12 +2401,14 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 			 *	so stringBuf is *not* an absolute path
 			 *	name, so compute absolute path name.	*/
 
-			sprintf(workingNameBuffer, "%.255s%c%.255s",
-				wdname, ION_PATH_DELIMITER, stringBuf);
+			isprintf(workingNameBuffer, sizeof workingNameBuffer,
+					"%.255s%c%.255s", wdname,
+					ION_PATH_DELIMITER, stringBuf);
 		}
 		else	/*	Assume file name is an absolute path.	*/
 		{
-			strcpy(workingNameBuffer, stringBuf);
+			istrcpy(workingNameBuffer, stringBuf,
+					sizeof workingNameBuffer);
 		}
 	}
 

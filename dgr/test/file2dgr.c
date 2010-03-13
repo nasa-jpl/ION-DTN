@@ -81,6 +81,7 @@ static int	run_file2dgr(char *remoteHostName, char *fileName)
 	unsigned int	ownIpAddress;
 	unsigned int	remoteIpAddress;
 	unsigned short	remotePortNbr = TEST_PORT_NBR;
+	PsmMgtOutcome	outcome;
 	FILE		*inputFile;
 	char		line[256];
 	int		lineLen;
@@ -94,7 +95,8 @@ static int	run_file2dgr(char *remoteHostName, char *fileName)
 	sm_ipc_init();
 	wmPtr = malloc(wmSize);
 	if (wmPtr == NULL
-	|| psm_manage(wmPtr, wmSize, "dgr", &dgrwm) == Refused)
+	|| psm_manage(wmPtr, wmSize, "dgr", &dgrwm, &outcome) < 0
+	|| outcome == Refused)
 	{
 		putErrmsg("Can't acquire DGR working memory.", NULL);
 		writeErrmsgMemos();
@@ -150,7 +152,7 @@ psm_start_trace(dgrwm, 10000000, NULL);
 				fclose(inputFile);
 				cyclesLeft--;
 if (cyclesLeft == 0) break;
-snooze(rand() % 5);	/*	Sleep up to 5 seconds before next.	*/
+snooze(random() % 5);	/*	Sleep up to 5 seconds before next.	*/
 				inputFile = fopen(fileName, "r");
 				if (inputFile == NULL)
 				{

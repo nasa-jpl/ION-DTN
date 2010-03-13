@@ -109,7 +109,7 @@ static void	logMsg(AmsNode me, void *userData, AmsEvent *event,
 #endif
 	if (msgType == AmsMsgQuery)
 	{
-		sprintf(replyText, "Got '%.128s'.", content);
+		isprintf(replyText, sizeof replyText, "Got '%.128s'.", content);
 		replyLength = strlen(replyText);
 		if (ams_reply(me, *event, subjectNbr, priority, 0, replyLength,
 				replyText) < 0)
@@ -236,7 +236,8 @@ messages to stdout.\n", stderr);
 		roleNbr = 0;	/*	Default is "all roles".		*/
 		unitNbr = 0;	/*	Default is root unit.		*/
 		cntNbr = 0;	/*	Default is "all continua".	*/	// CW, 5/1/06
-		parmCount = sscanf(cmdString, "%s %s %s %s", subjectName,
+		parmCount = sscanf(cmdString, "%255s %255s %255s %255s",
+				subjectName,
 				cntName,	// CW, 5/1/06  
 				unitName, roleName);                     
 		switch (parmCount)

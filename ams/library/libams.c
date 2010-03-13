@@ -969,7 +969,7 @@ static int	getContactSummaryLength(AmsSAP *sap)
 	return length;
 }
 
-static void	loadContactSummary(AmsSAP *sap, char *cursor)
+static void	loadContactSummary(AmsSAP *sap, char *cursor, int bufsize)
 {
 	LystElt		elt;
 	DeliveryVector	*vector;
@@ -981,7 +981,7 @@ static void	loadContactSummary(AmsSAP *sap, char *cursor)
 
 	/*	First load own NULL-terminated MAMS endpoint name.	*/
 
-	strcpy(cursor, sap->mamsTsif.ept);
+	istrcpy(cursor, sap->mamsTsif.ept, bufsize);
 	cursor += (strlen(cursor) + 1);
 
 	/*	Then load the delivery vector list.			*/
@@ -1055,7 +1055,7 @@ static void	sendNodeStatus(AmsSAP *sap, MamsEndpoint *maap, int pduType)
 	supplement[5] = sap->unit->nbr & 0xff;
 	supplement[6] = sap->nodeNbr & 0xff;
 	supplement[7] = sap->role->nbr & 0xff;
-	loadContactSummary(sap, supplement + 8);
+	loadContactSummary(sap, supplement + 8, supplementLength - 8);
 	loadDeclaration(sap, supplement + 8 + contactSummaryLength);
 	if (pduType == node_status)
 	{
@@ -2910,7 +2910,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 	cursor++;
 	*cursor = sap->role->nbr & 0xff;
 	cursor++;
-	loadContactSummary(sap, cursor);
+	loadContactSummary(sap, cursor, supplementLength - 4);
 	cursor += contactSummaryLength;
 	loadDeclaration(sap, cursor);
 	cursor += declarationLength;
@@ -3184,7 +3184,7 @@ static int	getNodeNbr(AmsSAP *sap)
 		return -1;
 	}
 
-	loadContactSummary(sap, supplement);
+	loadContactSummary(sap, supplement, supplementLength);
 	queryNbr = time(NULL);
 	lyst_compare_set(sap->mamsEvents, (LystCompareFn) queryNbr);
 	result = sendMamsMsg(sap->rsEndpoint, &(sap->mamsTsif),
@@ -3570,8 +3570,8 @@ static int	ams_register2(char *applicationName, char *authorityName,
 
 	if (i > MaxVentureNbr)
 	{
-		sprintf(ventureName, "%s(%s)", applicationName,
-				authorityName);
+		isprintf(ventureName, sizeof ventureName, "%s(%s)",
+				applicationName, authorityName);
 		putErrmsg("Can't register: no such message space.",
 				ventureName);
 		errno = EINVAL;

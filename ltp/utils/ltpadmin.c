@@ -34,7 +34,8 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	sprintf(buffer, "Syntax error at line %d of ltpadmin.c", lineNbr);
+	isprintf(buffer, sizeof buffer,
+			"Syntax error at line %d of ltpadmin.c", lineNbr);
 	printText(buffer);
 }
 
@@ -245,23 +246,23 @@ static void	printSpan(LtpVspan *vspan)
 
 	GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr, vspan->spanElt));
 	sdr_string_read(sdr, cmd, span->lsoCmd);
-	sprintf(buffer, "%lu  pid: %d  cmd: %.128s", vspan->engineId,
-		vspan->lsoPid, cmd);
+	isprintf(buffer, sizeof buffer, "%lu  pid: %d  cmd: %.128s",
+			vspan->engineId, vspan->lsoPid, cmd);
 	printText(buffer);
-	sprintf(buffer, "\tmax export sessions: %u  max export block size: %u",
-		span->maxExportSessions, span->maxExportBlockSize);
+	isprintf(buffer, sizeof buffer, "\tmax export sessions: %u  max \
+export block size: %u", span->maxExportSessions, span->maxExportBlockSize);
 	printText(buffer);
-	sprintf(buffer, "\tmax import sessions: %u  max import block size: %u",
-		span->maxImportSessions, span->maxImportBlockSize);
+	isprintf(buffer, sizeof buffer, "\tmax import sessions: %u  max \
+import block size: %u", span->maxImportSessions, span->maxImportBlockSize);
 	printText(buffer);
-	sprintf(buffer, "\taggregation size limit: %u  aggregation time limit: \
-%u", span->aggrSizeLimit, span->aggrTimeLimit);
+	isprintf(buffer, sizeof buffer, "\taggregation size limit: %u  \
+aggregation time limit: %u", span->aggrSizeLimit, span->aggrTimeLimit);
 	printText(buffer);
-	sprintf(buffer, "\tmax segment size: %u  queuing latency: %u",
-		span->maxSegmentSize, span->remoteQtime);
+	isprintf(buffer, sizeof buffer, "\tmax segment size: %u  queuing \
+latency: %u", span->maxSegmentSize, span->remoteQtime);
 	printText(buffer);
-	sprintf(buffer, "\towlt: %u  localXmit: %lu  remoteXmit: %lu",
-		vspan->owlt, vspan->localXmitRate, vspan->remoteXmitRate);
+	isprintf(buffer, sizeof buffer, "\towlt: %u  localXmit: %lu  \
+remoteXmit: %lu", vspan->owlt, vspan->localXmitRate, vspan->remoteXmitRate);
 	printText(buffer);
 }
 
@@ -323,8 +324,8 @@ static void	listSpans(int tokenCount, char **tokens)
 	}
 
 	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, ltpdbObj);
-	sprintf(buffer, "(Engine %lu  Queuing latency: %u  LSI pid: %d)",
-			ltpdb->ownEngineId, ltpdb->ownQtime, vdb->lsiPid);
+	isprintf(buffer, sizeof buffer, "(Engine %lu  Queuing latency: %u \
+LSI pid: %d)", ltpdb->ownEngineId, ltpdb->ownQtime, vdb->lsiPid);
 	printText(buffer);
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 	for (elt = sm_list_first(ionwm, vdb->spans); elt;
@@ -533,7 +534,8 @@ static void	switchWatch(int tokenCount, char **tokens)
 			break;
 
 		default:
-			sprintf(buffer, "Invalid watch char %c.", *cursor);
+			isprintf(buffer, sizeof buffer,
+					"Invalid watch char %c.", *cursor);
 			printText(buffer);
 		}
 

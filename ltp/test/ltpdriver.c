@@ -113,7 +113,7 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 	{
 		if (randomAduLength)
 		{
-			aduLength = ((rand() % 60) + 1) * 1024;
+			aduLength = ((random() % 60) + 1) * 1024;
 		}
 
 		sdr_begin_xn(sdr);

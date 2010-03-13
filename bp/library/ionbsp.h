@@ -112,8 +112,7 @@
 #ifdef TORNADO_2_0_2
 #ifdef BSP_DEBUGGING
    #define BSP_DEBUG(level, format, args...) if(level >= BSP_DEBUG_LVL) \
-                                        { sprintf(gMsg, format, args);\
-                                          putErrmsg(gMsg,NULL);}
+{isprintf(gMsg, sizeof gMsg, format, args); putErrmsg(gMsg, NULL);}
                                        
    #define BSP_DEBUG_PROC(format, args...) \
            BSP_DEBUG(BSP_DEBUG_LVL_PROC,format, args)
@@ -137,8 +136,7 @@
 #else		/*	Not TORNADO_2_0_2				*/
 #ifdef BSP_DEBUGGING
    #define BSP_DEBUG(level, format,...) if(level >= BSP_DEBUG_LVL) \
-                                        { sprintf(gMsg, format, __VA_ARGS__);\
-                                          putErrmsg(gMsg,NULL);}
+{isprintf(gMsg, sizeof gMsg, format, __VA_ARGS__); putErrmsg(gMsg, NULL);}
                                        
    #define BSP_DEBUG_PROC(format,...) \
            BSP_DEBUG(BSP_DEBUG_LVL_PROC,format, __VA_ARGS__)

@@ -30,6 +30,7 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 	while (1)
 	{
 		sdr_begin_xn(sdr);
+		CHKERR(ionLocked());	/*	In case of killm.	*/
 		elt = sdr_list_first(sdr, events);
 		if (elt == 0)	/*	No more events to dispatch.	*/
 		{

@@ -204,8 +204,8 @@ lyst_delete_get(Lyst list, LystCallback *fn, void **arg)
 {
   if (list != NULL)
   {
-	REQUIRE(fn);
-	REQUIRE(arg);
+	CHKVOID(fn);
+	CHKVOID(arg);
 	*fn = list->delete_cb;
 	*arg = list->delete_arg;
   }
@@ -226,8 +226,8 @@ lyst_insert_get(Lyst list, LystCallback *fn, void **arg)
 {
   if (list != NULL)
   {
-	REQUIRE(fn);
-	REQUIRE(arg);
+	CHKVOID(fn);
+	CHKVOID(arg);
 	*fn = list->insert_cb;
 	*arg = list->insert_arg;
   }
@@ -248,7 +248,7 @@ Lyst_insert(char *file, int line, Lyst list, void *data)
 {
   LystElt cur;
 
-  REQUIRE(list);
+  CHKNULL(list);
 
   /* if not a sorted list, then just append to the end of the lyst */
   if (list->compare == NULL)
@@ -276,7 +276,7 @@ Lyst_insert_first(char *file, int line, Lyst list, void *data)
 {
   LystElt new_elt;
 
-  REQUIRE(list);
+  CHKNULL(list);
 
   /* create new element */
   if ((new_elt = lyst__elt_create(file, line, list, data)) == NULL) return NULL;
@@ -300,7 +300,7 @@ Lyst_insert_last(char *file, int line, Lyst list, void *data)
 {
   LystElt new_elt;
 
-  REQUIRE(list);
+  CHKNULL(list);
 
   /* create new element */
   if ((new_elt = lyst__elt_create(file, line, list, data)) == NULL) return NULL;
@@ -325,9 +325,9 @@ Lyst_insert_before(char *file, int line, LystElt elt, void *data)
   Lyst list;
   LystElt new_elt;
 
-  REQUIRE(elt);
+  CHKNULL(elt);
   list = elt->lyst;
-  REQUIRE(list);
+  CHKNULL(list);
 
   /* create new element */
   if ((new_elt = lyst__elt_create(file, line, list, data)) == NULL) return NULL;
@@ -351,9 +351,9 @@ Lyst_insert_after(char *file, int line, LystElt elt, void *data)
   Lyst list;
   LystElt new_elt;
 
-  REQUIRE(elt);
+  CHKNULL(elt);
   list = elt->lyst;
-  REQUIRE(list);
+  CHKNULL(list);
 
   /* create new element */
   if ((new_elt = lyst__elt_create(file, line, list, data)) == NULL) return NULL;
@@ -384,8 +384,8 @@ Lyst_delete(char *file, int line, LystElt elt)
   }
 
   list = elt->lyst;
-  REQUIRE(list);
-  REQUIRE(list->length > 0);
+  CHKVOID(list);
+  CHKVOID(list->length > 0);
   if (list->delete_cb != NULL) list->delete_cb(elt,list->delete_arg);
 
   /* update previous pointers */
@@ -414,28 +414,28 @@ Lyst_delete(char *file, int line, LystElt elt)
 LystElt
 lyst_first(Lyst list)
 {
-	REQUIRE(list);
+	CHKNULL(list);
 	return list->first;
 }
 
 LystElt
 lyst_last(Lyst list)
 {
-	REQUIRE(list);
+	CHKNULL(list);
 	return list->last;
 }
 
 LystElt
 lyst_next(LystElt elt)
 {
-	REQUIRE(elt);
+	CHKNULL(elt);
 	return elt->next;
 }
 
 LystElt
 lyst_prev(LystElt elt)
 {
-	REQUIRE(elt);
+	CHKNULL(elt);
 	return elt->prev;
 }
 
@@ -445,9 +445,9 @@ lyst_search(LystElt elt, void *data)
   Lyst list;
   LystElt cur;
 
-  REQUIRE(elt);
+  CHKNULL(elt);
   list = elt->lyst;
-  REQUIRE(list);
+  CHKNULL(list);
 
   /* linearly search lyst */
   /* should check sorted field and bail early if possible */
@@ -475,14 +475,14 @@ lyst_search(LystElt elt, void *data)
 Lyst
 lyst_lyst(LystElt elt)
 {
-	REQUIRE(elt);
+	CHKNULL(elt);
 	return elt->lyst;
 }
 
 void *
 lyst_data(LystElt elt)
 {
-	REQUIRE(elt);
+	CHKNULL(elt);
 	return elt->data;
 }
 
@@ -492,9 +492,9 @@ lyst_data_set(LystElt elt, void *new)
   void *old;
   Lyst list;
 
-  REQUIRE(elt);
+  CHKNULL(elt);
   list = elt->lyst;
-  REQUIRE(list);
+  CHKNULL(list);
   old = elt->data;
   elt->data = new;
   return old;
@@ -511,7 +511,7 @@ lyst_sort(Lyst list)
   LystElt next;
   LystElt elt;
 
-  REQUIRE(list);
+  CHKVOID(list);
   if (list->compare == NULL)
   {
 	  return;
@@ -562,7 +562,7 @@ lyst_sorted(Lyst list)
   int sorted;
   LystElt cur;
 
-  REQUIRE(list);
+  CHKZERO(list);
   if (list->compare == NULL)
   {
 	  return 0;
@@ -588,8 +588,8 @@ lyst_apply(Lyst list, LystCallback fn, void *user_arg)
   LystElt cur;
   LystElt next;
 
-  REQUIRE(list);
-  REQUIRE(fn);
+  CHKVOID(list);
+  CHKVOID(fn);
   for (cur = list->first; cur != NULL; cur = next)
   {
      next = cur->next;
@@ -656,7 +656,7 @@ static char *lyst__alloc(char *fileName, int lineNbr, int idx, unsigned size)
   MemAllocator	take = memmgr_take(idx);
   char		*ptr;
 
-  REQUIRE(take);
+  CHKNULL(take);
   ptr = take(fileName, lineNbr, size);
   if (ptr == NULL)
   {

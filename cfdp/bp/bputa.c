@@ -39,7 +39,8 @@ static void	*receivePdus(void *parm)
 		return NULL;
 	}
 
-	sprintf(ownEid, "ipn:%lu.%d", getOwnNodeNbr(), CFDP_RECV_SVC_NBR);
+	isprintf(ownEid, sizeof ownEid, "ipn:%lu.%d", getOwnNodeNbr(),
+			CFDP_RECV_SVC_NBR);
 	if (bp_open(ownEid, &(parms->rxSap)) < 0)
 	{
 		MRELEASE(buffer);
@@ -135,7 +136,8 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	sprintf(ownEid, "ipn:%lu.%d", getOwnNodeNbr(), CFDP_SEND_SVC_NBR);
+	isprintf(ownEid, sizeof ownEid, "ipn:%lu.%d", getOwnNodeNbr(),
+			CFDP_SEND_SVC_NBR);
 	if (bp_open(ownEid, &txSap) < 0)
 	{
 		putErrmsg("CFDP can't open own 'send' endpoint.", ownEid);
@@ -207,16 +209,17 @@ terminating.");
 			continue;
 		}
 
-		sprintf(destEid, "ipn:%lu.%d", destinationNodeNbr,
-				CFDP_RECV_SVC_NBR);
+		isprintf(destEid, sizeof destEid, "ipn:%lu.%d",
+				destinationNodeNbr, CFDP_RECV_SVC_NBR);
 		if (utParms.reportToNodeNbr == 0)
 		{
 			reportToEid = NULL;
 		}
 		else
 		{
-			sprintf(reportToEidBuf, "ipn:%lu.%d",
-				utParms.reportToNodeNbr, CFDP_RECV_SVC_NBR);
+			isprintf(reportToEidBuf, sizeof reportToEidBuf,
+					"ipn:%lu.%d", utParms.reportToNodeNbr,
+					CFDP_RECV_SVC_NBR);
 			reportToEid = reportToEidBuf;
 		}
 

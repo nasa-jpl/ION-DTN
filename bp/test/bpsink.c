@@ -40,8 +40,7 @@ int	main(int argc, char **argv)
 	int		len;
 	char		content[80];
 
-    setlinebuf(stdout);
-
+	setlinebuf(stdout);
 	if (ownEid == NULL)
 	{
 		puts("Usage: bpsink <own endpoint ID>");

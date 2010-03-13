@@ -138,7 +138,7 @@ static int	raiseSpan(Object spanElt)
 	vspan->segmentBuffer = psm_malloc(ltpwm, span.maxSegmentSize);
 	if (vspan->segmentBuffer == 0)
 	{
-		sm_list_delete(ltpwm, vspanElt, NULL, NULL);
+		oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
 		psm_free(ltpwm, addr);
 		return -1;
 	}
@@ -171,7 +171,7 @@ static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
 	}
 
 	psm_free(ltpwm, vspan->segmentBuffer);
-	sm_list_delete(ltpwm, vspanElt, NULL, NULL);
+	oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
 	psm_free(ltpwm, vspanAddr);
 }
 
@@ -179,18 +179,20 @@ static void	startSpan(LtpVspan *vspan)
 {
 	LtpSpan	span;
 	char	ltpmeterCmdString[64];
-	char	cmdString[SDRSTRING_BUFSZ + 64];
+	char	cmd[SDRSTRING_BUFSZ];
 	char	engineIdString[11];
+	char	lsoCmdString[SDRSTRING_BUFSZ + 64];
 
 	sdr_read(ltpSdr, (char *) &span, sdr_list_data(ltpSdr, vspan->spanElt),
 			sizeof(LtpSpan));
-	sprintf(ltpmeterCmdString, "ltpmeter %lu", span.engineId);
+	isprintf(ltpmeterCmdString, sizeof ltpmeterCmdString, "ltpmeter %lu",
+			span.engineId);
 	vspan->meterPid = pseudoshell(ltpmeterCmdString);
-	sdr_string_read(ltpSdr, cmdString, span.lsoCmd);
-	strcat(cmdString, " ");
-	sprintf(engineIdString, "%lu", span.engineId);
-	strcat(cmdString, engineIdString);
-	vspan->lsoPid = pseudoshell(cmdString);
+	sdr_string_read(ltpSdr, cmd, span.lsoCmd);
+	isprintf(engineIdString, sizeof engineIdString, "%lu", span.engineId);
+	isprintf(lsoCmdString, sizeof lsoCmdString, "%s %s", cmd,
+			engineIdString);
+	vspan->lsoPid = pseudoshell(lsoCmdString);
 }
 
 static void	stopSpan(LtpVspan *vspan)
@@ -265,7 +267,7 @@ static int	initializeVdb(LtpDB *ltpdb)
 	/*	Raise all spans.					*/
 
 	if ((ltpVdb->spans = sm_list_create(ltpwm)) == 0
-	|| psm_catlg(ltpwm, LTP_VDBNAME, ltpVdbAddress) < 1)
+	|| psm_catlg(ltpwm, LTP_VDBNAME, ltpVdbAddress) < 0)
 	{
 		sdr_exit_xn(ltpSdr);
 		putErrmsg("Can't initialize volatile database.", NULL);
@@ -295,8 +297,9 @@ int	ltpInit(int estMaxExportSessions, int bytesReserved)
 	LtpDB		ltpdbBuf;
 	int		i;
 	PsmAddress	ltpVdbAddress;
+	PsmAddress	elt;
 
-	srand(time(NULL));
+	srandom(time(NULL));
 	if (ionAttach() < 0)
 	{
 		putErrmsg("LTP can't attach to ION.", NULL);
@@ -332,8 +335,9 @@ bytesReserved.", NULL);
 				- (iondb.receptionSpikeReserve + bytesReserved);
 		if (avblForBP < 1000000)
 		{
-			sprintf(avbltyMsg, "[?] LTP reservation size %d \
-limits space available for bundles to %ld bytes.", bytesReserved, avblForBP);
+			isprintf(avbltyMsg, sizeof avbltyMsg, "[?] LTP \
+reservation size %d limits space available for bundles to %ld bytes.",
+					bytesReserved, avblForBP);
 			writeMemo(avbltyMsg);
 		}
 
@@ -390,8 +394,8 @@ limits space available for bundles to %ld bytes.", bytesReserved, avblForBP);
 
 	ltpwm = getIonwm();
 	ltpMemIdx = getIonMemoryMgr();
-	ltpVdbAddress = psm_locate(ltpwm, LTP_VDBNAME);
-	if (ltpVdbAddress == 0)
+	if (psm_locate(ltpwm, LTP_VDBNAME, &ltpVdbAddress, &elt) < 0
+	|| elt == 0)
 	{
 		if (initializeVdb(ltpConstants) < 0)
 		{
@@ -563,8 +567,9 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 int	ltpAttach()
 {
 	PsmAddress	ltpVdbAddress;
+	PsmAddress	elt;
 
-	srand(time(NULL));
+	srandom(time(NULL));
 	if (ionAttach() < 0)
 	{
 		putErrmsg("LTP can't attach to ION.", NULL);
@@ -595,8 +600,8 @@ int	ltpAttach()
 
 	ltpwm = getIonwm();
 	ltpMemIdx = getIonMemoryMgr();
-	ltpVdbAddress = psm_locate(ltpwm, LTP_VDBNAME);
-	if (ltpVdbAddress == 0)
+	if (psm_locate(ltpwm, LTP_VDBNAME, &ltpVdbAddress, &elt) < 0
+	|| elt == 0)
 	{
 		putErrmsg("LTP volatile database not found.", NULL);
 		return -1;
@@ -616,7 +621,7 @@ void	findSpan(unsigned long engineId, LtpVspan **vspan,
 {
 	PsmAddress	elt;
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	for (elt = sm_list_first(ltpwm, ltpVdb->spans); elt;
 			elt = sm_list_next(ltpwm, elt))
 	{
@@ -718,7 +723,8 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 
 	if (maxSegmentSize < 508)
 	{
-		writeMemo("[?] Note that max segment size is less than 508.");
+		writeMemoNote("[?] Note max segment size less than 508",
+				utoa(maxSegmentSize));
 	}
 
 	sdr_begin_xn(ltpSdr);
@@ -1077,7 +1083,7 @@ static Object	insertLtpTimelineEvent(LtpEvent *newEvent)
 	Object	elt;
 		OBJ_POINTER(LtpEvent, event);
 
-checkSafety(ltpSdr);
+	CHKZERO(ionLocked());
 	eventObj = sdr_malloc(ltpSdr, sizeof(LtpEvent));
 	if (eventObj == 0)
 	{
@@ -1184,7 +1190,7 @@ int	enqueueNotice(LtpVclient *client, unsigned long sourceEngineId,
 		return 0;	/*	No client task to report to.	*/
 	}
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	noticeObj = sdr_malloc(ltpSdr, sizeof(LtpNotice));
 	if (noticeObj == 0)
 	{
@@ -1218,7 +1224,7 @@ static void	getExportSession(unsigned long sessionNbr, Object *sessionObj)
 {
 	Object	elt;
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	if (sdr_hash_retrieve(ltpSdr, ltpConstants->exportSessionsHash,
 			(char *) &sessionNbr, (Address *) &elt) == 1)
 	{
@@ -1254,7 +1260,7 @@ static void	cancelEvent(LtpEventType type, unsigned long refNbr1,
 
 static void	destroyDataXmitSeg(Object dsElt, Object dsObj, LtpXmitSeg *ds)
 {
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	if (ds->pdu.ckptSerialNbr != 0)
 	{
 		cancelEvent(LtpResendCheckpoint, 0, ds->sessionNbr,
@@ -1277,7 +1283,7 @@ static void	stopExportSession(ExportSession *session)
 	Object	segObj;
 		OBJ_POINTER(LtpXmitSeg, ds);
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	while ((elt = sdr_list_first(ltpSdr, session->redSegments)) != 0)
 	{
 		segObj = sdr_list_data(ltpSdr, elt);
@@ -1299,7 +1305,7 @@ static void	closeExportSession(Object sessionObj)
 	Object	elt;
 	Object	zcoRef;
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, ExportSession, session, sessionObj);
 
 	/*	Note that cancellation of an export session causes the
@@ -1362,7 +1368,7 @@ static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 		OBJ_POINTER(LtpSpan, span);
 	Object	elt;
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
 			vspan->spanElt));
 	if (sdr_hash_retrieve(ltpSdr, span->importSessionsHash,
@@ -1385,7 +1391,7 @@ static void	getCanceledSession(LtpVspan *vspan, unsigned long sessionNbr,
 	Object	elt;
 	Object	obj;
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
 			vspan->spanElt));
 	for (elt = sdr_list_first(ltpSdr, span->deadSessions); elt;
@@ -1411,7 +1417,7 @@ static void	destroyRsXmitSeg(Object rsElt, Object rsObj, LtpXmitSeg *rs)
 {
 	Object	elt;
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	cancelEvent(LtpResendReport, rs->remoteEngineId, rs->sessionNbr,
 			rs->pdu.rptSerialNbr);
 
@@ -1436,7 +1442,7 @@ checkSafety(ltpSdr);
 
 static void	destroyDataRecvSeg(Object dsElt, Object dsObj, LtpRecvSeg *ds)
 {
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	sdr_free(ltpSdr, ds->pdu.clientSvcData);
 	sdr_free(ltpSdr, dsObj);
 	sdr_list_delete(ltpSdr, dsElt, NULL, NULL);
@@ -1449,7 +1455,7 @@ static void	stopImportSession(ImportSession *session)
 		OBJ_POINTER(LtpXmitSeg, rs);
 		OBJ_POINTER(LtpRecvSeg, ds);
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	while ((elt = sdr_list_first(ltpSdr, session->rsSegments)) != 0)
 	{
 		segObj = sdr_list_data(ltpSdr, elt);
@@ -1486,7 +1492,7 @@ static void	closeImportSession(Object sessionObj)
 		OBJ_POINTER(LtpRecvSeg, ds);
 		OBJ_POINTER(LtpSpan, span);
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, ImportSession, session, sessionObj);
 	while ((elt = sdr_list_first(ltpSdr, session->rsSegments)) != 0)
 	{
@@ -1771,7 +1777,7 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 	int	radTime;
 		OBJ_POINTER(LtpSpan, span);
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	if (vspan->localXmitRate == 0)	/*	Should never be, but...	*/
 	{
 		radTime = 0;		/*	Avoid divide by zero.	*/
@@ -1879,7 +1885,8 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 		if (sm_SemEnded(vspan->segSemaphore))
 		{
-			sprintf(memo, "[i] LSO to engine %lu is stopped.",
+			isprintf(memo, sizeof memo,
+					"[i] LSO to engine %lu is stopped.",
 					vspan->engineId);
 			writeMemo(memo);
 			return 0;
@@ -2193,7 +2200,7 @@ static Object	enqueueCancelReqSegment(LtpXmitSeg *segment,
 	Sdnv	sdnv;
 	Object	segmentObj;
 
-checkSafety(ltpSdr);
+	CHKZERO(ionLocked());
 	segment->sessionNbr = sessionNbr;
 	segment->remoteEngineId = span->engineId;
 	encodeSdnv(&sdnv, sessionNbr);
@@ -2344,7 +2351,7 @@ static Object	enqueueAckSegment(Object spanObj, Object segmentObj)
 		OBJ_POINTER(LtpSpan, span);
 	Object	elt;
 
-checkSafety(ltpSdr);
+	CHKZERO(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
 	elt = sdr_list_insert_first(ltpSdr, span->segments, segmentObj);
 	return elt;
@@ -2357,7 +2364,7 @@ static int	constructCancelAckSegment(LtpXmitSeg *segment, Object spanObj,
 	Sdnv	sdnv;
 	Object	segmentObj;
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
 	segment->sessionNbr = sessionNbr;
 	segment->remoteEngineId = span->engineId;
@@ -2419,7 +2426,7 @@ static int	initializeRs(LtpXmitSeg *rs, int baseOhdLength,
 	Sdnv	sdnv;
 
 	rs->ohdLength = baseOhdLength;
-	do rs->pdu.rptSerialNbr = rand();
+	do rs->pdu.rptSerialNbr = random();
 		while (rs->pdu.rptSerialNbr == 0);
 	encodeSdnv(&sdnv, rs->pdu.rptSerialNbr);
 	rs->ohdLength += sdnv.length;
@@ -2433,10 +2440,6 @@ static int	initializeRs(LtpXmitSeg *rs, int baseOhdLength,
 		return -1;
 	}
 
-#if 0
-printf("{%lu", rs->sessionNbr);
-fflush(stdout);
-#endif
 	return 0;
 }
 
@@ -2447,7 +2450,7 @@ static int	constructReceptionClaim(LtpXmitSeg *rs, int lowerBound,
 	LtpReceptionClaim	claim;
 	Sdnv			sdnv;
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	claimObj = sdr_malloc(ltpSdr, sizeof(LtpReceptionClaim));
 	if (claimObj == 0)
 	{
@@ -2467,10 +2470,6 @@ checkSafety(ltpSdr);
 		return -1;
 	}
 
-#if 0
-printf(" %d-%d", lowerBound, upperBound);
-fflush(stdout);
-#endif
 	return 0;
 }
 
@@ -2481,7 +2480,7 @@ static int	constructRs(LtpXmitSeg *rs, int claimCount,
 	Object	rsObj;
 		OBJ_POINTER(LtpSpan, span);
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	encodeSdnv(&sdnv, rs->pdu.upperBound);
 	rs->ohdLength += sdnv.length;
 	encodeSdnv(&sdnv, claimCount);
@@ -2503,10 +2502,6 @@ checkSafety(ltpSdr);
 	sdr_write(ltpSdr, rsObj, (char *) rs, sizeof(LtpXmitSeg));
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
 	signalLso(span->engineId);
-#if 0
-printf(" (%lu-%lu)}", rs->pdu.lowerBound, rs->pdu.upperBound);
-fflush(stdout);
-#endif
 	return 0;
 }
 
@@ -2532,7 +2527,7 @@ int		shortfall;
 char		buf[256];
 #endif
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	if (session->reportsCount == MAX_NBR_OF_REPORTS)
 	{
 #if LTPDEBUG
@@ -2686,7 +2681,7 @@ static int	constructReportAckSegment(LtpSpan *span, Object spanObj,
 
 	/*	Report acknowledgment by the local engine (sender).	*/
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	memset((char *) &segment, 0, sizeof(LtpXmitSeg));
 	segment.sessionNbr = sessionNbr;
 	segment.remoteEngineId = span->engineId;
@@ -2728,7 +2723,7 @@ static int	startImportSession(Object spanObj, unsigned long sessionNbr,
 	Object	elt;
 		OBJ_POINTER(LtpSpan, span);
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
 	while (span->maxImportSessions <= sdr_list_length(ltpSdr,
 				span->importSessions))
@@ -2786,7 +2781,7 @@ static long	insertDataSegment(ImportSession *session, LtpRecvSeg *segment,
 	/*	If reception is already complete or the session has
 	 *	been canceled, discard the segment.			*/
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	if (session->redSegments == 0)
 	{
 #if LTPDEBUG
@@ -3210,7 +3205,7 @@ static int	insertClaim(ExportSession *session, LtpReceptionClaim *claim)
 {
 	Object	claimObj;
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	claimObj = sdr_malloc(ltpSdr, sizeof(LtpReceptionClaim));
 	if (claimObj == 0)
 	{
@@ -3253,7 +3248,7 @@ static int	constructDataSegment(Sdr sdr, ExportSession *session,
 char		buf[256];
 #endif
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	extent = (ExportExtent *) lyst_data(extentElt);
 	segmentObj = sdr_malloc(ltpSdr, sizeof(LtpXmitSeg));
 	if (segmentObj == 0)
@@ -3313,7 +3308,7 @@ checkSafety(ltpSdr);
 		{
 			encodeSdnv(&rsnSdnv, reportSerialNbr);
 			worstCaseOverhead += rsnSdnv.length;
-			do checkpointSerialNbr = rand();
+			do checkpointSerialNbr = random();
 				while (checkpointSerialNbr == 0);
 			encodeSdnv(&cpsnSdnv, checkpointSerialNbr);
 			worstCaseOverhead += cpsnSdnv.length;
@@ -3511,7 +3506,7 @@ int	issueSegments(Sdr sdr, LtpSpan *span, LtpVspan *vspan,
 	LystElt		extentElt;
 	ExportExtent	*extent;
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	if (session->svcDataObjects == 0)	/*	Canceled.	*/
 	{
 		return 0;
@@ -3598,7 +3593,7 @@ static void	getSessionContext(LtpDB *ltpdb, unsigned long sessionNbr,
 			Object *spanObj, LtpSpan *spanBuf, LtpVspan **vspan,
 			PsmAddress *vspanElt)
 {
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	*spanObj = 0;		/*	Default: no context.		*/
 	getExportSession(sessionNbr, sessionObj);
 	if (*sessionObj != 0)	/*	Known session.			*/
@@ -4551,7 +4546,7 @@ void	ltpStartXmit(LtpVspan *vspan)
 	Object	spanObj;
 	LtpSpan	span;
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
 	sdr_read(ltpSdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	if (span.lengthOfBufferedBlock == 0)
@@ -4567,7 +4562,7 @@ checkSafety(ltpSdr);
 
 void	ltpStopXmit(LtpVspan *vspan)
 {
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	if (vspan->blockBuffer)
 	{
 		psm_free(ltpwm, vspan->blockBuffer);
@@ -4584,7 +4579,7 @@ static void	suspendTimer(time_t suspendTime, LtpTimer *timer,
 {
 	time_t	latestAckXmitStartTime;
 
-checkSafety(ltpSdr);
+	CHKVOID(ionLocked());
 	latestAckXmitStartTime = timer->segArrivalTime + qTime;
 	if (latestAckXmitStartTime < suspendTime)
 	{
@@ -4621,7 +4616,7 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 	ExportSession	xsessionBuf;
 	LtpXmitSeg	dsBuf;
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
 	qTime = span->remoteQtime;
@@ -4730,7 +4725,7 @@ static int	resumeTimer(time_t resumeTime, LtpTimer *timer,
 	int		additionalDelay;
 	LtpEvent	event;
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	earliestAckXmitStartTime = timer->segArrivalTime + qTime;
 	additionalDelay = resumeTime - earliestAckXmitStartTime;
 	if (additionalDelay > 0)
@@ -4777,7 +4772,7 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 	ExportSession	xsessionBuf;
 	LtpXmitSeg	dsBuf;
 
-checkSafety(ltpSdr);
+	CHKERR(ionLocked());
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
 	qTime = span->remoteQtime;

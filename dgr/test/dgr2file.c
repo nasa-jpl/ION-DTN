@@ -27,7 +27,7 @@ static FILE	*openFile()
 	FILE	*outputFile;
 
 	cycleNbr++;
-	sprintf(fileName, "file_copy_%d", cycleNbr);
+	isprintf(fileName, sizeof fileName, "file_copy_%d", cycleNbr);
 	outputFile = fopen(fileName, "a");
 	if (outputFile == NULL)
 	{

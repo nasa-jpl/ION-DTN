@@ -1146,7 +1146,7 @@ extern void		releaseDictionary(char *dictionary);
 extern int		parseEidString(char *eidString, MetaEid *metaEid,
 				VScheme **scheme, PsmAddress *schemeElt);
 extern void		restoreEidString(MetaEid *metaEid);
-extern char		*printEid(EndpointId *eid, char *dictionary);
+extern int		printEid(EndpointId *eid, char *dictionary, char **str);
 
 extern int		startBpTask(Object cmd, Object cmdparms, int *pid);
 

@@ -379,7 +379,7 @@ void	inferUtcDelta(char *correctUtcTimeStamp)
 	int	delta = clocktime - correctUtcTime;
 	char	buffer[80];
 
-	setDeltaFromUTC(delta);
+	CHKVOID(setDeltaFromUTC(delta) == 0);
 	sprintf(buffer, "[i] Delta from UTC revised, is now %d.", delta);
 	writeMemo(buffer);
 }

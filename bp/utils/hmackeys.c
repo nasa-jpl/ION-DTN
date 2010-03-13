@@ -56,7 +56,7 @@ static int	processLine(char *line)
 
 	for (i = 0; i < 20; i++)
 	{
-		val = rand();
+		val = random();
 		key[i] = val & 0xff;
 	}
 
@@ -77,7 +77,7 @@ int	main(int argc, char **argv)
 	FILE	*cmdFile;
 	char	line[80];
 
-	srand(time(NULL));
+	srandom(time(NULL));
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 		while (1)

@@ -22,70 +22,382 @@
 #include "lyst.h"
 #include "sdrxn.h"
 
+static PsmPartition	_sdrwm(sm_WmParms *parms);
+
 #ifndef SDR_TRACE
-const char	*noTraceMsg = "Tracing disabled; recompile with -DSDR_TRACE.";
+char	*_noTraceMsg()
+{
+	return "Tracing disabled; recompile with -DSDR_TRACE.";
+}
 #endif
-const char	*notInitMsg = "SDR system is not initialized.";
-const char	*apiErrMsg = "NULL and/or invalid parameter(s).";
-const char	*notFoundMsg = "Item not found";
-const char	*noSemaphoreMsg = "Failed trying to create semaphore.";
-const char	*noMemoryMsg = "Not enough available SDR working memory.";
-const char	*violationMsg = "SDR boundaries or integrity violation.";
-const char	*notInXnMsg = "Not in a transaction.";
 
-#define SdrSchName	"sdrsch"
+char	*_notInXnMsg()
+{
+	return "sdr_in_xn(sdrv)";
+}
 
-/*		SDR working memory area.				*/
+char	*_apiErrMsg()
+{
+	return "API values";
+}
 
-static PsmView		sdrWorkingMemory;
-static PsmPartition	sdrwm = &sdrWorkingMemory;
-static int		sdrwmId = -1;
-static long		sdrwmSize = 0;
-static int		sdrMemory;	/*	For local lists only.	*/
-static SdrControlHeader	*sch = NULL;
-SdrMap			mapImage;
+char	*_noMemoryMsg()
+{
+	return "Not enough available SDR working memory.";
+}
+
+char	*_violationMsg()
+{
+	return "SDR boundaries or integrity violation.";
+}
+
+static char	*_SdrSchName()
+{
+	return "sdrsch";
+}
+
+/*	*	*	SDR working memory area.	*	*	*/
+
+static int	_sdrMemory(int *memmgrIdx)
+{
+	static int	idx = -1;
+
+	if (memmgrIdx)
+	{
+		idx = *memmgrIdx;
+	}
+
+	return idx;
+}
+
+static long	_sdrwmSize(long *wmsize)
+{
+	static long	size = 0;
+
+	if (wmsize)
+	{
+		size = *wmsize;
+	}
+
+	return size;
+}
+
+static SdrControlHeader	*_sch(SdrControlHeader **schp)
+{
+	static SdrControlHeader	*sch = NULL;
+	PsmPartition		sdrwm;
+	PsmAddress		elt;
+	SdrState		*sdr;
+	PsmAddress		controlHeaderAddress;
+
+	if (schp == NULL)		/*	Just retrieving.	*/
+	{
+		return sch;
+	}
+
+	/*	Managing the SdrControlHeader.				*/
+
+	if (*schp)			/*	Shutdown.		*/
+	{
+		/*	Deactivate all sdrs in list.			*/
+
+		if (sch == NULL)
+		{
+			return NULL;	/*	Nothing to do.		*/
+		}
+
+		sdrwm = _sdrwm(NULL);
+		if (sch->lock != -1)
+		{
+			/*	Note: wait until sdrs list is no
+			 *	longer in use before ending access
+			 *	to the SDRs and destroying the sch
+			 *	semaphore.				*/
+
+			sm_SemTake(sch->lock);
+			for (elt = sm_list_first(sdrwm, sch->sdrs); elt;
+					elt = sm_list_next(sdrwm, elt))
+			{
+				sdr = (SdrState *)
+					psp(sdrwm, sm_list_data(sdrwm, elt));
+				CHKNULL(sdr);
+				if (sdr->sdrSemaphore != -1)
+				{
+					sm_SemTake(sdr->sdrSemaphore);
+					sm_SemEnd(sdr->sdrSemaphore);
+					microsnooze(500000);
+					sm_SemDelete(sdr->sdrSemaphore);
+					sdr->sdrSemaphore = -1;
+				}
+			}
+
+			sm_SemDelete(sch->lock);
+		}
+
+		oK(psm_uncatlg(sdrwm, _SdrSchName()));
+		psm_free(sdrwm, psa(sdrwm, sch));
+		sch = NULL;
+		return NULL;
+	}
+
+	/*	Creating the SdrControlHeader.				*/
+
+	sdrwm = _sdrwm(NULL);
+	if (psm_locate(sdrwm, _SdrSchName(), &controlHeaderAddress, &elt) < 0)
+	{
+		putErrmsg("Can't search for SDR control header.", NULL);
+		return NULL;
+	}
+
+	if (elt)			/*	Header already exists.	*/
+	{
+		sch = (SdrControlHeader *) psp(sdrwm, controlHeaderAddress);
+		CHKNULL(sch);
+		sm_SemUnwedge(sch->lock, 3);
+		sm_list_unwedge(sdrwm, sch->sdrs, 3);
+		return sch;
+	}
+
+	/*	Header needs to be created.				*/
+
+	controlHeaderAddress = psm_zalloc(sdrwm, sizeof(SdrControlHeader));
+	if (controlHeaderAddress == 0)
+	{
+		putErrmsg(_noMemoryMsg(), NULL);
+		return NULL;		/*	Not enough memory.	*/
+	}
+
+	/*	Initialize the control header.				*/
+
+	sch = (SdrControlHeader *) psp(sdrwm, controlHeaderAddress);
+	CHKNULL(sch);
+	sch->lock = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+	if (sch->lock == SM_SEM_NONE)
+	{
+		putErrmsg("Failed to create SDR lock semaphore.", NULL);
+		return NULL;		/*	Can't create semaphore.	*/
+	}
+
+	sch->sdrs = sm_list_create(sdrwm);
+	if (sch->sdrs == 0)
+	{
+		putErrmsg(_noMemoryMsg(), NULL);
+		return NULL;		/*	Not enough memory.	*/
+	}
+#if 0
+	sch->sdrwmIsPrivate = wmIsPrivate;
+	sch->sdrwmKey = wmKey;
+
+	/*	NOTE: psm_manage() succeeded, so wmName must fit into
+	 *	32-byte buffer.						*/
+
+	istrcpy(sch->sdrwmName, wmName, sizeof sch->sdrwmName);
+#endif
+	/*	Store location of control header in catalog
+		of the shared SDR working memory, for access
+		by subsequently started processes.		*/
+
+	if (psm_catlg(sdrwm, _SdrSchName(), controlHeaderAddress) < 0)
+	{
+		putErrmsg("Can't catalog SDR control header.", NULL);
+		return NULL;		/*	Can't catalog.		*/
+	}
+
+	return sch;
+}
+
+void	*allocFromSdrMemory(char *fileName, int lineNbr, size_t length)
+{
+	PsmPartition	sdrwm = _sdrwm(NULL);
+	PsmAddress	address;
+	void		*block;
+
+	address = Psm_zalloc(fileName, lineNbr, sdrwm, length);
+	if (address == 0)
+	{
+		_putErrmsg(fileName, lineNbr, _noMemoryMsg(), NULL);
+		return NULL;
+	}
+
+	block = psp(sdrwm, address);
+	memset(block, 0, length);
+	return block;
+}
+
+void	releaseToSdrMemory(char *fileName, int lineNbr, void *block)
+{
+	PsmPartition	sdrwm = _sdrwm(NULL);
+
+	Psm_free(fileName, lineNbr, sdrwm, psa(sdrwm, (char *) block));
+}
+
+void	*sdrMemAtoP(unsigned long address)
+{
+	return (void *) psp(_sdrwm(NULL), address);
+}
+
+unsigned long sdrMemPtoA(void *pointer)
+{
+	return (unsigned long) psa(_sdrwm(NULL), pointer);
+}
+
+static PsmPartition	_sdrwm(sm_WmParms *parms)
+{
+	static int		sdrwmId = 0;
+	static PsmView		sdrWorkingMemory;
+	static PsmPartition	sdrwm = NULL;
+	static int		memmgrIdx; /*	For local lists only.	*/
+	static int		sdrwmIsPrivate = 0;
+	static MemAllocator	sdrmtake = allocFromSdrMemory;
+	static MemDeallocator	sdrmrlse = releaseToSdrMemory;
+	static MemAtoPConverter	sdrmatop = sdrMemAtoP;
+	static MemPtoAConverter	sdrmptoa = sdrMemPtoA;
+	static SdrControlHeader	*sch = NULL;
+
+	if (parms)
+	{
+		if (parms->wmSize == -1)	/*	Shutdown.	*/
+		{
+			if (sdrwm)
+			{
+				oK(_sch(&sch));	/*	Destroy.	*/
+				sch = NULL;
+				if (sdrwmIsPrivate)
+				{
+					memmgr_destroy(sdrwmId, &sdrwm);
+				}
+			}
+
+			sdrwmId = 0;
+			sdrwm = NULL;
+			memmgrIdx = -1;
+			oK(_sdrMemory(&memmgrIdx));
+			return NULL;
+		}
+
+		/*	Opening SDR working memory.			*/
+
+		if (sdrwm)			/*	Redundant.	*/
+		{
+			return sdrwm;
+		}
+
+		/*	Use built-in defaults as needed.		*/
+
+		if (parms->wmSize == 0)
+		{
+			parms->wmSize = 1000000;
+		}
+
+		if (parms->wmKey == SM_NO_KEY)
+		{
+			sdrwmIsPrivate = 1;
+			parms->wmKey = SDR_SM_KEY;
+		}
+
+		if (parms->wmName == NULL)
+		{
+			parms->wmName = SDR_SM_NAME;
+		}
+
+		sdrwm = &sdrWorkingMemory;
+		if (memmgr_open(parms->wmKey, parms->wmSize, &parms->wmAddress,
+				&sdrwmId, parms->wmName, &sdrwm, &memmgrIdx,
+				sdrmtake, sdrmrlse, sdrmatop, sdrmptoa) < 0)
+		{
+			putErrmsg("Can't open SDR working memory.", NULL);
+			if (sdrwmIsPrivate)
+			{
+				memmgr_destroy(sdrwmId, &sdrwm);
+			}
+
+			sdrwmId = 0;
+			sdrwm = NULL;
+			memmgrIdx = -1;
+			return NULL;
+		}
+
+		oK(_sdrMemory(&memmgrIdx));
+		oK(_sdrwmSize(&parms->wmSize));
+
+		/*	Initialize SDR control header.			*/
+
+		sch = NULL;
+		sch = _sch(&sch);
+		if (sch == NULL)
+		{
+			putErrmsg("Can't create SDR control header.", NULL);
+			if (sdrwmIsPrivate)
+			{
+				memmgr_destroy(sdrwmId, &sdrwm);
+			}
+
+			sdrwmId = 0;
+			sdrwm = NULL;
+			memmgrIdx = -1;
+			oK(_sdrMemory(&memmgrIdx));
+			return NULL;
+		}
+	}
+
+	return sdrwm;
+}
+
+SdrMap		*_mapImage(Sdr sdrv)
+{
+	static SdrMap	map;
+
+	if (sdrv->sdr->configFlags & SDR_IN_DRAM)
+	{
+		return (SdrMap *) (sdrv->dbsm);
+	}
+
+	sdrFetch(map, 0);
+	return &map;
+}
 
 /*	*	Mutual exclusion functions	*	*	*	*/
 
-static void	lockSdr(SdrState *sdr)
+static int	lockSdr(SdrState *sdr)
 {
-	if (sdr->sdrSemaphore != -1)
+	if (sdr->sdrSemaphore == -1
+	|| sm_SemTake(sdr->sdrSemaphore) < 0)
 	{
-		if (sm_SemTake(sdr->sdrSemaphore) < 0)
-		{
-			sm_Abort();
-		}
-
-		sdr->sdrOwnerTask = sm_TaskIdSelf();
-		sdr->sdrOwnerThread = pthread_self();
-		sdr->xnDepth = 1;
+		return -1;
 	}
+
+	sdr->sdrOwnerTask = sm_TaskIdSelf();
+	sdr->sdrOwnerThread = pthread_self();
+	sdr->xnDepth = 1;
+	return 0;
 }
 
-void	takeSdr(SdrState *sdr)
+int	takeSdr(SdrState *sdr)
 {
-	REQUIRE(sdr);
+	CHKERR(sdr);
 	if (sdr->sdrOwnerTask == sm_TaskIdSelf()
 	&& pthread_equal(sdr->sdrOwnerThread, pthread_self()))
 	{
 		sdr->xnDepth++;
+		return 0;
 	}
-	else
-	{
-		lockSdr(sdr);
-	}
+
+	return lockSdr(sdr);
 }
 
 static void	unlockSdr(SdrState *sdr)
 {
 	sdr->sdrOwnerTask = -1;
 	sdr->sdrOwnerThread = 0;
-	sm_SemGive(sdr->sdrSemaphore);
+	if (sdr->sdrSemaphore != -1)
+	{
+		sm_SemGive(sdr->sdrSemaphore);
+	}
 }
 
 void	releaseSdr(SdrState *sdr)
 {
-	REQUIRE(sdr);
+	CHKVOID(sdr);
 	if (sdr->sdrOwnerTask == sm_TaskIdSelf()
 	&& pthread_equal(sdr->sdrOwnerThread, pthread_self()))
 	{
@@ -99,49 +411,12 @@ void	releaseSdr(SdrState *sdr)
 
 /*	*	SDR system administration functions	*	*	*/
 
-MemAllocator		sdrmtake;
-MemDeallocator		sdrmrlse;
-MemAtoPConverter	sdrmatop;
-MemPtoAConverter	sdrmptoa;
-
-static void	*allocFromSdrMemory(char *fileName, int lineNbr, size_t length)
-{
-	PsmAddress	address;
-	void		*block;
-
-	address = Psm_zalloc(fileName, lineNbr, sdrwm, length);
-	if (address == 0)
-	{
-		_putErrmsg(fileName, lineNbr, noMemoryMsg, NULL);
-		return NULL;
-	}
-
-	block = psp(sdrwm, address);
-	memset(block, 0, length);
-	return block;
-}
-
-static void	releaseToSdrMemory(char *fileName, int lineNbr, void *block)
-{
-	Psm_free(fileName, lineNbr, sdrwm, psa(sdrwm, (char *) block));
-}
-
-static void	*sdrMemAtoP(unsigned long address)
-{
-	return (void *) psp(sdrwm, address);
-}
-
-static unsigned long sdrMemPtoA(void *pointer)
-{
-	return (unsigned long) psa(sdrwm, pointer);
-}
-
 int	Sdr_initialize(long wmSize, char *wmPtr, int wmKey, char *wmName)
 {
-	PsmAddress	controlHeaderAddress;
-	int		wmIsPrivate = 0;
+	sm_WmParms	wmparms;
+	PsmPartition	sdrwm;
 
-	if (sdrwmId != -1)	/*	Already initialized.		*/
+	if (_sdrwm(NULL) != NULL)	/*	Already initialized.	*/
         {
 		return 0;
 	}
@@ -156,89 +431,15 @@ int	Sdr_initialize(long wmSize, char *wmPtr, int wmKey, char *wmName)
 
 	/*	Attach to SDR's own shared working memory partition.	*/
    
-	if (wmSize == 0)	/*	Use built-in default.		*/
-	{
-		wmSize = 1000000;
-	}
-
-	if (wmKey == SM_NO_KEY)
-	{
-		wmIsPrivate = 1;
-		wmKey = SDR_SM_KEY;
-	}
-
-	if (wmName == NULL)
-	{
-		wmName = SDR_SM_NAME;
-	}
-
-	sdrmtake = allocFromSdrMemory;
-	sdrmrlse = releaseToSdrMemory;
-	sdrmatop = sdrMemAtoP;
-	sdrmptoa = sdrMemPtoA;
-	if (memmgr_open(wmKey, wmSize, &wmPtr, &sdrwmId, wmName, &sdrwm,
-		&sdrMemory, sdrmtake, sdrmrlse, sdrmatop, sdrmptoa) < 0)
+	wmparms.wmKey = wmKey;
+	wmparms.wmSize = wmSize;
+	wmparms.wmAddress = wmPtr;
+	wmparms.wmName = wmName;
+	sdrwm = _sdrwm(&wmparms);
+	if (sdrwm == NULL)
 	{
 		putErrmsg("Can't open SDR working memory.", NULL);
 		return -1;
-	}
-
-	/*	Initialize SDR global control header if necessary.	*/
-
-	sdrwmSize = wmSize;
-	controlHeaderAddress = psm_locate(sdrwm, SdrSchName);
-	if (controlHeaderAddress)	/*	Header already exists.	*/
-	{
-		sch = (SdrControlHeader *) psp(sdrwm, controlHeaderAddress);
-		REQUIRE(sch);
-		sm_SemUnwedge(sch->lock, 3);
-		sm_list_unwedge(sdrwm, sch->sdrs, 3);
-	}
-	else
-	{
-		controlHeaderAddress = psm_zalloc(sdrwm,
-				sizeof(SdrControlHeader));
-		if (controlHeaderAddress == 0)
-		{
-			putErrmsg(noMemoryMsg, NULL);
-			return -1;	/*	Not enough memory.	*/
-		}
-
-		/*	Initialize the control header.			*/
-
-		sch = (SdrControlHeader *) psp(sdrwm, controlHeaderAddress);
-		REQUIRE(sch);
-		sch->lock = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-		if (sch->lock == SM_SEM_NONE)
-		{
-			putErrmsg(noSemaphoreMsg, NULL);
-			return -1;	/*	Can't create semaphore.	*/
-		}
-
-		sch->sdrs = sm_list_create(sdrwm);
-		if (sch->sdrs == 0)
-		{
-			putErrmsg(noMemoryMsg, NULL);
-			return -1;	/*	Not enough memory.	*/
-		}
-
-		sch->sdrwmIsPrivate = wmIsPrivate;
-		sch->sdrwmKey = wmKey;
-
-		/*	NOTE: psm_manage() succeeded, so wmName must
-		 *	fit into 32-byte buffer.			*/
-
-		strcpy(sch->sdrwmName, wmName);
-
-		/*	Store location of control header in catalog
-			of the shared SDR working memory, for access
-			by subsequently started processes.		*/
-
-		if (psm_catlg(sdrwm, SdrSchName, controlHeaderAddress) < 1)
-		{
-			putErrmsg("Can't catalog SDR control header.", NULL);
-			return -1;	/*	Can't catalog.		*/
-		}
 	}
 
 	return 0;
@@ -246,70 +447,35 @@ int	Sdr_initialize(long wmSize, char *wmPtr, int wmKey, char *wmName)
 
 void	sdr_wm_usage(PsmUsageSummary *usage)
 {
-	REQUIRE(usage);
-	psm_usage(sdrwm, usage);
+	CHKVOID(usage);
+	psm_usage(_sdrwm(NULL), usage);
 }
 
 void	sdr_shutdown()		/*	Ends SDR service on machine.	*/
 {
-	int		wmIsPrivate = 0;
-	PsmAddress	elt;
-	SdrState	*sdr;
+	sm_WmParms	wmparms;
 
-	if (sdrwm == NULL)	/*	Nothing to do.			*/
+	if (_sdrwm(NULL) == NULL)	/*	Nothing to do.		*/
 	{
 		return;
 	}
 
-	/*	SDR working memory has been allocated.			*/
+	wmparms.wmSize = -1;
+	oK(_sdrwm(&wmparms));
+}
 
-	if (sch)		/*	Control header exists.		*/
+int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv)
+{
+	_postErrmsg(fileName, lineNbr,
+			"Assertion failed, SDR transaction canceled.", arg);
+	writeErrmsgMemos();
+	crashXn(sdrv);
+	if (_coreFileNeeded(NULL))
 	{
-		wmIsPrivate = sch->sdrwmIsPrivate;
-
-		/*	Deactivate all sdrs in list.			*/
-
-		if (sch->lock != -1)
-		{
-			/*	Note: wait until sdrs list is no
-			 *	longer in use before ending access
-			 *	to the SDRs and destroying the sch
-			 *	semaphore.				*/
-
-			sm_SemTake(sch->lock);
-			for (elt = sm_list_first(sdrwm, sch->sdrs); elt;
-					elt = sm_list_next(sdrwm, elt))
-			{
-				sdr = (SdrState *)
-					psp(sdrwm, sm_list_data(sdrwm, elt));
-				REQUIRE(sdr);
-				if (sdr->sdrSemaphore != -1)
-				{
-					sm_SemTake(sdr->sdrSemaphore);
-					sm_SemEnd(sdr->sdrSemaphore);
-					microsnooze(500000);
-					sm_SemDelete(sdr->sdrSemaphore);
-					sdr->sdrSemaphore = -1;
-				}
-			}
-
-			sm_SemDelete(sch->lock);
-		}
-
-		psm_uncatlg(sdrwm, SdrSchName);
-		psm_free(sdrwm, psa(sdrwm, sch));
-		sch = NULL;
+		sm_Abort();
 	}
 
-	/*	Wipe out the working memory used for SDR operations
-	 *	if necessary.						*/
-
-	if (wmIsPrivate)
-	{
-		/*	Working memory is private, owned by SDR system.	*/
-
-		memmgr_destroy(sdrwmId, &sdrwm);
-	}
+	return 1;
 }
 
 /*	*	Transaction utility functions	*	*	*	*/
@@ -453,8 +619,9 @@ static void	clearTransaction(Sdr sdrv)
 
 	if (sdrv->sdr->configFlags & SDR_REVERSIBLE)
 	{
-		sprintf(logfilename, "%s%c%s.sdrlog", sdrv->sdr->pathName,
-				ION_PATH_DELIMITER, sdrv->sdr->name);
+		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
+				sdrv->sdr->pathName, ION_PATH_DELIMITER,
+				sdrv->sdr->name);
 		sdrv->logfile = open(logfilename, O_RDWR | O_CREAT | O_TRUNC,
 				0777);
 		if (sdrv->logfile == -1)
@@ -604,7 +771,7 @@ static int	reloadLogEntries(Lyst logEntries, int logfile)
 
 static long	getBigBuffer(char **buffer)
 {
-	long	bufsize = sdrwmSize;
+	long	bufsize = _sdrwmSize(NULL);
 
 	/*	Temporarily take large buffer from SDR working memory.	*/
 
@@ -646,6 +813,7 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 	int	dbfile;
 	long	lengthRemaining;
 	size_t	lengthToWrite;
+	SdrMap	map;
 
 	bufsize = getBigBuffer(&buffer);
 	if (bufsize < 0)
@@ -685,9 +853,9 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 	}
 
 	MRELEASE(buffer);
-	initSdrMap(&mapImage, sdr);
+	initSdrMap(&map, sdr);
 	if (lseek(dbfile, 0, SEEK_SET) < 0
-	|| write(dbfile, (char *) &mapImage, sizeof mapImage) < sizeof mapImage
+	|| write(dbfile, (char *) &map, sizeof map) < sizeof map
 	|| lseek(dbfile, 0, SEEK_SET) < 0)
 	{
 		close(dbfile);
@@ -702,28 +870,30 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 int	sdr_load_profile(char *name, int configFlags, long heapWords,
 		int memKey, char *pathName)
 {
-	PsmAddress	elt;
-	SdrState	*sdr;
-	PsmAddress	newSdrAddress;
-	long		limit;
-	char		logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
-	int		logfile = -1;
-	Lyst		logEntries = NULL;
-	char		dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
-	int		dbfile = -1;
-	char		*dbsm;
-	int		dbsmId;
+	PsmPartition		sdrwm = _sdrwm(NULL);
+	SdrControlHeader	*sch = _sch(NULL);
+	PsmAddress		elt;
+	SdrState		*sdr;
+	PsmAddress		newSdrAddress;
+	long			limit;
+	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
+	int			logfile = -1;
+	Lyst			logEntries = NULL;
+	char			dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
+	int			dbfile = -1;
+	char			*dbsm;
+	int			dbsmId;
 
-	REQUIRE(sdrwm);
-	REQUIRE(sch);
-	REQUIRE(name);
-	REQUIRE(pathName);
+	CHKERR(sdrwm);
+	CHKERR(sch);
+	CHKERR(name);
+	CHKERR(pathName);
 	sm_SemTake(sch->lock);
 	for (elt = sm_list_first(sdrwm, sch->sdrs); elt;
 			elt = sm_list_next(sdrwm, elt))
 	{
 		sdr = (SdrState *) psp(sdrwm, sm_list_data(sdrwm, elt));
-		REQUIRE(sdr);
+		CHKERR(sdr);
 		if (strcmp(sdr->name, name) == 0)
 		{
 			sm_SemGive(sch->lock);
@@ -736,8 +906,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 				return 1;	/*	Profile loaded.	*/
 			}
 
-			errno = EINVAL;
-			putSysErrmsg("Wrong profile for this SDR", name);
+			putErrmsg("Wrong profile for this SDR.", name);
 			return -1;
 		}
 	}
@@ -755,7 +924,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	sdr = (SdrState *) psp(sdrwm, newSdrAddress);
 	memset(sdr, 0, sizeof(SdrState));
 	limit = sizeof(sdr->name) - 1;
-	strncpy(sdr->name, name, limit);
+	istrcpy(sdr->name, name, limit);
 	sdr->configFlags = configFlags;
 	sdr->initHeapWords = heapWords;
 	sdr->heapSize = heapWords * WORD_SIZE;
@@ -780,7 +949,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	sdr->traceKey = sm_GetUniqueKey();
 	sdr->traceSize = 0;
 	limit = sizeof(sdr->pathName) - 1;
-	strncpy(sdr->pathName, pathName, limit);
+	istrcpy(sdr->pathName, pathName, limit);
 
 	/*	Add SDR to linked list of defined SDRs.			*/
 
@@ -798,8 +967,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 
 	if (configFlags & SDR_REVERSIBLE)
 	{
-		sprintf(logfilename, "%s%c%s.sdrlog", sdr->pathName,
-				ION_PATH_DELIMITER, name);
+		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
+				sdr->pathName, ION_PATH_DELIMITER, name);
 		logfile = open(logfilename, O_RDWR | O_CREAT | O_APPEND, 0777);
 		if (logfile == -1)
 		{
@@ -807,11 +976,11 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 			return -1;
 		}
 
-		logEntries = lyst_create_using(sdrMemory);
+		logEntries = lyst_create_using(_sdrMemory(NULL));
 		if (logEntries == 0)
 		{
 			close(logfile);
-			putErrmsg(noMemoryMsg, NULL);
+			putErrmsg(_noMemoryMsg(), NULL);
 			return -1;
 		}
 
@@ -826,8 +995,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 
 	if (configFlags & SDR_IN_FILE)
 	{
-		sprintf(dbfilename, "%s%c%s.sdr", sdr->pathName,
-			       ION_PATH_DELIMITER, name);
+		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
+				sdr->pathName, ION_PATH_DELIMITER, name);
 		dbfile = open(dbfilename, O_RDWR, 0777);
 		if (dbfile == -1)
 		{
@@ -949,21 +1118,23 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 int	sdr_reload_profile(char *name, int configFlags, long heapWords,
 		int memKey, char *pathName)
 {
-	PsmAddress	elt;
-	PsmAddress	sdrAddress;
-	SdrState	*sdr;
+	PsmPartition		sdrwm = _sdrwm(NULL);
+	SdrControlHeader	*sch = _sch(NULL);
+	PsmAddress		elt;
+	PsmAddress		sdrAddress;
+	SdrState		*sdr;
 
-	REQUIRE(sdrwm);
-	REQUIRE(sch);
-	REQUIRE(name);
-	REQUIRE(pathName);
+	CHKERR(sdrwm);
+	CHKERR(sch);
+	CHKERR(name);
+	CHKERR(pathName);
 	sm_SemTake(sch->lock);
 	for (elt = sm_list_first(sdrwm, sch->sdrs); elt;
 			elt = sm_list_next(sdrwm, elt))
 	{
 		sdrAddress = sm_list_data(sdrwm, elt);
 		sdr = (SdrState *) psp(sdrwm, sdrAddress);
-		REQUIRE(sdr);
+		CHKERR(sdr);
 		if (strcmp(sdr->name, name) == 0)
 		{
 			break;	/*	Out of sdrs loop.		*/
@@ -978,9 +1149,7 @@ int	sdr_reload_profile(char *name, int configFlags, long heapWords,
 		|| strcmp(sdr->pathName, pathName) != 0)
 		{
 			sm_SemGive(sch->lock);
-			errno = EINVAL;
-			putSysErrmsg("Can't unload SDR: profile conflict",
-					name);
+			putErrmsg("Can't unload SDR: profile conflict.", name);
 			return -1;
 		}
 
@@ -991,7 +1160,7 @@ int	sdr_reload_profile(char *name, int configFlags, long heapWords,
 
 		sm_SemDelete(sdr->sdrSemaphore);
 		psm_free(sdrwm, sdrAddress);
-		sm_list_delete(sdrwm, elt, NULL, NULL);
+		oK(sm_list_delete(sdrwm, elt, NULL, NULL));
 	}
 
 	/*	Profile for this SDR is now known to be unloaded.	*/
@@ -1007,22 +1176,24 @@ static void	deleteObjectExtent(LystElt elt, void *userData)
 
 Sdr	Sdr_start_using(char *name)
 {
-	PsmAddress	elt;
-	SdrState	*sdr;
-	PsmAddress	sdrViewAddress;
-	SdrView		*sdrv;
-	char		dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
-	char		logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
+	PsmPartition		sdrwm = _sdrwm(NULL);
+	SdrControlHeader	*sch = _sch(NULL);
+	PsmAddress		elt;
+	SdrState		*sdr;
+	PsmAddress		sdrViewAddress;
+	SdrView			*sdrv;
+	char			dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
+	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
 
-	REQUIRE(sdrwm);
-	REQUIRE(sch);
-	REQUIRE(name);
+	CHKNULL(sdrwm);
+	CHKNULL(sch);
+	CHKNULL(name);
 	sm_SemTake(sch->lock);
 	for (elt = sm_list_first(sdrwm, sch->sdrs); elt;
 			elt = sm_list_next(sdrwm, elt))
 	{
 		sdr = (SdrState *) psp(sdrwm, sm_list_data(sdrwm, elt));
-		REQUIRE(sdr);
+		CHKNULL(sdr);
 		if (strcmp(sdr->name, name) == 0)
 		{
 			break;
@@ -1032,8 +1203,7 @@ Sdr	Sdr_start_using(char *name)
 	if (elt == 0)	/*	Reached the end of the list, no match.	*/
 	{
 		sm_SemGive(sch->lock);
-		errno = EINVAL;
-		putSysErrmsg(notFoundMsg, name);
+		putErrmsg("SDR profile not found.", name);
 		return NULL;
 	}
 
@@ -1043,7 +1213,7 @@ Sdr	Sdr_start_using(char *name)
 	if (sdrViewAddress == 0)
 	{
 		sm_SemGive(sch->lock);
-		putErrmsg(noMemoryMsg, NULL);
+		putErrmsg(_noMemoryMsg(), NULL);
 		return NULL;
 	}
 
@@ -1051,8 +1221,8 @@ Sdr	Sdr_start_using(char *name)
 	sdrv->sdr = sdr;
 	if (sdr->configFlags & SDR_IN_FILE)
 	{
-		sprintf(dbfilename, "%s%c%s.sdr", sdr->pathName,
-				ION_PATH_DELIMITER, name);
+		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
+				sdr->pathName, ION_PATH_DELIMITER, name);
 		sdrv->dbfile = open(dbfilename, O_RDWR, 0777);
 		if (sdrv->dbfile == -1)
 		{
@@ -1081,8 +1251,8 @@ Sdr	Sdr_start_using(char *name)
 
 	if (sdr->configFlags & SDR_REVERSIBLE)
 	{
-		sprintf(logfilename, "%s%c%s.sdrlog", sdr->pathName,
-				ION_PATH_DELIMITER, name);
+		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
+				sdr->pathName, ION_PATH_DELIMITER, name);
 		sdrv->logfile = open(logfilename, O_RDWR | O_CREAT | O_APPEND,
 				0777);
 		if (sdrv->logfile == -1)
@@ -1092,11 +1262,11 @@ Sdr	Sdr_start_using(char *name)
 			return NULL;
 		}
 
-		sdrv->logEntries = lyst_create_using(sdrMemory);
+		sdrv->logEntries = lyst_create_using(_sdrMemory(NULL));
 		if (sdrv->logEntries == 0)
 		{
 			sm_SemGive(sch->lock);
-			putErrmsg(noMemoryMsg, NULL);
+			putErrmsg(_noMemoryMsg(), NULL);
 			return NULL;
 		}
 	}
@@ -1107,11 +1277,11 @@ Sdr	Sdr_start_using(char *name)
 
 	if (sdr->configFlags & SDR_BOUNDED)
 	{
-		sdrv->knownObjects = lyst_create_using(sdrMemory);
+		sdrv->knownObjects = lyst_create_using(_sdrMemory(NULL));
 		if (sdrv->knownObjects == 0)
 		{
 			sm_SemGive(sch->lock);
-			putErrmsg(noMemoryMsg, NULL);
+			putErrmsg(_noMemoryMsg(), NULL);
 			return NULL;
 		}
 
@@ -1127,19 +1297,21 @@ Sdr	Sdr_start_using(char *name)
 
 char	*sdr_name(Sdr sdrv)
 {
-	REQUIRE(sdrv);
+	CHKNULL(sdrv);
 	return sdrv->sdr->name;
 }
 
 long	sdr_heap_size(Sdr sdrv)
 {
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
 	return sdrv->sdr->heapSize;
 }
 
 void	sdr_stop_using(Sdr sdrv)
 {
-	REQUIRE(sdrv);
+	PsmPartition	sdrwm = _sdrwm(NULL);
+
+	CHKVOID(sdrv);
 
 	/*	Should only stop using SDR when not currently using it,
 	 *	i.e., when not currently in the midst of a transaction.	*/
@@ -1181,7 +1353,7 @@ void	sdr_stop_using(Sdr sdrv)
 
 void	sdr_abort(Sdr sdrv)
 {
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
 	sm_SemEnd(sdrv->sdr->sdrSemaphore);
 	microsnooze(500000);
 	sm_SemDelete(sdrv->sdr->sdrSemaphore);
@@ -1191,13 +1363,15 @@ void	sdr_abort(Sdr sdrv)
 
 void	sdr_destroy(Sdr sdrv)
 {
-	SdrState	*sdr;
-	char		dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
-	char		logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
-	char		*dbsm;
-	int		dbsmId;
+	PsmPartition		sdrwm = _sdrwm(NULL);
+	SdrControlHeader	*sch = _sch(NULL);
+	SdrState		*sdr;
+	char			dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
+	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
+	char			*dbsm;
+	int			dbsmId;
 
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
 
 	/*	All tracing of this SDR must stop, as the SDR is
 	 *	going to be destroyed.					*/
@@ -1220,8 +1394,8 @@ void	sdr_destroy(Sdr sdrv)
 
 	if (sdr->configFlags & SDR_IN_FILE)
 	{
-		sprintf(dbfilename, "%s%c%s.sdr", sdr->pathName,
-				ION_PATH_DELIMITER, sdr->name);
+		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
+				sdr->pathName, ION_PATH_DELIMITER, sdr->name);
 		unlink(dbfilename);
 	}
 
@@ -1243,14 +1417,14 @@ void	sdr_destroy(Sdr sdrv)
 
 	if (sdr->configFlags & SDR_REVERSIBLE)
 	{
-		sprintf(logfilename, "%s%c%s.sdrlog", sdr->pathName,
-				ION_PATH_DELIMITER, sdr->name);
+		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
+				sdr->pathName, ION_PATH_DELIMITER, sdr->name);
 		unlink(logfilename);
 	}
 
 	/*	Unload profile and destroy it.				*/
 
-	sm_list_delete(sdrwm, sdr->sdrsElt, NULL, NULL);
+	oK(sm_list_delete(sdrwm, sdr->sdrsElt, NULL, NULL));
 	psm_free(sdrwm, psa(sdrwm, sdr));
 	sm_SemGive(sch->lock);
 }
@@ -1259,9 +1433,9 @@ void	sdr_destroy(Sdr sdrv)
 
 void	sdr_begin_xn(Sdr sdrv)
 {
-	REQUIRE(sdrv);
-	takeSdr(sdrv->sdr);
+	CHKVOID(sdrv);
 	sdrv->modified = 0;
+	oK(takeSdr(sdrv->sdr));
 }
 
 int	sdr_in_xn(Sdr sdrv)
@@ -1275,7 +1449,7 @@ void	sdr_exit_xn(Sdr sdrv)
 {
 	SdrState	*sdr;
 
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
 	if (sdr_in_xn(sdrv))
 	{
@@ -1355,7 +1529,7 @@ void	sdr_eject_xn(Sdr sdrv)
 
 void	*sdr_pointer(Sdr sdrv, Address address)
 {
-	REQUIRE(sdrv);
+	CHKNULL(sdrv);
 	if ((sdrv->sdr->configFlags & SDR_IN_DRAM) == 0 || address <= 0)
 	{
 		return NULL;
@@ -1368,7 +1542,7 @@ Address	sdr_address(Sdr sdrv, void *pointer)
 {
 	char	*ptr;
 
-	REQUIRE(sdrv);
+	CHKZERO(sdrv);
 	ptr = (char *) pointer;
 	if ((sdrv->sdr->configFlags & SDR_IN_DRAM) == 0 || ptr <= sdrv->dbsm)
 	{
@@ -1418,15 +1592,15 @@ void	_sdrput(char *file, int line, Sdr sdrv, Address into, char *from,
 		return;
 	}
 
-	REQUIRE(length > 0);
-	REQUIRE(sdrv);
-	REQUIRE(from);
-	REQUIRE(into >= 0);
+	CHKVOID(length > 0);
+	CHKVOID(sdrv);
+	CHKVOID(from);
+	CHKVOID(into >= 0);
 	sdr = sdrv->sdr;
 	to = into + length;
 	if (to > sdr->sdrSize)
 	{
-		_putErrmsg(file, line, violationMsg, "write");
+		_putErrmsg(file, line, _violationMsg(), "write");
 		crashXn(sdrv);
 		return;
 	}
@@ -1435,7 +1609,7 @@ void	_sdrput(char *file, int line, Sdr sdrv, Address into, char *from,
 	{
 		if (sdrBoundaryViolated(sdrv, into, length))
 		{
-			_putErrmsg(file, line, violationMsg, "write");
+			_putErrmsg(file, line, _violationMsg(), "write");
 			crashXn(sdrv);
 			return;
 		}
@@ -1506,7 +1680,8 @@ entry", itoa(length));
 				== NULL)
 		{
 			_putErrmsg(file, line, "Can't note transaction log \
-entry.", NULL); crashXn(sdrv);
+entry.", NULL);
+			crashXn(sdrv);
 			return;
 		}
 
@@ -1536,15 +1711,14 @@ entry.", NULL); crashXn(sdrv);
 void	Sdr_write(char *file, int line, Sdr sdrv, Address into, char *from,
 		long length)
 {
-	if (sdr_in_xn(sdrv) == 0)
+	if (!(sdr_in_xn(sdrv)))
 	{
-		_putErrmsg(file, line, notInXnMsg, NULL);
+		oK(_iEnd(file, line, _notInXnMsg()));
+		return;
 	}
-	else
-	{
-		joinTrace(sdrv, file, line);
-		_sdrput(file, line, sdrv, into, from, length, UserPut);
-	}
+
+	joinTrace(sdrv, file, line);
+	_sdrput(file, line, sdrv, into, from, length, UserPut);
 }
 
 void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
@@ -1557,15 +1731,15 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
 		return;
 	}
 
-	REQUIRE(length > 0);
-	REQUIRE(sdrv);
-	REQUIRE(into);
-	REQUIRE(from >= 0);
+	CHKVOID(length > 0);
+	CHKVOID(sdrv);
+	CHKVOID(into);
+	CHKVOID(from >= 0);
 	sdr = sdrv->sdr;
 	to = from + length;
 	if (to > sdr->sdrSize)
 	{
-		putErrmsg(violationMsg, "read");
+		putErrmsg(_violationMsg(), "read");
 		crashXn(sdrv);			/*	Releases SDR.	*/
 		return;
 	}
@@ -1594,9 +1768,11 @@ void	sdr_read(Sdr sdrv, char *into, Address from, long length)
 {
 	SdrState	*sdr;
 
-	REQUIRE(sdrv);
+	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
-	takeSdr(sdr);
-	_sdrfetch(sdrv, into, from, length);
-	releaseSdr(sdr);
+	if (takeSdr(sdr) == 0)
+	{
+		_sdrfetch(sdrv, into, from, length);
+		releaseSdr(sdr);
+	}
 }

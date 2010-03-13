@@ -50,7 +50,7 @@ static int	dgrComputeCsepName(char *endpointSpec, char *endpointName)
 		ipAddress = getInternetAddress(ownHostName);
 	}
 
-	sprintf(endpointName, "%u:%hu", ipAddress, portNbr);
+	isprintf(endpointName, MAX_EP_NAME + 1, "%u:%hu", ipAddress, portNbr);
 	return 0;
 }
 
@@ -60,6 +60,7 @@ static int	dgrMamsInit(MamsInterface *tsif)
 	unsigned int	ipAddress;
 	Dgr		dgrSap;
 	char		endpointNameText[32];
+	int		eptLen;
 
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
 //printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
@@ -71,9 +72,11 @@ static int	dgrMamsInit(MamsInterface *tsif)
 	}
 
 	dgr_getsockname(dgrSap, &portNbr, &ipAddress);
-	sprintf(endpointNameText, "%u:%hu", ipAddress, portNbr);
+	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
+			portNbr);
 //printf("resulting ept is '%s'.\n", endpointNameText);
-	tsif->ept = MTAKE(strlen(endpointNameText) + 1);
+	eptLen = strlen(endpointNameText) + 1;
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		dgr_close(dgrSap);
@@ -81,7 +84,7 @@ static int	dgrMamsInit(MamsInterface *tsif)
 		return -1;
 	}
 
-	strcpy(tsif->ept, endpointNameText);
+	istrcpy(tsif->ept, endpointNameText, eptLen);
 	tsif->sap = dgrSap;
 	return 0;
 }
@@ -149,6 +152,7 @@ static int	dgrAmsInit(AmsInterface *tsif, char *epspec)
 	unsigned int	ipAddress;
 	Dgr		dgrSap;
 	char		endpointNameText[32];
+	int		eptLen;
 
 	if (strcmp(epspec, "@") == 0)	/*	Default.		*/
 	{
@@ -166,8 +170,10 @@ static int	dgrAmsInit(AmsInterface *tsif, char *epspec)
 	dgr_getsockname(dgrSap, &portNbr, &ipAddress);
 	tsif->diligence = AmsAssured;
 	tsif->sequence = AmsArrivalOrder;
-	sprintf(endpointNameText, "%u:%hu", ipAddress, portNbr);
-	tsif->ept = MTAKE(strlen(endpointNameText));
+	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
+			portNbr);
+	eptLen = strlen(endpointNameText) + 1;
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		dgr_close(dgrSap);
@@ -175,7 +181,7 @@ static int	dgrAmsInit(AmsInterface *tsif, char *epspec)
 		return -1;
 	}
 
-	strcpy(tsif->ept, endpointNameText);
+	istrcpy(tsif->ept, endpointNameText, eptLen);
 	tsif->sap = dgrSap;
 	return 0;
 }

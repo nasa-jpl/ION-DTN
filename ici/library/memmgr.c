@@ -27,26 +27,8 @@ typedef struct
 	MemPtoAConverter PtoA;
 } MemManager;
 
-/*
- *	private global variables
- */
-
 #define MEMMGR_LIMIT	(8)
 #define MEMMGR_MAX_NAME	(15)
-
-static char		mem_mgr_name_buffer[(MEMMGR_MAX_NAME + 1)
-						* MEMMGR_LIMIT];
-
-static void 		*memmgr_malloc(char *file, int line, size_t size);
-static void		memmgr_free(char *file, int line, void * address);
-static void		*memmgr_atop(unsigned long pointer);
-static unsigned long	memmgr_ptoa(void * address);
-static MemManager	mem_mgrs[MEMMGR_LIMIT] =
-{
-	{ "std", memmgr_malloc, memmgr_free, memmgr_atop, memmgr_ptoa }
-};
-
-static int 		mem_mgr_count = 1;
 
 /*
  *	private standard memory allocator -- allocates and initializes
@@ -85,6 +67,107 @@ static unsigned long	memmgr_ptoa(void * address)
 }
 
 /*
+ *	private global variables
+ */
+
+static int	_mem_mgrs(int nbr, char *name, MemAllocator take,
+			MemDeallocator release, MemAtoPConverter AtoP,
+			MemPtoAConverter PtoA, MemManager **mgrp)
+{
+	static char		mem_mgr_name_buffer[(MEMMGR_MAX_NAME + 1)
+					* MEMMGR_LIMIT];
+	static MemManager	mem_mgrs[MEMMGR_LIMIT] =	{
+		{ "std", memmgr_malloc, memmgr_free, memmgr_atop, memmgr_ptoa }
+								};
+	static int 		mem_mgr_count = 1;
+	int			i;
+	MemManager		*mgr;
+	char			*nameArea;
+
+	if (nbr < 0)	/*	Add or lookup memory manager.		*/
+	{
+		CHKERR(name);
+		for (i = 0, mgr = mem_mgrs; i < mem_mgr_count; i++, mgr++)
+		{
+			if (strcmp(mgr->name, name) != 0)
+			{
+				continue;
+			}
+
+			/*	Found the named memory manager.		*/
+
+			if (mgrp)	/*	Lookup.			*/
+			{
+				*mgrp = mgr;
+				return i;
+			}
+
+			/*	Re-adding existing memory manager.	*/
+
+			if (mgr->take != take
+			|| mgr->release != release
+			|| mgr->AtoP != AtoP
+			|| mgr->PtoA != PtoA)
+			{
+				putErrmsg("memmgr definition clash.", name);
+				return -1;
+			}
+
+			return i;	/*	Already added.		*/
+		}
+
+		/*	This is an unknown memory manager name.		*/
+
+		if (mgrp)		/*	Lookup.			*/
+		{
+			*mgrp = NULL;
+			return -1;	/*	Not found.		*/
+		}
+
+		/*	Adding new memory manager.			*/
+
+		if (i == MEMMGR_LIMIT)
+		{
+			putErrmsg("Too many memory managers.", NULL);
+			return -1;
+		}
+
+		CHKERR(take);
+		CHKERR(release);
+		CHKERR(AtoP);
+		CHKERR(PtoA);
+
+		/*	Copy the name, in case it's not a literal.	*/
+
+		nameArea = mem_mgr_name_buffer
+				+ (mem_mgr_count * (MEMMGR_MAX_NAME + 1));
+		istrcpy(nameArea, name, MEMMGR_MAX_NAME);
+
+		/*	Insert memory manager into array.		*/
+
+		mgr->name = nameArea;
+		mgr->take = take;
+		mgr->release = release;
+		mgr->AtoP = AtoP;
+		mgr->PtoA = PtoA;
+		mem_mgr_count++;
+		return i;
+	}
+
+	/*	Just want pointer to numbered memory manager.		*/
+
+	CHKERR(mgrp);
+	if (nbr < mem_mgr_count)
+	{
+		*mgrp = mem_mgrs + nbr;
+		return nbr;
+	}
+
+	*mgrp = NULL;
+	return -1;
+}
+
+/*
  *	public functions
  */
 
@@ -96,106 +179,79 @@ int	memmgr_add(char *name, MemAllocator afn, MemDeallocator ffn,
 		this name in the first unused mem_mgr structure, and
 		return its idx.						*/
 
-	int	i;
-	char	*nameArea;
-
-	REQUIRE(name);
-	REQUIRE(afn);
-	REQUIRE(ffn);
-	REQUIRE(apfn);
-	REQUIRE(pafn);
-	for (i = 0; i < mem_mgr_count; i++)
-	{
-		if (mem_mgrs[i].name == NULL)
-		{
-			break;		/*	Not in list.		*/
-		}
-
-		if (strcmp(mem_mgrs[i].name, name) == 0)
-		{
-			return i;	/*	Found it.		*/
-		}
-	}
-
-	if (i == MEMMGR_LIMIT)
-	{
-		errno = EINVAL;
-		putErrmsg("too many memory managers", NULL);
-		return -1;
-	}
-
-	/*	Make a copy of the name, in case it's not a literal.	*/
-
-	nameArea = mem_mgr_name_buffer
-			+ (mem_mgr_count * (MEMMGR_MAX_NAME + 1));
-	strncpy(nameArea, name, MEMMGR_MAX_NAME);
-	*(nameArea + MEMMGR_MAX_NAME) = '\0';
-
-	/*	Insert memory manager into array.			*/
-
-	mem_mgrs[i].name = nameArea;
-	mem_mgrs[i].take = afn;
-	mem_mgrs[i].release = ffn;
-	mem_mgrs[i].AtoP = apfn;
-	mem_mgrs[i].PtoA = pafn;
-	mem_mgr_count++;
-	return i;
+	return _mem_mgrs(-1, name, afn, ffn, apfn, pafn, NULL);
 }
 
 int	memmgr_find(char *name)
 {
-	int	i;
+	MemManager	*mgr;
 
-	REQUIRE(name);
-	for (i = 0; i < mem_mgr_count; i++)
-	{
-		if (mem_mgrs[i].name == NULL)
-		{
-			break;		/*	Not in list.		*/
-		}
-
-		if (strcmp(mem_mgrs[i].name, name) == 0)
-		{
-			return i;
-		}
-	}
-
-	return -1;		/*	Memory manager not found.	*/
+	return _mem_mgrs(-1, name, NULL, NULL, NULL, NULL, &mgr);
 }
 
 char	*memmgr_name(int mgrId)
 {
-	REQUIRE(mgrId >= 0);
-	REQUIRE(mgrId < mem_mgr_count);
-	return mem_mgrs[mgrId].name;
+	MemManager	*mgr;
+
+	CHKNULL(mgrId >= 0);
+	if (_mem_mgrs(mgrId, NULL, NULL, NULL, NULL, NULL, &mgr) < 0)
+	{
+		return NULL;
+	}
+
+	return mgr->name;
 }
 
 MemAllocator	memmgr_take(int mgrId)
 {
-	REQUIRE(mgrId >= 0);
-	REQUIRE(mgrId < mem_mgr_count);
-	return mem_mgrs[mgrId].take;
+	MemManager	*mgr;
+
+	CHKNULL(mgrId >= 0);
+	if (_mem_mgrs(mgrId, NULL, NULL, NULL, NULL, NULL, &mgr) < 0)
+	{
+		return NULL;
+	}
+
+	return mgr->take;
 }
 
 MemDeallocator	memmgr_release(int mgrId)
 {
-	REQUIRE(mgrId >= 0);
-	REQUIRE(mgrId < mem_mgr_count);
-	return mem_mgrs[mgrId].release;
+	MemManager	*mgr;
+
+	CHKNULL(mgrId >= 0);
+	if (_mem_mgrs(mgrId, NULL, NULL, NULL, NULL, NULL, &mgr) < 0)
+	{
+		return NULL;
+	}
+
+	return mgr->release;
 }
 
 MemAtoPConverter memmgr_AtoP(int mgrId)
 {
-	REQUIRE(mgrId >= 0);
-	REQUIRE(mgrId < mem_mgr_count);
-	return mem_mgrs[mgrId].AtoP;
+	MemManager	*mgr;
+
+	CHKNULL(mgrId >= 0);
+	if (_mem_mgrs(mgrId, NULL, NULL, NULL, NULL, NULL, &mgr) < 0)
+	{
+		return NULL;
+	}
+
+	return mgr->AtoP;
 }
 
 MemPtoAConverter memmgr_PtoA(int mgrId)
 {
-	REQUIRE(mgrId >= 0);
-	REQUIRE(mgrId < mem_mgr_count);
-	return mem_mgrs[mgrId].PtoA;
+	MemManager	*mgr;
+
+	CHKNULL(mgrId >= 0);
+	if (_mem_mgrs(mgrId, NULL, NULL, NULL, NULL, NULL, &mgr) < 0)
+	{
+		return NULL;
+	}
+
+	return mgr->PtoA;
 }
 
 int	memmgr_open(int memKey, long memSize, char **memPtr, int *smId,
@@ -203,9 +259,11 @@ int	memmgr_open(int memKey, long memSize, char **memPtr, int *smId,
 		int *memMgr, MemAllocator afn, MemDeallocator ffn,
 		MemAtoPConverter apfn, MemPtoAConverter pafn)
 {
-	REQUIRE(memPtr);
-	REQUIRE(memMgr);
-	REQUIRE(partition);
+	PsmMgtOutcome	outcome;
+
+	CHKERR(memPtr);
+	CHKERR(memMgr);
+	CHKERR(partition);
 	switch (sm_ShmAttach(memKey, memSize, memPtr, smId))
 	{
 	case 0:		/*	Attaching to an existing segment.	*/
@@ -219,7 +277,8 @@ int	memmgr_open(int memKey, long memSize, char **memPtr, int *smId,
 
 	/*	Initialize it if necessary.				*/
 
-	if (psm_manage(*memPtr, memSize, partitionName, partition) == Refused)
+	if (psm_manage(*memPtr, memSize, partitionName, partition, &outcome) < 0
+	|| outcome == Refused)
 	{
 		putErrmsg("Can't manage memory region.", NULL);
 		return -1;
@@ -235,10 +294,7 @@ int	memmgr_open(int memKey, long memSize, char **memPtr, int *smId,
 	 *	no matter what a process thinks the base address of
 	 *	the shared-memory region is).				*/
 
-	if (memMgr != NULL)
-	{
-		*memMgr = memmgr_add(partitionName, afn, ffn, apfn, pafn);
-	}
+	*memMgr = memmgr_add(partitionName, afn, ffn, apfn, pafn);
 
 	/*	Initialize SDR global control header if necessary.	*/
 
@@ -258,7 +314,7 @@ void	memmgr_destroy(int smId, PsmPartition *partition)
 {
 	char	*memptr;
 
-	REQUIRE(partition);
+	CHKVOID(partition);
 	if (*partition == NULL)	/*	Nothing to do.			*/
 	{
 		return;

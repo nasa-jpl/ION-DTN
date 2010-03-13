@@ -49,39 +49,37 @@ typedef struct
 	int	stackSize;
 } SymTabEntry;
 
-static SymTabEntry	symbols[] =
-{
-	{ "ionadmin",	(FUNCPTR) ionadmin,	ICI_PRIORITY,	32768 },
-	{ "ltpadmin",	(FUNCPTR) ltpadmin,	ICI_PRIORITY,	32768 },
-	{ "bpadmin",	(FUNCPTR) bpadmin,	ICI_PRIORITY,	32768 },
-	{ "ipnadmin",	(FUNCPTR) ipnadmin,	ICI_PRIORITY,	32768 },
-	{ "rfxclock",	(FUNCPTR) rfxclock,	ICI_PRIORITY,	32768 },
-	{ "ltpclock",	(FUNCPTR) ltpclock,	ICI_PRIORITY,	32768 },
-	{ "ltpmeter",	(FUNCPTR) ltpmeter,	ICI_PRIORITY,	32768 },
-	{ "bpclock",	(FUNCPTR) bpclock,	ICI_PRIORITY,	4096  },
-	{ "ipnfw",	(FUNCPTR) ipnfw,	ICI_PRIORITY,	65536 },
-	{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
-	{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },
-	{ "udplsi",	(FUNCPTR) udplsi,	ICI_PRIORITY,	32768 },
-	{ "udplso",	(FUNCPTR) udplso,	ICI_PRIORITY,	32768 },
-	{ "udpcli",	(FUNCPTR) udpcli,	ICI_PRIORITY,	32768 },
-	{ "udpclo",	(FUNCPTR) udpclo,	ICI_PRIORITY,	32768 },
-	{ "tcpcli",	(FUNCPTR) tcpcli,	ICI_PRIORITY,	4096  },
-	{ "tcpclo",	(FUNCPTR) tcpclo,	ICI_PRIORITY,	4096  },
-	{ "brsccla",	(FUNCPTR) brsccla,	ICI_PRIORITY,	32768 },
-	{ "brsscla",	(FUNCPTR) brsscla,	ICI_PRIORITY,	32768 },
-	{ "ipnadminep",	(FUNCPTR) ipnadminep,	ICI_PRIORITY,	24576 }
-};
-
-static int	numSymbols = sizeof symbols / sizeof(SymTabEntry);
-
 FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 {
-	int	i;
+	static SymTabEntry	symbols[] =
+	{
+		{ "ionadmin",	(FUNCPTR) ionadmin,	ICI_PRIORITY,	32768 },
+		{ "ltpadmin",	(FUNCPTR) ltpadmin,	ICI_PRIORITY,	32768 },
+		{ "bpadmin",	(FUNCPTR) bpadmin,	ICI_PRIORITY,	32768 },
+		{ "ipnadmin",	(FUNCPTR) ipnadmin,	ICI_PRIORITY,	32768 },
+		{ "rfxclock",	(FUNCPTR) rfxclock,	ICI_PRIORITY,	32768 },
+		{ "ltpclock",	(FUNCPTR) ltpclock,	ICI_PRIORITY,	32768 },
+		{ "ltpmeter",	(FUNCPTR) ltpmeter,	ICI_PRIORITY,	32768 },
+		{ "bpclock",	(FUNCPTR) bpclock,	ICI_PRIORITY,	4096  },
+		{ "ipnfw",	(FUNCPTR) ipnfw,	ICI_PRIORITY,	65536 },
+		{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
+		{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },
+		{ "udplsi",	(FUNCPTR) udplsi,	ICI_PRIORITY,	32768 },
+		{ "udplso",	(FUNCPTR) udplso,	ICI_PRIORITY,	32768 },
+		{ "udpcli",	(FUNCPTR) udpcli,	ICI_PRIORITY,	32768 },
+		{ "udpclo",	(FUNCPTR) udpclo,	ICI_PRIORITY,	32768 },
+		{ "tcpcli",	(FUNCPTR) tcpcli,	ICI_PRIORITY,	4096  },
+		{ "tcpclo",	(FUNCPTR) tcpclo,	ICI_PRIORITY,	4096  },
+		{ "brsccla",	(FUNCPTR) brsccla,	ICI_PRIORITY,	32768 },
+		{ "brsscla",	(FUNCPTR) brsscla,	ICI_PRIORITY,	32768 },
+		{ "ipnadminep",	(FUNCPTR) ipnadminep,	ICI_PRIORITY,	24576 }
+	};
+	static int	numSymbols = sizeof symbols / sizeof(SymTabEntry);
+	int		i;
 
-	REQUIRE(name);
-	REQUIRE(priority);
-	REQUIRE(stackSize);
+	CHKNULL(name);
+	CHKNULL(priority);
+	CHKNULL(stackSize);
 	for (i = 0; i < numSymbols; i++)
 	{
 		if (strcmp(name, symbols[i].name) == 0)

@@ -37,7 +37,7 @@ static int	setProbeIsDue(unsigned long destNodeNbr,
 			elt = sm_list_next(ionwm, elt))
 	{
 		snub = (IonSnub *) psp(ionwm, sm_list_data(ionwm, elt));
-		REQUIRE(snub);
+		CHKERR(snub);
 		if (snub->nodeNbr == neighborNodeNbr)
 		{
 			snub->probeIsDue = 1;
@@ -307,9 +307,9 @@ static int	applyContact(IonVdb *ionvdb, IonDB *iondb, IonContact *contact,
 			{
 				xmit = (IonXmit *) psp(ionwm,
 						sm_list_data(ionwm, elt));
-				REQUIRE(xmit);
+				CHKERR(xmit);
 				origin = (IonOrigin *) psp(ionwm, xmit->origin);
-				REQUIRE(origin);
+				CHKERR(origin);
 				if (origin->nodeNbr == iondb->ownNodeNbr)
 				{
 					reduceScalar(&(xmit->aggrCapacity),
@@ -483,7 +483,7 @@ int	main(int argc, char *argv[])
 		{
 			addr = sm_list_data(ionwm, elt);
 			probe = (IonProbe *) psp(ionwm, addr);
-			REQUIRE(probe);
+			CHKZERO(probe);
 			if (probe->time > currentTime)
 			{
 				break;	/*	No more for now.	*/
@@ -491,7 +491,7 @@ int	main(int argc, char *argv[])
 
 			/*	Destroy this probe and post the next.	*/
 
-			sm_list_delete(ionwm, elt, NULL, NULL);
+			oK(sm_list_delete(ionwm, elt, NULL, NULL));
 			destNodeNbr = probe->destNodeNbr;
 			neighborNodeNbr = probe->neighborNodeNbr;
 			psm_free(ionwm, addr);
@@ -538,7 +538,7 @@ int	main(int argc, char *argv[])
 		{
 			neighbor = (IonNeighbor *) psp(ionwm,
 					sm_list_data(ionwm, elt));
-			REQUIRE(neighbor);
+			CHKZERO(neighbor);
 			neighbor->owlt = 0;
 			neighbor->xmitRate = 0;
 			neighbor->fireRate = 0;
@@ -550,13 +550,13 @@ int	main(int argc, char *argv[])
 		{
 			node = (IonNode *) psp(ionwm,
 					sm_list_data(ionwm, elt));
-			REQUIRE(node);
+			CHKZERO(node);
 			for (elt2 = sm_list_first(ionwm, node->origins); elt2;
 					elt2 = sm_list_next(ionwm, elt2))
 			{
 				origin = (IonOrigin *) psp(ionwm,
 						sm_list_data(ionwm, elt2));
-				REQUIRE(origin);
+				CHKZERO(origin);
 				origin->owlt = 0;
 			}
 		}

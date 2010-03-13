@@ -390,7 +390,7 @@ unsigned char *bsp_retrieveKey(int *keyLen, char *keyName)
    }
   
    BSP_DEBUG_PROC("- bsp_retrieveKey - (begins with) %.*s", MIN(128, *keyLen),
-      keyValueBuffer);	
+		   keyValueBuffer);	
   
    return keyValueBuffer;
 }
@@ -1253,8 +1253,8 @@ trailer has length %d", blk->length);
                       * one we just serialized.
                       */
                      zco_discard_last_trailer(bpSdr, bundle->payload.content);
-                     zco_append_trailer(bpSdr, bundle->payload.content,
-	       			      (char *) temp, blk->length);
+                     oK(zco_append_trailer(bpSdr, bundle->payload.content,
+	       			      (char *) temp, blk->length));
                      MRELEASE(temp);
                   }
             
@@ -1801,8 +1801,8 @@ unsigned char *bsp_babGetSecResult(char *rawBundle,
    }
    else
    {
-      BSP_DEBUG_INFO("i bsp_babGetSecResult: key begins with %.*s", 
-            MIN(128, keyLen), keyValueBuffer);
+      BSP_DEBUG_INFO("i bsp_babGetSecResult: key begins with %.*s",
+		      MIN(128, keyLen), keyValueBuffer);
 
       /* Generate the HMAC-SHA1 Hash. */
       if((hashData = MTAKE(sha1Len)) == NULL)
