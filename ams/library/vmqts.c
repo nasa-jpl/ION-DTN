@@ -68,6 +68,7 @@ static int	vmqAmsInit(AmsInterface *tsif, char *epspec)
 {
 	MSG_Q_ID	vmqSap;
 	char		endpointNameText[32];
+	int		eptLen;
 
 #ifdef VXMP
 	vmqSap = msgQSmCreate(1, VMQTS_MAX_MSG_LEN, MSG_Q_FIFO);
@@ -83,7 +84,8 @@ static int	vmqAmsInit(AmsInterface *tsif, char *epspec)
 	tsif->diligence = AmsAssured;
 	tsif->sequence = AmsTransmissionOrder;
 	sprintf(endpointNameText, "%u", vmqSap);
-	tsif->ept = MTAKE(strlen(endpointNameText));
+	eptLen = strlen(endpointNameText) + 1;
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		msgQDelete(vmqSap);
@@ -91,7 +93,7 @@ static int	vmqAmsInit(AmsInterface *tsif, char *epspec)
 		return -1;
 	}
 
-	strcpy(tsif->ept, endpointNameText);
+	istrcpy(tsif->ept, endpointNameText, eptLen);
 	tsif->sap = vmqSap;
 	return 0;
 }

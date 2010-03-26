@@ -31,10 +31,10 @@ ln -s ../bp/library/ecos.c
 ln -s ../bp/library/ecos.h
 ln -s ../bp/library/bsp.c
 ln -s ../bp/library/ionbsp.h
-ln -s ../bp/library/BAB_HMAC/hmac.c
-ln -s ../bp/library/BAB_HMAC/hmac.h
-ln -s ../bp/library/BAB_HMAC/sha1.c
-ln -s ../bp/library/BAB_HMAC/sha1.h
+ln -s ../bp/library/NULL_BAB_HMAC/hmac.c
+ln -s ../bp/library/NULL_BAB_HMAC/hmac.h
+ln -s ../bp/library/NULL_BAB_HMAC/sha1.c
+ln -s ../bp/library/NULL_BAB_HMAC/sha1.h
 ln -s ../bp/library/sample.bpextensions.c bpextensions.c
 ln -s ../bp/daemon/bpclock.c
 ln -s ../bp/utils/bpadmin.c

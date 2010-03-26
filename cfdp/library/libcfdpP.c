@@ -245,7 +245,8 @@ static int	initializeVdb(CfdpDB *cfdpdb)
 	corruptionModulusString = getenv("CFDP_CORRUPTION_MODULUS");
 	if (corruptionModulusString)
 	{
-		cfdpVdb->corruptionModulus = atoi(corruptionModulusString);
+		cfdpVdb->corruptionModulus = strtol(corruptionModulusString,
+				NULL, 0);
 		putErrmsg("NOTE: CFDP corruption modulus is non-zero!",
 				utoa(cfdpVdb->corruptionModulus));
 	}

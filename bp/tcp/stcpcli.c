@@ -395,7 +395,7 @@ int	main(int argc, char *argv[])
 	else
 	{
 		tcpDelayEnabled = 1;
-		tcpDelayNsecPerByte = atoi(tcpDelayString);
+		tcpDelayNsecPerByte = strtol(tcpDelayString, NULL, 0);
 		if (tcpDelayNsecPerByte < 0
 		|| tcpDelayNsecPerByte > 16384)
 		{

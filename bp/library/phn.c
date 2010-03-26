@@ -148,6 +148,7 @@ int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	char	*scheme;
 	int	nssLength;
 	char	*nss;
+	int	eidLen;
 
 	/*	Data parsed out of the phn byte array go directly into
 	 *	the work area structure, not into a block-specific
@@ -180,16 +181,15 @@ int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 
 	nssLength = strlen(nss);
-	wk->senderEid = MTAKE(schemeLength + 1 + nssLength + 1);
+	eidLen = schemeLength + 1 + nssLength + 1;
+	wk->senderEid = MTAKE(eidLen);
 	if (wk->senderEid == NULL)
 	{
 		putErrmsg("No space for sender EID.", NULL);
 		return -1;
 	}
 
-	strcpy(wk->senderEid, scheme);
-	*(wk->senderEid + schemeLength) = ':';
-	strcpy(wk->senderEid + schemeLength + 1, nss);
+	isprintf(wk->senderEid, eidLen, "%s:%s", scheme, nss);
 	return 1;
 }
 

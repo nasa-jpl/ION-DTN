@@ -36,7 +36,7 @@
 
 #define hash_struct     moz_SHA_CTX
 
-#elif
+#else
 #error Only SHA1 currently supported
 #endif
 
