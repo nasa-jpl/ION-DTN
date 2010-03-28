@@ -131,8 +131,7 @@ static int	getSenderEidFromDictionary(AcqExtBlock *blk, AcqWorkArea *wk)
 		return 0;		/*	Malformed.		*/
 	}
 
-	wk->senderEid = printEid(&eid, wk->dictionary);
-	if (wk->senderEid == NULL)
+	if ( printEid(&eid, wk->dictionary, &(wk->senderEid) ) < 0 )
 	{
 		putErrmsg("No space for sender EID.", NULL);
 		return -1;
