@@ -512,8 +512,6 @@ typedef struct
 
 #define	MAX_TTL_DAYS	(16)
 #define	MAX_TTL_SEC	(MAX_TTL_DAYS * 86400)
-#define	MAX_SPEED_MPH	(150000)
-#define	MAX_SPEED_MPS	(MAX_SPEED_MPH / 3600)
 
 typedef struct
 {

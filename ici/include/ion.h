@@ -25,6 +25,9 @@ extern "C" {
 #define IONVERSIONNUMBER "2.1.0"
 #endif
 
+#define	MAX_SPEED_MPH	(150000)
+#define	MAX_SPEED_MPS	(MAX_SPEED_MPH / 3600)
+
 typedef struct
 {
 	int	wmKey;
@@ -112,7 +115,7 @@ typedef struct
  *	the snubbing neighbor as a "probe", to determine whether or
  *	not the neighbor is still refusing bundles destined for the
  *	associated IonNode.  Probe activity is initiated by scheduling
- *	IonProbe objects.						*/
+ *	IonProbe event objects.						*/
 
 typedef struct
 {
@@ -127,6 +130,9 @@ typedef struct
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned long	xmitRate;	/*	In bytes per second.	*/
 	Scalar		aggrCapacity;	/*	Including this xmit.	*/
+	time_t		mootAfter;	/*	As from time(2).	*/
+	unsigned int	lastVisitor;
+	time_t		visitHorizon;	/*	As from time(2).	*/
 } IonXmit;
 
 typedef struct
