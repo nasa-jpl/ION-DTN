@@ -4968,13 +4968,11 @@ status reports for admin records", NULL);
 	{
 		/*	Submitted by application on open endpoint.	*/
 
-		if (sourceMetaEid->cbhe)
+		if (!sourceMetaEid->cbhe
+		|| strcmp(sourceMetaEid->schemeName,
+				destMetaEid.schemeName) != 0)
 		{
-			if (strcmp(sourceMetaEid->schemeName,
-					destMetaEid.schemeName) != 0)
-			{
-				nonCbheEidCount++;
-			}
+			nonCbheEidCount++;
 		}
 	}
 
@@ -4995,9 +4993,10 @@ status reports for admin records", NULL);
 		}
 
 		reportToMetaEid = &reportToMetaEidBuf;
-		if (reportToMetaEid->cbhe)
+		if (!reportToMetaEid->nullEndpoint)
 		{
-			if (strcmp(reportToMetaEid->schemeName,
+			if (!reportToMetaEid->cbhe
+			|| strcmp(reportToMetaEid->schemeName,
 					destMetaEid.schemeName) != 0)
 			{
 				nonCbheEidCount++;
@@ -6385,7 +6384,7 @@ static int acquireExtent(AcqWorkArea *work, char *bytes, int length)
 static int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 			unsigned char *startOfBlock, unsigned long blockLength,
 			unsigned char blkType, unsigned long blkProcFlags,
-			Lyst eidReferences, unsigned long dataLength,
+			Lyst *eidReferences, unsigned long dataLength,
 			unsigned char *cursor)
 {
 	Bundle		*bundle = &(work->bundle);
@@ -6409,7 +6408,8 @@ static int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 	memset((char *) blk, 0, sizeof(AcqExtBlock));
 	blk->type = blkType;
 	blk->blkProcFlags = blkProcFlags;
-	blk->eidReferences = eidReferences;
+	blk->eidReferences = *eidReferences;
+	*eidReferences = NULL;
 	blk->dataLength = dataLength;
 	blk->length = blockLength;
 	memcpy(blk->bytes, startOfBlock, blockLength);
@@ -6714,7 +6714,7 @@ static int	acquireOtherBlocks(AcqWorkArea *work)
 				if (acquireExtensionBlock(work, def,
 						startOfBlock, lengthOfBlock,
 						blkType, blkProcFlags,
-						eidReferences, dataLength,
+						&eidReferences, dataLength,
 						cursor) < 0)
 				{
 					return -1;
@@ -6768,7 +6768,7 @@ static int	acquireOtherBlocks(AcqWorkArea *work)
 							def, startOfBlock,
 							lengthOfBlock, blkType,
 							blkProcFlags,
-							eidReferences,
+							&eidReferences,
 							dataLength, cursor) < 0)
 						{
 							return -1;
@@ -6777,7 +6777,12 @@ static int	acquireOtherBlocks(AcqWorkArea *work)
 				}
 			}
 
-			eidReferences = NULL;
+			if (eidReferences)
+			{
+				lyst_destroy(eidReferences);
+				eidReferences = NULL;
+			}
+
 			cursor += dataLength;
 			unparsedBytes -= dataLength;
 		}

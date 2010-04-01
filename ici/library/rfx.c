@@ -1483,7 +1483,7 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 					sdr_cancel_xn(sdr);
 					putErrmsg("Can't update mootAfter \
 times.", NULL);
-					return;
+					return -1;
 				}
 			}
 		}
