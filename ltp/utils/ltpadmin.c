@@ -54,6 +54,9 @@ static void	printUsage()
 session block size> <max import sessions> <max import session block size> \
 <max segment size> <aggregation size limit> <aggregation time limit> \
 '<LSO command>' [queuing latency, in seconds]");
+	puts("\t\tIf queuing latency is negative, the absolute value of this \
+number is used as the actual queuing latency and session purging is enabled.  \
+See man(5) for ltprc.");
 	puts("\tc\tChange");
 	puts("\t   c span <engine ID#> <max export sessions> <max export \
 session block size> <max import sessions> <max import session block size> \
@@ -134,7 +137,8 @@ static int	attachToLtp()
 static void	executeAdd(int tokenCount, char **tokens)
 {
 	unsigned long	engineId;
-	unsigned int	qTime = 1;		/*	Default.	*/
+	int		qTime = 1;		/*	Default.	*/
+	int		purge = 0;		/*	Default.	*/
 
 	if (attachToLtp() < 0) return;
 	if (tokenCount < 2)
@@ -148,7 +152,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 		switch (tokenCount)
 		{
 		case 12:
-			qTime = (unsigned int) atoi(tokens[11]);
+			qTime = strtol(tokens[11], NULL, 0);
+			if (qTime < 0)
+			{
+				purge = 1;
+				qTime = 0 - qTime;
+			}
 
 			/*	Intentional fall-through to next case.	*/
 
@@ -161,10 +170,14 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		engineId = strtoul(tokens[2], NULL, 0);
-		addSpan(engineId, atoi(tokens[3]), atoi(tokens[4]),
-				atoi(tokens[5]), atoi(tokens[6]),
-				atoi(tokens[7]), atoi(tokens[8]),
-				atoi(tokens[9]), tokens[10], qTime);
+		oK(addSpan(engineId, strtol(tokens[3], NULL, 0),
+				strtol(tokens[4], NULL, 0),
+				strtol(tokens[5], NULL, 0),
+				strtol(tokens[6], NULL, 0),
+				strtol(tokens[7], NULL, 0),
+				strtol(tokens[8], NULL, 0),
+				strtol(tokens[9], NULL, 0),
+				tokens[10], (unsigned int) qTime, purge));
 		return;
 	}
 
@@ -174,7 +187,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 static void	executeChange(int tokenCount, char **tokens)
 {
 	unsigned long	engineId;
-	unsigned int	qTime = 1;		/*	Default.	*/
+	int		qTime = 1;		/*	Default.	*/
+	int		purge = 0;		/*	Default.	*/
 
 	if (attachToLtp() < 0) return;
 	if (tokenCount < 2)
@@ -188,7 +202,12 @@ static void	executeChange(int tokenCount, char **tokens)
 		switch (tokenCount)
 		{
 		case 12:
-			qTime = (unsigned int) atoi(tokens[11]);
+			qTime = strtol(tokens[11], NULL, 0);
+			if (qTime < 0)
+			{
+				purge = 1;
+				qTime = 0 - qTime;
+			}
 
 			/*	Intentional fall-through to next case.	*/
 
@@ -201,10 +220,14 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 
 		engineId = strtoul(tokens[2], NULL, 0);
-		updateSpan(engineId, atoi(tokens[3]), atoi(tokens[4]),
-				atoi(tokens[5]), atoi(tokens[6]),
-				atoi(tokens[7]), atoi(tokens[8]),
-				atoi(tokens[9]), tokens[10], qTime);
+		oK(updateSpan(engineId, strtol(tokens[3], NULL, 0),
+				strtol(tokens[4], NULL, 0),
+				strtol(tokens[5], NULL, 0),
+				strtol(tokens[6], NULL, 0),
+				strtol(tokens[7], NULL, 0),
+				strtol(tokens[8], NULL, 0),
+				strtol(tokens[9], NULL, 0),
+				tokens[10], (unsigned int) qTime, purge));
 		return;
 	}
 
@@ -259,7 +282,7 @@ import block size: %u", span->maxImportSessions, span->maxImportBlockSize);
 aggregation time limit: %u", span->aggrSizeLimit, span->aggrTimeLimit);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "\tmax segment size: %u  queuing \
-latency: %u", span->maxSegmentSize, span->remoteQtime);
+latency: %u  purge: %d", span->maxSegmentSize, span->remoteQtime, span->purge);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "\towlt: %u  localXmit: %lu  \
 remoteXmit: %lu", vspan->owlt, vspan->localXmitRate, vspan->remoteXmitRate);

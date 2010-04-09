@@ -349,6 +349,7 @@ typedef struct
 
 	Object		xmitRefs;	/*	SDR list of XmitRefs	*/
 	int		xmitsNeeded;
+	time_t		enqueueTime;	/*	When queued for xmit.	*/
 } Bundle;
 
 #define COS_FLAGS(bundleProcFlags)	((bundleProcFlags >> 7) & 0x7f)

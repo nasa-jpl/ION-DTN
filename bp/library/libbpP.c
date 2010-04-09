@@ -8511,8 +8511,54 @@ int	bpAccept(Bundle *bundle)
 	return 0;
 }
 
+static Object	insertXrefIntoList(Object queue, Object lastElt,
+			Object xmitRefAddr, int priority,
+			unsigned char ordinal, time_t enqueueTime)
+{
+	OBJ_POINTER(XmitRef, xr);
+	OBJ_POINTER(Bundle, bundle);
+
+	/*	Bundles have transmission seniority which must be
+	 *	honored.  A bundle that was enqueued for transmission
+	 *	a while ago and now is being reforwarded must jump
+	 *	the queue ahead of bundles of the same priority that
+	 *	were enqueued more recently.				*/
+
+	GET_OBJ_POINTER(bpSdr, XmitRef, xr, sdr_list_data(bpSdr, lastElt));
+	GET_OBJ_POINTER(bpSdr, Bundle, bundle, xr->bundleObj);
+	while (enqueueTime < bundle->enqueueTime)
+	{
+		lastElt = sdr_list_prev(bpSdr, lastElt);
+		if (lastElt == 0)
+		{
+			break;		/*	Reached head of queue.	*/
+		}
+
+		GET_OBJ_POINTER(bpSdr, XmitRef, xr,
+				sdr_list_data(bpSdr, lastElt));
+		GET_OBJ_POINTER(bpSdr, Bundle, bundle, xr->bundleObj);
+		if (priority < 2)
+		{
+			continue;	/*	Don't check ordinal.	*/
+		}
+
+		if (bundle->extendedCOS.ordinal > ordinal)
+		{
+			break;		/*	At head of subqueue.	*/
+		}
+	}
+
+	if (lastElt)
+	{
+		return sdr_list_insert_after(bpSdr, lastElt, xmitRefAddr);
+	}
+
+	return sdr_list_insert_first(bpSdr, queue, xmitRefAddr);
+}
+
 static Object	enqueueUrgentBundle(Outduct *duct, int ordinal,
-			Object xmitRefAddr, int backlogIncrement)
+			Object xmitRefAddr, time_t enqueueTime,
+			int backlogIncrement)
 {
 	OrdinalState	*ord = &(duct->ordinals[ordinal]);
 	Object		lastElt = 0;	// initialized to avoid warning
@@ -8539,7 +8585,8 @@ static Object	enqueueUrgentBundle(Outduct *duct, int ordinal,
 	}
 	else		/*	Enqueue after this one.			*/
 	{
-		xmitElt = sdr_list_insert_after(bpSdr, lastElt, xmitRefAddr);
+		xmitElt = insertXrefIntoList(duct->urgentQueue, lastElt,
+				xmitRefAddr, 2, ordinal, enqueueTime);
 	}
 
 	if (xmitElt)
@@ -8560,7 +8607,9 @@ int	bpEnqueue(Object bundleObj, Bundle *bundle, char *proxNodeEid,
 	Outduct		duct;
 	int		backlogIncrement;
 	ClProtocol	protocol;
+	time_t		enqueueTime;
 	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	Object		lastElt;
 
 	/*      Forwarder arrived at a duct to transmit the bundle
 	 *      on, so construct a transmission reference.		*/
@@ -8601,6 +8650,14 @@ int	bpEnqueue(Object bundleObj, Bundle *bundle, char *proxNodeEid,
 	sdr_stage(bpSdr, (char *) &duct, ductAddr, sizeof(Outduct));
 	sdr_read(bpSdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
 	backlogIncrement = computeECCC(guessBundleSize(bundle), &protocol);
+	if (bundle->enqueueTime == 0)
+	{
+		bundle->enqueueTime = enqueueTime = getUTCTime();
+	}
+	else
+	{
+		enqueueTime = bundle->enqueueTime;
+	}
 
 	/*	Insert bundle's xmitRef into the appropriate
 	 *	transmission queue of the selected Duct.		*/
@@ -8608,21 +8665,41 @@ int	bpEnqueue(Object bundleObj, Bundle *bundle, char *proxNodeEid,
 	switch (priority)
 	{
 	case 0:
-		xr.ductXmitElt = sdr_list_insert_last(bpSdr, duct.bulkQueue,
-				xmitRefAddr);
+		lastElt = sdr_list_last(bpSdr, duct.bulkQueue);
+		if (lastElt == 0)
+		{
+			xr.ductXmitElt = sdr_list_insert_first(bpSdr,
+				duct.bulkQueue, xmitRefAddr);
+		}
+		else
+		{
+			xr.ductXmitElt = insertXrefIntoList(duct.bulkQueue,
+				lastElt, xmitRefAddr, 0, 0, enqueueTime);
+		}
+
 		increaseScalar(&duct.bulkBacklog, backlogIncrement);
 		break;
 
 	case 1:
-		xr.ductXmitElt = sdr_list_insert_last(bpSdr, duct.stdQueue,
-				xmitRefAddr);
+		lastElt = sdr_list_last(bpSdr, duct.stdQueue);
+		if (lastElt == 0)
+		{
+			xr.ductXmitElt = sdr_list_insert_first(bpSdr,
+				duct.stdQueue, xmitRefAddr);
+		}
+		else
+		{
+			xr.ductXmitElt = insertXrefIntoList(duct.stdQueue,
+				lastElt, xmitRefAddr, 1, 0, enqueueTime);
+		}
+
 		increaseScalar(&duct.stdBacklog, backlogIncrement);
 		break;
 
 	default:
 		xr.ductXmitElt = enqueueUrgentBundle(&duct,
 				bundle->extendedCOS.ordinal, xmitRefAddr,
-				backlogIncrement);
+				enqueueTime, backlogIncrement);
 		increaseScalar(&duct.urgentBacklog, backlogIncrement);
 	}
 

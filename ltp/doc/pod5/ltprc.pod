@@ -98,7 +98,17 @@ in the I<LSO_command> string itself.
 I<queuing_latency> is the estimated number of seconds that we expect to lapse
 between reception of a segment at this node and transmission of an
 acknowledging segment, due to processing delay in the node.  (See the
-'m ownqtime' command below.)  The default value is zero.
+'m ownqtime' command below.)  The default value is 1.
+
+If I<queuing latency> a negative number, the absolute value of this number
+is used as the actual queuing latency and session purging is enabled;
+otherwise session purging is disabled.  If session purging is enabled
+for a span then at the end of any period of transmission over this span
+all of the span's export sessions that are currently in progress are
+automatically canceled.  Notionally this forces re-forwarding of the DTN
+bundles in each session's block, to avoid having to wait for the restart
+of transmission on this span before those bundles can be successfully
+transmitted.
 
 =item B<c span> I<peer_engine_nbr> I<max_export_sessions> I<max_export_session_block_size> I<max_import_sessions> I<max_import_session_block_size> I<max_segment_size> I<aggregation_size_limit> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
 
@@ -145,7 +155,7 @@ The B<manage own queuing time> command.  This command sets the number of
 seconds of predicted additional latency attributable to processing delay
 within the local engine itself that should be included whenever LTP computes
 the nominal round-trip time for an exchange of data with any remote engine.
-The default value is zero.
+The default value is 1.
 
 =item B<x>
 

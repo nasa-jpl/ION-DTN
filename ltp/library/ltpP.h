@@ -250,6 +250,7 @@ typedef struct
 	unsigned long	engineId;	/*	ID of remote engine.	*/
 	Sdnv		engineIdSdnv;
 	unsigned int	remoteQtime;	/*	In seconds.		*/
+	int		purge;		/*	Boolean.		*/
 	Object		lsoCmd;		/*	For starting the LSO.	*/
 	unsigned int	maxExportSessions;
 	unsigned int	maxExportBlockSize;
@@ -269,7 +270,7 @@ typedef struct
 	Object		segments;	/*	SDR list: LtpXmitSeg	*/
 	Object		importSessions;	/*	SDR list: ImportSession	*/
 	Object		importSessionsHash;
-	Object		deadSessions;	/*	SDR list: ImportSession	*/
+	Object		deadImports;	/*	SDR list: ImportSession	*/
 } LtpSpan;
 
 /* The volatile span object encapsulates the current volatile state
@@ -395,6 +396,7 @@ typedef struct
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
 	unsigned long	sessionCount;
 	Object		exportSessionsHash;
+	Object		deadExports;	/*	SDR list: ExportSession	*/
 	Object		spans;		/*	SDR list: LtpSpan	*/
 	Object		timeline;	/*	SDR list: LtpEvent	*/
 } LtpDB;
@@ -464,7 +466,7 @@ extern int		addSpan(unsigned long engineId,
 				unsigned int maxSegmentSize,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,
-				char *lsoCmd, unsigned int qTime);
+				char *lsoCmd, unsigned int qTime, int purge);
 extern int		updateSpan(unsigned long engineId,
 	       			unsigned int maxExportSessions,
 				unsigned int maxExportBlockSize,
@@ -473,12 +475,14 @@ extern int		updateSpan(unsigned long engineId,
 				unsigned int maxSegmentSize,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,
-				char *lsoCmd, unsigned int qTime);
+				char *lsoCmd, unsigned int qTime, int purge);
 extern int		removeSpan(unsigned long engineId);
 
 extern int		ltpStartSpan(unsigned long engineId);
 extern void		ltpStopSpan(unsigned long engineId);
 
+extern int		startExportSession(Sdr sdr, Object spanObj,
+				LtpVspan *vspan);
 extern int		issueSegments(Sdr sdr, LtpSpan *span, LtpVspan *vspan,
 				ExportSession *session, Object sessionObj,
 				Lyst extents, unsigned long reportSerialNbr);

@@ -86,7 +86,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	while (1)
 	{
 		switch (bp_send(sap, BP_NONBLOCKING, destEid, NULL, 300,
-				priority, NoCustodyRequested, 0, 0,
+				priority, SourceCustodyRequired, 0, 0,
 				&extendedCOS, bundleZco, &newBundle))
 		{
 		case 0:		/*	No space for bundle.		*/

@@ -10,99 +10,6 @@
 									*/
 #include "ltpP.h"
 
-static int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
-{
-	LtpVdb		*vdb;
-	Object		dbobj;
-	LtpSpan		span;
-	LtpDB		ltpdb;
-	unsigned long	sessionNbr;
-	Object		sessionObj;
-	Object		elt;
-	ExportSession	session;
-
-	sdr_begin_xn(sdr);
-	vdb = getLtpVdb();
-	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
-
-	/*	Wait until window opens enabling start of next session.	*/
-
-	while (sdr_list_length(sdr, span.exportSessions)
-			>= span.maxExportSessions)
-	{
-		sdr_exit_xn(sdr);
-		if (sm_SemTake(vdb->sessionSemaphore) < 0)
-		{
-			putErrmsg("Can't take sessionSemaphore.", NULL);
-			return -1;
-		}
-
-		if (sm_SemEnded(vdb->sessionSemaphore))
-		{
-			putErrmsg("LTP has been stopped.", NULL);
-			return 0;
-		}
-
-		sdr_begin_xn(sdr);
-		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
-	}
-
-	dbobj = getLtpDbObject();
-	sdr_stage(sdr, (char *) &ltpdb, dbobj, sizeof(LtpDB));
-	ltpdb.sessionCount++;
-	sdr_write(sdr, dbobj, (char *) &ltpdb, sizeof(LtpDB));
-	sessionNbr = ltpdb.sessionCount;
-
-	/*	exportSessions list element points to the session
-	 *	structure.  exportSessionHash entry points to the
-	 *	list element.						*/
-
-	sessionObj = sdr_malloc(sdr, sizeof(ExportSession));
-	if (sessionObj == 0
-	|| (elt = sdr_list_insert_last(sdr, span.exportSessions,
-			sessionObj)) == 0
-	|| sdr_hash_insert(sdr, ltpdb.exportSessionsHash,
-			(char *) &sessionNbr, elt) < 0)
-	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't start session.", NULL);
-		return -1;
-	}
-
-	/*	Write session to database.				*/
-
-	memset((char *) &session, 0, sizeof(ExportSession));
-	session.span = spanObj;
-	session.sessionNbr = sessionNbr;
-	encodeSdnv(&(session.sessionNbrSdnv), session.sessionNbr);
-	session.svcDataObjects = sdr_list_create(sdr);
-	session.redSegments = sdr_list_create(sdr);
-	session.greenSegments = sdr_list_create(sdr);
-	session.claims = sdr_list_create(sdr);
-	sdr_write(sdr, sessionObj, (char *) &session, sizeof(ExportSession));
-
-	/*	Note session address in span and finish: unless span
-	 *	is currently inactive (i.e., localXmitRate is currently
-	 *	zero) -- give the buffer-empty semaphore so that the
-	 *	pending service data object (if any) can be inserted
-	 *	into the buffer.					*/
-
-	span.currentExportSessionObj = sessionObj;
-	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
-	if (vspan->localXmitRate > 0)
-	{
-		sm_SemGive(vspan->bufEmptySemaphore);
-	}
-
-	if (sdr_end_xn(sdr))
-	{
-		putErrmsg("Can't start session.", NULL);
-		return -1;
-	}
-
-	return 1;
-}
-
 #if defined (VXWORKS) || defined (RTEMS)
 int	ltpmeter(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
@@ -169,22 +76,18 @@ int	main(int argc, char *argv[])
 	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	if (span.currentExportSessionObj == 0)	/*	New span.	*/
 	{
+		/*	Must start span's initial session.		*/
+
 		sdr_exit_xn(sdr);
-		switch (startExportSession(sdr, spanObj, vspan))
+		if (startExportSession(sdr, spanObj, vspan) < 0)
 		{
-		case -1:
 			putErrmsg("ltpmeter can't start new session.",
-				itoa(remoteEngineId));
+					itoa(remoteEngineId));
 			return 1;
-
-		case 0:
-			return 0;		/*	LTP stopped.	*/
-
-		default:
-			sdr_begin_xn(sdr);
-			sdr_stage(sdr, (char *) &span, spanObj,
-					sizeof(LtpSpan));
 		}
+
+		sdr_begin_xn(sdr);
+		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	}
 
 	writeMemo("[i] ltpmeter is running.");
@@ -281,20 +184,6 @@ engine %lu is stopped.", remoteEngineId);
 			fflush(stdout);
 		}
 
-		/*	Notify the source client.			*/
-
-		if (enqueueNotice(vdb->clients + session.clientSvcId,
-				ltpConstants->ownEngineId, session.sessionNbr,
-				0, 0, LtpExportSessionStart, 0, 0, 0) < 0)
-		{
-			sdr_cancel_xn(sdr);
-			putErrmsg("Can't post ExportSessionStart notice.",
-					NULL);
-			returnCode = 1;
-			running = 0;
-			continue;	/*	Breaks main loop.	*/
-		}
-
 		/*	Commit changes to current session to the
 		 *	database.					*/
 
@@ -317,25 +206,43 @@ engine %lu is stopped.", remoteEngineId);
 			continue;	/*	Breaks main loop.	*/
 		}
 
-		/*	Make sure other tasks have a chance to run.	*/
+		/*	Wait until window opens enabling start of next
+		 *	session.					*/
 
-		sm_TaskYield();
+		while (sdr_list_length(sdr, span.exportSessions)
+				>= span.maxExportSessions)
+		{
+			if (sm_SemTake(vdb->sessionSemaphore) < 0)
+			{
+				putErrmsg("Can't take sessionSemaphore.", NULL);
+				returnCode = 1;
+				running = 0;
+				continue;/*	Breaks main loop.	*/
+			}
+
+			if (sm_SemEnded(vdb->sessionSemaphore))
+			{
+				putErrmsg("LTP has been stopped.", NULL);
+				returnCode = 1;
+				running = 0;
+				continue;/*	Breaks main loop.	*/
+			}
+		}
 
 		/*	Start an export session for the next block.	*/
 
-		switch (startExportSession(sdr, spanObj, vspan))
+		if (startExportSession(sdr, spanObj, vspan) < 0)
 		{
-		case -1:
 			putErrmsg("ltpmeter can't start new session.",
 					utoa(remoteEngineId));
 			returnCode = 1;
 			running = 0;
 			continue;
-
-		case 0:
-			running = 0;
-			continue;
 		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
 
 		/*	Now start next cycle of main loop, waiting
 		 *	for the new session's buffer to be filled.	*/
