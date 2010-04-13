@@ -228,7 +228,7 @@ static int	startDTN()
 	isprintf(cmd, sizeof cmd, "ionadmin /ion/node%d.ionrc", nodenbr);
 	pseudoshell(cmd);
 	count = 5;
-	while (rfx_system_is_started() ==0)
+	while (rfx_system_is_started() == 0)
 	{
 		snooze(1);
 		count--;

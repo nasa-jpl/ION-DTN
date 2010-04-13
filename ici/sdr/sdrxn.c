@@ -903,7 +903,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 			&& strcmp(sdr->pathName, pathName) == 0)
 			{
 				sm_SemUnwedge(sdr->sdrSemaphore, 3);
-				return 1;	/*	Profile loaded.	*/
+				return 0;	/*	Profile loaded.	*/
 			}
 
 			putErrmsg("Wrong profile for this SDR.", name);

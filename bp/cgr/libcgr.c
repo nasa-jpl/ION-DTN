@@ -13,26 +13,65 @@
 #define CGRDEBUG	0
 #endif
 
-static Sdr		cgrsdr;
-
 typedef struct
 {
 	unsigned long	neighborNodeNbr;
 	FwdDirective	directive;
 	time_t		forfeitTime;
+	time_t		deliveryTime;
 	int		distance;	/*	# hops from dest. node.	*/
 } ProximateNode;
 
-static int	getPlan(int nodeNbr, Object plans, IpnPlan *plan)
+static void	resetLastVisitor()
+{
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*ionvdb = getIonVdb();
+	PsmAddress	elt;
+	IonNode		*node;
+	PsmAddress	elt2;
+	IonXmit		*xmit;
+
+	for (elt = sm_list_first(ionwm, ionvdb->nodes); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		node = (IonNode *) psp(ionwm, sm_list_data(ionwm, elt));
+		for (elt2 = sm_list_first(ionwm, node->xmits); elt2;
+				elt2 = sm_list_next(ionwm, elt2))
+		{
+			xmit = (IonXmit *) psp(ionwm, sm_list_data(ionwm, elt));
+			xmit->lastVisitor = 0;
+			xmit->visitHorizon = 0;
+		}
+	}
+}
+
+static int	_visitorCount(int increment)
+{
+	static unsigned int	count = 0;
+
+	count += increment;
+	if (count == 0)
+	{
+		/*	On counter roll-over, reinitialize every
+		 *	xmit's lastVisitor to zero.			*/
+
+		count = 1;
+		resetLastVisitor();
+	}
+
+	return count;
+}
+
+static int	getPlan(Sdr sdr, int nodeNbr, Object plans, IpnPlan *plan)
 {
 	Object	elt;
 	Object	planAddr;
 
-	for (elt = sdr_list_first(cgrsdr, plans); elt;
-			elt = sdr_list_next(cgrsdr, elt))
+	for (elt = sdr_list_first(sdr, plans); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		planAddr = sdr_list_data(cgrsdr, elt);
-		sdr_read(cgrsdr, (char *) plan, planAddr, sizeof(IpnPlan));
+		planAddr = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) plan, planAddr, sizeof(IpnPlan));
 		if (plan->nodeNbr < nodeNbr)
 		{
 			continue;
@@ -51,12 +90,13 @@ static int	getPlan(int nodeNbr, Object plans, IpnPlan *plan)
 
 static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 			Object plans, Lyst proximateNodes, time_t forfeitTime,
-			int distance)
+			time_t deliveryTime, int distance)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	snubElt;
 	IonSnub		*snub;
 	IpnPlan		plan;
+	Sdr		sdr;
 	Scalar		capacity;
 	Outduct		outduct;
 	Scalar		backlog;
@@ -109,7 +149,8 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 	 *	it.  This level of complexity is not required by any
 	 *	currently anticipated application of ION.		*/
 
-	if (getPlan(neighbor->nodeNbr, plans, &plan) == 0)
+	sdr = getIonsdr();
+	if (getPlan(sdr, neighbor->nodeNbr, plans, &plan) == 0)
 	{
 		return 0;		/*	No plan on file.	*/
 	}
@@ -125,7 +166,7 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 	 *	transmission capacity consumption of this bundle?	*/
 
 	copyScalar(&capacity, &(xmit->aggrCapacity));
-	sdr_read(cgrsdr, (char *) &outduct, sdr_list_data(cgrsdr,
+	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			plan.defaultDirective.outductElt), sizeof(Outduct));
 	computeApplicableBacklog(&outduct, bundle, &backlog);
 	subtractFromScalar(&capacity, &backlog);
@@ -137,7 +178,7 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 		return 0;
 	}
 
-	sdr_read(cgrsdr, (char *) &protocol, outduct.protocol,
+	sdr_read(sdr, (char *) &protocol, outduct.protocol,
 			sizeof(ClProtocol));
 	eccc = computeECCC(guessBundleSize(bundle), &protocol);
 	reduceScalar(&capacity, eccc);
@@ -152,12 +193,18 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 	/*	This contact is plausible, so add this neighbor to the
 	 *	list of proximateNodes if it's not already in the list.	*/
 
-	/*	The forfeitTime noted here is the earliest among
-	 *	the termination times of all the contacts on ANY
-	 *	path to the destination starting at this neighbor.
+	/*	The deliveryTime noted here is the earliest among
+	 *	the final-contact end times of ALL paths to the
+	 *	destination starting at this neighbor.
+	 *
 	 *	The distance noted here is the shortest among the
 	 *	distances of ALL paths to the destination, starting
-	 *	at this neighbor, that have minimum forfeitTime.	*/
+	 *	at this neighbor, that have minimum deliveryTime.
+	 *
+	 *	We set forfeit time to the forfeit time associated with
+	 *	the "best" (lowest-latency, shortest) path.  Note that
+	 *	the best path might not have the lowest associated
+	 *	forfeit time.						*/
 
 	for (elt = lyst_first(proximateNodes); elt; elt = lyst_next(elt))
 	{
@@ -167,18 +214,21 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 			/*	This xmit is another contact with a
 			 *	neighbor that's already in the list.	*/
 
-			if (forfeitTime < proxNode->forfeitTime)
+			if (deliveryTime < proxNode->deliveryTime)
 			{
-				proxNode->forfeitTime = forfeitTime;
+				proxNode->deliveryTime = deliveryTime;
 				proxNode->distance = distance;
+				proxNode->forfeitTime = forfeitTime;
 			}
 			else
 			{
-				if (forfeitTime == proxNode->forfeitTime)
+				if (deliveryTime == proxNode->deliveryTime)
 				{
 					if (distance < proxNode->distance)
 					{
 						proxNode->distance = distance;
+						proxNode->forfeitTime =
+								forfeitTime;
 					}
 				}
 			}
@@ -200,8 +250,9 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 	proxNode->neighborNodeNbr = neighbor->nodeNbr;
 	memcpy((char *) &(proxNode->directive), (char *) &plan.defaultDirective,
 			sizeof(FwdDirective));
-	proxNode->forfeitTime = forfeitTime;
+	proxNode->deliveryTime = deliveryTime;
 	proxNode->distance = distance;
+	proxNode->forfeitTime = forfeitTime;
 	return 0;
 }
 
@@ -222,12 +273,13 @@ static int	isExcluded(unsigned long nodeNbr, Lyst excludedNodes)
 
 static int	identifyProximateNodes(IonNode *node, Object plans,
 			unsigned long deadline, IonNode *stationNode,
-			Bundle *bundle, Object bundleObj,
-			Lyst excludedNodes, Lyst proximateNodes,
-			time_t forfeitTime, int distance)
+			Bundle *bundle, Object bundleObj, Lyst excludedNodes,
+			Lyst proximateNodes, time_t forfeitTime,
+			time_t deliveryTime, int distance,
+			unsigned int visitorNbr)
 {
-	LystElt		exclusion;
 	PsmPartition	ionwm = getIonwm();
+	LystElt		exclusion;
 	PsmAddress	elt;
 	IonXmit		*xmit;
 	time_t		closingTime;
@@ -250,24 +302,74 @@ static int	identifyProximateNodes(IonNode *node, Object plans,
 		return -1;
 	}
 
-	/*	Examine all opportunities for transmission to node.	*/
+	/*	Examine all opportunities for transmission to node.
+	 *	Walk the list in reverse order, i.e., in descending
+	 *	toTime order, so that the maximum deadline time is
+	 *	the first one passed to subordinate invocations of
+	 *	identifyProximateNodes.  This enables subsequent visits
+	 *	to this vertext of the contact graph to be skipped.	*/
 
 #if CGRDEBUG
 printf("In identifyProximateNodes for node %lu, deadline %lu.\n",
 node->nodeNbr, deadline);
 #endif
-	for (elt = sm_list_first(ionwm, node->xmits); elt;
-			elt = sm_list_next(ionwm, elt))
+	for (elt = sm_list_last(ionwm, node->xmits); elt;
+			elt = sm_list_prev(ionwm, elt))
 	{
 		xmit = (IonXmit *) psp(ionwm, sm_list_data(ionwm, elt));
 		if (xmit->fromTime > deadline)
 		{
-#if CGRDEBUG
-printf("xmit->fromTime %lu is %lu sec after deadline.  No further \
-opportunities.\n", xmit->fromTime, xmit->fromTime - deadline);
-#endif
-			lyst_delete(exclusion);
-			return 0;	/*	No more opportunities.	*/
+			continue;	/*	Too late; ignore it.	*/
+		}
+
+		/*	The "usability" of a contact is a best-case
+		 *	determination as to whether or not it is
+		 *	mathematically plausible for a bundle sent
+		 *	from the local node to be transmitted during
+		 *	this contact prior to some deadline.  For each
+		 *	bundle, once we have determined the usability
+		 *	of a contact in the context of a given
+		 *	deadline we need not consider that contact
+		 *	again the context of any earlier deadline.
+		 *	The reasoning is that if the contact was usable
+		 *	for that original deadline then it has already
+		 *	had whatever effect on the proximateNodes list
+		 *	it could potentially have, so there's no need
+		 *	to re-consider it; it not, then it certainly
+		 *	won't be usable for this tighter deadline, so
+		 *	there's no reason to consider it at all.	*/
+
+		if (xmit->lastVisitor == visitorNbr)
+		{
+			/*	Have already considered this contact.	*/
+
+			if (deadline <= xmit->visitHorizon)
+			{
+				continue;
+			}
+		}
+
+		/*	Either we've never considered this contact
+		 *	before (for this bundle) or else we only
+		 *	determined its usability for an earlier
+		 *	deadline.  If the former, we have to visit
+		 *	it.  Now suppose the latter.  If the contact
+		 *	was found to be usable for that deadline
+		 *	then we've already used it to update the
+		 *	proximateNodes list.  It's hard to know if
+		 *	this is the case; even if it is, revisiting
+		 *	the contact is harmless, just a waste of time.
+		 *	So we may as well revisit.  On the other hand,
+		 *	if the contact was found to be unusable for
+		 *	that earlier deadline it might still be
+		 *	usable for this later, less restrictive
+		 *	deadline, so we surely MUST revisit.		*/
+
+		xmit->lastVisitor = visitorNbr;
+		xmit->visitHorizon = deadline;
+		if (distance == 0)	/*	Final contact on path.	*/
+		{
+			deliveryTime = xmit->toTime;
 		}
 
 		/*	First handle the special case of loopback
@@ -292,7 +394,8 @@ opportunities.\n", xmit->fromTime, xmit->fromTime - deadline);
 			}
 
 			if (tryContact(node, xmit, bundle, plans, 
-					proximateNodes, closingTime, distance))
+					proximateNodes, closingTime,
+					deliveryTime, distance))
 			{
 				putErrmsg("Can't check contact.", NULL);
 				return -1;
@@ -355,7 +458,8 @@ printf("Queueing directly from local node to node %lu.\n", node->nodeNbr);
 			}
 
 			if (tryContact(node, xmit, bundle, plans, 
-					proximateNodes, closingTime, distance))
+					proximateNodes, closingTime,
+					deliveryTime, distance))
 			{
 				putErrmsg("Can't check contact.", NULL);
 				return -1;
@@ -410,9 +514,9 @@ printf("New deadline changed to %lu.\n", maxFromTime);
 			}
 
 			if (identifyProximateNodes(originNode, plans,
-				maxFromTime, stationNode, bundle,
-			       	bundleObj, excludedNodes, proximateNodes,
-				closingTime, distance + 1) < 0)
+				maxFromTime, stationNode, bundle, bundleObj,
+				excludedNodes, proximateNodes, closingTime,
+				deliveryTime, distance + 1, visitorNbr) < 0)
 			{
 				putErrmsg("Can't identify origin prox. nodes.",
 						NULL);
@@ -512,7 +616,8 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 			return -1;
 		}
 
-		sdr_write(cgrsdr, bundleObj, (char *) bundle, sizeof(Bundle));
+		sdr_write(getIonsdr(), bundleObj, (char *) bundle,
+				sizeof(Bundle));
 	}
 
 	/*	In any event, we enqueue the bundle for transmission.	*/
@@ -539,11 +644,12 @@ int	cgr_forward(Bundle *bundle, Object bundleObj,
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	snubElt;
 	IonSnub		*snub;
+	unsigned int	visitorNbr;
 	LystElt		elt;
 	LystElt		nextElt;
 	ProximateNode	*proxNode;
 	ProximateNode	*selectedNeighbor;
-	time_t		earliestStopTime = 0;
+	time_t		earliestDeliveryTime = 0;
 	int		shortestDistance = 0;
 
 	/*	Determine whether or not the contact graph for this
@@ -569,7 +675,6 @@ printf("No routing information for node %lu.\n", stationNodeNbr);
 		return 0;	/*	Can't apply CGR.		*/
 	}
 
-	cgrsdr = getIonsdr();
 	ionMemIdx = getIonMemoryMgr();
 	proximateNodes = lyst_create_using(ionMemIdx);
 	excludedNodes = lyst_create_using(ionMemIdx);
@@ -627,10 +732,11 @@ printf("No routing information for node %lu.\n", stationNodeNbr);
 #if CGRDEBUG
 printf("--------------- Start of contact graph traversal -------------\n");
 #endif
+	visitorNbr = _visitorCount(1);
 	if (identifyProximateNodes(stationNode, plans,
 			bundle->expirationTime + EPOCH_2000_SEC,
 			stationNode, bundle, bundleObj, excludedNodes,
-			proximateNodes, 0, 0) < 0)
+			proximateNodes, 0, 0, 0, visitorNbr) < 0)
 	{
 		putErrmsg("Can't identify proximate nodes for bundle.", NULL);
 		return -1;
@@ -641,15 +747,8 @@ printf("--------------- Start of contact graph traversal -------------\n");
 	 *	identified proximate destination node.
 	 *
 	 *	Otherwise, enqueue the bundle on the outduct to the
-	 *	identified proximate destination for the contact with
-	 *	the earliest termination time.  The intent of this
-	 *	selection is not to minimize delivery latency for
-	 *	the bundle but rather to maximize link utilization:
-	 *	bundles that must be forwarded in the future may
-	 *	have later expiration times that enable them to be
-	 *	forwarded in contacts that end later, so let's not
-	 *	risk wasting any transmission opportunity in this
-	 *	earlier/shorter contact.				*/
+	 *	identified proximate destination for the path with
+	 *	the earliest worst-case delivery time.			*/
 
 	if (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
@@ -675,7 +774,7 @@ printf("--------------- Start of contact graph traversal -------------\n");
 		return 0;
 	}
 
-	/*	Non-critical bundle; send on path that closes earliest.
+	/*	Non-critical bundle; send on the minimum-latency path.
 	 *	In case of a tie, select the path of minimum distance
 	 *	from the destination node.				*/
 
@@ -687,39 +786,44 @@ printf("--------------- Start of contact graph traversal -------------\n");
 		lyst_delete(elt);
 		if (selectedNeighbor == NULL)
 		{
-			earliestStopTime = proxNode->forfeitTime;
+			earliestDeliveryTime = proxNode->deliveryTime;
 			shortestDistance = proxNode->distance;
 			selectedNeighbor = proxNode;
 		}
-		else if (proxNode->forfeitTime < earliestStopTime)
+		else if (proxNode->deliveryTime < earliestDeliveryTime)
 		{
-			earliestStopTime = proxNode->forfeitTime;
+			earliestDeliveryTime = proxNode->deliveryTime;
 			shortestDistance = proxNode->distance;
-			if (selectedNeighbor)
-			{
-				MRELEASE(selectedNeighbor);
-			}
-
+			MRELEASE(selectedNeighbor);
 			selectedNeighbor = proxNode;
 		}
-		else if (proxNode->forfeitTime == earliestStopTime)
+		else if (proxNode->deliveryTime == earliestDeliveryTime)
 		{
 			if (proxNode->distance < shortestDistance)
 			{
 				shortestDistance = proxNode->distance;
-				if (selectedNeighbor)
-				{
-					MRELEASE(selectedNeighbor);
-				}
-
+				MRELEASE(selectedNeighbor);
 				selectedNeighbor = proxNode;
 			}
-			else	/*	Greater distance; ignore.	*/
+			else if (proxNode->distance == shortestDistance)
+			{
+				if (proxNode->neighborNodeNbr <
+					selectedNeighbor-> neighborNodeNbr)
+				{
+					MRELEASE(selectedNeighbor);
+					selectedNeighbor = proxNode;
+				}
+				else	/*	Larger node#; ignore.	*/
+				{
+					MRELEASE(proxNode);
+				}
+			}
+			else	/*	More hops; ignore.		*/
 			{
 				MRELEASE(proxNode);
 			}
 		}
-		else	/*	Later forfeit time; ignore.		*/
+		else	/*	Later delivery time; ignore.		*/
 		{
 			MRELEASE(proxNode);
 		}
@@ -728,7 +832,7 @@ printf("--------------- Start of contact graph traversal -------------\n");
 	if (selectedNeighbor)
 	{
 #if CGRDEBUG
-printf("CGR selected node %d for next hop.\n",
+printf("CGR selected node %lu for next hop.\n",
 selectedNeighbor->neighborNodeNbr);
 #endif
 		if (enqueueToNeighbor(selectedNeighbor, bundle, bundleObj,

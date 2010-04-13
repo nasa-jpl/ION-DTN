@@ -366,6 +366,7 @@ reservation size %d limits space available for bundles to %ld bytes.",
 		ltpdbBuf.exportSessionsHash = sdr_hash_create(ltpSdr,
 				sizeof(unsigned long), estMaxExportSessions,
 				LTP_MEAN_SEARCH_LENGTH);
+		ltpdbBuf.deadExports = sdr_list_create(ltpSdr);
 		ltpdbBuf.spans = sdr_list_create(ltpSdr);
 		ltpdbBuf.timeline = sdr_list_create(ltpSdr);
 		sdr_write(ltpSdr, ltpdbObject, (char *) &ltpdbBuf,
@@ -685,7 +686,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 		unsigned int maxExportBlockSize, unsigned int maxImportSessions,
 		unsigned int maxImportBlockSize, unsigned int maxSegmentSize,
 		unsigned int aggrSizeLimit, unsigned int aggrTimeLimit,
-		char *lsoCmd, unsigned int qTime)
+		char *lsoCmd, unsigned int qTime, int purge)
 {
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
@@ -771,6 +772,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 	spanBuf.engineId = engineId;
 	encodeSdnv(&(spanBuf.engineIdSdnv), spanBuf.engineId);
 	spanBuf.remoteQtime = qTime;
+	spanBuf.purge = purge ? 1 : 0;
 	spanBuf.lsoCmd = sdr_string_create(ltpSdr, lsoCmd);
 	spanBuf.maxSegmentSize = maxSegmentSize;
 	spanBuf.aggrSizeLimit = aggrSizeLimit;
@@ -781,7 +783,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 	spanBuf.importSessionsHash = sdr_hash_create(ltpSdr,
 			sizeof(unsigned long), maxImportSessions,
 			LTP_MEAN_SEARCH_LENGTH);
-	spanBuf.deadSessions = sdr_list_create(ltpSdr);
+	spanBuf.deadImports = sdr_list_create(ltpSdr);
 	sdr_write(ltpSdr, addr, (char *) &spanBuf, sizeof(LtpSpan));
 	spanElt = sdr_list_insert_last(ltpSdr, ltpConstants->spans, addr);
 	if (sdr_end_xn(ltpSdr) < 0)
@@ -806,7 +808,7 @@ int	updateSpan(unsigned long engineId, unsigned int maxExportSessions,
 		unsigned int maxExportBlockSize, unsigned int maxImportSessions,
 		unsigned int maxImportBlockSize, unsigned int maxSegmentSize,
 		unsigned int aggrSizeLimit, unsigned int aggrTimeLimit,
-		char *lsoCmd, unsigned int qTime)
+		char *lsoCmd, unsigned int qTime, int purge)
 {
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
@@ -929,6 +931,7 @@ string too long.", lsoCmd);
 	}
 
 	spanBuf.remoteQtime = qTime;
+	spanBuf.purge = purge ? 1 : 0;
 	if (maxSegmentSize)
 	{
 		spanBuf.maxSegmentSize = maxSegmentSize;
@@ -999,7 +1002,7 @@ int	removeSpan(unsigned long engineId)
 		return 0;
 	}
 
-	if (sdr_list_length(ltpSdr, span->deadSessions) != 0)
+	if (sdr_list_length(ltpSdr, span->deadImports) != 0)
 	{
 		sdr_exit_xn(ltpSdr);
 		putErrmsg("Span has canceled sessions, can't be removed yet.",
@@ -1020,7 +1023,7 @@ int	removeSpan(unsigned long engineId)
 	sdr_list_destroy(ltpSdr, span->segments, NULL, NULL);
 	sdr_list_destroy(ltpSdr, span->importSessions, NULL, NULL);
 	sdr_hash_destroy(ltpSdr, span->importSessionsHash);
-	sdr_list_destroy(ltpSdr, span->deadSessions, NULL, NULL);
+	sdr_list_destroy(ltpSdr, span->deadImports, NULL, NULL);
 	sdr_list_delete(ltpSdr, spanElt, NULL, NULL);
 	sdr_free(ltpSdr, spanObj);
 	if (sdr_end_xn(ltpSdr) < 0)
@@ -1073,6 +1076,80 @@ void	ltpStopSpan(unsigned long engineId)
 	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
 	resetSpan(vspan);
 	sdr_exit_xn(ltpSdr);	/*	Unlock memory.			*/
+}
+
+int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
+{
+	LtpVdb		*vdb;
+	Object		dbobj;
+	LtpSpan		span;
+	LtpDB		ltpdb;
+	unsigned long	sessionNbr;
+	Object		sessionObj;
+	Object		elt;
+	ExportSession	session;
+
+	sdr_begin_xn(sdr);
+	vdb = getLtpVdb();
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+
+	/*	Get next session number.				*/
+
+	dbobj = getLtpDbObject();
+	sdr_stage(sdr, (char *) &ltpdb, dbobj, sizeof(LtpDB));
+	ltpdb.sessionCount++;
+	sdr_write(sdr, dbobj, (char *) &ltpdb, sizeof(LtpDB));
+	sessionNbr = ltpdb.sessionCount;
+
+	/*	Record the session object in the database. The
+	 *	exportSessions list element points to the session
+	 *	structure.  exportSessionHash entry points to the
+	 *	list element.						*/
+
+	sessionObj = sdr_malloc(sdr, sizeof(ExportSession));
+	if (sessionObj == 0
+	|| (elt = sdr_list_insert_last(sdr, span.exportSessions,
+			sessionObj)) == 0
+	|| sdr_hash_insert(sdr, ltpdb.exportSessionsHash,
+			(char *) &sessionNbr, elt) < 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't start session.", NULL);
+		return -1;
+	}
+
+	/*	Populate session object in database.			*/
+
+	memset((char *) &session, 0, sizeof(ExportSession));
+	session.span = spanObj;
+	session.sessionNbr = sessionNbr;
+	encodeSdnv(&(session.sessionNbrSdnv), session.sessionNbr);
+	session.svcDataObjects = sdr_list_create(sdr);
+	session.redSegments = sdr_list_create(sdr);
+	session.greenSegments = sdr_list_create(sdr);
+	session.claims = sdr_list_create(sdr);
+	sdr_write(sdr, sessionObj, (char *) &session, sizeof(ExportSession));
+
+	/*	Note session address in span, then finish: unless span
+	 *	is currently inactive (i.e., localXmitRate is currently
+	 *	zero), give the buffer-empty semaphore so that the
+	 *	pending service data object (if any) can be inserted
+	 *	into the buffer.					*/
+
+	span.currentExportSessionObj = sessionObj;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
+	if (vspan->localXmitRate > 0)
+	{
+		sm_SemGive(vspan->bufEmptySemaphore);
+	}
+
+	if (sdr_end_xn(sdr))
+	{
+		putErrmsg("Can't start session.", NULL);
+		return -1;
+	}
+
+	return 0;
 }
 
 /*	*	*	LTP event mgt and access functions	*	*/
@@ -1237,6 +1314,33 @@ static void	getExportSession(unsigned long sessionNbr, Object *sessionObj)
 	*sessionObj = 0;
 }
 
+static void	getCanceledExport(unsigned long sessionNbr, Object *sessionObj,
+			Object *sessionElt)
+{
+		OBJ_POINTER(ExportSession, session);
+	Object	elt;
+	Object	obj;
+
+	CHKVOID(ionLocked());
+	for (elt = sdr_list_first(ltpSdr, ltpConstants->deadExports); elt;
+			elt = sdr_list_next(ltpSdr, elt))
+	{
+		obj = sdr_list_data(ltpSdr, elt);
+		GET_OBJ_POINTER(ltpSdr, ExportSession, session, obj);
+		if (session->sessionNbr == sessionNbr)
+		{
+			*sessionObj = obj;
+			*sessionElt = elt;
+			return;
+		}
+	}
+
+	/*	Not a known canceled export session.			*/
+
+	*sessionObj = 0;
+	*sessionElt = 0;
+}
+
 static void	cancelEvent(LtpEventType type, unsigned long refNbr1,
 			unsigned long refNbr2, unsigned long refNbr3)
 {
@@ -1383,7 +1487,7 @@ static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 	*sessionObj = 0;
 }
 
-static void	getCanceledSession(LtpVspan *vspan, unsigned long sessionNbr,
+static void	getCanceledImport(LtpVspan *vspan, unsigned long sessionNbr,
 			Object *sessionObj, Object *sessionElt)
 {
 		OBJ_POINTER(LtpSpan, span);
@@ -1394,7 +1498,7 @@ static void	getCanceledSession(LtpVspan *vspan, unsigned long sessionNbr,
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
 			vspan->spanElt));
-	for (elt = sdr_list_first(ltpSdr, span->deadSessions); elt;
+	for (elt = sdr_list_first(ltpSdr, span->deadImports); elt;
 			elt = sdr_list_next(ltpSdr, elt))
 	{
 		obj = sdr_list_data(ltpSdr, elt);
@@ -1407,7 +1511,7 @@ static void	getCanceledSession(LtpVspan *vspan, unsigned long sessionNbr,
 		}
 	}
 
-	/*	Not a known canceled session.				*/
+	/*	Not a known canceled import session.			*/
 
 	*sessionObj = 0;
 	*sessionElt = 0;
@@ -1996,7 +2100,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		break;
 
 	case 12:
-		getExportSession(segment.sessionNbr, &sessionObj);
+		getCanceledExport(segment.sessionNbr, &sessionObj, &sessionElt);
 		if (sessionObj == 0)
 		{
 			break;		/*	Session already closed.	*/
@@ -2004,11 +2108,6 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 		sdr_stage(ltpSdr, (char *) &xsessionBuf, sessionObj,
 				sizeof(ExportSession));
-		if (xsessionBuf.totalLength == 0)
-		{
-			break;		/*	Session already closed.	*/
-		}
-
 		event.type = LtpResendXmitCancel;
 		event.refNbr1 = 0;
 		event.refNbr2 = segment.sessionNbr;
@@ -2036,7 +2135,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		 *	is delivered -- unless the session is already
 		 *	closed.						*/
 
-		getCanceledSession(vspan, segment.sessionNbr, &sessionObj,
+		getCanceledImport(vspan, segment.sessionNbr, &sessionObj,
 				&sessionElt);
 		if (sessionObj == 0)
 		{
@@ -2252,7 +2351,50 @@ static int	constructSourceCancelReqSegment(LtpSpan *span,
 static int	cancelSessionBySender(ExportSession *session,
 			Object sessionObj, LtpCancelReasonCode reasonCode)
 {
-	OBJ_POINTER(LtpSpan, span);
+	Object		spanObj = session->span;
+	LtpSpan		span;
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
+	Object		elt;
+
+	CHKERR(ionLocked());
+	sdr_stage(ltpSdr, (char *) &span, spanObj, sizeof(LtpSpan));
+
+	/*	Span now has room for another session to start.		*/
+
+	if (sessionObj == span.currentExportSessionObj)
+	{
+		/*	Finish up session so it can be reported.	*/
+
+		session->clientSvcId = span.clientSvcIdOfBufferedBlock;
+		encodeSdnv(&(session->clientSvcIdSdnv), session->clientSvcId);
+		session->totalLength = span.lengthOfBufferedBlock;
+		session->redPartLength = span.redLengthOfBufferedBlock;
+
+		/*	Reinitialize span's block buffer.		*/
+
+		span.ageOfBufferedBlock = 0;
+		span.lengthOfBufferedBlock = 0;
+		span.redLengthOfBufferedBlock = 0;
+		span.clientSvcIdOfBufferedBlock = 0;
+		span.currentExportSessionObj = 0;
+		sdr_write(ltpSdr, spanObj, (char *) &span, sizeof(LtpSpan));
+
+		/*	Start a replacement export session.		*/
+
+		findSpan(span.engineId, &vspan, &vspanElt);
+		if (vspanElt == 0
+		|| startExportSession(ltpSdr, spanObj, vspan) < 0)
+		{
+			putErrmsg("Can't start replacement session.",
+					utoa(span.engineId));
+			return -1;
+		}
+	}
+	else	/*	Like closeExportSession, triggers ltpmeter.	*/
+	{
+		sm_SemGive(ltpVdb->sessionSemaphore);
+	}
 
 	if (enqueueNotice(ltpVdb->clients + session->clientSvcId,
 			ltpConstants->ownEngineId, session->sessionNbr, 0,
@@ -2273,8 +2415,24 @@ static int	cancelSessionBySender(ExportSession *session,
 	session->reasonCode = reasonCode;	/*	(For resend.)	*/
 	session->svcDataObjects = 0;
 	sdr_write(ltpSdr, sessionObj, (char *) session, sizeof(ExportSession));
-	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, session->span);
-	return constructSourceCancelReqSegment(span,
+
+	/*	Remove session from active sessions pool, so that the
+	 *	cancellation won't affect flow control.			*/
+
+	sdr_hash_retrieve(ltpSdr, ltpConstants->exportSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt);
+	sdr_list_delete(ltpSdr, elt, NULL, NULL);
+	sdr_hash_remove(ltpSdr, ltpConstants->exportSessionsHash,
+			(char *) &(session->sessionNbr));
+
+	/*	Insert into list of canceled sessions instead.		*/
+
+	elt = sdr_list_insert_last(ltpSdr, ltpConstants->deadExports,
+			sessionObj);
+
+	/*	Finally, inform receiver of cancellation.		*/
+
+	return constructSourceCancelReqSegment(&span,
 			&(ltpConstants->ownEngineIdSdnv), session->sessionNbr,
 			sessionObj, reasonCode);
 }
@@ -2308,6 +2466,7 @@ static int	cancelSessionByReceiver(ImportSession *session,
 		OBJ_POINTER(LtpSpan, span);
 	Object	elt;
 
+	CHKERR(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, session->span);
 	if (enqueueNotice(ltpVdb->clients + session->clientSvcId,
 			span->engineId, session->sessionNbr, 0, 0,
@@ -2338,7 +2497,7 @@ static int	cancelSessionByReceiver(ImportSession *session,
 
 	/*	Insert into list of canceled sessions instead.		*/
 
-	elt = sdr_list_insert_last(ltpSdr, span->deadSessions, sessionObj);
+	elt = sdr_list_insert_last(ltpSdr, span->deadImports, sessionObj);
 
 	/*	Finally, inform sender of cancellation.			*/
 
@@ -2725,8 +2884,8 @@ static int	startImportSession(Object spanObj, unsigned long sessionNbr,
 
 	CHKERR(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
-	while (span->maxImportSessions <= sdr_list_length(ltpSdr,
-				span->importSessions))
+	while (sdr_list_length(ltpSdr, span->importSessions)
+			>= span->maxImportSessions)
 	{
 		/*	Limit reached.  Must cancel oldest session.	*/
 
@@ -2735,7 +2894,7 @@ static int	startImportSession(Object spanObj, unsigned long sessionNbr,
 		sdr_stage(ltpSdr, (char *) sessionBuf, *sessionObj,
 				sizeof(ImportSession));
 		if (cancelSessionByReceiver(sessionBuf, *sessionObj,
-					LtpCancelByEngine) < 0)
+				LtpCancelByEngine) < 0)
 		{
 			putErrmsg("LTP failed canceling oldest session.", NULL);
 			return -1;
@@ -3040,7 +3199,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	}
 	else		/*	Active import session not found.	*/
 	{
-		getCanceledSession(vspan, sessionNbr, &sessionObj, &sessionElt);
+		getCanceledImport(vspan, sessionNbr, &sessionObj, &sessionElt);
 		if (sessionObj)
 		{
 			/*	Session exists but has already been
@@ -4283,11 +4442,7 @@ static int	handleCAS(LtpDB *ltpdb, unsigned long sessionNbr,
 			int *bytesRemaining)
 {
 	Object		sessionObj;
-	ExportSession	sessionBuf;
-	Object		spanObj;
-	LtpSpan		spanBuf;
-	LtpVspan	*vspan;
-	PsmAddress	vspanElt;
+	Object		sessionElt;
 #if LTPDEBUG
 putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 #endif
@@ -4296,23 +4451,20 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 	 *	cancellation of session.				*/
 
 	sdr_begin_xn(ltpSdr);
-	getSessionContext(ltpdb, sessionNbr, &sessionObj, &sessionBuf,
-			&spanObj, &spanBuf, &vspan, &vspanElt);
-	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
+	getCanceledExport(sessionNbr, &sessionObj, &sessionElt);
+	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
 	{
 		sdr_exit_xn(ltpSdr);
 		return 0;
 	}
 
 	cancelEvent(LtpResendXmitCancel, 0, sessionNbr, 0);
-	if (sessionObj)
-	{
-		/*	No need to change state of session->timer
-		 *	because the whole session is about to vanish.	*/
 
-		closeExportSession(sessionObj);
-	}
+	/*	No need to change state of session's timer
+	 *	because the whole session is about to vanish.		*/
 
+	sdr_list_delete(ltpSdr, sessionElt, NULL, NULL);
+	sdr_free(ltpSdr, sessionObj);
 	if (sdr_end_xn(ltpSdr) < 0)
 	{
 		putErrmsg("Can't handle ack of cancel by source.", NULL);
@@ -4430,7 +4582,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		return 0;
 	}
 
-	getCanceledSession(vspan, sessionNbr, &sessionObj, &sessionElt);
+	getCanceledImport(vspan, sessionNbr, &sessionObj, &sessionElt);
 	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
 	{
 		return sdr_end_xn(ltpSdr);
@@ -4562,12 +4714,52 @@ void	ltpStartXmit(LtpVspan *vspan)
 
 void	ltpStopXmit(LtpVspan *vspan)
 {
+	Object		spanObj;
+	LtpSpan		span;
+	Object		elt;
+	Object		nextElt;
+	Object		sessionObj;
+	ExportSession	session;
+
 	CHKVOID(ionLocked());
 	if (vspan->blockBuffer)
 	{
 		psm_free(ltpwm, vspan->blockBuffer);
 		vspan->blockBuffer = 0;
 		vspan->sizeOfBlockBuffer = 0;
+	}
+
+	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
+	sdr_read(ltpSdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	if (span.purge)
+	{
+		/*	At end of transmission on this span we must
+		 *	cancel all export sessions that are currently
+		 *	in progress.  Notionally this forces re-
+		 *	forwarding of the DTN bundles in each session's
+		 *	block, to avoid having to wait for the restart
+		 *	of transmission on this span before those
+		 *	bundles can be successfully transmitted.	*/
+
+		for (elt = sdr_list_first(ltpSdr, span.exportSessions); elt;
+				elt = nextElt)
+		{
+			nextElt = sdr_list_next(ltpSdr, elt);
+			sessionObj = sdr_list_data(ltpSdr, elt);
+			sdr_stage(ltpSdr, (char *) &session, sessionObj,
+					sizeof(ExportSession));
+			if (sdr_list_length(ltpSdr, session.svcDataObjects)
+					== 0)
+			{
+				/*	Session is not yet populated
+				 *	with any service data objects.	*/
+
+				continue;
+			}
+
+			oK(cancelSessionBySender(&session, sessionObj,
+					LtpCancelByEngine));
+		}
 	}
 }
 
@@ -4623,7 +4815,7 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 
 	/*	Suspend relevant timers for import sessions.		*/
 
-	for (elt = sdr_list_first(ltpSdr, span->deadSessions); elt;
+	for (elt = sdr_list_first(ltpSdr, span->deadImports); elt;
 			elt = sdr_list_next(ltpSdr, elt))
 	{
 		sessionObj = sdr_list_data(ltpSdr, elt);
@@ -4670,26 +4862,34 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 
 	/*	Suspend relevant timers for export sessions.		*/
 
-	for (elt = sdr_list_first(ltpSdr, span->exportSessions); elt;
+	for (elt = sdr_list_first(ltpSdr, ltpConstants->deadExports); elt;
 			elt = sdr_list_next(ltpSdr, elt))
 	{
 		sessionObj = sdr_list_data(ltpSdr, elt);
 		sdr_stage(ltpSdr, (char *) &xsessionBuf, sessionObj,
 				sizeof(ExportSession));
-		if (xsessionBuf.timer.segArrivalTime)	/*	Dead.	*/
+		if (xsessionBuf.span != spanObj)
 		{
-
-			/*	Suspend sender-cancel retransmit timer.	*/
-
-			timer = &xsessionBuf.timer;
-			suspendTimer(suspendTime, timer,
-				sessionObj + FLD_OFFSET(timer, &xsessionBuf),
-				qTime, priorXmitRate, LtpResendXmitCancel, 0,
-				xsessionBuf.sessionNbr, 0);
-			continue;
+			continue;	/*	Not for this span.	*/
 		}
 
-		/*	Alive, so suspend chkpt retransmission timers.	*/
+		/*	Suspend sender-cancel retransmit timer.		*/
+
+		timer = &xsessionBuf.timer;
+		suspendTimer(suspendTime, timer,
+			sessionObj + FLD_OFFSET(timer, &xsessionBuf),
+			qTime, priorXmitRate, LtpResendXmitCancel, 0,
+			xsessionBuf.sessionNbr, 0);
+	}
+
+	for (elt = sdr_list_first(ltpSdr, span->exportSessions); elt;
+			elt = sdr_list_next(ltpSdr, elt))
+	{
+		sessionObj = sdr_list_data(ltpSdr, elt);
+		sdr_read(ltpSdr, (char *) &xsessionBuf, sessionObj,
+				sizeof(ExportSession));
+
+		/*	Suspend chkpt retransmission timers.		*/
 
 		for (elt2 = sdr_list_first(ltpSdr, xsessionBuf.redSegments);
 				elt2; elt2 = sdr_list_next(ltpSdr, elt2))
@@ -4779,7 +4979,7 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 
 	/*	Resume relevant timers for import sessions.		*/
 
-	for (elt = sdr_list_first(ltpSdr, span->deadSessions); elt;
+	for (elt = sdr_list_first(ltpSdr, span->deadImports); elt;
 			elt = sdr_list_next(ltpSdr, elt))
 	{
 		sessionObj = sdr_list_data(ltpSdr, elt);
@@ -4851,38 +5051,46 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 
 	/*	Resume relevant timers for export sessions.		*/
 
-	for (elt = sdr_list_first(ltpSdr, span->exportSessions); elt;
+	for (elt = sdr_list_first(ltpSdr, ltpConstants->deadExports); elt;
 			elt = sdr_list_next(ltpSdr, elt))
 	{
 		sessionObj = sdr_list_data(ltpSdr, elt);
 		sdr_stage(ltpSdr, (char *) &xsessionBuf, sessionObj,
 				sizeof(ExportSession));
-		if (xsessionBuf.timer.segArrivalTime)	/*	Dead.	*/
+		if (xsessionBuf.span != spanObj)
 		{
-			if (xsessionBuf.timer.state != LtpTimerSuspended)
-			{
-				continue;	/*	Not suspended.	*/
-			}
-
-			/*	Must resume: re-insert timeout event.	*/
-
-			timer = &xsessionBuf.timer;
-			if (resumeTimer(resumeTime, timer,
-				sessionObj + FLD_OFFSET(timer, &xsessionBuf),
-				qTime, remoteXmitRate, LtpResendXmitCancel, 0,
-				xsessionBuf.sessionNbr, 0) < 0)
-
-			{
-				sdr_cancel_xn(ltpSdr);
-				putErrmsg("Can't resume timers for span.",
-						itoa(span->engineId));
-				return -1;
-			}
-
-			continue;
+			continue;	/*	Not for this span.	*/
 		}
 
-		/*	Alive, so resume chkpt retransmission timers.	*/
+		if (xsessionBuf.timer.state != LtpTimerSuspended)
+		{
+			continue;		/*	Not suspended.	*/
+		}
+
+		/*	Must resume: re-insert timeout event.		*/
+
+		timer = &xsessionBuf.timer;
+		if (resumeTimer(resumeTime, timer,
+			sessionObj + FLD_OFFSET(timer, &xsessionBuf),
+			qTime, remoteXmitRate, LtpResendXmitCancel, 0,
+			xsessionBuf.sessionNbr, 0) < 0)
+
+		{
+			sdr_cancel_xn(ltpSdr);
+			putErrmsg("Can't resume timers for span.",
+					itoa(span->engineId));
+			return -1;
+		}
+	}
+
+	for (elt = sdr_list_first(ltpSdr, span->exportSessions); elt;
+			elt = sdr_list_next(ltpSdr, elt))
+	{
+		sessionObj = sdr_list_data(ltpSdr, elt);
+		sdr_read(ltpSdr, (char *) &xsessionBuf, sessionObj,
+				sizeof(ExportSession));
+
+		/*	Resume chkpt retransmission timers.		*/
 
 		for (elt2 = sdr_list_first(ltpSdr, xsessionBuf.redSegments);
 				elt2; elt2 = sdr_list_next(ltpSdr, elt2))
@@ -5000,6 +5208,7 @@ putErrmsg("Resending checkpoint.", itoa(sessionNbr));
 int	ltpResendXmitCancel(unsigned long sessionNbr)
 {
 	Object		sessionObj;
+	Object		sessionElt;
 	ExportSession	sessionBuf;
 			OBJ_POINTER(LtpSpan, span);
 
@@ -5007,7 +5216,7 @@ int	ltpResendXmitCancel(unsigned long sessionNbr)
 putErrmsg("Resending cancel by sender.", itoa(sessionNbr));
 #endif
 	sdr_begin_xn(ltpSdr);
-	getExportSession(sessionNbr, &sessionObj);
+	getCanceledExport(sessionNbr, &sessionObj, &sessionElt);
 	if (sessionObj == 0)	/*	Session is gone.		*/
 	{
 #if LTPDEBUG
@@ -5024,7 +5233,8 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 #if LTPDEBUG
 putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
 #endif
-		closeExportSession(sessionObj);
+		sdr_list_delete(ltpSdr, sessionElt, NULL, NULL);
+		sdr_free(ltpSdr, sessionObj);
 	}
 	else	/*	Haven't given up yet.				*/
 	{
@@ -5146,7 +5356,7 @@ putErrmsg("Resending cancel by receiver.", itoa(sessionNbr));
 		return sdr_end_xn(ltpSdr);
 	}
 
-	getCanceledSession(vspan, sessionNbr, &sessionObj, &sessionElt);
+	getCanceledImport(vspan, sessionNbr, &sessionObj, &sessionElt);
 	if (sessionObj == 0)	/*	Session is gone.		*/
 	{
 #if LTPDEBUG

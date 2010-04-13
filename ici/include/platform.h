@@ -17,6 +17,8 @@
 extern "C" {
 #endif
 
+#define	MAX_POSIX_TIME	2147483644
+
 /*	SPACE_ORDER is log2 of the number of bytes in an address, i.e.:
 
 		1	for 16-bit machines (2 ** 1 = 2 bytes per address)
@@ -139,6 +141,7 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 
 #ifndef VXWORKS6
 typedef int			socklen_t;
+extern void			srandom(unsigned int);
 extern long			random();
 #endif
 

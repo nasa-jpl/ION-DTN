@@ -292,15 +292,17 @@ static int	noteXmit(IonNode *node, IonContact *contact)
 	{
 		xmit = (IonXmit *) psp(ionwm, sm_list_data(ionwm, elt));
 		CHKERR(xmit);
-		if (xmit->fromTime > contact->fromTime)
+		if (xmit->toTime > contact->toTime)
 		{
 			nextElt = elt;
 			break;	/*	Have found insertion point.	*/
 		}
 
+		/*	Have not located list insertion point yet.	*/
+
 		if (xmit->origin == originAddr)
 		{
-			if (xmit->fromTime == contact->fromTime)
+			if (xmit->toTime == contact->toTime)
 			{
 				/*	This xmit is already loaded;
 				 *	no need to load again.		*/
@@ -429,9 +431,9 @@ void	forgetXmit(IonNode *node, IonContact *contact)
 		addr = sm_list_data(ionwm, elt);
 		xmit = (IonXmit *) psp(ionwm, addr);
 		CHKVOID(xmit);
-		if (xmit->fromTime > contact->fromTime)
+		if (xmit->fromTime != contact->fromTime)
 		{
-			return;		/*	Xmit not found.		*/
+			continue;
 		}
 
 		originAddr = xmit->origin;
@@ -439,10 +441,7 @@ void	forgetXmit(IonNode *node, IonContact *contact)
 		CHKVOID(origin);
 		if (origin->nodeNbr == contact->fromNode)
 		{
-			if (xmit->fromTime == contact->fromTime)
-			{
-				break;	/*	Found the xmit.		*/
-			}
+			break;		/*	Found the xmit.		*/
 		}
 	}
 
@@ -1075,6 +1074,200 @@ int	checkForCongestion()
 	return 0;
 }
 
+static int	isExcluded(unsigned long nodeNbr, Lyst excludedNodes)
+{
+	LystElt elt;
+
+	for (elt = lyst_first(excludedNodes); elt; elt = lyst_next(elt))
+	{
+		if ((unsigned long) lyst_data(elt) == nodeNbr)
+		{
+			return 1;       /*      Node is in the list.    */
+		}
+	}
+
+	return 0;
+}
+
+static int	assessContacts(IonNode *node, time_t deadline,
+			time_t *mootAfter, Lyst excludedNodes)
+{
+	PsmPartition	ionwm = getIonwm();
+	LystElt		exclusion;
+	PsmAddress	elt;
+	IonXmit		*xmit;
+	IonOrigin	*origin;
+	unsigned long	owltMargin;
+	unsigned long	lastChanceFromOrigin;
+	IonNode		*originNode;
+	IonVdb		*ionvdb = getIonVdb();
+	PsmAddress	nextNode;
+
+	/*	Make sure we don't get into a routing loop while
+	 *	trying to compute all paths to this node.		*/
+
+	exclusion = lyst_insert_last(excludedNodes, (void *) (node->nodeNbr));
+	if (exclusion == NULL)
+	{
+		putErrmsg("Can't identify proximate nodes.", NULL);
+		return -1;
+	}
+
+	/*	Examine all opportunities for transmission to node.	*/
+
+	for (elt = sm_list_last(ionwm, node->xmits); elt;
+			elt = sm_list_prev(ionwm, elt))
+	{
+		xmit = (IonXmit *) psp(ionwm, sm_list_data(ionwm, elt));
+		origin = (IonOrigin *) psp(ionwm, xmit->origin);
+		if (isExcluded(origin->nodeNbr, excludedNodes))
+		{
+			/*	Can't continue -- it would be a routing
+			 *	loop.  We've already computed all
+			 *	routes on this path that go through
+			 *	this origin node.			*/
+
+			continue;
+		}
+
+		/*	Not a loop.  Compute this contact's mootAfter
+		 *	time if not already known.			*/
+
+		if (xmit->mootAfter == MAX_POSIX_TIME)	/*	unknown	*/
+		{
+			/*	By default, unconditionally moot.	*/
+
+			xmit->mootAfter = 0;
+
+			/*	Does contact start after the last
+			 *	possible moment for transmission to
+			 *	this node before the node's own
+			 *	transmission opportunity ends?  If so,
+			 *	it's unusable.				*/
+
+			owltMargin = ((MAX_SPEED_MPH / 3600) * origin->owlt)
+					/ 186282;
+			lastChanceFromOrigin = deadline
+					- (origin->owlt + owltMargin);
+			if (xmit->fromTime > lastChanceFromOrigin)
+			{
+				continue;	/*	Non-viable.	*/
+			}
+
+			/*	This is a viable opportunity to
+			 *	transmit this bundle to the station
+			 *	node from the indicated origin node.	*/
+
+			if (origin->nodeNbr == getOwnNodeNbr())
+			{
+				xmit->mootAfter = xmit->toTime;
+			}
+			else
+			{
+				originNode = findNode(ionvdb, origin->nodeNbr,
+						&nextNode);
+				if (originNode == NULL)
+				{
+					/*	Not in contact plan.
+					 *	No way to compute
+					 *	mootAfter time for
+					 *	this contact.		*/
+
+					continue;
+				}
+
+				/*	Compute mootAfter time as the
+				 *	end of the latest-ending contact
+				 *	from the local node that is on
+				 *	any viable path to this xmit's
+				 *	origin node.			*/
+
+				if (assessContacts(originNode, xmit->toTime,
+					&(xmit->mootAfter), excludedNodes))
+				{
+					putErrmsg("Can't set mootAfter time.",
+							NULL);
+					break;
+				}
+			}
+		}
+
+		/*	Have computed mootAfter time for this contact.
+		 *	Now, if that time is later than the current
+		 *	guess at the best-case mootAfter to pass back
+		 *	for this assessment, it becomes the new best-
+		 *	case mootAfter.					*/
+
+		if (xmit->mootAfter > *mootAfter)
+		{
+			*mootAfter = xmit->mootAfter;
+		}
+	}
+
+	/*	No more opportunities for transmission to this node.	*/
+
+	lyst_delete(exclusion);
+	return 0;
+}
+
+static int	setMootAfterTimes()
+{
+	time_t		maxTime = MAX_POSIX_TIME;
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*ionvdb = getIonVdb();
+	unsigned long	ownNodeNbr = getOwnNodeNbr();
+	Lyst		excludedNodes;
+	PsmAddress	elt;
+	IonNode		*node;
+	PsmAddress	elt2;
+	IonXmit		*xmit;
+	time_t		mootAfter;
+
+	excludedNodes = lyst_create_using(getIonMemoryMgr());
+	if (excludedNodes == NULL)
+	{
+		putErrmsg("Can't create excludedNodes list.", NULL);
+		return -1;
+	}
+
+	/*	First initialize all mootAfter times to max time.	*/
+
+	for (elt = sm_list_first(ionwm, ionvdb->nodes); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		node = (IonNode *) psp(ionwm, sm_list_data(ionwm, elt));
+		for (elt2 = sm_list_first(ionwm, node->xmits); elt2;
+				elt2 = sm_list_next(ionwm, elt2))
+		{
+			xmit = (IonXmit *) psp(ionwm,
+					sm_list_data(ionwm, elt2));
+			xmit->mootAfter = maxTime;	/*	unknown	*/
+		}
+	}
+
+	/*	Now compute new mootAfter times for all contacts.	*/
+
+	for (elt = sm_list_first(ionwm, ionvdb->nodes); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		node = (IonNode *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (node->nodeNbr == ownNodeNbr)
+		{
+			continue;
+		}
+
+		mootAfter = 0;
+		if (assessContacts(node, maxTime, &mootAfter, excludedNodes))
+		{
+			putErrmsg("Can't set mootAfter times.", NULL);
+			break;
+		}
+	}
+
+	lyst_destroy(excludedNodes);
+	return 0;
+}
+
 Object	rfx_insert_contact(time_t fromTime, time_t toTime,
 		unsigned long fromNode, unsigned long toNode,
 		unsigned long xmitRate)
@@ -1183,6 +1376,12 @@ Object	rfx_insert_contact(time_t fromTime, time_t toTime,
 		}
 
 		noteXmit(node, &contact);
+		if (setMootAfterTimes() < 0)
+		{
+			sdr_cancel_xn(sdr);
+			putErrmsg("Can't update mootAfter times.", NULL);
+			return 0;
+		}
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -1279,6 +1478,13 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 			if (node)
 			{
 				forgetXmit(node, &contact);
+				if (setMootAfterTimes() < 0)
+				{
+					sdr_cancel_xn(sdr);
+					putErrmsg("Can't update mootAfter \
+times.", NULL);
+					return -1;
+				}
 			}
 		}
 
