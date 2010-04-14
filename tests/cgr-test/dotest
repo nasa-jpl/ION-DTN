@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 12, 2010
+
+echo "Cleaning up old ION..."
+rm -f ion.log
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start node 9, loading large contact plan.
+./ionstart
+
+# Send a bundle destined for (noexistent) node 1.
+bptrace ipn:9.1 ipn:1.1 ipn:9.0 200000 1 "Hi"
+
+# Route should be computed quickly.
+echo "The 'b' ("forwarded") watch character should appear almost immediately."
+sleep 1
+echo "The 'b' ("forwarded") watch character should have appeared by now."
+
+# Wait for all sessions to terminate.
+echo "Waiting for initial contact to terminate..."
+sleep 120
+echo "Contact has terminated.  Verifying results..."
+
+# Verify bundle was forwarded.
+RETVAL=0
+
+COUNT=`grep fwd ion.log | grep "(1) 1 3" | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "Route was computed."
+else
+	echo "Route was not computed."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+./ionstop
+killm
+echo "CGR test completed."
+exit $RETVAL
