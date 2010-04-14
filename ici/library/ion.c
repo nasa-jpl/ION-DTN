@@ -295,7 +295,7 @@ static void	writeMemoToIonLog(char *text)
 		}
 
 		ionLogFile = open(ionLogFileName, O_WRONLY | O_APPEND | O_CREAT,
-				00777);
+				00666);
 		if (ionLogFile == -1)
 		{
 			unlockResource(&logFileLock);
@@ -380,7 +380,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 	}
 	else			/*	Initializing the node.		*/
 	{
-		nodeListFile = open(nodeListFileName, O_RDWR | O_CREAT, 00777);
+		nodeListFile = open(nodeListFileName, O_RDWR | O_CREAT, 00666);
 	}
 
 	if (nodeListFile < 0)

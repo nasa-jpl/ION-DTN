@@ -1,0 +1,173 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 12, 2010
+
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
+rm -f 5.ipn.ltp/testfile1
+rm -f 5.ipn.ltp/testfile2
+rm -f 5.ipn.ltp/testfile3
+rm -f 5.ipn.ltp/testfile4
+rm -f 5.ipn.ltp/testfile5
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../5.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../2.ipn.ltp
+ionadmin global.ionrc
+cd ../3.ipn.ltp
+ionadmin global.ionrc
+cd ../5.ipn.ltp
+ionadmin global.ionrc
+
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../5.ipn.ltp
+ionsecadmin amroc.ionsecrc
+
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../5.ipn.ltp
+ltpadmin amroc.ltprc
+
+cd ../2.ipn.ltp
+bpadmin amroc.bprc
+cd ../3.ipn.ltp
+bpadmin amroc.bprc
+cd ../5.ipn.ltp
+bpadmin amroc.bprc
+
+cd ../2.ipn.ltp
+cfdpadmin amroc.cfdprc
+cd ../3.ipn.ltp
+cfdpadmin amroc.cfdprc
+cd ../5.ipn.ltp
+cfdpadmin amroc.cfdprc
+
+# Start file receiver on node 5.
+echo "Starting bprecvfile..."
+bprecvfile ipn:5.2 &
+sleep 1
+
+# Send three files from node 2.
+cd ../2.ipn.ltp
+echo "Sending three files from node 2 to node 5 (start of watch characters)..."
+bpsendfile ipn:2.2 ipn:5.2 testfilex
+sleep 1
+bpsendfile ipn:2.2 ipn:5.2 testfiley
+sleep 1
+bpsendfile ipn:2.2 ipn:5.2 testfilez
+
+# Wait for all sessions to terminate.
+echo "Waiting for all contacts to terminate..."
+sleep 105
+# During this time, there are three contact intervals.
+#
+# Before interval A, all three files sourced at node 2 are queued for
+# transmission: files x and y are queued for transmission to node 3
+# during interval A (and thence to node 5 during interval B) while file
+# z is queued for transmission directly to node 5 during interval C
+# because interval A is now fully committed.
+#
+# During interval A, files x and y are transmitted by node 2 but the
+# sessions don't close because the contact between nodes 2 and 3 is
+# half-duplex.  So at the end of interval A, the LTP sessions for both
+# files are canceled, causing both bundles to be reforwarded.  Both
+# are requeued for transmission to node 5 in interval C, and the
+# reforwarded files "jump the queue" ahead of file z because transmission
+# seniority is honored.  Meanwhile, node 3 receives files x and y; it
+# queues them for forwarding to node 5 and queues up two custody signals
+# for transmission to node 2.
+#
+# During interval B, node 3 transmits files x and y to node 5 and receives
+# custody acceptances, and it also transmits its own queued custody signals
+# to node 2.  The sessions in which the custody signals are transmitted are
+# canceled at the end of the contact (they couldn't close because, again,
+# communication between nodes 3 and 2 is half-duplex) but the custody signals
+# are not reforwarded because they are not, themselves, custodial bundles.
+# Node 2 releases custody of files x and y but its pending retransmission of
+# those files to node 5 is not affected.
+#
+# During interval C, node 2 transmits additional copies of files x and y
+# to node 5, followed by file z.
+echo "All contacts have terminated.  Verifying results..."
+
+# Verify bundle arrival.
+cd ../5.ipn.ltp
+RETVAL=0
+
+COUNT=`ls -l testfile1 | grep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "Got first copy of file x."
+else
+	echo "Didn't get first copy of file x."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile2 | grep 1070 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "Got first copy of file y."
+else
+	echo "Didn't get first copy of file y."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile3 | grep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "Got second copy of file x."
+else
+	echo "Didn't get second copy of file x."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile4 | grep 1070 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "Got second copy of file y."
+else
+	echo "Didn't get second copy of file y."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile5 | grep 885 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "Got file z."
+else
+	echo "Didn't get file z."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../5.ipn.ltp
+./ionstop &
+
+# Give all three nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "LTP purge test completed."
+exit $RETVAL
