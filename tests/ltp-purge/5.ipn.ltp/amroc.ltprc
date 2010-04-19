@@ -1,6 +1,6 @@
 1 40 8000000
-a span 2 10 65536 10 65536 1084 20000 1 'udplso amroc.jpl.nasa.gov:2113' -1
-a span 3 10 65536 10 65536 1084 20000 1 'udplso amroc.jpl.nasa.gov:3113' -1
+a span 2 10 65536 10 65536 1084 20000 1 'udplso localhost:2113' -1
+a span 3 10 65536 10 65536 1084 20000 1 'udplso localhost:3113' -1
 w 1
 m screening n
-s 'udplsi amroc.jpl.nasa.gov:5113'
+s 'udplsi localhost:5113'
