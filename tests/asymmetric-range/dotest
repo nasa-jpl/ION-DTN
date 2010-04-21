@@ -1,0 +1,87 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 21, 2010
+
+echo "Cleaning up old ION..."
+rm -f ion.log
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start node 9, with asymmetric range to node 5.
+./ionstart
+
+echo "Sending bundle with 10-second lifetime."
+# Send a bundle destined for (noexistent) node 6 with lifetime = 10.
+# Should be abandoned as unroutable prior to expiration.
+bptrace ipn:9.1 ipn:6.1 ipn:9.0 10 1 "Hi"
+sleep 1
+echo "Watch characters should be 'a~'."
+
+echo "Sending bundle with 25-second lifetime."
+# Send a bundle destined for (noexistent) node 6 with lifetime = 25.
+# Should be forwarded and transmitted but expire prior to end of session.
+bptrace ipn:9.1 ipn:6.1 ipn:9.0 25 1 "Hi"
+sleep 1
+echo "Watch characters should be 'abwcdefg'."
+
+echo "Sending bundle with 120-second lifetime."
+# Send a bundle destined for (noexistent) node 6 with lifetime = 120.
+# Should be forwarded and transmitted, but session will end before ack.
+# Should be retransmitted and later reforwarded.
+bptrace ipn:9.1 ipn:6.1 ipn:9.0 120 1 "Hi"
+
+# Wait for all sessions to terminate.
+echo "Waiting for contact to terminate..."
+sleep 60
+echo "Contact has terminated.  Verifying results..."
+
+# Verify bundle was forwarded.
+RETVAL=0
+
+COUNT=`grep src ion.log | grep "(1) 3 9" | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "All bundles sourced."
+else
+	echo "Bundles not sourced."
+	RETVAL=1
+fi
+
+COUNT=`grep fwd ion.log | grep "(1) 2 6" | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "Two bundles forwarded."
+else
+	echo "Bundles not forwarded."
+	RETVAL=1
+fi
+
+COUNT=`grep exp ion.log | grep "(1) 1 3" | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "One bundle expired."
+else
+	echo "Bundle not expired."
+	RETVAL=1
+fi
+
+COUNT=`grep ctt ion.log | grep "(1) 1 3" | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "One bundle reforwarded."
+else
+	echo "Bundle not reforwarded."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+./ionstop
+killm
+echo "Asymmetric range test completed."
+exit $RETVAL

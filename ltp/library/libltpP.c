@@ -1897,9 +1897,9 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 	 *	simply radiating all the bytes of the segment
 	 *	(including estimated link-layer overhead) at the
 	 *	current transmission rate over this span, plus
-	 *	the current signal propagation time (owlt).		*/
+	 *	the current outbound signal propagation time (owlt).	*/
 
-	timer->segArrivalTime = currentSec + radTime + vspan->owlt
+	timer->segArrivalTime = currentSec + radTime + vspan->owltOutbound
 			+ ((ltpConstants->ownQtime >> 1) & 0x7fffffff);
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
 			vspan->spanElt));
@@ -1907,9 +1907,9 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 	/*	Following arrival of the segment, the response from
 	 *	the remote node should arrive here following the
 	 *	remote node's entire telecom processing turnaround
-	 *	time (remoteQtime) plus the current signal propagation
-	 *	time (owlt) plus the other half of the local node's
-	 *	telecom processing turnaround time.
+	 *	time (remoteQtime) plus the current inbound signal
+	 *	propagation time (owlt) plus the other half of the
+	 *	local node's telecom processing turnaround time.
 	 *
 	 *	Technically, we should also include in this interval
 	 *	the time consumed in simply transmitting all bytes
@@ -1922,7 +1922,7 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 	 *	the remote fire rate might change, etc.).		*/
 
 	timer->ackDeadline = timer->segArrivalTime
-			+ span->remoteQtime + vspan->owlt
+			+ span->remoteQtime + vspan->owltInbound
 			+ ((ltpConstants->ownQtime >> 1) & 0x7fffffff);
 	if (vspan->remoteXmitRate > 0)
 	{

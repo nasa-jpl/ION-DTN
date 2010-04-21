@@ -1,0 +1,7 @@
+1
+a babtxrule ipn:5.* HMAC-SHA1 myKey
+a babrxrule ipn:5.* HMAC-SHA1 myKey
+a babtxrule ipn:9.* '' ''
+a babrxrule ipn:9.* '' ''
+a key myKey key1.hmk
+a key myKey2 key2.hmk

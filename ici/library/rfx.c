@@ -630,7 +630,7 @@ PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub)
 	probe->neighborNodeNbr = snub->nodeNbr;
 
 	/*	Schedule next probe of this snubbing neighbor for the
-	 *	time that is the current time plus 4x the one-way
+	 *	time that is the current time plus 2x the round-trip
 	 *	light time from the local node to the neighbor (but
 	 *	at least 6 seconds).					*/
 	 
@@ -638,7 +638,7 @@ PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub)
 	neighbor = findNeighbor(ionvdb, snub->nodeNbr, &nextElt);
 	if (neighbor)
 	{
-		rtlt = (neighbor->owlt) << 2;
+		rtlt = (neighbor->owltOutbound + neighbor->owltInbound) << 1;
 		if (rtlt > interval)
 		{
 			interval = rtlt;
@@ -1505,13 +1505,13 @@ times.", NULL);
 Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 		unsigned long toNode, unsigned int owlt)
 {
-	unsigned long	nodeNbr;
 	Sdr		sdr;
 	Object		iondbObj;
 	IonDB		iondb;
 	Object		elt;
 	Object		obj;
 	IonRange	range;
+	char		rangeIdString[128];
 	Object		newElt = 0;
 
 	if (fromNode == toNode)
@@ -1520,12 +1520,28 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 	}
 
 	CHKZERO(toTime > fromTime);
-	if (fromNode > toNode)	/*	Convert to canonical form.	*/
-	{
-		nodeNbr = fromNode;
-		fromNode = toNode;
-		toNode = nodeNbr;
-	}
+
+	/*	Note that ranges are normally assumed to be symmetrical,
+	 *	i.e., the signal propagation time from B to A is normally
+	 *	assumed to be the same as the signal propagation time
+	 *	from A to B.  For this reason, normally only the A->B
+	 *	range (where A is a node number that is less than node
+	 *	number B) need be entered; when ranges are applied to
+	 *	the Origin objects of Nodes in the ION database, the
+	 *	A->B range is stored as the OWLT of the "A" origin object
+	 *	for node "B" and also as the OWLT of the "B" origin
+	 *	object for node "A".
+	 *
+	 *	However, it is possible to insert asymmetric ranges, as
+	 *	would apply when the forward and return traffic between
+	 *	some pair of nodes travels by different transmission
+	 *	paths that introduce different latencies.  When this is
+	 *	the case, both the A->B and B->A ranges must be entered.
+	 *	The A->B range is initially processed as a symmetric
+	 *	range as described above, but when the B->A range is
+	 *	subsequently applied (ranges are applied in ascending
+	 *	"from" node order) it overrides the default OWLT of the
+	 *	"B" origin object for node A.				*/
 
 	sdr = getIonsdr();
 	iondbObj = getIonDbObject();
@@ -1574,8 +1590,9 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 			return elt;
 		}
 
-		putErrmsg("Current range for this interval not revised.",
-				utoa(range.owlt));
+		isprintf(rangeIdString, sizeof rangeIdString,
+			"from %lu, %lu->%lu", fromTime, fromNode, toNode);
+		writeMemoNote("[?] Range OWLT not revised", rangeIdString);
 		return 0;
 	}
 
@@ -1641,6 +1658,7 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 	Object		elt;
 	Object		obj;
 	IonRange	range;
+	char		rangeIdString[128];
 
 	sdr = getIonsdr();
 	iondbObj = getIonDbObject();
@@ -1695,7 +1713,9 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 	}
 
 	sdr_cancel_xn(sdr);
-	writeMemo("[?] Range not found in database.");
+	isprintf(rangeIdString, sizeof rangeIdString, "from %lu, %lu->%lu",
+			fromTime, fromNode, toNode);
+	writeMemoNote("[?] Range not found in database", rangeIdString);
 	return 0;
 }
 

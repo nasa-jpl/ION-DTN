@@ -188,9 +188,14 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 			vspan->receptionRate = neighbor->recvRate;
 		}
 
-		if (neighbor->owlt != vspan->owlt)
+		if (neighbor->owltInbound != vspan->owltInbound)
 		{
-			vspan->owlt = neighbor->owlt;
+			vspan->owltInbound = neighbor->owltInbound;
+		}
+
+		if (neighbor->owltOutbound != vspan->owltOutbound)
+		{
+			vspan->owltOutbound = neighbor->owltOutbound;
 		}
 	}
 
