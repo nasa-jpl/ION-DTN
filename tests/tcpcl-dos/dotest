@@ -17,7 +17,7 @@ IONSENDFILE=./ionsendfile.txt
 IONRECEIVEFILE=./ionreceivefile.txt
 
 
-+if [ -z $(which netcat) ]; then
+if [ -z $(which netcat) ]; then
 	echo "netcat is not present in this system; skipping..."
 	exit 2
 fi
