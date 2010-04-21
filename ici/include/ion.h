@@ -171,7 +171,8 @@ typedef struct
 	unsigned long	prevXmitRate;	/*	Xmit *to* neighbor.	*/
 	unsigned long	prevRecvRate;	/*	Recv from neighbor.	*/
 	PsmAddress	node;		/*	Points to IonNode.	*/
-	unsigned int	owlt;		/*	In seconds.		*/
+	unsigned int	owltInbound;	/*	In seconds.		*/
+	unsigned int	owltOutbound;	/*	In seconds.		*/
 } IonNeighbor;
 
 /*	The volatile database object encapsulates the current volatile

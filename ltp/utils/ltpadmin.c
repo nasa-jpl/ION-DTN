@@ -284,8 +284,9 @@ aggregation time limit: %u", span->aggrSizeLimit, span->aggrTimeLimit);
 	isprintf(buffer, sizeof buffer, "\tmax segment size: %u  queuing \
 latency: %u  purge: %d", span->maxSegmentSize, span->remoteQtime, span->purge);
 	printText(buffer);
-	isprintf(buffer, sizeof buffer, "\towlt: %u  localXmit: %lu  \
-remoteXmit: %lu", vspan->owlt, vspan->localXmitRate, vspan->remoteXmitRate);
+	isprintf(buffer, sizeof buffer, "\towltOutbound: %u  localXmit: %lu  \
+owltInbound: %u  remoteXmit: %lu", vspan->owltOutbound, vspan->localXmitRate,
+			vspan->owltInbound, vspan->remoteXmitRate);
 	printText(buffer);
 }
 

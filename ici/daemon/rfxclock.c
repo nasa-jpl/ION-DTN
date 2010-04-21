@@ -200,14 +200,21 @@ static int	applyRange(IonVdb *ionvdb, IonDB *iondb, IonRange *range)
 		setOriginOwlt(range->fromNode, range->toNode, range->owlt);
 	}
 
-	if (range->toNode == iondb->ownNodeNbr)
+	if (range->fromNode < range->toNode)	/*	Canonical.	*/
 	{
-		neighborNodeNbr = range->fromNode;
-		setOriginOwlt(range->fromNode, range->toNode, range->owlt);
-	}
-	else
-	{
-		setOriginOwlt(range->toNode, range->fromNode, range->owlt);
+		/*	Use as default OWLT for reverse path as well.	*/
+
+		if (range->toNode == iondb->ownNodeNbr)
+		{
+			neighborNodeNbr = range->fromNode;
+			setOriginOwlt(range->fromNode, range->toNode,
+					range->owlt);
+		}
+		else
+		{
+			setOriginOwlt(range->toNode, range->fromNode,
+					range->owlt);
+		}
 	}
 
 	if (neighborNodeNbr == 0)
@@ -228,7 +235,27 @@ static int	applyRange(IonVdb *ionvdb, IonDB *iondb, IonRange *range)
 		}
 	}
 
-	neighbor->owlt = range->owlt;
+	if (range->fromNode == iondb->ownNodeNbr)
+	{
+		neighbor->owltOutbound = range->owlt;
+		if (range->fromNode < range->toNode)
+		{
+			/*	Use as default for Inbound as well.	*/
+
+			neighbor->owltInbound = range->owlt;
+		}
+	}
+	else	/*	Range is from neighbor to self.			*/
+	{
+		neighbor->owltInbound = range->owlt;
+		if (range->fromNode < range->toNode)
+		{
+			/*	Use as default for Outbound as well.	*/
+
+			neighbor->owltOutbound = range->owlt;
+		}
+	}
+
 	return 0;
 }
 
@@ -356,7 +383,7 @@ static int	applyContact(IonVdb *ionvdb, IonDB *iondb, IonContact *contact,
 		}
 
 		purgeTime = contact->toTime + iondb->maxClockError
-				+ neighbor->owlt;
+				+ neighbor->owltInbound;
 
 		/*	Be a little slow to resume timers, and a
 		 *	little quick to suspend them, to minimize the
@@ -376,10 +403,11 @@ static int	applyContact(IonVdb *ionvdb, IonDB *iondb, IonContact *contact,
 		 *	chance of discarding legitimate input.		*/
 
 		if (currentTime < ((contact->toTime + iondb->maxClockError)
-				+ neighbor->owlt))
+				+ neighbor->owltInbound))
 		{
 			if (currentTime >= ((contact->fromTime
-				- iondb->maxClockError) + neighbor->owlt))
+					- iondb->maxClockError)
+					+ neighbor->owltInbound))
 			{
 				neighbor->recvRate = contact->xmitRate;
 			}
@@ -539,7 +567,8 @@ int	main(int argc, char *argv[])
 			neighbor = (IonNeighbor *) psp(ionwm,
 					sm_list_data(ionwm, elt));
 			CHKZERO(neighbor);
-			neighbor->owlt = 0;
+			neighbor->owltInbound = 0;
+			neighbor->owltOutbound = 0;
 			neighbor->xmitRate = 0;
 			neighbor->fireRate = 0;
 			neighbor->recvRate = 0;

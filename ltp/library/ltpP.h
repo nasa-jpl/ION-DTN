@@ -283,7 +283,8 @@ typedef struct
 	unsigned long	localXmitRate;	/*	Bytes per second.	*/
 	unsigned long	remoteXmitRate;	/*	Bytes per second.	*/
 	unsigned long	receptionRate;	/*	Bytes per second.	*/
-	unsigned int	owlt;		/*	In seconds.		*/
+	unsigned int	owltInbound;	/*	In seconds.		*/
+	unsigned int	owltOutbound;	/*	In seconds.		*/
 	int		meterPid;	/*	For stopping ltpmeter.	*/
 	int		lsoPid;		/*	For stopping the LSO.	*/
 

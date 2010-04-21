@@ -94,9 +94,15 @@ static void	initializeNode(int tokenCount, char **tokens)
 	char		*configFileName = tokens[2];
 	IonParms	parms;
 
-	if (*configFileName == '\0')	/*	Zero-length string.	*/
+	if (tokenCount < 2 || *ownNodeNbrString == '\0')
 	{
-		configFileName = NULL;	/*	Use built-in defaults.	*/
+		writeMemo("[?] No node number, can't initialize node.");
+		return;
+	}
+
+	if (tokenCount < 3 || *configFileName == '\0')
+	{
+		configFileName = NULL; /*	Use built-in defaults.	*/
 	}
 
 	if (readIonParms(configFileName, &parms) < 0)
