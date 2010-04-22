@@ -14,37 +14,6 @@
 #include "psm.h"
 #include "smlist.h"
 
-static unsigned char	*smlistsh_space;
-static int		smlistsh_partitionId;
-static PsmPartition	smlistsh_partition;
-static PsmAddress	smlistsh_list;
-
-static void	attach(unsigned long key, unsigned long length)
-{
-	PsmMgtOutcome	outcome;
-
-	if (smlistsh_partition != NULL)
-	{
-		puts("Already attached.  Detach and try again.");
-		return;
-	}
-
-	smlistsh_partitionId = 0;
-	if (sm_ShmAttach((int) key, (int) length, (char **) &smlistsh_space,
-			&smlistsh_partitionId) == ERROR)
-	{
-		perror("sm_ShmAttach failed");
-		return;
-	}
-
-	if (psm_manage((char *) smlistsh_space, (unsigned int) length,
-			"smlistsh", &smlistsh_partition, &outcome) < 0
-	|| outcome == Refused)
-	{
-		puts("psm_manage failed.");
-	}
-}
-
 #if defined (VXWORKS) || defined (RTEMS)
 int	smlistsh(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
@@ -52,32 +21,44 @@ int	smlistsh(int a1, int a2, int a3, int a4, int a5,
 int	main(int argc, char **argv)
 #endif
 {
-	unsigned long	keyValue;
+	int		cmdFile;
 	char		line[256];
+	int		len;
 	int		count;
 	char		command;
 	long		arg1;
 	long		arg2;
+	unsigned long	keyValue;
 	PsmUsageSummary	summary;
 	PsmAddress	elt;
+	int		key;
+	int		length;
+	unsigned char	*smlistsh_space = NULL;
+	int		smlistsh_partitionId = 0;
+	PsmPartition	smlistsh_partition = NULL;
+	PsmAddress	smlistsh_list = 0;
+	PsmMgtOutcome	outcome;
 
 	sm_ipc_init();
+	cmdFile = fileno(stdin);
 	while (1)
 	{
 		printf(": ");
-		if (fgets(line, 256, stdin) == NULL)
+		fflush(stdout);
+		if (igets(cmdFile, line, sizeof line, &len) == NULL)
 		{
-			perror("fgets failed");
+			putErrmsg("igets failed.", NULL);
 			break;
+		}
+
+		if (len == 0)
+		{
+			continue;
 		}
 
 		count = sscanf(line, "%c %ld %ld", &command, &arg1, &arg2);
 		switch (count)
 		{
-		case 0:
-			puts("Empty line ignored.");
-			continue;
-
 		case 1:
 			switch (command)
 			{
@@ -255,14 +236,39 @@ int	main(int argc, char **argv)
 			continue;
 
 		case 3:
-			switch (command)
+			if (command == '+')
 			{
-			case '+':
-				attach(arg1, arg2);
+				if (smlistsh_partition != NULL)
+				{
+					puts("Already attached.  Detach and \
+try again.");
+					continue;
+				}
+
+				smlistsh_partitionId = 0;
+				key = arg1;
+				length = arg2;
+				if (sm_ShmAttach(key, length,
+						(char **) &smlistsh_space,
+						&smlistsh_partitionId) == ERROR)
+				{
+					perror("sm_ShmAttach failed");
+					continue;
+				}
+
+				if (psm_manage((char *) smlistsh_space,
+						(unsigned int) length,
+						"smlistsh", &smlistsh_partition,
+						&outcome) < 0
+				|| outcome == Refused)
+				{
+					puts("psm_manage failed.");
+				}
+
 				continue;
 			}
 
-			/*	Deliberate fall-through to default.	*/
+			/*	Intentional fall-through to default.	*/
 
 		default:
 			puts("invalid command");

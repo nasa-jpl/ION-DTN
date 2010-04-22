@@ -39,9 +39,9 @@ int	main(int argc, char **argv)
 	}
 
 	sdrName = argv[1];
-	configFlags = atoi(argv[2]);
-	heapWords = atol(argv[3]);
-	heapKey = atoi(argv[4]);
+	configFlags = strtol(argv[2], NULL, 0);
+	heapWords = strtol(argv[3], NULL, 0);
+	heapKey = strtol(argv[4], NULL, 0);
 	pathName = argv[5];
 #endif
 

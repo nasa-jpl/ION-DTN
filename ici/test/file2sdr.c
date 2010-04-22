@@ -11,10 +11,20 @@
 
 #include <file2sdr.h>
 
-static sm_SemId	file2sdr_semaphore;
-static int	file2sdr_stopped = 0;
+static int	file2sdr_stopped(int *newState)
+{
+	int	state = 0;
 
-static Object	newCycle(Sdr sdr, Object cycleList, Cycle *currentCycle)
+	if (newState)
+	{
+		state = *newState;
+	}
+
+	return state;
+}
+
+static Object	newCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
+			sm_SemId file2sdr_semaphore)
 {
 	Object	cycleObj;
 
@@ -37,7 +47,8 @@ static Object	newCycle(Sdr sdr, Object cycleList, Cycle *currentCycle)
 	return cycleObj;
 }
 
-static Object	endCycle(Sdr sdr, Object cycleList, Cycle *currentCycle)
+static Object	endCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
+			sm_SemId file2sdr_semaphore)
 {
 	sdr_begin_xn(sdr);
 	sdr_list_insert_last(sdr, currentCycle->lines,
@@ -49,25 +60,29 @@ static Object	endCycle(Sdr sdr, Object cycleList, Cycle *currentCycle)
 		return 0;
 	}
 
-	return newCycle(sdr, cycleList, currentCycle);
+	return newCycle(sdr, cycleList, currentCycle, file2sdr_semaphore);
 }
 
 static void	handleQuit()
 {
-	file2sdr_stopped = 1;
+	int	stopped = 1;
+
+	oK(file2sdr_stopped(&stopped));
 }
 
 static int	run_file2sdr(int configFlags, char *fileName)
 {
 	char		sdrName[256];
 	Sdr		sdr;
+	sm_SemId	file2sdr_semaphore;
 	Object		cycleList;
 	Object		cycleListElt;
 	Object		cycleObj;
 	Cycle		currentCycle = { 0, 0, 0 };
-	FILE		*inputFile;
+	int		inputFile;
 	unsigned long	startLineNbr;
 	char		line[SDRSTRING_BUFSZ];
+	int		len;
 	struct timeval	startTime;
 	unsigned long	endLineNbr;
 	struct timeval	endTime;
@@ -117,7 +132,8 @@ static int	run_file2sdr(int configFlags, char *fileName)
 
 	if (sdr_list_length(sdr, cycleList) == 0)
 	{
-		cycleObj = newCycle(sdr, cycleList, &currentCycle);
+		cycleObj = newCycle(sdr, cycleList, &currentCycle,
+				file2sdr_semaphore);
 		if (cycleObj == 0)
 		{
 			return 0;
@@ -132,41 +148,39 @@ static int	run_file2sdr(int configFlags, char *fileName)
 
 	/*	Establish position at first unread record of file.	*/
 
-	inputFile = fopen(fileName, "r");
-	if (inputFile == NULL)
+	inputFile = open(fileName, O_RDONLY, 0777);
+	if (inputFile < 0)
 	{
-		putSysErrmsg("Can't open input file", NULL);
+		perror("Can't open input file");
 		return 0;
 	}
 
 	startLineNbr = 0;
 	while (startLineNbr < currentCycle.lineCount)
 	{
-		if (fgets(line, SDRSTRING_BUFSZ, inputFile) == NULL)
+		if (igets(inputFile, line, sizeof line, &len) == NULL)
 		{
-			if (feof(inputFile))
+			if (len == 0)
 			{
-				fclose(inputFile);
+				close(inputFile);
 				cycleObj = endCycle(sdr, cycleList,
-						&currentCycle);
+					&currentCycle, file2sdr_semaphore);
 				if (cycleObj == 0)
 				{
 					return 0;
 				}
 
-				inputFile = fopen(fileName, "r");
-				if (inputFile == NULL)
+				inputFile = open(fileName, O_RDONLY, 0777);
+				if (inputFile < 0)
 				{
-					putSysErrmsg("Can't reopen input file",
-							NULL);
+					perror("Can't reopen input file");
 					return 0;
 				}
 			}
 			else
 			{
-				fclose(inputFile);
-				putSysErrmsg("Can't read from input file",
-						NULL);
+				close(inputFile);
+				perror("Can't read from input file");
 				return 0;
 			}
 		}
@@ -176,7 +190,7 @@ static int	run_file2sdr(int configFlags, char *fileName)
 
 	/*	Copy text lines from file to SDR.			*/
 
-	signal(SIGINT, handleQuit);
+	isignal(SIGINT, handleQuit);
 	getCurrentTime(&startTime);
 	endLineNbr = startLineNbr;
 	while (1)
@@ -184,16 +198,16 @@ static int	run_file2sdr(int configFlags, char *fileName)
 #if 0
 microsnooze(10000);
 #endif
-		if (file2sdr_stopped)
+		if (file2sdr_stopped(NULL))
 		{
 			break;
 		}
 
-		if (fgets(line, SDRSTRING_BUFSZ, inputFile) == NULL)
+		if (igets(inputFile, line, sizeof line, &len) == NULL)
 		{
-			if (feof(inputFile))
+			if (len == 0)
 			{
-				fclose(inputFile);
+				close(inputFile);
 				getCurrentTime(&endTime);
 				linesProcessed = endLineNbr - startLineNbr;
 				if (endTime.tv_usec < startTime.tv_usec)
@@ -209,17 +223,16 @@ microsnooze(10000);
 				printf("Processing %d lines per second.\n",
 						rate);
 				cycleObj = endCycle(sdr, cycleList,
-						&currentCycle);
+					&currentCycle, file2sdr_semaphore);
 				if (cycleObj == 0)
 				{
 					return 0;
 				}
 
-				inputFile = fopen(fileName, "r");
-				if (inputFile == NULL)
+				inputFile = open(fileName, O_RDONLY, 0777);
+				if (inputFile < 0)
 				{
-					putSysErrmsg("Can't reopen input file",
-							NULL);
+					perror("Can't reopen input file");
 					return 0;
 				}
 
@@ -229,9 +242,8 @@ microsnooze(10000);
 			}
 			else
 			{
-				fclose(inputFile);
-				putSysErrmsg("Can't read from input file",
-						NULL);
+				close(inputFile);
+				perror("Can't read from input file");
 				return 0;
 			}
 		}
@@ -246,7 +258,7 @@ microsnooze(10000);
 		sdr_write(sdr, cycleObj, (char *) &currentCycle, sizeof(Cycle));
 		if (sdr_end_xn(sdr))
 		{
-			fclose(inputFile);
+			close(inputFile);
 			putErrmsg("SDR transaction failed", NULL);
 			writeErrmsgMemos();
 			return 0;
@@ -256,7 +268,7 @@ microsnooze(10000);
 		endLineNbr++;
 	}
 
-	fclose(inputFile);
+	close(inputFile);
 	sm_SemDelete(file2sdr_semaphore);
 	sdr_shutdown();
 	ionDetach();

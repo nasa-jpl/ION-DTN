@@ -11,14 +11,6 @@
 
 #include "cfdpP.h"
 
-#if (!defined NO_PROXY && !defined NO_DIRLIST)
-static char		*NullOpsParmsMemo = "CFDP Ops error: invalid arg(s).";
-#endif
-
-#ifndef NO_PROXY
-static CfdpReaderFn	stdReaderFn = CFDP_STD_READER;
-#endif
-
 extern int		createFDU(CfdpNumber *destinationEntityNbr,
 				unsigned int utParmsLength,
 				unsigned char *utParms, char *sourceFileName,
@@ -529,6 +521,7 @@ static int	reportOnProxyPut(CfdpUserOpsData *opsData,
 
 int	handleProxyPutRequest(CfdpUserOpsData *opsData)
 {
+	static CfdpReaderFn	stdReaderFn = CFDP_STD_READER;
 	CfdpTransactionId	transactionId;
 	int			result;
 
@@ -618,36 +611,19 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	int		i;
 	CfdpHandler	*override;
 
-	if (respondentEntityNbr == NULL || beneficiaryEntityNbr == NULL
-	|| transactionId == NULL)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullOpsParmsMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(respondentEntityNbr);
+	CHKERR(beneficiaryEntityNbr);
+	CHKERR(transactionId);
 	if (task->sourceFileName == NULL)
 	{
-		if (task->destFileName != NULL)
-		{
-			errno = EINVAL;
-			putSysErrmsg(NullOpsParmsMemo, NULL);
-			return -1;
-		}
-
+		CHKERR(task->destFileName == NULL);
 		sourceFileNameLen = 0;
 		destFileNameLen = 0;
 	}
 	else
 	{
 		sourceFileNameLen = strlen(task->sourceFileName);
-		if (sourceFileNameLen > 255)
-		{
-			errno = EINVAL;
-			putSysErrmsg(NullOpsParmsMemo, task->sourceFileName);
-			return -1;
-		}
-
+		CHKERR(sourceFileNameLen < 256);
 		if (task->destFileName == NULL)
 		{
 			destFileNameLen = 0;
@@ -655,35 +631,18 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 		else
 		{
 			destFileNameLen = strlen(task->destFileName);
-			if (destFileNameLen > 255)
-			{
-				errno = EINVAL;
-				putSysErrmsg(NullOpsParmsMemo,
-						task->sourceFileName);
-				return -1;
-			}
+			CHKERR(destFileNameLen < 256);
 		}
 	}
 
 	if (task->flowLabel)
 	{
-		if (task->flowLabelLength < 1 || task->flowLabelLength > 255)
-		{
-			errno = EINVAL;
-			putSysErrmsg(NullOpsParmsMemo,
-					itoa(task->flowLabelLength));
-			return -1;
-		}
+		CHKERR(task->flowLabelLength > 0
+				&& task->flowLabelLength < 256);
 	}
 	else
 	{
-		if (task->flowLabelLength != 0)
-		{
-			errno = EINVAL;
-			putSysErrmsg(NullOpsParmsMemo,
-					itoa(task->flowLabelLength));
-			return -1;
-		}
+		CHKERR(task->flowLabelLength == 0);
 	}
 
 	sdr_begin_xn(sdr);
@@ -921,6 +880,7 @@ handler override.", NULL);
 	if (sdr_end_xn(sdr))
 	{
 		putErrmsg("CFDP failed in proxy put request.", NULL);
+		return -1;
 	}
 
 	return 0;
@@ -938,14 +898,9 @@ int	cfdp_rput_cancel(CfdpNumber *respondentEntityNbr,
 	int		length;
 	unsigned char	textBuffer[5];
 
-	if (respondentEntityNbr == NULL || rputTransactionId == NULL
-	|| transactionId == NULL)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullOpsParmsMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(respondentEntityNbr);
+	CHKERR(rputTransactionId);
+	CHKERR(transactionId);
 	sdr_begin_xn(sdr);
 
 	/*	Append cancel messages to messagesToUser if provided,
@@ -990,6 +945,7 @@ int	cfdp_rput_cancel(CfdpNumber *respondentEntityNbr,
 	if (sdr_end_xn(sdr))
 	{
 		putErrmsg("CFDP failed in proxy put cancel.", NULL);
+		return -1;
 	}
 
 	return 0;
@@ -1173,7 +1129,8 @@ int	handleDirectoryListingRequest(CfdpUserOpsData *opsData)
 		return sendDirectoryListingResponse(opsData, -1, NULL);
 	}
 
-	sprintf(listingFileName, "dirlist_%lu", (unsigned long) time(NULL));
+	isprintf(listingFileName, sizeof listingFileName, "dirlist_%lu",
+			(unsigned long) time(NULL));
 	listing = open(listingFileName, O_WRONLY | O_CREAT | O_TRUNC, 00777);
 	if (listing < 0)
 	{
@@ -1191,7 +1148,8 @@ int	handleDirectoryListingRequest(CfdpUserOpsData *opsData)
 			break;
 		}
 
-		sprintf(listingLine, "%.299s", entry->d_name);
+		isprintf(listingLine, sizeof listingLine, "%.299s",
+				entry->d_name);
 		if (write(listing, listingLine, strlen(listingLine) + 1) < 0)
 		{
 			putSysErrmsg("Can't write directory listing file",
@@ -1222,20 +1180,13 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	int		length;
 	unsigned char	textBuffer[600];
 
-	if (respondentEntityNbr == NULL || task == NULL
-	|| task->directoryName == NULL
-	|| (directoryNameLen = strlen(task->directoryName)) == 0
-	|| directoryNameLen > 255
-	|| task->destFileName == NULL
-	|| (destFileNameLen = strlen(task->destFileName)) == 0
-	|| destFileNameLen > 255
-	|| transactionId == NULL)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullOpsParmsMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(respondentEntityNbr);
+	CHKERR(task & task->directoryName && task->destFileName);
+	directoryNameLen = strlen(task->directoryName);
+	CHKERR(directoryNameLen > 0 && directoryNameLen < 256);
+	destFileNameLen = strlen(task->destFileName);
+	CHKERR(destFileNameLen > 0 && destFileNameLen < 256);
+	CHKERR(transactionId);
 	sdr_begin_xn(sdr);
 
 	/*	Append proxy messages to messagesToUser if provided,
@@ -1287,6 +1238,7 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	if (sdr_end_xn(sdr))
 	{
 		putErrmsg("CFDP failed in directory listing request.", NULL);
+		return -1;
 	}
 
 	return 0;

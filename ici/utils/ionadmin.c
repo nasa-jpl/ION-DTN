@@ -9,14 +9,40 @@
 
 #include "rfx.h"
 
-static Sdr	sdr = NULL;
-static int	echo = 0;
-static IonDB	iondb;
-static time_t	referenceTime = 0;
+static time_t	_referenceTime(time_t *newValue)
+{
+	static time_t	reftime = 0;
+	
+	if (newValue)
+	{
+		reftime = *newValue;
+	}
+
+	return reftime;
+}
+
+static int	_echo(int *newValue)
+{
+	static int	state = 0;
+	
+	if (newValue)
+	{
+		if (*newValue == 1)
+		{
+			state = 1;
+		}
+		else
+		{
+			state = 0;
+		}
+	}
+
+	return state;
+}
 
 static void	printText(char *text)
 {
-	if (echo)
+	if (_echo(NULL))
 	{
 		writeMemo(text);
 	}
@@ -102,7 +128,7 @@ static void	initializeNode(int tokenCount, char **tokens)
 
 	if (tokenCount < 3 || *configFileName == '\0')
 	{
-		configFileName = NULL; /*	Use built-in defaults.	*/
+		configFileName = NULL;	/*	Use built-in defaults.	*/
 	}
 
 	if (readIonParms(configFileName, &parms) < 0)
@@ -111,35 +137,16 @@ static void	initializeNode(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (ionInitialize(&parms, atol(ownNodeNbrString)) < 0)
+	if (ionInitialize(&parms, strtol(ownNodeNbrString, NULL, 0)) < 0)
 	{
 		putErrmsg("ionadmin can't initialize ION.", NULL);
-		return;
 	}
-
-	sdr = getIonsdr();
-	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-}
-
-static int	attachToNode()
-{
-	if (sdr == NULL)
-	{
-		if (ionAttach() < 0)
-		{
-			printText("Node not initialized yet.");
-			return -1;
-		}
-
-		sdr = getIonsdr();
-		sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	}
-
-	return 0;
 }
 
 static void	executeAdd(int tokenCount, char **tokens)
 {
+	time_t		refTime;
+	time_t		currentTime;
 	time_t		fromTime;
 	time_t		toTime;
 	unsigned long	fromNodeNbr;
@@ -148,7 +155,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	unsigned int	owlt;
 	Object		elt;
 
-	if (attachToNode() < 0) return;
+	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Add what?");
@@ -161,24 +168,26 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (referenceTime == 0)
+	refTime = _referenceTime(NULL);
+	if (refTime == 0)
 	{
-		referenceTime = getUTCTime();
+		currentTime = getUTCTime();
+		refTime = _referenceTime(&currentTime);
 	}
 
-	fromTime = readTimestampUTC(tokens[2], referenceTime);
-	toTime = readTimestampUTC(tokens[3], referenceTime);
+	fromTime = readTimestampUTC(tokens[2], refTime);
+	toTime = readTimestampUTC(tokens[3], refTime);
 	if (toTime <= fromTime)
 	{
 		printText("Interval end time must be later than start time.");
 		return;
 	}
 
-	fromNodeNbr = atol(tokens[4]);
-	toNodeNbr = atol(tokens[5]);
+	fromNodeNbr = strtol(tokens[4], NULL, 0);
+	toNodeNbr = strtol(tokens[5], NULL, 0);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		xmitRate = atol(tokens[6]);
+		xmitRate = strtol(tokens[6], NULL, 0);
 		elt = rfx_insert_contact(fromTime, toTime, fromNodeNbr,
 				toNodeNbr, xmitRate);
 		return;
@@ -197,11 +206,13 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
+	time_t		refTime;
+	time_t		currentTime;
 	time_t		timestamp;
 	unsigned long	fromNodeNbr;
 	unsigned long	toNodeNbr;
 
-	if (attachToNode() < 0) return;
+	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
@@ -214,14 +225,16 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (referenceTime == 0)
+	refTime = _referenceTime(NULL);
+	if (refTime == 0)
 	{
-		referenceTime = getUTCTime();
+		currentTime = getUTCTime();
+		refTime = _referenceTime(&currentTime);
 	}
 
-	timestamp = readTimestampUTC(tokens[2], referenceTime);
-	fromNodeNbr = atol(tokens[3]);
-	toNodeNbr = atol(tokens[4]);
+	timestamp = readTimestampUTC(tokens[2], refTime);
+	fromNodeNbr = strtol(tokens[3], NULL, 0);
+	toNodeNbr = strtol(tokens[4], NULL, 0);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		oK(rfx_remove_contact(timestamp, fromNodeNbr, toNodeNbr));
@@ -239,6 +252,10 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
+	IonDB		iondb;
+	time_t		refTime;
+	time_t		currentTime;
 	time_t		timestamp;
 	unsigned long	fromNode;
 	unsigned long	toNode;
@@ -249,7 +266,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 	Object		rangeObj;
 	IonRange	range;
 
-	if (attachToNode() < 0) return;
+	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Information on what?");
@@ -262,14 +279,17 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (referenceTime == 0)
+	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	refTime = _referenceTime(NULL);
+	if (refTime == 0)
 	{
-		referenceTime = getUTCTime();
+		currentTime = getUTCTime();
+		refTime = _referenceTime(&currentTime);
 	}
 
-	timestamp = readTimestampUTC(tokens[2], referenceTime);
-	fromNode = atol(tokens[3]);
-	toNode = atol(tokens[4]);
+	timestamp = readTimestampUTC(tokens[2], refTime);
+	fromNode = strtol(tokens[3], NULL, 0);
+	toNode = strtol(tokens[4], NULL, 0);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		for (elt = sdr_list_first(sdr, iondb.contacts); elt;
@@ -373,17 +393,20 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	executeList(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
+	IonDB	iondb;
 	Object	elt;
 	Object	obj;
 	char	buffer[RFX_NOTE_LEN];
 
-	if (attachToNode() < 0) return;
+	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("List what?");
 		return;
 	}
 
+	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		for (elt = sdr_list_first(sdr, iondb.contacts); elt;
@@ -429,6 +452,7 @@ static void	manageUtcDelta(int tokenCount, char **tokens)
 
 static void	manageClockError(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	newMaxClockError;
@@ -458,6 +482,7 @@ static void	manageClockError(int tokenCount, char **tokens)
 
 static void	manageProduction(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	newRate;
@@ -488,6 +513,7 @@ static void	manageProduction(int tokenCount, char **tokens)
 
 static void	manageConsumption(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	newRate;
@@ -518,6 +544,7 @@ static void	manageConsumption(int tokenCount, char **tokens)
 
 static void	manageOccupancy(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	newLimit;
@@ -549,10 +576,13 @@ than zero.", itoa(newLimit));
 
 static void	manageHorizon(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
-	IonDB	iondb;
 	char	*horizonString;
+	time_t	refTime;
+	time_t	currentTime;
 	time_t	horizon;
+	IonDB	iondb;
 
 	if (tokenCount != 3)
 	{
@@ -567,12 +597,14 @@ static void	manageHorizon(int tokenCount, char **tokens)
 	}
 	else
 	{
-		if (referenceTime == 0)
+		refTime = _referenceTime(NULL);
+		if (refTime == 0)
 		{
-			referenceTime = getUTCTime();
+			currentTime = getUTCTime();
+			refTime = _referenceTime(&currentTime);
 		}
 
-		horizon = readTimestampUTC(horizonString, referenceTime);
+		horizon = readTimestampUTC(horizonString, refTime);
 	}
 
 	sdr_begin_xn(sdr);
@@ -587,6 +619,7 @@ static void	manageHorizon(int tokenCount, char **tokens)
 
 static void	manageAlarm(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
 	char	*newAlarmScript;
@@ -622,6 +655,7 @@ static void	manageAlarm(int tokenCount, char **tokens)
 
 static void	manageUsage(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(IonDB, iondb);
 	char	buffer[128];
 
@@ -640,7 +674,7 @@ forecast = %ld", iondb->currentOccupancy, iondb->occupancyCeiling,
 
 static void	executeManage(int tokenCount, char **tokens)
 {
-	if (attachToNode() < 0) return;
+	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Manage what?");
@@ -721,6 +755,8 @@ static void	executeRun(int tokenCount, char **tokens)
 
 static void	switchEcho(int tokenCount, char **tokens)
 {
+	int	state;
+
 	if (tokenCount < 2)
 	{
 		printText("Echo on or off?");
@@ -730,45 +766,29 @@ static void	switchEcho(int tokenCount, char **tokens)
 	switch (*(tokens[1]))
 	{
 	case '0':
-		echo = 0;
+		state = 0;
 		break;
 
 	case '1':
-		echo = 1;
+		state = 1;
 		break;
 
 	default:
 		printText("Echo on or off?");
+		return;
 	}
+
+	oK(_echo(&state));
 }
 
-static int	processLine(char *line)
+static int	processLine(char *line, int lineLength)
 {
-	int	lineLength;
 	int	tokenCount;
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
 	char	buffer[80];
-
-	if (line == NULL) return 0;
-
-	lineLength = strlen(line);
-	if (lineLength <= 0) return 0;
-
-	if (line[lineLength - 1] == 0x0a)	/*	LF (newline)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength <= 0) return 0;
-	}
-
-	if (line[lineLength - 1] == 0x0d)	/*	CR (DOS text)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength <= 0) return 0;
-	}
+	time_t	referenceTime;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -828,7 +848,7 @@ static int	processLine(char *line)
 			return 0;
 
 		case 's':
-			if (attachToNode() < 0)
+			if (ionAttach() < 0)
 			{
 				return 0;
 			}
@@ -841,7 +861,7 @@ static int	processLine(char *line)
 			return 0;
 
 		case 'x':
-			if (attachToNode() < 0)
+			if (ionAttach() < 0)
 			{
 				return 0;
 			}
@@ -850,7 +870,7 @@ static int	processLine(char *line)
 			return 0;
 
 		case '@':
-			if (attachToNode() < 0)
+			if (ionAttach() < 0)
 			{
 				return 0;
 			}
@@ -861,9 +881,10 @@ static int	processLine(char *line)
 			}
 			else
 			{
-				if (referenceTime == 0)
+				if (_referenceTime(NULL) == 0)
 				{
 					referenceTime = getUTCTime();
+					oK(_referenceTime(&referenceTime));
 				}
 
 				referenceTime = readTimestampUTC(tokens[1],
@@ -919,27 +940,35 @@ int	main(int argc, char **argv)
 {
 	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
 #endif
-	FILE	*cmdFile;
+	int	cmdFile;
 	char	line[256];
+	int	len;
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
+		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
 		{
 			printf(": ");
-			if (fgets(line, sizeof line, stdin) == NULL)
+			fflush(stdout);
+			if (igets(cmdFile, line, sizeof line, &len) == NULL)
 			{
-				if (feof(stdin))
+				if (len == 0)
 				{
 					break;
 				}
 
-				perror("ionadmin fgets failed");
+				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
 
-			if (processLine(line))
+			if (len == 0)
+			{
+				continue;
+			}
+
+			if (processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -947,15 +976,15 @@ int	main(int argc, char **argv)
 	}
 	else if (strcmp(cmdFileName, ".") == 0) /*	Shutdown.	*/
 	{
-		if (attachToNode() == 0)
+		if (ionAttach() == 0)
 		{
 			rfx_stop();
 		}
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = fopen(cmdFileName, "r");
-		if (cmdFile == NULL)
+		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		if (cmdFile < 0)
 		{
 			perror("Can't open command file");
 		}
@@ -963,34 +992,36 @@ int	main(int argc, char **argv)
 		{
 			while (1)
 			{
-				if (fgets(line, sizeof line, cmdFile) == NULL)
+				if (igets(cmdFile, line, sizeof line, &len)
+						== NULL)
 				{
-					if (feof(cmdFile))
+					if (len == 0)
 					{
 						break;	/*	Loop.	*/
 					}
 
-					perror("ionadmin fgets failed");
+					putErrmsg("igets failed.", NULL);
 					break;		/*	Loop.	*/
 				}
 
-				if (line[0] == '#')	/*	Comment.*/
+				if (len == 0
+				|| line[0] == '#')	/*	Comment.*/
 				{
 					continue;
 				}
 
-				if (processLine(line))
+				if (processLine(line, len))
 				{
 					break;	/*	Out of loop.	*/
 				}
 			}
 
-			fclose(cmdFile);
+			close(cmdFile);
 		}
 	}
 
 	writeErrmsgMemos();
-	if (attachToNode() == 0)
+	if (ionAttach() == 0)
 	{
 		oK(checkForCongestion());
 	}

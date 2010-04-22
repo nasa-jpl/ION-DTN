@@ -10,11 +10,31 @@
 									*/
 #include "cfdpP.h"
 
-static int	running;
+static int	_running(int *newValue)
+{
+	static int	state;
+	
+	if (newValue)
+	{
+		if (*newValue == 1)
+		{
+			state = 1;
+			sm_TaskVarAdd(&state);
+		}
+		else
+		{
+			state = 0;
+		}
+	}
+
+	return state;
+}
 
 static void	shutDown()	/*	Commands cfdpclock termination.	*/
 {
-	running = 0;		/*	Terminates cfdpclock.		*/
+	int	stop = 0;
+
+	oK(_running(&stop));	/*	Terminates cfdpclock.		*/
 }
 
 static int	scanInFdus(Sdr sdr, time_t currentTime)
@@ -154,12 +174,13 @@ int	main(int argc, char *argv[])
 {
 #endif
 	Sdr	sdr;
+	int	state = 1;
 	time_t	currentTime;
 
 	if (cfdpInit() < 0 || bp_attach() < 0)
 	{
 		putErrmsg("cfdpclock can't initialize CFDP.", NULL);
-		return 1;
+		return -1;
 	}
 
 	sdr = getIonsdr();
@@ -167,10 +188,9 @@ int	main(int argc, char *argv[])
 
 	/*	Main loop: wait one second, then scan all FDUS.		*/
 
-	sm_TaskVarAdd(&running);
-	running = 1;
+	oK(_running(&state));
 	writeMemo("[i] cfdpclock is running.");
-	while (running)
+	while (_running(NULL))
 	{
 		snooze(1);
 		currentTime = getUTCTime();
@@ -180,7 +200,9 @@ int	main(int argc, char *argv[])
 		if (scanInFdus(sdr, currentTime) < 0)
 		{
 			putErrmsg("Can't scan inbound FDUs.", NULL);
-			running = 0;	/*	Terminate loop.		*/
+			state = 0;	/*	Terminate loop.		*/
+			oK(_running(&state));
+			continue;
 		}
 
 		/*	Clean out completed outbound FDUs.		*/
@@ -188,7 +210,8 @@ int	main(int argc, char *argv[])
 		if (scanOutFdus(sdr, currentTime) < 0)
 		{
 			putErrmsg("Can't scan inbound FDUs.", NULL);
-			running = 0;	/*	Terminate loop.		*/
+			state = 0;	/*	Terminate loop.		*/
+			oK(_running(&state));
 		}
 	}
 
@@ -197,4 +220,3 @@ int	main(int argc, char *argv[])
 	ionDetach();
 	return 0;
 }
-

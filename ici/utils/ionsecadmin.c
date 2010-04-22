@@ -9,14 +9,33 @@
 
 #include "ionsec.h"
 
-static Sdr	sdr = NULL;
-static int	echo = 0;
-static SecDB	secdb;
-static char	*omitted = "";
+static char	*_omitted()
+{
+	return "";
+}
+
+static int	_echo(int *newValue)
+{
+	static int	state = 0;
+
+	if (newValue)
+	{
+		if (*newValue == 1)
+		{
+			state = 1;
+		}
+		else
+		{
+			state = 0;
+		}
+	}
+
+	return state;
+}
 
 static void	printText(char *text)
 {
-	if (echo)
+	if (_echo(NULL))
 	{
 		writeMemo(text);
 	}
@@ -77,36 +96,25 @@ i.e., a partial eid expression ending in '*'.");
 	puts("\t   # <comment text>");
 }
 
-static int	initializeIonSecurity()
+static void	initializeIonSecurity(int tokenCount, char **tokens)
 {
+	if (tokenCount != 1)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
 	if (secInitialize() < 0)
 	{
 		printText("Can't initialize the ION security system.");
-		return -1;
 	}
-
-	sdr = getIonsdr();
-	sdr_read(sdr, (char *) &secdb, getSecDbObject(), sizeof(SecDB));
-	return 0;
-}
-
-static int	attachToIonSecurity()
-{
-	if (secAttach() < 0)
-	{
-		printText("Can't attach to the ION security system.");
-		return -1;
-	}
-
-	sdr = getIonsdr();
-	sdr_read(sdr, (char *) &secdb, getSecDbObject(), sizeof(SecDB));
-	return 0;
 }
 
 static void	executeAdd(int tokenCount, char **tokens)
 {
 	char	*keyName;
 
+	if (secAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Add what?");
@@ -134,7 +142,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			break;
 
 		case 4:
-			keyName = omitted;
+			keyName = _omitted();
 			break;
 
 		default:
@@ -155,7 +163,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			break;
 
 		case 4:
-			keyName = omitted;
+			keyName = _omitted();
 			break;
 
 		default:
@@ -174,6 +182,7 @@ static void	executeChange(int tokenCount, char **tokens)
 {
 	char	*keyName;
 
+	if (secAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Change what?");
@@ -201,7 +210,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			break;
 
 		case 4:
-			keyName = omitted;
+			keyName = _omitted();
 			break;
 
 		default:
@@ -222,7 +231,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			break;
 
 		case 4:
-			keyName = omitted;
+			keyName = _omitted();
 			break;
 
 		default:
@@ -239,6 +248,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
+	if (secAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
@@ -274,6 +284,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	printKey(Object keyAddr)
 {
+	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(SecKey, key);
 	char	buf[128];
 
@@ -285,6 +296,7 @@ static void	printKey(Object keyAddr)
 
 static void	printBabTxRule(Object ruleAddr)
 {
+	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(BabTxRule, rule);
 	char	eidbuf[SDRSTRING_BUFSZ];
 	char	buf[512];
@@ -299,6 +311,7 @@ static void	printBabTxRule(Object ruleAddr)
 
 static void	printBabRxRule(Object ruleAddr)
 {
+	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(BabRxRule, rule);
 	char	eidbuf[SDRSTRING_BUFSZ];
 	char	buf[512];
@@ -315,6 +328,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 	Object	addr;
 	Object	elt;
 
+	if (secAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Information on what?");
@@ -371,9 +385,12 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	executeList(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
+		OBJ_POINTER(SecDB, db);
 	Object	elt;
 	Object	obj;
 
+	if (secAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("List what?");
@@ -386,9 +403,10 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
+	GET_OBJ_POINTER(sdr, SecDB, db, getSecDbObject());
 	if (strcmp(tokens[1], "key") == 0)
 	{
-		for (elt = sdr_list_first(sdr, secdb.keys); elt;
+		for (elt = sdr_list_first(sdr, db->keys); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
 			obj = sdr_list_data(sdr, elt);
@@ -400,7 +418,7 @@ static void	executeList(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "babtxrule") == 0)
 	{
-		for (elt = sdr_list_first(sdr, secdb.babTxRules); elt;
+		for (elt = sdr_list_first(sdr, db->babTxRules); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
 			obj = sdr_list_data(sdr, elt);
@@ -412,7 +430,7 @@ static void	executeList(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "babrxrule") == 0)
 	{
-		for (elt = sdr_list_first(sdr, secdb.babRxRules); elt;
+		for (elt = sdr_list_first(sdr, db->babRxRules); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
 			obj = sdr_list_data(sdr, elt);
@@ -427,6 +445,8 @@ static void	executeList(int tokenCount, char **tokens)
 
 static void	switchEcho(int tokenCount, char **tokens)
 {
+	int	state;
+
 	if (tokenCount < 2)
 	{
 		printText("Echo on or off?");
@@ -436,44 +456,27 @@ static void	switchEcho(int tokenCount, char **tokens)
 	switch (*(tokens[1]))
 	{
 	case '0':
-		echo = 0;
+		state = 0;
 		break;
 
 	case '1':
-		echo = 1;
+		state = 1;
 		break;
 
 	default:
 		printText("Echo on or off?");
+		return;
 	}
+
+	oK(_echo(&state));
 }
 
-static int	processLine(char *line)
+static int	processLine(char *line, int lineLength)
 {
-	int	lineLength;
 	int	tokenCount;
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
-
-	if (line == NULL) return 0;
-
-	lineLength = strlen(line);
-	if (lineLength == 0) return 0;
-
-	if (line[lineLength - 1] == 0x0a)	/*	LF (newline)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength == 0) return 0;
-	}
-
-	if (line[lineLength - 1] == 0x0d)	/*	CR (DOS text)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength == 0) return 0;
-	}
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -523,77 +526,27 @@ static int	processLine(char *line)
 			return 0;
 
 		case '1':
-			if (initializeIonSecurity() < 0)
-			{
-				putErrmsg("Can't initialize security database.",
-						NULL);
-			}
-
+			initializeIonSecurity(tokenCount, tokens);
 			return 0;
 
 		case 'a':
-			if (attachToIonSecurity() < 0)
-			{
-				putErrmsg("Can't update security database.",
-						NULL);
-			}
-			else
-			{
-				executeAdd(tokenCount, tokens);
-			}
-
+			executeAdd(tokenCount, tokens);
 			return 0;
 
 		case 'c':
-			if (attachToIonSecurity() < 0)
-			{
-				putErrmsg("Can't update security database.",
-						NULL);
-			}
-			else
-			{
-				executeChange(tokenCount, tokens);
-			}
-
+			executeChange(tokenCount, tokens);
 			return 0;
 
 		case 'd':
-			if (attachToIonSecurity() < 0)
-			{
-				putErrmsg("Can't update security database.",
-						NULL);
-			}
-			else
-			{
-				executeDelete(tokenCount, tokens);
-			}
-
+			executeDelete(tokenCount, tokens);
 			return 0;
 
 		case 'i':
-			if (attachToIonSecurity() < 0)
-			{
-				putErrmsg("Can't query security database.",
-						NULL);
-			}
-			else
-			{
-				executeInfo(tokenCount, tokens);
-			}
-
+			executeInfo(tokenCount, tokens);
 			return 0;
 
 		case 'l':
-			if (attachToIonSecurity() < 0)
-			{
-				putErrmsg("Can't list security database.",
-						NULL);
-			}
-			else
-			{
-				executeList(tokenCount, tokens);
-			}
-
+			executeList(tokenCount, tokens);
 			return 0;
 
 		case 'e':
@@ -619,27 +572,35 @@ int	main(int argc, char **argv)
 {
 	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
 #endif
-	FILE	*cmdFile;
+	int	cmdFile;
 	char	line[256];
+	int	len;
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
+		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
 		{
 			printf(": ");
-			if (fgets(line, sizeof line, stdin) == NULL)
+			fflush(stdout);
+			if (igets(cmdFile, line, sizeof line, &len) == NULL)
 			{
-				if (feof(stdin))
+				if (len == 0)
 				{
 					break;
 				}
 
-				perror("ionsecadmin fgets failed");
+				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
 
-			if (processLine(line))
+			if (len == 0)
+			{
+				continue;
+			}
+
+			if (processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -647,8 +608,8 @@ int	main(int argc, char **argv)
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = fopen(cmdFileName, "r");
-		if (cmdFile == NULL)
+		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		if (cmdFile < 0)
 		{
 			perror("Can't open command file");
 		}
@@ -656,29 +617,31 @@ int	main(int argc, char **argv)
 		{
 			while (1)
 			{
-				if (fgets(line, sizeof line, cmdFile) == NULL)
+				if (igets(cmdFile, line, sizeof line, &len)
+						== NULL)
 				{
-					if (feof(cmdFile))
+					if (len == 0)
 					{
 						break;	/*	Loop.	*/
 					}
 
-					perror("ionsecadmin fgets failed");
+					putErrmsg("igets failed.", NULL);
 					break;		/*	Loop.	*/
 				}
 
-				if (line[0] == '#')	/*	Comment.*/
+				if (len == 0
+				|| line[0] == '#')	/*	Comment.*/
 				{
 					continue;
 				}
 
-				if (processLine(line))
+				if (processLine(line, len))
 				{
 					break;	/*	Out of loop.	*/
 				}
 			}
 
-			fclose(cmdFile);
+			close(cmdFile);
 		}
 	}
 

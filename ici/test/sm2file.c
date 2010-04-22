@@ -28,7 +28,7 @@ int	main(int argc, char **argv)
 	sm_SemId	semaphore;
 	int		cycleNbr = 1;
 	char		fileName[256];
-	FILE		*outputFile;
+	int		outputFile;
 	PsmAddress	lineListElt;
 	PsmAddress	lineAddress;
 	char		*line;
@@ -73,8 +73,8 @@ int	main(int argc, char **argv)
 
 	printf("working on cycle %d\n", cycleNbr);
 	isprintf(fileName, sizeof fileName, "file_copy_%d", cycleNbr);
-	outputFile = fopen(fileName, "a");
-	if (outputFile == NULL)
+	outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
+	if (outputFile < 0)
 	{
 		perror("can't open output file");
 		return 0;
@@ -97,13 +97,13 @@ int	main(int argc, char **argv)
 		{
 			/*	Close file, open next one.		*/
 
-			fclose(outputFile);
+			close(outputFile);
 			cycleNbr++;
 			printf("working on cycle %d\n", cycleNbr);
 			isprintf(fileName, sizeof fileName, "file_copy_%d",
 					cycleNbr);
-			outputFile = fopen(fileName, "a");
-			if (outputFile == NULL)
+			outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
+			if (outputFile < 0)
 			{
 				perror("Can't open output file");
 				return 0;
@@ -111,9 +111,9 @@ int	main(int argc, char **argv)
 		}
 		else	/*	Just write line to output file.		*/
 		{
-			if (fputs(line, outputFile) < 0)
+			if (iputs(outputFile, line) < 0)
 			{
-				fclose(outputFile);
+				close(outputFile);
 				perror("Can't write to output file");
 				return 0;
 			}

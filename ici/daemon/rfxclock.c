@@ -10,11 +10,31 @@
 									*/
 #include "rfx.h"
 
-static int	running;
+static int	_running(int *newValue)
+{
+	static int	state;
+	
+	if (newValue)
+	{
+		if (*newValue == 1)
+		{
+			state = 1;
+			sm_TaskVarAdd(&state);
+		}
+		else
+		{
+			state = 0;
+		}
+	}
+
+	return state;
+}
 
 static void	shutDown()	/*	Commands rfxclock termination.	*/
 {
-	running = 0;		/*	Terminates rfxclock.		*/
+	int	stop = 0;
+
+	oK(_running(&stop));	/*	Terminates rfxclock.		*/
 }
 
 static int	setProbeIsDue(unsigned long destNodeNbr,
@@ -222,7 +242,7 @@ static int	applyRange(IonVdb *ionvdb, IonDB *iondb, IonRange *range)
 		return 0;	/*	Range is between remote nodes.	*/
 	}
 
-	/*	Range is from local node to a neighbor.			*/
+	/*	Range is between local node and a neighbor.		*/
 
 	neighbor = findNeighbor(ionvdb, neighborNodeNbr, &nextElt);
 	if (neighbor == NULL)
@@ -255,7 +275,6 @@ static int	applyRange(IonVdb *ionvdb, IonDB *iondb, IonRange *range)
 			neighbor->owltOutbound = range->owlt;
 		}
 	}
-
 	return 0;
 }
 
@@ -468,6 +487,7 @@ int	main(int argc, char *argv[])
 	time_t		currentTime;
 	PsmPartition	ionwm;
 	IonVdb		*ionvdb;
+	int		start = 1;
 	PsmAddress	elt;
 	PsmAddress	addr;
 	IonProbe	*probe;
@@ -481,7 +501,7 @@ int	main(int argc, char *argv[])
 	if (ionAttach() < 0)
 	{
 		putErrmsg("rfxclock can't attach to ION.", NULL);
-		return 1;
+		return -1;
 	}
 
 	sdr = getIonsdr();
@@ -492,10 +512,9 @@ int	main(int argc, char *argv[])
 	/*	Main loop: wait for event occurrence time, then
 	 *	execute applicable events.				*/
 
-	sm_TaskVarAdd(&running);
-	running = 1;
+	oK(_running(&start));
 	writeMemo("[i] rfxclock is running.");
-	while (running)
+	while (_running(NULL))
 	{
 		/*	Sleep for 1 second, then dispatch all events
 		 *	whose execution times have now been reached.	*/

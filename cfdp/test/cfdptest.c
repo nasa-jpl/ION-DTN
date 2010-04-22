@@ -9,22 +9,19 @@
 
 #include "cfdp.h"
 
-static CfdpHandler		faultHandlers[16];
-static CfdpNumber		destinationEntityNbr;
-static char			sourceFileNameBuf[256] = "";
-static char			*sourceFileName = NULL;
-static char			destFileNameBuf[256] = "";
-static char			*destFileName = NULL;
-static BpUtParms		utParms = {	0,
-						86400,
-						BP_STD_PRIORITY,
-						SourceCustodyRequired,
-						0,
-						0,
-						{ 0, 0, 0 }	};
-static MetadataList		msgsToUser = 0;
-static MetadataList		fsRequests = 0;
-static CfdpTransactionId	transactionId;
+typedef struct
+{
+	CfdpHandler		faultHandlers[16];
+	CfdpNumber		destinationEntityNbr;
+	char			sourceFileNameBuf[256];
+	char			*sourceFileName;
+	char			destFileNameBuf[256];
+	char			*destFileName;
+	BpUtParms		utParms;
+	MetadataList		msgsToUser;
+	MetadataList		fsRequests;
+	CfdpTransactionId	transactionId;
+} CfdpReqParms;
 
 static void	handleQuit()
 {
@@ -77,7 +74,8 @@ static void	printUsage()
 	puts("\t   #");
 }
 
-static void	setDestinationEntityNbr(int tokenCount, char **tokens)
+static void	setDestinationEntityNbr(int tokenCount, char **tokens,
+			CfdpNumber *destinationEntityNbr)
 {
 	unsigned long	entityId;
 
@@ -88,10 +86,11 @@ static void	setDestinationEntityNbr(int tokenCount, char **tokens)
 	}
 
 	entityId = strtol(tokens[1], NULL, 0);
-	cfdp_compress_number(&destinationEntityNbr, entityId);
+	cfdp_compress_number(destinationEntityNbr, entityId);
 }
 
-static void	setSourceFileName(int tokenCount, char **tokens)
+static void	setSourceFileName(int tokenCount, char **tokens,
+			char *sourceFileNameBuf, char **sourceFileName)
 {
 	if (tokenCount != 2)
 	{
@@ -99,12 +98,12 @@ static void	setSourceFileName(int tokenCount, char **tokens)
 		return;
 	}
 
-	isprintf(sourceFileNameBuf, sizeof sourceFileNameBuf, "%.255s",
-			tokens[1]);
-	sourceFileName = sourceFileNameBuf;
+	isprintf(sourceFileNameBuf, 256, "%.255s", tokens[1]);
+	*sourceFileName = sourceFileNameBuf;
 }
 
-static void	setDestFileName(int tokenCount, char **tokens)
+static void	setDestFileName(int tokenCount, char **tokens,
+			char *destFileNameBuf, char **destFileName)
 {
 	if (tokenCount != 2)
 	{
@@ -112,11 +111,12 @@ static void	setDestFileName(int tokenCount, char **tokens)
 		return;
 	}
 
-	isprintf(destFileNameBuf, sizeof destFileNameBuf, "%.255s", tokens[1]);
-	destFileName = destFileNameBuf;
+	isprintf(destFileNameBuf, 256, "%.255s", tokens[1]);
+	*destFileName = destFileNameBuf;
 }
 
-static void	setClassOfService(int tokenCount, char **tokens)
+static void	setClassOfService(int tokenCount, char **tokens,
+			BpUtParms *utParms)
 {
 	unsigned long	priority;
 
@@ -127,10 +127,10 @@ static void	setClassOfService(int tokenCount, char **tokens)
 	}
 
 	priority = strtol(tokens[1], NULL, 0);
-	utParms.classOfService = priority;
+	utParms->classOfService = priority;
 }
 
-static void	setOrdinal(int tokenCount, char **tokens)
+static void	setOrdinal(int tokenCount, char **tokens, BpUtParms *utParms)
 {
 	unsigned long	ordinal;
 
@@ -141,10 +141,10 @@ static void	setOrdinal(int tokenCount, char **tokens)
 	}
 
 	ordinal = strtol(tokens[1], NULL, 0);
-	utParms.extendedCOS.ordinal = ordinal;
+	utParms->extendedCOS.ordinal = ordinal;
 }
 
-static void	setMode(int tokenCount, char **tokens)
+static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 {
 	unsigned long	mode;
 
@@ -157,17 +157,18 @@ static void	setMode(int tokenCount, char **tokens)
 	mode = (strtol(tokens[1], NULL, 0) == 0 ? 0 : 1);
 	if (mode == 1)
 	{
-		utParms.extendedCOS.flags |= BP_BEST_EFFORT;
-		utParms.custodySwitch = NoCustodyRequested;
+		utParms->extendedCOS.flags |= BP_BEST_EFFORT;
+		utParms->custodySwitch = NoCustodyRequested;
 	}
 	else
 	{
-		utParms.extendedCOS.flags &= (~BP_BEST_EFFORT);
-		utParms.custodySwitch = SourceCustodyRequired;
+		utParms->extendedCOS.flags &= (~BP_BEST_EFFORT);
+		utParms->custodySwitch = SourceCustodyRequired;
 	}
 }
 
-static void	setCriticality(int tokenCount, char **tokens)
+static void	setCriticality(int tokenCount, char **tokens,
+			BpUtParms *utParms)
 {
 	unsigned long	criticality;
 
@@ -180,15 +181,15 @@ static void	setCriticality(int tokenCount, char **tokens)
 	criticality = (strtol(tokens[1], NULL, 0) == 0 ? 0 : 1);
 	if (criticality == 1)
 	{
-		utParms.extendedCOS.flags |= BP_MINIMUM_LATENCY;
+		utParms->extendedCOS.flags |= BP_MINIMUM_LATENCY;
 	}
 	else
 	{
-		utParms.extendedCOS.flags &= (~BP_MINIMUM_LATENCY);
+		utParms->extendedCOS.flags &= (~BP_MINIMUM_LATENCY);
 	}
 }
 
-static void	setTTL(int tokenCount, char **tokens)
+static void	setTTL(int tokenCount, char **tokens, BpUtParms *utParms)
 {
 	unsigned long	TTL;
 
@@ -199,10 +200,11 @@ static void	setTTL(int tokenCount, char **tokens)
 	}
 
 	TTL = strtol(tokens[1], NULL, 0);
-	utParms.lifespan = TTL;
+	utParms->lifespan = TTL;
 }
 
-static void	addMsgToUser(int tokenCount, char **tokens)
+static void	addMsgToUser(int tokenCount, char **tokens,
+			MetadataList *msgsToUser)
 {
 	if (tokenCount != 2)
 	{
@@ -210,16 +212,17 @@ static void	addMsgToUser(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (msgsToUser == 0)
+	if (*msgsToUser == 0)
 	{
-		msgsToUser = cfdp_create_usrmsg_list();
+		*msgsToUser = cfdp_create_usrmsg_list();
 	}
 
-	cfdp_add_usrmsg(msgsToUser, (unsigned char *) tokens[1],
+	cfdp_add_usrmsg(*msgsToUser, (unsigned char *) tokens[1],
 			strlen(tokens[1]) + 1);
 }
 
-static void	addFilestoreRequest(int tokenCount, char **tokens)
+static void	addFilestoreRequest(int tokenCount, char **tokens,
+			MetadataList *fsRequests)
 {
 	CfdpAction	action;
 	char		*firstPathName = NULL;
@@ -242,35 +245,20 @@ static void	addFilestoreRequest(int tokenCount, char **tokens)
 			return;
 	}
 
-	if (fsRequests == 0)
+	if (*fsRequests == 0)
 	{
-		fsRequests = cfdp_create_fsreq_list();
+		*fsRequests = cfdp_create_fsreq_list();
 	}
 
-	cfdp_add_fsreq(fsRequests, action, firstPathName, secondPathName);
+	cfdp_add_fsreq(*fsRequests, action, firstPathName, secondPathName);
 }
 
-static int	processLine(char *line)
+static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 {
-	int	lineLength;
 	int	tokenCount;
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
-
-
-	lineLength = strlen(line) - 1;
-	if (line[lineLength] == 0x0a)		/*	LF (newline)	*/
-	{
-		line[lineLength] = '\0';	/*	lose it		*/
-		lineLength--;
-	}
-
-	if (line[lineLength] == 0x0d)		/*	CR (DOS text)	*/
-	{
-		line[lineLength] = '\0';	/*	lose it		*/
-		lineLength--;
-	}
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -319,62 +307,73 @@ static int	processLine(char *line)
 			return 0;
 
 		case 'd':
-			setDestinationEntityNbr(tokenCount, tokens);
+			setDestinationEntityNbr(tokenCount, tokens,
+					&(parms->destinationEntityNbr));
 			return 0;
 
 		case 'f':
-			setSourceFileName(tokenCount, tokens);
+			setSourceFileName(tokenCount, tokens,
+					parms->sourceFileNameBuf,
+					&(parms->sourceFileName));
 			return 0;
 
 		case 't':
-			setDestFileName(tokenCount, tokens);
+			setDestFileName(tokenCount, tokens,
+					parms->destFileNameBuf,
+					&(parms->destFileName));
 			return 0;
 
 		case 'l':
-			setTTL(tokenCount, tokens);
+			setTTL(tokenCount, tokens, &(parms->utParms));
 			return 0;
 
 		case 'p':
-			setClassOfService(tokenCount, tokens);
+			setClassOfService(tokenCount, tokens,
+					&(parms->utParms));
 			return 0;
 
 		case 'o':
-			setOrdinal(tokenCount, tokens);
+			setOrdinal(tokenCount, tokens, &(parms->utParms));
 			return 0;
 
 		case 'm':
-			setMode(tokenCount, tokens);
+			setMode(tokenCount, tokens, &(parms->utParms));
 			return 0;
 
 		case 'c':
-			setCriticality(tokenCount, tokens);
+			setCriticality(tokenCount, tokens, &(parms->utParms));
 			return 0;
 
 		case 'u':
-			addMsgToUser(tokenCount, tokens);
+			addMsgToUser(tokenCount, tokens, &(parms->msgsToUser));
 			return 0;
 
 		case 'r':
-			addFilestoreRequest(tokenCount, tokens);
+			addFilestoreRequest(tokenCount, tokens,
+					&(parms->fsRequests));
 			return 0;
 
 		case '&':
-			if (cfdp_put(&destinationEntityNbr, sizeof(utParms),
-					(unsigned char *) &utParms,
-					sourceFileName, destFileName, NULL,
-					faultHandlers, 0, NULL, msgsToUser,
-					fsRequests, &transactionId) < 0)
+			if (cfdp_put(&(parms->destinationEntityNbr),
+					sizeof(BpUtParms),
+					(unsigned char *) &(parms->utParms),
+					parms->sourceFileName,
+					parms->destFileName, NULL,
+					parms->faultHandlers, 0, NULL,
+					parms->msgsToUser,
+					parms->fsRequests,
+					&(parms->transactionId)) < 0)
 			{
 				putErrmsg("Can't put FDU.", NULL);
 				return -1;
 			}
 
-			msgsToUser = 0;
-			fsRequests = 0;
+			parms->msgsToUser = 0;
+			parms->fsRequests = 0;
 			return 0;
 
 		case '^':
-			if (cfdp_cancel(&transactionId) < 0)
+			if (cfdp_cancel(&(parms->transactionId)) < 0)
 			{
 				putErrmsg("Can't cancel transaction.", NULL);
 				return -1;
@@ -383,7 +382,7 @@ static int	processLine(char *line)
 			return 0;
 
 		case '%':
-			if (cfdp_suspend(&transactionId) < 0)
+			if (cfdp_suspend(&(parms->transactionId)) < 0)
 			{
 				putErrmsg("Can't suspend transaction.", NULL);
 				return -1;
@@ -392,7 +391,7 @@ static int	processLine(char *line)
 			return 0;
 
 		case '$':
-			if (cfdp_resume(&transactionId) < 0)
+			if (cfdp_resume(&(parms->transactionId)) < 0)
 			{
 				putErrmsg("Can't resume transaction.", NULL);
 				return -1;
@@ -401,7 +400,7 @@ static int	processLine(char *line)
 			return 0;
 
 		case '#':
-			if (cfdp_report(&transactionId) < 0)
+			if (cfdp_report(&(parms->transactionId)) < 0)
 			{
 				putErrmsg("Can't report transaction.", NULL);
 				return -1;
@@ -532,11 +531,12 @@ static void	*handleEvents(void *parm)
 
 static int	runCfdptestInteractive()
 {
+	int		cmdFile;
 	char		line[256];
+	int		len;
 	pthread_t	receiverThread;
 	int		running = 1;
-
-	isignal(SIGINT, handleQuit);
+	CfdpReqParms	parms;
 
 	/*	Start the receiver thread.				*/
 
@@ -546,23 +546,34 @@ static int	runCfdptestInteractive()
 		return 1;
 	}
 
-	memset((char *) faultHandlers, 0, sizeof(faultHandlers));
-	cfdp_compress_number(&destinationEntityNbr, 0);
+	memset((char *) &parms, 0, sizeof(CfdpReqParms));
+	cfdp_compress_number(&parms.destinationEntityNbr, 0);
+	parms.utParms.lifespan = 86400;
+	parms.utParms.classOfService = BP_STD_PRIORITY;
+	parms.utParms.custodySwitch = SourceCustodyRequired;
+	cmdFile = fileno(stdin);
+	isignal(SIGINT, handleQuit);
 	while (1)
 	{
 		printf(": ");
-		if (fgets(line, sizeof line, stdin) == NULL)
+		fflush(stdout);
+		if (igets(cmdFile, line, sizeof line, &len) == NULL)
 		{
-			if (feof(stdin))
+			if (len == 0)
 			{
 				break;
 			}
 
-			perror("cfdptest fgets failed");
+			putErrmsg("igets failed.", NULL);
 			break;			/*	Out of loop.	*/
 		}
 
-		if (processLine(line))
+		if (len == 0)
+		{
+			continue;
+		}
+
+		if (processLine(line, len, &parms))
 		{
 			break;			/*	Out of loop.	*/
 		}
@@ -604,8 +615,24 @@ int	main(int argc, char **argv)
 	int		interactive = (argc == 1);
 #endif
 	int		retval = 0;
+	CfdpHandler	faultHandlers[16];
+	CfdpNumber	destinationEntityNbr;
+	char		sourceFileNameBuf[256] = "";
+	char		*sourceFileName = NULL;
+	char		destFileNameBuf[256] = "";
+	char		*destFileName = NULL;
+	BpUtParms	utParms = {	0,
+					86400,
+					BP_STD_PRIORITY,
+					SourceCustodyRequired,
+					0,
+					0,
+					{ 0, 0, 0 }	};
+	MetadataList	msgsToUser = 0;
+	MetadataList	fsRequests = 0;
+	CfdpTransactionId	transactionId;
 
-	if (cfdp_init() < 0 || ionAttach() < 0)
+	if (cfdp_init() < 0)
 	{
 		putErrmsg("cfdptest can't initialize CFDP.", NULL);
 		return 1;

@@ -22,7 +22,9 @@ static int	run_psmshell(short partitionSize)
 	PsmMgtOutcome	outcome;
 	PsmPartition	partition = NULL;
 	char		line[256];
+	int		len;
 	int		count;
+	int		cmdFile;
 	char		command;
 	PsmUsageSummary	summary;
 	int		cell;
@@ -57,28 +59,31 @@ static int	run_psmshell(short partitionSize)
 	{
 		free(space);
 		free(cells);
-		return 1;
+		return -1;
 	}
 
+	cmdFile = fileno(stdin);
 	while (1)
 	{
 		printf(": ");
-		if (fgets(line, 256, stdin) == NULL)
+		fflush(stdout);
+		if (igets(cmdFile, line, sizeof line, &len) == NULL)
 		{
-			perror("psmshell fgets failed");
+			putErrmsg("igets failed.", NULL);
 			psm_erase(partition);
 			free(space);
 			free(cells);
-			return 1;
+			return -1;
+		}
+
+		if (len == 0)
+		{
+			continue;
 		}
 
 		count = sscanf(line, "%c %d %u", &command, &cell, &size);
 		switch (count)
 		{
-		case 0:
-			puts("psmshell: empty line ignored");
-			continue;
-
 		case 1:
 			switch (command)
 			{

@@ -12,13 +12,6 @@
 #include "cfdpP.h"
 #include "dirent.h"
 
-static char		*NullParmsMemo = "CFDP app error: invalid arg(s).";
-static char		defaultReaderBuf[CFDP_MAX_PDU_SIZE];
-static char		bestEffortsReaderBuf[CFDP_MAX_PDU_SIZE];
-static char		pktReaderBuf[CFDP_MAX_PDU_SIZE];
-static char		textReaderBuf[CFDP_MAX_PDU_SIZE];
-static unsigned char	mpduBuf[CFDP_MAX_PDU_SIZE];
-
 #ifndef NO_PROXY
 
 extern void	parseProxyPutRequest(char *text, int bytesRemaining,
@@ -147,6 +140,7 @@ void	cfdp_update_checksum(unsigned char octet, unsigned int *offset,
 
 static int	defaultReader(int fd, unsigned int *checksum)
 {
+	static char	defaultReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
 	unsigned int	offset;
 	int		length;
@@ -177,6 +171,7 @@ static int	defaultReader(int fd, unsigned int *checksum)
 
 static int	bestEffortsReader(int fd, unsigned int *checksum)
 {
+	static char	bestEffortsReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
 	unsigned int	offset;
 	int		length;
@@ -217,6 +212,7 @@ static int	bestEffortsReader(int fd, unsigned int *checksum)
 
 int	cfdp_read_space_packets(int fd, unsigned int *checksum)
 {
+	static char	pktReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
 	unsigned int	offset;
 	int		length;
@@ -302,6 +298,7 @@ int	cfdp_read_space_packets(int fd, unsigned int *checksum)
 
 int	cfdp_read_text_lines(int fd, unsigned int *checksum)
 {
+	static char	textReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
 	unsigned int	offset;
 	int		length;
@@ -361,9 +358,7 @@ int	cfdp_read_text_lines(int fd, unsigned int *checksum)
 
 MetadataList	cfdp_create_usrmsg_list()
 {
-	CfdpDB		*cfdpConstants = getCfdpConstants();
-
-	return createMetadataList(cfdpConstants->usrmsgLists);
+	return createMetadataList((getCfdpConstants())->usrmsgLists);
 }
 
 int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
@@ -374,14 +369,11 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 	Object		elt;
 	Object		addr;
 
-	if (list == 0 || text == NULL || length < 1
-	|| sdr_list_list(sdr, sdr_list_user_data(sdr, list))
-			!= cfdpConstants->usrmsgLists)
-	{
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(list);
+	CHKERR(text);
+	CHKERR(length > 0);
+	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
+			== cfdpConstants->usrmsgLists);
 	memset((char *) &usrmsg, 0, sizeof(MsgToUser));
 	sdr_begin_xn(sdr);
 	usrmsg.length = length;
@@ -404,7 +396,7 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 		return -1;
 	}
 
-	return 1;
+	return 0;
 }
 
 int	cfdp_get_usrmsg(MetadataList *list, unsigned char *textBuf, int *length)
@@ -414,15 +406,12 @@ int	cfdp_get_usrmsg(MetadataList *list, unsigned char *textBuf, int *length)
 	Object		addr;
 	MsgToUser	usrmsg;
 
-	if (list == NULL || textBuf == NULL || length == NULL)
-	{
-		errno = EINVAL;
-		return 0;
-	}
-
-	*length = 0;				/*	Default.	*/
-	*textBuf = '\0';			/*	Default.	*/
-	if (*list == 0)
+	CHKERR(list);
+	CHKERR(textBuf);
+	CHKERR(length);
+	*length = 0;			/*	Default.		*/
+	*textBuf = '\0';		/*	Default.		*/
+	if (*list == 0)			/*	Got end of list.	*/
 	{
 		return 0;
 	}
@@ -458,24 +447,14 @@ int	cfdp_get_usrmsg(MetadataList *list, unsigned char *textBuf, int *length)
 		return -1;
 	}
 
-	return 1;
+	return 0;
 }
 
 void	cfdp_destroy_usrmsg_list(Object *list)
 {
 	Sdr	sdr = getIonsdr();
 
-	if (list == NULL)
-	{
-		errno = EINVAL;
-		return;
-	}
-
-	if (*list == 0)
-	{
-		return;
-	}
-
+	CHKVOID(list && *list);
 	sdr_begin_xn(sdr);
 	destroyUsrmsgList(list);
 	if (sdr_end_xn(sdr) < 0)
@@ -486,9 +465,7 @@ void	cfdp_destroy_usrmsg_list(Object *list)
 
 MetadataList	cfdp_create_fsreq_list()
 {
-	CfdpDB		*cfdpConstants = getCfdpConstants();
-
-	return createMetadataList(cfdpConstants->fsreqLists);
+	return createMetadataList((getCfdpConstants())->fsreqLists);
 }
 
 int	cfdp_add_fsreq(MetadataList list, CfdpAction action,
@@ -500,16 +477,11 @@ int	cfdp_add_fsreq(MetadataList list, CfdpAction action,
 	Object			elt;
 	Object			addr;
 
-	if (list == 0
-	|| (firstFileName != NULL && strlen(firstFileName) > 255)
-	|| (secondFileName != NULL && strlen(secondFileName) > 255)
-	|| sdr_list_list(sdr, sdr_list_user_data(sdr, list))
-			!= cfdpConstants->fsreqLists)
-	{
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(list);
+	CHKERR(firstFileName == NULL || strlen(firstFileName) < 256);
+	CHKERR(secondFileName == NULL || strlen(secondFileName) < 256);
+	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
+			== cfdpConstants->fsreqLists);
 	memset((char *) &fsreq, 0, sizeof(FilestoreRequest));
 	sdr_begin_xn(sdr);
 	fsreq.action = action;
@@ -538,7 +510,7 @@ int	cfdp_add_fsreq(MetadataList list, CfdpAction action,
 		return -1;
 	}
 
-	return 1;
+	return 0;
 }
 
 int	cfdp_get_fsreq(MetadataList *list, CfdpAction *action,
@@ -549,19 +521,16 @@ int	cfdp_get_fsreq(MetadataList *list, CfdpAction *action,
 	Object			addr;
 	FilestoreRequest	fsreq;
 
-	if (list == NULL || action == NULL
-	|| firstFileNameBuf == NULL || secondFileNameBuf == NULL)
-	{
-		errno = EINVAL;
-		return 0;
-	}
-
-	*action = (CfdpAction) -1;		/*	Default.	*/
-	*firstFileNameBuf = '\0';		/*	Default.	*/
-	*secondFileNameBuf = '\0';		/*	Default.	*/
+	CHKERR(list);
+	CHKERR(action);
+	CHKERR(firstFileNameBuf);
+	CHKERR(secondFileNameBuf);
+	*action = (CfdpAction) -1;	/*	Default.		*/
+	*firstFileNameBuf = '\0';	/*	Default.		*/
+	*secondFileNameBuf = '\0';	/*	Default.		*/
 	if (*list == 0)
 	{
-		return 0;
+		return 0;		/*	Got end of list.	*/
 	}
 
 	sdr_begin_xn(sdr);
@@ -601,24 +570,14 @@ int	cfdp_get_fsreq(MetadataList *list, CfdpAction *action,
 		return -1;
 	}
 
-	return 1;
+	return 0;
 }
 
 void	cfdp_destroy_fsreq_list(Object *list)
 {
 	Sdr	sdr = getIonsdr();
 
-	if (list == NULL)
-	{
-		errno = EINVAL;
-		return;
-	}
-
-	if (*list == 0)
-	{
-		return;
-	}
-
+	CHKVOID(list && *list);
 	sdr_begin_xn(sdr);
 	destroyFsreqList(list);
 	if (sdr_end_xn(sdr) < 0)
@@ -636,22 +595,20 @@ int	cfdp_get_fsresp(MetadataList *list, CfdpAction *action,
 	Object			addr;
 	FilestoreResponse	fsresp;
 
-	if (list == NULL || action == NULL || status == NULL
-	|| firstFileNameBuf == NULL || secondFileNameBuf == NULL
-	|| messageBuf == NULL)
-	{
-		errno = EINVAL;
-		return 0;
-	}
-
-	*action = (CfdpAction) -1;		/*	Default.	*/
-	*status = -1;				/*	Default.	*/
-	*firstFileNameBuf = '\0';		/*	Default.	*/
-	*secondFileNameBuf = '\0';		/*	Default.	*/
-	*messageBuf = '\0';			/*	Default.	*/
+	CHKERR(list);
+	CHKERR(action);
+	CHKERR(status);
+	CHKERR(firstFileNameBuf);
+	CHKERR(secondFileNameBuf);
+	CHKERR(messageBuf);
+	*action = (CfdpAction) -1;	/*	Default.		*/
+	*status = -1;			/*	Default.		*/
+	*firstFileNameBuf = '\0';	/*	Default.		*/
+	*secondFileNameBuf = '\0';	/*	Default.		*/
+	*messageBuf = '\0';		/*	Default.		*/
 	if (*list == 0)
 	{
-		return 0;
+		return 0;		/*	Got end of list.	*/
 	}
 
 	sdr_begin_xn(sdr);
@@ -697,24 +654,14 @@ int	cfdp_get_fsresp(MetadataList *list, CfdpAction *action,
 		return -1;
 	}
 
-	return 1;
+	return 0;
 }
 
 void	cfdp_destroy_fsresp_list(Object *list)
 {
 	Sdr	sdr = getIonsdr();
 
-	if (list == NULL)
-	{
-		errno = EINVAL;
-		return;
-	}
-
-	if (*list == 0)
-	{
-		return;
-	}
-
+	CHKVOID(list && *list);
 	sdr_begin_xn(sdr);
 	destroyFsrespList(list);
 	if (sdr_end_xn(sdr) < 0)
@@ -770,23 +717,24 @@ static int	constructMetadataPdu(OutFdu *fdu,
 			MetadataList filestoreRequests,
 			CfdpTransactionId *originatingTransactionId)
 {
-	Sdr		sdr = getIonsdr();
-	unsigned char	*cursor;
-	unsigned int	mpduLength = 0;
-	unsigned int	fileSize;
-	int		length;
-	int		i;
-	CfdpHandler	*override;
-	Object		elt;
-	Object		nextElt;
-	Object		obj;
-			OBJ_POINTER(FilestoreRequest, req);
-			OBJ_POINTER(MsgToUser, msg);
-	int		firstFileNameLen;
-	char		firstFileName[256];
-	int		secondFileNameLen;
-	char		secondFileName[256];
-	unsigned char	msgText[256];
+	static unsigned char	mpduBuf[CFDP_MAX_PDU_SIZE];
+	Sdr			sdr = getIonsdr();
+	unsigned char		*cursor;
+	unsigned int		mpduLength = 0;
+	unsigned int		fileSize;
+	int			length;
+	int			i;
+	CfdpHandler		*override;
+	Object			elt;
+	Object			nextElt;
+	Object			obj;
+				OBJ_POINTER(FilestoreRequest, req);
+				OBJ_POINTER(MsgToUser, msg);
+	int			firstFileNameLen;
+	char			firstFileName[256];
+	int			secondFileNameLen;
+	char			secondFileName[256];
+	unsigned char		msgText[256];
 
 	cursor = mpduBuf;
 
@@ -1143,27 +1091,29 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	int		reqNbr;
 	CfdpEvent	event;
 
-	if (transactionId == NULL)
+	CHKZERO(transactionId);
+	memset((char *) transactionId, 0, sizeof(CfdpTransactionId));
+	CHKZERO(destinationEntityNbr
+	&& destinationEntityNbr->length > 0
+	&& destinationEntityNbr->length < 9);
+	CHKZERO(utParmsLength <= sizeof(BpUtParms));
+	if (utParmsLength == 0)
 	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return 0;
+		CHKZERO(utParms == NULL);
+	}
+	else
+	{
+		CHKZERO(utParms);
 	}
 
-	memset((char *) transactionId, 0, sizeof(CfdpTransactionId));
-	if (destinationEntityNbr == NULL
-	|| destinationEntityNbr->length < 1
-	|| destinationEntityNbr->length > 8
-	|| utParmsLength > sizeof(BpUtParms)
-       	|| (utParmsLength == 0 && utParms != NULL)
-	|| (utParmsLength > 0 && utParms == NULL)
-	|| flowLabelLength < 0 || flowLabelLength > 255
-	|| (flowLabelLength == 0 && flowLabel != NULL)
-	|| (flowLabelLength > 0 && flowLabel == NULL))
+	CHKZERO(flowLabelLength >= 0 && flowLabelLength < 256);
+	if (flowLabelLength == 0)
 	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return 0;
+		CHKZERO(flowLabel == NULL);
+	}
+	else
+	{
+		CHKZERO(flowLabel);
 	}
 
 	memset((char *) &fdu, 0, sizeof(OutFdu));
@@ -1183,17 +1133,10 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		}
 	}
 
-	sdr_begin_xn(sdr);
 	if (sourceFileName == NULL)
 	{
-		if (destFileName != NULL)
-		{
-			sdr_exit_xn(sdr);
-			errno = EINVAL;
-			putErrmsg("Source file name missing in CFDP put req.",
-					destFileName);
-			return 0;
-		}
+		CHKZERO(destFileName == NULL);
+		sdr_begin_xn(sdr);
 	}
 	else	/*	Construct contents of file data PDUs.		*/
 	{
@@ -1202,20 +1145,13 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			destFileName = sourceFileName;
 		}
 
-		if (strlen(sourceFileName) > 255
-		|| strlen(destFileName) > 255)
-		{
-			sdr_exit_xn(sdr);
-			errno = EINVAL;
-			putSysErrmsg(NullParmsMemo, NULL);
-			return 0;
-		}
-
+		CHKZERO(strlen(sourceFileName) < 256);
+		CHKZERO(strlen(destFileName) < 256);
+		sdr_begin_xn(sdr);
 		if (checkFile(sourceFileName) != 1)
 		{
 			sdr_exit_xn(sdr);
-			errno = EINVAL;
-			putSysErrmsg("CFDP can't find source file",
+			putErrmsg("CFDP can't find source file.",
 					sourceFileName);
 			return 0;
 		}
@@ -1277,7 +1213,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 				if (lseek(sourceFile, 0, SEEK_CUR)
 						== fdu.fileSize)
 				{
-					break;	/*	All records.	*/
+					break;	/*	No more records.*/
 				}
 
 				/*	Stopped before end of file.	*/
@@ -1304,8 +1240,10 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 					break;	/*	Out of switch.	*/
 				}
 
-				break;		/*	All records.	*/
+				break;		/*	No more records.*/
 			}
+
+			/*	Note length of this record.		*/
 
 			if (sdr_list_insert_last(sdr, fdu.recordLengths,
 					recordLength) == 0)
@@ -1436,7 +1374,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		return -1;
 	}
 
-	/*	Post Transaction-Finished.ind event.			*/
+	/*	Post Transaction-Finished.ind event.  (Class 1 CFDP)	*/
 
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpTransactionFinishedInd;
@@ -1487,14 +1425,8 @@ int	cfdp_cancel(CfdpTransactionId *transactionId)
 	Object	fduElt;
 
 	CHKERR(transactionId);
-	if (transactionId->sourceEntityNbr.length == 0
-	|| transactionId->transactionNbr.length == 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return 0;
-	}
-
+	CHKERR(transactionId->sourceEntityNbr.length);
+	CHKERR(transactionId->transactionNbr.length);
 	sdr_begin_xn(sdr);
 	if (memcmp((char *) &transactionId->sourceEntityNbr,
 			(char *) &db->ownEntityNbr, sizeof(CfdpNumber)) == 0)
@@ -1546,14 +1478,8 @@ int	cfdp_suspend(CfdpTransactionId *transactionId)
 	int	reqNbr;
 
 	CHKERR(transactionId);
-	if (transactionId->sourceEntityNbr.length == 0
-	|| transactionId->transactionNbr.length == 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return 0;
-	}
-
+	CHKERR(transactionId->sourceEntityNbr.length);
+	CHKERR(transactionId->transactionNbr.length);
 	if (memcmp((char *) &transactionId->sourceEntityNbr,
 			(char *) &db->ownEntityNbr, sizeof(CfdpNumber)) == 0)
 	{
@@ -1577,7 +1503,9 @@ int	cfdp_suspend(CfdpTransactionId *transactionId)
 		return reqNbr;
 	}
 
-	return 0;	/*	N/A per 4.1.11.3.1.2.			*/
+	/*	Class-1 CFDP can't suspend an inbound transaction.	*/
+
+	return 0;		/*	N/A per 4.1.11.3.1.2.		*/
 }
 
 static int	resumeOutFdu(CfdpTransactionId *transactionId)
@@ -1628,23 +1556,17 @@ int	cfdp_resume(CfdpTransactionId *transactionId)
 	CfdpDB	*db = getCfdpConstants();
 
 	CHKERR(transactionId);
-	if (transactionId->sourceEntityNbr.length == 0
-	|| transactionId->transactionNbr.length == 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return 0;
-	}
-
+	CHKERR(transactionId->sourceEntityNbr.length);
+	CHKERR(transactionId->transactionNbr.length);
 	if (memcmp((char *) &transactionId->sourceEntityNbr,
 			(char *) &db->ownEntityNbr, sizeof(CfdpNumber)) == 0)
 	{
 		return resumeOutFdu(transactionId);
 	}
-	else
-	{
-		return 0;	/*	N/A per 4.1.11.3.1.2.		*/
-	}
+
+	/*	Class-1 CFDP can't suspend an inbound transaction.	*/
+
+	return 0;		/*	N/A per 4.1.11.3.1.2.		*/
 }
 
 static int	reportOnOutFdu(CfdpTransactionId *transactionId)
@@ -1734,14 +1656,8 @@ int	cfdp_report(CfdpTransactionId *transactionId)
 	CfdpDB	*db = getCfdpConstants();
 
 	CHKERR(transactionId);
-	if (transactionId->sourceEntityNbr.length == 0
-	|| transactionId->transactionNbr.length == 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return 0;
-	}
-
+	CHKERR(transactionId->sourceEntityNbr.length);
+	CHKERR(transactionId->transactionNbr.length);
 	if (memcmp((char *) &transactionId->sourceEntityNbr,
 			(char *) &db->ownEntityNbr, sizeof(CfdpNumber)) == 0)
 	{
@@ -1788,19 +1704,7 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 #endif
 	int		result = 0;
 
-	if (type == NULL || time == NULL || reqNbr == NULL
-	|| transactionId == NULL || sourceFileNameBuf == NULL
-	|| destFileNameBuf == NULL || fileSize == NULL
-	|| messagesToUser == NULL || offset == NULL || length == NULL
-	|| condition == NULL || progress == NULL || fileStatus == NULL
-	|| deliveryCode == NULL || originatingTransactionId == NULL
-	|| statusReportBuf == NULL || filestoreResponses == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(type && time && reqNbr && transactionId && sourceFileNameBuf && destFileNameBuf && fileSize && messagesToUser && offset && length && condition && progress && fileStatus && deliveryCode && originatingTransactionId && statusReportBuf && filestoreResponses);
 	*type = CfdpNoEvent;		/*	Default.		*/
 	sdr_begin_xn(sdr);
 	elt = sdr_list_first(sdr, db->events);
@@ -2070,22 +1974,15 @@ int	cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset,
 	int	fd;
 
 	CHKERR(transactionId);
-	if (transactionId->sourceEntityNbr.length == 0
-	|| transactionId->transactionNbr.length == 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return 0;
-	}
-
+	CHKERR(transactionId->sourceEntityNbr.length);
+	CHKERR(transactionId->transactionNbr.length);
 	CHKERR(buffer);
-	if (length < 0
-	|| memcmp((char *) &transactionId->sourceEntityNbr,
+	CHKERR(length > 0);
+	if (memcmp((char *) &transactionId->sourceEntityNbr,
 		(char *) &cfdpdb->ownEntityNbr, sizeof(CfdpNumber)) == 0)
 	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return -1;
+		writeMemo("[?] Previewing outbound transaction.");
+		return 0;
 	}
 
 	sdr_begin_xn(sdr);
@@ -2093,8 +1990,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset,
 	if (fduObj == 0 || fduBuf.workingFileName == 0)
 	{
 		sdr_exit_xn(sdr);
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
+		writeMemo("[?] Can't preview; no such FDU.");
 		return 0;
 	}
 
@@ -2110,8 +2006,8 @@ int	cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset,
 	if (lseek(fd, offset, SEEK_SET) == (off_t) -1)
 	{
 		close(fd);
-		putSysErrmsg("Can't get to offset", utoa(offset));
-		return 0;
+		putSysErrmsg("Can't lseek to offset", utoa(offset));
+		return -1;
 	}
 
 	length = read(fd, buffer, length);
@@ -2119,7 +2015,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset,
 	{
 		close(fd);
 		putSysErrmsg("Can't read from working file", fileName);
-		return 0;
+		return -1;
 	}
 
 	close(fd);
@@ -2142,20 +2038,15 @@ int	cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount,
 	CHKERR(transactionId);
 	CHKERR(extentCount);
 	CHKERR(extentsArray);
-	if (transactionId->sourceEntityNbr.length == 0
-	|| transactionId->transactionNbr.length == 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return 0;
-	}
-
+	CHKERR(transactionId->sourceEntityNbr.length > 0);
+	CHKERR(transactionId->transactionNbr.length > 0);
+	i = *extentCount;	/*	Limit on size of map.		*/
+	*extentCount = 0;	/*	Default; nothing mapped.	*/
 	if (memcmp((char *) &transactionId->sourceEntityNbr,
 		(char *) &cfdpdb->ownEntityNbr, sizeof(CfdpNumber)) == 0)
 	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return -1;
+		writeMemo("[?] Mapping outbound transaction.");
+		return 0;
 	}
 
 	sdr_begin_xn(sdr);
@@ -2163,12 +2054,10 @@ int	cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount,
 	if (fduObj == 0)
 	{
 		sdr_exit_xn(sdr);
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
+		writeMemo("[?] Can't map; no such FDU.");
 		return 0;
 	}
 
-	i = *extentCount;	/*	Limit on size of map.		*/
 	*extentCount = sdr_list_length(sdr, fduBuf.extents);
 	elt = sdr_list_first(sdr, fduBuf.extents);
 	eptr = extentsArray;
@@ -2189,5 +2078,5 @@ int	cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount,
 	}
 
 	sdr_exit_xn(sdr);
-	return 1;
+	return 0;
 }

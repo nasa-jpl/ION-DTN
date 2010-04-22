@@ -12,33 +12,44 @@
 #include "platform.h"
 #include "sdr.h"
 
-static int	sdrwatch_count = 0;
+static unsigned int	sdrwatch_count(int *newValue)
+{
+	unsigned int	count = 1;
+
+	if (newValue)
+	{
+		if (*newValue == 0)	/*	Decrement.		*/
+		{
+			count--;
+		}
+		else			/*	Initialize.		*/
+		{
+			count = *newValue;
+		}
+	}
+
+	return count;
+}
 
 static void	handleQuit()
 {
+	int	newCount = 1;	/*	Advanc to end of last cycle.	*/
+
 	puts("[Terminated by user.]");
-	sdrwatch_count = 1;	/*	Advance to end of last cycle.	*/
+	oK(sdrwatch_count(&newCount));
 }
 
 static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 {
 	Sdr		sdr;
 	SdrUsageSummary	sdrsummary;
-
-	if (interval > 0)
-	{
-		if (sdrwatch_count < 0)
-		{
-			puts("count must be >= 0 cycles");
-			return 0;
-		}
-	}
+	int		decrement = 0;
 
 	sdr_initialize(0, NULL, SM_NO_KEY, NULL);
 	sdr = sdr_start_using(sdrName);
 	if (sdr == NULL)
 	{
-		putSysErrmsg("Can't attach to sdr.", NULL);
+		putErrmsg("Can't attach to sdr.", NULL);
 		writeErrmsgMemos();
 		return 0;
 	}
@@ -56,18 +67,18 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 
 	if (sdr_start_trace(sdr, 5000000, NULL) < 0)
 	{
-		putSysErrmsg("Can't start trace.", NULL);
+		putErrmsg("Can't start trace.", NULL);
 		writeErrmsgMemos();
 		return 0;
 	}
 
-	signal(SIGTERM, handleQuit);
-	while (sdrwatch_count > 0)
+	isignal(SIGTERM, handleQuit);
+	while (sdrwatch_count(NULL) > 0)
 	{
 		snooze(interval);
 		sdr_print_trace(sdr, verbose);
 	       	sdr_clear_trace(sdr);
-		sdrwatch_count--;
+		oK(sdrwatch_count(&decrement));
 	}
 
 	sdr_stop_trace(sdr);
@@ -81,10 +92,10 @@ int	sdrwatch(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char	*sdrName = (char *) a1;
-	int	interval = a2;
-	int	verbose = 0;
+	int	interval = a2 >= 0 ? a2 : 0;
+	int	count = a3 > 0 ? a3 : 1;
+	int	verbose = a4 ? 1 : 0;
 
-	sdrwatch_count = a3;
 	if (interval > 1)
 	{
 		verbose = a4;
@@ -94,6 +105,7 @@ int	main(int argc, char **argv)
 {
 	char	*sdrName;
 	int	interval;
+	int	count;
 	int	verbose = 0;
 
 	if (argc < 4)
@@ -103,21 +115,23 @@ int	main(int argc, char **argv)
 	}
 
 	sdrName = argv[1];
-	interval = atoi(argv[2]);
+	interval = strtol(argv[2], NULL, 0);
 	if (interval < 0)
 	{
-		puts("interval must be >= 0 seconds");
-		return 0;
+		interval = 0;
 	}
 
-	sdrwatch_count = atoi(argv[3]);
-	if (interval > 0)
+	count = strtol(argv[3], NULL, 0);
+	if (count < 1)
 	{
-		if (argc > 4)
-		{
-			verbose = 1;
-		}
+		count = 1;
+	}
+
+	if (argc > 4)
+	{
+		verbose = 1;
 	}
 #endif
+	oK(sdrwatch_count(&count));
 	return run_sdrwatch(sdrName, interval, verbose);
 }
