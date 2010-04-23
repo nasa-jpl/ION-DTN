@@ -1181,7 +1181,7 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	unsigned char	textBuffer[600];
 
 	CHKERR(respondentEntityNbr);
-	CHKERR(task & task->directoryName && task->destFileName);
+	CHKERR(task && task->directoryName && task->destFileName);
 	directoryNameLen = strlen(task->directoryName);
 	CHKERR(directoryNameLen > 0 && directoryNameLen < 256);
 	destFileNameLen = strlen(task->destFileName);

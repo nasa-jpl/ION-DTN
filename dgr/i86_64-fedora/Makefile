@@ -4,7 +4,7 @@ TEST = ../test
 
 # OPT = -O -Dlinux
 # OPT = -g -Wall -Dlinux -DINITIAL_RETARD=2
-OPT = -g -Wall -Dlinux -fPIC
+OPT = -g -Wall -Werror -Dlinux -fPIC
 CC = gcc $(OPT) -I$(API) -I$(TEST) -I$(INCL) -I${ROOT}/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

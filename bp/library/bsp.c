@@ -102,7 +102,7 @@ static char gMsg[256];
 unsigned char *bsp_addSdnvToStream(unsigned char *stream, Sdnv* value)
 {
    BSP_DEBUG_PROC("+ bsp_addSdnvToStream(%x, %x)",
-                  (unsigned int) stream, (unsigned int) value);
+                  (unsigned long) stream, (unsigned long) value);
   	
    if((stream != NULL) && (value != NULL) && (value->length > 0))
    {
@@ -111,7 +111,7 @@ unsigned char *bsp_addSdnvToStream(unsigned char *stream, Sdnv* value)
       stream += value->length;
    }
  
-   BSP_DEBUG_PROC("- bsp_addSdnvToStream --> %x", (unsigned int) stream);
+   BSP_DEBUG_PROC("- bsp_addSdnvToStream --> %x", (unsigned long) stream);
     
    return stream;	
 }
@@ -147,13 +147,13 @@ int bsp_deserializeASB(AcqExtBlock *blk)
 {
    int result = 1;
    
-   BSP_DEBUG_PROC("+ bsp_deserializeASB(%x)", (unsigned int)blk);	
+   BSP_DEBUG_PROC("+ bsp_deserializeASB(%x)", (unsigned long)blk);	
   
    /* Sanity Check 1: We have a block. */
    if(blk == NULL)
    {
       BSP_DEBUG_ERR("x bsp_deserializeASB: Bad parms: blk = %x",
-                    (unsigned int) blk);
+                    (unsigned long) blk);
   	  result = -1;
    }
    /* Sanity Check 2: The block has a scratchpad. */
@@ -263,7 +263,7 @@ int bsp_eidNil(EndpointId *eid)
 {
    int result = 0;
   
-   BSP_DEBUG_PROC("+ bsp_eidNil(%x)", (unsigned int) eid);
+   BSP_DEBUG_PROC("+ bsp_eidNil(%x)", (unsigned long) eid);
   
    /*
     * EIDs have two mutually exclusive representations, so pick right one to 
@@ -315,7 +315,7 @@ AcqExtBlock *bsp_findAcqExtBlk(AcqWorkArea *wk, int listIdx, int type)
    AcqExtBlock  *result = NULL;
     
    BSP_DEBUG_PROC("+ bsp_findAcqExtBlk(%x, %d, %d",
-                  (unsigned int) wk, listIdx, type);
+                  (unsigned long) wk, listIdx, type);
                 
    for (elt = lyst_first(wk->extBlocks[listIdx]); elt; elt = lyst_next(elt))
    {
@@ -330,7 +330,7 @@ AcqExtBlock *bsp_findAcqExtBlk(AcqWorkArea *wk, int listIdx, int type)
       result = NULL;
    }
 
-   BSP_DEBUG_PROC("- bsp_findAcqExtBlk -- %x", (unsigned int) result);
+   BSP_DEBUG_PROC("- bsp_findAcqExtBlk -- %x", (unsigned long) result);
             
    return result;
 }
@@ -425,7 +425,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
    unsigned char *result = NULL;
   
    BSP_DEBUG_PROC("+ bsp_serializeASB(%x, %x)", 
-                  (unsigned int) length, (unsigned int) asb);	
+                  (unsigned long) length, (unsigned long) asb);	
   
    /*
     * Sanity check. We should have an ASB and the block should not already
@@ -434,7 +434,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
    if((asb == NULL) || (length == NULL))
    {
      BSP_DEBUG_ERR("x bsp_serializeASB:  Parameters are missing. Asb is %x", 
-                   (unsigned int) asb);
+                   (unsigned long) asb);
      BSP_DEBUG_PROC("- bsp_serializeASB --> %s","NULL");
      *length = 0;              
   	 return NULL;
@@ -504,7 +504,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
       {
          cursor = bsp_addSdnvToStream(cursor, &resultLen);
    	 BSP_DEBUG_INFO("i bsp_serializeASB: cursor %x, data %x, length %ld",
-   	                (unsigned int)cursor, (unsigned int) asb->resultData, 
+   	                (unsigned long)cursor, (unsigned long) asb->resultData, 
                         asb->resultLen);
          if(asb->resultData != NULL)
          {
@@ -529,7 +529,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
    }
     
    BSP_DEBUG_PROC("- bsp_serializeASB -> data: %x, length %d", 
-                  (unsigned int) result, *length);	
+                  (unsigned long) result, *length);	
 
    return result;
 }
@@ -566,7 +566,7 @@ int bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
    BspBabScratchpad *scratch = NULL;
   
    BSP_DEBUG_PROC("+ bsp_babAcquire(%x, %x)", 
-                  (unsigned int)blk, (unsigned int)wk);
+                  (unsigned long)blk, (unsigned long)wk);
   
    /* Allocate a scratchpad object to hold a structured view of the block. */  
    blk->size = sizeof(BspBabScratchpad);
@@ -616,7 +616,7 @@ int bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 void    bsp_babClear(AcqExtBlock *blk)
 {
-   BSP_DEBUG_PROC("+ bsp_babClear(%x)", (unsigned int) blk);
+   BSP_DEBUG_PROC("+ bsp_babClear(%x)", (unsigned long) blk);
   
    if(blk->size > 0)
    {
@@ -673,7 +673,7 @@ int bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
    int result = -1;
    
    BSP_DEBUG_PROC("+ bsp_babOffer(%x, %x)", 
-                  (unsigned int) blk, (unsigned int) bundle);
+                  (unsigned long) blk, (unsigned long) bundle);
 
    memset((char *) &scratch,0,sizeof(BspBabScratchpad));
    scratch.useBab = 1;
@@ -850,7 +850,7 @@ int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
    int			cmpResult;
   
    BSP_DEBUG_PROC("+ bsp_babPostCheck(%x, %x)", 
-                  (unsigned int) blk, (unsigned int) wk);
+                  (unsigned long) blk, (unsigned long) wk);
   
    /***************************************************************************
     *                             Sanity Checks                               *
@@ -860,7 +860,7 @@ int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
    if((blk == NULL) || (blk->object == NULL) || (wk == NULL))
    {
       BSP_DEBUG_ERR("x bspBabPostCheck:  Blocks are NULL. %x", 
-                    (unsigned int) blk);
+                    (unsigned long) blk);
       BSP_DEBUG_PROC("- bsp)babPostCheck --> %d", -1);
       return -1;    
    }
@@ -906,7 +906,7 @@ int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
       if (digest == NULL || digestLen != BAB_HMAC_SHA1_RESULT_LEN)
       {
          BSP_DEBUG_ERR("x bsp_babPostCheck: no integrity signature: security \
-result len %lu data %x", asb->resultLen, (unsigned int) asb->resultData);
+result len %lu data %x", asb->resultLen, (unsigned long) asb->resultData);
             retval = 1;   
       }
       else
@@ -969,9 +969,9 @@ int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
    Object elt = 0;
   
    BSP_DEBUG_PROC("+ bsp_babPostProcessOnDequeue(%x, %x, %x)", 
-                  (unsigned int) post_blk, 
-                  (unsigned int) bundle, 
-                  (unsigned int) ctxt);
+                  (unsigned long) post_blk, 
+                  (unsigned long) bundle, 
+                  (unsigned long) ctxt);
 
    if (bundle == NULL || parm == NULL || post_blk == NULL
    || post_blk->size != sizeof(BspBabScratchpad))
@@ -1016,7 +1016,7 @@ as expected. blk->size %d.", post_blk->size);
    if((elt = findExtensionBlock(bundle, BSP_BAB_TYPE, PRE_PAYLOAD)) == 0)
    {
       BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue:  Can't find pre block in \
-bundle %x", (unsigned int) bundle);
+bundle %x", (unsigned long) bundle);
       result = -1;
    }
    else
@@ -1025,7 +1025,7 @@ bundle %x", (unsigned int) bundle);
       GET_OBJ_POINTER(bpSdr, ExtensionBlock, pre_blk, addr);
      
       BSP_DEBUG_INFO("i bsp_babPostProcessOnDequeue: found pre_blk at %x",
-                     (unsigned int) pre_blk);  
+                     (unsigned long) pre_blk);  
 
       /* Grab the pre-payload scratchpad. */
       sdr_read(bpSdr, (char *) &pre_scratch, pre_blk->object, pre_blk->size);
@@ -1056,7 +1056,7 @@ correlator: pre %ld, post %ld cipher: pre %ld, post %ld",
          {
             /* TODO: Remove the pre and post block. */
             BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Serialization failed.\
-raw_asb = %x", (unsigned int) raw_asb);
+raw_asb = %x", (unsigned long) raw_asb);
             result = -1;
          }
          else
@@ -1122,14 +1122,14 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
    int result = 0;
   
    BSP_DEBUG_PROC("+ bsp_babPostProcessOnTransmit: %x, %x, %x",
-                 (unsigned int) blk, (unsigned int) bundle,(unsigned int) ctxt);
+	(unsigned long) blk, (unsigned long) bundle,(unsigned long) ctxt);
   
    memset(&scratch,0,sizeof(BspBabScratchpad));
   
    if((blk == NULL) || (bundle == NULL))
    {
       BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Bad Parms: Bundle %x",
-                    (unsigned int) bundle);
+                    (unsigned long) bundle);
       BSP_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
       return -1;
    }
@@ -1217,7 +1217,7 @@ security result. Digest len is %ld.", digestLen);
                {
                   /* TODO: Remove the pre and post block. */
                   BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Serialization \
-failed. raw_asb = %x", (unsigned int) raw_asb);
+failed. raw_asb = %x", (unsigned long) raw_asb);
                   result = -1;
                }
                else
@@ -1329,7 +1329,7 @@ char			*rawBundle;
 int			i;
 
    BSP_DEBUG_PROC("+ bsp_babPreAcquire(%x, %x)", 
-                  (unsigned int) blk, (unsigned int) wk);
+                  (unsigned long) blk, (unsigned long) wk);
 
 	/*	If we acquired the block, calculate the expected
 	 *	security result over all bytes of the bundle except
@@ -1451,7 +1451,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
    int retval = 0;
     
    BSP_DEBUG_PROC("+ bsp_babPreCheck(%x,%x)", 
-                  (unsigned int) pre_blk, (unsigned int) wk);
+                  (unsigned long) pre_blk, (unsigned long) wk);
  
    /***************************************************************************
     *                             Sanity Checks                               *
@@ -1461,7 +1461,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
    if((pre_blk == NULL) || (pre_blk->object == NULL))
    {
       BSP_DEBUG_ERR("x bsp_babPreCheck:  No blocks. pre_blk is %x", 
-                    (unsigned int) pre_blk);
+                    (unsigned long) pre_blk);
       BSP_DEBUG_PROC("- bsp_babPreCheck --> %d", -1);              
       return -1;    
    }
@@ -1583,9 +1583,9 @@ int bsp_babPreProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 unsigned long tmp;
   
    BSP_DEBUG_PROC("+ bsp_babPreProcessOnDequeue(%x, %x, %x", 
-                  (unsigned int) blk, 
-                  (unsigned int) bundle, 
-                  (unsigned int) ctxt);
+                  (unsigned long) blk, 
+                  (unsigned long) bundle, 
+                  (unsigned long) ctxt);
 
    if((bundle == NULL) || (parm == NULL) || (blk == NULL) || 
    		(blk->size != sizeof(BspBabScratchpad)))
@@ -1718,7 +1718,7 @@ ASB. blk->dataLength = %d", blk->dataLength);
 void    bsp_babRelease(ExtensionBlock *blk)
 {
 
-  BSP_DEBUG_PROC("+ bsp_babRelease(%x)", (unsigned int) blk);
+  BSP_DEBUG_PROC("+ bsp_babRelease(%x)", (unsigned long) blk);
   
    /*
     * If we have allocated an abstract security block, then free that memory.
@@ -1786,10 +1786,10 @@ unsigned char *bsp_babGetSecResult(char *rawBundle,
    int i = 0; 
    
    BSP_DEBUG_PROC("+ bsp_babGetSecResult(%x, %ld, %s %x)", 
-                  (unsigned int) rawBundle, 
+                  (unsigned long) rawBundle, 
                   rawBundleLen, 
                   cipherKeyName, 
-                  (unsigned int) hashLen);
+                  (unsigned long) hashLen);
   
    *hashLen = 0;
   
@@ -1835,7 +1835,7 @@ Expected %ld and got %d.", sha1Len, hmac_len);
       MRELEASE(keyValueBuffer);
    }
    
-   BSP_DEBUG_PROC("- bsp_babGetSecResult(%x)", (unsigned int) hashData);
+   BSP_DEBUG_PROC("- bsp_babGetSecResult(%x)", (unsigned long) hashData);
 
    *hashLen = sha1Len;
    return (unsigned char *) hashData;
@@ -1867,7 +1867,7 @@ void bsp_babGetSecurityInfo(Bundle *bundle,
                             BspBabScratchpad *scratch)
 {
    BSP_DEBUG_PROC("+ bsp_babGetSecurityInfo(%x %d, %s, %x)",
-                  (unsigned int) bundle,which,eidString,(unsigned int) scratch);
+	(unsigned long) bundle,which,eidString,(unsigned long) scratch);
 
    /* By default, we disable BAB processing */
    scratch->useBab = 0;
@@ -1880,7 +1880,7 @@ void bsp_babGetSecurityInfo(Bundle *bundle,
    if(eidString == NULL)
    {
       BSP_DEBUG_WARN("? bsp_babGetSecurityInfo: Can't get EID from bundle \
-%x. Not using BAB.", (unsigned int) bundle);
+%x. Not using BAB.", (unsigned long) bundle);
    }
    else
    {

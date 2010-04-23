@@ -988,7 +988,7 @@ static int	constructMetadataPdu(OutFdu *fdu,
 				*cursor = length;
 				cursor++;
 				mpduLength++;
-				*cursor = (i << 4) + ((int) override);
+				*cursor = (i << 4) + ((int) (*override));
 				cursor++;
 				mpduLength++;
 			}
