@@ -1,0 +1,147 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 12, 2010
+
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
+rm -f 5.ipn.ltp/testfile1
+rm -f 5.ipn.ltp/testfile2
+rm -f 5.ipn.ltp/testfile3
+rm -f 5.ipn.ltp/testfile4
+rm -f 5.ipn.ltp/testfile5
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../5.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../2.ipn.ltp
+ionadmin global.ionrc
+cd ../3.ipn.ltp
+ionadmin global.ionrc
+cd ../5.ipn.ltp
+ionadmin global.ionrc
+
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../5.ipn.ltp
+ionsecadmin amroc.ionsecrc
+
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../5.ipn.ltp
+ltpadmin amroc.ltprc
+
+cd ../2.ipn.ltp
+bpadmin amroc.bprc
+cd ../3.ipn.ltp
+bpadmin amroc.bprc
+cd ../5.ipn.ltp
+bpadmin amroc.bprc
+
+cd ../2.ipn.ltp
+cfdpadmin amroc.cfdprc
+cd ../3.ipn.ltp
+cfdpadmin amroc.cfdprc
+cd ../5.ipn.ltp
+cfdpadmin amroc.cfdprc
+
+echo "Starting bpsink on node 5..."
+sleep 1
+bpsink ipn:5.1 &
+
+cd ../2.ipn.ltp
+echo "Sending bptrace to ipn:5.1, should be delivered..."
+# Send first bundle from node 2 to node 5 requesting all status reports.
+# Bundle is sent to endpoint ipn:5.1, on which bpsink is listening, so
+# it should be delivered.
+bptrace ipn:2.1 ipn:5.1 ipn:2.0 5 1 "Hello." rcv,ct,fwd,dlv,del
+
+echo "Sending bptrace to ipn:5.2, should expire and be deleted..."
+# Send first bundle from node 2 to node 5 requesting all status reports.
+# Bundle is sent to endpoint ipn:5.1, on which bpsink is listening, so
+# it should be delivered.
+bptrace ipn:2.1 ipn:5.2 ipn:2.0 5 1 "Hey." rcv,ct,fwd,dlv,del
+
+# Wait for contacts to terminate.
+echo "Waiting for contacts to terminate..."
+sleep 15
+echo "Contacts have terminated.  Verifying results..."
+
+# Verify bundle arrival.
+cd ../2.ipn.ltp
+RETVAL=0
+
+COUNT=`grep " \[s\] " ion.log | grep "status 2" | wc -l`
+if [ $COUNT -eq 2 ]
+then
+	echo "Initial custody of both bundles taken."
+else
+	echo "Initial bundle custody not taken."
+	RETVAL=1
+fi
+
+COUNT=`grep " \[s\] " ion.log | grep "status 4" | wc -l`
+if [ $COUNT -eq 4 ]
+then
+	echo "Both bundles forwarded twice."
+else
+	echo "Bundles not forwarded."
+	RETVAL=1
+fi
+
+COUNT=`grep " \[s\] " ion.log | grep "status 3" | wc -l`
+if [ $COUNT -eq 2 ]
+then
+	echo "Custody taken upon receipt of both bundles."
+else
+	echo "No report of custody taken upon receipt."
+	RETVAL=1
+fi
+
+COUNT=`grep " \[s\] " ion.log | grep "status 9" | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "One bundle delivered."
+else
+	echo "Bundle not delivered."
+	RETVAL=1
+fi
+
+COUNT=`grep " \[s\] " ion.log | grep "status 17" | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "One bundle deleted upon expiration."
+else
+	echo "No deletion upon expiration reported."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../5.ipn.ltp
+./ionstop &
+
+# Give all three nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "Status reports test completed."
+exit $RETVAL

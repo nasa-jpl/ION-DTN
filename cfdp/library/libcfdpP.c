@@ -14,19 +14,39 @@
 
 #define	CFDP_DEBUG	0
 
-/*	*	*	Globals used by CFDP service.	*	*	*/
-
-static int		cfdpMemIdx = -1;	/*	Memory manager.	*/
-static Sdr		cfdpSdr = NULL;
-static Object		cfdpdbObject = 0;
-static CfdpDB		cfdpConstantsBuf;/*	Handy constants struct.	*/
-static CfdpDB		*cfdpConstants = &cfdpConstantsBuf;
-static PsmPartition	cfdpwm = NULL;	/*	Shared memory:blocks.	*/
-static CfdpVdb		*cfdpVdb = NULL;
-static unsigned int	crcCalcValues[256];
-static char		crcComputationBuf[CFDP_MAX_PDU_SIZE];
-
 /*	*	*	Helpful utility functions	*	*	*/
+
+static Object	_cfdpdbObject(Object *newDbObj)
+{
+	static Object	obj = 0;
+
+	if (newDbObj)
+	{
+		obj = *newDbObj;
+	}
+
+	return obj;
+}
+
+static CfdpDB	*_cfdpConstants()
+{
+	static CfdpDB	buf;
+	static CfdpDB	*db = NULL;
+
+	if (db == NULL)
+	{
+		/*	Load constants into a conveniently accessed
+		 *	structure.  Note that this CANNOT be treated
+		 *	as a current database image in later
+		 *	processing.					*/
+
+		sdr_read(getIonsdr(), (char *) &buf, _cfdpdbObject(NULL),
+				sizeof(CfdpDB));
+		db = &buf;
+	}
+
+	return db;
+}
 
 #ifdef TargetFFS
 typedef struct
@@ -189,20 +209,51 @@ void	addToChecksum(unsigned char octet, unsigned int *offset,
 
 int	getReqNbr()
 {
+	Sdr	sdr = getIonsdr();
 	Object	dbObj = getCfdpDbObject();
 	CfdpDB	db;
 
 	CHKERR(ionLocked());
-	sdr_stage(cfdpSdr, (char *) &db, dbObj, sizeof(CfdpDB));
+	sdr_stage(sdr, (char *) &db, dbObj, sizeof(CfdpDB));
 	db.requestCounter++;
-	sdr_write(cfdpSdr, dbObj, (char *) &db, sizeof(CfdpDB));
+	sdr_write(sdr, dbObj, (char *) &db, sizeof(CfdpDB));
 	return db.requestCounter;
+}
+
+static unsigned char	*_crcComputationBuf()
+{
+	static unsigned char	buffer[CFDP_MAX_PDU_SIZE];
+
+	return buffer;
 }
 
 static unsigned short	computeCRC(unsigned char *buffer, int length)
 {
-	unsigned char	*cursor = buffer;
-	unsigned int	crc = 0xffff;
+	static int		crcCalcValuesInitialized = 0;
+    	int			i;
+    	unsigned int		tmp;
+	static unsigned int	crcCalcValues[256];
+	unsigned char		*cursor = buffer;
+	unsigned int		crc = 0xffff;
+
+	if (!crcCalcValuesInitialized)
+	{
+		for (i = 0; i < 256; i++)
+		{
+			tmp = 0;
+			if ((i & 1) != 0) tmp = tmp ^ 0x1021;
+			if ((i & 2) != 0) tmp = tmp ^ 0x2042;
+			if ((i & 4) != 0) tmp = tmp ^ 0x4084;
+			if ((i & 8) != 0) tmp = tmp ^ 0x8108;
+			if ((i & 16) != 0) tmp = tmp ^ 0x1231;
+			if ((i & 32) != 0) tmp = tmp ^ 0x2462;
+			if ((i & 64) != 0) tmp = tmp ^ 0x48c4;
+			if ((i & 128) != 0) tmp = tmp ^ 0x9188;
+			crcCalcValues[i] = tmp;
+		}
+
+		crcCalcValuesInitialized = 1;
+	}
 
 	while (length > 0)
 	{
@@ -217,78 +268,99 @@ static unsigned short	computeCRC(unsigned char *buffer, int length)
 
 /*	*	*	CFDP service control functions	*	*	*/
 
-static int	initializeVdb(CfdpDB *cfdpdb)
+static char	*_cfdpvdbName()
 {
-	PsmAddress	cfdpVdbAddress;
-	int		result;
-	char		*corruptionModulusString;
-
-	sdr_begin_xn(cfdpSdr);	/*	By convention, locks cfdpwm.	*/
-
-	/*	Create and catalogue the CfdpVdb object in cfdpwm.	*/
-
-	cfdpVdbAddress = psm_zalloc(cfdpwm, sizeof(CfdpVdb));
-	if (cfdpVdbAddress == 0)
-	{
-		sdr_exit_xn(cfdpSdr);
-		putErrmsg("Can't allocate for dynamic database.", NULL);
-		return -1;
-	}
-
-	cfdpVdb = (CfdpVdb *) psp(cfdpwm, cfdpVdbAddress);
-	memset((char *) cfdpVdb, 0, sizeof(CfdpVdb));
-	cfdpVdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-	sm_SemTake(cfdpVdb->eventSemaphore);	/*	Lock.		*/
-	cfdpVdb->fduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-	sm_SemTake(cfdpVdb->fduSemaphore);	/*	Lock.		*/
-	cfdpVdb->currentFile = -1;		/*	Nothing open.	*/
-	corruptionModulusString = getenv("CFDP_CORRUPTION_MODULUS");
-	if (corruptionModulusString)
-	{
-		cfdpVdb->corruptionModulus = strtol(corruptionModulusString,
-				NULL, 0);
-		putErrmsg("NOTE: CFDP corruption modulus is non-zero!",
-				utoa(cfdpVdb->corruptionModulus));
-	}
-
-	result = psm_catlg(cfdpwm, CFDP_VDBNAME, cfdpVdbAddress);
-	sdr_exit_xn(cfdpSdr);	/*	Unlock cfdpwm.			*/
-	if (result < 0)
-	{
-		putErrmsg("Can't initialize volatile database.", NULL);
-		return -1;
-	}
-
-	return 0;
+	return "cfdpvdb";
 }
 
-static void	initializeCrcCalcValues()
+static CfdpVdb	*_cfdpvdb(char **name)
 {
-    int            i;
-    unsigned int   tmp;
+	static CfdpVdb	*vdb = NULL;
+	PsmPartition	wm;
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	Sdr		sdr;
+	char		*corruptionModulusString;
 
-   for (i = 0; i < 256; i++)
-   {
-	tmp = 0;
-	if ((i & 1) != 0) tmp = tmp ^ 0x1021;
-	if ((i & 2) != 0) tmp = tmp ^ 0x2042;
-	if ((i & 4) != 0) tmp = tmp ^ 0x4084;
-	if ((i & 8) != 0) tmp = tmp ^ 0x8108;
-	if ((i & 16) != 0) tmp = tmp ^ 0x1231;
-	if ((i & 32) != 0) tmp = tmp ^ 0x2462;
-	if ((i & 64) != 0) tmp = tmp ^ 0x48c4;
-	if ((i & 128) != 0) tmp = tmp ^ 0x9188;
-	crcCalcValues[i] = tmp;
-    }
+	if (name)
+	{
+		if (*name == NULL)	/*	Terminating.		*/
+		{
+			vdb = NULL;
+			return vdb;
+		}
+
+		/*	Attaching to volatile database.			*/
+
+		wm = getIonwm();
+		if (psm_locate(wm, *name, &vdbAddress, &elt) < 0)
+		{
+			putErrmsg("Failed searching for vdb.", NULL);
+			return vdb;
+		}
+
+		if (elt)
+		{
+			vdb = (CfdpVdb *) psp(wm, vdbAddress);
+			return vdb;
+		}
+
+		/*	CFDP volatile database doesn't exist yet.	*/
+
+		sdr = getIonsdr();
+		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		vdbAddress = psm_zalloc(wm, sizeof(CfdpVdb));
+		if (vdbAddress == 0)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("No space for volatile database.", NULL);
+			return NULL;
+		}
+
+		vdb = (CfdpVdb *) psp(wm, vdbAddress);
+		memset((char *) vdb, 0, sizeof(CfdpVdb));
+		vdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+		vdb->fduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+		if (vdb->eventSemaphore == SM_SEM_NONE
+		|| vdb->fduSemaphore == SM_SEM_NONE
+		|| psm_catlg(wm, *name, vdbAddress) < 0)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("Can't initialize volatile database.", NULL);
+			return NULL;
+		}
+
+		sm_SemTake(vdb->eventSemaphore);/*	Lock.		*/
+		sm_SemTake(vdb->fduSemaphore);	/*	Lock.		*/
+		vdb->currentFile = -1;		/*	Nothing open.	*/
+		corruptionModulusString = getenv("CFDP_CORRUPTION_MODULUS");
+		if (corruptionModulusString)
+		{
+			vdb->corruptionModulus = strtol(corruptionModulusString,
+					NULL, 0);
+			writeMemoNote("[?] Non-zero CFDP corruption modulus!",
+					utoa(vdb->corruptionModulus));
+		}
+
+		sdr_exit_xn(sdr);	/*	Unlock wm.		*/
+	}
+
+	return vdb;
+}
+
+static char	*_cfdpdbName()
+{
+	return "cfdpdb";
 }
 
 int	cfdpInit()
 {
+	Sdr		sdr;
+	Object		cfdpdbObject;
 	IonDB		iondb;
 	CfdpDB		cfdpdbBuf;
 	int		i;
-	PsmAddress	cfdpVdbAddress;
-	PsmAddress	elt;
+	char		*cfdpvdbName = _cfdpvdbName();
 
 	if (ionAttach() < 0)
 	{
@@ -296,32 +368,32 @@ int	cfdpInit()
 		return -1;
 	}
 
-	cfdpSdr = getIonsdr();
+	sdr = getIonsdr();
 
 	/*	Recover the CFDP database, creating it if necessary.	*/
 
-	sdr_begin_xn(cfdpSdr);
-	cfdpdbObject = sdr_find(cfdpSdr, CFDP_DBNAME, NULL);
+	sdr_begin_xn(sdr);
+	cfdpdbObject = sdr_find(sdr, _cfdpdbName(), NULL);
 	switch (cfdpdbObject)
 	{
 	case -1:		/*	SDR error.			*/
-		sdr_cancel_xn(cfdpSdr);
+		sdr_cancel_xn(sdr);
 		putErrmsg("Can't search for CFDP database in SDR.", NULL);
 		return -1;
 
 	case 0:			/*	Not found; must create new DB.	*/
 		memset((char *) &cfdpdbBuf, 0, sizeof(CfdpDB));
-		cfdpdbObject = sdr_malloc(cfdpSdr, sizeof(CfdpDB));
+		cfdpdbObject = sdr_malloc(sdr, sizeof(CfdpDB));
 		if (cfdpdbObject == 0)
 		{
-			sdr_cancel_xn(cfdpSdr);
+			sdr_cancel_xn(sdr);
 			putErrmsg("No space for database.", NULL);
 			return -1;
 		}
 
 		/*	Initialize the non-volatile database.		*/
 
-		sdr_read(cfdpSdr, (char *) &iondb, getIonDbObject(),
+		sdr_read(sdr, (char *) &iondb, getIonDbObject(),
 				sizeof(IonDB));
 		cfdpdbBuf.ownEntityId = iondb.ownNodeNbr;
 		cfdp_compress_number(&cfdpdbBuf.ownEntityNbr,
@@ -348,16 +420,16 @@ int	cfdpInit()
 
 		cfdpdbBuf.faultHandlers[CfdpFilestoreRejection] = CfdpCancel;
 		cfdpdbBuf.faultHandlers[CfdpCheckLimitReached] = CfdpCancel;
-		cfdpdbBuf.usrmsgLists = sdr_list_create(cfdpSdr);
-		cfdpdbBuf.fsreqLists = sdr_list_create(cfdpSdr);
-		cfdpdbBuf.fsrespLists = sdr_list_create(cfdpSdr);
-		cfdpdbBuf.outboundFdus = sdr_list_create(cfdpSdr);
-		cfdpdbBuf.events = sdr_list_create(cfdpSdr);
-		cfdpdbBuf.entities = sdr_list_create(cfdpSdr);
-		sdr_write(cfdpSdr, cfdpdbObject, (char *) &cfdpdbBuf,
+		cfdpdbBuf.usrmsgLists = sdr_list_create(sdr);
+		cfdpdbBuf.fsreqLists = sdr_list_create(sdr);
+		cfdpdbBuf.fsrespLists = sdr_list_create(sdr);
+		cfdpdbBuf.outboundFdus = sdr_list_create(sdr);
+		cfdpdbBuf.events = sdr_list_create(sdr);
+		cfdpdbBuf.entities = sdr_list_create(sdr);
+		sdr_write(sdr, cfdpdbObject, (char *) &cfdpdbBuf,
 				sizeof(CfdpDB));
-		sdr_catlg(cfdpSdr, CFDP_DBNAME, 0, cfdpdbObject);
-		if (sdr_end_xn(cfdpSdr))
+		sdr_catlg(sdr, _cfdpdbName(), 0, cfdpdbObject);
+		if (sdr_end_xn(sdr))
 		{
 			putErrmsg("Can't create CFDP database.", NULL);
 			return -1;
@@ -365,124 +437,115 @@ int	cfdpInit()
 
 		break;
 
-	default:		/*	Found DB in the SDR.		*/
-		sdr_exit_xn(cfdpSdr);
+	default:			/*	Found DB in the SDR.	*/
+		sdr_exit_xn(sdr);
 	}
 
-	/*	Load constants into a conveniently accessed structure.
-	 *	Note that this CANNOT be treated as a current database
-	 *	image in later processing.				*/
-
-	sdr_read(cfdpSdr, (char *) cfdpConstants, cfdpdbObject, sizeof(CfdpDB));
+	oK(_cfdpdbObject(&cfdpdbObject));/*	Save database location.	*/
+	oK(_cfdpConstants());
 
 	/*	Locate volatile database, initializing as necessary.	*/
 
-	cfdpwm = getIonwm();
-	cfdpMemIdx = getIonMemoryMgr();
-	if (psm_locate(cfdpwm, CFDP_VDBNAME, &cfdpVdbAddress, &elt) < 0
-	|| elt == 0)
+	if (_cfdpvdb(&cfdpvdbName) == NULL)
 	{
-		if (initializeVdb(cfdpConstants) < 0)
-		{
-			putErrmsg("CFDP can't initialize cfdpVdb.", NULL);
-			return -1;
-		}
-	}
-	else
-	{
-		cfdpVdb = (CfdpVdb *) psp(cfdpwm, cfdpVdbAddress);
+		putErrmsg("CFDP can't initialize vdb.", NULL);
+		return -1;
 	}
 
-	initializeCrcCalcValues();
 	return 0;		/*	CFDP service is available.	*/
 }
 
 Object	getCfdpDbObject()
 {
-	return cfdpdbObject;
+	return _cfdpdbObject(NULL);
 }
 
 CfdpDB	*getCfdpConstants()
 {
-	return cfdpConstants;
+	return _cfdpConstants();
 }
 
 CfdpVdb	*getCfdpVdb()
 {
-	return cfdpVdb;
+	return _cfdpvdb(NULL);
 }
 
 int	_cfdpStart(char *utaCmd)
 {
+	Sdr	sdr = getIonsdr();
+	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
+
 	if (utaCmd == NULL)
 	{
 		putErrmsg("CFDP can't start: no UTA command.", NULL);
-		errno = EINVAL;
 		return -1;
 	}
 
-	sdr_begin_xn(cfdpSdr);	/*	Just to lock memory.		*/
+	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 
 	/*	Start the CFDP events clock if necessary.		*/
 
-	if (cfdpVdb->clockPid < 1 || sm_TaskExists(cfdpVdb->clockPid) == 0)
+	if (cfdpvdb->clockPid < 1 || sm_TaskExists(cfdpvdb->clockPid) == 0)
 	{
-		cfdpVdb->clockPid = pseudoshell("cfdpclock");
+		cfdpvdb->clockPid = pseudoshell("cfdpclock");
 	}
 
 	/*	Start UT adapter service if necessary.			*/
 
-	if (cfdpVdb->utaPid < 1 || sm_TaskExists(cfdpVdb->utaPid) == 0)
+	if (cfdpvdb->utaPid < 1 || sm_TaskExists(cfdpvdb->utaPid) == 0)
 	{
-		cfdpVdb->utaPid = pseudoshell(utaCmd);
+		cfdpvdb->utaPid = pseudoshell(utaCmd);
 	}
 
-	sdr_exit_xn(cfdpSdr);	/*	Unlock memory.			*/
+	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 	return 0;
 }
 
 void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 {
+	Sdr	sdr = getIonsdr();
+	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
+
 	/*	Tell all CFDP processes to stop.			*/
 
-	sdr_begin_xn(cfdpSdr);	/*	Just to lock memory.		*/
+	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 
 	/*	Stop user application input thread.			*/
 
-	if (cfdpVdb->eventSemaphore != SM_SEM_NONE)
+	if (cfdpvdb->eventSemaphore != SM_SEM_NONE)
 	{
-		sm_SemEnd(cfdpVdb->eventSemaphore);
+		sm_SemEnd(cfdpvdb->eventSemaphore);
 	}
 
 	/*	Stop UTA task.						*/
 
-	if (cfdpVdb->fduSemaphore != SM_SEM_NONE)
+	if (cfdpvdb->fduSemaphore != SM_SEM_NONE)
 	{
-		sm_SemEnd(cfdpVdb->fduSemaphore);
+		sm_SemEnd(cfdpvdb->fduSemaphore);
 	}
 
 	/*	Stop clock task.					*/
 
-	if (cfdpVdb->clockPid > 0)
+	if (cfdpvdb->clockPid > 0)
 	{
-		sm_TaskKill(cfdpVdb->clockPid, SIGTERM);
+		sm_TaskKill(cfdpvdb->clockPid, SIGTERM);
 	}
 
-	sdr_exit_xn(cfdpSdr);	/*	Unlock memory.			*/
+	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 
 	/*	Wait until all CFDP processes have stopped.		*/
 
-	if (cfdpVdb->utaPid > 0)
+	if (cfdpvdb->utaPid > 0)
 	{
-		while (sm_TaskExists(cfdpVdb->utaPid))
+		while (sm_TaskExists(cfdpvdb->utaPid))
 		{
 			microsnooze(100000);
 		}
 	}
 
-	if (cfdpVdb->clockPid > 0)
+	if (cfdpvdb->clockPid > 0)
 	{
-		while (sm_TaskExists(cfdpVdb->clockPid))
+		while (sm_TaskExists(cfdpvdb->clockPid))
 		{
 			microsnooze(100000);
 		}
@@ -490,36 +553,44 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
-	sdr_begin_xn(cfdpSdr);	/*	Just to lock memory.		*/
-	cfdpVdb->utaPid = -1;
-	cfdpVdb->clockPid = -1;
-	if (cfdpVdb->eventSemaphore == SM_SEM_NONE)
+	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	cfdpvdb->utaPid = -1;
+	cfdpvdb->clockPid = -1;
+	if (cfdpvdb->eventSemaphore == SM_SEM_NONE)
 	{
-		cfdpVdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+		cfdpvdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	}
 	else
 	{
-		sm_SemUnend(cfdpVdb->eventSemaphore);
+		sm_SemUnend(cfdpvdb->eventSemaphore);
 	}
 
-	sm_SemTake(cfdpVdb->eventSemaphore);		/*	Lock.	*/
-	if (cfdpVdb->fduSemaphore == SM_SEM_NONE)
+	sm_SemTake(cfdpvdb->eventSemaphore);		/*	Lock.	*/
+	if (cfdpvdb->fduSemaphore == SM_SEM_NONE)
 	{
-		cfdpVdb->fduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+		cfdpvdb->fduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	}
 	else
 	{
-		sm_SemUnend(cfdpVdb->fduSemaphore);
+		sm_SemUnend(cfdpvdb->fduSemaphore);
 	}
 
-	sm_SemTake(cfdpVdb->fduSemaphore);		/*	Lock.	*/
-	sdr_exit_xn(cfdpSdr);	/*	Unlock memory.			*/
+	sm_SemTake(cfdpvdb->fduSemaphore);		/*	Lock.	*/
+	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 }
 
 int	cfdpAttach()
 {
-	PsmAddress	cfdpVdbAddress;
-	PsmAddress	elt;
+	Object		cfdpdbObject = _cfdpdbObject(NULL);
+	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
+	Sdr		sdr;
+	PsmPartition	wm;
+	char		*cfdpvdbName = _cfdpvdbName();
+
+	if (cfdpdbObject && cfdpvdb)
+	{
+		return 0;		/*	Already attached.	*/
+	}
 
 	if (ionAttach() < 0)
 	{
@@ -527,62 +598,60 @@ int	cfdpAttach()
 		return -1;
 	}
 
-	cfdpSdr = getIonsdr();
+	sdr = getIonsdr();
 
 	/*	Locate the CFDP database.				*/
 
-	sdr_begin_xn(cfdpSdr);	/*	Lock database.			*/
-	cfdpdbObject = sdr_find(cfdpSdr, CFDP_DBNAME, NULL);
 	if (cfdpdbObject == 0)
 	{
-		sdr_exit_xn(cfdpSdr);
-		putErrmsg("Can't find CFDP database.", NULL);
-		return -1;
+		sdr_begin_xn(sdr);	/*	Lock database.		*/
+		cfdpdbObject = sdr_find(sdr, _cfdpdbName(), NULL);
+		sdr_exit_xn(sdr);	/*	Unlock database.	*/
+		if (cfdpdbObject == 0)
+		{
+			putErrmsg("Can't find CFDP database.", NULL);
+			return -1;
+		}
+
+		oK(_cfdpdbObject(&cfdpdbObject));
 	}
 
-	sdr_exit_xn(cfdpSdr);	/*	Unlock database.		*/
-
-	/*	Load constants into a conveniently accessed structure.
-	 *	Note that this is NOT a current database image.		*/
-
-	sdr_read(cfdpSdr, (char *) cfdpConstants, cfdpdbObject, sizeof(CfdpDB));
+	oK(_cfdpConstants());
 
 	/*	Locate the CFDP volatile database.			*/
 
-	cfdpwm = getIonwm();
-	cfdpMemIdx = getIonMemoryMgr();
-	if (psm_locate(cfdpwm, CFDP_VDBNAME, &cfdpVdbAddress, &elt) < 0
-	|| elt == 0)
+	wm = getIonwm();
+	if (cfdpvdb == NULL)
 	{
-		putErrmsg("CFDP volatile database not found.", NULL);
-		return -1;
-	}
-	else
-	{
-		cfdpVdb = (CfdpVdb *) psp(cfdpwm, cfdpVdbAddress);
+		if (_cfdpvdb(&cfdpvdbName) == NULL)
+		{
+			putErrmsg("CFDP volatile database not found.", NULL);
+			return -1;
+		}
 	}
 
-	initializeCrcCalcValues();
 	return 0;		/*	CFDP service is available.	*/
 }
 
 MetadataList	createMetadataList(Object log)
 {
+	Sdr	sdr = getIonsdr();
 	Object	list;
 
 	/*	Create new list, add it to database's list of
 	 *	filestore response lists, and store that reference
 	 *	in the new list's user data.				*/
 
-	sdr_begin_xn(cfdpSdr);
-	list = sdr_list_create(cfdpSdr);
+	CHKZERO(log);
+	sdr_begin_xn(sdr);
+	list = sdr_list_create(sdr);
 	if (list)
 	{
-		sdr_list_user_data_set(cfdpSdr, list,
-				sdr_list_insert_last(cfdpSdr, log, list));
+		sdr_list_user_data_set(sdr, list,
+				sdr_list_insert_last(sdr, log, list));
 	}
 
-	if (sdr_end_xn(cfdpSdr) < 0)
+	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't create metadata list.", NULL);
 		return 0;
@@ -593,11 +662,12 @@ MetadataList	createMetadataList(Object log)
 
 void	destroyUsrmsgList(MetadataList *list)
 {
-	Sdr		sdr = bp_get_sdr();
+	Sdr		sdr = getIonsdr();
 	Object		elt;
 	Object		obj;
 	MsgToUser	usrmsg;
 
+	CHKVOID(list);
 	elt = sdr_list_first(sdr, *list);
 	while (elt)
 	{
@@ -625,11 +695,12 @@ void	destroyUsrmsgList(MetadataList *list)
 
 void	destroyFsreqList(MetadataList *list)
 {
-	Sdr			sdr = bp_get_sdr();
+	Sdr			sdr = getIonsdr();
 	Object			elt;
 	Object			obj;
 	FilestoreRequest	fsreq;
 
+	CHKVOID(list);
 	elt = sdr_list_first(sdr, *list);
 	while (elt)
 	{
@@ -663,11 +734,12 @@ void	destroyFsreqList(MetadataList *list)
 
 void	destroyFsrespList(Object *list)
 {
-	Sdr			sdr = bp_get_sdr();
+	Sdr			sdr = getIonsdr();
 	Object			elt;
 	Object			obj;
 	FilestoreResponse	fsresp;
 
+	CHKVOID(list);
 	elt = sdr_list_first(sdr, *list);
 	while (elt)
 	{
@@ -706,88 +778,87 @@ void	destroyFsrespList(Object *list)
 
 void	cfdpScrub()
 {
+	Sdr		sdr = getIonsdr();
+	CfdpDB		*cfdpConstants = _cfdpConstants();
 	Object		elt;
 	MetadataList	list;
 
 	CHKVOID(ionLocked());
-	elt = sdr_list_first(cfdpSdr, cfdpConstants->usrmsgLists);
+	elt = sdr_list_first(sdr, cfdpConstants->usrmsgLists);
 	while (elt)
 	{
-		list = sdr_list_data(cfdpSdr, elt);
+		list = sdr_list_data(sdr, elt);
 		destroyUsrmsgList(&list);
-		elt = sdr_list_first(cfdpSdr, cfdpConstants->usrmsgLists);
+		elt = sdr_list_first(sdr, cfdpConstants->usrmsgLists);
 	}
 
-	elt = sdr_list_first(cfdpSdr, cfdpConstants->fsreqLists);
+	elt = sdr_list_first(sdr, cfdpConstants->fsreqLists);
 	while (elt)
 	{
-		list = sdr_list_data(cfdpSdr, elt);
+		list = sdr_list_data(sdr, elt);
 		destroyFsreqList(&list);
-		elt = sdr_list_first(cfdpSdr, cfdpConstants->fsreqLists);
+		elt = sdr_list_first(sdr, cfdpConstants->fsreqLists);
 	}
 
-	elt = sdr_list_first(cfdpSdr, cfdpConstants->fsrespLists);
+	elt = sdr_list_first(sdr, cfdpConstants->fsrespLists);
 	while (elt)
 	{
-		list = sdr_list_data(cfdpSdr, elt);
+		list = sdr_list_data(sdr, elt);
 		destroyFsrespList(&list);
-		elt = sdr_list_first(cfdpSdr, cfdpConstants->fsrespLists);
+		elt = sdr_list_first(sdr, cfdpConstants->fsrespLists);
 	}
 }
 
 int	addFsResp(Object list, CfdpAction action, int status,
 		char *firstFileName, char *secondFileName, char *message)
 {
+	Sdr			sdr = getIonsdr();
+	CfdpDB			*cfdpConstants = _cfdpConstants();
 	FilestoreResponse	fsresp;
 	Object			elt;
 	Object			addr;
 
-	if (list == 0
-	|| (firstFileName != NULL && strlen(firstFileName) > 255)
-	|| (secondFileName != NULL && strlen(secondFileName) > 255)
-	|| (message != NULL && strlen(message) > 255)
-	|| sdr_list_list(cfdpSdr, sdr_list_user_data(cfdpSdr, list))
-			!= cfdpConstants->fsreqLists)
-	{
-		errno = EINVAL;
-		return 0;
-	}
-
-	sdr_begin_xn(cfdpSdr);
+	CHKERR(list);
+	CHKERR(firstFileName == NULL || strlen(firstFileName) < 256);
+	CHKERR(secondFileName == NULL || strlen(secondFileName) < 256);
+	CHKERR(message == NULL || strlen(secondFileName) < 256);
+	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
+			== cfdpConstants->fsreqLists);
+	sdr_begin_xn(sdr);
 	fsresp.action = action;
 	fsresp.status = status;
 	if (firstFileName)
 	{
-		fsresp.firstFileName = sdr_string_create(cfdpSdr,
+		fsresp.firstFileName = sdr_string_create(sdr,
 				firstFileName);
 	}
 
 	if (secondFileName)
 	{
-		fsresp.secondFileName = sdr_string_create(cfdpSdr,
+		fsresp.secondFileName = sdr_string_create(sdr,
 				secondFileName);
 	}
 
 	if (message)
 	{
-		fsresp.message = sdr_string_create(cfdpSdr, message);
+		fsresp.message = sdr_string_create(sdr, message);
 	}
 
-	addr = sdr_malloc(cfdpSdr, sizeof(FilestoreResponse));
+	addr = sdr_malloc(sdr, sizeof(FilestoreResponse));
 	if (addr)
 	{
-		sdr_write(cfdpSdr, addr, (char *) &fsresp,
+		sdr_write(sdr, addr, (char *) &fsresp,
 				sizeof(FilestoreResponse));
-		elt = sdr_list_insert_last(cfdpSdr, list, addr);
+		elt = sdr_list_insert_last(sdr, list, addr);
 	}
 
-	if (sdr_end_xn(cfdpSdr) < 0)
+	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("CFDP: failed adding filestore response.", NULL);
 		return -1;
 	}
 
-	return 1;
+	return 0;
 }
 
 /*	*	CFDP transaction mgt and access functions	*	*/
@@ -795,15 +866,20 @@ int	addFsResp(Object list, CfdpAction action, int status,
 Object	findOutFdu(CfdpTransactionId *transactionId, OutFdu *fduBuf,
 		Object *fduElt)
 {
+	Sdr	sdr = getIonsdr();
+	CfdpDB	*cfdpConstants = _cfdpConstants();
 	Object	elt;
 	Object	fduObj;
 
+	CHKZERO(transactionId);
+	CHKZERO(fduBuf);
+	CHKZERO(fduElt);
 	*fduElt = 0;			/*	Default.		*/
-	for (elt = sdr_list_first(cfdpSdr, cfdpConstants->outboundFdus); elt;
-			elt = sdr_list_next(cfdpSdr, elt))
+	for (elt = sdr_list_first(sdr, cfdpConstants->outboundFdus); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		fduObj = sdr_list_data(cfdpSdr, elt);
-		sdr_read(cfdpSdr, (char *) fduBuf, fduObj, sizeof(OutFdu));
+		fduObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) fduBuf, fduObj, sizeof(OutFdu));
 		if (memcmp((char *) &fduBuf->transactionId.transactionNbr,
 				(char *) &transactionId->transactionNbr,
 				sizeof(CfdpNumber)) == 0)
@@ -819,24 +895,25 @@ Object	findOutFdu(CfdpTransactionId *transactionId, OutFdu *fduBuf,
 static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 			InFdu *fdubuf, Object *fduElt)
 {
+	Sdr	sdr = getIonsdr();
 	Object	fduObj;
 
 	memset((char *) fdubuf, 0, sizeof(InFdu));
 	memcpy((char *) &fdubuf->transactionId, (char *) transactionId,
 			sizeof(CfdpTransactionId));
-	fdubuf->messagesToUser = sdr_list_create(cfdpSdr);
-	fdubuf->filestoreRequests = sdr_list_create(cfdpSdr);
-	fdubuf->extents = sdr_list_create(cfdpSdr);
-	fduObj = sdr_malloc(cfdpSdr, sizeof(InFdu));
+	fdubuf->messagesToUser = sdr_list_create(sdr);
+	fdubuf->filestoreRequests = sdr_list_create(sdr);
+	fdubuf->extents = sdr_list_create(sdr);
+	fduObj = sdr_malloc(sdr, sizeof(InFdu));
 	if (fduObj == 0 || fdubuf->messagesToUser == 0
 	|| fdubuf->filestoreRequests == 0 || fdubuf->extents == 0
-	|| (*fduElt = sdr_list_insert_last(cfdpSdr, entity->inboundFdus,
+	|| (*fduElt = sdr_list_insert_last(sdr, entity->inboundFdus,
 			fduObj)) == 0)
 	{
 		return 0;		/*	System failure.		*/
 	}
 
-	sdr_write(cfdpSdr, fduObj, (char *) fdubuf, sizeof(InFdu));
+	sdr_write(sdr, fduObj, (char *) fdubuf, sizeof(InFdu));
 	return fduObj;
 }
 
@@ -844,19 +921,24 @@ Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 		Object *fduElt, int createIfNotFound)
 {
 	unsigned long	sourceEntityId;
+	Sdr		sdr = getIonsdr();
+	CfdpDB		*cfdpConstants = _cfdpConstants();
 	Object		elt;
 	Object		entityObj;
 	Entity		entity;
 	int		foundIt = 0;
 	Object		fduObj;
 
+	CHKZERO(transactionId);
+	CHKZERO(fduBuf);
+	CHKZERO(fduElt);
 	cfdp_decompress_number(&sourceEntityId,
 			&transactionId->sourceEntityNbr);
-	for (elt = sdr_list_first(cfdpSdr, cfdpConstants->entities); elt;
-			elt = sdr_list_next(cfdpSdr, elt))
+	for (elt = sdr_list_first(sdr, cfdpConstants->entities); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		entityObj = sdr_list_data(cfdpSdr, elt);
-		sdr_read(cfdpSdr, (char *) &entity, entityObj, sizeof(Entity));
+		entityObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &entity, entityObj, sizeof(Entity));
 		if (entity.entityId < sourceEntityId)
 		{
 			continue;
@@ -873,11 +955,11 @@ Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 	if (foundIt)		/*	Entity is already known.	*/
 	{
 		foundIt = 0;
-		for (elt = sdr_list_first(cfdpSdr, entity.inboundFdus); elt;
-				elt = sdr_list_next(cfdpSdr, elt))
+		for (elt = sdr_list_first(sdr, entity.inboundFdus); elt;
+				elt = sdr_list_next(sdr, elt))
 		{
-			fduObj = sdr_list_data(cfdpSdr, elt);
-			sdr_read(cfdpSdr, (char *) fduBuf, fduObj,
+			fduObj = sdr_list_data(sdr, elt);
+			sdr_read(sdr, (char *) fduBuf, fduObj,
 					sizeof(InFdu));
 			if (memcmp((char *) &fduBuf->transactionId,
 					(char *) transactionId,
@@ -918,19 +1000,19 @@ Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 
 	cfdp_decompress_number(&entity.entityId,
 			&transactionId->sourceEntityNbr);
-	entity.inboundFdus = sdr_list_create(cfdpSdr);
-	entityObj = sdr_malloc(cfdpSdr, sizeof(Entity));
+	entity.inboundFdus = sdr_list_create(sdr);
+	entityObj = sdr_malloc(sdr, sizeof(Entity));
 	if (entity.inboundFdus == 0 || entityObj == 0
 	|| (elt == 0	?
-		sdr_list_insert_last(cfdpSdr, cfdpConstants->entities,
+		sdr_list_insert_last(sdr, cfdpConstants->entities,
 			entityObj)
 			: 
-		sdr_list_insert_before(cfdpSdr, elt, entityObj)) == 0)
+		sdr_list_insert_before(sdr, elt, entityObj)) == 0)
 	{
 		return 0;	/*	System failure.		*/
 	}
 
-	sdr_write(cfdpSdr, entityObj, (char *) &entity, sizeof(Entity));
+	sdr_write(sdr, entityObj, (char *) &entity, sizeof(Entity));
 	return createInFdu(transactionId, &entity, fduBuf, fduElt);
 }
 
@@ -940,17 +1022,19 @@ int	suspendOutFdu(CfdpTransactionId *transactionId, CfdpCondition condition,
 	OutFdu		fduBuf;
 	Object		fduObj;
 	Object		fduElt;
+	Sdr		sdr = getIonsdr();
 	CfdpEvent	event;
 
+	CHKZERO(transactionId);
 	fduObj = findOutFdu(transactionId, &fduBuf, &fduElt);
 	if (fduObj == 0 || fduBuf.state != FduActive)
 	{
 		return 0;
 	}
 
-	sdr_stage(cfdpSdr, NULL, fduObj, 0);
+	sdr_stage(sdr, NULL, fduObj, 0);
 	fduBuf.state = FduSuspended;
-	sdr_write(cfdpSdr, fduObj, (char *) &fduBuf, sizeof(OutFdu));
+	sdr_write(sdr, fduObj, (char *) &fduBuf, sizeof(OutFdu));
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpSuspendedInd;
 	memcpy((char *) &event.transactionId, (char *) transactionId,
@@ -972,8 +1056,10 @@ int	cancelOutFdu(CfdpTransactionId *transactionId, CfdpCondition condition,
 	OutFdu		fduBuf;
 	Object		fduObj;
 	Object		fduElt;
+	Sdr		sdr = getIonsdr();
 	CfdpEvent	event;
 
+	CHKZERO(transactionId);
 	fduObj = findOutFdu(transactionId, &fduBuf, &fduElt);
 	if (fduObj == 0 || fduBuf.state == FduCanceled)
 	{
@@ -981,9 +1067,9 @@ int	cancelOutFdu(CfdpTransactionId *transactionId, CfdpCondition condition,
 		return 0;
 	}
 
-	sdr_stage(cfdpSdr, NULL, fduObj, 0);
+	sdr_stage(sdr, NULL, fduObj, 0);
 	fduBuf.state = FduCanceled;
-	sdr_write(cfdpSdr, fduObj, (char *) &fduBuf, sizeof(OutFdu));
+	sdr_write(sdr, fduObj, (char *) &fduBuf, sizeof(OutFdu));
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpTransactionFinishedInd;
 	memcpy((char *) &event.transactionId, (char *) transactionId,
@@ -1012,58 +1098,63 @@ int	cancelOutFdu(CfdpTransactionId *transactionId, CfdpCondition condition,
 
 void	destroyOutFdu(OutFdu *fdu, Object fduObj, Object fduElt)
 {
+	Sdr	sdr = getIonsdr();
 	Object	elt;
 	Object	obj;
 
+	CHKVOID(fdu);
+	CHKVOID(fduObj);
+	CHKVOID(fduElt);
 	if (fdu->metadataPdu)
 	{
-		sdr_free(cfdpSdr, fdu->metadataPdu);
+		sdr_free(sdr, fdu->metadataPdu);
 	}
 
 	while (fdu->recordLengths)
 	{
-		elt = sdr_list_first(cfdpSdr, fdu->recordLengths);
+		elt = sdr_list_first(sdr, fdu->recordLengths);
 		if (elt == 0)
 		{
-			sdr_list_destroy(cfdpSdr, fdu->recordLengths, NULL,
+			sdr_list_destroy(sdr, fdu->recordLengths, NULL,
 					NULL);
 			break;
 		}
 
-		sdr_list_delete(cfdpSdr, elt, NULL, NULL);
+		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
 	if (fdu->eofPdu)
 	{
-		sdr_free(cfdpSdr, fdu->eofPdu);
+		sdr_free(sdr, fdu->eofPdu);
 	}
 
 	while (fdu->extantPdus)
 	{
-		elt = sdr_list_first(cfdpSdr, fdu->extantPdus);
+		elt = sdr_list_first(sdr, fdu->extantPdus);
 		if (elt == 0)
 		{
-			sdr_list_destroy(cfdpSdr, fdu->extantPdus, NULL, NULL);
+			sdr_list_destroy(sdr, fdu->extantPdus, NULL, NULL);
 			break;
 		}
 
-		obj = sdr_list_data(cfdpSdr, elt);
-		zco_destroy_reference(cfdpSdr, obj);
-		sdr_list_delete(cfdpSdr, elt, NULL, NULL);
+		obj = sdr_list_data(sdr, elt);
+		zco_destroy_reference(sdr, obj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
 	if (fdu->fileRef)
 	{
-		zco_destroy_file_ref(cfdpSdr, fdu->fileRef);
+		zco_destroy_file_ref(sdr, fdu->fileRef);
 	}
 
-	sdr_free(cfdpSdr, fduObj);
-	sdr_list_delete(cfdpSdr, fduElt, NULL, NULL);
+	sdr_free(sdr, fduObj);
+	sdr_list_delete(sdr, fduElt, NULL, NULL);
 }
 
 static int	abandonOutFdu(CfdpTransactionId *transactionId,
 			CfdpCondition condition)
 {
+	Sdr		sdr = getIonsdr();
 	OutFdu		fduBuf;
 	Object		fduObj;
 	Object		fduElt;
@@ -1075,7 +1166,7 @@ static int	abandonOutFdu(CfdpTransactionId *transactionId,
 		return 0;
 	}
 
-	sdr_stage(cfdpSdr, NULL, fduObj, 0);
+	sdr_stage(sdr, NULL, fduObj, 0);
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpAbandonedInd;
 	memcpy((char *) &event.transactionId, (char *) transactionId,
@@ -1095,95 +1186,100 @@ static int	abandonOutFdu(CfdpTransactionId *transactionId,
 
 void	destroyInFdu(InFdu *fdu, Object fduObj, Object fduElt)
 {
+	Sdr	sdr = getIonsdr();
+	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
 	Object	elt;
 	Object	obj;
 		OBJ_POINTER(MsgToUser, msg);
 		OBJ_POINTER(FilestoreRequest, req);
 
+	CHKVOID(fdu);
+	CHKVOID(fduObj);
+	CHKVOID(fduElt);
 	if (fdu->sourceFileName)
 	{
-		sdr_free(cfdpSdr, fdu->sourceFileName);
+		sdr_free(sdr, fdu->sourceFileName);
 	}
 
 	if (fdu->destFileName)
 	{
-		sdr_free(cfdpSdr, fdu->destFileName);
+		sdr_free(sdr, fdu->destFileName);
 	}
 
 	if (fdu->flowLabel)
 	{
-		sdr_free(cfdpSdr, fdu->flowLabel);
+		sdr_free(sdr, fdu->flowLabel);
 	}
 
 	while (fdu->messagesToUser)
 	{
-		elt = sdr_list_first(cfdpSdr, fdu->messagesToUser);
+		elt = sdr_list_first(sdr, fdu->messagesToUser);
 		if (elt == 0)
 		{
-			sdr_list_destroy(cfdpSdr, fdu->messagesToUser, NULL,
+			sdr_list_destroy(sdr, fdu->messagesToUser, NULL,
 					NULL);
 			fdu->messagesToUser = 0;
 			continue;
 		}
 
-		obj = sdr_list_data(cfdpSdr, elt);
-		GET_OBJ_POINTER(cfdpSdr, MsgToUser, msg, obj);
+		obj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, MsgToUser, msg, obj);
 		if (msg->text)
 		{
-			sdr_free(cfdpSdr, msg->text);
+			sdr_free(sdr, msg->text);
 		}
 
-		sdr_free(cfdpSdr, obj);
-		sdr_list_delete(cfdpSdr, elt, NULL, NULL);
+		sdr_free(sdr, obj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
 	while (fdu->filestoreRequests)
 	{
-		elt = sdr_list_first(cfdpSdr, fdu->filestoreRequests);
+		elt = sdr_list_first(sdr, fdu->filestoreRequests);
 		if (elt == 0)
 		{
-			sdr_list_destroy(cfdpSdr, fdu->filestoreRequests, NULL,
+			sdr_list_destroy(sdr, fdu->filestoreRequests, NULL,
 				       	NULL);
 			fdu->filestoreRequests = 0;
 			continue;
 		}
 
-		obj = sdr_list_data(cfdpSdr, elt);
-		GET_OBJ_POINTER(cfdpSdr, FilestoreRequest, req, obj);
+		obj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, FilestoreRequest, req, obj);
 		if (req->firstFileName)
 		{
-			sdr_free(cfdpSdr, req->firstFileName);
+			sdr_free(sdr, req->firstFileName);
 		}
 
 		if (req->secondFileName)
 		{
-			sdr_free(cfdpSdr, req->secondFileName);
+			sdr_free(sdr, req->secondFileName);
 		}
 
-		sdr_free(cfdpSdr, obj);
-		sdr_list_delete(cfdpSdr, elt, NULL, NULL);
+		sdr_free(sdr, obj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
 	while (fdu->extents)
 	{
-		elt = sdr_list_first(cfdpSdr, fdu->extents);
+		elt = sdr_list_first(sdr, fdu->extents);
 		if (elt == 0)
 		{
-			sdr_list_destroy(cfdpSdr, fdu->extents, NULL, NULL);
+			sdr_list_destroy(sdr, fdu->extents, NULL, NULL);
 			fdu->extents = 0;
 			continue;
 		}
 
-		obj = sdr_list_data(cfdpSdr, elt);
-		sdr_free(cfdpSdr, obj);	/*	A CfdpExtent structure.	*/
-		sdr_list_delete(cfdpSdr, elt, NULL, NULL);
+		obj = sdr_list_data(sdr, elt);
+		sdr_free(sdr, obj);	/*	A CfdpExtent structure.	*/
+		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
-	sdr_free(cfdpSdr, fduObj);
-	sdr_list_delete(cfdpSdr, fduElt, NULL, NULL);
-	if (cfdpVdb->currentFdu == fduObj)
+	sdr_free(sdr, fduObj);
+	sdr_list_delete(sdr, fduElt, NULL, NULL);
+	if (cfdpvdb->currentFdu == fduObj)
 	{
-		cfdpVdb->currentFdu = 0;
+		cfdpvdb->currentFdu = 0;
 	}
 }
 
@@ -1193,6 +1289,7 @@ static int	abandonInFdu(CfdpTransactionId *transactionId,
 	InFdu		fduBuf;
 	Object		fduObj;
 	Object		fduElt;
+	Sdr		sdr = getIonsdr();
 	CfdpEvent	event;
 	char		fileName[256];
 
@@ -1202,7 +1299,7 @@ static int	abandonInFdu(CfdpTransactionId *transactionId,
 		return 0;
 	}
 
-	sdr_stage(cfdpSdr, NULL, fduObj, 0);
+	sdr_stage(sdr, NULL, fduObj, 0);
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpAbandonedInd;
 	memcpy((char *) &event.transactionId, (char *) transactionId,
@@ -1218,7 +1315,7 @@ static int	abandonInFdu(CfdpTransactionId *transactionId,
 
 	if (fduBuf.destFileName)
 	{
-		sdr_string_read(cfdpSdr, fileName, fduBuf.destFileName);
+		sdr_string_read(sdr, fileName, fduBuf.destFileName);
 		unlink(fileName);
 	}
 
@@ -1449,6 +1546,7 @@ static void	frDenyDirectory(char *firstFileName, char *secondFileName,
 static int	executeFilestoreRequests(InFdu *fdu,
 			MetadataList filestoreResponses)
 {
+	Sdr			sdr = getIonsdr();
 	Object			elt;
 				OBJ_POINTER(FilestoreRequest, req);
 	char			firstFileNameBuf[256];
@@ -1460,14 +1558,14 @@ static int	executeFilestoreRequests(InFdu *fdu,
 	char			msgBuf[256];
 	int			reqAborted = 0;
 
-	for (elt = sdr_list_first(cfdpSdr, fdu->filestoreRequests); elt;
-			elt = sdr_list_next(cfdpSdr, elt))
+	for (elt = sdr_list_first(sdr, fdu->filestoreRequests); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		GET_OBJ_POINTER(cfdpSdr, FilestoreRequest, req,
-				sdr_list_data(cfdpSdr, elt));
+		GET_OBJ_POINTER(sdr, FilestoreRequest, req,
+				sdr_list_data(sdr, elt));
 		if (req->firstFileName)
 		{
-			sdr_string_read(cfdpSdr, firstFileNameBuf,
+			sdr_string_read(sdr, firstFileNameBuf,
 					req->firstFileName);
 			firstFileName = firstFileNameBuf;
 		}
@@ -1478,7 +1576,7 @@ static int	executeFilestoreRequests(InFdu *fdu,
 
 		if (req->secondFileName)
 		{
-			sdr_string_read(cfdpSdr, secondFileNameBuf,
+			sdr_string_read(sdr, secondFileNameBuf,
 					req->secondFileName);
 			secondFileName = secondFileNameBuf;
 		}
@@ -1487,9 +1585,9 @@ static int	executeFilestoreRequests(InFdu *fdu,
 			secondFileName = NULL;
 		}
 
-		addr = sdr_malloc(cfdpSdr, sizeof(FilestoreResponse));
+		addr = sdr_malloc(sdr, sizeof(FilestoreResponse));
 		if (addr == 0
-		|| sdr_list_insert_last(cfdpSdr, filestoreResponses, addr) == 0)
+		|| sdr_list_insert_last(sdr, filestoreResponses, addr) == 0)
 		{
 			putErrmsg("Can't create filestore response.", NULL);
 			return -1;
@@ -1499,7 +1597,7 @@ static int	executeFilestoreRequests(InFdu *fdu,
 		resp.action = req->action;
 		if (firstFileName)
 		{
-			resp.firstFileName = sdr_string_create(cfdpSdr,
+			resp.firstFileName = sdr_string_create(sdr,
 					firstFileName);
 			if (resp.firstFileName == 0)
 			{
@@ -1510,7 +1608,7 @@ static int	executeFilestoreRequests(InFdu *fdu,
 
 		if (secondFileName)
 		{
-			resp.secondFileName = sdr_string_create(cfdpSdr,
+			resp.secondFileName = sdr_string_create(sdr,
 					secondFileName);
 			if (resp.secondFileName == 0)
 			{
@@ -1522,7 +1620,7 @@ static int	executeFilestoreRequests(InFdu *fdu,
 		if (reqAborted)	/*	All remaining requests fail.	*/
 		{
 			resp.status = 15;
-			sdr_write(cfdpSdr, addr, (char *) &resp,
+			sdr_write(sdr, addr, (char *) &resp,
 					sizeof(FilestoreResponse));
 			continue;
 		}
@@ -1585,7 +1683,7 @@ static int	executeFilestoreRequests(InFdu *fdu,
 			reqAborted = 1;
 			if (strlen(msgBuf) > 0)
 			{
-				resp.message = sdr_string_create(cfdpSdr,
+				resp.message = sdr_string_create(sdr,
 						msgBuf);
 				if (resp.message == 0)
 				{
@@ -1595,7 +1693,7 @@ static int	executeFilestoreRequests(InFdu *fdu,
 			}
 		}
 
-		sdr_write(cfdpSdr, addr, (char *) &resp,
+		sdr_write(sdr, addr, (char *) &resp,
 				sizeof(FilestoreResponse));
 	}
 
@@ -1604,12 +1702,13 @@ static int	executeFilestoreRequests(InFdu *fdu,
 
 static void	renameWorkingFile(InFdu *fduBuf)
 {
+	Sdr	sdr = getIonsdr();
 	char	workingFileName[256];
 	char	destFileName[256];
 	char	renameErrBuffer[600];
 
-	sdr_string_read(cfdpSdr, workingFileName, fduBuf->workingFileName);
-	sdr_string_read(cfdpSdr, destFileName, fduBuf->destFileName);
+	sdr_string_read(sdr, workingFileName, fduBuf->workingFileName);
+	sdr_string_read(sdr, destFileName, fduBuf->destFileName);
 	if (rename(workingFileName, destFileName) < 0)
 	{
 		isprintf(renameErrBuffer, sizeof renameErrBuffer,
@@ -1622,12 +1721,16 @@ static void	renameWorkingFile(InFdu *fduBuf)
 int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 		CfdpCondition condition, int reqNbr)
 {
+	Sdr		sdr = getIonsdr();
 	CfdpDB		*db = getCfdpConstants();
 	CfdpEvent	event;
 	char		workingFileName[256];
 	char		reportBuffer[256];
 
 	CHKERR(ionLocked());
+	CHKERR(fduBuf);
+	CHKERR(fduObj);
+	CHKERR(fduElt);
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpTransactionFinishedInd;
 	memcpy((char *) &event.transactionId, (char *) &fduBuf->transactionId,
@@ -1692,7 +1795,7 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 		{
 			if (db->discardIncompleteFile)
 			{
-				sdr_string_read(cfdpSdr, workingFileName,
+				sdr_string_read(sdr, workingFileName,
 						fduBuf->workingFileName);
 				unlink(workingFileName);
 				event.fileStatus = CfdpFileDiscarded;
@@ -1723,7 +1826,7 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 
 	isprintf(reportBuffer, sizeof reportBuffer, "bytesReceived %u  size \
 %u  progress %u", fduBuf->bytesReceived, fduBuf->fileSize, fduBuf->progress);
-	event.statusReport = sdr_string_create(cfdpSdr, reportBuffer);
+	event.statusReport = sdr_string_create(sdr, reportBuffer);
 	event.reqNbr = getReqNbr();
 	if (enqueueCfdpEvent(&event) < 0)
 	{
@@ -1739,39 +1842,46 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 
 int	enqueueCfdpEvent(CfdpEvent *event)
 {
+	Sdr	sdr = getIonsdr();
+	CfdpDB	*cfdpConstants = _cfdpConstants();
+	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
 	Object	eventObj;
 
 	CHKERR(ionLocked());
-	eventObj = sdr_malloc(cfdpSdr, sizeof(CfdpEvent));
+	CHKERR(event);
+	eventObj = sdr_malloc(sdr, sizeof(CfdpEvent));
 	if (eventObj == 0)
 	{
 		putErrmsg("Can't create CFDP event.", NULL);
 		return -1;
 	}
 
-	if (sdr_list_insert_last(cfdpSdr, cfdpConstants->events, eventObj) == 0)
+	if (sdr_list_insert_last(sdr, cfdpConstants->events, eventObj) == 0)
 	{
 		putErrmsg("Can't enqueue CFDP event.", NULL);
 		return -1;
 	}
 
-	sdr_write(cfdpSdr, eventObj, (char *) event, sizeof(CfdpEvent));
+	sdr_write(sdr, eventObj, (char *) event, sizeof(CfdpEvent));
 
 	/*	Tell user application that an event is waiting.		*/
 
-	sm_SemGive(cfdpVdb->eventSemaphore);
+	sm_SemGive(cfdpvdb->eventSemaphore);
 	return 0;
 }
 
 int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		CfdpHandler *handler)
 {
+	CfdpDB		*cfdpConstants = _cfdpConstants();
 	Object		fduObj;
 	InFdu		inFdu;
 	OutFdu		outFdu;
 	Object		fduElt;
 	CfdpEvent	event;
 
+	CHKERR(transactionId);
+	CHKERR(handler);
 	*handler = CfdpNoHandler;
 	if (memcmp((char *) &transactionId->sourceEntityNbr,
 			(char *) &cfdpConstants->ownEntityNbr,
@@ -1881,14 +1991,16 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 
 static Object	selectOutFdu(OutFdu *buffer)
 {
+	Sdr	sdr = getIonsdr();
+	CfdpDB	*cfdpConstants = _cfdpConstants();
 	Object	elt;
 	Object	obj;
 
-	for (elt = sdr_list_first(cfdpSdr, cfdpConstants->outboundFdus); elt;
-			elt = sdr_list_next(cfdpSdr, elt))
+	for (elt = sdr_list_first(sdr, cfdpConstants->outboundFdus); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		obj = sdr_list_data(cfdpSdr, elt);
-		sdr_read(cfdpSdr, (char *) buffer, obj, sizeof(OutFdu));
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) buffer, obj, sizeof(OutFdu));
 		if (buffer->state != FduActive
 		|| buffer->eofPdu == 0	/*	Nothing left to send.	*/)
 		{
@@ -1904,6 +2016,7 @@ static Object	selectOutFdu(OutFdu *buffer)
 static Object	selectOutPdu(OutFdu *fdu, int *pduIsFileData)
 {
 	Object		pdu;
+	Sdr		sdr = getIonsdr();
 	Object		elt;
 	unsigned int	length;
 	unsigned int	offset;
@@ -1919,35 +2032,35 @@ static Object	selectOutPdu(OutFdu *fdu, int *pduIsFileData)
 
 	if (fdu->fileSize > 0)
 	{
-		elt = sdr_list_first(cfdpSdr, fdu->recordLengths);
+		elt = sdr_list_first(sdr, fdu->recordLengths);
 		if (elt)
 		{
-			length = sdr_list_data(cfdpSdr, elt);
+			length = sdr_list_data(sdr, elt);
 			offset = fdu->progress;
 			offset = htonl(offset);
-			header = sdr_malloc(cfdpSdr, 4);
+			header = sdr_malloc(sdr, 4);
 			if (header == 0)
 			{
 				putErrmsg("No space for file PDU hdr.", NULL);
 				return 0;
 			}
 
-			sdr_write(cfdpSdr, header, (char *) &offset, 4);
-			pdu = zco_create(cfdpSdr, ZcoSdrSource, header, 0, 4);
+			sdr_write(sdr, header, (char *) &offset, 4);
+			pdu = zco_create(sdr, ZcoSdrSource, header, 0, 4);
 			if (pdu == 0)
 			{
 				putErrmsg("No space for file PDU.", NULL);
 				return 0;
 			}
 
-			if (zco_append_extent(cfdpSdr, pdu, ZcoFileSource,
+			if (zco_append_extent(sdr, pdu, ZcoFileSource,
 				fdu->fileRef, fdu->progress, length) < 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
 				return 0;
 			}
 
-			sdr_list_delete(cfdpSdr, elt, NULL, NULL);
+			sdr_list_delete(sdr, elt, NULL, NULL);
 			fdu->progress += length;
 			*pduIsFileData = 1;
 			return pdu;
@@ -1962,6 +2075,9 @@ static Object	selectOutPdu(OutFdu *fdu, int *pduIsFileData)
 
 int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 {
+	Sdr		sdr = getIonsdr();
+	CfdpDB		*cfdpConstants = _cfdpConstants();
+	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	Object		fduObj;
 	int		pduIsFileData;		/*	Boolean.	*/
 	unsigned int	dataFieldLength;
@@ -1970,40 +2086,43 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 	int		entityNbrLength;
 	unsigned char	pduHeader[28];
 	int		pduHeaderLength = 4;
+	unsigned char	*buf;
 	ZcoReader	reader;
 	unsigned short	crc;
 
-	sdr_begin_xn(cfdpSdr);
+	CHKERR(pdu);
+	CHKERR(fduBuffer);
+	sdr_begin_xn(sdr);
 	fduObj = selectOutFdu(fduBuffer);
 	while (fduObj == 0)
 	{
-		sdr_exit_xn(cfdpSdr);
+		sdr_exit_xn(sdr);
 
 		/*	Wait until an FDU is resumed or a new one
 		 *	is created.					*/
 
-		if (sm_SemTake(cfdpVdb->fduSemaphore) < 0)
+		if (sm_SemTake(cfdpvdb->fduSemaphore) < 0)
 		{
 			putErrmsg("UTO can't take FDU semaphore.", NULL);
 			return -1;
 		}
 
-		if (sm_SemEnded(cfdpVdb->fduSemaphore))
+		if (sm_SemEnded(cfdpvdb->fduSemaphore))
 		{
 			writeMemo("[i] UTO has been stopped.");
 			return -1;
 		}
 
-		sdr_begin_xn(cfdpSdr);
+		sdr_begin_xn(sdr);
 		fduObj = selectOutFdu(fduBuffer);
 	}
 
-	sdr_stage(cfdpSdr, NULL, fduObj, 0);
+	sdr_stage(sdr, NULL, fduObj, 0);
 	*pdu = selectOutPdu(fduBuffer, &pduIsFileData);
 	if (*pdu == 0)
 	{
 		putErrmsg("UTO can't get outbound PDU.", NULL);
-		sdr_cancel_xn(cfdpSdr);
+		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
@@ -2011,7 +2130,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 			+ 4		/*	1 in bit 6 == unack	*/
 			+ (cfdpConstants->crcRequired ? 2 : 0);
 	pduHeader[0] = octet;
-	pduSourceDataLength = zco_length(cfdpSdr, *pdu);
+	pduSourceDataLength = zco_length(sdr, *pdu);
 	dataFieldLength = pduSourceDataLength
 			+ (cfdpConstants->crcRequired ? 2 : 0);
 
@@ -2049,34 +2168,34 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 	/*	Prepend header to pdu.					*/
 
-	oK(zco_prepend_header(cfdpSdr, *pdu, (char *) pduHeader,
+	oK(zco_prepend_header(sdr, *pdu, (char *) pduHeader,
 			pduHeaderLength));
 
 	/*	If CRC required, compute CRC and append to pdu.		*/
 
 	if (cfdpConstants->crcRequired)
 	{
-		memcpy(crcComputationBuf, pduHeader, pduHeaderLength);
-		zco_start_receiving(cfdpSdr, *pdu, &reader);
-		zco_receive_source(cfdpSdr, &reader, pduSourceDataLength,
-				crcComputationBuf + pduHeaderLength);
-		zco_stop_receiving(cfdpSdr, &reader);
-		crc = computeCRC((unsigned char *) crcComputationBuf,
-				pduHeaderLength + pduSourceDataLength);
+		buf = _crcComputationBuf();
+		memcpy((char *) buf, pduHeader, pduHeaderLength);
+		zco_start_receiving(sdr, *pdu, &reader);
+		zco_receive_source(sdr, &reader, pduSourceDataLength,
+				((char *) buf) + pduHeaderLength);
+		zco_stop_receiving(sdr, &reader);
+		crc = computeCRC(buf, pduHeaderLength + pduSourceDataLength);
 		crc = htons(crc);
-		oK(zco_append_trailer(cfdpSdr, *pdu, (char *) &crc, 2));
+		oK(zco_append_trailer(sdr, *pdu, (char *) &crc, 2));
 	}
 
 	/*	Rewrite FDU and exit.					*/
 
-	sdr_write(cfdpSdr, fduObj, (char *) fduBuffer, sizeof(OutFdu));
-	if (sdr_end_xn(cfdpSdr))
+	sdr_write(sdr, fduObj, (char *) fduBuffer, sizeof(OutFdu));
+	if (sdr_end_xn(sdr))
 	{
 		putErrmsg("UTO can't dequeue outbound PDU.", NULL);
 		return -1;
 	}
 
-	if (cfdpVdb->watching & WATCH_p)
+	if (cfdpvdb->watching & WATCH_p)
 	{
 		putchar('p');
 		fflush(stdout);
@@ -2089,6 +2208,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 {
+	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	CfdpHandler	handler;
 
 	if (!fdu->metadataReceived)
@@ -2106,10 +2226,10 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 		return 0;
 	}
 
-	if (cfdpVdb->currentFile != -1)
+	if (cfdpvdb->currentFile != -1)
 	{
-		close(cfdpVdb->currentFile);
-		cfdpVdb->currentFile = -1;
+		close(cfdpvdb->currentFile);
+		cfdpvdb->currentFile = -1;
 	}
 
 	if (fdu->computedChecksum == fdu->eofChecksum)
@@ -2141,6 +2261,7 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 
 static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 {
+	Sdr		sdr = getIonsdr();
 	unsigned long	sourceEntityId;
 	unsigned long	transactionNbr;
 
@@ -2153,7 +2274,7 @@ static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 		isprintf(stringBuf, bufLen, "%s%ccfdp.%lu.%lu",
 				getIonWorkingDirectory(), ION_PATH_DELIMITER,
 				sourceEntityId, transactionNbr);
-		fdu->workingFileName = sdr_string_create(cfdpSdr, stringBuf);
+		fdu->workingFileName = sdr_string_create(sdr, stringBuf);
 		if (fdu->workingFileName == 0)
 		{
 			putErrmsg("Can't retain working file name.", NULL);
@@ -2162,7 +2283,7 @@ static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 	}
 	else
 	{
-		sdr_string_read(cfdpSdr, stringBuf, fdu->workingFileName);
+		sdr_string_read(sdr, stringBuf, fdu->workingFileName);
 	}
 
 	return 0;
@@ -2185,12 +2306,13 @@ static int	writeSegmentData(InFdu *fdu, unsigned char **cursor,
 			int *bytesRemaining, unsigned int *segmentOffset,
 			int bytesToWrite)
 {
+	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	CfdpHandler	handler;
 	int		remainder;
 
-	if (cfdpVdb->corruptionModulus)
+	if (cfdpvdb->corruptionModulus)
 	{
-		remainder = random() % cfdpVdb->corruptionModulus;
+		remainder = random() % cfdpvdb->corruptionModulus;
 		if (remainder == 0)
 		{
 			(**cursor)++;	/*	Introduce corruption.	*/
@@ -2198,7 +2320,7 @@ static int	writeSegmentData(InFdu *fdu, unsigned char **cursor,
 		}
 	}
 
-	if (write(cfdpVdb->currentFile, *cursor, bytesToWrite) < 0)
+	if (write(cfdpvdb->currentFile, *cursor, bytesToWrite) < 0)
 	{
 		putSysErrmsg("Can't write to file", itoa(bytesToWrite));
 		return handleFilestoreRejection(fdu, -1, &handler);
@@ -2225,6 +2347,9 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	CfdpEvent	event;
 	unsigned int	segmentEnd;
 	CfdpHandler	handler;
+	Sdr		sdr = getIonsdr();
+	CfdpDB		*cfdpConstants = _cfdpConstants();
+	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	Object		elt;
 	Object		addr;
 	CfdpExtent	extent;
@@ -2292,11 +2417,11 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 
 	/*	Figure out how much of the file data PDU is new data.	*/
 
-	for (elt = sdr_list_first(cfdpSdr, fdu->extents); elt;
-			elt = sdr_list_next(cfdpSdr, elt))
+	for (elt = sdr_list_first(sdr, fdu->extents); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		addr = sdr_list_data(cfdpSdr, elt);
-		sdr_stage(cfdpSdr, (char *) &extent, addr, sizeof(CfdpExtent));
+		addr = sdr_list_data(sdr, elt);
+		sdr_stage(sdr, (char *) &extent, addr, sizeof(CfdpExtent));
 		extentEnd = extent.offset + extent.length;
 #if CFDPDEBUG
 printf("Viewing extent from %d to %d.\n", extent.offset, extent.offset + extent.length);
@@ -2325,7 +2450,7 @@ printf("Viewing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 			/*	This segment extends this extent.	*/
 
 			extent.length = segmentEnd - extent.offset;
-			sdr_write(cfdpSdr, addr, (char *) &extent,
+			sdr_write(sdr, addr, (char *) &extent,
 					sizeof(CfdpExtent));
 #if CFDPDEBUG
 printf("Rewriting extent at %d, to %d.\n", extent.offset, extent.offset + extent.length);
@@ -2357,24 +2482,24 @@ printf("Skipping %d bytes, segmentOffset changed to %d.\n", bytesToSkip, segment
 	{
 		extent.offset = segmentOffset;
 		extent.length = bytesRemaining;
-		addr = sdr_malloc(cfdpSdr, sizeof (CfdpExtent));
+		addr = sdr_malloc(sdr, sizeof (CfdpExtent));
 		if (addr == 0
 		|| (elt = (nextElt == 0	?
-			sdr_list_insert_last(cfdpSdr, fdu->extents, addr)
+			sdr_list_insert_last(sdr, fdu->extents, addr)
 					:
-			sdr_list_insert_before(cfdpSdr, nextElt, addr))) == 0)
+			sdr_list_insert_before(sdr, nextElt, addr))) == 0)
 		{
 			putErrmsg("Can't insert extent.", NULL);
 			return -1;
 		}
 
-		sdr_write(cfdpSdr, addr, (char *) &extent, sizeof(CfdpExtent));
+		sdr_write(sdr, addr, (char *) &extent, sizeof(CfdpExtent));
 #if CFDPDEBUG
 printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.length);
 #endif
 	}
 
-	nextElt = sdr_list_next(cfdpSdr, elt);
+	nextElt = sdr_list_next(sdr, elt);
 
 	/*	Open the file if necessary.				*/
 
@@ -2413,18 +2538,18 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 		}
 	}
 
-	if (cfdpVdb->currentFdu != fduObj)
+	if (cfdpvdb->currentFdu != fduObj)
 	{
-		if (cfdpVdb->currentFile != -1)
+		if (cfdpvdb->currentFile != -1)
 		{
-			close(cfdpVdb->currentFile);
-			cfdpVdb->currentFile = -1;
+			close(cfdpvdb->currentFile);
+			cfdpvdb->currentFile = -1;
 		}
 
-		cfdpVdb->currentFdu = fduObj;
-		cfdpVdb->currentFile = open(workingNameBuffer,
+		cfdpvdb->currentFdu = fduObj;
+		cfdpvdb->currentFile = open(workingNameBuffer,
 				O_RDWR | O_CREAT, 00777);
-		if (cfdpVdb->currentFile < 0)
+		if (cfdpvdb->currentFile < 0)
 		{
 			putSysErrmsg("Can't open working file",
 					workingNameBuffer);
@@ -2434,7 +2559,7 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 
 	/*	Write leading fill characters as necessary.		*/
 
-	endOfFile = lseek(cfdpVdb->currentFile, 0, SEEK_END);
+	endOfFile = lseek(cfdpvdb->currentFile, 0, SEEK_END);
 	if (endOfFile == (off_t) -1)
 	{
 		putSysErrmsg("Can't lseek in file", workingNameBuffer);
@@ -2444,7 +2569,7 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 	fileLength = endOfFile;
 	while (fileLength < segmentOffset)
 	{
-		if (write(cfdpVdb->currentFile,
+		if (write(cfdpvdb->currentFile,
 				&(cfdpConstants->fillCharacter), 1) < 0)
 		{
 			putSysErrmsg("Can't write to file", workingNameBuffer);
@@ -2456,7 +2581,7 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 
 	/*	Reposition at offset of new file data bytes.		*/
 
-	if (lseek(cfdpVdb->currentFile, segmentOffset, SEEK_SET) == (off_t) -1)
+	if (lseek(cfdpvdb->currentFile, segmentOffset, SEEK_SET) == (off_t) -1)
 	{
 		putSysErrmsg("Can't lseek in file", workingNameBuffer);
 		return handleFilestoreRejection(fdu, -1, &handler);
@@ -2470,8 +2595,8 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 
 	while (nextElt)
 	{
-		nextAddr = sdr_list_data(cfdpSdr, nextElt);
-		sdr_stage(cfdpSdr, (char *) &nextExtent, nextAddr,
+		nextAddr = sdr_list_data(sdr, nextElt);
+		sdr_stage(sdr, (char *) &nextExtent, nextAddr,
 				sizeof(CfdpExtent));
 #if CFDPDEBUG
 printf("Continuing to extent from %d to %d; segmentOffset is %d.\n", nextExtent.offset, nextExtent.offset + nextExtent.length, segmentOffset);
@@ -2509,14 +2634,14 @@ printf("Continuing to extent from %d to %d; segmentOffset is %d.\n", nextExtent.
 			/*	Extend the prior extent.		*/
 
 			extent.length = nextExtentEnd - extent.offset;
-			sdr_write(cfdpSdr, addr, (char *) &extent,
+			sdr_write(sdr, addr, (char *) &extent,
 					sizeof(CfdpExtent));
 			extentEnd = extent.offset + extent.length;
 		}
 
-		elt = sdr_list_next(cfdpSdr, nextElt);
-		sdr_free(cfdpSdr, nextAddr);
-		sdr_list_delete(cfdpSdr, nextElt, NULL, NULL);
+		elt = sdr_list_next(sdr, nextElt);
+		sdr_free(sdr, nextAddr);
+		sdr_list_delete(sdr, nextElt, NULL, NULL);
 		nextElt = elt;
 	}
 
@@ -2535,8 +2660,8 @@ printf("Continuing to extent from %d to %d; segmentOffset is %d.\n", nextExtent.
 	}
 
 #ifdef TargetFFS
-	close(cfdpVdb->currentFile);
-	cfdpVdb->currentFile = -1;
+	close(cfdpvdb->currentFile);
+	cfdpvdb->currentFile = -1;
 #endif
 	/*	Deliver File-Segment-Recv indication.			*/
 
@@ -2546,7 +2671,7 @@ printf("Continuing to extent from %d to %d; segmentOffset is %d.\n", nextExtent.
 		return -1;
 	}
 
-	sdr_write(cfdpSdr, fduObj, (char *) fdu, sizeof(InFdu));
+	sdr_write(sdr, fduObj, (char *) fdu, sizeof(InFdu));
 	return checkInFduComplete(fdu, fduObj, fduElt);
 }
 
@@ -2554,6 +2679,7 @@ static int	parseFilestoreRequestTLV(InFdu *fdu, unsigned char **cursor,
 			int length, int *bytesRemaining)
 {
 	FilestoreRequest	req;
+	Sdr			sdr = getIonsdr();
 	char			firstNameBuf[256];
 	int			firstNameLength;
 	char			secondNameBuf[256];
@@ -2635,7 +2761,7 @@ static int	parseFilestoreRequestTLV(InFdu *fdu, unsigned char **cursor,
 		}
 	}
 
-	req.firstFileName = sdr_string_create(cfdpSdr, firstNameBuf);
+	req.firstFileName = sdr_string_create(sdr, firstNameBuf);
 	if (req.firstFileName == 0)
 	{
 		putErrmsg("Can't retain first file name.", NULL);
@@ -2648,7 +2774,7 @@ static int	parseFilestoreRequestTLV(InFdu *fdu, unsigned char **cursor,
 	}
 	else
 	{
-		req.secondFileName = sdr_string_create(cfdpSdr, secondNameBuf);
+		req.secondFileName = sdr_string_create(sdr, secondNameBuf);
 		if (req.secondFileName == 0)
 		{
 			putErrmsg("Can't retain second file name.", NULL);
@@ -2656,15 +2782,15 @@ static int	parseFilestoreRequestTLV(InFdu *fdu, unsigned char **cursor,
 		}
 	}
 
-	reqObj = sdr_malloc(cfdpSdr, sizeof(FilestoreRequest));
+	reqObj = sdr_malloc(sdr, sizeof(FilestoreRequest));
 	if (reqObj == 0
-	|| sdr_list_insert_last(cfdpSdr, fdu->filestoreRequests, reqObj) == 0)
+	|| sdr_list_insert_last(sdr, fdu->filestoreRequests, reqObj) == 0)
 	{
 		putErrmsg("Can't add filestore request.", NULL);
 		return -1;
 	}
 
-	sdr_write(cfdpSdr, reqObj, (char *) &req, sizeof(FilestoreRequest));
+	sdr_write(sdr, reqObj, (char *) &req, sizeof(FilestoreRequest));
 	return 0;
 }
 
@@ -2672,6 +2798,7 @@ static int	parseMessageToUserTLV(InFdu *fdu, unsigned char **cursor,
 			int length, int *bytesRemaining)
 {
 	MsgToUser	msg;
+	Sdr		sdr = getIonsdr();
 	Object		msgObj;
 
 	if (length == 0)	/*	Null message.			*/
@@ -2680,21 +2807,21 @@ static int	parseMessageToUserTLV(InFdu *fdu, unsigned char **cursor,
 	}
 
 	msg.length = length;
-	msg.text = sdr_malloc(cfdpSdr, msg.length);
+	msg.text = sdr_malloc(sdr, msg.length);
 	if (msg.text)
 	{
-		sdr_write(cfdpSdr, msg.text, (char *) *cursor, msg.length);
+		sdr_write(sdr, msg.text, (char *) *cursor, msg.length);
 	}
 
-	msgObj = sdr_malloc(cfdpSdr, sizeof(MsgToUser));
+	msgObj = sdr_malloc(sdr, sizeof(MsgToUser));
 	if (msgObj == 0
-	|| sdr_list_insert_last(cfdpSdr, fdu->messagesToUser, msgObj) == 0)
+	|| sdr_list_insert_last(sdr, fdu->messagesToUser, msgObj) == 0)
 	{
 		putErrmsg("Can't add message to user.", NULL);
 		return -1;
 	}
 
-	sdr_write(cfdpSdr, msgObj, (char *) &msg, sizeof(MsgToUser));
+	sdr_write(sdr, msgObj, (char *) &msg, sizeof(MsgToUser));
 	*cursor += msg.length;
 	*bytesRemaining -= msg.length;
 	return 0;
@@ -2739,6 +2866,8 @@ static int	parseFaultHandlerTLV(InFdu *fdu, unsigned char **cursor,
 static int	parseFlowLabelTLV(InFdu *fdu, unsigned char **cursor,
 			int length, int *bytesRemaining)
 {
+	Sdr	sdr = getIonsdr();
+
 	if (length == 0)	/*	Null flow label.		*/
 	{
 		return 0;	/*	Nothing to do.			*/
@@ -2746,17 +2875,17 @@ static int	parseFlowLabelTLV(InFdu *fdu, unsigned char **cursor,
 
 	if (fdu->flowLabel)
 	{
-		sdr_free(cfdpSdr, fdu->flowLabel);
+		sdr_free(sdr, fdu->flowLabel);
 	}
 
-	fdu->flowLabel = sdr_malloc(cfdpSdr, length);
+	fdu->flowLabel = sdr_malloc(sdr, length);
 	if (fdu->flowLabel == 0)
 	{
 		putErrmsg("Can't retain flow label.", NULL);
 		return -1;
 	}
 
-	sdr_write(cfdpSdr, fdu->flowLabel, (char *) *cursor, length);
+	sdr_write(sdr, fdu->flowLabel, (char *) *cursor, length);
 	fdu->flowLabelLength = length;
 	*cursor += length;
 	*bytesRemaining -= length;
@@ -2846,6 +2975,8 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	int		i;
 	CfdpHandler	handler;
 	CfdpEvent	event;
+	Sdr		sdr = getIonsdr();
+	CfdpDB		*cfdpConstants = _cfdpConstants();
 
 	if (fdu->eofReceived)
 	{
@@ -2927,7 +3058,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 
 	fdu->checkTime = getUTCTime();
 	fdu->checkTime += cfdpConstants->checkTimerPeriod;
-	sdr_write(cfdpSdr, fduObj, (char *) fdu, sizeof(InFdu));
+	sdr_write(sdr, fduObj, (char *) fdu, sizeof(InFdu));
 	return checkInFduComplete(fdu, fduObj, fduElt);
 }
 
@@ -2938,6 +3069,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 	int		i;
 	unsigned int	fileSize = 0;		/*	Ignore it.	*/
 	char		stringBuf[256];
+	Sdr		sdr = getIonsdr();
 	CfdpEvent	event;
 	CfdpHandler	handler;
 
@@ -2971,7 +3103,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 		cursor += i;
 		bytesRemaining -= i;
 		stringBuf[i] = 0;
-		fdu->sourceFileName = sdr_string_create(cfdpSdr, stringBuf);
+		fdu->sourceFileName = sdr_string_create(sdr, stringBuf);
 		if (fdu->sourceFileName == 0)
 		{
 			putErrmsg("Can't retain source file name.", stringBuf);
@@ -2992,7 +3124,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 		cursor += i;
 		bytesRemaining -= i;
 		stringBuf[i] = 0;
-		fdu->destFileName = sdr_string_create(cfdpSdr, stringBuf);
+		fdu->destFileName = sdr_string_create(sdr, stringBuf);
 		if (fdu->destFileName == 0)
 		{
 			putErrmsg("Can't retain dest file name.", stringBuf);
@@ -3008,7 +3140,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 		{
 			/*	Compressed: use destination file name.	*/
 
-			fdu->sourceFileName = sdr_string_create(cfdpSdr,
+			fdu->sourceFileName = sdr_string_create(sdr,
 					stringBuf);
 			if (fdu->sourceFileName == 0)
 			{
@@ -3040,14 +3172,14 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 			sizeof(CfdpTransactionId));
 	if (fdu->sourceFileName)
 	{
-		sdr_string_read(cfdpSdr, stringBuf, fdu->sourceFileName);
-		event.sourceFileName = sdr_string_create(cfdpSdr, stringBuf);
+		sdr_string_read(sdr, stringBuf, fdu->sourceFileName);
+		event.sourceFileName = sdr_string_create(sdr, stringBuf);
 	}
 
 	if (fdu->destFileName)
 	{
-		sdr_string_read(cfdpSdr, stringBuf, fdu->destFileName);
-		event.destFileName = sdr_string_create(cfdpSdr, stringBuf);
+		sdr_string_read(sdr, stringBuf, fdu->destFileName);
+		event.destFileName = sdr_string_create(sdr, stringBuf);
 	}
 
 	event.fileSize = fileSize;	/*	Projected, not actual.	*/
@@ -3059,18 +3191,18 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 		return -1;
 	}
 
-	sdr_write(cfdpSdr, fduObj, (char *) fdu, sizeof(InFdu));
+	sdr_write(sdr, fduObj, (char *) fdu, sizeof(InFdu));
 
 	/*	Metadata PDU has been fully processed.  Now follow up.	*/
 
 	if (fdu->destFileName)
 	{
-		sdr_string_read(cfdpSdr, stringBuf, fdu->destFileName);
+		sdr_string_read(sdr, stringBuf, fdu->destFileName);
 		if (checkFile(stringBuf) == 1)
 		{
 			/*	This file already exists.		*/
 
-			putErrmsg("CFDP: file already exists.", stringBuf);
+			writeMemoNote("[?] File already exists.", stringBuf);
 			if (handleFilestoreRejection(fdu, 0, &handler) < 0)
 			{
 				return -1;
@@ -3099,6 +3231,9 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 	int			pduIsFileData;
 	int			pduIsTowardSender;
 	int			modeIsUnacknowledged;
+	Sdr			sdr = getIonsdr();
+	CfdpDB			*cfdpConstants = _cfdpConstants();
+	CfdpVdb			*cfdpvdb = _cfdpvdb(NULL);
 	int			crcIsPresent;
 	int			dataFieldLength;
 	int			entityNbrLength;
@@ -3117,6 +3252,7 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 #if CFDPDEBUG
 printf("...in cfdpHandleInboundPdu...\n"); 
 #endif
+	CHKERR(buf);
 	memset((char *) &sourceEntityNbr, 0, sizeof(CfdpNumber));
 	memset((char *) &transactionNbr, 0, sizeof(CfdpNumber));
 	memset((char *) &destinationEntityNbr, 0, sizeof(CfdpNumber));
@@ -3200,7 +3336,7 @@ printf("...PDU is misdirected...\n");
 		return 0;		/*	Misdirected PDU.	*/
 	}
 
-	if (cfdpVdb->watching & WATCH_q)
+	if (cfdpvdb->watching & WATCH_q)
 	{
 		putchar('q');
 		fflush(stdout);
@@ -3221,18 +3357,18 @@ printf("...wrong CFDP transmission mode...\n");
 
 	/*	Get FDU, creating as necessary.				*/
 
-	sdr_begin_xn(cfdpSdr);
+	sdr_begin_xn(sdr);
 	fduObj = findInFdu(&transactionId, &fduBuf, &fduElt, 1);
 	if (fduObj == 0)
 	{
-		sdr_cancel_xn(cfdpSdr);
+		sdr_cancel_xn(sdr);
 		putErrmsg("Can't create new inbound FDU.", NULL);
 		return -1;
 	}
 
 	if (fduBuf.state == FduCanceled)
 	{
-		return sdr_end_xn(cfdpSdr); /*	Useless PDU.		*/
+		return sdr_end_xn(sdr); /*	Useless PDU.		*/
 	}
 
 	if (pduIsFileData)
@@ -3242,16 +3378,16 @@ printf("...wrong CFDP transmission mode...\n");
 		if (result < 0)
 		{
 			putErrmsg("UTI can't handle file data PDU.", NULL);
-			sdr_cancel_xn(cfdpSdr);
+			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
-		return sdr_end_xn(cfdpSdr);
+		return sdr_end_xn(sdr);
 	}
 
 	if (bytesRemaining < 1)
 	{
-		return sdr_end_xn(cfdpSdr); /*	Malformed PDU.		*/
+		return sdr_end_xn(sdr); /*	Malformed PDU.		*/
 	}
 
 	directiveCode = *cursor;
@@ -3270,15 +3406,15 @@ printf("...wrong CFDP transmission mode...\n");
 		break;
 
 	default:			/*	Invalid PDU for unack.	*/
-		return sdr_end_xn(cfdpSdr);
+		return sdr_end_xn(sdr);
 	}
 
 	if (result < 0)
 	{
 		putErrmsg("UTI can't handle file directive PDU.", NULL);
-		sdr_cancel_xn(cfdpSdr);
+		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
-	return sdr_end_xn(cfdpSdr);
+	return sdr_end_xn(sdr);
 }

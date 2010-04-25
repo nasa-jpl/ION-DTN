@@ -12,12 +12,31 @@
 #include "platform.h"
 #include "psm.h"
 
-static int	psmwatch_count = 0;
+static unsigned int	psmwatch_count(int *newValue)
+{
+	unsigned int	count = 1;
+
+	if (newValue)
+	{
+		if (*newValue == 0)	/*	Decrement.		*/
+		{
+			count--;
+		}
+		else			/*	Initialize.		*/
+		{
+			count = *newValue;
+		}
+	}
+
+	return count;
+}
 
 static void	handleQuit()
 {
+	int	newCount = 1;	/*	Advance to end of last cycle.	*/
+
 	puts("[Terminated by user.]");
-	psmwatch_count = 1;	/*	Advance to end of last cycle.	*/
+	oK(psmwatch_count(&newCount));
 }
 
 static int	run_psmwatch(char *partitionName, int interval, int verbose)
@@ -25,15 +44,7 @@ static int	run_psmwatch(char *partitionName, int interval, int verbose)
 	PsmPartition	psm;
 	PsmMgtOutcome	outcome;
 	PsmUsageSummary	psmsummary;
-
-	if (interval > 0)
-	{
-		if (psmwatch_count < 0)
-		{
-			puts("count must be >= 0 cycles");
-			return 0;
-		}
-	}
+	int		decrement = 0;
 
 	if (sm_ipc_init() < 0)
 	{
@@ -68,13 +79,13 @@ static int	run_psmwatch(char *partitionName, int interval, int verbose)
 		return 0;
 	}
 
-	signal(SIGTERM, handleQuit);
-	while (psmwatch_count > 0)
+	isignal(SIGTERM, handleQuit);
+	while (psmwatch_count(NULL) > 0)
 	{
 		snooze(interval);
 		psm_print_trace(psm, verbose);
 	       	psm_clear_trace(psm);
-		psmwatch_count--;
+		oK(psmwatch_count(&decrement));
 	}
 
 	psm_stop_trace(psm);
@@ -88,19 +99,15 @@ int	psmwatch(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char	*partitionName = (char *) a1;
-	int	interval = a2;
-	int	verbose = 0;
-
-	psmwatch_count = a3;
-	if (interval > 1)
-	{
-		verbose = a4;
-	}
+	int	interval = a2 >= 0 ? a2 : 0;
+	int	count = a3 > 0 ? a3 : 1;
+	int	verbose = a4 ? 1 : 0;
 #else
 int	main(int argc, char **argv)
 {
 	char	*partitionName;
 	int	interval;
+	int	count;
 	int	verbose = 0;
 
 	if (argc < 4)
@@ -111,21 +118,23 @@ int	main(int argc, char **argv)
 	}
 
 	partitionName = argv[1];
-	interval = atoi(argv[2]);
+	interval = strtol(argv[2], NULL, 0);
 	if (interval < 0)
 	{
-		puts("interval must be >= 0 seconds");
-		return 0;
+		interval = 0;
 	}
 
-	psmwatch_count = atoi(argv[3]);
-	if (interval > 0)
+	count = strtol(argv[3], NULL, 0);
+	if (count < 1)
 	{
-		if (argc > 4)
-		{
-			verbose = 1;
-		}
+		count = 1;
+	}
+
+	if (argc > 4)
+	{
+		verbose = 1;
 	}
 #endif
+	oK(psmwatch_count(&count));
 	return run_psmwatch(partitionName, interval, verbose);
 }

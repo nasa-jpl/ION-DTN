@@ -15,11 +15,23 @@
 #include "sdrP.h"	/*	TEMPORARY for sptrace test.		*/
 #endif
 
-static int	sdr2file_stopped = 0;
+static int	sdr2file_stopped(int *newState)
+{
+	int	state = 0;
+
+	if (newState)
+	{
+		state = *newState;
+	}
+
+	return state;
+}
 
 static void	handleQuit()
 {
-	sdr2file_stopped = 1;
+	int	stop = 1;
+
+	oK(sdr2file_stopped(&stop));
 }
 
 static int	run_sdr2file(int configFlags)
@@ -32,7 +44,7 @@ static int	run_sdr2file(int configFlags)
 	Object		cycleObj;
 	Cycle		currentCycle;
 	char		fileName[256];
-	FILE		*outputFile;
+	int		outputFile;
 	Object		lineListElt;
 	Object		lineObj;	/*	An SDR string.		*/
 	char		line[SDRSTRING_BUFSZ];
@@ -98,8 +110,8 @@ psm_start_trace(sdrwm, 5000000, NULL);
 	printf("working on cycle %d.\n", currentCycle.cycleNbr);
 	isprintf(fileName, sizeof fileName, "file_copy_%d",
 			currentCycle.cycleNbr);
-	outputFile = fopen(fileName, "a");
-	if (outputFile == NULL)
+	outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
+	if (outputFile < 0)
 	{
 		perror("Can't open output file");
 		return 0;
@@ -107,7 +119,7 @@ psm_start_trace(sdrwm, 5000000, NULL);
 
 	/*	Copy text lines from SDR to file.			*/
 
-	signal(SIGINT, handleQuit);
+	isignal(SIGINT, handleQuit);
 #if 0
 psm_print_trace(sdrwm, 0);
 psm_clear_trace(sdrwm);
@@ -116,7 +128,7 @@ sdr_clear_trace(sdr);
 #endif
 	while (1)
 	{
-		if (sdr2file_stopped)
+		if (sdr2file_stopped(NULL))
 		{
 			break;
 		}
@@ -145,7 +157,7 @@ sdr_clear_trace(sdr);
 		sdr_list_delete(sdr, lineListElt, (SdrListDeleteFn) NULL, NULL);
 		if (sdr_end_xn(sdr))
 		{
-			fclose(outputFile);
+			close(outputFile);
 			puts("SDR transaction failed.");
 			return 0;
 		}
@@ -179,8 +191,8 @@ if (lineCount > 100)
 		{
 			/*	Delete cycle from SDR, close file.	*/
 
-			fclose(outputFile);
-			outputFile = NULL;
+			close(outputFile);
+			outputFile = -1;
 			sdr_begin_xn(sdr);
 			sdr_list_destroy(sdr, currentCycle.lines,
 					(SdrListDeleteFn) NULL, NULL);
@@ -215,8 +227,8 @@ if (lineCount > 100)
 			printf("working on cycle %d.\n", currentCycle.cycleNbr);
 			isprintf(fileName, sizeof fileName, "file_copy_%d",
 					currentCycle.cycleNbr);
-			outputFile = fopen(fileName, "a");
-			if (outputFile == NULL)
+			outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
+			if (outputFile < 0)
 			{
 				perror("Can't open output file");
 				return 0;
@@ -224,18 +236,18 @@ if (lineCount > 100)
 		}
 		else	/*	Just write line to output file.		*/
 		{
-			if (fputs(line, outputFile) < 0)
+			if (iputs(outputFile, line) < 0)
 			{
-				fclose(outputFile);
+				close(outputFile);
 				perror("Can't write to output file");
 				return 0;
 			}
 		}
 	}
 
-	if (outputFile)
+	if (outputFile != -1)
 	{
-		fclose(outputFile);
+		close(outputFile);
 	}
 #if 0
 psm_stop_trace(sdrwm);

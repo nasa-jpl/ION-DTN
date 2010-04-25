@@ -6,7 +6,7 @@ BP = ../bp
 TEST = ../test
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Dlinux -fPIC
+OPT = -g -Wall -Werror -Dlinux -fPIC
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

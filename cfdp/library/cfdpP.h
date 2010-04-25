@@ -20,8 +20,6 @@
 extern "C" {
 #endif
 
-#define	CFDP_DBNAME		"cfdpdb"
-#define CFDP_VDBNAME		"cfdpvdb"
 #define	CFDP_MAX_PDU_SIZE	65535
 
 typedef struct
@@ -244,7 +242,7 @@ typedef struct
 	 *	first byte of data passed to this function is
 	 *	corrupted (increased by 1) before it is written.
 	 *	This enables the checksum check function to be
-	 *	exercised.						*/
+	 *	exercised in testing.					*/
 
 	unsigned int	corruptionModulus;
 } CfdpVdb;

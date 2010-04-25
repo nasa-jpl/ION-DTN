@@ -556,6 +556,7 @@ int	main(int argc, char *argv[])
 	char		*end;
 	pthread_t	uplinkThread;
 	pthread_t	downlinkThread;
+	int		cmdFile;
 	char		line[256];
 	int		lineLength;
 	unsigned long	owlt;
@@ -640,7 +641,7 @@ int	main(int argc, char *argv[])
 		exit(0);
 	}
 
-	signal(SIGPIPE, SIG_IGN);
+	isignal(SIGPIPE, SIG_IGN);
 	sm_ipc_init();
 	if (pthread_create(&uplinkThread, NULL, offerUplink, &stpBuf))
 	{
@@ -656,22 +657,22 @@ int	main(int argc, char *argv[])
 
 	/*	Now accept OWLT changes in real time.			*/
 
+	cmdFile = fileno(stdin);
 	while (1)
 	{
 		printf(": ");
-		if (fgets(line, sizeof line, stdin) == NULL)
+		fflush(stdout);
+		if (igets(cmdFile, line, sizeof line, &lineLength) == NULL)
 		{
-			perror("owlttb fgets failed");
+			putErrmsg("igets failed.", NULL);
 			break;		/*	Out of loop.		*/
 		}
 
-		lineLength = strlen(line) - 1;	/*	lose newline	*/
 		if (lineLength < 1)
 		{
 			continue;
 		}
 
-		line[lineLength] = 0;
 		switch (line[0])
 		{
 		case 'q':		/*	Quit.			*/

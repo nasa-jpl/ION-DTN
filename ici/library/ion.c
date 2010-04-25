@@ -231,7 +231,7 @@ static IonVdb	*_ionvdb(char **name)
 		vdbAddress = psm_zalloc(ionwm, sizeof(IonVdb));
 		if (vdbAddress == 0)
 		{
-			sdr_cancel_xn(sdr);
+			sdr_exit_xn(sdr);
 			putErrmsg("No space for volatile database.", NULL);
 			return NULL;
 		}
@@ -243,13 +243,13 @@ static IonVdb	*_ionvdb(char **name)
 		|| (vdb->probes = sm_list_create(ionwm)) == 0
 		|| psm_catlg(ionwm, *name, vdbAddress) < 0)
 		{
-			sdr_cancel_xn(sdr);
+			sdr_exit_xn(sdr);
 			putErrmsg("Can't initialize volatile database.", NULL);
 			return NULL;
 		}
 
 		vdb->deltaFromUTC = (_ionConstants())->deltaFromUTC;
-		sdr_cancel_xn(sdr);	/*	Unlock memory.		*/
+		sdr_exit_xn(sdr);	/*	Unlock memory.		*/
 	}
 
 	return vdb;

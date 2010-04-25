@@ -21,7 +21,7 @@ static int	run_file2sm(char *fileName)
 	PsmMgtOutcome	outcome;
 	PsmAddress	testlist;
 	sm_SemId	semaphore;
-	FILE		*inputFile;
+	int		inputFile;
 	unsigned long	startLineNbr;
 	char		line[256];
 	char		*eofLine = "*** End of the file ***\n";
@@ -74,8 +74,8 @@ static int	run_file2sm(char *fileName)
 
 	/*	Establish position at first record of file.		*/
 
-	inputFile = fopen(fileName, "r");
-	if (inputFile == NULL)
+	inputFile = open(fileName, O_RDONLY, 0777);
+	if (inputFile < 0)
 	{
 		perror("Can't open input file");
 		return 0;
@@ -85,11 +85,11 @@ static int	run_file2sm(char *fileName)
 	endLineNbr = startLineNbr = 0;
 	while (1)
 	{
-		if (fgets(line, 256, inputFile) == NULL)
+		if (igets(inputFile, line, sizeof line, &lineLen) == NULL)
 		{
-			if (feof(inputFile))
+			if (lineLen == 0)
 			{
-				fclose(inputFile);
+				close(inputFile);
 				getCurrentTime(&endTime);
 				linesProcessed = endLineNbr - startLineNbr;
 				if (endTime.tv_usec < startTime.tv_usec)
@@ -122,8 +122,8 @@ static int	run_file2sm(char *fileName)
 				}
 
 				sm_SemGive(semaphore);
-				inputFile = fopen(fileName, "r");
-				if (inputFile == NULL)
+				inputFile = open(fileName, O_RDONLY, 0777);
+				if (inputFile < 0)
 				{
 					perror("Can't reopen input file");
 					return 0;
@@ -135,7 +135,7 @@ static int	run_file2sm(char *fileName)
 			}
 			else
 			{
-				fclose(inputFile);
+				close(inputFile);
 				perror("Can't read from input file");
 				return 0;
 			}
@@ -147,7 +147,7 @@ static int	run_file2sm(char *fileName)
 		lineAddress = psm_zalloc(wm, lineLen);
 		if (lineAddress == 0)
 		{
-			fclose(inputFile);
+			close(inputFile);
 			puts("Ran out of memory.");
 			return 0;
 		}
@@ -155,7 +155,7 @@ static int	run_file2sm(char *fileName)
 		memcpy((char *) psp(wm, lineAddress), line, lineLen);
 		if (sm_list_insert_last(wm, testlist, lineAddress) == 0)
 		{
-			fclose(inputFile);
+			close(inputFile);
 			puts("Ran out of memory.");
 			return 0;
 		}

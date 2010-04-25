@@ -235,7 +235,7 @@ Requests issuance of a report on the transmission or reception progress of
 the indicated transaction.  The report takes the form of a character string
 that is returned in a CfdpEvent structure; use cfdp_get_event() to receive
 the event (which may be matched to the request by request number).  Returns
-request number on success, -1 on any error.
+request number on success, 0 if transaction is unknown, -1 on any error.
 
 =item int cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr, CfdpTransactionId *transactionId, char *sourceFileNameBuf, char *destFileNameBuf, unsigned int *fileSize, MetadataList *messagesToUser, unsigned int *offset, unsigned int *length, CfdpCondition *condition, unsigned int *progress, CfdpFileStatus *fileStatus, CfdpDeliveryCode *deliveryCode, CfdpTransactionId *originatingTransactionId, char *statusReportBuf, MetadataList *filestoreResponses);
 
@@ -273,9 +273,8 @@ identified by I<transactionID>.  The extents (offset and length) are returned
 in the elements of I<extentsArray>; the number of extents returned in the
 array is the total number of continuous extents received so far, or
 I<extentCount>, whichever is less.  The total number of extents received
-so far is returned as the new value of I<extentCount>.  On user error
-(transaction is nonexistent or is outbound), returns 0.  On system failure,
-returns -1.  Otherwise returns 1.
+so far is returned as the new value of I<extentCount>.  On system failure,
+returns -1.  Otherwise returns 0.
 
 =back
 

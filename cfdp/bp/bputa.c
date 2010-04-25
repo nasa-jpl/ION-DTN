@@ -164,7 +164,7 @@ int	main(int argc, char **argv)
 	{
 		bp_close(txSap);
 		putSysErrmsg("bputa can't create receiver thread", NULL);
-		return 1;
+		return -1;
 	}
 
 	writeMemo("[i] bputa is running.");
@@ -205,7 +205,7 @@ terminating.");
 				&fduBuffer.destinationEntityNbr);
 		if (destinationNodeNbr == 0)
 		{
-			putErrmsg("bputa declining to send to node 0.", NULL);
+			writeMemo("[?] bputa declining to send to node 0.");
 			continue;
 		}
 

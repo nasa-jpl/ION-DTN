@@ -9,14 +9,28 @@
 
 #include "cfdpP.h"
 
-static Sdr	sdr = NULL;
-static int	echo = 0;
-static CfdpDB	*cfdpConstants;
-static CfdpVdb	*vdb;
+static int	_echo(int *newValue)
+{
+	static int	state = 0;
+	
+	if (newValue)
+	{
+		if (*newValue == 1)
+		{
+			state = 1;
+		}
+		else
+		{
+			state = 0;
+		}
+	}
+
+	return state;
+}
 
 static void	printText(char *text)
 {
-	if (echo)
+	if (_echo(NULL))
 	{
 		writeMemo(text);
 	}
@@ -81,43 +95,15 @@ static void	initializeCfdp(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (ionAttach() < 0)
-	{
-		putErrmsg("cfdpadmin can't attach to ION.", NULL);
-		return;
-	}
-
 	if (cfdpInit() < 0)
 	{
 		putErrmsg("cfdpadmin can't initialize CFDP.", NULL);
-		return;
 	}
-
-	sdr = getIonsdr();
-	cfdpConstants = getCfdpConstants();
-	vdb = getCfdpVdb();
-}
-
-static int	attachToCfdp()
-{
-	if (sdr == NULL)
-	{
-		if (cfdpAttach() < 0)
-		{
-			printText("CFDP not initialized yet.");
-			return -1;
-		}
-
-		sdr = getIonsdr();
-		cfdpConstants = getCfdpConstants();
-		vdb = getCfdpVdb();
-	}
-
-	return 0;
 }
 
 static void	manageDiscard(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newDiscard;
@@ -146,6 +132,7 @@ static void	manageDiscard(int tokenCount, char **tokens)
 
 static void	manageRequirecrc(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newRequirecrc;
@@ -174,6 +161,7 @@ static void	manageRequirecrc(int tokenCount, char **tokens)
 
 static void	manageFillchar(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newFillchar;
@@ -203,6 +191,7 @@ static void	manageFillchar(int tokenCount, char **tokens)
 
 static void	manageCkperiod(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newCkperiod;
@@ -231,6 +220,7 @@ static void	manageCkperiod(int tokenCount, char **tokens)
 
 static void	manageMaxtimeouts(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newMaxtimeouts;
@@ -259,6 +249,7 @@ static void	manageMaxtimeouts(int tokenCount, char **tokens)
 
 static void	manageMaxtrnbr(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newMaxtrnbr;
@@ -287,6 +278,7 @@ static void	manageMaxtrnbr(int tokenCount, char **tokens)
 
 static void	manageSegsize(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newSegsize;
@@ -315,6 +307,7 @@ static void	manageSegsize(int tokenCount, char **tokens)
 
 static void	manageMtusize(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newMtusize;
@@ -343,7 +336,7 @@ static void	manageMtusize(int tokenCount, char **tokens)
 
 static void	executeManage(int tokenCount, char **tokens)
 {
-	if (attachToCfdp() < 0) return;
+	if (cfdpAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Manage what?");
@@ -403,10 +396,11 @@ static void	executeManage(int tokenCount, char **tokens)
 
 static void	executeInfo()
 {
+	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(CfdpDB, db);
 	char	buffer[256];
 
-	if (attachToCfdp() < 0) return;
+	if (cfdpAttach() < 0) return;
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 	GET_OBJ_POINTER(sdr, CfdpDB, db, getCfdpDbObject());
 	isprintf(buffer, sizeof buffer, "xncount=%lu, maxtrnbr=%lu, \
@@ -423,10 +417,11 @@ inactivity=%u, ckperiod=%u, maxtimeouts=%u", db->transactionCounter,
 
 static void	switchWatch(int tokenCount, char **tokens)
 {
+	CfdpVdb	*vdb = getCfdpVdb();
 	char	buffer[80];
 	char	*cursor;
 
-	if (attachToCfdp() < 0) return;
+	if (cfdpAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Switch watch in what way?");
@@ -470,6 +465,8 @@ static void	switchWatch(int tokenCount, char **tokens)
 
 static void	switchEcho(int tokenCount, char **tokens)
 {
+	int	state;
+
 	if (tokenCount < 2)
 	{
 		printText("Echo on or off?");
@@ -479,44 +476,27 @@ static void	switchEcho(int tokenCount, char **tokens)
 	switch (*(tokens[1]))
 	{
 	case '0':
-		echo = 0;
+		state = 0;
 		break;
 
 	case '1':
-		echo = 1;
+		state = 1;
 		break;
 
 	default:
 		printText("Echo on or off?");
+		return;
 	}
+
+	oK(_echo(&state));
 }
 
-static int	processLine(char *line)
+static int	processLine(char *line, int lineLengt)
 {
-	int	lineLength;
 	int	tokenCount;
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
-
-	if (line == NULL) return 0;
-
-	lineLength = strlen(line);
-	if (lineLength == 0) return 0;
-
-	if (line[lineLength - 1] == 0x0a)	/*	LF (newline)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength == 0) return 0;
-	}
-
-	if (line[lineLength - 1] == 0x0d)	/*	CR (DOS text)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength == 0) return 0;
-	}
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -570,7 +550,7 @@ static int	processLine(char *line)
 			return 0;
 
 		case 's':
-			if (attachToCfdp() < 0)
+			if (cfdpAttach() < 0)
 			{
 				return 0;
 			}
@@ -583,13 +563,13 @@ static int	processLine(char *line)
 
 			if (cfdpStart(tokens[1]) < 0)
 			{
-				putErrmsg("can't start CFDP.", NULL);
+				putErrmsg("Can't start CFDP.", NULL);
 			}
 
 			return 0;
 
 		case 'x':
-			if (attachToCfdp() < 0)
+			if (cfdpAttach() < 0)
 			{
 				return 0;
 			}
@@ -626,33 +606,41 @@ static int	processLine(char *line)
 int	cfdpadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char		*cmdFileName = (char *) a1;
+	char	*cmdFileName = (char *) a1;
 #else
 int	main(int argc, char **argv)
 {
-	char		*cmdFileName = (argc > 1 ? argv[1] : NULL);
+	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
 #endif
-	FILE		*cmdFile;
-	char		line[256];
+	int	cmdFile;
+	char	line[256];
+	int	len;
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
+		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
 		{
 			printf(": ");
-			if (fgets(line, sizeof line, stdin) == NULL)
+			fflush(stdout);
+			if (igets(cmdFile, line, sizeof line, &len) == NULL)
 			{
-				if (feof(stdin))
+				if (len == 0)
 				{
 					break;
 				}
 
-				perror("cfdpadmin fgets failed");
+				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
 
-			if (processLine(line))
+			if (len == 0)
+			{
+				continue;
+			}
+
+			if (processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -660,15 +648,15 @@ int	main(int argc, char **argv)
 	}
 	else if (strcmp(cmdFileName, ".") == 0)	/*	Shutdown.	*/
 	{
-		if (attachToCfdp() == 0)
+		if (cfdpAttach() == 0)
 		{
 			cfdpStop();
 		}
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = fopen(cmdFileName, "r");
-		if (cmdFile == NULL)
+		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		if (cmdFile < 0)
 		{
 			perror("Can't open command file");
 		}
@@ -676,29 +664,31 @@ int	main(int argc, char **argv)
 		{
 			while (1)
 			{
-				if (fgets(line, sizeof line, cmdFile) == NULL)
+				if (igets(cmdFile, line, sizeof line, &len)
+						== NULL)
 				{
-					if (feof(cmdFile))
+					if (len == 0)
 					{
 						break;	/*	Loop.	*/
 					}
 
-					perror("cfdpadmin fgets failed");
+					putErrmsg("igets failed.", NULL);
 					break;		/*	Loop.	*/
 				}
 
-				if (line[0] == '#')	/*	Comment.*/
+				if (len == 0
+				|| line[0] == '#')	/*	Comment.*/
 				{
 					continue;
 				}
 
-				if (processLine(line))
+				if (processLine(line, len))
 				{
 					break;	/*	Out of loop.	*/
 				}
 			}
 
-			fclose(cmdFile);
+			close(cmdFile);
 		}
 	}
 

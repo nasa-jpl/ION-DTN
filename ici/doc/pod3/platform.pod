@@ -310,6 +310,10 @@ adhere to) is as follows:
 	indications of nominal completion.  Any additional information
 	produced by the function, such as an indication of "success",
 	must be returned as the value of a reference argument.
+	[Note that the SDR hash table management functions deviate
+	from this rule, returning 0 to indicate nominal completion
+	but functional failure (duplicate key or key/value pair not
+	found) and returning 1 to indicate functional success.]
 
 	So when returning a value that indicates nominal completion
 	of the function -- even if the result might be interpreted
@@ -319,7 +323,7 @@ adhere to) is as follows:
 
 	Use putErrmsg() and putSysErrmsg() only when functions are
 	unable to proceed to nominal completion.  Use writeMemo()
-	or writeMemoNote() if you want to log a message.
+	or writeMemoNote() if you just want to log a message.
 
 	Whenever returning a value that indicates an error:
 
