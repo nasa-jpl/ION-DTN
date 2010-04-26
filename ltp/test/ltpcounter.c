@@ -18,7 +18,7 @@ static int	running;
 
 static void	showProgress()
 {
-	printf("v");
+	PUTS("v");
 	fflush(stdout);
 	alarm(5);
 }
@@ -31,9 +31,9 @@ static void	handleQuit()
 
 static void	printCount()
 {
-	printf("%10d sessions canceled.\n", sessionsCanceled);
-	printf("%10d blocks received, %10d bytes.\n", blocksReceived,
-			bytesReceived);
+	PUTMEMO("Sessions canceled", itoa(sessionsCanceled));
+	PUTMEMO("Blocks received", itoa(blocksReceived));
+	PUTMEMO("Bytes received", itoa(bytesReceived));
 	fflush(stdout);
 }
 
@@ -138,7 +138,7 @@ eob=%d.", sessionId.sourceEngineId, sessionId.sessionNbr, dataOffset,
 
 	writeErrmsgMemos();
 	printCount();
-	puts("Stopping ltpcounter.");
+	PUTS("Stopping ltpcounter.");
 	ltp_close(1);
 	ltp_detach();
 	return 0;

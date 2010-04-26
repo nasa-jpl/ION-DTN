@@ -170,7 +170,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: udpcli <local host name>[:<port number>]");
+		PUTS("Usage: udpcli <local host name>[:<port number>]");
 		return 0;
 	}
 

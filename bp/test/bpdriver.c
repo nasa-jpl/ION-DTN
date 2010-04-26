@@ -54,30 +54,30 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	if (cyclesRemaining == 0 || ownEid == NULL || destEid == NULL
 	|| aduLength == 0)
 	{
-		puts("Usage: bpdriver <number of cycles> <own endpoint ID> \
+		PUTS("Usage: bpdriver <number of cycles> <own endpoint ID> \
 <destination endpoint ID> [<payload size>]");
-		puts("  Payload size defaults to 60000 bytes.");
-		puts("");
-		puts("  Normal operation of bpdriver is to wait for");
-		puts("  acknowledgment after sending each bundle.  To run");
-		puts("  in streaming mode instead, specify a negative");
-		puts("  payload size; the absolute value of this parameter");
-		puts("  will be used as the actual payload size.");
-		puts("");
-		puts("  To use payload sizes chosen at random from the");
-	       	puts("	range 1024 to 62464, in multiples of 1024,");
-	       	puts("	specify payload size 1 (or -1 for streaming mode).");
-		puts("");
-		puts("  bpdriver normally runs with custody transfer");
-	       	puts("	disabled.  To request custody transfer for all");
-	       	puts("	bundles sent, specify number of cycles as a");
-	       	puts("	negative number; the absolute value of this");
-	       	puts("	parameter will be used as the actual number of");
-	       	puts("	cycles.");
-		puts("");
-		puts("  Destination (receiving) application must be bpecho");
-		puts("  when bpdriver is run in stop-and-wait mode, should");
-		puts("  be bpcounter in streaming mode.");
+		PUTS("  Payload size defaults to 60000 bytes.");
+		PUTS("");
+		PUTS("  Normal operation of bpdriver is to wait for");
+		PUTS("  acknowledgment after sending each bundle.  To run");
+		PUTS("  in streaming mode instead, specify a negative");
+		PUTS("  payload size; the absolute value of this parameter");
+		PUTS("  will be used as the actual payload size.");
+		PUTS("");
+		PUTS("  To use payload sizes chosen at random from the");
+	       	PUTS("	range 1024 to 62464, in multiples of 1024,");
+	       	PUTS("	specify payload size 1 (or -1 for streaming mode).");
+		PUTS("");
+		PUTS("  bpdriver normally runs with custody transfer");
+	       	PUTS("	disabled.  To request custody transfer for all");
+	       	PUTS("	bundles sent, specify number of cycles as a");
+	       	PUTS("	negative number; the absolute value of this");
+	       	PUTS("	parameter will be used as the actual number of");
+	       	PUTS("	cycles.");
+		PUTS("");
+		PUTS("  Destination (receiving) application must be bpecho");
+		PUTS("  when bpdriver is run in stop-and-wait mode, should");
+		PUTS("  be bpcounter in streaming mode.");
 		return 0;
 	}
 
@@ -196,7 +196,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		cyclesRemaining--;
 		if ((cyclesRemaining % 1000) == 0)
 		{
-			printf("%d\n", cyclesRemaining);
+			PUTS(itoa(cyclesRemaining));
 		}
 
 		if (streaming)
@@ -229,7 +229,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	bp_close(sap);
 	endTime = time(NULL);
 	writeErrmsgMemos();
-	puts("Stopping bpdriver.");
+	PUTS("Stopping bpdriver.");
 	sdr_begin_xn(sdr);
 	zco_destroy_file_ref(sdr, fileRef);
 	if (sdr_end_xn(sdr) < 0)
@@ -238,17 +238,17 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	}
 
 	interval = endTime - startTime;
-	printf("Time: %ld seconds.\n", interval);
-	printf("Data size: %d bytes in %d bundles.\n", bytesSent,
-			cycles - cyclesRemaining);
+	PUTMEMO("Time (seconds)", itoa(interval));
+	PUTMEMO("Total bundles", itoa(cycles - cyclesRemaining));
+	PUTMEMO("Total bytes", itoa(bytesSent));
 	if (interval <= 0)
 	{
-		puts("Interval is too short to measure rate.");
+		PUTS("Interval is too short to measure rate.");
 	}
 	else
 	{
-		printf("Throughput: %lu bytes per second.\n",
-				bytesSent / interval);
+		PUTMEMO("Throughput (bytes per second)",
+				itoa(bytesSent / interval));
 	}
 
 	bp_detach();

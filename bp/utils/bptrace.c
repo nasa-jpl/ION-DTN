@@ -150,7 +150,7 @@ int	bptrace(int a1, int a2, int a3, int a4, int a5,
 	if (ownEid == NULL || destEid == NULL || classOfService == NULL
 	|| traceText == NULL)
 	{
-		puts("Missing argument(s) for bptrace.  Ignored.");
+		PUTS("Missing argument(s) for bptrace.  Ignored.");
 		return 0;
 	}
 #else
@@ -166,22 +166,22 @@ int	main(int argc, char **argv)
 
 	if (argc < 7)
 	{
-		puts("Usage:  bptrace <own EID> <destination EID> <report-to \
+		PUTS("Usage:  bptrace <own EID> <destination EID> <report-to \
 EID> <time to live (seconds)> <class of service> '<trace text>' \
 [<status report flag string>]");
-		puts("\tclass of service: <priority (0, 1, or 2)>[.<ordinal \
+		PUTS("\tclass of service: <priority (0, 1, or 2)>[.<ordinal \
 (0-254)>[.<unreliable (0 or 1)>.<critical (0 or 1)>]]");
-		puts("\tStatus report flag string is a sequence of status \
+		PUTS("\tStatus report flag string is a sequence of status \
 report flags separated by commas, with no embedded whitespace.");
-		puts("\tEach status report flag must be one of the following: \
+		PUTS("\tEach status report flag must be one of the following: \
 rcv, ct, fwd, dlv, del.");
-		puts("\tThe status reported in each bundle status report \
+		PUTS("\tThe status reported in each bundle status report \
 message will be the sum of the applicable status flags:");
-		puts("\t\t 1 = bundle received (rcv)");
-		puts("\t\t 2 = bundle custody accepted (ct)");
-		puts("\t\t 4 = bundle forwarded (fwd)");
-		puts("\t\t 8 = bundle delivered (dlv)");
-		puts("\t\t16 = bundle deleted (del)");
+		PUTS("\t\t 1 = bundle received (rcv)");
+		PUTS("\t\t 2 = bundle custody accepted (ct)");
+		PUTS("\t\t 4 = bundle forwarded (fwd)");
+		PUTS("\t\t 8 = bundle delivered (dlv)");
+		PUTS("\t\t16 = bundle deleted (del)");
 		return 0;
 	}
 

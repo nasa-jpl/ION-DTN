@@ -40,7 +40,7 @@ static void	printText(char *text)
 		writeMemo(text);
 	}
 
-	puts(text);
+	PUTS(text);
 }
 
 static void	handleQuit()
@@ -61,39 +61,39 @@ ionsecadmin.c", lineNbr);
 
 static void	printUsage()
 {
-	puts("Valid commands are:");
-	puts("\tq\tQuit");
-	puts("\th\tHelp");
-	puts("\t?\tHelp");
-	puts("\t1\tInitialize");
-	puts("\t   1");
-	puts("\ta\tAdd");
-	puts("\t   a key <key name> <name of file containing key value>");
-	puts("\t   a babtxrule <receiver eid expression> { '' | \
+	PUTS("Valid commands are:");
+	PUTS("\tq\tQuit");
+	PUTS("\th\tHelp");
+	PUTS("\t?\tHelp");
+	PUTS("\t1\tInitialize");
+	PUTS("\t   1");
+	PUTS("\ta\tAdd");
+	PUTS("\t   a key <key name> <name of file containing key value>");
+	PUTS("\t   a babtxrule <receiver eid expression> { '' | \
 <ciphersuite name> <key name> }");
-	puts("\t\tAn eid expression may be either an EID or a wild card, \
+	PUTS("\t\tAn eid expression may be either an EID or a wild card, \
 i.e., a partial eid expression ending in '*'.");
-	puts("\t   a babrxrule <sender eid expression> { '' | \
+	PUTS("\t   a babrxrule <sender eid expression> { '' | \
 <ciphersuite name> <key name> }");
-	puts("\tc\tChange");
-	puts("\t   c key <key name> <name of file containing key value>");
-	puts("\t   c babtxrule <receiver eid expression> { '' | \
+	PUTS("\tc\tChange");
+	PUTS("\t   c key <key name> <name of file containing key value>");
+	PUTS("\t   c babtxrule <receiver eid expression> { '' | \
 <ciphersuite name> <key name> }");
-	puts("\t   c babrxrule <sender eid expression> { '' | \
+	PUTS("\t   c babrxrule <sender eid expression> { '' | \
 <ciphersuite name> <key name> }");
-	puts("\td\tDelete");
-	puts("\ti\tInfo");
-	puts("\t   {d|i} key <key name>");
-	puts("\t   {d|i} babtxrule <receiver eid expression>");
-	puts("\t   {d|i} babrxrule <sender eid expression>");
-	puts("\tl\tList");
-	puts("\t   l key");
-	puts("\t   l babtxrule");
-	puts("\t   l babrxrule");
-	puts("\te\tEnable or disable echo of printed output to log file");
-	puts("\t   e { 0 | 1 }");
-	puts("\t#\tComment");
-	puts("\t   # <comment text>");
+	PUTS("\td\tDelete");
+	PUTS("\ti\tInfo");
+	PUTS("\t   {d|i} key <key name>");
+	PUTS("\t   {d|i} babtxrule <receiver eid expression>");
+	PUTS("\t   {d|i} babrxrule <sender eid expression>");
+	PUTS("\tl\tList");
+	PUTS("\t   l key");
+	PUTS("\t   l babtxrule");
+	PUTS("\t   l babrxrule");
+	PUTS("\te\tEnable or disable echo of printed output to log file");
+	PUTS("\t   e { 0 | 1 }");
+	PUTS("\t#\tComment");
+	PUTS("\t   # <comment text>");
 }
 
 static void	initializeIonSecurity(int tokenCount, char **tokens)
@@ -578,6 +578,9 @@ int	main(int argc, char **argv)
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
+#ifdef FSWLOGGER
+		return 0;			/*	No stdout.	*/
+#else
 		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
@@ -605,13 +608,14 @@ int	main(int argc, char **argv)
 				break;		/*	Out of loop.	*/
 			}
 		}
+#endif
 	}
 	else					/*	Scripted.	*/
 	{
 		cmdFile = open(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
-			perror("Can't open command file");
+			PERROR("Can't open command file");
 		}
 		else
 		{

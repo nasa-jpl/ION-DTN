@@ -22,7 +22,7 @@ static void	printText(char *text)
 		writeMemo(text);
 	}
 
-	puts(text);
+	PUTS(text);
 }
 
 static void	handleQuit()
@@ -43,45 +43,45 @@ static void	printSyntaxError(int lineNbr)
 
 static void	printUsage()
 {
-	puts("Valid commands are:");
-	puts("\tq\tQuit");
-	puts("\th\tHelp");
-	puts("\t?\tHelp");
-	puts("\t1\tInitialize");
-	puts("\t   1 <est. number of sessions> <bytes reserved for LTP>");
-	puts("\ta\tAdd");
-	puts("\t   a span <engine ID#> <max export sessions> <max export \
+	PUTS("Valid commands are:");
+	PUTS("\tq\tQuit");
+	PUTS("\th\tHelp");
+	PUTS("\t?\tHelp");
+	PUTS("\t1\tInitialize");
+	PUTS("\t   1 <est. number of sessions> <bytes reserved for LTP>");
+	PUTS("\ta\tAdd");
+	PUTS("\t   a span <engine ID#> <max export sessions> <max export \
 session block size> <max import sessions> <max import session block size> \
 <max segment size> <aggregation size limit> <aggregation time limit> \
 '<LSO command>' [queuing latency, in seconds]");
-	puts("\t\tIf queuing latency is negative, the absolute value of this \
+	PUTS("\t\tIf queuing latency is negative, the absolute value of this \
 number is used as the actual queuing latency and session purging is enabled.  \
 See man(5) for ltprc.");
-	puts("\tc\tChange");
-	puts("\t   c span <engine ID#> <max export sessions> <max export \
+	PUTS("\tc\tChange");
+	PUTS("\t   c span <engine ID#> <max export sessions> <max export \
 session block size> <max import sessions> <max import session block size> \
 <max segment size> <aggregation size limit> <aggregation time limit> \
 '<LSO command>' [queuing latency, in seconds]");
-	puts("\td\tDelete");
-	puts("\ti\tInfo");
-	puts("\t   {d|i} span <engine ID#>");
-	puts("\tl\tList");
-	puts("\t   l span");
-	puts("\tm\tManage");
-	puts("\t   m screening { y | n }");
-	puts("\t   m ownqtime <own queuing latency, in seconds>");
-	puts("\ts\tStart");
-	puts("\t   s '<LSI command>'");
-	puts("\tx\tStop");
-	puts("\t   x");
-	puts("\tw\tWatch LTP activity");
-	puts("\t   w { 0 | 1 | <activity spec> }");
-	puts("\t\tActivity spec is a string of all requested activity \
+	PUTS("\td\tDelete");
+	PUTS("\ti\tInfo");
+	PUTS("\t   {d|i} span <engine ID#>");
+	PUTS("\tl\tList");
+	PUTS("\t   l span");
+	PUTS("\tm\tManage");
+	PUTS("\t   m screening { y | n }");
+	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
+	PUTS("\ts\tStart");
+	PUTS("\t   s '<LSI command>'");
+	PUTS("\tx\tStop");
+	PUTS("\t   x");
+	PUTS("\tw\tWatch LTP activity");
+	PUTS("\t   w { 0 | 1 | <activity spec> }");
+	PUTS("\t\tActivity spec is a string of all requested activity \
 indication characters, e.g., df{].  See man(5) for ltprc.");
-	puts("\te\tEnable or disable echo of printed output to log file");
-	puts("\t   e { 0 | 1 }");
-	puts("\t#\tComment");
-	puts("\t   # <comment text>");
+	PUTS("\te\tEnable or disable echo of printed output to log file");
+	PUTS("\t   e { 0 | 1 }");
+	PUTS("\t#\tComment");
+	PUTS("\t   # <comment text>");
 }
 
 static void	initializeLtp(int tokenCount, char **tokens)
@@ -752,6 +752,9 @@ int	main(int argc, char **argv)
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
+#ifdef FSWLOGGER
+		return 0;			/*	No stdout.	*/
+#else
 		isignal(SIGINT, handleQuit);
 		while (1)
 		{
@@ -763,7 +766,7 @@ int	main(int argc, char **argv)
 					break;
 				}
 
-				perror("ltpadmin fgets failed");
+				PERROR("ltpadmin fgets failed");
 				break;		/*	Out of loop.	*/
 			}
 
@@ -772,6 +775,7 @@ int	main(int argc, char **argv)
 				break;		/*	Out of loop.	*/
 			}
 		}
+#endif
 	}
 	else if (strcmp(cmdFileName, ".") == 0)	/*	Shutdown.	*/
 	{
@@ -785,7 +789,7 @@ int	main(int argc, char **argv)
 		cmdFile = fopen(cmdFileName, "r");
 		if (cmdFile == NULL)
 		{
-			perror("Can't open command file");
+			PERROR("Can't open command file");
 		}
 		else
 		{
@@ -798,7 +802,7 @@ int	main(int argc, char **argv)
 						break;	/*	Loop.	*/
 					}
 
-					perror("ltpadmin fgets failed");
+					PERROR("ltpadmin fgets failed");
 					break;		/*	Loop.	*/
 				}
 

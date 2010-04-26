@@ -107,7 +107,7 @@ int	main(int argc, char **argv)
 
 	if (ownEid == NULL)
 	{
-		puts("Usage: bprecvfile <own endpoint ID>");
+		PUTS("Usage: bprecvfile <own endpoint ID>");
 		return 0;
 	}
 

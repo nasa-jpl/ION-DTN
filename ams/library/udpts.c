@@ -445,11 +445,11 @@ static int	udpSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 				continue;	/*	Retry.		*/
 			}
 
-//puts("udpSendMams failed.");
+//PUTS("udpSendMams failed.");
 			return -1;
 		}
 
-//puts("udpSendMams succeeded.");
+//PUTS("udpSendMams succeeded.");
 		return 0;
 	}
 }
@@ -528,11 +528,11 @@ static int	udpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 				continue;	/*	Retry.		*/
 			}
 
-//puts("udpSendAms failed.");
+//PUTS("udpSendAms failed.");
 			return -1;
 		}
 
-//puts("udpSendAms succeeded.");
+//PUTS("udpSendAms succeeded.");
 		return 0;
 	}
 }

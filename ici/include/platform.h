@@ -111,6 +111,18 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 #define	GDSSYMTAB
 #endif
 
+/*	Macros for expunging access to stdout and stderr.		*/
+
+#ifdef FSWLOGGER
+#define PUTS(text)		writeMemo(text)
+#define PERROR(text)		writeMemoNote(text, system_error_msg())
+#define PUTMEMO(text, memo)	writeMemoNote(text, memo)
+#else
+#define PUTS(text)		puts(text)
+#define PERROR(text)		perror(text)
+#define PUTMEMO(text, memo)	printf("%s: %s", text, memo)
+#endif
+
 #ifdef VXWORKS			/****	VxWorks				****/
 
 #include <vxWorks.h>

@@ -72,7 +72,7 @@ int	main(int argc, char *argv[])
 
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{
-		puts("Usage: udplso {<remote engine's host name> | @}[:\
+		PUTS("Usage: udplso {<remote engine's host name> | @}[:\
 <its port number>] <remote engine ID>");
 		return 0;
 	}

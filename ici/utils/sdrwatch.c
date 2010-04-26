@@ -35,7 +35,7 @@ static void	handleQuit()
 {
 	int	newCount = 1;	/*	Advanc to end of last cycle.	*/
 
-	puts("[Terminated by user.]");
+	PUTS("[Terminated by user.]");
 	oK(sdrwatch_count(&newCount));
 }
 
@@ -110,7 +110,7 @@ int	main(int argc, char **argv)
 
 	if (argc < 4)
 	{
-		puts("Usage: sdrwatch <sdr name> <interval> <count> [verbose]");
+		PUTS("Usage: sdrwatch <sdr name> <interval> <count> [verbose]");
 		return 0;
 	}
 

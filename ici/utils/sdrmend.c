@@ -33,7 +33,7 @@ int	main(int argc, char **argv)
 
 	if (argc < 6)
 	{
-		puts("Usage: sdrmend <sdr name> <config flags> <heap words> \
+		PUTS("Usage: sdrmend <sdr name> <config flags> <heap words> \
 <heap key, e.g. -1> <pathName>");
 		return 0;
 	}

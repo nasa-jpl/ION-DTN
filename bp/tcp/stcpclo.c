@@ -122,7 +122,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: stcpclo <remote host name>[:<port number>]");
+		PUTS("Usage: stcpclo <remote host name>[:<port number>]");
 		return 0;
 	}
 

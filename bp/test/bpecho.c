@@ -51,7 +51,7 @@ int	main(int argc, char **argv)
 
 	if (ownEid == NULL)
 	{
-		puts("Usage: bpecho <own endpoint ID>");
+		PUTS("Usage: bpecho <own endpoint ID>");
 		return 0;
 	}
 

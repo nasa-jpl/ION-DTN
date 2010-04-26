@@ -11,7 +11,7 @@
 
 static void	handleQuit()
 {
-	puts("Please enter a '!' character to stop the program.");
+	PUTS("Please enter a '!' character to stop the program.");
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -26,7 +26,6 @@ int	main(int argc, char **argv)
 	char	*destEid = (argc > 1 ? argv[1] : NULL);
 	char	*text = (argc > 2 ? argv[2] : NULL);
 #endif
-
 	Sdr	sdr;
 	char	line[256];
 	int	lineLength;
@@ -34,9 +33,10 @@ int	main(int argc, char **argv)
 	Object	bundleZco;
 	Object	newBundle;
 
+#ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
 	if (destEid == NULL)
 	{
-		puts("Usage: bpsource <destination endpoint ID>");
+		PUTS("Usage: bpsource <destination endpoint ID>");
 		return 0;
 	}
 
@@ -143,5 +143,6 @@ int	main(int argc, char **argv)
 
 	writeMemo("Stopping bpsource.");
 	bp_detach();
+#endif
 	return 0;
 }

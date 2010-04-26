@@ -113,7 +113,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 
 	bp_close(sap);
 	writeErrmsgMemos();
-	puts("Stopping bpsendfile.");
+	PUTS("Stopping bpsendfile.");
 	sdr_begin_xn(sdr);
 	zco_destroy_file_ref(sdr, fileRef);
 	if (sdr_end_xn(sdr) < 0)
@@ -158,9 +158,9 @@ int	main(int argc, char **argv)
 #endif
 	if (ownEid == NULL || destEid == NULL || fileName == NULL)
 	{
-		puts("Usage: bpsendfile <own endpoint ID> <destination \
+		PUTS("Usage: bpsendfile <own endpoint ID> <destination \
 endpoint ID> <file name> [<class of service>]");
-		puts("\tclass of service is as for bptrace");
+		PUTS("\tclass of service is as for bptrace");
 		return 0;
 	}
 

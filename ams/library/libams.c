@@ -236,7 +236,7 @@ static void	eraseSAP(AmsSAP *sap)
 
 	int		i;
 	AmsInterface	*tsif;
-//puts("In eraseSAP.");
+//PUTS("In eraseSAP.");
 
 	if (sap == NULL)
 	{

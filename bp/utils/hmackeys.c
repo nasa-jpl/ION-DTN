@@ -90,7 +90,7 @@ int	main(int argc, char **argv)
 					break;
 				}
 
-				perror("hmackeys fgets failed");
+				PERROR("hmackeys fgets failed");
 				break;		/*	Out of loop.	*/
 			}
 
@@ -105,7 +105,7 @@ int	main(int argc, char **argv)
 		cmdFile = fopen(cmdFileName, "r");
 		if (cmdFile == NULL)
 		{
-			perror("Can't open keynames file");
+			PERROR("Can't open keynames file");
 		}
 		else
 		{
@@ -118,7 +118,7 @@ int	main(int argc, char **argv)
 						break;	/*	Loop.	*/
 					}
 
-					perror("hmackeys fgets failed");
+					PERROR("hmackeys fgets failed");
 					break;		/*	Loop.	*/
 				}
 
@@ -132,6 +132,6 @@ int	main(int argc, char **argv)
 		}
 	}
 
-	puts("Stopping hmackeys.");
+	PUTS("Stopping hmackeys.");
 	return 0;
 }

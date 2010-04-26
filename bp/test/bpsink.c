@@ -43,7 +43,7 @@ int	main(int argc, char **argv)
 	setlinebuf(stdout);
 	if (ownEid == NULL)
 	{
-		puts("Usage: bpsink <own endpoint ID>");
+		PUTS("Usage: bpsink <own endpoint ID>");
 		return 0;
 	}
 
@@ -71,11 +71,11 @@ int	main(int argc, char **argv)
 			continue;
 		}
 
-		printf("ION event: %s.\n", deliveryTypes[dlv.result - 1]);
+		PUTMEMO("ION event", deliveryTypes[dlv.result - 1]);
 		if (dlv.result == BpPayloadPresent)
 		{
 			contentLength = zco_source_data_length(sdr, dlv.adu);
-			printf("\tpayload length is %d.\n", contentLength);
+			PUTMEMO("\tpayload length", itoa(contentLength));
 			if (contentLength < 80)
 			{
 				sdr_begin_xn(sdr);
@@ -101,7 +101,7 @@ int	main(int argc, char **argv)
 				}
 
 				content[contentLength] = '\0';
-				printf("\t'%s'\n", content);
+				PUTMEMO("\t", content);
 			}
 		}
 
@@ -110,7 +110,7 @@ int	main(int argc, char **argv)
 
 	bp_close(sap);
 	writeErrmsgMemos();
-	puts("Stopping bpsink.");
+	PUTS("Stopping bpsink.");
 	bp_detach();
 	return 0;
 }

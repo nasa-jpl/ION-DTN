@@ -36,7 +36,7 @@ int	main(int argc, char **argv)
 
 	if (cmdFileName == NULL || ownEid == NULL ||destEid == NULL)
 	{
-		puts("Usage: lgsend <LG cmd file name> <own endpoint ID> \
+		PUTS("Usage: lgsend <LG cmd file name> <own endpoint ID> \
 <destination endpoint ID>");
 		return 0;
 	}
@@ -135,7 +135,7 @@ int	main(int argc, char **argv)
 
 	bp_close(sap);
 	writeErrmsgMemos();
-	puts("lgsend: completed.");
+	PUTS("lgsend: completed.");
 	bp_detach();
 	return 0;
 }

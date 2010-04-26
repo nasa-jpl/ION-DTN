@@ -236,7 +236,7 @@ int	main(int argc, char **argv)
 
 	if (ownEid == NULL)
 	{
-		puts("Usage: lgagent <own endpoint ID>");
+		PUTS("Usage: lgagent <own endpoint ID>");
 		return 0;
 	}
 

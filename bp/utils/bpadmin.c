@@ -37,7 +37,7 @@ static void	printText(char *text)
 		writeMemo(text);
 	}
 
-	puts(text);
+	PUTS(text);
 }
 
 static void	handleQuit()
@@ -58,54 +58,54 @@ static void	printSyntaxError(int lineNbr)
 
 static void	printUsage()
 {
-	puts("Valid commands are:");
-	puts("\tq\tQuit");
-	puts("\th\tHelp");
-	puts("\t?\tHelp");
-	puts("\t1\tInitialize");
-	puts("\t   1");
-	puts("\ta\tAdd");
-	puts("\t   a scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
-	puts("\t   a endpoint <endpoint name> {q|x} ['<recv script>']");
-	puts("\t   a protocol <protocol name> <payload bytes per frame> \
+	PUTS("Valid commands are:");
+	PUTS("\tq\tQuit");
+	PUTS("\th\tHelp");
+	PUTS("\t?\tHelp");
+	PUTS("\t1\tInitialize");
+	PUTS("\t   1");
+	PUTS("\ta\tAdd");
+	PUTS("\t   a scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
+	PUTS("\t   a endpoint <endpoint name> {q|x} ['<recv script>']");
+	PUTS("\t   a protocol <protocol name> <payload bytes per frame> \
 <overhead bytes per frame> [<nominal data rate, in bytes/sec>]");
-	puts("\t   a induct <protocol name> <duct name> '<CLI command>'");
-	puts("\t   a outduct <protocol name> <duct name> '<CLO command>'");
-	puts("\tc\tChange");
-	puts("\t   c scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
-	puts("\t   c endpoint <endpoint name> {q|x} ['<recv script>']");
-	puts("\t   c induct <protocol name> <duct name> '<CLI command>'");
-	puts("\t   c outduct <protocol name> <duct name> '<CLO command>'");
-	puts("\td\tDelete");
-	puts("\ti\tInfo");
-	puts("\t   {d|i} scheme <scheme name>");
-	puts("\t   {d|i} endpoint <endpoint name>");
-	puts("\t   {d|i} protocol <protocol name>");
-	puts("\t   {d|i} induct <protocol name> <duct name>");
-	puts("\t   {d|i} outduct <protocol name> <duct name>");
-	puts("\tl\tList");
-	puts("\t   l scheme");
-	puts("\t   l endpoint");
-	puts("\t   l protocol");
-	puts("\t   l induct [<protocol name>]");
-	puts("\t   l outduct [<protocol name>]");
-	puts("\tr\tRun another admin program");
-	puts("\t   r '<admin command>'");
-	puts("\ts\tStart");
-	puts("\tx\tStop");
-	puts("\t   {s|x}");
-	puts("\t   {s|x} scheme <scheme name>");
-	puts("\t   {s|x} protocol <protocol name>");
-	puts("\t   {s|x} induct <protocol name> <duct name>");
-	puts("\t   {s|x} outduct <protocol name> <duct name>");
-	puts("\tw\tWatch BP activity");
-	puts("\t   w { 0 | 1 | <activity spec> }");
-	puts("\t\tActivity spec is a string of all requested activity \
+	PUTS("\t   a induct <protocol name> <duct name> '<CLI command>'");
+	PUTS("\t   a outduct <protocol name> <duct name> '<CLO command>'");
+	PUTS("\tc\tChange");
+	PUTS("\t   c scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
+	PUTS("\t   c endpoint <endpoint name> {q|x} ['<recv script>']");
+	PUTS("\t   c induct <protocol name> <duct name> '<CLI command>'");
+	PUTS("\t   c outduct <protocol name> <duct name> '<CLO command>'");
+	PUTS("\td\tDelete");
+	PUTS("\ti\tInfo");
+	PUTS("\t   {d|i} scheme <scheme name>");
+	PUTS("\t   {d|i} endpoint <endpoint name>");
+	PUTS("\t   {d|i} protocol <protocol name>");
+	PUTS("\t   {d|i} induct <protocol name> <duct name>");
+	PUTS("\t   {d|i} outduct <protocol name> <duct name>");
+	PUTS("\tl\tList");
+	PUTS("\t   l scheme");
+	PUTS("\t   l endpoint");
+	PUTS("\t   l protocol");
+	PUTS("\t   l induct [<protocol name>]");
+	PUTS("\t   l outduct [<protocol name>]");
+	PUTS("\tr\tRun another admin program");
+	PUTS("\t   r '<admin command>'");
+	PUTS("\ts\tStart");
+	PUTS("\tx\tStop");
+	PUTS("\t   {s|x}");
+	PUTS("\t   {s|x} scheme <scheme name>");
+	PUTS("\t   {s|x} protocol <protocol name>");
+	PUTS("\t   {s|x} induct <protocol name> <duct name>");
+	PUTS("\t   {s|x} outduct <protocol name> <duct name>");
+	PUTS("\tw\tWatch BP activity");
+	PUTS("\t   w { 0 | 1 | <activity spec> }");
+	PUTS("\t\tActivity spec is a string of all requested activity \
 indication characters, e.g., acz~.  See man(5) for bprc.");
-	puts("\te\tEnable or disable echo of printed output to log file");
-	puts("\t   e { 0 | 1 }");
-	puts("\t#\tComment");
-	puts("\t   # <comment text, ignored by the program>");
+	PUTS("\te\tEnable or disable echo of printed output to log file");
+	PUTS("\t   e { 0 | 1 }");
+	PUTS("\t#\tComment");
+	PUTS("\t   # <comment text, ignored by the program>");
 }
 
 static void	initializeBp(int tokenCount, char **tokens)
@@ -1259,6 +1259,9 @@ int	main(int argc, char **argv)
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
+#ifdef FSWLOGGER
+		return 0;			/*	No stdout.	*/
+#else
 		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
@@ -1286,6 +1289,7 @@ int	main(int argc, char **argv)
 				break;		/*	Out of loop.	*/
 			}
 		}
+#endif
 	}
 	else if (strcmp(cmdFileName, ".") == 0)	/*	Shutdown.	*/
 	{
@@ -1299,7 +1303,7 @@ int	main(int argc, char **argv)
 		cmdFile = open(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
-			perror("Can't open command file");
+			PERROR("Can't open command file");
 		}
 		else
 		{

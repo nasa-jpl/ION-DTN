@@ -353,8 +353,8 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: dgrcla <local host name>[:<port number>]");
-		puts("[port number defaults to 5101]");
+		PUTS("Usage: dgrcla <local host name>[:<port number>]");
+		PUTS("[port number defaults to 5101]");
 		return 0;
 	}
 

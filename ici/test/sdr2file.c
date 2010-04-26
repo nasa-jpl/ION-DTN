@@ -64,7 +64,7 @@ SdrUsageSummary	sdrsummary;
 	sdr = sdr_start_using(sdrName);
 	if (sdr == NULL)
 	{
-		puts("Can't use sdr.");
+		PUTS("Can't use sdr.");
 		return 0;
 	}
 
@@ -77,7 +77,7 @@ psm_start_trace(sdrwm, 5000000, NULL);
 	semaphore = sm_SemCreate(TEST_SEM_KEY * configFlags, SM_SEM_FIFO);
 	if (semaphore < 0)
 	{
-		puts("Can't create semaphore.");
+		PUTS("Can't create semaphore.");
 		return 0;
 	}
 
@@ -91,7 +91,7 @@ psm_start_trace(sdrwm, 5000000, NULL);
 		sdr_catlg(sdr, CYCLE_LIST_NAME, 0, cycleList);
 		if (sdr_end_xn(sdr))
 		{
-			puts("SDR transaction failed.");
+			PUTS("SDR transaction failed.");
 			return 0;
 		}
 	}
@@ -107,13 +107,13 @@ psm_start_trace(sdrwm, 5000000, NULL);
 	cycleListElt = sdr_list_first(sdr, cycleList);
 	cycleObj = sdr_list_data(sdr, cycleListElt);
 	sdr_read(sdr, (char *) &currentCycle, cycleObj, sizeof(Cycle));
-	printf("working on cycle %d.\n", currentCycle.cycleNbr);
+	PUTMEMO("Working on cycle", utoa(currentCycle.cycleNbr));
 	isprintf(fileName, sizeof fileName, "file_copy_%d",
 			currentCycle.cycleNbr);
 	outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
 	if (outputFile < 0)
 	{
-		perror("Can't open output file");
+		PERROR("Can't open output file");
 		return 0;
 	}
 
@@ -158,7 +158,7 @@ sdr_clear_trace(sdr);
 		if (sdr_end_xn(sdr))
 		{
 			close(outputFile);
-			puts("SDR transaction failed.");
+			PUTS("SDR transaction failed.");
 			return 0;
 		}
 
@@ -201,7 +201,7 @@ if (lineCount > 100)
 					(SdrListDeleteFn) NULL, NULL);
 			if (sdr_end_xn(sdr))
 			{
-				puts("SDR transaction failed.");
+				PUTS("SDR transaction failed.");
 				return 0;
 			}
 
@@ -224,13 +224,14 @@ if (lineCount > 100)
 			cycleObj = sdr_list_data(sdr, cycleListElt);
 			sdr_read(sdr, (char *) &currentCycle, cycleObj,
 					sizeof(Cycle));
-			printf("working on cycle %d.\n", currentCycle.cycleNbr);
+			PUTMEMO("Working on cycle",
+					utoa(currentCycle.cycleNbr));
 			isprintf(fileName, sizeof fileName, "file_copy_%d",
 					currentCycle.cycleNbr);
 			outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
 			if (outputFile < 0)
 			{
-				perror("Can't open output file");
+				PERROR("Can't open output file");
 				return 0;
 			}
 		}
@@ -239,7 +240,7 @@ if (lineCount > 100)
 			if (iputs(outputFile, line) < 0)
 			{
 				close(outputFile);
-				perror("Can't write to output file");
+				PERROR("Can't write to output file");
 				return 0;
 			}
 		}
@@ -270,7 +271,7 @@ int	main(int argc, char **argv)
 
 	if (argc < 2)
 	{
-		puts("Usage:  sdr2file <config flags>");
+		PUTS("Usage:  sdr2file <config flags>");
 		return 0;
 	}
 

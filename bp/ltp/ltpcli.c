@@ -332,7 +332,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: ltpcli <local engine number>]");
+		PUTS("Usage: ltpcli <local engine number>]");
 		return 0;
 	}
 

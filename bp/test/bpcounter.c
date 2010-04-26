@@ -16,7 +16,7 @@ static int	running;
 static void	printCount()
 {
 	signal(SIGALRM, printCount);
-	printf("%10d bundles received.\n", bundlesReceived);
+	PUTMEMO("Bundles received", itoa(bundlesReceived));
 	fflush(stdout);
 	alarm(5);
 }
@@ -48,7 +48,7 @@ int	main(int argc, char **argv)
 
 	if (ownEid == NULL)
 	{
-		puts("Usage: bpcounter <own endpoint ID> [<max count>]");
+		PUTS("Usage: bpcounter <own endpoint ID> [<max count>]");
 		return 0;
 	}
 
@@ -109,17 +109,16 @@ int	main(int argc, char **argv)
 	{
 		endTime = time(NULL);
 		interval = endTime - startTime;
-		printf("Time: %ld seconds.\n", interval);
+		PUTMEMO("Time (seconds)", itoa(interval));
 		if (interval > 0)
 		{
-			printf("Throughput: %lu bytes per second.\n",
-					bytesReceived / interval);
+			PUTMEMO("Throughput (bytes per second)",
+					itoa(bytesReceived / interval));
 		}
 	}
 
 	bp_close(sap);
-	printf("Stopping bpcounter with %d bundles received.\n",
-			bundlesReceived);
+	PUTMEMO("Stopping bpcounter; bundles received", itoa(bundlesReceived));
 	bp_detach();
 	return 0;
 }

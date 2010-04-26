@@ -22,13 +22,14 @@ int	amssub(int a1, int a2, int a3, int a4, int a5,
 	int		cn, un, nn, sn, len, ct, pr, fl;
 	char		*txt;
 	AmsMsgType	mt;
+	char		buf[256];
 
 	if (applicationName == NULL
 	|| authorityName == NULL
 	|| subjectName == NULL)
 	{
-		fputs("Usage: amssub \"<application name>\", \"<authority \
-name>\", \"<subject name>\"\n", stdout);
+		PUTS("Usage: amssub \"<application name>\", \"<authority \
+name>\", \"<subject name>\"");
 		return 0;
 	}
 
@@ -68,8 +69,9 @@ name>\", \"<subject name>\"\n", stdout);
 		{
 			ams_parse_msg(event, &cn, &un, &nn, &sn, &len, &txt,
 					&ct, &mt, &pr, &fl);
-			fprintf(stdout, "msg length %d content '%s'\n",
+			isprintf(buf, sizeof buf, "msg length %d content '%s'",
 					len, txt);
+			PUTS(buf);
 		}
 
 		ams_recycle_event(event);
@@ -91,8 +93,8 @@ int	amspub(int a1, int a2, int a3, int a4, int a5,
 	|| subjectName == NULL
 	|| msgText == NULL)
 	{
-		fputs("Usage: amspub \"<application name>\", \"<authority \
-name>\", \"<subject name>\", \"<message text>\"\n", stdout);
+		PUTS("Usage: amspub \"<application name>\", \"<authority \
+name>\", \"<subject name>\", \"<message text>\"");
 		return 0;
 	}
 
