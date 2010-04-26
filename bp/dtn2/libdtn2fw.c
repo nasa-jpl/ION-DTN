@@ -20,11 +20,32 @@
 
 /*	*	*	Globals used for DTN scheme service.	*	*/
 
-static Object	dtn2dbObject;
-static DtnDB	dtn2ConstantsBuf;
-static DtnDB	*dtn2Constants = &dtn2ConstantsBuf;
+static Object	_dtn2dbObject(Object *newDbObj)
+{
+	static Object	obj = 0;
 
-static char	*NullParmsMemo = "BP error: null input parameter(s).";
+	if (newDbObj)
+	{
+		obj = *newDbObj;
+	}
+
+	return obj;
+}
+
+static DtnDB	*_dtn2Constants()
+{
+	static DtnDB	buf;
+	static DtnDB	*db = NULL;
+	
+	if (db == NULL)
+	{
+		sdr_read(getIonsdr(), (char *) &buf, _dtn2dbObject(NULL),
+				sizeof(DtnDB));
+		db = &buf;
+	}
+	
+	return db;
+}
 
 /*	*	*	Routing information mgt functions	*	*/
 
@@ -37,7 +58,7 @@ static int	lookupDtn2Eid(char *uriBuffer, char *neighborClId)
 	int	nodeNameLen;
 	char	*lastChar;
 
-	for (elt = sdr_list_first(sdr, dtn2Constants->plans); elt;
+	for (elt = sdr_list_first(sdr, (_dtn2Constants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, sdr_list_data(sdr, elt));
@@ -76,6 +97,7 @@ static int	lookupDtn2Eid(char *uriBuffer, char *neighborClId)
 int	dtn2Init()
 {
 	Sdr	sdr = getIonsdr();
+	Object	dtn2dbObject;
 	DtnDB	dtn2dbBuf;
 
 	/*	Recover the DTN database, creating it if necessary.	*/
@@ -87,26 +109,26 @@ int	dtn2Init()
 	{
 	case -1:		/*	SDR error.			*/
 		sdr_cancel_xn(sdr);
-		putSysErrmsg("Can't search for DTN database in SDR", NULL);
+		putErrmsg("Failed seeking DTN database in SDR.", NULL);
 		return -1;
 
 	case 0:			/*	Not found; must create new DB.	*/
-		memset((char *) &dtn2dbBuf, 0, sizeof(DtnDB));
-		dtn2dbBuf.plans = sdr_list_create(sdr);
 		dtn2dbObject = sdr_malloc(sdr, sizeof(DtnDB));
 		if (dtn2dbObject == 0)
 		{
 			sdr_cancel_xn(sdr);
-			putSysErrmsg("No space for DTN database", NULL);
+			putErrmsg("No space for DTN database.", NULL);
 			return -1;
 		}
 
+		memset((char *) &dtn2dbBuf, 0, sizeof(DtnDB));
+		dtn2dbBuf.plans = sdr_list_create(sdr);
 		sdr_write(sdr, dtn2dbObject, (char *) &dtn2dbBuf,
 				sizeof(DtnDB));
 		sdr_catlg(sdr, DTN_DBNAME, 0, dtn2dbObject);
 		if (sdr_end_xn(sdr))
 		{
-			putSysErrmsg("Can't create DTN database", NULL);
+			putErrmsg("Can't create DTN database.", NULL);
 			return -1;
 		}
 
@@ -116,21 +138,19 @@ int	dtn2Init()
 		sdr_exit_xn(sdr);
 	}
 
-	/*	Load constants into a conveniently accessed structure.
-	 *	Note that this is NOT a current database image.		*/
-
-	sdr_read(sdr, (char *) dtn2Constants, dtn2dbObject, sizeof(DtnDB));
+	oK(_dtn2dbObject(&dtn2dbObject));
+	oK(_dtn2Constants());
 	return 0;
 }
 
 Object	getDtnDbObject()
 {
-	return dtn2dbObject;
+	return _dtn2dbObject(NULL);
 }
 
 DtnDB	*getDtnConstants()
 {
-	return dtn2Constants;
+	return _dtn2Constants();
 }
 
 static int	filterNodeName(char *outputNodeName, char *inputNodeName)
@@ -164,7 +184,7 @@ void	dtn2_destroyDirective(FwdDirective *directive)
 {
 	Sdr	sdr = getIonsdr();
 
-	if (directive == NULL) return;
+	CHKVOID(directive);
 	if (directive->action == fwd)
 	{
 		sdr_begin_xn(sdr);
@@ -200,18 +220,13 @@ int	dtn2_lookupDirective(char *nodeName, char *demux, FwdDirective *dirbuf)
 	 *	the specified eid, if any.  Wild card match is okay.	*/
 
 	CHKERR(ionLocked());
-	if (nodeName == NULL || demux == NULL || dirbuf == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
+	CHKERR(nodeName && demux && dirbuf);
 
 	/*	Find best matching plan.  Universal wild-card match,
 	 *	if any, is at the end of the list, so there's no way
 	 *	to terminate the search early.				*/
 
-	for (elt = sdr_list_first(sdr, dtn2Constants->plans); elt;
+	for (elt = sdr_list_first(sdr, (_dtn2Constants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
@@ -241,7 +256,7 @@ int	dtn2_lookupDirective(char *nodeName, char *demux, FwdDirective *dirbuf)
 
 	if (elt == 0)
 	{
-		return 0;
+		return 0;		/*	No plan found.		*/
 	}
 
 	/*	Find best matching rule.				*/
@@ -302,7 +317,7 @@ static Object	locatePlan(char *nodeName, Object *nextPlan)
 	 *	which such a plan should be inserted.			*/
 
 	if (nextPlan) *nextPlan = 0;	/*	Default.		*/
-	for (elt = sdr_list_first(sdr, dtn2Constants->plans); elt;
+	for (elt = sdr_list_first(sdr, (_dtn2Constants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, sdr_list_data(sdr, elt));
@@ -335,12 +350,8 @@ void	dtn2_findPlan(char *nodeNm, Object *planAddr, Object *eltp)
 	 *	node, if any.						*/
 
 	CHKVOID(ionLocked());
+	CHKVOID(nodeNm && planAddr && eltp);
 	*eltp = 0;
-	if (nodeNm == NULL)
-	{
-		return;
-	}
-
 	if (filterNodeName(nodeName, nodeNm) < 0)
 	{
 		return;
@@ -358,23 +369,16 @@ void	dtn2_findPlan(char *nodeNm, Object *planAddr, Object *eltp)
 
 int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 {
-	Sdr	sdr = getIonsdr();
-	char	nodeName[SDRSTRING_BUFSZ];
-	Object	nextPlan;
+	Sdr		sdr = getIonsdr();
+	char		nodeName[SDRSTRING_BUFSZ];
+	Object		nextPlan;
 	Dtn2Plan	plan;
-	Object	planObj;
-	Object	elt;
+	Object		planObj;
+	Object		elt;
 
-	if (nodeNm == NULL || defaultDir == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(nodeNm && defaultDir);
 	if (filterNodeName(nodeName, nodeNm) < 0)
 	{
-		errno = EINVAL;
 		return 0;
 	}
 
@@ -382,8 +386,7 @@ int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 	if (locatePlan(nodeName, &nextPlan) != 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("This plan is already defined.", nodeNm);
-		errno = EINVAL;
+		writeMemoNote("[?] Duplicate plan", nodeNm);
 		return 0;
 	}
 
@@ -394,23 +397,21 @@ int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 			sizeof(FwdDirective));
 	plan.rules = sdr_list_create(sdr);
 	planObj = sdr_malloc(sdr, sizeof(Dtn2Plan));
-	if (planObj == 0)
+	if (planObj)
 	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't create plan.", nodeNm);
-		return -1;
+		if (nextPlan)
+		{
+			elt = sdr_list_insert_before(sdr, nextPlan, planObj);
+		}
+		else
+		{
+			elt = sdr_list_insert_last(sdr,
+					(_dtn2Constants())->plans, planObj);
+		}
+
+		sdr_write(sdr, planObj, (char *) &plan, sizeof(Dtn2Plan));
 	}
 
-	if (nextPlan)
-	{
-		elt = sdr_list_insert_before(sdr, nextPlan, planObj);
-	}
-	else
-	{
-		elt = sdr_list_insert_last(sdr, dtn2Constants->plans, planObj);
-	}
-
-	sdr_write(sdr, planObj, (char *) &plan, sizeof(Dtn2Plan));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't add plan.", nodeNm);
@@ -422,22 +423,15 @@ int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 
 int	dtn2_updatePlan(char *nodeNm, FwdDirective *defaultDir)
 {
-	Sdr	sdr = getIonsdr();
-	char	nodeName[SDRSTRING_BUFSZ];
-	Object	elt;
-	Object	planObj;
+	Sdr		sdr = getIonsdr();
+	char		nodeName[SDRSTRING_BUFSZ];
+	Object		elt;
+	Object		planObj;
 	Dtn2Plan	plan;
 
-	if (nodeNm == NULL || defaultDir == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(nodeNm && defaultDir);
 	if (filterNodeName(nodeName, nodeNm) < 0)
 	{
-		errno = EINVAL;
 		return 0;
 	}
 
@@ -446,10 +440,11 @@ int	dtn2_updatePlan(char *nodeNm, FwdDirective *defaultDir)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("No plan defined for this node.", nodeNm);
-		errno = EINVAL;
+		writeMemoNote("[?] No plan defined for this node", nodeNm);
 		return 0;
 	}
+
+	/*	Okay to update this plan.				*/
 
 	planObj = sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &plan, planObj, sizeof(Dtn2Plan));
@@ -474,16 +469,9 @@ int	dtn2_removePlan(char *nodeNm)
 	Object	planObj;
 		OBJ_POINTER(Dtn2Plan, plan);
 
-	if (nodeNm == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(nodeNm);
 	if (filterNodeName(nodeName, nodeNm) < 0)
 	{
-		errno = EINVAL;
 		return 0;
 	}
 
@@ -492,19 +480,22 @@ int	dtn2_removePlan(char *nodeNm)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		return 1;
-	}
-
-	planObj = sdr_list_data(sdr, elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
-	GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planObj);
-	if (sdr_list_length(sdr, plan->rules) > 0)
-	{
-		putErrmsg("Can't remove plan; still has rules.", nodeNm);
-		sdr_cancel_xn(sdr);
+		writeMemoNote("[?] Unknown plan", nodeNm);
 		return 0;
 	}
 
+	planObj = sdr_list_data(sdr, elt);
+	GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planObj);
+	if (sdr_list_length(sdr, plan->rules) > 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Can't remove plan; still has rules", nodeNm);
+		return 0;
+	}
+
+	/*	Okay to remove this plan from the database.		*/
+
+	sdr_list_delete(sdr, elt, NULL, NULL);
 	dtn2_destroyDirective(&(plan->defaultDirective));
 	sdr_list_destroy(sdr, plan->rules, NULL, NULL);
 	sdr_free(sdr, plan->nodeName);
@@ -569,6 +560,8 @@ void	dtn2_findRule(char *nodeNm, char *demux, Dtn2Plan *plan,
 	 *	any.							*/
 
 	CHKVOID(ionLocked());
+	CHKVOID(ruleAddr);
+	CHKVOID(eltp);
 	*eltp = 0;
 	if (plan == NULL)
 	{
@@ -605,25 +598,23 @@ void	dtn2_findRule(char *nodeNm, char *demux, Dtn2Plan *plan,
 
 int	dtn2_addRule(char *nodeNm, char *demux, FwdDirective *directive)
 {
-	Sdr	sdr = getIonsdr();
-	char	nodeName[SDRSTRING_BUFSZ];
-	Object	elt;
-		OBJ_POINTER(Dtn2Plan, plan);
-	Object	nextRule;
+	Sdr		sdr = getIonsdr();
+	char		nodeName[SDRSTRING_BUFSZ];
+	Object		elt;
+			OBJ_POINTER(Dtn2Plan, plan);
+	Object		nextRule;
 	Dtn2Rule	ruleBuf;
-	Object	addr;
+	Object		addr;
 
-	if (nodeNm == NULL || demux == NULL || *demux == '\0'
-	|| directive == NULL)
+	CHKERR(nodeNm && demux && directive);
+	if (*demux == '\0')
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
+		writeMemo("[?] Zero-length DTN2 rule demux.");
 		return 0;
 	}
 
 	if (filterNodeName(nodeName, nodeNm) < 0)
 	{
-		errno = EINVAL;
 		return 0;
 	}
 
@@ -632,8 +623,7 @@ int	dtn2_addRule(char *nodeNm, char *demux, FwdDirective *directive)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("No plan defined for this node.", nodeNm);
-		errno = EINVAL;
+		writeMemoNote("[?] No plan defined for this node", nodeNm);
 		return 0;
 	}
 
@@ -641,8 +631,7 @@ int	dtn2_addRule(char *nodeNm, char *demux, FwdDirective *directive)
 	if (locateRule(plan, demux, &nextRule) != 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Duplicate rule, already in database.", NULL);
-		errno = EINVAL;
+		writeMemoNote("[?] Duplicate rule", demux);
 		return 0;
 	}
 
@@ -653,23 +642,20 @@ int	dtn2_addRule(char *nodeNm, char *demux, FwdDirective *directive)
 	memcpy((char *) &ruleBuf.directive, (char *) directive,
 			sizeof(FwdDirective));
 	addr = sdr_malloc(sdr, sizeof(Dtn2Rule));
-	if (addr == 0)
+	if (addr)
 	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("No space for rule.", NULL);
-		return -1;
+		if (nextRule)
+		{
+			elt = sdr_list_insert_before(sdr, nextRule, addr);
+		}
+		else
+		{
+			elt = sdr_list_insert_last(sdr, plan->rules, addr);
+		}
+
+		sdr_write(sdr, addr, (char *) &ruleBuf, sizeof(Dtn2Rule));
 	}
 
-	if (nextRule)
-	{
-		elt = sdr_list_insert_before(sdr, nextRule, addr);
-	}
-	else
-	{
-		elt = sdr_list_insert_last(sdr, plan->rules, addr);
-	}
-
-	sdr_write(sdr, addr, (char *) &ruleBuf, sizeof(Dtn2Rule));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't add rule.", NULL);
@@ -681,24 +667,22 @@ int	dtn2_addRule(char *nodeNm, char *demux, FwdDirective *directive)
 
 int	dtn2_updateRule(char *nodeNm, char *demux, FwdDirective *directive)
 {
-	Sdr	sdr = getIonsdr();
-	char	nodeName[SDRSTRING_BUFSZ];
-	Object	elt;
-		OBJ_POINTER(Dtn2Plan, plan);
-	Object	ruleAddr;
+	Sdr		sdr = getIonsdr();
+	char		nodeName[SDRSTRING_BUFSZ];
+	Object		elt;
+			OBJ_POINTER(Dtn2Plan, plan);
+	Object		ruleAddr;
 	Dtn2Rule	ruleBuf;
 
-	if (nodeNm == NULL || demux == NULL || *demux == '\0'
-	|| directive == NULL)
+	CHKERR(nodeNm && demux && directive);
+	if (*demux == '\0')
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
+		writeMemo("[?] Zero-length DTN2 rule demux.");
 		return 0;
 	}
 
 	if (filterNodeName(nodeName, nodeNm) < 0)
 	{
-		errno = EINVAL;
 		return 0;
 	}
 
@@ -707,8 +691,7 @@ int	dtn2_updateRule(char *nodeNm, char *demux, FwdDirective *directive)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("No plan defined for this node.", nodeNm);
-		errno = EINVAL;
+		writeMemoNote("[?] No plan defined for this node", nodeNm);
 		return 0;
 	}
 
@@ -717,8 +700,7 @@ int	dtn2_updateRule(char *nodeNm, char *demux, FwdDirective *directive)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Unknown rule, not in database.", NULL);
-		errno = EINVAL;
+		writeMemoNote("[?] Unknown rule", demux);
 		return 0;
 	}
 
@@ -747,16 +729,15 @@ int	dtn2_removeRule(char *nodeNm, char *demux)
 	Object	ruleAddr;
 		OBJ_POINTER(Dtn2Rule, rule);
 
-	if (nodeNm == NULL || demux == NULL || *demux == '\0')
+	CHKERR(nodeNm && demux);
+	if (*demux == '\0')
 	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
+		writeMemo("[?] Zero-length DTN2 rule demux.");
 		return 0;
 	}
 
 	if (filterNodeName(nodeName, nodeNm) < 0)
 	{
-		errno = EINVAL;
 		return 0;
 	}
 
@@ -764,17 +745,18 @@ int	dtn2_removeRule(char *nodeNm, char *demux)
 	elt = locatePlan(nodeName, NULL);
 	if (elt == 0)
 	{
-		putErrmsg("No plan defined for this node.", nodeNm);
-		errno = EINVAL;
-		return sdr_end_xn(sdr);
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] No plan defined for this node", nodeNm);
+		return 0;
 	}
 
 	GET_OBJ_POINTER(sdr, Dtn2Plan, plan, sdr_list_data(sdr, elt));
 	dtn2_findRule(nodeName, demux, plan, &ruleAddr, &elt);
 	if (elt == 0)
 	{
-		errno = EINVAL;
-		return sdr_end_xn(sdr);
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown rule", demux);
+		return 0;
 	}
 
 	/*	All parameters validated, okay to remove the rule.	*/

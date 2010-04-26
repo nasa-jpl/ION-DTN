@@ -411,7 +411,7 @@ int	main(int argc, char *argv[])
 
 	if (hostNbr == 0)
 	{
-		putSysErrmsg("Can't get IP address for host", hostName);
+		putErrmsg("Can't get IP address for host.", hostName);
 		return 1;
 	}
 

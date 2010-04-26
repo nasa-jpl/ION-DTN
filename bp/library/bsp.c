@@ -242,6 +242,7 @@ int bsp_deserializeASB(AcqExtBlock *blk)
 }
 
 
+#if 0
 /******************************************************************************
  *
  * \par Function Name: bsp_eidNil
@@ -289,6 +290,7 @@ int bsp_eidNil(EndpointId *eid)
   
    return result;
 }
+#endif
 
 
 /******************************************************************************
@@ -736,6 +738,7 @@ int bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
    return result;
 }
 
+
 /******************************************************************************
  *
  * \par Function Name: getBspItem
@@ -765,7 +768,7 @@ int bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
  * \par Notes: 
  *****************************************************************************/
 
-static void	getBspItem(int itemNeeded, unsigned char *bspBuf,
+void	getBspItem(int itemNeeded, unsigned char *bspBuf,
 			unsigned long bspLen, unsigned char **val,
 			unsigned long *len)
 {
@@ -1422,6 +1425,7 @@ int			i;
    return retval;
 }
 
+
 /******************************************************************************
  *
  * \par Function Name: bsp_babPreCheck
@@ -1551,6 +1555,7 @@ BAB block with correlator %ld.", pre_asb->correlator);
 
    return retval;
 }
+
 
 /******************************************************************************
  *
@@ -1908,7 +1913,7 @@ EID %s.", eidString);
             scratch->useBab = 1;
 	    if (rule->ciphersuiteName[0] != '\0')
 	    {
-           	 strncpy(scratch->cipherKeyName,rule->keyName,
+           	 istrcpy(scratch->cipherKeyName,rule->keyName,
 	    			strlen(rule->keyName));
 	    }
 
@@ -1933,7 +1938,7 @@ EID %s.", eidString);
             scratch->useBab = 1;
 	    if (rule->ciphersuiteName[0] != '\0')
 	    {
-            	strncpy(scratch->cipherKeyName,rule->keyName,
+            	istrcpy(scratch->cipherKeyName,rule->keyName,
 	    		strlen(rule->keyName));
 	    }
 

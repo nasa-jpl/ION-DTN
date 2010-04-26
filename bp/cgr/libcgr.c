@@ -666,6 +666,7 @@ int	cgr_forward(Bundle *bundle, Object bundleObj,
 	 *	the simplest case, the bundle's destination is the
 	 *	only "station" selected for the bundle.			*/
 
+	CHKERR(bundle && bundleObj && stationNodeNbr && plans);
 	stationNode = findNode(ionvdb, stationNodeNbr, &nextNode);
 	if (stationNode == NULL)
 	{

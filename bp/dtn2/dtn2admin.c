@@ -10,14 +10,28 @@
 
 #include "dtn2fw.h"
 
-static Sdr	sdr;
-static int	echo = 0;
-static DtnDB	*dtn2Constants;
-static char	*huh = "?";
+static int	_echo(int *newValue)
+{
+	static int	state = 0;
+
+	if (newValue)
+	{
+		if (*newValue == 1)
+		{
+			state = 1;
+		}
+		else
+		{
+			state = 0;
+		}
+	}
+
+	return state;
+}
 
 static void	printText(char *text)
 {
-	if (echo)
+	if (_echo(NULL))
 	{
 		writeMemo(text);
 	}
@@ -73,18 +87,13 @@ induct name] }");
 static int	parseDirective(char *actionToken, char *parmToken,
 			FwdDirective *dir)
 {
+	Sdr		sdr = getIonsdr();
 	char		*protocolName;
 	char		*cursor = NULL;
 	char		*outductName;
 	char		*destDuctName;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
-
-	if (actionToken == NULL || parmToken == NULL || dir == NULL)
-	{
-		errno = EINVAL;
-		return -1;
-	}
 
 	switch (*actionToken)
 	{
@@ -100,7 +109,7 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		dir->eid = sdr_string_create(sdr, parmToken);
 		if (sdr_end_xn(sdr))
 		{
-			putSysErrmsg("Can't write station EID.", NULL);
+			putErrmsg("Can't write station EID.", NULL);
 			return 0;
 		}
 
@@ -155,7 +164,7 @@ static int	parseDirective(char *actionToken, char *parmToken,
 					destDuctName);
 			if (sdr_end_xn(sdr))
 			{
-				putSysErrmsg("Can't write duct name.", NULL);
+				putErrmsg("Can't write duct name.", NULL);
 				return 0;
 			}
 		}
@@ -166,7 +175,6 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		putErrmsg("Invalid action code in directive", cursor);
 		return 0;
 	}
-
 }
 
 static void	executeAdd(int tokenCount, char **tokens)
@@ -316,6 +324,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	printDirective(char *context, FwdDirective *dir)
 {
+	Sdr	sdr = getIonsdr();
 	char	eidString[SDRSTRING_BUFSZ + 1];
 		OBJ_POINTER(Outduct, duct);
 		OBJ_POINTER(ClProtocol, clp);
@@ -353,7 +362,7 @@ static void	printDirective(char *context, FwdDirective *dir)
 			if (sdr_string_read(sdr, destDuctName + 1,
 					dir->destDuctName) < 0)
 			{
-				istrcpy(destDuctName + 1, huh,
+				istrcpy(destDuctName + 1, "?",
 						sizeof destDuctName - 1);
 			}
 		}
@@ -364,7 +373,7 @@ static void	printDirective(char *context, FwdDirective *dir)
 		return;
 
 	default:
-		printText(huh);
+		printText("?");
 	}
 }
 
@@ -373,9 +382,9 @@ static void	printPlan(Dtn2Plan *plan)
 	char	nameBuf[SDRSTRING_BUFSZ];
 	char	*nodeName;
 
-	if (sdr_string_read(sdr, nameBuf, plan->nodeName) < 0)
+	if (sdr_string_read(getIonsdr(), nameBuf, plan->nodeName) < 0)
 	{
-		nodeName = huh;
+		nodeName = "?";
 	}
 	else
 	{
@@ -404,24 +413,25 @@ static void	infoPlan(int tokenCount, char **tokens)
 		return;
 	}
 
-	GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planAddr);
+	GET_OBJ_POINTER(getIonsdr(), Dtn2Plan, plan, planAddr);
 	printPlan(plan);
 }
 
 static void	printRule(Dtn2Plan *plan, Dtn2Rule *rule)
 {
+	Sdr	sdr = getIonsdr();
 	char	toNodeName[SDRSTRING_BUFSZ];
 	char	demux[SDRSTRING_BUFSZ];
 	char	context[128];
 
 	if (sdr_string_read(sdr, toNodeName, plan->nodeName) < 0)
 	{
-		istrcpy(toNodeName, huh, sizeof toNodeName);
+		istrcpy(toNodeName, "?", sizeof toNodeName);
 	}
 
 	if (sdr_string_read(sdr, demux, rule->demux) < 0)
 	{
-		istrcpy(demux, huh, sizeof toNodeName);
+		istrcpy(demux, "?", sizeof toNodeName);
 	}
 
 	isprintf(context, sizeof context, "%.64s, for %.32s =", toNodeName,
@@ -431,6 +441,7 @@ static void	printRule(Dtn2Plan *plan, Dtn2Rule *rule)
 
 static void	infoRule(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	planAddr;
 		OBJ_POINTER(Dtn2Plan, plan);
 	Object	ruleAddr;
@@ -487,10 +498,11 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	listPlans()
 {
+	Sdr	sdr = getIonsdr();
 	Object	elt;
 		OBJ_POINTER(Dtn2Plan, plan);
 
-	for (elt = sdr_list_first(sdr, dtn2Constants->plans); elt;
+	for (elt = sdr_list_first(sdr, (getDtnConstants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, sdr_list_data(sdr, elt));
@@ -500,6 +512,7 @@ static void	listPlans()
 
 static void	listRules(Dtn2Plan *plan)
 {
+	Sdr	sdr = getIonsdr();
 	Object	elt;
 		OBJ_POINTER(Dtn2Rule, rule);
 
@@ -544,7 +557,7 @@ static void	executeList(int tokenCount, char **tokens)
 			return;
 		}
 
-		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planAddr);
+		GET_OBJ_POINTER(getIonsdr(), Dtn2Plan, plan, planAddr);
 		listRules(plan);
 		return;
 	}
@@ -554,6 +567,8 @@ static void	executeList(int tokenCount, char **tokens)
 
 static void	switchEcho(int tokenCount, char **tokens)
 {
+	int	state;
+
 	if (tokenCount < 2)
 	{
 		printText("Echo on or off?");
@@ -563,11 +578,13 @@ static void	switchEcho(int tokenCount, char **tokens)
 	switch (*(tokens[1]))
 	{
 	case '0':
-		echo = 0;
+		state = 0;
+		oK(_echo(&state));
 		break;
 
 	case '1':
-		echo = 1;
+		state = 1;
+		oK(_echo(&state));
 		break;
 
 	default:
@@ -575,32 +592,12 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
-static int	processLine(char *line)
+static int	processLine(char *line, int lineLength)
 {
-	int	lineLength;
 	int	tokenCount;
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
-
-	if (line == NULL) return 0;
-
-	lineLength = strlen(line);
-	if (lineLength < 0) return 0;
-
-	if (line[lineLength - 1] == 0x0a)	/*	LF (newline)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength < 0) return 0;
-	}
-
-	if (line[lineLength - 1] == 0x0d)	/*	CR (DOS text)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength < 0) return 0;
-	}
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -684,41 +681,47 @@ static int	processLine(char *line)
 
 static int	run_dtn2admin(char *cmdFileName)
 {
-	FILE	*cmdFile;
+	int	cmdFile;
 	char	line[256];
+	int	len;
 
 	if (bpAttach() < 0)
 	{
-		putErrmsg("dtn2admin can't attach to BP", NULL);
-		return 1;
+		putErrmsg("dtn2admin can't attach to BP.", NULL);
+		return -1;
 	}
 
-	sdr = getIonsdr();
 	if (dtn2Init() < 0)
 	{
 		putErrmsg("dtn2admin can't initialize routing database", NULL);
-		return 1;
+		return -1;
 	}
 
-	dtn2Constants = getDtnConstants();
 	if (cmdFileName == NULL)	/*	Interactive.		*/
 	{
-		signal(SIGINT, handleQuit);
+		cmdFile = fileno(stdin);
+		isignal(SIGINT, handleQuit);
 		while (1)
 		{
 			printf(": ");
-			if (fgets(line, sizeof line, stdin) == NULL)
+			fflush(stdout);
+			if (igets(cmdFile, line, sizeof line, &len) == NULL)
 			{
-				if (feof(stdin))
+				if (len == 0)
 				{
 					break;
 				}
 
-				putSysErrmsg("dtn2admin fgets failed", NULL);
+				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
 
-			if (processLine(line))
+			if (len == 0)
+			{
+				continue;
+			}
+
+			if (processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -726,39 +729,40 @@ static int	run_dtn2admin(char *cmdFileName)
 	}
 	else				/*	Scripted.		*/
 	{
-		cmdFile = fopen(cmdFileName, "r");
-		if (cmdFile == NULL)
+		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		if (cmdFile < 0)
 		{
-			putSysErrmsg("Can't open command file", cmdFileName);
+			perror("Can't open command file");
 		}
 		else
 		{
 			while (1)
 			{
-				if (fgets(line, sizeof line, cmdFile) == NULL)
+				if (igets(cmdFile, line, sizeof line, &len)
+						== NULL)
 				{
-					if (feof(cmdFile))
+					if (len == 0)
 					{
-						break;
+						break;	/*	Loop.	*/
 					}
 
-					putSysErrmsg("dtn2admin fgets failed",
-							NULL);
+					putErrmsg("igets failed.", NULL);
 					break;		/*	Loop.	*/
 				}
 
-				if (line[0] == '#')	/*	Comment.*/
+				if (len == 0
+				|| line[0] == '#')	/*	Comment.*/
 				{
 					continue;
 				}
 
-				if (processLine(line))
+				if (processLine(line, len))
 				{
-					break;		/*	Loop.	*/
+					break;	/*	Out of loop.	*/
 				}
 			}
 
-			fclose(cmdFile);
+			close(cmdFile);
 		}
 	}
 

@@ -13,11 +13,31 @@
 
 extern void	manageProductionThrottle(BpVdb *vdb);
 
-static int	running;
+static int	_running(int *newValue)
+{
+	static int	state;
+
+	if (newValue)
+	{
+		if (*newValue == 1)
+		{
+			state = 1;
+			sm_TaskVarAdd(&state);
+		}
+		else
+		{
+			state = 0;
+		}
+	}
+
+	return state;
+}
 
 static void	shutDown()	/*	Commands bpclock termination.	*/
 {
-	running = 0;		/*	Terminates bpclock.		*/
+	int	stop = 0;
+
+	oK(_running(&stop));	/*	Terminates bpclock.		*/
 }
 
 static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
@@ -310,6 +330,7 @@ int	main(int argc, char *argv[])
 #endif
 	Sdr	sdr;
 	BpDB	*bpConstants;
+	int	state = 1;
 	time_t	currentTime;
 
 	if (bpAttach() < 0)
@@ -325,10 +346,9 @@ int	main(int argc, char *argv[])
 	/*	Main loop: wait for event occurrence time, then
 	 *	execute applicable events.				*/
 
-	sm_TaskVarAdd(&running);
-	running = 1;
+	oK(_running(&state));
 	writeMemo("[i] bpclock is running.");
-	while (running)
+	while (_running(NULL))
 	{
 		/*	Sleep for 1 second, then dispatch all events
 		 *	whose executions times have now been reached.	*/
@@ -338,7 +358,9 @@ int	main(int argc, char *argv[])
 		if (dispatchEvents(sdr, bpConstants->timeline, currentTime) < 0)
 		{
 			putErrmsg("Can't dispatch events.", NULL);
-			running = 0;	/*	Terminate loop.		*/
+			state = 0;	/*	Terminate loop.		*/
+			oK(_running(&state));
+			continue;
 		}
 
 		/*	Also adjust throttles in response to rate
@@ -347,7 +369,9 @@ int	main(int argc, char *argv[])
 		if (adjustThrottles() < 0)
 		{
 			putErrmsg("Can't adjust throttles.", NULL);
-			running = 0;	/*	Terminate loop.		*/
+			state = 0;	/*	Terminate loop.		*/
+			oK(_running(&state));
+			continue;
 		}
 
 		/*	Then apply rate control.			*/

@@ -491,10 +491,10 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
-static int	processLine(char *line, int lineLengt)
+static int	processLine(char *line, int lineLength)
 {
 	int	tokenCount;
-	char	*cursor;
+	ichar	*cursor;
 	int	i;
 	char	*tokens[9];
 

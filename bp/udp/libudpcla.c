@@ -33,6 +33,7 @@ int	sendBytesByUDP(int *bundleSocket, char *from, int length,
 {
 	int	bytesWritten;
 
+	CHKERR(socketName && bundleSocket && from);
 	while (1)	/*	Continue until not interrupted.		*/
 	{
 		bytesWritten = sendto(*bundleSocket, from, length, 0,
@@ -68,6 +69,7 @@ int	sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
 	int		bytesToSend;
 	int		bytesSent;
 
+	CHKERR(socketName && bundleSocket && buffer);
 	if (bundleLength > UDPCLA_BUFSZ)
 	{
 		putErrmsg("Bundle is too big for UDP CLA.", itoa(bundleLength));
@@ -96,7 +98,7 @@ int	sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
 	if (bytesToSend < 0)
 	{
 		sdr_cancel_xn(sdr);
-		putSysErrmsg("can't issue from ZCO", NULL);
+		putErrmsg("Can't issue from ZCO.", NULL);
 		return -1;
 	}
 
@@ -130,7 +132,7 @@ connectivity is restored.", NULL);
 
 		/*	Big problem; shut down.			*/
 
-		putSysErrmsg("Failed to send by UDP", NULL);
+		putErrmsg("Failed to send by UDP.", NULL);
 		return -1;
 	}
 
@@ -145,6 +147,7 @@ int	receiveBytesByUDP(int bundleSocket, struct sockaddr_in *fromAddr,
 	int		bytesRead;
 	socklen_t	fromSize;
 
+	CHKERR(fromAddr && length);
 	fromSize = sizeof(struct sockaddr_in);
 	bytesRead = recvfrom(bundleSocket, into, length, 0,
 			(struct sockaddr *) fromAddr, &fromSize);

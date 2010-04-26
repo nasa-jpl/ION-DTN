@@ -65,7 +65,7 @@ static void	*handleDatagrams(void *parm)
 	work = bpGetAcqArea(rtp->vduct);
 	if (work == NULL)
 	{
-		putSysErrmsg("udpcli can't get acquisition work area", NULL);
+		putErrmsg("udpcli can't get acquisition work area.", NULL);
 		pthread_kill(rtp->mainThread, SIGTERM);
 		return NULL;
 	}
@@ -73,7 +73,7 @@ static void	*handleDatagrams(void *parm)
 	buffer = MTAKE(UDPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
-		putSysErrmsg("udpcli can't get UDP buffer", NULL);
+		putErrmsg("udpcli can't get UDP buffer.", NULL);
 		pthread_kill(rtp->mainThread, SIGTERM);
 		return NULL;
 	}
@@ -89,7 +89,7 @@ static void	*handleDatagrams(void *parm)
 		{
 		case -1:
 		case 0:
-			putSysErrmsg("can't acquire bundle", NULL);
+			putErrmsg("Can't acquire bundle.", NULL);
 			pthread_kill(rtp->mainThread, SIGTERM);
 
 			/*	Intentional fall-through to next case.	*/
@@ -177,21 +177,21 @@ int	main(int argc, char *argv[])
 	if (bpAttach() < 0)
 	{
 		putErrmsg("udpcli can't attach to BP.", NULL);
-		return 1;
+		return -1;
 	}
 
 	findInduct("udp", ductName, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
 		putErrmsg("No such udp duct.", ductName);
-		return 1;
+		return -1;
 	}
 
 	if (vduct->cliPid > 0 && vduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
 				itoa(vduct->cliPid));
-		return 1;
+		return -1;
 	}
 
 	/*	All command-line arguments are now validated.		*/
@@ -219,8 +219,8 @@ int	main(int argc, char *argv[])
 	portNbr = htons(portNbr);
 	if (hostNbr == 0)
 	{
-		putSysErrmsg("Can't get IP address for host", hostName);
-		return 1;
+		putErrmsg("Can't get IP address for host.", hostName);
+		return -1;
 	}
 
 	rtp.vduct = vduct;
@@ -234,7 +234,7 @@ int	main(int argc, char *argv[])
 	if (rtp.ductSocket < 0)
 	{
 		putSysErrmsg("Can't open UDP socket", NULL);
-		return 1;
+		return -1;
 	}
 
 	nameLength = sizeof(struct sockaddr);
@@ -244,7 +244,7 @@ int	main(int argc, char *argv[])
 	{
 		close(rtp.ductSocket);
 		putSysErrmsg("Can't initialize socket", NULL);
-		return 1;
+		return -1;
 	}
 
 	/*	Initialize sender endpoint ID lookup.			*/
@@ -265,7 +265,7 @@ int	main(int argc, char *argv[])
 	{
 		close(rtp.ductSocket);
 		putSysErrmsg("udpcli can't create receiver thread", NULL);
-		return 1;
+		return -1;
 	}
 
 	/*	Now sleep until interrupted by SIGTERM, at which point
@@ -292,6 +292,6 @@ int	main(int argc, char *argv[])
 	close(rtp.ductSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udpcli duct has ended.");
-	bp_detach();
+	ionDetach();
 	return 0;
 }

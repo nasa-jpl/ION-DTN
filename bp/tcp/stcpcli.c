@@ -76,7 +76,7 @@ static void	*receiveBundles(void *parm)
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
-		putSysErrmsg("stcpcli can't get acquisition work area", NULL);
+		putErrmsg("stcpcli can't get acquisition work area.", NULL);
 		terminateReceiverThread(parms);
 		MRELEASE(parms);
 		return NULL;
@@ -85,7 +85,7 @@ static void	*receiveBundles(void *parm)
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
-		putSysErrmsg("stcpcli can't get TCP buffer", NULL);
+		putErrmsg("stcpcli can't get TCP buffer.", NULL);
 		terminateReceiverThread(parms);
 		MRELEASE(parms);
 		return NULL;
@@ -171,7 +171,7 @@ static void	*spawnReceivers(void *parm)
 	threads = lyst_create_using(getIonMemoryMgr());
 	if (threads == NULL)
 	{
-		putSysErrmsg("stcpcli can't create threads list", NULL);
+		putErrmsg("stcpcli can't create threads list.", NULL);
 		pthread_mutex_destroy(&mutex);
 		return NULL;
 	}
@@ -316,21 +316,21 @@ int	main(int argc, char *argv[])
 	if (bpAttach() < 0)
 	{
 		putErrmsg("stcpcli can't attach to BP.", NULL);
-		return 1;
+		return -1;
 	}
 
 	findInduct("stcp", ductName, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
 		putErrmsg("No such stcp duct.", ductName);
-		return 1;
+		return -1;
 	}
 
 	if (vduct->cliPid > 0 && vduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
 				itoa(vduct->cliPid));
-		return 1;
+		return -1;
 	}
 
 	/*	All command-line arguments are now validated.		*/
@@ -359,7 +359,7 @@ int	main(int argc, char *argv[])
 	if (hostNbr == 0)
 	{
 		putErrmsg("Can't get IP address for host.", hostName);
-		return 1;
+		return -1;
 	}
 
 	hostNbr = htonl(hostNbr);
@@ -448,6 +448,6 @@ int	main(int argc, char *argv[])
 	pthread_join(accessThread, NULL);
 	writeErrmsgMemos();
 	writeMemo("[i] stcpcli duct has ended.");
-	bp_detach();
+	ionDetach();
 	return 0;
 }

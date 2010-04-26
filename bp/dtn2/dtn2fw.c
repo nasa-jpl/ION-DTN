@@ -10,12 +10,22 @@
 									*/
 #include "dtn2fw.h"
 
-static Sdr	dtn2Sdr;
-static sm_SemId	dtn2fwSemaphore;
+static sm_SemId	_dtn2fwSemaphore(sm_SemId *newValue)
+{
+	static sm_SemId	sem;
+
+	if (newValue)
+	{
+		sem = *newValue;
+		sm_TaskVarAdd(&sem);
+	}
+
+	return sem;
+}
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
-	sm_SemEnd(dtn2fwSemaphore);
+	sm_SemEnd(_dtn2fwSemaphore(NULL));
 }
 
 static int	parseDtn2Nss(char *nss, char *nodeName, char *demux)
@@ -65,6 +75,7 @@ static int	parseDtn2Nss(char *nss, char *nodeName, char *demux)
 
 static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 {
+	Sdr		sdr = getIonsdr();
 	Object		elt;
 	char		eidString[SDRSTRING_BUFSZ];
 	MetaEid		metaEid;
@@ -75,14 +86,14 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	int		result;
 	FwdDirective	directive;
 
-	elt = sdr_list_first(dtn2Sdr, bundle->stations);
+	elt = sdr_list_first(sdr, bundle->stations);
 	if (elt == 0)
 	{
 		putErrmsg("Forwarding error; stations stack is empty.", NULL);
 		return -1;
 	}
 
-	sdr_string_read(dtn2Sdr, eidString, sdr_list_data(dtn2Sdr, elt));
+	sdr_string_read(sdr, eidString, sdr_list_data(sdr, elt));
 	if (parseEidString(eidString, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
 		putErrmsg("Can't parse node EID string.", eidString);
@@ -120,7 +131,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 			return -1;
 		}
 
-		if (sdr_list_length(dtn2Sdr, bundle->xmitRefs) > 0)
+		if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
 		{
 			/*	Enqueued.				*/
 
@@ -135,7 +146,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	Can't transmit to indicated next node directly, must
 	 *	forward through some other node.			*/
 
-	sdr_string_read(dtn2Sdr, eidString, directive.eid);
+	sdr_string_read(sdr, eidString, directive.eid);
 	return forwardBundle(bundleObj, bundle, eidString);
 }
 
@@ -148,6 +159,7 @@ int	main(int argc, char *argv[])
 {
 #endif
 	int		running = 1;
+	Sdr		sdr;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
@@ -167,7 +179,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	dtn2Sdr = getIonsdr();
+	sdr = getIonsdr();
 	findScheme(DTN2_SCHEME_NAME, &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -175,28 +187,27 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	sdr_read(dtn2Sdr, (char *) &scheme, sdr_list_data(dtn2Sdr,
+	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 			vscheme->schemeElt), sizeof(Scheme));
-	dtn2fwSemaphore = vscheme->semaphore;
-	signal(SIGTERM, shutDown);
+	oK(_dtn2fwSemaphore(&vscheme->semaphore));
+	isignal(SIGTERM, shutDown);
 
 	/*	Main loop: wait until forwarding queue is non-empty,
 	 *	then drain it.						*/
 
-	sm_TaskVarAdd(&dtn2fwSemaphore);
 	writeMemo("[i] dtn2fw is running.");
-	while (running && !(sm_SemEnded(dtn2fwSemaphore)))
+	while (running && !(sm_SemEnded(vscheme->semaphore)))
 	{
 		/*	We wrap forwarding in an SDR transaction to
 		 *	prevent race condition with bpclock (which
 		 *	is destroying bundles as their TTLs expire).	*/
 
-		sdr_begin_xn(dtn2Sdr);
-		elt = sdr_list_first(dtn2Sdr, scheme.forwardQueue);
+		sdr_begin_xn(sdr);
+		elt = sdr_list_first(sdr, scheme.forwardQueue);
 		if (elt == 0)	/*	Wait for forwarding notice.	*/
 		{
-			sdr_exit_xn(dtn2Sdr);
-			if (sm_SemTake(dtn2fwSemaphore) < 0)
+			sdr_exit_xn(sdr);
+			if (sm_SemTake(vscheme->semaphore) < 0)
 			{
 				putErrmsg("Can't take forwarder semaphore.",
 						NULL);
@@ -206,10 +217,9 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		bundleAddr = (Object) sdr_list_data(dtn2Sdr, elt);
-		sdr_stage(dtn2Sdr, (char *) &bundle, bundleAddr,
-				sizeof(Bundle));
-		sdr_list_delete(dtn2Sdr, elt, NULL, NULL);
+		bundleAddr = (Object) sdr_list_data(sdr, elt);
+		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+		sdr_list_delete(sdr, elt, NULL, NULL);
 		bundle.fwdQueueElt = 0;
 
 		/*	Must rewrite bundle to note removal of
@@ -217,19 +227,17 @@ int	main(int argc, char *argv[])
 		 *	and bpDestroyBundle re-reads it from the
 		 *	database.					*/
 
-		sdr_write(dtn2Sdr, bundleAddr, (char *) &bundle,
-				sizeof(Bundle));
+		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 		if (enqueueBundle(&bundle, bundleAddr) < 0)
 		{
-			sdr_cancel_xn(dtn2Sdr);
+			sdr_cancel_xn(sdr);
 			putErrmsg("Can't enqueue bundle.", NULL);
 			running = 0;	/*	Terminate loop.		*/
 			continue;
 		}
 
-		sdr_write(dtn2Sdr, bundleAddr, (char *) &bundle,
-				sizeof(Bundle));
-		if (sdr_end_xn(dtn2Sdr) < 0)
+		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't enqueue bundle.", NULL);
 			running = 0;	/*	Terminate loop.		*/
@@ -242,5 +250,6 @@ int	main(int argc, char *argv[])
 
 	writeErrmsgMemos();
 	writeMemo("[i] dtn2fw forwarder has ended.");
+	ionDetach();
 	return 0;
 }

@@ -43,11 +43,6 @@ static SecDB	*_secConstants()
 	return db;
 }
 
-static char	*_NullParmsMemo()
-{
-	return "ION security error: null input parameter(s).";
-}
-
 int	secInitialize()
 {
 	Sdr	ionsdr;
@@ -347,8 +342,8 @@ int	sec_addKey(char *keyName, char *fileName)
 	CHKERR(fileName);
 	if (*keyName == '\0' || strlen(keyName) > 31)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		writeMemoNote("[?] Invalid key name", keyName);
+		return 0;
 	}
 
 	if (stat(fileName, &statbuf) < 0)
@@ -427,8 +422,8 @@ int	sec_updateKey(char *keyName, char *fileName)
 	CHKERR(fileName);
 	if (*keyName == '\0' || strlen(keyName) > 31)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		writeMemoNote("[?] Invalid key name", keyName);
+		return 0;
 	}
 
 	if (stat(fileName, &statbuf) < 0)
@@ -536,7 +531,7 @@ int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 	if (secAttach() < 0)
 	{
 		writeMemo("[i] Can't attach to ION security.");
-		return -1;
+		return 0;
 	}
 
 	sdr_begin_xn(sdr);
@@ -567,8 +562,8 @@ static int	filterEid(char *outputEid, char *inputEid)
 
 	if (eidLength == 0 || eidLength > MAX_SDRSTRING)
 	{
-		putErrmsg("Invalid eid length.", inputEid);
-		return -1;
+		writeMemoNote("[?] Invalid eid length", inputEid);
+		return 0;
 	}
 
 	/*	Note: the '~' character is used internally to
@@ -584,7 +579,7 @@ static int	filterEid(char *outputEid, char *inputEid)
 		outputEid[last] = '~';
 	}
 
-	return 0;
+	return 1;
 }
 
 int	sec_get_babTxRule(char *eid, Object *ruleAddr, Object *eltp)
@@ -708,7 +703,7 @@ void	sec_findBabTxRule(char *eid, Object *ruleAddr, Object *eltp)
 		return;
 	}
 
-	if (filterEid(eid, eid) < 0)
+	if (filterEid(eid, eid) == 0)
 	{
 		return;
 	}
@@ -744,17 +739,21 @@ int	sec_addBabTxRule(char *eid, char *ciphersuiteName, char *keyName)
 		return 0;
 	}
 
-	if (*eid == '\0' || strlen(eid) >= SDRSTRING_BUFSZ
-	|| strlen(ciphersuiteName) > 31 || strlen(keyName) > 31)
+	if (strlen(ciphersuiteName) > 31)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		return 0;
 	}
 
-	if (filterEid(eid, eid) < 0)
+	if (strlen(keyName) > 31)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		writeMemoNote("[?] Invalid keyName", keyName);
+		return 0;
+	}
+
+	if (filterEid(eid, eid) == 0)
+	{
+		return 0;
 	}
 
 	sdr_begin_xn(sdr);
@@ -815,17 +814,21 @@ int	sec_updateBabTxRule(char *eid, char *ciphersuiteName, char *keyName)
 		return 0;
 	}
 
-	if (*eid == '\0' || strlen(eid) >= SDRSTRING_BUFSZ
-	|| strlen(ciphersuiteName) > 31 || strlen(keyName) > 31)
+	if (strlen(ciphersuiteName) > 31)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		return 0;
 	}
 
-	if (filterEid(eid, eid) < 0)
+	if (strlen(keyName) > 31)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		writeMemoNote("[?] Invalid keyName", keyName);
+		return 0;
+	}
+
+	if (filterEid(eid, eid) == 0)
+	{
+		return 0;
 	}
 
 	sdr_begin_xn(sdr);
@@ -866,10 +869,9 @@ int	sec_removeBabTxRule(char *eid)
 		return 0;
 	}
 
-	if (filterEid(eid, eid) < 0)
+	if (filterEid(eid, eid) == 0)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		return 0;
 	}
 
 	sdr_begin_xn(sdr);
@@ -1015,7 +1017,7 @@ void	sec_findBabRxRule(char *eid, Object *ruleAddr, Object *eltp)
 		return;
 	}
 
-	if (filterEid(eid, eid) < 0)
+	if (filterEid(eid, eid) == 0)
 	{
 		return;
 	}
@@ -1051,17 +1053,21 @@ int	sec_addBabRxRule(char *eid, char *ciphersuiteName, char *keyName)
 		return -1;
 	}
 
-	if (*eid == '\0' || strlen(eid) >= SDRSTRING_BUFSZ
-	|| strlen(ciphersuiteName) > 31 || strlen(keyName) > 31)
+	if (strlen(ciphersuiteName) > 31)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		return 0;
 	}
 
-	if (filterEid(eid, eid) < 0)
+	if (strlen(keyName) > 31)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		writeMemoNote("[?] Invalid keyName", keyName);
+		return 0;
+	}
+
+	if (filterEid(eid, eid) == 0)
+	{
+		return 0;
 	}
 
 	sdr_begin_xn(sdr);
@@ -1079,24 +1085,22 @@ int	sec_addBabRxRule(char *eid, char *ciphersuiteName, char *keyName)
 			sizeof rule.ciphersuiteName);
 	istrcpy(rule.keyName, keyName, sizeof rule.keyName);
 	ruleObj = sdr_malloc(sdr, sizeof(BabRxRule));
-	if (ruleObj == 0)
+	if (ruleObj)
 	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't create rule.", eid);
-		return -1;
+		if (nextBabRxRule)
+		{
+			elt = sdr_list_insert_before(sdr, nextBabRxRule,
+					ruleObj);
+		}
+		else
+		{
+			elt = sdr_list_insert_last(sdr, secdb->babRxRules,
+					ruleObj);
+		}
+
+		sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BabRxRule));
 	}
 
-	if (nextBabRxRule)
-	{
-		elt = sdr_list_insert_before(sdr, nextBabRxRule, ruleObj);
-	}
-	else
-	{
-		elt = sdr_list_insert_last(sdr, secdb->babRxRules,
-				ruleObj);
-	}
-
-	sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BabRxRule));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't add rule.", eid);
@@ -1122,17 +1126,21 @@ int	sec_updateBabRxRule(char *eid, char *ciphersuiteName, char *keyName)
 		return -1;
 	}
 
-	if (*eid == '\0' || strlen(eid) >= SDRSTRING_BUFSZ
-	|| strlen(ciphersuiteName) > 31 || strlen(keyName) > 31)
+	if (strlen(ciphersuiteName) > 31)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		return 0;
 	}
 
-	if (filterEid(eid, eid) < 0)
+	if (strlen(keyName) > 31)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		writeMemoNote("[?] Invalid keyName", keyName);
+		return 0;
+	}
+
+	if (filterEid(eid, eid) == 0)
+	{
+		return 0;
 	}
 
 	sdr_begin_xn(sdr);
@@ -1170,13 +1178,12 @@ int	sec_removeBabRxRule(char *eid)
 	if (secAttach() < 0)
 	{
 		putErrmsg("Can't attach to ION security.", NULL);
-		return -1;
+		return 0;
 	}
 
-	if (filterEid(eid, eid) < 0)
+	if (filterEid(eid, eid) == 0)
 	{
-		putErrmsg(_NullParmsMemo(), NULL);
-		return -1;
+		return 0;
 	}
 
 	sdr_begin_xn(sdr);

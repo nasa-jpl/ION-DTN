@@ -120,8 +120,6 @@ static void	*receiveBundles(void *parm)
 
 	if (memcmp(countersign, parms->countersign, DIGEST_LEN) != 0)
 	{
-printf("Authentication failure: countersign is incorrect.");
-fflush(stdout);
 		writeErrmsgMemos();
 		writeMemo("[i] brs server judged inauthentic.");
 		pthread_kill(parms->mainThread, SIGTERM);
