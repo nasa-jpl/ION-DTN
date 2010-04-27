@@ -9,22 +9,42 @@
 
 #include <bp.h>
 
-static BpSAP	sap;
-static int	bundlesReceived;
-static int	running;
-
-static void	printCount()
+static BpSAP	_bpsap(BpSAP *newSAP)
 {
-	signal(SIGALRM, printCount);
-	PUTMEMO("Bundles received", itoa(bundlesReceived));
-	fflush(stdout);
-	alarm(5);
+	static BpSAP	sap = NULL;
+	
+	if (newSAP)
+	{
+		sap = *newSAP;
+		sm_TaskVarAdd((int *) &sap);
+	}
+
+	return sap;
 }
 
 static void	handleQuit()
 {
-	running = 0;
-	bp_interrupt(sap);
+	bp_interrupt(_bpsap(NULL));
+}
+
+static int	_bundleCount(int increment)
+{
+	static int	count = 0;
+
+	if (increment)
+	{
+		count++;
+	}
+
+	return count;
+}
+
+static void	printCount()
+{
+	signal(SIGALRM, printCount);
+	PUTMEMO("Bundles received", itoa(_bundleCount(0)));
+	fflush(stdout);
+	alarm(5);
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -39,10 +59,13 @@ int	main(int argc, char **argv)
 	char		*ownEid = (argc > 1 ? argv[1] : NULL);
 	int		maxCount = (argc > 2 ? atoi(argv[2]) : 0);
 #endif
+	BpSAP		sap;
 	Sdr		sdr;
+	int		running = 1;
 	BpDelivery	dlv;
 	time_t		startTime = 0;
 	int		bytesReceived;
+	int		bundlesReceived = 0;
 	time_t		endTime;
 	long		interval;
 
@@ -69,13 +92,13 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
+	oK(_bpsap(&sap));
 	sdr = bp_get_sdr();
 	bundlesReceived = 0;
 	bytesReceived = 0;
-	signal(SIGALRM, printCount);
+	isignal(SIGALRM, printCount);
 	alarm(5);
-	signal(SIGINT, handleQuit);
-	running = 1;
+	isignal(SIGINT, handleQuit);
 	while (running)
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
@@ -89,8 +112,7 @@ int	main(int argc, char **argv)
 		{
 //putchar('.');
 //fflush(stdout);
-			bundlesReceived++;
-			if (bundlesReceived == 1)	/*	First.	*/
+			if ((bundlesReceived = _bundleCount(1)) == 1)
 			{
 				startTime = time(NULL);
 			}

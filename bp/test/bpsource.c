@@ -9,9 +9,23 @@
 
 #include <bp.h>
 
+static int	_running(int *newState)
+{
+	int	state = 1;
+
+	if (newState)
+	{
+		state = *newState;
+	}
+
+	return state;
+}
+
 static void	handleQuit()
 {
-	PUTS("Please enter a '!' character to stop the program.");
+	int	stop = 0;
+
+	oK(_running(&stop));
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -32,11 +46,11 @@ int	main(int argc, char **argv)
 	Object	extent;
 	Object	bundleZco;
 	Object	newBundle;
+	int	fd;
 
-#ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
 	if (destEid == NULL)
 	{
-		PUTS("Usage: bpsource <destination endpoint ID>");
+		PUTS("Usage: bpsource <destination endpoint ID> ['<text>']");
 		return 0;
 	}
 
@@ -52,7 +66,7 @@ int	main(int argc, char **argv)
 		lineLength = strlen(text);
 		if (lineLength == 0)
 		{
-			writeMemo("No text for bpsource to send.");
+			writeMemo("[?] No text for bpsource to send.");
 			bp_detach();
 			return 0;
 		}
@@ -81,25 +95,25 @@ int	main(int argc, char **argv)
 				BP_STD_PRIORITY, NoCustodyRequested,
 				0, 0, NULL, bundleZco, &newBundle) < 1)
 		{
-			putSysErrmsg("bpsource can't send ADU", NULL);
+			putErrmsg("bpsource can't send ADU.", NULL);
 		}
 
 		bp_detach();
 		return 0;
 	}
 
+#ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
+	fd = fileno(stdin);
 	isignal(SIGINT, handleQuit);
-	while (1)
+	while (_running(NULL))
 	{
 		printf(": ");
-		if (fgets(line, sizeof line, stdin) == NULL)
+		if (igets(fd, line, sizeof line, &lineLength) == NULL)
 		{
 			putSysErrmsg("bpsource fgets failed", NULL);
 			break;
 		}
 
-		lineLength = strlen(line) - 1;	/*	lose newline	*/
-		line[lineLength] = 0;
 		switch (line[0])
 		{
 		case '!':
@@ -131,7 +145,7 @@ int	main(int argc, char **argv)
 					BP_STD_PRIORITY, NoCustodyRequested,
 					0, 0, NULL, bundleZco, &newBundle) < 1)
 			{
-				putSysErrmsg("bpsource can't send ADU", NULL);
+				putErrmsg("bpsource can't send ADU.", NULL);
 				break;
 			}
 

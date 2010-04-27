@@ -118,7 +118,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	zco_destroy_file_ref(sdr, fileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putSysErrmsg("bpsendfile can't destroy file reference", NULL);
+		putErrmsg("bpsendfile can't destroy file reference.", NULL);
 	}
 
 	bp_detach();

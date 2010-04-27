@@ -22,19 +22,30 @@
 
 //static char	dlvmarks[] = "?.*!";
 
-static int	running;
-static BpSAP	sap;
+static BpSAP	_bpsap(BpSAP *newSAP)
+{
+	static BpSAP	sap = NULL;
+
+	if (newSAP)
+	{
+		sap = *newSAP;
+		sm_TaskVarAdd((int *) &sap);
+	}
+
+	return sap;
+}
 
 static void	handleQuit()
 {
-	running = 0;
-	bp_interrupt(sap);
+	bp_interrupt(_bpsap(NULL));
 }
 
 static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 			int aduLength, int streaming)
 {
+	BpSAP		sap;
 	Sdr		sdr;
+	int		running = 1;
 	BpCustodySwitch	custodySwitch;
 	int		cycles;
 	int		aduFile;
@@ -93,6 +104,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		return 0;
 	}
 
+	oK(_bpsap(&sap));
 	sdr = bp_get_sdr();
 	if (cyclesRemaining < 0)
 	{
@@ -156,12 +168,11 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
 	{
 		bp_close(sap);
-		putSysErrmsg("bpdriver can't create file ref", NULL);
+		putErrmsg("bpdriver can't create file ref.", NULL);
 		return 0;
 	}
 
-	signal(SIGINT, handleQuit);
-	running = 1;
+	isignal(SIGINT, handleQuit);
 	startTime = time(NULL);
 	while (running && cyclesRemaining > 0)
 	{
@@ -175,7 +186,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 				aduLength);
 		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
 		{
-			putSysErrmsg("bpdriver can't create ZCO", NULL);
+			putErrmsg("bpdriver can't create ZCO.", NULL);
 			running = 0;
 			continue;
 		}
@@ -184,7 +195,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 				BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
 				bundleZco, &newBundle) < 1)
 		{
-			putSysErrmsg("bpdriver can't send message",
+			putErrmsg("bpdriver can't send message.",
 					itoa(aduLength));
 			running = 0;
 			continue;
@@ -211,7 +222,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		{
 			if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 			{
-				putSysErrmsg("bpdriver reception failed", NULL);
+				putErrmsg("bpdriver reception failed.", NULL);
 				running = 0;
 				continue;
 			}
@@ -219,9 +230,15 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 			bp_release_delivery(&dlv, 1);
 //putchar(dlvmarks[dlv.result]);
 //fflush(stdout);
+			if (dlv.result == BpReceptionInterrupted)
+			{
+				running = 0;
+				continue;
+			}
+
 			if (dlv.result == BpPayloadPresent)
 			{
-				break;
+				break;	/*	Out of reception loop.	*/
 			}
 		}
 	}
@@ -234,7 +251,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	zco_destroy_file_ref(sdr, fileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putSysErrmsg("bpdriver can't destroy file reference", NULL);
+		putErrmsg("bpdriver can't destroy file reference.", NULL);
 	}
 
 	interval = endTime - startTime;

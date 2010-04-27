@@ -9,13 +9,22 @@
 
 #include <bp.h>
 
-static int	running;
-static BpSAP	sap;
+static BpSAP	_bpsap(BpSAP *newSAP)
+{
+	static BpSAP	sap = NULL;
+	
+	if (newSAP)
+	{
+		sap = *newSAP;
+		sm_TaskVarAdd((int *) &sap);
+	}
+
+	return sap;
+}
 
 static void	handleQuit()
 {
-	running = 0;
-	bp_interrupt(sap);
+	bp_interrupt(_bpsap(NULL));
 }
 
 static int	processCmdFile(Sdr sdr, BpDelivery *dlv)
@@ -74,27 +83,21 @@ static int	processCmdFile(Sdr sdr, BpDelivery *dlv)
 		delimiter = strchr(line, '\n');	/*	LF (newline)	*/
 		if (delimiter == NULL)		/*	No LF or CRLF	*/
 		{
-			nextLine = endOfContent;
-			lineLength = nextLine - line;
+			writeMemoNote("[?] lgagent: non-terminated line, \
+discarding bundle content", content);
+			close(opsFile);
+			opsFile = -1;
+			fileName = NULL;
+			break;			/*	Out of loop.	*/
 		}
-		else	/*	Not the last line of the file.		*/
+
+		nextLine = delimiter + 1;
+		lineLength = nextLine - line;
+		*delimiter = 0;		/*	Strip off the LF.	*/
+		if (lineLength == 1)	/*	Empty line.		*/
 		{
-			nextLine = delimiter + 1;
-			lineLength = nextLine - line;
-			*delimiter = 0;	/*	Strip off the LF.	*/
-			if (delimiter > line)	/*	Non-empty line.	*/
-			{
-				/*	Strip off CR if present.	*/
-
-				delimiter--;
-				if (*delimiter == 0x0d)
-				{
-					/*	CR (DOS text); lose it.	*/
-
-					*delimiter = 0;
-					lineLength--;
-				}
-			}
+			line = nextLine;
+			continue;
 		}
 
 		/*	Case 1: line is start of an operations file.	*/
@@ -108,7 +111,7 @@ load, no further activity.", itoa(line - content));
 				close(opsFile);
 				opsFile = -1;
 				fileName = NULL;
-				break;
+				break;		/*	Out of loop.	*/
 			}
 
 			/*	Remainder of line is file name.		*/
@@ -120,7 +123,7 @@ load, no further activity.", itoa(line - content));
 				putSysErrmsg("lgagent: can't open operations \
 file name, no further activity", fileName);
 				fileName = NULL;
-				break;
+				break;		/*	Out of loop.	*/
 			}
 
 #if TargetFFS
@@ -139,7 +142,7 @@ file name, no further activity", fileName);
 			{
 				putErrmsg("lgagent: ']' line before start of \
 load, no further activity.", itoa(line - content));
-				break;
+				break;		/*	Out of loop.	*/
 			}
 
 			/*	Close the current ops file.		*/
@@ -166,7 +169,7 @@ load, no further activity.", itoa(line - content));
 				{
 					putSysErrmsg("lgagent: can't reopen \
 operations file name, no further activity", fileName);
-					break;
+					break;	/*	Out of loop.	*/
 				}
 			}
 
@@ -178,7 +181,7 @@ operations file, no further activity", fileName);
 				close(opsFile);
 				opsFile = -1;
 				fileName = NULL;
-				break;
+				break;		/*	Out of loop.	*/
 			}
 
 #if TargetFFS
@@ -197,7 +200,7 @@ operations file, no further activity", fileName);
 			if (pseudoshell(line + 1) < 0)
 			{
 				putErrmsg("lgagent: pseudoshell failed.", NULL);
-				break;
+				break;		/*	Out of loop.	*/
 			}
 
 			snooze(1);	/*	Let command finish.	*/
@@ -209,7 +212,7 @@ operations file, no further activity", fileName);
 
 		putErrmsg("lgagent: failure parsing command file, no further \
 activity.", itoa(line - content));
-		break;
+		break;				/*	Out of loop.	*/
 	}
 
 	MRELEASE(content);
@@ -231,7 +234,9 @@ int	main(int argc, char **argv)
 {
 	char		*ownEid = (argc > 1 ? argv[1] : NULL);
 #endif
+	BpSAP		sap;
 	Sdr		sdr;
+	int		running = 1;
 	BpDelivery	dlv;
 
 	if (ownEid == NULL)
@@ -252,9 +257,9 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
+	oK(_bpsap(&sap));
 	sdr = bp_get_sdr();
 	isignal(SIGINT, handleQuit);
-	running = 1;
 	writeMemo("[i] lgagent is running.");
 	while (running)
 	{
@@ -265,13 +270,23 @@ int	main(int argc, char **argv)
 			continue;
 		}
 
-		if (dlv.result == BpPayloadPresent)
+		switch (dlv.result)
 		{
+		case BpReceptionInterrupted:
+			running = 0;
+			break;		/*	Out of switch.		*/
+
+		case BpPayloadPresent:
 			if (processCmdFile(sdr, &dlv) < 0)
 			{
 				putErrmsg("lgagent cannot continue.", NULL);
 				running = 0;
 			}
+
+			/*	Intentional fall-through to default.	*/
+
+		default:
+			break;		/*	Out of switch.		*/
 		}
 
 		bp_release_delivery(&dlv, 1);

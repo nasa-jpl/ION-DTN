@@ -14,13 +14,22 @@ static char	*deliveryTypes[] =	{
 			"Reception timed out",
 			"Reception interrupted"
 					};
-static int	running;
-static BpSAP	sap;
+static BpSAP	_bpsap(BpSAP *newSAP)
+{
+	static BpSAP	sap = NULL;
+
+	if (newSAP)
+	{
+		sap = *newSAP;
+		sm_TaskVarAdd((int *) &sap);
+	}
+
+	return sap;
+}
 
 static void	handleQuit()
 {
-	running = 0;
-	bp_interrupt(sap);
+	bp_interrupt(_bpsap(NULL));
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -33,7 +42,9 @@ int	main(int argc, char **argv)
 {
 	char		*ownEid = (argc > 1 ? argv[1] : NULL);
 #endif
+	BpSAP		sap;
 	Sdr		sdr;
+	int		running = 1;
 	BpDelivery	dlv;
 	int		contentLength;
 	ZcoReader	reader;
@@ -59,9 +70,9 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
+	oK(_bpsap(&sap));
 	sdr = bp_get_sdr();
 	isignal(SIGINT, handleQuit);
-	running = 1;
 	while (running)
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
@@ -72,6 +83,12 @@ int	main(int argc, char **argv)
 		}
 
 		PUTMEMO("ION event", deliveryTypes[dlv.result - 1]);
+		if (dlv.result == BpReceptionInterrupted)
+		{
+			running = 0;
+			continue;
+		}
+
 		if (dlv.result == BpPayloadPresent)
 		{
 			contentLength = zco_source_data_length(sdr, dlv.adu);

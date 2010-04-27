@@ -120,7 +120,7 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 #else
 #define PUTS(text)		puts(text)
 #define PERROR(text)		perror(text)
-#define PUTMEMO(text, memo)	printf("%s: %s", text, memo)
+#define PUTMEMO(text, memo)	printf("%s: %s\n", text, memo)
 #endif
 
 #ifdef VXWORKS			/****	VxWorks				****/
