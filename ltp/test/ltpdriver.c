@@ -13,13 +13,12 @@
 
 #define	DEFAULT_ADU_LENGTH	(60000)
 
-static int	running;
-
 static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 			int aduLength)
 {
 	Sdr		sdr;
-	FILE		*aduFile;
+	int		running = 1;
+	int		aduFile;
 	int		randomAduLength = 0;
 	int		bytesRemaining;
 	int		bytesToWrite;
@@ -60,8 +59,8 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 		randomAduLength = 1;
 	}
 
-	aduFile = fopen("ltpdriverAduFile", "w");
-	if (aduFile == NULL)
+	aduFile = open("ltpdriverAduFile", O_WRONLY | O_CREAT, 0666);
+	if (aduFile < 0)
 	{
 		putSysErrmsg("Can't create ADU file", NULL);
 		return 0;
@@ -87,9 +86,9 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 			bytesToWrite = DEFAULT_ADU_LENGTH;
 		}
 
-		if (fwrite(buffer, bytesToWrite, 1, aduFile) < 1)
+		if (write(aduFile, buffer, bytesToWrite) < 0)
 		{
-			fclose(aduFile);
+			close(aduFile);
 			putSysErrmsg("Error writing to ADU file", NULL);
 			return 0;
 		}
@@ -98,7 +97,7 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 	}
 
 //sdr_start_trace(sdr, 10000000, NULL);
-	fclose(aduFile);
+	close(aduFile);
 	sdr_begin_xn(sdr);
 	fileRef = zco_create_file_ref(sdr, "ltpdriverAduFile", NULL);
 	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
@@ -107,7 +106,6 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 		return 0;
 	}
 	
-	running = 1;
 	startTime = time(NULL);
 	while (running && cyclesRemaining > 0)
 	{
@@ -140,8 +138,8 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 		}
 
 		bytesSent += aduLength;
-putchar('^');
-fflush(stdout);
+//putchar('^');
+//fflush(stdout);
 		cyclesRemaining--;
 		if ((cyclesRemaining % 100) == 0)
 		{

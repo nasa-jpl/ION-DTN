@@ -80,12 +80,6 @@ static char	*_nullEid()
 	return "dtn:none";
 }
 
-#if 0
-static char		*NullParmsMemo = "BP error: null input parameter(s)";
-static char		*TooShortMemo = "BP error: not enough to parse.";
-static char		*DBErrorMemo = "BP error: database access problem.";
-#endif
-
 /*	Note that ION currently supports CBHE compression only for
  *	a single DTN endpoint scheme.					*/
 
@@ -787,7 +781,7 @@ static BpVdb	*_bpvdb(char **name)
 		if ((vdb->schemes = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
-		|| psm_catlg(wm, BP_VDBNAME, vdbAddress) < 0)
+		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
 			sdr_exit_xn(sdr);
 			putErrmsg("Can't initialize volatile database.", NULL);
@@ -1091,7 +1085,6 @@ int	bpAttach()
 	Object		bpdbObject = _bpdbObject(NULL);
 	BpVdb		*bpvdb = _bpvdb(NULL);
 	Sdr		bpSdr;
-	PsmPartition	bpwm;
 	char		*bpvdbName = _bpvdbName();
 
 	if (bpdbObject && bpvdb)
@@ -1127,7 +1120,6 @@ int	bpAttach()
 
 	/*	Locate the BP volatile database.			*/
 
-	bpwm = getIonwm();
 	if (bpvdb == NULL)
 	{
 		if (_bpvdb(&bpvdbName) == NULL)
@@ -3074,7 +3066,7 @@ int	updateEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	if (elt == 0)		/*	This is an unknown endpoint.	*/
 	{
 		sdr_exit_xn(bpSdr);
-		writeMemoNote("[?] Unknown endpoint, not in database", eid);
+		writeMemoNote("[?] Unknown endpoint", eid);
 		return 0;
 	}
 
@@ -3167,7 +3159,7 @@ int	removeEndpoint(char *eid)
 	sdr_list_delete(bpSdr, endpointElt, NULL, NULL);
 	if (sdr_end_xn(bpSdr) < 0)
 	{
-		putErrmsg("Can't remove endpoint.", NULL);
+		putErrmsg("Can't remove endpoint.", eid);
 		return -1;
 	}
 

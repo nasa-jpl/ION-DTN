@@ -1155,21 +1155,6 @@ static int	processLine(char *line, int lineLength)
 			initializeBp(tokenCount, tokens);
 			return 0;
 
-		case 'x':
-			if (attachToBp() == 0)
-			{
-				if (tokenCount > 1)
-				{
-					executeStop(tokenCount, tokens);
-				}
-				else
-				{
-					bpStop();
-				}
-			}
-
-			return 0;
-
 		case 's':
 			if (attachToBp() == 0)
 			{
@@ -1181,10 +1166,25 @@ static int	processLine(char *line, int lineLength)
 				{
 					if (bpStart() < 0)
 					{
-						putErrmsg("can't start BP.",
+						putErrmsg("Can't start BP.",
 								NULL);
 						return 0;
 					}
+				}
+			}
+
+			return 0;
+
+		case 'x':
+			if (attachToBp() == 0)
+			{
+				if (tokenCount > 1)
+				{
+					executeStop(tokenCount, tokens);
+				}
+				else
+				{
+					bpStop();
 				}
 			}
 

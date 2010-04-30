@@ -23,8 +23,6 @@
 extern "C" {
 #endif
 
-#define	LTP_DBNAME		"ltpdb"
-#define LTP_VDBNAME		"ltpvdb"
 #define LTP_MAX_NBR_OF_CLIENTS	8
 
 #ifndef LTP_MEAN_SEARCH_LENGTH

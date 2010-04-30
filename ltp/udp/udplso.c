@@ -12,11 +12,21 @@
 									*/
 #include "udplsa.h"
 
-static sm_SemId		udplsoSemaphore;
+static sm_SemId		udplsoSemaphore(sm_SemId *semid)
+{
+	static sm_SemId	semaphore = -1;
+	
+	if (semid)
+	{
+		semaphore = *semid;
+	}
+
+	return semaphore;
+}
 
 static void	shutDownLso()	/*	Commands LSO termination.	*/
 {
-	sm_SemEnd(udplsoSemaphore);
+	sm_SemEnd(udplsoSemaphore(NULL));
 }
 
 int	sendSegmentByUDP(int linkSocket, char *from, int length)
@@ -142,14 +152,13 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
-	udplsoSemaphore = vspan->segSemaphore;
-	sm_TaskVarAdd(&udplsoSemaphore);
+	oK(udplsoSemaphore(&(vspan->segSemaphore)));
 	signal(SIGTERM, shutDownLso);
 
 	/*	Can now begin transmitting to remote engine.		*/
 
 	writeMemo("[i] udplso is running.");
-	while (running && !(sm_SemEnded(udplsoSemaphore)))
+	while (running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 		if (segmentLength < 0)

@@ -381,6 +381,6 @@ int	main(int argc, char *argv[])
 
 	writeErrmsgMemos();
 	writeMemo("[i] bpclock has ended.");
-	bp_detach();
+	ionDetach();
 	return 0;
 }

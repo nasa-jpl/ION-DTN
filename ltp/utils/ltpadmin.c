@@ -9,15 +9,28 @@
 
 #include "ltpP.h"
 
-static Sdr		sdr = NULL;
-static int		echo = 0;
-static LtpDB		*ltpConstants;
-static PsmPartition	ionwm;
-static LtpVdb		*vdb;
+static int		_echo(int *newValue)
+{
+	static int	state = 0;
+
+	if (newValue)
+	{
+		if (*newValue == 1)
+		{
+			state = 1;
+		}
+		else
+		{
+			state = 0;
+		}
+	}
+
+	return state;
+}
 
 static void	printText(char *text)
 {
-	if (echo)
+	if (_echo(NULL))
 	{
 		writeMemo(text);
 	}
@@ -108,27 +121,14 @@ static void	initializeLtp(int tokenCount, char **tokens)
 		putErrmsg("ltpadmin can't initialize LTP.", NULL);
 		return;
 	}
-
-	sdr = getIonsdr();
-	ltpConstants = getLtpConstants();
-	ionwm = getIonwm();
-	vdb = getLtpVdb();
 }
 
 static int	attachToLtp()
 {
-	if (sdr == NULL)
+	if (ltpAttach() < 0)
 	{
-		if (ltpAttach() < 0)
-		{
-			printText("LTP not initialized yet.");
-			return -1;
-		}
-
-		sdr = getIonsdr();
-		ltpConstants = getLtpConstants();
-		ionwm = getIonwm();
-		vdb = getLtpVdb();
+		printText("LTP not initialized yet.");
+		return -1;
 	}
 
 	return 0;
@@ -140,7 +140,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 	int		qTime = 1;		/*	Default.	*/
 	int		purge = 0;		/*	Default.	*/
 
-	if (attachToLtp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Add what?");
@@ -190,7 +189,6 @@ static void	executeChange(int tokenCount, char **tokens)
 	int		qTime = 1;		/*	Default.	*/
 	int		purge = 0;		/*	Default.	*/
 
-	if (attachToLtp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Change what?");
@@ -238,7 +236,6 @@ static void	executeDelete(int tokenCount, char **tokens)
 {
 	unsigned long	engineId;
 
-	if (attachToLtp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
@@ -263,6 +260,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	printSpan(LtpVspan *vspan)
 {
+	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(LtpSpan, span);
 	char	cmd[SDRSTRING_BUFSZ];
 	char	buffer[256];
@@ -292,6 +290,7 @@ owltInbound: %u  remoteXmit: %lu", vspan->owltOutbound, vspan->localXmitRate,
 
 static void	infoSpan(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	unsigned long	engineId;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
@@ -317,7 +316,6 @@ static void	infoSpan(int tokenCount, char **tokens)
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
-	if (attachToLtp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Information on what?");
@@ -335,6 +333,9 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	listSpans(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmPartition	ionwm = getIonwm();
 	Object		ltpdbObj = getLtpDbObject();
 			OBJ_POINTER(LtpDB, ltpdb);
 	char		buffer[128];
@@ -364,7 +365,6 @@ LSI pid: %d)", ltpdb->ownEngineId, ltpdb->ownQtime, vdb->lsiPid);
 
 static void	executeList(int tokenCount, char **tokens)
 {
-	if (attachToLtp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("List what?");
@@ -382,6 +382,7 @@ static void	executeList(int tokenCount, char **tokens)
 
 static void	manageScreening(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	ltpdbObj = getLtpDbObject();
 	LtpDB	ltpdb;
 	int	newEnforceSchedule;
@@ -422,6 +423,7 @@ static void	manageScreening(int tokenCount, char **tokens)
 
 static void	manageOwnqtime(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	ltpdbObj = getLtpDbObject();
 	LtpDB	ltpdb;
 	int	newOwnQtime;
@@ -450,7 +452,6 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 
 static void	executeManage(int tokenCount, char **tokens)
 {
-	if (attachToLtp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Manage what?");
@@ -474,10 +475,10 @@ static void	executeManage(int tokenCount, char **tokens)
 
 static void	switchWatch(int tokenCount, char **tokens)
 {
+	LtpVdb	*vdb = getLtpVdb();
 	char	buffer[80];
 	char	*cursor;
 
-	if (attachToLtp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Switch watch in what way?");
@@ -569,6 +570,8 @@ static void	switchWatch(int tokenCount, char **tokens)
 
 static void	switchEcho(int tokenCount, char **tokens)
 {
+	int	state;
+
 	if (tokenCount < 2)
 	{
 		printText("Echo on or off?");
@@ -578,11 +581,13 @@ static void	switchEcho(int tokenCount, char **tokens)
 	switch (*(tokens[1]))
 	{
 	case '0':
-		echo = 0;
+		state = 0;
+		oK(_echo(&state));
 		break;
 
 	case '1':
-		echo = 1;
+		state = 1;
+		oK(_echo(&state));
 		break;
 
 	default:
@@ -590,32 +595,12 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
-static int	processLine(char *line)
+static int	processLine(char *line, int lineLength)
 {
-	int	lineLength;
 	int	tokenCount;
 	char	*cursor;
 	int	i;
 	char	*tokens[12];
-
-	if (line == NULL) return 0;
-
-	lineLength = strlen(line);
-	if (lineLength <= 0) return 0;
-
-	if (line[lineLength - 1] == 0x0a)	/*	LF (newline)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength <= 0) return 0;
-	}
-
-	if (line[lineLength - 1] == 0x0d)	/*	CR (DOS text)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength <= 0) return 0;
-	}
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 12; i++)
@@ -669,59 +654,87 @@ static int	processLine(char *line)
 			return 0;
 
 		case 's':
-			if (attachToLtp() < 0)
+			if (attachToLtp() == 0)
 			{
-				return 0;
-			}
-
-			if (tokenCount < 2)
-			{
-				printText("Can't start LTP: no LSI command.");
-				return 0;
-			}
-
-			if (ltpStart(tokens[1]) < 0)
-			{
-				putErrmsg("can't start LTP.", NULL);
+				if (tokenCount < 2)
+				{
+					printText("Can't start LTP: no LSI \
+command.");
+				}
+				else
+				{
+					if (ltpStart(tokens[1]) < 0)
+					{
+						putErrmsg("Can't start LTP.",
+								NULL);
+					}
+				}
 			}
 
 			return 0;
 
 		case 'x':
-			if (attachToLtp() < 0)
+			if (attachToLtp() == 0)
 			{
-				return 0;
+				ltpStop();
 			}
 
-			ltpStop();
 			return 0;
 
 		case 'a':
-			executeAdd(tokenCount, tokens);
+			if (attachToLtp() == 0)
+			{
+				executeAdd(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'c':
-			executeChange(tokenCount, tokens);
+			if (attachToLtp() == 0)
+			{
+				executeChange(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'd':
-			executeDelete(tokenCount, tokens);
+			if (attachToLtp() == 0)
+			{
+				executeDelete(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'i':
-			executeInfo(tokenCount, tokens);
+			if (attachToLtp() == 0)
+			{
+				executeInfo(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'l':
-			executeList(tokenCount, tokens);
+			if (attachToLtp() == 0)
+			{
+				executeList(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'm':
-			executeManage(tokenCount, tokens);
+			if (attachToLtp() == 0)
+			{
+				executeManage(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'w':
-			switchWatch(tokenCount, tokens);
+			if (attachToLtp() == 0)
+			{
+				switchWatch(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'e':
@@ -741,36 +754,44 @@ static int	processLine(char *line)
 int	ltpadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char		*cmdFileName = (char *) a1;
+	char	*cmdFileName = (char *) a1;
 #else
 int	main(int argc, char **argv)
 {
-	char		*cmdFileName = (argc > 1 ? argv[1] : NULL);
+	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
 #endif
-	FILE		*cmdFile;
-	char		line[256];
+	int	cmdFile;
+	char	line[256];
+	int	len;
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 #ifdef FSWLOGGER
 		return 0;			/*	No stdout.	*/
 #else
+		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
 		{
 			printf(": ");
-			if (fgets(line, sizeof line, stdin) == NULL)
+			fflush(stdout);
+			if (igets(cmdFile, line, sizeof line, &len) == NULL)
 			{
-				if (feof(stdin))
+				if (len == 0)
 				{
 					break;
 				}
 
-				PERROR("ltpadmin fgets failed");
+				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
 
-			if (processLine(line))
+			if (len == 0)
+			{
+				continue;
+			}
+
+			if (processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -786,8 +807,8 @@ int	main(int argc, char **argv)
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = fopen(cmdFileName, "r");
-		if (cmdFile == NULL)
+		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		if (cmdFile < 0)
 		{
 			PERROR("Can't open command file");
 		}
@@ -795,29 +816,31 @@ int	main(int argc, char **argv)
 		{
 			while (1)
 			{
-				if (fgets(line, sizeof line, cmdFile) == NULL)
+				if (igets(cmdFile, line, sizeof line, &len)
+						== NULL)
 				{
-					if (feof(cmdFile))
+					if (len == 0)
 					{
 						break;	/*	Loop.	*/
 					}
 
-					PERROR("ltpadmin fgets failed");
+					putErrmsg("igets failed.", NULL);
 					break;		/*	Loop.	*/
 				}
 
-				if (line[0] == '#')	/*	Comment.*/
+				if (len == 0
+				|| line[0] == '#')	/*	Comment.*/
 				{
 					continue;
 				}
 
-				if (processLine(line))
+				if (processLine(line, len))
 				{
 					break;	/*	Out of loop.	*/
 				}
 			}
 
-			fclose(cmdFile);
+			close(cmdFile);
 		}
 	}
 

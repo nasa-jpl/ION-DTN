@@ -11,10 +11,53 @@
 #include "platform.h"
 #include "ltpP.h"
 
-static int	sessionsCanceled = 0;
-static int	blocksReceived = 0;
-static int	bytesReceived = 0;
-static int	running;
+static int	_running(int *newState)
+{
+	int	state = 1;
+
+	if (newState)
+	{
+		state = *newState;
+	}
+
+	return state;
+}
+
+static int	_sessionsCanceled(int increment)
+{
+	static int	count = 0;
+	
+	if (increment)
+	{
+		count += increment;
+	}
+	
+	return count;
+}
+
+static int	_blocksReceived(int increment)
+{
+	static int	count = 0;
+	
+	if (increment)
+	{
+		count += increment;
+	}
+	
+	return count;
+
+}
+static int	_bytesReceived(int increment)
+{
+	static int	count = 0;
+	
+	if (increment)
+	{
+		count += increment;
+	}
+	
+	return count;
+}
 
 static void	showProgress()
 {
@@ -25,15 +68,17 @@ static void	showProgress()
 
 static void	handleQuit()
 {
-	running = 0;
+	int	stop = 0;
+
+	oK(_running(&stop));
 	ltp_interrupt(1);
 }
 
 static void	printCount()
 {
-	PUTMEMO("Sessions canceled", itoa(sessionsCanceled));
-	PUTMEMO("Blocks received", itoa(blocksReceived));
-	PUTMEMO("Bytes received", itoa(bytesReceived));
+	PUTMEMO("Sessions canceled", itoa(_sessionsCanceled(0)));
+	PUTMEMO("Blocks received", itoa(_blocksReceived(0)));
+	PUTMEMO("Bytes received", itoa(_bytesReceived(0)));
 	fflush(stdout);
 }
 
@@ -47,6 +92,7 @@ int	main(int argc, char **argv)
 {
 	int		maxBytes = (argc > 1 ? atoi(argv[1]) : 0);
 #endif
+	int		state = 1;
 	LtpNoticeType	type;
 	LtpSessionId	sessionId;
 	unsigned char	reasonCode;
@@ -73,18 +119,19 @@ int	main(int argc, char **argv)
 		return 1;
 	}
 
-	signal(SIGALRM, showProgress);
+	isignal(SIGALRM, showProgress);
 	alarm(5);
-	signal(SIGINT, handleQuit);
-	running = 1;
-	while (running)
+	isignal(SIGINT, handleQuit);
+	oK((_running(&state)));
+	while (_running(NULL))
 	{
 		if (ltp_get_notice(1, &type, &sessionId,
 				&reasonCode, &endOfBlock, &dataOffset,
 				&dataLength, &data) < 0)
 		{
 			putErrmsg("Can't get LTP notice.", NULL);
-			running = 0;
+			state = 0;
+			oK((_running(&state)));
 			continue;
 		}
 
@@ -104,7 +151,7 @@ canceled: source engine %lu, session %lu, reason code %d.",
 			break;
 
 		case LtpImportSessionCanceled:
-			sessionsCanceled++;
+			oK(_sessionsCanceled(1));
 			isprintf(buffer, sizeof buffer, "Reception canceled: \
 source engine %lu, session %lu, reason code %d.", sessionId.sourceEngineId,
 					sessionId.sessionNbr, reasonCode);
@@ -121,8 +168,8 @@ eob=%d.", sessionId.sourceEngineId, sessionId.sessionNbr, dataOffset,
 			break;
 
 		case LtpRecvRedPart:
-			blocksReceived++;
-			bytesReceived += dataLength;
+			oK(_blocksReceived(1));
+			oK(_bytesReceived(dataLength));
 			ltp_release_data(data);
 			break;
 
@@ -130,9 +177,10 @@ eob=%d.", sessionId.sourceEngineId, sessionId.sessionNbr, dataOffset,
 			break;
 		}
 
-		if (bytesReceived >= maxBytes)
+		if (_bytesReceived(0) >= maxBytes)
 		{
-			running = 0;
+			state = 0;
+			oK((_running(&state)));
 		}
 	}
 
