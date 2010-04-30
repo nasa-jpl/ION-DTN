@@ -142,7 +142,6 @@ static int	attachToBp()
 
 static void	executeStart(int tokenCount, char **tokens)
 {
-	if (attachToBp() < 0) return;
 	if (strcmp(tokens[1], "scheme") == 0)
 	{
 		bpStartScheme(tokens[2]);
@@ -172,7 +171,6 @@ static void	executeStart(int tokenCount, char **tokens)
 
 static void	executeStop(int tokenCount, char **tokens)
 {
-	if (attachToBp() < 0) return;
 	if (strcmp(tokens[1], "scheme") == 0)
 	{
 		bpStopScheme(tokens[2]);
@@ -206,7 +204,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 	BpRecvRule	rule;
 	long		nominalRate = 0;
 
-	if (attachToBp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Add what?");
@@ -305,7 +302,6 @@ static void	executeChange(int tokenCount, char **tokens)
 	char		*script;
 	BpRecvRule	rule;
 
-	if (attachToBp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Change what?");
@@ -383,7 +379,6 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
-	if (attachToBp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
@@ -697,7 +692,6 @@ static void	infoOutduct(int tokenCount, char **tokens)
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
-	if (attachToBp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Information on what?");
@@ -932,7 +926,6 @@ static void	listOutducts(int tokenCount, char **tokens)
 
 static void	executeList(int tokenCount, char **tokens)
 {
-	if (attachToBp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("List what?");
@@ -974,7 +967,6 @@ static void	executeList(int tokenCount, char **tokens)
 
 static void	executeRun(int tokenCount, char **tokens)
 {
-	if (attachToBp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Run what?");
@@ -997,7 +989,6 @@ static void	switchWatch(int tokenCount, char **tokens)
 	char	buffer[80];
 	char	*cursor;
 
-	if (attachToBp() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Switch watch in what way?");
@@ -1165,61 +1156,78 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case 'x':
-			if (attachToBp() < 0)
+			if (attachToBp() == 0)
 			{
-				return 0;
-			}
-
-			if (tokenCount > 1)
-			{
-				executeStop(tokenCount, tokens);
-			}
-			else
-			{
-				bpStop();
+				if (tokenCount > 1)
+				{
+					executeStop(tokenCount, tokens);
+				}
+				else
+				{
+					bpStop();
+				}
 			}
 
 			return 0;
 
 		case 's':
-			if (attachToBp() < 0)
+			if (attachToBp() == 0)
 			{
-				return 0;
-			}
-
-			if (tokenCount > 1)
-			{
-				executeStart(tokenCount, tokens);
-			}
-			else
-			{
-				if (bpStart() < 0)
+				if (tokenCount > 1)
 				{
-					putErrmsg("can't start BP.", NULL);
-					return 0;
+					executeStart(tokenCount, tokens);
+				}
+				else
+				{
+					if (bpStart() < 0)
+					{
+						putErrmsg("can't start BP.",
+								NULL);
+						return 0;
+					}
 				}
 			}
 
 			return 0;
 
 		case 'a':
-			executeAdd(tokenCount, tokens);
+			if (attachToBp() == 0)
+			{
+				executeAdd(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'c':
-			executeChange(tokenCount, tokens);
+			if (attachToBp() == 0)
+			{
+				executeChange(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'd':
-			executeDelete(tokenCount, tokens);
+			if (attachToBp() == 0)
+			{
+				executeDelete(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'i':
-			executeInfo(tokenCount, tokens);
+			if (attachToBp() == 0)
+			{
+				executeInfo(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'l':
-			executeList(tokenCount, tokens);
+			if (attachToBp() == 0)
+			{
+				executeList(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'r':
@@ -1227,7 +1235,11 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case 'w':
-			switchWatch(tokenCount, tokens);
+			if (attachToBp() == 0)
+			{
+				switchWatch(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'e':
@@ -1275,7 +1287,7 @@ int	main(int argc, char **argv)
 					break;
 				}
 
-				putErrmsg("fgets failed.", NULL);
+				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
 			
@@ -1317,7 +1329,7 @@ int	main(int argc, char **argv)
 						break;	/*	Loop.	*/
 					}
 
-					putErrmsg("fgets failed.", NULL);
+					putErrmsg("igets failed.", NULL);
 					break;		/*	Loop.	*/
 				}
 

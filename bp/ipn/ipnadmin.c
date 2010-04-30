@@ -1041,7 +1041,7 @@ static int	run_ipnadmin(char *cmdFileName)
 		}
 #endif
 	}
-	else				/*	Scripted.		*/
+	else					/*	Scripted.	*/
 	{
 		cmdFile = open(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)

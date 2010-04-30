@@ -101,6 +101,17 @@ static void	initializeCfdp(int tokenCount, char **tokens)
 	}
 }
 
+static int	attachToCfdp()
+{
+	if (cfdpAttach() < 0)
+	{
+		printText("CFDP not initialized yet.");
+		return -1;
+	}
+
+	return 0;
+}
+
 static void	manageDiscard(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
@@ -336,7 +347,6 @@ static void	manageMtusize(int tokenCount, char **tokens)
 
 static void	executeManage(int tokenCount, char **tokens)
 {
-	if (cfdpAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Manage what?");
@@ -400,7 +410,6 @@ static void	executeInfo()
 		OBJ_POINTER(CfdpDB, db);
 	char	buffer[256];
 
-	if (cfdpAttach() < 0) return;
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 	GET_OBJ_POINTER(sdr, CfdpDB, db, getCfdpDbObject());
 	isprintf(buffer, sizeof buffer, "xncount=%lu, maxtrnbr=%lu, \
@@ -421,7 +430,6 @@ static void	switchWatch(int tokenCount, char **tokens)
 	char	buffer[80];
 	char	*cursor;
 
-	if (cfdpAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Switch watch in what way?");
@@ -550,43 +558,55 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case 's':
-			if (cfdpAttach() < 0)
+			if (attachToCfdp() == 0)
 			{
-				return 0;
-			}
-
-			if (tokenCount < 2)
-			{
-				printText("Can't start CFDP: no UTA command.");
-				return 0;
-			}
-
-			if (cfdpStart(tokens[1]) < 0)
-			{
-				putErrmsg("Can't start CFDP.", NULL);
+				if (tokenCount < 2)
+				{
+					printText("Can't start CFDP: no UTA \
+command.");
+				}
+				else
+				{
+					if (cfdpStart(tokens[1]) < 0)
+					{
+						putErrmsg("Can't start CFDP.",
+								NULL);
+					}
+				}
 			}
 
 			return 0;
 
 		case 'x':
-			if (cfdpAttach() < 0)
+			if (attachToCfdp() == 0)
 			{
-				return 0;
+				cfdpStop();
 			}
 
-			cfdpStop();
 			return 0;
 
 		case 'm':
-			executeManage(tokenCount, tokens);
+			if (attachToCfdp() == 0)
+			{
+				executeManage(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'i':
-			executeInfo();
+			if (attachToCfdp() == 0)
+			{
+				executeInfo();
+			}
+
 			return 0;
 
 		case 'w':
-			switchWatch(tokenCount, tokens);
+			if (attachToCfdp() == 0)
+			{
+				switchWatch(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'e':

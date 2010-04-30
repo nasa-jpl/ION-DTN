@@ -2314,6 +2314,12 @@ char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 			break;			/*	Out of switch.	*/
 
 		case -1:
+			if (errno == EINTR)	/*	Treat as EOF.	*/
+			{
+				*lineLen = 0;
+				return NULL;
+			}
+
 			putSysErrmsg("Failed reading line", itoa(len));
 			*lineLen = -1;
 			return NULL;

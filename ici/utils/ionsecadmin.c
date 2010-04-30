@@ -114,7 +114,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	char	*keyName;
 
-	if (secAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Add what?");
@@ -182,7 +181,6 @@ static void	executeChange(int tokenCount, char **tokens)
 {
 	char	*keyName;
 
-	if (secAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Change what?");
@@ -248,7 +246,6 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
-	if (secAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
@@ -328,7 +325,6 @@ static void	executeInfo(int tokenCount, char **tokens)
 	Object	addr;
 	Object	elt;
 
-	if (secAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Information on what?");
@@ -390,7 +386,6 @@ static void	executeList(int tokenCount, char **tokens)
 	Object	elt;
 	Object	obj;
 
-	if (secAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("List what?");
@@ -530,23 +525,43 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case 'a':
-			executeAdd(tokenCount, tokens);
+			if (secAttach() == 0)
+			{
+				executeAdd(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'c':
-			executeChange(tokenCount, tokens);
+			if (secAttach() == 0)
+			{
+				executeChange(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'd':
-			executeDelete(tokenCount, tokens);
+			if (secAttach() == 0)
+			{
+				executeDelete(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'i':
-			executeInfo(tokenCount, tokens);
+			if (secAttach() == 0)
+			{
+				executeInfo(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'l':
-			executeList(tokenCount, tokens);
+			if (secAttach() == 0)
+			{
+				executeList(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'e':

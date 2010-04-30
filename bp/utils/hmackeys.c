@@ -70,6 +70,7 @@ int	main(int argc, char **argv)
 		while (1)
 		{
 			printf(": ");
+			fflush(stdout);
 			if (igets(cmdFile, line, sizeof line, &len) == NULL)
 			{
 				if (len == 0)

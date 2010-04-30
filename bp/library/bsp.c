@@ -1185,7 +1185,7 @@ bytes", rawBundleLength);
       {
          digest = bsp_babGetSecResult(rawBundle, rawBundleLength, 
 		scratch.cipherKeyName, &digestLen);
-	 if(digestLen != BAB_HMAC_SHA1_RESULT_LEN)
+	 if(digest == NULL || digestLen != BAB_HMAC_SHA1_RESULT_LEN)
 	 {
             BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Unable to calculate \
 security result. Digest len is %ld.", digestLen);     
@@ -1914,7 +1914,7 @@ EID %s.", eidString);
 	    if (rule->ciphersuiteName[0] != '\0')
 	    {
            	 istrcpy(scratch->cipherKeyName,rule->keyName,
-	    			strlen(rule->keyName));
+				 sizeof scratch->cipherKeyName);
 	    }
 
             BSP_DEBUG_INFO("i bsp_babGetSecurityInfo: get TX key name of %s", 
@@ -1939,7 +1939,7 @@ EID %s.", eidString);
 	    if (rule->ciphersuiteName[0] != '\0')
 	    {
             	istrcpy(scratch->cipherKeyName,rule->keyName,
-	    		strlen(rule->keyName));
+				 sizeof scratch->cipherKeyName);
 	    }
 
             BSP_DEBUG_INFO("i bsp_babGetSecurityInfo: get RX key name of %s", 

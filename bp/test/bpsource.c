@@ -108,9 +108,15 @@ int	main(int argc, char **argv)
 	while (_running(NULL))
 	{
 		printf(": ");
+		fflush(stdout);
 		if (igets(fd, line, sizeof line, &lineLength) == NULL)
 		{
-			putSysErrmsg("bpsource fgets failed", NULL);
+			if (lineLength == 0)	/*	EOF.		*/
+			{
+				break;
+			}
+
+			putErrmsg("igets failed.", NULL);
 			break;
 		}
 

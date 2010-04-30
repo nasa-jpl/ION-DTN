@@ -155,7 +155,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 	unsigned int	owlt;
 	Object		elt;
 
-	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Add what?");
@@ -212,7 +211,6 @@ static void	executeDelete(int tokenCount, char **tokens)
 	unsigned long	fromNodeNbr;
 	unsigned long	toNodeNbr;
 
-	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
@@ -266,7 +264,6 @@ static void	executeInfo(int tokenCount, char **tokens)
 	Object		rangeObj;
 	IonRange	range;
 
-	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Information on what?");
@@ -399,7 +396,6 @@ static void	executeList(int tokenCount, char **tokens)
 	Object	obj;
 	char	buffer[RFX_NOTE_LEN];
 
-	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("List what?");
@@ -674,7 +670,6 @@ forecast = %ld", iondb->currentOccupancy, iondb->occupancyCeiling,
 
 static void	executeManage(int tokenCount, char **tokens)
 {
-	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Manage what?");
@@ -848,69 +843,86 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case 's':
-			if (ionAttach() < 0)
+			if (ionAttach() == 0)
 			{
-				return 0;
-			}
-
-			if (rfx_start() < 0)
-			{
-				putErrmsg("Can't start RFX.", NULL);
+				if (rfx_start() < 0)
+				{
+					putErrmsg("Can't start RFX.", NULL);
+				}
 			}
 
 			return 0;
 
 		case 'x':
-			if (ionAttach() < 0)
+			if (ionAttach() == 0)
 			{
-				return 0;
+				rfx_stop();
 			}
 
-			rfx_stop();
 			return 0;
 
 		case '@':
-			if (ionAttach() < 0)
+			if (ionAttach() == 0)
 			{
-				return 0;
-			}
-
-			if (tokenCount < 2)
-			{
-				printText("Can't set reference time: no time.");
-			}
-			else
-			{
-				if (_referenceTime(NULL) == 0)
+				if (tokenCount < 2)
 				{
-					referenceTime = getUTCTime();
-					oK(_referenceTime(&referenceTime));
+					printText("Can't set reference time: \
+no time.");
 				}
+				else
+				{
+					if (_referenceTime(NULL) == 0)
+					{
+						referenceTime = getUTCTime();
+						oK(_referenceTime
+							(&referenceTime));
+					}
 
-				referenceTime = readTimestampUTC(tokens[1],
-						referenceTime);
+					referenceTime = readTimestampUTC
+						(tokens[1], referenceTime);
+				}
 			}
 
 			return 0;
 
 		case 'a':
-			executeAdd(tokenCount, tokens);
+			if (ionAttach() == 0)
+			{
+				executeAdd(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'd':
-			executeDelete(tokenCount, tokens);
+			if (ionAttach() == 0)
+			{
+				executeDelete(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'i':
-			executeInfo(tokenCount, tokens);
+			if (ionAttach() == 0)
+			{
+				executeInfo(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'l':
-			executeList(tokenCount, tokens);
+			if (ionAttach() == 0)
+			{
+				executeList(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'm':
-			executeManage(tokenCount, tokens);
+			if (ionAttach() == 0)
+			{
+				executeManage(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'r':
