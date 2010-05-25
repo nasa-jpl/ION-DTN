@@ -68,6 +68,12 @@ protocol stack or up to a ZCO-capable application].  Maximum length of
 I<cleanupScript> is 255.  Returns SDR location of file reference object
 on success, 0 on any error.
 
+=item char *zco_file_ref_path(Sdr sdr, Object fileRef, char *buffer, int buflen)
+
+Retrieves the pathName associated with I<fileRef> and stores it in I<buffer>,
+truncating it to fit (as indicated by I<buflen>) and NULL-terminating it.  On
+success, returns I<buffer>; returns NULL on any error.
+
 =item void zco_destroy_file_ref(Sdr sdr, Object fileRef)
 
 If the file reference object residing at location I<fileRef> within
@@ -118,6 +124,12 @@ success, 0 on any error.
 
 Explicitly destroys the indicated Zco reference.  When the ZCO's last
 reference is destroyed, the ZCO itself is automatically destroyed.
+
+=item Object zco_clone(Sdr sdr, Object zcoRef, unsigned int offset, unsigned int length)
+
+Creates a new ZCO that is a copy of a subset of the referenced ZCO.  Copies
+portions of the extents of the original ZCO as necessary.  Returns SDR
+location of a new ZcoReference to the new ZCO on success, 0 on any error.
 
 =item unsigned int zco_length(Sdr sdr, Object zcoRef)
 

@@ -75,24 +75,43 @@ extern int	ltp_get_notice(unsigned long clientId,
 			unsigned char *endOfBlock,
 			unsigned long *dataOffset,
 			unsigned long *dataLength,
-			char **data);
-		/*	Note that what is returned in *data when the
-		 *	notice is an LtpRecvRedPart is the red part of
-		 *	an aggregated block.  The block may contain
-		 *	one or more service data objects.  Extraction
-		 *	of individual service data objects from the
-		 *	aggregated block is the responsibility of the
-		 *	application.  A simple way to do this is to
-		 *	prepend the length of the service data object
-		 *	to the object itself (using zco_prepend_header)
-		 *	before calling LtpSend, so that the receiving
-		 *	application can alternate extraction of object
-		 *	lengths and objects from the delivered block's
-		 *	red part.					*/
+			Object *data);
+		/*	The value returned in *data is always a zero-
+		 *	copy object; use the zco_* functions defined
+		 *	in "zco.h" to retrieve the content of that
+		 *	object.
+		 *
+		 *	When the notice is an LtpRecvGreenSegment,
+		 *	the ZCO returned in *data contains the content
+		 *	of a single LTP green segment.  Reassembly of
+		 *	the green part of some block from these segments
+		 *	is the responsibility of the application.
+		 *
+		 *	When the notice is an LtpRecvRedPart, the ZCO
+		 *	returned in *data contains the red part of a
+		 *	possibly aggregated block.  The ZCO's content
+		 *	may therefore comprise multiple service data
+		 *	objects.  Extraction of individual service
+		 *	data objects from the aggregated block is the
+		 *	responsibility of the application.  A simple
+		 *	way to do this is to prepend the length of
+		 *	the service data object to the object itself
+		 *	(using zco_prepend_header) before calling
+		 *	ltp_send, so that the receiving application
+		 *	can alternate extraction of object lengths and
+		 *	objects from the delivered block's red part.
+		 *
+		 *	The cancellation of an export session may result
+		 *	in delivery of multiple LtpExportSessionCanceled
+		 *	notices, one for each service data unit in the
+		 *	export session's (potentially) aggregated block.
+		 *	The ZCO returned in *data for each such notice
+		 *	is a service data unit ZCO that had previously
+		 *	been passed to the ltp_send function.		*/
 
 extern void	ltp_interrupt(unsigned long clientId);
 
-extern void	ltp_release_data(char *data);
+extern void	ltp_release_data(Object data);
 
 extern void	ltp_close(unsigned long clientId);
 

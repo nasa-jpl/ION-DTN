@@ -64,8 +64,8 @@ extern "C" {
 #define DTN2_SCHEME_NAME		"dtn"
 #endif
 
-#ifndef	BP_AVG_HEADER
-#define BP_AVG_HEADER			(2000)
+#ifndef	BP_MAX_BLOCK_SIZE
+#define BP_MAX_BLOCK_SIZE		(2000)
 #endif
 
 /*	A BP "node" is a set of cooperating state machines that
@@ -516,8 +516,10 @@ typedef struct
 	Object		schemes;	/*	SDR list of Schemes	*/
 	Object		protocols;	/*	SDR list of ClProtocols	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
+	Object		inboundBundles;	/*	SDR list of ZCOs	*/
 	Object		clockCmd; 	/*	For starting clock.	*/
 	BpString	custodianEidString;
+	int		maxAcqInHeap;
 } BpDB;
 
 /*	Volatile database encapsulates the volatile state of the
@@ -603,47 +605,38 @@ typedef enum
 	AcqNG
 } AcqDecision;
 
-/*	In this implementation of BP, bundle acquisition is designed
- *	to acquire the entire primary block and at least the metadata
- *	fields of the payload block in a single function invocation;
- *	therefore all of this data must be in the work area buffer at
- *	the same time, so the buffer must be large enough to contain
- *	all of it.  Given 64-bit architectures, the practical maximum
- *	length of an SDNV is 10 bytes (10 octets of 7 significant bits
- *	each = 70 bits); also, the maximum legal value of an SDNV as
- *	used in BP is (2^64 - 1).  The BP spec limits the size of any
- *	single scheme name or SSR to 1023 bytes, so at minimum we have
- *	to allow for a dictionary of 8KB, but the processing of
- *	extension blocks may also add more scheme names and SSRs to
- *	the dictionary.  Since all dictionary offsets are SDNVs there
- *	is no structural limit to dictionary size, but in this
- *	implementation we assume that 64K is a reasonable practical
- *	limit on dictionary size.  So the minimum buffer size would
- *	be 64K plus 180 for eighteen SDNVs plus 2 for the sizes of
- *	the two fixed-length fields in these two blocks (version
- *	number and block type number).  In anticipation of other
- *	blocks (notably security) that might be present between
- *	the primary blocks and the payload, we simply increase the
- *	buffer size to 128K.						*/
-
 typedef struct
 {
 	VInduct		*vduct;
+
+	/*	Per-bundle state variables.				*/
+
 	Bundle		bundle;
+	int		headerLength;
+	int		trailerLength;
+	int		bundleLength;
 	int		authentic;	/*	Boolean.		*/
-	char		*senderEid;
 	char		*dictionary;
 	Lyst		extBlocks[2];	/*	(AcqExtBlock *)		*/
 	int		currentExtBlocksList;	/*	0 or 1.		*/
 	AcqDecision	decision;
-	int		payloadBytesAcquired;
 	int		lastBlockParsed;
 	int		malformed;
 	int		mustAbort;	/*	Unreadable block(s).	*/
-	int		primaryBlockLength;
-	char		primaryBlockBytes[BP_AVG_HEADER];
+
+	/*	Per-acquisition state variables.			*/
+
+	int		allAuthentic;	/*	Boolean.		*/
+	char		*senderEid;
+	Object		acqFileRef;
+	Object		zco;		/*	Concatenated bundles.	*/
+	Object		zcoElt;		/*	Retention in BpDB.	*/
+	int		zcoLength;
+	int		zcoBytesConsumed;
+	ZcoReader	reader;
+	int		zcoBytesReceived;
 	int		bytesBuffered;
-	char		buffer[131072];
+	char		buffer[BP_MAX_BLOCK_SIZE];
 } AcqWorkArea;
 
 /*	Definitions supporting route computation.			*/
@@ -884,8 +877,8 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	Returns 0 on success, -1 on failure.	*/
 
 extern int		bpIdentify(Object bundleZco, Object *bundleObj);
-			/*	This function parses out the ID
-			 *	fields of the catenated bundle in
+			/*	This function parses out the ID fields
+			 *	of the catenated outbound bundle in
 			 *	bundleZco, locates the bundle that
 			 *	is identified by that bundle ID, and
 			 *	passes that bundle's address back in
@@ -893,22 +886,23 @@ extern int		bpIdentify(Object bundleZco, Object *bundleObj);
 			 *	of a custody timeout event via bpMemo.
 			 *
 			 *	bpIdentify allocates a temporary
-			 *	buffer of size BP_HEADER_LIMIT
-			 *	(nominally 2000; can be revised at
-			 *	compile time) into which the initial
-			 *	block(s) of the concatenated bundle
-			 *	identified by bundleZco are read
-			 *	for parsing.  If that buffer is not
-			 *	long enough to contain the entire
-			 *	primary block of the bundle, bundle
-			 *	ID field extraction will be incomplete
-			 *	and the bundle will not be located.
+			 *	buffer of size BP_MAX_BLOCK_SIZE
+			 *	into which the initial block(s) of
+			 *	the concatenated bundle identified
+			 *	by bundleZco are read for parsing.
+			 *	If that buffer is not long enough
+			 *	to contain the entire primary block
+			 *	of the bundle, bundle ID field
+			 *	extraction will be incomplete and
+			 *	the bundle will not be located.
 			 *
-			 *	Returns the length of the catenated
-			 *	bundle's primary block on success.
-			 *	On incomplete bundle ID field
-			 *	extraction, returns 0.  Returns -1
-			 *	on system failure.			*/
+			 *	If the bundle is not located, the
+			 *	address returned in *bundleObj will
+			 *	be zero.
+			 *
+			 *	Returns 0 on success (whether bundle
+			 *	was located or not), -1 on system
+			 *	failure.				*/
 
 extern int		bpMemo(Object bundleObj, int interval); 
 			/*	This function inserts a "custody-
@@ -923,15 +917,14 @@ extern int		bpMemo(Object bundleObj, int interval);
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
-extern int		bpHandleXmitFailure(char *buffer,
-					int bufferLength);
+extern int		bpHandleXmitFailure(Object zco);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
 			 *	outduct) on detection of a convergence-
 			 *	layer protocol transmission error.
-			 *	It causes all serialized (catenated)
-			 *	custodial bundles in buffer to be
-			 *	queued up for re-forwarding.  In
+			 *	It causes the serialized (catenated)
+			 *	outbound custodial bundle in zco tox
+			 *	be queued up for re-forwarding.  In
 			 *	effect, this function implements
 			 *	custodial retransmission due to
 			 *	"timeout" - that is, convergence-layer
@@ -984,16 +977,26 @@ extern int		bpBeginAcq(	AcqWorkArea *workArea,
 			 *	non-NULL, an EID characterizing the
 			 *	node that send this inbound bundle.
 			 *
-			 *	If the start of the payload block is
-			 *	acquired at this time, the function
-			 *	blocks until the capacity of the
-			 *	induct's throttle is no longer
-			 *	negative.  In this way BP imposes rate
-			 *	control on inbound traffic, limiting
-			 *	the rate of acquisition to the nominal
-			 *	data rate of the induct.
+			 *	Returns 0 on success, -1 on any
+			 *	failure.				*/
+
+extern int		bpLoadAcq(	AcqWorkArea *workArea,
+					Object zco);
+			/*	This function continues acquisition
+			 *	of a bundle as initiated by an
+			 *	invocation of bpBeginAcq().  To
+			 *	do so, it inserts the indicated
+			 *	zero-copy object -- containing
+			 *	the bundle in concatenated form --
+			 *	into workArea.
 			 *
-			 *	Returns 1 on success, -1 on any
+			 *	bpLoadAcq is an alternative to
+			 *	bpContinueAcq, intended for use
+			 *	by convergence-layer adapters that
+			 *	natively acquire concatenated
+			 *	bundles into zero-copy objects.
+			 *
+			 *	Returns 0 on success, -1 on any
 			 *	failure.				*/
 
 extern int		bpContinueAcq(	AcqWorkArea *workArea,
@@ -1007,17 +1010,19 @@ extern int		bpContinueAcq(	AcqWorkArea *workArea,
 			 *	the byte array that is encapsulated
 			 *	in workArea.
 			 *
-			 *	If the start of the payload block is
-			 *	acquired at this time, the function
-			 *	blocks until the capacity of the
-			 *	induct's throttle is no longer
-			 *	negative.  In this way BP imposes rate
-			 *	control on inbound traffic, limiting
-			 *	the rate of acquisition to the nominal
-			 *	data rate of the induct.
-			 *
-			 *	Returns 1 on success, 0 on any parsing
-			 *	failure, -1 on any other (i.e., system)
+			 *	bpContinueAcq is an alternative to
+			 *	bpLoadAcq, intended for use by
+			 *	convergence-layer adapters that
+			 *	incrementally acquire portions of
+			 *	concatenated bundles into byte-array
+			 *	buffers.  The function transparently
+			 *	creates a zero-copy object for
+			 *	acquisition of the bundle, if one
+			 *	does not already exist, and appends
+			 *	"bytes" to the source data of that
+			 *	ZCO.
+			 *	
+			 *	Returns 0 on success, -1 on any
 			 *	failure.				*/
 
 extern int		bpEndAcq(	AcqWorkArea *workArea);
@@ -1025,21 +1030,13 @@ extern int		bpEndAcq(	AcqWorkArea *workArea);
 			 *	bundle via the indicated workArea.
 			 *	This function is invoked after the
 			 *	convergence-layer input adapter
-			 *	has invoked bpContinueAcq() enough
-			 *	times to have finished appending
-			 *	all bytes of the transmitted bundle
-			 *	to the byte array encapsulated within
-			 *	workArea.
+			 *	has invoked either bpLoadAcq() or
+			 *	bpContinueAcq() [perhaps invoking
+			 *	the latter multiple times] such
+			 *	that all bytes of the transmitted
+			 *	bundle are now included in the
+			 *	bundle acquisition ZCO of workArea.
 			 *
-			 *	If the start of the payload block is
-			 *	acquired at this time, the function
-			 *	blocks until the capacity of the
-			 *	induct's throttle is no longer
-			 *	negative.  In this way BP imposes rate
-			 *	control on inbound traffic, limiting
-			 *	the rate of acquisition to the nominal
-			 *	data rate of the induct.
-			 *	
 			 *	Returns 1 on success, 0 on any failure
 			 *	pertaining only to this bundle, -1 on
 			 *	any other (i.e., system) failure.  If

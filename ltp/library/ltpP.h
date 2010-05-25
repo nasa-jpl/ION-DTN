@@ -105,7 +105,7 @@ typedef struct
 	unsigned long		clientSvcId;	/*	Destination.	*/
 	unsigned long		offset;
 	unsigned long		length;
-	Object			clientSvcData;
+	Object			block;	/*	Session svcDataObjects.	*/
 
 	/*	Fields for report segments.				*/
 
@@ -185,9 +185,11 @@ typedef struct
 	unsigned char	endOfBlockRecd;	/*	Boolean.		*/
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
+Object		svcDataObject;	/*	A single ZCO ref.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
 	int		reportsCount;
+Object		blockFileRef;	/*	A ZCO File Ref object.	*/
 
 	/*	Backward reference.					*/
 
@@ -286,10 +288,8 @@ typedef struct
 	int		meterPid;	/*	For stopping ltpmeter.	*/
 	int		lsoPid;		/*	For stopping the LSO.	*/
 
-	/*	*	Aggregation parameters		*	*	*/
+	/*	*	*	Work area	*	*	*	*/
 
-	int		sizeOfBlockBuffer;
-	PsmAddress	blockBuffer;	/*	Temp: concat & segment.	*/
 	PsmAddress	segmentBuffer;	/*	Holds one max-size seg.	*/
 
 	/*	The bufEmptySemaphore of an LtpVspan is given by
@@ -382,14 +382,12 @@ typedef struct
 	 *	space for LTP activity.  This reservation may be
 	 *	allocated among the import and export spans in any
 	 *	way, and may be reallocated as necessary, so
-	 *	long as the reserved limit is not exceeded.  That
-	 *	is, the summation of ((maxExportSessions *
-	 *	maxExportBlockSize) + (maxImportSessions *
-	 *	maxImportBlockSize)) over all spans may never
-	 *	exceed heapSpaceBytesReserved.				*/
+	 *	long as the reserved limit is not exceeded.		*/
 
 	int		estMaxExportSessions;
 	int		heapSpaceBytesReserved;
+	int		heapSpaceBytesOccupied;
+	int		allBlocksInHeap;/*	Boolean.		*/
 	unsigned int	ownQtime;
 	unsigned int	enforceSchedule;/*	Boolean.		*/
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
@@ -476,6 +474,7 @@ extern int		updateSpan(unsigned long engineId,
 				unsigned int aggrTimeLimit,
 				char *lsoCmd, unsigned int qTime, int purge);
 extern int		removeSpan(unsigned long engineId);
+extern void		checkReservationLimit();
 
 extern int		ltpStartSpan(unsigned long engineId);
 extern void		ltpStopSpan(unsigned long engineId);

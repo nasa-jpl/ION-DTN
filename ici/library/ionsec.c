@@ -124,7 +124,7 @@ int	secAttach()
 		sdr_exit_xn(ionsdr);
 		if (secdbObject == 0)
 		{
-			putErrmsg("Can't find ION security database.", NULL);
+			writeMemo("[?] Can't find ION security database.");
 			return -1;
 		}
 
@@ -151,7 +151,7 @@ void	ionClear(char *eid)
 
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] ionClear: can't attach to ION security.");
+		writeMemo("[?] ionClear can't find ION security.");
 		return;
 	}
 
@@ -255,7 +255,7 @@ void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp)
 	*eltp = 0;
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_findKey can't find ION security.");
 		return;
 	}
 
@@ -354,7 +354,7 @@ int	sec_addKey(char *keyName, char *fileName)
 
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_addKey can't find ION security.");
 		return 0;
 	}
 
@@ -434,7 +434,7 @@ int	sec_updateKey(char *keyName, char *fileName)
 
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_updateKey can't find ION security.");
 		return 0;
 	}
 
@@ -488,7 +488,7 @@ int	sec_removeKey(char *keyName)
 	CHKERR(keyName);
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_removeKey can't find ION security.");
 		return 0;
 	}
 
@@ -530,7 +530,7 @@ int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 	CHKERR(keyValueBuffer);
 	if (secAttach() < 0)
 	{
-		writeMemo("[i] Can't attach to ION security.");
+		writeMemo("[?] sec_get_key can't find ION security.");
 		return 0;
 	}
 
@@ -603,7 +603,7 @@ int	sec_get_babTxRule(char *eid, Object *ruleAddr, Object *eltp)
 	*eltp = 0;
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_get_babTxRule can't find ION security.");
 		return 0;
 	}
 
@@ -699,7 +699,7 @@ void	sec_findBabTxRule(char *eid, Object *ruleAddr, Object *eltp)
 	*eltp = 0;
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_findBabTxRule can't find ION security.");
 		return;
 	}
 
@@ -735,7 +735,7 @@ int	sec_addBabTxRule(char *eid, char *ciphersuiteName, char *keyName)
 	CHKERR(keyName);
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_addBabTxRule can't find ION security.");
 		return 0;
 	}
 
@@ -810,7 +810,7 @@ int	sec_updateBabTxRule(char *eid, char *ciphersuiteName, char *keyName)
 	CHKERR(keyName);
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_updateBabTxRule can't find ION security.");
 		return 0;
 	}
 
@@ -865,7 +865,7 @@ int	sec_removeBabTxRule(char *eid)
 	CHKERR(eid);
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_removeBabTxRule can't find ION security.");
 		return 0;
 	}
 
@@ -917,7 +917,7 @@ int	sec_get_babRxRule(char *eid, Object *ruleAddr, Object *eltp)
 	*eltp = 0;
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_get_babRxRule can't find ION security.");
 		return 0;
 	}
 
@@ -1013,7 +1013,7 @@ void	sec_findBabRxRule(char *eid, Object *ruleAddr, Object *eltp)
 	*eltp = 0;
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
+		writeMemo("[?] sec_findBabRxRule can't find ION security.");
 		return;
 	}
 
@@ -1049,8 +1049,8 @@ int	sec_addBabRxRule(char *eid, char *ciphersuiteName, char *keyName)
 	CHKERR(keyName);
 	if (secAttach() < 0)
 	{
-		writeMemo("[?] Can't attach to ION security.");
-		return -1;
+		writeMemo("[?] sec_addBabRxRule can't find ION security.");
+		return 0;
 	}
 
 	if (strlen(ciphersuiteName) > 31)
@@ -1122,8 +1122,8 @@ int	sec_updateBabRxRule(char *eid, char *ciphersuiteName, char *keyName)
 	CHKERR(keyName);
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
-		return -1;
+		writeMemo("[?] sec_updateBabRxRule can't find ION security.");
+		return 0;
 	}
 
 	if (strlen(ciphersuiteName) > 31)
@@ -1177,7 +1177,7 @@ int	sec_removeBabRxRule(char *eid)
 	CHKERR(eid);
 	if (secAttach() < 0)
 	{
-		putErrmsg("Can't attach to ION security.", NULL);
+		writeMemo("[?] sec_removeBabRxRule can't find ION security.");
 		return 0;
 	}
 

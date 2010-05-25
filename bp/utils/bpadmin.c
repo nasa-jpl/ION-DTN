@@ -89,6 +89,8 @@ static void	printUsage()
 	PUTS("\t   l protocol");
 	PUTS("\t   l induct [<protocol name>]");
 	PUTS("\t   l outduct [<protocol name>]");
+	PUTS("\tm\tManage");
+	PUTS("\t   m heapmax <max database heap for any single acquisition>");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
 	PUTS("\ts\tStart");
@@ -965,6 +967,52 @@ static void	executeList(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+static void	manageHeapmax(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	Object	bpdbObj = getBpDbObject();
+	BpDB	bpdb;
+	int	heapmax;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+	}
+
+	heapmax = strtol(tokens[2], NULL, 0);
+	if (heapmax < 0)
+	{
+		writeMemoNote("[?] heapmax is invalid", tokens[2]);
+		return;
+	}
+
+	sdr_begin_xn(sdr);
+	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
+	bpdb.maxAcqInHeap = heapmax;
+	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change maxAcqInHeap.", NULL);
+	}
+}
+
+static void	executeManage(int tokenCount, char **tokens)
+{
+	if (tokenCount < 2)
+	{
+		printText("Manage what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "heapmax") == 0)
+	{
+		manageHeapmax(tokenCount, tokens);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
 static void	executeRun(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1226,6 +1274,14 @@ static int	processLine(char *line, int lineLength)
 			if (attachToBp() == 0)
 			{
 				executeList(tokenCount, tokens);
+			}
+
+			return 0;
+
+		case 'm':
+			if (attachToBp() == 0)
+			{
+				executeManage(tokenCount, tokens);
 			}
 
 			return 0;

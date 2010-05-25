@@ -78,181 +78,46 @@ int	sendBytesByTCP(int *bundleSocket, char *from, int length)
 	}
 }
 
-static int	sendSmallBundleByTCP(int *bundleSocket,
-			unsigned int bundleLength, Object bundleZco,
-			unsigned char *buffer)
+static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
+			Object bundleZco, unsigned char *buffer,
+			unsigned int tcpclSegmentHeaderLength)
 {
 	Sdr		sdr = getIonsdr();
 	int		totalBytesSent = 0;
-	int		bytesToSend;
+	unsigned int	bytesRemaining = bundleLength;
+	unsigned int	bytesBuffered = tcpclSegmentHeaderLength;
 	ZcoReader	reader;
+	int		bytesToLoad;
+	int		bytesLoaded;
+	int		bytesToSend;
 	char		*from;
 	int		bytesSent;
 
-	sdr_begin_xn(sdr);
 	zco_start_transmitting(sdr, bundleZco, &reader);
-	bytesToSend = zco_transmit(sdr, &reader, TCPCLA_BUFSZ, (char *) buffer);
-	if (bytesToSend < 0)
-	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't issue from ZCO.", NULL);
-		return -1;
-	}
-
-	zco_stop_transmitting(sdr, &reader);
-	zco_destroy_reference(sdr, bundleZco);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't send bundle by TCP.", NULL);
-		return -1;
-	}
-
-	/*	Entire catenated bundle is now in buffer.  Send it.	*/
-
-	if (bytesToSend > 0)
-	{
-		from = (char *) buffer;
-		while (bytesToSend > 0)
-		{
-			bytesSent = sendBytesByTCP(bundleSocket, from,
-					bytesToSend);
-			if (bytesSent < 0)
-			{
-				if (bpHandleXmitFailure(from, bytesToSend))
-				{
-					putErrmsg("Can't handle xmit failure.",
-							NULL);
-					return -1;
-				}
-
-				if (*bundleSocket == -1)
-				{
-					/*	Just lost connection;
-					 *	treat as a transient
-					 *	anomaly, note the
-					 *	incomplete transmission.*/
-
-					putErrmsg("Lost connection to CLI; \
-restart CLO when connectivity is restored.", NULL);
-					return 0;
-				}
-
-				/*	Big problem; shut down.		*/
-
-				putErrmsg("Failed to send by TCP.", NULL);
-				return -1;
-			}
-
-			totalBytesSent += bytesSent;
-			from += bytesSent;
-			bytesToSend -= bytesSent;
-		}
-	}
-
-	return totalBytesSent;
-}
-
-static int	sendLargeBundleByTCP(int *bundleSocket,
-			unsigned int bundleLength, Object bundleZco,
-			unsigned char *buffer)
-{
-	Sdr		sdr = getIonsdr();
-	char		fileName[32];
-	FILE		*bundleFile;
-	int		bytesRemaining;
-	int		bytesToSend;
-	ZcoReader	reader;
-	int		totalBytesSent;
-	char		*from;
-	int		bytesSent;
-
-	isprintf(fileName, sizeof fileName, "bundle.%lu", bundleZco);
-	bundleFile = fopen(fileName, "w+");
-	if (bundleFile == NULL)
-	{
-		putSysErrmsg("Can't open temporary bundle file", fileName);
-		return -1;
-	}
-
-	bytesRemaining = bundleLength;
-	sdr_begin_xn(sdr);
-	zco_start_transmitting(sdr, bundleZco, &reader);
-	while (1)
-	{
-		bytesToSend = zco_transmit(sdr, &reader, TCPCLA_BUFSZ,
-				(char *) buffer);
-		if (bytesToSend < 0)
-		{
-			sdr_cancel_xn(sdr);
-			fclose(bundleFile);
-			unlink(fileName);
-			putErrmsg("can't issue from ZCO", NULL);
-			return -1;
-		}
-
-		if (bytesToSend == 0)			/*	Done.	*/
-		{
-			break;
-		}
-
-		if (fwrite(buffer, 1, bytesToSend, bundleFile) < 1)
-		{
-			sdr_cancel_xn(sdr);
-			fclose(bundleFile);
-			unlink(fileName);
-			putSysErrmsg("Can't stage bundle to file", fileName);
-			return -1;
-		}
-
-		bytesRemaining -= bytesToSend;
-	}
-
-	zco_stop_transmitting(sdr, &reader);
-	zco_destroy_reference(sdr, bundleZco);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		fclose(bundleFile);
-		unlink(fileName);
-		putErrmsg("Can't send bundle by TCP.", NULL);
-		return -1;
-	}
-
-	if (bytesRemaining != 0)
-	{
-		fclose(bundleFile);
-		unlink(fileName);
-		putErrmsg("Bundle length error.", itoa(bytesRemaining));
-		return -1;
-	}
-
-	/*	Entire catenated bundle is now in file.  Send it.	*/
-
-	if (fseek(bundleFile, 0, SEEK_SET) < 0)
-	{
-		fclose(bundleFile);
-		unlink(fileName);
-		putSysErrmsg("Can't move to start of bundle file", fileName);
-		return -1;
-	}
-
-	totalBytesSent = 0;
-	bytesRemaining = bundleLength;
 	while (bytesRemaining > 0)
 	{
-		bytesToSend = TCPCLA_BUFSZ;
-		if (bytesToSend > bytesRemaining)
+		bytesToLoad = TCPCLA_BUFSZ - bytesBuffered;
+		if (bytesToLoad > bytesRemaining)
 		{
-			bytesToSend = bytesRemaining;
+			bytesToLoad = bytesRemaining;
 		}
 
-		if (fread(buffer, 1, bytesToSend, bundleFile) < bytesToSend)
+		sdr_begin_xn(sdr);
+		bytesLoaded = zco_transmit(sdr, &reader, bytesToLoad,
+				(char *) buffer + bytesBuffered);
+		if (sdr_end_xn(sdr) < 0)
 		{
-			fclose(bundleFile);
-			unlink(fileName);
-			putSysErrmsg("Can't reread bundle file", fileName);
+			putErrmsg("Can't issue from ZCO.", NULL);
 			return -1;
 		}
 
+		if (bytesLoaded != bytesToLoad)		/*	Done.	*/
+		{
+			putErrmsg("ZCO length error.", NULL);
+			return -1;
+		}
+
+		bytesToSend = bytesBuffered + bytesLoaded;
 		bytesRemaining -= bytesToSend;
 		from = (char *) buffer;
 		while (bytesToSend > 0)
@@ -261,10 +126,8 @@ static int	sendLargeBundleByTCP(int *bundleSocket,
 					bytesToSend);
 			if (bytesSent < 0)
 			{
-				if (bpHandleXmitFailure(from, bytesToSend))
+				if (bpHandleXmitFailure(bundleZco))
 				{
-					fclose(bundleFile);
-					unlink(fileName);
 					putErrmsg("Can't handle xmit failure.",
 							NULL);
 					return -1;
@@ -277,17 +140,15 @@ static int	sendLargeBundleByTCP(int *bundleSocket,
 					 *	anomaly, note the
 					 *	incomplete transmission.*/
 
-					fclose(bundleFile);
-					unlink(fileName);
-					putErrmsg("Lost connection to CLI; \
-restart CLO when connectivity is restored.", NULL);
-					return 0;
+					writeMemo("[i] Lost TCP connection to \
+CLI; restart CLO when connectivity is restored.");
+					totalBytesSent = 0;
+					bytesRemaining = 0;
+					break;	/*	Out of loop.	*/
 				}
 
 				/*	Big problem; shut down.		*/
 
-				fclose(bundleFile);
-				unlink(fileName);
 				putErrmsg("Failed to send by TCP.", NULL);
 				return -1;
 			}
@@ -296,10 +157,19 @@ restart CLO when connectivity is restored.", NULL);
 			from += bytesSent;
 			bytesToSend -= bytesSent;
 		}
+
+		bytesBuffered = 0;
 	}
 
-	fclose(bundleFile);
-	unlink(fileName);
+	zco_stop_transmitting(sdr, &reader);
+	sdr_begin_xn(sdr);
+	zco_destroy_reference(sdr, bundleZco);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't destroy bundle ZCO.", NULL);
+		return -1;
+	}
+
 	return totalBytesSent;
 }
 
@@ -364,253 +234,7 @@ CLO when connectivity is restored.", NULL);
 
 	/*	Send the bundle itself.					*/
 
-	if (bundleLength <= TCPCLA_BUFSZ)
-	{
-		return sendSmallBundleByTCP(bundleSocket, bundleLength,
-				bundleZco, buffer);
-	}
-	else
-	{
-		return sendLargeBundleByTCP(bundleSocket, bundleLength,
-				bundleZco, buffer);
-	}
-}
-
-static int	sendSmallBundleByTCPCL(int *bundleSocket,
-			unsigned int bundleLength, Object bundleZco,
-			unsigned char *buffer,unsigned int headerLength)
-{
-	Sdr		sdr = getIonsdr();
-	int		totalBytesSent = 0;
-	int		bytesToSend;
-	ZcoReader	reader;
-	char		*from;
-	int		bytesSent;
-
-	sdr_begin_xn(sdr);
-	zco_start_transmitting(sdr, bundleZco, &reader);
-	/* The first few bytes are the header of the convergence layer data, so only the bytes
- 	 * after the header are written to.						 	*/
-	bytesToSend = zco_transmit(sdr, &reader, TCPCLA_BUFSZ, (char *) (buffer + headerLength));
-	bytesToSend += headerLength;	/* For TCPCL, adding length of header to bundle length*/
-	if (bytesToSend < 0)
-	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't issue from ZCO.", NULL);
-		return -1;
-	}
-
-	zco_stop_transmitting(sdr, &reader);
-	zco_destroy_reference(sdr, bundleZco);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't send bundle by TCP.", NULL);
-		return -1;
-	}
-
-	/*	Entire catenated bundle is now in buffer.  Send it.	*/
-
-	if (bytesToSend > 0)
-	{
-		from = (char *) buffer;
-		while (bytesToSend > 0)
-		{
-			bytesSent = sendBytesByTCP(bundleSocket, from,
-					bytesToSend);
-			if (bytesSent < 0)
-			{
-				if (bpHandleXmitFailure(from, bytesToSend))
-				{
-					putErrmsg("Can't handle xmit failure.",
-							NULL);
-					return -1;
-				}
-
-				if (*bundleSocket == -1)
-				{
-					/*	Just lost connection;
-					 *	treat as a transient
-					 *	anomaly, note the
-					 *	incomplete transmission.*/
-
-					putErrmsg("Lost connection to CLI; \
-restart CLO when connectivity is restored.", NULL);
-					return 0;
-				}
-
-				/*	Big problem; shut down.		*/
-
-				putErrmsg("Failed to send by TCP.", NULL);
-				return -1;
-			}
-
-			totalBytesSent += bytesSent;
-			from += bytesSent;
-			bytesToSend -= bytesSent;
-		}
-	}
-
-	return totalBytesSent;
-}
-
-static int	sendLargeBundleByTCPCL(int *bundleSocket,
-			unsigned int bundleLength, Object bundleZco,
-			unsigned char *buffer, unsigned int headerLength)
-{
-	Sdr		sdr = getIonsdr();
-	char		fileName[32];
-	FILE		*bundleFile;
-	int		bytesRemaining;
-	int		bytesToSend;
-	ZcoReader	reader;
-	int		totalBytesSent;
-	char		*from;
-	int		bytesSent;
-
-	isprintf(fileName, sizeof fileName, "bundle.%lu", bundleZco);
-	bundleFile = fopen(fileName, "w+");
-	if (bundleFile == NULL)
-	{
-		putSysErrmsg("Can't open temporary bundle file", fileName);
-		return -1;
-	}
-
-	bytesRemaining = bundleLength;
-	sdr_begin_xn(sdr);
-	zco_start_transmitting(sdr, bundleZco, &reader);
-	if (fwrite(buffer, 1, headerLength, bundleFile) < 1)
-	{
-		sdr_cancel_xn(sdr);
-		fclose(bundleFile);
-		unlink(fileName);
-		putSysErrmsg("Can't stage bundle to file", fileName);
-		return -1;
-	}
-
-	while (1)
-	{
-		bytesToSend = zco_transmit(sdr, &reader, TCPCLA_BUFSZ,
-				(char *) buffer);
-		if (bytesToSend < 0)
-		{
-			sdr_cancel_xn(sdr);
-			fclose(bundleFile);
-			unlink(fileName);
-			putErrmsg("Can't issue from ZCO.", NULL);
-			return -1;
-		}
-
-		if (bytesToSend == 0)			/*	Done.	*/
-		{
-			break;
-		}
-
-		if (fwrite(buffer, 1, bytesToSend, bundleFile) < 1)
-		{
-			sdr_cancel_xn(sdr);
-			fclose(bundleFile);
-			unlink(fileName);
-			putSysErrmsg("Can't stage bundle to file", fileName);
-			return -1;
-		}
-
-		bytesRemaining -= bytesToSend;
-	}
-
-	zco_stop_transmitting(sdr, &reader);
-	zco_destroy_reference(sdr, bundleZco);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		fclose(bundleFile);
-		unlink(fileName);
-		putErrmsg("Can't send bundle by TCP.", NULL);
-		return -1;
-	}
-
-	if (bytesRemaining != 0)
-	{
-		fclose(bundleFile);
-		unlink(fileName);
-		putErrmsg("Bundle length error.", itoa(bytesRemaining));
-		return -1;
-	}
-
-	/*	Entire catenated bundle is now in file.  Send it.	*/
-
-	if (fseek(bundleFile, 0, SEEK_SET) < 0)
-	{
-		fclose(bundleFile);
-		unlink(fileName);
-		putSysErrmsg("Can't move to start of bundle file", fileName);
-		return -1;
-	}
-
-	totalBytesSent = 0;
-	bytesRemaining = bundleLength;
-	while (bytesRemaining > 0)
-	{
-		bytesToSend = TCPCLA_BUFSZ;
-		if (bytesToSend > bytesRemaining)
-		{
-			bytesToSend = bytesRemaining;
-		}
-
-		if (fread(buffer, 1, bytesToSend, bundleFile) < bytesToSend)
-		{
-			fclose(bundleFile);
-			unlink(fileName);
-			putSysErrmsg("Can't reread bundle file", fileName);
-			return -1;
-		}
-
-		bytesRemaining -= bytesToSend;
-		from = (char *) buffer;
-		while (bytesToSend > 0)
-		{
-			bytesSent = sendBytesByTCP(bundleSocket, from,
-					bytesToSend);
-			if (bytesSent < 0)
-			{
-				if (bpHandleXmitFailure(from, bytesToSend))
-				{
-					fclose(bundleFile);
-					unlink(fileName);
-					putErrmsg("Can't handle xmit failure.",
-							NULL);
-					return -1;
-				}
-
-				if (*bundleSocket == -1)
-				{
-					/*	Just lost connection;
-					 *	treat as a transient
-					 *	anomaly, note the
-					 *	incomplete transmission.*/
-
-					fclose(bundleFile);
-					unlink(fileName);
-					putErrmsg("Lost connection to CLI; \
-restart CLO when connectivity is restored.", NULL);
-					return 0;
-				}
-
-				/*	Big problem; shut down.		*/
-
-				fclose(bundleFile);
-				unlink(fileName);
-				putErrmsg("Failed to send by TCP.", NULL);
-				return -1;
-			}
-
-			totalBytesSent += bytesSent;
-			from += bytesSent;
-			bytesToSend -= bytesSent;
-		}
-	}
-
-	fclose(bundleFile);
-	unlink(fileName);
-	return totalBytesSent;
+	return sendZcoByTCP(bundleSocket, bundleLength, bundleZco, buffer, 0);
 }
 
 /* 	*	*	Send Bundle over TCP Convergence Layer	*	*/
@@ -686,29 +310,20 @@ CLO when connectivity is restored.",NULL);
 	/*    	Send the segment Header					*/
 	
 	buffer[0] = TCPCLA_TYPE_DATA << 4 | 0x03 ;
-	/*	The fisrt byte is 0x1 which means the 
+	/*	The first nibble is 0x1 which means the 
 	 *	segment is a data segment. The second
-	 *	byte is 0011, which indicated that
-	 *      there is only one segment(Assuming
-	 *	all the data is sent in one segment)	*/
+	 *	nibble is 0011, which indicates that
+	 *      there is only one segment (assuming
+	 *	all the data is sent in one segment).	*/
 
 	encodeSdnv(&lengthField,bundleLength);
 	memcpy(buffer + 1,lengthField.text,lengthField.length);
 	bytesToSend = 1 + lengthField.length ;
 	
 	/*	Send the bundle itself.					*/
-	/*  	Check if bundle length and header is bigger 
- 	 *   	than buffer size 					*/
-	if (bundleLength + bytesToSend <= TCPCLA_BUFSZ)
-	{
-		return sendSmallBundleByTCPCL(bundleSocket, bundleLength,
-				bundleZco, buffer,bytesToSend);
-	}
-	else
-	{
-		return sendLargeBundleByTCPCL(bundleSocket, bundleLength,
-				bundleZco, buffer,bytesToSend);
-	}
+
+	return sendZcoByTCP(bundleSocket, bundleLength, bundleZco, buffer,
+			bytesToSend);
 }
 
 /*	*	*	Receiver functions	*	*	*	*/
