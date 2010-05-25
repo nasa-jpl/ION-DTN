@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 12, 2010
+
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ionsendfile.txt
+rm -f 5.ipn.ltp/ionreceivefile.txt
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
+rm -f 5.ipn.ltp/testfile1
+rm -f 5.ipn.ltp/testfile2
+rm -f 5.ipn.ltp/testfile3
+rm -f 5.ipn.ltp/testfile4
+rm -f 5.ipn.ltp/testfile5
+killm
