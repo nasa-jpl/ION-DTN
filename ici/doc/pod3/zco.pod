@@ -175,8 +175,9 @@ which is used to keep track of "transmission" progress via this ZCO reference.
 =item int zco_transmit(Sdr sdr, ZcoReader *reader, unsigned int length, char *buffer)
 
 Copies I<length> as-yet-uncopied bytes of the total concatenated ZCO
-(referenced by I<reader>) into I<buffer>.  Returns the number of bytes
-copied, or -1 on any error.
+(referenced by I<reader>) into I<buffer>.  If I<buffer> is NULL, skips
+over I<length> bytes without copying.  Returns the number of bytes
+copied (or skipped), or -1 on any error.
 
 =item void zco_stop_transmitting(Sdr sdr, ZcoReader *reader)
 
@@ -193,14 +194,57 @@ that has already been read via this ZCO reference, if any.  Populates
 I<reader>, which is used to keep track of "reception" progress via this
 ZCO reference.
 
+=item int zco_receive_headers(Sdr sdr, ZcoReader *reader, unsigned int length, char *buffer)
+
+Copies I<length> as-yet-uncopied bytes of header data from ZCO extents into
+I<buffer>, advancing the presumptive start of actual source data (and
+increasing the presumptive length of the ZCO's concatenated protocol
+headers) by I<length>.  If I<buffer> is NULL, skips over I<length> bytes
+without copying.  Returns number of bytes copied (or skipped), or -1 on
+any error.
+
+=item void zco_restore_source(Sdr sdr, ZcoReader *reader, unsigned int length)
+
+Backs off the presumptive start of actual source data in the ZCO, i.e.,
+reduces by I<length> the presumptive length of the ZCO's concatenated
+protocol headers and thereby increases the presumptive length of the ZCO's
+actual source data.  Use this function to readjust internal boundaries within
+the ZCO when the trailing I<length> bytes of data previously read as
+presumptive protocol header data are determined instead to be source data.
+
+=item void zco_delimit_source(Sdr sdr, ZcoReader *reader, unsigned int length)
+
+Sets the presumptive length of actual source data in the ZCO to I<length>,
+thereby establishing the offset from the start of the ZCO at which the
+innermost protocol trailer begins.  Use this function to establish the
+location of the ZCO's innermost trailer, based on total source data
+length as determined from the contents of the innermost protocol header.
+
 =item int zco_receive_source(Sdr sdr, ZcoReader *reader, unsigned int length, char *buffer)
 
 Copies I<length> as-yet-uncopied bytes of source data from ZCO extents into
-I<buffer>.  Returns number of bytes copied, or -1 on any error.
+I<buffer>.  If I<buffer> is NULL, skips over I<length> bytes without
+copying.  Returns number of bytes copied (or skipped), or -1 on any error.
+
+=item int zco_receive_trailers(Sdr sdr, ZcoReader *reader, unsigned int length, char *buffer)
+
+Copies I<length> as-yet-uncopied bytes of trailer data from ZCO extents into
+I<buffer>.  If I<buffer> is NULL, skips over I<length> bytes without copying.
+Returns number of bytes copied (or skipped), or -1 on any error.
 
 =item void zco_stop_receiving(Sdr sdr, ZcoReader *reader)
 
 Terminates extraction of this inbound ZCO's bytes for reception.
+
+=item void zco_strip(Sdr sdr, Object zcoRef)
+
+Deletes all source data extents that contain only header or trailer data and
+adjusts the offsets and/or lengths of all remaining extents to exclude any
+known header or trailer data.  Use this function before concatenating with
+another ZCO, before starting the transmission of a ZCO that was received
+from an underlying protocol layer rather than from an overlying application
+or protocol layer, and before enqueuing the ZCO for reception by an
+overlying application or protocol layer.
 
 =back
 

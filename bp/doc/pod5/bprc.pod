@@ -44,6 +44,16 @@ another administrative program.
 The B<start> command.  This command starts all schemes and all protocols
 on the local node.
 
+=item B<m heapmax> I<max_database_heap_per_acquisition>
+
+The B<manage heap for bundle acquisition> command.  This command declares
+the maximum number of bytes of SDR heap space that will be occupied by any
+single bundle acquisition activity (nominally the acquisition of a single
+bundle, but this is at the discretion of the convergence-layer input task).
+All data acquired in excess of this limit will be written to a temporary file
+pending extraction and dispatching of the acquired bundle or bundles.  Default
+is zero.
+
 =item B<x>
 
 The B<stop> command.  This command stops all schemes and all protocols
