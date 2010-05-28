@@ -95,7 +95,7 @@ int	sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
 	zco_start_transmitting(sdr, bundleZco, &reader);
 	sdr_begin_xn(sdr);
 	bytesToSend = zco_transmit(sdr, &reader, UDPCLA_BUFSZ, (char *) buffer);
-	if (sdr_end_xn(sdr) < 0)
+	if (sdr_end_xn(sdr) < 0 || bytesToSend < 0)
 	{
 		putErrmsg("Can't issue from ZCO.", NULL);
 		return -1;

@@ -284,7 +284,11 @@ int	cfdp_read_space_packets(int fd, unsigned int *checksum)
 	/*	Now know the record length, so reposition to the
 	 *	end of this record for next read.			*/
 
-	lseek(fd, offset + length, SEEK_SET);
+	if (lseek(fd, offset + length, SEEK_SET) < 0)
+	{
+		putSysErrmsg("CFDP space packet reader failed", NULL);
+		return -1;
+	}
 
 	/*	Add record to checksum.					*/
 
@@ -344,7 +348,11 @@ int	cfdp_read_text_lines(int fd, unsigned int *checksum)
 	/*	Now know the record length, so reposition to the
 	 *	end of this record for next read.			*/
 
-	lseek(fd, offset + length, SEEK_SET);
+	if (lseek(fd, offset + length, SEEK_SET) < 0)
+	{
+		putSysErrmsg("CFDP text line reader failed", NULL);
+		return -1;
+	}
 
 	/*	Add record to checksum.					*/
 
@@ -1078,10 +1086,10 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	Sdr		sdr = getIonsdr();
 	Object		dbObj = getCfdpDbObject();
 	int		bestEfforts = 0;
-	struct stat	statbuf;
 	OutFdu		fdu;
 	int		recordBoundariesRespected = 1;
 	int		sourceFile;
+	long		fileSize;
 	int		recordLength;
 	unsigned int	checksum = 0;
 	CfdpHandler	handler;
@@ -1169,11 +1177,29 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			}
 		}
 
-		stat(sourceFileName, &statbuf);
-		fdu.fileSize = statbuf.st_size;
+		sourceFile = open(sourceFileName, O_RDONLY, 0);
+		if (sourceFile < 0)
+		{
+			sdr_exit_xn(sdr);
+			putSysErrmsg("CFDP can't open source file",
+					sourceFileName);
+			return -1;
+		}
+
+		fileSize = lseek(sourceFile, 0, SEEK_END);
+		if (fileSize < 0 || lseek(sourceFile, 0, SEEK_SET) < 0)
+		{
+			close(sourceFile);
+			sdr_exit_xn(sdr);
+			putSysErrmsg("CFDP can't get fileSize", sourceFileName);
+			return -1;
+		}
+
+		fdu.fileSize = fileSize;
 		fdu.fileRef = zco_create_file_ref(sdr, sourceFileName, NULL);
 		if (fdu.fileRef == 0)
 		{
+			close(sourceFile);
 			sdr_cancel_xn(sdr);
 			putErrmsg("CFDP can't create file ref.", NULL);
 			return -1;
@@ -1182,17 +1208,9 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		fdu.recordLengths = sdr_list_create(sdr);
 		if (fdu.recordLengths == 0)
 		{
+			close(sourceFile);
 			sdr_cancel_xn(sdr);
 			putErrmsg("CFDP can't create list of lengths.", NULL);
-			return -1;
-		}
-
-		sourceFile = open(sourceFileName, O_RDONLY, 0);
-		if (sourceFile < 0)
-		{
-			sdr_cancel_xn(sdr);
-			putSysErrmsg("CFDP can't open source file",
-					sourceFileName);
 			return -1;
 		}
 

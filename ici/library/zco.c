@@ -487,7 +487,7 @@ int	zco_append_trailer(Sdr sdr, Object zcoRef, char *text,
 				sizeof(Capsule));
 		trailer.nextCapsule = capsuleObj;
 		sdr_write(sdr, zco.lastTrailer, (char *) &trailer,
-				sizeof(SourceExtent));
+				sizeof(Capsule));
 	}
 
 	zco.lastTrailer = capsuleObj;
@@ -557,7 +557,7 @@ Object	zco_clone(Sdr sdr, Object zcoRef, unsigned int offset,
 	unsigned int	bytesToCopy;
 	Object		extentLocation;
 	unsigned int	extentOffset;
-	char		buffer[4000];
+	char		buffer[1024];
 	unsigned int	bytesCopied;
 	unsigned int	chunkSize;
 
@@ -943,6 +943,7 @@ static void	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 {
 	FileRef	fileRef;
 	int	fd;
+	int	bytesRead;
 
 	if (sourceMedium == ZcoSdrSource)
 	{
@@ -954,14 +955,27 @@ static void	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 		sdr_read(sdr, (char *) &fileRef, extent->location,
 					sizeof(FileRef));
 		fd = open(fileRef.pathName, O_RDONLY, 0);
-		if (fd == -1
-		|| lseek(fd, extent->offset + bytesToSkip, SEEK_SET) < 0
-		|| read(fd, buffer, bytesAvbl) != bytesAvbl)
+		if (fd >= 0)
 		{
-			memset(buffer, ZCO_FILE_FILL_CHAR, bytesAvbl);
+			if (lseek(fd, extent->offset + bytesToSkip, SEEK_SET)
+					< 0)
+			{
+				close(fd);
+			}
+			else
+			{
+				bytesRead = read(fd, buffer, bytesAvbl);
+				close(fd);
+				if (bytesRead == bytesAvbl)
+				{
+					return;
+				}
+			}
 		}
 
-		close(fd);	/*	Harmless if fd == -1.		*/
+		/*	On any problem reading from file, write fill.	*/
+
+		memset(buffer, ZCO_FILE_FILL_CHAR, bytesAvbl);
 	}
 }
 #if 0

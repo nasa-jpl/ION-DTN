@@ -88,11 +88,7 @@ stdin, e.g. ASCII text ['%s']?\n", text);
 
 		if (fread(buffer, contentLength, 1, stdin) == 0)
 		{
-			if (buffer)
-			{
-				free(buffer);
-			}
-
+			free(buffer);
 			break;
 		}
 

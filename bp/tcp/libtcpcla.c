@@ -591,6 +591,7 @@ int sendContactHeader(int *bundleSocket, unsigned char *buffer)
         getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
 	custodianEidStringLen = strlen(hostNameBuf) + 11;
 	custodianEidString = MTAKE(custodianEidStringLen);
+	CHKERR(custodianEidString);
 	isprintf(custodianEidString, custodianEidStringLen, "dtn://%.60s.dtn",
 			hostNameBuf);
 	custodianEidLength = strlen(custodianEidString);
@@ -787,8 +788,7 @@ int sendShutDownMessage(int *bundleSocket, int reason, int delay)
 	uint16_t 	delay_uint16 = delay;
 
 	buffer = MTAKE(SHUT_DN_BUFSZ + 1);
-	
-	
+	CHKERR(buffer);
 	buffer[0] = TCPCLA_TYPE_SHUT_DN << 4;
 	bytesToSend++;
 	switch(reason)

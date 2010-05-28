@@ -2617,7 +2617,7 @@ int	addScheme(char *schemeName, char *fwdCmd, char *admAppCmd)
 	PsmAddress	vschemeElt;
 	Scheme		schemeBuf;
 	Object		addr;
-	Object		schemeElt;
+	Object		schemeElt = 0;
 
 	CHKERR(schemeName);
 	if (*schemeName == 0)
@@ -2704,7 +2704,7 @@ too long", admAppCmd);
 				(_bpConstants())->schemes, addr);
 	}
 
-	if (sdr_end_xn(bpSdr) < 0)
+	if (sdr_end_xn(bpSdr) < 0 || schemeElt == 0)
 	{
 		putErrmsg("Can't add scheme.", schemeName);
 		return -1;
@@ -3397,7 +3397,7 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 	PsmAddress	vductElt;
 	Induct		ductBuf;
 	Object		addr;
-	Object		elt;
+	Object		elt = 0;
 
 	CHKERR(protocolName && ductName && cliCmd);
 	if (*protocolName == 0 || *ductName == 0 || *cliCmd == 0)
@@ -3448,7 +3448,7 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 		sdr_write(bpSdr, addr, (char *) &ductBuf, sizeof(Induct));
 	}
 
-	if (sdr_end_xn(bpSdr) < 0)
+	if (sdr_end_xn(bpSdr) < 0 || elt == 0)
 	{
 		putErrmsg("Can't add induct.", ductName);
 		return -1;
@@ -3645,7 +3645,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd)
 	PsmAddress	vductElt;
 	Outduct		ductBuf;
 	Object		addr;
-	Object		elt;
+	Object		elt = 0;
 
 	CHKERR(protocolName && ductName);
 	if (*protocolName == 0 || *ductName == 0)
@@ -3723,7 +3723,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd)
 		sdr_list_user_data_set(bpSdr, ductBuf.urgentQueue, addr);
 	}
 
-	if (sdr_end_xn(bpSdr) < 0)
+	if (sdr_end_xn(bpSdr) < 0 || elt == 0)
 	{
 		putErrmsg("Can't add outduct.", ductName);
 		return -1;
@@ -4735,6 +4735,8 @@ static char	*loadDtnEids(Bundle *bundle, MetaEid *destMetaEid,
 	int	i;
 
 	bundle->dictionaryLength = 0;
+	memset((char *) strings, 0, sizeof strings);
+	memset((char *) stringLengths, 0, sizeof stringLengths);
 
 	/*	Custodian (none).					*/
 
@@ -8575,6 +8577,8 @@ static int	insertNonCbheCustodian(Bundle *bundle, VScheme *vscheme)
 		return -1;
 	}
 
+	memset((char *) strings, 0, sizeof strings);
+	memset((char *) stringLengths, 0, sizeof stringLengths);
 	bundle->dbOverhead -= bundle->dictionaryLength;
 	bundle->dictionaryLength = 0;
 	sdr_free(bpSdr, bundle->dictionary);

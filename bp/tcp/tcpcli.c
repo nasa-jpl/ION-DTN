@@ -135,7 +135,7 @@ static void	*receiveBundles(void *parm)
 	KeepaliveThreadParms	*kparms;
 	AcqWorkArea		*work;
 	char			*buffer;
-	pthread_t		kthread;
+	pthread_t		kthread = NULL;
 
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
@@ -163,7 +163,8 @@ static void	*receiveBundles(void *parm)
 			MTAKE(sizeof(KeepaliveThreadParms));
 	if (kparms == NULL)
 	{
-		putErrmsg("tcpcli can't allocate for new keepalive thread", NULL);
+		putErrmsg("tcpcli can't allocate for new keepalive thread",
+				NULL);
 		MRELEASE(buffer);
 		bpReleaseAcqArea(work);
 		terminateReceiverThread(parms);
@@ -172,9 +173,10 @@ static void	*receiveBundles(void *parm)
 		return NULL;
 	}
 
+	pthread_mutex_lock(parms->mutex);
 
-	pthread_mutex_lock(parms->mutex);	//Makes sure there is no race condition
-						//when keep alive values are set
+	/*	Making sure there is no race condition when keep alive
+	 *	values are set.						*/
 
 	if(sendContactHeader(&parms->bundleSocket, (unsigned char *)buffer) < 0)
 	{
@@ -193,8 +195,6 @@ static void	*receiveBundles(void *parm)
 	}
 
 	pthread_mutex_unlock(parms->mutex);
-
-
 	if(receiveContactHeader(&parms->bundleSocket, (unsigned char *)buffer, &kparms->keepalivePeriod) < 0)
 	{
 		putSysErrmsg("tcpcli couldn't receive contact header", NULL);
@@ -204,7 +204,6 @@ static void	*receiveBundles(void *parm)
 		close(parms->bundleSocket);
 		parms->bundleSocket = -1;
 		pthread_mutex_unlock(parms->mutex);
-
 		bpReleaseAcqArea(work);
 		terminateReceiverThread(parms);
 		MRELEASE(parms->cliRunning);
@@ -228,10 +227,10 @@ static void	*receiveBundles(void *parm)
 		 * Creating a thread to send out keep alives, which
 		 * makes the TCPCL bi directional
 		 */
-		if (pthread_create(&kthread, NULL, sendKeepalives,
-					kparms))
+		if (pthread_create(&kthread, NULL, sendKeepalives, kparms))
 		{
-			putSysErrmsg("tcpcli can't create new thread for keepalives", NULL);
+			putSysErrmsg("tcpcli can't create new thread for \
+keepalives", NULL);
 			*(parms->cliRunning) = 0;
 		}
 	}
@@ -275,8 +274,12 @@ static void	*receiveBundles(void *parm)
 	}
 
 	/*	End of receiver thread; release resources.		*/
-	pthread_kill(kthread, SIGTERM);
-	pthread_join(kthread, NULL);
+
+	if (kthread)
+	{
+		pthread_kill(kthread, SIGTERM);
+		pthread_join(kthread, NULL);
+	}
 
 	bpReleaseAcqArea(work);
 	MRELEASE(buffer);
@@ -383,11 +386,18 @@ static void	*spawnReceivers(void *parm)
 		{
 			parms->senderEid = NULL;
 		}
+
 		parms->cloSocketName = cloSocketName;
-
 		parms->cliRunning = MTAKE(sizeof(int));
-		*(parms->cliRunning) = 1;
+		if (parms->cliRunning == NULL)
+		{
+			putSysErrmsg("tcpcli can't create new thread", NULL);
+			MRELEASE(parms);
+			pthread_kill(atp->mainThread, SIGTERM);
+			continue;
+		}
 
+		*(parms->cliRunning) = 1;
 		if (pthread_create(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{

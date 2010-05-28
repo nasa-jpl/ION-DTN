@@ -438,8 +438,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
      BSP_DEBUG_ERR("x bsp_serializeASB:  Parameters are missing. Asb is %x", 
                    (unsigned long) asb);
      BSP_DEBUG_PROC("- bsp_serializeASB --> %s","NULL");
-     *length = 0;              
-  	 return NULL;
+     return NULL;
    }
    
    /***************************************************************************
@@ -482,7 +481,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
    {
       BSP_DEBUG_ERR("x bsp_serializeBlock:  Unable to malloc %d bytes.", 
                     *length);
-   	  *length = 0;
+      *length = 0;
       result = NULL;
    }
    else
@@ -980,7 +979,7 @@ int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
    || post_blk->size != sizeof(BspBabScratchpad))
    {
 	BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Bundle or ASB were not \
-as expected. blk->size %d.", post_blk->size);
+as expected.", NULL);
 	BSP_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
 	return -1;
    } 
@@ -1584,7 +1583,7 @@ unsigned long tmp;
    		(blk->size != sizeof(BspBabScratchpad)))
    {
       BSP_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Bundle or ASB were not as \
-expected. blk->size %d.", blk->size);
+expected.", NULL);
                     
       BSP_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", -1);
       return -1;

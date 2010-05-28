@@ -2941,7 +2941,6 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 		UNLOCK_MIB;
 		result = llcv_wait(sap->mamsEventsCV, llcv_reply_received,
 				N5_INTERVAL * 1000000);
-		LOCK_MIB;
 		if (result < 0)
 		{
 			if (errno == ETIMEDOUT)
@@ -2959,6 +2958,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 
 		/*	A response message has arrived.			*/
 
+		LOCK_MIB;
 		llcv_lock(sap->mamsEventsCV);
 		elt = lyst_first(sap->mamsEvents);
 		if (elt == NULL)	/*	Interrupted; try again.	*/
@@ -2984,12 +2984,14 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 					putErrmsg(NoMemoryMemo, NULL);
 				}
 
+				UNLOCK_MIB;
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 
 			case reconnected:
 				sap->heartbeatsMissed = 0;
 				recycleEvent(evt);
+				UNLOCK_MIB;
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 
@@ -3004,6 +3006,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 		case CRASH_EVT:
 			putErrmsg("Can't reconnect to registrar.", evt->value);
 			recycleEvent(evt);
+			UNLOCK_MIB;
 			return -1;
 
 		default:		/*	Stray message; ignore.	*/
@@ -3205,7 +3208,6 @@ static int	getNodeNbr(AmsSAP *sap)
 		UNLOCK_MIB;
 		result = llcv_wait(sap->mamsEventsCV, llcv_reply_received,
 				N2_INTERVAL * 1000000);
-		LOCK_MIB;
 		if (result < 0)
 		{
 			if (errno == ETIMEDOUT)
@@ -3232,6 +3234,7 @@ static int	getNodeNbr(AmsSAP *sap)
 
 		/*	A response message has arrived.			*/
 
+		LOCK_MIB;
 		llcv_lock(sap->mamsEventsCV);
 		elt = lyst_first(sap->mamsEvents);
 		if (elt == NULL)	/*	Interrupted; try again.	*/
@@ -3252,6 +3255,7 @@ static int	getNodeNbr(AmsSAP *sap)
 			case rejection:
 				process_rejection(sap, msg);
 				recycleEvent(evt);
+				UNLOCK_MIB;
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 
@@ -3262,6 +3266,7 @@ static int	getNodeNbr(AmsSAP *sap)
 
 				result = process_you_are_in(sap, msg);
 				recycleEvent(evt);
+				UNLOCK_MIB;
 				if (result < 0)
 				{
 					putErrmsg("Can't handle acceptance.",
@@ -3283,6 +3288,7 @@ static int	getNodeNbr(AmsSAP *sap)
 		case CRASH_EVT:
 			putErrmsg("Can't register.", evt->value);
 			recycleEvent(evt);
+			UNLOCK_MIB;
 			return -1;	/*	Unrecoverable failure.	*/
 
 		default:		/*	Stray event; ignore.	*/
@@ -3984,6 +3990,7 @@ static int	ams_unregister2(AmsSAP *sap)
 
 	if (enqueueMamsStubEvent(sap->mamsEventsCV, SHUTDOWN_EVT) < 0)
 	{
+		UNLOCK_MIB;
 		putErrmsg("Crashed AMS service.", NULL);
 		return 0;
 	}
@@ -3993,13 +4000,13 @@ static int	ams_unregister2(AmsSAP *sap)
 		UNLOCK_MIB;
 		result = llcv_wait(sap->amsEventsCV, llcv_lyst_not_empty,
 					LLCV_BLOCKING);
-		LOCK_MIB;
 		if (result < 0)
 		{
 			putErrmsg("Crashed AMS service.", NULL);
 			return 0;
 		}
 
+		LOCK_MIB;
 		llcv_lock(sap->amsEventsCV);
 		elt = lyst_first(sap->amsEvents);
 		if (elt == NULL)
@@ -4021,6 +4028,7 @@ static int	ams_unregister2(AmsSAP *sap)
 		/*	MAMS thread has caught up; time to stop.	*/
 
 		recycleEvent(evt);
+		UNLOCK_MIB;
 		break;
 	}
 
@@ -5049,7 +5057,7 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
 
 	if (continuumNbr < 1 || unitNbr < 0 || unitNbr > MaxUnitNbr
 	|| nodeNbr < 1 || nodeNbr > MaxNodeNbr
-	|| priority < 1 || priority >= NBR_OF_PRIORITY_LEVELS
+	|| priority < 0 || priority >= NBR_OF_PRIORITY_LEVELS
 	|| contentLength < 0 || contentLength > MAX_AMS_CONTENT)
 	{
 		errno = EINVAL;
@@ -5740,7 +5748,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 
 	if (continuumNbr < 0 || unitNbr < 0 || unitNbr > MaxUnitNbr
 	|| roleNbr < 0 || roleNbr > MaxRoleNbr
-	|| priority < 1 || priority >= NBR_OF_PRIORITY_LEVELS
+	|| priority < 0 || priority >= NBR_OF_PRIORITY_LEVELS
 	|| contentLength < 0 || contentLength > MAX_AMS_CONTENT)
 	{
 		putErrmsg(BadParmsMemo, NULL);

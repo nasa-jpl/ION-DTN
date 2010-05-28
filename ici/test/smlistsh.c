@@ -159,6 +159,8 @@ int	main(int argc, char **argv)
 				continue;
 			}
 
+			continue;
+
 		case 2:
 			if (smlistsh_partition == NULL)
 			{

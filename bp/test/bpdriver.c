@@ -43,6 +43,7 @@ static void	handleQuit()
 static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 			int aduLength, int streaming)
 {
+	static char	buffer[DEFAULT_ADU_LENGTH] = "test...";
 	BpSAP		sap;
 	Sdr		sdr;
 	int		running = 1;
@@ -52,7 +53,6 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	int		randomAduLength = 0;
 	int		bytesRemaining;
 	int		bytesToWrite;
-	char		buffer[DEFAULT_ADU_LENGTH] = "test...";
 	Object		fileRef;
 	Object		bundleZco;
 	Object		newBundle;
@@ -178,7 +178,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	{
 		if (randomAduLength)
 		{
-			aduLength = ((random() % 60) + 1) * 1024;
+			aduLength = ((rand() % 60) + 1) * 1024;
 		}
 
 		sdr_begin_xn(sdr);

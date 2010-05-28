@@ -2169,7 +2169,7 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 		}
 
 		encryptLength = authNameLen + 4;
-		nonce = random();
+		nonce = rand();
 		memcpy(authenticator, (char *) &nonce, 4);/*	Clear.	*/
 		memcpy(authenticator + 4, (char *) &nonce, 4);
 		istrcpy((char *) (authenticator + 8), authName,

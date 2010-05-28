@@ -27,6 +27,15 @@ static void	handleQuit()
 	bp_interrupt(_bpsap(NULL));
 }
 
+static void	closeOpsFile(int *opsFile)
+{
+	if (*opsFile >= 0)
+	{
+		close(*opsFile);
+		*opsFile = -1;
+	}
+}
+
 static int	processCmdFile(Sdr sdr, BpDelivery *dlv)
 {
 	int		contentLength;
@@ -85,8 +94,7 @@ static int	processCmdFile(Sdr sdr, BpDelivery *dlv)
 		{
 			writeMemoNote("[?] lgagent: non-terminated line, \
 discarding bundle content", content);
-			close(opsFile);
-			opsFile = -1;
+			closeOpsFile(&opsFile);
 			fileName = NULL;
 			break;			/*	Out of loop.	*/
 		}
@@ -108,8 +116,7 @@ discarding bundle content", content);
 			{
 				putErrmsg("lgagent: '[' line before end of \
 load, no further activity.", itoa(line - content));
-				close(opsFile);
-				opsFile = -1;
+				closeOpsFile(&opsFile);
 				fileName = NULL;
 				break;		/*	Out of loop.	*/
 			}
@@ -127,8 +134,7 @@ file name, no further activity", fileName);
 			}
 
 #if TargetFFS
-			close(opsFile);
-			opsFile = -1;
+			closeOpsFile(&opsFile);
 #endif
 			line = nextLine;
 			continue;
@@ -148,8 +154,7 @@ load, no further activity.", itoa(line - content));
 			/*	Close the current ops file.		*/
 
 			putErrmsg("lgagent: loaded ops file.", fileName);
-			close(opsFile);
-			opsFile = -1;
+			closeOpsFile(&opsFile);
 			fileName = NULL;
 			line = nextLine;
 			continue;
@@ -161,7 +166,7 @@ load, no further activity.", itoa(line - content));
 		{
 			/*	Append this command-file line to the
 			 *	ops file that is being loaded.		*/
-
+#if TargetFFS
 			if (opsFile == -1)	/*	Must reopen.	*/
 			{
 				if ((opsFile = open(fileName, O_RDWR, 0)) < 0
@@ -172,21 +177,19 @@ operations file name, no further activity", fileName);
 					break;	/*	Out of loop.	*/
 				}
 			}
-
+#endif
 			if (write(opsFile, line, lineLength) < 0
 			|| write(opsFile, "\n", 1) < 0)
 			{
 				putSysErrmsg("lgagent: can't append line to \
 operations file, no further activity", fileName);
-				close(opsFile);
-				opsFile = -1;
+				closeOpsFile(&opsFile);
 				fileName = NULL;
 				break;		/*	Out of loop.	*/
 			}
 
 #if TargetFFS
-			close(opsFile);
-			opsFile = -1;
+			closeOpsFile(&opsFile);
 #endif
 			line = nextLine;
 			continue;
@@ -218,7 +221,7 @@ activity.", itoa(line - content));
 	MRELEASE(content);
 	if (fileName)
 	{
-		close(opsFile);
+		closeOpsFile(&opsFile);
 	}
 
 	return 0;

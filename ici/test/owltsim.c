@@ -234,7 +234,7 @@ static void	*receiveUdp(void *parm)
 
 		if (stp->modulus != 0)
 		{
-			if ((random() % stp->modulus) == 0)
+			if ((rand() % stp->modulus) == 0)
 			{
 				if (stp->verbose)
 				{

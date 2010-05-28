@@ -16,12 +16,6 @@
 #define	CYCLE_TRACE
 #endif
 
-/*	Indication marks:	"." for BpPayloadPresent (1),
-				"*" for BpReceptionTimedOut (2).
- 				"!" for BpReceptionInterrupted (3).	*/
-
-static char	dlvmarks[] = "?.*!";
-
 static BpSAP	_bpsap(BpSAP *newSAP)
 {
 	static BpSAP	sap = NULL;
@@ -50,6 +44,10 @@ int	main(int argc, char **argv)
 {
 	char	*ownEid = (argc > 1 ? argv[1] : NULL);
 #endif
+/*	Indication marks:	"." for BpPayloadPresent (1),
+				"*" for BpReceptionTimedOut (2).
+ 				"!" for BpReceptionInterrupted (3).	*/
+	static char	dlvmarks[] = "?.*!";
 	BpSAP		sap;
 	Sdr		sdr;
 	int		running = 1;

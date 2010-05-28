@@ -253,7 +253,7 @@ int	main(int argc, char **argv)
 				}
 
 				bytesSent += eofLineLen;
-	 			if ((random() % nbrOfPeers) >= fdPoolSize)
+	 			if ((rand() % nbrOfPeers) >= fdPoolSize)
 	 			{
 	 				close(contactSocket);
 	 				contactSocket = -1;
@@ -286,7 +286,7 @@ int	main(int argc, char **argv)
 		}
 
 		bytesSent += lineLen;
-	 	if ((random() % nbrOfPeers) >= fdPoolSize)
+	 	if ((rand() % nbrOfPeers) >= fdPoolSize)
 	 	{
 	 		close(contactSocket);
 	 		contactSocket = -1;
@@ -294,6 +294,10 @@ int	main(int argc, char **argv)
 	}
 
 	report(&startTime, bytesSent);
-	close(contactSocket);
+	if (contactSocket >= 0)
+	{
+		close(contactSocket);
+	}
+
 	return 0;
 }

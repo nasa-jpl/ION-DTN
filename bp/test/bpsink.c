@@ -9,11 +9,6 @@
 
 #include <bp.h>
 
-static char	*deliveryTypes[] =	{
-			"Payload delivered",
-			"Reception timed out",
-			"Reception interrupted"
-					};
 static BpSAP	_bpsap(BpSAP *newSAP)
 {
 	static BpSAP	sap = NULL;
@@ -42,6 +37,11 @@ int	main(int argc, char **argv)
 {
 	char		*ownEid = (argc > 1 ? argv[1] : NULL);
 #endif
+	static char	*deliveryTypes[] =	{
+				"Payload delivered",
+				"Reception timed out",
+				"Reception interrupted"
+						};
 	BpSAP		sap;
 	Sdr		sdr;
 	int		running = 1;

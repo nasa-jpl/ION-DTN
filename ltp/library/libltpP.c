@@ -777,7 +777,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 	PsmAddress	vspanElt;
 	LtpSpan		spanBuf;
 	Object		addr;
-	Object		spanElt;
+	Object		spanElt = 0;
 
 	if (lsoCmd == NULL || *lsoCmd == '\0')
 	{
@@ -862,7 +862,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 		sdr_write(ltpSdr, addr, (char *) &spanBuf, sizeof(LtpSpan));
 	}
 
-	if (sdr_end_xn(ltpSdr) < 0)
+	if (sdr_end_xn(ltpSdr) < 0 || spanElt == 0)
 	{
 		putErrmsg("Can't add span.", itoa(engineId));
 		return -1;
@@ -1136,7 +1136,6 @@ void	ltpStopSpan(unsigned long engineId)
 
 int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
 {
-	LtpVdb		*vdb;
 	Object		dbobj;
 	LtpSpan		span;
 	LtpDB		ltpdb;
@@ -1147,7 +1146,6 @@ int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
 
 	CHKERR(vspan);
 	sdr_begin_xn(sdr);
-	vdb = getLtpVdb();
 	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 
 	/*	Get next session number.				*/
@@ -2775,7 +2773,7 @@ static int	initializeRs(LtpXmitSeg *rs, int baseOhdLength,
 	Sdnv	sdnv;
 
 	rs->ohdLength = baseOhdLength;
-	do rs->pdu.rptSerialNbr = random();
+	do rs->pdu.rptSerialNbr = rand();
 		while (rs->pdu.rptSerialNbr == 0);
 	encodeSdnv(&sdnv, rs->pdu.rptSerialNbr);
 	rs->ohdLength += sdnv.length;
@@ -3834,7 +3832,7 @@ char		buf[256];
 		{
 			encodeSdnv(&rsnSdnv, reportSerialNbr);
 			worstCaseOverhead += rsnSdnv.length;
-			do checkpointSerialNbr = random();
+			do checkpointSerialNbr = rand();
 				while (checkpointSerialNbr == 0);
 			encodeSdnv(&cpsnSdnv, checkpointSerialNbr);
 			worstCaseOverhead += cpsnSdnv.length;

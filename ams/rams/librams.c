@@ -829,7 +829,7 @@ sub=%d\n", inv->inviteSpecification->domainUnitNbr,
 int IsRetracting(RamsGateway *gWay)
 {
 	Petition *pet;
-	LystElt elt, ramsElt;
+	LystElt elt;
 	int sub;
 	int bTestDGS;
 	int allEmpty;
@@ -859,8 +859,7 @@ int IsRetracting(RamsGateway *gWay)
 				elt =lyst_next(elt))
 		{
 			pet = (Petition *)lyst_data(elt);
-			if ((ramsElt = lyst_first(pet->DestinationRamsSet))
-					!= NULL)
+			if (lyst_first(pet->DestinationRamsSet))
 			{
 				allEmpty = 0;
 				break;
@@ -936,7 +935,7 @@ void terminateQuit()
 
 int rams_unregister(RamsGate *gNode)
 {
-	LystElt elt, ramsElt;
+	LystElt elt;
 	RamsNode *pt;
 	Petition *pet; 
 	int sub;
@@ -968,8 +967,7 @@ printf("<rams unregister> send cancellation to neighbor\n");
 				elt =lyst_next(elt))
 		{
 			pet = (Petition *)lyst_data(elt);
-			if ((ramsElt = lyst_first(pet->DestinationRamsSet))
-					!= NULL)
+			if (lyst_first(pet->DestinationRamsSet))
 			{
 				allEmpty = 0;
 				break;

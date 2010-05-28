@@ -459,8 +459,8 @@ static void	losePendingResend(DgrSAP *sap, DgrRecord rec)
 	req = (ResendReq *) lyst_data(rec->pendingResendsElt);
 	MRELEASE(req);
 	lyst_delete(rec->pendingResendsElt);
-	pthread_mutex_unlock(&sap->pendingResendsMutex);
 	rec->pendingResendsElt = NULL;
+	pthread_mutex_unlock(&sap->pendingResendsMutex);
 }
 
 static void	removeRecord(DgrSAP *sap, DgrRecord rec, LystElt arqElt)
