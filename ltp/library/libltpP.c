@@ -376,7 +376,7 @@ int	ltpInit(int estMaxExportSessions, int bytesReserved)
 	}
 
 	ltpSdr = getIonsdr();
-	srandom(time(NULL));
+	srand(time(NULL));
 
 	/*	Recover the LTP database, creating it if necessary.	*/
 
@@ -645,7 +645,7 @@ int	ltpAttach()
 	}
 
 	ltpSdr = getIonsdr();
-	srandom(time(NULL));
+	srand(time(NULL));
 
 	/*	Locate the LTP database.				*/
 

@@ -321,7 +321,7 @@ int	main(int argc, char *argv[])
 	 *	each line, start a thread that simulates owlt on
 	 *	the indicated link.  Then snooze forever.		*/
 
-	srandom(time(NULL));
+	srand(time(NULL));
 	stpBuf.verbose = 0;
 	switch (argc)
 	{

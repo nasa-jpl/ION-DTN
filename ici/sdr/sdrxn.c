@@ -881,6 +881,13 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	CHKERR(sch);
 	CHKERR(name);
 	CHKERR(pathName);
+	if (!(configFlags & SDR_IN_DRAM || configFlags & SDR_IN_FILE))
+	{
+		putErrmsg("No SDR heap site specified in configFlags.",
+				itoa(configFlags));
+		return -1;
+	}
+
 	sm_SemTake(sch->lock);
 	for (elt = sm_list_first(sdrwm, sch->sdrs); elt;
 			elt = sm_list_next(sdrwm, elt))

@@ -153,8 +153,6 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 
 #ifndef VXWORKS6
 typedef int			socklen_t;
-extern void			srandom(unsigned int);
-extern long			random();
 #endif
 
 #else				/****	Not VxWorks			****/
