@@ -119,6 +119,10 @@ int	main(int argc, char **argv)
 
 			bytesReceived += zco_length(sdr, dlv.adu);
 		}
+		else if (dlv.result == BpReceptionInterrupted)
+		{
+			running = 0;	/*	Shutdown by ^C.		*/
+		}
 
 		bp_release_delivery(&dlv, 1);
 		if (bundlesReceived == maxCount)
