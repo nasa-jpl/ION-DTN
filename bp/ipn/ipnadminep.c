@@ -174,6 +174,6 @@ int	main(int argc, char *argv[])
 
 	writeErrmsgMemos();
 	writeMemo("[i] ipnadminep has ended.");
-	bp_detach();
+	ionDetach();
 	return 0;
 }

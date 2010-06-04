@@ -120,8 +120,6 @@ static void	*receiveBundles(void *parm)
 
 	if (memcmp(countersign, parms->countersign, DIGEST_LEN) != 0)
 	{
-printf("Authentication failure: countersign is incorrect.");
-fflush(stdout);
 		writeErrmsgMemos();
 		writeMemo("[i] brs server judged inauthentic.");
 		pthread_kill(parms->mainThread, SIGTERM);
@@ -246,7 +244,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: brsccla <server host name>[:<port number>]_<duct \
+		PUTS("Usage: brsccla <server host name>[:<port number>]_<duct \
 number>");
 		return 0;
 	}
@@ -254,7 +252,7 @@ number>");
 	cursor = strchr(ductName, '_');
 	if (cursor == NULL)
 	{
-		puts("Duct number omitted from duct name.");
+		PUTS("Duct number omitted from duct name.");
 		return 1;
 	}
 

@@ -35,7 +35,7 @@ static void	handleQuit()
 {
 	int	newCount = 1;	/*	Advance to end of last cycle.	*/
 
-	puts("[Terminated by user.]");
+	PUTS("[Terminated by user.]");
 	oK(psmwatch_count(&newCount));
 }
 
@@ -49,7 +49,7 @@ static int	run_psmwatch(char *partitionName, int interval, int verbose)
 	if (sm_ipc_init() < 0)
 	{
 		writeErrmsgMemos();
-		puts("IPC initialization failed.");
+		PUTS("IPC initialization failed.");
 		return 0;
 	}
 
@@ -112,7 +112,7 @@ int	main(int argc, char **argv)
 
 	if (argc < 4)
 	{
-		puts("Usage: psmwatch <partition name> <interval> <count> \
+		PUTS("Usage: psmwatch <partition name> <interval> <count> \
 [verbose]");
 		return 0;
 	}

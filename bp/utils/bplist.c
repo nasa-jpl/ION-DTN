@@ -14,12 +14,14 @@ static void	printDictionary(char *dictionary, int dictionaryLength)
 	int	offset = 0;
 	char	*cursor = dictionary;
 	int	length;
+	char	entry[300];
 
-	printf("Dictionary:\n");
+	PUTS("Dictionary:");
 	while (offset < dictionaryLength)
 	{
 		length = strlen(cursor) + 1;
-		printf("(%3ul) %s", offset, cursor);
+		isprintf(entry, sizeof entry, "(%3ul) %s", offset, cursor);
+		PUTS(entry);
 		offset += length;
 		cursor += length;
 	}
@@ -50,7 +52,7 @@ static void	printBytes(char *text, int length)
 				/*	Print last line.		*/
 
 				line[57 + i] = '\0';
-				puts(line);
+				PUTS(line);
 				return;
 			}
 
@@ -75,7 +77,7 @@ static void	printBytes(char *text, int length)
 		}
 
 		line[57 + i] = '\0';
-		puts(line);
+		PUTS(line);
 	}
 }
 
@@ -109,7 +111,7 @@ static void	printExtensions(Sdr sdr, Object extensions)
 			}
 		}
 
-		printf("****** Extension\n");
+		PUTS("****** Extension");
 		sdr_read(sdr, buf, blk->bytes, blk->length);
 		printBytes(buf, blk->length);
 	}
@@ -150,7 +152,7 @@ static void	printPayload(Sdr sdr, Bundle *bundle)
 	}
 
 	zco_destroy_reference(sdr, ref);
-	printf("****** Payload\n");
+	PUTS("****** Payload");
 	printBytes(buf, bundle->payload.length);
 	MRELEASE(buf);
 }
@@ -159,59 +161,92 @@ static void	printBundle(Sdr sdr, Bundle *bundle)
 {
 	char	*eid;
 	char	*dictionary;
+	char	buf[300];
 
 	dictionary = retrieveDictionary(bundle);
-	printf("\n**** Bundle\n");
+	PUTS("\n**** Bundle");
 	oK(printEid(&(bundle->id.source), dictionary, &eid));
-	printf("Source EID      '%s'\n", eid);
+	isprintf(buf, sizeof buf, "Source EID      '%s'", eid);
+	PUTS(buf);
 	MRELEASE(eid);
-	printf("Creation sec   %10lu   count %10lu   frag offset %10lu\n",
+	isprintf(buf, sizeof buf,
+		"Creation sec   %10lu   count %10lu   frag offset %10lu",
 			bundle->id.creationTime.seconds,
 			bundle->id.creationTime.count,
 			bundle->id.fragmentOffset);
-	printf("- is a fragment:        %d\n", bundle->bundleProcFlags
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"- is a fragment:        %d", bundle->bundleProcFlags
 		       	& BDL_IS_FRAGMENT ? 1 : 0);
-	printf("- is admin:             %d\n", bundle->bundleProcFlags
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"- is admin:             %d", bundle->bundleProcFlags
 		       	& BDL_IS_ADMIN ? 1 : 0);
-	printf("- does not fragment:    %d\n", bundle->bundleProcFlags
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"- does not fragment:    %d", bundle->bundleProcFlags
 			& BDL_DOES_NOT_FRAGMENT ? 1 : 0);
-	printf("- is custodial:         %d\n", bundle->bundleProcFlags
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"- is custodial:         %d", bundle->bundleProcFlags
 			& BDL_IS_CUSTODIAL ? 1 : 0);
-	printf("- dest is singleton:    %d\n", bundle->bundleProcFlags
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"- dest is singleton:    %d", bundle->bundleProcFlags
 			& BDL_DEST_IS_SINGLETON ? 1 : 0);
-	printf("- app ack requested:    %d\n", bundle->bundleProcFlags
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"- app ack requested:    %d", bundle->bundleProcFlags
 			& BDL_APP_ACK_REQUEST ? 1 : 0);
-	printf("Priority                %lu\n",
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"Priority                %lu",
 			COS_FLAGS(bundle->bundleProcFlags) & 0x03);
-	printf("Ordinal                 %d\n",
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"Ordinal                 %d",
 		       	bundle->extendedCOS.ordinal);
-	printf("Unreliable:             %d\n", bundle->extendedCOS.flags
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"Unreliable:             %d", bundle->extendedCOS.flags
 			& BP_BEST_EFFORT ? 1 : 0);
-	printf("Critical:               %d\n", bundle->extendedCOS.flags
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"Critical:               %d", bundle->extendedCOS.flags
 			& BP_MINIMUM_LATENCY ? 1 : 0);
+	PUTS(buf);
 	oK(printEid(&(bundle->destination), dictionary, &eid));
-	printf("Destination EID '%s'\n", eid);
+	isprintf(buf, sizeof buf, "Destination EID '%s'", eid);
+	PUTS(buf);
 	MRELEASE(eid);
 	oK(printEid(&(bundle->reportTo), dictionary, &eid));
-	printf("Report-to EID   '%s'\n", eid);
+	isprintf(buf, sizeof buf, "Report-to EID   '%s'", eid);
+	PUTS(buf);
 	MRELEASE(eid);
 	oK(printEid(&(bundle->custodian), dictionary, &eid));
-	printf("Custodian EID   '%s'\n", eid);
+	isprintf(buf, sizeof buf, "Custodian EID   '%s'", eid);
+	PUTS(buf);
 	MRELEASE(eid);
-	printf("Expiration sec %10lu\n", bundle->expirationTime);
-	printf("Total ADU len  %10lu\n", bundle->totalAduLength);
-	printf("Dictionary len %10lu\n", bundle->dictionaryLength);
+	isprintf(buf, sizeof buf,
+			"Expiration sec %10lu", bundle->expirationTime);
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"Total ADU len  %10lu", bundle->totalAduLength);
+	PUTS(buf);
+	isprintf(buf, sizeof buf,
+			"Dictionary len %10lu", bundle->dictionaryLength);
+	PUTS(buf);
 	printDictionary(dictionary, bundle->dictionaryLength);
 	releaseDictionary(dictionary);
 	printExtensions(sdr, bundle->extensions[0]);
 	printPayload(sdr, bundle);
 	printExtensions(sdr, bundle->extensions[1]);
-	printf("**** End of bundle\n");
+	PUTS("**** End of bundle");
 }
 
 static void	printUsage()
 {
-	puts("Usage: bplist [ { count | detail } \
+	PUTS("Usage: bplist [ { count | detail } \
 [<protocolName>/<outductName>/<priority>]]");
 }
 

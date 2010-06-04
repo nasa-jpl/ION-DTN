@@ -58,14 +58,14 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: ltpclo <destination engine number>");
+		PUTS("Usage: ltpclo <destination engine number>");
 		return 0;
 	}
 
 	if (bpAttach() < 0)
 	{
-		putSysErrmsg("ltpclo can't attach to BP.", NULL);
-		return 1;
+		putErrmsg("ltpclo can't attach to BP.", NULL);
+		return -1;
 	}
 
 	sdr = getIonsdr();
@@ -73,14 +73,14 @@ int	main(int argc, char *argv[])
 	if (vductElt == 0)
 	{
 		putErrmsg("No such ltp duct.", ductName);
-		return 1;
+		return -1;
 	}
 
 	if (vduct->cloPid > 0 && vduct->cloPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLO task is already started for this duct.",
 				itoa(vduct->cloPid));
-		return 1;
+		return -1;
 	}
 
 	/*	All command-line arguments are now validated.		*/
@@ -100,7 +100,7 @@ int	main(int argc, char *argv[])
 	if (ltp_attach() < 0)
 	{
 		putErrmsg("ltpclo can't initialize LTP.", NULL);
-		return 1;
+		return -1;
 	}
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
@@ -138,7 +138,7 @@ int	main(int argc, char *argv[])
 				redPartLength, &sessionId))
 		{
 		case 0:
-			putSysErrmsg("Unable to send this bundle via LTP",
+			putErrmsg("Unable to send this bundle via LTP.",
 					NULL);
 			break;
 
@@ -158,6 +158,6 @@ int	main(int argc, char *argv[])
 
 	writeErrmsgMemos();
 	writeMemo("[i] ltpclo duct has ended.");
-	bp_detach();
+	ionDetach();
 	return 0;
 }

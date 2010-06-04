@@ -13,12 +13,12 @@
 
 static void	reportError(void *userData, AmsEvent *event)
 {
-	fputs("AMS event loop crashed.", stderr);
+	PUTS("AMS event loop crashed.");
 }
 
 static void	handleQuit()
 {
-	fputs("Terminating amsbenchs.", stderr);
+	PUTS("Terminating amsbenchs.");
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -43,8 +43,7 @@ int	main(int argc, char **argv)
 
 	if (count < 1 || size < 4 || size > 65535)
 	{
-		fputs("Usage: amsbenchs <# of msgs to send> <msg length>\n",
-				stderr);
+		PUTS("Usage: amsbenchs <# of msgs to send> <msg length>");
 		return 0;
 	}
 
@@ -95,8 +94,7 @@ int	main(int argc, char **argv)
 	}
 
 	writeErrmsgMemos();
-	fputs("Message publication ended; press ^C when test is done.\n",
-			stderr);
+	PUTS("Message publication ended; press ^C when test is done.");
 	signal(SIGINT, handleQuit);
 	snooze(3600);
 	ams_unregister(me);

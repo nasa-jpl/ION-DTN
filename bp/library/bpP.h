@@ -47,8 +47,26 @@ extern "C" {
  *	at the top of the function stack clean up the transaction
  *	and return -1 to trigger the applicable failure handling.	*/
 
-#define	BP_DBNAME		"bpdb"
-#define	BP_VDBNAME		"bpvdb"
+#define MIN_PRIMARY_BLK_LENGTH		(23)
+#define MAX_CL_PROTOCOL_NAME_LEN	(15)
+#define MAX_CL_DUCT_NAME_LEN		(255)
+#define	MAX_SCHEME_NAME_LEN		(15)
+#define	MAX_NSS_LEN			(63)
+#define	MAX_EID_LEN			(MAX_SCHEME_NAME_LEN + MAX_NSS_LEN + 2)
+#define MAX_CBHE_NODE_NBR		(16777215)
+#define MAX_CBHE_SERVICE_NBR		(32767)
+
+#ifndef	CBHE_SCHEME_NAME
+#define CBHE_SCHEME_NAME		"ipn"
+#endif
+
+#ifndef	DTN2_SCHEME_NAME
+#define DTN2_SCHEME_NAME		"dtn"
+#endif
+
+#ifndef	BP_AVG_HEADER
+#define BP_AVG_HEADER			(2000)
+#endif
 
 /*	A BP "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
@@ -74,27 +92,6 @@ extern "C" {
  *	services provided by underlying communication protocols (at
  *	the "convergence layer" and below) to transmit the bundles
  *	to other nodes.							*/
-
-#define MIN_PRIMARY_BLK_LENGTH		(23)
-#define MAX_CL_PROTOCOL_NAME_LEN	(15)
-#define MAX_CL_DUCT_NAME_LEN		(255)
-#define	MAX_SCHEME_NAME_LEN		(15)
-#define	MAX_NSS_LEN			(63)
-#define	MAX_EID_LEN			(MAX_SCHEME_NAME_LEN + MAX_NSS_LEN + 2)
-#define MAX_CBHE_NODE_NBR		(16777215)
-#define MAX_CBHE_SERVICE_NBR		(32767)
-
-#ifndef	CBHE_SCHEME_NAME
-#define CBHE_SCHEME_NAME		"ipn"
-#endif
-
-#ifndef	DTN2_SCHEME_NAME
-#define DTN2_SCHEME_NAME		"dtn"
-#endif
-
-#ifndef	BP_AVG_HEADER
-#define BP_AVG_HEADER			(2000)
-#endif
 
 typedef struct
 {

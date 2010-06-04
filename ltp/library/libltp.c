@@ -11,8 +11,6 @@
 
 #include "ltpP.h"
 
-static char	*NullParmsMemo = "LTP app error: null input parameter(s).";
-
 int	ltp_attach()
 {
 	return ltpAttach();
@@ -45,20 +43,14 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	LtpSpan		span;
 			OBJ_POINTER(ExportSession, session);
 
-	if (clientSvcId > MAX_LTP_CLIENT_NBR || clientServiceData == 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
+	CHKERR(clientServiceData);
 	sdr_begin_xn(sdr);
 	findSpan(destinationEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
 		sdr_exit_xn(sdr);
-		errno = EINVAL;
-		putSysErrmsg("Destination engine unknown",
+		putErrmsg("Destination engine unknown.",
 				utoa(destinationEngineId));
 		return -1;
 	}
@@ -86,8 +78,7 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	if (redPartLength > span.maxExportBlockSize)
 	{
 		sdr_exit_xn(sdr);
-		errno = EINVAL;
-		putSysErrmsg("Client service data size exceeds max block size",
+		putErrmsg("Client service data size exceeds max block size.",
 			utoa(redPartLength - span.maxExportBlockSize));
 		return 0;
 	}
@@ -95,8 +86,7 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	if (greenPartLength > span.maxSegmentSize)
 	{
 		sdr_exit_xn(sdr);
-		errno = EINVAL;
-		putSysErrmsg("Client service data size exceeds max frame size",
+		putErrmsg("Client service data size exceeds max frame size.",
 			utoa(greenPartLength - span.maxSegmentSize));
 		return 0;
 	}
@@ -232,15 +222,14 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 	int		objectLength;
 	ZcoReader	reader;
 
-	if (clientSvcId > MAX_LTP_CLIENT_NBR || type == NULL
-	|| sessionId == NULL || reasonCode == NULL || endOfBlock == NULL
-	|| dataOffset == NULL || dataLength == NULL || data == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
+	CHKERR(type);
+	CHKERR(sessionId);
+	CHKERR(reasonCode);
+	CHKERR(endOfBlock);
+	CHKERR(dataOffset);
+	CHKERR(dataLength);
+	CHKERR(data);
 	*type = LtpNoNotice;	/*	Default.			*/
 	sdr_begin_xn(sdr);
 	client = vdb->clients + clientSvcId;
@@ -249,7 +238,6 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 		sdr_exit_xn(sdr);
 		putErrmsg("Can't get notice: not owner of client service.",
 				itoa(client->pid));
-		errno = EINVAL;
 		return -1;
 	}
 
@@ -269,7 +257,10 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 
 		if (sm_SemEnded(client->semaphore))
 		{
-			putErrmsg("Client access terminated.", NULL);
+			writeMemo("[?] Client access terminated.");
+
+			/*	End task, but without error.		*/
+
 			return -1;
 		}
 

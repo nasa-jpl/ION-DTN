@@ -20,11 +20,32 @@
 
 /*	*	*	Globals used for IPN scheme service.	*	*/
 
-static Object	ipndbObject;
-static IpnDB	ipnConstantsBuf;
-static IpnDB	*ipnConstants = &ipnConstantsBuf;
+static Object	_ipndbObject(Object *newDbObj)
+{
+	static Object	obj = 0;
 
-static char	*NullParmsMemo = "BP error: null input parameter(s).";
+	if (newDbObj)
+	{
+		obj = *newDbObj;
+	}
+
+	return obj;
+}
+
+static IpnDB	*_ipnConstants()
+{
+	static IpnDB	buf;
+	static IpnDB	*db = NULL;
+
+	if (db == NULL)
+	{
+		sdr_read(getIonsdr(), (char *) &buf, _ipndbObject(NULL),
+				sizeof(IpnDB));
+		db = &buf;
+	}
+
+	return db;
+}
 
 /*	*	*	Routing information mgt functions	*	*/
 
@@ -34,7 +55,7 @@ static int	lookupIpnEid(char *uriBuffer, char *neighborClId)
 	Object	elt;
 		OBJ_POINTER(IpnPlan, plan);
 
-	for (elt = sdr_list_first(sdr, ipnConstants->plans); elt;
+	for (elt = sdr_list_first(sdr, (_ipnConstants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnPlan, plan, sdr_list_data(sdr, elt));
@@ -64,8 +85,9 @@ static int	lookupIpnEid(char *uriBuffer, char *neighborClId)
 
 int	ipnInit()
 {
-	Sdr		sdr = getIonsdr();
-	IpnDB		ipndbBuf;
+	Sdr	sdr = getIonsdr();
+	Object	ipndbObject;
+	IpnDB	ipndbBuf;
 
 	/*	Recover the IPN database, creating it if necessary.	*/
 
@@ -76,7 +98,7 @@ int	ipnInit()
 	{
 	case -1:		/*	SDR error.			*/
 		sdr_cancel_xn(sdr);
-		putSysErrmsg("Can't search for IPN database in SDR", NULL);
+		putErrmsg("Failed seeking IPN database in SDR.", NULL);
 		return -1;
 
 	case 0:			/*	Not found; must create new DB.	*/
@@ -84,7 +106,7 @@ int	ipnInit()
 		if (ipndbObject == 0)
 		{
 			sdr_cancel_xn(sdr);
-			putSysErrmsg("No space for IPN database", NULL);
+			putErrmsg("No space for IPN database.", NULL);
 			return -1;
 		}
 
@@ -95,7 +117,7 @@ int	ipnInit()
 		sdr_catlg(sdr, IPN_DBNAME, 0, ipndbObject);
 		if (sdr_end_xn(sdr))
 		{
-			putSysErrmsg("Can't create IPN database", NULL);
+			putErrmsg("Can't create IPN database.", NULL);
 			return -1;
 		}
 
@@ -105,21 +127,19 @@ int	ipnInit()
 		sdr_exit_xn(sdr);
 	}
 
-	/*	Load constants into a conveniently accessed structure.
-	 *	Note that this is NOT a current database image.		*/
-
-	sdr_read(sdr, (char *) ipnConstants, ipndbObject, sizeof(IpnDB));
+	oK(_ipndbObject(&ipndbObject));
+	oK(_ipnConstants());
 	return 0;
 }
 
 Object	getIpnDbObject()
 {
-	return ipndbObject;
+	return _ipndbObject(NULL);
 }
 
 IpnDB	*getIpnConstants()
 {
-	return ipnConstants;
+	return _ipnConstants();
 }
 
 static Object	locatePlan(unsigned long nodeNbr, Object *nextPlan)
@@ -134,7 +154,7 @@ static Object	locatePlan(unsigned long nodeNbr, Object *nextPlan)
 	 *	should be inserted.					*/
 
 	if (nextPlan) *nextPlan = 0;	/*	Default.		*/
-	for (elt = sdr_list_first(sdr, ipnConstants->plans); elt;
+	for (elt = sdr_list_first(sdr, (_ipnConstants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnPlan, plan, sdr_list_data(sdr, elt));
@@ -164,11 +184,7 @@ void	ipn_findPlan(unsigned long nodeNbr, Object *planAddr, Object *eltp)
 	 *	node, if any.						*/
 
 	CHKVOID(ionLocked());
-	if (nodeNbr == 0 || planAddr == NULL || eltp == NULL)
-	{
-		return;
-	}
-
+	CHKVOID(nodeNbr && planAddr && eltp);
 	*eltp = 0;
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -204,19 +220,12 @@ int	ipn_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct)
 	Object	planObj;
 	Object	elt;
 
-	if (nodeNbr == 0 || defaultDuct == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(nodeNbr && defaultDuct);
 	sdr_begin_xn(sdr);
 	if (locatePlan(nodeNbr, &nextPlan) != 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("This plan is already defined.", utoa(nodeNbr));
-		errno = EINVAL;
+		writeMemoNote("[?] Duplicate plan", utoa(nodeNbr));
 		return 0;
 	}
 
@@ -226,23 +235,21 @@ int	ipn_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct)
 	createXmitDirective(&(plan.defaultDirective), defaultDuct);
 	plan.rules = sdr_list_create(sdr);
 	planObj = sdr_malloc(sdr, sizeof(IpnPlan));
-	if (planObj == 0)
+	if (planObj)
 	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't create plan.", utoa(nodeNbr));
-		return -1;
+		if (nextPlan)
+		{
+			elt = sdr_list_insert_before(sdr, nextPlan, planObj);
+		}
+		else
+		{
+			elt = sdr_list_insert_last(sdr,
+					(_ipnConstants())->plans, planObj);
+		}
+
+		sdr_write(sdr, planObj, (char *) &plan, sizeof(IpnPlan));
 	}
 
-	if (nextPlan)
-	{
-		elt = sdr_list_insert_before(sdr, nextPlan, planObj);
-	}
-	else
-	{
-		elt = sdr_list_insert_last(sdr, ipnConstants->plans, planObj);
-	}
-
-	sdr_write(sdr, planObj, (char *) &plan, sizeof(IpnPlan));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't add plan.", NULL);
@@ -267,22 +274,17 @@ int	ipn_updatePlan(unsigned long nodeNbr, DuctExpression *defaultDuct)
 	Object	planObj;
 	IpnPlan	plan;
 
-	if (nodeNbr == 0 || defaultDuct == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(nodeNbr && defaultDuct);
 	sdr_begin_xn(sdr);
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("This plan is not defined.", utoa(nodeNbr));
-		errno = EINVAL;
+		writeMemoNote("[?] This plan is not defined.", utoa(nodeNbr));
 		return 0;
 	}
+
+	/*	Okay to update this plan.				*/
 
 	planObj = sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &plan, planObj, sizeof(IpnPlan));
@@ -305,29 +307,35 @@ int	ipn_removePlan(unsigned long nodeNbr)
 	Object	planObj;
 		OBJ_POINTER(IpnPlan, plan);
 
-	if (nodeNbr == 0)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(nodeNbr);
 	sdr_begin_xn(sdr);
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		return 1;
+		writeMemoNote("[?] Unknown plan", utoa(nodeNbr));
+		return 0;
 	}
 
 	planObj = sdr_list_data(sdr, elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
 	GET_OBJ_POINTER(sdr, IpnPlan, plan, planObj);
+	if (sdr_list_length(sdr, plan->rules) > 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Can't remove plan; still has rules",
+				utoa(nodeNbr));
+		return 0;
+	}
+
+	/*	Okay to remove this plan from the database.		*/
+
+	sdr_list_delete(sdr, elt, NULL, NULL);
 	destroyXmitDirective(&(plan->defaultDirective));
+	sdr_list_destroy(sdr, plan->rules, NULL, NULL);
 	sdr_free(sdr, planObj);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't remove plan.", NULL);
+		putErrmsg("Can't remove plan.", utoa(nodeNbr));
 		return -1;
 	}
 
@@ -400,11 +408,8 @@ void	ipn_findPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	 *	specified destination node number, if any.		*/
 
 	CHKVOID(ionLocked());
-	if (ruleAddr == NULL || eltp == NULL)
-	{
-		return;
-	}
-
+	CHKVOID(ruleAddr);
+	CHKVOID(eltp);
 	*eltp = 0;
 	if (plan == NULL)
 	{
@@ -447,20 +452,14 @@ int	ipn_addPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	IpnRule		ruleBuf;
 	Object		addr;
 
-	if (nodeNbr == 0 || srcNodeNbr == 0)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(nodeNbr && srcNodeNbr);
 	sdr_begin_xn(sdr);
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Node is unknown.", utoa(nodeNbr));
-		errno = EINVAL;
+		writeMemoNote("[?] No plan defined for this node",
+				utoa(nodeNbr));
 		return 0;
 	}
 
@@ -468,9 +467,8 @@ int	ipn_addPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	if (locateRule(plan->rules, srcServiceNbr, srcNodeNbr, &nextRule) != 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Duplicate rule, already in database.", NULL);
-		errno = EINVAL;
-		return sdr_end_xn(sdr);
+		writeMemoNote("[?] Duplicate rule", utoa(srcNodeNbr));
+		return 0;
 	}
 
 	/*	All parameters validated, okay to add the rule.		*/
@@ -480,23 +478,20 @@ int	ipn_addPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	ruleBuf.srcNodeNbr = srcNodeNbr;
 	createXmitDirective(&ruleBuf.directive, directive);
 	addr = sdr_malloc(sdr, sizeof(IpnRule));
-	if (addr == 0)
+	if (addr)
 	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("No space for rule.", NULL);
-		return -1;
+		if (nextRule)
+		{
+			elt = sdr_list_insert_before(sdr, nextRule, addr);
+		}
+		else
+		{
+			elt = sdr_list_insert_last(sdr, plan->rules, addr);
+		}
+
+		sdr_write(sdr, addr, (char *) &ruleBuf, sizeof(IpnRule));
 	}
 
-	if (nextRule)
-	{
-		elt = sdr_list_insert_before(sdr, nextRule, addr);
-	}
-	else
-	{
-		elt = sdr_list_insert_last(sdr, plan->rules, addr);
-	}
-
-	sdr_write(sdr, addr, (char *) &ruleBuf, sizeof(IpnRule));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't add rule.", NULL);
@@ -519,20 +514,14 @@ int	ipn_updatePlanRule(unsigned long nodeNbr, long argServiceNbr,
 	Object		ruleAddr;
 	IpnRule		ruleBuf;
 
-	if (nodeNbr == 0 || srcNodeNbr == 0)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(nodeNbr && srcNodeNbr);
 	sdr_begin_xn(sdr);
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Node is unknown.", utoa(nodeNbr));
-		errno = EINVAL;
+		writeMemoNote("[?] No plan defined for this node",
+				utoa(nodeNbr));
 		return 0;
 	}
 
@@ -541,9 +530,9 @@ int	ipn_updatePlanRule(unsigned long nodeNbr, long argServiceNbr,
 			&elt);
 	if (elt == 0)
 	{
-		putErrmsg("Unknown rule, not in database.", NULL);
-		errno = EINVAL;
-		return sdr_end_xn(sdr);
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown rule", utoa(srcNodeNbr));
+		return 0;
 	}
 
 	/*	All parameters validated, okay to update the rule.	*/
@@ -574,21 +563,14 @@ int	ipn_removePlanRule(unsigned long nodeNbr, long argServiceNbr,
 	Object		ruleAddr;
 			OBJ_POINTER(IpnRule, rule);
 
-	if (nodeNbr == 0 || srcNodeNbr == 0)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
-
+	CHKERR(nodeNbr && srcNodeNbr);
 	sdr_begin_xn(sdr);
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Node is unknown.", utoa(nodeNbr));
-		errno = EINVAL;
+		writeMemoNote("[?] No plan defined for this node",
+				utoa(nodeNbr));
 		return 0;
 	}
 
@@ -597,8 +579,9 @@ int	ipn_removePlanRule(unsigned long nodeNbr, long argServiceNbr,
 			&elt);
 	if (elt == 0)
 	{
-		errno = EINVAL;
-		return sdr_end_xn(sdr);
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown rule", utoa(srcNodeNbr));
+		return 0;
 	}
 
 	/*	All parameters validated, okay to remove the rule.	*/
@@ -683,12 +666,7 @@ int	ipn_lookupPlanDirective(unsigned long nodeNbr,
 	 *	the specified eid, if any.  Wild card match is okay.	*/
 
 	CHKERR(ionLocked());
-	if (nodeNbr == 0 || dirbuf == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
+	CHKERR(nodeNbr && dirbuf);
 
 	/*	Find the matching plan.					*/
 
@@ -728,7 +706,7 @@ static Object	locateGroup(unsigned long firstNodeNbr,
 
 	if (nextGroup) *nextGroup = 0;	/*	Default.		*/
 	targetSize = lastNodeNbr - firstNodeNbr;
-	for (elt = sdr_list_first(sdr, ipnConstants->groups); elt;
+	for (elt = sdr_list_first(sdr, (_ipnConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
@@ -773,12 +751,8 @@ void	ipn_findGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	 *	node range, if any.					*/
 
 	CHKVOID(ionLocked());
-	if (firstNodeNbr == 0 || lastNodeNbr < firstNodeNbr
-	|| groupAddr == NULL || eltp == NULL)
-	{
-		return;
-	}
-
+	CHKVOID(firstNodeNbr && groupAddr && eltp);
+	CHKVOID(firstNodeNbr <= lastNodeNbr);
 	*eltp = 0;
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -798,22 +772,14 @@ int	ipn_addGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	IpnGroup	group;
 	Object		addr;
 
-	if (firstNodeNbr == 0 || lastNodeNbr < firstNodeNbr
-	|| viaEid == NULL || *viaEid == '\0'
-       	|| strlen(viaEid) >= SDRSTRING_BUFSZ)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
+	CHKERR(firstNodeNbr <= lastNodeNbr);
+	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
 	sdr_begin_xn(sdr);
 	if (locateGroup(firstNodeNbr, lastNodeNbr, &nextGroup) != 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Duplicate group, already in database.",
-				utoa(firstNodeNbr));
-		errno = EINVAL;
+		writeMemoNote("[?] Duplicate group", utoa(firstNodeNbr));
 		return 0;
 	}
 
@@ -826,23 +792,21 @@ int	ipn_addGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	group.defaultDirective.action = fwd;
 	group.defaultDirective.eid = sdr_string_create(sdr, viaEid);
 	addr = sdr_malloc(sdr, sizeof(IpnGroup));
-	if (addr == 0)
+	if (addr)
 	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("No space for group.", NULL);
-		return -1;
+		if (nextGroup)
+		{
+			sdr_list_insert_before(sdr, nextGroup, addr);
+		}
+		else
+		{
+			sdr_list_insert_last(sdr, (_ipnConstants())->groups,
+					addr);
+		}
+
+		sdr_write(sdr, addr, (char *) &group, sizeof(IpnGroup));
 	}
 
-	if (nextGroup)
-	{
-		sdr_list_insert_before(sdr, nextGroup, addr);
-	}
-	else
-	{
-		sdr_list_insert_last(sdr, ipnConstants->groups, addr);
-	}
-
-	sdr_write(sdr, addr, (char *) &group, sizeof(IpnGroup));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't add group.", NULL);
@@ -860,22 +824,15 @@ int	ipn_updateGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	Object		addr;
 	IpnGroup	group;
 
-	if (firstNodeNbr == 0 || lastNodeNbr < firstNodeNbr
-	|| viaEid == NULL || *viaEid == '\0'
-       	|| strlen(viaEid) >= SDRSTRING_BUFSZ)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
+	CHKERR(firstNodeNbr <= lastNodeNbr);
+	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
 	sdr_begin_xn(sdr);
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Unknown group, not in database.", NULL);
-		errno = EINVAL;
+		writeMemoNote("[?] Unknown group", utoa(firstNodeNbr));
 		return 0;
 	}
 
@@ -897,35 +854,37 @@ int	ipn_updateGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 
 int	ipn_removeGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr)
 {
-	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		addr;
-	IpnGroup	group;
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+	Object	addr;
+		OBJ_POINTER(IpnGroup, group);
 
-	if (firstNodeNbr == 0 || lastNodeNbr < firstNodeNbr)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(firstNodeNbr && lastNodeNbr);
+	CHKERR(firstNodeNbr <= lastNodeNbr);
 	sdr_begin_xn(sdr);
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Unknown group, not in database.", NULL);
-		errno = EINVAL;
+		writeMemoNote("[?] Unknown group", utoa(firstNodeNbr));
+		return 0;
+	}
+
+	addr = (Object) sdr_list_data(sdr, elt);
+	GET_OBJ_POINTER(sdr, IpnGroup, group, addr);
+	if (sdr_list_length(sdr, group->rules) > 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Can't remove group; still has rules",
+				utoa(firstNodeNbr));
 		return 0;
 	}
 
 	/*	All parameters validated, okay to remove the group.	*/
 
-	addr = (Object) sdr_list_data(sdr, elt);
-	sdr_stage(sdr, (char *) &group, addr, sizeof(IpnGroup));
-	sdr_free(sdr, group.defaultDirective.eid);
-	sdr_free(sdr, addr);
 	sdr_list_delete(sdr, elt, NULL, NULL);
+	sdr_free(sdr, group->defaultDirective.eid);
+	sdr_free(sdr, addr);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't remove group.", NULL);
@@ -952,11 +911,8 @@ void	ipn_findGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	 *	specified destination node number, if any.		*/
 
 	CHKVOID(ionLocked());
-	if (ruleAddr == NULL || eltp == NULL)
-	{
-		return;
-	}
-
+	CHKVOID(ruleAddr);
+	CHKVOID(eltp);
 	*eltp = 0;
 	if (group == NULL)
 	{
@@ -1000,20 +956,14 @@ int	ipn_addGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	IpnRule		ruleBuf;
 	Object		addr;
 
-	if (firstNodeNbr == 0 || lastNodeNbr < firstNodeNbr || srcNodeNbr == 0)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
+	CHKERR(firstNodeNbr <= lastNodeNbr);
 	sdr_begin_xn(sdr);
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Group is unknown.", NULL);
-		errno = EINVAL;
+		writeMemoNote("[?] Group is unknown", utoa(firstNodeNbr));
 		return 0;
 	}
 
@@ -1021,9 +971,8 @@ int	ipn_addGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	if (locateRule(group->rules, srcServiceNbr, srcNodeNbr, &nextRule) != 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Duplicate rule, already in database.", NULL);
-		errno = EINVAL;
-		return sdr_end_xn(sdr);
+		writeMemoNote("[?] Duplicate rule", utoa(srcNodeNbr));
+		return 0;
 	}
 
 	/*	All parameters validated, okay to add the rule.		*/
@@ -1033,23 +982,20 @@ int	ipn_addGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	ruleBuf.srcNodeNbr = srcNodeNbr;
 	ruleBuf.directive.eid = sdr_string_create(sdr, viaEid);
 	addr = sdr_malloc(sdr, sizeof(IpnRule));
-	if (addr == 0)
+	if (addr)
 	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("No space for rule.", NULL);
-		return -1;
+		if (nextRule)
+		{
+			elt = sdr_list_insert_before(sdr, nextRule, addr);
+		}
+		else
+		{
+			elt = sdr_list_insert_last(sdr, group->rules, addr);
+		}
+
+		sdr_write(sdr, addr, (char *) &ruleBuf, sizeof(IpnRule));
 	}
 
-	if (nextRule)
-	{
-		elt = sdr_list_insert_before(sdr, nextRule, addr);
-	}
-	else
-	{
-		elt = sdr_list_insert_last(sdr, group->rules, addr);
-	}
-
-	sdr_write(sdr, addr, (char *) &ruleBuf, sizeof(IpnRule));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't add rule.", NULL);
@@ -1073,20 +1019,14 @@ int	ipn_updateGroupRule(unsigned long firstNodeNbr,
 	Object		ruleAddr;
 	IpnRule		ruleBuf;
 
-	if (firstNodeNbr == 0 || lastNodeNbr < firstNodeNbr || srcNodeNbr == 0)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
+	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
+	CHKERR(firstNodeNbr <= lastNodeNbr);
 	sdr_begin_xn(sdr);
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Group is unknown.", NULL);
-		errno = EINVAL;
+		writeMemoNote("[?] Group is unknown", utoa(firstNodeNbr));
 		return 0;
 	}
 
@@ -1095,9 +1035,9 @@ int	ipn_updateGroupRule(unsigned long firstNodeNbr,
 			group, &ruleAddr, &elt);
 	if (elt == 0)
 	{
-		putErrmsg("Unknown rule, not in database.", NULL);
-		errno = EINVAL;
-		return sdr_end_xn(sdr);
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown rule", utoa(srcNodeNbr));
+		return 0;
 	}
 
 	/*	All parameters validated, okay to update the rule.	*/
@@ -1128,21 +1068,14 @@ int	ipn_removeGroupRule(unsigned long firstNodeNbr,
 	Object		ruleAddr;
 			OBJ_POINTER(IpnRule, rule);
 
-	if (firstNodeNbr == 0 || lastNodeNbr < firstNodeNbr || srcNodeNbr == 0)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return 0;
-	}
-
-
+	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
+	CHKERR(firstNodeNbr <= lastNodeNbr);
 	sdr_begin_xn(sdr);
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Group is unknown.", NULL);
-		errno = EINVAL;
+		writeMemoNote("[?] Group is unknown", utoa(firstNodeNbr));
 		return 0;
 	}
 
@@ -1151,8 +1084,9 @@ int	ipn_removeGroupRule(unsigned long firstNodeNbr,
 			group, &ruleAddr, &elt);
 	if (elt == 0)
 	{
-		errno = EINVAL;
-		return sdr_end_xn(sdr);
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown rule", utoa(srcNodeNbr));
+		return 0;
 	}
 
 	/*	All parameters validated, okay to remove the rule.	*/
@@ -1183,12 +1117,7 @@ int	ipn_lookupGroupDirective(unsigned long nodeNbr,
 	 *	the specified eid, if any.  Wild card match is okay.	*/
 
 	CHKERR(ionLocked());
-	if (nodeNbr == 0 || dirbuf == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
+	CHKERR(nodeNbr && dirbuf);
 
 	/*	Find best matching group.  Groups are sorted by first
 	 *	node number within group size, both ascending.  So
@@ -1196,7 +1125,7 @@ int	ipn_lookupGroupDirective(unsigned long nodeNbr,
 	 *	is the best fit (narrowest applicable range), but
 	 *	there's no way to terminate the search early.		*/
 
-	for (elt = sdr_list_first(sdr, ipnConstants->groups); elt;
+	for (elt = sdr_list_first(sdr, (_ipnConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);

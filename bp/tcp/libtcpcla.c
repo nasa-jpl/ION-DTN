@@ -139,7 +139,7 @@ restart CLO when connectivity is restored.", NULL);
 
 				/*	Big problem; shut down.		*/
 
-				putSysErrmsg("Failed to send by TCP.", NULL);
+				putErrmsg("Failed to send by TCP.", NULL);
 				return -1;
 			}
 
@@ -186,7 +186,7 @@ static int	sendLargeBundleByTCP(int *bundleSocket,
 			sdr_cancel_xn(sdr);
 			fclose(bundleFile);
 			unlink(fileName);
-			putSysErrmsg("can't issue from ZCO", NULL);
+			putErrmsg("can't issue from ZCO", NULL);
 			return -1;
 		}
 
@@ -288,7 +288,7 @@ restart CLO when connectivity is restored.", NULL);
 
 				fclose(bundleFile);
 				unlink(fileName);
-				putSysErrmsg("Failed to send by TCP.", NULL);
+				putErrmsg("Failed to send by TCP.", NULL);
 				return -1;
 			}
 
@@ -349,7 +349,7 @@ CLO when connectivity is restored.", NULL);
 
 			close(*bundleSocket);
 			*bundleSocket = -1;
-			putSysErrmsg("Failed to send by TCP", NULL);
+			putErrmsg("Failed to send by TCP.", NULL);
 			return -1;
 		}
 
@@ -440,7 +440,7 @@ restart CLO when connectivity is restored.", NULL);
 
 				/*	Big problem; shut down.		*/
 
-				putSysErrmsg("Failed to send by TCP.", NULL);
+				putErrmsg("Failed to send by TCP.", NULL);
 				return -1;
 			}
 
@@ -496,7 +496,7 @@ static int	sendLargeBundleByTCPCL(int *bundleSocket,
 			sdr_cancel_xn(sdr);
 			fclose(bundleFile);
 			unlink(fileName);
-			putSysErrmsg("can't issue from ZCO", NULL);
+			putErrmsg("Can't issue from ZCO.", NULL);
 			return -1;
 		}
 
@@ -598,7 +598,7 @@ restart CLO when connectivity is restored.", NULL);
 
 				fclose(bundleFile);
 				unlink(fileName);
-				putSysErrmsg("Failed to send by TCP.", NULL);
+				putErrmsg("Failed to send by TCP.", NULL);
 				return -1;
 			}
 
@@ -857,18 +857,18 @@ int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer)
 						break;
 					}
 				}
-				putSysErrmsg("Flags are not set correctly.",NULL);
+				putErrmsg("Flags are not set correctly.",NULL);
 				return -1;
 			case 2:		/*ACK Segment*/
-				putSysErrmsg("Received ACK_SEGMENT. Unexpected Segment.",NULL);
+				putErrmsg("Received ACK_SEGMENT. Unexpected Segment.",NULL);
 				break;
 			case 3:		/*Refuse Bundle*/
-				putSysErrmsg("Received Refuse Bundle.",NULL);
+				putErrmsg("Received Refuse Bundle.",NULL);
 				break;
 			case 4:		/*Keep Alive */
 				break;
 			case 5:
-				putSysErrmsg("Received Shutdown message.",NULL);
+				putErrmsg("Received Shutdown message.",NULL);
 				return 0;
 			default:
 				return -1;
@@ -890,7 +890,7 @@ int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,unsign
 	/* Read first byte from received segment */
 	if(receiveBytesByTCP(bundleSocket,buffer,1) < 1)
 	{
-		putSysErrmsg("Couldnt receive segment header.",NULL);
+		putErrmsg("Couldnt receive segment header.",NULL);
 		return -1;
 	}
 	segmentType = (buffer[0] & 0xF0) >> 4;
@@ -901,7 +901,7 @@ int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,unsign
 		{
 			if(receiveBytesByTCP(bundleSocket,buffer+length,1)< 1)
 			{
-				putSysErrmsg("Couldn't receive length field.",NULL);
+				putErrmsg("Couldn't receive length field.",NULL);
 				return -1;
 			}
 			if((*cursor & 0x80) == 0)	/* Last Byte	*/
@@ -981,7 +981,7 @@ int sendContactHeader(int *bundleSocket, unsigned char *buffer)
 	custodianEidLength = strlen(custodianEidString);
 	if(TCPCLA_BUFSZ < (18 + (custodianEidLength)))
 	{
-		putSysErrmsg("Buffer size not big enough for contact header",
+		putErrmsg("Buffer size not big enough for contact header.",
 				NULL);
 		return -1;
 	}
@@ -1020,7 +1020,7 @@ CLO when connectivity is restored.", NULL);
 
 			/*	Big problem; shut down.			*/
 
-			putSysErrmsg("Failed to send Contact Header by TCP", NULL);
+			putErrmsg("Failed to send Contact Header by TCP.", NULL);
 			return -1;
 		}
 		bytesToSend -=bytesSent;
@@ -1091,7 +1091,7 @@ int receiveContactHeader(int *bundleSocket, unsigned char *buffer, int *keepaliv
 			/*Supports ack, negative ack and segmentation*/
 			break;
 		default:
-			putSysErrmsg("Incorrect flags have been set in the header.",NULL);
+			putErrmsg("Incorrect flags have been set in the header.",NULL);
 		
 	}
 	memcpy(&requestedKeepAlive, &buffer[2],2);
@@ -1227,7 +1227,7 @@ Shutdown message", NULL);
 
 			/*	Big problem; shut down.			*/
 
-			putSysErrmsg("Failed to send  shutdown message", NULL);
+			putErrmsg("Failed to send  shutdown message.", NULL);
 			return -1;
 		}
 		bytesToSend -=bytesSent;

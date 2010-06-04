@@ -35,8 +35,8 @@ int main(int argc, char **argv)
 
 	if (argc < 4)
 	{
-		fputs("Usage: ramstest <application Name> <authority name> \
-<TTL for bundles> [memory manager name] [memorySize]\n", stderr);
+		PUTS("Usage: ramstest <application Name> <authority name> \
+<TTL for bundles> [memory manager name] [memorySize]");
 		return 0;
 	}
 
@@ -81,7 +81,8 @@ int main(int argc, char **argv)
 		putSysErrmsg("ramstest can't register", NULL);
 		writeErrmsgMemos();
 	}
-    //rams_unregister(&rNode);
-	printf("disconnected....\n");
+
+	//rams_unregister(&rNode);
+	PUTS("disconnected....");
 	return 1;
 }

@@ -40,14 +40,14 @@ int	main(int argc, char **argv)
 
 	if (sm_ShmAttach(0x1108, 10000000, &wmspace, &wmid) < 0)
 	{
-		perror("can't attach to shared memory");
+		PERROR("can't attach to shared memory");
 		return 0;
 	}
 	
 	if (psm_manage(wmspace, 10000000, "file2sm", &wm, &outcome) < 0
 	|| outcome == Refused)
 	{
-		puts("can't manage shared memory");
+		PUTS("can't manage shared memory");
 		return 0;
 	}
 	
@@ -57,7 +57,7 @@ int	main(int argc, char **argv)
 		testlist = sm_list_create(wm);
 		if (testlist == 0)
 		{
-			puts("can't create shared memory list");
+			PUTS("can't create shared memory list");
 			return 0;
 		}
 		
@@ -67,16 +67,16 @@ int	main(int argc, char **argv)
 	semaphore = sm_SemCreate(0x1101, SM_SEM_FIFO);
 	if (semaphore < 0)
 	{
-		puts("can't create semaphore");
+		PUTS("can't create semaphore");
 		return 0;
 	}
 
-	printf("working on cycle %d\n", cycleNbr);
+	PUTMEMO("Working on cycle", utoa(cycleNbr));
 	isprintf(fileName, sizeof fileName, "file_copy_%d", cycleNbr);
 	outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
 	if (outputFile < 0)
 	{
-		perror("can't open output file");
+		PERROR("can't open output file");
 		return 0;
 	}
 
@@ -99,13 +99,13 @@ int	main(int argc, char **argv)
 
 			close(outputFile);
 			cycleNbr++;
-			printf("working on cycle %d\n", cycleNbr);
+			PUTMEMO("Working on cycle", utoa(cycleNbr));
 			isprintf(fileName, sizeof fileName, "file_copy_%d",
 					cycleNbr);
 			outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
 			if (outputFile < 0)
 			{
-				perror("Can't open output file");
+				PERROR("Can't open output file");
 				return 0;
 			}
 		}
@@ -114,7 +114,7 @@ int	main(int argc, char **argv)
 			if (iputs(outputFile, line) < 0)
 			{
 				close(outputFile);
-				perror("Can't write to output file");
+				PERROR("Can't write to output file");
 				return 0;
 			}
 		}

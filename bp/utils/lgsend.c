@@ -25,7 +25,7 @@ int	main(int argc, char **argv)
 #endif
 	BpSAP	sap;
 	Sdr	sdr;
-	FILE	*cmdFile;
+	int	cmdFile;
 	long	fileSize;
 	Object	adu;
 	int	offset;
@@ -36,7 +36,7 @@ int	main(int argc, char **argv)
 
 	if (cmdFileName == NULL || ownEid == NULL ||destEid == NULL)
 	{
-		puts("Usage: lgsend <LG cmd file name> <own endpoint ID> \
+		PUTS("Usage: lgsend <LG cmd file name> <own endpoint ID> \
 <destination endpoint ID>");
 		return 0;
 	}
@@ -44,43 +44,43 @@ int	main(int argc, char **argv)
 	if (bp_attach() < 0)
 	{
 		putErrmsg("lgsend: can't attach to BP.", NULL);
-		return 1;
+		return -1;
 	}
 
 	if (bp_open(ownEid, &sap) < 0)
 	{
 		putErrmsg("lgsend: can't open own endpoint.", NULL);
-		return 1;
+		return -1;
 	}
 
 	sdr = bp_get_sdr();
-	cmdFile = fopen(cmdFileName, "r");
-	if (cmdFile == NULL)
+	cmdFile = open(cmdFileName, O_RDONLY, 0777);
+	if (cmdFile < 0)
 	{
 		bp_close(sap);
 		putSysErrmsg("lgsend: can't open file of LG commands",
 				cmdFileName);
-		return 1;
+		return -1;
 	}
 
-	if (fseek(cmdFile, 0, SEEK_END) < 0
-	|| (fileSize = ftell(cmdFile)) < 0
-	|| fseek(cmdFile, 0, SEEK_SET) < 0)
+	if ((fileSize = lseek(cmdFile, 0, SEEK_END)) < 0
+	|| lseek(cmdFile, 0, SEEK_SET) < 0)
 	{
-		fclose(cmdFile);
+		close(cmdFile);
 		bp_close(sap);
 		putSysErrmsg("lgsend: can't get size of LG command file",
 				cmdFileName);
-		return 1;
+		return -1;
 	}
 
+	fileSize += 1;		/*	Make room for final newline.	*/
 	if (fileSize > 64000)
 	{
-		fclose(cmdFile);
+		close(cmdFile);
 		bp_close(sap);
-		putSysErrmsg("lgsend: LG cmd file size > 64000.",
+		putErrmsg("lgsend: LG cmd file size > 64000.",
 				itoa(fileSize));
-		return 1;
+		return -1;
 	}
 
 	sdr_begin_xn(sdr);
@@ -88,32 +88,54 @@ int	main(int argc, char **argv)
 	if (adu == 0)
 	{
 		sdr_cancel_xn(sdr);
-		fclose(cmdFile);
+		close(cmdFile);
 		bp_close(sap);
 		putErrmsg("lgsend: no space for application data unit.", NULL);
-		return 1;
+		return -1;
 	}
 
 	offset = 0;
-	while (offset < fileSize)
+	while (1)
 	{
-		if (fgets(line, sizeof line, cmdFile) == NULL)
+		if (igets(cmdFile, line, sizeof line, &lineLength) == NULL)
 		{
+			if (lineLength == 0)	/*	End of file.	*/
+			{
+				break;		/*	Out of loop.	*/
+			}
+
 			sdr_cancel_xn(sdr);
-			fclose(cmdFile);
+			close(cmdFile);
 			bp_close(sap);
-			putSysErrmsg("lgsend: fgets failed", NULL);
-			return 1;
+			putErrmsg("igets failed.", NULL);
+			return -1;
 		}
 
-		/*	Write command file line into ADU.		*/
+		/*	Newline (and CR, if any) has been stripped
+		 *	from command file line at this point, and
+		 *	command file line has been truncated as
+		 *	necessary to enable it to be NULL-terminated.
+		 *	Replace the NULL with a newline and write to
+		 *	SDR object.					*/
 
-		lineLength = strlen(line);	/*	Includes \n.	*/
+		line[lineLength] = '\n';
+		lineLength += 1;		/*	For newline.	*/
 		sdr_write(sdr, adu + offset, line, lineLength);
 		offset += lineLength;
+		CHKERR(offset <= fileSize);
 	}
 
-	fclose(cmdFile);
+	/*	May have to fill with newlines to replace stripped-
+	 *	out CRs and/or truncated text.				*/
+
+	line[0] = '\n';
+	while (offset < fileSize)
+	{
+		sdr_write(sdr, adu + offset, line, 1);
+		offset += 1;
+	}
+
+	close(cmdFile);
 	bundleZco = zco_create(sdr, ZcoSdrSource, adu, 0, fileSize);
 	if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
 	{
@@ -135,7 +157,7 @@ int	main(int argc, char **argv)
 
 	bp_close(sap);
 	writeErrmsgMemos();
-	puts("lgsend: completed.");
+	PUTS("lgsend: completed.");
 	bp_detach();
 	return 0;
 }

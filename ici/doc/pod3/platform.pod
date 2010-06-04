@@ -309,11 +309,12 @@ adhere to) is as follows:
 	values (such as pointers or addresses) are appropriate
 	indications of nominal completion.  Any additional information
 	produced by the function, such as an indication of "success",
-	must be returned as the value of a reference argument.
-	[Note that the SDR hash table management functions deviate
-	from this rule, returning 0 to indicate nominal completion
-	but functional failure (duplicate key or key/value pair not
-	found) and returning 1 to indicate functional success.]
+	is usually returned as the value of a reference argument.
+	[Note, though, that database management functions and the
+	SDR hash table management functions deviate from this rule:
+	most return 0 to indicate nominal completion but functional
+	failure (e.g., duplicate key or object not found) and return
+	1 to indicate functional success.]
 
 	So when returning a value that indicates nominal completion
 	of the function -- even if the result might be interpreted

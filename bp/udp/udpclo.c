@@ -64,15 +64,15 @@ int	main(int argc, char *argv[])
 
 	if (bpAttach() < 0)
 	{
-		putSysErrmsg("udpclo can't attach to BP.", NULL);
-		return 1;
+		putErrmsg("udpclo can't attach to BP.", NULL);
+		return -1;
 	}
 
 	buffer = MTAKE(UDPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("No memory for UDP buffer in udpclo.", NULL);
-		return 1;
+		return -1;
 	}
 
 	findOutduct("udp", "*", &vduct, &vductElt);
@@ -80,7 +80,7 @@ int	main(int argc, char *argv[])
 	{
 		putErrmsg("No such udp duct.", "*");
 		MRELEASE(buffer);
-		return 1;
+		return -1;
 	}
 
 	if (vduct->cloPid > 0 && vduct->cloPid != sm_TaskIdSelf())
@@ -88,7 +88,7 @@ int	main(int argc, char *argv[])
 		putErrmsg("CLO task is already started for this duct.",
 				itoa(vduct->cloPid));
 		MRELEASE(buffer);
-		return 1;
+		return -1;
 	}
 
 	/*	All command-line arguments are now validated.		*/
@@ -123,7 +123,7 @@ int	main(int argc, char *argv[])
 	/*	Can now begin transmitting to remote duct.		*/
 
 	writeMemo("[i] udpclo is running.");
-	while (!(sm_SemEnded(udpcloSemaphore(NULL))))
+	while (!(sm_SemEnded(vduct->semaphore)))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName) < 0)
@@ -147,7 +147,8 @@ int	main(int argc, char *argv[])
 		portNbr = htons(portNbr);
 		if (hostNbr == 0)
 		{
-			putSysErrmsg("Can't get IP address for host", hostName);
+			writeMemoNote("[?] Can't get IP address for host",
+					hostName);
 		}
 
 		hostNbr = htonl(hostNbr);
@@ -179,6 +180,6 @@ int	main(int argc, char *argv[])
 	writeErrmsgMemos();
 	writeMemo("[i] udpclo duct has ended.");
 	MRELEASE(buffer);
-	bp_detach();
+	ionDetach();
 	return 0;
 }

@@ -215,7 +215,8 @@ static void	processMsgToCs(CsState *csState, AmsEvt *evt)
 	char		*cellspec;
 	int		result;
 
-printf("CS got msg of type %d from role %d.\n", msg->type, msg->roleNbr);
+PUTMEMO("CS got msg of type", itoa(msg->type));
+PUTMEMO("...from role", itoa(msg->roleNbr));
 	if (msg->type == I_am_running)
 	{
 		if (enqueueMamsCrash(csState->csEventsCV, "Outranked") < 0)
@@ -484,7 +485,7 @@ static void	*csMain(void *parm)
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	csState->csRunning = 1;
-puts("Configuration server is running.");
+PUTS("Configuration server is running.");
 	while (1)
 	{
 		if (llcv_wait(csState->csEventsCV, llcv_lyst_not_empty,
@@ -745,7 +746,6 @@ static int	forwardMsg(RsState *rsState, MamsPduType msgType,
 	Node		*node;
 	int		result = 0;
 
-printf("...in forwardMsg for node %d ('%d')...\n", nodeNbr, roleNbr);
 	nodeId = computeNodeId(roleNbr, unitNbr, nodeNbr);
 	cell = rsState->cell;
 	for (i = 1; i <= MaxNodeNbr; i++)
@@ -761,7 +761,6 @@ printf("...in forwardMsg for node %d ('%d')...\n", nodeNbr, roleNbr);
 			continue;	/*	No such node.		*/
 		}
 
-printf("to node number %d, ept '%s'\n", i, node->mamsEndpoint.ept);
 		result = sendMamsMsg(&(node->mamsEndpoint), &(rsState->tsif),
 				msgType, nodeId, supplementLength, supplement);
 		if (result < 0)
@@ -1162,7 +1161,8 @@ static void	processMsgToRs(RsState *rsState, AmsEvt *evt)
 	char		*cursor;
 	int		bytesRemaining;
 
-printf("RS got msg of type %d from role %d.\n", msg->type, msg->roleNbr);
+PUTMEMO("RS got msg of type", itoa(msg->type));
+PUTMEMO("...from role", itoa(msg->roleNbr));
 	venture = mib->ventures[msg->ventureNbr];
 	if (venture == NULL)
 	{
@@ -1634,7 +1634,7 @@ static void	*rsMain(void *parm)
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	rsState->rsRunning = 1;
-puts("Registrar is running.");
+PUTS("Registrar is running.");
 	while (1)
 	{
 		if (llcv_wait(rsState->rsEventsCV, llcv_lyst_not_empty,
@@ -1979,14 +1979,14 @@ int	main(int argc, char *argv[])
 
 	if (argc != 6 && argc != 9)
 	{
-		puts("Usage:  amsd { @ | <MIB source name> }");
-		puts("             { @ | <memory manager name> }");
-		puts("             { 0 | <memory address> }");
-		puts("             { 0 | <memory size> }");
-		puts("             { . | @ | <config. server endpoint spec> }");
-		puts("             [<registrar application name>");
-		puts("              <registrar authority name>");
-		puts("              <registrar unit name>]");
+		PUTS("Usage:  amsd { @ | <MIB source name> }");
+		PUTS("             { @ | <memory manager name> }");
+		PUTS("             { 0 | <memory address> }");
+		PUTS("             { 0 | <memory size> }");
+		PUTS("             { . | @ | <config. server endpoint spec> }");
+		PUTS("             [<registrar application name>");
+		PUTS("              <registrar authority name>");
+		PUTS("              <registrar unit name>]");
 		return 0;
 	}
 

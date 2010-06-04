@@ -10,19 +10,33 @@
 
 #include "ipnfw.h"
 
-static Sdr	sdr = NULL;
-static int	echo = 0;
-static IpnDB	*ipnConstants;
-static char	*huh = "?";
+static int	_echo(int *newValue)
+{
+	static int	state = 0;
+
+	if (newValue)
+	{
+		if (*newValue == 1)
+		{
+			state = 1;
+		}
+		else
+		{
+			state = 0;
+		}
+	}
+
+	return state;
+}
 
 static void	printText(char *text)
 {
-	if (echo)
+	if (_echo(NULL))
 	{
 		writeMemo(text);
 	}
 
-	puts(text);
+	PUTS(text);
 }
 
 static void	handleQuit()
@@ -43,42 +57,42 @@ static void	printSyntaxError(int lineNbr)
 
 static void	printUsage()
 {
-	puts("Syntax of 'duct expression' is:");
-	puts("\t<protocol name>/<outduct name>[,<dest induct name>]");
-	puts("Syntax of 'qualifier' is:");
-	puts("\t{ <source service nbr> | * } { <source node nbr> | * }");
-	puts("Valid commands are:");
-	puts("\tq\tQuit");
-	puts("\th\tHelp");
-	puts("\t?\tHelp");
-	puts("\ta\tAdd");
-	puts("\t   a plan <node nbr> <default duct expression>");
-	puts("\t   a planrule <node nbr> <qualifier> <duct expression>");
-	puts("\t   a group <first node nbr> <last node nbr> <endpoint ID>");
-	puts("\t   a grouprule <first node nbr> <last node nbr> <qualifier> \
+	PUTS("Syntax of 'duct expression' is:");
+	PUTS("\t<protocol name>/<outduct name>[,<dest induct name>]");
+	PUTS("Syntax of 'qualifier' is:");
+	PUTS("\t{ <source service nbr> | * } { <source node nbr> | * }");
+	PUTS("Valid commands are:");
+	PUTS("\tq\tQuit");
+	PUTS("\th\tHelp");
+	PUTS("\t?\tHelp");
+	PUTS("\ta\tAdd");
+	PUTS("\t   a plan <node nbr> <default duct expression>");
+	PUTS("\t   a planrule <node nbr> <qualifier> <duct expression>");
+	PUTS("\t   a group <first node nbr> <last node nbr> <endpoint ID>");
+	PUTS("\t   a grouprule <first node nbr> <last node nbr> <qualifier> \
 <endpoint ID>");
-	puts("\tc\tChange");
-	puts("\t   c plan <node nbr> <default duct expression>");
-	puts("\t   c planrule <node nbr> <qualifier> <duct expression>");
-	puts("\t   c group <first node nbr> <last node nbr> <endpoint ID>");
-	puts("\t   c grouprule <first node nbr> <last node nbr> <qualifier> \
+	PUTS("\tc\tChange");
+	PUTS("\t   c plan <node nbr> <default duct expression>");
+	PUTS("\t   c planrule <node nbr> <qualifier> <duct expression>");
+	PUTS("\t   c group <first node nbr> <last node nbr> <endpoint ID>");
+	PUTS("\t   c grouprule <first node nbr> <last node nbr> <qualifier> \
 <endpoint ID>");
-	puts("\td\tDelete");
-	puts("\ti\tInfo");
-	puts("\t   {d|i} plan <node nbr>");
-	puts("\t   {d|i} planrule <node nbr> <qualifier>");
-	puts("\t   {d|i} group <first node nbr> <last node nbr>");
-	puts("\t   {d|i} grouprule <first node nbr> <last node nbr> \
+	PUTS("\td\tDelete");
+	PUTS("\ti\tInfo");
+	PUTS("\t   {d|i} plan <node nbr>");
+	PUTS("\t   {d|i} planrule <node nbr> <qualifier>");
+	PUTS("\t   {d|i} group <first node nbr> <last node nbr>");
+	PUTS("\t   {d|i} grouprule <first node nbr> <last node nbr> \
 <qualifier>");
-	puts("\tl\tList");
-	puts("\t   l group");
-	puts("\t   l plan");
-	puts("\t   l planrule <node nbr>");
-	puts("\t   l grouprule <first node nbr> <last node nbr>");
-	puts("\te\tEnable or disable echo of printed output to log file");
-	puts("\t   e { 0 | 1 }");
-	puts("\t#\tComment");
-	puts("\t   # <comment text>");
+	PUTS("\tl\tList");
+	PUTS("\t   l group");
+	PUTS("\t   l plan");
+	PUTS("\t   l planrule <node nbr>");
+	PUTS("\t   l grouprule <first node nbr> <last node nbr>");
+	PUTS("\te\tEnable or disable echo of printed output to log file");
+	PUTS("\t   e { 0 | 1 }");
+	PUTS("\t#\tComment");
+	PUTS("\t   # <comment text>");
 }
 
 static int	parseDuctExpression(char *token, DuctExpression *expression)
@@ -88,12 +102,6 @@ static int	parseDuctExpression(char *token, DuctExpression *expression)
 	char		*outductName;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
-
-	if (token == NULL || expression == NULL)
-	{
-		errno = EINVAL;
-		return -1;
-	}
 
 	memset((char *) expression, 0, sizeof(DuctExpression));
 	protocolName = token;
@@ -461,6 +469,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	printDirective(char *context, FwdDirective *dir)
 {
+	Sdr	sdr = getIonsdr();
 	Object	ductObj;
 		OBJ_POINTER(Outduct, duct);
 		OBJ_POINTER(ClProtocol, clp);
@@ -483,7 +492,7 @@ static void	printDirective(char *context, FwdDirective *dir)
 			if (sdr_string_read(sdr, string + 1,
 					dir->destDuctName) < 0)
 			{
-				istrcpy(string + 1, huh, sizeof string - 1);
+				istrcpy(string + 1, "?", sizeof string - 1);
 			}
 		}
 
@@ -495,7 +504,7 @@ static void	printDirective(char *context, FwdDirective *dir)
 	case fwd:
 		if (sdr_string_read(sdr, string, dir->eid) < 0)
 		{
-			istrcpy(string, huh, sizeof string);
+			istrcpy(string, "?", sizeof string);
 		}
 
 		isprintf(buffer, sizeof buffer, "%.80s f %.255s", context,
@@ -538,7 +547,7 @@ static void	infoPlan(int tokenCount, char **tokens)
 		return;
 	}
 
-	GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
+	GET_OBJ_POINTER(getIonsdr(), IpnPlan, plan, planAddr);
 	printPlan(plan);
 }
 
@@ -575,6 +584,7 @@ static void	printRule(IpnRule *rule)
 
 static void	infoPlanRule(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	unsigned long	nodeNbr;
 	Object		planAddr;
 	Object		elt;
@@ -635,7 +645,7 @@ static void	printGroup(IpnGroup *group)
 	char	eidString[SDRSTRING_BUFSZ];
 	char	buffer[384];
 
-	sdr_string_read(sdr, eidString, group->defaultDirective.eid);
+	sdr_string_read(getIonsdr(), eidString, group->defaultDirective.eid);
 	isprintf(buffer, sizeof buffer, "From %lu through %lu, forward via \
 %.256s.", group->firstNodeNbr, group->lastNodeNbr, eidString);
 	printText(buffer);
@@ -643,6 +653,7 @@ static void	printGroup(IpnGroup *group)
 
 static void	infoGroup(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	unsigned long	firstNodeNbr;
 	unsigned long	lastNodeNbr;
 	Object		elt;
@@ -662,7 +673,7 @@ static void	infoGroup(int tokenCount, char **tokens)
 		return;
 	}
 
-	for (elt = sdr_list_first(sdr, ipnConstants->groups); elt;
+	for (elt = sdr_list_first(sdr, (getIpnConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
@@ -679,6 +690,7 @@ static void	infoGroup(int tokenCount, char **tokens)
 
 static void	infoGroupRule(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	unsigned long	firstNodeNbr;
 	unsigned long	lastNodeNbr;
 	Object		groupAddr;
@@ -773,10 +785,11 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	listPlans()
 {
+	Sdr	sdr = getIonsdr();
 	Object	elt;
 		OBJ_POINTER(IpnPlan, plan);
 
-	for (elt = sdr_list_first(sdr, ipnConstants->plans); elt;
+	for (elt = sdr_list_first(sdr, (getIpnConstants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnPlan, plan, sdr_list_data(sdr, elt));
@@ -786,6 +799,7 @@ static void	listPlans()
 
 static void	listRules(Object rules)
 {
+	Sdr	sdr = getIonsdr();
 	Object	elt;
 		OBJ_POINTER(IpnRule, rule);
 
@@ -799,10 +813,11 @@ static void	listRules(Object rules)
 
 static void	listGroups()
 {
+	Sdr	sdr = getIonsdr();
 	Object	elt;
 		OBJ_POINTER(IpnGroup, group);
 
-	for (elt = sdr_list_first(sdr, ipnConstants->groups); elt;
+	for (elt = sdr_list_first(sdr, (getIpnConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
@@ -845,7 +860,7 @@ static void	executeList(int tokenCount, char **tokens)
 			return;
 		}
 
-		GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
+		GET_OBJ_POINTER(getIonsdr(), IpnPlan, plan, planAddr);
 		printPlan(plan);
 		listRules(plan->rules);
 		return;
@@ -862,6 +877,8 @@ static void	executeList(int tokenCount, char **tokens)
 
 static void	switchEcho(int tokenCount, char **tokens)
 {
+	int	state;
+
 	if (tokenCount < 2)
 	{
 		printText("Echo on or off?");
@@ -871,11 +888,13 @@ static void	switchEcho(int tokenCount, char **tokens)
 	switch (*(tokens[1]))
 	{
 	case '0':
-		echo = 0;
+		state = 0;
+		oK(_echo(&state));
 		break;
 
 	case '1':
-		echo = 1;
+		state = 1;
+		oK(_echo(&state));
 		break;
 
 	default:
@@ -883,32 +902,12 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
-static int	processLine(char *line)
+static int	processLine(char *line, int lineLength)
 {
-	int	lineLength;
 	int	tokenCount;
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
-
-	if (line == NULL) return 0;
-
-	lineLength = strlen(line);
-	if (lineLength <= 0) return 0;
-
-	if (line[lineLength - 1] == 0x0a)	/*	LF (newline)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength <= 0) return 0;
-	}
-
-	if (line[lineLength - 1] == 0x0d)	/*	CR (DOS text)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength <= 0) return 0;
-	}
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -992,87 +991,98 @@ static int	processLine(char *line)
 
 static int	run_ipnadmin(char *cmdFileName)
 {
-	FILE	*cmdFile;
+	int	cmdFile;
 	char	line[256];
+	int	len;
 
 	if (bpAttach() < 0)
 	{
 		putErrmsg("ipnadmin can't attach to BP", NULL);
-		return 1;
+		return -1;
 	}
 
-	sdr = getIonsdr();
 	if (ipnInit() < 0)
 	{
 		putErrmsg("ipnadmin can't initialize routing database", NULL);
-		return 1;
+		return -1;
 	}
 
-	ipnConstants = getIpnConstants();
 	if (cmdFileName == NULL)	/*	Interactive.		*/
 	{
+#ifdef FSWLOGGER
+		return 0;
+#else
+		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
 		{
 			printf(": ");
-			if (fgets(line, sizeof line, stdin) == NULL)
+			fflush(stdout);
+			if (igets(cmdFile, line, sizeof line, &len) == NULL)
 			{
-				if (feof(stdin))
+				if (len == 0)
 				{
 					break;
 				}
 
-				putSysErrmsg("ipnadmin fgets failed", NULL);
+				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
 
-			if (processLine(line))
+			if (len == 0)
+			{
+				continue;
+			}
+
+			if (processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
 		}
+#endif
 	}
-	else				/*	Scripted.		*/
+	else					/*	Scripted.	*/
 	{
-		cmdFile = fopen(cmdFileName, "r");
-		if (cmdFile == NULL)
+		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		if (cmdFile < 0)
 		{
-			putSysErrmsg("Can't open command file", cmdFileName);
+			PERROR("Can't open command file");
 		}
 		else
 		{
 			while (1)
 			{
-				if (fgets(line, sizeof line, cmdFile) == NULL)
+				if (igets(cmdFile, line, sizeof line, &len)
+						== NULL)
 				{
-					if (feof(cmdFile))
+					if (len == 0)
 					{
-						break;
+						break;	/*	Loop.	*/
 					}
 
-					putSysErrmsg("ipnadmin fgets failed",
-							NULL);
+					putErrmsg("igets failed.", NULL);
 					break;		/*	Loop.	*/
 				}
 
-				if (line[0] == '#')	/*	Comment.*/
+				if (len == 0
+				|| line[0] == '#')	/*	Comment.*/
 				{
 					continue;
 				}
 
-				if (processLine(line))
+				if (processLine(line, len))
 				{
-					break;		/*	Loop.	*/
+					break;	/*	Out of loop.	*/
 				}
 			}
 
-			fclose(cmdFile);
+			close(cmdFile);
 		}
 	}
 
 	writeErrmsgMemos();
 	printText("Stopping ipnadmin.");
-	bp_detach();
+	ionDetach();
 	return 0;
 }
 

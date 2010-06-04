@@ -29,8 +29,8 @@ static int ttl;
 //static int continuumGrid[3] = {1, 2, 3};
 //char *errMessage;
 
-static int printRAMSContent(RamsGate *gNode);
-static void printInvitationList(RamsGateway *gWay);
+//static int printRAMSContent(RamsGate *gNode);
+//static void printInvitationList(RamsGateway *gWay);
 static int ReleaseRAMSAllocation(RamsGateway *gWay);
 static int IsRetracting(RamsGateway *gWay);
 static void terminateQuit();
@@ -160,7 +160,7 @@ static int	rehandlePetition(RamsNetProtocol protocol, char *gwEid,
 					fromGWay->continuumNbr) == NULL)
 			{
 				ErrMsg("Can't find declared source gateway");
-printf("the rams gateway is not declared yet\n");
+//PUTS("The rams gateway is not declared yet.");
 				return 0;
 			}
 		}
@@ -263,15 +263,14 @@ static void	handleBundle(BpDelivery *dlv, int *contentLength, char *content,
 		return;
 	}
 
+/*
 printf("Receive Envelope: byteCopied=%d contentLength=%d\n",
 byteCopied, *contentLength);	
-/*
 for (i = 0; i < *contentLength; i++)
 {
 	printf("%2x ", contentLoc[i]);
 }
 printf("\n");
-*/
 printf("cc=%d, con=%d, unit=%d, srcId=%d, destId=%d, sub=%d len=%d from=%d\n",
 EnvelopeHeader(content, Env_ControlCode),
 EnvelopeHeader(content, Env_ContinuumNbr),
@@ -280,6 +279,7 @@ EnvelopeHeader(content, Env_SourceIDField),
 EnvelopeHeader(content, Env_DestIDField),
 EnvelopeHeader(content, Env_SubjectNbr),
 *contentLength, fromGWay->continuumNbr);				
+*/
 
 	*contentLength = EnvelopeHeader(content, Env_EnclosureLength);
 	if (*contentLength > 0)
@@ -302,8 +302,10 @@ EnvelopeHeader(content, Env_SubjectNbr),
 		memcpy((char *) &counter, contentLoc + AMSMSGHEADER,
 				sizeof(int));
 		counter = ntohl(counter);
+/*
 printf("Enclosure: contentLength=%d messageCounter=%d\n",
 *contentLength, counter); 
+*/
 	}
 
 	*contentLength = ENVELOPELENGTH;	//	reset for next one
@@ -346,6 +348,7 @@ static void	handleDatagram(struct sockaddr_in *inetName, int *contentLength,
 		return;
 	}
 
+/*
 printf("cc=%d, con=%d, unit=%d, srcId=%d, destId=%d, sub=%d len=%d from=%d\n",
 EnvelopeHeader(content, Env_ControlCode),
 EnvelopeHeader(content, Env_ContinuumNbr),
@@ -354,7 +357,7 @@ EnvelopeHeader(content, Env_SourceIDField),
 EnvelopeHeader(content, Env_DestIDField),
 EnvelopeHeader(content, Env_SubjectNbr),
 *contentLength, fromGWay->continuumNbr);				
-
+*/
 	*contentLength = EnvelopeHeader(content, Env_EnclosureLength);
 	if (*contentLength > 0)
 	{
@@ -364,8 +367,10 @@ EnvelopeHeader(content, Env_SubjectNbr),
 		memcpy((char *) &counter, contentLoc + AMSMSGHEADER,
 				sizeof(int));
 		counter = ntohl(counter);
+/*
 printf("Enclosure: contentLength=%d messageCounter=%d\n",
 *contentLength, counter); 
+*/
 	}
 
 	*contentLength = ENVELOPELENGTH;	//	reset for next one
@@ -409,8 +414,7 @@ int rams_register(char *mibSource, char *tsorder, char *mName, char *memory,
 	//char			*cmdString;
 	//int			i;
 
-printf("version 0.19\n");
-	 
+	PUTS("RAMS version 0.19");
 	signal(SIGINT, terminateQuit);
 	bTerminating = 0; 
 	ttl = lifetime;
@@ -451,11 +455,11 @@ printf("version 0.19\n");
 
 	//	gWay->ramsMib->netType = TREETYPE;
 	// transfer neighboring RAMS into ramsNeighbors list, not include itself
-printf("continuum lyst: ");
+//printf("continuum lyst: ");
 	for (elt = lyst_first(msgspaces); elt != NULL; elt = lyst_next(elt))
 	{
 		cId = (long)lyst_data(elt);
-printf("\nno %d ", cId);		
+//printf("\nno %d ", cId);		
 		if (cId == gWay->ramsMib->amsMib->localContinuumNbr)
 		{
 			continue; 	
@@ -473,10 +477,11 @@ printf("\nno %d ", cId);
 		ramsNode->protocol = continuum->gwProtocol;
 		ramsNode->gwEid = continuum->gwEid;
 		lyst_insert_last(gWay->ramsMib->ramsNeighbors, ramsNode);
-		gWay->ramsMib->neighborsCount++;				printf(" neighbor");
+		gWay->ramsMib->neighborsCount++;
+//printf(" neighbor");
 	}
 
-printf("\n");
+//printf("\n");
 	lyst_destroy(msgspaces);
 
 	rules.registrationHandler = registrationHandle;
@@ -512,32 +517,32 @@ printf("\n");
 	if (ams_subscribe(gWay->amsNode, 0, 0, 0, (0-mib->localContinuumNbr),
 			10, 0, AmsArrivalOrder, AmsAssured) < 0)
 	{
-		printf("error on subscribe to self %d\n",
-				(0 - mib->localContinuumNbr));
+		putErrmsg("error on subscribe to self",
+				itoa(0 - mib->localContinuumNbr));
 		return 0;
 	}
 
-printf("subscribe on %d\n", (0 - mib->localContinuumNbr));
+//printf("subscribe on %d\n", (0 - mib->localContinuumNbr));
 
 	//insert self into RAMS network
 
 	switch (mib->localContinuumGwProtocol)
 	{
 	case RamsBp:
-printf("ownEid for bp_open %s\n", mib->localContinuumGwEid);
+//printf("ownEid for bp_open %s\n", mib->localContinuumGwEid);
 		if (bp_attach() < 0)
 		{
 			ErrMsg("Can't attach to BP.");
 			return 0;
 		}
-printf("ionAttach succeeds\n");
+//printf("ionAttach succeeds\n");
 
 		if (bp_open(mib->localContinuumGwEid, &sap) < 0)
 		{
 			ErrMsg("Can't open own BP endpoint.");
 			return 0;
 		}
-printf("bp_open succeeds\n");
+//printf("bp_open succeeds\n");
 
 		sdr = bp_get_sdr();
 		break;
@@ -576,7 +581,7 @@ printf("bp_open succeeds\n");
 	}
 
 	// RAMS declare itself to all neighbor
-printf("rams declares itself to neighbors ....\n");
+//printf("rams declares itself to neighbors ....\n");
 	constructEnvelope(envelope, 0, 0, 0, 0, (0 - mib->localContinuumNbr),
 			0, NULL, 0, NULL, PetitionAssertion);
 	pet = ConstructPetitionFromEnvelope((char *) envelope);
@@ -636,7 +641,7 @@ printf("rams declares itself to neighbors ....\n");
 		switch (mib->localContinuumGwProtocol)
 		{
 		case RamsBp:
-printf("before bp_receive\n");
+//printf("before bp_receive\n");
     			if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 			{
 				ErrMsg("RAMS bundle reception failed.");
@@ -730,77 +735,97 @@ printf("before bp_receive\n");
 
 	return 1; 
 }
-
+#if 0
 int printRAMSContent(RamsGate *gNode)
 {
+	char	buf[256];
 	LystElt eltP, eltN;
 	Petition *pet;
 	RamsNode *ep; 
 	Node *nd; 
 
-	printf("===== In RAMS %d ======\n", (*gNode)->ramsMib->amsMib->localContinuumNbr);
-
-	for (eltP = lyst_first((*gNode)->petitionSet); eltP != NULL; eltP = lyst_next(eltP))
+	isprintf(buf, sizeof buf, "===== In RAMS %d ======",
+			(*gNode)->ramsMib->amsMib->localContinuumNbr);
+	PUTS(buf);
+	for (eltP = lyst_first((*gNode)->petitionSet); eltP != NULL;
+			eltP = lyst_next(eltP))
 	{
 		pet = (Petition *)lyst_data(eltP);
-		printf("Petition con = %d role = %d unit = %d node = %d sub = %d \n", 
-			    EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr), 
-				EnvelopeHeader(pet->specification->envelope, Env_PublishRoleNbr), 
-				EnvelopeHeader(pet->specification->envelope, Env_PublishUnitNbr),
-				EnvelopeHeader(pet->specification->envelope, Env_DestIDField),
-				EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr));
+		isprintf(buf, sizeof buf,
+			"Petition con = %d role = %d unit = %d node = %d \
+sub = %d", EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr),
+			EnvelopeHeader(pet->specification->envelope,
+				Env_PublishRoleNbr),
+			EnvelopeHeader(pet->specification->envelope,
+				Env_PublishUnitNbr),
+			EnvelopeHeader(pet->specification->envelope,
+				Env_DestIDField),
+			EnvelopeHeader(pet->specification->envelope,
+				Env_SubjectNbr));
+		PUTS(buf);
+		PUTS("    SRS = ");
+		for (eltN = lyst_first(pet->SourceRamsSet); eltN != NULL;
+				eltN = lyst_next(eltN))
+		{
+			ep = (RamsNode *)lyst_data(eltN);
+			isprintf(buf, sizeof buf, "%d ", ep->continuumNbr);
+			PUTS(buf);
+		}
 
-		printf("    SRS = ");
-		for (eltN = lyst_first(pet->SourceRamsSet); eltN != NULL; eltN = lyst_next(eltN))
+		PUTS("    DRS = ");
+		for (eltN = lyst_first(pet->DestinationRamsSet); eltN != NULL;
+				eltN = lyst_next(eltN))
 		{
 			ep = (RamsNode *)lyst_data(eltN);
-			printf("%d ", ep->continuumNbr);
+			isprintf(buf, sizeof buf, "%d ", ep->continuumNbr);
+			PUTS(buf);
 		}
-		printf("\n");		
-		printf("    DRS = ");
-		for (eltN = lyst_first(pet->DestinationRamsSet); eltN != NULL; eltN = lyst_next(eltN))
-		{
-			ep = (RamsNode *)lyst_data(eltN);
-			printf("%d ", ep->continuumNbr);
-		}
-		printf("\n");
-		printf("    DNS = ");
-		for (eltN = lyst_first(pet->DistributionNodeSet); eltN != NULL; eltN = lyst_next(eltN))
+
+		PUTS("    DNS = ");
+		for (eltN = lyst_first(pet->DistributionNodeSet); eltN != NULL;
+				eltN = lyst_next(eltN))
 		{
 			nd = (Node *)lyst_data(eltN);
-			printf("%d ", nd->nbr);
+			isprintf(buf, sizeof buf, "%d ", nd->nbr);
+			PUTS(buf);
 		}
-		printf("\n");
 	}
-	printf("====================\n");
+
+	PUTS("====================");
 	return 1;
 }
 
 void printInvitationList(RamsGateway *gWay)
 {
+	char	buf[256];
 	LystElt elt, nodeElt;
 	Invitation *inv;
 	Node *node;
 
-	printf("========= invitation list ==============\n");
-	for (elt = lyst_first(gWay->invitationSet); elt != NULL; elt = lyst_next(elt))
+	PUTS("========= invitation list ==============");
+	for (elt = lyst_first(gWay->invitationSet); elt != NULL;
+			elt = lyst_next(elt))
 	{
 		inv = (Invitation *)lyst_data(elt);
-		printf("Invitation spec: unit=%d role=%d sub=%d\n", inv->inviteSpecification->domainUnitNbr, 
-															inv->inviteSpecification->domainRoleNbr,
-															inv->inviteSpecification->subjectNbr);
-		printf("    node set = ");
-		for (nodeElt = lyst_first(inv->nodeSet); nodeElt != NULL; nodeElt = lyst_next(nodeElt))
+		isprintf(buf, sizeof buf, "Invitation spec: unit=%d role=%d \
+sub=%d\n", inv->inviteSpecification->domainUnitNbr,
+				inv->inviteSpecification->domainRoleNbr,
+				inv->inviteSpecification->subjectNbr);
+		PUTS(buf);
+		PUTS("    node set = ");
+		for (nodeElt = lyst_first(inv->nodeSet); nodeElt != NULL;
+				nodeElt = lyst_next(nodeElt))
 		{
 			node = (Node *)lyst_data(nodeElt);
-			printf("(unit=%d nodeId=%d) ", node->unitNbr, node->nbr);
+			isprintf(buf, sizeof buf, "(unit=%d nodeId=%d) ",
+					node->unitNbr, node->nbr);
+			PUTS(buf);
 		}
-		printf("\n");
 	}
-	printf("=============================\n");
-}
 
-		
+	PUTS("=============================");
+}
+#endif
 int IsRetracting(RamsGateway *gWay)
 {
 	Petition *pet;
@@ -811,27 +836,31 @@ int IsRetracting(RamsGateway *gWay)
 
 	bTestDGS = 0; 
 	sub = 0 - gWay->ramsMib->amsMib->localContinuumNbr;
-printf("in IsRetracting\n");
-	for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt = lyst_next(elt))
+//PUTS("in IsRetracting.");
+	for (elt = lyst_first(gWay->petitionSet); elt != NULL;
+			elt = lyst_next(elt))
 	{
 		pet = (Petition *)lyst_data(elt);
-		if (EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr) == sub)
+		if (EnvelopeHeader(pet->specification->envelope,
+					Env_SubjectNbr) == sub)
 		{
 			if (lyst_first(pet->SourceRamsSet) == NULL)
 			{
 				bTestDGS = 1;
 				break;
 			}
-printf("SRS is has member\n");
+//PUTS("SRS is has member.");
 		}
 	}
 	if (bTestDGS)
 	{
 		allEmpty = 1; 
-		for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt =lyst_next(elt))
+		for (elt = lyst_first(gWay->petitionSet); elt != NULL;
+				elt =lyst_next(elt))
 		{
 			pet = (Petition *)lyst_data(elt);
-			if ((ramsElt = lyst_first(pet->DestinationRamsSet)) != NULL)
+			if ((ramsElt = lyst_first(pet->DestinationRamsSet))
+					!= NULL)
 			{
 				allEmpty = 0;
 				break;
@@ -859,7 +888,7 @@ void terminateQuit()
 
 	bTerminating = 1; 
 	sub = 0 - gWay->ramsMib->amsMib->localContinuumNbr;
-printf("<terminate RAMS> retracting %d\n", gWay->ramsMib->amsMib->localContinuumNbr);
+//printf("<terminate RAMS> retracting %d\n", gWay->ramsMib->amsMib->localContinuumNbr);
 	for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt = lyst_next(elt))
 	{
 		pet = (Petition *) lyst_data(elt);
@@ -869,7 +898,7 @@ printf("<terminate RAMS> retracting %d\n", gWay->ramsMib->amsMib->localContinuum
 
 	if (elt == NULL)
 	{
-printf("<terminate RAMS> can not retract continuum %d\n", gWay->ramsMib->amsMib->localContinuumNbr);
+//printf("<terminate RAMS> can not retract continuum %d\n", gWay->ramsMib->amsMib->localContinuumNbr);
 		return;
 	}
    
@@ -884,7 +913,7 @@ printf("<terminate RAMS> can not retract continuum %d\n", gWay->ramsMib->amsMib-
 			lyst_delete(elt);
 			continue;
 		}
-printf("<terminate RAMS> send cancellation on sub %d to %d\n", sub, pt->continuumNbr); 
+//printf("<terminate RAMS> send cancellation on sub %d to %d\n", sub, pt->continuumNbr); 
 		if (!ConstructEnvelopeToRAMS(gWay, 1, NULL, 0, 0, 0, 0,
 				PetitionCancellation, sub, pt->continuumNbr))
 		{
@@ -902,7 +931,7 @@ printf("<terminate RAMS> send cancellation on sub %d to %d\n", sub, pt->continuu
 		exit(0);
 	}
 
-printf("<terminate RAMS> leaving terminate\n");
+//PUTS("<terminate RAMS> leaving terminate");
 }
 
 int rams_unregister(RamsGate *gNode)
@@ -912,14 +941,16 @@ int rams_unregister(RamsGate *gNode)
 	Petition *pet; 
 	int sub;
 	int allEmpty; 
-		
+/*
 printf("<rams unregister> unregister %d\n", (*gNode)->ramsMib->amsMib->localContinuumNbr);
 printf("<rams unregister> send cancellation to neighbor\n");
-    for (elt = lyst_first((*gNode)->ramsMib->declaredNeighbors); elt != NULL; elt = lyst_next(elt))
+*/
+	for (elt = lyst_first((*gNode)->ramsMib->declaredNeighbors);
+			elt != NULL; elt = lyst_next(elt))
 	{
 		pt = (RamsNode *)lyst_data(elt);
 		sub = (0-(*gNode)->ramsMib->amsMib->localContinuumNbr);
-printf("<rams unregister> send cancellation on sub %d to %d\n", sub, pt->continuumNbr); 
+//printf("<rams unregister> send cancellation on sub %d to %d\n", sub, pt->continuumNbr); 
 		if (!ConstructEnvelopeToRAMS((*gNode), 1, NULL, 0, 0, 0, 0,
 				PetitionCancellation, sub, pt->continuumNbr))
 		{
@@ -933,10 +964,12 @@ printf("<rams unregister> send cancellation on sub %d to %d\n", sub, pt->continu
 	while(1)
 	{
 		allEmpty = 1; 
-		for (elt = lyst_first((*gNode)->petitionSet); elt != NULL; elt =lyst_next(elt))
+		for (elt = lyst_first((*gNode)->petitionSet); elt != NULL;
+				elt =lyst_next(elt))
 		{
 			pet = (Petition *)lyst_data(elt);
-			if ((ramsElt = lyst_first(pet->DestinationRamsSet)) != NULL)
+			if ((ramsElt = lyst_first(pet->DestinationRamsSet))
+					!= NULL)
 			{
 				allEmpty = 0;
 				break;
@@ -947,13 +980,13 @@ printf("<rams unregister> send cancellation on sub %d to %d\n", sub, pt->continu
 			break;
 		else
 		{
-//			printRAMSContent(gNode);
+//printRAMSContent(gNode);
 			continue;
 		}
 	}
 	
-printf("allEmpty = 1\n");
-printRAMSContent(gNode);
+//PUTS("allEmpty = 1");
+//printRAMSContent(gNode);
 	return 1;
 }
 
@@ -963,34 +996,37 @@ int ReleaseRAMSAllocation(RamsGateway *gWay)
 	RamsNode *pt;
 	Petition *pet;
 
-printf("<release rams> start release memory\n");
+//PUTS("<release rams> start release memory");
 	ams_unregister(gWay->amsNode);
 
-	for (elt = lyst_first(gWay->ramsMib->ramsNeighbors); elt != NULL;  elt = lyst_next(elt))
+	for (elt = lyst_first(gWay->ramsMib->ramsNeighbors); elt != NULL;
+			elt = lyst_next(elt))
 	{
 		pt = (RamsNode *)lyst_data(elt);
 		MRELEASE(pt);
 	}
-printf("<release rams> release neighbor\n");
+
+//PUTS("<release rams> release neighbor");
 	lyst_destroy(gWay->ramsMib->ramsNeighbors);
-printf("<release rams> release neighbor list\n");
+//PUTS("<release rams> release neighbor list");
 	lyst_destroy(gWay->ramsMib->declaredNeighbors);
-printf("<release rams> release declared neighbor list\n");
+//PUTS("<release rams> release declared neighbor list");
 	
 	MRELEASE(gWay->ramsMib);
-printf("<release rams> release rams Mib\n");	
-	for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt = lyst_next(elt))
+//PUTS("<release rams> release rams Mib");	
+	for (elt = lyst_first(gWay->petitionSet); elt != NULL;
+			elt = lyst_next(elt))
 	{
 		pet = (Petition *)lyst_data(elt);
-        DeletePetition(pet);
+        	DeletePetition(pet);
 	}
-printf("<release rams>release petitions\n");
+//PUTS("<release rams>release petitions");
 	lyst_destroy(gWay->petitionSet);
-printf("<release rams> release petition list\n");
+//PUTS("<release rams> release petition list");
 	//ams_unregister(gWay->amsNode);
 	MRELEASE(gWay);
-printf("<rams rams> release rams node\n");
-printf("<rams rams> finish unregister\n");
+//PUTS("<rams rams> release rams node");
+//PUTS("<rams rams> finish unregister");
 	return 1; 
 }
 
@@ -1008,7 +1044,7 @@ static void subscriptionHandle(AmsNode node, void *userData, AmsEvent *eventRef,
 	RamsGateway *gWay;
 	Node *sourceNode; 
 	
-printf("<subscriptionHandle> receive subscription notice from %d subjectNbr=%d\n", nodeNbr, subjectNbr);
+//printf("<subscriptionHandle> receive subscription notice from %d subjectNbr=%d\n", nodeNbr, subjectNbr);
 	gWay = (RamsGateway *)userData;
 	sourceNode = GetSourceNode(unitNbr, nodeNbr, gWay);
 	if (domainContinuumNbr != gWay->ramsMib->amsMib->localContinuumNbr &&
@@ -1033,7 +1069,7 @@ static void unsubscriptionHandle(AmsNode node,
 	Node *sourceNode; 
 
 	gWay = (RamsGateway *)userData;
-printf("<unscriptionHandle> receive unsubscription from %d subjectNbr=%d\n", nodeNbr, subjectNbr);
+//printf("<unscriptionHandle> receive unsubscription from %d subjectNbr=%d\n", nodeNbr, subjectNbr);
 	sourceNode = GetSourceNode(unitNbr, nodeNbr, gWay);
 	if (domainContinuumNbr != gWay->ramsMib->amsMib->localContinuumNbr &&
 		!IsSameNode(sourceNode, gWay))
@@ -1051,13 +1087,13 @@ static void registrationHandle(AmsNode node,
 {
 	Node *sourceNode;
 
-printf("in registrationHandle\n");
+//PUTS("in registrationHandle");
 
 	sourceNode = GetSourceNode(unitNbr, nodeNbr, gWay);
 	if (IsNodeExist(sourceNode, &(gWay->registerSet)) == NULL)
 	{
 		lyst_insert_last(gWay->registerSet, sourceNode);
-printf("<registerHandle> add node (unit=%d Id=%d)\n", unitNbr, nodeNbr);
+//printf("<registerHandle> add node (unit=%d Id=%d)\n", unitNbr, nodeNbr);
 	}
 }
 
@@ -1078,14 +1114,14 @@ static void unregisterationHandle(AmsNode node,
 	Node *sourceNode;
 	LystElt elt; 
 
-printf("in unregistrationHandle\n");
+//PUTS("in unregistrationHandle");
 
-	sourceNode = GetSourceNode(ams_get_unit_nbr(node), ams_get_node_nbr(node), gWay);
+	sourceNode = GetSourceNode(ams_get_unit_nbr(node),
+			ams_get_node_nbr(node), gWay);
 	if ((elt = IsNodeExist(sourceNode, &(gWay->registerSet))) != NULL)
 	{
 		lyst_delete(elt);
-printf("<unregisterHandle> remove node (unit=%d Id=%d)\n", ams_get_unit_nbr(node), 
-														   ams_get_node_nbr(node));
+//printf("<unregisterHandle> remove node (unit=%d Id=%d)\n", ams_get_unit_nbr(node), ams_get_node_nbr(node));
 	}
 }
 
@@ -1108,7 +1144,7 @@ static void invitationHandle(AmsNode node,
 	LystElt inv;
 	Node *sourceNode; 
 
-printf("in invitationHandle subjectNbr=%d from unit=%d node=%d to domain role=%d domain Unit=%d\n", subjectNbr, unitNbr, nodeNbr, domainRoleNbr, domainUnitNbr);
+//printf("in invitationHandle subjectNbr=%d from unit=%d node=%d to domain role=%d domain Unit=%d\n", subjectNbr, unitNbr, nodeNbr, domainRoleNbr, domainUnitNbr);
 
 	if (subjectNbr <= 0) 
 		return;
@@ -1116,11 +1152,13 @@ printf("in invitationHandle subjectNbr=%d from unit=%d node=%d to domain role=%d
 	if (IsSameNode(sourceNode, gWay))
 		return;
 
-	if ((inv = IsInvitationExist(domainUnitNbr, domainRoleNbr, 0, subjectNbr, &(gWay->invitationSet))) == NULL)
+	if ((inv = IsInvitationExist(domainUnitNbr, domainRoleNbr, 0,
+			subjectNbr, &(gWay->invitationSet))) == NULL)
 	{
 		invSp = (Invitation *)MTAKE(sizeof(Invitation));
 		lyst_insert_last(gWay->invitationSet, invSp);
-		invSp->inviteSpecification = (InvitationContent *)MTAKE(sizeof(InvitationContent));
+		invSp->inviteSpecification = (InvitationContent *)
+				MTAKE(sizeof(InvitationContent));
 		invSp->inviteSpecification->domainUnitNbr = domainUnitNbr;
 		invSp->inviteSpecification->domainRoleNbr = domainRoleNbr; 
 		invSp->inviteSpecification->domainContNbr = domainContinuumNbr; 
@@ -1136,7 +1174,8 @@ printf("in invitationHandle subjectNbr=%d from unit=%d node=%d to domain role=%d
 			lyst_insert_last(invSp->nodeSet, sourceNode);
 		}
 	}
-printInvitationList(gWay);
+
+//printInvitationList(gWay);
 }
 
 static void disinvitaionHandle(AmsNode node,
@@ -1155,20 +1194,21 @@ static void disinvitaionHandle(AmsNode node,
 	Invitation *invSp;
 	Node *sourceNode;
 
-printf("in disinvitationHandle\n");
-
-printf("in disinvitationHandle subjectNbr=%d from unit=%d node=%d to domain role=%d domain cont = %d domain Unit=%d\n",
-						subjectNbr, unitNbr, nodeNbr, domainRoleNbr, domainContinuumNbr, domainUnitNbr);
+//PUTS("in disinvitationHandle");
+//printf("in disinvitationHandle subjectNbr=%d from unit=%d node=%d to domain role=%d domain cont = %d domain Unit=%d\n", subjectNbr, unitNbr, nodeNbr, domainRoleNbr, domainContinuumNbr, domainUnitNbr);
 
 	sourceNode = GetSourceNode(unitNbr, nodeNbr, gWay);
 	if (IsSameNode(sourceNode, gWay))
 		return;
 
 	// temporary put cont = 0 
-	if ((inv = IsInvitationExist(domainUnitNbr, domainRoleNbr, domainContinuumNbr, subjectNbr, &(gWay->invitationSet))) != NULL)
+	if ((inv = IsInvitationExist(domainUnitNbr, domainRoleNbr,
+			domainContinuumNbr, subjectNbr, &(gWay->invitationSet)))
+			!= NULL)
 	{
 		invSp = (Invitation *)lyst_data(inv);
-		if ((nodeElt = IsNodeExist(sourceNode, &(invSp->nodeSet))) != NULL)
+		if ((nodeElt = IsNodeExist(sourceNode, &(invSp->nodeSet)))
+				!= NULL)
 		{
 			lyst_delete(nodeElt);
 			if (lyst_length(invSp->nodeSet) == 0)
@@ -1177,7 +1217,8 @@ printf("in disinvitationHandle subjectNbr=%d from unit=%d node=%d to domain role
 			}
 		}
 	}
-printInvitationList(gWay);
+
+//printInvitationList(gWay);
 }
 
 static void userEventHandle(AmsNode node,
@@ -1187,7 +1228,7 @@ static void userEventHandle(AmsNode node,
 					int dataLength,
 					char *data)
 {
-printf("in userEventnHandle\n");
+//PUTS("in userEventnHandle");
 }
 
 
@@ -1200,16 +1241,18 @@ static void amsReceiveProcess(AmsNode node, void *userData, AmsEvent *eventRef,
 {
 	RamsGateway *gWay = (RamsGateway *)userData;
 	
-printf("in amsReceiveProcess, subject = %d\n", subjectNbr);
+//printf("in amsReceiveProcess, subject = %d\n", subjectNbr);
 	
-	if (subjectNbr < 0)     // private message from local node, -subjectNbr is the remote continuum
+	if (subjectNbr < 0)     // private message from local node,
+				// -subjectNbr is the remote continuum
 	{
-		ForwardPrivateMessage(gWay, flowLabel, content, contentLength);  // already in envelope format
+		ForwardPrivateMessage(gWay, flowLabel, content, contentLength);
+		// already in envelope format
 	} 
 	else if (subjectNbr > 0)
 	{
 		ForwardPublishMessage(gWay, *eventRef);
-// in amsMsg (header+content) format
+		// in amsMsg (header+content) format
 	}
 }
 
@@ -1239,8 +1282,9 @@ static int ReceiveRPDU(RamsNode *fromGWay, RamsGateway *gWay, char *msg)
 				declaredION = Look_Up_DeclaredRemoteRAMS(gWay, fromGWay->continuumNbr);
 				if (declaredION == NULL)
 				{
-					ErrMsg("Can't find declared source gateway");
-printf("the rams gateway is not declared yet\n");
+					ErrMsg("Can't find declared source \
+gateway");
+//PUTS("The rams gateway is not declared yet.");
 					return 0;
 				}
 			}
@@ -1313,6 +1357,7 @@ printf("the rams gateway is not declared yet\n");
 
 			break;
 	}
+
 	return 1;
 }
 
@@ -1335,9 +1380,7 @@ int AssertPetition(RamsGateway *gWay, Petition *pet)
 	}
 
 	RAMSSetUnion(pet->SourceRamsSet, pSet);
-
-	printRAMSContent(&gWay);
-		
+//printRAMSContent(&gWay);
 	return 1;
 }
 
@@ -1347,13 +1390,16 @@ int CancelPetition(RamsGateway *gWay, Petition *pet)
 	LystElt elt, nextElt;
 	RamsNode *rCont; 
 
-	//–	A cancellation of the petition shall be sent to the only members of DGS which is also memeber of SGS
+	//–	A cancellation of the petition shall be sent to the only
+	// members of DGS which is also member of SGS
 	// or all member of SGS if DGS has no member
 	//
 
-	if ((lyst_length(pet->DestinationRamsSet) == 0)&&(lyst_length(pet->DistributionNodeSet) == 0))
+	if ((lyst_length(pet->DestinationRamsSet) == 0)
+	&& (lyst_length(pet->DistributionNodeSet) == 0))
 	{
-		for (elt = lyst_first(pet->SourceRamsSet); elt != NULL; elt = lyst_next(elt))
+		for (elt = lyst_first(pet->SourceRamsSet); elt != NULL;
+				elt = lyst_next(elt))
 		{
 			nextElt = lyst_next(elt);
 			rCont = (RamsNode *)lyst_data(elt);
@@ -1371,7 +1417,8 @@ int CancelPetition(RamsGateway *gWay, Petition *pet)
 					Env_SubjectNbr), 
 				rCont->continuumNbr))
 			{
-				ErrMsg("error petition cancellation in CancelPetition");
+				ErrMsg("error petition cancellation in \
+CancelPetition");
 				return 0;
 			}
 
@@ -1379,11 +1426,13 @@ int CancelPetition(RamsGateway *gWay, Petition *pet)
 			elt = nextElt;
 		}
 	}
-	else if ((lyst_length(pet->DestinationRamsSet) == 1) && (lyst_length(pet->DistributionNodeSet) == 0))
+	else if ((lyst_length(pet->DestinationRamsSet) == 1)
+			&& (lyst_length(pet->DistributionNodeSet) == 0))
 	{
-		rCont = (RamsNode *)lyst_data(lyst_first(pet->DestinationRamsSet));
+		rCont = (RamsNode *)
+			lyst_data(lyst_first(pet->DestinationRamsSet));
 		sgsElt = IsContinuumExist(rCont, &(pet->SourceRamsSet));
-	    if (sgsElt != NULL)
+		if (sgsElt != NULL)
 		{
 			if (!ConstructEnvelopeToRAMS(gWay, 1, NULL,
 				EnvelopeHeader(pet->specification->envelope,
@@ -1399,7 +1448,8 @@ int CancelPetition(RamsGateway *gWay, Petition *pet)
 					Env_SubjectNbr),
 				rCont->continuumNbr))
 			{
-				ErrMsg("error petition cancellation in CancelPetition");
+				ErrMsg("error petition cancellation in \
+CancelPetition");
 				return 0;
 			}
 
@@ -1407,7 +1457,7 @@ int CancelPetition(RamsGateway *gWay, Petition *pet)
 		}
 	}
 	
-	printRAMSContent(&gWay);
+//printRAMSContent(&gWay);
 	return 1; 
 }
 
@@ -1421,9 +1471,10 @@ int CancelPetition(RamsGateway *gWay, Petition *pet)
 
 static int ReceiveInitialDeclaration(RamsNode *fromGateway, RamsGateway *gWay)
 {
-printf("<initial declaration> receive initial declaration\n");
+//PUTS("<initial declaration> receive initial declaration");
 
-	if (Look_Up_DeclaredRemoteRAMS(gWay, fromGateway->continuumNbr) == NULL) // declared gateway
+	if (Look_Up_DeclaredRemoteRAMS(gWay, fromGateway->continuumNbr) == NULL)
+	// declared gateway
 	{
 		lyst_insert_last(gWay->ramsMib->declaredNeighbors, fromGateway);
 		gWay->ramsMib->totalDeclared++;
@@ -1431,8 +1482,6 @@ printf("<initial declaration> receive initial declaration\n");
 
 	return 1; 
 }
-
-
 
 // receive petition from remote RAMS counterpart
 // not knowing how the fromGway is obtained
@@ -1444,24 +1493,28 @@ static int ReceiveRAMSSubscribePetition(RamsNode *fromGateway,
 	Lyst propSet;
 	Petition *pet, *aPet;	
 
-printf("<rams assertion> receive rams petition assertion\n");
+//PUTS("<rams assertion> receive rams petition assertion");
 
 	pet = NULL; 
 	// add neighbor into DGS
-	for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt = lyst_next(elt))
+	for (elt = lyst_first(gWay->petitionSet); elt != NULL;
+			elt = lyst_next(elt))
 	{
 		pet = (Petition *)lyst_data(elt);
-		if (IsSubscriptionPublisherIdentical(pet, domainContinuum, domainRole, domainUnit, subjectNbr))
+		if (IsSubscriptionPublisherIdentical(pet, domainContinuum,
+				domainRole, domainUnit, subjectNbr))
 		{
-			if (IsContinuumExist(fromGateway, &(pet->DestinationRamsSet)) == NULL)
+			if (IsContinuumExist(fromGateway,
+					&(pet->DestinationRamsSet)) == NULL)
 			{
-			    lyst_insert_last(pet->DestinationRamsSet, fromGateway);
-printf("<rams assertion> add into existing DestinationRamsSet\n");
+			    lyst_insert_last(pet->DestinationRamsSet,
+					    fromGateway);
+//PUTS("<rams assertion> add into existing DestinationRamsSet");
 				break;
 			}
 			else
 			{
-printf("<rams assertion> already in existing DestinationRamsSet\n");
+//PUTS("<rams assertion> already in existing DestinationRamsSet");
 				return 1;
 			}
 		}
@@ -1470,7 +1523,7 @@ printf("<rams assertion> already in existing DestinationRamsSet\n");
 	// no identical petition exist, msg is an envelope
 	if (elt == NULL)
 	{
-printf("<rams assertion> create new petition\n");
+//PUTS("<rams assertion> create new petition");
 		pet = ConstructPetition(domainContinuum, domainRole,
 				domainUnit, subjectNbr, PetitionAssertion);
 		lyst_insert_last(pet->DestinationRamsSet, fromGateway);
@@ -1480,25 +1533,30 @@ printf("<rams assertion> create new petition\n");
 	// submit to local continuum
 	if (lyst_length(pet->DestinationRamsSet) == 1)
 	{
-		if (domainContinuum == 0 || domainContinuum == gWay->ramsMib->amsMib->localContinuumNbr)
+		if (domainContinuum == 0
+		|| domainContinuum == gWay->ramsMib->amsMib->localContinuumNbr)
 		{
-			if (ams_subscribe(gWay->amsNode, domainRole, domainContinuum, domainUnit, subjectNbr, 10, 0, 
-						  AmsArrivalOrder, AmsAssured) < 0)
+			if (ams_subscribe(gWay->amsNode, domainRole,
+					domainContinuum, domainUnit, subjectNbr,
+					10, 0, AmsArrivalOrder, AmsAssured) < 0)
 			{
-				ErrMsg("error on subscribe to local continuum in rams subscription");
-printf("<rams assertion> error on ams_subscribe\n");
+				ErrMsg("error on subscribe to local continuum \
+in rams subscription");
+//PUTS("<rams assertion> error on ams_subscribe");
 				return 0;
 			}
-printf("<rams assertion> local subscription\n");
+//PUTS("<rams assertion> local subscription");
 		}
 	}
 
-	// If subject cited is the pseudo-subject for some continuum - then all relevant petitions relationships with
+	// If subject cited is the pseudo-subject for some continuum
+	// - then all relevant petitions relationships with
 	// the conduit (the neighbor) are established. 
 	if (subjectNbr < 0)
 	{
-printf("<rams assertion> subjectNbr = %d\n", subjectNbr); 
-		for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt = lyst_next(elt))
+//printf("<rams assertion> subjectNbr = %d\n", subjectNbr); 
+		for (elt = lyst_first(gWay->petitionSet); elt != NULL;
+				elt = lyst_next(elt))
 		{
 			aPet = (Petition *)lyst_data(elt);
 			if (IsPetitionPublisherIdentical(aPet, pet))
@@ -1509,14 +1567,15 @@ printf("<rams assertion> subjectNbr = %d\n", subjectNbr);
 				// if neighbor is a memeber of the computed PS
 				if (IsContinuumExist(fromGateway, &propSet))
 				{
-printf("<rams assertion> propagate to %d  petition cId = %d unit = %d role = %d node = %d sub = %d\n",  fromGateway->continuumNbr, EnvelopeHeader(aPet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(aPet->specification->envelope, Env_DestIDField), EnvelopeHeader(aPet->specification->envelope, Env_SubjectNbr));
+//printf("<rams assertion> propagate to %d  petition cId = %d unit = %d role = %d node = %d sub = %d\n",  fromGateway->continuumNbr, EnvelopeHeader(aPet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(aPet->specification->envelope, Env_DestIDField), EnvelopeHeader(aPet->specification->envelope, Env_SubjectNbr));
 					if (!SendMessageToContinuum(gWay,
 						fromGateway->continuumNbr, 1,
 						aPet->specification->envelope,
 						ENVELOPELENGTH))
 					{
-printf("<rams assertion> propagation error\n");
-						ErrMsg("error in propagate petition");
+//PUTS("<rams assertion> propagation error");
+						ErrMsg("error in propagate \
+petition");
 						return 0;
 					}
 
@@ -1530,16 +1589,18 @@ printf("<rams assertion> propagation error\n");
 	// assert petition to neighbors
 	if (IsPetitionAssertable(gWay, pet))
 	{
-printf("<rams assertion> assert petition\n");		
+//PUTS("<rams assertion> assert petition");		
 		if (!AssertPetition(gWay, pet))
 		{
-printf("<rams assertion> assert petition to other neighbors error\n");
-			ErrMsg("assert petition error in ReceiveRAMSSubscribePetition");
+//PUTS("<rams assertion> assert petition to other neighbors error");
+			ErrMsg("assert petition error in \
+ReceiveRAMSSubscribePetition");
 			return 0;
 		}
 	}
-printf("<rams assertion> \n");
-	printRAMSContent(&gWay);
+
+//PUTS("<rams assertion>");
+//printRAMSContent(&gWay);
 	return 1; 
 }
 
@@ -1553,8 +1614,7 @@ static int ReceiveRAMSCancelPetition(RamsNode *fromGWay,
 	LystElt elt, delWay; 
 	Petition *pet, *aPet; 
 
-printf("<rams cancellation> receive rams petition cancellation\n");
-
+//PUTS("<rams cancellation> receive rams petition cancellation");
 	pet = NULL; 
 
 	// delete this neighbor from DGS of this petition
@@ -1563,16 +1623,18 @@ printf("<rams cancellation> receive rams petition cancellation\n");
 			elt = lyst_next(elt))
 	{
 		pet = (Petition *) lyst_data(elt);
-		if (IsSubscriptionPublisherIdentical(pet, domainContinuum, domainRole, domainUnit, subjectNbr))
+		if (IsSubscriptionPublisherIdentical(pet, domainContinuum,
+				domainRole, domainUnit, subjectNbr))
 		{
-			if ((delWay = IsContinuumExist(fromGWay, &(pet->DestinationRamsSet))) != NULL)
+			if ((delWay = IsContinuumExist(fromGWay,
+					&(pet->DestinationRamsSet))) != NULL)
 			{
 				lyst_delete(delWay);				
-printf("<rams cancellation> removed continuum %d from DGS for %d \n", fromGWay->continuumNbr, subjectNbr);
+//printf("<rams cancellation> removed continuum %d from DGS for %d \n", fromGWay->continuumNbr, subjectNbr);
 			}
 			else
 			{
-printf("<rams cancellation> already deleted from DestinationRamsSet (DGS)\n");
+//PUTS("<rams cancellation> already deleted from DestinationRamsSet (DGS)");
 				return 1;
 			}
 			break;
@@ -1583,7 +1645,7 @@ printf("<rams cancellation> already deleted from DestinationRamsSet (DGS)\n");
 
 	if (elt == NULL)
 	{
-printf("<rams cancellation> no matching petition\n");
+//PUTS("<rams cancellation> no matching petition");
 		ErrMsg("no matching petition found");
 		return 1;
 	}
@@ -1598,11 +1660,12 @@ printf("<rams cancellation> no matching petition\n");
 			if (ams_unsubscribe(gWay->amsNode, domainRole,
 				domainContinuum, domainUnit, subjectNbr) < 0)
 			{
-				ErrMsg("error on unsubscribe to local continuum in rams petition cancellation");
-printf("<rams cancellation> error on ams_unsubscribe");
+				ErrMsg("error on unsubscribe to local \
+continuum in rams petition cancellation");
+//PUTS("<rams cancellation> error on ams_unsubscribe");
 				return 0;
 			}
-printf("<rams cancellation> local unsubscription okay\n");
+//PUTS("<rams cancellation> local unsubscription okay");
 		}
 	}
 
@@ -1616,7 +1679,7 @@ printf("<rams cancellation> local unsubscription okay\n");
 #endif
 	if (subjectNbr == (0 - fromGWay->continuumNbr))
 	{
-printf("<rams cancellation> continuum nbr %d is retracting\n", fromGWay->continuumNbr);
+//printf("<rams cancellation> continuum nbr %d is retracting\n", fromGWay->continuumNbr);
 //printf("<rams cancellation> subjectNbr = %d\n", subjectNbr); 
 		for (elt = lyst_first(gWay->petitionSet); elt != NULL;
 				elt = lyst_next(elt))
@@ -1630,11 +1693,10 @@ printf("<rams cancellation> continuum nbr %d is retracting\n", fromGWay->continu
 			if (((delWay = IsContinuumExist(fromGWay, &(aPet->SourceRamsSet)))!= NULL) &&
 				((EnvelopeHeader(aPet->specification->envelope, Env_ContinuumNbr) == -subjectNbr)||(-subjectNbr == fromGWay->continuumNbr)))
 #endif
-			//if ((delWay = IsContinuumExist(fromGWay, &(aPet->SourceRamsSet)))!= NULL)
 			if (((delWay = IsContinuumExist(fromGWay,
 					&(aPet->SourceRamsSet))) != NULL))
 			{
-printf("<rams cancellation> deleting %d from SGS of petition cId = %d unit = %d role = %d node = %d sub = %d\n",  fromGWay->continuumNbr, EnvelopeHeader(aPet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(aPet->specification->envelope, Env_DestIDField), EnvelopeHeader(aPet->specification->envelope, Env_SubjectNbr));
+//printf("<rams cancellation> deleting %d from SGS of petition cId = %d unit = %d role = %d node = %d sub = %d\n",  fromGWay->continuumNbr, EnvelopeHeader(aPet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(aPet->specification->envelope, Env_DestIDField), EnvelopeHeader(aPet->specification->envelope, Env_SubjectNbr));
 				if (!ConstructEnvelopeToRAMS(gWay, 1, NULL,
 				EnvelopeHeader(aPet->specification->envelope,
 					Env_ContinuumNbr),
@@ -1649,8 +1711,9 @@ printf("<rams cancellation> deleting %d from SGS of petition cId = %d unit = %d 
 					Env_SubjectNbr),
 				fromGWay->continuumNbr))
 				{
-					ErrMsg("error petition cancellation in ReceiveRAMSCancelPetition");
-printf("<rams cancellation> delete fails\n");
+					ErrMsg("error petition cancellation \
+in ReceiveRAMSCancelPetition");
+//PUTS("<rams cancellation> delete fails");
 					return 0;
 				}
 
@@ -1662,7 +1725,7 @@ printf("<rams cancellation> delete fails\n");
 			if (((delWay = IsContinuumExist(fromGWay,
 				&(aPet->DestinationRamsSet))) != NULL))
 			{
-printf("<rams cancellation> deleting %d from DGS of petition cId = %d unit = %d role = %d node = %d sub = %d\n",  fromGWay->continuumNbr, EnvelopeHeader(aPet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(aPet->specification->envelope, Env_DestIDField), EnvelopeHeader(aPet->specification->envelope, Env_SubjectNbr));
+//printf("<rams cancellation> deleting %d from DGS of petition cId = %d unit = %d role = %d node = %d sub = %d\n",  fromGWay->continuumNbr, EnvelopeHeader(aPet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(aPet->specification->envelope, Env_DestIDField), EnvelopeHeader(aPet->specification->envelope, Env_SubjectNbr));
 				if (!ConstructEnvelopeToRAMS(gWay, 1, NULL,
 				EnvelopeHeader(aPet->specification->envelope,
 					Env_ContinuumNbr),
@@ -1677,8 +1740,9 @@ printf("<rams cancellation> deleting %d from DGS of petition cId = %d unit = %d 
 					Env_SubjectNbr),
 				fromGWay->continuumNbr))
 				{
-					ErrMsg("error petition cancellation in ReceiveRAMSCancelPetition");
-printf("<rams cancellation> delete fails\n");
+					ErrMsg("error petition cancellation \
+in ReceiveRAMSCancelPetition");
+//PUTS("<rams cancellation> delete fails");
 					return 0;
 				}
 
@@ -1688,15 +1752,16 @@ printf("<rams cancellation> delete fails\n");
 	// cancel the petition if
 	// - DNS is empty
 	// - DGS is empty or the only member of DGS is inside member of SGS
-printf("<rams cancellation> before test cancel petition cId = %d unit = %d role = %d node = %d sub = %d\n",  EnvelopeHeader(aPet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(aPet->specification->envelope, Env_DestIDField), EnvelopeHeader(aPet->specification->envelope, Env_SubjectNbr));
+//printf("<rams cancellation> before test cancel petition cId = %d unit = %d role = %d node = %d sub = %d\n",  EnvelopeHeader(aPet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(aPet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(aPet->specification->envelope, Env_DestIDField), EnvelopeHeader(aPet->specification->envelope, Env_SubjectNbr));
 
 			if (IsToCancelPetition(aPet))
 			{
-printf("<rams cancellation> cancelling this petition\n"); 
+//PUTS("<rams cancellation> cancelling this petition"); 
 				if (!CancelPetition(gWay, aPet))
 				{
-					ErrMsg("error in propagating petition cancel in ReceiveRAMSCancelPetition");
-printf("<rams cancellation> error in cancelling the petition\n");
+					ErrMsg("error in propagating petition \
+cancel in ReceiveRAMSCancelPetition");
+//PUTS("<rams cancellation> error in cancelling the petition");
 					return 0;
 				}
 			}
@@ -1710,17 +1775,18 @@ printf("<rams cancellation> error in cancelling the petition\n");
 	// cancel the petition if
 	// - DNS is empty
 	// - DGS is empty or the only member of DGS is inside member of SGS
-printf("<rams cancellation> before test cancel petition cId = %d unit = %d role = %d node = %d sub = %d\n",  EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(pet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(pet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(pet->specification->envelope, Env_DestIDField), EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr));
+//printf("<rams cancellation> before test cancel petition cId = %d unit = %d role = %d node = %d sub = %d\n",  EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(pet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(pet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(pet->specification->envelope, Env_DestIDField), EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr));
 
 //printRAMSContent(&gWay);
 
 	if (IsToCancelPetition(pet))
 	{
-printf("<rams cancellation> cancelling this petition\n"); 
+//PUTS("<rams cancellation> cancelling this petition"); 
 		if (!CancelPetition(gWay, pet))
 		{
-			ErrMsg("error in propagating petition cancel in ReceiveRAMSCancelPetition");
-printf("<rams cancellation> error in cancelling the petition\n");
+			ErrMsg("error in propagating petition cancel in \
+ReceiveRAMSCancelPetition");
+//PUTS("<rams cancellation> error in cancelling the petition");
 			return 0;
 		}
 	}
@@ -1728,23 +1794,24 @@ printf("<rams cancellation> error in cancelling the petition\n");
 
 	if (subjectNbr < 0 && fromGWay->continuumNbr == -subjectNbr)
 	{
-		if ((elt = IsContinuumExist(fromGWay, &(gWay->ramsMib->declaredNeighbors))) != NULL)
+		if ((elt = IsContinuumExist(fromGWay,
+				&(gWay->ramsMib->declaredNeighbors))) != NULL)
 		{
-printf("<rams cancellation> remove continuum %d from list of declared continua\n", fromGWay->continuumNbr);
+//printf("<rams cancellation> remove continuum %d from list of declared continua\n", fromGWay->continuumNbr);
 			lyst_delete(elt);
 		}
 	}
 
-printf("<rams cancellation> \n");
-	printRAMSContent(&gWay);
+//PUTS("<rams cancellation>");
+//printRAMSContent(&gWay);
 	return 1; 
 }
-
 
 // receive a RAMS PDU from a counterpart RAMS gateway 
 //with control code greater than 3
 //control code = 4 case
-static int ReceiveRAMSPublishMessage(RamsNode* fromGWay, RamsGateway *gWay, char *msg)
+static int	ReceiveRAMSPublishMessage(RamsNode* fromGWay, RamsGateway *gWay,
+			char *msg)
 {
 	LystElt elt, eltBp, eltNode;
 	Lyst newRSet, newNSet;
@@ -1752,25 +1819,25 @@ static int ReceiveRAMSPublishMessage(RamsNode* fromGWay, RamsGateway *gWay, char
 	RamsNode *ramsNode;	//	formerly bpP
 	Petition *pet;
 	int localcn = gWay->ramsMib->amsMib->localContinuumNbr;
-    
 
-printf("<rams publish> receive rams publish message \n");
-printf("<rams publish> from contId=%d unit=%d nodeId=%d\n", EnclosureHeader(EnvelopeText(msg, -1), Enc_ContinuumNbr), 
-														   EnclosureHeader(EnvelopeText(msg, -1), Enc_UnitNbr),
-														   EnclosureHeader(EnvelopeText(msg, -1), Enc_NodeNbr));
+//PUTS("<rams publish> receive rams publish message");
+//printf("<rams publish> from contId=%d unit=%d nodeId=%d\n", EnclosureHeader(EnvelopeText(msg, -1), Enc_ContinuumNbr), EnclosureHeader(EnvelopeText(msg, -1), Enc_UnitNbr), EnclosureHeader(EnvelopeText(msg, -1), Enc_NodeNbr));
 
 	newRSet = lyst_create();
 	newNSet = lyst_create(); 
-	for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt = lyst_next(elt))
+	for (elt = lyst_first(gWay->petitionSet); elt != NULL;
+			elt = lyst_next(elt))
 	{
 		pet = (Petition *)lyst_data(elt);
-	
-		if (IsRAMSPDUSatisfyPetition(gWay->amsNode, msg, pet))  // check petition and enclosure
+		if (IsRAMSPDUSatisfyPetition(gWay->amsNode, msg, pet))
+			// check petition and enclosure
 		{
-			for (eltBp = lyst_first(pet->DestinationRamsSet); eltBp != NULL; eltBp = lyst_next(eltBp))
+			for (eltBp = lyst_first(pet->DestinationRamsSet);
+					eltBp != NULL; eltBp = lyst_next(eltBp))
 			{
 				ramsNode = (RamsNode *)lyst_data(eltBp);
-				if (ramsNode->continuumNbr == fromGWay->continuumNbr)
+				if (ramsNode->continuumNbr
+						== fromGWay->continuumNbr)
 					continue;
 				if (!IsContinuumExist(ramsNode, &newRSet))
 				{
@@ -1778,7 +1845,8 @@ printf("<rams publish> from contId=%d unit=%d nodeId=%d\n", EnclosureHeader(Enve
 				}
 			}
 
-			for (eltNode = lyst_first(pet->DistributionNodeSet); eltNode != NULL; eltNode = lyst_next(eltNode))
+			for (eltNode = lyst_first(pet->DistributionNodeSet);
+				eltNode != NULL; eltNode = lyst_next(eltNode))
 			{
 				node = (Node *)lyst_data(eltNode);
 				if (!IsNodeExist(node, &newNSet))
@@ -1793,13 +1861,13 @@ printf("<rams publish> from contId=%d unit=%d nodeId=%d\n", EnclosureHeader(Enve
 			eltBp = lyst_next(eltBp))
 	{
 		ramsNode = (RamsNode *)lyst_data(eltBp);
-printf("<rams publish> send message to rams %d\n", ramsNode->continuumNbr); 
+//printf("<rams publish> send message to rams %d\n", ramsNode->continuumNbr); 
 		if (!SendMessageToContinuum(gWay, ramsNode->continuumNbr, 1,
 				msg, ENVELOPELENGTH + EnvelopeHeader(msg,
 				Env_EnclosureLength)))
 			// send to neighbor RAMS, only one
 		{
-printf("<rams publish> forward rams publish message to %d error\n", ramsNode->continuumNbr);
+//printf("<rams publish> forward rams publish message to %d error\n", ramsNode->continuumNbr);
 		   ErrMsg("error in Forward RAMS publish Message");
 		   return 0;
 		}
@@ -1808,12 +1876,15 @@ printf("<rams publish> forward rams publish message to %d error\n", ramsNode->co
 	for (eltNode = lyst_first(newNSet); eltNode != NULL; eltNode = lyst_next(eltNode))
 	{
 		node = (Node *)lyst_data(eltNode);
-printf("<rams publish> send message to unit=%d node=%d\n", node->unitNbr, node->nbr);
-		if (ams_send(gWay->amsNode, localcn, node->unitNbr, node->nbr, (0 - localcn),
-					 8, 0, EnvelopeHeader(msg, Env_EnclosureLength), EnvelopeText(msg, -1), 0) < 0)   // send enclosure on subject 0
+//printf("<rams publish> send message to unit=%d node=%d\n", node->unitNbr, node->nbr);
+		if (ams_send(gWay->amsNode, localcn, node->unitNbr, node->nbr,
+				(0 - localcn), 8, 0, EnvelopeHeader(msg,
+				Env_EnclosureLength), EnvelopeText(msg, -1), 0)
+				< 0)   // send enclosure on subject 0
 		{
-printf("<rams publish> ams_send error\n");
-			ErrMsg("error in sending message of ReceiveRAMSPublishMessage");
+//PUTS("<rams publish> ams_send error");
+			ErrMsg("error in sending message of \
+ReceiveRAMSPublishMessage");
 			return 0;
 		}
 	}
@@ -1827,31 +1898,32 @@ static int ReceiveRAMSPrivateMessage(RamsGateway *gWay, char *msg)
 	int con;
 	RamsNode *ramsNode;		//	formerly bpP
 
-printf("<rams private> receive rams private message\n");
+//PUTS("<rams private> receive rams private message");
 	con =  EnvelopeHeader(msg, Env_ContinuumNbr);
-printf("<rams private> message is for conId = %d local conId = %d\n", con, gWay->ramsMib->amsMib->localContinuumNbr);
-printf("<rams private> message is %s\n", msg+ENVELOPELENGTH+AMSMSGHEADER);
+//printf("<rams private> message is for conId = %d local conId = %d\n", con, gWay->ramsMib->amsMib->localContinuumNbr);
+//printf("<rams private> message is %s\n", msg+ENVELOPELENGTH+AMSMSGHEADER);
 	if (con != gWay->ramsMib->amsMib->localContinuumNbr)
 	{
 		ramsNode = GetConduitForContinuum(con, gWay);
-printf("<rams private> forward to continuum %d\n", ramsNode->continuumNbr);
+//printf("<rams private> forward to continuum %d\n", ramsNode->continuumNbr);
 		if (!SendMessageToContinuum(gWay, ramsNode->continuumNbr,
 				1, msg, ENVELOPELENGTH + EnvelopeHeader(msg,
 				Env_EnclosureLength)))
 			// send to neighbor RAMS, only one
 		{
-printf("<rams private> forward error\n"); 
+//PUTS("<rams private> forward error"); 
 		   ErrMsg("error in Forward Private Message");
 		   return 0;
 		}
 
-		return 1; // should have only destination node from only one cOrder
+		return 1;
+		// should have only destination node from only one cOrder
 	}
 	else
 	{
 		if (IsPrivateReceiverExist(gWay, msg) != NULL)
 		{
-printf("<rams private> send message to con=%d unit=%d node=%d sub = 0\n", con, EnvelopeHeader(msg, Env_DestUnitNbr), EnvelopeHeader(msg, Env_DestNodeNbr));
+//printf("<rams private> send message to con=%d unit=%d node=%d sub = 0\n", con, EnvelopeHeader(msg, Env_DestUnitNbr), EnvelopeHeader(msg, Env_DestNodeNbr));
 			if (ams_send(gWay->amsNode, con,
 				EnvelopeHeader(msg, Env_DestUnitNbr),
 				EnvelopeHeader(msg, Env_DestNodeNbr),
@@ -1859,22 +1931,22 @@ printf("<rams private> send message to con=%d unit=%d node=%d sub = 0\n", con, E
 				EnvelopeHeader(msg, Env_EnclosureLength),
 				EnvelopeText(msg, -1), 0) < 0)
 			{
-printf("<rams private> ams_send error\n");
-				ErrMsg("error in  Receive RAMS Private Message");
+//PUTS("<rams private> ams_send error");
+				ErrMsg("error in Receive RAMS Private Message");
 				return 0;
 			}
 		}
 		else
 		{
-printf("<rams private> no valid invitor exist for con=%d unit=%d node=%d sub=%d\n", con, EnvelopeHeader(msg, Env_DestUnitNbr), 
-		                                           EnvelopeHeader(msg, Env_DestNodeNbr), EnvelopeHeader(msg, Env_SubjectNbr));
+//printf("<rams private> no valid invitor exist for con=%d unit=%d node=%d sub=%d\n", con, EnvelopeHeader(msg, Env_DestUnitNbr), EnvelopeHeader(msg, Env_DestNodeNbr), EnvelopeHeader(msg, Env_SubjectNbr));
 		}
 	}
 	return 1; 
 }
 
 //  control code = 6 (announce on reception)
-static int ReceiveRAMSAnnounceMessage(RamsNode* fromGWay, RamsGateway *gWay, char *msg)
+static int	ReceiveRAMSAnnounceMessage(RamsNode* fromGWay,
+			RamsGateway *gWay, char *msg)
 {
 
 	int con, domainRole, domainUnit;
@@ -1886,58 +1958,62 @@ static int ReceiveRAMSAnnounceMessage(RamsNode* fromGWay, RamsGateway *gWay, cha
 	//int subNo;
 	int localcn = gWay->ramsMib->amsMib->localContinuumNbr;
 
-printf("<rams announce> receive rams private message %s\n", msg+ENVELOPELENGTH+AMSMSGHEADER);
+//printf("<rams announce> receive rams private message %s\n", msg+ENVELOPELENGTH+AMSMSGHEADER);
 	con =  EnvelopeHeader(msg, Env_ContinuumNbr);
-printf("<rams announce> domain cont = %d  local cont = %d\n", con, gWay->ramsMib->amsMib->localContinuumNbr);
+//printf("<rams announce> domain cont = %d  local cont = %d\n", con, gWay->ramsMib->amsMib->localContinuumNbr);
 
-// continuum is 0, and network is tree, forward message to neighbor
+	// continuum is 0, and network is tree, forward message to neighbor
 	if (con == 0)
 	{
 		if (gWay->ramsMib->netType == TREETYPE)
 		{
-			for (elt = lyst_first(gWay->ramsMib->declaredNeighbors); elt != NULL; elt = lyst_next(elt))
+			for (elt = lyst_first(gWay->ramsMib->declaredNeighbors);
+					elt != NULL; elt = lyst_next(elt))
 			{
 				ramsNode = (RamsNode *)lyst_data(elt);
-				if (ramsNode->continuumNbr == fromGWay->continuumNbr)
+				if (ramsNode->continuumNbr
+						== fromGWay->continuumNbr)
 					continue;
-printf("<rams announce> forward announce to conId = %d \n", ramsNode->continuumNbr);
+//printf("<rams announce> forward announce to conId = %d \n", ramsNode->continuumNbr);
 				if (!SendMessageToContinuum(gWay,
 					ramsNode->continuumNbr, 1, msg,
 					ENVELOPELENGTH + EnvelopeHeader(msg,
 						Env_EnclosureLength)))
 				{
-printf("<rams announce> forward error\n");
-					ErrMsg("error in forward RAMS announce message");
+//PUTS("<rams announce> forward error");
+					ErrMsg("error in forward RAMS \
+announce message");
 					return 0;
 				}
 			}
 		}
 	}
-// continuum is not zero, not local Id, forward to condiut
+
+	// continuum is not zero, not local Id, forward to condiut
 	else if (con != localcn)
 	{
 		ramsNode = GetConduitForContinuum(con, gWay);
 		if (ramsNode)
 		{
-printf("<rams announce> forward announce to %d\n", ramsNode->continuumNbr);
+//printf("<rams announce> forward announce to %d\n", ramsNode->continuumNbr);
 			if (!SendMessageToContinuum(gWay,
 				ramsNode->continuumNbr, 1, msg,
 				ENVELOPELENGTH + EnvelopeHeader(msg,
 					Env_EnclosureLength)))
 			{
-printf("<rams announce> forward error\n");
-				ErrMsg("error in forward RAMS announce message");
+//PUTS("<rams announce> forward error");
+				ErrMsg("error in fwd RAMS announce message");
 				return 0;
 			}
 		}
 		else
 		{
-printf("<rams announce> cannot find out conduit\n");
+//PUTS("<rams announce> cannot find out conduit");
 		}
 	}
   
-// con is 0, or local Id, local announce. 
-	
+	// con is 0, or local Id, local announce.
+
 	newSet = lyst_create();
 
 	domainUnit = EnvelopeHeader(msg, Env_DestUnitNbr);
@@ -1945,38 +2021,49 @@ printf("<rams announce> cannot find out conduit\n");
 	if (con == 0 || con == localcn)
 	{
 		//get all eligible node invitor
-		for (elt = lyst_first(gWay->invitationSet); elt != NULL; elt = lyst_next(elt))
+		for (elt = lyst_first(gWay->invitationSet); elt != NULL;
+				elt = lyst_next(elt))
 		{
 			inv = (Invitation *)lyst_data(elt);
-			if (IsRAMSPDUSatisfyInvitation(gWay, msg, inv))   // check if source satify invitaion requirement
+			if (IsRAMSPDUSatisfyInvitation(gWay, msg, inv))
+			// check if source satify invitaion requirement
 			{
-				for (nodeElt = lyst_first(inv->nodeSet); nodeElt != NULL; nodeElt = lyst_next(nodeElt))
+				for (nodeElt = lyst_first(inv->nodeSet);
+						nodeElt != NULL;
+						nodeElt = lyst_next(nodeElt))
 				{
 					amsNode = (Node *)lyst_data(nodeElt);
-					if (IsValidAnnounceReceiver(gWay, amsNode, domainUnit, domainRole)) // check if node satisfy announce destination
+					if (IsValidAnnounceReceiver(gWay,
+							amsNode, domainUnit,
+							domainRole))
+						// check if node satisfy 
+						// announce destination
 					{
-						if (!IsNodeExist(amsNode, &newSet))
+						if (!IsNodeExist(amsNode,
+								&newSet))
 						{
-							lyst_insert_last(newSet, amsNode);
+							lyst_insert_last(newSet,
+								amsNode);
 						}
 					}
 				}
 			}
 		}
 
-printf("<rams announce> sent announce to \n");
-		for (elt = lyst_first(newSet); elt != NULL; elt = lyst_next(elt))
+//PUTS("<rams announce> sent announce to");
+		for (elt = lyst_first(newSet); elt != NULL;
+				elt = lyst_next(elt))
 		{
 			amsNode = (Node *)lyst_data(elt);
-printf("<rams announce>        unit=%d node=%d\n", amsNode->unitNbr, amsNode->nbr);
-			if (ams_send(gWay->amsNode, localcn,
-				         amsNode->unitNbr, amsNode->nbr,
-						 (0 - localcn), 
-						 //EnvelopeHeader(msg, Env_SubjectNbr), 
-						 8, 0, 
-					     EnvelopeHeader(msg, Env_EnclosureLength),  EnvelopeText(msg, -1), 0) < 0)
+//printf("<rams announce>        unit=%d node=%d\n", amsNode->unitNbr, amsNode->nbr);
+			if (ams_send(gWay->amsNode, localcn, amsNode->unitNbr,
+					amsNode->nbr, (0 - localcn), 
+					 //EnvelopeHeader(msg, Env_SubjectNbr), 
+					 8, 0, EnvelopeHeader(msg,
+						 Env_EnclosureLength),
+					 EnvelopeText(msg, -1), 0) < 0)
 			{
-                 printf("<rams announce> ams_send error\n");
+//PUTS("<rams announce> ams_send error");
 			     ErrMsg("error in  Receive RAMS Announce Message");
 			     return 0;
 			}
@@ -1984,15 +2071,14 @@ printf("<rams announce>        unit=%d node=%d\n", amsNode->unitNbr, amsNode->nb
 		}
 
 /*
-printf("<rams private> local announce to con=%d unit=%d node=%d sub=%d\n", con, EnvelopeHeader(msg, Env_UnitNbr),
-									EnvelopeHeader(msg, Env_NodeNbr), EnvelopeHeader(msg, Env_SubjectNbr));
-		
-	    if (ams_announce(gWay->amsNode, EnvelopeHeader(msg, Env_RoleNbr), con, EnvelopeHeader(msg, Env_UnitNbr),
-					//	EnvelopeHeader(msg, Env_SubjectNbr), 
-					0,
-				         8, 0, EnvelopeHeader(msg, Env_EnclosureLength), EnvelopeText(msg, -1), 0) < 0)
+printf("<rams private> local announce to con=%d unit=%d node=%d sub=%d\n", con, EnvelopeHeader(msg, Env_UnitNbr), EnvelopeHeader(msg, Env_NodeNbr), EnvelopeHeader(msg, Env_SubjectNbr)); 
+	    if (ams_announce(gWay->amsNode, EnvelopeHeader(msg, Env_RoleNbr),
+	    		con, EnvelopeHeader(msg, Env_UnitNbr),
+		//	EnvelopeHeader(msg, Env_SubjectNbr), 
+			0, 8, 0, EnvelopeHeader(msg, Env_EnclosureLength),
+			EnvelopeText(msg, -1), 0) < 0)
 		{
-			ErrMsg("error in  Receive RAMS Private Message");
+			ErrMsg("error in Receive RAMS Private Message");
 			return 0;
 		}
 */
@@ -2002,25 +2088,31 @@ printf("<rams private> local announce to con=%d unit=%d node=%d sub=%d\n", con, 
 	
 // receive petition from node of same message space
 // node????
-static int ReceivePetition(Node *sourceNode,  RamsGateway *gWay, int domainContinuum, int domainRole, int domainUnit, int subjectNbr)
+static int	ReceivePetition(Node *sourceNode,  RamsGateway *gWay,
+			int domainContinuum, int domainRole, int domainUnit,
+			int subjectNbr)
 {
-     LystElt elt;
-   	 Petition *pet;
+	LystElt elt;
+	Petition *pet;
 
-	 
- printf("<receive petition> receive petition\n");
+//PUTS("<receive petition> receive petition");
 
 	  // add into DNS
-	 for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt = lyst_next(elt))
+	 for (elt = lyst_first(gWay->petitionSet); elt != NULL;
+			 elt = lyst_next(elt))
 	 {
 		 pet = (Petition *)lyst_data(elt);
-		 if (IsSubscriptionPublisherIdentical(pet, domainContinuum, domainRole, domainUnit, subjectNbr))
+		 if (IsSubscriptionPublisherIdentical(pet, domainContinuum,
+				 domainRole, domainUnit, subjectNbr))
 		 {
-			 if (!IsNodeExist(sourceNode, &(pet->DistributionNodeSet)))
+			 if (!IsNodeExist(sourceNode,
+					 &(pet->DistributionNodeSet)))
 			 {  			    
-				lyst_insert_last(pet->DistributionNodeSet, sourceNode);
-printf("<receive petition> add node %d into existing petition DNS\n", sourceNode->nbr);
+				lyst_insert_last(pet->DistributionNodeSet,
+						sourceNode);
+//printf("<receive petition> add node %d into existing petition DNS\n", sourceNode->nbr);
 			 }
+
 			 break;
 		 }
 	 }
@@ -2028,12 +2120,12 @@ printf("<receive petition> add node %d into existing petition DNS\n", sourceNode
 	 // no identical petition exist yet
 	 if (elt == NULL)
 	 {
- printf("<receive petition>create new petition\n");
-		pet = ConstructPetition(domainContinuum, domainRole, domainUnit, subjectNbr, PetitionAssertion);
+//PUTS("<receive petition>create new petition");
+		pet = ConstructPetition(domainContinuum, domainRole,
+				domainUnit, subjectNbr, PetitionAssertion);
 		lyst_insert_last(pet->DistributionNodeSet, sourceNode);
 		lyst_insert_last(gWay->petitionSet, pet);
 	 }
-
 
 	 // assert petition
 	 if (!AssertPetition(gWay, pet))
@@ -2042,8 +2134,8 @@ printf("<receive petition> add node %d into existing petition DNS\n", sourceNode
 		 return 0; 
 	 }
 
- printf("<receive petition> \n");
- printRAMSContent(&gWay);
+//PUTS("<receive petition>");
+//printRAMSContent(&gWay);
 	 return 1;  
 }
 
@@ -2053,25 +2145,29 @@ static int ReceiveCancelPetition(Node *sourceNode,  RamsGateway *gWay, int domai
 	 LystElt elt, nodeElt;
 	 Petition *pet;
 	 
-printf("<cancel petition> cancel petition\n");
-	
-	 for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt = lyst_next(elt))
+//PUTS("<cancel petition> cancel petition");
+
+	 for (elt = lyst_first(gWay->petitionSet); elt != NULL;
+			 elt = lyst_next(elt))
 	 {
 		 pet = (Petition *)lyst_data(elt);
-		 if (IsSubscriptionPublisherIdentical(pet, domainContinuum, domainRole, domainUnit, subjectNbr))
+		 if (IsSubscriptionPublisherIdentical(pet, domainContinuum,
+				 domainRole, domainUnit, subjectNbr))
 		 {
-			 if ((nodeElt = IsNodeExist(sourceNode, &(pet->DistributionNodeSet))) != NULL)
+			 if ((nodeElt = IsNodeExist(sourceNode,
+					 &(pet->DistributionNodeSet))) != NULL)
 			 {
 				 lyst_delete(nodeElt);		
- printf("<cancel petition> delete node %d from exist distribution order\n", sourceNode->nbr);
+//printf("<cancel petition> delete node %d from exist distribution order\n", sourceNode->nbr);
 			 }
+
 			 break;
 		 }
 	 }
 
 	 if (elt == NULL)   // not found the petition
 	 {
- printf("<cancel petition> no matched petition found\n");
+//PUTS("<cancel petition> no matched petition found");
 		ErrMsg("no matched petition found in ReceiveCancelPetition");
 		return 1;
 	 }
@@ -2080,18 +2176,15 @@ printf("<cancel petition> cancel petition\n");
 	 {
 		 if (CancelPetition(gWay, pet) == 0)
 		 {
-			 ErrMsg("error in propagating petition cancel in ReceiveCancelPetition");
+			 ErrMsg("error in propagating petition cancel in \
+ ReceiveCancelPetition");
 			 return 0;
 		 }
- printf("<cancel petition> cancel petition cId = %d unit = %d role = %d node = %d \n",  
-											 EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr),
-											 EnvelopeHeader(pet->specification->envelope, Env_PublishUnitNbr),
-											 EnvelopeHeader(pet->specification->envelope, Env_PublishRoleNbr),
-											 EnvelopeHeader(pet->specification->envelope, Env_DestIDField));
+//printf("<cancel petition> cancel petition cId = %d unit = %d role = %d node = %d \n",  EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr), EnvelopeHeader(pet->specification->envelope, Env_PublishUnitNbr), EnvelopeHeader(pet->specification->envelope, Env_PublishRoleNbr), EnvelopeHeader(pet->specification->envelope, Env_DestIDField));
 	 }
-	
-	printf("<cancel petition> \n");
-    printRAMSContent(&gWay);
+
+//PUTS("<cancel petition>");
+//printRAMSContent(&gWay);
 	return 1;
 }
 
@@ -2109,13 +2202,11 @@ static int ForwardPublishMessage(RamsGateway *gWay, AmsEvent amsEvent)
 	unsigned char flowLabel;
 	int roleNbr; 
 
-
-printf("<forward publish> forward publish message\n");
-
+//PUTS("<forward publish> forward publish message");
 	ams_parse_msg(amsEvent, &conId, &unitNbr, &nodeNbr, &subNbr,
 			&contentLen, &content,    // contId: source information
 			&context, &msgType, &priority, &flowLabel);
-printf("<forward publish> contentLength = %d \n", contentLen);// ?? check??
+//printf("<forward publish> contentLength = %d \n", contentLen);// ?? check??
 
 	roleNbr = RoleNumber(gWay->amsNode, unitNbr, nodeNbr);
 //	if (roleNbr < 0)
@@ -2131,18 +2222,21 @@ printf("<forward publish> contentLength = %d \n", contentLen);// ?? check??
 		flowLabel = (15 - priority) / 5;
 	}
 
-	// for each neighbor that is member of the DGS of at least one petition whose sub. spec. 
-	// is satisfied by reived message header
+	// for each neighbor that is member of the DGS of at least one
+	// petition whose sub. spec. is satisfied by received message header
 	// calculation union of DGS of all satisfying the petition
 
 	legalN = lyst_create();
-	for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt = lyst_next(elt))
+	for (elt = lyst_first(gWay->petitionSet); elt != NULL;
+			elt = lyst_next(elt))
 	{		
 		pet = (Petition *)lyst_data(elt);
 		if (lyst_first(pet->DestinationRamsSet) == NULL)
 			continue; 
-		// check if the sourceNode of message match to the petition specification in collection order
-		if (!IsAmsMsgSatisfyPetition(gWay->amsNode, conId, unitNbr, nodeNbr, subNbr, pet))
+		// check if the sourceNode of message match to the
+		// petition specification in collection order
+		if (!IsAmsMsgSatisfyPetition(gWay->amsNode, conId, unitNbr,
+				nodeNbr, subNbr, pet))
 			continue;
       
 		RAMSSetUnion(legalN, pet->DestinationRamsSet);
@@ -2154,13 +2248,14 @@ printf("<forward publish> contentLength = %d \n", contentLen);// ?? check??
 	{
 		remoteGWay = (RamsNode *)lyst_data(elt);		    
 			
-			// put source role number into the envelope to be sent to remote continuum
-printf("<forward publish> forward message to con=%d \n", remoteGWay->continuumNbr); 
+		// put source role number into the envelope to
+		// be sent to remote continuum
+//printf("<forward publish> forward message to con=%d \n", remoteGWay->continuumNbr); 
 		if (!ConstructEnvelopeToRAMS(gWay, flowLabel, enc, 0, 0,
 				roleNbr, 0, PublishOnReception, subNbr,
 				remoteGWay->continuumNbr))
 		{
-printf("<forward publish> forward public message error\n");
+//PUTS("<forward publish> forward public message error");
 			ErrMsg("error in forward publish message");
 			DeleteEnclosure(enc);
 			return 0;
@@ -2172,26 +2267,29 @@ printf("<forward publish> forward public message error\n");
 }
 
 
-// received content is an envelope on "send on reception" or "announce on reception"
-static int ForwardPrivateMessage(RamsGateway *gWay, unsigned char flowLabel,
-		char* content, int contentLength)
+// received content is an envelope on "send on reception"
+// or "announce on reception"
+static int	ForwardPrivateMessage(RamsGateway *gWay,
+			unsigned char flowLabel, char* content,
+			int contentLength)
 {
 	LystElt elt; 
 	RamsNode *ramsNode;		//	formerly bpP
 	int contId; 
 
-printf("<forward private> forward private message\n");
-printf("<forward private> need to forward private to con %d \n", EnvelopeHeader(content, Env_ContinuumNbr));
+//PUTS("<forward private> forward private message");
+//printf("<forward private> need to forward private to con %d \n", EnvelopeHeader(content, Env_ContinuumNbr));
 
 	contId = EnvelopeHeader(content, Env_ContinuumNbr);  
-printf("<forward private> message is %s\n", content+ENVELOPELENGTH+AMSMSGHEADER);
+//printf("<forward private> message is %s\n", content+ENVELOPELENGTH+AMSMSGHEADER);
 	// if contId == 0, announce the message
 	if (contId == 0)
 	{
-		for (elt = lyst_first(gWay->ramsMib->declaredNeighbors); elt != NULL; elt = lyst_next(elt))
+		for (elt = lyst_first(gWay->ramsMib->declaredNeighbors);
+				elt != NULL; elt = lyst_next(elt))
 		{
 			ramsNode = (RamsNode *)lyst_data(elt);
-printf("<forward private> forward private to con %d \n", ramsNode->continuumNbr);
+//printf("<forward private> forward private to con %d \n", ramsNode->continuumNbr);
 			if (!SendMessageToContinuum(gWay,
 					ramsNode->continuumNbr, flowLabel,
 					content, contentLength))
@@ -2207,20 +2305,20 @@ printf("<forward private> forward private to con %d \n", ramsNode->continuumNbr)
 		ramsNode = GetConduitForContinuum(contId, gWay);
 		if (ramsNode)
 		{
-printf("<forward private> forward private to con %d \n", ramsNode->continuumNbr);
+//printf("<forward private> forward private to con %d \n", ramsNode->continuumNbr);
 			if (!SendMessageToContinuum(gWay,
 					ramsNode->continuumNbr, flowLabel,
 					content, contentLength))
 				// send to neighbor RAMS, only one
 			{
-printf("<forward private> forward error\n");
+//PUTS("<forward private> forward error");
 				ErrMsg("error in Forward Private Message");
 				return 0;
 			 }
 		}
 		else
 		{
-printf("<forward private> no conduit exist\n");
+//PUTS("<forward private> no conduit exist");
 		}
 	}
 	return 1;
@@ -2264,7 +2362,7 @@ int	SendMessageViaBp(RamsGateway *gWay, RamsNode *ramsNode,
 
 	while (sdr == NULL)
 	{
-		printf("sdr has not been set yet\n");
+		PUTS("sdr has not been set yet.");
 		snooze(1);
 	}
 
@@ -2276,7 +2374,7 @@ int	SendMessageViaBp(RamsGateway *gWay, RamsNode *ramsNode,
 	}
 
 	sdr_begin_xn(sdr);
-//printf("after sdr_begin_xn\n");
+//PUTS("after sdr_begin_xn");
 	extent = sdr_insert(sdr, envelope, envelopeLength);
 	if (extent == 0)
 	{
@@ -2285,16 +2383,16 @@ int	SendMessageViaBp(RamsGateway *gWay, RamsNode *ramsNode,
 		return 0;
 	}
 
-//printf("after sdr_insert\n");
+//PUTS("after sdr_insert");
 
 	bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0, envelopeLength);
-//printf("after zco_create\n");
+//PUTS("after zco_create");
 	if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
 	{
 		ErrMsg("failed creating message");
 		return 0;
 	}
-//printf("after sdr_end_xn\n");
+//PUTS("after sdr_end_xn");
 
 	if (bp_send(sap, BP_BLOCKING, ramsNode->gwEid, NULL, ttl,
 			classOfService, custodySwitch, 0, 0, &ecos,
@@ -2356,10 +2454,10 @@ int	SendMessageToContinuum(RamsGateway *gWay, int continuumId,
 	RamsNode	*ramsNode;		//	formerly bpP
 	//int		i;
 
-printf("<SendMessageToContinuum> to %d\n", continuumId);
+//printf("<SendMessageToContinuum> to %d\n", continuumId);
 	if (continuumId == 0)	//	Send to all continua
 	{
-printf("<SendMessageToContinuum> sent to the following continuum\n");
+//PUTS("<SendMessageToContinuum> sent to the following continuum");
 		for (elt = lyst_first(gWay->ramsMib->ramsNeighbors);
 				elt != NULL; elt = lyst_next(elt))
 		{
@@ -2369,10 +2467,8 @@ printf("<SendMessageToContinuum> sent to the following continuum\n");
 			{
 				continue;
 			}
-				
-printf("<SendMessageToContinuum> to %d envelopeLength=%d cc=%d\n",
-ramsNode->continuumNbr, envelopeLength,
-EnvelopeHeader(envelope, Env_ControlCode));
+
+//printf("<SendMessageToContinuum> to %d envelopeLength=%d cc=%d\n", ramsNode->continuumNbr, envelopeLength, EnvelopeHeader(envelope, Env_ControlCode));
 			switch (ramsNode->protocol)
 			{
 			case RamsBp:
@@ -2412,7 +2508,7 @@ EnvelopeHeader(envelope, Env_ControlCode));
 		isprintf(errorMsg, sizeof errorMsg, "continuum %d does not \
 exist", continuumId);
 		ErrMsg(errorMsg);
-printf("<SendMessageToContinuum> continuum %d not declared yet\n", continuumId);
+//printf("<SendMessageToContinuum> continuum %d not declared yet\n", continuumId);
 		return 0;
 	}
 

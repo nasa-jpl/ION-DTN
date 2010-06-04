@@ -12,32 +12,17 @@
 
 #include "platform.h"
 
-static int	processLine(char *line)
+static int	processLine(char *line, int lineLength)
 {
-	int		lineLength;
 	char		fileName[256];
 	int		fd;
 	int		i;
 	int		val;
 	unsigned char	key[20];
 
-	if (line == NULL) return 0;
-
-	lineLength = strlen(line);
-	if (lineLength <= 0) return 0;
-
-	if (line[lineLength - 1] == 0x0a)	/*	LF (newline)	*/
+	if (*line == '#')		/*	Comment.		*/
 	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength <= 0) return 0;
-	}
-
-	if (line[lineLength - 1] == 0x0d)	/*	CR (DOS text)	*/
-	{
-		line[lineLength - 1] = '\0';	/*	lose it		*/
-		lineLength--;
-		if (lineLength <= 0) return 0;
+		return 0;
 	}
 
 	if (strcmp(line, "q") == 0)
@@ -74,27 +59,35 @@ static int	processLine(char *line)
 int	main(int argc, char **argv)
 {
 	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
-	FILE	*cmdFile;
+	int	cmdFile;
 	char	line[80];
+	int	len;
 
 	srandom(time(NULL));
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
+		cmdFile = fileno(stdin);
 		while (1)
 		{
 			printf(": ");
-			if (fgets(line, sizeof line, stdin) == NULL)
+			fflush(stdout);
+			if (igets(cmdFile, line, sizeof line, &len) == NULL)
 			{
-				if (feof(stdin))
+				if (len == 0)
 				{
 					break;
 				}
 
-				perror("hmackeys fgets failed");
+				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
 
-			if (processLine(line))
+			if (len == 0)
+			{
+				continue;
+			}
+
+			if (processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -102,36 +95,43 @@ int	main(int argc, char **argv)
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = fopen(cmdFileName, "r");
-		if (cmdFile == NULL)
+		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		if (cmdFile < 0)
 		{
-			perror("Can't open keynames file");
+			PERROR("Can't open keynames file");
 		}
 		else
 		{
 			while (1)
 			{
-				if (fgets(line, sizeof line, cmdFile) == NULL)
+				if (igets(cmdFile, line, sizeof line, &len)
+						== NULL)
 				{
-					if (feof(cmdFile))
+					if (len == 0)
 					{
 						break;	/*	Loop.	*/
 					}
 
-					perror("hmackeys fgets failed");
+					putErrmsg("igets failed.", NULL);
 					break;		/*	Loop.	*/
 				}
 
-				if (processLine(line))
+				if (len == 0
+				|| line [0] == '#')	/*	Comment.*/
+				{
+					continue;
+				}
+
+				if (processLine(line, len))
 				{
 					break;	/*	Out of loop.	*/
 				}
 			}
 
-			fclose(cmdFile);
+			close(cmdFile);
 		}
 	}
 
-	puts("Stopping hmackeys.");
+	PUTS("Stopping hmackeys.");
 	return 0;
 }
