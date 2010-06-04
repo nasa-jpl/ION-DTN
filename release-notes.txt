@@ -49,6 +49,20 @@ Features included:
 	information, check man brsscla and man brsccla.
 
 ----------------------
+NOTES ON RELEASE NEXT
+----------------------
+
+- Code scrub.
+
+- Add support for asymmetric link-delay (range) in contacts.
+
+- Add option to configure LTP spans for "purge" behavior on contact termination.
+
+- Fixed handling of dtn:none eids.
+
+- Optimize contact graph routing.
+
+----------------------
 NOTES ON RELEASE 2.1.0
 ----------------------
 
