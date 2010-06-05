@@ -276,6 +276,7 @@ static void	*receiveBundles(void *parm)
 	char			key[DIGEST_LEN];
 	int			keyBufLen = sizeof key;
 	int			keyLen;
+	char			errtext[300];
 	char			digest[DIGEST_LEN];
 	int			threadRunning = 1;
 	AcqWorkArea		*work;
@@ -380,10 +381,11 @@ static void	*receiveBundles(void *parm)
 	timeTag = ntohl(timeTag);
 	if (timeTag - currentTime > BRSTERM || currentTime - timeTag > BRSTERM)
 	{
-printf("Registration rejected: time tag is %u, must be between %u and %u.\n",
-(unsigned int) timeTag, (unsigned int) (currentTime - BRSTERM),
-(unsigned int) (currentTime + BRSTERM));
-fflush(stdout);
+		isprintf(errtext, sizeof errtext, "[?] Registration rejected: \
+time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
+				(unsigned int) (currentTime - BRSTERM),
+				(unsigned int) (currentTime + BRSTERM));
+		writeMemo(errtext);
 		*parms->authenticated = 1;	/*	Inauthentic.	*/
 		terminateReceiverThread(parms);
 		MRELEASE(parms);
@@ -393,8 +395,7 @@ fflush(stdout);
 	oK(hmac_authenticate(digest, DIGEST_LEN, key, keyLen, registration, 4));
 	if (memcmp(digest, registration + 4, DIGEST_LEN) != 0)
 	{
-printf("Registration rejected: digest is incorrect.\n");
-fflush(stdout);
+		writeMemo("[?] Registration rejected: digest is incorrect.");
 		*parms->authenticated = 1;	/*	Inauthentic.	*/
 		terminateReceiverThread(parms);
 		MRELEASE(parms);
@@ -859,7 +860,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: brsscla <local host name>[:<port number>] \
+		PUTS("Usage: brsscla <local host name>[:<port number>] \
 [<first duct nbr in scope>[ <last duct nbr in scope>]]");
 		return 0;
 	}

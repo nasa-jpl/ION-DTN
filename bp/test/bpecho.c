@@ -22,13 +22,22 @@
 
 static char	dlvmarks[] = "?.*!";
 
-static int	running;
-static BpSAP	sap;
+static BpSAP	_bpsap(BpSAP *newSAP)
+{
+	static BpSAP	sap = NULL;
+	
+	if (newSAP)
+	{
+		sap = *newSAP;
+		sm_TaskVarAdd((int *) &sap);
+	}
+
+	return sap;
+}
 
 static void	handleQuit()
 {
-	running = 0;
-	bp_interrupt(sap);
+	bp_interrupt(_bpsap(NULL));
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -41,7 +50,9 @@ int	main(int argc, char **argv)
 {
 	char	*ownEid = (argc > 1 ? argv[1] : NULL);
 #endif
+	BpSAP		sap;
 	Sdr		sdr;
+	int		running = 1;
 	char		dataToSend[ADU_LEN] = "x";
 	Object		bundleZco;
 	Object		newBundle;
@@ -51,7 +62,7 @@ int	main(int argc, char **argv)
 
 	if (ownEid == NULL)
 	{
-		puts("Usage: bpecho <own endpoint ID>");
+		PUTS("Usage: bpecho <own endpoint ID>");
 		return 0;
 	}
 
@@ -66,10 +77,10 @@ int	main(int argc, char **argv)
 		putErrmsg("Can't open own endpoint.", NULL);
 		return 0;
 	}
-	
+
+	oK(_bpsap(&sap));
 	sdr = bp_get_sdr();
-	signal(SIGINT, handleQuit);
-	running = 1;
+	isignal(SIGINT, handleQuit);
 	while (1)
 	{
 		/*	Wait for a bundle from the driver.		*/
@@ -86,12 +97,18 @@ int	main(int argc, char **argv)
 
 putchar(dlvmarks[dlv.result]);
 fflush(stdout);
+			if (dlv.result == BpReceptionInterrupted)
+			{
+				running = 0;
+				continue;
+			}
+
 			if (dlv.result == BpPayloadPresent)
 			{
 				istrcpy(sourceEid, dlv.bundleSourceEid,
 						sizeof sourceEid);
 				bp_release_delivery(&dlv, 1);
-				break;
+				break;	/*	Out of reception loop.	*/
 			}
 
 			bp_release_delivery(&dlv, 1);
@@ -99,7 +116,7 @@ fflush(stdout);
 
 		if (!running)	/*	Benchmark run terminated.	*/
 		{
-			break;
+			break;		/*	Out of main loop.	*/
 		}
 
 		/*	Now send acknowledgment bundle.			*/
@@ -109,8 +126,8 @@ fflush(stdout);
 		if (extent == 0)
 		{
 			sdr_cancel_xn(sdr);
-			putSysErrmsg("No space for ZCO extent", NULL);
-			break;
+			putErrmsg("No space for ZCO extent.", NULL);
+			break;		/*	Out of main loop.	*/
 		}
 
 		sdr_write(sdr, extent, dataToSend, ADU_LEN);
@@ -118,15 +135,15 @@ fflush(stdout);
 		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
-			break;
+			break;		/*	Out of main loop.	*/
 		}
 
 		if (bp_send(sap, BP_BLOCKING, sourceEid, NULL, 300,
 				BP_STD_PRIORITY, NoCustodyRequested,
 				0, 0, NULL, bundleZco, &newBundle) < 1)
 		{
-			putSysErrmsg("bpecho can't send echo bundle", NULL);
-			break;
+			putErrmsg("bpecho can't send echo bundle.", NULL);
+			break;		/*	Out of main loop.	*/
 		}
 	}
 

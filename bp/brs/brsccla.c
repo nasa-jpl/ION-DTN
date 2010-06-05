@@ -244,7 +244,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: brsccla <server host name>[:<port number>]_<duct \
+		PUTS("Usage: brsccla <server host name>[:<port number>]_<duct \
 number>");
 		return 0;
 	}
@@ -252,7 +252,7 @@ number>");
 	cursor = strchr(ductName, '_');
 	if (cursor == NULL)
 	{
-		puts("Duct number omitted from duct name.");
+		PUTS("Duct number omitted from duct name.");
 		return 1;
 	}
 

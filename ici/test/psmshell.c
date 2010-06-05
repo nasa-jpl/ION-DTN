@@ -223,5 +223,8 @@ int	main(int argc, char **argv)
 
 	partitionSize = atoi(argv[1]);
 #endif
+#ifdef FSWLOGGER
+	return 0;	/*	No stdin/stdout, can't be interactive.	*/
+#endif
 	return run_psmshell(partitionSize);
 }

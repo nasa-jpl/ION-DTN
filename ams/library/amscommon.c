@@ -2059,7 +2059,7 @@ int	constructMamsEndpoint(MamsEndpoint *endpoint, int eptLength, char *ept)
 
 	memcpy(endpoint->ept, ept, eptLength);
 	endpoint->ept[eptLength] = '\0';
-//printf("constructing Mams endpoint for '%s'.\n", endpoint->ept);
+//PUTMEMO("Constructing MAMS endpoint", endpoint->ept);
 
 	/*	The primary transport service's endpoint parsing
 	 *	function examines the endpoint name text and fills
@@ -2076,7 +2076,7 @@ int	constructMamsEndpoint(MamsEndpoint *endpoint, int eptLength, char *ept)
 
 void	clearMamsEndpoint(MamsEndpoint *ep)
 {
-//puts("...in clearMamsEndpoint...");
+//PUTS("...in clearMamsEndpoint...");
 	mib->pts->clearMamsEndpointFn(ep);
 	ep->tsep = NULL;
 	if (ep->ept)
@@ -2488,8 +2488,9 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 
 		if (authenticatorLength != authNameLen + 8)
 		{
-//printf("authenticatorLength = %d, authNameLen = %d, authName = '%s'.\n",
-//authenticatorLength, authNameLen, authName);
+//PUTMEMO("authenticatorLength", utoa(authenticatorLength));
+//PUTMEMO("authNameLen", utoa(authNameLen));
+//PUTMEMO("authName", authName);
 			putErrmsg("MAMS msg discarded; bad authenticator.",
 					NULL);
 			errno = EINVAL;

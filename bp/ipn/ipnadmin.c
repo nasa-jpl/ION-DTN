@@ -36,7 +36,7 @@ static void	printText(char *text)
 		writeMemo(text);
 	}
 
-	puts(text);
+	PUTS(text);
 }
 
 static void	handleQuit()
@@ -57,42 +57,42 @@ static void	printSyntaxError(int lineNbr)
 
 static void	printUsage()
 {
-	puts("Syntax of 'duct expression' is:");
-	puts("\t<protocol name>/<outduct name>[,<dest induct name>]");
-	puts("Syntax of 'qualifier' is:");
-	puts("\t{ <source service nbr> | * } { <source node nbr> | * }");
-	puts("Valid commands are:");
-	puts("\tq\tQuit");
-	puts("\th\tHelp");
-	puts("\t?\tHelp");
-	puts("\ta\tAdd");
-	puts("\t   a plan <node nbr> <default duct expression>");
-	puts("\t   a planrule <node nbr> <qualifier> <duct expression>");
-	puts("\t   a group <first node nbr> <last node nbr> <endpoint ID>");
-	puts("\t   a grouprule <first node nbr> <last node nbr> <qualifier> \
+	PUTS("Syntax of 'duct expression' is:");
+	PUTS("\t<protocol name>/<outduct name>[,<dest induct name>]");
+	PUTS("Syntax of 'qualifier' is:");
+	PUTS("\t{ <source service nbr> | * } { <source node nbr> | * }");
+	PUTS("Valid commands are:");
+	PUTS("\tq\tQuit");
+	PUTS("\th\tHelp");
+	PUTS("\t?\tHelp");
+	PUTS("\ta\tAdd");
+	PUTS("\t   a plan <node nbr> <default duct expression>");
+	PUTS("\t   a planrule <node nbr> <qualifier> <duct expression>");
+	PUTS("\t   a group <first node nbr> <last node nbr> <endpoint ID>");
+	PUTS("\t   a grouprule <first node nbr> <last node nbr> <qualifier> \
 <endpoint ID>");
-	puts("\tc\tChange");
-	puts("\t   c plan <node nbr> <default duct expression>");
-	puts("\t   c planrule <node nbr> <qualifier> <duct expression>");
-	puts("\t   c group <first node nbr> <last node nbr> <endpoint ID>");
-	puts("\t   c grouprule <first node nbr> <last node nbr> <qualifier> \
+	PUTS("\tc\tChange");
+	PUTS("\t   c plan <node nbr> <default duct expression>");
+	PUTS("\t   c planrule <node nbr> <qualifier> <duct expression>");
+	PUTS("\t   c group <first node nbr> <last node nbr> <endpoint ID>");
+	PUTS("\t   c grouprule <first node nbr> <last node nbr> <qualifier> \
 <endpoint ID>");
-	puts("\td\tDelete");
-	puts("\ti\tInfo");
-	puts("\t   {d|i} plan <node nbr>");
-	puts("\t   {d|i} planrule <node nbr> <qualifier>");
-	puts("\t   {d|i} group <first node nbr> <last node nbr>");
-	puts("\t   {d|i} grouprule <first node nbr> <last node nbr> \
+	PUTS("\td\tDelete");
+	PUTS("\ti\tInfo");
+	PUTS("\t   {d|i} plan <node nbr>");
+	PUTS("\t   {d|i} planrule <node nbr> <qualifier>");
+	PUTS("\t   {d|i} group <first node nbr> <last node nbr>");
+	PUTS("\t   {d|i} grouprule <first node nbr> <last node nbr> \
 <qualifier>");
-	puts("\tl\tList");
-	puts("\t   l group");
-	puts("\t   l plan");
-	puts("\t   l planrule <node nbr>");
-	puts("\t   l grouprule <first node nbr> <last node nbr>");
-	puts("\te\tEnable or disable echo of printed output to log file");
-	puts("\t   e { 0 | 1 }");
-	puts("\t#\tComment");
-	puts("\t   # <comment text>");
+	PUTS("\tl\tList");
+	PUTS("\t   l group");
+	PUTS("\t   l plan");
+	PUTS("\t   l planrule <node nbr>");
+	PUTS("\t   l grouprule <first node nbr> <last node nbr>");
+	PUTS("\te\tEnable or disable echo of printed output to log file");
+	PUTS("\t   e { 0 | 1 }");
+	PUTS("\t#\tComment");
+	PUTS("\t   # <comment text>");
 }
 
 static int	parseDuctExpression(char *token, DuctExpression *expression)
@@ -1009,6 +1009,9 @@ static int	run_ipnadmin(char *cmdFileName)
 
 	if (cmdFileName == NULL)	/*	Interactive.		*/
 	{
+#ifdef FSWLOGGER
+		return 0;
+#else
 		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
@@ -1036,13 +1039,14 @@ static int	run_ipnadmin(char *cmdFileName)
 				break;		/*	Out of loop.	*/
 			}
 		}
+#endif
 	}
-	else				/*	Scripted.		*/
+	else					/*	Scripted.	*/
 	{
 		cmdFile = open(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
-			perror("Can't open command file");
+			PERROR("Can't open command file");
 		}
 		else
 		{

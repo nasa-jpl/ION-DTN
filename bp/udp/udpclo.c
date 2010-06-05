@@ -123,7 +123,7 @@ int	main(int argc, char *argv[])
 	/*	Can now begin transmitting to remote duct.		*/
 
 	writeMemo("[i] udpclo is running.");
-	while (!(sm_SemEnded(udpcloSemaphore(NULL))))
+	while (!(sm_SemEnded(vduct->semaphore)))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName) < 0)

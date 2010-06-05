@@ -352,11 +352,11 @@ static int	dgrSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 	if (dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, msg, msgLen)
 			== DgrFailed)
 	{
-//puts("dgrSendMams failed.");
+//PUTS("dgrSendMams failed.");
 		return -1;
 	}
 
-//puts("dgrSendMams succeeded.");
+//PUTS("dgrSendMams succeeded.");
 	return 0;
 }
 
@@ -416,11 +416,11 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	if (dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, dgrAmsBuf, len)
 			== DgrFailed)
 	{
-//puts("dgrSendAms failed.");
+//PUTS("dgrSendAms failed.");
 		return -1;
 	}
 
-//puts("dgrSendAms succeeded.");
+//PUTS("dgrSendAms succeeded.");
 	return 0;
 }
 

@@ -469,7 +469,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: tcpcli <local host name>[:<port number>]");
+		PUTS("Usage: tcpcli <local host name>[:<port number>]");
 		return 0;
 	}
 

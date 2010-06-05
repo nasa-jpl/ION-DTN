@@ -36,7 +36,7 @@ static void	printText(char *text)
 		writeMemo(text);
 	}
 
-	puts(text);
+	PUTS(text);
 }
 
 static void	handleQuit()
@@ -57,31 +57,31 @@ static void	printSyntaxError(int lineNbr)
 
 static void	printUsage()
 {
-	puts("Syntax of 'directive' is:");
-	puts("\t{ f <endpoint ID> | x <protocol name>/<outduct name>[,dest \
+	PUTS("Syntax of 'directive' is:");
+	PUTS("\t{ f <endpoint ID> | x <protocol name>/<outduct name>[,dest \
 induct name] }");
-	puts("Note that, by convention, each node name must start with '//'.");
-	puts("Valid commands are:");
-	puts("\tq\tQuit");
-	puts("\th\tHelp");
-	puts("\t?\tHelp");
-	puts("\ta\tAdd");
-	puts("\t   a plan <node name> <default directive>");
-	puts("\t   a rule <node name> <demux name> <directive>");
-	puts("\tc\tChange");
-	puts("\t   c plan <node name> <default directive>");
-	puts("\t   c rule <node name> <demux name> <directive>");
-	puts("\td\tDelete");
-	puts("\t   d plan <node name>");
-	puts("\t   d rule <node name> <demux name>");
-	puts("\ti\tInfo");
-	puts("\t   i plan <node name>");
-	puts("\t   i rule <node name> <demux name>");
-	puts("\tl\tList");
-	puts("\t   l plan");
-	puts("\t   l rule <node name>");
-	puts("\t#\tComment");
-	puts("\t   # <comment text>");
+	PUTS("Note that, by convention, each node name must start with '//'.");
+	PUTS("Valid commands are:");
+	PUTS("\tq\tQuit");
+	PUTS("\th\tHelp");
+	PUTS("\t?\tHelp");
+	PUTS("\ta\tAdd");
+	PUTS("\t   a plan <node name> <default directive>");
+	PUTS("\t   a rule <node name> <demux name> <directive>");
+	PUTS("\tc\tChange");
+	PUTS("\t   c plan <node name> <default directive>");
+	PUTS("\t   c rule <node name> <demux name> <directive>");
+	PUTS("\td\tDelete");
+	PUTS("\t   d plan <node name>");
+	PUTS("\t   d rule <node name> <demux name>");
+	PUTS("\ti\tInfo");
+	PUTS("\t   i plan <node name>");
+	PUTS("\t   i rule <node name> <demux name>");
+	PUTS("\tl\tList");
+	PUTS("\t   l plan");
+	PUTS("\t   l rule <node name>");
+	PUTS("\t#\tComment");
+	PUTS("\t   # <comment text>");
 }
 
 static int	parseDirective(char *actionToken, char *parmToken,
@@ -699,6 +699,9 @@ static int	run_dtn2admin(char *cmdFileName)
 
 	if (cmdFileName == NULL)	/*	Interactive.		*/
 	{
+#ifdef FSWLOGGER
+		return 0;
+#endif
 		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
@@ -732,7 +735,7 @@ static int	run_dtn2admin(char *cmdFileName)
 		cmdFile = open(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
-			perror("Can't open command file");
+			PERROR("Can't open command file");
 		}
 		else
 		{

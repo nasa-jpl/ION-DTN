@@ -25,53 +25,53 @@ typedef struct
 
 static void	handleQuit()
 {
-	puts("Please enter command 'q' to stop the program.");
+	PUTS("Please enter command 'q' to stop the program.");
 }
 
 static void	printUsage()
 {
-	puts("Valid commands are:");
-	puts("\tq\tQuit");
-	puts("\th\tHelp");
-	puts("\t?\tHelp");
-	puts("\td\tSet destination entity number");
-	puts("\t   d <destination entity number>");
-	puts("\tf\tSet source file name");
-	puts("\t   f <source file name>");
-	puts("\tt\tSet destination file name");
-	puts("\t   t <destination file name>");
-	puts("\tl\tSet time-to-live (lifetime, in seconds)");
-	puts("\t   l <time-to-live>");
-	puts("\tp\tSet priority");
-	puts("\t   p <priority: 0, 1, or 2>");
-	puts("\to\tSet ordinal (sub-priority within priority 2)");
-	puts("\t   o <ordinal>");
-	puts("\tm\tSet transmission mode");
-	puts("\t   m <0 = reliable (the default), 1 = unreliable>");
-	puts("\tr\tAdd filestore request");
-	puts("\t   r <action code nbr> <first path name> <second path name>");
-	puts("\t\t\tAction code numbers are:");
-	puts("\t\t\t\t0 = create file");
-	puts("\t\t\t\t1 = delete file");
-	puts("\t\t\t\t2 = rename file");
-	puts("\t\t\t\t3 = append file");
-	puts("\t\t\t\t4 = replace file");
-	puts("\t\t\t\t5 = create directory");
-	puts("\t\t\t\t6 = remove directory");
-	puts("\t\t\t\t7 = deny file");
-	puts("\t\t\t\t8 = deny directory");
-	puts("\tu\tAdd message to user");
-	puts("\t   u '<message text>'");
-	puts("\t&\tSend file per specified parameters");
-	puts("\t   &");
-	puts("\t^\tCancel the current file transmission");
-	puts("\t   ^");
-	puts("\t%\tSuspend the current file transmission");
-	puts("\t   %");
-	puts("\t$\tResume the current file transmission");
-	puts("\t   $");
-	puts("\t#\tReport on the current file transmission");
-	puts("\t   #");
+	PUTS("Valid commands are:");
+	PUTS("\tq\tQuit");
+	PUTS("\th\tHelp");
+	PUTS("\t?\tHelp");
+	PUTS("\td\tSet destination entity number");
+	PUTS("\t   d <destination entity number>");
+	PUTS("\tf\tSet source file name");
+	PUTS("\t   f <source file name>");
+	PUTS("\tt\tSet destination file name");
+	PUTS("\t   t <destination file name>");
+	PUTS("\tl\tSet time-to-live (lifetime, in seconds)");
+	PUTS("\t   l <time-to-live>");
+	PUTS("\tp\tSet priority");
+	PUTS("\t   p <priority: 0, 1, or 2>");
+	PUTS("\to\tSet ordinal (sub-priority within priority 2)");
+	PUTS("\t   o <ordinal>");
+	PUTS("\tm\tSet transmission mode");
+	PUTS("\t   m <0 = reliable (the default), 1 = unreliable>");
+	PUTS("\tr\tAdd filestore request");
+	PUTS("\t   r <action code nbr> <first path name> <second path name>");
+	PUTS("\t\t\tAction code numbers are:");
+	PUTS("\t\t\t\t0 = create file");
+	PUTS("\t\t\t\t1 = delete file");
+	PUTS("\t\t\t\t2 = rename file");
+	PUTS("\t\t\t\t3 = append file");
+	PUTS("\t\t\t\t4 = replace file");
+	PUTS("\t\t\t\t5 = create directory");
+	PUTS("\t\t\t\t6 = remove directory");
+	PUTS("\t\t\t\t7 = deny file");
+	PUTS("\t\t\t\t8 = deny directory");
+	PUTS("\tu\tAdd message to user");
+	PUTS("\t   u '<message text>'");
+	PUTS("\t&\tSend file per specified parameters");
+	PUTS("\t   &");
+	PUTS("\t^\tCancel the current file transmission");
+	PUTS("\t   ^");
+	PUTS("\t%\tSuspend the current file transmission");
+	PUTS("\t   %");
+	PUTS("\t$\tResume the current file transmission");
+	PUTS("\t   $");
+	PUTS("\t#\tReport on the current file transmission");
+	PUTS("\t   #");
 }
 
 static void	setDestinationEntityNbr(int tokenCount, char **tokens,
@@ -81,7 +81,7 @@ static void	setDestinationEntityNbr(int tokenCount, char **tokens,
 
 	if (tokenCount != 2)
 	{
-		puts("What's the destination entity number?");
+		PUTS("What's the destination entity number?");
 		return;
 	}
 
@@ -94,7 +94,7 @@ static void	setSourceFileName(int tokenCount, char **tokens,
 {
 	if (tokenCount != 2)
 	{
-		puts("What's the source file name?");
+		PUTS("What's the source file name?");
 		return;
 	}
 
@@ -107,7 +107,7 @@ static void	setDestFileName(int tokenCount, char **tokens,
 {
 	if (tokenCount != 2)
 	{
-		puts("What's the destination file name?");
+		PUTS("What's the destination file name?");
 		return;
 	}
 
@@ -122,7 +122,7 @@ static void	setClassOfService(int tokenCount, char **tokens,
 
 	if (tokenCount != 2)
 	{
-		puts("What's the priority?");
+		PUTS("What's the priority?");
 		return;
 	}
 
@@ -136,7 +136,7 @@ static void	setOrdinal(int tokenCount, char **tokens, BpUtParms *utParms)
 
 	if (tokenCount != 2)
 	{
-		puts("What's the ordinal?");
+		PUTS("What's the ordinal?");
 		return;
 	}
 
@@ -150,7 +150,7 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 
 	if (tokenCount != 2)
 	{
-		puts("What's the mode?");
+		PUTS("What's the mode?");
 		return;
 	}
 
@@ -174,7 +174,7 @@ static void	setCriticality(int tokenCount, char **tokens,
 
 	if (tokenCount != 2)
 	{
-		puts("What's the criticality?");
+		PUTS("What's the criticality?");
 		return;
 	}
 
@@ -195,7 +195,7 @@ static void	setTTL(int tokenCount, char **tokens, BpUtParms *utParms)
 
 	if (tokenCount != 2)
 	{
-		puts("What's the TTL?");
+		PUTS("What's the TTL?");
 		return;
 	}
 
@@ -208,7 +208,7 @@ static void	addMsgToUser(int tokenCount, char **tokens,
 {
 	if (tokenCount != 2)
 	{
-		puts("What's the message text?");
+		PUTS("What's the message text?");
 		return;
 	}
 
@@ -241,7 +241,7 @@ static void	addFilestoreRequest(int tokenCount, char **tokens,
 			break;
 
 		default:
-			puts("Syntax: <action code> <1st name> [<2nd name>]");
+			PUTS("Syntax: <action code> <1st name> [<2nd name>]");
 			return;
 	}
 
@@ -290,7 +290,7 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 
 	if (*cursor != '\0')
 	{
-		puts("Too many tokens.");
+		PUTS("Too many tokens.");
 		return 0;
 	}
 
@@ -412,7 +412,7 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			return -1;	/*	End program.		*/
 
 		default:
-			puts("Invalid command.  Enter '?' for help.");
+			PUTS("Invalid command.  Enter '?' for help.");
 			return 0;
 	}
 }
@@ -584,7 +584,7 @@ static int	runCfdptestInteractive()
 	running = 0;
 	cfdp_interrupt();
 	pthread_join(receiverThread, NULL);
-	puts("Stopping cfdptest.");
+	PUTS("Stopping cfdptest.");
 	return 0;
 }
 
@@ -640,15 +640,17 @@ int	main(int argc, char **argv)
 
 	if (interactive)
 	{
+#ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
 		retval = runCfdptestInteractive();
 		ionDetach();
+#endif
 		return retval;
 	}
 
 	if (destNode == 0 || sourcePath == NULL || destPath == NULL || ttl == 0)
 	{
 		ionDetach();
-		puts("Usage: cfdptest [<destination entity nbr> <source file \
+		PUTS("Usage: cfdptest [<destination entity nbr> <source file \
 name> <destination file name> [<time-to-live, in seconds> [<priority: 0, 1, 2> \
 [<ordinal: 0-254> [<unreliable: 0 or 1> [<critical: 0 or 1>]]]]]]");
 		return 0;

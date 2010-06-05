@@ -309,7 +309,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: stcpcli <local host name>[:<port number>]");
+		PUTS("Usage: stcpcli <local host name>[:<port number>]");
 		return 0;
 	}
 

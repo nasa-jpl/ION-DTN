@@ -39,7 +39,7 @@ int	main(int argc, char *argv[])
 
 	if (remoteEngineId == 0)
 	{
-		puts("Usage: ltpmeter <non-zero remote engine ID>");
+		PUTS("Usage: ltpmeter <non-zero remote engine ID>");
 		return 0;
 	}
 

@@ -227,6 +227,7 @@ int	main(int argc, char **argv)
 	AmsNode		me;
 	AmsEventMgt	rules;
 
+#ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
 	signal(SIGINT, handleQuit);
 	if (unitName == NULL || roleName == NULL
 	|| applicationName == NULL || authorityName == NULL
@@ -272,5 +273,6 @@ messages.\n", stderr);
 
 	writeErrmsgMemos();
 	ams_unregister(me);
+#endif
 	return 0;
 }
