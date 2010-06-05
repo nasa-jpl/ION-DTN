@@ -166,7 +166,7 @@ int	main(int argc, char *argv[])
 	ReceiverThreadParms	rtp;
 	pthread_t		receiverThread;
 	int			fd;
-	char			quit;
+	char			quit = 0;
 
 	if (ductName == NULL)
 	{

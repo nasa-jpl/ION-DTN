@@ -108,8 +108,8 @@ static void	initializeLtp(int tokenCount, char **tokens)
 		return;
 	}
 
-	maxNbrOfSessions = atoi(tokens[1]);
-	blockSizeLimit = atoi(tokens[2]);
+	maxNbrOfSessions = strtol(tokens[1], NULL, 0);
+	blockSizeLimit = strtol(tokens[2], NULL, 0);
 	if (ionAttach() < 0)
 	{
 		putErrmsg("ltpadmin can't attach to ION.", NULL);
@@ -433,7 +433,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 		SYNTAX_ERROR;
 	}
 
-	newOwnQtime = atoi(tokens[2]);
+	newOwnQtime = strtol(tokens[2], NULL, 0);
 	if (newOwnQtime < 0)
 	{
 		putErrmsg("Own Q time invalid.", tokens[2]);
@@ -845,6 +845,7 @@ int	main(int argc, char **argv)
 	}
 
 	writeErrmsgMemos();
+	checkReservationLimit();
 	printText("Stopping ltpadmin.");
 	ionDetach();
 	return 0;

@@ -150,7 +150,6 @@ static void	*sendBundles(void *parm)
 		}
 
 		zco_stop_transmitting(sdr, &reader);
-		zco_destroy_reference(sdr, bundleZco);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			threadRunning = 0;
@@ -167,14 +166,22 @@ static void	*sendBundles(void *parm)
 					== DgrFailed)
 			{
 				failedTransmissions++;
-				if (bpHandleXmitFailure(buffer, bytesToSend))
+				if (bpHandleXmitFailure(bundleZco))
 				{
 					threadRunning = 0;
 					putErrmsg("Crashed handling failure.",
 							NULL);
-					continue;
 				}
 			}
+		}
+
+		sdr_begin_xn(sdr);
+		zco_destroy_reference(sdr, bundleZco);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			threadRunning = 0;
+			putErrmsg("Failed destroying bundle ZCO.", NULL);
+			continue;
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/
@@ -206,6 +213,7 @@ static void	*receiveBundles(void *parm)
 {
 	/*	Main loop for bundle reception thread via DGR.		*/
 
+	Sdr			sdr = getIonsdr();
 	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
 	char			*buffer;
 	AcqWorkArea		*work;
@@ -215,6 +223,7 @@ static void	*receiveBundles(void *parm)
 	unsigned int		fromHostNbr;
 	int			length;
 	int			errnbr;
+	Object			bundleZco;
 	char			hostName[MAXHOSTNAMELEN + 1];
 	char			senderEidBuffer[SDRSTRING_BUFSZ];
 	char			*senderEid;
@@ -249,9 +258,37 @@ static void	*receiveBundles(void *parm)
 			switch (rc)
 			{
 				case DgrDatagramNotAcknowledged:
-					if (bpHandleXmitFailure(buffer, length))
+					sdr_begin_xn(sdr);
+					bundleZco = zco_create(sdr,
+						ZcoSdrSource, sdr_insert(sdr,
+						buffer, length), 0, length);
+					if (sdr_end_xn(sdr) < 0)
 					{
-						break;
+						putErrmsg("Failed creating \
+temporary ZCO.", NULL);
+						threadRunning = 0;
+						break;	/*	Switch.	*/
+					}
+
+					if (bpHandleXmitFailure(bundleZco))
+					{
+						threadRunning = 0;
+						putErrmsg("Crashed handling \
+failure.", NULL);
+					}
+
+					sdr_begin_xn(sdr);
+					zco_destroy_reference(sdr, bundleZco);
+					if (sdr_end_xn(sdr) < 0)
+					{
+						threadRunning = 0;
+						putErrmsg("Failed destroying \
+bundle ZCO.", NULL);
+					}
+
+					if (threadRunning == 0)
+					{
+						break;	/*	Switch.	*/
 					}
 
 					continue;

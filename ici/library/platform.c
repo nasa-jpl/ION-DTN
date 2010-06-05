@@ -20,18 +20,6 @@ typedef struct rlock_str
 	short	init;
 } Rlock;		/*	Private-memory semaphore.		*/ 
 
-#ifndef VXWORKS6
-void	srandom(unsigned int seed)
-{
-	srand(seed);
-}
-
-long	random()
-{
-	return rand();
-}
-#endif
-
 int	createFile(const char *filename, int flags)
 {
 	int	result;

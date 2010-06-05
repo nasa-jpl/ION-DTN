@@ -191,7 +191,8 @@ void	sdr_stage(Sdr sdrv, char *into, Object from, long length)
 	ObjectExtent	*extent;
 
 	CHKVOID(sdr_in_xn(sdrv));
-	XNCHKVOID(!(length < 0 || (length > 0 && into == NULL) || from == 0));
+	XNCHKVOID(length == 0 || (length > 0 && into != NULL));
+	XNCHKVOID(from);
 	sdr = sdrv->sdr;
 	if ((sdr->configFlags & SDR_BOUNDED) == 0)/*	No staging.	*/
 	{

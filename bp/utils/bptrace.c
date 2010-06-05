@@ -142,7 +142,7 @@ int	bptrace(int a1, int a2, int a3, int a4, int a5,
 	char	*ownEid = (char *) a1;
 	char	*destEid = (char *) a2;
 	char	*traceEid = (char *) a3;
-	int	ttl = a4 ? atoi((char *) a4) : 0;
+	int	ttl = a4 ? strtol((char *) a4, NULL, 0) : 0;
 	char	*classOfService = (char *) a5;
 	char	*traceText = (char *) a6;
 	char	*flagString = (char *) a7;

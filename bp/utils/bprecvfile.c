@@ -32,6 +32,7 @@ static void	handleQuit()
 
 static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 {
+	static char	buffer[BPRECVBUFSZ];
 	static int	fileCount = 0;
 	int		contentLength;
 	int		remainingLength;
@@ -39,7 +40,6 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 	int		testFile = -1;
 	ZcoReader	reader;
 	int		recvLength;
-	char		buffer[BPRECVBUFSZ];
 	char		completionText[80];
 
 	fileCount++;
