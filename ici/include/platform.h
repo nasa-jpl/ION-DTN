@@ -178,6 +178,8 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include <sys/resource.h>
 #include <sys/time.h>
 
+#define	_MULTITHREADED		/*	To pick up resource lock code.	*/
+
 #else				/****	Neither VxWorks nor RTEMS	****/
 
 #if defined (unix)		/****	All UNIX platforms		****/
