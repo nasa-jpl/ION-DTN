@@ -10,9 +10,9 @@
 #include <bp.h>
 
 static char	*deliveryTypes[] =	{
-			"Payload delivered",
-			"Reception timed out",
-			"Reception interrupted"
+			"Payload delivered.",
+			"Reception timed out.",
+			"Reception interrupted."
 					};
 static BpSAP	_bpsap(BpSAP *newSAP)
 {
