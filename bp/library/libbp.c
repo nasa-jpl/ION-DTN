@@ -16,8 +16,6 @@
 
 #include "bpP.h"
 
-static char	*NullParmsMemo = "BP app error: null input parameter(s).";
-
 typedef struct
 {
 	int		interval;	/*	Seconds.		*/
@@ -56,13 +54,7 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 	VEndpoint	*vpoint;
 	PsmAddress	vpointElt;
 
-	if (eidString == NULL || *eidString == 0 || bpsapPtr == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(eidString && *eidString && bpsapPtr);
 	*bpsapPtr = NULL;	/*	Default, in case of failure.	*/
 	sdr = getIonsdr();
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
@@ -73,7 +65,6 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 	{
 		sdr_exit_xn(sdr);
 		putErrmsg("Malformed EID.", eidString);
-		errno = EINVAL;
 		return -1;
 	}
 
@@ -82,7 +73,6 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 		sdr_exit_xn(sdr);
 		putErrmsg("Scheme not known.", metaEid.schemeName);
 		restoreEidString(&metaEid);
-		errno = EINVAL;
 		return -1;
 	}
 
@@ -92,7 +82,6 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 		sdr_exit_xn(sdr);
 		putErrmsg("Endpoint not known.", metaEid.nss);
 		restoreEidString(&metaEid);
-		errno = EINVAL;
 		return -1;
 	}
 
@@ -110,7 +99,6 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 			}
 
 			restoreEidString(&metaEid);
-			errno = EINVAL;
 			putErrmsg("Endpoint is already open.",
 					itoa(vpoint->appPid));
 			return -1;
@@ -205,7 +193,9 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 	MetaEid		*sourceMetaEid;
 	Throttle	*throttle;
 
+	CHKERR(bundleObj);
 	*bundleObj = 0;
+	CHKERR(adu);
 	if (ecos == NULL)
 	{
 		ecos = &defaultECOS;
@@ -216,13 +206,6 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 		{
 			ecos->ordinal = 254;
 		}
-	}
-
-	if (adu == 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg(NullParmsMemo, NULL);
-		return -1;
 	}
 
 	if (sap)
@@ -278,6 +261,7 @@ int	bp_track(Object bundleObj, Object trackingElt)
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(Bundle, bundle);
 
+	CHKERR(bundleObj && trackingElt);
 	sdr_begin_xn(sdr);
 	GET_OBJ_POINTER(sdr, Bundle, bundle, bundleObj);
 	if (bundle->trackingElts == 0)
@@ -303,6 +287,7 @@ void	bp_untrack(Object bundleObj, Object trackingElt)
 		OBJ_POINTER(Bundle, bundle);
 	Object	elt;
 
+	CHKVOID(bundleObj && trackingElt);
 	sdr_begin_xn(sdr);
 	GET_OBJ_POINTER(sdr, Bundle, bundle, bundleObj);
 	if (bundle->trackingElts == 0)
@@ -418,17 +403,10 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	int		result;
 	char		*dictionary;
 
-	if (sap == 0 || dlvBuffer == NULL)
-	{
-		putErrmsg(NullParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(sap && dlvBuffer);
 	if (timeoutSeconds < BP_BLOCKING)
 	{
 		putErrmsg("Illegal timeout interval.", itoa(timeoutSeconds));
-		errno = EINVAL;
 		return -1;
 	}
 
@@ -445,7 +423,10 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	if (sm_SemEnded(vpoint->semaphore))
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Endpoint has been stopped.", NULL);
+		writeMemo("[?] Endpoint has been stopped.");
+
+		/*	End task, but without error.			*/
+
 		return -1;
 	}
 
@@ -495,6 +476,9 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		if (sm_SemEnded(vpoint->semaphore))
 		{
 			writeMemo("[i] Endpoint has been stopped.");
+
+			/*	End task, but without error.		*/
+
 			return -1;
 		}
 
@@ -582,7 +566,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		if (result < 0)
 		{
 			sdr_cancel_xn(sdr);
-			putErrmsg("Can't send status report", NULL);
+			putErrmsg("Can't send status report.", NULL);
 			return -1;
 		}
 	}
@@ -628,6 +612,7 @@ void	bp_release_delivery(BpDelivery *dlvBuffer, int releasePayload)
 {
 	Sdr	sdr = getIonsdr();
 
+	CHKVOID(dlvBuffer);
 	if (dlvBuffer->result == BpPayloadPresent)
 	{
 		if (dlvBuffer->bundleSourceEid)

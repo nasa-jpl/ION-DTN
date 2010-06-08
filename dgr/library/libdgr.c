@@ -255,11 +255,15 @@ static int	rcSnoozes;
 
 static void	dgrtrace()
 {
-	printf("%7d %7d %7d %7d %7d %7d %7d %7d %7d %3d\n", originalMsgs,
+	char	tracebuf[128];
+
+	iprintf(tracebuf, sizeof tracebuf,
+		"%7d %7d %7d %7d %7d %7d %7d %7d %7d %3d\n", originalMsgs,
 		resends[0], traceBytesOriginated, traceBytesResent,
 		traceBytesTransmitted, traceUnusedCapacity,
 		traceBytesAcknowledged, timeouts[0],
 		traceBytesToTransmit, traceRetard);
+	PUTS(tracebuf);
 }
 #endif
 /*	*	*	Common utility functions	*	*	*/
@@ -1355,7 +1359,7 @@ static void	adjustRateControl(DgrSAP *sap)
 	int	i;
 	DgrDest	*dest;
 
-//puts("---------------------------------------------------------------");
+//PUTS("---------------------------------------------------------------");
 
 	pthread_mutex_lock(&sap->destsMutex);
 	for (i = 0, dest = sap->dests; i < DGR_MAX_DESTS; i++, dest++)

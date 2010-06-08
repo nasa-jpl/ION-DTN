@@ -13,13 +13,12 @@
 
 #define	DEFAULT_ADU_LENGTH	(60000)
 
-static int	running;
-
 static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 			int aduLength)
 {
 	Sdr		sdr;
-	FILE		*aduFile;
+	int		running = 1;
+	int		aduFile;
 	int		randomAduLength = 0;
 	int		bytesRemaining;
 	int		bytesToWrite;
@@ -35,16 +34,16 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 
 	if (cyclesRemaining == 0 || destEngineId == 0 || aduLength == 0)
 	{
-		puts("Usage: ltpdriver <number of cycles> \
+		PUTS("Usage: ltpdriver <number of cycles> \
 <destination engine ID> [<payload size>]");
-		puts("  Payload size defaults to 60000 bytes.");
-		puts("");
-		puts("  To use payload sizes chosen at random from the");
-	       	puts("	range 1024 to 62464, in multiples of 1024,");
-	       	puts("	specify payload size 1.");
-		puts("");
-		puts("  Destination (receiving) application must be");
-		puts("  ltpcounter.");
+		PUTS("  Payload size defaults to 60000 bytes.");
+		PUTS("");
+		PUTS("  To use payload sizes chosen at random from the");
+	       	PUTS("	range 1024 to 62464, in multiples of 1024,");
+	       	PUTS("	specify payload size 1.");
+		PUTS("");
+		PUTS("  Destination (receiving) application must be");
+		PUTS("  ltpcounter.");
 		return 0;
 	}
 
@@ -60,8 +59,8 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 		randomAduLength = 1;
 	}
 
-	aduFile = fopen("ltpdriverAduFile", "w");
-	if (aduFile == NULL)
+	aduFile = open("ltpdriverAduFile", O_WRONLY | O_CREAT, 0666);
+	if (aduFile < 0)
 	{
 		putSysErrmsg("Can't create ADU file", NULL);
 		return 0;
@@ -87,9 +86,9 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 			bytesToWrite = DEFAULT_ADU_LENGTH;
 		}
 
-		if (fwrite(buffer, bytesToWrite, 1, aduFile) < 1)
+		if (write(aduFile, buffer, bytesToWrite) < 0)
 		{
-			fclose(aduFile);
+			close(aduFile);
 			putSysErrmsg("Error writing to ADU file", NULL);
 			return 0;
 		}
@@ -98,7 +97,7 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 	}
 
 //sdr_start_trace(sdr, 10000000, NULL);
-	fclose(aduFile);
+	close(aduFile);
 	sdr_begin_xn(sdr);
 	fileRef = zco_create_file_ref(sdr, "ltpdriverAduFile", NULL);
 	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
@@ -107,7 +106,6 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 		return 0;
 	}
 	
-	running = 1;
 	startTime = time(NULL);
 	while (running && cyclesRemaining > 0)
 	{
@@ -140,40 +138,40 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 		}
 
 		bytesSent += aduLength;
-putchar('^');
-fflush(stdout);
+//putchar('^');
+//fflush(stdout);
 		cyclesRemaining--;
 		if ((cyclesRemaining % 100) == 0)
 		{
 //sdr_clear_trace(sdr);
 //sdr_print_trace(sdr, 0);
-			printf("%d\n", cyclesRemaining);
+			PUTS(itoa(cyclesRemaining));
 		}
 	}
 
 	endTime = time(NULL);
 	writeErrmsgMemos();
 	interval = endTime - startTime;
-	printf("Time: %ld seconds.\n", interval);
+	PUTMEMO("Time (seconds)", itoa(interval));
 	if (randomAduLength)
 	{
-		printf("Data size random, %d cycles: %d bytes.\n", cycles,
-			bytesSent);
+		PUTS("Data size random.");
 	}
 	else
 	{
-		printf("Data size: %d bytes %d times = %d bytes.\n",
-			aduLength, cycles, bytesSent);
+		PUTMEMO("Data size (bytes)", itoa(aduLength));
 	}
 
+	PUTMEMO("Cycles", itoa(cycles));
+	PUTMEMO("Bytes", itoa(bytesSent));
 	if (interval <= 0)
 	{
-		puts("Interval is too short to measure rate.");
+		PUTS("Interval is too short to measure rate.");
 	}
 	else
 	{
-		printf("Throughput: %lu bytes per second.\n",
-				bytesSent / interval);
+		PUTMEMO("Throughput (bytes per second)",
+				itoa(bytesSent / interval));
 	}
 
 //sdr_stop_trace(sdr);

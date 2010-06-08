@@ -38,6 +38,7 @@ int	main(int argc, char **argv)
 	double		msgsPerSec;
 	double		bytesPerSec;
 	double		Mbps;
+	char		buf[128];
 
 	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, "amsdemo", "test",
 			"", "benchr", &me) < 0)
@@ -109,10 +110,13 @@ int	main(int argc, char **argv)
 	msgsPerSec = msgs / seconds;
 	bytesPerSec = bytes / seconds;
 	Mbps = (bytesPerSec * 8) / (1024 * 1024);
-	printf("Received %d messages, totalling %.0f bytes, in %f seconds.\n",
-			msgs, bytes, seconds);
-	printf("%10.3f messages per second.\n", msgsPerSec);
-	printf("%10.3f Mbps.\n", Mbps);
+	isprintf(buf, sizeof buf, "Received %d messages, totalling %.0f bytes,\
+in %f seconds.", msgs, bytes, seconds);
+	PUTS(buf);
+	isprintf(buf, sizeof buf, "%10.3f messages per second.", msgsPerSec);
+	PUTS(buf);
+	isprintf(buf, sizeof buf, "%10.3f Mbps.", Mbps);
+	PUTS(buf);
 	writeErrmsgMemos();
 	ams_unregister(me);
 	return 0;

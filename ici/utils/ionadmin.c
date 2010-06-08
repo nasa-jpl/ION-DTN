@@ -47,7 +47,7 @@ static void	printText(char *text)
 		writeMemo(text);
 	}
 
-	puts(text);
+	PUTS(text);
 }
 
 static void	handleQuit()
@@ -68,50 +68,50 @@ static void	printSyntaxError(int lineNbr)
 
 static void	printUsage()
 {
-	puts("Valid commands are:");
-	puts("\tq\tQuit");
-	puts("\th\tHelp");
-	puts("\t?\tHelp");
-	puts("\tv\tPrint version of ION.");
-	puts("\t1\tInitialize");
-	puts("\t   1 <own node number> { \"\" | <configuration file name> }");
-	puts("\t@\tAt");
-	puts("\t   @ <reference time>");
-	puts("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
-	puts("\t\tThe @ command sets the reference time from which subsequent \
+	PUTS("Valid commands are:");
+	PUTS("\tq\tQuit");
+	PUTS("\th\tHelp");
+	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint version of ION.");
+	PUTS("\t1\tInitialize");
+	PUTS("\t   1 <own node number> { \"\" | <configuration file name> }");
+	PUTS("\t@\tAt");
+	PUTS("\t   @ <reference time>");
+	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
+	PUTS("\t\tThe @ command sets the reference time from which subsequent \
 relative times (+ss) are computed.");
-	puts("\ta\tAdd");
-	puts("\t   a contact <from time> <until time> <from node#> <to node#> \
+	PUTS("\ta\tAdd");
+	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
 <xmit rate in bytes per second>");
-	puts("\t   a range <from time> <until time> <from node#> <to node#> \
+	PUTS("\t   a range <from time> <until time> <from node#> <to node#> \
 <OWLT, i.e., range in light seconds>");
-	puts("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
-	puts("\td\tDelete");
-	puts("\ti\tInfo");
-	puts("\t   {d|i} contact <from time> <from node#> <to node#>");
-	puts("\t   {d|i} range <from time> <from node#> <to node#>");
-	puts("\tl\tList");
-	puts("\t   l contact");
-	puts("\t   l range");
-	puts("\tm\tManage ION database: clock, space occupancy");
-	puts("\t   m utcdelta <local clock time minus UTC, in seconds>");
-	puts("\t   m clockerr <new known maximum clock error, in seconds>");
-	puts("\t   m production <new planned production rate, in bytes/sec>");
-	puts("\t   m consumption <new planned consumption rate, in bytes/sec>");
-	puts("\t   m occupancy <new occupancy limit value, in bytes>");
-	puts("\t   m horizon { 0 | <end time for congestion forecasts> }");
-	puts("\t   m alarm '<congestion alarm script>'");
-	puts("\t   m usage");
-	puts("\tr\tRun a script or another program, such as an admin progrm");
-	puts("\t   r '<command>'");
-	puts("\ts\tStart");
-	puts("\t   s");
-	puts("\tx\tStop");
-	puts("\t   x");
-	puts("\te\tEnable or disable echo of printed output to log file");
-	puts("\t   e { 0 | 1 }");
-	puts("\t#\tComment");
-	puts("\t   # <comment text>");
+	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
+	PUTS("\td\tDelete");
+	PUTS("\ti\tInfo");
+	PUTS("\t   {d|i} contact <from time> <from node#> <to node#>");
+	PUTS("\t   {d|i} range <from time> <from node#> <to node#>");
+	PUTS("\tl\tList");
+	PUTS("\t   l contact");
+	PUTS("\t   l range");
+	PUTS("\tm\tManage ION database: clock, space occupancy");
+	PUTS("\t   m utcdelta <local clock time minus UTC, in seconds>");
+	PUTS("\t   m clockerr <new known maximum clock error, in seconds>");
+	PUTS("\t   m production <new planned production rate, in bytes/sec>");
+	PUTS("\t   m consumption <new planned consumption rate, in bytes/sec>");
+	PUTS("\t   m occupancy <new occupancy limit value, in bytes>");
+	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
+	PUTS("\t   m alarm '<congestion alarm script>'");
+	PUTS("\t   m usage");
+	PUTS("\tr\tRun a script or another program, such as an admin progrm");
+	PUTS("\t   r '<command>'");
+	PUTS("\ts\tStart");
+	PUTS("\t   s");
+	PUTS("\tx\tStop");
+	PUTS("\t   x");
+	PUTS("\te\tEnable or disable echo of printed output to log file");
+	PUTS("\t   e { 0 | 1 }");
+	PUTS("\t#\tComment");
+	PUTS("\t   # <comment text>");
 }
 
 static void	initializeNode(int tokenCount, char **tokens)
@@ -155,7 +155,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 	unsigned int	owlt;
 	Object		elt;
 
-	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Add what?");
@@ -212,7 +211,6 @@ static void	executeDelete(int tokenCount, char **tokens)
 	unsigned long	fromNodeNbr;
 	unsigned long	toNodeNbr;
 
-	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
@@ -266,7 +264,6 @@ static void	executeInfo(int tokenCount, char **tokens)
 	Object		rangeObj;
 	IonRange	range;
 
-	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Information on what?");
@@ -399,7 +396,6 @@ static void	executeList(int tokenCount, char **tokens)
 	Object	obj;
 	char	buffer[RFX_NOTE_LEN];
 
-	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("List what?");
@@ -674,7 +670,6 @@ forecast = %ld", iondb->currentOccupancy, iondb->occupancyCeiling,
 
 static void	executeManage(int tokenCount, char **tokens)
 {
-	if (ionAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Manage what?");
@@ -848,69 +843,86 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case 's':
-			if (ionAttach() < 0)
+			if (ionAttach() == 0)
 			{
-				return 0;
-			}
-
-			if (rfx_start() < 0)
-			{
-				putErrmsg("Can't start RFX.", NULL);
+				if (rfx_start() < 0)
+				{
+					putErrmsg("Can't start RFX.", NULL);
+				}
 			}
 
 			return 0;
 
 		case 'x':
-			if (ionAttach() < 0)
+			if (ionAttach() == 0)
 			{
-				return 0;
+				rfx_stop();
 			}
 
-			rfx_stop();
 			return 0;
 
 		case '@':
-			if (ionAttach() < 0)
+			if (ionAttach() == 0)
 			{
-				return 0;
-			}
-
-			if (tokenCount < 2)
-			{
-				printText("Can't set reference time: no time.");
-			}
-			else
-			{
-				if (_referenceTime(NULL) == 0)
+				if (tokenCount < 2)
 				{
-					referenceTime = getUTCTime();
-					oK(_referenceTime(&referenceTime));
+					printText("Can't set reference time: \
+no time.");
 				}
+				else
+				{
+					if (_referenceTime(NULL) == 0)
+					{
+						referenceTime = getUTCTime();
+						oK(_referenceTime
+							(&referenceTime));
+					}
 
-				referenceTime = readTimestampUTC(tokens[1],
-						referenceTime);
+					referenceTime = readTimestampUTC
+						(tokens[1], referenceTime);
+				}
 			}
 
 			return 0;
 
 		case 'a':
-			executeAdd(tokenCount, tokens);
+			if (ionAttach() == 0)
+			{
+				executeAdd(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'd':
-			executeDelete(tokenCount, tokens);
+			if (ionAttach() == 0)
+			{
+				executeDelete(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'i':
-			executeInfo(tokenCount, tokens);
+			if (ionAttach() == 0)
+			{
+				executeInfo(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'l':
-			executeList(tokenCount, tokens);
+			if (ionAttach() == 0)
+			{
+				executeList(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'm':
-			executeManage(tokenCount, tokens);
+			if (ionAttach() == 0)
+			{
+				executeManage(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'r':
@@ -946,6 +958,9 @@ int	main(int argc, char **argv)
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
+#ifdef FSWLOGGER
+		return 0;			/*	No stdin.	*/
+#else
 		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
@@ -973,6 +988,7 @@ int	main(int argc, char **argv)
 				break;		/*	Out of loop.	*/
 			}
 		}
+#endif
 	}
 	else if (strcmp(cmdFileName, ".") == 0) /*	Shutdown.	*/
 	{
@@ -986,7 +1002,7 @@ int	main(int argc, char **argv)
 		cmdFile = open(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
-			perror("Can't open command file");
+			PERROR("Can't open command file");
 		}
 		else
 		{

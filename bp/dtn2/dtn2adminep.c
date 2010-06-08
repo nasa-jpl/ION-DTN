@@ -90,5 +90,6 @@ int	main(int argc, char *argv[])
 
 	writeErrmsgMemos();
 	writeMemo("[i] dtn2adminep has ended.");
+	ionDetach();
 	return 0;
 }

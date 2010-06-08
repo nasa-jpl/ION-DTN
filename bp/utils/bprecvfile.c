@@ -12,13 +12,22 @@
 
 #define	BPRECVBUFSZ	(65536)
 
-static int	running;
-static BpSAP	sap;
+static BpSAP	_bpsap(BpSAP *newSAP)
+{
+	static BpSAP	sap = NULL;
+
+	if (newSAP)
+	{
+		sap = *newSAP;
+		sm_TaskVarAdd((int *) &sap);
+	}
+
+	return sap;
+}
 
 static void	handleQuit()
 {
-	running = 0;
-	bp_interrupt(sap);
+	bp_interrupt(_bpsap(NULL));
 }
 
 static int	receiveFile(Sdr sdr, BpDelivery *dlv)
@@ -27,7 +36,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 	int		contentLength;
 	int		remainingLength;
 	char		fileName[64];
-	FILE		*testFile = NULL;
+	int		testFile = -1;
 	ZcoReader	reader;
 	int		recvLength;
 	char		buffer[BPRECVBUFSZ];
@@ -36,8 +45,8 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 	fileCount++;
 	isprintf(fileName, sizeof fileName, "testfile%d", fileCount);
 	contentLength = zco_source_data_length(sdr, dlv->adu);
-	testFile = fopen(fileName, "w");
-	if (testFile == NULL)
+	testFile = open(fileName, O_WRONLY | O_CREAT, 0666);
+	if (testFile < 0)
 	{
 		putSysErrmsg("bprecvfile: can't open test file", fileName);
 		return -1;
@@ -57,17 +66,17 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 		if (zco_receive_source(sdr, &reader, recvLength, buffer) < 0)
 		{
 			zco_stop_receiving(sdr, &reader);
-			fclose(testFile);
+			close(testFile);
 			sdr_cancel_xn(sdr);
 			putErrmsg("bprecvfile: can't receive bundle content.",
 					fileName);
 			return -1;
 		}
 
-		if (fwrite(buffer, recvLength, 1, testFile) < 1)
+		if (write(testFile, buffer, recvLength) < 1)
 		{
 			zco_stop_receiving(sdr, &reader);
-			fclose(testFile);
+			close(testFile);
 			sdr_cancel_xn(sdr);
 			putSysErrmsg("bprecvfile: can't write to test file",
 					fileName);
@@ -78,7 +87,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 	}
 
 	zco_stop_receiving(sdr, &reader);
-	fclose(testFile);
+	close(testFile);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("bprecvfile: can't handle bundle delivery.",
@@ -102,30 +111,32 @@ int	main(int argc, char **argv)
 {
 	char		*ownEid = (argc > 1 ? argv[1] : NULL);
 #endif
+	BpSAP		sap;
 	Sdr		sdr;
+	int		running = 1;
 	BpDelivery	dlv;
 
 	if (ownEid == NULL)
 	{
-		puts("Usage: bprecvfile <own endpoint ID>");
+		PUTS("Usage: bprecvfile <own endpoint ID>");
 		return 0;
 	}
 
 	if (bp_attach() < 0)
 	{
 		putErrmsg("Can't attach to BP.", NULL);
-		return 0;
+		return -1;
 	}
 
 	if (bp_open(ownEid, &sap) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
-		return 0;
+		return -1;
 	}
 
+	oK(_bpsap(&sap));
 	sdr = bp_get_sdr();
-	signal(SIGINT, handleQuit);
-	running = 1;
+	isignal(SIGINT, handleQuit);
 	writeMemo("[i] bprecvfile is running.");
 	while (running)
 	{
@@ -136,13 +147,23 @@ int	main(int argc, char **argv)
 			continue;
 		}
 
-		if (dlv.result == BpPayloadPresent)
+		switch (dlv.result)
 		{
+		case BpReceptionInterrupted:
+			running = 0;
+			break;		/*	Out of switch.		*/
+
+		case BpPayloadPresent:
 			if (receiveFile(sdr, &dlv) < 0)
 			{
 				putErrmsg("bprecvfile cannot continue.", NULL);
 				running = 0;
 			}
+
+			/*	Intentional fall-through to default.	*/
+
+		default:
+			break;		/*	Out of switch.		*/
 		}
 
 		bp_release_delivery(&dlv, 1);

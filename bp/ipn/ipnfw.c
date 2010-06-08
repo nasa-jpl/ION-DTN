@@ -10,13 +10,22 @@
 									*/
 #include "ipnfw.h"
 
-static Sdr		ipnSdr;
-static IpnDB		*ipnConstants = NULL;
-static sm_SemId		ipnfwSemaphore;
+static sm_SemId		_ipnfwSemaphore(sm_SemId *newValue)
+{
+	static sm_SemId	sem;
+
+	if (newValue)
+	{
+		sem = *newValue;
+		sm_TaskVarAdd(&sem);
+	}
+
+	return sem;
+}
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
-	sm_SemEnd(ipnfwSemaphore);
+	sm_SemEnd(_ipnfwSemaphore(NULL));
 }
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
@@ -85,6 +94,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 
 static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 {
+	Sdr		sdr = getIonsdr();
 	Object		elt;
 	char		eidString[SDRSTRING_BUFSZ];
 	MetaEid		metaEid;
@@ -92,14 +102,14 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	PsmAddress	vschemeElt;
 	FwdDirective	directive;
 
-	elt = sdr_list_first(ipnSdr, bundle->stations);
+	elt = sdr_list_first(sdr, bundle->stations);
 	if (elt == 0)
 	{
 		putErrmsg("Forwarding error; stations stack is empty.", NULL);
 		return -1;
 	}
 
-	sdr_string_read(ipnSdr, eidString, sdr_list_data(ipnSdr, elt));
+	sdr_string_read(sdr, eidString, sdr_list_data(sdr, elt));
 	if (parseEidString(eidString, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
 		putErrmsg("Can't parse node EID string.", eidString);
@@ -114,7 +124,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	}
 
 	if (cgr_forward(bundle, bundleObj, metaEid.nodeNbr,
-			ipnConstants->plans) < 0)
+			(getIpnConstants())->plans) < 0)
 	{
 		putErrmsg("CGR failed.", NULL);
 		return -1;
@@ -123,7 +133,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	If dynamic routing succeeded in enqueuing the bundle
 	 *	to a neighbor, accept the bundle and return.		*/
 
-	if (sdr_list_length(ipnSdr, bundle->xmitRefs) > 0)
+	if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
 	{
 		/*	Enqueued.					*/
 
@@ -141,7 +151,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	if (sdr_list_length(ipnSdr, bundle->xmitRefs) > 0)
+	if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
 	{
 		/*	Enqueued.					*/
 
@@ -162,7 +172,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 
 	/*	Found directive; forward via the indicated endpoint.	*/
 
-	sdr_string_read(ipnSdr, eidString, directive.eid);
+	sdr_string_read(sdr, eidString, directive.eid);
 	return forwardBundle(bundleObj, bundle, eidString);
 }
 
@@ -177,10 +187,11 @@ int	main(int argc, char *argv[])
 	int		ionMemIdx;
 	Lyst		proximateNodes;
 	Lyst		excludedNodes;
+	int		running = 1;
+	Sdr		sdr;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
-	int		running = 1;
 	Object		elt;
 	Object		bundleAddr;
 	Bundle		bundle;
@@ -206,8 +217,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	ipnSdr = getIonsdr();
-	ipnConstants = getIpnConstants();
+	sdr = getIonsdr();
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -215,28 +225,27 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	sdr_read(ipnSdr, (char *) &scheme, sdr_list_data(ipnSdr,
+	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 			vscheme->schemeElt), sizeof(Scheme));
-	ipnfwSemaphore = vscheme->semaphore;
+	oK(_ipnfwSemaphore(&vscheme->semaphore));
 	isignal(SIGTERM, shutDown);
 
 	/*	Main loop: wait until forwarding queue is non-empty,
 	 *	then drain it.						*/
 
-	sm_TaskVarAdd(&ipnfwSemaphore);
 	writeMemo("[i] ipnfw is running.");
-	while (running && !(sm_SemEnded(ipnfwSemaphore)))
+	while (running && !(sm_SemEnded(vscheme->semaphore)))
 	{
 		/*	Wrapping forwarding in an SDR transaction
 		 *	prevents race condition with bpclock (which
 		 *	is destroying bundles as their TTLs expire).	*/
 
-		sdr_begin_xn(ipnSdr);
-		elt = sdr_list_first(ipnSdr, scheme.forwardQueue);
+		sdr_begin_xn(sdr);
+		elt = sdr_list_first(sdr, scheme.forwardQueue);
 		if (elt == 0)	/*	Wait for forwarding notice.	*/
 		{
-			sdr_exit_xn(ipnSdr);
-			if (sm_SemTake(ipnfwSemaphore) < 0)
+			sdr_exit_xn(sdr);
+			if (sm_SemTake(vscheme->semaphore) < 0)
 			{
 				putErrmsg("Can't take forwarder semaphore.",
 						NULL);
@@ -246,9 +255,9 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		bundleAddr = (Object) sdr_list_data(ipnSdr, elt);
-		sdr_stage(ipnSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-		sdr_list_delete(ipnSdr, elt, NULL, NULL);
+		bundleAddr = (Object) sdr_list_data(sdr, elt);
+		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+		sdr_list_delete(sdr, elt, NULL, NULL);
 		bundle.fwdQueueElt = 0;
 
 		/*	Must rewrite bundle to note removal of
@@ -256,25 +265,29 @@ int	main(int argc, char *argv[])
 		 *	and bpDestroyBundle re-reads it from the
 		 *	database.					*/
 
-		sdr_write(ipnSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 		if (enqueueBundle(&bundle, bundleAddr) < 0)
 		{
-			sdr_cancel_xn(ipnSdr);
+			sdr_cancel_xn(sdr);
 			putErrmsg("Can't enqueue bundle.", NULL);
 			running = 0;	/*	Terminate loop.		*/
 			continue;
 		}
 
-		sdr_write(ipnSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
-		if (sdr_end_xn(ipnSdr) < 0)
+		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't enqueue bundle.", NULL);
 			running = 0;	/*	Terminate loop.		*/
 		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
 	}
 
 	writeErrmsgMemos();
 	writeMemo("[i] ipnfw forwarder has ended.");
-	bp_detach();
+	ionDetach();
 	return 0;
 }

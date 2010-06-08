@@ -39,6 +39,9 @@ int	main(int argc, char **argv)
 	PsmAddress	smlistsh_list = 0;
 	PsmMgtOutcome	outcome;
 
+#ifdef FSWLOGGER
+	return 0;	/*	No stdin/stdout, can't be interactive.	*/
+#endif
 	sm_ipc_init();
 	cmdFile = fileno(stdin);
 	while (1)

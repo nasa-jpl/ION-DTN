@@ -179,19 +179,19 @@ static int	acquireBundles(AcqWorkArea *work, unsigned long dataLength,
 
 		if (bpBeginAcq(work, 0, senderEid) < 0)
 		{
-			putSysErrmsg("can't begin acquisition of bundle", NULL);
+			putErrmsg("Can't begin acquisition of bundle.", NULL);
 			return -1;
 		}
 
 		if (bpContinueAcq(work, startOfBundle, bundleLength) < 0)
 		{
-			putSysErrmsg("can't continue bundle acquisition", NULL);
+			putErrmsg("Can't continue bundle acquisition.", NULL);
 			return -1;
 		}
 
 		if (bpEndAcq(work) < 0)
 		{
-			putSysErrmsg("can't end acquisition of bundle", NULL);
+			putErrmsg("Can't end acquisition of bundle.", NULL);
 			return -1;
 		}
 
@@ -229,7 +229,7 @@ static void	*handleNotices(void *parm)
 	if (work == NULL)
 	{
 		ltp_close(BpLtpClientId);
-		putSysErrmsg("ltpcli can't get acquisition work area", NULL);
+		putErrmsg("ltpcli can't get acquisition work area", NULL);
 		pthread_kill(rtp->mainThread, SIGTERM);
 		return NULL;
 	}
@@ -332,28 +332,28 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: ltpcli <local engine number>]");
+		PUTS("Usage: ltpcli <local engine number>]");
 		return 0;
 	}
 
 	if (bpAttach() < 0)
 	{
-		putSysErrmsg("ltpcli can't attach to BP", NULL);
-		return 1;
+		putErrmsg("ltpcli can't attach to BP.", NULL);
+		return -1;
 	}
 
 	findInduct("ltp", ductName, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
 		putErrmsg("No such ltp duct.", ductName);
-		return 1;
+		return -1;
 	}
 
 	if (vduct->cliPid > 0 && vduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
 				itoa(vduct->cliPid));
-		return 1;
+		return -1;
 	}
 
 	/*	All command-line arguments are now validated.		*/
@@ -361,7 +361,7 @@ int	main(int argc, char *argv[])
 	if (ltp_attach() < 0)
 	{
 		putErrmsg("ltpcli can't initialize LTP.", NULL);
-		return 1;
+		return -1;
 	}
 
 	/*	Initialize sender endpoint ID lookup.			*/
@@ -401,6 +401,6 @@ int	main(int argc, char *argv[])
 	pthread_join(receiverThread, NULL);
 	writeErrmsgMemos();
 	writeMemo("[i] ltpcli duct has ended.");
-	bp_detach();
+	ionDetach();
 	return 0;
 }

@@ -343,7 +343,7 @@ unsigned char *bsp_addSdnvToStream(unsigned char *stream, Sdnv* value);
 int bsp_deserializeASB(AcqExtBlock *blk);
 
 
-
+#if 0
 /******************************************************************************
  *
  * \par Function Name: bsp_eidNil
@@ -371,6 +371,7 @@ int bsp_deserializeASB(AcqExtBlock *blk);
  *****************************************************************************/
 
 int bsp_eidNil(EndpointId *eid);
+#endif
 
 
 /******************************************************************************

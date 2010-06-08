@@ -122,21 +122,21 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: stcpclo <remote host name>[:<port number>]");
+		PUTS("Usage: stcpclo <remote host name>[:<port number>]");
 		return 0;
 	}
 
 	if (bpAttach() < 0)
 	{
-		putSysErrmsg("stcpclo can't attach to BP", NULL);
-		return 1;
+		putErrmsg("stcpclo can't attach to BP.", NULL);
+		return -1;
 	}
 
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("No memory for TCP buffer in stcpclo.", NULL);
-		return 1;
+		return -1;
 	}
 
 	findOutduct("stcp", ductName, &vduct, &vductElt);
@@ -144,7 +144,7 @@ int	main(int argc, char *argv[])
 	{
 		putErrmsg("No such stcp duct.", ductName);
 		MRELEASE(buffer);
-		return 1;
+		return -1;
 	}
 
 	if (vduct->cloPid > 0 && vduct->cloPid != sm_TaskIdSelf())
@@ -152,7 +152,7 @@ int	main(int argc, char *argv[])
 		putErrmsg("CLO task is already started for this duct.",
 				itoa(vduct->cloPid));
 		MRELEASE(buffer);
-		return 1;
+		return -1;
 	}
 
 	/*	All command-line arguments are now validated.		*/
@@ -189,9 +189,9 @@ int	main(int argc, char *argv[])
 	portNbr = htons(portNbr);
 	if (hostNbr == 0)
 	{
-		putSysErrmsg("Can't get IP address for host.", hostName);
+		putErrmsg("Can't get IP address for host.", hostName);
 		MRELEASE(buffer);
-		return 1;
+		return -1;
 	}
 
 	hostNbr = htonl(hostNbr);
@@ -266,6 +266,6 @@ int	main(int argc, char *argv[])
 	writeErrmsgMemos();
 	writeMemo("[i] stcpclo duct has ended.");
 	MRELEASE(buffer);
-	bp_detach();
+	ionDetach();
 	return 0;
 }

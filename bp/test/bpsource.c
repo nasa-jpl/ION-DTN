@@ -9,9 +9,23 @@
 
 #include <bp.h>
 
+static int	_running(int *newState)
+{
+	int	state = 1;
+
+	if (newState)
+	{
+		state = *newState;
+	}
+
+	return state;
+}
+
 static void	handleQuit()
 {
-	puts("Please enter a '!' character to stop the program.");
+	int	stop = 0;
+
+	oK(_running(&stop));
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -26,17 +40,17 @@ int	main(int argc, char **argv)
 	char	*destEid = (argc > 1 ? argv[1] : NULL);
 	char	*text = (argc > 2 ? argv[2] : NULL);
 #endif
-
 	Sdr	sdr;
 	char	line[256];
 	int	lineLength;
 	Object	extent;
 	Object	bundleZco;
 	Object	newBundle;
+	int	fd;
 
 	if (destEid == NULL)
 	{
-		puts("Usage: bpsource <destination endpoint ID>");
+		PUTS("Usage: bpsource <destination endpoint ID> ['<text>']");
 		return 0;
 	}
 
@@ -52,7 +66,7 @@ int	main(int argc, char **argv)
 		lineLength = strlen(text);
 		if (lineLength == 0)
 		{
-			writeMemo("No text for bpsource to send.");
+			writeMemo("[?] No text for bpsource to send.");
 			bp_detach();
 			return 0;
 		}
@@ -81,25 +95,31 @@ int	main(int argc, char **argv)
 				BP_STD_PRIORITY, NoCustodyRequested,
 				0, 0, NULL, bundleZco, &newBundle) < 1)
 		{
-			putSysErrmsg("bpsource can't send ADU", NULL);
+			putErrmsg("bpsource can't send ADU.", NULL);
 		}
 
 		bp_detach();
 		return 0;
 	}
 
+#ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
+	fd = fileno(stdin);
 	isignal(SIGINT, handleQuit);
-	while (1)
+	while (_running(NULL))
 	{
 		printf(": ");
-		if (fgets(line, sizeof line, stdin) == NULL)
+		fflush(stdout);
+		if (igets(fd, line, sizeof line, &lineLength) == NULL)
 		{
-			putSysErrmsg("bpsource fgets failed", NULL);
+			if (lineLength == 0)	/*	EOF.		*/
+			{
+				break;
+			}
+
+			putErrmsg("igets failed.", NULL);
 			break;
 		}
 
-		lineLength = strlen(line) - 1;	/*	lose newline	*/
-		line[lineLength] = 0;
 		switch (line[0])
 		{
 		case '!':
@@ -131,7 +151,7 @@ int	main(int argc, char **argv)
 					BP_STD_PRIORITY, NoCustodyRequested,
 					0, 0, NULL, bundleZco, &newBundle) < 1)
 			{
-				putSysErrmsg("bpsource can't send ADU", NULL);
+				putErrmsg("bpsource can't send ADU.", NULL);
 				break;
 			}
 
@@ -143,5 +163,6 @@ int	main(int argc, char **argv)
 
 	writeMemo("Stopping bpsource.");
 	bp_detach();
+#endif
 	return 0;
 }

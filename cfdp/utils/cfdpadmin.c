@@ -35,7 +35,7 @@ static void	printText(char *text)
 		writeMemo(text);
 	}
 
-	puts(text);
+	PUTS(text);
 }
 
 static void	handleQuit()
@@ -56,35 +56,35 @@ static void	printSyntaxError(int lineNbr)
 
 static void	printUsage()
 {
-	puts("Valid commands are:");
-	puts("\tq\tQuit");
-	puts("\th\tHelp");
-	puts("\t?\tHelp");
-	puts("\t1\tInitialize");
-	puts("\t   1");
-	puts("\tm\tManage");
-	puts("\t   m discard { 0 | 1 }");
-	puts("\t   m requirecrc { 0 | 1 }");
-	puts("\t   m fillchar <file fill character in hex, e.g., 0xaa>");
-	puts("\t   m ckperiod <check cycle period, in seconds>");
-	puts("\t   m maxtimeouts <max number of check cycle timeouts>");
-	puts("\t   m maxtrnbr <max transaction number>");
-	puts("\t   m segsize <max bytes per reliable file data segment>");
-	puts("\t   m mtusize <max bytes per best-efforts file data segment>");
-	puts("\ti\tInfo");
-	puts("\t   i");
-	puts("\ts\tStart");
-	puts("\t   s '<UTA command>'");
-	puts("\tx\tStop");
-	puts("\t   x");
-	puts("\tw\tWatch CFDP activity");
-	puts("\t   w { 0 | 1 | <activity spec> }");
-	puts("\t\tActivity spec is a string of all requested activity \
+	PUTS("Valid commands are:");
+	PUTS("\tq\tQuit");
+	PUTS("\th\tHelp");
+	PUTS("\t?\tHelp");
+	PUTS("\t1\tInitialize");
+	PUTS("\t   1");
+	PUTS("\tm\tManage");
+	PUTS("\t   m discard { 0 | 1 }");
+	PUTS("\t   m requirecrc { 0 | 1 }");
+	PUTS("\t   m fillchar <file fill character in hex, e.g., 0xaa>");
+	PUTS("\t   m ckperiod <check cycle period, in seconds>");
+	PUTS("\t   m maxtimeouts <max number of check cycle timeouts>");
+	PUTS("\t   m maxtrnbr <max transaction number>");
+	PUTS("\t   m segsize <max bytes per reliable file data segment>");
+	PUTS("\t   m mtusize <max bytes per best-efforts file data segment>");
+	PUTS("\ti\tInfo");
+	PUTS("\t   i");
+	PUTS("\ts\tStart");
+	PUTS("\t   s '<UTA command>'");
+	PUTS("\tx\tStop");
+	PUTS("\t   x");
+	PUTS("\tw\tWatch CFDP activity");
+	PUTS("\t   w { 0 | 1 | <activity spec> }");
+	PUTS("\t\tActivity spec is a string of all requested activity \
 indication characters, e.g., pq.  See man(5) for cfdprc.");
-	puts("\te\tEnable or disable echo of printed output to log file");
-	puts("\t   e { 0 | 1 }");
-	puts("\t#\tComment");
-	puts("\t   # <comment text>");
+	PUTS("\te\tEnable or disable echo of printed output to log file");
+	PUTS("\t   e { 0 | 1 }");
+	PUTS("\t#\tComment");
+	PUTS("\t   # <comment text>");
 }
 
 static void	initializeCfdp(int tokenCount, char **tokens)
@@ -99,6 +99,17 @@ static void	initializeCfdp(int tokenCount, char **tokens)
 	{
 		putErrmsg("cfdpadmin can't initialize CFDP.", NULL);
 	}
+}
+
+static int	attachToCfdp()
+{
+	if (cfdpAttach() < 0)
+	{
+		printText("CFDP not initialized yet.");
+		return -1;
+	}
+
+	return 0;
 }
 
 static void	manageDiscard(int tokenCount, char **tokens)
@@ -336,7 +347,6 @@ static void	manageMtusize(int tokenCount, char **tokens)
 
 static void	executeManage(int tokenCount, char **tokens)
 {
-	if (cfdpAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Manage what?");
@@ -400,7 +410,6 @@ static void	executeInfo()
 		OBJ_POINTER(CfdpDB, db);
 	char	buffer[256];
 
-	if (cfdpAttach() < 0) return;
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 	GET_OBJ_POINTER(sdr, CfdpDB, db, getCfdpDbObject());
 	isprintf(buffer, sizeof buffer, "xncount=%lu, maxtrnbr=%lu, \
@@ -421,7 +430,6 @@ static void	switchWatch(int tokenCount, char **tokens)
 	char	buffer[80];
 	char	*cursor;
 
-	if (cfdpAttach() < 0) return;
 	if (tokenCount < 2)
 	{
 		printText("Switch watch in what way?");
@@ -491,7 +499,7 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
-static int	processLine(char *line, int lineLengt)
+static int	processLine(char *line, int lineLength)
 {
 	int	tokenCount;
 	char	*cursor;
@@ -550,43 +558,55 @@ static int	processLine(char *line, int lineLengt)
 			return 0;
 
 		case 's':
-			if (cfdpAttach() < 0)
+			if (attachToCfdp() == 0)
 			{
-				return 0;
-			}
-
-			if (tokenCount < 2)
-			{
-				printText("Can't start CFDP: no UTA command.");
-				return 0;
-			}
-
-			if (cfdpStart(tokens[1]) < 0)
-			{
-				putErrmsg("Can't start CFDP.", NULL);
+				if (tokenCount < 2)
+				{
+					printText("Can't start CFDP: no UTA \
+command.");
+				}
+				else
+				{
+					if (cfdpStart(tokens[1]) < 0)
+					{
+						putErrmsg("Can't start CFDP.",
+								NULL);
+					}
+				}
 			}
 
 			return 0;
 
 		case 'x':
-			if (cfdpAttach() < 0)
+			if (attachToCfdp() == 0)
 			{
-				return 0;
+				cfdpStop();
 			}
 
-			cfdpStop();
 			return 0;
 
 		case 'm':
-			executeManage(tokenCount, tokens);
+			if (attachToCfdp() == 0)
+			{
+				executeManage(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'i':
-			executeInfo();
+			if (attachToCfdp() == 0)
+			{
+				executeInfo();
+			}
+
 			return 0;
 
 		case 'w':
-			switchWatch(tokenCount, tokens);
+			if (attachToCfdp() == 0)
+			{
+				switchWatch(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 'e':
@@ -618,6 +638,9 @@ int	main(int argc, char **argv)
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
+#ifdef FSWLOGGER
+		return 0;			/*	No stdout.	*/
+#else
 		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
 		while (1)
@@ -645,6 +668,7 @@ int	main(int argc, char **argv)
 				break;		/*	Out of loop.	*/
 			}
 		}
+#endif
 	}
 	else if (strcmp(cmdFileName, ".") == 0)	/*	Shutdown.	*/
 	{
@@ -658,7 +682,7 @@ int	main(int argc, char **argv)
 		cmdFile = open(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
-			perror("Can't open command file");
+			PERROR("Can't open command file");
 		}
 		else
 		{

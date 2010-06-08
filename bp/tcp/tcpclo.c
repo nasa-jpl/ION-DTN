@@ -243,7 +243,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		puts("Usage: tcpclo <remote host name>[:<port number>]");
+		PUTS("Usage: tcpclo <remote host name>[:<port number>]");
 		return 0;
 	}
 

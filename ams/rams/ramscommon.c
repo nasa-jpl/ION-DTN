@@ -818,13 +818,13 @@ void DeleteDistributionOrders(Petition *pet)
 
 void DeletePetition(Petition *pet)
 {
-printf("  petition(%d) ", EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr));
+//printf("  petition(%d)\n", EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr));
 	DeleteSourceRamsSet(pet);
-printf("release SRS\n");
+//PUTS("release SRS");
 	DeleteCollectionOrders(pet);
-printf("               release DRS\n");
+//PUTS("release DRS");
 	DeleteDistributionOrders(pet);
-printf("               release DNS\n");
+//PUTS("release DNS");
 	MRELEASE(pet->specification->envelope);
 	MRELEASE(pet->specification);
 	MRELEASE(pet);

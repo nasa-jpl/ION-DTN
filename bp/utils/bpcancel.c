@@ -34,7 +34,7 @@ int	main(int argc, char **argv)
 
 	if (sourceEid == NULL || creationSec == 0)
 	{
-		puts("Usage: bpcancel <source EID> <creation seconds> \
+		PUTS("Usage: bpcancel <source EID> <creation seconds> \
 <creation count> <fragment offset> <fragment length>");
 		return 0;
 	}
@@ -72,7 +72,7 @@ int	main(int argc, char **argv)
 	}
 
 	writeErrmsgMemos();
-	puts("Stopping bpcancel.");
+	PUTS("Stopping bpcancel.");
 	bp_detach();
 	return 0;
 }

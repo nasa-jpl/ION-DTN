@@ -41,14 +41,14 @@ static int	run_file2sm(char *fileName)
 
 	if (sm_ShmAttach(0x1108, 10000000, &wmspace, &wmid) < 0)
 	{
-		perror("Can't attach to shared memory");
+		PERROR("Can't attach to shared memory");
 		return 0;
 	}
 
 	if (psm_manage(wmspace, 10000000, "file2sm", &wm, &outcome) < 0
 	|| outcome == Refused)
 	{
-		puts("Can't manage shared memory.");
+		PUTS("Can't manage shared memory.");
 		return 0;
 	}
 
@@ -58,7 +58,7 @@ static int	run_file2sm(char *fileName)
 		testlist = sm_list_create(wm);
 		if (testlist == 0)
 		{
-			puts("Can't create shared memory list.");
+			PUTS("Can't create shared memory list.");
 			return 0;
 		}
 
@@ -68,7 +68,7 @@ static int	run_file2sm(char *fileName)
 	semaphore = sm_SemCreate(0x1101, SM_SEM_FIFO);
 	if (semaphore < 0)
 	{
-		puts("Can't create semaphore.");
+		PUTS("Can't create semaphore.");
 		return 0;
 	}
 
@@ -77,7 +77,7 @@ static int	run_file2sm(char *fileName)
 	inputFile = open(fileName, O_RDONLY, 0777);
 	if (inputFile < 0)
 	{
-		perror("Can't open input file");
+		PERROR("Can't open input file");
 		return 0;
 	}
 
@@ -102,13 +102,13 @@ static int	run_file2sm(char *fileName)
 						* 1000000) + (endTime.tv_usec -
 						startTime.tv_usec);
 				rate = (linesProcessed * 1000) / (usec / 1000);
-				printf("Processing %d lines per second.\n",
-						rate);
+				PUTMEMO("Lines per second processed",
+						utoa(rate));
 				lineLen = strlen(eofLine) + 1;
 				lineAddress = psm_zalloc(wm, lineLen);
 				if (lineAddress == 0)
 				{
-					puts("Ran out of memory.");
+					PUTS("Ran out of memory.");
 					return 0;
 				}
 
@@ -117,7 +117,7 @@ static int	run_file2sm(char *fileName)
 				if (sm_list_insert_last(wm, testlist,
 						lineAddress) == 0)
 				{
-					puts("Ran out of memory.");
+					PUTS("Ran out of memory.");
 					return 0;
 				}
 
@@ -125,7 +125,7 @@ static int	run_file2sm(char *fileName)
 				inputFile = open(fileName, O_RDONLY, 0777);
 				if (inputFile < 0)
 				{
-					perror("Can't reopen input file");
+					PERROR("Can't reopen input file");
 					return 0;
 				}
 
@@ -136,7 +136,7 @@ static int	run_file2sm(char *fileName)
 			else
 			{
 				close(inputFile);
-				perror("Can't read from input file");
+				PERROR("Can't read from input file");
 				return 0;
 			}
 		}
@@ -148,7 +148,7 @@ static int	run_file2sm(char *fileName)
 		if (lineAddress == 0)
 		{
 			close(inputFile);
-			puts("Ran out of memory.");
+			PUTS("Ran out of memory.");
 			return 0;
 		}
 
@@ -156,7 +156,7 @@ static int	run_file2sm(char *fileName)
 		if (sm_list_insert_last(wm, testlist, lineAddress) == 0)
 		{
 			close(inputFile);
-			puts("Ran out of memory.");
+			PUTS("Ran out of memory.");
 			return 0;
 		}
 
@@ -177,7 +177,7 @@ int	main(int argc, char **argv)
 
 	if (argc < 2)
 	{
-		puts("Usage:  file2sm <name of file to copy>");
+		PUTS("Usage:  file2sm <name of file to copy>");
 		return 0;
 	}
 

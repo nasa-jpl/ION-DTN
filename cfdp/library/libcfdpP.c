@@ -382,7 +382,6 @@ int	cfdpInit()
 		return -1;
 
 	case 0:			/*	Not found; must create new DB.	*/
-		memset((char *) &cfdpdbBuf, 0, sizeof(CfdpDB));
 		cfdpdbObject = sdr_malloc(sdr, sizeof(CfdpDB));
 		if (cfdpdbObject == 0)
 		{
@@ -393,6 +392,7 @@ int	cfdpInit()
 
 		/*	Initialize the non-volatile database.		*/
 
+		memset((char *) &cfdpdbBuf, 0, sizeof(CfdpDB));
 		sdr_read(sdr, (char *) &iondb, getIonDbObject(),
 				sizeof(IonDB));
 		cfdpdbBuf.ownEntityId = iondb.ownNodeNbr;
@@ -584,7 +584,6 @@ int	cfdpAttach()
 	Object		cfdpdbObject = _cfdpdbObject(NULL);
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	Sdr		sdr;
-	PsmPartition	wm;
 	char		*cfdpvdbName = _cfdpvdbName();
 
 	if (cfdpdbObject && cfdpvdb)
@@ -620,7 +619,6 @@ int	cfdpAttach()
 
 	/*	Locate the CFDP volatile database.			*/
 
-	wm = getIonwm();
 	if (cfdpvdb == NULL)
 	{
 		if (_cfdpvdb(&cfdpvdbName) == NULL)

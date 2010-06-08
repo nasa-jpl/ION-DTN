@@ -42,7 +42,7 @@ static Object	newCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
 		return 0;
 	}
 
-	printf("appended cycle %d to list.\n", currentCycle->cycleNbr);
+	PUTMEMO("Appended cycle to list", utoa(currentCycle->cycleNbr));
 	sm_SemGive(file2sdr_semaphore);
 	return cycleObj;
 }
@@ -151,7 +151,7 @@ static int	run_file2sdr(int configFlags, char *fileName)
 	inputFile = open(fileName, O_RDONLY, 0777);
 	if (inputFile < 0)
 	{
-		perror("Can't open input file");
+		PERROR("Can't open input file");
 		return 0;
 	}
 
@@ -173,14 +173,14 @@ static int	run_file2sdr(int configFlags, char *fileName)
 				inputFile = open(fileName, O_RDONLY, 0777);
 				if (inputFile < 0)
 				{
-					perror("Can't reopen input file");
+					PERROR("Can't reopen input file");
 					return 0;
 				}
 			}
 			else
 			{
 				close(inputFile);
-				perror("Can't read from input file");
+				PERROR("Can't read from input file");
 				return 0;
 			}
 		}
@@ -220,8 +220,8 @@ microsnooze(10000);
 						* 1000000) + (endTime.tv_usec -
 						startTime.tv_usec);
 				rate = (linesProcessed * 1000) / (usec / 1000);
-				printf("Processing %d lines per second.\n",
-						rate);
+				PUTMEMO("Lines per second processed",
+						utoa(rate));
 				cycleObj = endCycle(sdr, cycleList,
 					&currentCycle, file2sdr_semaphore);
 				if (cycleObj == 0)
@@ -232,7 +232,7 @@ microsnooze(10000);
 				inputFile = open(fileName, O_RDONLY, 0777);
 				if (inputFile < 0)
 				{
-					perror("Can't reopen input file");
+					PERROR("Can't reopen input file");
 					return 0;
 				}
 
@@ -243,7 +243,7 @@ microsnooze(10000);
 			else
 			{
 				close(inputFile);
-				perror("Can't read from input file");
+				PERROR("Can't read from input file");
 				return 0;
 			}
 		}
@@ -289,8 +289,8 @@ int	main(int argc, char **argv)
 
 	if (argc < 3)
 	{
-		puts("Usage:  file2sdr <config flags> <name of file to copy>");
-		puts("\tNote -- file is expected to be lines of text.");
+		PUTS("Usage:  file2sdr <config flags> <name of file to copy>");
+		PUTS("\tNote -- file is expected to be lines of text.");
 		return 0;
 	}
 

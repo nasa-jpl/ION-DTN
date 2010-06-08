@@ -10,17 +10,26 @@
 #include <bp.h>
 
 static char	*deliveryTypes[] =	{
-			"Payload delivered",
-			"Reception timed out",
-			"Reception interrupted"
+			"Payload delivered.",
+			"Reception timed out.",
+			"Reception interrupted."
 					};
-static int	running;
-static BpSAP	sap;
+static BpSAP	_bpsap(BpSAP *newSAP)
+{
+	static BpSAP	sap = NULL;
+
+	if (newSAP)
+	{
+		sap = *newSAP;
+		sm_TaskVarAdd((int *) &sap);
+	}
+
+	return sap;
+}
 
 static void	handleQuit()
 {
-	running = 0;
-	bp_interrupt(sap);
+	bp_interrupt(_bpsap(NULL));
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -33,17 +42,20 @@ int	main(int argc, char **argv)
 {
 	char		*ownEid = (argc > 1 ? argv[1] : NULL);
 #endif
+	BpSAP		sap;
 	Sdr		sdr;
+	int		running = 1;
 	BpDelivery	dlv;
 	int		contentLength;
 	ZcoReader	reader;
 	int		len;
 	char		content[80];
+	char		line[84];
 
 	setlinebuf(stdout);
 	if (ownEid == NULL)
 	{
-		puts("Usage: bpsink <own endpoint ID>");
+		PUTS("Usage: bpsink <own endpoint ID>");
 		return 0;
 	}
 
@@ -59,9 +71,9 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
+	oK(_bpsap(&sap));
 	sdr = bp_get_sdr();
 	isignal(SIGINT, handleQuit);
-	running = 1;
 	while (running)
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
@@ -71,28 +83,27 @@ int	main(int argc, char **argv)
 			continue;
 		}
 
-		printf("ION event: %s.\n", deliveryTypes[dlv.result - 1]);
+		PUTMEMO("ION event", deliveryTypes[dlv.result - 1]);
+		if (dlv.result == BpReceptionInterrupted)
+		{
+			running = 0;
+			continue;
+		}
+
 		if (dlv.result == BpPayloadPresent)
 		{
 			contentLength = zco_source_data_length(sdr, dlv.adu);
-			printf("\tpayload length is %d.\n", contentLength);
-			if (contentLength < 80)
+			isprintf(line, sizeof line, "\tpayload length is %d.",
+					contentLength);
+			PUTS(line);
+			if (contentLength < sizeof content)
 			{
 				sdr_begin_xn(sdr);
 				zco_start_receiving(sdr, dlv.adu, &reader);
 				len = zco_receive_source(sdr, &reader,
 						contentLength, content);
 				zco_stop_receiving(sdr, &reader);
-				if (len < 0)
-				{
-					sdr_cancel_xn(sdr);
-					putErrmsg("Can't receive payload.",
-							NULL);
-					running = 0;
-					continue;
-				}
-
-				if (sdr_end_xn(sdr) < 0)
+				if (sdr_end_xn(sdr) < 0 || len < 0)
 				{
 					putErrmsg("Can't handle delivery.",
 							NULL);
@@ -101,7 +112,8 @@ int	main(int argc, char **argv)
 				}
 
 				content[contentLength] = '\0';
-				printf("\t'%s'\n", content);
+				isprintf(line, sizeof line, "\t'%s'", content);
+				PUTS(line);
 			}
 		}
 
@@ -110,7 +122,7 @@ int	main(int argc, char **argv)
 
 	bp_close(sap);
 	writeErrmsgMemos();
-	puts("Stopping bpsink.");
+	PUTS("Stopping bpsink.");
 	bp_detach();
 	return 0;
 }

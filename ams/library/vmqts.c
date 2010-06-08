@@ -83,7 +83,7 @@ static int	vmqAmsInit(AmsInterface *tsif, char *epspec)
 
 	tsif->diligence = AmsAssured;
 	tsif->sequence = AmsTransmissionOrder;
-	sprintf(endpointNameText, "%u", vmqSap);
+	isprintf(endpointNameText, sizeof endpointNameText, "%u", vmqSap);
 	eptLen = strlen(endpointNameText) + 1;
 	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
@@ -221,11 +221,11 @@ static int	vmqSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	if (msgQSend(*tsep, vmqAmsBuf, len, WAIT_FOREVER, MSG_PRI_NORMAL)
 			== ERROR)
 	{
-//puts("vmqSendAms failed.");
+//PUTS("vmqSendAms failed.");
 		return -1;
 	}
 
-//puts("vmqSendAms succeeded.");
+//PUTS("vmqSendAms succeeded.");
 	return 0;
 }
 
@@ -261,7 +261,7 @@ void	vmqtsLoadTs(TransSvc *ts)
 
 	getNameOfHost(ownHostName, sizeof ownHostName);
 	ipAddress = getInternetAddress(ownHostName);
-	sprintf(vmqName, "vmq%u", ipAddress);
+	isprintf(vmqName, sizeof vmqName, "vmq%u", ipAddress);
 	ts->name = vmqName;
 	ts->csepNameFn = vmqComputeCsepName;
 	ts->mamsInitFn = vmqMamsInit;
