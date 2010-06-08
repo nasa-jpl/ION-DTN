@@ -50,6 +50,7 @@ int	main(int argc, char **argv)
 	ZcoReader	reader;
 	int		len;
 	char		content[80];
+	char		line[84];
 
 	setlinebuf(stdout);
 	if (ownEid == NULL)
@@ -92,24 +93,17 @@ int	main(int argc, char **argv)
 		if (dlv.result == BpPayloadPresent)
 		{
 			contentLength = zco_source_data_length(sdr, dlv.adu);
-			PUTMEMO("\tpayload length", itoa(contentLength));
-			if (contentLength < 80)
+			isprintf(line, sizeof line, "\tpayload length is %d.",
+					contentLength);
+			PUTS(line);
+			if (contentLength < sizeof content)
 			{
 				sdr_begin_xn(sdr);
 				zco_start_receiving(sdr, dlv.adu, &reader);
 				len = zco_receive_source(sdr, &reader,
 						contentLength, content);
 				zco_stop_receiving(sdr, &reader);
-				if (len < 0)
-				{
-					sdr_cancel_xn(sdr);
-					putErrmsg("Can't receive payload.",
-							NULL);
-					running = 0;
-					continue;
-				}
-
-				if (sdr_end_xn(sdr) < 0)
+				if (sdr_end_xn(sdr) < 0 || len < 0)
 				{
 					putErrmsg("Can't handle delivery.",
 							NULL);
@@ -118,7 +112,8 @@ int	main(int argc, char **argv)
 				}
 
 				content[contentLength] = '\0';
-				PUTMEMO("\t", content);
+				isprintf(line, sizeof line, "\t'%s'", content);
+				PUTS(line);
 			}
 		}
 
