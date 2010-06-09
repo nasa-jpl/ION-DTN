@@ -4940,6 +4940,47 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	return 1;
 }
 
+static int	ignoreHeaderExtensions(int extensionsCount, char **cursor,
+			int *bytesRemaining)
+{
+	unsigned char	tag;
+	unsigned long	extensionLength;
+
+	while (extensionsCount > 0)
+	{
+		/*	Skip over extension's tag.			*/
+
+		if (*bytesRemaining < 1)
+		{
+			return -1;
+		}
+
+		tag = (unsigned char) **cursor;
+		(*cursor)++;
+		(*bytesRemaining)--;
+
+		/*	Get extension's length.				*/
+
+		extractSdnv(&extensionLength, cursor, bytesRemaining);
+
+		/*	Skip over extension's value.			*/
+
+		if (*bytesRemaining < extensionLength)
+		{
+			return -1;
+		}
+
+		(*cursor) += extensionLength;
+		(*bytesRemaining) -= extensionLength;
+
+		/*	Have successfully ignored this extension.	*/
+
+		extensionsCount--;
+	}
+
+	return 0;
+}
+
 int	ltpHandleInboundSegment(char *buf, int length)
 {
 	LtpRecvSeg	segment;
@@ -4975,9 +5016,22 @@ int	ltpHandleInboundSegment(char *buf, int length)
 	bytesRemaining--;
 	if (extensionLengths != 0)
 	{
-		putErrmsg("No support for extensions in this implementation.",
-				itoa(extensionLengths));
-		return 0;
+		if (ignoreHeaderExtensions((extensionLengths >> 4) & 0x0f,
+				&cursor, &bytesRemaining) < 0)
+		{
+#if LTPDEBUG
+			writeMemoNote("[?] LTP segment extensions malformed, \
+segment discarded", itoa(extensionLengths));
+#endif
+			return 0;	/*	Ignore the segment.	*/
+		}
+#if LTPDEBUG
+		else
+		{
+			writeMemoNote("[?] LTP segment extensions ignored",
+					itoa(extensionLengths));
+		}
+#endif
 	}
 
 	/*	Handle segment according to its segment type code.	*/
