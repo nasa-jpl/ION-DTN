@@ -214,6 +214,7 @@ static void	processMsgToCs(CsState *csState, AmsEvt *evt)
 	int		cellspecLength;
 	char		*cellspec;
 	int		result;
+	int		unitNbr;
 
 PUTMEMO("CS got msg of type", itoa(msg->type));
 PUTMEMO("...from role", itoa(msg->roleNbr));
@@ -425,10 +426,12 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 		if (unit == NULL)
 		{
+			unitNbr = 0;
 			ept = zeroLengthEpt;
 		}
 		else
 		{
+			unitNbr = unit->nbr;
 			ept = unit->cell->mamsEndpoint.ept;
 			if (ept == NULL)	/*	No registrar.	*/
 			{
@@ -453,12 +456,12 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		if (supplement == NULL)
 		{
 			putSysErrmsg("CS can't report on registrar",
-					itoa(unit->nbr));
+					itoa(unitNbr));
 			return;
 		}
 
-		supplement[0] = (char) ((unit->nbr >> 8) & 0xff);
-		supplement[1] = (char) (unit->nbr & 0xff);
+		supplement[0] = (char) ((unitNbr >> 8) & 0xff);
+		supplement[1] = (char) (unitNbr & 0xff);
 		istrcpy(supplement + 2, ept, supplementLength - 2);
 		result = sendMamsMsg(&endpoint, &(csState->tsif), cell_spec,
 			       	msg->memo, supplementLength, supplement);
@@ -978,6 +981,7 @@ static void	*rsHeartbeat(void *parm)
 			ept = MTAKE(supplementLen);
 			if (ept == NULL)
 			{
+				UNLOCK_MIB;
 				putErrmsg(NoMemoryMemo, NULL);
 				return NULL;
 			}

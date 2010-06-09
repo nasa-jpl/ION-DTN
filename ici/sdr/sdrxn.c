@@ -184,15 +184,7 @@ static SdrControlHeader	*_sch(SdrControlHeader **schp)
 		putErrmsg(_noMemoryMsg(), NULL);
 		return NULL;		/*	Not enough memory.	*/
 	}
-#if 0
-	sch->sdrwmIsPrivate = wmIsPrivate;
-	sch->sdrwmKey = wmKey;
 
-	/*	NOTE: psm_manage() succeeded, so wmName must fit into
-	 *	32-byte buffer.						*/
-
-	istrcpy(sch->sdrwmName, wmName, sizeof sch->sdrwmName);
-#endif
 	/*	Store location of control header in catalog
 		of the shared SDR working memory, for access
 		by subsequently started processes.		*/
@@ -343,7 +335,7 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 	return sdrwm;
 }
 
-SdrMap		*_mapImage(Sdr sdrv)
+SdrMap	*_mapImage(Sdr sdrv)
 {
 	static SdrMap	map;
 
@@ -685,6 +677,7 @@ void	crashXn(Sdr sdrv)
 {
 	SdrState	*sdr;
 
+	CHKVOID(sdrv);
 	if (sdr_in_xn(sdrv))
 	{
 		sdr = sdrv->sdr;
@@ -1440,7 +1433,8 @@ void	sdr_begin_xn(Sdr sdrv)
 
 int	sdr_in_xn(Sdr sdrv)
 {
-	return (sdrv != NULL && sdrv->sdr != NULL
+	CHKZERO(sdrv);
+	return (sdrv->sdr != NULL
 		&& sdrv->sdr->sdrOwnerTask == sm_TaskIdSelf()
 		&& pthread_equal(sdrv->sdr->sdrOwnerThread, pthread_self()));
 }
@@ -1475,8 +1469,10 @@ void	sdr_exit_xn(Sdr sdrv)
 
 void	sdr_cancel_xn(Sdr sdrv)
 {
-	SdrState	*sdr = sdrv->sdr;
+	SdrState	*sdr;
 
+	CHKVOID(sdrv);
+	sdr = sdrv->sdr;
 	if (sdr_in_xn(sdrv))
 	{
 		sdr->xnCanceled = 1;
@@ -1490,8 +1486,10 @@ void	sdr_cancel_xn(Sdr sdrv)
 
 int	sdr_end_xn(Sdr sdrv)
 {
-	SdrState	*sdr = sdrv->sdr;
+	SdrState	*sdr;
 
+	CHKERR(sdrv);
+	sdr = sdrv->sdr;
 	if (sdr_in_xn(sdrv))
 	{
 		sdr->xnDepth--;
@@ -1515,15 +1513,13 @@ void	sdr_eject_xn(Sdr sdrv)
 	 *	current transaction has crashed or is permanently
 	 *	blocked without any chance of continuing.		*/
 
-	if (sdrv != NULL)
+	CHKVOID(sdrv);
+	sdr = sdrv->sdr;
+	if (sdr != NULL)
 	{
-		sdr = sdrv->sdr;
-		if (sdr != NULL)
-		{
-			sdr->xnCanceled = 1;
-			sdr->xnDepth = 0;
-			terminateXn(sdrv);
-		}
+		sdr->xnCanceled = 1;
+		sdr->xnDepth = 0;
+		terminateXn(sdrv);
 	}
 }
 

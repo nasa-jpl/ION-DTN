@@ -23,7 +23,6 @@ int	main(int argc, char *argv[])
 				argc > 1 ? strtoul(argv[1], NULL, 0) : 0;
 #endif
 	Sdr		sdr;
-	LtpDB		*ltpConstants;
 	LtpVdb		*vdb;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
@@ -51,7 +50,6 @@ int	main(int argc, char *argv[])
 	}
 
 	sdr = getIonsdr();
-	ltpConstants = getLtpConstants();
 	vdb = getLtpVdb();
 	sdr_begin_xn(sdr);
 	findSpan(remoteEngineId, &vspan, &vspanElt);

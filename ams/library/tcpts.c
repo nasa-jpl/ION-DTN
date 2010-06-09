@@ -395,7 +395,11 @@ static void	*tcpAmsReceiver(void *parm)
 		pthread_mutex_lock(&sap->rcvrPoolMutex);
 		if (sap->firstInRcvrPool != me)
 		{
-			me->prev->next = me->next;
+			if (me->prev)
+			{
+				me->prev->next = me->next;
+			}
+
 			if (me->next)
 			{
 				me->next->prev = me->prev;

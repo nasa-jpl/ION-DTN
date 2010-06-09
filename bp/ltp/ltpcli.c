@@ -46,159 +46,36 @@ typedef struct
 	int		running;
 } ReceiverThreadParms;
 
-static int	acquireBundles(AcqWorkArea *work, unsigned long dataLength,
-			char *data, unsigned long senderEngineNbr)
+static int	acquireBundles(AcqWorkArea *work, Object zco,
+			unsigned long senderEngineNbr)
 {
-	unsigned char	*cursor = (unsigned char *) data;
-	char		*endOfData = data + dataLength;
-	char		engineNbrString[21];
-	char		senderEidBuffer[SDRSTRING_BUFSZ];
-	char		*senderEid;
-	char		*startOfBundle;
-	char		*endOfBundle;
-	unsigned int	bundleLength;
-	int		sdnvLength;
-	unsigned long	bundleProcFlags;
-	unsigned long	remainingPrimaryBlockLength;
-	unsigned long	blockProcFlags;
-	int		lastBlock;
-	unsigned long	eidReferencesCount;
-	unsigned long	schemeOffset;
-	unsigned long	sspOffset;
-	unsigned long	blockDataLength;
+	char	engineNbrString[21];
+	char	senderEidBuffer[SDRSTRING_BUFSZ];
+	char	*senderEid;
 
 	isprintf(engineNbrString, sizeof engineNbrString, "%lu",
 			senderEngineNbr);
 	senderEid = senderEidBuffer;
 	getSenderEid(&senderEid, engineNbrString);
-	while (dataLength > 0)
+	if (bpBeginAcq(work, 0, senderEid) < 0)
 	{
-		/*	Pre-parse bundle to get its length.		*/
-
-		startOfBundle = endOfBundle = (char *) cursor;
-
-		/*	Skip over version number.			*/
-
-		bundleLength = 1;
-		cursor += 1;
-		endOfBundle += 1;
-		if (endOfBundle > endOfData) return 0;
-
-		/*	Skip over bundle processing flags.		*/
-
-		sdnvLength = decodeSdnv(&bundleProcFlags, cursor);
-		bundleLength += sdnvLength;
-		cursor += sdnvLength;
-		endOfBundle += sdnvLength;
-		if (endOfBundle > endOfData) return 0;
-
-		/*	Skip over remaining primary block length.	*/
-
-		sdnvLength = decodeSdnv(&remainingPrimaryBlockLength, cursor);
-		bundleLength += sdnvLength;
-		cursor += sdnvLength;
-		endOfBundle += sdnvLength;
-		if (endOfBundle > endOfData) return 0;
-
-		/*	Skip over rest of primary block.		*/
-
-		bundleLength += remainingPrimaryBlockLength;
-		cursor += remainingPrimaryBlockLength;
-		endOfBundle += remainingPrimaryBlockLength;
-		if (endOfBundle > endOfData) return 0;
-
-		/*	Skip over all non-primary blocks in bundle.	*/
-
-		lastBlock = 0;
-		while (!lastBlock)
-		{
-			/*	Skip over block type.			*/
-
-			bundleLength += 1;
-			cursor += 1;
-			endOfBundle += 1;
-			if (endOfBundle > endOfData) return 0;
-
-			/*	Skip over block processing flags.	*/
-
-			sdnvLength = decodeSdnv(&blockProcFlags, cursor);
-			bundleLength += sdnvLength;
-			cursor += sdnvLength;
-			endOfBundle += sdnvLength;
-			if (endOfBundle > endOfData) return 0;
-			if (blockProcFlags & BLK_IS_LAST)
-			{
-				lastBlock = 1;
-			}
-
-			/*	Skip over EID-reference field.		*/
-
-			if (blockProcFlags & BLK_HAS_EID_REFERENCES)
-			{
-				/*	Skip over EID references count.	*/
-
-				sdnvLength = decodeSdnv(&eidReferencesCount,
-						cursor);
-				bundleLength += sdnvLength;
-				cursor += sdnvLength;
-				endOfBundle += sdnvLength;
-				if (endOfBundle > endOfData) return 0;
-				while (eidReferencesCount > 0)
-				{
-					sdnvLength = decodeSdnv(&schemeOffset,
-							cursor);
-					bundleLength += sdnvLength;
-					cursor += sdnvLength;
-					endOfBundle += sdnvLength;
-					if (endOfBundle > endOfData) return 0;
-					sdnvLength = decodeSdnv(&sspOffset,
-							cursor);
-					bundleLength += sdnvLength;
-					cursor += sdnvLength;
-					endOfBundle += sdnvLength;
-					if (endOfBundle > endOfData) return 0;
-					eidReferencesCount--;
-				}
-			}
-
-			/*	Skip over block data length.		*/
-
-			sdnvLength = decodeSdnv(&blockDataLength, cursor);
-			bundleLength += sdnvLength;
-			cursor += sdnvLength;
-			endOfBundle += sdnvLength;
-			if (endOfBundle > endOfData) return 0;
-
-			/*	Skip over block data.			*/
-
-			bundleLength += blockDataLength;
-			cursor += blockDataLength;
-			endOfBundle += blockDataLength;
-			if (endOfBundle > endOfData) return 0;
-		}
-
-		if (bpBeginAcq(work, 0, senderEid) < 0)
-		{
-			putErrmsg("Can't begin acquisition of bundle.", NULL);
-			return -1;
-		}
-
-		if (bpContinueAcq(work, startOfBundle, bundleLength) < 0)
-		{
-			putErrmsg("Can't continue bundle acquisition.", NULL);
-			return -1;
-		}
-
-		if (bpEndAcq(work) < 0)
-		{
-			putErrmsg("Can't end acquisition of bundle.", NULL);
-			return -1;
-		}
-
-		dataLength -= bundleLength;
+		putErrmsg("Can't begin acquisition of bundle(s).", NULL);
+		return -1;
 	}
 
-	return 1;
+	if (bpLoadAcq(work, zco) < 0)
+	{
+		putErrmsg("Can't continue bundle acquisition.", NULL);
+		return -1;
+	}
+
+	if (bpEndAcq(work) < 0)
+	{
+		putErrmsg("Can't end acquisition of bundle(s).", NULL);
+		return -1;
+	}
+
+	return 0;
 }
 
 static void	*handleNotices(void *parm)
@@ -213,10 +90,9 @@ static void	*handleNotices(void *parm)
 	unsigned char		endOfBlock;
 	unsigned long		dataOffset;
 	unsigned long		dataLength;
-	char			*data;
-	int			result;
+	Object			data;		/*	ZCO reference.	*/
 
-	snooze(1);	/*	Let main thread get interruptable.	*/
+	snooze(1);	/*	Let main thread become interruptable.	*/
 	if (ltp_open(BpLtpClientId) < 0)
 	{
 		putErrmsg("ltpcli can't open client access.",
@@ -252,14 +128,12 @@ static void	*handleNotices(void *parm)
 		switch (type)
 		{
 		case LtpExportSessionCanceled:	/*	Xmit failure.	*/
-			if (data == NULL)
+			if (data == 0)
 			{
 				break;		/*	Ignore it.	*/
 			}
 
-			result = bpHandleXmitFailure(data, dataLength);
-			ltp_release_data(data);
-			if (result < 0)
+			if (bpHandleXmitFailure(data) < 0)
 			{
 				putErrmsg("Crashed on xmit failure.", NULL);
 				pthread_kill(rtp->mainThread, SIGTERM);
@@ -273,21 +147,10 @@ static void	*handleNotices(void *parm)
 
 		case LtpRecvGreenSegment:
 		case LtpRecvRedPart:
-			result = acquireBundles(work, dataLength, data,
-					sessionId.sourceEngineId);
-			ltp_release_data(data);
-			switch (result)
+			if (acquireBundles(work, data,
+					sessionId.sourceEngineId) < 0)
 			{
-			case 1:		/*	No problem.		*/
-				break;	/*	Out of inner switch.	*/
-
-			case 0:		/*	Malformed block.	*/
-				putErrmsg("Malformed LTP block, one or more \
-bundles not extracted.", NULL);
-				break;	/*	Out of inner switch.	*/
-
-			default:	/*	System failure.		*/
-				putErrmsg("Can't process LTP content.", NULL);
+				putErrmsg("Can't acquire bundle(s).", NULL);
 				pthread_kill(rtp->mainThread, SIGTERM);
 				rtp->running = 0;
 			}

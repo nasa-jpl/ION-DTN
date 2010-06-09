@@ -94,6 +94,11 @@ static void	printExtensions(Sdr sdr, Object extensions)
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
+		if (blk->length == 0)
+		{
+			continue;
+		}
+
 		if (blk->length > buflen)
 		{
 			if (buf)
@@ -116,7 +121,10 @@ static void	printExtensions(Sdr sdr, Object extensions)
 		printBytes(buf, blk->length);
 	}
 
-	MRELEASE(buf);
+	if (buf)
+	{
+		MRELEASE(buf);
+	}
 }
 
 static void	printPayload(Sdr sdr, Bundle *bundle)

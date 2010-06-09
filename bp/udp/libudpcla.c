@@ -92,47 +92,50 @@ int	sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
 	/*	Send the bundle in a single UDP datagram.		*/
 
 	sdr = getIonsdr();
-	sdr_begin_xn(sdr);
 	zco_start_transmitting(sdr, bundleZco, &reader);
+	sdr_begin_xn(sdr);
 	bytesToSend = zco_transmit(sdr, &reader, UDPCLA_BUFSZ, (char *) buffer);
-	if (bytesToSend < 0)
-	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't issue from ZCO.", NULL);
-		return -1;
-	}
-
-	zco_stop_transmitting(sdr, &reader);
-	zco_destroy_reference(sdr, bundleZco);
-	if (sdr_end_xn(sdr) < 0)
+	if (sdr_end_xn(sdr) < 0 || bytesToSend < 0)
 	{
 		putErrmsg("Can't issue from ZCO.", NULL);
 		return -1;
-	}
-
-	if (bytesToSend == 0)
-	{
-		return 0;
 	}
 
 	bytesSent = sendBytesByUDP(bundleSocket, (char *) buffer, bytesToSend,
 			socketName);
 	if (bytesSent < 0)
 	{
+		if (bpHandleXmitFailure(bundleZco))
+		{
+			putErrmsg("Can't handle xmit failure.", NULL);
+			return -1;
+		}
+
 		if (*bundleSocket == -1)
 		{
 			/*	Just lost connection; treat as a
 			 *	transient anomaly, note the incomplete
 			 *	transmission.				*/
 
-			putErrmsg("Lost connection to CLI; restart CLO when \
-connectivity is restored.", NULL);
-			return 0;
+			writeMemo("[i] Lost UDP connection to CLI; restart CLO \
+when connectivity is restored.");
+			bytesSent = 0;
 		}
+		else
+		{
+			/*	Big problem; shut down.			*/
 
-		/*	Big problem; shut down.			*/
+			putErrmsg("Failed to send by UDP.", NULL);
+			return -1;
+		}
+	}
 
-		putErrmsg("Failed to send by UDP.", NULL);
+	zco_stop_transmitting(sdr, &reader);
+	sdr_begin_xn(sdr);
+	zco_destroy_reference(sdr, bundleZco);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't destroy bundle ZCO.", NULL);
 		return -1;
 	}
 

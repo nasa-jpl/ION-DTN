@@ -151,7 +151,7 @@ static void	*recvDownlink(void *parm)
 	while (1)
 	{
 		segLength = receiveBytesByTCP(fwdSocket, buffer, BUFFER_SIZE);
-		if (segLength == 0)
+		if (segLength <= 0)
 		{
 			perror("owlttb failed reading from NetAcquire");
 			exit(1);
@@ -505,7 +505,7 @@ static void	*offerUplink(void *parm)
 		{
 			segLength = receiveBytesByTCP(fwdSocket, buffer,
 					BUFFER_SIZE);
-			if (segLength == 0)
+			if (segLength <= 0)
 			{
 				puts("owlttb lost uplink client.");
 				break;	/*	Out of inner loop.	*/

@@ -15,6 +15,9 @@ by I<sdr_name> during that interval.  If the optional B<verbose>
 parameter is specified, the printed SDR activity trace will be verbose
 as described in sdr(3).
 
+If I<interval> is zero, B<sdrwatch> merely prints a current usage summary
+for the indicated data store and terminates.
+
 B<sdrwatch> is helpful for detecting and diagnosing storage space leaks.
 
 =head1 EXIT STATUS

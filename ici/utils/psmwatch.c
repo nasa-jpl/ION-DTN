@@ -11,10 +11,11 @@
 
 #include "platform.h"
 #include "psm.h"
+#include "memmgr.h"
 
 static unsigned int	psmwatch_count(int *newValue)
 {
-	unsigned int	count = 1;
+	static unsigned int	count = 1;
 
 	if (newValue)
 	{
@@ -39,10 +40,14 @@ static void	handleQuit()
 	oK(psmwatch_count(&newCount));
 }
 
-static int	run_psmwatch(char *partitionName, int interval, int verbose)
+static int	run_psmwatch(int memKey, long memSize, char *partitionName,
+				int interval, int verbose)
 {
-	PsmPartition	psm;
-	PsmMgtOutcome	outcome;
+	char		*memory = NULL;
+	int		smId = 0;
+	PsmView		memView;
+	PsmPartition	psm = &memView;
+	int		memmgrIdx;
 	PsmUsageSummary	psmsummary;
 	int		decrement = 0;
 
@@ -53,8 +58,8 @@ static int	run_psmwatch(char *partitionName, int interval, int verbose)
 		return 0;
 	}
 
-	if (psm_manage(NULL, 0, partitionName, &psm, &outcome) < 0
-	|| outcome == Refused)
+	if (memmgr_open(memKey, memSize, &memory, &smId, partitionName, &psm,
+				&memmgrIdx, NULL, NULL, NULL, NULL) < 0)
 	{
 		putErrmsg("Can't attach to psm.", NULL);
 		writeErrmsgMemos();
@@ -98,43 +103,49 @@ static int	run_psmwatch(char *partitionName, int interval, int verbose)
 int	psmwatch(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char	*partitionName = (char *) a1;
-	int	interval = a2 >= 0 ? a2 : 0;
-	int	count = a3 > 0 ? a3 : 1;
-	int	verbose = a4 ? 1 : 0;
+	int	memKey = a1 ? strtol((char *) a1, NULL, 0) : 0;
+	int	memSize = a2 ? strtol((char *) a2, NULL, 0) : 0;
+	char	*partitionName = (char *) a3;
+	int	interval = a4 ? strtol((char *) a4, NULL, 0) : 0;
+	int	count = a5 ? strtol((char *) a5, NULL, 0) : 0;
+	int	verbose = a6 ? 1 : 0;
 #else
 int	main(int argc, char **argv)
 {
+	int	memKey;
+	long	memSize;
 	char	*partitionName;
 	int	interval;
 	int	count;
 	int	verbose = 0;
 
-	if (argc < 4)
+	if (argc < 6)
 	{
-		PUTS("Usage: psmwatch <partition name> <interval> <count> \
-[verbose]");
+		PUTS("Usage: psmwatch <shared memory key> <memory size> \
+<partition name> <interval> <count> [verbose]");
 		return 0;
 	}
 
-	partitionName = argv[1];
-	interval = strtol(argv[2], NULL, 0);
+	memKey = strtol(argv[1], NULL, 0);
+	memSize = strtol(argv[2], NULL, 0);
+	partitionName = argv[3];
+	interval = strtol(argv[4], NULL, 0);
 	if (interval < 0)
 	{
 		interval = 0;
 	}
 
-	count = strtol(argv[3], NULL, 0);
+	count = strtol(argv[5], NULL, 0);
 	if (count < 1)
 	{
 		count = 1;
 	}
 
-	if (argc > 4)
+	if (argc > 6)
 	{
 		verbose = 1;
 	}
 #endif
 	oK(psmwatch_count(&count));
-	return run_psmwatch(partitionName, interval, verbose);
+	return run_psmwatch(memKey, memSize, partitionName, interval, verbose);
 }

@@ -189,7 +189,11 @@ void	dtn2_destroyDirective(FwdDirective *directive)
 	{
 		sdr_begin_xn(sdr);
 		sdr_free(sdr, directive->eid);
-		sdr_end_xn(sdr);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't destroy directive EID.", NULL);
+		}
+
 		return;
 	}
 
@@ -199,7 +203,11 @@ void	dtn2_destroyDirective(FwdDirective *directive)
 		{
 			sdr_begin_xn(sdr);
 			sdr_free(sdr, directive->destDuctName);
-			sdr_end_xn(sdr);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy destDuctName.", NULL);
+			}
+
 		}
 	}
 }

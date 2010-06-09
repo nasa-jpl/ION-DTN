@@ -1081,14 +1081,14 @@ int	_extractSdnv(unsigned long *into, unsigned char **from, int *remnant,
 	CHKZERO(into && from && remnant);
 	if (*remnant < 1)
 	{
-		putErrmsg("Missing SDNV at line...", itoa(lineNbr));
+		writeMemoNote("[?] Missing SDNV at line...", itoa(lineNbr));
 		return 0;
 	}
 
 	sdnvLength = decodeSdnv(into, *from);
 	if (sdnvLength < 1)
 	{
-		putErrmsg("Invalid SDNV at line...", itoa(lineNbr));
+		writeMemoNote("[?] Invalid SDNV at line...", itoa(lineNbr));
 		return 0;
 	}
 

@@ -209,6 +209,7 @@ int ConstructEnvelopeToDeclaredRAMS(RamsGateway *gWay, Enclosure *enclosure,
 	if (enclosure != NULL)
 	{
 		envelope = (char *)MTAKE(ENVELOPELENGTH + enclosure->contentLength);
+		CHKZERO(envelope);
 		subjectNbr = EnclosureHeader(enclosure->enclosureContent, Enc_SubjectNbr);
 		constructEnvelope((unsigned char *) envelope, toContinuum, toUnit, sourceID, destID, subjectNbr,0, NULL, enclosure->contentLength,
 					enclosure->enclosureContent, cCode);
@@ -216,13 +217,13 @@ int ConstructEnvelopeToDeclaredRAMS(RamsGateway *gWay, Enclosure *enclosure,
 	else 
 	{
 		envelope = (char *)MTAKE(ENVELOPELENGTH);
+		CHKZERO(envelope);
 		subjectNbr = sNbr;
 		constructEnvelope((unsigned char *) envelope, toContinuum, toUnit, sourceID, destID, subjectNbr, 0, NULL, 0, NULL, cCode);
 	}	
 
 	succeed = SendPetitionToDeclaredRAMS(gWay, envelope);
-	if (envelope)
-		MRELEASE(envelope);
+	MRELEASE(envelope);
 	return succeed; 
 }
 
@@ -239,6 +240,7 @@ int ConstructEnvelopeToRAMS(RamsGateway *gWay, unsigned char flowLabel, Enclosur
 	if (enclosure != NULL)
 	{
 		envelope = (char *)MTAKE(ENVELOPELENGTH + enclosure->contentLength);
+		CHKZERO(envelope);
 		//subjectNbr = EnclosureHeader( enclosure->enclosureContent, Enc_SubjectNbr);
 		constructEnvelope((unsigned char *) envelope, toContinuum, toUnit, sourceID, destID, sNbr, 0, NULL, enclosure->contentLength,
 						  enclosure->enclosureContent, cCode);
@@ -247,14 +249,14 @@ int ConstructEnvelopeToRAMS(RamsGateway *gWay, unsigned char flowLabel, Enclosur
 	else 
 	{
 		envelope = (char *)MTAKE(ENVELOPELENGTH);
+		CHKZERO(envelope);
 		//subjectNbr = sNbr;
 		constructEnvelope((unsigned char *) envelope, toContinuum, toUnit, sourceID, destID, sNbr, 0, NULL, 0, NULL, cCode);
 	    encLength = 0; 
 	}	
 
 	succeed = EnvelopeToRAMS(gWay, flowLabel, envelope, ENVELOPELENGTH+encLength, toRAMS);
-   	if (envelope)
-		MRELEASE(envelope);
+	MRELEASE(envelope);
 	return succeed; 
 
 }

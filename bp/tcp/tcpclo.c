@@ -144,7 +144,8 @@ static void	*receiveBundles(void *parm)
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
-		putSysErrmsg("tcpclo receiver can't get acquisition work area", NULL);
+		putSysErrmsg("tcpclo receiver can't get acquisition work area",
+				NULL);
 		MRELEASE(buffer);
 		return NULL;
 	}
@@ -155,6 +156,7 @@ static void	*receiveBundles(void *parm)
 		snooze(1);
 		if(*(parms->bundleSocket) < 0)
 		{
+			threadRunning = 0;
 			continue;
 		}
 
@@ -165,18 +167,20 @@ static void	*receiveBundles(void *parm)
 			continue;
 		}
 	
-	switch (receiveBundleByTcpCL(*(parms->bundleSocket), work, buffer))
+		switch (receiveBundleByTcpCL(*(parms->bundleSocket), work,
+					buffer))
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:			/*	Shutdown message	*/	
-					/*	Go back to the start of the while loop	*/
+			/*	Go back to the start of the while loop	*/
 			pthread_mutex_lock(parms->mutex);
 			close(*(parms->bundleSocket));
 			*(parms->bundleSocket) = -1;
 			pthread_mutex_unlock(parms->mutex);			
+			threadRunning = 0;
 			continue;
 
 		default:
