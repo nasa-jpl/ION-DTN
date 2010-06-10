@@ -97,6 +97,16 @@ Object		zco_create_file_ref(Sdr sdr,
 			 *	location of file reference object
 			 *	on success, 0 on any error.		*/
 
+char		*zco_file_ref_path(Sdr sdr,
+				Object fileRef,
+				char *buffer,
+				int buflen);
+			/*	Returns the NULL-terminated pathName
+			 *	associated with the indicated file
+			 *	reference, stored in buffer and
+			 *	truncated to buflen as necessary.
+			 *	Returns NULL on any error.		*/
+
 void		zco_destroy_file_ref(Sdr sdr,
 				Object fileRef);
 			/*	If file reference is no longer in use
@@ -159,6 +169,17 @@ void		zco_destroy_reference(Sdr sdr,
 			 *	reference is destroyed, the ZCO
 			 *	itself is automatically destroyed.	*/
 
+Object		zco_clone(	Sdr sdr,
+				Object zcoRef,
+				unsigned int offset,
+				unsigned int length);
+			/*	Creates a new ZCO that is a copy of a
+			 *	subset of the indicated Zco reference.  
+			 *	Copies portions of the extents of the
+			 *	original ZCO as necessary.  Returns
+			 *	SDR location of a new ZCO reference
+			 *	on success, 0 on any error.		*/
+
 unsigned int	zco_length(	Sdr sdr,
 				Object zcoRef);
 			/*	Returns length of entire object,
@@ -205,11 +226,12 @@ int		zco_transmit(	Sdr sdr,
 				ZcoReader *reader,
 				unsigned int length,
 				char *buffer);
-			/*	Copies "length" as-yet-uncopied
-			 *	bytes of the total concatenated ZCO
-			 *	object into "buffer".  Returns the
-			 *	number of bytes copied, or -1 on any
-			 *	error.					*/
+			/*	Copies "length" as-yet-uncopied bytes
+			 *	of the total concatenated ZCO object
+			 *	into "buffer"; if buffer is NULL,
+			 *	simply skips over "length" bytes of
+			 *	this ZCO.  Returns the number of bytes
+			 *	copied, or -1 on any error.		*/
 
 void		zco_stop_transmitting(Sdr sdr,
 				ZcoReader *reader);
@@ -232,82 +254,6 @@ void		zco_start_receiving(Sdr sdr,
 			 *	already been read via this ZCO
 			 *	reference, if any.  Populates "reader"
 			 *	object, which is required.		*/
-
-int		zco_receive_source(Sdr sdr,
-				ZcoReader *reader,
-				unsigned int length,
-				char *buffer);
-			/*	Copies "length" as-yet-uncopied bytes
-			 *	of source data from ZCO extents into
-			 *	"buffer".  Returns number of bytes
-			 *	copied, or -1 on any error.		*/
-
-void		zco_stop_receiving(Sdr sdr,
-				ZcoReader *reader);
-			/*	Terminates extraction of inbound ZCO
-			 *	bytes for reception.			*/
-
-/*		ZCO functions for future use.				*/
-#if 0
-void		zco_strip(	Sdr sdr,
-				Object zcoRef);
-			/*	Deletes all source data extents that
-			 *	contain only header or trailer data,
-			 *	adjusts offsets and/or lengths of
-			 *	remaining extents to exclude any
-			 *	known header or trailer data.  Use
-			 *	this function before concatenating
-			 *	with another ZCO, before starting
-			 *	the transmission of a ZCO that was
-			 *	received from an underlying protocol
-			 *	layer rather than from an overlying
-			 *	application or protocol layer, and
-			 *	before enqueuing the ZCO for reception
-			 *	by an overlying application or
-			 *	protocol layer.				*/
-
-void		zco_concatenate(Sdr sdr,
-				Object aggregateZcoRef,
-				Object atomicZcoRef);
-			/*	Appends all source data extents of the
-			 *	atomic Zco to the source data of the
-			 *	aggregate Zco.  Destroys the atomic
-			 *	Zco reference, which will implicitly
-			 *	destroy the atomic Zco itself.  Fails
-			 *	if either Zco contains any identified
-			 *	header or trailer data, or if there
-			 *	are multiple references to either Zco.	*/
-
-Object		zco_copy(	Sdr sdr,
-				Object zcoRef,
-				ZcoMedium sourceMedium,
-				char *buffer,
-				unsigned int bufferLength,
-				unsigned int offset,
-				unsigned int length);
-			/*	Creates a new ZCO containing the
-			 *	"length" bytes, starting at "offset",
-			 *	of the current presumptive source data
-			 *	within the referenced ZCO; no header
-			 *	or trailer capsules.  The old ZCO's
-			 *	source data is copied in segments of
-			 *	at most "bufferLength" bytes each;
-			 *	"buffer" is used as the temporary
-			 *	staging area for copying the segments
-			 *	of source data.  The new ZCO's source
-			 *	data will be stored in a newly created
-			 *	file or in one or more blocks of SDR
-			 *	space, as specified by "sourceMedium";
-			 *	if "sourceMedium" is ZcoFileSource,
-			 *	then the path name of the file to be
-			 *	created must be supplied as the initial
-			 *	contents of "buffer".  Returns SDR
-			 *	location of reference to new ZCO on
-			 *	success, 0 on any error.
-			 *
-			 *	Use this function when it is necessary
-			 *	to fragment the source data content of
-			 *	a ZCO.					*/
 
 int		zco_receive_headers(Sdr sdr,
 				ZcoReader *reader,
@@ -353,6 +299,17 @@ void		zco_delimit_source(Sdr sdr,
 			 *	length as determined from the contents
 			 *	of the innermost protocol header.	*/
 
+int		zco_receive_source(Sdr sdr,
+				ZcoReader *reader,
+				unsigned int length,
+				char *buffer);
+			/*	Copies "length" as-yet-uncopied bytes
+			 *	of source data from ZCO extents into
+			 *	"buffer"; if buffer is NULL, simply
+			 *	skips over "length" bytes of this ZCO's
+			 *	source data.  Returns number of bytes
+			 *	copied, or -1 on any error.		*/
+
 int		zco_receive_trailers(Sdr sdr,
 				ZcoReader *reader,
 				unsigned int length,
@@ -361,6 +318,74 @@ int		zco_receive_trailers(Sdr sdr,
 			 *	of trailer data from ZCO extents into
 			 *	"buffer".  Returns number of bytes
 			 *	copied, or -1 on any error.		*/
+
+void		zco_stop_receiving(Sdr sdr,
+				ZcoReader *reader);
+			/*	Terminates extraction of inbound ZCO
+			 *	bytes for reception.			*/
+
+void		zco_strip(	Sdr sdr,
+				Object zcoRef);
+			/*	Deletes all source data extents that
+			 *	contain only header or trailer data,
+			 *	adjusts offsets and/or lengths of
+			 *	remaining extents to exclude any
+			 *	known header or trailer data.  Use
+			 *	this function before concatenating
+			 *	with another ZCO, before starting
+			 *	the transmission of a ZCO that was
+			 *	received from an underlying protocol
+			 *	layer rather than from an overlying
+			 *	application or protocol layer, and
+			 *	before enqueuing the ZCO for reception
+			 *	by an overlying application or
+			 *	protocol layer.				*/
+
+/*		ZCO functions for future use.				*/
+#if 0
+
+void		zco_concatenate(Sdr sdr,
+				Object aggregateZcoRef,
+				Object atomicZcoRef);
+			/*	Appends all source data extents of the
+			 *	atomic Zco to the source data of the
+			 *	aggregate Zco.  Destroys the atomic
+			 *	Zco reference, which will implicitly
+			 *	destroy the atomic Zco itself.  Fails
+			 *	if either Zco contains any identified
+			 *	header or trailer data, or if there
+			 *	are multiple references to either Zco.	*/
+
+Object		zco_copy(	Sdr sdr,
+				Object zcoRef,
+				ZcoMedium sourceMedium,
+				char *buffer,
+				unsigned int bufferLength,
+				unsigned int offset,
+				unsigned int length);
+			/*	Creates a new ZCO containing the
+			 *	"length" bytes, starting at "offset",
+			 *	of the current presumptive source data
+			 *	within the referenced ZCO; no header
+			 *	or trailer capsules.  The old ZCO's
+			 *	source data is copied in segments of
+			 *	at most "bufferLength" bytes each;
+			 *	"buffer" is used as the temporary
+			 *	staging area for copying the segments
+			 *	of source data.  The new ZCO's source
+			 *	data will be stored in a newly created
+			 *	file or in one or more blocks of SDR
+			 *	space, as specified by "sourceMedium";
+			 *	if "sourceMedium" is ZcoFileSource,
+			 *	then the path name of the file to be
+			 *	created must be supplied as the initial
+			 *	contents of "buffer".  Returns SDR
+			 *	location of reference to new ZCO on
+			 *	success, 0 on any error.
+			 *
+			 *	Use this function when it is necessary
+			 *	to fragment the source data content of
+			 *	a ZCO.					*/
 #endif
 #ifdef __cplusplus
 }

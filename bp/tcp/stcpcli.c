@@ -266,12 +266,11 @@ static void	*spawnReceivers(void *parm)
 		/*	Trigger termination of thread.			*/
 
 		parms = (ReceiverThreadParms *) lyst_data(elt);
-		thread = parms->thread;
 		pthread_mutex_unlock(&mutex);
+		thread = parms->thread;
 		pthread_kill(thread, SIGTERM);
 		pthread_join(thread, NULL);
 		close(parms->bundleSocket);
-		parms->bundleSocket = -1;
 	}
 
 	lyst_destroy(threads);

@@ -238,7 +238,13 @@ terminating.");
 			case 0:		/*	No space for bundle.	*/
 				if (errno == EWOULDBLOCK)
 				{
-					sdr_end_xn(sdr);
+					if (sdr_end_xn(sdr) < 0)
+					{
+						putErrmsg("bputa xn failed.",
+								NULL);
+						parms.running = 0;
+					}
+
 					microsnooze(250000);
 					sdr_begin_xn(sdr);
 					continue;
@@ -255,7 +261,12 @@ terminating.", NULL);
 
 		if (newBundle == 0)
 		{
-			sdr_end_xn(sdr);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("bputa transaction failed.", NULL);
+				parms.running = 0;
+			}
+
 			continue;	/*	Must have stopped.	*/
 		}
 

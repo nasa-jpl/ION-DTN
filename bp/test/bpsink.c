@@ -9,11 +9,6 @@
 
 #include <bp.h>
 
-static char	*deliveryTypes[] =	{
-			"Payload delivered.",
-			"Reception timed out.",
-			"Reception interrupted."
-					};
 static BpSAP	_bpsap(BpSAP *newSAP)
 {
 	static BpSAP	sap = NULL;
@@ -42,6 +37,11 @@ int	main(int argc, char **argv)
 {
 	char		*ownEid = (argc > 1 ? argv[1] : NULL);
 #endif
+	static char	*deliveryTypes[] =	{
+				"Payload delivered.",
+				"Reception timed out.",
+				"Reception interrupted."
+						};
 	BpSAP		sap;
 	Sdr		sdr;
 	int		running = 1;
@@ -103,6 +103,7 @@ int	main(int argc, char **argv)
 				len = zco_receive_source(sdr, &reader,
 						contentLength, content);
 				zco_stop_receiving(sdr, &reader);
+
 				if (sdr_end_xn(sdr) < 0 || len < 0)
 				{
 					putErrmsg("Can't handle delivery.",

@@ -41,7 +41,7 @@ static int	processLine(char *line, int lineLength)
 
 	for (i = 0; i < 20; i++)
 	{
-		val = random();
+		val = rand();
 		key[i] = val & 0xff;
 	}
 

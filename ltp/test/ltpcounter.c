@@ -99,7 +99,7 @@ int	main(int argc, char **argv)
 	unsigned char	endOfBlock;
 	unsigned long	dataOffset;
 	unsigned long	dataLength;
-	char		*data;
+	Object		data;
 	char		buffer[255];
 
 	if (maxBytes < 1)

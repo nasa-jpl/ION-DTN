@@ -145,14 +145,16 @@ psm_start_trace(dgrwm, 10000000, NULL);
 				default:
 					putErrmsg("dgr_send failed.", NULL);
 					writeErrmsgMemos();
+					fclose(inputFile);
 					return 0;
 				}
 
 				bytesSent += eofLineLen;
 				fclose(inputFile);
 				cyclesLeft--;
-if (cyclesLeft == 0) break;
-snooze(random() % 5);	/*	Sleep up to 5 seconds before next.	*/
+				if (cyclesLeft == 0) break;
+				snooze(rand() % 5);
+				/*	Sleep up to 5 seconds.		*/
 				inputFile = fopen(fileName, "r");
 				if (inputFile == NULL)
 				{
@@ -169,6 +171,7 @@ snooze(random() % 5);	/*	Sleep up to 5 seconds before next.	*/
 				putSysErrmsg("Can't read from input file",
 						NULL);
 				writeErrmsgMemos();
+				fclose(inputFile);
 				return 0;
 			}
 		}
@@ -183,6 +186,7 @@ snooze(random() % 5);	/*	Sleep up to 5 seconds before next.	*/
 		default:
 			putErrmsg("dgr_send failed", NULL);
 			writeErrmsgMemos();
+			fclose(inputFile);
 			return 0;
 		}
 
@@ -195,6 +199,7 @@ snooze(random() % 5);	/*	Sleep up to 5 seconds before next.	*/
 psm_print_trace(dgrwm, 0);
 psm_stop_trace(dgrwm);
 #endif
+	fclose(inputFile);
 	return 0;
 }
 

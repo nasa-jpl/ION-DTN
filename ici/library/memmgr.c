@@ -66,6 +66,28 @@ static unsigned long	memmgr_ptoa(void * address)
 	return (unsigned long) address;
 }
 
+/*	Default null memory management functions.			*/
+
+static void	*null_malloc(char *fileName, int lineNbr, size_t size)
+{
+	return NULL;
+}
+
+static void	null_free(char *fileName, int lineNbr, void *address)
+{
+	return;
+}
+
+static void	*null_atop(unsigned long pointer)
+{
+	return NULL;
+}
+
+static unsigned long	null_ptoa(void * address)
+{
+	return 0;
+}
+
 /*
  *	private global variables
  */
@@ -132,10 +154,25 @@ static int	_mem_mgrs(int nbr, char *name, MemAllocator take,
 			return -1;
 		}
 
-		CHKERR(take);
-		CHKERR(release);
-		CHKERR(AtoP);
-		CHKERR(PtoA);
+		if (take == NULL)
+		{
+			take = null_malloc;
+		}
+
+		if (release == NULL)
+		{
+			release = null_free;
+		}
+
+		if (AtoP == NULL)
+		{
+			AtoP = null_atop;
+		}
+
+		if (PtoA == NULL)
+		{
+			PtoA = null_ptoa;
+		}
 
 		/*	Copy the name, in case it's not a literal.	*/
 

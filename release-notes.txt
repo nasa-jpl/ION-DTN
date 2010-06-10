@@ -49,10 +49,16 @@ Features included:
 	information, check man brsscla and man brsccla.
 
 ----------------------
-NOTES ON RELEASE NEXT
+NOTES ON RELEASE 2.2.0
 ----------------------
 
-- Code scrub.
+- Added feature to store bundles directly to file-system memory, allowing
+  much larger bundles to be handled by the node.
+
+- Added feature to allow all stdout output to be redirected to log files.
+  Feature is enabled by #defining FSWLOGGER.
+
+- Code scrub BP, CFDP, ICI, LTP.
 
 - Add support for asymmetric link-delay (range) in contacts.
 
@@ -61,6 +67,8 @@ NOTES ON RELEASE NEXT
 - Fixed handling of dtn:none eids.
 
 - Optimize contact graph routing.
+
+- Various bug fixes and tweaks.
 
 ----------------------
 NOTES ON RELEASE 2.1.0

@@ -14,7 +14,7 @@
 
 static unsigned int	sdrwatch_count(int *newValue)
 {
-	unsigned int	count = 1;
+	static unsigned int	count = 1;
 
 	if (newValue)
 	{
@@ -92,8 +92,8 @@ int	sdrwatch(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char	*sdrName = (char *) a1;
-	int	interval = a2 >= 0 ? a2 : 0;
-	int	count = a3 > 0 ? a3 : 1;
+	int	interval = a2 ? strtol((char *) a2, NULL, 0) : 0;
+	int	count = a3 ? strtol((char *) a3, NULL, 0) : 0;
 	int	verbose = a4 ? 1 : 0;
 
 	if (interval > 1)

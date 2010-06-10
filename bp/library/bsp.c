@@ -438,8 +438,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
      BSP_DEBUG_ERR("x bsp_serializeASB:  Parameters are missing. Asb is %x", 
                    (unsigned long) asb);
      BSP_DEBUG_PROC("- bsp_serializeASB --> %s","NULL");
-     *length = 0;              
-  	 return NULL;
+     return NULL;
    }
    
    /***************************************************************************
@@ -482,7 +481,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
    {
       BSP_DEBUG_ERR("x bsp_serializeBlock:  Unable to malloc %d bytes.", 
                     *length);
-   	  *length = 0;
+      *length = 0;
       result = NULL;
    }
    else
@@ -980,7 +979,7 @@ int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
    || post_blk->size != sizeof(BspBabScratchpad))
    {
 	BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Bundle or ASB were not \
-as expected. blk->size %d.", post_blk->size);
+as expected.", NULL);
 	BSP_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
 	return -1;
    } 
@@ -1141,7 +1140,7 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
    asb = (BspAbstractSecurityBlock *) &(scratch.asb);
   
    /* 
-    * Grab the serialized block. It lives in bundle.payload. 
+    * Grab the serialized bundle. It lives in bundle.payload. 
     * Get it ready to serialize, and grab the bundle length.
     */
    bundleRef = zco_add_reference(bpSdr, bundle->payload.content);
@@ -1289,20 +1288,7 @@ trailer has length %d", blk->length);
  *
  * \par Purpose: This callback is called when a pre-payload bunde received by 
  *               the ION library.  This function will rely on the general
- *               helper function: bsp_babAcquire to deserialize the block. 
- *               Additionally, this function will grab the overall serialized
- *               version of the bundle.  This is due to the act that the act of
- *               deserializing the bundle is destructive and would require 
- *               re-serializing the bundle later if we do not capture the 
- *               bundle at this point.
- *
- *               The serialized bundle is stored in the scratchpad. Currently,
- *               we cannot and should not serialize the bundle at this point
- *               to calculate the security result because blocks that may
- *               affect the security result (like the previous hop insertion
- *               block) will not have been processed yet.  Also, the acquire 
- *               callback should likely just acquire information, and not do
- *               data processing.
+ *               helper function bsp_babAcquire to deserialize the block. 
  *
  * \retval int -- 1 - The block was deserialized into a structure in the
  *                    scratchpad
@@ -1320,109 +1306,9 @@ trailer has length %d", blk->length);
 
 int	bsp_babPreAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-int			retval;
-BspBabScratchpad	*scratch;
-int			digestLen = BAB_HMAC_SHA1_RESULT_LEN;
-int			resultLen = digestLen + 2;	/*	Item.	*/
-unsigned long		rawBundleLen;
-int			lengthToHash;
-char			*keyValueBuffer;
-int			keyLen;
-char			*rawBundle;
-int			i;
-
    BSP_DEBUG_PROC("+ bsp_babPreAcquire(%x, %x)", 
                   (unsigned long) blk, (unsigned long) wk);
-
-	/*	If we acquired the block, calculate the expected
-	 *	security result over all bytes of the bundle except
-	 *	the BAB security result, which is expected to be
-	 *	the last resultLen bytes of the bundle (the content
-	 *	of the post-payload BAB, which must be the last
-	 *	block).							*/ 
-
-   if ((retval = bsp_babAcquire(blk, wk)) != 1)
-   {
-	   return retval;
-   }
-
-   rawBundleLen = wk->primaryBlockLength + wk->bytesBuffered;
-   if ((lengthToHash = rawBundleLen - resultLen) < 0)
-   {
-	BSP_DEBUG_ERR("x bsp_babPreAcquire: Can't hash %d bytes",
-			lengthToHash);
-	return 0;
-   }
-
-   BSP_DEBUG_INFO("i bsp_babPreAcquire: len %d", resultLen);
-   scratch = (BspBabScratchpad *) (blk->object); 
-   bsp_babGetSecurityInfo(&(wk->bundle), BAB_RX, wk->senderEid, scratch);
-   if (scratch->cipherKeyName[0] == '\0')
-   {
-	/*	No rule, or no key.					*/
-
-	return 1;	/*	Just acquire; no hash computation.	*/
-   }
-
-   if ((keyValueBuffer = (char *) bsp_retrieveKey(&keyLen,
-   		scratch->cipherKeyName)) == NULL)
-   {
-	BSP_DEBUG_ERR("x bsp_babPreAcquire: Can't retrieve key %s for EID %s",
-			scratch->cipherKeyName, wk->senderEid);
-
-	/*	Note that scratch->hmacLen remains zero.  This is
-	 *	the indication, during the post-payload BAB check,
-	 *	that the key was not retrieved.				*/
-
-	return 0;
-   }
-
-      /* 
-       * This is our only chance to grab the serialized bundle before it is 
-       * destroyed by the deserialization process.
-       */
-
-   if ((rawBundle = MTAKE(rawBundleLen)) == NULL)
-   {
-	BSP_DEBUG_ERR("x bsp_babPreAcquire: Can't allocate %ld bytes",
-			rawBundleLen);
-	MRELEASE(keyValueBuffer);
-	return -1;
-   }
-
-	/*	Reassemble entire bundle in buffer.			*/
-
-   /**	\todo: watch pointer arithmetic if sizeof(char) != 1		*/
-
-   memcpy(rawBundle, wk->primaryBlockBytes, wk->primaryBlockLength);
-   memcpy(rawBundle + wk->primaryBlockLength, wk->buffer, wk->bytesBuffered);
-   for (i = 0; i < lengthToHash; i++)
-   {
-	BSP_DEBUG_INFO("Byte %d is %x", i, rawBundle[i]);
-   }
-
-   scratch->hmacLen = hmac_authenticate(scratch->expectedResult, digestLen,
-		keyValueBuffer, keyLen, rawBundle, lengthToHash);
-   MRELEASE(rawBundle);
-   MRELEASE(keyValueBuffer);
-   BSP_DEBUG_INFO("i bsp_babPreAcquire: Calculated length is %d",
-		scratch->hmacLen);
-   if (scratch->hmacLen != digestLen)
-   {
-	BSP_DEBUG_ERR("x bsp_babPreAcquire: digestLen %d, hmacLen %d",
-			digestLen, scratch->hmacLen);
-	retval = 0;
-   }
-   else
-   {
-	/*	Expected result is now in scratchpad.			*/
-
-	retval = 1;
-   }
-
-   BSP_DEBUG_PROC("- bsp_babPreAcquire --> %d", retval); 
-
-   return retval;
+   return bsp_babAcquire(blk, wk);
 }
 
 
@@ -1434,6 +1320,10 @@ int			i;
  *               to determine whether the block should be considered authentic. 
  *               For a BAB, this is really just a sanity check on the block, 
  *               making sure that the block fields are consistent.
+ *		 Also, at this point the entire bundle has been received
+ *		 into a zero-copy object, so we can compute the security
+ *		 result for the bundle and pass it on to the post-payload
+ *		 BAB check function.
  *
  * \retval int 0 - The block check was inconclusive
  *             1 - The block check failed.
@@ -1452,6 +1342,18 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
 {
    BspBabScratchpad *pre_scratch = NULL;
    BspAbstractSecurityBlock *pre_asb = NULL;
+   Sdr			bpSdr = getIonsdr();
+   int			digestLen = BAB_HMAC_SHA1_RESULT_LEN;
+   int			resultLen = digestLen + 2;	/*	Item.	*/
+   unsigned long	rawBundleLen;
+   int			bytesRetrieved;
+   int			lengthToHash;
+   char			*keyValueBuffer;
+   int			keyLen;
+   char			*rawBundle;
+   Object		bundleRef;
+   ZcoReader		bundleReader;
+   int			i;
    int retval = 0;
     
    BSP_DEBUG_PROC("+ bsp_babPreCheck(%x,%x)", 
@@ -1472,7 +1374,92 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
 
    pre_scratch = (BspBabScratchpad *) pre_blk->object;
    pre_asb = &(pre_scratch->asb);
-  
+
+	/*	The incoming serialized bundle, unaltered, is now
+	 *	in the bundle payload content of the work area; its
+	 *	BP header and trailer have not yet been stripped off.
+	 *	So we can now compute the correct security result
+	 *	for this bundle's BABs.					*/
+
+   rawBundleLen = zco_length(bpSdr, wk->bundle.payload.content);
+   if ((lengthToHash = rawBundleLen - resultLen) < 0)
+   {
+	BSP_DEBUG_ERR("x bsp_babPreCheck: Can't hash %d bytes",
+			lengthToHash);
+	return 0;
+   }
+
+   BSP_DEBUG_INFO("i bsp_babPreCheck: len %d", resultLen);
+   pre_scratch = (BspBabScratchpad *) (pre_blk->object); 
+   bsp_babGetSecurityInfo(&(wk->bundle), BAB_RX, wk->senderEid, pre_scratch);
+   if (pre_scratch->cipherKeyName[0] == '\0')
+   {
+	/*	No rule, or no key.					*/
+
+	return 0;	/*	No hash computation.			*/
+   }
+
+   if ((keyValueBuffer = (char *) bsp_retrieveKey(&keyLen,
+   		pre_scratch->cipherKeyName)) == NULL)
+   {
+	BSP_DEBUG_ERR("x bsp_babPreAcquire: Can't retrieve key %s for EID %s",
+			pre_scratch->cipherKeyName, wk->senderEid);
+
+	/*	Note that pre_scratch->hmacLen remains zero.  This is
+	 *	the indication, during the post-payload BAB check,
+	 *	that the key was not retrieved.				*/
+
+	return 0;
+   }
+
+   if ((rawBundle = MTAKE(rawBundleLen)) == NULL)
+   {
+	BSP_DEBUG_ERR("x bsp_babPreCheck: Can't allocate %ld bytes",
+			rawBundleLen);
+	MRELEASE(keyValueBuffer);
+	return -1;
+   }
+
+   /*	Retrieve entire bundle into buffer.				*/
+
+   /**	\todo: watch pointer arithmetic if sizeof(char) != 1		*/
+
+   sdr_begin_xn(bpSdr);
+   bundleRef = zco_add_reference(bpSdr, wk->bundle.payload.content);
+   zco_start_transmitting(bpSdr, bundleRef, &bundleReader);
+   bytesRetrieved = zco_transmit(bpSdr, &bundleReader, rawBundleLen, rawBundle);
+   zco_stop_transmitting(bpSdr, &bundleReader);
+   zco_destroy_reference(bpSdr, bundleRef);
+   if (sdr_end_xn(bpSdr) < 0 || bytesRetrieved != rawBundleLen)
+   {
+	BSP_DEBUG_ERR("x bsp_babPreCheck: Can't receive %ld bytes",
+			rawBundleLen);
+	MRELEASE(keyValueBuffer);
+	MRELEASE(rawBundle);
+	return -1;
+   }
+
+   for (i = 0; i < lengthToHash; i++)
+   {
+	BSP_DEBUG_INFO("Byte %d is %x", i, rawBundle[i]);
+   }
+
+   pre_scratch->hmacLen = hmac_authenticate(pre_scratch->expectedResult,
+		   digestLen, keyValueBuffer, keyLen, rawBundle, lengthToHash);
+   MRELEASE(rawBundle);
+   MRELEASE(keyValueBuffer);
+   BSP_DEBUG_INFO("i bsp_babPreCheck: Calculated length is %d",
+		pre_scratch->hmacLen);
+   if (pre_scratch->hmacLen != digestLen)
+   {
+	BSP_DEBUG_ERR("x bsp_babPreCheck: digestLen %d, hmacLen %d",
+			digestLen, pre_scratch->hmacLen);
+	return 0;
+   }
+
+   /*	Security result for this bundle has now been calculated and
+    *	can be used for post-payload BAB check.				*/
+
    /* The pre-payload block must have a correlator and no result. */
    if(((pre_asb->cipherFlags & BSP_ASB_CORR) == 0) ||
             ((pre_asb->cipherFlags & BSP_ASB_RES) != 0))
@@ -1596,7 +1583,7 @@ unsigned long tmp;
    		(blk->size != sizeof(BspBabScratchpad)))
    {
       BSP_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Bundle or ASB were not as \
-expected. blk->size %d.", blk->size);
+expected.", NULL);
                     
       BSP_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", -1);
       return -1;

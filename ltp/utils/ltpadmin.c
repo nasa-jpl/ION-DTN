@@ -108,8 +108,8 @@ static void	initializeLtp(int tokenCount, char **tokens)
 		return;
 	}
 
-	maxNbrOfSessions = atoi(tokens[1]);
-	blockSizeLimit = atoi(tokens[2]);
+	maxNbrOfSessions = strtol(tokens[1], NULL, 0);
+	blockSizeLimit = strtol(tokens[2], NULL, 0);
 	if (ionAttach() < 0)
 	{
 		putErrmsg("ltpadmin can't attach to ION.", NULL);
@@ -433,7 +433,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 		SYNTAX_ERROR;
 	}
 
-	newOwnQtime = atoi(tokens[2]);
+	newOwnQtime = strtol(tokens[2], NULL, 0);
 	if (newOwnQtime < 0)
 	{
 		putErrmsg("Own Q time invalid.", tokens[2]);
@@ -595,7 +595,7 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
-static int	processLine(char *line, int lineLength)
+static int	processLine(char *line, int lineLength, int *checkNeeded)
 {
 	int	tokenCount;
 	char	*cursor;
@@ -651,6 +651,7 @@ static int	processLine(char *line, int lineLength)
 
 		case '1':
 			initializeLtp(tokenCount, tokens);
+			*checkNeeded = 1;
 			return 0;
 
 		case 's':
@@ -685,6 +686,7 @@ command.");
 			if (attachToLtp() == 0)
 			{
 				executeAdd(tokenCount, tokens);
+				*checkNeeded = 1;
 			}
 
 			return 0;
@@ -693,6 +695,7 @@ command.");
 			if (attachToLtp() == 0)
 			{
 				executeChange(tokenCount, tokens);
+				*checkNeeded = 1;
 			}
 
 			return 0;
@@ -701,6 +704,7 @@ command.");
 			if (attachToLtp() == 0)
 			{
 				executeDelete(tokenCount, tokens);
+				*checkNeeded = 1;
 			}
 
 			return 0;
@@ -763,6 +767,7 @@ int	main(int argc, char **argv)
 	int	cmdFile;
 	char	line[256];
 	int	len;
+	int	checkNeeded = 0;
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
@@ -791,7 +796,7 @@ int	main(int argc, char **argv)
 				continue;
 			}
 
-			if (processLine(line, len))
+			if (processLine(line, len, &checkNeeded))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -834,7 +839,7 @@ int	main(int argc, char **argv)
 					continue;
 				}
 
-				if (processLine(line, len))
+				if (processLine(line, len, &checkNeeded))
 				{
 					break;	/*	Out of loop.	*/
 				}
@@ -845,6 +850,14 @@ int	main(int argc, char **argv)
 	}
 
 	writeErrmsgMemos();
+	if (checkNeeded)
+	{
+		if (attachToLtp() == 0)
+		{
+			checkReservationLimit();
+		}
+	}
+
 	printText("Stopping ltpadmin.");
 	ionDetach();
 	return 0;

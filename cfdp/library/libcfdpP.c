@@ -2083,7 +2083,8 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 	int		pduSourceDataLength;
 	int		entityNbrLength;
 	unsigned char	pduHeader[28];
-	int		pduHeaderLength = 4;
+	unsigned int	pduHeaderLength = 4;
+	unsigned int	proposedLength;
 	unsigned char	*buf;
 	ZcoReader	reader;
 	unsigned short	crc;
@@ -2152,6 +2153,16 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 	/*	Insert entity IDs and transaction number.		*/
 
+	proposedLength = pduHeaderLength + entityNbrLength
+			+ fduBuffer->transactionId.transactionNbr.length
+			+ entityNbrLength;
+	if (proposedLength > sizeof pduHeader)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("pduHeaderLength too large.", utoa(proposedLength));
+		return -1;
+	}
+
 	memcpy(pduHeader + pduHeaderLength, cfdpConstants->ownEntityNbr.buffer,
 			entityNbrLength);
 	pduHeaderLength += entityNbrLength;
@@ -2176,8 +2187,14 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 		buf = _crcComputationBuf();
 		memcpy((char *) buf, pduHeader, pduHeaderLength);
 		zco_start_receiving(sdr, *pdu, &reader);
-		zco_receive_source(sdr, &reader, pduSourceDataLength,
-				((char *) buf) + pduHeaderLength);
+		if (zco_receive_source(sdr, &reader, pduSourceDataLength,
+				((char *) buf) + pduHeaderLength) < 0)
+		{
+			sdr_cancel_xn(sdr);
+			putErrmsg("Can't read ZCO.", NULL);
+			return -1;
+		}
+
 		zco_stop_receiving(sdr, &reader);
 		crc = computeCRC(buf, pduHeaderLength + pduSourceDataLength);
 		crc = htons(crc);
@@ -2310,7 +2327,7 @@ static int	writeSegmentData(InFdu *fdu, unsigned char **cursor,
 
 	if (cfdpvdb->corruptionModulus)
 	{
-		remainder = random() % cfdpvdb->corruptionModulus;
+		remainder = rand() % cfdpvdb->corruptionModulus;
 		if (remainder == 0)
 		{
 			(**cursor)++;	/*	Introduce corruption.	*/
