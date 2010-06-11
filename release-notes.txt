@@ -1,5 +1,6 @@
-Release Notes for ION 2.1.0
-March 9, 2010
+Release Notes for ION 2.2.0
+June 11, 2010
+
 
 GENERAL
 
