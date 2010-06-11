@@ -850,16 +850,16 @@ int	bpInit()
 	switch (bpdbObject)
 	{
 	case -1:		/*	SDR error.			*/
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't search for BP database in SDR.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 
 	case 0:			/*	Not found; must create new DB.	*/
 		bpdbObject = sdr_malloc(bpSdr, sizeof(BpDB));
 		if (bpdbObject == 0)
 		{
-			sdr_cancel_xn(bpSdr);
 			putErrmsg("No space for database.", NULL);
+			sdr_cancel_xn(bpSdr);
 			return -1;
 		}
 
@@ -2713,8 +2713,8 @@ too long", admAppCmd);
 	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
 	if (raiseScheme(schemeElt, _bpvdb(NULL)) < 0)
 	{
-		putErrmsg("Can't raise scheme.", NULL);
 		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't raise scheme.", NULL);
 		return -1;
 	}
 
@@ -3457,8 +3457,8 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
 	if (raiseInduct(elt, _bpvdb(NULL)) < 0)
 	{
-		putErrmsg("Can't raise induct.", NULL);
 		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't raise induct.", NULL);
 		return -1;
 	}
 
@@ -5159,8 +5159,8 @@ status reports for admin records.");
 		bundle.dictionary = sdr_malloc(bpSdr, bundle.dictionaryLength);
 		if (bundle.dictionary == 0)
 		{
-			sdr_cancel_xn(bpSdr);
 			putErrmsg("No space for dictionary.", NULL);
+			sdr_cancel_xn(bpSdr);
 			MRELEASE(dictionary);
 			return -1;
 		}
@@ -5185,15 +5185,15 @@ status reports for admin records.");
 	|| bundle.extensions[0] == 0
 	|| bundle.extensions[1] == 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("No space for bundle object.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
 	if (setBundleTTL(&bundle, *bundleObj) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't insert new bundle into timeline.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -5214,9 +5214,9 @@ status reports for admin records.");
 			blk.type = def->type;
 			if (def->offer(&blk, &bundle) < 0)
 			{
-				sdr_cancel_xn(bpSdr);
 				putErrmsg("Failed offering extension block.",
 						NULL);
+				sdr_cancel_xn(bpSdr);
 				return -1;
 			}
 
@@ -5227,9 +5227,9 @@ status reports for admin records.");
 
 			if (attachExtensionBlock(def, &blk, &bundle) < 0)
 			{
-				sdr_cancel_xn(bpSdr);
 				putErrmsg("Failed attaching extension block.",
 						NULL);
+				sdr_cancel_xn(bpSdr);
 				return -1;
 			}
 		}
@@ -5249,8 +5249,8 @@ status reports for admin records.");
 
 	if (forwardBundle(*bundleObj, &bundle, destEidString) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't queue bundle for forwarding.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -6073,8 +6073,8 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 
 	if (patchExtensionBlocks(bundle) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't insert missing extensions.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -6299,7 +6299,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	static unsigned long	acqCount = 0;
 	Sdr			sdr = getIonsdr();
 	BpDB			*bpConstants = _bpConstants();
-	char			cwd[256];
+	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
 	char			script[SDRSTRING_BUFSZ];
 	int			fd;
@@ -6316,8 +6316,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 				bpConstants->inboundBundles, work->zco);
 		if (work->zco == 0 || work->zcoElt == 0)
 		{
-			sdr_cancel_xn(sdr);
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
+			sdr_cancel_xn(sdr);
 			return -1;
 		}
 	}
@@ -6356,8 +6356,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	{
 		if (igetcwd(cwd, sizeof cwd) == NULL)
 		{
-			sdr_cancel_xn(sdr);
 			putErrmsg("Can't get CWD for acq file name.", NULL);
+			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
@@ -6367,8 +6367,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		fd = open(fileName, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0)
 		{
-			sdr_cancel_xn(sdr);
 			putSysErrmsg("Can't create acq file", fileName);
+			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
@@ -6383,16 +6383,16 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		fd = open(fileName, O_WRONLY, 0666);
 		if (fd < 0 || (fileLength = lseek(fd, 0, SEEK_END)) < 0)
 		{
-			sdr_cancel_xn(sdr);
 			putSysErrmsg("Can't reopen acq file", fileName);
+			sdr_cancel_xn(sdr);
 			return -1;
 		}
 	}
 
 	if (write(fd, bytes, length) < 0)
 	{
-		sdr_cancel_xn(sdr);
 		putSysErrmsg("Can't append to acq file", fileName);
+		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
@@ -7366,8 +7366,8 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	sdr_begin_xn(bpSdr);
 	if (acqFromWork(work) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Acquisition from work area failed.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -7559,15 +7559,15 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	bundleObj = sdr_malloc(bpSdr, sizeof(Bundle));
 	if (bundleObj == 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("No space for bundle object.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
 	if (setBundleTTL(bundle, bundleObj) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't insert new bundle into timeline.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -7577,8 +7577,8 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 				bundle->dictionaryLength);
 		if (bundle->dictionary == 0)
 		{
-			sdr_cancel_xn(bpSdr);
 			putErrmsg("Can't store dictionary.", NULL);
+			sdr_cancel_xn(bpSdr);
 			return -1;
 		}
 
@@ -7589,8 +7589,8 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 	if (recordExtensionBlocks(work) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't record extensions.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -7619,8 +7619,8 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 	if (dispatchBundle(bundleObj, bundle) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't dispatch bundle.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -7786,9 +7786,9 @@ int	bpConstructCtSignal(BpCtSignal *csig, Object *zcoRef)
 	sourceData = sdr_malloc(bpSdr, ctSignalLength);
 	if (sourceData == 0)
 	{
+		putErrmsg("No space for source data.", NULL);
 		sdr_cancel_xn(bpSdr);
 		MRELEASE(buffer);
-		putErrmsg("No space for source data.", NULL);
 		return -1;
 	}
 
@@ -8058,9 +8058,9 @@ int	bpConstructStatusRpt(BpStatusRpt *rpt, Object *zcoRef)
 	sourceData = sdr_malloc(bpSdr, rptLength);
 	if (sourceData == 0)
 	{
+		putErrmsg("No space for source data.", NULL);
 		sdr_cancel_xn(bpSdr);
 		MRELEASE(buffer);
-		putErrmsg("No space for source data.", NULL);
 		return -1;
 	}
 
@@ -8187,8 +8187,8 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	buflen = zco_source_data_length(bpSdr, payload);
 	if ((buffer = MTAKE(buflen)) == NULL)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't start parsing admin record.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -8196,9 +8196,9 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	bytesToParse = zco_receive_source(bpSdr, &reader, buflen, buffer);
 	if (bytesToParse < 0)
 	{
+		putErrmsg("Can't receive admin record.", NULL);
 		sdr_cancel_xn(bpSdr);
 		MRELEASE(buffer);
-		putErrmsg("Can't receive admin record.", NULL);
 		return -1;
 	}
 
@@ -8206,10 +8206,10 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	unparsedBytes = bytesToParse;
 	if (unparsedBytes < 1)
 	{
-		sdr_cancel_xn(bpSdr);
-		MRELEASE(buffer);
 		writeMemoNote("[?] Incoming admin record too short",
 				itoa(unparsedBytes));
+		sdr_cancel_xn(bpSdr);
+		MRELEASE(buffer);
 		result = 0;
 	}
 	else
@@ -9408,8 +9408,8 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	if (getOutboundBundle(flows, vduct, &outduct, outductObj,
 		&bundleObj, &bundle, &proxNodeEidObj, &destDuctNameObj) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		writeMemo("[?] CLO can't get next outbound bundle.");
+		sdr_cancel_xn(bpSdr);
 
 		/*	End task; may be with or without error.		*/
 
@@ -9430,8 +9430,8 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	context.proxNodeEid = proxNodeEid;
 	if (processExtensionBlocks(&bundle, PROCESS_ON_DEQUEUE, &context) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't process extensions.", "dequeue");
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -9494,8 +9494,8 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 
 	if (processExtensionBlocks(&bundle, PROCESS_ON_TRANSMIT, NULL) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't process extensions.", "dequeue");
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -9510,8 +9510,8 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		if ((dictionary = retrieveDictionary(&bundle))
 				== (char *) &bundle)
 		{
-			sdr_cancel_xn(bpSdr);
 			putErrmsg("Can't retrieve dictionary.", NULL);
+			sdr_cancel_xn(bpSdr);
 			return -1;
 		}
 
@@ -9519,8 +9519,8 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		releaseDictionary(dictionary);
 	       	if (result < 0)
 		{
-			sdr_cancel_xn(bpSdr);
 			putErrmsg("Can't send status report.", NULL);
+			sdr_cancel_xn(bpSdr);
 			return -1;
 		}
 	}
@@ -9572,8 +9572,8 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 
 	if (bpDestroyBundle(bundleObj, 0) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't destroy bundle.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -9880,8 +9880,8 @@ static int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer,
 	handle = zco_add_reference(sdr, zco);
 	if (handle == 0)
 	{
-		sdr_cancel_xn(sdr);
 		putErrmsg("Can't get new handle for catenated bundle.", NULL);
+		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
@@ -9890,16 +9890,16 @@ static int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer,
 			(char *) buffer);
 	if (bytesBuffered < 0)
 	{
-		sdr_cancel_xn(sdr);
 		putErrmsg("Can't extract primary block.", NULL);
+		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
 	if (decodeHeader(sdr, handle, &reader, buffer,
 			bytesBuffered, image, dictionary, bundleLength) < 0)
 	{
-		sdr_cancel_xn(sdr);
 		putErrmsg("Can't decode bundle header.", NULL);
+		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
@@ -10045,8 +10045,8 @@ int	bpHandleXmitFailure(Object bundleZco)
 
 	if (bpReforwardBundle(bundleAddr) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Failed trying to re-forward bundle.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -10407,9 +10407,9 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 				releaseCustody(bundleAddr, bundle);
 				if (bpDestroyBundle(bundleAddr, 0) < 0)
 				{
-					sdr_cancel_xn(bpSdr);
 					putErrmsg("Can't destroy bundle.",
 							NULL);
+					sdr_cancel_xn(bpSdr);
 					running = 0;
 					bpEraseCtSignal(&cts);
 					break;	/*	Out of switch.	*/
@@ -10422,9 +10422,9 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 				if ((dictionary = retrieveDictionary(bundle))
 						== (char *) bundle)
 				{
-					sdr_cancel_xn(bpSdr);
 					putErrmsg("Can't retrieve dictionary.",
 							NULL);
+					sdr_cancel_xn(bpSdr);
 					running = 0;
 					bpEraseCtSignal(&cts);
 					break;	/*	Out of switch.	*/
@@ -10433,9 +10433,9 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 				if (printEid(&bundle->destination, dictionary,
 						&eidString) < 0)
 				{
-					sdr_cancel_xn(bpSdr);
 					putErrmsg("Can't print dest EID.",
 							NULL);
+					sdr_cancel_xn(bpSdr);
 					running = 0;
 					bpEraseCtSignal(&cts);
 					break;	/*	Out of switch.	*/
@@ -10447,9 +10447,9 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 				releaseDictionary(dictionary);
 				if (result < 0)
 				{
-					sdr_cancel_xn(bpSdr);
 					putErrmsg("Can't re-queue bundle for \
 forwarding.", NULL);
+					sdr_cancel_xn(bpSdr);
 					running = 0;
 					bpEraseCtSignal(&cts);
 					break;	/*	Out of switch.	*/
