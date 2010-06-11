@@ -2126,7 +2126,14 @@ char	*igetcwd(char *buf, size_t size)
 #ifdef FSWWDNAME
 #include "wdname.c"
 #else
-	return getcwd(buf, size);
+	char	*cwdName = getcwd(buf, size);
+
+	if (cwdName == NULL)
+	{
+		putSysErrmsg("Can't get CWD name", itoa(size));
+	}
+
+	return cwdName;
 #endif
 }
 
