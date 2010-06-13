@@ -22,7 +22,7 @@ extern "C" {
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
 /* As of 2010-03-09 the ou release version number is this: */
-#define IONVERSIONNUMBER "2.1.0"
+#define IONVERSIONNUMBER "2.2.0"
 #endif
 
 #define	MAX_SPEED_MPH	(150000)

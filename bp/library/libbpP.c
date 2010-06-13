@@ -6299,7 +6299,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	static unsigned long	acqCount = 0;
 	Sdr			sdr = getIonsdr();
 	BpDB			*bpConstants = _bpConstants();
-	char			cwd[128];
+	char			cwd[256];
 	char			fileName[SDRSTRING_BUFSZ];
 	char			script[SDRSTRING_BUFSZ];
 	int			fd;
