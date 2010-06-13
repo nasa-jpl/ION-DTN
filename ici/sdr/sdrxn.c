@@ -1736,6 +1736,7 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
 	CHKVOID(sdrv);
 	CHKVOID(into);
 	CHKVOID(from >= 0);
+	memset(into, 0, length);		/*	Default value.	*/
 	sdr = sdrv->sdr;
 	to = from + length;
 	if (to > sdr->sdrSize)
