@@ -1707,19 +1707,202 @@ int	sm_SemGive(sm_SemId i)
 
 	/* ---- Task Control services (RTEMS) ------------------------- */
 
-int	sm_TaskIdSelf()
+#ifndef	MAX_RTEMS_TASKS
+#define MAX_RTEMS_TASKS	50
+#endif
+
+typedef struct
 {
-	return (int) pthread_self();
+	int		inUse;			/*	Boolean.	*/
+	pthread_t	threadId;
+} IonRtemsTask;
+
+static int	_rtemsTasks(int taskId, pthread_t *threadId)
+{
+	static IonRtemsTask	tasks[MAX_RTEMS_TASKS];
+	static int		initialized;	/*	Boolean.	*/
+	static ResourceLock	tasksLock;
+	pthread_t		ownThreadId;
+	int			i;
+	int			vacancy;
+	IonRtemsTask		*task;
+
+	/*	NOTE: the taskId for an IonRtemsTask is 1 more than
+	 *	the index value for that task in the tasks table.
+	 *	That is, taskIds range from 1 through MAX_RTEMS_TASKS
+	 *	and -1 is an invalid task ID signifying "none".		*/
+
+	if (!initialized)
+	{
+		memset((char *) tasks, 0, sizeof tasks);
+		if (initResourceLock(&tasksLock) < 0)
+		{
+			putErrmsg("Can't initialize RTEMS tasks table.", NULL);
+			return -1;
+		}
+
+		initialized = 1;
+	}
+
+	lockResource(&tasksLock);
+
+	/*	When taskId is 0, processing depends on the value
+	 *	of threadID.  If threadId is NULL, then the task ID
+	 *	of the calling thread is returned (0 if the thread
+	 *	doesn't have an assigned task ID).  Otherwise, the
+	 *	indicated thread is added as a new task and the ID
+	 *	of that task is returned (-1 if the thread could not
+	 *	be assigned a task ID).
+	 *
+	 *	Otherwise, taskId must be in the range 1 through
+	 *	MAX_RTEMS_TASKS inclusive and processing again
+	 *	depends on the value of threadId.  If threadId is
+	 *	NULL then the indicated task ID is unassigned and
+	 *	is available for reassignment to another thread;
+	 *	the return value is -1.  Otherwise, the thread ID
+	 *	for the indicated task is passed back in *threadId
+	 *	and the task ID is returned.				*/
+
+	if (taskId == 0)
+	{
+		if (threadId == NULL)	/*	Look up own task ID.	*/
+		{
+			ownThreadId = pthread_self();
+			for (i = 0, task = tasks; i < MAX_RTEMS_TASKS;
+					i++, task++)
+			{
+				if (task->inUse == 0)
+				{
+					continue;
+				}
+
+				if (pthread_equal(task->threadId, ownThreadId))
+				{
+					unlockResource(&tasksLock);
+					return i + 1;
+				}
+			}
+
+			/*	No task ID for this thread.		*/
+
+			unlockResource(&tasksLock);
+			return 0;	/*	Sub-thread of a task.	*/
+		}
+
+		/*	Assigning a task ID to this thread.		*/
+
+		vacancy = -1;
+		for (i = 0, task = tasks; i < MAX_RTEMS_TASKS; i++, task++)
+		{
+			if (task->inUse == 0)
+			{
+				if (vacancy == -1)
+				{
+					vacancy = i;
+				}
+			}
+			else
+			{
+				if (pthread_equal(task->threadId, *threadId))
+				{
+					/*	Already assigned.	*/
+
+					unlockResource(&tasksLock);
+					return i + 1;
+				}
+			}
+		}
+
+		if (vacancy == -1)
+		{
+			putErrmsg("Can't start another task.", NULL);
+			unlockResource(&tasksLock);
+			return -1;
+		}
+
+		task = tasks + vacancy;
+		task->inUse = 1;
+		task->threadId = *threadId;
+		unlockResource(&tasksLock);
+		return vacancy + 1;
+	}
+
+	/*	Operating on a previously assigned task ID.		*/
+
+	CHKERR(taskId > 0 && taskId <= MAX_RTEMS_TASKS);
+	task = tasks + (taskId - 1);
+	if (threadId == NULL)	/*	Unassigning this task ID.	*/
+	{
+		if (task->inUse)
+		{
+			task->inUse = 0;
+		}
+
+		unlockResource(&tasksLock);
+		return -1;
+	}
+
+	/*	Just looking up the thread ID for this task ID.		*/
+
+	if (task->inUse == 0)	/*	Invalid task ID.		*/
+	{
+		unlockResource(&tasksLock);
+		return -1;
+	}
+
+	*threadId = task->threadId;
+	unlockResource(&tasksLock);
+	return taskId;
 }
 
-int	sm_TaskExists(int task)
+int	sm_TaskIdSelf()
 {
-	if (pthread_kill((pthread_t) task, SIGCONT) != 0)
+	int		taskId = _rtemsTasks(0, NULL);
+	pthread_t	threadId;
+
+	if (taskId > 0)
+	{
+		return taskId;
+	}
+
+	/*	May be a newly spawned task.  Give sm_TaskSpawn
+	 *	an opportunity to register the thread as a task.	*/
+
+	sm_TaskYield();
+	taskId = _rtemsTasks(0, NULL);
+	if (taskId > 0)
+	{
+		return taskId;
+	}
+
+	/*	This is a subordinate thread of some other task.
+	 *	It needs to register itself as a task.			*/
+
+	threadId = pthread_self();
+	return _rtemsTasks(0, &threadId);
+}
+
+int	sm_TaskExists(int taskId)
+{
+	pthread_t	threadId;
+
+	if (_rtemsTasks(taskId, &threadId) != taskId)
 	{
 		return 0;		/*	No such task.		*/
 	}
 
-	return 1;
+	/*	(Signal 0 in pthread_kill is rejected by RTEMS 4.9.)	*/
+
+	if (pthread_kill(threadId, SIGCONT) == 0)
+	{
+		return 1;		/*	Thread is running.	*/
+	}
+
+	/*	Note: RTEMS 4.9 implementation of pthread_kill does
+	 *	not return a valid errno on failure; can't print
+	 *	system error message.					*/
+
+	return 0;	/*	No such thread, or some other failure.	*/
 }
 
 void	sm_TaskVarAdd(int *var)
@@ -1765,8 +1948,16 @@ static void	*rtemsDriverThread(void *parm)
 {
 	SpawnParms	parms;
 
+	/*	Make local copy of spawn parameters.			*/
+
 	memcpy((char *) &parms, parm, sizeof(SpawnParms));
+
+	/*	Clear spawn parameters for use by next sm_TaskSpawn().	*/
+
 	memset((char *) parm, 0, sizeof(SpawnParms));
+
+	/*	Run main function of thread.				*/
+
 	parms.threadMainFunction(parms.arg1, parms.arg2, parms.arg3,
 			parms.arg4, parms.arg5, parms.arg6,
 			parms.arg7, parms.arg8, parms.arg9, parms.arg10);
@@ -1783,7 +1974,8 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 	int			i;
 	SpawnParms		*parms;
 	pthread_attr_t		attr;
-	pthread_t		thread;
+	pthread_t		threadId;
+	int			taskId;
 
 #ifdef PRIVATE_SYMTAB
 	CHKERR(name);
@@ -1828,7 +2020,7 @@ private symbol table; must be added to mysymtab.c.", name);
 	parms->arg9 = (int) arg9;
 	parms->arg10 = (int) arg10;
 	sm_ConfigurePthread(&attr, stackSize);
-	errno = pthread_create(&thread, &attr, rtemsDriverThread,
+	errno = pthread_create(&threadId, &attr, rtemsDriverThread,
 			(void *) parms);
 	if (errno)
 	{
@@ -1836,35 +2028,71 @@ private symbol table; must be added to mysymtab.c.", name);
 		return -1;
 	}
 
-	return (int) thread;
-}
-
-void	sm_TaskKill(int task, int sigNbr)
-{
-	oK(pthread_kill((pthread_t) task, sigNbr));
-}
-
-void	sm_TaskDelete(int task)
-{
-	if (pthread_kill((pthread_t) task, SIGTERM) != 0)
+	taskId = _rtemsTasks(0, &threadId);
+	if (taskId < 0)		/*	Too many tasks running.		*/
 	{
-		return;
+		if (pthread_kill(threadId, SIGTERM) == 0)
+		{
+			oK(pthread_cancel(threadId));
+		}
+
+		return -1;
 	}
 
-	pthread_cancel((pthread_t) task);
+	return taskId;
+}
 
-	/*	NOTE: one RTEMS implementation option would be to
-	 *	use rtems_extension_create to add an extension set
-	 *	whose thread_delete function prints the contents of
-	 *	the task control block of the deleted task.  In this
-	 *	case, calling sm_TaskDelete would result in the
-	 *	printing of some potentially useful diagnostic
-	 *	information.						*/
+void	sm_TaskForget(int taskId)
+{
+	oK(_rtemsTasks(taskId, NULL));
+}
+
+void	sm_TaskKill(int taskId, int sigNbr)
+{
+	pthread_t	threadId;
+
+	if (_rtemsTasks(taskId, &threadId) != taskId)
+	{
+		return;		/*	No such task.			*/
+	}
+
+	oK(pthread_kill(threadId, sigNbr));
+}
+
+void	sm_TaskDelete(int taskId)
+{
+	pthread_t	threadId;
+
+	if (_rtemsTasks(taskId, &threadId) != taskId)
+	{
+		return;		/*	No such task.			*/
+	}
+
+	if (pthread_kill(threadId, SIGTERM) == 0)
+	{
+		oK(pthread_cancel(threadId));
+	}
+
+	oK(_rtemsTasks(taskId, NULL));
 }
 
 void	sm_Abort()
 {
-	sm_TaskDelete((int) pthread_self());
+	int		taskId = sm_TaskIdSelf();
+	pthread_t	threadId;
+
+	if (taskId == 0)	/*	Sub-thread, not a task.		*/
+	{
+		threadId = pthread_self();
+		if (pthread_kill(threadId, SIGTERM) == 0)
+		{
+			oK(pthread_cancel(threadId));
+		}
+
+		return;
+	}
+
+	sm_TaskDelete(taskId);
 }
 
 #else

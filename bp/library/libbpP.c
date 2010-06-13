@@ -2980,7 +2980,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	Endpoint	endpointBuf;
 	Scheme		scheme;
 	Object		addr;
-	Object		endpointElt;
+	Object		endpointElt = 0;	/*	To hush gcc.	*/
 
 	CHKERR(eid);
 	if (parseEidString(eid, &metaEid, &vscheme, &elt) == 0)
@@ -9919,7 +9919,7 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 	Sdr		bpSdr = getIonsdr();
 	unsigned char	*buffer;
 	Bundle		image;
-	char		*dictionary;
+	char		*dictionary = 0;	/*	To hush gcc.	*/
 	unsigned int	bundleLength;
 	int		result;
 	char		*sourceEid;

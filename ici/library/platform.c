@@ -378,15 +378,13 @@ int	initResourceLock(ResourceLock *rl)
 		return 0;
 	}
 
-	memset((char *) &(lock->semaphore), 0, sizeof lock->semaphore);
+	memset((char *) lock, 0, sizeof(Rlock));
 	if (pthread_mutex_init(&(lock->semaphore), NULL))
 	{
 		writeErrMemo("Can't create lock semaphore");
 		return -1;
 	}
 
-	lock->owner = NONE;
-	lock->count = 0;
 	lock->init = 1;
 	return 0;
 }
@@ -410,7 +408,7 @@ void	lockResource(ResourceLock *rl)
 	if (lock && lock->init)
 	{
 		tid = pthread_self();
-		if (tid != lock->owner)
+		if (!pthread_equal(tid, lock->owner))
 		{
 			oK(pthread_mutex_lock(&(lock->semaphore)));
 			lock->owner = tid;
@@ -428,12 +426,13 @@ void	unlockResource(ResourceLock *rl)
 	if (lock && lock->init)
 	{
 		tid = pthread_self();
-		if (tid == lock->owner)
+		if (pthread_equal(tid, lock->owner))
 		{
 			(lock->count)--;
 			if ((lock->count) == 0)
 			{
-				lock->owner = NONE;
+				memset((char *) &(lock->owner), 0,
+						sizeof(pthread_t));
 				oK(pthread_mutex_unlock(&(lock->semaphore)));
 			}
 		}
