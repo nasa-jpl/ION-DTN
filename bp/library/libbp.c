@@ -220,9 +220,9 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 	/*	Admission control (bundle production throttling)
 	 *	happens here.						*/
 
-	aduOccupancy = zco_occupancy(sdr, adu);
 	throttle = &(vdb->productionThrottle);
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	aduOccupancy = zco_occupancy(sdr, adu);
 	while (aduOccupancy > throttle->capacity)
 	{
 		sdr_exit_xn(sdr);

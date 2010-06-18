@@ -7350,6 +7350,7 @@ static char	*getCustodialSchemeName(Bundle *bundle)
 static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 {
 	Bundle		*bundle = &(work->bundle);
+	unsigned int	bundleOccupancy;
 			OBJ_POINTER(IonDB, iondb);
 	char		*custodialSchemeName;
 	VScheme		*vscheme;
@@ -7378,6 +7379,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 		bundle->payload.content = zco_clone(bpSdr, work->zco,
 				work->zcoBytesConsumed, work->bundleLength);
+		bundleOccupancy = zco_occupancy(bpSdr, bundle->payload.content);
 		work->zcoBytesConsumed += work->bundleLength;
 	}
 	else
@@ -7440,8 +7442,8 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	 *	that would result from accepting this bundle.		*/
 
 	GET_OBJ_POINTER(bpSdr, IonDB, iondb, getIonDbObject());
-	if (iondb->currentOccupancy + bundle->dbOverhead + zco_occupancy(bpSdr,
-			bundle->payload.content) > iondb->occupancyCeiling)
+	if (iondb->currentOccupancy + bundle->dbOverhead + bundleOccupancy
+			> iondb->occupancyCeiling)
 	{
 		/*	Not enough heap space for bundle.		*/
 
@@ -7595,12 +7597,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	}
 
 	bundle->dbTotal = bundle->dbOverhead;
-	if (bundle->payload.content)
-	{
-		bundle->dbTotal += zco_occupancy(bpSdr,
-				bundle->payload.content);
-	}
-
+	bundle->dbTotal += zco_occupancy(bpSdr, bundle->payload.content);
 	noteBundleInserted(bundle);
 	noteStateStats(BPSTATS_RECEIVE, bundle);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
