@@ -103,7 +103,7 @@ typedef struct
 	/*	Fields for data segments.				*/
 
 	unsigned long		clientSvcId;	/*	Destination.	*/
-	unsigned long		offset;
+	unsigned long		offset;		/*	Within block.	*/
 	unsigned long		length;
 	Object			block;	/*	Session svcDataObjects.	*/
 
@@ -141,6 +141,8 @@ typedef enum
 
 typedef struct
 {
+	unsigned long	fileOffset;	/*	In file; 0 if in heap.	*/
+	Object		heapAddress;	/*	In heap; 0 if in file.	*/
 	Object		sessionObj;
 	Object		sessionListElt;
 	LtpSegmentClass	segmentClass;
@@ -185,11 +187,10 @@ typedef struct
 	unsigned char	endOfBlockRecd;	/*	Boolean.		*/
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
-Object		svcDataObject;	/*	A single ZCO ref.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
 	int		reportsCount;
-Object		blockFileRef;	/*	A ZCO File Ref object.	*/
+	Object		blockFileRef;	/*	A ZCO File Ref object.	*/
 
 	/*	Backward reference.					*/
 

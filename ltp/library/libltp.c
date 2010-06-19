@@ -224,13 +224,11 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 		unsigned long *dataLength, Object *data)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getLtpDbObject();
 	LtpVdb		*vdb = getLtpVdb();
 	LtpVclient	*client;
 	Object		elt;
 	Object		noticeAddr;
 	LtpNotice	notice;
-	LtpDB		db;
 
 	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
 	CHKERR(type);
@@ -301,20 +299,6 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 	 *	the session's list of service data units to be
 	 *	destroyed, but both cancellations cause notices
 	 *	to be sent to the user.					*/
-
-	if (notice.data)
-	{
-		/*	By receiving this notice, the client task
-		 *	assumes responsibility for the data item.
-		 *	So at this point, the data item ZCO is no
-		 *	longer considered LTP data; its length is
-		 *	subtracted from LTP heap space occupancy
-		 *	in the LTP database.				*/
-
-		sdr_stage(sdr, (char *) &db, dbobj, sizeof(LtpDB));
-		db.heapSpaceBytesOccupied -= zco_occupancy(sdr, notice.data);
-		sdr_write(sdr, dbobj, (char *) &db, sizeof(LtpDB));
-	}
 
 	if (sdr_end_xn(sdr))
 	{

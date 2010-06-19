@@ -840,6 +840,7 @@ unsigned int	zco_occupancy(Sdr sdr, Object zcoRef)
 
 	CHKZERO(sdr);
 	CHKZERO(zcoRef);
+	CHKZERO(sdr_in_xn(sdr));
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	sdr_read(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
 	occupancy = zco.occupancy + sizeof(ZcoReference);
