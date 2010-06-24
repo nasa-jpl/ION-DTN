@@ -229,6 +229,8 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 	Object		elt;
 	Object		noticeAddr;
 	LtpNotice	notice;
+	LtpDB		db;
+	Object		dbobj;
 
 	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
 	CHKERR(type);
@@ -299,6 +301,14 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 	 *	the session's list of service data units to be
 	 *	destroyed, but both cancellations cause notices
 	 *	to be sent to the user.					*/
+
+	if (notice.data)
+	{
+		dbobj = getLtpDbObject();
+		sdr_stage(sdr, (char *) &db, dbobj, sizeof(LtpDB));
+		db.heapSpaceBytesOccupied -= zco_occupancy(sdr, notice.data);
+		sdr_write(sdr, dbobj, (char *) &db, sizeof(LtpDB));
+	}
 
 	if (sdr_end_xn(sdr))
 	{
