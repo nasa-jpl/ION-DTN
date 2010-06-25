@@ -41,7 +41,7 @@ Terminates access to BP functionality on the local computer.  Detaching is requi
 
 Opens the application's access to the BP endpoint identified by I<eid>,
 so that the application can take delivery of bundles destined for the
-indicated endpoint and to send bundles whose source is the indicated
+indicated endpoint and can send bundles whose source is the indicated
 endpoint.  On success, places a value in I<*ionsapPtr> that can be
 supplied to future bp function invocations and returns 0.  Returns -1
 on any error.

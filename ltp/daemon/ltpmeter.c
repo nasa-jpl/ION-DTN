@@ -28,7 +28,6 @@ int	main(int argc, char *argv[])
 	PsmAddress	vspanElt;
 	Object		spanObj;
 	LtpSpan		span;
-	int		running = 1;
 	int		returnCode = 0;
 	char		memo[64];
 	ExportSession	session;
@@ -89,7 +88,7 @@ int	main(int argc, char *argv[])
 	}
 
 	writeMemo("[i] ltpmeter is running.");
-	while (running)
+	while (1)
 	{
 		/*	First wait until block aggregation buffer for
 		 *	this span is full.				*/
@@ -102,8 +101,7 @@ int	main(int argc, char *argv[])
 				putErrmsg("Can't take bufFullSemaphore.",
 						itoa(remoteEngineId));
 				returnCode = 1;
-				running = 0;
-				continue;
+				break;		/*	Outer loop.	*/
 			}
 
 			if (sm_SemEnded(vspan->bufFullSemaphore))
@@ -111,8 +109,7 @@ int	main(int argc, char *argv[])
 				isprintf(memo, sizeof memo, "[i] LTP meter to \
 engine %lu is stopped.", remoteEngineId);
 				writeMemo(memo);
-				running = 0;
-				continue;
+				break;		/*	Outer loop.	*/
 			}
 
 			sdr_begin_xn(sdr);
@@ -140,11 +137,10 @@ engine %lu is stopped.", remoteEngineId);
 				== NULL
 		|| lyst_insert_last(extents, extent) == NULL)
 		{
-			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create extents list.", NULL);
+			sdr_cancel_xn(sdr);
 			returnCode = 1;
-			running = 0;
-			continue;	/*	Breaks main loop.	*/
+			break;			/*	Outer loop.	*/
 		}
 
 		extent->offset = 0;
@@ -156,11 +152,10 @@ engine %lu is stopped.", remoteEngineId);
 		switch (segmentsIssued)
 		{
 		case -1:		/*	System error.		*/
-			sdr_cancel_xn(sdr);
 			putErrmsg("Can't segment block.", NULL);
+			sdr_cancel_xn(sdr);
 			returnCode = 1;
-			running = 0;
-			continue;	/*	Breaks main loop.	*/
+			break;			/*	Outer loop.	*/
 
 		case 0:			/*	Database too full.	*/
 			sdr_cancel_xn(sdr);
@@ -200,8 +195,7 @@ engine %lu is stopped.", remoteEngineId);
 		{
 			putErrmsg("Can't finish session.", NULL);
 			returnCode = 1;
-			running = 0;
-			continue;	/*	Breaks main loop.	*/
+			break;			/*	Outer loop.	*/
 		}
 
 		/*	Wait until window opens enabling start of next
@@ -214,17 +208,20 @@ engine %lu is stopped.", remoteEngineId);
 			{
 				putErrmsg("Can't take sessionSemaphore.", NULL);
 				returnCode = 1;
-				running = 0;
-				continue;/*	Breaks main loop.	*/
+				break;		/*	Inner loop.	*/
 			}
 
 			if (sm_SemEnded(vdb->sessionSemaphore))
 			{
 				putErrmsg("LTP has been stopped.", NULL);
 				returnCode = 1;
-				running = 0;
-				continue;/*	Breaks main loop.	*/
+				break;		/*	Inner loop.	*/
 			}
+		}
+
+		if (returnCode != 0)
+		{
+			break;			/*	Outer loop.	*/
 		}
 
 		/*	Start an export session for the next block.	*/
@@ -234,8 +231,7 @@ engine %lu is stopped.", remoteEngineId);
 			putErrmsg("ltpmeter can't start new session.",
 					utoa(remoteEngineId));
 			returnCode = 1;
-			running = 0;
-			continue;
+			break;			/*	Outer loop.	*/
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/

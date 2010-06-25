@@ -75,6 +75,13 @@ extern void		sdr_report(SdrUsageSummary *);
 			/*	Sends to log a snapshot of the
 				SDR's usage status.			*/
 
+extern int		sdr_heap_depleted(Sdr sdrv);
+			/*	A Boolean function: returns 1 if
+			 *	total available space in the SDR
+			 *	(small pool free, large pool free,
+			 *	and unused) is less than 1/16 of
+			 *	the total size of the SDR, 0 otherwise.	*/
+
 extern int		sdr_start_trace(Sdr sdr, long size, char *shm);
 			/*	Begins an episode of SDR space usage
 				tracing.  The size argument specifies

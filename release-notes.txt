@@ -1,5 +1,5 @@
-Release Notes for ION 2.2.0
-June 11, 2010
+Release Notes for ION 2.2.1
+June 25, 2010
 
 
 GENERAL
@@ -48,6 +48,24 @@ Features included:
 	brs - Bundle relay service: provides interconnectivity between networks
 	that do not allow servers (those behind NAT for example). For more
 	information, check man brsscla and man brsccla.
+
+----------------------
+NOTES ON RELEASE 2.2.1
+----------------------
+
+- Corrected bug in LTP's data acquisition into file-system storage.  Didn't
+  handle data loss and retransmission properly.
+
+- Fixed bugs in LTP session cancellation that caused slow storage leaks.
+
+- Upgraded the LTP configuration spreadsheet and its documentation, to
+  provide better guidance when most data are sent from or acquired into
+  file system storage.
+
+- Updated the Design and Operations Guide to document new features and
+  API changes.
+
+- Various other bug fixes and tweaks.
 
 ----------------------
 NOTES ON RELEASE 2.2.0

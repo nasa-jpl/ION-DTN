@@ -107,6 +107,14 @@ char		*zco_file_ref_path(Sdr sdr,
 			 *	truncated to buflen as necessary.
 			 *	Returns NULL on any error.		*/
 
+unsigned int	zco_file_ref_occupancy(Sdr sdr,
+				Object fileRef);
+			/*	Returns number of bytes of SDR space
+			 *	occupied by this file reference object.
+			 *	If fileRef is zero, returns the maximum
+			 *	possible SDR space occupancy of any
+			 *	single file reference object.		*/
+
 void		zco_destroy_file_ref(Sdr sdr,
 				Object fileRef);
 			/*	If file reference is no longer in use

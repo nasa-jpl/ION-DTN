@@ -1469,9 +1469,10 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 		sdr_free(sdr, obj);
 		sdr_list_delete(sdr, elt, NULL, NULL);
 
-		/*	If recipient is another node, remove xmit.	*/
+		/*	If contact bears on routing, remove xmit.	*/
 
-		if (toNode != iondb.ownNodeNbr)
+		if (toNode != iondb.ownNodeNbr	/*	To remote node.	*/
+		|| fromNode == iondb.ownNodeNbr)/*	Loopback.	*/
 		{
 			ionvdb = getIonVdb();
 			node = findNode(ionvdb, toNode, &nextElt);

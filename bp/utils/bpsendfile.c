@@ -65,6 +65,13 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 
 	aduLength = statbuf.st_size;
 	sdr = bp_get_sdr();
+	if (sdr_heap_depleted(sdr))
+	{
+		bp_close(sap);
+		putErrmsg("Low on heap space, can't send file.", fileName);
+		return 0;
+	}
+
 	sdr_begin_xn(sdr);
 	fileRef = zco_create_file_ref(sdr, fileName, NULL);
 	if (fileRef == 0)
