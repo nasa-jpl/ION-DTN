@@ -1141,6 +1141,11 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		}
 	}
 
+	if (sdr_heap_depleted(sdr))
+	{
+		putErrmsg("Low on heap space, can't send FDU.", sourceFileName);
+	}
+
 	if (sourceFileName == NULL)
 	{
 		CHKZERO(destFileName == NULL);
