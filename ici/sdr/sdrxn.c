@@ -881,6 +881,13 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	CHKERR(sch);
 	CHKERR(name);
 	CHKERR(pathName);
+	if (!(configFlags & SDR_IN_DRAM || configFlags & SDR_IN_FILE))
+	{
+		putErrmsg("No SDR heap site specified in configFlags.",
+				itoa(configFlags));
+		return -1;
+	}
+
 	sm_SemTake(sch->lock);
 	for (elt = sm_list_first(sdrwm, sch->sdrs); elt;
 			elt = sm_list_next(sdrwm, elt))
@@ -965,6 +972,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 		logfile = open(logfilename, O_RDWR | O_CREAT | O_APPEND, 0777);
 		if (logfile == -1)
 		{
+			psm_free(sdrwm, newSdrAddress);
+			sm_SemGive(sch->lock);
 			putSysErrmsg("Can't open log file", logfilename);
 			return -1;
 		}
@@ -973,6 +982,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 		if (logEntries == 0)
 		{
 			close(logfile);
+			psm_free(sdrwm, newSdrAddress);
+			sm_SemGive(sch->lock);
 			putErrmsg(_noMemoryMsg(), NULL);
 			return -1;
 		}
@@ -981,6 +992,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 		{
 			lyst_destroy(logEntries);
 			close(logfile);
+			psm_free(sdrwm, newSdrAddress);
+			sm_SemGive(sch->lock);
 			putErrmsg("Can't reload log entries.", NULL);
 			return -1;
 		}
@@ -998,6 +1011,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 			{
 				if (logfile != -1) close(logfile);
 				if (logEntries) lyst_destroy(logEntries);
+				psm_free(sdrwm, newSdrAddress);
+				sm_SemGive(sch->lock);
 				putErrmsg("Can't have file-based database",
 						NULL);
 				return -1;
@@ -1011,6 +1026,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 				close(dbfile);
 				if (logfile != -1) close(logfile);
 				if (logEntries) lyst_destroy(logEntries);
+				psm_free(sdrwm, newSdrAddress);
+				sm_SemGive(sch->lock);
 				putErrmsg("Can't reverse log entries.", NULL);
 				return -1;
 			}
@@ -1026,6 +1043,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 			if (dbfile != -1) close(dbfile);
 			if (logfile != -1) close(logfile);
 			if (logEntries) lyst_destroy(logEntries);
+			psm_free(sdrwm, newSdrAddress);
+			sm_SemGive(sch->lock);
 			putErrmsg("Can't attach to database partition.", NULL);
 			return -1;
 	
@@ -1041,6 +1060,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 					if (logfile != -1) close(logfile);
 					if (logEntries)
 						lyst_destroy(logEntries);
+					psm_free(sdrwm, newSdrAddress);
+					sm_SemGive(sch->lock);
 					putErrmsg("Can't load db from file.",
 							NULL);
 					return -1;
@@ -1054,9 +1075,10 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 			if (reverseTransaction(logEntries, logfile, -1, dbsm)
 					< 0)
 			{
-				if (dbfile != -1) close(dbfile);
 				if (logfile != -1) close(logfile);
 				if (logEntries) lyst_destroy(logEntries);
+				psm_free(sdrwm, newSdrAddress);
+				sm_SemGive(sch->lock);
 				putErrmsg("Can't reverse log entries.", NULL);
 				return -1;
 			}
@@ -1075,6 +1097,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 					if (logfile != -1) close(logfile);
 					if (logEntries)
 						lyst_destroy(logEntries);
+					psm_free(sdrwm, newSdrAddress);
+					sm_SemGive(sch->lock);
 					putErrmsg("Can't load db from file.",
 							NULL);
 					return -1;
@@ -1731,6 +1755,7 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
 	CHKVOID(sdrv);
 	CHKVOID(into);
 	CHKVOID(from >= 0);
+	memset(into, 0, length);		/*	Default value.	*/
 	sdr = sdrv->sdr;
 	to = from + length;
 	if (to > sdr->sdrSize)

@@ -189,6 +189,13 @@ char	*zco_file_ref_path(Sdr sdr, Object fileRefObj, char *buffer, int buflen)
 	return istrcpy(buffer, fileRef->pathName, buflen);
 }
 
+unsigned int	zco_file_ref_occupancy(Sdr sdr, Object fileRefObj)
+{
+	/*	For now, all file reference objects are the same size.	*/
+
+	return sizeof(FileRef);
+}
+
 static void	destroyFileReference(Sdr sdr, FileRef *fileRef,
 			Object fileRefObj)
 {
@@ -833,38 +840,13 @@ unsigned int	zco_occupancy(Sdr sdr, Object zcoRef)
 {
 	ZcoReference	ref;
 	Zco		zco;
-	unsigned int	occupancy;
-	Object		ext;
-	SourceExtent	extent;
-	FileRef		fileRef;
 
 	CHKZERO(sdr);
 	CHKZERO(zcoRef);
+	CHKZERO(sdr_in_xn(sdr));
 	sdr_read(sdr, (char *) &ref, zcoRef, sizeof(ZcoReference));
 	sdr_read(sdr, (char *) &zco, ref.zcoObj, sizeof(Zco));
-	occupancy = zco.occupancy + sizeof(ZcoReference);
-
-	/*	Add apportioned file reference object overhead.		*/
-
-	ext = zco.firstExtent;
-	while (ext)
-	{
-		sdr_read(sdr, (char *) &extent, ext, sizeof(SourceExtent));
-		ext = extent.nextExtent;
-		if (extent.sourceMedium == ZcoFileSource)
-		{
-			sdr_read(sdr, (char *) &fileRef, extent.location,
-					sizeof(FileRef));
-			if (fileRef.refCount < 1)
-			{
-				continue;	/*	But erroneous.	*/
-			}
-
-			occupancy += (sizeof(FileRef) / fileRef.refCount);
-		}
-	}
-
-	return occupancy;
+	return zco.occupancy + sizeof(ZcoReference);
 }
 
 unsigned int	zco_nbr_of_refs(Sdr sdr, Object zcoRef)

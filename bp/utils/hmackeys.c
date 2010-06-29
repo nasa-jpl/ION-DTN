@@ -63,7 +63,7 @@ int	main(int argc, char **argv)
 	char	line[80];
 	int	len;
 
-	srandom(time(NULL));
+	srand(time(NULL));
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 		cmdFile = fileno(stdin);

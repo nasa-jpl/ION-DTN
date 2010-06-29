@@ -286,6 +286,7 @@ static int	identifyProximateNodes(IonNode *node, Object plans,
 	IonOrigin	*origin;
 	unsigned long	owltMargin;
 	unsigned long	lastChanceFromOrigin;
+	unsigned long	currentTime;
 	IonNode		*originNode;
 	IonVdb		*ionvdb = getIonVdb();
 	PsmAddress	nextNode;
@@ -428,6 +429,17 @@ printf("xmit's origin node (%lu) is excluded; next xmit.\n", origin->nodeNbr);
 
 		owltMargin = ((MAX_SPEED_MPH / 3600) * origin->owlt) / 186282;
 		lastChanceFromOrigin = deadline - (origin->owlt + owltMargin);
+		currentTime = (unsigned long) getUTCTime();
+		if (currentTime > lastChanceFromOrigin)
+		{
+#if CGRDEBUG
+printf("lastChanceFromOrigin is %lu.\n", lastChanceFromOrigin);
+printf("currentTime %lu is %lu sec after lastChanceFromOrigin.\n",
+currentTime, currentTime - lastChanceFromOrigin);
+#endif
+			continue;	/*	Non-viable opportunity.	*/
+		}
+
 		if (xmit->fromTime > lastChanceFromOrigin)
 		{
 #if CGRDEBUG

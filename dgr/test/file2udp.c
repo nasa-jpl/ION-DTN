@@ -1,13 +1,9 @@
 /*
-
 	file2udp.c:	a UDP benchmark sender.
-
 									*/
 /*									*/
 /*	Copyright (c) 2003, California Institute of Technology.		*/
 /*	All rights reserved.						*/
-/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
-/*									*/
 
 #include <file2udp.h>
 
@@ -40,8 +36,7 @@ static int		   	tout_flag;	/* used in this file only */
  * previous RTT information for a given "connection."
  */
 
-static int	exp_backoff[ RTT_MAXNREXMT + 1 ] =
-		{ 1, 2, 4, 8, 16 };
+static int	exp_backoff[ RTT_MAXNREXMT + 1 ] = { 1, 2, 4, 8, 16 };
 	/* indexed by rtt_nrexmt: 0, 1, 2, ..., RTT_MAXNREXMT.
 	   [0] entry (==1) is not used;
 	   [1] entry (==2) is used the second time a packet is sent; ... */
@@ -254,70 +249,71 @@ static int dgsendrecv(int fd,	/* datagram socket */
 	int	n;
 	int	interval;
 
-	if (rttfirst == 1) {
+	if (rttfirst == 1)
+	{
 		rtt_init(&rttinfo);	/* initialize first time we're called */
 		rttfirst = 0;
 	}
 
 	rtt_newpack(&rttinfo);		/* initialize for new packet */
-rexmit:
-	/*
-	 * Send the datagram.
-	 */
+	while (1)
+	{
+		/*	Send the datagram.				*/
 
-	if (sendto(fd, outbuff, outbytes, 0, destaddr, destlen) != outbytes) {
-		perror("dgsendrecv: sendto error on socket");
-		return(-1);
-	}
+		if (sendto(fd, outbuff, outbytes, 0, destaddr, destlen)
+				!= outbytes)
+		{
+			perror("dgsendrecv: sendto error on socket");
+			return -1;
+		}
 
-	signal(SIGALRM, to_alarm);
-	tout_flag = 0;			/* for signal handler */
-	interval = rtt_start(&rttinfo);	/* calc timeout value */
+		signal(SIGALRM, to_alarm);
+		tout_flag = 0;			/* for signal handler */
+		interval = rtt_start(&rttinfo);	/* calc timeout value */
 printf("%d ", interval);
 fflush(stdout);
-	alarm(interval);		/* start timer */
+		alarm(interval);		/* start timer */
+		n = recvfrom(fd, inbuff, inbytes, 0, (struct sockaddr *) 0,
+				(socklen_t *) 0);
+		if (n < 0)
+		{
+			if (tout_flag)
+			{
+			/*	The recvfrom() above timed out.  See if
+			 *	we've retransmitted enough, and if so
+			 *	quit, otherwise try again.		*/
 
-	n = recvfrom(fd, inbuff, inbytes, 0,
-			(struct sockaddr *) 0, (socklen_t *) 0);
-	if (n < 0) {
-		if (tout_flag) {
-			/*
-			 * The recvfrom() above timed out.
-			 * See if we've retransmitted enough, and
-			 * if so quit, otherwise try again.
-			 */
+				if (rtt_timeout(&rttinfo) < 0)
+				{
+					perror("dgsendrecv: no response from \
+server");
+					rttfirst = 1;	/* reinit for next */
+					return -1; /* errno will be EINTR */
+				}
 
-			if (rtt_timeout(&rttinfo) < 0) {
-				perror("dgsendrecv: no response from server");
-				rttfirst = 1;	/* reinit if called again */
-				return(-1);
-					/* errno will be EINTR */
+				/*	Must send the datagram again.	*/
+
+				errno = 0;	/* clear the error flag */
+#ifdef	DEBUG
+				perror("dgsendrecv: timeout, retransmitting");
+				rtt_d_flag = 1;
+				rtt_debug(&rttinfo);
+#endif
+				continue;
 			}
 
-			/*
-			 * We have to send the datagram again.
-			 */
-
-			errno = 0;		/* clear the error flag */
-#ifdef	DEBUG
-			perror("dgsendrecv: timeout, retransmitting");
-			rtt_d_flag = 1;
-			rtt_debug(&rttinfo);
-#endif
-			goto rexmit;
-		} else {
 			perror("dgsendrecv: recvfrom error");
-			return(-1);
+			return -1;
 		}
+
+		break;	/*	Out of while(1) loop.			*/
 	}
 
 	alarm(0);		/* stop signal timer */
 	rtt_stop(&rttinfo);	/* stop RTT timer, calc & store new values */
-
 #ifdef	DEBUG
 	rtt_debug(&rttinfo);
 #endif
-
 	return(n);		/* return size of received datagram */
 }
 

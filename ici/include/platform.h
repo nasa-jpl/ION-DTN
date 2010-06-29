@@ -153,8 +153,6 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 
 #ifndef VXWORKS6
 typedef int			socklen_t;
-extern void			srandom(unsigned int);
-extern long			random();
 #endif
 
 #else				/****	Not VxWorks			****/
@@ -179,6 +177,8 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include <sys/param.h>		/****	...to pick up MAXHOSTNAMELEN	****/
 #include <sys/resource.h>
 #include <sys/time.h>
+
+#define	_MULTITHREADED		/*	To pick up resource lock code.	*/
 
 #else				/****	Neither VxWorks nor RTEMS	****/
 

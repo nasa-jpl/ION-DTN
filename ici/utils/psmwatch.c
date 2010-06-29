@@ -49,6 +49,7 @@ static int	run_psmwatch(int memKey, long memSize, char *partitionName,
 	PsmPartition	psm = &memView;
 	int		memmgrIdx;
 	PsmUsageSummary	psmsummary;
+	int		secRemaining;
 	int		decrement = 0;
 
 	if (sm_ipc_init() < 0)
@@ -87,9 +88,18 @@ static int	run_psmwatch(int memKey, long memSize, char *partitionName,
 	isignal(SIGTERM, handleQuit);
 	while (psmwatch_count(NULL) > 0)
 	{
-		snooze(interval);
+		secRemaining = interval;
+		while (secRemaining > 0)
+		{
+			snooze(1);
+			secRemaining--;
+			if (!verbose)
+			{
+	       			psm_clear_trace(psm);
+			}
+		}
+
 		psm_print_trace(psm, verbose);
-	       	psm_clear_trace(psm);
 		oK(psmwatch_count(&decrement));
 	}
 

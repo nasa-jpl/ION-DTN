@@ -43,6 +43,7 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 {
 	Sdr		sdr;
 	SdrUsageSummary	sdrsummary;
+	int		secRemaining;
 	int		decrement = 0;
 
 	sdr_initialize(0, NULL, SM_NO_KEY, NULL);
@@ -65,7 +66,7 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 
 	/*	Start watching trace.					*/
 
-	if (sdr_start_trace(sdr, 5000000, NULL) < 0)
+	if (sdr_start_trace(sdr, 20000000, NULL) < 0)
 	{
 		putErrmsg("Can't start trace.", NULL);
 		writeErrmsgMemos();
@@ -75,9 +76,18 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 	isignal(SIGTERM, handleQuit);
 	while (sdrwatch_count(NULL) > 0)
 	{
-		snooze(interval);
+		secRemaining = interval;
+		while (secRemaining > 0)
+		{
+			snooze(1);
+			secRemaining--;
+			if (!verbose)
+			{
+				sdr_clear_trace(sdr);
+			}
+		}
+
 		sdr_print_trace(sdr, verbose);
-	       	sdr_clear_trace(sdr);
 		oK(sdrwatch_count(&decrement));
 	}
 

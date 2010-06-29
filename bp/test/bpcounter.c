@@ -22,8 +22,24 @@ static BpSAP	_bpsap(BpSAP *newSAP)
 	return sap;
 }
 
+static int	_running(int *newState)
+{
+	static int	state = 1;
+
+	if (newState)
+	{
+		state = *newState;
+	}
+
+	return state;
+}
+
 static void	handleQuit()
 {
+	int	stop = 0;
+
+	PUTS("BP reception interrupted.");
+	oK(_running(&stop));
 	bp_interrupt(_bpsap(NULL));
 }
 
@@ -61,8 +77,8 @@ int	main(int argc, char **argv)
 #endif
 	BpSAP		sap;
 	Sdr		sdr;
-	int		running = 1;
 	BpDelivery	dlv;
+	int		stop = 0;
 	time_t		startTime = 0;
 	int		bytesReceived;
 	int		bundlesReceived = 0;
@@ -99,19 +115,17 @@ int	main(int argc, char **argv)
 	isignal(SIGALRM, printCount);
 	alarm(5);
 	isignal(SIGINT, handleQuit);
-	while (running)
+	while (_running(NULL))
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
 			putErrmsg("bpcounter bundle reception failed.", NULL);
-			running = 0;
+			oK(_running(&stop));
 			continue;
 		}
 
 		if (dlv.result == BpPayloadPresent)
 		{
-//putchar('.');
-//fflush(stdout);
 			if ((bundlesReceived = _bundleCount(1)) == 1)
 			{
 				startTime = time(NULL);
@@ -123,7 +137,7 @@ int	main(int argc, char **argv)
 		bp_release_delivery(&dlv, 1);
 		if (bundlesReceived == maxCount)
 		{
-			running = 0;
+			oK(_running(&stop));
 		}
 	}
 
