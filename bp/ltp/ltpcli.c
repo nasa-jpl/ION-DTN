@@ -91,6 +91,7 @@ static void	*handleNotices(void *parm)
 	unsigned long		dataOffset;
 	unsigned long		dataLength;
 	Object			data;		/*	ZCO reference.	*/
+	Sdr			sdr;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
 	if (ltp_open(BpLtpClientId) < 0)
@@ -128,14 +129,25 @@ static void	*handleNotices(void *parm)
 		switch (type)
 		{
 		case LtpExportSessionCanceled:	/*	Xmit failure.	*/
-			if (data == 0)
+			if (data == 0)		/*	Ignore it.	*/
 			{
-				break;		/*	Ignore it.	*/
+				break;		/*	Out of switch.	*/
 			}
 
 			if (bpHandleXmitFailure(data) < 0)
 			{
 				putErrmsg("Crashed on xmit failure.", NULL);
+				pthread_kill(rtp->mainThread, SIGTERM);
+				rtp->running = 0;
+				break;		/*	Out of switch.	*/
+			}
+
+			sdr = getIonsdr();
+			sdr_begin_xn(sdr);
+			zco_destroy_reference(sdr, data);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Crashed on data cleanup.", NULL);
 				pthread_kill(rtp->mainThread, SIGTERM);
 				rtp->running = 0;
 			}

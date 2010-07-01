@@ -524,6 +524,12 @@ usage status.  SdrUsageSummary is defined by:
 
 Sends to stdout a printed summary of the SDR's usage status.
 
+=item int sdr_heap_depleted(Sdr sdr)
+
+A Boolean function: returns 1 if the total available space in the SDR's
+heap (small pool free, large pool free, and unused) is less than 1/16
+of the total size of the heap.  Otherwise returns zero.
+
 =back
 
 =head1 HEAP SPACE USAGE TRACING

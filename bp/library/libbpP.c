@@ -2178,6 +2178,11 @@ static void	purgeXmitRefs(Bundle *bundle)
 		sdr_list_delete(bpSdr, elt, NULL, NULL);
 		GET_OBJ_POINTER(bpSdr, XmitRef, xr, xrAddr);
 		purgeDuctXmitElt(bundle, xr->ductXmitElt);
+		if (xr->proxNodeEid)
+		{
+			sdr_free(bpSdr, xr->proxNodeEid);
+		}
+
 		if (xr->destDuctName)
 		{
 			sdr_free(bpSdr, xr->destDuctName);
@@ -6297,6 +6302,7 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 {
 	static unsigned long	acqCount = 0;
+	static int		maxAcqInHeap = 0;
 	Sdr			sdr = getIonsdr();
 	BpDB			*bpConstants = _bpConstants();
 	char			cwd[200];
@@ -6308,6 +6314,22 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	CHKERR(work);
 	CHKERR(bytes);
 	CHKERR(length >= 0);
+	if (maxAcqInHeap == 0)
+	{
+		/*	Initialize threshold for acquiring bundle
+		 *	into a file rather than directly into the
+		 *	heap.  Minimum threshold is the amount of
+		 *	heap space that would be occupied by a ZCO
+		 *	file reference object anyway, even if the
+		 *	bundle were entirely acquired into a file.	*/
+
+		maxAcqInHeap = zco_file_ref_occupancy(sdr, 0);
+		if (bpConstants->maxAcqInHeap > maxAcqInHeap)
+		{
+			maxAcqInHeap = bpConstants->maxAcqInHeap;
+		}
+	}
+
 	sdr_begin_xn(sdr);
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
@@ -6322,31 +6344,21 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		}
 	}
 
-	/*	Add extent.  Acquire extent into database heap if
-	 *	possible.						*/
+	/*	Now add extent.  Acquire extents of bundle into
+	 *	database heap up to the stated limit; after that,
+	 *	acquire all remaining extents into a file.		*/
 
-	if (bpConstants->maxAcqInHeap != 0)
+	if ((length + zco_length(sdr, work->zco)) <= maxAcqInHeap)
 	{
-		/*	Acquisition into the database heap -- up to
-		 *	a point -- is okay.  Acquire extents of bundle
-		 *	into database heap up to the stated limit;
-		 *	after that, acquire all remaining extents into
-		 *	a file.						*/
-
-		if ((length + zco_length(sdr, work->zco))
-				<= bpConstants->maxAcqInHeap)
-		{
-			oK(zco_append_extent(sdr, work->zco, ZcoSdrSource,
+		oK(zco_append_extent(sdr, work->zco, ZcoSdrSource,
 				sdr_insert(sdr, bytes, length), 0, length));
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Can't acquire extent into heap.",
-						NULL);
-				return -1;
-			}
-
-			return 0;
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't acquire extent into heap.", NULL);
+			return -1;
 		}
+
+		return 0;
 	}
 
 	/*	This extent of this acquisition must be acquired into

@@ -74,6 +74,13 @@ Retrieves the pathName associated with I<fileRef> and stores it in I<buffer>,
 truncating it to fit (as indicated by I<buflen>) and NULL-terminating it.  On
 success, returns I<buffer>; returns NULL on any error.
 
+=item unsigned int zco_file_ref_occupancy(Sdr sdr, Object fileRef)
+
+Returns the number of bytes of SDR heap space occupied by the ZCO file
+reference object identified by I<fileRef>.  If I<fileRef> is zero,
+returns the maximum possible SDR space occupancy of any single file
+reference object.
+
 =item void zco_destroy_file_ref(Sdr sdr, Object fileRef)
 
 If the file reference object residing at location I<fileRef> within
@@ -150,11 +157,8 @@ serialized object.
 Returns the number of bytes of SDR heap space occupied by the ZCO identified
 by I<zcoRef>, plus the size of this reference to that ZCO.  It includes the
 sizes of the ZCO, ZCO header/trailer capsule, and ZCO extent objects
-themselves; it includes the ZCO's share of any applicable ZCO file
-reference overhead (the number of bytes of SDR heap space occupied by
-any ZCO file reference objects that the extents of the ZCO point to);
-and it B<omits> the sizes of all source data extents that do not occupy
-SDR heap space (i.e., ones that reside in files to which ZCO extent
+themselves, and it B<omits> the sizes of all source data extents that do not
+occupy SDR heap space (i.e., ones that reside in files to which ZCO extent
 objects refer).
 
 =item unsigned int zco_nbr_of_refs(Sdr sdr, Object zcoRef)
