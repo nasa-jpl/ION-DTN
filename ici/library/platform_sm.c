@@ -2081,8 +2081,10 @@ void	sm_Abort()
 	int		taskId = sm_TaskIdSelf();
 	pthread_t	threadId;
 
-	if (taskId == 0)	/*	Sub-thread, not a task.		*/
+	if (taskId < 0)		/*	Can't register as task.		*/
 	{
+		/*	Just terminate.					*/
+
 		threadId = pthread_self();
 		if (pthread_kill(threadId, SIGTERM) == 0)
 		{
