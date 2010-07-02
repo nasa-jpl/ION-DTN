@@ -754,8 +754,10 @@ int	ionAttach()
 
 void	ionDetach()
 {
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS)
 	return;
+#elif defined (RTEMS)
+	sm_TaskForget(sm_TaskIdSelf());
 #else
 	Sdr	ionsdr = _ionsdr(NULL);
 

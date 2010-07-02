@@ -250,7 +250,6 @@ node5dir = $(pkgdatadir)/configs/3node-ltp-brs/iontest.ipn.node5
 node5_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/ionconfig \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/ionstart \
-	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/ionstop \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.bprc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.ionrc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.ipnrc \
@@ -259,7 +258,6 @@ node7dir = $(pkgdatadir)/configs/3node-ltp-brs/iontest.ipn.node7
 node7_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/ionconfig \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/ionstart \
-	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/ionstop \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.bprc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.ionrc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.ipnrc \
@@ -268,7 +266,6 @@ node10dir = $(pkgdatadir)/configs/3node-ltp-brs/iontest.ipn.node10
 node10_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/ionconfig \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/ionstart \
-	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/ionstop \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.bprc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ionrc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ipnrc \

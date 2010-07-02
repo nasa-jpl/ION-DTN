@@ -5,7 +5,7 @@
 # For all other nodes it uses a default route: via node 7.  There is no
 # dynamic route computation.
 #
-a plan 5  node5 x brsc/brss.jpl.nasa.gov:5001_5
-a plan 10 node10 x brsc/brss.jpl.nasa.gov:5001_5
-a plan 7 node7 x ltp/7
+a plan 5 brsc/brss.jpl.nasa.gov:5001_5
+a plan 10 brsc/brss.jpl.nasa.gov:5001_5
+a plan 7 ltp/7
 a group 1 9999 7
