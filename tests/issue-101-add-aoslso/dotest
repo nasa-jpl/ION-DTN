@@ -95,7 +95,7 @@ else
     echo
     echo "Receive file had md5sum"
     echo "----------------------------------------------------------------------"
-    echo $IONRECEIVEFILE
+    echo $recvfilemd5
     echo "----------------------------------------------------------------------"
     RETVAL=1
 fi
