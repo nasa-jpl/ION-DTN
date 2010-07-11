@@ -10,7 +10,6 @@
  */
 
 #include "ltpP.h"
-#include "lyst.h"
 
 #define	EST_LINK_OHD	16
 

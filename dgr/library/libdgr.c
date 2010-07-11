@@ -11,21 +11,25 @@
 									*/
 #include "dgr.h"
 #include "memmgr.h"
-#include <pthread.h>
+
+#define DGRDEBUG	0
+#define DGRWATCHING	0
 
 #define	DGR_DB_ORDER	(8)
 #define	DGR_BUCKETS	(1 << DGR_DB_ORDER)
 #define	DGR_BIN_COUNT	(257)		/*	Must be prime for hash.	*/
 #define	DGR_MAX_DESTS	(256)
-#define	DGR_SEQNBR_MASK	(DGR_BUCKETS - 1)
+#define	DGR_SESNBR_MASK	(DGR_BUCKETS - 1)
 #define	DGR_MIN_XMIT	(2)
 #define	NBR_OF_OCC_LVLS	(3)
 #define DGR_MAX_XMIT	(DGR_MIN_XMIT + NBR_OF_OCC_LVLS)
 
 #define	DGR_BUF_SIZE	(65535)
+#define	MAX_DATA_HDR	(58)
+#define MAX_DATA_SIZE	(DGR_BUF_SIZE - MAX_DATA_HDR)
 
-#define	MTAKE(size)	mtake(__FILE__, __LINE__, size)
-#define MRELEASE(ptr)	mrelease(__FILE__, __LINE__, ptr)
+#define	MTAKE(size)	sap->mtake(__FILE__, __LINE__, size)
+#define MRELEASE(ptr)	sap->mrelease(__FILE__, __LINE__, ptr)
 
 #ifndef SYS_CLOCK_RES
 #define SYS_CLOCK_RES	10000		/*	Linux (usec per tick)	*/
@@ -55,41 +59,57 @@
 #endif
 
 /*		Initial RTT estimation parameters per Stevens.		*/
+
 #define	INIT_SMOOTHED	(0)
 #define	INIT_MRD	(750000)	/*	.75 seconds		*/
 #define	INIT_RTT	(INIT_SMOOTHED + (4 * INIT_MRD))
 
-static int		SystemClockResolution = SYS_CLOCK_RES;
-static int		MinMicrosnooze = 0;
-static int		EpisodeUsec = EPISODE_PERIOD;
-static int		MinBytesToTransmit = 0;
-static int		MaxBacklog = MAX_BACKLOG;
-static int		MinTimeout = MIN_TIMEOUT * 1000000;
-static int		MaxTimeout = MAX_TIMEOUT * 1000000;
-static int		InitialRetard = INITIAL_RETARD;
-static int		occupancy[NBR_OF_OCC_LVLS];
-static int		memmgrId = -1;
-static MemAllocator	mtake = NULL;
-static MemDeallocator	mrelease = NULL;
-
-typedef enum
+static int	_watching()
 {
-	SendMessage = 1,
-	HandleTimeout,
-	HandleAck
-} RecordOperation;
+	static int	watching = DGRWATCHING;
+
+	return watching;
+}
+
+static int	_occupancy(int j)
+{
+	static int	occupancy[NBR_OF_OCC_LVLS];
+	static int	initialized = 0;
+	int		i;
+	int		factor;
+
+	if (!initialized)
+	{
+		for (i = 0, factor = 64; i < NBR_OF_OCC_LVLS; i++, factor /= 4)
+		{
+			occupancy[i] = MAX_BACKLOG / factor;
+		}
+
+		initialized = 1;
+	}
+
+	return occupancy[j];
+}
+
+/*	DGR is a simplified LTP: each block is transmitted as a
+ *	single segment in a single UDP datagram.  So each segment
+ *	contains all bytes of all service data units in a single
+ *	block, so there is a one-to-one correspondence between
+ *	segments and sessions.						*/
 
 typedef struct
 {
-	unsigned int	time;
-	unsigned int	seqNbr;
-} CapsuleId;
+	/*	Segment ID is an LTP session (block) ID.		*/
+
+	unsigned long	engineId;
+	unsigned long	sessionNbr;
+} SegmentId;
 
 typedef struct
 {
-	CapsuleId	id;
+	SegmentId	id;
 	char		content[1];
-} Capsule;
+} Segment;
 
 typedef enum
 {
@@ -101,7 +121,7 @@ typedef enum
 
 typedef struct
 {
-	Lyst		msgs;		/*	DgrRecord		*/
+	Lyst		msgs;		/*	(DgrRecord *)		*/
 	pthread_mutex_t	mutex;
 } DgrArqBucket;
 
@@ -126,17 +146,17 @@ typedef struct dgr_rec
 
 	/*	Common to all types of record.				*/
 	int		contentLength;
-	Capsule		capsule;
+	Segment		segment;
 } *DgrRecord;
 
 typedef struct
 {
-	CapsuleId	id;
+	SegmentId	id;
 } SendReq;
 
 typedef struct
 {
-	CapsuleId	id;
+	SegmentId	id;
 	struct timeval	resendTime;
 } ResendReq;
 
@@ -158,6 +178,9 @@ typedef struct
 
 typedef struct
 {
+	/*	Dests are functionally equivalent to the Spans in
+	 *	ION's LTP implementation, but entirely volatile.	*/
+
 	unsigned short	portNbr;
 	unsigned int	ipAddress;
 	int		msgsSent;
@@ -195,13 +218,20 @@ typedef struct
 
 typedef struct dgrsapst
 {
+	/*	The DgrSAP is roughly equivalent to the LTP database
+	 *	in ION's LTP implementation, but entirely volatile
+	 *	and allocated only to a single client service.		*/
+
+	unsigned long	engineId;
+	unsigned long	clientSvcId;
 	DgrSapState	state;
+	MemAllocator	mtake;
+	MemDeallocator	mrelease;
 	int		udpSocket;
 
 	pthread_mutex_t	sapMutex;
 	pthread_cond_t	sapCV;
-	time_t		capsuleTime;
-	unsigned int	capsuleSeqNbr;
+	unsigned long	sessionNbr;
 	int		backlog;	/*	Total, for all dests.	*/
 
 	Lyst		outboundMsgs;	/*	(SendReq *)		*/
@@ -211,7 +241,7 @@ typedef struct dgrsapst
 	Lyst		pendingResends;	/*	(ResendReq *)		*/
 	pthread_mutex_t	pendingResendsMutex;
 
-	Lyst		inboundEvents;	/*	DgrRecord		*/
+	Lyst		inboundEvents;	/*	(DgrRecord *)		*/
 	struct llcv_str	inboundCV_str;
 	Llcv		inboundCV;
 
@@ -227,9 +257,19 @@ typedef struct dgrsapst
 	int		leastActiveDest;
 	int		mostActiveDest;
 	DgrDest		defaultDest;
+
+	char		inputBuffer[DGR_BUF_SIZE];
+	char		outputBuffer[DGR_BUF_SIZE];
 } DgrSAP;
 
-#if 0
+typedef enum
+{
+	SendMessage = 1,
+	HandleTimeout,
+	HandleRpt
+} RecordOperation;
+
+#if DGRDEBUG
 /*	*	*	Test instrumentation	*	*	*	*/
 
 static int	originalMsgs;
@@ -376,9 +416,9 @@ static void	initializeDest(DgrDest *dest, unsigned short portNbr,
 	dest->rttSmoothed = INIT_SMOOTHED;
 	dest->meanRttDeviation = INIT_MRD;
 	dest->rttPredicted = INIT_RTT;
-	dest->retard = InitialRetard;
-	dest->bytesToTransmit = EpisodeUsec / dest->retard;
-#if 0
+	dest->retard = INITIAL_RETARD;
+	dest->bytesToTransmit = EPISODE_PERIOD / dest->retard;
+#if DGRDEBUG
 computedRtt = 0;
 traceMeasuredRtt = 0;
 traceRttDeviation = 0;
@@ -478,8 +518,8 @@ static void	removeRecord(DgrSAP *sap, DgrRecord rec, LystElt arqElt)
 	/*	Enable more messages to be sent.			*/
 
 	pthread_mutex_lock(&sap->sapMutex);
-	sap->backlog -= (rec->contentLength + sizeof(CapsuleId));
-	if (sap->backlog <= MaxBacklog)
+	sap->backlog -= (rec->contentLength + sizeof(SegmentId));
+	if (sap->backlog <= MAX_BACKLOG)
 	{
 		pthread_cond_signal(&sap->sapCV);
 	}
@@ -555,6 +595,8 @@ static int	insertResendReq(DgrSAP *sap, DgrRecord rec, DgrDest *dest,
 	int		rtt;
 	LystElt		elt;
 	ResendReq	*pending;
+	static int	minTimeout = MIN_TIMEOUT * 1000000;
+	static int	maxTimeout = MAX_TIMEOUT * 1000000;
 
 	req = MTAKE(sizeof(ResendReq));
 	if (req == NULL)
@@ -563,8 +605,8 @@ static int	insertResendReq(DgrSAP *sap, DgrRecord rec, DgrDest *dest,
 		return -1;
 	}
 
-	req->id.time = rec->capsule.id.time;
-	req->id.seqNbr = rec->capsule.id.seqNbr;
+	req->id.engineId = rec->segment.id.engineId;
+	req->id.sessionNbr = rec->segment.id.sessionNbr;
 	req->resendTime.tv_sec = rec->transmitTime.tv_sec;
 	req->resendTime.tv_usec = rec->transmitTime.tv_usec;
 
@@ -586,7 +628,9 @@ static int	insertResendReq(DgrSAP *sap, DgrRecord rec, DgrDest *dest,
 			rtt = dest->rttPredicted << dest->predictedResends;
 		}
 
-//resends[rec->transmissionCount - 2]++;
+#if DGRDEBUG
+resends[rec->transmissionCount - 2]++;
+#endif
 	}
 	else	/*	Original transmission, note dest activity.	*/
 	{
@@ -608,28 +652,34 @@ static int	insertResendReq(DgrSAP *sap, DgrRecord rec, DgrDest *dest,
 		/*	Record activity and reorder dests by level of
 		 *	activity as necessary.				*/
 
-		dest->backlog += (rec->contentLength + sizeof(CapsuleId));
+		dest->backlog += (rec->contentLength + sizeof(SegmentId));
 		dest->msgsInBacklog++;
 		dest->msgsSent++;
 		adjustActiveDestChain(sap, destIdx);
 		dest->bytesOriginated += rec->contentLength;
-//traceBytesOriginated = dest->bytesOriginated;
-//originalMsgs++;
+#if DGRDEBUG
+traceBytesOriginated = dest->bytesOriginated;
+originalMsgs++;
+#endif
 	}
 
 	dest->bytesTransmitted += rec->contentLength;
-//traceBytesTransmitted = dest->bytesTransmitted;
-	if (rtt < MinTimeout)
+#if DGRDEBUG
+traceBytesTransmitted = dest->bytesTransmitted;
+#endif
+	if (rtt < minTimeout)
 	{
-		rtt = MinTimeout;
+		rtt = minTimeout;
 	}
 
-	if (rtt > MaxTimeout)
+	if (rtt > maxTimeout)
 	{
-		rtt = MaxTimeout;
+		rtt = maxTimeout;
 	}
 
-//computedRtt = rtt;
+#if DGRDEBUG
+computedRtt = rtt;
+#endif
 	/*	Compute acknowledgment deadline (resendTime).		*/
 
 	req->resendTime.tv_usec += rtt;
@@ -681,14 +731,84 @@ static int	insertResendReq(DgrSAP *sap, DgrRecord rec, DgrDest *dest,
 static int	sendMessage(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 			DgrDest *dest, int destIdx)
 {
+	unsigned char		*cursor;
+	int			length;
+	Sdnv			sdnv;
+	unsigned long		ckptSerialNbr = rand();
 	struct sockaddr_in	socketAddress;
 	struct sockaddr		*sockName = (struct sockaddr *) &socketAddress;
 
-	/*	Temporarily invert the capsule ID fields for message
-	 *	transmission purposes.					*/
+	/*	Construct LTP data segment in sap->outputBuffer.	*/
 
-	rec->capsule.id.time = htonl(rec->capsule.id.time);
-	rec->capsule.id.seqNbr = htonl(rec->capsule.id.seqNbr);
+	cursor = (unsigned char *) (sap->outputBuffer);
+	length = 0;
+
+	/*	Version number and segment type.			*/
+
+	*cursor = 3;		/*	0000 0011			*/
+	length++;
+	cursor++;
+
+	/*	Engine ID.						*/
+
+	encodeSdnv(&sdnv, rec->segment.id.engineId);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	SessionNbr.						*/
+
+	encodeSdnv(&sdnv, rec->segment.id.sessionNbr);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Extension lengths.					*/
+
+	*cursor = 0;		/*	0000 0000			*/
+	length++;
+	cursor++;
+
+	/*	Client service ID.					*/
+
+	encodeSdnv(&sdnv, sap->clientSvcId);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Service data offset.					*/
+
+	encodeSdnv(&sdnv, 0);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Service data length.					*/
+
+	encodeSdnv(&sdnv, rec->contentLength);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Checkpoint serial number.				*/
+
+	encodeSdnv(&sdnv, ckptSerialNbr);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Report serial number.					*/
+
+	encodeSdnv(&sdnv, 0);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Data content.						*/
+
+	memcpy(cursor, rec->segment.content, rec->contentLength);
+	length += rec->contentLength;
+	cursor += rec->contentLength;
 
 	/*	Plug current time into record's transmit time.		*/
 
@@ -702,18 +822,18 @@ static int	sendMessage(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 	socketAddress.sin_family = AF_INET;
 	socketAddress.sin_port = htons(rec->portNbr);
 	socketAddress.sin_addr.s_addr = htonl(rec->ipAddress);
-	if (sendto(sap->udpSocket, (char *) &(rec->capsule), sizeof(CapsuleId)
-			+ rec->contentLength, 0, sockName,
+	if (sendto(sap->udpSocket, sap->outputBuffer, length, 0, sockName,
 			sizeof(struct sockaddr_in)) < 0)
 	{
+		putSysErrmsg("DGR can't send segment", NULL);
 		rec->errnbr = errno;
 	}
 
-	/*	Get the capsule ID fields back into local byte order
-	 *	for searching purposes.					*/
-
-	rec->capsule.id.time = ntohl(rec->capsule.id.time);
-	rec->capsule.id.seqNbr = ntohl(rec->capsule.id.seqNbr);
+	if (_watching())
+	{
+		putchar('g');
+		fflush(stdout);
+	}
 
 	/*	Update record's transmission counter for ARQ control.	*/
 
@@ -744,16 +864,16 @@ static void	noteCompletion(DgrRecord rec, DgrDest *dest, int destIdx)
 	 *	that the original transmission is the one that has
 	 *	been acknowledged (else we have the retransmission
 	 *	ambiguity problem: we can't have any confidence in
-	 *	computed round-trip time for this capsule, so we
+	 *	computed round-trip time for this segment, so we
 	 *	can't use that RTT to predict appropriate retransmit
-	 *	times for future capsules).				*/
+	 *	times for future segments).				*/
 
 	getCurrentTime(&arrivalTime);
 
 	/*	At the least, update backlog count to mitigate
 	 *	maximum transmissions limit.				*/
 
-	dest->backlog -= (rec->contentLength + sizeof(CapsuleId));
+	dest->backlog -= (rec->contentLength + sizeof(SegmentId));
 	dest->msgsInBacklog--;
 	if (rec->transmissionCount > 1)
 	{
@@ -785,18 +905,24 @@ static void	noteCompletion(DgrRecord rec, DgrDest *dest, int destIdx)
 	measuredRtt =
 		((arrivalTime.tv_sec - rec->transmitTime.tv_sec) * 1000000)
 			+ (arrivalTime.tv_usec - rec->transmitTime.tv_usec);
-//traceMeasuredRtt = measuredRtt;
+#if DGRDEBUG
+traceMeasuredRtt = measuredRtt;
+#endif
 
 	/*	Add 1/8 of deviation to smoothed RTT.			*/
 
 	deviation = measuredRtt - dest->rttSmoothed;
-//traceRttDeviation = deviation;
+#if DGRDEBUG
+traceRttDeviation = deviation;
+#endif
 	negative = deviation < 0 ? 1 : 0;
 	deviation = abs(deviation);
 	adj = (deviation >> 3) & 0x1fffffff;
 	if (negative) adj = 0 - adj;
 	dest->rttSmoothed += adj;
-//traceRttSmoothed = dest->rttSmoothed;
+#if DGRDEBUG
+traceRttSmoothed = dest->rttSmoothed;
+#endif
 
 	/*	Add 1/4 of change in deviation to mean deviation.	*/
 
@@ -806,21 +932,35 @@ static void	noteCompletion(DgrRecord rec, DgrDest *dest, int destIdx)
 	adj = (change >> 2) & 0x3fffffff;
 	if (negative) adj = 0 - adj;
 	dest->meanRttDeviation += adj;
-//traceMeanRttDeviation = dest->meanRttDeviation;
+#if DGRDEBUG
+traceMeanRttDeviation = dest->meanRttDeviation;
+#endif
 
 	/*	For new prediction of RTT use smoothed RTT plus four
 	 *	times the mean deviation.				*/
 
 	dest->rttPredicted = dest->rttSmoothed + (dest->meanRttDeviation << 2);
-//traceRttPredicted = dest->rttPredicted;
+#if DGRDEBUG
+traceRttPredicted = dest->rttPredicted;
+#endif
 	dest->predictedResends = 0;
-//tracePredictedResends = dest->predictedResends;
+#if DGRDEBUG
+tracePredictedResends = dest->predictedResends;
+#endif
 }
 
-static int	handleAck(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
+static int	handleRpt(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 			DgrDest *dest, int destIdx)
 {
-//appliedAcks++;
+#if DGRDEBUG
+appliedAcks++;
+#endif
+	if (_watching())
+	{
+		putchar('h');
+		fflush(stdout);
+	}
+
 	dest->bytesAcknowledged += rec->contentLength;
 
 	/*	May want to update predicted RTT if the acknowledging
@@ -868,8 +1008,8 @@ static int	insertSendReq(DgrSAP *sap, DgrRecord rec)
 		return -1;
 	}
 
-	req->id.time = rec->capsule.id.time;
-	req->id.seqNbr = rec->capsule.id.seqNbr;
+	req->id.engineId = rec->segment.id.engineId;
+	req->id.sessionNbr = rec->segment.id.sessionNbr;
 	llcv_lock(sap->outboundCV);
 	elt = rec->outboundMsgsElt = lyst_insert_last(sap->outboundMsgs, req);
 	llcv_unlock(sap->outboundCV);
@@ -891,7 +1031,9 @@ static int	handleTimeout(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 	int	maxTransmissions = 0;
 	int	i;
 
-//timeouts[rec->transmissionCount - 1]++;
+#if DGRDEBUG
+timeouts[rec->transmissionCount - 1]++;
+#endif
 	if (destIdx >= 0)	/*	An active destination.		*/
 	{
 		/*	Update retransmission control if this is
@@ -921,7 +1063,9 @@ static int	handleTimeout(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 			if (rec->transmissionCount > dest->predictedResends)
 			{
 				dest->predictedResends = rec->transmissionCount;
-//tracePredictedResends = dest->predictedResends;
+#if DGRDEBUG
+tracePredictedResends = dest->predictedResends;
+#endif
 			}
 		}
 
@@ -943,7 +1087,7 @@ static int	handleTimeout(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 		maxTransmissions = DGR_MAX_XMIT;
 		for (i = 0; i < NBR_OF_OCC_LVLS; i++)
 		{
-			if (dest->backlog < occupancy[i])
+			if (dest->backlog < _occupancy(i))
 			{
 				break;
 			}
@@ -957,7 +1101,7 @@ static int	handleTimeout(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 			 *	remove it from backlog.			*/
 
 			dest->backlog -= (rec->contentLength
-					+ sizeof(CapsuleId));
+					+ sizeof(SegmentId));
 			dest->msgsInBacklog--;
 		}
 	}
@@ -1003,12 +1147,18 @@ static int	handleTimeout(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 	 *	so leave it in its current location in the ARQ bucket
 	 *	and tell sender to re-send it.				*/
 
+	if (_watching())
+	{
+		putchar('=');
+		fflush(stdout);
+	}
+
 	dest->serviceLoad += rec->contentLength;
 	return insertSendReq(sap, rec);
 }
 
-static int	arq(DgrSAP *sap, time_t capsuleTime,
-			unsigned int capsuleSeqNbr, RecordOperation op)
+static int	arq(DgrSAP *sap, unsigned long engineId,
+			unsigned long sessionNbr, RecordOperation op)
 {
 	DgrArqBucket	*bucket;
 	LystElt		elt;
@@ -1017,7 +1167,7 @@ static int	arq(DgrSAP *sap, time_t capsuleTime,
 	int		destIdx;
 	int		result;
 
-	bucket = sap->buckets + (capsuleSeqNbr & DGR_SEQNBR_MASK);
+	bucket = sap->buckets + (sessionNbr & DGR_SESNBR_MASK);
 	pthread_mutex_lock(&bucket->mutex);
 	pthread_mutex_lock(&sap->destsMutex);
 	if (op == SendMessage)
@@ -1025,26 +1175,26 @@ static int	arq(DgrSAP *sap, time_t capsuleTime,
 		for (elt = lyst_last(bucket->msgs); elt; elt = lyst_prev(elt))
 		{
 			rec = (DgrRecord) lyst_data(elt);
-			if (rec->capsule.id.time > capsuleTime)
+			if (rec->segment.id.engineId > engineId)
 			{
 				continue;
 			}
 
-			if (rec->capsule.id.time < capsuleTime)
+			if (rec->segment.id.engineId < engineId)
 			{
 				pthread_mutex_unlock(&sap->destsMutex);
 				pthread_mutex_unlock(&bucket->mutex);
 				return 0;	/*	What happened?	*/
 			}
 
-			/*	Found a match on time.			*/
+			/*	Found a match on engine ID.		*/
 
-			if (rec->capsule.id.seqNbr > capsuleSeqNbr)
+			if (rec->segment.id.sessionNbr > sessionNbr)
 			{
 				continue;
 			}
 
-			if (rec->capsule.id.seqNbr < capsuleSeqNbr)
+			if (rec->segment.id.sessionNbr < sessionNbr)
 			{
 				pthread_mutex_unlock(&sap->destsMutex);
 				pthread_mutex_unlock(&bucket->mutex);
@@ -1076,26 +1226,26 @@ static int	arq(DgrSAP *sap, time_t capsuleTime,
 	for (elt = lyst_first(bucket->msgs); elt; elt = lyst_next(elt))
 	{
 		rec = (DgrRecord) lyst_data(elt);
-		if (rec->capsule.id.time < capsuleTime)
+		if (rec->segment.id.engineId < engineId)
 		{
 			continue;
 		}
 
-		if (rec->capsule.id.time > capsuleTime)
+		if (rec->segment.id.engineId > engineId)
 		{
 			pthread_mutex_unlock(&sap->destsMutex);
 			pthread_mutex_unlock(&bucket->mutex);
 			return 0;	/*	Record is already gone.	*/
 		}
 
-		/*	Found a match on time.				*/
+		/*	Found a match on engine ID.			*/
 
-		if (rec->capsule.id.seqNbr < capsuleSeqNbr)
+		if (rec->segment.id.sessionNbr < sessionNbr)
 		{
 			continue;
 		}
 
-		if (rec->capsule.id.seqNbr > capsuleSeqNbr)
+		if (rec->segment.id.sessionNbr > sessionNbr)
 		{
 			pthread_mutex_unlock(&sap->destsMutex);
 			pthread_mutex_unlock(&bucket->mutex);
@@ -1115,9 +1265,9 @@ static int	arq(DgrSAP *sap, time_t capsuleTime,
 	}
 
 	dest = findDest(sap, rec->portNbr, rec->ipAddress, &destIdx);
-	if (op == HandleAck)
+	if (op == HandleRpt)
 	{
-		result = handleAck(sap, rec, elt, dest, destIdx);
+		result = handleRpt(sap, rec, elt, dest, destIdx);
 	}
 	else
 	{
@@ -1221,14 +1371,24 @@ static void	resetDestActivity(DgrSAP *sap)
 
 static void	adjustRetard(DgrDest *dest)
 {
-	int	i;
-	int	maxIncrease;
-	int	maxDecrease;
-	int	unusedCapacity;
-	int	capacity;
-	int	newDataRate;
-	int	booster;
+	/*	(minRate, the minimum number of bytes to transmit in
+	 *	each episode is based on a minimum transmission rate
+	 *	of 1200 bps = 150 bytes per second.  Must scale 150
+	 *	by length of rate control episode.)			*/
 
+	static int	minRate = (150 * EPISODE_PERIOD) / 1000000;
+	int		i;
+	int		maxIncrease;
+	int		maxDecrease;
+	int		unusedCapacity;
+	int		capacity;
+	int		newDataRate;
+	int		booster;
+
+#if DGRDEBUG
+traceBytesAcknowledged = dest->bytesAcknowledged;
+traceBytesResent = dest->bytesTransmitted - dest->bytesOriginated;
+#endif
 	if (dest->episodeCount < 8)
 	{
 		dest->episodeCount++;
@@ -1239,15 +1399,9 @@ static void	adjustRetard(DgrDest *dest)
 	 *	over the recent past, inflated by a 50% aggressiveness
 	 *	factor to increase the rate rapidly when recovering
 	 *	from a period of lost connectivity.  Then compute
-	 *	retard as a function of the planned transmission rate.	*/
-
-//traceBytesAcknowledged = dest->bytesAcknowledged;
-//traceBytesResent = dest->bytesTransmitted - dest->bytesOriginated;
-#if 0
-	maxChange = (dest->bytesToTransmit >> 3) & 0x1fffffff;
-	maxChange = dest->bytesToTransmit - ((dest->bytesToTransmit >> 2) & 0x3fffffff);
-#endif
-	/*	Start by computing upper and lower limits on the
+	 *	retard as a function of the planned transmission rate.
+	 *
+	 *	Start by computing upper and lower limits on the
 	 *	amount by which planned data transmission rate may
 	 *	change in any one episode.				*/
 
@@ -1266,8 +1420,10 @@ static void	adjustRetard(DgrDest *dest)
 	{
 		unusedCapacity = 0;
 	}
-//traceUnusedCapacity = unusedCapacity;
 
+#if DGRDEBUG
+traceUnusedCapacity = unusedCapacity;
+#endif
 	dest->totalServiceLoad -= dest->episodes[i].serviceLoad;
 	dest->totalBytesTransmitted -= dest->episodes[i].bytesTransmitted;
 	dest->totalBytesAcknowledged -= dest->episodes[i].bytesAcknowledged;
@@ -1323,13 +1479,15 @@ static void	adjustRetard(DgrDest *dest)
 
 	/*	But never let data rate drop below minimum pulse rate.	*/
 
-	if (newDataRate < MinBytesToTransmit)
+	if (newDataRate < minRate)
 	{
-		newDataRate = MinBytesToTransmit;
+		newDataRate = minRate;
 	}
 
 	dest->bytesToTransmit = newDataRate;
-//traceBytesToTransmit = newDataRate;
+#if DGRDEBUG
+traceBytesToTransmit = newDataRate;
+#endif
 
 	/*	To calculate retard (the number of microseconds of
 	 *	delay to impose per byte of transmitted content),
@@ -1337,18 +1495,22 @@ static void	adjustRetard(DgrDest *dest)
 	 *	by the number of bytes to transmit in the next
 	 *	episode.						*/
 
-	dest->retard = EpisodeUsec / newDataRate;
-//traceRetard = dest->retard;
+	dest->retard = EPISODE_PERIOD / newDataRate;
+#if DGRDEBUG
+traceRetard = dest->retard;
+#endif
 
 	/*	Note that retard may be zero, in the event that the
 	 *	network is transmitting way faster than we need it to.	*/
 
-//dgrtrace();
-//traceBytesAcknowledged = 0;
-//dest->serviceLoad = 0;
-//traceBytesTransmitted = 0;
-//traceBytesOriginated = 0;
-//aggregateDelay = 0;
+#if DGRDEBUG
+dgrtrace();
+traceBytesAcknowledged = 0;
+dest->serviceLoad = 0;
+traceBytesTransmitted = 0;
+traceBytesOriginated = 0;
+aggregateDelay = 0;
+#endif
 	dest->bytesAcknowledged = 0;
 	dest->bytesTransmitted = 0;
 	dest->bytesOriginated = 0;
@@ -1359,7 +1521,9 @@ static void	adjustRateControl(DgrSAP *sap)
 	int	i;
 	DgrDest	*dest;
 
-//PUTS("---------------------------------------------------------------");
+#if DGRDEBUG
+PUTS("---------------------------------------------------------------");
+#endif
 
 	pthread_mutex_lock(&sap->destsMutex);
 	for (i = 0, dest = sap->dests; i < DGR_MAX_DESTS; i++, dest++)
@@ -1370,7 +1534,9 @@ static void	adjustRateControl(DgrSAP *sap)
 		}
 	}
 
-//appliedAcks = 0;
+#if DGRDEBUG
+appliedAcks = 0;
+#endif
 	pthread_mutex_unlock(&sap->destsMutex);
 }
 
@@ -1382,8 +1548,8 @@ static void	*sender(void *parm)
 	sigset_t	signals;
 	LystElt		elt;
 	SendReq		*req;
-	time_t		capsuleTime;
-	unsigned int	capsuleSeqNbr;
+	unsigned long	engineId;
+	unsigned long	sessionNbr;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
@@ -1412,10 +1578,10 @@ static void	*sender(void *parm)
 			}
 
 			req = (SendReq *) lyst_data(elt);
-			capsuleTime = req->id.time;
-			capsuleSeqNbr = req->id.seqNbr;
+			engineId = req->id.engineId;
+			sessionNbr = req->id.sessionNbr;
 			llcv_unlock(sap->outboundCV);
-			if (arq(sap, capsuleTime, capsuleSeqNbr, SendMessage))
+			if (arq(sap, engineId, sessionNbr, SendMessage))
 			{
 				putErrmsg("Sender thread terminated.", NULL);
 				return NULL;
@@ -1434,14 +1600,14 @@ static void	*resender(void *parm)
 	struct timeval	currentTime;
 	LystElt		elt;
 	ResendReq	*req;
-	time_t		capsuleTime;
-	unsigned int	capsuleSeqNbr;
+	unsigned long	engineId;
+	unsigned long	sessionNbr;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
 	{
-		microsnooze(EpisodeUsec);
+		microsnooze(EPISODE_PERIOD);
 		if (sap->state != DgrSapOpen)
 		{
 			return NULL;
@@ -1476,12 +1642,12 @@ static void	*resender(void *parm)
 			if (req->resendTime.tv_sec < currentTime.tv_sec
 			|| req->resendTime.tv_usec <= currentTime.tv_usec)
 			{
-				/*	Capsule's resend time is here.	*/
+				/*	Segment's resend time is here.	*/
 
-				capsuleTime = req->id.time;
-				capsuleSeqNbr = req->id.seqNbr;
+				engineId = req->id.engineId;
+				sessionNbr = req->id.sessionNbr;
 				pthread_mutex_unlock(&sap->pendingResendsMutex);
-				if (arq(sap, capsuleTime, capsuleSeqNbr,
+				if (arq(sap, engineId, sessionNbr,
 						HandleTimeout))
 				{
 					putErrmsg("Resender thread terminated.",
@@ -1498,35 +1664,157 @@ static void	*resender(void *parm)
 	}
 }
 
+static int	sendAck(DgrSAP *sap, char *reportBuffer, int headerLength,
+			unsigned long rptSerialNbr, struct sockaddr *sockName,
+			socklen_t sockaddrlen)
+{
+	char	*cursor;
+	int	length;
+	Sdnv	sdnv;
+
+	memcpy(reportBuffer, sap->inputBuffer, headerLength);
+	*reportBuffer = 9;	/*	00001001; report ACK.		*/
+	length = headerLength;
+	cursor = reportBuffer + length;
+
+	/*	Report serial number.					*/
+
+	encodeSdnv(&sdnv, rptSerialNbr);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	ACK is now ready to transmit.				*/
+
+	if (sendto(sap->udpSocket, reportBuffer, length, 0, sockName,
+			sockaddrlen) < 0)
+	{
+		if (errno != EBADF)		/*	Socket closed.	*/
+		{
+			crashThread(sap, "Receiver thread failed sending \
+acknowledgement");
+		}
+
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	sendReport(DgrSAP *sap, char *reportBuffer, int headerLength,
+			unsigned long ckptSerialNbr, unsigned long dataLength,
+			struct sockaddr *sockName, socklen_t sockaddrlen)
+{
+	char		*cursor;
+	int		length;
+	Sdnv		sdnv;
+	unsigned long	rptSerialNbr = rand();
+
+	memcpy(reportBuffer, sap->inputBuffer, headerLength);
+	*reportBuffer = 8;	/*	00001000; report.		*/
+	length = headerLength;
+	cursor = reportBuffer + length;
+
+	/*	Report serial number.					*/
+
+	encodeSdnv(&sdnv, rptSerialNbr);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Checkpoint serial number.				*/
+
+	encodeSdnv(&sdnv, ckptSerialNbr);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Upper bound.						*/
+
+	encodeSdnv(&sdnv, dataLength);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Lower bound.						*/
+
+	encodeSdnv(&sdnv, 0);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Reception claim count.					*/
+
+	encodeSdnv(&sdnv, 1);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Reception claim 1 offset.				*/
+
+	encodeSdnv(&sdnv, 0);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Reception claim 1 length.				*/
+
+	encodeSdnv(&sdnv, dataLength);
+	memcpy(cursor, sdnv.text, sdnv.length);
+	length += sdnv.length;
+	cursor += sdnv.length;
+
+	/*	Report is now ready to transmit.			*/
+
+	if (sendto(sap->udpSocket, reportBuffer, length, 0, sockName,
+			sockaddrlen) < 0)
+	{
+		if (errno != EBADF)		/*	Socket closed.	*/
+		{
+			crashThread(sap, "Receiver thread failed sending \
+report");
+		}
+
+		return -1;
+	}
+
+	return 0;
+}
+
 static void	*receiver(void *parm)
 {
 	DgrSAP			*sap = (DgrSAP *) parm;
-	char			*buffer;
 	sigset_t		signals;
 	struct sockaddr_in	socketAddress;
 	struct sockaddr		*sockName = (struct sockaddr *) &socketAddress;
 	socklen_t		sockaddrlen;
 	unsigned short		portNbr;
-	Capsule			*capsule;
 	int			length;
+	unsigned char		*cursor;
+	int			bytesRemaining;
+	unsigned int		versionNbr;
+	unsigned int		segmentType;
+	int			sdnvLength;
+	unsigned long		engineId;
+	unsigned long		sessionNbr;
+	unsigned int		extensionCounts;
+	int			headerLength;
+	unsigned long		clientSvcId;
+	unsigned long		svcDataOffset;
+	unsigned long		svcDataLength;
+	unsigned long		ckptSerialNbr;
+	unsigned long		rptSerialNbr;
+	char			reportBuffer[64];
 	int			reclength;
 	DgrRecord		rec;
 
-	buffer = MTAKE(DGR_BUF_SIZE);
-	if (buffer == NULL)
-	{
-		putSysErrmsg("Receiver thread can't allocate buffer", NULL);
-		return NULL;
-	}
-
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-	capsule = (Capsule *) buffer;
 	while (1)
 	{
 		sockaddrlen = sizeof(struct sockaddr_in);
-		length = recvfrom(sap->udpSocket, buffer, DGR_BUF_SIZE, 0,
-				sockName, &sockaddrlen);
+		length = recvfrom(sap->udpSocket, sap->inputBuffer,
+				DGR_BUF_SIZE, 0, sockName, &sockaddrlen);
 		if (length < 0)
 		{
 			switch (errno)
@@ -1551,15 +1839,112 @@ recvfrom");
 			break;		/*	Out of main loop.	*/
 		}
 
-		if (length < sizeof(CapsuleId))
+		/*	Parse the LTP segment header.			*/
+
+		cursor = (unsigned char *) (sap->inputBuffer);
+		bytesRemaining = length;
+
+		/*	Version number.					*/
+
+		if (bytesRemaining < 1)
 		{
 			continue;	/*	Ignore random guck.	*/
 		}
 
-		if (length == sizeof(CapsuleId))	/*	ACK	*/
+		versionNbr = ((*cursor) >> 4) & 0x0f;
+		if (versionNbr != 0)
 		{
-			if (arq(sap, ntohl(capsule->id.time),
-				ntohl(capsule->id.seqNbr), HandleAck))
+			continue;	/*	Invalid segment.	*/
+		}
+
+		/*	Segment type.					*/
+
+		segmentType = (*cursor) & 0x0f;
+		cursor++;
+		bytesRemaining--;
+
+		/*	Engine ID.					*/
+
+		if (bytesRemaining < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		sdnvLength = decodeSdnv(&engineId, cursor);
+		if (sdnvLength < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		cursor += sdnvLength;
+		bytesRemaining -= sdnvLength;
+
+		/*	Session Nbr.					*/
+
+		if (bytesRemaining < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		sdnvLength = decodeSdnv(&sessionNbr, cursor);
+		if (sdnvLength < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		cursor += sdnvLength;
+		bytesRemaining -= sdnvLength;
+
+		/*	Extension counts.				*/
+
+		if (bytesRemaining < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		extensionCounts = *cursor;
+		if (extensionCounts != 0)
+		{
+			continue;	/*	No extension support.	*/
+		}
+
+		cursor++;
+		bytesRemaining--;
+
+		/*	Segment content.				*/
+
+		if (bytesRemaining < 1)	/*	No content.		*/
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		/*	Process content as indicated by segment type.	*/
+
+		headerLength = length - bytesRemaining;
+		if (segmentType == 8)	/*	Report.			*/
+		{
+			/*	Get report serial number.		*/
+
+			if (bytesRemaining < 1)
+			{
+				continue;	/*	Invalid segment.*/
+			}
+
+			sdnvLength = decodeSdnv(&rptSerialNbr, cursor);
+			if (sdnvLength < 1)
+			{
+				continue;	/*	Invalid segment.*/
+			}
+
+			cursor += sdnvLength;
+			bytesRemaining -= sdnvLength;
+			if (sendAck(sap, reportBuffer, headerLength,
+				rptSerialNbr, sockName, sockaddrlen) < 0)
+			{
+				break;		/*	Main loop.	*/
+			}
+
+			if (arq(sap, engineId, sessionNbr, HandleRpt))
 			{
 				putErrmsg("Receiver thread has terminated.",
 						NULL);
@@ -1569,29 +1954,130 @@ recvfrom");
 			continue;
 		}
 
-		/*	Inbound message.  Extract sender's port nbr.	*/
+		/*	Note: we always return report ACKs (9s), for
+		 *	compliance, but we always ignore all received
+		 *	report ACKs.  DGR reports are not retransmitted.
+		 *	If the report isn't received, the data segment
+		 *	is eventually retransmitted and is acknowledged
+		 *	at that time.					*/
+
+		if (segmentType != 3)
+		{
+			continue;	/*	Not supported.		*/
+		}
+
+		/*	Red data, EOB.  Extract sender's port nbr.	*/
 
 		portNbr = ntohs(socketAddress.sin_port);
 
-		/*	Now send acknowledgment.			*/
+		/*	Client service ID.				*/
 
-		if (sendto(sap->udpSocket, (char *) capsule, sizeof(CapsuleId),
-					0, sockName, sockaddrlen) < 0)
+		sdnvLength = decodeSdnv(&clientSvcId, cursor);
+		if (sdnvLength < 1)
 		{
-			if (errno == EBADF)	/*	Socket closed.	*/
-			{
-				break;	/*	Out of main loop.	*/
-			}
+			continue;	/*	Invalid segment.	*/
+		}
 
-			crashThread(sap, "Receiver thread failed sending \
-acknowledgement");
+		cursor += sdnvLength;
+		bytesRemaining -= sdnvLength;
+
+		/*	Service data offset.				*/
+
+		if (bytesRemaining < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		sdnvLength = decodeSdnv(&svcDataOffset, cursor);
+		if (sdnvLength < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		if (svcDataOffset != 0)
+		{
+			continue;	/*	Not supported.		*/
+		}
+
+		cursor += sdnvLength;
+		bytesRemaining -= sdnvLength;
+
+		/*	Service data length.				*/
+
+		if (bytesRemaining < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		sdnvLength = decodeSdnv(&svcDataLength, cursor);
+		if (sdnvLength < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		cursor += sdnvLength;
+		bytesRemaining -= sdnvLength;
+
+		/*	Checkpoint serial number.			*/
+
+		if (bytesRemaining < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+		sdnvLength = decodeSdnv(&ckptSerialNbr, cursor);
+		if (sdnvLength < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		cursor += sdnvLength;
+		bytesRemaining -= sdnvLength;
+
+		/*	Report serial number.				*/
+
+		if (bytesRemaining < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		sdnvLength = decodeSdnv(&rptSerialNbr, cursor);
+		if (sdnvLength < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		cursor += sdnvLength;
+		bytesRemaining -= sdnvLength;
+
+		/*	Client service data.				*/
+
+		if (bytesRemaining < 1)
+		{
+			continue;	/*	Invalid segment.	*/
+		}
+
+		if (rptSerialNbr != 0)
+		{
+			continue;	/*	Not supported.		*/
+		}
+
+		if (_watching())
+		{
+			putchar('s');
+			fflush(stdout);
+		}
+
+		/*	Now send acknowledgment (report).		*/
+
+		if (sendReport(sap, reportBuffer, headerLength, ckptSerialNbr,
+				svcDataLength, sockName, sockaddrlen) < 0)
+		{
 			break;		/*	Out of main loop.	*/
 		}
 
 		/*	Create content arrival event.			*/
 
-		length -= sizeof(CapsuleId);	/*	content length	*/
-		reclength = sizeof(struct dgr_rec) + (length - 1);
+		reclength = sizeof(struct dgr_rec) + (svcDataLength - 1);
 		rec = (DgrRecord) MTAKE(reclength);
 		if (rec == NULL)
 		{
@@ -1604,18 +2090,25 @@ content arrival event");
 		rec->type = DgrMsgIn;
 		rec->portNbr = portNbr;
 		rec->ipAddress = ntohl(socketAddress.sin_addr.s_addr);
-		rec->contentLength = length;
-		memcpy(rec->capsule.content, capsule->content, length);
+		rec->contentLength = svcDataLength;
+		rec->segment.id.engineId = engineId;
+		rec->segment.id.sessionNbr = sessionNbr;
+		memcpy(rec->segment.content, cursor, svcDataLength);
 		if (insertEvent(sap, rec))
 		{
 			putErrmsg("Receiver thread has terminated.", NULL);
 			break;		/*	Out of main loop.	*/
 		}
+
+		if (_watching())
+		{
+			putchar('t');
+			fflush(stdout);
+		}
 	}
 
 	/*	Main loop terminated for some reason; wrap up.		*/
 
-	MRELEASE(buffer);
 	return NULL;
 }
 
@@ -1623,6 +2116,8 @@ content arrival event");
 
 static void	forgetObject(LystElt elt, void *userData)
 {
+	DgrSAP	*sap = (DgrSAP *) userData;
+
 	MRELEASE(lyst_data(elt));
 }
 
@@ -1638,7 +2133,7 @@ static void	cleanUpSAP(DgrSAP *sap)
 
 	if (sap->outboundMsgs)
 	{
-		lyst_delete_set(sap->outboundMsgs, forgetObject, NULL);
+		lyst_delete_set(sap->outboundMsgs, forgetObject, sap);
 		lyst_destroy(sap->outboundMsgs);
 	}
 
@@ -1649,7 +2144,7 @@ static void	cleanUpSAP(DgrSAP *sap)
 
 	if (sap->inboundEvents)
 	{
-		lyst_delete_set(sap->inboundEvents, forgetObject, NULL);
+		lyst_delete_set(sap->inboundEvents, forgetObject, sap);
 		lyst_destroy(sap->inboundEvents);
 	}
 
@@ -1662,7 +2157,7 @@ static void	cleanUpSAP(DgrSAP *sap)
 	{
 		if (bucket->msgs)
 		{
-			lyst_delete_set(bucket->msgs, forgetObject, NULL);
+			lyst_delete_set(bucket->msgs, forgetObject, sap);
 			lyst_destroy(bucket->msgs);
 		}
 
@@ -1676,7 +2171,7 @@ static void	cleanUpSAP(DgrSAP *sap)
 
 	if (sap->pendingResends)
 	{
-		lyst_delete_set(sap->pendingResends, forgetObject, NULL);
+		lyst_delete_set(sap->pendingResends, forgetObject, sap);
 		lyst_destroy(sap->pendingResends);
 	}
 
@@ -1688,8 +2183,9 @@ static void	cleanUpSAP(DgrSAP *sap)
 	MRELEASE(sap);
 }
 
-DgrRC	dgr_open(unsigned short ownPortNbr, unsigned int ownIpAddress,
-		char *memmgrName, DgrSAP **sapp)
+int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
+		unsigned short ownPortNbr, unsigned int ownIpAddress,
+		char *memmgrName, DgrSAP **sapp, DgrRC *rc)
 {
 	char			hostname[MAXHOSTNAMELEN + 1];
 	struct sockaddr_in	socketAddress;
@@ -1697,15 +2193,12 @@ DgrRC	dgr_open(unsigned short ownPortNbr, unsigned int ownIpAddress,
 	int			mmid;
 	DgrSAP			*sap;
 	int			i;
-	int			factor;
 	DgrArqBucket		*bucket;
 
-	if (sapp == NULL)
-	{
-		errno = EINVAL;
-		putSysErrmsg("'Dgr' pointer is NULL", NULL);
-		return DgrFailed;
-	}
+	CHKERR(ownEngineId);
+	CHKERR(clientSvcId);
+	CHKERR(sapp);
+	CHKERR(rc);
 
 	/*	Validate endpoint address.				*/
 
@@ -1713,16 +2206,16 @@ DgrRC	dgr_open(unsigned short ownPortNbr, unsigned int ownIpAddress,
 	{
 		if (getNameOfHost(hostname, sizeof hostname) < 0)
 		{
-			putErrmsg("Can't get name of local host.", NULL);
-			return DgrFailed;
+			putErrmsg("DGR can't get name of local host.", NULL);
+			return -1;
 		}
 		
 		ownIpAddress = getInternetAddress(hostname);
 		if (ownIpAddress == 0)
 		{
-			putErrmsg("Can't get IP address of local host.",
+			putErrmsg("DGR can't get IP address of local host.",
 					NULL);
-			return DgrFailed;
+			return -1;
 		}
 	}
 
@@ -1740,8 +2233,8 @@ DgrRC	dgr_open(unsigned short ownPortNbr, unsigned int ownIpAddress,
 		mmid = memmgr_find(memmgrName);
 		if (mmid < 0)
 		{
-			putErrmsg("Can't find memory manager.", memmgrName);
-			return DgrFailed;
+			putErrmsg("DGR can't find memory manager.", memmgrName);
+			return -1;
 		}
 	}
 	else
@@ -1749,48 +2242,21 @@ DgrRC	dgr_open(unsigned short ownPortNbr, unsigned int ownIpAddress,
 		mmid = 0;	/*	default is malloc/free		*/
 	}
 
-	/*	Initialize program constants.				*/
-
-	MinMicrosnooze = SystemClockResolution;
-	for (i = 0, factor = 64; i < NBR_OF_OCC_LVLS; i++, factor /= 4)
-	{
-		occupancy[i] = MaxBacklog / factor;
-	}
-
-	/*	(MinBytesToTransmit in each episode is based on
-	 *	minimum transmission rate of 1200 bps = 150 bytes
-	 *	per second; must scale 150 by length of rate control
-	 *	episode.)						*/
-
-	MinBytesToTransmit = (150 * EpisodeUsec) / 1000000;
-	if (memmgrId < 0)
-	{
-		memmgrId = mmid;
-		mtake = memmgr_take(memmgrId);
-		mrelease = memmgr_release(memmgrId);
-	}
-	else
-	{
-		if (mmid != memmgrId)
-		{
-			errno = EINVAL;
-			putSysErrmsg("Memory manager selections conflict",
-					memmgrName);
-			return DgrFailed;
-		}
-	}
-
 	/*	Initialize service access point constants.		*/
 
-	sap = (DgrSAP *) MTAKE(sizeof(DgrSAP));
+	sap = (DgrSAP *)(memmgr_take(mmid))(__FILE__, __LINE__, sizeof(DgrSAP));
 	if (sap == NULL)
 	{
-		putErrmsg("Can't create DGR service access point.", NULL);
-		return DgrFailed;
+		putErrmsg("DGR can't create DGR service access point.", NULL);
+		return -1;
 	}
 
 	memset((char *) sap, 0, sizeof(DgrSAP));
+	sap->engineId = ownEngineId;
+	sap->clientSvcId = clientSvcId;
 	sap->state = DgrSapOpen;
+	sap->mtake = memmgr_take(mmid);
+	sap->mrelease = memmgr_release(mmid);
 	sap->leastActiveDest = -1;
 	sap->mostActiveDest = DGR_MAX_DESTS;
 	initializeDest(&sap->defaultDest, 0, 0);
@@ -1802,85 +2268,85 @@ DgrRC	dgr_open(unsigned short ownPortNbr, unsigned int ownIpAddress,
 	{
 		putSysErrmsg("Can't open DGR UDP socket", NULL);
 		cleanUpSAP(sap);
-		return DgrFailed;
+		return -1;
 	}
 
 	if (reUseAddress(sap->udpSocket) < 0)
 	{
-		cleanUpSAP(sap);
 		putSysErrmsg("Can't reuse address on DGR UDP socket",
 				utoa(ntohs(ownPortNbr)));
-		return DgrFailed;
+		cleanUpSAP(sap);
+		return -1;
 	}
 
 	if (bind(sap->udpSocket, sockName, sizeof(struct sockaddr)) < 0)
 	{
-		cleanUpSAP(sap);
 		putSysErrmsg("Can't bind DGR UDP socket",
 				utoa(ntohs(ownPortNbr)));
-		return DgrFailed;
+		cleanUpSAP(sap);
+		return -1;
 	}
 
 	closeOnExec(sap->udpSocket);
 
 	/*	Create lists and management structures.			*/
 
-	if ((sap->outboundMsgs = lyst_create_using(memmgrId)) == NULL)
+	if ((sap->outboundMsgs = lyst_create_using(mmid)) == NULL)
 	{
-		putErrmsg("Can't create list of outbound messages.", NULL);
+		putErrmsg("DGR can't create list of outbound messages.", NULL);
 		cleanUpSAP(sap);
-		return DgrFailed;
+		return -1;
 	}
 
 	if ((sap->outboundCV = llcv_open(sap->outboundMsgs,
 			&(sap->outboundCV_str))) == NULL)
 	{
-		putErrmsg("Can't outbound messages CV.", NULL);
+		putErrmsg("DGR can't outbound messages CV.", NULL);
 		cleanUpSAP(sap);
-		return DgrFailed;
+		return -1;
 	}
 
-	if ((sap->inboundEvents = lyst_create_using(memmgrId)) == NULL)
+	if ((sap->inboundEvents = lyst_create_using(mmid)) == NULL)
 	{
-		putErrmsg("Can't create list of inbound events.", NULL);
+		putErrmsg("DGR can't create list of inbound events.", NULL);
 		cleanUpSAP(sap);
-		return DgrFailed;
+		return -1;
 	}
 
 	if ((sap->inboundCV = llcv_open(sap->inboundEvents,
 			&(sap->inboundCV_str))) == NULL)
 	{
-		putErrmsg("Can't create inbound events CV.", NULL);
+		putErrmsg("DGR can't create inbound events CV.", NULL);
 		cleanUpSAP(sap);
-		return DgrFailed;
+		return -1;
 	}
 
 	for (i = 0; i < DGR_BIN_COUNT; i++)
 	{
-		if ((sap->destLysts[i] = lyst_create_using(memmgrId)) == NULL)
+		if ((sap->destLysts[i] = lyst_create_using(mmid)) == NULL)
 		{
-			putErrmsg("Can't create list of destinations.", NULL);
+			putErrmsg("DGR can't create destinations list.", NULL);
 			cleanUpSAP(sap);
-			return DgrFailed;
+			return -1;
 		}
 	}
 
 	for (i = 0, bucket = sap->buckets; i < DGR_BUCKETS; i++, bucket++)
 	{
-		if ((bucket->msgs = lyst_create_using(memmgrId)) == NULL
+		if ((bucket->msgs = lyst_create_using(mmid)) == NULL
 		|| pthread_mutex_init(&bucket->mutex, NULL))
 		{
-			putSysErrmsg("Can't create message bucket", NULL);
+			putSysErrmsg("DGR can't create message bucket", NULL);
 			cleanUpSAP(sap);
-			return DgrFailed;
+			return -1;
 		}
 	}
 
-	if ((sap->pendingResends = lyst_create_using(memmgrId)) == NULL)
+	if ((sap->pendingResends = lyst_create_using(mmid)) == NULL)
 	{
-		putErrmsg("Can't create list of resend requests.", NULL);
+		putErrmsg("DGR can't create list of resend requests.", NULL);
 		cleanUpSAP(sap);
-		return DgrFailed;
+		return -1;
 	}
 
 	if (pthread_mutex_init(&sap->sapMutex, NULL)
@@ -1888,9 +2354,9 @@ DgrRC	dgr_open(unsigned short ownPortNbr, unsigned int ownIpAddress,
 	|| pthread_mutex_init(&sap->pendingResendsMutex, NULL)
 	|| pthread_mutex_init(&sap->destsMutex, NULL))
 	{
-		putSysErrmsg("Can't initialize mutex(es)", NULL);
+		putSysErrmsg("DGR can't initialize mutex(es)", NULL);
 		cleanUpSAP(sap);
-		return DgrFailed;
+		return -1;
 	}
 
 	/*	Spawn all threads.					*/
@@ -1899,13 +2365,14 @@ DgrRC	dgr_open(unsigned short ownPortNbr, unsigned int ownIpAddress,
 	|| pthread_create(&(sap->resender), NULL, resender, sap)
 	|| pthread_create(&(sap->receiver), NULL, receiver, sap))
 	{
-		putSysErrmsg("Can't spawn thread(s)", NULL);
+		putSysErrmsg("DGR can't spawn thread(s)", NULL);
 		cleanUpSAP(sap);
-		return DgrFailed;
+		return -1;
 	}
 
 	*sapp = sap;
-	return DgrOpened;
+	*rc = DgrOpened;
+	return 0;
 }
 
 void	dgr_getsockname(DgrSAP *sap, unsigned short *portNbr,
@@ -1915,14 +2382,13 @@ void	dgr_getsockname(DgrSAP *sap, unsigned short *portNbr,
 	socklen_t		buflen = sizeof buf;
 	struct sockaddr_in	*nm = (struct sockaddr_in *) &buf;
 
+	CHKVOID(sap);
+	CHKVOID(portNbr);
+	CHKVOID(ipAddress);
 	*portNbr = *ipAddress = 0;	/*	Default.		*/
-	if (sap == NULL)
-	{
-		return;
-	}
-
 	if (getsockname(sap->udpSocket, &buf, &buflen) < 0)
 	{
+		putSysErrmsg("DGR can't get socket name.", NULL);
 		return;
 	}
 
@@ -1937,9 +2403,9 @@ void	dgr_close(DgrSAP *sap)
 	struct sockaddr	sockName;
        	socklen_t	sockNameLen = sizeof(sockName);
 	char		shutdown = 1;
-	int		result;
 
-	if (sap == NULL || sap->state == DgrSapClosed)
+	CHKVOID(sap);
+	if (sap->state == DgrSapClosed)
 	{
 		return;
 	}
@@ -1962,10 +2428,17 @@ void	dgr_close(DgrSAP *sap)
 
 	/*	Prompt the receiver thread to shut itself down.		*/
 
-	if (getsockname(sap->udpSocket, &sockName, &sockNameLen) == 0)
+	if (getsockname(sap->udpSocket, &sockName, &sockNameLen) < 0)
 	{
-		result = sendto(sap->udpSocket, &shutdown, 1, 0, &sockName,
-				sizeof(struct sockaddr_in));
+		putSysErrmsg("DGR can't get socket name.", NULL);
+	}
+	else
+	{
+		if (sendto(sap->udpSocket, &shutdown, 1, 0, &sockName,
+				sizeof(struct sockaddr_in)) < 0)
+		{
+			putSysErrmsg("DGR can't send shutdown packet", NULL);
+		}
 	}
 
 	pthread_join(sap->receiver, NULL);
@@ -1976,41 +2449,41 @@ void	dgr_close(DgrSAP *sap)
 	cleanUpSAP(sap);
 }
 
-DgrRC	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
+int	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 		unsigned int toIpAddress, int notificationFlags, char *content,
-		int length)
+		int length, DgrRC *rc)
 {
 	int		reclength;
 	DgrRecord	rec;
 	DgrDest		*dest;
 	int		destIdx;
 	int		delay;			/*	microseconds	*/
+	static int	clockResolution = SYS_CLOCK_RES;
 	int		usecToSnooze;
 	int		usecSnoozed;
-	time_t		currentTime;
 	LystElt		elt;
 
-	if (sap == NULL || toPortNbr == 0 || toIpAddress == 0
-	|| notificationFlags < 0 || notificationFlags > 3
-	|| content == NULL || length < 1 || length > DGR_BUF_SIZE)
-	{
-		errno = EINVAL;
-		putSysErrmsg("Invalid transmission parameter(s)", NULL);
-		return DgrFailed;
-	}
-
+	CHKERR(sap);
+	CHKERR(toPortNbr);
+	CHKERR(toIpAddress);
+	CHKERR(notificationFlags >= 0);
+	CHKERR(notificationFlags <= 3);
+	CHKERR(content);
+	CHKERR(length > 0);
+	CHKERR(length <= MAX_DATA_SIZE);
+	CHKERR(rc);
 	if (sap->state == DgrSapDamaged)
 	{
-		errno = EINVAL;
-		putSysErrmsg("Access point damaged; close and reopen", NULL);
-		return DgrFailed;
+		writeMemo("[?] DGR access point damaged; close and reopen.");
+		*rc = DgrFailed;
+		return 0;
 	}
 
 	if (sap->state == DgrSapClosed)
 	{
-		errno = EINVAL;
-		putSysErrmsg("Access point has not been opened", NULL);
-		return DgrFailed;
+		writeMemo("[?] DGR access point has not been opened.");
+		*rc = DgrFailed;
+		return 0;
 	}
 
 	/*	Construct the outbound DGR record.			*/
@@ -2019,8 +2492,8 @@ DgrRC	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 	rec = (DgrRecord) MTAKE(reclength);
 	if (rec == NULL)
 	{
-		putSysErrmsg("Can't create outbound message record", NULL);
-		return DgrFailed;
+		putErrmsg("Can't create outbound message record.", NULL);
+		return -1;
 	}
 
 	memset((char *) rec, 0, reclength);
@@ -2029,7 +2502,7 @@ DgrRC	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 	rec->ipAddress = toIpAddress;
 	rec->notificationFlags = notificationFlags;
 	rec->contentLength = length;
-	memcpy(rec->capsule.content, content, length);
+	memcpy(rec->segment.content, content, length);
 
 	/*	Apply rate control.  First compute delay: multiply
 	 *	content length by computed "retard" rate for this
@@ -2042,7 +2515,9 @@ DgrRC	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 	dest = findDest(sap, toPortNbr, toIpAddress, &destIdx);
 	dest->serviceLoad += length;
 	delay = length * dest->retard;
-//aggregateDelay += delay;
+#if DGRDEBUG
+aggregateDelay += delay;
+#endif
 
 	/*	Now apply the computed rate control delay.		*/
 
@@ -2050,12 +2525,14 @@ DgrRC	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 	usecToSnooze = dest->pendingDelay;
 	pthread_mutex_unlock(&sap->destsMutex);
 	usecSnoozed = 0;
-	while (usecToSnooze > SystemClockResolution)
+	while (usecToSnooze > clockResolution)
 	{
-//rcSnoozes++;
-		microsnooze(SystemClockResolution);
-		usecToSnooze -= SystemClockResolution;
-		usecSnoozed += SystemClockResolution;
+#if DGRDEBUG
+rcSnoozes++;
+#endif
+		microsnooze(clockResolution);
+		usecToSnooze -= clockResolution;
+		usecSnoozed += clockResolution;
 	}
 
 	if (usecSnoozed > 0)
@@ -2069,34 +2546,25 @@ DgrRC	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 	 *	from getting out of hand.				*/
 
 	pthread_mutex_lock(&sap->sapMutex);
-	while (sap->backlog > MaxBacklog)
+	while (sap->backlog > MAX_BACKLOG)
 	{
 		pthread_cond_wait(&sap->sapCV, &sap->sapMutex);
 	}
 
 	/*	Now proceed with transmission.				*/
 
-	currentTime = time(NULL);
-	sap->backlog += (rec->contentLength + sizeof(CapsuleId));
-	if (currentTime == sap->capsuleTime)
-	{
-		sap->capsuleSeqNbr++;
-	}
-	else
-	{
-		sap->capsuleTime = currentTime;
-		sap->capsuleSeqNbr = 0;
-	}
-
-	rec->capsule.id.time = sap->capsuleTime;
-	rec->capsule.id.seqNbr = sap->capsuleSeqNbr;
+	sap->backlog += (rec->contentLength + sizeof(SegmentId));
+	sap->sessionNbr++;
+	rec->segment.id.engineId = sap->engineId;
+	rec->segment.id.sessionNbr = sap->sessionNbr;
 	pthread_mutex_unlock(&sap->sapMutex);
 
 	/*	Store in a bucket of the DGR ARQ (record) database.
-	 *	Select bucket by computing capsuleSeqNbr modulo the
+	 *	Select bucket by computing sessionNbr modulo the
 	 *	number of buckets - 1.					*/
 
-	rec->bucket = sap->buckets + (rec->capsule.id.seqNbr & DGR_SEQNBR_MASK);
+	rec->bucket = sap->buckets +
+			(rec->segment.id.sessionNbr & DGR_SESNBR_MASK);
 
 	/*	Insert the new record in the selected database bucket.	*/
 
@@ -2108,14 +2576,14 @@ DgrRC	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 		putErrmsg("Can't append outbound record.", NULL);
 		MRELEASE(rec);
 		pthread_mutex_lock(&sap->sapMutex);
-		sap->backlog -= (length + sizeof(CapsuleId));
+		sap->backlog -= (length + sizeof(SegmentId));
 		pthread_cond_signal(&sap->sapCV);
 		pthread_mutex_unlock(&sap->sapMutex);
 		pthread_mutex_lock(&sap->destsMutex);
 		dest = findDest(sap, toPortNbr, toIpAddress, &destIdx);
 		dest->serviceLoad -= length;
 		pthread_mutex_unlock(&sap->destsMutex);
-		return DgrFailed;
+		return -1;
 	}
 
 	/*	Insert transmission request for the sender thread to
@@ -2123,54 +2591,60 @@ DgrRC	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 
 	if (insertSendReq(sap, rec) < 0)
 	{
-		putErrmsg("Can't append tranmission request.", NULL);
+		putErrmsg("Can't append transmission request.", NULL);
 		lyst_delete(elt);
 		MRELEASE(rec);
 		pthread_mutex_lock(&sap->sapMutex);
-		sap->backlog -= (length + sizeof(CapsuleId));
+		sap->backlog -= (length + sizeof(SegmentId));
 		pthread_cond_signal(&sap->sapCV);
 		pthread_mutex_unlock(&sap->sapMutex);
 		pthread_mutex_lock(&sap->destsMutex);
 		dest = findDest(sap, toPortNbr, toIpAddress, &destIdx);
 		dest->serviceLoad -= length;
 		pthread_mutex_unlock(&sap->destsMutex);
-		return DgrFailed;
+		return -1;
 	}
 
-	return DgrDatagramSent;
+	if (_watching())
+	{
+		putchar('e');
+		putchar('f');
+		fflush(stdout);
+	}
+
+	*rc = DgrDatagramSent;
+	return 0;
 }
 
-DgrRC	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
+int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 		unsigned int *fromIpAddress, char *content, int *length,
-		int *errnbr, int timeoutSeconds)
+		int *errnbr, int timeoutSeconds, DgrRC *rc)
 {
 	time_t		currentTime;
 	time_t		wakeupTime;
 	int		timeoutUsec;
 	LystElt		elt;
 	DgrRecord	rec;
-	DgrRC		result = DgrFailed;
 
-	if (sap == NULL || fromPortNbr == NULL || fromIpAddress == NULL
-	|| content == NULL || length == NULL)
-	{
-		errno = EINVAL;
-		putSysErrmsg("Invalid reception parameter(s)", NULL);
-		return result;
-	}
-
+	CHKERR(sap);
+	CHKERR(fromPortNbr);
+	CHKERR(fromIpAddress);
+	CHKERR(content);
+	CHKERR(length);
+	CHKERR(errnbr);
+	CHKERR(rc);
 	if (sap->state == DgrSapDamaged)
 	{
-		errno = EINVAL;
-		putSysErrmsg("Access point damaged; close and reopen", NULL);
-		return DgrFailed;
+		writeMemo("[?] DGR access point damaged; close and reopen.");
+		*rc = DgrFailed;
+		return 0;
 	}
 
 	if (sap->state == DgrSapClosed)
 	{
-		errno = EINVAL;
-		putSysErrmsg("Access point has not been opened", NULL);
-		return DgrFailed;
+		writeMemo("[?] DGR access point has not been opened.");
+		*rc = DgrFailed;
+		return 0;
 	}
 
 	if (timeoutSeconds == DGR_BLOCKING)
@@ -2190,17 +2664,12 @@ DgrRC	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 		{
 			if (errno == ETIMEDOUT)
 			{
-				result = DgrTimedOut;
-			}
-			else
-			{
-				putErrmsg("Reception failed in wait.", NULL);
-				result = DgrFailed;
+				*rc = DgrTimedOut;
+				return 0;
 			}
 
-			/*	Lyst is still empty, or some error.	*/
-
-			return result;
+			putErrmsg("DGR reception failed in wait.", NULL);
+			return -1;
 		}
 
 		/*	Lyst is no longer empty, or SAP is now closed.	*/
@@ -2212,14 +2681,16 @@ DgrRC	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 
 	if (sap->state == DgrSapDamaged)
 	{
-		putErrmsg("Access point no longer usable.", NULL);
-		return DgrFailed;
+		writeMemo("[?] DGR access point no longer usable.");
+		*rc = DgrFailed;
+		return 0;
 	}
 
 	if (sap->state == DgrSapClosed)
 	{
 		writeMemo("[i] DGR access point has been closed.");
-		return DgrFailed;
+		*rc = DgrFailed;
+		return 0;
 	}
 
 	llcv_lock(sap->inboundCV);
@@ -2229,38 +2700,38 @@ DgrRC	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 	llcv_unlock(sap->inboundCV);
 	if (rec == NULL)		/*	Interrupted.		*/
 	{
-		return DgrInterrupted;
+		*rc =  DgrInterrupted;
+		return 0;
 	}
 
 	*length = rec->contentLength;
-	memcpy(content, rec->capsule.content, rec->contentLength);
+	memcpy(content, rec->segment.content, rec->contentLength);
 	switch (rec->type)
 	{
 	case DgrMsgIn:
 		*fromPortNbr = rec->portNbr;
 		*fromIpAddress = rec->ipAddress;
-		result = DgrDatagramReceived;
+		*rc = DgrDatagramReceived;
 		break;
 
 	case DgrDeliverySuccess:
-		result = DgrDatagramAcknowledged;
+		*rc = DgrDatagramAcknowledged;
 		break;
 
 	default:
 		*errnbr = rec->errnbr;
-		result = DgrDatagramNotAcknowledged;
+		*rc = DgrDatagramNotAcknowledged;
 	}
 
 	/*	Reclaim memory occupied by the inbound message
 	 *	or delivery failure.					*/
 
 	MRELEASE(rec);
-	return result;
+	return 0;
 }
 
 void	dgr_interrupt(DgrSAP *sap)
 {
-	int	result;
-
-	result = insertEvent(sap, NULL);
+	CHKVOID(sap);
+	CHKVOID(insertEvent(sap, NULL) == 0);
 }

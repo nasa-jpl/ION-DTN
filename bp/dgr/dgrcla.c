@@ -14,7 +14,7 @@
 #include "ipnfw.h"
 #include "dtn2fw.h"
 
-#define	DGRCLA_PORT_NBR		5101
+#define	DGRCLA_PORT_NBR		1113
 #define	DGRCLA_BUFSZ		65535
 #define	DEFAULT_DGR_RATE	11250000
 
@@ -73,6 +73,7 @@ static void	*sendBundles(void *parm)
 	unsigned int		bundleLength;
 	ZcoReader		reader;
 	int			bytesToSend;
+	DgrRC			rc;
 
 	buffer = MTAKE(DGRCLA_BUFSZ);
 	if (buffer == NULL)
@@ -162,15 +163,22 @@ static void	*sendBundles(void *parm)
 		if (bytesToSend > 0)
 		{
 			if (dgr_send(parms->dgrSap, portNbr, hostNbr,
-				DGR_NOTE_FAILED, buffer, bytesToSend)
-					== DgrFailed)
+				DGR_NOTE_FAILED, buffer, bytesToSend, &rc) < 0)
 			{
-				failedTransmissions++;
-				if (bpHandleXmitFailure(bundleZco))
+				threadRunning = 0;
+				putErrmsg("Crashed sending bundle.", NULL);
+			}
+			else
+			{
+				if (rc == DgrFailed)
 				{
-					threadRunning = 0;
-					putErrmsg("Crashed handling failure.",
-							NULL);
+					failedTransmissions++;
+					if (bpHandleXmitFailure(bundleZco))
+					{
+						threadRunning = 0;
+						putErrmsg("Crashed handling \
+failure.", NULL);
+					}
 				}
 			}
 		}
@@ -192,7 +200,7 @@ static void	*sendBundles(void *parm)
 	*(parms->running) = 0;
 	pthread_kill(parms->mainThread, SIGTERM);
 	writeErrmsgMemos();
-	isprintf(buffer, sizeof buffer, "[i] dgrcla outduct ended.  %d \
+	isprintf(buffer, DGRCLA_BUFSZ, "[i] dgrcla outduct ended.  %d \
 transmissions failed.", failedTransmissions);
 	writeMemo(buffer);
 	MRELEASE(buffer);
@@ -252,9 +260,16 @@ static void	*receiveBundles(void *parm)
 	{
 		while (1)
 		{
-			rc = dgr_receive(parms->dgrSap, &fromPortNbr,
+			if (dgr_receive(parms->dgrSap, &fromPortNbr,
 					&fromHostNbr, buffer, &length, &errnbr,
-					DGR_BLOCKING);
+					DGR_BLOCKING, &rc) < 0)
+			{
+				putErrmsg("Failed receiving bundle.", NULL);
+				threadRunning = 0;
+				rc = DgrFailed;
+				break;		/*	Out of loop.	*/
+			}
+
 			switch (rc)
 			{
 				case DgrDatagramNotAcknowledged:
@@ -382,6 +397,7 @@ int	main(int argc, char *argv[])
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
 	Dgr			dgrSap;
+	DgrRC			rc;
 	int			running = 1;
 	SenderThreadParms	senderParms;
 	ReceiverThreadParms	rtp;
@@ -452,8 +468,9 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (dgr_open(portNbr, hostNbr, memmgr_name(getIonMemoryMgr()), &dgrSap)
-			== DgrFailed)
+	if (dgr_open(getOwnNodeNbr(), 1, portNbr, hostNbr,
+			memmgr_name(getIonMemoryMgr()), &dgrSap, &rc) < 0
+	|| rc == DgrFailed)
 	{
 		putErrmsg("dgrcla can't open DGR service access point.", NULL);
 		return 1;
