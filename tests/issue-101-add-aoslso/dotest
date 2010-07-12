@@ -34,29 +34,25 @@ BPRECVFILEPID=$!
 
 # give app some time to start up
 sleep 5
-
-
 #
 # create a 1 megabyte file of random data
 #
 echo "Creating 1 megabyte test file..."
 dd if=/dev/urandom of=$IONSENDFILE bs=1024 count=1024
-sleep 1s
-
 # send the file to the receiver
-echo "Sending file (includes 20 sec pause)..."
+echo "Sending file (includes 45 sec pause)..."
 bpsendfile ipn:1.1 ipn:1.2 $IONSENDFILE &
 BPSENDFILEPID=$!
 
 # wait long enough for file to transfer
-sleep 20s
+sleep 45
 
 # kill everything in case it didn't finish properly
 echo "Stopping bpsendfile & bprecvfile..."
 kill -2 $BPRECVFILEPID $BPSENDFILEPID >/dev/null 2>&1
-sleep 1s
+sleep 1
 kill -15 $BPRECVFILEPID $BPSENDFILEPID >/dev/null 2>&1
-sleep 1s
+sleep 1
 kill -9 $BPRECVFILEPID $BPSENDFILEPID >/dev/null 2>&1
 
 # shut down ion processes
@@ -66,13 +62,22 @@ ionstop
 echo "Checking files..."
 
 # compare the sent message to the received one
-sendfilemd5=`md5sum $IONSENDFILE | cut -f 1 -d ' '`
-recvfilemd5=`md5sum $IONRECEIVEFILE | cut -f 1 -d ' '`
 
-if [ "$sendfilemd5" == "$recvfilemd5" ]; then
+if ! `cmp -s $IONSENDFILE $IONRECEIVEFILE`; then
 
-    sendfilets=`stat --format='%Z' $IONSENDFILE`
-    recvfilets=`stat --format='%Z' $IONRECEIVEFILE`
+    echo "Oh noes, data corruption!"
+    echo
+    echo "Send file $IONSENDFILE differs from $IONRECEIVEFILE or $IONRECEIVEFILE was not created"
+    echo
+    RETVAL=1
+
+else
+    #sendfilets=`stat --format='%Z' $IONSENDFILE`
+    #recvfilets=`stat --format='%Z' $IONRECEIVEFILE`
+
+    sendfilets=`perl -le 'print scalar  ((lstat shift)[9])' $IONSENDFILE`
+    recvfilets=`perl -le 'print scalar  ((lstat shift)[9])' $IONRECEIVEFILE`
+
     tsdiff=$((recvfilets - sendfilets))
 
     if [ $tsdiff -ge 10 ]; then
@@ -85,19 +90,6 @@ if [ "$sendfilemd5" == "$recvfilemd5" ]; then
 	RETVAL=2
     fi
 
-else
-    echo "Oh noes, data corruption!"
-    echo
-    echo "Send file had md5sum"
-    echo "----------------------------------------------------------------------"
-    echo $sendfilemd5
-    echo "----------------------------------------------------------------------"
-    echo
-    echo "Receive file had md5sum"
-    echo "----------------------------------------------------------------------"
-    echo $IONRECEIVEFILE
-    echo "----------------------------------------------------------------------"
-    RETVAL=1
 fi
 
 
