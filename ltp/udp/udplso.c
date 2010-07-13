@@ -29,6 +29,79 @@ static void	shutDownLso()	/*	Commands LSO termination.	*/
 	sm_SemEnd(udplsoSemaphore(NULL));
 }
 
+/*	*	*	Receiver thread functions	*	*	*/
+
+typedef struct
+{
+	int		linkSocket;
+	pthread_t	mainThread;
+	int		running;
+} ReceiverThreadParms;
+
+static void	*handleDatagrams(void *parm)
+{
+	/*	Main loop for UDP datagram reception and handling.	*/
+
+	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
+	char			*buffer;
+	int			segmentLength;
+	struct sockaddr_in	fromAddr;
+	socklen_t		fromSize;
+
+	buffer = MTAKE(UDPLSA_BUFSZ);
+	if (buffer == NULL)
+	{
+		putErrmsg("udplsi can't get UDP buffer.", NULL);
+		pthread_kill(rtp->mainThread, SIGTERM);
+		return NULL;
+	}
+
+	/*	Can now start receiving bundles.  On failure, take
+	 *	down the LSI.						*/
+
+	iblock(SIGTERM);
+	while (rtp->running)
+	{	
+		fromSize = sizeof fromAddr;
+		segmentLength = recvfrom(rtp->linkSocket, buffer, UDPLSA_BUFSZ,
+				0, (struct sockaddr *) &fromAddr, &fromSize);
+		switch(segmentLength)
+		{
+		case -1:
+			putSysErrmsg("Can't acquire segment", NULL);
+			pthread_kill(rtp->mainThread, SIGTERM);
+
+			/*	Intentional fall-through to next case.	*/
+
+		case 1:				/*	Normal stop.	*/
+			rtp->running = 0;
+			continue;
+		}
+
+		if (ltpHandleInboundSegment(buffer, segmentLength) < 0)
+		{
+			putErrmsg("Can't handle inbound segment.", NULL);
+			pthread_kill(rtp->mainThread, SIGTERM);
+			rtp->running = 0;
+			continue;
+		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
+	}
+
+	writeErrmsgMemos();
+	writeMemo("[i] udplso receiver thread has ended.");
+
+	/*	Free resources.						*/
+
+	MRELEASE(buffer);
+	return NULL;
+}
+
+/*	*	*	Main thread functions	*	*	*	*/
+
 int	sendSegmentByUDP(int linkSocket, char *from, int length)
 {
 	int	bytesWritten;
@@ -50,8 +123,6 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length)
 	}
 }
 
-/*	*	*	Main thread functions	*	*	*	*/
-
 #if defined (VXWORKS) || defined (RTEMS)
 int	udplso(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
@@ -72,12 +143,12 @@ int	main(int argc, char *argv[])
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
 	char			ownHostName[MAXHOSTNAMELEN];
-	int			running = 1;
 	int			segmentLength;
 	char			*segment;
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
-	int			linkSocket;
+	ReceiverThreadParms	rtp;
+	pthread_t		receiverThread;
 	int			bytesSent;
 
 	if (remoteEngineId == 0 || endpointSpec == NULL)
@@ -137,14 +208,15 @@ int	main(int argc, char *argv[])
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &ipAddress, 4);
-	linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (linkSocket < 0)
+	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (rtp.linkSocket < 0)
 	{
 		putSysErrmsg("LSO can't open UDP socket", NULL);
 		return 1;
 	}
 
-	if (connect(linkSocket, &socketName, sizeof(struct sockaddr_in)) < 0)
+	if (connect(rtp.linkSocket, &socketName, sizeof(struct sockaddr_in))
+			< 0)
 	{
 		putSysErrmsg("LSO can't connect UDP socket", NULL);
 		return 1;
@@ -155,19 +227,30 @@ int	main(int argc, char *argv[])
 	oK(udplsoSemaphore(&(vspan->segSemaphore)));
 	signal(SIGTERM, shutDownLso);
 
+	/*	Start the echo handler thread.				*/
+
+	rtp.running = 1;
+	rtp.mainThread = pthread_self();
+	if (pthread_create(&receiverThread, NULL, handleDatagrams, &rtp))
+	{
+		close(rtp.linkSocket);
+		putSysErrmsg("udplsi can't create receiver thread", NULL);
+		return 1;
+	}
+
 	/*	Can now begin transmitting to remote engine.		*/
 
 	writeMemo("[i] udplso is running.");
-	while (running && !(sm_SemEnded(vspan->segSemaphore)))
+	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 		if (segmentLength < 0)
 		{
-			running = 0;	/*	Terminate LSO.		*/
+			rtp.running = 0;	/*	Terminate LSO.	*/
 			continue;
 		}
 
-		if (segmentLength == 0)	/*	Interrupted.		*/
+		if (segmentLength == 0)		/*	Interrupted.	*/
 		{
 			continue;
 		}
@@ -176,15 +259,15 @@ int	main(int argc, char *argv[])
 		{
 			putErrmsg("Segment is too big for UDP LSO.",
 					itoa(segmentLength));
-			running = 0;	/*	Terminate LSO.		*/
+			rtp.running = 0;	/*	Terminate LSO.	*/
 		}
 		else
 		{
-			bytesSent = sendSegmentByUDP(linkSocket, segment,
+			bytesSent = sendSegmentByUDP(rtp.linkSocket, segment,
 					segmentLength);
 			if (bytesSent < segmentLength)
 			{
-				running = 0;	/*	Terminate LSO.	*/
+				rtp.running = 0;/*	Terminate LSO.	*/
 			}
 		}
 
@@ -193,8 +276,13 @@ int	main(int argc, char *argv[])
 		sm_TaskYield();
 	}
 
-	close(linkSocket);
+	/*	Terminate the receiver thread.				*/
+
+	snooze(1);	/*	Give it time to notice rtp.running = 0.	*/
+	pthread_cancel(receiverThread);
+	pthread_join(receiverThread, NULL);
+	close(rtp.linkSocket);
 	writeErrmsgMemos();
-	writeMemo("[i] udplso duct has ended.");
+	writeMemo("[i] udplso has ended.");
 	return 0;
 }

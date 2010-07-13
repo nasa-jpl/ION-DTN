@@ -109,7 +109,7 @@ static void	*sendBundles(void *parm)
 				&extendedCOS, destDuctName) < 0)
 		{
 			threadRunning = 0;
-			putErrmsg("Failed de-queueing bundle.", NULL);
+			writeMemo("[?] dgrcla failed de-queueing bundle.");
 			continue;
 		}
 
@@ -332,7 +332,7 @@ bundle ZCO.", NULL);
 			{
 				/*	Not terminated by main thread.	*/
 
-				putErrmsg("Can't acquire bundle.", NULL);
+				writeMemo("[?] dgrcla failed in bundle acq.");
 			}
 
 			threadRunning = 0;

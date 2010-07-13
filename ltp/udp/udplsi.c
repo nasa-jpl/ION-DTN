@@ -207,6 +207,6 @@ int	main(int argc, char *argv[])
 	pthread_join(receiverThread, NULL);
 	close(rtp.linkSocket);
 	writeErrmsgMemos();
-	writeMemo("[i] udplsi duct has ended.");
+	writeMemo("[i] udplsi has ended.");
 	return 0;
 }

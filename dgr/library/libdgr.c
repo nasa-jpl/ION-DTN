@@ -13,7 +13,7 @@
 #include "memmgr.h"
 
 #define DGRDEBUG	0
-#define DGRWATCHING	0
+#define DGRWATCHING	1
 
 #define	DGR_DB_ORDER	(8)
 #define	DGR_BUCKETS	(1 << DGR_DB_ORDER)
@@ -1120,6 +1120,11 @@ tracePredictedResends = dest->predictedResends;
 		 *	sent again.					*/
 
 		removeRecord(sap, rec, arqElt);
+		if (_watching())
+		{
+			putchar('{');
+			fflush(stdout);
+		}
 
 		/*	If application doesn't want to be notified
 		 *	of delivery failure for this record, just
@@ -1583,7 +1588,7 @@ static void	*sender(void *parm)
 			llcv_unlock(sap->outboundCV);
 			if (arq(sap, engineId, sessionNbr, SendMessage))
 			{
-				putErrmsg("Sender thread terminated.", NULL);
+				writeMemo("[i] DGR sender thread ended.");
 				return NULL;
 			}
 		}
@@ -1650,8 +1655,7 @@ static void	*resender(void *parm)
 				if (arq(sap, engineId, sessionNbr,
 						HandleTimeout))
 				{
-					putErrmsg("Resender thread terminated.",
-							NULL);
+					writeMemo("[i] DGR resender ended.");
 					return NULL;
 				}
 
@@ -1946,8 +1950,7 @@ recvfrom");
 
 			if (arq(sap, engineId, sessionNbr, HandleRpt))
 			{
-				putErrmsg("Receiver thread has terminated.",
-						NULL);
+				writeMemo("[i] DGR receiver thread ended.");
 				break;	/*	Out of main loop.	*/
 			}
 
@@ -2096,7 +2099,7 @@ content arrival event");
 		memcpy(rec->segment.content, cursor, svcDataLength);
 		if (insertEvent(sap, rec))
 		{
-			putErrmsg("Receiver thread has terminated.", NULL);
+			writeMemo("[i] DGR receiver thread ended.");
 			break;		/*	Out of main loop.	*/
 		}
 
