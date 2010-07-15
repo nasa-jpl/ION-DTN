@@ -21,17 +21,20 @@
 #include "netinet/ip.h"
 #include "netinet/udp.h"
 
-#ifdef VXWORKS
 
+#if defined(linux)
+
+#define IPHDR_SIZE		(sizeof(struct iphdr) + sizeof(struct udphdr))
+
+#else
+
+#include "netinet/ip_var.h"
 #include "netinet/udp_var.h"
 
 #define IPHDR_SIZE		(sizeof(struct udpiphdr))
 
-#else
-
-#define IPHDR_SIZE		(sizeof(struct iphdr) + sizeof(struct udphdr))
-
 #endif
+
 
 static sm_SemId		udplsoSemaphore(sm_SemId *semid)
 {
