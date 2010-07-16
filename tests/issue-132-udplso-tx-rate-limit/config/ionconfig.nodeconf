@@ -3,5 +3,5 @@ wmAddress 0
 #       configFlags = 14 means the ION data store is in a file (in /usr/ion)
 #       only, transactions are reversible, and object boundaries are enforced.
 configFlags 5
-heapWords 20000000
+heapWords 5000000
 pathName /tmp
