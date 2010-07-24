@@ -10,7 +10,7 @@
 									*/
 #include "amsP.h"
 
-char		*NodeCrashedMemo = "Node crashed; must unregister.";
+char		*ModuleCrashedMemo = "Module crashed; must unregister.";
 
 static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			int unitNbr, int subjectNbr, int priority,
@@ -253,19 +253,19 @@ static void	eraseSAP(AmsSAP *sap)
 		pthread_join(sap->heartbeatThread, NULL);
 	}
 
-//printf("Node '%d' heartbeat thread stopped.\n", sap->role->nbr);
+//printf("Module '%d' heartbeat thread stopped.\n", sap->role->nbr);
 	if (sap->mamsThread)
 	{
 		llcv_signal_while_locked(sap->mamsEventsCV, time_to_stop);
 		pthread_join(sap->mamsThread, NULL);
 	}
 
-//printf("Node '%d' MAMS thread stopped.\n", sap->role->nbr);
+//printf("Module '%d' MAMS thread stopped.\n", sap->role->nbr);
 	if (sap->mamsTsif.ts)
 	{
 		sap->mamsTsif.ts->shutdownFn(sap->mamsTsif.sap);
 		pthread_join(sap->mamsTsif.receiver, NULL);
-//printf("Node '%d' MAMS interface removed.\n", sap->role->nbr);
+//printf("Module '%d' MAMS interface removed.\n", sap->role->nbr);
 	}
 
 	/*	Stop all AMS message interfaces.			*/
@@ -281,7 +281,7 @@ static void	eraseSAP(AmsSAP *sap)
 			{
 				MRELEASE(tsif->ept);
 			}
-//printf("Node '%d' AMS interface removed.\n", sap->role->nbr);
+//printf("Module '%d' AMS interface removed.\n", sap->role->nbr);
 		}
 	}
 
@@ -367,7 +367,7 @@ void	destroyXmitRule(LystElt elt, void *userdata)
 }
 
 static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
-			Node **sender)
+			Module **sender)
 {
 	*sender = NULL;		/*	Default.			*/
 	msg->continuumNbr = ((*(header + 2) & 0x7f) << 8) + *(header + 3);
@@ -388,11 +388,11 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 		return -1;
 	}
 
-	msg->nodeNbr = (unsigned char) *(header + 6);
-	if (msg->nodeNbr < 1 || msg->nodeNbr > MaxNodeNbr)
+	msg->moduleNbr = (unsigned char) *(header + 6);
+	if (msg->moduleNbr < 1 || msg->moduleNbr > MaxModuleNbr)
 	{
-		putErrmsg("Received message from invalid-numbered node.",
-				itoa(msg->nodeNbr));
+		putErrmsg("Received message from invalid-numbered module.",
+				itoa(msg->moduleNbr));
 		return -1;
 	}
 
@@ -402,11 +402,11 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 	}
 
 	if (((*sender) =
-	sap->venture->units[msg->unitNbr]->cell->nodes[msg->nodeNbr])->role
+	sap->venture->units[msg->unitNbr]->cell->modules[msg->moduleNbr])->role
 			== NULL)
 	{
-		putErrmsg("Received message from unknown node.",
-				itoa(msg->nodeNbr));
+		putErrmsg("Received message from unknown module.",
+				itoa(msg->moduleNbr));
 		return -1;
 	}
 
@@ -481,7 +481,7 @@ static LystElt	getMsgRule(AmsSAP *sap, Lyst rules, int subjectNbr, int roleNbr,
 }
 
 static int	validateAmsMsg(AmsSAP *sap, unsigned char *msgBuffer,
-				int length, AmsMsg *msg, Node **sender)
+				int length, AmsMsg *msg, Module **sender)
 {
 	int		deliveredContentLength;
 	unsigned short	checksum;
@@ -533,7 +533,7 @@ int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 	unsigned char	*msgContent = msgBuffer + 16;
 	int		deliveredContentLength;
 	AmsMsg		msg;
-	Node		*sender;
+	Module		*sender;
 	short		subjectNbr;
 	Subject		*subject;
 	LystElt		elt;
@@ -569,7 +569,7 @@ int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 			return -1;
 		}
 
-		/*	sender is NULL, because it's a foreign node .	*/
+		/*	sender is NULL, because it's a foreign module .	*/
 	}
 
 	/*	Now working with an originally transmitted message.	*/
@@ -601,11 +601,11 @@ fflush(stdout);
 		if (sap->role->nbr != 1)	/*	Misdirected.	*/
 		{
 			putErrmsg("Message destined for RAMS gateway received \
-by non-RAMS-gateway node.", NULL);
+by non-RAMS-gateway module.", NULL);
 			return -1;
 		}
 
-		/*	Receiving node is a RAMS gateway.		*/
+		/*	Receiving module is a RAMS gateway.		*/
 
 		subjectNbr = 0 - msg.subjectNbr;
 		if (subjectNbr > MaxContinNbr)
@@ -764,7 +764,7 @@ static void	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	*(header + 3) = mib->localContinuumNbr & 0x000000ff;
 	*(header + 4) = (sap->unit->nbr >> 8) & 0x000000ff;
 	*(header + 5) = sap->unit->nbr & 0x000000ff;
-	*(header + 6) = sap->nodeNbr;
+	*(header + 6) = sap->moduleNbr;
 	*(header + 7) = 0;	/*	Reserved.			*/
 	context = htonl(context);
 	memcpy(header + 8, (char *) &context, 4);
@@ -892,7 +892,7 @@ static void	loadDeclaration(AmsSAP *sap, char *cursor)
 	}
 }
 #if 0
-static void	sendDeclaration(AmsSAP *sap, Node *node)
+static void	sendDeclaration(AmsSAP *sap, Module *module)
 {
 	int	supplementLength;
 	char	*supplement;
@@ -925,8 +925,8 @@ static void	sendDeclaration(AmsSAP *sap, Node *node)
 
 	/*	Supplement is now ready; send message.			*/
 
-	memo = computeNodeId(sap->role->nbr, sap->unit->nbr, sap->nodeNbr);
-	result = sendMamsMsg(&(node->mamsEndpoint), &(sap->mamsTsif),
+	memo = computeModuleId(sap->role->nbr, sap->unit->nbr, sap->moduleNbr);
+	result = sendMamsMsg(&(module->mamsEndpoint), &(sap->mamsTsif),
 			declaration, memo, supplementLength, supplement);
 	MRELEASE(supplement);
 	if (result < 0)
@@ -1022,23 +1022,23 @@ static void	loadContactSummary(AmsSAP *sap, char *cursor, int bufsize)
 	}
 }
 
-static void	sendNodeStatus(AmsSAP *sap, MamsEndpoint *maap, int pduType)
+static void	sendModuleStatus(AmsSAP *sap, MamsEndpoint *maap, int pduType)
 {
-	int	nodeStatesCount = 1;	/*	Dummy count field.	*/
+	int	moduleStatesCount = 1;	/*	Dummy count field.	*/
 	int	supplementLength = 4;	/*	Length of count.	*/
 	int	contactSummaryLength;
 	char	*supplement;
 	int	memo;
 	int	result;
 
-	nodeStatesCount = htonl(nodeStatesCount);
-	supplementLength += 4;		/*	Unit, node, role nbrs.	*/
+	moduleStatesCount = htonl(moduleStatesCount);
+	supplementLength += 4;		/*	Unit, module, role nbrs.	*/
 	contactSummaryLength = getContactSummaryLength(sap);
 	supplementLength += contactSummaryLength;
        	supplementLength += getDeclarationLength(sap);
 	if (supplementLength > 65535)
 	{
-		putErrmsg("Node status structure too long.",
+		putErrmsg("Module status structure too long.",
 				itoa(supplementLength));
 		return;
 	}
@@ -1050,17 +1050,17 @@ static void	sendNodeStatus(AmsSAP *sap, MamsEndpoint *maap, int pduType)
 		return;
 	}
 
-	memcpy(supplement, (char *) &nodeStatesCount, 4);
+	memcpy(supplement, (char *) &moduleStatesCount, 4);
 	supplement[4] = (sap->unit->nbr >> 8) & 0xff;
 	supplement[5] = sap->unit->nbr & 0xff;
-	supplement[6] = sap->nodeNbr & 0xff;
+	supplement[6] = sap->moduleNbr & 0xff;
 	supplement[7] = sap->role->nbr & 0xff;
 	loadContactSummary(sap, supplement + 8, supplementLength - 8);
 	loadDeclaration(sap, supplement + 8 + contactSummaryLength);
-	if (pduType == node_status)
+	if (pduType == module_status)
 	{
-		memo = computeNodeId(sap->role->nbr, sap->unit->nbr,
-				sap->nodeNbr);
+		memo = computeModuleId(sap->role->nbr, sap->unit->nbr,
+				sap->moduleNbr);
 	}
 	else
 	{
@@ -1074,7 +1074,7 @@ static void	sendNodeStatus(AmsSAP *sap, MamsEndpoint *maap, int pduType)
 	MRELEASE(supplement);
        	if (result < 0)
 	{
-		putErrmsg("Failed sending node status.", NULL);
+		putErrmsg("Failed sending module status.", NULL);
 	}
 }
 
@@ -1123,19 +1123,19 @@ static int	subjectIsValid(AmsSAP *sap, int subjectNbr, Subject **subject)
 	return 0;
 }
 
-static LystElt	findSubjOfInterest(AmsSAP *sap, Node *node, Subject *subject,
+static LystElt	findSubjOfInterest(AmsSAP *sap, Module *module, Subject *subject,
 			LystElt *nextSubj)
 {
 	LystElt		elt;
 	SubjOfInterest	*subj;
 
 	/*	This function finds the SubjOfInterest containing
-	 *	all XmitRules asserted by this node for the specified
+	 *	all XmitRules asserted by this module for the specified
 	 *	subject, if any.					*/
 
-//fprintf(stderr, "subjects list length is %d.\n", (int) lyst_length(node->subjects));
+//fprintf(stderr, "subjects list length is %d.\n", (int) lyst_length(module->subjects));
 	if (nextSubj) *nextSubj = NULL;	/*	Default.		*/
-	for (elt = lyst_first(node->subjects); elt; elt = lyst_next(elt))
+	for (elt = lyst_first(module->subjects); elt; elt = lyst_next(elt))
 	{
 		subj = (SubjOfInterest *) lyst_data(elt);
 		if (subj->subject->nbr < subject->nbr)
@@ -1157,45 +1157,45 @@ static LystElt	findSubjOfInterest(AmsSAP *sap, Node *node, Subject *subject,
 	return NULL;
 }
 
-static LystElt	findInterestedNode(AmsSAP *sap, Subject *subject, Node *node,
+static LystElt	findFanModule(AmsSAP *sap, Subject *subject, Module *module,
 			LystElt *nextIntn)
 {
 	LystElt		elt;
-	InterestedNode	*intn;
+	FanModule	*fan;
 
-	/*	This function finds the InterestedNode containing
-	 *	all XmitRule asserted by this node for the specified
+	/*	This function finds the FanModule containing
+	 *	all XmitRule asserted by this module for the specified
 	 *	subject, if any.					*/
 
 	if (nextIntn) *nextIntn = NULL;	/*	Default.		*/
-	for (elt = lyst_first(subject->nodes); elt; elt = lyst_next(elt))
+	for (elt = lyst_first(subject->modules); elt; elt = lyst_next(elt))
 	{
-		intn = (InterestedNode *) lyst_data(elt);
-		if (intn->node->unitNbr < node->unitNbr)
+		fan = (FanModule *) lyst_data(elt);
+		if (fan->module->unitNbr < module->unitNbr)
 		{
 			continue;
 		}
 
-		if (intn->node->unitNbr > node->unitNbr)
+		if (fan->module->unitNbr > module->unitNbr)
 		{
 			if (nextIntn) *nextIntn = elt;
 			break;		/*	Same as end of list.	*/
 		}
 
-		/*	Found an InterestedNode in same unit.		*/
+		/*	Found an FanModule in same unit.		*/
 
-		if (intn->node->nbr < node->nbr)
+		if (fan->module->nbr < module->nbr)
 		{
 			continue;
 		}
 
-		if (intn->node->nbr > node->nbr)
+		if (fan->module->nbr > module->nbr)
 		{
 			if (nextIntn) *nextIntn = elt;
 			break;		/*	Same as end of list.	*/
 		}
 
-		/*	Matched unit and node numbers.			*/
+		/*	Matched unit and module numbers.			*/
 
 		return elt;
 	}
@@ -1270,7 +1270,7 @@ static LystElt	findXmitRule(AmsSAP *sap, Lyst rules, int domainRoleNbr,
 
 static int	enqueueNotice(AmsSAP *sap, AmsStateType stateType,
 			AmsChangeType changeType, int unitNbr,
-			int nodeNbr, int roleNbr, int domainContinuumNbr,
+			int moduleNbr, int roleNbr, int domainContinuumNbr,
 			int domainUnitNbr, int subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence)
@@ -1282,7 +1282,7 @@ static int	enqueueNotice(AmsSAP *sap, AmsStateType stateType,
 	notice.stateType = stateType;
 	notice.changeType = changeType;
 	notice.unitNbr = unitNbr;
-	notice.nodeNbr = nodeNbr;
+	notice.moduleNbr = moduleNbr;
 	notice.roleNbr = roleNbr;
 	notice.domainContinuumNbr = domainContinuumNbr;
 	notice.domainUnitNbr = domainUnitNbr;
@@ -1310,7 +1310,7 @@ static int	enqueueNotice(AmsSAP *sap, AmsStateType stateType,
 	return 0;
 }
 
-static int	logCancellation(AmsSAP *sap, Node *node, int domainRoleNbr,
+static int	logCancellation(AmsSAP *sap, Module *module, int domainRoleNbr,
 			int domainContinuumNbr, int domainUnitNbr,
 			int subjectNbr, int ruleType)
 {
@@ -1318,8 +1318,8 @@ static int	logCancellation(AmsSAP *sap, Node *node, int domainRoleNbr,
 
 	stateType = (ruleType == SUBSCRIPTION ?
 			AmsSubscriptionState : AmsInvitationState);
-	if (enqueueNotice(sap, stateType, AmsStateEnds, node->unitNbr,
-			node->nbr, domainRoleNbr, domainContinuumNbr,
+	if (enqueueNotice(sap, stateType, AmsStateEnds, module->unitNbr,
+			module->nbr, domainRoleNbr, domainContinuumNbr,
 			domainUnitNbr, subjectNbr, 0, 0, 0, 0) < 0)
 	{
 		return -1;
@@ -1328,7 +1328,7 @@ static int	logCancellation(AmsSAP *sap, Node *node, int domainRoleNbr,
 	return 0;
 }
 
-static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
+static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 			int domainRoleNbr, int domainContinuumNbr,
 			int domainUnitNbr, int priority, int flowLabel,
 			AmsEndpoint *point, int ruleType, int flag)
@@ -1337,7 +1337,7 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 	LystElt		nextSubj;
 	SubjOfInterest	*subj;
 	LystElt		nextIntn;
-	InterestedNode	*intn = NULL;
+	FanModule	*fan = NULL;
 	Lyst		rules;
 	LystElt		nextRule;
 	XmitRule	*rule;
@@ -1345,8 +1345,8 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 
 	/*	Record the message reception relationship.		*/
 
-	elt = findSubjOfInterest(sap, node, subject, &nextSubj);
-	if (elt == NULL)	/*	New subject for this node.	*/
+	elt = findSubjOfInterest(sap, module, subject, &nextSubj);
+	if (elt == NULL)	/*	New subject for this module.	*/
 	{
 //fprintf(stderr, "...adding new SubjOfInterest %d.\n", subject->nbr);
 		subj = (SubjOfInterest *) MTAKE(sizeof(SubjOfInterest));
@@ -1382,7 +1382,7 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 		}
 		else		/*	Insert at end of list.		*/
 		{
-			elt = lyst_insert_last(node->subjects, subj);
+			elt = lyst_insert_last(module->subjects, subj);
 		}
 
 		if (elt == NULL)
@@ -1394,19 +1394,19 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 			return -1;
 		}
 
-		/*	Also need to insert new InterestedNode for
+		/*	Also need to insert new FanModule for
 		 *	this subject.					*/
 
-		elt = findInterestedNode(sap, subject, node, &nextIntn);
+		elt = findFanModule(sap, subject, module, &nextIntn);
 		if (elt)	/*	Should be NULL.			*/
 		{
-			putErrmsg("AACK!  InterestedNodes list out of sync!",
+			putErrmsg("AACK!  FanModules list out of sync!",
 					subject->name);
 			return -1;
 		}
 
-		intn = (InterestedNode *) MTAKE(sizeof(InterestedNode));
-		if (intn == NULL)
+		fan = (FanModule *) MTAKE(sizeof(FanModule));
+		if (fan == NULL)
 		{
 			lyst_destroy(subj->invitations);
 			lyst_destroy(subj->subscriptions);
@@ -1415,20 +1415,20 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 			return -1;
 		}
 
-		intn->node = node;
-		intn->subj = subj;
+		fan->module = module;
+		fan->subj = subj;
 		if (nextIntn)	/*	Insert before this point.	*/
 		{
-			subj->intnElt = lyst_insert_before(nextIntn, intn);
+			subj->fanElt = lyst_insert_before(nextIntn, fan);
 		}
 		else		/*	Insert at end of list.		*/
 		{
-			subj->intnElt = lyst_insert_last(subject->nodes, intn);
+			subj->fanElt = lyst_insert_last(subject->modules, fan);
 		}
 
-		if (subj->intnElt == NULL)
+		if (subj->fanElt == NULL)
 		{
-			MRELEASE(intn);
+			MRELEASE(fan);
 			lyst_destroy(subj->invitations);
 			lyst_destroy(subj->subscriptions);
 			MRELEASE(subj);
@@ -1436,7 +1436,7 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 			return -1;
 		}
 	}
-	else	/*	Node already has some interest in this subject.	*/
+	else	/*	Module already has some interest in this subject.	*/
 	{
 		subj = (SubjOfInterest *) lyst_data(elt);
 	}
@@ -1466,7 +1466,7 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 
 		nextRule = lyst_next(elt);
 		lyst_delete(elt);
-		if (logCancellation(sap, node, rule->roleNbr,
+		if (logCancellation(sap, module, rule->roleNbr,
 				rule->continuumNbr, rule->unitNbr,
 				subj->subject->nbr, ruleType))
 		{
@@ -1486,7 +1486,7 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 
 	memset((char *) rule, 0, sizeof(XmitRule));
 
-	/*	Insert the rule into node's list of transmission rules
+	/*	Insert the rule into module's list of transmission rules
 	 *	for this subject.					*/
 
 	if (nextRule)		/*	Insert before this point.	*/
@@ -1507,10 +1507,10 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 //fprintf(stderr, "...inserted rule in rules list %d...\n", (int) rules);
 
 	/*	Load XmitRule information, including pre-determination
-	 *	of whether or not this node is actually authorized to
+	 *	of whether or not this module is actually authorized to
 	 *	receive these messages at all.				*/
 
-	rule->node = intn;
+	rule->module = fan;
 	rule->subject = subj;
 	rule->roleNbr = domainRoleNbr;
 	rule->continuumNbr = domainContinuumNbr;
@@ -1529,7 +1529,7 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 				elt = lyst_next(elt))
 		{
 			role = (AppRole *) lyst_data(elt);
-			if (role == node->role)
+			if (role == module->role)
 			{
 				rule->flags |= XMIT_IS_OKAY;
 				break;
@@ -1540,7 +1540,7 @@ static int	noteAssertion(AmsSAP *sap, Node *node, Subject *subject,
 	return 0;
 }
 
-static int	logAssertion(AmsSAP *sap, Node *node, int domainRoleNbr,
+static int	logAssertion(AmsSAP *sap, Module *module, int domainRoleNbr,
 			int domainContinuumNbr, int domainUnitNbr,
 			int subjectNbr, int priority, unsigned char flowLabel,
 			AmsSequence sequence, AmsDiligence diligence,
@@ -1550,8 +1550,8 @@ static int	logAssertion(AmsSAP *sap, Node *node, int domainRoleNbr,
 
 	stateType = (ruleType == SUBSCRIPTION ?
 			AmsSubscriptionState : AmsInvitationState);
-	if (enqueueNotice(sap, stateType, AmsStateBegins, node->unitNbr,
-			node->nbr, domainRoleNbr, domainContinuumNbr,
+	if (enqueueNotice(sap, stateType, AmsStateBegins, module->unitNbr,
+			module->nbr, domainRoleNbr, domainContinuumNbr,
 			domainUnitNbr, subjectNbr, priority, flowLabel,
 			sequence, diligence) < 0)
 	{
@@ -1561,7 +1561,7 @@ static int	logAssertion(AmsSAP *sap, Node *node, int domainRoleNbr,
 	return 0;
 }
 
-static int	processAssertion(AmsSAP *sap, Node *node, int subjectNbr,
+static int	processAssertion(AmsSAP *sap, Module *module, int subjectNbr,
 			int domainRoleNbr, int domainContinuumNbr,
 			int domainUnitNbr, int priority, unsigned char
 			flowLabel, int vectorNbr, int ruleType, int flag)
@@ -1602,7 +1602,7 @@ static int	processAssertion(AmsSAP *sap, Node *node, int subjectNbr,
 		}
 	}
 
-	for (elt = lyst_first(node->amsEndpoints); elt; elt = lyst_next(elt))
+	for (elt = lyst_first(module->amsEndpoints); elt; elt = lyst_next(elt))
 	{
 		point = (AmsEndpoint *) lyst_data(elt);
 		if (point->deliveryVectorNbr < vectorNbr)
@@ -1622,26 +1622,26 @@ static int	processAssertion(AmsSAP *sap, Node *node, int subjectNbr,
 	{
 		/*	No matching delivery vector number; messages
 		 *	on this subject are therefore undeliverable to
-		 *	the asserting node, so we skip this assertion.	*/
+		 *	the asserting module, so we skip this assertion.	*/
 
 			return 0;
 	}
 
 	/*	Subject & vector are okay; messages are deliverable to
-	 *	the asserting node.					*/
+	 *	the asserting module.					*/
 
-	if (noteAssertion(sap, node, subject, domainRoleNbr, domainContinuumNbr,
+	if (noteAssertion(sap, module, subject, domainRoleNbr, domainContinuumNbr,
 		domainUnitNbr, priority, flowLabel, point, ruleType, flag) < 0)
 	{
 		return -1;
 	}
 
-	return logAssertion(sap, node, domainRoleNbr, domainContinuumNbr,
+	return logAssertion(sap, module, domainRoleNbr, domainContinuumNbr,
 			domainUnitNbr, subjectNbr, priority, flowLabel,
 			point->sequence, point->diligence, ruleType);
 }
 
-static int	parseAssertion(AmsSAP *sap, Node *node, int *bytesRemaining,
+static int	parseAssertion(AmsSAP *sap, Module *module, int *bytesRemaining,
 			char **cursor, int ruleType, int flag)
 {
 	int		bytesNeeded;
@@ -1690,12 +1690,12 @@ static int	parseAssertion(AmsSAP *sap, Node *node, int *bytesRemaining,
 	flowLabel = (unsigned char) **cursor;
 	(*cursor)++;
 	(*bytesRemaining)--;
-	return processAssertion(sap, node, subjectNbr, domainRoleNbr,
+	return processAssertion(sap, module, subjectNbr, domainRoleNbr,
 			domainContinuumNbr, domainUnitNbr, priority, flowLabel,
 			vectorNbr, ruleType, flag);
 }
 
-static int	cancelUnconfirmedAssertions(AmsSAP *sap, Node *node)
+static int	cancelUnconfirmedAssertions(AmsSAP *sap, Module *module)
 {
 	LystElt		elt;
 	SubjOfInterest	*subj;
@@ -1703,7 +1703,7 @@ static int	cancelUnconfirmedAssertions(AmsSAP *sap, Node *node)
 	XmitRule	*rule;
 	LystElt		nextElt;
 
-	for (elt = lyst_first(node->subjects); elt; elt = lyst_next(elt))
+	for (elt = lyst_first(module->subjects); elt; elt = lyst_next(elt))
 	{
 		subj = (SubjOfInterest *) lyst_data(elt);
 		for (elt2 = lyst_first(subj->subscriptions); elt2;
@@ -1723,7 +1723,7 @@ static int	cancelUnconfirmedAssertions(AmsSAP *sap, Node *node)
 			else
 			{
 				lyst_delete(elt2);
-				if (logCancellation(sap, node, rule->roleNbr,
+				if (logCancellation(sap, module, rule->roleNbr,
 					rule->continuumNbr, rule->unitNbr,
 					subj->subject->nbr, SUBSCRIPTION))
 				{
@@ -1749,7 +1749,7 @@ static int	cancelUnconfirmedAssertions(AmsSAP *sap, Node *node)
 			else
 			{
 				lyst_delete(elt2);
-				if (logCancellation(sap, node, rule->roleNbr,
+				if (logCancellation(sap, module, rule->roleNbr,
 					rule->continuumNbr, rule->unitNbr,
 					subj->subject->nbr, INVITATION))
 				{
@@ -1762,7 +1762,7 @@ static int	cancelUnconfirmedAssertions(AmsSAP *sap, Node *node)
 	return 0;
 }
 
-static int	processDeclaration(AmsSAP *sap, Node *node, int bytesRemaining,
+static int	processDeclaration(AmsSAP *sap, Module *module, int bytesRemaining,
 			char *cursor, int flag)
 {
 	int		assertionCount;
@@ -1782,7 +1782,7 @@ static int	processDeclaration(AmsSAP *sap, Node *node, int bytesRemaining,
 	while (assertionCount > 0)
 	{
 //fprintf(stderr, "Parsing decl subscription with %d bytes remaining.\n", bytesRemaining);
-		if (parseAssertion(sap, node, &bytesRemaining, &cursor,
+		if (parseAssertion(sap, module, &bytesRemaining, &cursor,
 				SUBSCRIPTION, flag) < 0)
 		{
 			putErrmsg("Error parsing subscription.", NULL);
@@ -1806,7 +1806,7 @@ static int	processDeclaration(AmsSAP *sap, Node *node, int bytesRemaining,
 	while (assertionCount > 0)
 	{
 //fprintf(stderr, "Parsing decl invitation with %d bytes remaining.\n", bytesRemaining);
-		if (parseAssertion(sap, node, &bytesRemaining, &cursor,
+		if (parseAssertion(sap, module, &bytesRemaining, &cursor,
 				INVITATION, flag) < 0)
 		{
 			putErrmsg("Error parsing invitation.", NULL);
@@ -1819,7 +1819,7 @@ static int	processDeclaration(AmsSAP *sap, Node *node, int bytesRemaining,
 	return 0;
 }
 
-static int	processCancellation(AmsSAP *sap, Node *node, int subjectNbr,
+static int	processCancellation(AmsSAP *sap, Module *module, int subjectNbr,
 			int domainRoleNbr, int domainContinuumNbr,
 			int domainUnitNbr, int ruleType)
 {
@@ -1864,7 +1864,7 @@ static int	processCancellation(AmsSAP *sap, Node *node, int subjectNbr,
 		}
 	}
 
-	elt = findSubjOfInterest(sap, node, subject, NULL);
+	elt = findSubjOfInterest(sap, module, subject, NULL);
 	if (elt == NULL)	/*	No interest in subject.		*/
 	{
 		return 0;	/*	Nothing to cancel.		*/
@@ -1881,7 +1881,7 @@ static int	processCancellation(AmsSAP *sap, Node *node, int subjectNbr,
 	}
 
 	lyst_delete(elt);
-	if (logCancellation(sap, node, domainRoleNbr, domainContinuumNbr,
+	if (logCancellation(sap, module, domainRoleNbr, domainContinuumNbr,
 			domainUnitNbr, subjectNbr, ruleType))
 	{
 		return -1;
@@ -1890,7 +1890,7 @@ static int	processCancellation(AmsSAP *sap, Node *node, int subjectNbr,
 	return 0;
 }
 
-static int	parseAmsEndpoint(Node *node, int *bytesRemaining, char **cursor,
+static int	parseAmsEndpoint(Module *module, int *bytesRemaining, char **cursor,
 			char **tsname, int *eptLength, char **ept)
 {
 	int	gotIt = 0;
@@ -1937,7 +1937,7 @@ static int	parseAmsEndpoint(Node *node, int *bytesRemaining, char **cursor,
 	return -1;
 }
 
-static int	insertAmsEndpoint(Node *node, int vectorNbr, TransSvc *ts,
+static int	insertAmsEndpoint(Module *module, int vectorNbr, TransSvc *ts,
 			int eptLength, char *ept)
 {
 	AmsEndpoint	*ep;
@@ -1975,10 +1975,10 @@ static int	insertAmsEndpoint(Node *node, int vectorNbr, TransSvc *ts,
 		return -1;
 	}
 
-	/*	Insert new endpoint into node's AMS endpoints
+	/*	Insert new endpoint into module's AMS endpoints
 	 *	list, in ascending delivery vector number order.	*/
 
-	for (elt = lyst_first(node->amsEndpoints); elt; elt = nextElt)
+	for (elt = lyst_first(module->amsEndpoints); elt; elt = nextElt)
 	{
 		nextElt = lyst_next(elt);
 		ep2 = (AmsEndpoint *) lyst_data(elt);
@@ -2004,7 +2004,7 @@ static int	insertAmsEndpoint(Node *node, int vectorNbr, TransSvc *ts,
 
 	if (elt == NULL)	/*	Insert at the end of the list.	*/
 	{
-		elt = lyst_insert_last(node->amsEndpoints, ep);
+		elt = lyst_insert_last(module->amsEndpoints, ep);
 	}
 	else
 	{
@@ -2021,7 +2021,7 @@ static int	insertAmsEndpoint(Node *node, int vectorNbr, TransSvc *ts,
 	return 0;
 }
 
-static int	parseDeliveryVector(Node *node, int *bytesRemaining,
+static int	parseDeliveryVector(Module *module, int *bytesRemaining,
 			char **cursor)
 {
 	unsigned char	u1;
@@ -2048,7 +2048,7 @@ static int	parseDeliveryVector(Node *node, int *bytesRemaining,
 	(*bytesRemaining)--;
 	while (pointCount > 0)
 	{
-		if (parseAmsEndpoint(node, bytesRemaining, cursor, &tsname,
+		if (parseAmsEndpoint(module, bytesRemaining, cursor, &tsname,
 				&eptLength, &ept) < 0)
 		{
 			putErrmsg("Error parsing delivery vector.", NULL);
@@ -2070,7 +2070,7 @@ static int	parseDeliveryVector(Node *node, int *bytesRemaining,
 			{
 				/*	We can send to this point.	*/
 
-				result = insertAmsEndpoint(node, vectorNbr, ts,
+				result = insertAmsEndpoint(module, vectorNbr, ts,
 						eptLength, ept);
 				if (result < 0)
 				{
@@ -2086,14 +2086,14 @@ static int	parseDeliveryVector(Node *node, int *bytesRemaining,
 	}
 
 	/*	Note: if endpointInserted is still zero at this point,
-	 *	all messages on any subjects on which this node
+	 *	all messages on any subjects on which this module
 	 *	requests delivery via this delivery vector will be
 	 *	undeliverable.						*/
 
 	return 0;
 }
 
-static int	parseDeliveryVectorList(Node *node, int *bytesRemaining,
+static int	parseDeliveryVectorList(Module *module, int *bytesRemaining,
 			char **cursor)
 {
 	int	vectorCount;
@@ -2109,7 +2109,7 @@ static int	parseDeliveryVectorList(Node *node, int *bytesRemaining,
 	(*bytesRemaining)--;
 	while (vectorCount > 0)
 	{
-		if (parseDeliveryVector(node, bytesRemaining, cursor))
+		if (parseDeliveryVector(module, bytesRemaining, cursor))
 		{
 			putErrmsg("Error parsing delivery vector.", NULL);
 			return -1;
@@ -2121,14 +2121,14 @@ static int	parseDeliveryVectorList(Node *node, int *bytesRemaining,
 	return 0;
 }
 
-static int	noteNode(AmsSAP *sap, int roleNbr, int unitNbr, int nodeNbr,
+static int	noteModule(AmsSAP *sap, int roleNbr, int unitNbr, int moduleNbr,
 			MamsMsg *msg, int *bytesRemaining, char **cursor)
 {
 	char	*ept;
 	int	eptLength;
 	AppRole	*role;
 	Cell	*cell;
-	Node	*node;
+	Module	*module;
 
 	if (roleNbr < 1 || roleNbr > MaxRoleNbr)
 	{
@@ -2145,36 +2145,36 @@ static int	noteNode(AmsSAP *sap, int roleNbr, int unitNbr, int nodeNbr,
 
 	role = sap->venture->roles[roleNbr];
 	cell = sap->venture->units[unitNbr]->cell;
-	node = cell->nodes[nodeNbr];
-	if (node->role == NULL)	/*	Not previously announced.	*/
+	module = cell->modules[moduleNbr];
+	if (module->role == NULL)	/*	Not previously announced.	*/
 	{
-		if (rememberNode(node, role, eptLength, ept) < 0)
+		if (rememberModule(module, role, eptLength, ept) < 0)
 		{
-			putErrmsg("Can't retain node announcement.", NULL);
+			putErrmsg("Can't retain module announcement.", NULL);
 			return -1;
 		}
 	}
-	else			/*	Node previously announced.	*/
+	else			/*	Module previously announced.	*/
 	{
-		if (node->role != role
-		|| strcmp(node->mamsEndpoint.ept, ept) != 0)
+		if (module->role != role
+		|| strcmp(module->mamsEndpoint.ept, ept) != 0)
 		{
-			putErrmsg("Conflicting node announcements, \
+			putErrmsg("Conflicting module announcements, \
 discarding message.", NULL);
 			return -1;
 		}
 	}
 
-	if (parseDeliveryVectorList(node, bytesRemaining, cursor) < 0)
+	if (parseDeliveryVectorList(module, bytesRemaining, cursor) < 0)
 	{
-		putErrmsg("Can't retain node announcement.", NULL);
+		putErrmsg("Can't retain module announcement.", NULL);
 		return -1;
 	}
 
 	/*	Notify the application, whether new or not.		*/
 
 	if (enqueueNotice(sap, AmsRegistrationState, AmsStateBegins,
-			unitNbr, nodeNbr, roleNbr, 0, 0, 0, 0, 0, 0, 0) < 0)
+			unitNbr, moduleNbr, roleNbr, 0, 0, 0, 0, 0, 0, 0) < 0)
 	{
 		putErrmsg(NoMemoryMemo, NULL);
 		return -1;
@@ -2189,8 +2189,8 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 	int		i;
 	int		unitNbr;
 	Unit		*unit;
-	int		nodeNbr;
-	Node		*node;
+	int		moduleNbr;
+	Module		*module;
 	int		roleNbr;
 	char		*cursor;
 	int		bytesRemaining;
@@ -2201,9 +2201,9 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 	int		domainContinuumNbr;
 	int		domainUnitNbr;
 	int		domainRoleNbr;
-	int		nodeCount;
+	int		moduleCount;
 
-//printf("Node '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
+//printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
 	switch (msg->type)
 	{
 	case heartbeat:
@@ -2226,58 +2226,58 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			return;
 		}
 
-		if (parseNodeId(msg->memo, &roleNbr, &unitNbr, &nodeNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
 		{
 			putErrmsg("I_am_starting memo field invalid.", NULL);
 			return;
 		}
 
-		if (unitNbr == sap->unit->nbr && nodeNbr == sap->nodeNbr)
+		if (unitNbr == sap->unit->nbr && moduleNbr == sap->moduleNbr)
 		{
 			return;	/*	Own self-announcement; ignore.	*/
 		}
 
 		bytesRemaining = msg->supplementLength;
 		cursor = msg->supplement;
-		if (noteNode(sap, roleNbr, unitNbr, nodeNbr, msg,
+		if (noteModule(sap, roleNbr, unitNbr, moduleNbr, msg,
 				&bytesRemaining, &cursor) < 0)
 		{
 			putErrmsg("Failed handling I_am_starting.", NULL);
 			return;
 		}
 
-		/*	Tell the new node about self.			*/
+		/*	Tell the new module about self.			*/
 
 		unit = sap->venture->units[unitNbr];
-		node = unit->cell->nodes[nodeNbr];
-		sendNodeStatus(sap, &node->mamsEndpoint, I_am_here);
+		module = unit->cell->modules[moduleNbr];
+		sendModuleStatus(sap, &module->mamsEndpoint, I_am_here);
 		return;
 
-	case node_has_started:
+	case module_has_started:
 		if (msg->supplementLength < 1)
 		{
-			putErrmsg("node_has_started lacks MAMS endpoint.",
+			putErrmsg("module_has_started lacks MAMS endpoint.",
 					NULL);
 			return;
 		}
 
-		if (parseNodeId(msg->memo, &roleNbr, &unitNbr, &nodeNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
 		{
-			putErrmsg("node_has_started memo field invalid.", NULL);
+			putErrmsg("module_has_started memo field invalid.", NULL);
 			return;
 		}
 
-		if (unitNbr == sap->unit->nbr && nodeNbr == sap->nodeNbr)
+		if (unitNbr == sap->unit->nbr && moduleNbr == sap->moduleNbr)
 		{
 			return;	/*	Own self-announcement; ignore.	*/
 		}
 
 		bytesRemaining = msg->supplementLength;
 		cursor = msg->supplement;
-		if (noteNode(sap, roleNbr, unitNbr, nodeNbr, msg,
+		if (noteModule(sap, roleNbr, unitNbr, moduleNbr, msg,
 				&bytesRemaining, &cursor) < 0)
 		{
-			putErrmsg("Failed handling node_has_started.", NULL);
+			putErrmsg("Failed handling module_has_started.", NULL);
 		}
 
 		return;
@@ -2285,38 +2285,38 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 	case I_am_here:
 		if (msg->supplementLength < 4)
 		{
-			putErrmsg("I_am_here lacks node states count.", NULL);
+			putErrmsg("I_am_here lacks module states count.", NULL);
 			return;
 		}
 
 		memcpy((char *) &u4, msg->supplement, 4);
-		u4 = ntohl(u4);		/*	Node states count.	*/
+		u4 = ntohl(u4);		/*	Module states count.	*/
 		bytesRemaining = msg->supplementLength - 4;
 		cursor = msg->supplement + 4;
 		while (u4 > 0)
 		{
 			if (bytesRemaining < 4)
 			{
-				putErrmsg("I_am_here node ID incomplete.",
+				putErrmsg("I_am_here module ID incomplete.",
 						NULL);
 				return;
 			}
 
 			memcpy((char *) &unitNbr, cursor, 2);
 			unitNbr = ntohs(unitNbr);
-			nodeNbr = (unsigned char) *(cursor + 2);
+			moduleNbr = (unsigned char) *(cursor + 2);
 			roleNbr = (unsigned char) *(cursor + 3);
 			bytesRemaining -= 4;
 			cursor += 4;
 			if (roleNbr < 1 || roleNbr > MaxRoleNbr
 					|| unitNbr > MaxUnitNbr
-					|| nodeNbr < 1 || nodeNbr > MaxNodeNbr)
+					|| moduleNbr < 1 || moduleNbr > MaxModuleNbr)
 			{
-				putErrmsg("I_am_here node ID invalid.", NULL);
+				putErrmsg("I_am_here module ID invalid.", NULL);
 				return;
 			}
 
-			if (noteNode(sap, roleNbr, unitNbr, nodeNbr, msg,
+			if (noteModule(sap, roleNbr, unitNbr, moduleNbr, msg,
 					&bytesRemaining, &cursor) < 0)
 			{
 				putErrmsg("Failed handling I_am_here.", NULL);
@@ -2324,17 +2324,17 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			}
 
 			unit = sap->venture->units[unitNbr];
-			node = unit->cell->nodes[nodeNbr];
-			if (processDeclaration(sap, node, bytesRemaining,
+			module = unit->cell->modules[moduleNbr];
+			if (processDeclaration(sap, module, bytesRemaining,
 					cursor, 0))
 			{
 				return;
 			}
 #if 0
-			/*	Tell this node about any subscriptions
+			/*	Tell this module about any subscriptions
 			 *	and invitations issued so far.		*/
 	
-			sendDeclaration(sap, node);
+			sendDeclaration(sap, module);
 #endif
 			u4--;
 		}
@@ -2342,38 +2342,38 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		return;
 
 	case declaration:
-		if (parseNodeId(msg->memo, &roleNbr, &unitNbr, &nodeNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
 		{
 			putErrmsg("declaration memo field invalid.", NULL);
 			return;
 		}
 
 		unit = sap->venture->units[unitNbr];
-		node = unit->cell->nodes[nodeNbr];
-		processDeclaration(sap, node, msg->supplementLength,
+		module = unit->cell->modules[moduleNbr];
+		processDeclaration(sap, module, msg->supplementLength,
 				msg->supplement, 0);
 		return;
 
 	case subscribe:
-		if (parseNodeId(msg->memo, &roleNbr, &unitNbr, &nodeNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
 		{
 			putErrmsg("subscribe memo field invalid.", NULL);
 			return;
 		}
 
 		unit = sap->venture->units[unitNbr];
-		node = unit->cell->nodes[nodeNbr];
-		if (node->role == NULL)
+		module = unit->cell->modules[moduleNbr];
+		if (module->role == NULL)
 		{
-			putErrmsg("subscribe invalid; unknown node.",
-					itoa(nodeNbr));
+			putErrmsg("subscribe invalid; unknown module.",
+					itoa(moduleNbr));
 			return;
 		}
 
 		bytesRemaining = msg->supplementLength;
 		cursor = msg->supplement;
 //fprintf(stderr, "Parsing new subscription with %d bytes remaining.\n", bytesRemaining);
-		if (parseAssertion(sap, node, &bytesRemaining, &cursor,
+		if (parseAssertion(sap, module, &bytesRemaining, &cursor,
 				SUBSCRIPTION, 0) < 0)
 		{
 			putErrmsg("Error parsing subscription.", NULL);
@@ -2388,18 +2388,18 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			return;
 		}
 
-		if (parseNodeId(msg->memo, &roleNbr, &unitNbr, &nodeNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
 		{
 			putErrmsg("unsubscribe memo field invalid.", NULL);
 			return;
 		}
 
 		unit = sap->venture->units[unitNbr];
-		node = unit->cell->nodes[nodeNbr];
-		if (node->role == NULL)
+		module = unit->cell->modules[moduleNbr];
+		if (module->role == NULL)
 		{
-			putErrmsg("unsubscribe invalid; unknown node.",
-					itoa(nodeNbr));
+			putErrmsg("unsubscribe invalid; unknown module.",
+					itoa(moduleNbr));
 			return;
 		}
 
@@ -2412,7 +2412,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		u2 = ntohs(u2);
 		domainUnitNbr = u2;
 		domainRoleNbr = *(msg->supplement + 6);
-		if (processCancellation(sap, node, subjectNbr, domainRoleNbr,
+		if (processCancellation(sap, module, subjectNbr, domainRoleNbr,
 			domainContinuumNbr, domainUnitNbr, SUBSCRIPTION) < 0)
 		{
 			putErrmsg("Error handling unsubscription.", NULL);
@@ -2421,36 +2421,36 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		return;
 
 	case I_am_stopping:
-		if (parseNodeId(msg->memo, &roleNbr, &unitNbr, &nodeNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
 		{
 			putErrmsg("I_am_stopping memo field invalid.", NULL);
 			return;
 		}
 
 		unit = sap->venture->units[unitNbr];
-		node = unit->cell->nodes[nodeNbr];
+		module = unit->cell->modules[moduleNbr];
 
-		/*	Notify the application that all of this node's
+		/*	Notify the application that all of this module's
 		 *	subscriptions and invitations are canceled.	*/
 
-		if (cancelUnconfirmedAssertions(sap, node) < 0)
+		if (cancelUnconfirmedAssertions(sap, module) < 0)
 		{
 			putErrmsg("Error canceling assertions.", NULL);
 			return;
 		}
 
-		/*	Destroy the node's XmitRules (subscriptions
-		 *	and invitations) and erase the node itself.	*/
+		/*	Destroy the module's XmitRules (subscriptions
+		 *	and invitations) and erase the module itself.	*/
 
-		if (node->role)
+		if (module->role)
 		{
-			forgetNode(node);
+			forgetModule(module);
 		}
 
-		/*	Notify the application that the node is gone.	*/
+		/*	Notify the application that the module is gone.	*/
 
 		enqueueNotice(sap, AmsRegistrationState, AmsStateEnds,
-			unitNbr, nodeNbr, roleNbr, 0, 0, 0, 0, 0, 0, 0);
+			unitNbr, moduleNbr, roleNbr, 0, 0, 0, 0, 0, 0, 0);
 		return;
 
 	case cell_status:
@@ -2465,52 +2465,52 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 
 		/*	First, flag for implied unregistrations.	*/
 
-		nodeCount = (unsigned char) (msg->supplement[0]);
-		for (i = 1; i <= nodeCount; i++)
+		moduleCount = (unsigned char) (msg->supplement[0]);
+		for (i = 1; i <= moduleCount; i++)
 		{
-			nodeNbr = (unsigned char) (msg->supplement[i]);
-			node = unit->cell->nodes[nodeNbr];
-			if (node->role == NULL)	/*	Unknown node.	*/
+			moduleNbr = (unsigned char) (msg->supplement[i]);
+			module = unit->cell->modules[moduleNbr];
+			if (module->role == NULL)	/*	Unknown module.	*/
 			{
 				/*	Nothing to confirm.		*/
 
 				continue;
 			}
 
-			node->confirmed = 1;	/*	Still there.	*/
+			module->confirmed = 1;	/*	Still there.	*/
 		}
 
-		/*	Now update array of nodes in cell.		*/
+		/*	Now update array of modules in cell.		*/
 
-		nodeCount = 0;
-		for (nodeNbr = 1; nodeNbr < MaxNodeNbr; nodeNbr++)
+		moduleCount = 0;
+		for (moduleNbr = 1; moduleNbr < MaxModuleNbr; moduleNbr++)
 		{
-			node = unit->cell->nodes[nodeNbr];
-			if (node->role == NULL)
+			module = unit->cell->modules[moduleNbr];
+			if (module->role == NULL)
 			{
 				continue;
 			}
 
-			if (node->confirmed)	/*	Still here.	*/
+			if (module->confirmed)	/*	Still here.	*/
 			{
-				node->confirmed = 0;
+				module->confirmed = 0;
 			}
 			else	/*	Implied unregistration.		*/
 			{
-				roleNbr = node->role->nbr;
-				if (cancelUnconfirmedAssertions(sap, node) < 0)
+				roleNbr = module->role->nbr;
+				if (cancelUnconfirmedAssertions(sap, module) < 0)
 				{
 					putErrmsg("Error canceling assertions.",
 							NULL);
 					return;
 				}
 
-				forgetNode(node);
+				forgetModule(module);
 
 				/*	Notify application.		*/
 
 				enqueueNotice(sap, AmsRegistrationState,
-					AmsStateEnds, unitNbr, nodeNbr,
+					AmsStateEnds, unitNbr, moduleNbr,
 					roleNbr, 0, 0, 0, 0, 0, 0, 0);
 			}
 		}
@@ -2518,64 +2518,64 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		if (unitNbr == sap->unit->nbr)
 		{
 			/*	cell_status from own registrar;
-			 *	respond with own node_status.		*/
+			 *	respond with own module_status.		*/
 
-			sendNodeStatus(sap, &sap->unit->cell->mamsEndpoint,
-					node_status);
+			sendModuleStatus(sap, &sap->unit->cell->mamsEndpoint,
+					module_status);
 		}
 
 		return;
 
-	case node_status:
+	case module_status:
 		if (msg->supplementLength < 4)
 		{
-			putErrmsg("node_status lacks node states count.", NULL);
+			putErrmsg("module_status lacks module states count.", NULL);
 			return;
 		}
 
 		memcpy((char *) &u4, msg->supplement, 4);
-		u4 = ntohl(u4);		/*	Node states count.	*/
+		u4 = ntohl(u4);		/*	Module states count.	*/
 		bytesRemaining = msg->supplementLength - 4;
 		cursor = msg->supplement + 4;
 		while (u4 > 0)
 		{
 			if (bytesRemaining < 4)
 			{
-				putErrmsg("node_status node ID incomplete.",
+				putErrmsg("module_status module ID incomplete.",
 						NULL);
 				return;
 			}
 
 			memcpy((char *) &unitNbr, cursor, 2);
 			unitNbr = ntohs(unitNbr);
-			nodeNbr = (unsigned char) *(cursor + 2);
+			moduleNbr = (unsigned char) *(cursor + 2);
 			roleNbr = (unsigned char) *(cursor + 3);
 			bytesRemaining -= 4;
 			cursor += 4;
 			if (roleNbr < 1 || roleNbr > MaxRoleNbr
 					|| unitNbr > MaxUnitNbr
-					|| nodeNbr < 1 || nodeNbr < MaxNodeNbr)
+					|| moduleNbr < 1 || moduleNbr < MaxModuleNbr)
 			{
-				putErrmsg("node_status node ID invalid.", NULL);
+				putErrmsg("module_status module ID invalid.", NULL);
 				return;
 			}
 
-			if (noteNode(sap, roleNbr, unitNbr, nodeNbr, msg,
+			if (noteModule(sap, roleNbr, unitNbr, moduleNbr, msg,
 					&bytesRemaining, &cursor) < 0)
 			{
-				putErrmsg("Failed handling node_status.", NULL);
+				putErrmsg("Failed handling module_status.", NULL);
 				return;
 			}
 
 			unit = sap->venture->units[unitNbr];
-			node = unit->cell->nodes[nodeNbr];
-			if (processDeclaration(sap, node, bytesRemaining,
+			module = unit->cell->modules[moduleNbr];
+			if (processDeclaration(sap, module, bytesRemaining,
 					cursor, RULE_CONFIRMED))
 			{
 				return;
 			}
 
-			if (cancelUnconfirmedAssertions(sap, node) < 0)
+			if (cancelUnconfirmedAssertions(sap, module) < 0)
 			{
 				putErrmsg("Error canceling unconfirmed \
 assertions.", NULL);
@@ -2588,25 +2588,25 @@ assertions.", NULL);
 		return;
 
 	case invite:
-		if (parseNodeId(msg->memo, &roleNbr, &unitNbr, &nodeNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
 		{
 			putErrmsg("invite memo field invalid.", NULL);
 			return;
 		}
 
 		unit = sap->venture->units[unitNbr];
-		node = unit->cell->nodes[nodeNbr];
-		if (node->role == NULL)
+		module = unit->cell->modules[moduleNbr];
+		if (module->role == NULL)
 		{
-			putErrmsg("invite invalid; unknown node.",
-					itoa(nodeNbr));
+			putErrmsg("invite invalid; unknown module.",
+					itoa(moduleNbr));
 			return;
 		}
 
 		bytesRemaining = msg->supplementLength;
 		cursor = msg->supplement;
 //fprintf(stderr, "Parsing new invitation with %d bytes remaining.\n", bytesRemaining);
-		if (parseAssertion(sap, node, &bytesRemaining, &cursor,
+		if (parseAssertion(sap, module, &bytesRemaining, &cursor,
 				INVITATION, 0) < 0)
 		{
 			putErrmsg("Error parsing invitation.", NULL);
@@ -2621,18 +2621,18 @@ assertions.", NULL);
 			return;
 		}
 
-		if (parseNodeId(msg->memo, &roleNbr, &unitNbr, &nodeNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
 		{
 			putErrmsg("disinvite memo field invalid.", NULL);
 			return;
 		}
 
 		unit = sap->venture->units[unitNbr];
-		node = unit->cell->nodes[nodeNbr];
-		if (node->role == NULL)
+		module = unit->cell->modules[moduleNbr];
+		if (module->role == NULL)
 		{
-			putErrmsg("disinvite invalid; unknown node.",
-					itoa(nodeNbr));
+			putErrmsg("disinvite invalid; unknown module.",
+					itoa(moduleNbr));
 			return;
 		}
 
@@ -2645,7 +2645,7 @@ assertions.", NULL);
 		u2 = ntohs(u2);
 		domainUnitNbr = u2;
 		domainRoleNbr = *(msg->supplement + 6);
-		if (processCancellation(sap, node, subjectNbr, domainRoleNbr,
+		if (processCancellation(sap, module, subjectNbr, domainRoleNbr,
 			domainContinuumNbr, domainUnitNbr, INVITATION) < 0)
 		{
 			putErrmsg("Error handling disinvitation.", NULL);
@@ -2763,7 +2763,7 @@ static int	locateRegistrar(AmsSAP *sap)
 			eptLen, ept);
 	if (result < 0)
 	{
-		putErrmsg("Node can't query configuration server.", NULL);
+		putErrmsg("Module can't query configuration server.", NULL);
 		return -1;
 	}
 
@@ -2861,12 +2861,12 @@ static int	locateRegistrar(AmsSAP *sap)
 
 static int	reconnectToRegistrar(AmsSAP *sap)
 {
-	int		nodeCount = 0;
+	int		moduleCount = 0;
 	int		i;
-	unsigned char	nodes[MAX_NODE_NBR];
+	unsigned char	modules[MAX_NODE_NBR];
 	int		contactSummaryLength;
 	int		declarationLength;
-	Node		*node;
+	Module		*module;
 	char		*supplement;
 	int		supplementLength;
 	char		*cursor;
@@ -2878,22 +2878,22 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 
 	/*	Build cell status structure to enable reconnect.	*/
 
-	for (i = 1; i <= MaxNodeNbr; i++)
+	for (i = 1; i <= MaxModuleNbr; i++)
 	{
-		if ((node = sap->unit->cell->nodes[i])->role != NULL)
+		if ((module = sap->unit->cell->modules[i])->role != NULL)
 		{
-			nodes[nodeCount] = i;
-			nodeCount++;
+			modules[moduleCount] = i;
+			moduleCount++;
 		}
 	}
 
 	contactSummaryLength = getContactSummaryLength(sap);
 	declarationLength = getDeclarationLength(sap);
-	supplementLength = 4		/*	Own unit, node, role.	*/
+	supplementLength = 4		/*	Own unit, module, role.	*/
 		+ contactSummaryLength	/*	Own contact summary.	*/
 		+ declarationLength	/*	Own declaration.	*/
-		+ 1			/*	Length of nodes array.	*/
-		+ nodeCount;		/*	Array of nodes.		*/
+		+ 1			/*	Length of modules array.	*/
+		+ moduleCount;		/*	Array of modules.		*/
 	supplement = MTAKE(supplementLength);
 	if (supplement == NULL)
 	{
@@ -2906,7 +2906,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 	cursor++;
 	*cursor = sap->unit->nbr & 0xff;
 	cursor++;
-	*cursor = sap->nodeNbr & 0xff;
+	*cursor = sap->moduleNbr & 0xff;
 	cursor++;
 	*cursor = sap->role->nbr & 0xff;
 	cursor++;
@@ -2914,9 +2914,9 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 	cursor += contactSummaryLength;
 	loadDeclaration(sap, cursor);
 	cursor += declarationLength;
-	*cursor = nodeCount;
+	*cursor = moduleCount;
 	cursor++;
-	memcpy(cursor, nodes, nodeCount);
+	memcpy(cursor, modules, moduleCount);
 
 	/*	Now send reconnect message.				*/
 
@@ -3122,7 +3122,7 @@ static void	process_rejection(AmsSAP *sap, MamsMsg *msg)
 
 static int	process_you_are_in(AmsSAP *sap, MamsMsg *msg)
 {
-	Node	*node;
+	Module	*module;
 	char	*ept = sap->mamsTsif.ept;
 	int	eptLength = strlen(ept) + 1;
 
@@ -3132,18 +3132,18 @@ static int	process_you_are_in(AmsSAP *sap, MamsMsg *msg)
 		return 0;		/*	Not unrecoverable.	*/
 	}
 
-	sap->nodeNbr = *(msg->supplement);
-	node = sap->unit->cell->nodes[sap->nodeNbr];
-	if (rememberNode(node, sap->role, eptLength, ept) < 0)
+	sap->moduleNbr = *(msg->supplement);
+	module = sap->unit->cell->modules[sap->moduleNbr];
+	if (rememberModule(module, sap->role, eptLength, ept) < 0)
 	{
-		putErrmsg("Can't retain node announcement.", NULL);
+		putErrmsg("Can't retain module announcement.", NULL);
 		return -1;
 	}
 
 	return (enqueueAmsStubEvent(sap, ACCEPTED_EVT, 1));
 }
 
-static int	getNodeNbr(AmsSAP *sap)
+static int	getModuleNbr(AmsSAP *sap)
 {
 	int	supplementLength;
 	char	*supplement;
@@ -3171,7 +3171,7 @@ static int	getNodeNbr(AmsSAP *sap)
 		}
 	}
 
-	/*	Now send node_registration message.			*/
+	/*	Now send module_registration message.			*/
 
 	supplementLength = getContactSummaryLength(sap);
 	if (supplementLength > 65535)
@@ -3191,11 +3191,11 @@ static int	getNodeNbr(AmsSAP *sap)
 	queryNbr = time(NULL);
 	lyst_compare_set(sap->mamsEvents, (LystCompareFn) queryNbr);
 	result = sendMamsMsg(sap->rsEndpoint, &(sap->mamsTsif),
-		node_registration, queryNbr, supplementLength, supplement);
+		module_registration, queryNbr, supplementLength, supplement);
 	MRELEASE(supplement);
        	if (result < 0)
 	{
-		putErrmsg("Failed sending node_registration.", NULL);
+		putErrmsg("Failed sending module_registration.", NULL);
 		return -1;
 	}
 
@@ -3314,18 +3314,18 @@ static void	*mamsMain(void *parm)
 	/*	MAMS thread starts off in Unregistered state and
 	 *	stays there until registration is complete.  Then
 	 *	it enters Registered state, in which it responds to
-	 *	MAMS messages from the registrar and other nodes.
+	 *	MAMS messages from the registrar and other modules.
 	 *	Upon unregistration, erasure of the SAP causes the
 	 *	MAMS thread to terminate.				*/
 
 	while (1)	/*	Registration event loop.		*/
 	{
 		LOCK_MIB;
-		result = getNodeNbr(sap);
+		result = getModuleNbr(sap);
 		UNLOCK_MIB;
 		if (result < 0)		/*	Unrecoverable failure.	*/
 		{
-			putErrmsg("Can't register node.", NULL);
+			putErrmsg("Can't register module.", NULL);
 			if (enqueueAmsCrash(sap, "Can't register.") < 0)
 			{
 				putErrmsg(NoMemoryMemo, NULL);
@@ -3336,7 +3336,7 @@ static void	*mamsMain(void *parm)
 
 		/*	Was registration attempt successful?		*/
 
-		if (sap->nodeNbr != 0)
+		if (sap->moduleNbr != 0)
 		{
 			break;
 		}
@@ -3491,7 +3491,7 @@ static void	*heartbeatMain(void *parm)
 			clearMamsEndpoint(sap->rsEndpoint);
 		}
 
-		result = enqueueMsgToRegistrar(sap, heartbeat, sap->nodeNbr,
+		result = enqueueMsgToRegistrar(sap, heartbeat, sap->moduleNbr,
 				0, NULL);
 		sap->heartbeatsMissed++;
 		UNLOCK_MIB;
@@ -3510,7 +3510,7 @@ static void	*heartbeatMain(void *parm)
 
 static int	ams_register2(char *applicationName, char *authorityName,
 			char *unitName, char *roleName, char *tsorder,
-			AmsNode *node)
+			AmsModule *module)
 {
 	int		length;
 	int		result;
@@ -3530,7 +3530,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	AmsEvt		*evt;
 
 	if (applicationName == NULL || authorityName == NULL
-	|| unitName == NULL || roleName == NULL || node == NULL
+	|| unitName == NULL || roleName == NULL || module == NULL
 	|| (length = strlen(applicationName)) == 0 || length > MAX_APP_NAME
 	|| (length = strlen(authorityName)) == 0 || length > MAX_AUTH_NAME
 	|| (length = strlen(unitName)) > MAX_UNIT_NAME
@@ -3550,7 +3550,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 		return -1;
 	}
 
-	*node = sap;
+	*module = sap;
 	memset((char *) sap, 0, sizeof(AmsSAP));
 	sap->state = AmsSapClosed;
 	sap->primeThread = pthread_self();
@@ -3633,7 +3633,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 
 	sap->role = role;
 
-	/*	Initialize node state data structures.  First, lists.	*/
+	/*	Initialize module state data structures.  First, lists.	*/
 
 	sap->mamsEvents = lyst_create_using(amsMemory);
 	sap->amsEvents = lyst_create_using(amsMemory);
@@ -3784,7 +3784,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 			vector->nbr = lyst_length(sap->delivVectors) + 1;
 			if (vector->nbr > 15)
 			{
-				putErrmsg("Node has > 15 delivery vectors.",
+				putErrmsg("Module has > 15 delivery vectors.",
 						NULL);
 				return -1;
 			}
@@ -3816,7 +3816,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 
 		if (lyst_length(vector->interfaces) > 15)
 		{
-			putErrmsg("Node's vector has > 15 interfaces.",
+			putErrmsg("Module's vector has > 15 interfaces.",
 					itoa(vector->nbr));
 			return -1;
 		}
@@ -3828,7 +3828,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 		}
 	}
 
-	/*	Create the auxiliary node threads: heartbeat, MAMS.	*/
+	/*	Create the auxiliary module threads: heartbeat, MAMS.	*/
 
 	if (pthread_create(&(sap->heartbeatThread), NULL, heartbeatMain, sap)
 	|| pthread_create(&(sap->mamsThread), NULL, mamsMain, sap))
@@ -3898,7 +3898,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 
 int	ams_register(char *mibSource, char *tsorder, char *mName, char *memory,
 		unsigned mSize, char *applicationName, char *authorityName,
-		char *unitName, char *roleName, AmsNode *node)
+		char *unitName, char *roleName, AmsModule *module)
 {
 	int	result;
 
@@ -3919,31 +3919,31 @@ int	ams_register(char *mibSource, char *tsorder, char *mName, char *memory,
 		}
 	}
 
-	*node = NULL;
+	*module = NULL;
 	LOCK_MIB;
 	result = ams_register2(applicationName, authorityName, unitName,
-			roleName, tsorder, node);
+			roleName, tsorder, module);
 	UNLOCK_MIB;
 	if (result == 0)		/*	Succeeded.		*/
 	{
-		(*node)->state = AmsSapOpen;
+		(*module)->state = AmsSapOpen;
 	}
 	else
 	{
-		eraseSAP(*node);
+		eraseSAP(*module);
 	}
 
 	return result;
 }
 
-int	ams_get_node_nbr(AmsSAP *sap)
+int	ams_get_module_nbr(AmsSAP *sap)
 {
 	if (sap == NULL)
 	{
 		return -1;
 	}
 
-	return sap->nodeNbr;
+	return sap->moduleNbr;
 }
 
 int	ams_get_unit_nbr(AmsSAP *sap)
@@ -3982,7 +3982,7 @@ static int	ams_unregister2(AmsSAP *sap)
 	ams_remove_event_mgr(sap);
 	LOCK_MIB;
 	result = enqueueMsgToRegistrar(sap, I_am_stopping,
-		computeNodeId(sap->role->nbr, sap->unit->nbr, sap->nodeNbr),
+		computeModuleId(sap->role->nbr, sap->unit->nbr, sap->moduleNbr),
 		0, NULL);
 
 	/*	Wait for MAMS thread to finish dealing with all
@@ -4072,21 +4072,21 @@ static int	validSap(AmsSAP *sap)
 	return result;
 }
 
-static char	*ams_get_role_name2(AmsSAP *sap, int unitNbr, int nodeNbr)
+static char	*ams_get_role_name2(AmsSAP *sap, int unitNbr, int moduleNbr)
 {
 	Unit	*unit;
-	Node	*node;
+	Module	*module;
 
 	if (unitNbr >= 0 && unitNbr <= MaxUnitNbr
-	&& nodeNbr > 0 && nodeNbr <= MaxNodeNbr)
+	&& moduleNbr > 0 && moduleNbr <= MaxModuleNbr)
 	{
 		unit = sap->venture->units[unitNbr];
 		if (unit)
 		{
-			node = unit->cell->nodes[nodeNbr];
-			if (node->role)
+			module = unit->cell->modules[moduleNbr];
+			if (module->role)
 			{
-				return node->role->name;
+				return module->role->name;
 			}
 		}
 	}
@@ -4094,14 +4094,14 @@ static char	*ams_get_role_name2(AmsSAP *sap, int unitNbr, int nodeNbr)
 	return NULL;
 }
 
-char	*ams_get_role_name(AmsSAP *sap, int unitNbr, int nodeNbr)
+char	*ams_get_role_name(AmsSAP *sap, int unitNbr, int moduleNbr)
 {
 	char	*result = NULL;
 
 	if (validSap(sap))
 	{
 		LOCK_MIB;
-		result = ams_get_role_name2(sap, unitNbr, nodeNbr);
+		result = ams_get_role_name2(sap, unitNbr, moduleNbr);
 		UNLOCK_MIB;
 		if (result == NULL)
 		{
@@ -4234,15 +4234,15 @@ static XmitRule	*getXmitRule(AmsSAP *sap, Lyst rules)
 	return NULL;
 }	
 
-static int	receivedMsgAlready(Lyst recipients, int nodeNbr)
+static int	receivedMsgAlready(Lyst recipients, int moduleNbr)
 {
 	LystElt	elt;
-	long	longNodeNbr = (long) nodeNbr;
+	long	longModuleNbr = (long) moduleNbr;
 		// cast to long to avoid warnings on 64-bit
 
 	for (elt = lyst_first(recipients); elt; elt = lyst_next(elt))
 	{
-		if (longNodeNbr == (long) lyst_data(elt))
+		if (longModuleNbr == (long) lyst_data(elt))
 		{
 			return 1;
 		}
@@ -4258,30 +4258,30 @@ static int	sendToSubscribers(AmsSAP *sap, Subject *subject,
 	       		Lyst recipients)
 {
 	LystElt		elt;
-	InterestedNode	*intn;
+	FanModule	*fan;
 	XmitRule	*rule;
 	int		result;
 
-	for (elt = lyst_first(subject->nodes); elt; elt = lyst_next(elt))
+	for (elt = lyst_first(subject->modules); elt; elt = lyst_next(elt))
 	{
-		intn = (InterestedNode *) lyst_data(elt);
+		fan = (FanModule *) lyst_data(elt);
 		if (subject->nbr == ALL_SUBJECTS)
 		{
-			if (receivedMsgAlready(recipients, intn->node->nbr))
+			if (receivedMsgAlready(recipients, fan->module->nbr))
 			{
 				continue;/*	Don't send 2nd copy.	*/
 			}
 		}
 
-		rule = getXmitRule(sap, intn->subj->subscriptions);
+		rule = getXmitRule(sap, fan->subj->subscriptions);
 		if (rule == NULL)
 		{
-			continue;	/*	Don't send node a copy.	*/
+			continue;	/*	Don't send module a copy.	*/
 		}
 
-		/*	Must send this node a copy of this message.
+		/*	Must send this module a copy of this message.
 		 *	Supply default priority and/or flow label as
-		 *	necessary, and send message to node.		*/
+		 *	necessary, and send message to module.		*/
 
 		if (priority)		/*	Override.		*/
 		{
@@ -4308,7 +4308,7 @@ static int	sendToSubscribers(AmsSAP *sap, Subject *subject,
 		if (subject->nbr != ALL_SUBJECTS)
 		{
 			lyst_insert_last(recipients,
-					(void *) ((long) (intn->node->nbr)));
+					(void *) ((long) (fan->module->nbr)));
 			// cast to long to avoid warnings on 64-bit
 		}
 	}
@@ -4344,7 +4344,7 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 
 	/*	Now send a copy of the message to every subscriber
 	 *	that has posted at least one subscription whose domain
-	 *	includes the local node.				*/
+	 *	includes the local module.				*/
 
 	if (sendToSubscribers(sap, subject, priority, flowLabel, protectedBits,
 			amsHeader, headerLength, content, contentLength,
@@ -4632,8 +4632,8 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	loadAssertion(&cursor, INVITATION, roleNbr, continuumNbr,
 			unitNbr, subjectNbr, vector->nbr, priority, flowLabel);
 	if (enqueueMsgToRegistrar(sap, invite,
-			computeNodeId(sap->role->nbr, sap->unit->nbr,
-			sap->nodeNbr), INVITE_LEN, assertion) < 0)
+			computeModuleId(sap->role->nbr, sap->unit->nbr,
+			sap->moduleNbr), INVITE_LEN, assertion) < 0)
 	{
 		return -1;
 	}
@@ -4641,7 +4641,7 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	/*	Post service indication noting own invitation.		*/
 
 	return enqueueNotice(sap, AmsInvitationState, AmsStateBegins,
-			sap->unit->nbr, sap->nodeNbr, roleNbr, continuumNbr,
+			sap->unit->nbr, sap->moduleNbr, roleNbr, continuumNbr,
 			unitNbr, subjectNbr, priority, flowLabel, sequence,
 			diligence);
 }
@@ -4730,8 +4730,8 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	memcpy(cancellation + 4, (char *) &u2, 2);
 	*(cancellation + 6) = roleNbr;
 	if (enqueueMsgToRegistrar(sap, disinvite,
-			computeNodeId(sap->role->nbr, sap->unit->nbr,
-			sap->nodeNbr), 7, (char *) cancellation) < 0)
+			computeModuleId(sap->role->nbr, sap->unit->nbr,
+			sap->moduleNbr), 7, (char *) cancellation) < 0)
 	{
 		return -1;
 	}
@@ -4739,7 +4739,7 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	/*	Post service indication noting own disinvitation.	*/
 
 	return enqueueNotice(sap, AmsInvitationState, AmsStateBegins,
-			sap->unit->nbr, sap->nodeNbr, roleNbr, continuumNbr,
+			sap->unit->nbr, sap->moduleNbr, roleNbr, continuumNbr,
 			unitNbr, subjectNbr, 0, 0, 0, 0);
 }
 
@@ -4876,8 +4876,8 @@ static int	ams_subscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	loadAssertion(&cursor, SUBSCRIPTION, roleNbr, continuumNbr,
 			unitNbr, subjectNbr, vector->nbr, priority, flowLabel);
 	if (enqueueMsgToRegistrar(sap, subscribe,
-			computeNodeId(sap->role->nbr, sap->unit->nbr,
-			sap->nodeNbr), SUBSCRIBE_LEN, assertion) < 0)
+			computeModuleId(sap->role->nbr, sap->unit->nbr,
+			sap->moduleNbr), SUBSCRIBE_LEN, assertion) < 0)
 	{
 		return -1;
 	}
@@ -4885,7 +4885,7 @@ static int	ams_subscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	/*	Post service indication noting own subscription.	*/
 
 	return enqueueNotice(sap, AmsSubscriptionState, AmsStateBegins,
-			sap->unit->nbr, sap->nodeNbr, roleNbr, continuumNbr,
+			sap->unit->nbr, sap->moduleNbr, roleNbr, continuumNbr,
 			unitNbr, subjectNbr, priority, flowLabel, sequence,
 			diligence);
 }
@@ -4971,8 +4971,8 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	memcpy(cancellation + 4, (char *) &u2, 2);
 	*(cancellation + 6) = roleNbr;
 	if (enqueueMsgToRegistrar(sap, unsubscribe,
-			computeNodeId(sap->role->nbr, sap->unit->nbr,
-			sap->nodeNbr), 7, (char *) cancellation) < 0)
+			computeModuleId(sap->role->nbr, sap->unit->nbr,
+			sap->moduleNbr), 7, (char *) cancellation) < 0)
 	{
 		return -1;
 	}
@@ -4980,7 +4980,7 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	/*	Post service indication noting own unsubscription.	*/
 
 	return enqueueNotice(sap, AmsSubscriptionState, AmsStateEnds,
-			sap->unit->nbr, sap->nodeNbr, roleNbr, continuumNbr,
+			sap->unit->nbr, sap->moduleNbr, roleNbr, continuumNbr,
 			unitNbr, subjectNbr, 0, 0, 0, 0);
 }
 
@@ -5035,7 +5035,7 @@ static int	publishInEnvelope(AmsSAP *sap, int continuumNbr, int unitNbr,
 	return result;
 }
 
-static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
+static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 			int subjectNbr, int priority, unsigned char flowLabel,
 			int contentLength, char *content, int context,
 			AmsMsgType msgType)
@@ -5044,10 +5044,10 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
 	char		amsHeader[16];
 	int		headerLength = sizeof amsHeader;
 	Unit		*unit;
-	Node		*node;
+	Module		*module;
 	LystElt		elt;
 	SubjOfInterest	*subj = NULL;
-	InterestedNode	*intn;
+	FanModule	*fan;
 	XmitRule	*rule = NULL;
 
 	if (continuumNbr == THIS_CONTINUUM)
@@ -5056,7 +5056,7 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
 	}
 
 	if (continuumNbr < 1 || unitNbr < 0 || unitNbr > MaxUnitNbr
-	|| nodeNbr < 1 || nodeNbr > MaxNodeNbr
+	|| moduleNbr < 1 || moduleNbr > MaxModuleNbr
 	|| priority < 0 || priority >= NBR_OF_PRIORITY_LEVELS
 	|| contentLength < 0 || contentLength > MAX_AMS_CONTENT)
 	{
@@ -5102,7 +5102,7 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
 			content, contentLength, (unsigned char *) amsHeader,
 			msgType);
 		return publishInEnvelope(sap, continuumNbr, unitNbr,
-			sap->role->nbr, nodeNbr, subjectNbr, amsHeader,
+			sap->role->nbr, moduleNbr, subjectNbr, amsHeader,
 			headerLength, content, contentLength, 5);
 	}
 
@@ -5116,17 +5116,17 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
 		return -1;
 	}
 
-	node = unit->cell->nodes[nodeNbr];
-	if (node->role == NULL)
+	module = unit->cell->modules[moduleNbr];
+	if (module->role == NULL)
 	{
 		errno = EINVAL;
-		putSysErrmsg("Unknown destination node.", itoa(nodeNbr));
+		putSysErrmsg("Unknown destination module.", itoa(moduleNbr));
 		return -1;
 	}
 
-	if (lyst_length(node->subjects) < lyst_length(subject->nodes))
+	if (lyst_length(module->subjects) < lyst_length(subject->modules))
 	{
-		elt = findSubjOfInterest(sap, node, subject, NULL);
+		elt = findSubjOfInterest(sap, module, subject, NULL);
 		if (elt)
 		{
 			subj = (SubjOfInterest *) lyst_data(elt);
@@ -5136,7 +5136,7 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
 			if (subjectNbr > 0)
 			{
 				subject = sap->venture->subjects[ALL_SUBJECTS];
-				elt = findSubjOfInterest(sap, node, subject,
+				elt = findSubjOfInterest(sap, module, subject,
 						NULL);
 				if (elt)
 				{
@@ -5148,24 +5148,24 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
 	}
 	else
 	{
-		elt = findInterestedNode(sap, subject, node, NULL);
+		elt = findFanModule(sap, subject, module, NULL);
 		if (elt)
 		{
-			intn = (InterestedNode *) lyst_data(elt);
-			subj = intn->subj;
+			fan = (FanModule *) lyst_data(elt);
+			subj = fan->subj;
 		}
 		else
 		{
 			if (subjectNbr > 0)
 			{
 				subject = sap->venture->subjects[ALL_SUBJECTS];
-				elt = findInterestedNode(sap, subject, node,
+				elt = findFanModule(sap, subject, module,
 						NULL);
 				if (elt)
 				{
-					intn = (InterestedNode *)
+					fan = (FanModule *)
 							lyst_data(elt);
-					subj = intn->subj;
+					subj = fan->subj;
 				}
 			}
 		}
@@ -5179,7 +5179,7 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
 	if (rule == NULL)
 	{
 		errno = EINVAL;
-		putSysErrmsg("Can't send msgs on this subject to this node",
+		putSysErrmsg("Can't send msgs on this subject to this module",
 				NULL);
 		return -1;
 	}
@@ -5224,16 +5224,16 @@ fflush(stdout);
 }
 
 static int	ams_send2(AmsSAP *sap, int continuumNbr, int unitNbr,
-			int nodeNbr, int subjectNbr, int priority,
+			int moduleNbr, int subjectNbr, int priority,
 			unsigned char flowLabel, int contentLength,
 			char *content, int context)
 {
-	return sendMsg(sap, continuumNbr, unitNbr, nodeNbr, subjectNbr,
+	return sendMsg(sap, continuumNbr, unitNbr, moduleNbr, subjectNbr,
 			priority, flowLabel, contentLength, content,
 			context, AmsMsgUnary);
 }
 
-int	ams_send(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
+int	ams_send(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 		int subjectNbr, int priority, unsigned char flowLabel,
 		int contentLength, char *content, int context)
 {
@@ -5242,7 +5242,7 @@ int	ams_send(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
 	if (validSap(sap))
 	{
 		LOCK_MIB;
-		result = ams_send2(sap, continuumNbr, unitNbr, nodeNbr,
+		result = ams_send2(sap, continuumNbr, unitNbr, moduleNbr,
 				subjectNbr, priority, flowLabel, contentLength,
 				content, context);
 		UNLOCK_MIB;
@@ -5326,7 +5326,7 @@ static int	getEvent(AmsSAP *sap, int term, AmsEvent *event,
 			return 0;
 
 		case CRASH_EVT:
-			putErrmsg("AMS node crash.", evt->value);
+			putErrmsg("AMS module crash.", evt->value);
 			recycleEvent(evt);
 			return -1;
 
@@ -5344,7 +5344,7 @@ static void	handleNoticeEvent(AmsSAP *sap, AmsEvent *event)
 	AmsStateType	stateType;
 	AmsChangeType	changeType;
 	int		unitNbr;
-	int		nodeNbr;
+	int		moduleNbr;
 	int		roleNbr;
 	int		domainContinuumNbr;
 	int		domainUnitNbr;
@@ -5354,7 +5354,7 @@ static void	handleNoticeEvent(AmsSAP *sap, AmsEvent *event)
 	AmsSequence	sequence;
 	AmsDiligence	diligence;
 
-	ams_parse_notice(evt, &stateType, &changeType, &unitNbr, &nodeNbr,
+	ams_parse_notice(evt, &stateType, &changeType, &unitNbr, &moduleNbr,
 			&roleNbr, &domainContinuumNbr, &domainUnitNbr,
 			&subjectNbr, &priority, &flowLabel, &sequence,
 			&diligence);
@@ -5368,7 +5368,7 @@ static void	handleNoticeEvent(AmsSAP *sap, AmsEvent *event)
 			{
 				rules->registrationHandler(sap,
 					rules->registrationHandlerUserData,
-					event, unitNbr, nodeNbr, roleNbr);
+					event, unitNbr, moduleNbr, roleNbr);
 			}
 
 			return;
@@ -5378,7 +5378,7 @@ static void	handleNoticeEvent(AmsSAP *sap, AmsEvent *event)
 			{
 				rules->unregistrationHandler(sap,
 					rules->unregistrationHandlerUserData,
-					event, unitNbr, nodeNbr);
+					event, unitNbr, moduleNbr);
 			}
 
 			return;
@@ -5395,7 +5395,7 @@ static void	handleNoticeEvent(AmsSAP *sap, AmsEvent *event)
 			{
 				rules->invitationHandler(sap,
 					rules->invitationHandlerUserData,
-					event, unitNbr, nodeNbr, roleNbr,
+					event, unitNbr, moduleNbr, roleNbr,
 					domainContinuumNbr, domainUnitNbr,
 					subjectNbr, priority, flowLabel,
 					sequence, diligence);
@@ -5408,7 +5408,7 @@ static void	handleNoticeEvent(AmsSAP *sap, AmsEvent *event)
 			{
 				rules->disinvitationHandler(sap,
 					rules->disinvitationHandlerUserData,
-					event, unitNbr, nodeNbr, roleNbr,
+					event, unitNbr, moduleNbr, roleNbr,
 					domainContinuumNbr, domainUnitNbr,
 					subjectNbr);
 			}
@@ -5427,7 +5427,7 @@ static void	handleNoticeEvent(AmsSAP *sap, AmsEvent *event)
 			{
 				rules->subscriptionHandler(sap,
 					rules->subscriptionHandlerUserData,
-					event, unitNbr, nodeNbr, roleNbr,
+					event, unitNbr, moduleNbr, roleNbr,
 					domainContinuumNbr, domainUnitNbr,
 					subjectNbr, priority, flowLabel,
 					sequence, diligence);
@@ -5440,7 +5440,7 @@ static void	handleNoticeEvent(AmsSAP *sap, AmsEvent *event)
 			{
 				rules->unsubscriptionHandler(sap,
 					rules->unsubscriptionHandlerUserData,
-					event, unitNbr, nodeNbr, roleNbr,
+					event, unitNbr, moduleNbr, roleNbr,
 					domainContinuumNbr, domainUnitNbr,
 					subjectNbr);
 			}
@@ -5464,7 +5464,7 @@ static void	*eventMgrMain(void *parm)
 	AmsEvt		*evt;
 	int		continuumNbr;
 	int		unitNbr;
-	int		nodeNbr;
+	int		moduleNbr;
 	int		subjectNbr;
 	int		contentLength;
 	char		*content;
@@ -5509,12 +5509,12 @@ static void	*eventMgrMain(void *parm)
 			if (rules->msgHandler)
 			{
 				ams_parse_msg(evt, &continuumNbr, &unitNbr,
-					&nodeNbr, &subjectNbr, &contentLength,
+					&moduleNbr, &subjectNbr, &contentLength,
 					&content, &context, &msgType,
 					&priority, &flowLabel);
 				rules->msgHandler(sap,
 					rules->msgHandlerUserData, &evt,
-					continuumNbr, unitNbr, nodeNbr,
+					continuumNbr, unitNbr, moduleNbr,
 					subjectNbr, contentLength, content,
 					context, msgType, priority, flowLabel);
 			}
@@ -5583,7 +5583,7 @@ static void	stopEventMgr(AmsSAP *sap)
 }
 
 static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
-			int nodeNbr, int subjectNbr, int priority,
+			int moduleNbr, int subjectNbr, int priority,
 			unsigned char flowLabel, int contentLength,
 			char *content, long context, int term, AmsEvent *event)
 {
@@ -5610,7 +5610,7 @@ static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
 	|| (continuumNbr != THIS_CONTINUUM
 		&& continuumNbr != mib->localContinuumNbr))
 	{
-		return sendMsg(sap, continuumNbr, unitNbr, nodeNbr, subjectNbr,
+		return sendMsg(sap, continuumNbr, unitNbr, moduleNbr, subjectNbr,
 				priority, flowLabel, contentLength, content,
 				context, AmsMsgQuery);
 	}
@@ -5628,7 +5628,7 @@ static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
 	}
 
 	lyst_compare_set(sap->amsEvents, (LystCompareFn) context);
-	if (sendMsg(sap, continuumNbr, unitNbr, nodeNbr, subjectNbr,
+	if (sendMsg(sap, continuumNbr, unitNbr, moduleNbr, subjectNbr,
 			priority, flowLabel, contentLength, content,
 			context, AmsMsgQuery) < 0)
 	{
@@ -5662,7 +5662,7 @@ static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
 	return result;
 }
 
-int	ams_query(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
+int	ams_query(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 		int subjectNbr, int priority, unsigned char flowLabel,
 		int contentLength, char *content, int context, int term,
 		AmsEvent *event)
@@ -5672,7 +5672,7 @@ int	ams_query(AmsSAP *sap, int continuumNbr, int unitNbr, int nodeNbr,
 	if (validSap(sap))
 	{
 		LOCK_MIB;
-		result = ams_query2(sap, continuumNbr, unitNbr, nodeNbr,
+		result = ams_query2(sap, continuumNbr, unitNbr, moduleNbr,
 				subjectNbr, priority, flowLabel, contentLength,
 				content, context, term, event);
 		UNLOCK_MIB;
@@ -5700,7 +5700,7 @@ static int	ams_reply2(AmsSAP *sap, AmsEvt *evt, int subjectNbr,
 	}
 
 	msg = (AmsMsg *) (evt->value);
-	result = sendMsg(sap, msg->continuumNbr, msg->unitNbr, msg->nodeNbr,
+	result = sendMsg(sap, msg->continuumNbr, msg->unitNbr, msg->moduleNbr,
 			subjectNbr, priority, flowLabel, contentLength,
 			content, msg->contextNbr, AmsMsgReply);
 	return result;
@@ -5738,7 +5738,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	unsigned char	protectedBits;
 	Lyst		recipients;
 	LystElt		elt;
-	InterestedNode	*intn;
+	FanModule	*fan;
 	XmitRule	*rule;
 
 	if (continuumNbr == THIS_CONTINUUM)
@@ -5798,40 +5798,40 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	protectedBits = amsHeader[0] & 0xf0;
 	recipients = lyst_create();
 
-	/*	First send a copy of the message to every node in the
+	/*	First send a copy of the message to every module in the
 	 *	domain of this request that has posted at least one
 	 *	expression of interest in this subject whose domain
-	 *	includes the local node.  This is not publication,
-	 *	but we still use the subject's list of interested nodes
-	 *	to drive the message distribution: any node that has
+	 *	includes the local module.  This is not publication,
+	 *	but we still use the subject's list of interested modules
+	 *	to drive the message distribution: any module that has
 	 *	not at least invited messages on this subject cannot
 	 *	receive the message we are announcing.			*/
 
-	for (elt = lyst_first(subject->nodes); elt; elt = lyst_next(elt))
+	for (elt = lyst_first(subject->modules); elt; elt = lyst_next(elt))
 	{
-		intn = (InterestedNode *) lyst_data(elt);
+		fan = (FanModule *) lyst_data(elt);
 		if (roleNbr != 0	/*	Role-specific request.	*/
-		&& roleNbr != intn->node->role->nbr)
+		&& roleNbr != fan->module->role->nbr)
 		{
-			continue;	/*	Node's role is wrong.	*/
+			continue;	/*	Module's role is wrong.	*/
 		}
 
-		if (!subunitOf(sap, intn->node->unitNbr, unitNbr))
+		if (!subunitOf(sap, fan->module->unitNbr, unitNbr))
 		{
-			continue;	/*	Node in wrong unit.	*/
+			continue;	/*	Module in wrong unit.	*/
 		}
 
-		/*	Node is in the domain of the announce request.	*/
+		/*	Module is in the domain of the announce request.	*/
 
-		rule = getXmitRule(sap, intn->subj->invitations);
+		rule = getXmitRule(sap, fan->subj->invitations);
 		if (rule == NULL)
 		{
-			continue;	/*	Can't send node a copy.	*/
+			continue;	/*	Can't send module a copy.	*/
 		}
 
-		/*	Can send this node a copy of this message.
+		/*	Can send this module a copy of this message.
 		 *	Supply default priority and/or flow label as
-		 *	necessary, and send message to node.		*/
+		 *	necessary, and send message to module.		*/
 
 		if (priority)		/*	Override.		*/
 		{
@@ -5856,50 +5856,50 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		}
 
 		lyst_insert_last(recipients,
-				(void *) ((long) (intn->node->nbr)));
+				(void *) ((long) (fan->module->nbr)));
 		// cast to long to avoid warnings on 64-bit
 	}
 
-	/*	Now send a copy of the message to every node in the
+	/*	Now send a copy of the message to every module in the
 	 *	domain of this request that has posted at least one
 	 *	expression of interest in ALL SUBJECTS whose domain
-	 *	includes the local node.  Again, it's not publication,
-	 *	but we still use the subject's list of interested nodes
-	 *	to drive the message distribution: any node that has
+	 *	includes the local module.  Again, it's not publication,
+	 *	but we still use the subject's list of interested modules
+	 *	to drive the message distribution: any module that has
 	 *	not at least invited messages on all subjects cannot
 	 *	receive the message we are announcing.			*/
 
 	subject = sap->venture->subjects[ALL_SUBJECTS];
-	for (elt = lyst_first(subject->nodes); elt; elt = lyst_next(elt))
+	for (elt = lyst_first(subject->modules); elt; elt = lyst_next(elt))
 	{
-		intn = (InterestedNode *) lyst_data(elt);
-		if (receivedMsgAlready(recipients, intn->node->nbr))
+		fan = (FanModule *) lyst_data(elt);
+		if (receivedMsgAlready(recipients, fan->module->nbr))
 		{
 			continue;	/*	Don't send 2nd copy.	*/
 		}
 
 		if (roleNbr != 0	/*	Role-specific request.	*/
-		&& roleNbr != intn->node->role->nbr)
+		&& roleNbr != fan->module->role->nbr)
 		{
-			continue;	/*	Node's role is wrong.	*/
+			continue;	/*	Module's role is wrong.	*/
 		}
 
-		if (!subunitOf(sap, intn->node->unitNbr, unitNbr))
+		if (!subunitOf(sap, fan->module->unitNbr, unitNbr))
 		{
-			continue;	/*	Node in wrong unit.	*/
+			continue;	/*	Module in wrong unit.	*/
 		}
 
-		/*	Node is in the domain of the announce request.	*/
+		/*	Module is in the domain of the announce request.*/
 
-		rule = getXmitRule(sap, intn->subj->invitations);
+		rule = getXmitRule(sap, fan->subj->invitations);
 		if (rule == NULL)
 		{
-			continue;	/*	Can't send node a copy.	*/
+			continue;	/*	Can't send module a copy.*/
 		}
 
-		/*	Can send this node a copy of this message.
+		/*	Can send this module a copy of this message.
 		 *	Supply default priority and/or flow label as
-		 *	necessary, and send message to node.		*/
+		 *	necessary, and send message to module.		*/
 
 		if (priority)		/*	Override.		*/
 		{
@@ -6053,14 +6053,14 @@ int	ams_get_event_type(AmsEvent event)
 }
 
 int	ams_parse_msg(AmsEvent event, int *continuumNbr, int *unitNbr,
-		int *nodeNbr, int *subjectNbr, int *contentLength,
+		int *moduleNbr, int *subjectNbr, int *contentLength,
 		char **content, int *context, AmsMsgType *msgType,
 		int *priority, unsigned char *flowLabel)
 {
 	AmsMsg	*msg;
 
 	if (event == NULL || event->type != AMS_MSG_EVT
-	|| continuumNbr == NULL || unitNbr == NULL || nodeNbr == NULL
+	|| continuumNbr == NULL || unitNbr == NULL || moduleNbr == NULL
 	|| subjectNbr == NULL || contentLength == NULL || content == NULL
 	|| context == NULL || msgType == NULL || priority == NULL
 	|| flowLabel == NULL)
@@ -6072,7 +6072,7 @@ int	ams_parse_msg(AmsEvent event, int *continuumNbr, int *unitNbr,
 	msg = (AmsMsg *) (event->value);
 	*continuumNbr = msg->continuumNbr;
 	*unitNbr = msg->unitNbr;
-	*nodeNbr = msg->nodeNbr;
+	*moduleNbr = msg->moduleNbr;
 	*subjectNbr = msg->subjectNbr;
 	if (msg->content == NULL)
 	{
@@ -6338,7 +6338,7 @@ char	*ams_lookup_continuum_name(AmsSAP *sap, int continuumNbr)
 }
 
 int	ams_parse_notice(AmsEvent event, AmsStateType *state,
-		AmsChangeType *change, int *unitNbr, int *nodeNbr,
+		AmsChangeType *change, int *unitNbr, int *moduleNbr,
 		int *roleNbr, int *domainContinuumNbr, int *domainUnitNbr,
 		int *subjectNbr, int *priority, unsigned char *flowLabel,
 		AmsSequence *sequence, AmsDiligence *diligence)
@@ -6347,7 +6347,7 @@ int	ams_parse_notice(AmsEvent event, AmsStateType *state,
 
 	if (event == NULL || event->type != NOTICE_EVT
 	|| state == NULL || change == NULL || unitNbr == NULL
-	|| nodeNbr == NULL || roleNbr == NULL || domainContinuumNbr == NULL
+	|| moduleNbr == NULL || roleNbr == NULL || domainContinuumNbr == NULL
 	|| domainUnitNbr == NULL || subjectNbr == NULL || priority == NULL
 	|| flowLabel == NULL || sequence == NULL || diligence == NULL)
 	{
@@ -6359,7 +6359,7 @@ int	ams_parse_notice(AmsEvent event, AmsStateType *state,
 	*state = notice->stateType;
 	*change = notice->changeType;
 	*unitNbr = notice->unitNbr;
-	*nodeNbr = notice->nodeNbr;
+	*moduleNbr = notice->moduleNbr;
 	*roleNbr = notice->roleNbr;
 	*domainContinuumNbr = notice->domainContinuumNbr;
 	*domainUnitNbr = notice->domainUnitNbr;

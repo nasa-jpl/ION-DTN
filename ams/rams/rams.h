@@ -32,7 +32,7 @@ typedef enum
 {
 	AMSNODE = 1, 
 	RAMSNODE = 2
-} AmsNodeType; 
+} AmsModuleType; 
 
 typedef enum
 {
@@ -40,98 +40,95 @@ typedef enum
 	TREETYPE = 2
 } RAMSNetworkType;
 
-// message information base which mainly contains the MIB of the
-// the relevant AMS plus RAMS grids information
+/*	Management information base, which mainly contains the MIB
+ *	of the relevant AMS venture plus RAMS neighbor information.	*/
 typedef  struct
 {
-	AmsMib *amsMib;
-	Lyst   ramsNeighbors;     // expected neighbors, formerly ramsGrids
-	Lyst   declaredNeighbors; // declared neighbors, formerly declaredRams
-	int    neighborsCount;	  // formerly gridSize
-	int    totalDeclared;
-	RAMSNetworkType netType;  // network type
-}RamsMib;
-	
+	AmsMib		*amsMib;
+	Lyst		ramsNeighbors;	/*	expected neighbors	*/
+					/*	formerly ramsGrids	*/
+	int		neighborsCount;	/*	formerly gridSize	*/
+	Lyst		declaredNeighbors; /*	declared neighbors	*/
+					/*	formerly declaredRams	*/
+	int		totalDeclared;
+	RAMSNetworkType	netType;	/*	network type		*/
+} RamsMib;
+
+/*	RamsGateway is the module's RAMS Gateway operational state.	*/
 typedef  struct ramsgateway
 {
-	AmsNode amsNode;               // the base AMSNode
-	
-	Lyst   petitionSet;           // list of petition; 
-	Lyst   invitationSet;         // list of Invitation;
-	Lyst   registerSet;           // list of registered node, set of Node*
-	RamsMib *ramsMib;             // MIB manage information base
-	
-	pthread_t primeThread;   
-	pthread_t petitionReceiveThread;
-	pthread_t amsReceiveThread;
-} RamsGateway, *RamsGate;	// RamsGate was formerly ramsNode
+	AmsModule	amsModule;	/* gateway's AMS module state	*/
 
-// Envelope content
+	Lyst		petitionSet;	/* list of (Petition *)		*/ 
+	Lyst		invitationSet;	/* list of (Invitation *)	*/
+	Lyst		registerSet;	/* list of registered modules	*/
+	RamsMib		*ramsMib;
+	
+	pthread_t	primeThread;   
+	pthread_t	petitionReceiveThread;
+	pthread_t	amsReceiveThread;
+} RamsGateway, *RamsGate;		/* RamsGate: formerly ramsNode	*/
+
 typedef struct
 {
-	int controlCode;
-	int continuumNbr;
-	int unitNbr;
-	int nodeNbr;
-	int roleNbr;
-	int subjectNbr;
-	int enclosureLength;
-	char* enclosure;
+	int		controlCode;
+	int		continuumNbr;
+	int		unitNbr;
+	int		moduleNbr;
+	int		roleNbr;
+	int		subjectNbr;
+	int		enclosureLength;
+	char		*enclosure;
 } Envelope;
 
-// Rams gateway address, continuum ID, unit no., node no.
+/*	RamsNode structure identifies a neighbor in the RAMS network	*/
 typedef struct
 {
-//	int elementNbr;  // continuumID
-//	int serviceNbr;  // ipn:element#.service#
+/*	int		moduleNbr;	//	Held continuum number	*/
+/*	int		elementNbr;	// continuumID			*/
+/*	int		serviceNbr;	// ipn:element#.service#	*/
 	int		continuumNbr;
 	RamsNetProtocol	protocol;
 	char		*gwEid;
-//	int		nodeNbr;	//	Held continuum number
-} RamsNode;				//	Formerly BPEndPoint
+} RamsNode;				/*	Formerly BPEndPoint	*/
 
-// enclosure including header and content
 typedef struct
 {
-	char* enclosureContent;
-	int enclosureHeaderLength;
-	int contentLength;
+	char		*enclosureContent;
+	int		enclosureHeaderLength;
+	int		contentLength;
 } Enclosure;
 
+typedef struct
+{
+	char		*envelope;
+	int		envelopeLength;
+	int		toContinuumNbr;
+} PetitionSpec;
 
 typedef struct
 {
-    char* envelope;
-	int envelopeLength;
-	int toContinuumNbr;
-} PetitionContent;
-
-// petition assertion
-typedef struct
-{
-	PetitionContent *specification;
-
-	Lyst DistributionNodeSet;           // 
-	Lyst DestinationRamsSet;
-	Lyst SourceRamsSet;
+	PetitionSpec	*specification;
+	Lyst		DistributionModuleSet;
+	Lyst		DestinationNodeSet;
+	Lyst		SourceNodeSet;
 } Petition;	
 
 typedef struct 
 {
-	int domainContNbr;
-	int domainUnitNbr;
-	int domainRoleNbr;
-	int subjectNbr;
-} InvitationContent;
+	int		domainContNbr;
+	int		domainUnitNbr;
+	int		domainRoleNbr;
+	int		subjectNbr;
+} InvitationSpec;
 
 typedef struct
 {
-	InvitationContent* inviteSpecification;
-	Lyst nodeSet;    // set of Node*
+	InvitationSpec	*inviteSpecification;
+	Lyst		moduleSet;	/*	Lyst of (Module *)	*/
 } Invitation;
 
-
-// envelope control code list
+/*	 Envelope control code list.					*/
 typedef enum 
 {
 	InitialDeclaration = 1,
@@ -142,17 +139,17 @@ typedef enum
 	AnnounceOnReception = 6
 } EnvelopeControlCode;
 
-
+/*	Fields that can be extracted from envelope.			*/
 typedef enum 
 {
 	Env_ControlCode = 1,
 	Env_ContinuumNbr = 2,
-	Env_PublishUnitNbr = 3,      // unit
-	Env_PublishRoleNbr = 4,      // sourceID field cc=2&3
-	Env_SourceRoleNbr = 5,		 // sourceID field cc=4&5&6
-	Env_DestUnitNbr = 6,         // unit 
-	Env_DestNodeNbr = 7,		 // destID field cc=5
-	Env_DestRoleNbr = 8,         // destID field cc=6
+	Env_PublishUnitNbr = 3,		/* unit				*/
+	Env_PublishRoleNbr = 4,		/* sourceID field cc=2&3	*/
+	Env_SourceRoleNbr = 5,		/* sourceID field cc=4&5&6	*/
+	Env_DestUnitNbr = 6,		/* unit 			*/
+	Env_DestModuleNbr = 7,		/* destID field cc=5		*/
+	Env_DestRoleNbr = 8,		/* destID field cc=6		*/
 	Env_SubjectNbr = 9,
 	Env_EnclosureLength = 10,
 	Env_UnitField = 11,
@@ -160,22 +157,21 @@ typedef enum
 	Env_DestIDField = 13
 } EnvelopeContent;
 
+/*	Fields that can be extracted from enclosure.			*/
 typedef enum
 {
 	Enc_ContinuumNbr = 1,
 	Enc_UnitNbr = 2,
-	Enc_NodeNbr = 3,
+	Enc_ModuleNbr = 3,
 	Enc_SubjectNbr = 4,
 	Enc_ChecksumFlag = 5
 } EnclosureContent;
 
-
-//	typedef struct ramsgateway	*ramsNode;
 extern int rams_register(char *mibSource, char *tsorder, char *mName,
 		char *memory, unsigned mSize, char *applicationName,
 		char *authorityName, char *unitName, char *roleName,
-		RamsGate *gNode, int lifetime);
-extern int rams_unregister(RamsGate *gNode);
+		RamsGate *gwayPtr, int lifetime);
+extern int rams_unregister(RamsGate *gwayPtr);
 
 #ifdef __cplusplus
 }

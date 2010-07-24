@@ -4974,13 +4974,6 @@ status reports for admin records.");
 		}
 	}
 
-	if (lifespan > MAX_TTL_SEC)
-	{
-		writeMemoNote("[?] TTL limit (17,280,000 sec) exceeded",
-				itoa(lifespan));
-		return 0;
-	}
-
 	if (sourceMetaEid == NULL)
 	{
 		bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
