@@ -2484,7 +2484,7 @@ int	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 
 	if (sap->state == DgrSapClosed)
 	{
-		writeMemo("[?] DGR access point has not been opened.");
+		writeMemo("[?] DGR access point is not open.");
 		*rc = DgrFailed;
 		return 0;
 	}
@@ -2645,7 +2645,7 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 
 	if (sap->state == DgrSapClosed)
 	{
-		writeMemo("[?] DGR access point has not been opened.");
+		writeMemo("[?] DGR access point is not open.");
 		*rc = DgrFailed;
 		return 0;
 	}

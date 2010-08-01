@@ -3132,7 +3132,6 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 	char	cwd[200];
 	char	name[SDRSTRING_BUFSZ];
 	int	fd;
-	char	script[SDRSTRING_BUFSZ];
 
 	if (igetcwd(cwd, sizeof cwd) == NULL)
 	{
@@ -3150,8 +3149,7 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 	}
 
 	close(fd);
-	isprintf(script, sizeof script, "unlink %s", name);
-	session->blockFileRef = zco_create_file_ref(ltpSdr, name, script);
+	session->blockFileRef = zco_create_file_ref(ltpSdr, name, "");
 	if (session->blockFileRef == 0)
 	{
 		putErrmsg("Can't create block file reference.", NULL);

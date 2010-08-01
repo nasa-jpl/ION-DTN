@@ -142,6 +142,7 @@ static void	*sendBundles(void *parm)
 
 		zco_start_transmitting(sdr, bundleZco, &reader);
 		bytesToSend = zco_transmit(sdr, &reader, DGRCLA_BUFSZ, buffer);
+		zco_stop_transmitting(sdr, &reader);
 		if (bytesToSend < 0)
 		{
 			sdr_cancel_xn(sdr);
@@ -150,7 +151,6 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
-		zco_stop_transmitting(sdr, &reader);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			threadRunning = 0;
@@ -468,8 +468,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (dgr_open(getOwnNodeNbr(), 1, portNbr, hostNbr,
-			memmgr_name(getIonMemoryMgr()), &dgrSap, &rc) < 0
+	if (dgr_open(getOwnNodeNbr(), 1, portNbr, hostNbr, NULL, &dgrSap, &rc)
 	|| rc == DgrFailed)
 	{
 		putErrmsg("dgrcla can't open DGR service access point.", NULL);

@@ -1333,6 +1333,7 @@ void	sdr_stop_using(Sdr sdrv)
 
 	if (sdr_in_xn(sdrv))
 	{
+		putErrmsg("Terminating transaction to stop using SDR.", NULL);
 		crashXn(sdrv);
 	}
 
