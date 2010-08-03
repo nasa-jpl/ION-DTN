@@ -250,7 +250,6 @@ node5dir = $(pkgdatadir)/configs/3node-ltp-brs/iontest.ipn.node5
 node5_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/ionconfig \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/ionstart \
-	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/ionstop \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.bprc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.ionrc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.ipnrc \
@@ -259,7 +258,6 @@ node7dir = $(pkgdatadir)/configs/3node-ltp-brs/iontest.ipn.node7
 node7_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/ionconfig \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/ionstart \
-	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/ionstop \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.bprc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.ionrc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.ipnrc \
@@ -268,7 +266,6 @@ node10dir = $(pkgdatadir)/configs/3node-ltp-brs/iontest.ipn.node10
 node10_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/ionconfig \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/ionstart \
-	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/ionstop \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.bprc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ionrc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ipnrc \
@@ -537,6 +534,7 @@ ltptestdir = $(srcdir)/ltp/test
 ltputilsdir = $(srcdir)/ltp/utils
 ltpdaemondir = $(srcdir)/ltp/daemon
 ltpudpdir = $(srcdir)/ltp/udp
+ltpaosdir = $(srcdir)/ltp/aos
 ltpdocdir = $(srcdir)/ltp/doc
 ltpmandir = $(top_builddir)/ltp/doc
 
@@ -548,6 +546,8 @@ ltpbin = \
 	ltpmeter \
 	udplsi \
 	udplso \
+	aoslsi \
+	aoslso \
 	ltpdriver \
 	ltpcounter
 
@@ -560,7 +560,8 @@ ltpinclude = \
 
 ltpnoinst = \
 	$(ltpbindir)/ltpP.h \
-	$(ltpudpdir)/udplsa.h 
+	$(ltpudpdir)/udplsa.h \
+	$(ltpaosdir)/aoslsa.h
 
 ltpextra = \
 	$(srcdir)/ltp/README.txt \
@@ -645,6 +646,16 @@ udplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 udplso_SOURCES = $(ltpudpdir)/udplso.c
 udplso_LDADD = libltpP.la libici.la $(LIBOBJS) 
 udplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+# --- AOS Executables --- #
+
+aoslsi_SOURCES = $(ltpaosdir)/aoslsi.c
+aoslsi_LDADD = libltpP.la libici.la $(LIBOBJS) 
+aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+aoslso_SOURCES = $(ltpaosdir)/aoslso.c
+aoslso_LDADD = libltpP.la libici.la $(LIBOBJS) 
+aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 ##########################
 #

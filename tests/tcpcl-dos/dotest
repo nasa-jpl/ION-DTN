@@ -16,9 +16,15 @@ IONMESSAGE="iontestmessage"
 IONSENDFILE=./ionsendfile.txt
 IONRECEIVEFILE=./ionreceivefile.txt
 
-
-if [ -z $(which netcat) ]; then
-	echo "netcat is not present in this system; skipping..."
+PROGRAMTEST="netcat"
+RESULTS=`which ${PROGRAMTEST}`
+WHICHRETURN=$?
+echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
+WHICHFAILMESSAGE=$?
+# which could return the proper fail condition, or the results could be
+# empty, or you're on solaris and your results will be "no netcat in $PATH".
+if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
+	echo "${PROGRAMTEST} is not present in this system; skipping..."
 	exit 2
 fi
 
