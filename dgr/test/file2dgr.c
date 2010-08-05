@@ -82,6 +82,7 @@ static int	run_file2dgr(char *remoteHostName, char *fileName)
 	unsigned int	remoteIpAddress;
 	unsigned short	remotePortNbr = TEST_PORT_NBR;
 	PsmMgtOutcome	outcome;
+	DgrRC		rc;
 	FILE		*inputFile;
 	char		line[256];
 	int		lineLen;
@@ -108,7 +109,8 @@ psm_start_trace(dgrwm, 10000000, NULL);
 
 	memmgr_add("dgr", allocFromDgrMemory, releaseToDgrMemory, dgrAtoP,
 			dgrPtoA);
-	if (dgr_open(0, ownIpAddress, "dgr", &dgr) != DgrOpened)
+	if (dgr_open(ownIpAddress, 2, 0, ownIpAddress, "dgr", &dgr, &rc) < 0
+	|| rc != DgrOpened)
 	{
 		putErrmsg("Can't open dgr service.", NULL);
 		writeErrmsgMemos();
@@ -135,14 +137,10 @@ psm_start_trace(dgrwm, 10000000, NULL);
 		{
 			if (feof(inputFile))
 			{
-				switch (dgr_send(dgr, remotePortNbr,
+				if (dgr_send(dgr, remotePortNbr,
 					remoteIpAddress, DGR_NOTE_FAILED,
-					eofLine, eofLineLen))
+					eofLine, eofLineLen, &rc) < 0)
 				{
-				case DgrDatagramSent:
-					break;
-
-				default:
 					putErrmsg("dgr_send failed.", NULL);
 					writeErrmsgMemos();
 					fclose(inputFile);
@@ -152,9 +150,12 @@ psm_start_trace(dgrwm, 10000000, NULL);
 				bytesSent += eofLineLen;
 				fclose(inputFile);
 				cyclesLeft--;
-				if (cyclesLeft == 0) break;
-				snooze(rand() % 5);
-				/*	Sleep up to 5 seconds.		*/
+				if (cyclesLeft == 0)
+				{
+					inputFile = NULL;
+					break;
+				}
+
 				inputFile = fopen(fileName, "r");
 				if (inputFile == NULL)
 				{
@@ -177,13 +178,9 @@ psm_start_trace(dgrwm, 10000000, NULL);
 		}
 
 		lineLen = strlen(line);
-		switch (dgr_send(dgr, remotePortNbr, remoteIpAddress,
-				DGR_NOTE_FAILED, line, lineLen))
+		if (dgr_send(dgr, remotePortNbr, remoteIpAddress,
+				DGR_NOTE_FAILED, line, lineLen, &rc) < 0)
 		{
-		case DgrDatagramSent:
-			break;
-
-		default:
 			putErrmsg("dgr_send failed", NULL);
 			writeErrmsgMemos();
 			fclose(inputFile);
@@ -193,13 +190,19 @@ psm_start_trace(dgrwm, 10000000, NULL);
 		bytesSent += lineLen;
 	}
 
-	dgr_close(dgr);
 	report(&startTime, bytesSent);
+	writeMemo("[i] file2dgr waiting 10 sec for retransmission to stop.");
+	sleep(10);
+	dgr_close(dgr);
 #if 0
 psm_print_trace(dgrwm, 0);
 psm_stop_trace(dgrwm);
 #endif
-	fclose(inputFile);
+	if (inputFile)
+	{
+		fclose(inputFile);
+	}
+
 	return 0;
 }
 

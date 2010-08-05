@@ -124,7 +124,7 @@ if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
     echo
     echo "Sent this:"
     echo "----------------------------------------------------------------------"
-    cat $IONSENDFILE
+    echo $IONMESSAGE
     echo "----------------------------------------------------------------------"
     echo
     echo "Received this:"

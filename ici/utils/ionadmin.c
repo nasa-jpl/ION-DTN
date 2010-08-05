@@ -783,7 +783,8 @@ static int	processLine(char *line, int lineLength)
 	int	i;
 	char	*tokens[9];
 	char	buffer[80];
-	time_t	referenceTime;
+	time_t	refTime;
+	time_t	currentTime;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -871,15 +872,33 @@ no time.");
 				}
 				else
 				{
-					if (_referenceTime(NULL) == 0)
+					/*	Get current ref time.	*/
+
+					refTime = _referenceTime(NULL);
+					if (refTime == 0)
 					{
-						referenceTime = getUTCTime();
-						oK(_referenceTime
-							(&referenceTime));
+						/*	Set reference
+						 *	time to the
+						 *	current time
+						 *	by default.	*/
+
+						currentTime = getUTCTime();
+						refTime = _referenceTime
+							(&currentTime);
 					}
 
-					referenceTime = readTimestampUTC
-						(tokens[1], referenceTime);
+					/*	Get new ref time, which
+					 *	may be an offset from
+					 *	the current ref time.	*/
+
+					refTime = readTimestampUTC
+						(tokens[1], refTime);
+
+					/*	Record new ref time
+					 *	for use by subsequent
+					 *	command lines.		*/
+
+					oK(_referenceTime(&refTime));
 				}
 			}
 

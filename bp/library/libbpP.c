@@ -2985,7 +2985,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	Endpoint	endpointBuf;
 	Scheme		scheme;
 	Object		addr;
-	Object		endpointElt;
+	Object		endpointElt = 0;	/*	To hush gcc.	*/
 
 	CHKERR(eid);
 	if (parseEidString(eid, &metaEid, &vscheme, &elt) == 0)
@@ -6300,7 +6300,6 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	BpDB			*bpConstants = _bpConstants();
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
-	char			script[SDRSTRING_BUFSZ];
 	int			fd;
 	long			fileLength;
 
@@ -6378,8 +6377,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		}
 
 		fileLength = 0;
-		isprintf(script, sizeof script, "unlink %s", fileName);
-		work->acqFileRef = zco_create_file_ref(sdr, fileName, script);
+		work->acqFileRef = zco_create_file_ref(sdr, fileName, "");
 	}
 	else				/*	Writing more to file.	*/
 	{
@@ -9921,7 +9919,7 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 	Sdr		bpSdr = getIonsdr();
 	unsigned char	*buffer;
 	Bundle		image;
-	char		*dictionary;
+	char		*dictionary = 0;	/*	To hush gcc.	*/
 	unsigned int	bundleLength;
 	int		result;
 	char		*sourceEid;

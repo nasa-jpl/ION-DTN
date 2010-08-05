@@ -33,6 +33,8 @@ extern int	ltpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclo(int, int, int, int, int, int, int, int, int, int);
 extern int	udplsi(int, int, int, int, int, int, int, int, int, int);
 extern int	udplso(int, int, int, int, int, int, int, int, int, int);
+extern int	aoslsi(int, int, int, int, int, int, int, int, int, int);
+extern int	aoslso(int, int, int, int, int, int, int, int, int, int);
 extern int	udpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	udpclo(int, int, int, int, int, int, int, int, int, int);
 extern int	tcpcli(int, int, int, int, int, int, int, int, int, int);
@@ -66,6 +68,8 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },
 		{ "udplsi",	(FUNCPTR) udplsi,	ICI_PRIORITY,	32768 },
 		{ "udplso",	(FUNCPTR) udplso,	ICI_PRIORITY,	32768 },
+		{ "aoslsi",	(FUNCPTR) aoslsi,	ICI_PRIORITY,	32768 },
+		{ "aoslso",	(FUNCPTR) aoslso,	ICI_PRIORITY,	32768 },
 		{ "udpcli",	(FUNCPTR) udpcli,	ICI_PRIORITY,	32768 },
 		{ "udpclo",	(FUNCPTR) udpclo,	ICI_PRIORITY,	32768 },
 		{ "tcpcli",	(FUNCPTR) tcpcli,	ICI_PRIORITY,	4096  },

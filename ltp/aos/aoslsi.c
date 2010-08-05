@@ -1,18 +1,17 @@
 /*
-	udplsi.c:	LTP UDP-based link service daemon.
+  aoslso.c - LTP over AOS Link Service Adapter, output
 
-	Author: Scott Burleigh, JPL
+*/
 
-	Copyright (c) 2007, California Institute of Technology.
-	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
-	acknowledged.
-	
-									*/
-#include "udplsa.h"
+/* 7/6/2010, copied from udplso, as per issue 101-LTP-over-AOS-via-UDP
+   Greg Menke, Raytheon, under contract METS-MR-679-0909 with NASA GSFC */
+
+
+#include "aoslsa.h"
 
 static void	interruptThread()
 {
-	isignal(SIGTERM, interruptThread);
+	signal(SIGTERM, interruptThread);
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
@@ -26,18 +25,18 @@ typedef struct
 
 static void	*handleDatagrams(void *parm)
 {
-	/*	Main loop for UDP datagram reception and handling.	*/
+	/*	Main loop for AOS datagram reception and handling.	*/
 
 	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
 	char			*buffer;
 	int			segmentLength;
 	struct sockaddr_in	fromAddr;
-	socklen_t		fromSize;
+	unsigned int		fromSize;
 
-	buffer = MTAKE(UDPLSA_BUFSZ);
+	buffer = MTAKE(AOSLSA_BUFSZ);
 	if (buffer == NULL)
 	{
-		putErrmsg("udplsi can't get UDP buffer.", NULL);
+		putErrmsg("aoslsi can't get AOS buffer.", NULL);
 		pthread_kill(rtp->mainThread, SIGTERM);
 		return NULL;
 	}
@@ -45,11 +44,10 @@ static void	*handleDatagrams(void *parm)
 	/*	Can now start receiving bundles.  On failure, take
 	 *	down the LSI.						*/
 
-	iblock(SIGTERM);
 	while (rtp->running)
 	{	
 		fromSize = sizeof fromAddr;
-		segmentLength = recvfrom(rtp->linkSocket, buffer, UDPLSA_BUFSZ,
+		segmentLength = recvfrom(rtp->linkSocket, buffer, AOSLSA_BUFSZ,
 				0, (struct sockaddr *) &fromAddr, &fromSize);
 		switch(segmentLength)
 		{
@@ -78,7 +76,7 @@ static void	*handleDatagrams(void *parm)
 	}
 
 	writeErrmsgMemos();
-	writeMemo("[i] udplsi receiver thread has ended.");
+	writeMemo("[i] aoslsi receiver thread has ended.");
 
 	/*	Free resources.						*/
 
@@ -89,7 +87,7 @@ static void	*handleDatagrams(void *parm)
 /*	*	*	Main thread functions	*	*	*	*/
 
 #if defined (VXWORKS) || defined (RTEMS)
-int	udplsi(int a1, int a2, int a3, int a4, int a5,
+int	aoslsi(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char	*endpointSpec = (char *) a1;
@@ -105,7 +103,7 @@ int	main(int argc, char *argv[])
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
 	ReceiverThreadParms	rtp;
-	socklen_t		nameLength;
+	unsigned int		nameLength;
 	pthread_t		receiverThread;
 	int			fd;
 	char			quit = '\0';
@@ -116,7 +114,7 @@ int	main(int argc, char *argv[])
 
 	if (ltpInit(0, 0) < 0)
 	{
-		putErrmsg("udplsi can't initialize LTP.", NULL);
+		putErrmsg("aoslsi can't initialize LTP.", NULL);
 		return 1;
 	}
 
@@ -136,7 +134,7 @@ int	main(int argc, char *argv[])
 
 	if (portNbr == 0)
 	{
-		portNbr = LtpUdpDefaultPortNbr;
+		portNbr = LtpAosDefaultPortNbr;
 	}
 	
 	if (ipAddress == 0)		/*	Default to local host.	*/
@@ -155,7 +153,7 @@ int	main(int argc, char *argv[])
 	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (rtp.linkSocket < 0)
 	{
-		putSysErrmsg("LSI can't open UDP socket", NULL);
+		putSysErrmsg("LSI can't open AOS socket", NULL);
 		return -1;
 	}
 
@@ -171,7 +169,7 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 
-	isignal(SIGTERM, interruptThread);
+	signal(SIGTERM, interruptThread);
 
 	/*	Start the receiver thread.				*/
 
@@ -180,14 +178,15 @@ int	main(int argc, char *argv[])
 	if (pthread_create(&receiverThread, NULL, handleDatagrams, &rtp))
 	{
 		close(rtp.linkSocket);
-		putSysErrmsg("udplsi can't create receiver thread", NULL);
+		putSysErrmsg("aoslsi can't create receiver thread", NULL);
 		return 1;
 	}
 
 	/*	Now sleep until interrupted by SIGTERM, at which point
 	 *	it's time to stop the link service.			*/
 
-	writeMemo("[i] udplsi is running.");
+	writeMemo("[i] aoslsi is running.");
+
 	snooze(2000000000);
 
 	/*	Time to shut down.					*/
@@ -207,6 +206,6 @@ int	main(int argc, char *argv[])
 	pthread_join(receiverThread, NULL);
 	close(rtp.linkSocket);
 	writeErrmsgMemos();
-	writeMemo("[i] udplsi has ended.");
+	writeMemo("[i] aoslsi duct has ended.");
 	return 0;
 }
