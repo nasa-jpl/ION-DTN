@@ -16,11 +16,6 @@ it includes a congestion control mechanism that interprets LTP block
 transmission failure as an indication of network congestion (not data
 corruption) and reduces data transmission rate in response.
 
-At this time DGR is interoperable with other implementations of LTP only when
-each block it receives is transmitted in a single LTP data segment encapsulated
-in a single UDP datagram.  More complex LTP behavior may be implemented in
-the future.
-
 As such, DGR differs from many reliable-UDP systems in two main ways:
 
 	It uses adaptive timeout interval computation techniques
@@ -31,6 +26,11 @@ As such, DGR differs from many reliable-UDP systems in two main ways:
 	from LTP (and ultimately from CFDP), rather than waiting
 	for one datagram to be acknowledged before sending the next,
 	to improve bandwidth utilization.
+
+At this time DGR is interoperable with other implementations of LTP only when
+each block it receives is transmitted in a single LTP data segment encapsulated
+in a single UDP datagram.  More complex LTP behavior may be implemented in
+the future.
 
 =over 4
 
