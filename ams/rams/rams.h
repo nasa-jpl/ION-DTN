@@ -1,38 +1,35 @@
 /*
-rams.h: private definition supporting the implementation of 
-Remote Asynchronous Message Service 
+	rams.h:		public definitions supporting the
+			implementation of Remote Asynchronous
+			Message Service.
 
-Author: Shin-Ywan (Cindy) Wang
-
-Copyright (c) 2005, California Institute of Technology.
-ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+	Author: Shin-Ywan (Cindy) Wang
+	Copyright (c) 2005, California Institute of Technology.
+	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 */
 
 #ifndef  _RAMS_H
 #define _RAMS_H
 
-#include <ams.h>
-#include <amscommon.h>
+#include "ams.h"
+#include "amscommon.h"
 #include "platform.h"
 #include "memmgr.h"
 #include "psm.h"
 #include "lyst.h"
 #include "llcv.h"
+#include "bp.h"
+#include "sdr.h"
+#include "zco.h"
 
 #ifdef _cplusplus
 extern "C" {
 #endif
 
-#define ENVELOPELENGTH 12
-#define AMSMSGHEADER 16
+#define ENVELOPELENGTH	12
+#define AMSMSGHEADER	16
 
 #define	ErrMsg(text)	putErrmsg(text, NULL)
-
-typedef enum 
-{
-	AMSNODE = 1, 
-	RAMSNODE = 2
-} AmsModuleType; 
 
 typedef enum
 {
@@ -40,34 +37,39 @@ typedef enum
 	TREETYPE = 2
 } RAMSNetworkType;
 
-/*	Management information base, which mainly contains the MIB
- *	of the relevant AMS venture plus RAMS neighbor information.	*/
-typedef  struct
-{
-	AmsMib		*amsMib;
-	Lyst		ramsNeighbors;	/*	expected neighbors	*/
-					/*	formerly ramsGrids	*/
-	int		neighborsCount;	/*	formerly gridSize	*/
-	Lyst		declaredNeighbors; /*	declared neighbors	*/
-					/*	formerly declaredRams	*/
-	int		totalDeclared;
-	RAMSNetworkType	netType;	/*	network type		*/
-} RamsMib;
-
 /*	RamsGateway is the module's RAMS Gateway operational state.	*/
 typedef  struct ramsgateway
 {
+	AmsMib		*amsMib;
 	AmsModule	amsModule;	/* gateway's AMS module state	*/
 
 	Lyst		petitionSet;	/* list of (Petition *)		*/ 
 	Lyst		invitationSet;	/* list of (Invitation *)	*/
 	Lyst		registerSet;	/* list of registered modules	*/
-	RamsMib		*ramsMib;
 	
 	pthread_t	primeThread;   
 	pthread_t	petitionReceiveThread;
 	pthread_t	amsReceiveThread;
-} RamsGateway, *RamsGate;		/* RamsGate: formerly ramsNode	*/
+
+	Lyst		ramsNeighbors;	/*	expected neighbors	*/
+	int		neighborsCount;
+	Lyst		declaredNeighbors;
+	int		declaredNeighborsCount;
+
+	int		stopping;
+
+	RAMSNetworkType	netType;
+	RamsNetProtocol	netProtocol;
+
+	/*	For netProtocol == RamsUdp....				*/
+
+	int		ownUdpFd;
+
+	/*	For netProtocol == RamsBp....				*/
+
+	BpSAP		sap;
+	int		ttl;
+} RamsGateway, *RamsGate;
 
 typedef struct
 {
@@ -94,9 +96,8 @@ typedef struct
 
 typedef struct
 {
-	char		*enclosureContent;
-	int		enclosureHeaderLength;
-	int		contentLength;
+	int		length;
+	char		*text;
 } Enclosure;
 
 typedef struct
@@ -155,7 +156,7 @@ typedef enum
 	Env_UnitField = 11,
 	Env_SourceIDField = 12,
 	Env_DestIDField = 13
-} EnvelopeContent;
+} EnvelopeField;
 
 /*	Fields that can be extracted from enclosure.			*/
 typedef enum
@@ -165,13 +166,12 @@ typedef enum
 	Enc_ModuleNbr = 3,
 	Enc_SubjectNbr = 4,
 	Enc_ChecksumFlag = 5
-} EnclosureContent;
+} EnclosureField;
 
-extern int rams_register(char *mibSource, char *tsorder, char *mName,
-		char *memory, unsigned mSize, char *applicationName,
-		char *authorityName, char *unitName, char *roleName,
-		RamsGate *gwayPtr, int lifetime);
-extern int rams_unregister(RamsGate *gwayPtr);
+extern int	rams_run(char *mibSource, char *tsorder, char *mName,
+			char *memory, unsigned mSize, char *applicationName,
+			char *authorityName, char *unitName, char *roleName,
+			RamsGate *gWayPtr, int lifetime);
 
 #ifdef __cplusplus
 }

@@ -1,33 +1,24 @@
 /*
-ramscommon.c: functions enabling the implementation of RAMS gateway based applications
+	ramscommon.c:	utility functions supporting the
+			implementation of RAMS gateway nodes.
 
-Author: Shin-Ywan (Cindy) Wang
-Copyright (c) 2005, California Institute of Technology.
-ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+	Author: Shin-Ywan (Cindy) Wang
+	Copyright (c) 2005, California Institute of Technology.
+	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 */
 
-#include "rams.h"
-#include <ams.h>
-#include <amsP.h>
+#include "ramscommon.h"
 
-extern int	SendMessageToContinuum(RamsGateway *gWay, int continuumId,
-			unsigned char flowLabel, char* envelope,
-			int envelopeLength);
-extern int	SendPetitionToDeclaredNeighbor(RamsGateway *gWay, char *env);
-
-void	ConstructEnvelope(unsigned char *envelope, int continuumNbr,
+void	ConstructEnvelope(unsigned char *envelope, int destContinuumNbr,
 		int unitNbr, int sourceID, int destID, int subjectNbr,
-		int enclosureHdrLength, char *enclosureHdr,
-		int enclosureContentLength, char *enclosureContent,
-		int controlCode)
+		int enclosureLength, char *enclosure, int controlCode)
 {
-	short		i2;
-	unsigned short	enclosureLength;
+	short	i2;
 
 	envelope[0] = controlCode & 0x0000000f;
 	envelope[1] = 0;		/*	Reserved.		*/
-	envelope[2] = (continuumNbr >> 8) & 0x0000007f;
-	envelope[3] = continuumNbr & 0x000000ff;
+	envelope[2] = (destContinuumNbr >> 8) & 0x0000007f;
+	envelope[3] = destContinuumNbr & 0x000000ff;
 	envelope[4] = (unitNbr >> 8) & 0x000000ff;
 	envelope[5] = unitNbr & 0x000000ff;
 	envelope[6] = sourceID;
@@ -35,22 +26,15 @@ void	ConstructEnvelope(unsigned char *envelope, int continuumNbr,
 	i2 = subjectNbr;
 	i2 = htons(i2);			/*	Might be negative.	*/
 	memcpy(envelope + 8, (unsigned char *) &i2, 2);
-	enclosureLength = enclosureHdrLength + enclosureContentLength;
 	envelope[10] = (enclosureLength >> 8) & 0x00ff;
 	envelope[11] = enclosureLength & 0x00ff;
 	if (enclosureLength > 0)
 	{
-		if (enclosureHdrLength > 0)
-		{
-			memcpy(envelope + 12, enclosureHdr, enclosureHdrLength);
-		}
-
-		memcpy(envelope + 12 + enclosureHdrLength, enclosureContent,
-				enclosureContentLength);
+		memcpy(envelope + 12, enclosure, enclosureLength);
 	}
 }
 
-int	EnclosureHeader(char *enclosure, EnclosureContent encId)
+int	EnclosureHeader(char *enclosure, EnclosureField encId)
 {
 	unsigned char	*enc = (unsigned char *) enclosure;
 	int		num = 0;	/*	Init. to avoid warning.	*/
@@ -87,7 +71,7 @@ int	EnclosureHeader(char *enclosure, EnclosureContent encId)
 	return num;
 }
 
-int	EnvelopeHeader(char *envelope, EnvelopeContent conId)
+int	EnvelopeHeader(char *envelope, EnvelopeField conId)
 {
 	unsigned char	*envl = (unsigned char *) envelope;
 	int		num = 0;	/*	Init. to avoid warning.	*/
@@ -135,7 +119,7 @@ int	EnvelopeHeader(char *envelope, EnvelopeContent conId)
 	return num; 
 }
 
-char	*EnvelopeText(char *envelope, int contentLength)
+char	*EnvelopeContent(char *envelope, int contentLength)
 {
 	/*	Returns pointer to content of envelope, if any.		*/
 
@@ -162,10 +146,10 @@ RamsNode	*Look_Up_Neighbor(RamsGateway *gWay, char *gwEid)
 	LystElt		elt;
 	RamsNode	*node;
 
-	for (elt = lyst_first(gWay->ramsMib->ramsNeighbors); elt != NULL;
+	for (elt = lyst_first(gWay->ramsNeighbors); elt != NULL;
 			elt = lyst_next(elt))
 	{
-		node = (RamsNode *)lyst_data(elt);
+		node = (RamsNode *) lyst_data(elt);
 		if (strcmp(node->gwEid, gwEid) == 0)
 		{
 			return node;
@@ -175,15 +159,15 @@ RamsNode	*Look_Up_Neighbor(RamsGateway *gWay, char *gwEid)
 	return NULL;
 }
 
-RamsNode* Look_Up_DeclaredNeighbor(RamsGateway *gWay, int ramsNbr)
+RamsNode	*Look_Up_DeclaredNeighbor(RamsGateway *gWay, int ramsNbr)
 {
 	LystElt		elt;
 	RamsNode	*node;
 
-	for (elt = lyst_first(gWay->ramsMib->declaredNeighbors); elt != NULL;
+	for (elt = lyst_first(gWay->declaredNeighbors); elt != NULL;
 			elt = lyst_next(elt))
 	{
-		node = (RamsNode *)lyst_data(elt);
+		node = (RamsNode *) lyst_data(elt);
 		if (node->continuumNbr == ramsNbr)
 		{
 			return node;
@@ -203,99 +187,6 @@ void	GetEnvelopeSpecification(char *envelope, int *continuumNbr,
 	*roleNbr = env[7];
 }
 
-void	GetPetitionSpecification(PetitionSpec *pet, int *continuumNbr,
-		int *unitNbr, int *roleNbr)
-{
-	GetEnvelopeSpecification(pet->envelope, continuumNbr, unitNbr, roleNbr);
-}
-
-int	SendEnvelopeToNeighbor(RamsGateway *gWay, unsigned char flowLabel,
-		char *envelope, int envelopeSize, int toContinuum)
-{
-	if (!SendMessageToContinuum(gWay, toContinuum, flowLabel, envelope,
-			envelopeSize))
-	{
-		ErrMsg("Failed sending envelope to neighbor");
-		return 0;
-	}
-
-	return 1; 
-}
-
-int	ConstructEnvelopeToDeclaredNeighbor(RamsGateway *gWay,
-		Enclosure *enclosure, int toContinuum, int toUnit,
-		int sourceID, int destID, int cCode, int sNbr)
-{
-	char	*envelope;
-	int	subjectNbr;
-	int	succeed; 
-
-	envelope = NULL; 
-	if (enclosure != NULL)
-	{
-		envelope = (char *) MTAKE(ENVELOPELENGTH
-				+ enclosure->contentLength);
-		CHKZERO(envelope);
-		subjectNbr = EnclosureHeader(enclosure->enclosureContent,
-				Enc_SubjectNbr);
-		ConstructEnvelope((unsigned char *) envelope, toContinuum,
-				toUnit, sourceID, destID, subjectNbr, 0, NULL,
-				enclosure->contentLength,
-				enclosure->enclosureContent, cCode);
-	}
-	else 
-	{
-		envelope = (char *) MTAKE(ENVELOPELENGTH);
-		CHKZERO(envelope);
-		subjectNbr = sNbr;
-		ConstructEnvelope((unsigned char *) envelope, toContinuum,
-				toUnit, sourceID, destID, subjectNbr, 0, NULL,
-				0, NULL, cCode);
-	}
-
-	succeed = SendPetitionToDeclaredNeighbor(gWay, envelope);
-	MRELEASE(envelope);
-	return succeed; 
-}
-
-int	ConstructEnvelopeToNeighbor(RamsGateway *gWay, unsigned char flowLabel,
-		Enclosure *enclosure, int toContinuum, int toUnit,
-		int sourceID, int destID, int cCode, int sNbr,
-		int neighborContinuumNbr)
-{
-	char	*envelope;
-	int	encLength;
-	int	succeed; 
-
-	envelope = NULL; 
-	if (enclosure != NULL)
-	{
-		envelope = (char *) MTAKE(ENVELOPELENGTH
-				+ enclosure->contentLength);
-		CHKZERO(envelope);
-		ConstructEnvelope((unsigned char *) envelope, toContinuum,
-				toUnit, sourceID, destID, sNbr, 0, NULL,
-				enclosure->contentLength,
-				enclosure->enclosureContent, cCode);
-		encLength = enclosure->contentLength;
-	}
-	else 
-	{
-		envelope = (char *) MTAKE(ENVELOPELENGTH);
-		CHKZERO(envelope);
-		ConstructEnvelope((unsigned char *) envelope, toContinuum,
-				toUnit, sourceID, destID, sNbr, 0, NULL, 0,
-				NULL, cCode);
-		encLength = 0;
-	}	
-
-	succeed = SendEnvelopeToNeighbor(gWay, flowLabel, envelope,
-			ENVELOPELENGTH + encLength, neighborContinuumNbr);
-	MRELEASE(envelope);
-	return succeed; 
-
-}
-
 Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
 			int moduleNbr, int subjectNbr, int contentLength,
 			char *content, int context, AmsMsgType msgType,
@@ -310,11 +201,9 @@ Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
 	/*	Enclosure within a RAMS message is an AAMS message.	*/
 
 	enc = (Enclosure *) MTAKE(sizeof(Enclosure));
-	enc->contentLength = contentLength + AMSMSGHEADER;
-	enc->enclosureHeaderLength = AMSMSGHEADER;	
-	enc->enclosureContent = NULL; 
-	enc->enclosureContent = (char *) MTAKE(enc->contentLength);
-	header = enc->enclosureContent;
+	enc->length = contentLength + AMSMSGHEADER;
+	enc->text = (char *) MTAKE(enc->length);
+	header = enc->text;
 	u8 = msgType;
 	u1 = ((u8 << 4) & 0x30) + (priority & 0x0f);
 	*header = u1;
@@ -337,8 +226,7 @@ Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
 	*(header + 15) = (contentLength) & 0x000000ff;
 	if (contentLength > 0)
 	{
-		memcpy(enc->enclosureContent + AMSMSGHEADER, content,
-				contentLength);
+		memcpy(enc->text + AMSMSGHEADER, content, contentLength);
 	}
 	
 	return enc;
@@ -346,9 +234,9 @@ Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
 
 void	DeleteEnclosure(Enclosure *enc)
 {
-	if (enc->enclosureContent)
+	if (enc->text)
 	{
-		MRELEASE((char *)(enc->enclosureContent));
+		MRELEASE((char *)(enc->text));
 	}
 
 	MRELEASE(enc);
@@ -361,26 +249,32 @@ Petition	*ConstructPetition(int domainContinuum, int domainRole,
 
 	pet = MTAKE(sizeof(Petition));
 	pet->DistributionModuleSet = lyst_create();
+	CHKNULL(pet->DistributionModuleSet);
 	pet->DestinationNodeSet = lyst_create();
+	CHKNULL(pet->DestinationNodeSet);
 	pet->SourceNodeSet = lyst_create();
+	CHKNULL(pet->SourceNodeSet);
 	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
 	pet->specification->envelope = (char *) MTAKE(ENVELOPELENGTH);
 	pet->specification->envelopeLength = ENVELOPELENGTH;
 	pet->specification->toContinuumNbr = domainContinuum;
 	ConstructEnvelope((unsigned char *) (pet->specification->envelope),
 			domainContinuum, domainUnit, domainRole, 0, subNbr,
-			0, NULL, 0, NULL, cCode);
+			0, NULL, cCode);
 	return pet;
 }
 
-Petition* ConstructPetitionFromEnvelope(char* envelope)
+Petition	*ConstructPetitionFromEnvelope(char* envelope)
 {
 	Petition	*pet;
 
 	pet = MTAKE(sizeof(Petition));
 	pet->DistributionModuleSet = lyst_create();
+	CHKNULL(pet->DistributionModuleSet);
 	pet->DestinationNodeSet = lyst_create();
+	CHKNULL(pet->DestinationNodeSet);
 	pet->SourceNodeSet = lyst_create();
+	CHKNULL(pet->SourceNodeSet);
 	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
 	pet->specification->envelope = NULL;
 	pet->specification->envelopeLength = 0;
@@ -393,24 +287,11 @@ Petition* ConstructPetitionFromEnvelope(char* envelope)
 				Env_ContinuumNbr);
 		pet->specification->envelope = (char *)
 				MTAKE(pet->specification->envelopeLength);
-
-		/*	envelope space will be reused for next message	*/
-
 		memcpy(pet->specification->envelope, envelope,
 				pet->specification->envelopeLength);
 	}
 
 	return pet;
-}
-
-void DeleteEnvelope(Envelope *env)
-{
-	if (env->enclosure)
-	{
-		MRELEASE(env->enclosure);
-	}
-
-	MRELEASE(env);
 }
 
 int	SamePetition(Petition *pet1, Petition *pet2)
@@ -457,7 +338,7 @@ int	EnclosureSatisfiesPetition(AmsModule module, char *rpdu, Petition *pet)
 	int	petUnit;
 	int	petRole;
 
-	enc = EnvelopeText(rpdu, -1);
+	enc = EnvelopeContent(rpdu, -1);
 	if (enc == NULL)
 	{
 		return 0;
@@ -524,7 +405,7 @@ int	EnclosureSatisfiesInvitation(RamsGateway *gWay, char* rpdu,
 	InvitationSpec	*spec = inv->inviteSpecification;
 	char		*enc;
 
-	enc = EnvelopeText(rpdu, -1);
+	enc = EnvelopeContent(rpdu, -1);
 	if (enc == NULL)
 	{
 		return 0;
@@ -741,6 +622,7 @@ void	SubtractNodeSets(Lyst set1, Lyst set2)
 		{
 			lyst_delete(elt);
 		}
+
 		elt = nextElt;
 	}
 }
@@ -755,7 +637,11 @@ void	AddNodeSets(Lyst set1, Lyst set2)
 		node = (RamsNode *)lyst_data(elt);
 		if (!NodeSetMember(node, set1))
 		{
-			lyst_insert_last(set1, node);
+			if (lyst_insert_last(set1, node) == NULL)
+			{
+				ErrMsg("Failed adding node to set.");
+				return;
+			}
 		}
 	}
 }
@@ -797,6 +683,7 @@ Lyst	PropagationSet(RamsGateway *gWay, Petition *pet)
 	RamsNode	*node;
 
 	PS = lyst_create();
+	CHKNULL(PS);
 
 	/*	First populate the propagation set with all RAMS
 	 *	nodes in the domain of the petition.			*/
@@ -807,11 +694,15 @@ Lyst	PropagationSet(RamsGateway *gWay, Petition *pet)
 	{
 		/*	Domain of petition is "all continua".		*/
 
-		for (elt = lyst_first(gWay->ramsMib->declaredNeighbors);
+		for (elt = lyst_first(gWay->declaredNeighbors);
 				elt != NULL; elt = lyst_next(elt))
 		{
 			node = (RamsNode *) lyst_data(elt);
-			lyst_insert_last(PS, node);
+			if (lyst_insert_last(PS, node) == NULL)
+			{
+				ErrMsg("Failed adding node to set.");
+				return NULL;
+			}
 		}
 	}
 	else   
@@ -822,7 +713,11 @@ Lyst	PropagationSet(RamsGateway *gWay, Petition *pet)
 		node = GetConduitForContinuum(domainCont, gWay);
 		if (node != NULL)
 		{
-			lyst_insert_last(PS, node);
+			if (lyst_insert_last(PS, node) == NULL)
+			{
+				ErrMsg("Failed adding node to set.");
+				return NULL;
+			}
 		}
 	}
 		
@@ -844,61 +739,6 @@ Lyst	PropagationSet(RamsGateway *gWay, Petition *pet)
 	return PS;
 }
 
-int	PetitionIsAssertable(RamsGateway *gWay, Petition *pet)
-{
-	if (gWay->ramsMib->netType == MESHTYPE)
-	{
-		if (lyst_first(pet->DistributionModuleSet) != NULL)
-		{
-			return 1;
-		}
-	}
-	else if (gWay->ramsMib->netType == TREETYPE)
-	{
-		if (lyst_first(pet->DistributionModuleSet) != NULL
-		|| lyst_first(pet->DestinationNodeSet) != NULL)
-		{
-			return 1;
-		}
-	}
-	
-	return 0;
-}
-
-int	PetitionIsCancellable(Petition *pet)
-{
-	RamsNode	*node1;
-
-	/*	Petition may be canceled if and only if (a) its
-	 *	DMS is empty and (b) either its DGS is empty or
-	 *	its DGS contains only some member of the petition's
-	 *	SGS.							*/
-
-	if (lyst_first(pet->DistributionModuleSet) == NULL)
-	{
-		if (lyst_first(pet->DestinationNodeSet) == NULL)
-		{
-			return 1;
-		}
-		
-		if (lyst_length(pet->DestinationNodeSet) == 1)
-		{
-			node1 = (RamsNode *)
-				lyst_data(lyst_first(pet->DestinationNodeSet));
-			if (NodeSetMember(node1, pet->SourceNodeSet) != NULL)
-			{
-				return 1;
-			}
-			else
-			{
-				return 0;
-			}
-		}
-	}
-
-	return 0;
-}
-	
 void	DeletePetition(Petition *pet)
 {
 	lyst_destroy(pet->SourceNodeSet);
@@ -918,7 +758,7 @@ int	MessageIsInvited(RamsGateway *gWay, char* msg)
 	LystElt		elt;
 	Invitation	*inv; 
 
-	enc = EnvelopeText(msg, -1);
+	enc = EnvelopeContent(msg, -1);
 	if (enc == NULL)
 	{
 		return 0;
@@ -984,4 +824,231 @@ int	ModuleIsInAnnouncementDomain(RamsGateway* gWay, Module *module,
 	 *	domain of the announcement.				*/
 
 	return 1;
+}
+
+static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
+			unsigned char flowLabel, char* envelope,
+			int envelopeLength)
+{
+	Sdr		sdr = getIonsdr();
+	int		classOfService;
+	BpCustodySwitch	custodySwitch = SourceCustodyRequired;
+	BpExtendedCOS	ecos = { 0, 0, 0 };
+	Object		extent;
+	Object		bundleZco;
+	Object		newBundle;
+	char		errorMsg[128];
+
+	while (gWay->sap == NULL)
+	{
+		PUTS("Gateway not registered in network yet.");
+		snooze(1);
+	}
+
+	classOfService = flowLabel & 0x03;
+	ecos.flags = (flowLabel >> 2) & 0x03;
+	if (ecos.flags & BP_BEST_EFFORT)
+	{
+		custodySwitch = NoCustodyRequested;
+	}
+
+	sdr_begin_xn(sdr);
+	extent = sdr_insert(sdr, envelope, envelopeLength);
+	if (extent == 0)
+	{
+		sdr_cancel_xn(sdr);
+		ErrMsg("Can't write msg to SDR.");
+		return -1;
+	}
+
+	bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0, envelopeLength);
+	if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	{
+		ErrMsg("Failed creating message.");
+		return -1;
+	}
+
+	if (bp_send(gWay->sap, BP_BLOCKING, ramsNode->gwEid, NULL, gWay->ttl,
+			classOfService, custodySwitch, 0, 0, &ecos,
+			bundleZco, &newBundle) < 1)
+	{
+		isprintf(errorMsg, sizeof errorMsg,
+				"Cannot send message to %s.", ramsNode->gwEid);
+		ErrMsg(errorMsg);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	SendRPDUviaUdp(RamsGateway *gWay, RamsNode *ramsNode,
+			unsigned char flowLabel, char* envelope,
+			int envelopeLength)
+{
+	char			gwEid[256];
+	unsigned short		portNbr;
+	unsigned int		ipAddress;
+	struct sockaddr		socketName;
+	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
+	char			errorMsg[128];
+
+	istrcpy(gwEid, ramsNode->gwEid, sizeof gwEid);
+	parseSocketSpec(gwEid, &portNbr, &ipAddress);
+	portNbr = htons(portNbr);
+	ipAddress = htonl(ipAddress);
+	memset((char *) &socketName, 0, sizeof socketName);
+	inetName->sin_family = AF_INET;
+	inetName->sin_port = portNbr;
+	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &ipAddress, 4);
+	while (1)
+	{
+		if (sendto(gWay->ownUdpFd, envelope, envelopeLength, 0,
+				&socketName, sizeof(struct sockaddr)) < 0)
+		{
+			if (errno == EINTR)	/*	Interrupted.	*/
+			{
+				continue;	/*	Retry.		*/
+			}
+
+			isprintf(errorMsg, sizeof errorMsg,
+				"Cannot send message to %s.", ramsNode->gwEid);
+			ErrMsg(errorMsg);
+			return -1;
+		}
+
+		return 0;
+	}
+}
+
+int	SendRPDU(RamsGateway *gWay, int destContinuumNbr,
+		unsigned char flowLabel, char* envelope, int envelopeLength)
+{
+	char		errorMsg[128];
+	LystElt		elt;
+	RamsNode	*ramsNode;
+
+#if RAMSDEBUG
+printf("<SendRPDU> to %d\n", destContinuumNbr);
+#endif
+	if (destContinuumNbr == 0)	/*	Send to all continua.		*/
+	{
+#if RAMSDEBUG
+PUTS("<SendRPDU> sent to the following continua:");
+#endif
+		for (elt = lyst_first(gWay->ramsNeighbors);
+				elt != NULL; elt = lyst_next(elt))
+		{
+			ramsNode = (RamsNode *) lyst_data(elt);
+			if (ramsNode->continuumNbr ==
+					gWay->amsMib->localContinuumNbr)
+			{
+				continue;
+			}
+#if RAMSDEBUG
+printf("<SendRPDU> to %d envelopeLength=%d cc=%d\n",
+ramsNode->continuumNbr, envelopeLength, EnvelopeHeader(envelope,
+Env_ControlCode));
+#endif
+			switch (ramsNode->protocol)
+			{
+			case RamsBp:
+				if (SendRPDUviaBp(gWay, ramsNode,
+					flowLabel, envelope, envelopeLength))
+				{
+					ErrMsg("Can't send RAMS msg via BP.");
+					return -1;
+				}
+
+				continue;
+
+			case RamsUdp:
+				if (SendRPDUviaUdp(gWay, ramsNode,
+					flowLabel, envelope, envelopeLength))
+				{
+					ErrMsg("Can't send RAMS msg via UDP.");
+					return -1;
+				}
+
+				continue;
+
+			default:
+				putErrmsg("Can't send to RAMS node: no network \
+protocol.", itoa(ramsNode->continuumNbr));
+				return -1;
+			}
+		}
+
+		return 0;
+	}
+
+	/*	This message is being sent to a single continuum.	*/
+
+	ramsNode = Look_Up_DeclaredNeighbor(gWay, destContinuumNbr);
+	if (ramsNode == NULL)
+	{
+		isprintf(errorMsg, sizeof errorMsg, "Continuum %d has not \
+declared itself.", destContinuumNbr);
+		ErrMsg(errorMsg);
+#if RAMSDEBUG
+printf("<SendRPDU> continuum %d not declared.\n", destContinuumNbr);
+#endif
+		return -1;
+	}
+
+	switch (ramsNode->protocol)
+	{
+	case RamsBp:
+		return SendRPDUviaBp(gWay, ramsNode, flowLabel, envelope,
+				envelopeLength);
+
+	case RamsUdp:
+		return SendRPDUviaUdp(gWay, ramsNode, flowLabel, envelope,
+				envelopeLength);
+
+	default:
+		ErrMsg("No RAMS network protocol.");
+		return -1;
+	}
+}
+
+int	SendNewRPDU(RamsGateway *gWay, int destContinuumNbr,
+		unsigned char flowLabel, Enclosure *enclosure,
+		int continuumNbr, int unitNbr, int sourceID, int destID,
+		int controlCode, int subjectNbr)
+{
+	char	*envelope;
+	int	encLength;
+	int	result;
+
+	envelope = NULL; 
+	if (enclosure)
+	{
+		encLength = enclosure->length;
+		envelope = (char *) MTAKE(ENVELOPELENGTH + encLength);
+		CHKERR(envelope);
+		ConstructEnvelope((unsigned char *) envelope, continuumNbr,
+				unitNbr, sourceID, destID, subjectNbr,
+				enclosure->length, enclosure->text,
+				controlCode);
+	}
+	else 
+	{
+		encLength = 0;
+		envelope = (char *) MTAKE(ENVELOPELENGTH);
+		CHKERR(envelope);
+		ConstructEnvelope((unsigned char *) envelope, continuumNbr,
+				unitNbr, sourceID, destID, subjectNbr, 0, NULL,
+				controlCode);
+	}
+
+	result = SendRPDU(gWay, destContinuumNbr, flowLabel, envelope,
+			ENVELOPELENGTH + encLength);
+	MRELEASE(envelope);
+	if (result < 0)
+	{
+		ErrMsg("Failed sending envelope to neighbor.");
+		return -1;
+	}
+
+	return 0;
 }
