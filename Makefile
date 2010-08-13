@@ -21,8 +21,10 @@ clean:
 	gmake -C cfdp $@
 
 test:
-	cd tests
-	./runtests
+	cd tests && ./runtestset normaltests
+
+test-all:
+	cd tests && ./runtestset alltests
 
 
 vxworks5:

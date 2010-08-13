@@ -76,9 +76,12 @@ install-data-hook:
 	@echo "You should now run 'sudo ldconfig' if available."
 	@echo
 
-.PHONY:	test
+.PHONY:	test test-all
 test:
-	cd tests && ./runtests
+	cd tests && ./runtestset normaltests
+test-all:
+	cd tests && ./runtestset alltests
+
 # create the makefile.tar.gz
 # this script, makefile-tar.sh, doesn't get distributed.
 #makefile.tar.gz:
