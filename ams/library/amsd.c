@@ -10,6 +10,10 @@
 									*/
 #include "amscommon.h"
 
+#ifndef AMSDEBUG
+#define	AMSDEBUG	0
+#endif
+
 typedef struct
 {
 	int		csRequired;
@@ -216,8 +220,10 @@ static void	processMsgToCs(CsState *csState, AmsEvt *evt)
 	int		result;
 	int		unitNbr;
 
+#if AMSDEMO
 PUTMEMO("CS got msg of type", itoa(msg->type));
 PUTMEMO("...from role", itoa(msg->roleNbr));
+#endif
 	if (msg->type == I_am_running)
 	{
 		if (enqueueMamsCrash(csState->csEventsCV, "Outranked") < 0)
@@ -488,7 +494,7 @@ static void	*csMain(void *parm)
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	csState->csRunning = 1;
-PUTS("Configuration server is running.");
+	writeMemo("[i] Configuration server is running.");
 	while (1)
 	{
 		if (llcv_wait(csState->csEventsCV, llcv_lyst_not_empty,
@@ -765,7 +771,7 @@ static int	forwardMsg(RsState *rsState, MamsPduType msgType,
 		}
 
 		result = sendMamsMsg(&(module->mamsEndpoint), &(rsState->tsif),
-				msgType, moduleId, supplementLength, supplement);
+			msgType, moduleId, supplementLength, supplement);
 		if (result < 0)
 		{
 			break;
@@ -807,7 +813,7 @@ static int	propagateMsg(RsState *rsState, MamsPduType msgType,
 		}
 
 		result = sendMamsMsg(&(cell->mamsEndpoint), &(rsState->tsif),
-				msgType, moduleId, supplementLength, supplement);
+			msgType, moduleId, supplementLength, supplement);
 		if (result < 0)
 		{
 			break;
@@ -859,7 +865,7 @@ static void	processHeartbeatCycle(RsState *rsState, int *cycleCount,
 	int	i;
 	Module	*module;
 
-	/*	Send heartbeats to modules as necessary.			*/
+	/*	Send heartbeats to modules as necessary.		*/
 
 	if (*cycleCount > 1)	/*	Every 20 seconds.		*/
 	{
@@ -1165,8 +1171,10 @@ static void	processMsgToRs(RsState *rsState, AmsEvt *evt)
 	char		*cursor;
 	int		bytesRemaining;
 
+#if AMSDEBUG
 PUTMEMO("RS got msg of type", itoa(msg->type));
 PUTMEMO("...from role", itoa(msg->roleNbr));
+#endif
 	venture = mib->ventures[msg->ventureNbr];
 	if (venture == NULL)
 	{
@@ -1186,7 +1194,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			return;
 		}
 
-		/*	Heartbeat from a module.				*/
+		/*	Heartbeat from a module.			*/
 
 		if (unit == NULL || msg->memo < 1 || msg->memo > MaxModuleNbr
 		|| (module = unit->cell->modules[msg->memo]) == NULL
@@ -1407,13 +1415,13 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 		if (unitNbr == rsState->cell->unit->nbr)
 		{
-			/*	Message from module in own cell.		*/
+			/*	Message from module in own cell.	*/
 
 			module = rsState->cell->modules[moduleNbr];
 			forgetModule(module);
 			if (propagateMsg(rsState, I_am_stopping, roleNbr,
-					unitNbr, moduleNbr, msg->supplementLength,
-					msg->supplement))
+				unitNbr, moduleNbr, msg->supplementLength,
+				msg->supplement))
 			{
 				putErrmsg("RS can't propagate I_am_stopping",
 						NULL);
@@ -1496,7 +1504,8 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		&& rsState->undeclaredModules[moduleNbr] == 0)
 		{
 			/*	This module was not in the census
-			 *	declared by the first reconnected module.	*/
+			 *	declared by the first reconnected
+			 *	module.					*/
 
 			if (sendMamsMsg(&endpoint, &rsState->tsif,
 					you_are_dead, 0, 0, NULL) < 0)
@@ -1560,7 +1569,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			rsState->undeclaredModulesCount--;
 		}
 
-		/*	Let module go about its business.			*/
+		/*	Let module go about its business.		*/
 
 		if (sendMamsMsg(&endpoint, &(rsState->tsif), reconnected,
 				msg->memo, 0, NULL) < 0)
@@ -1575,7 +1584,8 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 	case invite:
 	case disinvite:
 	case module_status:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
+				< 0)
 		{
 			putErrmsg("RS ditching MAMS propagation", NULL);
 			return;
@@ -1583,7 +1593,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 		if (unitNbr == rsState->cell->unit->nbr)
 		{
-			/*	Message from module in own cell.		*/
+			/*	Message from module in own cell.	*/
 
 			if (propagateMsg(rsState, msg->type, roleNbr, unitNbr,
 					moduleNbr, msg->supplementLength,
@@ -1598,8 +1608,8 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			if (rsState->cell->resyncPeriod > 0)
 			{
 				if (forwardMsg(rsState, msg->type, roleNbr,
-					unitNbr, moduleNbr, msg->supplementLength,
-					msg->supplement))
+					unitNbr, moduleNbr,
+					msg->supplementLength, msg->supplement))
 				{
 					putErrmsg("RS can't forward message",
 							NULL);
@@ -1638,7 +1648,7 @@ static void	*rsMain(void *parm)
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	rsState->rsRunning = 1;
-PUTS("Registrar is running.");
+	writeMemo("[i] Registrar is running.");
 	while (1)
 	{
 		if (llcv_wait(rsState->rsEventsCV, llcv_lyst_not_empty,
@@ -1933,7 +1943,7 @@ static int	run_amsd(char *mibSource, char *mName, char *memory,
 
 		if (csState.csRequired == 1 && csState.csRunning == 0)
 		{
-			writeMemo("Starting configuration server.");
+			writeMemo("[i] Starting configuration server.");
 			if (startConfigServer(&csState) < 0)
 			{
 				cleanUpCsState(&csState);
@@ -1943,7 +1953,7 @@ static int	run_amsd(char *mibSource, char *mName, char *memory,
 
 		if (rsState.rsRequired == 1 && rsState.rsRunning == 0)
 		{
-			writeMemo("Starting registration server.");
+			writeMemo("[i] Starting registration server.");
 			if (startRegistrar(&rsState) < 0)
 			{
 				cleanUpRsState(&rsState);

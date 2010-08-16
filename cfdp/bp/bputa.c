@@ -60,8 +60,13 @@ static void	*receivePdus(void *parm)
 			continue;
 		}
 
-		if (dlv.result == BpPayloadPresent)
+		switch (dlv.result)
 		{
+		case BpEndpointStopped:
+			parms->running = 0;
+			break;
+
+		case BpPayloadPresent:
 			contentLength = zco_source_data_length(sdr, dlv.adu);
 			sdr_begin_xn(sdr);
 			zco_start_receiving(sdr, dlv.adu, &reader);
@@ -90,6 +95,11 @@ static void	*receivePdus(void *parm)
 						NULL);
 				parms->running = 0;
 			}
+
+			break;
+
+		default:
+			break;
 		}
 
 		bp_release_delivery(&dlv, 1);

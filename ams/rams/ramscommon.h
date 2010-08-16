@@ -22,6 +22,8 @@ extern "C" {
 #include "amsP.h"
 #include "rams.h"
 
+extern RamsGateway	*_gWay(RamsGateway *currentGateway);
+
 extern RamsNode		*Look_Up_Neighbor(RamsGateway *gWay,
 				char *gwEid);
 extern RamsNode		*Look_Up_DeclaredNeighbor(RamsGateway *gWay,
@@ -74,7 +76,8 @@ extern Module		*LookupModule(int unitNbr, int moduleNbr,
 extern void		SubtractNodeSets(Lyst set1, Lyst set2);
 extern void		AddNodeSets(Lyst set1, Lyst set2);
 extern RamsNode		*GetConduitForContinuum(int cId, RamsGateway *gWay);
-extern Lyst		PropagationSet(RamsGateway *gWay, Petition *pet);
+extern int		PetitionIsAssertable(RamsGateway *gWay, Petition *pet);
+extern Lyst		AssertionSet(RamsGateway *gWay, Petition *pet);
 
 extern int		MessageIsInvited(RamsGateway *gWay, char *msg);
 extern int		ModuleIsInAnnouncementDomain(RamsGateway *gWay,
@@ -87,6 +90,7 @@ extern int		SendNewRPDU(RamsGateway *gWay, int destContinuumNbr,
 				unsigned char flowLabel, Enclosure *enclosure,
 				int continuumNbr, int unitNbr, int sourceId,
 				int destId, int controlCode, int subjectNbr);
+extern void		*CheckUdpRpdus(void *threadParm);
 #ifdef __cplusplus
 }
 #endif

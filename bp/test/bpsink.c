@@ -84,7 +84,8 @@ int	main(int argc, char **argv)
 		}
 
 		PUTMEMO("ION event", deliveryTypes[dlv.result - 1]);
-		if (dlv.result == BpReceptionInterrupted)
+		if (dlv.result == BpReceptionInterrupted
+		|| dlv.result == BpEndpointStopped)
 		{
 			running = 0;
 			continue;

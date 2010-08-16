@@ -124,7 +124,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 		{
 			bytesSent = sendBytesByTCP(bundleSocket, from,
 					bytesToSend);
-			if (bytesSent < 0)
+			if (bytesSent <= 0)
 			{
 				if (bpHandleXmitFailure(bundleZco))
 				{
@@ -210,8 +210,8 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 				 *	as a transient anomaly, note
 				 *	incomplete transmission.	*/
 
-				putErrmsg("Lost connection to CLI; restart \
-CLO when connectivity is restored.", NULL);
+				putErrmsg("Lost connection to CLI; bundle not \
+sent.", NULL);
 				return 0;
 			}
 
@@ -294,8 +294,8 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 		{
 			if(*bundleSocket == -1)
 			{
-				putErrmsg("Lost connection to CLI; restart \
-CLO when connectivity is restored.",NULL);
+				putErrmsg("Lost connection to CLI; keep-alive \
+not sent.", NULL);
 				return 0;
 			}
 			

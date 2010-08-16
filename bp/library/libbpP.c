@@ -10291,13 +10291,22 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
-			writeMemo("[?] Admin bundle reception failed.");
+			putErrmsg("Admin bundle reception failed.", NULL);
 			running = 0;
 			continue;
 		}
 
-		if (dlv.result == BpReceptionInterrupted)
+		switch (dlv.result)
 		{
+		case BpPayloadPresent:
+			break;
+
+		case BpEndpointStopped:
+			running = 0;
+
+			/*	Intentional fall-through to default.	*/
+
+		default:
 			continue;
 		}
 
@@ -10484,6 +10493,7 @@ forwarding.", NULL);
 		sm_TaskYield();
 	}
 
+	writeMemo("[i] Administrative endpoint terminated.");
 	writeErrmsgMemos();
 	return 0;
 }

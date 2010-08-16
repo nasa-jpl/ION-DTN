@@ -37,6 +37,22 @@ typedef enum
 	TREETYPE = 2
 } RAMSNetworkType;
 
+typedef struct
+{
+	int		continuumNbr;
+	RamsNetProtocol	protocol;
+	char		*gwEid;
+} RamsNode;
+
+typedef struct decl_s
+{
+	time_t		checkTime;
+	RamsNode	*neighbor;
+	unsigned char	flowLabel;
+	char		*envelope;
+	int		envelopeLength;
+} UdpRpdu;
+
 /*	RamsGateway is the module's RAMS Gateway operational state.	*/
 typedef  struct ramsgateway
 {
@@ -64,6 +80,7 @@ typedef  struct ramsgateway
 	/*	For netProtocol == RamsUdp....				*/
 
 	int		ownUdpFd;
+	Lyst		udpRpdus;	/*	(UdpRpdu *)		*/
 
 	/*	For netProtocol == RamsBp....				*/
 
@@ -82,17 +99,6 @@ typedef struct
 	int		enclosureLength;
 	char		*enclosure;
 } Envelope;
-
-/*	RamsNode structure identifies a neighbor in the RAMS network	*/
-typedef struct
-{
-/*	int		moduleNbr;	//	Held continuum number	*/
-/*	int		elementNbr;	// continuumID			*/
-/*	int		serviceNbr;	// ipn:element#.service#	*/
-	int		continuumNbr;
-	RamsNetProtocol	protocol;
-	char		*gwEid;
-} RamsNode;				/*	Formerly BPEndPoint	*/
 
 typedef struct
 {
@@ -113,6 +119,7 @@ typedef struct
 	Lyst		DistributionModuleSet;
 	Lyst		DestinationNodeSet;
 	Lyst		SourceNodeSet;
+	int		stateIsFromPlayback;
 } Petition;	
 
 typedef struct 
