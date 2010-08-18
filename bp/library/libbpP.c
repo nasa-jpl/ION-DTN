@@ -4974,13 +4974,6 @@ status reports for admin records.");
 		}
 	}
 
-	if (lifespan > MAX_TTL_SEC)
-	{
-		writeMemoNote("[?] TTL limit (17,280,000 sec) exceeded",
-				itoa(lifespan));
-		return 0;
-	}
-
 	if (sourceMetaEid == NULL)
 	{
 		bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
@@ -6307,7 +6300,6 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	BpDB			*bpConstants = _bpConstants();
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
-	char			script[SDRSTRING_BUFSZ];
 	int			fd;
 	long			fileLength;
 
@@ -6385,8 +6377,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		}
 
 		fileLength = 0;
-		isprintf(script, sizeof script, "unlink %s", fileName);
-		work->acqFileRef = zco_create_file_ref(sdr, fileName, script);
+		work->acqFileRef = zco_create_file_ref(sdr, fileName, "");
 	}
 	else				/*	Writing more to file.	*/
 	{

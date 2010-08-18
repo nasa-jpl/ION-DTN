@@ -8,8 +8,8 @@
 
 #include "ams.h"
 
-static AmsNode	me;
-static AmsEvent	evt;
+static AmsModule	me;
+static AmsEvent		evt;
 
 static int	runCatcher()
 {

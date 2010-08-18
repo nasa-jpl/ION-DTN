@@ -135,7 +135,7 @@ static void	*receiveBundles(void *parm)
 	KeepaliveThreadParms	*kparms;
 	AcqWorkArea		*work;
 	char			*buffer;
-	pthread_t		kthread = NULL;
+	pthread_t		kthread = 0;
 
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)

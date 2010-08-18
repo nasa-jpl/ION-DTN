@@ -29,12 +29,12 @@ AMSDOBJS = \
 RAMSTESTOBJS = \
 	librams.o \
 	ramscommmon.o \
-	ramsTest.o
+	ramsgate.o
 
 PUBINCLS = \
 	$(INCL)/ams.h
 
-RUNTIMES = amsd amshello amsshell amslog amslogprt amsbenchs amsbenchr ramstest
+RUNTIMES = amsd amshello amsshell amslog amslogprt amsbenchs amsbenchr ramsgate
 
 ALL = check libams.so $(RUNTIMES)
 
@@ -91,9 +91,9 @@ amslogprt:	amslogprt.o
 
 #	-	-	RAMS executable 	-	-	-	-
 
-ramstest:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommmon.h libams.so $(INCL)/ams.h
-		$(CC) -o ramstest $(RAMSTESTOBJS) -L./lib -L/opt/lib -L/usr/local/lib -lion -lionfw -lams -ldgr -lici -lpthread -lexpat
-		cp ramstest ./bin
+ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommmon.h libams.so $(INCL)/ams.h
+		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L/opt/lib -L/usr/local/lib -lion -lionfw -lams -ldgr -lici -lpthread -lexpat
+		cp ramsgate ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 

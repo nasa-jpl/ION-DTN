@@ -1,295 +1,222 @@
 /*
-ramscommon.c: functions enabling the implementation of RAMS gateway based applications
+	ramscommon.c:	utility functions supporting the
+			implementation of RAMS gateway nodes.
 
-Author: Shin-Ywan (Cindy) Wang
-Copyright (c) 2005, California Institute of Technology.
-ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+	Author: Shin-Ywan (Cindy) Wang
+	Copyright (c) 2005, California Institute of Technology.
+	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 */
 
-#include "rams.h"
-#include <ams.h>
-#include <amsP.h>
+#include "ramscommon.h"
 
-
-//extern char *errMessage;
-extern int SendMessageToContinuum(RamsGateway *gWay, int continuumId, unsigned char flowLabel, char* envelope, int envelopeLength);
-extern int SendPetitionToDeclaredRAMS(RamsGateway *gWay, char *env);
-
-#if 0
-void ErrMsg(char *err)
+void	ConstructEnvelope(unsigned char *envelope, int destContinuumNbr,
+		int unitNbr, int sourceID, int destID, int subjectNbr,
+		int enclosureLength, char *enclosure, int controlCode)
 {
-	putErrmsg(err, NULL);
-}
-#endif
-
-void	constructEnvelope(unsigned char *envelope, int continuumNbr,
-			int unitNbr, int sourceID, int destID, int subjectNbr,
-			int enclosureHdrLength, char *enclosureHdr,
-			int enclosureContentLength, char *enclosureContent,
-			int controlCode)
-{
-	short		i2;
-	unsigned short	enclosureLength;
+	short	i2;
 
 	envelope[0] = controlCode & 0x0000000f;
-	envelope[1] = 0;	/*	Reserved.			*/
-	envelope[2] = (continuumNbr >> 8) & 0x0000007f;
-	envelope[3] = continuumNbr & 0x000000ff;
+	envelope[1] = 0;		/*	Reserved.		*/
+	envelope[2] = (destContinuumNbr >> 8) & 0x0000007f;
+	envelope[3] = destContinuumNbr & 0x000000ff;
 	envelope[4] = (unitNbr >> 8) & 0x000000ff;
 	envelope[5] = unitNbr & 0x000000ff;
 	envelope[6] = sourceID;
 	envelope[7] = destID;
 	i2 = subjectNbr;
-	i2 = htons(i2);     // possible to be negative
+	i2 = htons(i2);			/*	Might be negative.	*/
 	memcpy(envelope + 8, (unsigned char *) &i2, 2);
-	enclosureLength = enclosureHdrLength + enclosureContentLength;
 	envelope[10] = (enclosureLength >> 8) & 0x00ff;
 	envelope[11] = enclosureLength & 0x00ff;
 	if (enclosureLength > 0)
 	{
-		if (enclosureHdrLength > 0)
-		   memcpy(envelope + 12, enclosureHdr, enclosureHdrLength);
-		memcpy(envelope + 12 + enclosureHdrLength, enclosureContent,
-				enclosureContentLength);
+		memcpy(envelope + 12, enclosure, enclosureLength);
 	}
 }
 
-int EnclosureHeader(unsigned char *enc, EnclosureContent encId)
+int	EnclosureHeader(char *enclosure, EnclosureField encId)
 {
-	int num = 0;		/*	Initialized to avoid warning.	*/
-	short subj;
+	unsigned char	*enc = (unsigned char *) enclosure;
+	int		num = 0;	/*	Init. to avoid warning.	*/
+	short		subj;
 
 	switch(encId)
 	{
 	case Enc_ChecksumFlag:
 		num = enc[2] & 0x00000080;
 		break;
+
 	case Enc_ContinuumNbr:
 		num = ((enc[2] << 8) & 0x00007f00) + enc[3];
 		break;
+
 	case Enc_UnitNbr:
 		num = ((enc[4] << 8) & 0x0000ff00) + enc[5];
 		break;
-	case Enc_NodeNbr:
+
+	case Enc_ModuleNbr:
 		num = enc[6];
 		break;
+
 	case Enc_SubjectNbr:
 		memcpy((char *) & subj, enc + 12, 2);
 		subj = ntohs(subj);
 		num = subj;
 		break;
+
 	default:
 		return 0;
 	}
+
 	return num;
 }
 
-int EnvelopeHeader(unsigned char *envelope, EnvelopeContent conId)
+int	EnvelopeHeader(char *envelope, EnvelopeField conId)
 {
-	int num = 0;		/*	Initialized to avoid warning.	*/
-	short subj;
+	unsigned char	*envl = (unsigned char *) envelope;
+	int		num = 0;	/*	Init. to avoid warning.	*/
+	short		subj;
 
 	switch (conId)
 	{
 	case Env_ControlCode: 
-		num = envelope[0] & 0x0f;
+		num = envl[0] & 0x0f;
 		break;
+
 	case Env_ContinuumNbr:
-		num = ((envelope[2] << 8) & 0x00007f00) + envelope[3];
+		num = ((envl[2] << 8) & 0x00007f00) + envelope[3];
 		break;
+
 	case Env_PublishUnitNbr:
 	case Env_DestUnitNbr:
 	case Env_UnitField:
-		num = ((envelope[4] << 8) & 0x0000ff00) + envelope[5];
+		num = ((envl[4] << 8) & 0x0000ff00) + envelope[5];
 		break;
+
 	case Env_PublishRoleNbr:
 	case Env_SourceRoleNbr:
 	case Env_SourceIDField:
-		num = envelope[6];
+		num = envl[6];
 		break;
-	case Env_DestNodeNbr:
+
+	case Env_DestModuleNbr:
 	case Env_DestRoleNbr:
 	case Env_DestIDField:
-		num = envelope[7];
+		num = envl[7];
 		break;
+
 	case Env_SubjectNbr:
-		memcpy((char *)&subj, envelope+8, 2);
+		memcpy((char *)&subj, envl + 8, 2);
 		subj = ntohs(subj);
 		num = subj;
 		break;
+
 	case Env_EnclosureLength:
-		num = ((envelope[10] << 8) & 0x0000ff00) + (envelope[11]&0x000000ff);
+		num = ((envl[10] << 8) & 0x0000ff00) + (envl[11] & 0x000000ff);
 		break;
 	}
+
 	return num; 
 }
 
-// contentLength = -1: unknown 
-// contentLength >= 0 knownsize
-char* EnvelopeText(unsigned char *envelope, int contentLength)
+char	*EnvelopeContent(char *envelope, int contentLength)
 {
-	if (contentLength < 0)
+	/*	Returns pointer to content of envelope, if any.		*/
+
+	unsigned char	*envl = (unsigned char *) envelope;
+
+	if (contentLength < 0)	/*	Content length not yet known.	*/
 	{
-		contentLength = ((envelope[10] << 8)&0x0000ff00) + (envelope[11]&0x000000ff);
+		contentLength = ((envl[10] << 8) & 0x0000ff00)
+				+ (envl[11] & 0x000000ff);
 	}
 
 	if (contentLength > 0)
-		return envelope+ENVELOPELENGTH;
-	else
-		return NULL;
+	{
+		return envelope + ENVELOPELENGTH;
+	}
+
+	/*	Envelope has no content.				*/
+
+	return NULL;
 }
 
-// find the RAMS gateway from MIB rams grid
-RamsNode* Look_Up_NeighborRemoteRAMS(RamsGateway *gWay, char *gwEid)
+RamsNode	*Look_Up_Neighbor(RamsGateway *gWay, char *gwEid)
 {
-	LystElt elt;
-	RamsNode *ramsNode;
+	LystElt		elt;
+	RamsNode	*node;
 
-	for (elt = lyst_first(gWay->ramsMib->ramsNeighbors); elt != NULL;
+	for (elt = lyst_first(gWay->ramsNeighbors); elt != NULL;
 			elt = lyst_next(elt))
 	{
-		
-		ramsNode = (RamsNode *)lyst_data(elt);
-		if (strcmp(ramsNode->gwEid, gwEid) == 0)
+		node = (RamsNode *) lyst_data(elt);
+		if (strcmp(node->gwEid, gwEid) == 0)
 		{
-			return ramsNode;
+			return node;
 		}
 	}
 
 	return NULL;
 }
 
-RamsNode* Look_Up_DeclaredRemoteRAMS(RamsGateway *gWay, int ramsNbr)
+RamsNode	*Look_Up_DeclaredNeighbor(RamsGateway *gWay, int ramsNbr)
 {
-	LystElt elt;
-	RamsNode *bpPoint;
+	LystElt		elt;
+	RamsNode	*node;
 
-
-	for (elt = lyst_first(gWay->ramsMib->declaredNeighbors); elt != NULL; elt = lyst_next(elt))
+	for (elt = lyst_first(gWay->declaredNeighbors); elt != NULL;
+			elt = lyst_next(elt))
 	{
-		
-		bpPoint = (RamsNode *)lyst_data(elt);
-		if (bpPoint->continuumNbr == ramsNbr)
-			return bpPoint;
+		node = (RamsNode *) lyst_data(elt);
+		if (node->continuumNbr == ramsNbr)
+		{
+			return node;
+		}
 	}
-    return NULL;
+
+	return NULL;
 }
 
-void GetEnvelopeSpecification(unsigned char* env, int* continuumNbr, int* unitNbr, int* roleNbr)
+void	GetEnvelopeSpecification(char *envelope, int *continuumNbr,
+		int *unitNbr, int *roleNbr)
 {
+	unsigned char	*env = (unsigned char *) envelope;
+
 	*continuumNbr = ((env[2] << 8) & 0x00007f00) + env[3];
 	*unitNbr = ((env[4] << 8) & 0x0000ff00) + env[5];
 	*roleNbr = env[7];
 }
 
-void GetPetitionSpecification(PetitionContent *pet, int* continuumNbr, int* unitNbr, int* roleNbr)
+Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
+			int moduleNbr, int subjectNbr, int contentLength,
+			char *content, int context, AmsMsgType msgType,
+			int priority, unsigned char flowLabel)
 {
+	Enclosure	*enc;
+	char		*header;
+	unsigned long	u8;
+	unsigned char	u1;
+	short		i2;
 
-	GetEnvelopeSpecification(pet->envelope, continuumNbr, unitNbr, roleNbr);
-}
+	/*	Enclosure within a RAMS message is an AAMS message.	*/
 
-int EnvelopeToRAMS(RamsGateway *gWay, unsigned char flowLabel, char *envelope, int envelopeSize, int toContinuum)
-{
-	if (!SendMessageToContinuum(gWay, toContinuum, flowLabel, envelope, envelopeSize))
-	{
-		ErrMsg("error in construct envelope sent to RAMS");
-		return 0;
-	}
-	return 1; 
-}
-
-int ConstructEnvelopeToDeclaredRAMS(RamsGateway *gWay, Enclosure *enclosure, 
-	int toContinuum, int toUnit, int sourceID, int destID, int cCode, int sNbr)
-{
-	char* envelope;
-	int subjectNbr;
-	int succeed; 
-
-	envelope = NULL; 
-	if (enclosure != NULL)
-	{
-		envelope = (char *)MTAKE(ENVELOPELENGTH + enclosure->contentLength);
-		CHKZERO(envelope);
-		subjectNbr = EnclosureHeader(enclosure->enclosureContent, Enc_SubjectNbr);
-		constructEnvelope((unsigned char *) envelope, toContinuum, toUnit, sourceID, destID, subjectNbr,0, NULL, enclosure->contentLength,
-					enclosure->enclosureContent, cCode);
-	}
-	else 
-	{
-		envelope = (char *)MTAKE(ENVELOPELENGTH);
-		CHKZERO(envelope);
-		subjectNbr = sNbr;
-		constructEnvelope((unsigned char *) envelope, toContinuum, toUnit, sourceID, destID, subjectNbr, 0, NULL, 0, NULL, cCode);
-	}	
-
-	succeed = SendPetitionToDeclaredRAMS(gWay, envelope);
-	MRELEASE(envelope);
-	return succeed; 
-}
-
-int ConstructEnvelopeToRAMS(RamsGateway *gWay, unsigned char flowLabel, Enclosure *enclosure, 
-							int toContinuum, int toUnit,  int sourceID, int destID, int cCode, 
-							int sNbr, int toRAMS)
-{
-	char* envelope;
-	//int subjectNbr;
-	int encLength;
-	int succeed; 
-
-	envelope = NULL; 
-	if (enclosure != NULL)
-	{
-		envelope = (char *)MTAKE(ENVELOPELENGTH + enclosure->contentLength);
-		CHKZERO(envelope);
-		//subjectNbr = EnclosureHeader( enclosure->enclosureContent, Enc_SubjectNbr);
-		constructEnvelope((unsigned char *) envelope, toContinuum, toUnit, sourceID, destID, sNbr, 0, NULL, enclosure->contentLength,
-						  enclosure->enclosureContent, cCode);
-		encLength = enclosure->contentLength;
-	}
-	else 
-	{
-		envelope = (char *)MTAKE(ENVELOPELENGTH);
-		CHKZERO(envelope);
-		//subjectNbr = sNbr;
-		constructEnvelope((unsigned char *) envelope, toContinuum, toUnit, sourceID, destID, sNbr, 0, NULL, 0, NULL, cCode);
-	    encLength = 0; 
-	}	
-
-	succeed = EnvelopeToRAMS(gWay, flowLabel, envelope, ENVELOPELENGTH+encLength, toRAMS);
-	MRELEASE(envelope);
-	return succeed; 
-
-}
-
-// construct ams msg (enclosure: source node info + content)
-Enclosure* ConstructEnclosure(int continuumNbr, int unitNbr, int nodeNbr, int subjectNbr, int contentLength, char* content, int context,
-		AmsMsgType msgType, int priority, unsigned char flowLabel)
-{
-	Enclosure* enc;
-	char* header;
-	unsigned long u8;
-	unsigned char u1;
-	short i2;
-
-	enc = (Enclosure *)MTAKE(sizeof(Enclosure));
-	enc->contentLength = contentLength + AMSMSGHEADER;
-	enc->enclosureHeaderLength = AMSMSGHEADER;	
-	enc->enclosureContent = NULL; 
-	enc->enclosureContent = (char *)MTAKE(enc->contentLength);
-	
-	header = enc->enclosureContent;
-
+	enc = (Enclosure *) MTAKE(sizeof(Enclosure));
+	enc->length = contentLength + AMSMSGHEADER;
+	enc->text = (char *) MTAKE(enc->length);
+	header = enc->text;
 	u8 = msgType;
 	u1 = ((u8 << 4) & 0x30) + (priority & 0x0f);
 	*header = u1;
 	*(header + 1) = flowLabel;
+
 	/*	First bit of 3rd octet is checksum flag, always zero.	*/
+
 	*(header + 2) = (continuumNbr >> 8) & 0x0000007f;
 	*(header + 3) = continuumNbr & 0x000000ff;
 	*(header + 4) = (unitNbr>> 8) & 0x000000ff;
 	*(header + 5) = unitNbr & 0x000000ff;
-	*(header + 6) = nodeNbr & 0x000000ff;
-	*(header + 7) = 0;	/*	Reserved.			*/
+	*(header + 6) = moduleNbr & 0x000000ff;
+	*(header + 7) = 0;		/*	Reserved.		*/
 	context = htonl(context);
 	memcpy(header + 8, (char *) &context, 4);
 	i2 = subjectNbr;
@@ -297,591 +224,831 @@ Enclosure* ConstructEnclosure(int continuumNbr, int unitNbr, int nodeNbr, int su
 	memcpy(header + 12, (char *) &i2, 2);
 	*(header + 14) = (contentLength >> 8) & 0x000000ff;
 	*(header + 15) = (contentLength) & 0x000000ff;
-
 	if (contentLength > 0)
 	{
-		memcpy(enc->enclosureContent+AMSMSGHEADER, content, contentLength);
+		memcpy(enc->text + AMSMSGHEADER, content, contentLength);
 	}
 	
 	return enc;
 }
 
-void DeleteEnclosure(Enclosure *enc)
+void	DeleteEnclosure(Enclosure *enc)
 {
-	if (enc->enclosureContent)
-		MRELEASE((char *)enc->enclosureContent);
+	if (enc->text)
+	{
+		MRELEASE((char *)(enc->text));
+	}
+
 	MRELEASE(enc);
 }
 
-Petition* ConstructPetition(int domainContinuum, int domainRole, int domainUnit, int subNbr, int cCode)
+Petition	*ConstructPetition(int domainContinuum, int domainRole,
+			int domainUnit, int subNbr, int cCode)
 {
-	Petition *pet;
+	Petition	*pet;
 
 	pet = MTAKE(sizeof(Petition));
-	pet->DistributionNodeSet = lyst_create();
-	pet->DestinationRamsSet = lyst_create();
-	pet->SourceRamsSet = lyst_create();
-	
-	pet->specification = (PetitionContent *)MTAKE(sizeof(PetitionContent));
-	pet->specification->envelope = (char *)MTAKE(ENVELOPELENGTH);
+	pet->DistributionModuleSet = lyst_create();
+	CHKNULL(pet->DistributionModuleSet);
+	pet->DestinationNodeSet = lyst_create();
+	CHKNULL(pet->DestinationNodeSet);
+	pet->SourceNodeSet = lyst_create();
+	CHKNULL(pet->SourceNodeSet);
+	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
+	pet->specification->envelope = (char *) MTAKE(ENVELOPELENGTH);
 	pet->specification->envelopeLength = ENVELOPELENGTH;
 	pet->specification->toContinuumNbr = domainContinuum;
-
-	constructEnvelope((unsigned char *) (pet->specification->envelope), domainContinuum, domainUnit, domainRole, 0, subNbr, 0, NULL, 0, NULL, cCode);
+	ConstructEnvelope((unsigned char *) (pet->specification->envelope),
+			domainContinuum, domainUnit, domainRole, 0, subNbr,
+			0, NULL, cCode);
 	return pet;
 }
 
-Petition* ConstructPetitionFromEnvelope(char* envelope)
+Petition	*ConstructPetitionFromEnvelope(char* envelope)
 {
-
-	Petition *pet;
+	Petition	*pet;
 
 	pet = MTAKE(sizeof(Petition));
-	pet->DistributionNodeSet = lyst_create();
-	pet->DestinationRamsSet = lyst_create();
-	pet->SourceRamsSet = lyst_create();
-	pet->specification = (PetitionContent *)MTAKE(sizeof(PetitionContent));
+	pet->DistributionModuleSet = lyst_create();
+	CHKNULL(pet->DistributionModuleSet);
+	pet->DestinationNodeSet = lyst_create();
+	CHKNULL(pet->DestinationNodeSet);
+	pet->SourceNodeSet = lyst_create();
+	CHKNULL(pet->SourceNodeSet);
+	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
 	pet->specification->envelope = NULL;
 	pet->specification->envelopeLength = 0;
 	pet->specification->toContinuumNbr = -1; 
 	if (envelope != NULL)
 	{
-		pet->specification->envelopeLength = ENVELOPELENGTH + EnvelopeHeader(envelope, Env_EnclosureLength);
-		pet->specification->toContinuumNbr = EnvelopeHeader(envelope, Env_ContinuumNbr);
-		pet->specification->envelope = (char *)MTAKE(pet->specification->envelopeLength);
-		memcpy(pet->specification->envelope, envelope, pet->specification->envelopeLength); // envelope space will be reused for next message
+		pet->specification->envelopeLength = ENVELOPELENGTH
+				+ EnvelopeHeader(envelope, Env_EnclosureLength);
+		pet->specification->toContinuumNbr = EnvelopeHeader(envelope,
+				Env_ContinuumNbr);
+		pet->specification->envelope = (char *)
+				MTAKE(pet->specification->envelopeLength);
+		memcpy(pet->specification->envelope, envelope,
+				pet->specification->envelopeLength);
 	}
+
 	return pet;
 }
 
-void DeleteEnvelope(Envelope *env)
+int	SamePetition(Petition *pet1, Petition *pet2)
 {
-	if (env->enclosure)
-	   MRELEASE(env->enclosure);
-	MRELEASE(env);
-}
+	char	*env1 = pet1->specification->envelope;
+	char	*env2 = pet2->specification->envelope;
 
-int IsPetitionPublisherIdentical(Petition *pet1, Petition *pet2)
-{
-	if ((EnvelopeHeader(pet1->specification->envelope, Env_ContinuumNbr) == EnvelopeHeader(pet2->specification->envelope, Env_ContinuumNbr))&&
-		(EnvelopeHeader(pet1->specification->envelope, Env_PublishUnitNbr) == EnvelopeHeader(pet2->specification->envelope, Env_PublishUnitNbr)) &&
-		(EnvelopeHeader(pet1->specification->envelope, Env_PublishRoleNbr) == EnvelopeHeader(pet2->specification->envelope, Env_PublishRoleNbr)) &&
-		(EnvelopeHeader(pet1->specification->envelope, Env_SubjectNbr) == EnvelopeHeader(pet2->specification->envelope, Env_SubjectNbr)))
+	if (EnvelopeHeader(env1, Env_ContinuumNbr)
+			== EnvelopeHeader(env2, Env_ContinuumNbr)
+	&& EnvelopeHeader(env1, Env_PublishUnitNbr)
+			== EnvelopeHeader(env2, Env_PublishUnitNbr)
+	&& EnvelopeHeader(env1, Env_PublishRoleNbr)
+			== EnvelopeHeader(env2, Env_PublishRoleNbr)
+	&& EnvelopeHeader(env1, Env_SubjectNbr)
+			== EnvelopeHeader(env2, Env_SubjectNbr))
 	{
-	
 		return 1;
 	}
-	else
-	{
-		return 0;
-	}
+
+	return 0;
 }
 
-int IsSubscriptionPublisherIdentical(Petition *pet, int domainContinuum, int domainRole, int domainUnit, int subNbr)
+int	PetitionMatchesDomain(Petition *pet, int domainContinuum,
+		int domainRole, int domainUnit, int subNbr)
 {
-	if ((EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr) == domainContinuum)&&
-		(EnvelopeHeader(pet->specification->envelope, Env_PublishUnitNbr) == domainUnit) &&
-		(EnvelopeHeader(pet->specification->envelope, Env_PublishRoleNbr) == domainRole) &&
-		(EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr) == subNbr))
+	char	*env = pet->specification->envelope;
+
+	if (EnvelopeHeader(env, Env_ContinuumNbr) == domainContinuum
+	&& EnvelopeHeader(env, Env_PublishUnitNbr) == domainUnit
+	&& EnvelopeHeader(env, Env_PublishRoleNbr) == domainRole
+	&& EnvelopeHeader(env, Env_SubjectNbr) == subNbr)
 	{	
 		return 1;
 	}
-	else
-	{
-		return 0;
-	}
+
+	return 0;
 }
 
-// petition subsume source node in msg (envelope+enclosure, enclosure: source node +msg)
-
-int IsRAMSPDUSatisfyPetition(AmsNode node, char *msg, Petition *pet)
+int	EnclosureSatisfiesPetition(AmsModule module, char *rpdu, Petition *pet)
 {
-	char* enc;
-	int encCon, petCon;
-	int encRole, petRole;
+	char	*enc;
+	char	*env;
+	int	petCont;
+	int	petUnit;
+	int	petRole;
 
-	enc = EnvelopeText(msg, -1);
+	enc = EnvelopeContent(rpdu, -1);
 	if (enc == NULL)
-		return 0;
-
-	if (EnclosureHeader(enc, Enc_SubjectNbr) != EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr))
-		return 0;
-
-	encCon = EnclosureHeader(enc, Enc_ContinuumNbr);
-	petCon = EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr);
-	
-	// check continuum ID
-	if (petCon != encCon && petCon != 0)
-       return 0;
-
-	// check if unit is satisfied, since all unit structure is the same in all continuum, so
-	// using local node to check the unit of publisher from counterpart continuum
-	if (EnvelopeHeader(pet->specification->envelope, Env_PublishUnitNbr) != 0)
 	{
-		if (!ams_subunit_of(node, EnclosureHeader(enc, Enc_UnitNbr), EnvelopeHeader(pet->specification->envelope, Env_PublishUnitNbr)))
-			return 0;
+		return 0;
 	}
 
-	// check the role ID, msg roleNbr field means the source node role.
-	encRole = EnvelopeHeader(msg, Env_PublishRoleNbr);
-	petRole = EnvelopeHeader(pet->specification->envelope, Env_PublishRoleNbr);
-	if (encRole != petRole && petRole != 0)
+	env = pet->specification->envelope;
+	if (EnclosureHeader(enc, Enc_SubjectNbr)
+			!= EnvelopeHeader(env, Env_SubjectNbr))
+	{
 		return 0;
+	}
+
+	/*	Enclosure matches petition subject.			*/
+
+	petCont = EnvelopeHeader(env, Env_ContinuumNbr);
+	if (petCont != 0)
+	{
+		/*	Domain continuum of petition is not "all".	*/
+
+		if (petCont != EnclosureHeader(enc, Enc_ContinuumNbr))
+		{
+			return 0;
+		}
+	}
+
+	/*	Enclosure matches domain continuum of petition.		*/
+
+	petUnit = EnvelopeHeader(env, Env_PublishUnitNbr);
+	if (petUnit != 0)
+	{
+		/*	Domain unit of petition is not the root unit.	*/
+
+		if (!ams_subunit_of(module, EnclosureHeader(enc, Enc_UnitNbr),
+					petUnit))
+		{
+			return 0;
+		}
+	}
+
+	/*	Enclosure matches domain unit of petition.		*/
+
+	petRole = EnvelopeHeader(env, Env_PublishRoleNbr);
+	if (petRole != 0)
+	{
+		/*	Domain role of petition is not "all".  Note
+		 *	that the role of the source of the message
+		 *	is NOT carried in the enclosure; we have to
+		 *	get it from the RPDU's header instead.		*/
+
+		if (petRole != EnvelopeHeader(rpdu, Env_PublishRoleNbr))
+		{
+			return 0;
+		}
+	}
+
+	/*	Enclosure matches domain role of petition.		*/
+
 	return 1;
-	// check unit number
 }
 
-int IsRAMSPDUSatisfyInvitation(RamsGateway *gWay, char* msg, Invitation *inv)
+int	EnclosureSatisfiesInvitation(RamsGateway *gWay, char* rpdu,
+		Invitation *inv)
 {
-	char *enc;
-	int srcUnit, srcRole, srcCon;
+	InvitationSpec	*spec = inv->inviteSpecification;
+	char		*enc;
 
-	enc = EnvelopeText(msg, -1);
+	enc = EnvelopeContent(rpdu, -1);
 	if (enc == NULL)
-		return 0;
-
-	if (inv->inviteSpecification->subjectNbr != 0 && EnclosureHeader(enc, Enc_SubjectNbr) != inv->inviteSpecification->subjectNbr)
-		return 0;
-
-	srcCon = EnclosureHeader(enc, Enc_ContinuumNbr);
-
-	if (inv->inviteSpecification->domainContNbr != 0 && 
-		inv->inviteSpecification->domainContNbr != srcCon)
-		return 0;
-
-	srcUnit = EnclosureHeader(enc, Enc_UnitNbr);		// source unit set in enclosure
-	srcRole = EnvelopeHeader(msg, Env_SourceRoleNbr);  // source role set in envelope
-
-	if (inv->inviteSpecification->domainUnitNbr != 0)
 	{
-		if (!ams_subunit_of(gWay->amsNode, srcUnit, inv->inviteSpecification->domainUnitNbr))
+		return 0;
+	}
+
+	if (spec->subjectNbr != 0)
+	{
+		/*	Subject of invitation is not "all".		*/
+
+		if (spec->subjectNbr != EnclosureHeader(enc, Enc_SubjectNbr))
+		{
 			return 0;
+		}
 	}
 
-	if (inv->inviteSpecification->domainRoleNbr != 0 && srcRole != inv->inviteSpecification->domainRoleNbr)
+	/*	Enclosure matches invitation subject.			*/
+
+	if (spec->domainContNbr != 0)
 	{
-		return 0;
+		/*	Domain continuum of invitation is not "all".	*/
+
+		if (spec->domainContNbr != EnclosureHeader(enc,
+					Enc_ContinuumNbr))
+		{
+			return 0;
+		}
 	}
+
+	/*	Enclosure matches domain continuum of invitation.	*/
+
+
+	if (spec->domainUnitNbr != 0)
+	{
+		/*	Domain unit of invitation is not "all".		*/
+
+		if (!ams_subunit_of(gWay->amsModule,
+				EnclosureHeader(enc, Enc_UnitNbr),
+				spec->domainUnitNbr))
+		{
+			return 0;
+		}
+	}
+
+	/*	Enclosure matches domain unit of invitation.		*/
+
+	if (spec->domainRoleNbr != 0)
+	{
+		/*	Domain role of invitation is not "all".  Note
+		 *	that the role of the source of the message
+		 *	is NOT carried in the enclosure; we have to
+		 *	get it from the RPDU's header instead.		*/
+
+		if (spec->domainRoleNbr != EnvelopeHeader(rpdu,
+				Env_SourceRoleNbr))
+		{
+			return 0;
+		}
+	}
+
+	/*	Enclosure matches domain role of invitation.		*/
+
 	return 1; 
 }
 
-int RoleNumber(AmsNode node, int unitNbr, int nodeNbr)
+int	RoleNumber(AmsModule module, int unitNbr, int moduleNbr)
 {
-	char *msgRoleName;
-	int msgRole;
+	char	*roleName;
 
-	msgRoleName = ams_get_role_name(node, unitNbr, nodeNbr);
-	if (msgRoleName == NULL)
+	roleName = ams_get_role_name(module, unitNbr, moduleNbr);
+	if (roleName == NULL)
+	{
 		return -1; 
-   	msgRole = ams_lookup_role_nbr(node, msgRoleName);
-	return msgRole;
-}
-
-int IsAmsMsgSatisfyPetition(AmsNode node, int msgCon, int msgUnit, int msgNode, int subjectNbr, Petition* pet)
-{
-	int petCon;
-	int msgRole, petRole;
-
-	if (subjectNbr != EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr))
-		return 0;
-
-	petCon = EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr);
-	// check continuum ID
-	if (petCon != msgCon && petCon != 0)
-       return 0;
-
-	// check if unit is satisfied	
-	if (EnvelopeHeader(pet->specification->envelope, Env_PublishUnitNbr) != 0)
-	{	
-		if (!ams_subunit_of(node, msgUnit, EnvelopeHeader(pet->specification->envelope, Env_PublishUnitNbr)))
-			return 0;
 	}
 
-	// check the role ID
+   	return ams_lookup_role_nbr(module, roleName);
+}
 
-	msgRole = RoleNumber(node, msgUnit, msgNode);
-	petRole = EnvelopeHeader(pet->specification->envelope, Env_PublishRoleNbr);
-	if (msgRole != petRole && petRole != 0)
+int	MessageSatisfiesPetition(AmsModule module, int msgCont, int msgUnit,
+		int msgModule, int subjectNbr, Petition* pet)
+{
+	char	*env = pet->specification->envelope;
+	int	petCont;
+	int	petUnit;
+	int	petRole;
+
+	if (subjectNbr != EnvelopeHeader(env, Env_SubjectNbr))
+	{
 		return 0;
+	}
+
+	petCont = EnvelopeHeader(env, Env_ContinuumNbr);
+	if (petCont != 0)
+	{
+		if (petCont != msgCont)
+		{
+			return 0;
+		}
+	}
+
+	petUnit = EnvelopeHeader(env, Env_PublishUnitNbr);
+	if (petUnit != 0)
+	{
+		if (!ams_subunit_of(module, msgUnit, petUnit))
+		{
+			return 0;
+		}
+	}
+
+	petRole = EnvelopeHeader(env, Env_PublishRoleNbr);
+	if (petRole != 0)
+	{
+		if (petRole != RoleNumber(module, msgUnit, msgModule))
+		{
+			return 0;
+		}
+	}
+
 	return 1;
 }
 
-// check if the node exist int the distribution order destination node
-LystElt IsNodeExist(Node *node, Lyst *lyst)
+LystElt	ModuleSetMember(Module *module, Lyst lyst)
 {
-	LystElt elt;
-	Node *nodeExist;
-	// check node no and unit no. 
-	for (elt = lyst_first(*lyst); elt != NULL; elt = lyst_next(elt))
+	LystElt	elt;
+	Module	*member;
+
+	for (elt = lyst_first(lyst); elt != NULL; elt = lyst_next(elt))
 	{
-		nodeExist = (Node *)lyst_data(elt);
-		if (node->unitNbr == nodeExist->unitNbr &&
-		//	node->role->nbr == nodeExist->role->nbr &&
-			node->nbr == nodeExist->nbr)
-        return elt;
+		member = (Module *) lyst_data(elt);
+		if (module->unitNbr == member->unitNbr
+		&& module->nbr == member->nbr)
+		{
+        		return elt;
+		}
 	}
+
 	return NULL;
 }
 
-LystElt IsInvitationExist(int dUnit, int dRole, int dCont, int sub, Lyst *lyst)
+LystElt InvitationSetMember(int dUnit, int dRole, int dCont, int sub, Lyst lyst)
 {
-	LystElt elt;
-	Invitation *inv; 
+	LystElt		elt;
+	Invitation	*inv; 
 
-	for (elt = lyst_first(*lyst); elt != NULL; elt = lyst_next(elt))
+	for (elt = lyst_first(lyst); elt != NULL; elt = lyst_next(elt))
 	{
-		inv = (Invitation *)lyst_data(elt);
-		if (inv->inviteSpecification->domainContNbr == dCont &&
-			inv->inviteSpecification->domainUnitNbr == dUnit && 
-			inv->inviteSpecification->domainRoleNbr == dRole && 
-			inv->inviteSpecification->subjectNbr == sub)
+		inv = (Invitation *) lyst_data(elt);
+		if (inv->inviteSpecification->domainContNbr == dCont
+		&& inv->inviteSpecification->domainUnitNbr == dUnit
+		&& inv->inviteSpecification->domainRoleNbr == dRole
+		&& inv->inviteSpecification->subjectNbr == sub)
 		{
 			return elt;
 		}
 	}
+
 	return NULL;
 }
 
-int IsSameRamsGateway(RamsNode *gWay1, RamsNode *gWay2)
+static int	SameRamsNode(RamsNode *node1, RamsNode *node2)
 {
-	/*
-	if (gWay1->ramsMib->amsMib->localContinuumNbr == gWay2->ramsMib->amsMib->localContinuumNbr &&
-		gWay1->amsNode->msgspace->nbr == gWay2->amsNode->msgspace->nbr &&
-		gWay1->amsNode->unit->nbr = gWay2->amdNode->unit->nbr &&
-		gWay1->amsNode->role->nbr = gWay2->amsNode->role->nbr &&
-		gWay1->amdNode->nodeNbr == gWay2->amsNode->nodeNbr)
-	*/
-//	if (gWay1->elementNbr == gWay2->elementNbr &&
-//		gWay1->serviceNbr == gWay2->serviceNbr &&
-		//gWay1->unitNbr == gWay2->unitNbr &&
-//		gWay1->nodeNbr == gWay2->nodeNbr)
-	if (gWay1->continuumNbr == gWay2->continuumNbr
-	&& gWay1->protocol == gWay2->protocol
-	&& strcmp(gWay1->gwEid, gWay2->gwEid) == 0)
-		return 1;
-	else
-		return 0;
-}
-
-// check if the continuum node exists in a continuum set 
-LystElt IsContinuumExist(RamsNode *fromGWay, Lyst *lyst)
-{
-	LystElt elt;
-	for (elt = lyst_first(*lyst); elt != NULL; elt = lyst_next(elt))
+	if (node1->continuumNbr == node2->continuumNbr
+	&& node1->protocol == node2->protocol
+	&& strcmp(node1->gwEid, node2->gwEid) == 0)
 	{
-		RamsNode *gateWay;
-		gateWay = (RamsNode *)lyst_data(elt);
-		if (IsSameRamsGateway(fromGWay, gateWay))
-			return elt;
+		return 1;
 	}
+
+	return 0;
+}
+
+LystElt	NodeSetMember(RamsNode *fromNode, Lyst lyst)
+{
+	LystElt		elt;
+	RamsNode	*node;
+
+	for (elt = lyst_first(lyst); elt != NULL; elt = lyst_next(elt))
+	{
+		node = (RamsNode *) lyst_data(elt);
+		if (SameRamsNode(fromNode, node))
+		{
+			return elt;
+		}
+	}
+
 	return NULL;
 }
 
-int IsSameNode(Node* sNode, RamsGateway *gWay)
+int	ModuleIsMyself(Module* sModule, RamsGateway *gWay)
 {
-	if (sNode->unitNbr == ams_get_unit_nbr(gWay->amsNode) &&
-		sNode->nbr == ams_get_node_nbr(gWay->amsNode))
+	if (sModule->unitNbr == ams_get_unit_nbr(gWay->amsModule)
+	&& sModule->nbr == ams_get_module_nbr(gWay->amsModule))
+	{
 		return 1;
-	else
-		return 0;
+	}
+
+	return 0;
 }
 
-int IsSameAMSNode(AmsNode node1, AmsNode node2)
+Module	*LookupModule(int unitNbr, int moduleNbr, RamsGateway *rg)
 {
-	if (ams_get_unit_nbr(node1) == ams_get_unit_nbr(node2) &&
-		ams_get_node_nbr(node1) == ams_get_node_nbr(node2))
-		return 1;
-	else
-		return 0;
+	return rg->amsModule->venture->units[unitNbr]->cell->modules[moduleNbr];
 }
 
-Node *GetSourceNode(int unitNbr, int nodeNbr, RamsGateway *gWay)
-{
-	Node *node;
-
-	node = gWay->amsNode->venture->units[unitNbr]->cell->nodes[nodeNbr];
-	return node;
-}
-
-/*
-RamsNode* FindNeighborGateway(RamsGateway *gWay, char *sourceId)
-{
-	char *s1, *s2;
-    char* sId;
-    int srcCId; 
-
-    s1 = strchr(sourceId, ':');
-    sId = s1 + 1;
-    s2 = strchr(sId, '.');
-    *s2 = '\0';
-    srcCId = atoi(sId);
-    *s2 = '.';
-    return Look_Up_NeighborRemoteRAMS(gWay, srcCId);
-}
-*/
-
-RamsNode* FindDeclaredGateway(RamsGateway *gWay, char *sourceId)
-{
-	char *s1, *s2;
-    char* sId;
-    int srcCId; 
-
-    s1 = strchr(sourceId, ':');
-    sId = s1 + 1;
-    s2 = strchr(sId, '.');
-    *s2 = '\0';
-    srcCId = atoi(sId);
-    *s2 = '.';
-    return Look_Up_DeclaredRemoteRAMS(gWay, srcCId);
-}
-
-// set exclusion
-void RAMSSetSubtraction(Lyst set1, Lyst set2)
+void	SubtractNodeSets(Lyst set1, Lyst set2)
 {
 	LystElt elt, nextElt;
-	RamsNode *rams;
+	RamsNode *node;
 
 	for (elt = lyst_first(set1); elt != NULL; )
 	{
-		rams = (RamsNode *)lyst_data(elt);
+		node = (RamsNode *)lyst_data(elt);
 		nextElt = lyst_next(elt);
-		if (IsContinuumExist(rams, &set2))
+		if (NodeSetMember(node, set2))
 		{
 			lyst_delete(elt);
 		}
+
 		elt = nextElt;
 	}
 }
 
-// set union
-void RAMSSetUnion(Lyst set1, Lyst set2)
+void	AddNodeSets(Lyst set1, Lyst set2)
 {
 	LystElt elt;
-	RamsNode *rams;
+	RamsNode *node;
 
 	for (elt = lyst_first(set2); elt != NULL; elt = lyst_next(elt))
 	{
-		rams = (RamsNode *)lyst_data(elt);
-		if (!IsContinuumExist(rams, &set1))
+		node = (RamsNode *)lyst_data(elt);
+		if (!NodeSetMember(node, set1))
 		{
-			lyst_insert_last(set1, rams);
+			if (lyst_insert_last(set1, node) == NULL)
+			{
+				ErrMsg("Failed adding node to set.");
+				return;
+			}
 		}
 	}
 }
 
-// == NULL, not exist
-// != NULL, exist
-RamsNode* GetConduitForContinuum(int cId, RamsGateway *gWay)
+RamsNode	*GetConduitForContinuum(int continuumNbr, RamsGateway *gWay)
 {
-	LystElt elt, eltNode;
-	Petition *pet; 
-	int subN;
-	RamsNode *rGWay; 
+	LystElt		elt;
+	Petition	*pet; 
+	int		subN;
+	LystElt		nodeElt;
 
-	for (elt = lyst_first(gWay->petitionSet); elt != NULL; elt = lyst_next(elt))
+	for (elt = lyst_first(gWay->petitionSet); elt != NULL;
+			elt = lyst_next(elt))
 	{
-		pet = (Petition *)lyst_data(elt);
-		subN = EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr);
-		if (subN == -cId)
+		pet = (Petition *) lyst_data(elt);
+		subN = EnvelopeHeader(pet->specification->envelope,
+				Env_SubjectNbr);
+		if (subN == (0 - continuumNbr))
 		{
-
-			eltNode = lyst_first(pet->DestinationRamsSet);
-			if (eltNode == NULL)
+			nodeElt = lyst_first(pet->DestinationNodeSet);
+			if (nodeElt == NULL)
+			{
 				continue;
-			rGWay = (RamsNode *)lyst_data(eltNode);
-			return rGWay; 
+			}
+
+			return (RamsNode *) lyst_data(nodeElt);
 		}
 	}
-	return NULL;  // not exist 
+
+	return NULL;	/*	No conduit to this continuum.		*/
 }
 
 
-Lyst PropagationSet(RamsGateway *gWay, Petition *pet)
+Lyst	PropagationSet(RamsGateway *gWay, Petition *pet)
 {
-	int domainCont;
-	LystElt elt;
-	Lyst    PS; 
-	RamsNode *rams;
+	Lyst		PS; 
+	int		domainCont;
+	LystElt		elt;
+	RamsNode	*node;
 
 	PS = lyst_create();
-	domainCont = EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr);
+	CHKNULL(PS);
 
-	// domain of peition subscription is "all continua"
+	/*	First populate the propagation set with all RAMS
+	 *	nodes in the domain of the petition.			*/
+
+	domainCont = EnvelopeHeader(pet->specification->envelope,
+			Env_ContinuumNbr);
 	if (domainCont == 0)
 	{
-		for (elt = lyst_first(gWay->ramsMib->declaredNeighbors); elt != NULL; elt = lyst_next(elt))
+		/*	Domain of petition is "all continua".		*/
+
+		for (elt = lyst_first(gWay->declaredNeighbors);
+				elt != NULL; elt = lyst_next(elt))
 		{
-			rams = (RamsNode *)lyst_data(elt);
-			lyst_insert_last(PS, rams);
+			node = (RamsNode *) lyst_data(elt);
+			if (lyst_insert_last(PS, node) == NULL)
+			{
+				ErrMsg("Failed adding node to set.");
+				return NULL;
+			}
 		}
 	}
-	// domain of petition subscription is a single remote continuum 
 	else   
 	{ 
-		// get conduit for domain continuum
-		rams = GetConduitForContinuum(domainCont, gWay);
-		if (rams != NULL)
-			lyst_insert_last(PS, rams);
+		/*	Domain of petition is a single remote
+		 *	continuum; find conduit to that continuum.	*/
+
+		node = GetConduitForContinuum(domainCont, gWay);
+		if (node != NULL)
+		{
+			if (lyst_insert_last(PS, node) == NULL)
+			{
+				ErrMsg("Failed adding node to set.");
+				return NULL;
+			}
+		}
 	}
 		
-	// remove from PS all members of the source gateway sets of this petition
-	RAMSSetSubtraction(PS, pet->SourceRamsSet);
+	/*	Now REMOVE from the propagation set all members of
+	 *	the source gateway set of this petition.		*/
+
+	SubtractNodeSets(PS, pet->SourceNodeSet);
+
+	/*	Also REMOVE from the propagation set the sole member
+	 *	of the DGS if the petition's DMS is empty and its DGS
+	 *	contains only one member.				*/
 	
-	// remove from the PS the sole member of the DGS if petition's DNS is empty 
-	// and DGS continas only one member
-	
-	if (lyst_first(pet->DistributionNodeSet) == NULL &&
-		lyst_length(pet->DestinationRamsSet) == 1)
+	if (lyst_length(pet->DistributionModuleSet) == 0
+	&& lyst_length(pet->DestinationNodeSet) == 1)
 	{
-		RAMSSetSubtraction(PS, pet->DestinationRamsSet);
+		SubtractNodeSets(PS, pet->DestinationNodeSet);
 	}
 	
 	return PS;
 }
 
-int IsPetitionAssertable(RamsGateway *gWay, Petition *pet)
+void	DeletePetition(Petition *pet)
 {
-	if (gWay->ramsMib->netType == MESHTYPE)
-	{
-		if (lyst_first(pet->DistributionNodeSet) != NULL)
-			return 1;
-	}
-	else if (gWay->ramsMib->netType == TREETYPE)
-	{
-		if (lyst_first(pet->DistributionNodeSet) != NULL ||
-			lyst_first(pet->DestinationRamsSet) != NULL)
-			return 1;
-	}
-	
-	return 0;
-}
-
-// if cancel petition
-// - DNS = empty
-// - DGS = empty
-//   or member of DGS == member of SGS
-
-int IsToCancelPetition(Petition *pet)
-{
-	RamsNode *pet1;
-	//RamsNode *pet2;
-
-	if (lyst_first(pet->DistributionNodeSet) == NULL)
-	{
-		if (lyst_first(pet->DestinationRamsSet) == NULL)
-			return 1;
-		
-		if (lyst_length(pet->DestinationRamsSet) == 1)
-		{
-			pet1 = (RamsNode *)lyst_data(lyst_first(pet->DestinationRamsSet));
-			if (IsContinuumExist(pet1, &(pet->SourceRamsSet)) != NULL )
-				return 1;
-			else
-				return 0;
-		}
-		
-		/*
-		if (lyst_length(pet->DestinationRamsSet) == 1 &&
-			lyst_length(pet->SourceRamsSet) == 1)
-		{
-			pet1 = (RamsNode *)lyst_data(lyst_first(pet->DestinationRamsSet));
-			pet2 = (RamsNode *)lyst_data(lyst_first(pet->SourceRamsSet));
-			if (pet1->continuumNbr == pet2->continuumNbr)
-				return 1;
-		}
-		*/
-	}
-	return 0;
-}
-	
-void DeleteSourceRamsSet(Petition *pet)
-{
-	Lyst sourceSet;
-
-	sourceSet = pet->SourceRamsSet;
-	lyst_destroy(sourceSet);
-}
-
-void DeleteCollectionOrders(Petition *pet)
-{
-	Lyst cOrders;
-		
-	cOrders = pet->DestinationRamsSet;
-    lyst_destroy(cOrders);
-}
-
-void DeleteDistributionOrders(Petition *pet)
-{
-	Lyst dOrders; 
-	
-	dOrders = pet->DistributionNodeSet;
-	lyst_destroy(dOrders);
-}
-
-void DeletePetition(Petition *pet)
-{
-//printf("  petition(%d)\n", EnvelopeHeader(pet->specification->envelope, Env_SubjectNbr));
-	DeleteSourceRamsSet(pet);
-//PUTS("release SRS");
-	DeleteCollectionOrders(pet);
-//PUTS("release DRS");
-	DeleteDistributionOrders(pet);
-//PUTS("release DNS");
+	lyst_destroy(pet->SourceNodeSet);
+	lyst_destroy(pet->DestinationNodeSet);
+	lyst_destroy(pet->DistributionModuleSet);
 	MRELEASE(pet->specification->envelope);
 	MRELEASE(pet->specification);
 	MRELEASE(pet);
 }
 
-LystElt IsPrivateReceiverExist(RamsGateway *gWay, char* msg)
+int	MessageIsInvited(RamsGateway *gWay, char* msg)
 {
-	int srcUnit, srcRole, srcSubject; 
-	int destUnit, destNode; 
-	char* enc;
-	LystElt elt, nodeElt;
-	Invitation *inv; 
-	Node *sourceNode; 
+	char		*enc;
+	int		destUnitNbr;
+	int		destModuleNbr; 
+	Module		*destModule; 
+	LystElt		elt;
+	Invitation	*inv; 
 
-	enc = EnvelopeText(msg, -1);
+	enc = EnvelopeContent(msg, -1);
 	if (enc == NULL)
-		return NULL;
-	
-	srcUnit = EnclosureHeader(enc, Enc_UnitNbr);
-	srcRole = EnvelopeHeader(msg, Env_SourceRoleNbr);
-	srcSubject = EnclosureHeader(enc, Enc_SubjectNbr);
-
-	destUnit = EnvelopeHeader(msg, Env_DestUnitNbr);
-	destNode = EnvelopeHeader(msg, Env_DestNodeNbr);
-
-	sourceNode = GetSourceNode(destUnit, destNode, gWay);
-	if (sourceNode == NULL)
-		return NULL;  
-
-	nodeElt = NULL; 
-
-	for (elt = lyst_first(gWay->invitationSet); elt != NULL; elt = lyst_next(elt))
 	{
-		inv = (Invitation *)lyst_data(elt);
-		if (IsRAMSPDUSatisfyInvitation(gWay, msg, inv))
+		return 0;
+	}
+
+	destUnitNbr = EnvelopeHeader(msg, Env_DestUnitNbr);
+	destModuleNbr = EnvelopeHeader(msg, Env_DestModuleNbr);
+	destModule = LookupModule(destUnitNbr, destModuleNbr, gWay);
+	if (destModule == NULL)
+	{
+		return 0;  
+	}
+
+	for (elt = lyst_first(gWay->invitationSet); elt != NULL;
+			elt = lyst_next(elt))
+	{
+		inv = (Invitation *) lyst_data(elt);
+		if (EnclosureSatisfiesInvitation(gWay, msg, inv))
 		{
-			if ((nodeElt = IsNodeExist(sourceNode, &(inv->nodeSet))) != NULL)
-				break;
+			if (ModuleSetMember(destModule, inv->moduleSet) != NULL)
+			{
+				return 1;
+			}
 		}
 	}
-	return nodeElt;
+
+	return 0;
 }
 
-int IsValidAnnounceReceiver(RamsGateway* gWay, Node *node, int dUnit, int dRole)
+int	ModuleIsInAnnouncementDomain(RamsGateway* gWay, Module *module,
+		int dUnit, int dRole)
 {
-	int rUnit, rRole;
+	int	mUnit;
+	int	mRole;
 
-	rUnit = node->unitNbr;
-	rRole = RoleNumber(gWay->amsNode, rUnit, node->nbr);
-	if (dUnit != 0 && dUnit != rUnit)
+	mUnit = module->unitNbr;
+	mRole = RoleNumber(gWay->amsModule, mUnit, module->nbr);
+	if (dUnit != 0 && dUnit != mUnit)
 	{
-        if (!ams_subunit_of(gWay->amsNode, rUnit, dUnit)) 
+		/*	Domain unit is not the root unit (the entire
+		 *	venture), and it is not the unit in which this
+		 *	module is registered.  Is it a super-unit of
+		 *	the unit in which this module is registered?	*/
+
+        	if (!ams_subunit_of(gWay->amsModule, mUnit, dUnit)) 
+		{
 			return 0;
+		}
 	}
-	if (dRole != 0 && dRole != rRole)
+
+	/*	Module is registered in a unit that is within the
+	 *	domain of the announcement.				*/
+
+	if (dRole != 0 && dRole != mRole)
+	{
+		/*	Domain role is not "all roles", and it is not
+		 *	the role in which this module registered.	*/
+
 		return 0;
+	}
+
+	/*	Module is registered in a role that is within the
+	 *	domain of the announcement.				*/
+
 	return 1;
+}
+
+static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
+			unsigned char flowLabel, char* envelope,
+			int envelopeLength)
+{
+	Sdr		sdr = getIonsdr();
+	int		classOfService;
+	BpCustodySwitch	custodySwitch = SourceCustodyRequired;
+	BpExtendedCOS	ecos = { 0, 0, 0 };
+	Object		extent;
+	Object		bundleZco;
+	Object		newBundle;
+	char		errorMsg[128];
+
+	while (gWay->sap == NULL)
+	{
+		PUTS("Gateway not registered in network yet.");
+		snooze(1);
+	}
+
+	classOfService = flowLabel & 0x03;
+	ecos.flags = (flowLabel >> 2) & 0x03;
+	if (ecos.flags & BP_BEST_EFFORT)
+	{
+		custodySwitch = NoCustodyRequested;
+	}
+
+	sdr_begin_xn(sdr);
+	extent = sdr_insert(sdr, envelope, envelopeLength);
+	if (extent == 0)
+	{
+		sdr_cancel_xn(sdr);
+		ErrMsg("Can't write msg to SDR.");
+		return -1;
+	}
+
+	bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0, envelopeLength);
+	if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	{
+		ErrMsg("Failed creating message.");
+		return -1;
+	}
+
+	if (bp_send(gWay->sap, BP_BLOCKING, ramsNode->gwEid, NULL, gWay->ttl,
+			classOfService, custodySwitch, 0, 0, &ecos,
+			bundleZco, &newBundle) < 1)
+	{
+		isprintf(errorMsg, sizeof errorMsg,
+				"Cannot send message to %s.", ramsNode->gwEid);
+		ErrMsg(errorMsg);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	SendRPDUviaUdp(RamsGateway *gWay, RamsNode *ramsNode,
+			unsigned char flowLabel, char* envelope,
+			int envelopeLength)
+{
+	char			gwEid[256];
+	unsigned short		portNbr;
+	unsigned int		ipAddress;
+	struct sockaddr		socketName;
+	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
+	char			errorMsg[128];
+
+	istrcpy(gwEid, ramsNode->gwEid, sizeof gwEid);
+	parseSocketSpec(gwEid, &portNbr, &ipAddress);
+	portNbr = htons(portNbr);
+	ipAddress = htonl(ipAddress);
+	memset((char *) &socketName, 0, sizeof socketName);
+	inetName->sin_family = AF_INET;
+	inetName->sin_port = portNbr;
+	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &ipAddress, 4);
+	while (1)
+	{
+		if (sendto(gWay->ownUdpFd, envelope, envelopeLength, 0,
+				&socketName, sizeof(struct sockaddr)) < 0)
+		{
+			if (errno == EINTR)	/*	Interrupted.	*/
+			{
+				continue;	/*	Retry.		*/
+			}
+
+			isprintf(errorMsg, sizeof errorMsg,
+				"Cannot send message to %s.", ramsNode->gwEid);
+			ErrMsg(errorMsg);
+			return -1;
+		}
+
+		return 0;
+	}
+}
+
+int	SendRPDU(RamsGateway *gWay, int destContinuumNbr,
+		unsigned char flowLabel, char* envelope, int envelopeLength)
+{
+	char		errorMsg[128];
+	LystElt		elt;
+	RamsNode	*ramsNode;
+
+#if RAMSDEBUG
+printf("<SendRPDU> to %d\n", destContinuumNbr);
+#endif
+	if (destContinuumNbr == 0)	/*	Send to all continua.		*/
+	{
+#if RAMSDEBUG
+PUTS("<SendRPDU> sent to the following continua:");
+#endif
+		for (elt = lyst_first(gWay->ramsNeighbors);
+				elt != NULL; elt = lyst_next(elt))
+		{
+			ramsNode = (RamsNode *) lyst_data(elt);
+			if (ramsNode->continuumNbr ==
+					gWay->amsMib->localContinuumNbr)
+			{
+				continue;
+			}
+#if RAMSDEBUG
+printf("<SendRPDU> to %d envelopeLength=%d cc=%d\n",
+ramsNode->continuumNbr, envelopeLength, EnvelopeHeader(envelope,
+Env_ControlCode));
+#endif
+			switch (ramsNode->protocol)
+			{
+			case RamsBp:
+				if (SendRPDUviaBp(gWay, ramsNode,
+					flowLabel, envelope, envelopeLength))
+				{
+					ErrMsg("Can't send RAMS msg via BP.");
+					return -1;
+				}
+
+				continue;
+
+			case RamsUdp:
+				if (SendRPDUviaUdp(gWay, ramsNode,
+					flowLabel, envelope, envelopeLength))
+				{
+					ErrMsg("Can't send RAMS msg via UDP.");
+					return -1;
+				}
+
+				continue;
+
+			default:
+				putErrmsg("Can't send to RAMS node: no network \
+protocol.", itoa(ramsNode->continuumNbr));
+				return -1;
+			}
+		}
+
+		return 0;
+	}
+
+	/*	This message is being sent to a single continuum.	*/
+
+	ramsNode = Look_Up_DeclaredNeighbor(gWay, destContinuumNbr);
+	if (ramsNode == NULL)
+	{
+		isprintf(errorMsg, sizeof errorMsg, "Continuum %d has not \
+declared itself.", destContinuumNbr);
+		ErrMsg(errorMsg);
+#if RAMSDEBUG
+printf("<SendRPDU> continuum %d not declared.\n", destContinuumNbr);
+#endif
+		return -1;
+	}
+
+	switch (ramsNode->protocol)
+	{
+	case RamsBp:
+		return SendRPDUviaBp(gWay, ramsNode, flowLabel, envelope,
+				envelopeLength);
+
+	case RamsUdp:
+		return SendRPDUviaUdp(gWay, ramsNode, flowLabel, envelope,
+				envelopeLength);
+
+	default:
+		ErrMsg("No RAMS network protocol.");
+		return -1;
+	}
+}
+
+int	SendNewRPDU(RamsGateway *gWay, int destContinuumNbr,
+		unsigned char flowLabel, Enclosure *enclosure,
+		int continuumNbr, int unitNbr, int sourceID, int destID,
+		int controlCode, int subjectNbr)
+{
+	char	*envelope;
+	int	encLength;
+	int	result;
+
+	envelope = NULL; 
+	if (enclosure)
+	{
+		encLength = enclosure->length;
+		envelope = (char *) MTAKE(ENVELOPELENGTH + encLength);
+		CHKERR(envelope);
+		ConstructEnvelope((unsigned char *) envelope, continuumNbr,
+				unitNbr, sourceID, destID, subjectNbr,
+				enclosure->length, enclosure->text,
+				controlCode);
+	}
+	else 
+	{
+		encLength = 0;
+		envelope = (char *) MTAKE(ENVELOPELENGTH);
+		CHKERR(envelope);
+		ConstructEnvelope((unsigned char *) envelope, continuumNbr,
+				unitNbr, sourceID, destID, subjectNbr, 0, NULL,
+				controlCode);
+	}
+
+	result = SendRPDU(gWay, destContinuumNbr, flowLabel, envelope,
+			ENVELOPELENGTH + encLength);
+	MRELEASE(envelope);
+	if (result < 0)
+	{
+		ErrMsg("Failed sending envelope to neighbor.");
+		return -1;
+	}
+
+	return 0;
 }
