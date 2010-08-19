@@ -21,7 +21,7 @@ typedef MSG_Q_ID		VmqTsep;
 /*	VMQ is not suitable as a primary transport service: the
  *	endpoint ID for the configuration server can't be specified
  *	before the endpoint is created, so it can't be advertised in
- *	the MIB to registrars and nodes.  There may be some clever
+ *	the MIB to registrars and modules.  There may be some clever
  *	way around this, using indirection and artificial message
  *	queue IDs, but the ability to use VMQ as the PTS doesn't
  *	seem to be worth the extra complexity.  We just don't do it.	*/

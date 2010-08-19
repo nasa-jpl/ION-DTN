@@ -1181,7 +1181,7 @@ amsbin = \
 	amslogprt \
 	amsbenchs \
 	amsbenchr \
-	ramstest
+	ramsgate
 
 amslib = \
 	libams.la
@@ -1257,12 +1257,12 @@ amsd_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 # --- RAMS Executables --- #
 
-ramstest_SOURCES = \
+ramsgate_SOURCES = \
 	$(amsramsdir)/librams.c \
 	$(amsramsdir)/ramscommon.c \
-	$(amsramsdir)/ramsTest.c 
-ramstest_LDADD = libbp.la libbpP.la libams.la libdgr.la libici.la $(LIBOBJS)
-ramstest_CFLAGS = $(amscflags) $(AM_CFLAGS)
+	$(amsramsdir)/ramsgate.c 
+ramsgate_LDADD = libbp.la libbpP.la libams.la libdgr.la libici.la $(LIBOBJS)
+ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 ##############
 #

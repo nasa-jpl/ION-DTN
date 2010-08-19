@@ -27,7 +27,7 @@ static void	logToStderr(char *text)
 	fflush(stderr);
 }
 
-static void	logMsg(AmsNode me, void *userData, AmsEvent *event,
+static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			int continuumNbr, int unitNbr, int nodeNbr,
 			int subjectNbr, int contentLength, char *content,
 			int context, AmsMsgType msgType, int priority,
@@ -142,7 +142,7 @@ int	main(int argc, char **argv)
 	char		*authorityName = (argc > 2 ? argv[2] : NULL);
 	char		*mode = (argc > 3 ? argv[3] : "s");
 #endif
-	AmsNode		me;
+	AmsModule		me;
 	AmsEventMgt	rules;
 	int		asserting;
 	char		buffer[256];

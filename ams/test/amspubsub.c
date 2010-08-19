@@ -16,7 +16,7 @@ int	amssub(int a1, int a2, int a3, int a4, int a5,
 	char		*applicationName = (char *) a1;
 	char		*authorityName = (char *) a2;
 	char		*subjectName = (char *) a3;
-	AmsNode		me;
+	AmsModule		me;
 	int		subjectNbr;
 	AmsEvent	event;
 	int		cn, un, nn, sn, len, ct, pr, fl;
@@ -85,7 +85,7 @@ int	amspub(int a1, int a2, int a3, int a4, int a5,
 	char		*authorityName = (char *) a2;
 	char		*subjectName = (char *) a3;
 	char		*msgText = (char *) a4;
-	AmsNode		me;
+	AmsModule		me;
 	int		subjectNbr;
 
 	if (applicationName == NULL

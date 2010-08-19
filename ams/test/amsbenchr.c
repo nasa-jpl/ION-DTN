@@ -21,7 +21,7 @@ int	amsbenchr(int a1, int a2, int a3, int a4, int a5,
 int	main(int argc, char **argv)
 {
 #endif
-	AmsNode		me;
+	AmsModule		me;
 	int		subjectNbr;
 	AmsEvent	event;
 	int		cn, zn, nn, sn, len, ct, pr;

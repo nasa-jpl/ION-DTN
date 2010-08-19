@@ -91,7 +91,7 @@ extern "C" {
 extern int		MaxContinNbr;
 extern int		MaxVentureNbr;
 extern int		MaxUnitNbr;
-extern int		MaxNodeNbr;
+extern int		MaxModuleNbr;
 extern int		MaxRoleNbr;
 extern int		MaxSubjNbr;
 
@@ -227,7 +227,7 @@ typedef struct mamsifst
 	void		*sap;		/*	e.g., socket FD		*/
 } MamsInterface;
 
-/*	AmsEpspec characterizes one means by which AMS nodes on this
+/*	AmsEpspec characterizes one means by which AMS modules on this
  *	host machine may receive AMS messages.				*/
 
 typedef struct
@@ -256,39 +256,39 @@ typedef struct
 	char		*name;
 	char		*publicKey;
 	int		publicKeyLength;
-	char		*privateKey;	/*	Only in node's own MIB.	*/
+	char		*privateKey;	/*	Only in module's own MIB.*/
 	int		privateKeyLength;
 } AppRole;
 
-/*	Nodes send and receive the messages that are exchanged within
- *	an instance of an application.  Nodes' references to subjects
+/*	Modules send and receive the messages that are exchanged within
+ *	an instance of an application.  Modules' references to subjects
  *	are encapsulated in SubjOfInterest structures.			*/
 
 typedef struct
 {
 	struct subjst	*subject;
-	LystElt		intnElt;	/*	(InterestedNode *)	*/
+	LystElt		fanElt;		/*	(FanModule *)		*/
 	Lyst		subscriptions;	/*	(XmitRule *)		*/
 	Lyst		invitations;	/*	(XmitRule *)		*/
 } SubjOfInterest;
 
-/*	Node encapsulates information about a node in the message
- *	space as viewed by other nodes and by the node's registrar.
+/*	Module encapsulates information about a module in the message
+ *	space as viewed by other modules and by the module's registrar.
  *
- *	Subjects of interest to this node (subscriptions and/or
+ *	Subjects of interest to this module (subscriptions and/or
  *	invitations) are listed in ascending subject number order.	*/
 
 typedef struct
 {
-	int		unitNbr;	/*	ID of node's home cell.	*/
-	int		nbr;		/*	Of node, within cell.	*/
+	int		unitNbr;	/*	ID of module's homecell.*/
+	int		nbr;		/*	Of module, within cell.	*/
 	AppRole		*role;		/*	Supplies name, keys.	*/
-	MamsEndpoint	mamsEndpoint;	/*	Of node.		*/
+	MamsEndpoint	mamsEndpoint;	/*	Of module.		*/
 	Lyst		amsEndpoints;	/*	(AmsEndpoint *)		*/
 	Lyst		subjects;	/*	(SubjOfInterest *)	*/
 	int		heartbeatsMissed;	/*	To Registrar.	*/
 	int		confirmed;	/*	Boolean.		*/
-} Node;
+} Module;
 
 
 /*	MsgElement describes one component of a standardized message.	*/
@@ -310,18 +310,18 @@ typedef struct
 	char		*description;
 } MsgElement;
 
-/*	Subjects identify the messages exchanged among the nodes
+/*	Subjects identify the messages exchanged among the modules
  *	of an instance of an application.  Subjects' references to
- *	nodes are encapsulated in InterestedNode structures.		*/
+ *	modules are encapsulated in FanModule structures.		*/
 
 typedef struct
 {
-	Node		*node;
+	Module		*module;
 	SubjOfInterest	*subj;		/*	For access to lists.	*/
-} InterestedNode;
+} FanModule;
 
-/*	Interested nodes are listed in ascending unit number (of cell),
- *	node number order.						*/
+/*	Fan modules are listed in ascending unit number (of cell),
+ *	module number order.						*/
 
 typedef struct subjst
 {
@@ -334,7 +334,7 @@ typedef struct subjst
 	Lyst		authorizedReceivers;	/*	(AppRole *)	*/
 	char		*symmetricKey;
 	int		keyLength;
-	Lyst		nodes;		/*	(InterestedNode *)	*/
+	Lyst		modules;		/*	(FanModule *)	*/
 	LystElt		elt;		/*	In hashtable.		*/
 } Subject;
 
@@ -345,7 +345,7 @@ typedef struct
 {
 	struct unit_str	*unit;			/*	Parent.		*/
 	MamsEndpoint	mamsEndpoint;		/*	Of registrar.	*/
-	Node		*nodes[MAX_NODE_NBR + 1];
+	Module		*modules[MAX_NODE_NBR + 1];
 	int		heartbeatsMissed;	/*	To CS.		*/
 	int		resyncPeriod;		/*	In heartbeats.	*/
 } Cell;
@@ -432,7 +432,7 @@ typedef enum
 	cell_spec = 10,
 	/*	Note: types 11-17 are reserved.				*/
 	registrar_query = 18,
-	node_registration = 19,
+	module_registration = 19,
 	you_are_in = 20,
 	I_am_starting = 21,
 	I_am_here = 22,
@@ -442,9 +442,9 @@ typedef enum
 	I_am_stopping = 26,
 	reconnect = 27,
 	cell_status = 28,
-	node_has_started = 29,
+	module_has_started = 29,
 	I_am_running = 30,
-	node_status = 31
+	module_status = 31
 } MamsPduType;
 
 typedef struct
@@ -528,17 +528,18 @@ extern int	enqueueMamsStubEvent(Llcv eventsQueue, int eventType);
 extern void	recycleEvent(AmsEvt *evt);
 extern void	destroyEvent(LystElt elt, void *userdata);
 
-extern int	computeNodeId(int roleNbr, int unitNbr, int nodeNbr);
-extern int	parseNodeId(int memo, int *roleNbr, int *unitNbr, int *nodeNbr);
+extern int	computeModuleId(int roleNbr, int unitNbr, int moduleNbr);
+extern int	parseModuleId(int memo, int *roleNbr, int *unitNbr,
+			int *moduleNbr);
 
 extern char	*parseString(char **cursor, int *bytesRemaining, int *len);
 extern int	constructMamsEndpoint(MamsEndpoint *ep, int epnLength,
 			char *epnText);
 extern void	clearMamsEndpoint(MamsEndpoint *ep);
 
-extern int	rememberNode(Node *node, AppRole *role, int epnLength,
+extern int	rememberModule(Module *module, AppRole *role, int epnLength,
 			char *epnText);
-extern void	forgetNode(Node *node);
+extern void	forgetModule(Module *module);
 
 extern int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 			MamsPduType type, unsigned int memo,
