@@ -228,7 +228,7 @@ int	main(int argc, char *argv[])
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName) < 0)
+				destDuctName, 1) < 0)
 		{
 			sm_SemEnd(stcpcloSemaphore(NULL));/*	Stop.	*/
 			continue;
@@ -244,7 +244,7 @@ int	main(int argc, char *argv[])
 		bytesSent = sendBundleByTCP(&socketName, &ductSocket,
 				bundleLength, bundleZco, buffer);
 		pthread_mutex_unlock(&mutex);
-		if (bytesSent < bundleLength)
+		if (bytesSent < 0)
 		{
 			sm_SemEnd(stcpcloSemaphore(NULL));/*	Stop.	*/
 			continue;

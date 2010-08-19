@@ -18,6 +18,7 @@
  */
 
 #include "bpP.h"
+#include "sdrhash.h"
 
 #define	BP_VERSION		6
 
@@ -31,6 +32,20 @@
 #define	BASE_BUNDLE_OVERHEAD	(sizeof(Bundle) \
 				+ SDR_LIST_OVERHEAD	/*	xmitRefs*/ \
 				+ XMIT_REF_OVERHEAD	/*	one Ref	*/)
+
+#ifndef IN_TRANSIT_KEY_LEN
+#define	IN_TRANSIT_KEY_LEN	64
+#endif
+
+#define	IN_TRANSIT_KEY_BUFLEN	(IN_TRANSIT_KEY_LEN << 1)
+
+#ifndef IN_TRANSIT_EST_ENTRIES
+#define	IN_TRANSIT_EST_ENTRIES	1000
+#endif
+
+#ifndef IN_TRANSIT_SEARCH_LEN
+#define	IN_TRANSIT_SEARCH_LEN	20
+#endif
 
 static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 			BpCtReason reasonCode);
@@ -869,6 +884,10 @@ int	bpInit()
 		bpdbBuf.schemes = sdr_list_create(bpSdr);
 		bpdbBuf.protocols = sdr_list_create(bpSdr);
 		bpdbBuf.timeline = sdr_list_create(bpSdr);
+		bpdbBuf.inTransitHash = sdr_hash_create(bpSdr,
+				IN_TRANSIT_KEY_LEN,
+				IN_TRANSIT_EST_ENTRIES,
+				IN_TRANSIT_SEARCH_LEN);
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
 		sdr_write(bpSdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
@@ -1872,7 +1891,7 @@ static void	reportStateStats(int stateIdx)
 	BpStateStats	*state;
 	char		buffer[256];
 	static char	*classnames[] =
-		{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "ctt", "exp" };
+		{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "rfw", "exp" };
 	
 	if (stateIdx < 0 || stateIdx > 7)
 	{
@@ -2397,6 +2416,11 @@ incomplete bundle.", NULL);
 	{
 		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
 		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+	}
+
+	if (bundle.inTransitEntry)
+	{
+		sdr_hash_delete_entry(bpSdr, bundle.inTransitEntry);
 	}
 
 	/*	Remove bundle from applications' bundle tracking lists.	*/
@@ -9361,8 +9385,19 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 	}
 }
 
+static int	constructInTransitHashKey(char *buffer, char *sourceEid,
+			unsigned long seconds, unsigned long count,
+			unsigned long offset, unsigned long length)
+{
+	memset(buffer, 0, IN_TRANSIT_KEY_BUFLEN);
+	isprintf(buffer, IN_TRANSIT_KEY_BUFLEN, "%s:%lu:%lu:%lu:%lu",
+			sourceEid, seconds, count, offset, length);
+	return strlen(buffer);
+}
+
 int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
-		BpExtendedCOS *extendedCOS, char *destDuctName)
+		BpExtendedCOS *extendedCOS, char *destDuctName,
+		int stewardshipAccepted)
 {
 	Sdr		bpSdr = getIonsdr();
 	Object		outductObj;
@@ -9377,6 +9412,9 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	char		*dictionary;
 	int		result;
 	int		xmitLength;
+	char		*sourceEid;
+	char		inTransitKey[IN_TRANSIT_KEY_BUFLEN];
+	int		stewardshipNoted = 0;
 
 	CHKERR(vduct && flows && bundleZco && extendedCOS && destDuctName);
 	*bundleZco = 0;			/*	Default behavior.	*/
@@ -9506,6 +9544,16 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		return -1;
 	}
 
+	/*	There are a couple of things that we may need the
+	 *	dictionary for.						*/
+
+	if ((dictionary = retrieveDictionary(&bundle)) == (char *) &bundle)
+	{
+		putErrmsg("Can't retrieve dictionary.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
 	/*	We assume that the CLO that's getting this outbound
 	 *	bundle is actually going to forward it now, so at
 	 *	this point we send any applicable forwarding notice.	*/
@@ -9514,26 +9562,95 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	{
 		bundle.statusRpt.flags |= BP_FORWARDED_RPT;
 		getCurrentDtnTime(&bundle.statusRpt.forwardTime);
-		if ((dictionary = retrieveDictionary(&bundle))
-				== (char *) &bundle)
-		{
-			putErrmsg("Can't retrieve dictionary.", NULL);
-			sdr_cancel_xn(bpSdr);
-			return -1;
-		}
-
 		result = sendStatusRpt(&bundle, dictionary);
-		releaseDictionary(dictionary);
 	       	if (result < 0)
 		{
+			releaseDictionary(dictionary);
 			putErrmsg("Can't send status report.", NULL);
 			sdr_cancel_xn(bpSdr);
 			return -1;
 		}
 	}
 
+	/*	At this point we check the stewardshipAccepted flag.
+	 *	If stewardship has been accepted by the CLO and the
+	 *	bundle is not already present in the inTransitHash
+	 *	table, then we attempt to construct a key for
+	 *	inserting the bundle into the inTransitHash; if the
+	 *	key is small enough, then the bundle goes into the
+	 *	inTransit hash table (if possible) pending a
+	 *	determination by the CLO as to the success or
+	 *	failure of convergence-layer transmission.
+	 *
+	 *	Note that the convergence-layer adapter task *must*
+	 *	call either the bpHandleXmitSuccess function or
+	 *	the bpHandleXmitFailure function for *every*
+	 *	bundle it obtains via bpDequeue for which it has
+	 *	accepted stewardship.
+	 *
+	 *	If the bundle is not inserted into the inTransit
+	 *	hash table, for any reason, then the bundle object
+	 *	is subject to destruction immediately unless it is
+	 *	pending delivery or it is pending another transmis-
+	 *	sion or custody of the bundle has been accepted.
+	 *
+	 *	Note that the bundle's *payload* object (the ZCO we
+	 *	are delivering for transmission) is protected from
+	 *	destruction in any case because *bundleZco will be
+	 *	an additional reference to that reference-counted
+	 *	ZCO.  Even if bpDestroyBundle is called and the
+	 *	bundle is in fact destroyed (destroying its reference
+	 *	to the payload ZCO) at least one reference to that ZCO
+	 *	will survive.  Since a ZCO is never destroyed until
+	 *	its reference count drops to zero, the payload ZCO
+	 *	will remain available to the CLO for transmission and
+	 *	retransmission.						*/
+
+	if (stewardshipAccepted && bundle.inTransitEntry == 0)
+	{
+		if (printEid(&bundle.id.source, dictionary, &sourceEid) < 0)
+		{
+			releaseDictionary(dictionary);
+			putErrmsg("Can't print source EID.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+
+		if (constructInTransitHashKey(inTransitKey, sourceEid,
+				bundle.id.creationTime.seconds,
+				bundle.id.creationTime.count,
+				bundle.id.fragmentOffset,
+				bundle.totalAduLength == 0 ? 0
+						: bundle.payload.length)
+				<= IN_TRANSIT_KEY_LEN)
+		{
+			switch (sdr_hash_insert(bpSdr,
+					(_bpConstants())->inTransitHash,
+					inTransitKey, bundleObj,
+					&bundle.inTransitEntry))
+			{
+			case -1:	/*	System failure		*/
+				MRELEASE(sourceEid);
+				releaseDictionary(dictionary);
+				putErrmsg("Can't post to in-transit hash.",
+						NULL);
+				sdr_cancel_xn(bpSdr);
+				return -1;
+
+			case 0:		/*	Hash insert failure	*/
+				break;	/*	Out of switch.		*/
+
+			default:
+				stewardshipNoted = 1;
+			}
+		}
+
+		MRELEASE(sourceEid);
+	}
+
 	/*	That's the end of the changes to the bundle.		*/
 
+	releaseDictionary(dictionary);
 	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 
 	/*	Track this transmission event.				*/
@@ -9568,20 +9685,17 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		sdr_free(bpSdr, destDuctNameObj);
 	}
 
-	/*	At this point the bundle object is subject to
-	 *	destruction unless the bundle is pending delivery,
-	 *	the bundle is pending another transmission, or custody
-	 *	of the bundle has been accepted.  Note that the
-	 *	bundle's *payload* object (the ZCO we are delivering
-	 *	for transmission) is protected from destruction in any
-	 *	case because *bundleZco is an additional reference to
-	 *	that reference-counted ZCO.				*/
+	/*	Finally, authorize destruction of the bundle object
+	 *	unless stewardship was accepted and successfully noted.	*/
 
-	if (bpDestroyBundle(bundleObj, 0) < 0)
+	if (!stewardshipNoted)
 	{
-		putErrmsg("Can't destroy bundle.", NULL);
-		sdr_cancel_xn(bpSdr);
-		return -1;
+		if (bpDestroyBundle(bundleObj, 0) < 0)
+		{
+			putErrmsg("Can't destroy bundle.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
 	}
 
 	if (sdr_end_xn(bpSdr))
@@ -9942,7 +10056,7 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 	}
 
 	if (decodeBundle(bpSdr, bundleZco, buffer, &image, &dictionary,
-				&bundleLength) < 0)
+			&bundleLength) < 0)
 	{
 		MRELEASE(buffer);
 		putErrmsg("Can't extract bundle ID.", NULL);
@@ -10012,38 +10126,182 @@ int	bpMemo(Object bundleObj, int interval)
 	return 0;
 }
 
+static int	extractInTransitBundle(Object *bundleAddr, char *sourceEid,
+			BpTimestamp *creationTime,
+			unsigned long fragmentOffset,
+			unsigned long fragmentLength)
+{
+	Sdr	bpSdr = getIonsdr();
+	char	key[IN_TRANSIT_KEY_BUFLEN];
+
+	CHKERR(ionLocked());
+	if (constructInTransitHashKey(key, sourceEid,
+			creationTime->seconds, creationTime->count,
+			fragmentOffset, fragmentLength)
+			> IN_TRANSIT_KEY_LEN)
+	{
+		return 0;	/*	Can't be in hash table.		*/
+	}
+
+	if (sdr_hash_remove(bpSdr, (_bpConstants())->inTransitHash, key,
+			(Address *) bundleAddr) < 0)
+	{
+		putErrmsg("Can't extract bundle from in-transit hash.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	retrieveInTransitBundle(Object bundleZco, Object *bundleObj)
+{
+	Sdr		bpSdr = getIonsdr();
+	unsigned char	*buffer;
+	Bundle		image;
+	char		*dictionary = 0;	/*	To hush gcc.	*/
+	unsigned int	bundleLength;
+	int		result;
+	char		*sourceEid;
+
+	CHKERR(bundleZco);
+	CHKERR(bundleObj);
+	CHKERR(ionLocked());
+	*bundleObj = 0;			/*	Default: not located.	*/
+	buffer = (unsigned char *) MTAKE(BP_MAX_BLOCK_SIZE);
+	if (buffer == NULL)
+	{
+		putErrmsg("Can't create buffer for reading bundle ID.", NULL);
+		return -1;
+	}
+
+	if (decodeBundle(bpSdr, bundleZco, buffer, &image, &dictionary,
+			&bundleLength) < 0)
+	{
+		MRELEASE(buffer);
+		putErrmsg("Can't extract bundle ID.", NULL);
+		return -1;
+	}
+
+	if (bundleLength == 0)		/*	Can't get bundle ID.	*/
+	{
+		return 0;
+	}
+
+	/*	Recreate the source EID.				*/
+
+	result = printEid(&image.id.source, dictionary, &sourceEid);
+	MRELEASE(buffer);
+	if (result < 0)
+	{
+		putErrmsg("No memory for source EID.", NULL);
+		return -1;
+	}
+
+	/*	Now use this bundle ID to retrieve the bundle.		*/
+
+	result = extractInTransitBundle(bundleObj, sourceEid,
+			&image.id.creationTime, image.id.fragmentOffset,
+			image.totalAduLength == 0 ? 0 : image.payload.length);
+	MRELEASE(sourceEid);
+	if (result < 0)
+	{
+		putErrmsg("Failed retrieving in-transit bundle.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	bpHandleXmitSuccess(Object bundleZco)
+{
+	Sdr	bpSdr = getIonsdr();
+	Object	bundleAddr;
+	Bundle	bundle;
+
+	sdr_begin_xn(bpSdr);
+	if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
+	{
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("Can't locate bundle for okay transmission.", NULL);
+		return -1;
+	}
+
+	if (bundleAddr == 0)	/*	Bundle not found in inTransit.	*/
+	{
+		if (sdr_end_xn(bpSdr) < 0)
+		{
+			putErrmsg("Failed handling xmit success.", NULL);
+			return -1;
+		}
+
+		return 0;	/*	bpDestroyBundle already called.	*/
+	}
+
+	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+	bundle.inTransitEntry = 0;
+	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+
+	/*	At this point the bundle object is subject to
+	 *	destruction unless the bundle is pending delivery,
+	 *	the bundle is pending another transmission, or custody
+	 *	of the bundle has been accepted.  Note that the
+	 *	bundle's *payload* object won't be destroyed until
+	 *	the calling CLO function destroys bundleZco; that's
+	 *	the remaining reference to this reference-counted
+	 *	object, even after the reference inside the bundle
+	 *	object is destroyed.					*/
+
+	if (bpDestroyBundle(bundleAddr, 0) < 0)
+	{
+		putErrmsg("Failed trying to destroy bundle.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't handle transmission success.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 int	bpHandleXmitFailure(Object bundleZco)
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
-		OBJ_POINTER(Bundle, bundle);
+	Bundle	bundle;
 
-	if (bpIdentify(bundleZco, &bundleAddr) < 0)
+	sdr_begin_xn(bpSdr);
+	if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
 	{
+		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't locate bundle for failed transmission.", NULL);
 		return -1;
 	}
 
-	if (bundleAddr == 0)
+	if (bundleAddr == 0)	/*	Bundle not found in inTransit.	*/
 	{
+		if (sdr_end_xn(bpSdr) < 0)
+		{
+			putErrmsg("Failed handling xmit failure.", NULL);
+			return -1;
+		}
+
 		return 0;	/*	No bundle, can't retransmit.	*/
 	}
 
-	sdr_begin_xn(bpSdr);
-	GET_OBJ_POINTER(bpSdr, Bundle, bundle, bundleAddr);
+	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+	bundle.inTransitEntry = 0;
+	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 
-	/*	If and only if the identified bundle is one for which
-	 *	custody transfer is requested OR one that is a custody
-	 *	signal or bundle status report, re-queue it for
-	 *	forwarding and eventual retransmission.			*/
+	/*	Note that the "timeout" statistics count failures of
+	 *	convergence-layer transmission of bundles for which
+	 *	stewardship was accepted.  This has nothing to do
+	 *	with custody transfer.					*/
 
-	if (!(bundle->bundleProcFlags & (BDL_IS_CUSTODIAL | BDL_IS_ADMIN)))
-	{
-		sdr_exit_xn(bpSdr);
-		return 0;		/*	No need to retransmit.	*/
-	}
-
-	noteStateStats(BPSTATS_TIMEOUT, bundle);
+	noteStateStats(BPSTATS_TIMEOUT, &bundle);
 	if ((_bpvdb(NULL))->watching & WATCH_timeout)
 	{
 		putchar('#');
@@ -10082,7 +10340,36 @@ int	bpReforwardBundle(Object bundleAddr)
 		/*	If the bundle is critical it has already
 		 *	been queued for transmission on all possible
 		 *	routes; re-forwarding would only delay
-		 *	transmission.  So return immediately.		*/
+		 *	transmission.  So return immediately.
+		 *
+		 *	Some additional remarks on this topic:
+		 *
+		 *	The BP_MINIMUM_LATENCY extended-COS flag is all
+		 *	about minimizing latency -- not about assuring
+		 *	delivery.  If a critical bundle were reforwarded
+		 *	due to (for example) custody refusal, it would
+		 *	likely end up being re-queued for multiple
+		 *	outducts once again; frequent custody refusals
+		 *	could result in an exponential proliferation of
+		 *	transmission references for this bundle,
+		 *	severely reducing bandwidth utilization and
+		 *	potentially preventing the transmission of other
+		 *	bundles of equal or greater importance and/or
+		 *	urgency.
+		 *
+		 *	If delivery of a given bundle is important,
+		 *	then use high priority and/or a very long TTL
+		 *	(to minimize the chance of it failing trans-
+		 *	mission due to contact truncation) and use
+		 *	custody transfer, and possibly also flag for
+		 *	end-to-end acknowledgement at the application
+		 *	layer.  If delivery of a given bundle is
+		 *	urgent, then use high priority and flag it for
+		 *	minimum latency.  If delivery of a given bundle
+		 *	is both important and urgent, *send it twice*
+		 *	-- once with the high-urgency QOS markings
+		 *	and then again with the high-importance QOS
+		 *	markings.					*/
 
 		return 0;
 	}
@@ -10090,6 +10377,7 @@ int	bpReforwardBundle(Object bundleAddr)
 	/*	Non-critical bundle, so let's compute another route
 	 *	for it.							*/
 
+	purgeXmitRefs(&bundle);
 	if (bundle.overdueElt)
 	{
 		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
@@ -10104,7 +10392,12 @@ int	bpReforwardBundle(Object bundleAddr)
 		bundle.ctDueElt = 0;
 	}
 
-	purgeXmitRefs(&bundle);
+	if (bundle.inTransitEntry)
+	{
+		sdr_hash_delete_entry(bpSdr, bundle.inTransitEntry);
+		bundle.inTransitEntry = 0;
+	}
+
 	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 	if ((dictionary = retrieveDictionary(&bundle)) == (char *) &bundle)
 	{
