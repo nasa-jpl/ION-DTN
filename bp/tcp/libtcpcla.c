@@ -111,7 +111,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 			return -1;
 		}
 
-		if (bytesLoaded != bytesToLoad)		/*	Done.	*/
+		if (bytesLoaded != bytesToLoad)
 		{
 			putErrmsg("ZCO length error.", NULL);
 			return -1;
@@ -126,13 +126,6 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 					bytesToSend);
 			if (bytesSent <= 0)
 			{
-				if (bpHandleXmitFailure(bundleZco))
-				{
-					putErrmsg("Can't handle xmit failure.",
-							NULL);
-					return -1;
-				}
-
 				if (*bundleSocket == -1)
 				{
 					/*	Just lost connection;
@@ -140,8 +133,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 					 *	anomaly, note the
 					 *	incomplete transmission.*/
 
-					writeMemo("[i] Lost TCP connection to \
-CLI; restart CLO when connectivity is restored.");
+					writeMemo("[?] Disconnected from CLI.");
 					totalBytesSent = 0;
 					bytesRemaining = 0;
 					break;	/*	Out of loop.	*/
@@ -162,14 +154,6 @@ CLI; restart CLO when connectivity is restored.");
 	}
 
 	zco_stop_transmitting(sdr, &reader);
-	sdr_begin_xn(sdr);
-	zco_destroy_reference(sdr, bundleZco);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't destroy bundle ZCO.", NULL);
-		return -1;
-	}
-
 	return totalBytesSent;
 }
 
@@ -181,6 +165,8 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 	int		bytesToSend;
 	char		*from;
 	int		bytesSent;
+	Sdr		sdr = getIonsdr();
+	int		result;
 
 	/*	Connect to CLI as necessary.				*/
 
@@ -210,8 +196,7 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 				 *	as a transient anomaly, note
 				 *	incomplete transmission.	*/
 
-				putErrmsg("Lost connection to CLI; bundle not \
-sent.", NULL);
+				writeMemo("[?] Lost connection to CLI.");
 				return 0;
 			}
 
@@ -234,7 +219,33 @@ sent.", NULL);
 
 	/*	Send the bundle itself.					*/
 
-	return sendZcoByTCP(bundleSocket, bundleLength, bundleZco, buffer, 0);
+	result = sendZcoByTCP(bundleSocket, bundleLength, bundleZco, buffer, 0);
+	if (result > 0)
+	{
+		if (bpHandleXmitSuccess(bundleZco) < 0)
+		{
+			putErrmsg("Can't handle xmit success.", NULL);
+			result = -1;
+		}
+	}
+	else
+	{
+		if (bpHandleXmitFailure(bundleZco) < 0)
+		{
+			putErrmsg("Can't handle xmit failure.", NULL);
+			result = -1;
+		}
+	}
+
+	sdr_begin_xn(sdr);
+	zco_destroy_reference(sdr, bundleZco);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't destroy bundle ZCO.", NULL);
+		return -1;
+	}
+
+	return result;
 }
 
 /* 	*	*	Send Bundle over TCP Convergence Layer	*	*/
@@ -247,6 +258,8 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 	int		bytesSent;
 	Sdnv 		lengthField;
 	int		tempBundleSocket;
+	Sdr		sdr = getIonsdr();
+	int		result;
 
 	/*	Connect to CLI as necessary.				*/
 
@@ -322,8 +335,34 @@ not sent.", NULL);
 	
 	/*	Send the bundle itself.					*/
 
-	return sendZcoByTCP(bundleSocket, bundleLength, bundleZco, buffer,
+	result = sendZcoByTCP(bundleSocket, bundleLength, bundleZco, buffer,
 			bytesToSend);
+	if (result > 0)
+	{
+		if (bpHandleXmitSuccess(bundleZco) < 0)
+		{
+			putErrmsg("Can't handle xmit success.", NULL);
+			result = -1;
+		}
+	}
+	else
+	{
+		if (bpHandleXmitFailure(bundleZco) < 0)
+		{
+			putErrmsg("Can't handle xmit failure.", NULL);
+			result = -1;
+		}
+	}
+
+	sdr_begin_xn(sdr);
+	zco_destroy_reference(sdr, bundleZco);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't destroy bundle ZCO.", NULL);
+		return -1;
+	}
+
+	return result;
 }
 
 /*	*	*	Receiver functions	*	*	*	*/

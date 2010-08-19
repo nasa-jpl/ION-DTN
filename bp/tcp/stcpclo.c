@@ -228,7 +228,7 @@ int	main(int argc, char *argv[])
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName) < 0)
+				destDuctName, 1) < 0)
 		{
 			sm_SemEnd(stcpcloSemaphore(NULL));
 			continue;

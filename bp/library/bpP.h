@@ -347,6 +347,8 @@ typedef struct
 	Object		xmitRefs;	/*	SDR list of XmitRefs	*/
 	int		xmitsNeeded;
 	time_t		enqueueTime;	/*	When queued for xmit.	*/
+
+	Object		inTransitEntry;	/*	Hash table entry.	*/
 } Bundle;
 
 #define COS_FLAGS(bundleProcFlags)	((bundleProcFlags >> 7) & 0x7f)
@@ -513,6 +515,7 @@ typedef struct
 	Object		schemes;	/*	SDR list of Schemes	*/
 	Object		protocols;	/*	SDR list of ClProtocols	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
+	Object		inTransitHash;	/*	SDR hash of Bundles	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
 	Object		clockCmd; 	/*	For starting clock.	*/
 	BpString	custodianEidString;
@@ -823,7 +826,8 @@ extern int		bpDequeue(	VOutduct *vduct,
 					Outflow *outflows,
 					Object *outboundZco,
 					BpExtendedCOS *extendedCOS,
-					char *destDuctName);
+					char *destDuctName,
+					int stewardshipAccepted);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
 			 *	outduct) to get a bundle that it is to
@@ -871,6 +875,16 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	of at least MAX_CL_DUCT_NAME_LEN + 1
 			 *	bytes.
 			 *
+			 *	The stewardshipAccepted argument, a
+			 *	Boolean, indicates whether or not
+			 *	the calling function commits to
+			 *	dispositioning the returned bundle
+			 *	when the results of convergence-
+			 *	layer transmission are known, by
+			 *	calling one of two functions:
+			 *	either bpHandleXmitSuccess or else
+			 *	bpHandleXmitFailure.
+			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
 extern int		bpIdentify(Object bundleZco, Object *bundleObj);
@@ -914,13 +928,27 @@ extern int		bpMemo(Object bundleObj, int interval);
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
+extern int		bpHandleXmitSuccess(Object zco);
+			/*	This function is invoked by a
+			 *	convergence-layer output adapter (an
+			 *	outduct) on detection of convergence-
+			 *	layer protocol transmission success.
+			 *	It causes the serialized (catenated)
+			 *	outbound custodial bundle in zco to
+			 *	be destroyed, unless some constraint
+			 *	(such as acceptance of custody)
+			 *	requires that bundle destruction be
+			 *	deferred.
+			 *
+			 *	Returns 0 on success, -1 on failure.	*/
+
 extern int		bpHandleXmitFailure(Object zco);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
 			 *	outduct) on detection of a convergence-
 			 *	layer protocol transmission error.
 			 *	It causes the serialized (catenated)
-			 *	outbound custodial bundle in zco tox
+			 *	outbound custodial bundle in zco to
 			 *	be queued up for re-forwarding.  In
 			 *	effect, this function implements
 			 *	custodial retransmission due to
