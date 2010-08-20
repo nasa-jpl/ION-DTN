@@ -5,7 +5,8 @@
 	Author: Scott Burleigh, JPL
 
 	Modification History:
-	Date  Who What
+	Date  		Who 	What
+	4 July 2010	Scott	Revise to align with LTP spec.
 
 	Copyright (c) 2003, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
@@ -46,10 +47,13 @@ typedef enum
 
 typedef struct dgrsapst	*Dgr;
 
-extern DgrRC		dgr_open(	unsigned short ownPortNbr,
+extern int		dgr_open(	unsigned long ownEngineId,
+					unsigned long clientSvcId,
+					unsigned short ownPortNbr,
 					unsigned int ownIpAddress,
 					char *memmgrName,
-					Dgr *dgr);
+					Dgr *dgr,
+					DgrRC *rc);
 			/*	Arguments are:
 			 *		port number to use for DGR
 			 *			service (if 0, defaults
@@ -68,9 +72,10 @@ extern DgrRC		dgr_open(	unsigned short ownPortNbr,
 			 *			system malloc/free
 			 *		location in which to store
 			 *			service access pointer
+			 *		location in which to store
+			 *			return code
 			 *
-			 *	On any error, returns DgrFailed; check
-			 *	errno for the nature of the error.	*/
+			 *	Returns 0 on success, -1 on failure.	*/
 
 extern void		dgr_getsockname(Dgr dgr,
 					unsigned short *portNbr,
@@ -83,12 +88,13 @@ extern void		dgr_close(Dgr dgr);
 			/*	Reverses dgr_open, releasing resources
 			 *	where possible.				*/
 
-extern DgrRC		dgr_send(	Dgr dgr,
+extern int		dgr_send(	Dgr dgr,
 					unsigned short toPortNbr,
 					unsigned int toIpAddress,
 					int notificationFlags,
 					char *content,
-					int length);
+					int length,
+					DgrRC *rc);
 			/*	Sends the indicated content, of length
 			 *	as indicated, to the indicated remote
 			 *	DGR service access point.  The message
@@ -102,17 +108,18 @@ extern DgrRC		dgr_send(	Dgr dgr,
 			 *	underlying UDP implementation; to
 			 *	minimize the chance of data loss when
 			 *	transmitting over the internet, length
-			 *	should not exceed 512.  On any error,
-			 *	returns DgrFailed; check errno for the
-			 *	nature of the error.			*/
+			 *	should not exceed 512.  Returns 0 on
+			 *	success (setting *rc as appropriate),
+			 *	-1 on failure.				*/
 
-extern DgrRC		dgr_receive(	Dgr dgr,
+extern int		dgr_receive(	Dgr dgr,
 					unsigned short *fromPortNbr,
 					unsigned int *fromIpAddress,
 					char *content,
 					int *length,
 					int *errnbr,
-					int timeoutSeconds);
+					int timeoutSeconds,
+					DgrRC *rc);
 			/*	Delivers the oldest undelivered DGR
 			 *	event queued for delivery.
 			 *
@@ -130,15 +137,15 @@ extern DgrRC		dgr_receive(	Dgr dgr,
 			 *	message in "content", its length in
 			 *	"length", and the IP address and port
 			 *	number of the sender in "fromIpAddress"
-			 *	and "fromPortNbr", and will return
+			 *	and "fromPortNbr", and will set *rc to
 			 *	DgrDatagramReceived.
 			 *
 			 *	In the latter case, dgr_receive will
 			 *	place the content of the outbound
 			 *	message in "content" and its length
 			 *	in "length", will place the relevant
-			 *	errno (if any) in errnbr, and will
-			 *	return either DgrDatagramAcknowledged
+			 *	errno (if any) in errnbr, and will set
+			 *	*rc to either DgrDatagramAcknowledged
 			 *	or DgrDatagramNotAcknowledged.
 			 *
 			 *	The "content" buffer should be at least
@@ -157,18 +164,17 @@ extern DgrRC		dgr_receive(	Dgr dgr,
 			 *	immediately; if there is currently no
 			 *	inbound message to deliver and no
 			 *	outbound message delivery result to
-			 *	report, the function returns
+			 *	report, the function sets *rc to
 			 *	DgrTimedOut.  For any other positive
 			 *	value of timeoutSeconds, dgr_receive
 			 *	returns after the indicated number of
 			 *	seconds have lapsed, or there is a
 			 *	message to deliver or a delivery
 			 *	result to report, whichever occurs
-			 *	first; in the former case, it returns
-			 *	DgrTimedOut.
+			 *	first; in the former case, it sets
+			 *	*rc to DgrTimedOut.
 			 *
-			 *	On any error, returns DgrFailed; check
-			 *	errno for the nature of the error.	*/
+			 *	Returns 0 on success, -1 on failure.	*/
 
 extern void		dgr_interrupt(Dgr dgr);
 			/*	Interrupts a dgr_receive invocation

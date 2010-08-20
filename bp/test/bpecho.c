@@ -95,7 +95,8 @@ int	main(int argc, char **argv)
 
 putchar(dlvmarks[dlv.result]);
 fflush(stdout);
-			if (dlv.result == BpReceptionInterrupted)
+			if (dlv.result == BpReceptionInterrupted
+			|| dlv.result == BpEndpointStopped)
 			{
 				running = 0;
 				continue;

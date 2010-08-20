@@ -10,7 +10,6 @@
  */
 
 #include "ltpP.h"
-#include "lyst.h"
 
 #define	EST_LINK_OHD	16
 
@@ -1166,7 +1165,7 @@ int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
 	|| (elt = sdr_list_insert_last(sdr, span.exportSessions,
 			sessionObj)) == 0
 	|| sdr_hash_insert(sdr, ltpdb.exportSessionsHash,
-			(char *) &sessionNbr, elt) < 0)
+			(char *) &sessionNbr, elt, NULL) < 0)
 	{
 		putErrmsg("Can't start session.", NULL);
 		sdr_cancel_xn(sdr);
@@ -1500,11 +1499,12 @@ has reception claims", itoa(sdr_list_length(ltpSdr, session->claims)));
 static void	closeExportSession(Object sessionObj)
 {
 	Sdr	ltpSdr = getIonsdr();
+	LtpVdb	*ltpvdb = _ltpvdb(NULL);
 	Object	dbobj = getLtpDbObject();
 		OBJ_POINTER(ExportSession, session);
 	LtpDB	db;
 	Object	elt;
-	Object	zcoRef;
+	Object	sdu;	/*	A ZcoRef object.			*/
 
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, ExportSession, session, sessionObj);
@@ -1515,7 +1515,7 @@ static void	closeExportSession(Object sessionObj)
 	 *	the user in LtpExportSessionCanceled notices, destroys
 	 *	the svcDataObjects list, and sets the svcDataObjects
 	 *	list variable in the session object to zero.  In that
-	 *	event, destruction of the service data objects in this
+	 *	event, review of the service data objects in this
 	 *	function is foregone.					*/
 
 	if (session->svcDataObjects)
@@ -1523,10 +1523,28 @@ static void	closeExportSession(Object sessionObj)
 		for (elt = sdr_list_first(ltpSdr, session->svcDataObjects); elt;
 				elt = sdr_list_next(ltpSdr, elt))
 		{
-			zcoRef = sdr_list_data(ltpSdr, elt);
-			db.heapSpaceBytesOccupied -= zco_occupancy(ltpSdr,
-					zcoRef);
-			zco_destroy_reference(ltpSdr, zcoRef);
+			sdu = sdr_list_data(ltpSdr, elt);
+
+			/*	All service data units are received
+			 *	by the client, in either Complete or
+			 *	Canceled notices, and the client is
+			 *	responsible for destroying them, so
+			 *	we don't zco_destroy_reference here.
+			 *	And since ltp_get_notice will reduce
+			 *	db.heapSpaceBytesOccupied, we don't
+			 *	do that either.				*/
+
+			if (enqueueNotice(ltpvdb->clients
+					+ session->clientSvcId, db.ownEngineId,
+					session->sessionNbr, 0, 0,
+					LtpExportSessionComplete, 0, 0, sdu)
+					< 0)
+			{
+				putErrmsg("Can't post ExportSessionComplete \
+notice.", NULL);
+				sdr_cancel_xn(ltpSdr);
+				return;
+			}
 		}
 
 		sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
@@ -1538,11 +1556,9 @@ static void	closeExportSession(Object sessionObj)
 	/*	Finally erase the session itself and authorize the
 	 *	initiation of a new export session.			*/
 
-	sdr_hash_retrieve(ltpSdr, db.exportSessionsHash,
+	sdr_hash_remove(ltpSdr, db.exportSessionsHash,
 			(char *) &(session->sessionNbr), (Address *) &elt);
 	sdr_list_delete(ltpSdr, elt, NULL, NULL);
-	sdr_hash_remove(ltpSdr, db.exportSessionsHash,
-			(char *) &(session->sessionNbr));
 	sdr_free(ltpSdr, sessionObj);
 #if LTPDEBUG
 putErrmsg("Closed export session.", itoa(session->sessionNbr));
@@ -1714,11 +1730,9 @@ static void	closeImportSession(Object sessionObj)
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, ImportSession, session, sessionObj);
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, session->span);
-	sdr_hash_retrieve(ltpSdr, span->importSessionsHash,
+	sdr_hash_remove(ltpSdr, span->importSessionsHash,
 			(char *) &(session->sessionNbr), (Address *) &elt);
 	sdr_list_delete(ltpSdr, elt, NULL, NULL);
-	sdr_hash_remove(ltpSdr, span->importSessionsHash,
-			(char *) &(session->sessionNbr));
 	sdr_free(ltpSdr, sessionObj);
 #if LTPDEBUG
 putErrmsg("Closed import session.", itoa(session->sessionNbr));
@@ -2360,7 +2374,9 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 					sizeof(LtpSpan));
 		}
 
-		/*	If entire block is green, close the session.	*/
+		/*	If entire block is green, close the session
+		 *	(since normal session closure on red-part
+		 *	completion or cancellation won't happen).	*/
 
 		if (segment.pdu.segTypeCode == LtpDsGreenEOB)
 		{
@@ -2375,20 +2391,6 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 					if (xsessionBuf.redPartLength == 0)
 					{
-						if (enqueueNotice
-						(ltpvdb->clients
-						+ segment.pdu.clientSvcId,
-						ltpConstants->ownEngineId,
-						segment.sessionNbr, 0, 0,
-						LtpExportSessionComplete,
-						0, 0, 0) < 0)
-						{
-							putErrmsg("Can't post \
-ExportSessionComplete notice.", NULL);
-							sdr_cancel_xn(ltpSdr);
-							return -1;
-						}
-
 						closeExportSession(sessionObj);
 					}
 				}
@@ -2525,13 +2527,14 @@ static int	cancelSessionBySender(ExportSession *session,
 {
 	Sdr		ltpSdr = getIonsdr();
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
-	LtpDB		*ltpConstants = _ltpConstants();
+	Object		dbobj = getLtpDbObject();
+	LtpDB		db;
 	Object		spanObj = session->span;
 	LtpSpan		span;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	Object		elt;
-	Object		sdu;
+	Object		sdu;	/*	A ZcoRef object.		*/
 
 	CHKERR(ionLocked());
 	session->reasonCode = reasonCode;	/*	(For CS resend.)*/
@@ -2579,13 +2582,14 @@ static int	cancelSessionBySender(ExportSession *session,
 		fflush(stdout);
 	}
 
+	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 	stopExportSession(session);
 	for (elt = sdr_list_first(ltpSdr, session->svcDataObjects); elt;
 			elt = sdr_list_next(ltpSdr, elt))
 	{
-		sdu = sdr_list_data(ltpSdr, elt);	/*	ZCOref.	*/
+		sdu = sdr_list_data(ltpSdr, elt);
 		if (enqueueNotice(ltpvdb->clients + session->clientSvcId,
-			ltpConstants->ownEngineId, session->sessionNbr, 0, 0,
+			db.ownEngineId, session->sessionNbr, 0, 0,
 			LtpExportSessionCanceled, reasonCode, 0, sdu) < 0)
 		{
 			putErrmsg("Can't post ExportSessionCanceled notice.",
@@ -2594,6 +2598,7 @@ static int	cancelSessionBySender(ExportSession *session,
 		}
 	}
 
+	sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
 	sdr_list_destroy(ltpSdr, session->svcDataObjects, NULL, NULL);
 	session->svcDataObjects = 0;
 	clearExportSession(session);
@@ -2602,22 +2607,18 @@ static int	cancelSessionBySender(ExportSession *session,
 	/*	Remove session from active sessions pool, so that the
 	 *	cancellation won't affect flow control.			*/
 
-	sdr_hash_retrieve(ltpSdr, ltpConstants->exportSessionsHash,
+	sdr_hash_remove(ltpSdr, db.exportSessionsHash,
 			(char *) &(session->sessionNbr), (Address *) &elt);
 	sdr_list_delete(ltpSdr, elt, NULL, NULL);
-	sdr_hash_remove(ltpSdr, ltpConstants->exportSessionsHash,
-			(char *) &(session->sessionNbr));
 
 	/*	Insert into list of canceled sessions instead.		*/
 
-	elt = sdr_list_insert_last(ltpSdr, ltpConstants->deadExports,
-			sessionObj);
+	elt = sdr_list_insert_last(ltpSdr, db.deadExports, sessionObj);
 
 	/*	Finally, inform receiver of cancellation.		*/
 
-	return constructSourceCancelReqSegment(&span,
-			&(ltpConstants->ownEngineIdSdnv), session->sessionNbr,
-			sessionObj, reasonCode);
+	return constructSourceCancelReqSegment(&span, &db.ownEngineIdSdnv,
+			session->sessionNbr, sessionObj, reasonCode);
 }
 
 static int	constructDestCancelReqSegment(LtpSpan *span,
@@ -2674,11 +2675,9 @@ static int	cancelSessionByReceiver(ImportSession *session,
 	/*	Remove session from active sessions pool, so that the
 	 *	cancellation won't affect flow control.			*/
 
-	sdr_hash_retrieve(ltpSdr, span->importSessionsHash,
+	sdr_hash_remove(ltpSdr, span->importSessionsHash,
 			(char *) &(session->sessionNbr), (Address *) &elt);
 	sdr_list_delete(ltpSdr, elt, NULL, NULL);
-	sdr_hash_remove(ltpSdr, span->importSessionsHash,
-			(char *) &(session->sessionNbr));
 
 	/*	Insert into list of canceled sessions instead.		*/
 
@@ -3102,7 +3101,7 @@ static int	startImportSession(Object spanObj, unsigned long sessionNbr,
 	|| (elt = sdr_list_insert_last(ltpSdr, span->importSessions,
 			*sessionObj)) == 0
 	|| sdr_hash_insert(ltpSdr, span->importSessionsHash,
-			(char *) &sessionNbr, elt) < 0)
+			(char *) &sessionNbr, elt, NULL) < 0)
 	{
 		return -1;
 	}
@@ -3133,7 +3132,6 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 	char	cwd[200];
 	char	name[SDRSTRING_BUFSZ];
 	int	fd;
-	char	script[SDRSTRING_BUFSZ];
 
 	if (igetcwd(cwd, sizeof cwd) == NULL)
 	{
@@ -3151,8 +3149,7 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 	}
 
 	close(fd);
-	isprintf(script, sizeof script, "unlink %s", name);
-	session->blockFileRef = zco_create_file_ref(ltpSdr, name, script);
+	session->blockFileRef = zco_create_file_ref(ltpSdr, name, "");
 	if (session->blockFileRef == 0)
 	{
 		putErrmsg("Can't create block file reference.", NULL);
@@ -3503,8 +3500,12 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		if (db.heapSpaceBytesOccupied + pdu->length
 				> db.heapSpaceBytesReserved)
 		{
-			writeMemo("[?] Can't receive, would exceed LTP heap \
-space reservation.");
+			/*	To avert possible DOS attack, silently
+			 *	discard this segment.			*/
+#if LTPDEBUG
+putErrmsg("Can't handle green data, would exceed LTP heap space reservation.",
+utoa(pdu->length));
+#endif
 			sdr_cancel_xn(ltpSdr);
 			return 0;
 		}
@@ -3656,8 +3657,12 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		if (db.heapSpaceBytesOccupied + pdu->length
 				> db.heapSpaceBytesReserved)
 		{
-			writeMemo("[?] Can't receive, would exceed LTP heap \
-space reservation.");
+			/*	To avert possible DOS attack, silently
+			 *	discard this segment.			*/
+#if LTPDEBUG
+putErrmsg("Can't handle red data, would exceed LTP heap space reservation.",
+utoa(pdu->length));
+#endif
 			sdr_cancel_xn(ltpSdr);
 			return 0;
 		}
@@ -4480,17 +4485,6 @@ putErrmsg("Discarding report.", NULL);
 	{
 		MRELEASE(claim);	/*	(Sole claim in list.)	*/
 		lyst_destroy(claims);
-		if (enqueueNotice(ltpvdb->clients + sessionBuf.clientSvcId,
-				(_ltpConstants())->ownEngineId,
-				sessionBuf.sessionNbr, 0, 0,
-				LtpExportSessionComplete, 0, 0, 0) < 0)
-		{
-			putErrmsg("Can't post ExportSessionComplete notice.",
-					NULL);
-			sdr_cancel_xn(ltpSdr);
-			return -1;
-		}
-
 		stopExportSession(&sessionBuf);
 		closeExportSession(sessionObj);
 		if (sdr_end_xn(ltpSdr) < 0)
@@ -4886,7 +4880,8 @@ static int	handleCR(LtpDB *ltpdb, unsigned long sessionNbr,
 {
 	Sdr		ltpSdr = getIonsdr();
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
-	LtpDB		*ltpConstants = _ltpConstants();
+	Object		dbobj = getLtpDbObject();
+	LtpDB		db;
 	Object		sessionObj;
 	ExportSession	sessionBuf;
 	Object		spanObj;
@@ -4894,7 +4889,7 @@ static int	handleCR(LtpDB *ltpdb, unsigned long sessionNbr,
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	Object		elt;
-	Object		sdu;
+	Object		sdu;	/*	A ZcoRef object.		*/
 #if LTPDEBUG
 putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 #endif
@@ -4913,8 +4908,9 @@ putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 
 	/*	Acknowledge the cancellation request.			*/
 
+	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 	if (constructDestCancelAckSegment(spanObj,
-			&(ltpConstants->ownEngineIdSdnv), sessionNbr) < 0)
+			&db.ownEngineIdSdnv, sessionNbr) < 0)
 	{
 		putErrmsg("Can't send CAR segment.", NULL);
 		sdr_cancel_xn(ltpSdr);
@@ -4937,9 +4933,8 @@ putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 			sdu = sdr_list_data(ltpSdr, elt);
 			if (enqueueNotice(ltpvdb->clients
 					+ sessionBuf.clientSvcId,
-					ltpConstants->ownEngineId,
-					sessionBuf.sessionNbr, 0, 0,
-					LtpExportSessionCanceled,
+					db.ownEngineId, sessionBuf.sessionNbr,
+					0, 0, LtpExportSessionCanceled,
 					**cursor, 0, sdu) < 0)
 			{
 				putErrmsg("Can't post ExportSessionCanceled \
@@ -4948,6 +4943,8 @@ notice.", NULL);
 				return -1;
 			}
 		}
+
+		sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
 
 		/*	The service data units in the svcDataObjects
 		 *	list must be protected -- the client will be 

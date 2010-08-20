@@ -124,14 +124,24 @@ int	main(int argc, char **argv)
 			continue;
 		}
 
-		if (dlv.result == BpPayloadPresent)
+		switch (dlv.result)
 		{
+		case BpReceptionInterrupted:
+		case BpEndpointStopped:
+			oK(_running(&stop));
+			continue;
+
+		case BpPayloadPresent:
 			if ((bundlesReceived = _bundleCount(1)) == 1)
 			{
 				startTime = time(NULL);
 			}
 
 			bytesReceived += zco_length(sdr, dlv.adu);
+			break;
+
+		default:
+			break;
 		}
 
 		bp_release_delivery(&dlv, 1);

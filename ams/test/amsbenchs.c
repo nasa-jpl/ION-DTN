@@ -36,7 +36,7 @@ int	main(int argc, char **argv)
 	char		*application = "amsdemo";
 	char		*authority = "test";
 	char		*buffer;
-	AmsNode		me;
+	AmsModule		me;
 	AmsEventMgt	rules;
 	int		subjectNbr;
 	int		content;

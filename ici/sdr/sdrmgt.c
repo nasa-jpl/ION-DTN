@@ -638,6 +638,7 @@ static Object	mallocLarge(Sdr sdrv, unsigned long nbytes)
 
 		/*	Can't allocate block from unassigned space.	*/
 
+		putErrmsg("Can't increase large pool size.", NULL);
 		crashXn(sdrv);
 		return 0;
 	}

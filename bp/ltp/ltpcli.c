@@ -128,6 +128,32 @@ static void	*handleNotices(void *parm)
 
 		switch (type)
 		{
+		case LtpExportSessionComplete:	/*	Xmit success.	*/
+			if (data == 0)		/*	Ignore it.	*/
+			{
+				break;		/*	Out of switch.	*/
+			}
+
+			if (bpHandleXmitSuccess(data) < 0)
+			{
+				putErrmsg("Crashed on xmit success.", NULL);
+				pthread_kill(rtp->mainThread, SIGTERM);
+				rtp->running = 0;
+				break;		/*	Out of switch.	*/
+			}
+
+			sdr = getIonsdr();
+			sdr_begin_xn(sdr);
+			zco_destroy_reference(sdr, data);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Crashed on data cleanup.", NULL);
+				pthread_kill(rtp->mainThread, SIGTERM);
+				rtp->running = 0;
+			}
+
+			break;		/*	Out of switch.		*/
+
 		case LtpExportSessionCanceled:	/*	Xmit failure.	*/
 			if (data == 0)		/*	Ignore it.	*/
 			{
