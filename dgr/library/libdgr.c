@@ -12,8 +12,13 @@
 #include "dgr.h"
 #include "memmgr.h"
 
+#ifndef DGRDEBUG
 #define DGRDEBUG	0
-#define DGRWATCHING	1
+#endif
+
+#ifndef DGRWATCHING
+#define DGRWATCHING	0
+#endif
 
 #define	DGR_DB_ORDER	(8)
 #define	DGR_BUCKETS	(1 << DGR_DB_ORDER)

@@ -96,7 +96,7 @@ static void	*sendBundles(void *parm)
 	while (!(sm_SemEnded(parms->vduct->semaphore)))
 	{
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName) < 0)
+				&extendedCOS, destDuctName, 1) < 0)
 		{
 			break;
 		}

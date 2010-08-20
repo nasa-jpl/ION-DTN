@@ -424,10 +424,11 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	{
 		sdr_exit_xn(sdr);
 		writeMemo("[?] Endpoint has been stopped.");
+		dlvBuffer->result = BpEndpointStopped;
 
 		/*	End task, but without error.			*/
 
-		return -1;
+		return 0;
 	}
 
 	/*	Get oldest bundle in delivery queue, if any; wait
@@ -476,10 +477,11 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		if (sm_SemEnded(vpoint->semaphore))
 		{
 			writeMemo("[i] Endpoint has been stopped.");
+			dlvBuffer->result = BpEndpointStopped;
 
 			/*	End task, but without error.		*/
 
-			return -1;
+			return 0;
 		}
 
 		/*	Have taken the semaphore, one way or another.	*/

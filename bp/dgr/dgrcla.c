@@ -106,7 +106,7 @@ static void	*sendBundles(void *parm)
 		}
 
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName) < 0)
+				&extendedCOS, destDuctName, 1) < 0)
 		{
 			threadRunning = 0;
 			writeMemo("[?] dgrcla failed de-queueing bundle.");
@@ -163,7 +163,7 @@ static void	*sendBundles(void *parm)
 		if (bytesToSend > 0)
 		{
 			if (dgr_send(parms->dgrSap, portNbr, hostNbr,
-				DGR_NOTE_FAILED, buffer, bytesToSend, &rc) < 0)
+				DGR_NOTE_ALL, buffer, bytesToSend, &rc) < 0)
 			{
 				threadRunning = 0;
 				putErrmsg("Crashed sending bundle.", NULL);
@@ -272,6 +272,42 @@ static void	*receiveBundles(void *parm)
 
 			switch (rc)
 			{
+				case DgrDatagramAcknowledged:
+					sdr_begin_xn(sdr);
+					bundleZco = zco_create(sdr,
+						ZcoSdrSource, sdr_insert(sdr,
+						buffer, length), 0, length);
+					if (sdr_end_xn(sdr) < 0)
+					{
+						putErrmsg("Failed creating \
+temporary ZCO.", NULL);
+						threadRunning = 0;
+						break;	/*	Switch.	*/
+					}
+
+					if (bpHandleXmitSuccess(bundleZco))
+					{
+						threadRunning = 0;
+						putErrmsg("Crashed handling \
+success.", NULL);
+					}
+
+					sdr_begin_xn(sdr);
+					zco_destroy_reference(sdr, bundleZco);
+					if (sdr_end_xn(sdr) < 0)
+					{
+						threadRunning = 0;
+						putErrmsg("Failed destroying \
+bundle ZCO.", NULL);
+					}
+
+					if (threadRunning == 0)
+					{
+						break;	/*	Switch.	*/
+					}
+
+					continue;
+
 				case DgrDatagramNotAcknowledged:
 					sdr_begin_xn(sdr);
 					bundleZco = zco_create(sdr,
@@ -319,9 +355,10 @@ bundle ZCO.", NULL);
 			break;			/*	Out of loop.	*/
 		}
 
-		if (rc == DgrDatagramNotAcknowledged)
+		if (rc == DgrDatagramAcknowledged
+		|| rc == DgrDatagramNotAcknowledged)
 		{
-			putErrmsg("Crashed handling xmit failure.", NULL);
+			putErrmsg("Crashed handling xmit result.", NULL);
 			threadRunning = 0;
 			continue;
 		}
@@ -338,6 +375,8 @@ bundle ZCO.", NULL);
 			threadRunning = 0;
 			continue;
 		}
+
+		/*	Must have received a datagram.			*/
 
 		if (getInternetHostName(fromHostNbr, hostName))
 		{

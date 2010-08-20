@@ -22,10 +22,10 @@ static int	CancelPetition(RamsGateway *gWay, Petition *pet);
 static int	NoteDeclaration(RamsNode *fromNode, RamsGateway *gWay);
 static int	HandlePetitionAssertion(RamsNode *fromNode,
 			RamsGateway *gWay, int subjectNbr, int domainContinuum,
-			int domainUnit, int domainRole);
+			int domainUnit, int domainRole, int fromPlayback);
 static int	HandlePetitionCancellation(RamsNode *fromNode,
 			RamsGateway *gWay, int subjectNbr, int domainContinuum,
-			int domainUnit, int domainRole);
+			int domainUnit, int domainRole, int fromPlayback);
 static int	HandlePublishedMessage(RamsNode *fromNode, RamsGateway *gWay,
 			char *msg);
 static int	HandlePrivateMessage(RamsGateway *gWay, char *msg);
@@ -121,33 +121,6 @@ static void	HandleAamsMessage(AmsModule module,
 					int priority,
 					unsigned char flowLabel);
 
-static RamsGateway	*_gWay(RamsGateway *currentGateway)
-{
-	static RamsGateway	*gWay = NULL;
-
-	if (currentGateway)		/*	Shut down the gateway.	*/
-	{
-		if (gWay)
-		{
-			MRELEASE(gWay);
-			gWay = NULL;
-		}
-	}
-	else
-	{
-		if (gWay == NULL)	/*	Create gateway.		*/
-		{
-			gWay = (RamsGateway *) MTAKE(sizeof(RamsGateway));
-			if (gWay)
-			{
-				memset((char *) gWay, 0, sizeof(RamsGateway));
-			}
-		}
-	}
-
-	return gWay;
-}
-
 static int	RehandlePetition(RamsNetProtocol protocol, char *gwEid,
 			int cc, int sub, int domainContinuum, int domainUnit,
 			int domainRole)
@@ -183,7 +156,7 @@ static int	RehandlePetition(RamsNetProtocol protocol, char *gwEid,
 		}
 
 		if (HandlePetitionAssertion(fromNode, gWay, sub,
-				domainContinuum, domainUnit, domainRole))
+				domainContinuum, domainUnit, domainRole, 1))
 		{
 			return -1;
 		}
@@ -192,7 +165,7 @@ static int	RehandlePetition(RamsNetProtocol protocol, char *gwEid,
 
 	case PetitionCancellation:
 		if (HandlePetitionCancellation(fromNode, gWay, sub,
-				domainContinuum, domainUnit, domainRole))
+				domainContinuum, domainUnit, domainRole, 1))
 		{
 			return -1;
 		}
@@ -310,7 +283,7 @@ static int	_petitionLog(char *logLine)
 	len = strlen(logLine);
 	if (len > 0)
 	{
-		if (write(petitionLog, logLine, len + 1) < 0)
+		if (write(petitionLog, logLine, len) < 0)
 		{
 			putSysErrmsg("Can't write to petition log file",
 					logLine);
@@ -343,6 +316,9 @@ static int	HandleBundle(BpDelivery *dlv, int *contentLength, char *content)
 	char   		*contentLoc;
 	int		bytesCopied;
 	int		counter;
+#if RAMSDEBUG
+int	i;
+#endif
 
 	fromNode = Look_Up_Neighbor(gWay, dlv->bundleSourceEid);
 	if (fromNode == NULL)	/*	Stray bundle?			*/
@@ -363,7 +339,7 @@ printf("Can't find source gateway '%s'.\n", dlv->bundleSourceEid);
 	}
 
 #if RAMSDEBUG
-printf("Receive Envelope: bytesCopied=%d contentLength=%d\n",
+printf("Receive RPDU: bytesCopied=%d contentLength=%d\n",
 bytesCopied, *contentLength);	
 for (i = 0; i < *contentLength; i++)
 {
@@ -433,6 +409,9 @@ static int	HandleDatagram(struct sockaddr_in *inetName, int *contentLength,
 	RamsNode	*fromNode;
 	char   		*contentLoc;
 	int		counter;
+#if RAMSDEBUG
+int	i;
+#endif
 
 	memcpy((char *) &ipAddress, (char *) &(inetName->sin_addr.s_addr), 4);
 	ipAddress = ntohl(ipAddress);
@@ -449,6 +428,12 @@ printf("Can't find source gateway '%s'.\n", gwEidBuffer);
 	}
 
 #if RAMSDEBUG
+printf("Receive RPDU: contentLength=%d\n", *contentLength);	
+for (i = 0; i < *contentLength; i++)
+{
+	printf("%2x ", contentLoc[i]);
+}
+printf("\n");
 printf("cc=%d, con=%d, unit=%d, srcId=%d, destId=%d, sub=%d len=%d from=%d\n",
 EnvelopeHeader(content, Env_ControlCode),
 EnvelopeHeader(content, Env_ContinuumNbr),
@@ -488,6 +473,24 @@ printf("Enclosure: contentLength=%d messageCounter=%d\n",
 	return 0;
 }
 
+static int	compareCheckTimes(void *data1, void *data2)
+{
+	UdpRpdu	*rpdu1 = (UdpRpdu *) data1;
+	UdpRpdu	*rpdu2 = (UdpRpdu *) data2;
+
+	if (rpdu1->checkTime < rpdu2->checkTime) return -1;
+	if (rpdu1->checkTime > rpdu2->checkTime) return 1;
+	return 0;
+}
+
+static void	deleteDeclaration(LystElt elt, void *arg)
+{
+	UdpRpdu	*rpdu = (UdpRpdu *) lyst_data(elt);
+
+	MRELEASE(rpdu->envelope);
+	MRELEASE(rpdu);
+}
+
 static void	DeleteInvitation(Invitation *inv)
 {
 	lyst_destroy(inv->moduleSet);
@@ -499,7 +502,7 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 		unsigned mSize, char *applicationName, char *authorityName,
 		char *unitName, char *roleName, RamsGate *gWayp, int lifetime)
 {
-	Sdr			sdr = getIonsdr();
+	Sdr			sdr;
 	LystElt			elt;
 	BpDelivery		dlv;
 	int			contentLength;
@@ -520,9 +523,9 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 	Petition		*pet;
 	AmsEventMgt		rules;
 	int			ownPseudoSubject;
+	pthread_t		checkThread;
 
-	PUTS("RAMS version 0.20");
-	isignal(SIGINT, KillGateway);
+	PUTS("RAMS version 1.0");
 
 	/*	Register as an AMS module.				*/
 
@@ -586,7 +589,7 @@ printf("continuum lyst: ");
 	{
 		cId = (long)lyst_data(elt);
 #if RAMSDEBUG
-printf("\nno %d ", cId);		
+printf("\nbr %d ", cId);		
 #endif
 		if (cId == gWay->amsMib->localContinuumNbr)
 		{
@@ -675,7 +678,6 @@ printf("\n");
 #if RAMSDEBUG
 printf("subscribed to %d\n", ownPseudoSubject);
 #endif
-
 	/*	Insert self into RAMS network.				*/
 
 	gWay->netProtocol = gWay->amsMib->localContinuumGwProtocol;
@@ -702,9 +704,20 @@ printf("bp_attach succeeds.\n");
 #if RAMSDEBUG
 printf("bp_open succeeds.\n");
 #endif
+		sdr = getIonsdr();
 		break;
 
 	case RamsUdp:
+		gWay->udpRpdus = lyst_create();
+		CHKERR(gWay->udpRpdus);
+		lyst_compare_set(gWay->udpRpdus, compareCheckTimes);
+		lyst_delete_set(gWay->udpRpdus, deleteDeclaration, NULL);
+		if (pthread_create(&checkThread, NULL, CheckUdpRpdus, NULL))
+		{
+			putSysErrmsg("Can't create check thread", NULL);
+			return -1;
+		}
+
 		istrcpy(gwEid, gWay->amsMib->localContinuumGwEid, sizeof gwEid);
 		parseSocketSpec(gwEid, &portNbr, &ipAddress);
 		portNbr = htons(portNbr);
@@ -752,31 +765,18 @@ printf("Gateway declares itself to all RAMS network neighbors ....\n");
 		return -1;
 	}
 
-	/*	When UDP is used as the RAMS network protocol (for
-	 *	testing purposes only), the re-issuance of the
-	 *	declaration petition upon reception of declaration
-	 *	petitions from neighbors is required because delivery
-	 *	of the original declaration petition is not guaranteed,
-	 *	because UDP is not a reliable protocol.  Otherwise, we
-	 *	must insert all neighbors into the SourceNodeSet to
-	 *	prevent that re-issuance, because it results in a
-	 *	registration loop.					*/
+	/*	Add all neighbors to SGS for declaration petition.	*/
 
-	if (gWay->netProtocol != RamsUdp)
+	for (elt = lyst_first(gWay->ramsNeighbors); elt; elt = lyst_next(elt))
 	{
-		for (elt = lyst_first(gWay->ramsNeighbors); elt;
-				elt = lyst_next(elt))
+		ramsNode = (RamsNode *) lyst_data(elt);
+		if (ramsNode->continuumNbr != gWay->amsMib->localContinuumNbr)
 		{
-			ramsNode = (RamsNode *) lyst_data(elt);
-			if (ramsNode->continuumNbr !=
-					gWay->amsMib->localContinuumNbr)
+	    		if (lyst_insert_last(pet->SourceNodeSet, ramsNode)
+					== NULL)
 			{
-		    		if (lyst_insert_last(pet->SourceNodeSet,
-						ramsNode) == NULL)
-				{
-					ErrMsg("Failed adding node to SGS");
-					return -1;
-				}
+				ErrMsg("Failed adding node to SGS");
+				return -1;
 			}
 		}
 	}
@@ -810,6 +810,7 @@ printf("Gateway declares itself to all RAMS network neighbors ....\n");
 	}
 
 	contentLength = ENVELOPELENGTH;
+	isignal(SIGTERM, KillGateway);
 	while (gWay->stopping == 0)
 	{
 		switch (gWay->netProtocol)
@@ -825,8 +826,13 @@ printf("Before bp_receive...\n");
 				continue;
 			}
 
-			if (dlv.result == BpPayloadPresent)
+			switch (dlv.result)
 			{
+			case BpEndpointStopped:
+				gWay->stopping = 1;
+				break;
+
+			case BpPayloadPresent:
 				sdr_begin_xn(sdr);
 				if (HandleBundle(&dlv, &contentLength, content)
 						< 0)
@@ -842,6 +848,11 @@ printf("Before bp_receive...\n");
 						gWay->stopping = 1;
 					}
 				}
+
+				break;
+
+			default:
+				break;
 			}
 
 			bp_release_delivery(&dlv, 1);
@@ -884,9 +895,15 @@ printf("Before bp_receive...\n");
 	}
 
 	MRELEASE(content);		/*	Release RPDU buffer.	*/
+	if (gWay->netProtocol == RamsUdp)
+	{
+		pthread_cancel(checkThread);
+		pthread_join(checkThread, NULL);
+	}
+
 	TerminateGateway(gWay);
 	oK(_petitionLog(NULL));		/*	Close the petition log.	*/
-	writeMemo("Stopping RAMS gateway.");
+	writeMemo("[i] Stopping RAMS gateway.");
 	return 0;
 }
 
@@ -938,7 +955,7 @@ printf("<terminate gateway> terminating %d\n", gWay->amsMib->localContinuumNbr);
 			}
 #if RAMSDEBUG
 printf("<terminate gateway> sending cancellation on subject %d to %d\n",
-ownPseudoSubject, pt->continuumNbr);
+ownPseudoSubject, node->continuumNbr);
 #endif
 			/*	Send petition cancellation.		*/
 
@@ -955,6 +972,10 @@ ownPseudoSubject, pt->continuumNbr);
 			lyst_delete(sgsElt);
 		}
 	}
+
+	/*	Wait 2 seconds for all retraction RPDUs to be sent.	*/
+
+	snooze(2);
 
 	/*	Now extract self from RAMS network.			*/
 
@@ -998,6 +1019,11 @@ ownPseudoSubject, pt->continuumNbr);
 
 	lyst_destroy(gWay->ramsNeighbors);
 	lyst_destroy(gWay->declaredNeighbors);
+	if (gWay->netProtocol == RamsUdp)
+	{
+		lyst_destroy(gWay->udpRpdus);
+	}
+
 	MRELEASE(gWay);
 }
 
@@ -1032,7 +1058,7 @@ sub = %d", EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr),
 			EnvelopeHeader(pet->specification->envelope,
 				Env_SubjectNbr));
 		PUTS(buf);
-		PUTS("    SRS = ");
+		PUTS("    SGS = ");
 		for (eltN = lyst_first(pet->SourceNodeSet); eltN != NULL;
 				eltN = lyst_next(eltN))
 		{
@@ -1041,7 +1067,7 @@ sub = %d", EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr),
 			PUTS(buf);
 		}
 
-		PUTS("    DRS = ");
+		PUTS("    DGS = ");
 		for (eltN = lyst_first(pet->DestinationNodeSet); eltN != NULL;
 				eltN = lyst_next(eltN))
 		{
@@ -1050,7 +1076,7 @@ sub = %d", EnvelopeHeader(pet->specification->envelope, Env_ContinuumNbr),
 			PUTS(buf);
 		}
 
-		PUTS("    DNS = ");
+		PUTS("    DMS = ");
 		for (eltN = lyst_first(pet->DistributionModuleSet);
 				eltN != NULL; eltN = lyst_next(eltN))
 		{
@@ -1379,13 +1405,13 @@ fromNode->continuumNbr);
 			domainUnit = EnvelopeHeader(msg, Env_PublishUnitNbr);
 			domainRole = EnvelopeHeader(msg, Env_PublishRoleNbr);
 			if (HandlePetitionAssertion(fromNode, gWay, sub,
-				domainContinuum, domainUnit, domainRole))
+				domainContinuum, domainUnit, domainRole, 0))
 			{
 				return -1;
 			}
 
 			isprintf(petitionLine, sizeof petitionLine,
-					"%u %255s %u %d %u %u %u\n",
+					"%u %.255s %u %d %u %u %u\n",
 					(unsigned int) fromNode->protocol,
 					fromNode->gwEid, cc, sub,
 					domainContinuum, domainUnit,
@@ -1405,13 +1431,13 @@ fromNode->continuumNbr);
 			domainUnit = EnvelopeHeader(msg, Env_PublishUnitNbr);
 			domainRole = EnvelopeHeader(msg, Env_PublishRoleNbr);
 			if (HandlePetitionCancellation(fromNode, gWay, sub,
-				domainContinuum, domainUnit, domainRole))
+				domainContinuum, domainUnit, domainRole, 0))
 			{
 				return -1;
 			}
 
 			isprintf(petitionLine, sizeof petitionLine,
-					"%u %255s %u %d %u %u %u\n",
+					"%u %.255s %u %d %u %u %u\n",
 					(unsigned int) fromNode->protocol,
 					fromNode->gwEid, cc, sub,
 					domainContinuum, domainUnit,
@@ -1463,7 +1489,7 @@ static int	AssertPetition(RamsGateway *gWay, Petition *pet)
 	int		unitNbr;
 	int		sourceId;
 	int		subjectNbr;
-	Lyst		pSet;
+	Lyst		assertionSet;
 	LystElt		elt;
 	RamsNode	*node;
 
@@ -1502,9 +1528,9 @@ static int	AssertPetition(RamsGateway *gWay, Petition *pet)
 printf("<assert petition> assert petition cId = %d unit = %d role = %d \
 subject = %d \n",  continuumNbr, unitNbr, sourceId, subjectNbr);
 #endif
-	pSet = PropagationSet(gWay, pet);
-	CHKERR(pSet);
-	for (elt = lyst_first(pSet); elt; elt = lyst_next(elt))
+	assertionSet = AssertionSet(gWay, pet);
+	CHKERR(assertionSet);
+	for (elt = lyst_first(assertionSet); elt; elt = lyst_next(elt))
 	{
 		node = (RamsNode *) lyst_data(elt);
 		if (SendRPDU(gWay, node->continuumNbr, 1,
@@ -1515,11 +1541,8 @@ subject = %d \n",  continuumNbr, unitNbr, sourceId, subjectNbr);
 		}
 	}
 
-	AddNodeSets(pet->SourceNodeSet, pSet);
-	lyst_destroy(pSet);
-#if RAMSDEBUG
-PrintGatewayState(gWay);
-#endif
+	AddNodeSets(pet->SourceNodeSet, assertionSet);
+	lyst_destroy(assertionSet);
 	return 0;
 }
 
@@ -1542,23 +1565,11 @@ static int	CancelPetition(RamsGateway *gWay, Petition *pet)
 	subjectNbr = EnvelopeHeader(pet->specification->envelope,
 			 Env_SubjectNbr);
 
-	/*	The petition may or may not be cancellable.
-	 *
-	 *	If there are modules in the local message space that
-	 *	subscribe to the subject and domain of this petition,
-	 *	then we can't cancel it.				*/
-
-	if (lyst_length(pet->DistributionModuleSet) == 0)
-	{
-		return 0;
-	}
-
-	/*	Otherwise (no local subscribers), then if the DGS of
-	 *	the petition is empty (no other nodes care about
-	 *	messages that satisfy this petition), then the
-	 *	cancellation is sent to all members of the petition's
-	 *	SGS, i.e., all potential sources of messages on this
-	 *	subject.						*/
+	/*	If the DGS of the petition is empty (no other nodes
+	 *	care about messages that satisfy this petition), then
+	 *	the cancellation is sent to all members of the
+	 *	petition's SGS, i.e., all potential sources of messages
+	 *	on this subject.					*/
 
 	if (lyst_length(pet->DestinationNodeSet) == 0)
 	{
@@ -1584,9 +1595,6 @@ subject = %d \n",  continuumNbr, unitNbr, sourceId, subjectNbr);
 			lyst_delete(sgsElt);
 		}
 
-#if RAMSDEBUG
-PrintGatewayState(gWay);
-#endif
 		return 0;
 	}
 
@@ -1616,9 +1624,6 @@ subject = %d \n",  continuumNbr, unitNbr, sourceId, subjectNbr);
 			}
 
 			lyst_delete(sgsElt);
-#if RAMSDEBUG
-PrintGatewayState(gWay);
-#endif
 			return 0;
 		}
 	}
@@ -1631,8 +1636,8 @@ PrintGatewayState(gWay);
 static int	NoteDeclaration(RamsNode *fromNode, RamsGateway *gWay)
 {
 #if RAMSDEBUG
-printf("<handle declaration> received declaration from %d\n",
-fromNode->continuuNbr);
+printf("<note declaration> received declaration from %d\n",
+fromNode->continuumNbr);
 #endif
 	if (Look_Up_DeclaredNeighbor(gWay, fromNode->continuumNbr) == NULL)
 	{
@@ -1642,6 +1647,10 @@ fromNode->continuuNbr);
 			return -1;
 		}
 
+#if RAMSDEBUG
+printf("<note declaration> added %d as a declared neighbor\n",
+fromNode->continuumNbr);
+#endif
 		gWay->declaredNeighborsCount++;
 	}
 
@@ -1650,12 +1659,12 @@ fromNode->continuuNbr);
 
 static int	HandlePetitionAssertion(RamsNode *fromNode, RamsGateway *gWay,
 			int subjectNbr, int domainContinuum, int domainUnit,
-			int domainRole)
+			int domainRole, int fromPlayback)
 {
 	LystElt		elt;
-	Lyst		propSet;
-	LystElt		nodeElt;
 	Petition	*pet;
+	LystElt		nodeElt;
+	Lyst		assertionSet;
 	Petition	*aPet;	
 
 #if RAMSDEBUG
@@ -1664,7 +1673,6 @@ printf("<handle petition assertion> petition from %d for subject %d \
 continuum %d unit %d role %d\n", fromNode->continuumNbr, subjectNbr,
 domainContinuum, domainUnit, domainRole);
 #endif
-
 	/*	First, insert the asserting node into the DGS of this
 	 *	petition if the petition is already known.		*/
 
@@ -1674,27 +1682,49 @@ domainContinuum, domainUnit, domainRole);
 		if (PetitionMatchesDomain(pet, domainContinuum,
 				domainRole, domainUnit, subjectNbr))
 		{
-			if (NodeSetMember(fromNode,
-					pet->DestinationNodeSet) == NULL)
+			/*	This petition already exists.  If
+			 *	this neighbor has already asserted
+			 *	it, then process an imputed prior
+			 *	cancellation before proceeding.		*/
+
+			nodeElt = NodeSetMember(fromNode,
+					pet->DestinationNodeSet);
+			if (nodeElt)
 			{
-				if (lyst_insert_last(pet->DestinationNodeSet,
-						fromNode) == NULL)
+				if (pet->stateIsFromPlayback)
 				{
-					ErrMsg("Can't add node to DGS");
+					/*	This is not a true
+					 *	reassertion, so just
+					 *	note that the petition
+					 *	state is confirmed and
+					 *	ignore the assertion.	*/
+
+					pet->stateIsFromPlayback = fromPlayback;
+					return 0;
+				}
+
+				if (HandlePetitionCancellation(fromNode,
+						gWay, subjectNbr,
+						domainContinuum, domainUnit,
+						domainRole, fromPlayback) < 0)
+				{
+					ErrMsg("Can't handle imputed cancel");
 					return -1;
 				}
+			}
+
+			/*	Now proceed with the assertion.		*/
+
+			if (lyst_insert_last(pet->DestinationNodeSet,
+					fromNode) == NULL)
+			{
+				ErrMsg("Can't add node to DGS");
+				return -1;
+			}
 #if RAMSDEBUG
 PUTS("<handle petition assertion> add into existing DestinationNodeSet");
 #endif
-				break;
-			}
-			else
-			{
-#if RAMSDEBUG
-PUTS("<handle petition assertion> already in existing DestinationNodeSet");
-#endif
-				return 0;
-			}
+			break;
 		}
 	}
 
@@ -1715,7 +1745,7 @@ PUTS("<handle petition assertion> create new petition");
 		}
 	}
 
-	/*	Node is now a member of the DGS of this petition.
+	/*	That node is now a member of the DGS of this petition.
 	 *	If it's a newly asserted petition, subscribe locally.	*/
 
 	if (lyst_length(pet->DestinationNodeSet) == 1)
@@ -1740,6 +1770,22 @@ PUTS("<handle petition assertion> local subscription okay");
 		}
 	}
 
+	/*	If this assertion is from playback, then we're just
+	 *	recovering local RAMS gateway state.  No need to
+	 *	propagate to other nodes: they either received and
+	 *	retained the original RPDU or else recovered (or will
+	 *	recover) it on restart.					*/
+
+	pet->stateIsFromPlayback = fromPlayback;
+	if (pet->stateIsFromPlayback)
+	{
+#if RAMSDEBUG
+PUTS("<handle petition assertion> recovering");
+PrintGatewayState(gWay);
+#endif
+		return 0;
+	}
+
 	/*	If the subject cited is the pseudo-subject for some
 	 *	continuum then all relevant petition relationships
 	 *	with this node (which is the conduit to that
@@ -1748,7 +1794,8 @@ PUTS("<handle petition assertion> local subscription okay");
 	if (subjectNbr < 0)
 	{
 #if RAMSDEBUG
-printf("<handle petition assertion> node is conduit for %d\n", 0 - subjectNbr);
+printf("<handle petition assertion> node is conduit for continuum %d\n",
+0 - subjectNbr);
 #endif
 		for (elt = lyst_first(gWay->petitionSet); elt;
 				elt = lyst_next(elt))
@@ -1765,10 +1812,10 @@ printf("<handle petition assertion> node is conduit for %d\n", 0 - subjectNbr);
 			{
 				/*	Petition is assertable.		*/
 
-				propSet = PropagationSet(gWay, aPet);
-				CHKERR(propSet);
-				nodeElt = NodeSetMember(fromNode, propSet);
-				lyst_destroy(propSet);
+				assertionSet = AssertionSet(gWay, aPet);
+				CHKERR(assertionSet);
+				nodeElt = NodeSetMember(fromNode, assertionSet);
+				lyst_destroy(assertionSet);
 				if (nodeElt)
 				{
 #if RAMSDEBUG
@@ -1824,7 +1871,7 @@ PrintGatewayState(gWay);
 
 static int	HandlePetitionCancellation(RamsNode *fromNode,
 			RamsGateway *gWay, int petSubject, int domainContinuum,
-			int domainUnit, int domainRole)
+			int domainUnit, int domainRole, int fromPlayback)
 {
 	LystElt		elt;
 	LystElt		dgsElt;
@@ -1902,23 +1949,45 @@ PUTS("<handle petition cancellation> local unsubscription okay");
 		}
 	}
 
+	/*	If this cancellation is from playback, then we're
+	 *	just recovering local RAMS gateway state.  No need
+	 *	to propagate to other nodes: they either received and
+	 *	retained the original RPDU or else recovered (or will
+	 *	recover) it on restart.					*/
+
+	pet->stateIsFromPlayback = fromPlayback;
+	if (pet->stateIsFromPlayback)
+	{
+#if RAMSDEBUG
+PUTS("<handle petition cancellation> recovering");
+PrintGatewayState(gWay);
+#endif
+		return 0;
+	}
+
 	/*	If the subject cited is the pseudo-subject for the
 	 *	neighbor's own continuum, the neighbor is retracting
 	 *	itself.							*/
 
 	if (petSubject != (0 - fromNode->continuumNbr))
 	{
-		/*	Neighbor is *not* retracting itself, so the
-		 *	only thing left to do is -- if permissible
-		 *	-- cancel this petition altogether.		*/
+		/*	Neighbor is NOT retracting itself, so the
+		 *	only thing left to do is to cancel this
+		 *	petition if it is no longer assertable.
+		 *	The assertability of all other petitions
+		 *	is unaffected by this cancellation, so
+		 *	there's no need to cancel anything else.	*/
 
-		if (CancelPetition(gWay, aPet) < 0)
+		if (!PetitionIsAssertable(gWay, pet) < 0)
 		{
-			ErrMsg("CancelPetition failed");
+			if (CancelPetition(gWay, pet) < 0)
+			{
+				ErrMsg("CancelPetition failed");
 #if RAMSDEBUG
 PUTS("<handle petition cancellation> petition cancellation fails");
 #endif
-			return -1;
+				return -1;
+			}
 		}
 
 #if RAMSDEBUG
@@ -1993,18 +2062,20 @@ PUTS("<handle petition cancellation> own petition cancel RPDU fails");
 
 #if RAMSDEBUG
 printf("<handle petition cancellation> canceling petition cId = %d unit = %d \
-role = %d sub = %d\n", fromNode->continuumNbr, continuumNbr,
-unitNbr, sourceId, subjectNbr);
+role = %d sub = %d\n", continuumNbr, unitNbr, sourceId, subjectNbr);
 #endif
 		/*	May now be able to cancel petition altogether.	*/
 
-		if (CancelPetition(gWay, aPet) < 0)
+		if (!PetitionIsAssertable(gWay, aPet) < 0)
 		{
-			ErrMsg("CancelPetition failed");
+			if (CancelPetition(gWay, aPet) < 0)
+			{
+				ErrMsg("CancelPetition failed");
 #if RAMSDEBUG
 PUTS("<handle petition cancellation> petition cancellation fails");
 #endif
-			return -1;
+				return -1;
+			}
 		}
 	}
 
@@ -2133,7 +2204,8 @@ PUTS("<handle published message> sending to continuum failed");
 printf("<handle published message> send message to unit %d module %d\n",
 module->unitNbr, module->nbr);
 #endif
-		/*	Send enclosure as content; subject number zero.	*/
+		/*	Send enclosure as content; subject number is
+		 *	additive inverse of the local continuum number.	*/
 
 		if (ams_send(gWay->amsModule, localcn, module->unitNbr,
 				module->nbr, (0 - localcn), 8, 0,
@@ -2177,7 +2249,8 @@ msg + ENVELOPELENGTH + AMSMSGHEADER);
 		if (ramsNode == NULL)
 		{
 #if RAMSDEBUG
-printf("<handle private message> no conduit for %d\n", destinationContinuumNbr);
+printf("<handle private message> no conduit for continuum %d\n",
+destinationContinuumNbr);
 #endif
 			return 0;
 		}
@@ -2332,7 +2405,7 @@ message to node.");
 				}
 			}
 #if RAMSDEBUG
-else printf("<handle announced message> no conduit for %d\n",
+else printf("<handle announced message> no conduit for continuum %d\n",
 destinationContinuumNbr);
 #endif
 			return 0;	/*	Nothing more to do.	*/
@@ -2423,7 +2496,7 @@ static int	AddPetitioner(Module *sourceModule, RamsGateway *gWay,
 
 #if RAMSDEBUG
 printf("<add petitioner> adding module unit %d nbr %d to petition for \
-subject %d continuum %d unit %d role %d", sourceModule->unitNbr,
+subject %d continuum %d unit %d role %d\n", sourceModule->unitNbr,
 sourceModule->nbr, subjectNbr, domainContinuum, domainUnit, domainRole);
 #endif
 	for (elt = lyst_first(gWay->petitionSet); elt; elt = lyst_next(elt))
@@ -2473,6 +2546,7 @@ PUTS("<add petitioner> must create new petition");
 		}
 	}
 
+	pet->stateIsFromPlayback = 0;
 	if (AssertPetition(gWay, pet) < 0)
 	{
 		 ErrMsg("Can't assert petition in AddPetitioner.");
@@ -2496,7 +2570,7 @@ static int	RemovePetitioner(Module *sourceModule, RamsGateway *gWay,
 	 
 #if RAMSDEBUG
 printf("<remove petitioner> removing module unit %d nbr %d from petition for \
-subject %d continuum %d unit %d role %d", sourceModule->unitNbr,
+subject %d continuum %d unit %d role %d\n", sourceModule->unitNbr,
 sourceModule->nbr, subjectNbr, domainContinuum, domainUnit, domainRole);
 #endif
 	for (elt = lyst_first(gWay->petitionSet); elt; elt = lyst_next(elt))
@@ -2525,10 +2599,13 @@ PUTS("<remove petitioner> no matching petition");
 
 	/*	May now be able to cancel the petition altogether.	*/
 
-	if (CancelPetition(gWay, pet) == 0)
+	if (!PetitionIsAssertable(gWay, pet))
 	{
-		ErrMsg("CancelPetition failed.");
-		return -1;
+		if (CancelPetition(gWay, pet) < 0)
+		{
+			ErrMsg("CancelPetition failed.");
+			return -1;
+		}
 	}
 
 #if RAMSDEBUG
@@ -2555,7 +2632,7 @@ static int	ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 	int		context;
 	int		priority;
 	unsigned char	flowLabel;
-	int		roleNbr;
+	int		sourceRoleNbr;
 
 	ams_parse_msg(amsEvent, &continuumNbr, &unitNbr, &moduleNbr,
 			&subjectNbr, &contentLen, &content, &context,
@@ -2564,7 +2641,7 @@ static int	ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 PUTS("<forward published message> forward published message");
 printf("<forward published message> contentLength = %d\n", contentLen);
 #endif
-	roleNbr = RoleNumber(gWay->amsModule, unitNbr, moduleNbr);
+	sourceRoleNbr = RoleNumber(gWay->amsModule, unitNbr, moduleNbr);
 
 	/*	Package the message in an Enclosure structure so that
 	 *	it can be forwarded.					*/
@@ -2624,7 +2701,7 @@ printf("<forward published message> send to continuum %d\n",
 node->continuumNbr);
 #endif
 		if (SendNewRPDU(gWay, node->continuumNbr, flowLabel, enc, 0, 0,
-				roleNbr, 0, PublishOnReception, subjectNbr) < 0)
+			sourceRoleNbr, 0, PublishOnReception, subjectNbr) < 0)
 		{
 #if RAMSDEBUG
 PUTS("<forward published message> sending to continuum failed");
@@ -2665,6 +2742,15 @@ PUTS("<forward targeted message> destination continuum number is invalid");
 
 	if (destinationContinuumNbr == 0)	/*	All continua.	*/
 	{
+		if (EnvelopeHeader(content, Env_ControlCode)
+				!= AnnounceOnReception)
+		{
+#if RAMSDEBUG
+PUTS("<forward targeted message> 'sending' to destination continuum 0");
+#endif
+			return 0;		/*	Invalid.	*/
+		}
+
 		for (elt = lyst_first(gWay->declaredNeighbors); elt;
 				elt = lyst_next(elt))
 		{
@@ -2688,11 +2774,26 @@ to node.");
 		return 0;
 	}
 
+	/*	Destination is a specific continuum.			*/
+
+	switch (EnvelopeHeader(content, Env_ControlCode))
+	{
+	case SendOnReception:
+	case AnnounceOnReception:
+		break;
+
+	default:
+#if RAMSDEBUG
+PUTS("<forward targeted message> invalid control code for targeted message");
+#endif
+		return 0;		/*	Invalid.	*/
+	}
+
 	ramsNode = GetConduitForContinuum(destinationContinuumNbr, gWay);
 	if (ramsNode == NULL)
 	{
 #if RAMSDEBUG
-printf("<forward targeted message> no conduit for %d\n",
+printf("<forward targeted message> no conduit for continuum %d\n",
 ramsNode->continuumNbr);
 #endif
 		return 0;

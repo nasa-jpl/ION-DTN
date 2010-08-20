@@ -706,22 +706,30 @@ ted message.", subject->name);
 		return -1;
 	}
 
-	msg.content = MTAKE(msg.contentLength);
-	if (msg.content == NULL)
+	if (msg.contentLength == 0)
 	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
+		msg.content = NULL;
 	}
-
-	memcpy(msg.content, msgContent, msg.contentLength);
-
-	/*	Decrypt content as necessary.				*/
-
-	if (subject->symmetricKey)	/*	Key provided.		*/
+	else
 	{
-		decryptUsingSymmetricKey(msg.content, msg.contentLength,
-				subject->symmetricKey, subject->keyLength,
-				msg.content, &msg.contentLength);
+		msg.content = MTAKE(msg.contentLength);
+		if (msg.content == NULL)
+		{
+			putErrmsg(NoMemoryMemo, NULL);
+			return -1;
+		}
+
+		memcpy(msg.content, msgContent, msg.contentLength);
+
+		/*	Decrypt content as necessary.			*/
+
+		if (subject->symmetricKey)	/*	Key provided.	*/
+		{
+			decryptUsingSymmetricKey(msg.content, msg.contentLength,
+					subject->symmetricKey,
+					subject->keyLength, msg.content,
+					&msg.contentLength);
+		}
 	}
 
 	/*	Create and enqueue event, signal application thread.	*/
@@ -2697,7 +2705,7 @@ static int	process_cell_spec(AmsSAP *sap, MamsMsg *msg)
 
 	if (eptLength == 0)
 	{
-		writeMemo("No registrar for this cell.");
+		writeMemoNote("[?] No registrar for this cell", ept);
 		return 0;
 	}
 
@@ -2782,7 +2790,7 @@ static int	locateRegistrar(AmsSAP *sap)
 			if (errno == ETIMEDOUT)
 			{
 				sap->csEndpoint = NULL;
-				writeMemo("No response from config server.");
+				writeMemo("[?] No config server response.");
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 			}
@@ -2813,7 +2821,7 @@ static int	locateRegistrar(AmsSAP *sap)
 			switch (msg->type)
 			{
 			case registrar_unknown:
-				writeMemo("No registrar for this cell.");
+				writeMemo("[?] No registrar for this cell.");
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 
@@ -2945,7 +2953,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 		{
 			if (errno == ETIMEDOUT)
 			{
-				writeMemo("No response from registrar.");
+				writeMemo("[?] No registrar response.");
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 			}
@@ -3117,7 +3125,7 @@ static void	process_rejection(AmsSAP *sap, MamsMsg *msg)
 		}
 	}
 
-	putErrmsg("Registration refused.", reasonString);
+	writeMemoNote("[?] Registration refused", reasonString);
 }
 
 static int	process_you_are_in(AmsSAP *sap, MamsMsg *msg)
@@ -3221,7 +3229,7 @@ static int	getModuleNbr(AmsSAP *sap)
 				 *	after getting a new MAMS ept.	*/
 
 				clearMamsEndpoint(sap->rsEndpoint);
-				writeMemo("No response from registrar.");
+				writeMemo("[?] No registrar response.");
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 			}
@@ -3502,7 +3510,7 @@ static void	*heartbeatMain(void *parm)
 	}
 
 	writeErrmsgMemos();
-	writeMemo("Heartbeat thread ended.");
+	writeMemo("[i] Heartbeat thread ended.");
 	return NULL;
 }
 
@@ -4045,7 +4053,7 @@ int	ams_unregister(AmsSAP *sap)
 	if (result == 0)
 	{
 		eraseSAP(sap);
-		writeMemo("AMS service terminated.");
+		writeMemo("[i] AMS service terminated.");
 	}
 
 	return result;
