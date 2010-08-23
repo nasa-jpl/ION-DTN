@@ -57,7 +57,7 @@ static void	*handleDatagrams(void *parm)
 	}
 
 	/*	Can now start receiving bundles.  On failure, take
-	 *	down the LSI.						*/
+	 *	down the LSO.						*/
 
 	iblock(SIGTERM);
 	while (rtp->running)
@@ -102,13 +102,15 @@ static void	*handleDatagrams(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-int	sendSegmentByUDP(int linkSocket, char *from, int length)
+int	sendSegmentByUDP(int linkSocket, char *from, int length,
+		struct sockaddr *peerSockName)
 {
 	int	bytesWritten;
 
 	while (1)	/*	Continue until not interrupted.		*/
 	{
-		bytesWritten = send(linkSocket, from, length, 0);
+		bytesWritten = sendto(linkSocket, from, length, 0,
+				peerSockName, sizeof(struct sockaddr));
 		if (bytesWritten < 0)
 		{
 			if (errno == EINTR)	/*	Interrupted.	*/
@@ -143,13 +145,18 @@ int	main(int argc, char *argv[])
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
 	char			ownHostName[MAXHOSTNAMELEN];
-	int			segmentLength;
-	char			*segment;
-	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName;
+	struct sockaddr		ownSockName;
+	struct sockaddr_in	*ownInetName;
+	struct sockaddr		peerSockName;
+	struct sockaddr_in	*peerInetName;
+	socklen_t		nameLength;
 	ReceiverThreadParms	rtp;
 	pthread_t		receiverThread;
+	int			segmentLength;
+	char			*segment;
 	int			bytesSent;
+	int			fd;
+	char			quit = '\0';
 
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{
@@ -186,28 +193,50 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	/*	All command-line arguments are now validated.		*/
-
 	sdr_exit_xn(sdr);
+
+	/*	All command-line arguments are now validated.  First
+	 *	get peer's socket address.				*/
+
 	parseSocketSpec(endpointSpec, &portNbr, &ipAddress);
 	if (portNbr == 0)
 	{
 		portNbr = LtpUdpDefaultPortNbr;
 	}
-	
+
+	getNameOfHost(ownHostName, sizeof ownHostName);
 	if (ipAddress == 0)		/*	Default to local host.	*/
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
 		ipAddress = getInternetAddress(ownHostName);
 	}
 
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
-	memset((char *) &socketName, 0, sizeof socketName);
-	inetName = (struct sockaddr_in *) &socketName;
-	inetName->sin_family = AF_INET;
-	inetName->sin_port = portNbr;
-	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &ipAddress, 4);
+	memset((char *) &peerSockName, 0, sizeof peerSockName);
+	peerInetName = (struct sockaddr_in *) &peerSockName;
+	peerInetName->sin_family = AF_INET;
+	peerInetName->sin_port = portNbr;
+	memcpy((char *) &(peerInetName->sin_addr.s_addr),
+			(char *) &ipAddress, 4);
+
+	/*	Now compute own socket address, used when the peer
+	 *	responds to the link service output socket rather
+	 *	than to the advertised link service input socket.	*/
+
+	portNbr = 0;			/*	Let O/S select it.	*/
+	ipAddress = getInternetAddress(ownHostName);
+	ipAddress = htonl(ipAddress);
+	memset((char *) &ownSockName, 0, sizeof ownSockName);
+	ownInetName = (struct sockaddr_in *) &ownSockName;
+	ownInetName->sin_family = AF_INET;
+	ownInetName->sin_port = portNbr;
+	memcpy((char *) &(ownInetName->sin_addr.s_addr),
+			(char *) &ipAddress, 4);
+
+	/*	Now create the socket that will be used for sending
+	 *	datagrams to the peer LTP engine and receiving
+	 *	datagrams from the peer LTP engine.			*/
+
 	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (rtp.linkSocket < 0)
 	{
@@ -215,10 +244,16 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (connect(rtp.linkSocket, &socketName, sizeof(struct sockaddr_in))
-			< 0)
+	/*	Bind the socket to own socket address so that we can
+	 *	send a 1-byte datagram to that address to shut down
+	 *	the datagram handling thread.				*/
+
+	nameLength = sizeof(struct sockaddr);
+	if (bind(rtp.linkSocket, &ownSockName, nameLength) < 0
+	|| getsockname(rtp.linkSocket, &ownSockName, &nameLength) < 0)
 	{
-		putSysErrmsg("LSO can't connect UDP socket", NULL);
+		close(rtp.linkSocket);
+		putSysErrmsg("Can't initialize socket", NULL);
 		return 1;
 	}
 
@@ -264,7 +299,7 @@ int	main(int argc, char *argv[])
 		else
 		{
 			bytesSent = sendSegmentByUDP(rtp.linkSocket, segment,
-					segmentLength);
+					segmentLength, &peerSockName);
 			if (bytesSent < segmentLength)
 			{
 				rtp.running = 0;/*	Terminate LSO.	*/
@@ -276,10 +311,16 @@ int	main(int argc, char *argv[])
 		sm_TaskYield();
 	}
 
-	/*	Terminate the receiver thread.				*/
+	/*	Wake up the receiver thread by sending it a 1-byte
+	 *	datagram.						*/
 
-	snooze(1);	/*	Give it time to notice rtp.running = 0.	*/
-	pthread_cancel(receiverThread);
+	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (fd >= 0)
+	{
+		sendto(fd, &quit, 1, 0, &ownSockName, sizeof(struct sockaddr));
+		close(fd);
+	}
+
 	pthread_join(receiverThread, NULL);
 	close(rtp.linkSocket);
 	writeErrmsgMemos();
