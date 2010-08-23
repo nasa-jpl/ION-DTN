@@ -125,14 +125,15 @@ static void	*handleDatagrams(void *parm)
 /*	*	*	Main thread functions	*	*	*	*/
 
 int	sendSegmentByUDP(int linkSocket, char *from, int length,
-		struct sockaddr *peerSockName)
+		struct sockaddr_in *peerSockName)
 {
 	int	bytesWritten;
 
 	while (1)	/*	Continue until not interrupted.		*/
 	{
 		bytesWritten = sendto(linkSocket, from, length, 0,
-				peerSockName, sizeof(struct sockaddr));
+				(struct sockaddr *)peerSockName,
+				sizeof(struct sockaddr));
 		if (bytesWritten < 0)
 		{
 			if (errno == EINTR)	/*	Interrupted.	*/
@@ -141,7 +142,7 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 			}
          
 			char memoBuf[1000];
-			struct sockaddr_in *saddr = destAddr;
+			struct sockaddr_in *saddr = peerSockName;
 
 			sprintf(memoBuf, "udplso sento() error, dest=[%s:%d], nbytes=%d, rv=%d, errno=%d", 
 				(char *)inet_ntoa( saddr->sin_addr ), 
@@ -196,10 +197,16 @@ int	main(int argc, char *argv[])
 	int			fd;
 	char			quit = '\0';
 
+	if( txbps != 0 && remoteEngineId == 0 )
+	{
+		remoteEngineId = txbps;
+		txbps = 0;
+	}
+
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{
 		PUTS("Usage: udplso {<remote engine's host name> | @}[:\
-<its port number>] <remote engine ID>");
+		<its port number>] <txbps (0=unlimited)> <remote engine ID>");
 		return 0;
 	}
 
@@ -349,13 +356,9 @@ int	main(int argc, char *argv[])
 				float sleep_secs = (1.0 / ((float)txbps)) * ((float)((IPHDR_SIZE + segmentLength)*8));
 
 				if( sleep_secs < 0.010 )
-				{
 					usecs = 10000;
-				}
 				else
-				}
 					usecs = (unsigned int)( sleep_secs * 1000000 );
-				}
 
 				microsnooze( usecs );
 			}
