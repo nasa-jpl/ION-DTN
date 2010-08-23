@@ -10,7 +10,29 @@
 	acknowledged.
 	
 									*/
+
+/* 7/6/2010, modified as per issue 132-udplso-tx-rate-limit
+   Greg Menke, Raytheon, under contract METS-MR-679-0909 with NASA GSFC */
+
 #include "udplsa.h"
+#include "arpa/inet.h"
+#include "netinet/ip.h"
+#include "netinet/udp.h"
+
+
+#if defined(linux)
+
+#define IPHDR_SIZE		(sizeof(struct iphdr) + sizeof(struct udphdr))
+
+#else
+
+#include "netinet/ip_var.h"
+#include "netinet/udp_var.h"
+
+#define IPHDR_SIZE		(sizeof(struct udpiphdr))
+
+#endif
+
 
 static sm_SemId		udplsoSemaphore(sm_SemId *semid)
 {
@@ -117,6 +139,18 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 			{
 				continue;	/*	Retry.		*/
 			}
+         
+			char memoBuf[1000];
+			struct sockaddr_in *saddr = destAddr;
+
+			sprintf(memoBuf, "udplso sento() error, dest=[%s:%d], nbytes=%d, rv=%d, errno=%d", 
+				(char *)inet_ntoa( saddr->sin_addr ), 
+				ntohs( saddr->sin_port ), 
+				length,
+				bytesWritten, 
+				errno );
+
+			writeMemo( memoBuf );
 
 			putSysErrmsg("LSO send() error on socket", NULL);
 		}
@@ -130,14 +164,18 @@ int	udplso(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char			*endpointSpec = (char *) a1;
+	unsigned int		txbps =
+				(a2 != 0 ? strtoul((char *) a2, NULL, 0) : 0);
 	unsigned long		remoteEngineId =
-				a2 != 0 ? strtoul((char *) a2, NULL, 0) : 0;
+				a3 != 0 ? strtoul((char *) a3, NULL, 0) : 0;
 #else
 int	main(int argc, char *argv[])
 {
 	char			*endpointSpec = argc > 1 ? argv[1] : NULL;
+	unsigned int		txbps =
+				(argc > 2 ? strtoul(argv[2], NULL, 0) : 0);
 	unsigned long		remoteEngineId =
-				argc > 2 ? strtoul(argv[2], NULL, 0) : 0;
+				argc > 3 ? strtoul(argv[3], NULL, 0) : 0;
 #endif
 	Sdr			sdr;
 	LtpVspan		*vspan;
@@ -303,6 +341,23 @@ int	main(int argc, char *argv[])
 			if (bytesSent < segmentLength)
 			{
 				rtp.running = 0;/*	Terminate LSO.	*/
+			}
+
+			if( txbps != 0 )
+			{
+				unsigned int usecs;
+				float sleep_secs = (1.0 / ((float)txbps)) * ((float)((IPHDR_SIZE + segmentLength)*8));
+
+				if( sleep_secs < 0.010 )
+				{
+					usecs = 10000;
+				}
+				else
+				}
+					usecs = (unsigned int)( sleep_secs * 1000000 );
+				}
+
+				microsnooze( usecs );
 			}
 		}
 
