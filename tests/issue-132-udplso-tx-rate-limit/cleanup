@@ -1,0 +1,3 @@
+#!/bin/bash
+rm -f ion.log ionsendfile.dat testfile1
+

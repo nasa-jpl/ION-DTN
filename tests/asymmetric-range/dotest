@@ -70,7 +70,7 @@ else
 	RETVAL=1
 fi
 
-COUNT=`grep ctt ion.log | grep "(1) 1 3" | wc -l`
+COUNT=`grep rfw ion.log | grep "(1) 1 3" | wc -l`
 if [ $COUNT -eq 1 ]
 then
 	echo "One bundle reforwarded."
