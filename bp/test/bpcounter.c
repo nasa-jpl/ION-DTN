@@ -127,6 +127,8 @@ int	main(int argc, char **argv)
 		switch (dlv.result)
 		{
 		case BpReceptionInterrupted:
+			continue;
+
 		case BpEndpointStopped:
 			oK(_running(&stop));
 			continue;
