@@ -9,12 +9,14 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 	
+	7/6/2010, modified as per issue 132-udplso-tx-rate-limit
+	Greg Menke, Raytheon, under contract METS-MR-679-0909
+	with NASA GSFC
+
 									*/
 
-/* 7/6/2010, modified as per issue 132-udplso-tx-rate-limit
-   Greg Menke, Raytheon, under contract METS-MR-679-0909 with NASA GSFC */
-
 #include "udplsa.h"
+
 #include "arpa/inet.h"
 #include "netinet/ip.h"
 #include "netinet/udp.h"
@@ -32,7 +34,6 @@
 #define IPHDR_SIZE		(sizeof(struct udpiphdr))
 
 #endif
-
 
 static sm_SemId		udplsoSemaphore(sm_SemId *semid)
 {
@@ -125,24 +126,23 @@ static void	*handleDatagrams(void *parm)
 /*	*	*	Main thread functions	*	*	*	*/
 
 int	sendSegmentByUDP(int linkSocket, char *from, int length,
-		struct sockaddr_in *peerSockName)
+		struct sockaddr_in *destAddr )
 {
 	int	bytesWritten;
 
 	while (1)	/*	Continue until not interrupted.		*/
 	{
 		bytesWritten = sendto(linkSocket, from, length, 0,
-				(struct sockaddr *)peerSockName,
-				sizeof(struct sockaddr));
+			(struct sockaddr *)destAddr,
+			sizeof(struct sockaddr));
 		if (bytesWritten < 0)
 		{
 			if (errno == EINTR)	/*	Interrupted.	*/
 			{
 				continue;	/*	Retry.		*/
 			}
-         
 			char memoBuf[1000];
-			struct sockaddr_in *saddr = peerSockName;
+			struct sockaddr_in *saddr = destAddr;
 
 			sprintf(memoBuf, "udplso sento() error, dest=[%s:%d], nbytes=%d, rv=%d, errno=%d", 
 				(char *)inet_ntoa( saddr->sin_addr ), 
@@ -152,8 +152,6 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 				errno );
 
 			writeMemo( memoBuf );
-
-			putSysErrmsg("LSO send() error on socket", NULL);
 		}
 
 		return bytesWritten;
@@ -162,22 +160,23 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 
 #if defined (VXWORKS) || defined (RTEMS)
 int	udplso(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+	       int a6, int a7, int a8, int a9, int a10)
 {
 	char			*endpointSpec = (char *) a1;
-	unsigned int		txbps =
-				(a2 != 0 ? strtoul((char *) a2, NULL, 0) : 0);
-	unsigned long		remoteEngineId =
-				a3 != 0 ? strtoul((char *) a3, NULL, 0) : 0;
+	unsigned int		txbps = (a2 != 0 ? 
+				strtoul((char *) a2, NULL, 0) : 0);
+	unsigned long		remoteEngineId = a3 != 0 ? 
+				strtoul((char *) a3, NULL, 0) : 0;
 #else
 int	main(int argc, char *argv[])
 {
 	char			*endpointSpec = argc > 1 ? argv[1] : NULL;
-	unsigned int		txbps =
-				(argc > 2 ? strtoul(argv[2], NULL, 0) : 0);
-	unsigned long		remoteEngineId =
+	unsigned int		txbps = (argc > 2 ?
+				strtoul(argv[2], NULL, 0) : 0);
+	unsigned long		remoteEngineId = 
 				argc > 3 ? strtoul(argv[3], NULL, 0) : 0;
 #endif
+	char			memoBuf[1024];
 	Sdr			sdr;
 	LtpVspan		*vspan;
 	PsmAddress		vspanElt;
@@ -186,6 +185,8 @@ int	main(int argc, char *argv[])
 	char			ownHostName[MAXHOSTNAMELEN];
 	struct sockaddr		ownSockName;
 	struct sockaddr_in	*ownInetName;
+	struct sockaddr		bindSockName;
+	struct sockaddr_in	*bindInetName;
 	struct sockaddr		peerSockName;
 	struct sockaddr_in	*peerInetName;
 	socklen_t		nameLength;
@@ -270,12 +271,12 @@ int	main(int argc, char *argv[])
 
 	portNbr = 0;			/*	Let O/S select it.	*/
 	ipAddress = getInternetAddress(ownHostName);
-	ipAddress = htonl(ipAddress);
-	memset((char *) &ownSockName, 0, sizeof ownSockName);
-	ownInetName = (struct sockaddr_in *) &ownSockName;
-	ownInetName->sin_family = AF_INET;
-	ownInetName->sin_port = portNbr;
-	memcpy((char *) &(ownInetName->sin_addr.s_addr),
+	ipAddress = INADDR_ANY;
+	memset((char *) &bindSockName, 0, sizeof bindSockName);
+	bindInetName = (struct sockaddr_in *) &bindSockName;
+	bindInetName->sin_family = AF_INET;
+	bindInetName->sin_port = portNbr;
+	memcpy((char *) &(bindInetName->sin_addr.s_addr),
 			(char *) &ipAddress, 4);
 
 	/*	Now create the socket that will be used for sending
@@ -294,11 +295,11 @@ int	main(int argc, char *argv[])
 	 *	the datagram handling thread.				*/
 
 	nameLength = sizeof(struct sockaddr);
-	if (bind(rtp.linkSocket, &ownSockName, nameLength) < 0
-	|| getsockname(rtp.linkSocket, &ownSockName, &nameLength) < 0)
+	if (bind(rtp.linkSocket, &bindSockName, nameLength) < 0
+	|| getsockname(rtp.linkSocket, &bindSockName, &nameLength) < 0)
 	{
 		close(rtp.linkSocket);
-		putSysErrmsg("Can't initialize socket", NULL);
+		putSysErrmsg("LSO can't bind UDP socket", NULL);
 		return 1;
 	}
 
@@ -320,7 +321,11 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote engine.		*/
 
-	writeMemo("[i] udplso is running.");
+	sprintf(memoBuf, "[i] udplso is running, spec=[%s:%d], txbps=%d (0=unlimited), rengine=%d.", 
+		(char *)inet_ntoa( peerInetName->sin_addr ), 
+		ntohs( portNbr ), txbps, (int)remoteEngineId );
+	writeMemo( memoBuf );
+
 	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
@@ -344,21 +349,26 @@ int	main(int argc, char *argv[])
 		else
 		{
 			bytesSent = sendSegmentByUDP(rtp.linkSocket, segment,
-					segmentLength, &peerSockName);
+					segmentLength, peerInetName );
 			if (bytesSent < segmentLength)
 			{
-				rtp.running = 0;/*	Terminate LSO.	*/
+				rtp.running = 0;	/*	Terminate LSO.	*/
 			}
 
 			if( txbps != 0 )
 			{
 				unsigned int usecs;
-				float sleep_secs = (1.0 / ((float)txbps)) * ((float)((IPHDR_SIZE + segmentLength)*8));
+				float sleep_secs = (1.0 / ((float)txbps)) *
+					((float)((IPHDR_SIZE + segmentLength)*8));
 
 				if( sleep_secs < 0.010 )
+				{
 					usecs = 10000;
+				}
 				else
+				{
 					usecs = (unsigned int)( sleep_secs * 1000000 );
+				}
 
 				microsnooze( usecs );
 			}
@@ -368,6 +378,19 @@ int	main(int argc, char *argv[])
 
 		sm_TaskYield();
 	}
+
+
+	/*	Create one-use socket for the closing quit byte.	*/
+
+	portNbr = bindInetName->sin_port;	/*	Get from bound sock	*/
+	ipAddress = getInternetAddress(ownHostName);
+	ipAddress = htonl(ipAddress);
+	memset((char *) &ownSockName, 0, sizeof ownSockName);
+	ownInetName = (struct sockaddr_in *) &ownSockName;
+	ownInetName->sin_family = AF_INET;
+	ownInetName->sin_port = portNbr;
+	memcpy((char *) &(ownInetName->sin_addr.s_addr),
+			(char *) &ipAddress, 4);
 
 	/*	Wake up the receiver thread by sending it a 1-byte
 	 *	datagram.						*/
