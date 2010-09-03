@@ -144,7 +144,8 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 			char memoBuf[1000];
 			struct sockaddr_in *saddr = destAddr;
 
-			sprintf(memoBuf, "udplso sento() error, dest=[%s:%d], nbytes=%d, rv=%d, errno=%d", 
+			isprintf(memoBuf, sizeof(memoBuf),
+				"udplso sento() error, dest=[%s:%d], nbytes=%d, rv=%d, errno=%d", 
 				(char *)inet_ntoa( saddr->sin_addr ), 
 				ntohs( saddr->sin_port ), 
 				length,
@@ -321,7 +322,8 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote engine.		*/
 
-	sprintf(memoBuf, "[i] udplso is running, spec=[%s:%d], txbps=%d (0=unlimited), rengine=%d.", 
+	isprintf(memoBuf, sizeof(memoBuf),
+		"[i] udplso is running, spec=[%s:%d], txbps=%d (0=unlimited), rengine=%d.", 
 		(char *)inet_ntoa( peerInetName->sin_addr ), 
 		ntohs( portNbr ), txbps, (int)remoteEngineId );
 	writeMemo( memoBuf );
