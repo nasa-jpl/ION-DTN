@@ -141,18 +141,21 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 			{
 				continue;	/*	Retry.		*/
 			}
-			char memoBuf[1000];
-			struct sockaddr_in *saddr = destAddr;
 
-			isprintf(memoBuf, sizeof(memoBuf),
-				"udplso sento() error, dest=[%s:%d], nbytes=%d, rv=%d, errno=%d", 
-				(char *)inet_ntoa( saddr->sin_addr ), 
-				ntohs( saddr->sin_port ), 
-				length,
-				bytesWritten, 
-				errno );
+			{
+				char memoBuf[1000];
+				struct sockaddr_in *saddr = destAddr;
 
-			writeMemo( memoBuf );
+				isprintf(memoBuf, sizeof(memoBuf),
+					"udplso sento() error, dest=[%s:%d], nbytes=%d, rv=%d, errno=%d", 
+					(char *)inet_ntoa( saddr->sin_addr ), 
+					ntohs( saddr->sin_port ), 
+					length,
+					bytesWritten, 
+					errno );
+
+				writeMemo( memoBuf );
+			}
 		}
 
 		return bytesWritten;

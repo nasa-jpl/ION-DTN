@@ -164,15 +164,17 @@ int	main(int argc, char *argv[])
 	signal(SIGTERM, shutDownLso);
 
 	/*	Can now begin transmitting to remote engine.		*/
+	{
+		char txt[500];
 
-	char txt[500];
+		isprintf(txt, sizeof(txt),
+			"[i] aolslso is running, spec=[%s:%d], txbps=%d (0=unlimited), rengine=%d.", 
+			(char *)inet_ntoa( inetName->sin_addr ), 
+			ntohs( portNbr ), txbps, (int)remoteEngineId );
 
-	isprintf(txt, sizeof(txt),
-		"[i] aolslso is running, spec=[%s:%d], txbps=%d (0=unlimited), rengine=%d.", 
-		(char *)inet_ntoa( inetName->sin_addr ), 
-		ntohs( portNbr ), txbps, (int)remoteEngineId );
+		writeMemo(txt );
+	}
 
-	writeMemo(txt );
 
 	while (running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
