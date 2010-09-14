@@ -118,7 +118,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 		}
 
 		bytesToSend = bytesBuffered + bytesLoaded;
-		bytesRemaining -= bytesToSend;
+		bytesRemaining -= bytesLoaded;
 		from = (char *) buffer;
 		while (bytesToSend > 0)
 		{
