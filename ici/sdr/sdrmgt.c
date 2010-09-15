@@ -38,7 +38,7 @@ typedef struct
 
 #define	SMALL_BLOCK_OHD	(WORD_SIZE)
 #define	SMALL_BLK_LIMIT	(SMALL_SIZES * WORD_SIZE)
-#define SMALL_POOL_TOP	((WORD_SIZE / 256) - sizeof(SdrMap))
+#define SMALL_MAX_ADDR	(1 << (8 * (WORD_SIZE - 1)))
 
 /*
  * The overhead on a small block is WORD_SIZE bytes.  The last byte
@@ -448,7 +448,7 @@ Object	_sdrzalloc(Sdr sdrv, unsigned long nbytes)
 
 	increment = nbytes + SMALL_BLOCK_OHD;
 	if (map->unassignedSpace < increment
-	|| (map->endOfSmallPool + increment) > SMALL_POOL_TOP)
+	|| (map->endOfSmallPool + increment) > SMALL_MAX_ADDR)
 	{
 		putErrmsg("No space left in small pool.", NULL);
 		crashXn(sdrv);
