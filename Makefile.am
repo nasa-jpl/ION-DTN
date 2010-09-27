@@ -1421,11 +1421,16 @@ tests_library_libtestutil_la_LDFLAGS = $(ION_LINK_FLAGS)
 #    the required _SOURCES, _LDADD, and _CFLAGS entries.
 # If a test uses the testutil helpers, include $(TESTUTILOBJS) in _LDADD,
 #    and $(TESTUTILCFLAGS) in _CFLAGS.
-check_PROGRAMS = tests/1000.loopback/dotest
+check_PROGRAMS = tests/1000.loopback/dotest \
+    tests/issue-188-common-cos-syntax/dotest
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
+tests_issue_188_common_cos_syntax_dotest_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
+tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 
 ##########################
