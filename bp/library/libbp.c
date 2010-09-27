@@ -181,6 +181,88 @@ void	bp_close(BpSAP sap)
 	MRELEASE(sap);
 }
 
+int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
+			BpCustodySwitch *custodySwitch, int *priority)
+{
+	int	count;
+	unsigned int myCustodyRequested;
+	unsigned int myPriority;
+	unsigned int myOrdinal;
+	unsigned int myUnreliable;
+	unsigned int myCritical;
+	unsigned int myFlowLabel;
+
+	count = sscanf(token, "%11u.%11u.%11u.%11u.%11u.%11u",
+			&myCustodyRequested, &myPriority, &myOrdinal, &myUnreliable,
+			&myCritical, &myFlowLabel);
+	switch (count)
+	{
+	case 6:
+		/*	All unsigned ints are valid flow labels.	*/
+		/*	Intentional fall-through to next case.		*/
+
+	case 5:
+		if ((myCritical != 0 && myCritical != 1)
+		|| (myUnreliable != 0 && myUnreliable != 1))
+		{
+			return 0;	/*	Invalid format.		*/
+		}
+
+		/*	Intentional fall-through to next case.		*/
+
+	case 3:
+		if (myOrdinal > 254)
+		{
+			return 0;	/*	Invalid format.		*/
+		}
+
+		/*	Intentional fall-through to next case.		*/
+
+	case 2:
+		if ((myPriority > 2)
+		||  (myCustodyRequested != 0 && myCustodyRequested != 1))
+		{
+			return 0;	/*	Invalid format.		*/
+		}
+
+		break;
+
+	default:
+		return 0;		/*	Invalid format.		*/
+	}
+
+	/* Syntax and bounds-checking passed; assign to outputs */
+	if (count >= 6)
+	{
+		extendedCOS->flowLabel = myFlowLabel;
+	}
+	else
+	{
+		extendedCOS->flowLabel = 0;
+	}
+
+	if (count >= 5)
+	{
+		extendedCOS->flags =	(myUnreliable ? BP_BEST_EFFORT : 0)
+					| (myCritical ? BP_MINIMUM_LATENCY : 0);
+	} else {
+		extendedCOS->flags = 0;
+	}
+
+	if (count >= 3)
+	{
+		extendedCOS->ordinal = myOrdinal;
+	}
+ 
+	*priority = myPriority;
+	*custodySwitch = (myCustodyRequested ? 
+				SourceCustodyRequired : NoCustodyRequested);
+	
+	return 1;
+}
+
+
+
 int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 		int lifespan, int classOfService, BpCustodySwitch custodySwitch,
 		unsigned char srrFlags, int ackRequested, BpExtendedCOS *ecos,

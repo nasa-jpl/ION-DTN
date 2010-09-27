@@ -62,12 +62,10 @@ static void	setFlags(int *srrFlags, char *flagString)
 static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 			int ttl, char *svcClass, char *traceText, char *flags)
 {
-	unsigned int	priority;
-	unsigned int	ordinal = 0;
-	unsigned int	unreliable = 0;
-	unsigned int	critical = 0;
+	int		priority = 0;
+	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
+	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	int		srrFlags = 0;
-	BpExtendedCOS	extendedCOS;
 	BpSAP		sap;
 	Sdr		sdr;
 	int		msgLength = strlen(traceText) + 1;
@@ -75,17 +73,13 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 	Object		traceZco;
 	Object		newBundle;
 
-	if (!parseClassOfService(svcClass, &priority, &ordinal, &unreliable,
-			&critical))
+	if (!bp_parse_class_of_service(svcClass, &extendedCOS, &custodySwitch,
+			&priority))
 	{
 		putErrmsg("Invalid class of service for bptrace.", svcClass);
 		return 0;
 	}
 
-	extendedCOS.flowLabel = 0;
-	extendedCOS.ordinal = ordinal;
-	extendedCOS.flags = (unreliable ? BP_BEST_EFFORT : 0)
-			| (critical ? BP_MINIMUM_LATENCY : 0);
 	if (flags)
 	{
 		setFlags(&srrFlags, flags);
@@ -124,7 +118,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 	}
 
 	if (bp_send(sap, BP_BLOCKING, destEid, reportToEid, ttl, priority,
-			SourceCustodyRequired, srrFlags, 0, &extendedCOS,
+			custodySwitch, srrFlags, 0, &extendedCOS,
 			traceZco, &newBundle) < 1)
 	{
 		putErrmsg("bptrace can't send message.", NULL);
@@ -169,8 +163,7 @@ int	main(int argc, char **argv)
 		PUTS("Usage:  bptrace <own EID> <destination EID> <report-to \
 EID> <time to live (seconds)> <class of service> '<trace text>' \
 [<status report flag string>]");
-		PUTS("\tclass of service: <priority (0, 1, or 2)>[.<ordinal \
-(0-254)>[.<unreliable (0 or 1)>.<critical (0 or 1)>]]");
+		PUTS("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
 		PUTS("\tStatus report flag string is a sequence of status \
 report flags separated by commas, with no embedded whitespace.");
 		PUTS("\tEach status report flag must be one of the following: \

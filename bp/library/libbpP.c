@@ -1197,53 +1197,6 @@ static void	noteBundleRemoved(Bundle *bundle)
 
 /*	*	*	Useful utility functions	*	*	*/
 
-int	parseClassOfService(char *token, unsigned int *priority,
-		unsigned int *ordinal, unsigned int *unreliable,
-		unsigned int *critical)
-{
-	int	count;
-
-	CHKZERO(token);
-	CHKZERO(priority);
-	CHKZERO(ordinal);
-	CHKZERO(unreliable);
-	CHKZERO(critical);
-	count = sscanf(token, "%11u.%11u.%11u.%11u", priority, ordinal,
-			unreliable, critical);
-	switch (count)
-	{
-	case 4:
-		if ((*critical != 0 && *critical != 1)
-		|| (*unreliable != 0 && *unreliable != 1))
-		{
-			return 0;	/*	Invalid format.		*/
-		}
-
-		/*	Intentional fall-through to next case.		*/
-
-	case 2:
-		if (*ordinal > 254)
-		{
-			return 0;	/*	Invalid format.		*/
-		}
-
-		/*	Intentional fall-through to next case.		*/
-
-	case 1:
-		if (*priority > 2)
-		{
-			return 0;	/*	Invalid format.		*/
-		}
-
-		break;
-
-	default:
-		return 0;		/*	Invalid format.		*/
-	}
-
-	return 1;
-}
-
 void	getCurrentDtnTime(DtnTime *dt)
 {
 	time_t	currentTime;

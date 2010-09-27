@@ -12,11 +12,9 @@
 static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 			char *svcClass)
 {
-	unsigned int	priority;
-	unsigned int	ordinal = 0;
-	unsigned int	unreliable = 0;
-	unsigned int	critical = 0;
-	BpExtendedCOS	extendedCOS;
+	int		priority = 0;
+	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
+	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap;
 	Sdr		sdr;
 	Object		fileRef;
@@ -31,8 +29,8 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	else
 	{
-		if (!parseClassOfService(svcClass, &priority, &ordinal,
-				&unreliable, &critical))
+		if (!bp_parse_class_of_service(svcClass, &extendedCOS, &custodySwitch,
+				&priority))
 		{
 			putErrmsg("Invalid class of service for bpsendfile.",
 					svcClass);
@@ -40,10 +38,6 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 		}
 	}
 
-	extendedCOS.flowLabel = 0;
-	extendedCOS.ordinal = ordinal;
-	extendedCOS.flags = (unreliable ? BP_BEST_EFFORT : 0)
-			| (critical ? BP_MINIMUM_LATENCY : 0);
 	if (bp_attach() < 0)
 	{
 		putErrmsg("Can't attach to BP.", NULL);
@@ -93,7 +87,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	while (1)
 	{
 		switch (bp_send(sap, BP_NONBLOCKING, destEid, NULL, 300,
-				priority, SourceCustodyRequired, 0, 0,
+				priority, custodySwitch, 0, 0,
 				&extendedCOS, bundleZco, &newBundle))
 		{
 		case 0:		/*	No space for bundle.		*/
@@ -167,7 +161,7 @@ int	main(int argc, char **argv)
 	{
 		PUTS("Usage: bpsendfile <own endpoint ID> <destination \
 endpoint ID> <file name> [<class of service>]");
-		PUTS("\tclass of service is as for bptrace");
+		PUTS("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
 		return 0;
 	}
 
