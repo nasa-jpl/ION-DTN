@@ -13,7 +13,7 @@
 
 
 function find_tests_in () {
-    find "$@" \( -type f -o -type l \) -a -name 'dotest' | xargs -L 1 dirname | cut -d / -f 1- | sort
+    find "$@" \( -type f -o -type l \) -a -name 'dotest' ! -path "*.libs*" | xargs -L 1 dirname | cut -d / -f 1- | sort
 }
 
 

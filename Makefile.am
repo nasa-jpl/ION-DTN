@@ -55,12 +55,6 @@ EXTRA_DIST = 	\
 #$(threenodestcpltp_DATA) \
 #$(srcdir)/makefile.tar.gz 
 
-# needed for make test
-TESTS = loopbacktest.sh \
-	sysctl_script.sh
-# fill in with special testing environment variables
-# TESTS_ENVIRONMENT
-
 install-exec-hook: 
 	@echo
 	@echo "You should now run 'sudo ldconfig' if available."
@@ -71,9 +65,6 @@ install-data-hook:
 	@echo "You should now run 'sudo ldconfig' if available."
 	@echo
 
-.PHONY:	test
-test:
-	cd tests && ./runtests
 # create the makefile.tar.gz
 # this script, makefile-tar.sh, doesn't get distributed.
 #makefile.tar.gz:
@@ -1390,6 +1381,52 @@ cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 #sdrpiped_SOURCES = icix/library/sdrpiped.c
 #sdrpiped_LDADD = libicix.la libici.la $(LIBOBJS)
 #sdrpiped_CFLAGS = $(icixcflags) $(AM_CFLAGS)
+
+
+##########################
+#
+# TESTS SECTION
+#
+##########################
+.PHONY:	test check buildcheck
+
+# "make buildcheck" will compile any of the compiled tests, but won't run
+# any of them.
+buildcheck: $(check_PROGRAMS)
+
+# The runtests test runner script runs anything named "dotest" that is
+# executable inside the tests/ directory.  This allows ION to have both
+# compiled tests and tests written in shell script.
+test: buildcheck
+	cd tests && ./runtests
+
+# "make check" is the same as "make test"
+check: test
+
+# This library contains utility code that's helpful for tests in C.
+TESTUTILOBJS = tests/library/libtestutil.la
+TESTUTILCFLAGS = -Itests/library
+check_LTLIBRARIES = $(TESTUTILOBJS)
+tests_library_libtestutil_la_SOURCES = \
+    tests/library/check.c \
+	tests/library/ionstart.c \
+	tests/library/ionstop.c
+tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+tests_library_libtestutil_la_LDFLAGS = $(ION_LINK_FLAGS)
+
+# TEST AUTHORS: README
+# If a test does not require compilation, it should not be listed here.  Just make a
+#    script named "dotest" that is executable.
+# If a test does require compilation, it should be listed here and have
+#    the required _SOURCES, _LDADD, and _CFLAGS entries.
+# If a test uses the testutil helpers, include $(TESTUTILOBJS) in _LDADD,
+#    and $(TESTUTILCFLAGS) in _CFLAGS.
+check_PROGRAMS = tests/1000.loopback/dotest
+
+tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
+tests_1000_loopback_dotest_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
+tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
 
 ##########################
 #
