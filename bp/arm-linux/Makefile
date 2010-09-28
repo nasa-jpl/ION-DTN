@@ -5,7 +5,7 @@ DAEMON = ../daemon
 IP = ../ip
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Dlinux
+OPT = -g -Wall -Werror -Dlinux
 
 ARMROOT = /arm
 ARMDIR = /usr/local/arm/2.95.3

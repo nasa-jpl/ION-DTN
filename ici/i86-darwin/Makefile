@@ -6,7 +6,7 @@ DAEMON = ../daemon
 SDR = ../sdr
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Dunix -Ddarwin
+OPT = -g -Wall -Werror -Dunix -Ddarwin
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -dynamiclib -undefined dynamic_lookup
 LD = gcc $(LDFLAGS)

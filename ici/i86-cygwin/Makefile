@@ -3,7 +3,7 @@ INCL = ../include
 TEST = ../test
 
 #	OPT = -g -Wall -Dcygwin -Dnoipc
-OPT = -g -Wall -Dcygwin
+OPT = -g -Wall -Werror -Dcygwin
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(INCL)
 LDFLAGS = -shared
 LD = gcc $(LDFLAGS)

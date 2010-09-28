@@ -3,7 +3,7 @@ INCL = ../include
 TEST = ../test
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Dlinux
+OPT = -g -Wall -Werror -Dlinux
 # -DDEBUG=1
 
 ARMROOT = /arm

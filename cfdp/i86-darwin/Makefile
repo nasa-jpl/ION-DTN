@@ -6,7 +6,7 @@ BP = ../bp
 TEST = ../test
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Dunix -Ddarwin
+OPT = -g -Wall -Werror -Dunix -Ddarwin
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -dynamiclib -undefined dynamic_lookup
 LD = gcc $(LDFLAGS)

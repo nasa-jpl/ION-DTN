@@ -6,7 +6,7 @@ UDP = ../udp
 TEST = ../test
 
 # OPT = -O -Dfreebsd
-OPT = -g -Wall -Dfreebsd
+OPT = -g -Wall -Werror -Dfreebsd
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

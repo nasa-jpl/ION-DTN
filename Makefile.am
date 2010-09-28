@@ -14,7 +14,7 @@
 
 AM_CFLAGS = \
 	$(ION_CFLAGS) \
-	-Wall -g \
+	-Wall -Werror -g \
 	-include config.h \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/ltp/include \
