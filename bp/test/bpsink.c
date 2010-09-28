@@ -40,7 +40,8 @@ int	main(int argc, char **argv)
 	static char	*deliveryTypes[] =	{
 				"Payload delivered.",
 				"Reception timed out.",
-				"Reception interrupted."
+				"Reception interrupted.",
+				"Endpoint stopped."
 						};
 	BpSAP		sap;
 	Sdr		sdr;
