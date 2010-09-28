@@ -7412,6 +7412,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	else
 	{
 		bundle->payload.content = 0;
+		bundleOccupancy = 0;
 	}
 
 	if (sdr_end_xn(bpSdr) < 0)
