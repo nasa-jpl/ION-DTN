@@ -82,7 +82,7 @@ do
     IONMESSAGE=$( date )
     
     # send the message in the file via test bundle source
-    bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 0 "$IONMESSAGE" 31
+    bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE" 31
 
     # Predict what should come out the other end.
     predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
