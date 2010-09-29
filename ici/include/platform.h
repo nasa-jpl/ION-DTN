@@ -111,6 +111,13 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 #define	GDSSYMTAB
 #endif
 
+#ifndef MIN
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#endif
+#ifndef MAX
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#endif
+
 /*	Macros for expunging access to stdout and stderr.		*/
 
 #ifdef FSWLOGGER
@@ -140,13 +147,6 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 #include <selectLib.h>
 #include <rebootLib.h>
 #include <pthread.h>
-
-#ifndef MIN
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
-#endif
-#ifndef MAX
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
-#endif
 
 #define	FDTABLE_SIZE		(FD_SETSIZE)
 #define	MAXPATHLEN		(MAX_FILENAME_LENGTH)
