@@ -274,8 +274,8 @@ int	main(int argc, char **argv)
 	int		detail = 0;
 	char		*cursor;
 	char		*protocolName = NULL;
-	char		*ductName;
-	int		priority;
+	char		*ductName = NULL;
+	int		priority = 0;
 	char		msgbuf[256];
 	Sdr		sdr;
 	BpDB		*bpConstants;
