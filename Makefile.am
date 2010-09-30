@@ -767,6 +767,7 @@ bpbin = \
 	lgsend \
 	lgagent \
 	bptrace \
+	bping \
 	bpstats
 
 bplib = \
@@ -828,6 +829,7 @@ bpextra = \
 	bp/doc/pod1/tcpclo.pod \
 	bp/doc/pod1/udpcli.pod \
 	bp/doc/pod1/udpclo.pod \
+	bp/doc/pod1/bping.pod \
 	bp/doc/pod5/bprc.pod \
 	bp/doc/pod5/ipnrc.pod \
 	bp/doc/pod5/dtn2rc.pod \
@@ -889,6 +891,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/tcpclo.1 \
 	$(top_builddir)/bp/doc/udpcli.1 \
 	$(top_builddir)/bp/doc/udpclo.1 \
+	$(top_builddir)/bp/doc/bping.1 \
 	$(top_builddir)/bp/doc/bprc.5 \
 	$(top_builddir)/bp/doc/ipnrc.5 \
 	$(top_builddir)/bp/doc/dtn2rc.5 \
@@ -1100,6 +1103,9 @@ bprecvfile_SOURCES = bp/utils/bprecvfile.c
 bprecvfile_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS)
 bprecvfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+bping_SOURCES = bp/test/bping.c
+bping_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS)
+bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- Daemon Executables --- #
 
 bpclock_SOURCES = bp/daemon/bpclock.c

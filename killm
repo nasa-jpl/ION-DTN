@@ -19,6 +19,7 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	bpcounter lt-bpcounter \
 	bpdriver lt-bpdriver \
 	bpecho lt-bpecho \
+	bping lt-bping \
 	bprecvfile lt-bprecvfile \
 	bpsendfile lt-bpsendfile \
 	bpsink lt-bpsink \
