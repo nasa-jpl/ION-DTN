@@ -25,6 +25,7 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	bpsink lt-bpsink \
 	bpsource lt-bpsource \
 	bpstats lt-bpstats \
+	bpstats2 lt-bpstats2 \
 	bptrace lt-bptrace \
 	brsccla lt-brsccla \
 	brsscla lt-brsscla \
