@@ -4298,16 +4298,20 @@ static int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 			}
 
 			newBlk.length = oldBlk->length;
-			newBlk.bytes = sdr_malloc(bpSdr, newBlk.length);
-			if (newBlk.bytes == 0)
+			if (newBlk.length > 0)
 			{
-				putErrmsg("No space for block.",
-						utoa(newBlk.length));
-				return -1;
+				newBlk.bytes = sdr_malloc(bpSdr, newBlk.length);
+				if (newBlk.bytes == 0)
+				{
+					putErrmsg("No space for block.",
+							utoa(newBlk.length));
+					return -1;
+				}
+
+				sdr_read(bpSdr, buf, oldBlk->bytes, buflen);
+				sdr_write(bpSdr, newBlk.bytes, buf, buflen);
 			}
 
-			sdr_read(bpSdr, buf, oldBlk->bytes, buflen);
-			sdr_write(bpSdr, newBlk.bytes, buf, buflen);
 			def = findExtensionDef(oldBlk->type, i);
 			if (def && def->copy)
 			{

@@ -40,7 +40,8 @@ int	main(int argc, char **argv)
 	static char	*deliveryTypes[] =	{
 				"Payload delivered.",
 				"Reception timed out.",
-				"Reception interrupted."
+				"Reception interrupted.",
+				"Endpoint stopped."
 						};
 	BpSAP		sap;
 	Sdr		sdr;
@@ -84,8 +85,12 @@ int	main(int argc, char **argv)
 		}
 
 		PUTMEMO("ION event", deliveryTypes[dlv.result - 1]);
-		if (dlv.result == BpReceptionInterrupted
-		|| dlv.result == BpEndpointStopped)
+		if (dlv.result == BpReceptionInterrupted)
+		{
+			continue;
+		}
+
+		if (dlv.result == BpEndpointStopped)
 		{
 			running = 0;
 			continue;
