@@ -25,9 +25,14 @@
 
 #define	SMALL_BLOCK_OHD	(WORD_SIZE)
 #define	SMALL_BLK_LIMIT	(SMALL_SIZES * WORD_SIZE)
-#define SMALL_IN_USE	((PsmAddress) 0xffffff00)
 
+#if SPACE_ORDER ==3	/* 64-bit machine	*/
+#define	SMALL_IN_USE	((PsmAddress) 0xffffffffffffff00)
+#define	BLK_IN_USE	((PsmAddress) 0xffffffffffffffff)
+#else
+#define	SMALL_IN_USE	((PsmAddress) 0xffffff00)
 #define	BLK_IN_USE	((PsmAddress) 0xffffffff)
+#endif
 
 /*
  * The overhead on a small block is WORD_SIZE bytes.  When the block is
