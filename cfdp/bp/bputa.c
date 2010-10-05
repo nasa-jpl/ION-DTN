@@ -203,7 +203,7 @@ terminating.");
 			utParms.reportToNodeNbr = 0;
 			utParms.lifespan = 86400;	/*	1 day.	*/
 			utParms.classOfService = BP_STD_PRIORITY;
-			utParms.custodySwitch = SourceCustodyRequired;
+			utParms.custodySwitch = NoCustodyRequested;
 			utParms.srrFlags = 0;
 			utParms.ackRequested = 0;
 			utParms.extendedCOS.flowLabel = 0;
