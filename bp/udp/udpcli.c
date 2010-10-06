@@ -271,7 +271,14 @@ int	main(int argc, char *argv[])
 	/*	Now sleep until interrupted by SIGTERM, at which point
 	 *	it's time to stop the induct.				*/
 
-	writeMemo("[i] udpcli is running.");
+	{
+		char txt[500];
+
+		isprintf(txt, sizeof(txt), "[i] udpcli is running, spec=[%s:%d].", 
+			inet_ntoa(inetName->sin_addr), ntohs(inetName->sin_port) );
+
+		writeMemo(txt );
+	}
 	snooze(2000000000);
 
 	/*	Time to shut down.					*/

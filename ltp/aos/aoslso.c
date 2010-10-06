@@ -164,8 +164,9 @@ int	main(int argc, char *argv[])
    {
       char txt[500];
 
-      isprintf(txt, sizeof(txt), "[i] aoslso is running, spec=[%s], txbps=%d (0=unlimited), rengine=%lu.", 
-	      endpointSpec, txbps, remoteEngineId );
+      isprintf(txt, sizeof(txt), "[i] aoslso is running, spec=[%s:%d], txbps=%d (0=unlimited), rengine=%lu.", 
+	      inet_ntoa(inetName->sin_addr), ntohs(portNbr),
+	      txbps, remoteEngineId );
 
       writeMemo(txt );
    }

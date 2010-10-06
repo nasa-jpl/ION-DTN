@@ -319,8 +319,15 @@ int	main(int argc, char *argv[])
 	}
 
 	/*	Can now begin transmitting to remote engine.		*/
+	{
+		char txt[500];
 
-	writeMemo("[i] udplso is running.");
+		isprintf(txt, sizeof(txt), "[i] udplso is running, spec=[%s:%d].", 
+			inet_ntoa(peerInetName->sin_addr), ntohs(peerInetName->sin_port) );
+
+		writeMemo(txt );
+	}
+
 	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
