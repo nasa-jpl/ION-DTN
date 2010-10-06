@@ -134,6 +134,23 @@ of inadvertently de-referencing the address of a nonexistent bundle.
 Removes I<trackingElt> from the list of "tracking" references in I<bundle>,
 if it is in that list.  Does not delete I<trackingElt> itself.
 
+=item int bp_suspend(Object bundle)
+
+Suspends transmission of I<bundle>.  Has no effect if bundle is "critical"
+(i.e., has got extended class of service BP_MINIMUM_LATENCY flag set) or
+if the bundle is already suspended.  Otherwise, reverses the enqueuing of
+the bundle to its selected transmission outduct and places it in the
+"limbo" queue until the suspension is lifted by calling bp_resume.  Returns
+0 on success, -1 on any error.
+
+=item int bp_resume(Object bundle)
+
+Terminates suspension of transmission of I<bundle>.  Has no effect if
+bundle is "critical" (i.e., has got extended class of service
+BP_MINIMUM_LATENCY flag set) or is not suspended.  Otherwise, removes
+the bundle from the "limbo" queue and queues it for route re-computation
+and re-queuing.  Returns 0 on success, -1 on any error.
+
 =item int bp_cancel(Object bundle)
 
 Cancels transmission of I<bundle>.  If the indicated bundle is currently

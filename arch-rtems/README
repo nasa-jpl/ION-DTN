@@ -79,7 +79,7 @@ and enter the following commands at the gdb prompt:
 ion/arch-rtems and enter the following commands to populate the directory
 with symbolic links to the ION C source files and build the ion.exe executable:
 
-	srclinks
+	./srclinks
 	make
 
 Then use the following command to run the demo.
