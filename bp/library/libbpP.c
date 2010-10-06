@@ -2167,6 +2167,7 @@ static void	purgeDuctXmitElt(Bundle *bundle, Object ductXmitElt)
 	outductObj = sdr_list_user_data(bpSdr, queue);
 	if (outductObj == 0)	/*	Bundle is in Limbo queue.	*/
 	{
+		sdr_list_delete(bpSdr, ductXmitElt, NULL, NULL);
 		return;
 	}
 
@@ -9050,9 +9051,10 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	return 0;
 }
 
-int	reverseEnqueue(Sdr bpSdr, Object xmitElt, ClProtocol *protocol,
-		Object outductObj, Outduct *outduct)
+int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
+		Outduct *outduct)
 {
+	Sdr		bpSdr = getIonsdr();
 	Object		xrAddr;
 	XmitRef		xr;
 	Bundle		bundle;
@@ -9151,8 +9153,8 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(bpSdr, xmitElt, &protocol, outductObj,
-				&outduct) < 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
+				< 0)
 		{
 			putErrmsg("Can't requeue urgent bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -9164,8 +9166,8 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(bpSdr, xmitElt, &protocol, outductObj,
-				&outduct) < 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
+				< 0)
 		{
 			putErrmsg("Can't requeue std bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -9177,8 +9179,8 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(bpSdr, xmitElt, &protocol, outductObj,
-				&outduct) < 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
+				< 0)
 		{
 			putErrmsg("Can't requeue bulk bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -9196,8 +9198,9 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 	return 0;
 }
 
-int	releaseFromLimbo(Sdr bpSdr, Object xmitElt, int resuming)
+int	releaseFromLimbo(Object xmitElt, int resuming)
 {
+	Sdr	bpSdr = getIonsdr();
 	Object	xrAddr;
 	XmitRef	xr;
 	Bundle	bundle;
@@ -9287,7 +9290,7 @@ int	bpUnblockOutduct(char *protocolName, char *ductName)
 			xmitElt; xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (releaseFromLimbo(bpSdr, xmitElt, 0) < 0)
+		if (releaseFromLimbo(xmitElt, 0) < 0)
 		{
 			putErrmsg("Failed releasing bundle from limbo.", NULL);
 			sdr_cancel_xn(bpSdr);

@@ -364,8 +364,8 @@ int	bp_suspend(Object bundleObj)
 		sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
 		sdr_read(sdr, (char *) &protocol, outduct.protocol,
 				sizeof(ClProtocol));
-		if (reverseEnqueue(sdr, xmitElt, &protocol, outductObj,
-				&outduct) < 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
+				< 0)
 		{
 			putErrmsg("Can't reverse bundle enqueue.", NULL);
 			sdr_cancel_xn(sdr);
@@ -395,7 +395,7 @@ int	bp_resume(Object bundleObj)
 		return 0;
 	}
 
-	return releaseFromLimbo(sdr, sdr_list_first(sdr, bundle.xmitRefs), 1);
+	return releaseFromLimbo(sdr_list_first(sdr, bundle.xmitRefs), 1);
 }
 
 int	bp_cancel(Object bundleObj)

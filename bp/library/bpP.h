@@ -1238,12 +1238,11 @@ extern int		retrieveInTransitBundle(Object bundleZco, Object *obj);
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 
-extern int		reverseEnqueue(Sdr sdr, Object xmitElt,
-				ClProtocol *protocol, Object outductObj,
-				Outduct *outduct);
+extern int		reverseEnqueue(Object xmitElt, ClProtocol *protocol,
+				Object outductObj, Outduct *outduct);
 
 extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
-extern int		releaseFromLimbo(Sdr sdr, Object xmitElt, int resume);
+extern int		releaseFromLimbo(Object xmitElt, int resume);
 
 extern int		sendStatusRpt(Bundle *bundle, char *dictionary);
 

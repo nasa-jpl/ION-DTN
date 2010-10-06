@@ -214,7 +214,7 @@ static int	reforwardStrandedBundles()
 			elt = nextElt)
 	{
 		nextElt = sdr_list_next(sdr, elt);
-		if (releaseFromLimbo(sdr, elt, 0) < 0)
+		if (releaseFromLimbo(elt, 0) < 0)
 		{
 			putErrmsg("Failed releasing bundle from limbo.", NULL);
 			sdr_cancel_xn(sdr);
