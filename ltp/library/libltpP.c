@@ -2906,13 +2906,21 @@ char		buf[256];
 #endif
 
 	CHKERR(ionLocked());
-	if (session->reportsCount == MAX_NBR_OF_REPORTS)
+	if (session->reportsCount >= MAX_NBR_OF_REPORTS)
 	{
+		/*	We can send one more report if it's the
+		 *	one saying "got everything".  Otherwise,
+		 *	time to give up.				*/
+
+		if (session->redPartLength == 0
+		|| session->redPartReceived != session->redPartLength)
+		{
 #if LTPDEBUG
 putErrmsg("Too many reports, canceling session.", itoa(session->sessionNbr));
 #endif
-		return cancelSessionByReceiver(session, sessionObj,
-				LtpRetransmitLimitExceeded);
+			return cancelSessionByReceiver(session, sessionObj,
+					LtpRetransmitLimitExceeded);
+		}
 	}
 
 	session->reportsCount++;
