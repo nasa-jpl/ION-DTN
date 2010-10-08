@@ -358,8 +358,8 @@ static int	lockSdr(SdrState *sdr)
 		return -1;
 	}
 
-	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->sdrOwnerThread = pthread_self();
+	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
 	return 0;
 }

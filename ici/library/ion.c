@@ -980,6 +980,7 @@ int	setDeltaFromUTC(int newDelta)
 time_t	getUTCTime()
 {
 	IonVdb	*ionvdb = _ionvdb(NULL);
+	int	delta = ionvdb ? ionvdb->deltaFromUTC : 0;
 	time_t	clocktime;
 #if defined(FSWCLOCK)
 #include "fswutc.c"
@@ -987,7 +988,7 @@ time_t	getUTCTime()
 
 	clocktime = time(NULL);
 #endif
-	return clocktime - ionvdb->deltaFromUTC;
+	return clocktime - delta;
 }
 
 static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,

@@ -77,7 +77,8 @@ static void	printUsage()
 	PUTS("\t   1 <own node number> { \"\" | <configuration file name> }");
 	PUTS("\t@\tAt");
 	PUTS("\t   @ <reference time>");
-	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
+	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss,");
+	PUTS("\t\tor to set reference time to the current time use '@ 0'.");
 	PUTS("\t\tThe @ command sets the reference time from which subsequent \
 relative times (+ss) are computed.");
 	PUTS("\ta\tAdd");
@@ -146,7 +147,6 @@ static void	initializeNode(int tokenCount, char **tokens)
 static void	executeAdd(int tokenCount, char **tokens)
 {
 	time_t		refTime;
-	time_t		currentTime;
 	time_t		fromTime;
 	time_t		toTime;
 	unsigned long	fromNodeNbr;
@@ -168,12 +168,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 	}
 
 	refTime = _referenceTime(NULL);
-	if (refTime == 0)
-	{
-		currentTime = getUTCTime();
-		refTime = _referenceTime(&currentTime);
-	}
-
 	fromTime = readTimestampUTC(tokens[2], refTime);
 	toTime = readTimestampUTC(tokens[3], refTime);
 	if (toTime <= fromTime)
@@ -206,7 +200,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 static void	executeDelete(int tokenCount, char **tokens)
 {
 	time_t		refTime;
-	time_t		currentTime;
 	time_t		timestamp;
 	unsigned long	fromNodeNbr;
 	unsigned long	toNodeNbr;
@@ -224,12 +217,6 @@ static void	executeDelete(int tokenCount, char **tokens)
 	}
 
 	refTime = _referenceTime(NULL);
-	if (refTime == 0)
-	{
-		currentTime = getUTCTime();
-		refTime = _referenceTime(&currentTime);
-	}
-
 	timestamp = readTimestampUTC(tokens[2], refTime);
 	fromNodeNbr = strtol(tokens[3], NULL, 0);
 	toNodeNbr = strtol(tokens[4], NULL, 0);
@@ -253,7 +240,6 @@ static void	executeInfo(int tokenCount, char **tokens)
 	Sdr		sdr = getIonsdr();
 	IonDB		iondb;
 	time_t		refTime;
-	time_t		currentTime;
 	time_t		timestamp;
 	unsigned long	fromNode;
 	unsigned long	toNode;
@@ -278,12 +264,6 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
 	refTime = _referenceTime(NULL);
-	if (refTime == 0)
-	{
-		currentTime = getUTCTime();
-		refTime = _referenceTime(&currentTime);
-	}
-
 	timestamp = readTimestampUTC(tokens[2], refTime);
 	fromNode = strtol(tokens[3], NULL, 0);
 	toNode = strtol(tokens[4], NULL, 0);
@@ -576,7 +556,6 @@ static void	manageHorizon(int tokenCount, char **tokens)
 	Object	iondbObj = getIonDbObject();
 	char	*horizonString;
 	time_t	refTime;
-	time_t	currentTime;
 	time_t	horizon;
 	IonDB	iondb;
 
@@ -594,12 +573,6 @@ static void	manageHorizon(int tokenCount, char **tokens)
 	else
 	{
 		refTime = _referenceTime(NULL);
-		if (refTime == 0)
-		{
-			currentTime = getUTCTime();
-			refTime = _referenceTime(&currentTime);
-		}
-
 		horizon = readTimestampUTC(horizonString, refTime);
 	}
 
@@ -870,22 +843,19 @@ static int	processLine(char *line, int lineLength)
 					printText("Can't set reference time: \
 no time.");
 				}
+				else if (strcmp(tokens[1], "0") == 0)
+				{
+					/*	Set reference time to
+					 *	the current time.	*/
+
+					currentTime = getUTCTime();
+					oK(_referenceTime(&currentTime));
+				}
 				else
 				{
 					/*	Get current ref time.	*/
 
 					refTime = _referenceTime(NULL);
-					if (refTime == 0)
-					{
-						/*	Set reference
-						 *	time to the
-						 *	current time
-						 *	by default.	*/
-
-						currentTime = getUTCTime();
-						refTime = _referenceTime
-							(&currentTime);
-					}
 
 					/*	Get new ref time, which
 					 *	may be an offset from
@@ -971,10 +941,13 @@ int	main(int argc, char **argv)
 {
 	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
 #endif
+	time_t	currentTime;
 	int	cmdFile;
 	char	line[256];
 	int	len;
 
+	currentTime = getUTCTime();
+	oK(_referenceTime(&currentTime));
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 #ifdef FSWLOGGER
