@@ -323,6 +323,7 @@ typedef struct
 	/*	Internal housekeeping stuff.				*/
 
 	char		custodyTaken;	/*	Boolean.		*/
+	char		suspended;	/*	Boolean.		*/
 	char		catenated;	/*	Boolean.		*/
 	char		returnToSender;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
@@ -466,6 +467,7 @@ typedef struct
 	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
 	Object		protocol;	/*	back-reference		*/
+	int		blocked;	/*	Boolean			*/
 } Outduct;
 
 typedef struct
@@ -517,6 +519,7 @@ typedef struct
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		inTransitHash;	/*	SDR hash of Bundles	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
+	Object		limboQueue;	/*	SDR list of XmitRefs	*/
 	Object		clockCmd; 	/*	For starting clock.	*/
 	BpString	custodianEidString;
 	int		maxAcqInHeap;
@@ -559,6 +562,8 @@ typedef struct
 #define	WATCH_expire		(512)
 #define	WATCH_refusal		(1024)
 #define	WATCH_timeout		(2048)
+#define	WATCH_limbo		(4096)
+#define	WATCH_delimbo		(8192)
 
 typedef struct
 {
@@ -797,22 +802,24 @@ extern int		bpAccept(	Bundle *bundle);
 			 *	bundle.	 Returns 0 on success, -1 on
 			 *	any failure.				*/
 
-extern int		bpEnqueue(	Object bundleObj,
+extern int		bpEnqueue(	FwdDirective *directive,
 					Bundle *bundle,
-					char *proxNodeEid,
-					VOutduct *vduct,
-					char *destDuctName);
+					Object bundleObj,
+					char *proxNodeEid);
 			/*	This function is invoked by a forwarder
 			 *	to enqueue a bundle for transmission
-			 *	by a convergence-layer output adapter.
-			 *	It appends the indicated bundle to the
-			 *	appropriate transmission queue of the
-			 *	indicated duct based on the bundle's
+			 *	by a convergence-layer output adapter
+			 *	to the proximate node identified by
+			 *	proxNodeEid.  It appends the indicated
+			 *	bundle to the appropriate transmission
+			 *	queue of the duct indicated by
+			 *	"directive" based on the bundle's
 			 *	priority.  If the bundle is destined
 			 *	for a specific location among all the
 			 *	locations that are reachable via this
-			 *	duct, then destDuctName must be a
-			 *	string identifying that location.
+			 *	duct, then the directive' destDuctName
+			 *	must be a string identifying that
+			 *	location.
 			 *
 			 *	If forwarding the bundle to multiple
 			 *	nodes (flooding or multicast), call
@@ -1217,6 +1224,8 @@ extern int		updateOutduct(char *protocolName, char *name,
 extern int		removeOutduct(char *protocolName, char *name);
 extern int		bpStartOutduct(char *protocolName, char *ductName);
 extern void		bpStopOutduct(char *protocolName, char *ductName);
+extern int		bpBlockOutduct(char *protocolName, char *ductName);
+extern int		bpUnblockOutduct(char *protocolName, char *ductName);
 
 extern Object		insertBpTimelineEvent(BpEvent *newEvent);
 
@@ -1224,12 +1233,16 @@ extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned long fragmentOffset,
 				unsigned long fragmentLength,
 				Object *bundleAddr, Object *timelineElt);
+extern int		retrieveInTransitBundle(Object bundleZco, Object *obj);
 
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 
-extern int		enqueueToDuct(FwdDirective *directive, Bundle *bundle,
-				Object bundleObj, char *stationEid);
+extern int		reverseEnqueue(Object xmitElt, ClProtocol *protocol,
+				Object outductObj, Outduct *outduct);
+
+extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
+extern int		releaseFromLimbo(Object xmitElt, int resume);
 
 extern int		sendStatusRpt(Bundle *bundle, char *dictionary);
 

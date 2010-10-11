@@ -318,6 +318,86 @@ void	bp_untrack(Object bundleObj, Object trackingElt)
 	}
 }
 
+int	bp_suspend(Object bundleObj)
+{
+	Sdr		sdr = getIonsdr();
+	Bundle		bundle;
+	Object		xmitElt;
+			OBJ_POINTER(XmitRef, xr);
+	Object		queue;
+	Object		outductObj;
+	Outduct		outduct;
+	ClProtocol	protocol;
+
+	sdr_begin_xn(sdr);
+	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
+	{
+		writeMemo("[?] Attempt to suspend a 'critical' object.");
+		sdr_exit_xn(sdr);	/*	Nothing to do.		*/
+		return 0;
+	}
+
+	if (bundle.suspended == 1)
+	{
+		sdr_exit_xn(sdr);	/*	Nothing to do.		*/
+		return 0;
+	}
+
+	bundle.suspended = 1;
+	xmitElt = sdr_list_first(sdr, bundle.xmitRefs);
+	GET_OBJ_POINTER(sdr, XmitRef, xr, sdr_list_data(sdr, xmitElt));
+	queue = sdr_list_list(sdr, xr->ductXmitElt);
+	outductObj = sdr_list_user_data(sdr, queue);
+	if (outductObj == 0)
+	{
+		/*	Object is already in limbo for other reasons.
+		 *	Just record the suspension flag.		*/
+
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+	}
+	else
+	{
+		/*	Must reverse the enqueuing of this bundle
+		 *	and place it in limbo.				*/
+
+		sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
+		sdr_read(sdr, (char *) &protocol, outduct.protocol,
+				sizeof(ClProtocol));
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
+				< 0)
+		{
+			putErrmsg("Can't reverse bundle enqueue.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't suspend bundle.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	bp_resume(Object bundleObj)
+{
+	Sdr	sdr = getIonsdr();
+	Bundle	bundle;
+
+	sdr_begin_xn(sdr);
+	sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+	if (bundle.suspended == 0)
+	{
+		sdr_exit_xn(sdr);	/*	Nothing to do.		*/
+		return 0;
+	}
+
+	return releaseFromLimbo(sdr_list_first(sdr, bundle.xmitRefs), 1);
+}
+
 int	bp_cancel(Object bundleObj)
 {
 	Sdr	sdr = getIonsdr();

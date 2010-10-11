@@ -158,16 +158,24 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 	/*	Now determine whether or not the bundle could be
 	 *	sent to this neighbor via the outduct for this plan's
 	 *	default directive during the contact that is being
-	 *	considered.  That is: is the capacity of this contact,
+	 *	considered.  There are two criteria.  First, is the
+	 *	duct blocked (e.g., no TCP connection)?			*/
+
+	copyScalar(&capacity, &(xmit->aggrCapacity));
+	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
+			plan.defaultDirective.outductElt), sizeof(Outduct));
+	if (outduct.blocked)
+	{
+		return 0;		/*	Outduct is unusable.	*/
+	}
+
+	/*	Second: is the total capacity of this contact,
 	 *	plus the sum of the capacities of all preceding
 	 *	contacts with the same neighbor, greater than the
 	 *	sum of the current applicable backlog of pending
 	 *	transmissions on that outduct plus the estimated
 	 *	transmission capacity consumption of this bundle?	*/
 
-	copyScalar(&capacity, &(xmit->aggrCapacity));
-	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
-			plan.defaultDirective.outductElt), sizeof(Outduct));
 	computeApplicableBacklog(&outduct, bundle, &backlog);
 	subtractFromScalar(&capacity, &backlog);
 	if (!scalarIsValid(&capacity))
@@ -632,10 +640,13 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 				sizeof(Bundle));
 	}
 
-	/*	In any event, we enqueue the bundle for transmission.	*/
+	/*	In any event, we enqueue the bundle for transmission.
+	 *	Since we've already determined that the outduct to
+	 *	this neighbor is not blocked (else the neighbor would
+	 *	not be in the list of proximate nodes), the bundle
+	 *	can't go into limbo at this point.			*/
 
-	if (enqueueToDuct(&(proxNode->directive), bundle, bundleObj,
-			stationEid) < 0)
+	if (bpEnqueue(&proxNode->directive, bundle, bundleObj, stationEid) < 0)
 	{
 		putErrmsg("Can't enqueue bundle.", NULL);
 		return -1;
