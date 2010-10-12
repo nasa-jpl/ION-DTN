@@ -45,7 +45,7 @@ static int	loadTestMib()
 	Subject	*subject;
 	Venture	*venture;
 
-	result = createMib(1, NULL, 0, "dgr", NULL, 0, NULL, 0);
+	result = createMib(1, "dgr", NULL, 0, NULL, 0);
 	if (result < 0)
 	{
 		return crash();
@@ -63,7 +63,7 @@ static int	loadTestMib()
 		return crash();
 	}
 
-	venture = createVenture(1, "amsdemo", "test", 0);
+	venture = createVenture(1, "amsdemo", "test", NULL, 0, 0);
 	if (venture == NULL)
 	{
 		return crash();
@@ -122,8 +122,6 @@ static void	handle_load_start(LoadMibState *state, const char **atts)
 static void	handle_init_start(LoadMibState *state, const char **atts)
 {
 	int	cnbr = 0;
-	char	*gwEid = NULL;
-	int	ramsNetIsTree = 0;
 	char	*ptsname = NULL;
 	char	*pubkey = NULL;
 	int	pubkeylen = 0;
@@ -150,21 +148,6 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 		{
 			cnbr = atoi(value);
 		}
-		else if (strcmp(name, "gweid") == 0)
-		{
-			gwEid = value;
-		}
-		else if (strcmp(name, "net_config") == 0)
-		{
-			if (strcmp(value, "tree") == 0)
-			{
-				ramsNetIsTree = 1;
-			}
-			else	/*	Only other valid value is mesh.	*/
-			{
-				ramsNetIsTree = 0;
-			}
-		}
 		else if (strcmp(name, "ptsname") == 0)
 		{
 			ptsname = value;
@@ -182,8 +165,8 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 		else return noteLoadError(state, "Unknown attribute.");
 	}
 
-	result = createMib(cnbr, gwEid, ramsNetIsTree, ptsname,
-			pubkey, pubkeylen, privkey, privkeylen);
+	result = createMib(cnbr, ptsname, pubkey, pubkeylen, privkey,
+			privkeylen);
 	if (result < 0)
 	{
 		return putErrmsg("Couldn't create MIB.", NULL);
@@ -205,7 +188,6 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 {
 	int		contnbr = 0;
 	char		*contname = NULL;
-	char		*gwEid = NULL;
 	int		isNeighbor = 1;
 	char		*desc = NULL;
 	char		**att;
@@ -227,10 +209,6 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 		else if (strcmp(name, "name") == 0)
 		{
 			contname = value;
-		}
-		else if (strcmp(name, "gweid") == 0)
-		{
-			gwEid = value;
 		}
 		else if (strcmp(name, "neighbor") == 0)
 		{
@@ -271,8 +249,8 @@ mismatch.");
 	case LoadAdding:
 		if (contin == NULL)
 		{
-			contin = createContinuum(contnbr, contname, gwEid,
-					isNeighbor, desc);
+			contin = createContinuum(contnbr, contname, isNeighbor,
+					desc);
 			if (contin == NULL)
 			{
 				return putErrmsg("Couldn't add continuum.",
@@ -517,9 +495,11 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 
 static void	handle_venture_start(LoadMibState *state, const char **atts)
 {
-	int	msnbr = 0;
+	int	vnbr = 0;
 	char	*appname = NULL;
 	char	*authname = NULL;
+	char	*gwEid = NULL;
+	int	ramsNetIsTree = 0;
 	int	rzrsp = 0;
 	char	**att;
 	char	*name;
@@ -538,7 +518,7 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 		value = *att;
 		if (strcmp(name, "nbr") == 0)
 		{
-			msnbr = atoi(value);
+			vnbr = atoi(value);
 		}
 		else if (strcmp(name, "appname") == 0)
 		{
@@ -547,6 +527,21 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 		else if (strcmp(name, "authname") == 0)
 		{
 			authname = value;
+		}
+		else if (strcmp(name, "gweid") == 0)
+		{
+			gwEid = value;
+		}
+		else if (strcmp(name, "net_config") == 0)
+		{
+			if (strcmp(value, "tree") == 0)
+			{
+				ramsNetIsTree = 1;
+			}
+			else	/*	Only other valid value is mesh.	*/
+			{
+				ramsNetIsTree = 0;
+			}
 		}
 		else if (strcmp(name, "root_cell_resync_period") == 0)
 		{
@@ -572,8 +567,8 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 	case LoadAdding:
 		if (state->venture == NULL)
 		{
-			state->venture = createVenture(msnbr, appname,
-					authname, rzrsp);
+			state->venture = createVenture(vnbr, appname,
+					authname, gwEid, ramsNetIsTree, rzrsp);
 			if (state->venture == NULL)
 			{
 				return putErrmsg("Couldn't add venture.",
@@ -932,6 +927,7 @@ static void	handle_unit_start(LoadMibState *state, const char **atts)
 static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 {
 	int		contnbr = 0;
+	char		*gwEid = NULL;
 	char		*symkey = NULL;
 	int		symkeylen = 0;
 	char		**att;
@@ -960,6 +956,10 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		{
 			contnbr = atoi(value);
 		}
+		else if (strcmp(name, "gweid") == 0)
+		{
+			gwEid = value;
+		}
 		else if (strcmp(name, "symkey") == 0)
 		{
 			symkey = value;
@@ -986,7 +986,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		if (msgspace == NULL)
 		{
 			msgspace = createMsgspace(state->venture, contnbr,
-					symkey, symkeylen);
+					gwEid, symkey, symkeylen);
 			if (msgspace == NULL)
 			{
 				return putErrmsg("Couldn't add msgspace.",

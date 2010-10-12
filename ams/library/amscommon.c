@@ -977,6 +977,11 @@ void	eraseMsgspace(Venture *venture, Subject *msgspace)
 		return;
 	}
 
+	if (msgspace->gwEid)
+	{
+		MRELEASE(msgspace->gwEid);
+	}
+
 	if (msgspace->symmetricKey)
 	{
 		MRELEASE(msgspace->symmetricKey);
@@ -1006,10 +1011,14 @@ void	eraseMsgspace(Venture *venture, Subject *msgspace)
 	MRELEASE(msgspace);
 }
 
-Subject	*createMsgspace(Venture *venture, int continNbr, char *symmetricKey,
-		int symmetricKeyLength)
+Subject	*createMsgspace(Venture *venture, int continNbr, char *gwEidString,
+		char *symmetricKey, int symmetricKeyLength)
 {
-	Subject	*msgspace;
+	Subject		*msgspace;
+	RamsNetProtocol	ramsProtocol;
+	char		*gwEid;
+	char		gwEidBuffer[MAX_GW_EID + 1];
+	int		eidLen;
 
 	if (venture == NULL || continNbr < 1 || continNbr > MaxContinNbr
 	|| mib->continua[continNbr] == NULL
@@ -1032,6 +1041,24 @@ Subject	*createMsgspace(Venture *venture, int continNbr, char *symmetricKey,
 	memset((char *) msgspace, 0, sizeof(Subject));
 	msgspace->nbr = 0 - continNbr;	/*	Negative subj number.	*/
 	msgspace->isContinuum = 1;
+	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
+	if (ramsProtocol == RamsNoProtocol)
+	{
+		ramsProtocol = RamsBp;
+		isprintf(gwEidBuffer, sizeof gwEidBuffer, "ipn:%d.%d",
+				continNbr, venture->nbr);
+		gwEid = gwEidBuffer;
+	}
+
+	eidLen = strlen(gwEid) + 1;
+	msgspace->gwEid = MTAKE(eidLen);
+	if (msgspace->gwEid == NULL)
+	{
+		eraseMsgspace(venture, msgspace);
+		putSysErrmsg(NoMemoryMemo, NULL);
+		return NULL;
+	}
+
 	if (symmetricKey)
 	{
 		msgspace->symmetricKey = MTAKE(symmetricKeyLength);
@@ -1428,19 +1455,22 @@ void	eraseVenture(Venture *venture)
 }
 
 Venture	*createVenture(int nbr, char *appname, char *authname,
-			int rootCellResyncPeriod)
+		char *gwEidString, int ramsNetIsTree, int rootCellResyncPeriod)
 {
-	int	length;
-	LystElt	elt;
-	AmsApp	*app;
-	int	i;
-	Venture	*venture;
-	int	authnameLen;
-	AppRole	*gatewayRole;
-	Subject	*allSubjects;
-	Lyst	subunits;
-	Unit	*rootUnit;
-	Subject	*msgspace;	/*	Msgspace in local continuum.	*/
+	int		length;
+	LystElt		elt;
+	AmsApp		*app;
+	int		i;
+	Venture		*venture;
+	int		authnameLen;
+	RamsNetProtocol	ramsProtocol;
+	char		*gwEid;
+	char		gwEidBuffer[MAX_GW_EID + 1];
+	AppRole		*gatewayRole;
+	Subject		*allSubjects;
+	Lyst		subunits;
+	Unit		*rootUnit;
+	Subject		*msgspace;	/*	In local continuum.	*/
 
 	if (nbr < 1 || nbr > MaxVentureNbr || mib->ventures[nbr] != NULL
 	|| appname == NULL || authname == NULL
@@ -1500,6 +1530,14 @@ Venture	*createVenture(int nbr, char *appname, char *authname,
 		}
 	}
 
+	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
+	if (ramsProtocol == RamsNoProtocol)
+	{
+		ramsProtocol = RamsBp;
+	}
+
+	venture->gwProtocol = ramsProtocol;
+	venture->ramsNetIsTree = ramsNetIsTree;
 	mib->ventures[nbr] = venture;
 
 	/*	Automatically create venture's RAMS gateway role.	*/
@@ -1546,7 +1584,8 @@ all subjects", NULL, 0);
 
 	/*	Automatically create the local message space.		*/
 
-	msgspace = createMsgspace(venture, mib->localContinuumNbr, NULL, 0);
+	msgspace = createMsgspace(venture, mib->localContinuumNbr, gwEidString,
+			NULL, 0);
 	if (msgspace == NULL)
 	{
 		eraseVenture(venture);
@@ -1569,11 +1608,6 @@ static void	eraseContinuum(Continuum *contin)
 		MRELEASE(contin->name);
 	}
 
-	if (contin->gwEid)
-	{
-		MRELEASE(contin->gwEid);
-	}
-
 	if (contin->description)
 	{
 		MRELEASE(contin->description);
@@ -1582,15 +1616,11 @@ static void	eraseContinuum(Continuum *contin)
 	MRELEASE(contin);
 }
 
-Continuum	*createContinuum(int nbr, char *name, char *gwEidString,
-			int isNeighbor, char *description)
+Continuum	*createContinuum(int nbr, char *name, int isNeighbor,
+			char *description)
 {
 	int		length;
-	RamsNetProtocol	ramsProtocol;
-	char		*gwEid;
-	char		gwEidBuffer[MAX_GW_EID + 1];
 	Continuum	*contin;
-	int		gwEidLen;
 	int		nameLen;
 	int		descLen;
 
@@ -1602,14 +1632,6 @@ Continuum	*createContinuum(int nbr, char *name, char *gwEidString,
 		return NULL;
 	}
 
-	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
-	if (ramsProtocol == RamsNoProtocol)
-	{
-		ramsProtocol = RamsBp;
-		isprintf(gwEidBuffer, sizeof gwEidBuffer, "ipn:%d.9", nbr);
-		gwEid = gwEidBuffer;
-	}
-
 	contin = (Continuum *) MTAKE(sizeof(Continuum));
 	if (contin == NULL)
 	{
@@ -1619,9 +1641,6 @@ Continuum	*createContinuum(int nbr, char *name, char *gwEidString,
 
 	memset((char *) contin, 0, sizeof(Continuum));
 	contin->nbr = nbr;
-	contin->gwProtocol = ramsProtocol;
-	gwEidLen = strlen(gwEid) + 1;
-	contin->gwEid = MTAKE(gwEidLen);
 	contin->isNeighbor = 1 - (isNeighbor == 0);
 	nameLen = length + 1;
 	contin->name = MTAKE(nameLen);
@@ -1632,7 +1651,6 @@ Continuum	*createContinuum(int nbr, char *name, char *gwEidString,
 	}
 
 	if (contin->name == NULL
-	|| contin->gwEid == NULL
 	|| (description && contin->description == NULL))
 	{
 		eraseContinuum(contin);
@@ -1641,7 +1659,6 @@ Continuum	*createContinuum(int nbr, char *name, char *gwEidString,
 	}
 
 	istrcpy(contin->name, name, nameLen);
-	istrcpy(contin->gwEid, gwEid, gwEidLen);
 	if (description)
 	{
 		istrcpy(contin->description, description, descLen);
@@ -1790,11 +1807,6 @@ void	eraseMib()
 {
 	int	i;
 
-	if (mib->localContinuumGwEid)
-	{
-		MRELEASE(mib->localContinuumGwEid);
-	}
-
 	pthread_mutex_destroy(&(mib->mutex));
 	if (mib->csPublicKey)
 	{
@@ -1878,14 +1890,10 @@ static int	loadTransportService(int i, char *ptsName)
 	return 0;
 }
 
-int	createMib(int nbr, char *gwEidString, int ramsNetIsTree, char *ptsName,
-		char *pubkey, int pubkeylen, char *privkey, int privkeylen)
+int	createMib(int nbr, char *ptsName, char *pubkey, int pubkeylen,
+		char *privkey, int privkeylen)
 {
-	int		i;
-	RamsNetProtocol	ramsProtocol;
-	char		*gwEid;
-	char		gwEidBuffer[MAX_GW_EID + 1];
-	int		eidLen;
+	int	i;
 
 	if (mib != NULL || nbr < 1 || nbr > MaxContinNbr || ptsName == NULL
 	|| pubkeylen < 0 || (pubkeylen > 0 && pubkey == NULL)
@@ -1894,14 +1902,6 @@ int	createMib(int nbr, char *gwEidString, int ramsNetIsTree, char *ptsName,
 		putErrmsg(BadParmsMemo, NULL);
 		errno = EINVAL;
 		return -1;
-	}
-
-	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
-	if (ramsProtocol == RamsNoProtocol)
-	{
-		ramsProtocol = RamsBp;
-		isprintf(gwEidBuffer, sizeof gwEidBuffer, "ipn:%d.9", nbr);
-		gwEid = gwEidBuffer;
 	}
 
 	mib = (AmsMib *) MTAKE(sizeof(AmsMib));
@@ -1940,10 +1940,6 @@ int	createMib(int nbr, char *gwEidString, int ramsNetIsTree, char *ptsName,
 	mib->applications = lyst_create_using(amsMemory);
 	mib->csEndpoints = lyst_create_using(amsMemory);
 	mib->localContinuumNbr = nbr;
-	mib->localContinuumGwProtocol = ramsProtocol;
-	eidLen = strlen(gwEid) + 1;
-	mib->localContinuumGwEid = MTAKE(eidLen);
-	mib->ramsNetIsTree = ramsNetIsTree;
 	if (pubkey)
 	{
 		mib->csPublicKey = MTAKE(pubkeylen);
@@ -1957,17 +1953,15 @@ int	createMib(int nbr, char *gwEidString, int ramsNetIsTree, char *ptsName,
 	if (mib->amsEndpointSpecs == NULL
 	|| mib->applications == NULL
 	|| mib->csEndpoints == NULL
-	|| mib->localContinuumGwEid == NULL
 	|| (pubkey && mib->csPublicKey == NULL)
 	|| (privkey && mib->csPrivateKey == NULL)
-	|| createContinuum(nbr, "local", NULL, 0, "local continuum") == NULL)
+	|| createContinuum(nbr, "local", 0, "local continuum") == NULL)
 	{
 		eraseMib();
 		putSysErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
-	istrcpy(mib->localContinuumGwEid, gwEid, eidLen);
 	lyst_delete_set(mib->amsEndpointSpecs, destroyAmsEpspec, NULL);
 	lyst_delete_set(mib->applications, destroyApplication, NULL);
 	lyst_delete_set(mib->csEndpoints, destroyCsEndpoint, NULL);

@@ -8,8 +8,8 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 */
 
-#ifndef  _RAMS_H
-#define _RAMS_H
+#ifndef	_RAMS_H
+#define	_RAMS_H
 
 #include "ams.h"
 #include "amscommon.h"
@@ -178,8 +178,7 @@ typedef enum
 extern int	rams_run(char *mibSource, char *tsorder, char *mName,
 			char *memory, unsigned mSize, char *applicationName,
 			char *authorityName, char *unitName, char *roleName,
-			RamsGate *gWayPtr, int lifetime);
-
+			int lifetime);
 #ifdef __cplusplus
 }
 #endif

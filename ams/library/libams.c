@@ -4174,9 +4174,9 @@ int	ams_get_continuum_nbr()
 	return mib->localContinuumNbr;
 }
 
-int	ams_rams_net_is_tree()
+int	ams_rams_net_is_tree(AmsSAP *sap)
 {
-	return mib->ramsNetIsTree;
+	return sap->venture->ramsNetIsTree;
 }
 
 int	ams_subunit_of(AmsSAP *sap, int argUnitNbr, int refUnitNbr)

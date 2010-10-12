@@ -257,7 +257,7 @@ extern Lyst		ams_list_msgspaces(AmsModule module);
 
 extern int		ams_get_continuum_nbr();
 
-extern int		ams_rams_net_is_tree();
+extern int		ams_rams_net_is_tree(AmsModule module);
 
 extern int		ams_continuum_is_neighbor(int continuumNbr);
 

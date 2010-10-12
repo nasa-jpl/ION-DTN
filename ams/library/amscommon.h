@@ -145,8 +145,6 @@ typedef struct
 {
 	int		nbr;
 	char		*name;
-	RamsNetProtocol	gwProtocol;
-	char		*gwEid;
 	int		isNeighbor;	/*	Boolean.		*/
 	char		*description;
 } Continuum;
@@ -335,7 +333,15 @@ typedef struct subjst
 	char		*symmetricKey;
 	int		keyLength;
 	Lyst		modules;		/*	(FanModule *)	*/
-	LystElt		elt;		/*	In hashtable.		*/
+	LystElt		elt;			/*	In hashtable.	*/
+
+	/*	If this Subject is for a message space (i.e.,
+	 *	subject number is < 0; isContinuum == 1) then
+	 *	gwEid is non-NULL and identifies the endpoint ID
+	 *	at which the RAMS gateway for the parent venture
+	 *	in the indicated continuum receives RAMS PDUs.		*/
+
+	char		*gwEid;
 } Subject;
 
 /*	Cell encapsulates information about that portion of some unit
@@ -381,6 +387,8 @@ typedef struct ventstr
 	Subject		*subjects[MAX_SUBJ_NBR + 1];	/*	subj>0	*/
 	Lyst		subjLysts[SUBJ_LIST_CT];/*	hash table	*/
 	Unit		*units[MAX_UNIT_NBR + 1];
+	RamsNetProtocol	gwProtocol;
+	int		ramsNetIsTree;		/*	Boolean.	*/
 
 	/*	The msgspaces array enumerates all messages spaces
 	 *	that are included in this venture, including the one
@@ -405,9 +413,6 @@ typedef struct
 	Venture		*ventures[MAX_VENTURE_NBR + 1];
 	Lyst		csEndpoints;		/*	(MamsEndpoint *)*/
 	int		localContinuumNbr;
-	RamsNetProtocol	localContinuumGwProtocol;
-	char		*localContinuumGwEid;
-	int		ramsNetIsTree;		/*	Boolean.	*/
 	char		*csPublicKey;
 	int		csPublicKeyLength;
 	char		*csPrivateKey;		/*	Only for CS MIB.*/
@@ -500,23 +505,24 @@ extern AppRole	*createRole(Venture *venture, int nbr, char *name,
 			char *publicKey, int publicKeyLength,
 			char *privateKey, int privateKeyLength);
 extern void	eraseMsgspace(Venture *venture, Subject *subj);
-extern Subject	*createMsgspace(Venture *venture, int continNbr, char *key,
-			int keyLength);
+extern Subject	*createMsgspace(Venture *venture, int continNbr,
+			char *gwEidString, char *key, int keyLength);
 extern void	eraseUnit(Venture *venture, Unit *unit);
 extern Unit	*createUnit(Venture *venture, int nbr, char *name,
 			int resyncPeriod);
 extern void	eraseVenture(Venture *venture);
 extern Venture	*createVenture(int nbr, char *appname, char *authname,
+			char *gwEidString, int ramsNetIsTree,
 			int rootCellResyncPeriod);
 extern Continuum
-		*createContinuum(int nbr, char *name, char *gwEidString,
-			int isNeighbor, char *description);
+		*createContinuum(int nbr, char *name, int isNeighbor,
+			char *description);
 extern LystElt	createCsEndpoint(char *endpointSpec, LystElt nextElt);
 extern LystElt	createAmsEpspec(char *tsname, char *endpointSpec);
 extern void	eraseMib();
-extern int	createMib(int nbr, char *geEidString, int ramsNetIsTree,
-			char *ptsName, char *publicKey, int publicKeyLength,
-			char *privateKey, int privateKeyLength);
+extern int	createMib(int nbr, char *ptsName, char *publicKey,
+			int publicKeyLength, char *privateKey,
+			int privateKeyLength);
 
 extern unsigned short
 		computeAmsChecksum(unsigned char *cursor, int pduLength);

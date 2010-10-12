@@ -16,7 +16,6 @@ int ramsgate(int a1, int a2, int a3, int a4, int a5,
 	int		lifetime = (unsigned) strtol((char *) a3, NULL, 0);
 	int		msize = (unsigned) strtol((char *) a4, NULL, 0);
 	char		*mmName = (char *) a5; 
-	RamsGate	gWay;
 #else
 int main(int argc, char **argv)
 {
@@ -25,7 +24,6 @@ int main(int argc, char **argv)
 	int		lifetime;
 	int		mSize = 200000;
 	char		*mmName = NULL; 
-	RamsGate	gWay;
 
 	if (argc < 4)
 	{
@@ -47,7 +45,7 @@ int main(int argc, char **argv)
 	}
 #endif
 	if (rams_run("amsmib.xml", NULL, mmName, NULL, mSize, application,
-			authority, "", "RAMS", &gWay, lifetime) < 0)
+			authority, "", "RAMS", lifetime) < 0)
 	{
 		putErrmsg("ramsgate can't run.", NULL);
 		writeErrmsgMemos();
