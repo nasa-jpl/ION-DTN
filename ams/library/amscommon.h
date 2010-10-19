@@ -19,6 +19,7 @@
 #include "psm.h"
 #include "lyst.h"
 #include "llcv.h"
+#include "ion.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,8 +55,8 @@ extern "C" {
 #define	MAX_UNIT_NBR	10
 #endif
 
-#ifndef MAX_NODE_NBR
-#define	MAX_NODE_NBR	255
+#ifndef MAX_MODULE_NBR
+#define	MAX_MODULE_NBR	255
 #endif
 
 #ifndef MAX_ROLE_NBR
@@ -88,13 +89,6 @@ extern "C" {
 
 #define N5_INTERVAL	(N4_INTERVAL * N6_COUNT)
 
-extern int		MaxContinNbr;
-extern int		MaxVentureNbr;
-extern int		MaxUnitNbr;
-extern int		MaxModuleNbr;
-extern int		MaxRoleNbr;
-extern int		MaxSubjNbr;
-
 #define	LOCK_MIB	pthread_mutex_lock(&mib->mutex)
 #define	UNLOCK_MIB	pthread_mutex_unlock(&mib->mutex)
 
@@ -103,9 +97,7 @@ extern int		MaxSubjNbr;
 #define	REJ_NO_CENSUS	2
 #define	REJ_CELL_FULL	3
 #define	REJ_NO_UNIT	4
-
-extern char		*rejectionMemos[];
-
+#if 0
 /*	Memory management abstraction.					*/
 extern int		amsMemory;
 extern MemAllocator	amsmtake;
@@ -114,10 +106,7 @@ extern MemAtoPConverter	amsmatop;
 extern MemPtoAConverter	amsmptoa;
 #define MTAKE(size)	amsmtake(__FILE__, __LINE__, size)
 #define MRELEASE(addr)	amsmrelease(__FILE__, __LINE__, addr)
-
-extern char		*BadParmsMemo;
-extern char		*NoMemoryMemo;
-
+#endif
 /*	Common event types.						*/
 #define CRASH_EVT	11
 #define MAMS_MSG_EVT	12
@@ -133,6 +122,16 @@ typedef struct amsevtst
 } AmsEvt;
 
 /*	*	AMS Management Information Base		*	*	*/
+
+typedef struct
+{
+	int		continuumNbr;
+	char		*ptsName;
+	char		*publicKey;
+	int		publicKeyLength;
+	char		*privateKey;
+	int		privateKeyLength;
+} AmsMibParameters;
 
 typedef enum
 {
@@ -351,7 +350,7 @@ typedef struct
 {
 	struct unit_str	*unit;			/*	Parent.		*/
 	MamsEndpoint	mamsEndpoint;		/*	Of registrar.	*/
-	Module		*modules[MAX_NODE_NBR + 1];
+	Module		*modules[MAX_MODULE_NBR + 1];
 	int		heartbeatsMissed;	/*	To CS.		*/
 	int		resyncPeriod;		/*	In heartbeats.	*/
 } Cell;
@@ -419,8 +418,6 @@ typedef struct
 	int		csPrivateKeyLength;
 } AmsMib;
 
-extern AmsMib		*mib;
-
 /*	*	*	MAMS message structure	*	*	*	*/
 
 typedef enum
@@ -454,9 +451,9 @@ typedef enum
 
 typedef struct
 {
-	unsigned char	ventureNbr;
-	unsigned short	unitNbr;
-	unsigned char	roleNbr;
+	int		ventureNbr;
+	int		unitNbr;
+	int		roleNbr;
 	MamsPduType	type;
 	signed int	memo;
 	time_t		timeTag;
@@ -467,7 +464,9 @@ typedef struct
 /*	*	*	Private function prototypes	*	*	*/
 
 extern int	initMemoryMgt(char *mName, char *memory, unsigned mSize);
-extern int	loadMib(char *mibSource);
+extern AmsMib	*_mib(AmsMibParameters *parms);
+extern AmsMib	*loadMib(char *mibSource);
+extern char	*_rejectionMemos(int idx);
 
 extern int	time_to_stop(Llcv llcv);
 extern int	llcv_reply_received(Llcv llcv);
@@ -519,10 +518,6 @@ extern Continuum
 			char *description);
 extern LystElt	createCsEndpoint(char *endpointSpec, LystElt nextElt);
 extern LystElt	createAmsEpspec(char *tsname, char *endpointSpec);
-extern void	eraseMib();
-extern int	createMib(int nbr, char *ptsName, char *publicKey,
-			int publicKeyLength, char *privateKey,
-			int privateKeyLength);
 
 extern unsigned short
 		computeAmsChecksum(unsigned char *cursor, int pduLength);

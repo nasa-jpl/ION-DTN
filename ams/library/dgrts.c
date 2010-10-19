@@ -33,12 +33,7 @@ static int	dgrComputeCsepName(char *endpointSpec, char *endpointName)
 	unsigned int	ipAddress;
 	char		ownHostName[MAXHOSTNAMELEN + 1];
 
-	if (endpointName == NULL)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(endpointName);
 	parseSocketSpec(endpointSpec, &portNbr, &ipAddress);
 	if (portNbr == 0)
 	{
@@ -64,12 +59,13 @@ static int	dgrMamsInit(MamsInterface *tsif)
 	int		eptLen;
 	DgrRC		rc;
 
+	CHKERR(tsif);
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
 //printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
 	if (dgr_open(sm_TaskIdSelf(), DGRTS_CLIENT_SVC_ID, portNbr, ipAddress,
-			memmgr_name(amsMemory), &dgrSap, &rc) < 0)
+			memmgr_name(getIonMemoryMgr()), &dgrSap, &rc) < 0)
 	{
-		putSysErrmsg("dgrts can't open MAMS SAP", NULL);
+		putErrmsg("dgrts can't open MAMS SAP.", NULL);
 		return -1;
 	}
 
@@ -81,8 +77,8 @@ static int	dgrMamsInit(MamsInterface *tsif)
 	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
+		putErrmsg("Can't record endpoint name.", NULL);
 		dgr_close(dgrSap);
-		putSysErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
@@ -103,14 +99,11 @@ static void	*dgrMamsReceiver(void *parm)
 	int		errnbr;
 	DgrRC		rc;
 
+	CHKNULL(tsif);
 	dgrSap = (Dgr) (tsif->sap);
+	CHKNULL(dgrSap);
 	buffer = MTAKE(DGRTS_MAX_MSG_LEN);
-	if (buffer == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(buffer);
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
@@ -157,6 +150,10 @@ static int	dgrAmsInit(AmsInterface *tsif, char *epspec)
 	char		endpointNameText[32];
 	int		eptLen;
 
+	CHKERR(tsif);
+	CHKERR(epspec);
+	tsif->diligence = AmsAssured;
+	tsif->sequence = AmsArrivalOrder;
 	if (strcmp(epspec, "@") == 0)	/*	Default.		*/
 	{
 		epspec = NULL;	/*	Force default selection.	*/
@@ -164,23 +161,21 @@ static int	dgrAmsInit(AmsInterface *tsif, char *epspec)
 
 	parseSocketSpec(epspec, &portNbr, &ipAddress);
 	if (dgr_open(sm_TaskIdSelf(), DGRTS_CLIENT_SVC_ID, portNbr, ipAddress,
-			memmgr_name(amsMemory), &dgrSap, &rc) < 0)
+			memmgr_name(getIonMemoryMgr()), &dgrSap, &rc) < 0)
 	{
-		putSysErrmsg("dgrts can't open AMS SAP", NULL);
+		putErrmsg("dgrts can't open AMS SAP.", NULL);
 		return -1;
 	}
 
 	dgr_getsockname(dgrSap, &portNbr, &ipAddress);
-	tsif->diligence = AmsAssured;
-	tsif->sequence = AmsArrivalOrder;
 	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
 			portNbr);
 	eptLen = strlen(endpointNameText) + 1;
 	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
+		putErrmsg("Can't record endpoint name.", NULL);
 		dgr_close(dgrSap);
-		putSysErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
@@ -202,15 +197,13 @@ static void	*dgrAmsReceiver(void *parm)
 	int		errnbr;
 	DgrRC		rc;
 
+	CHKNULL(tsif);
 	dgrSap = (Dgr) (tsif->sap);
+	CHKNULL(dgrSap);
 	amsSap = tsif->amsSap;
+	CHKNULL(amsSap);
 	buffer = MTAKE(DGRTS_MAX_MSG_LEN);
-	if (buffer == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(buffer);
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
@@ -251,28 +244,16 @@ static int	dgrParseMamsEndpoint(MamsEndpoint *ep)
 {
 	DgrTsep	tsep;
 
-	if (ep == NULL || ep->ept == NULL)
-	{
-		errno = EINVAL;
-		putErrmsg("dgrts can't parse MAMS endpoint name.", NULL);
-		return -1;
-	}
-
+	CHKERR(ep);
+	CHKERR(ep->ept);
 	if (sscanf(ep->ept, "%u:%hu", &tsep.ipAddress, &tsep.portNbr) != 2)
 	{
-		errno = EINVAL;
 		putErrmsg("dgrts found MAMS endpoint name invalid.", ep->ept);
 		return -1;
 	}
 
 	ep->tsep = MTAKE(sizeof(DgrTsep));
-	if (ep->tsep == NULL)
-	{
-		putSysErrmsg("dgrts can't record parsed MAMS endpoint name.",
-				NULL);
-		return -1;
-	}
-
+	CHKERR(ep->tsep);
 	memcpy((char *) (ep->tsep), (char *) &tsep, sizeof(DgrTsep));
 //printf("parsed '%s' to port %d address %d.\n", ep->ept, tsep.portNbr,
 //tsep.ipAddress);
@@ -291,28 +272,16 @@ static int	dgrParseAmsEndpoint(AmsEndpoint *dp)
 {
 	DgrTsep	tsep;
 
-	if (dp == NULL || dp->ept == NULL)
-	{
-		errno = EINVAL;
-		putErrmsg("dgrts can't parse AMS endpoint.", NULL);
-		return -1;
-	}
-
+	CHKERR(dp);
+	CHKERR(dp->ept);
 	if (sscanf(dp->ept, "%u:%hu", &tsep.ipAddress, &tsep.portNbr) != 2)
 	{
-		errno = EINVAL;
 		putErrmsg("dgrts found AMS endpoint name invalid.", dp->ept);
 		return -1;
 	}
 
 	dp->tsep = MTAKE(sizeof(DgrTsep));
-	if (dp->tsep == NULL)
-	{
-		putSysErrmsg("dgrts can't record parsed AMS endpoint name.",
-				NULL);
-		return -1;
-	}
-
+	CHKERR(dp->tsep);
 	memcpy((char *) (dp->tsep), (char *) &tsep, sizeof(DgrTsep));
 
 	/*	Also parse out the QOS of this endpoint.		*/
@@ -324,6 +293,7 @@ static int	dgrParseAmsEndpoint(AmsEndpoint *dp)
 
 static void	dgrClearAmsEndpoint(AmsEndpoint *dp)
 {
+	CHKVOID(dp);
 	if (dp->tsep)
 	{
 		MRELEASE(dp->tsep);
@@ -337,13 +307,10 @@ static int	dgrSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 	Dgr	dgrSap;
 	DgrRC	rc;
 
-	if (ep == NULL || tsif == NULL || msg == NULL || msgLen < 0)
-	{
-		errno = EINVAL;
-		putErrmsg("Can't use DGR to send MAMS message.", NULL);
-		return -1;
-	}
-
+	CHKERR(ep);
+	CHKERR(tsif);
+	CHKERR(msg);
+	CHKERR(msgLen >= 0);
 	tsep = (DgrTsep *) (ep->tsep);
 //printf("in dgrSendMams, tsep at %d has port %d, address %d.\n", (int) tsep,
 //tsep->portNbr, tsep->ipAddress);
@@ -377,15 +344,13 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	unsigned short	checksum;
 	DgrRC		rc;
 
-	if (dp == NULL || sap == NULL || header == NULL || headerLen < 0
-	|| contentLen < 0 || (contentLen > 0 && content == NULL)
-	|| (len = (headerLen + contentLen + 2)) > DGRTS_MAX_MSG_LEN)
-	{
-		errno = EINVAL;
-		putErrmsg("Can't use DGR to send AMS message.", NULL);
-		return -1;
-	}
-
+	CHKERR(dp);
+	CHKERR(sap);
+	CHKERR(header);
+	CHKERR(headerLen >= 0);
+	CHKERR(contentLen == 0 || (contentLen > 0 && content != NULL));
+	len = headerLen + contentLen + 2;
+	CHKERR(len <= DGRTS_MAX_MSG_LEN);
 	tsep = (DgrTsep *) (dp->tsep);
 //printf("in dgrSendAms, tsep is %d.\n", (int) tsep);
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
@@ -438,6 +403,7 @@ static void	dgrShutdown(void *sap)
 
 void	dgrtsLoadTs(TransSvc *ts)
 {
+	CHKVOID(ts);
 	ts->name = "dgr";
 	ts->csepNameFn = dgrComputeCsepName;
 	ts->mamsInitFn = dgrMamsInit;

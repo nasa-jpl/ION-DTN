@@ -498,11 +498,12 @@ static void	DeleteInvitation(Invitation *inv)
 	MRELEASE(inv);
 }
 
-int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
-		unsigned mSize, char *applicationName, char *authorityName,
-		char *unitName, char *roleName, int lifetime)
+int	rams_run(char *mibSource, char *tsorder, char *applicationName,
+		char *authorityName, char *unitName, char *roleName,
+		int lifetime)
 {
 	AmsModule		amsModule;
+	AmsMib			*mib;
 	int			ownContinuumNbr;
 	Subject			*ownMsgspace;
 	RamsGateway		*gWay;
@@ -530,14 +531,14 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 
 	/*	Register as an AMS module.				*/
 
-	if (ams_register(mibSource, tsorder, mName, memory, mSize,
-			applicationName, authorityName, unitName, roleName,
-			&amsModule) < 0)
+	if (ams_register(mibSource, tsorder, applicationName, authorityName,
+			unitName, roleName, &amsModule) < 0)
 	{
 		putErrmsg("RAMS gateway can't register.", NULL);
 		return -1;
 	}
 
+	mib = _mib(NULL);
 	ownContinuumNbr = mib->localContinuumNbr;
 	ownMsgspace = amsModule->venture->msgspaces[ownContinuumNbr];
 

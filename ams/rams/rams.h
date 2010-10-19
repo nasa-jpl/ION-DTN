@@ -175,8 +175,7 @@ typedef enum
 	Enc_ChecksumFlag = 5
 } EnclosureField;
 
-extern int	rams_run(char *mibSource, char *tsorder, char *mName,
-			char *memory, unsigned mSize, char *applicationName,
+extern int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 			char *authorityName, char *unitName, char *roleName,
 			int lifetime);
 #ifdef __cplusplus

@@ -60,7 +60,7 @@ static void	handleCommand(AmsModule me, char *mode)
 	newline = line + strlen(line) - 1;
 	if (*newline != '\n')
 	{
-		writeMemo("Input line is too long; max length is 255.");
+		writeMemo("[?] Input line is too long; max length is 255.");
 		return;
 	}
 
@@ -105,7 +105,7 @@ static void	handleCommand(AmsModule me, char *mode)
 		subjectNameLength = strlen(subjectNameString);
 		if (subjectNameLength >= sizeof subjectName)
 		{
-			writeMemo("Subject name is too long.");
+			writeMemo("[?] Subject name is too long.");
 			return;
 		}
 
@@ -119,14 +119,14 @@ static void	handleCommand(AmsModule me, char *mode)
 
 	if (strlen(subjectName) == 0)
 	{
-		writeMemo("Must specify subject before publishing message.");
+		writeMemo("[?] Must specify subject before publishing msg.");
 		return;
 	}
 
 	subjectNbr = ams_lookup_subject_nbr(me, subjectName);
 	if (subjectNbr < 0)
 	{
-		writeMemo("Unknown subject; can't publish message.");
+		writeMemo("[?] Unknown subject; can't publish message.");
 		return;
 	}
 
@@ -246,7 +246,7 @@ messages.\n", stderr);
 		return 0;
 	}
 
-	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, applicationName,
+	if (ams_register("amsmib.xml", NULL, applicationName,
 			authorityName, unitName, roleName, &me) < 0)
 	{
 		putSysErrmsg("amsshell can't register", NULL);

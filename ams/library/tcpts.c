@@ -273,6 +273,8 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	char			endpointNameText[32];
 	int			eptLen;
 
+	CHKERR(tsif);
+	CHKERR(epspec);
 	if (strcmp(epspec, "@") == 0)	/*	Default.		*/
 	{
 		epspec = NULL;	/*	Force default selection.	*/
@@ -286,12 +288,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	}
 
 	sap = (TcptsSap *) MTAKE(sizeof(TcptsSap));
-	if (sap == NULL)
-	{
-		putSysErrmsg("No memory for TCP SAP", NULL);
-		return -1;
-	}
-
+	CHKERR(sap);
 	memset((char *) sap, 0, sizeof(TcptsSap));
 	pthread_mutex_init(&sap->sendPoolMutex, NULL);
 	pthread_mutex_init(&sap->rcvrPoolMutex, NULL);
@@ -314,7 +311,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	|| listen(sap->accessSocket, 5) < 0
 	|| getsockname(sap->accessSocket, &(sap->addrbuf), &buflen) < 0)
 	{
-		putSysErrmsg("tcpts can't open AMS access socket", NULL);
+		putSysErrmsg("tcpts can't configure AMS access socket", NULL);
 		close(sap->accessSocket);
 		MRELEASE(sap);
 		return -1;
@@ -332,7 +329,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
-		putSysErrmsg(NoMemoryMemo, NULL);
+		putErrmsg("tcpts can't record endpoint name.", NULL);
 		close(sap->accessSocket);
 		MRELEASE(sap);
 		return -1;
@@ -346,18 +343,15 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 static void	*tcpAmsReceiver(void *parm)
 {
 	TcpRcvr		*me = (TcpRcvr *) parm;
-	TcptsSap	*sap = me->sap;
+	TcptsSap	*sap;
 	char		*buffer;
 	sigset_t	signals;
 	int		length;
 
+	CHKNULL(me);
+	sap = me->sap;
 	buffer = MTAKE(TCPTS_MAX_MSG_LEN);
-	if (buffer == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(buffer);
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
@@ -368,7 +362,7 @@ static void	*tcpAmsReceiver(void *parm)
 		case -1:
 			if (errno != EBADF)
 			{
-				putSysErrmsg("tcpts receiver crashed", NULL);
+				putErrmsg("tcpts receiver crashed.", NULL);
 			}
 
 			/*	Intentional fall-through to next case.	*/
@@ -422,13 +416,16 @@ static void	*tcpAmsReceiver(void *parm)
 static void	*tcpAmsAccess(void *parm)
 {
 	AmsInterface		*tsif = (AmsInterface *) parm;
-	TcptsSap		*sap = (TcptsSap *) (tsif->sap);
+	TcptsSap		*sap;
 	int			childSocket;
 	struct sockaddr		clientSockname;
 	socklen_t		len;
 	sigset_t		signals;
 	TcpRcvr			*rcvr;
 
+	CHKNULL(tsif);
+	sap = (TcptsSap *) (tsif->sap);
+	CHKNULL(sap);
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
@@ -450,8 +447,8 @@ static void	*tcpAmsAccess(void *parm)
 		rcvr = MTAKE(sizeof(TcpRcvr));
 		if (rcvr == NULL)
 		{
+			putErrmsg("tcpts out of memory.", NULL);
 			close(childSocket);
-			putSysErrmsg("tcpts out of memory", NULL);
 			break;
 		}
 
@@ -535,18 +532,12 @@ static int	tcpParseAmsEndpoint(AmsEndpoint *dp)
 {
 	TcpTsep	tsep;
 
-	if (dp == NULL || dp->ept == NULL)
-	{
-		errno = EINVAL;
-		putErrmsg("tcpts can't parse AMS endpoint.", NULL);
-		return -1;
-	}
-
+	CHKERR(dp);
+	CHKERR(dp->ept);
 	memset((char *) &tsep, 0, sizeof(TcpTsep));
 	tsep.fd = -1;		/*	Not connected yet.		*/
 	if (sscanf(dp->ept, "%u:%hu", &tsep.ipAddress, &tsep.portNbr) != 2)
 	{
-		errno = EINVAL;
 		putErrmsg("tcpts found AMS endpoint name invalid.", dp->ept);
 		return -1;
 	}
@@ -555,13 +546,7 @@ static int	tcpParseAmsEndpoint(AmsEndpoint *dp)
 	 *	for transmission.					*/
 
 	dp->tsep = MTAKE(sizeof(TcpTsep));
-	if (dp->tsep == NULL)
-	{
-		putSysErrmsg("tcpts can't record parsed AMS endpoint name.",
-				NULL);
-		return -1;
-	}
-
+	CHKERR(dp->tsep);
 	memcpy((char *) (dp->tsep), (char *) &tsep, sizeof(TcpTsep));
 
 	/*	Also parse out the QOS of this endpoint.		*/
@@ -573,13 +558,11 @@ static int	tcpParseAmsEndpoint(AmsEndpoint *dp)
 
 static void	tcpClearAmsEndpoint(AmsEndpoint *dp)
 {
-	TcpTsep	*tsep = dp->tsep;
+	TcpTsep	*tsep;
 
-	if (tsep == NULL)
-	{
-		return;
-	}
-
+	CHKVOID(dp);
+	tsep = dp->tsep;
+	CHKVOID(tsep);
 	if (tsep->fd != -1)
 	{
 		removeSender(tsep);
@@ -604,15 +587,13 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	unsigned short		preamble;
 	int			result;
 
-	if (dp == NULL || sap == NULL || header == NULL || headerLen < 0
-	|| contentLen < 0 || (contentLen > 0 && content == NULL)
-	|| (xmitlen = (headerLen + contentLen + 2)) > TCPTS_MAX_MSG_LEN)
-	{
-		errno = EINVAL;
-		putErrmsg("Can't use TCP to send AMS message.", NULL);
-		return -1;
-	}
-
+	CHKERR(dp);
+	CHKERR(sap);
+	CHKERR(header);
+	CHKERR(headerLen >= 0);
+	CHKERR(contentLen == 0 || (contentLen > 0 && content != NULL));
+	xmitlen = headerLen + contentLen + 2;
+	CHKERR(xmitlen <= TCPTS_MAX_MSG_LEN);
 	tsep = (TcpTsep *) (dp->tsep);
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{
@@ -740,6 +721,7 @@ static void	tcpShutdown(void *abstract_sap)
 	TcptsSap	*tcpSap = (TcptsSap *) (abstract_sap);
 	int		fd;
 
+	CHKVOID(tcpSap);
 	tcpSap->stopped = 1;
 
 	/*	Wake up our own access thread by connecting to it.	*/
@@ -757,6 +739,7 @@ static void	tcpShutdown(void *abstract_sap)
 
 void	tcptsLoadTs(TransSvc *ts)
 {
+	CHKVOID(ts);
 	ts->name = "tcp";
 	ts->csepNameFn = tcpComputeCsepName;
 	ts->mamsInitFn = tcpMamsInit;
