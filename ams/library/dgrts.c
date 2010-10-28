@@ -12,6 +12,7 @@
 #include "dgr.h"
 
 #define	DGRTS_MAX_MSG_LEN	65535
+#define	DGRTS_CLIENT_SVC_ID	2
 
 typedef struct
 {
@@ -61,11 +62,12 @@ static int	dgrMamsInit(MamsInterface *tsif)
 	Dgr		dgrSap;
 	char		endpointNameText[32];
 	int		eptLen;
+	DgrRC		rc;
 
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
 //printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
-	if (dgr_open(portNbr, ipAddress, memmgr_name(amsMemory), &dgrSap)
-			== DgrFailed)
+	if (dgr_open(sm_TaskIdSelf(), DGRTS_CLIENT_SVC_ID, portNbr, ipAddress,
+			memmgr_name(amsMemory), &dgrSap, &rc) < 0)
 	{
 		putSysErrmsg("dgrts can't open MAMS SAP", NULL);
 		return -1;
@@ -113,8 +115,8 @@ static void	*dgrMamsReceiver(void *parm)
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
 	{
-		rc = dgr_receive(dgrSap, &portNbr, &ipAddress,
-				buffer, &length, &errnbr, DGR_BLOCKING);
+		oK(dgr_receive(dgrSap, &portNbr, &ipAddress,
+				buffer, &length, &errnbr, DGR_BLOCKING, &rc));
 		switch (rc)
 		{
 		case DgrFailed:
@@ -151,6 +153,7 @@ static int	dgrAmsInit(AmsInterface *tsif, char *epspec)
 	unsigned short	portNbr;
 	unsigned int	ipAddress;
 	Dgr		dgrSap;
+	DgrRC		rc;
 	char		endpointNameText[32];
 	int		eptLen;
 
@@ -160,8 +163,8 @@ static int	dgrAmsInit(AmsInterface *tsif, char *epspec)
 	}
 
 	parseSocketSpec(epspec, &portNbr, &ipAddress);
-	if (dgr_open(portNbr, ipAddress, memmgr_name(amsMemory), &dgrSap)
-			== DgrFailed)
+	if (dgr_open(sm_TaskIdSelf(), DGRTS_CLIENT_SVC_ID, portNbr, ipAddress,
+			memmgr_name(amsMemory), &dgrSap, &rc) < 0)
 	{
 		putSysErrmsg("dgrts can't open AMS SAP", NULL);
 		return -1;
@@ -212,8 +215,8 @@ static void	*dgrAmsReceiver(void *parm)
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
 	{
-		rc = dgr_receive(dgrSap, &portNbr, &ipAddress, buffer,
-				&length, &errnbr, DGR_BLOCKING);
+		oK(dgr_receive(dgrSap, &portNbr, &ipAddress, buffer,
+				&length, &errnbr, DGR_BLOCKING, &rc));
 		switch (rc)
 		{
 		case DgrFailed:
@@ -332,6 +335,7 @@ static int	dgrSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 {
 	DgrTsep	*tsep;
 	Dgr	dgrSap;
+	DgrRC	rc;
 
 	if (ep == NULL || tsif == NULL || msg == NULL || msgLen < 0)
 	{
@@ -349,8 +353,8 @@ static int	dgrSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 	}
 
 	dgrSap = (Dgr) (tsif->sap);
-	if (dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, msg, msgLen)
-			== DgrFailed)
+	if (dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, msg,
+			msgLen, &rc) < 0)
 	{
 //PUTS("dgrSendMams failed.");
 		return -1;
@@ -371,6 +375,7 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	AmsInterface	*tsif;
 	Dgr		dgrSap;
 	unsigned short	checksum;
+	DgrRC		rc;
 
 	if (dp == NULL || sap == NULL || header == NULL || headerLen < 0
 	|| contentLen < 0 || (contentLen > 0 && content == NULL)
@@ -413,8 +418,8 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 			headerLen + contentLen);
 	checksum = htons(checksum);
 	memcpy(dgrAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
-	if (dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, dgrAmsBuf, len)
-			== DgrFailed)
+	if (dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, dgrAmsBuf,
+			len, &rc) < 0)
 	{
 //PUTS("dgrSendAms failed.");
 		return -1;

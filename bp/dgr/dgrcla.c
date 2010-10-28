@@ -14,7 +14,7 @@
 #include "ipnfw.h"
 #include "dtn2fw.h"
 
-#define	DGRCLA_PORT_NBR		5101
+#define	DGRCLA_PORT_NBR		1113
 #define	DGRCLA_BUFSZ		65535
 #define	DEFAULT_DGR_RATE	11250000
 
@@ -73,6 +73,7 @@ static void	*sendBundles(void *parm)
 	unsigned int		bundleLength;
 	ZcoReader		reader;
 	int			bytesToSend;
+	DgrRC			rc;
 
 	buffer = MTAKE(DGRCLA_BUFSZ);
 	if (buffer == NULL)
@@ -105,10 +106,10 @@ static void	*sendBundles(void *parm)
 		}
 
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName) < 0)
+				&extendedCOS, destDuctName, 1) < 0)
 		{
 			threadRunning = 0;
-			putErrmsg("Failed de-queueing bundle.", NULL);
+			writeMemo("[?] dgrcla failed de-queueing bundle.");
 			continue;
 		}
 
@@ -141,6 +142,7 @@ static void	*sendBundles(void *parm)
 
 		zco_start_transmitting(sdr, bundleZco, &reader);
 		bytesToSend = zco_transmit(sdr, &reader, DGRCLA_BUFSZ, buffer);
+		zco_stop_transmitting(sdr, &reader);
 		if (bytesToSend < 0)
 		{
 			sdr_cancel_xn(sdr);
@@ -149,7 +151,6 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
-		zco_stop_transmitting(sdr, &reader);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			threadRunning = 0;
@@ -162,15 +163,22 @@ static void	*sendBundles(void *parm)
 		if (bytesToSend > 0)
 		{
 			if (dgr_send(parms->dgrSap, portNbr, hostNbr,
-				DGR_NOTE_FAILED, buffer, bytesToSend)
-					== DgrFailed)
+				DGR_NOTE_ALL, buffer, bytesToSend, &rc) < 0)
 			{
-				failedTransmissions++;
-				if (bpHandleXmitFailure(bundleZco))
+				threadRunning = 0;
+				putErrmsg("Crashed sending bundle.", NULL);
+			}
+			else
+			{
+				if (rc == DgrFailed)
 				{
-					threadRunning = 0;
-					putErrmsg("Crashed handling failure.",
-							NULL);
+					failedTransmissions++;
+					if (bpHandleXmitFailure(bundleZco))
+					{
+						threadRunning = 0;
+						putErrmsg("Crashed handling \
+failure.", NULL);
+					}
 				}
 			}
 		}
@@ -192,7 +200,7 @@ static void	*sendBundles(void *parm)
 	*(parms->running) = 0;
 	pthread_kill(parms->mainThread, SIGTERM);
 	writeErrmsgMemos();
-	isprintf(buffer, sizeof buffer, "[i] dgrcla outduct ended.  %d \
+	isprintf(buffer, DGRCLA_BUFSZ, "[i] dgrcla outduct ended.  %d \
 transmissions failed.", failedTransmissions);
 	writeMemo(buffer);
 	MRELEASE(buffer);
@@ -252,11 +260,54 @@ static void	*receiveBundles(void *parm)
 	{
 		while (1)
 		{
-			rc = dgr_receive(parms->dgrSap, &fromPortNbr,
+			if (dgr_receive(parms->dgrSap, &fromPortNbr,
 					&fromHostNbr, buffer, &length, &errnbr,
-					DGR_BLOCKING);
+					DGR_BLOCKING, &rc) < 0)
+			{
+				putErrmsg("Failed receiving bundle.", NULL);
+				threadRunning = 0;
+				rc = DgrFailed;
+				break;		/*	Out of loop.	*/
+			}
+
 			switch (rc)
 			{
+				case DgrDatagramAcknowledged:
+					sdr_begin_xn(sdr);
+					bundleZco = zco_create(sdr,
+						ZcoSdrSource, sdr_insert(sdr,
+						buffer, length), 0, length);
+					if (sdr_end_xn(sdr) < 0)
+					{
+						putErrmsg("Failed creating \
+temporary ZCO.", NULL);
+						threadRunning = 0;
+						break;	/*	Switch.	*/
+					}
+
+					if (bpHandleXmitSuccess(bundleZco))
+					{
+						threadRunning = 0;
+						putErrmsg("Crashed handling \
+success.", NULL);
+					}
+
+					sdr_begin_xn(sdr);
+					zco_destroy_reference(sdr, bundleZco);
+					if (sdr_end_xn(sdr) < 0)
+					{
+						threadRunning = 0;
+						putErrmsg("Failed destroying \
+bundle ZCO.", NULL);
+					}
+
+					if (threadRunning == 0)
+					{
+						break;	/*	Switch.	*/
+					}
+
+					continue;
+
 				case DgrDatagramNotAcknowledged:
 					sdr_begin_xn(sdr);
 					bundleZco = zco_create(sdr,
@@ -304,9 +355,10 @@ bundle ZCO.", NULL);
 			break;			/*	Out of loop.	*/
 		}
 
-		if (rc == DgrDatagramNotAcknowledged)
+		if (rc == DgrDatagramAcknowledged
+		|| rc == DgrDatagramNotAcknowledged)
 		{
-			putErrmsg("Crashed handling xmit failure.", NULL);
+			putErrmsg("Crashed handling xmit result.", NULL);
 			threadRunning = 0;
 			continue;
 		}
@@ -317,12 +369,14 @@ bundle ZCO.", NULL);
 			{
 				/*	Not terminated by main thread.	*/
 
-				putErrmsg("Can't acquire bundle.", NULL);
+				writeMemo("[?] dgrcla failed in bundle acq.");
 			}
 
 			threadRunning = 0;
 			continue;
 		}
+
+		/*	Must have received a datagram.			*/
 
 		if (getInternetHostName(fromHostNbr, hostName))
 		{
@@ -382,6 +436,7 @@ int	main(int argc, char *argv[])
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
 	Dgr			dgrSap;
+	DgrRC			rc;
 	int			running = 1;
 	SenderThreadParms	senderParms;
 	ReceiverThreadParms	rtp;
@@ -452,8 +507,8 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (dgr_open(portNbr, hostNbr, memmgr_name(getIonMemoryMgr()), &dgrSap)
-			== DgrFailed)
+	if (dgr_open(getOwnNodeNbr(), 1, portNbr, hostNbr, NULL, &dgrSap, &rc)
+	|| rc == DgrFailed)
 	{
 		putErrmsg("dgrcla can't open DGR service access point.", NULL);
 		return 1;

@@ -32,7 +32,7 @@ char			*NoMemoryMemo = "AMS failure: out of memory.";
 int			MaxContinNbr = MAX_CONTIN_NBR;
 int			MaxVentureNbr = MAX_VENTURE_NBR;
 int			MaxUnitNbr = MAX_UNIT_NBR;
-int			MaxNodeNbr = MAX_NODE_NBR;
+int			MaxModuleNbr = MAX_NODE_NBR;
 int			MaxRoleNbr = MAX_ROLE_NBR;
 int			MaxSubjNbr = MAX_SUBJ_NBR;
 
@@ -446,7 +446,7 @@ static int	getAuthenticationParms(unsigned char ventureNbr,
 		}
 	}
 
-	if (role)		/*	Sender is node.			*/
+	if (role)		/*	Sender is module.			*/
 	{
 		*authName = role->name;
 		if (sending)
@@ -625,11 +625,11 @@ LystElt	createElement(Subject *subj, char *name, ElementType type,
 	return elt;
 }
 
-static void	destroyInterestedNode(LystElt elt, void *userdata)
+static void	destroyFanModule(LystElt elt, void *userdata)
 {
-	InterestedNode	*intn = (InterestedNode *) lyst_data(elt);
+	FanModule	*fan = (FanModule *) lyst_data(elt);
 
-	MRELEASE(intn);
+	MRELEASE(fan);
 }
 
 void	eraseSubject(Venture *venture, Subject *subj)
@@ -674,9 +674,9 @@ void	eraseSubject(Venture *venture, Subject *subj)
 		lyst_destroy(subj->authorizedReceivers);
 	}
 
-	if (subj->nodes)
+	if (subj->modules)
 	{
-		lyst_destroy(subj->nodes);
+		lyst_destroy(subj->modules);
 	}
 
 	venture->subjects[subj->nbr] = NULL;
@@ -732,7 +732,7 @@ For future use:
 	subj->authorizedSenders = lyst_create_using(amsMemory);
 	subj->authorizedReceivers = lyst_create_using(amsMemory);
 */
-	subj->nodes = lyst_create_using(amsMemory);
+	subj->modules = lyst_create_using(amsMemory);
 	if (subj->name == NULL
 	|| (description && subj->description == NULL)
 	|| (symmetricKey && subj->symmetricKey == NULL)
@@ -742,7 +742,7 @@ For future use:
 	|| subj->authorizedSenders == NULL
 	|| subj->authorizedReceivers == NULL
 */
-	|| subj->nodes == NULL)
+	|| subj->modules == NULL)
 	{
 		eraseSubject(venture, subj);
 		putSysErrmsg(NoMemoryMemo, NULL);
@@ -762,7 +762,7 @@ For future use:
 
 	subj->keyLength = symmetricKeyLength;
 	lyst_delete_set(subj->elements, destroyElement, NULL);
-	lyst_delete_set(subj->nodes, destroyInterestedNode, NULL);
+	lyst_delete_set(subj->modules, destroyFanModule, NULL);
 	venture->subjects[nbr] = subj;
 	idx = hashSubjectName(name);
 	subj->elt = lyst_insert_last(venture->subjLysts[idx], subj);
@@ -997,9 +997,9 @@ void	eraseMsgspace(Venture *venture, Subject *msgspace)
 		lyst_destroy(msgspace->authorizedReceivers);
 	}
 
-	if (msgspace->nodes)
+	if (msgspace->modules)
 	{
-		lyst_destroy(msgspace->nodes);
+		lyst_destroy(msgspace->modules);
 	}
 
 	venture->msgspaces[0 - msgspace->nbr] = NULL;
@@ -1042,14 +1042,14 @@ Subject	*createMsgspace(Venture *venture, int continNbr, char *symmetricKey,
 	msgspace->authorizedSenders = lyst_create_using(amsMemory);
 	msgspace->authorizedReceivers = lyst_create_using(amsMemory);
 #endif
-	msgspace->nodes = lyst_create_using(amsMemory);
+	msgspace->modules = lyst_create_using(amsMemory);
 	if ((symmetricKey && msgspace->symmetricKey == NULL)
 	|| msgspace->elements == NULL
 #if 0
 	|| msgspace->authorizedSenders == NULL
 	|| msgspace->authorizedReceivers == NULL
 #endif
-	|| msgspace->nodes == NULL)
+	|| msgspace->modules == NULL)
 	{
 		eraseMsgspace(venture, msgspace);
 		putSysErrmsg(NoMemoryMemo, NULL);
@@ -1064,36 +1064,36 @@ Subject	*createMsgspace(Venture *venture, int continNbr, char *symmetricKey,
 
 	msgspace->keyLength = symmetricKeyLength;
 	lyst_delete_set(msgspace->elements, destroyElement, NULL);
-	lyst_delete_set(msgspace->nodes, destroyInterestedNode, NULL);
+	lyst_delete_set(msgspace->modules, destroyFanModule, NULL);
 	venture->msgspaces[continNbr] = msgspace;
 	return msgspace;
 }
 
-static void	eraseNode(Node *node)
+static void	eraseModule(Module *module)
 {
 	LystElt	elt;
 	LystElt	nextElt;
 
-	if (node->amsEndpoints)
+	if (module->amsEndpoints)
 	{
-		for (elt = lyst_first(node->amsEndpoints); elt; elt = nextElt)
+		for (elt = lyst_first(module->amsEndpoints); elt; elt = nextElt)
 		{
 			nextElt = lyst_next(elt);
 			lyst_delete(elt);
 		}
 	}
 
-	if (node->subjects)
+	if (module->subjects)
 	{
-		for (elt = lyst_first(node->subjects); elt; elt = nextElt)
+		for (elt = lyst_first(module->subjects); elt; elt = nextElt)
 		{
 			nextElt = lyst_next(elt);
 			lyst_delete(elt);
 		}
 	}
 
-	clearMamsEndpoint(&node->mamsEndpoint);
-	node->role = NULL;
+	clearMamsEndpoint(&module->mamsEndpoint);
+	module->role = NULL;
 }
 
 static void	destroySubjOfInterest(LystElt elt, void *userdata)
@@ -1102,38 +1102,38 @@ static void	destroySubjOfInterest(LystElt elt, void *userdata)
 
 	lyst_destroy(subj->subscriptions);
 	lyst_destroy(subj->invitations);
-	lyst_delete(subj->intnElt);
+	lyst_delete(subj->fanElt);
 	MRELEASE(subj);
 }
 
-static Node	*createNode(Cell *cell, int nodeNbr)
+static Module	*createModule(Cell *cell, int moduleNbr)
 {
-	Node	*node;
+	Module	*module;
 
-	node = (Node *) MTAKE(sizeof(Node));
-	if (node == NULL)
+	module = (Module *) MTAKE(sizeof(Module));
+	if (module == NULL)
 	{
 		putSysErrmsg(NoMemoryMemo, NULL);
 		return NULL;
 	}
 
-	memset((char *) node, 0, sizeof(Node));
-	node->unitNbr = cell->unit->nbr;
-	node->nbr = nodeNbr;
-	node->role = NULL;
-	node->amsEndpoints = lyst_create_using(amsMemory);
-	node->subjects = lyst_create_using(amsMemory);
-	if (node->amsEndpoints == NULL || node->subjects == NULL)
+	memset((char *) module, 0, sizeof(Module));
+	module->unitNbr = cell->unit->nbr;
+	module->nbr = moduleNbr;
+	module->role = NULL;
+	module->amsEndpoints = lyst_create_using(amsMemory);
+	module->subjects = lyst_create_using(amsMemory);
+	if (module->amsEndpoints == NULL || module->subjects == NULL)
 	{
-		eraseNode(node);
+		eraseModule(module);
 		putSysErrmsg(NoMemoryMemo, NULL);
 		return NULL;
 	}
 
-	lyst_delete_set(node->amsEndpoints, destroyAmsEndpoint, NULL);
-	lyst_delete_set(node->subjects, destroySubjOfInterest, NULL);
-	cell->nodes[nodeNbr] = node;
-	return node;
+	lyst_delete_set(module->amsEndpoints, destroyAmsEndpoint, NULL);
+	lyst_delete_set(module->subjects, destroySubjOfInterest, NULL);
+	cell->modules[moduleNbr] = module;
+	return module;
 }
 
 void	eraseUnit(Venture *venture, Unit *unit)
@@ -1159,11 +1159,11 @@ void	eraseUnit(Venture *venture, Unit *unit)
 
 	cell = unit->cell;
 	clearMamsEndpoint(&cell->mamsEndpoint);
-	for (i = 1; i <= MaxNodeNbr; i++)
+	for (i = 1; i <= MaxModuleNbr; i++)
 	{
-		if (cell->nodes[i])
+		if (cell->modules[i])
 		{
-			eraseNode(cell->nodes[i]);
+			eraseModule(cell->modules[i]);
 		}
 	}
 
@@ -1239,9 +1239,9 @@ static Unit	*initializeUnit(Venture *venture, int nbr, char *name,
 
 	/*	Initialize cell data of unit.				*/
 
-	for (i = 1; i <= MaxNodeNbr; i++)
+	for (i = 1; i <= MaxModuleNbr; i++)
 	{
-		if (createNode(cell, i) < 0)
+		if (createModule(cell, i) < 0)
 		{
 			eraseUnit(venture, unit);
 			lyst_destroy(subunits);
@@ -1285,7 +1285,7 @@ static Unit	*initializeUnit(Venture *venture, int nbr, char *name,
 		}
 
 		/*	Detach this unit from its current superunit
-		 *	(the new node's superunit) and insert it as
+		 *	(the new module's superunit) and insert it as
 		 *	a subunit of the new unit.			*/
 
 		lyst_delete(subunit->inclusionElt);
@@ -1988,36 +1988,36 @@ int	createMib(int nbr, char *gwEidString, int ramsNetIsTree, char *ptsName,
 
 /*	*	*	MIB management functions	*	*	*/
 
-int	computeNodeId(int roleNbr, int unitNbr, int nodeNbr)
+int	computeModuleId(int roleNbr, int unitNbr, int moduleNbr)
 {
-	unsigned int	nodeId;
+	unsigned int	moduleId;
 
-	nodeId = (roleNbr << 24) + (unitNbr << 8) + nodeNbr;
-	return (int) nodeId;
+	moduleId = (roleNbr << 24) + (unitNbr << 8) + moduleNbr;
+	return (int) moduleId;
 }
 
-int	parseNodeId(int memo, int *roleNbr, int *unitNbr, int *nodeNbr)
+int	parseModuleId(int memo, int *roleNbr, int *unitNbr, int *moduleNbr)
 {
-	unsigned int	nodeId = (unsigned int) memo;
+	unsigned int	moduleId = (unsigned int) memo;
 
-	*roleNbr = (nodeId >> 24) & 0x000000ff;
+	*roleNbr = (moduleId >> 24) & 0x000000ff;
 	if (*roleNbr < 1 || *roleNbr > MaxRoleNbr)
 	{
 		putErrmsg("Role nbr invalid.", itoa(*roleNbr));
 		return -1;
 	}
 
-	*unitNbr = (nodeId >> 8) & 0x0000ffff;
+	*unitNbr = (moduleId >> 8) & 0x0000ffff;
 	if (*unitNbr > MaxUnitNbr)
 	{
 		putErrmsg("Unit nbr invalid.", itoa(*unitNbr));
 		return -1;
 	}
 
-	*nodeNbr = nodeId & 0x000000ff;
-	if (*nodeNbr < 1 || *nodeNbr > MaxNodeNbr)
+	*moduleNbr = moduleId & 0x000000ff;
+	if (*moduleNbr < 1 || *moduleNbr > MaxModuleNbr)
 	{
-		putErrmsg("Node nbr invalid.", itoa(*nodeNbr));
+		putErrmsg("Module nbr invalid.", itoa(*moduleNbr));
 		return -1;
 	}
 
@@ -2086,37 +2086,37 @@ void	clearMamsEndpoint(MamsEndpoint *ep)
 	}
 }
 
-int	rememberNode(Node *node, AppRole *role, int eptLength, char *ept)
+int	rememberModule(Module *module, AppRole *role, int eptLength, char *ept)
 {
-	if (constructMamsEndpoint(&(node->mamsEndpoint), eptLength, ept))
+	if (constructMamsEndpoint(&(module->mamsEndpoint), eptLength, ept))
 	{
-		putErrmsg("Can't store node's MAMS endpoint.", NULL);
+		putErrmsg("Can't store module's MAMS endpoint.", NULL);
 		return -1;
 	}
 
-	node->role = role;
+	module->role = role;
 	return 0;
 }
 
-void	forgetNode(Node *node)
+void	forgetModule(Module *module)
 {
 	LystElt	elt;
 	LystElt	nextElt;
 
-	for (elt = lyst_first(node->amsEndpoints); elt; elt = nextElt)
+	for (elt = lyst_first(module->amsEndpoints); elt; elt = nextElt)
 	{
 		nextElt = lyst_next(elt);
 		lyst_delete(elt);
 	}
 
-	for (elt = lyst_first(node->subjects); elt; elt = nextElt)
+	for (elt = lyst_first(module->subjects); elt; elt = nextElt)
 	{
 		nextElt = lyst_next(elt);
 		lyst_delete(elt);
 	}
 
-	clearMamsEndpoint(&node->mamsEndpoint);
-	node->role = NULL;
+	clearMamsEndpoint(&module->mamsEndpoint);
+	module->role = NULL;
 }
 
 /*	*	*	MAMS message transmission *	*	*	*/

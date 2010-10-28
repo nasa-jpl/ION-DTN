@@ -24,7 +24,7 @@ static void	handleQuit()
 	puts("Please enter '.' to quit the program.");
 }
 
-static void	handleCommand(AmsNode me, char *mode)
+static void	handleCommand(AmsModule me, char *mode)
 {
 	char		line[256];
 	char		*newline;
@@ -224,7 +224,7 @@ int	main(int argc, char **argv)
 	char	*authorityName = (argc > 4 ? argv[4] : NULL);
 	char	*mode = (argc > 5 ? argv[5] : "p");
 #endif
-	AmsNode		me;
+	AmsModule		me;
 	AmsEventMgt	rules;
 
 #ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/

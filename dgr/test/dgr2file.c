@@ -47,6 +47,7 @@ int	main(int argc, char **argv)
 	char		ownHostName[MAXHOSTNAMELEN + 1];
 	unsigned int	ownIpAddress;
 	unsigned short	portNbr = TEST_PORT_NBR;
+	DgrRC		rc;
 	FILE		*outputFile;
 	unsigned int	remoteIpAddress;
 	unsigned short	remotePortNbr;
@@ -56,7 +57,8 @@ int	main(int argc, char **argv)
 
 	getNameOfHost(ownHostName, sizeof ownHostName);
 	ownIpAddress = getInternetAddress(ownHostName);
-	if (dgr_open(portNbr, ownIpAddress, NULL, &dgr2file_dgr) != DgrOpened)
+	if (dgr_open(ownIpAddress, 2, portNbr, ownIpAddress, NULL,
+			&dgr2file_dgr, &rc) < 0)
 	{
 		perror("can't open dgr service");
 		return 0;
@@ -74,9 +76,15 @@ int	main(int argc, char **argv)
 		}
 
 		lineSize = sizeof line;
-		switch (dgr_receive(dgr2file_dgr, &remotePortNbr,
+		if (dgr_receive(dgr2file_dgr, &remotePortNbr,
 				&remoteIpAddress, line, &lineSize, &errnbr,
-				DGR_BLOCKING))
+				DGR_BLOCKING, &rc) < 0)
+		{
+			putErrmsg("dg_receive failed.", NULL);
+			return 0;
+		}
+
+		switch (rc)
 		{
 		case DgrDatagramReceived:
 			break;
@@ -86,7 +94,8 @@ int	main(int argc, char **argv)
 			continue;
 
 		default:
-			perror("dgr_receive failed");
+			putErrmsg("dgr_receive got unrecognized result.",
+					itoa(rc));
 			return 0;
 		}
 

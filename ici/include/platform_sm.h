@@ -69,6 +69,9 @@ extern int		sm_TaskSpawn(char *name, char *arg1, char *arg2,
 				char *arg3, char *arg4, char *arg5, char *arg6,
 				char *arg7, char *arg8, char *arg9, char *arg10,
 				int priority, int stackSize);
+#ifdef RTEMS
+extern void		sm_TaskForget();
+#endif
 extern void		sm_TaskKill(int taskId, int sigNbr);
 extern void		sm_TaskDelete(int taskId);
 extern void		sm_Abort();

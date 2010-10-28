@@ -9,8 +9,31 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 	
+	7/6/2010, modified as per issue 132-udplso-tx-rate-limit
+	Greg Menke, Raytheon, under contract METS-MR-679-0909
+	with NASA GSFC
+
 									*/
+
 #include "udplsa.h"
+
+#include "arpa/inet.h"
+#include "netinet/ip.h"
+#include "netinet/udp.h"
+
+
+#if defined(linux)
+
+#define IPHDR_SIZE		(sizeof(struct iphdr) + sizeof(struct udphdr))
+
+#else
+
+#include "netinet/ip_var.h"
+#include "netinet/udp_var.h"
+
+#define IPHDR_SIZE		(sizeof(struct udpiphdr))
+
+#endif
 
 static sm_SemId		udplsoSemaphore(sm_SemId *semid)
 {
@@ -29,13 +52,89 @@ static void	shutDownLso()	/*	Commands LSO termination.	*/
 	sm_SemEnd(udplsoSemaphore(NULL));
 }
 
-int	sendSegmentByUDP(int linkSocket, char *from, int length)
+/*	*	*	Receiver thread functions	*	*	*/
+
+typedef struct
+{
+	int		linkSocket;
+	pthread_t	mainThread;
+	int		running;
+} ReceiverThreadParms;
+
+static void	*handleDatagrams(void *parm)
+{
+	/*	Main loop for UDP datagram reception and handling.	*/
+
+	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
+	char			*buffer;
+	int			segmentLength;
+	struct sockaddr_in	fromAddr;
+	socklen_t		fromSize;
+
+	buffer = MTAKE(UDPLSA_BUFSZ);
+	if (buffer == NULL)
+	{
+		putErrmsg("udplsi can't get UDP buffer.", NULL);
+		pthread_kill(rtp->mainThread, SIGTERM);
+		return NULL;
+	}
+
+	/*	Can now start receiving bundles.  On failure, take
+	 *	down the LSO.						*/
+
+	iblock(SIGTERM);
+	while (rtp->running)
+	{	
+		fromSize = sizeof fromAddr;
+		segmentLength = recvfrom(rtp->linkSocket, buffer, UDPLSA_BUFSZ,
+				0, (struct sockaddr *) &fromAddr, &fromSize);
+		switch(segmentLength)
+		{
+		case -1:
+			putSysErrmsg("Can't acquire segment", NULL);
+			pthread_kill(rtp->mainThread, SIGTERM);
+
+			/*	Intentional fall-through to next case.	*/
+
+		case 1:				/*	Normal stop.	*/
+			rtp->running = 0;
+			continue;
+		}
+
+		if (ltpHandleInboundSegment(buffer, segmentLength) < 0)
+		{
+			putErrmsg("Can't handle inbound segment.", NULL);
+			pthread_kill(rtp->mainThread, SIGTERM);
+			rtp->running = 0;
+			continue;
+		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
+	}
+
+	writeErrmsgMemos();
+	writeMemo("[i] udplso receiver thread has ended.");
+
+	/*	Free resources.						*/
+
+	MRELEASE(buffer);
+	return NULL;
+}
+
+/*	*	*	Main thread functions	*	*	*	*/
+
+int	sendSegmentByUDP(int linkSocket, char *from, int length,
+		struct sockaddr_in *destAddr )
 {
 	int	bytesWritten;
 
 	while (1)	/*	Continue until not interrupted.		*/
 	{
-		bytesWritten = send(linkSocket, from, length, 0);
+		bytesWritten = sendto(linkSocket, from, length, 0,
+			(struct sockaddr *)destAddr,
+			sizeof(struct sockaddr));
 		if (bytesWritten < 0)
 		{
 			if (errno == EINTR)	/*	Interrupted.	*/
@@ -43,47 +142,76 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length)
 				continue;	/*	Retry.		*/
 			}
 
-			putSysErrmsg("LSO send() error on socket", NULL);
+			{
+				char memoBuf[1000];
+				struct sockaddr_in *saddr = destAddr;
+
+				isprintf(memoBuf, sizeof(memoBuf),
+					"udplso sento() error, dest=[%s:%d], nbytes=%d, rv=%d, errno=%d", 
+					(char *)inet_ntoa( saddr->sin_addr ), 
+					ntohs( saddr->sin_port ), 
+					length,
+					bytesWritten, 
+					errno );
+
+				writeMemo( memoBuf );
+			}
 		}
 
 		return bytesWritten;
 	}
 }
 
-/*	*	*	Main thread functions	*	*	*	*/
-
 #if defined (VXWORKS) || defined (RTEMS)
 int	udplso(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+	       int a6, int a7, int a8, int a9, int a10)
 {
 	char			*endpointSpec = (char *) a1;
-	unsigned long		remoteEngineId =
-				a2 != 0 ? strtoul((char *) a2, NULL, 0) : 0;
+	unsigned int		txbps = (a2 != 0 ? 
+				strtoul((char *) a2, NULL, 0) : 0);
+	unsigned long		remoteEngineId = a3 != 0 ? 
+				strtoul((char *) a3, NULL, 0) : 0;
 #else
 int	main(int argc, char *argv[])
 {
 	char			*endpointSpec = argc > 1 ? argv[1] : NULL;
-	unsigned long		remoteEngineId =
-				argc > 2 ? strtoul(argv[2], NULL, 0) : 0;
+	unsigned int		txbps = (argc > 2 ?
+				strtoul(argv[2], NULL, 0) : 0);
+	unsigned long		remoteEngineId = 
+				argc > 3 ? strtoul(argv[3], NULL, 0) : 0;
 #endif
+	char			memoBuf[1024];
 	Sdr			sdr;
 	LtpVspan		*vspan;
 	PsmAddress		vspanElt;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
 	char			ownHostName[MAXHOSTNAMELEN];
-	int			running = 1;
+	struct sockaddr		ownSockName;
+	struct sockaddr_in	*ownInetName;
+	struct sockaddr		bindSockName;
+	struct sockaddr_in	*bindInetName;
+	struct sockaddr		peerSockName;
+	struct sockaddr_in	*peerInetName;
+	socklen_t		nameLength;
+	ReceiverThreadParms	rtp;
+	pthread_t		receiverThread;
 	int			segmentLength;
 	char			*segment;
-	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName;
-	int			linkSocket;
 	int			bytesSent;
+	int			fd;
+	char			quit = '\0';
+
+	if( txbps != 0 && remoteEngineId == 0 )
+	{
+		remoteEngineId = txbps;
+		txbps = 0;
+	}
 
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{
 		PUTS("Usage: udplso {<remote engine's host name> | @}[:\
-<its port number>] <remote engine ID>");
+		<its port number>] <txbps (0=unlimited)> <remote engine ID>");
 		return 0;
 	}
 
@@ -115,38 +243,67 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	/*	All command-line arguments are now validated.		*/
-
 	sdr_exit_xn(sdr);
+
+	/*	All command-line arguments are now validated.  First
+	 *	get peer's socket address.				*/
+
 	parseSocketSpec(endpointSpec, &portNbr, &ipAddress);
 	if (portNbr == 0)
 	{
 		portNbr = LtpUdpDefaultPortNbr;
 	}
-	
+
+	getNameOfHost(ownHostName, sizeof ownHostName);
 	if (ipAddress == 0)		/*	Default to local host.	*/
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
 		ipAddress = getInternetAddress(ownHostName);
 	}
 
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
-	memset((char *) &socketName, 0, sizeof socketName);
-	inetName = (struct sockaddr_in *) &socketName;
-	inetName->sin_family = AF_INET;
-	inetName->sin_port = portNbr;
-	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &ipAddress, 4);
-	linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (linkSocket < 0)
+	memset((char *) &peerSockName, 0, sizeof peerSockName);
+	peerInetName = (struct sockaddr_in *) &peerSockName;
+	peerInetName->sin_family = AF_INET;
+	peerInetName->sin_port = portNbr;
+	memcpy((char *) &(peerInetName->sin_addr.s_addr),
+			(char *) &ipAddress, 4);
+
+	/*	Now compute own socket address, used when the peer
+	 *	responds to the link service output socket rather
+	 *	than to the advertised link service input socket.	*/
+
+	portNbr = 0;			/*	Let O/S select it.	*/
+	ipAddress = getInternetAddress(ownHostName);
+	ipAddress = INADDR_ANY;
+	memset((char *) &bindSockName, 0, sizeof bindSockName);
+	bindInetName = (struct sockaddr_in *) &bindSockName;
+	bindInetName->sin_family = AF_INET;
+	bindInetName->sin_port = portNbr;
+	memcpy((char *) &(bindInetName->sin_addr.s_addr),
+			(char *) &ipAddress, 4);
+
+	/*	Now create the socket that will be used for sending
+	 *	datagrams to the peer LTP engine and receiving
+	 *	datagrams from the peer LTP engine.			*/
+
+	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (rtp.linkSocket < 0)
 	{
 		putSysErrmsg("LSO can't open UDP socket", NULL);
 		return 1;
 	}
 
-	if (connect(linkSocket, &socketName, sizeof(struct sockaddr_in)) < 0)
+	/*	Bind the socket to own socket address so that we can
+	 *	send a 1-byte datagram to that address to shut down
+	 *	the datagram handling thread.				*/
+
+	nameLength = sizeof(struct sockaddr);
+	if (bind(rtp.linkSocket, &bindSockName, nameLength) < 0
+	|| getsockname(rtp.linkSocket, &bindSockName, &nameLength) < 0)
 	{
-		putSysErrmsg("LSO can't connect UDP socket", NULL);
+		close(rtp.linkSocket);
+		putSysErrmsg("LSO can't bind UDP socket", NULL);
 		return 1;
 	}
 
@@ -155,19 +312,35 @@ int	main(int argc, char *argv[])
 	oK(udplsoSemaphore(&(vspan->segSemaphore)));
 	signal(SIGTERM, shutDownLso);
 
+	/*	Start the echo handler thread.				*/
+
+	rtp.running = 1;
+	rtp.mainThread = pthread_self();
+	if (pthread_create(&receiverThread, NULL, handleDatagrams, &rtp))
+	{
+		close(rtp.linkSocket);
+		putSysErrmsg("udplsi can't create receiver thread", NULL);
+		return 1;
+	}
+
 	/*	Can now begin transmitting to remote engine.		*/
 
-	writeMemo("[i] udplso is running.");
-	while (running && !(sm_SemEnded(vspan->segSemaphore)))
+	isprintf(memoBuf, sizeof(memoBuf),
+		"[i] udplso is running, spec=[%s:%d], txbps=%d (0=unlimited), rengine=%d.", 
+		(char *)inet_ntoa( peerInetName->sin_addr ), 
+		ntohs( portNbr ), txbps, (int)remoteEngineId );
+	writeMemo( memoBuf );
+
+	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 		if (segmentLength < 0)
 		{
-			running = 0;	/*	Terminate LSO.		*/
+			rtp.running = 0;	/*	Terminate LSO.	*/
 			continue;
 		}
 
-		if (segmentLength == 0)	/*	Interrupted.		*/
+		if (segmentLength == 0)		/*	Interrupted.	*/
 		{
 			continue;
 		}
@@ -176,15 +349,33 @@ int	main(int argc, char *argv[])
 		{
 			putErrmsg("Segment is too big for UDP LSO.",
 					itoa(segmentLength));
-			running = 0;	/*	Terminate LSO.		*/
+			rtp.running = 0;	/*	Terminate LSO.	*/
 		}
 		else
 		{
-			bytesSent = sendSegmentByUDP(linkSocket, segment,
-					segmentLength);
+			bytesSent = sendSegmentByUDP(rtp.linkSocket, segment,
+					segmentLength, peerInetName );
 			if (bytesSent < segmentLength)
 			{
-				running = 0;	/*	Terminate LSO.	*/
+				rtp.running = 0;	/*	Terminate LSO.	*/
+			}
+
+			if( txbps != 0 )
+			{
+				unsigned int usecs;
+				float sleep_secs = (1.0 / ((float)txbps)) *
+					((float)((IPHDR_SIZE + segmentLength)*8));
+
+				if( sleep_secs < 0.010 )
+				{
+					usecs = 10000;
+				}
+				else
+				{
+					usecs = (unsigned int)( sleep_secs * 1000000 );
+				}
+
+				microsnooze( usecs );
 			}
 		}
 
@@ -193,8 +384,32 @@ int	main(int argc, char *argv[])
 		sm_TaskYield();
 	}
 
-	close(linkSocket);
+
+	/*	Create one-use socket for the closing quit byte.	*/
+
+	portNbr = bindInetName->sin_port;	/*	Get from bound sock	*/
+	ipAddress = getInternetAddress(ownHostName);
+	ipAddress = htonl(ipAddress);
+	memset((char *) &ownSockName, 0, sizeof ownSockName);
+	ownInetName = (struct sockaddr_in *) &ownSockName;
+	ownInetName->sin_family = AF_INET;
+	ownInetName->sin_port = portNbr;
+	memcpy((char *) &(ownInetName->sin_addr.s_addr),
+			(char *) &ipAddress, 4);
+
+	/*	Wake up the receiver thread by sending it a 1-byte
+	 *	datagram.						*/
+
+	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (fd >= 0)
+	{
+		sendto(fd, &quit, 1, 0, &ownSockName, sizeof(struct sockaddr));
+		close(fd);
+	}
+
+	pthread_join(receiverThread, NULL);
+	close(rtp.linkSocket);
 	writeErrmsgMemos();
-	writeMemo("[i] udplso duct has ended.");
+	writeMemo("[i] udplso has ended.");
 	return 0;
 }

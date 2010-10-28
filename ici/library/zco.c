@@ -24,7 +24,8 @@ typedef struct
 typedef struct
 {
 	int		refCount;
-	int		okayToDestroy;
+	short		okayToDestroy;
+	short		unlinkOnDestroy;
 	char		pathName[256];
 	char		cleanupScript[256];
 } FileRef;
@@ -160,11 +161,19 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 	close(sourceFd);
 	fileRef.refCount = 0;
 	fileRef.okayToDestroy = 0;
+	fileRef.unlinkOnDestroy = 0;
 	memcpy(fileRef.pathName, pathName, pathLen);
 	fileRef.pathName[pathLen] = '\0';
 	if (cleanupScript)
 	{
-		memcpy(fileRef.cleanupScript, cleanupScript, scriptLen);
+		if (scriptLen == 0)
+		{
+			fileRef.unlinkOnDestroy = 1;
+		}
+		else
+		{
+			memcpy(fileRef.cleanupScript, cleanupScript, scriptLen);
+		}
 	}
 
 	fileRef.cleanupScript[scriptLen] = '\0';
@@ -203,12 +212,19 @@ static void	destroyFileReference(Sdr sdr, FileRef *fileRef,
 	 *	script if provided.					*/
 
 	sdr_free(sdr, fileRefObj);
-	if (fileRef->cleanupScript[0] != '\0')
+	if (fileRef->unlinkOnDestroy)
 	{
-		if (pseudoshell(fileRef->cleanupScript) < 0)
+		oK(unlink(fileRef->pathName));
+	}
+	else
+	{
+		if (fileRef->cleanupScript[0] != '\0')
 		{
-			writeMemoNote("[?] Can't run file reference's cleanup \
-script", fileRef->cleanupScript);
+			if (pseudoshell(fileRef->cleanupScript) < 0)
+			{
+				writeMemoNote("[?] Can't run file reference's \
+cleanup script", fileRef->cleanupScript);
+			}
 		}
 	}
 }

@@ -108,7 +108,7 @@ static void	noteLoadError(LoadMibState *state, char *text)
 	char		buf[256];
 	XML_Parser	parser = state->parser;
 
-	isprintf(buf, sizeof buf, "MIB load error at line %d of file: %s",
+	isprintf(buf, sizeof buf, "[?] MIB load error at line %d of file: %s",
 			(int) XML_GetCurrentLineNumber(parser), text);
 	writeMemo(buf);
 	state->abandoned = 1;
@@ -1323,7 +1323,7 @@ static int	loadMibFromSource(char *mibSource)
 
 		if (state.abandoned)
 		{
-			writeMemo("Abandoning MIB load.");
+			writeMemo("[?] Abandoning MIB load.");
 			result = -1;
 			break;	/*	Out of loop.			*/
 		}

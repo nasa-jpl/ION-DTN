@@ -1,6 +1,6 @@
 /*
  	ams.h:	definitions supporting the implementation of AMS
-		(Asynchronous Message Service) nodes.
+		(Asynchronous Message Service) modules.
 
 	Author: Scott Burleigh, JPL
 
@@ -41,7 +41,7 @@ typedef enum
 	AmsAssured
 } AmsDiligence;
 
-typedef struct amssapst	*AmsNode;
+typedef struct amssapst	*AmsModule;
 typedef struct amsevtst	*AmsEvent;
 
 /*	AMS event types.						*/
@@ -71,12 +71,12 @@ typedef enum
 	AmsMsgNone
 } AmsMsgType;
 
-typedef void		(*AmsMsgHandler)(AmsNode node,
+typedef void		(*AmsMsgHandler)(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
 					int continuumNbr,
 					int unitNbr,
-					int nodeNbr,
+					int moduleNbr,
 					int subjectNbr,
 					int contentLength,
 					char *content,
@@ -85,24 +85,24 @@ typedef void		(*AmsMsgHandler)(AmsNode node,
 					int priority,
 					unsigned char flowLabel);
 
-typedef void		(*AmsRegistrationHandler)(AmsNode node,
+typedef void		(*AmsRegistrationHandler)(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
 					int unitNbr,
-					int nodeNbr,
+					int moduleNbr,
 					int roleNbr);
 
-typedef void		(*AmsUnregistrationHandler)(AmsNode node,
+typedef void		(*AmsUnregistrationHandler)(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
 					int unitNbr,
-					int nodeNbr);
+					int moduleNbr);
 
-typedef void		(*AmsInvitationHandler)(AmsNode node,
+typedef void		(*AmsInvitationHandler)(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
 					int unitNbr,
-					int nodeNbr,
+					int moduleNbr,
 					int domainRoleNbr,
 					int domainContinuumNbr,
 					int domainUnitNbr,
@@ -112,21 +112,21 @@ typedef void		(*AmsInvitationHandler)(AmsNode node,
 					AmsSequence sequence,
 					AmsDiligence diligence);
 
-typedef void		(*AmsDisinvitationHandler)(AmsNode node,
+typedef void		(*AmsDisinvitationHandler)(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
 					int unitNbr,
-					int nodeNbr,
+					int moduleNbr,
 					int domainRoleNbr,
 					int domainContinuumNbr,
 					int domainUnitNbr,
 					int subjectNbr);
 
-typedef void		(*AmsSubscriptionHandler)(AmsNode node,
+typedef void		(*AmsSubscriptionHandler)(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
 					int unitNbr,
-					int nodeNbr,
+					int moduleNbr,
 					int domainRoleNbr,
 					int domainContinuumNbr,
 					int domainUnitNbr,
@@ -136,17 +136,17 @@ typedef void		(*AmsSubscriptionHandler)(AmsNode node,
 					AmsSequence sequence,
 					AmsDiligence diligence);
 
-typedef void		(*AmsUnsubscriptionHandler)(AmsNode node,
+typedef void		(*AmsUnsubscriptionHandler)(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
 					int unitNbr,
-					int nodeNbr,
+					int moduleNbr,
 					int domainRoleNbr,
 					int domainContinuumNbr,
 					int domainUnitNbr,
 					int subjectNbr);
 
-typedef void		(*AmsUserEventHandler)(AmsNode node,
+typedef void		(*AmsUserEventHandler)(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
 					int code,
@@ -191,7 +191,7 @@ extern int		ams_register(	char *mibSource,
 					char *authorityName,
 					char *unitName,
 					char *roleName,
-					AmsNode *node);
+					AmsModule *module);
 			/*	Arguments are:
 			 *		name of source medium for MIB
 			 *		overriding transport service
@@ -204,27 +204,27 @@ extern int		ams_register(	char *mibSource,
 			 *		preallocated private memory to
 			 *			be used for AMS
 		 	 *  		name of application in which
-			 *  			this node wants to
+			 *  			this module wants to
 			 *  			participate
 		 	 *  		name of authority in charge of
 			 *  			the venture in which
-			 *  			this node wants to
+			 *  			this module wants to
 			 *  			participate
 			 *  		name of specific unit, in the
 			 *  			venture identified by
 			 *  			application and authority
-			 *  			names, in which this node
+			 *  			names, in which this module
 			 *  			wants to participate
-			 *		name of node's functional role
+			 *		name of module's functional role
 			 *			within the application;
 			 *			need not be unique
 			 *		pointer to variable in which
-			 *			address of AMS node
+			 *			address of AMS module
 			 *			state will be returned
 			 *
 			 *	If mibSource is NULL, it defaults to
 			 *	roleName.  mibSource is used to locate
-			 *	the MIB for AMS nodes identified by
+			 *	the MIB for AMS modules identified by
 			 *	roleName; the MIB may reside in a file
 			 *	in the current working directory, or
 			 *	it may reside in an SDR, depending on
@@ -247,13 +247,13 @@ extern int		ams_register(	char *mibSource,
 			 *
 			 *	Returns 0 on success, -1 on any error.	*/
 
-extern int		ams_unregister(	AmsNode node);
+extern int		ams_unregister(	AmsModule module);
 
-extern int		ams_get_node_nbr(AmsNode node);
+extern int		ams_get_module_nbr(AmsModule module);
 
-extern int		ams_get_unit_nbr(AmsNode node);
+extern int		ams_get_unit_nbr(AmsModule module);
 
-extern Lyst		ams_list_msgspaces(AmsNode node);
+extern Lyst		ams_list_msgspaces(AmsModule module);
 
 extern int		ams_get_continuum_nbr();
 
@@ -261,39 +261,39 @@ extern int		ams_rams_net_is_tree();
 
 extern int		ams_continuum_is_neighbor(int continuumNbr);
 
-extern char		*ams_get_role_name(AmsNode node,
+extern char		*ams_get_role_name(AmsModule module,
 					int unitNbr,
-					int nodeNbr);
+					int moduleNbr);
 
-extern int		ams_subunit_of(AmsNode node,
+extern int		ams_subunit_of(AmsModule module,
 					int argUnitNbr,
 					int refUnitNbr);
 
-extern int		ams_lookup_unit_nbr(AmsNode node,
+extern int		ams_lookup_unit_nbr(AmsModule module,
 					char *unitName);
 
-extern int		ams_lookup_role_nbr(AmsNode node,
+extern int		ams_lookup_role_nbr(AmsModule module,
 					char *roleName);
 
-extern int		ams_lookup_subject_nbr(AmsNode node,
+extern int		ams_lookup_subject_nbr(AmsModule module,
 					char *subjectName);
 
-extern int		ams_lookup_continuum_nbr(AmsNode node,
+extern int		ams_lookup_continuum_nbr(AmsModule module,
 					char *continuumName);
 
-extern char		*ams_lookup_unit_name(AmsNode node,
+extern char		*ams_lookup_unit_name(AmsModule module,
 					int unitNbr);
 
-extern char		*ams_lookup_role_name(AmsNode node,
+extern char		*ams_lookup_role_name(AmsModule module,
 					int roleNbr);
 
-extern char		*ams_lookup_subject_name(AmsNode node,
+extern char		*ams_lookup_subject_name(AmsModule module,
 					int subjectNbr);
 
-extern char		*ams_lookup_continuum_name(AmsNode node,
+extern char		*ams_lookup_continuum_name(AmsModule module,
 					int continuumNbr);
 
-extern int		ams_invite(	AmsNode node,
+extern int		ams_invite(	AmsModule module,
 					int roleNbr,
 					int continuumNbr,
 					int unitNbr,
@@ -303,13 +303,13 @@ extern int		ams_invite(	AmsNode node,
 					AmsSequence sequence,
 					AmsDiligence diligence);
 
-extern int		ams_disinvite(	AmsNode node,
+extern int		ams_disinvite(	AmsModule module,
 					int roleNbr,
 					int continuumNbr,
 					int unitNbr,
 					int subjectNbr);
 
-extern int		ams_subscribe(	AmsNode node,
+extern int		ams_subscribe(	AmsModule module,
 					int roleNbr,
 					int continuumNbr,
 					int unitNbr,
@@ -319,13 +319,13 @@ extern int		ams_subscribe(	AmsNode node,
 					AmsSequence sequence,
 					AmsDiligence diligence);
 
-extern int		ams_unsubscribe(AmsNode node,
+extern int		ams_unsubscribe(AmsModule module,
 					int roleNbr,
 					int continuumNbr,
 					int unitNbr,
 					int subjectNbr);
 
-extern int		ams_publish(	AmsNode node,
+extern int		ams_publish(	AmsModule module,
 					int subjectNbr,
 					int priority,
 					unsigned char flowLabel,
@@ -333,10 +333,10 @@ extern int		ams_publish(	AmsNode node,
 					char *content,
 					int context);
 
-extern int		ams_send(	AmsNode node,
+extern int		ams_send(	AmsModule module,
 					int continuumNbr,
 					int unitNbr,
-					int nodeNbr,
+					int moduleNbr,
 					int subjectNbr,
 					int priority,
 					unsigned char flowLabel,
@@ -344,10 +344,10 @@ extern int		ams_send(	AmsNode node,
 					char *content,
 					int context);
 
-extern int		ams_query(	AmsNode node,
+extern int		ams_query(	AmsModule module,
 					int continuumNbr,
 					int unitNbr,
-					int nodeNbr,
+					int moduleNbr,
 					int subjectNbr,
 					int priority,
 					unsigned char flowLabel,
@@ -357,7 +357,7 @@ extern int		ams_query(	AmsNode node,
 					int term,
 					AmsEvent *event);
 
-extern int		ams_reply(	AmsNode node,
+extern int		ams_reply(	AmsModule module,
 					AmsEvent msg,
 					int subjectNbr,
 					int priority,
@@ -365,7 +365,7 @@ extern int		ams_reply(	AmsNode node,
 					int contentLength,
 					char *content);
 
-extern int		ams_announce(	AmsNode node,
+extern int		ams_announce(	AmsModule module,
 					int roleNbr,
 					int continuumNbr,
 					int unitNbr,
@@ -376,13 +376,13 @@ extern int		ams_announce(	AmsNode node,
 					char *content,
 					int context);
 
-extern int		ams_post_user_event(AmsNode node,
+extern int		ams_post_user_event(AmsModule module,
 					int userEventCode,
 					int userEventDataLength,
 					char *userEventData,
 					int priority);
 
-extern int		ams_get_event(	AmsNode node,
+extern int		ams_get_event(	AmsModule module,
 					int term,
 					AmsEvent *event);
 
@@ -391,7 +391,7 @@ extern int		ams_get_event_type(AmsEvent event);
 extern int		ams_parse_msg(	AmsEvent event,
 					int *continuumNbr,
 					int *unitNbr,
-					int *nodeNbr,
+					int *moduleNbr,
 					int *subjectNbr,
 					int *contentLength,
 					char **content,
@@ -404,7 +404,7 @@ extern int		ams_parse_notice(AmsEvent event,
 					AmsStateType *state,
 					AmsChangeType *change,
 					int *unitNbr,
-					int *nodeNbr,
+					int *moduleNbr,
 					int *roleNbr,
 					int *domainContinuumNbr,
 					int *domainUnitNbr,
@@ -421,10 +421,10 @@ extern int		ams_parse_user_event(AmsEvent event,
 
 extern int		ams_recycle_event(AmsEvent event);
 
-extern int		ams_set_event_mgr(AmsNode node,
+extern int		ams_set_event_mgr(AmsModule module,
 					AmsEventMgt *rules);
 
-extern void		ams_remove_event_mgr(AmsNode node);
+extern void		ams_remove_event_mgr(AmsModule module);
 #ifdef __cplusplus
 }
 #endif

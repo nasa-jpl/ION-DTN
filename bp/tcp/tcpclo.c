@@ -385,7 +385,7 @@ int	main(int argc, char *argv[])
 	while (running && !(sm_SemEnded(tcpcloSemaphore)))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName) < 0)
+				destDuctName, 1) < 0)
 		{
 			running = 0;	/*	Terminate CLO.		*/
 			continue;

@@ -149,7 +149,7 @@ int	main(int argc, char **argv)
 
 		switch (dlv.result)
 		{
-		case BpReceptionInterrupted:
+		case BpEndpointStopped:
 			running = 0;
 			break;		/*	Out of switch.		*/
 

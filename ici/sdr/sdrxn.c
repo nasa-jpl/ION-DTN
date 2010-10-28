@@ -358,8 +358,8 @@ static int	lockSdr(SdrState *sdr)
 		return -1;
 	}
 
-	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->sdrOwnerThread = pthread_self();
+	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
 	return 0;
 }
@@ -380,7 +380,6 @@ int	takeSdr(SdrState *sdr)
 static void	unlockSdr(SdrState *sdr)
 {
 	sdr->sdrOwnerTask = -1;
-	sdr->sdrOwnerThread = 0;
 	if (sdr->sdrSemaphore != -1)
 	{
 		sm_SemGive(sdr->sdrSemaphore);
@@ -945,7 +944,6 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	}
 
 	sdr->sdrOwnerTask = -1;
-	sdr->sdrOwnerThread = 0;
 	sdr->traceKey = sm_GetUniqueKey();
 	sdr->traceSize = 0;
 	limit = sizeof(sdr->pathName) - 1;
@@ -1335,6 +1333,7 @@ void	sdr_stop_using(Sdr sdrv)
 
 	if (sdr_in_xn(sdrv))
 	{
+		putErrmsg("Terminating transaction to stop using SDR.", NULL);
 		crashXn(sdrv);
 	}
 
@@ -1451,8 +1450,8 @@ void	sdr_destroy(Sdr sdrv)
 void	sdr_begin_xn(Sdr sdrv)
 {
 	CHKVOID(sdrv);
-	sdrv->modified = 0;
 	oK(takeSdr(sdrv->sdr));
+	sdrv->modified = 0;
 }
 
 int	sdr_in_xn(Sdr sdrv)

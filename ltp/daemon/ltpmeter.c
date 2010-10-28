@@ -213,8 +213,8 @@ engine %lu is stopped.", remoteEngineId);
 
 			if (sm_SemEnded(vdb->sessionSemaphore))
 			{
-				putErrmsg("LTP has been stopped.", NULL);
-				returnCode = 1;
+				writeMemo("[i] ltpmeter has been stopped.");
+				returnCode = 2;
 				break;		/*	Inner loop.	*/
 			}
 		}

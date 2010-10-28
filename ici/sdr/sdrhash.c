@@ -144,7 +144,7 @@ static int	computeRowNbr(int rowCount, int keyLength, char *key)
 }
 
 int	Sdr_hash_insert(char *file, int line, Sdr sdrv, Object hash, char *key,
-		Address value)
+		Address value, Object *entry)
 {
 	int	keyLength;
 	int	kvpairLength;
@@ -157,6 +157,7 @@ int	Sdr_hash_insert(char *file, int line, Sdr sdrv, Object hash, char *key,
 	Object	kvpairAddr;
 	KvPair	kvpair;
 	int	result;
+	Object	hashElt;
 
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -209,24 +210,50 @@ int	Sdr_hash_insert(char *file, int line, Sdr sdrv, Object hash, char *key,
 			SystemPut);
 	if (elt)
 	{
-		if (Sdr_list_insert_before(file, line, sdrv, elt, kvpairAddr)
-				== 0)
-		{
-			oK(_iEnd(file, line, "elt"));
-			return -1;
-		}
+		hashElt = Sdr_list_insert_before(file, line, sdrv, elt,
+				kvpairAddr);
 	}
 	else
 	{
-		if (Sdr_list_insert_last(file, line, sdrv, listAddr, kvpairAddr)
-				== 0)
-		{
-			oK(_iEnd(file, line, "elt"));
-			return -1;
-		}
+		hashElt = Sdr_list_insert_last(file, line, sdrv, listAddr,
+				kvpairAddr);
+	}
+
+	if (hashElt == 0)
+	{
+		oK(_iEnd(file, line, "elt"));
+		return -1;
+	}
+
+	if (entry)
+	{
+		*entry = hashElt;
 	}
 
 	return 1;		/*	Succeeded.			*/
+}
+
+int	Sdr_hash_delete_entry(char *file, int line, Sdr sdrv, Object entry)
+{
+	Object	kvpairAddr;
+
+	if (!(sdr_in_xn(sdrv)))
+	{
+		oK(_iEnd(file, line, _notInXnMsg()));
+		return -1;
+	}
+
+	joinTrace(sdrv, file, line);
+	if (entry == 0)
+	{
+		oK(_xniEnd(file, line, _apiErrMsg(), sdrv));
+		return -1;
+	}
+
+	kvpairAddr = sdr_list_data(sdrv, entry);
+	Sdr_free(file, line, sdrv, kvpairAddr);
+	Sdr_list_delete(file, line, sdrv, entry, NULL, NULL);
+	return 1;
 }
 
 int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value)
@@ -362,7 +389,8 @@ int	Sdr_hash_revise(char *file, int line, Sdr sdrv, Object hash, char *key,
 	return 0;		/*	Unable to revise value.		*/
 }
 
-int	Sdr_hash_remove(char *file, int line, Sdr sdrv, Object hash, char *key)
+int	Sdr_hash_remove(char *file, int line, Sdr sdrv, Object hash, char *key,
+		Address *value)
 {
 	int	keyLength;
 	int	kvpairLength;
@@ -411,12 +439,22 @@ int	Sdr_hash_remove(char *file, int line, Sdr sdrv, Object hash, char *key)
 			break;	/*	Not found.			*/
 		}
 
+		if (value)
+		{
+			*value = kvpair.value;
+		}
+
 		Sdr_free(file, line, sdrv, kvpairAddr);
 		Sdr_list_delete(file, line, sdrv, elt, NULL, NULL);
 		return 1;	/*	Succeeded.			*/
 	}
 
 	return 0;		/*	Unable to remove entry.		*/
+}
+
+static void	deleteHashEntry(Sdr sdrv, Object eltData, void *arg)
+{
+	sdr_free(sdrv, eltData);
 }
 
 void	Sdr_hash_destroy(char *file, int line, Sdr sdrv, Object hash)
@@ -445,7 +483,8 @@ void	Sdr_hash_destroy(char *file, int line, Sdr sdrv, Object hash)
 	{
 		rowAddr = sdr_table_row(sdrv, hash, i);
 		sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(Object));
-		Sdr_list_destroy(file, line, sdrv, listAddr, NULL, NULL);
+		Sdr_list_destroy(file, line, sdrv, listAddr, deleteHashEntry,
+				NULL);
 	}
 
 	Sdr_table_destroy(file, line, sdrv, hash);
