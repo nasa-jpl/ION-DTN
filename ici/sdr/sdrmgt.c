@@ -33,12 +33,20 @@ typedef struct
 
 /*		--	SDR space management stuff.	--		*/
 
+#if SPACE_ORDER == 3
+#define	SMALL_IN_USE	(0xffffffffffffff00)
+#define	SMALL_NEXT_ADDR (0x00ffffffffffffff)
+#define	LARGE_IN_USE	(0xffffffffffffffff)
+#else
 #define	SMALL_IN_USE	(0xffffff00)
+#define	SMALL_NEXT_ADDR (0x00ffffff)
 #define	LARGE_IN_USE	(0xffffffff)
+#endif
+
 
 #define	SMALL_BLOCK_OHD	(WORD_SIZE)
 #define	SMALL_BLK_LIMIT	(SMALL_SIZES * WORD_SIZE)
-#define SMALL_POOL_TOP	((WORD_SIZE / 256) - sizeof(SdrMap))
+#define SMALL_MAX_ADDR	(1L << (8 * (WORD_SIZE - 1)))
 
 /*
  * The overhead on a small block is WORD_SIZE bytes.  The last byte
@@ -132,7 +140,7 @@ static ObjectScale	scaleOf(Sdr sdrv, Address addr, Ohd *ohd)
 	{
 		leader = addr - SMALL_BLOCK_OHD;
 		sdrFetch(ohd->small, leader);
-		if ((ohd->small.next & 0xffffff00) != SMALL_IN_USE)
+		if ((ohd->small.next & SMALL_IN_USE) != SMALL_IN_USE)
 		{
 			return NotAnObject;
 		}
@@ -431,7 +439,7 @@ Object	_sdrzalloc(Sdr sdrv, unsigned long nbytes)
 	/*	Free small block is available for allocation.		*/
 
 		sdrFetch(ohd, ohdAddress);
-		newFirst = (ohd.next >> 8) & 0x00ffffff;
+		newFirst = (ohd.next >> 8) & SMALL_NEXT_ADDR;
 		patchMap(firstSmallFree[i], newFirst);
 		ohd.next = SMALL_IN_USE + userDataWords;
 		sdrPatch(ohdAddress, ohd);
@@ -448,7 +456,7 @@ Object	_sdrzalloc(Sdr sdrv, unsigned long nbytes)
 
 	increment = nbytes + SMALL_BLOCK_OHD;
 	if (map->unassignedSpace < increment
-	|| (map->endOfSmallPool + increment) > SMALL_POOL_TOP)
+	|| (map->endOfSmallPool + increment) > SMALL_MAX_ADDR)
 	{
 		putErrmsg("No space left in small pool.", NULL);
 		crashXn(sdrv);
@@ -638,6 +646,7 @@ static Object	mallocLarge(Sdr sdrv, unsigned long nbytes)
 
 		/*	Can't allocate block from unassigned space.	*/
 
+		putErrmsg("Can't increase large pool size.", NULL);
 		crashXn(sdrv);
 		return 0;
 	}
@@ -1041,7 +1050,7 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 		{
 			sdrFetch(smallHead, small);
 			nextSmall = (Address)
-				((smallHead.next >> 8) & 0x00ffffff);
+				((smallHead.next >> 8) & SMALL_NEXT_ADDR);
 			count++;
 		}
 

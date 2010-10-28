@@ -176,9 +176,9 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	if (db.heapSpaceBytesOccupied + occupancy > db.heapSpaceBytesReserved)
 	{
 		sdr_exit_xn(sdr);
-		writeMemo("[?] Cannot send, would exceed LTP heap space \
-reservation.");
-		return 0;
+		putErrmsg("ltp_send failed, would exceed LTP heap space \
+reservation; restart LTP client.", utoa(occupancy));
+		return -1;
 	}
 
 	db.heapSpaceBytesOccupied += occupancy;

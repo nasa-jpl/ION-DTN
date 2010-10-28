@@ -161,7 +161,7 @@ int	main(int argc, char **argv)
 		break;
 	}
 
-	writeMemo("Stopping bpsource.");
+	writeMemo("[i] Stopping bpsource.");
 	bp_detach();
 #endif
 	return 0;

@@ -75,7 +75,8 @@ typedef enum
 {
 	BpPayloadPresent = 1,
 	BpReceptionTimedOut,
-	BpReceptionInterrupted
+	BpReceptionInterrupted,
+	BpEndpointStopped
 } BpIndResult;
 
 typedef struct
@@ -183,17 +184,19 @@ extern int		bp_send(	BpSAP sap,
 extern int		bp_track(	Object bundleObj,
 					Object trackingElt);
 			/*	Adds trackingElt to the list of
-			 *	"tracking" reference in the bundle.
+			 *	"tracking" references in the bundle.
 			 *	trackingElt must be the address of
-			 *	an SDR list element -- whose data is
-			 *	the address of this same bundle --
-			 *	within some list of bundles that is
-			 *	privately managed by the application.
-			 *	Upon destruction of the bundle this
-			 *	list element will automatically be
-			 *	deleted, thus removing the bundle from
-			 *	the application's privately managed
-			 *	list of bundles.  This enables the
+			 *	an SDR list element -- whose data
+			 *	object's content nominally has got
+			 *	embedded within itself the address
+			 *	of this same bundle -- within some
+			 *	list that is privately managed by
+			 *	the application.  Upon destruction
+			 *	of the bundle that list element
+			 *	will automatically be deleted,
+			 *	thus removing the bundle from the
+			 *	application's privately managed
+			 *	list.  This device enables the
 			 *	application to keep track of bundles
 			 *	that it is operating on without risk
 			 *	of inadvertently de-referencing the

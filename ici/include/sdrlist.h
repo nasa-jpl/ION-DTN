@@ -33,7 +33,7 @@ typedef int		(*SdrListCompareFn)(Sdr sdr, Address eltData,
 	derived from its second argument (which may be a pointer
 	to an object residing in memory).				*/
 
-typedef void		(*SdrListDeleteFn)(Sdr sdr, Object elt, void *argument);
+typedef void		(*SdrListDeleteFn)(Sdr sdr, Object eltData, void *arg);
 
 #define sdr_list_create(sdr) \
 Sdr_list_create(__FILE__, __LINE__, sdr)
