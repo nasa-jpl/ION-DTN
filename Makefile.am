@@ -76,9 +76,21 @@ install-data-hook:
 	@echo "You should now run 'sudo ldconfig' if available."
 	@echo
 
-.PHONY:	test
+.PHONY:	test test-all test-branch test-% retest
 test:
-	cd tests && ./runtests
+	cd tests && ./runtestset normaltests
+test-all:
+	cd tests && ./runtestset alltests
+test-branch:
+	@echo
+	@echo "You need mercurial (hg) installed for this."
+	@echo
+	cd tests && hg branch | xargs -L1 ./runtestset
+test-%:
+	cd tests && ./runtestset $*
+retest:
+	cd tests && ./runtestset retest
+
 # create the makefile.tar.gz
 # this script, makefile-tar.sh, doesn't get distributed.
 #makefile.tar.gz:

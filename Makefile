@@ -21,8 +21,22 @@ clean:
 	gmake -C cfdp $@
 
 test:
-	cd tests
-	./runtests
+	cd tests && ./runtestset normaltests
+
+test-all:
+	cd tests && ./runtestset alltests
+
+test-branch:
+	@echo
+	@echo "You need mercurial (hg) installed for this."
+	@echo
+	cd tests && hg branch | xargs -L1 ./runtestset
+
+test-%:
+	cd tests && ./runtestset $*
+
+retest:
+	cd tests && ./runtestset retest
 
 
 vxworks5:

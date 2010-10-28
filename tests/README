@@ -17,6 +17,11 @@ A subset of the tests can also be run:
 
 	./runtests xyz a*
 
+A file defining a set of tests can be run with runtestset.  The arguments
+to runtestset are files that contain globs of tests to run:
+
+    ./runtestset quicktests
+
 
 Writing new tests
 ~~~~~~~~~~~~~~~~~
