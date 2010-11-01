@@ -216,7 +216,7 @@ else
 		echo "Appending ${IONSECRC} into ${OUTPUTFILE}."
 		echo >>"${OUTPUTFILE}"
 		echo "## begin ionsecadmin ${TAG}" >>"${OUTPUTFILE}"
-		cat "${IONRC}" >>"${OUTPUTFILE}"
+		cat "${IONSECRC}" >>"${OUTPUTFILE}"
 		echo "## end ionsecadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 	if [[ -r "${LTPRC}" ]] ; then

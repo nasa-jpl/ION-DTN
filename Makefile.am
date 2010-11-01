@@ -1388,7 +1388,7 @@ cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 # TESTS SECTION
 #
 ##########################
-.PHONY:	test check buildcheck
+.PHONY:	test check buildcheck test-all test-branch test-% retest
 
 # "make buildcheck" will compile any of the compiled tests, but won't run
 # any of them.
@@ -1397,8 +1397,39 @@ buildcheck: $(check_PROGRAMS)
 # The runtests test runner script runs anything named "dotest" that is
 # executable inside the tests/ directory.  This allows ION to have both
 # compiled tests and tests written in shell script.
+#test: buildcheck
+#	cd tests && ./runtests
+
+# Runs the tests listed in "normaltests"
 test: buildcheck
+	cd tests && ./runtestset normaltests
+
+# Uses the runtest script that simply runs "dotest" including compiled tests.
+# Could also use ./runtestset alltests, they should be equivalent.
+test-all: buildcheck
 	cd tests && ./runtests
+
+# Builds a testset file with the same name as a mercurial branch.
+# This is intended as a per-branch unit test.
+test-branch: buildcheck
+	@echo
+	@echo "You need mercurial (hg) installed for this."
+	@echo
+	cd tests && hg branch | xargs -L1 ./runtestset
+
+# Catch-all for tests, basically any string after "make test-" will run a
+# testset file with the same name as that string.
+test-%: buildcheck
+	cd tests && ./runtestset $*
+
+# Runtest will make a file called "retest" containing all "failed" tests.
+# The file will not exist at first (resulting in an error).
+# When there are no failed tests, retest will exist (no error), but contains
+# an empty test list (resulting in a test passage).
+# This ensures that "make restest" will only pass when some testing has
+# already been performed with total success.
+retest: buildcheck
+	cd tests && ./runtestset retest
 
 # "make check" is the same as "make test"
 check: test

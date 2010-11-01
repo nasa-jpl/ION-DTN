@@ -1,0 +1,10 @@
+# normaltests
+
+1001.sysctl-script/
+1003.loopback-sdr/
+1200.dtn-loopback/
+asymmetric-range/
+bsp/
+cgr-test/
+ltp-purge/
+status-rpts/

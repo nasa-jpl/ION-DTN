@@ -146,9 +146,9 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 	}
 
 	istrcpy(sap.endpointMetaEid.schemeName, metaEid.schemeName,
-			sizeof sap.endpointMetaEid.schemeName);
+			metaEid.schemeNameLength + 1);
 	istrcpy(sap.endpointMetaEid.nss, metaEid.nss,
-			sizeof sap.endpointMetaEid.nss);
+			metaEid.nssLength + 1);
 	restoreEidString(&metaEid);
 	sap.recvSemaphore = vpoint->semaphore;
 	memcpy((char *) *bpsapPtr, (char *) &sap, sizeof(Sap));
