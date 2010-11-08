@@ -4,4 +4,4 @@ wmAddress 0
 #       only, transactions are reversible, and object boundaries are enforced.
 configFlags 7
 heapWords 3000000
-pathName /tmp
+pathName ./
