@@ -124,30 +124,30 @@ int main(int argc, char **argv)
 
     /* Six args: custody.priority.ordinal.unreliable.critical.flow-label */
     desiredExtendedCOS.ordinal = 0;
-    desiredExtendedCOS.flags = 0;
+    desiredExtendedCOS.flags = BP_FLOW_LABEL_PRESENT;
     desiredExtendedCOS.flowLabel = 0;
     run_cos_case("0.0.0.0.0.0", desiredExtendedCOS, NoCustodyRequested, 0);
     run_cos_case("1.0.0.0.0.0", desiredExtendedCOS, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.0.0.0", desiredExtendedCOS, SourceCustodyRequired, 1);
-    desiredExtendedCOS.flags = BP_BEST_EFFORT;
+    desiredExtendedCOS.flags = BP_FLOW_LABEL_PRESENT | BP_BEST_EFFORT;
     run_cos_case("0.0.0.1.0.0", desiredExtendedCOS, NoCustodyRequested, 0);
     run_cos_case("1.0.0.1.0.0", desiredExtendedCOS, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.1.0.0", desiredExtendedCOS, SourceCustodyRequired, 1);
-    desiredExtendedCOS.flags = 0;
+    desiredExtendedCOS.flags = BP_FLOW_LABEL_PRESENT;
     desiredExtendedCOS.flowLabel = 42;
     run_cos_case("0.0.0.0.0.42", desiredExtendedCOS, NoCustodyRequested, 0);
     run_cos_case("1.0.0.0.0.42", desiredExtendedCOS, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.0.0.42", desiredExtendedCOS, SourceCustodyRequired, 1);
-    desiredExtendedCOS.flags = BP_BEST_EFFORT;
+    desiredExtendedCOS.flags = BP_FLOW_LABEL_PRESENT | BP_BEST_EFFORT;
     run_cos_case("0.0.0.1.0.42", desiredExtendedCOS, NoCustodyRequested, 0);
     run_cos_case("1.0.0.1.0.42", desiredExtendedCOS, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.1.0.42", desiredExtendedCOS, SourceCustodyRequired, 1);
-    desiredExtendedCOS.flags = 0;
+    desiredExtendedCOS.flags = BP_FLOW_LABEL_PRESENT;
     desiredExtendedCOS.flowLabel = 65535;
     run_cos_case("0.0.0.0.0.65535", desiredExtendedCOS, NoCustodyRequested, 0);
     run_cos_case("1.0.0.0.0.65535", desiredExtendedCOS, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.0.0.65535", desiredExtendedCOS, SourceCustodyRequired, 1);
-    desiredExtendedCOS.flags = BP_BEST_EFFORT;
+    desiredExtendedCOS.flags = BP_FLOW_LABEL_PRESENT | BP_BEST_EFFORT;
     run_cos_case("0.0.0.1.0.65535", desiredExtendedCOS, NoCustodyRequested, 0);
     run_cos_case("1.0.0.1.0.65535", desiredExtendedCOS, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.1.0.65535", desiredExtendedCOS, SourceCustodyRequired, 1);

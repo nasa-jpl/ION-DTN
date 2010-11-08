@@ -232,9 +232,11 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 	}
 
 	/* Syntax and bounds-checking passed; assign to outputs */
+	extendedCOS->flags = 0;
 	if (count >= 6)
 	{
 		extendedCOS->flowLabel = myFlowLabel;
+		extendedCOS->flags |= BP_FLOW_LABEL_PRESENT;
 	}
 	else
 	{
@@ -243,7 +245,7 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 
 	if (count >= 5)
 	{
-		extendedCOS->flags =	(myUnreliable ? BP_BEST_EFFORT : 0)
+		extendedCOS->flags |=	(myUnreliable ? BP_BEST_EFFORT : 0)
 					| (myCritical ? BP_MINIMUM_LATENCY : 0);
 	} else {
 		extendedCOS->flags = 0;
