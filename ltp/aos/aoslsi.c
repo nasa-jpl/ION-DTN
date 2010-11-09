@@ -184,9 +184,14 @@ int	main(int argc, char *argv[])
 
 	/*	Now sleep until interrupted by SIGTERM, at which point
 	 *	it's time to stop the link service.			*/
+	{
+		char txt[500];
 
-	writeMemo("[i] aoslsi is running.");
+		isprintf(txt, sizeof(txt), "[i] aoslsi is running, spec=[%s:%d].", 
+			inet_ntoa(inetName->sin_addr), ntohs(portNbr) );
 
+		writeMemo(txt );
+	}
 	snooze(2000000000);
 
 	/*	Time to shut down.					*/

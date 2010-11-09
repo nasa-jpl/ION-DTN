@@ -25,9 +25,14 @@
 
 #define	SMALL_BLOCK_OHD	(WORD_SIZE)
 #define	SMALL_BLK_LIMIT	(SMALL_SIZES * WORD_SIZE)
-#define SMALL_IN_USE	((PsmAddress) 0xffffff00)
 
+#if SPACE_ORDER ==3	/* 64-bit machine	*/
+#define	SMALL_IN_USE	((PsmAddress) 0xffffffffffffff00)
+#define	BLK_IN_USE	((PsmAddress) 0xffffffffffffffff)
+#else
+#define	SMALL_IN_USE	((PsmAddress) 0xffffff00)
 #define	BLK_IN_USE	((PsmAddress) 0xffffffff)
+#endif
 
 /*
  * The overhead on a small block is WORD_SIZE bytes.  When the block is
@@ -93,7 +98,8 @@ typedef struct			/*	Global view in shared memory.	*/
 	PsmAddress	directory;
 	u_int		status;
 	sm_SemId	semaphore;
-	int		owner;		/*	Last took the semaphore.*/
+	int		ownerTask;	/*	Last took the semaphore.*/
+	pthread_t	ownerThread;	/*	Last took the semaphore.*/
 	int		depth;		/*	Count of ungiven takes.	*/
 	int		desperate;
 	u_long		partitionSize;
@@ -136,28 +142,40 @@ static char	*_noTraceMsg()
 
 static void	lockPartition(PartitionMap *map)
 {
-	int	self;
+	int		selfTask;
+	pthread_t	selfThread;
 
 	CHKVOID(map->status == MANAGED);
-	self = sm_TaskIdSelf();
-	if (map->owner != self)
+	selfTask = sm_TaskIdSelf();
+	selfThread = pthread_self();
+	if (map->ownerTask == selfTask
+	&& pthread_equal(map->ownerThread, selfThread))
 	{
-		sm_SemTake(map->semaphore);
-		map->owner = self;
+		map->depth++;
+		return;
 	}
 
-	map->depth++;
+	CHKVOID(map->semaphore != -1);
+	oK(sm_SemTake(map->semaphore));
+	map->ownerThread = selfThread;
+	map->ownerTask = selfTask;
+	map->depth = 1;
 }
 
 static void	unlockPartition(PartitionMap *map)
 {
-	if (map->status == MANAGED)
+	if (map->status == MANAGED
+	&& map->ownerTask == sm_TaskIdSelf()
+	&& pthread_equal(map->ownerThread, pthread_self()))
 	{
 		map->depth--;
 		if (map->depth == 0)
 		{
-			map->owner = -1;
-			sm_SemGive(map->semaphore);
+			map->ownerTask = -1;
+			if (map->semaphore != -1)
+			{
+				sm_SemGive(map->semaphore);
+			}
 		}
 	}
 }
@@ -287,7 +305,7 @@ actual name.", map->name);
 		return -1;
 	}
 
-	map->owner = -1;
+	map->ownerTask = -1;
 	map->depth = 0;
 	map->status = MANAGED;
 	*psmp = partition;

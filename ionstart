@@ -200,6 +200,11 @@ fi
 #fi
 
 echo
+echo Allowing admin programs to complete...
+echo
+sleep 5
+
+echo
 echo "ION startup script completed."
 echo "You may find that the ION node has not started. If this is the case,"
 echo "some errors may have been reported to the console."

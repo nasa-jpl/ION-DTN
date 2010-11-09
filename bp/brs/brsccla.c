@@ -434,7 +434,15 @@ number>");
 
 	/*	Can now begin transmitting to server.			*/
 
-	writeMemo("[i] brsccla is running.");
+	{
+		char txt[500];
+
+		isprintf(txt, sizeof(txt), "[i] brsccla is running, spec=[%s:%d].", 
+			inet_ntoa(inetName->sin_addr), ntohs(inetName->sin_port) );
+
+		writeMemo(txt );
+	}
+
 	while (!(sm_SemEnded(brscclaSemaphore(NULL))))
 	{
 		if (bpDequeue(voutduct, outflows, &bundleZco, &extendedCOS,

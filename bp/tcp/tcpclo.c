@@ -381,7 +381,15 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote duct.		*/
 
-	writeMemo("[i] tcpclo is running.");
+	{
+		char txt[500];
+
+		isprintf(txt, sizeof(txt), "[i] tcpclo is running, spec=[%s:%d].", 
+			inet_ntoa(inetName->sin_addr), ntohs(inetName->sin_port) );
+
+		writeMemo(txt );
+	}
+
 	while (running && !(sm_SemEnded(tcpcloSemaphore)))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
