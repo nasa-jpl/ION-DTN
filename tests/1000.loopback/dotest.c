@@ -25,11 +25,11 @@ int main(int argc, char **argv)
 	char rxContent[sizeof(testLine)];
 
 	/* Start ION */
-	ionstart("config/loopback.ionrc", 
-			 "config/loopback.ionsecrc", 
-			 "config/loopback.ltprc",
-			 "config/loopback.bprc",
-			 "config/loopback.ipnrc",
+	ionstart_default_config("loopback-ltp/loopback.ionrc", 
+			 "loopback-ltp/loopback.ionsecrc", 
+			 "loopback-ltp/loopback.ltprc",
+			 "loopback-ltp/loopback.bprc",
+			 "loopback-ltp/loopback.ipnrc",
 			 NULL);
 
 	/* Attach to ION */
