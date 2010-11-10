@@ -635,6 +635,8 @@ int	main(int argc, char **argv)
 	int	cmdFile;
 	char	line[256];
 	int	len;
+	struct timeval done_time;
+	struct timeval cur_time;
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
@@ -719,5 +721,21 @@ int	main(int argc, char **argv)
 	writeErrmsgMemos();
 	printText("Stopping cfdpadmin.");
 	ionDetach();
+
+	if ((cmdFileName != NULL) && (strcmp(cmdFileName, ".") != 0)) {
+	    getCurrentTime(&done_time);
+	    done_time.tv_sec += 15;
+	    while (cfdp_entity_is_started() == 0)
+	    {
+		snooze(1);
+		getCurrentTime(&cur_time);
+		if (cur_time.tv_sec >= done_time.tv_sec 
+		    && cur_time.tv_usec >= done_time.tv_usec) {
+		    printText("[?]  start hung up, abandoned.");
+		    return -1;
+		}
+	    }
+	}
+
 	return 0;
 }

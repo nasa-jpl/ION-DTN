@@ -143,42 +143,36 @@ if [[ ! -z "${IONRC}" ]] ; then
 	echo
 	echo "Now running ionadmin using ${IONRC}"
 	ionadmin "${IONRC}"
-	sleep 1
 fi
 
 if [[ ! -z "${IONSECRC}" ]] ; then
 	echo
 	echo "Now running ionsecadmin using ${IONSECRC}"
 	ionsecadmin "${IONSECRC}"
-	sleep 1
 fi
 
 if [[ ! -z "${LTPRC}" ]] ; then
 	echo
 	echo "Now running ltpadmin using ${LTPRC}"
 	ltpadmin "${LTPRC}"
-	sleep 1
 fi
 
 if [[ ! -z "${BPRC}" ]] ; then
 	echo
 	echo "Now running bpadmin using ${BPRC}"
 	bpadmin "${BPRC}"
-	sleep 1
 fi
 
 if [[ ! -z "${CFDPRC}" ]] ; then
 	echo
 	echo "Now running cfdpadmin using ${CFDPRC}"
 	cfdpadmin "${CFDPRC}"
-	sleep 1
 fi
 
 if [[ ! -z "${IPNRC}" ]] ; then
 	echo
 	echo "Now running ipnadmin using ${IPNRC}"
 	ipnadmin "${IPNRC}"
-	sleep 1
 	ROUTINGCOMMAND="true"
 fi
 
@@ -186,7 +180,6 @@ if [[ ! -z "${DTN2RC}" ]] ; then
 	echo
 	echo "Now running dtn2admin using ${DTN2RC}"
 	dtn2admin ${DTN2NODE} "${DTN2RC}"
-	sleep 1
 	ROUTINGCOMMAND="true"
 fi
 
