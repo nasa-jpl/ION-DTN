@@ -65,7 +65,7 @@ ITERATION=1
 
 echo "Starting ION..."
 srcdir=`pwd`
-CONFIGDIR="config"
+CONFIGDIR="${CONFIGSROOT}/loopback-udp"
 echo "ionstart -I ${CONFIGDIR}/host1.rc"
 "ionstart" -I "${CONFIGDIR}/host1.rc"
 
