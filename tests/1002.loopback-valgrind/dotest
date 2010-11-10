@@ -28,7 +28,7 @@ rm -f out.valgrind.*
 
 
 echo "Starting ION..."
-CONFIGDIR="./config"
+CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
 libtool --mode=execute                             \
     valgrind                                       \
     $GEN_SUPPRESSIONS                              \
