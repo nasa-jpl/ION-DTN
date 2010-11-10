@@ -57,7 +57,8 @@ extern "C" {
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/times.h>
-#include <sys/types.h>
+//#include <sys/types.h>
+#include <limits.h>
 #include <sys/wait.h>
 			/* Other */
 #include <sys/ioctl.h>

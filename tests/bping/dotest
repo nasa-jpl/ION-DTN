@@ -74,4 +74,7 @@ if ! grep -q "3 bundles transmitted, 1 bundles received" bpingoutput; then
     FAIL=1
 fi
 
+echo "Terminating node."
+ionstop
+
 exit $FAIL
