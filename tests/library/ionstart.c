@@ -20,7 +20,8 @@ void ionstart(const char *ionrc, const char *ionsecrc, const char *ltprc,
 		snprintf(cmdline, sizeof(cmdline), "ionadmin %s", ionrc);
 		pid = pseudoshell(cmdline);
 		fail_unless(pid != ERROR);
-		fail_unless (-1 != waitpid(pid, &status, 0), "Failed to wait for ionadmin pid.");
+		fail_unless (-1 != waitpid(pid, &status, 0),
+			"Failed to wait for ionadmin pid.");
 	}
 
 	if (ionsecrc != NULL)
@@ -28,7 +29,8 @@ void ionstart(const char *ionrc, const char *ionsecrc, const char *ltprc,
 		snprintf(cmdline, sizeof(cmdline), "ionsecadmin %s", ionsecrc);
 		pid = pseudoshell(cmdline);
 		fail_unless(pid != ERROR);
-		fail_unless (-1 != waitpid(pid, &status, 0), "Failed to wait for ionsecadmin pid.");
+		fail_unless (-1 != waitpid(pid, &status, 0),
+			"Failed to wait for ionsecadmin pid.");
 	}
 
 	if (ltprc != NULL)
@@ -36,7 +38,8 @@ void ionstart(const char *ionrc, const char *ionsecrc, const char *ltprc,
 		snprintf(cmdline, sizeof(cmdline), "ltpadmin %s", ltprc);
 		pid = pseudoshell(cmdline);
 		fail_unless(pid != ERROR);
-		fail_unless (-1 != waitpid(pid, &status, 0), "Failed to wait for ltpadmin pid.");
+		fail_unless (-1 != waitpid(pid, &status, 0),
+			"Failed to wait for ltpadmin pid.");
 	}
 
 	if (bprc != NULL)
@@ -44,7 +47,8 @@ void ionstart(const char *ionrc, const char *ionsecrc, const char *ltprc,
 		snprintf(cmdline, sizeof(cmdline), "bpadmin %s", bprc);
 		pid = pseudoshell(cmdline);
 		fail_unless(pid != ERROR);
-		fail_unless (-1 != waitpid(pid, &status, 0), "Failed to wait for bpadmin pid.");
+		fail_unless (-1 != waitpid(pid, &status, 0),
+			"Failed to wait for bpadmin pid.");
 	}
 
 	if (ipnrc != NULL)
@@ -52,7 +56,8 @@ void ionstart(const char *ionrc, const char *ionsecrc, const char *ltprc,
 		snprintf(cmdline, sizeof(cmdline), "ipnadmin %s", ipnrc);
 		pid = pseudoshell(cmdline);
 		fail_unless(pid != ERROR);
-		fail_unless (-1 != waitpid(pid, &status, 0), "Failed to wait for ipnadmin pid.");
+		fail_unless (-1 != waitpid(pid, &status, 0),
+			"Failed to wait for ipnadmin pid.");
 	}
 
 	if (dtn2rc != NULL)
@@ -60,7 +65,8 @@ void ionstart(const char *ionrc, const char *ionsecrc, const char *ltprc,
 		snprintf(cmdline, sizeof(cmdline), "dtn2admin %s", dtn2rc);
 		pid = pseudoshell(cmdline);
 		fail_unless(pid != ERROR);
-		fail_unless (-1 != waitpid(pid, &status, 0), "Failed to wait for dtn2admin pid.");
+		fail_unless (-1 != waitpid(pid, &status, 0),
+			"Failed to wait for dtn2admin pid.");
 	}
 }
 
