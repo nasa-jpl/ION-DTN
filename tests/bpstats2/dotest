@@ -91,4 +91,7 @@ fi
 # Kill the bprecvfile that we started
 kill $BPRECVFILEPID
 
+# ending ion node
+ionstop
+
 exit $FAIL
