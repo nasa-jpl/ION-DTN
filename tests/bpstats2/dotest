@@ -37,7 +37,7 @@ diff_output_except_statstime ()
     FILE2=$2
     ASRUNTIME_FILE1=$(get_asrun_time $FILE1)
     sed -e "s/\(.*to\) [0-9]\+:\(.*\)/\1 $ASRUNTIME_FILE1:\2/" < $FILE2 > $FILE2.timefromfile1
-    if ! diff -q $FILE1 $FILE2.timefromfile1; then
+    if ! diff $FILE1 $FILE2.timefromfile1 >/dev/null 2>&1 ; then
         echo "$FILE1 and $FILE2 differ in more than just time:"
         diff $FILE1 $FILE2.timefromfile1
         rm $FILE2.timefromfile1
@@ -64,7 +64,7 @@ BPRECVFILEPID=$!
 
 # Cause bpstats2 to send a bundle to bprecvfile via SIGUSR1.
 sleep 1
-/bin/kill -SIGUSR1 $BPSTATS2PID
+/bin/kill -s SIGUSR1 $BPSTATS2PID
 
 # give bprecvfile some time to collect bundles
 sleep 2
@@ -80,7 +80,7 @@ fi
 
 # Verify that bpstats2 cleans up quickly on SIGINT
 SECONDS=0
-kill -SIGINT $BPSTATS2PID
+kill -s SIGINT $BPSTATS2PID
 wait $BPSTATS2PID
 BPSTATS2SECONDS=$SECONDS
 if [ $BPSTATS2SECONDS -ge 2 ]; then
