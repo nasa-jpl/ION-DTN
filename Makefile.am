@@ -769,7 +769,8 @@ bpbin = \
 	bptrace \
 	bping \
 	bpstats \
-	bpstats2
+	bpstats2 \
+	bpchat
 
 bplib = \
 	libbpP.la \
@@ -832,6 +833,7 @@ bpextra = \
 	bp/doc/pod1/udpclo.pod \
 	bp/doc/pod1/bping.pod \
 	bp/doc/pod1/bpstats2.pod \
+	bp/doc/pod1/bpchat.pod \
 	bp/doc/pod5/bprc.pod \
 	bp/doc/pod5/ipnrc.pod \
 	bp/doc/pod5/dtn2rc.pod \
@@ -895,6 +897,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/udpclo.1 \
 	$(top_builddir)/bp/doc/bping.1 \
 	$(top_builddir)/bp/doc/bpstats2.1 \
+	$(top_builddir)/bp/doc/bpchat.1 \
 	$(top_builddir)/bp/doc/bprc.5 \
 	$(top_builddir)/bp/doc/ipnrc.5 \
 	$(top_builddir)/bp/doc/dtn2rc.5 \
@@ -1113,6 +1116,11 @@ bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpstats2_SOURCES = bp/test/bpstats2.c
 bpstats2_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpchat_SOURCES = bp/test/bpchat.c
+bpchat_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS)
+bpchat_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
 # --- Daemon Executables --- #
 
 bpclock_SOURCES = bp/daemon/bpclock.c

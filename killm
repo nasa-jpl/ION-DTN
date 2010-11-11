@@ -15,6 +15,7 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	amslogport lt-amslogport \
 	amsshell lt-amsshell \
 	bpadmin lt-bpadmin \
+	bpchat lt-bpchat \
 	bpclock lt-bpclock \
 	bpcounter lt-bpcounter \
 	bpdriver lt-bpdriver \
