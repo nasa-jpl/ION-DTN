@@ -582,7 +582,7 @@ libltpP_la_LDFLAGS = $(ION_LINK_FLAGS)
 # --- Utility Programs --- #
 
 ltpadmin_SOURCES = ltp/utils/ltpadmin.c
-ltpadmin_LDADD = libltpP.la libici.la $(LIBOBJS) 
+ltpadmin_LDADD = libltpP.la libltp.la libici.la $(LIBOBJS) 
 ltpadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
@@ -1464,7 +1464,7 @@ tests_library_libtestutil_la_SOURCES = \
 	tests/library/ionstart.c \
 	tests/library/ionstop.c
 tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-tests_library_libtestutil_la_LDFLAGS = $(ION_LINK_FLAGS)
+tests_library_libtestutil_la_LDFLAGS = $(ION_LINK_FLAGS) 
 
 # TEST AUTHORS: README
 # If a test does not require compilation, it should not be listed here.  Just make a
@@ -1477,11 +1477,11 @@ check_PROGRAMS = tests/1000.loopback/dotest \
     tests/issue-188-common-cos-syntax/dotest
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
-tests_1000_loopback_dotest_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
+tests_1000_loopback_dotest_LDADD = libbp.la libbpP.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
-tests_issue_188_common_cos_syntax_dotest_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
+tests_issue_188_common_cos_syntax_dotest_LDADD = libbp.la libbpP.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 

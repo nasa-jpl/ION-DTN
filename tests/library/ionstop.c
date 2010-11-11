@@ -9,16 +9,28 @@
 
 void ionstop()
 {
-#if ! defined (VXWORKS) && ! defined (RTEMS)
-	int killm_pid;
-#endif
+	int pid;
+	int status;
 
-	fail_unless(pseudoshell("bpadmin .") != ERROR);
-	fail_unless(pseudoshell("ltpadmin .") != ERROR);
-	fail_unless(pseudoshell("ionadmin .") != ERROR);
+	pid = pseudoshell("bpadmin .");
+	fail_unless(pid != ERROR);
+	fail_unless(-1 != waitpid(pid, &status, 0),
+		"Failed to wait for bpadmin to stop.");
+
+	pid = pseudoshell("ltpadmin .");
+	fail_unless(pid != ERROR);
+	fail_unless(-1 != waitpid(pid, &status, 0),
+		"Failed to wait for ltpadmin to stop.");
+
+	pid = pseudoshell("ionadmin .");
+	fail_unless(pid != ERROR);
+	fail_unless(-1 != waitpid(pid, &status, 0), 
+		"Failed to wait for ionadmin to stop.");
+
 #if ! defined (VXWORKS) && ! defined (RTEMS)
-	killm_pid = pseudoshell("killm");
-	fail_unless(killm_pid != ERROR);
+	pid = pseudoshell("killm");
+	fail_unless(pid != ERROR);
+	fail_unless(-1 != waitpid(pid, &status, 0),
+		"Failed to wait for killm to finish");
 #endif
 }
-
