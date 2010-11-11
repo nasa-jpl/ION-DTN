@@ -51,4 +51,6 @@ if ! diff -q bpchatinput bpchatoutput; then
     FAIL=1
 fi
 
+ionstop
+
 exit $FAIL
