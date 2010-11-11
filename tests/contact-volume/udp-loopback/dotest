@@ -13,7 +13,7 @@ IONRECEIVEFILE=./ionreceivefile.txt
 EXPECTEDCOUNT=9
 
 echo "Starting ION..."
-ionstart -I ${CONFIGSROOT}/loopback-udp/host1.rc
+ionstart -I ${CONFIGSROOT}/loopback-udp/loopback.rc
 
 #The sample config has contacts we don't care about
 deleteallvolumes

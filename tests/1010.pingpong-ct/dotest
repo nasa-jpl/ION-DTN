@@ -66,8 +66,8 @@ ITERATION=1
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-udp"
-echo "ionstart -I ${CONFIGDIR}/host1.rc"
-"ionstart" -I "${CONFIGDIR}/host1.rc"
+echo "ionstart -I ${CONFIGDIR}/loopback.rc"
+"ionstart" -I "${CONFIGDIR}/loopback.rc"
 
 # Start the listener that will receive all the bundles.
 echo "Starting Message Listener..."

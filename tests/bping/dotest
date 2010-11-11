@@ -16,8 +16,8 @@ rm -f ion.log bpingoutput
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-udp"
-echo "ionstart -I ${CONFIGDIR}/host1.rc"
-"ionstart" -I "${CONFIGDIR}/host1.rc"
+echo "ionstart -I ${CONFIGDIR}/loopback.rc"
+"ionstart" -I "${CONFIGDIR}/loopback.rc"
 
 # Start a bpecho
 bpecho ipn:1.1 & BPECHOPID=$!
