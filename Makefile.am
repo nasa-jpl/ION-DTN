@@ -192,10 +192,7 @@ loopbackstcp_DATA = \
 # loopback using the udp convergence layer
 loopbackudpdir = $(pkgdatadir)/configs/loopback-udp
 loopbackudp_DATA = \
-	$(srcdir)/configs/loopback-udp/loopback-udp.ionrc \
-	$(srcdir)/configs/loopback-udp/loopback-udp.bprc \
-	$(srcdir)/configs/loopback-udp/loopback-udp.ipnrc \
-	$(srcdir)/configs/loopback-udp/loopback-udp.rc 
+	$(srcdir)/configs/loopback-udp/loopback.rc 
 # ion and dtn2 example
 iondtn2dir = $(pkgdatadir)/configs/ion-dtn2-example
 iondtn2_DATA = \
