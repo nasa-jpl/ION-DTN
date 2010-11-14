@@ -4022,8 +4022,6 @@ char		buf[256];
 			}
 
 			encodeSdnv(&lengthSdnv, length);
-			dataSegmentOverhead = segment.ohdLength
-					+ lengthSdnv.length;
 		}
 		else
 		{
@@ -4049,10 +4047,9 @@ char		buf[256];
 	}
 	else
 	{
-		/*	Segment is green, which is at the tail end
-		 *	of the block, so the maximum length of data
-		 *	in the segment is the total remaining length
-		 *	of the extent to segment.			*/
+		/*	No remaining red data in this extent, so the
+		 *	segment will be green, so there are no serial
+		 *	numbers, so segment overhead is now known.	*/
 
 		length = extent->length;
 		encodeSdnv(&lengthSdnv, length);
@@ -4063,14 +4060,12 @@ char		buf[256];
 			/*	Must reduce length, so cannot be end
 			 *	of green part (which is end of block).	*/
 
-			putErrmsg("Green data segment size exceeds limit; \
-reduce mtusize in .ltprc file!", itoa(span->maxSegmentSize
-					- worstCaseSegmentSize));
 			length = span->maxSegmentSize - dataSegmentOverhead;
+			encodeSdnv(&lengthSdnv, length);
 		}
-		else	/*	Remainder of block fits in one segment.	*/
+		else	/*	Remainder of extent fits in one segment.*/
 		{
-			if (extent->offset + length == session->totalLength)
+			if (lastExtent)
 			{
 				isEob = 1;
 			}

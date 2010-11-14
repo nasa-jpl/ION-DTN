@@ -46,7 +46,7 @@ typedef struct
 	int		running;
 } ReceiverThreadParms;
 
-static int	acquireBundles(AcqWorkArea *work, Object zco,
+static int	acquireRedBundles(AcqWorkArea *work, Object zco,
 			unsigned long senderEngineNbr)
 {
 	char	engineNbrString[21];
@@ -78,12 +78,177 @@ static int	acquireBundles(AcqWorkArea *work, Object zco,
 	return 0;
 }
 
+static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
+			unsigned char endOfBlock, unsigned long offset,
+			unsigned long length, Object zco, unsigned long *buflen,			char **buffer)
+{
+	Sdr			sdr = getIonsdr();
+	static LtpSessionId	currentSessionId = { 0, 0 };
+	static unsigned long	currentOffset = 0;
+	unsigned long		fillLength;
+	char			engineNbrString[21];
+	char			senderEidBuffer[SDRSTRING_BUFSZ];
+	char			*senderEid;
+	ZcoReader		reader;
+
+	if (zco_source_data_length(sdr, zco) != length)
+	{
+printf("Green data length error: length is %lu, should be %u.\n", length,
+zco_source_data_length(sdr, zco));
+		return 0;	/*	Just discard the segment.	*/
+	}
+
+	if (sessionId->sourceEngineId != currentSessionId.sourceEngineId
+	|| sessionId->sessionNbr != currentSessionId.sessionNbr
+	|| offset < currentOffset)
+	{
+		/*	Discard the partially received bundle in
+		 *	the work area, if any.				*/
+
+		bpCancelAcq(work);
+		currentSessionId.sourceEngineId = 0;
+		currentSessionId.sessionNbr = 0;
+		currentOffset = 0;
+	}
+
+	if (currentOffset == 0)
+	{
+		/*	Start new green bundle acquisition.		*/
+
+		isprintf(engineNbrString, sizeof engineNbrString, "%lu",
+				sessionId->sourceEngineId);
+		senderEid = senderEidBuffer;
+		getSenderEid(&senderEid, engineNbrString);
+		if (bpBeginAcq(work, 0, senderEid) < 0)
+		{
+			putErrmsg("Can't begin acquisition of bundle.", NULL);
+			return -1;
+		}
+
+		currentSessionId.sourceEngineId = sessionId->sourceEngineId;
+		currentSessionId.sessionNbr = sessionId->sessionNbr;
+	}
+
+	if (offset > currentOffset)
+	{
+		/*	Must insert fill data -- partial loss of
+		 *	bundle payload, for example, may be okay.	*/
+
+printf("Must fill: offset is %lu, should be %lu.\n", offset, currentOffset);
+		fillLength = offset - currentOffset;
+		if (fillLength > *buflen)
+		{
+			/*	Make buffer big enough for the fill
+			 *	data.					*/
+
+			if (*buffer)
+			{
+				MRELEASE(*buffer);
+				*buflen = 0;
+			}
+
+			*buffer = MTAKE(fillLength);
+			if (*buffer == NULL)
+			{
+				/*	Gap is too large to fill.
+				 *	Might be a DOS attack; cancel
+				 *	acquisition.			*/
+
+				bpCancelAcq(work);
+				currentSessionId.sourceEngineId = 0;
+				currentSessionId.sessionNbr = 0;
+				currentOffset = 0;
+				return 0;
+			}
+
+			*buflen = fillLength;
+		}
+
+		memset(*buffer, 0, fillLength);
+		if (bpContinueAcq(work, *buffer, (int) fillLength) < 0)
+		{
+			putErrmsg("Can't insert bundle fill data.", NULL);
+			return -1;
+		}
+
+		currentOffset += fillLength;
+	}
+
+	if (length > *buflen)
+	{
+		/*	Make buffer big enough for the green data.	*/
+
+		if (*buffer)
+		{
+			MRELEASE(*buffer);
+			*buflen = 0;
+		}
+
+		*buffer = MTAKE(length);
+		if (*buffer == NULL)
+		{
+			/*	Segment is too large.  Might be a
+			 *	DOS attack; cancel acquisition.		*/
+
+			bpCancelAcq(work);
+			currentSessionId.sourceEngineId = 0;
+			currentSessionId.sessionNbr = 0;
+			currentOffset = 0;
+			return 0;
+		}
+
+		*buflen = length;
+	}
+
+	/*	Extract data from segment ZCO so that it can be
+	 *	appended to the bundle acquisition ZCO.			*/
+
+	sdr_begin_xn(sdr);
+	zco_start_receiving(sdr, zco, &reader);
+	if (zco_receive_source(sdr, &reader, length, *buffer) < 0)
+	{
+		putErrmsg("Failed reading green segment data.", NULL);
+		return -1;
+	}
+
+	zco_stop_receiving(sdr, &reader);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Crashed on green data extraction.", NULL);
+		return -1;
+	}
+
+	if (bpContinueAcq(work, *buffer, (int) length) < 0)
+	{
+		putErrmsg("Can't continue bundle acquisition.", NULL);
+		return -1;
+	}
+
+	currentOffset += length;
+	if (endOfBlock)
+	{
+		if (bpEndAcq(work) < 0)
+		{
+			putErrmsg("Can't end acquisition of bundle.", NULL);
+			return -1;
+		}
+
+		currentSessionId.sourceEngineId = 0;
+		currentSessionId.sessionNbr = 0;
+		currentOffset = 0;
+	}
+
+	return 0;
+}
+
 static void	*handleNotices(void *parm)
 {
 	/*	Main loop for LTP notice reception and handling.	*/
 
+	Sdr			sdr = getIonsdr();
 	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
-	AcqWorkArea		*work;
+	AcqWorkArea		*redWork;
+	AcqWorkArea		*greenWork;
 	LtpNoticeType		type;
 	LtpSessionId		sessionId;
 	unsigned char		reasonCode;
@@ -91,7 +256,8 @@ static void	*handleNotices(void *parm)
 	unsigned long		dataOffset;
 	unsigned long		dataLength;
 	Object			data;		/*	ZCO reference.	*/
-	Sdr			sdr;
+	unsigned long		greenBuflen = 0;
+	char			*greenBuffer = NULL;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
 	if (ltp_open(BpLtpClientId) < 0)
@@ -102,11 +268,12 @@ static void	*handleNotices(void *parm)
 		return NULL;
 	}
 
-	work = bpGetAcqArea(rtp->vduct);
-	if (work == NULL)
+	redWork = bpGetAcqArea(rtp->vduct);
+	greenWork = bpGetAcqArea(rtp->vduct);
+	if (redWork == NULL || greenWork == NULL)
 	{
 		ltp_close(BpLtpClientId);
-		putErrmsg("ltpcli can't get acquisition work area", NULL);
+		putErrmsg("ltpcli can't get acquisition work areas", NULL);
 		pthread_kill(rtp->mainThread, SIGTERM);
 		return NULL;
 	}
@@ -142,7 +309,6 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			sdr = getIonsdr();
 			sdr_begin_xn(sdr);
 			zco_destroy_reference(sdr, data);
 			if (sdr_end_xn(sdr) < 0)
@@ -168,7 +334,6 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			sdr = getIonsdr();
 			sdr_begin_xn(sdr);
 			zco_destroy_reference(sdr, data);
 			if (sdr_end_xn(sdr) < 0)
@@ -183,12 +348,55 @@ static void	*handleNotices(void *parm)
 		case LtpImportSessionCanceled:
 			break;		/*	Out of switch.		*/
 
-		case LtpRecvGreenSegment:
 		case LtpRecvRedPart:
-			if (acquireBundles(work, data,
+			if (!endOfBlock)
+			{
+				/*	Block is partially red and
+				 *	partially green.  Too risky
+				 *	to wait for green EOB before
+				 *	clearing the work area, so
+				 *	just discard the data.		*/
+
+				sdr_begin_xn(sdr);
+				zco_destroy_reference(sdr, data);
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Crashed: partially red.",
+							NULL);
+					pthread_kill(rtp->mainThread, SIGTERM);
+					rtp->running = 0;
+				}
+
+				break;		/*	Out of switch.	*/
+			}
+
+			if (acquireRedBundles(redWork, data,
 					sessionId.sourceEngineId) < 0)
 			{
 				putErrmsg("Can't acquire bundle(s).", NULL);
+				pthread_kill(rtp->mainThread, SIGTERM);
+				rtp->running = 0;
+			}
+
+			break;		/*	Out of switch.		*/
+
+		case LtpRecvGreenSegment:
+			if (handleGreenSegment(greenWork, &sessionId,
+					endOfBlock, dataOffset, dataLength,
+					data, &greenBuflen, &greenBuffer) < 0)
+			{
+				putErrmsg("Can't handle green segment.", NULL);
+				pthread_kill(rtp->mainThread, SIGTERM);
+				rtp->running = 0;
+			}
+
+			/*	Discard the ZCO in any case.		*/
+
+			sdr_begin_xn(sdr);
+			zco_destroy_reference(sdr, data);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Crashed: green segment.", NULL);
 				pthread_kill(rtp->mainThread, SIGTERM);
 				rtp->running = 0;
 			}
@@ -209,7 +417,13 @@ static void	*handleNotices(void *parm)
 
 	/*	Free resources.						*/
 
-	bpReleaseAcqArea(work);
+	if (greenBuffer)
+	{
+		MRELEASE(greenBuffer);
+	}
+
+	bpReleaseAcqArea(greenWork);
+	bpReleaseAcqArea(redWork);
 	ltp_close(BpLtpClientId);
 	return NULL;
 }

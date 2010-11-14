@@ -996,6 +996,9 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	VScheme		*vscheme;
 	VInduct		*vinduct;
 	VOutduct	*voutduct;
+	Object		zcoElt;
+	Object		nextElt;
+	Object		zco;
 
 	/*	Tell all BP processes to stop.				*/
 
@@ -1066,7 +1069,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	sdr_begin_xn(bpSdr);
 	bpvdb->clockPid = -1;
 	if (bpvdb->productionThrottle.semaphore == SM_SEM_NONE)
 	{
@@ -1100,7 +1103,18 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		resetOutduct(voutduct);
 	}
 
-	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	/*	Clear out any partially received bundles, then exit.	*/
+
+	for (zcoElt = sdr_list_first(bpSdr, (_bpConstants())->inboundBundles);
+			zcoElt; zcoElt = nextElt)
+	{
+		nextElt = sdr_list_next(bpSdr, zcoElt);
+		zco = sdr_list_data(bpSdr, zcoElt);
+		zco_destroy_reference(bpSdr, zco);
+		sdr_list_delete(bpSdr, zcoElt, NULL, NULL);
+	}
+
+	oK(sdr_end_xn(bpSdr));
 }
 
 int	bpAttach()
@@ -6167,16 +6181,12 @@ static int	eraseWorkZco(AcqWorkArea *work)
 		bpSdr = getIonsdr();
 		sdr_begin_xn(bpSdr);
 		sdr_list_delete(bpSdr, work->zcoElt, NULL, NULL);
-		if (work->acqFileRef)
-		{
-			zco_destroy_file_ref(bpSdr, work->acqFileRef);
-		}
 
 		/*	Destroying the last reference to the ZCO will
 		 *	destroy the ZCO, which will in turn cause the
 		 *	acquisition FileRef to be deleted, which will
-		 *	unlink the file when the FileRef's cleanup
-		 *	script is executed.				*/
+		 *	unlink the acquisition file when the FileRef's
+		 *	cleanup script is executed.			*/
 
 		zco_destroy_reference(bpSdr, work->zco);
 		if (sdr_end_xn(bpSdr) < 0)
@@ -6381,6 +6391,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	close(fd);
 	oK(zco_append_extent(sdr, work->zco, ZcoFileSource, work->acqFileRef,
 			fileLength, length));
+
+	/*	Flag file reference for deletion as soon as the last
+	 *	ZCO extent that references it is deleted.		*/
+
+	zco_destroy_file_ref(sdr, work->acqFileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't acquire extent into file.", NULL);
@@ -6388,6 +6403,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	}
 
 	return 0;
+}
+
+void	bpCancelAcq(AcqWorkArea *work)
+{
+	oK(eraseWorkZco(work));
 }
 
 int	guessBundleSize(Bundle *bundle)

@@ -406,7 +406,6 @@ int	cfdpInit()
 		cfdpdbBuf.discardIncompleteFile = 1;
 		cfdpdbBuf.crcRequired = 0;
 		cfdpdbBuf.maxFileDataLength = 65000;
-		cfdpdbBuf.mtuSize = 400;
 		cfdpdbBuf.transactionInactivityLimit = 2000000000;
 		cfdpdbBuf.checkTimerPeriod = 86400;	/*	1 day.	*/
 		cfdpdbBuf.checkTimeoutLimit = 7;

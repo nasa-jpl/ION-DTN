@@ -73,24 +73,17 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 
 	greenPartLength = dataLength - redPartLength;
 
-	/*	Red data size is limited by span export max block size.
-	 *	Green data size is limited by span max segment size.	*/
+	/*	The sum of red data size and green data size is
+	 *	limited by span export max block size.			*/
 
 	spanObj = sdr_list_data(sdr, vspan->spanElt);
 	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
-	if (redPartLength > span.maxExportBlockSize)
+	if ((redPartLength + greenPartLength) > span.maxExportBlockSize)
 	{
 		sdr_exit_xn(sdr);
 		putErrmsg("Client service data size exceeds max block size.",
-			utoa(redPartLength - span.maxExportBlockSize));
-		return 0;
-	}
-
-	if (greenPartLength > span.maxSegmentSize)
-	{
-		sdr_exit_xn(sdr);
-		putErrmsg("Client service data size exceeds max frame size.",
-			utoa(greenPartLength - span.maxSegmentSize));
+				utoa((redPartLength + greenPartLength)
+					- span.maxExportBlockSize));
 		return 0;
 	}
 

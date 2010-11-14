@@ -1057,6 +1057,12 @@ extern int		bpContinueAcq(	AcqWorkArea *workArea,
 			 *	Returns 0 on success, -1 on any
 			 *	failure.				*/
 
+extern void		bpCancelAcq(	AcqWorkArea *workArea);
+			/*	Cancels acquisition of a new
+			 *	bundle via the indicated workArea,
+			 *	destroying the bundle acquisition
+			 *	ZCO of workArea.			*/
+
 extern int		bpEndAcq(	AcqWorkArea *workArea);
 			/*	Concludes acquisition of a new
 			 *	bundle via the indicated workArea.
