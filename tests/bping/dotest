@@ -53,7 +53,7 @@ echo "Verify that if bping is given SIGINT, it terminates quickly..."
 SECONDS=0
 bping -c 2 -i 15 ipn:1.2 ipn:1.1 > bpingoutput & BPINGPID=$!
 sleep 2
-kill -SIGINT $BPINGPID
+kill -s INT $BPINGPID
 wait $BPINGPID
 PINGSECONDS=$SECONDS
 if [ $PINGSECONDS -ge 3 ]; then
