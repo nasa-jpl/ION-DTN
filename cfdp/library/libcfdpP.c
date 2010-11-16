@@ -12,7 +12,7 @@
 #include "cfdpP.h"
 #include "lyst.h"
 
-#define	CFDP_DEBUG	0
+#define	CFDPDEBUG	0
 
 /*	*	*	Helpful utility functions	*	*	*/
 
@@ -3256,6 +3256,8 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 	CfdpNumber		sourceEntityNbr;
 	CfdpNumber		transactionNbr;
 	CfdpNumber		destinationEntityNbr;
+	unsigned short		deliveredCRC;
+	unsigned short		computedCRC;
 	CfdpTransactionId	transactionId;
 	CfdpHandler		handler;
 	Object			fduObj;
@@ -3330,8 +3332,26 @@ printf("...parsed the PDU...\n");
 #if CFDPDEBUG
 printf("...computing CRC...\n"); 
 #endif
-		if (computeCRC(buf, length) /* Including CRC itself. */ != 0)
+		if (bytesRemaining < 2)
 		{
+			return 0;	/*	Malformed PDU.		*/
+		}
+
+		/*	Omit CRC from PDU processing.			*/
+
+		bytesRemaining -= 2;
+		length -= 2;
+
+		/*	Check the CRC.					*/
+
+		memcpy((char *) &deliveredCRC, buf + length, 2);
+		deliveredCRC = ntohs(deliveredCRC);
+		computedCRC = computeCRC(buf, length);
+		if (computedCRC != deliveredCRC)
+		{
+#if CFDPDEBUG
+printf("...CRC validation failed...\n"); 
+#endif
 			return 0;	/*	Corrupted PDU.		*/
 		}
 	}

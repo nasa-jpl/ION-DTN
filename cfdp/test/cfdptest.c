@@ -155,15 +155,22 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 	}
 
 	mode = (strtol(tokens[1], NULL, 0) == 0 ? 0 : 1);
-	if (mode == 1)
+	if (mode & 0x01)
 	{
 		utParms->extendedCOS.flags |= BP_BEST_EFFORT;
-		utParms->custodySwitch = NoCustodyRequested;
 	}
-	else
+	else	/*	Default: ECOS best-efforts flag = 0.		*/
 	{
 		utParms->extendedCOS.flags &= (~BP_BEST_EFFORT);
+	}
+
+	if (mode & 0x02)
+	{
 		utParms->custodySwitch = SourceCustodyRequired;
+	}
+	else	/*	Default: no BP custody transfer.		*/
+	{
+		utParms->custodySwitch = NoCustodyRequested;
 	}
 }
 
@@ -550,7 +557,7 @@ static int	runCfdptestInteractive()
 	cfdp_compress_number(&parms.destinationEntityNbr, 0);
 	parms.utParms.lifespan = 86400;
 	parms.utParms.classOfService = BP_STD_PRIORITY;
-	parms.utParms.custodySwitch = SourceCustodyRequired;
+	parms.utParms.custodySwitch = NoCustodyRequested;
 	cmdFile = fileno(stdin);
 	isignal(SIGINT, handleQuit);
 	while (1)
@@ -624,7 +631,7 @@ int	main(int argc, char **argv)
 	BpUtParms	utParms = {	0,
 					86400,
 					BP_STD_PRIORITY,
-					SourceCustodyRequired,
+					NoCustodyRequested,
 					0,
 					0,
 					{ 0, 0, 0 }	};
@@ -668,11 +675,6 @@ name> <destination file name> [<time-to-live, in seconds> [<priority: 0, 1, 2> \
 	if (unreliable)
 	{
 		utParms.extendedCOS.flags |= BP_BEST_EFFORT;
-		utParms.custodySwitch = NoCustodyRequested;
-	}
-	else
-	{
-		utParms.custodySwitch = SourceCustodyRequired;
 	}
 
 	if (critical)

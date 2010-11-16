@@ -69,7 +69,8 @@ static void	*sendBundles(void *parm)
 	unsigned int		bundleLength;
 	int			ductNbr;
 	int			bytesSent;
-	int			failedTransmissions = 0;
+	Object			bundleAddr;
+	Bundle			bundle;
 
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
@@ -114,24 +115,76 @@ static void	*sendBundles(void *parm)
 		{
 			bytesSent = sendBundleByTCP(NULL, parms->brsSockets + i,
 					bundleLength, bundleZco, buffer);
+
+			/*	Note that TCP I/O errors never block
+			 *	the brsscla induct's output functions;
+			 *	those functions never connect to remote
+			 *	sockets and never behave like a TCP
+			 *	outduct, so the_tcpOutductId table is
+			 *	never populated.			*/
+
 			if (bytesSent < 0)
 			{
 				putErrmsg("Can't send bundle.", NULL);
 				break;
 			}
-
-			if (bytesSent < bundleLength)
-			{
-				failedTransmissions++;
-			}
 		}
-		else	/*	Can't send it; just discard it.		*/
+		else	/*	Can't send it; try again later?		*/
 		{
+			bytesSent = 0;
+		}
+
+		if (bytesSent < bundleLength)
+		{
+			/*	Couldn't send the bundle, so put it
+			 *	in limbo so we can try again later
+			 *	-- except that if bundle has already
+			 *	been destroyed then just lose the ADU.	*/
+
 			sdr_begin_xn(sdr);
-			zco_destroy_reference(sdr, bundleZco);
+			if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
+			{
+				putErrmsg("Can't locate unsent bundle.", NULL);
+				sdr_cancel_xn(sdr);
+				break;
+			}
+
+			if (bundleAddr == 0)
+			{
+				/*	Bundle not found, so we can't
+				 *	put it in limbo for another
+				 *	attempt later; discard the ADU.	*/
+
+				zco_destroy_reference(sdr, bundleZco);
+			}
+			else
+			{
+				sdr_stage(sdr, (char *) &bundle, bundleAddr,
+						sizeof(Bundle));
+				if (bundle.extendedCOS.flags
+						& BP_MINIMUM_LATENCY)
+				{
+					/*	We never put critical
+					 *	bundles into limbo.	*/
+
+					zco_destroy_reference(sdr, bundleZco);
+				}
+				else
+				{
+					if (enqueueToLimbo(&bundle, bundleAddr)
+							< 0)
+					{
+						putErrmsg("Can't save bundle.",
+								NULL);
+						sdr_cancel_xn(sdr);
+						break;
+					}
+				}
+			}
+
 			if (sdr_end_xn(sdr) < 0)
 			{
-				putErrmsg("Can't destroy ZCO reference.", NULL);
+				putErrmsg("Failed handling brss xmit.", NULL);
 				break;
 			}
 		}
@@ -142,71 +195,36 @@ static void	*sendBundles(void *parm)
 	}
 
 	pthread_kill(brssclaMainThread(0), SIGTERM);
-	writeMemoNote("[i] brsscla outduct has ended",
-			itoa(failedTransmissions));
+	writeMemo("[i] brsscla outduct has ended.");
 	MRELEASE(buffer);
 	return terminateSenderThread(parms);
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
 
-static int	reforwardStrandedBundles(int nodeNbr)
+static int	reforwardStrandedBundles()
 {
 	Sdr	sdr = getIonsdr();
 	BpDB	*bpConstants = getBpConstants();
 	Object	elt;
-	Object	eventObj;
-		OBJ_POINTER(BpEvent, event);
-		OBJ_POINTER(Bundle, bundle);
+	Object	nextElt;
 
 	sdr_begin_xn(sdr);
-	for (elt = sdr_list_first(sdr, bpConstants->timeline); elt;
-			elt = sdr_list_next(sdr, elt))
+	for (elt = sdr_list_first(sdr, bpConstants->limboQueue); elt;
+			elt = nextElt)
 	{
-		eventObj = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, BpEvent, event, eventObj);
-		if (event->type != expiredTTL)
+		nextElt = sdr_list_next(sdr, elt);
+		if (releaseFromLimbo(elt, 0) < 0)
 		{
-			continue;
-		}
-
-		/*	Have got a bundle that still exists.		*/
-
-		GET_OBJ_POINTER(sdr, Bundle, bundle, event->ref);
-		if (bundle->dlvQueueElt || bundle->fragmentElt
-		|| bundle->fwdQueueElt || bundle->overdueElt
-		|| bundle->ctDueElt || bundle->xmitsNeeded > 0)
-		{
-			/*	No need to reforward.			*/
-
-			continue;
-		}
-
-		/*	A stranded bundle, awaiting custody acceptance.
-		 *	Might be for a neighbor other than the one
-		 *	that just reconnected, but in that case the
-		 *	bundle will be reforwarded and requeued and
-		 *	go into the bit bucket again; no harm.  Note,
-		 *	though, that this means that a BRS server
-		 *	would be a bad candidate for gateway into a
-		 *	space subnet: due to long OWLTs, there might
-		 *	be a lot of bundles sent via LTP that are
-		 *	awaiting custody acceptance, so reconnection
-		 *	of a BRS client might trigger retransmission
-		 *	of a lot of bundles on the space link in
-		 *	addition to the ones to be issued via brss.	*/
-
-		if (bpReforwardBundle(event->ref) < 0)
-		{
+			putErrmsg("Failed releasing bundle from limbo.", NULL);
 			sdr_cancel_xn(sdr);
-			putErrmsg("brss reforward failed.", NULL);
 			return -1;
 		}
 	}
 
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("brss reforwarding failed.", NULL);
+		putErrmsg("brss failed limbo release on client connect.", NULL);
 		return -1;
 	}
 
@@ -414,7 +432,7 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 			(char *) &timeTag, 4));
 	memcpy(registration + 4, digest, DIGEST_LEN);
 	if (sendBytesByTCP(&parms->bundleSocket, registration + 4,
-			DIGEST_LEN) < DIGEST_LEN)
+			DIGEST_LEN, NULL) < DIGEST_LEN)
 	{
 		putErrmsg("Can't countersign client.",
 				itoa(parms->bundleSocket));
@@ -423,12 +441,12 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		return NULL;
 	}
 
-	/*	Reforward bundles that are awaiting custody signals
- 	 *	that will never arrive (because the bundles were
- 	 *	sent into the bit bucket when dequeued, due to brsc
- 	 *	disconnection).						*/
+	/*	Release contents of limbo queue, exactly as if an
+	 *	outduct had been unblocked.  This is because that
+	 *	queue may contain bundles that went into limbo when
+	 *	dequeued, due to brsc disconnection.			*/
 
-	if (reforwardStrandedBundles(ductNbr) < 0)
+	if (reforwardStrandedBundles() < 0)
 	{
 		putErrmsg("brssscla can't reforward bundles.", NULL);
 		terminateReceiverThread(parms);

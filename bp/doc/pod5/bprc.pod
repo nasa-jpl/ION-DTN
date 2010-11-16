@@ -71,7 +71,7 @@ all activity indication characters in the string, de-selecting all
 others.  BP will print each selected activity indication character to
 B<stdout> every time a processing event of the associated type occurs:
 
-B<a>	bundle is queued for forwarding
+B<a>	new bundle is queued for forwarding
 
 B<b>	bundle is queued for transmission
 
@@ -93,7 +93,11 @@ B<!>	bundle is destroyed due to TTL expiration
 
 B<&>	custody refusal signal is received
 
-B<#>	custodial bundle is queued for re-forwarding due to CL protocol failure
+B<#>	bundle is queued for re-forwarding due to CL protocol failure
+
+B<j>	bundle is placed in "limbo" for possible future re-forwarding
+
+B<k>	bundle is removed from "limbo" and queued for re-forwarding
 
 =item B<h>
 
@@ -328,6 +332,19 @@ all locally established outducts, regardless of protocol.
 
 The B<start outduct> command.  This command starts the indicated outduct 
 task as defined for the indicated CL protocol on the local node.
+
+=item B<b outduct> I<protocol_name> I<duct_name>
+
+The B<block outduct> command.  This command disables transmission of
+bundles via the indicated outduct and reforwards all non-critical bundles
+currently queued for transmission via this outduct.
+
+=item B<u outduct> I<protocol_name> I<duct_name>
+
+The B<unblock outduct> command.  This command re-enables transmission of
+bundles via the indicated outduct and reforwards all bundles in "limbo"
+in the hope that the unblocking of this outduct will enable some of them
+to be transmitted.
 
 =item B<x outduct> I<protocol_name> I<duct_name>
 

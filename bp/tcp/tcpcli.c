@@ -82,7 +82,8 @@ static void *sendKeepalives(void *parm)
 			continue;
 		}
 		bytesSent = sendBundleByTCPCL(&parms->socketName,
-				&parms->ductSocket, 0, 0, buffer, &parms->keepalivePeriod);
+				&parms->ductSocket, 0, 0, buffer,
+				&parms->keepalivePeriod);
 		pthread_mutex_unlock(parms->mutex);
 		if (bytesSent < 0)
 		{
@@ -178,7 +179,8 @@ static void	*receiveBundles(void *parm)
 	/*	Making sure there is no race condition when keep alive
 	 *	values are set.						*/
 
-	if(sendContactHeader(&parms->bundleSocket, (unsigned char *)buffer) < 0)
+	if(sendContactHeader(&parms->bundleSocket, (unsigned char *) buffer,
+				NULL) < 0)
 	{
 		putSysErrmsg("tcpcli couldn't send contact header", NULL);
 		MRELEASE(buffer);
@@ -431,7 +433,8 @@ static void	*spawnReceivers(void *parm)
 
 		parms = (ReceiverThreadParms *) lyst_data(elt);
 		thread = parms->thread;
-		if(sendShutDownMessage(&parms->bundleSocket, SHUT_DN_NO, -1) < 0)
+		if (sendShutDownMessage(&parms->bundleSocket, SHUT_DN_NO, -1,
+				NULL) < 0)
 		{
 			putErrmsg("Sending Shutdown message failed!!",NULL);
 		}

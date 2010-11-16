@@ -35,6 +35,7 @@ static void	interruptThread()	/*	Commands termination.	*/
 typedef struct
 {
 	pthread_mutex_t	*mutex;
+	struct sockaddr	*socketName;
 	int		*ductSocket;
 	int		*running;
 	pthread_t	mainThread;
@@ -47,9 +48,14 @@ static void	*sendKeepalives(void *parm)
 	int			bytesSent;
 
 	iblock(SIGTERM);
-	while (*(parms->running))
+	while (1)
 	{
 		snooze(1);
+		if (*(parms->running) == 0)
+		{
+			break;
+		}
+
 		count++;
 		if (count < KEEPALIVE_PERIOD)
 		{
@@ -60,11 +66,19 @@ static void	*sendKeepalives(void *parm)
 
 		count = 0;
 		pthread_mutex_lock(parms->mutex);
-		bytesSent = sendBundleByTCP(NULL, parms->ductSocket,
-				0, 0, NULL);
+		bytesSent = sendBundleByTCP(parms->socketName,
+				parms->ductSocket, 0, 0, NULL);
 		pthread_mutex_unlock(parms->mutex);
-		if (bytesSent < 0)
+		if (bytesSent <= 0)
 		{
+			/*	Note that I/O error on socket is
+			 *	NOT treated as a transient anomaly.
+			 *	We have to re-authenticate on
+			 *	reconnecting, so the CLO has to
+			 *	be shut down altogether; a simple
+			 *	automatic reconnect within the
+			 *	keepalive thread won't work.		*/
+
 			pthread_kill(parms->mainThread, SIGTERM);
 			break;
 		}
@@ -357,9 +371,17 @@ number>");
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
+	if (_tcpOutductId(&socketName, "brsc", ductName) < 0)
+	{
+		putErrmsg("Can't record TCP Outduct ID for connection.", NULL);
+		MRELEASE(buffer);
+		return -1;
+	}
+
 	if (connectToCLI(&socketName, &ductSocket) < 0)
 	{
 		putErrmsg("Can't connect to server.", hostName);
+		MRELEASE(buffer);
 		return 1;
 	}
 
@@ -373,10 +395,10 @@ number>");
 	memcpy(registration, (char *) &timeTag, 4);
 	oK(hmac_authenticate(registration + 4, DIGEST_LEN, key, keyLen,
 			(char *) &timeTag, 4));
-	if (sendBytesByTCP(&ductSocket, (char *) ductSdnv.text, ductSdnv.length)
-			< ductSdnv.length
-	|| sendBytesByTCP(&ductSocket, registration, REGISTRATION_LEN)
-			< REGISTRATION_LEN)
+	if (sendBytesByTCP(&ductSocket, (char *) ductSdnv.text, ductSdnv.length,
+			&socketName) < ductSdnv.length
+	|| sendBytesByTCP(&ductSocket, registration, REGISTRATION_LEN,
+			&socketName) < REGISTRATION_LEN)
 	{
 		putErrmsg("Can't register with server.", itoa(ductSocket));
 		MRELEASE(buffer);
@@ -421,6 +443,7 @@ number>");
 
 	pthread_mutex_init(&mutex, NULL);
 	ktparms.mutex = &mutex;
+	ktparms.socketName = &socketName;
 	ktparms.ductSocket = &ductSocket;
 	ktparms.running = &running;
 	ktparms.mainThread = pthread_self();
@@ -459,12 +482,19 @@ number>");
 
 		bundleLength = zco_length(sdr, bundleZco);
 		pthread_mutex_lock(&mutex);
-		bytesSent = sendBundleByTCP(NULL, &ductSocket, bundleLength,
-				bundleZco, buffer);
+		bytesSent = sendBundleByTCP(&socketName, &ductSocket,
+				bundleLength, bundleZco, buffer);
 		pthread_mutex_unlock(&mutex);
-		if (bytesSent < bundleLength)
+		if (bytesSent <= 0)
 		{
-			sm_SemEnd(brscclaSemaphore(NULL));/*	Stop.	*/
+			/*	If this is just a transient connection
+			 *	anomaly then the outduct has been
+			 *	blocked, but we have to stop it
+			 *	altogether.  We can't just wait for
+			 *	a keepalive to retect reconnection
+			 *	and resume: we must re-authenticate.	*/
+
+			sm_SemEnd(brscclaSemaphore(NULL));
 			continue;
 		}
 
@@ -491,7 +521,8 @@ number>");
 	pthread_mutex_destroy(&mutex);
 	writeErrmsgMemos();
 	writeMemo("[i] brsccla duct has ended.");
+	oK(_tcpOutductId(&socketName, NULL, NULL));
 	MRELEASE(buffer);
-	bp_detach();
+	ionDetach();
 	return 0;
 }

@@ -1724,6 +1724,8 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 			*portNbr = i4;
 		}
 	}
+
+	*delimiter = ':';		/*	Nondestructive parse.	*/
 }
 #endif
 

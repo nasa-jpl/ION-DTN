@@ -200,6 +200,12 @@ int	main(int argc, char *argv[])
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
+	if (_tcpOutductId(&socketName, "stcp", ductName) < 0)
+	{
+		putErrmsg("Can't record TCP Outduct ID for connection.", NULL);
+		MRELEASE(buffer);
+		return -1;
+	}
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
@@ -207,7 +213,7 @@ int	main(int argc, char *argv[])
 	isignal(SIGTERM, shutDownClo);
 	isignal(SIGPIPE, handleConnectionLoss);
 
-	/*	Start the keepalive thread for the eventual connection.	*/
+	/*	Start the keepalive thread to manage the connection.	*/
 
 	parms.cloRunning = &running;
 	pthread_mutex_init(&mutex, NULL);
@@ -273,6 +279,7 @@ int	main(int argc, char *argv[])
 	pthread_mutex_destroy(&mutex);
 	writeErrmsgMemos();
 	writeMemo("[i] stcpclo duct has ended.");
+	oK(_tcpOutductId(&socketName, NULL, NULL));
 	MRELEASE(buffer);
 	ionDetach();
 	return 0;

@@ -1705,6 +1705,7 @@ static void	stopImportSession(ImportSession *session)
 	if (session->blockFileRef)
 	{
 		zco_destroy_file_ref(ltpSdr, session->blockFileRef);
+		session->blockFileRef = 0;
 	}
 
 	/*	If service data not delivered, then destroying the
@@ -2694,10 +2695,39 @@ static Object	enqueueAckSegment(Object spanObj, Object segmentObj)
 	Sdr	ltpSdr = getIonsdr();
 		OBJ_POINTER(LtpSpan, span);
 	Object	elt;
+		OBJ_POINTER(LtpXmitSeg, segment);
 
 	CHKZERO(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
-	elt = sdr_list_insert_first(ltpSdr, span->segments, segmentObj);
+	for (elt = sdr_list_first(ltpSdr, span->segments); elt;
+			elt = sdr_list_next(ltpSdr, elt))
+	{
+		GET_OBJ_POINTER(ltpSdr, LtpXmitSeg, segment,
+				sdr_list_data(ltpSdr, elt));
+		switch (segment->pdu.segTypeCode)
+		{
+		case LtpRS:
+		case LtpRAS:
+		case LtpCAS:
+		case LtpCAR:
+			continue;
+
+		default:	/*	Found first non-ACK segment.	*/
+			break;			/*	Out of switch.	*/
+		}
+
+		break;				/*	Out of loop.	*/
+	}
+
+	if (elt)
+	{
+		elt = sdr_list_insert_before(ltpSdr, elt, segmentObj);
+	}
+	else
+	{
+		elt = sdr_list_insert_last(ltpSdr, span->segments, segmentObj);
+	}
+
 	return elt;
 }
 
@@ -2876,13 +2906,21 @@ char		buf[256];
 #endif
 
 	CHKERR(ionLocked());
-	if (session->reportsCount == MAX_NBR_OF_REPORTS)
+	if (session->reportsCount >= MAX_NBR_OF_REPORTS)
 	{
+		/*	We can send one more report if it's the
+		 *	one saying "got everything".  Otherwise,
+		 *	time to give up.				*/
+
+		if (session->redPartLength == 0
+		|| session->redPartReceived != session->redPartLength)
+		{
 #if LTPDEBUG
 putErrmsg("Too many reports, canceling session.", itoa(session->sessionNbr));
 #endif
-		return cancelSessionByReceiver(session, sessionObj,
-				LtpRetransmitLimitExceeded);
+			return cancelSessionByReceiver(session, sessionObj,
+					LtpRetransmitLimitExceeded);
+		}
 	}
 
 	session->reportsCount++;
@@ -3123,6 +3161,11 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 		return -1;
 	}
 
+	/*	Make sure the initialized session is recorded to
+	 *	the database.						*/
+
+	sdr_write(ltpSdr, *sessionObj, (char *) sessionBuf,
+			sizeof(ImportSession));
 	return 0;
 }
 
@@ -3168,18 +3211,7 @@ static long	insertDataSegment(ImportSession *session, LtpRecvSeg *segment,
 			OBJ_POINTER(LtpRecvSeg, ds);
 	unsigned long	redPartUpperBound;
 
-	/*	If reception is already complete or the session has
-	 *	been canceled, discard the segment.			*/
-
 	CHKERR(ionLocked());
-	if (session->redSegments == 0)
-	{
-#if LTPDEBUG
-putErrmsg("discarded segment", itoa(segment->pdu.offset));
-#endif
-		return 0;	/*	No longer receiving segments.	*/
-	}
-
 	segUpperBound = segment->pdu.offset + segment->pdu.length;
 	if (session->redPartLength > 0)	/*	EORP received.		*/
 	{
@@ -3260,7 +3292,26 @@ static int	writeBlockExtentToFile(ImportSession *session,
 	segment->heapAddress = 0;
 	oK(zco_file_ref_path(ltpSdr, session->blockFileRef, fileName,
 				sizeof fileName));
-	fd = open(fileName, O_WRONLY, 0666);
+
+	/*	Note: it's possible for a session to be closed,
+	 *	causing the blockFileRef to be "destroyed", while
+	 *	there are still ZCO references to the file in the
+	 *	delivery queue -- and for a late retransmitted
+	 *	segment for this session to arrive during this
+	 *	window.  In that case a new session would be created
+	 *	and a new blockFileRef for the same file would be
+	 *	created, but the file itself would still exist and
+	 *	therefore NOT be created.  Bust as soon as the last
+	 *	ZCO reference was delivered the file would be
+	 *	automatically unlinked by the destruction of the
+	 *	old file reference, so the next retransmitted
+	 *	segment for this old session would be recorded
+	 *	in a file that no longer exists -- an error.  To
+	 *	avert this, we retain the option to temporarily
+	 *	recreate that file for as long as is needed to deal
+	 *	with the leftover retransmitted segments.		*/
+
+	fd = open(fileName, O_WRONLY | O_CREAT, 0666);
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't open block file", fileName);
@@ -3581,6 +3632,22 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	{
 		sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
 				sizeof(ImportSession));
+		if (sessionBuf.redSegments == 0)
+		{
+			/*	Reception already completed, just
+			 *	waiting for report acknowledgment.
+			 *	Discard the segment.			*/
+
+			if (sdr_end_xn(ltpSdr) < 0)
+			{
+				putErrmsg("Can't handle data segment.", NULL);
+				return -1;
+			}
+#if LTPDEBUG
+putErrmsg("Discarded data segment.", itoa(sessionNbr));
+#endif
+			return 0;
+		}
 	}
 	else		/*	Active import session not found.	*/
 	{
@@ -3595,7 +3662,6 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 				putErrmsg("Can't handle data segment.", NULL);
 				return -1;
 			}
-
 #if LTPDEBUG
 putErrmsg("Discarded data segment.", itoa(sessionNbr));
 #endif
@@ -4264,8 +4330,19 @@ putErrmsg("Discarding report.", NULL);
 	sdr_begin_xn(ltpSdr);
 	getSessionContext(ltpdb, sessionNbr, &sessionObj,
 			&sessionBuf, &spanObj, &spanBuf, &vspan, &vspanElt);
-	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
+	if (sessionObj == 0)
 	{
+		/*	Report for an unknown session: must be in
+		 *	response to arrival of retransmitted segments
+		 *	following session closure.  So the remote
+		 *	import session is an erroneous resurrection
+		 *	of a closed session and we need to help the
+		 *	remote engine terminate it.  We do so by
+		 *	ignoring the report; the report will time out
+		 *	and be retransmitted N times and then will
+		 *	cause the session to fail and be canceled
+		 *	by receiver -- exactly the correct result.	*/
+
 		sdr_exit_xn(ltpSdr);
 		MRELEASE(newClaims);
 		return 0;

@@ -125,7 +125,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 
 	if (directive.action == xmit)
 	{
-		if (enqueueToDuct(&directive, bundle, bundleObj, eidString) < 0)
+		if (bpEnqueue(&directive, bundle, bundleObj, eidString) < 0)
 		{
 			putErrmsg("Can't enqueue bundle.", NULL);
 			return -1;
