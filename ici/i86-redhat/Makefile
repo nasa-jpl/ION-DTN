@@ -6,7 +6,7 @@ DAEMON = ../daemon
 SDR = ../sdr
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Dlinux
+OPT = -g -Wall -Werror -Dlinux
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

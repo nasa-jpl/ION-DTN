@@ -5,7 +5,7 @@ DAEMON = ../daemon
 BP = ../bp
 TEST = ../test
 
-OPT = -g -Wall -Dsol5 -Dunix -D__SVR4 -D_REENTRANT -fPIC
+OPT = -g -Wall -Werror -Dsol5 -Dunix -D__SVR4 -D_REENTRANT -fPIC
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

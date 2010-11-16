@@ -50,7 +50,7 @@ include $(WIND_BASE)/target/h/make/defs.$(WIND_HOST_TYPE)
 
 LDFLAGS = -r -o
 LINKER  = ldppc
-CFLAGS  = -mstrict-align -fvolatile -fno-builtin  -Wall
+CFLAGS  = -mstrict-align -fvolatile -fno-builtin  -Wall -Werror
 
 MAKEOBJECTS = $(CC) $(CFLAGS) $(OPT) -I$(INCL) -I$(ICIINCL) -I$(DGRINCL) -I$(LTPINCL) -I$(TEST) -I$(SRC)  -c
 

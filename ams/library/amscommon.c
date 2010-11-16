@@ -572,7 +572,7 @@ LystElt	createElement(Subject *subj, char *name, ElementType type,
 	int		length;
 	MsgElement	*element;
 	int		nameLen;
-	int		descLen;
+	int		descLen = 0;
 	LystElt		elt;
 
 	if (subj == NULL || name == NULL
@@ -609,7 +609,7 @@ LystElt	createElement(Subject *subj, char *name, ElementType type,
 	}
 
 	istrcpy(element->name, name, nameLen);
-	if (description)
+	if (description && descLen > 1)
 	{
 		istrcpy(element->description, description, descLen);
 	}
@@ -689,7 +689,7 @@ Subject	*createSubject(Venture *venture, int nbr, char *name, char *description,
 	int	length;
 	Subject	*subj;
 	int	nameLen;
-	int	descLen;
+	int	descLen = 0;
 	int	idx;
 
 	if (venture == NULL || nbr < 0 || nbr > MaxSubjNbr
@@ -750,7 +750,7 @@ For future use:
 	}
 
 	istrcpy(subj->name, name, nameLen);
-	if (description)
+	if (description && descLen > 1)
 	{
 		istrcpy(subj->description, description, descLen);
 	}
@@ -1592,7 +1592,7 @@ Continuum	*createContinuum(int nbr, char *name, char *gwEidString,
 	Continuum	*contin;
 	int		gwEidLen;
 	int		nameLen;
-	int		descLen;
+	int		descLen = 0;
 
 	if (nbr < 1 || nbr > MaxContinNbr || mib->continua[nbr] != NULL
 	|| name == NULL || (length = strlen(name)) > MAX_SUBJ_NAME)
@@ -1642,7 +1642,7 @@ Continuum	*createContinuum(int nbr, char *name, char *gwEidString,
 
 	istrcpy(contin->name, name, nameLen);
 	istrcpy(contin->gwEid, gwEid, gwEidLen);
-	if (description)
+	if (description && descLen > 1)
 	{
 		istrcpy(contin->description, description, descLen);
 	}

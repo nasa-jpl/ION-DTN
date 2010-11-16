@@ -1,0 +1,56 @@
+#!/bin/bash
+#
+# Tests that bpchat sends and receives bundles and behaves well.
+#
+
+
+FAIL=0
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+# Prepare for test start
+rm -f ion.log bpchatoutput bpchatinfifo
+
+echo "Starting ION..."
+srcdir=`pwd`
+CONFIGDIR="config"
+echo "ionstart -I ${CONFIGDIR}/host1.rc"
+"ionstart" -I "${CONFIGDIR}/host1.rc"
+
+# Start a bpecho.
+bpecho ipn:1.1 & BPECHOPID=$!
+
+# Start a bpchat, and send it the bpchatinput file without closing bpchat's
+# STDIN.  This allows bpchat to wait to receive some bundles before closing.
+mkfifo bpchatinfifo
+bpchat ipn:1.2 ipn:1.1 < bpchatinfifo > bpchatoutput & BPCHATPID=$!
+exec 7> bpchatinfifo
+cat bpchatinput >&7
+
+# Wait to allow ION and bpecho to reflect the bundles back to bpchat.
+sleep 3
+
+# Close bpchat and bpecho.  Time how long it takes bpchat to close.
+SECONDS=0
+kill $BPECHOPID $BPCHATPID
+wait $BPCHATPID
+FINISHSECONDS=$SECONDS
+wait $BPECHOPID
+
+# Verify results.
+if [ $FINISHSECONDS -ge 2 ]; then
+    echo "bpchat took $FINISHSECONDS seconds to finish, too long."
+    FAIL=1
+fi
+
+if ! diff bpchatinput bpchatoutput > /dev/null; then
+    echo "Bpchat didn't give expected output"
+    diff bpchatinput bpchatoutput
+    FAIL=1
+fi
+
+ionstop
+
+exit $FAIL

@@ -12,7 +12,7 @@ DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
 
-OPT = -g -Wall -Dsol5 -Dunix -D__SVR4 -D_REENTRANT -fPIC
+OPT = -g -Wall -Werror -Dsol5 -Dunix -D__SVR4 -D_REENTRANT -fPIC
 CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

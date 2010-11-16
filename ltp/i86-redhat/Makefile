@@ -6,7 +6,7 @@ UDP = ../udp
 TEST = ../test
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Dlinux
+OPT = -g -Wall -Werror -Dlinux
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

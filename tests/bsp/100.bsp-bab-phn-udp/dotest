@@ -71,7 +71,7 @@ sleep 5
 
 # Send one bundle with no BAB; it shouldn't get through.
 echo "Sending a bundle with no BAB..."
-bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 0 "$( date ) no BAB"
+bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) no BAB"
 # Don't predictreceived this one; it shouldn't be received. 
 
 
@@ -81,7 +81,7 @@ ionsecadmin <<ENDOFIONSECADMINCOMMANDS
 a babtxrule ipn:1.* 'HMAC-SHA1' testkey2
 q
 ENDOFIONSECADMINCOMMANDS
-bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 0 "$( date ) wrong BAB"
+bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) wrong BAB"
 
 
 # Send one bundle with fixed security; it should get through.
@@ -92,7 +92,7 @@ a babtxrule ipn:1.* 'HMAC-SHA1' testkey
 q
 ENDOFIONSECADMINCOMMANDS
 IONMESSAGE="$( date ) right BAB"
-bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 0 "$IONMESSAGE"
+bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE"
 predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
 
 if tryreceive 

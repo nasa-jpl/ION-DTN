@@ -4,7 +4,7 @@ TEST = ../test
 UTILS = ../utils
 RAMS = ../rams
 
-OPT = -g -Wall -Dsol5 -Dunix -D__SVR4 -D_REENTRANT -DUDPTS -DTCPTS -DDGRTS -fPIC
+OPT = -g -Wall -Werror -Dsol5 -Dunix -D__SVR4 -D_REENTRANT -DUDPTS -DTCPTS -DDGRTS -fPIC
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include -I/tps/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

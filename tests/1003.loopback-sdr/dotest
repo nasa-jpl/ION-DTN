@@ -64,7 +64,7 @@ ITERATION=1
 
 echo "Starting ION..."
 srcdir=`pwd`
-CONFIGDIR="config"
+CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
 echo "ionstart -i ${CONFIGDIR}/loopback.ionrc -l ${CONFIGDIR}/loopback.ltprc -b ${CONFIGDIR}/loopback.bprc -p ${CONFIGDIR}/loopback.ipnrc -s ${CONFIGDIR}/loopback.ionsecrc"
 "ionstart" -i "${CONFIGDIR}/loopback.ionrc" -l "${CONFIGDIR}/loopback.ltprc" -b "${CONFIGDIR}/loopback.bprc" -p "${CONFIGDIR}/loopback.ipnrc" -s "${CONFIGDIR}/loopback.ionsecrc"
 

@@ -96,7 +96,7 @@ include $(PROJECT_ROOT)/make/leaf.cfg
 
 OBJS = $(COBJS) $(CXXOBJS) $(ASOBJS)
 
-CFLAGS = -g -Wall $(IONFLAGS) -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include -I../cfdp/include -I../ams/include -I. -O2
+CFLAGS = -g -Wall -Werror $(IONFLAGS) -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include -I../cfdp/include -I../ams/include -I. -O2
 
 all:    ${ARCH} $(PGM)
 

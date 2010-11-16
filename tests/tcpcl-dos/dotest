@@ -29,7 +29,7 @@ if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
 fi
 
 echo "Starting ION..."
-CONFIGDIR="./config"
+CONFIGDIR="${CONFIGSROOT}/loopback-tcp"
 ionstart                           \
     -i ${CONFIGDIR}/loopback.ionrc \
     -b ${CONFIGDIR}/loopback.bprc  \

@@ -778,13 +778,15 @@ static void	switchEcho(int tokenCount, char **tokens)
 
 static int	processLine(char *line, int lineLength)
 {
-	int	tokenCount;
-	char	*cursor;
-	int	i;
-	char	*tokens[9];
-	char	buffer[80];
-	time_t	refTime;
-	time_t	currentTime;
+	int		tokenCount;
+	char		*cursor;
+	int		i;
+	char		*tokens[9];
+	char		buffer[80];
+	time_t		refTime;
+	time_t		currentTime;
+	struct timeval	done_time;
+	struct timeval	cur_time;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -850,6 +852,25 @@ static int	processLine(char *line, int lineLength)
 				{
 					putErrmsg("Can't start RFX.", NULL);
 				}
+
+				/* Wait for rfx to start up. */
+				getCurrentTime(&done_time);
+				done_time.tv_sec += STARTUP_TIMEOUT;
+				while (rfx_system_is_started() == 0)
+				{
+					snooze(1);
+					getCurrentTime(&cur_time);
+					if (cur_time.tv_sec >=
+					    done_time.tv_sec
+					    && cur_time.tv_usec >=
+					    done_time.tv_usec)
+					{
+						printText("[?] RFX start hung\
+ up, abandoned.");
+						break;
+					}
+				}
+
 			}
 
 			return 0;
@@ -1067,5 +1088,6 @@ int	main(int argc, char **argv)
 
 	printText("Stopping ionadmin.");
 	ionDetach();
+
 	return 0;
 }

@@ -15,15 +15,18 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	amslogport lt-amslogport \
 	amsshell lt-amsshell \
 	bpadmin lt-bpadmin \
+	bpchat lt-bpchat \
 	bpclock lt-bpclock \
 	bpcounter lt-bpcounter \
 	bpdriver lt-bpdriver \
 	bpecho lt-bpecho \
+	bping lt-bping \
 	bprecvfile lt-bprecvfile \
 	bpsendfile lt-bpsendfile \
 	bpsink lt-bpsink \
 	bpsource lt-bpsource \
 	bpstats lt-bpstats \
+	bpstats2 lt-bpstats2 \
 	bptrace lt-bptrace \
 	brsccla lt-brsccla \
 	brsscla lt-brsscla \

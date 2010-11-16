@@ -146,7 +146,7 @@ libtool --mode=execute                             \
     --tool=memcheck                                \
     --trace-children=yes                           \
     --leak-check=full                              \
-    $IONDIR/bptrace ipn:1.2 ipn:1.4 ipn:1.2 60 0 "$IONMESSAGE" 31
+    $IONDIR/bptrace ipn:1.2 ipn:1.4 ipn:1.2 60 1.0 "$IONMESSAGE" 31
 
     # Predict what should come out the other end.
     predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE

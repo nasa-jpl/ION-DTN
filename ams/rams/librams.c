@@ -527,6 +527,10 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 
 	PUTS("RAMS version 1.0");
 
+	/*  Either the gateway net protocol will be BP, and we'll set sdr to
+		the ION sdr; or using SDR will rightly lead to an assertion error. */
+	sdr = 0;
+
 	/*	Register as an AMS module.				*/
 
 	if (ams_register(mibSource, tsorder, mName, memory, mSize,
