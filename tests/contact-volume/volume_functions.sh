@@ -19,9 +19,15 @@ function applyabsolutevolume () {
 function deleteallvolumes () {
     # We don't know the time that "+1" evaluated to when we added it,
     # so remove all the contacts.
-    for contact in $(echo -e "l contact" | ionadmin 2>/dev/null | sed -r 's/.*From  ([0-9/:-]*) to.*/\1/')
+    for contact in $(echo -e "l contact" | ionadmin 2>/dev/null | sed -e 's/.*From[ \t]*\([0-9/:-]*\)[ \t]*to.*xmit rate from node[ \t]*\([0-9]*\)[ \t]*to node[ \t]*\([0-9]*\).*/\1_\2_\3/')
     do
-        echo "d contact $contact 1 1" | ionadmin >/dev/null
+        if ! echo $contact | grep -e '[0-9]' > /dev/null; then
+            # Didn't match anything, not reading useful ionadmin output.
+            continue
+        fi
+        contactsplit=$(echo $contact | sed -e 's/\(.*\)_\(.*\)_\(.*\)/\1 \2 \3/')
+        echo "d contact $contactsplit"
+        echo "d contact $contactsplit" | ionadmin >/dev/null
     done
     echo "contacts (should be empty):"
     echo "l contact" | ionadmin 2>/dev/null
@@ -30,7 +36,7 @@ function deleteallvolumes () {
 function testvolume () {
     echo "Testing contact volume $1 $2"
     deleteallvolumes 
-    if echo "$2" | grep -q ":"; then
+    if echo "$1" | grep ":" >/dev/null; then
         applyabsolutevolume $1 $2
     else
         applyrelativevolume $1 $2
