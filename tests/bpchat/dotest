@@ -45,10 +45,12 @@ if [ $FINISHSECONDS -ge 2 ]; then
     FAIL=1
 fi
 
-if ! diff -q bpchatinput bpchatoutput; then
+if ! diff bpchatinput bpchatoutput > /dev/null; then
     echo "Bpchat didn't give expected output"
     diff bpchatinput bpchatoutput
     FAIL=1
 fi
+
+ionstop
 
 exit $FAIL
