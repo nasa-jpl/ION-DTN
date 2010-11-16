@@ -11,7 +11,7 @@
 
 static BpSAP                sap;
 static Sdr                  sdr;
-static pthread_mutex_t      sdrmutex;
+static pthread_mutex_t      sdrmutex = PTHREAD_MUTEX_INITIALIZER;
 static char                 *destEid = NULL;
 static char                 *ownEid = NULL;
 static BpCustodySwitch      custodySwitch = NoCustodyRequested;
