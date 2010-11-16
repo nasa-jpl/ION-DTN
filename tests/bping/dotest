@@ -50,23 +50,23 @@ if ! grep -q "5 bundles transmitted, 5 bundles received" bpingoutput; then
 fi
 
 echo "Verify that if bping is given SIGINT, it terminates quickly..."
-SECONDS=0
 bping -c 2 -i 15 ipn:1.2 ipn:1.1 > bpingoutput & BPINGPID=$!
 sleep 2
+SECONDS=0
 kill -s INT $BPINGPID
 wait $BPINGPID
 PINGSECONDS=$SECONDS
-if [ $PINGSECONDS -ge 3 ]; then
+if [ $PINGSECONDS -ge 2 ]; then
     echo "It took $PINGSECONDS seconds for bping to clean up and exit, too long."
     FAIL=1
 fi
 
 
 echo "Verify that bping returns after a timeout if so configured..."
-bping -c 3 -i 2 -q 5 ipn:1.2 ipn:1.1 > bpingoutput & BPINGPID=$!
-sleep 1
+bping -c 3 -i 5 -q 5 ipn:1.2 ipn:1.1 > bpingoutput & BPINGPID=$!
+sleep 4
 kill $BPECHOPID
-sleep 10
+sleep 20
 if ! grep -q "3 bundles transmitted, 1 bundles received" bpingoutput; then
     echo "bping didn't properly terminate after timing out"
     kill $BPINGPID > /dev/null

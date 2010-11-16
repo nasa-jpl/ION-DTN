@@ -43,8 +43,8 @@ static int totalsent = 0;     /* Only written by sendRequests thread */
 static int totalreceived = 0; /* Only written by receiveResponses thread */
 static int shutdownnow = 0;      /* 1: Cleanup and shutdown. */
 static pthread_mutex_t sdrmutex;
-static pthread_t receiveResponsesThread;
-static pthread_t sendRequestsThread;
+static pthread_t receiveResponsesThread = 0;
+static pthread_t sendRequestsThread = 0;
 static BpCustodySwitch custodySwitch = NoCustodyRequested;
 
 static Sdr      sdr;
@@ -85,7 +85,7 @@ static void handleQuit()
 {
 	shutdownnow = 1;
 	bp_interrupt(sap);
-	if(sendRequestsThread != pthread_self())
+	if(sendRequestsThread && sendRequestsThread != pthread_self())
 	{
 		pthread_kill(sendRequestsThread, SIGINT);
 	}
@@ -398,6 +398,8 @@ int main(int argc, char **argv)
 	int ch;
 	struct timeval tvStart, tvStop, tvDiff;
 
+	signal(SIGINT, handleQuit);
+
 	if(gettimeofday(&tvStart, NULL) < 0) {
 		putErrmsg("Couldn't get start time.", NULL);
 		perror("Couldn't get start time");
@@ -490,8 +492,6 @@ int main(int argc, char **argv)
 		bp_interrupt(sap);
 		exit(BPING_EXIT_ERROR);
 	}
-
-	signal(SIGINT, handleQuit);
 
 	pthread_join(sendRequestsThread, NULL);
 	pthread_join(receiveResponsesThread, NULL);
