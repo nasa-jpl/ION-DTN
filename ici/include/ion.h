@@ -25,6 +25,13 @@ extern "C" {
 #define IONVERSIONNUMBER "2.2.1"
 #endif
 
+/* Allow the compile option -D to override this in the future */
+#ifndef STARTUP_TIMEOUT
+/* When an admin program starts in ION, wait 15 seconds before
+   considering the startup process 'hung'. */
+#define STARTUP_TIMEOUT 15
+#endif
+
 #define	MAX_SPEED_MPH	(150000)
 #define	MAX_SPEED_MPS	(MAX_SPEED_MPH / 3600)
 
