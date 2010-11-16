@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# Mithun Roy
+# Nov 10, 2010
+
+echo "Cleaning up old ION..."
+rm -f 1.ipn.tcp/bpdriver.txt
+rm -f 1.ipn.tcp/bpdriverAduFile
+rm -f 3.ipn.tcp/bpcounter.txt
+rm -f 1.ipn.tcp/ion.log 2.ipn.tcp/ion.log 3.ipn.tcp/ion.log
+killm
