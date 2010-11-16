@@ -50,11 +50,11 @@ diff_output_except_statstime ()
     
 # Poke bpsend with a bundle.
 bptrace ipn:1.1 ipn:1.2 dtn:none 60 1.0 "test bundle please send stats" ""
-sleep 1
+sleep 5
 
 # Start a bpstats2
 bpstats2 ipn:1.2 ipn:1.1 & BPSTATS2PID=$!
-sleep 1
+sleep 5
 
 # Start the listener that will receive the bundle queued in the 
 # ipn:1.1 endpoint.
@@ -63,11 +63,11 @@ bprecvfile ipn:1.1 &
 BPRECVFILEPID=$!
 
 # Cause bpstats2 to send a bundle to bprecvfile via SIGUSR1.
-sleep 1
+sleep 5
 /bin/kill -s USR1 $BPSTATS2PID
 
 # give bprecvfile some time to collect bundles
-sleep 2
+sleep 3
 
 # Check that we got the expected output.
 if ! diff_output_except_statstime testfile1 testfile1.goodoutput; then
