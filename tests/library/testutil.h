@@ -6,6 +6,10 @@
 
 #include <bp.h>
 
+/* A "default" amount of time to wait for bundle delivery before timing out. */
+#define IONTEST_DEFAULT_RECEIVE_WAIT    (5)
+
+
 /*
  * Same as ionstart(...), but prefixes all paths with value of CONFIGSDIR
  * from environment
