@@ -33,11 +33,10 @@ a protocol stcp 1400 100
 
 # Add an induct. (listen)
 #	Add an induct to accept bundles using the stcp protocol.
-#	The induct will listen at the loopback IP address.
 #	The induct will listen on port 4556, the IANA assigned default DTN
 #	TCP convergence layer port.
 #	The induct itself is implemented by the 'stcpcli' command.
-a induct stcp 127.0.0.1:4556 stcpcli
+a induct stcp 0.0.0.0:4556 stcpcli
 
 
 # Add an outduct. (send to yourself)

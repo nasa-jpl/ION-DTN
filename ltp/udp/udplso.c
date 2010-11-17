@@ -274,8 +274,7 @@ int	main(int argc, char *argv[])
 	 *	than to the advertised link service input socket.	*/
 
 	portNbr = 0;			/*	Let O/S select it.	*/
-	ipAddress = getInternetAddress(ownHostName);
-	ipAddress = INADDR_ANY;
+	ipAddress = htonl(INADDR_ANY);
 	memset((char *) &bindSockName, 0, sizeof bindSockName);
 	bindInetName = (struct sockaddr_in *) &bindSockName;
 	bindInetName->sin_family = AF_INET;

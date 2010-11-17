@@ -1653,13 +1653,13 @@ void	findToken(char **cursorPtr, char **token)
 }
 
 #ifdef ION_NO_DNS
-void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
+int		parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		unsigned int *ipAddress)
 {
-	return;
+	return 0;
 }
 #else
-void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
+int		parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		unsigned int *ipAddress)
 {
 	char		*delimiter;
@@ -1667,14 +1667,14 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 	char		hostnameBuf[MAXHOSTNAMELEN + 1];
 	unsigned int	i4;
 
-	CHKVOID(portNbr);
-	CHKVOID(ipAddress);
+	CHKERR(portNbr);
+	CHKERR(ipAddress);
 	*portNbr = 0;			/*	Use default port nbr.	*/
-	*ipAddress = 0;			/*	Use local host address.	*/
+	*ipAddress = INADDR_ANY;	/*	Use local host address.	*/
 
 	if (socketSpec == NULL || *socketSpec == '\0')
 	{
-		return;			/*	Use defaults.		*/
+		return 0;		/*	Use defaults.		*/
 	}
 
 	delimiter = strchr(socketSpec, ':');
@@ -1688,20 +1688,32 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 	hostname = socketSpec;
 	if (strlen(hostname) != 0)
 	{
-		if (strcmp(socketSpec, "@") == 0)
+		if (strcmp(hostname, "0.0.0.0") == 0)
 		{
-			getNameOfHost(hostnameBuf, sizeof hostnameBuf);
-			hostname = hostnameBuf;
-		}
-
-		i4 = getInternetAddress(hostname);
-		if (i4 < 1)		/*	Invalid hostname.	*/
-		{
-			writeMemoNote("[?] Can't get IP address.", hostname);
+			*ipAddress = INADDR_ANY;
 		}
 		else
 		{
-			*ipAddress = i4;
+			if (strcmp(hostname, "@") == 0)
+			{
+				getNameOfHost(hostnameBuf, sizeof hostnameBuf);
+				hostname = hostnameBuf;
+			}
+
+			i4 = getInternetAddress(hostname);
+			if (i4 < 1)		/*	Invalid hostname.	*/
+			{
+				writeMemoNote("[?] Can't get IP address.", hostname);
+				if (delimiter)
+				{
+					*delimiter = ':';	/* Nondestructive parse */
+				}
+				return -1;
+			}
+			else
+			{
+				*ipAddress = i4;
+			}
 		}
 	}
 
@@ -1709,7 +1721,11 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 
 	if (delimiter == NULL)		/*	No port number.		*/
 	{
-		return;			/*	All done.		*/
+		return 0;		/*	All done.		*/
+	}
+	else
+	{
+		*delimiter = ':';	/* Nondestructive parse. */
 	}
 
 	i4 = atoi(delimiter + 1);	/*	Get port number.	*/
@@ -1718,14 +1734,14 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		if (i4 < 1024 || i4 > 65535)
 		{
 			writeMemoNote("[?] Invalid port number.", utoa(i4));
+			return -1;
 		}
 		else
 		{
 			*portNbr = i4;
 		}
 	}
-
-	*delimiter = ':';		/*	Nondestructive parse.	*/
+	return 0;
 }
 #endif
 
