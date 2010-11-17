@@ -75,12 +75,12 @@ kill -9 $BPCOUNTERPID >/dev/null 2>&1
 
 # Shut down ION processes.
 echo "Stopping ION..."
-cd ../1.ipn.tcp &
-./ionstop 
-cd ../2.ipn.tcp &
-./ionstop 
-cd ../3.ipn.tcp &
-./ionstop 
+cd ../1.ipn.tcp 
+./ionstop &
+cd ../2.ipn.tcp 
+./ionstop &
+cd ../3.ipn.tcp 
+./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
 sleep 5
