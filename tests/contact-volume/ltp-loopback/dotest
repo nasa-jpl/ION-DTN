@@ -15,7 +15,7 @@ EXPECTEDCOUNT=3
 echo "Starting ION..."
 ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback.rc
 #The sample config adds contacts
-deleteallcolumes
+deleteallvolumes
 
 # receive the message and store it in a file via test bundle sink
 echo "Starting Message Listener..."
