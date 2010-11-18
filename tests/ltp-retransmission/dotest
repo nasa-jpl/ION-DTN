@@ -40,7 +40,7 @@ while [ $RUNNING -eq 1 ]
 do
 	sleep 1
 	echo "...receiving..."
-	BPCOUNTERS=`ps ax | egrep bpcounter | wc -l`
+	BPCOUNTERS=`ps -ef | egrep bpcounter | wc -l`
 	if [ $BPCOUNTERS -eq 1 ]
 	then
 		RUNNING=0
