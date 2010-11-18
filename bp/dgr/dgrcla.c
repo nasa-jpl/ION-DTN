@@ -496,16 +496,14 @@ int	main(int argc, char *argv[])
 	}
 
 	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
+	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", ductName);
+		return 1;
+	}
 	if (portNbr == 0)
 	{
 		portNbr = DGRCLA_PORT_NBR;
-	}
-
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		return 1;
 	}
 
 	if (dgr_open(getOwnNodeNbr(), 1, portNbr, hostNbr, NULL, &dgrSap, &rc)
