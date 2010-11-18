@@ -32,8 +32,8 @@ a endpoint ipn:1.2 q
 a protocol brss 1450 68
 
 # Add BRS server induct and outduct.
-a induct brss localhost:4556 brsscla
-a outduct brss localhost:4556 ''
+a induct brss 0.0.0.0:4556 brsscla
+a outduct brss 0.0.0.0:4556 ''
 
 # Add a protocol. 
 #	Add the protocol named brsc.

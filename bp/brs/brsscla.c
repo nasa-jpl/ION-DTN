@@ -681,7 +681,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	ClProtocol		protocol;
 	char			*hostName;
 	unsigned short		portNbr;
-	unsigned int		hostNbr;
+	unsigned int		hostNbr = INADDR_ANY;
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
 	pthread_t		accessThread;
@@ -696,7 +696,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 		return 1;
 	}
 
-	if (vinduct->cliPid > 0 && vinduct->cliPid != sm_TaskIdSelf())
+	if (vinduct->cliPid > 1 && vinduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
 				itoa(vinduct->cliPid));
@@ -728,21 +728,19 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	}
 
 	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
+	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", hostName);
+		return 1;
+	}
 	if (portNbr == 0)
 	{
 		portNbr = 80;
 	}
-
 	portNbr = htons(portNbr);
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		return 1;
-	}
+	hostNbr = htonl(hostNbr);
 
 	atp.vduct = vinduct;
-	hostNbr = htonl(hostNbr);
 	memset((char *) &(atp.socketName), 0, sizeof(struct sockaddr));
 	atp.inetName = (struct sockaddr_in *) &(atp.socketName);
 	atp.inetName->sin_family = AF_INET;
