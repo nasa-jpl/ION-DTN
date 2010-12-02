@@ -45,15 +45,18 @@ rm -f ./ion_nodes
 RETVAL=0
 
 # Start nodes.
-cd 2.ipn.tcp
+cd 3.ipn.tcp
 ./ionstart
-cd ../3.ipn.tcp
+cd ../2.ipn.tcp
 ./ionstart
+echo "Sleeping 30 sec to give keepalive threads time to detect open sockets..."
+sleep 30
 
 # Start file receiver on node 3.
-sleep 1
+cd ../3.ipn.tcp
 echo "Starting bprecvfile..."
 bprecvfile ipn:3.1 &
+sleep 1
 
 # Send one file from node 2.
 cd ../2.ipn.tcp
@@ -63,7 +66,7 @@ sleep 2
 
 # Verify that this file arrived.
 cd ../3.ipn.tcp
-COUNT=`ls -l testfile1 | wc -l`
+COUNT=`ls -l testfile1 | egrep 915 | wc -l`
 if [ $COUNT -eq 1 ]
 then
 	echo ""
@@ -88,7 +91,7 @@ sleep 2
 
 # Verify that this file has NOT arrived.
 cd ../3.ipn.tcp
-COUNT=`ls -l testfile2 | egrep 915 | wc -l`
+COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
 if [ $COUNT -eq 1 ]
 then
 	echo ""
@@ -144,8 +147,8 @@ echo ""
 echo "Breaking TCP connection to node 3 to test automatic blocking..."
 ./ionstop
 echo "Node 3 is stopped."
-echo "Sleeping 15 seconds to give heartbeat time to detect closed socket..."
-sleep 15
+echo "Sleeping 30 sec to give keepalive thread time to detect closed socket..."
+sleep 30
 
 # Send fourth file from node 2.
 cd ../2.ipn.tcp
@@ -175,8 +178,8 @@ sleep 1
 rm testfile*
 echo "Restarting bprecvfile..."
 bprecvfile ipn:3.1 &
-echo "Sleeping 15 seconds to give heartbeat time to detect open socket..."
-sleep 15
+echo "Sleeping 30 sec to give keepalive thread time to detect open socket..."
+sleep 30
 echo ""
 echo "Bundle for 4th file should have been released from limbo -- k."
 
