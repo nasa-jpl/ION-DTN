@@ -85,30 +85,41 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	Sdr			sdr = getIonsdr();
 	static LtpSessionId	currentSessionId = { 0, 0 };
 	static unsigned long	currentOffset = 0;
+	static int		gapFound = 0;
 	unsigned long		fillLength;
 	char			engineNbrString[21];
 	char			senderEidBuffer[SDRSTRING_BUFSZ];
 	char			*senderEid;
 	ZcoReader		reader;
 
+	if (zco == 0)		/*	Import session canceled.	*/
+	{
+		bpCancelAcq(work);
+		currentSessionId.sourceEngineId = 0;
+		currentSessionId.sessionNbr = 0;
+		currentOffset = 0;
+		gapFound = 0;
+		return 0;
+	}
+
 	if (zco_source_data_length(sdr, zco) != length)
 	{
-printf("Green data length error: length is %lu, should be %u.\n", length,
-zco_source_data_length(sdr, zco));
 		return 0;	/*	Just discard the segment.	*/
 	}
 
 	if (sessionId->sourceEngineId != currentSessionId.sourceEngineId
-	|| sessionId->sessionNbr != currentSessionId.sessionNbr
-	|| offset < currentOffset)
+	|| sessionId->sessionNbr != currentSessionId.sessionNbr)
 	{
-		/*	Discard the partially received bundle in
-		 *	the work area, if any.				*/
+		/*	Did not receive end-of-block segment for the
+		 *	block that was being received.  Discard the
+		 *	partially received bundle in the work area,
+		 *	if any.						*/
 
 		bpCancelAcq(work);
 		currentSessionId.sourceEngineId = 0;
 		currentSessionId.sessionNbr = 0;
 		currentOffset = 0;
+		gapFound = 0;
 	}
 
 	if (currentOffset == 0)
@@ -129,12 +140,17 @@ zco_source_data_length(sdr, zco));
 		currentSessionId.sessionNbr = sessionId->sessionNbr;
 	}
 
+	if (offset < currentOffset)	/*	Out of order.		*/
+	{
+		return 0;	/*	Just discard the segment.	*/
+	}
+
 	if (offset > currentOffset)
 	{
 		/*	Must insert fill data -- partial loss of
 		 *	bundle payload, for example, may be okay.	*/
 
-printf("Must fill: offset is %lu, should be %lu.\n", offset, currentOffset);
+		gapFound = 1;
 		fillLength = offset - currentOffset;
 		if (fillLength > *buflen)
 		{
@@ -158,6 +174,7 @@ printf("Must fill: offset is %lu, should be %lu.\n", offset, currentOffset);
 				currentSessionId.sourceEngineId = 0;
 				currentSessionId.sessionNbr = 0;
 				currentOffset = 0;
+				gapFound = 0;
 				return 0;
 			}
 
@@ -194,6 +211,7 @@ printf("Must fill: offset is %lu, should be %lu.\n", offset, currentOffset);
 			currentSessionId.sourceEngineId = 0;
 			currentSessionId.sessionNbr = 0;
 			currentOffset = 0;
+			gapFound = 0;
 			return 0;
 		}
 
@@ -236,6 +254,7 @@ printf("Must fill: offset is %lu, should be %lu.\n", offset, currentOffset);
 		currentSessionId.sourceEngineId = 0;
 		currentSessionId.sessionNbr = 0;
 		currentOffset = 0;
+		gapFound = 0;
 	}
 
 	return 0;
@@ -346,6 +365,23 @@ static void	*handleNotices(void *parm)
 			break;		/*	Out of switch.		*/
 
 		case LtpImportSessionCanceled:
+			/*	None of the red data for the import
+			 *	session (if any) have been received
+			 *	yet, so nothing to discard.  In case
+			 *	part or all of the import session was
+			 *	green data, force deletion of retained
+			 *	data.					*/
+
+			sessionId.sourceEngineId = 0;
+			sessionId.sessionNbr = 0;
+			if (handleGreenSegment(greenWork, &sessionId,
+					0, 0, 0, 0, NULL, NULL) < 0)
+			{
+				putErrmsg("Can't cancel green session.", NULL);
+				pthread_kill(rtp->mainThread, SIGTERM);
+				rtp->running = 0;
+			}
+
 			break;		/*	Out of switch.		*/
 
 		case LtpRecvRedPart:
