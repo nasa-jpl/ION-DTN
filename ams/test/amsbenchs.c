@@ -55,8 +55,8 @@ int	main(int argc, char **argv)
 	}
 
 	memset(buffer, ' ', size);
-	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, application,
-			authority, "", "benchs", &me) < 0)
+	if (ams_register("amsmib.xml", NULL, application, authority, "",
+				"benchs", &me) < 0)
 	{
 		putSysErrmsg("amsbenchs can't register", NULL);
 		return -1;

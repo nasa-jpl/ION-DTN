@@ -19,6 +19,7 @@
 #include "psm.h"
 #include "lyst.h"
 #include "llcv.h"
+#include "ion.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,8 +55,8 @@ extern "C" {
 #define	MAX_UNIT_NBR	10
 #endif
 
-#ifndef MAX_NODE_NBR
-#define	MAX_NODE_NBR	255
+#ifndef MAX_MODULE_NBR
+#define	MAX_MODULE_NBR	255
 #endif
 
 #ifndef MAX_ROLE_NBR
@@ -88,13 +89,6 @@ extern "C" {
 
 #define N5_INTERVAL	(N4_INTERVAL * N6_COUNT)
 
-extern int		MaxContinNbr;
-extern int		MaxVentureNbr;
-extern int		MaxUnitNbr;
-extern int		MaxModuleNbr;
-extern int		MaxRoleNbr;
-extern int		MaxSubjNbr;
-
 #define	LOCK_MIB	pthread_mutex_lock(&mib->mutex)
 #define	UNLOCK_MIB	pthread_mutex_unlock(&mib->mutex)
 
@@ -103,9 +97,7 @@ extern int		MaxSubjNbr;
 #define	REJ_NO_CENSUS	2
 #define	REJ_CELL_FULL	3
 #define	REJ_NO_UNIT	4
-
-extern char		*rejectionMemos[];
-
+#if 0
 /*	Memory management abstraction.					*/
 extern int		amsMemory;
 extern MemAllocator	amsmtake;
@@ -114,10 +106,7 @@ extern MemAtoPConverter	amsmatop;
 extern MemPtoAConverter	amsmptoa;
 #define MTAKE(size)	amsmtake(__FILE__, __LINE__, size)
 #define MRELEASE(addr)	amsmrelease(__FILE__, __LINE__, addr)
-
-extern char		*BadParmsMemo;
-extern char		*NoMemoryMemo;
-
+#endif
 /*	Common event types.						*/
 #define CRASH_EVT	11
 #define MAMS_MSG_EVT	12
@@ -134,6 +123,16 @@ typedef struct amsevtst
 
 /*	*	AMS Management Information Base		*	*	*/
 
+typedef struct
+{
+	int		continuumNbr;
+	char		*ptsName;
+	char		*publicKey;
+	int		publicKeyLength;
+	char		*privateKey;
+	int		privateKeyLength;
+} AmsMibParameters;
+
 typedef enum
 {
 	RamsNoProtocol = 0,
@@ -145,8 +144,6 @@ typedef struct
 {
 	int		nbr;
 	char		*name;
-	RamsNetProtocol	gwProtocol;
-	char		*gwEid;
 	int		isNeighbor;	/*	Boolean.		*/
 	char		*description;
 } Continuum;
@@ -335,7 +332,15 @@ typedef struct subjst
 	char		*symmetricKey;
 	int		keyLength;
 	Lyst		modules;		/*	(FanModule *)	*/
-	LystElt		elt;		/*	In hashtable.		*/
+	LystElt		elt;			/*	In hashtable.	*/
+
+	/*	If this Subject is for a message space (i.e.,
+	 *	subject number is < 0; isContinuum == 1) then
+	 *	gwEid is non-NULL and identifies the endpoint ID
+	 *	at which the RAMS gateway for the parent venture
+	 *	in the indicated continuum receives RAMS PDUs.		*/
+
+	char		*gwEid;
 } Subject;
 
 /*	Cell encapsulates information about that portion of some unit
@@ -345,7 +350,7 @@ typedef struct
 {
 	struct unit_str	*unit;			/*	Parent.		*/
 	MamsEndpoint	mamsEndpoint;		/*	Of registrar.	*/
-	Module		*modules[MAX_NODE_NBR + 1];
+	Module		*modules[MAX_MODULE_NBR + 1];
 	int		heartbeatsMissed;	/*	To CS.		*/
 	int		resyncPeriod;		/*	In heartbeats.	*/
 } Cell;
@@ -381,6 +386,8 @@ typedef struct ventstr
 	Subject		*subjects[MAX_SUBJ_NBR + 1];	/*	subj>0	*/
 	Lyst		subjLysts[SUBJ_LIST_CT];/*	hash table	*/
 	Unit		*units[MAX_UNIT_NBR + 1];
+	RamsNetProtocol	gwProtocol;
+	int		ramsNetIsTree;		/*	Boolean.	*/
 
 	/*	The msgspaces array enumerates all messages spaces
 	 *	that are included in this venture, including the one
@@ -405,16 +412,11 @@ typedef struct
 	Venture		*ventures[MAX_VENTURE_NBR + 1];
 	Lyst		csEndpoints;		/*	(MamsEndpoint *)*/
 	int		localContinuumNbr;
-	RamsNetProtocol	localContinuumGwProtocol;
-	char		*localContinuumGwEid;
-	int		ramsNetIsTree;		/*	Boolean.	*/
 	char		*csPublicKey;
 	int		csPublicKeyLength;
 	char		*csPrivateKey;		/*	Only for CS MIB.*/
 	int		csPrivateKeyLength;
 } AmsMib;
-
-extern AmsMib		*mib;
 
 /*	*	*	MAMS message structure	*	*	*	*/
 
@@ -449,9 +451,9 @@ typedef enum
 
 typedef struct
 {
-	unsigned char	ventureNbr;
-	unsigned short	unitNbr;
-	unsigned char	roleNbr;
+	int		ventureNbr;
+	int		unitNbr;
+	int		roleNbr;
 	MamsPduType	type;
 	signed int	memo;
 	time_t		timeTag;
@@ -462,7 +464,9 @@ typedef struct
 /*	*	*	Private function prototypes	*	*	*/
 
 extern int	initMemoryMgt(char *mName, char *memory, unsigned mSize);
-extern int	loadMib(char *mibSource);
+extern AmsMib	*_mib(AmsMibParameters *parms);
+extern AmsMib	*loadMib(char *mibSource);
+extern char	*_rejectionMemos(int idx);
 
 extern int	time_to_stop(Llcv llcv);
 extern int	llcv_reply_received(Llcv llcv);
@@ -500,23 +504,20 @@ extern AppRole	*createRole(Venture *venture, int nbr, char *name,
 			char *publicKey, int publicKeyLength,
 			char *privateKey, int privateKeyLength);
 extern void	eraseMsgspace(Venture *venture, Subject *subj);
-extern Subject	*createMsgspace(Venture *venture, int continNbr, char *key,
-			int keyLength);
+extern Subject	*createMsgspace(Venture *venture, int continNbr,
+			char *gwEidString, char *key, int keyLength);
 extern void	eraseUnit(Venture *venture, Unit *unit);
 extern Unit	*createUnit(Venture *venture, int nbr, char *name,
 			int resyncPeriod);
 extern void	eraseVenture(Venture *venture);
 extern Venture	*createVenture(int nbr, char *appname, char *authname,
+			char *gwEidString, int ramsNetIsTree,
 			int rootCellResyncPeriod);
 extern Continuum
-		*createContinuum(int nbr, char *name, char *gwEidString,
-			int isNeighbor, char *description);
+		*createContinuum(int nbr, char *name, int isNeighbor,
+			char *description);
 extern LystElt	createCsEndpoint(char *endpointSpec, LystElt nextElt);
 extern LystElt	createAmsEpspec(char *tsname, char *endpointSpec);
-extern void	eraseMib();
-extern int	createMib(int nbr, char *geEidString, int ramsNetIsTree,
-			char *ptsName, char *publicKey, int publicKeyLength,
-			char *privateKey, int privateKeyLength);
 
 extern unsigned short
 		computeAmsChecksum(unsigned char *cursor, int pduLength);

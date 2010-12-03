@@ -498,10 +498,15 @@ static void	DeleteInvitation(Invitation *inv)
 	MRELEASE(inv);
 }
 
-int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
-		unsigned mSize, char *applicationName, char *authorityName,
-		char *unitName, char *roleName, RamsGate *gWayp, int lifetime)
+int	rams_run(char *mibSource, char *tsorder, char *applicationName,
+		char *authorityName, char *unitName, char *roleName,
+		int lifetime)
 {
+	AmsModule		amsModule;
+	AmsMib			*mib;
+	int			ownContinuumNbr;
+	Subject			*ownMsgspace;
+	RamsGateway		*gWay;
 	Sdr			sdr;
 	LystElt			elt;
 	BpDelivery		dlv;
@@ -517,9 +522,6 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 	socklen_t		nameLength;
 	Lyst			msgspaces;
 	int			cId;
-	Continuum		*continuum;
-	AmsModule		amsModule;
-	RamsGateway		*gWay;
 	Petition		*pet;
 	AmsEventMgt		rules;
 	int			ownPseudoSubject;
@@ -529,13 +531,16 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 
 	/*	Register as an AMS module.				*/
 
-	if (ams_register(mibSource, tsorder, mName, memory, mSize,
-			applicationName, authorityName, unitName, roleName,
-			&amsModule) < 0)
+	if (ams_register(mibSource, tsorder, applicationName, authorityName,
+			unitName, roleName, &amsModule) < 0)
 	{
 		putErrmsg("RAMS gateway can't register.", NULL);
 		return -1;
 	}
+
+	mib = _mib(NULL);
+	ownContinuumNbr = mib->localContinuumNbr;
+	ownMsgspace = amsModule->venture->msgspaces[ownContinuumNbr];
 
 	/*	Construct RAMS gateway state.				*/
 
@@ -546,7 +551,6 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 		return -1;
 	}
 
-	*gWayp = gWay;
 	gWay->amsModule = amsModule;
 	gWay->primeThread = pthread_self();
 	gWay->petitionReceiveThread = pthread_self();
@@ -570,7 +574,7 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 
 	/*	Determine RAMS network type.				*/
 
-	if (ams_rams_net_is_tree())
+	if (ams_rams_net_is_tree(gWay->amsModule))
 	{
 		gWay->netType = TREETYPE;
 	}
@@ -587,7 +591,7 @@ printf("continuum lyst: ");
 	msgspaces = ams_list_msgspaces(gWay->amsModule);
 	for (elt = lyst_first(msgspaces); elt; elt = lyst_next(elt))
 	{
-		cId = (long)lyst_data(elt);
+		cId = (long) lyst_data(elt);
 #if RAMSDEBUG
 printf("\nbr %d ", cId);		
 #endif
@@ -601,7 +605,6 @@ printf("\nbr %d ", cId);
 			continue;
 		} 	
 
-		continuum = gWay->amsMib->continua[cId];
 		ramsNode = (RamsNode *) MTAKE(sizeof(RamsNode));
 		if (ramsNode == NULL)
 		{
@@ -611,8 +614,8 @@ printf("\nbr %d ", cId);
 
 		memset(ramsNode, 0, sizeof(RamsNode));
 		ramsNode->continuumNbr = cId;
-		ramsNode->protocol = continuum->gwProtocol;
-		ramsNode->gwEid = continuum->gwEid;
+		ramsNode->protocol = amsModule->venture->gwProtocol;
+		ramsNode->gwEid = amsModule->venture->msgspaces[cId]->gwEid;
 		if (lyst_insert_last(gWay->ramsNeighbors, ramsNode)
 				== NULL)
 		{
@@ -680,12 +683,12 @@ printf("subscribed to %d\n", ownPseudoSubject);
 #endif
 	/*	Insert self into RAMS network.				*/
 
-	gWay->netProtocol = gWay->amsMib->localContinuumGwProtocol;
+	gWay->netProtocol = gWay->amsModule->venture->gwProtocol;
 	switch (gWay->netProtocol)
 	{
 	case RamsBp:
 #if RAMSDEBUG
-printf("ownEid for bp_open is '%s'.\n", gWay->amsMib->localContinuumGwEid);
+printf("ownEid for bp_open is '%s'.\n", ownMsgspace->gwEid);
 #endif
 		gWay->ttl = lifetime;
 		if (bp_attach() < 0)
@@ -696,7 +699,7 @@ printf("ownEid for bp_open is '%s'.\n", gWay->amsMib->localContinuumGwEid);
 #if RAMSDEBUG
 printf("bp_attach succeeds.\n");
 #endif
-		if (bp_open(gWay->amsMib->localContinuumGwEid, &gWay->sap) < 0)
+		if (bp_open(ownMsgspace->gwEid, &gWay->sap) < 0)
 		{
 			ErrMsg("Can't open own BP endpoint.");
 			return -1;
@@ -718,7 +721,7 @@ printf("bp_open succeeds.\n");
 			return -1;
 		}
 
-		istrcpy(gwEid, gWay->amsMib->localContinuumGwEid, sizeof gwEid);
+		istrcpy(gwEid, ownMsgspace->gwEid, sizeof gwEid);
 		parseSocketSpec(gwEid, &portNbr, &ipAddress);
 		portNbr = htons(portNbr);
 		ipAddress = htonl(ipAddress);

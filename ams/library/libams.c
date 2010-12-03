@@ -10,8 +10,6 @@
 									*/
 #include "amsP.h"
 
-char		*ModuleCrashedMemo = "Module crashed; must unregister.";
-
 static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			int unitNbr, int subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
@@ -92,13 +90,7 @@ static int	enqueueAmsEvent(AmsSAP *sap, AmsEvt *evt, char *ancillaryBlock,
 		}
 
 		llcv_unlock(eventsQueue);
-		if (elt == NULL)
-		{
-			MRELEASE(evt);
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
-
+		CHKERR(elt);
 		llcv_signal(eventsQueue, time_to_stop);
 		return 0;
 	}
@@ -139,18 +131,7 @@ static int	enqueueAmsEvent(AmsSAP *sap, AmsEvt *evt, char *ancillaryBlock,
 	}
 
 	llcv_unlock(eventsQueue);
-	if (elt == NULL)
-	{
-		MRELEASE(evt);
-		if (ancillaryBlock)
-		{
-			MRELEASE(ancillaryBlock);
-		}
-
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(elt);
 	return 0;
 }
 
@@ -171,19 +152,14 @@ static int	enqueueAmsCrash(AmsSAP *sap, char *text)
 	}
 
 	evt = (AmsEvt *) MTAKE(1 + textLength + 1);
-	if (evt == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(evt);
 	evt->type = CRASH_EVT;
 	memcpy(evt->value, text, textLength);
 	evt->value[textLength] = '\0';
 	if (enqueueAmsEvent(sap, evt, NULL, 0, 0, AmsMsgNone) < 0)
 	{
+		putErrmsg("Can't enqueue AMS crash event.", NULL);
 		MRELEASE(evt);
-		putErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
@@ -195,17 +171,12 @@ static int	enqueueAmsStubEvent(AmsSAP *sap, int eventType, int priority)
 	AmsEvt	*evt;
 
 	evt = (AmsEvt *) MTAKE(sizeof(AmsEvt));
-	if (evt == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(evt);
 	evt->type = eventType;
 	if (enqueueAmsEvent(sap, evt, NULL, 0, priority, AmsMsgNone) < 0)
 	{
+		putErrmsg("Can't enqueue AMS stub event.", NULL);
 		MRELEASE(evt);
-		putErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
@@ -371,7 +342,7 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 {
 	*sender = NULL;		/*	Default.			*/
 	msg->continuumNbr = ((*(header + 2) & 0x7f) << 8) + *(header + 3);
-	if (msg->continuumNbr < 1 || msg->continuumNbr > MaxContinNbr
+	if (msg->continuumNbr < 1 || msg->continuumNbr > MAX_CONTIN_NBR
 	|| sap->venture->msgspaces[msg->continuumNbr] == NULL)
 	{
 		putErrmsg("Received message from unknown continuum.",
@@ -380,7 +351,7 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 	}
 
 	msg->unitNbr = (*(header + 4) << 8) + *(header + 5);
-	if (msg->unitNbr < 0 || msg->unitNbr > MaxUnitNbr
+	if (msg->unitNbr < 0 || msg->unitNbr > MAX_UNIT_NBR
 	|| sap->venture->units[msg->unitNbr] == NULL)
 	{
 		putErrmsg("Received message from unknown cell.",
@@ -389,14 +360,14 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 	}
 
 	msg->moduleNbr = (unsigned char) *(header + 6);
-	if (msg->moduleNbr < 1 || msg->moduleNbr > MaxModuleNbr)
+	if (msg->moduleNbr < 1 || msg->moduleNbr > MAX_MODULE_NBR)
 	{
 		putErrmsg("Received message from invalid-numbered module.",
 				itoa(msg->moduleNbr));
 		return -1;
 	}
 
-	if (msg->continuumNbr != mib->localContinuumNbr)
+	if (msg->continuumNbr != (_mib(NULL))->localContinuumNbr)
 	{
 		return 0;	/*	Can't get ultimate sender.	*/
 	}
@@ -540,13 +511,9 @@ int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 	AppRole		*role;
 	AmsEvt		*evt;
 
-	if (sap == NULL || msgBuffer == NULL || length < 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg(BadParmsMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(sap);
+	CHKERR(msgBuffer);
+	CHKERR(length);
 	deliveredContentLength = validateAmsMsg(sap, msgBuffer, length, &msg,
 			&sender);
 	if (deliveredContentLength < 0 || sender == NULL)
@@ -608,7 +575,7 @@ by non-RAMS-gateway module.", NULL);
 		/*	Receiving module is a RAMS gateway.		*/
 
 		subjectNbr = 0 - msg.subjectNbr;
-		if (subjectNbr > MaxContinNbr)
+		if (subjectNbr > MAX_CONTIN_NBR)
 		{
 			putErrmsg("Received message for invalid continuum.",
 					itoa(subjectNbr));
@@ -619,7 +586,7 @@ by non-RAMS-gateway module.", NULL);
 	}
 	else
 	{
-		if (msg.subjectNbr == 0 || msg.subjectNbr > MaxSubjNbr)
+		if (msg.subjectNbr == 0 || msg.subjectNbr > MAX_SUBJ_NBR)
 		{
 			putErrmsg("Received message on invalid subject.",
 					itoa(msg.subjectNbr));
@@ -636,7 +603,7 @@ by non-RAMS-gateway module.", NULL);
 		return -1;
 	}
 
-	if (msg.continuumNbr == mib->localContinuumNbr)
+	if (msg.continuumNbr == (_mib(NULL))->localContinuumNbr)
 	{
 		if (subject->authorizedSenders != NULL)
 		{
@@ -713,12 +680,7 @@ ted message.", subject->name);
 	else
 	{
 		msg.content = MTAKE(msg.contentLength);
-		if (msg.content == NULL)
-		{
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
-
+		CHKERR(msg.content);
 		memcpy(msg.content, msgContent, msg.contentLength);
 
 		/*	Decrypt content as necessary.			*/
@@ -735,13 +697,7 @@ ted message.", subject->name);
 	/*	Create and enqueue event, signal application thread.	*/
 
 	evt = (AmsEvt *) MTAKE(1 + sizeof(AmsMsg));
-	if (evt == NULL)
-	{
-		MRELEASE(msg.content);
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(evt);
 	evt->type = AMS_MSG_EVT;
 	memcpy(evt->value, (char *) &msg, sizeof(AmsMsg));
 	return enqueueAmsEvent(sap, evt, msg.content, msg.contextNbr,
@@ -753,6 +709,7 @@ static void	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 			int contentLength, unsigned char *header,
 			AmsMsgType msgType)
 {
+	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	unsigned long	u8;
 	unsigned char	u1;
 	short		i2;
@@ -768,8 +725,8 @@ static void	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	*header = u1;
 	*(header + 1) = flowLabel;
 	*(header + 2) = 0x80	/*	Checksum always present.	*/
-			+ ((mib->localContinuumNbr >> 8) & 0x0000007f);
-	*(header + 3) = mib->localContinuumNbr & 0x000000ff;
+			+ ((myContinNbr >> 8) & 0x0000007f);
+	*(header + 3) = myContinNbr & 0x000000ff;
 	*(header + 4) = (sap->unit->nbr >> 8) & 0x000000ff;
 	*(header + 5) = sap->unit->nbr & 0x000000ff;
 	*(header + 6) = sap->moduleNbr;
@@ -810,18 +767,13 @@ static int	enqueueMsgToRegistrar(AmsSAP *sap, MamsPduType pduType,
 	msg.supplementLength = supplementLength;
 	msg.supplement = supplement;
 	evt = (AmsEvt *) MTAKE(1 + sizeof(MamsMsg));
-	if (evt == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(evt);
 	memcpy(evt->value, (char *) &msg, sizeof msg);
 	evt->type = MSG_TO_SEND_EVT;
 	if (enqueueMamsEvent(sap->mamsEventsCV, evt, NULL, 0))
 	{
+		putErrmsg("Can't enqueue message to registrar.", NULL);
 		MRELEASE(evt);
-		putErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
@@ -899,50 +851,7 @@ static void	loadDeclaration(AmsSAP *sap, char *cursor)
 				rule->priority, rule->flowLabel);
 	}
 }
-#if 0
-static void	sendDeclaration(AmsSAP *sap, Module *module)
-{
-	int	supplementLength;
-	char	*supplement;
-	char	*cursor;
-	int	memo;
-	int	result;
 
-	supplementLength = getDeclarationLength(sap);
-
-	/*	Allocate space for the declaration structure.		*/
-
-	if (supplementLength > 65535)
-	{
-		putErrmsg("Declaration structure too long.",
-				itoa(supplementLength));
-		return;
-	}
-
-	supplement = MTAKE(supplementLength);
-	if (supplement == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return;
-	}
-
-	/*	Now load the declaration structure.			*/
-
-	cursor = supplement;
-	loadDeclaration(sap, cursor);
-
-	/*	Supplement is now ready; send message.			*/
-
-	memo = computeModuleId(sap->role->nbr, sap->unit->nbr, sap->moduleNbr);
-	result = sendMamsMsg(&(module->mamsEndpoint), &(sap->mamsTsif),
-			declaration, memo, supplementLength, supplement);
-	MRELEASE(supplement);
-	if (result < 0)
-	{
-		putErrmsg("Failed sending declaration", NULL);
-	}
-}
-#endif
 static int	getContactSummaryLength(AmsSAP *sap)
 {
 	int		length = 0;
@@ -1040,7 +949,7 @@ static void	sendModuleStatus(AmsSAP *sap, MamsEndpoint *maap, int pduType)
 	int	result;
 
 	moduleStatesCount = htonl(moduleStatesCount);
-	supplementLength += 4;		/*	Unit, module, role nbrs.	*/
+	supplementLength += 4;		/*	Unit, module, role nbrs.*/
 	contactSummaryLength = getContactSummaryLength(sap);
 	supplementLength += contactSummaryLength;
        	supplementLength += getDeclarationLength(sap);
@@ -1052,12 +961,7 @@ static void	sendModuleStatus(AmsSAP *sap, MamsEndpoint *maap, int pduType)
 	}
 
 	supplement = MTAKE(supplementLength);
-	if (supplement == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return;
-	}
-
+	CHKVOID(supplement);
 	memcpy(supplement, (char *) &moduleStatesCount, 4);
 	supplement[4] = (sap->unit->nbr >> 8) & 0xff;
 	supplement[5] = sap->unit->nbr & 0xff;
@@ -1109,7 +1013,7 @@ static int	subjectIsValid(AmsSAP *sap, int subjectNbr, Subject **subject)
 
 	if (subjectNbr > 0)
 	{
-		if (subjectNbr <= MaxSubjNbr
+		if (subjectNbr <= MAX_SUBJ_NBR
 		&& (*subject = sap->venture->subjects[subjectNbr]) != NULL)
 		{
 			return 1;
@@ -1118,7 +1022,7 @@ static int	subjectIsValid(AmsSAP *sap, int subjectNbr, Subject **subject)
 
 	if (subjectNbr < 0)
 	{
-		if ((pseudoSubjectNbr = 0 - subjectNbr) <= MaxContinNbr
+		if ((pseudoSubjectNbr = 0 - subjectNbr) <= MAX_CONTIN_NBR
 		&& (*subject = sap->venture->msgspaces[pseudoSubjectNbr])
 			!= NULL)
 		{
@@ -1127,7 +1031,6 @@ static int	subjectIsValid(AmsSAP *sap, int subjectNbr, Subject **subject)
 	}
 
 	putErrmsg("Unknown message subject.", itoa(subjectNbr));
-	errno = EINVAL;
 	return 0;
 }
 
@@ -1203,7 +1106,7 @@ static LystElt	findFanModule(AmsSAP *sap, Subject *subject, Module *module,
 			break;		/*	Same as end of list.	*/
 		}
 
-		/*	Matched unit and module numbers.			*/
+		/*	Matched unit and module numbers.		*/
 
 		return elt;
 	}
@@ -1300,18 +1203,13 @@ static int	enqueueNotice(AmsSAP *sap, AmsStateType stateType,
 	notice.sequence = sequence;
 	notice.diligence = diligence;
 	evt = (AmsEvt *) MTAKE(1 + sizeof(AmsNotice));
-	if (evt == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(evt);
 	memcpy(evt->value, (char *) &notice, sizeof notice);
 	evt->type = NOTICE_EVT;
 	if (enqueueAmsEvent(sap, evt, NULL, 0, 2, AmsMsgNone) < 0)
 	{
+		putErrmsg("Can't enqueue notice.", NULL);
 		MRELEASE(evt);
-		putErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
@@ -1341,6 +1239,7 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 			int domainUnitNbr, int priority, int flowLabel,
 			AmsEndpoint *point, int ruleType, int flag)
 {
+	int		amsMemory = getIonMemoryMgr();
 	LystElt		elt;
 	LystElt		nextSubj;
 	SubjOfInterest	*subj;
@@ -1356,33 +1255,14 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 	elt = findSubjOfInterest(sap, module, subject, &nextSubj);
 	if (elt == NULL)	/*	New subject for this module.	*/
 	{
-//fprintf(stderr, "...adding new SubjOfInterest %d.\n", subject->nbr);
 		subj = (SubjOfInterest *) MTAKE(sizeof(SubjOfInterest));
-		if (subj == NULL)
-		{
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
-
+		CHKERR(subj);
 		subj->subject = subject;
 		subj->subscriptions = lyst_create_using(amsMemory);
-		if (subj->subscriptions == NULL)
-		{
-			MRELEASE(subj);
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
-
+		CHKERR(subj->subscriptions);
 		lyst_delete_set(subj->subscriptions, destroyXmitRule, NULL);
 		subj->invitations = lyst_create_using(amsMemory);
-		if (subj->invitations == NULL)
-		{
-			lyst_destroy(subj->subscriptions);
-			MRELEASE(subj);
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
-
+		CHKERR(subj->invitations);
 		lyst_delete_set(subj->invitations, destroyXmitRule, NULL);
 		if (nextSubj)	/*	Insert before this point.	*/
 		{
@@ -1393,14 +1273,7 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 			elt = lyst_insert_last(module->subjects, subj);
 		}
 
-		if (elt == NULL)
-		{
-			lyst_destroy(subj->invitations);
-			lyst_destroy(subj->subscriptions);
-			MRELEASE(subj);
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
+		CHKERR(elt);
 
 		/*	Also need to insert new FanModule for
 		 *	this subject.					*/
@@ -1414,15 +1287,7 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 		}
 
 		fan = (FanModule *) MTAKE(sizeof(FanModule));
-		if (fan == NULL)
-		{
-			lyst_destroy(subj->invitations);
-			lyst_destroy(subj->subscriptions);
-			MRELEASE(subj);
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
-
+		CHKERR(fan);
 		fan->module = module;
 		fan->subj = subj;
 		if (nextIntn)	/*	Insert before this point.	*/
@@ -1434,17 +1299,9 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 			subj->fanElt = lyst_insert_last(subject->modules, fan);
 		}
 
-		if (subj->fanElt == NULL)
-		{
-			MRELEASE(fan);
-			lyst_destroy(subj->invitations);
-			lyst_destroy(subj->subscriptions);
-			MRELEASE(subj);
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
+		CHKERR(subj->fanElt);
 	}
-	else	/*	Module already has some interest in this subject.	*/
+	else	/*	Module already has interest in this subject.	*/
 	{
 		subj = (SubjOfInterest *) lyst_data(elt);
 	}
@@ -1486,12 +1343,7 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 	 *	the rule (per subscription or invitation).		*/
 
 	rule = (XmitRule *) MTAKE(sizeof(XmitRule));
-	if (rule == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(rule);
 	memset((char *) rule, 0, sizeof(XmitRule));
 
 	/*	Insert the rule into module's list of transmission rules
@@ -1506,12 +1358,7 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 		elt = lyst_insert_last(rules, rule);
 	}
 
-	if (elt == NULL)
-	{
-		MRELEASE(rule);
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
+	CHKERR(elt);
 //fprintf(stderr, "...inserted rule in rules list %d...\n", (int) rules);
 
 	/*	Load XmitRule information, including pre-determination
@@ -1574,6 +1421,7 @@ static int	processAssertion(AmsSAP *sap, Module *module, int subjectNbr,
 			int domainUnitNbr, int priority, unsigned char
 			flowLabel, int vectorNbr, int ruleType, int flag)
 {
+	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	Subject		*subject;
 	LystElt		elt;
 	AmsEndpoint	*point;
@@ -1582,7 +1430,7 @@ static int	processAssertion(AmsSAP *sap, Module *module, int subjectNbr,
 	{
 		if (ruleType == SUBSCRIPTION)
 		{
-			if (domainContinuumNbr != mib->localContinuumNbr)
+			if (domainContinuumNbr != myContinNbr)
 			{
 			/*	Can't subscribe to "all subjects" in
 			 *	any continuum other than the local
@@ -1597,7 +1445,7 @@ static int	processAssertion(AmsSAP *sap, Module *module, int subjectNbr,
 		 *	it can only be the local continuum.)		*/
 
 		subject = sap->venture->subjects[0];
-		domainContinuumNbr = mib->localContinuumNbr;
+		domainContinuumNbr = myContinNbr;
 	}
 	else
 	{
@@ -1630,7 +1478,7 @@ static int	processAssertion(AmsSAP *sap, Module *module, int subjectNbr,
 	{
 		/*	No matching delivery vector number; messages
 		 *	on this subject are therefore undeliverable to
-		 *	the asserting module, so we skip this assertion.	*/
+		 *	the asserting module, so skip this assertion.	*/
 
 			return 0;
 	}
@@ -1638,8 +1486,9 @@ static int	processAssertion(AmsSAP *sap, Module *module, int subjectNbr,
 	/*	Subject & vector are okay; messages are deliverable to
 	 *	the asserting module.					*/
 
-	if (noteAssertion(sap, module, subject, domainRoleNbr, domainContinuumNbr,
-		domainUnitNbr, priority, flowLabel, point, ruleType, flag) < 0)
+	if (noteAssertion(sap, module, subject, domainRoleNbr,
+			domainContinuumNbr, domainUnitNbr, priority,
+			flowLabel, point, ruleType, flag) < 0)
 	{
 		return -1;
 	}
@@ -1840,7 +1689,8 @@ static int	processCancellation(AmsSAP *sap, Module *module, int subjectNbr,
 	{
 		if (ruleType == SUBSCRIPTION)
 		{
-			if (domainContinuumNbr == mib->localContinuumNbr)
+			if (domainContinuumNbr ==
+					(_mib(NULL))->localContinuumNbr)
 			{
 				subject = sap->venture->subjects[ALL_SUBJECTS];
 			}
@@ -1898,13 +1748,13 @@ static int	processCancellation(AmsSAP *sap, Module *module, int subjectNbr,
 	return 0;
 }
 
-static int	parseAmsEndpoint(Module *module, int *bytesRemaining, char **cursor,
-			char **tsname, int *eptLength, char **ept)
+static int	parseAmsEndpoint(Module *module, int *bytesRemaining,
+			char **cursor, char **tsname, int *eptLen, char **ept)
 {
 	int	gotIt = 0;
 
 	*tsname = *cursor;
-	*eptLength = 0;
+	*eptLen = 0;
 	*ept = NULL;
 	while (*bytesRemaining > 0)
 	{
@@ -1929,7 +1779,7 @@ static int	parseAmsEndpoint(Module *module, int *bytesRemaining, char **cursor,
 			}
 			else
 			{
-				(*eptLength)++;
+				(*eptLen)++;
 			}
 		}
 
@@ -1954,19 +1804,9 @@ static int	insertAmsEndpoint(Module *module, int vectorNbr, TransSvc *ts,
 	LystElt		nextElt;
 
 	ep = (AmsEndpoint *) MTAKE(sizeof(AmsEndpoint));
-	if (ep == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(ep);
 	ep->ept = MTAKE(eptLength + 1);
-	if (ep->ept == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(ep->ept);
 	memcpy(ep->ept, ept, eptLength);
 	ep->ept[eptLength] = '\0';
 	ep->ts = ts;
@@ -1980,6 +1820,8 @@ static int	insertAmsEndpoint(Module *module, int vectorNbr, TransSvc *ts,
 	if ((ts->parseAmsEndpointFn)(ep))
 	{
 		putErrmsg("Can't parse endpoint name.", ept);
+		MRELEASE(ep->ept);
+		MRELEASE(ep);
 		return -1;
 	}
 
@@ -2019,19 +1861,14 @@ static int	insertAmsEndpoint(Module *module, int vectorNbr, TransSvc *ts,
 		elt = lyst_insert_before(elt, ep);
 	}
 
-	if (elt == NULL)
-	{
-		eraseAmsEndpoint(ep);
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(elt);
 	return 0;
 }
 
 static int	parseDeliveryVector(Module *module, int *bytesRemaining,
 			char **cursor)
 {
+	AmsMib		*mib = _mib(NULL);
 	unsigned char	u1;
 	int		vectorNbr;
 	int		pointCount;
@@ -2078,8 +1915,8 @@ static int	parseDeliveryVector(Module *module, int *bytesRemaining,
 			{
 				/*	We can send to this point.	*/
 
-				result = insertAmsEndpoint(module, vectorNbr, ts,
-						eptLength, ept);
+				result = insertAmsEndpoint(module, vectorNbr,
+						ts, eptLength, ept);
 				if (result < 0)
 				{
 					putErrmsg("Error inserting endpoint.",
@@ -2138,7 +1975,7 @@ static int	noteModule(AmsSAP *sap, int roleNbr, int unitNbr, int moduleNbr,
 	Cell	*cell;
 	Module	*module;
 
-	if (roleNbr < 1 || roleNbr > MaxRoleNbr)
+	if (roleNbr < 1 || roleNbr > MAX_ROLE_NBR)
 	{
 		putErrmsg("role nbr invalid.", itoa(roleNbr));
 		return -1;
@@ -2154,7 +1991,7 @@ static int	noteModule(AmsSAP *sap, int roleNbr, int unitNbr, int moduleNbr,
 	role = sap->venture->roles[roleNbr];
 	cell = sap->venture->units[unitNbr]->cell;
 	module = cell->modules[moduleNbr];
-	if (module->role == NULL)	/*	Not previously announced.	*/
+	if (module->role == NULL)	/*	Unannounced until now.	*/
 	{
 		if (rememberModule(module, role, eptLength, ept) < 0)
 		{
@@ -2184,7 +2021,7 @@ discarding message.", NULL);
 	if (enqueueNotice(sap, AmsRegistrationState, AmsStateBegins,
 			unitNbr, moduleNbr, roleNbr, 0, 0, 0, 0, 0, 0, 0) < 0)
 	{
-		putErrmsg(NoMemoryMemo, NULL);
+		putErrmsg("Can't enqueue notice.", NULL);
 		return -1;
 	}
 
@@ -2222,7 +2059,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		if (enqueueAmsCrash(sap,
 			"Killed by registrar; imputed crash.") < 0)
 		{
-			putErrmsg(NoMemoryMemo, NULL);
+			putErrmsg("Can't enqueue AMS crash.", NULL);
 		}
 
 		return;
@@ -2234,7 +2071,8 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			return;
 		}
 
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
+				< 0)
 		{
 			putErrmsg("I_am_starting memo field invalid.", NULL);
 			return;
@@ -2269,9 +2107,11 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			return;
 		}
 
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
+				< 0)
 		{
-			putErrmsg("module_has_started memo field invalid.", NULL);
+			putErrmsg("module_has_started memo field invalid.",
+					NULL);
 			return;
 		}
 
@@ -2316,9 +2156,10 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			roleNbr = (unsigned char) *(cursor + 3);
 			bytesRemaining -= 4;
 			cursor += 4;
-			if (roleNbr < 1 || roleNbr > MaxRoleNbr
-					|| unitNbr > MaxUnitNbr
-					|| moduleNbr < 1 || moduleNbr > MaxModuleNbr)
+			if (roleNbr < 1 || roleNbr > MAX_ROLE_NBR
+					|| unitNbr > MAX_UNIT_NBR
+					|| moduleNbr < 1
+					|| moduleNbr > MAX_MODULE_NBR)
 			{
 				putErrmsg("I_am_here module ID invalid.", NULL);
 				return;
@@ -2338,19 +2179,15 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			{
 				return;
 			}
-#if 0
-			/*	Tell this module about any subscriptions
-			 *	and invitations issued so far.		*/
-	
-			sendDeclaration(sap, module);
-#endif
+
 			u4--;
 		}
 
 		return;
 
 	case declaration:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
+				< 0)
 		{
 			putErrmsg("declaration memo field invalid.", NULL);
 			return;
@@ -2363,7 +2200,8 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		return;
 
 	case subscribe:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
+				< 0)
 		{
 			putErrmsg("subscribe memo field invalid.", NULL);
 			return;
@@ -2373,9 +2211,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		module = unit->cell->modules[moduleNbr];
 		if (module->role == NULL)
 		{
-			putErrmsg("subscribe invalid; unknown module.",
-					itoa(moduleNbr));
-			return;
+			return;	/*	Registration not yet complete.	*/
 		}
 
 		bytesRemaining = msg->supplementLength;
@@ -2396,7 +2232,8 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			return;
 		}
 
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
+				< 0)
 		{
 			putErrmsg("unsubscribe memo field invalid.", NULL);
 			return;
@@ -2406,9 +2243,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		module = unit->cell->modules[moduleNbr];
 		if (module->role == NULL)
 		{
-			putErrmsg("unsubscribe invalid; unknown module.",
-					itoa(moduleNbr));
-			return;
+			return;	/*	Registration not yet complete.	*/
 		}
 
 		memcpy((char *) &i2, msg->supplement, 2);
@@ -2429,7 +2264,8 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		return;
 
 	case I_am_stopping:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
+				< 0)
 		{
 			putErrmsg("I_am_stopping memo field invalid.", NULL);
 			return;
@@ -2463,7 +2299,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 
 	case cell_status:
 		unitNbr = (((unsigned int) msg->memo) >> 8) & 0x0000ffff;
-		if (unitNbr > MaxUnitNbr)
+		if (unitNbr > MAX_UNIT_NBR)
 		{
 			putErrmsg("cell_status memo field invalid.", NULL);
 			return;
@@ -2478,7 +2314,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		{
 			moduleNbr = (unsigned char) (msg->supplement[i]);
 			module = unit->cell->modules[moduleNbr];
-			if (module->role == NULL)	/*	Unknown module.	*/
+			if (module->role == NULL)	/*	Unknown.*/
 			{
 				/*	Nothing to confirm.		*/
 
@@ -2491,7 +2327,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		/*	Now update array of modules in cell.		*/
 
 		moduleCount = 0;
-		for (moduleNbr = 1; moduleNbr < MaxModuleNbr; moduleNbr++)
+		for (moduleNbr = 1; moduleNbr < MAX_MODULE_NBR; moduleNbr++)
 		{
 			module = unit->cell->modules[moduleNbr];
 			if (module->role == NULL)
@@ -2506,7 +2342,8 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			else	/*	Implied unregistration.		*/
 			{
 				roleNbr = module->role->nbr;
-				if (cancelUnconfirmedAssertions(sap, module) < 0)
+				if (cancelUnconfirmedAssertions(sap, module)
+						< 0)
 				{
 					putErrmsg("Error canceling assertions.",
 							NULL);
@@ -2537,7 +2374,8 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 	case module_status:
 		if (msg->supplementLength < 4)
 		{
-			putErrmsg("module_status lacks module states count.", NULL);
+			putErrmsg("module_status lacks module states count.",
+					NULL);
 			return;
 		}
 
@@ -2560,18 +2398,21 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			roleNbr = (unsigned char) *(cursor + 3);
 			bytesRemaining -= 4;
 			cursor += 4;
-			if (roleNbr < 1 || roleNbr > MaxRoleNbr
-					|| unitNbr > MaxUnitNbr
-					|| moduleNbr < 1 || moduleNbr < MaxModuleNbr)
+			if (roleNbr < 1 || roleNbr > MAX_ROLE_NBR
+					|| unitNbr > MAX_UNIT_NBR
+					|| moduleNbr < 1
+					|| moduleNbr < MAX_MODULE_NBR)
 			{
-				putErrmsg("module_status module ID invalid.", NULL);
+				putErrmsg("module_status module ID invalid.",
+						NULL);
 				return;
 			}
 
 			if (noteModule(sap, roleNbr, unitNbr, moduleNbr, msg,
 					&bytesRemaining, &cursor) < 0)
 			{
-				putErrmsg("Failed handling module_status.", NULL);
+				putErrmsg("Failed handling module_status.",
+						NULL);
 				return;
 			}
 
@@ -2596,7 +2437,8 @@ assertions.", NULL);
 		return;
 
 	case invite:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
+				< 0)
 		{
 			putErrmsg("invite memo field invalid.", NULL);
 			return;
@@ -2606,9 +2448,7 @@ assertions.", NULL);
 		module = unit->cell->modules[moduleNbr];
 		if (module->role == NULL)
 		{
-			putErrmsg("invite invalid; unknown module.",
-					itoa(moduleNbr));
-			return;
+			return;	/*	Registration not yet complete.	*/
 		}
 
 		bytesRemaining = msg->supplementLength;
@@ -2629,7 +2469,8 @@ assertions.", NULL);
 			return;
 		}
 
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
+				< 0)
 		{
 			putErrmsg("disinvite memo field invalid.", NULL);
 			return;
@@ -2639,9 +2480,7 @@ assertions.", NULL);
 		module = unit->cell->modules[moduleNbr];
 		if (module->role == NULL)
 		{
-			putErrmsg("disinvite invalid; unknown module.",
-					itoa(moduleNbr));
-			return;
+			return;	/*	Registration not yet complete.	*/
 		}
 
 		memcpy((char *) &i2, msg->supplement, 2);
@@ -2724,6 +2563,7 @@ static int	process_cell_spec(AmsSAP *sap, MamsMsg *msg)
 
 static int	locateRegistrar(AmsSAP *sap)
 {
+	AmsMib		*mib = _mib(NULL);
 	long		queryNbr;
 	MamsEndpoint	*ep;
 	char		*ept;
@@ -2869,9 +2709,10 @@ static int	locateRegistrar(AmsSAP *sap)
 
 static int	reconnectToRegistrar(AmsSAP *sap)
 {
+	AmsMib		*mib = _mib(NULL);
 	int		moduleCount = 0;
 	int		i;
-	unsigned char	modules[MAX_NODE_NBR];
+	unsigned char	modules[MAX_MODULE_NBR];
 	int		contactSummaryLength;
 	int		declarationLength;
 	Module		*module;
@@ -2886,7 +2727,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 
 	/*	Build cell status structure to enable reconnect.	*/
 
-	for (i = 1; i <= MaxModuleNbr; i++)
+	for (i = 1; i <= MAX_MODULE_NBR; i++)
 	{
 		if ((module = sap->unit->cell->modules[i])->role != NULL)
 		{
@@ -2900,15 +2741,10 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 	supplementLength = 4		/*	Own unit, module, role.	*/
 		+ contactSummaryLength	/*	Own contact summary.	*/
 		+ declarationLength	/*	Own declaration.	*/
-		+ 1			/*	Length of modules array.	*/
-		+ moduleCount;		/*	Array of modules.		*/
+		+ 1			/*	Length of modules array.*/
+		+ moduleCount;		/*	Array of modules.	*/
 	supplement = MTAKE(supplementLength);
-	if (supplement == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(supplement);
 	cursor = supplement;
 	*cursor = (sap->unit->nbr >> 8) & 0xff;
 	cursor++;
@@ -2989,7 +2825,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 				if (enqueueAmsCrash(sap,
 					"Killed by registrar: reconnect.") < 0)
 				{
-					putErrmsg(NoMemoryMemo, NULL);
+					putErrmsg("Can't enqueue crash.", NULL);
 				}
 
 				UNLOCK_MIB;
@@ -3121,7 +2957,7 @@ static void	process_rejection(AmsSAP *sap, MamsMsg *msg)
 		}
 		else
 		{
-			reasonString = rejectionMemos[reasonCode];
+			reasonString = _rejectionMemos(reasonCode);
 		}
 	}
 
@@ -3153,6 +2989,7 @@ static int	process_you_are_in(AmsSAP *sap, MamsMsg *msg)
 
 static int	getModuleNbr(AmsSAP *sap)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	supplementLength;
 	char	*supplement;
 	long	queryNbr;
@@ -3189,12 +3026,7 @@ static int	getModuleNbr(AmsSAP *sap)
 	}
 
 	supplement = MTAKE(supplementLength);
-	if (supplement == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(supplement);
 	loadContactSummary(sap, supplement, supplementLength);
 	queryNbr = time(NULL);
 	lyst_compare_set(sap->mamsEvents, (LystCompareFn) queryNbr);
@@ -3310,6 +3142,7 @@ static int	getModuleNbr(AmsSAP *sap)
 
 static void	*mamsMain(void *parm)
 {
+	AmsMib		*mib = _mib(NULL);
 	AmsSAP		*sap = (AmsSAP *) parm;
 	sigset_t	signals;
 	LystElt		elt;
@@ -3336,7 +3169,7 @@ static void	*mamsMain(void *parm)
 			putErrmsg("Can't register module.", NULL);
 			if (enqueueAmsCrash(sap, "Can't register.") < 0)
 			{
-				putErrmsg(NoMemoryMemo, NULL);
+				putErrmsg("Can't enqueue crash.", NULL);
 			}
 
 			return NULL;
@@ -3383,7 +3216,7 @@ static void	*mamsMain(void *parm)
 
 			if (enqueueAmsCrash(sap, evt->value) < 0)
 			{
-				putErrmsg(NoMemoryMemo, NULL);
+				putErrmsg("Can't enqueue crash.", NULL);
 				recycleEvent(evt);
 				break;	/*	Out of switch.		*/
 			}
@@ -3428,7 +3261,7 @@ static void	*mamsMain(void *parm)
 
 			if (enqueueAmsStubEvent(sap, ENDED_EVT, 1) < 0)
 			{
-				putErrmsg(NoMemoryMemo, NULL);
+				putErrmsg("Can't enqueue stub event.", NULL);
 			}
 
 			recycleEvent(evt);
@@ -3447,6 +3280,7 @@ static void	*mamsMain(void *parm)
 
 static void	*heartbeatMain(void *parm)
 {
+	AmsMib		*mib = _mib(NULL);
 	AmsSAP		*sap = (AmsSAP *) parm;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cv;
@@ -3520,6 +3354,8 @@ static int	ams_register2(char *applicationName, char *authorityName,
 			char *unitName, char *roleName, char *tsorder,
 			AmsModule *module)
 {
+	AmsMib		*mib = _mib(NULL);
+	int		amsMemory = getIonMemoryMgr();
 	int		length;
 	int		result;
 	AmsSAP		*sap;
@@ -3537,27 +3373,32 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	DeliveryVector	*vector;
 	AmsEvt		*evt;
 
-	if (applicationName == NULL || authorityName == NULL
-	|| unitName == NULL || roleName == NULL || module == NULL
-	|| (length = strlen(applicationName)) == 0 || length > MAX_APP_NAME
-	|| (length = strlen(authorityName)) == 0 || length > MAX_AUTH_NAME
-	|| (length = strlen(unitName)) > MAX_UNIT_NAME
-	|| (length = strlen(roleName)) == 0 || length > MAX_ROLE_NAME)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
+	CHKERR(applicationName);
+	CHKERR(authorityName);
+	CHKERR(unitName);
+	CHKERR(roleName);
+	CHKERR(module);
+	CHKERR(applicationName);
+	CHKERR(applicationName);
+	CHKERR(applicationName);
+	CHKERR(applicationName);
+	CHKERR(applicationName);
+	length = strlen(applicationName);
+	CHKERR(length > 0);
+	CHKERR(length <= MAX_APP_NAME);
+	length = strlen(authorityName);
+	CHKERR(length > 0);
+	CHKERR(length <= MAX_AUTH_NAME);
+	length = strlen(unitName);
+	CHKERR(length <= MAX_UNIT_NAME);
+	length = strlen(roleName);
+	CHKERR(length > 0);
+	CHKERR(length <= MAX_ROLE_NAME);
 
 	/*	Start building SAP structure.				*/
 
 	sap = (AmsSAP *) MTAKE(sizeof(AmsSAP));
-	if (sap == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(sap);
 	*module = sap;
 	memset((char *) sap, 0, sizeof(AmsSAP));
 	sap->state = AmsSapClosed;
@@ -3567,7 +3408,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 
 	/*	Validate registration parameters.			*/
 
-	for (i = 1; i <= MaxVentureNbr; i++)
+	for (i = 1; i <= MAX_VENTURE_NBR; i++)
 	{
 		venture = mib->ventures[i];
 		if (venture == NULL)	/*	Number not in use.	*/
@@ -3582,18 +3423,17 @@ static int	ams_register2(char *applicationName, char *authorityName,
 		}
 	}
 
-	if (i > MaxVentureNbr)
+	if (i > MAX_VENTURE_NBR)
 	{
 		isprintf(ventureName, sizeof ventureName, "%s(%s)",
 				applicationName, authorityName);
 		putErrmsg("Can't register: no such message space.",
 				ventureName);
-		errno = EINVAL;
 		return -1;
 	}
 
 	sap->venture = venture;
-	for (i = 0; i <= MaxUnitNbr; i++)
+	for (i = 0; i <= MAX_UNIT_NBR; i++)
 	{
 		unit = venture->units[i];
 		if (unit == NULL)	/*	Number not in use.	*/
@@ -3607,17 +3447,16 @@ static int	ams_register2(char *applicationName, char *authorityName,
 		}
 	}
 
-	if (i > MaxUnitNbr)
+	if (i > MAX_UNIT_NBR)
 	{
 		putErrmsg("Can't register: no such unit in message space.",
 				unitName);
-		errno = EINVAL;
 		return -1;
 	}
 
 	sap->unit = unit;
 	sap->rsEndpoint = &(unit->cell->mamsEndpoint);
-	for (i = 1; i <= MaxRoleNbr; i++)
+	for (i = 1; i <= MAX_ROLE_NBR; i++)
 	{
 		role = venture->roles[i];
 		if (role == NULL)	/*	Number not in use.	*/
@@ -3631,11 +3470,10 @@ static int	ams_register2(char *applicationName, char *authorityName,
 		}
 	}
 
-	if (i > MaxRoleNbr)
+	if (i > MAX_ROLE_NBR)
 	{
 		putErrmsg("Can't register: role name invalid for application.",
 				roleName);
-		errno = EINVAL;
 		return -1;
 	}
 
@@ -3648,14 +3486,11 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	sap->delivVectors = lyst_create_using(amsMemory);
 	sap->subscriptions = lyst_create_using(amsMemory);
 	sap->invitations = lyst_create_using(amsMemory);
-	if (sap->mamsEvents == NULL || sap->amsEvents == NULL
-	|| sap->delivVectors == NULL || sap->subscriptions == NULL
-	|| sap->invitations == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(sap->mamsEvents);
+	CHKERR(sap->amsEvents);
+	CHKERR(sap->delivVectors);
+	CHKERR(sap->subscriptions);
+	CHKERR(sap->invitations);
 	lyst_delete_set(sap->mamsEvents, destroyEvent, NULL);
 	lyst_delete_set(sap->amsEvents, destroyAmsEvent, NULL);
 	lyst_delete_set(sap->delivVectors, destroyDeliveryVector, NULL);
@@ -3783,12 +3618,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 		{
 			vector = (DeliveryVector *)
 					MTAKE(sizeof(DeliveryVector));
-			if (vector == NULL)
-			{
-				putErrmsg(NoMemoryMemo, NULL);
-				return -1;
-			}
-
+			CHKERR(vector);
 			vector->nbr = lyst_length(sap->delivVectors) + 1;
 			if (vector->nbr > 15)
 			{
@@ -3800,11 +3630,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 			vector->diligence = tsif->diligence;
 			vector->sequence = tsif->sequence;
 			vector->interfaces = lyst_create_using(amsMemory);
-			if (vector->interfaces == NULL)
-			{
-				putErrmsg(NoMemoryMemo, NULL);
-				return -1;
-			}
+			CHKERR(vector->interfaces);
 
 			/*	No need for deletion function on
 			 *	vector->interfaces: these structures
@@ -3812,11 +3638,8 @@ static int	ams_register2(char *applicationName, char *authorityName,
 			 *	AmsInterfaces list as well, and are
 			 *	deleted when that list is destroyed.	*/
 
-			if (lyst_insert_last(sap->delivVectors, vector) == NULL)
-			{
-				putErrmsg(NoMemoryMemo, NULL);
-				return -1;
-			}
+			elt = lyst_insert_last(sap->delivVectors, vector);
+			CHKERR(elt);
 		}
 
 		/*	Got matching vector; append interface for this
@@ -3829,11 +3652,8 @@ static int	ams_register2(char *applicationName, char *authorityName,
 			return -1;
 		}
 
-		if (lyst_insert_last(vector->interfaces, tsif) == NULL)
-		{
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
+		elt = lyst_insert_last(vector->interfaces, tsif);
+		CHKERR(elt);
 	}
 
 	/*	Create the auxiliary module threads: heartbeat, MAMS.	*/
@@ -3904,27 +3724,20 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	return result;
 }
 
-int	ams_register(char *mibSource, char *tsorder, char *mName, char *memory,
-		unsigned mSize, char *applicationName, char *authorityName,
-		char *unitName, char *roleName, AmsModule *module)
+int	ams_register(char *mibSource, char *tsorder, char *applicationName,
+		char *authorityName, char *unitName, char *roleName,
+		AmsModule *module)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result;
-
-	if (initMemoryMgt(mName, memory, mSize) < 0)
-	{
-		return -1;
-	}
 
 	/*	Load Management Information Base as necessary.		*/
 
+	mib = loadMib(mibSource);
 	if (mib == NULL)
 	{
-		result = loadMib(mibSource);
-		if (result < 0 || mib == NULL)
-		{
-			putErrmsg("AMS can't load MIB.", mibSource);
-			return -1;
-		}
+		putErrmsg("AMS can't load MIB.", mibSource);
+		return -1;
 	}
 
 	*module = NULL;
@@ -3939,6 +3752,7 @@ int	ams_register(char *mibSource, char *tsorder, char *mName, char *memory,
 	else
 	{
 		eraseSAP(*module);
+		*module = NULL;
 	}
 
 	return result;
@@ -3966,23 +3780,18 @@ int	ams_get_unit_nbr(AmsSAP *sap)
 
 static int	ams_unregister2(AmsSAP *sap)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result;
 	LystElt	elt;
 	AmsEvt	*evt;
 
-	if (sap == NULL)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
+	CHKERR(sap);
 
 	/*	Only prime thread can unregister.			*/
 
 	if (!pthread_equal(pthread_self(), sap->primeThread))
 	{
 		putErrmsg("Only prime thread can unregister.", NULL);
-		errno = EINVAL;
 		return -1;
 	}
 
@@ -4045,6 +3854,7 @@ static int	ams_unregister2(AmsSAP *sap)
 
 int	ams_unregister(AmsSAP *sap)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result;
 
 	LOCK_MIB;
@@ -4061,23 +3871,13 @@ int	ams_unregister(AmsSAP *sap)
 
 static int	validSap(AmsSAP *sap)
 {
-	int	result = 0;
-
-	if (sap == NULL)
+	CHKZERO(sap);
+	if (sap->state != AmsSapOpen)
 	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-	}
-	else if (sap->state != AmsSapOpen)
-	{
-		errno = EAGAIN;
-	}
-	else
-	{
-		result = 1;
+		return 0;
 	}
 
-	return result;
+	return 1;
 }
 
 static char	*ams_get_role_name2(AmsSAP *sap, int unitNbr, int moduleNbr)
@@ -4085,8 +3885,8 @@ static char	*ams_get_role_name2(AmsSAP *sap, int unitNbr, int moduleNbr)
 	Unit	*unit;
 	Module	*module;
 
-	if (unitNbr >= 0 && unitNbr <= MaxUnitNbr
-	&& moduleNbr > 0 && moduleNbr <= MaxModuleNbr)
+	if (unitNbr >= 0 && unitNbr <= MAX_UNIT_NBR
+	&& moduleNbr > 0 && moduleNbr <= MAX_MODULE_NBR)
 	{
 		unit = sap->venture->units[unitNbr];
 		if (unit)
@@ -4104,6 +3904,7 @@ static char	*ams_get_role_name2(AmsSAP *sap, int unitNbr, int moduleNbr)
 
 char	*ams_get_role_name(AmsSAP *sap, int unitNbr, int moduleNbr)
 {
+	AmsMib	*mib = _mib(NULL);
 	char	*result = NULL;
 
 	if (validSap(sap))
@@ -4122,6 +3923,7 @@ char	*ams_get_role_name(AmsSAP *sap, int unitNbr, int moduleNbr)
 
 Lyst	ams_list_msgspaces(AmsSAP *sap)
 {
+	AmsMib	*mib = _mib(NULL);
 	Lyst	msgspaces = NULL;
 	int	i;
 	Subject	**msgspace;
@@ -4130,7 +3932,7 @@ Lyst	ams_list_msgspaces(AmsSAP *sap)
 	if (validSap(sap))
 	{
 		LOCK_MIB;
-		msgspaces = lyst_create_using(amsMemory);
+		msgspaces = lyst_create_using(getIonMemoryMgr());
 		if (msgspaces)
 		{
 			for (i = 0, msgspace = sap->venture->msgspaces;
@@ -4161,7 +3963,7 @@ int	ams_continuum_is_neighbor(int continuumNbr)
 	Continuum	*contin;
 
 	if (continuumNbr < 1 || continuumNbr > MAX_CONTIN_NBR
-	|| (contin = mib->continua[continuumNbr]) == NULL)
+	|| (contin = (_mib(NULL))->continua[continuumNbr]) == NULL)
 	{
 		return 0;
 	}
@@ -4171,16 +3973,17 @@ int	ams_continuum_is_neighbor(int continuumNbr)
 
 int	ams_get_continuum_nbr()
 {
-	return mib->localContinuumNbr;
+	return (_mib(NULL))->localContinuumNbr;
 }
 
-int	ams_rams_net_is_tree()
+int	ams_rams_net_is_tree(AmsSAP *sap)
 {
-	return mib->ramsNetIsTree;
+	return sap->venture->ramsNetIsTree;
 }
 
 int	ams_subunit_of(AmsSAP *sap, int argUnitNbr, int refUnitNbr)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = 0;
 
 	if (validSap(sap))
@@ -4202,7 +4005,7 @@ static int	qualifySender(AmsSAP *sap, XmitRule *rule)
 	}
 
 	if (rule->continuumNbr != ANY_CONTINUUM
-	&& rule->continuumNbr != mib->localContinuumNbr)
+	&& rule->continuumNbr != (_mib(NULL))->localContinuumNbr)
 	{
 		return 0;	/*	Wrong continuum for this rule.	*/
 	}
@@ -4284,7 +4087,7 @@ static int	sendToSubscribers(AmsSAP *sap, Subject *subject,
 		rule = getXmitRule(sap, fan->subj->subscriptions);
 		if (rule == NULL)
 		{
-			continue;	/*	Don't send module a copy.	*/
+			continue;	/*	Don't send module copy.	*/
 		}
 
 		/*	Must send this module a copy of this message.
@@ -4334,14 +4137,12 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 	unsigned char	protectedBits;
 	Lyst		recipients;
 
-	if (subjectNbr == 0 || !subjectIsValid(sap, subjectNbr, &subject)
-	|| priority < 0 || priority >= NBR_OF_PRIORITY_LEVELS
-	|| contentLength < 0 || contentLength > MAX_AMS_CONTENT)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
+	CHKERR(sap);
+	CHKERR(subjectIsValid(sap, subjectNbr, &subject));
+	CHKERR(priority >= 0);
+	CHKERR(priority < NBR_OF_PRIORITY_LEVELS);
+	CHKERR(contentLength >= 0);
+	CHKERR(contentLength <= MAX_AMS_CONTENT);
 
 	/*	Knowing subject, construct message header & encrypt.	*/
 
@@ -4349,6 +4150,7 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 		contentLength, (unsigned char *) amsHeader, AmsMsgUnary);
 	protectedBits = amsHeader[0] & 0xf0;
 	recipients = lyst_create();
+	CHKERR(recipients);
 
 	/*	Now send a copy of the message to every subscriber
 	 *	that has posted at least one subscription whose domain
@@ -4381,25 +4183,16 @@ int	ams_publish(AmsSAP *sap, int subjectNbr, int priority,
 		unsigned char flowLabel, int contentLength, char *content,
 		int context)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		if (subjectNbr < 1)
-		{
-			putErrmsg(BadParmsMemo, NULL);
-			errno = EINVAL;
-			return -1;
-		}
-
+		CHKERR(subjectNbr > 0);
 		LOCK_MIB;
 		result = ams_publish2(sap, subjectNbr, priority, flowLabel,
 				contentLength, content, context);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -4506,55 +4299,53 @@ static LystElt	findMsgRule(AmsSAP *sap, Lyst rules, int subjectNbr,
 
 static int	addMsgRule(AmsSAP *sap, int ruleType, Subject *subject,
 			int roleNbr, int continuumNbr, int unitNbr,
-			int priority, int flowLabel, DeliveryVector *vector)
+			int priority, int flowLabel, DeliveryVector *vector,
+			LystElt *ruleElt)
 {
 	Lyst	rules;
 	LystElt	elt;
 	LystElt	nextRule;
 	MsgRule	*rule;
 
+	*ruleElt = NULL;
 	rules = (ruleType == SUBSCRIPTION ?
 			sap->subscriptions : sap->invitations);
 	elt = findMsgRule(sap, rules, subject->nbr, roleNbr, continuumNbr,
 			unitNbr, &nextRule);
 	if (elt)	/*	Already have a rule for this subject.	*/
 	{
-		errno = EINVAL;
+		writeMemoNote("[?] Already have this rule.", subject->name);
+		return 0;
+	}
+
+	/*	Must insert new message rule structure.			*/
+
+	rule = (MsgRule *) MTAKE(sizeof(MsgRule));
+	CHKERR(rule);
+	rule->subject = subject;
+	rule->roleNbr = roleNbr;
+	rule->continuumNbr = continuumNbr;
+	rule->unitNbr = unitNbr;
+	rule->priority = priority;
+	rule->flowLabel = flowLabel;
+	rule->vector = vector;
+	if (nextRule)
+	{
+		elt = lyst_insert_before(nextRule, rule);
+	}
+	else
+	{
+		elt = lyst_insert_last(rules, rule);
+	}
+
+	if (elt == NULL)
+	{
+		putErrmsg("Can't add rule.", subject->name);
+		MRELEASE(rule);
 		return -1;
 	}
-	else		/*	Must insert new message rule structure.	*/
-	{
-		rule = (MsgRule *) MTAKE(sizeof(MsgRule));
-		if (rule == NULL)
-		{
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
 
-		rule->subject = subject;
-		rule->roleNbr = roleNbr;
-		rule->continuumNbr = continuumNbr;
-		rule->unitNbr = unitNbr;
-		rule->priority = priority;
-		rule->flowLabel = flowLabel;
-		rule->vector = vector;
-		if (nextRule)
-		{
-			elt = lyst_insert_before(nextRule, rule);
-		}
-		else
-		{
-			elt = lyst_insert_last(rules, rule);
-		}
-
-		if (elt == NULL)
-		{
-			MRELEASE(rule);
-			putErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
-	}
-
+	*ruleElt = elt;
 	return 0;
 }
 
@@ -4563,8 +4354,10 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence)
 {
-	DeliveryVector	*vector;
+	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	Subject		*subject;
+	DeliveryVector	*vector;
+	LystElt		elt;
 	char		*assertion;
 	char		*cursor;
 
@@ -4574,68 +4367,53 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	}
 	else
 	{
-		if (priority < 1 || priority >= NBR_OF_PRIORITY_LEVELS)
-		{
-			putErrmsg(BadParmsMemo, NULL);
-			errno = EINVAL;
-			return -1;
-		}
+		CHKERR(priority > 0);
+		CHKERR(priority < NBR_OF_PRIORITY_LEVELS);
 	}
 
 	if (continuumNbr == THIS_CONTINUUM)
 	{
-		continuumNbr = mib->localContinuumNbr;
+		continuumNbr = myContinNbr;
 	}
 
 	if (subjectNbr == 0)	/*	Messages on all subjects.	*/
 	{
-		if (continuumNbr == mib->localContinuumNbr)
+		if (continuumNbr == myContinNbr)
 		{
 			subject = sap->venture->subjects[ALL_SUBJECTS];
 		}
 		else
 		{
-			putErrmsg(BadParmsMemo, NULL);
-			errno = EINVAL;
+			putErrmsg("'All subjects' invitation is limited to \
+local continuum.", itoa(continuumNbr));
 			return -1;
 		}
 	}
 	else
 	{
-		if (!subjectIsValid(sap, subjectNbr, &subject))
-		{
-			putErrmsg(BadParmsMemo, NULL);
-			errno = EINVAL;
-			return -1;
-		}
+		CHKERR(subjectIsValid(sap, subjectNbr, &subject));
 	}
 
 	vector = lookUpDeliveryVector(sap, sequence, diligence);
 	if (vector == NULL)
 	{
 		putErrmsg("Have no endpoints for reception at this QOS.", NULL);
-		errno = EINVAL;
 		return -1;
 	}
 
 	if (addMsgRule(sap, INVITATION, subject, roleNbr, continuumNbr,
-			unitNbr, priority, flowLabel, vector) < 0)
+			unitNbr, priority, flowLabel, vector, &elt) < 0)
 	{
-		if (errno == EINVAL)
-		{
-			return 0;	/*	Redundant but okay.	*/
-		}
-
 		return -1;
+	}
+
+	if (elt == NULL)	/*	Pre-existing rule.		*/
+	{
+		return 0;
 	}
 
 	assertion = MTAKE(INVITE_LEN);
-	if (assertion == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(assertion);
 	cursor = assertion;
 	loadAssertion(&cursor, INVITATION, roleNbr, continuumNbr,
 			unitNbr, subjectNbr, vector->nbr, priority, flowLabel);
@@ -4658,6 +4436,7 @@ int	ams_invite(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		int subjectNbr, int priority, unsigned char flowLabel,
 		AmsSequence sequence, AmsDiligence diligence)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -4666,10 +4445,6 @@ int	ams_invite(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		result = ams_invite2(sap, roleNbr, continuumNbr, unitNbr,
 			subjectNbr, priority, flowLabel, sequence, diligence);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -4687,7 +4462,7 @@ static int	removeMsgRule(AmsSAP *sap, int ruleType, Subject *subject,
 			unitNbr, NULL);
 	if (elt == NULL)
 	{
-		errno = EINVAL;
+		writeMemoNote("[?] Rule to remove not found.", subject->name);
 		return -1;
 	}
 
@@ -4705,16 +4480,10 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 
 	if (continuumNbr == THIS_CONTINUUM)
 	{
-		continuumNbr = mib->localContinuumNbr;
+		continuumNbr = (_mib(NULL))->localContinuumNbr;
 	}
 
-	if (subjectNbr == 0 || !subjectIsValid(sap, subjectNbr, &subject))
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(subjectIsValid(sap, subjectNbr, &subject));
 	if (removeMsgRule(sap, INVITATION, subject, roleNbr, continuumNbr,
 			unitNbr) < 0)
 	{
@@ -4722,12 +4491,7 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	}
 
 	cancellation = MTAKE(7);
-	if (cancellation == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(cancellation);
 	i2 = subjectNbr;
 	i2 = htons(i2);
 	memcpy(cancellation, (char *) &i2, 2);
@@ -4754,6 +4518,7 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 int	ams_disinvite(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		int subjectNbr)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -4762,10 +4527,6 @@ int	ams_disinvite(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		result = ams_disinvite2(sap, roleNbr, continuumNbr, unitNbr,
 				subjectNbr);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -4807,8 +4568,10 @@ static int	ams_subscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence)
 {
-	DeliveryVector	*vector;
+	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	Subject		*subject;
+	DeliveryVector	*vector;
+	LystElt		elt;
 	char		*assertion;
 	char		*cursor;
 
@@ -4818,68 +4581,53 @@ static int	ams_subscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	}
 	else
 	{
-		if (priority < 1 || priority >= NBR_OF_PRIORITY_LEVELS)
-		{
-			putErrmsg(BadParmsMemo, NULL);
-			errno = EINVAL;
-			return -1;
-		}
+		CHKERR(priority > 0);
+		CHKERR(priority < NBR_OF_PRIORITY_LEVELS);
 	}
 
 	if (continuumNbr == THIS_CONTINUUM)
 	{
-		continuumNbr = mib->localContinuumNbr;
+		continuumNbr = myContinNbr;
 	}
 
 	if (subjectNbr == 0)	/*	Messages on all subjects.	*/
 	{
-		if (continuumNbr == mib->localContinuumNbr)
+		if (continuumNbr == myContinNbr)
 		{
 			subject = sap->venture->subjects[ALL_SUBJECTS];
 		}
 		else
 		{
-			putErrmsg(BadParmsMemo, NULL);
-			errno = EINVAL;
+			putErrmsg("'All subjects' subscription is limited to \
+local continuum.", itoa(continuumNbr));
 			return -1;
 		}
 	}
 	else
 	{
-		if (!subjectIsValid(sap, subjectNbr, &subject))
-		{
-			putErrmsg(BadParmsMemo, NULL);
-			errno = EINVAL;
-			return -1;
-		}
+		CHKERR(subjectIsValid(sap, subjectNbr, &subject));
 	}
 
 	vector = lookUpDeliveryVector(sap, sequence, diligence);
 	if (vector == NULL)
 	{
 		putErrmsg("Have no endpoints for reception at this QOS.", NULL);
-		errno = EINVAL;
 		return -1;
 	}
 
 	if (addMsgRule(sap, SUBSCRIPTION, subject, roleNbr, continuumNbr,
-			unitNbr, priority, flowLabel, vector) < 0)
+			unitNbr, priority, flowLabel, vector, &elt) < 0)
 	{
-		if (errno == EINVAL)
-		{
-			return 0;	/*	Redundant but okay.	*/
-		}
-
 		return -1;
+	}
+
+	if (elt == NULL)	/*	Pre-existing rule.		*/
+	{
+		return 0;
 	}
 
 	assertion = MTAKE(SUBSCRIBE_LEN);
-	if (assertion == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(assertion);
 	cursor = assertion;
 	loadAssertion(&cursor, SUBSCRIPTION, roleNbr, continuumNbr,
 			unitNbr, subjectNbr, vector->nbr, priority, flowLabel);
@@ -4902,6 +4650,7 @@ int	ams_subscribe(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		int subjectNbr, int priority, unsigned char flowLabel,
 		AmsSequence sequence, AmsDiligence diligence)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -4910,10 +4659,6 @@ int	ams_subscribe(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		result = ams_subscribe2(sap, roleNbr, continuumNbr, unitNbr,
 			subjectNbr, priority, flowLabel, sequence, diligence);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -4929,32 +4674,10 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 
 	if (continuumNbr == THIS_CONTINUUM)
 	{
-		continuumNbr = mib->localContinuumNbr;
+		continuumNbr = (_mib(NULL))->localContinuumNbr;
 	}
 
-	if (subjectNbr == 0)	/*	Messages on all subjects.	*/
-	{
-		if (continuumNbr == mib->localContinuumNbr)
-		{
-			subject = sap->venture->subjects[ALL_SUBJECTS];
-		}
-		else
-		{
-			putErrmsg(BadParmsMemo, NULL);
-			errno = EINVAL;
-			return -1;
-		}
-	}
-	else
-	{
-		if (!subjectIsValid(sap, subjectNbr, &subject))
-		{
-			putErrmsg(BadParmsMemo, NULL);
-			errno = EINVAL;
-			return -1;
-		}
-	}
-
+	CHKERR(subjectIsValid(sap, subjectNbr, &subject));
 	if (removeMsgRule(sap, SUBSCRIPTION, subject, roleNbr, continuumNbr,
 			unitNbr) < 0)
 	{
@@ -4962,16 +4685,11 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	}
 
 	cancellation = MTAKE(7);
-	if (cancellation == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(cancellation);
 	i2 = subjectNbr;
 	i2 = htons(i2);
 	memcpy(cancellation, (char *) &i2, 2);
-*(cancellation + 2) = (continuumNbr >> 16) & 0x000000ff;
+	*(cancellation + 2) = (continuumNbr >> 16) & 0x000000ff;
 	*(cancellation + 2) = (continuumNbr >> 8) & 0x0000007f;
 	*(cancellation + 3) = continuumNbr & 0x000000ff;
 	u2 = unitNbr;
@@ -4995,6 +4713,7 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 int	ams_unsubscribe(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		int subjectNbr)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -5003,10 +4722,6 @@ int	ams_unsubscribe(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		result = ams_unsubscribe2(sap, roleNbr, continuumNbr, unitNbr,
 				subjectNbr);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -5023,15 +4738,10 @@ static int	publishInEnvelope(AmsSAP *sap, int continuumNbr, int unitNbr,
 	int		result;
 
 	envelope = MTAKE(envelopeLength);
-	if (envelope == NULL)
+	CHKERR(envelope);
+	if (continuumNbr == (_mib(NULL))->localContinuumNbr)
 	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
-	if (continuumNbr == mib->localContinuumNbr)	/*	All.	*/
-	{
-		continuumNbr = 0;
+		continuumNbr = 0;	/*	To all continua.	*/
 	}
 
 	constructEnvelope(envelope, continuumNbr, unitNbr, sourceIdNbr,
@@ -5043,11 +4753,12 @@ static int	publishInEnvelope(AmsSAP *sap, int continuumNbr, int unitNbr,
 	return result;
 }
 
-static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
-			int subjectNbr, int priority, unsigned char flowLabel,
-			int contentLength, char *content, int context,
-			AmsMsgType msgType)
+static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr,
+			int moduleNbr, int subjectNbr, int priority,
+			unsigned char flowLabel, int contentLength,
+			char *content, int context, AmsMsgType msgType)
 {
+	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	Subject		*subject;
 	char		amsHeader[16];
 	int		headerLength = sizeof amsHeader;
@@ -5060,18 +4771,18 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 
 	if (continuumNbr == THIS_CONTINUUM)
 	{
-		continuumNbr = mib->localContinuumNbr;
+		continuumNbr = myContinNbr;
 	}
 
-	if (continuumNbr < 1 || unitNbr < 0 || unitNbr > MaxUnitNbr
-	|| moduleNbr < 1 || moduleNbr > MaxModuleNbr
-	|| priority < 0 || priority >= NBR_OF_PRIORITY_LEVELS
-	|| contentLength < 0 || contentLength > MAX_AMS_CONTENT)
-	{
-		errno = EINVAL;
-		putSysErrmsg(BadParmsMemo, NULL);
-		return -1;
-	}
+	CHKERR(continuumNbr > 0);
+	CHKERR(unitNbr >= 0);
+	CHKERR(unitNbr <= MAX_UNIT_NBR);
+	CHKERR(moduleNbr > 0);
+	CHKERR(moduleNbr <= MAX_MODULE_NBR);
+	CHKERR(priority >= 0);
+	CHKERR(priority < NBR_OF_PRIORITY_LEVELS);
+	CHKERR(contentLength >= 0);
+	CHKERR(contentLength <= MAX_AMS_CONTENT);
 
 	/*	Only the RAMS gateway is allowed to send messages
 	 *	on the subject number that is the additive inverse
@@ -5082,29 +4793,18 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 
 	if (subjectNbr < 1)
 	{
-		if (sap->role->nbr != 1		/*	RAMS gateway	*/
-		|| subjectNbr != (0 - mib->localContinuumNbr))
-		{
-			errno = EINVAL;
-			putSysErrmsg(BadParmsMemo, NULL);
-			return -1;
-		}
-
-		subject = sap->venture->msgspaces[mib->localContinuumNbr];
+		CHKERR(sap->role->nbr == 1);	/*	RAMS gateway	*/
+		CHKERR(subjectNbr == (0 - myContinNbr));
+		subject = sap->venture->msgspaces[myContinNbr];
 	}
 	else
 	{
-		if (!subjectIsValid(sap, subjectNbr, &subject))
-		{
-			errno = EINVAL;
-			putSysErrmsg(BadParmsMemo, NULL);
-			return -1;
-		}
+		CHKERR(subjectIsValid(sap, subjectNbr, &subject));
 	}
 
 	/*	Do remote AMS procedures if necessary.			*/
 
-	if (continuumNbr != mib->localContinuumNbr)
+	if (continuumNbr != myContinNbr)
 	{
 		constructMessage(sap, subjectNbr, priority, flowLabel, context,
 			content, contentLength, (unsigned char *) amsHeader,
@@ -5119,16 +4819,14 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 	unit = sap->venture->units[unitNbr];
 	if (unit == NULL)
 	{
-		errno = EINVAL;
-		putSysErrmsg("Unknown destination unit.", itoa(unitNbr));
+		putErrmsg("Unknown destination unit.", itoa(unitNbr));
 		return -1;
 	}
 
 	module = unit->cell->modules[moduleNbr];
 	if (module->role == NULL)
 	{
-		errno = EINVAL;
-		putSysErrmsg("Unknown destination module.", itoa(moduleNbr));
+		putErrmsg("Unknown destination module.", itoa(moduleNbr));
 		return -1;
 	}
 
@@ -5186,9 +4884,8 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 
 	if (rule == NULL)
 	{
-		errno = EINVAL;
-		putSysErrmsg("Can't send msgs on this subject to this module",
-				NULL);
+		putErrmsg("Can't send msgs on this subject to this module.",
+				subject->name);
 		return -1;
 	}
 
@@ -5245,6 +4942,7 @@ int	ams_send(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 		int subjectNbr, int priority, unsigned char flowLabel,
 		int contentLength, char *content, int context)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -5254,10 +4952,6 @@ int	ams_send(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 				subjectNbr, priority, flowLabel, contentLength,
 				content, context);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -5268,12 +4962,7 @@ static int	deliverTimeout(AmsEvent *event)
 	AmsEvt	*evt;
 
 	evt = (AmsEvt *) MTAKE(sizeof(AmsEvt));
-	if (evt == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(evt);
 	evt->type = TIMEOUT_EVT;
 	*event = evt;
 	return 0;
@@ -5282,6 +4971,7 @@ static int	deliverTimeout(AmsEvent *event)
 static int	getEvent(AmsSAP *sap, int term, AmsEvent *event,
 			LlcvPredicate condition)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result;
 	LystElt	elt;
 	AmsEvt	*evt;
@@ -5566,6 +5256,8 @@ static void	*eventMgrMain(void *parm)
 
 static void	stopEventMgr(AmsSAP *sap)
 {
+	AmsMib	*mib = _mib(NULL);
+
 	/*	End event manager's authority to manage events.		*/
 
 	sap->authorizedEventMgr = pthread_self();
@@ -5599,28 +5291,22 @@ static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
 	int		result = 0;
 	pthread_t	mgrThread;
 
-	if (sap == NULL || event == NULL)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(sap);
+	CHKERR(event);
 	*event = NULL;
 	if (context == 0)
 	{
-		putErrmsg("Non-zero context nbr needed for query.", NULL);
-		errno = EINVAL;
+		writeMemo("[?] Non-zero context nbr needed for query.");
 		return -1;
 	}
 
 	if (term == AMS_POLL	/*	Pseudo-synchronous.		*/
 	|| (continuumNbr != THIS_CONTINUUM
-		&& continuumNbr != mib->localContinuumNbr))
+		&& continuumNbr != (_mib(NULL))->localContinuumNbr))
 	{
-		return sendMsg(sap, continuumNbr, unitNbr, moduleNbr, subjectNbr,
-				priority, flowLabel, contentLength, content,
-				context, AmsMsgQuery);
+		return sendMsg(sap, continuumNbr, unitNbr, moduleNbr,
+				subjectNbr, priority, flowLabel, contentLength,
+				content, context, AmsMsgQuery);
 	}
 
 	/*	True synchronous query.					*/
@@ -5675,6 +5361,7 @@ int	ams_query(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 		int contentLength, char *content, int context, int term,
 		AmsEvent *event)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -5684,10 +5371,6 @@ int	ams_query(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 				subjectNbr, priority, flowLabel, contentLength,
 				content, context, term, event);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -5700,13 +5383,8 @@ static int	ams_reply2(AmsSAP *sap, AmsEvt *evt, int subjectNbr,
 	int	result;
 	AmsMsg	*msg;
 
-	if (evt == NULL || evt->type != AMS_MSG_EVT)
-	{
-		putErrmsg("Antecedent msg needed for reply.", NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(evt);
+	CHKERR(evt->type == AMS_MSG_EVT);
 	msg = (AmsMsg *) (evt->value);
 	result = sendMsg(sap, msg->continuumNbr, msg->unitNbr, msg->moduleNbr,
 			subjectNbr, priority, flowLabel, contentLength,
@@ -5717,6 +5395,7 @@ static int	ams_reply2(AmsSAP *sap, AmsEvt *evt, int subjectNbr,
 int	ams_reply(AmsSAP *sap, AmsEvt *evt, int subjectNbr, int priority,
 		unsigned char flowLabel, int contentLength, char *content)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -5725,10 +5404,6 @@ int	ams_reply(AmsSAP *sap, AmsEvt *evt, int subjectNbr, int priority,
 		result = ams_reply2(sap, evt, subjectNbr, priority,
 				flowLabel, contentLength, content);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -5739,6 +5414,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			unsigned char flowLabel, int contentLength,
 			char *content, int context)
 {
+	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	Subject		*subject;
 	char		amsHeader[16];
 	int		headerLength = sizeof amsHeader;
@@ -5751,25 +5427,20 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 
 	if (continuumNbr == THIS_CONTINUUM)
 	{
-		continuumNbr = mib->localContinuumNbr;
+		continuumNbr = myContinNbr;
 	}
 
-	if (continuumNbr < 0 || unitNbr < 0 || unitNbr > MaxUnitNbr
-	|| roleNbr < 0 || roleNbr > MaxRoleNbr
-	|| priority < 0 || priority >= NBR_OF_PRIORITY_LEVELS
-	|| contentLength < 0 || contentLength > MAX_AMS_CONTENT)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
-	if (subjectNbr < 1 || !subjectIsValid(sap, subjectNbr, &subject))
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
+	CHKERR(continuumNbr >= 0);
+	CHKERR(unitNbr >= 0);
+	CHKERR(unitNbr <= MAX_UNIT_NBR);
+	CHKERR(roleNbr >= 0);
+	CHKERR(roleNbr <= MAX_ROLE_NBR);
+	CHKERR(priority >= 0);
+	CHKERR(priority < NBR_OF_PRIORITY_LEVELS);
+	CHKERR(contentLength >= 0);
+	CHKERR(contentLength <= MAX_AMS_CONTENT);
+	CHKERR(subjectNbr > 0);
+	CHKERR(subjectIsValid(sap, subjectNbr, &subject));
 
 	/*	Knowing subject, construct message header & encrypt.	*/
 
@@ -5780,7 +5451,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 
 	if (continuumNbr == ALL_CONTINUA)	/*	All msgspaces.	*/
 	{
-		result = publishInEnvelope(sap, mib->localContinuumNbr,
+		result = publishInEnvelope(sap, myContinNbr,
 			unitNbr, sap->role->nbr, roleNbr, subjectNbr,
 			amsHeader, headerLength, content, contentLength, 6);
 		if (result < 0)
@@ -5790,7 +5461,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	}
 	else		/*	Announcing to just one msgspace.	*/
 	{
-		if (continuumNbr != mib->localContinuumNbr)
+		if (continuumNbr != myContinNbr)
 		{
 			return publishInEnvelope(sap, continuumNbr, unitNbr,
 				sap->role->nbr, roleNbr, subjectNbr, amsHeader,
@@ -5805,6 +5476,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 
 	protectedBits = amsHeader[0] & 0xf0;
 	recipients = lyst_create();
+	CHKERR(recipients);
 
 	/*	First send a copy of the message to every module in the
 	 *	domain of this request that has posted at least one
@@ -5829,12 +5501,12 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			continue;	/*	Module in wrong unit.	*/
 		}
 
-		/*	Module is in the domain of the announce request.	*/
+		/*	Module is in domain of the announce request.	*/
 
 		rule = getXmitRule(sap, fan->subj->invitations);
 		if (rule == NULL)
 		{
-			continue;	/*	Can't send module a copy.	*/
+			continue;	/*	Can't send module copy.	*/
 		}
 
 		/*	Can send this module a copy of this message.
@@ -5865,7 +5537,6 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 
 		lyst_insert_last(recipients,
 				(void *) ((long) (fan->module->nbr)));
-		// cast to long to avoid warnings on 64-bit
 	}
 
 	/*	Now send a copy of the message to every module in the
@@ -5940,6 +5611,7 @@ int	ams_announce(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		int subjectNbr, int priority, unsigned char flowLabel,
 		int contentLength, char *content, int context)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -5949,10 +5621,6 @@ int	ams_announce(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 				subjectNbr, priority, flowLabel, contentLength,
 				content, context);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -5964,21 +5632,11 @@ static int	ams_post_user_event2(AmsSAP *sap, int code, int dataLength,
 	AmsEvt	*evt;
 	char	*cursor;
 
-	if (dataLength < 0 || (dataLength > 0 && data == NULL)
-	|| priority < 0 || priority >= NBR_OF_PRIORITY_LEVELS)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(dataLength == 0 || (dataLength > 0 && data != NULL));
+	CHKERR(priority >= 0);
+	CHKERR(priority < NBR_OF_PRIORITY_LEVELS);
 	evt = (AmsEvt *) MTAKE(1 + (2 * sizeof(int)) + dataLength);
-	if (evt == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(evt);
 	evt->type = USER_DEFINED_EVT;
 	cursor = evt->value;
 	memcpy(cursor, (char *) &code, sizeof(int));
@@ -5996,6 +5654,7 @@ static int	ams_post_user_event2(AmsSAP *sap, int code, int dataLength,
 int	ams_post_user_event(AmsSAP *sap, int code, int dataLength, char *data,
 		int priority)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -6004,10 +5663,6 @@ int	ams_post_user_event(AmsSAP *sap, int code, int dataLength, char *data,
 		result = ams_post_user_event2(sap, code, dataLength, data,
 				priority);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6015,16 +5670,11 @@ int	ams_post_user_event(AmsSAP *sap, int code, int dataLength, char *data,
 
 static int	ams_get_event2(AmsSAP *sap, int term, AmsEvent *event)
 {
-	if (event == NULL || term < -1)
-	{
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(term >= -1);
+	CHKERR(event);
 	if (!pthread_equal(pthread_self(), sap->eventMgr))
 	{
 		putErrmsg("get_event attempted by non-event-mgr thread.", NULL);
-		errno = EINVAL;
 		return -1;
 	}
 
@@ -6033,6 +5683,7 @@ static int	ams_get_event2(AmsSAP *sap, int term, AmsEvent *event)
 
 int	ams_get_event(AmsSAP *sap, int term, AmsEvent *event)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -6040,10 +5691,6 @@ int	ams_get_event(AmsSAP *sap, int term, AmsEvent *event)
 		LOCK_MIB;
 		result = ams_get_event2(sap, term, event);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6051,12 +5698,7 @@ int	ams_get_event(AmsSAP *sap, int term, AmsEvent *event)
 
 int	ams_get_event_type(AmsEvent event)
 {
-	if (event == NULL)
-	{
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(event);
 	return event->type;
 }
 
@@ -6067,16 +5709,18 @@ int	ams_parse_msg(AmsEvent event, int *continuumNbr, int *unitNbr,
 {
 	AmsMsg	*msg;
 
-	if (event == NULL || event->type != AMS_MSG_EVT
-	|| continuumNbr == NULL || unitNbr == NULL || moduleNbr == NULL
-	|| subjectNbr == NULL || contentLength == NULL || content == NULL
-	|| context == NULL || msgType == NULL || priority == NULL
-	|| flowLabel == NULL)
-	{
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(event);
+	CHKERR(event->type == AMS_MSG_EVT);
+	CHKERR(continuumNbr);
+	CHKERR(unitNbr);
+	CHKERR(moduleNbr);
+	CHKERR(subjectNbr);
+	CHKERR(contentLength);
+	CHKERR(content);
+	CHKERR(context);
+	CHKERR(msgType);
+	CHKERR(priority);
+	CHKERR(flowLabel);
 	msg = (AmsMsg *) (event->value);
 	*continuumNbr = msg->continuumNbr;
 	*unitNbr = msg->unitNbr;
@@ -6114,6 +5758,7 @@ static int	ams_lookup_unit_nbr2(AmsSAP *sap, char *unitName)
 
 int	ams_lookup_unit_nbr(AmsSAP *sap, char *unitName)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (unitName && validSap(sap))
@@ -6121,10 +5766,6 @@ int	ams_lookup_unit_nbr(AmsSAP *sap, char *unitName)
 		LOCK_MIB;
 		result = ams_lookup_unit_nbr2(sap, unitName);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6144,6 +5785,7 @@ static int	ams_lookup_role_nbr2(AmsSAP *sap, char *roleName)
 
 int	ams_lookup_role_nbr(AmsSAP *sap, char *roleName)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (roleName && validSap(sap))
@@ -6151,10 +5793,6 @@ int	ams_lookup_role_nbr(AmsSAP *sap, char *roleName)
 		LOCK_MIB;
 		result = ams_lookup_role_nbr2(sap, roleName);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6174,6 +5812,7 @@ static int	ams_lookup_subject_nbr2(AmsSAP *sap, char *subjectName)
 
 int	ams_lookup_subject_nbr(AmsSAP *sap, char *subjectName)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (subjectName && validSap(sap))
@@ -6181,10 +5820,6 @@ int	ams_lookup_subject_nbr(AmsSAP *sap, char *subjectName)
 		LOCK_MIB;
 		result = ams_lookup_subject_nbr2(sap, subjectName);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6192,6 +5827,7 @@ int	ams_lookup_subject_nbr(AmsSAP *sap, char *subjectName)
 
 int	ams_lookup_continuum_nbr(AmsSAP *sap, char *continuumName)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (continuumName && validSap(sap))
@@ -6199,10 +5835,6 @@ int	ams_lookup_continuum_nbr(AmsSAP *sap, char *continuumName)
 		LOCK_MIB;
 		result = lookUpContinuum(continuumName);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6212,7 +5844,7 @@ static char	*ams_lookup_unit_name2(AmsSAP *sap, int unitNbr)
 {
 	Unit	*unit;
 
-	if (unitNbr >= 0 && unitNbr <= MaxUnitNbr)
+	if (unitNbr >= 0 && unitNbr <= MAX_UNIT_NBR)
 	{
 		unit = sap->venture->units[unitNbr];
 		if (unit)
@@ -6226,6 +5858,7 @@ static char	*ams_lookup_unit_name2(AmsSAP *sap, int unitNbr)
 
 char	*ams_lookup_unit_name(AmsSAP *sap, int unitNbr)
 {
+	AmsMib	*mib = _mib(NULL);
 	char	*result = NULL;
 
 	if (validSap(sap))
@@ -6233,10 +5866,6 @@ char	*ams_lookup_unit_name(AmsSAP *sap, int unitNbr)
 		LOCK_MIB;
 		result = ams_lookup_unit_name2(sap, unitNbr);
 		UNLOCK_MIB;
-		if (result == NULL)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6246,7 +5875,7 @@ static char	*ams_lookup_role_name2(AmsSAP *sap, int roleNbr)
 {
 	AppRole	*role;
 
-	if (roleNbr > 0 && roleNbr <= MaxRoleNbr)
+	if (roleNbr > 0 && roleNbr <= MAX_ROLE_NBR)
 	{
 		role = sap->venture->roles[roleNbr];
 		if (role)
@@ -6260,6 +5889,7 @@ static char	*ams_lookup_role_name2(AmsSAP *sap, int roleNbr)
 
 char	*ams_lookup_role_name(AmsSAP *sap, int roleNbr)
 {
+	AmsMib	*mib = _mib(NULL);
 	char	*result = NULL;
 
 	if (validSap(sap))
@@ -6267,10 +5897,6 @@ char	*ams_lookup_role_name(AmsSAP *sap, int roleNbr)
 		LOCK_MIB;
 		result = ams_lookup_role_name2(sap, roleNbr);
 		UNLOCK_MIB;
-		if (result == NULL)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6280,7 +5906,7 @@ static char	*ams_lookup_subject_name2(AmsSAP *sap, int subjectNbr)
 {
 	Subject	*subject;
 
-	if (subjectNbr > 0 && subjectNbr <= MaxSubjNbr)
+	if (subjectNbr > 0 && subjectNbr <= MAX_SUBJ_NBR)
 	{
 		subject = sap->venture->subjects[subjectNbr];
 		if (subject)
@@ -6294,6 +5920,7 @@ static char	*ams_lookup_subject_name2(AmsSAP *sap, int subjectNbr)
 
 char	*ams_lookup_subject_name(AmsSAP *sap, int subjectNbr)
 {
+	AmsMib	*mib = _mib(NULL);
 	char	*result = NULL;
 
 	if (validSap(sap))
@@ -6301,10 +5928,6 @@ char	*ams_lookup_subject_name(AmsSAP *sap, int subjectNbr)
 		LOCK_MIB;
 		result = ams_lookup_subject_name2(sap, subjectNbr);
 		UNLOCK_MIB;
-		if (result == NULL)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6315,9 +5938,9 @@ static char	*ams_lookup_continuum_name2(AmsSAP *sap, int continuumNbr)
 	Continuum	*contin;
 
 	if (continuumNbr < 0) continuumNbr = 0 - continuumNbr;
-       	if (continuumNbr > 0 && continuumNbr <= MaxContinNbr)
+       	if (continuumNbr > 0 && continuumNbr <= MAX_CONTIN_NBR)
 	{
-		contin = mib->continua[continuumNbr];
+		contin = (_mib(NULL))->continua[continuumNbr];
 		if (contin)	/*	Known continuum.		*/
 		{
 			return contin->name;
@@ -6329,6 +5952,7 @@ static char	*ams_lookup_continuum_name2(AmsSAP *sap, int continuumNbr)
 
 char	*ams_lookup_continuum_name(AmsSAP *sap, int continuumNbr)
 {
+	AmsMib	*mib = _mib(NULL);
 	char	*result = NULL;
 
 	if (validSap(sap))
@@ -6336,10 +5960,6 @@ char	*ams_lookup_continuum_name(AmsSAP *sap, int continuumNbr)
 		LOCK_MIB;
 		result = ams_lookup_continuum_name2(sap, continuumNbr);
 		UNLOCK_MIB;
-		if (result == NULL)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6353,16 +5973,20 @@ int	ams_parse_notice(AmsEvent event, AmsStateType *state,
 {
 	AmsNotice	*notice;
 
-	if (event == NULL || event->type != NOTICE_EVT
-	|| state == NULL || change == NULL || unitNbr == NULL
-	|| moduleNbr == NULL || roleNbr == NULL || domainContinuumNbr == NULL
-	|| domainUnitNbr == NULL || subjectNbr == NULL || priority == NULL
-	|| flowLabel == NULL || sequence == NULL || diligence == NULL)
-	{
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(event);
+	CHKERR(event->type == NOTICE_EVT);
+	CHKERR(state);
+	CHKERR(change);
+	CHKERR(unitNbr);
+	CHKERR(moduleNbr);
+	CHKERR(roleNbr);
+	CHKERR(domainContinuumNbr);
+	CHKERR(domainUnitNbr);
+	CHKERR(subjectNbr);
+	CHKERR(priority);
+	CHKERR(flowLabel);
+	CHKERR(sequence);
+	CHKERR(diligence);
 	notice = (AmsNotice *) (event->value);
 	*state = notice->stateType;
 	*change = notice->changeType;
@@ -6382,13 +6006,11 @@ int	ams_parse_notice(AmsEvent event, AmsStateType *state,
 int	ams_parse_user_event(AmsEvent event, int *code, int *dataLength,
 		char **data)
 {
-	if (event == NULL || event->type != USER_DEFINED_EVT
-	|| code == NULL || dataLength == NULL || data == NULL)
-	{
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(event);
+	CHKERR(event->type == USER_DEFINED_EVT);
+	CHKERR(code);
+	CHKERR(dataLength);
+	CHKERR(data);
 	memcpy((char *) code, event->value, sizeof(int));
 	memcpy((char *) dataLength, event->value + sizeof(int), sizeof(int));
 	if (*dataLength > 0)
@@ -6407,12 +6029,7 @@ int	ams_recycle_event(AmsEvent event)
 {
 	AmsMsg	*msg;
 
-	if (event == NULL)
-	{
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(event);
 	if (event->type == AMS_MSG_EVT)
 	{
 		msg = (AmsMsg *) (event->value);
@@ -6430,12 +6047,7 @@ static int	ams_set_event_mgr2(AmsSAP *sap, AmsEventMgt *rules)
 {
 	pthread_t	mgrThread;
 
-	if (rules == NULL)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
+	CHKERR(rules);
 
 	/*	Only prime thread can set event manager, and it can do
 	 *	so only when it is, itself, the current event manager.	*/
@@ -6443,14 +6055,12 @@ static int	ams_set_event_mgr2(AmsSAP *sap, AmsEventMgt *rules)
 	if (!pthread_equal(pthread_self(), sap->primeThread))
 	{
 		putErrmsg("Only prime thread can set event mgr.", NULL);
-		errno = EINVAL;
 		return -1;
 	}
 
 	if (!pthread_equal(sap->eventMgr, sap->primeThread))
 	{
 		putErrmsg("Another event mgr is running.", NULL);
-		errno = EINVAL;
 		return -1;
 	}
 
@@ -6468,6 +6078,7 @@ static int	ams_set_event_mgr2(AmsSAP *sap, AmsEventMgt *rules)
 
 int	ams_set_event_mgr(AmsSAP *sap, AmsEventMgt *rules)
 {
+	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
@@ -6475,10 +6086,6 @@ int	ams_set_event_mgr(AmsSAP *sap, AmsEventMgt *rules)
 		LOCK_MIB;
 		result = ams_set_event_mgr2(sap, rules);
 		UNLOCK_MIB;
-		if (result < 0)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -6498,6 +6105,8 @@ static void	ams_remove_event_mgr2(AmsSAP *sap)
 
 void	ams_remove_event_mgr(AmsSAP *sap)
 {
+	AmsMib	*mib = _mib(NULL);
+
 	if (validSap(sap))
 	{
 		LOCK_MIB;
