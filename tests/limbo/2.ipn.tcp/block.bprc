@@ -1,1 +1,1 @@
-b outduct tcp localhost:5101
+b outduct stcp localhost:5101
