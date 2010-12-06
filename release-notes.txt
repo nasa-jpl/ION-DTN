@@ -1,4 +1,4 @@
-Release Notes for ION 2.2.1
+Release Notes for ION 2.3.0
 June 25, 2010
 
 
@@ -48,6 +48,49 @@ Features included:
 	brs - Bundle relay service: provides interconnectivity between networks
 	that do not allow servers (those behind NAT for example). For more
 	information, check man brsscla and man brsccla.
+
+----------------------
+NOTES ON RELEASE 2.3.0
+----------------------
+
+- Modified administrative startup commands to block until startup is complete,
+  rather than return immediately even if the node hasn't been fully initialized.
+
+- Fixed a bug which truncated bundle source EID.
+
+- Modified some tests (1000.loopback) to run compiled objects instead of shell
+  scripts.  This eliminates the need for shell scripting and allows automated
+  tests to function on platforms without shell access.
+
+- Combined similar test configurations to use the shared /configs directory.
+  This will provide a standard set of updated configurations.
+
+- Test suite has been modified to support multiple test sets.  Creating a
+  text file in the tests directory containing a list of tests is all that
+  is needed to create a test set.
+  Examples: make test-all ; make test-branch ; make test-<anything>
+
+- Added "limbo" queue to support suspension and resumption.  This allows the
+  node to handle unexpected convergence layer failure as opposed to scheduled
+  or static contact termination.
+
+- Code scrub of DGR.
+
+- Added bping, bpchat, and bpstats2 utilities.
+
+- bptrace uses non-custodial bundles.
+
+- Added feature for "convergence-layer stewardship"; CL's will attempt
+  retransmission of bundles without explisict bundle-layer custodianship.
+
+- Store bundles in ZCO.
+
+- Enhanced LTP's udplso with a transmission rate limiter.
+
+- Added new AOS CLA for LTP.
+
+- Bug fixes to: LTP, CGR, sdrRetch, bpcounter, ionscript, tcpcl, stcp,
+  PSM mutex, SDR, bpsink, and others.
 
 ----------------------
 NOTES ON RELEASE 2.2.1
