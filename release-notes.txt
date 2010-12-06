@@ -56,7 +56,7 @@ NOTES ON RELEASE 2.3.0
 - Modified administrative startup commands to block until startup is complete,
   rather than return immediately even if the node hasn't been fully initialized.
 
-- Fixed a bug which truncated bundle source EID.
+- Fixed a bug which truncated bundle source dtn-scheme EIDs.
 
 - Modified some tests (1000.loopback) to run compiled objects instead of shell
   scripts.  This eliminates the need for shell scripting and allows automated
@@ -78,10 +78,11 @@ NOTES ON RELEASE 2.3.0
 
 - Added bping, bpchat, and bpstats2 utilities.
 
-- bptrace uses non-custodial bundles.
+- bptrace uses non-custodial bundles and bpsend custody transfer is now optional.
 
-- Added feature for "convergence-layer stewardship"; CL's will attempt
-  retransmission of bundles without explisict bundle-layer custodianship.
+- Added feature for "convergence-layer stewardship"; CL's can initiate
+  reforwarding of bundles on transmission failure without explicit
+  bundle-layer custodianship.
 
 - Store bundles in ZCO.
 
@@ -89,7 +90,7 @@ NOTES ON RELEASE 2.3.0
 
 - Added new AOS CLA for LTP.
 
-- Bug fixes to: LTP, CGR, sdrRetch, bpcounter, ionscript, tcpcl, stcp,
+- Bug fixes to: LTP, CGR, SDR mutex, bpcounter, ionscript, tcpcl, stcp,
   PSM mutex, SDR, bpsink, and others.
 
 ----------------------
