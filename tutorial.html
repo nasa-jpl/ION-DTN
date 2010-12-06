@@ -15,71 +15,458 @@ documentation for Ion is broken up into several sections that deal with
 the general installation and configuration of Ion. The design
 documentation for Ion is available <a href="https://ion.ocp.ohiou.edu/drupal/sites/default/files/ION.pdf">here</a>.</p>  <div id="node-15" class="section-2">
   <h1 class="book-heading">Release Notes</h1>
-  <h1>Release Notes for ION 1.0</h1>
 
-<p>31 October 2008</p>
+<h1>Release Notes for ION 2.3.0</h1>
 
-<p>The IPN [interplanetary network] software is a suite of
-communication protocol implementations designed to support mission
-operation communications across an end-to-end interplanetary network,
-which might include on-board (flight) subnets, in-situ planetary or
-lunar networks, proximity links, deep space links, and terrestrial
-internets. Included in the IPN software distribution are the following
-packages:</p>
+<p>
+December 5, 2010
+</p>
 
-<ul><li>ici [interplanetary communication infrastructure], a set of
-libraries that provide flight-software-compatible support for functions
-on which the other packages rely, such as dynamic memory management,
-non-volatile storage management, and inter-task communication via
-shared memory. The ici libraries are designed to make the porting of
-IPN software to multiple operating systems - Linux, VxWorks, Solaris,
-etc. - as easy as possible. Ici now includes zco [zero-copy object], a
-library that minimizes the copying of application data as it is
-encapsulated in multiple layers of protocol structure while traversing
-the protocol stack.</li><li>bp [bundle protocol], (formerly ion) an implementation of the Delay-Tolerant Networking (DTN) architecture's Bundle Protocol.</li><li>dgr
-[datagram retransmission], a UDP reliability system that implements
-congestion control and is designed for relatively high performance.</li><li>ltp
-[licklider transmission protocol], a DTN convergence layer for reliable
-transmission over links characterized by long or highly variable delay.</li><li>ams - an implementation of the CCSDS Asynchronous Message Service.</li></ul>
+<h1>GENERAL</h1>
 
-<p>Features included:</p>
+<p>
+The ION (interplanetary overlay network) software is a suite of communication
+protocol implementations designed to support mission operation communications
+across an end-to-end interplanetary network, which might include on-board
+(flight) subnets, in-situ planetary or lunar networks, proximity links, deep
+space links, and terrestrial internets.  Included in the ION softwarex
+distribution are the following packages:
+</p>
 
-<ul><li>cgr - Contract graph routing: a method of dynamic routing
-designed for space based applications of ION, but still usable for
-terrestrial applications. It computes routes using scheduled
-communication and deals with time-varying network topology.</li><li>brs
-- Bundle relay service: provides interconnectivity between networks
-that do not allow servers (those behind NAT for example). For more
-information, check man brsscla and man brsccla.</li></ul>
+<ul>
+<li>ici (interplanetary communication infrastructure), a set of libraries
+  that provide flight-software-compatible support for functions on which
+  the other packages rely, such as dynamic memory management, non-volatile
+  storage management, and inter-task communication via shared memory.
+  The ici libraries are designed to make the porting of IPN software to
+  multiple operating systems - Linux, VxWorks, Solaris, etc. - as easy as
+  possible. Ici now includes zco (zero-copy object), a library that 
+  minimizes the copying of application data as it is encapsulated in 
+  multiple layers of protocol structure while traversing the protocol
+  stack.
+<p></p>
+</li>
+<li>bp (bundle protocol), an implementation of the Delay-Tolerant
+  Networking (DTN) architecture's Bundle Protocol.
+<p></p>
+</li>
+<li>dgr (datagram retransmission), a UDP reliability system that
+  implements congestion control and is designed for relatively high
+  performance.
+<p></p>
+</li>
+<li>ltp (licklider transmission protocol), a DTN convergence layer for
+  reliable transmission over links characterized by long or highly
+  variable delay.
+<p></p>
+</li>
+<li>ams - an implementation of the CCSDS Asynchronous Message Service.
+<p></p>
+</li>
+<li>cfdp - a class-1 (Unacknowledged) implementation of the CCSDS File
+  Delivery Protocol.
+</li>
+</ul>
 
-<p>Other packages to be included in future releases of IPN:</p>
+<p>
+Features included:
+</p>
 
-<ul><li>cfdp - a class-1 (Unacknowledged) implementation of the CCSDS File Delivery Protocol</li></ul>
+<ul>
+<li>cgr - Contract graph routing: a method of dynamic routing designed for
+  space based applications of ION, but still usable for terrestrial
+  applications. It computes routes using scheduled communication and deals
+  with time-varying network topology.
+<p></p>
+</li>
+<li>brs - Bundle relay service: provides interconnectivity between networks
+  that do not allow servers (those behind NAT for example). For more
+  information, check man brsscla and man brsccla.
+</li>
+</ul>
+
+<h1>NOTES ON RELEASE 2.3.0</h1>
+
+<ul>
+<li>Modified administrative startup commands to block until startup is complete,
+  rather than return immediately even if the node hasn't been fully initialized.
+<p></p>
+</li>
+<li>Fixed a bug which truncated dtn-scheme bundle source EIDs.
+<p></p>
+</li>
+<li>Modified some tests (1000.loopback) to run compiled objects instead of shell
+  scripts.  This eliminates the need for shell scripting and allows automated
+  tests to function on platforms without shell access.
+<p></p>
+</li>
+<li>Combined similar test configurations to use the shared /configs directory.
+  This will provide a standard set of updated configurations.
+<p></p>
+</li>
+<li>Test suite has been modified to support multiple test sets.  Creating a
+  text file in the tests directory containing a list of tests is all that
+  is needed to create a test set.
+  Examples: make test-all ; make test-branch ; make test-&lt;anything&gt;
+<p></p>
+</li>
+<li>Added "limbo" queue to support suspension and resumption.  This allows the
+  node to handle unexpected convergence layer failure as opposed to scheduled
+  or static contact termination.
+<p></p>
+</li>
+<li>Code scrub of DGR.
+<p></p>
+</li>
+<li>Added bping, bpchat, and bpstats2 utilities.
+<p></p>
+</li>
+<li>Custody transfer is now optional in both bptrace and bpsend.
+<p></p>
+</li>
+<li>Added feature for "convergence-layer stewardship"; CL's can initiate
+  reforwarding of bundles on transmission failure without explicit
+  bundle-layer custodianship.
+<p></p>
+</li>
+<li>Enhanced LTP's udplso with a transmission rate limiter.
+<p></p>
+</li>
+<li>Added new AOS CLA for LTP.
+<p></p>
+</li>
+<li>Bug fixes to: LTP, CGR, SDR mutex, bpcounter, ionscript, tcpcl, stcp,
+  PSM mutex, SDR, bpsink, and others.
+</li>
+</ul>
+
+<h1>NOTES ON RELEASE 2.2.1</h1>
+
+<ul>
+<li>Corrected bug in LTP's data acquisition into file-system storage.  Didn't
+  handle data loss and retransmission properly.
+<p></p>
+</li>
+<li>Fixed bugs in LTP session cancellation that caused slow storage leaks.
+<p></p>
+</li>
+<li>Upgraded the LTP configuration spreadsheet and its documentation, to
+  provide better guidance when most data are sent from or acquired into
+  file system storage.
+<p></p>
+</li>
+<li>Updated the Design and Operations Guide to document new features and
+  API changes.
+<p></p>
+</li>
+<li>Various other bug fixes and tweaks.
+</li>
+</ul>
+
+<h1>NOTES ON RELEASE 2.2.0</h1>
+
+<ul>
+<li>Store bundles in ZCO.
+<p></p>
+</li>
+<li>Added feature to store bundles directly to file-system memory, allowing
+  much larger bundles to be handled by the node.
+<p></p>
+</li>
+<li>Added feature to allow all stdout output to be redirected to log files.
+  Feature is enabled by #defining FSWLOGGER.
+<p></p>
+</li>
+<li>Code scrub BP, CFDP, ICI, LTP.
+<p></p>
+</li>
+<li>Add support for asymmetric link-delay (range) in contacts.
+<p></p>
+</li>
+<li>Add option to configure LTP spans for "purge" behavior on contact termination.
+<p></p>
+</li>
+<li>Fixed handling of dtn:none eids.
+<p></p>
+</li>
+<li>Optimize contact graph routing.
+<p></p>
+</li>
+<li>Various bug fixes and tweaks.
+</li>
+</ul>
+
+<h1>NOTES ON RELEASE 2.1.0</h1>
+
+<ul>
+<li>Port to FreeBSD and RTEMS (via manual makefiles).
+<p></p>
+</li>
+<li>Various fixes and tweaks.
+<p></p>
+</li>
+<li>Added comprehensive automated testing suite.
+<p></p>
+</li>
+<li>Fixed various compiler bugs
+<p></p>
+</li>
+<li>Modified custodian EID generated from dtn:<em>hostname to dtn:</em>hostname.dtn
+<p></p>
+</li>
+<li>Modified the loopback and ion-dtn2 configuration files for the new command syntax.
+<p></p>
+</li>
+<li>Added BSP implementation using "stub" versions of hmac and sha1 for public release.
+<p></p>
+</li>
+<li>Added CFDP implementation.
+<p></p>
+</li>
+<li>Bug fixes in LTP, BRS, and some BP applications.
+<p></p>
+</li>
+<li>Tweaks related to running on VxWorks.
+<p></p>
+</li>
+<li>Added assertions.
+<p></p>
+</li>
+<li>Bug fixes in the TCP convergence layer, particularly in the interest of interoperability
+  with dtn2.
+</li>
+</ul>
+
+<h1>NOTES ON RELEASE 2.0.0</h1>
+
+<ul>
+<li>Based on JPL revision 255:6443ed8258e1
+<p></p>
+</li>
+<li>Converted underlying version control system to Mercurial from Subversion.
+<p></p>
+</li>
+<li>Add ionsecadmin for managing the security policy database.
+<p></p>
+</li>
+<li>Added better support for cross-scheme routing.
+<p></p>
+</li>
+<li>Add support for the previous-hop-node extension.
+<p></p>
+</li>
+<li>Update route computation to current CBHE draft standard.
+<p></p>
+</li>
+<li>Addresses memory leak problem identified by U. of Colorado in long-duration
+  tests.
+<p></p>
+</li>
+<li>LTP heavily modified to become more flexible and powerful.
+<p></p>
+</li>
+<li>dtnadmin and associated utilities renamed to dtn2admin.
+<p></p>
+</li>
+<li>Configuration file syntax changes slightly in ionadmin, bpadmin, ipnadmin,
+  dtn2admin; heavily changes syntax of ltpadmin.  Included ION-LTP-Configuration
+  document and spreadsheet to explain new syntax and calculate values.
+<p></p>
+</li>
+<li>Bug fixes.
+<p></p>
+</li>
+<li>Documentation updates.
+<p></p>
+</li>
+<li>Various testing applications in earlier releases are split from the ion release.
+</li>
+</ul>
+
+<h1>NOTES ON RELEASE 1.1.0</h1>
+
+<ul>
+<li>Based on JPL revision 226.
+<p></p>
+</li>
+<li>Experimental new tcp convergence layer compatible with the standard defined
+  by draft-irtf-dtnrg-tcp-clayer-02.  This convergence layer is titled tcp,
+  with other programs tcpcli tcpclo, and is suitable for connectivity with the
+  DTN2 reference implementation.  Currently only unidirectional, unacknowledged
+  communication is supported.  Some bugs still present.
+<p></p>
+</li>
+<li>ION-specific tcp-based convergence layer is renamed stcp (stcpcli stcpclo)
+  and still functions as expected.
+<p></p>
+</li>
+<li>Adds user-contributed applications bping bping bpmon bpalive.
+<p></p>
+</li>
+<li>some LTP related bugs are not yet squashed.
+<p></p>
+</li>
+<li>Updates to various user-contrib programs; added a bpmon_query program to work
+  with SNMP.
+<p></p>
+</li>
+<li>Revise LTP to use randomly selected session numbers rather than recycling small
+  session numbers - prevent data loss and corruption due to application of late-
+  arriving segments to sessions that are re-using the session numbers of earlier
+  sessions.
+<p></p>
+</li>
+<li>added the bplive program.
+<p></p>
+</li>
+<li>Updated for sbp_api.h and abp_api.c
+<p></p>
+</li>
+<li>brought over basic working draft-tcpcl standards-compliant code with help of
+  patch submitted by &lt;Andrew Jenkins (a) colorado edu&gt;
+<p></p>
+</li>
+<li>manually applied patches from &lt;seb (a) highlab com&gt;, adding sanity-checks and more
+  consistent comment-line detection to the admin programs
+<p></p>
+</li>
+<li>Add fixes to eliminate compiler warnings, per Ohio U.  Remove all ppc-vxworks
+  makefile directories, replacing them with arch-vxworks5 directories because
+  the VxWorks build varies with VxWorks version number and not with the hardware
+  platform that you build for.  Add "expat", which is needed by AMS and is not
+  provided with VxWorks.  Fix segfault bug in dtnfw reported by U. of Colorado.
+  Fix bug in support for trackingElts list.
+<p></p>
+</li>
+<li>applied the patch from &lt;Andrew Jenkins (a) colorado edu&gt; about dtnfw's rule/plan but
+<p></p>
+</li>
+<li>added new ION.pdf to the in-development release
+<p></p>
+</li>
+<li>overhauled ionstart, ionscript, ionstart.awk to account for the dtnadmin need for
+  a node name as well as the bpadmin/dtnadmin/ipnadmin startup order bug found by
+  &lt;Andrew Jenkins (a) colorado edu&gt;
+<p></p>
+</li>
+<li>Revise routing to match applicable backlog (based on bundle's priority; not
+  necessarily total backlog) against aggregate capacity when determining route
+  viability.  (Per JIRA item DINET-107)  Add implementation of extension block
+  for extended class of service, which includes an additional 256 "ordinal"
+  priority sub-levels within priority 2.
+<p></p>
+</li>
+<li>Upgrade AMS implementation to Red Book 2.
+<p></p>
+</li>
+<li>Add interface for inserting BP extensions.
+</li>
+</ul>
 
 <h1>NOTES ON RELEASE 1.0_r203</h1>
 
-<ul><li>Based on jpl r203.</li><li>Adds LTP package.</li><li>Supports contact graph routing.</li><li>Compilation changed to autoconf and automake; compilation tested on:</li><li>Killm updated to work on OSX 10.4, due to an ipcs incompatibility; also updated to make sure all processes are killed.</li><li>Removed multiple compiler warnings.</li><li>Includes bundle relay programs brsscla and brsccla; brsscla acts as the server, brsccla acts as the client.</li><li>Zco package rolled into ici.</li><li>Ionscript added for configuration file management; ionstart and ionstop rewritten.</li><li>Various bug fixes.</li><li>2008-11-11 Added the ION Design and Operation manual v1.6.</li></ul>
+<ul>
+<li>Based on jpl r203.
+<p></p>
+</li>
+<li>Adds LTP package.
+<p></p>
+</li>
+<li>Supports contact graph routing.
+<p></p>
+</li>
+<li>Compilation changed to autoconf and automake; compilation tested on: 
+  Ubuntu 7.04, 7.10, 8.04, Gentoo, Fedora 3, Fedora 7, OSX 10.5, and Solaris 10.
+<p></p>
+</li>
+<li>Killm updated to work on OSX 10.4, due to an ipcs incompatibility; also 
+  updated to make sure all processes are killed.
+<p></p>
+</li>
+<li>Removed multiple compiler warnings.
+<p></p>
+</li>
+<li>Includes bundle relay programs brsscla and brsccla; brsscla acts as the 
+  server, brsccla acts as the client. 
+<p></p>
+</li>
+<li>Zco package rolled into ici.
+<p></p>
+</li>
+<li>Ionscript added for configuration file management; ionstart and ionstop
+  rewritten.
+<p></p>
+</li>
+<li>Various bug fixes.
+<p></p>
+</li>
+<li>2008-11-11 Added the ION Design and Operation manual v1.6.
+</li>
+</ul>
 
 <h1>NOTES ON RELEASE 0.3</h1>
 
-<ul><li>Based on jpl r105.</li><li>Simplified and cleaned up SDR implementation in the ici package.</li><li>ion package and utilities renamed to "bp" for "bundle protocol."</li><li>Restructured congestion control to be based on rate control.</li><li>Implements BP version 6.</li><li>Revised the zco package.</li><li>Added capability for dynamic routing based on network topology that changes with the passage of time.</li><li>Fixed various bugs.</li><li>All administrative and application errors are reported to ion.log</li><li>Added ionstart and ionstop scripts.</li></ul>
+<ul>
+<li>Based on jpl r105.
+<p></p>
+</li>
+<li>Simplified and cleaned up SDR implementation in the ici package.
+<p></p>
+</li>
+<li>ion package and utilities renamed to "bp" for "bundle protocol."
+<p></p>
+</li>
+<li>Restructured congestion control to be based on rate control.
+<p></p>
+</li>
+<li>Implements BP version 6.
+<p></p>
+</li>
+<li>Revised the zco package.
+<p></p>
+</li>
+<li>Added capability for dynamic routing based on network topology that changes
+  with the passage of time.
+<p></p>
+</li>
+<li>Fixed various bugs.
+<p></p>
+</li>
+<li>All administrative and application errors are reported to ion.log
+<p></p>
+</li>
+<li>Added ionstart and ionstop scripts.
+</li>
+</ul>
 
 <h1>NOTES ON RELEASE 0.2</h1>
 
-<ul><li>The ion package, which implements the DTN Bundle Protocol (BP),
-has been upgraded to conform to BP version 5, submitted to IETF in
-December 2006. The changes are almost exclusively internal to the
-software and protocol: the format of bundles exchanged through the
-delay-tolerant network is altered, but the API for ION is mostly
-unchanged. Note that this release of ION is not interoperable with
-implementations of BP version 4.</li><li>The Remote AMS functionality
-of AMS has been upgraded to conform to the specification most recently
-posted to the public documents list of the CCSDS CWE site for AMS. The
-API for AMS is unchanged.</li><li>A variety of miscellaneous bugs have been fixed.</li></ul>
+<ul>
+<li>The ion package, which implements the DTN Bundle Protocol (BP), has been
+  upgraded to conform to BP version 5, submitted to IETF in December 2006.
+  The changes are almost exclusively internal to the software and protocol: 
+  the format of bundles exchanged through the delay-tolerant network is altered,
+  but the API for ION is mostly unchanged.  Note that this release of ION is 
+  not interoperable with implementations of BP version 4.
+<p></p>
+</li>
+<li>The Remote AMS functionality of AMS has been upgraded to conform to the 
+  specification most recently posted to the public documents list of the CCSDS 
+  CWE site for AMS.  The API for AMS is unchanged.
+<p></p>
+</li>
+<li>A variety of miscellaneous bugs have been fixed.
+</li>
+</ul>
 
 <h1>NOTES ON RELEASE 0.1</h1>
 
-<ul><li>Initial code released for review.</li></ul>  </div>
+<ul>
+<li>Initial code released for review.
+</li>
+</ul>
+
+</div>
 <div id="node-18" class="section-2">
   <h1 class="book-heading">Installing Ion Daemon and Tools</h1>
     <div id="node-19" class="section-3">

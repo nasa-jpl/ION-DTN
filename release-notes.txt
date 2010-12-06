@@ -1,62 +1,68 @@
-Release Notes for ION 2.3.0
-June 25, 2010
 
+= Release Notes for ION 2.3.0 =
 
-GENERAL
+December 5, 2010
 
-The ION [interplanetary overlay network] software is a suite of communication
+%%%%%%%%%%%
+= GENERAL =
+%%%%%%%%%%%
+
+The ION (interplanetary overlay network) software is a suite of communication
 protocol implementations designed to support mission operation communications
 across an end-to-end interplanetary network, which might include on-board
 (flight) subnets, in-situ planetary or lunar networks, proximity links, deep
 space links, and terrestrial internets.  Included in the ION softwarex
 distribution are the following packages:
 
-	ici [interplanetary communication infrastructure], a set of libraries
-	that provide flight-software-compatible support for functions on which
-	the other packages rely, such as dynamic memory management, non-volatile
-	storage management, and inter-task communication via shared memory.
-	The ici libraries are designed to make the porting of IPN software to
-	multiple operating systems - Linux, VxWorks, Solaris, etc. - as easy as
-	possible. Ici now includes zco [zero-copy object], a library that 
-	minimizes the copying of application data as it is encapsulated in 
-	multiple layers of protocol structure while traversing the protocol
-	stack.
+- ici (interplanetary communication infrastructure), a set of libraries
+  that provide flight-software-compatible support for functions on which
+  the other packages rely, such as dynamic memory management, non-volatile
+  storage management, and inter-task communication via shared memory.
+  The ici libraries are designed to make the porting of IPN software to
+  multiple operating systems - Linux, VxWorks, Solaris, etc. - as easy as
+  possible. Ici now includes zco (zero-copy object), a library that 
+  minimizes the copying of application data as it is encapsulated in 
+  multiple layers of protocol structure while traversing the protocol
+  stack.
 
-	bp [bundle protocol], an implementation of the Delay-Tolerant
-	Networking (DTN) architecture's Bundle Protocol.
+- bp (bundle protocol), an implementation of the Delay-Tolerant
+  Networking (DTN) architecture's Bundle Protocol.
 
-	dgr [datagram retransmission], a UDP reliability system that
-	implements congestion control and is designed for relatively high
-	performance.
+- dgr (datagram retransmission), a UDP reliability system that
+  implements congestion control and is designed for relatively high
+  performance.
 
-	ltp [licklider transmission protocol], a DTN convergence layer for
-	reliable transmission over links characterized by long or highly
-	variable delay.
-	
-	ams - an implementation of the CCSDS Asynchronous Message Service.
+- ltp (licklider transmission protocol), a DTN convergence layer for
+  reliable transmission over links characterized by long or highly
+  variable delay.
 
-	cfdp - a class-1 (Unacknowledged) implementation of the CCSDS File
-	Delivery Protocol.
+- ams - an implementation of the CCSDS Asynchronous Message Service.
+
+- cfdp - a class-1 (Unacknowledged) implementation of the CCSDS File
+  Delivery Protocol.
+
 
 Features included:
 
-	cgr - Contract graph routing: a method of dynamic routing designed for
-	space based applications of ION, but still usable for terrestrial
-	applications. It computes routes using scheduled communication and deals
-	with time-varying network topology.
+- cgr - Contract graph routing: a method of dynamic routing designed for
+  space based applications of ION, but still usable for terrestrial
+  applications. It computes routes using scheduled communication and deals
+  with time-varying network topology.
 
-	brs - Bundle relay service: provides interconnectivity between networks
-	that do not allow servers (those behind NAT for example). For more
-	information, check man brsscla and man brsccla.
+- brs - Bundle relay service: provides interconnectivity between networks
+  that do not allow servers (those behind NAT for example). For more
+  information, check man brsscla and man brsccla.
 
-----------------------
-NOTES ON RELEASE 2.3.0
-----------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.3.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 - Modified administrative startup commands to block until startup is complete,
   rather than return immediately even if the node hasn't been fully initialized.
 
-- Fixed a bug which truncated bundle source dtn-scheme EIDs.
+- Fixed a bug which truncated dtn-scheme bundle source EIDs.
 
 - Modified some tests (1000.loopback) to run compiled objects instead of shell
   scripts.  This eliminates the need for shell scripting and allows automated
@@ -78,13 +84,11 @@ NOTES ON RELEASE 2.3.0
 
 - Added bping, bpchat, and bpstats2 utilities.
 
-- bptrace uses non-custodial bundles and bpsend custody transfer is now optional.
+- Custody transfer is now optional in both bptrace and bpsend.
 
 - Added feature for "convergence-layer stewardship"; CL's can initiate
   reforwarding of bundles on transmission failure without explicit
   bundle-layer custodianship.
-
-- Store bundles in ZCO.
 
 - Enhanced LTP's udplso with a transmission rate limiter.
 
@@ -93,9 +97,11 @@ NOTES ON RELEASE 2.3.0
 - Bug fixes to: LTP, CGR, SDR mutex, bpcounter, ionscript, tcpcl, stcp,
   PSM mutex, SDR, bpsink, and others.
 
-----------------------
-NOTES ON RELEASE 2.2.1
-----------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.2.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 - Corrected bug in LTP's data acquisition into file-system storage.  Didn't
   handle data loss and retransmission properly.
@@ -111,9 +117,13 @@ NOTES ON RELEASE 2.2.1
 
 - Various other bug fixes and tweaks.
 
-----------------------
-NOTES ON RELEASE 2.2.0
-----------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.2.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Store bundles in ZCO.
 
 - Added feature to store bundles directly to file-system memory, allowing
   much larger bundles to be handled by the node.
@@ -133,9 +143,11 @@ NOTES ON RELEASE 2.2.0
 
 - Various bug fixes and tweaks.
 
-----------------------
-NOTES ON RELEASE 2.1.0
-----------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.1.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 - Port to FreeBSD and RTEMS (via manual makefiles).
 
@@ -162,9 +174,11 @@ NOTES ON RELEASE 2.1.0
 - Bug fixes in the TCP convergence layer, particularly in the interest of interoperability
   with dtn2.
 
---------------------
-NOTES ON RELEASE 2.0
---------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.0.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 - Based on JPL revision 255:6443ed8258e1
 
@@ -195,9 +209,11 @@ NOTES ON RELEASE 2.0
 
 - Various testing applications in earlier releases are split from the ion release.
 
----------------------
-NOTES FOR RELEASE 1.1 
----------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 1.1.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 - Based on JPL revision 226.
 
@@ -222,7 +238,7 @@ NOTES FOR RELEASE 1.1
   arriving segments to sessions that are re-using the session numbers of earlier
   sessions.
 
-- added the bplive program
+- added the bplive program.
 
 - Updated for sbp_api.h and abp_api.c
 
@@ -249,7 +265,7 @@ NOTES FOR RELEASE 1.1
 
 - Revise routing to match applicable backlog (based on bundle's priority; not
   necessarily total backlog) against aggregate capacity when determining route
-  viability.  [Per JIRA item DINET-107]  Add implementation of extension block
+  viability.  (Per JIRA item DINET-107)  Add implementation of extension block
   for extended class of service, which includes an additional 256 "ordinal"
   priority sub-levels within priority 2.
 
@@ -257,9 +273,11 @@ NOTES FOR RELEASE 1.1
 
 - Add interface for inserting BP extensions.
 
--------------------------
-NOTES ON RELEASE 1.0_r203
--------------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 1.0_r203 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 - Based on jpl r203.
 
@@ -267,16 +285,16 @@ NOTES ON RELEASE 1.0_r203
 
 - Supports contact graph routing.
 
-- Compilation changed to autoconf and automake; compilation tested on: 
+- Compilation changed to autoconf and automake; compilation tested on:
   Ubuntu 7.04, 7.10, 8.04, Gentoo, Fedora 3, Fedora 7, OSX 10.5, and Solaris 10.
 
-- Killm updated to work on OSX 10.4, due to an ipcs incompatibility; also 
+- Killm updated to work on OSX 10.4, due to an ipcs incompatibility; also
   updated to make sure all processes are killed.
 
 - Removed multiple compiler warnings.
 
-- Includes bundle relay programs brsscla and brsccla; brsscla acts as the 
-  server, brsccla acts as the client. 
+- Includes bundle relay programs brsscla and brsccla; brsscla acts as the
+  server, brsccla acts as the client.
 
 - Zco package rolled into ici.
 
@@ -287,9 +305,11 @@ NOTES ON RELEASE 1.0_r203
 
 - 2008-11-11 Added the ION Design and Operation manual v1.6.
 
---------------------
-NOTES ON RELEASE 0.3
---------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 0.3 =
+%%%%%%%%%%%%%%%%%%%%%%%%
 
 - Based on jpl r105.
 
@@ -312,25 +332,31 @@ NOTES ON RELEASE 0.3
 
 - Added ionstart and ionstop scripts.
 
---------------------
-NOTES ON RELEASE 0.2
---------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 0.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%
 
 - The ion package, which implements the DTN Bundle Protocol (BP), has been
   upgraded to conform to BP version 5, submitted to IETF in December 2006.
-  The changes are almost exclusively internal to the software and protocol: 
+  The changes are almost exclusively internal to the software and protocol:
   the format of bundles exchanged through the delay-tolerant network is altered,
-  but the API for ION is mostly unchanged.  Note that this release of ION is 
+  but the API for ION is mostly unchanged.  Note that this release of ION is
   not interoperable with implementations of BP version 4.
 
-- The Remote AMS functionality of AMS has been upgraded to conform to the 
-  specification most recently posted to the public documents list of the CCSDS 
+- The Remote AMS functionality of AMS has been upgraded to conform to the
+  specification most recently posted to the public documents list of the CCSDS
   CWE site for AMS.  The API for AMS is unchanged.
 
 - A variety of miscellaneous bugs have been fixed.
 
---------------------
-NOTES ON RELEASE 0.1
---------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 0.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%
 
 - Initial code released for review.
+
+% vim: ft=txt2tags
