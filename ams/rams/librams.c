@@ -734,7 +734,7 @@ printf("bp_open succeeds.\n");
 		gWay->ownUdpFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 		if (gWay->ownUdpFd < 0)
 		{
-			ErrMsg("Can't create UDP socket.");
+			putSysErrmsg("Can't create UDP socket", NULL);
 			return -1;
 		}
 
@@ -743,7 +743,7 @@ printf("bp_open succeeds.\n");
 		|| bind(gWay->ownUdpFd, &socketName, nameLength) < 0
 		|| getsockname(gWay->ownUdpFd, &socketName, &nameLength) < 0)
 		{
-			ErrMsg("Can't open own UDP endpoint.");
+			putSysErrmsg("Can't open own UDP endpoint", NULL);
 			return -1;
 		}
 
@@ -873,7 +873,8 @@ printf("Before bp_receive...\n");
 					continue;
 				}
 
-				ErrMsg("RAMS datagram reception failed.");
+				putSysErrmsg("RAMS datagram reception failed",
+						NULL);
 
 				/*	Intentional fall-through.	*/
 

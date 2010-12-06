@@ -889,6 +889,7 @@ int	bpInit()
 				IN_TRANSIT_EST_ENTRIES,
 				IN_TRANSIT_SEARCH_LEN);
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
+		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
 		sdr_write(bpSdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
 		sdr_catlg(bpSdr, _bpdbName(), 0, bpdbObject);
@@ -2105,8 +2106,6 @@ static void	removeBundleFromQueue(Object ductXmitElt, Bundle *bundle,
 
 		reduceScalar(&(outduct->urgentBacklog), backlogDecrement);
 	}
-
-	sdr_write(bpSdr, outductObj, (char *) outduct, sizeof(Outduct));
 }
 
 static void	purgeDuctXmitElt(Bundle *bundle, Object ductXmitElt)
@@ -2119,11 +2118,18 @@ static void	purgeDuctXmitElt(Bundle *bundle, Object ductXmitElt)
 
 	queue = sdr_list_list(bpSdr, ductXmitElt);
 	outductObj = sdr_list_user_data(bpSdr, queue);
+	if (outductObj == 0)	/*	Bundle is in Limbo queue.	*/
+	{
+		sdr_list_delete(bpSdr, ductXmitElt, NULL, NULL);
+		return;
+	}
+
 	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 	sdr_read(bpSdr, (char *) &protocol, outduct.protocol,
 			sizeof(ClProtocol));
 	removeBundleFromQueue(ductXmitElt, bundle, &protocol, outductObj,
 			&outduct);
+	sdr_write(bpSdr, outductObj, (char *) &outduct, sizeof(Outduct));
 }
 
 static void	purgeXmitRefs(Bundle *bundle)
@@ -4023,61 +4029,6 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	return sdr_list_insert_first(bpSdr, bpConstants->timeline, addr);
 }
 
-int	enqueueToDuct(FwdDirective *directive, Bundle *bundle, Object bundleObj,
-		char *stationEid)
-{
-	PsmPartition	ionwm = getIonwm();
-	BpVdb		*vdb = getBpVdb();
-	PsmAddress	vductElt;
-	VOutduct	*vduct;
-	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
-
-	/*	First find matching vduct for this outduct.		*/
-
-	for (vductElt = sm_list_first(ionwm, vdb->outducts); vductElt;
-			vductElt = sm_list_next(ionwm, vductElt))
-	{
-		vduct = (VOutduct *) psp(ionwm,
-				sm_list_data(ionwm, vductElt));
-		if (vduct->outductElt == directive->outductElt)
-		{
-			break;
-		}
-	}
-
-	if (vductElt == 0)
-	{
-		writeMemo("[?] Can't enqueue to duct; duct is closed.");
-		return 0;
-	}
-
-	/*	Retrieve destination induct name, if applicable.	*/
-
-	if (directive->destDuctName)
-	{
-		if (sdr_string_read(getIonsdr(), destDuctName,
-				directive->destDuctName) < 0)
-		{
-			putErrmsg("Can't retrieve dest duct name.", NULL);
-			return -1;
-		}
-	}
-	else
-	{
-		destDuctName[0] = '\0';
-	}
-
-	/*	Enqueue bundle on this duct.				*/
-
-	if (bpEnqueue(bundleObj, bundle, stationEid, vduct, destDuctName) < 0)
-	{
-		putErrmsg("Can't enqueue bundle.", NULL);
-		return -1;
-	}
-
-	return 1;
-}
-
 /*	*	*	Bundle origination functions	*	*	*/
 
 static int	setBundleTTL(Bundle *bundle, Object bundleObj)
@@ -4251,16 +4202,20 @@ static int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 			}
 
 			newBlk.length = oldBlk->length;
-			newBlk.bytes = sdr_malloc(bpSdr, newBlk.length);
-			if (newBlk.bytes == 0)
+			if (newBlk.length > 0)
 			{
-				putErrmsg("No space for block.",
-						utoa(newBlk.length));
-				return -1;
+				newBlk.bytes = sdr_malloc(bpSdr, newBlk.length);
+				if (newBlk.bytes == 0)
+				{
+					putErrmsg("No space for block.",
+							utoa(newBlk.length));
+					return -1;
+				}
+
+				sdr_read(bpSdr, buf, oldBlk->bytes, buflen);
+				sdr_write(bpSdr, newBlk.bytes, buf, buflen);
 			}
 
-			sdr_read(bpSdr, buf, oldBlk->bytes, buflen);
-			sdr_write(bpSdr, newBlk.bytes, buf, buflen);
 			def = findExtensionDef(oldBlk->type, i);
 			if (def && def->copy)
 			{
@@ -8837,42 +8792,71 @@ static Object	enqueueUrgentBundle(Outduct *duct, int ordinal,
 	return xmitElt;
 }
 
-int	bpEnqueue(Object bundleObj, Bundle *bundle, char *proxNodeEid,
-		VOutduct *vduct, char *destDuctName)
+int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
+		char *proxNodeEid)
 {
 	Sdr		bpSdr = getIonsdr();
-	Object		xmitRefAddr;
-	XmitRef		xr;
+	PsmPartition	ionwm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
 	Object		ductAddr;
 	Outduct		duct;
+	PsmAddress	vductElt;
+	VOutduct	*vduct;
+	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+	Object		xmitRefAddr;
+	XmitRef		xr;
 	int		backlogIncrement;
 	ClProtocol	protocol;
 	time_t		enqueueTime;
-	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	int		priority;
 	Object		lastElt;
 
-	/*      Forwarder arrived at a duct to transmit the bundle
-	 *      on, so construct a transmission reference.		*/
-
 	CHKERR(ionLocked());
-	CHKERR(bundleObj && bundle && vduct && proxNodeEid);
+	CHKERR(directive && bundle && bundleObj && proxNodeEid);
 	CHKERR(*proxNodeEid && strlen(proxNodeEid) < MAX_SDRSTRING);
-	xmitRefAddr = sdr_malloc(bpSdr, sizeof(XmitRef));
-	if (xmitRefAddr == 0)
+
+	/*	We have settled on the best node to send this bundle
+	 *	to; if it can't get there because the duct to that
+	 *	node is blocked, then the bundle goes into limbo
+	 *	until something changes.
+	 *
+	 *	First check to see if the duct is blocked.		*/
+
+	ductAddr = sdr_list_data(bpSdr, directive->outductElt);
+	sdr_stage(bpSdr, (char *) &duct, ductAddr, sizeof(Outduct));
+	if (duct.blocked)
 	{
-		putErrmsg("Can't enqueue bundle.", NULL);
-		return -1;
+		return enqueueToLimbo(bundle, bundleObj);
 	}
+
+	/*      Now construct a transmission reference.			*/
 
 	xr.bundleObj = bundleObj;
 	xr.proxNodeEid = sdr_string_create(bpSdr, proxNodeEid);
-	if (destDuctName && *destDuctName != '\0')
+
+	/*	Retrieve destination induct name, if applicable.	*/
+
+	if (directive->destDuctName)
 	{
+		if (sdr_string_read(getIonsdr(), destDuctName,
+				directive->destDuctName) < 0)
+		{
+			putErrmsg("Can't retrieve dest duct name.", NULL);
+			return -1;
+		}
+
 		xr.destDuctName = sdr_string_create(bpSdr, destDuctName);
 	}
 	else
 	{
 		xr.destDuctName = 0;
+	}
+
+	xmitRefAddr = sdr_malloc(bpSdr, sizeof(XmitRef));
+	if (xmitRefAddr == 0)
+	{
+		putErrmsg("Can't enqueue bundle.", NULL);
+		return -1;
 	}
 
 	if (processExtensionBlocks(bundle, PROCESS_ON_ENQUEUE, NULL) < 0)
@@ -8881,8 +8865,6 @@ int	bpEnqueue(Object bundleObj, Bundle *bundle, char *proxNodeEid,
 		return -1;
 	}
 
-	ductAddr = sdr_list_data(bpSdr, vduct->outductElt);
-	sdr_stage(bpSdr, (char *) &duct, ductAddr, sizeof(Outduct));
 	sdr_read(bpSdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
 	backlogIncrement = computeECCC(guessBundleSize(bundle), &protocol);
 	if (bundle->enqueueTime == 0)
@@ -8897,6 +8879,7 @@ int	bpEnqueue(Object bundleObj, Bundle *bundle, char *proxNodeEid,
 	/*	Insert bundle's xmitRef into the appropriate
 	 *	transmission queue of the selected Duct.		*/
 
+	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 	switch (priority)
 	{
 	case 0:
@@ -8944,16 +8927,339 @@ int	bpEnqueue(Object bundleObj, Bundle *bundle, char *proxNodeEid,
 	sdr_write(bpSdr, xmitRefAddr, (char *) &xr, sizeof(XmitRef));
 	bundle->xmitsNeeded += 1;
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-	if (vduct->semaphore != SM_SEM_NONE)	/*	Wake up CLO.	*/
-	{
-		sm_SemGive(vduct->semaphore);
-	}
-
 	noteStateStats(BPSTATS_FORWARD, bundle);
 	if ((_bpvdb(NULL))->watching & WATCH_b)
 	{
 		putchar('b');
 		fflush(stdout);
+	}
+
+	/*	Finally, if outduct is started then wake up CLO.	*/
+
+	for (vductElt = sm_list_first(ionwm, vdb->outducts); vductElt;
+			vductElt = sm_list_next(ionwm, vductElt))
+	{
+		vduct = (VOutduct *) psp(ionwm,
+				sm_list_data(ionwm, vductElt));
+		if (vduct->outductElt == directive->outductElt)
+		{
+			break;
+		}
+	}
+
+	if (vductElt != 0)
+	{
+		if (vduct->semaphore != SM_SEM_NONE)
+		{
+			sm_SemGive(vduct->semaphore);
+		}
+	}
+
+	return 0;
+}
+
+int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
+{
+	Sdr	bpSdr = getIonsdr();
+	BpDB	*bpConstants = getBpConstants();
+	Object	xmitRefAddr;
+	XmitRef	xr;
+
+	/*      ION has determined that this bundle must wait
+	 *      in limbo until a duct is unblocked, enabling
+	 *      transmission.  So construct a "limbo" transmission
+	 *      reference.						*/
+
+	CHKERR(ionLocked());
+	CHKERR(bundleObj && bundle);
+	if (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY)
+	{
+		/*	"Critical" bundles are never reforwarded
+		 *	(see notes on this in bpReforwardBundle),
+		 *	so they can never be reforwarded after
+		 *	insertion into limbo, so there's no point
+		 *	in putting them into limbo.  So we don't.	*/
+
+		return 0;
+	}
+
+	xmitRefAddr = sdr_malloc(bpSdr, sizeof(XmitRef));
+	if (xmitRefAddr == 0)
+	{
+		putErrmsg("Can't put bundle in limbo.", NULL);
+		return -1;
+	}
+
+	xr.bundleObj = bundleObj;
+	xr.proxNodeEid = 0;
+	xr.destDuctName = 0;
+	xr.ductXmitElt = sdr_list_insert_last(bpSdr,
+			bpConstants->limboQueue, xmitRefAddr);
+	xr.bundleXmitElt = sdr_list_insert_last(bpSdr,
+			bundle->xmitRefs, xmitRefAddr);
+	sdr_write(bpSdr, xmitRefAddr, (char *) &xr, sizeof(XmitRef));
+	bundle->xmitsNeeded += 1;
+	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	if ((_bpvdb(NULL))->watching & WATCH_limbo)
+	{
+		putchar('j');
+		fflush(stdout);
+	}
+
+	return 0;
+}
+
+int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
+		Outduct *outduct)
+{
+	Sdr		bpSdr = getIonsdr();
+	Object		xrAddr;
+	XmitRef		xr;
+	Bundle		bundle;
+
+	xrAddr = sdr_list_data(bpSdr, xmitElt);
+	sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
+	sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
+	removeBundleFromQueue(xmitElt, &bundle, protocol, outductObj, outduct);
+	if (xr.proxNodeEid)
+	{
+		sdr_free(bpSdr, xr.proxNodeEid);
+	}
+
+	if (xr.destDuctName)
+	{
+		sdr_free(bpSdr, xr.destDuctName);
+	}
+
+	sdr_free(bpSdr, xrAddr);
+
+	/*	If bundle is MINIMUM_LATENCY, nothing more to do.
+	 *	We never put critical bundles into limbo.		*/
+
+	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
+	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
+	{
+		return 0;
+	}
+
+	/*	Non-critical bundle, so let's redirect it into limbo.	*/
+
+	if (bundle.overdueElt)
+	{
+		/*	Bundle was un-queued before "overdue"
+	 	*	alarm went off, so disable the alarm.		*/
+
+		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
+		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		bundle.overdueElt = 0;
+	}
+
+	if (bundle.ctDueElt)
+	{
+		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
+		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		bundle.ctDueElt = 0;
+	}
+
+	if (bundle.inTransitEntry)
+	{
+		sdr_hash_delete_entry(bpSdr, bundle.inTransitEntry);
+		bundle.inTransitEntry = 0;
+	}
+
+	bundle.xmitsNeeded -= 1;
+	return enqueueToLimbo(&bundle, xr.bundleObj);
+}
+
+int	bpBlockOutduct(char *protocolName, char *ductName)
+{
+	Sdr		bpSdr = getIonsdr();
+	VOutduct	*vduct;
+	PsmAddress	outductElt;
+	Object		outductObj;
+       	Outduct		outduct;
+	ClProtocol	protocol;
+	Object		xmitElt;
+	Object		nextElt;
+
+	CHKERR(protocolName);
+	CHKERR(ductName);
+	findOutduct(protocolName, ductName, &vduct, &outductElt);
+	if (outductElt == 0)
+	{
+		writeMemoNote("[?] Can't find outduct to block", ductName);
+		return 0;
+	}
+
+	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
+	sdr_begin_xn(bpSdr);
+	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
+	if (outduct.blocked)
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;	/*	Already blocked, nothing to do.	*/
+	}
+
+	outduct.blocked = 1;
+	sdr_read(bpSdr, (char *) &protocol, outduct.protocol,
+			sizeof(ClProtocol));
+
+	/*	Send into limbo all bundles currently queued for
+	 *	transmission via this outduct.				*/
+
+	for (xmitElt = sdr_list_first(bpSdr, outduct.urgentQueue); xmitElt;
+			xmitElt = nextElt)
+	{
+		nextElt = sdr_list_next(bpSdr, xmitElt);
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
+				< 0)
+		{
+			putErrmsg("Can't requeue urgent bundle.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+	}
+
+	for (xmitElt = sdr_list_first(bpSdr, outduct.stdQueue); xmitElt;
+			xmitElt = nextElt)
+	{
+		nextElt = sdr_list_next(bpSdr, xmitElt);
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
+				< 0)
+		{
+			putErrmsg("Can't requeue std bundle.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+	}
+
+	for (xmitElt = sdr_list_first(bpSdr, outduct.bulkQueue); xmitElt;
+			xmitElt = nextElt)
+	{
+		nextElt = sdr_list_next(bpSdr, xmitElt);
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
+				< 0)
+		{
+			putErrmsg("Can't requeue bulk bundle.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+	}
+
+	sdr_write(bpSdr, outductObj, (char *) &outduct, sizeof(Outduct));
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Failed blocking outduct.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	releaseFromLimbo(Object xmitElt, int resuming)
+{
+	Sdr	bpSdr = getIonsdr();
+	Object	xrAddr;
+	XmitRef	xr;
+	Bundle	bundle;
+
+	CHKERR(ionLocked());
+	CHKERR(xmitElt);
+	xrAddr = sdr_list_data(bpSdr, xmitElt);
+	sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
+	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
+	if (bundle.suspended)
+	{
+		if (resuming)
+		{
+			bundle.suspended = 0;
+		}
+		else	/*	Merely unblocking a blocked outduct.	*/
+		{
+			return 0;	/*	Can't release yet.	*/
+		}
+	}
+
+	/*	Erase this bogus transmission reference.  Note that
+	 *	by deleting the two XmitElt objects in this bundle
+	 *	we are deleting the xmitElt that was passed to
+	 *	this function -- don't count on being able to
+	 *	navigate to the next xmitElt in limboQueue from it!	*/
+
+	sdr_free(bpSdr, xrAddr);
+	sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
+	sdr_list_delete(bpSdr, xr.ductXmitElt, NULL, NULL);
+	bundle.xmitsNeeded -= 1;
+	sdr_write(bpSdr, xr.bundleObj, (char *) &bundle, sizeof(Bundle));
+	if ((_bpvdb(NULL))->watching & WATCH_delimbo)
+	{
+		putchar('k');
+		fflush(stdout);
+	}
+
+	/*	Now see if the bundle can finally be transmitted.	*/
+
+	if (bpReforwardBundle(xr.bundleObj) < 0)
+	{
+		putErrmsg("Failed releasing bundle from limbo.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	bpUnblockOutduct(char *protocolName, char *ductName)
+{
+	Sdr		bpSdr = getIonsdr();
+	VOutduct	*vduct;
+	PsmAddress	outductElt;
+	BpDB		*bpConstants = getBpConstants();
+	Object		outductObj;
+       	Outduct		outduct;
+	Object		xmitElt;
+	Object		nextElt;
+
+	CHKERR(protocolName);
+	CHKERR(ductName);
+	findOutduct(protocolName, ductName, &vduct, &outductElt);
+	if (outductElt == 0)
+	{
+		writeMemoNote("[?] Can't find outduct to unblock", ductName);
+		return 0;
+	}
+
+	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
+	sdr_begin_xn(bpSdr);
+	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
+	if (outduct.blocked == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;	/*	Not blocked, nothing to do.	*/
+	}
+
+	outduct.blocked = 0;
+	sdr_write(bpSdr, outductObj, (char *) &outduct, sizeof(Outduct));
+
+	/*	Release all non-suspended bundles currently in limbo,
+	 *	in case the unblocking of this outduct enables some
+	 *	or all of them to be queued for transmission.		*/
+
+	for (xmitElt = sdr_list_first(bpSdr, bpConstants->limboQueue);
+			xmitElt; xmitElt = nextElt)
+	{
+		nextElt = sdr_list_next(bpSdr, xmitElt);
+		if (releaseFromLimbo(xmitElt, 0) < 0)
+		{
+			putErrmsg("Failed releasing bundle from limbo.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+	}
+
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Failed unblocking outduct.", NULL);
+		return -1;
 	}
 
 	return 0;
@@ -9253,6 +9559,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 #endif
 		removeBundleFromQueue(xmitElt, bundle, &protocol, outductObj,
 				outduct);
+		sdr_write(bpSdr, outductObj, (char *) outduct, sizeof(Outduct));
 
 		/*	If the neighbor for this duct has begun
 		 *	snubbing bundles for the indicated destination
@@ -10100,7 +10407,7 @@ static int	extractInTransitBundle(Object *bundleAddr, char *sourceEid,
 	return 0;
 }
 
-static int	retrieveInTransitBundle(Object bundleZco, Object *bundleObj)
+int	retrieveInTransitBundle(Object bundleZco, Object *bundleObj)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned char	*buffer;

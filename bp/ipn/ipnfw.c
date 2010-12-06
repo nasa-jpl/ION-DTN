@@ -77,13 +77,15 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 				break;	/*	Not refusing bundles.	*/
 			}
 
-			/*	Neighbor is refusing bundles; give up.	*/
+			/*	Neighbor is refusing bundles.  A
+			 *	neighbor, but not a good neighbor;
+			 *	give up.				*/
 
 			return 0;
 		}
 	}
 
-	if (enqueueToDuct(&directive, bundle, bundleObj, stationEid) < 0)
+	if (bpEnqueue(&directive, bundle, bundleObj, stationEid) < 0)
 	{
 		putErrmsg("Can't enqueue bundle.", NULL);
 		return -1;
@@ -158,22 +160,42 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return bpAccept(bundle);
 	}
 
-	/*	Destination isn't a neighbor either.  So look for the
-	 *	narrowest applicable static route (node range, i.e.,
-	 *	"group") and forward to the prescribed "via" endpoint
-	 *	for that group.						*/
+	/*	Destination isn't a neighbor that accepts bundles.
+	 *	So look for the narrowest applicable static route
+	 *	(node range, i.e., "group") and forward to the
+	 *	prescribed "via" endpoint for that group.		*/
 
 	if (ipn_lookupGroupDirective(metaEid.nodeNbr,
 			bundle->id.source.c.serviceNbr, 
-			bundle->id.source.c.nodeNbr, &directive) == 0)
+			bundle->id.source.c.nodeNbr, &directive) == 1)
+	{
+		/*	Found directive; forward via the indicated
+		 *	endpoint.					*/
+
+		sdr_string_read(sdr, eidString, directive.eid);
+		return forwardBundle(bundleObj, bundle, eidString);
+	}
+
+	/*	No applicable group, so place bundle in limbo until
+	 *	an outduct is unblocked so that CGR can compute a
+	 *	route.							*/
+
+	if (enqueueToLimbo(bundle, bundleObj) < 0)
+	{
+		putErrmsg("Can't put bundle in limbo.", NULL);
+		return -1;
+	}
+
+	if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
+	{
+		/*	Enqueued.					*/
+
+		return bpAccept(bundle);
+	}
+	else
 	{
 		return bpAbandon(bundleObj, bundle);
 	}
-
-	/*	Found directive; forward via the indicated endpoint.	*/
-
-	sdr_string_read(sdr, eidString, directive.eid);
-	return forwardBundle(bundleObj, bundle, eidString);
 }
 
 #if defined (VXWORKS) || defined (RTEMS)

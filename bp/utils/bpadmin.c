@@ -89,6 +89,10 @@ static void	printUsage()
 	PUTS("\t   l protocol");
 	PUTS("\t   l induct [<protocol name>]");
 	PUTS("\t   l outduct [<protocol name>]");
+	PUTS("\tb\tBlock an outduct");
+	PUTS("\t   b outduct <protocol name> <duct name>");
+	PUTS("\tu\tUnblock an outduct");
+	PUTS("\t   u outduct <protocol name> <duct name>");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single acquisition>");
 	PUTS("\tr\tRun another admin program");
@@ -967,6 +971,52 @@ static void	executeList(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+static void	executeBlock(int tokenCount, char **tokens)
+{
+	if (tokenCount < 2)
+	{
+		printText("Block what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "outduct") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		oK(bpBlockOutduct(tokens[2], tokens[3]));
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	executeUnblock(int tokenCount, char **tokens)
+{
+	if (tokenCount < 2)
+	{
+		printText("Unblock what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "outduct") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		oK(bpUnblockOutduct(tokens[2], tokens[3]));
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
 static void	manageHeapmax(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
@@ -1106,6 +1156,14 @@ static void	switchWatch(int tokenCount, char **tokens)
 
 		case '#':
 			vdb->watching |= WATCH_timeout;
+			break;
+
+		case 'j':
+			vdb->watching |= WATCH_limbo;
+			break;
+
+		case 'k':
+			vdb->watching |= WATCH_delimbo;
 			break;
 
 		default:
@@ -1295,6 +1353,22 @@ static int	processLine(char *line, int lineLength)
 			if (attachToBp() == 0)
 			{
 				executeList(tokenCount, tokens);
+			}
+
+			return 0;
+
+		case 'b':
+			if (attachToBp() == 0)
+			{
+				executeBlock(tokenCount, tokens);
+			}
+
+			return 0;
+
+		case 'u':
+			if (attachToBp() == 0)
+			{
+				executeUnblock(tokenCount, tokens);
 			}
 
 			return 0;

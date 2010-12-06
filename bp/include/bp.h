@@ -225,6 +225,12 @@ extern void		bp_untrack(	Object bundleObj,
 			 *	is in that list.  Does not delete
 			 *	trackingElt itself.			*/
 
+extern int		bp_suspend(	Object bundleObj);
+			/*	Suspends transmission of this bundle.	*/
+
+extern int		bp_resume(	Object bundleObj);
+			/*	Resumes transmission of this bundle.	*/
+
 extern int		bp_cancel(	Object bundleObj);
 			/*	Cancels transmission of this bundle.	*/
 

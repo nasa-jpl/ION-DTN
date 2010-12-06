@@ -970,8 +970,8 @@ static int	SendRPDUviaUdp(RamsGateway *gWay, RamsNode *ramsNode,
 			}
 
 			isprintf(errorMsg, sizeof errorMsg,
-				"Cannot send message to %s.", ramsNode->gwEid);
-			ErrMsg(errorMsg);
+				"Cannot send message to %s", ramsNode->gwEid);
+			putSysErrmsg(errorMsg, NULL);
 			return -1;
 		}
 

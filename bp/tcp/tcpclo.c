@@ -325,6 +325,12 @@ int	main(int argc, char *argv[])
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
+	if (_tcpOutductId(&socketName, "tcp", ductName) < 0)
+	{
+		putErrmsg("Can't record TCP Outduct ID for connection.", NULL);
+		MRELEASE(buffer);
+		return -1;
+	}
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
@@ -407,7 +413,7 @@ int	main(int argc, char *argv[])
 		bundleLength = zco_length(sdr, bundleZco);
 		pthread_mutex_lock(&mutex);
 		bytesSent = sendBundleByTCPCL(&socketName, &ductSocket,
-				bundleLength, bundleZco, buffer,&keepalivePeriod);
+			bundleLength, bundleZco, buffer, &keepalivePeriod);
 		pthread_mutex_unlock(&mutex);
 		if(bytesSent < 0)
 		{
@@ -418,7 +424,8 @@ int	main(int argc, char *argv[])
 
 		sm_TaskYield();
 	}
-	if( sendShutDownMessage(&ductSocket, SHUT_DN_NO, -1) < 0)
+
+	if (sendShutDownMessage(&ductSocket, SHUT_DN_NO, -1, &socketName) < 0)
 	{
 		putErrmsg("Sending Shutdown message failed!!",NULL);
 	}
@@ -437,6 +444,7 @@ int	main(int argc, char *argv[])
 
 	writeErrmsgMemos();
 	writeMemo("[i] tcpclo duct has ended.");
+	oK(_tcpOutductId(&socketName, NULL, NULL));
 	MRELEASE(buffer);
 	pthread_mutex_destroy(&mutex);
 	bp_detach();
