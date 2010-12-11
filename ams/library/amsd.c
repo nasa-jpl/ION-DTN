@@ -1385,7 +1385,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		return;
 
 	case I_am_stopping:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
 			putErrmsg("RS ditching I_am_stoppng", NULL);
 			return;
@@ -1562,8 +1562,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 	case invite:
 	case disinvite:
 	case module_status:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
-				< 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
 			putErrmsg("RS ditching MAMS propagation", NULL);
 			return;

@@ -10,6 +10,36 @@
 									*/
 #include "amsP.h"
 
+/*	Note that AMS diverges somewhat from exception handling policy
+ *	that is implemented in most of the rest of ION: returning a
+ *	value of -1 from an AMS function normally does NOT mean that
+ *	an unrecoverable system error has been encountered and the
+ *	task or process should terminate -- it simply means that the
+ *	function encountered a condition that prevented its nominal
+ *	and successful completion.
+ *
+ *	In part this is because AMS is different from other ION
+ *	protocol implementations: it manages no shared storage at
+ *	all (not even for the MIB) and even DRAM is shared only
+ *	among the threads of a single AMS entity (configuration
+ *	server, registrar, or application module).  This means that
+ *	an error encountered in one function invocation does not
+ *	imply a likely consequent failure in any other function of
+ *	any other task, so the task only needs to terminate in the
+ *	event that it simply cannot continue to function -- not to
+ *	protect other tasks from failure.
+ *
+ *	AMS tasks properly terminate when they cannot initialize
+ *	(for one reason or another), when they encounter socket or
+ *	file I/O errors, when they find it impossible to allocate
+ *	memory from the ION working memory pool, or at the direction
+ *	of the user application.  Most other failures are simply
+ *	reported and ignored.						*/
+
+#ifndef	AMSDEBUG
+#define	AMSDEBUG	0
+#endif
+
 static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			int unitNbr, int subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
@@ -207,7 +237,6 @@ static void	eraseSAP(AmsSAP *sap)
 
 	int		i;
 	AmsInterface	*tsif;
-//PUTS("In eraseSAP.");
 
 	if (sap == NULL)
 	{
@@ -224,19 +253,16 @@ static void	eraseSAP(AmsSAP *sap)
 		pthread_join(sap->heartbeatThread, NULL);
 	}
 
-//printf("Module '%d' heartbeat thread stopped.\n", sap->role->nbr);
 	if (sap->mamsThread)
 	{
 		llcv_signal_while_locked(sap->mamsEventsCV, time_to_stop);
 		pthread_join(sap->mamsThread, NULL);
 	}
 
-//printf("Module '%d' MAMS thread stopped.\n", sap->role->nbr);
 	if (sap->mamsTsif.ts)
 	{
 		sap->mamsTsif.ts->shutdownFn(sap->mamsTsif.sap);
 		pthread_join(sap->mamsTsif.receiver, NULL);
-//printf("Module '%d' MAMS interface removed.\n", sap->role->nbr);
 	}
 
 	/*	Stop all AMS message interfaces.			*/
@@ -252,7 +278,6 @@ static void	eraseSAP(AmsSAP *sap)
 			{
 				MRELEASE(tsif->ept);
 			}
-//printf("Module '%d' AMS interface removed.\n", sap->role->nbr);
 		}
 	}
 
@@ -345,7 +370,7 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 	if (msg->continuumNbr < 1 || msg->continuumNbr > MAX_CONTIN_NBR
 	|| sap->venture->msgspaces[msg->continuumNbr] == NULL)
 	{
-		putErrmsg("Received message from unknown continuum.",
+		writeMemoNote("[?] Received message from unknown continuum",
 				itoa(msg->continuumNbr));
 		return -1;
 	}
@@ -354,7 +379,7 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 	if (msg->unitNbr < 0 || msg->unitNbr > MAX_UNIT_NBR
 	|| sap->venture->units[msg->unitNbr] == NULL)
 	{
-		putErrmsg("Received message from unknown cell.",
+		writeMemoNote("[?] Received message from unknown cell",
 				itoa(msg->unitNbr));
 		return -1;
 	}
@@ -362,7 +387,7 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 	msg->moduleNbr = (unsigned char) *(header + 6);
 	if (msg->moduleNbr < 1 || msg->moduleNbr > MAX_MODULE_NBR)
 	{
-		putErrmsg("Received message from invalid-numbered module.",
+		writeMemoNote("[?] Received message from invalid-nbr module",
 				itoa(msg->moduleNbr));
 		return -1;
 	}
@@ -376,7 +401,7 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 	sap->venture->units[msg->unitNbr]->cell->modules[msg->moduleNbr])->role
 			== NULL)
 	{
-		putErrmsg("Received message from unknown module.",
+		writeMemoNote("[?] Received message from unknown module",
 				itoa(msg->moduleNbr));
 		return -1;
 	}
@@ -459,7 +484,8 @@ static int	validateAmsMsg(AmsSAP *sap, unsigned char *msgBuffer,
 
 	if (length < 16)
 	{
-		putErrmsg("AMS message header incomplete.", itoa(length));
+		writeMemoNote("[?] AMS message header incomplete",
+				itoa(length));
 		return -1;
 	}
 
@@ -468,7 +494,7 @@ static int	validateAmsMsg(AmsSAP *sap, unsigned char *msgBuffer,
 		deliveredContentLength = length - 18;
 		if (deliveredContentLength < 0)
 		{
-			putErrmsg("AMS message truncated.", NULL);
+			writeMemo("[?] AMS message truncated.");
 			return -1;
 		}
 
@@ -476,8 +502,7 @@ static int	validateAmsMsg(AmsSAP *sap, unsigned char *msgBuffer,
 		checksum = ntohs(checksum);
 		if (checksum != computeAmsChecksum(msgBuffer, length - 2))
 		{
-			putErrmsg("Checksum failed, AMS message discarded.",
-					NULL);
+			writeMemo("[?] Checksum failed, AMS msg discarded.");
 			return -1;
 		}
 	}
@@ -486,7 +511,7 @@ static int	validateAmsMsg(AmsSAP *sap, unsigned char *msgBuffer,
 		deliveredContentLength = length - 16;
 		if (deliveredContentLength < 0)
 		{
-			putErrmsg("AMS message truncated.", NULL);
+			writeMemo("[?] AMS message truncated.");
 			return -1;
 		}
 	}
@@ -518,7 +543,7 @@ int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 			&sender);
 	if (deliveredContentLength < 0 || sender == NULL)
 	{
-		putErrmsg("Invalid AMS message.", NULL);
+		writeMemo("[?] Invalid AMS message.");
 		return -1;
 	}
 
@@ -532,7 +557,7 @@ int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 				deliveredContentLength, &msg, &sender);
 		if (deliveredContentLength < 0)
 		{
-			putErrmsg("Invalid RAMS enclosure.", NULL);
+			writeMemo("[?] Invalid RAMS enclosure.");
 			return -1;
 		}
 
@@ -540,7 +565,7 @@ int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 	}
 
 	/*	Now working with an originally transmitted message.	*/
-#if 0
+#if AMSDEBUG
 printf("Got  %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x '%s'\n",
 *msgBuffer,
 *(msgBuffer + 1),
@@ -567,8 +592,8 @@ fflush(stdout);
 	{
 		if (sap->role->nbr != 1)	/*	Misdirected.	*/
 		{
-			putErrmsg("Message destined for RAMS gateway received \
-by non-RAMS-gateway module.", NULL);
+			writeMemo("[?] Message destined for RAMS gateway \
+received by non-RAMS-gateway module.");
 			return -1;
 		}
 
@@ -577,7 +602,7 @@ by non-RAMS-gateway module.", NULL);
 		subjectNbr = 0 - msg.subjectNbr;
 		if (subjectNbr > MAX_CONTIN_NBR)
 		{
-			putErrmsg("Received message for invalid continuum.",
+			writeMemoNote("[?] Received msg for invalid continuum",
 					itoa(subjectNbr));
 			return -1;
 		}
@@ -588,7 +613,7 @@ by non-RAMS-gateway module.", NULL);
 	{
 		if (msg.subjectNbr == 0 || msg.subjectNbr > MAX_SUBJ_NBR)
 		{
-			putErrmsg("Received message on invalid subject.",
+			writeMemoNote("[?] Received msg on invalid subject",
 					itoa(msg.subjectNbr));
 			return -1;
 		}
@@ -598,7 +623,7 @@ by non-RAMS-gateway module.", NULL);
 
 	if (subject == NULL)
 	{
-		putErrmsg("Received message on unknown subject.",
+		writeMemoNote("[?] Received message on unknown subject",
 				itoa(msg.subjectNbr));
 		return -1;
 	}
@@ -621,8 +646,8 @@ by non-RAMS-gateway module.", NULL);
 
 			if (elt == NULL)
 			{
-				putErrmsg("Got msg from unauthorized sender.",
-						sender->role->name);
+				writeMemoNote("[?] Got msg from unauthorized \
+sender", sender->role->name);
 				return -1;
 			}
 		}
@@ -648,8 +673,8 @@ by non-RAMS-gateway module.", NULL);
 						msg.continuumNbr, msg.unitNbr);
 					if (elt == NULL)
 					{
-						putErrmsg("Received unsolici\
-ted message.", subject->name);
+						writeMemoNote("[?] Received \
+unsolicited message.", subject->name);
 						return -1;
 					}
 				}
@@ -668,7 +693,7 @@ ted message.", subject->name);
 	if (msg.contentLength > deliveredContentLength)
 	{
 		deliveredContentLength -= msg.contentLength;
-		putErrmsg("AMS message truncated.",
+		writeMemoNote("[?] AMS message truncated",
 				itoa(deliveredContentLength));
 		return -1;
 	}
@@ -1030,12 +1055,12 @@ static int	subjectIsValid(AmsSAP *sap, int subjectNbr, Subject **subject)
 		}
 	}
 
-	putErrmsg("Unknown message subject.", itoa(subjectNbr));
+	writeMemoNote("[?] Unknown message subject", itoa(subjectNbr));
 	return 0;
 }
 
-static LystElt	findSubjOfInterest(AmsSAP *sap, Module *module, Subject *subject,
-			LystElt *nextSubj)
+static LystElt	findSubjOfInterest(AmsSAP *sap, Module *module,
+			Subject *subject, LystElt *nextSubj)
 {
 	LystElt		elt;
 	SubjOfInterest	*subj;
@@ -1044,7 +1069,9 @@ static LystElt	findSubjOfInterest(AmsSAP *sap, Module *module, Subject *subject,
 	 *	all XmitRules asserted by this module for the specified
 	 *	subject, if any.					*/
 
-//fprintf(stderr, "subjects list length is %d.\n", (int) lyst_length(module->subjects));
+#if AMSDEBUG
+printf("subjects list length is %d.\n", (int) lyst_length(module->subjects));
+#endif
 	if (nextSubj) *nextSubj = NULL;	/*	Default.		*/
 	for (elt = lyst_first(module->subjects); elt; elt = lyst_next(elt))
 	{
@@ -1281,7 +1308,7 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 		elt = findFanModule(sap, subject, module, &nextIntn);
 		if (elt)	/*	Should be NULL.			*/
 		{
-			putErrmsg("AACK!  FanModules list out of sync!",
+			putErrmsg("FanModules list out of sync!",
 					subject->name);
 			return -1;
 		}
@@ -1308,7 +1335,9 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 
 	rules = (ruleType == SUBSCRIPTION ?
 			subj->subscriptions : subj->invitations);
-//fprintf(stderr, "ruleType = %d, subj = %d, subject = %d, rules list is %d.\n",ruleType, (int) subj, subj->subject->nbr, (int) rules);
+#if AMSDEBUG
+printf("ruleType = %d, subj = %d, subject = %d, rules list is %d.\n",ruleType, (int) subj, subj->subject->nbr, (int) rules);
+#endif
 	elt = findXmitRule(sap, rules, domainRoleNbr, domainContinuumNbr,
 			domainUnitNbr, &nextRule);
 	if (elt)
@@ -1359,7 +1388,9 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 	}
 
 	CHKERR(elt);
-//fprintf(stderr, "...inserted rule in rules list %d...\n", (int) rules);
+#if AMSDEBUG
+printf("...inserted rule in rules list %d...\n", (int) rules);
+#endif
 
 	/*	Load XmitRule information, including pre-determination
 	 *	of whether or not this module is actually authorized to
@@ -1516,7 +1547,7 @@ static int	parseAssertion(AmsSAP *sap, Module *module, int *bytesRemaining,
 	bytesNeeded = (ruleType == SUBSCRIPTION ?  SUBSCRIBE_LEN : INVITE_LEN);
 	if (*bytesRemaining < bytesNeeded)
 	{
-		putErrmsg("Assertion truncated.", NULL);
+		writeMemo("[?] MAMS assertion was truncated.");
 		return -1;
 	}
 
@@ -1619,15 +1650,15 @@ static int	cancelUnconfirmedAssertions(AmsSAP *sap, Module *module)
 	return 0;
 }
 
-static int	processDeclaration(AmsSAP *sap, Module *module, int bytesRemaining,
-			char *cursor, int flag)
+static int	processDeclaration(AmsSAP *sap, Module *module,
+			int bytesRemaining, char *cursor, int flag)
 {
 	int		assertionCount;
 	unsigned short	u2;
 
 	if (bytesRemaining < 2)
 	{
-		putErrmsg("Declaration lacks subscription count.", NULL);
+		writeMemo("[?] Declaration lacks subscription count.");
 		return -1;
 	}
 
@@ -1638,11 +1669,13 @@ static int	processDeclaration(AmsSAP *sap, Module *module, int bytesRemaining,
 	assertionCount = u2;
 	while (assertionCount > 0)
 	{
-//fprintf(stderr, "Parsing decl subscription with %d bytes remaining.\n", bytesRemaining);
+#if AMSDEBUG
+printf("Parsing decl subscription with %d bytes remaining.\n", bytesRemaining);
+#endif
 		if (parseAssertion(sap, module, &bytesRemaining, &cursor,
 				SUBSCRIPTION, flag) < 0)
 		{
-			putErrmsg("Error parsing subscription.", NULL);
+			writeMemo("[?] Error parsing subscription.");
 			return -1;
 		}
 
@@ -1651,7 +1684,7 @@ static int	processDeclaration(AmsSAP *sap, Module *module, int bytesRemaining,
 
 	if (bytesRemaining < 2)
 	{
-		putErrmsg("Declaration lacks invitation count.", NULL);
+		writeMemo("[?] Declaration lacks invitation count.");
 		return -1;
 	}
 
@@ -1662,11 +1695,13 @@ static int	processDeclaration(AmsSAP *sap, Module *module, int bytesRemaining,
 	assertionCount = u2;
 	while (assertionCount > 0)
 	{
-//fprintf(stderr, "Parsing decl invitation with %d bytes remaining.\n", bytesRemaining);
+#if AMSDEBUG
+printf("Parsing decl invitation with %d bytes remaining.\n", bytesRemaining);
+#endif
 		if (parseAssertion(sap, module, &bytesRemaining, &cursor,
 				INVITATION, flag) < 0)
 		{
-			putErrmsg("Error parsing invitation.", NULL);
+			writeMemo("[?] Error parsing invitation.");
 			return -1;
 		}
 
@@ -1791,7 +1826,7 @@ static int	parseAmsEndpoint(Module *module, int *bytesRemaining,
 		}
 	}
 
-	putErrmsg("Incomplete AMS endpoint name.", NULL);
+	writeMemo("[?] Incomplete AMS endpoint name.");
 	return -1;
 }
 
@@ -1819,7 +1854,7 @@ static int	insertAmsEndpoint(Module *module, int vectorNbr, TransSvc *ts,
 
 	if ((ts->parseAmsEndpointFn)(ep))
 	{
-		putErrmsg("Can't parse endpoint name.", ept);
+		writeMemoNote("[?] Can't parse endpoint name", ept);
 		MRELEASE(ep->ept);
 		MRELEASE(ep);
 		return -1;
@@ -1882,7 +1917,7 @@ static int	parseDeliveryVector(Module *module, int *bytesRemaining,
 
 	if (*bytesRemaining < 1)
 	{
-		putErrmsg("Delivery vector lacks point count.", NULL);
+		writeMemo("[?] Delivery vector lacks point count.");
 		return -1;
 	}
 
@@ -1896,7 +1931,7 @@ static int	parseDeliveryVector(Module *module, int *bytesRemaining,
 		if (parseAmsEndpoint(module, bytesRemaining, cursor, &tsname,
 				&eptLength, &ept) < 0)
 		{
-			putErrmsg("Error parsing delivery vector.", NULL);
+			writeMemo("[?] Error parsing delivery vector.");
 			return -1;
 		}
 
@@ -1919,8 +1954,7 @@ static int	parseDeliveryVector(Module *module, int *bytesRemaining,
 						ts, eptLength, ept);
 				if (result < 0)
 				{
-					putErrmsg("Error inserting endpoint.",
-							NULL);
+					writeMemo("[?] AMS err inserting ept.");
 					return -1;
 				}
 
@@ -1945,7 +1979,7 @@ static int	parseDeliveryVectorList(Module *module, int *bytesRemaining,
 
 	if (*bytesRemaining < 1)
 	{
-		putErrmsg("Contact summary lacks delivery vector count.", NULL);
+		writeMemo("[?] Contact summary lacks delivery vector count.");
 		return -1;
 	}
 
@@ -1956,7 +1990,7 @@ static int	parseDeliveryVectorList(Module *module, int *bytesRemaining,
 	{
 		if (parseDeliveryVector(module, bytesRemaining, cursor))
 		{
-			putErrmsg("Error parsing delivery vector.", NULL);
+			writeMemo("[?] Error parsing delivery vector.");
 			return -1;
 		}
 
@@ -1977,14 +2011,14 @@ static int	noteModule(AmsSAP *sap, int roleNbr, int unitNbr, int moduleNbr,
 
 	if (roleNbr < 1 || roleNbr > MAX_ROLE_NBR)
 	{
-		putErrmsg("role nbr invalid.", itoa(roleNbr));
+		writeMemoNote("[?] role nbr invalid", itoa(roleNbr));
 		return -1;
 	}
 
 	ept = parseString(cursor, bytesRemaining, &eptLength);
 	if (ept == NULL)
 	{
-		putErrmsg("No MAMS endpoint ID string.", NULL);
+		writeMemo("[?] No MAMS endpoint ID string.");
 		return -1;
 	}
 
@@ -2048,7 +2082,9 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 	int		domainRoleNbr;
 	int		moduleCount;
 
-//printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
+#if AMSDEBUG
+printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
+#endif
 	switch (msg->type)
 	{
 	case heartbeat:
@@ -2071,8 +2107,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			return;
 		}
 
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
-				< 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
 			putErrmsg("I_am_starting memo field invalid.", NULL);
 			return;
@@ -2107,8 +2142,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			return;
 		}
 
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
-				< 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
 			putErrmsg("module_has_started memo field invalid.",
 					NULL);
@@ -2186,8 +2220,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		return;
 
 	case declaration:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
-				< 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
 			putErrmsg("declaration memo field invalid.", NULL);
 			return;
@@ -2200,8 +2233,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		return;
 
 	case subscribe:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
-				< 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
 			putErrmsg("subscribe memo field invalid.", NULL);
 			return;
@@ -2216,7 +2248,9 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 
 		bytesRemaining = msg->supplementLength;
 		cursor = msg->supplement;
-//fprintf(stderr, "Parsing new subscription with %d bytes remaining.\n", bytesRemaining);
+#if AMSDEBUG
+printf("Parsing new subscription with %d bytes remaining.\n", bytesRemaining);
+#endif
 		if (parseAssertion(sap, module, &bytesRemaining, &cursor,
 				SUBSCRIPTION, 0) < 0)
 		{
@@ -2232,8 +2266,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 			return;
 		}
 
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
-				< 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
 			putErrmsg("unsubscribe memo field invalid.", NULL);
 			return;
@@ -2264,8 +2297,7 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 		return;
 
 	case I_am_stopping:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
-				< 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
 			putErrmsg("I_am_stopping memo field invalid.", NULL);
 			return;
@@ -2437,8 +2469,7 @@ assertions.", NULL);
 		return;
 
 	case invite:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
-				< 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
 			putErrmsg("invite memo field invalid.", NULL);
 			return;
@@ -2453,7 +2484,9 @@ assertions.", NULL);
 
 		bytesRemaining = msg->supplementLength;
 		cursor = msg->supplement;
-//fprintf(stderr, "Parsing new invitation with %d bytes remaining.\n", bytesRemaining);
+#if AMSDEBUG
+printf("Parsing new invitation with %d bytes remaining.\n", bytesRemaining);
+#endif
 		if (parseAssertion(sap, module, &bytesRemaining, &cursor,
 				INVITATION, 0) < 0)
 		{
@@ -2469,8 +2502,7 @@ assertions.", NULL);
 			return;
 		}
 
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
-				< 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
 			putErrmsg("disinvite memo field invalid.", NULL);
 			return;
@@ -2972,7 +3004,7 @@ static int	process_you_are_in(AmsSAP *sap, MamsMsg *msg)
 
 	if (msg->supplementLength < 1)
 	{
-		putErrmsg("Got truncated you_are_in.", NULL);
+		writeMemo("[?] Got truncated you_are_in.");
 		return 0;		/*	Not unrecoverable.	*/
 	}
 
@@ -3021,7 +3053,8 @@ static int	getModuleNbr(AmsSAP *sap)
 	supplementLength = getContactSummaryLength(sap);
 	if (supplementLength > 65535)
 	{
-		putErrmsg("Contact summary too long.", itoa(supplementLength));
+		writeMemoNote("[?] Contact summary too long",
+				itoa(supplementLength));
 		return -1;
 	}
 
@@ -3791,7 +3824,7 @@ static int	ams_unregister2(AmsSAP *sap)
 
 	if (!pthread_equal(pthread_self(), sap->primeThread))
 	{
-		putErrmsg("Only prime thread can unregister.", NULL);
+		writeMemo("[?] Only prime thread can unregister.");
 		return -1;
 	}
 
@@ -3912,10 +3945,6 @@ char	*ams_get_role_name(AmsSAP *sap, int unitNbr, int moduleNbr)
 		LOCK_MIB;
 		result = ams_get_role_name2(sap, unitNbr, moduleNbr);
 		UNLOCK_MIB;
-		if (result == NULL)
-		{
-			if (errno == 0) errno = EAGAIN;
-		}
 	}
 
 	return result;
@@ -4049,7 +4078,7 @@ static int	receivedMsgAlready(Lyst recipients, int moduleNbr)
 {
 	LystElt	elt;
 	long	longModuleNbr = (long) moduleNbr;
-		// cast to long to avoid warnings on 64-bit
+		// cast to long to avoid warnings on 64-bit machines
 
 	for (elt = lyst_first(recipients); elt; elt = lyst_next(elt))
 	{
@@ -4314,7 +4343,7 @@ static int	addMsgRule(AmsSAP *sap, int ruleType, Subject *subject,
 			unitNbr, &nextRule);
 	if (elt)	/*	Already have a rule for this subject.	*/
 	{
-		writeMemoNote("[?] Already have this rule.", subject->name);
+		writeMemoNote("[?] Already have this rule", subject->name);
 		return 0;
 	}
 
@@ -4384,8 +4413,8 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		}
 		else
 		{
-			putErrmsg("'All subjects' invitation is limited to \
-local continuum.", itoa(continuumNbr));
+			writeMemoNote("[?] 'All subjects' invitation is \
+limited to local continuum", itoa(continuumNbr));
 			return -1;
 		}
 	}
@@ -4397,7 +4426,7 @@ local continuum.", itoa(continuumNbr));
 	vector = lookUpDeliveryVector(sap, sequence, diligence);
 	if (vector == NULL)
 	{
-		putErrmsg("Have no endpoints for reception at this QOS.", NULL);
+		writeMemo("[?] Have no endpoints for reception at this QOS.");
 		return -1;
 	}
 
@@ -4462,7 +4491,7 @@ static int	removeMsgRule(AmsSAP *sap, int ruleType, Subject *subject,
 			unitNbr, NULL);
 	if (elt == NULL)
 	{
-		writeMemoNote("[?] Rule to remove not found.", subject->name);
+		writeMemoNote("[?] Rule to remove not found", subject->name);
 		return -1;
 	}
 
@@ -4598,8 +4627,8 @@ static int	ams_subscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		}
 		else
 		{
-			putErrmsg("'All subjects' subscription is limited to \
-local continuum.", itoa(continuumNbr));
+			writeMemoNote("[?] 'All subjects' subscription is \
+limited to local continuum", itoa(continuumNbr));
 			return -1;
 		}
 	}
@@ -4611,7 +4640,7 @@ local continuum.", itoa(continuumNbr));
 	vector = lookUpDeliveryVector(sap, sequence, diligence);
 	if (vector == NULL)
 	{
-		putErrmsg("Have no endpoints for reception at this QOS.", NULL);
+		writeMemo("[?] Have no endpoints for reception at this QOS.");
 		return -1;
 	}
 
@@ -4819,14 +4848,15 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr,
 	unit = sap->venture->units[unitNbr];
 	if (unit == NULL)
 	{
-		putErrmsg("Unknown destination unit.", itoa(unitNbr));
+		writeMemoNote("[?] Unknown destination unit", itoa(unitNbr));
 		return -1;
 	}
 
 	module = unit->cell->modules[moduleNbr];
 	if (module->role == NULL)
 	{
-		putErrmsg("Unknown destination module.", itoa(moduleNbr));
+		writeMemoNote("[?] Unknown destination module",
+				itoa(moduleNbr));
 		return -1;
 	}
 
@@ -4884,8 +4914,8 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr,
 
 	if (rule == NULL)
 	{
-		putErrmsg("Can't send msgs on this subject to this module.",
-				subject->name);
+		writeMemoNote("[?] Can't send msgs on this subject to this \
+module", subject->name);
 		return -1;
 	}
 
@@ -4903,7 +4933,7 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr,
 			contentLength, (unsigned char *) amsHeader, msgType);
 
 	/*	Send the message.					*/
-#if 0
+#if AMSDEBUG
 printf("Sent %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x '%s'\n",
 amsHeader[0],
 amsHeader[1],
@@ -5674,7 +5704,7 @@ static int	ams_get_event2(AmsSAP *sap, int term, AmsEvent *event)
 	CHKERR(event);
 	if (!pthread_equal(pthread_self(), sap->eventMgr))
 	{
-		putErrmsg("get_event attempted by non-event-mgr thread.", NULL);
+		writeMemo("[?] get_event attempted by non-event-mgr thread.");
 		return -1;
 	}
 
@@ -6054,13 +6084,13 @@ static int	ams_set_event_mgr2(AmsSAP *sap, AmsEventMgt *rules)
 
 	if (!pthread_equal(pthread_self(), sap->primeThread))
 	{
-		putErrmsg("Only prime thread can set event mgr.", NULL);
+		writeMemo("[?] Only prime thread can set event mgr.");
 		return -1;
 	}
 
 	if (!pthread_equal(sap->eventMgr, sap->primeThread))
 	{
-		putErrmsg("Another event mgr is running.", NULL);
+		writeMemo("[?] Another event mgr is running.");
 		return -1;
 	}
 

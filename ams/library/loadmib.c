@@ -9,7 +9,9 @@
 	acknowledged.
 									*/
 #include "amscommon.h"
+#ifndef NOEXPAT
 #include "expat.h"
+#endif
 
 typedef enum
 {
@@ -22,7 +24,11 @@ typedef enum
 
 typedef struct
 {
+#ifdef NOEXPAT
+	int		lineNbr;
+#else
 	XML_Parser	parser;
+#endif
 	LoadMibOp	currentOperation;
 	int		abandoned;
 	AmsApp		*app;
@@ -110,10 +116,15 @@ static AmsMib	*loadTestMib()
 static void	noteLoadError(LoadMibState *state, char *text)
 {
 	char		buf[256];
+#ifdef NOEXPAT
+	isprintf(buf, sizeof buf, "[?] MIB load error at line %d of file: %s",
+			state->lineNbr, text);
+#else
 	XML_Parser	parser = state->parser;
 
 	isprintf(buf, sizeof buf, "[?] MIB load error at line %d of file: %s",
 			(int) XML_GetCurrentLineNumber(parser), text);
+#endif
 	writeMemo(buf);
 	state->abandoned = 1;
 }
@@ -574,13 +585,13 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 
 	if (appname == NULL)
 	{
-		return putErrmsg("Need app name for venture.", NULL);
+		return writeMemo("[?] Need app name for venture.");
 	}
 
 
 	if (authname == NULL)
 	{
-		return putErrmsg("Need auth name for venture.", NULL);
+		return writeMemo("[?] Need auth name for venture.");
 	}
 
 	state->venture = lookUpVenture(appname, authname);
@@ -1035,11 +1046,16 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 	}
 }
 
+#ifdef NOEXPAT
+static void		startElement(LoadMibState *state, const char *name,
+				const char **atts)
+{
+#else
 static void XMLCALL	startElement(void *userData, const char *name,
 				const char **atts)
 {
 	LoadMibState	*state = (LoadMibState *) userData;
-
+#endif
 	if (strcmp(name, "ams_mib_load") == 0)
 	{
 		return handle_load_start(state, atts);
@@ -1217,10 +1233,14 @@ static void	handle_msgspace_end(LoadMibState *state)
 	}
 }
 
+#ifdef NOEXPAT
+static void		endElement(LoadMibState	*state, const char *name)
+{
+#else
 static void XMLCALL	endElement(void *userData, const char *name)
 {
 	LoadMibState	*state = (LoadMibState *) userData;
-
+#endif
 	if (strcmp(name, "ams_mib_load") == 0)
 	{
 		return handle_load_end(state);
@@ -1299,9 +1319,168 @@ static void XMLCALL	endElement(void *userData, const char *name)
 	noteLoadError(state, "Unknown element name.");
 }
 
-static AmsMib	*loadMibFromSource(char *mibSource)
+#ifdef NOEXPAT
+#define MAX_ATTRIBUTES		20
+
+static int	rcParse(LoadMibState *state, char *buf, size_t length)
 {
-	FILE			*sourceFile;
+	char	*elementName;
+	char	*atts[MAX_ATTRIBUTES * 2];
+	int	attNameIdx = 0;
+	int	attValueIdx = 1;
+	char	*cursor;
+	char	*attStart;
+	int	bytesRemaining;
+	char	*delimiter;
+	char	*token;
+
+	if (length < 2)
+	{
+		writeMemoNote("[?] No element name in rc line", buf);
+		return -1;
+	}
+
+	cursor = buf + 1;
+	findToken(&cursor, &token);
+	if (token == NULL)
+	{
+		writeMemo("Element name omitted.");
+		return -1;
+	}
+
+	elementName = token;
+	memset(atts, 0, sizeof atts);
+	bytesRemaining = length - (cursor - buf);
+	while (bytesRemaining > 0)
+	{
+		if (bytesRemaining < 2)
+		{
+			writeMemoNote("[?] Incomplete rc line attribute",
+					cursor);
+			return -1;
+		}
+
+		attStart = cursor;
+		delimiter = strchr(cursor, '=');
+		if (delimiter == NULL)
+		{
+			writeMemoNote("[?] Attribute name not terminated",
+					cursor);
+			return -1;
+		}
+
+		if (attValueIdx > MAX_ATTRIBUTES)
+		{
+			writeMemoNote("[?] Too many attributes", cursor);
+			return -1;
+		}
+
+		atts[attNameIdx] = cursor;
+		*delimiter = 0;
+		cursor = delimiter + 1;
+		findToken(&cursor, &token);
+		if (token == NULL)
+		{
+			writeMemoNote("[?] Attribute value omitted",
+					atts[attNameIdx]);
+			return -1;
+		}
+
+		atts[attValueIdx] = token;
+		attNameIdx += 2;
+		attValueIdx += 2;
+		bytesRemaining -= (cursor - attStart);
+	}
+
+	switch (buf[0])
+	{
+	case '+':
+		startElement(state, elementName, (const char **) atts);
+		break;
+
+	case '-':
+		endElement(state, elementName);
+		break;
+
+	case '*':
+		startElement(state, elementName, (const char **) atts);
+		endElement(state, elementName);
+		break;
+
+	default:
+		writeMemoNote("[?] Invalid rc line control character", buf);
+		return -1;
+	}
+
+	return 0;
+}
+
+static AmsMib	*loadMibFromRcSource(char *mibSource)
+{
+	int			sourceFile;
+	LoadMibState		state;
+	char			buf[256];
+	int			length;
+	int			result = 0;
+	AmsMib			*mib;
+	AmsMibParameters	parms = { 0, NULL, NULL, 0, NULL, 0 };
+
+	sourceFile = open(mibSource, O_RDONLY, 00777);
+	if (sourceFile < 0)
+	{
+		putSysErrmsg("Can't open MIB source file", mibSource);
+		return NULL;
+	}
+
+	memset((char *) &state, 0, sizeof state);
+	state.abandoned = 0;
+	state.currentOperation = LoadDormant;
+	state.lineNbr = 0;
+	while (1)
+	{
+		if (igets(sourceFile, buf, sizeof(buf), &length) == NULL)
+		{
+			if (length == 0)	/*	End of file.	*/
+			{
+				break;		/*	Out of loop.	*/
+			}
+
+			putErrmsg("Failed reading MIB.", mibSource);
+			break;			/*	Out of loop.	*/
+		}
+
+		state.lineNbr++;
+		if (rcParse(&state, buf, length) < 0)
+		{
+			isprintf(buf, sizeof buf, "amsrc error at line %d.",
+					state.lineNbr);
+			writeMemo(buf);
+			result = -1;
+			break;			/*	Out of loop.	*/
+		}
+
+		if (state.abandoned)
+		{
+			writeMemo("[?] Abandoning MIB load.");
+			result = -1;
+			break;			/*	Out of loop.	*/
+		}
+	}
+
+	close(sourceFile);
+	mib = _mib(NULL);
+	if (result < 0)
+	{
+		oK(_mib(&parms));	/*	Erase.			*/
+		mib = NULL;
+	}
+
+	return mib;
+}
+#else
+static AmsMib	*loadMibFromXmlSource(char *mibSource)
+{
+	int			sourceFile;
 	LoadMibState		state;
 	char			buf[256];
 	int			done = 0;
@@ -1310,8 +1489,8 @@ static AmsMib	*loadMibFromSource(char *mibSource)
 	AmsMib			*mib;
 	AmsMibParameters	parms = { 0, NULL, NULL, 0, NULL, 0 };
 
-	sourceFile = fopen(mibSource, "r");
-	if (sourceFile == NULL)
+	sourceFile = open(mibSource, O_RDONLY, 00777);
+	if (sourceFile < 0)
 	{
 		putSysErrmsg("Can't open MIB source file", mibSource);
 		return NULL;
@@ -1332,8 +1511,22 @@ static AmsMib	*loadMibFromSource(char *mibSource)
 	XML_SetUserData(state.parser, &state);
 	while (!done)
 	{
-		length = fread(buf, 1, sizeof(buf), sourceFile);
-		done = length < sizeof buf;
+		length = read(sourceFile, buf, sizeof(buf));
+		switch (length)
+		{
+		case -1:
+			putSysErrmsg("Failed reading MIB", mibSource);
+
+			/*	Intentional fall-through to next case.	*/
+
+		case 0:			/*	End of file.		*/
+			done = 1;
+			break;
+
+		default:
+			done = length < sizeof buf;
+		}
+
 		if (XML_Parse(state.parser, buf, length, done)
 				== XML_STATUS_ERROR)
 		{
@@ -1354,7 +1547,7 @@ static AmsMib	*loadMibFromSource(char *mibSource)
 	}
 
 	XML_ParserFree(state.parser);
-	fclose(sourceFile);
+	close(sourceFile);
 	mib = _mib(NULL);
 	if (result < 0)
 	{
@@ -1364,6 +1557,7 @@ static AmsMib	*loadMibFromSource(char *mibSource)
 
 	return mib;
 }
+#endif
 
 AmsMib	*loadMib(char *mibSource)
 {
@@ -1384,7 +1578,11 @@ AmsMib	*loadMib(char *mibSource)
 	}
 	else
 	{
-		mib = loadMibFromSource(mibSource);
+#ifdef NOEXPAT
+		mib = loadMibFromRcSource(mibSource);
+#else
+		mib = loadMibFromXmlSource(mibSource);
+#endif
 	}
 
 	if (mib == NULL)

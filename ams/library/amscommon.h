@@ -97,16 +97,7 @@ extern "C" {
 #define	REJ_NO_CENSUS	2
 #define	REJ_CELL_FULL	3
 #define	REJ_NO_UNIT	4
-#if 0
-/*	Memory management abstraction.					*/
-extern int		amsMemory;
-extern MemAllocator	amsmtake;
-extern MemDeallocator	amsmrelease;
-extern MemAtoPConverter	amsmatop;
-extern MemPtoAConverter	amsmptoa;
-#define MTAKE(size)	amsmtake(__FILE__, __LINE__, size)
-#define MRELEASE(addr)	amsmrelease(__FILE__, __LINE__, addr)
-#endif
+
 /*	Common event types.						*/
 #define CRASH_EVT	11
 #define MAMS_MSG_EVT	12

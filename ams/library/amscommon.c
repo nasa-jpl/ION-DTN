@@ -544,7 +544,7 @@ AmsMib	*_mib(AmsMibParameters *parms)
 
 	if (parms)
 	{
-		if (parms->continuumNbr == 0)
+		if (parms->continuumNbr == 0)	/*	Terminating.	*/
 		{
 			if (mib)
 			{
@@ -552,7 +552,7 @@ AmsMib	*_mib(AmsMibParameters *parms)
 				mib = NULL;
 			}
 		}
-		else
+		else				/*	Initializing.	*/
 		{
 			if (mib)
 			{
@@ -836,22 +836,23 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 
 	*venture = NULL;
 	*unit = NULL;
+	*authName = NULL;
 	if (ventureNbr > 0)
 	{
 		if (ventureNbr > MAX_VENTURE_NBR
 		|| (*venture = mib->ventures[ventureNbr]) == NULL)
 		{
-			putErrmsg("MAMS msg from unknown message space.",
+			writeMemoNote("[?] MAMS msg from unknown msgspace",
 					itoa(ventureNbr));
-			return -1;
+			return 0;
 		}
 
 		if (unitNbr > MAX_UNIT_NBR
 		|| (*unit = (*venture)->units[unitNbr]) == NULL)
 		{
-			putErrmsg("MAMS msg from unknown cell.",
+			writeMemoNote("[?] MAMS msg from unknown cell",
 					itoa(unitNbr));
-			return -1;
+			return 0;
 		}
 	}
 
@@ -860,9 +861,9 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		if (roleNbr > MAX_ROLE_NBR || *venture == NULL
 		|| (role = (*venture)->roles[roleNbr]) == NULL)
 		{
-			putErrmsg("MAMS message discarded; unknown role.",
+			writeMemoNote("[?] MAMS message dropped; unknown role",
 					itoa(roleNbr));
-			return -1;
+			return 0;
 		}
 	}
 
@@ -912,7 +913,6 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 	return 0;
 }
 
-
 /*	*	*	MIB loading functions	*	*	*	*/
 
 static RamsNetProtocol	parseGwEid(char *gwEidString, char **gwEid,
@@ -930,14 +930,14 @@ static RamsNetProtocol	parseGwEid(char *gwEidString, char **gwEid,
 
 	*gwEid = NULL;					/*	default	*/
 	atSign = strchr(gwEidString, '@');
-	if (atSign == NULL)
+	if (atSign == NULL)			/*	Malformed.	*/
 	{
 		return protocol;
 	}
 
 	*gwEid = atSign + 1;
 	if (**gwEid == '\0'	/*	Endpoint ID is a NULL string.	*/
-	|| strlen(*gwEid) > MAX_GW_EID)
+	|| strlen(*gwEid) > MAX_GW_EID)		/*	Invalid.	*/
 	{
 		return protocol;
 	}
@@ -1080,15 +1080,12 @@ Subject	*createSubject(Venture *venture, int nbr, char *name, char *description,
 /*
 For future use:
 	subj->authorizedSenders = lyst_create_using(amsMemory);
+	CHKNULL(subj->authorizedSenders);
 	subj->authorizedReceivers = lyst_create_using(amsMemory);
+	CHKNULL(subj->authorizedReceivers);
 */
 	subj->modules = lyst_create_using(amsMemory);
 	CHKNULL(subj->modules);
-/*
-For future use:
-	|| subj->authorizedSenders == NULL
-	|| subj->authorizedReceivers == NULL
-*/
 	subj->keyLength = symmetricKeyLength;
 	lyst_delete_set(subj->elements, destroyElement, NULL);
 	lyst_delete_set(subj->modules, destroyFanModule, NULL);
@@ -1237,15 +1234,13 @@ Subject	*createMsgspace(Venture *venture, int continNbr, char *gwEidString,
 	lyst_delete_set(msgspace->elements, destroyElement, NULL);
 #if 0
 	msgspace->authorizedSenders = lyst_create_using(amsMemory);
+	CHKNULL(msgspace->authorizedSenders);
 	msgspace->authorizedReceivers = lyst_create_using(amsMemory);
+	CHKNULL(msgspace->authorizedReceivers);
 #endif
 	msgspace->modules = lyst_create_using(amsMemory);
 	CHKNULL(msgspace->modules);
 	lyst_delete_set(msgspace->modules, destroyFanModule, NULL);
-#if 0
-	|| msgspace->authorizedSenders == NULL
-	|| msgspace->authorizedReceivers == NULL
-#endif
 	venture->msgspaces[continNbr] = msgspace;
 	return msgspace;
 }
@@ -1427,7 +1422,7 @@ Unit	*createUnit(Venture *venture, int nbr, char *name, int resyncPeriod)
 
 	if (bestLength == namelen)	/*	Perfect match for name.	*/
 	{
-		writeMemoNote("[?] Duplicate unit name.", name);
+		writeMemoNote("[?] Duplicate unit name", name);
 		lyst_destroy(subunits);
 		return NULL;
 	}
@@ -1481,7 +1476,7 @@ Venture	*createVenture(int nbr, char *appname, char *authname,
 
 	if (elt == NULL)
 	{
-		writeMemoNote("[?] Adding venture for unknown application.",
+		writeMemoNote("[?] Adding venture for unknown application",
 				appname);
 		return NULL;
 	}
@@ -1524,8 +1519,8 @@ Venture	*createVenture(int nbr, char *appname, char *authname,
 
 	/*	Automatically create venture's "all subjects" subject.	*/
 
-	allSubjects = createSubject(venture, 0, "everything", "messages on \
-all subjects", NULL, 0);
+	allSubjects = createSubject(venture, 0, "everything",
+			"messages on all subjects", NULL, 0);
 	if (allSubjects == NULL)
 	{
 		eraseVenture(venture);
@@ -1650,7 +1645,7 @@ LystElt	createAmsEpspec(char *tsname, char *epspec)
 	CHKNULL(epspec);
 	if (strlen(epspec) > MAX_EP_SPEC)
 	{
-		writeMemoNote("[?] AMS endpoint spec is too long.", epspec);
+		writeMemoNote("[?] AMS endpoint spec is too long", epspec);
 		return NULL;
 	}
 
@@ -1669,7 +1664,7 @@ LystElt	createAmsEpspec(char *tsname, char *epspec)
 	if (amses.ts == NULL)
 	{
 		writeMemoNote("[?] Unknown transport service for AMS endpoint \
-spec.", tsname);
+spec", tsname);
 		return NULL;
 	}
 
@@ -1695,24 +1690,27 @@ int	parseModuleId(int memo, int *roleNbr, int *unitNbr, int *moduleNbr)
 {
 	unsigned int	moduleId = (unsigned int) memo;
 
+	CHKERR(roleNbr);
+	CHKERR(unitNbr);
+	CHKERR(moduleNbr);
 	*roleNbr = (moduleId >> 24) & 0x000000ff;
 	if (*roleNbr < 1 || *roleNbr > MAX_ROLE_NBR)
 	{
-		writeMemoNote("Role nbr invalid.", itoa(*roleNbr));
+		writeMemoNote("[?] Role nbr invalid", itoa(*roleNbr));
 		return -1;
 	}
 
 	*unitNbr = (moduleId >> 8) & 0x0000ffff;
 	if (*unitNbr > MAX_UNIT_NBR)
 	{
-		writeMemoNote("Unit nbr invalid.", itoa(*unitNbr));
+		writeMemoNote("[?] Unit nbr invalid", itoa(*unitNbr));
 		return -1;
 	}
 
 	*moduleNbr = moduleId & 0x000000ff;
 	if (*moduleNbr < 1 || *moduleNbr > MAX_MODULE_NBR)
 	{
-		writeMemoNote("Module nbr invalid.", itoa(*moduleNbr));
+		writeMemoNote("[?] Module nbr invalid", itoa(*moduleNbr));
 		return -1;
 	}
 
@@ -1756,7 +1754,7 @@ int	constructMamsEndpoint(MamsEndpoint *endpoint, int eptLength, char *ept)
 
 	if ((((_mib(NULL))->pts->parseMamsEndpointFn)(endpoint)) < 0)
 	{
-		writeMemoNote("Can't parse endpoint name.", ept);
+		writeMemoNote("[?] Can't parse endpoint name", ept);
 		return -1;
 	}
 
@@ -1842,7 +1840,12 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 		return -1;
 	}
 
-	if (authName && authKey && authKeyLen > 0)
+	if (authName == NULL)		/*	Invalid parameters.	*/
+	{
+		return 0;		/*	Don't send message.	*/
+	}
+	
+	if (authKey && authKeyLen > 0)
 	{
 		authNameLen = strlen(authName);
 		if (authNameLen == 0 || authNameLen > (AUTHENTICAT_LEN - 9))
@@ -1972,7 +1975,7 @@ int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 	 *	data variable.  In order to make the current query
 	 *	ID number accessible to an llcv condition function,
 	 *	we stuff it into the "compare" function pointer in
-	 *	the Lyst structure.*/
+	 *	the Lyst structure.					*/
 
 	queryNbr = (long) lyst_compare_get(eventsQueue->list);
 	if (queryNbr != 0)	/*	Need response to specfic msg.	*/
@@ -2048,7 +2051,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	CHKERR(msgBuffer);
 	if (length < 14)
 	{
-		writeMemoNote("[?] MAMS msg header incomplete.", itoa(length));
+		writeMemoNote("[?] MAMS msg header incomplete", itoa(length));
 		return -1;
 	}
 
@@ -2059,7 +2062,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	timeCode = (preamble >> 4) & 0x07;
 	if (timeCode != 1)
 	{
-		writeMemoNote("[?] Unknown time code in MAMS msg header.",
+		writeMemoNote("[?] Unknown time code in MAMS msg header",
 				itoa(timeCode));
 		return -1;
 	}
@@ -2098,7 +2101,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 		expectedLength += 2;
 		if (length < expectedLength)
 		{
-			writeMemo("MAMS message truncated.");
+			writeMemo("[?] MAMS message truncated.");
 			return -1;
 		}
 
@@ -2135,7 +2138,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	if (length != expectedLength)
 	{
 		length -= expectedLength;
-		writeMemoNote("[?] MAMS message length error.", itoa(length));
+		writeMemoNote("[?] MAMS message length error", itoa(length));
 		return -1;
 	}
 
@@ -2146,7 +2149,12 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 		return -1;
 	}
 
-	if (authName && authKey && authKeyLen > 0)
+	if (authName == NULL)		/*	Invalid parameters.	*/
+	{
+		return 0;		/*	Don't send message.	*/
+	}
+	
+	if (authKey && authKeyLen > 0)
 	{
 		/*	Authentication is required.			*/
 
