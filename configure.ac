@@ -55,6 +55,8 @@ AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([fcntl.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
 
+m4_include([./dccp_macro.m4])
+
 # Checks for typedefs, structures, and compiler characteristics.
 case $host_os in
 	darwin*)
@@ -70,6 +72,9 @@ case $host_os in
 		fi
 		;;
 	linux*) 
+		#check for DCCP support
+		CHECK_DCCP()
+
 		if test $host_cpu = "x86_64" ; then
 			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.]) 
 			AC_SUBST([ION_LINK_FLAGS]," -fPIC -shared ")
