@@ -188,6 +188,104 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 	return fileRefObj;
 }
 
+int	zco_revise_file_ref(Sdr sdr, Object fileRefObj, char *pathName,
+		char *cleanupScript)
+{
+	int	pathLen;
+	char	pathBuf[256];
+	int	cwdLen;
+	int	scriptLen = 0;
+	int	sourceFd;
+	FileRef	fileRef;
+
+	CHKERR(sdr);
+	CHKERR(fileRefObj);
+	CHKERR(pathName);
+	CHKERR(sdr_in_xn(sdr));
+	pathLen = strlen(pathName);
+	if (*pathName != ION_PATH_DELIMITER)
+	{
+		/*	Might not be an absolute path name.		*/
+
+		if (igetcwd(pathBuf, sizeof pathBuf) == NULL)
+		{
+			putErrmsg("Can't get cwd.", NULL);
+			return -1;
+		}
+
+		if (pathBuf[0] == ION_PATH_DELIMITER)
+		{
+			/*	Path names *do* start with the path
+			 *	delimiter, so it's a POSIX file system,
+			 *	so pathName is *not* an absolute
+			 *	path name, so the absolute path name
+			 *	must instead be computed by appending
+			 *	the relative path name to the name of
+			 *	the current working directory.		*/
+
+			cwdLen = strlen(pathBuf);
+			if ((cwdLen + 1 + pathLen + 1) > sizeof pathBuf)
+			{
+				putErrmsg("Absolute path name too long.",
+						pathName);
+				return -1;
+			}
+
+			pathBuf[cwdLen] = ION_PATH_DELIMITER;
+			cwdLen++;	/*	cwdname incl. delimiter	*/
+			istrcpy(pathBuf + cwdLen, pathName,
+					sizeof pathBuf - cwdLen);
+			pathName = pathBuf;
+			pathLen += cwdLen;
+		}
+	}
+
+	if (cleanupScript)
+	{
+		scriptLen = strlen(cleanupScript);
+	}
+
+	if (scriptLen > 255 || pathLen < 1 || pathLen > 255)
+	{
+		putErrmsg(_badArgsMemo(), NULL);
+		return -1;
+	}
+
+	sourceFd = open(pathName, O_RDONLY, 0);
+	if (sourceFd == -1)
+	{
+		putSysErrmsg("Can't open source file", pathName);
+		return -1;
+	}
+
+	/*	Parameters verified.  Proceed with FileRef revision.	*/
+
+	close(sourceFd);
+	sdr_stage(sdr, (char *) &fileRef, fileRefObj, sizeof(FileRef));
+	memcpy(fileRef.pathName, pathName, pathLen);
+	fileRef.pathName[pathLen] = '\0';
+	if (cleanupScript)
+	{
+		if (scriptLen == 0)
+		{
+			fileRef.unlinkOnDestroy = 1;
+		}
+		else
+		{
+			fileRef.unlinkOnDestroy = 0;
+			memcpy(fileRef.cleanupScript, cleanupScript, scriptLen);
+		}
+	}
+	else
+	{
+		fileRef.unlinkOnDestroy = 0;
+	}
+
+	fileRef.cleanupScript[scriptLen] = '\0';
+	sdr_write(sdr, fileRefObj, (char *) &fileRef, sizeof(FileRef));
+	return 0;
+}
+
 char	*zco_file_ref_path(Sdr sdr, Object fileRefObj, char *buffer, int buflen)
 {
 	OBJ_POINTER(FileRef, fileRef);

@@ -92,10 +92,24 @@ Object		zco_create_file_ref(Sdr sdr,
 			 *	[normally upon delivery either down to
 			 *	the "ZCO transition layer" of the
 			 *	protocol stack or up to a ZCO-capable
-			 *	application].  Maximum length of
-			 *	cleanupScript is 255.  Returns SDR
-			 *	location of file reference object
-			 *	on success, 0 on any error.		*/
+			 *	application]; a zero-length string
+			 *	is interpreted as implicit direction
+			 *	to delete the referenced file when
+			 *	the file reference is destroyed.
+			 *	Maximum length of cleanupScript is
+			 *	255.  Returns SDR location of file
+			 *	reference object on success, 0 on any
+			 *	error.					*/
+
+int		zco_revise_file_ref(Sdr sdr,
+				Object fileRef,
+				char *pathName,
+				char *cleanupScript);
+			/*	Changes the pathName and cleanupScript
+			 *	of the indicated file reference.  The
+			 *	new values of these fields are validated
+			 *	as for zco_create_file_ref.  Returns 0
+			 *	on success, -1 on any error.		*/
 
 char		*zco_file_ref_path(Sdr sdr,
 				Object fileRef,
