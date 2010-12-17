@@ -37,7 +37,9 @@ AC_DEFUN([CHECK_DCCP],
 						}
 					return 0;
 					}],
-			[ AC_MSG_RESULT(yes) AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >2.6.36]) AC_MSG_NOTICE([You can build dccplsi/dccplso, please see the README in the ltp/dccp source directory])],
+			[ AC_MSG_RESULT(yes) 
+			  AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >2.6.36]) 
+			  AC_MSG_NOTICE([You can build dccplsi/dccplso, please see the README in the ltp/dccp source directory])],
 			[AC_MSG_RESULT(no)] )
 		]
 	)
