@@ -2,11 +2,49 @@
 #
 # Mithun Roy
 # Nov 10, 2010
+# documentation boilerplate
+CONFIGFILES=" \
+./1.ipn.tcp/host1.ionrc \
+./1.ipn.tcp/host1.ionconfig \
+./1.ipn.tcp/host1.ipnrc \
+./1.ipn.tcp/host1.bprc \
+./1.ipn.tcp/host1.ionsecrc \
+./3.ipn.tcp/host3.ipnrc \
+./3.ipn.tcp/host3.bprc \
+./3.ipn.tcp/host3.ionsecrc \
+./3.ipn.tcp/host3.ionrc \
+./3.ipn.tcp/host3.ionconfig \
+./2.ipn.tcp/host2.ionrc \
+./2.ipn.tcp/host2.ionsecrc \
+./2.ipn.tcp/host2.ionconfig \
+./2.ipn.tcp/host2.ipnrc \
+./2.ipn.tcp/host2.bprc \
+"
 
-# This scripts starts ION on 3 nodes, and then uses bpdriver/bpcounter
-# streaming mode to transfer 10000 bundles with custody transfer.
-# Node 1 runs bpdriver and Node 3 runs bpcounter. If node 3 receives 
-# all the bundles the test passes.
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To test the elimination of bug issues 234 & 235; both having
+	to do with mutex bugs in PSM and SDR. This scripts starts ION on 3 
+	nodes, and then uses bpdriver/bpcounter streaming mode to transfer
+	10000 bundles with custody transfer. Node 1 runs bpdriver and Node 3
+	runs bpcounter. If node 3 receives all the bundles the test passes."
+echo
+echo "CONFIG: 3 node custom configuration:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: If node 3 receives all the bundles the test passes, this is
+	determined by checking the contents of bpcounter.txt"
+echo
+echo "########################################"
+
 
 BUNDLEMESSAGE="Bundles received: 10000"
 BPDRIVERFILE=./bpdriver.txt
@@ -90,10 +128,10 @@ echo "Verifying results..."
 cd ../3.ipn.tcp
 # compare the sent message to the received one
 if ! grep -q "$BUNDLEMESSAGE" $BPCOUNTERFILE; then
-    echo "bpcounter/bpdriver failed!!"
+    echo "ERROR: bpcounter/bpdriver failed!!"
     RETVAL=1
 else 
-    echo "bpcounter/bpdriver successful!"
+    echo "OK: bpcounter/bpdriver successful!"
     RETVAL=0
 fi
 

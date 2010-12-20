@@ -4,6 +4,34 @@
 #
 # Written by Andrew Jenkins, based on loopbacktest.sh by David Young
 #
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-ltp/loopback.ionrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ltprc \
+${CONFIGSROOT}/loopback-ltp/loopback.bprc \
+${CONFIGSROOT}/loopback-ltp/loopback.ionsecrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Tests a simple ltp loopback configuration sending multiple
+	bundles to itself.  By default, this runs for 100 iterations.
+	The test was originally meant to test for an ION memory leak (with
+	thousands of iterations)."
+echo
+echo "CONFIG: Standard loopback-ltp: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
 
 # like loopbacktest.sh, but loopbacks bundles over and over a specified 
 # number of times (first argument; default 100).  Fails the first time

@@ -3,6 +3,22 @@
 # Checks sysctl variable vaues on OSX to see if they are large enough
 # to handle the shared memory requirements for ION
 
+# documentation boilerplate
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Determine if an Apple OSX host has the minimum memory required
+	for ION to run properly."
+echo
+echo "CONFIG: None"
+echo
+echo "OUTPUT: If the host is Apple OSX and memory is not sufficient, then you
+	will be informed how to edit system configuration files to meet minimum
+	memory requirements."
+echo
+echo "########################################"
+
 sw_vers 2> /dev/null > /dev/null
 
 if [[ $? ]]; then

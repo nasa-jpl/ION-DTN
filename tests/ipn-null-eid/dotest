@@ -3,6 +3,56 @@
 # David Young, modified from Scott Burleigh
 # April 29, 2010
 
+# documentation boilerplate
+CONFIGFILES=" \
+./global.ionrc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./2.ipn.ltp/amroc.cfdprc \
+./5.ipn.ltp/amroc.ltprc \
+./5.ipn.ltp/amroc.bprc \
+./5.ipn.ltp/amroc.ionconfig \
+./5.ipn.ltp/global.ionrc \
+./5.ipn.ltp/amroc.ionrc \
+./5.ipn.ltp/amroc.ionsecrc \
+./5.ipn.ltp/amroc.ipnrc \
+./5.ipn.ltp/amroc.cfdprc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/amroc.cfdprc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To test ION behavior using dtn:none eids to ensure that the
+	null eid does not crash the node. Bptrace uses dtn:none as one of
+	the report/custodian eids to test this."
+echo
+echo "CONFIG: 3 node custom configuration:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages relay results."
+echo
+echo "########################################"
+
 echo "Cleaning up old ION..."
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
 rm -f 5.ipn.ltp/testfile1

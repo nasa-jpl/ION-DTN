@@ -4,6 +4,36 @@
 #
 # Written by Sebastian Kuzminsky, based on loopbacktest.sh by David Young
 #
+# documentation boilerplate
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-ltp/loopback.ionrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ltprc \
+${CONFIGSROOT}/loopback-ltp/loopback.bprc \
+${CONFIGSROOT}/loopback-ltp/loopback.ionsecrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To send a bundle over LTP. Uses the valgrind debugging/profiling
+	tool: http://valgrind.org/"
+echo
+echo "CONFIG: standard ltp loopback:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Various debugging messages associated with the valgrind tool.
+	valgrind output files will follow the pattern:
+	$PWD/out.valgrind..."
+echo
+echo "########################################"
+
 
 
 # message sent over ion
