@@ -758,6 +758,8 @@ bpbin = \
 	brsccla \
 	udpcli \
 	udpclo \
+	dccpcli \
+	dccpclo	\
 	dgrcla \
 	ltpcli \
 	ltpclo \
@@ -793,7 +795,8 @@ bpnoinst = \
 	bp/brs/brscla.h \
 	bp/udp/udpcla.h \
 	bp/ltp/ltpcla.h \
-	bp/tcp/tcpcla.h 
+	bp/tcp/tcpcla.h \
+	bp/dccp/dccpcla.h
 
 bpextra = \
 	bp/doc/pod1/bpadmin.pod \
@@ -828,6 +831,8 @@ bpextra = \
 	bp/doc/pod1/tcpclo.pod \
 	bp/doc/pod1/udpcli.pod \
 	bp/doc/pod1/udpclo.pod \
+	bp/doc/pod1/dccpcli.pod \
+	bp/doc/pod1/dccpclo.pod \
 	bp/doc/pod1/bping.pod \
 	bp/doc/pod1/bpstats2.pod \
 	bp/doc/pod1/bpchat.pod \
@@ -892,6 +897,8 @@ bpmans = \
 	$(top_builddir)/bp/doc/tcpclo.1 \
 	$(top_builddir)/bp/doc/udpcli.1 \
 	$(top_builddir)/bp/doc/udpclo.1 \
+	$(top_builddir)/bp/doc/dccpcli.1 \
+	$(top_builddir)/bp/doc/dccpclo.1 \
 	$(top_builddir)/bp/doc/bping.1 \
 	$(top_builddir)/bp/doc/bpstats2.1 \
 	$(top_builddir)/bp/doc/bpchat.1 \
@@ -1059,6 +1066,16 @@ udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 udpclo_SOURCES = bp/udp/udpclo.c
 udpclo_LDADD = libbp.la libbpP.la libudpcla.la libici.la $(LIBOBJS) 
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+# --- DCCP Executables --- #
+
+dccpcli_SOURCES = bp/dccp/dccpcli.c
+dccpcli_LDADD = libipnfw.la libdtn2fw.la libbp.la libbpP.la libici.la $(LIBOBJS) 
+dccpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+dccpclo_SOURCES = bp/dccp/dccpclo.c
+dccpclo_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS) 
+dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 

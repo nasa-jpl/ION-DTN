@@ -11,6 +11,7 @@ TCP = ../tcp
 DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
+DCCP = ../dccp
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
@@ -28,7 +29,8 @@ BPINCLS = \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
 	$(TCP)/tcpcla.h \
-	$(LTP)/ltpcla.h
+	$(LTP)/ltpcla.h \
+	$(DCCP)/dccpcla.h
 
 BPLIBS = \
 	libbpP.so
@@ -37,7 +39,7 @@ LFW = -lipnfw -ldtn2fw
 
 LBP = -lbp -lbpP
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys dccpcli dccpclo
 
 ALL = check $(BPLIBS) libbp.so libcgr.so libipnfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
 
@@ -166,6 +168,16 @@ udpclo:		udpclo.o $(BPLIBS) libudpcla.so
 		$(CC) -o udpclo udpclo.o -L./lib -L$(ROOT)/lib -ludpcla $(LBP) -lici -lpthread
 		cp udpclo ./bin
 
+#	-	-	DCCP executables	-	-	-	-	-
+
+dccpcli:	dccpcli.o $(BPLIBS)
+		$(CC) -o dccpcli dccpcli.o -L./lib -L$(ROOT)/lib $(LFW) $(LBP) -lici -lpthread
+		cp dccpcli ./bin
+
+dccpclo:	dccpclo.o $(BPLIBS)
+		$(CC) -o dccpclo dccpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp dccpclo ./bin
+
 #	-	-	DGR executable	-	-	-	-	-
 
 dgrcla:		dgrcla.o $(BPLIBS)
@@ -273,6 +285,9 @@ libudpcla.so:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(UDP)/%.c
+		$(CC) -c $<
+
+%.o:		$(DCCP)/%.c
 		$(CC) -c $<
 
 %.o:		$(BRS)/%.c
