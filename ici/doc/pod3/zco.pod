@@ -186,8 +186,8 @@ which is used to keep track of "transmission" progress via this ZCO reference.
 
 Copies I<length> as-yet-uncopied bytes of the total concatenated ZCO
 (referenced by I<reader>) into I<buffer>.  If I<buffer> is NULL, skips
-over I<length> bytes without copying.  Returns the number of bytes
-copied (or skipped), or -1 on any error.
+over I<length> bytes without copying.  Returns the number of bytes copied
+(or skipped) on success, 0 on any file access error, -1 on any other error.
 
 =item void zco_stop_transmitting(Sdr sdr, ZcoReader *reader)
 
@@ -210,8 +210,8 @@ Copies I<length> as-yet-uncopied bytes of header data from ZCO extents into
 I<buffer>, advancing the presumptive start of actual source data (and
 increasing the presumptive length of the ZCO's concatenated protocol
 headers) by I<length>.  If I<buffer> is NULL, skips over I<length> bytes
-without copying.  Returns number of bytes copied (or skipped), or -1 on
-any error.
+without copying.  Returns number of bytes copied (or skipped) on success,
+0 on any file access error, -1 on any other error.
 
 =item void zco_restore_source(Sdr sdr, ZcoReader *reader, unsigned int length)
 
@@ -234,13 +234,15 @@ length as determined from the contents of the innermost protocol header.
 
 Copies I<length> as-yet-uncopied bytes of source data from ZCO extents into
 I<buffer>.  If I<buffer> is NULL, skips over I<length> bytes without
-copying.  Returns number of bytes copied (or skipped), or -1 on any error.
+copying.  Returns number of bytes copied (or skipped) on success, 0 on any
+file access error, -1 on any other error.
 
 =item int zco_receive_trailers(Sdr sdr, ZcoReader *reader, unsigned int length, char *buffer)
 
 Copies I<length> as-yet-uncopied bytes of trailer data from ZCO extents into
 I<buffer>.  If I<buffer> is NULL, skips over I<length> bytes without copying.
-Returns number of bytes copied (or skipped), or -1 on any error.
+Returns number of bytes copied (or skipped) on success, 0 on any file access
+error, -1 on any other error.
 
 =item void zco_stop_receiving(Sdr sdr, ZcoReader *reader)
 
