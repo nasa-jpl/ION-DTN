@@ -1503,7 +1503,7 @@ static AmsMib	*loadMibFromXmlSource(char *mibSource)
 	if (state.parser == NULL)
 	{
 		putSysErrmsg("Can't open XML parser", NULL);
-		fclose(sourceFile);
+		close(sourceFile);
 		return NULL;
 	}
 
