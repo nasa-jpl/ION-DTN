@@ -2,7 +2,7 @@ INCL = ../include
 API = ../library
 TEST = ../test
 
-OPT = -g -Wall -Ddygwin -DDEBUG=1 -Dnoipc
+OPT = -g -Wall -Werror -Ddygwin -DDEBUG=1 -Dnoipc
 CC = gcc $(OPT) -I$(API) -I$(TEST) -I$(INCL) -I/opt/include
 LDFLAGS = -shared
 LD = gcc $(LDFLAGS)

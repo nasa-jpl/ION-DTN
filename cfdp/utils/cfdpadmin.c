@@ -464,10 +464,12 @@ static void	switchEcho(int tokenCount, char **tokens)
 
 static int	processLine(char *line, int lineLength)
 {
-	int	tokenCount;
-	char	*cursor;
-	int	i;
-	char	*tokens[9];
+	int		tokenCount;
+	char		*cursor;
+	int		i;
+	char		*tokens[9];
+	struct timeval	done_time;
+	struct timeval	cur_time;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -536,6 +538,24 @@ command.");
 								NULL);
 					}
 				}
+
+				/* Wait for cfdp to start up. */
+				getCurrentTime(&done_time);
+				done_time.tv_sec += STARTUP_TIMEOUT;
+				while (cfdp_entity_is_started() == 0)
+				{
+					snooze(1);
+					getCurrentTime(&cur_time);
+					if (cur_time.tv_sec >=
+					    done_time.tv_sec 
+					    && cur_time.tv_usec >=
+					    done_time.tv_usec) {
+						printText("[?]  start hung up,\
+ abandoned.");
+						break;
+					}
+				}
+
 			}
 
 			return 0;
@@ -682,5 +702,6 @@ int	main(int argc, char **argv)
 	writeErrmsgMemos();
 	printText("Stopping cfdpadmin.");
 	ionDetach();
+
 	return 0;
 }

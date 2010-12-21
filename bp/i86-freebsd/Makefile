@@ -13,7 +13,7 @@ BRS = ../brs
 UDP = ../udp
 
 # OPT = -O -Dfreebsd
-OPT = -g -Wall -Dfreebsd
+OPT = -g -Wall -Werror -Dfreebsd
 CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

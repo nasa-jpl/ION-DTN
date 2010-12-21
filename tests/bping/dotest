@@ -1,0 +1,80 @@
+#!/bin/bash
+#
+# Tests that bping produces expected output and behaves well.
+#
+
+
+FAIL=0
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+# Prepare for loop start
+rm -f ion.log bpingoutput
+
+echo "Starting ION..."
+srcdir=`pwd`
+CONFIGDIR="${CONFIGSROOT}/loopback-udp"
+echo "ionstart -I ${CONFIGDIR}/loopback.rc"
+"ionstart" -I "${CONFIGDIR}/loopback.rc"
+
+# Start a bpecho
+bpecho ipn:1.1 & BPECHOPID=$!
+
+echo "Verify that bping can ping bpecho loopback..."
+bping -c 5 -i 1 ipn:1.2 ipn:1.1 > bpingoutput
+
+if ! grep -q "5 bundles transmitted, 5 bundles received" bpingoutput; then
+    echo "Didn't receive 5 ping responses:"
+    cat bpingoutput
+    FAIL=1
+fi
+
+echo "Verify that bping doesn't choke on unexpected bundles..."
+bping -c 5 -i 1 ipn:1.2 ipn:1.1 > bpingoutput &
+sleep 3
+bptrace ipn:1.3 ipn:1.2 dtn:none 60 1.0 "this is a bundle that bping isn't expecting and can't parse"
+sleep 3
+
+if grep -q "ipn:1.3" bpingoutput; then
+    echo "bping tried to parse the non-ping bundle from ipn:1.3"
+    cat bpingoutput
+    FAIL=1
+fi
+
+if ! grep -q "5 bundles transmitted, 5 bundles received" bpingoutput; then
+    echo "bping didn't ignore the non-ping bundle from ipn:1.3"
+    cat bpingoutput
+    FAIL=1
+fi
+
+echo "Verify that if bping is given SIGINT, it terminates quickly..."
+bping -c 2 -i 15 ipn:1.2 ipn:1.1 > bpingoutput & BPINGPID=$!
+sleep 2
+SECONDS=0
+kill -s INT $BPINGPID
+wait $BPINGPID
+PINGSECONDS=$SECONDS
+if [ $PINGSECONDS -ge 2 ]; then
+    echo "It took $PINGSECONDS seconds for bping to clean up and exit, too long."
+    FAIL=1
+fi
+
+
+echo "Verify that bping returns after a timeout if so configured..."
+bping -c 3 -i 5 -q 5 ipn:1.2 ipn:1.1 > bpingoutput & BPINGPID=$!
+sleep 4
+kill $BPECHOPID
+sleep 20
+if ! grep -q "3 bundles transmitted, 1 bundles received" bpingoutput; then
+    echo "bping didn't properly terminate after timing out"
+    kill $BPINGPID > /dev/null
+    cat bpingoutput
+    FAIL=1
+fi
+
+echo "Terminating node."
+ionstop
+
+exit $FAIL

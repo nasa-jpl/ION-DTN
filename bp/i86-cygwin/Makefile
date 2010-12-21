@@ -5,7 +5,7 @@ TEST = ../test
 DAEMON = ../daemon
 IP = ../ip
 
-OPT = -g -Wall -Dcygwin
+OPT = -g -Wall -Werror -Dcygwin
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -shared
 LD = gcc $(LDFLAGS)

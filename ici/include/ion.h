@@ -22,7 +22,14 @@ extern "C" {
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
 /* As of 2010-06-30 the open channel release version number is this: */
-#define IONVERSIONNUMBER "2.2.1"
+#define IONVERSIONNUMBER "2.3.0"
+#endif
+
+/* Allow the compile option -D to override this in the future */
+#ifndef STARTUP_TIMEOUT
+/* When an admin program starts in ION, wait 15 seconds before
+   considering the startup process 'hung'. */
+#define STARTUP_TIMEOUT 15
 #endif
 
 #define	MAX_SPEED_MPH	(150000)

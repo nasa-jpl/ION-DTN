@@ -230,7 +230,15 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote duct.		*/
 
-	writeMemo("[i] stcpclo is running.");
+	{
+		char txt[500];
+
+		isprintf(txt, sizeof(txt), "[i] stcpclo is running, spec=[%s:%d].", 
+			inet_ntoa(inetName->sin_addr), ntohs(inetName->sin_port) );
+
+		writeMemo(txt );
+	}
+
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,

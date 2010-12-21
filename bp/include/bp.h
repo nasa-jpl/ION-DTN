@@ -130,6 +130,22 @@ extern int		bp_open(	char *eid,
 			 *
 			 *	Returns 0 on success, -1 on any error.	*/
 
+#define BP_PARSE_CLASS_OF_SERVICE_USAGE				\
+	"<custody-requested>.<priority>[.<ordinal>" 	\
+	"[.<unreliable>.<critical>[.<flow-label>]]]"
+
+extern int		bp_parse_class_of_service(	const char *token,
+					BpExtendedCOS *extendedCOS,
+					BpCustodySwitch *custodySwitch,
+					int *priority);
+			/*  Parses the token string specifying service
+			 *  parameters into appropriate service-related 
+			 *  arguments to bp_send(), according to the format
+			 *  specified in BP_CLASS_OF_SERVICE_USAGE.
+			 *
+			 *	Returns 1 on success or 0 on parsing failure.
+			 *  On failure, no arguments have been modified.	*/
+
 extern int		bp_send(	BpSAP sap,
 					int mode,
 					char *destEid,

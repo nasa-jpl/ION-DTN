@@ -5,7 +5,7 @@ UTILS = ../utils
 RAMS = ../rams
 
 # OPT = -O -Dfreebsd
-OPT = -g -Wall -Dfreebsd -DUDPTS -DTCPTS -DDGRTS -L/usr/local/lib
+OPT = -g -Wall -Werror -Dfreebsd -DUDPTS -DTCPTS -DDGRTS -L/usr/local/lib
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include -I/usr/local/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

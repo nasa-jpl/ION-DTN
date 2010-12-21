@@ -28,6 +28,7 @@ cd ../3.ipn.ltp
 echo "Starting bpcounter on node 3..."
 sleep 1
 bpcounter ipn:3.1 100 &
+BPCOUNTER_PID=$!
 
 cd ../2.ipn.ltp
 echo "Sending bundles to ipn:3.1, should eventually be delivered..."
@@ -36,13 +37,23 @@ bpdriver 100 ipn:2.1 ipn:3.1 -64000 &
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
 RUNNING=1
+TIMER=0
 while [ $RUNNING -eq 1 ]
 do
+	TIMER=$((++TIMER))
 	sleep 1
 	echo "...receiving..."
-	BPCOUNTERS=`ps ax | egrep bpcounter | wc -l`
-	if [ $BPCOUNTERS -eq 1 ]
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
 	then
+		echo "done running"
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 600 ]
+	then
+		#infinite loop protection
+		echo "10 minutes passed; giving up."
 		RUNNING=0
 	fi
 done

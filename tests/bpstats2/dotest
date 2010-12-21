@@ -1,0 +1,97 @@
+#!/bin/bash
+#
+# Tests that bpstats2 produces expected output.
+#
+
+
+FAIL=0
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+# Prepare for loop start
+rm -f testfile1 testfile2 ion.log
+
+echo "Starting ION..."
+srcdir=`pwd`
+CONFIGDIR="config"
+echo "ionstart -I ${CONFIGDIR}/host1.rc"
+"ionstart" -I "${CONFIGDIR}/host1.rc"
+
+get_asrun_time ()
+{
+    FILE=$1
+    ASRUNTIME=$(head -n 2 $FILE | sed -n -e "s/.*to \([0-9]*\).*/\1/p")
+    if [ -z "$ASRUNTIME" ]; then
+        echo "Couldn't read the as-run time from $FILE."
+        exit 1
+    fi
+
+    echo $ASRUNTIME
+}
+
+diff_output_except_statstime ()
+{
+    FILE1=$1
+    FILE2=$2
+    ASRUNTIME_FILE1=$(get_asrun_time $FILE1)
+    sed -e "s/\(.*to\) [0-9]*:\(.*\)/\1 $ASRUNTIME_FILE1:\2/" < $FILE2 > $FILE2.timefromfile1
+    if ! diff $FILE1 $FILE2.timefromfile1 >/dev/null 2>&1 ; then
+        echo "$FILE1 and $FILE2 differ in more than just time:"
+        diff $FILE1 $FILE2.timefromfile1
+        rm $FILE2.timefromfile1
+        return 1
+    else
+        rm $FILE2.timefromfile1
+        return 0
+    fi
+}
+    
+# Poke bpsend with a bundle.
+bptrace ipn:1.1 ipn:1.2 dtn:none 60 1.0 "test bundle please send stats" ""
+sleep 5
+
+# Start a bpstats2
+bpstats2 ipn:1.2 ipn:1.1 & BPSTATS2PID=$!
+sleep 5
+
+# Start the listener that will receive the bundle queued in the 
+# ipn:1.1 endpoint.
+echo "Starting Message Listener..."
+bprecvfile ipn:1.1 &
+BPRECVFILEPID=$!
+
+# Cause bpstats2 to send a bundle to bprecvfile via SIGUSR1.
+sleep 5
+/bin/kill -s USR1 $BPSTATS2PID
+
+# give bprecvfile some time to collect bundles
+sleep 3
+
+# Check that we got the expected output.
+if ! diff_output_except_statstime testfile1 testfile1.goodoutput; then
+    FAIL=1
+fi
+
+if ! diff_output_except_statstime testfile2 testfile2.goodoutput; then
+    FAIL=1
+fi
+
+# Verify that bpstats2 cleans up quickly on SIGINT
+SECONDS=0
+kill -s INT $BPSTATS2PID
+wait $BPSTATS2PID
+BPSTATS2SECONDS=$SECONDS
+if [ $BPSTATS2SECONDS -ge 2 ]; then
+    echo "It took $BPSTATS2SECONDS for bpstats2 to close upon SIGINT, too long."
+    FAIL=1
+fi
+
+# Kill the bprecvfile that we started
+kill $BPRECVFILEPID
+
+# ending ion node
+ionstop
+
+exit $FAIL

@@ -810,7 +810,14 @@ port 80)", NULL);
 	/*	Now sleep until interrupted by SIGTERM, at which point
 	 *	it's time to stop the induct.				*/
 
-	writeMemo("[i] brsscla is running.");
+	{
+		char txt[500];
+
+		isprintf(txt, sizeof(txt), "[i] brsscla is running, spec=[%s:%d].", 
+			inet_ntoa(atp.inetName->sin_addr), ntohs(atp.inetName->sin_port) );
+
+		writeMemo(txt );
+	}
 	snooze(2000000000);
 
 	/*	Time to shut down.					*/

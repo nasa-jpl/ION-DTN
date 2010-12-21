@@ -2076,7 +2076,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 	CfdpDB		*cfdpConstants = _cfdpConstants();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	Object		fduObj;
-	int		pduIsFileData;		/*	Boolean.	*/
+	int		pduIsFileData = 0;		/*	Boolean.	*/
 	unsigned int	dataFieldLength;
 	unsigned int	octet;
 	int		pduSourceDataLength;

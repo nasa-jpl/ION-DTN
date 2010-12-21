@@ -8,8 +8,8 @@
 #is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
 # fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, 2.2.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AC_INIT(ion, 2.3.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
 # shall we put extra scripts in a special directory?
 # AC_CONFIG_AUX_DIR(build-aux)
 # some source file that will ensure that you are in the right directory.

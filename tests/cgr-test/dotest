@@ -18,7 +18,7 @@ rm -f ./ion_nodes
 sleep 5
 
 # Send a bundle destined for (noexistent) node 1.
-bptrace ipn:9.1 ipn:1.1 ipn:9.0 200000 1 "Hi"
+bptrace ipn:9.1 ipn:1.1 ipn:9.0 200000 1.1 "Hi"
 
 # Route should be computed quickly.
 echo "The 'b' ("forwarded") watch character should appear almost immediately."

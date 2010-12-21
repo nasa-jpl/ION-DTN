@@ -32,7 +32,7 @@ int	_tcpOutductId(struct sockaddr *socketName, char *protocolName,
 {
 	static Lyst	tcpOutductIds = NULL;
 	LystElt		elt;
-	TcpOutductId	*id;
+	TcpOutductId	*id = NULL;
 	int		idNotFound = 1;
 
 	CHKERR(socketName);

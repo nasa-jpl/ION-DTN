@@ -3443,7 +3443,7 @@ static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 	LtpVclient	*client;
 	Object		clientSvcData;
 	unsigned long	segUpperBound;
-	Object		segmentObj;
+	Object		segmentObj = 0;
 
 	/*	First finish parsing the segment.			*/
 

@@ -4,7 +4,7 @@ TEST = ../test
 UTILS = ../utils
 RAMS = ../rams
 
-OPT = -g -Wall -Dunix -Ddarwin -DUDPTS -DTCPTS -DDGRTS
+OPT = -g -Wall -Werror -Dunix -Ddarwin -DUDPTS -DTCPTS -DDGRTS
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include
 LDFLAGS = -dynamiclib -undefined dynamic_lookup
 LD = gcc $(LDFLAGS)

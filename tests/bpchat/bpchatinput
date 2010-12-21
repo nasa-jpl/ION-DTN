@@ -1,0 +1,40 @@
+This is some test input to bpchat.
+The bpecho should cause it to be reflected back.
+Putting a handful of text here seems like a good exercise.
+The below is excerpted from draft-irtf-ipnrg-arch-00.
+
+              Desiderata of Interplanetary Internetworking
+
+   Go thoughtfully in the knowledge that all interplanetary
+   communication derives from the modulation of radiated energy, and
+   sometimes a planet will be between the source and the destination.
+   Therefore rely not on end-to-end connectivity at any time, for the
+   universe does not work that way.
+
+   Neither rely on ample bandwidth, for power is scarce out there and
+   the bit error rates are high.  Know too that signal strength drops
+   off by the square of the distance, and there is a lot of distance.
+
+   Consider the preciousness of interplanetary communication links, and
+   restrict access to them with all your heart.  Protect also the
+   confidentiality of application data or risk losing your customers.
+
+   Remember always that launch mass costs money.  Think not, then, that
+   you may require all the universe to adopt at once the newest
+   technologies.  Be backward compatible.
+
+   Never confuse patience with inaction.  By waiting for acknowledgement
+   to one message before sending the next, you squander tracking pass
+   time that will never come to you again in this life.  Send as much as
+   you can, as early as you can, and meanwhile confidently await
+   responses for as long as they may take to find their way to you.
+
+   Therefore be at peace with physics, and expect not to manage the
+   network in closed control loops -- neither in the limiting of
+   congestion nor in the negotiation of connection parameters nor even
+   in on-demand access to transmission bands.  Each node must make its
+   own operating choices in its own understanding, for all the others
+   are too far away to ask.  Truly the solar system is a large place and
+   each one of us is on his or her own.  Deal with it.
+
+                                        S. Burleigh

@@ -992,7 +992,7 @@ LystElt	createElement(Subject *subj, char *name, ElementType type,
 	int		length;
 	MsgElement	*element;
 	int		nameLen;
-	int		descLen;
+	int		descLen = 0;
 	LystElt		elt;
 
 	CHKNULL(subj);
@@ -1015,7 +1015,7 @@ LystElt	createElement(Subject *subj, char *name, ElementType type,
 	}
 
 	istrcpy(element->name, name, nameLen);
-	if (description)
+	if (description && descLen > 1)
 	{
 		istrcpy(element->description, description, descLen);
 	}
@@ -1039,7 +1039,7 @@ Subject	*createSubject(Venture *venture, int nbr, char *name, char *description,
 	int	length;
 	Subject	*subj;
 	int	nameLen;
-	int	descLen;
+	int	descLen = 0;
 	int	idx;
 
 	CHKNULL(venture);
@@ -1564,7 +1564,7 @@ Continuum	*createContinuum(int nbr, char *name, int isNeighbor,
 	int		length;
 	Continuum	*contin;
 	int		nameLen;
-	int		descLen;
+	int		descLen = 0;
 
 	CHKNULL(nbr > 0);
 	CHKNULL(nbr <= MAX_CONTIN_NBR);

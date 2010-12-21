@@ -1156,12 +1156,6 @@ extern Object		getBpDbObject();
 extern BpDB		*getBpConstants();
 extern BpVdb		*getBpVdb();
 
-extern int		parseClassOfService(char *token,
-				unsigned int *priority,
-				unsigned int *ordinal,
-				unsigned int *unreliable,
-				unsigned int *critical);
-
 extern void		getCurrentDtnTime(DtnTime *dt);
 
 extern int		guessBundleSize(Bundle *bundle);

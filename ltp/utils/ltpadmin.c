@@ -8,6 +8,7 @@
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 
 #include "ltpP.h"
+#include "ltp.h"
 
 static int		_echo(int *newValue)
 {
@@ -597,10 +598,12 @@ static void	switchEcho(int tokenCount, char **tokens)
 
 static int	processLine(char *line, int lineLength, int *checkNeeded)
 {
-	int	tokenCount;
-	char	*cursor;
-	int	i;
-	char	*tokens[12];
+	int		tokenCount;
+	char		*cursor;
+	int		i;
+	char		*tokens[12];
+	struct timeval	done_time;
+	struct timeval	cur_time;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 12; i++)
@@ -670,6 +673,25 @@ command.");
 								NULL);
 					}
 				}
+
+				/* Wait for ltp to start up */
+				getCurrentTime(&done_time);
+				done_time.tv_sec += STARTUP_TIMEOUT;
+				while (ltp_engine_is_started() == 0)
+				{
+					snooze(1);
+					getCurrentTime(&cur_time);
+					if (cur_time.tv_sec >=
+					    done_time.tv_sec 
+					    && cur_time.tv_usec >=
+					    done_time.tv_usec)
+					{
+						printText("[?] LTP start hung\
+ up, abandoned.");
+						break;
+					}
+				}
+
 			}
 
 			return 0;
@@ -860,5 +882,6 @@ int	main(int argc, char **argv)
 
 	printText("Stopping ltpadmin.");
 	ionDetach();
+
 	return 0;
 }
