@@ -740,8 +740,8 @@ estimate.  Session lookup speed may be degraded", itoa(totalSessionsAvbl));
 	}
 	else
 	{
-		writeMemo("[i] Total max export sessions estimate does not \
-exceed estimate.");
+		writeMemo("[i] Total max export sessions does not exceed \
+estimate.");
 	}
 
 	subtractFromScalar(&totalBytesAvbl, &totalBytesNeeded);
