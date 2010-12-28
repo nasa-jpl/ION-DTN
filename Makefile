@@ -45,8 +45,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = x86_64-unknown-linux-gnu
-host_triplet = x86_64-unknown-linux-gnu
+build_triplet = i686-pc-linux-gnu
+host_triplet = i686-pc-linux-gnu
 bin_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
 	$(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_6)
 check_PROGRAMS = tests/1000.loopback/dotest$(EXEEXT) \
@@ -117,8 +117,8 @@ libbp_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 libbpP_la_LIBADD =
 am_libbpP_la_OBJECTS = bp/library/libbpP_la-libbpP.lo \
 	bp/library/libbpP_la-phn.lo bp/library/libbpP_la-ecos.lo \
-	bp/library/libbpP_la-bsp.lo bp/library/libbpP_la-hmac.lo \
-	bp/library/libbpP_la-sha1.lo
+	bp/library/libbpP_la-bei.lo bp/library/libbpP_la-bsp.lo \
+	bp/library/libbpP_la-hmac.lo bp/library/libbpP_la-sha1.lo
 libbpP_la_OBJECTS = $(am_libbpP_la_OBJECTS)
 libbpP_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libbpP_la_CFLAGS) \
@@ -850,13 +850,13 @@ DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /home/bmarshall/src/ion2/ion-open-source/hg-mirror/missing --run aclocal-1.11
-AMTAR = ${SHELL} /home/bmarshall/src/ion2/ion-open-source/hg-mirror/missing --run tar
+ACLOCAL = ${SHELL} /home/vanbewl1/src/DTN/ion-open-source/missing --run aclocal-1.11
+AMTAR = ${SHELL} /home/vanbewl1/src/DTN/ion-open-source/missing --run tar
 AR = ar
-AUTOCONF = ${SHELL} /home/bmarshall/src/ion2/ion-open-source/hg-mirror/missing --run autoconf
-AUTOHEADER = ${SHELL} /home/bmarshall/src/ion2/ion-open-source/hg-mirror/missing --run autoheader
-AUTOMAKE = ${SHELL} /home/bmarshall/src/ion2/ion-open-source/hg-mirror/missing --run automake-1.11
-AWK = gawk
+AUTOCONF = ${SHELL} /home/vanbewl1/src/DTN/ion-open-source/missing --run autoconf
+AUTOHEADER = ${SHELL} /home/vanbewl1/src/DTN/ion-open-source/missing --run autoheader
+AUTOMAKE = ${SHELL} /home/vanbewl1/src/DTN/ion-open-source/missing --run automake-1.11
+AWK = mawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
@@ -879,9 +879,9 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-ION_CFLAGS =  -Dlinux -fPIC -DSPACE_ORDER=3 -fno-strict-aliasing
+ION_CFLAGS =  -Dlinux -fno-strict-aliasing -DNO_PROXY -DNO_DIRLIST
 ION_LINK_FLAGS =  -fPIC -shared 
-LD = /usr/bin/ld -m elf_x86_64
+LD = /usr/bin/ld
 LDFLAGS = 
 LIBOBJS = 
 LIBS = -lpthread -lexpat 
@@ -889,7 +889,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIPO = 
 LN_S = ln -s
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/bmarshall/src/ion2/ion-open-source/hg-mirror/missing --run makeinfo
+MAKEINFO = ${SHELL} /home/vanbewl1/src/DTN/ion-open-source/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
 NM = /usr/bin/nm -B
 NMEDIT = 
@@ -900,10 +900,10 @@ OTOOL64 =
 PACKAGE = ion
 PACKAGE_BUGREPORT = http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs
 PACKAGE_NAME = ion
-PACKAGE_STRING = ion 2.2.1
+PACKAGE_STRING = ion 2.3.0
 PACKAGE_TARNAME = ion
 PACKAGE_URL = 
-PACKAGE_VERSION = 2.2.1
+PACKAGE_VERSION = 2.3.0
 PATH_SEPARATOR = :
 POD_DOCUMENTATION = pod2man
 RANLIB = ranlib
@@ -911,11 +911,11 @@ SED = /bin/sed
 SET_MAKE = 
 SHELL = /bin/bash
 STRIP = strip
-VERSION = 2.2.1
-abs_builddir = /home/bmarshall/src/ion2/ion-open-source/hg-mirror
-abs_srcdir = /home/bmarshall/src/ion2/ion-open-source/hg-mirror
-abs_top_builddir = /home/bmarshall/src/ion2/ion-open-source/hg-mirror
-abs_top_srcdir = /home/bmarshall/src/ion2/ion-open-source/hg-mirror
+VERSION = 2.3.0
+abs_builddir = /home/vanbewl1/src/DTN/ion-open-source
+abs_srcdir = /home/vanbewl1/src/DTN/ion-open-source
+abs_top_builddir = /home/vanbewl1/src/DTN/ion-open-source
+abs_top_srcdir = /home/vanbewl1/src/DTN/ion-open-source
 ac_ct_CC = gcc
 ac_ct_DUMPBIN = 
 am__include = include
@@ -924,26 +924,26 @@ am__quote =
 am__tar = ${AMTAR} chof - "$$tardir"
 am__untar = ${AMTAR} xf -
 bindir = ${exec_prefix}/bin
-build = x86_64-unknown-linux-gnu
+build = i686-pc-linux-gnu
 build_alias = 
-build_cpu = x86_64
+build_cpu = i686
 build_os = linux-gnu
-build_vendor = unknown
+build_vendor = pc
 builddir = .
 datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
 exec_prefix = ${prefix}
-host = x86_64-unknown-linux-gnu
+host = i686-pc-linux-gnu
 host_alias = 
-host_cpu = x86_64
+host_cpu = i686
 host_os = linux-gnu
-host_vendor = unknown
+host_vendor = pc
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /home/bmarshall/src/ion2/ion-open-source/hg-mirror/install-sh
+install_sh = ${SHELL} /home/vanbewl1/src/DTN/ion-open-source/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -1626,7 +1626,9 @@ bplib = \
 #	libphn.la 
 #	libecos.la
 bpinclude = \
-	bp/include/bp.h
+	bp/include/bp.h \
+	bp/include/bpP.h \
+	bp/include/bei.h
 
 
 #ecos.h goes here?
@@ -1688,6 +1690,7 @@ bpextra = \
 	bp/library/noextensions.c \
 	bp/library/ecos.h \
 	bp/library/ecos.c \
+	bp/library/bei.c \
 	bp/library/bsp.h \
 	bp/library/bsp.c \
 	bp/library/sha1.c \
@@ -1782,6 +1785,7 @@ libbpP_la_SOURCES = \
 	bp/library/libbpP.c \
 	bp/library/phn.c \
 	bp/library/ecos.c \
+	bp/library/bei.c \
 	bp/library/bsp.c \
 	bp/library/hmac.c \
 	bp/library/sha1.c
@@ -2233,6 +2237,8 @@ bp/library/libbpP_la-libbpP.lo: bp/library/$(am__dirstamp) \
 bp/library/libbpP_la-phn.lo: bp/library/$(am__dirstamp) \
 	bp/library/$(DEPDIR)/$(am__dirstamp)
 bp/library/libbpP_la-ecos.lo: bp/library/$(am__dirstamp) \
+	bp/library/$(DEPDIR)/$(am__dirstamp)
+bp/library/libbpP_la-bei.lo: bp/library/$(am__dirstamp) \
 	bp/library/$(DEPDIR)/$(am__dirstamp)
 bp/library/libbpP_la-bsp.lo: bp/library/$(am__dirstamp) \
 	bp/library/$(DEPDIR)/$(am__dirstamp)
@@ -3086,6 +3092,8 @@ mostlyclean-compile:
 	-rm -f bp/ipn/ipnfw-ipnfw.$(OBJEXT)
 	-rm -f bp/ipn/libipnfw_la-libipnfw.$(OBJEXT)
 	-rm -f bp/ipn/libipnfw_la-libipnfw.lo
+	-rm -f bp/library/libbpP_la-bei.$(OBJEXT)
+	-rm -f bp/library/libbpP_la-bei.lo
 	-rm -f bp/library/libbpP_la-bsp.$(OBJEXT)
 	-rm -f bp/library/libbpP_la-bsp.lo
 	-rm -f bp/library/libbpP_la-ecos.$(OBJEXT)
@@ -3261,6 +3269,7 @@ include bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Po
 include bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Po
 include bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Po
 include bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Plo
+include bp/library/$(DEPDIR)/libbpP_la-bei.Plo
 include bp/library/$(DEPDIR)/libbpP_la-bsp.Plo
 include bp/library/$(DEPDIR)/libbpP_la-ecos.Plo
 include bp/library/$(DEPDIR)/libbpP_la-hmac.Plo
@@ -3459,6 +3468,13 @@ bp/library/libbpP_la-ecos.lo: bp/library/ecos.c
 #	source='bp/library/ecos.c' object='bp/library/libbpP_la-ecos.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-ecos.lo `test -f 'bp/library/ecos.c' || echo '$(srcdir)/'`bp/library/ecos.c
+
+bp/library/libbpP_la-bei.lo: bp/library/bei.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-bei.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-bei.Tpo -c -o bp/library/libbpP_la-bei.lo `test -f 'bp/library/bei.c' || echo '$(srcdir)/'`bp/library/bei.c
+	$(am__mv) bp/library/$(DEPDIR)/libbpP_la-bei.Tpo bp/library/$(DEPDIR)/libbpP_la-bei.Plo
+#	source='bp/library/bei.c' object='bp/library/libbpP_la-bei.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-bei.lo `test -f 'bp/library/bei.c' || echo '$(srcdir)/'`bp/library/bei.c
 
 bp/library/libbpP_la-bsp.lo: bp/library/bsp.c
 	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-bsp.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-bsp.Tpo -c -o bp/library/libbpP_la-bsp.lo `test -f 'bp/library/bsp.c' || echo '$(srcdir)/'`bp/library/bsp.c

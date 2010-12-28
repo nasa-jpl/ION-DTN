@@ -18,7 +18,7 @@
 
 /*	... and here.							*/
 
-static ExtensionDef	extensions[] =
+ExtensionDef	extensions[] =
 			{
 				{ "bsp_bab_pre", BSP_BAB_TYPE, 0,
 					bsp_babOffer,
@@ -65,7 +65,7 @@ static ExtensionDef	extensions[] =
 				{ "unknown",0,0,0,0,0,0,0,0,0,{0,0,0,0,0} }
 			};
 
-static int		extensionsCt = sizeof extensions / sizeof(ExtensionDef);
+int		extensionsCt = sizeof extensions / sizeof(ExtensionDef);
 
 /*	NOTE: the order of appearance of extension definitions in the
  *	extensions array determines the order in which pre-payload

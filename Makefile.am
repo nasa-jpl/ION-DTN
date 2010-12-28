@@ -781,7 +781,9 @@ bplib = \
 #	libecos.la
 
 bpinclude = \
-	bp/include/bp.h
+	bp/include/bp.h \
+	bp/include/bpP.h \
+	bp/include/bei.h
 
 #ecos.h goes here?
 #bp/library/ecos.h 
@@ -842,6 +844,7 @@ bpextra = \
 	bp/library/noextensions.c \
 	bp/library/ecos.h \
 	bp/library/ecos.c \
+	bp/library/bei.c \
 	bp/library/bsp.h \
 	bp/library/bsp.c \
 	bp/library/sha1.c \
@@ -956,6 +959,7 @@ libbpP_la_SOURCES = \
 	bp/library/libbpP.c \
 	bp/library/phn.c \
 	bp/library/ecos.c \
+	bp/library/bei.c \
 	bp/library/bsp.c \
 	bp/library/hmac.c \
 	bp/library/sha1.c

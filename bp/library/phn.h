@@ -9,6 +9,8 @@
  *	Author: Scott Burleigh, JPL
  */
 
+#include "bei.h"
+
 #define	EXTENSION_TYPE_PHN	5
 
 extern int	phn_offer(ExtensionBlock *, Bundle *);

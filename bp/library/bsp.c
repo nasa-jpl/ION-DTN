@@ -61,6 +61,7 @@
  *****************************************************************************/
 
 #include "ionbsp.h" /** BSP structures and enumerations */
+#include "bei.h"	/* BVB */
 #include "hmac.h"   /** HMAC-SHA1 implementation */ 
 #include "ionsec.h" /** ION Security Policy Functions */
 
@@ -154,7 +155,7 @@ int bsp_deserializeASB(AcqExtBlock *blk)
    {
       BSP_DEBUG_ERR("x bsp_deserializeASB: Bad parms: blk = %x",
                     (unsigned long) blk);
-  	  result = -1;
+      result = -1;
    }
    /* Sanity Check 2: The block has a scratchpad. */
    else if((blk->object == NULL) || (blk->size == 0))
@@ -491,6 +492,8 @@ unsigned char *bsp_serializeASB(unsigned int *length,
       cursor = bsp_addSdnvToStream(cursor, &cipher);
       cursor = bsp_addSdnvToStream(cursor, &cipherFlags);
 
+      BSP_DEBUG_WARN(" (BVB) SERIALIZE: asb->cipherFlags = 0x%08x", asb->cipherFlags);
+
       if(asb->cipherFlags & BSP_ASB_CORR)
       {
          cursor = bsp_addSdnvToStream(cursor, &correlator);
@@ -588,6 +591,8 @@ int bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
       
       BSP_DEBUG_INFO("i bsp_babAcquire: Deserialize result %d", result);      
    }
+
+   BSP_DEBUG_WARN("   (BVB) bsp_babAcquire: wk->senderEid = '%s'", wk->senderEid);
 
    BSP_DEBUG_PROC("- bsp_babAcquire -> %d", result); 
      
@@ -875,7 +880,11 @@ int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
    scratch = (BspBabScratchpad *) blk->object;
    asb = &(scratch->asb);
-   
+ 
+
+   BSP_DEBUG_WARN(" (BVB) babPostCheck: wk->senderEid = '%s'", wk->senderEid);
+
+  
    /* The post-payload BAB block *must* have a security result. */
    if((asb->cipherFlags & BSP_ASB_RES) == 0)
    {
@@ -1372,6 +1381,8 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
       return -1;    
    }
 
+   BSP_DEBUG_WARN(" (BVB) babPreCheck: wk->senderEid = '%s'", wk->senderEid);
+
    pre_scratch = (BspBabScratchpad *) pre_blk->object;
    pre_asb = &(pre_scratch->asb);
 
@@ -1441,7 +1452,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
 
    for (i = 0; i < lengthToHash; i++)
    {
-	BSP_DEBUG_INFO("Byte %d is %x", i, rawBundle[i]);
+	/* BSP_DEBUG_INFO("Byte %d is %x", i, rawBundle[i]);  BVB */
    }
 
    pre_scratch->hmacLen = hmac_authenticate(pre_scratch->expectedResult,
@@ -1572,8 +1583,10 @@ int bsp_babPreProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
    int result = 0;
    unsigned char *raw_asb = NULL;
    Sdr bpSdr = getIonsdr();
-unsigned long tmp;
-  
+   unsigned long tmp;
+ 
+
+   BSP_DEBUG_WARN(" (BVB) bsp_babPreProcessOnDequeue called. ctxt=0x%08X", (unsigned long)ctxt );/*BVB*/ 
    BSP_DEBUG_PROC("+ bsp_babPreProcessOnDequeue(%x, %x, %x", 
                   (unsigned long) blk, 
                   (unsigned long) bundle, 
@@ -1587,7 +1600,10 @@ expected.", NULL);
                     
       BSP_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", -1);
       return -1;
-   } 
+   }
+
+
+   BSP_DEBUG_WARN("  --> %d passed NULL checking", 1);
   
    /*
     * Grab the scratchpad object and now get security information for
@@ -1604,6 +1620,10 @@ expected.", NULL);
 	return 0;
    }
 
+   /* XXX BVB 4,6 */
+   BSP_DEBUG_WARN("  --> %d passed rule/key checking; ctxt->proxNodeEid = '%s'", 2, ctxt->proxNodeEid);
+   
+
    /* 
     * If we are using EID references, we will populate the BAB with the
     * security source and security destination.  This is "trivial" for the
@@ -1615,6 +1635,9 @@ expected.", NULL);
   
    if(bundle->dictionaryLength != 0)
    {
+
+      BSP_DEBUG_WARN(" (BVB) bundle->dictionaryLength > %d", 0); /* BVB */
+
       /* 
        * If using EIDs, we will always specify both a security source and a
        * security destination.
@@ -1641,7 +1664,8 @@ expected.", NULL);
 		(void *) (tmp = bundle->destination.d.nssOffset));
       }   
    }
-   
+
+
    if(result == 0)
    {
       /* We always use the HMAC-SHA1 cipher, for now. */
@@ -1858,12 +1882,28 @@ void bsp_babGetSecurityInfo(Bundle *bundle,
                             char *eidString, 
                             BspBabScratchpad *scratch)
 {
+   char * bvbEidString;
+
    BSP_DEBUG_PROC("+ bsp_babGetSecurityInfo(%x %d, %s, %x)",
 	(unsigned long) bundle,which,eidString,(unsigned long) scratch);
+
+
+   BSP_DEBUG_WARN(" (BVB) getting sec info for EID '%s'", eidString);
+
 
    /* By default, we disable BAB processing */
    scratch->useBab = 0;
    scratch->cipherKeyName[0] = '\0';  	 
+
+
+   /* BVB */
+   BSP_DEBUG_WARN("  +- BVB ---->  Bundle Source EID (offset): %u.%u", bundle->id.source.d.schemeNameOffset,
+                                           bundle->id.source.d.nssOffset);
+
+   /* BVB */
+   bvbEidString = getBpString(&(bundle->clDossier.senderEid)); 
+   BSP_DEBUG_WARN("  +- BVB ---->  Bundle Source EID (BpString): '%s'", bvbEidString);
+
 
    /* Since we look up key information by EndPointID, if we do not have the
     * EID, we cannot get any security information.  We will assume, then, that
@@ -1872,7 +1912,7 @@ void bsp_babGetSecurityInfo(Bundle *bundle,
    if(eidString == NULL)
    {
       BSP_DEBUG_WARN("? bsp_babGetSecurityInfo: Can't get EID from bundle \
-%x. Not using BAB.", (unsigned long) bundle);
+%x. Not using BAB.", (unsigned long) bundle); 
    }
    else
    {
