@@ -781,14 +781,13 @@ bplib = \
 #	libecos.la
 
 bpinclude = \
-	bp/include/bp.h \
-	bp/include/bpP.h \
-	bp/include/bei.h
+	bp/include/bp.h
 
 #ecos.h goes here?
 #bp/library/ecos.h 
 bpnoinst = \
 	bp/library/bpP.h \
+	bp/library/bei.h \
 	bp/library/phn.h \
 	bp/ipn/ipnfw.h \
 	bp/dtn2/dtn2fw.h \
