@@ -19,15 +19,13 @@ echo "OUTPUT: If the host is Apple OSX and memory is not sufficient, then you
 echo
 echo "########################################"
 
-sw_vers 2> /dev/null > /dev/null
-
-if [[ $? ]]; then
+if ! sw_vers 2> /dev/null > /dev/null; then
        echo "Not an OSX system, skipping test"
        exit 2
 fi
 
 VAR_LIST=('shmmax' 'shmmin' 'shmmni' 'shmseg' 'shmall')
-VAR_VALUE=(10485760 1 32 8 4096)
+VAR_VALUE=(20971520 1 32 128 8192)
 CUR_VALUE=0
 I=0
 CHANGE=0
@@ -35,9 +33,10 @@ CHANGE=0
 echo
 echo "If any lines appear below, copy and paste them into /etc/sysctl.conf and reboot."
 
-while [[ "$I" <  "5" ]]; do
+while [[ "$I" -lt  "5" ]]; do
         CUR_VALUE=`sysctl kern.sysv.${VAR_LIST[$I]} | awk '{ print $2 }'`
-        if [[ $CUR_VALUE < "${VAR_VALUE[$I]}" ]]; then
+	#echo "Checking kern.sysv.${VAR_LIST[$I]} $CUR_VALUE  ${VAR_VALUE[$I]}"
+	if [[ $CUR_VALUE -lt "${VAR_VALUE[$I]}" ]]; then
 		echo "kern.sysv.${VAR_LIST[$I]}=${VAR_VALUE[I]}"
                 let CHANGE=1
         fi
