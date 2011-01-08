@@ -13,7 +13,7 @@ LIBAMSOBJS = \
 	libams.o \
 	amscommon.o \
 	loadmib.o \
-	nullcrypt.o \
+	crypt.o \
 	dgrts.o \
 	udpts.o \
 	tcpts.o
@@ -23,7 +23,7 @@ AMSDOBJS = \
 	libams.o \
 	amscommon.o \
 	loadmib.o \
-	nullcrypt.o \
+	crypt.o \
 	dgrts.o \
 	udpts.o \
 	tcpts.o

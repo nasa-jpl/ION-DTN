@@ -39,7 +39,7 @@ typedef struct
 
 static AmsMib	*crash(AmsMib *mib)
 {
-	AmsMibParameters	parms = { 0, NULL, NULL, 0, NULL, 0 };
+	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
 
 	putErrmsg("Loading of test MIB failed.", NULL);
 	oK(_mib(&parms));		/*	Erase.			*/
@@ -48,7 +48,7 @@ static AmsMib	*crash(AmsMib *mib)
 
 static AmsMib	*loadTestMib()
 {
-	AmsMibParameters	parms = { 1, "dgr", NULL, 0, NULL, 0 };
+	AmsMibParameters	parms = { 1, "dgr", NULL, NULL };
 	AmsMib			*mib;
 	LystElt			elt;
 	Venture			*venture;
@@ -67,7 +67,7 @@ static AmsMib	*loadTestMib()
 		return crash(mib);
 	}
 
-	elt = createApp("amsdemo", NULL, 0, NULL, 0);
+	elt = createApp("amsdemo", NULL, NULL);
        	if (elt == NULL)
 	{
 		return crash(mib);
@@ -79,32 +79,32 @@ static AmsMib	*loadTestMib()
 		return crash(mib);
 	}
 
-	role = createRole(venture, 2, "shell", NULL, 0, NULL, 0);
+	role = createRole(venture, 2, "shell", NULL, NULL);
 	if (role == NULL)
 	{
 		return crash(mib);
 	}
 
-	role = createRole(venture, 3, "log", NULL, 0, NULL, 0);
+	role = createRole(venture, 3, "log", NULL, NULL);
 	if (role == NULL)
 	{
 		return crash(mib);
 	}
 
-	role = createRole(venture, 4, "pitch", NULL, 0, NULL, 0);
+	role = createRole(venture, 4, "pitch", NULL, NULL);
 	if (role == NULL)
 	{
 		return crash(mib);
 	}
 
-	role = createRole(venture, 5, "catch", NULL, 0, NULL, 0);
+	role = createRole(venture, 5, "catch", NULL, NULL);
 	if (role == NULL)
 	{
 		return crash(mib);
 	}
 
 	subject = createSubject(venture, 1, "text",
-			"Arbitrary variable-length text.", NULL, 0);
+			"Arbitrary variable-length text.", NULL, NULL, NULL);
 	if (subject == NULL)
 	{
 		return crash(mib);
@@ -150,10 +150,8 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 	AmsMib			*mib;
 	int			cnbr = 0;
 	char			*ptsname = NULL;
-	char			*pubkey = NULL;
-	int			pubkeylen = 0;
-	char			*privkey = NULL;
-	int			privkeylen = 0;
+	char			*pubkeyname = NULL;
+	char			*privkeyname = NULL;
 	char			**att;
 	char			*name;
 	char			*value;
@@ -182,23 +180,19 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 		}
 		else if (strcmp(name, "pubkey") == 0)
 		{
-			pubkey = value;
-			pubkeylen = strlen(pubkey);
+			pubkeyname = value;
 		}
 		else if (strcmp(name, "privkey") == 0)
 		{
-			privkey = value;
-			privkeylen = strlen(privkey);
+			privkeyname = value;
 		}
 		else return noteLoadError(state, "Unknown attribute.");
 	}
 
 	parms.continuumNbr = cnbr;
 	parms.ptsName = ptsname;
-	parms.publicKeyLength = pubkeylen;
-	parms.publicKey = pubkey;
-	parms.privateKeyLength = privkeylen;
-	parms.privateKey = privkey;
+	parms.publicKeyName = pubkeyname;
+	parms.privateKeyName = privkeyname;
 	mib = _mib(&parms);
 	if (mib == NULL)
 	{
@@ -443,10 +437,8 @@ static void	handle_amsendpoint_start(LoadMibState *state, const char **atts)
 static void	handle_application_start(LoadMibState *state, const char **atts)
 {
 	char	*appname = NULL;
-	char	*pubkey = NULL;
-	int	pubkeylen = 0;
-	char	*privkey = NULL;
-	int	privkeylen = 0;
+	char	*pubkeyname = NULL;
+	char	*privkeyname = NULL;
 	char	**att;
 	char	*name;
 	char	*value;
@@ -469,13 +461,11 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 		}
 		else if (strcmp(name, "pubkey") == 0)
 		{
-			pubkey = value;
-			pubkeylen = strlen(pubkey);
+			pubkeyname = value;
 		}
 		else if (strcmp(name, "privkey") == 0)
 		{
-			privkey = value;
-			privkeylen = strlen(privkey);
+			privkeyname = value;
 		}
 		else return noteLoadError(state, "Unknown attribute.");
 	}
@@ -485,19 +475,13 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 		return noteLoadError(state, "Need name of application.");
 	}
 
-	elt = findApplication(appname);
-	if (elt)
-	{
-		state->app = (AmsApp *) lyst_data(elt);
-	}
-
+	state->app = lookUpApplication(appname);
 	switch (state->currentOperation)
 	{
 	case LoadAdding:
 		if (state->app == NULL)
 		{
-			elt = createApp(appname, pubkey, pubkeylen, privkey,
-					privkeylen);
+			elt = createApp(appname, pubkeyname, privkeyname);
 			if (elt == NULL)
 			{
 				return putErrmsg("Couldn't add application.",
@@ -518,7 +502,7 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 			return noteLoadError(state, "No such application.");
 		}
 
-		state->target = elt;	/*	May be deletion target.	*/
+		state->target = state->app;	/*	May be target.	*/
 		break;
 
 	default:
@@ -632,10 +616,8 @@ static void	handle_role_start(LoadMibState *state, const char **atts)
 {
 	int	rolenbr = 0;
 	char	*rolename = NULL;
-	char	*pubkey = NULL;
-	int	pubkeylen = 0;
-	char	*privkey = NULL;
-	int	privkeylen = 0;
+	char	*pubkeyname = NULL;
+	char	*privkeyname = NULL;
 	char	**att;
 	char	*name;
 	char	*value;
@@ -662,13 +644,11 @@ static void	handle_role_start(LoadMibState *state, const char **atts)
 		}
 		else if (strcmp(name, "pubkey") == 0)
 		{
-			pubkey = value;
-			pubkeylen = strlen(pubkey);
+			pubkeyname = value;
 		}
 		else if (strcmp(name, "privkey") == 0)
 		{
-			privkey = value;
-			privkeylen = strlen(privkey);
+			privkeyname = value;
 		}
 		else return noteLoadError(state, "Unknown attribute.");
 	}
@@ -685,7 +665,7 @@ static void	handle_role_start(LoadMibState *state, const char **atts)
 		if (role == NULL)
 		{
 			role = createRole(state->venture, rolenbr, rolename,
-					pubkey, pubkeylen, privkey, privkeylen);
+					pubkeyname, privkeyname);
 			if (role == NULL)
 			{
 				return putErrmsg("Couldn't add role.",
@@ -721,8 +701,9 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 	int	subjnbr = 0;
 	char	*subjname = NULL;
 	char	*desc = NULL;
-	char	*symkey = NULL;
-	int	symkeylen = 0;
+	char	*symkeyname = NULL;
+	char	*marshalfnname = NULL;
+	char	*unmarshalfnname = NULL;
 	char	**att;
 	char	*name;
 	char	*value;
@@ -757,15 +738,22 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 		}
 		else if (strcmp(name, "symkey") == 0)
 		{
-			symkey = value;
-			symkeylen = strlen(symkey);
+			symkeyname = value;
+		}
+		else if (strcmp(name, "marshal") == 0)
+		{
+			marshalfnname = value;
+		}
+		else if (strcmp(name, "unmarshal") == 0)
+		{
+			unmarshalfnname = value;
 		}
 		else return noteLoadError(state, "Unknown attribute.");
 	}
 
 	if (subjname == NULL)
 	{
-		return noteLoadError(state, "Need name of role.");
+		return noteLoadError(state, "Need name of subject.");
 	}
 
 	state->subject = lookUpSubject(state->venture, subjname);
@@ -775,7 +763,8 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 		if (state->subject == NULL)
 		{
 			state->subject = createSubject(state->venture, subjnbr,
-					subjname, desc, symkey, symkeylen);
+					subjname, desc, symkeyname,
+					marshalfnname, unmarshalfnname);
 			if (state->subject == NULL)
 			{
 				return putErrmsg("Couldn't add subject.",
@@ -802,15 +791,12 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 	}
 }
 
-static void	handle_element_start(LoadMibState *state, const char **atts)
+static void	handle_sender_start(LoadMibState *state, const char **atts)
 {
-	ElementType	type = AmsNoElement;
-	char		*ename = NULL;
-	char		*desc = NULL;
-	char		**att;
-	char		*name;
-	char		*value;
-	LystElt		elt;
+	char	*rolename = NULL;
+	char	**att;
+	char	*name;
+	char	*value;
 
 	if (noMibYet(state)) return;
 	if (state->subject == NULL)
@@ -823,56 +809,89 @@ static void	handle_element_start(LoadMibState *state, const char **atts)
 		name = *att;
 		att++;
 		value = *att;
-		if (strcmp(name, "type") == 0)
+		if (strcmp(name, "name") == 0)
 		{
-			type = (ElementType) atoi(value);
-		}
-		else if (strcmp(name, "name") == 0)
-		{
-			ename = value;
-		}
-		else if (strcmp(name, "desc") == 0)
-		{
-			desc = value;
+			rolename = value;
 		}
 		else return noteLoadError(state, "Unknown attribute.");
 	}
 
-	if (ename == NULL)
+	if (rolename == NULL)
 	{
-		return noteLoadError(state, "Need name of element.");
+		return noteLoadError(state, "Need role name of sender.");
 	}
 
-	elt = findElement(state->subject, ename);
 	switch (state->currentOperation)
 	{
 	case LoadAdding:
-		if (elt == NULL)
+		if (addAuthorizedSender(state->venture, state->subject,
+				rolename) < 0)
 		{
-			elt = createElement(state->subject, ename, type, desc);
-			if (elt == NULL)
-			{
-				return putErrmsg("Couldn't add element.",
-						ename);
-			}
-		}
-		else
-		{
-			return noteLoadError(state, "Element already in MIB.");
+			return putErrmsg("Couldn't add authorized sender.",
+						rolename);
 		}
 
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not yet implemented.");
+		return noteLoadError(state, "'Change' not applicable.");
 
 	case LoadDeleting:
-		if (elt == NULL)
+		state->target = rolename;	/*	May be target.	*/
+		break;
+
+	default:
+		return noteLoadError(state, "Not in an operation.");
+	}
+}
+
+static void	handle_receiver_start(LoadMibState *state, const char **atts)
+{
+	char	*rolename = NULL;
+	char	**att;
+	char	*name;
+	char	*value;
+
+	if (noMibYet(state)) return;
+	if (state->subject == NULL)
+	{
+		return noteLoadError(state, "Subject not specified.");
+	}
+
+	for (att = (char **) atts; *att; att++)
+	{
+		name = *att;
+		att++;
+		value = *att;
+		if (strcmp(name, "name") == 0)
 		{
-			return noteLoadError(state, "No such element.");
+			rolename = value;
+		}
+		else return noteLoadError(state, "Unknown attribute.");
+	}
+
+	if (rolename == NULL)
+	{
+		return noteLoadError(state, "Need role name of receiver.");
+	}
+
+	switch (state->currentOperation)
+	{
+	case LoadAdding:
+		if (addAuthorizedReceiver(state->venture, state->subject,
+				rolename) < 0)
+		{
+			return putErrmsg("Couldn't add authorized receiver.",
+						rolename);
 		}
 
-		state->target = elt;	/*	May be deletion target.	*/
+		break;
+
+	case LoadChanging:
+		return noteLoadError(state, "'Change' not applicable.");
+
+	case LoadDeleting:
+		state->target = rolename;	/*	May be target.	*/
 		break;
 
 	default:
@@ -961,8 +980,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 {
 	int		contnbr = 0;
 	char		*gwEid = NULL;
-	char		*symkey = NULL;
-	int		symkeylen = 0;
+	char		*symkeyname = NULL;
 	char		**att;
 	char		*name;
 	char		*value;
@@ -995,8 +1013,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		}
 		else if (strcmp(name, "symkey") == 0)
 		{
-			symkey = value;
-			symkeylen = strlen(symkey);
+			symkeyname = value;
 		}
 		else return noteLoadError(state, "Unknown attribute.");
 	}
@@ -1019,7 +1036,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		if (msgspace == NULL)
 		{
 			msgspace = createMsgspace(state->venture, contnbr,
-					gwEid, symkey, symkeylen);
+					gwEid, symkeyname);
 			if (msgspace == NULL)
 			{
 				return putErrmsg("Couldn't add msgspace.",
@@ -1116,9 +1133,14 @@ static void XMLCALL	startElement(void *userData, const char *name,
 		return handle_subject_start(state, atts);
 	}
 
-	if (strcmp(name, "element") == 0)
+	if (strcmp(name, "sender") == 0)
 	{
-		return handle_element_start(state, atts);
+		return handle_sender_start(state, atts);
+	}
+
+	if (strcmp(name, "receiver") == 0)
+	{
+		return handle_receiver_start(state, atts);
 	}
 
 	if (strcmp(name, "unit") == 0)
@@ -1168,7 +1190,7 @@ static void	handle_application_end(LoadMibState *state)
 {
 	if (state->target)	/*	Application is deletion target.	*/
 	{
-		lyst_delete((LystElt) (state->target));
+		eraseApp((AmsApp *) (state->target));
 		state->target = NULL;
 	}
 
@@ -1195,11 +1217,22 @@ static void	handle_subject_end(LoadMibState *state)
 	state->subject = NULL;
 }
 
-static void	handle_element_end(LoadMibState *state)
+static void	handle_sender_end(LoadMibState *state)
 {
-	if (state->target)	/*	Element is deletion target.	*/
+	if (state->target)	/*	Sender is deletion target.	*/
 	{
-		lyst_delete((LystElt) (state->target));
+		deleteAuthorizedSender(state->subject,
+				(char *) (state->target));
+		state->target = NULL;
+	}
+}
+
+static void	handle_receiver_end(LoadMibState *state)
+{
+	if (state->target)	/*	Receiver is deletion target.	*/
+	{
+		deleteAuthorizedReceiver(state->subject,
+				(char *) (state->target));
 		state->target = NULL;
 	}
 }
@@ -1296,9 +1329,14 @@ static void XMLCALL	endElement(void *userData, const char *name)
 		return handle_subject_end(state);
 	}
 
-	if (strcmp(name, "element") == 0)
+	if (strcmp(name, "sender") == 0)
 	{
-		return handle_element_end(state);
+		return handle_sender_end(state);
+	}
+
+	if (strcmp(name, "receiver") == 0)
+	{
+		return handle_receiver_end(state);
 	}
 
 	if (strcmp(name, "venture") == 0)
@@ -1487,7 +1525,7 @@ static AmsMib	*loadMibFromXmlSource(char *mibSource)
 	size_t			length;
 	int			result = 0;
 	AmsMib			*mib;
-	AmsMibParameters	parms = { 0, NULL, NULL, 0, NULL, 0 };
+	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
 
 	sourceFile = open(mibSource, O_RDONLY, 00777);
 	if (sourceFile < 0)
@@ -1564,7 +1602,7 @@ AmsMib	*loadMib(char *mibSource)
 	AmsMib			*mib;
 	int			i;
 	TransSvc		*ts;
-	AmsMibParameters	parms = { 0, NULL, NULL, 0, NULL, 0 };
+	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
 
 	mib = _mib(NULL);
 	if (mib)

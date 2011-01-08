@@ -20,6 +20,7 @@
 #include "lyst.h"
 #include "llcv.h"
 #include "ion.h"
+#include "ionsec.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -118,10 +119,8 @@ typedef struct
 {
 	int		continuumNbr;
 	char		*ptsName;
-	char		*publicKey;
-	int		publicKeyLength;
-	char		*privateKey;
-	int		privateKeyLength;
+	char		*publicKeyName;
+	char		*privateKeyName;
 } AmsMibParameters;
 
 typedef enum
@@ -229,10 +228,8 @@ typedef struct
 typedef struct
 {
 	char		*name;
-	char		*publicKey;
-	int		publicKeyLength;
-	char		*privateKey;	/*	Only in registrar MIB.	*/
-	int		privateKeyLength;
+	char		*publicKeyName;
+	char		*privateKeyName;/*	Only in registrar MIB.	*/
 } AmsApp;
 
 /*	AppRole characterizes one functional role in an instance of
@@ -242,10 +239,8 @@ typedef struct
 {
 	int		nbr;
 	char		*name;
-	char		*publicKey;
-	int		publicKeyLength;
-	char		*privateKey;	/*	Only in module's own MIB.*/
-	int		privateKeyLength;
+	char		*publicKeyName;
+	char		*privateKeyName;/*	Only in module's MIB.	*/
 } AppRole;
 
 /*	Modules send and receive the messages that are exchanged within
@@ -279,25 +274,6 @@ typedef struct
 } Module;
 
 
-/*	MsgElement describes one component of a standardized message.	*/
-
-typedef enum
-{
-	AmsNoElement = 0,
-	AmsLong,
-	AmsInt,
-	AmsShort,
-	AmsChar,
-	AmsString
-} ElementType;
-
-typedef struct
-{
-	char		*name;
-	ElementType	type;
-	char		*description;
-} MsgElement;
-
 /*	Subjects identify the messages exchanged among the modules
  *	of an instance of an application.  Subjects' references to
  *	modules are encapsulated in FanModule structures.		*/
@@ -317,11 +293,11 @@ typedef struct subjst
 	int		isContinuum;
 	char		*name;
 	char		*description;
-	Lyst		elements;		/*	(MsgElement *)	*/
 	Lyst		authorizedSenders;	/*	(AppRole *)	*/
 	Lyst		authorizedReceivers;	/*	(AppRole *)	*/
-	char		*symmetricKey;
-	int		keyLength;
+	char		*symmetricKeyName;
+	char		*marshalFnName;
+	char		*unmarshalFnName;
 	Lyst		modules;		/*	(FanModule *)	*/
 	LystElt		elt;			/*	In hashtable.	*/
 
@@ -403,10 +379,8 @@ typedef struct
 	Venture		*ventures[MAX_VENTURE_NBR + 1];
 	Lyst		csEndpoints;		/*	(MamsEndpoint *)*/
 	int		localContinuumNbr;
-	char		*csPublicKey;
-	int		csPublicKeyLength;
-	char		*csPrivateKey;		/*	Only for CS MIB.*/
-	int		csPrivateKeyLength;
+	char		*csPublicKeyName;
+	char		*csPrivateKeyName;	/*	Only for CS MIB.*/
 } AmsMib;
 
 /*	*	*	MAMS message structure	*	*	*	*/
@@ -462,41 +436,45 @@ extern char	*_rejectionMemos(int idx);
 extern int	time_to_stop(Llcv llcv);
 extern int	llcv_reply_received(Llcv llcv);
 
-extern void	encryptUsingPublicKey(char *plaintext, int ptlen, char *key,
-			int klen, char *cyphertext, int *ctlen);
-extern void	decryptUsingPublicKey(char *cyphertext, int ctlen, char *key,
-			int klen, char *plaintext, int *ptlen);
-extern void	encryptUsingPrivateKey(char *plaintext, int ptlen, char *key,
-			int klen, char *cyphertext, int *ctlen);
-extern void	decryptUsingPrivateKey(char *cyphertext, int ctlen, char *key,
-			int klen, char *plaintext, int *ptlen);
-extern void	encryptUsingSymmetricKey(char *plaintext, int ptlen, char *key,
-			int klen, char *cyphertext, int *ctlen);
-extern void	decryptUsingSymmetricKey(char *cyphertext, int ctlen, char *key,
-			int klen, char *plaintext, int *ptlen);
+extern void	encryptUsingPublicKey(char *cyphertext, int *ctlen,
+			char *key, int keyLen, char *plaintext, int ptlen);
+extern void	decryptUsingPublicKey(char *plaintext, int *ptlen,
+			char *key, int keyLen, char *cyphertext, int ctlen);
+extern void	encryptUsingPrivateKey(char *cyphertext, int *ctlen,
+			char *key, int keyLen, char *plaintext, int ptlen);
+extern void	decryptUsingPrivateKey(char *plaintext, int *ptlen,
+			char *key, int keyLen, char *cyphertext, int ctlen);
+extern int	encryptUsingSymmetricKey(char **cyphertext, char *key,
+			int keyLen, char *plaintext, int ptlen);
+extern int	decryptUsingSymmetricKey(char **plaintext, char *key,
+			int keyLen, char *cyphertext, int ctlen);
 
-extern LystElt	findApplication(char *appName);
-extern LystElt	findElement(Subject *subject, char *elementName);
+extern AmsApp	*lookUpApplication(char *appName);
 extern Venture	*lookUpVenture(char *appName, char *authName);
 extern Subject	*lookUpSubject(Venture *venture, char *subjectName);
 extern AppRole	*lookUpRole(Venture *venture, char *roleName);
 extern Unit	*lookUpUnit(Venture *venture, char *unitName);
 extern int	lookUpContinuum(char *continuumName);
 
-extern LystElt	createApp(char *name, char *publicKey, int publicKeyLength,
-			char *privateKey, int privateKeyLength);
-extern LystElt	createElement(Subject *subj, char *name, ElementType type,
-			char *description);
+extern void	eraseApp(AmsApp *app);
+extern LystElt	createApp(char *name, char *publicKeyName,
+			char *privateKeyName);
 extern void	eraseSubject(Venture *venture, Subject *subj);
 extern Subject	*createSubject(Venture *venture, int nbr, char *name,
-			char *description, char *key, int keyLength);
+			char *description, char *symmetricKeyName,
+			char *marshalFnName, char *unmarshalFnName);
 extern void	eraseRole(Venture *venture, AppRole *role);
 extern AppRole	*createRole(Venture *venture, int nbr, char *name,
-			char *publicKey, int publicKeyLength,
-			char *privateKey, int privateKeyLength);
+			char *publicKeyName, char *privateKeyName);
+extern void	deleteAuthorizedSender(Subject *subj, char *senderRoleName);
+extern int	addAuthorizedSender(Venture *venture, Subject *subj,
+			char *senderRoleName);
+extern void	deleteAuthorizedReceiver(Subject *subj, char *receiverRoleName);
+extern int	addAuthorizedReceiver(Venture *venture, Subject *subj,
+			char *receiverRoleName);
 extern void	eraseMsgspace(Venture *venture, Subject *subj);
 extern Subject	*createMsgspace(Venture *venture, int continNbr,
-			char *gwEidString, char *key, int keyLength);
+			char *gwEidString, char *symmetricKeyName);
 extern void	eraseUnit(Venture *venture, Unit *unit);
 extern Unit	*createUnit(Venture *venture, int nbr, char *name,
 			int resyncPeriod);

@@ -53,6 +53,24 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 #define ENDED_EVT	34
 #define BREAK_EVT	35
 
+/*	*	*	AAMS message marshaling functions	*	*/
+
+typedef int		(*MarshalFn)(char **into, void *from, int length);
+typedef struct
+{
+	char		*name;
+	MarshalFn	function;
+} MarshalRule;
+
+typedef int		(*UnmarshalFn)(void **into, char *from, int length);
+typedef struct
+{
+	char		*name;
+	UnmarshalFn	function;
+} UnmarshalRule;
+
+#include "marshal.c"
+
 /*	*	*	AMS API support functions	*	*	*/
 
 static LystElt	insertAmsEvent(AmsSAP *sap, AmsEvt *evt, int priority)
@@ -524,17 +542,113 @@ static int	validateAmsMsg(AmsSAP *sap, unsigned char *msgBuffer,
 	return deliveredContentLength;
 }
 
+static UnmarshalFn	findUnmarshalFn(Subject *subject)
+{
+	int	i;
+
+	if (subject->nbr < 0			/*	RAMS		*/
+	|| subject->unmarshalFnName == NULL)	/*	Not marshaled	*/
+	{
+		return NULL;
+	}
+
+	for (i = 0; i < unmarshalRulesCount; i++)
+	{
+		if (unmarshalRules[i].name == subject->unmarshalFnName)
+		{
+			return unmarshalRules[i].function;
+		}
+	}
+	
+	return NULL;
+}
+
+static int	recoverMsgContent(AmsMsg *msg, Subject *subject)
+{
+	char		*newContent;
+	int		newContentLength;
+	UnmarshalFn	unmarshal;
+	char		keyBuffer[512];
+	int		keyBufferLength = sizeof keyBuffer;
+
+	/*	Decrypt content as necessary.				*/
+
+	if (subject->nbr < 0			/*	RAMS		*/
+	|| subject->symmetricKeyName == NULL)	/*	not encrypted	*/
+	{
+		newContentLength = msg->contentLength;
+		newContent = MTAKE(msg->contentLength);
+		if (newContent == NULL)
+		{
+			putErrmsg("Can't copy AAMS msg content.",
+					itoa(msg->contentLength));
+			msg->content = NULL;
+			return -1;
+		}
+
+		memcpy(newContent, msg->content, msg->contentLength);
+	}
+	else
+	{
+		if (sec_get_key(subject->symmetricKeyName, &keyBufferLength,
+				keyBuffer) <= 0)
+		{
+			putErrmsg("Can't fetch symmetric key.",
+					subject->symmetricKeyName);
+			msg->content = NULL;
+			return -1;
+		}
+
+		newContentLength = decryptUsingSymmetricKey(&newContent,
+				keyBuffer, keyBufferLength, msg->content,
+				msg->contentLength);
+		if (newContentLength == 0)
+		{
+			putErrmsg("Can't decrypt AAMS msg content.",
+					subject->name);
+			msg->content = NULL;
+			return -1;
+		}
+	}
+
+	msg->content = newContent;
+	msg->contentLength = newContentLength;
+
+	/*	Unmarshal content as necessary.				*/
+
+	unmarshal = findUnmarshalFn(subject);
+	if (unmarshal == NULL)
+	{
+		return 0;	/*	Original content recovered.	*/
+	}
+
+	newContentLength = unmarshal((void **) &newContent, msg->content,
+			msg->contentLength);
+	if (newContentLength == 0)
+	{
+		putErrmsg("Can't unmarshal AAMS msg content.", subject->name);
+		MRELEASE(msg->content);
+		msg->content = NULL;
+		return -1;
+	}
+
+	msg->content = newContent;
+	msg->contentLength = newContentLength;
+	return 0;
+}
+
 int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 {
-	unsigned char	*msgContent = msgBuffer + 16;
-	int		deliveredContentLength;
-	AmsMsg		msg;
-	Module		*sender;
-	short		subjectNbr;
-	Subject		*subject;
-	LystElt		elt;
-	AppRole		*role;
-	AmsEvt		*evt;
+	char	*msgContent = ((char *) msgBuffer) + 16;
+	int	deliveredContentLength;
+	AmsMsg	msg;
+	Module	*sender;
+	short	subjectNbr;
+	Subject	*subject;
+	LystElt	elt;
+	char	*name;
+	int	result;
+	AmsEvt	*evt;
 
 	CHKERR(sap);
 	CHKERR(msgBuffer);
@@ -637,11 +751,19 @@ received by non-RAMS-gateway module.");
 			for (elt = lyst_first(subject->authorizedSenders);
 					elt; elt = lyst_next(elt))
 			{
-				role = (AppRole *) lyst_data(elt);
-				if (role == sender->role)
+				name = (char *) lyst_data(elt);
+				result = strcmp(name, sender->role->name);
+				if (result < 0)
 				{
-					break;
+					continue;
 				}
+
+				if (result > 0)
+				{
+					elt = NULL;	/*	End.	*/
+				}
+
+				break;
 			}
 
 			if (elt == NULL)
@@ -704,18 +826,10 @@ unsolicited message.", subject->name);
 	}
 	else
 	{
-		msg.content = MTAKE(msg.contentLength);
-		CHKERR(msg.content);
-		memcpy(msg.content, msgContent, msg.contentLength);
-
-		/*	Decrypt content as necessary.			*/
-
-		if (subject->symmetricKey)	/*	Key provided.	*/
+		msg.content = msgContent;
+		if (recoverMsgContent(&msg, subject) < 0)
 		{
-			decryptUsingSymmetricKey(msg.content, msg.contentLength,
-					subject->symmetricKey,
-					subject->keyLength, msg.content,
-					&msg.contentLength);
+			return -1;
 		}
 	}
 
@@ -729,9 +843,30 @@ unsolicited message.", subject->name);
 			msg.priority, msg.type);
 }
 
-static void	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
-			unsigned char flowLabel, int context, char *content,
-			int contentLength, unsigned char *header,
+static MarshalFn	findMarshalFn(Subject *subject)
+{
+	int	i;
+
+	if (subject->nbr < 0			/*	RAMS		*/
+	|| subject->marshalFnName == NULL)	/*	Not marshaled	*/
+	{
+		return NULL;
+	}
+
+	for (i = 0; i < marshalRulesCount; i++)
+	{
+		if (marshalRules[i].name == subject->marshalFnName)
+		{
+			return marshalRules[i].function;
+		}
+	}
+	
+	return NULL;
+}
+
+static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
+			unsigned char flowLabel, int context, char **content,
+			int *contentLength, unsigned char *header,
 			AmsMsgType msgType)
 {
 	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
@@ -739,6 +874,11 @@ static void	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	unsigned char	u1;
 	short		i2;
 	Subject		*subject;
+	MarshalFn	marshal;
+	char		*newContent;
+	int		newContentLength;
+	char		keyBuffer[512];
+	int		keyBufferLength = sizeof keyBuffer;
 
 	/*	First octet is two bits of version number (which is
 	 *	always 00 for now) followed by two bits of message
@@ -760,23 +900,72 @@ static void	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	memcpy(header + 8, (char *) &context, 4);
 	i2 = htons(subjectNbr);
 	memcpy(header + 12, (char *) &i2, 2);
-	*(header + 14) = (contentLength >> 8) & 0x000000ff;
-	*(header + 15) = contentLength & 0x000000ff;
-
-	/*	Encrypt message content as necessary.			*/
-
-	if (subjectNbr < 0)	/*	RAMS; don't encrypt.		*/
-	{
-		return;
-	}
-
+	*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
+	*(header + 15) = (*contentLength) & 0x000000ff;
 	subject = sap->venture->subjects[subjectNbr];
-	if (subject->symmetricKey)	/*	Key provided.		*/
+
+	/*	Marshal content as necessary.				*/
+
+	marshal = findMarshalFn(subject);
+	if (marshal)
 	{
-		encryptUsingSymmetricKey(content, contentLength,
-				subject->symmetricKey, subject->keyLength,
-				content, &contentLength);
+		newContentLength = marshal(&newContent, (void *) *content,
+				*contentLength);
+		if (newContentLength == 0)
+		{
+			putErrmsg("Can't marshal AAMS msg content.",
+					subject->name);
+			return -1;
+		}
 	}
+	else
+	{
+		newContentLength = *contentLength;
+		newContent = MTAKE(*contentLength);
+		if (newContent == NULL)
+		{
+			putErrmsg("Can't copy AAMS msg content.",
+					itoa(*contentLength));
+			return -1;
+		}
+
+		memcpy(newContent, *content, *contentLength);
+	}
+
+	*content = newContent;
+	*contentLength = newContentLength;
+
+	/*	Encrypt content as necessary.				*/
+
+	if (subject->nbr < 0			/*	RAMS		*/
+	&& subject->symmetricKeyName == NULL)	/*	not encrypted	*/
+	{
+		return 0;	/*	Content is ready to send.	*/
+	}
+
+	if (sec_get_key(subject->symmetricKeyName, &keyBufferLength, keyBuffer)
+			<= 0)
+	{
+		putErrmsg("Can't fetch symmetric key.",
+				subject->symmetricKeyName);
+		MRELEASE(*content);
+		*content = NULL;
+		return -1;
+	}
+
+	newContentLength = encryptUsingSymmetricKey(&newContent, keyBuffer,
+			keyBufferLength, *content, *contentLength);
+	if (newContentLength == 0)
+	{
+		putErrmsg("Can't encrypt AAMS msg content.", subject->name);
+		MRELEASE(*content);
+		*content = NULL;
+		return -1;
+	}
+
+	*content = newContent;
+	*contentLength = newContentLength;
+	return 0;
 }
 
 static int	enqueueMsgToRegistrar(AmsSAP *sap, MamsPduType pduType,
@@ -1275,7 +1464,8 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 	Lyst		rules;
 	LystElt		nextRule;
 	XmitRule	*rule;
-	AppRole		*role;
+	char		*name;
+	int		result;
 
 	/*	Record the message reception relationship.		*/
 
@@ -1414,12 +1604,19 @@ printf("...inserted rule in rules list %d...\n", (int) rules);
 		for (elt = lyst_first(subject->authorizedReceivers); elt;
 				elt = lyst_next(elt))
 		{
-			role = (AppRole *) lyst_data(elt);
-			if (role == module->role)
+			name = (char *) lyst_data(elt);
+			result = strcmp(name, module->role->name);
+			if (result < 0)
+			{
+				continue;
+			}
+			
+			if (result == 0)
 			{
 				rule->flags |= XMIT_IS_OKAY;
-				break;
 			}
+
+			break;
 		}
 	}
 
@@ -4078,7 +4275,6 @@ static int	receivedMsgAlready(Lyst recipients, int moduleNbr)
 {
 	LystElt	elt;
 	long	longModuleNbr = (long) moduleNbr;
-		// cast to long to avoid warnings on 64-bit machines
 
 	for (elt = lyst_first(recipients); elt; elt = lyst_next(elt))
 	{
@@ -4149,7 +4345,6 @@ static int	sendToSubscribers(AmsSAP *sap, Subject *subject,
 		{
 			lyst_insert_last(recipients,
 					(void *) ((long) (fan->module->nbr)));
-			// cast to long to avoid warnings on 64-bit
 		}
 	}
 
@@ -4165,6 +4360,7 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 	int		headerLength = sizeof amsHeader;
 	unsigned char	protectedBits;
 	Lyst		recipients;
+	int		result;
 
 	CHKERR(sap);
 	CHKERR(subjectIsValid(sap, subjectNbr, &subject));
@@ -4175,8 +4371,13 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 
 	/*	Knowing subject, construct message header & encrypt.	*/
 
-	constructMessage(sap, subjectNbr, priority, flowLabel, context, content,
-		contentLength, (unsigned char *) amsHeader, AmsMsgUnary);
+	if (constructMessage(sap, subjectNbr, priority, flowLabel, context,
+			&content, &contentLength, (unsigned char *) amsHeader,
+			AmsMsgUnary) < 0)
+	{
+		return -1;
+	}
+
 	protectedBits = amsHeader[0] & 0xf0;
 	recipients = lyst_create();
 	CHKERR(recipients);
@@ -4189,6 +4390,8 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 			amsHeader, headerLength, content, contentLength,
 			recipients) < 0)
 	{
+		lyst_destroy(recipients);
+		MRELEASE(content);
 		return -1;
 	}
 
@@ -4197,15 +4400,12 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 	 *	subjects".						*/
 
 	subject = sap->venture->subjects[ALL_SUBJECTS];
-	if (sendToSubscribers(sap, subject, priority, flowLabel, protectedBits,
-			amsHeader, headerLength, content, contentLength,
-		       	recipients) < 0)
-	{
-		return -1;
-	}
-
+	result = sendToSubscribers(sap, subject, priority, flowLabel,
+			protectedBits, amsHeader, headerLength, content,
+			contentLength, recipients);
 	lyst_destroy(recipients);
-	return 0;
+	MRELEASE(content);
+	return result;
 }
 
 int	ams_publish(AmsSAP *sap, int subjectNbr, int priority,
@@ -4791,6 +4991,7 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr,
 	Subject		*subject;
 	char		amsHeader[16];
 	int		headerLength = sizeof amsHeader;
+	int		result;
 	Unit		*unit;
 	Module		*module;
 	LystElt		elt;
@@ -4835,12 +5036,18 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr,
 
 	if (continuumNbr != myContinNbr)
 	{
-		constructMessage(sap, subjectNbr, priority, flowLabel, context,
-			content, contentLength, (unsigned char *) amsHeader,
-			msgType);
-		return publishInEnvelope(sap, continuumNbr, unitNbr,
+		if (constructMessage(sap, subjectNbr, priority, flowLabel,
+				context, &content, &contentLength,
+				(unsigned char *) amsHeader, msgType) < 0)
+		{
+			return -1;
+		}
+
+		result = publishInEnvelope(sap, continuumNbr, unitNbr,
 			sap->role->nbr, moduleNbr, subjectNbr, amsHeader,
 			headerLength, content, contentLength, 5);
+		MRELEASE(content);
+		return result;
 	}
 
 	/*	Find constraints on sending the message.		*/
@@ -4929,8 +5136,12 @@ module", subject->name);
 		flowLabel = rule->flowLabel;
 	}
 
-	constructMessage(sap, subjectNbr, priority, flowLabel, context, content,
-			contentLength, (unsigned char *) amsHeader, msgType);
+	if (constructMessage(sap, subjectNbr, priority, flowLabel, context,
+			&content, &contentLength, (unsigned char *) amsHeader,
+			msgType) < 0)
+	{
+		return -1;
+	}
 
 	/*	Send the message.					*/
 #if AMSDEBUG
@@ -4954,8 +5165,10 @@ amsHeader[15],
 content);
 fflush(stdout);
 #endif
-	return rule->amsEndpoint->ts->sendAmsFn(rule->amsEndpoint, sap,
+	result = rule->amsEndpoint->ts->sendAmsFn(rule->amsEndpoint, sap,
 		flowLabel, amsHeader, headerLength, content, contentLength);
+	MRELEASE(content);
+	return result;
 }
 
 static int	ams_send2(AmsSAP *sap, int continuumNbr, int unitNbr,
@@ -5474,8 +5687,12 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 
 	/*	Knowing subject, construct message header & encrypt.	*/
 
-	constructMessage(sap, subjectNbr, priority, flowLabel, context, content,
-		contentLength, (unsigned char *) amsHeader, AmsMsgUnary);
+	if (constructMessage(sap, subjectNbr, priority, flowLabel, context,
+			&content, &contentLength, (unsigned char *) amsHeader,
+			AmsMsgUnary) < 0)
+	{
+		return -1;
+	}
 
 	/*	Do remote AMS procedures if necessary.			*/
 
@@ -5486,6 +5703,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			amsHeader, headerLength, content, contentLength, 6);
 		if (result < 0)
 		{
+			MRELEASE(content);
 			return result;
 		}
 	}
@@ -5493,9 +5711,11 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	{
 		if (continuumNbr != myContinNbr)
 		{
-			return publishInEnvelope(sap, continuumNbr, unitNbr,
+			result = publishInEnvelope(sap, continuumNbr, unitNbr,
 				sap->role->nbr, roleNbr, subjectNbr, amsHeader,
 				headerLength, content, contentLength, 6);
+			MRELEASE(content);
+			return result;
 		}
 	}
 
@@ -5562,6 +5782,8 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 				content, contentLength);
 		if (result < 0)
 		{
+			lyst_destroy(recipients);
+			MRELEASE(content);
 			return result;
 		}
 
@@ -5629,11 +5851,14 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 				content, contentLength);
 		if (result < 0)
 		{
+			lyst_destroy(recipients);
+			MRELEASE(content);
 			return result;
 		}
 	}
 
 	lyst_destroy(recipients);
+	MRELEASE(content);
 	return 0;
 }
 
