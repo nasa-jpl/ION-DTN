@@ -8,6 +8,11 @@
 
 #set -x
 
+if ! which ldd > /dev/null; then
+	echo "This system doesn't have 'ldd'; Skipping"
+	exit 2;
+fi
+
 RETVAL=0
 
 CURDIR=$PWD
