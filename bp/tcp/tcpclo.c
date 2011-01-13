@@ -41,7 +41,7 @@ typedef struct
 static void	*sendKeepalives(void *parm)
 {
 	KeepaliveThreadParms	*parms = (KeepaliveThreadParms *) parm;
-	int			count = 0;
+	int			keepaliveTimer = 0;
 	int			bytesSent;
 	int			backoffTimer = BACKOFF_TIMER_START;
 	int 			backoffTimerCount = 0;
@@ -58,8 +58,8 @@ static void	*sendKeepalives(void *parm)
 	while (*(parms->cloRunning))
 	{
 		snooze(1);
-		count++;
-		if (count < *(parms->keepalivePeriod))
+		keepaliveTimer++;
+		if (keepaliveTimer < *(parms->keepalivePeriod))
 		{
 			continue;
 		}
@@ -78,7 +78,7 @@ static void	*sendKeepalives(void *parm)
 		 *	by TCP to determine that the connection
 		 *	attempt will not succeed (e.g., 3 seconds).	*/
 
-		count = 0;
+		keepaliveTimer = 0;
 		pthread_mutex_lock(parms->mutex);
 		bytesSent = sendBundleByTCPCL(parms->socketName,
 				parms->ductSocket, 0, 0, buffer, parms->keepalivePeriod);
@@ -92,6 +92,12 @@ static void	*sendKeepalives(void *parm)
 			{
 				snooze(1);
 				backoffTimerCount++;
+				/*	keepaliveTimer keeps track of when the keepalive needs 
+ 				 *	to be sent. This value also need to be increased
+ 				 *	during backoff period. That way as soon as
+ 				 *	tcpcl detects connection keepalive is sent
+ 				 *							*/
+				keepaliveTimer++;	
 				if(!(*(parms->cloRunning)))
 				{
 					break;
