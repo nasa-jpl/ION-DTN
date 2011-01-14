@@ -850,10 +850,11 @@ bpextra = \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.h \
 	bp/library/ext/bsp/extbspbab.c \
-	bp/library/NULL_BAB_HMAC/sha1.c \
-	bp/library/NULL_BAB_HMAC/sha1.h \
-	bp/library/NULL_BAB_HMAC/hmac.c \
-	bp/library/NULL_BAB_HMAC/hmac.h
+	bp/library/crypto/crypto.h \
+	bp/library/crypto/NULL_BAB_HMAC/hmac.h \
+	bp/library/crypto/NULL_BAB_HMAC/hmac.c \
+	bp/library/crypto/NULL_BAB_HMAC/sha1.h \
+	bp/library/crypto/NULL_BAB_HMAC/sha1.c
 
 # noextensions.c is C code, but it isn't explicitly compiled.
 # instead, the whole file is #included into libbpP.c

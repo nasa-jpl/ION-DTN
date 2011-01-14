@@ -1,0 +1,7 @@
+bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo: \
+ bp/library/crypto/NULL_BAB_HMAC/sha1.c config.h \
+ bp/library/crypto/NULL_BAB_HMAC/sha1.h
+
+config.h:
+
+bp/library/crypto/NULL_BAB_HMAC/sha1.h:
