@@ -18,7 +18,7 @@
 #include "ipnfw.h"
 #include "dtn2fw.h"
 #include "ionsec.h"
-#include "hmac.h"
+#include "../library/crypto/NULL_BAB_HMAC/hmac.h"
 
 #ifdef __cplusplus
 extern "C" {

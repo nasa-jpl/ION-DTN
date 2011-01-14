@@ -417,6 +417,7 @@ libici_la_SOURCES =	ici/library/llcv.c \
 			ici/sdr/sdrtable.c \
 			ici/sdr/sdrhash.c \
 			ici/sdr/sdrcatlg.c
+
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
 libici_la_LDFLAGS = $(ION_LINK_FLAGS)
 
@@ -782,13 +783,14 @@ bplib = \
 
 bpinclude = \
 	bp/include/bp.h
+#bp/include/bpP.h \
+#bp/include/bei.h
 
 #ecos.h goes here?
 #bp/library/ecos.h 
 bpnoinst = \
 	bp/library/bpP.h \
-	bp/library/bei.h \
-	bp/library/phn.h \
+	bp/library/ext/phn/phn.h \
 	bp/ipn/ipnfw.h \
 	bp/dtn2/dtn2fw.h \
 	bp/brs/brscla.h \
@@ -841,15 +843,13 @@ bpextra = \
 	bp/doc/pod3/bpextensions.pod \
 	bp/library/bpextensions.c \
 	bp/library/noextensions.c \
-	bp/library/ecos.h \
-	bp/library/ecos.c \
+	bp/library/ext/ecos/ecos.h \
+	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
-	bp/library/bsp.h \
-	bp/library/bsp.c \
-	bp/library/sha1.c \
-	bp/library/sha1.h \
-	bp/library/hmac.c \
-	bp/library/hmac.h \
+	bp/library/ext/bsp/extbsputil.h \
+	bp/library/ext/bsp/extbsputil.c \
+	bp/library/ext/bsp/extbspbab.h \
+	bp/library/ext/bsp/extbspbab.c \
 	bp/library/NULL_BAB_HMAC/sha1.c \
 	bp/library/NULL_BAB_HMAC/sha1.h \
 	bp/library/NULL_BAB_HMAC/hmac.c \
@@ -954,14 +954,17 @@ libcgr_la_SOURCES = bp/cgr/libcgr.c
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libcgr_la_LDFLAGS = $(ION_LINK_FLAGS)
 
+
+#bvb (added bei.c), does bsp.c remain?
 libbpP_la_SOURCES = \
 	bp/library/libbpP.c \
-	bp/library/phn.c \
-	bp/library/ecos.c \
+	bp/library/ext/phn/phn.c \
+	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
-	bp/library/bsp.c \
-	bp/library/hmac.c \
-	bp/library/sha1.c
+	bp/library/ext/bsp/extbsputil.c \
+	bp/library/ext/bsp/extbspbab.c \
+	bp/library/crypto/NULL_BAB_HMAC/hmac.c \
+	bp/library/crypto/NULL_BAB_HMAC/sha1.c
 libbpP_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libbpP_la_LDFLAGS = $(ION_LINK_FLAGS)
 

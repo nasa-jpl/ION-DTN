@@ -116,9 +116,13 @@ libbp_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	$(libbp_la_LDFLAGS) $(LDFLAGS) -o $@
 libbpP_la_LIBADD =
 am_libbpP_la_OBJECTS = bp/library/libbpP_la-libbpP.lo \
-	bp/library/libbpP_la-phn.lo bp/library/libbpP_la-ecos.lo \
-	bp/library/libbpP_la-bei.lo bp/library/libbpP_la-bsp.lo \
-	bp/library/libbpP_la-hmac.lo bp/library/libbpP_la-sha1.lo
+	bp/library/ext/phn/libbpP_la-phn.lo \
+	bp/library/ext/ecos/libbpP_la-ecos.lo \
+	bp/library/libbpP_la-bei.lo \
+	bp/library/ext/bsp/libbpP_la-extbsputil.lo \
+	bp/library/ext/bsp/libbpP_la-extbspbab.lo \
+	bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo \
+	bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo
 libbpP_la_OBJECTS = $(am_libbpP_la_OBJECTS)
 libbpP_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libbpP_la_CFLAGS) \
@@ -858,7 +862,7 @@ AUTOHEADER = ${SHELL} /home/vanbewl1/src/DTN/ion-open-source/missing --run autoh
 AUTOMAKE = ${SHELL} /home/vanbewl1/src/DTN/ion-open-source/missing --run automake-1.11
 AWK = mawk
 CC = gcc
-CCDEPMODE = depmode=gcc3
+CCDEPMODE = depmode=none
 CFLAGS = -g -O2
 CPP = gcc -E
 CPPFLAGS = 
@@ -1626,16 +1630,16 @@ bplib = \
 #	libphn.la 
 #	libecos.la
 bpinclude = \
-	bp/include/bp.h \
-	bp/include/bpP.h \
-	bp/include/bei.h
+	bp/include/bp.h
 
+#bp/include/bpP.h \
+#bp/include/bei.h
 
 #ecos.h goes here?
 #bp/library/ecos.h 
 bpnoinst = \
 	bp/library/bpP.h \
-	bp/library/phn.h \
+	bp/library/ext/phn/phn.h \
 	bp/ipn/ipnfw.h \
 	bp/dtn2/dtn2fw.h \
 	bp/brs/brscla.h \
@@ -1688,15 +1692,13 @@ bpextra = \
 	bp/doc/pod3/bpextensions.pod \
 	bp/library/bpextensions.c \
 	bp/library/noextensions.c \
-	bp/library/ecos.h \
-	bp/library/ecos.c \
+	bp/library/ext/ecos/ecos.h \
+	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
-	bp/library/bsp.h \
-	bp/library/bsp.c \
-	bp/library/sha1.c \
-	bp/library/sha1.h \
-	bp/library/hmac.c \
-	bp/library/hmac.h \
+	bp/library/ext/bsp/extbsputil.h \
+	bp/library/ext/bsp/extbsputil.c \
+	bp/library/ext/bsp/extbspbab.h \
+	bp/library/ext/bsp/extbspbab.c \
 	bp/library/NULL_BAB_HMAC/sha1.c \
 	bp/library/NULL_BAB_HMAC/sha1.h \
 	bp/library/NULL_BAB_HMAC/hmac.c \
@@ -1781,14 +1783,17 @@ libbp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libcgr_la_SOURCES = bp/cgr/libcgr.c
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libcgr_la_LDFLAGS = $(ION_LINK_FLAGS)
+
+#bvb (added bei.c), does bsp.c remain?
 libbpP_la_SOURCES = \
 	bp/library/libbpP.c \
-	bp/library/phn.c \
-	bp/library/ecos.c \
+	bp/library/ext/phn/phn.c \
+	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
-	bp/library/bsp.c \
-	bp/library/hmac.c \
-	bp/library/sha1.c
+	bp/library/ext/bsp/extbsputil.c \
+	bp/library/ext/bsp/extbspbab.c \
+	bp/library/crypto/NULL_BAB_HMAC/hmac.c \
+	bp/library/crypto/NULL_BAB_HMAC/sha1.c
 
 libbpP_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libbpP_la_LDFLAGS = $(ION_LINK_FLAGS)
@@ -2234,18 +2239,50 @@ libbp.la: $(libbp_la_OBJECTS) $(libbp_la_DEPENDENCIES)
 	$(libbp_la_LINK) -rpath $(libdir) $(libbp_la_OBJECTS) $(libbp_la_LIBADD) $(LIBS)
 bp/library/libbpP_la-libbpP.lo: bp/library/$(am__dirstamp) \
 	bp/library/$(DEPDIR)/$(am__dirstamp)
-bp/library/libbpP_la-phn.lo: bp/library/$(am__dirstamp) \
-	bp/library/$(DEPDIR)/$(am__dirstamp)
-bp/library/libbpP_la-ecos.lo: bp/library/$(am__dirstamp) \
-	bp/library/$(DEPDIR)/$(am__dirstamp)
+bp/library/ext/phn/$(am__dirstamp):
+	@$(MKDIR_P) bp/library/ext/phn
+	@: > bp/library/ext/phn/$(am__dirstamp)
+bp/library/ext/phn/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) bp/library/ext/phn/$(DEPDIR)
+	@: > bp/library/ext/phn/$(DEPDIR)/$(am__dirstamp)
+bp/library/ext/phn/libbpP_la-phn.lo:  \
+	bp/library/ext/phn/$(am__dirstamp) \
+	bp/library/ext/phn/$(DEPDIR)/$(am__dirstamp)
+bp/library/ext/ecos/$(am__dirstamp):
+	@$(MKDIR_P) bp/library/ext/ecos
+	@: > bp/library/ext/ecos/$(am__dirstamp)
+bp/library/ext/ecos/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) bp/library/ext/ecos/$(DEPDIR)
+	@: > bp/library/ext/ecos/$(DEPDIR)/$(am__dirstamp)
+bp/library/ext/ecos/libbpP_la-ecos.lo:  \
+	bp/library/ext/ecos/$(am__dirstamp) \
+	bp/library/ext/ecos/$(DEPDIR)/$(am__dirstamp)
 bp/library/libbpP_la-bei.lo: bp/library/$(am__dirstamp) \
 	bp/library/$(DEPDIR)/$(am__dirstamp)
-bp/library/libbpP_la-bsp.lo: bp/library/$(am__dirstamp) \
-	bp/library/$(DEPDIR)/$(am__dirstamp)
-bp/library/libbpP_la-hmac.lo: bp/library/$(am__dirstamp) \
-	bp/library/$(DEPDIR)/$(am__dirstamp)
-bp/library/libbpP_la-sha1.lo: bp/library/$(am__dirstamp) \
-	bp/library/$(DEPDIR)/$(am__dirstamp)
+bp/library/ext/bsp/$(am__dirstamp):
+	@$(MKDIR_P) bp/library/ext/bsp
+	@: > bp/library/ext/bsp/$(am__dirstamp)
+bp/library/ext/bsp/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) bp/library/ext/bsp/$(DEPDIR)
+	@: > bp/library/ext/bsp/$(DEPDIR)/$(am__dirstamp)
+bp/library/ext/bsp/libbpP_la-extbsputil.lo:  \
+	bp/library/ext/bsp/$(am__dirstamp) \
+	bp/library/ext/bsp/$(DEPDIR)/$(am__dirstamp)
+bp/library/ext/bsp/libbpP_la-extbspbab.lo:  \
+	bp/library/ext/bsp/$(am__dirstamp) \
+	bp/library/ext/bsp/$(DEPDIR)/$(am__dirstamp)
+bp/library/crypto/NULL_BAB_HMAC/$(am__dirstamp):
+	@$(MKDIR_P) bp/library/crypto/NULL_BAB_HMAC
+	@: > bp/library/crypto/NULL_BAB_HMAC/$(am__dirstamp)
+bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)
+	@: > bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/$(am__dirstamp)
+bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo:  \
+	bp/library/crypto/NULL_BAB_HMAC/$(am__dirstamp) \
+	bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/$(am__dirstamp)
+bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo:  \
+	bp/library/crypto/NULL_BAB_HMAC/$(am__dirstamp) \
+	bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/$(am__dirstamp)
 libbpP.la: $(libbpP_la_OBJECTS) $(libbpP_la_DEPENDENCIES) 
 	$(libbpP_la_LINK) -rpath $(libdir) $(libbpP_la_OBJECTS) $(libbpP_la_LIBADD) $(LIBS)
 cfdp/library/$(am__dirstamp):
@@ -3092,20 +3129,22 @@ mostlyclean-compile:
 	-rm -f bp/ipn/ipnfw-ipnfw.$(OBJEXT)
 	-rm -f bp/ipn/libipnfw_la-libipnfw.$(OBJEXT)
 	-rm -f bp/ipn/libipnfw_la-libipnfw.lo
+	-rm -f bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.$(OBJEXT)
+	-rm -f bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo
+	-rm -f bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.$(OBJEXT)
+	-rm -f bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo
+	-rm -f bp/library/ext/bsp/libbpP_la-extbspbab.$(OBJEXT)
+	-rm -f bp/library/ext/bsp/libbpP_la-extbspbab.lo
+	-rm -f bp/library/ext/bsp/libbpP_la-extbsputil.$(OBJEXT)
+	-rm -f bp/library/ext/bsp/libbpP_la-extbsputil.lo
+	-rm -f bp/library/ext/ecos/libbpP_la-ecos.$(OBJEXT)
+	-rm -f bp/library/ext/ecos/libbpP_la-ecos.lo
+	-rm -f bp/library/ext/phn/libbpP_la-phn.$(OBJEXT)
+	-rm -f bp/library/ext/phn/libbpP_la-phn.lo
 	-rm -f bp/library/libbpP_la-bei.$(OBJEXT)
 	-rm -f bp/library/libbpP_la-bei.lo
-	-rm -f bp/library/libbpP_la-bsp.$(OBJEXT)
-	-rm -f bp/library/libbpP_la-bsp.lo
-	-rm -f bp/library/libbpP_la-ecos.$(OBJEXT)
-	-rm -f bp/library/libbpP_la-ecos.lo
-	-rm -f bp/library/libbpP_la-hmac.$(OBJEXT)
-	-rm -f bp/library/libbpP_la-hmac.lo
 	-rm -f bp/library/libbpP_la-libbpP.$(OBJEXT)
 	-rm -f bp/library/libbpP_la-libbpP.lo
-	-rm -f bp/library/libbpP_la-phn.$(OBJEXT)
-	-rm -f bp/library/libbpP_la-phn.lo
-	-rm -f bp/library/libbpP_la-sha1.$(OBJEXT)
-	-rm -f bp/library/libbpP_la-sha1.lo
 	-rm -f bp/library/libbp_la-libbp.$(OBJEXT)
 	-rm -f bp/library/libbp_la-libbp.lo
 	-rm -f bp/ltp/ltpcli-ltpcli.$(OBJEXT)
@@ -3270,13 +3309,14 @@ include bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Po
 include bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Po
 include bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Plo
 include bp/library/$(DEPDIR)/libbpP_la-bei.Plo
-include bp/library/$(DEPDIR)/libbpP_la-bsp.Plo
-include bp/library/$(DEPDIR)/libbpP_la-ecos.Plo
-include bp/library/$(DEPDIR)/libbpP_la-hmac.Plo
 include bp/library/$(DEPDIR)/libbpP_la-libbpP.Plo
-include bp/library/$(DEPDIR)/libbpP_la-phn.Plo
-include bp/library/$(DEPDIR)/libbpP_la-sha1.Plo
 include bp/library/$(DEPDIR)/libbp_la-libbp.Plo
+include bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-hmac.Plo
+include bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-sha1.Plo
+include bp/library/ext/bsp/$(DEPDIR)/libbpP_la-extbspbab.Plo
+include bp/library/ext/bsp/$(DEPDIR)/libbpP_la-extbsputil.Plo
+include bp/library/ext/ecos/$(DEPDIR)/libbpP_la-ecos.Plo
+include bp/library/ext/phn/$(DEPDIR)/libbpP_la-phn.Plo
 include bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Po
 include bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Po
 include bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Plo
@@ -3369,1582 +3409,1589 @@ include tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Plo
 include tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstop.Plo
 
 .c.o:
-	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
-	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
-	$(am__mv) $$depbase.Tpo $$depbase.Po
-#	source='$<' object='$@' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(COMPILE) -c -o $@ $<
+#	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+#	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+#	$(am__mv) $$depbase.Tpo $$depbase.Po
+	source='$<' object='$@' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(COMPILE) -c -o $@ $<
 
 .c.obj:
-	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
-	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
-	$(am__mv) $$depbase.Tpo $$depbase.Po
-#	source='$<' object='$@' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+#	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+#	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+#	$(am__mv) $$depbase.Tpo $$depbase.Po
+	source='$<' object='$@' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 .c.lo:
-	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
-	$(LTCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
-	$(am__mv) $$depbase.Tpo $$depbase.Plo
-#	source='$<' object='$@' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LTCOMPILE) -c -o $@ $<
+#	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+#	$(LTCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+#	$(am__mv) $$depbase.Tpo $$depbase.Plo
+	source='$<' object='$@' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LTCOMPILE) -c -o $@ $<
 
 ams/library/libams_la-libams.lo: ams/library/libams.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-libams.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-libams.Tpo -c -o ams/library/libams_la-libams.lo `test -f 'ams/library/libams.c' || echo '$(srcdir)/'`ams/library/libams.c
-	$(am__mv) ams/library/$(DEPDIR)/libams_la-libams.Tpo ams/library/$(DEPDIR)/libams_la-libams.Plo
-#	source='ams/library/libams.c' object='ams/library/libams_la-libams.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-libams.lo `test -f 'ams/library/libams.c' || echo '$(srcdir)/'`ams/library/libams.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-libams.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-libams.Tpo -c -o ams/library/libams_la-libams.lo `test -f 'ams/library/libams.c' || echo '$(srcdir)/'`ams/library/libams.c
+#	$(am__mv) ams/library/$(DEPDIR)/libams_la-libams.Tpo ams/library/$(DEPDIR)/libams_la-libams.Plo
+	source='ams/library/libams.c' object='ams/library/libams_la-libams.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-libams.lo `test -f 'ams/library/libams.c' || echo '$(srcdir)/'`ams/library/libams.c
 
 ams/library/libams_la-amscommon.lo: ams/library/amscommon.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-amscommon.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-amscommon.Tpo -c -o ams/library/libams_la-amscommon.lo `test -f 'ams/library/amscommon.c' || echo '$(srcdir)/'`ams/library/amscommon.c
-	$(am__mv) ams/library/$(DEPDIR)/libams_la-amscommon.Tpo ams/library/$(DEPDIR)/libams_la-amscommon.Plo
-#	source='ams/library/amscommon.c' object='ams/library/libams_la-amscommon.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-amscommon.lo `test -f 'ams/library/amscommon.c' || echo '$(srcdir)/'`ams/library/amscommon.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-amscommon.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-amscommon.Tpo -c -o ams/library/libams_la-amscommon.lo `test -f 'ams/library/amscommon.c' || echo '$(srcdir)/'`ams/library/amscommon.c
+#	$(am__mv) ams/library/$(DEPDIR)/libams_la-amscommon.Tpo ams/library/$(DEPDIR)/libams_la-amscommon.Plo
+	source='ams/library/amscommon.c' object='ams/library/libams_la-amscommon.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-amscommon.lo `test -f 'ams/library/amscommon.c' || echo '$(srcdir)/'`ams/library/amscommon.c
 
 ams/library/libams_la-loadmib.lo: ams/library/loadmib.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-loadmib.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-loadmib.Tpo -c -o ams/library/libams_la-loadmib.lo `test -f 'ams/library/loadmib.c' || echo '$(srcdir)/'`ams/library/loadmib.c
-	$(am__mv) ams/library/$(DEPDIR)/libams_la-loadmib.Tpo ams/library/$(DEPDIR)/libams_la-loadmib.Plo
-#	source='ams/library/loadmib.c' object='ams/library/libams_la-loadmib.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-loadmib.lo `test -f 'ams/library/loadmib.c' || echo '$(srcdir)/'`ams/library/loadmib.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-loadmib.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-loadmib.Tpo -c -o ams/library/libams_la-loadmib.lo `test -f 'ams/library/loadmib.c' || echo '$(srcdir)/'`ams/library/loadmib.c
+#	$(am__mv) ams/library/$(DEPDIR)/libams_la-loadmib.Tpo ams/library/$(DEPDIR)/libams_la-loadmib.Plo
+	source='ams/library/loadmib.c' object='ams/library/libams_la-loadmib.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-loadmib.lo `test -f 'ams/library/loadmib.c' || echo '$(srcdir)/'`ams/library/loadmib.c
 
 ams/library/libams_la-nullcrypt.lo: ams/library/nullcrypt.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-nullcrypt.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-nullcrypt.Tpo -c -o ams/library/libams_la-nullcrypt.lo `test -f 'ams/library/nullcrypt.c' || echo '$(srcdir)/'`ams/library/nullcrypt.c
-	$(am__mv) ams/library/$(DEPDIR)/libams_la-nullcrypt.Tpo ams/library/$(DEPDIR)/libams_la-nullcrypt.Plo
-#	source='ams/library/nullcrypt.c' object='ams/library/libams_la-nullcrypt.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-nullcrypt.lo `test -f 'ams/library/nullcrypt.c' || echo '$(srcdir)/'`ams/library/nullcrypt.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-nullcrypt.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-nullcrypt.Tpo -c -o ams/library/libams_la-nullcrypt.lo `test -f 'ams/library/nullcrypt.c' || echo '$(srcdir)/'`ams/library/nullcrypt.c
+#	$(am__mv) ams/library/$(DEPDIR)/libams_la-nullcrypt.Tpo ams/library/$(DEPDIR)/libams_la-nullcrypt.Plo
+	source='ams/library/nullcrypt.c' object='ams/library/libams_la-nullcrypt.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-nullcrypt.lo `test -f 'ams/library/nullcrypt.c' || echo '$(srcdir)/'`ams/library/nullcrypt.c
 
 ams/library/libams_la-dgrts.lo: ams/library/dgrts.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-dgrts.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-dgrts.Tpo -c -o ams/library/libams_la-dgrts.lo `test -f 'ams/library/dgrts.c' || echo '$(srcdir)/'`ams/library/dgrts.c
-	$(am__mv) ams/library/$(DEPDIR)/libams_la-dgrts.Tpo ams/library/$(DEPDIR)/libams_la-dgrts.Plo
-#	source='ams/library/dgrts.c' object='ams/library/libams_la-dgrts.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-dgrts.lo `test -f 'ams/library/dgrts.c' || echo '$(srcdir)/'`ams/library/dgrts.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-dgrts.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-dgrts.Tpo -c -o ams/library/libams_la-dgrts.lo `test -f 'ams/library/dgrts.c' || echo '$(srcdir)/'`ams/library/dgrts.c
+#	$(am__mv) ams/library/$(DEPDIR)/libams_la-dgrts.Tpo ams/library/$(DEPDIR)/libams_la-dgrts.Plo
+	source='ams/library/dgrts.c' object='ams/library/libams_la-dgrts.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-dgrts.lo `test -f 'ams/library/dgrts.c' || echo '$(srcdir)/'`ams/library/dgrts.c
 
 ams/library/libams_la-udpts.lo: ams/library/udpts.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-udpts.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-udpts.Tpo -c -o ams/library/libams_la-udpts.lo `test -f 'ams/library/udpts.c' || echo '$(srcdir)/'`ams/library/udpts.c
-	$(am__mv) ams/library/$(DEPDIR)/libams_la-udpts.Tpo ams/library/$(DEPDIR)/libams_la-udpts.Plo
-#	source='ams/library/udpts.c' object='ams/library/libams_la-udpts.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-udpts.lo `test -f 'ams/library/udpts.c' || echo '$(srcdir)/'`ams/library/udpts.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-udpts.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-udpts.Tpo -c -o ams/library/libams_la-udpts.lo `test -f 'ams/library/udpts.c' || echo '$(srcdir)/'`ams/library/udpts.c
+#	$(am__mv) ams/library/$(DEPDIR)/libams_la-udpts.Tpo ams/library/$(DEPDIR)/libams_la-udpts.Plo
+	source='ams/library/udpts.c' object='ams/library/libams_la-udpts.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-udpts.lo `test -f 'ams/library/udpts.c' || echo '$(srcdir)/'`ams/library/udpts.c
 
 ams/library/libams_la-tcpts.lo: ams/library/tcpts.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-tcpts.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-tcpts.Tpo -c -o ams/library/libams_la-tcpts.lo `test -f 'ams/library/tcpts.c' || echo '$(srcdir)/'`ams/library/tcpts.c
-	$(am__mv) ams/library/$(DEPDIR)/libams_la-tcpts.Tpo ams/library/$(DEPDIR)/libams_la-tcpts.Plo
-#	source='ams/library/tcpts.c' object='ams/library/libams_la-tcpts.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-tcpts.lo `test -f 'ams/library/tcpts.c' || echo '$(srcdir)/'`ams/library/tcpts.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -MT ams/library/libams_la-tcpts.lo -MD -MP -MF ams/library/$(DEPDIR)/libams_la-tcpts.Tpo -c -o ams/library/libams_la-tcpts.lo `test -f 'ams/library/tcpts.c' || echo '$(srcdir)/'`ams/library/tcpts.c
+#	$(am__mv) ams/library/$(DEPDIR)/libams_la-tcpts.Tpo ams/library/$(DEPDIR)/libams_la-tcpts.Plo
+	source='ams/library/tcpts.c' object='ams/library/libams_la-tcpts.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-tcpts.lo `test -f 'ams/library/tcpts.c' || echo '$(srcdir)/'`ams/library/tcpts.c
 
 bp/library/libbp_la-libbp.lo: bp/library/libbp.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/library/libbp_la-libbp.lo -MD -MP -MF bp/library/$(DEPDIR)/libbp_la-libbp.Tpo -c -o bp/library/libbp_la-libbp.lo `test -f 'bp/library/libbp.c' || echo '$(srcdir)/'`bp/library/libbp.c
-	$(am__mv) bp/library/$(DEPDIR)/libbp_la-libbp.Tpo bp/library/$(DEPDIR)/libbp_la-libbp.Plo
-#	source='bp/library/libbp.c' object='bp/library/libbp_la-libbp.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbp_la-libbp.lo `test -f 'bp/library/libbp.c' || echo '$(srcdir)/'`bp/library/libbp.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/library/libbp_la-libbp.lo -MD -MP -MF bp/library/$(DEPDIR)/libbp_la-libbp.Tpo -c -o bp/library/libbp_la-libbp.lo `test -f 'bp/library/libbp.c' || echo '$(srcdir)/'`bp/library/libbp.c
+#	$(am__mv) bp/library/$(DEPDIR)/libbp_la-libbp.Tpo bp/library/$(DEPDIR)/libbp_la-libbp.Plo
+	source='bp/library/libbp.c' object='bp/library/libbp_la-libbp.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbp_la-libbp.lo `test -f 'bp/library/libbp.c' || echo '$(srcdir)/'`bp/library/libbp.c
 
 bp/library/libbpP_la-libbpP.lo: bp/library/libbpP.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-libbpP.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-libbpP.Tpo -c -o bp/library/libbpP_la-libbpP.lo `test -f 'bp/library/libbpP.c' || echo '$(srcdir)/'`bp/library/libbpP.c
-	$(am__mv) bp/library/$(DEPDIR)/libbpP_la-libbpP.Tpo bp/library/$(DEPDIR)/libbpP_la-libbpP.Plo
-#	source='bp/library/libbpP.c' object='bp/library/libbpP_la-libbpP.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-libbpP.lo `test -f 'bp/library/libbpP.c' || echo '$(srcdir)/'`bp/library/libbpP.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-libbpP.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-libbpP.Tpo -c -o bp/library/libbpP_la-libbpP.lo `test -f 'bp/library/libbpP.c' || echo '$(srcdir)/'`bp/library/libbpP.c
+#	$(am__mv) bp/library/$(DEPDIR)/libbpP_la-libbpP.Tpo bp/library/$(DEPDIR)/libbpP_la-libbpP.Plo
+	source='bp/library/libbpP.c' object='bp/library/libbpP_la-libbpP.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-libbpP.lo `test -f 'bp/library/libbpP.c' || echo '$(srcdir)/'`bp/library/libbpP.c
 
-bp/library/libbpP_la-phn.lo: bp/library/phn.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-phn.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-phn.Tpo -c -o bp/library/libbpP_la-phn.lo `test -f 'bp/library/phn.c' || echo '$(srcdir)/'`bp/library/phn.c
-	$(am__mv) bp/library/$(DEPDIR)/libbpP_la-phn.Tpo bp/library/$(DEPDIR)/libbpP_la-phn.Plo
-#	source='bp/library/phn.c' object='bp/library/libbpP_la-phn.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-phn.lo `test -f 'bp/library/phn.c' || echo '$(srcdir)/'`bp/library/phn.c
+bp/library/ext/phn/libbpP_la-phn.lo: bp/library/ext/phn/phn.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/ext/phn/libbpP_la-phn.lo -MD -MP -MF bp/library/ext/phn/$(DEPDIR)/libbpP_la-phn.Tpo -c -o bp/library/ext/phn/libbpP_la-phn.lo `test -f 'bp/library/ext/phn/phn.c' || echo '$(srcdir)/'`bp/library/ext/phn/phn.c
+#	$(am__mv) bp/library/ext/phn/$(DEPDIR)/libbpP_la-phn.Tpo bp/library/ext/phn/$(DEPDIR)/libbpP_la-phn.Plo
+	source='bp/library/ext/phn/phn.c' object='bp/library/ext/phn/libbpP_la-phn.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/ext/phn/libbpP_la-phn.lo `test -f 'bp/library/ext/phn/phn.c' || echo '$(srcdir)/'`bp/library/ext/phn/phn.c
 
-bp/library/libbpP_la-ecos.lo: bp/library/ecos.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-ecos.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-ecos.Tpo -c -o bp/library/libbpP_la-ecos.lo `test -f 'bp/library/ecos.c' || echo '$(srcdir)/'`bp/library/ecos.c
-	$(am__mv) bp/library/$(DEPDIR)/libbpP_la-ecos.Tpo bp/library/$(DEPDIR)/libbpP_la-ecos.Plo
-#	source='bp/library/ecos.c' object='bp/library/libbpP_la-ecos.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-ecos.lo `test -f 'bp/library/ecos.c' || echo '$(srcdir)/'`bp/library/ecos.c
+bp/library/ext/ecos/libbpP_la-ecos.lo: bp/library/ext/ecos/ecos.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/ext/ecos/libbpP_la-ecos.lo -MD -MP -MF bp/library/ext/ecos/$(DEPDIR)/libbpP_la-ecos.Tpo -c -o bp/library/ext/ecos/libbpP_la-ecos.lo `test -f 'bp/library/ext/ecos/ecos.c' || echo '$(srcdir)/'`bp/library/ext/ecos/ecos.c
+#	$(am__mv) bp/library/ext/ecos/$(DEPDIR)/libbpP_la-ecos.Tpo bp/library/ext/ecos/$(DEPDIR)/libbpP_la-ecos.Plo
+	source='bp/library/ext/ecos/ecos.c' object='bp/library/ext/ecos/libbpP_la-ecos.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/ext/ecos/libbpP_la-ecos.lo `test -f 'bp/library/ext/ecos/ecos.c' || echo '$(srcdir)/'`bp/library/ext/ecos/ecos.c
 
 bp/library/libbpP_la-bei.lo: bp/library/bei.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-bei.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-bei.Tpo -c -o bp/library/libbpP_la-bei.lo `test -f 'bp/library/bei.c' || echo '$(srcdir)/'`bp/library/bei.c
-	$(am__mv) bp/library/$(DEPDIR)/libbpP_la-bei.Tpo bp/library/$(DEPDIR)/libbpP_la-bei.Plo
-#	source='bp/library/bei.c' object='bp/library/libbpP_la-bei.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-bei.lo `test -f 'bp/library/bei.c' || echo '$(srcdir)/'`bp/library/bei.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-bei.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-bei.Tpo -c -o bp/library/libbpP_la-bei.lo `test -f 'bp/library/bei.c' || echo '$(srcdir)/'`bp/library/bei.c
+#	$(am__mv) bp/library/$(DEPDIR)/libbpP_la-bei.Tpo bp/library/$(DEPDIR)/libbpP_la-bei.Plo
+	source='bp/library/bei.c' object='bp/library/libbpP_la-bei.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-bei.lo `test -f 'bp/library/bei.c' || echo '$(srcdir)/'`bp/library/bei.c
 
-bp/library/libbpP_la-bsp.lo: bp/library/bsp.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-bsp.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-bsp.Tpo -c -o bp/library/libbpP_la-bsp.lo `test -f 'bp/library/bsp.c' || echo '$(srcdir)/'`bp/library/bsp.c
-	$(am__mv) bp/library/$(DEPDIR)/libbpP_la-bsp.Tpo bp/library/$(DEPDIR)/libbpP_la-bsp.Plo
-#	source='bp/library/bsp.c' object='bp/library/libbpP_la-bsp.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-bsp.lo `test -f 'bp/library/bsp.c' || echo '$(srcdir)/'`bp/library/bsp.c
+bp/library/ext/bsp/libbpP_la-extbsputil.lo: bp/library/ext/bsp/extbsputil.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/ext/bsp/libbpP_la-extbsputil.lo -MD -MP -MF bp/library/ext/bsp/$(DEPDIR)/libbpP_la-extbsputil.Tpo -c -o bp/library/ext/bsp/libbpP_la-extbsputil.lo `test -f 'bp/library/ext/bsp/extbsputil.c' || echo '$(srcdir)/'`bp/library/ext/bsp/extbsputil.c
+#	$(am__mv) bp/library/ext/bsp/$(DEPDIR)/libbpP_la-extbsputil.Tpo bp/library/ext/bsp/$(DEPDIR)/libbpP_la-extbsputil.Plo
+	source='bp/library/ext/bsp/extbsputil.c' object='bp/library/ext/bsp/libbpP_la-extbsputil.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/ext/bsp/libbpP_la-extbsputil.lo `test -f 'bp/library/ext/bsp/extbsputil.c' || echo '$(srcdir)/'`bp/library/ext/bsp/extbsputil.c
 
-bp/library/libbpP_la-hmac.lo: bp/library/hmac.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-hmac.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-hmac.Tpo -c -o bp/library/libbpP_la-hmac.lo `test -f 'bp/library/hmac.c' || echo '$(srcdir)/'`bp/library/hmac.c
-	$(am__mv) bp/library/$(DEPDIR)/libbpP_la-hmac.Tpo bp/library/$(DEPDIR)/libbpP_la-hmac.Plo
-#	source='bp/library/hmac.c' object='bp/library/libbpP_la-hmac.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-hmac.lo `test -f 'bp/library/hmac.c' || echo '$(srcdir)/'`bp/library/hmac.c
+bp/library/ext/bsp/libbpP_la-extbspbab.lo: bp/library/ext/bsp/extbspbab.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/ext/bsp/libbpP_la-extbspbab.lo -MD -MP -MF bp/library/ext/bsp/$(DEPDIR)/libbpP_la-extbspbab.Tpo -c -o bp/library/ext/bsp/libbpP_la-extbspbab.lo `test -f 'bp/library/ext/bsp/extbspbab.c' || echo '$(srcdir)/'`bp/library/ext/bsp/extbspbab.c
+#	$(am__mv) bp/library/ext/bsp/$(DEPDIR)/libbpP_la-extbspbab.Tpo bp/library/ext/bsp/$(DEPDIR)/libbpP_la-extbspbab.Plo
+	source='bp/library/ext/bsp/extbspbab.c' object='bp/library/ext/bsp/libbpP_la-extbspbab.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/ext/bsp/libbpP_la-extbspbab.lo `test -f 'bp/library/ext/bsp/extbspbab.c' || echo '$(srcdir)/'`bp/library/ext/bsp/extbspbab.c
 
-bp/library/libbpP_la-sha1.lo: bp/library/sha1.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/libbpP_la-sha1.lo -MD -MP -MF bp/library/$(DEPDIR)/libbpP_la-sha1.Tpo -c -o bp/library/libbpP_la-sha1.lo `test -f 'bp/library/sha1.c' || echo '$(srcdir)/'`bp/library/sha1.c
-	$(am__mv) bp/library/$(DEPDIR)/libbpP_la-sha1.Tpo bp/library/$(DEPDIR)/libbpP_la-sha1.Plo
-#	source='bp/library/sha1.c' object='bp/library/libbpP_la-sha1.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/libbpP_la-sha1.lo `test -f 'bp/library/sha1.c' || echo '$(srcdir)/'`bp/library/sha1.c
+bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo: bp/library/crypto/NULL_BAB_HMAC/hmac.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo -MD -MP -MF bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-hmac.Tpo -c -o bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo `test -f 'bp/library/crypto/NULL_BAB_HMAC/hmac.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_BAB_HMAC/hmac.c
+#	$(am__mv) bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-hmac.Tpo bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-hmac.Plo
+	source='bp/library/crypto/NULL_BAB_HMAC/hmac.c' object='bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo `test -f 'bp/library/crypto/NULL_BAB_HMAC/hmac.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_BAB_HMAC/hmac.c
+
+bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo: bp/library/crypto/NULL_BAB_HMAC/sha1.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo -MD -MP -MF bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-sha1.Tpo -c -o bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo `test -f 'bp/library/crypto/NULL_BAB_HMAC/sha1.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_BAB_HMAC/sha1.c
+#	$(am__mv) bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-sha1.Tpo bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-sha1.Plo
+	source='bp/library/crypto/NULL_BAB_HMAC/sha1.c' object='bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo `test -f 'bp/library/crypto/NULL_BAB_HMAC/sha1.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_BAB_HMAC/sha1.c
 
 cfdp/library/libcfdp_la-libcfdp.lo: cfdp/library/libcfdp.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdp_la_CFLAGS) $(CFLAGS) -MT cfdp/library/libcfdp_la-libcfdp.lo -MD -MP -MF cfdp/library/$(DEPDIR)/libcfdp_la-libcfdp.Tpo -c -o cfdp/library/libcfdp_la-libcfdp.lo `test -f 'cfdp/library/libcfdp.c' || echo '$(srcdir)/'`cfdp/library/libcfdp.c
-	$(am__mv) cfdp/library/$(DEPDIR)/libcfdp_la-libcfdp.Tpo cfdp/library/$(DEPDIR)/libcfdp_la-libcfdp.Plo
-#	source='cfdp/library/libcfdp.c' object='cfdp/library/libcfdp_la-libcfdp.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdp_la_CFLAGS) $(CFLAGS) -c -o cfdp/library/libcfdp_la-libcfdp.lo `test -f 'cfdp/library/libcfdp.c' || echo '$(srcdir)/'`cfdp/library/libcfdp.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdp_la_CFLAGS) $(CFLAGS) -MT cfdp/library/libcfdp_la-libcfdp.lo -MD -MP -MF cfdp/library/$(DEPDIR)/libcfdp_la-libcfdp.Tpo -c -o cfdp/library/libcfdp_la-libcfdp.lo `test -f 'cfdp/library/libcfdp.c' || echo '$(srcdir)/'`cfdp/library/libcfdp.c
+#	$(am__mv) cfdp/library/$(DEPDIR)/libcfdp_la-libcfdp.Tpo cfdp/library/$(DEPDIR)/libcfdp_la-libcfdp.Plo
+	source='cfdp/library/libcfdp.c' object='cfdp/library/libcfdp_la-libcfdp.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdp_la_CFLAGS) $(CFLAGS) -c -o cfdp/library/libcfdp_la-libcfdp.lo `test -f 'cfdp/library/libcfdp.c' || echo '$(srcdir)/'`cfdp/library/libcfdp.c
 
 cfdp/library/libcfdp_la-libcfdpops.lo: cfdp/library/libcfdpops.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdp_la_CFLAGS) $(CFLAGS) -MT cfdp/library/libcfdp_la-libcfdpops.lo -MD -MP -MF cfdp/library/$(DEPDIR)/libcfdp_la-libcfdpops.Tpo -c -o cfdp/library/libcfdp_la-libcfdpops.lo `test -f 'cfdp/library/libcfdpops.c' || echo '$(srcdir)/'`cfdp/library/libcfdpops.c
-	$(am__mv) cfdp/library/$(DEPDIR)/libcfdp_la-libcfdpops.Tpo cfdp/library/$(DEPDIR)/libcfdp_la-libcfdpops.Plo
-#	source='cfdp/library/libcfdpops.c' object='cfdp/library/libcfdp_la-libcfdpops.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdp_la_CFLAGS) $(CFLAGS) -c -o cfdp/library/libcfdp_la-libcfdpops.lo `test -f 'cfdp/library/libcfdpops.c' || echo '$(srcdir)/'`cfdp/library/libcfdpops.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdp_la_CFLAGS) $(CFLAGS) -MT cfdp/library/libcfdp_la-libcfdpops.lo -MD -MP -MF cfdp/library/$(DEPDIR)/libcfdp_la-libcfdpops.Tpo -c -o cfdp/library/libcfdp_la-libcfdpops.lo `test -f 'cfdp/library/libcfdpops.c' || echo '$(srcdir)/'`cfdp/library/libcfdpops.c
+#	$(am__mv) cfdp/library/$(DEPDIR)/libcfdp_la-libcfdpops.Tpo cfdp/library/$(DEPDIR)/libcfdp_la-libcfdpops.Plo
+	source='cfdp/library/libcfdpops.c' object='cfdp/library/libcfdp_la-libcfdpops.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdp_la_CFLAGS) $(CFLAGS) -c -o cfdp/library/libcfdp_la-libcfdpops.lo `test -f 'cfdp/library/libcfdpops.c' || echo '$(srcdir)/'`cfdp/library/libcfdpops.c
 
 cfdp/library/libcfdpP_la-libcfdpP.lo: cfdp/library/libcfdpP.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdpP_la_CFLAGS) $(CFLAGS) -MT cfdp/library/libcfdpP_la-libcfdpP.lo -MD -MP -MF cfdp/library/$(DEPDIR)/libcfdpP_la-libcfdpP.Tpo -c -o cfdp/library/libcfdpP_la-libcfdpP.lo `test -f 'cfdp/library/libcfdpP.c' || echo '$(srcdir)/'`cfdp/library/libcfdpP.c
-	$(am__mv) cfdp/library/$(DEPDIR)/libcfdpP_la-libcfdpP.Tpo cfdp/library/$(DEPDIR)/libcfdpP_la-libcfdpP.Plo
-#	source='cfdp/library/libcfdpP.c' object='cfdp/library/libcfdpP_la-libcfdpP.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdpP_la_CFLAGS) $(CFLAGS) -c -o cfdp/library/libcfdpP_la-libcfdpP.lo `test -f 'cfdp/library/libcfdpP.c' || echo '$(srcdir)/'`cfdp/library/libcfdpP.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdpP_la_CFLAGS) $(CFLAGS) -MT cfdp/library/libcfdpP_la-libcfdpP.lo -MD -MP -MF cfdp/library/$(DEPDIR)/libcfdpP_la-libcfdpP.Tpo -c -o cfdp/library/libcfdpP_la-libcfdpP.lo `test -f 'cfdp/library/libcfdpP.c' || echo '$(srcdir)/'`cfdp/library/libcfdpP.c
+#	$(am__mv) cfdp/library/$(DEPDIR)/libcfdpP_la-libcfdpP.Tpo cfdp/library/$(DEPDIR)/libcfdpP_la-libcfdpP.Plo
+	source='cfdp/library/libcfdpP.c' object='cfdp/library/libcfdpP_la-libcfdpP.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdpP_la_CFLAGS) $(CFLAGS) -c -o cfdp/library/libcfdpP_la-libcfdpP.lo `test -f 'cfdp/library/libcfdpP.c' || echo '$(srcdir)/'`cfdp/library/libcfdpP.c
 
 bp/cgr/libcgr_la-libcgr.lo: bp/cgr/libcgr.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcgr_la_CFLAGS) $(CFLAGS) -MT bp/cgr/libcgr_la-libcgr.lo -MD -MP -MF bp/cgr/$(DEPDIR)/libcgr_la-libcgr.Tpo -c -o bp/cgr/libcgr_la-libcgr.lo `test -f 'bp/cgr/libcgr.c' || echo '$(srcdir)/'`bp/cgr/libcgr.c
-	$(am__mv) bp/cgr/$(DEPDIR)/libcgr_la-libcgr.Tpo bp/cgr/$(DEPDIR)/libcgr_la-libcgr.Plo
-#	source='bp/cgr/libcgr.c' object='bp/cgr/libcgr_la-libcgr.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcgr_la_CFLAGS) $(CFLAGS) -c -o bp/cgr/libcgr_la-libcgr.lo `test -f 'bp/cgr/libcgr.c' || echo '$(srcdir)/'`bp/cgr/libcgr.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcgr_la_CFLAGS) $(CFLAGS) -MT bp/cgr/libcgr_la-libcgr.lo -MD -MP -MF bp/cgr/$(DEPDIR)/libcgr_la-libcgr.Tpo -c -o bp/cgr/libcgr_la-libcgr.lo `test -f 'bp/cgr/libcgr.c' || echo '$(srcdir)/'`bp/cgr/libcgr.c
+#	$(am__mv) bp/cgr/$(DEPDIR)/libcgr_la-libcgr.Tpo bp/cgr/$(DEPDIR)/libcgr_la-libcgr.Plo
+	source='bp/cgr/libcgr.c' object='bp/cgr/libcgr_la-libcgr.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcgr_la_CFLAGS) $(CFLAGS) -c -o bp/cgr/libcgr_la-libcgr.lo `test -f 'bp/cgr/libcgr.c' || echo '$(srcdir)/'`bp/cgr/libcgr.c
 
 dgr/library/libdgr_la-libdgr.lo: dgr/library/libdgr.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdgr_la_CFLAGS) $(CFLAGS) -MT dgr/library/libdgr_la-libdgr.lo -MD -MP -MF dgr/library/$(DEPDIR)/libdgr_la-libdgr.Tpo -c -o dgr/library/libdgr_la-libdgr.lo `test -f 'dgr/library/libdgr.c' || echo '$(srcdir)/'`dgr/library/libdgr.c
-	$(am__mv) dgr/library/$(DEPDIR)/libdgr_la-libdgr.Tpo dgr/library/$(DEPDIR)/libdgr_la-libdgr.Plo
-#	source='dgr/library/libdgr.c' object='dgr/library/libdgr_la-libdgr.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdgr_la_CFLAGS) $(CFLAGS) -c -o dgr/library/libdgr_la-libdgr.lo `test -f 'dgr/library/libdgr.c' || echo '$(srcdir)/'`dgr/library/libdgr.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdgr_la_CFLAGS) $(CFLAGS) -MT dgr/library/libdgr_la-libdgr.lo -MD -MP -MF dgr/library/$(DEPDIR)/libdgr_la-libdgr.Tpo -c -o dgr/library/libdgr_la-libdgr.lo `test -f 'dgr/library/libdgr.c' || echo '$(srcdir)/'`dgr/library/libdgr.c
+#	$(am__mv) dgr/library/$(DEPDIR)/libdgr_la-libdgr.Tpo dgr/library/$(DEPDIR)/libdgr_la-libdgr.Plo
+	source='dgr/library/libdgr.c' object='dgr/library/libdgr_la-libdgr.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdgr_la_CFLAGS) $(CFLAGS) -c -o dgr/library/libdgr_la-libdgr.lo `test -f 'dgr/library/libdgr.c' || echo '$(srcdir)/'`dgr/library/libdgr.c
 
 bp/dtn2/libdtn2fw_la-libdtn2fw.lo: bp/dtn2/libdtn2fw.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdtn2fw_la_CFLAGS) $(CFLAGS) -MT bp/dtn2/libdtn2fw_la-libdtn2fw.lo -MD -MP -MF bp/dtn2/$(DEPDIR)/libdtn2fw_la-libdtn2fw.Tpo -c -o bp/dtn2/libdtn2fw_la-libdtn2fw.lo `test -f 'bp/dtn2/libdtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/libdtn2fw.c
-	$(am__mv) bp/dtn2/$(DEPDIR)/libdtn2fw_la-libdtn2fw.Tpo bp/dtn2/$(DEPDIR)/libdtn2fw_la-libdtn2fw.Plo
-#	source='bp/dtn2/libdtn2fw.c' object='bp/dtn2/libdtn2fw_la-libdtn2fw.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdtn2fw_la_CFLAGS) $(CFLAGS) -c -o bp/dtn2/libdtn2fw_la-libdtn2fw.lo `test -f 'bp/dtn2/libdtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/libdtn2fw.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdtn2fw_la_CFLAGS) $(CFLAGS) -MT bp/dtn2/libdtn2fw_la-libdtn2fw.lo -MD -MP -MF bp/dtn2/$(DEPDIR)/libdtn2fw_la-libdtn2fw.Tpo -c -o bp/dtn2/libdtn2fw_la-libdtn2fw.lo `test -f 'bp/dtn2/libdtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/libdtn2fw.c
+#	$(am__mv) bp/dtn2/$(DEPDIR)/libdtn2fw_la-libdtn2fw.Tpo bp/dtn2/$(DEPDIR)/libdtn2fw_la-libdtn2fw.Plo
+	source='bp/dtn2/libdtn2fw.c' object='bp/dtn2/libdtn2fw_la-libdtn2fw.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdtn2fw_la_CFLAGS) $(CFLAGS) -c -o bp/dtn2/libdtn2fw_la-libdtn2fw.lo `test -f 'bp/dtn2/libdtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/libdtn2fw.c
 
 ici/library/libici_la-llcv.lo: ici/library/llcv.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-llcv.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-llcv.Tpo -c -o ici/library/libici_la-llcv.lo `test -f 'ici/library/llcv.c' || echo '$(srcdir)/'`ici/library/llcv.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-llcv.Tpo ici/library/$(DEPDIR)/libici_la-llcv.Plo
-#	source='ici/library/llcv.c' object='ici/library/libici_la-llcv.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-llcv.lo `test -f 'ici/library/llcv.c' || echo '$(srcdir)/'`ici/library/llcv.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-llcv.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-llcv.Tpo -c -o ici/library/libici_la-llcv.lo `test -f 'ici/library/llcv.c' || echo '$(srcdir)/'`ici/library/llcv.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-llcv.Tpo ici/library/$(DEPDIR)/libici_la-llcv.Plo
+	source='ici/library/llcv.c' object='ici/library/libici_la-llcv.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-llcv.lo `test -f 'ici/library/llcv.c' || echo '$(srcdir)/'`ici/library/llcv.c
 
 ici/library/libici_la-platform.lo: ici/library/platform.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-platform.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-platform.Tpo -c -o ici/library/libici_la-platform.lo `test -f 'ici/library/platform.c' || echo '$(srcdir)/'`ici/library/platform.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-platform.Tpo ici/library/$(DEPDIR)/libici_la-platform.Plo
-#	source='ici/library/platform.c' object='ici/library/libici_la-platform.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-platform.lo `test -f 'ici/library/platform.c' || echo '$(srcdir)/'`ici/library/platform.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-platform.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-platform.Tpo -c -o ici/library/libici_la-platform.lo `test -f 'ici/library/platform.c' || echo '$(srcdir)/'`ici/library/platform.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-platform.Tpo ici/library/$(DEPDIR)/libici_la-platform.Plo
+	source='ici/library/platform.c' object='ici/library/libici_la-platform.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-platform.lo `test -f 'ici/library/platform.c' || echo '$(srcdir)/'`ici/library/platform.c
 
 ici/library/libici_la-platform_sm.lo: ici/library/platform_sm.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-platform_sm.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-platform_sm.Tpo -c -o ici/library/libici_la-platform_sm.lo `test -f 'ici/library/platform_sm.c' || echo '$(srcdir)/'`ici/library/platform_sm.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-platform_sm.Tpo ici/library/$(DEPDIR)/libici_la-platform_sm.Plo
-#	source='ici/library/platform_sm.c' object='ici/library/libici_la-platform_sm.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-platform_sm.lo `test -f 'ici/library/platform_sm.c' || echo '$(srcdir)/'`ici/library/platform_sm.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-platform_sm.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-platform_sm.Tpo -c -o ici/library/libici_la-platform_sm.lo `test -f 'ici/library/platform_sm.c' || echo '$(srcdir)/'`ici/library/platform_sm.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-platform_sm.Tpo ici/library/$(DEPDIR)/libici_la-platform_sm.Plo
+	source='ici/library/platform_sm.c' object='ici/library/libici_la-platform_sm.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-platform_sm.lo `test -f 'ici/library/platform_sm.c' || echo '$(srcdir)/'`ici/library/platform_sm.c
 
 ici/library/libici_la-memmgr.lo: ici/library/memmgr.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-memmgr.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-memmgr.Tpo -c -o ici/library/libici_la-memmgr.lo `test -f 'ici/library/memmgr.c' || echo '$(srcdir)/'`ici/library/memmgr.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-memmgr.Tpo ici/library/$(DEPDIR)/libici_la-memmgr.Plo
-#	source='ici/library/memmgr.c' object='ici/library/libici_la-memmgr.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-memmgr.lo `test -f 'ici/library/memmgr.c' || echo '$(srcdir)/'`ici/library/memmgr.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-memmgr.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-memmgr.Tpo -c -o ici/library/libici_la-memmgr.lo `test -f 'ici/library/memmgr.c' || echo '$(srcdir)/'`ici/library/memmgr.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-memmgr.Tpo ici/library/$(DEPDIR)/libici_la-memmgr.Plo
+	source='ici/library/memmgr.c' object='ici/library/libici_la-memmgr.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-memmgr.lo `test -f 'ici/library/memmgr.c' || echo '$(srcdir)/'`ici/library/memmgr.c
 
 ici/library/libici_la-lyst.lo: ici/library/lyst.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-lyst.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-lyst.Tpo -c -o ici/library/libici_la-lyst.lo `test -f 'ici/library/lyst.c' || echo '$(srcdir)/'`ici/library/lyst.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-lyst.Tpo ici/library/$(DEPDIR)/libici_la-lyst.Plo
-#	source='ici/library/lyst.c' object='ici/library/libici_la-lyst.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-lyst.lo `test -f 'ici/library/lyst.c' || echo '$(srcdir)/'`ici/library/lyst.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-lyst.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-lyst.Tpo -c -o ici/library/libici_la-lyst.lo `test -f 'ici/library/lyst.c' || echo '$(srcdir)/'`ici/library/lyst.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-lyst.Tpo ici/library/$(DEPDIR)/libici_la-lyst.Plo
+	source='ici/library/lyst.c' object='ici/library/libici_la-lyst.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-lyst.lo `test -f 'ici/library/lyst.c' || echo '$(srcdir)/'`ici/library/lyst.c
 
 ici/library/libici_la-psm.lo: ici/library/psm.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-psm.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-psm.Tpo -c -o ici/library/libici_la-psm.lo `test -f 'ici/library/psm.c' || echo '$(srcdir)/'`ici/library/psm.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-psm.Tpo ici/library/$(DEPDIR)/libici_la-psm.Plo
-#	source='ici/library/psm.c' object='ici/library/libici_la-psm.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-psm.lo `test -f 'ici/library/psm.c' || echo '$(srcdir)/'`ici/library/psm.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-psm.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-psm.Tpo -c -o ici/library/libici_la-psm.lo `test -f 'ici/library/psm.c' || echo '$(srcdir)/'`ici/library/psm.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-psm.Tpo ici/library/$(DEPDIR)/libici_la-psm.Plo
+	source='ici/library/psm.c' object='ici/library/libici_la-psm.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-psm.lo `test -f 'ici/library/psm.c' || echo '$(srcdir)/'`ici/library/psm.c
 
 ici/library/libici_la-smlist.lo: ici/library/smlist.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-smlist.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-smlist.Tpo -c -o ici/library/libici_la-smlist.lo `test -f 'ici/library/smlist.c' || echo '$(srcdir)/'`ici/library/smlist.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-smlist.Tpo ici/library/$(DEPDIR)/libici_la-smlist.Plo
-#	source='ici/library/smlist.c' object='ici/library/libici_la-smlist.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-smlist.lo `test -f 'ici/library/smlist.c' || echo '$(srcdir)/'`ici/library/smlist.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-smlist.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-smlist.Tpo -c -o ici/library/libici_la-smlist.lo `test -f 'ici/library/smlist.c' || echo '$(srcdir)/'`ici/library/smlist.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-smlist.Tpo ici/library/$(DEPDIR)/libici_la-smlist.Plo
+	source='ici/library/smlist.c' object='ici/library/libici_la-smlist.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-smlist.lo `test -f 'ici/library/smlist.c' || echo '$(srcdir)/'`ici/library/smlist.c
 
 ici/library/libici_la-sptrace.lo: ici/library/sptrace.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-sptrace.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-sptrace.Tpo -c -o ici/library/libici_la-sptrace.lo `test -f 'ici/library/sptrace.c' || echo '$(srcdir)/'`ici/library/sptrace.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-sptrace.Tpo ici/library/$(DEPDIR)/libici_la-sptrace.Plo
-#	source='ici/library/sptrace.c' object='ici/library/libici_la-sptrace.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-sptrace.lo `test -f 'ici/library/sptrace.c' || echo '$(srcdir)/'`ici/library/sptrace.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-sptrace.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-sptrace.Tpo -c -o ici/library/libici_la-sptrace.lo `test -f 'ici/library/sptrace.c' || echo '$(srcdir)/'`ici/library/sptrace.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-sptrace.Tpo ici/library/$(DEPDIR)/libici_la-sptrace.Plo
+	source='ici/library/sptrace.c' object='ici/library/libici_la-sptrace.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-sptrace.lo `test -f 'ici/library/sptrace.c' || echo '$(srcdir)/'`ici/library/sptrace.c
 
 ici/library/libici_la-rfx.lo: ici/library/rfx.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-rfx.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-rfx.Tpo -c -o ici/library/libici_la-rfx.lo `test -f 'ici/library/rfx.c' || echo '$(srcdir)/'`ici/library/rfx.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-rfx.Tpo ici/library/$(DEPDIR)/libici_la-rfx.Plo
-#	source='ici/library/rfx.c' object='ici/library/libici_la-rfx.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-rfx.lo `test -f 'ici/library/rfx.c' || echo '$(srcdir)/'`ici/library/rfx.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-rfx.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-rfx.Tpo -c -o ici/library/libici_la-rfx.lo `test -f 'ici/library/rfx.c' || echo '$(srcdir)/'`ici/library/rfx.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-rfx.Tpo ici/library/$(DEPDIR)/libici_la-rfx.Plo
+	source='ici/library/rfx.c' object='ici/library/libici_la-rfx.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-rfx.lo `test -f 'ici/library/rfx.c' || echo '$(srcdir)/'`ici/library/rfx.c
 
 ici/library/libici_la-ion.lo: ici/library/ion.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-ion.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-ion.Tpo -c -o ici/library/libici_la-ion.lo `test -f 'ici/library/ion.c' || echo '$(srcdir)/'`ici/library/ion.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-ion.Tpo ici/library/$(DEPDIR)/libici_la-ion.Plo
-#	source='ici/library/ion.c' object='ici/library/libici_la-ion.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-ion.lo `test -f 'ici/library/ion.c' || echo '$(srcdir)/'`ici/library/ion.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-ion.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-ion.Tpo -c -o ici/library/libici_la-ion.lo `test -f 'ici/library/ion.c' || echo '$(srcdir)/'`ici/library/ion.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-ion.Tpo ici/library/$(DEPDIR)/libici_la-ion.Plo
+	source='ici/library/ion.c' object='ici/library/libici_la-ion.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-ion.lo `test -f 'ici/library/ion.c' || echo '$(srcdir)/'`ici/library/ion.c
 
 ici/library/libici_la-ionsec.lo: ici/library/ionsec.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-ionsec.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-ionsec.Tpo -c -o ici/library/libici_la-ionsec.lo `test -f 'ici/library/ionsec.c' || echo '$(srcdir)/'`ici/library/ionsec.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-ionsec.Tpo ici/library/$(DEPDIR)/libici_la-ionsec.Plo
-#	source='ici/library/ionsec.c' object='ici/library/libici_la-ionsec.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-ionsec.lo `test -f 'ici/library/ionsec.c' || echo '$(srcdir)/'`ici/library/ionsec.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-ionsec.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-ionsec.Tpo -c -o ici/library/libici_la-ionsec.lo `test -f 'ici/library/ionsec.c' || echo '$(srcdir)/'`ici/library/ionsec.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-ionsec.Tpo ici/library/$(DEPDIR)/libici_la-ionsec.Plo
+	source='ici/library/ionsec.c' object='ici/library/libici_la-ionsec.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-ionsec.lo `test -f 'ici/library/ionsec.c' || echo '$(srcdir)/'`ici/library/ionsec.c
 
 ici/library/libici_la-zco.lo: ici/library/zco.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-zco.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-zco.Tpo -c -o ici/library/libici_la-zco.lo `test -f 'ici/library/zco.c' || echo '$(srcdir)/'`ici/library/zco.c
-	$(am__mv) ici/library/$(DEPDIR)/libici_la-zco.Tpo ici/library/$(DEPDIR)/libici_la-zco.Plo
-#	source='ici/library/zco.c' object='ici/library/libici_la-zco.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-zco.lo `test -f 'ici/library/zco.c' || echo '$(srcdir)/'`ici/library/zco.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/library/libici_la-zco.lo -MD -MP -MF ici/library/$(DEPDIR)/libici_la-zco.Tpo -c -o ici/library/libici_la-zco.lo `test -f 'ici/library/zco.c' || echo '$(srcdir)/'`ici/library/zco.c
+#	$(am__mv) ici/library/$(DEPDIR)/libici_la-zco.Tpo ici/library/$(DEPDIR)/libici_la-zco.Plo
+	source='ici/library/zco.c' object='ici/library/libici_la-zco.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/library/libici_la-zco.lo `test -f 'ici/library/zco.c' || echo '$(srcdir)/'`ici/library/zco.c
 
 ici/sdr/libici_la-sdrxn.lo: ici/sdr/sdrxn.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrxn.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrxn.Tpo -c -o ici/sdr/libici_la-sdrxn.lo `test -f 'ici/sdr/sdrxn.c' || echo '$(srcdir)/'`ici/sdr/sdrxn.c
-	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrxn.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrxn.Plo
-#	source='ici/sdr/sdrxn.c' object='ici/sdr/libici_la-sdrxn.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrxn.lo `test -f 'ici/sdr/sdrxn.c' || echo '$(srcdir)/'`ici/sdr/sdrxn.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrxn.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrxn.Tpo -c -o ici/sdr/libici_la-sdrxn.lo `test -f 'ici/sdr/sdrxn.c' || echo '$(srcdir)/'`ici/sdr/sdrxn.c
+#	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrxn.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrxn.Plo
+	source='ici/sdr/sdrxn.c' object='ici/sdr/libici_la-sdrxn.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrxn.lo `test -f 'ici/sdr/sdrxn.c' || echo '$(srcdir)/'`ici/sdr/sdrxn.c
 
 ici/sdr/libici_la-sdrmgt.lo: ici/sdr/sdrmgt.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrmgt.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrmgt.Tpo -c -o ici/sdr/libici_la-sdrmgt.lo `test -f 'ici/sdr/sdrmgt.c' || echo '$(srcdir)/'`ici/sdr/sdrmgt.c
-	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrmgt.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrmgt.Plo
-#	source='ici/sdr/sdrmgt.c' object='ici/sdr/libici_la-sdrmgt.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrmgt.lo `test -f 'ici/sdr/sdrmgt.c' || echo '$(srcdir)/'`ici/sdr/sdrmgt.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrmgt.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrmgt.Tpo -c -o ici/sdr/libici_la-sdrmgt.lo `test -f 'ici/sdr/sdrmgt.c' || echo '$(srcdir)/'`ici/sdr/sdrmgt.c
+#	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrmgt.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrmgt.Plo
+	source='ici/sdr/sdrmgt.c' object='ici/sdr/libici_la-sdrmgt.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrmgt.lo `test -f 'ici/sdr/sdrmgt.c' || echo '$(srcdir)/'`ici/sdr/sdrmgt.c
 
 ici/sdr/libici_la-sdrstring.lo: ici/sdr/sdrstring.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrstring.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrstring.Tpo -c -o ici/sdr/libici_la-sdrstring.lo `test -f 'ici/sdr/sdrstring.c' || echo '$(srcdir)/'`ici/sdr/sdrstring.c
-	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrstring.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrstring.Plo
-#	source='ici/sdr/sdrstring.c' object='ici/sdr/libici_la-sdrstring.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrstring.lo `test -f 'ici/sdr/sdrstring.c' || echo '$(srcdir)/'`ici/sdr/sdrstring.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrstring.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrstring.Tpo -c -o ici/sdr/libici_la-sdrstring.lo `test -f 'ici/sdr/sdrstring.c' || echo '$(srcdir)/'`ici/sdr/sdrstring.c
+#	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrstring.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrstring.Plo
+	source='ici/sdr/sdrstring.c' object='ici/sdr/libici_la-sdrstring.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrstring.lo `test -f 'ici/sdr/sdrstring.c' || echo '$(srcdir)/'`ici/sdr/sdrstring.c
 
 ici/sdr/libici_la-sdrlist.lo: ici/sdr/sdrlist.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrlist.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrlist.Tpo -c -o ici/sdr/libici_la-sdrlist.lo `test -f 'ici/sdr/sdrlist.c' || echo '$(srcdir)/'`ici/sdr/sdrlist.c
-	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrlist.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrlist.Plo
-#	source='ici/sdr/sdrlist.c' object='ici/sdr/libici_la-sdrlist.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrlist.lo `test -f 'ici/sdr/sdrlist.c' || echo '$(srcdir)/'`ici/sdr/sdrlist.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrlist.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrlist.Tpo -c -o ici/sdr/libici_la-sdrlist.lo `test -f 'ici/sdr/sdrlist.c' || echo '$(srcdir)/'`ici/sdr/sdrlist.c
+#	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrlist.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrlist.Plo
+	source='ici/sdr/sdrlist.c' object='ici/sdr/libici_la-sdrlist.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrlist.lo `test -f 'ici/sdr/sdrlist.c' || echo '$(srcdir)/'`ici/sdr/sdrlist.c
 
 ici/sdr/libici_la-sdrtable.lo: ici/sdr/sdrtable.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrtable.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrtable.Tpo -c -o ici/sdr/libici_la-sdrtable.lo `test -f 'ici/sdr/sdrtable.c' || echo '$(srcdir)/'`ici/sdr/sdrtable.c
-	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrtable.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrtable.Plo
-#	source='ici/sdr/sdrtable.c' object='ici/sdr/libici_la-sdrtable.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrtable.lo `test -f 'ici/sdr/sdrtable.c' || echo '$(srcdir)/'`ici/sdr/sdrtable.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrtable.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrtable.Tpo -c -o ici/sdr/libici_la-sdrtable.lo `test -f 'ici/sdr/sdrtable.c' || echo '$(srcdir)/'`ici/sdr/sdrtable.c
+#	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrtable.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrtable.Plo
+	source='ici/sdr/sdrtable.c' object='ici/sdr/libici_la-sdrtable.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrtable.lo `test -f 'ici/sdr/sdrtable.c' || echo '$(srcdir)/'`ici/sdr/sdrtable.c
 
 ici/sdr/libici_la-sdrhash.lo: ici/sdr/sdrhash.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrhash.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrhash.Tpo -c -o ici/sdr/libici_la-sdrhash.lo `test -f 'ici/sdr/sdrhash.c' || echo '$(srcdir)/'`ici/sdr/sdrhash.c
-	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrhash.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrhash.Plo
-#	source='ici/sdr/sdrhash.c' object='ici/sdr/libici_la-sdrhash.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrhash.lo `test -f 'ici/sdr/sdrhash.c' || echo '$(srcdir)/'`ici/sdr/sdrhash.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrhash.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrhash.Tpo -c -o ici/sdr/libici_la-sdrhash.lo `test -f 'ici/sdr/sdrhash.c' || echo '$(srcdir)/'`ici/sdr/sdrhash.c
+#	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrhash.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrhash.Plo
+	source='ici/sdr/sdrhash.c' object='ici/sdr/libici_la-sdrhash.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrhash.lo `test -f 'ici/sdr/sdrhash.c' || echo '$(srcdir)/'`ici/sdr/sdrhash.c
 
 ici/sdr/libici_la-sdrcatlg.lo: ici/sdr/sdrcatlg.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrcatlg.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrcatlg.Tpo -c -o ici/sdr/libici_la-sdrcatlg.lo `test -f 'ici/sdr/sdrcatlg.c' || echo '$(srcdir)/'`ici/sdr/sdrcatlg.c
-	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrcatlg.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrcatlg.Plo
-#	source='ici/sdr/sdrcatlg.c' object='ici/sdr/libici_la-sdrcatlg.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrcatlg.lo `test -f 'ici/sdr/sdrcatlg.c' || echo '$(srcdir)/'`ici/sdr/sdrcatlg.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/sdr/libici_la-sdrcatlg.lo -MD -MP -MF ici/sdr/$(DEPDIR)/libici_la-sdrcatlg.Tpo -c -o ici/sdr/libici_la-sdrcatlg.lo `test -f 'ici/sdr/sdrcatlg.c' || echo '$(srcdir)/'`ici/sdr/sdrcatlg.c
+#	$(am__mv) ici/sdr/$(DEPDIR)/libici_la-sdrcatlg.Tpo ici/sdr/$(DEPDIR)/libici_la-sdrcatlg.Plo
+	source='ici/sdr/sdrcatlg.c' object='ici/sdr/libici_la-sdrcatlg.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrcatlg.lo `test -f 'ici/sdr/sdrcatlg.c' || echo '$(srcdir)/'`ici/sdr/sdrcatlg.c
 
 bp/ipn/libipnfw_la-libipnfw.lo: bp/ipn/libipnfw.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libipnfw_la_CFLAGS) $(CFLAGS) -MT bp/ipn/libipnfw_la-libipnfw.lo -MD -MP -MF bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Tpo -c -o bp/ipn/libipnfw_la-libipnfw.lo `test -f 'bp/ipn/libipnfw.c' || echo '$(srcdir)/'`bp/ipn/libipnfw.c
-	$(am__mv) bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Tpo bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Plo
-#	source='bp/ipn/libipnfw.c' object='bp/ipn/libipnfw_la-libipnfw.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libipnfw_la_CFLAGS) $(CFLAGS) -c -o bp/ipn/libipnfw_la-libipnfw.lo `test -f 'bp/ipn/libipnfw.c' || echo '$(srcdir)/'`bp/ipn/libipnfw.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libipnfw_la_CFLAGS) $(CFLAGS) -MT bp/ipn/libipnfw_la-libipnfw.lo -MD -MP -MF bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Tpo -c -o bp/ipn/libipnfw_la-libipnfw.lo `test -f 'bp/ipn/libipnfw.c' || echo '$(srcdir)/'`bp/ipn/libipnfw.c
+#	$(am__mv) bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Tpo bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Plo
+	source='bp/ipn/libipnfw.c' object='bp/ipn/libipnfw_la-libipnfw.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libipnfw_la_CFLAGS) $(CFLAGS) -c -o bp/ipn/libipnfw_la-libipnfw.lo `test -f 'bp/ipn/libipnfw.c' || echo '$(srcdir)/'`bp/ipn/libipnfw.c
 
 ltp/library/libltp_la-libltp.lo: ltp/library/libltp.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libltp_la_CFLAGS) $(CFLAGS) -MT ltp/library/libltp_la-libltp.lo -MD -MP -MF ltp/library/$(DEPDIR)/libltp_la-libltp.Tpo -c -o ltp/library/libltp_la-libltp.lo `test -f 'ltp/library/libltp.c' || echo '$(srcdir)/'`ltp/library/libltp.c
-	$(am__mv) ltp/library/$(DEPDIR)/libltp_la-libltp.Tpo ltp/library/$(DEPDIR)/libltp_la-libltp.Plo
-#	source='ltp/library/libltp.c' object='ltp/library/libltp_la-libltp.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libltp_la_CFLAGS) $(CFLAGS) -c -o ltp/library/libltp_la-libltp.lo `test -f 'ltp/library/libltp.c' || echo '$(srcdir)/'`ltp/library/libltp.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libltp_la_CFLAGS) $(CFLAGS) -MT ltp/library/libltp_la-libltp.lo -MD -MP -MF ltp/library/$(DEPDIR)/libltp_la-libltp.Tpo -c -o ltp/library/libltp_la-libltp.lo `test -f 'ltp/library/libltp.c' || echo '$(srcdir)/'`ltp/library/libltp.c
+#	$(am__mv) ltp/library/$(DEPDIR)/libltp_la-libltp.Tpo ltp/library/$(DEPDIR)/libltp_la-libltp.Plo
+	source='ltp/library/libltp.c' object='ltp/library/libltp_la-libltp.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libltp_la_CFLAGS) $(CFLAGS) -c -o ltp/library/libltp_la-libltp.lo `test -f 'ltp/library/libltp.c' || echo '$(srcdir)/'`ltp/library/libltp.c
 
 ltp/library/libltpP_la-libltpP.lo: ltp/library/libltpP.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libltpP_la_CFLAGS) $(CFLAGS) -MT ltp/library/libltpP_la-libltpP.lo -MD -MP -MF ltp/library/$(DEPDIR)/libltpP_la-libltpP.Tpo -c -o ltp/library/libltpP_la-libltpP.lo `test -f 'ltp/library/libltpP.c' || echo '$(srcdir)/'`ltp/library/libltpP.c
-	$(am__mv) ltp/library/$(DEPDIR)/libltpP_la-libltpP.Tpo ltp/library/$(DEPDIR)/libltpP_la-libltpP.Plo
-#	source='ltp/library/libltpP.c' object='ltp/library/libltpP_la-libltpP.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libltpP_la_CFLAGS) $(CFLAGS) -c -o ltp/library/libltpP_la-libltpP.lo `test -f 'ltp/library/libltpP.c' || echo '$(srcdir)/'`ltp/library/libltpP.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libltpP_la_CFLAGS) $(CFLAGS) -MT ltp/library/libltpP_la-libltpP.lo -MD -MP -MF ltp/library/$(DEPDIR)/libltpP_la-libltpP.Tpo -c -o ltp/library/libltpP_la-libltpP.lo `test -f 'ltp/library/libltpP.c' || echo '$(srcdir)/'`ltp/library/libltpP.c
+#	$(am__mv) ltp/library/$(DEPDIR)/libltpP_la-libltpP.Tpo ltp/library/$(DEPDIR)/libltpP_la-libltpP.Plo
+	source='ltp/library/libltpP.c' object='ltp/library/libltpP_la-libltpP.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libltpP_la_CFLAGS) $(CFLAGS) -c -o ltp/library/libltpP_la-libltpP.lo `test -f 'ltp/library/libltpP.c' || echo '$(srcdir)/'`ltp/library/libltpP.c
 
 bp/tcp/libtcpcla_la-libtcpcla.lo: bp/tcp/libtcpcla.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libtcpcla_la_CFLAGS) $(CFLAGS) -MT bp/tcp/libtcpcla_la-libtcpcla.lo -MD -MP -MF bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Tpo -c -o bp/tcp/libtcpcla_la-libtcpcla.lo `test -f 'bp/tcp/libtcpcla.c' || echo '$(srcdir)/'`bp/tcp/libtcpcla.c
-	$(am__mv) bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Tpo bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Plo
-#	source='bp/tcp/libtcpcla.c' object='bp/tcp/libtcpcla_la-libtcpcla.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libtcpcla_la_CFLAGS) $(CFLAGS) -c -o bp/tcp/libtcpcla_la-libtcpcla.lo `test -f 'bp/tcp/libtcpcla.c' || echo '$(srcdir)/'`bp/tcp/libtcpcla.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libtcpcla_la_CFLAGS) $(CFLAGS) -MT bp/tcp/libtcpcla_la-libtcpcla.lo -MD -MP -MF bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Tpo -c -o bp/tcp/libtcpcla_la-libtcpcla.lo `test -f 'bp/tcp/libtcpcla.c' || echo '$(srcdir)/'`bp/tcp/libtcpcla.c
+#	$(am__mv) bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Tpo bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Plo
+	source='bp/tcp/libtcpcla.c' object='bp/tcp/libtcpcla_la-libtcpcla.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libtcpcla_la_CFLAGS) $(CFLAGS) -c -o bp/tcp/libtcpcla_la-libtcpcla.lo `test -f 'bp/tcp/libtcpcla.c' || echo '$(srcdir)/'`bp/tcp/libtcpcla.c
 
 bp/udp/libudpcla_la-libudpcla.lo: bp/udp/libudpcla.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libudpcla_la_CFLAGS) $(CFLAGS) -MT bp/udp/libudpcla_la-libudpcla.lo -MD -MP -MF bp/udp/$(DEPDIR)/libudpcla_la-libudpcla.Tpo -c -o bp/udp/libudpcla_la-libudpcla.lo `test -f 'bp/udp/libudpcla.c' || echo '$(srcdir)/'`bp/udp/libudpcla.c
-	$(am__mv) bp/udp/$(DEPDIR)/libudpcla_la-libudpcla.Tpo bp/udp/$(DEPDIR)/libudpcla_la-libudpcla.Plo
-#	source='bp/udp/libudpcla.c' object='bp/udp/libudpcla_la-libudpcla.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libudpcla_la_CFLAGS) $(CFLAGS) -c -o bp/udp/libudpcla_la-libudpcla.lo `test -f 'bp/udp/libudpcla.c' || echo '$(srcdir)/'`bp/udp/libudpcla.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libudpcla_la_CFLAGS) $(CFLAGS) -MT bp/udp/libudpcla_la-libudpcla.lo -MD -MP -MF bp/udp/$(DEPDIR)/libudpcla_la-libudpcla.Tpo -c -o bp/udp/libudpcla_la-libudpcla.lo `test -f 'bp/udp/libudpcla.c' || echo '$(srcdir)/'`bp/udp/libudpcla.c
+#	$(am__mv) bp/udp/$(DEPDIR)/libudpcla_la-libudpcla.Tpo bp/udp/$(DEPDIR)/libudpcla_la-libudpcla.Plo
+	source='bp/udp/libudpcla.c' object='bp/udp/libudpcla_la-libudpcla.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libudpcla_la_CFLAGS) $(CFLAGS) -c -o bp/udp/libudpcla_la-libudpcla.lo `test -f 'bp/udp/libudpcla.c' || echo '$(srcdir)/'`bp/udp/libudpcla.c
 
 tests/library/tests_library_libtestutil_la-check.lo: tests/library/check.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -MT tests/library/tests_library_libtestutil_la-check.lo -MD -MP -MF tests/library/$(DEPDIR)/tests_library_libtestutil_la-check.Tpo -c -o tests/library/tests_library_libtestutil_la-check.lo `test -f 'tests/library/check.c' || echo '$(srcdir)/'`tests/library/check.c
-	$(am__mv) tests/library/$(DEPDIR)/tests_library_libtestutil_la-check.Tpo tests/library/$(DEPDIR)/tests_library_libtestutil_la-check.Plo
-#	source='tests/library/check.c' object='tests/library/tests_library_libtestutil_la-check.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -c -o tests/library/tests_library_libtestutil_la-check.lo `test -f 'tests/library/check.c' || echo '$(srcdir)/'`tests/library/check.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -MT tests/library/tests_library_libtestutil_la-check.lo -MD -MP -MF tests/library/$(DEPDIR)/tests_library_libtestutil_la-check.Tpo -c -o tests/library/tests_library_libtestutil_la-check.lo `test -f 'tests/library/check.c' || echo '$(srcdir)/'`tests/library/check.c
+#	$(am__mv) tests/library/$(DEPDIR)/tests_library_libtestutil_la-check.Tpo tests/library/$(DEPDIR)/tests_library_libtestutil_la-check.Plo
+	source='tests/library/check.c' object='tests/library/tests_library_libtestutil_la-check.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -c -o tests/library/tests_library_libtestutil_la-check.lo `test -f 'tests/library/check.c' || echo '$(srcdir)/'`tests/library/check.c
 
 tests/library/tests_library_libtestutil_la-ionstart.lo: tests/library/ionstart.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -MT tests/library/tests_library_libtestutil_la-ionstart.lo -MD -MP -MF tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Tpo -c -o tests/library/tests_library_libtestutil_la-ionstart.lo `test -f 'tests/library/ionstart.c' || echo '$(srcdir)/'`tests/library/ionstart.c
-	$(am__mv) tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Tpo tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Plo
-#	source='tests/library/ionstart.c' object='tests/library/tests_library_libtestutil_la-ionstart.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -c -o tests/library/tests_library_libtestutil_la-ionstart.lo `test -f 'tests/library/ionstart.c' || echo '$(srcdir)/'`tests/library/ionstart.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -MT tests/library/tests_library_libtestutil_la-ionstart.lo -MD -MP -MF tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Tpo -c -o tests/library/tests_library_libtestutil_la-ionstart.lo `test -f 'tests/library/ionstart.c' || echo '$(srcdir)/'`tests/library/ionstart.c
+#	$(am__mv) tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Tpo tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Plo
+	source='tests/library/ionstart.c' object='tests/library/tests_library_libtestutil_la-ionstart.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -c -o tests/library/tests_library_libtestutil_la-ionstart.lo `test -f 'tests/library/ionstart.c' || echo '$(srcdir)/'`tests/library/ionstart.c
 
 tests/library/tests_library_libtestutil_la-ionstop.lo: tests/library/ionstop.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -MT tests/library/tests_library_libtestutil_la-ionstop.lo -MD -MP -MF tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstop.Tpo -c -o tests/library/tests_library_libtestutil_la-ionstop.lo `test -f 'tests/library/ionstop.c' || echo '$(srcdir)/'`tests/library/ionstop.c
-	$(am__mv) tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstop.Tpo tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstop.Plo
-#	source='tests/library/ionstop.c' object='tests/library/tests_library_libtestutil_la-ionstop.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -c -o tests/library/tests_library_libtestutil_la-ionstop.lo `test -f 'tests/library/ionstop.c' || echo '$(srcdir)/'`tests/library/ionstop.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -MT tests/library/tests_library_libtestutil_la-ionstop.lo -MD -MP -MF tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstop.Tpo -c -o tests/library/tests_library_libtestutil_la-ionstop.lo `test -f 'tests/library/ionstop.c' || echo '$(srcdir)/'`tests/library/ionstop.c
+#	$(am__mv) tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstop.Tpo tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstop.Plo
+	source='tests/library/ionstop.c' object='tests/library/tests_library_libtestutil_la-ionstop.lo' libtool=yes \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -c -o tests/library/tests_library_libtestutil_la-ionstop.lo `test -f 'tests/library/ionstop.c' || echo '$(srcdir)/'`tests/library/ionstop.c
 
 ams/test/amsbenchr-amsbenchr.o: ams/test/amsbenchr.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchr_CFLAGS) $(CFLAGS) -MT ams/test/amsbenchr-amsbenchr.o -MD -MP -MF ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Tpo -c -o ams/test/amsbenchr-amsbenchr.o `test -f 'ams/test/amsbenchr.c' || echo '$(srcdir)/'`ams/test/amsbenchr.c
-	$(am__mv) ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Tpo ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Po
-#	source='ams/test/amsbenchr.c' object='ams/test/amsbenchr-amsbenchr.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchr_CFLAGS) $(CFLAGS) -c -o ams/test/amsbenchr-amsbenchr.o `test -f 'ams/test/amsbenchr.c' || echo '$(srcdir)/'`ams/test/amsbenchr.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchr_CFLAGS) $(CFLAGS) -MT ams/test/amsbenchr-amsbenchr.o -MD -MP -MF ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Tpo -c -o ams/test/amsbenchr-amsbenchr.o `test -f 'ams/test/amsbenchr.c' || echo '$(srcdir)/'`ams/test/amsbenchr.c
+#	$(am__mv) ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Tpo ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Po
+	source='ams/test/amsbenchr.c' object='ams/test/amsbenchr-amsbenchr.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchr_CFLAGS) $(CFLAGS) -c -o ams/test/amsbenchr-amsbenchr.o `test -f 'ams/test/amsbenchr.c' || echo '$(srcdir)/'`ams/test/amsbenchr.c
 
 ams/test/amsbenchr-amsbenchr.obj: ams/test/amsbenchr.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchr_CFLAGS) $(CFLAGS) -MT ams/test/amsbenchr-amsbenchr.obj -MD -MP -MF ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Tpo -c -o ams/test/amsbenchr-amsbenchr.obj `if test -f 'ams/test/amsbenchr.c'; then $(CYGPATH_W) 'ams/test/amsbenchr.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsbenchr.c'; fi`
-	$(am__mv) ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Tpo ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Po
-#	source='ams/test/amsbenchr.c' object='ams/test/amsbenchr-amsbenchr.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchr_CFLAGS) $(CFLAGS) -c -o ams/test/amsbenchr-amsbenchr.obj `if test -f 'ams/test/amsbenchr.c'; then $(CYGPATH_W) 'ams/test/amsbenchr.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsbenchr.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchr_CFLAGS) $(CFLAGS) -MT ams/test/amsbenchr-amsbenchr.obj -MD -MP -MF ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Tpo -c -o ams/test/amsbenchr-amsbenchr.obj `if test -f 'ams/test/amsbenchr.c'; then $(CYGPATH_W) 'ams/test/amsbenchr.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsbenchr.c'; fi`
+#	$(am__mv) ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Tpo ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Po
+	source='ams/test/amsbenchr.c' object='ams/test/amsbenchr-amsbenchr.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchr_CFLAGS) $(CFLAGS) -c -o ams/test/amsbenchr-amsbenchr.obj `if test -f 'ams/test/amsbenchr.c'; then $(CYGPATH_W) 'ams/test/amsbenchr.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsbenchr.c'; fi`
 
 ams/test/amsbenchs-amsbenchs.o: ams/test/amsbenchs.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchs_CFLAGS) $(CFLAGS) -MT ams/test/amsbenchs-amsbenchs.o -MD -MP -MF ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Tpo -c -o ams/test/amsbenchs-amsbenchs.o `test -f 'ams/test/amsbenchs.c' || echo '$(srcdir)/'`ams/test/amsbenchs.c
-	$(am__mv) ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Tpo ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Po
-#	source='ams/test/amsbenchs.c' object='ams/test/amsbenchs-amsbenchs.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchs_CFLAGS) $(CFLAGS) -c -o ams/test/amsbenchs-amsbenchs.o `test -f 'ams/test/amsbenchs.c' || echo '$(srcdir)/'`ams/test/amsbenchs.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchs_CFLAGS) $(CFLAGS) -MT ams/test/amsbenchs-amsbenchs.o -MD -MP -MF ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Tpo -c -o ams/test/amsbenchs-amsbenchs.o `test -f 'ams/test/amsbenchs.c' || echo '$(srcdir)/'`ams/test/amsbenchs.c
+#	$(am__mv) ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Tpo ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Po
+	source='ams/test/amsbenchs.c' object='ams/test/amsbenchs-amsbenchs.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchs_CFLAGS) $(CFLAGS) -c -o ams/test/amsbenchs-amsbenchs.o `test -f 'ams/test/amsbenchs.c' || echo '$(srcdir)/'`ams/test/amsbenchs.c
 
 ams/test/amsbenchs-amsbenchs.obj: ams/test/amsbenchs.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchs_CFLAGS) $(CFLAGS) -MT ams/test/amsbenchs-amsbenchs.obj -MD -MP -MF ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Tpo -c -o ams/test/amsbenchs-amsbenchs.obj `if test -f 'ams/test/amsbenchs.c'; then $(CYGPATH_W) 'ams/test/amsbenchs.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsbenchs.c'; fi`
-	$(am__mv) ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Tpo ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Po
-#	source='ams/test/amsbenchs.c' object='ams/test/amsbenchs-amsbenchs.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchs_CFLAGS) $(CFLAGS) -c -o ams/test/amsbenchs-amsbenchs.obj `if test -f 'ams/test/amsbenchs.c'; then $(CYGPATH_W) 'ams/test/amsbenchs.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsbenchs.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchs_CFLAGS) $(CFLAGS) -MT ams/test/amsbenchs-amsbenchs.obj -MD -MP -MF ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Tpo -c -o ams/test/amsbenchs-amsbenchs.obj `if test -f 'ams/test/amsbenchs.c'; then $(CYGPATH_W) 'ams/test/amsbenchs.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsbenchs.c'; fi`
+#	$(am__mv) ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Tpo ams/test/$(DEPDIR)/amsbenchs-amsbenchs.Po
+	source='ams/test/amsbenchs.c' object='ams/test/amsbenchs-amsbenchs.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchs_CFLAGS) $(CFLAGS) -c -o ams/test/amsbenchs-amsbenchs.obj `if test -f 'ams/test/amsbenchs.c'; then $(CYGPATH_W) 'ams/test/amsbenchs.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsbenchs.c'; fi`
 
 ams/library/amsd-amsd.o: ams/library/amsd.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-amsd.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-amsd.Tpo -c -o ams/library/amsd-amsd.o `test -f 'ams/library/amsd.c' || echo '$(srcdir)/'`ams/library/amsd.c
-	$(am__mv) ams/library/$(DEPDIR)/amsd-amsd.Tpo ams/library/$(DEPDIR)/amsd-amsd.Po
-#	source='ams/library/amsd.c' object='ams/library/amsd-amsd.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-amsd.o `test -f 'ams/library/amsd.c' || echo '$(srcdir)/'`ams/library/amsd.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-amsd.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-amsd.Tpo -c -o ams/library/amsd-amsd.o `test -f 'ams/library/amsd.c' || echo '$(srcdir)/'`ams/library/amsd.c
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-amsd.Tpo ams/library/$(DEPDIR)/amsd-amsd.Po
+	source='ams/library/amsd.c' object='ams/library/amsd-amsd.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-amsd.o `test -f 'ams/library/amsd.c' || echo '$(srcdir)/'`ams/library/amsd.c
 
 ams/library/amsd-amsd.obj: ams/library/amsd.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-amsd.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-amsd.Tpo -c -o ams/library/amsd-amsd.obj `if test -f 'ams/library/amsd.c'; then $(CYGPATH_W) 'ams/library/amsd.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/amsd.c'; fi`
-	$(am__mv) ams/library/$(DEPDIR)/amsd-amsd.Tpo ams/library/$(DEPDIR)/amsd-amsd.Po
-#	source='ams/library/amsd.c' object='ams/library/amsd-amsd.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-amsd.obj `if test -f 'ams/library/amsd.c'; then $(CYGPATH_W) 'ams/library/amsd.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/amsd.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-amsd.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-amsd.Tpo -c -o ams/library/amsd-amsd.obj `if test -f 'ams/library/amsd.c'; then $(CYGPATH_W) 'ams/library/amsd.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/amsd.c'; fi`
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-amsd.Tpo ams/library/$(DEPDIR)/amsd-amsd.Po
+	source='ams/library/amsd.c' object='ams/library/amsd-amsd.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-amsd.obj `if test -f 'ams/library/amsd.c'; then $(CYGPATH_W) 'ams/library/amsd.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/amsd.c'; fi`
 
 ams/library/amsd-libams.o: ams/library/libams.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-libams.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-libams.Tpo -c -o ams/library/amsd-libams.o `test -f 'ams/library/libams.c' || echo '$(srcdir)/'`ams/library/libams.c
-	$(am__mv) ams/library/$(DEPDIR)/amsd-libams.Tpo ams/library/$(DEPDIR)/amsd-libams.Po
-#	source='ams/library/libams.c' object='ams/library/amsd-libams.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-libams.o `test -f 'ams/library/libams.c' || echo '$(srcdir)/'`ams/library/libams.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-libams.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-libams.Tpo -c -o ams/library/amsd-libams.o `test -f 'ams/library/libams.c' || echo '$(srcdir)/'`ams/library/libams.c
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-libams.Tpo ams/library/$(DEPDIR)/amsd-libams.Po
+	source='ams/library/libams.c' object='ams/library/amsd-libams.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-libams.o `test -f 'ams/library/libams.c' || echo '$(srcdir)/'`ams/library/libams.c
 
 ams/library/amsd-libams.obj: ams/library/libams.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-libams.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-libams.Tpo -c -o ams/library/amsd-libams.obj `if test -f 'ams/library/libams.c'; then $(CYGPATH_W) 'ams/library/libams.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/libams.c'; fi`
-	$(am__mv) ams/library/$(DEPDIR)/amsd-libams.Tpo ams/library/$(DEPDIR)/amsd-libams.Po
-#	source='ams/library/libams.c' object='ams/library/amsd-libams.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-libams.obj `if test -f 'ams/library/libams.c'; then $(CYGPATH_W) 'ams/library/libams.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/libams.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-libams.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-libams.Tpo -c -o ams/library/amsd-libams.obj `if test -f 'ams/library/libams.c'; then $(CYGPATH_W) 'ams/library/libams.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/libams.c'; fi`
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-libams.Tpo ams/library/$(DEPDIR)/amsd-libams.Po
+	source='ams/library/libams.c' object='ams/library/amsd-libams.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-libams.obj `if test -f 'ams/library/libams.c'; then $(CYGPATH_W) 'ams/library/libams.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/libams.c'; fi`
 
 ams/library/amsd-amscommon.o: ams/library/amscommon.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-amscommon.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-amscommon.Tpo -c -o ams/library/amsd-amscommon.o `test -f 'ams/library/amscommon.c' || echo '$(srcdir)/'`ams/library/amscommon.c
-	$(am__mv) ams/library/$(DEPDIR)/amsd-amscommon.Tpo ams/library/$(DEPDIR)/amsd-amscommon.Po
-#	source='ams/library/amscommon.c' object='ams/library/amsd-amscommon.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-amscommon.o `test -f 'ams/library/amscommon.c' || echo '$(srcdir)/'`ams/library/amscommon.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-amscommon.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-amscommon.Tpo -c -o ams/library/amsd-amscommon.o `test -f 'ams/library/amscommon.c' || echo '$(srcdir)/'`ams/library/amscommon.c
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-amscommon.Tpo ams/library/$(DEPDIR)/amsd-amscommon.Po
+	source='ams/library/amscommon.c' object='ams/library/amsd-amscommon.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-amscommon.o `test -f 'ams/library/amscommon.c' || echo '$(srcdir)/'`ams/library/amscommon.c
 
 ams/library/amsd-amscommon.obj: ams/library/amscommon.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-amscommon.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-amscommon.Tpo -c -o ams/library/amsd-amscommon.obj `if test -f 'ams/library/amscommon.c'; then $(CYGPATH_W) 'ams/library/amscommon.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/amscommon.c'; fi`
-	$(am__mv) ams/library/$(DEPDIR)/amsd-amscommon.Tpo ams/library/$(DEPDIR)/amsd-amscommon.Po
-#	source='ams/library/amscommon.c' object='ams/library/amsd-amscommon.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-amscommon.obj `if test -f 'ams/library/amscommon.c'; then $(CYGPATH_W) 'ams/library/amscommon.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/amscommon.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-amscommon.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-amscommon.Tpo -c -o ams/library/amsd-amscommon.obj `if test -f 'ams/library/amscommon.c'; then $(CYGPATH_W) 'ams/library/amscommon.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/amscommon.c'; fi`
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-amscommon.Tpo ams/library/$(DEPDIR)/amsd-amscommon.Po
+	source='ams/library/amscommon.c' object='ams/library/amsd-amscommon.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-amscommon.obj `if test -f 'ams/library/amscommon.c'; then $(CYGPATH_W) 'ams/library/amscommon.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/amscommon.c'; fi`
 
 ams/library/amsd-loadmib.o: ams/library/loadmib.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-loadmib.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-loadmib.Tpo -c -o ams/library/amsd-loadmib.o `test -f 'ams/library/loadmib.c' || echo '$(srcdir)/'`ams/library/loadmib.c
-	$(am__mv) ams/library/$(DEPDIR)/amsd-loadmib.Tpo ams/library/$(DEPDIR)/amsd-loadmib.Po
-#	source='ams/library/loadmib.c' object='ams/library/amsd-loadmib.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-loadmib.o `test -f 'ams/library/loadmib.c' || echo '$(srcdir)/'`ams/library/loadmib.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-loadmib.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-loadmib.Tpo -c -o ams/library/amsd-loadmib.o `test -f 'ams/library/loadmib.c' || echo '$(srcdir)/'`ams/library/loadmib.c
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-loadmib.Tpo ams/library/$(DEPDIR)/amsd-loadmib.Po
+	source='ams/library/loadmib.c' object='ams/library/amsd-loadmib.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-loadmib.o `test -f 'ams/library/loadmib.c' || echo '$(srcdir)/'`ams/library/loadmib.c
 
 ams/library/amsd-loadmib.obj: ams/library/loadmib.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-loadmib.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-loadmib.Tpo -c -o ams/library/amsd-loadmib.obj `if test -f 'ams/library/loadmib.c'; then $(CYGPATH_W) 'ams/library/loadmib.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/loadmib.c'; fi`
-	$(am__mv) ams/library/$(DEPDIR)/amsd-loadmib.Tpo ams/library/$(DEPDIR)/amsd-loadmib.Po
-#	source='ams/library/loadmib.c' object='ams/library/amsd-loadmib.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-loadmib.obj `if test -f 'ams/library/loadmib.c'; then $(CYGPATH_W) 'ams/library/loadmib.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/loadmib.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-loadmib.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-loadmib.Tpo -c -o ams/library/amsd-loadmib.obj `if test -f 'ams/library/loadmib.c'; then $(CYGPATH_W) 'ams/library/loadmib.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/loadmib.c'; fi`
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-loadmib.Tpo ams/library/$(DEPDIR)/amsd-loadmib.Po
+	source='ams/library/loadmib.c' object='ams/library/amsd-loadmib.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-loadmib.obj `if test -f 'ams/library/loadmib.c'; then $(CYGPATH_W) 'ams/library/loadmib.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/loadmib.c'; fi`
 
 ams/library/amsd-nullcrypt.o: ams/library/nullcrypt.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-nullcrypt.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-nullcrypt.Tpo -c -o ams/library/amsd-nullcrypt.o `test -f 'ams/library/nullcrypt.c' || echo '$(srcdir)/'`ams/library/nullcrypt.c
-	$(am__mv) ams/library/$(DEPDIR)/amsd-nullcrypt.Tpo ams/library/$(DEPDIR)/amsd-nullcrypt.Po
-#	source='ams/library/nullcrypt.c' object='ams/library/amsd-nullcrypt.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-nullcrypt.o `test -f 'ams/library/nullcrypt.c' || echo '$(srcdir)/'`ams/library/nullcrypt.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-nullcrypt.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-nullcrypt.Tpo -c -o ams/library/amsd-nullcrypt.o `test -f 'ams/library/nullcrypt.c' || echo '$(srcdir)/'`ams/library/nullcrypt.c
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-nullcrypt.Tpo ams/library/$(DEPDIR)/amsd-nullcrypt.Po
+	source='ams/library/nullcrypt.c' object='ams/library/amsd-nullcrypt.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-nullcrypt.o `test -f 'ams/library/nullcrypt.c' || echo '$(srcdir)/'`ams/library/nullcrypt.c
 
 ams/library/amsd-nullcrypt.obj: ams/library/nullcrypt.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-nullcrypt.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-nullcrypt.Tpo -c -o ams/library/amsd-nullcrypt.obj `if test -f 'ams/library/nullcrypt.c'; then $(CYGPATH_W) 'ams/library/nullcrypt.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/nullcrypt.c'; fi`
-	$(am__mv) ams/library/$(DEPDIR)/amsd-nullcrypt.Tpo ams/library/$(DEPDIR)/amsd-nullcrypt.Po
-#	source='ams/library/nullcrypt.c' object='ams/library/amsd-nullcrypt.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-nullcrypt.obj `if test -f 'ams/library/nullcrypt.c'; then $(CYGPATH_W) 'ams/library/nullcrypt.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/nullcrypt.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-nullcrypt.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-nullcrypt.Tpo -c -o ams/library/amsd-nullcrypt.obj `if test -f 'ams/library/nullcrypt.c'; then $(CYGPATH_W) 'ams/library/nullcrypt.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/nullcrypt.c'; fi`
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-nullcrypt.Tpo ams/library/$(DEPDIR)/amsd-nullcrypt.Po
+	source='ams/library/nullcrypt.c' object='ams/library/amsd-nullcrypt.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-nullcrypt.obj `if test -f 'ams/library/nullcrypt.c'; then $(CYGPATH_W) 'ams/library/nullcrypt.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/nullcrypt.c'; fi`
 
 ams/library/amsd-dgrts.o: ams/library/dgrts.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-dgrts.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-dgrts.Tpo -c -o ams/library/amsd-dgrts.o `test -f 'ams/library/dgrts.c' || echo '$(srcdir)/'`ams/library/dgrts.c
-	$(am__mv) ams/library/$(DEPDIR)/amsd-dgrts.Tpo ams/library/$(DEPDIR)/amsd-dgrts.Po
-#	source='ams/library/dgrts.c' object='ams/library/amsd-dgrts.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-dgrts.o `test -f 'ams/library/dgrts.c' || echo '$(srcdir)/'`ams/library/dgrts.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-dgrts.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-dgrts.Tpo -c -o ams/library/amsd-dgrts.o `test -f 'ams/library/dgrts.c' || echo '$(srcdir)/'`ams/library/dgrts.c
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-dgrts.Tpo ams/library/$(DEPDIR)/amsd-dgrts.Po
+	source='ams/library/dgrts.c' object='ams/library/amsd-dgrts.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-dgrts.o `test -f 'ams/library/dgrts.c' || echo '$(srcdir)/'`ams/library/dgrts.c
 
 ams/library/amsd-dgrts.obj: ams/library/dgrts.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-dgrts.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-dgrts.Tpo -c -o ams/library/amsd-dgrts.obj `if test -f 'ams/library/dgrts.c'; then $(CYGPATH_W) 'ams/library/dgrts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/dgrts.c'; fi`
-	$(am__mv) ams/library/$(DEPDIR)/amsd-dgrts.Tpo ams/library/$(DEPDIR)/amsd-dgrts.Po
-#	source='ams/library/dgrts.c' object='ams/library/amsd-dgrts.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-dgrts.obj `if test -f 'ams/library/dgrts.c'; then $(CYGPATH_W) 'ams/library/dgrts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/dgrts.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-dgrts.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-dgrts.Tpo -c -o ams/library/amsd-dgrts.obj `if test -f 'ams/library/dgrts.c'; then $(CYGPATH_W) 'ams/library/dgrts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/dgrts.c'; fi`
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-dgrts.Tpo ams/library/$(DEPDIR)/amsd-dgrts.Po
+	source='ams/library/dgrts.c' object='ams/library/amsd-dgrts.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-dgrts.obj `if test -f 'ams/library/dgrts.c'; then $(CYGPATH_W) 'ams/library/dgrts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/dgrts.c'; fi`
 
 ams/library/amsd-udpts.o: ams/library/udpts.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-udpts.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-udpts.Tpo -c -o ams/library/amsd-udpts.o `test -f 'ams/library/udpts.c' || echo '$(srcdir)/'`ams/library/udpts.c
-	$(am__mv) ams/library/$(DEPDIR)/amsd-udpts.Tpo ams/library/$(DEPDIR)/amsd-udpts.Po
-#	source='ams/library/udpts.c' object='ams/library/amsd-udpts.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-udpts.o `test -f 'ams/library/udpts.c' || echo '$(srcdir)/'`ams/library/udpts.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-udpts.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-udpts.Tpo -c -o ams/library/amsd-udpts.o `test -f 'ams/library/udpts.c' || echo '$(srcdir)/'`ams/library/udpts.c
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-udpts.Tpo ams/library/$(DEPDIR)/amsd-udpts.Po
+	source='ams/library/udpts.c' object='ams/library/amsd-udpts.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-udpts.o `test -f 'ams/library/udpts.c' || echo '$(srcdir)/'`ams/library/udpts.c
 
 ams/library/amsd-udpts.obj: ams/library/udpts.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-udpts.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-udpts.Tpo -c -o ams/library/amsd-udpts.obj `if test -f 'ams/library/udpts.c'; then $(CYGPATH_W) 'ams/library/udpts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/udpts.c'; fi`
-	$(am__mv) ams/library/$(DEPDIR)/amsd-udpts.Tpo ams/library/$(DEPDIR)/amsd-udpts.Po
-#	source='ams/library/udpts.c' object='ams/library/amsd-udpts.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-udpts.obj `if test -f 'ams/library/udpts.c'; then $(CYGPATH_W) 'ams/library/udpts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/udpts.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-udpts.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-udpts.Tpo -c -o ams/library/amsd-udpts.obj `if test -f 'ams/library/udpts.c'; then $(CYGPATH_W) 'ams/library/udpts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/udpts.c'; fi`
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-udpts.Tpo ams/library/$(DEPDIR)/amsd-udpts.Po
+	source='ams/library/udpts.c' object='ams/library/amsd-udpts.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-udpts.obj `if test -f 'ams/library/udpts.c'; then $(CYGPATH_W) 'ams/library/udpts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/udpts.c'; fi`
 
 ams/library/amsd-tcpts.o: ams/library/tcpts.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-tcpts.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-tcpts.Tpo -c -o ams/library/amsd-tcpts.o `test -f 'ams/library/tcpts.c' || echo '$(srcdir)/'`ams/library/tcpts.c
-	$(am__mv) ams/library/$(DEPDIR)/amsd-tcpts.Tpo ams/library/$(DEPDIR)/amsd-tcpts.Po
-#	source='ams/library/tcpts.c' object='ams/library/amsd-tcpts.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-tcpts.o `test -f 'ams/library/tcpts.c' || echo '$(srcdir)/'`ams/library/tcpts.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-tcpts.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-tcpts.Tpo -c -o ams/library/amsd-tcpts.o `test -f 'ams/library/tcpts.c' || echo '$(srcdir)/'`ams/library/tcpts.c
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-tcpts.Tpo ams/library/$(DEPDIR)/amsd-tcpts.Po
+	source='ams/library/tcpts.c' object='ams/library/amsd-tcpts.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-tcpts.o `test -f 'ams/library/tcpts.c' || echo '$(srcdir)/'`ams/library/tcpts.c
 
 ams/library/amsd-tcpts.obj: ams/library/tcpts.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-tcpts.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-tcpts.Tpo -c -o ams/library/amsd-tcpts.obj `if test -f 'ams/library/tcpts.c'; then $(CYGPATH_W) 'ams/library/tcpts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/tcpts.c'; fi`
-	$(am__mv) ams/library/$(DEPDIR)/amsd-tcpts.Tpo ams/library/$(DEPDIR)/amsd-tcpts.Po
-#	source='ams/library/tcpts.c' object='ams/library/amsd-tcpts.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-tcpts.obj `if test -f 'ams/library/tcpts.c'; then $(CYGPATH_W) 'ams/library/tcpts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/tcpts.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-tcpts.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-tcpts.Tpo -c -o ams/library/amsd-tcpts.obj `if test -f 'ams/library/tcpts.c'; then $(CYGPATH_W) 'ams/library/tcpts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/tcpts.c'; fi`
+#	$(am__mv) ams/library/$(DEPDIR)/amsd-tcpts.Tpo ams/library/$(DEPDIR)/amsd-tcpts.Po
+	source='ams/library/tcpts.c' object='ams/library/amsd-tcpts.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-tcpts.obj `if test -f 'ams/library/tcpts.c'; then $(CYGPATH_W) 'ams/library/tcpts.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/tcpts.c'; fi`
 
 ams/test/amshello-amshello.o: ams/test/amshello.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amshello_CFLAGS) $(CFLAGS) -MT ams/test/amshello-amshello.o -MD -MP -MF ams/test/$(DEPDIR)/amshello-amshello.Tpo -c -o ams/test/amshello-amshello.o `test -f 'ams/test/amshello.c' || echo '$(srcdir)/'`ams/test/amshello.c
-	$(am__mv) ams/test/$(DEPDIR)/amshello-amshello.Tpo ams/test/$(DEPDIR)/amshello-amshello.Po
-#	source='ams/test/amshello.c' object='ams/test/amshello-amshello.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amshello_CFLAGS) $(CFLAGS) -c -o ams/test/amshello-amshello.o `test -f 'ams/test/amshello.c' || echo '$(srcdir)/'`ams/test/amshello.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amshello_CFLAGS) $(CFLAGS) -MT ams/test/amshello-amshello.o -MD -MP -MF ams/test/$(DEPDIR)/amshello-amshello.Tpo -c -o ams/test/amshello-amshello.o `test -f 'ams/test/amshello.c' || echo '$(srcdir)/'`ams/test/amshello.c
+#	$(am__mv) ams/test/$(DEPDIR)/amshello-amshello.Tpo ams/test/$(DEPDIR)/amshello-amshello.Po
+	source='ams/test/amshello.c' object='ams/test/amshello-amshello.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amshello_CFLAGS) $(CFLAGS) -c -o ams/test/amshello-amshello.o `test -f 'ams/test/amshello.c' || echo '$(srcdir)/'`ams/test/amshello.c
 
 ams/test/amshello-amshello.obj: ams/test/amshello.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amshello_CFLAGS) $(CFLAGS) -MT ams/test/amshello-amshello.obj -MD -MP -MF ams/test/$(DEPDIR)/amshello-amshello.Tpo -c -o ams/test/amshello-amshello.obj `if test -f 'ams/test/amshello.c'; then $(CYGPATH_W) 'ams/test/amshello.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amshello.c'; fi`
-	$(am__mv) ams/test/$(DEPDIR)/amshello-amshello.Tpo ams/test/$(DEPDIR)/amshello-amshello.Po
-#	source='ams/test/amshello.c' object='ams/test/amshello-amshello.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amshello_CFLAGS) $(CFLAGS) -c -o ams/test/amshello-amshello.obj `if test -f 'ams/test/amshello.c'; then $(CYGPATH_W) 'ams/test/amshello.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amshello.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amshello_CFLAGS) $(CFLAGS) -MT ams/test/amshello-amshello.obj -MD -MP -MF ams/test/$(DEPDIR)/amshello-amshello.Tpo -c -o ams/test/amshello-amshello.obj `if test -f 'ams/test/amshello.c'; then $(CYGPATH_W) 'ams/test/amshello.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amshello.c'; fi`
+#	$(am__mv) ams/test/$(DEPDIR)/amshello-amshello.Tpo ams/test/$(DEPDIR)/amshello-amshello.Po
+	source='ams/test/amshello.c' object='ams/test/amshello-amshello.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amshello_CFLAGS) $(CFLAGS) -c -o ams/test/amshello-amshello.obj `if test -f 'ams/test/amshello.c'; then $(CYGPATH_W) 'ams/test/amshello.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amshello.c'; fi`
 
 ams/test/amslog-amslog.o: ams/test/amslog.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslog_CFLAGS) $(CFLAGS) -MT ams/test/amslog-amslog.o -MD -MP -MF ams/test/$(DEPDIR)/amslog-amslog.Tpo -c -o ams/test/amslog-amslog.o `test -f 'ams/test/amslog.c' || echo '$(srcdir)/'`ams/test/amslog.c
-	$(am__mv) ams/test/$(DEPDIR)/amslog-amslog.Tpo ams/test/$(DEPDIR)/amslog-amslog.Po
-#	source='ams/test/amslog.c' object='ams/test/amslog-amslog.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslog_CFLAGS) $(CFLAGS) -c -o ams/test/amslog-amslog.o `test -f 'ams/test/amslog.c' || echo '$(srcdir)/'`ams/test/amslog.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslog_CFLAGS) $(CFLAGS) -MT ams/test/amslog-amslog.o -MD -MP -MF ams/test/$(DEPDIR)/amslog-amslog.Tpo -c -o ams/test/amslog-amslog.o `test -f 'ams/test/amslog.c' || echo '$(srcdir)/'`ams/test/amslog.c
+#	$(am__mv) ams/test/$(DEPDIR)/amslog-amslog.Tpo ams/test/$(DEPDIR)/amslog-amslog.Po
+	source='ams/test/amslog.c' object='ams/test/amslog-amslog.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslog_CFLAGS) $(CFLAGS) -c -o ams/test/amslog-amslog.o `test -f 'ams/test/amslog.c' || echo '$(srcdir)/'`ams/test/amslog.c
 
 ams/test/amslog-amslog.obj: ams/test/amslog.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslog_CFLAGS) $(CFLAGS) -MT ams/test/amslog-amslog.obj -MD -MP -MF ams/test/$(DEPDIR)/amslog-amslog.Tpo -c -o ams/test/amslog-amslog.obj `if test -f 'ams/test/amslog.c'; then $(CYGPATH_W) 'ams/test/amslog.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amslog.c'; fi`
-	$(am__mv) ams/test/$(DEPDIR)/amslog-amslog.Tpo ams/test/$(DEPDIR)/amslog-amslog.Po
-#	source='ams/test/amslog.c' object='ams/test/amslog-amslog.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslog_CFLAGS) $(CFLAGS) -c -o ams/test/amslog-amslog.obj `if test -f 'ams/test/amslog.c'; then $(CYGPATH_W) 'ams/test/amslog.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amslog.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslog_CFLAGS) $(CFLAGS) -MT ams/test/amslog-amslog.obj -MD -MP -MF ams/test/$(DEPDIR)/amslog-amslog.Tpo -c -o ams/test/amslog-amslog.obj `if test -f 'ams/test/amslog.c'; then $(CYGPATH_W) 'ams/test/amslog.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amslog.c'; fi`
+#	$(am__mv) ams/test/$(DEPDIR)/amslog-amslog.Tpo ams/test/$(DEPDIR)/amslog-amslog.Po
+	source='ams/test/amslog.c' object='ams/test/amslog-amslog.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslog_CFLAGS) $(CFLAGS) -c -o ams/test/amslog-amslog.obj `if test -f 'ams/test/amslog.c'; then $(CYGPATH_W) 'ams/test/amslog.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amslog.c'; fi`
 
 ams/test/amslogprt-amslogprt.o: ams/test/amslogprt.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslogprt_CFLAGS) $(CFLAGS) -MT ams/test/amslogprt-amslogprt.o -MD -MP -MF ams/test/$(DEPDIR)/amslogprt-amslogprt.Tpo -c -o ams/test/amslogprt-amslogprt.o `test -f 'ams/test/amslogprt.c' || echo '$(srcdir)/'`ams/test/amslogprt.c
-	$(am__mv) ams/test/$(DEPDIR)/amslogprt-amslogprt.Tpo ams/test/$(DEPDIR)/amslogprt-amslogprt.Po
-#	source='ams/test/amslogprt.c' object='ams/test/amslogprt-amslogprt.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslogprt_CFLAGS) $(CFLAGS) -c -o ams/test/amslogprt-amslogprt.o `test -f 'ams/test/amslogprt.c' || echo '$(srcdir)/'`ams/test/amslogprt.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslogprt_CFLAGS) $(CFLAGS) -MT ams/test/amslogprt-amslogprt.o -MD -MP -MF ams/test/$(DEPDIR)/amslogprt-amslogprt.Tpo -c -o ams/test/amslogprt-amslogprt.o `test -f 'ams/test/amslogprt.c' || echo '$(srcdir)/'`ams/test/amslogprt.c
+#	$(am__mv) ams/test/$(DEPDIR)/amslogprt-amslogprt.Tpo ams/test/$(DEPDIR)/amslogprt-amslogprt.Po
+	source='ams/test/amslogprt.c' object='ams/test/amslogprt-amslogprt.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslogprt_CFLAGS) $(CFLAGS) -c -o ams/test/amslogprt-amslogprt.o `test -f 'ams/test/amslogprt.c' || echo '$(srcdir)/'`ams/test/amslogprt.c
 
 ams/test/amslogprt-amslogprt.obj: ams/test/amslogprt.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslogprt_CFLAGS) $(CFLAGS) -MT ams/test/amslogprt-amslogprt.obj -MD -MP -MF ams/test/$(DEPDIR)/amslogprt-amslogprt.Tpo -c -o ams/test/amslogprt-amslogprt.obj `if test -f 'ams/test/amslogprt.c'; then $(CYGPATH_W) 'ams/test/amslogprt.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amslogprt.c'; fi`
-	$(am__mv) ams/test/$(DEPDIR)/amslogprt-amslogprt.Tpo ams/test/$(DEPDIR)/amslogprt-amslogprt.Po
-#	source='ams/test/amslogprt.c' object='ams/test/amslogprt-amslogprt.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslogprt_CFLAGS) $(CFLAGS) -c -o ams/test/amslogprt-amslogprt.obj `if test -f 'ams/test/amslogprt.c'; then $(CYGPATH_W) 'ams/test/amslogprt.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amslogprt.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslogprt_CFLAGS) $(CFLAGS) -MT ams/test/amslogprt-amslogprt.obj -MD -MP -MF ams/test/$(DEPDIR)/amslogprt-amslogprt.Tpo -c -o ams/test/amslogprt-amslogprt.obj `if test -f 'ams/test/amslogprt.c'; then $(CYGPATH_W) 'ams/test/amslogprt.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amslogprt.c'; fi`
+#	$(am__mv) ams/test/$(DEPDIR)/amslogprt-amslogprt.Tpo ams/test/$(DEPDIR)/amslogprt-amslogprt.Po
+	source='ams/test/amslogprt.c' object='ams/test/amslogprt-amslogprt.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amslogprt_CFLAGS) $(CFLAGS) -c -o ams/test/amslogprt-amslogprt.obj `if test -f 'ams/test/amslogprt.c'; then $(CYGPATH_W) 'ams/test/amslogprt.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amslogprt.c'; fi`
 
 ams/test/amsshell-amsshell.o: ams/test/amsshell.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsshell_CFLAGS) $(CFLAGS) -MT ams/test/amsshell-amsshell.o -MD -MP -MF ams/test/$(DEPDIR)/amsshell-amsshell.Tpo -c -o ams/test/amsshell-amsshell.o `test -f 'ams/test/amsshell.c' || echo '$(srcdir)/'`ams/test/amsshell.c
-	$(am__mv) ams/test/$(DEPDIR)/amsshell-amsshell.Tpo ams/test/$(DEPDIR)/amsshell-amsshell.Po
-#	source='ams/test/amsshell.c' object='ams/test/amsshell-amsshell.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsshell_CFLAGS) $(CFLAGS) -c -o ams/test/amsshell-amsshell.o `test -f 'ams/test/amsshell.c' || echo '$(srcdir)/'`ams/test/amsshell.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsshell_CFLAGS) $(CFLAGS) -MT ams/test/amsshell-amsshell.o -MD -MP -MF ams/test/$(DEPDIR)/amsshell-amsshell.Tpo -c -o ams/test/amsshell-amsshell.o `test -f 'ams/test/amsshell.c' || echo '$(srcdir)/'`ams/test/amsshell.c
+#	$(am__mv) ams/test/$(DEPDIR)/amsshell-amsshell.Tpo ams/test/$(DEPDIR)/amsshell-amsshell.Po
+	source='ams/test/amsshell.c' object='ams/test/amsshell-amsshell.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsshell_CFLAGS) $(CFLAGS) -c -o ams/test/amsshell-amsshell.o `test -f 'ams/test/amsshell.c' || echo '$(srcdir)/'`ams/test/amsshell.c
 
 ams/test/amsshell-amsshell.obj: ams/test/amsshell.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsshell_CFLAGS) $(CFLAGS) -MT ams/test/amsshell-amsshell.obj -MD -MP -MF ams/test/$(DEPDIR)/amsshell-amsshell.Tpo -c -o ams/test/amsshell-amsshell.obj `if test -f 'ams/test/amsshell.c'; then $(CYGPATH_W) 'ams/test/amsshell.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsshell.c'; fi`
-	$(am__mv) ams/test/$(DEPDIR)/amsshell-amsshell.Tpo ams/test/$(DEPDIR)/amsshell-amsshell.Po
-#	source='ams/test/amsshell.c' object='ams/test/amsshell-amsshell.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsshell_CFLAGS) $(CFLAGS) -c -o ams/test/amsshell-amsshell.obj `if test -f 'ams/test/amsshell.c'; then $(CYGPATH_W) 'ams/test/amsshell.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsshell.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsshell_CFLAGS) $(CFLAGS) -MT ams/test/amsshell-amsshell.obj -MD -MP -MF ams/test/$(DEPDIR)/amsshell-amsshell.Tpo -c -o ams/test/amsshell-amsshell.obj `if test -f 'ams/test/amsshell.c'; then $(CYGPATH_W) 'ams/test/amsshell.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsshell.c'; fi`
+#	$(am__mv) ams/test/$(DEPDIR)/amsshell-amsshell.Tpo ams/test/$(DEPDIR)/amsshell-amsshell.Po
+	source='ams/test/amsshell.c' object='ams/test/amsshell-amsshell.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsshell_CFLAGS) $(CFLAGS) -c -o ams/test/amsshell-amsshell.obj `if test -f 'ams/test/amsshell.c'; then $(CYGPATH_W) 'ams/test/amsshell.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsshell.c'; fi`
 
 ltp/aos/aoslsi-aoslsi.o: ltp/aos/aoslsi.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslsi_CFLAGS) $(CFLAGS) -MT ltp/aos/aoslsi-aoslsi.o -MD -MP -MF ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Tpo -c -o ltp/aos/aoslsi-aoslsi.o `test -f 'ltp/aos/aoslsi.c' || echo '$(srcdir)/'`ltp/aos/aoslsi.c
-	$(am__mv) ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Tpo ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Po
-#	source='ltp/aos/aoslsi.c' object='ltp/aos/aoslsi-aoslsi.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslsi_CFLAGS) $(CFLAGS) -c -o ltp/aos/aoslsi-aoslsi.o `test -f 'ltp/aos/aoslsi.c' || echo '$(srcdir)/'`ltp/aos/aoslsi.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslsi_CFLAGS) $(CFLAGS) -MT ltp/aos/aoslsi-aoslsi.o -MD -MP -MF ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Tpo -c -o ltp/aos/aoslsi-aoslsi.o `test -f 'ltp/aos/aoslsi.c' || echo '$(srcdir)/'`ltp/aos/aoslsi.c
+#	$(am__mv) ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Tpo ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Po
+	source='ltp/aos/aoslsi.c' object='ltp/aos/aoslsi-aoslsi.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslsi_CFLAGS) $(CFLAGS) -c -o ltp/aos/aoslsi-aoslsi.o `test -f 'ltp/aos/aoslsi.c' || echo '$(srcdir)/'`ltp/aos/aoslsi.c
 
 ltp/aos/aoslsi-aoslsi.obj: ltp/aos/aoslsi.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslsi_CFLAGS) $(CFLAGS) -MT ltp/aos/aoslsi-aoslsi.obj -MD -MP -MF ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Tpo -c -o ltp/aos/aoslsi-aoslsi.obj `if test -f 'ltp/aos/aoslsi.c'; then $(CYGPATH_W) 'ltp/aos/aoslsi.c'; else $(CYGPATH_W) '$(srcdir)/ltp/aos/aoslsi.c'; fi`
-	$(am__mv) ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Tpo ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Po
-#	source='ltp/aos/aoslsi.c' object='ltp/aos/aoslsi-aoslsi.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslsi_CFLAGS) $(CFLAGS) -c -o ltp/aos/aoslsi-aoslsi.obj `if test -f 'ltp/aos/aoslsi.c'; then $(CYGPATH_W) 'ltp/aos/aoslsi.c'; else $(CYGPATH_W) '$(srcdir)/ltp/aos/aoslsi.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslsi_CFLAGS) $(CFLAGS) -MT ltp/aos/aoslsi-aoslsi.obj -MD -MP -MF ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Tpo -c -o ltp/aos/aoslsi-aoslsi.obj `if test -f 'ltp/aos/aoslsi.c'; then $(CYGPATH_W) 'ltp/aos/aoslsi.c'; else $(CYGPATH_W) '$(srcdir)/ltp/aos/aoslsi.c'; fi`
+#	$(am__mv) ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Tpo ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Po
+	source='ltp/aos/aoslsi.c' object='ltp/aos/aoslsi-aoslsi.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslsi_CFLAGS) $(CFLAGS) -c -o ltp/aos/aoslsi-aoslsi.obj `if test -f 'ltp/aos/aoslsi.c'; then $(CYGPATH_W) 'ltp/aos/aoslsi.c'; else $(CYGPATH_W) '$(srcdir)/ltp/aos/aoslsi.c'; fi`
 
 ltp/aos/aoslso-aoslso.o: ltp/aos/aoslso.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslso_CFLAGS) $(CFLAGS) -MT ltp/aos/aoslso-aoslso.o -MD -MP -MF ltp/aos/$(DEPDIR)/aoslso-aoslso.Tpo -c -o ltp/aos/aoslso-aoslso.o `test -f 'ltp/aos/aoslso.c' || echo '$(srcdir)/'`ltp/aos/aoslso.c
-	$(am__mv) ltp/aos/$(DEPDIR)/aoslso-aoslso.Tpo ltp/aos/$(DEPDIR)/aoslso-aoslso.Po
-#	source='ltp/aos/aoslso.c' object='ltp/aos/aoslso-aoslso.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslso_CFLAGS) $(CFLAGS) -c -o ltp/aos/aoslso-aoslso.o `test -f 'ltp/aos/aoslso.c' || echo '$(srcdir)/'`ltp/aos/aoslso.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslso_CFLAGS) $(CFLAGS) -MT ltp/aos/aoslso-aoslso.o -MD -MP -MF ltp/aos/$(DEPDIR)/aoslso-aoslso.Tpo -c -o ltp/aos/aoslso-aoslso.o `test -f 'ltp/aos/aoslso.c' || echo '$(srcdir)/'`ltp/aos/aoslso.c
+#	$(am__mv) ltp/aos/$(DEPDIR)/aoslso-aoslso.Tpo ltp/aos/$(DEPDIR)/aoslso-aoslso.Po
+	source='ltp/aos/aoslso.c' object='ltp/aos/aoslso-aoslso.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslso_CFLAGS) $(CFLAGS) -c -o ltp/aos/aoslso-aoslso.o `test -f 'ltp/aos/aoslso.c' || echo '$(srcdir)/'`ltp/aos/aoslso.c
 
 ltp/aos/aoslso-aoslso.obj: ltp/aos/aoslso.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslso_CFLAGS) $(CFLAGS) -MT ltp/aos/aoslso-aoslso.obj -MD -MP -MF ltp/aos/$(DEPDIR)/aoslso-aoslso.Tpo -c -o ltp/aos/aoslso-aoslso.obj `if test -f 'ltp/aos/aoslso.c'; then $(CYGPATH_W) 'ltp/aos/aoslso.c'; else $(CYGPATH_W) '$(srcdir)/ltp/aos/aoslso.c'; fi`
-	$(am__mv) ltp/aos/$(DEPDIR)/aoslso-aoslso.Tpo ltp/aos/$(DEPDIR)/aoslso-aoslso.Po
-#	source='ltp/aos/aoslso.c' object='ltp/aos/aoslso-aoslso.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslso_CFLAGS) $(CFLAGS) -c -o ltp/aos/aoslso-aoslso.obj `if test -f 'ltp/aos/aoslso.c'; then $(CYGPATH_W) 'ltp/aos/aoslso.c'; else $(CYGPATH_W) '$(srcdir)/ltp/aos/aoslso.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslso_CFLAGS) $(CFLAGS) -MT ltp/aos/aoslso-aoslso.obj -MD -MP -MF ltp/aos/$(DEPDIR)/aoslso-aoslso.Tpo -c -o ltp/aos/aoslso-aoslso.obj `if test -f 'ltp/aos/aoslso.c'; then $(CYGPATH_W) 'ltp/aos/aoslso.c'; else $(CYGPATH_W) '$(srcdir)/ltp/aos/aoslso.c'; fi`
+#	$(am__mv) ltp/aos/$(DEPDIR)/aoslso-aoslso.Tpo ltp/aos/$(DEPDIR)/aoslso-aoslso.Po
+	source='ltp/aos/aoslso.c' object='ltp/aos/aoslso-aoslso.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslso_CFLAGS) $(CFLAGS) -c -o ltp/aos/aoslso-aoslso.obj `if test -f 'ltp/aos/aoslso.c'; then $(CYGPATH_W) 'ltp/aos/aoslso.c'; else $(CYGPATH_W) '$(srcdir)/ltp/aos/aoslso.c'; fi`
 
 bp/utils/bpadmin-bpadmin.o: bp/utils/bpadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpadmin_CFLAGS) $(CFLAGS) -MT bp/utils/bpadmin-bpadmin.o -MD -MP -MF bp/utils/$(DEPDIR)/bpadmin-bpadmin.Tpo -c -o bp/utils/bpadmin-bpadmin.o `test -f 'bp/utils/bpadmin.c' || echo '$(srcdir)/'`bp/utils/bpadmin.c
-	$(am__mv) bp/utils/$(DEPDIR)/bpadmin-bpadmin.Tpo bp/utils/$(DEPDIR)/bpadmin-bpadmin.Po
-#	source='bp/utils/bpadmin.c' object='bp/utils/bpadmin-bpadmin.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpadmin_CFLAGS) $(CFLAGS) -c -o bp/utils/bpadmin-bpadmin.o `test -f 'bp/utils/bpadmin.c' || echo '$(srcdir)/'`bp/utils/bpadmin.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpadmin_CFLAGS) $(CFLAGS) -MT bp/utils/bpadmin-bpadmin.o -MD -MP -MF bp/utils/$(DEPDIR)/bpadmin-bpadmin.Tpo -c -o bp/utils/bpadmin-bpadmin.o `test -f 'bp/utils/bpadmin.c' || echo '$(srcdir)/'`bp/utils/bpadmin.c
+#	$(am__mv) bp/utils/$(DEPDIR)/bpadmin-bpadmin.Tpo bp/utils/$(DEPDIR)/bpadmin-bpadmin.Po
+	source='bp/utils/bpadmin.c' object='bp/utils/bpadmin-bpadmin.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpadmin_CFLAGS) $(CFLAGS) -c -o bp/utils/bpadmin-bpadmin.o `test -f 'bp/utils/bpadmin.c' || echo '$(srcdir)/'`bp/utils/bpadmin.c
 
 bp/utils/bpadmin-bpadmin.obj: bp/utils/bpadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpadmin_CFLAGS) $(CFLAGS) -MT bp/utils/bpadmin-bpadmin.obj -MD -MP -MF bp/utils/$(DEPDIR)/bpadmin-bpadmin.Tpo -c -o bp/utils/bpadmin-bpadmin.obj `if test -f 'bp/utils/bpadmin.c'; then $(CYGPATH_W) 'bp/utils/bpadmin.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpadmin.c'; fi`
-	$(am__mv) bp/utils/$(DEPDIR)/bpadmin-bpadmin.Tpo bp/utils/$(DEPDIR)/bpadmin-bpadmin.Po
-#	source='bp/utils/bpadmin.c' object='bp/utils/bpadmin-bpadmin.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpadmin_CFLAGS) $(CFLAGS) -c -o bp/utils/bpadmin-bpadmin.obj `if test -f 'bp/utils/bpadmin.c'; then $(CYGPATH_W) 'bp/utils/bpadmin.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpadmin.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpadmin_CFLAGS) $(CFLAGS) -MT bp/utils/bpadmin-bpadmin.obj -MD -MP -MF bp/utils/$(DEPDIR)/bpadmin-bpadmin.Tpo -c -o bp/utils/bpadmin-bpadmin.obj `if test -f 'bp/utils/bpadmin.c'; then $(CYGPATH_W) 'bp/utils/bpadmin.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpadmin.c'; fi`
+#	$(am__mv) bp/utils/$(DEPDIR)/bpadmin-bpadmin.Tpo bp/utils/$(DEPDIR)/bpadmin-bpadmin.Po
+	source='bp/utils/bpadmin.c' object='bp/utils/bpadmin-bpadmin.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpadmin_CFLAGS) $(CFLAGS) -c -o bp/utils/bpadmin-bpadmin.obj `if test -f 'bp/utils/bpadmin.c'; then $(CYGPATH_W) 'bp/utils/bpadmin.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpadmin.c'; fi`
 
 bp/utils/bpcancel-bpcancel.o: bp/utils/bpcancel.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcancel_CFLAGS) $(CFLAGS) -MT bp/utils/bpcancel-bpcancel.o -MD -MP -MF bp/utils/$(DEPDIR)/bpcancel-bpcancel.Tpo -c -o bp/utils/bpcancel-bpcancel.o `test -f 'bp/utils/bpcancel.c' || echo '$(srcdir)/'`bp/utils/bpcancel.c
-	$(am__mv) bp/utils/$(DEPDIR)/bpcancel-bpcancel.Tpo bp/utils/$(DEPDIR)/bpcancel-bpcancel.Po
-#	source='bp/utils/bpcancel.c' object='bp/utils/bpcancel-bpcancel.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcancel_CFLAGS) $(CFLAGS) -c -o bp/utils/bpcancel-bpcancel.o `test -f 'bp/utils/bpcancel.c' || echo '$(srcdir)/'`bp/utils/bpcancel.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcancel_CFLAGS) $(CFLAGS) -MT bp/utils/bpcancel-bpcancel.o -MD -MP -MF bp/utils/$(DEPDIR)/bpcancel-bpcancel.Tpo -c -o bp/utils/bpcancel-bpcancel.o `test -f 'bp/utils/bpcancel.c' || echo '$(srcdir)/'`bp/utils/bpcancel.c
+#	$(am__mv) bp/utils/$(DEPDIR)/bpcancel-bpcancel.Tpo bp/utils/$(DEPDIR)/bpcancel-bpcancel.Po
+	source='bp/utils/bpcancel.c' object='bp/utils/bpcancel-bpcancel.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcancel_CFLAGS) $(CFLAGS) -c -o bp/utils/bpcancel-bpcancel.o `test -f 'bp/utils/bpcancel.c' || echo '$(srcdir)/'`bp/utils/bpcancel.c
 
 bp/utils/bpcancel-bpcancel.obj: bp/utils/bpcancel.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcancel_CFLAGS) $(CFLAGS) -MT bp/utils/bpcancel-bpcancel.obj -MD -MP -MF bp/utils/$(DEPDIR)/bpcancel-bpcancel.Tpo -c -o bp/utils/bpcancel-bpcancel.obj `if test -f 'bp/utils/bpcancel.c'; then $(CYGPATH_W) 'bp/utils/bpcancel.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpcancel.c'; fi`
-	$(am__mv) bp/utils/$(DEPDIR)/bpcancel-bpcancel.Tpo bp/utils/$(DEPDIR)/bpcancel-bpcancel.Po
-#	source='bp/utils/bpcancel.c' object='bp/utils/bpcancel-bpcancel.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcancel_CFLAGS) $(CFLAGS) -c -o bp/utils/bpcancel-bpcancel.obj `if test -f 'bp/utils/bpcancel.c'; then $(CYGPATH_W) 'bp/utils/bpcancel.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpcancel.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcancel_CFLAGS) $(CFLAGS) -MT bp/utils/bpcancel-bpcancel.obj -MD -MP -MF bp/utils/$(DEPDIR)/bpcancel-bpcancel.Tpo -c -o bp/utils/bpcancel-bpcancel.obj `if test -f 'bp/utils/bpcancel.c'; then $(CYGPATH_W) 'bp/utils/bpcancel.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpcancel.c'; fi`
+#	$(am__mv) bp/utils/$(DEPDIR)/bpcancel-bpcancel.Tpo bp/utils/$(DEPDIR)/bpcancel-bpcancel.Po
+	source='bp/utils/bpcancel.c' object='bp/utils/bpcancel-bpcancel.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcancel_CFLAGS) $(CFLAGS) -c -o bp/utils/bpcancel-bpcancel.obj `if test -f 'bp/utils/bpcancel.c'; then $(CYGPATH_W) 'bp/utils/bpcancel.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpcancel.c'; fi`
 
 bp/test/bpchat-bpchat.o: bp/test/bpchat.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpchat_CFLAGS) $(CFLAGS) -MT bp/test/bpchat-bpchat.o -MD -MP -MF bp/test/$(DEPDIR)/bpchat-bpchat.Tpo -c -o bp/test/bpchat-bpchat.o `test -f 'bp/test/bpchat.c' || echo '$(srcdir)/'`bp/test/bpchat.c
-	$(am__mv) bp/test/$(DEPDIR)/bpchat-bpchat.Tpo bp/test/$(DEPDIR)/bpchat-bpchat.Po
-#	source='bp/test/bpchat.c' object='bp/test/bpchat-bpchat.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpchat_CFLAGS) $(CFLAGS) -c -o bp/test/bpchat-bpchat.o `test -f 'bp/test/bpchat.c' || echo '$(srcdir)/'`bp/test/bpchat.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpchat_CFLAGS) $(CFLAGS) -MT bp/test/bpchat-bpchat.o -MD -MP -MF bp/test/$(DEPDIR)/bpchat-bpchat.Tpo -c -o bp/test/bpchat-bpchat.o `test -f 'bp/test/bpchat.c' || echo '$(srcdir)/'`bp/test/bpchat.c
+#	$(am__mv) bp/test/$(DEPDIR)/bpchat-bpchat.Tpo bp/test/$(DEPDIR)/bpchat-bpchat.Po
+	source='bp/test/bpchat.c' object='bp/test/bpchat-bpchat.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpchat_CFLAGS) $(CFLAGS) -c -o bp/test/bpchat-bpchat.o `test -f 'bp/test/bpchat.c' || echo '$(srcdir)/'`bp/test/bpchat.c
 
 bp/test/bpchat-bpchat.obj: bp/test/bpchat.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpchat_CFLAGS) $(CFLAGS) -MT bp/test/bpchat-bpchat.obj -MD -MP -MF bp/test/$(DEPDIR)/bpchat-bpchat.Tpo -c -o bp/test/bpchat-bpchat.obj `if test -f 'bp/test/bpchat.c'; then $(CYGPATH_W) 'bp/test/bpchat.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpchat.c'; fi`
-	$(am__mv) bp/test/$(DEPDIR)/bpchat-bpchat.Tpo bp/test/$(DEPDIR)/bpchat-bpchat.Po
-#	source='bp/test/bpchat.c' object='bp/test/bpchat-bpchat.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpchat_CFLAGS) $(CFLAGS) -c -o bp/test/bpchat-bpchat.obj `if test -f 'bp/test/bpchat.c'; then $(CYGPATH_W) 'bp/test/bpchat.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpchat.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpchat_CFLAGS) $(CFLAGS) -MT bp/test/bpchat-bpchat.obj -MD -MP -MF bp/test/$(DEPDIR)/bpchat-bpchat.Tpo -c -o bp/test/bpchat-bpchat.obj `if test -f 'bp/test/bpchat.c'; then $(CYGPATH_W) 'bp/test/bpchat.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpchat.c'; fi`
+#	$(am__mv) bp/test/$(DEPDIR)/bpchat-bpchat.Tpo bp/test/$(DEPDIR)/bpchat-bpchat.Po
+	source='bp/test/bpchat.c' object='bp/test/bpchat-bpchat.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpchat_CFLAGS) $(CFLAGS) -c -o bp/test/bpchat-bpchat.obj `if test -f 'bp/test/bpchat.c'; then $(CYGPATH_W) 'bp/test/bpchat.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpchat.c'; fi`
 
 bp/daemon/bpclock-bpclock.o: bp/daemon/bpclock.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpclock_CFLAGS) $(CFLAGS) -MT bp/daemon/bpclock-bpclock.o -MD -MP -MF bp/daemon/$(DEPDIR)/bpclock-bpclock.Tpo -c -o bp/daemon/bpclock-bpclock.o `test -f 'bp/daemon/bpclock.c' || echo '$(srcdir)/'`bp/daemon/bpclock.c
-	$(am__mv) bp/daemon/$(DEPDIR)/bpclock-bpclock.Tpo bp/daemon/$(DEPDIR)/bpclock-bpclock.Po
-#	source='bp/daemon/bpclock.c' object='bp/daemon/bpclock-bpclock.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpclock_CFLAGS) $(CFLAGS) -c -o bp/daemon/bpclock-bpclock.o `test -f 'bp/daemon/bpclock.c' || echo '$(srcdir)/'`bp/daemon/bpclock.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpclock_CFLAGS) $(CFLAGS) -MT bp/daemon/bpclock-bpclock.o -MD -MP -MF bp/daemon/$(DEPDIR)/bpclock-bpclock.Tpo -c -o bp/daemon/bpclock-bpclock.o `test -f 'bp/daemon/bpclock.c' || echo '$(srcdir)/'`bp/daemon/bpclock.c
+#	$(am__mv) bp/daemon/$(DEPDIR)/bpclock-bpclock.Tpo bp/daemon/$(DEPDIR)/bpclock-bpclock.Po
+	source='bp/daemon/bpclock.c' object='bp/daemon/bpclock-bpclock.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpclock_CFLAGS) $(CFLAGS) -c -o bp/daemon/bpclock-bpclock.o `test -f 'bp/daemon/bpclock.c' || echo '$(srcdir)/'`bp/daemon/bpclock.c
 
 bp/daemon/bpclock-bpclock.obj: bp/daemon/bpclock.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpclock_CFLAGS) $(CFLAGS) -MT bp/daemon/bpclock-bpclock.obj -MD -MP -MF bp/daemon/$(DEPDIR)/bpclock-bpclock.Tpo -c -o bp/daemon/bpclock-bpclock.obj `if test -f 'bp/daemon/bpclock.c'; then $(CYGPATH_W) 'bp/daemon/bpclock.c'; else $(CYGPATH_W) '$(srcdir)/bp/daemon/bpclock.c'; fi`
-	$(am__mv) bp/daemon/$(DEPDIR)/bpclock-bpclock.Tpo bp/daemon/$(DEPDIR)/bpclock-bpclock.Po
-#	source='bp/daemon/bpclock.c' object='bp/daemon/bpclock-bpclock.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpclock_CFLAGS) $(CFLAGS) -c -o bp/daemon/bpclock-bpclock.obj `if test -f 'bp/daemon/bpclock.c'; then $(CYGPATH_W) 'bp/daemon/bpclock.c'; else $(CYGPATH_W) '$(srcdir)/bp/daemon/bpclock.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpclock_CFLAGS) $(CFLAGS) -MT bp/daemon/bpclock-bpclock.obj -MD -MP -MF bp/daemon/$(DEPDIR)/bpclock-bpclock.Tpo -c -o bp/daemon/bpclock-bpclock.obj `if test -f 'bp/daemon/bpclock.c'; then $(CYGPATH_W) 'bp/daemon/bpclock.c'; else $(CYGPATH_W) '$(srcdir)/bp/daemon/bpclock.c'; fi`
+#	$(am__mv) bp/daemon/$(DEPDIR)/bpclock-bpclock.Tpo bp/daemon/$(DEPDIR)/bpclock-bpclock.Po
+	source='bp/daemon/bpclock.c' object='bp/daemon/bpclock-bpclock.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpclock_CFLAGS) $(CFLAGS) -c -o bp/daemon/bpclock-bpclock.obj `if test -f 'bp/daemon/bpclock.c'; then $(CYGPATH_W) 'bp/daemon/bpclock.c'; else $(CYGPATH_W) '$(srcdir)/bp/daemon/bpclock.c'; fi`
 
 bp/test/bpcounter-bpcounter.o: bp/test/bpcounter.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcounter_CFLAGS) $(CFLAGS) -MT bp/test/bpcounter-bpcounter.o -MD -MP -MF bp/test/$(DEPDIR)/bpcounter-bpcounter.Tpo -c -o bp/test/bpcounter-bpcounter.o `test -f 'bp/test/bpcounter.c' || echo '$(srcdir)/'`bp/test/bpcounter.c
-	$(am__mv) bp/test/$(DEPDIR)/bpcounter-bpcounter.Tpo bp/test/$(DEPDIR)/bpcounter-bpcounter.Po
-#	source='bp/test/bpcounter.c' object='bp/test/bpcounter-bpcounter.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcounter_CFLAGS) $(CFLAGS) -c -o bp/test/bpcounter-bpcounter.o `test -f 'bp/test/bpcounter.c' || echo '$(srcdir)/'`bp/test/bpcounter.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcounter_CFLAGS) $(CFLAGS) -MT bp/test/bpcounter-bpcounter.o -MD -MP -MF bp/test/$(DEPDIR)/bpcounter-bpcounter.Tpo -c -o bp/test/bpcounter-bpcounter.o `test -f 'bp/test/bpcounter.c' || echo '$(srcdir)/'`bp/test/bpcounter.c
+#	$(am__mv) bp/test/$(DEPDIR)/bpcounter-bpcounter.Tpo bp/test/$(DEPDIR)/bpcounter-bpcounter.Po
+	source='bp/test/bpcounter.c' object='bp/test/bpcounter-bpcounter.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcounter_CFLAGS) $(CFLAGS) -c -o bp/test/bpcounter-bpcounter.o `test -f 'bp/test/bpcounter.c' || echo '$(srcdir)/'`bp/test/bpcounter.c
 
 bp/test/bpcounter-bpcounter.obj: bp/test/bpcounter.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcounter_CFLAGS) $(CFLAGS) -MT bp/test/bpcounter-bpcounter.obj -MD -MP -MF bp/test/$(DEPDIR)/bpcounter-bpcounter.Tpo -c -o bp/test/bpcounter-bpcounter.obj `if test -f 'bp/test/bpcounter.c'; then $(CYGPATH_W) 'bp/test/bpcounter.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpcounter.c'; fi`
-	$(am__mv) bp/test/$(DEPDIR)/bpcounter-bpcounter.Tpo bp/test/$(DEPDIR)/bpcounter-bpcounter.Po
-#	source='bp/test/bpcounter.c' object='bp/test/bpcounter-bpcounter.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcounter_CFLAGS) $(CFLAGS) -c -o bp/test/bpcounter-bpcounter.obj `if test -f 'bp/test/bpcounter.c'; then $(CYGPATH_W) 'bp/test/bpcounter.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpcounter.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcounter_CFLAGS) $(CFLAGS) -MT bp/test/bpcounter-bpcounter.obj -MD -MP -MF bp/test/$(DEPDIR)/bpcounter-bpcounter.Tpo -c -o bp/test/bpcounter-bpcounter.obj `if test -f 'bp/test/bpcounter.c'; then $(CYGPATH_W) 'bp/test/bpcounter.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpcounter.c'; fi`
+#	$(am__mv) bp/test/$(DEPDIR)/bpcounter-bpcounter.Tpo bp/test/$(DEPDIR)/bpcounter-bpcounter.Po
+	source='bp/test/bpcounter.c' object='bp/test/bpcounter-bpcounter.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpcounter_CFLAGS) $(CFLAGS) -c -o bp/test/bpcounter-bpcounter.obj `if test -f 'bp/test/bpcounter.c'; then $(CYGPATH_W) 'bp/test/bpcounter.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpcounter.c'; fi`
 
 bp/test/bpdriver-bpdriver.o: bp/test/bpdriver.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpdriver_CFLAGS) $(CFLAGS) -MT bp/test/bpdriver-bpdriver.o -MD -MP -MF bp/test/$(DEPDIR)/bpdriver-bpdriver.Tpo -c -o bp/test/bpdriver-bpdriver.o `test -f 'bp/test/bpdriver.c' || echo '$(srcdir)/'`bp/test/bpdriver.c
-	$(am__mv) bp/test/$(DEPDIR)/bpdriver-bpdriver.Tpo bp/test/$(DEPDIR)/bpdriver-bpdriver.Po
-#	source='bp/test/bpdriver.c' object='bp/test/bpdriver-bpdriver.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpdriver_CFLAGS) $(CFLAGS) -c -o bp/test/bpdriver-bpdriver.o `test -f 'bp/test/bpdriver.c' || echo '$(srcdir)/'`bp/test/bpdriver.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpdriver_CFLAGS) $(CFLAGS) -MT bp/test/bpdriver-bpdriver.o -MD -MP -MF bp/test/$(DEPDIR)/bpdriver-bpdriver.Tpo -c -o bp/test/bpdriver-bpdriver.o `test -f 'bp/test/bpdriver.c' || echo '$(srcdir)/'`bp/test/bpdriver.c
+#	$(am__mv) bp/test/$(DEPDIR)/bpdriver-bpdriver.Tpo bp/test/$(DEPDIR)/bpdriver-bpdriver.Po
+	source='bp/test/bpdriver.c' object='bp/test/bpdriver-bpdriver.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpdriver_CFLAGS) $(CFLAGS) -c -o bp/test/bpdriver-bpdriver.o `test -f 'bp/test/bpdriver.c' || echo '$(srcdir)/'`bp/test/bpdriver.c
 
 bp/test/bpdriver-bpdriver.obj: bp/test/bpdriver.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpdriver_CFLAGS) $(CFLAGS) -MT bp/test/bpdriver-bpdriver.obj -MD -MP -MF bp/test/$(DEPDIR)/bpdriver-bpdriver.Tpo -c -o bp/test/bpdriver-bpdriver.obj `if test -f 'bp/test/bpdriver.c'; then $(CYGPATH_W) 'bp/test/bpdriver.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpdriver.c'; fi`
-	$(am__mv) bp/test/$(DEPDIR)/bpdriver-bpdriver.Tpo bp/test/$(DEPDIR)/bpdriver-bpdriver.Po
-#	source='bp/test/bpdriver.c' object='bp/test/bpdriver-bpdriver.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpdriver_CFLAGS) $(CFLAGS) -c -o bp/test/bpdriver-bpdriver.obj `if test -f 'bp/test/bpdriver.c'; then $(CYGPATH_W) 'bp/test/bpdriver.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpdriver.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpdriver_CFLAGS) $(CFLAGS) -MT bp/test/bpdriver-bpdriver.obj -MD -MP -MF bp/test/$(DEPDIR)/bpdriver-bpdriver.Tpo -c -o bp/test/bpdriver-bpdriver.obj `if test -f 'bp/test/bpdriver.c'; then $(CYGPATH_W) 'bp/test/bpdriver.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpdriver.c'; fi`
+#	$(am__mv) bp/test/$(DEPDIR)/bpdriver-bpdriver.Tpo bp/test/$(DEPDIR)/bpdriver-bpdriver.Po
+	source='bp/test/bpdriver.c' object='bp/test/bpdriver-bpdriver.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpdriver_CFLAGS) $(CFLAGS) -c -o bp/test/bpdriver-bpdriver.obj `if test -f 'bp/test/bpdriver.c'; then $(CYGPATH_W) 'bp/test/bpdriver.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpdriver.c'; fi`
 
 bp/test/bpecho-bpecho.o: bp/test/bpecho.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpecho_CFLAGS) $(CFLAGS) -MT bp/test/bpecho-bpecho.o -MD -MP -MF bp/test/$(DEPDIR)/bpecho-bpecho.Tpo -c -o bp/test/bpecho-bpecho.o `test -f 'bp/test/bpecho.c' || echo '$(srcdir)/'`bp/test/bpecho.c
-	$(am__mv) bp/test/$(DEPDIR)/bpecho-bpecho.Tpo bp/test/$(DEPDIR)/bpecho-bpecho.Po
-#	source='bp/test/bpecho.c' object='bp/test/bpecho-bpecho.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpecho_CFLAGS) $(CFLAGS) -c -o bp/test/bpecho-bpecho.o `test -f 'bp/test/bpecho.c' || echo '$(srcdir)/'`bp/test/bpecho.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpecho_CFLAGS) $(CFLAGS) -MT bp/test/bpecho-bpecho.o -MD -MP -MF bp/test/$(DEPDIR)/bpecho-bpecho.Tpo -c -o bp/test/bpecho-bpecho.o `test -f 'bp/test/bpecho.c' || echo '$(srcdir)/'`bp/test/bpecho.c
+#	$(am__mv) bp/test/$(DEPDIR)/bpecho-bpecho.Tpo bp/test/$(DEPDIR)/bpecho-bpecho.Po
+	source='bp/test/bpecho.c' object='bp/test/bpecho-bpecho.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpecho_CFLAGS) $(CFLAGS) -c -o bp/test/bpecho-bpecho.o `test -f 'bp/test/bpecho.c' || echo '$(srcdir)/'`bp/test/bpecho.c
 
 bp/test/bpecho-bpecho.obj: bp/test/bpecho.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpecho_CFLAGS) $(CFLAGS) -MT bp/test/bpecho-bpecho.obj -MD -MP -MF bp/test/$(DEPDIR)/bpecho-bpecho.Tpo -c -o bp/test/bpecho-bpecho.obj `if test -f 'bp/test/bpecho.c'; then $(CYGPATH_W) 'bp/test/bpecho.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpecho.c'; fi`
-	$(am__mv) bp/test/$(DEPDIR)/bpecho-bpecho.Tpo bp/test/$(DEPDIR)/bpecho-bpecho.Po
-#	source='bp/test/bpecho.c' object='bp/test/bpecho-bpecho.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpecho_CFLAGS) $(CFLAGS) -c -o bp/test/bpecho-bpecho.obj `if test -f 'bp/test/bpecho.c'; then $(CYGPATH_W) 'bp/test/bpecho.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpecho.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpecho_CFLAGS) $(CFLAGS) -MT bp/test/bpecho-bpecho.obj -MD -MP -MF bp/test/$(DEPDIR)/bpecho-bpecho.Tpo -c -o bp/test/bpecho-bpecho.obj `if test -f 'bp/test/bpecho.c'; then $(CYGPATH_W) 'bp/test/bpecho.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpecho.c'; fi`
+#	$(am__mv) bp/test/$(DEPDIR)/bpecho-bpecho.Tpo bp/test/$(DEPDIR)/bpecho-bpecho.Po
+	source='bp/test/bpecho.c' object='bp/test/bpecho-bpecho.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpecho_CFLAGS) $(CFLAGS) -c -o bp/test/bpecho-bpecho.obj `if test -f 'bp/test/bpecho.c'; then $(CYGPATH_W) 'bp/test/bpecho.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpecho.c'; fi`
 
 bp/test/bping-bping.o: bp/test/bping.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bping_CFLAGS) $(CFLAGS) -MT bp/test/bping-bping.o -MD -MP -MF bp/test/$(DEPDIR)/bping-bping.Tpo -c -o bp/test/bping-bping.o `test -f 'bp/test/bping.c' || echo '$(srcdir)/'`bp/test/bping.c
-	$(am__mv) bp/test/$(DEPDIR)/bping-bping.Tpo bp/test/$(DEPDIR)/bping-bping.Po
-#	source='bp/test/bping.c' object='bp/test/bping-bping.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bping_CFLAGS) $(CFLAGS) -c -o bp/test/bping-bping.o `test -f 'bp/test/bping.c' || echo '$(srcdir)/'`bp/test/bping.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bping_CFLAGS) $(CFLAGS) -MT bp/test/bping-bping.o -MD -MP -MF bp/test/$(DEPDIR)/bping-bping.Tpo -c -o bp/test/bping-bping.o `test -f 'bp/test/bping.c' || echo '$(srcdir)/'`bp/test/bping.c
+#	$(am__mv) bp/test/$(DEPDIR)/bping-bping.Tpo bp/test/$(DEPDIR)/bping-bping.Po
+	source='bp/test/bping.c' object='bp/test/bping-bping.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bping_CFLAGS) $(CFLAGS) -c -o bp/test/bping-bping.o `test -f 'bp/test/bping.c' || echo '$(srcdir)/'`bp/test/bping.c
 
 bp/test/bping-bping.obj: bp/test/bping.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bping_CFLAGS) $(CFLAGS) -MT bp/test/bping-bping.obj -MD -MP -MF bp/test/$(DEPDIR)/bping-bping.Tpo -c -o bp/test/bping-bping.obj `if test -f 'bp/test/bping.c'; then $(CYGPATH_W) 'bp/test/bping.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bping.c'; fi`
-	$(am__mv) bp/test/$(DEPDIR)/bping-bping.Tpo bp/test/$(DEPDIR)/bping-bping.Po
-#	source='bp/test/bping.c' object='bp/test/bping-bping.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bping_CFLAGS) $(CFLAGS) -c -o bp/test/bping-bping.obj `if test -f 'bp/test/bping.c'; then $(CYGPATH_W) 'bp/test/bping.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bping.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bping_CFLAGS) $(CFLAGS) -MT bp/test/bping-bping.obj -MD -MP -MF bp/test/$(DEPDIR)/bping-bping.Tpo -c -o bp/test/bping-bping.obj `if test -f 'bp/test/bping.c'; then $(CYGPATH_W) 'bp/test/bping.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bping.c'; fi`
+#	$(am__mv) bp/test/$(DEPDIR)/bping-bping.Tpo bp/test/$(DEPDIR)/bping-bping.Po
+	source='bp/test/bping.c' object='bp/test/bping-bping.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bping_CFLAGS) $(CFLAGS) -c -o bp/test/bping-bping.obj `if test -f 'bp/test/bping.c'; then $(CYGPATH_W) 'bp/test/bping.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bping.c'; fi`
 
 bp/utils/bplist-bplist.o: bp/utils/bplist.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bplist_CFLAGS) $(CFLAGS) -MT bp/utils/bplist-bplist.o -MD -MP -MF bp/utils/$(DEPDIR)/bplist-bplist.Tpo -c -o bp/utils/bplist-bplist.o `test -f 'bp/utils/bplist.c' || echo '$(srcdir)/'`bp/utils/bplist.c
-	$(am__mv) bp/utils/$(DEPDIR)/bplist-bplist.Tpo bp/utils/$(DEPDIR)/bplist-bplist.Po
-#	source='bp/utils/bplist.c' object='bp/utils/bplist-bplist.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bplist_CFLAGS) $(CFLAGS) -c -o bp/utils/bplist-bplist.o `test -f 'bp/utils/bplist.c' || echo '$(srcdir)/'`bp/utils/bplist.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bplist_CFLAGS) $(CFLAGS) -MT bp/utils/bplist-bplist.o -MD -MP -MF bp/utils/$(DEPDIR)/bplist-bplist.Tpo -c -o bp/utils/bplist-bplist.o `test -f 'bp/utils/bplist.c' || echo '$(srcdir)/'`bp/utils/bplist.c
+#	$(am__mv) bp/utils/$(DEPDIR)/bplist-bplist.Tpo bp/utils/$(DEPDIR)/bplist-bplist.Po
+	source='bp/utils/bplist.c' object='bp/utils/bplist-bplist.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bplist_CFLAGS) $(CFLAGS) -c -o bp/utils/bplist-bplist.o `test -f 'bp/utils/bplist.c' || echo '$(srcdir)/'`bp/utils/bplist.c
 
 bp/utils/bplist-bplist.obj: bp/utils/bplist.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bplist_CFLAGS) $(CFLAGS) -MT bp/utils/bplist-bplist.obj -MD -MP -MF bp/utils/$(DEPDIR)/bplist-bplist.Tpo -c -o bp/utils/bplist-bplist.obj `if test -f 'bp/utils/bplist.c'; then $(CYGPATH_W) 'bp/utils/bplist.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bplist.c'; fi`
-	$(am__mv) bp/utils/$(DEPDIR)/bplist-bplist.Tpo bp/utils/$(DEPDIR)/bplist-bplist.Po
-#	source='bp/utils/bplist.c' object='bp/utils/bplist-bplist.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bplist_CFLAGS) $(CFLAGS) -c -o bp/utils/bplist-bplist.obj `if test -f 'bp/utils/bplist.c'; then $(CYGPATH_W) 'bp/utils/bplist.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bplist.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bplist_CFLAGS) $(CFLAGS) -MT bp/utils/bplist-bplist.obj -MD -MP -MF bp/utils/$(DEPDIR)/bplist-bplist.Tpo -c -o bp/utils/bplist-bplist.obj `if test -f 'bp/utils/bplist.c'; then $(CYGPATH_W) 'bp/utils/bplist.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bplist.c'; fi`
+#	$(am__mv) bp/utils/$(DEPDIR)/bplist-bplist.Tpo bp/utils/$(DEPDIR)/bplist-bplist.Po
+	source='bp/utils/bplist.c' object='bp/utils/bplist-bplist.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bplist_CFLAGS) $(CFLAGS) -c -o bp/utils/bplist-bplist.obj `if test -f 'bp/utils/bplist.c'; then $(CYGPATH_W) 'bp/utils/bplist.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bplist.c'; fi`
 
 bp/utils/bprecvfile-bprecvfile.o: bp/utils/bprecvfile.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bprecvfile_CFLAGS) $(CFLAGS) -MT bp/utils/bprecvfile-bprecvfile.o -MD -MP -MF bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Tpo -c -o bp/utils/bprecvfile-bprecvfile.o `test -f 'bp/utils/bprecvfile.c' || echo '$(srcdir)/'`bp/utils/bprecvfile.c
-	$(am__mv) bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Tpo bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Po
-#	source='bp/utils/bprecvfile.c' object='bp/utils/bprecvfile-bprecvfile.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bprecvfile_CFLAGS) $(CFLAGS) -c -o bp/utils/bprecvfile-bprecvfile.o `test -f 'bp/utils/bprecvfile.c' || echo '$(srcdir)/'`bp/utils/bprecvfile.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bprecvfile_CFLAGS) $(CFLAGS) -MT bp/utils/bprecvfile-bprecvfile.o -MD -MP -MF bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Tpo -c -o bp/utils/bprecvfile-bprecvfile.o `test -f 'bp/utils/bprecvfile.c' || echo '$(srcdir)/'`bp/utils/bprecvfile.c
+#	$(am__mv) bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Tpo bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Po
+	source='bp/utils/bprecvfile.c' object='bp/utils/bprecvfile-bprecvfile.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bprecvfile_CFLAGS) $(CFLAGS) -c -o bp/utils/bprecvfile-bprecvfile.o `test -f 'bp/utils/bprecvfile.c' || echo '$(srcdir)/'`bp/utils/bprecvfile.c
 
 bp/utils/bprecvfile-bprecvfile.obj: bp/utils/bprecvfile.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bprecvfile_CFLAGS) $(CFLAGS) -MT bp/utils/bprecvfile-bprecvfile.obj -MD -MP -MF bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Tpo -c -o bp/utils/bprecvfile-bprecvfile.obj `if test -f 'bp/utils/bprecvfile.c'; then $(CYGPATH_W) 'bp/utils/bprecvfile.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bprecvfile.c'; fi`
-	$(am__mv) bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Tpo bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Po
-#	source='bp/utils/bprecvfile.c' object='bp/utils/bprecvfile-bprecvfile.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bprecvfile_CFLAGS) $(CFLAGS) -c -o bp/utils/bprecvfile-bprecvfile.obj `if test -f 'bp/utils/bprecvfile.c'; then $(CYGPATH_W) 'bp/utils/bprecvfile.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bprecvfile.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bprecvfile_CFLAGS) $(CFLAGS) -MT bp/utils/bprecvfile-bprecvfile.obj -MD -MP -MF bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Tpo -c -o bp/utils/bprecvfile-bprecvfile.obj `if test -f 'bp/utils/bprecvfile.c'; then $(CYGPATH_W) 'bp/utils/bprecvfile.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bprecvfile.c'; fi`
+#	$(am__mv) bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Tpo bp/utils/$(DEPDIR)/bprecvfile-bprecvfile.Po
+	source='bp/utils/bprecvfile.c' object='bp/utils/bprecvfile-bprecvfile.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bprecvfile_CFLAGS) $(CFLAGS) -c -o bp/utils/bprecvfile-bprecvfile.obj `if test -f 'bp/utils/bprecvfile.c'; then $(CYGPATH_W) 'bp/utils/bprecvfile.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bprecvfile.c'; fi`
 
 bp/utils/bpsendfile-bpsendfile.o: bp/utils/bpsendfile.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsendfile_CFLAGS) $(CFLAGS) -MT bp/utils/bpsendfile-bpsendfile.o -MD -MP -MF bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Tpo -c -o bp/utils/bpsendfile-bpsendfile.o `test -f 'bp/utils/bpsendfile.c' || echo '$(srcdir)/'`bp/utils/bpsendfile.c
-	$(am__mv) bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Tpo bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Po
-#	source='bp/utils/bpsendfile.c' object='bp/utils/bpsendfile-bpsendfile.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsendfile_CFLAGS) $(CFLAGS) -c -o bp/utils/bpsendfile-bpsendfile.o `test -f 'bp/utils/bpsendfile.c' || echo '$(srcdir)/'`bp/utils/bpsendfile.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsendfile_CFLAGS) $(CFLAGS) -MT bp/utils/bpsendfile-bpsendfile.o -MD -MP -MF bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Tpo -c -o bp/utils/bpsendfile-bpsendfile.o `test -f 'bp/utils/bpsendfile.c' || echo '$(srcdir)/'`bp/utils/bpsendfile.c
+#	$(am__mv) bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Tpo bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Po
+	source='bp/utils/bpsendfile.c' object='bp/utils/bpsendfile-bpsendfile.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsendfile_CFLAGS) $(CFLAGS) -c -o bp/utils/bpsendfile-bpsendfile.o `test -f 'bp/utils/bpsendfile.c' || echo '$(srcdir)/'`bp/utils/bpsendfile.c
 
 bp/utils/bpsendfile-bpsendfile.obj: bp/utils/bpsendfile.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsendfile_CFLAGS) $(CFLAGS) -MT bp/utils/bpsendfile-bpsendfile.obj -MD -MP -MF bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Tpo -c -o bp/utils/bpsendfile-bpsendfile.obj `if test -f 'bp/utils/bpsendfile.c'; then $(CYGPATH_W) 'bp/utils/bpsendfile.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpsendfile.c'; fi`
-	$(am__mv) bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Tpo bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Po
-#	source='bp/utils/bpsendfile.c' object='bp/utils/bpsendfile-bpsendfile.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsendfile_CFLAGS) $(CFLAGS) -c -o bp/utils/bpsendfile-bpsendfile.obj `if test -f 'bp/utils/bpsendfile.c'; then $(CYGPATH_W) 'bp/utils/bpsendfile.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpsendfile.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsendfile_CFLAGS) $(CFLAGS) -MT bp/utils/bpsendfile-bpsendfile.obj -MD -MP -MF bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Tpo -c -o bp/utils/bpsendfile-bpsendfile.obj `if test -f 'bp/utils/bpsendfile.c'; then $(CYGPATH_W) 'bp/utils/bpsendfile.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpsendfile.c'; fi`
+#	$(am__mv) bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Tpo bp/utils/$(DEPDIR)/bpsendfile-bpsendfile.Po
+	source='bp/utils/bpsendfile.c' object='bp/utils/bpsendfile-bpsendfile.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsendfile_CFLAGS) $(CFLAGS) -c -o bp/utils/bpsendfile-bpsendfile.obj `if test -f 'bp/utils/bpsendfile.c'; then $(CYGPATH_W) 'bp/utils/bpsendfile.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpsendfile.c'; fi`
 
 bp/test/bpsink-bpsink.o: bp/test/bpsink.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsink_CFLAGS) $(CFLAGS) -MT bp/test/bpsink-bpsink.o -MD -MP -MF bp/test/$(DEPDIR)/bpsink-bpsink.Tpo -c -o bp/test/bpsink-bpsink.o `test -f 'bp/test/bpsink.c' || echo '$(srcdir)/'`bp/test/bpsink.c
-	$(am__mv) bp/test/$(DEPDIR)/bpsink-bpsink.Tpo bp/test/$(DEPDIR)/bpsink-bpsink.Po
-#	source='bp/test/bpsink.c' object='bp/test/bpsink-bpsink.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsink_CFLAGS) $(CFLAGS) -c -o bp/test/bpsink-bpsink.o `test -f 'bp/test/bpsink.c' || echo '$(srcdir)/'`bp/test/bpsink.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsink_CFLAGS) $(CFLAGS) -MT bp/test/bpsink-bpsink.o -MD -MP -MF bp/test/$(DEPDIR)/bpsink-bpsink.Tpo -c -o bp/test/bpsink-bpsink.o `test -f 'bp/test/bpsink.c' || echo '$(srcdir)/'`bp/test/bpsink.c
+#	$(am__mv) bp/test/$(DEPDIR)/bpsink-bpsink.Tpo bp/test/$(DEPDIR)/bpsink-bpsink.Po
+	source='bp/test/bpsink.c' object='bp/test/bpsink-bpsink.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsink_CFLAGS) $(CFLAGS) -c -o bp/test/bpsink-bpsink.o `test -f 'bp/test/bpsink.c' || echo '$(srcdir)/'`bp/test/bpsink.c
 
 bp/test/bpsink-bpsink.obj: bp/test/bpsink.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsink_CFLAGS) $(CFLAGS) -MT bp/test/bpsink-bpsink.obj -MD -MP -MF bp/test/$(DEPDIR)/bpsink-bpsink.Tpo -c -o bp/test/bpsink-bpsink.obj `if test -f 'bp/test/bpsink.c'; then $(CYGPATH_W) 'bp/test/bpsink.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpsink.c'; fi`
-	$(am__mv) bp/test/$(DEPDIR)/bpsink-bpsink.Tpo bp/test/$(DEPDIR)/bpsink-bpsink.Po
-#	source='bp/test/bpsink.c' object='bp/test/bpsink-bpsink.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsink_CFLAGS) $(CFLAGS) -c -o bp/test/bpsink-bpsink.obj `if test -f 'bp/test/bpsink.c'; then $(CYGPATH_W) 'bp/test/bpsink.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpsink.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsink_CFLAGS) $(CFLAGS) -MT bp/test/bpsink-bpsink.obj -MD -MP -MF bp/test/$(DEPDIR)/bpsink-bpsink.Tpo -c -o bp/test/bpsink-bpsink.obj `if test -f 'bp/test/bpsink.c'; then $(CYGPATH_W) 'bp/test/bpsink.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpsink.c'; fi`
+#	$(am__mv) bp/test/$(DEPDIR)/bpsink-bpsink.Tpo bp/test/$(DEPDIR)/bpsink-bpsink.Po
+	source='bp/test/bpsink.c' object='bp/test/bpsink-bpsink.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsink_CFLAGS) $(CFLAGS) -c -o bp/test/bpsink-bpsink.obj `if test -f 'bp/test/bpsink.c'; then $(CYGPATH_W) 'bp/test/bpsink.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpsink.c'; fi`
 
 bp/test/bpsource-bpsource.o: bp/test/bpsource.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsource_CFLAGS) $(CFLAGS) -MT bp/test/bpsource-bpsource.o -MD -MP -MF bp/test/$(DEPDIR)/bpsource-bpsource.Tpo -c -o bp/test/bpsource-bpsource.o `test -f 'bp/test/bpsource.c' || echo '$(srcdir)/'`bp/test/bpsource.c
-	$(am__mv) bp/test/$(DEPDIR)/bpsource-bpsource.Tpo bp/test/$(DEPDIR)/bpsource-bpsource.Po
-#	source='bp/test/bpsource.c' object='bp/test/bpsource-bpsource.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsource_CFLAGS) $(CFLAGS) -c -o bp/test/bpsource-bpsource.o `test -f 'bp/test/bpsource.c' || echo '$(srcdir)/'`bp/test/bpsource.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsource_CFLAGS) $(CFLAGS) -MT bp/test/bpsource-bpsource.o -MD -MP -MF bp/test/$(DEPDIR)/bpsource-bpsource.Tpo -c -o bp/test/bpsource-bpsource.o `test -f 'bp/test/bpsource.c' || echo '$(srcdir)/'`bp/test/bpsource.c
+#	$(am__mv) bp/test/$(DEPDIR)/bpsource-bpsource.Tpo bp/test/$(DEPDIR)/bpsource-bpsource.Po
+	source='bp/test/bpsource.c' object='bp/test/bpsource-bpsource.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsource_CFLAGS) $(CFLAGS) -c -o bp/test/bpsource-bpsource.o `test -f 'bp/test/bpsource.c' || echo '$(srcdir)/'`bp/test/bpsource.c
 
 bp/test/bpsource-bpsource.obj: bp/test/bpsource.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsource_CFLAGS) $(CFLAGS) -MT bp/test/bpsource-bpsource.obj -MD -MP -MF bp/test/$(DEPDIR)/bpsource-bpsource.Tpo -c -o bp/test/bpsource-bpsource.obj `if test -f 'bp/test/bpsource.c'; then $(CYGPATH_W) 'bp/test/bpsource.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpsource.c'; fi`
-	$(am__mv) bp/test/$(DEPDIR)/bpsource-bpsource.Tpo bp/test/$(DEPDIR)/bpsource-bpsource.Po
-#	source='bp/test/bpsource.c' object='bp/test/bpsource-bpsource.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsource_CFLAGS) $(CFLAGS) -c -o bp/test/bpsource-bpsource.obj `if test -f 'bp/test/bpsource.c'; then $(CYGPATH_W) 'bp/test/bpsource.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpsource.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsource_CFLAGS) $(CFLAGS) -MT bp/test/bpsource-bpsource.obj -MD -MP -MF bp/test/$(DEPDIR)/bpsource-bpsource.Tpo -c -o bp/test/bpsource-bpsource.obj `if test -f 'bp/test/bpsource.c'; then $(CYGPATH_W) 'bp/test/bpsource.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpsource.c'; fi`
+#	$(am__mv) bp/test/$(DEPDIR)/bpsource-bpsource.Tpo bp/test/$(DEPDIR)/bpsource-bpsource.Po
+	source='bp/test/bpsource.c' object='bp/test/bpsource-bpsource.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpsource_CFLAGS) $(CFLAGS) -c -o bp/test/bpsource-bpsource.obj `if test -f 'bp/test/bpsource.c'; then $(CYGPATH_W) 'bp/test/bpsource.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpsource.c'; fi`
 
 bp/utils/bpstats-bpstats.o: bp/utils/bpstats.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats_CFLAGS) $(CFLAGS) -MT bp/utils/bpstats-bpstats.o -MD -MP -MF bp/utils/$(DEPDIR)/bpstats-bpstats.Tpo -c -o bp/utils/bpstats-bpstats.o `test -f 'bp/utils/bpstats.c' || echo '$(srcdir)/'`bp/utils/bpstats.c
-	$(am__mv) bp/utils/$(DEPDIR)/bpstats-bpstats.Tpo bp/utils/$(DEPDIR)/bpstats-bpstats.Po
-#	source='bp/utils/bpstats.c' object='bp/utils/bpstats-bpstats.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats_CFLAGS) $(CFLAGS) -c -o bp/utils/bpstats-bpstats.o `test -f 'bp/utils/bpstats.c' || echo '$(srcdir)/'`bp/utils/bpstats.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats_CFLAGS) $(CFLAGS) -MT bp/utils/bpstats-bpstats.o -MD -MP -MF bp/utils/$(DEPDIR)/bpstats-bpstats.Tpo -c -o bp/utils/bpstats-bpstats.o `test -f 'bp/utils/bpstats.c' || echo '$(srcdir)/'`bp/utils/bpstats.c
+#	$(am__mv) bp/utils/$(DEPDIR)/bpstats-bpstats.Tpo bp/utils/$(DEPDIR)/bpstats-bpstats.Po
+	source='bp/utils/bpstats.c' object='bp/utils/bpstats-bpstats.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats_CFLAGS) $(CFLAGS) -c -o bp/utils/bpstats-bpstats.o `test -f 'bp/utils/bpstats.c' || echo '$(srcdir)/'`bp/utils/bpstats.c
 
 bp/utils/bpstats-bpstats.obj: bp/utils/bpstats.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats_CFLAGS) $(CFLAGS) -MT bp/utils/bpstats-bpstats.obj -MD -MP -MF bp/utils/$(DEPDIR)/bpstats-bpstats.Tpo -c -o bp/utils/bpstats-bpstats.obj `if test -f 'bp/utils/bpstats.c'; then $(CYGPATH_W) 'bp/utils/bpstats.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpstats.c'; fi`
-	$(am__mv) bp/utils/$(DEPDIR)/bpstats-bpstats.Tpo bp/utils/$(DEPDIR)/bpstats-bpstats.Po
-#	source='bp/utils/bpstats.c' object='bp/utils/bpstats-bpstats.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats_CFLAGS) $(CFLAGS) -c -o bp/utils/bpstats-bpstats.obj `if test -f 'bp/utils/bpstats.c'; then $(CYGPATH_W) 'bp/utils/bpstats.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpstats.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats_CFLAGS) $(CFLAGS) -MT bp/utils/bpstats-bpstats.obj -MD -MP -MF bp/utils/$(DEPDIR)/bpstats-bpstats.Tpo -c -o bp/utils/bpstats-bpstats.obj `if test -f 'bp/utils/bpstats.c'; then $(CYGPATH_W) 'bp/utils/bpstats.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpstats.c'; fi`
+#	$(am__mv) bp/utils/$(DEPDIR)/bpstats-bpstats.Tpo bp/utils/$(DEPDIR)/bpstats-bpstats.Po
+	source='bp/utils/bpstats.c' object='bp/utils/bpstats-bpstats.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats_CFLAGS) $(CFLAGS) -c -o bp/utils/bpstats-bpstats.obj `if test -f 'bp/utils/bpstats.c'; then $(CYGPATH_W) 'bp/utils/bpstats.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bpstats.c'; fi`
 
 bp/test/bpstats2-bpstats2.o: bp/test/bpstats2.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats2_CFLAGS) $(CFLAGS) -MT bp/test/bpstats2-bpstats2.o -MD -MP -MF bp/test/$(DEPDIR)/bpstats2-bpstats2.Tpo -c -o bp/test/bpstats2-bpstats2.o `test -f 'bp/test/bpstats2.c' || echo '$(srcdir)/'`bp/test/bpstats2.c
-	$(am__mv) bp/test/$(DEPDIR)/bpstats2-bpstats2.Tpo bp/test/$(DEPDIR)/bpstats2-bpstats2.Po
-#	source='bp/test/bpstats2.c' object='bp/test/bpstats2-bpstats2.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats2_CFLAGS) $(CFLAGS) -c -o bp/test/bpstats2-bpstats2.o `test -f 'bp/test/bpstats2.c' || echo '$(srcdir)/'`bp/test/bpstats2.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats2_CFLAGS) $(CFLAGS) -MT bp/test/bpstats2-bpstats2.o -MD -MP -MF bp/test/$(DEPDIR)/bpstats2-bpstats2.Tpo -c -o bp/test/bpstats2-bpstats2.o `test -f 'bp/test/bpstats2.c' || echo '$(srcdir)/'`bp/test/bpstats2.c
+#	$(am__mv) bp/test/$(DEPDIR)/bpstats2-bpstats2.Tpo bp/test/$(DEPDIR)/bpstats2-bpstats2.Po
+	source='bp/test/bpstats2.c' object='bp/test/bpstats2-bpstats2.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats2_CFLAGS) $(CFLAGS) -c -o bp/test/bpstats2-bpstats2.o `test -f 'bp/test/bpstats2.c' || echo '$(srcdir)/'`bp/test/bpstats2.c
 
 bp/test/bpstats2-bpstats2.obj: bp/test/bpstats2.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats2_CFLAGS) $(CFLAGS) -MT bp/test/bpstats2-bpstats2.obj -MD -MP -MF bp/test/$(DEPDIR)/bpstats2-bpstats2.Tpo -c -o bp/test/bpstats2-bpstats2.obj `if test -f 'bp/test/bpstats2.c'; then $(CYGPATH_W) 'bp/test/bpstats2.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpstats2.c'; fi`
-	$(am__mv) bp/test/$(DEPDIR)/bpstats2-bpstats2.Tpo bp/test/$(DEPDIR)/bpstats2-bpstats2.Po
-#	source='bp/test/bpstats2.c' object='bp/test/bpstats2-bpstats2.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats2_CFLAGS) $(CFLAGS) -c -o bp/test/bpstats2-bpstats2.obj `if test -f 'bp/test/bpstats2.c'; then $(CYGPATH_W) 'bp/test/bpstats2.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpstats2.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats2_CFLAGS) $(CFLAGS) -MT bp/test/bpstats2-bpstats2.obj -MD -MP -MF bp/test/$(DEPDIR)/bpstats2-bpstats2.Tpo -c -o bp/test/bpstats2-bpstats2.obj `if test -f 'bp/test/bpstats2.c'; then $(CYGPATH_W) 'bp/test/bpstats2.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpstats2.c'; fi`
+#	$(am__mv) bp/test/$(DEPDIR)/bpstats2-bpstats2.Tpo bp/test/$(DEPDIR)/bpstats2-bpstats2.Po
+	source='bp/test/bpstats2.c' object='bp/test/bpstats2-bpstats2.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bpstats2_CFLAGS) $(CFLAGS) -c -o bp/test/bpstats2-bpstats2.obj `if test -f 'bp/test/bpstats2.c'; then $(CYGPATH_W) 'bp/test/bpstats2.c'; else $(CYGPATH_W) '$(srcdir)/bp/test/bpstats2.c'; fi`
 
 bp/utils/bptrace-bptrace.o: bp/utils/bptrace.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bptrace_CFLAGS) $(CFLAGS) -MT bp/utils/bptrace-bptrace.o -MD -MP -MF bp/utils/$(DEPDIR)/bptrace-bptrace.Tpo -c -o bp/utils/bptrace-bptrace.o `test -f 'bp/utils/bptrace.c' || echo '$(srcdir)/'`bp/utils/bptrace.c
-	$(am__mv) bp/utils/$(DEPDIR)/bptrace-bptrace.Tpo bp/utils/$(DEPDIR)/bptrace-bptrace.Po
-#	source='bp/utils/bptrace.c' object='bp/utils/bptrace-bptrace.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bptrace_CFLAGS) $(CFLAGS) -c -o bp/utils/bptrace-bptrace.o `test -f 'bp/utils/bptrace.c' || echo '$(srcdir)/'`bp/utils/bptrace.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bptrace_CFLAGS) $(CFLAGS) -MT bp/utils/bptrace-bptrace.o -MD -MP -MF bp/utils/$(DEPDIR)/bptrace-bptrace.Tpo -c -o bp/utils/bptrace-bptrace.o `test -f 'bp/utils/bptrace.c' || echo '$(srcdir)/'`bp/utils/bptrace.c
+#	$(am__mv) bp/utils/$(DEPDIR)/bptrace-bptrace.Tpo bp/utils/$(DEPDIR)/bptrace-bptrace.Po
+	source='bp/utils/bptrace.c' object='bp/utils/bptrace-bptrace.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bptrace_CFLAGS) $(CFLAGS) -c -o bp/utils/bptrace-bptrace.o `test -f 'bp/utils/bptrace.c' || echo '$(srcdir)/'`bp/utils/bptrace.c
 
 bp/utils/bptrace-bptrace.obj: bp/utils/bptrace.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bptrace_CFLAGS) $(CFLAGS) -MT bp/utils/bptrace-bptrace.obj -MD -MP -MF bp/utils/$(DEPDIR)/bptrace-bptrace.Tpo -c -o bp/utils/bptrace-bptrace.obj `if test -f 'bp/utils/bptrace.c'; then $(CYGPATH_W) 'bp/utils/bptrace.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bptrace.c'; fi`
-	$(am__mv) bp/utils/$(DEPDIR)/bptrace-bptrace.Tpo bp/utils/$(DEPDIR)/bptrace-bptrace.Po
-#	source='bp/utils/bptrace.c' object='bp/utils/bptrace-bptrace.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bptrace_CFLAGS) $(CFLAGS) -c -o bp/utils/bptrace-bptrace.obj `if test -f 'bp/utils/bptrace.c'; then $(CYGPATH_W) 'bp/utils/bptrace.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bptrace.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bptrace_CFLAGS) $(CFLAGS) -MT bp/utils/bptrace-bptrace.obj -MD -MP -MF bp/utils/$(DEPDIR)/bptrace-bptrace.Tpo -c -o bp/utils/bptrace-bptrace.obj `if test -f 'bp/utils/bptrace.c'; then $(CYGPATH_W) 'bp/utils/bptrace.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bptrace.c'; fi`
+#	$(am__mv) bp/utils/$(DEPDIR)/bptrace-bptrace.Tpo bp/utils/$(DEPDIR)/bptrace-bptrace.Po
+	source='bp/utils/bptrace.c' object='bp/utils/bptrace-bptrace.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bptrace_CFLAGS) $(CFLAGS) -c -o bp/utils/bptrace-bptrace.obj `if test -f 'bp/utils/bptrace.c'; then $(CYGPATH_W) 'bp/utils/bptrace.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/bptrace.c'; fi`
 
 cfdp/bp/bputa-bputa.o: cfdp/bp/bputa.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bputa_CFLAGS) $(CFLAGS) -MT cfdp/bp/bputa-bputa.o -MD -MP -MF cfdp/bp/$(DEPDIR)/bputa-bputa.Tpo -c -o cfdp/bp/bputa-bputa.o `test -f 'cfdp/bp/bputa.c' || echo '$(srcdir)/'`cfdp/bp/bputa.c
-	$(am__mv) cfdp/bp/$(DEPDIR)/bputa-bputa.Tpo cfdp/bp/$(DEPDIR)/bputa-bputa.Po
-#	source='cfdp/bp/bputa.c' object='cfdp/bp/bputa-bputa.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bputa_CFLAGS) $(CFLAGS) -c -o cfdp/bp/bputa-bputa.o `test -f 'cfdp/bp/bputa.c' || echo '$(srcdir)/'`cfdp/bp/bputa.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bputa_CFLAGS) $(CFLAGS) -MT cfdp/bp/bputa-bputa.o -MD -MP -MF cfdp/bp/$(DEPDIR)/bputa-bputa.Tpo -c -o cfdp/bp/bputa-bputa.o `test -f 'cfdp/bp/bputa.c' || echo '$(srcdir)/'`cfdp/bp/bputa.c
+#	$(am__mv) cfdp/bp/$(DEPDIR)/bputa-bputa.Tpo cfdp/bp/$(DEPDIR)/bputa-bputa.Po
+	source='cfdp/bp/bputa.c' object='cfdp/bp/bputa-bputa.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bputa_CFLAGS) $(CFLAGS) -c -o cfdp/bp/bputa-bputa.o `test -f 'cfdp/bp/bputa.c' || echo '$(srcdir)/'`cfdp/bp/bputa.c
 
 cfdp/bp/bputa-bputa.obj: cfdp/bp/bputa.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bputa_CFLAGS) $(CFLAGS) -MT cfdp/bp/bputa-bputa.obj -MD -MP -MF cfdp/bp/$(DEPDIR)/bputa-bputa.Tpo -c -o cfdp/bp/bputa-bputa.obj `if test -f 'cfdp/bp/bputa.c'; then $(CYGPATH_W) 'cfdp/bp/bputa.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/bp/bputa.c'; fi`
-	$(am__mv) cfdp/bp/$(DEPDIR)/bputa-bputa.Tpo cfdp/bp/$(DEPDIR)/bputa-bputa.Po
-#	source='cfdp/bp/bputa.c' object='cfdp/bp/bputa-bputa.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bputa_CFLAGS) $(CFLAGS) -c -o cfdp/bp/bputa-bputa.obj `if test -f 'cfdp/bp/bputa.c'; then $(CYGPATH_W) 'cfdp/bp/bputa.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/bp/bputa.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bputa_CFLAGS) $(CFLAGS) -MT cfdp/bp/bputa-bputa.obj -MD -MP -MF cfdp/bp/$(DEPDIR)/bputa-bputa.Tpo -c -o cfdp/bp/bputa-bputa.obj `if test -f 'cfdp/bp/bputa.c'; then $(CYGPATH_W) 'cfdp/bp/bputa.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/bp/bputa.c'; fi`
+#	$(am__mv) cfdp/bp/$(DEPDIR)/bputa-bputa.Tpo cfdp/bp/$(DEPDIR)/bputa-bputa.Po
+	source='cfdp/bp/bputa.c' object='cfdp/bp/bputa-bputa.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bputa_CFLAGS) $(CFLAGS) -c -o cfdp/bp/bputa-bputa.obj `if test -f 'cfdp/bp/bputa.c'; then $(CYGPATH_W) 'cfdp/bp/bputa.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/bp/bputa.c'; fi`
 
 bp/brs/brsccla-brsccla.o: bp/brs/brsccla.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsccla_CFLAGS) $(CFLAGS) -MT bp/brs/brsccla-brsccla.o -MD -MP -MF bp/brs/$(DEPDIR)/brsccla-brsccla.Tpo -c -o bp/brs/brsccla-brsccla.o `test -f 'bp/brs/brsccla.c' || echo '$(srcdir)/'`bp/brs/brsccla.c
-	$(am__mv) bp/brs/$(DEPDIR)/brsccla-brsccla.Tpo bp/brs/$(DEPDIR)/brsccla-brsccla.Po
-#	source='bp/brs/brsccla.c' object='bp/brs/brsccla-brsccla.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsccla_CFLAGS) $(CFLAGS) -c -o bp/brs/brsccla-brsccla.o `test -f 'bp/brs/brsccla.c' || echo '$(srcdir)/'`bp/brs/brsccla.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsccla_CFLAGS) $(CFLAGS) -MT bp/brs/brsccla-brsccla.o -MD -MP -MF bp/brs/$(DEPDIR)/brsccla-brsccla.Tpo -c -o bp/brs/brsccla-brsccla.o `test -f 'bp/brs/brsccla.c' || echo '$(srcdir)/'`bp/brs/brsccla.c
+#	$(am__mv) bp/brs/$(DEPDIR)/brsccla-brsccla.Tpo bp/brs/$(DEPDIR)/brsccla-brsccla.Po
+	source='bp/brs/brsccla.c' object='bp/brs/brsccla-brsccla.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsccla_CFLAGS) $(CFLAGS) -c -o bp/brs/brsccla-brsccla.o `test -f 'bp/brs/brsccla.c' || echo '$(srcdir)/'`bp/brs/brsccla.c
 
 bp/brs/brsccla-brsccla.obj: bp/brs/brsccla.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsccla_CFLAGS) $(CFLAGS) -MT bp/brs/brsccla-brsccla.obj -MD -MP -MF bp/brs/$(DEPDIR)/brsccla-brsccla.Tpo -c -o bp/brs/brsccla-brsccla.obj `if test -f 'bp/brs/brsccla.c'; then $(CYGPATH_W) 'bp/brs/brsccla.c'; else $(CYGPATH_W) '$(srcdir)/bp/brs/brsccla.c'; fi`
-	$(am__mv) bp/brs/$(DEPDIR)/brsccla-brsccla.Tpo bp/brs/$(DEPDIR)/brsccla-brsccla.Po
-#	source='bp/brs/brsccla.c' object='bp/brs/brsccla-brsccla.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsccla_CFLAGS) $(CFLAGS) -c -o bp/brs/brsccla-brsccla.obj `if test -f 'bp/brs/brsccla.c'; then $(CYGPATH_W) 'bp/brs/brsccla.c'; else $(CYGPATH_W) '$(srcdir)/bp/brs/brsccla.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsccla_CFLAGS) $(CFLAGS) -MT bp/brs/brsccla-brsccla.obj -MD -MP -MF bp/brs/$(DEPDIR)/brsccla-brsccla.Tpo -c -o bp/brs/brsccla-brsccla.obj `if test -f 'bp/brs/brsccla.c'; then $(CYGPATH_W) 'bp/brs/brsccla.c'; else $(CYGPATH_W) '$(srcdir)/bp/brs/brsccla.c'; fi`
+#	$(am__mv) bp/brs/$(DEPDIR)/brsccla-brsccla.Tpo bp/brs/$(DEPDIR)/brsccla-brsccla.Po
+	source='bp/brs/brsccla.c' object='bp/brs/brsccla-brsccla.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsccla_CFLAGS) $(CFLAGS) -c -o bp/brs/brsccla-brsccla.obj `if test -f 'bp/brs/brsccla.c'; then $(CYGPATH_W) 'bp/brs/brsccla.c'; else $(CYGPATH_W) '$(srcdir)/bp/brs/brsccla.c'; fi`
 
 bp/brs/brsscla-brsscla.o: bp/brs/brsscla.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsscla_CFLAGS) $(CFLAGS) -MT bp/brs/brsscla-brsscla.o -MD -MP -MF bp/brs/$(DEPDIR)/brsscla-brsscla.Tpo -c -o bp/brs/brsscla-brsscla.o `test -f 'bp/brs/brsscla.c' || echo '$(srcdir)/'`bp/brs/brsscla.c
-	$(am__mv) bp/brs/$(DEPDIR)/brsscla-brsscla.Tpo bp/brs/$(DEPDIR)/brsscla-brsscla.Po
-#	source='bp/brs/brsscla.c' object='bp/brs/brsscla-brsscla.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsscla_CFLAGS) $(CFLAGS) -c -o bp/brs/brsscla-brsscla.o `test -f 'bp/brs/brsscla.c' || echo '$(srcdir)/'`bp/brs/brsscla.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsscla_CFLAGS) $(CFLAGS) -MT bp/brs/brsscla-brsscla.o -MD -MP -MF bp/brs/$(DEPDIR)/brsscla-brsscla.Tpo -c -o bp/brs/brsscla-brsscla.o `test -f 'bp/brs/brsscla.c' || echo '$(srcdir)/'`bp/brs/brsscla.c
+#	$(am__mv) bp/brs/$(DEPDIR)/brsscla-brsscla.Tpo bp/brs/$(DEPDIR)/brsscla-brsscla.Po
+	source='bp/brs/brsscla.c' object='bp/brs/brsscla-brsscla.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsscla_CFLAGS) $(CFLAGS) -c -o bp/brs/brsscla-brsscla.o `test -f 'bp/brs/brsscla.c' || echo '$(srcdir)/'`bp/brs/brsscla.c
 
 bp/brs/brsscla-brsscla.obj: bp/brs/brsscla.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsscla_CFLAGS) $(CFLAGS) -MT bp/brs/brsscla-brsscla.obj -MD -MP -MF bp/brs/$(DEPDIR)/brsscla-brsscla.Tpo -c -o bp/brs/brsscla-brsscla.obj `if test -f 'bp/brs/brsscla.c'; then $(CYGPATH_W) 'bp/brs/brsscla.c'; else $(CYGPATH_W) '$(srcdir)/bp/brs/brsscla.c'; fi`
-	$(am__mv) bp/brs/$(DEPDIR)/brsscla-brsscla.Tpo bp/brs/$(DEPDIR)/brsscla-brsscla.Po
-#	source='bp/brs/brsscla.c' object='bp/brs/brsscla-brsscla.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsscla_CFLAGS) $(CFLAGS) -c -o bp/brs/brsscla-brsscla.obj `if test -f 'bp/brs/brsscla.c'; then $(CYGPATH_W) 'bp/brs/brsscla.c'; else $(CYGPATH_W) '$(srcdir)/bp/brs/brsscla.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsscla_CFLAGS) $(CFLAGS) -MT bp/brs/brsscla-brsscla.obj -MD -MP -MF bp/brs/$(DEPDIR)/brsscla-brsscla.Tpo -c -o bp/brs/brsscla-brsscla.obj `if test -f 'bp/brs/brsscla.c'; then $(CYGPATH_W) 'bp/brs/brsscla.c'; else $(CYGPATH_W) '$(srcdir)/bp/brs/brsscla.c'; fi`
+#	$(am__mv) bp/brs/$(DEPDIR)/brsscla-brsscla.Tpo bp/brs/$(DEPDIR)/brsscla-brsscla.Po
+	source='bp/brs/brsscla.c' object='bp/brs/brsscla-brsscla.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(brsscla_CFLAGS) $(CFLAGS) -c -o bp/brs/brsscla-brsscla.obj `if test -f 'bp/brs/brsscla.c'; then $(CYGPATH_W) 'bp/brs/brsscla.c'; else $(CYGPATH_W) '$(srcdir)/bp/brs/brsscla.c'; fi`
 
 cfdp/utils/cfdpadmin-cfdpadmin.o: cfdp/utils/cfdpadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpadmin_CFLAGS) $(CFLAGS) -MT cfdp/utils/cfdpadmin-cfdpadmin.o -MD -MP -MF cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Tpo -c -o cfdp/utils/cfdpadmin-cfdpadmin.o `test -f 'cfdp/utils/cfdpadmin.c' || echo '$(srcdir)/'`cfdp/utils/cfdpadmin.c
-	$(am__mv) cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Tpo cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Po
-#	source='cfdp/utils/cfdpadmin.c' object='cfdp/utils/cfdpadmin-cfdpadmin.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpadmin_CFLAGS) $(CFLAGS) -c -o cfdp/utils/cfdpadmin-cfdpadmin.o `test -f 'cfdp/utils/cfdpadmin.c' || echo '$(srcdir)/'`cfdp/utils/cfdpadmin.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpadmin_CFLAGS) $(CFLAGS) -MT cfdp/utils/cfdpadmin-cfdpadmin.o -MD -MP -MF cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Tpo -c -o cfdp/utils/cfdpadmin-cfdpadmin.o `test -f 'cfdp/utils/cfdpadmin.c' || echo '$(srcdir)/'`cfdp/utils/cfdpadmin.c
+#	$(am__mv) cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Tpo cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Po
+	source='cfdp/utils/cfdpadmin.c' object='cfdp/utils/cfdpadmin-cfdpadmin.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpadmin_CFLAGS) $(CFLAGS) -c -o cfdp/utils/cfdpadmin-cfdpadmin.o `test -f 'cfdp/utils/cfdpadmin.c' || echo '$(srcdir)/'`cfdp/utils/cfdpadmin.c
 
 cfdp/utils/cfdpadmin-cfdpadmin.obj: cfdp/utils/cfdpadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpadmin_CFLAGS) $(CFLAGS) -MT cfdp/utils/cfdpadmin-cfdpadmin.obj -MD -MP -MF cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Tpo -c -o cfdp/utils/cfdpadmin-cfdpadmin.obj `if test -f 'cfdp/utils/cfdpadmin.c'; then $(CYGPATH_W) 'cfdp/utils/cfdpadmin.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/utils/cfdpadmin.c'; fi`
-	$(am__mv) cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Tpo cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Po
-#	source='cfdp/utils/cfdpadmin.c' object='cfdp/utils/cfdpadmin-cfdpadmin.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpadmin_CFLAGS) $(CFLAGS) -c -o cfdp/utils/cfdpadmin-cfdpadmin.obj `if test -f 'cfdp/utils/cfdpadmin.c'; then $(CYGPATH_W) 'cfdp/utils/cfdpadmin.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/utils/cfdpadmin.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpadmin_CFLAGS) $(CFLAGS) -MT cfdp/utils/cfdpadmin-cfdpadmin.obj -MD -MP -MF cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Tpo -c -o cfdp/utils/cfdpadmin-cfdpadmin.obj `if test -f 'cfdp/utils/cfdpadmin.c'; then $(CYGPATH_W) 'cfdp/utils/cfdpadmin.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/utils/cfdpadmin.c'; fi`
+#	$(am__mv) cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Tpo cfdp/utils/$(DEPDIR)/cfdpadmin-cfdpadmin.Po
+	source='cfdp/utils/cfdpadmin.c' object='cfdp/utils/cfdpadmin-cfdpadmin.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpadmin_CFLAGS) $(CFLAGS) -c -o cfdp/utils/cfdpadmin-cfdpadmin.obj `if test -f 'cfdp/utils/cfdpadmin.c'; then $(CYGPATH_W) 'cfdp/utils/cfdpadmin.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/utils/cfdpadmin.c'; fi`
 
 cfdp/daemon/cfdpclock-cfdpclock.o: cfdp/daemon/cfdpclock.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpclock_CFLAGS) $(CFLAGS) -MT cfdp/daemon/cfdpclock-cfdpclock.o -MD -MP -MF cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Tpo -c -o cfdp/daemon/cfdpclock-cfdpclock.o `test -f 'cfdp/daemon/cfdpclock.c' || echo '$(srcdir)/'`cfdp/daemon/cfdpclock.c
-	$(am__mv) cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Tpo cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Po
-#	source='cfdp/daemon/cfdpclock.c' object='cfdp/daemon/cfdpclock-cfdpclock.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpclock_CFLAGS) $(CFLAGS) -c -o cfdp/daemon/cfdpclock-cfdpclock.o `test -f 'cfdp/daemon/cfdpclock.c' || echo '$(srcdir)/'`cfdp/daemon/cfdpclock.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpclock_CFLAGS) $(CFLAGS) -MT cfdp/daemon/cfdpclock-cfdpclock.o -MD -MP -MF cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Tpo -c -o cfdp/daemon/cfdpclock-cfdpclock.o `test -f 'cfdp/daemon/cfdpclock.c' || echo '$(srcdir)/'`cfdp/daemon/cfdpclock.c
+#	$(am__mv) cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Tpo cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Po
+	source='cfdp/daemon/cfdpclock.c' object='cfdp/daemon/cfdpclock-cfdpclock.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpclock_CFLAGS) $(CFLAGS) -c -o cfdp/daemon/cfdpclock-cfdpclock.o `test -f 'cfdp/daemon/cfdpclock.c' || echo '$(srcdir)/'`cfdp/daemon/cfdpclock.c
 
 cfdp/daemon/cfdpclock-cfdpclock.obj: cfdp/daemon/cfdpclock.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpclock_CFLAGS) $(CFLAGS) -MT cfdp/daemon/cfdpclock-cfdpclock.obj -MD -MP -MF cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Tpo -c -o cfdp/daemon/cfdpclock-cfdpclock.obj `if test -f 'cfdp/daemon/cfdpclock.c'; then $(CYGPATH_W) 'cfdp/daemon/cfdpclock.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/daemon/cfdpclock.c'; fi`
-	$(am__mv) cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Tpo cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Po
-#	source='cfdp/daemon/cfdpclock.c' object='cfdp/daemon/cfdpclock-cfdpclock.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpclock_CFLAGS) $(CFLAGS) -c -o cfdp/daemon/cfdpclock-cfdpclock.obj `if test -f 'cfdp/daemon/cfdpclock.c'; then $(CYGPATH_W) 'cfdp/daemon/cfdpclock.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/daemon/cfdpclock.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpclock_CFLAGS) $(CFLAGS) -MT cfdp/daemon/cfdpclock-cfdpclock.obj -MD -MP -MF cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Tpo -c -o cfdp/daemon/cfdpclock-cfdpclock.obj `if test -f 'cfdp/daemon/cfdpclock.c'; then $(CYGPATH_W) 'cfdp/daemon/cfdpclock.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/daemon/cfdpclock.c'; fi`
+#	$(am__mv) cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Tpo cfdp/daemon/$(DEPDIR)/cfdpclock-cfdpclock.Po
+	source='cfdp/daemon/cfdpclock.c' object='cfdp/daemon/cfdpclock-cfdpclock.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdpclock_CFLAGS) $(CFLAGS) -c -o cfdp/daemon/cfdpclock-cfdpclock.obj `if test -f 'cfdp/daemon/cfdpclock.c'; then $(CYGPATH_W) 'cfdp/daemon/cfdpclock.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/daemon/cfdpclock.c'; fi`
 
 cfdp/test/cfdptest-cfdptest.o: cfdp/test/cfdptest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdptest_CFLAGS) $(CFLAGS) -MT cfdp/test/cfdptest-cfdptest.o -MD -MP -MF cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Tpo -c -o cfdp/test/cfdptest-cfdptest.o `test -f 'cfdp/test/cfdptest.c' || echo '$(srcdir)/'`cfdp/test/cfdptest.c
-	$(am__mv) cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Tpo cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Po
-#	source='cfdp/test/cfdptest.c' object='cfdp/test/cfdptest-cfdptest.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdptest_CFLAGS) $(CFLAGS) -c -o cfdp/test/cfdptest-cfdptest.o `test -f 'cfdp/test/cfdptest.c' || echo '$(srcdir)/'`cfdp/test/cfdptest.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdptest_CFLAGS) $(CFLAGS) -MT cfdp/test/cfdptest-cfdptest.o -MD -MP -MF cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Tpo -c -o cfdp/test/cfdptest-cfdptest.o `test -f 'cfdp/test/cfdptest.c' || echo '$(srcdir)/'`cfdp/test/cfdptest.c
+#	$(am__mv) cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Tpo cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Po
+	source='cfdp/test/cfdptest.c' object='cfdp/test/cfdptest-cfdptest.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdptest_CFLAGS) $(CFLAGS) -c -o cfdp/test/cfdptest-cfdptest.o `test -f 'cfdp/test/cfdptest.c' || echo '$(srcdir)/'`cfdp/test/cfdptest.c
 
 cfdp/test/cfdptest-cfdptest.obj: cfdp/test/cfdptest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdptest_CFLAGS) $(CFLAGS) -MT cfdp/test/cfdptest-cfdptest.obj -MD -MP -MF cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Tpo -c -o cfdp/test/cfdptest-cfdptest.obj `if test -f 'cfdp/test/cfdptest.c'; then $(CYGPATH_W) 'cfdp/test/cfdptest.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/test/cfdptest.c'; fi`
-	$(am__mv) cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Tpo cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Po
-#	source='cfdp/test/cfdptest.c' object='cfdp/test/cfdptest-cfdptest.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdptest_CFLAGS) $(CFLAGS) -c -o cfdp/test/cfdptest-cfdptest.obj `if test -f 'cfdp/test/cfdptest.c'; then $(CYGPATH_W) 'cfdp/test/cfdptest.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/test/cfdptest.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdptest_CFLAGS) $(CFLAGS) -MT cfdp/test/cfdptest-cfdptest.obj -MD -MP -MF cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Tpo -c -o cfdp/test/cfdptest-cfdptest.obj `if test -f 'cfdp/test/cfdptest.c'; then $(CYGPATH_W) 'cfdp/test/cfdptest.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/test/cfdptest.c'; fi`
+#	$(am__mv) cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Tpo cfdp/test/$(DEPDIR)/cfdptest-cfdptest.Po
+	source='cfdp/test/cfdptest.c' object='cfdp/test/cfdptest-cfdptest.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cfdptest_CFLAGS) $(CFLAGS) -c -o cfdp/test/cfdptest-cfdptest.obj `if test -f 'cfdp/test/cfdptest.c'; then $(CYGPATH_W) 'cfdp/test/cfdptest.c'; else $(CYGPATH_W) '$(srcdir)/cfdp/test/cfdptest.c'; fi`
 
 dgr/test/dgr2file-dgr2file.o: dgr/test/dgr2file.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgr2file_CFLAGS) $(CFLAGS) -MT dgr/test/dgr2file-dgr2file.o -MD -MP -MF dgr/test/$(DEPDIR)/dgr2file-dgr2file.Tpo -c -o dgr/test/dgr2file-dgr2file.o `test -f 'dgr/test/dgr2file.c' || echo '$(srcdir)/'`dgr/test/dgr2file.c
-	$(am__mv) dgr/test/$(DEPDIR)/dgr2file-dgr2file.Tpo dgr/test/$(DEPDIR)/dgr2file-dgr2file.Po
-#	source='dgr/test/dgr2file.c' object='dgr/test/dgr2file-dgr2file.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgr2file_CFLAGS) $(CFLAGS) -c -o dgr/test/dgr2file-dgr2file.o `test -f 'dgr/test/dgr2file.c' || echo '$(srcdir)/'`dgr/test/dgr2file.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgr2file_CFLAGS) $(CFLAGS) -MT dgr/test/dgr2file-dgr2file.o -MD -MP -MF dgr/test/$(DEPDIR)/dgr2file-dgr2file.Tpo -c -o dgr/test/dgr2file-dgr2file.o `test -f 'dgr/test/dgr2file.c' || echo '$(srcdir)/'`dgr/test/dgr2file.c
+#	$(am__mv) dgr/test/$(DEPDIR)/dgr2file-dgr2file.Tpo dgr/test/$(DEPDIR)/dgr2file-dgr2file.Po
+	source='dgr/test/dgr2file.c' object='dgr/test/dgr2file-dgr2file.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgr2file_CFLAGS) $(CFLAGS) -c -o dgr/test/dgr2file-dgr2file.o `test -f 'dgr/test/dgr2file.c' || echo '$(srcdir)/'`dgr/test/dgr2file.c
 
 dgr/test/dgr2file-dgr2file.obj: dgr/test/dgr2file.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgr2file_CFLAGS) $(CFLAGS) -MT dgr/test/dgr2file-dgr2file.obj -MD -MP -MF dgr/test/$(DEPDIR)/dgr2file-dgr2file.Tpo -c -o dgr/test/dgr2file-dgr2file.obj `if test -f 'dgr/test/dgr2file.c'; then $(CYGPATH_W) 'dgr/test/dgr2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/dgr2file.c'; fi`
-	$(am__mv) dgr/test/$(DEPDIR)/dgr2file-dgr2file.Tpo dgr/test/$(DEPDIR)/dgr2file-dgr2file.Po
-#	source='dgr/test/dgr2file.c' object='dgr/test/dgr2file-dgr2file.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgr2file_CFLAGS) $(CFLAGS) -c -o dgr/test/dgr2file-dgr2file.obj `if test -f 'dgr/test/dgr2file.c'; then $(CYGPATH_W) 'dgr/test/dgr2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/dgr2file.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgr2file_CFLAGS) $(CFLAGS) -MT dgr/test/dgr2file-dgr2file.obj -MD -MP -MF dgr/test/$(DEPDIR)/dgr2file-dgr2file.Tpo -c -o dgr/test/dgr2file-dgr2file.obj `if test -f 'dgr/test/dgr2file.c'; then $(CYGPATH_W) 'dgr/test/dgr2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/dgr2file.c'; fi`
+#	$(am__mv) dgr/test/$(DEPDIR)/dgr2file-dgr2file.Tpo dgr/test/$(DEPDIR)/dgr2file-dgr2file.Po
+	source='dgr/test/dgr2file.c' object='dgr/test/dgr2file-dgr2file.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgr2file_CFLAGS) $(CFLAGS) -c -o dgr/test/dgr2file-dgr2file.obj `if test -f 'dgr/test/dgr2file.c'; then $(CYGPATH_W) 'dgr/test/dgr2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/dgr2file.c'; fi`
 
 bp/dgr/dgrcla-dgrcla.o: bp/dgr/dgrcla.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgrcla_CFLAGS) $(CFLAGS) -MT bp/dgr/dgrcla-dgrcla.o -MD -MP -MF bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Tpo -c -o bp/dgr/dgrcla-dgrcla.o `test -f 'bp/dgr/dgrcla.c' || echo '$(srcdir)/'`bp/dgr/dgrcla.c
-	$(am__mv) bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Tpo bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Po
-#	source='bp/dgr/dgrcla.c' object='bp/dgr/dgrcla-dgrcla.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgrcla_CFLAGS) $(CFLAGS) -c -o bp/dgr/dgrcla-dgrcla.o `test -f 'bp/dgr/dgrcla.c' || echo '$(srcdir)/'`bp/dgr/dgrcla.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgrcla_CFLAGS) $(CFLAGS) -MT bp/dgr/dgrcla-dgrcla.o -MD -MP -MF bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Tpo -c -o bp/dgr/dgrcla-dgrcla.o `test -f 'bp/dgr/dgrcla.c' || echo '$(srcdir)/'`bp/dgr/dgrcla.c
+#	$(am__mv) bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Tpo bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Po
+	source='bp/dgr/dgrcla.c' object='bp/dgr/dgrcla-dgrcla.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgrcla_CFLAGS) $(CFLAGS) -c -o bp/dgr/dgrcla-dgrcla.o `test -f 'bp/dgr/dgrcla.c' || echo '$(srcdir)/'`bp/dgr/dgrcla.c
 
 bp/dgr/dgrcla-dgrcla.obj: bp/dgr/dgrcla.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgrcla_CFLAGS) $(CFLAGS) -MT bp/dgr/dgrcla-dgrcla.obj -MD -MP -MF bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Tpo -c -o bp/dgr/dgrcla-dgrcla.obj `if test -f 'bp/dgr/dgrcla.c'; then $(CYGPATH_W) 'bp/dgr/dgrcla.c'; else $(CYGPATH_W) '$(srcdir)/bp/dgr/dgrcla.c'; fi`
-	$(am__mv) bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Tpo bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Po
-#	source='bp/dgr/dgrcla.c' object='bp/dgr/dgrcla-dgrcla.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgrcla_CFLAGS) $(CFLAGS) -c -o bp/dgr/dgrcla-dgrcla.obj `if test -f 'bp/dgr/dgrcla.c'; then $(CYGPATH_W) 'bp/dgr/dgrcla.c'; else $(CYGPATH_W) '$(srcdir)/bp/dgr/dgrcla.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgrcla_CFLAGS) $(CFLAGS) -MT bp/dgr/dgrcla-dgrcla.obj -MD -MP -MF bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Tpo -c -o bp/dgr/dgrcla-dgrcla.obj `if test -f 'bp/dgr/dgrcla.c'; then $(CYGPATH_W) 'bp/dgr/dgrcla.c'; else $(CYGPATH_W) '$(srcdir)/bp/dgr/dgrcla.c'; fi`
+#	$(am__mv) bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Tpo bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Po
+	source='bp/dgr/dgrcla.c' object='bp/dgr/dgrcla-dgrcla.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dgrcla_CFLAGS) $(CFLAGS) -c -o bp/dgr/dgrcla-dgrcla.obj `if test -f 'bp/dgr/dgrcla.c'; then $(CYGPATH_W) 'bp/dgr/dgrcla.c'; else $(CYGPATH_W) '$(srcdir)/bp/dgr/dgrcla.c'; fi`
 
 bp/dtn2/dtn2admin-dtn2admin.o: bp/dtn2/dtn2admin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2admin_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2admin-dtn2admin.o -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Tpo -c -o bp/dtn2/dtn2admin-dtn2admin.o `test -f 'bp/dtn2/dtn2admin.c' || echo '$(srcdir)/'`bp/dtn2/dtn2admin.c
-	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Tpo bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Po
-#	source='bp/dtn2/dtn2admin.c' object='bp/dtn2/dtn2admin-dtn2admin.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2admin_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2admin-dtn2admin.o `test -f 'bp/dtn2/dtn2admin.c' || echo '$(srcdir)/'`bp/dtn2/dtn2admin.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2admin_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2admin-dtn2admin.o -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Tpo -c -o bp/dtn2/dtn2admin-dtn2admin.o `test -f 'bp/dtn2/dtn2admin.c' || echo '$(srcdir)/'`bp/dtn2/dtn2admin.c
+#	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Tpo bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Po
+	source='bp/dtn2/dtn2admin.c' object='bp/dtn2/dtn2admin-dtn2admin.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2admin_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2admin-dtn2admin.o `test -f 'bp/dtn2/dtn2admin.c' || echo '$(srcdir)/'`bp/dtn2/dtn2admin.c
 
 bp/dtn2/dtn2admin-dtn2admin.obj: bp/dtn2/dtn2admin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2admin_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2admin-dtn2admin.obj -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Tpo -c -o bp/dtn2/dtn2admin-dtn2admin.obj `if test -f 'bp/dtn2/dtn2admin.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2admin.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2admin.c'; fi`
-	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Tpo bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Po
-#	source='bp/dtn2/dtn2admin.c' object='bp/dtn2/dtn2admin-dtn2admin.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2admin_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2admin-dtn2admin.obj `if test -f 'bp/dtn2/dtn2admin.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2admin.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2admin.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2admin_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2admin-dtn2admin.obj -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Tpo -c -o bp/dtn2/dtn2admin-dtn2admin.obj `if test -f 'bp/dtn2/dtn2admin.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2admin.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2admin.c'; fi`
+#	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Tpo bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Po
+	source='bp/dtn2/dtn2admin.c' object='bp/dtn2/dtn2admin-dtn2admin.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2admin_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2admin-dtn2admin.obj `if test -f 'bp/dtn2/dtn2admin.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2admin.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2admin.c'; fi`
 
 bp/dtn2/dtn2adminep-dtn2adminep.o: bp/dtn2/dtn2adminep.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2adminep_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2adminep-dtn2adminep.o -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Tpo -c -o bp/dtn2/dtn2adminep-dtn2adminep.o `test -f 'bp/dtn2/dtn2adminep.c' || echo '$(srcdir)/'`bp/dtn2/dtn2adminep.c
-	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Tpo bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Po
-#	source='bp/dtn2/dtn2adminep.c' object='bp/dtn2/dtn2adminep-dtn2adminep.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2adminep_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2adminep-dtn2adminep.o `test -f 'bp/dtn2/dtn2adminep.c' || echo '$(srcdir)/'`bp/dtn2/dtn2adminep.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2adminep_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2adminep-dtn2adminep.o -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Tpo -c -o bp/dtn2/dtn2adminep-dtn2adminep.o `test -f 'bp/dtn2/dtn2adminep.c' || echo '$(srcdir)/'`bp/dtn2/dtn2adminep.c
+#	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Tpo bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Po
+	source='bp/dtn2/dtn2adminep.c' object='bp/dtn2/dtn2adminep-dtn2adminep.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2adminep_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2adminep-dtn2adminep.o `test -f 'bp/dtn2/dtn2adminep.c' || echo '$(srcdir)/'`bp/dtn2/dtn2adminep.c
 
 bp/dtn2/dtn2adminep-dtn2adminep.obj: bp/dtn2/dtn2adminep.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2adminep_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2adminep-dtn2adminep.obj -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Tpo -c -o bp/dtn2/dtn2adminep-dtn2adminep.obj `if test -f 'bp/dtn2/dtn2adminep.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2adminep.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2adminep.c'; fi`
-	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Tpo bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Po
-#	source='bp/dtn2/dtn2adminep.c' object='bp/dtn2/dtn2adminep-dtn2adminep.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2adminep_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2adminep-dtn2adminep.obj `if test -f 'bp/dtn2/dtn2adminep.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2adminep.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2adminep.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2adminep_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2adminep-dtn2adminep.obj -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Tpo -c -o bp/dtn2/dtn2adminep-dtn2adminep.obj `if test -f 'bp/dtn2/dtn2adminep.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2adminep.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2adminep.c'; fi`
+#	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Tpo bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Po
+	source='bp/dtn2/dtn2adminep.c' object='bp/dtn2/dtn2adminep-dtn2adminep.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2adminep_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2adminep-dtn2adminep.obj `if test -f 'bp/dtn2/dtn2adminep.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2adminep.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2adminep.c'; fi`
 
 bp/dtn2/dtn2fw-dtn2fw.o: bp/dtn2/dtn2fw.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2fw_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2fw-dtn2fw.o -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Tpo -c -o bp/dtn2/dtn2fw-dtn2fw.o `test -f 'bp/dtn2/dtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/dtn2fw.c
-	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Tpo bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Po
-#	source='bp/dtn2/dtn2fw.c' object='bp/dtn2/dtn2fw-dtn2fw.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2fw_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2fw-dtn2fw.o `test -f 'bp/dtn2/dtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/dtn2fw.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2fw_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2fw-dtn2fw.o -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Tpo -c -o bp/dtn2/dtn2fw-dtn2fw.o `test -f 'bp/dtn2/dtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/dtn2fw.c
+#	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Tpo bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Po
+	source='bp/dtn2/dtn2fw.c' object='bp/dtn2/dtn2fw-dtn2fw.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2fw_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2fw-dtn2fw.o `test -f 'bp/dtn2/dtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/dtn2fw.c
 
 bp/dtn2/dtn2fw-dtn2fw.obj: bp/dtn2/dtn2fw.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2fw_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2fw-dtn2fw.obj -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Tpo -c -o bp/dtn2/dtn2fw-dtn2fw.obj `if test -f 'bp/dtn2/dtn2fw.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2fw.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2fw.c'; fi`
-	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Tpo bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Po
-#	source='bp/dtn2/dtn2fw.c' object='bp/dtn2/dtn2fw-dtn2fw.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2fw_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2fw-dtn2fw.obj `if test -f 'bp/dtn2/dtn2fw.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2fw.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2fw.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2fw_CFLAGS) $(CFLAGS) -MT bp/dtn2/dtn2fw-dtn2fw.obj -MD -MP -MF bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Tpo -c -o bp/dtn2/dtn2fw-dtn2fw.obj `if test -f 'bp/dtn2/dtn2fw.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2fw.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2fw.c'; fi`
+#	$(am__mv) bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Tpo bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Po
+	source='bp/dtn2/dtn2fw.c' object='bp/dtn2/dtn2fw-dtn2fw.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dtn2fw_CFLAGS) $(CFLAGS) -c -o bp/dtn2/dtn2fw-dtn2fw.obj `if test -f 'bp/dtn2/dtn2fw.c'; then $(CYGPATH_W) 'bp/dtn2/dtn2fw.c'; else $(CYGPATH_W) '$(srcdir)/bp/dtn2/dtn2fw.c'; fi`
 
 dgr/test/file2dgr-file2dgr.o: dgr/test/file2dgr.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2dgr_CFLAGS) $(CFLAGS) -MT dgr/test/file2dgr-file2dgr.o -MD -MP -MF dgr/test/$(DEPDIR)/file2dgr-file2dgr.Tpo -c -o dgr/test/file2dgr-file2dgr.o `test -f 'dgr/test/file2dgr.c' || echo '$(srcdir)/'`dgr/test/file2dgr.c
-	$(am__mv) dgr/test/$(DEPDIR)/file2dgr-file2dgr.Tpo dgr/test/$(DEPDIR)/file2dgr-file2dgr.Po
-#	source='dgr/test/file2dgr.c' object='dgr/test/file2dgr-file2dgr.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2dgr_CFLAGS) $(CFLAGS) -c -o dgr/test/file2dgr-file2dgr.o `test -f 'dgr/test/file2dgr.c' || echo '$(srcdir)/'`dgr/test/file2dgr.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2dgr_CFLAGS) $(CFLAGS) -MT dgr/test/file2dgr-file2dgr.o -MD -MP -MF dgr/test/$(DEPDIR)/file2dgr-file2dgr.Tpo -c -o dgr/test/file2dgr-file2dgr.o `test -f 'dgr/test/file2dgr.c' || echo '$(srcdir)/'`dgr/test/file2dgr.c
+#	$(am__mv) dgr/test/$(DEPDIR)/file2dgr-file2dgr.Tpo dgr/test/$(DEPDIR)/file2dgr-file2dgr.Po
+	source='dgr/test/file2dgr.c' object='dgr/test/file2dgr-file2dgr.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2dgr_CFLAGS) $(CFLAGS) -c -o dgr/test/file2dgr-file2dgr.o `test -f 'dgr/test/file2dgr.c' || echo '$(srcdir)/'`dgr/test/file2dgr.c
 
 dgr/test/file2dgr-file2dgr.obj: dgr/test/file2dgr.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2dgr_CFLAGS) $(CFLAGS) -MT dgr/test/file2dgr-file2dgr.obj -MD -MP -MF dgr/test/$(DEPDIR)/file2dgr-file2dgr.Tpo -c -o dgr/test/file2dgr-file2dgr.obj `if test -f 'dgr/test/file2dgr.c'; then $(CYGPATH_W) 'dgr/test/file2dgr.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2dgr.c'; fi`
-	$(am__mv) dgr/test/$(DEPDIR)/file2dgr-file2dgr.Tpo dgr/test/$(DEPDIR)/file2dgr-file2dgr.Po
-#	source='dgr/test/file2dgr.c' object='dgr/test/file2dgr-file2dgr.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2dgr_CFLAGS) $(CFLAGS) -c -o dgr/test/file2dgr-file2dgr.obj `if test -f 'dgr/test/file2dgr.c'; then $(CYGPATH_W) 'dgr/test/file2dgr.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2dgr.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2dgr_CFLAGS) $(CFLAGS) -MT dgr/test/file2dgr-file2dgr.obj -MD -MP -MF dgr/test/$(DEPDIR)/file2dgr-file2dgr.Tpo -c -o dgr/test/file2dgr-file2dgr.obj `if test -f 'dgr/test/file2dgr.c'; then $(CYGPATH_W) 'dgr/test/file2dgr.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2dgr.c'; fi`
+#	$(am__mv) dgr/test/$(DEPDIR)/file2dgr-file2dgr.Tpo dgr/test/$(DEPDIR)/file2dgr-file2dgr.Po
+	source='dgr/test/file2dgr.c' object='dgr/test/file2dgr-file2dgr.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2dgr_CFLAGS) $(CFLAGS) -c -o dgr/test/file2dgr-file2dgr.obj `if test -f 'dgr/test/file2dgr.c'; then $(CYGPATH_W) 'dgr/test/file2dgr.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2dgr.c'; fi`
 
 ici/test/file2sdr-file2sdr.o: ici/test/file2sdr.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sdr_CFLAGS) $(CFLAGS) -MT ici/test/file2sdr-file2sdr.o -MD -MP -MF ici/test/$(DEPDIR)/file2sdr-file2sdr.Tpo -c -o ici/test/file2sdr-file2sdr.o `test -f 'ici/test/file2sdr.c' || echo '$(srcdir)/'`ici/test/file2sdr.c
-	$(am__mv) ici/test/$(DEPDIR)/file2sdr-file2sdr.Tpo ici/test/$(DEPDIR)/file2sdr-file2sdr.Po
-#	source='ici/test/file2sdr.c' object='ici/test/file2sdr-file2sdr.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sdr_CFLAGS) $(CFLAGS) -c -o ici/test/file2sdr-file2sdr.o `test -f 'ici/test/file2sdr.c' || echo '$(srcdir)/'`ici/test/file2sdr.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sdr_CFLAGS) $(CFLAGS) -MT ici/test/file2sdr-file2sdr.o -MD -MP -MF ici/test/$(DEPDIR)/file2sdr-file2sdr.Tpo -c -o ici/test/file2sdr-file2sdr.o `test -f 'ici/test/file2sdr.c' || echo '$(srcdir)/'`ici/test/file2sdr.c
+#	$(am__mv) ici/test/$(DEPDIR)/file2sdr-file2sdr.Tpo ici/test/$(DEPDIR)/file2sdr-file2sdr.Po
+	source='ici/test/file2sdr.c' object='ici/test/file2sdr-file2sdr.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sdr_CFLAGS) $(CFLAGS) -c -o ici/test/file2sdr-file2sdr.o `test -f 'ici/test/file2sdr.c' || echo '$(srcdir)/'`ici/test/file2sdr.c
 
 ici/test/file2sdr-file2sdr.obj: ici/test/file2sdr.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sdr_CFLAGS) $(CFLAGS) -MT ici/test/file2sdr-file2sdr.obj -MD -MP -MF ici/test/$(DEPDIR)/file2sdr-file2sdr.Tpo -c -o ici/test/file2sdr-file2sdr.obj `if test -f 'ici/test/file2sdr.c'; then $(CYGPATH_W) 'ici/test/file2sdr.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/file2sdr.c'; fi`
-	$(am__mv) ici/test/$(DEPDIR)/file2sdr-file2sdr.Tpo ici/test/$(DEPDIR)/file2sdr-file2sdr.Po
-#	source='ici/test/file2sdr.c' object='ici/test/file2sdr-file2sdr.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sdr_CFLAGS) $(CFLAGS) -c -o ici/test/file2sdr-file2sdr.obj `if test -f 'ici/test/file2sdr.c'; then $(CYGPATH_W) 'ici/test/file2sdr.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/file2sdr.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sdr_CFLAGS) $(CFLAGS) -MT ici/test/file2sdr-file2sdr.obj -MD -MP -MF ici/test/$(DEPDIR)/file2sdr-file2sdr.Tpo -c -o ici/test/file2sdr-file2sdr.obj `if test -f 'ici/test/file2sdr.c'; then $(CYGPATH_W) 'ici/test/file2sdr.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/file2sdr.c'; fi`
+#	$(am__mv) ici/test/$(DEPDIR)/file2sdr-file2sdr.Tpo ici/test/$(DEPDIR)/file2sdr-file2sdr.Po
+	source='ici/test/file2sdr.c' object='ici/test/file2sdr-file2sdr.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sdr_CFLAGS) $(CFLAGS) -c -o ici/test/file2sdr-file2sdr.obj `if test -f 'ici/test/file2sdr.c'; then $(CYGPATH_W) 'ici/test/file2sdr.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/file2sdr.c'; fi`
 
 ici/test/file2sm-file2sm.o: ici/test/file2sm.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sm_CFLAGS) $(CFLAGS) -MT ici/test/file2sm-file2sm.o -MD -MP -MF ici/test/$(DEPDIR)/file2sm-file2sm.Tpo -c -o ici/test/file2sm-file2sm.o `test -f 'ici/test/file2sm.c' || echo '$(srcdir)/'`ici/test/file2sm.c
-	$(am__mv) ici/test/$(DEPDIR)/file2sm-file2sm.Tpo ici/test/$(DEPDIR)/file2sm-file2sm.Po
-#	source='ici/test/file2sm.c' object='ici/test/file2sm-file2sm.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sm_CFLAGS) $(CFLAGS) -c -o ici/test/file2sm-file2sm.o `test -f 'ici/test/file2sm.c' || echo '$(srcdir)/'`ici/test/file2sm.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sm_CFLAGS) $(CFLAGS) -MT ici/test/file2sm-file2sm.o -MD -MP -MF ici/test/$(DEPDIR)/file2sm-file2sm.Tpo -c -o ici/test/file2sm-file2sm.o `test -f 'ici/test/file2sm.c' || echo '$(srcdir)/'`ici/test/file2sm.c
+#	$(am__mv) ici/test/$(DEPDIR)/file2sm-file2sm.Tpo ici/test/$(DEPDIR)/file2sm-file2sm.Po
+	source='ici/test/file2sm.c' object='ici/test/file2sm-file2sm.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sm_CFLAGS) $(CFLAGS) -c -o ici/test/file2sm-file2sm.o `test -f 'ici/test/file2sm.c' || echo '$(srcdir)/'`ici/test/file2sm.c
 
 ici/test/file2sm-file2sm.obj: ici/test/file2sm.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sm_CFLAGS) $(CFLAGS) -MT ici/test/file2sm-file2sm.obj -MD -MP -MF ici/test/$(DEPDIR)/file2sm-file2sm.Tpo -c -o ici/test/file2sm-file2sm.obj `if test -f 'ici/test/file2sm.c'; then $(CYGPATH_W) 'ici/test/file2sm.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/file2sm.c'; fi`
-	$(am__mv) ici/test/$(DEPDIR)/file2sm-file2sm.Tpo ici/test/$(DEPDIR)/file2sm-file2sm.Po
-#	source='ici/test/file2sm.c' object='ici/test/file2sm-file2sm.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sm_CFLAGS) $(CFLAGS) -c -o ici/test/file2sm-file2sm.obj `if test -f 'ici/test/file2sm.c'; then $(CYGPATH_W) 'ici/test/file2sm.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/file2sm.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sm_CFLAGS) $(CFLAGS) -MT ici/test/file2sm-file2sm.obj -MD -MP -MF ici/test/$(DEPDIR)/file2sm-file2sm.Tpo -c -o ici/test/file2sm-file2sm.obj `if test -f 'ici/test/file2sm.c'; then $(CYGPATH_W) 'ici/test/file2sm.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/file2sm.c'; fi`
+#	$(am__mv) ici/test/$(DEPDIR)/file2sm-file2sm.Tpo ici/test/$(DEPDIR)/file2sm-file2sm.Po
+	source='ici/test/file2sm.c' object='ici/test/file2sm-file2sm.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2sm_CFLAGS) $(CFLAGS) -c -o ici/test/file2sm-file2sm.obj `if test -f 'ici/test/file2sm.c'; then $(CYGPATH_W) 'ici/test/file2sm.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/file2sm.c'; fi`
 
 dgr/test/file2tcp-file2tcp.o: dgr/test/file2tcp.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2tcp_CFLAGS) $(CFLAGS) -MT dgr/test/file2tcp-file2tcp.o -MD -MP -MF dgr/test/$(DEPDIR)/file2tcp-file2tcp.Tpo -c -o dgr/test/file2tcp-file2tcp.o `test -f 'dgr/test/file2tcp.c' || echo '$(srcdir)/'`dgr/test/file2tcp.c
-	$(am__mv) dgr/test/$(DEPDIR)/file2tcp-file2tcp.Tpo dgr/test/$(DEPDIR)/file2tcp-file2tcp.Po
-#	source='dgr/test/file2tcp.c' object='dgr/test/file2tcp-file2tcp.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2tcp_CFLAGS) $(CFLAGS) -c -o dgr/test/file2tcp-file2tcp.o `test -f 'dgr/test/file2tcp.c' || echo '$(srcdir)/'`dgr/test/file2tcp.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2tcp_CFLAGS) $(CFLAGS) -MT dgr/test/file2tcp-file2tcp.o -MD -MP -MF dgr/test/$(DEPDIR)/file2tcp-file2tcp.Tpo -c -o dgr/test/file2tcp-file2tcp.o `test -f 'dgr/test/file2tcp.c' || echo '$(srcdir)/'`dgr/test/file2tcp.c
+#	$(am__mv) dgr/test/$(DEPDIR)/file2tcp-file2tcp.Tpo dgr/test/$(DEPDIR)/file2tcp-file2tcp.Po
+	source='dgr/test/file2tcp.c' object='dgr/test/file2tcp-file2tcp.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2tcp_CFLAGS) $(CFLAGS) -c -o dgr/test/file2tcp-file2tcp.o `test -f 'dgr/test/file2tcp.c' || echo '$(srcdir)/'`dgr/test/file2tcp.c
 
 dgr/test/file2tcp-file2tcp.obj: dgr/test/file2tcp.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2tcp_CFLAGS) $(CFLAGS) -MT dgr/test/file2tcp-file2tcp.obj -MD -MP -MF dgr/test/$(DEPDIR)/file2tcp-file2tcp.Tpo -c -o dgr/test/file2tcp-file2tcp.obj `if test -f 'dgr/test/file2tcp.c'; then $(CYGPATH_W) 'dgr/test/file2tcp.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2tcp.c'; fi`
-	$(am__mv) dgr/test/$(DEPDIR)/file2tcp-file2tcp.Tpo dgr/test/$(DEPDIR)/file2tcp-file2tcp.Po
-#	source='dgr/test/file2tcp.c' object='dgr/test/file2tcp-file2tcp.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2tcp_CFLAGS) $(CFLAGS) -c -o dgr/test/file2tcp-file2tcp.obj `if test -f 'dgr/test/file2tcp.c'; then $(CYGPATH_W) 'dgr/test/file2tcp.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2tcp.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2tcp_CFLAGS) $(CFLAGS) -MT dgr/test/file2tcp-file2tcp.obj -MD -MP -MF dgr/test/$(DEPDIR)/file2tcp-file2tcp.Tpo -c -o dgr/test/file2tcp-file2tcp.obj `if test -f 'dgr/test/file2tcp.c'; then $(CYGPATH_W) 'dgr/test/file2tcp.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2tcp.c'; fi`
+#	$(am__mv) dgr/test/$(DEPDIR)/file2tcp-file2tcp.Tpo dgr/test/$(DEPDIR)/file2tcp-file2tcp.Po
+	source='dgr/test/file2tcp.c' object='dgr/test/file2tcp-file2tcp.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2tcp_CFLAGS) $(CFLAGS) -c -o dgr/test/file2tcp-file2tcp.obj `if test -f 'dgr/test/file2tcp.c'; then $(CYGPATH_W) 'dgr/test/file2tcp.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2tcp.c'; fi`
 
 dgr/test/file2udp-file2udp.o: dgr/test/file2udp.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2udp_CFLAGS) $(CFLAGS) -MT dgr/test/file2udp-file2udp.o -MD -MP -MF dgr/test/$(DEPDIR)/file2udp-file2udp.Tpo -c -o dgr/test/file2udp-file2udp.o `test -f 'dgr/test/file2udp.c' || echo '$(srcdir)/'`dgr/test/file2udp.c
-	$(am__mv) dgr/test/$(DEPDIR)/file2udp-file2udp.Tpo dgr/test/$(DEPDIR)/file2udp-file2udp.Po
-#	source='dgr/test/file2udp.c' object='dgr/test/file2udp-file2udp.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2udp_CFLAGS) $(CFLAGS) -c -o dgr/test/file2udp-file2udp.o `test -f 'dgr/test/file2udp.c' || echo '$(srcdir)/'`dgr/test/file2udp.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2udp_CFLAGS) $(CFLAGS) -MT dgr/test/file2udp-file2udp.o -MD -MP -MF dgr/test/$(DEPDIR)/file2udp-file2udp.Tpo -c -o dgr/test/file2udp-file2udp.o `test -f 'dgr/test/file2udp.c' || echo '$(srcdir)/'`dgr/test/file2udp.c
+#	$(am__mv) dgr/test/$(DEPDIR)/file2udp-file2udp.Tpo dgr/test/$(DEPDIR)/file2udp-file2udp.Po
+	source='dgr/test/file2udp.c' object='dgr/test/file2udp-file2udp.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2udp_CFLAGS) $(CFLAGS) -c -o dgr/test/file2udp-file2udp.o `test -f 'dgr/test/file2udp.c' || echo '$(srcdir)/'`dgr/test/file2udp.c
 
 dgr/test/file2udp-file2udp.obj: dgr/test/file2udp.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2udp_CFLAGS) $(CFLAGS) -MT dgr/test/file2udp-file2udp.obj -MD -MP -MF dgr/test/$(DEPDIR)/file2udp-file2udp.Tpo -c -o dgr/test/file2udp-file2udp.obj `if test -f 'dgr/test/file2udp.c'; then $(CYGPATH_W) 'dgr/test/file2udp.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2udp.c'; fi`
-	$(am__mv) dgr/test/$(DEPDIR)/file2udp-file2udp.Tpo dgr/test/$(DEPDIR)/file2udp-file2udp.Po
-#	source='dgr/test/file2udp.c' object='dgr/test/file2udp-file2udp.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2udp_CFLAGS) $(CFLAGS) -c -o dgr/test/file2udp-file2udp.obj `if test -f 'dgr/test/file2udp.c'; then $(CYGPATH_W) 'dgr/test/file2udp.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2udp.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2udp_CFLAGS) $(CFLAGS) -MT dgr/test/file2udp-file2udp.obj -MD -MP -MF dgr/test/$(DEPDIR)/file2udp-file2udp.Tpo -c -o dgr/test/file2udp-file2udp.obj `if test -f 'dgr/test/file2udp.c'; then $(CYGPATH_W) 'dgr/test/file2udp.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2udp.c'; fi`
+#	$(am__mv) dgr/test/$(DEPDIR)/file2udp-file2udp.Tpo dgr/test/$(DEPDIR)/file2udp-file2udp.Po
+	source='dgr/test/file2udp.c' object='dgr/test/file2udp-file2udp.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(file2udp_CFLAGS) $(CFLAGS) -c -o dgr/test/file2udp-file2udp.obj `if test -f 'dgr/test/file2udp.c'; then $(CYGPATH_W) 'dgr/test/file2udp.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/file2udp.c'; fi`
 
 ici/utils/ionadmin-ionadmin.o: ici/utils/ionadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionadmin_CFLAGS) $(CFLAGS) -MT ici/utils/ionadmin-ionadmin.o -MD -MP -MF ici/utils/$(DEPDIR)/ionadmin-ionadmin.Tpo -c -o ici/utils/ionadmin-ionadmin.o `test -f 'ici/utils/ionadmin.c' || echo '$(srcdir)/'`ici/utils/ionadmin.c
-	$(am__mv) ici/utils/$(DEPDIR)/ionadmin-ionadmin.Tpo ici/utils/$(DEPDIR)/ionadmin-ionadmin.Po
-#	source='ici/utils/ionadmin.c' object='ici/utils/ionadmin-ionadmin.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionadmin_CFLAGS) $(CFLAGS) -c -o ici/utils/ionadmin-ionadmin.o `test -f 'ici/utils/ionadmin.c' || echo '$(srcdir)/'`ici/utils/ionadmin.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionadmin_CFLAGS) $(CFLAGS) -MT ici/utils/ionadmin-ionadmin.o -MD -MP -MF ici/utils/$(DEPDIR)/ionadmin-ionadmin.Tpo -c -o ici/utils/ionadmin-ionadmin.o `test -f 'ici/utils/ionadmin.c' || echo '$(srcdir)/'`ici/utils/ionadmin.c
+#	$(am__mv) ici/utils/$(DEPDIR)/ionadmin-ionadmin.Tpo ici/utils/$(DEPDIR)/ionadmin-ionadmin.Po
+	source='ici/utils/ionadmin.c' object='ici/utils/ionadmin-ionadmin.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionadmin_CFLAGS) $(CFLAGS) -c -o ici/utils/ionadmin-ionadmin.o `test -f 'ici/utils/ionadmin.c' || echo '$(srcdir)/'`ici/utils/ionadmin.c
 
 ici/utils/ionadmin-ionadmin.obj: ici/utils/ionadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionadmin_CFLAGS) $(CFLAGS) -MT ici/utils/ionadmin-ionadmin.obj -MD -MP -MF ici/utils/$(DEPDIR)/ionadmin-ionadmin.Tpo -c -o ici/utils/ionadmin-ionadmin.obj `if test -f 'ici/utils/ionadmin.c'; then $(CYGPATH_W) 'ici/utils/ionadmin.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionadmin.c'; fi`
-	$(am__mv) ici/utils/$(DEPDIR)/ionadmin-ionadmin.Tpo ici/utils/$(DEPDIR)/ionadmin-ionadmin.Po
-#	source='ici/utils/ionadmin.c' object='ici/utils/ionadmin-ionadmin.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionadmin_CFLAGS) $(CFLAGS) -c -o ici/utils/ionadmin-ionadmin.obj `if test -f 'ici/utils/ionadmin.c'; then $(CYGPATH_W) 'ici/utils/ionadmin.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionadmin.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionadmin_CFLAGS) $(CFLAGS) -MT ici/utils/ionadmin-ionadmin.obj -MD -MP -MF ici/utils/$(DEPDIR)/ionadmin-ionadmin.Tpo -c -o ici/utils/ionadmin-ionadmin.obj `if test -f 'ici/utils/ionadmin.c'; then $(CYGPATH_W) 'ici/utils/ionadmin.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionadmin.c'; fi`
+#	$(am__mv) ici/utils/$(DEPDIR)/ionadmin-ionadmin.Tpo ici/utils/$(DEPDIR)/ionadmin-ionadmin.Po
+	source='ici/utils/ionadmin.c' object='ici/utils/ionadmin-ionadmin.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionadmin_CFLAGS) $(CFLAGS) -c -o ici/utils/ionadmin-ionadmin.obj `if test -f 'ici/utils/ionadmin.c'; then $(CYGPATH_W) 'ici/utils/ionadmin.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionadmin.c'; fi`
 
 ici/utils/ionsecadmin-ionsecadmin.o: ici/utils/ionsecadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionsecadmin_CFLAGS) $(CFLAGS) -MT ici/utils/ionsecadmin-ionsecadmin.o -MD -MP -MF ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Tpo -c -o ici/utils/ionsecadmin-ionsecadmin.o `test -f 'ici/utils/ionsecadmin.c' || echo '$(srcdir)/'`ici/utils/ionsecadmin.c
-	$(am__mv) ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Tpo ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Po
-#	source='ici/utils/ionsecadmin.c' object='ici/utils/ionsecadmin-ionsecadmin.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionsecadmin_CFLAGS) $(CFLAGS) -c -o ici/utils/ionsecadmin-ionsecadmin.o `test -f 'ici/utils/ionsecadmin.c' || echo '$(srcdir)/'`ici/utils/ionsecadmin.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionsecadmin_CFLAGS) $(CFLAGS) -MT ici/utils/ionsecadmin-ionsecadmin.o -MD -MP -MF ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Tpo -c -o ici/utils/ionsecadmin-ionsecadmin.o `test -f 'ici/utils/ionsecadmin.c' || echo '$(srcdir)/'`ici/utils/ionsecadmin.c
+#	$(am__mv) ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Tpo ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Po
+	source='ici/utils/ionsecadmin.c' object='ici/utils/ionsecadmin-ionsecadmin.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionsecadmin_CFLAGS) $(CFLAGS) -c -o ici/utils/ionsecadmin-ionsecadmin.o `test -f 'ici/utils/ionsecadmin.c' || echo '$(srcdir)/'`ici/utils/ionsecadmin.c
 
 ici/utils/ionsecadmin-ionsecadmin.obj: ici/utils/ionsecadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionsecadmin_CFLAGS) $(CFLAGS) -MT ici/utils/ionsecadmin-ionsecadmin.obj -MD -MP -MF ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Tpo -c -o ici/utils/ionsecadmin-ionsecadmin.obj `if test -f 'ici/utils/ionsecadmin.c'; then $(CYGPATH_W) 'ici/utils/ionsecadmin.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionsecadmin.c'; fi`
-	$(am__mv) ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Tpo ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Po
-#	source='ici/utils/ionsecadmin.c' object='ici/utils/ionsecadmin-ionsecadmin.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionsecadmin_CFLAGS) $(CFLAGS) -c -o ici/utils/ionsecadmin-ionsecadmin.obj `if test -f 'ici/utils/ionsecadmin.c'; then $(CYGPATH_W) 'ici/utils/ionsecadmin.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionsecadmin.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionsecadmin_CFLAGS) $(CFLAGS) -MT ici/utils/ionsecadmin-ionsecadmin.obj -MD -MP -MF ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Tpo -c -o ici/utils/ionsecadmin-ionsecadmin.obj `if test -f 'ici/utils/ionsecadmin.c'; then $(CYGPATH_W) 'ici/utils/ionsecadmin.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionsecadmin.c'; fi`
+#	$(am__mv) ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Tpo ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Po
+	source='ici/utils/ionsecadmin.c' object='ici/utils/ionsecadmin-ionsecadmin.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionsecadmin_CFLAGS) $(CFLAGS) -c -o ici/utils/ionsecadmin-ionsecadmin.obj `if test -f 'ici/utils/ionsecadmin.c'; then $(CYGPATH_W) 'ici/utils/ionsecadmin.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionsecadmin.c'; fi`
 
 bp/ipn/ipnadmin-ipnadmin.o: bp/ipn/ipnadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadmin_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnadmin-ipnadmin.o -MD -MP -MF bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Tpo -c -o bp/ipn/ipnadmin-ipnadmin.o `test -f 'bp/ipn/ipnadmin.c' || echo '$(srcdir)/'`bp/ipn/ipnadmin.c
-	$(am__mv) bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Tpo bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Po
-#	source='bp/ipn/ipnadmin.c' object='bp/ipn/ipnadmin-ipnadmin.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadmin_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnadmin-ipnadmin.o `test -f 'bp/ipn/ipnadmin.c' || echo '$(srcdir)/'`bp/ipn/ipnadmin.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadmin_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnadmin-ipnadmin.o -MD -MP -MF bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Tpo -c -o bp/ipn/ipnadmin-ipnadmin.o `test -f 'bp/ipn/ipnadmin.c' || echo '$(srcdir)/'`bp/ipn/ipnadmin.c
+#	$(am__mv) bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Tpo bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Po
+	source='bp/ipn/ipnadmin.c' object='bp/ipn/ipnadmin-ipnadmin.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadmin_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnadmin-ipnadmin.o `test -f 'bp/ipn/ipnadmin.c' || echo '$(srcdir)/'`bp/ipn/ipnadmin.c
 
 bp/ipn/ipnadmin-ipnadmin.obj: bp/ipn/ipnadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadmin_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnadmin-ipnadmin.obj -MD -MP -MF bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Tpo -c -o bp/ipn/ipnadmin-ipnadmin.obj `if test -f 'bp/ipn/ipnadmin.c'; then $(CYGPATH_W) 'bp/ipn/ipnadmin.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnadmin.c'; fi`
-	$(am__mv) bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Tpo bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Po
-#	source='bp/ipn/ipnadmin.c' object='bp/ipn/ipnadmin-ipnadmin.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadmin_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnadmin-ipnadmin.obj `if test -f 'bp/ipn/ipnadmin.c'; then $(CYGPATH_W) 'bp/ipn/ipnadmin.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnadmin.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadmin_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnadmin-ipnadmin.obj -MD -MP -MF bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Tpo -c -o bp/ipn/ipnadmin-ipnadmin.obj `if test -f 'bp/ipn/ipnadmin.c'; then $(CYGPATH_W) 'bp/ipn/ipnadmin.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnadmin.c'; fi`
+#	$(am__mv) bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Tpo bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Po
+	source='bp/ipn/ipnadmin.c' object='bp/ipn/ipnadmin-ipnadmin.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadmin_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnadmin-ipnadmin.obj `if test -f 'bp/ipn/ipnadmin.c'; then $(CYGPATH_W) 'bp/ipn/ipnadmin.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnadmin.c'; fi`
 
 bp/ipn/ipnadminep-ipnadminep.o: bp/ipn/ipnadminep.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadminep_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnadminep-ipnadminep.o -MD -MP -MF bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Tpo -c -o bp/ipn/ipnadminep-ipnadminep.o `test -f 'bp/ipn/ipnadminep.c' || echo '$(srcdir)/'`bp/ipn/ipnadminep.c
-	$(am__mv) bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Tpo bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Po
-#	source='bp/ipn/ipnadminep.c' object='bp/ipn/ipnadminep-ipnadminep.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadminep_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnadminep-ipnadminep.o `test -f 'bp/ipn/ipnadminep.c' || echo '$(srcdir)/'`bp/ipn/ipnadminep.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadminep_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnadminep-ipnadminep.o -MD -MP -MF bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Tpo -c -o bp/ipn/ipnadminep-ipnadminep.o `test -f 'bp/ipn/ipnadminep.c' || echo '$(srcdir)/'`bp/ipn/ipnadminep.c
+#	$(am__mv) bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Tpo bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Po
+	source='bp/ipn/ipnadminep.c' object='bp/ipn/ipnadminep-ipnadminep.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadminep_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnadminep-ipnadminep.o `test -f 'bp/ipn/ipnadminep.c' || echo '$(srcdir)/'`bp/ipn/ipnadminep.c
 
 bp/ipn/ipnadminep-ipnadminep.obj: bp/ipn/ipnadminep.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadminep_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnadminep-ipnadminep.obj -MD -MP -MF bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Tpo -c -o bp/ipn/ipnadminep-ipnadminep.obj `if test -f 'bp/ipn/ipnadminep.c'; then $(CYGPATH_W) 'bp/ipn/ipnadminep.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnadminep.c'; fi`
-	$(am__mv) bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Tpo bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Po
-#	source='bp/ipn/ipnadminep.c' object='bp/ipn/ipnadminep-ipnadminep.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadminep_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnadminep-ipnadminep.obj `if test -f 'bp/ipn/ipnadminep.c'; then $(CYGPATH_W) 'bp/ipn/ipnadminep.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnadminep.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadminep_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnadminep-ipnadminep.obj -MD -MP -MF bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Tpo -c -o bp/ipn/ipnadminep-ipnadminep.obj `if test -f 'bp/ipn/ipnadminep.c'; then $(CYGPATH_W) 'bp/ipn/ipnadminep.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnadminep.c'; fi`
+#	$(am__mv) bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Tpo bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Po
+	source='bp/ipn/ipnadminep.c' object='bp/ipn/ipnadminep-ipnadminep.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnadminep_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnadminep-ipnadminep.obj `if test -f 'bp/ipn/ipnadminep.c'; then $(CYGPATH_W) 'bp/ipn/ipnadminep.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnadminep.c'; fi`
 
 bp/ipn/ipnfw-ipnfw.o: bp/ipn/ipnfw.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnfw_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnfw-ipnfw.o -MD -MP -MF bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Tpo -c -o bp/ipn/ipnfw-ipnfw.o `test -f 'bp/ipn/ipnfw.c' || echo '$(srcdir)/'`bp/ipn/ipnfw.c
-	$(am__mv) bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Tpo bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Po
-#	source='bp/ipn/ipnfw.c' object='bp/ipn/ipnfw-ipnfw.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnfw_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnfw-ipnfw.o `test -f 'bp/ipn/ipnfw.c' || echo '$(srcdir)/'`bp/ipn/ipnfw.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnfw_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnfw-ipnfw.o -MD -MP -MF bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Tpo -c -o bp/ipn/ipnfw-ipnfw.o `test -f 'bp/ipn/ipnfw.c' || echo '$(srcdir)/'`bp/ipn/ipnfw.c
+#	$(am__mv) bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Tpo bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Po
+	source='bp/ipn/ipnfw.c' object='bp/ipn/ipnfw-ipnfw.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnfw_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnfw-ipnfw.o `test -f 'bp/ipn/ipnfw.c' || echo '$(srcdir)/'`bp/ipn/ipnfw.c
 
 bp/ipn/ipnfw-ipnfw.obj: bp/ipn/ipnfw.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnfw_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnfw-ipnfw.obj -MD -MP -MF bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Tpo -c -o bp/ipn/ipnfw-ipnfw.obj `if test -f 'bp/ipn/ipnfw.c'; then $(CYGPATH_W) 'bp/ipn/ipnfw.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnfw.c'; fi`
-	$(am__mv) bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Tpo bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Po
-#	source='bp/ipn/ipnfw.c' object='bp/ipn/ipnfw-ipnfw.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnfw_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnfw-ipnfw.obj `if test -f 'bp/ipn/ipnfw.c'; then $(CYGPATH_W) 'bp/ipn/ipnfw.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnfw.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnfw_CFLAGS) $(CFLAGS) -MT bp/ipn/ipnfw-ipnfw.obj -MD -MP -MF bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Tpo -c -o bp/ipn/ipnfw-ipnfw.obj `if test -f 'bp/ipn/ipnfw.c'; then $(CYGPATH_W) 'bp/ipn/ipnfw.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnfw.c'; fi`
+#	$(am__mv) bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Tpo bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Po
+	source='bp/ipn/ipnfw.c' object='bp/ipn/ipnfw-ipnfw.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipnfw_CFLAGS) $(CFLAGS) -c -o bp/ipn/ipnfw-ipnfw.obj `if test -f 'bp/ipn/ipnfw.c'; then $(CYGPATH_W) 'bp/ipn/ipnfw.c'; else $(CYGPATH_W) '$(srcdir)/bp/ipn/ipnfw.c'; fi`
 
 bp/utils/lgagent-lgagent.o: bp/utils/lgagent.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgagent_CFLAGS) $(CFLAGS) -MT bp/utils/lgagent-lgagent.o -MD -MP -MF bp/utils/$(DEPDIR)/lgagent-lgagent.Tpo -c -o bp/utils/lgagent-lgagent.o `test -f 'bp/utils/lgagent.c' || echo '$(srcdir)/'`bp/utils/lgagent.c
-	$(am__mv) bp/utils/$(DEPDIR)/lgagent-lgagent.Tpo bp/utils/$(DEPDIR)/lgagent-lgagent.Po
-#	source='bp/utils/lgagent.c' object='bp/utils/lgagent-lgagent.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgagent_CFLAGS) $(CFLAGS) -c -o bp/utils/lgagent-lgagent.o `test -f 'bp/utils/lgagent.c' || echo '$(srcdir)/'`bp/utils/lgagent.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgagent_CFLAGS) $(CFLAGS) -MT bp/utils/lgagent-lgagent.o -MD -MP -MF bp/utils/$(DEPDIR)/lgagent-lgagent.Tpo -c -o bp/utils/lgagent-lgagent.o `test -f 'bp/utils/lgagent.c' || echo '$(srcdir)/'`bp/utils/lgagent.c
+#	$(am__mv) bp/utils/$(DEPDIR)/lgagent-lgagent.Tpo bp/utils/$(DEPDIR)/lgagent-lgagent.Po
+	source='bp/utils/lgagent.c' object='bp/utils/lgagent-lgagent.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgagent_CFLAGS) $(CFLAGS) -c -o bp/utils/lgagent-lgagent.o `test -f 'bp/utils/lgagent.c' || echo '$(srcdir)/'`bp/utils/lgagent.c
 
 bp/utils/lgagent-lgagent.obj: bp/utils/lgagent.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgagent_CFLAGS) $(CFLAGS) -MT bp/utils/lgagent-lgagent.obj -MD -MP -MF bp/utils/$(DEPDIR)/lgagent-lgagent.Tpo -c -o bp/utils/lgagent-lgagent.obj `if test -f 'bp/utils/lgagent.c'; then $(CYGPATH_W) 'bp/utils/lgagent.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/lgagent.c'; fi`
-	$(am__mv) bp/utils/$(DEPDIR)/lgagent-lgagent.Tpo bp/utils/$(DEPDIR)/lgagent-lgagent.Po
-#	source='bp/utils/lgagent.c' object='bp/utils/lgagent-lgagent.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgagent_CFLAGS) $(CFLAGS) -c -o bp/utils/lgagent-lgagent.obj `if test -f 'bp/utils/lgagent.c'; then $(CYGPATH_W) 'bp/utils/lgagent.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/lgagent.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgagent_CFLAGS) $(CFLAGS) -MT bp/utils/lgagent-lgagent.obj -MD -MP -MF bp/utils/$(DEPDIR)/lgagent-lgagent.Tpo -c -o bp/utils/lgagent-lgagent.obj `if test -f 'bp/utils/lgagent.c'; then $(CYGPATH_W) 'bp/utils/lgagent.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/lgagent.c'; fi`
+#	$(am__mv) bp/utils/$(DEPDIR)/lgagent-lgagent.Tpo bp/utils/$(DEPDIR)/lgagent-lgagent.Po
+	source='bp/utils/lgagent.c' object='bp/utils/lgagent-lgagent.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgagent_CFLAGS) $(CFLAGS) -c -o bp/utils/lgagent-lgagent.obj `if test -f 'bp/utils/lgagent.c'; then $(CYGPATH_W) 'bp/utils/lgagent.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/lgagent.c'; fi`
 
 bp/utils/lgsend-lgsend.o: bp/utils/lgsend.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgsend_CFLAGS) $(CFLAGS) -MT bp/utils/lgsend-lgsend.o -MD -MP -MF bp/utils/$(DEPDIR)/lgsend-lgsend.Tpo -c -o bp/utils/lgsend-lgsend.o `test -f 'bp/utils/lgsend.c' || echo '$(srcdir)/'`bp/utils/lgsend.c
-	$(am__mv) bp/utils/$(DEPDIR)/lgsend-lgsend.Tpo bp/utils/$(DEPDIR)/lgsend-lgsend.Po
-#	source='bp/utils/lgsend.c' object='bp/utils/lgsend-lgsend.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgsend_CFLAGS) $(CFLAGS) -c -o bp/utils/lgsend-lgsend.o `test -f 'bp/utils/lgsend.c' || echo '$(srcdir)/'`bp/utils/lgsend.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgsend_CFLAGS) $(CFLAGS) -MT bp/utils/lgsend-lgsend.o -MD -MP -MF bp/utils/$(DEPDIR)/lgsend-lgsend.Tpo -c -o bp/utils/lgsend-lgsend.o `test -f 'bp/utils/lgsend.c' || echo '$(srcdir)/'`bp/utils/lgsend.c
+#	$(am__mv) bp/utils/$(DEPDIR)/lgsend-lgsend.Tpo bp/utils/$(DEPDIR)/lgsend-lgsend.Po
+	source='bp/utils/lgsend.c' object='bp/utils/lgsend-lgsend.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgsend_CFLAGS) $(CFLAGS) -c -o bp/utils/lgsend-lgsend.o `test -f 'bp/utils/lgsend.c' || echo '$(srcdir)/'`bp/utils/lgsend.c
 
 bp/utils/lgsend-lgsend.obj: bp/utils/lgsend.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgsend_CFLAGS) $(CFLAGS) -MT bp/utils/lgsend-lgsend.obj -MD -MP -MF bp/utils/$(DEPDIR)/lgsend-lgsend.Tpo -c -o bp/utils/lgsend-lgsend.obj `if test -f 'bp/utils/lgsend.c'; then $(CYGPATH_W) 'bp/utils/lgsend.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/lgsend.c'; fi`
-	$(am__mv) bp/utils/$(DEPDIR)/lgsend-lgsend.Tpo bp/utils/$(DEPDIR)/lgsend-lgsend.Po
-#	source='bp/utils/lgsend.c' object='bp/utils/lgsend-lgsend.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgsend_CFLAGS) $(CFLAGS) -c -o bp/utils/lgsend-lgsend.obj `if test -f 'bp/utils/lgsend.c'; then $(CYGPATH_W) 'bp/utils/lgsend.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/lgsend.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgsend_CFLAGS) $(CFLAGS) -MT bp/utils/lgsend-lgsend.obj -MD -MP -MF bp/utils/$(DEPDIR)/lgsend-lgsend.Tpo -c -o bp/utils/lgsend-lgsend.obj `if test -f 'bp/utils/lgsend.c'; then $(CYGPATH_W) 'bp/utils/lgsend.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/lgsend.c'; fi`
+#	$(am__mv) bp/utils/$(DEPDIR)/lgsend-lgsend.Tpo bp/utils/$(DEPDIR)/lgsend-lgsend.Po
+	source='bp/utils/lgsend.c' object='bp/utils/lgsend-lgsend.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lgsend_CFLAGS) $(CFLAGS) -c -o bp/utils/lgsend-lgsend.obj `if test -f 'bp/utils/lgsend.c'; then $(CYGPATH_W) 'bp/utils/lgsend.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/lgsend.c'; fi`
 
 ltp/utils/ltpadmin-ltpadmin.o: ltp/utils/ltpadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpadmin_CFLAGS) $(CFLAGS) -MT ltp/utils/ltpadmin-ltpadmin.o -MD -MP -MF ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Tpo -c -o ltp/utils/ltpadmin-ltpadmin.o `test -f 'ltp/utils/ltpadmin.c' || echo '$(srcdir)/'`ltp/utils/ltpadmin.c
-	$(am__mv) ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Tpo ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Po
-#	source='ltp/utils/ltpadmin.c' object='ltp/utils/ltpadmin-ltpadmin.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpadmin_CFLAGS) $(CFLAGS) -c -o ltp/utils/ltpadmin-ltpadmin.o `test -f 'ltp/utils/ltpadmin.c' || echo '$(srcdir)/'`ltp/utils/ltpadmin.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpadmin_CFLAGS) $(CFLAGS) -MT ltp/utils/ltpadmin-ltpadmin.o -MD -MP -MF ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Tpo -c -o ltp/utils/ltpadmin-ltpadmin.o `test -f 'ltp/utils/ltpadmin.c' || echo '$(srcdir)/'`ltp/utils/ltpadmin.c
+#	$(am__mv) ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Tpo ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Po
+	source='ltp/utils/ltpadmin.c' object='ltp/utils/ltpadmin-ltpadmin.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpadmin_CFLAGS) $(CFLAGS) -c -o ltp/utils/ltpadmin-ltpadmin.o `test -f 'ltp/utils/ltpadmin.c' || echo '$(srcdir)/'`ltp/utils/ltpadmin.c
 
 ltp/utils/ltpadmin-ltpadmin.obj: ltp/utils/ltpadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpadmin_CFLAGS) $(CFLAGS) -MT ltp/utils/ltpadmin-ltpadmin.obj -MD -MP -MF ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Tpo -c -o ltp/utils/ltpadmin-ltpadmin.obj `if test -f 'ltp/utils/ltpadmin.c'; then $(CYGPATH_W) 'ltp/utils/ltpadmin.c'; else $(CYGPATH_W) '$(srcdir)/ltp/utils/ltpadmin.c'; fi`
-	$(am__mv) ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Tpo ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Po
-#	source='ltp/utils/ltpadmin.c' object='ltp/utils/ltpadmin-ltpadmin.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpadmin_CFLAGS) $(CFLAGS) -c -o ltp/utils/ltpadmin-ltpadmin.obj `if test -f 'ltp/utils/ltpadmin.c'; then $(CYGPATH_W) 'ltp/utils/ltpadmin.c'; else $(CYGPATH_W) '$(srcdir)/ltp/utils/ltpadmin.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpadmin_CFLAGS) $(CFLAGS) -MT ltp/utils/ltpadmin-ltpadmin.obj -MD -MP -MF ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Tpo -c -o ltp/utils/ltpadmin-ltpadmin.obj `if test -f 'ltp/utils/ltpadmin.c'; then $(CYGPATH_W) 'ltp/utils/ltpadmin.c'; else $(CYGPATH_W) '$(srcdir)/ltp/utils/ltpadmin.c'; fi`
+#	$(am__mv) ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Tpo ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Po
+	source='ltp/utils/ltpadmin.c' object='ltp/utils/ltpadmin-ltpadmin.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpadmin_CFLAGS) $(CFLAGS) -c -o ltp/utils/ltpadmin-ltpadmin.obj `if test -f 'ltp/utils/ltpadmin.c'; then $(CYGPATH_W) 'ltp/utils/ltpadmin.c'; else $(CYGPATH_W) '$(srcdir)/ltp/utils/ltpadmin.c'; fi`
 
 bp/ltp/ltpcli-ltpcli.o: bp/ltp/ltpcli.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcli_CFLAGS) $(CFLAGS) -MT bp/ltp/ltpcli-ltpcli.o -MD -MP -MF bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Tpo -c -o bp/ltp/ltpcli-ltpcli.o `test -f 'bp/ltp/ltpcli.c' || echo '$(srcdir)/'`bp/ltp/ltpcli.c
-	$(am__mv) bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Tpo bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Po
-#	source='bp/ltp/ltpcli.c' object='bp/ltp/ltpcli-ltpcli.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcli_CFLAGS) $(CFLAGS) -c -o bp/ltp/ltpcli-ltpcli.o `test -f 'bp/ltp/ltpcli.c' || echo '$(srcdir)/'`bp/ltp/ltpcli.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcli_CFLAGS) $(CFLAGS) -MT bp/ltp/ltpcli-ltpcli.o -MD -MP -MF bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Tpo -c -o bp/ltp/ltpcli-ltpcli.o `test -f 'bp/ltp/ltpcli.c' || echo '$(srcdir)/'`bp/ltp/ltpcli.c
+#	$(am__mv) bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Tpo bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Po
+	source='bp/ltp/ltpcli.c' object='bp/ltp/ltpcli-ltpcli.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcli_CFLAGS) $(CFLAGS) -c -o bp/ltp/ltpcli-ltpcli.o `test -f 'bp/ltp/ltpcli.c' || echo '$(srcdir)/'`bp/ltp/ltpcli.c
 
 bp/ltp/ltpcli-ltpcli.obj: bp/ltp/ltpcli.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcli_CFLAGS) $(CFLAGS) -MT bp/ltp/ltpcli-ltpcli.obj -MD -MP -MF bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Tpo -c -o bp/ltp/ltpcli-ltpcli.obj `if test -f 'bp/ltp/ltpcli.c'; then $(CYGPATH_W) 'bp/ltp/ltpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/ltp/ltpcli.c'; fi`
-	$(am__mv) bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Tpo bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Po
-#	source='bp/ltp/ltpcli.c' object='bp/ltp/ltpcli-ltpcli.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcli_CFLAGS) $(CFLAGS) -c -o bp/ltp/ltpcli-ltpcli.obj `if test -f 'bp/ltp/ltpcli.c'; then $(CYGPATH_W) 'bp/ltp/ltpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/ltp/ltpcli.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcli_CFLAGS) $(CFLAGS) -MT bp/ltp/ltpcli-ltpcli.obj -MD -MP -MF bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Tpo -c -o bp/ltp/ltpcli-ltpcli.obj `if test -f 'bp/ltp/ltpcli.c'; then $(CYGPATH_W) 'bp/ltp/ltpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/ltp/ltpcli.c'; fi`
+#	$(am__mv) bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Tpo bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Po
+	source='bp/ltp/ltpcli.c' object='bp/ltp/ltpcli-ltpcli.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcli_CFLAGS) $(CFLAGS) -c -o bp/ltp/ltpcli-ltpcli.obj `if test -f 'bp/ltp/ltpcli.c'; then $(CYGPATH_W) 'bp/ltp/ltpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/ltp/ltpcli.c'; fi`
 
 bp/ltp/ltpclo-ltpclo.o: bp/ltp/ltpclo.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclo_CFLAGS) $(CFLAGS) -MT bp/ltp/ltpclo-ltpclo.o -MD -MP -MF bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Tpo -c -o bp/ltp/ltpclo-ltpclo.o `test -f 'bp/ltp/ltpclo.c' || echo '$(srcdir)/'`bp/ltp/ltpclo.c
-	$(am__mv) bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Tpo bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Po
-#	source='bp/ltp/ltpclo.c' object='bp/ltp/ltpclo-ltpclo.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclo_CFLAGS) $(CFLAGS) -c -o bp/ltp/ltpclo-ltpclo.o `test -f 'bp/ltp/ltpclo.c' || echo '$(srcdir)/'`bp/ltp/ltpclo.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclo_CFLAGS) $(CFLAGS) -MT bp/ltp/ltpclo-ltpclo.o -MD -MP -MF bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Tpo -c -o bp/ltp/ltpclo-ltpclo.o `test -f 'bp/ltp/ltpclo.c' || echo '$(srcdir)/'`bp/ltp/ltpclo.c
+#	$(am__mv) bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Tpo bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Po
+	source='bp/ltp/ltpclo.c' object='bp/ltp/ltpclo-ltpclo.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclo_CFLAGS) $(CFLAGS) -c -o bp/ltp/ltpclo-ltpclo.o `test -f 'bp/ltp/ltpclo.c' || echo '$(srcdir)/'`bp/ltp/ltpclo.c
 
 bp/ltp/ltpclo-ltpclo.obj: bp/ltp/ltpclo.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclo_CFLAGS) $(CFLAGS) -MT bp/ltp/ltpclo-ltpclo.obj -MD -MP -MF bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Tpo -c -o bp/ltp/ltpclo-ltpclo.obj `if test -f 'bp/ltp/ltpclo.c'; then $(CYGPATH_W) 'bp/ltp/ltpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/ltp/ltpclo.c'; fi`
-	$(am__mv) bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Tpo bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Po
-#	source='bp/ltp/ltpclo.c' object='bp/ltp/ltpclo-ltpclo.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclo_CFLAGS) $(CFLAGS) -c -o bp/ltp/ltpclo-ltpclo.obj `if test -f 'bp/ltp/ltpclo.c'; then $(CYGPATH_W) 'bp/ltp/ltpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/ltp/ltpclo.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclo_CFLAGS) $(CFLAGS) -MT bp/ltp/ltpclo-ltpclo.obj -MD -MP -MF bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Tpo -c -o bp/ltp/ltpclo-ltpclo.obj `if test -f 'bp/ltp/ltpclo.c'; then $(CYGPATH_W) 'bp/ltp/ltpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/ltp/ltpclo.c'; fi`
+#	$(am__mv) bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Tpo bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Po
+	source='bp/ltp/ltpclo.c' object='bp/ltp/ltpclo-ltpclo.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclo_CFLAGS) $(CFLAGS) -c -o bp/ltp/ltpclo-ltpclo.obj `if test -f 'bp/ltp/ltpclo.c'; then $(CYGPATH_W) 'bp/ltp/ltpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/ltp/ltpclo.c'; fi`
 
 ltp/daemon/ltpclock-ltpclock.o: ltp/daemon/ltpclock.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclock_CFLAGS) $(CFLAGS) -MT ltp/daemon/ltpclock-ltpclock.o -MD -MP -MF ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Tpo -c -o ltp/daemon/ltpclock-ltpclock.o `test -f 'ltp/daemon/ltpclock.c' || echo '$(srcdir)/'`ltp/daemon/ltpclock.c
-	$(am__mv) ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Tpo ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Po
-#	source='ltp/daemon/ltpclock.c' object='ltp/daemon/ltpclock-ltpclock.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclock_CFLAGS) $(CFLAGS) -c -o ltp/daemon/ltpclock-ltpclock.o `test -f 'ltp/daemon/ltpclock.c' || echo '$(srcdir)/'`ltp/daemon/ltpclock.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclock_CFLAGS) $(CFLAGS) -MT ltp/daemon/ltpclock-ltpclock.o -MD -MP -MF ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Tpo -c -o ltp/daemon/ltpclock-ltpclock.o `test -f 'ltp/daemon/ltpclock.c' || echo '$(srcdir)/'`ltp/daemon/ltpclock.c
+#	$(am__mv) ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Tpo ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Po
+	source='ltp/daemon/ltpclock.c' object='ltp/daemon/ltpclock-ltpclock.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclock_CFLAGS) $(CFLAGS) -c -o ltp/daemon/ltpclock-ltpclock.o `test -f 'ltp/daemon/ltpclock.c' || echo '$(srcdir)/'`ltp/daemon/ltpclock.c
 
 ltp/daemon/ltpclock-ltpclock.obj: ltp/daemon/ltpclock.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclock_CFLAGS) $(CFLAGS) -MT ltp/daemon/ltpclock-ltpclock.obj -MD -MP -MF ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Tpo -c -o ltp/daemon/ltpclock-ltpclock.obj `if test -f 'ltp/daemon/ltpclock.c'; then $(CYGPATH_W) 'ltp/daemon/ltpclock.c'; else $(CYGPATH_W) '$(srcdir)/ltp/daemon/ltpclock.c'; fi`
-	$(am__mv) ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Tpo ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Po
-#	source='ltp/daemon/ltpclock.c' object='ltp/daemon/ltpclock-ltpclock.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclock_CFLAGS) $(CFLAGS) -c -o ltp/daemon/ltpclock-ltpclock.obj `if test -f 'ltp/daemon/ltpclock.c'; then $(CYGPATH_W) 'ltp/daemon/ltpclock.c'; else $(CYGPATH_W) '$(srcdir)/ltp/daemon/ltpclock.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclock_CFLAGS) $(CFLAGS) -MT ltp/daemon/ltpclock-ltpclock.obj -MD -MP -MF ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Tpo -c -o ltp/daemon/ltpclock-ltpclock.obj `if test -f 'ltp/daemon/ltpclock.c'; then $(CYGPATH_W) 'ltp/daemon/ltpclock.c'; else $(CYGPATH_W) '$(srcdir)/ltp/daemon/ltpclock.c'; fi`
+#	$(am__mv) ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Tpo ltp/daemon/$(DEPDIR)/ltpclock-ltpclock.Po
+	source='ltp/daemon/ltpclock.c' object='ltp/daemon/ltpclock-ltpclock.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpclock_CFLAGS) $(CFLAGS) -c -o ltp/daemon/ltpclock-ltpclock.obj `if test -f 'ltp/daemon/ltpclock.c'; then $(CYGPATH_W) 'ltp/daemon/ltpclock.c'; else $(CYGPATH_W) '$(srcdir)/ltp/daemon/ltpclock.c'; fi`
 
 ltp/test/ltpcounter-ltpcounter.o: ltp/test/ltpcounter.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcounter_CFLAGS) $(CFLAGS) -MT ltp/test/ltpcounter-ltpcounter.o -MD -MP -MF ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Tpo -c -o ltp/test/ltpcounter-ltpcounter.o `test -f 'ltp/test/ltpcounter.c' || echo '$(srcdir)/'`ltp/test/ltpcounter.c
-	$(am__mv) ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Tpo ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Po
-#	source='ltp/test/ltpcounter.c' object='ltp/test/ltpcounter-ltpcounter.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcounter_CFLAGS) $(CFLAGS) -c -o ltp/test/ltpcounter-ltpcounter.o `test -f 'ltp/test/ltpcounter.c' || echo '$(srcdir)/'`ltp/test/ltpcounter.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcounter_CFLAGS) $(CFLAGS) -MT ltp/test/ltpcounter-ltpcounter.o -MD -MP -MF ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Tpo -c -o ltp/test/ltpcounter-ltpcounter.o `test -f 'ltp/test/ltpcounter.c' || echo '$(srcdir)/'`ltp/test/ltpcounter.c
+#	$(am__mv) ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Tpo ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Po
+	source='ltp/test/ltpcounter.c' object='ltp/test/ltpcounter-ltpcounter.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcounter_CFLAGS) $(CFLAGS) -c -o ltp/test/ltpcounter-ltpcounter.o `test -f 'ltp/test/ltpcounter.c' || echo '$(srcdir)/'`ltp/test/ltpcounter.c
 
 ltp/test/ltpcounter-ltpcounter.obj: ltp/test/ltpcounter.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcounter_CFLAGS) $(CFLAGS) -MT ltp/test/ltpcounter-ltpcounter.obj -MD -MP -MF ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Tpo -c -o ltp/test/ltpcounter-ltpcounter.obj `if test -f 'ltp/test/ltpcounter.c'; then $(CYGPATH_W) 'ltp/test/ltpcounter.c'; else $(CYGPATH_W) '$(srcdir)/ltp/test/ltpcounter.c'; fi`
-	$(am__mv) ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Tpo ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Po
-#	source='ltp/test/ltpcounter.c' object='ltp/test/ltpcounter-ltpcounter.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcounter_CFLAGS) $(CFLAGS) -c -o ltp/test/ltpcounter-ltpcounter.obj `if test -f 'ltp/test/ltpcounter.c'; then $(CYGPATH_W) 'ltp/test/ltpcounter.c'; else $(CYGPATH_W) '$(srcdir)/ltp/test/ltpcounter.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcounter_CFLAGS) $(CFLAGS) -MT ltp/test/ltpcounter-ltpcounter.obj -MD -MP -MF ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Tpo -c -o ltp/test/ltpcounter-ltpcounter.obj `if test -f 'ltp/test/ltpcounter.c'; then $(CYGPATH_W) 'ltp/test/ltpcounter.c'; else $(CYGPATH_W) '$(srcdir)/ltp/test/ltpcounter.c'; fi`
+#	$(am__mv) ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Tpo ltp/test/$(DEPDIR)/ltpcounter-ltpcounter.Po
+	source='ltp/test/ltpcounter.c' object='ltp/test/ltpcounter-ltpcounter.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpcounter_CFLAGS) $(CFLAGS) -c -o ltp/test/ltpcounter-ltpcounter.obj `if test -f 'ltp/test/ltpcounter.c'; then $(CYGPATH_W) 'ltp/test/ltpcounter.c'; else $(CYGPATH_W) '$(srcdir)/ltp/test/ltpcounter.c'; fi`
 
 ltp/test/ltpdriver-ltpdriver.o: ltp/test/ltpdriver.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpdriver_CFLAGS) $(CFLAGS) -MT ltp/test/ltpdriver-ltpdriver.o -MD -MP -MF ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Tpo -c -o ltp/test/ltpdriver-ltpdriver.o `test -f 'ltp/test/ltpdriver.c' || echo '$(srcdir)/'`ltp/test/ltpdriver.c
-	$(am__mv) ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Tpo ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Po
-#	source='ltp/test/ltpdriver.c' object='ltp/test/ltpdriver-ltpdriver.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpdriver_CFLAGS) $(CFLAGS) -c -o ltp/test/ltpdriver-ltpdriver.o `test -f 'ltp/test/ltpdriver.c' || echo '$(srcdir)/'`ltp/test/ltpdriver.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpdriver_CFLAGS) $(CFLAGS) -MT ltp/test/ltpdriver-ltpdriver.o -MD -MP -MF ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Tpo -c -o ltp/test/ltpdriver-ltpdriver.o `test -f 'ltp/test/ltpdriver.c' || echo '$(srcdir)/'`ltp/test/ltpdriver.c
+#	$(am__mv) ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Tpo ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Po
+	source='ltp/test/ltpdriver.c' object='ltp/test/ltpdriver-ltpdriver.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpdriver_CFLAGS) $(CFLAGS) -c -o ltp/test/ltpdriver-ltpdriver.o `test -f 'ltp/test/ltpdriver.c' || echo '$(srcdir)/'`ltp/test/ltpdriver.c
 
 ltp/test/ltpdriver-ltpdriver.obj: ltp/test/ltpdriver.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpdriver_CFLAGS) $(CFLAGS) -MT ltp/test/ltpdriver-ltpdriver.obj -MD -MP -MF ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Tpo -c -o ltp/test/ltpdriver-ltpdriver.obj `if test -f 'ltp/test/ltpdriver.c'; then $(CYGPATH_W) 'ltp/test/ltpdriver.c'; else $(CYGPATH_W) '$(srcdir)/ltp/test/ltpdriver.c'; fi`
-	$(am__mv) ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Tpo ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Po
-#	source='ltp/test/ltpdriver.c' object='ltp/test/ltpdriver-ltpdriver.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpdriver_CFLAGS) $(CFLAGS) -c -o ltp/test/ltpdriver-ltpdriver.obj `if test -f 'ltp/test/ltpdriver.c'; then $(CYGPATH_W) 'ltp/test/ltpdriver.c'; else $(CYGPATH_W) '$(srcdir)/ltp/test/ltpdriver.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpdriver_CFLAGS) $(CFLAGS) -MT ltp/test/ltpdriver-ltpdriver.obj -MD -MP -MF ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Tpo -c -o ltp/test/ltpdriver-ltpdriver.obj `if test -f 'ltp/test/ltpdriver.c'; then $(CYGPATH_W) 'ltp/test/ltpdriver.c'; else $(CYGPATH_W) '$(srcdir)/ltp/test/ltpdriver.c'; fi`
+#	$(am__mv) ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Tpo ltp/test/$(DEPDIR)/ltpdriver-ltpdriver.Po
+	source='ltp/test/ltpdriver.c' object='ltp/test/ltpdriver-ltpdriver.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpdriver_CFLAGS) $(CFLAGS) -c -o ltp/test/ltpdriver-ltpdriver.obj `if test -f 'ltp/test/ltpdriver.c'; then $(CYGPATH_W) 'ltp/test/ltpdriver.c'; else $(CYGPATH_W) '$(srcdir)/ltp/test/ltpdriver.c'; fi`
 
 ltp/daemon/ltpmeter-ltpmeter.o: ltp/daemon/ltpmeter.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpmeter_CFLAGS) $(CFLAGS) -MT ltp/daemon/ltpmeter-ltpmeter.o -MD -MP -MF ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Tpo -c -o ltp/daemon/ltpmeter-ltpmeter.o `test -f 'ltp/daemon/ltpmeter.c' || echo '$(srcdir)/'`ltp/daemon/ltpmeter.c
-	$(am__mv) ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Tpo ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Po
-#	source='ltp/daemon/ltpmeter.c' object='ltp/daemon/ltpmeter-ltpmeter.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpmeter_CFLAGS) $(CFLAGS) -c -o ltp/daemon/ltpmeter-ltpmeter.o `test -f 'ltp/daemon/ltpmeter.c' || echo '$(srcdir)/'`ltp/daemon/ltpmeter.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpmeter_CFLAGS) $(CFLAGS) -MT ltp/daemon/ltpmeter-ltpmeter.o -MD -MP -MF ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Tpo -c -o ltp/daemon/ltpmeter-ltpmeter.o `test -f 'ltp/daemon/ltpmeter.c' || echo '$(srcdir)/'`ltp/daemon/ltpmeter.c
+#	$(am__mv) ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Tpo ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Po
+	source='ltp/daemon/ltpmeter.c' object='ltp/daemon/ltpmeter-ltpmeter.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpmeter_CFLAGS) $(CFLAGS) -c -o ltp/daemon/ltpmeter-ltpmeter.o `test -f 'ltp/daemon/ltpmeter.c' || echo '$(srcdir)/'`ltp/daemon/ltpmeter.c
 
 ltp/daemon/ltpmeter-ltpmeter.obj: ltp/daemon/ltpmeter.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpmeter_CFLAGS) $(CFLAGS) -MT ltp/daemon/ltpmeter-ltpmeter.obj -MD -MP -MF ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Tpo -c -o ltp/daemon/ltpmeter-ltpmeter.obj `if test -f 'ltp/daemon/ltpmeter.c'; then $(CYGPATH_W) 'ltp/daemon/ltpmeter.c'; else $(CYGPATH_W) '$(srcdir)/ltp/daemon/ltpmeter.c'; fi`
-	$(am__mv) ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Tpo ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Po
-#	source='ltp/daemon/ltpmeter.c' object='ltp/daemon/ltpmeter-ltpmeter.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpmeter_CFLAGS) $(CFLAGS) -c -o ltp/daemon/ltpmeter-ltpmeter.obj `if test -f 'ltp/daemon/ltpmeter.c'; then $(CYGPATH_W) 'ltp/daemon/ltpmeter.c'; else $(CYGPATH_W) '$(srcdir)/ltp/daemon/ltpmeter.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpmeter_CFLAGS) $(CFLAGS) -MT ltp/daemon/ltpmeter-ltpmeter.obj -MD -MP -MF ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Tpo -c -o ltp/daemon/ltpmeter-ltpmeter.obj `if test -f 'ltp/daemon/ltpmeter.c'; then $(CYGPATH_W) 'ltp/daemon/ltpmeter.c'; else $(CYGPATH_W) '$(srcdir)/ltp/daemon/ltpmeter.c'; fi`
+#	$(am__mv) ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Tpo ltp/daemon/$(DEPDIR)/ltpmeter-ltpmeter.Po
+	source='ltp/daemon/ltpmeter.c' object='ltp/daemon/ltpmeter-ltpmeter.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpmeter_CFLAGS) $(CFLAGS) -c -o ltp/daemon/ltpmeter-ltpmeter.obj `if test -f 'ltp/daemon/ltpmeter.c'; then $(CYGPATH_W) 'ltp/daemon/ltpmeter.c'; else $(CYGPATH_W) '$(srcdir)/ltp/daemon/ltpmeter.c'; fi`
 
 ici/test/owltsim-owltsim.o: ici/test/owltsim.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owltsim_CFLAGS) $(CFLAGS) -MT ici/test/owltsim-owltsim.o -MD -MP -MF ici/test/$(DEPDIR)/owltsim-owltsim.Tpo -c -o ici/test/owltsim-owltsim.o `test -f 'ici/test/owltsim.c' || echo '$(srcdir)/'`ici/test/owltsim.c
-	$(am__mv) ici/test/$(DEPDIR)/owltsim-owltsim.Tpo ici/test/$(DEPDIR)/owltsim-owltsim.Po
-#	source='ici/test/owltsim.c' object='ici/test/owltsim-owltsim.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owltsim_CFLAGS) $(CFLAGS) -c -o ici/test/owltsim-owltsim.o `test -f 'ici/test/owltsim.c' || echo '$(srcdir)/'`ici/test/owltsim.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owltsim_CFLAGS) $(CFLAGS) -MT ici/test/owltsim-owltsim.o -MD -MP -MF ici/test/$(DEPDIR)/owltsim-owltsim.Tpo -c -o ici/test/owltsim-owltsim.o `test -f 'ici/test/owltsim.c' || echo '$(srcdir)/'`ici/test/owltsim.c
+#	$(am__mv) ici/test/$(DEPDIR)/owltsim-owltsim.Tpo ici/test/$(DEPDIR)/owltsim-owltsim.Po
+	source='ici/test/owltsim.c' object='ici/test/owltsim-owltsim.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owltsim_CFLAGS) $(CFLAGS) -c -o ici/test/owltsim-owltsim.o `test -f 'ici/test/owltsim.c' || echo '$(srcdir)/'`ici/test/owltsim.c
 
 ici/test/owltsim-owltsim.obj: ici/test/owltsim.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owltsim_CFLAGS) $(CFLAGS) -MT ici/test/owltsim-owltsim.obj -MD -MP -MF ici/test/$(DEPDIR)/owltsim-owltsim.Tpo -c -o ici/test/owltsim-owltsim.obj `if test -f 'ici/test/owltsim.c'; then $(CYGPATH_W) 'ici/test/owltsim.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/owltsim.c'; fi`
-	$(am__mv) ici/test/$(DEPDIR)/owltsim-owltsim.Tpo ici/test/$(DEPDIR)/owltsim-owltsim.Po
-#	source='ici/test/owltsim.c' object='ici/test/owltsim-owltsim.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owltsim_CFLAGS) $(CFLAGS) -c -o ici/test/owltsim-owltsim.obj `if test -f 'ici/test/owltsim.c'; then $(CYGPATH_W) 'ici/test/owltsim.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/owltsim.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owltsim_CFLAGS) $(CFLAGS) -MT ici/test/owltsim-owltsim.obj -MD -MP -MF ici/test/$(DEPDIR)/owltsim-owltsim.Tpo -c -o ici/test/owltsim-owltsim.obj `if test -f 'ici/test/owltsim.c'; then $(CYGPATH_W) 'ici/test/owltsim.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/owltsim.c'; fi`
+#	$(am__mv) ici/test/$(DEPDIR)/owltsim-owltsim.Tpo ici/test/$(DEPDIR)/owltsim-owltsim.Po
+	source='ici/test/owltsim.c' object='ici/test/owltsim-owltsim.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owltsim_CFLAGS) $(CFLAGS) -c -o ici/test/owltsim-owltsim.obj `if test -f 'ici/test/owltsim.c'; then $(CYGPATH_W) 'ici/test/owltsim.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/owltsim.c'; fi`
 
 ici/test/owlttb-owlttb.o: ici/test/owlttb.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owlttb_CFLAGS) $(CFLAGS) -MT ici/test/owlttb-owlttb.o -MD -MP -MF ici/test/$(DEPDIR)/owlttb-owlttb.Tpo -c -o ici/test/owlttb-owlttb.o `test -f 'ici/test/owlttb.c' || echo '$(srcdir)/'`ici/test/owlttb.c
-	$(am__mv) ici/test/$(DEPDIR)/owlttb-owlttb.Tpo ici/test/$(DEPDIR)/owlttb-owlttb.Po
-#	source='ici/test/owlttb.c' object='ici/test/owlttb-owlttb.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owlttb_CFLAGS) $(CFLAGS) -c -o ici/test/owlttb-owlttb.o `test -f 'ici/test/owlttb.c' || echo '$(srcdir)/'`ici/test/owlttb.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owlttb_CFLAGS) $(CFLAGS) -MT ici/test/owlttb-owlttb.o -MD -MP -MF ici/test/$(DEPDIR)/owlttb-owlttb.Tpo -c -o ici/test/owlttb-owlttb.o `test -f 'ici/test/owlttb.c' || echo '$(srcdir)/'`ici/test/owlttb.c
+#	$(am__mv) ici/test/$(DEPDIR)/owlttb-owlttb.Tpo ici/test/$(DEPDIR)/owlttb-owlttb.Po
+	source='ici/test/owlttb.c' object='ici/test/owlttb-owlttb.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owlttb_CFLAGS) $(CFLAGS) -c -o ici/test/owlttb-owlttb.o `test -f 'ici/test/owlttb.c' || echo '$(srcdir)/'`ici/test/owlttb.c
 
 ici/test/owlttb-owlttb.obj: ici/test/owlttb.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owlttb_CFLAGS) $(CFLAGS) -MT ici/test/owlttb-owlttb.obj -MD -MP -MF ici/test/$(DEPDIR)/owlttb-owlttb.Tpo -c -o ici/test/owlttb-owlttb.obj `if test -f 'ici/test/owlttb.c'; then $(CYGPATH_W) 'ici/test/owlttb.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/owlttb.c'; fi`
-	$(am__mv) ici/test/$(DEPDIR)/owlttb-owlttb.Tpo ici/test/$(DEPDIR)/owlttb-owlttb.Po
-#	source='ici/test/owlttb.c' object='ici/test/owlttb-owlttb.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owlttb_CFLAGS) $(CFLAGS) -c -o ici/test/owlttb-owlttb.obj `if test -f 'ici/test/owlttb.c'; then $(CYGPATH_W) 'ici/test/owlttb.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/owlttb.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owlttb_CFLAGS) $(CFLAGS) -MT ici/test/owlttb-owlttb.obj -MD -MP -MF ici/test/$(DEPDIR)/owlttb-owlttb.Tpo -c -o ici/test/owlttb-owlttb.obj `if test -f 'ici/test/owlttb.c'; then $(CYGPATH_W) 'ici/test/owlttb.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/owlttb.c'; fi`
+#	$(am__mv) ici/test/$(DEPDIR)/owlttb-owlttb.Tpo ici/test/$(DEPDIR)/owlttb-owlttb.Po
+	source='ici/test/owlttb.c' object='ici/test/owlttb-owlttb.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(owlttb_CFLAGS) $(CFLAGS) -c -o ici/test/owlttb-owlttb.obj `if test -f 'ici/test/owlttb.c'; then $(CYGPATH_W) 'ici/test/owlttb.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/owlttb.c'; fi`
 
 ici/test/psmshell-psmshell.o: ici/test/psmshell.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmshell_CFLAGS) $(CFLAGS) -MT ici/test/psmshell-psmshell.o -MD -MP -MF ici/test/$(DEPDIR)/psmshell-psmshell.Tpo -c -o ici/test/psmshell-psmshell.o `test -f 'ici/test/psmshell.c' || echo '$(srcdir)/'`ici/test/psmshell.c
-	$(am__mv) ici/test/$(DEPDIR)/psmshell-psmshell.Tpo ici/test/$(DEPDIR)/psmshell-psmshell.Po
-#	source='ici/test/psmshell.c' object='ici/test/psmshell-psmshell.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmshell_CFLAGS) $(CFLAGS) -c -o ici/test/psmshell-psmshell.o `test -f 'ici/test/psmshell.c' || echo '$(srcdir)/'`ici/test/psmshell.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmshell_CFLAGS) $(CFLAGS) -MT ici/test/psmshell-psmshell.o -MD -MP -MF ici/test/$(DEPDIR)/psmshell-psmshell.Tpo -c -o ici/test/psmshell-psmshell.o `test -f 'ici/test/psmshell.c' || echo '$(srcdir)/'`ici/test/psmshell.c
+#	$(am__mv) ici/test/$(DEPDIR)/psmshell-psmshell.Tpo ici/test/$(DEPDIR)/psmshell-psmshell.Po
+	source='ici/test/psmshell.c' object='ici/test/psmshell-psmshell.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmshell_CFLAGS) $(CFLAGS) -c -o ici/test/psmshell-psmshell.o `test -f 'ici/test/psmshell.c' || echo '$(srcdir)/'`ici/test/psmshell.c
 
 ici/test/psmshell-psmshell.obj: ici/test/psmshell.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmshell_CFLAGS) $(CFLAGS) -MT ici/test/psmshell-psmshell.obj -MD -MP -MF ici/test/$(DEPDIR)/psmshell-psmshell.Tpo -c -o ici/test/psmshell-psmshell.obj `if test -f 'ici/test/psmshell.c'; then $(CYGPATH_W) 'ici/test/psmshell.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/psmshell.c'; fi`
-	$(am__mv) ici/test/$(DEPDIR)/psmshell-psmshell.Tpo ici/test/$(DEPDIR)/psmshell-psmshell.Po
-#	source='ici/test/psmshell.c' object='ici/test/psmshell-psmshell.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmshell_CFLAGS) $(CFLAGS) -c -o ici/test/psmshell-psmshell.obj `if test -f 'ici/test/psmshell.c'; then $(CYGPATH_W) 'ici/test/psmshell.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/psmshell.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmshell_CFLAGS) $(CFLAGS) -MT ici/test/psmshell-psmshell.obj -MD -MP -MF ici/test/$(DEPDIR)/psmshell-psmshell.Tpo -c -o ici/test/psmshell-psmshell.obj `if test -f 'ici/test/psmshell.c'; then $(CYGPATH_W) 'ici/test/psmshell.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/psmshell.c'; fi`
+#	$(am__mv) ici/test/$(DEPDIR)/psmshell-psmshell.Tpo ici/test/$(DEPDIR)/psmshell-psmshell.Po
+	source='ici/test/psmshell.c' object='ici/test/psmshell-psmshell.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmshell_CFLAGS) $(CFLAGS) -c -o ici/test/psmshell-psmshell.obj `if test -f 'ici/test/psmshell.c'; then $(CYGPATH_W) 'ici/test/psmshell.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/psmshell.c'; fi`
 
 ici/utils/psmwatch-psmwatch.o: ici/utils/psmwatch.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmwatch_CFLAGS) $(CFLAGS) -MT ici/utils/psmwatch-psmwatch.o -MD -MP -MF ici/utils/$(DEPDIR)/psmwatch-psmwatch.Tpo -c -o ici/utils/psmwatch-psmwatch.o `test -f 'ici/utils/psmwatch.c' || echo '$(srcdir)/'`ici/utils/psmwatch.c
-	$(am__mv) ici/utils/$(DEPDIR)/psmwatch-psmwatch.Tpo ici/utils/$(DEPDIR)/psmwatch-psmwatch.Po
-#	source='ici/utils/psmwatch.c' object='ici/utils/psmwatch-psmwatch.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmwatch_CFLAGS) $(CFLAGS) -c -o ici/utils/psmwatch-psmwatch.o `test -f 'ici/utils/psmwatch.c' || echo '$(srcdir)/'`ici/utils/psmwatch.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmwatch_CFLAGS) $(CFLAGS) -MT ici/utils/psmwatch-psmwatch.o -MD -MP -MF ici/utils/$(DEPDIR)/psmwatch-psmwatch.Tpo -c -o ici/utils/psmwatch-psmwatch.o `test -f 'ici/utils/psmwatch.c' || echo '$(srcdir)/'`ici/utils/psmwatch.c
+#	$(am__mv) ici/utils/$(DEPDIR)/psmwatch-psmwatch.Tpo ici/utils/$(DEPDIR)/psmwatch-psmwatch.Po
+	source='ici/utils/psmwatch.c' object='ici/utils/psmwatch-psmwatch.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmwatch_CFLAGS) $(CFLAGS) -c -o ici/utils/psmwatch-psmwatch.o `test -f 'ici/utils/psmwatch.c' || echo '$(srcdir)/'`ici/utils/psmwatch.c
 
 ici/utils/psmwatch-psmwatch.obj: ici/utils/psmwatch.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmwatch_CFLAGS) $(CFLAGS) -MT ici/utils/psmwatch-psmwatch.obj -MD -MP -MF ici/utils/$(DEPDIR)/psmwatch-psmwatch.Tpo -c -o ici/utils/psmwatch-psmwatch.obj `if test -f 'ici/utils/psmwatch.c'; then $(CYGPATH_W) 'ici/utils/psmwatch.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/psmwatch.c'; fi`
-	$(am__mv) ici/utils/$(DEPDIR)/psmwatch-psmwatch.Tpo ici/utils/$(DEPDIR)/psmwatch-psmwatch.Po
-#	source='ici/utils/psmwatch.c' object='ici/utils/psmwatch-psmwatch.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmwatch_CFLAGS) $(CFLAGS) -c -o ici/utils/psmwatch-psmwatch.obj `if test -f 'ici/utils/psmwatch.c'; then $(CYGPATH_W) 'ici/utils/psmwatch.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/psmwatch.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmwatch_CFLAGS) $(CFLAGS) -MT ici/utils/psmwatch-psmwatch.obj -MD -MP -MF ici/utils/$(DEPDIR)/psmwatch-psmwatch.Tpo -c -o ici/utils/psmwatch-psmwatch.obj `if test -f 'ici/utils/psmwatch.c'; then $(CYGPATH_W) 'ici/utils/psmwatch.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/psmwatch.c'; fi`
+#	$(am__mv) ici/utils/$(DEPDIR)/psmwatch-psmwatch.Tpo ici/utils/$(DEPDIR)/psmwatch-psmwatch.Po
+	source='ici/utils/psmwatch.c' object='ici/utils/psmwatch-psmwatch.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psmwatch_CFLAGS) $(CFLAGS) -c -o ici/utils/psmwatch-psmwatch.obj `if test -f 'ici/utils/psmwatch.c'; then $(CYGPATH_W) 'ici/utils/psmwatch.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/psmwatch.c'; fi`
 
 ams/rams/ramsgate-librams.o: ams/rams/librams.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-librams.o -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-librams.Tpo -c -o ams/rams/ramsgate-librams.o `test -f 'ams/rams/librams.c' || echo '$(srcdir)/'`ams/rams/librams.c
-	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-librams.Tpo ams/rams/$(DEPDIR)/ramsgate-librams.Po
-#	source='ams/rams/librams.c' object='ams/rams/ramsgate-librams.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-librams.o `test -f 'ams/rams/librams.c' || echo '$(srcdir)/'`ams/rams/librams.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-librams.o -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-librams.Tpo -c -o ams/rams/ramsgate-librams.o `test -f 'ams/rams/librams.c' || echo '$(srcdir)/'`ams/rams/librams.c
+#	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-librams.Tpo ams/rams/$(DEPDIR)/ramsgate-librams.Po
+	source='ams/rams/librams.c' object='ams/rams/ramsgate-librams.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-librams.o `test -f 'ams/rams/librams.c' || echo '$(srcdir)/'`ams/rams/librams.c
 
 ams/rams/ramsgate-librams.obj: ams/rams/librams.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-librams.obj -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-librams.Tpo -c -o ams/rams/ramsgate-librams.obj `if test -f 'ams/rams/librams.c'; then $(CYGPATH_W) 'ams/rams/librams.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/librams.c'; fi`
-	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-librams.Tpo ams/rams/$(DEPDIR)/ramsgate-librams.Po
-#	source='ams/rams/librams.c' object='ams/rams/ramsgate-librams.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-librams.obj `if test -f 'ams/rams/librams.c'; then $(CYGPATH_W) 'ams/rams/librams.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/librams.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-librams.obj -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-librams.Tpo -c -o ams/rams/ramsgate-librams.obj `if test -f 'ams/rams/librams.c'; then $(CYGPATH_W) 'ams/rams/librams.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/librams.c'; fi`
+#	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-librams.Tpo ams/rams/$(DEPDIR)/ramsgate-librams.Po
+	source='ams/rams/librams.c' object='ams/rams/ramsgate-librams.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-librams.obj `if test -f 'ams/rams/librams.c'; then $(CYGPATH_W) 'ams/rams/librams.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/librams.c'; fi`
 
 ams/rams/ramsgate-ramscommon.o: ams/rams/ramscommon.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-ramscommon.o -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-ramscommon.Tpo -c -o ams/rams/ramsgate-ramscommon.o `test -f 'ams/rams/ramscommon.c' || echo '$(srcdir)/'`ams/rams/ramscommon.c
-	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-ramscommon.Tpo ams/rams/$(DEPDIR)/ramsgate-ramscommon.Po
-#	source='ams/rams/ramscommon.c' object='ams/rams/ramsgate-ramscommon.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-ramscommon.o `test -f 'ams/rams/ramscommon.c' || echo '$(srcdir)/'`ams/rams/ramscommon.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-ramscommon.o -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-ramscommon.Tpo -c -o ams/rams/ramsgate-ramscommon.o `test -f 'ams/rams/ramscommon.c' || echo '$(srcdir)/'`ams/rams/ramscommon.c
+#	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-ramscommon.Tpo ams/rams/$(DEPDIR)/ramsgate-ramscommon.Po
+	source='ams/rams/ramscommon.c' object='ams/rams/ramsgate-ramscommon.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-ramscommon.o `test -f 'ams/rams/ramscommon.c' || echo '$(srcdir)/'`ams/rams/ramscommon.c
 
 ams/rams/ramsgate-ramscommon.obj: ams/rams/ramscommon.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-ramscommon.obj -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-ramscommon.Tpo -c -o ams/rams/ramsgate-ramscommon.obj `if test -f 'ams/rams/ramscommon.c'; then $(CYGPATH_W) 'ams/rams/ramscommon.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/ramscommon.c'; fi`
-	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-ramscommon.Tpo ams/rams/$(DEPDIR)/ramsgate-ramscommon.Po
-#	source='ams/rams/ramscommon.c' object='ams/rams/ramsgate-ramscommon.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-ramscommon.obj `if test -f 'ams/rams/ramscommon.c'; then $(CYGPATH_W) 'ams/rams/ramscommon.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/ramscommon.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-ramscommon.obj -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-ramscommon.Tpo -c -o ams/rams/ramsgate-ramscommon.obj `if test -f 'ams/rams/ramscommon.c'; then $(CYGPATH_W) 'ams/rams/ramscommon.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/ramscommon.c'; fi`
+#	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-ramscommon.Tpo ams/rams/$(DEPDIR)/ramsgate-ramscommon.Po
+	source='ams/rams/ramscommon.c' object='ams/rams/ramsgate-ramscommon.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-ramscommon.obj `if test -f 'ams/rams/ramscommon.c'; then $(CYGPATH_W) 'ams/rams/ramscommon.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/ramscommon.c'; fi`
 
 ams/rams/ramsgate-ramsgate.o: ams/rams/ramsgate.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-ramsgate.o -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-ramsgate.Tpo -c -o ams/rams/ramsgate-ramsgate.o `test -f 'ams/rams/ramsgate.c' || echo '$(srcdir)/'`ams/rams/ramsgate.c
-	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-ramsgate.Tpo ams/rams/$(DEPDIR)/ramsgate-ramsgate.Po
-#	source='ams/rams/ramsgate.c' object='ams/rams/ramsgate-ramsgate.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-ramsgate.o `test -f 'ams/rams/ramsgate.c' || echo '$(srcdir)/'`ams/rams/ramsgate.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-ramsgate.o -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-ramsgate.Tpo -c -o ams/rams/ramsgate-ramsgate.o `test -f 'ams/rams/ramsgate.c' || echo '$(srcdir)/'`ams/rams/ramsgate.c
+#	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-ramsgate.Tpo ams/rams/$(DEPDIR)/ramsgate-ramsgate.Po
+	source='ams/rams/ramsgate.c' object='ams/rams/ramsgate-ramsgate.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-ramsgate.o `test -f 'ams/rams/ramsgate.c' || echo '$(srcdir)/'`ams/rams/ramsgate.c
 
 ams/rams/ramsgate-ramsgate.obj: ams/rams/ramsgate.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-ramsgate.obj -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-ramsgate.Tpo -c -o ams/rams/ramsgate-ramsgate.obj `if test -f 'ams/rams/ramsgate.c'; then $(CYGPATH_W) 'ams/rams/ramsgate.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/ramsgate.c'; fi`
-	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-ramsgate.Tpo ams/rams/$(DEPDIR)/ramsgate-ramsgate.Po
-#	source='ams/rams/ramsgate.c' object='ams/rams/ramsgate-ramsgate.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-ramsgate.obj `if test -f 'ams/rams/ramsgate.c'; then $(CYGPATH_W) 'ams/rams/ramsgate.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/ramsgate.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -MT ams/rams/ramsgate-ramsgate.obj -MD -MP -MF ams/rams/$(DEPDIR)/ramsgate-ramsgate.Tpo -c -o ams/rams/ramsgate-ramsgate.obj `if test -f 'ams/rams/ramsgate.c'; then $(CYGPATH_W) 'ams/rams/ramsgate.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/ramsgate.c'; fi`
+#	$(am__mv) ams/rams/$(DEPDIR)/ramsgate-ramsgate.Tpo ams/rams/$(DEPDIR)/ramsgate-ramsgate.Po
+	source='ams/rams/ramsgate.c' object='ams/rams/ramsgate-ramsgate.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ramsgate_CFLAGS) $(CFLAGS) -c -o ams/rams/ramsgate-ramsgate.obj `if test -f 'ams/rams/ramsgate.c'; then $(CYGPATH_W) 'ams/rams/ramsgate.c'; else $(CYGPATH_W) '$(srcdir)/ams/rams/ramsgate.c'; fi`
 
 ici/daemon/rfxclock-rfxclock.o: ici/daemon/rfxclock.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rfxclock_CFLAGS) $(CFLAGS) -MT ici/daemon/rfxclock-rfxclock.o -MD -MP -MF ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Tpo -c -o ici/daemon/rfxclock-rfxclock.o `test -f 'ici/daemon/rfxclock.c' || echo '$(srcdir)/'`ici/daemon/rfxclock.c
-	$(am__mv) ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Tpo ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Po
-#	source='ici/daemon/rfxclock.c' object='ici/daemon/rfxclock-rfxclock.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rfxclock_CFLAGS) $(CFLAGS) -c -o ici/daemon/rfxclock-rfxclock.o `test -f 'ici/daemon/rfxclock.c' || echo '$(srcdir)/'`ici/daemon/rfxclock.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rfxclock_CFLAGS) $(CFLAGS) -MT ici/daemon/rfxclock-rfxclock.o -MD -MP -MF ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Tpo -c -o ici/daemon/rfxclock-rfxclock.o `test -f 'ici/daemon/rfxclock.c' || echo '$(srcdir)/'`ici/daemon/rfxclock.c
+#	$(am__mv) ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Tpo ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Po
+	source='ici/daemon/rfxclock.c' object='ici/daemon/rfxclock-rfxclock.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rfxclock_CFLAGS) $(CFLAGS) -c -o ici/daemon/rfxclock-rfxclock.o `test -f 'ici/daemon/rfxclock.c' || echo '$(srcdir)/'`ici/daemon/rfxclock.c
 
 ici/daemon/rfxclock-rfxclock.obj: ici/daemon/rfxclock.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rfxclock_CFLAGS) $(CFLAGS) -MT ici/daemon/rfxclock-rfxclock.obj -MD -MP -MF ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Tpo -c -o ici/daemon/rfxclock-rfxclock.obj `if test -f 'ici/daemon/rfxclock.c'; then $(CYGPATH_W) 'ici/daemon/rfxclock.c'; else $(CYGPATH_W) '$(srcdir)/ici/daemon/rfxclock.c'; fi`
-	$(am__mv) ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Tpo ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Po
-#	source='ici/daemon/rfxclock.c' object='ici/daemon/rfxclock-rfxclock.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rfxclock_CFLAGS) $(CFLAGS) -c -o ici/daemon/rfxclock-rfxclock.obj `if test -f 'ici/daemon/rfxclock.c'; then $(CYGPATH_W) 'ici/daemon/rfxclock.c'; else $(CYGPATH_W) '$(srcdir)/ici/daemon/rfxclock.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rfxclock_CFLAGS) $(CFLAGS) -MT ici/daemon/rfxclock-rfxclock.obj -MD -MP -MF ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Tpo -c -o ici/daemon/rfxclock-rfxclock.obj `if test -f 'ici/daemon/rfxclock.c'; then $(CYGPATH_W) 'ici/daemon/rfxclock.c'; else $(CYGPATH_W) '$(srcdir)/ici/daemon/rfxclock.c'; fi`
+#	$(am__mv) ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Tpo ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Po
+	source='ici/daemon/rfxclock.c' object='ici/daemon/rfxclock-rfxclock.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rfxclock_CFLAGS) $(CFLAGS) -c -o ici/daemon/rfxclock-rfxclock.obj `if test -f 'ici/daemon/rfxclock.c'; then $(CYGPATH_W) 'ici/daemon/rfxclock.c'; else $(CYGPATH_W) '$(srcdir)/ici/daemon/rfxclock.c'; fi`
 
 ici/test/sdr2file-sdr2file.o: ici/test/sdr2file.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdr2file_CFLAGS) $(CFLAGS) -MT ici/test/sdr2file-sdr2file.o -MD -MP -MF ici/test/$(DEPDIR)/sdr2file-sdr2file.Tpo -c -o ici/test/sdr2file-sdr2file.o `test -f 'ici/test/sdr2file.c' || echo '$(srcdir)/'`ici/test/sdr2file.c
-	$(am__mv) ici/test/$(DEPDIR)/sdr2file-sdr2file.Tpo ici/test/$(DEPDIR)/sdr2file-sdr2file.Po
-#	source='ici/test/sdr2file.c' object='ici/test/sdr2file-sdr2file.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdr2file_CFLAGS) $(CFLAGS) -c -o ici/test/sdr2file-sdr2file.o `test -f 'ici/test/sdr2file.c' || echo '$(srcdir)/'`ici/test/sdr2file.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdr2file_CFLAGS) $(CFLAGS) -MT ici/test/sdr2file-sdr2file.o -MD -MP -MF ici/test/$(DEPDIR)/sdr2file-sdr2file.Tpo -c -o ici/test/sdr2file-sdr2file.o `test -f 'ici/test/sdr2file.c' || echo '$(srcdir)/'`ici/test/sdr2file.c
+#	$(am__mv) ici/test/$(DEPDIR)/sdr2file-sdr2file.Tpo ici/test/$(DEPDIR)/sdr2file-sdr2file.Po
+	source='ici/test/sdr2file.c' object='ici/test/sdr2file-sdr2file.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdr2file_CFLAGS) $(CFLAGS) -c -o ici/test/sdr2file-sdr2file.o `test -f 'ici/test/sdr2file.c' || echo '$(srcdir)/'`ici/test/sdr2file.c
 
 ici/test/sdr2file-sdr2file.obj: ici/test/sdr2file.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdr2file_CFLAGS) $(CFLAGS) -MT ici/test/sdr2file-sdr2file.obj -MD -MP -MF ici/test/$(DEPDIR)/sdr2file-sdr2file.Tpo -c -o ici/test/sdr2file-sdr2file.obj `if test -f 'ici/test/sdr2file.c'; then $(CYGPATH_W) 'ici/test/sdr2file.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/sdr2file.c'; fi`
-	$(am__mv) ici/test/$(DEPDIR)/sdr2file-sdr2file.Tpo ici/test/$(DEPDIR)/sdr2file-sdr2file.Po
-#	source='ici/test/sdr2file.c' object='ici/test/sdr2file-sdr2file.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdr2file_CFLAGS) $(CFLAGS) -c -o ici/test/sdr2file-sdr2file.obj `if test -f 'ici/test/sdr2file.c'; then $(CYGPATH_W) 'ici/test/sdr2file.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/sdr2file.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdr2file_CFLAGS) $(CFLAGS) -MT ici/test/sdr2file-sdr2file.obj -MD -MP -MF ici/test/$(DEPDIR)/sdr2file-sdr2file.Tpo -c -o ici/test/sdr2file-sdr2file.obj `if test -f 'ici/test/sdr2file.c'; then $(CYGPATH_W) 'ici/test/sdr2file.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/sdr2file.c'; fi`
+#	$(am__mv) ici/test/$(DEPDIR)/sdr2file-sdr2file.Tpo ici/test/$(DEPDIR)/sdr2file-sdr2file.Po
+	source='ici/test/sdr2file.c' object='ici/test/sdr2file-sdr2file.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdr2file_CFLAGS) $(CFLAGS) -c -o ici/test/sdr2file-sdr2file.obj `if test -f 'ici/test/sdr2file.c'; then $(CYGPATH_W) 'ici/test/sdr2file.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/sdr2file.c'; fi`
 
 ici/utils/sdrmend-sdrmend.o: ici/utils/sdrmend.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrmend_CFLAGS) $(CFLAGS) -MT ici/utils/sdrmend-sdrmend.o -MD -MP -MF ici/utils/$(DEPDIR)/sdrmend-sdrmend.Tpo -c -o ici/utils/sdrmend-sdrmend.o `test -f 'ici/utils/sdrmend.c' || echo '$(srcdir)/'`ici/utils/sdrmend.c
-	$(am__mv) ici/utils/$(DEPDIR)/sdrmend-sdrmend.Tpo ici/utils/$(DEPDIR)/sdrmend-sdrmend.Po
-#	source='ici/utils/sdrmend.c' object='ici/utils/sdrmend-sdrmend.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrmend_CFLAGS) $(CFLAGS) -c -o ici/utils/sdrmend-sdrmend.o `test -f 'ici/utils/sdrmend.c' || echo '$(srcdir)/'`ici/utils/sdrmend.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrmend_CFLAGS) $(CFLAGS) -MT ici/utils/sdrmend-sdrmend.o -MD -MP -MF ici/utils/$(DEPDIR)/sdrmend-sdrmend.Tpo -c -o ici/utils/sdrmend-sdrmend.o `test -f 'ici/utils/sdrmend.c' || echo '$(srcdir)/'`ici/utils/sdrmend.c
+#	$(am__mv) ici/utils/$(DEPDIR)/sdrmend-sdrmend.Tpo ici/utils/$(DEPDIR)/sdrmend-sdrmend.Po
+	source='ici/utils/sdrmend.c' object='ici/utils/sdrmend-sdrmend.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrmend_CFLAGS) $(CFLAGS) -c -o ici/utils/sdrmend-sdrmend.o `test -f 'ici/utils/sdrmend.c' || echo '$(srcdir)/'`ici/utils/sdrmend.c
 
 ici/utils/sdrmend-sdrmend.obj: ici/utils/sdrmend.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrmend_CFLAGS) $(CFLAGS) -MT ici/utils/sdrmend-sdrmend.obj -MD -MP -MF ici/utils/$(DEPDIR)/sdrmend-sdrmend.Tpo -c -o ici/utils/sdrmend-sdrmend.obj `if test -f 'ici/utils/sdrmend.c'; then $(CYGPATH_W) 'ici/utils/sdrmend.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/sdrmend.c'; fi`
-	$(am__mv) ici/utils/$(DEPDIR)/sdrmend-sdrmend.Tpo ici/utils/$(DEPDIR)/sdrmend-sdrmend.Po
-#	source='ici/utils/sdrmend.c' object='ici/utils/sdrmend-sdrmend.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrmend_CFLAGS) $(CFLAGS) -c -o ici/utils/sdrmend-sdrmend.obj `if test -f 'ici/utils/sdrmend.c'; then $(CYGPATH_W) 'ici/utils/sdrmend.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/sdrmend.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrmend_CFLAGS) $(CFLAGS) -MT ici/utils/sdrmend-sdrmend.obj -MD -MP -MF ici/utils/$(DEPDIR)/sdrmend-sdrmend.Tpo -c -o ici/utils/sdrmend-sdrmend.obj `if test -f 'ici/utils/sdrmend.c'; then $(CYGPATH_W) 'ici/utils/sdrmend.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/sdrmend.c'; fi`
+#	$(am__mv) ici/utils/$(DEPDIR)/sdrmend-sdrmend.Tpo ici/utils/$(DEPDIR)/sdrmend-sdrmend.Po
+	source='ici/utils/sdrmend.c' object='ici/utils/sdrmend-sdrmend.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrmend_CFLAGS) $(CFLAGS) -c -o ici/utils/sdrmend-sdrmend.obj `if test -f 'ici/utils/sdrmend.c'; then $(CYGPATH_W) 'ici/utils/sdrmend.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/sdrmend.c'; fi`
 
 ici/utils/sdrwatch-sdrwatch.o: ici/utils/sdrwatch.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrwatch_CFLAGS) $(CFLAGS) -MT ici/utils/sdrwatch-sdrwatch.o -MD -MP -MF ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Tpo -c -o ici/utils/sdrwatch-sdrwatch.o `test -f 'ici/utils/sdrwatch.c' || echo '$(srcdir)/'`ici/utils/sdrwatch.c
-	$(am__mv) ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Tpo ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Po
-#	source='ici/utils/sdrwatch.c' object='ici/utils/sdrwatch-sdrwatch.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrwatch_CFLAGS) $(CFLAGS) -c -o ici/utils/sdrwatch-sdrwatch.o `test -f 'ici/utils/sdrwatch.c' || echo '$(srcdir)/'`ici/utils/sdrwatch.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrwatch_CFLAGS) $(CFLAGS) -MT ici/utils/sdrwatch-sdrwatch.o -MD -MP -MF ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Tpo -c -o ici/utils/sdrwatch-sdrwatch.o `test -f 'ici/utils/sdrwatch.c' || echo '$(srcdir)/'`ici/utils/sdrwatch.c
+#	$(am__mv) ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Tpo ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Po
+	source='ici/utils/sdrwatch.c' object='ici/utils/sdrwatch-sdrwatch.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrwatch_CFLAGS) $(CFLAGS) -c -o ici/utils/sdrwatch-sdrwatch.o `test -f 'ici/utils/sdrwatch.c' || echo '$(srcdir)/'`ici/utils/sdrwatch.c
 
 ici/utils/sdrwatch-sdrwatch.obj: ici/utils/sdrwatch.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrwatch_CFLAGS) $(CFLAGS) -MT ici/utils/sdrwatch-sdrwatch.obj -MD -MP -MF ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Tpo -c -o ici/utils/sdrwatch-sdrwatch.obj `if test -f 'ici/utils/sdrwatch.c'; then $(CYGPATH_W) 'ici/utils/sdrwatch.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/sdrwatch.c'; fi`
-	$(am__mv) ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Tpo ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Po
-#	source='ici/utils/sdrwatch.c' object='ici/utils/sdrwatch-sdrwatch.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrwatch_CFLAGS) $(CFLAGS) -c -o ici/utils/sdrwatch-sdrwatch.obj `if test -f 'ici/utils/sdrwatch.c'; then $(CYGPATH_W) 'ici/utils/sdrwatch.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/sdrwatch.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrwatch_CFLAGS) $(CFLAGS) -MT ici/utils/sdrwatch-sdrwatch.obj -MD -MP -MF ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Tpo -c -o ici/utils/sdrwatch-sdrwatch.obj `if test -f 'ici/utils/sdrwatch.c'; then $(CYGPATH_W) 'ici/utils/sdrwatch.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/sdrwatch.c'; fi`
+#	$(am__mv) ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Tpo ici/utils/$(DEPDIR)/sdrwatch-sdrwatch.Po
+	source='ici/utils/sdrwatch.c' object='ici/utils/sdrwatch-sdrwatch.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sdrwatch_CFLAGS) $(CFLAGS) -c -o ici/utils/sdrwatch-sdrwatch.obj `if test -f 'ici/utils/sdrwatch.c'; then $(CYGPATH_W) 'ici/utils/sdrwatch.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/sdrwatch.c'; fi`
 
 ici/test/sm2file-sm2file.o: ici/test/sm2file.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sm2file_CFLAGS) $(CFLAGS) -MT ici/test/sm2file-sm2file.o -MD -MP -MF ici/test/$(DEPDIR)/sm2file-sm2file.Tpo -c -o ici/test/sm2file-sm2file.o `test -f 'ici/test/sm2file.c' || echo '$(srcdir)/'`ici/test/sm2file.c
-	$(am__mv) ici/test/$(DEPDIR)/sm2file-sm2file.Tpo ici/test/$(DEPDIR)/sm2file-sm2file.Po
-#	source='ici/test/sm2file.c' object='ici/test/sm2file-sm2file.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sm2file_CFLAGS) $(CFLAGS) -c -o ici/test/sm2file-sm2file.o `test -f 'ici/test/sm2file.c' || echo '$(srcdir)/'`ici/test/sm2file.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sm2file_CFLAGS) $(CFLAGS) -MT ici/test/sm2file-sm2file.o -MD -MP -MF ici/test/$(DEPDIR)/sm2file-sm2file.Tpo -c -o ici/test/sm2file-sm2file.o `test -f 'ici/test/sm2file.c' || echo '$(srcdir)/'`ici/test/sm2file.c
+#	$(am__mv) ici/test/$(DEPDIR)/sm2file-sm2file.Tpo ici/test/$(DEPDIR)/sm2file-sm2file.Po
+	source='ici/test/sm2file.c' object='ici/test/sm2file-sm2file.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sm2file_CFLAGS) $(CFLAGS) -c -o ici/test/sm2file-sm2file.o `test -f 'ici/test/sm2file.c' || echo '$(srcdir)/'`ici/test/sm2file.c
 
 ici/test/sm2file-sm2file.obj: ici/test/sm2file.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sm2file_CFLAGS) $(CFLAGS) -MT ici/test/sm2file-sm2file.obj -MD -MP -MF ici/test/$(DEPDIR)/sm2file-sm2file.Tpo -c -o ici/test/sm2file-sm2file.obj `if test -f 'ici/test/sm2file.c'; then $(CYGPATH_W) 'ici/test/sm2file.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/sm2file.c'; fi`
-	$(am__mv) ici/test/$(DEPDIR)/sm2file-sm2file.Tpo ici/test/$(DEPDIR)/sm2file-sm2file.Po
-#	source='ici/test/sm2file.c' object='ici/test/sm2file-sm2file.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sm2file_CFLAGS) $(CFLAGS) -c -o ici/test/sm2file-sm2file.obj `if test -f 'ici/test/sm2file.c'; then $(CYGPATH_W) 'ici/test/sm2file.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/sm2file.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sm2file_CFLAGS) $(CFLAGS) -MT ici/test/sm2file-sm2file.obj -MD -MP -MF ici/test/$(DEPDIR)/sm2file-sm2file.Tpo -c -o ici/test/sm2file-sm2file.obj `if test -f 'ici/test/sm2file.c'; then $(CYGPATH_W) 'ici/test/sm2file.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/sm2file.c'; fi`
+#	$(am__mv) ici/test/$(DEPDIR)/sm2file-sm2file.Tpo ici/test/$(DEPDIR)/sm2file-sm2file.Po
+	source='ici/test/sm2file.c' object='ici/test/sm2file-sm2file.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sm2file_CFLAGS) $(CFLAGS) -c -o ici/test/sm2file-sm2file.obj `if test -f 'ici/test/sm2file.c'; then $(CYGPATH_W) 'ici/test/sm2file.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/sm2file.c'; fi`
 
 ici/test/smlistsh-smlistsh.o: ici/test/smlistsh.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(smlistsh_CFLAGS) $(CFLAGS) -MT ici/test/smlistsh-smlistsh.o -MD -MP -MF ici/test/$(DEPDIR)/smlistsh-smlistsh.Tpo -c -o ici/test/smlistsh-smlistsh.o `test -f 'ici/test/smlistsh.c' || echo '$(srcdir)/'`ici/test/smlistsh.c
-	$(am__mv) ici/test/$(DEPDIR)/smlistsh-smlistsh.Tpo ici/test/$(DEPDIR)/smlistsh-smlistsh.Po
-#	source='ici/test/smlistsh.c' object='ici/test/smlistsh-smlistsh.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(smlistsh_CFLAGS) $(CFLAGS) -c -o ici/test/smlistsh-smlistsh.o `test -f 'ici/test/smlistsh.c' || echo '$(srcdir)/'`ici/test/smlistsh.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(smlistsh_CFLAGS) $(CFLAGS) -MT ici/test/smlistsh-smlistsh.o -MD -MP -MF ici/test/$(DEPDIR)/smlistsh-smlistsh.Tpo -c -o ici/test/smlistsh-smlistsh.o `test -f 'ici/test/smlistsh.c' || echo '$(srcdir)/'`ici/test/smlistsh.c
+#	$(am__mv) ici/test/$(DEPDIR)/smlistsh-smlistsh.Tpo ici/test/$(DEPDIR)/smlistsh-smlistsh.Po
+	source='ici/test/smlistsh.c' object='ici/test/smlistsh-smlistsh.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(smlistsh_CFLAGS) $(CFLAGS) -c -o ici/test/smlistsh-smlistsh.o `test -f 'ici/test/smlistsh.c' || echo '$(srcdir)/'`ici/test/smlistsh.c
 
 ici/test/smlistsh-smlistsh.obj: ici/test/smlistsh.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(smlistsh_CFLAGS) $(CFLAGS) -MT ici/test/smlistsh-smlistsh.obj -MD -MP -MF ici/test/$(DEPDIR)/smlistsh-smlistsh.Tpo -c -o ici/test/smlistsh-smlistsh.obj `if test -f 'ici/test/smlistsh.c'; then $(CYGPATH_W) 'ici/test/smlistsh.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/smlistsh.c'; fi`
-	$(am__mv) ici/test/$(DEPDIR)/smlistsh-smlistsh.Tpo ici/test/$(DEPDIR)/smlistsh-smlistsh.Po
-#	source='ici/test/smlistsh.c' object='ici/test/smlistsh-smlistsh.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(smlistsh_CFLAGS) $(CFLAGS) -c -o ici/test/smlistsh-smlistsh.obj `if test -f 'ici/test/smlistsh.c'; then $(CYGPATH_W) 'ici/test/smlistsh.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/smlistsh.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(smlistsh_CFLAGS) $(CFLAGS) -MT ici/test/smlistsh-smlistsh.obj -MD -MP -MF ici/test/$(DEPDIR)/smlistsh-smlistsh.Tpo -c -o ici/test/smlistsh-smlistsh.obj `if test -f 'ici/test/smlistsh.c'; then $(CYGPATH_W) 'ici/test/smlistsh.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/smlistsh.c'; fi`
+#	$(am__mv) ici/test/$(DEPDIR)/smlistsh-smlistsh.Tpo ici/test/$(DEPDIR)/smlistsh-smlistsh.Po
+	source='ici/test/smlistsh.c' object='ici/test/smlistsh-smlistsh.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(smlistsh_CFLAGS) $(CFLAGS) -c -o ici/test/smlistsh-smlistsh.obj `if test -f 'ici/test/smlistsh.c'; then $(CYGPATH_W) 'ici/test/smlistsh.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/smlistsh.c'; fi`
 
 bp/tcp/stcpcli-stcpcli.o: bp/tcp/stcpcli.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpcli-stcpcli.o -MD -MP -MF bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo -c -o bp/tcp/stcpcli-stcpcli.o `test -f 'bp/tcp/stcpcli.c' || echo '$(srcdir)/'`bp/tcp/stcpcli.c
-	$(am__mv) bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Po
-#	source='bp/tcp/stcpcli.c' object='bp/tcp/stcpcli-stcpcli.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpcli-stcpcli.o `test -f 'bp/tcp/stcpcli.c' || echo '$(srcdir)/'`bp/tcp/stcpcli.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpcli-stcpcli.o -MD -MP -MF bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo -c -o bp/tcp/stcpcli-stcpcli.o `test -f 'bp/tcp/stcpcli.c' || echo '$(srcdir)/'`bp/tcp/stcpcli.c
+#	$(am__mv) bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Po
+	source='bp/tcp/stcpcli.c' object='bp/tcp/stcpcli-stcpcli.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpcli-stcpcli.o `test -f 'bp/tcp/stcpcli.c' || echo '$(srcdir)/'`bp/tcp/stcpcli.c
 
 bp/tcp/stcpcli-stcpcli.obj: bp/tcp/stcpcli.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpcli-stcpcli.obj -MD -MP -MF bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo -c -o bp/tcp/stcpcli-stcpcli.obj `if test -f 'bp/tcp/stcpcli.c'; then $(CYGPATH_W) 'bp/tcp/stcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpcli.c'; fi`
-	$(am__mv) bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Po
-#	source='bp/tcp/stcpcli.c' object='bp/tcp/stcpcli-stcpcli.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpcli-stcpcli.obj `if test -f 'bp/tcp/stcpcli.c'; then $(CYGPATH_W) 'bp/tcp/stcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpcli.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpcli-stcpcli.obj -MD -MP -MF bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo -c -o bp/tcp/stcpcli-stcpcli.obj `if test -f 'bp/tcp/stcpcli.c'; then $(CYGPATH_W) 'bp/tcp/stcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpcli.c'; fi`
+#	$(am__mv) bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Po
+	source='bp/tcp/stcpcli.c' object='bp/tcp/stcpcli-stcpcli.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpcli-stcpcli.obj `if test -f 'bp/tcp/stcpcli.c'; then $(CYGPATH_W) 'bp/tcp/stcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpcli.c'; fi`
 
 bp/tcp/stcpclo-stcpclo.o: bp/tcp/stcpclo.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpclo-stcpclo.o -MD -MP -MF bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo -c -o bp/tcp/stcpclo-stcpclo.o `test -f 'bp/tcp/stcpclo.c' || echo '$(srcdir)/'`bp/tcp/stcpclo.c
-	$(am__mv) bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Po
-#	source='bp/tcp/stcpclo.c' object='bp/tcp/stcpclo-stcpclo.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpclo-stcpclo.o `test -f 'bp/tcp/stcpclo.c' || echo '$(srcdir)/'`bp/tcp/stcpclo.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpclo-stcpclo.o -MD -MP -MF bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo -c -o bp/tcp/stcpclo-stcpclo.o `test -f 'bp/tcp/stcpclo.c' || echo '$(srcdir)/'`bp/tcp/stcpclo.c
+#	$(am__mv) bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Po
+	source='bp/tcp/stcpclo.c' object='bp/tcp/stcpclo-stcpclo.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpclo-stcpclo.o `test -f 'bp/tcp/stcpclo.c' || echo '$(srcdir)/'`bp/tcp/stcpclo.c
 
 bp/tcp/stcpclo-stcpclo.obj: bp/tcp/stcpclo.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpclo-stcpclo.obj -MD -MP -MF bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo -c -o bp/tcp/stcpclo-stcpclo.obj `if test -f 'bp/tcp/stcpclo.c'; then $(CYGPATH_W) 'bp/tcp/stcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpclo.c'; fi`
-	$(am__mv) bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Po
-#	source='bp/tcp/stcpclo.c' object='bp/tcp/stcpclo-stcpclo.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpclo-stcpclo.obj `if test -f 'bp/tcp/stcpclo.c'; then $(CYGPATH_W) 'bp/tcp/stcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpclo.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpclo-stcpclo.obj -MD -MP -MF bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo -c -o bp/tcp/stcpclo-stcpclo.obj `if test -f 'bp/tcp/stcpclo.c'; then $(CYGPATH_W) 'bp/tcp/stcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpclo.c'; fi`
+#	$(am__mv) bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Po
+	source='bp/tcp/stcpclo.c' object='bp/tcp/stcpclo-stcpclo.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpclo-stcpclo.obj `if test -f 'bp/tcp/stcpclo.c'; then $(CYGPATH_W) 'bp/tcp/stcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpclo.c'; fi`
 
 dgr/test/tcp2file-tcp2file.o: dgr/test/tcp2file.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcp2file_CFLAGS) $(CFLAGS) -MT dgr/test/tcp2file-tcp2file.o -MD -MP -MF dgr/test/$(DEPDIR)/tcp2file-tcp2file.Tpo -c -o dgr/test/tcp2file-tcp2file.o `test -f 'dgr/test/tcp2file.c' || echo '$(srcdir)/'`dgr/test/tcp2file.c
-	$(am__mv) dgr/test/$(DEPDIR)/tcp2file-tcp2file.Tpo dgr/test/$(DEPDIR)/tcp2file-tcp2file.Po
-#	source='dgr/test/tcp2file.c' object='dgr/test/tcp2file-tcp2file.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcp2file_CFLAGS) $(CFLAGS) -c -o dgr/test/tcp2file-tcp2file.o `test -f 'dgr/test/tcp2file.c' || echo '$(srcdir)/'`dgr/test/tcp2file.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcp2file_CFLAGS) $(CFLAGS) -MT dgr/test/tcp2file-tcp2file.o -MD -MP -MF dgr/test/$(DEPDIR)/tcp2file-tcp2file.Tpo -c -o dgr/test/tcp2file-tcp2file.o `test -f 'dgr/test/tcp2file.c' || echo '$(srcdir)/'`dgr/test/tcp2file.c
+#	$(am__mv) dgr/test/$(DEPDIR)/tcp2file-tcp2file.Tpo dgr/test/$(DEPDIR)/tcp2file-tcp2file.Po
+	source='dgr/test/tcp2file.c' object='dgr/test/tcp2file-tcp2file.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcp2file_CFLAGS) $(CFLAGS) -c -o dgr/test/tcp2file-tcp2file.o `test -f 'dgr/test/tcp2file.c' || echo '$(srcdir)/'`dgr/test/tcp2file.c
 
 dgr/test/tcp2file-tcp2file.obj: dgr/test/tcp2file.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcp2file_CFLAGS) $(CFLAGS) -MT dgr/test/tcp2file-tcp2file.obj -MD -MP -MF dgr/test/$(DEPDIR)/tcp2file-tcp2file.Tpo -c -o dgr/test/tcp2file-tcp2file.obj `if test -f 'dgr/test/tcp2file.c'; then $(CYGPATH_W) 'dgr/test/tcp2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/tcp2file.c'; fi`
-	$(am__mv) dgr/test/$(DEPDIR)/tcp2file-tcp2file.Tpo dgr/test/$(DEPDIR)/tcp2file-tcp2file.Po
-#	source='dgr/test/tcp2file.c' object='dgr/test/tcp2file-tcp2file.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcp2file_CFLAGS) $(CFLAGS) -c -o dgr/test/tcp2file-tcp2file.obj `if test -f 'dgr/test/tcp2file.c'; then $(CYGPATH_W) 'dgr/test/tcp2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/tcp2file.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcp2file_CFLAGS) $(CFLAGS) -MT dgr/test/tcp2file-tcp2file.obj -MD -MP -MF dgr/test/$(DEPDIR)/tcp2file-tcp2file.Tpo -c -o dgr/test/tcp2file-tcp2file.obj `if test -f 'dgr/test/tcp2file.c'; then $(CYGPATH_W) 'dgr/test/tcp2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/tcp2file.c'; fi`
+#	$(am__mv) dgr/test/$(DEPDIR)/tcp2file-tcp2file.Tpo dgr/test/$(DEPDIR)/tcp2file-tcp2file.Po
+	source='dgr/test/tcp2file.c' object='dgr/test/tcp2file-tcp2file.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcp2file_CFLAGS) $(CFLAGS) -c -o dgr/test/tcp2file-tcp2file.obj `if test -f 'dgr/test/tcp2file.c'; then $(CYGPATH_W) 'dgr/test/tcp2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/tcp2file.c'; fi`
 
 bp/tcp/tcpcli-tcpcli.o: bp/tcp/tcpcli.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpcli_CFLAGS) $(CFLAGS) -MT bp/tcp/tcpcli-tcpcli.o -MD -MP -MF bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Tpo -c -o bp/tcp/tcpcli-tcpcli.o `test -f 'bp/tcp/tcpcli.c' || echo '$(srcdir)/'`bp/tcp/tcpcli.c
-	$(am__mv) bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Tpo bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Po
-#	source='bp/tcp/tcpcli.c' object='bp/tcp/tcpcli-tcpcli.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpcli_CFLAGS) $(CFLAGS) -c -o bp/tcp/tcpcli-tcpcli.o `test -f 'bp/tcp/tcpcli.c' || echo '$(srcdir)/'`bp/tcp/tcpcli.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpcli_CFLAGS) $(CFLAGS) -MT bp/tcp/tcpcli-tcpcli.o -MD -MP -MF bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Tpo -c -o bp/tcp/tcpcli-tcpcli.o `test -f 'bp/tcp/tcpcli.c' || echo '$(srcdir)/'`bp/tcp/tcpcli.c
+#	$(am__mv) bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Tpo bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Po
+	source='bp/tcp/tcpcli.c' object='bp/tcp/tcpcli-tcpcli.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpcli_CFLAGS) $(CFLAGS) -c -o bp/tcp/tcpcli-tcpcli.o `test -f 'bp/tcp/tcpcli.c' || echo '$(srcdir)/'`bp/tcp/tcpcli.c
 
 bp/tcp/tcpcli-tcpcli.obj: bp/tcp/tcpcli.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpcli_CFLAGS) $(CFLAGS) -MT bp/tcp/tcpcli-tcpcli.obj -MD -MP -MF bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Tpo -c -o bp/tcp/tcpcli-tcpcli.obj `if test -f 'bp/tcp/tcpcli.c'; then $(CYGPATH_W) 'bp/tcp/tcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/tcpcli.c'; fi`
-	$(am__mv) bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Tpo bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Po
-#	source='bp/tcp/tcpcli.c' object='bp/tcp/tcpcli-tcpcli.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpcli_CFLAGS) $(CFLAGS) -c -o bp/tcp/tcpcli-tcpcli.obj `if test -f 'bp/tcp/tcpcli.c'; then $(CYGPATH_W) 'bp/tcp/tcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/tcpcli.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpcli_CFLAGS) $(CFLAGS) -MT bp/tcp/tcpcli-tcpcli.obj -MD -MP -MF bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Tpo -c -o bp/tcp/tcpcli-tcpcli.obj `if test -f 'bp/tcp/tcpcli.c'; then $(CYGPATH_W) 'bp/tcp/tcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/tcpcli.c'; fi`
+#	$(am__mv) bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Tpo bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Po
+	source='bp/tcp/tcpcli.c' object='bp/tcp/tcpcli-tcpcli.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpcli_CFLAGS) $(CFLAGS) -c -o bp/tcp/tcpcli-tcpcli.obj `if test -f 'bp/tcp/tcpcli.c'; then $(CYGPATH_W) 'bp/tcp/tcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/tcpcli.c'; fi`
 
 bp/tcp/tcpclo-tcpclo.o: bp/tcp/tcpclo.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpclo_CFLAGS) $(CFLAGS) -MT bp/tcp/tcpclo-tcpclo.o -MD -MP -MF bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Tpo -c -o bp/tcp/tcpclo-tcpclo.o `test -f 'bp/tcp/tcpclo.c' || echo '$(srcdir)/'`bp/tcp/tcpclo.c
-	$(am__mv) bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Tpo bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Po
-#	source='bp/tcp/tcpclo.c' object='bp/tcp/tcpclo-tcpclo.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpclo_CFLAGS) $(CFLAGS) -c -o bp/tcp/tcpclo-tcpclo.o `test -f 'bp/tcp/tcpclo.c' || echo '$(srcdir)/'`bp/tcp/tcpclo.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpclo_CFLAGS) $(CFLAGS) -MT bp/tcp/tcpclo-tcpclo.o -MD -MP -MF bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Tpo -c -o bp/tcp/tcpclo-tcpclo.o `test -f 'bp/tcp/tcpclo.c' || echo '$(srcdir)/'`bp/tcp/tcpclo.c
+#	$(am__mv) bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Tpo bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Po
+	source='bp/tcp/tcpclo.c' object='bp/tcp/tcpclo-tcpclo.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpclo_CFLAGS) $(CFLAGS) -c -o bp/tcp/tcpclo-tcpclo.o `test -f 'bp/tcp/tcpclo.c' || echo '$(srcdir)/'`bp/tcp/tcpclo.c
 
 bp/tcp/tcpclo-tcpclo.obj: bp/tcp/tcpclo.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpclo_CFLAGS) $(CFLAGS) -MT bp/tcp/tcpclo-tcpclo.obj -MD -MP -MF bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Tpo -c -o bp/tcp/tcpclo-tcpclo.obj `if test -f 'bp/tcp/tcpclo.c'; then $(CYGPATH_W) 'bp/tcp/tcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/tcpclo.c'; fi`
-	$(am__mv) bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Tpo bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Po
-#	source='bp/tcp/tcpclo.c' object='bp/tcp/tcpclo-tcpclo.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpclo_CFLAGS) $(CFLAGS) -c -o bp/tcp/tcpclo-tcpclo.obj `if test -f 'bp/tcp/tcpclo.c'; then $(CYGPATH_W) 'bp/tcp/tcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/tcpclo.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpclo_CFLAGS) $(CFLAGS) -MT bp/tcp/tcpclo-tcpclo.obj -MD -MP -MF bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Tpo -c -o bp/tcp/tcpclo-tcpclo.obj `if test -f 'bp/tcp/tcpclo.c'; then $(CYGPATH_W) 'bp/tcp/tcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/tcpclo.c'; fi`
+#	$(am__mv) bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Tpo bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Po
+	source='bp/tcp/tcpclo.c' object='bp/tcp/tcpclo-tcpclo.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcpclo_CFLAGS) $(CFLAGS) -c -o bp/tcp/tcpclo-tcpclo.obj `if test -f 'bp/tcp/tcpclo.c'; then $(CYGPATH_W) 'bp/tcp/tcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/tcpclo.c'; fi`
 
 tests/1000.loopback/tests_1000_loopback_dotest-dotest.o: tests/1000.loopback/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) -MT tests/1000.loopback/tests_1000_loopback_dotest-dotest.o -MD -MP -MF tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Tpo -c -o tests/1000.loopback/tests_1000_loopback_dotest-dotest.o `test -f 'tests/1000.loopback/dotest.c' || echo '$(srcdir)/'`tests/1000.loopback/dotest.c
-	$(am__mv) tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Tpo tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Po
-#	source='tests/1000.loopback/dotest.c' object='tests/1000.loopback/tests_1000_loopback_dotest-dotest.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) -c -o tests/1000.loopback/tests_1000_loopback_dotest-dotest.o `test -f 'tests/1000.loopback/dotest.c' || echo '$(srcdir)/'`tests/1000.loopback/dotest.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) -MT tests/1000.loopback/tests_1000_loopback_dotest-dotest.o -MD -MP -MF tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Tpo -c -o tests/1000.loopback/tests_1000_loopback_dotest-dotest.o `test -f 'tests/1000.loopback/dotest.c' || echo '$(srcdir)/'`tests/1000.loopback/dotest.c
+#	$(am__mv) tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Tpo tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Po
+	source='tests/1000.loopback/dotest.c' object='tests/1000.loopback/tests_1000_loopback_dotest-dotest.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) -c -o tests/1000.loopback/tests_1000_loopback_dotest-dotest.o `test -f 'tests/1000.loopback/dotest.c' || echo '$(srcdir)/'`tests/1000.loopback/dotest.c
 
 tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj: tests/1000.loopback/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) -MT tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj -MD -MP -MF tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Tpo -c -o tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj `if test -f 'tests/1000.loopback/dotest.c'; then $(CYGPATH_W) 'tests/1000.loopback/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1000.loopback/dotest.c'; fi`
-	$(am__mv) tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Tpo tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Po
-#	source='tests/1000.loopback/dotest.c' object='tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) -c -o tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj `if test -f 'tests/1000.loopback/dotest.c'; then $(CYGPATH_W) 'tests/1000.loopback/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1000.loopback/dotest.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) -MT tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj -MD -MP -MF tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Tpo -c -o tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj `if test -f 'tests/1000.loopback/dotest.c'; then $(CYGPATH_W) 'tests/1000.loopback/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1000.loopback/dotest.c'; fi`
+#	$(am__mv) tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Tpo tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Po
+	source='tests/1000.loopback/dotest.c' object='tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) -c -o tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj `if test -f 'tests/1000.loopback/dotest.c'; then $(CYGPATH_W) 'tests/1000.loopback/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1000.loopback/dotest.c'; fi`
 
 tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o: tests/issue-188-common-cos-syntax/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_188_common_cos_syntax_dotest_CFLAGS) $(CFLAGS) -MT tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o -MD -MP -MF tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Tpo -c -o tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o `test -f 'tests/issue-188-common-cos-syntax/dotest.c' || echo '$(srcdir)/'`tests/issue-188-common-cos-syntax/dotest.c
-	$(am__mv) tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Tpo tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Po
-#	source='tests/issue-188-common-cos-syntax/dotest.c' object='tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_188_common_cos_syntax_dotest_CFLAGS) $(CFLAGS) -c -o tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o `test -f 'tests/issue-188-common-cos-syntax/dotest.c' || echo '$(srcdir)/'`tests/issue-188-common-cos-syntax/dotest.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_188_common_cos_syntax_dotest_CFLAGS) $(CFLAGS) -MT tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o -MD -MP -MF tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Tpo -c -o tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o `test -f 'tests/issue-188-common-cos-syntax/dotest.c' || echo '$(srcdir)/'`tests/issue-188-common-cos-syntax/dotest.c
+#	$(am__mv) tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Tpo tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Po
+	source='tests/issue-188-common-cos-syntax/dotest.c' object='tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_188_common_cos_syntax_dotest_CFLAGS) $(CFLAGS) -c -o tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o `test -f 'tests/issue-188-common-cos-syntax/dotest.c' || echo '$(srcdir)/'`tests/issue-188-common-cos-syntax/dotest.c
 
 tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.obj: tests/issue-188-common-cos-syntax/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_188_common_cos_syntax_dotest_CFLAGS) $(CFLAGS) -MT tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.obj -MD -MP -MF tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Tpo -c -o tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.obj `if test -f 'tests/issue-188-common-cos-syntax/dotest.c'; then $(CYGPATH_W) 'tests/issue-188-common-cos-syntax/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-188-common-cos-syntax/dotest.c'; fi`
-	$(am__mv) tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Tpo tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Po
-#	source='tests/issue-188-common-cos-syntax/dotest.c' object='tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_188_common_cos_syntax_dotest_CFLAGS) $(CFLAGS) -c -o tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.obj `if test -f 'tests/issue-188-common-cos-syntax/dotest.c'; then $(CYGPATH_W) 'tests/issue-188-common-cos-syntax/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-188-common-cos-syntax/dotest.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_188_common_cos_syntax_dotest_CFLAGS) $(CFLAGS) -MT tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.obj -MD -MP -MF tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Tpo -c -o tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.obj `if test -f 'tests/issue-188-common-cos-syntax/dotest.c'; then $(CYGPATH_W) 'tests/issue-188-common-cos-syntax/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-188-common-cos-syntax/dotest.c'; fi`
+#	$(am__mv) tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Tpo tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Po
+	source='tests/issue-188-common-cos-syntax/dotest.c' object='tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_188_common_cos_syntax_dotest_CFLAGS) $(CFLAGS) -c -o tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.obj `if test -f 'tests/issue-188-common-cos-syntax/dotest.c'; then $(CYGPATH_W) 'tests/issue-188-common-cos-syntax/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-188-common-cos-syntax/dotest.c'; fi`
 
 dgr/test/udp2file-udp2file.o: dgr/test/udp2file.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udp2file_CFLAGS) $(CFLAGS) -MT dgr/test/udp2file-udp2file.o -MD -MP -MF dgr/test/$(DEPDIR)/udp2file-udp2file.Tpo -c -o dgr/test/udp2file-udp2file.o `test -f 'dgr/test/udp2file.c' || echo '$(srcdir)/'`dgr/test/udp2file.c
-	$(am__mv) dgr/test/$(DEPDIR)/udp2file-udp2file.Tpo dgr/test/$(DEPDIR)/udp2file-udp2file.Po
-#	source='dgr/test/udp2file.c' object='dgr/test/udp2file-udp2file.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udp2file_CFLAGS) $(CFLAGS) -c -o dgr/test/udp2file-udp2file.o `test -f 'dgr/test/udp2file.c' || echo '$(srcdir)/'`dgr/test/udp2file.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udp2file_CFLAGS) $(CFLAGS) -MT dgr/test/udp2file-udp2file.o -MD -MP -MF dgr/test/$(DEPDIR)/udp2file-udp2file.Tpo -c -o dgr/test/udp2file-udp2file.o `test -f 'dgr/test/udp2file.c' || echo '$(srcdir)/'`dgr/test/udp2file.c
+#	$(am__mv) dgr/test/$(DEPDIR)/udp2file-udp2file.Tpo dgr/test/$(DEPDIR)/udp2file-udp2file.Po
+	source='dgr/test/udp2file.c' object='dgr/test/udp2file-udp2file.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udp2file_CFLAGS) $(CFLAGS) -c -o dgr/test/udp2file-udp2file.o `test -f 'dgr/test/udp2file.c' || echo '$(srcdir)/'`dgr/test/udp2file.c
 
 dgr/test/udp2file-udp2file.obj: dgr/test/udp2file.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udp2file_CFLAGS) $(CFLAGS) -MT dgr/test/udp2file-udp2file.obj -MD -MP -MF dgr/test/$(DEPDIR)/udp2file-udp2file.Tpo -c -o dgr/test/udp2file-udp2file.obj `if test -f 'dgr/test/udp2file.c'; then $(CYGPATH_W) 'dgr/test/udp2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/udp2file.c'; fi`
-	$(am__mv) dgr/test/$(DEPDIR)/udp2file-udp2file.Tpo dgr/test/$(DEPDIR)/udp2file-udp2file.Po
-#	source='dgr/test/udp2file.c' object='dgr/test/udp2file-udp2file.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udp2file_CFLAGS) $(CFLAGS) -c -o dgr/test/udp2file-udp2file.obj `if test -f 'dgr/test/udp2file.c'; then $(CYGPATH_W) 'dgr/test/udp2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/udp2file.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udp2file_CFLAGS) $(CFLAGS) -MT dgr/test/udp2file-udp2file.obj -MD -MP -MF dgr/test/$(DEPDIR)/udp2file-udp2file.Tpo -c -o dgr/test/udp2file-udp2file.obj `if test -f 'dgr/test/udp2file.c'; then $(CYGPATH_W) 'dgr/test/udp2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/udp2file.c'; fi`
+#	$(am__mv) dgr/test/$(DEPDIR)/udp2file-udp2file.Tpo dgr/test/$(DEPDIR)/udp2file-udp2file.Po
+	source='dgr/test/udp2file.c' object='dgr/test/udp2file-udp2file.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udp2file_CFLAGS) $(CFLAGS) -c -o dgr/test/udp2file-udp2file.obj `if test -f 'dgr/test/udp2file.c'; then $(CYGPATH_W) 'dgr/test/udp2file.c'; else $(CYGPATH_W) '$(srcdir)/dgr/test/udp2file.c'; fi`
 
 bp/udp/udpcli-udpcli.o: bp/udp/udpcli.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpcli_CFLAGS) $(CFLAGS) -MT bp/udp/udpcli-udpcli.o -MD -MP -MF bp/udp/$(DEPDIR)/udpcli-udpcli.Tpo -c -o bp/udp/udpcli-udpcli.o `test -f 'bp/udp/udpcli.c' || echo '$(srcdir)/'`bp/udp/udpcli.c
-	$(am__mv) bp/udp/$(DEPDIR)/udpcli-udpcli.Tpo bp/udp/$(DEPDIR)/udpcli-udpcli.Po
-#	source='bp/udp/udpcli.c' object='bp/udp/udpcli-udpcli.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpcli_CFLAGS) $(CFLAGS) -c -o bp/udp/udpcli-udpcli.o `test -f 'bp/udp/udpcli.c' || echo '$(srcdir)/'`bp/udp/udpcli.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpcli_CFLAGS) $(CFLAGS) -MT bp/udp/udpcli-udpcli.o -MD -MP -MF bp/udp/$(DEPDIR)/udpcli-udpcli.Tpo -c -o bp/udp/udpcli-udpcli.o `test -f 'bp/udp/udpcli.c' || echo '$(srcdir)/'`bp/udp/udpcli.c
+#	$(am__mv) bp/udp/$(DEPDIR)/udpcli-udpcli.Tpo bp/udp/$(DEPDIR)/udpcli-udpcli.Po
+	source='bp/udp/udpcli.c' object='bp/udp/udpcli-udpcli.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpcli_CFLAGS) $(CFLAGS) -c -o bp/udp/udpcli-udpcli.o `test -f 'bp/udp/udpcli.c' || echo '$(srcdir)/'`bp/udp/udpcli.c
 
 bp/udp/udpcli-udpcli.obj: bp/udp/udpcli.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpcli_CFLAGS) $(CFLAGS) -MT bp/udp/udpcli-udpcli.obj -MD -MP -MF bp/udp/$(DEPDIR)/udpcli-udpcli.Tpo -c -o bp/udp/udpcli-udpcli.obj `if test -f 'bp/udp/udpcli.c'; then $(CYGPATH_W) 'bp/udp/udpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/udp/udpcli.c'; fi`
-	$(am__mv) bp/udp/$(DEPDIR)/udpcli-udpcli.Tpo bp/udp/$(DEPDIR)/udpcli-udpcli.Po
-#	source='bp/udp/udpcli.c' object='bp/udp/udpcli-udpcli.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpcli_CFLAGS) $(CFLAGS) -c -o bp/udp/udpcli-udpcli.obj `if test -f 'bp/udp/udpcli.c'; then $(CYGPATH_W) 'bp/udp/udpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/udp/udpcli.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpcli_CFLAGS) $(CFLAGS) -MT bp/udp/udpcli-udpcli.obj -MD -MP -MF bp/udp/$(DEPDIR)/udpcli-udpcli.Tpo -c -o bp/udp/udpcli-udpcli.obj `if test -f 'bp/udp/udpcli.c'; then $(CYGPATH_W) 'bp/udp/udpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/udp/udpcli.c'; fi`
+#	$(am__mv) bp/udp/$(DEPDIR)/udpcli-udpcli.Tpo bp/udp/$(DEPDIR)/udpcli-udpcli.Po
+	source='bp/udp/udpcli.c' object='bp/udp/udpcli-udpcli.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpcli_CFLAGS) $(CFLAGS) -c -o bp/udp/udpcli-udpcli.obj `if test -f 'bp/udp/udpcli.c'; then $(CYGPATH_W) 'bp/udp/udpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/udp/udpcli.c'; fi`
 
 bp/udp/udpclo-udpclo.o: bp/udp/udpclo.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpclo_CFLAGS) $(CFLAGS) -MT bp/udp/udpclo-udpclo.o -MD -MP -MF bp/udp/$(DEPDIR)/udpclo-udpclo.Tpo -c -o bp/udp/udpclo-udpclo.o `test -f 'bp/udp/udpclo.c' || echo '$(srcdir)/'`bp/udp/udpclo.c
-	$(am__mv) bp/udp/$(DEPDIR)/udpclo-udpclo.Tpo bp/udp/$(DEPDIR)/udpclo-udpclo.Po
-#	source='bp/udp/udpclo.c' object='bp/udp/udpclo-udpclo.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpclo_CFLAGS) $(CFLAGS) -c -o bp/udp/udpclo-udpclo.o `test -f 'bp/udp/udpclo.c' || echo '$(srcdir)/'`bp/udp/udpclo.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpclo_CFLAGS) $(CFLAGS) -MT bp/udp/udpclo-udpclo.o -MD -MP -MF bp/udp/$(DEPDIR)/udpclo-udpclo.Tpo -c -o bp/udp/udpclo-udpclo.o `test -f 'bp/udp/udpclo.c' || echo '$(srcdir)/'`bp/udp/udpclo.c
+#	$(am__mv) bp/udp/$(DEPDIR)/udpclo-udpclo.Tpo bp/udp/$(DEPDIR)/udpclo-udpclo.Po
+	source='bp/udp/udpclo.c' object='bp/udp/udpclo-udpclo.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpclo_CFLAGS) $(CFLAGS) -c -o bp/udp/udpclo-udpclo.o `test -f 'bp/udp/udpclo.c' || echo '$(srcdir)/'`bp/udp/udpclo.c
 
 bp/udp/udpclo-udpclo.obj: bp/udp/udpclo.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpclo_CFLAGS) $(CFLAGS) -MT bp/udp/udpclo-udpclo.obj -MD -MP -MF bp/udp/$(DEPDIR)/udpclo-udpclo.Tpo -c -o bp/udp/udpclo-udpclo.obj `if test -f 'bp/udp/udpclo.c'; then $(CYGPATH_W) 'bp/udp/udpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/udp/udpclo.c'; fi`
-	$(am__mv) bp/udp/$(DEPDIR)/udpclo-udpclo.Tpo bp/udp/$(DEPDIR)/udpclo-udpclo.Po
-#	source='bp/udp/udpclo.c' object='bp/udp/udpclo-udpclo.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpclo_CFLAGS) $(CFLAGS) -c -o bp/udp/udpclo-udpclo.obj `if test -f 'bp/udp/udpclo.c'; then $(CYGPATH_W) 'bp/udp/udpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/udp/udpclo.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpclo_CFLAGS) $(CFLAGS) -MT bp/udp/udpclo-udpclo.obj -MD -MP -MF bp/udp/$(DEPDIR)/udpclo-udpclo.Tpo -c -o bp/udp/udpclo-udpclo.obj `if test -f 'bp/udp/udpclo.c'; then $(CYGPATH_W) 'bp/udp/udpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/udp/udpclo.c'; fi`
+#	$(am__mv) bp/udp/$(DEPDIR)/udpclo-udpclo.Tpo bp/udp/$(DEPDIR)/udpclo-udpclo.Po
+	source='bp/udp/udpclo.c' object='bp/udp/udpclo-udpclo.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udpclo_CFLAGS) $(CFLAGS) -c -o bp/udp/udpclo-udpclo.obj `if test -f 'bp/udp/udpclo.c'; then $(CYGPATH_W) 'bp/udp/udpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/udp/udpclo.c'; fi`
 
 ltp/udp/udplsi-udplsi.o: ltp/udp/udplsi.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplsi_CFLAGS) $(CFLAGS) -MT ltp/udp/udplsi-udplsi.o -MD -MP -MF ltp/udp/$(DEPDIR)/udplsi-udplsi.Tpo -c -o ltp/udp/udplsi-udplsi.o `test -f 'ltp/udp/udplsi.c' || echo '$(srcdir)/'`ltp/udp/udplsi.c
-	$(am__mv) ltp/udp/$(DEPDIR)/udplsi-udplsi.Tpo ltp/udp/$(DEPDIR)/udplsi-udplsi.Po
-#	source='ltp/udp/udplsi.c' object='ltp/udp/udplsi-udplsi.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplsi_CFLAGS) $(CFLAGS) -c -o ltp/udp/udplsi-udplsi.o `test -f 'ltp/udp/udplsi.c' || echo '$(srcdir)/'`ltp/udp/udplsi.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplsi_CFLAGS) $(CFLAGS) -MT ltp/udp/udplsi-udplsi.o -MD -MP -MF ltp/udp/$(DEPDIR)/udplsi-udplsi.Tpo -c -o ltp/udp/udplsi-udplsi.o `test -f 'ltp/udp/udplsi.c' || echo '$(srcdir)/'`ltp/udp/udplsi.c
+#	$(am__mv) ltp/udp/$(DEPDIR)/udplsi-udplsi.Tpo ltp/udp/$(DEPDIR)/udplsi-udplsi.Po
+	source='ltp/udp/udplsi.c' object='ltp/udp/udplsi-udplsi.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplsi_CFLAGS) $(CFLAGS) -c -o ltp/udp/udplsi-udplsi.o `test -f 'ltp/udp/udplsi.c' || echo '$(srcdir)/'`ltp/udp/udplsi.c
 
 ltp/udp/udplsi-udplsi.obj: ltp/udp/udplsi.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplsi_CFLAGS) $(CFLAGS) -MT ltp/udp/udplsi-udplsi.obj -MD -MP -MF ltp/udp/$(DEPDIR)/udplsi-udplsi.Tpo -c -o ltp/udp/udplsi-udplsi.obj `if test -f 'ltp/udp/udplsi.c'; then $(CYGPATH_W) 'ltp/udp/udplsi.c'; else $(CYGPATH_W) '$(srcdir)/ltp/udp/udplsi.c'; fi`
-	$(am__mv) ltp/udp/$(DEPDIR)/udplsi-udplsi.Tpo ltp/udp/$(DEPDIR)/udplsi-udplsi.Po
-#	source='ltp/udp/udplsi.c' object='ltp/udp/udplsi-udplsi.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplsi_CFLAGS) $(CFLAGS) -c -o ltp/udp/udplsi-udplsi.obj `if test -f 'ltp/udp/udplsi.c'; then $(CYGPATH_W) 'ltp/udp/udplsi.c'; else $(CYGPATH_W) '$(srcdir)/ltp/udp/udplsi.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplsi_CFLAGS) $(CFLAGS) -MT ltp/udp/udplsi-udplsi.obj -MD -MP -MF ltp/udp/$(DEPDIR)/udplsi-udplsi.Tpo -c -o ltp/udp/udplsi-udplsi.obj `if test -f 'ltp/udp/udplsi.c'; then $(CYGPATH_W) 'ltp/udp/udplsi.c'; else $(CYGPATH_W) '$(srcdir)/ltp/udp/udplsi.c'; fi`
+#	$(am__mv) ltp/udp/$(DEPDIR)/udplsi-udplsi.Tpo ltp/udp/$(DEPDIR)/udplsi-udplsi.Po
+	source='ltp/udp/udplsi.c' object='ltp/udp/udplsi-udplsi.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplsi_CFLAGS) $(CFLAGS) -c -o ltp/udp/udplsi-udplsi.obj `if test -f 'ltp/udp/udplsi.c'; then $(CYGPATH_W) 'ltp/udp/udplsi.c'; else $(CYGPATH_W) '$(srcdir)/ltp/udp/udplsi.c'; fi`
 
 ltp/udp/udplso-udplso.o: ltp/udp/udplso.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplso_CFLAGS) $(CFLAGS) -MT ltp/udp/udplso-udplso.o -MD -MP -MF ltp/udp/$(DEPDIR)/udplso-udplso.Tpo -c -o ltp/udp/udplso-udplso.o `test -f 'ltp/udp/udplso.c' || echo '$(srcdir)/'`ltp/udp/udplso.c
-	$(am__mv) ltp/udp/$(DEPDIR)/udplso-udplso.Tpo ltp/udp/$(DEPDIR)/udplso-udplso.Po
-#	source='ltp/udp/udplso.c' object='ltp/udp/udplso-udplso.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplso_CFLAGS) $(CFLAGS) -c -o ltp/udp/udplso-udplso.o `test -f 'ltp/udp/udplso.c' || echo '$(srcdir)/'`ltp/udp/udplso.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplso_CFLAGS) $(CFLAGS) -MT ltp/udp/udplso-udplso.o -MD -MP -MF ltp/udp/$(DEPDIR)/udplso-udplso.Tpo -c -o ltp/udp/udplso-udplso.o `test -f 'ltp/udp/udplso.c' || echo '$(srcdir)/'`ltp/udp/udplso.c
+#	$(am__mv) ltp/udp/$(DEPDIR)/udplso-udplso.Tpo ltp/udp/$(DEPDIR)/udplso-udplso.Po
+	source='ltp/udp/udplso.c' object='ltp/udp/udplso-udplso.o' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplso_CFLAGS) $(CFLAGS) -c -o ltp/udp/udplso-udplso.o `test -f 'ltp/udp/udplso.c' || echo '$(srcdir)/'`ltp/udp/udplso.c
 
 ltp/udp/udplso-udplso.obj: ltp/udp/udplso.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplso_CFLAGS) $(CFLAGS) -MT ltp/udp/udplso-udplso.obj -MD -MP -MF ltp/udp/$(DEPDIR)/udplso-udplso.Tpo -c -o ltp/udp/udplso-udplso.obj `if test -f 'ltp/udp/udplso.c'; then $(CYGPATH_W) 'ltp/udp/udplso.c'; else $(CYGPATH_W) '$(srcdir)/ltp/udp/udplso.c'; fi`
-	$(am__mv) ltp/udp/$(DEPDIR)/udplso-udplso.Tpo ltp/udp/$(DEPDIR)/udplso-udplso.Po
-#	source='ltp/udp/udplso.c' object='ltp/udp/udplso-udplso.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplso_CFLAGS) $(CFLAGS) -c -o ltp/udp/udplso-udplso.obj `if test -f 'ltp/udp/udplso.c'; then $(CYGPATH_W) 'ltp/udp/udplso.c'; else $(CYGPATH_W) '$(srcdir)/ltp/udp/udplso.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplso_CFLAGS) $(CFLAGS) -MT ltp/udp/udplso-udplso.obj -MD -MP -MF ltp/udp/$(DEPDIR)/udplso-udplso.Tpo -c -o ltp/udp/udplso-udplso.obj `if test -f 'ltp/udp/udplso.c'; then $(CYGPATH_W) 'ltp/udp/udplso.c'; else $(CYGPATH_W) '$(srcdir)/ltp/udp/udplso.c'; fi`
+#	$(am__mv) ltp/udp/$(DEPDIR)/udplso-udplso.Tpo ltp/udp/$(DEPDIR)/udplso-udplso.Po
+	source='ltp/udp/udplso.c' object='ltp/udp/udplso-udplso.obj' libtool=no \
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udplso_CFLAGS) $(CFLAGS) -c -o ltp/udp/udplso-udplso.obj `if test -f 'ltp/udp/udplso.c'; then $(CYGPATH_W) 'ltp/udp/udplso.c'; else $(CYGPATH_W) '$(srcdir)/ltp/udp/udplso.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -4956,6 +5003,10 @@ clean-libtool:
 	-rm -rf bp/dtn2/.libs bp/dtn2/_libs
 	-rm -rf bp/ipn/.libs bp/ipn/_libs
 	-rm -rf bp/library/.libs bp/library/_libs
+	-rm -rf bp/library/crypto/NULL_BAB_HMAC/.libs bp/library/crypto/NULL_BAB_HMAC/_libs
+	-rm -rf bp/library/ext/bsp/.libs bp/library/ext/bsp/_libs
+	-rm -rf bp/library/ext/ecos/.libs bp/library/ext/ecos/_libs
+	-rm -rf bp/library/ext/phn/.libs bp/library/ext/phn/_libs
 	-rm -rf bp/tcp/.libs bp/tcp/_libs
 	-rm -rf bp/udp/.libs bp/udp/_libs
 	-rm -rf cfdp/library/.libs cfdp/library/_libs
@@ -5548,6 +5599,14 @@ distclean-generic:
 	-rm -f bp/ipn/$(am__dirstamp)
 	-rm -f bp/library/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/library/$(am__dirstamp)
+	-rm -f bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/$(am__dirstamp)
+	-rm -f bp/library/crypto/NULL_BAB_HMAC/$(am__dirstamp)
+	-rm -f bp/library/ext/bsp/$(DEPDIR)/$(am__dirstamp)
+	-rm -f bp/library/ext/bsp/$(am__dirstamp)
+	-rm -f bp/library/ext/ecos/$(DEPDIR)/$(am__dirstamp)
+	-rm -f bp/library/ext/ecos/$(am__dirstamp)
+	-rm -f bp/library/ext/phn/$(DEPDIR)/$(am__dirstamp)
+	-rm -f bp/library/ext/phn/$(am__dirstamp)
 	-rm -f bp/ltp/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/ltp/$(am__dirstamp)
 	-rm -f bp/tcp/$(DEPDIR)/$(am__dirstamp)
@@ -5612,7 +5671,7 @@ clean-am: clean-binPROGRAMS clean-checkLTLIBRARIES clean-checkPROGRAMS \
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/library/$(DEPDIR)
+	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/library/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-libtool distclean-tags
@@ -5666,7 +5725,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/library/$(DEPDIR)
+	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/library/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

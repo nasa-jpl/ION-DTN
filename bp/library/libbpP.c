@@ -51,9 +51,9 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 			BpCtReason reasonCode);
 static BpVdb	*_bpvdb(char **);
 #ifdef BP_EXTENDED
-#include "bpextensions.c"
+#include "ext/bpextensions.c"
 #else
-#include "noextensions.c"
+#include "ext/noextensions.c"
 #endif
 
 /*	*	*	Helpful utility functions	*	*	*/
