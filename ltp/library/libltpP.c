@@ -1229,8 +1229,8 @@ static Object	insertLtpTimelineEvent(LtpEvent *newEvent)
 		of the new event.					*/
 
 	sdr_write(ltpSdr, eventObj, (char *) newEvent, sizeof(LtpEvent));
-	for (elt = sdr_list_first(ltpSdr, ltpConstants->timeline); elt;
-			elt = sdr_list_next(ltpSdr, elt))
+	for (elt = sdr_list_last(ltpSdr, ltpConstants->timeline); elt;
+			elt = sdr_list_prev(ltpSdr, elt))
 	{
 		GET_OBJ_POINTER(ltpSdr, LtpEvent, event, sdr_list_data(ltpSdr,
 				elt));
