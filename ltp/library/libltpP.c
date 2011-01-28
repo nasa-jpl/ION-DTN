@@ -3423,6 +3423,64 @@ static int	deliverSvcData(LtpVclient *client, unsigned long sourceEngineId,
 	return 0;
 }
 
+static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
+			Object sessionObj, Object *clientSvcData)
+{
+	Sdr		ltpSdr = getIonsdr();
+	Object		dbobj = _ltpdbObject(NULL);
+	ImportSession	sessionBuf;
+	Object		segmentElt;
+	Object		segmentObj;
+			OBJ_POINTER(LtpRecvSeg, seg);
+	LtpDB		db;
+
+	if (sessionObj)
+	{
+		sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
+				sizeof(ImportSession));
+		segmentElt = sdr_list_last(ltpSdr, sessionBuf.redSegments);
+		if (segmentElt)
+		{
+			segmentObj = sdr_list_data(ltpSdr, segmentElt);
+			GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, seg, segmentObj);
+			if (pdu->offset < (seg->pdu.offset + seg->pdu.length))
+			{
+				/*	Miscolored segment: green data
+				 *	before end of red.		*/
+
+				cancelSessionByReceiver(&sessionBuf, sessionObj,
+						LtpMiscoloredSegment);
+				return 1;
+			}
+		}
+	}
+
+	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
+	if (db.heapSpaceBytesOccupied + pdu->length
+			> db.heapSpaceBytesReserved)
+	{
+		/*	To avert possible DOS attack, silently discard
+		 *	this segment.					*/
+#if LTPDEBUG
+putErrmsg("Can't handle green data, would exceed LTP heap space reservation.",
+utoa(pdu->length));
+#endif
+		return 0;
+	}
+
+	if ((*clientSvcData = zco_create(ltpSdr, ZcoSdrSource,
+			sdr_insert(ltpSdr, cursor, pdu->length),
+			0, pdu->length)) == 0)
+	{
+		putErrmsg("Can't record green segment data.", NULL);
+		return -1;
+	}
+
+	db.heapSpaceBytesOccupied += zco_occupancy(ltpSdr, *clientSvcData);
+	sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
+	return 1;
+}
+
 static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 			unsigned long sessionNbr, LtpRecvSeg *segment,
 			LtpPdu *pdu, char **cursor, int *bytesRemaining)
@@ -3441,6 +3499,7 @@ static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 	Object		spanObj;
 			OBJ_POINTER(LtpSpan, span);
 	LtpVclient	*client;
+	int		result;
 	Object		clientSvcData;
 	unsigned long	segUpperBound;
 	Object		segmentObj = 0;
@@ -3542,41 +3601,41 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		return 0;
 	}
 
-	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 	if (pdu->segTypeCode & LTP_EXC_FLAG)
 	{
 		/*	This is a green-part data segment; deliver
 		 *	immediately to client service.			*/
 
-		if (db.heapSpaceBytesOccupied + pdu->length
-				> db.heapSpaceBytesReserved)
+		if (sessionNbr == vspan->greenSessionNbr)
 		{
-			/*	To avert possible DOS attack, silently
-			 *	discard this segment.			*/
-#if LTPDEBUG
-putErrmsg("Can't handle green data, would exceed LTP heap space reservation.",
-utoa(pdu->length));
-#endif
-			sdr_cancel_xn(ltpSdr);
-			return 0;
+			if (pdu->offset < vspan->greenOffset)
+			{
+				vspan->greenOffset = pdu->offset;
+			}
+		}
+		else
+		{
+			vspan->greenSessionNbr = sessionNbr;
+			vspan->greenOffset = pdu->offset;
 		}
 
-		if ((clientSvcData = zco_create(ltpSdr, ZcoSdrSource,
-				sdr_insert(ltpSdr, *cursor, pdu->length),
-				0, pdu->length)) == 0)
+		result = handleGreenDataSegment(pdu, *cursor, sessionObj,
+				&clientSvcData);
+		if (result < 1)
 		{
-			putErrmsg("Can't record green segment data.", NULL);
 			sdr_cancel_xn(ltpSdr);
-			return -1;
+			return result;
 		}
 
-		db.heapSpaceBytesOccupied += zco_occupancy(ltpSdr,
-				clientSvcData);
-		sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
-		enqueueNotice(client, sourceEngineId, sessionNbr, pdu->offset,
-				pdu->length, LtpRecvGreenSegment, 0,
-				(pdu->segTypeCode == LtpDsGreenEOB),
-				clientSvcData);
+		if (clientSvcData)
+		{
+			enqueueNotice(client, sourceEngineId, sessionNbr,
+					pdu->offset, pdu->length,
+					LtpRecvGreenSegment, 0,
+					(pdu->segTypeCode == LtpDsGreenEOB),
+					clientSvcData);
+		}
+
 		if (sdr_end_xn(ltpSdr) < 0)
 		{
 			putErrmsg("Can't handle green-part segment.", NULL);
@@ -3588,6 +3647,43 @@ utoa(pdu->length));
 
 	/*	This is a red-part data segment.			*/
 
+	if (sessionNbr == vspan->greenSessionNbr
+	&& (pdu->offset + pdu->length) > vspan->greenOffset)
+	{
+		/*	Miscolored segment: red after start of green.	*/
+
+		if (sessionObj)		/*	Session exists.		*/
+		{
+			sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
+					sizeof(ImportSession));
+			cancelSessionByReceiver(&sessionBuf, sessionObj,
+					LtpMiscoloredSegment);
+		}
+		else	/*	Just send cancel segment to sender.	*/
+		{
+			if (constructDestCancelReqSegment(span,
+					&(span->engineIdSdnv), sessionNbr,
+					0, LtpMiscoloredSegment) < 0)
+			{
+				putErrmsg("Can't send CR segment.", NULL);
+				sdr_cancel_xn(ltpSdr);
+				return -1;
+			}
+		}
+
+		if (sdr_end_xn(ltpSdr) < 0)
+		{
+			putErrmsg("Can't handle miscolored red seg.", NULL);
+			return -1;
+		}
+
+#if LTPDEBUG
+putErrmsg("Discarded data segment.", itoa(sessionNbr));
+#endif
+		return 0;
+	}
+
+	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 	if (pdu->offset + pdu->length > span->maxImportBlockSize)
 	{
 		/*	Red part of block exceeds limit on block size,
@@ -3615,7 +3711,7 @@ utoa(pdu->length));
 
 		if (sdr_end_xn(ltpSdr) < 0)
 		{
-			putErrmsg("Can't handle data segment.", NULL);
+			putErrmsg("Can't handle overflow segment.", NULL);
 			return -1;
 		}
 
