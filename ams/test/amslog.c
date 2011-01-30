@@ -1,5 +1,5 @@
 /*
-	amslog.c:	an AMS utility program for UNIX.  amslog
+	amslog.c:	a simple AMS test program.  amslog
 			registers in a specified message space (named
 			in a command-line parameter), subscribes to a
 			list of subjects that it reads from stdin, and
@@ -142,7 +142,7 @@ int	main(int argc, char **argv)
 	char		*authorityName = (argc > 2 ? argv[2] : NULL);
 	char		*mode = (argc > 3 ? argv[3] : "s");
 #endif
-	AmsModule		me;
+	AmsModule	me;
 	AmsEventMgt	rules;
 	int		asserting;
 	char		buffer[256];
@@ -176,7 +176,7 @@ messages to stdout.\n", stderr);
 	if (ams_register("amsmib.xml", NULL, applicationName, authorityName,
 				"", "log", &me) < 0)
 	{
-		putSysErrmsg("amslog can't register", NULL);
+		putErrmsg("amslog can't register.", NULL);
 		return -1;
 	}
 
@@ -185,7 +185,7 @@ messages to stdout.\n", stderr);
 	rules.errHandler = interruptAmslog;
 	if (ams_set_event_mgr(me, &rules) < 0)
 	{
-		putSysErrmsg("amslog can't set event manager", NULL);
+		putErrmsg("amslog can't set event manager.", NULL);
 		ams_unregister(me);
 		return -1;
 	}

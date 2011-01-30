@@ -36,10 +36,6 @@
  *	of the user application.  Most other failures are simply
  *	reported and ignored.						*/
 
-#ifndef	AMSDEBUG
-#define	AMSDEBUG	0
-#endif
-
 static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			int unitNbr, int subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
@@ -938,7 +934,7 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	/*	Encrypt content as necessary.				*/
 
 	if (subject->nbr < 0			/*	RAMS		*/
-	&& subject->symmetricKeyName == NULL)	/*	not encrypted	*/
+	|| subject->symmetricKeyName == NULL)	/*	not encrypted	*/
 	{
 		return 0;	/*	Content is ready to send.	*/
 	}
@@ -2892,7 +2888,7 @@ static int	locateRegistrar(AmsSAP *sap)
 			case registrar_unknown:
 				writeMemo("[?] No registrar for this cell.");
 				lyst_compare_set(sap->mamsEvents, NULL);
-				return 0;
+				return -1;
 
 			case cell_spec:
 				result = process_cell_spec(sap, msg);

@@ -10,10 +10,6 @@
 									*/
 #include "amscommon.h"
 
-#ifndef AMSDEBUG
-#define	AMSDEBUG	0
-#endif
-
 typedef struct
 {
 	int		csRequired;
@@ -51,13 +47,40 @@ typedef struct
 	MamsInterface	tsif;
 } RsState;
 
-static int	amsdRunning;
-static char	*zeroLengthEpt = "";
+static int	_amsdRunning(int *state)
+{
+	static int		running = 0;
+	static pthread_t	amsdThread;
+
+	if (state)
+	{
+		if (*state == 0)	/*	Stopping.		*/
+		{
+			running = 0;
+			if (pthread_equal(amsdThread, pthread_self()) == 0)
+			{
+				pthread_kill(amsdThread, SIGINT);
+			}
+		}
+		else			/*	Starting.		*/
+		{
+			running = 1;
+			amsdThread = pthread_self();
+		}
+	}
+
+	return running;
+}
 
 static void	shutDownAmsd()
 {
-	amsdRunning = 0;
+	int	stop = 0;
+
+	oK(_amsdRunning(&stop));
+	isignal(SIGINT, shutDownAmsd);
 }
+
+static char	*zeroLengthEpt = "";
 
 /*	*	*	Configuration server code	*	*	*/
 
@@ -202,6 +225,31 @@ static void	reloadRsRegistrations(CsState *csState)
 	return;		/*	Maybe do this eventually.		*/
 }
 
+static void	shutDownMsgspace(CsState *csState, Venture *venture)
+{
+	int	i;
+	Unit	*unit;
+	Cell	*cell;
+	char	reasonCode = REJ_SHUTDOWN;
+
+	for (i = 0; i <= MAX_UNIT_NBR; i++)
+	{
+		unit = venture->units[i];
+		if (unit == NULL
+		|| (cell = unit->cell)->mamsEndpoint.ept == NULL)
+		{
+			continue;
+		}
+
+		if (sendMamsMsg(&(cell->mamsEndpoint), &(csState->tsif),
+					rejection, 0, 1, &reasonCode) < 0)
+		{
+			putErrmsg("CS can't send rejection.", NULL);
+			break;
+		}
+	}
+}
+
 static void	processMsgToCs(CsState *csState, AmsEvt *evt)
 {
 	AmsMib		*mib = _mib(NULL);
@@ -223,7 +271,7 @@ static void	processMsgToCs(CsState *csState, AmsEvt *evt)
 	int		result;
 	int		unitNbr;
 
-#if AMSDEMO
+#if AMSDEBUG
 PUTMEMO("CS got msg of type", itoa(msg->type));
 PUTMEMO("...from role", itoa(msg->roleNbr));
 #endif
@@ -420,6 +468,35 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		{
 			return;		/*	Can't respond.		*/
 		}
+
+		/*	ION extension: if role number of this message
+		 *	is MAX_ROLE_NBR then role is assumed to be
+		 *	"stop".  An authenticated registrar_query
+		 *	message from a module whose role is "stop"
+		 *	causes the configuration server to shut down
+		 *	the indicated message space by sending
+		 *	"rejection" messages to all registrars for
+		 *	that message space, then terminate amsd
+		 *	itself.  Since the message space is being
+		 *	shut down, the "stop" module clearly cannot
+		 *	register; a registrar_unknown message is
+		 *	returned to the module.				*/
+
+		if (msg->roleNbr == MAX_ROLE_NBR)
+		{
+			if (sendMamsMsg(&endpoint, &(csState->tsif),
+				registrar_unknown, msg->memo, 0, NULL) < 0)
+			{
+				putErrmsg("CS can't send registrar_unknown",
+						NULL);
+			}
+
+			shutDownMsgspace(csState, venture);
+			shutDownAmsd();
+			return;
+		}
+
+		/*	End of ION "stop" extension.			*/
 
 		if (unit == NULL)
 		{
@@ -1124,6 +1201,16 @@ static int	skipDeclaration(int *bytesRemaining, char **cursor)
 	return 0;
 }
 
+static void	shutDownCell(RsState *rsState)
+{
+	if (forwardMsg(rsState, you_are_dead, 0, rsState->cell->unit->nbr,
+				0, 0, NULL) < 0)
+	{
+		putErrmsg("Registrar can't shut down cell.",
+				itoa(rsState->cell->unit->nbr));
+	}
+}
+
 static void	processMsgToRs(RsState *rsState, AmsEvt *evt)
 {
 	AmsMib		*mib = _mib(NULL);
@@ -1187,10 +1274,6 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		return;
 
 	case rejection:
-		if (rsState->csEndpoint != NULL)
-		{
-			return;	/*	Ignore spurious rejection.	*/
-		}
 
 		/*	Rejected on attempt to announce self to the
 		 *	configuration server.				*/
@@ -1204,6 +1287,11 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 		case REJ_NO_UNIT:
 			reasonString = "No such unit";
+			break;
+
+		case REJ_SHUTDOWN:	/*	ION extension.		*/
+			shutDownCell(rsState);
+			reasonString = "Shut down";
 			break;
 
 		default:
@@ -1832,6 +1920,7 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 	char		eps[MAXHOSTNAMELEN + 5 + 1];
 	CsState		csState;
 	RsState		rsState;
+	int		start = 1;
 
 	/*	Apply defaults as necessary.				*/
 
@@ -1876,12 +1965,11 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 		rsState.rsRequired = 1;
 	}
 
-	sm_TaskVarAdd(&amsdRunning);
-	amsdRunning = 1;
-	signal(SIGINT, shutDownAmsd);
+	oK(_amsdRunning(&start));
+	isignal(SIGINT, shutDownAmsd);
 	while (1)
 	{
-		if (amsdRunning == 0)
+		if (_amsdRunning(NULL) == 0)
 		{
 			stopConfigServer(&csState);
 			stopRegistrar(&rsState);

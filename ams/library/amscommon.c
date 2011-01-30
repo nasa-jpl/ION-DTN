@@ -516,12 +516,14 @@ static int	initializeMemMgt(int continuumNbr)
 	if (readIonParms(NULL, &ionParms) < 0)
 	{
 		putErrmsg("AMS can't load ION parameters.", NULL);
+		ionDetach();
 		return -1;
 	}
 
 	if (ionInitialize(&ionParms, continuumNbr) < 0)
 	{
 		putErrmsg("AMS can't start ION.", itoa(continuumNbr));
+		ionDetach();
 		return -1;
 	}
 
@@ -540,6 +542,7 @@ AmsMib	*_mib(AmsMibParameters *parms)
 			{
 				eraseMib(mib);
 				mib = NULL;
+				ionDetach();
 			}
 		}
 		else				/*	Initializing.	*/
@@ -570,6 +573,7 @@ AmsMib	*_mib(AmsMibParameters *parms)
 					putErrmsg("Can't create MIB.", NULL);
 					eraseMib(mib);
 					mib = NULL;
+					ionDetach();
 				}
 			}
 		}
@@ -811,6 +815,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 {
 	AmsMib	*mib = _mib(NULL);
 	AppRole	*role = NULL;
+	char	*keyName;
 
 	*venture = NULL;
 	*unit = NULL;
@@ -852,8 +857,9 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		*authName = role->name;
 		if (sending)
 		{
-			if (sec_get_key(role->privateKeyName, authKeyLen,
-					*authKey) <= 0)
+			keyName = role->privateKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
 			{
 				writeMemoNote("[?] Can't get role private key", 
 					role->privateKeyName);
@@ -861,8 +867,9 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		}
 		else
 		{
-			if (sec_get_key(role->publicKeyName, authKeyLen,
-					*authKey) <= 0)
+			keyName = role->publicKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
 			{
 				writeMemoNote("[?] Can't get role public key", 
 					role->publicKeyName);
@@ -874,8 +881,9 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		*authName = (*venture)->app->name;
 		if (sending)
 		{
-			if (sec_get_key((*venture)->app->privateKeyName,
-					authKeyLen, *authKey) <= 0)
+			keyName = (*venture)->app->privateKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
 			{
 				writeMemoNote("[?] Can't get app private key", 
 					(*venture)->app->privateKeyName);
@@ -883,8 +891,9 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		}
 		else
 		{
-			if (sec_get_key((*venture)->app->publicKeyName,
-					authKeyLen, *authKey) <= 0)
+			keyName = (*venture)->app->publicKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
 			{
 				writeMemoNote("[?] Can't get app public key", 
 					(*venture)->app->publicKeyName);
@@ -896,8 +905,9 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		*authName = mib->continua[mib->localContinuumNbr]->name;
 		if (sending)
 		{
-			if (sec_get_key(mib->csPrivateKeyName, authKeyLen,
-					*authKey) <= 0)
+			keyName = mib->csPrivateKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
 			{
 				writeMemoNote("[?] Can't get CS private key", 
 					mib->csPrivateKeyName);
@@ -905,8 +915,9 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		}
 		else
 		{
-			if (sec_get_key(mib->csPublicKeyName, authKeyLen,
-					*authKey) <= 0)
+			keyName = mib->csPublicKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
 			{
 				writeMemoNote("[?] Can't get CS public key", 
 					mib->csPublicKeyName);
@@ -1510,6 +1521,7 @@ Venture	*createVenture(int nbr, char *appname, char *authname,
 	char		*gwEid;
 	char		gwEidBuffer[MAX_GW_EID + 1];
 	AppRole		*gatewayRole;
+	AppRole		*shutdownRole;
 	Subject		*allSubjects;
 	Lyst		subunits;
 	Unit		*rootUnit;
@@ -1564,13 +1576,15 @@ Venture	*createVenture(int nbr, char *appname, char *authname,
 	venture->ramsNetIsTree = ramsNetIsTree;
 	mib->ventures[nbr] = venture;
 
-	/*	Automatically create venture's RAMS gateway role.	*/
+	/*	Automatically create venture's RAMS gateway and
+	 *	(ION extension) shutdown roles.				*/
 
 	gatewayRole = createRole(venture, 1, "RAMS", NULL, NULL);
-	if (gatewayRole == NULL)
+	shutdownRole = createRole(venture, MAX_ROLE_NBR, "stop", NULL, NULL);
+	if (gatewayRole == NULL || shutdownRole == NULL)
 	{
 		eraseVenture(venture);
-		putErrmsg("Can't create RAMS gateway role for venture.",
+		putErrmsg("Can't create standard roles for venture.",
 				appname);
 		return NULL;
 	}
@@ -2209,7 +2223,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 
 	if (authName == NULL)		/*	Invalid parameters.	*/
 	{
-		return 0;		/*	Don't send message.	*/
+		return 0;		/*	Don't deliver message.	*/
 	}
 	
 	if (authKey && authKeyLen > 0)
