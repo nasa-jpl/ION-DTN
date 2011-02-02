@@ -92,18 +92,19 @@ static void	*sendKeepalives(void *parm)
 			{
 				snooze(1);
 				backoffTimerCount++;
-				/*	keepaliveTimer keeps track of when the keepalive needs 
- 				 *	to be sent. This value also need to be increased
- 				 *	during backoff period. That way as soon as
- 				 *	tcpcl detects connection keepalive is sent
- 				 *							*/
-				keepaliveTimer++;	
 				if(!(*(parms->cloRunning)))
 				{
 					break;
 				}
 			}
 			backoffTimerCount = 0;
+			/*	keepaliveTimer keeps track of when the keepalive needs 
+			 *	to be sent. This value is set to keepalive period.
+			 *	That way at the end of backoff period a 
+			 *	keepalive is sent
+			 *							*/
+			keepaliveTimer = *(parms->keepalivePeriod);
+
 			if(backoffTimer < BACKOFF_TIMER_LIMIT)
 			{
 				backoffTimer *= 2;
