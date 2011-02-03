@@ -2,6 +2,36 @@
 #
 # Tests that bping produces expected output and behaves well.
 #
+# documentation boilerplate
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-udp/loopback.rc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the basic functionality of the bping application.
+	Described in issue 190, bping is a simple ping-like utility which sends
+	and receives bundles.  It doesn't strictly follow the standards of
+	ICMP echo messages, but performs a similar functionality."
+echo
+echo "CONFIG: Standard loopback-udp: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Bping and bpecho are used to ensure that bping can send and
+	receive bundles, and to ensure that it ignores malformed/unsolicited
+	bundles from an unintended application like bptrace.  The time required
+	to close the bping program is also tested. ERROR messages are given on
+	failure.  No explicit PASS messages are given, but the overall test
+	return value will reflect test success."
+echo
+echo "########################################"
 
 
 FAIL=0
@@ -19,14 +49,14 @@ CONFIGDIR="${CONFIGSROOT}/loopback-udp"
 echo "ionstart -I ${CONFIGDIR}/loopback.rc"
 "ionstart" -I "${CONFIGDIR}/loopback.rc"
 
-# Start a bpecho
+echo "Start a bpecho."
 bpecho ipn:1.1 & BPECHOPID=$!
 
 echo "Verify that bping can ping bpecho loopback..."
 bping -c 5 -i 1 ipn:1.2 ipn:1.1 > bpingoutput
 
 if ! grep -q "5 bundles transmitted, 5 bundles received" bpingoutput; then
-    echo "Didn't receive 5 ping responses:"
+    echo "ERROR: Didn't receive expected 5 ping responses:"
     cat bpingoutput
     FAIL=1
 fi
@@ -38,13 +68,13 @@ bptrace ipn:1.3 ipn:1.2 dtn:none 60 1.0 "this is a bundle that bping isn't expec
 sleep 3
 
 if grep -q "ipn:1.3" bpingoutput; then
-    echo "bping tried to parse the non-ping bundle from ipn:1.3"
+    echo "ERROR: bping tried to parse the non-ping bundle from ipn:1.3"
     cat bpingoutput
     FAIL=1
 fi
 
 if ! grep -q "5 bundles transmitted, 5 bundles received" bpingoutput; then
-    echo "bping didn't ignore the non-ping bundle from ipn:1.3"
+    echo "ERROR: bping didn't ignore the non-ping bundle from ipn:1.3"
     cat bpingoutput
     FAIL=1
 fi
@@ -57,7 +87,7 @@ kill -s INT $BPINGPID
 wait $BPINGPID
 PINGSECONDS=$SECONDS
 if [ $PINGSECONDS -ge 2 ]; then
-    echo "It took $PINGSECONDS seconds for bping to clean up and exit, too long."
+    echo "ERROR: It took $PINGSECONDS seconds for bping to clean up and exit, too long."
     FAIL=1
 fi
 
@@ -68,7 +98,7 @@ sleep 4
 kill $BPECHOPID
 sleep 20
 if ! grep -q "3 bundles transmitted, 1 bundles received" bpingoutput; then
-    echo "bping didn't properly terminate after timing out"
+    echo "ERROR: bping didn't properly terminate after timing out"
     kill $BPINGPID > /dev/null
     cat bpingoutput
     FAIL=1

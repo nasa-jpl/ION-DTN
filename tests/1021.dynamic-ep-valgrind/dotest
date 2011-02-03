@@ -7,6 +7,36 @@
 
 # Ping pongs bundles with custody transfer from one BP endpoint to another
 # over UDP.
+# documentation boilerplate
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-ltp/loopback.ionrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ltprc \
+${CONFIGSROOT}/loopback-ltp/loopback.bprc \
+${CONFIGSROOT}/loopback-ltp/loopback.ionsecrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To ping-pong 5 bundles with custody transfer from one BP endpoint
+	to another over UDP.  Uses the valgrind debugging/profiling tool:
+	http://valgrind.org/"
+echo
+echo "CONFIG: custom loopback:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Various debugging messages associated with the valgrind tool.
+	valgrind output files will follow the pattern:
+	$PWD/out.valgrind..."
+echo
+echo "########################################"
 
 if [ -z $1 ]; then
     ITERATIONGOAL=5

@@ -3,6 +3,55 @@
 # Scott Burleigh
 # April 12, 2010
 
+# documentation boilerplate
+CONFIGFILES=" \
+./global.ionrc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./2.ipn.ltp/amroc.cfdprc \
+./5.ipn.ltp/amroc.ltprc \
+./5.ipn.ltp/amroc.bprc \
+./5.ipn.ltp/amroc.ionconfig \
+./5.ipn.ltp/global.ionrc \
+./5.ipn.ltp/amroc.ionrc \
+./5.ipn.ltp/amroc.ionsecrc \
+./5.ipn.ltp/amroc.ipnrc \
+./5.ipn.ltp/amroc.cfdprc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/amroc.cfdprc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To determine if bundle status reports are generated and logged."
+echo
+echo "CONFIG: 3 node custom configuration:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Various status messages are expected to be found in
+	./2.ipn.ltp/ion.log"
+echo
+echo "########################################"
+
 echo "Cleaning up old ION..."
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
 rm -f 5.ipn.ltp/testfile1
@@ -60,21 +109,17 @@ cfdpadmin amroc.cfdprc
 cd ../5.ipn.ltp
 cfdpadmin amroc.cfdprc
 
-echo "Starting bpsink on node 5..."
+echo "Starting bpsink on ipn:5.1 ..."
 sleep 1
 bpsink ipn:5.1 &
 
 cd ../2.ipn.ltp
-echo "Sending bptrace to ipn:5.1, should be delivered..."
+echo "Sending bptrace from ipn:2.1 to ipn:5.1, should be delivered to bpsink ..."
 # Send first bundle from node 2 to node 5 requesting all status reports.
-# Bundle is sent to endpoint ipn:5.1, on which bpsink is listening, so
-# it should be delivered.
 bptrace ipn:2.1 ipn:5.1 ipn:2.0 5 1.1 "Hello." rcv,ct,fwd,dlv,del
 
-echo "Sending bptrace to ipn:5.2, should expire and be deleted..."
+echo "Sending bptrace from ipn:2.1 to ipn:5.2, should expire and be deleted..."
 # Send first bundle from node 2 to node 5 requesting all status reports.
-# Bundle is sent to endpoint ipn:5.1, on which bpsink is listening, so
-# it should be delivered.
 bptrace ipn:2.1 ipn:5.2 ipn:2.0 5 1.1 "Hey." rcv,ct,fwd,dlv,del
 
 # Wait for contacts to terminate.
@@ -86,52 +131,63 @@ echo "Contacts have terminated.  Verifying results..."
 cd ../2.ipn.ltp
 RETVAL=0
 
+echo
+echo "Checking for 'status 2' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 2" | wc -l`
 if [ $COUNT -eq 2 ]
 then
-	echo "Initial custody of both bundles taken."
+	echo "OK: Initial custody of both bundles taken."
 else
-	echo "Initial bundle custody not taken."
+	echo "ERROR: Initial bundle custody not taken."
 	RETVAL=1
 fi
 
+echo
+echo "Checking for 'status 4' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 4" | wc -l`
 if [ $COUNT -eq 4 ]
 then
-	echo "Both bundles forwarded twice."
+	echo "OK: Both bundles forwarded twice."
 else
-	echo "Bundles not forwarded."
+	echo "ERROR: Bundles not forwarded."
 	RETVAL=1
 fi
 
+echo
+echo "Checking for 'status 3' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 3" | wc -l`
 if [ $COUNT -eq 2 ]
 then
-	echo "Custody taken upon receipt of both bundles."
+	echo "OK: Custody taken upon receipt of both bundles."
 else
-	echo "No report of custody taken upon receipt."
+	echo "ERROR: No report of custody taken upon receipt."
 	RETVAL=1
 fi
 
+echo
+echo "Checking for 'status 9' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 9" | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo "One bundle delivered."
+	echo "OK: One bundle delivered."
 else
-	echo "Bundle not delivered."
+	echo "ERROR: Bundle not delivered."
 	RETVAL=1
 fi
 
+echo
+echo "Checking for 'status 17' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 17" | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo "One bundle deleted upon expiration."
+	echo "OK: One bundle deleted upon expiration."
 else
-	echo "No deletion upon expiration reported."
+	echo "ERROR: No deletion upon expiration reported."
 	RETVAL=1
 fi
 
 # Shut down ION processes.
+echo
 echo "Stopping ION..."
 cd ../2.ipn.ltp
 ./ionstop &

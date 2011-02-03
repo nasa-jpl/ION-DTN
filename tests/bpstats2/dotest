@@ -3,6 +3,35 @@
 # Tests that bpstats2 produces expected output.
 #
 
+# documentation boilerplate
+CONFIGFILES=" \
+./config/host1.rc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the basic functionality of the bpstats2 application.
+	Described in issue 191, bpstats2 is a simple utility which creates 
+	bundles containing the current values of all BP processing statistics 
+	accumulators."
+echo
+echo "CONFIG: Custom loopback configuration: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Bpstats2 is run to ensure that it can send bundles when needed
+	and that the statistics within the bundle match expected values.
+	The time required to close the program is also tested.
+	ERROR messages are given on failure. No explicit PASS messages are
+	given, but the overall test return value will reflect test success."
+echo
+echo "########################################"
 
 FAIL=0
 
@@ -24,7 +53,7 @@ get_asrun_time ()
     FILE=$1
     ASRUNTIME=$(head -n 2 $FILE | sed -n -e "s/.*to \([0-9]*\).*/\1/p")
     if [ -z "$ASRUNTIME" ]; then
-        echo "Couldn't read the as-run time from $FILE."
+        echo "ERROR: Couldn't read the as-run time from $FILE."
         exit 1
     fi
 
@@ -38,7 +67,7 @@ diff_output_except_statstime ()
     ASRUNTIME_FILE1=$(get_asrun_time $FILE1)
     sed -e "s/\(.*to\) [0-9]*:\(.*\)/\1 $ASRUNTIME_FILE1:\2/" < $FILE2 > $FILE2.timefromfile1
     if ! diff $FILE1 $FILE2.timefromfile1 >/dev/null 2>&1 ; then
-        echo "$FILE1 and $FILE2 differ in more than just time:"
+        echo "ERROR: $FILE1 and $FILE2 differ in more than just time:"
         diff $FILE1 $FILE2.timefromfile1
         rm $FILE2.timefromfile1
         return 1
@@ -62,7 +91,7 @@ echo "Starting Message Listener..."
 bprecvfile ipn:1.1 &
 BPRECVFILEPID=$!
 
-# Cause bpstats2 to send a bundle to bprecvfile via SIGUSR1.
+echo "Cause bpstats2 to send a bundle to bprecvfile via SIGUSR1."
 sleep 5
 /bin/kill -s USR1 $BPSTATS2PID
 
@@ -71,10 +100,12 @@ sleep 3
 
 # Check that we got the expected output.
 if ! diff_output_except_statstime testfile1 testfile1.goodoutput; then
+    echo "ERROR: unexpected output in testfile1"
     FAIL=1
 fi
 
 if ! diff_output_except_statstime testfile2 testfile2.goodoutput; then
+    echo "ERROR: unexpected output in testfile2"
     FAIL=1
 fi
 
@@ -84,7 +115,7 @@ kill -s INT $BPSTATS2PID
 wait $BPSTATS2PID
 BPSTATS2SECONDS=$SECONDS
 if [ $BPSTATS2SECONDS -ge 2 ]; then
-    echo "It took $BPSTATS2SECONDS for bpstats2 to close upon SIGINT, too long."
+    echo "ERROR: It took $BPSTATS2SECONDS for bpstats2 to close upon SIGINT, too long."
     FAIL=1
 fi
 
