@@ -40,8 +40,8 @@ int	main(int argc, char **argv)
 	double		Mbps;
 	char		buf[128];
 
-	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, "amsdemo", "test",
-			"", "benchr", &me) < 0)
+	if (ams_register("amsmib.xml", NULL, "amsdemo", "test", "", "benchr",
+				&me) < 0)
 	{
 		putSysErrmsg("amsbenchr can't register", NULL);
 		return -1;

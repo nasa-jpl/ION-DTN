@@ -33,8 +33,8 @@ name>\", \"<subject name>\"");
 		return 0;
 	}
 
-	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, applicationName,
-			authorityName, "", "log", &me) < 0)
+	if (ams_register("amsmib.xml", NULL, applicationName, authorityName,
+				"", "log", &me) < 0)
 	{
 		putSysErrmsg("amssub can't register", NULL);
 		return -1;
@@ -98,8 +98,8 @@ name>\", \"<subject name>\", \"<message text>\"");
 		return 0;
 	}
 
-	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, applicationName,
-			authorityName, "", "shell", &me) < 0)
+	if (ams_register("amsmib.xml", NULL, applicationName, authorityName,
+				"", "shell", &me) < 0)
 	{
 		putSysErrmsg("amspub can't register", NULL);
 		return -1;

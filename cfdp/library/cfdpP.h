@@ -182,7 +182,6 @@ typedef struct
 	unsigned short	discardIncompleteFile;		/*	Boolean	*/
 	unsigned short	crcRequired;			/*	Boolean	*/
 	unsigned short	maxFileDataLength;
-	unsigned short	mtuSize;
 	unsigned int	transactionInactivityLimit;
 	unsigned int	checkTimerPeriod;
 	unsigned int	checkTimeoutLimit;

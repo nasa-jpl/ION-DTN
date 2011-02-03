@@ -24,12 +24,7 @@ static int	udpComputeCsepName(char *endpointSpec, char *endpointName)
 	unsigned int	ipAddress;
 	char		hostName[MAXHOSTNAMELEN + 1];
 
-	if (endpointName == NULL)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(endpointName);
 	parseSocketSpec(endpointSpec, &portNbr, &ipAddress);
 	if (portNbr == 0)
 	{
@@ -67,6 +62,7 @@ static int	udpMamsInit(MamsInterface *tsif)
 	int			eptLen;
 	long			longfd;
 
+	CHKERR(tsif);
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
 //printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
 	if (ipAddress == 0)
@@ -118,8 +114,8 @@ static int	udpMamsInit(MamsInterface *tsif)
 	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
+		putErrmsg("Can't record endpoint name.", NULL);
 		close(fd);
-		putSysErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
@@ -139,14 +135,10 @@ static void	*udpMamsReceiver(void *parm)
 	struct sockaddr_in	fromAddr;
 	unsigned int		fromSize;
 
+	CHKNULL(tsif);
 	fd = (long) (tsif->sap);
 	buffer = MTAKE(UDPTS_MAX_MSG_LEN);
-	if (buffer == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(buffer);
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
@@ -196,6 +188,8 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	int			eptLen;
 	long			longfd;
 
+	CHKERR(tsif);
+	CHKERR(epspec);
 	if (strcmp(epspec, "@") == 0)	/*	Default.		*/
 	{
 		epspec = NULL;	/*	Force default selection.	*/
@@ -251,8 +245,8 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
+		putErrmsg("Can't record endpoint name.", NULL);
 		close(fd);
-		putSysErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
@@ -273,15 +267,11 @@ static void	*udpAmsReceiver(void *parm)
 	struct sockaddr_in	fromAddr;
 	unsigned int		fromSize;
 
+	CHKNULL(tsif);
 	fd = (long) (tsif->sap);
 	amsSap = tsif->amsSap;
 	buffer = MTAKE(UDPTS_MAX_MSG_LEN);
-	if (buffer == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(buffer);
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
@@ -323,13 +313,8 @@ static int	udpParseMamsEndpoint(MamsEndpoint *ep)
 	char	hostName[MAXHOSTNAMELEN + 1];
 	UdpTsep	tsep;
 
-	if (ep == NULL || ep->ept == NULL)
-	{
-		errno = EINVAL;
-		putErrmsg("udpts can't parse MAMS endpoint name.", NULL);
-		return -1;
-	}
-
+	CHKERR(ep);
+	CHKERR(ep->ept);
 	colon = strchr(ep->ept, ':');
 	*colon = '\0';
 	istrcpy(hostName, ep->ept, sizeof hostName);
@@ -337,13 +322,7 @@ static int	udpParseMamsEndpoint(MamsEndpoint *ep)
 	tsep.portNbr = atoi(colon + 1);
 	tsep.ipAddress = getInternetAddress(hostName);
 	ep->tsep = MTAKE(sizeof(UdpTsep));
-	if (ep->tsep == NULL)
-	{
-		putSysErrmsg("udpts can't record parsed MAMS endpoint name.",
-				NULL);
-		return -1;
-	}
-
+	CHKERR(ep->tsep);
 	memcpy((char *) (ep->tsep), (char *) &tsep, sizeof(UdpTsep));
 //printf("parsed '%s' to port %d address %d.\n", ep->ept, tsep.portNbr,
 //tsep.ipAddress);
@@ -352,6 +331,7 @@ static int	udpParseMamsEndpoint(MamsEndpoint *ep)
 
 static void	udpClearMamsEndpoint(MamsEndpoint *ep)
 {
+	CHKVOID(ep);
 	if (ep->tsep)
 	{
 		MRELEASE(ep->tsep);
@@ -364,13 +344,8 @@ static int	udpParseAmsEndpoint(AmsEndpoint *dp)
 	char	hostName[MAXHOSTNAMELEN + 1];
 	UdpTsep	tsep;
 
-	if (dp == NULL || dp->ept == NULL)
-	{
-		errno = EINVAL;
-		putErrmsg("udpts can't parse AMS endpoint.", NULL);
-		return -1;
-	}
-
+	CHKERR(dp);
+	CHKERR(dp->ept);
 	colon = strchr(dp->ept, ':');
 	*colon = '\0';
 	istrcpy(hostName, dp->ept, sizeof hostName);
@@ -378,13 +353,7 @@ static int	udpParseAmsEndpoint(AmsEndpoint *dp)
 	tsep.portNbr = atoi(colon + 1);
 	tsep.ipAddress = getInternetAddress(hostName);
 	dp->tsep = MTAKE(sizeof(UdpTsep));
-	if (dp->tsep == NULL)
-	{
-		putSysErrmsg("udpts can't record parsed AMS endpoint name.",
-				NULL);
-		return -1;
-	}
-
+	CHKERR(dp->tsep);
 	memcpy((char *) (dp->tsep), (char *) &tsep, sizeof(UdpTsep));
 
 	/*	Also parse out the QOS of this endpoint.		*/
@@ -396,6 +365,7 @@ static int	udpParseAmsEndpoint(AmsEndpoint *dp)
 
 static void	udpClearAmsEndpoint(AmsEndpoint *dp)
 {
+	CHKVOID(dp);
 	if (dp->tsep)
 	{
 		MRELEASE(dp->tsep);
@@ -412,13 +382,10 @@ static int	udpSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 	struct sockaddr_in	*inetName;
 	int			fd;
 
-	if (ep == NULL || tsif == NULL || msg == NULL || msgLen < 0)
-	{
-		errno = EINVAL;
-		putErrmsg("Can't use UDP to send MAMS message.", NULL);
-		return -1;
-	}
-
+	CHKERR(ep);
+	CHKERR(tsif);
+	CHKERR(msg);
+	CHKERR(msgLen >= 0);
 	tsep = (UdpTsep *) (ep->tsep);
 //printf("in udpSendMams, tsep at %d has port %d, address %d.\n", (int) tsep,
 //tsep->portNbr, tsep->ipAddress);
@@ -470,15 +437,13 @@ static int	udpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	struct sockaddr_in	*inetName;
 	unsigned short		checksum;
 
-	if (dp == NULL || sap == NULL || header == NULL || headerLen < 0
-	|| contentLen < 0 || (contentLen > 0 && content == NULL)
-	|| (len = (headerLen + contentLen + 2)) > UDPTS_MAX_MSG_LEN)
-	{
-		errno = EINVAL;
-		putErrmsg("Can't use UDP to send AMS message.", NULL);
-		return -1;
-	}
-
+	CHKERR(dp);
+	CHKERR(sap);
+	CHKERR(header);
+	CHKERR(headerLen >= 0);
+	CHKERR(contentLen == 0 || (contentLen > 0 && content != NULL));
+	len = headerLen + contentLen + 2;
+	CHKERR(len <= UDPTS_MAX_MSG_LEN);
 	tsep = (UdpTsep *) (dp->tsep);
 //printf("in udpSendAms, tsep is %d.\n", (int) tsep);
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
@@ -554,6 +519,7 @@ static void	udpShutdown(void *abstract_sap)
 
 void	udptsLoadTs(TransSvc *ts)
 {
+	CHKVOID(ts);
 	ts->name = "udp";
 	ts->csepNameFn = udpComputeCsepName;
 	ts->mamsInitFn = udpMamsInit;

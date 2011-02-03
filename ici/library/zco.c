@@ -26,6 +26,7 @@ typedef struct
 	int		refCount;
 	short		okayToDestroy;
 	short		unlinkOnDestroy;
+	time_t		inode;		/*	to detect change	*/
 	char		pathName[256];
 	char		cleanupScript[256];
 } FileRef;
@@ -90,13 +91,14 @@ static char	*_badArgsMemo()
 
 Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 {
-	int	pathLen;
-	char	pathBuf[256];
-	int	cwdLen;
-	int	scriptLen = 0;
-	int	sourceFd;
-	Object	fileRefObj;
-	FileRef	fileRef;
+	int		pathLen;
+	char		pathBuf[256];
+	int		cwdLen;
+	int		scriptLen = 0;
+	int		sourceFd;
+	struct stat	statbuf;
+	Object		fileRefObj;
+	FileRef		fileRef;
 
 	CHKZERO(sdr);
 	CHKZERO(pathName);
@@ -156,12 +158,19 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 		return 0;
 	}
 
+	if (fstat(sourceFd, &statbuf) < 0)
+	{
+		putSysErrmsg("Can't stat source file", pathName);
+		return 0;
+	}
+
 	/*	Parameters verified.  Proceed with FileRef creation.	*/
 
 	close(sourceFd);
 	fileRef.refCount = 0;
 	fileRef.okayToDestroy = 0;
 	fileRef.unlinkOnDestroy = 0;
+	fileRef.inode = statbuf.st_ino;
 	memcpy(fileRef.pathName, pathName, pathLen);
 	fileRef.pathName[pathLen] = '\0';
 	if (cleanupScript)
@@ -186,6 +195,112 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 
 	sdr_write(sdr, fileRefObj, (char *) &fileRef, sizeof(FileRef));
 	return fileRefObj;
+}
+
+int	zco_revise_file_ref(Sdr sdr, Object fileRefObj, char *pathName,
+		char *cleanupScript)
+{
+	int	pathLen;
+	char	pathBuf[256];
+	int	cwdLen;
+	int	scriptLen = 0;
+	int	sourceFd;
+	struct stat	statbuf;
+	FileRef	fileRef;
+
+	CHKERR(sdr);
+	CHKERR(fileRefObj);
+	CHKERR(pathName);
+	CHKERR(sdr_in_xn(sdr));
+	pathLen = strlen(pathName);
+	if (*pathName != ION_PATH_DELIMITER)
+	{
+		/*	Might not be an absolute path name.		*/
+
+		if (igetcwd(pathBuf, sizeof pathBuf) == NULL)
+		{
+			putErrmsg("Can't get cwd.", NULL);
+			return -1;
+		}
+
+		if (pathBuf[0] == ION_PATH_DELIMITER)
+		{
+			/*	Path names *do* start with the path
+			 *	delimiter, so it's a POSIX file system,
+			 *	so pathName is *not* an absolute
+			 *	path name, so the absolute path name
+			 *	must instead be computed by appending
+			 *	the relative path name to the name of
+			 *	the current working directory.		*/
+
+			cwdLen = strlen(pathBuf);
+			if ((cwdLen + 1 + pathLen + 1) > sizeof pathBuf)
+			{
+				putErrmsg("Absolute path name too long.",
+						pathName);
+				return -1;
+			}
+
+			pathBuf[cwdLen] = ION_PATH_DELIMITER;
+			cwdLen++;	/*	cwdname incl. delimiter	*/
+			istrcpy(pathBuf + cwdLen, pathName,
+					sizeof pathBuf - cwdLen);
+			pathName = pathBuf;
+			pathLen += cwdLen;
+		}
+	}
+
+	if (cleanupScript)
+	{
+		scriptLen = strlen(cleanupScript);
+	}
+
+	if (scriptLen > 255 || pathLen < 1 || pathLen > 255)
+	{
+		putErrmsg(_badArgsMemo(), NULL);
+		return -1;
+	}
+
+	sourceFd = open(pathName, O_RDONLY, 0);
+	if (sourceFd == -1)
+	{
+		putSysErrmsg("Can't open source file", pathName);
+		return -1;
+	}
+
+	if (fstat(sourceFd, &statbuf) < 0)
+	{
+		putSysErrmsg("Can't stat source file", pathName);
+		return 0;
+	}
+
+	/*	Parameters verified.  Proceed with FileRef revision.	*/
+
+	close(sourceFd);
+	sdr_stage(sdr, (char *) &fileRef, fileRefObj, sizeof(FileRef));
+	fileRef.inode = statbuf.st_ino;
+	memcpy(fileRef.pathName, pathName, pathLen);
+	fileRef.pathName[pathLen] = '\0';
+	if (cleanupScript)
+	{
+		if (scriptLen == 0)
+		{
+			fileRef.unlinkOnDestroy = 1;
+		}
+		else
+		{
+			fileRef.unlinkOnDestroy = 0;
+			memcpy(fileRef.cleanupScript, cleanupScript, scriptLen);
+		}
+	}
+	else
+	{
+		fileRef.unlinkOnDestroy = 0;
+	}
+
+	fileRef.cleanupScript[scriptLen] = '\0';
+	sdr_write(sdr, fileRefObj, (char *) &fileRef, sizeof(FileRef));
+	return 0;
 }
 
 char	*zco_file_ref_path(Sdr sdr, Object fileRefObj, char *buffer, int buflen)
@@ -935,30 +1050,40 @@ void	zco_concatenate(Sdr sdr, Object aggregateZcoRef, Object atomicZcoRef)
 	zco_destroy_reference(sdr, atomicZcoRef);
 }
 #endif
-static void	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
+static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 			unsigned int bytesToSkip, unsigned int bytesAvbl,
 			ZcoReader *reader, ZcoMedium sourceMedium)
 {
-	FileRef	fileRef;
-	int	fd;
-	int	bytesRead;
+	FileRef		fileRef;
+	int		fd;
+	int		bytesRead;
+	struct stat	statbuf;
 
 	if (sourceMedium == ZcoSdrSource)
 	{
 		sdr_read(sdr, buffer, extent->location
 				+ extent->offset + bytesToSkip, bytesAvbl);
+		return bytesAvbl;
 	}
 	else	/*	Source text of ZCO is a file.			*/
 	{
 		sdr_read(sdr, (char *) &fileRef, extent->location,
-					sizeof(FileRef));
+				sizeof(FileRef));
 		fd = open(fileRef.pathName, O_RDONLY, 0);
 		if (fd >= 0)
 		{
-			if (lseek(fd, extent->offset + bytesToSkip, SEEK_SET)
-					< 0)
+			if (fstat(fd, &statbuf) < 0)
 			{
-				close(fd);
+				close(fd);	/*	Can't check.	*/
+			}
+			else if (statbuf.st_ino != fileRef.inode)
+			{
+				close(fd);	/*	File changed.	*/
+			}
+			else if (lseek(fd, extent->offset + bytesToSkip,
+					SEEK_SET) < 0)
+			{
+				close(fd);	/*	Can't position.	*/
 			}
 			else
 			{
@@ -966,14 +1091,16 @@ static void	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 				close(fd);
 				if (bytesRead == bytesAvbl)
 				{
-					return;
+					return bytesAvbl;
 				}
 			}
 		}
 
-		/*	On any problem reading from file, write fill.	*/
+		/*	On any problem reading from file, write fill
+		 *	and return read length zero.			*/
 
 		memset(buffer, ZCO_FILE_FILL_CHAR, bytesAvbl);
+		return 0;
 	}
 }
 #if 0
@@ -1207,6 +1334,7 @@ int	zco_transmit(Sdr sdr, ZcoReader *reader, unsigned int length,
 	Capsule		capsule;
 	unsigned int	bytesAvbl;
 	SourceExtent	extent;
+	int		failed = 0;
 
 	CHKERR(sdr);
 	CHKERR(reader);
@@ -1278,8 +1406,12 @@ int	zco_transmit(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 		if (buffer)
 		{
-			copyFromSource(sdr, buffer, &extent, bytesToSkip,
-				bytesAvbl, reader, extent.sourceMedium);
+			if (copyFromSource(sdr, buffer, &extent, bytesToSkip,
+				bytesAvbl, reader, extent.sourceMedium) == 0)
+			{
+				failed = 1;	/*	File problem.	*/
+			}
+
 			buffer += bytesAvbl;
 		}
 
@@ -1333,6 +1465,11 @@ int	zco_transmit(Sdr sdr, ZcoReader *reader, unsigned int length,
 				sizeof(ZcoReference));
 	}
 
+	if (failed)
+	{
+		return 0;
+	}
+
 	return bytesTransmitted;
 }
 
@@ -1362,6 +1499,7 @@ int	zco_receive_headers(Sdr sdr, ZcoReader *reader, unsigned int length,
 	unsigned int	bytesAvbl;
 	Object		obj;
 	SourceExtent	extent;
+	int		failed = 0;
 
 	CHKERR(sdr);
 	CHKERR(reader);
@@ -1389,8 +1527,12 @@ int	zco_receive_headers(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 		if (buffer)
 		{
-			copyFromSource(sdr, buffer, &extent, bytesToSkip,
-					bytesAvbl, reader, extent.sourceMedium);
+			if (copyFromSource(sdr, buffer, &extent, bytesToSkip,
+				bytesAvbl, reader, extent.sourceMedium) == 0)
+			{
+				failed = 1;	/*	File problem.	*/
+			}
+
 			buffer += bytesAvbl;
 		}
 
@@ -1421,6 +1563,11 @@ int	zco_receive_headers(Sdr sdr, ZcoReader *reader, unsigned int length,
 		sdr_write(sdr, reader->reference, (char *) &ref,
 				sizeof(ZcoReference));
 		sdr_write(sdr, ref.zcoObj, (char *) &zco, sizeof(Zco));
+	}
+
+	if (failed)
+	{
+		return 0;
 	}
 
 	return bytesReceived;
@@ -1499,6 +1646,7 @@ int	zco_receive_source(Sdr sdr, ZcoReader *reader, unsigned int length,
 	unsigned int	bytesAvbl;
 	Object		obj;
 	SourceExtent	extent;
+	int		failed = 0;
 
 	CHKERR(sdr);
 	CHKERR(reader);
@@ -1531,8 +1679,12 @@ int	zco_receive_source(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 		if (buffer)
 		{
-			copyFromSource(sdr, buffer, &extent, bytesToSkip,
-				bytesAvbl, reader, extent.sourceMedium);
+			if (copyFromSource(sdr, buffer, &extent, bytesToSkip,
+				bytesAvbl, reader, extent.sourceMedium) == 0)
+			{
+				failed = 1;
+			}
+
 			buffer += bytesAvbl;
 		}
 
@@ -1553,6 +1705,11 @@ int	zco_receive_source(Sdr sdr, ZcoReader *reader, unsigned int length,
 				sizeof(ZcoReference));
 	}
 
+	if (failed)
+	{
+		return 0;
+	}
+
 	return bytesReceived;
 }
 
@@ -1567,6 +1724,7 @@ int	zco_receive_trailers(Sdr sdr, ZcoReader *reader, unsigned int length,
 	unsigned int	bytesAvbl;
 	Object		obj;
 	SourceExtent	extent;
+	int		failed = 0;
 
 	CHKERR(sdr);
 	CHKERR(reader);
@@ -1595,8 +1753,12 @@ int	zco_receive_trailers(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 		if (buffer)
 		{
-			copyFromSource(sdr, buffer, &extent, bytesToSkip,
-					bytesAvbl, reader, extent.sourceMedium);
+			if (copyFromSource(sdr, buffer, &extent, bytesToSkip,
+				bytesAvbl, reader, extent.sourceMedium) == 0)
+			{
+				failed = 1;
+			}
+
 			buffer += bytesAvbl;
 		}
 
@@ -1619,6 +1781,11 @@ int	zco_receive_trailers(Sdr sdr, ZcoReader *reader, unsigned int length,
 	{
 		sdr_write(sdr, reader->reference, (char *) &ref,
 				sizeof(ZcoReference));
+	}
+
+	if (failed)
+	{
+		return 0;
 	}
 
 	return bytesReceived;

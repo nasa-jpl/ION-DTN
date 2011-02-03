@@ -184,9 +184,6 @@ typedef struct
 
 extern int		ams_register(	char *mibSource,
 					char *tsorder,
-					char *mName,
-					char *memory,
-					unsigned mSize,
 					char *applicationName,
 					char *authorityName,
 					char *unitName,
@@ -197,12 +194,6 @@ extern int		ams_register(	char *mibSource,
 			 *		overriding transport service
 			 *			selection order (this
 			 *			is normally NULL)
-			 *		name of memory manager to be
-			 *			used for AMS
-			 *		size of private memory area to
-			 *			be used for AMS
-			 *		preallocated private memory to
-			 *			be used for AMS
 		 	 *  		name of application in which
 			 *  			this module wants to
 			 *  			participate
@@ -225,25 +216,9 @@ extern int		ams_register(	char *mibSource,
 			 *	If mibSource is NULL, it defaults to
 			 *	roleName.  mibSource is used to locate
 			 *	the MIB for AMS modules identified by
-			 *	roleName; the MIB may reside in a file
-			 *	in the current working directory, or
-			 *	it may reside in an SDR, depending on
-			 *	which MIB-loading module is linked in.
-			 *
-			 *	If mName is NULL, DRAM will be
-			 *	dynamically allocated from system
-			 *	memory (malloc/free) as needed.
-			 *	Otherwise, DRAM will be dynamically
-			 *	allocated (as needed) using the named
-			 *	memory manager; if this memory manager
-			 *	has not yet been initialized, the named
-			 *	memory manager will be initialized to
-			 *	allocate memory from the preallocated
-			 *	memory pool identified by "memory"; if
-			 *	"memory" is NULL, then a pool of size
-			 *	mSize will be dynamically allocated
-			 *	for this purposed from system memory
-			 *	[just once, at initialization].
+			 *	roleName; the MIB source is expected
+			 *	to reside in a file in the current
+			 *	working directory.
 			 *
 			 *	Returns 0 on success, -1 on any error.	*/
 
@@ -257,7 +232,7 @@ extern Lyst		ams_list_msgspaces(AmsModule module);
 
 extern int		ams_get_continuum_nbr();
 
-extern int		ams_rams_net_is_tree();
+extern int		ams_rams_net_is_tree(AmsModule module);
 
 extern int		ams_continuum_is_neighbor(int continuumNbr);
 
