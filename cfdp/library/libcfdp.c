@@ -169,47 +169,6 @@ static int	defaultReader(int fd, unsigned int *checksum)
 	return length;
 }
 
-static int	bestEffortsReader(int fd, unsigned int *checksum)
-{
-	static char	bestEffortsReaderBuf[CFDP_MAX_PDU_SIZE];
-	CfdpDB		*cfdpConstants = getCfdpConstants();
-	unsigned int	offset;
-	int		length;
-	int		i;
-	char		*octet;
-
-	/*	For best-efforts transmission, we limit segment size
-	 *	to the maximum content length of a link-layer frame.
-	 *	This is because LTP, wherever used in the network,
-	 *	will not segment and reassemble the service data units
-	 *	passed to it for best-efforts transmission -- it will
-	 *	simply forward each one in a single "green" data
-	 *	segment that will be encapsulated in a single link-
-	 *	layer frame -- so all such segmentation and reassembly
-	 *	must be performed by CFDP.				*/
-
-	offset = (unsigned int) lseek(fd, 0, SEEK_CUR);
-	if (offset == (unsigned int) -1)
-	{
-		putSysErrmsg("CFDP can't get current file offset", NULL);
-		return -1;
-	}
-
-	length = read(fd, bestEffortsReaderBuf, cfdpConstants->mtuSize);
-	if (length < 0)
-	{
-		putSysErrmsg("CFDP best-efforts file reader failed", NULL);
-		return -1;
-	}
-
-	for (i = 0, octet = bestEffortsReaderBuf; i < length; i++, octet++)
-	{
-		addToChecksum((unsigned char) *octet, &offset, checksum);
-	}
-
-	return length;
-}
-
 int	cfdp_read_space_packets(int fd, unsigned int *checksum)
 {
 	static char	pktReaderBuf[CFDP_MAX_PDU_SIZE];
@@ -1172,14 +1131,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		if (readerFn == NULL)
 		{
 			recordBoundariesRespected = 0;
-			if (bestEfforts)
-			{
-				readerFn = bestEffortsReader;
-			}
-			else
-			{
-				readerFn = defaultReader;
-			}
+			readerFn = defaultReader;
 		}
 
 		sourceFile = open(sourceFileName, O_RDONLY, 0);

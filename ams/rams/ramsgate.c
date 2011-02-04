@@ -7,47 +7,39 @@
 
 #include "rams.h"
 
+#ifdef NOEXPAT
+static char	*mibfilename = "mib.amsrc";
+#else
+static char	*mibfilename = "amsmib.xml";
+#endif
+
 #if defined (VXWORKS) || defined (RTEMS)
 int ramsgate(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char		*application = (char *) a1;
-	char		*authority = (char *) a2;
-	int		lifetime = (unsigned) strtol((char *) a3, NULL, 0);
-	int		msize = (unsigned) strtol((char *) a4, NULL, 0);
-	char		*mmName = (char *) a5; 
-	RamsGate	gWay;
+	char	*application = (char *) a1;
+	char	*authority = (char *) a2;
+	int	lifetime = (unsigned) strtol((char *) a3, NULL, 0);
 #else
 int main(int argc, char **argv)
 {
-	char		*application;
-	char		*authority;
-	int		lifetime;
-	int		mSize = 200000;
-	char		*mmName = NULL; 
-	RamsGate	gWay;
+	char	*application;
+	char	*authority;
+	int	lifetime;
 
 	if (argc < 4)
 	{
 		PUTS("Usage: ramsgate <application name> <authority name> \
-<TTL for bundles> [memorySize [memory manager name]]");
+<TTL for bundles>");
 		return 0;
 	}
 
 	application = argv[1];
 	authority = argv[2];
 	lifetime = (unsigned) strtol(argv[3], NULL, 0);
-	if (argc > 4)
-	{
-		mSize = (unsigned) strtol(argv[4], NULL, 0);
-		if (argc > 5)
-		{
-			mmName = argv[5];
-		}
-	}
 #endif
-	if (rams_run("amsmib.xml", NULL, mmName, NULL, mSize, application,
-			authority, "", "RAMS", &gWay, lifetime) < 0)
+	if (rams_run(mibfilename, NULL, application, authority, "", "RAMS",
+				lifetime) < 0)
 	{
 		putErrmsg("ramsgate can't run.", NULL);
 		writeErrmsgMemos();

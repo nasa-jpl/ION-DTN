@@ -996,6 +996,9 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	VScheme		*vscheme;
 	VInduct		*vinduct;
 	VOutduct	*voutduct;
+	Object		zcoElt;
+	Object		nextElt;
+	Object		zco;
 
 	/*	Tell all BP processes to stop.				*/
 
@@ -1066,7 +1069,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	sdr_begin_xn(bpSdr);
 	bpvdb->clockPid = -1;
 	if (bpvdb->productionThrottle.semaphore == SM_SEM_NONE)
 	{
@@ -1100,7 +1103,18 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		resetOutduct(voutduct);
 	}
 
-	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	/*	Clear out any partially received bundles, then exit.	*/
+
+	for (zcoElt = sdr_list_first(bpSdr, (_bpConstants())->inboundBundles);
+			zcoElt; zcoElt = nextElt)
+	{
+		nextElt = sdr_list_next(bpSdr, zcoElt);
+		zco = sdr_list_data(bpSdr, zcoElt);
+		zco_destroy_reference(bpSdr, zco);
+		sdr_list_delete(bpSdr, zcoElt, NULL, NULL);
+	}
+
+	oK(sdr_end_xn(bpSdr));
 }
 
 int	bpAttach()
@@ -6120,16 +6134,12 @@ static int	eraseWorkZco(AcqWorkArea *work)
 		bpSdr = getIonsdr();
 		sdr_begin_xn(bpSdr);
 		sdr_list_delete(bpSdr, work->zcoElt, NULL, NULL);
-		if (work->acqFileRef)
-		{
-			zco_destroy_file_ref(bpSdr, work->acqFileRef);
-		}
 
 		/*	Destroying the last reference to the ZCO will
 		 *	destroy the ZCO, which will in turn cause the
 		 *	acquisition FileRef to be deleted, which will
-		 *	unlink the file when the FileRef's cleanup
-		 *	script is executed.				*/
+		 *	unlink the acquisition file when the FileRef's
+		 *	cleanup script is executed.			*/
 
 		zco_destroy_reference(bpSdr, work->zco);
 		if (sdr_end_xn(bpSdr) < 0)
@@ -6334,6 +6344,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	close(fd);
 	oK(zco_append_extent(sdr, work->zco, ZcoFileSource, work->acqFileRef,
 			fileLength, length));
+
+	/*	Flag file reference for deletion as soon as the last
+	 *	ZCO extent that references it is deleted.		*/
+
+	zco_destroy_file_ref(sdr, work->acqFileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't acquire extent into file.", NULL);
@@ -6341,6 +6356,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	}
 
 	return 0;
+}
+
+void	bpCancelAcq(AcqWorkArea *work)
+{
+	oK(eraseWorkZco(work));
 }
 
 int	guessBundleSize(Bundle *bundle)
@@ -9664,11 +9684,9 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	char		proxNodeEid[SDRSTRING_BUFSZ];
 	DequeueContext	context;
 	char		*dictionary;
-	int		result;
 	int		xmitLength;
 	char		*sourceEid;
 	char		inTransitKey[IN_TRANSIT_KEY_BUFLEN];
-	int		stewardshipNoted = 0;
 
 	CHKERR(vduct && flows && bundleZco && extendedCOS && destDuctName);
 	*bundleZco = 0;			/*	Default behavior.	*/
@@ -9808,31 +9826,35 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		return -1;
 	}
 
-	/*	We assume that the CLO that's getting this outbound
-	 *	bundle is actually going to forward it now, so at
-	 *	this point we send any applicable forwarding notice.	*/
+	/*	At this point we check the stewardshipAccepted flag.
+	 *	If the bundle is critical then it has been queued
+	 *	for transmission on all possible routes and is not
+	 *	subject to reforwarding (see notes on this in
+	 *	bpReforwardBundle); since it is not subject to
+	 *	reforwarding, stewardship is meaningless -- on
+	 *	convergence-layer transmission failure the attempt
+	 *	to transmit the bundle is simply abandoned.  So
+	 *	in this event the stewardshipAccepted flag is forced
+	 *	to zero even if the convergence-layer adapter for
+	 *	this outduct is one that normally accepts stewardship.	*/
 
-	if (SRR_FLAGS(bundle.bundleProcFlags) & BP_FORWARDED_RPT)
+	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
-		bundle.statusRpt.flags |= BP_FORWARDED_RPT;
-		getCurrentDtnTime(&bundle.statusRpt.forwardTime);
-		result = sendStatusRpt(&bundle, dictionary);
-	       	if (result < 0)
-		{
-			releaseDictionary(dictionary);
-			putErrmsg("Can't send status report.", NULL);
-			sdr_cancel_xn(bpSdr);
-			return -1;
-		}
+		stewardshipAccepted = 0;
 	}
 
-	/*	At this point we check the stewardshipAccepted flag.
-	 *	If stewardship has been accepted by the CLO and the
-	 *	bundle is not already present in the inTransitHash
-	 *	table, then we attempt to construct a key for
-	 *	inserting the bundle into the inTransitHash; if the
-	 *	key is small enough, then the bundle goes into the
-	 *	inTransit hash table (if possible) pending a
+	/*	If stewardship of this bundle is accepted by the CLO
+	 *	then we know that the bundle's inTransitEntry is zero:
+	 *	the bundle can't be critical, therefore it can't have
+	 *	been queued for transmission at any other outduct, and
+	 *	if it was previously queued for transmission on this
+	 *	outduct it can only be subject to re-dequeue in the
+	 *	event that it was reforwarded -- and all paths to
+	 *	reforwarding it entailed erasing the prior value of
+	 *	inTransitEntry.  So we now attempt to construct a key
+	 *	for inserting the bundle into the inTransitHash; if
+	 *	the key is small enough, then the bundle goes into
+	 *	the inTransit hash table (if possible) pending a
 	 *	determination by the CLO as to the success or
 	 *	failure of convergence-layer transmission.
 	 *
@@ -9860,7 +9882,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	 *	will remain available to the CLO for transmission and
 	 *	retransmission.						*/
 
-	if (stewardshipAccepted && bundle.inTransitEntry == 0)
+	if (stewardshipAccepted)
 	{
 		if (printEid(&bundle.id.source, dictionary, &sourceEid) < 0)
 		{
@@ -9878,24 +9900,17 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 						: bundle.payload.length)
 				<= IN_TRANSIT_KEY_LEN)
 		{
-			switch (sdr_hash_insert(bpSdr,
+			if (sdr_hash_insert(bpSdr,
 					(_bpConstants())->inTransitHash,
 					inTransitKey, bundleObj,
-					&bundle.inTransitEntry))
+					&bundle.inTransitEntry) < 0)
 			{
-			case -1:	/*	System failure		*/
 				MRELEASE(sourceEid);
 				releaseDictionary(dictionary);
 				putErrmsg("Can't post to in-transit hash.",
 						NULL);
 				sdr_cancel_xn(bpSdr);
 				return -1;
-
-			case 0:		/*	Hash insert failure	*/
-				break;	/*	Out of switch.		*/
-
-			default:
-				stewardshipNoted = 1;
 			}
 		}
 
@@ -9904,7 +9919,6 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 
 	/*	That's the end of the changes to the bundle.		*/
 
-	releaseDictionary(dictionary);
 	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 
 	/*	Track this transmission event.				*/
@@ -9939,19 +9953,35 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		sdr_free(bpSdr, destDuctNameObj);
 	}
 
-	/*	Finally, authorize destruction of the bundle object
-	 *	unless stewardship was accepted and successfully noted.	*/
+	/*	Finally, authorize transmission of applicable status
+	 *	report message and destruction of the bundle object
+	 *	unless stewardship was successfully accepted.		*/
 
-	if (!stewardshipNoted)
+	if (bundle.inTransitEntry == 0)
 	{
+		if (SRR_FLAGS(bundle.bundleProcFlags) & BP_FORWARDED_RPT)
+		{
+			bundle.statusRpt.flags |= BP_FORWARDED_RPT;
+			getCurrentDtnTime(&bundle.statusRpt.forwardTime);
+			if (sendStatusRpt(&bundle, dictionary) < 0)
+			{
+				releaseDictionary(dictionary);
+				putErrmsg("Can't send status report.", NULL);
+				sdr_cancel_xn(bpSdr);
+				return -1;
+			}
+		}
+
 		if (bpDestroyBundle(bundleObj, 0) < 0)
 		{
+			releaseDictionary(dictionary);
 			putErrmsg("Can't destroy bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
 			return -1;
 		}
 	}
 
+	releaseDictionary(dictionary);
 	if (sdr_end_xn(bpSdr))
 	{
 		putErrmsg("Can't get outbound bundle.", NULL);
@@ -10471,6 +10501,8 @@ int	bpHandleXmitSuccess(Object bundleZco)
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
 	Bundle	bundle;
+	char	*dictionary;
+	int	result;
 
 	sdr_begin_xn(bpSdr);
 	if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
@@ -10494,6 +10526,30 @@ int	bpHandleXmitSuccess(Object bundleZco)
 	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 	bundle.inTransitEntry = 0;
 	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+
+	/*	Send "forwarded" status report if necessary.		*/
+
+	if (SRR_FLAGS(bundle.bundleProcFlags) & BP_FORWARDED_RPT)
+	{
+		dictionary = retrieveDictionary(&bundle);
+		if (dictionary == (char *) &bundle)
+		{
+			putErrmsg("Can't retrieve dictionary.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+
+		bundle.statusRpt.flags |= BP_FORWARDED_RPT;
+		getCurrentDtnTime(&bundle.statusRpt.forwardTime);
+		result = sendStatusRpt(&bundle, dictionary);
+		releaseDictionary(dictionary);
+		if (result < 0)
+		{
+			putErrmsg("Can't send status report.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+	}
 
 	/*	At this point the bundle object is subject to
 	 *	destruction unless the bundle is pending delivery,

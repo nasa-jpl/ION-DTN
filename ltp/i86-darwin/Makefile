@@ -52,7 +52,7 @@ ltpmeter:	ltpmeter.o libltpP.so
 #	-	-	Utility executables	-	-	-	-
 
 ltpadmin:	ltpadmin.o libltpP.so
-		$(CC) -o ltpadmin ltpadmin.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		$(CC) -o ltpadmin ltpadmin.o -L./lib -L$(ROOT)/lib -lltp -lltpP -lici -lpthread
 		cp ltpadmin ./bin
 
 #	-	-	Test executables	-	-	-	-

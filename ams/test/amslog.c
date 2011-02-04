@@ -173,8 +173,8 @@ messages to stdout.\n", stderr);
 
 	signal(SIGINT, handleQuit);
 	setLogger(logToStderr);
-	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, applicationName,
-			authorityName, "", "log", &me) < 0)
+	if (ams_register("amsmib.xml", NULL, applicationName, authorityName,
+				"", "log", &me) < 0)
 	{
 		putSysErrmsg("amslog can't register", NULL);
 		return -1;
@@ -227,7 +227,7 @@ messages to stdout.\n", stderr);
 		}
 		else
 		{
-			writeMemo("amslog input line too long");
+			writeMemo("[?] amslog input line too long.");
 			continue;
 		}
 
@@ -246,7 +246,7 @@ messages to stdout.\n", stderr);
 			roleNbr = ams_lookup_role_nbr(me, roleName);
 			if (roleNbr < 0)
 			{
-				writeMemo("Unknown role.");
+				writeMemoNote("[?] Unknown role", roleName);
 				continue;
 			}
 
@@ -257,7 +257,8 @@ messages to stdout.\n", stderr);
 				unitNbr = ams_lookup_unit_nbr(me, unitName);
 				if (unitNbr < 0)
 				{
-					writeMemo("Unknown unit.");
+					writeMemoNote("[?] Unknown unit",
+							unitName);
 					continue;
 				}
 			}
@@ -268,7 +269,8 @@ messages to stdout.\n", stderr);
 				cntNbr = ams_lookup_continuum_nbr(me, cntName);
 				if (cntNbr < 0)
 				{
-					writeMemo("Unknown Continuum.");
+					writeMemoNote("[?] Unknown continuum",
+							cntName);
 					continue;
 				}
 			}
@@ -279,7 +281,8 @@ messages to stdout.\n", stderr);
 			subjectNbr = ams_lookup_subject_nbr(me, subjectName);
 			if (subjectNbr < 0)
 			{
-				writeMemo("Unknown subject.");
+				writeMemoNote("[?] Unknown subject",
+						subjectName);
 				continue;
 			}
 
@@ -298,7 +301,8 @@ messages to stdout.\n", stderr);
 
 				if (cntNbr != THIS_CONTINUUM)
 				{
-					writeMemo("Unknown subject.");
+					writeMemoNote("[?] Unknown subject",
+							subjectName);
 					continue;
 				}
 			}
@@ -306,7 +310,7 @@ messages to stdout.\n", stderr);
 			break;
 
 		default:
-			writeMemo("Null command ignored.");
+			writeMemo("[?] Null command ignored.");
 			continue;
 		}
 
@@ -320,8 +324,8 @@ messages to stdout.\n", stderr);
 						8, 0, AmsArrivalOrder,
 						AmsBestEffort) < 0)
 				{
-					writeMemo("Can't subscribe to this \
-subject.");
+					writeMemoNote("[?] Can't subscribe to \
+subject", subjectName);
 					continue;
 				}
 			}
@@ -333,8 +337,8 @@ subject.");
 						8, 0, AmsArrivalOrder,
 						AmsBestEffort) < 0)
 				{
-					writeMemo("Can't invite this \
-subject.");
+					writeMemoNote("[?] Can't invite this \
+subject", subjectName);
 					continue;
 				}
 			}
@@ -347,8 +351,8 @@ subject.");
 						cntNbr, // CW 5/1/06
 						unitNbr, subjectNbr) < 0)
 				{
-					writeMemo("Can't unsubscribe to this \
-subject.");
+					writeMemoNote("[?] Can't unsubscribe \
+to subject", subjectName);
 					continue;
 				}
 			}
@@ -358,8 +362,8 @@ subject.");
 						cntNbr, // CW 5/1/06
 						unitNbr, subjectNbr) < 0)
 				{
-					writeMemo("Can't disinvite this \
-subject.");
+					writeMemoNote("[?] Can't disinvite \
+this subject", subjectName);
 					continue;
 				}
 			}

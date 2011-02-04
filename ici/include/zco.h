@@ -36,19 +36,14 @@
 		implicitly -- the ZCO itself is automatically
 		destroyed.
 
-		But NOTE: to reduce code size and complexity and
-	       	minimize processing overhead, the ZCO functions
-		are NOT mutexed.  It is in general NOT SAFE for
-		multiple threads or processes to be operating
-		on the same ZCO concurrently, whether using the
-		same Zco reference or multiple references.
-		However, multiple threads or processes of overlying
-		protocol (e.g, multiple final destination endpoints)
-		MAY safely use different ZcoReferences to receive
-		the source data of a ZCO concurrently once the
-		length of that data -- with regard to that layer
-		of protocol -- has been firmly established.
-
+		Note that the safety of shared access to a ZCO is
+		protected by the fact that the ZCO resides in SDR
+		and therefore cannot be modified other than in the
+		course of an SDR transaction, which serializes access.
+		Note also that "transmitting" or "receiving" a ZCO
+		updates progress counters in the ZCO reference object
+		and therefore is an SDR data modification that must
+		occur in the course of an SDR transaction.
 
 	Copyright (c) 2004, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
@@ -92,10 +87,24 @@ Object		zco_create_file_ref(Sdr sdr,
 			 *	[normally upon delivery either down to
 			 *	the "ZCO transition layer" of the
 			 *	protocol stack or up to a ZCO-capable
-			 *	application].  Maximum length of
-			 *	cleanupScript is 255.  Returns SDR
-			 *	location of file reference object
-			 *	on success, 0 on any error.		*/
+			 *	application]; a zero-length string
+			 *	is interpreted as implicit direction
+			 *	to delete the referenced file when
+			 *	the file reference is destroyed.
+			 *	Maximum length of cleanupScript is
+			 *	255.  Returns SDR location of file
+			 *	reference object on success, 0 on any
+			 *	error.					*/
+
+int		zco_revise_file_ref(Sdr sdr,
+				Object fileRef,
+				char *pathName,
+				char *cleanupScript);
+			/*	Changes the pathName and cleanupScript
+			 *	of the indicated file reference.  The
+			 *	new values of these fields are validated
+			 *	as for zco_create_file_ref.  Returns 0
+			 *	on success, -1 on any error.		*/
 
 char		*zco_file_ref_path(Sdr sdr,
 				Object fileRef,

@@ -1152,6 +1152,9 @@ amsnoinst = \
 	ams/library/amscommon.h \
 	ams/library/amsP.h \
 	ams/rams/rams.h \
+	ams/library/marshal.c \
+	ams/library/default.marshal.c \
+	ams/library/default.crypt.c \
 	ams/rams/ramscommon.h
 
 amsextra = \
@@ -1165,7 +1168,7 @@ libams_la_SOURCES = \
 	ams/library/libams.c \
 	ams/library/amscommon.c \
 	ams/library/loadmib.c \
-	ams/library/nullcrypt.c \
+	ams/library/crypt.c \
 	ams/library/dgrts.c \
 	ams/library/udpts.c \
 	ams/library/tcpts.c
@@ -1207,7 +1210,7 @@ amsd_SOURCES = \
 	ams/library/libams.c \
 	ams/library/amscommon.c \
 	ams/library/loadmib.c \
-	ams/library/nullcrypt.c \
+	ams/library/crypt.c \
 	ams/library/dgrts.c \
 	ams/library/udpts.c \
 	ams/library/tcpts.c
