@@ -1463,6 +1463,11 @@ static AmsMib	*loadMibFromRcSource(char *mibSource)
 	AmsMib			*mib;
 	AmsMibParameters	parms = { 0, NULL, NULL, 0, NULL, 0 };
 
+	if (*mibSource == '\0')		/*	Use default file name.	*/
+	{
+		mibSource = "mib.amsrc";
+	}
+
 	sourceFile = open(mibSource, O_RDONLY, 00777);
 	if (sourceFile < 0)
 	{
@@ -1526,6 +1531,11 @@ static AmsMib	*loadMibFromXmlSource(char *mibSource)
 	int			result = 0;
 	AmsMib			*mib;
 	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
+
+	if (*mibSource == '\0')		/*	Use default file name.	*/
+	{
+		mibSource = "amsmib.xml";
+	}
 
 	sourceFile = open(mibSource, O_RDONLY, 00777);
 	if (sourceFile < 0)

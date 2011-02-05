@@ -8,11 +8,10 @@
 
 #include "ams.h"
 
-static AmsModule	me;
-static AmsEvent		evt;
-
 static int	runCatcher()
 {
+	AmsModule	me;
+	AmsEvent	evt;
 	int		cn, zn, nn, sn, len, ct, pr;
 	unsigned char	fl;
 	AmsMsgType	mt;
@@ -29,13 +28,13 @@ static int	runCatcher()
 
 	ams_parse_msg(evt, &cn, &zn, &nn, &sn, &len, &txt, &ct, &mt, &pr, &fl);
 	printf("%d received '%s'.\n", (int) getpid(), txt); fflush(stdout);
-	ams_recycle_event(evt);
-	ams_unregister(me);
-	return 0;
+	ams_recycle_event(evt); ams_unregister(me); return 0;
 }
 
 static int	runPitcher()
 {
+	AmsModule	me;
+	AmsEvent	evt;
 	AmsStateType	state;
 	AmsChangeType	change;
 	int		zn, nn, rn, dcn, dzn, sn, pr, textlen;
@@ -58,8 +57,7 @@ static int	runPitcher()
 			printf("%d sending  '%s'.\n", (int) getpid(), buffer);
 			fflush(stdout);
 			ams_send(me, -1, zn, nn, 1, 0, 0, textlen, buffer, 0);
-			ams_unregister(me);
-			return 0;
+			ams_unregister(me); return 0;
 		}
 	}
 }

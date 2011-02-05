@@ -33,10 +33,8 @@ int	main(int argc, char **argv)
 	int		count = (argc > 1 ? atoi(argv[1]) : 0);
 	int		size = (argc > 2 ? atoi(argv[2]) : 0);
 #endif
-	char		*application = "amsdemo";
-	char		*authority = "test";
 	char		*buffer;
-	AmsModule		me;
+	AmsModule	me;
 	AmsEventMgt	rules;
 	int		subjectNbr;
 	int		content;
@@ -50,15 +48,14 @@ int	main(int argc, char **argv)
 	buffer = malloc(size);
 	if (buffer == NULL)
 	{
-		putSysErrmsg("No memory for amsbenchs.", NULL);
+		putErrmsg("No memory for amsbenchs.", NULL);
 		return 0;
 	}
 
 	memset(buffer, ' ', size);
-	if (ams_register("amsmib.xml", NULL, application, authority, "",
-				"benchs", &me) < 0)
+	if (ams_register("", NULL, "amsdemo", "test", "", "benchs", &me) < 0)
 	{
-		putSysErrmsg("amsbenchs can't register", NULL);
+		putErrmsg("amsbenchs can't register.", NULL);
 		return -1;
 	}
 
@@ -67,7 +64,7 @@ int	main(int argc, char **argv)
 	if (ams_set_event_mgr(me, &rules) < 0)
 	{
 		ams_unregister(me);
-		putSysErrmsg("amsbenchs can't set event manager", NULL);
+		putErrmsg("amsbenchs can't set event manager.", NULL);
 		return -1;
 	}
 
@@ -75,7 +72,7 @@ int	main(int argc, char **argv)
 	if (subjectNbr < 0)
 	{
 		ams_unregister(me);
-		putErrmsg("Subject 'bench' is unknown.", NULL);
+		writeMemo("[?] amsbenchs: subject 'bench' is unknown.");
 		return -1;
 	}
 
@@ -86,7 +83,7 @@ int	main(int argc, char **argv)
 		memcpy(buffer, (char *) &content, sizeof(int));
 		if (ams_publish(me, subjectNbr, 0, 0, size, buffer, 0) < 0)
 		{
-			putErrmsg("Unable to publish message.", NULL);
+			putErrmsg("amsbenchs can't publish message.", NULL);
 			break;
 		}
 
@@ -95,7 +92,7 @@ int	main(int argc, char **argv)
 
 	writeErrmsgMemos();
 	PUTS("Message publication ended; press ^C when test is done.");
-	signal(SIGINT, handleQuit);
+	isignal(SIGINT, handleQuit);
 	snooze(3600);
 	ams_unregister(me);
 	return 0;

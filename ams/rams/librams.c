@@ -500,7 +500,7 @@ static void	DeleteInvitation(Invitation *inv)
 
 int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		char *authorityName, char *unitName, char *roleName,
-		int lifetime)
+		long lifetime)
 {
 	AmsModule		amsModule;
 	AmsMib			*mib;

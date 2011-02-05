@@ -26,21 +26,11 @@ int	main(int argc, char **argv)
 		if (fread((char *) &subjectNameLength, sizeof subjectNameLength,
 					1, stdin) == 0)
 		{
-			if (buffer)
-			{
-				free(buffer);
-			}
-
 			break;
 		}
 
 		if (fread(subjectName, subjectNameLength, 1, stdin) == 0)
 		{
-			if (buffer)
-			{
-				free(buffer);
-			}
-
 			break;
 		}
 
@@ -48,11 +38,6 @@ int	main(int argc, char **argv)
 		if (fread((char *) &contentLength, sizeof contentLength, 1,
 				stdin) == 0)
 		{
-			if (buffer)
-			{
-				free(buffer);
-			}
-
 			break;
 		}
 
@@ -75,7 +60,7 @@ int	main(int argc, char **argv)
 			{
 				printf("requested buffer too large: %d\n",
 						contentLength);
-				strncpy(text, (char *) &contentLength,
+				memcpy(text, (char *) &contentLength,
 						sizeof contentLength);
 				text[sizeof contentLength] = '\0';
 				printf("Might be reading non-messages from \
@@ -88,7 +73,6 @@ stdin, e.g. ASCII text ['%s']?\n", text);
 
 		if (fread(buffer, contentLength, 1, stdin) == 0)
 		{
-			free(buffer);
 			break;
 		}
 
@@ -109,6 +93,11 @@ stdin, e.g. ASCII text ['%s']?\n", text);
 		}
 
 		printf("\n");
+	}
+
+	if (buffer)
+	{
+		free(buffer);
 	}
 
 	return 0;

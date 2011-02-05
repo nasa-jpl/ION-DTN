@@ -64,7 +64,9 @@ static int	udpMamsInit(MamsInterface *tsif)
 
 	CHKERR(tsif);
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
-//printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
+#if AMSDEBUG
+printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
+#endif
 	if (ipAddress == 0)
 	{
 		getNameOfHost(hostName, sizeof hostName);
@@ -109,7 +111,9 @@ static int	udpMamsInit(MamsInterface *tsif)
 	ipAddress = ntohl(ipAddress);
 	isprintf(endpointNameText, sizeof endpointNameText, "%s:%hu", hostName,
 			portNbr);
-//printf("resulting ept is '%s'.\n", endpointNameText);
+#if AMSDEBUG
+printf("resulting ept is '%s'.\n", endpointNameText);
+#endif
 	eptLen = strlen(endpointNameText) + 1;
 	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
@@ -170,7 +174,7 @@ message", NULL);
 		if (enqueueMamsMsg(tsif->eventsQueue, length,
 				(unsigned char *) buffer) < 0)
 		{
-			putErrmsg("udpts discarded MAMS message.", NULL);
+			writeMemo("[?] udpts discarded MAMS message.");
 		}
 	}
 }
@@ -302,7 +306,7 @@ message", NULL);
 
 		if (enqueueAmsMsg(amsSap, (unsigned char *) buffer, length) < 0)
 		{
-			putErrmsg("udpts discarded AMS message.", NULL);
+			writeMemo("[?] udpts discarded AMS message.");
 		}
 	}
 }
@@ -324,8 +328,10 @@ static int	udpParseMamsEndpoint(MamsEndpoint *ep)
 	ep->tsep = MTAKE(sizeof(UdpTsep));
 	CHKERR(ep->tsep);
 	memcpy((char *) (ep->tsep), (char *) &tsep, sizeof(UdpTsep));
-//printf("parsed '%s' to port %d address %d.\n", ep->ept, tsep.portNbr,
-//tsep.ipAddress);
+#if AMSDEBUG
+printf("parsed '%s' to port %d address %d.\n", ep->ept, tsep.portNbr,
+tsep.ipAddress);
+#endif
 	return 0;
 }
 
@@ -387,8 +393,10 @@ static int	udpSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 	CHKERR(msg);
 	CHKERR(msgLen >= 0);
 	tsep = (UdpTsep *) (ep->tsep);
-//printf("in udpSendMams, tsep at %d has port %d, address %d.\n", (int) tsep,
-//tsep->portNbr, tsep->ipAddress);
+#if AMSDEBUG
+printf("in udpSendMams, tsep at %d has port %d, address %d.\n", (int) tsep,
+tsep->portNbr, tsep->ipAddress);
+#endif
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{
 		return 0;
@@ -411,12 +419,14 @@ static int	udpSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 			{
 				continue;	/*	Retry.		*/
 			}
-
-//PUTS("udpSendMams failed.");
+#if AMSDEBUG
+PUTS("udpSendMams failed.");
+#endif
 			return -1;
 		}
-
-//PUTS("udpSendMams succeeded.");
+#if AMSDEBUG
+PUTS("udpSendMams succeeded.");
+#endif
 		return 0;
 	}
 }
@@ -425,7 +435,7 @@ static int	udpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 			unsigned char flowLabel, char *header,
 			int headerLen, char *content, int contentLen)
 {
-	static char		udpAmsBuf[UDPTS_MAX_MSG_LEN];
+	char			*udpAmsBuf;
 	int			len;
 	UdpTsep			*tsep;
 	int			i;
@@ -445,7 +455,9 @@ static int	udpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	len = headerLen + contentLen + 2;
 	CHKERR(len <= UDPTS_MAX_MSG_LEN);
 	tsep = (UdpTsep *) (dp->tsep);
-//printf("in udpSendAms, tsep is %d.\n", (int) tsep);
+#if AMSDEBUG
+printf("in udpSendAms, tsep is %d.\n", (int) tsep);
+#endif
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{
 		return 0;
@@ -473,6 +485,8 @@ static int	udpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
+	udpAmsBuf = MTAKE(headerLen + contentLen + 2);
+	CHKERR(udpAmsBuf);
 	memcpy(udpAmsBuf, header, headerLen);
 	if (contentLen > 0)
 	{
@@ -493,11 +507,17 @@ static int	udpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 				continue;	/*	Retry.		*/
 			}
 
-//PUTS("udpSendAms failed.");
+#if AMSDEBUG
+PUTS("udpSendAms failed.");
+#endif
+			MRELEASE(udpAmsBuf);
 			return -1;
 		}
 
-//PUTS("udpSendAms succeeded.");
+#if AMSDEBUG
+PUTS("udpSendAms succeeded.");
+#endif
+		MRELEASE(udpAmsBuf);
 		return 0;
 	}
 }
