@@ -26,7 +26,7 @@ typedef struct
 	int		refCount;
 	short		okayToDestroy;
 	short		unlinkOnDestroy;
-	time_t		mtime;		/*	file modified time	*/
+	time_t		inode;		/*	to detect change	*/
 	char		pathName[256];
 	char		cleanupScript[256];
 } FileRef;
@@ -170,7 +170,7 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 	fileRef.refCount = 0;
 	fileRef.okayToDestroy = 0;
 	fileRef.unlinkOnDestroy = 0;
-	fileRef.mtime = statbuf.st_mtime;
+	fileRef.inode = statbuf.st_ino;
 	memcpy(fileRef.pathName, pathName, pathLen);
 	fileRef.pathName[pathLen] = '\0';
 	if (cleanupScript)
@@ -278,7 +278,7 @@ int	zco_revise_file_ref(Sdr sdr, Object fileRefObj, char *pathName,
 
 	close(sourceFd);
 	sdr_stage(sdr, (char *) &fileRef, fileRefObj, sizeof(FileRef));
-	fileRef.mtime = statbuf.st_mtime;
+	fileRef.inode = statbuf.st_ino;
 	memcpy(fileRef.pathName, pathName, pathLen);
 	fileRef.pathName[pathLen] = '\0';
 	if (cleanupScript)
@@ -1076,7 +1076,7 @@ static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 			{
 				close(fd);	/*	Can't check.	*/
 			}
-			else if (statbuf.st_mtime != fileRef.mtime)
+			else if (statbuf.st_ino != fileRef.inode)
 			{
 				close(fd);	/*	File changed.	*/
 			}

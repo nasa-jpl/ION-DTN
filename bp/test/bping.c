@@ -85,7 +85,8 @@ static void handleQuit()
 {
 	shutdownnow = 1;
 	bp_interrupt(sap);
-	if(sendRequestsThread && sendRequestsThread != pthread_self())
+	if(sendRequestsThread
+	&& !pthread_equal(sendRequestsThread, pthread_self()))
 	{
 		pthread_kill(sendRequestsThread, SIGINT);
 	}

@@ -289,6 +289,11 @@ typedef struct
 	int		meterPid;	/*	For stopping ltpmeter.	*/
 	int		lsoPid;		/*	For stopping the LSO.	*/
 
+	/*	For detecting miscolored segments.			*/
+
+	unsigned long	greenSessionNbr;
+	unsigned long	greenOffset;
+
 	/*	*	*	Work area	*	*	*	*/
 
 	PsmAddress	segmentBuffer;	/*	Holds one max-size seg.	*/
