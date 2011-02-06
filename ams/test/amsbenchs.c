@@ -39,7 +39,7 @@ int	main(int argc, char **argv)
 	int		subjectNbr;
 	int		content;
 
-	if (count < 1 || size < 4 || size > 65535)
+	if (count < 1 || size < sizeof(int) || size > 65535)
 	{
 		PUTS("Usage: amsbenchs <# of msgs to send> <msg length>");
 		return 0;
@@ -52,7 +52,12 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	memset(buffer, ' ', size);
+	if (size > sizeof(int))
+	{
+		memset(buffer, ' ', size - 1);
+		buffer[size - 1] = '\0';
+	}
+
 	if (ams_register("", NULL, "amsdemo", "test", "", "benchs", &me) < 0)
 	{
 		putErrmsg("amsbenchs can't register.", NULL);

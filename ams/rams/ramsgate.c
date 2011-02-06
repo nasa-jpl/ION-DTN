@@ -27,8 +27,9 @@ int main(int argc, char **argv)
 <TTL for bundles>");
 		return 0;
 	}
+
 	if (rams_run("", NULL, application, authority, "", "RAMS",
-				(int) lifetime) < 0)
+			(int) lifetime) < 0)
 	{
 		putErrmsg("ramsgate can't run.", NULL);
 		writeErrmsgMemos();

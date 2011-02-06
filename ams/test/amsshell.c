@@ -16,7 +16,7 @@
 
 static pthread_t	_mainThread(pthread_t *value)
 {
-	static pthread_t	mainThread;
+	static pthread_t	mainThread = 0;
 
 	if (value)
 	{
