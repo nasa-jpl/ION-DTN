@@ -213,13 +213,6 @@ extern int		ams_register(	char *mibSource,
 			 *			address of AMS module
 			 *			state will be returned
 			 *
-			 *	If mibSource is NULL, it defaults to
-			 *	roleName.  mibSource is used to locate
-			 *	the MIB for AMS modules identified by
-			 *	roleName; the MIB source is expected
-			 *	to reside in a file in the current
-			 *	working directory.
-			 *
 			 *	Returns 0 on success, -1 on any error.	*/
 
 extern int		ams_unregister(	AmsModule module);

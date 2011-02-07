@@ -137,7 +137,7 @@ int	EnvelopeHeader(char *envelope, EnvelopeField conId)
 		break;
 
 	case Env_SubjectNbr:
-		memcpy((char *)&subj, envl + 8, 2);
+		memcpy((char *) &subj, envl + 8, 2);
 		subj = ntohs(subj);
 		num = subj;
 		break;

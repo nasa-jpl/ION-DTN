@@ -12,20 +12,47 @@
 /*									*/
 #include <ams.h>
 
-static int	amsshell_running = 0;
-static char	subjectName[33];
-static int	continuumNbr = 0;
-static int	unitNbr = 0;
-static int	nodeNbr = 0;
-static int	roleNbr = 0;
+#define	MAX_SUBJ_NAME	32
+
+static pthread_t	_mainThread(pthread_t *value)
+{
+	static pthread_t	mainThread = 0;
+
+	if (value)
+	{
+		mainThread = *value;
+	}
+
+	return mainThread;
+}
+
+static int	_amsshell_running(int *value)
+{
+	static int	running = 0;
+
+	if (value)
+	{
+		running = (*value == 0 ? 0 : 1);
+	}
+
+	return running;
+}
 
 static void	handleQuit()
 {
-	puts("Please enter '.' to quit the program.");
+	int	stop = 0;
+
+	oK(_amsshell_running(&stop));
 }
 
 static void	handleCommand(AmsModule me, char *mode)
 {
+	static int	continuumNbr = 0;
+	static int	unitNbr = 0;
+	static int	moduleNbr = 0;
+	static int	roleNbr = 0;
+	static char	subjectName[MAX_SUBJ_NAME + 1] = "";
+	int		stop = 0;
 	char		line[256];
 	char		*newline;
 	char		*delimiter;
@@ -50,17 +77,19 @@ static void	handleCommand(AmsModule me, char *mode)
 	{
 		if (ferror(stdin))
 		{
-			writeErrMemo("Failed reading line from console");
+			putSysErrmsg("amsshell can't read line from console",
+					NULL);
 		}
 
-		amsshell_running = 0;
+		oK(_amsshell_running(&stop));
 		return;
 	}
 
 	newline = line + strlen(line) - 1;
 	if (*newline != '\n')
 	{
-		writeMemo("[?] Input line is too long; max length is 255.");
+		writeMemo("[?] amsshell input line is too long; max length \
+is 255.");
 		return;
 	}
 
@@ -68,23 +97,23 @@ static void	handleCommand(AmsModule me, char *mode)
 	switch (*line)
 	{
 	case '.':		/*	Quitting.			*/
-		amsshell_running = 0;
+		oK(_amsshell_running(&stop));
 		return;
 
 	case 'r':		/*	Setting role number.		*/
-		roleNbr = atoi(line + 1);
+		roleNbr = strtol(line + 1, NULL, 0);
 		return;
 
 	case 'c':		/*	Setting continuum number.	*/
-		continuumNbr = atoi(line + 1);
+		continuumNbr = strtol(line + 1, NULL, 0);
 		return;
 
 	case 'u':		/*	Setting unit number.		*/
-		unitNbr = atoi(line + 1);
+		unitNbr = strtol(line + 1, NULL, 0);
 		return;
 
 	case 'n':		/*	Setting node number.		*/
-		nodeNbr = atoi(line + 1);
+		moduleNbr = strtol(line + 1, NULL, 0);
 		return;
 
 	case '=':		/*	Setting subject name.		*/
@@ -103,13 +132,14 @@ static void	handleCommand(AmsModule me, char *mode)
 		}
 
 		subjectNameLength = strlen(subjectNameString);
-		if (subjectNameLength >= sizeof subjectName)
+		if (subjectNameLength > MAX_SUBJ_NAME)
 		{
-			writeMemo("[?] Subject name is too long.");
+			writeMemoNote("[?] amsshell subject name is too long",
+					subjectNameString);
 			return;
 		}
 
-		istrcpy(subjectName, subjectNameString, sizeof subjectName);
+		istrcpy(subjectName, subjectNameString, MAX_SUBJ_NAME);
 		break;
 
 	default:
@@ -119,14 +149,16 @@ static void	handleCommand(AmsModule me, char *mode)
 
 	if (strlen(subjectName) == 0)
 	{
-		writeMemo("[?] Must specify subject before publishing msg.");
+		writeMemo("[?] amsshell: must specify subject before \
+publishing msg.");
 		return;
 	}
 
 	subjectNbr = ams_lookup_subject_nbr(me, subjectName);
 	if (subjectNbr < 0)
 	{
-		writeMemo("[?] Unknown subject; can't publish message.");
+		writeMemoNote("[?] amsshell unknown subject; can't publish \
+message", subjectName);
 		return;
 	}
 
@@ -136,16 +168,16 @@ static void	handleCommand(AmsModule me, char *mode)
 		if (ams_announce(me, roleNbr, continuumNbr, unitNbr,
 			subjectNbr, 8, 0, contentLength, content, 0) < 0)
 		{
-			putErrmsg("Unable to announce message.", NULL);
+			putErrmsg("amsshell can't announce message.", NULL);
 		}
 
 		return;
 
 	case 's':
-		if (ams_send(me, continuumNbr, unitNbr, nodeNbr,
+		if (ams_send(me, continuumNbr, unitNbr, moduleNbr,
 			subjectNbr, 8, 0, contentLength, content, 0) < 0)
 		{
-			putErrmsg("Unable to send message.", NULL);
+			putErrmsg("amsshell can't send message.", NULL);
 		}
 
 		return;
@@ -154,16 +186,17 @@ static void	handleCommand(AmsModule me, char *mode)
 		if (ams_invite(me, 0, 0, 0, subjectNbr, 8, 0, AmsArrivalOrder,
 			AmsBestEffort) < 0)
 		{
-			putErrmsg("Unable to invite reply messages.", NULL);
+			putErrmsg("amsshell can't invite reply messages.",
+					NULL);
 			return;
 		}
 
 		snooze(2);
-		if (ams_query(me, continuumNbr, unitNbr, nodeNbr,
+		if (ams_query(me, continuumNbr, unitNbr, moduleNbr,
 			subjectNbr, 8, 0, contentLength, content, 43,
 			5000000, &event) < 0)
 		{
-			putSysErrmsg("Unable to send message", NULL);
+			putErrmsg("amsshell can't send message.", NULL);
 			return;
 		}
 
@@ -189,6 +222,7 @@ static void	handleCommand(AmsModule me, char *mode)
 					ams_get_event_type(event));
 		}
 
+		fflush(stdout);
 		ams_recycle_event(event);
 		return;
 
@@ -196,14 +230,15 @@ static void	handleCommand(AmsModule me, char *mode)
 		if (ams_publish(me,
 			subjectNbr, 0, 0, contentLength, content, 0) < 0)
 		{
-			putErrmsg("Unable to publish message.", NULL);
+			putErrmsg("amsshell can't publish message.", NULL);
 		}
 	}
 }
 
 static void	reportError(void *userData, AmsEvent *event)
 {
-	puts("AMS event loop crashed.  Please enter '.' to quit.");
+	puts("AMS event loop terminated.");
+	oK(pthread_kill(_mainThread(NULL), SIGINT));
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -224,11 +259,16 @@ int	main(int argc, char **argv)
 	char	*authorityName = (argc > 4 ? argv[4] : NULL);
 	char	*mode = (argc > 5 ? argv[5] : "p");
 #endif
-	AmsModule		me;
+	pthread_t	self;
+	AmsModule	me;
 	AmsEventMgt	rules;
+	int		start = 1;
 
 #ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
-	signal(SIGINT, handleQuit);
+	self = pthread_self();
+	oK(_mainThread(&self));
+	oK(_amsshell_running(&start));
+	isignal(SIGINT, handleQuit);
 	if (unitName == NULL || roleName == NULL
 	|| applicationName == NULL || authorityName == NULL
 	|| (strcmp(mode, "p") && strcmp(mode, "s") && strcmp(mode, "q")
@@ -246,10 +286,10 @@ messages.\n", stderr);
 		return 0;
 	}
 
-	if (ams_register("amsmib.xml", NULL, applicationName,
-			authorityName, unitName, roleName, &me) < 0)
+	if (ams_register("", NULL, applicationName, authorityName, unitName,
+			roleName, &me) < 0)
 	{
-		putSysErrmsg("amsshell can't register", NULL);
+		putErrmsg("amsshell can't register.", NULL);
 		return -1;
 	}
 
@@ -257,14 +297,12 @@ messages.\n", stderr);
 	rules.errHandler = reportError;
 	if (ams_set_event_mgr(me, &rules) < 0)
 	{
-		putSysErrmsg("amsshell can't set event manager", NULL);
+		putErrmsg("amsshell can't set event manager.", NULL);
 		ams_unregister(me);
 		return -1;
 	}
 
-	subjectName[0] = '\0';
-	amsshell_running = 1;
-	while (amsshell_running)
+	while (_amsshell_running(NULL))
 	{
 		printf(": ");
 		fflush(stdout);

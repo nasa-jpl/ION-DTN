@@ -16,7 +16,7 @@ int	amssub(int a1, int a2, int a3, int a4, int a5,
 	char		*applicationName = (char *) a1;
 	char		*authorityName = (char *) a2;
 	char		*subjectName = (char *) a3;
-	AmsModule		me;
+	AmsModule	me;
 	int		subjectNbr;
 	AmsEvent	event;
 	int		cn, un, nn, sn, len, ct, pr, fl;
@@ -33,10 +33,10 @@ name>\", \"<subject name>\"");
 		return 0;
 	}
 
-	if (ams_register("amsmib.xml", NULL, applicationName, authorityName,
-				"", "log", &me) < 0)
+	if (ams_register("", NULL, applicationName, authorityName, "", "log",
+			&me) < 0)
 	{
-		putSysErrmsg("amssub can't register", NULL);
+		putErrmsg("amssub can't register.", NULL);
 		return -1;
 	}
 
@@ -44,7 +44,7 @@ name>\", \"<subject name>\"");
 	if (subjectNbr < 0)
 	{
 		ams_unregister(me);
-		putErrmsg("Subject is unknown.", subjectName);
+		writeMemoNote("[?] amssub subject is unknown", subjectName);
 		return -1;
 	}
 
@@ -52,7 +52,7 @@ name>\", \"<subject name>\"");
 				AmsAssured) < 0)
 	{
 		ams_unregister(me);
-		putSysErrmsg("amssub can't subscribe", NULL);
+		putErrmsg("amssub can't subscribe.", NULL);
 		return -1;
 	}
 
@@ -61,7 +61,7 @@ name>\", \"<subject name>\"");
 		if (ams_get_event(me, AMS_BLOCKING, &event) < 0)
 		{
 			ams_unregister(me);
-			putSysErrmsg("amssub can't get event", NULL);
+			putErrmsg("amssub can't get event.", NULL);
 			return -1;
 		}
 
@@ -85,7 +85,7 @@ int	amspub(int a1, int a2, int a3, int a4, int a5,
 	char		*authorityName = (char *) a2;
 	char		*subjectName = (char *) a3;
 	char		*msgText = (char *) a4;
-	AmsModule		me;
+	AmsModule	me;
 	int		subjectNbr;
 
 	if (applicationName == NULL
@@ -98,17 +98,17 @@ name>\", \"<subject name>\", \"<message text>\"");
 		return 0;
 	}
 
-	if (ams_register("amsmib.xml", NULL, applicationName, authorityName,
-				"", "shell", &me) < 0)
+	if (ams_register("", NULL, applicationName, authorityName, "", "shell",
+			&me) < 0)
 	{
-		putSysErrmsg("amspub can't register", NULL);
+		putErrmsg("amspub can't register.", NULL);
 		return -1;
 	}
 
 	subjectNbr = ams_lookup_subject_nbr(me, subjectName);
 	if (subjectNbr < 0)
 	{
-		putErrmsg("Subject is unknown.", subjectName);
+		writeMemoNote("[?] amssub subject is unknown", subjectName);
 		ams_unregister(me);
 		return -1;
 	}
@@ -117,7 +117,7 @@ name>\", \"<subject name>\", \"<message text>\"");
 	if (ams_publish(me, subjectNbr, 0, 0, strlen(msgText) + 1, msgText, 0)
 			< 0)
 	{
-		putErrmsg("Unable to publish message.", NULL);
+		putErrmsg("amspub can't publish message.", NULL);
 	}
 
 	snooze(1);

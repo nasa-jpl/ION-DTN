@@ -61,7 +61,9 @@ static int	dgrMamsInit(MamsInterface *tsif)
 
 	CHKERR(tsif);
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
-//printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
+#if AMSDEBUG
+printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
+#endif
 	if (dgr_open(sm_TaskIdSelf(), DGRTS_CLIENT_SVC_ID, portNbr, ipAddress,
 			memmgr_name(getIonMemoryMgr()), &dgrSap, &rc) < 0)
 	{
@@ -72,7 +74,9 @@ static int	dgrMamsInit(MamsInterface *tsif)
 	dgr_getsockname(dgrSap, &portNbr, &ipAddress);
 	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
 			portNbr);
-//printf("resulting ept is '%s'.\n", endpointNameText);
+#if AMSDEBUG
+printf("resulting ept is '%s'.\n", endpointNameText);
+#endif
 	eptLen = strlen(endpointNameText) + 1;
 	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
@@ -136,7 +140,7 @@ static void	*dgrMamsReceiver(void *parm)
 		if (enqueueMamsMsg(tsif->eventsQueue, length,
 				(unsigned char *) buffer) < 0)
 		{
-			putErrmsg("dgrts discarded MAMS message.", NULL);
+			writeMemo("[?] dgrts discarded MAMS message.");
 		}
 	}
 }
@@ -235,7 +239,7 @@ static void	*dgrAmsReceiver(void *parm)
 
 		if (enqueueAmsMsg(amsSap, (unsigned char *) buffer, length) < 0)
 		{
-			putErrmsg("dgrts discarded AMS message.", NULL);
+			writeMemo("[?] dgrts discarded AMS message.");
 		}
 	}
 }
@@ -255,8 +259,10 @@ static int	dgrParseMamsEndpoint(MamsEndpoint *ep)
 	ep->tsep = MTAKE(sizeof(DgrTsep));
 	CHKERR(ep->tsep);
 	memcpy((char *) (ep->tsep), (char *) &tsep, sizeof(DgrTsep));
-//printf("parsed '%s' to port %d address %d.\n", ep->ept, tsep.portNbr,
-//tsep.ipAddress);
+#if AMSDEBUG
+printf("parsed '%s' to port %d address %d.\n", ep->ept, tsep.portNbr,
+tsep.ipAddress);
+#endif
 	return 0;
 }
 
@@ -312,8 +318,10 @@ static int	dgrSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 	CHKERR(msg);
 	CHKERR(msgLen >= 0);
 	tsep = (DgrTsep *) (ep->tsep);
-//printf("in dgrSendMams, tsep at %d has port %d, address %d.\n", (int) tsep,
-//tsep->portNbr, tsep->ipAddress);
+#if AMSDEBUG
+printf("in dgrSendMams, tsep at %d has port %d, address %d.\n", (int) tsep,
+tsep->portNbr, tsep->ipAddress);
+#endif
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{
 		return 0;
@@ -323,11 +331,15 @@ static int	dgrSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 	if (dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, msg,
 			msgLen, &rc) < 0)
 	{
-//PUTS("dgrSendMams failed.");
+#if AMSDEBUG
+PUTS("dgrSendMams failed.");
+#endif
 		return -1;
 	}
 
-//PUTS("dgrSendMams succeeded.");
+#if AMSDEBUG
+PUTS("dgrSendMams succeeded.");
+#endif
 	return 0;
 }
 
@@ -335,7 +347,7 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 			unsigned char flowLabel, char *header,
 			int headerLen, char *content, int contentLen)
 {
-	static char	dgrAmsBuf[DGRTS_MAX_MSG_LEN];
+	char		*dgrAmsBuf;
 	int		len;
 	DgrTsep		*tsep;
 	int		i;
@@ -343,6 +355,7 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	Dgr		dgrSap;
 	unsigned short	checksum;
 	DgrRC		rc;
+	int		result;
 
 	CHKERR(dp);
 	CHKERR(sap);
@@ -352,7 +365,9 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	len = headerLen + contentLen + 2;
 	CHKERR(len <= DGRTS_MAX_MSG_LEN);
 	tsep = (DgrTsep *) (dp->tsep);
-//printf("in dgrSendAms, tsep is %d.\n", (int) tsep);
+#if AMSDEBUG
+printf("in dgrSendAms, tsep is %d.\n", (int) tsep);
+#endif
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{
 		return 0;
@@ -373,6 +388,8 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	}
 
 	dgrSap = (Dgr) (tsif->sap);
+	dgrAmsBuf = MTAKE(headerLen + contentLen + 2);
+	CHKERR(dgrAmsBuf);
 	memcpy(dgrAmsBuf, header, headerLen);
 	if (contentLen > 0)
 	{
@@ -383,14 +400,20 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 			headerLen + contentLen);
 	checksum = htons(checksum);
 	memcpy(dgrAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
-	if (dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, dgrAmsBuf,
-			len, &rc) < 0)
+	result = dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, dgrAmsBuf,
+			len, &rc);
+	MRELEASE(dgrAmsBuf);
+       	if (result < 0)
 	{
-//PUTS("dgrSendAms failed.");
+#if AMSDEBUG
+PUTS("dgrSendAms failed.");
+#endif
 		return -1;
 	}
 
-//PUTS("dgrSendAms succeeded.");
+#if AMSDEBUG
+PUTS("dgrSendAms succeeded.");
+#endif
 	return 0;
 }
 

@@ -7,39 +7,29 @@
 
 #include "rams.h"
 
-#ifdef NOEXPAT
-static char	*mibfilename = "mib.amsrc";
-#else
-static char	*mibfilename = "amsmib.xml";
-#endif
-
 #if defined (VXWORKS) || defined (RTEMS)
 int ramsgate(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char	*application = (char *) a1;
 	char	*authority = (char *) a2;
-	int	lifetime = (unsigned) strtol((char *) a3, NULL, 0);
+	long	lifetime = strtol((char *) a3, NULL, 86400);
 #else
 int main(int argc, char **argv)
 {
-	char	*application;
-	char	*authority;
-	int	lifetime;
-
-	if (argc < 4)
+	char	*application = (argc > 1 ? argv[1] : NULL);
+	char	*authority = (argc > 2 ? argv[2] : NULL);
+	long	lifetime = (argc > 3 ?  strtol(argv[3], NULL, 0) : 86400);
+#endif
+	if (application == NULL || authority == NULL || lifetime < 1)
 	{
 		PUTS("Usage: ramsgate <application name> <authority name> \
 <TTL for bundles>");
 		return 0;
 	}
 
-	application = argv[1];
-	authority = argv[2];
-	lifetime = (unsigned) strtol(argv[3], NULL, 0);
-#endif
-	if (rams_run(mibfilename, NULL, application, authority, "", "RAMS",
-				lifetime) < 0)
+	if (rams_run("", NULL, application, authority, "", "RAMS",
+			(int) lifetime) < 0)
 	{
 		putErrmsg("ramsgate can't run.", NULL);
 		writeErrmsgMemos();

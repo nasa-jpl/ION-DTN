@@ -14,6 +14,10 @@
 #ifndef _AMSCOMMON_H_
 #define _AMSCOMMON_H_
 
+#ifndef	AMSDEBUG
+#define AMSDEBUG	0
+#endif
+
 #include "platform.h"
 #include "memmgr.h"
 #include "psm.h"
@@ -98,6 +102,7 @@ extern "C" {
 #define	REJ_NO_CENSUS	2
 #define	REJ_CELL_FULL	3
 #define	REJ_NO_UNIT	4
+#define	REJ_SHUTDOWN	5
 
 /*	Common event types.						*/
 #define CRASH_EVT	11

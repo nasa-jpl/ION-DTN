@@ -177,7 +177,7 @@ typedef enum
 
 extern int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 			char *authorityName, char *unitName, char *roleName,
-			int lifetime);
+			long lifetime);
 #ifdef __cplusplus
 }
 #endif

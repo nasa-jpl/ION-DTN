@@ -362,7 +362,7 @@ static void	*tcpAmsReceiver(void *parm)
 		case -1:
 			if (errno != EBADF)
 			{
-				putErrmsg("tcpts receiver crashed.", NULL);
+				writeMemo("[?] tcpts receiver crashed.");
 			}
 
 			/*	Intentional fall-through to next case.	*/
@@ -381,7 +381,7 @@ static void	*tcpAmsReceiver(void *parm)
 		if (enqueueAmsMsg(me->amsSap, (unsigned char *) buffer, length)
 				< 0)
 		{
-			putErrmsg("tcpts discarded AMS message.", NULL);
+			writeMemo("[?] tcpts discarded AMS message.");
 		}
 
 		/*	Promote self to top of AMS receiver pool.	*/
@@ -575,7 +575,7 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 			unsigned char flowLabel, char *header, int headerLen,
 			char *content, int contentLen)
 {
-	static char		tcpAmsBuf[TCPTS_MAX_MSG_LEN];
+	char			*tcpAmsBuf;
 	unsigned int		xmitlen;
 	TcpTsep			*tsep;
 	int			i;
@@ -615,16 +615,6 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	}
 
 	tcpSap = (TcptsSap *) (tsif->sap);
-	memcpy(tcpAmsBuf, header, headerLen);
-	if (contentLen > 0)
-	{
-		memcpy(tcpAmsBuf + headerLen, content, contentLen);
-	}
-
-	checksum = computeAmsChecksum((unsigned char *) tcpAmsBuf,
-			headerLen + contentLen);
-	checksum = htons(checksum);
-	memcpy(tcpAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
 	if (tsep->fd < 0)	/*	Must open socket connection.	*/
 	{
 		memset((char *) &buf, 0, sizeof buf);
@@ -685,7 +675,20 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 		return result;
 	}
 
+	tcpAmsBuf = MTAKE(headerLen + contentLen + 2);
+	CHKERR(tcpAmsBuf);
+	memcpy(tcpAmsBuf, header, headerLen);
+	if (contentLen > 0)
+	{
+		memcpy(tcpAmsBuf + headerLen, content, contentLen);
+	}
+
+	checksum = computeAmsChecksum((unsigned char *) tcpAmsBuf,
+			headerLen + contentLen);
+	checksum = htons(checksum);
+	memcpy(tcpAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
 	result = sendBytesByTCP(tsep, tcpAmsBuf, xmitlen);
+	MRELEASE(tcpAmsBuf);
 	if (result < 1)		/*	Data not transmitted.		*/
 	{
 		return result;
@@ -753,5 +756,5 @@ void	tcptsLoadTs(TransSvc *ts)
 	ts->clearAmsEndpointFn = tcpClearAmsEndpoint;
 	ts->sendAmsFn = tcpSendAms;
 	ts->shutdownFn = tcpShutdown;
-	signal(SIGPIPE, SIG_IGN);
+	isignal(SIGPIPE, SIG_IGN);
 }

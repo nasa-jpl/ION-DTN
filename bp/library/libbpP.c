@@ -1147,6 +1147,7 @@ int	bpAttach()
 		if (bpdbObject == 0)
 		{
 			putErrmsg("Can't find BP database.", NULL);
+			ionDetach();
 			return -1;
 		}
 
@@ -1162,6 +1163,7 @@ int	bpAttach()
 		if (_bpvdb(&bpvdbName) == NULL)
 		{
 			putErrmsg("BP volatile database not found.", NULL);
+			ionDetach();
 			return -1;
 		}
 	}
