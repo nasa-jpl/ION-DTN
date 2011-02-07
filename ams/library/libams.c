@@ -4200,6 +4200,7 @@ int	ams_get_continuum_nbr()
 
 int	ams_rams_net_is_tree(AmsSAP *sap)
 {
+	CHKERR(sap);
 	return sap->venture->ramsNetIsTree;
 }
 
