@@ -572,7 +572,6 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 		return writeMemo("[?] Need app name for venture.");
 	}
 
-
 	if (authname == NULL)
 	{
 		return writeMemo("[?] Need auth name for venture.");
@@ -1461,7 +1460,7 @@ static AmsMib	*loadMibFromRcSource(char *mibSource)
 	int			length;
 	int			result = 0;
 	AmsMib			*mib;
-	AmsMibParameters	parms = { 0, NULL, NULL, 0, NULL, 0 };
+	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
 
 	if (*mibSource == '\0')		/*	Use default file name.	*/
 	{
