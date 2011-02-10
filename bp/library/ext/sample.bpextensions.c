@@ -13,18 +13,17 @@
 
 /*	Add external function declarations between here...		*/
 
-#include "ecos/ecos.h"
-#include "bsp/extbspbab.h"
-#include "bsp/extbsputil.h"
+#include "ecos.h"
+#include "ionbsp.h"
 
 /*	... and here.							*/
 
-ExtensionDef	extensions[] =
+static ExtensionDef	extensions[] =
 			{
 				{ "bsp_bab_pre", BSP_BAB_TYPE, 0,
 					bsp_babOffer,
 					bsp_babRelease,
-					bsp_babAcquire,
+					bsp_babPreAcquire,
 					bsp_babPreCheck,
 					0,
 					bsp_babClear,
@@ -66,7 +65,7 @@ ExtensionDef	extensions[] =
 				{ "unknown",0,0,0,0,0,0,0,0,0,{0,0,0,0,0} }
 			};
 
-int		extensionsCt = sizeof extensions / sizeof(ExtensionDef);
+static int		extensionsCt = sizeof extensions / sizeof(ExtensionDef);
 
 /*	NOTE: the order of appearance of extension definitions in the
  *	extensions array determines the order in which pre-payload

@@ -2241,6 +2241,9 @@ incomplete bundle.", NULL);
 	}
 
 	destroyExtensionBlocks(&bundle);
+
+        destroyCollaborationBlocks(&bundle);
+
 	purgeStationsStack(&bundle);
 	if (bundle.stations)
 	{
@@ -4553,16 +4556,20 @@ status reports for admin records.");
 	bundle.extensionsLength[0] = 0;
 	bundle.extensions[1] = sdr_list_create(bpSdr);
 	bundle.extensionsLength[1] = 0;
+        bundle.collabBlocks = sdr_list_create(bpSdr);
+        bundle.collabLength = 0;
 	bundle.stations = sdr_list_create(bpSdr);
 	bundle.trackingElts = sdr_list_create(bpSdr);
 	bundle.xmitRefs = sdr_list_create(bpSdr);
 	*bundleObj = sdr_malloc(bpSdr, sizeof(Bundle));
+
 	if (*bundleObj == 0
 	|| bundle.xmitRefs == 0
 	|| bundle.stations == 0
 	|| bundle.trackingElts == 0
 	|| bundle.extensions[0] == 0
-	|| bundle.extensions[1] == 0)
+	|| bundle.extensions[1] == 0
+        || bundle.collabBlocks == 0)
 	{
 		putErrmsg("No space for bundle object.", NULL);
 		sdr_cancel_xn(bpSdr);
@@ -5439,6 +5446,8 @@ AcqWorkArea	*bpGetAcqArea(VInduct *vduct)
 	work = (AcqWorkArea *) MTAKE(sizeof(AcqWorkArea));
 	if (work)
 	{
+		work->collabBlocks = lyst_create_using(memIdx);
+
 		work->vduct = vduct;
 		for (i = 0; i < 2; i++)
 		{
@@ -5486,6 +5495,10 @@ static void	clearAcqArea(AcqWorkArea *work)
 			deleteAcqExtBlock(elt, i);
 		}
 	}
+
+        /* Destroy collaboration blocks */
+        destroyAcqCollabBlocks(work);
+
 
 	/*	Reset all other per-bundle parameters.			*/
 
@@ -5557,6 +5570,8 @@ void	bpReleaseAcqArea(AcqWorkArea *work)
 int	bpBeginAcq(AcqWorkArea *work, int authentic, char *senderEid)
 {
 	int	eidLen;
+
+writeMemoNote("EJB: SenderEID from CL is: ", senderEid);
 
 	CHKERR(work);
 
@@ -6389,7 +6404,7 @@ void	initAuthenticity(AcqWorkArea *work)
 		OBJ_POINTER(SecDB, secdb);
 	Object	ruleAddr;
 	Object	elt;
-		OBJ_POINTER(BabRxRule, rule);
+		OBJ_POINTER(BspBabRule, rule);
 	char	senderEid[256];
 
 	work->authentic = work->allAuthentic;
@@ -6408,7 +6423,7 @@ void	initAuthenticity(AcqWorkArea *work)
 	}
 
 	GET_OBJ_POINTER(bpSdr, SecDB, secdb, secdbObj);
-	if (sdr_list_length(bpSdr, secdb->babRxRules) == 0)
+	if (sdr_list_length(bpSdr, secdb->bspBabRules) == 0)
 	{
 		work->authentic = 1;	/*	No rules, proceed.	*/
 		return;
@@ -6419,11 +6434,11 @@ void	initAuthenticity(AcqWorkArea *work)
 		return;			/*	So can't be authentic.	*/
 	}
 
-	sec_get_babRxRule(work->senderEid, &ruleAddr, &elt);
+	sec_get_bspBabRxRule(work->senderEid, &ruleAddr, &elt);
 	if (elt)
 	{
-		GET_OBJ_POINTER(bpSdr, BabRxRule, rule, ruleAddr);
-		sdr_string_read(bpSdr, senderEid, rule->xmitEid);
+		GET_OBJ_POINTER(bpSdr, BspBabRule, rule, ruleAddr);
+		sdr_string_read(bpSdr, senderEid, rule->securityDestEid);
 		if (rule->ciphersuiteName[0] == '\0')
 		{
 			work->authentic = 1;	/*	Trusted node.	*/

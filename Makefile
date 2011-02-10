@@ -121,8 +121,7 @@ am_libbpP_la_OBJECTS = bp/library/libbpP_la-libbpP.lo \
 	bp/library/libbpP_la-bei.lo \
 	bp/library/ext/bsp/libbpP_la-extbsputil.lo \
 	bp/library/ext/bsp/libbpP_la-extbspbab.lo \
-	bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo \
-	bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo
+	bp/library/crypto/NULL_SUITES/libbpP_la-crypto.lo
 libbpP_la_OBJECTS = $(am_libbpP_la_OBJECTS)
 libbpP_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libbpP_la_CFLAGS) \
@@ -1793,9 +1792,10 @@ libbpP_la_SOURCES = \
 	bp/library/bei.c \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.c \
-	bp/library/crypto/NULL_BAB_HMAC/hmac.c \
-	bp/library/crypto/NULL_BAB_HMAC/sha1.c
+	bp/library/crypto/NULL_SUITES/crypto.c 
 
+#bp/library/crypto/NULL_BAB_HMAC/hmac.c \
+#bp/library/crypto/NULL_BAB_HMAC/sha1.c
 libbpP_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libbpP_la_LDFLAGS = $(ION_LINK_FLAGS)
 
@@ -2272,18 +2272,15 @@ bp/library/ext/bsp/libbpP_la-extbsputil.lo:  \
 bp/library/ext/bsp/libbpP_la-extbspbab.lo:  \
 	bp/library/ext/bsp/$(am__dirstamp) \
 	bp/library/ext/bsp/$(DEPDIR)/$(am__dirstamp)
-bp/library/crypto/NULL_BAB_HMAC/$(am__dirstamp):
-	@$(MKDIR_P) bp/library/crypto/NULL_BAB_HMAC
-	@: > bp/library/crypto/NULL_BAB_HMAC/$(am__dirstamp)
-bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)
-	@: > bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/$(am__dirstamp)
-bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo:  \
-	bp/library/crypto/NULL_BAB_HMAC/$(am__dirstamp) \
-	bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/$(am__dirstamp)
-bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo:  \
-	bp/library/crypto/NULL_BAB_HMAC/$(am__dirstamp) \
-	bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/$(am__dirstamp)
+bp/library/crypto/NULL_SUITES/$(am__dirstamp):
+	@$(MKDIR_P) bp/library/crypto/NULL_SUITES
+	@: > bp/library/crypto/NULL_SUITES/$(am__dirstamp)
+bp/library/crypto/NULL_SUITES/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) bp/library/crypto/NULL_SUITES/$(DEPDIR)
+	@: > bp/library/crypto/NULL_SUITES/$(DEPDIR)/$(am__dirstamp)
+bp/library/crypto/NULL_SUITES/libbpP_la-crypto.lo:  \
+	bp/library/crypto/NULL_SUITES/$(am__dirstamp) \
+	bp/library/crypto/NULL_SUITES/$(DEPDIR)/$(am__dirstamp)
 libbpP.la: $(libbpP_la_OBJECTS) $(libbpP_la_DEPENDENCIES) 
 	$(libbpP_la_LINK) -rpath $(libdir) $(libbpP_la_OBJECTS) $(libbpP_la_LIBADD) $(LIBS)
 cfdp/library/$(am__dirstamp):
@@ -3130,10 +3127,8 @@ mostlyclean-compile:
 	-rm -f bp/ipn/ipnfw-ipnfw.$(OBJEXT)
 	-rm -f bp/ipn/libipnfw_la-libipnfw.$(OBJEXT)
 	-rm -f bp/ipn/libipnfw_la-libipnfw.lo
-	-rm -f bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.$(OBJEXT)
-	-rm -f bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo
-	-rm -f bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.$(OBJEXT)
-	-rm -f bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo
+	-rm -f bp/library/crypto/NULL_SUITES/libbpP_la-crypto.$(OBJEXT)
+	-rm -f bp/library/crypto/NULL_SUITES/libbpP_la-crypto.lo
 	-rm -f bp/library/ext/bsp/libbpP_la-extbspbab.$(OBJEXT)
 	-rm -f bp/library/ext/bsp/libbpP_la-extbspbab.lo
 	-rm -f bp/library/ext/bsp/libbpP_la-extbsputil.$(OBJEXT)
@@ -3312,8 +3307,7 @@ include bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Plo
 include bp/library/$(DEPDIR)/libbpP_la-bei.Plo
 include bp/library/$(DEPDIR)/libbpP_la-libbpP.Plo
 include bp/library/$(DEPDIR)/libbp_la-libbp.Plo
-include bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-hmac.Plo
-include bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-sha1.Plo
+include bp/library/crypto/NULL_SUITES/$(DEPDIR)/libbpP_la-crypto.Plo
 include bp/library/ext/bsp/$(DEPDIR)/libbpP_la-extbspbab.Plo
 include bp/library/ext/bsp/$(DEPDIR)/libbpP_la-extbsputil.Plo
 include bp/library/ext/ecos/$(DEPDIR)/libbpP_la-ecos.Plo
@@ -3531,19 +3525,12 @@ bp/library/ext/bsp/libbpP_la-extbspbab.lo: bp/library/ext/bsp/extbspbab.c
 	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/ext/bsp/libbpP_la-extbspbab.lo `test -f 'bp/library/ext/bsp/extbspbab.c' || echo '$(srcdir)/'`bp/library/ext/bsp/extbspbab.c
 
-bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo: bp/library/crypto/NULL_BAB_HMAC/hmac.c
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo -MD -MP -MF bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-hmac.Tpo -c -o bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo `test -f 'bp/library/crypto/NULL_BAB_HMAC/hmac.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_BAB_HMAC/hmac.c
-#	$(am__mv) bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-hmac.Tpo bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-hmac.Plo
-	source='bp/library/crypto/NULL_BAB_HMAC/hmac.c' object='bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo' libtool=yes \
+bp/library/crypto/NULL_SUITES/libbpP_la-crypto.lo: bp/library/crypto/NULL_SUITES/crypto.c
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/crypto/NULL_SUITES/libbpP_la-crypto.lo -MD -MP -MF bp/library/crypto/NULL_SUITES/$(DEPDIR)/libbpP_la-crypto.Tpo -c -o bp/library/crypto/NULL_SUITES/libbpP_la-crypto.lo `test -f 'bp/library/crypto/NULL_SUITES/crypto.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_SUITES/crypto.c
+#	$(am__mv) bp/library/crypto/NULL_SUITES/$(DEPDIR)/libbpP_la-crypto.Tpo bp/library/crypto/NULL_SUITES/$(DEPDIR)/libbpP_la-crypto.Plo
+	source='bp/library/crypto/NULL_SUITES/crypto.c' object='bp/library/crypto/NULL_SUITES/libbpP_la-crypto.lo' libtool=yes \
 	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/crypto/NULL_BAB_HMAC/libbpP_la-hmac.lo `test -f 'bp/library/crypto/NULL_BAB_HMAC/hmac.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_BAB_HMAC/hmac.c
-
-bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo: bp/library/crypto/NULL_BAB_HMAC/sha1.c
-#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -MT bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo -MD -MP -MF bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-sha1.Tpo -c -o bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo `test -f 'bp/library/crypto/NULL_BAB_HMAC/sha1.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_BAB_HMAC/sha1.c
-#	$(am__mv) bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-sha1.Tpo bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/libbpP_la-sha1.Plo
-	source='bp/library/crypto/NULL_BAB_HMAC/sha1.c' object='bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo' libtool=yes \
-	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/crypto/NULL_BAB_HMAC/libbpP_la-sha1.lo `test -f 'bp/library/crypto/NULL_BAB_HMAC/sha1.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_BAB_HMAC/sha1.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbpP_la_CFLAGS) $(CFLAGS) -c -o bp/library/crypto/NULL_SUITES/libbpP_la-crypto.lo `test -f 'bp/library/crypto/NULL_SUITES/crypto.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_SUITES/crypto.c
 
 cfdp/library/libcfdp_la-libcfdp.lo: cfdp/library/libcfdp.c
 #	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdp_la_CFLAGS) $(CFLAGS) -MT cfdp/library/libcfdp_la-libcfdp.lo -MD -MP -MF cfdp/library/$(DEPDIR)/libcfdp_la-libcfdp.Tpo -c -o cfdp/library/libcfdp_la-libcfdp.lo `test -f 'cfdp/library/libcfdp.c' || echo '$(srcdir)/'`cfdp/library/libcfdp.c
@@ -5004,7 +4991,7 @@ clean-libtool:
 	-rm -rf bp/dtn2/.libs bp/dtn2/_libs
 	-rm -rf bp/ipn/.libs bp/ipn/_libs
 	-rm -rf bp/library/.libs bp/library/_libs
-	-rm -rf bp/library/crypto/NULL_BAB_HMAC/.libs bp/library/crypto/NULL_BAB_HMAC/_libs
+	-rm -rf bp/library/crypto/NULL_SUITES/.libs bp/library/crypto/NULL_SUITES/_libs
 	-rm -rf bp/library/ext/bsp/.libs bp/library/ext/bsp/_libs
 	-rm -rf bp/library/ext/ecos/.libs bp/library/ext/ecos/_libs
 	-rm -rf bp/library/ext/phn/.libs bp/library/ext/phn/_libs
@@ -5600,8 +5587,8 @@ distclean-generic:
 	-rm -f bp/ipn/$(am__dirstamp)
 	-rm -f bp/library/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/library/$(am__dirstamp)
-	-rm -f bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR)/$(am__dirstamp)
-	-rm -f bp/library/crypto/NULL_BAB_HMAC/$(am__dirstamp)
+	-rm -f bp/library/crypto/NULL_SUITES/$(DEPDIR)/$(am__dirstamp)
+	-rm -f bp/library/crypto/NULL_SUITES/$(am__dirstamp)
 	-rm -f bp/library/ext/bsp/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/library/ext/bsp/$(am__dirstamp)
 	-rm -f bp/library/ext/ecos/$(DEPDIR)/$(am__dirstamp)
@@ -5672,7 +5659,7 @@ clean-am: clean-binPROGRAMS clean-checkLTLIBRARIES clean-checkPROGRAMS \
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/library/$(DEPDIR)
+	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/library/crypto/NULL_SUITES/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/library/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-libtool distclean-tags
@@ -5726,7 +5713,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/library/crypto/NULL_BAB_HMAC/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/library/$(DEPDIR)
+	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/library/crypto/NULL_SUITES/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/library/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

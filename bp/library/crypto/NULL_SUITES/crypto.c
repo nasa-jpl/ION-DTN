@@ -15,18 +15,25 @@
 /* #include "rsa.h" */
 #include "../crypto.h"
 
-
+/*
+typedef struct {
+	struct hmac_st	hmac_metainf;
+} NullSecStruct;
+*/
 /*****************************************************************************
  *                     HMAC-SHA-1 FUNCTION DEFINITIONS                        *
  *****************************************************************************/
 
 int hmac_sha1_context_length()
 {
-	return 1;
+	return 1; //sizeof(NullSecStruct); //1;
 }
 
 void hmac_sha1_init(void *context, unsigned char *key, int key_length)
 {
+    //    NullSecStruct * ctxt = (NullSecStruct *) context;
+	//memset(ctxt, 0, sizeof(NullSecStruct));
+	//memcpy(ctxt->hmac_metainf.key, key, key_length);
 	return;
 }
 
@@ -38,10 +45,18 @@ void hmac_sha1_update(void *context, unsigned char *data, int data_length)
 void hmac_sha1_final(void *context, unsigned char *result, int resultLen)
 {
 	memset(result,0,resultLen);
+
+	/*
+	NullSecStruct * ctxt = (NullSecStruct *) context;
+	memset(result, 0, resultLen);
+	// Set security result to be the first 5 bytes of the key...
+	memcpy(result, ctxt->hmac_metainf.key, 5);
+	*/
 }
 
 void hmac_sha1_reset(void *context)
 {
+	//memset(context, 0, sizeof(NullSecStruct));
 	return;
 }
 

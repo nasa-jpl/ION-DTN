@@ -59,7 +59,6 @@ int 	addCollaborationBlock(Bundle *bundle,
 	CollabBlockHdr *blk_hdr = (CollabBlockHdr *) data;
 
 	Object addr = findCollaborationBlock(bundle, blk_hdr->type, blk_hdr->id);
-
 	Sdr bpSdr = getIonsdr();
 
 	if(addr != 0)
@@ -80,6 +79,15 @@ int 	addCollaborationBlock(Bundle *bundle,
 		putErrmsg("Failed copying collab.", NULL);
 		return -1;
 	}
+
+	/* BVB */
+    if (bundle->collabBlocks == 0)
+    {
+    	/* TODO: XXX This must be MRELEASED somewhere, VERY IMPORTANT. */
+		putErrmsg("[BVB] bundle->collabBlocks list not allocated", NULL);
+		bundle->collabBlocks = sdr_list_create(bpSdr);
+		putErrmsg("[BVB] (TODO: MRELEASE this later!) collabBlocks list allocated to address ", itoa(bundle->collabBlocks));
+    }
 
 	/* Insert the new block. */
 	if(sdr_list_insert_last(bpSdr,bundle->collabBlocks,newBlkAddr) == 0)
@@ -924,6 +932,16 @@ int 	addAcqCollabBlock(AcqWorkArea *work,
 
 	/*	Populate the collaboration block structure.			*/
 	memcpy((char *) dataPtr, data, blkHdr->size);
+
+
+	if (work->collabBlocks == 0)
+	{
+		/* TODO: BVB This should probably be MRELEASED at some point.
+		 * Also, does this need to be refactored? */
+		putErrmsg("[BVB] work->collabBlocks is zero; list not created.", "Check TODO comment.");
+		work->collabBlocks = lyst_create();
+		putErrmsg("[BVB] \"lyst\" created.  Why not use sdr_create_list? collabBlocks = ", itoa((int)work->collabBlocks));
+	}
 
 	/*	Store extension block within bundle.			*/
 	elt = lyst_insert_last(work->collabBlocks, dataPtr);

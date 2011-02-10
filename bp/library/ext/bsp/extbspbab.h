@@ -14,7 +14,6 @@
 #define BSP_BABSCRATCH_RXFLAG_CORR 1 /** Block's correlated block was found */
 
 /** BAB Constants */
-#define BAB_KEY_NAME_LEN     32 /* BVB */
 #define BAB_HMAC_SHA1_RESULT_LEN 20
 #define BAB_CORRELATOR 0xED
 #define BSP_BAB_BLOCKING_SIZE 4096
@@ -39,16 +38,6 @@ typedef struct
 	int hmacLen;
 	char expectedResult[BAB_HMAC_SHA1_RESULT_LEN];
 } BspBabCollaborationBlock;
-
-typedef struct
-{
-  BspAbstractSecurityBlock asb; /** The ASB associated with this block.      */
-  char cipherKeyName[BAB_KEY_NAME_LEN]; /** Cipherkey name used by this block.*/
-  int useBab;                   /** Whether this block uses BAB blocks at all.*/
-  unsigned long rxFlags;        /** RX-side processing flags for this block. */
-  int hmacLen;
-  char expectedResult[BAB_HMAC_SHA1_RESULT_LEN];
-} BspBabScratchpad;
 
 
 
@@ -335,7 +324,6 @@ int  bsp_babPreCheck(AcqExtBlock *blk, AcqWorkArea *wk);
  *  06/06/09  E. Birrane           Documentation Pass.
  *  06/20/09  E. Birrane           Debug/Cmt update for initial release.
  *****************************************************************************/
-
 int  bsp_babPreProcessOnDequeue(ExtensionBlock *blk,
                                 Bundle *bundle,
                                 void *ctxt);
@@ -367,13 +355,7 @@ int  bsp_babPreProcessOnDequeue(ExtensionBlock *blk,
  *  06/06/09  E. Birrane           Documentation Pass.
  *  06/20/09  E. Birrane           Debug/Cmt update for initial release.
  *****************************************************************************/
-
 void bsp_babRelease(ExtensionBlock *blk);
-
-unsigned char *bsp_babGetSecResult(char *rawBundle, 
-                                   unsigned long rawBundleLen, 
-                                   char *cipherKeyName, 
-                                   unsigned long *hashLen);
 
 
 /******************************************************************************
@@ -385,7 +367,7 @@ unsigned char *bsp_babGetSecResult(char *rawBundle,
  *
  * \par Date Written:  6/02/09
  *
- * \retval void 
+ * \retval void
  *
  * \param[in]  bundle    The bundle that holding the block whose security
  *                       information is being requested.
@@ -393,10 +375,10 @@ unsigned char *bsp_babGetSecResult(char *rawBundle,
  * \param]in]  blockType The block whose key information is being requested.
  * \param[in]  bspType   The type of BSP block whose key is being requested.
  * \param[in]  eidString The name of the source endpoint.
- * \param[out] scratch   The block scratchpad holding security information for 
+ * \param[out] scratch   The block scratchpad holding security information for
  *                       this block.
- * 
- * \par Notes: 
+ *
+ * \par Notes:
  * The relationship between blockType and bspType is as follows:
  *
  *    Block Type | BSP Type
@@ -414,17 +396,28 @@ unsigned char *bsp_babGetSecResult(char *rawBundle,
  *      <any>    |  ESB
  *
  * \par Revision History:
- * 
+ *
  *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
  *  --------  ------------  -----------------------------------------------
  *  06/02/09  E. Birrane           Initial Implementation.
  *  06/18/09  E. Birrane           Re-write to incorporate Other BSP blocks
  *****************************************************************************/
-
-void bsp_babGetSecurityInfo(Bundle *bundle, 
-                            int which, 
-                            char *eidString, 
+/*
+void bsp_babGetSecurityInfo(Bundle *bundle,
+                            int which,
+                            char *eidString,
                             BspBabScratchpad *scratch);
+*/
 
- 
+
+
+unsigned char *bsp_babGetSecResult(Object dataObj,
+                                   unsigned long dataLen,
+                                   char *cipherKeyName,
+					     unsigned long keyLen,
+                                   unsigned long *hashLen);
+
+
+
+
 #endif /* EXTBSPBAB_H_ */

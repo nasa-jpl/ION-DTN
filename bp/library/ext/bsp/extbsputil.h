@@ -181,11 +181,6 @@ extern char gMsg[256];
 #define BSP_RX 1
 
 
-/* BVB */
-/** BAB rule type enumerations */
-#define BAB_TX 0
-#define BAB_RX 1 
-
 /** 
  * BAB Block Type Fields 
  * 
@@ -474,9 +469,61 @@ unsigned char *bsp_serializeASB(unsigned int *length,
  *                            BAB UTILITY FUNCTIONS                          *
  *****************************************************************************/
 
+/******************************************************************************
+ *
+ * \par Function Name: bsp_getSecurityInfo
+ *
+ * \par Purpose: This utility function retrieves security information for a
+ *               given BAB block from the ION security manager.
+ *
+ * \par Date Written:  6/02/09
+ *
+ * \retval void 
+ *
+ * \param[in]  bundle    The bundle that holding the block whose security
+ *                       information is being requested.
+ * \param[in]  which     Whether we are receiving or transmitting the block.
+ * \param]in]  blockType The block whose key information is being requested.
+ * \param[in]  bspType   The type of BSP block whose key is being requested.
+ * \param[in]  eidString The name of the source endpoint.
+ * \param[out] scratch   The block scratchpad holding security information for 
+ *                       this block.
+ * 
+ * \par Notes: 
+ * The relationship between blockType and bspType is as follows:
+ *
+ *    Block Type | BSP Type
+ *    -----------+----------
+ *      BAB      |  BAB
+ *    -----------+----------
+ *      Payload  |  PIB
+ *      PIB      |  PIB
+ *      PCB      |  PIB
+ *    -----------+----------
+ *      Payload  |  PCB
+ *      PIB      |  PCB
+ *      PCB      |  PCB
+ *    -----------+----------
+ *      <any>    |  ESB
+ *
+ * \par Revision History:
+ * 
+ *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
+ *  --------  ------------  -----------------------------------------------
+ *  06/02/09  E. Birrane           Initial Implementation.
+ *  06/18/09  E. Birrane           Re-write to incorporate Other BSP blocks
+ *****************************************************************************/
+
+void bsp_getSecurityInfo(Bundle *bundle, 
+                         int which,
+                         unsigned char blockType,
+                         int bspType,
+                         char *eidSourceString,
+                         char *eidDestString,
+                         BspSecurityInfo *secInfo);
 
 
- void	getBspItem(int itemNeeded, unsigned char *bspBuf,
+void	getBspItem(int itemNeeded, unsigned char *bspBuf,
 			unsigned long bspLen, unsigned char **val,
 			unsigned long *len);
 

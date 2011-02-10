@@ -964,8 +964,9 @@ libbpP_la_SOURCES = \
 	bp/library/bei.c \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.c \
-	bp/library/crypto/NULL_BAB_HMAC/hmac.c \
-	bp/library/crypto/NULL_BAB_HMAC/sha1.c
+	bp/library/crypto/NULL_SUITES/crypto.c 
+#bp/library/crypto/NULL_BAB_HMAC/hmac.c \
+#bp/library/crypto/NULL_BAB_HMAC/sha1.c
 libbpP_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libbpP_la_LDFLAGS = $(ION_LINK_FLAGS)
 
