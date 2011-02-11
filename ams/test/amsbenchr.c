@@ -49,7 +49,7 @@ int	main(int argc, char **argv)
 	subjectNbr = ams_lookup_subject_nbr(me, "bench");
 	if (subjectNbr < 0)
 	{
-		putErrmsg("Subject 'bench' is unknown.", NULL);
+		putErrmsg("amsbenchr: subject 'bench' is unknown.", NULL);
 		return -1;
 	}
 

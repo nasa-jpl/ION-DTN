@@ -1,0 +1,53 @@
+=head1 NAME
+
+amshello - Asynchronous Message Service (AMS) demo program for UNIX
+
+=head1 SYNOPSIS
+
+B<amshello>
+
+=head1 DESCRIPTION
+
+B<amshello> is a sample program designed to demonstrate that an entire
+(very simple) distributed AMS application can be written in just a few
+lines of C code.  When started, B<amshello> forks a second process and
+initiates transmission of a "Hello" text message from one process to the
+other, after which both processes unregister and terminate.
+
+The B<amshello> processes will register as application modules in the
+root unit of the venture identified by application name "amsdemo" and
+authority name "test".  A configuration server for the local continuum
+and a registrar for the root unit of that venture (which may both be
+instantiated in a single B<amsd> daemon task) must be running in order
+for the B<amshello> processes to run.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item 0
+
+B<amshello> terminated normally.
+
+=back
+
+=head1 FILES
+
+A MIB initialization file with the applicable default name (see amsrc(5))
+must be present.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+No diagnostics apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+amsrc(5)

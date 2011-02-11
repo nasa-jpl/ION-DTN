@@ -112,7 +112,7 @@ is 255.");
 		unitNbr = strtol(line + 1, NULL, 0);
 		return;
 
-	case 'n':		/*	Setting node number.		*/
+	case 'm':		/*	Setting node number.		*/
 		moduleNbr = strtol(line + 1, NULL, 0);
 		return;
 

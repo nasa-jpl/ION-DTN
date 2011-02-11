@@ -1,6 +1,6 @@
 =head1 NAME
 
-amsstop - Asynchronous Message Service(AMS) shutdown utility
+amsstop - Asynchronous Message Service (AMS) shutdown utility
 
 =head1 SYNOPSIS
 

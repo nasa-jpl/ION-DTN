@@ -1,0 +1,72 @@
+=head1 NAME
+
+amspub - Asynchronous Message Service (AMS) test driver for VxWorks
+
+=head1 SYNOPSIS
+
+B<amspub> "I<application_name>", "I<authority_name>", "I<subject_name>", "I<message_text>"
+
+=head1 DESCRIPTION
+
+B<amspub> is a message publication program designed to test AMS functionality
+in a VxWorks environment.  When an B<amspub> task is started, it registers
+as an application module in the root unit of the venture identified by
+I<application_name> and I<authority_name>, looks up the subject number for
+I<subject_name>, publishes a single message with content I<message_text> on
+that subject, unregisters, and terminates.
+
+A configuration server for the local continuum and a registrar for the root
+unit of the indicated venture (which may both be instantiated in a single
+B<amsd> daemon task) must be running in order for B<amspub> to run.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item -1
+
+B<amspub> terminated with an error as noted in the ion.log file.
+
+=item 0
+
+B<amspub> terminated normally.
+
+=back
+
+=head1 FILES
+
+The B<amspub> source code is in the amspubsub.c source file.
+
+A MIB initialization file with the applicable default name (see amsrc(5))
+must be present.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+=over 4
+
+=item amspub can't register.
+
+B<amspub> failed to register, for reasons noted in the ion.log file.
+
+=item amspub: subject is unknown
+
+B<amspub> can't publish test messages on the specified subject; possibly
+an error in the MIB initialization file.
+
+=item amspub can't publish message.
+
+B<amspub> failed to publish, for reasons noted in the ion.log file.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+amssub(1), amsrc(5)

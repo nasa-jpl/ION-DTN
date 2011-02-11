@@ -1,0 +1,78 @@
+=head1 NAME
+
+amsbenchr - Asynchronous Message Service (AMS) benchmarking meter
+
+=head1 SYNOPSIS
+
+B<amsbenchr>
+
+=head1 DESCRIPTION
+
+B<amsbenchr> is a test program that simply subscribes to subject "bench"
+and receives messages published by B<amsbenchs> until all messages in the
+test - as indicated by the count of remaining messages, in in the first
+four bytes of each message - have been received.  Then it stops receiving
+messages, calculates and prints performance statistics, and terminates.
+
+B<amsbenchr> will register as an application module in the root unit of
+the venture identified by application name "amsdemo" and authority name
+"test".  A configuration server for the local continuum and a registrar
+for the root unit of that venture (which may both be instantiated in a
+single B<amsd> daemon task) must be running in order for B<amsbenchr> to
+commence operations.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item -1
+
+B<amsbenchr> failed, for reasons noted in the ion.log file.
+
+=item 0
+
+B<amsbenchr> terminated normally.
+
+=back
+
+=head1 FILES
+
+A MIB initialization file with the applicable default name (see amsrc(5))
+must be present.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item amsbenchr can't register.
+
+B<amsbenchr> failed to register, for reasons noted in the ion.log file.
+
+=item amsbenchr: subject 'bench' is unknown.
+
+B<amsbenchr> can't subscribe to test messages; probably an error in the MIB
+initialization file.
+
+=item amsbenchr can't subscribe.
+
+B<amsbenchr> failed to subscribe, for reasons noted in the ion.log file.
+
+=item amsbenchr can't get event.
+
+B<amsbenchr> failed to receive a message, for reasons noted in the ion.log file.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+amsrc(5)

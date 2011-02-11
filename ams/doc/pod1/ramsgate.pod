@@ -42,8 +42,8 @@ B<ramsgate> terminated normally.
 
 =item 1
 
-B<ramsgate> operation failed, for reasons noted in the ion.log file;
-B<ramsgate> terminated.
+B<ramsgate> failed, for reasons noted in the ion.log file; the task
+terminated.
 
 =back
 
