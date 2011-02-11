@@ -50,6 +50,8 @@ static AmsMib	*loadTestMib()
 {
 	AmsMibParameters	parms = { 1, "dgr", NULL, NULL };
 	AmsMib			*mib;
+	char			ownHostName[MAXHOSTNAMELEN + 1];
+	char			eps[MAXHOSTNAMELEN + 5 + 1];
 	LystElt			elt;
 	Venture			*venture;
 	AppRole			*role;
@@ -61,7 +63,9 @@ static AmsMib	*loadTestMib()
 		return crash(mib);
 	}
 
-	elt = createCsEndpoint("localhost", NULL);
+	getNameOfHost(ownHostName, sizeof ownHostName);
+	isprintf(eps, sizeof eps, "%s:2357", ownHostName);
+	elt = createCsEndpoint(eps, NULL);
        	if (elt == NULL)
 	{
 		return crash(mib);

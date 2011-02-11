@@ -898,7 +898,14 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	memcpy(header + 12, (char *) &i2, 2);
 	*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
 	*(header + 15) = (*contentLength) & 0x000000ff;
-	subject = sap->venture->subjects[subjectNbr];
+	if (subjectNbr > 0)
+	{
+		subject = sap->venture->subjects[subjectNbr];
+	}
+	else
+	{
+		subject = sap->venture->msgspaces[0 - subjectNbr];
+	}
 
 	/*	Marshal content as necessary.				*/
 
