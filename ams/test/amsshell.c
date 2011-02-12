@@ -10,7 +10,7 @@
 /*	All rights reserved.						*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#include <ams.h>
+#include "ams.h"
 
 #define	MAX_SUBJ_NAME	32
 

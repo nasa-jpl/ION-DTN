@@ -320,7 +320,7 @@ static void	crashThread(DgrSAP *sap, char *msg)
 		sap->state = DgrSapDamaged;
 	}
 
-	putSysErrmsg(msg, NULL);
+	putErrmsg(msg, NULL);
 }
 
 static int	time_to_stop(Llcv llcv)

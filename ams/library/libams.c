@@ -42,6 +42,9 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			AmsDiligence diligence);
 
 #define	MAX_AMS_CONTENT	(65000)
+#ifndef AMS_INDUSTRIAL
+#define	AMS_INDUSTRIAL	0
+#endif
 
 /*			Privately defined event types.			*/
 #define ACCEPTED_EVT	32
@@ -573,10 +576,14 @@ static int	recoverMsgContent(AmsMsg *msg, Subject *subject)
 	|| subject->symmetricKeyName == NULL)	/*	not encrypted	*/
 	{
 		newContentLength = msg->contentLength;
+#if AMS_INDUSTRIAL
+		newContent = malloc(msg->contentLength);
+#else
 		newContent = MTAKE(msg->contentLength);
+#endif
 		if (newContent == NULL)
 		{
-			putErrmsg("Can't copy AAMS msg content.",
+			writeMemoNote("[?] Can't copy AAMS msg content",
 					itoa(msg->contentLength));
 			msg->content = NULL;
 			return -1;
@@ -2460,7 +2467,7 @@ printf("Parsing new subscription with %d bytes remaining.\n", bytesRemaining);
 		return;
 
 	case unsubscribe:
-		if (msg->supplementLength < 7)
+		if (msg->supplementLength < CANCEL_LEN)
 		{
 			putErrmsg("unsubscribe lacks cancellation.", NULL);
 			return;
@@ -2696,7 +2703,7 @@ printf("Parsing new invitation with %d bytes remaining.\n", bytesRemaining);
 		return;
 
 	case disinvite:
-		if (msg->supplementLength < 7)
+		if (msg->supplementLength < CANCEL_LEN)
 		{
 			putErrmsg("disinvite lacks cancellation.", NULL);
 			return;
@@ -4723,7 +4730,7 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		return 0;		/*	Redundant but okay.	*/
 	}
 
-	cancellation = MTAKE(7);
+	cancellation = MTAKE(CANCEL_LEN);
 	CHKERR(cancellation);
 	i2 = subjectNbr;
 	i2 = htons(i2);
@@ -4736,7 +4743,7 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	*(cancellation + 6) = roleNbr;
 	if (enqueueMsgToRegistrar(sap, disinvite,
 			computeModuleId(sap->role->nbr, sap->unit->nbr,
-			sap->moduleNbr), 7, (char *) cancellation) < 0)
+			sap->moduleNbr), CANCEL_LEN, (char *) cancellation) < 0)
 	{
 		return -1;
 	}
@@ -4917,7 +4924,7 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		return 0;		/*	Redundant but okay.	*/
 	}
 
-	cancellation = MTAKE(7);
+	cancellation = MTAKE(CANCEL_LEN);
 	CHKERR(cancellation);
 	i2 = subjectNbr;
 	i2 = htons(i2);
@@ -4931,7 +4938,7 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	*(cancellation + 6) = roleNbr;
 	if (enqueueMsgToRegistrar(sap, unsubscribe,
 			computeModuleId(sap->role->nbr, sap->unit->nbr,
-			sap->moduleNbr), 7, (char *) cancellation) < 0)
+			sap->moduleNbr), CANCEL_LEN, (char *) cancellation) < 0)
 	{
 		return -1;
 	}
@@ -6294,7 +6301,11 @@ int	ams_recycle_event(AmsEvent event)
 		msg = (AmsMsg *) (event->value);
 		if (msg->content)
 		{
+#if AMS_INDUSTRIAL
+			free(msg->content);
+#else
 			MRELEASE(msg->content);
+#endif
 		}
 	}
 

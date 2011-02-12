@@ -32,6 +32,7 @@ extern "C" {
 
 #define INVITE_LEN	(9)
 #define SUBSCRIBE_LEN	(9)
+#define CANCEL_LEN	(7)
 
 #define	MAX_APP_NAME	32
 #define	MAX_AUTH_NAME	32
