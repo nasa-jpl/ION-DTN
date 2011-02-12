@@ -28,8 +28,8 @@ int	main(int argc, char **argv)
 	unsigned char	fl;
 	AmsMsgType	mt;
 	char		*txt;
-	int		count = -1;
-	int		msgs = 0;
+	int		msgsRemaining = 1;
+	int		msgs = -1;
 	double		bytes = 0.0;
 	struct timeval	startTime;
 	struct timeval	endTime;
@@ -72,25 +72,27 @@ int	main(int argc, char **argv)
 		{
 			ams_parse_msg(event, &cn, &zn, &nn, &sn, &len, &txt,
 					&ct, &mt, &pr, &fl);
-			if (count < 0)	/*	First message.		*/
+			memcpy((char *) &msgsRemaining, txt, sizeof(int));
+			msgsRemaining = ntohl(msgsRemaining);
+			if (msgsRemaining < 1)
+			{
+				writeMemoNote("Count in message is < 1",
+						itoa(msgsRemaining));
+			}
+
+			if (msgs < 0)		/*	First message.	*/
 			{
 				getCurrentTime(&startTime);
-				memcpy((char *) &count, txt, sizeof(int));
-				msgs = count = ntohl(count);
-				if (count < 1)
-				{
-					writeMemoNote("Count in message is < 1",
-							itoa(count));
-					break;
-				}
+				msgs = 0;
 			}
 
 			bytes += len;
-			count--;
+			msgs += 1;
+			msgsRemaining--;	/*	(Got this one.)	*/
 		}
 
 		ams_recycle_event(event);
-		if (count == 0)
+		if (msgsRemaining < 1)
 		{
 			break;
 		}
@@ -109,7 +111,7 @@ int	main(int argc, char **argv)
 	msgsPerSec = msgs / seconds;
 	bytesPerSec = bytes / seconds;
 	Mbps = (bytesPerSec * 8) / (1024 * 1024);
-	isprintf(buf, sizeof buf, "Received %d messages, totalling %.0f bytes,\
+	isprintf(buf, sizeof buf, "Received %d messages, a total of %.0f bytes,\
 in %f seconds.", msgs, bytes, seconds);
 	PUTS(buf);
 	isprintf(buf, sizeof buf, "%10.3f messages per second.", msgsPerSec);

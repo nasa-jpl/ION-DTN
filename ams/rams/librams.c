@@ -666,7 +666,7 @@ printf("\n");
 
 	ownPseudoSubject = 0 - gWay->amsMib->localContinuumNbr;
 	if (ams_subscribe(gWay->amsModule, 0, 0, 0, ownPseudoSubject, 10, 0,
-			AmsArrivalOrder, AmsAssured) < 0)
+			AmsTransmissionOrder, AmsAssured) < 0)
 	{
 		putErrmsg("Can't subscribe to local continuum pseudo-subject.",
 				itoa(ownPseudoSubject));
@@ -1762,7 +1762,7 @@ PUTS("<handle petition assertion> create new petition");
 		{
 			if (ams_subscribe(gWay->amsModule, domainRole,
 				domainContinuum, domainUnit, subjectNbr, 10,
-				0, AmsArrivalOrder, AmsAssured) < 0)
+				0, AmsTransmissionOrder, AmsAssured) < 0)
 			{
 				ErrMsg("Can't subscribe for newly asserted \
 petition.");

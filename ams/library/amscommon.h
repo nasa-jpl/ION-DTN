@@ -18,6 +18,18 @@
 #define AMSDEBUG	0
 #endif
 
+#ifndef AMS_INDUSTRIAL
+#define AMS_INDUSTRIAL	0
+#endif
+
+#if AMS_INDUSTRIAL
+#define TAKE_CONTENT_SPACE(size)	malloc(size)
+#define RELEASE_CONTENT_SPACE(size)	free(size)
+#else
+#define TAKE_CONTENT_SPACE(size)	MTAKE(size)
+#define RELEASE_CONTENT_SPACE(size)	MRELEASE(size)
+#endif
+
 #include "platform.h"
 #include "memmgr.h"
 #include "psm.h"

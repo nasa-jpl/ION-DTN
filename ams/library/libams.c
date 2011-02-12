@@ -42,9 +42,6 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			AmsDiligence diligence);
 
 #define	MAX_AMS_CONTENT	(65000)
-#ifndef AMS_INDUSTRIAL
-#define	AMS_INDUSTRIAL	0
-#endif
 
 /*			Privately defined event types.			*/
 #define ACCEPTED_EVT	32
@@ -342,7 +339,7 @@ static void	destroyAmsEvent(LystElt elt, void *userdata)
 		amsMsg = (AmsMsg *) (event->value);
 		if (amsMsg->content)
 		{
-			MRELEASE(amsMsg->content);
+			RELEASE_CONTENT_SPACE(amsMsg->content);
 		}
 	}
 	else if (event->type == MAMS_MSG_EVT)
@@ -576,11 +573,7 @@ static int	recoverMsgContent(AmsMsg *msg, Subject *subject)
 	|| subject->symmetricKeyName == NULL)	/*	not encrypted	*/
 	{
 		newContentLength = msg->contentLength;
-#if AMS_INDUSTRIAL
-		newContent = malloc(msg->contentLength);
-#else
-		newContent = MTAKE(msg->contentLength);
-#endif
+		newContent = TAKE_CONTENT_SPACE(msg->contentLength);
 		if (newContent == NULL)
 		{
 			writeMemoNote("[?] Can't copy AAMS msg content",
@@ -630,7 +623,7 @@ static int	recoverMsgContent(AmsMsg *msg, Subject *subject)
 	if (newContentLength == 0)
 	{
 		putErrmsg("Can't unmarshal AAMS msg content.", subject->name);
-		MRELEASE(msg->content);
+		RELEASE_CONTENT_SPACE(msg->content);
 		msg->content = NULL;
 		return -1;
 	}
@@ -6301,11 +6294,7 @@ int	ams_recycle_event(AmsEvent event)
 		msg = (AmsMsg *) (event->value);
 		if (msg->content)
 		{
-#if AMS_INDUSTRIAL
-			free(msg->content);
-#else
-			MRELEASE(msg->content);
-#endif
+			RELEASE_CONTENT_SPACE(msg->content);
 		}
 	}
 
