@@ -70,6 +70,20 @@ RAMS gateway functionality failed, for reasons noted in the ion.log file.
 
 =head1 BUGS
 
+Note that the AMS design principle of receiving messages immediately and
+enqueuing them for eventual ingestion by the application module - rather
+than imposing application-layer flow control on AMS message traffic - enables
+high performance but makes B<ramsgate> vulnerable to message spikes.  Since
+production and transmission of bundles is typically slower than AMS message
+reception over TCP service, the ION working memory and/or heap space available
+for AMS event insertion and/or bundle production can be quickly exhausted if
+a high rate of application message production is sustained for a long enough
+time.  Mechanisms for defending against this sort of failure are under study,
+but for now the best mitigations are simply to (a) build with compiler option
+-DAMS_INDUSTRIAL=1, (b) allocate as much space as possible to ION working
+memory and SDR heap (see ionconfig(5)) and (c) limit the rate of AMS message
+issuance.
+
 Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
 
 =head1 SEE ALSO

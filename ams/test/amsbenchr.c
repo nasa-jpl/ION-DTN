@@ -28,7 +28,7 @@ int	main(int argc, char **argv)
 	unsigned char	fl;
 	AmsMsgType	mt;
 	char		*txt;
-	int		msgsRemaining = 1;
+	int		msgNbr = 0;
 	int		msgs = -1;
 	double		bytes = 0.0;
 	struct timeval	startTime;
@@ -72,12 +72,16 @@ int	main(int argc, char **argv)
 		{
 			ams_parse_msg(event, &cn, &zn, &nn, &sn, &len, &txt,
 					&ct, &mt, &pr, &fl);
-			memcpy((char *) &msgsRemaining, txt, sizeof(int));
-			msgsRemaining = ntohl(msgsRemaining);
-			if (msgsRemaining < 1)
+			memcpy((char *) &msgNbr, txt, sizeof(int));
+			msgNbr = ntohl(msgNbr);
+
+			/*	Messages arrive in reverse nbr order.	*/
+
+			if (msgNbr < 1)
 			{
-				writeMemoNote("Count in message is < 1",
-						itoa(msgsRemaining));
+				writeMemoNote("Message number is < 1",
+						itoa(msgNbr));
+				msgNbr = 1;
 			}
 
 			if (msgs < 0)		/*	First message.	*/
@@ -88,11 +92,10 @@ int	main(int argc, char **argv)
 
 			bytes += len;
 			msgs += 1;
-			msgsRemaining--;	/*	(Got this one.)	*/
 		}
 
 		ams_recycle_event(event);
-		if (msgsRemaining < 1)
+		if (msgNbr == 1)		/*	Last message.	*/
 		{
 			break;
 		}
