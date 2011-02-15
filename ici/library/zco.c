@@ -27,6 +27,8 @@ typedef struct
 	short		okayToDestroy;
 	short		unlinkOnDestroy;
 	time_t		inode;		/*	to detect change	*/
+	unsigned long	fileLength;
+	unsigned long	xmitProgress;
 	char		pathName[256];
 	char		cleanupScript[256];
 } FileRef;
@@ -171,6 +173,8 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 	fileRef.okayToDestroy = 0;
 	fileRef.unlinkOnDestroy = 0;
 	fileRef.inode = statbuf.st_ino;
+	fileRef.fileLength = statbuf.st_size;
+	fileRef.xmitProgress = 0;
 	memcpy(fileRef.pathName, pathName, pathLen);
 	fileRef.pathName[pathLen] = '\0';
 	if (cleanupScript)
@@ -318,6 +322,16 @@ unsigned int	zco_file_ref_occupancy(Sdr sdr, Object fileRefObj)
 	/*	For now, all file reference objects are the same size.	*/
 
 	return sizeof(FileRef);
+}
+
+int	zco_file_ref_xmit_eof(Sdr sdr, Object fileRefObj)
+{
+	OBJ_POINTER(FileRef, fileRef);
+
+	CHKZERO(sdr);
+	CHKZERO(fileRefObj);
+	GET_OBJ_POINTER(sdr, FileRef, fileRef, fileRefObj);
+	return (fileRef->xmitProgress == fileRef->fileLength);
 }
 
 static void	destroyFileReference(Sdr sdr, FileRef *fileRef,
@@ -1058,6 +1072,7 @@ static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 	int		fd;
 	int		bytesRead;
 	struct stat	statbuf;
+	unsigned long	xmitProgress = 0;
 
 	if (sourceMedium == ZcoSdrSource)
 	{
@@ -1067,7 +1082,12 @@ static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 	}
 	else	/*	Source text of ZCO is a file.			*/
 	{
-		sdr_read(sdr, (char *) &fileRef, extent->location,
+		if (reader->trackFileOffset)
+		{
+			xmitProgress = extent->offset + bytesToSkip + bytesAvbl;
+		}
+
+		sdr_stage(sdr, (char *) &fileRef, extent->location,
 				sizeof(FileRef));
 		fd = open(fileRef.pathName, O_RDONLY, 0);
 		if (fd >= 0)
@@ -1091,6 +1111,17 @@ static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 				close(fd);
 				if (bytesRead == bytesAvbl)
 				{
+					/*	Update xmit progress.	*/
+
+					if (xmitProgress > fileRef.xmitProgress)
+					{
+						fileRef.xmitProgress
+							= xmitProgress;
+						sdr_write(sdr, extent->location,
+							(char *) &fileRef,
+							sizeof(FileRef));
+					}
+
 					return bytesAvbl;
 				}
 			}
@@ -1320,6 +1351,15 @@ void	zco_start_transmitting(Sdr sdr, Object zcoRef, ZcoReader *reader)
 	CHKVOID(zcoRef);
 	CHKVOID(reader);
 	reader->reference = zcoRef;
+	reader->trackFileOffset = 0;
+}
+
+void	zco_track_file_offset(ZcoReader *reader)
+{
+	if (reader)
+	{
+		reader->trackFileOffset = 1;
+	}
 }
 
 int	zco_transmit(Sdr sdr, ZcoReader *reader, unsigned int length,
@@ -1475,6 +1515,11 @@ int	zco_transmit(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 void	zco_stop_transmitting(Sdr sdr, ZcoReader *reader)
 {
+	if (reader)
+	{
+		reader->trackFileOffset = 0;
+	}
+
 	return;		/*	For backward compatibility.		*/
 }
 
@@ -1486,6 +1531,7 @@ void	zco_start_receiving(Sdr sdr, Object zcoRef, ZcoReader *reader)
 	CHKVOID(zcoRef);
 	CHKVOID(reader);
 	reader->reference = zcoRef;
+	reader->trackFileOffset = 0;
 }
 
 int	zco_receive_headers(Sdr sdr, ZcoReader *reader, unsigned int length,
@@ -1793,6 +1839,11 @@ int	zco_receive_trailers(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 void	zco_stop_receiving(Sdr sdr, ZcoReader *reader)
 {
+	if (reader)
+	{
+		reader->trackFileOffset = 0;
+	}
+
 	return;		/*	For backward compatibility.		*/
 }
 

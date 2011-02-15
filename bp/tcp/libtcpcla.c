@@ -208,6 +208,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 	int		bytesSent;
 
 	zco_start_transmitting(sdr, bundleZco, &reader);
+	zco_track_file_offset(&reader);
 	while (bytesRemaining > 0)
 	{
 		bytesToLoad = TCPCLA_BUFSZ - bytesBuffered;

@@ -13,7 +13,9 @@
 
 #define	EST_LINK_OHD	16
 
+#ifndef LTPDEBUG
 #define	LTPDEBUG	0
+#endif
 
 #define LTP_VERSION	0;
 
@@ -2092,6 +2094,7 @@ static int	readFromExportBlock(char *buffer, Object svcDataObjects,
 
 		handle = zco_add_reference(ltpSdr, sdu);
 		zco_start_transmitting(ltpSdr, handle, &reader);
+		zco_track_file_offset(&reader);
 		if (offset > 0)
 		{
 			if (zco_transmit(ltpSdr, &reader, offset, NULL) < 0)

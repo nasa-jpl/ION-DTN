@@ -70,9 +70,8 @@ typedef enum
 
 typedef struct
 {
-	Object	reference;	/*	ZcoReference			*/
-	Object	fileRefObj;
-	int	fd;
+	Object	reference;		/*	ZcoReference		*/
+	int	trackFileOffset;
 } ZcoReader;
 
 /*		Commonly used functions for building, managing,
@@ -123,6 +122,15 @@ unsigned int	zco_file_ref_occupancy(Sdr sdr,
 			 *	If fileRef is zero, returns the maximum
 			 *	possible SDR space occupancy of any
 			 *	single file reference object.		*/
+
+int		zco_file_ref_xmit_eof(Sdr sdr,
+				Object fileRef);
+			/*	Returns 1 if the last octet of the
+			 *	referenced file (as determined at the
+			 *	time the file reference object was
+			 *	created) has been read by ZCO via a
+			 *	reader with file offset tracking
+			 *	turned on.  Otherwise returns zero.	*/
 
 void		zco_destroy_file_ref(Sdr sdr,
 				Object fileRef);
@@ -238,6 +246,10 @@ void		zco_start_transmitting(Sdr sdr,
 			 *	already been read via this ZCO
 			 *	reference, if any.  Populates "reader"
 			 *	object, which is required.		*/
+
+void		zco_track_file_offset(ZcoReader *reader);
+			/*	Turn on file offset tracking for this
+			 *	reader.					*/
 
 int		zco_transmit(	Sdr sdr,
 				ZcoReader *reader,
