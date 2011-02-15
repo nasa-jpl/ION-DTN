@@ -25,7 +25,7 @@ typedef struct
 
 static void	handleQuit()
 {
-	PUTS("Please enter command 'q' to stop the program.");
+	PUTS("cfdptest interrupted.");
 }
 
 static void	printUsage()
