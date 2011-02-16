@@ -214,7 +214,6 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 		{
 			if (fdu.transmitted == 0 && fdu.state != FduCanceled)
 			{
-writeMemo("[!] CFDP clock is enqueuing indications.");
 				fdu.transmitted = 1;
 				sdr_write(sdr, fduObj, (char *) &fdu,
 						sizeof(OutFdu));
