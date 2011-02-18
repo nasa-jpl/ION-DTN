@@ -36,6 +36,22 @@
 # send another file.  The second file goes into limbo and is released
 # from limbo when the receiving node is restarted and reopens its TCP
 # socket, enabling the keepalive thread to unblock the outduct.
+#
+# Finally, we trigger an automatic blockage again. But, this time with
+# a backup contact active for the bundle to reForward through
+# when the preferred contact is blocked.
+
+#
+# Get the latest bp stat printed to an ion.log file
+#
+function getStatsCounter() {
+	TYPE=$1
+	PRI=$2
+	FILE=$3
+
+	grep "$TYPE from [0-9]" "$FILE" | tail -n 1 | sed "s/^.*($PRI) *\\([0-9]*\\)  *\\([0-9]*\\).*$/\\1/"
+}
+
 
 ./cleanup
 sleep 1
@@ -44,8 +60,11 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0
 
+
 # Start nodes.
 cd 3.ipn.tcp
+./ionstart
+cd ../5.ipn.tcp
 ./ionstart
 cd ../2.ipn.tcp
 ./ionstart
@@ -145,6 +164,7 @@ fi
 echo ""
 # Now break TCP connectivity to node 3.
 echo "Breaking TCP connection to node 3 to test automatic blocking..."
+cd ../3.ipn.tcp
 ./ionstop
 echo "Node 3 is stopped."
 echo "Sleeping 30 sec to give keepalive thread time to detect closed socket..."
@@ -196,7 +216,7 @@ else
 fi
 
 echo ""
-# Finally, send one more file from node 2 to test the new connection.
+# Send one more file from node 2 to test the new connection.
 cd ../2.ipn.tcp
 echo "Sending fifth file from node 2 to node 3 to test restored connectivity..."
 bpsendfile ipn:2.1 ipn:3.1 testfilez
@@ -216,11 +236,121 @@ else
 fi
 
 echo ""
+# Get the stats from node 2
+echo "Getting stats from node 2..."
+cd ../2.ipn.tcp
+bpstats 
+sleep 1
+START_COUNT=`getStatsCounter 'fwd' '1' ion.log`
+echo " -> $START_COUNT fwd bundles"
+
+
+# Send file from node 5 to verify route through node 2
+cd ../5.ipn.tcp
+echo "Sending sixth file from node 5 to node 2 to node 3 to verify 5 prefers that plan..."
+bpsendfile ipn:5.1 ipn:3.1 testfile5a
+sleep 2
+
+# Verify that this file arrived.
+cd ../3.ipn.tcp
+if grep -q 'test file 5a' testfile3
+then
+	echo ""
+	echo "Okay: got a copy of file 5a."
+else
+	echo ""
+	echo "Error: didn't get a copy of file 5a."
+	RETVAL=1
+fi
+
+echo ""
+# Get the stats from node 2 again
+echo "Getting stats from node 2 to verify it increased..."
+cd ../2.ipn.tcp
+bpstats 
+sleep 1
+END_COUNT=`getStatsCounter 'fwd' '1' ion.log`
+echo " -> $END_COUNT fwd bundles"
+
+if [ "$START_COUNT" -lt "$END_COUNT" ]
+then
+	echo ""
+	echo "Okay: bundle routed through node 2"
+else
+	echo ""
+	echo "Error: bundle didn't route through node 2. Results of test would be invalid"
+	echo "The configuration of node 5 needs to be setup to prefer to route through node 2"
+	RETVAL=1
+fi
+
+cd ../5.ipn.tcp
+NODE_5_TCPCLO_PID=`echo "i outduct stcp localhost:5001" | bpadmin | grep 'pid:' | sed 's/^.*pid: \([0-9]*\) .*$/\1/'`
+echo ""
+echo "Pausing node 5's tcpclo ($NODE_5_TCPCLO_PID), so it won't dequeue bundles"
+kill -STOP $NODE_5_TCPCLO_PID
+
+echo ""
+# Now break TCP connectivity to node 2.
+echo "Breaking TCP connection to node 2 to test re-routing..."
+cd ../2.ipn.tcp
+./ionstop
+echo "Node 2 is stopped."
+
+# Send file from node 5 to node 3
+cd ../5.ipn.tcp
+echo "Sending seventh file twice from node 5 to node 3 (should try to go through out clo to node 2, but then be re-routed to out the clo to 3"
+bpsendfile ipn:5.1 ipn:3.1 testfile5b
+bpsendfile ipn:5.1 ipn:3.1 testfile5b
+
+echo "Resuming tcpclo..."
+kill -CONT $NODE_5_TCPCLO_PID
+sleep 30
+
+# Verify that this file has arrived twice.
+cd ../3.ipn.tcp
+if grep -q 'test file 5b' testfile4
+then
+	echo ""
+	echo "Okay: got first copy of file 5b"
+else
+	echo ""
+	echo "Error: didn't get first copy of file 5b."
+	RETVAL=1
+fi
+
+if grep -q 'test file 5b' testfile5
+then
+	echo ""
+	echo "Okay: got second copy of file 5b"
+else
+	echo ""
+	echo "Error: didn't get second copy of file 5b."
+	RETVAL=1
+fi
+
+# Print the bplist for debugging purposes
+echo ""
+echo "bplist for node 5:"
+cd ../5.ipn.tcp
+bplist
+echo ""
+echo "bplist for node 2:"
+cd ../2.ipn.tcp
+bplist
+echo ""
+echo "bplist for node 3:"
+cd ../3.ipn.tcp
+bplist
+
+
+echo ""
 # Shut down ION processes.
 echo "Stopping ION..."
 cd ../2.ipn.tcp
 ./ionstop &
 cd ../3.ipn.tcp
+./ionstop &
+cd ../5.ipn.tcp
 ./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
