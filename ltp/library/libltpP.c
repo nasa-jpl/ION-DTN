@@ -3451,6 +3451,9 @@ static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 				/*	Miscolored segment: green data
 				 *	before end of red.		*/
 
+#if LTPDEBUG
+putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
+#endif
 				cancelSessionByReceiver(&sessionBuf, sessionObj,
 						LtpMiscoloredSegment);
 				return 1;
@@ -3577,6 +3580,9 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		{
 			sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
 					sizeof(ImportSession));
+#if LTPDEBUG
+putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
+#endif
 			cancelSessionByReceiver(&sessionBuf, sessionObj,
 					LtpClientSvcUnreachable);
 		}
@@ -3659,6 +3665,9 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		{
 			sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
 					sizeof(ImportSession));
+#if LTPDEBUG
+putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
+#endif
 			cancelSessionByReceiver(&sessionBuf, sessionObj,
 					LtpMiscoloredSegment);
 		}
@@ -3697,6 +3706,9 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		{
 			sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
 					sizeof(ImportSession));
+#if LTPDEBUG
+putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
+#endif
 			cancelSessionByReceiver(&sessionBuf, sessionObj,
 					LtpCancelByEngine);
 		}
