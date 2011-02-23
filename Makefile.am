@@ -850,11 +850,7 @@ bpextra = \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.h \
 	bp/library/ext/bsp/extbspbab.c \
-	bp/library/crypto/crypto.h \
-	bp/library/crypto/NULL_BAB_HMAC/hmac.h \
-	bp/library/crypto/NULL_BAB_HMAC/hmac.c \
-	bp/library/crypto/NULL_BAB_HMAC/sha1.h \
-	bp/library/crypto/NULL_BAB_HMAC/sha1.c
+	bp/library/crypto/crypto.h 
 
 # noextensions.c is C code, but it isn't explicitly compiled.
 # instead, the whole file is #included into libbpP.c
@@ -965,8 +961,6 @@ libbpP_la_SOURCES = \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.c \
 	bp/library/crypto/NULL_SUITES/crypto.c 
-#bp/library/crypto/NULL_BAB_HMAC/hmac.c \
-#bp/library/crypto/NULL_BAB_HMAC/sha1.c
 libbpP_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libbpP_la_LDFLAGS = $(ION_LINK_FLAGS)
 

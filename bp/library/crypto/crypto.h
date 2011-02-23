@@ -13,16 +13,9 @@
 #ifndef _CRYPTO_H_
 #define _CRYPTO_H_
 
+#define NULL_CRYPTO_SUITES
+
 #include "platform.h"
-
-#include "NULL_SUITES/sha1.h"
-#include "NULL_SUITES/hmac.h"
-#if 0
-#include "POLAR_SSL/rsa.h"
-#include "POLAR_SSL/sha1.h"
-#include "POLAR_SSL/sha2.h"
-#endif 
-
 
 
 /*****************************************************************************
@@ -53,19 +46,6 @@ void sha256_init(void *context);
 void sha256_update(void *context, unsigned char *data, int data_length);
 void sha256_final(void *context, unsigned char *result, int resultLen);
 
-
-#if 0
-/*****************************************************************************
- *                       RSA SIGNING FUNCTION DEFINITIONS                    *
- *****************************************************************************/
-
-int rsa_sha256_sign_context_length();
-void rsa_sha256_sign_init(void *context);
-int rsa_sha256_sign_init_key(void *context, char *keyValue, unsigned long keyLen);
-int rsa_sha256_verify_init_key(void *context, char *keyValue, unsigned long keyLen);
-int rsa_sha256_sign(void *context, int hashlen, void *hashData, int signatureLen, void *signature);
-int rsa_sha256_verify(void *context, int hashlen, void *hashData, int signatureLen, void *signature);
-#endif
 
 #endif
 

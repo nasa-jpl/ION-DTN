@@ -80,14 +80,13 @@ int 	addCollaborationBlock(Bundle *bundle,
 		return -1;
 	}
 
-	/* BVB */
-    if (bundle->collabBlocks == 0)
-    {
-    	/* TODO: XXX This must be MRELEASED somewhere, VERY IMPORTANT. */
+	/* XXX is this redundant? */	
+	if (bundle->collabBlocks == 0)
+	{
 		putErrmsg("[BVB] bundle->collabBlocks list not allocated", NULL);
 		bundle->collabBlocks = sdr_list_create(bpSdr);
 		putErrmsg("[BVB] (TODO: MRELEASE this later!) collabBlocks list allocated to address ", itoa(bundle->collabBlocks));
-    }
+    	}
 
 	/* Insert the new block. */
 	if(sdr_list_insert_last(bpSdr,bundle->collabBlocks,newBlkAddr) == 0)
@@ -934,10 +933,9 @@ int 	addAcqCollabBlock(AcqWorkArea *work,
 	memcpy((char *) dataPtr, data, blkHdr->size);
 
 
+	/* XXX is this check redundant? */
 	if (work->collabBlocks == 0)
 	{
-		/* TODO: BVB This should probably be MRELEASED at some point.
-		 * Also, does this need to be refactored? */
 		putErrmsg("[BVB] work->collabBlocks is zero; list not created.", "Check TODO comment.");
 		work->collabBlocks = lyst_create();
 		putErrmsg("[BVB] \"lyst\" created.  Why not use sdr_create_list? collabBlocks = ", itoa((int)work->collabBlocks));

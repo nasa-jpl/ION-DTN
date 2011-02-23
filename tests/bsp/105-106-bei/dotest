@@ -1,0 +1,113 @@
+#!/bin/bash
+#
+# Written by Bill Van Besien, JHUAPL. Based on earlier script by Andrew Jenkins.
+#   William.Van.Besien@jhuapl.edu
+
+# Simply tests if bundles are appropriately received depending on whether BSP is enabled.
+# With the new security syntax, we cannot test if a auth code doesn't match via loopback
+# (this can only be tested by two distinct nodes)
+
+predictreceived () {
+    EXLENGTH=`expr ${#1} + 1`
+    echo "ION event: Payload delivered."
+    echo "      payload length is ${EXLENGTH}."
+    echo "      '${1}'"
+}
+
+# Try 10 times to see if the bundle has been received.
+tryreceive () {
+    X=0
+
+    while [ $X -lt 200 ]
+    do
+        # sleep and kill process in case it didn't end properly
+        #sleep 0.04 
+        sleep 0.01
+
+        # Check if bpsink got the file.
+        if ! diff -b $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
+        then
+            X=`expr $X + 1`
+        else
+            # We received it.  Hooray.
+            return 0
+        fi
+    done
+    # We didn't receive it, even after 10 tries; bummer.
+    diff -b $IONRECEIVEFILE $IONEXPECTEDFILE
+    return 1
+}
+
+
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+IONEXPECTEDFILE=./ionexpectedfile.txt
+
+echo "Killing old ION ... "
+killm
+sleep1
+
+rm -f $IONSENDFILE $IONRECEIVEFILE $IONEXPECTEDFILE ion.log
+PASS=1
+
+echo "Starting ION ... "
+srcdir=`pwd`
+CONFIGDIR="config"
+echo "ionstart -I ${CONFIGDIR}/host1.rc"
+"ionstart" -I "${CONFIGDIR}/host1.rc"
+
+echo "Starting message listener ... "
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+
+sleep 2
+
+
+echo "Sending a bundle (ionsecadmin running; no rules) ... "
+IONMESSAGE="$( date ) no BAB rule"
+bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE"
+
+predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
+
+if tryreceive
+then
+	echo "Matched expected output; OK."
+else
+	echo "Match failed."
+	PASS=0
+fi
+
+echo "Sending a BAB protected bundle ... "
+ionsecadmin <<ENDOFIONSECADMINCOMMANDS
+a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey
+q
+ENDOFIONSECADMINCOMMANDS
+IONMESSAGE="$( date ) using BAB"
+bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE"
+predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
+
+if tryreceive
+then
+    echo "BAB matched expected output; OK."
+else
+    echo "BAB authentication failed."
+    PASS=0
+fi
+
+echo
+
+echo "Stopping bpsink"
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+echo "Stopping ION ... "
+ionstop
+
+if [ $PASS -eq 1 ]
+then
+    exit 0
+else
+    exit 1
+fi
+

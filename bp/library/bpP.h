@@ -306,8 +306,8 @@ typedef struct
 	Object		extensions[2];
 	int		extensionsLength[2];	/*	Concatenated.	*/
 
-	Object		collabBlocks;		/* BVB, from EJB */
-	int		collabLength;		/* BVB, from EJB */
+	Object		collabBlocks;		
+	int		collabLength;		
 
 	/*	Internal housekeeping stuff.				*/
 
@@ -599,7 +599,7 @@ typedef struct
 	int		bundleLength;
 	int		authentic;	/*	Boolean.		*/
 	char		*dictionary;
-	Lyst		collabBlocks;	/* BVB, from EJB */
+	Lyst		collabBlocks;	
 	Lyst		extBlocks[2];	/*	(AcqExtBlock *)		*/
 	int		currentExtBlocksList;	/*	0 or 1.		*/
 	AcqDecision	decision;

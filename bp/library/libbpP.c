@@ -1539,6 +1539,7 @@ BpEidLookupFn	*senderEidLookupFunctions(BpEidLookupFn fn)
 
 	if (fn == NULL)		/*	Requesting pointer to table.	*/
 	{
+writeMemo("fn is null. returning FNS.");
 		return fns;
 	}
 
@@ -1579,6 +1580,7 @@ void	getSenderEid(char **eidBuffer, char *neighborClId)
 	istrcpy(*uriBuffer, "dtn::", 6);
 	uriBuffer += 5;
 #endif
+
 	lookupFns = senderEidLookupFunctions(NULL);
 	for (i = 0; i < 16; i++)
 	{
@@ -1587,7 +1589,6 @@ void	getSenderEid(char **eidBuffer, char *neighborClId)
 		{
 			break;		/*	Reached end of table.	*/
 		}
-
 		switch (lookupEid(uriBuffer, neighborClId))
 		{
 		case -1:
@@ -1601,7 +1602,6 @@ void	getSenderEid(char **eidBuffer, char *neighborClId)
 			return;		/*	Figured out sender EID.	*/
 		}
 	}
-
 	*eidBuffer = NULL;	/*	Sender EID not found.		*/
 }
 
@@ -1667,10 +1667,15 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 		idLen = neighborIdLen < ductIdLen ? neighborIdLen : ductIdLen;
 	}
 
+writeMemoNote("EJB: neighbotClId", neighborClId);
+writeMemoNote("EJBL ductClId", ductClId);
+writeMemoNote("EJBL idLen", itoa(idLen));
+
 	if (strncmp(neighborClId, ductClId, idLen) == 0)
 	{
 		return 1;		/*	Found neighbor's duct.	*/
 	}
+writeMemo("EJB: Did not match.");
 
 	return 0;			/*	A different neighbor.	*/
 }

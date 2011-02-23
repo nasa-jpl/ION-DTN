@@ -10,30 +10,27 @@
  **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
-#include "sha1.h"
-/* #include "sha2.h" */
-/* #include "rsa.h" */
 #include "../crypto.h"
 
-/*
-typedef struct {
-	struct hmac_st	hmac_metainf;
-} NullSecStruct;
-*/
 /*****************************************************************************
  *                     HMAC-SHA-1 FUNCTION DEFINITIONS                        *
  *****************************************************************************/
 
 int hmac_sha1_context_length()
 {
-	return 1; //sizeof(NullSecStruct); //1;
+	// EJB Made it maximum
+	return 20; 
 }
 
 void hmac_sha1_init(void *context, unsigned char *key, int key_length)
 {
-    //    NullSecStruct * ctxt = (NullSecStruct *) context;
-	//memset(ctxt, 0, sizeof(NullSecStruct));
-	//memcpy(ctxt->hmac_metainf.key, key, key_length);
+	/* Set the context as the key, for specious authentication */
+        if(key_length > 20) 
+        {
+          key_length = 20;
+        }
+	memset(context, 0, 20);
+	memcpy(context, key, key_length);
 	return;
 }
 
@@ -44,19 +41,18 @@ void hmac_sha1_update(void *context, unsigned char *data, int data_length)
 
 void hmac_sha1_final(void *context, unsigned char *result, int resultLen)
 {
+	/* Context contains the key */
+	/* This function simply sets the security result to be the key */
 	memset(result,0,resultLen);
-
-	/*
-	NullSecStruct * ctxt = (NullSecStruct *) context;
-	memset(result, 0, resultLen);
-	// Set security result to be the first 5 bytes of the key...
-	memcpy(result, ctxt->hmac_metainf.key, 5);
-	*/
+	if(resultLen > 20)
+	{
+		resultLen = 20;
+	}
+	memcpy(result, context, resultLen);
 }
 
 void hmac_sha1_reset(void *context)
 {
-	//memset(context, 0, sizeof(NullSecStruct));
 	return;
 }
 

@@ -1025,8 +1025,6 @@ expected.", NULL);
       /* Serialize the Abstract Security Block. */
       raw_asb = bsp_serializeASB(&(blk->dataLength), &(asb));
 
-      BSP_DEBUG_PROC("[BVB 0] ASB serialize call returned len %u", blk->dataLength);
-
       if((raw_asb == NULL) || (blk->dataLength == 0))
       {
          BSP_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Unable to serialize \

@@ -9,7 +9,6 @@
  *	Author: Scott Burleigh, JPL
  */
 
-/*BVB*/
 #include "../../bei.h"
 
 #define	EXTENSION_TYPE_PHN	5

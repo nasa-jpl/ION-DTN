@@ -137,9 +137,20 @@ Object	getSecDbObject()
 	return _secdbObject(NULL);
 }
 
+
+
+
+
 /* EJB: Need to update man page for ionClear. Also, if we get a 
         wildcard, how do we know which rx EIDS match us? What
         about PIBs and other security blocks? Can we rename this command?
+*/
+
+/* BVB: Usage is as follows:
+	(1) eid = NULL, or *eid={'~', '\0'} -- Will remove ALL BSP BAB rules.
+	(2) Anything else, then will only remove specific rules
+
+   2011-02-22
 */
 
 void	ionClear(char *eid)
@@ -148,6 +159,8 @@ void	ionClear(char *eid)
 	SecDB	*secdb = _secConstants();
 	Object	elt;
 	Object	ruleObj;
+	int rmCount = 0;
+	char rmStr [5];
 	OBJ_POINTER(BspBabRule, rule);
 
 	if (secAttach() < 0)
@@ -156,12 +169,12 @@ void	ionClear(char *eid)
 		return;
 	}
 
-	if (eid == NULL || *eid == '\0')
+	if (eid == NULL || *eid == '\0' || *eid == '~')
 	{
 		/*	Function must remove all BAB reception rules,
 		 *	effectively disabling BAB reception checking
 		 *	altogether.					*/
-
+		
 		sdr_begin_xn(sdr);
 		while (1)
 		{
@@ -177,7 +190,11 @@ void	ionClear(char *eid)
 			sdr_free(sdr, rule->securitySrcEid);
 			sdr_free(sdr, rule->securityDestEid);
 			sdr_free(sdr, ruleObj);
+			rmCount++;
 		}
+
+		snprintf(rmStr, 4, "%d", rmCount);
+		writeMemoNote("[i] BAB rules removed:", rmStr);
 
 		if (sdr_end_xn(sdr) < 0)
 		{
@@ -185,10 +202,8 @@ void	ionClear(char *eid)
 		}
 		else
 		{
-			writeMemo("[i] ionClear: no remaining BAB \
-rules.");
+			writeMemo("[i] ionClear: no remaining BAB rules.");
 		}
-
 		return;
 	}
 
