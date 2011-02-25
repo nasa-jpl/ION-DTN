@@ -59,7 +59,8 @@ a endpoint ipn:1.2 q
 a protocol udp 1400 100
 
 # Add an induct. (listen)
-a induct udp localhost.localdomain:4556 udpcli
+# a induct udp localhost.localdomain:4556 udpcli
+a induct udp localhost:4556 udpcli
 
 # Add an outduct. (since one UDP socket can address any IP, use '*' 
 # for the destination address, then this clo can send to any udp cli)
@@ -77,7 +78,8 @@ s
 #	the outduct identified as '*,127.0.0.1:4556'.  This specification
 #   will match the udpclo '*' and pass it an auxiliary parameter
 #   (destination address) of '127.0.0.1:4556'
-a plan 1 udp/*,localhost.localdomain:4556
+# a plan 1 udp/*,localhost.localdomain:4556
+a plan 1 udp/*,localhost:4556
 ## end ipnadmin 
 
 ## begin ionsecadmin
@@ -88,7 +90,6 @@ e 1
 # the test.  All bundles sent before it's added should fail as inauthentic
 # (since we have a babrxrule).  All bundles sent after it's added should
 # succeed as authentic.
-#a babtxrule ipn:1.* 'HMAC-SHA1' testkey
 
 # a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey
 a key 'testkey' config/testkey.bin

@@ -22,7 +22,7 @@ tryreceive () {
     do
         # sleep and kill process in case it didn't end properly
         #sleep 0.04 
-        sleep 0.01
+        #sleep 0.01
 
         # Check if bpsink got the file.
         if ! diff -b $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
@@ -45,10 +45,12 @@ IONEXPECTEDFILE=./ionexpectedfile.txt
 
 echo "Killing old ION ... "
 killm
-sleep1
+sleep 1
 
 rm -f $IONSENDFILE $IONRECEIVEFILE $IONEXPECTEDFILE ion.log
 PASS=1
+
+echo `uname -a`
 
 echo "Starting ION ... "
 srcdir=`pwd`
