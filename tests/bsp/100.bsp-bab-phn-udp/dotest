@@ -5,6 +5,31 @@
 # Written by Andrew Jenkins, based on loopbacktest.sh by David Young
 #
 
+# documentation boilerplate
+CONFIGFILES=" \
+config/host1.rc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To send bundles with various BSP authentication options and
+	verifies that some are rejected correctly and some are accepted 
+	correctly."
+echo
+echo "CONFIG: Custom: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: "
+echo
+echo "########################################"
+
 # Sends bundles with various BSP authentication options and verifies that
 # some are rejected correctly and some are accepted correctly.
 
@@ -70,13 +95,13 @@ BPSINKPID=$!
 sleep 5
 
 # Send one bundle with no BAB; it shouldn't get through.
-echo "Sending a bundle with no BAB..."
+echo "Sending a bundle with no BAB... it should fail."
 bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) no BAB"
 # Don't predictreceived this one; it shouldn't be received. 
 
 
 # Send one bundle with the wrong BAB; it shouldn't get through.
-echo "Sending a bundle with the wrong BAB..."
+echo "Sending a bundle with the wrong BAB... it should fail."
 ionsecadmin <<ENDOFIONSECADMINCOMMANDS
 a babtxrule ipn:1.* 'HMAC-SHA1' testkey2
 q
@@ -85,7 +110,7 @@ bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) wrong BAB"
 
 
 # Send one bundle with fixed security; it should get through.
-echo "Sending a bundle with the right BAB..."
+echo "Sending a bundle with the right BAB... it should pass."
 ionsecadmin <<ENDOFIONSECADMINCOMMANDS
 d babtxrule ipn:1.*
 a babtxrule ipn:1.* 'HMAC-SHA1' testkey
@@ -97,9 +122,9 @@ predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
 
 if tryreceive 
 then
-    echo "Bundle authentication matched expected output."
+    echo "OK: Bundle authentication matched expected output."
 else
-    echo "Bundle authentication didn't match expected output."
+    echo "ERROR: Bundle authentication didn't match expected output."
     PASS=0
 fi
 

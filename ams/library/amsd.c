@@ -10,10 +10,6 @@
 									*/
 #include "amscommon.h"
 
-#ifndef AMSDEBUG
-#define	AMSDEBUG	0
-#endif
-
 typedef struct
 {
 	int		csRequired;
@@ -39,7 +35,7 @@ typedef struct
 	Cell		*cell;
 	int		cellHeartbeats;
 	int		undeclaredModulesCount;
-	char		undeclaredModules[MAX_NODE_NBR + 1];
+	char		undeclaredModules[MAX_MODULE_NBR + 1];
 	MamsEndpoint	*csEndpoint;
 	LystElt		csEndpointElt;
 	int		heartbeatsMissed;	/*	From CS.	*/
@@ -51,12 +47,37 @@ typedef struct
 	MamsInterface	tsif;
 } RsState;
 
-static int	amsdRunning;
-static char	*zeroLengthEpt = "";
+static int	_amsdRunning(int *state)
+{
+	static int		running = 0;
+	static pthread_t	amsdThread;
+
+	if (state)
+	{
+		if (*state == 0)	/*	Stopping.		*/
+		{
+			running = 0;
+			if (pthread_equal(amsdThread, pthread_self()) == 0)
+			{
+				pthread_kill(amsdThread, SIGINT);
+			}
+		}
+		else			/*	Starting.		*/
+		{
+			running = 1;
+			amsdThread = pthread_self();
+		}
+	}
+
+	return running;
+}
 
 static void	shutDownAmsd()
 {
-	amsdRunning = 0;
+	int	stop = 0;
+
+	oK(_amsdRunning(&stop));
+	isignal(SIGINT, shutDownAmsd);
 }
 
 /*	*	*	Configuration server code	*	*	*/
@@ -80,6 +101,7 @@ static void	stopOtherConfigServers(CsState *csState)
 
 static void	*csHeartbeat(void *parm)
 {
+	AmsMib		*mib = _mib(NULL);
 	CsState		*csState = (CsState *) parm;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cv;
@@ -94,16 +116,17 @@ static void	*csHeartbeat(void *parm)
 	struct timeval	workTime;
 	struct timespec	deadline;
 
+	CHKNULL(csState);
 	if (pthread_mutex_init(&mutex, NULL))
 	{
-		putSysErrmsg("can't start heartbeat, mutex init failed", NULL);
+		putSysErrmsg("Can't start heartbeat, mutex init failed", NULL);
 		return NULL;
 	}
 
 	if (pthread_cond_init(&cv, NULL))
 	{
 		pthread_mutex_destroy(&mutex);
-		putSysErrmsg("can't start heartbeat, cond init failed", NULL);
+		putSysErrmsg("Can't start heartbeat, cond init failed", NULL);
 		return NULL;
 	}
 
@@ -118,11 +141,11 @@ static void	*csHeartbeat(void *parm)
 			stopOtherConfigServers(csState);
 		}
 
-		for (i = 1; i <= MaxVentureNbr; i++)
+		for (i = 1; i <= MAX_VENTURE_NBR; i++)
 		{
-			venture = mib->ventures[i];
+			venture = (_mib(NULL))->ventures[i];
 			if (venture == NULL) continue;
-			for (j = 0; j <= MaxUnitNbr; j++)
+			for (j = 0; j <= MAX_UNIT_NBR; j++)
 			{
 				unit = venture->units[j];
 				if (unit == NULL
@@ -143,8 +166,8 @@ static void	*csHeartbeat(void *parm)
 						&csState->tsif, heartbeat,
 						0, 0, NULL) < 0)
 					{
-						putErrmsg("can't send \
-heartbeat", NULL);
+						putErrmsg("Can't send \
+heartbeat.", NULL);
 					}
 				}
 
@@ -166,7 +189,7 @@ heartbeat", NULL);
 			errno = result;
 			if (errno != ETIMEDOUT)
 			{
-				putSysErrmsg("heartbeat failure", NULL);
+				putSysErrmsg("Heartbeat failure", NULL);
 				break;
 			}
 		}
@@ -174,7 +197,7 @@ heartbeat", NULL);
 		cycleCount++;
 	}
 
-	putErrmsg("CS heartbeat thread ended.", NULL);
+	writeMemo("[i] CS heartbeat thread ended.");
 	return NULL;
 }
 
@@ -200,9 +223,36 @@ static void	reloadRsRegistrations(CsState *csState)
 	return;		/*	Maybe do this eventually.		*/
 }
 
+static void	shutDownMsgspace(CsState *csState, Venture *venture)
+{
+	int	i;
+	Unit	*unit;
+	Cell	*cell;
+	char	reasonCode = REJ_SHUTDOWN;
+
+	for (i = 0; i <= MAX_UNIT_NBR; i++)
+	{
+		unit = venture->units[i];
+		if (unit == NULL
+		|| (cell = unit->cell)->mamsEndpoint.ept == NULL)
+		{
+			continue;
+		}
+
+		if (sendMamsMsg(&(cell->mamsEndpoint), &(csState->tsif),
+					rejection, 0, 1, &reasonCode) < 0)
+		{
+			putErrmsg("CS can't send rejection.", NULL);
+			break;
+		}
+	}
+}
+
 static void	processMsgToCs(CsState *csState, AmsEvt *evt)
 {
+	AmsMib		*mib = _mib(NULL);
 	MamsMsg		*msg = (MamsMsg *) (evt->value);
+	char		*zeroLengthEpt = "";
 	Venture		*venture;
 	Unit		*unit;
 	Cell		*cell;
@@ -220,7 +270,7 @@ static void	processMsgToCs(CsState *csState, AmsEvt *evt)
 	int		result;
 	int		unitNbr;
 
-#if AMSDEMO
+#if AMSDEBUG
 PUTMEMO("CS got msg of type", itoa(msg->type));
 PUTMEMO("...from role", itoa(msg->roleNbr));
 #endif
@@ -337,18 +387,12 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		ept = cell->mamsEndpoint.ept;
 		supplementLength = 2 + strlen(ept) + 1;
 		supplement = MTAKE(supplementLength);
-		if (supplement == NULL)
-		{
-			putSysErrmsg("CS can't announce new registrar",
-					itoa(msg->unitNbr));
-			return;
-		}
-
+		CHKVOID(supplement);
 		supplement[0] = (char) ((msg->unitNbr >> 8) & 0xff);
 		supplement[1] = (char) (msg->unitNbr & 0xff);
 		istrcpy(supplement + 2, ept, supplementLength - 2);
 		cellspec = NULL;
-		for (i = 0; i <= MaxUnitNbr; i++)
+		for (i = 0; i <= MAX_UNIT_NBR; i++)
 		{
 			if (i == msg->unitNbr)	/*	New one itself.	*/
 			{
@@ -377,13 +421,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			ept = cell->mamsEndpoint.ept;
 			cellspecLength = 2 + strlen(ept) + 1;
 			cellspec = MTAKE(cellspecLength);
-			if (cellspec == NULL)
-			{
-				putSysErrmsg("CS can't orient new registrar",
-						itoa(msg->unitNbr));
-				return;
-			}
-
+			CHKVOID(cellspec);
 			cellspec[0] = (char) ((unit->nbr >> 8) & 0xff);
 			cellspec[1] = (char) (unit->nbr & 0xff);
 			istrcpy(cellspec + 2, ept, cellspecLength - 2);
@@ -430,6 +468,35 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			return;		/*	Can't respond.		*/
 		}
 
+		/*	ION extension: if role number of this message
+		 *	is MAX_ROLE_NBR then role is assumed to be
+		 *	"stop".  An authenticated registrar_query
+		 *	message from a module whose role is "stop"
+		 *	causes the configuration server to shut down
+		 *	the indicated message space by sending
+		 *	"rejection" messages to all registrars for
+		 *	that message space, then terminate amsd
+		 *	itself.  Since the message space is being
+		 *	shut down, the "stop" module clearly cannot
+		 *	register; a registrar_unknown message is
+		 *	returned to the module.				*/
+
+		if (msg->roleNbr == MAX_ROLE_NBR)
+		{
+			if (sendMamsMsg(&endpoint, &(csState->tsif),
+				registrar_unknown, msg->memo, 0, NULL) < 0)
+			{
+				putErrmsg("CS can't send registrar_unknown",
+						NULL);
+			}
+
+			shutDownMsgspace(csState, venture);
+			shutDownAmsd();
+			return;
+		}
+
+		/*	End of ION "stop" extension.			*/
+
 		if (unit == NULL)
 		{
 			unitNbr = 0;
@@ -459,13 +526,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 		supplementLength = 2 + strlen(ept) + 1;
 		supplement = MTAKE(supplementLength);
-		if (supplement == NULL)
-		{
-			putSysErrmsg("CS can't report on registrar",
-					itoa(unitNbr));
-			return;
-		}
-
+		CHKVOID(supplement);
 		supplement[0] = (char) ((unitNbr >> 8) & 0xff);
 		supplement[1] = (char) (unitNbr & 0xff);
 		istrcpy(supplement + 2, ept, supplementLength - 2);
@@ -474,7 +535,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		MRELEASE(supplement);
 		if (result < 0)
 		{
-			putErrmsg("CS can't send cell_spec", NULL);
+			putErrmsg("CS can't send cell_spec.", NULL);
 		}
 
 		return;
@@ -486,11 +547,13 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 static void	*csMain(void *parm)
 {
+	AmsMib		*mib = _mib(NULL);
 	CsState		*csState = (CsState *) parm;
 	sigset_t	signals;
 	LystElt		elt;
 	AmsEvt		*evt;
 
+	CHKNULL(csState);
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	csState->csRunning = 1;
@@ -500,7 +563,7 @@ static void	*csMain(void *parm)
 		if (llcv_wait(csState->csEventsCV, llcv_lyst_not_empty,
 					LLCV_BLOCKING) < 0)
 		{
-			putSysErrmsg("CS thread failed getting event", NULL);
+			putErrmsg("CS thread failed getting event.", NULL);
 			break;
 		}
 
@@ -525,7 +588,7 @@ static void	*csMain(void *parm)
 			continue;
 
 		case CRASH_EVT:
-			putErrmsg("CS thread terminated", evt->value);
+			writeMemoNote("[i] CS thread terminated", evt->value);
 			recycleEvent(evt);
 			break;	/*	Out of switch.			*/
 
@@ -548,6 +611,7 @@ static void	*csMain(void *parm)
 
 static int	startConfigServer(CsState *csState)
 {
+	AmsMib		*mib = _mib(NULL);
 	MamsInterface	*tsif;
 	LystElt		elt;
 	MamsEndpoint	*ep;
@@ -555,21 +619,12 @@ static int	startConfigServer(CsState *csState)
 	/*	Load the necessary state data structures.		*/
 
 	csState->startOfFailoverChain = NULL;
-	csState->csEvents = lyst_create_using(amsMemory);
-	if (csState->csEvents == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	csState->csEvents = lyst_create_using(getIonMemoryMgr());
+	CHKERR(csState->csEvents);
 	lyst_delete_set(csState->csEvents, destroyEvent, NULL);
 	csState->csEventsCV = llcv_open(csState->csEvents,
 			&(csState->csEventsCV_str));
-	if (csState->csEventsCV == NULL)
-	{
-		putSysErrmsg("amsd can't open CS events llcv", NULL);
-		return -1;
-	}
+	CHKERR(csState->csEventsCV);
 
 	/*	Initialize the MAMS transport service interface.	*/
 
@@ -579,7 +634,7 @@ static int	startConfigServer(CsState *csState)
 	tsif->eventsQueue = csState->csEventsCV;
 	if (tsif->ts->mamsInitFn(tsif) < 0)
 	{
-		putErrmsg("amsd can't initialize CS MAMS interface", NULL);
+		putErrmsg("amsd can't initialize CS MAMS interface.", NULL);
 		return -1;
 	}
 
@@ -602,7 +657,7 @@ static int	startConfigServer(CsState *csState)
 	if (csState->startOfFailoverChain == NULL)
 	{
 		putErrmsg("Endpoint spec doesn't match any catalogued \
-CS endpoint", csState->csEndpointSpec);
+CS endpoint.", csState->csEndpointSpec);
 		return -1;
 	}
 
@@ -611,7 +666,7 @@ CS endpoint", csState->csEndpointSpec);
 	if (pthread_create(&(tsif->receiver), NULL, mib->pts->mamsReceiverFn,
 				tsif))
 	{
-		putSysErrmsg("amsd can't spawn CS tsif thread", NULL);
+		putSysErrmsg("Can't spawn CS tsif thread", NULL);
 		return -1;
 	}
 
@@ -625,7 +680,7 @@ CS endpoint", csState->csEndpointSpec);
 	if (pthread_create(&csState->csHeartbeatThread, NULL, csHeartbeat,
 				csState))
 	{
-		putSysErrmsg("can't spawn CS heartbeat thread", NULL);
+		putSysErrmsg("Can't spawn CS heartbeat thread", NULL);
 		return -1;
 	}
 
@@ -633,7 +688,7 @@ CS endpoint", csState->csEndpointSpec);
 
 	if (pthread_create(&(csState->csThread), NULL, csMain, csState))
 	{
-		putSysErrmsg("can't spawn configuration server thread", NULL);
+		putSysErrmsg("Can't spawn configuration server thread", NULL);
 		return -1;
 	}
 
@@ -648,7 +703,7 @@ static void	stopConfigServer(CsState *csState)
 	{
 		if (enqueueMamsCrash(csState->csEventsCV, "Stopped") < 0)
 		{
-			putErrmsg(NoMemoryMemo, NULL);
+			putErrmsg("Can't enqueue MAMS termination.", NULL);
 			cleanUpCsState(csState);
 		}
 		else
@@ -662,6 +717,7 @@ static void	stopConfigServer(CsState *csState)
 
 static int	sendMsgToCS(RsState *rsState, AmsEvt *evt)
 {
+	AmsMib		*mib = _mib(NULL);
 	MamsMsg		*msg = (MamsMsg *) (evt->value);
 	MamsEndpoint	*ep;
 	int		result;
@@ -676,8 +732,7 @@ static int	sendMsgToCS(RsState *rsState, AmsEvt *evt)
 	{
 		if (lyst_length(mib->csEndpoints) == 0)
 		{
-			putErrmsg("Configuration server endpoints list empty.", 
-					NULL);
+			writeMemo("[?] Config server endpoints list empty.");
 			return -1;
 		}
 
@@ -708,7 +763,7 @@ static int	sendMsgToCS(RsState *rsState, AmsEvt *evt)
 
 	if (result < 0)
 	{
-		putErrmsg("RS failed sending message to CS", NULL);
+		putErrmsg("RS failed sending message to CS.", NULL);
 	}
 
 	return result;
@@ -727,18 +782,13 @@ static int	enqueueMsgToCS(RsState *rsState, MamsPduType msgType,
 	msg.supplementLength = supplementLength;
 	msg.supplement = supplement;
 	evt = (AmsEvt *) MTAKE(1 + sizeof(MamsMsg));
-	if (evt == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(evt);
 	memcpy(evt->value, (char *) &msg, sizeof msg);
 	evt->type = MSG_TO_SEND_EVT;
 	if (enqueueMamsEvent(rsState->rsEventsCV, evt, NULL, 0))
 	{
 		MRELEASE(evt);
-		putSysErrmsg(NoMemoryMemo, NULL);
+		putErrmsg("Can't enqueue message-to-CS event.", NULL);
 		return -1;
 	}
 
@@ -757,7 +807,7 @@ static int	forwardMsg(RsState *rsState, MamsPduType msgType,
 
 	moduleId = computeModuleId(roleNbr, unitNbr, moduleNbr);
 	cell = rsState->cell;
-	for (i = 1; i <= MaxModuleNbr; i++)
+	for (i = 1; i <= MAX_MODULE_NBR; i++)
 	{
 		if (i == moduleNbr && unitNbr == rsState->cell->unit->nbr)
 		{
@@ -798,7 +848,7 @@ static int	propagateMsg(RsState *rsState, MamsPduType msgType,
 	}
 
 	moduleId = computeModuleId(roleNbr, unitNbr, moduleNbr);
-	for (i = 0; i <= MaxUnitNbr; i++)
+	for (i = 0; i <= MAX_UNIT_NBR; i++)
 	{
 		if (i == rsState->cell->unit->nbr)	/*	Self.	*/
 		{
@@ -828,12 +878,12 @@ static int	resyncCell(RsState *rsState)
 	int		moduleCount = 0;
 	int		i;
 	Module		*module;
-	unsigned char	moduleLyst[MAX_NODE_NBR + 1];
+	unsigned char	moduleLyst[MAX_MODULE_NBR + 1];
 	int		moduleLystLength;
 
 	/*	Construct list of currently registered modules.		*/
 
-	for (i = 1; i <= MaxModuleNbr; i++)
+	for (i = 1; i <= MAX_MODULE_NBR; i++)
 	{
 		module = rsState->cell->modules[i];
 		if (module->role == NULL)
@@ -881,7 +931,7 @@ static void	processHeartbeatCycle(RsState *rsState, int *cycleCount,
 
 		/*	Send heartbeats to all modules in own cell.	*/
 
-		for (i = 1; i <= MaxModuleNbr; i++)
+		for (i = 1; i <= MAX_MODULE_NBR; i++)
 		{
 			module = rsState->cell->modules[i];
 			if (module->role == NULL)
@@ -939,6 +989,7 @@ termination to peer modules.", NULL);
 
 static void	*rsHeartbeat(void *parm)
 {
+	AmsMib		*mib = _mib(NULL);
 	RsState		*rsState = (RsState *) parm;
 	int		cycleCount = 0;
 	pthread_mutex_t	mutex;
@@ -951,16 +1002,17 @@ static void	*rsHeartbeat(void *parm)
 	struct timespec	deadline;
 	int		result;
 
+	CHKNULL(rsState);
 	if (pthread_mutex_init(&mutex, NULL))
 	{
-		putSysErrmsg("can't start heartbeat, mutex init failed", NULL);
+		putSysErrmsg("Can't start heartbeat, mutex init failed", NULL);
 		return NULL;
 	}
 
 	if (pthread_cond_init(&cv, NULL))
 	{
 		pthread_mutex_destroy(&mutex);
-		putSysErrmsg("can't start heartbeat, cond init failed", NULL);
+		putSysErrmsg("Can't start heartbeat, cond init failed", NULL);
 		return NULL;
 	}
 
@@ -988,7 +1040,7 @@ static void	*rsHeartbeat(void *parm)
 			if (ept == NULL)
 			{
 				UNLOCK_MIB;
-				putErrmsg(NoMemoryMemo, NULL);
+				putErrmsg("Can't record endpoint.", NULL);
 				return NULL;
 			}
 
@@ -1017,7 +1069,7 @@ static void	*rsHeartbeat(void *parm)
 			errno = result;
 			if (errno != ETIMEDOUT)
 			{
-				putSysErrmsg("heartbeat thread failure", NULL);
+				putSysErrmsg("Heartbeat thread failure", NULL);
 				break;
 			}
 		}
@@ -1025,7 +1077,7 @@ static void	*rsHeartbeat(void *parm)
 		cycleCount++;
 	}
 
-	putErrmsg("RS heartbeat thread ended", NULL);
+	writeMemo("[i] RS heartbeat thread ended.");
 	return NULL;
 }
 
@@ -1147,8 +1199,19 @@ static int	skipDeclaration(int *bytesRemaining, char **cursor)
 	return 0;
 }
 
+static void	shutDownCell(RsState *rsState)
+{
+	if (forwardMsg(rsState, you_are_dead, 0, rsState->cell->unit->nbr,
+				0, 0, NULL) < 0)
+	{
+		putErrmsg("Registrar can't shut down cell.",
+				itoa(rsState->cell->unit->nbr));
+	}
+}
+
 static void	processMsgToRs(RsState *rsState, AmsEvt *evt)
 {
+	AmsMib		*mib = _mib(NULL);
 	MamsMsg		*msg = (MamsMsg *) (evt->value);
 	Venture		*venture;
 	Unit		*unit;
@@ -1196,7 +1259,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 		/*	Heartbeat from a module.			*/
 
-		if (unit == NULL || msg->memo < 1 || msg->memo > MaxModuleNbr
+		if (unit == NULL || msg->memo < 1 || msg->memo > MAX_MODULE_NBR
 		|| (module = unit->cell->modules[msg->memo]) == NULL
 		|| module->role == NULL)
 		{
@@ -1209,10 +1272,6 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		return;
 
 	case rejection:
-		if (rsState->csEndpoint != NULL)
-		{
-			return;	/*	Ignore spurious rejection.	*/
-		}
 
 		/*	Rejected on attempt to announce self to the
 		 *	configuration server.				*/
@@ -1228,13 +1287,18 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			reasonString = "No such unit";
 			break;
 
+		case REJ_SHUTDOWN:	/*	ION extension.		*/
+			shutDownCell(rsState);
+			reasonString = "Shut down";
+			break;
+
 		default:
 			reasonString = "Reason unknown";
 		}
 
 		if (enqueueMamsCrash(rsState->rsEventsCV, reasonString) < 0)
 		{
-			putErrmsg(NoMemoryMemo, NULL);
+			putErrmsg("Can't enqueue MAMS termination.", NULL);
 		}
 
 		return;
@@ -1249,7 +1313,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 	case cell_spec:
 		if (msg->supplementLength < 3)
 		{
-			putErrmsg("Cell spec lacks endpoint name.", NULL);
+			writeMemo("[?] Cell spec lacks endpoint name.");
 			return;
 		}
 		
@@ -1265,7 +1329,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		ept = parseString(&cursor, &bytesRemaining, &eptLength);
 		if (ept == NULL)
 		{
-			putErrmsg("Cell spec endpoint name invalid.", NULL);
+			writeMemo("[?] Cell spec endpoint name invalid.");
 			return;
 		}
 
@@ -1287,8 +1351,8 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 				return;
 			}
 
-			putErrmsg("Got revised registrar spec; accepting it.",
-					itoa(unitNbr));
+			writeMemoNote("[i] Got revised registrar spec; \
+accepting it", itoa(unitNbr));
 			clearMamsEndpoint(&(cell->mamsEndpoint));
 		}
 
@@ -1296,7 +1360,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 					ept) < 0)
 		{
 			clearMamsEndpoint(&(cell->mamsEndpoint));
-			putErrmsg("Can't load spec for cell.", NULL);
+			writeMemo("[?] Can't load spec for cell.");
 		}
 
 		return;
@@ -1331,14 +1395,14 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			if (sendMamsMsg(&endpoint, &(rsState->tsif), rejection,
 					msg->memo, 1, &reasonCode) < 0)
 			{
-				putErrmsg("RS can't reject MAMS msg", NULL);
+				putErrmsg("RS can't reject MAMS msg.", NULL);
 			}
 
 			return;
 		}
 
 		moduleNbr = moduleCount = 0;
-		for (i = 1; i <= MaxModuleNbr; i++)
+		for (i = 1; i <= MAX_MODULE_NBR; i++)
 		{
 			module = rsState->cell->modules[i];
 			if (module->role == NULL)
@@ -1382,7 +1446,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		if (supplement == NULL)
 		{
 			forgetModule(module);
-			putSysErrmsg(NoMemoryMemo, NULL);
+			putErrmsg("RS can't send module number.", NULL);
 			return;
 		}
 
@@ -1407,9 +1471,9 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		return;
 
 	case I_am_stopping:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr) < 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
-			putErrmsg("RS ditching I_am_stoppng", NULL);
+			writeMemo("[?] RS ditching I_am_stoppng.");
 			return;
 		}
 
@@ -1423,7 +1487,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 				unitNbr, moduleNbr, msg->supplementLength,
 				msg->supplement))
 			{
-				putErrmsg("RS can't propagate I_am_stopping",
+				putErrmsg("RS can't propagate I_am_stopping.",
 						NULL);
 			}
 		}
@@ -1433,7 +1497,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 					moduleNbr, msg->supplementLength,
 					msg->supplement))
 			{
-				putErrmsg("RS can't forward I_am_stopping",
+				putErrmsg("RS can't forward I_am_stopping.",
 						NULL);
 			}
 		}
@@ -1466,7 +1530,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			if (sendMamsMsg(&endpoint, &(rsState->tsif),
 					you_are_dead, 0, 0, NULL) < 0)
 			{
-				putErrmsg("RS can't ditch reconnect", NULL);
+				putErrmsg("RS can't ditch reconnect.", NULL);
 			}
 
 			return;
@@ -1510,7 +1574,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			if (sendMamsMsg(&endpoint, &rsState->tsif,
 					you_are_dead, 0, 0, NULL) < 0)
 			{
-				putErrmsg("RS can't ditch reconnect", NULL);
+				putErrmsg("RS can't ditch reconnect.", NULL);
 			}
 
 			return;
@@ -1526,7 +1590,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			if (sendMamsMsg(&endpoint, &(rsState->tsif),
 					you_are_dead, 0, 0, NULL) < 0)
 			{
-				putErrmsg("RS can't ditch reconnect", NULL);
+				putErrmsg("RS can't ditch reconnect.", NULL);
 			}
 
 			return;
@@ -1537,7 +1601,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		result = rememberModule(module, role, eptLength, ept);
 		if (result < 0)
 		{
-			putErrmsg("RS can't reconnect module", NULL);
+			putErrmsg("RS can't reconnect module.", NULL);
 			return;
 		}
 
@@ -1551,7 +1615,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			while (bytesRemaining > 0)
 			{
 				i = *cursor;
-				if (i > 0 && i <= MaxModuleNbr)
+				if (i > 0 && i <= MAX_MODULE_NBR)
 				{
 					rsState->undeclaredModules[i] = 1;
 				}
@@ -1574,7 +1638,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		if (sendMamsMsg(&endpoint, &(rsState->tsif), reconnected,
 				msg->memo, 0, NULL) < 0)
 		{
-			putErrmsg("RS can't acknowledge MAMS msg", NULL);
+			putErrmsg("RS can't acknowledge MAMS msg.", NULL);
 		}
 
 		return;
@@ -1584,10 +1648,9 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 	case invite:
 	case disinvite:
 	case module_status:
-		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr)
-				< 0)
+		if (parseModuleId(msg->memo, &roleNbr, &unitNbr, &moduleNbr))
 		{
-			putErrmsg("RS ditching MAMS propagation", NULL);
+			writeMemo("[i] RS ditching MAMS propagation.");
 			return;
 		}
 
@@ -1599,7 +1662,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 					moduleNbr, msg->supplementLength,
 					msg->supplement))
 			{
-				putErrmsg("RS can't propagate message",
+				putErrmsg("RS can't propagate message.",
 						NULL);
 			}
 		}
@@ -1611,7 +1674,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 					unitNbr, moduleNbr,
 					msg->supplementLength, msg->supplement))
 				{
-					putErrmsg("RS can't forward message",
+					putErrmsg("RS can't forward message.",
 							NULL);
 				}
 			}
@@ -1626,7 +1689,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 					0, msg->supplementLength,
 					msg->supplement))
 			{
-				putErrmsg("RS can't forward message", NULL);
+				putErrmsg("RS can't forward message.", NULL);
 			}
 		}
 
@@ -1639,12 +1702,14 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 static void	*rsMain(void *parm)
 {
+	AmsMib		*mib = _mib(NULL);
 	RsState		*rsState = (RsState *) parm;
 	sigset_t	signals;
 	LystElt		elt;
 	AmsEvt		*evt;
 	int		result;
 
+	CHKNULL(rsState);
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	rsState->rsRunning = 1;
@@ -1654,7 +1719,7 @@ static void	*rsMain(void *parm)
 		if (llcv_wait(rsState->rsEventsCV, llcv_lyst_not_empty,
 					LLCV_BLOCKING) < 0)
 		{
-			putSysErrmsg("RS thread failed getting event", NULL);
+			putErrmsg("RS thread failed getting event.", NULL);
 			break;
 		}
 
@@ -1691,7 +1756,7 @@ static void	*rsMain(void *parm)
 			continue;
 
 		case CRASH_EVT:
-			putErrmsg("RS thread terminated", evt->value);
+			writeMemoNote("[i] RS thread terminated", evt->value);
 			recycleEvent(evt);
 			break;	/*	Out of switch.			*/
 
@@ -1714,22 +1779,19 @@ static void	*rsMain(void *parm)
 
 static int	startRegistrar(RsState *rsState)
 {
+	AmsMib		*mib = _mib(NULL);
 	int		i;
 	Venture		*venture = NULL;
 	Unit		*unit = NULL;
 	char		ventureName[MAX_APP_NAME + 2 + MAX_AUTH_NAME + 1];
 	MamsInterface	*tsif;
 
-	if (rsState->rsAppName == NULL || strlen(rsState->rsAppName) == 0
-	|| rsState->rsAuthName == NULL || strlen(rsState->rsAuthName) == 0
-	|| rsState->rsUnitName == NULL)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
-	for (i = 1; i <= MaxVentureNbr; i++)
+	CHKERR(rsState->rsAppName);
+	CHKERR(*(rsState->rsAppName));
+	CHKERR(rsState->rsAuthName);
+	CHKERR(*(rsState->rsAuthName));
+	CHKERR(rsState->rsUnitName);
+	for (i = 1; i <= MAX_VENTURE_NBR; i++)
 	{
 		venture = mib->ventures[i];
 		if (venture == NULL)	/*	Number not in use.	*/
@@ -1744,18 +1806,17 @@ static int	startRegistrar(RsState *rsState)
 		}
 	}
 
-	if (i > MaxVentureNbr)
+	if (i > MAX_VENTURE_NBR)
 	{
 		isprintf(ventureName, sizeof ventureName, "%s(%s)",
 				rsState->rsAppName, rsState->rsAuthName);
 		putErrmsg("Can't start registrar: no such message space.",
 				ventureName);
-		errno = EINVAL;
 		return -1;
 	}
 
 	rsState->venture = venture;
-	for (i = 0; i <= MaxUnitNbr; i++)
+	for (i = 0; i <= MAX_UNIT_NBR; i++)
 	{
 		unit = venture->units[i];
 		if (unit == NULL)	/*	Number not in use.	*/
@@ -1769,11 +1830,10 @@ static int	startRegistrar(RsState *rsState)
 		}
 	}
 
-	if (i > MaxUnitNbr)
+	if (i > MAX_UNIT_NBR)
 	{
 		putErrmsg("Can't start registrar: no such unit.",
 				rsState->rsUnitName);
-		errno = EINVAL;
 		return -1;
 	}
 
@@ -1781,21 +1841,12 @@ static int	startRegistrar(RsState *rsState)
 
 	/*	Load the necessary state data structures.		*/
 
-	rsState->rsEvents = lyst_create_using(amsMemory);
-	if (rsState->rsEvents == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	rsState->rsEvents = lyst_create_using(getIonMemoryMgr());
+	CHKERR(rsState->rsEvents);
 	lyst_delete_set(rsState->rsEvents, destroyEvent, NULL);
 	rsState->rsEventsCV = llcv_open(rsState->rsEvents,
 			&(rsState->rsEventsCV_str));
-	if (rsState->rsEventsCV == NULL)
-	{
-		putSysErrmsg("amsd can't open RS events llcv", NULL);
-		return -1;
-	}
+	CHKERR(rsState->rsEventsCV);
 
 	/*	Initialize the MAMS transport service interface.	*/
 
@@ -1807,7 +1858,7 @@ static int	startRegistrar(RsState *rsState)
 	tsif->eventsQueue = rsState->rsEventsCV;
 	if (tsif->ts->mamsInitFn(tsif) < 0)
 	{
-		putErrmsg("amsd can't initialize RS MAMS interface", NULL);
+		putErrmsg("amsd can't initialize RS MAMS interface.", NULL);
 		return -1;
 	}
 
@@ -1825,7 +1876,7 @@ static int	startRegistrar(RsState *rsState)
 	if (pthread_create(&rsState->rsHeartbeatThread, NULL, rsHeartbeat,
 				rsState))
 	{
-		putSysErrmsg("can't spawn RS heartbeat thread", NULL);
+		putSysErrmsg("Can't spawn RS heartbeat thread", NULL);
 		return -1;
 	}
 
@@ -1833,7 +1884,7 @@ static int	startRegistrar(RsState *rsState)
 
 	if (pthread_create(&(rsState->rsThread), NULL, rsMain, rsState))
 	{
-		putSysErrmsg("can't spawn registrar thread", NULL);
+		putSysErrmsg("Can't spawn registrar thread", NULL);
 		return -1;
 	}
 
@@ -1848,7 +1899,7 @@ static void	stopRegistrar(RsState *rsState)
 	{
 		if (enqueueMamsCrash(rsState->rsEventsCV, "Stopped") < 0)
 		{
-			putErrmsg(NoMemoryMemo, NULL);
+			putErrmsg("Can't enqueue MAMS termination.", NULL);
 			cleanUpRsState(rsState);
 		}
 		else
@@ -1860,26 +1911,20 @@ static void	stopRegistrar(RsState *rsState)
 
 /*	*	*	AMSD code	*	*	*	*	*/
 
-static int	run_amsd(char *mibSource, char *mName, char *memory,
-			unsigned int mSize, char *csEndpointSpec,
+static int	run_amsd(char *mibSource, char *csEndpointSpec,
 			char *rsAppName, char *rsAuthName, char *rsUnitName)
 {
-	int		result;
 	char		ownHostName[MAXHOSTNAMELEN + 1];
 	char		eps[MAXHOSTNAMELEN + 5 + 1];
 	CsState		csState;
 	RsState		rsState;
+	int		start = 1;
 
 	/*	Apply defaults as necessary.				*/
 
 	if (strcmp(mibSource, "@") == 0)
 	{
 		mibSource = NULL;
-	}
-
-	if (strcmp(mName, "@") == 0)
-	{
-		mName = NULL;
 	}
 
 	if (strcmp(csEndpointSpec, "@") == 0)
@@ -1894,23 +1939,12 @@ static int	run_amsd(char *mibSource, char *mName, char *memory,
 		csEndpointSpec = NULL;
 	}
 
-	/*	Initialize dynamic memory management.			*/
-
-	if (initMemoryMgt(mName, memory, mSize) < 0)
-	{
-		return -1;
-	}
-
 	/*	Load Management Information Base as necessary.		*/
 
-	if (mib == NULL)
+	if (loadMib(mibSource) == NULL)
 	{
-		result = loadMib(mibSource);
-		if (result < 0 || mib == NULL)
-		{
-			putErrmsg("amsd can't load MIB", mibSource);
-			return -1;
-		}
+		putErrmsg("amsd can't load MIB.", mibSource);
+		return -1;
 	}
 
 	memset((char *) &csState, 0, sizeof csState);
@@ -1929,12 +1963,11 @@ static int	run_amsd(char *mibSource, char *mName, char *memory,
 		rsState.rsRequired = 1;
 	}
 
-	sm_TaskVarAdd(&amsdRunning);
-	amsdRunning = 1;
-	signal(SIGINT, shutDownAmsd);
+	oK(_amsdRunning(&start));
+	isignal(SIGINT, shutDownAmsd);
 	while (1)
 	{
-		if (amsdRunning == 0)
+		if (_amsdRunning(NULL) == 0)
 		{
 			stopConfigServer(&csState);
 			stopRegistrar(&rsState);
@@ -1957,7 +1990,7 @@ static int	run_amsd(char *mibSource, char *mName, char *memory,
 			if (startRegistrar(&rsState) < 0)
 			{
 				cleanUpRsState(&rsState);
-				putErrmsg("amsd can't start RS", NULL);
+				putErrmsg("amsd can't start RS.", NULL);
 			}
 		}
 
@@ -1970,33 +2003,24 @@ int	amsd(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char		*mibSource = (char *) a1;
-	char		*mName = (char *) a2;
-	char		*memory = (char *) a3;
-	unsigned int	mSize = a4;
-	char		*csEndpointSpec = (char *) a5;
-	char		*rsAppName = (char *) a6;
-	char		*rsAuthName = (char *) a7;
-	char		*rsUnitName = (char *) a8;
+	char		*csEndpointSpec = (char *) a2;
+	char		*rsAppName = (char *) a3;
+	char		*rsAuthName = (char *) a4;
+	char		*rsUnitName = (char *) a5;
 	int		result;
 #else
 int	main(int argc, char *argv[])
 {
 	char		*mibSource;
-	char		*mName;
-	char		*memory;
-	unsigned int	mSize;
 	char		*csEndpointSpec;
 	char		*rsAppName = NULL;
 	char		*rsAuthName = NULL;
 	char		*rsUnitName = NULL;
 	int		result;
 
-	if (argc != 6 && argc != 9)
+	if (argc != 3 && argc != 6)
 	{
 		PUTS("Usage:  amsd { @ | <MIB source name> }");
-		PUTS("             { @ | <memory manager name> }");
-		PUTS("             { 0 | <memory address> }");
-		PUTS("             { 0 | <memory size> }");
 		PUTS("             { . | @ | <config. server endpoint spec> }");
 		PUTS("             [<registrar application name>");
 		PUTS("              <registrar authority name>");
@@ -2005,27 +2029,16 @@ int	main(int argc, char *argv[])
 	}
 
 	mibSource = argv[1];
-	mName = argv[2];
-	if (strcmp(argv[3], "0") == 0)
+	csEndpointSpec = argv[2];
+	if (argc > 3)
 	{
-		memory = NULL;
-	}
-	else
-	{
-		memory = (char *) strtoul(argv[3], (char **) NULL, 0);
-	}
-
-	mSize = strtoul(argv[4], (char **) NULL, 0);
-	csEndpointSpec = argv[5];
-	if (argc > 6)
-	{
-		rsAppName = argv[6];
-		rsAuthName = argv[7];
-		rsUnitName = argv[8];
+		rsAppName = argv[3];
+		rsAuthName = argv[4];
+		rsUnitName = argv[5];
 	}
 #endif
-	result = run_amsd(mibSource, mName, memory, mSize, csEndpointSpec,
-			rsAppName, rsAuthName, rsUnitName);
+	result = run_amsd(mibSource, csEndpointSpec, rsAppName, rsAuthName,
+			rsUnitName);
 	writeErrmsgMemos();
 	return result;
 }

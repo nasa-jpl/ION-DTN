@@ -3,15 +3,54 @@
 # Scott Burleigh
 # October 8, 2010
 #
-# Tests LTP block reassembly with out-of-order segment arrival caused
-# by segment retransmission.  By transmitting a large volume of data
-# at high speeds we swamp the receiving node's UDP buffer; the buffer
-# congestion results in the loss of some subset of the data segments
-# that were transmitted, causing LTP at the sender to send a selective
-# NAK report back to the sender requesting retransmission of specific
-# portions of one or more transmitted blocks.  We detect these
-# retransmissions by looking for '@' watch characters in stdout at
-# the sender.
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./global.ionrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 199.
+	Tests LTP block reassembly with out-of-order segment arrival caused
+	by segment retransmission.  By transmitting a large volume of data
+	at high speeds we swamp the receiving node's UDP buffer; the buffer
+	congestion results in the loss of some subset of the data segments
+	that were transmitted, causing LTP at the sender to send a selective
+	NAK report back to the sender requesting retransmission of specific
+	portions of one or more transmitted blocks.  We detect these
+	retransmissions by looking for '@' watch characters in stdout at
+	the sender. "
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
 
 ./cleanup
 sleep 1

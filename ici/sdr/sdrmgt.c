@@ -43,7 +43,6 @@ typedef struct
 #define	LARGE_IN_USE	(0xffffffff)
 #endif
 
-
 #define	SMALL_BLOCK_OHD	(WORD_SIZE)
 #define	SMALL_BLK_LIMIT	(SMALL_SIZES * WORD_SIZE)
 #define SMALL_MAX_ADDR	(1L << (8 * (WORD_SIZE - 1)))

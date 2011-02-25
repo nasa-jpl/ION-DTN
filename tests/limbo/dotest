@@ -3,39 +3,77 @@
 # Scott Burleigh
 # October 11, 2010
 #
-# Tests "limbo" system:
-#
-#	a.  When an outduct is blocked, all bundles currently queued
-#	    for that outduct are removed from their queues and are
-#	    reforwarded; if no other outbound route is available, those
-#	    bundles are appended to the "limbo" queue.  In addition,
-#	    any new bundles that would otherwise be queued to the
-#	    blocked outduct are likewise appended to the "limbo" queue.
-#
-#	b.  When a blocked outduct is unblocked, all bundles in the
-#	    "limbo" queue are automatically reforwarded in hopes that
-#	    some or all of them may be transmitted via the newly
-#	    unblocked duct.
-#
-#	c.  Ducts may be manually blocked and unblocked by bpadmin
-#	    directives.
-#
-#	d.  Also, an EPIPE error on transmission over a TCP outduct
-#	    will cause that outduct to be blocked automatically;
-#	    a subsequent successful connection for that outduct (as
-#	    by a keepalive thread) will automatically unblock it.
-#
-# This test first sends a file over a TCP outduct, then uses bpadmin
-# to block the duct and tries to send a second file; the second file
-# goes into limbo and is released from limbo when we then use bpadmin
-# to unblock the duct.
-#
-# Then we test automatic TCP outduct blockage.  We again send a file,
-# then shut down the receiving node altogether, let the keepalive
-# thread detect the socket closure, blocking the outduct, and then
-# send another file.  The second file goes into limbo and is released
-# from limbo when the receiving node is restarted and reopens its TCP
-# socket, enabling the keepalive thread to unblock the outduct.
+# documentation boilerplate
+CONFIGFILES=" \
+./3.ipn.tcp/amroc.bprc \
+./3.ipn.tcp/amroc.ionconfig \
+./3.ipn.tcp/global.ionrc \
+./3.ipn.tcp/amroc.ionrc \
+./3.ipn.tcp/amroc.ionsecrc \
+./3.ipn.tcp/amroc.ipnrc \
+./global.ionrc \
+./2.ipn.tcp/amroc.bprc \
+./2.ipn.tcp/block.bprc \
+./2.ipn.tcp/amroc.ionconfig \
+./2.ipn.tcp/global.ionrc \
+./2.ipn.tcp/amroc.ionrc \
+./2.ipn.tcp/amroc.ionsecrc \
+./2.ipn.tcp/amroc.ipnrc \
+./2.ipn.tcp/unblock.bprc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 177: the limbo queue.
+Tests 'limbo' system:
+
+	a.  When an outduct is blocked, all bundles currently queued
+	    for that outduct are removed from their queues and are
+	    reforwarded; if no other outbound route is available, those
+	    bundles are appended to the 'limbo' queue.  In addition,
+	    any new bundles that would otherwise be queued to the
+	    blocked outduct are likewise appended to the 'limbo' queue.
+
+	b.  When a blocked outduct is unblocked, all bundles in the
+	    'limbo' queue are automatically reforwarded in hopes that
+	    some or all of them may be transmitted via the newly
+	    unblocked duct.
+
+	c.  Ducts may be manually blocked and unblocked by bpadmin
+	    directives.
+
+	d.  Also, an EPIPE error on transmission over a TCP outduct
+	    will cause that outduct to be blocked automatically;
+	    a subsequent successful connection for that outduct (as
+	    by a keepalive thread) will automatically unblock it.
+
+This test first sends a file over a TCP outduct, then uses bpadmin
+to block the duct and tries to send a second file; the second file
+goes into limbo and is released from limbo when we then use bpadmin
+to unblock the duct.
+
+Then we test automatic TCP outduct blockage.  We again send a file,
+then shut down the receiving node altogether, let the keepalive
+thread detect the socket closure, blocking the outduct, and then
+send another file.  The second file goes into limbo and is released
+from limbo when the receiving node is restarted and reopens its TCP
+socket, enabling the keepalive thread to unblock the outduct."
+
+echo
+echo "CONFIG: 2 node custom stcp:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
 
 ./cleanup
 sleep 1

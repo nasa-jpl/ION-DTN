@@ -1,0 +1,7 @@
+1
+a babrxrule ipn:2.* '' ''
+a babtxrule ipn:2.* '' ''
+a babrxrule ipn:3.* '' ''
+a babtxrule ipn:3.* '' ''
+a key myKey key1.hmk
+a key myKey2 key2.hmk

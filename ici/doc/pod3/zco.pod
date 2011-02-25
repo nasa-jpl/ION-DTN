@@ -41,15 +41,13 @@ a given ZCO is destroyed -- either explicitly or (when the entire
 ZCO has been read and copied via this reference) implicitly -- the
 ZCO itself is automatically destroyed.
 
-But NOTE: to reduce code size and complexity and minimize processing
-overhead, the ZCO functions are NOT mutexed.  It is in general NOT SAFE
-for multiple threads or processes to be operating on the same ZCO
-concurrently, whether using the same Zco reference or multiple
-references.  However, multiple threads or processes of overlying
-protocol (e.g, multiple final destination endpoints) MAY safely use
-different ZcoReferences to receive the source data of a ZCO
-concurrently once the length of that data -- with regard to that
-layer of protocol -- has been firmly established.
+Note that the safety of shared access to a ZCO is protected by the
+fact that the ZCO resides in SDR and therefore cannot be modified
+other than in the course of an SDR transaction, which serializes
+access.  Note also that "transmitting" or "receiving" a ZCO updates
+progress counters in the ZCO reference object and therefore is an
+SDR data modification that must occur in the course of an SDR
+transaction.
 
 Note also that ZCO can more broadly be used as a general-purpose
 reference counting system for non-volatile data objects, where a
@@ -62,11 +60,19 @@ need for such a system is identified.
 Creates and returns a new file reference object, which can be used as the
 source data extent location for creating a ZCO whose source data object is
 the file identified by I<pathName>.  I<cleanupScript>, if not NULL, is invoked
-at the time that the last ZCO that cites this file reference is destroyed
+at the moment the last ZCO that cites this file reference is destroyed
 [normally upon delivery either down to the "ZCO transition layer" of the
-protocol stack or up to a ZCO-capable application].  Maximum length of
-I<cleanupScript> is 255.  Returns SDR location of file reference object
-on success, 0 on any error.
+protocol stack or up to a ZCO-capable application].  A zero-length string
+is interpreted as implicit direction to delete the referenced file when
+the file reference object is destroyed.  Maximum length of I<cleanupScript>
+is 255.  Returns SDR location of file reference object on success, 0 on any
+error.
+
+=item Object zco_revise_file_ref(Sdr sdr, Object fileRef, char *pathName, char *cleanupScript)
+
+Changes the I<pathName> and I<cleanupScript> of the indicated file
+reference.  The new values of these fields are validated as for
+zco_create_file_ref().  Returns 0 on success, -1 on any error.
 
 =item char *zco_file_ref_path(Sdr sdr, Object fileRef, char *buffer, int buflen)
 
@@ -180,8 +186,8 @@ which is used to keep track of "transmission" progress via this ZCO reference.
 
 Copies I<length> as-yet-uncopied bytes of the total concatenated ZCO
 (referenced by I<reader>) into I<buffer>.  If I<buffer> is NULL, skips
-over I<length> bytes without copying.  Returns the number of bytes
-copied (or skipped), or -1 on any error.
+over I<length> bytes without copying.  Returns the number of bytes copied
+(or skipped) on success, 0 on any file access error, -1 on any other error.
 
 =item void zco_stop_transmitting(Sdr sdr, ZcoReader *reader)
 
@@ -204,8 +210,8 @@ Copies I<length> as-yet-uncopied bytes of header data from ZCO extents into
 I<buffer>, advancing the presumptive start of actual source data (and
 increasing the presumptive length of the ZCO's concatenated protocol
 headers) by I<length>.  If I<buffer> is NULL, skips over I<length> bytes
-without copying.  Returns number of bytes copied (or skipped), or -1 on
-any error.
+without copying.  Returns number of bytes copied (or skipped) on success,
+0 on any file access error, -1 on any other error.
 
 =item void zco_restore_source(Sdr sdr, ZcoReader *reader, unsigned int length)
 
@@ -228,13 +234,15 @@ length as determined from the contents of the innermost protocol header.
 
 Copies I<length> as-yet-uncopied bytes of source data from ZCO extents into
 I<buffer>.  If I<buffer> is NULL, skips over I<length> bytes without
-copying.  Returns number of bytes copied (or skipped), or -1 on any error.
+copying.  Returns number of bytes copied (or skipped) on success, 0 on any
+file access error, -1 on any other error.
 
 =item int zco_receive_trailers(Sdr sdr, ZcoReader *reader, unsigned int length, char *buffer)
 
 Copies I<length> as-yet-uncopied bytes of trailer data from ZCO extents into
 I<buffer>.  If I<buffer> is NULL, skips over I<length> bytes without copying.
-Returns number of bytes copied (or skipped), or -1 on any error.
+Returns number of bytes copied (or skipped) on success, 0 on any file access
+error, -1 on any other error.
 
 =item void zco_stop_receiving(Sdr sdr, ZcoReader *reader)
 

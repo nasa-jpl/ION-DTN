@@ -32,7 +32,7 @@ static void	interruptThread()
 	pthread_t	mainThread = udpcliMainThread(0);
 
 	isignal(SIGTERM, interruptThread);
-	if (mainThread != pthread_self())
+	if (!pthread_equal(mainThread, pthread_self()))
 	{
 		pthread_kill(mainThread, SIGTERM);
 	}

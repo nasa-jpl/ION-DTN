@@ -146,7 +146,7 @@ extern int	sec_get_key(char *keyName,
 		 *	length exceeds the length of the buffer,
 		 *	which must be supplied in *keyBufferLength.
 		 *
-		 *	On success, returns the actual length the
+		 *	On success, returns the actual length of
 		 *	key.  If *keyBufferLength is less than the
 		 *	actual length of the key, returns 0 and
 		 *	replaces buffer length in *keyBufferLength

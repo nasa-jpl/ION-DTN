@@ -2157,7 +2157,7 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		/*	Can only get to this code if execlp fails.	*/
 
 		putSysErrmsg("Can't execute new process, exiting...", name);
-		return 0;
+		exit(1);
 
 	default:		/*	This is the parent process.	*/
 		return pid;

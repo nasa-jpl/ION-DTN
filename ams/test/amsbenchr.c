@@ -21,7 +21,7 @@ int	amsbenchr(int a1, int a2, int a3, int a4, int a5,
 int	main(int argc, char **argv)
 {
 #endif
-	AmsModule		me;
+	AmsModule	me;
 	int		subjectNbr;
 	AmsEvent	event;
 	int		cn, zn, nn, sn, len, ct, pr;
@@ -40,10 +40,9 @@ int	main(int argc, char **argv)
 	double		Mbps;
 	char		buf[128];
 
-	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, "amsdemo", "test",
-			"", "benchr", &me) < 0)
+	if (ams_register("", NULL, "amsdemo", "test", "", "benchr", &me) < 0)
 	{
-		putSysErrmsg("amsbenchr can't register", NULL);
+		putErrmsg("amsbenchr can't register.", NULL);
 		return -1;
 	}
 
@@ -57,7 +56,7 @@ int	main(int argc, char **argv)
 	if (ams_subscribe(me, 0, 0, 0, subjectNbr, 8, 0, AmsTransmissionOrder,
 				AmsAssured) < 0)
 	{
-		putSysErrmsg("amsbenchr can't subscribe", NULL);
+		putErrmsg("amsbenchr can't subscribe.", NULL);
 		return -1;
 	}
 
@@ -65,7 +64,7 @@ int	main(int argc, char **argv)
 	{
 		if (ams_get_event(me, AMS_BLOCKING, &event) < 0)
 		{
-			putSysErrmsg("amsbenchr can't get event", NULL);
+			putErrmsg("amsbenchr can't get event.", NULL);
 			return -1;
 		}
 
@@ -80,8 +79,8 @@ int	main(int argc, char **argv)
 				msgs = count = ntohl(count);
 				if (count < 1)
 				{
-					putErrmsg("Count in message is < 1.",
-							NULL);
+					writeMemoNote("Count in message is < 1",
+							itoa(count));
 					break;
 				}
 			}

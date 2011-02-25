@@ -296,6 +296,18 @@ static int	_petitionLog(char *logLine)
 
 /*	*	*	RAMS gateway main line	*	*	*	*/
 
+static pthread_t	_mainThread(pthread_t *value)
+{
+	static pthread_t	mainThread = 0;
+
+	if (value)
+	{
+		mainThread = *value;
+	}
+
+	return mainThread;
+}
+
 static void	KillGateway()
 {
 	RamsGateway	*gWay = _gWay(NULL);
@@ -307,19 +319,17 @@ static void	KillGateway()
 	}
 }
 
-static int	HandleBundle(BpDelivery *dlv, int *contentLength, char *content)
+static int	HandleBundle(BpDelivery *dlv, char *buffer)
 {
 	RamsGateway	*gWay = _gWay(NULL);
 	Sdr		sdr = getIonsdr();
 	RamsNode	*fromNode;
 	ZcoReader	reader;
-	char   		*contentLoc;
 	int		bytesCopied;
-	int		counter;
+	int		enclosureLength;
 #if RAMSDEBUG
 int	i;
 #endif
-
 	fromNode = Look_Up_Neighbor(gWay, dlv->bundleSourceEid);
 	if (fromNode == NULL)	/*	Stray bundle?			*/
 	{
@@ -330,89 +340,66 @@ printf("Can't find source gateway '%s'.\n", dlv->bundleSourceEid);
 	}
 
 	zco_start_receiving(sdr, dlv->adu, &reader);
-	contentLoc = content;
-	if ((bytesCopied = zco_receive_source(sdr, &reader, *contentLength,
-			contentLoc)) < 0)
+	if ((bytesCopied = zco_receive_source(sdr, &reader, ENVELOPELENGTH,
+			buffer)) < ENVELOPELENGTH)
 	{
-		ErrMsg("Can't receive payload.");
+		ErrMsg("Can't receive envelope.");
 		return -1;
 	}
 
+	enclosureLength = EnvelopeHeader(buffer, Env_EnclosureLength);
 #if RAMSDEBUG
-printf("Receive RPDU: bytesCopied=%d contentLength=%d\n",
-bytesCopied, *contentLength);	
-for (i = 0; i < *contentLength; i++)
+printf("Receive RPDU:\n");
+for (i = 0; i < ENVELOPELENGTH; i++)
 {
-	printf("%2x ", contentLoc[i]);
+	printf("%2x ", *(buffer + i));
 }
 printf("\n");
 printf("cc=%d, con=%d, unit=%d, srcId=%d, destId=%d, sub=%d len=%d from=%d\n",
-EnvelopeHeader(content, Env_ControlCode),
-EnvelopeHeader(content, Env_ContinuumNbr),
-EnvelopeHeader(content, Env_UnitField),
-EnvelopeHeader(content, Env_SourceIDField),
-EnvelopeHeader(content, Env_DestIDField),
-EnvelopeHeader(content, Env_SubjectNbr),
-*contentLength, fromNode->continuumNbr);				
+EnvelopeHeader(buffer, Env_ControlCode),
+EnvelopeHeader(buffer, Env_ContinuumNbr),
+EnvelopeHeader(buffer, Env_UnitField),
+EnvelopeHeader(buffer, Env_SourceIDField),
+EnvelopeHeader(buffer, Env_DestIDField),
+EnvelopeHeader(buffer, Env_SubjectNbr),
+enclosureLength, fromNode->continuumNbr);				
 #endif
-	*contentLength = EnvelopeHeader(content, Env_EnclosureLength);
-	if (*contentLength > 0)
+	if (enclosureLength > 0)
 	{
-		contentLoc = content + ENVELOPELENGTH;
-#if RAMSDEBUG
-PUTS("Before zco_receive_source for receiving payload.");
-#endif
 		if ((bytesCopied = zco_receive_source(sdr, &reader,
-				*contentLength, contentLoc)) < 0)
+				enclosureLength, buffer + ENVELOPELENGTH))
+				< enclosureLength)
 		{
-			ErrMsg("Can't receive payload.");
+			ErrMsg("Can't receive enclosure.");
 			return -1;
 		}
-
-#if RAMSDEBUG
-PUTS("After zco_receive_source.");					
-#endif
-#if 0
-		*(contentLoc + *contentLength) = '\0';
-		/*	mainly for "amsbenchr", "amsbenchs" test	*/
-#endif
-		memcpy((char *) &counter, contentLoc + AMSMSGHEADER,
-				sizeof(int));
-		counter = ntohl(counter);
-#if RAMSDEBUG
-printf("Enclosure: contentLength=%d messageCounter=%d\n",
-*contentLength, counter);
-#endif
 	}
 
-	*contentLength = ENVELOPELENGTH;	/*	Reset for next.	*/
+	zco_stop_receiving(sdr, &reader);
 
-	/*	Receive RAMS PDU from remote RAMS gateway.		*/
+	/*	Handle RAMS PDU from remote RAMS gateway.		*/
 
-	if (HandleRPDU(fromNode, gWay, content) < 0)
+	if (HandleRPDU(fromNode, gWay, buffer) < 0)
 	{
 		ErrMsg("Can't receive RPDU.");
 		return -1;
 	}
 
-	zco_stop_receiving(sdr, &reader);
 	return 0;
 }
 
-static int	HandleDatagram(struct sockaddr_in *inetName, int *contentLength,
-			char *content)
+static int	HandleDatagram(struct sockaddr_in *inetName,
+			int datagramLength, char *buffer)
 {
 	RamsGateway	*gWay = _gWay(NULL);
 	unsigned int	ipAddress;
 	unsigned short	portNbr;
 	char		gwEidBuffer[32];
 	RamsNode	*fromNode;
-	char   		*contentLoc;
-	int		counter;
+	int		enclosureLength;
 #if RAMSDEBUG
 int	i;
 #endif
-
 	memcpy((char *) &ipAddress, (char *) &(inetName->sin_addr.s_addr), 4);
 	ipAddress = ntohl(ipAddress);
 	portNbr = inetName->sin_port;
@@ -427,44 +414,45 @@ printf("Can't find source gateway '%s'.\n", gwEidBuffer);
 		return 0;
 	}
 
+	if (datagramLength < ENVELOPELENGTH)
+	{
 #if RAMSDEBUG
-printf("Receive RPDU: contentLength=%d\n", *contentLength);	
-for (i = 0; i < *contentLength; i++)
+printf("Datagram too short for envelope: %d.\n", datagramLength);
+#endif
+		return 0;
+	}
+
+	enclosureLength = EnvelopeHeader(buffer, Env_EnclosureLength);
+#if RAMSDEBUG
+printf("Receive RPDU:\n");
+for (i = 0; i < ENVELOPELENGTH; i++)
 {
-	printf("%2x ", contentLoc[i]);
+	printf("%2x ", *(buffer + i));
 }
 printf("\n");
 printf("cc=%d, con=%d, unit=%d, srcId=%d, destId=%d, sub=%d len=%d from=%d\n",
-EnvelopeHeader(content, Env_ControlCode),
-EnvelopeHeader(content, Env_ContinuumNbr),
-EnvelopeHeader(content, Env_UnitField),
-EnvelopeHeader(content, Env_SourceIDField),
-EnvelopeHeader(content, Env_DestIDField),
-EnvelopeHeader(content, Env_SubjectNbr),
-*contentLength, fromNode->continuumNbr);				
+EnvelopeHeader(buffer, Env_ControlCode),
+EnvelopeHeader(buffer, Env_ContinuumNbr),
+EnvelopeHeader(buffer, Env_UnitField),
+EnvelopeHeader(buffer, Env_SourceIDField),
+EnvelopeHeader(buffer, Env_DestIDField),
+EnvelopeHeader(buffer, Env_SubjectNbr),
+enclosureLength, fromNode->continuumNbr);				
 #endif
-	*contentLength = EnvelopeHeader(content, Env_EnclosureLength);
-	if (*contentLength > 0)
+	if (enclosureLength > 0)
 	{
-		contentLoc = content + ENVELOPELENGTH;
-#if 0
-		*(contentLoc + *contentLength) = '\0';
-		/*	mainly for "amsbenchr", "amsbenchs" test	*/
-#endif
-		memcpy((char *) &counter, contentLoc + AMSMSGHEADER,
-				sizeof(int));
-		counter = ntohl(counter);
+		if (datagramLength < (ENVELOPELENGTH + enclosureLength))
+		{
 #if RAMSDEBUG
-printf("Enclosure: contentLength=%d messageCounter=%d\n",
-*contentLength, counter);
+printf("Datagram has truncated enclosure: %d.\n", datagramLength);
 #endif
+			return 0;
+		}
 	}
 
-	*contentLength = ENVELOPELENGTH;	/*	Reset for next.	*/
+	/*	 Handle RAMS PDU from remote RAMS gateway.		*/
 
-	/*	 Receive RAMS PDU from remote RAMS gateway.		*/
-
-	if (HandleRPDU(fromNode, gWay, content))
+	if (HandleRPDU(fromNode, gWay, buffer))
 	{
 		ErrMsg("Can't receive RPDU.");
 		return -1;
@@ -498,15 +486,20 @@ static void	DeleteInvitation(Invitation *inv)
 	MRELEASE(inv);
 }
 
-int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
-		unsigned mSize, char *applicationName, char *authorityName,
-		char *unitName, char *roleName, RamsGate *gWayp, int lifetime)
+int	rams_run(char *mibSource, char *tsorder, char *applicationName,
+		char *authorityName, char *unitName, char *roleName,
+		long lifetime)
 {
+	pthread_t		self;
+	AmsModule		amsModule;
+	AmsMib			*mib;
+	int			ownContinuumNbr;
+	Subject			*ownMsgspace;
+	RamsGateway		*gWay;
 	Sdr			sdr;
 	LystElt			elt;
 	BpDelivery		dlv;
-	int			contentLength;
-	char    		*content;
+	char    		*buffer;
 	unsigned char		envelope[ENVELOPELENGTH];
 	RamsNode		*ramsNode;
 	char			gwEid[256];
@@ -515,11 +508,9 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
 	socklen_t		nameLength;
+	int			datagramLength;
 	Lyst			msgspaces;
 	int			cId;
-	Continuum		*continuum;
-	AmsModule		amsModule;
-	RamsGateway		*gWay;
 	Petition		*pet;
 	AmsEventMgt		rules;
 	int			ownPseudoSubject;
@@ -527,19 +518,24 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 
 	PUTS("RAMS version 1.0");
 
-	/*  Either the gateway net protocol will be BP, and we'll set sdr to
-		the ION sdr; or using SDR will rightly lead to an assertion error. */
+	/*	Either the gateway net protocol will be BP, and we'll
+	 *	set sdr to the ION sdr, or using SDR will correctly
+	 *	generate an assertion error.				*/
+
 	sdr = 0;
 
 	/*	Register as an AMS module.				*/
 
-	if (ams_register(mibSource, tsorder, mName, memory, mSize,
-			applicationName, authorityName, unitName, roleName,
-			&amsModule) < 0)
+	if (ams_register(mibSource, tsorder, applicationName, authorityName,
+			unitName, roleName, &amsModule) < 0)
 	{
 		putErrmsg("RAMS gateway can't register.", NULL);
 		return -1;
 	}
+
+	mib = _mib(NULL);
+	ownContinuumNbr = mib->localContinuumNbr;
+	ownMsgspace = amsModule->venture->msgspaces[ownContinuumNbr];
 
 	/*	Construct RAMS gateway state.				*/
 
@@ -550,7 +546,6 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 		return -1;
 	}
 
-	*gWayp = gWay;
 	gWay->amsModule = amsModule;
 	gWay->primeThread = pthread_self();
 	gWay->petitionReceiveThread = pthread_self();
@@ -574,7 +569,7 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 
 	/*	Determine RAMS network type.				*/
 
-	if (ams_rams_net_is_tree())
+	if (ams_rams_net_is_tree(gWay->amsModule))
 	{
 		gWay->netType = TREETYPE;
 	}
@@ -586,14 +581,14 @@ int	rams_run(char *mibSource, char *tsorder, char *mName, char *memory,
 	/*	Load list of all neighboring nodes in the RAMS network.	*/
 
 #if RAMSDEBUG
-printf("continuum lyst: ");
+printf("continuum lyst:");
 #endif
 	msgspaces = ams_list_msgspaces(gWay->amsModule);
 	for (elt = lyst_first(msgspaces); elt; elt = lyst_next(elt))
 	{
-		cId = (long)lyst_data(elt);
+		cId = (long) lyst_data(elt);
 #if RAMSDEBUG
-printf("\nbr %d ", cId);		
+printf(" %d", cId);		
 #endif
 		if (cId == gWay->amsMib->localContinuumNbr)
 		{
@@ -605,7 +600,6 @@ printf("\nbr %d ", cId);
 			continue;
 		} 	
 
-		continuum = gWay->amsMib->continua[cId];
 		ramsNode = (RamsNode *) MTAKE(sizeof(RamsNode));
 		if (ramsNode == NULL)
 		{
@@ -615,8 +609,8 @@ printf("\nbr %d ", cId);
 
 		memset(ramsNode, 0, sizeof(RamsNode));
 		ramsNode->continuumNbr = cId;
-		ramsNode->protocol = continuum->gwProtocol;
-		ramsNode->gwEid = continuum->gwEid;
+		ramsNode->protocol = amsModule->venture->gwProtocol;
+		ramsNode->gwEid = amsModule->venture->msgspaces[cId]->gwEid;
 		if (lyst_insert_last(gWay->ramsNeighbors, ramsNode)
 				== NULL)
 		{
@@ -626,7 +620,7 @@ printf("\nbr %d ", cId);
 
 		gWay->neighborsCount++;
 #if RAMSDEBUG
-printf(" neighbor");
+printf("[neighbor]");
 #endif
 	}
 
@@ -684,12 +678,12 @@ printf("subscribed to %d\n", ownPseudoSubject);
 #endif
 	/*	Insert self into RAMS network.				*/
 
-	gWay->netProtocol = gWay->amsMib->localContinuumGwProtocol;
+	gWay->netProtocol = gWay->amsModule->venture->gwProtocol;
 	switch (gWay->netProtocol)
 	{
 	case RamsBp:
 #if RAMSDEBUG
-printf("ownEid for bp_open is '%s'.\n", gWay->amsMib->localContinuumGwEid);
+printf("ownEid for bp_open is '%s'.\n", ownMsgspace->gwEid);
 #endif
 		gWay->ttl = lifetime;
 		if (bp_attach() < 0)
@@ -700,7 +694,7 @@ printf("ownEid for bp_open is '%s'.\n", gWay->amsMib->localContinuumGwEid);
 #if RAMSDEBUG
 printf("bp_attach succeeds.\n");
 #endif
-		if (bp_open(gWay->amsMib->localContinuumGwEid, &gWay->sap) < 0)
+		if (bp_open(ownMsgspace->gwEid, &gWay->sap) < 0)
 		{
 			ErrMsg("Can't open own BP endpoint.");
 			return -1;
@@ -722,7 +716,7 @@ printf("bp_open succeeds.\n");
 			return -1;
 		}
 
-		istrcpy(gwEid, gWay->amsMib->localContinuumGwEid, sizeof gwEid);
+		istrcpy(gwEid, ownMsgspace->gwEid, sizeof gwEid);
 		parseSocketSpec(gwEid, &portNbr, &ipAddress);
 		portNbr = htons(portNbr);
 		ipAddress = htonl(ipAddress);
@@ -806,14 +800,15 @@ printf("Gateway declares itself to all RAMS network neighbors ....\n");
 	/*	This is the RPDU handling thread, the operational main
 	 *	loop for the RAMS gateway module.			*/
 
-	content = MTAKE(65534);
-	if (content == NULL)
+	buffer = MTAKE(65534);
+	if (buffer == NULL)
 	{
 		ErrMsg("Can't allocate RPDU buffer.");
 		return -1;
 	}
 
-	contentLength = ENVELOPELENGTH;
+	self = pthread_self();
+	oK(_mainThread(&self));
 	isignal(SIGTERM, KillGateway);
 	while (gWay->stopping == 0)
 	{
@@ -838,7 +833,7 @@ printf("Before bp_receive...\n");
 
 			case BpPayloadPresent:
 				sdr_begin_xn(sdr);
-				if (HandleBundle(&dlv, &contentLength, content)
+				if (HandleBundle(&dlv, buffer)
 						< 0)
 				{
 					sdr_cancel_xn(sdr);
@@ -864,8 +859,9 @@ printf("Before bp_receive...\n");
 
 		case RamsUdp:
 			nameLength = sizeof(struct sockaddr_in);
-			switch (recvfrom(gWay->ownUdpFd, content, 65534, 0,
-					&socketName, &nameLength))
+			datagramLength = recvfrom(gWay->ownUdpFd, buffer,
+					65534, 0, &socketName, &nameLength);
+			switch (datagramLength)
 			{
 			case -1:
 				if (errno == EINTR)
@@ -883,8 +879,8 @@ printf("Before bp_receive...\n");
 				continue;
 
 			default:
-				if (HandleDatagram(inetName, &contentLength,
-						content) < 0)
+				if (HandleDatagram(inetName, datagramLength,
+						buffer) < 0)
 				{
 					ErrMsg("Can't handle datagram.");
 					gWay->stopping = 1;
@@ -899,7 +895,7 @@ printf("Before bp_receive...\n");
 		}
 	}
 
-	MRELEASE(content);		/*	Release RPDU buffer.	*/
+	MRELEASE(buffer);		/*	Release RPDU buffer.	*/
 	if (gWay->netProtocol == RamsUdp)
 	{
 		pthread_cancel(checkThread);
@@ -907,6 +903,11 @@ printf("Before bp_receive...\n");
 	}
 
 	TerminateGateway(gWay);
+	if (gWay->netProtocol == RamsBp)
+	{
+		bp_detach();
+	}
+
 	oK(_petitionLog(NULL));		/*	Close the petition log.	*/
 	writeMemo("[i] Stopping RAMS gateway.");
 	return 0;
@@ -1131,6 +1132,7 @@ sub=%d\n", inv->inviteSpecification->domainUnitNbr,
 static void	HandleAamsError(void *userData, AmsEvent *event)
 {
 	ErrMsg("Can't receive Aams Message.");
+	oK(pthread_kill(_mainThread(NULL), SIGTERM));
 }
 
 static void	HandleSubscription(AmsModule module, void *userData,

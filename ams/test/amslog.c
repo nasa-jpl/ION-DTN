@@ -1,5 +1,5 @@
 /*
-	amslog.c:	an AMS utility program for UNIX.  amslog
+	amslog.c:	a simple AMS test program.  amslog
 			registers in a specified message space (named
 			in a command-line parameter), subscribes to a
 			list of subjects that it reads from stdin, and
@@ -14,11 +14,35 @@
 
 #include "ams.h"
 
-static int	amslog_running = 0;
+static pthread_t	_mainThread(pthread_t *value)
+{
+	static pthread_t	mainThread = 0;
+
+	if (value)
+	{
+		mainThread = *value;
+	}
+
+	return mainThread;
+}
+
+static int	_amslog_running(int *value)
+{
+	static int	running = 0;
+
+	if (value)
+	{
+		running = (*value == 0 ? 0 : 1);
+	}
+
+	return running;
+}
 
 static void	handleQuit()
 {
-	fputs("Please enter '.' to quit the program.\n", stderr);
+	int	stop = 0;
+
+	oK(_amslog_running(&stop));
 }
 
 static void	logToStderr(char *text)
@@ -53,7 +77,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			perror("amslog error writing subject length");
 		}
 
-		kill(sm_TaskIdSelf(), SIGINT);
+		oK(pthread_kill(_mainThread(NULL), SIGINT));
 		return;
 	}
 #else
@@ -66,7 +90,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			perror("amslog error writing subject length");
 		}
 
-		kill(sm_TaskIdSelf(), SIGINT);
+		oK(pthread_kill(_mainThread(NULL), SIGINT));
 		return;
 	}
 
@@ -77,7 +101,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			perror("amslog error writing subject name");
 		}
 
-		kill(sm_TaskIdSelf(), SIGINT);
+		oK(pthread_kill(_mainThread(NULL), SIGINT));
 		return;
 	}
 
@@ -89,7 +113,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			perror("amslog error writing content length");
 		}
 
-		kill(sm_TaskIdSelf(), SIGINT);
+		oK(pthread_kill(_mainThread(NULL), SIGINT));
 		return;
 	}
 
@@ -102,7 +126,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 				perror("amslog error writing content");
 			}
 
-			kill(sm_TaskIdSelf(), SIGINT);
+			oK(pthread_kill(_mainThread(NULL), SIGINT));
 			return;
 		}
 	}
@@ -114,8 +138,8 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 		if (ams_reply(me, *event, subjectNbr, priority, 0, replyLength,
 				replyText) < 0)
 		{
-			putErrmsg("Can't send reply message.", NULL);
-			kill(sm_TaskIdSelf(), SIGINT);
+			putErrmsg("amslog can't send reply message.", NULL);
+			oK(pthread_kill(_mainThread(NULL), SIGINT));
 			return;
 		}
 	}
@@ -125,7 +149,8 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 
 static void	interruptAmslog(void *userData, AmsEvent *event)
 {
-	fputs("AMS event loop crashed.  Please enter '.' to quit.\n", stderr);
+	fputs("AMS event loop terminated.\n", stderr);
+	oK(pthread_kill(_mainThread(NULL), SIGINT));
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -142,21 +167,24 @@ int	main(int argc, char **argv)
 	char		*authorityName = (argc > 2 ? argv[2] : NULL);
 	char		*mode = (argc > 3 ? argv[3] : "s");
 #endif
-	AmsModule		me;
+	pthread_t	self;
+	AmsModule	me;
 	AmsEventMgt	rules;
+	int		start = 1;
+	int		stop = 0;
 	int		asserting;
 	char		buffer[256];
 	char		*cmdString = buffer;
 	int		stringLength;
 	int		parmCount;
-	char		subjectName[256];
-	char		unitName[256];
-	char		roleName[256];
-	char		cntName[256];		// CW, 5/1/06
+	char		subjectName[33];
+	char		unitName[33];
+	char		roleName[33];
+	char		continName[33];			// CW, 5/1/06
 	int		subjectNbr;              
 	int		unitNbr;
 	int		roleNbr;
-	int		cntNbr;			// CW, 5/1/06
+	int		continNbr;			// CW, 5/1/06
 
 	if (applicationName == NULL || authorityName == NULL
 	|| (strcmp(mode, "s") && strcmp(mode, "i")))
@@ -171,12 +199,15 @@ messages to stdout.\n", stderr);
 		return 0;
 	}
 
-	signal(SIGINT, handleQuit);
+	self = pthread_self();
+	oK(_mainThread(&self));
+	oK(_amslog_running(&start));
+	isignal(SIGINT, handleQuit);
 	setLogger(logToStderr);
-	if (ams_register("amsmib.xml", NULL, NULL, NULL, 0, applicationName,
-			authorityName, "", "log", &me) < 0)
+	if (ams_register("", NULL, applicationName, authorityName, "", "log",
+			&me) < 0)
 	{
-		putSysErrmsg("amslog can't register", NULL);
+		putErrmsg("amslog can't register.", NULL);
 		return -1;
 	}
 
@@ -185,24 +216,30 @@ messages to stdout.\n", stderr);
 	rules.errHandler = interruptAmslog;
 	if (ams_set_event_mgr(me, &rules) < 0)
 	{
-		putSysErrmsg("amslog can't set event manager", NULL);
+		putErrmsg("amslog can't set event manager.", NULL);
 		ams_unregister(me);
 		return -1;
 	}
 
-	amslog_running = 1;
-	while (amslog_running)
+	while (_amslog_running(NULL))
 	{
 		asserting = 1;
 		if (fgets(cmdString, 256, stdin) == NULL)
 		{
-			break;		/*	Out of loop.		*/
+			if (ferror(stdin))
+			{ 
+				putSysErrmsg("amslog can't read from stdin",
+						NULL);
+			}
+
+			oK(_amslog_running(&stop));
+			continue;
 		}
 
 		switch (*cmdString)
 		{
 		case '.':		/*	Quitting.		*/
-			amslog_running = 0;
+			oK(_amslog_running(&stop));
 			continue;
 
 		case '+':		/*	Asserting.		*/
@@ -227,7 +264,7 @@ messages to stdout.\n", stderr);
 		}
 		else
 		{
-			writeMemo("amslog input line too long");
+			writeMemo("[?] amslog input line too long.");
 			continue;
 		}
 
@@ -235,10 +272,9 @@ messages to stdout.\n", stderr);
 
 		roleNbr = 0;	/*	Default is "all roles".		*/
 		unitNbr = 0;	/*	Default is root unit.		*/
-		cntNbr = 0;	/*	Default is "all continua".	*/	// CW, 5/1/06
-		parmCount = sscanf(cmdString, "%255s %255s %255s %255s",
-				subjectName,
-				cntName,	// CW, 5/1/06  
+		continNbr = 0;	/*	Default is "all continua".	*/
+		parmCount = sscanf(cmdString, "%32s %32s %32s %32s",
+				subjectName, continName,	// CW, 5/1/06  
 				unitName, roleName);                     
 		switch (parmCount)
 		{
@@ -246,9 +282,12 @@ messages to stdout.\n", stderr);
 			roleNbr = ams_lookup_role_nbr(me, roleName);
 			if (roleNbr < 0)
 			{
-				writeMemo("Unknown role.");
+				writeMemoNote("[?] amslog unknown role",
+						roleName);
 				continue;
 			}
+
+			/*	Intentional fall-through to next case.	*/
 
 		case 3:						// CW 5/1/06
 			if (strcmp(unitName, "_") != 0)
@@ -257,18 +296,23 @@ messages to stdout.\n", stderr);
 				unitNbr = ams_lookup_unit_nbr(me, unitName);
 				if (unitNbr < 0)
 				{
-					writeMemo("Unknown unit.");
+					writeMemoNote("[?] amslog unknown unit",
+							unitName);
 					continue;
 				}
 			}
 
+			/*	Intentional fall-through to next case.	*/
+
 		case 2:  
-			if (strcmp(cntName, "_") != 0)		// CW, 5/19/06
+			if (strcmp(continName, "_") != 0)	// CW, 5/19/06
 			{
-				cntNbr = ams_lookup_continuum_nbr(me, cntName);
-				if (cntNbr < 0)
+				continNbr = ams_lookup_continuum_nbr(me,
+						continName);
+				if (continNbr < 0)
 				{
-					writeMemo("Unknown Continuum.");
+					writeMemoNote("[?] amslog unknown \
+continuum", continName);
 					continue;
 				}
 			}
@@ -279,13 +323,14 @@ messages to stdout.\n", stderr);
 			subjectNbr = ams_lookup_subject_nbr(me, subjectName);
 			if (subjectNbr < 0)
 			{
-				writeMemo("Unknown subject.");
+				writeMemoNote("[?] amslog unknown subject",
+						subjectName);
 				continue;
 			}
 
 			if (subjectNbr == 0)	/*	All subjects.	*/
 			{
-				if (cntNbr == 0)
+				if (continNbr == 0)
 				{
 					/*	Use different default,
 						because subscription to
@@ -293,12 +338,13 @@ messages to stdout.\n", stderr);
 						only within the local
 						continuum.		*/
 
-					cntNbr = THIS_CONTINUUM;
+					continNbr = THIS_CONTINUUM;
 				}
 
-				if (cntNbr != THIS_CONTINUUM)
+				if (continNbr != THIS_CONTINUUM)
 				{
-					writeMemo("Unknown subject.");
+					writeMemoNote("[?] amslog unknown \
+subject", subjectName);
 					continue;
 				}
 			}
@@ -306,7 +352,7 @@ messages to stdout.\n", stderr);
 			break;
 
 		default:
-			writeMemo("Null command ignored.");
+			writeMemo("[?] amslog null command ignored.");
 			continue;
 		}
 
@@ -315,26 +361,26 @@ messages to stdout.\n", stderr);
 			if (*mode == 's')
 			{
 				if (ams_subscribe(me, roleNbr,
-						cntNbr,	// CW, 5/1/06
+						continNbr,	// CW, 5/1/06
 						unitNbr, subjectNbr,
 						8, 0, AmsArrivalOrder,
 						AmsBestEffort) < 0)
 				{
-					writeMemo("Can't subscribe to this \
-subject.");
+					putErrmsg("amslog can't subscribe to \
+subject", subjectName);
 					continue;
 				}
 			}
 			else
 			{
 				if (ams_invite(me, roleNbr,
-						cntNbr,
+						continNbr,
 						unitNbr, subjectNbr,
 						8, 0, AmsArrivalOrder,
 						AmsBestEffort) < 0)
 				{
-					writeMemo("Can't invite this \
-subject.");
+					putErrmsg("amslog can't invite this \
+subject", subjectName);
 					continue;
 				}
 			}
@@ -344,22 +390,22 @@ subject.");
 			if (*mode == 's')
 			{
 				if (ams_unsubscribe(me, roleNbr,
-						cntNbr, // CW 5/1/06
+						continNbr, // CW 5/1/06
 						unitNbr, subjectNbr) < 0)
 				{
-					writeMemo("Can't unsubscribe to this \
-subject.");
+					putErrmsg("amslog can't unsubscribe \
+to subject", subjectName);
 					continue;
 				}
 			}
 			else
 			{
 				if (ams_disinvite(me, roleNbr,
-						cntNbr, // CW 5/1/06
+						continNbr, // CW 5/1/06
 						unitNbr, subjectNbr) < 0)
 				{
-					writeMemo("Can't disinvite this \
-subject.");
+					putErrmsg("amslog can't disinvite \
+this subject", subjectName);
 					continue;
 				}
 			}

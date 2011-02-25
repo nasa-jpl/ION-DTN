@@ -70,6 +70,8 @@ static int	vmqAmsInit(AmsInterface *tsif, char *epspec)
 	char		endpointNameText[32];
 	int		eptLen;
 
+	CHKERR(tsif);
+	CHKERR(epspec);
 #ifdef VXMP
 	vmqSap = msgQSmCreate(1, VMQTS_MAX_MSG_LEN, MSG_Q_FIFO);
 #else
@@ -89,7 +91,7 @@ static int	vmqAmsInit(AmsInterface *tsif, char *epspec)
 	if (tsif->ept == NULL)
 	{
 		msgQDelete(vmqSap);
-		putSysErrmsg(NoMemoryMemo, NULL);
+		putErrmsg("Can't record endpoint name.", NULL);
 		return -1;
 	}
 
@@ -108,15 +110,13 @@ static void	*vmqAmsReceiver(void *parm)
 	int		length;
 	int		errnbr;
 
+	CHKNULL(tsif);
 	vmqSap = (MSG_Q_ID) (tsif->sap);
+	CHKNULL(vmqSap);
 	amsSap = tsif->amsSap;
+	CHKNULL(amsSap);
 	buffer = MTAKE(VMQTS_MAX_MSG_LEN);
-	if (buffer == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(buffer);
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
@@ -135,7 +135,7 @@ static void	*vmqAmsReceiver(void *parm)
 
 		if (enqueueAmsMsg(amsSap, buffer, length) < 0)
 		{
-			putErrmsg("vmqts discarded AMS message.", NULL);
+			writeMemo("[?] vmqts discarded AMS message.");
 		}
 	}
 }
@@ -144,28 +144,16 @@ static int	vmqParseAmsEndpoint(AmsEndpoint *dp)
 {
 	VmqTsep	tsep;
 
-	if (dp == NULL || dp->ept == NULL)
-	{
-		errno = EINVAL;
-		putErrmsg("vmqts can't parse AMS endpoint.", NULL);
-		return -1;
-	}
-
+	CHKERR(dp);
+	CHKERR(dp->ept);
 	if (sscanf(dp->ept, "%u", &tsep) != 1)
 	{
-		errno = EINVAL;
 		putErrmsg("vmqts found AMS endpoint name invalid.", dp->ept);
 		return -1;
 	}
 
 	dp->tsep = MTAKE(sizeof(VmqTsep));
-	if (dp->tsep == NULL)
-	{
-		putSysErrmsg("vmqts can't record parsed AMS endpoint name.",
-				NULL);
-		return -1;
-	}
-
+	CHKERR(dp->tsep);
 	memcpy((char *) (dp->tsep), (char *) &tsep, sizeof(VmqTsep));
 
 	/*	Also parse out the service mode of this endpoint.	*/
@@ -177,6 +165,7 @@ static int	vmqParseAmsEndpoint(AmsEndpoint *dp)
 
 static void	vmqClearAmsEndpoint(AmsEndpoint *dp)
 {
+	CHKERR(dp);
 	if (dp->tsep)
 	{
 		MRELEASE(dp->tsep);
@@ -187,27 +176,30 @@ static int	vmqSendAms(AmsEndpoint *dp, AmsSAP *sap,
 			unsigned char flowLabel, char *header,
 			int headerLen, char *content, int contentLen)
 {
-	static char	vmqAmsBuf[VMQTS_MAX_MSG_LEN];
+	char		*vmqAmsBuf;
 	int		len;
 	VmqTsep		*tsep;
 	unsigned short	checksum;
+	int		result;
 
-	if (dp == NULL || sap == NULL || header == NULL || headerLen < 0
-	|| contentLen < 0 || (contentLen > 0 && content == NULL)
-	|| (len = (headerLen + contentLen + 2)) > VMQTS_MAX_MSG_LEN)
-	{
-		errno = EINVAL;
-		putErrmsg("Can't use VMQ to send AMS message.", NULL);
-		return -1;
-	}
-
+	CHKERR(dp);
+	CHKERR(sap);
+	CHKERR(header);
+	CHKERR(headerLen >= 0);
+	CHKERR(contentLen == 0 || (contentLen > 0 && content != NULL));
+	len = headerLen + contentLen + 2;
+	CHKERR(contentLen <= VMQTS_MAX_MSG_LEN);
 	tsep = (VmqTsep *) (dp->tsep);
-//printf("in vmqSendAms, tsep is %d.\n", (int) tsep);
+#if AMSDEBUG
+printf("in vmqSendAms, tsep is %d.\n", (int) tsep);
+#endif
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{
 		return 0;
 	}
 
+	vmqAmsBuf = MTAKE(headerLen + contentLen + 2);
+	CHKERR(vmqAmsBuf);
 	memcpy(vmqAmsBuf, header, headerLen);
 	if (contentLen > 0)
 	{
@@ -218,14 +210,19 @@ static int	vmqSendAms(AmsEndpoint *dp, AmsSAP *sap,
 			headerLen + contentLen);
 	checksum = htons(checksum);
 	memcpy(vmqAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
-	if (msgQSend(*tsep, vmqAmsBuf, len, WAIT_FOREVER, MSG_PRI_NORMAL)
-			== ERROR)
+	result = msgQSend(*tsep, vmqAmsBuf, len, WAIT_FOREVER, MSG_PRI_NORMAL);
+	MRELEASE(vmqAmsBuf);
+	if (result == ERROR)
 	{
-//PUTS("vmqSendAms failed.");
+#if AMSDEBUG
+PUTS("vmqSendAms failed.");
+#endif
 		return -1;
 	}
 
-//PUTS("vmqSendAms succeeded.");
+#if AMSDEBUG
+PUTS("vmqSendAms succeeded.");
+#endif
 	return 0;
 }
 
@@ -233,6 +230,7 @@ static void	vmqShutdown(void *sap)
 {
 	MSG_Q_ID	vmqSap = (MSG_Q_ID) sap;
 
+	CHVOID(sap);
 	msgQDelete(vmqSap);
 }
 
@@ -259,6 +257,7 @@ void	vmqtsLoadTs(TransSvc *ts)
 	 *	spacecraft ID.  We haven't yet figured out how to
 	 *	implement this.						*/
 
+	CHKVOID(ts);
 	getNameOfHost(ownHostName, sizeof ownHostName);
 	ipAddress = getInternetAddress(ownHostName);
 	isprintf(vmqName, sizeof vmqName, "vmq%u", ipAddress);

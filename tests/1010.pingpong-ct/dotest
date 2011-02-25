@@ -4,6 +4,29 @@
 #
 # Written by Andrew Jenkins, based on loopbacktest.sh by David Young
 #
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-udp/loopback.rc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Ping-pongs bundles with custody transfer from on BP endpoint
+	to another over UDP."
+echo
+echo "CONFIG: Standard loopback-udp: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will determine if the required number of
+	bundles were sent and received."
+echo
+echo "########################################"
 
 # Ping pongs bundles with custody transfer from one BP endpoint to another
 # over UDP.

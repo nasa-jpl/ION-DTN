@@ -70,7 +70,6 @@ static void	printUsage()
 	PUTS("\t   m maxtimeouts <max number of check cycle timeouts>");
 	PUTS("\t   m maxtrnbr <max transaction number>");
 	PUTS("\t   m segsize <max bytes per reliable file data segment>");
-	PUTS("\t   m mtusize <max bytes per best-efforts file data segment>");
 	PUTS("\ti\tInfo");
 	PUTS("\t   i");
 	PUTS("\ts\tStart");
@@ -316,35 +315,6 @@ static void	manageSegsize(int tokenCount, char **tokens)
 	}
 }
 
-static void	manageMtusize(int tokenCount, char **tokens)
-{
-	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
-	CfdpDB	cfdpdb;
-	int	newMtusize;
-
-	if (tokenCount != 3)
-	{
-		SYNTAX_ERROR;
-	}
-
-	newMtusize = atoi(tokens[2]);
-	if (newMtusize < 0)
-	{
-		putErrmsg("mtuSize invalid.", tokens[2]);
-		return;
-	}
-
-	sdr_begin_xn(sdr);
-	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
-	cfdpdb.mtuSize = newMtusize;
-	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't change mtuSize.", NULL);
-	}
-}
-
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -395,12 +365,6 @@ static void	executeManage(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "mtusize") == 0)
-	{
-		manageMtusize(tokenCount, tokens);
-		return;
-	}
-
 	SYNTAX_ERROR;
 }
 
@@ -413,11 +377,10 @@ static void	executeInfo()
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 	GET_OBJ_POINTER(sdr, CfdpDB, db, getCfdpDbObject());
 	isprintf(buffer, sizeof buffer, "xncount=%lu, maxtrnbr=%lu, \
-fillchar=0x%x, discard=%hu, requirecrc=%hu, segsize=%hu, mtusize = %hu, \
-inactivity=%u, ckperiod=%u, maxtimeouts=%u", db->transactionCounter,
-			db->maxTransactionNbr, db->fillCharacter,
-			db->discardIncompleteFile, db->crcRequired,
-			db->maxFileDataLength, db->mtuSize,
+fillchar=0x%x, discard=%hu, requirecrc=%hu, segsize=%hu, inactivity=%u, \
+ckperiod=%u, maxtimeouts=%u", db->transactionCounter, db->maxTransactionNbr,
+			db->fillCharacter, db->discardIncompleteFile,
+			db->crcRequired, db->maxFileDataLength, 
 			db->transactionInactivityLimit, db->checkTimerPeriod,
 			db->checkTimeoutLimit);
 	sdr_exit_xn(sdr);

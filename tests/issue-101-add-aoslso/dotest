@@ -10,7 +10,34 @@
 # 1: Environment variable "srcdir" exists and points to the root directory of
 # the ion source code.
 # 2: The current working directory contains the built programs of ion.
-
+CONFIGFILES=" \
+./config/ionconfig.nodeconf \
+./config/101-ass-aoslso.bprc \
+./config/101-add-aoslso.ipnrc \
+./config/101-add-aoslso.ionsecrc \
+./config/101-add-aoslso.ionrc \
+./config/101-add-aoslso.ltprc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 101: an AOS link service
+	adapter for ltp.  Beyond the configuration options, this is a simple
+	loopback test."
+echo
+echo "CONFIG: Custom loopback: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
 
 # file sent over ion
 IONSENDFILE=./ionsendfile.dat

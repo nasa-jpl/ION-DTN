@@ -42,6 +42,7 @@ void	ConstructEnvelope(unsigned char *envelope, int destContinuumNbr,
 {
 	short	i2;
 
+	CHKVOID(envelope);
 	envelope[0] = controlCode & 0x0000000f;
 	envelope[1] = 0;		/*	Reserved.		*/
 	envelope[2] = (destContinuumNbr >> 8) & 0x0000007f;
@@ -57,6 +58,7 @@ void	ConstructEnvelope(unsigned char *envelope, int destContinuumNbr,
 	envelope[11] = enclosureLength & 0x00ff;
 	if (enclosureLength > 0)
 	{
+		CHKVOID(enclosure);
 		memcpy(envelope + 12, enclosure, enclosureLength);
 	}
 }
@@ -67,6 +69,7 @@ int	EnclosureHeader(char *enclosure, EnclosureField encId)
 	int		num = 0;	/*	Init. to avoid warning.	*/
 	short		subj;
 
+	CHKZERO(enclosure);
 	switch(encId)
 	{
 	case Enc_ChecksumFlag:
@@ -101,9 +104,10 @@ int	EnclosureHeader(char *enclosure, EnclosureField encId)
 int	EnvelopeHeader(char *envelope, EnvelopeField conId)
 {
 	unsigned char	*envl = (unsigned char *) envelope;
-	int		num = 0;	/*	Init. to avoid warning.	*/
+	int		num = 0;
 	short		subj;
 
+	CHKZERO(envelope);
 	switch (conId)
 	{
 	case Env_ControlCode: 
@@ -133,7 +137,7 @@ int	EnvelopeHeader(char *envelope, EnvelopeField conId)
 		break;
 
 	case Env_SubjectNbr:
-		memcpy((char *)&subj, envl + 8, 2);
+		memcpy((char *) &subj, envl + 8, 2);
 		subj = ntohs(subj);
 		num = subj;
 		break;
@@ -152,6 +156,7 @@ char	*EnvelopeContent(char *envelope, int contentLength)
 
 	unsigned char	*envl = (unsigned char *) envelope;
 
+	CHKNULL(envelope);
 	if (contentLength < 0)	/*	Content length not yet known.	*/
 	{
 		contentLength = ((envl[10] << 8) & 0x0000ff00)
@@ -173,6 +178,8 @@ RamsNode	*Look_Up_Neighbor(RamsGateway *gWay, char *gwEid)
 	LystElt		elt;
 	RamsNode	*node;
 
+	CHKNULL(gWay);
+	CHKNULL(gwEid);
 	for (elt = lyst_first(gWay->ramsNeighbors); elt != NULL;
 			elt = lyst_next(elt))
 	{
@@ -191,6 +198,7 @@ RamsNode	*Look_Up_DeclaredNeighbor(RamsGateway *gWay, int ramsNbr)
 	LystElt		elt;
 	RamsNode	*node;
 
+	CHKNULL(gWay);
 	for (elt = lyst_first(gWay->declaredNeighbors); elt != NULL;
 			elt = lyst_next(elt))
 	{
@@ -209,6 +217,13 @@ void	GetEnvelopeSpecification(char *envelope, int *continuumNbr,
 {
 	unsigned char	*env = (unsigned char *) envelope;
 
+	CHKVOID(envelope);
+	CHKVOID(continuumNbr);
+	CHKVOID(unitNbr);
+	CHKVOID(roleNbr);
+	*continuumNbr = ((env[2] << 8) & 0x00007f00) + env[3];
+	*continuumNbr = ((env[2] << 8) & 0x00007f00) + env[3];
+	*continuumNbr = ((env[2] << 8) & 0x00007f00) + env[3];
 	*continuumNbr = ((env[2] << 8) & 0x00007f00) + env[3];
 	*unitNbr = ((env[4] << 8) & 0x0000ff00) + env[5];
 	*roleNbr = env[7];
@@ -256,6 +271,7 @@ Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
 	*(header + 15) = (contentLength) & 0x000000ff;
 	if (contentLength > 0)
 	{
+		CHKNULL(content);
 		memcpy(enc->text + AMSMSGHEADER, content, contentLength);
 	}
 	
@@ -264,6 +280,7 @@ Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
 
 void	DeleteEnclosure(Enclosure *enc)
 {
+	CHKVOID(enc);
 	if (enc->text)
 	{
 		MRELEASE((char *)(enc->text));
@@ -302,6 +319,7 @@ Petition	*ConstructPetitionFromEnvelope(char* envelope)
 {
 	Petition	*pet;
 
+	CHKNULL(envelope);
 	pet = MTAKE(sizeof(Petition));
 	CHKNULL(pet);
 	memset((char *) pet, 0, sizeof(Petition));
@@ -334,9 +352,15 @@ Petition	*ConstructPetitionFromEnvelope(char* envelope)
 
 int	SamePetition(Petition *pet1, Petition *pet2)
 {
-	char	*env1 = pet1->specification->envelope;
-	char	*env2 = pet2->specification->envelope;
+	char	*env1;
+	char	*env2;
 
+	CHKZERO(pet1);
+	CHKZERO(pet2);
+	CHKZERO(pet1->specification);
+	CHKZERO(pet2->specification);
+	env1 = pet1->specification->envelope;
+	env2 = pet2->specification->envelope;
 	if (EnvelopeHeader(env1, Env_ContinuumNbr)
 			== EnvelopeHeader(env2, Env_ContinuumNbr)
 	&& EnvelopeHeader(env1, Env_PublishUnitNbr)
@@ -355,8 +379,11 @@ int	SamePetition(Petition *pet1, Petition *pet2)
 int	PetitionMatchesDomain(Petition *pet, int domainContinuum,
 		int domainRole, int domainUnit, int subNbr)
 {
-	char	*env = pet->specification->envelope;
+	char	*env;
 
+	CHKZERO(pet);
+	CHKZERO(pet->specification);
+	env = pet->specification->envelope;
 	if (EnvelopeHeader(env, Env_ContinuumNbr) == domainContinuum
 	&& EnvelopeHeader(env, Env_PublishUnitNbr) == domainUnit
 	&& EnvelopeHeader(env, Env_PublishRoleNbr) == domainRole
@@ -376,12 +403,15 @@ int	EnclosureSatisfiesPetition(AmsModule module, char *rpdu, Petition *pet)
 	int	petUnit;
 	int	petRole;
 
+	CHKZERO(rpdu);
+	CHKZERO(pet);
 	enc = EnvelopeContent(rpdu, -1);
 	if (enc == NULL)
 	{
 		return 0;
 	}
 
+	CHKZERO(pet->specification);
 	env = pet->specification->envelope;
 	if (EnclosureHeader(enc, Enc_SubjectNbr)
 			!= EnvelopeHeader(env, Env_SubjectNbr))
@@ -440,9 +470,14 @@ int	EnclosureSatisfiesPetition(AmsModule module, char *rpdu, Petition *pet)
 int	EnclosureSatisfiesInvitation(RamsGateway *gWay, char* rpdu,
 		Invitation *inv)
 {
-	InvitationSpec	*spec = inv->inviteSpecification;
+	InvitationSpec	*spec;
 	char		*enc;
 
+	CHKZERO(gWay);
+	CHKZERO(rpdu);
+	CHKZERO(inv);
+	spec = inv->inviteSpecification;
+	CHKZERO(spec);
 	enc = EnvelopeContent(rpdu, -1);
 	if (enc == NULL)
 	{
@@ -524,11 +559,14 @@ int	RoleNumber(AmsModule module, int unitNbr, int moduleNbr)
 int	MessageSatisfiesPetition(AmsModule module, int msgCont, int msgUnit,
 		int msgModule, int subjectNbr, Petition* pet)
 {
-	char	*env = pet->specification->envelope;
+	char	*env;
 	int	petCont;
 	int	petUnit;
 	int	petRole;
 
+	CHKZERO(pet);
+	CHKZERO(pet->specification);
+	env = pet->specification->envelope;
 	if (subjectNbr != EnvelopeHeader(env, Env_SubjectNbr))
 	{
 		return 0;
@@ -569,6 +607,8 @@ LystElt	ModuleSetMember(Module *module, Lyst lyst)
 	LystElt	elt;
 	Module	*member;
 
+	CHKNULL(module);
+	CHKNULL(lyst);
 	for (elt = lyst_first(lyst); elt != NULL; elt = lyst_next(elt))
 	{
 		member = (Module *) lyst_data(elt);
@@ -587,6 +627,7 @@ LystElt InvitationSetMember(int dUnit, int dRole, int dCont, int sub, Lyst lyst)
 	LystElt		elt;
 	Invitation	*inv; 
 
+	CHKNULL(lyst);
 	for (elt = lyst_first(lyst); elt != NULL; elt = lyst_next(elt))
 	{
 		inv = (Invitation *) lyst_data(elt);
@@ -619,6 +660,8 @@ LystElt	NodeSetMember(RamsNode *fromNode, Lyst lyst)
 	LystElt		elt;
 	RamsNode	*node;
 
+	CHKNULL(fromNode);
+	CHKNULL(lyst);
 	for (elt = lyst_first(lyst); elt != NULL; elt = lyst_next(elt))
 	{
 		node = (RamsNode *) lyst_data(elt);
@@ -633,6 +676,8 @@ LystElt	NodeSetMember(RamsNode *fromNode, Lyst lyst)
 
 int	ModuleIsMyself(Module* sModule, RamsGateway *gWay)
 {
+	CHKZERO(sModule);
+	CHKZERO(gWay);
 	if (sModule->unitNbr == ams_get_unit_nbr(gWay->amsModule)
 	&& sModule->nbr == ams_get_module_nbr(gWay->amsModule))
 	{
@@ -644,14 +689,18 @@ int	ModuleIsMyself(Module* sModule, RamsGateway *gWay)
 
 Module	*LookupModule(int unitNbr, int moduleNbr, RamsGateway *rg)
 {
+	CHKNULL(rg);
 	return rg->amsModule->venture->units[unitNbr]->cell->modules[moduleNbr];
 }
 
 void	SubtractNodeSets(Lyst set1, Lyst set2)
 {
-	LystElt elt, nextElt;
-	RamsNode *node;
+	LystElt		elt;
+	LystElt		nextElt;
+	RamsNode	*node;
 
+	CHKVOID(set1);
+	CHKVOID(set2);
 	for (elt = lyst_first(set1); elt != NULL; )
 	{
 		node = (RamsNode *)lyst_data(elt);
@@ -667,9 +716,11 @@ void	SubtractNodeSets(Lyst set1, Lyst set2)
 
 void	AddNodeSets(Lyst set1, Lyst set2)
 {
-	LystElt elt;
-	RamsNode *node;
+	LystElt		elt;
+	RamsNode	*node;
 
+	CHKVOID(set1);
+	CHKVOID(set2);
 	for (elt = lyst_first(set2); elt != NULL; elt = lyst_next(elt))
 	{
 		node = (RamsNode *)lyst_data(elt);
@@ -691,6 +742,7 @@ RamsNode	*GetConduitForContinuum(int continuumNbr, RamsGateway *gWay)
 	int		subN;
 	LystElt		nodeElt;
 
+	CHKNULL(gWay);
 	for (elt = lyst_first(gWay->petitionSet); elt != NULL;
 			elt = lyst_next(elt))
 	{
@@ -714,6 +766,8 @@ RamsNode	*GetConduitForContinuum(int continuumNbr, RamsGateway *gWay)
 
 int	PetitionIsAssertable(RamsGateway *gWay, Petition *pet)
 {
+	CHKZERO(gWay);
+	CHKZERO(pet);
 	if (lyst_length(pet->DistributionModuleSet) > 0)
 	{
 		return 1;
@@ -735,6 +789,8 @@ Lyst	AssertionSet(RamsGateway *gWay, Petition *pet)
 	LystElt		elt;
 	RamsNode	*node;
 
+	CHKNULL(gWay);
+	CHKNULL(pet);
 	assertionSet = lyst_create();
 	CHKNULL(assertionSet);
 
@@ -804,6 +860,7 @@ printf("<assertion set> final set size is %lu\n", lyst_length(assertionSet));
 
 void	DeletePetition(Petition *pet)
 {
+	CHKVOID(pet);
 	lyst_destroy(pet->SourceNodeSet);
 	lyst_destroy(pet->DestinationNodeSet);
 	lyst_destroy(pet->DistributionModuleSet);
@@ -821,6 +878,8 @@ int	MessageIsInvited(RamsGateway *gWay, char* msg)
 	LystElt		elt;
 	Invitation	*inv; 
 
+	CHKZERO(gWay);
+	CHKZERO(msg);
 	enc = EnvelopeContent(msg, -1);
 	if (enc == NULL)
 	{
@@ -857,6 +916,8 @@ int	ModuleIsInAnnouncementDomain(RamsGateway* gWay, Module *module,
 	int	mUnit;
 	int	mRole;
 
+	CHKZERO(gWay);
+	CHKZERO(module);
 	mUnit = module->unitNbr;
 	mRole = RoleNumber(gWay->amsModule, mUnit, module->nbr);
 	if (dUnit != 0 && dUnit != mUnit)
@@ -1013,6 +1074,9 @@ int	SendRPDU(RamsGateway *gWay, int destContinuumNbr,
 #if RAMSDEBUG
 printf("<SendRPDU> to %d\n", destContinuumNbr);
 #endif
+	CHKERR(gWay);
+	CHKERR(envelope);
+	CHKERR(envelopeLength > 0);
 	if (destContinuumNbr == 0)	/*	Send to all continua.	*/
 	{
 #if RAMSDEBUG
@@ -1103,6 +1167,7 @@ int	SendNewRPDU(RamsGateway *gWay, int destContinuumNbr,
 	int	encLength;
 	int	result;
 
+	CHKERR(gWay);
 	envelope = NULL; 
 	if (enclosure)
 	{

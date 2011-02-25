@@ -13,39 +13,378 @@
 #define EPOCH_OFFSET_1958	(378691200)
 #define	MAX_GW_EID		(255)
 
-AmsMib			*mib = NULL;
+extern void	destroyAmsEndpoint(LystElt elt, void *userdata);
 
-char			*rejectionMemos[] =	{
-				"not rejected",
-				"duplicate registrar",
-				"no cell census",
-				"cell is full",
-				"no such unit"
-						};
+static void	eraseContinuum(Continuum *contin)
+{
+	if (contin == NULL)
+	{
+		return;
+	}
 
-extern void		destroyAmsEndpoint(LystElt elt, void *userdata);
+	if (contin->name)
+	{
+		MRELEASE(contin->name);
+	}
 
-/*	*	*	Globals used by AMS services.	*	*	*/
+	if (contin->description)
+	{
+		MRELEASE(contin->description);
+	}
 
-char			*BadParmsMemo = "AMS app error: bad input parms(s).";
-char			*NoMemoryMemo = "AMS failure: out of memory.";
-int			MaxContinNbr = MAX_CONTIN_NBR;
-int			MaxVentureNbr = MAX_VENTURE_NBR;
-int			MaxUnitNbr = MAX_UNIT_NBR;
-int			MaxModuleNbr = MAX_NODE_NBR;
-int			MaxRoleNbr = MAX_ROLE_NBR;
-int			MaxSubjNbr = MAX_SUBJ_NBR;
+	MRELEASE(contin);
+}
 
-/*	*	*	Memory management globals.	*	*	*/
+void	eraseSubject(Venture *venture, Subject *subj)
+{
+	if (venture == NULL || subj == NULL)
+	{
+		return;
+	}
 
-static PsmPartition	amspartition = NULL;
-int			amsMemory = -1;	/*	Memory manager.		*/
-MemAllocator		amsmtake;
-MemDeallocator		amsmrelease;
-MemAtoPConverter	amsmatop;
-MemPtoAConverter	amsmptoa;
+	if (subj->elt)		/*	Must remove from hashtable.	*/
+	{
+		lyst_delete(subj->elt);
+	}
 
-/*	*	*	Transport service globals.	*	*	*/
+	if (subj->name)
+	{
+		MRELEASE(subj->name);
+	}
+
+	if (subj->description)
+	{
+		MRELEASE(subj->description);
+	}
+
+	if (subj->symmetricKeyName)
+	{
+		MRELEASE(subj->symmetricKeyName);
+	}
+
+	if (subj->authorizedSenders)
+	{
+		lyst_destroy(subj->authorizedSenders);
+	}
+
+	if (subj->authorizedReceivers)
+	{
+		lyst_destroy(subj->authorizedReceivers);
+	}
+
+	if (subj->modules)
+	{
+		lyst_destroy(subj->modules);
+	}
+
+	venture->subjects[subj->nbr] = NULL;
+	MRELEASE(subj);
+}
+
+void	eraseRole(Venture *venture, AppRole *role)
+{
+	if (venture == NULL || role == NULL)
+	{
+		return;
+	}
+
+	if (role->name)
+	{
+		MRELEASE(role->name);
+	}
+
+	if (role->publicKeyName)
+	{
+		MRELEASE(role->publicKeyName);
+	}
+
+	if (role->privateKeyName)
+	{
+		MRELEASE(role->privateKeyName);
+	}
+
+	venture->roles[role->nbr] = NULL;
+	MRELEASE(role);
+}
+
+void	eraseMsgspace(Venture *venture, Subject *msgspace)
+{
+	if (venture == NULL || msgspace == NULL)
+	{
+		return;
+	}
+
+	if (msgspace->gwEid)
+	{
+		MRELEASE(msgspace->gwEid);
+	}
+
+	if (msgspace->symmetricKeyName)
+	{
+		MRELEASE(msgspace->symmetricKeyName);
+	}
+
+	if (msgspace->authorizedSenders)
+	{
+		lyst_destroy(msgspace->authorizedSenders);
+	}
+
+	if (msgspace->authorizedReceivers)
+	{
+		lyst_destroy(msgspace->authorizedReceivers);
+	}
+
+	if (msgspace->modules)
+	{
+		lyst_destroy(msgspace->modules);
+	}
+
+	venture->msgspaces[0 - msgspace->nbr] = NULL;
+	MRELEASE(msgspace);
+}
+
+static void	eraseModule(Module *module)
+{
+	LystElt	elt;
+	LystElt	nextElt;
+
+	if (module->amsEndpoints)
+	{
+		for (elt = lyst_first(module->amsEndpoints); elt; elt = nextElt)
+		{
+			nextElt = lyst_next(elt);
+			lyst_delete(elt);
+		}
+	}
+
+	if (module->subjects)
+	{
+		for (elt = lyst_first(module->subjects); elt; elt = nextElt)
+		{
+			nextElt = lyst_next(elt);
+			lyst_delete(elt);
+		}
+	}
+
+	clearMamsEndpoint(&module->mamsEndpoint);
+	module->role = NULL;
+}
+
+void	eraseUnit(Venture *venture, Unit *unit)
+{
+	Cell	*cell;
+	int	i;
+	Unit	*superunit;
+	LystElt	elt;
+	LystElt	nextElt;
+	Unit	*subunit;
+
+	if (venture == NULL || unit == NULL)
+	{
+		return;
+	}
+
+	if (unit->name)
+	{
+		MRELEASE(unit->name);
+	}
+
+	/*	Erase all local cell data.				*/
+
+	cell = unit->cell;
+	clearMamsEndpoint(&cell->mamsEndpoint);
+	for (i = 1; i <= MAX_MODULE_NBR; i++)
+	{
+		if (cell->modules[i])
+		{
+			eraseModule(cell->modules[i]);
+		}
+	}
+
+	/*	Reattach erased unit's subunits directly to its
+	 *	superunit, if any.					*/
+
+	superunit = unit->superunit;
+	for (elt = lyst_first(unit->subunits); elt; elt = nextElt)
+	{
+		nextElt = lyst_next(elt);
+		subunit = (Unit *) lyst_data(elt);
+		lyst_delete(subunit->inclusionElt);
+		if (superunit)
+		{
+			subunit->inclusionElt =
+				lyst_insert_last(superunit->subunits, subunit);
+		}
+
+		subunit->superunit = superunit;
+	}
+
+	/*	Detach erased unit from its superunit.			*/
+
+	if (unit->inclusionElt)
+	{
+		lyst_delete(unit->inclusionElt);
+	}
+
+	unit->superunit = NULL;
+
+	/*	Erase the unit object itself.				*/
+
+	venture->units[unit->nbr] = NULL;
+	MRELEASE(unit);
+}
+
+void	eraseVenture(Venture *venture)
+{
+	int	i;
+
+	if (venture == NULL)
+	{
+		return;
+	}
+
+	for (i = 1; i <= MAX_ROLE_NBR; i++)
+	{
+		if (venture->roles[i])
+		{
+			eraseRole(venture, venture->roles[i]);
+		}
+	}
+
+	for (i = 1; i <= MAX_SUBJ_NBR; i++)
+	{
+		if (venture->subjects[i])
+		{
+			eraseSubject(venture, venture->subjects[i]);
+		}
+	}
+
+	for (i = 0; i < SUBJ_LIST_CT; i++)
+	{
+		if (venture->subjLysts[i])
+		{
+			lyst_destroy(venture->subjLysts[i]);
+		}
+	}
+
+	eraseUnit(venture, venture->units[0]);		/*	Root.	*/
+	for (i = 1; i <= MAX_CONTIN_NBR; i++)
+	{
+		if (venture->msgspaces[i])
+		{
+			eraseMsgspace(venture, venture->msgspaces[i]);
+		}
+	}
+
+	(_mib(NULL))->ventures[venture->nbr] = NULL;
+	MRELEASE(venture);
+}
+
+static void	eraseMib(AmsMib *mib)
+{
+	int	i;
+
+	pthread_mutex_destroy(&(mib->mutex));
+	if (mib->csPublicKeyName)
+	{
+		MRELEASE(mib->csPublicKeyName);
+	}
+
+	if (mib->csPrivateKeyName)
+	{
+		MRELEASE(mib->csPrivateKeyName);
+	}
+
+	if (mib->amsEndpointSpecs)
+	{
+		lyst_destroy(mib->amsEndpointSpecs);
+	}
+
+	if (mib->applications)
+	{
+		lyst_destroy(mib->applications);
+	}
+
+	if (mib->csEndpoints)
+	{
+		lyst_destroy(mib->csEndpoints);
+	}
+
+	for (i = 1; i <= MAX_CONTIN_NBR; i++)
+	{
+		if (mib->continua[i])
+		{
+			eraseContinuum(mib->continua[i]);
+		}
+	}
+
+	for (i = 1; i <= MAX_VENTURE_NBR; i++)
+	{
+		if (mib->ventures[i])
+		{
+			eraseVenture(mib->ventures[i]);
+		}
+	}
+
+	MRELEASE(mib);
+}
+
+static void	eraseAmsEpspec(AmsEpspec *amses)
+{
+	MRELEASE(amses);
+}
+
+static void	destroyAmsEpspec(LystElt elt, void *userdata)
+{
+	AmsEpspec	*amses = (AmsEpspec *) lyst_data(elt);
+
+	eraseAmsEpspec(amses);
+}
+
+void	eraseApp(AmsApp *app)
+{
+	if (app == NULL)
+	{
+		return;
+	}
+
+	if (app->name)
+	{
+		MRELEASE(app->name);
+	}
+
+	if (app->publicKeyName)
+	{
+		MRELEASE(app->publicKeyName);
+	}
+
+	if (app->privateKeyName)
+	{
+		MRELEASE(app->privateKeyName);
+	}
+
+	MRELEASE(app);
+}
+
+static void	destroyApplication(LystElt elt, void *userdata)
+{
+	AmsApp	*app = (AmsApp *) lyst_data(elt);
+
+	eraseApp(app);
+}
+
+static void	eraseCsEndpoint(MamsEndpoint *ep)
+{
+	clearMamsEndpoint(ep);
+	MRELEASE(ep);
+}
+
+static void	destroyCsEndpoint(LystElt elt, void *userdata)
+{
+	MamsEndpoint	*ep = (MamsEndpoint *) lyst_data(elt);
+
+	eraseCsEndpoint(ep);
+}
 
 #ifdef UDPTS
 extern void		udptsLoadTs(TransSvc *ts);
@@ -60,28 +399,208 @@ extern void		vmqtsLoadTs(TransSvc *ts);
 extern void		tcptsLoadTs(TransSvc *ts);
 #endif
 
-/*	Note: transport service loaders in this table appear in
- *	descending order of preference.  "Preference" corresponds
- *	broadly to nominal throughput rate.				*/
+static void	addTs(AmsMib *mib, TsLoadFn loadTs)
+{
+	int		idx;
+	TransSvc	*ts;
 
-static TsLoadFn		transportServiceLoaders[] =
-			{
+	idx = mib->transportServiceCount;
+	ts = &(mib->transportServices[idx]);
+	loadTs(ts);	/*	Execute the transport service loader.	*/
+	mib->transportServiceCount++;
+}
+
+static int	initializeMib(AmsMib *mib, int continuumNbr, char *ptsName,
+			char *pubkeyname, char *privkeyname)
+{
+	int			amsMemory = getIonMemoryMgr();
+	int			i;
+	int			length;
+
+	/*	Note: transport service loaders in this table appear
+	 *	in descending order of preference.  "Preference"
+	 *	corresponds broadly to nominal throughput rate.		*/
+
+	static TsLoadFn		transportServiceLoaders[] =
+				{
 #ifdef UDPTS
-				udptsLoadTs,
+					udptsLoadTs,
 #endif
 #ifdef DGRTS
-				dgrtsLoadTs,
+					dgrtsLoadTs,
 #endif
 #ifdef VMQTS
-				vmqtsLoadTs,
+					vmqtsLoadTs,
 #endif
 #ifdef TCPTS
-				tcptsLoadTs
+					tcptsLoadTs
 #endif
-			};
+				};
 
-static int		transportServiceCount = sizeof transportServiceLoaders /
+	static int		transportServiceCount =
+					sizeof transportServiceLoaders /
 					sizeof(TsLoadFn);
+       
+	if (transportServiceCount > TS_INDEX_LIMIT)
+	{
+		putErrmsg("Transport service table overflow.", NULL);
+		return -1;
+	}
+
+	for (i = 0; i < transportServiceCount; i++)
+	{
+		addTs(mib, transportServiceLoaders[i]);
+		if (strcmp(mib->transportServices[i].name, ptsName) == 0)
+		{
+			mib->pts = &(mib->transportServices[i]);
+		}
+	}
+
+	if (mib->pts == NULL)
+	{
+		putErrmsg("No loader for primary transport service.", ptsName);
+		return -1;
+	}
+
+	if (pthread_mutex_init(&(mib->mutex), NULL))
+	{
+		putSysErrmsg("MIB mutex init failed", NULL);
+		return -1;
+	}
+
+	mib->amsEndpointSpecs = lyst_create_using(amsMemory);
+	CHKERR(mib->amsEndpointSpecs);
+	lyst_delete_set(mib->amsEndpointSpecs, destroyAmsEpspec, NULL);
+	mib->applications = lyst_create_using(amsMemory);
+	CHKERR(mib->applications);
+	lyst_delete_set(mib->applications, destroyApplication, NULL);
+	mib->csEndpoints = lyst_create_using(amsMemory);
+	CHKERR(mib->csEndpoints);
+	lyst_delete_set(mib->csEndpoints, destroyCsEndpoint, NULL);
+	mib->localContinuumNbr = continuumNbr;
+	if (pubkeyname)
+	{
+		length = strlen(pubkeyname) + 1;
+		mib->csPublicKeyName = MTAKE(length);
+		CHKERR(mib->csPublicKeyName);
+		memcpy(mib->csPublicKeyName, pubkeyname, length);
+	}
+
+	if (privkeyname)
+	{
+		length = strlen(privkeyname) + 1;
+		mib->csPrivateKeyName = MTAKE(length);
+		CHKERR(mib->csPrivateKeyName);
+		memcpy(mib->csPrivateKeyName, privkeyname, length);
+	}
+
+	if (createContinuum(continuumNbr, "local", 0, "this continuum") == NULL)
+	{
+		putErrmsg("Can't create local continuum object.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	initializeMemMgt(int continuumNbr)
+{
+	IonParms	ionParms;
+
+	if (ionAttach() == 0)
+	{
+		return 0;		/*	ION is already started.	*/
+	}
+
+	writeMemo("[i] ION not started yet.  Starting ION from inside AMS.");
+	if (readIonParms(NULL, &ionParms) < 0)
+	{
+		putErrmsg("AMS can't load ION parameters.", NULL);
+		ionDetach();
+		return -1;
+	}
+
+	if (ionInitialize(&ionParms, continuumNbr) < 0)
+	{
+		putErrmsg("AMS can't start ION.", itoa(continuumNbr));
+		ionDetach();
+		return -1;
+	}
+
+	return 0;
+}
+
+AmsMib	*_mib(AmsMibParameters *parms)
+{
+	static AmsMib	*mib = NULL;
+
+	if (parms)
+	{
+		if (parms->continuumNbr == 0)	/*	Terminating.	*/
+		{
+			if (mib)
+			{
+				eraseMib(mib);
+				mib = NULL;
+				ionDetach();
+			}
+		}
+		else				/*	Initializing.	*/
+		{
+			if (mib)
+			{
+				writeMemo("[?] AMS MIB already created.");
+			}
+			else
+			{
+				CHKNULL(parms->continuumNbr > 0);
+				CHKNULL(parms->continuumNbr <= MAX_CONTIN_NBR);
+				CHKNULL(parms->ptsName);
+				if (initializeMemMgt(parms->continuumNbr) < 0)
+				{
+					putErrmsg("Can't attach to ION.", NULL);
+					return NULL;
+				}
+
+				mib = (AmsMib *) MTAKE(sizeof(AmsMib));
+				CHKNULL(mib);
+				memset((char *) mib, 0, sizeof(AmsMib));
+				if (initializeMib(mib, parms->continuumNbr,
+						parms->ptsName,
+						parms->publicKeyName,
+						parms->privateKeyName) < 0)
+				{
+					putErrmsg("Can't create MIB.", NULL);
+					eraseMib(mib);
+					mib = NULL;
+					ionDetach();
+				}
+			}
+		}
+	}
+
+	return mib;
+}
+
+char	*_rejectionMemos(int idx)
+{
+	static char	*memos[] =	{
+				"not rejected",
+				"duplicate registrar",
+				"no cell census",
+				"cell is full",
+				"no such unit",
+				"unknown"
+					};
+	if (idx < 0 || idx > 4)
+	{
+		return memos[5];
+	}
+
+	return memos[idx];
+}
+
+/*	*	*	Checksum computation	*	*	*	*/
 
 unsigned short	computeAmsChecksum(unsigned char *cursor, int pduLength)
 {
@@ -107,117 +626,6 @@ unsigned short	computeAmsChecksum(unsigned char *cursor, int pduLength)
 	return sum & 0x0000ffff;
 }
 
-/*	*	*	Memory management functions	*	*	*/
-
-static void	*amsmtake_fn(char *file, int line, size_t length)
-{
-	void	*block;
-
-	block = psp(amspartition, Psm_zalloc(file, line, amspartition, length));
-	if (block)
-	{
-		memset((char *) block, 0, length);
-	}
-
-	return block;
-}
-
-static void	amsmrelease_fn(char *file, int line, void *block)
-{
-	if (block)
-	{
-		Psm_free(file, line, amspartition, psa(amspartition, block));
-	}
-}
-
-static void	*amsmatop_fn(unsigned long address)
-{
-	return (psp(amspartition, address));
-}
-
-static unsigned long amsmptoa_fn(void *pointer)
-{
-	return (psa(amspartition, pointer));
-}
-
-static int	initAmsPsm(char *name, char *allocation, unsigned size)
-{
-	PsmMgtOutcome	outcome;
-
-	if (sm_ipc_init() < 0)
-	{
-		return -1;
-	}
-
-	if (allocation == NULL)
-	{
-		allocation = calloc(1, size);
-		if (allocation == NULL)
-		{
-			return -1;
-		}
-	}
-
-	if (psm_manage(allocation, size, name, &amspartition, &outcome) < 0
-	|| outcome != Okay)
-	{
-		amspartition = NULL;
-		return -1;	/*	PSM partition unmanageable.	*/
-	}
-
-	return memmgr_add(name, amsmtake_fn, amsmrelease_fn, amsmatop_fn,
-			amsmptoa_fn);
-}
-
-int	initMemoryMgt(char *mName, char *memory, unsigned mSize)
-{
-	int	mmid;
-
-	/*	Configure memory management as necessary.		*/
-
-	if (mName == NULL)
-	{
-		mmid = 0;	/*	Default to malloc/free.		*/
-	}
-	else
-	{
-		mmid = memmgr_find(mName);
-	}
-
-	if (amsMemory < 0)	/*	memmgr not selected yet.	*/
-	{
-		if (mmid < 0)	/*	No such memmgr yet.		*/
-		{
-			mmid = initAmsPsm(mName, memory, mSize);
-			if (mmid < 0)
-			{
-				putErrmsg("AMS can't initialize DRAM mgr",
-						mName);
-				return -1;
-			}
-		}
-
-		/*	Use the selected (possibly new) memmgr.		*/
-
-		amsMemory = mmid;
-		amsmtake = memmgr_take(amsMemory);
-		amsmrelease = memmgr_release(amsMemory);
-		amsmatop = memmgr_AtoP(amsMemory);
-		amsmptoa = memmgr_PtoA(amsMemory);
-	}
-	else	/*	Ensure no AMS memory manager conflict.		*/
-	{
-		if (mmid != amsMemory)
-		{
-			putErrmsg("Memory manager selections conflict.", mName);
-			errno = EINVAL;
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
 /*	*	*	Conditions	*	*	*	*	*/
 
 int	time_to_stop(Llcv llcv)
@@ -232,18 +640,32 @@ int     llcv_reply_received(Llcv llcv)
 
 /*	*	*	MIB lookup functions	*	*	*	*/
 
-LystElt	findApplication(char *appName)
+static LystElt	findApplication(char *appName)
 {
 	LystElt	elt;
 	AmsApp	*app;
 
-	for (elt = lyst_first(mib->applications); elt; elt = lyst_next(elt))
+	for (elt = lyst_first((_mib(NULL))->applications); elt;
+			elt = lyst_next(elt))
 	{
 		app = (AmsApp *) lyst_data(elt);
 		if (strcmp(app->name, appName) == 0)
 		{
 			return elt;
 		}
+	}
+
+	return NULL;
+}
+
+AmsApp	*lookUpApplication(char *appName)
+{
+	LystElt	elt;
+
+	elt = findApplication(appName);
+	if (elt)
+	{
+		return (AmsApp *) lyst_data(elt);
 	}
 
 	return NULL;
@@ -298,7 +720,7 @@ AppRole	*lookUpRole(Venture *venture, char *roleName)
 	int	i;
 	AppRole	*role;
 
-	for (i = 1; i <= MaxRoleNbr; i++)
+	for (i = 1; i <= MAX_ROLE_NBR; i++)
 	{
 		role = venture->roles[i];
 		if (role == NULL)
@@ -315,23 +737,6 @@ AppRole	*lookUpRole(Venture *venture, char *roleName)
 	return NULL;
 }
 
-LystElt	findElement(Subject *subject, char *elementName)
-{
-	LystElt		elt;
-	MsgElement	*element;
-
-	for (elt = lyst_first(subject->elements); elt; elt = lyst_next(elt))
-	{
-		element = (MsgElement *) lyst_data(elt);
-		if (strcmp(element->name, elementName) == 0)
-		{
-			return elt;
-		}
-	}
-
-	return NULL;
-}
-
 Venture	*lookUpVenture(char *appName, char *authName)
 {
 	int	i;
@@ -342,9 +747,9 @@ Venture	*lookUpVenture(char *appName, char *authName)
 		return NULL;
 	}
 
-	for (i = 1; i <= MaxVentureNbr; i++)
+	for (i = 1; i <= MAX_VENTURE_NBR; i++)
 	{
-		venture = mib->ventures[i];
+		venture = (_mib(NULL))->ventures[i];
 		if (venture == NULL)
 		{
 			continue;
@@ -365,7 +770,7 @@ Unit	*lookUpUnit(Venture *venture, char *unitName)
 	int	i;
 	Unit	*unit;
 
-	for (i = 0; i <= MaxUnitNbr; i++)
+	for (i = 0; i <= MAX_UNIT_NBR; i++)
 	{
 		unit = venture->units[i];
 		if (unit == NULL)
@@ -387,9 +792,9 @@ int	lookUpContinuum(char *contName)
 	int		i;
 	Continuum	*continuum;
 
-	for (i = 1; i <= MaxContinNbr; i++)
+	for (i = 1; i <= MAX_CONTIN_NBR; i++)
 	{
-		continuum = mib->continua[i];
+		continuum = (_mib(NULL))->continua[i];
 		if (continuum == NULL)
 		{
 			continue;	/*	Undefined continuum.	*/
@@ -404,60 +809,71 @@ int	lookUpContinuum(char *contName)
 	return -1;
 }
 
-static int	getAuthenticationParms(unsigned char ventureNbr,
-			unsigned short unitNbr, unsigned char roleNbr,
+static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 			Venture **venture, Unit **unit, int sending,
 			char **authName, char **authKey, int *authKeyLen)
 {
+	AmsMib	*mib = _mib(NULL);
 	AppRole	*role = NULL;
+	char	*keyName;
 
 	*venture = NULL;
 	*unit = NULL;
+	*authName = NULL;
+	*authKey = NULL;		/*	Default.		*/
+	*authKeyLen = 0;		/*	Default.		*/
 	if (ventureNbr > 0)
 	{
-		if (ventureNbr > MaxVentureNbr
+		if (ventureNbr > MAX_VENTURE_NBR
 		|| (*venture = mib->ventures[ventureNbr]) == NULL)
 		{
-			putErrmsg("MAMS msg from unknown message space.",
+			writeMemoNote("[?] MAMS msg from unknown msgspace",
 					itoa(ventureNbr));
-			errno = EINVAL;
-			return -1;
+			return 0;
 		}
 
-		if (unitNbr > MaxUnitNbr
+		if (unitNbr > MAX_UNIT_NBR
 		|| (*unit = (*venture)->units[unitNbr]) == NULL)
 		{
-			putErrmsg("MAMS msg from unknown cell.",
+			writeMemoNote("[?] MAMS msg from unknown cell",
 					itoa(unitNbr));
-			errno = EINVAL;
-			return -1;
+			return 0;
 		}
 	}
 
 	if (roleNbr > 0)
 	{
-		if (roleNbr > MaxRoleNbr || *venture == NULL
+		if (roleNbr > MAX_ROLE_NBR || *venture == NULL
 		|| (role = (*venture)->roles[roleNbr]) == NULL)
 		{
-			putErrmsg("MAMS message discarded; unknown role.",
+			writeMemoNote("[?] MAMS message dropped; unknown role",
 					itoa(roleNbr));
-			errno = EINVAL;
-			return -1;
+			return 0;
 		}
 	}
 
-	if (role)		/*	Sender is module.			*/
+	if (role)		/*	Sender is module.		*/
 	{
 		*authName = role->name;
 		if (sending)
 		{
-			*authKey = role->privateKey;
-			*authKeyLen = role->privateKeyLength;
+			keyName = role->privateKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			{
+				writeMemoNote("[?] Can't get role private key", 
+					role->privateKeyName);
+			}
 		}
 		else
 		{
-			*authKey = role->publicKey;
-			*authKeyLen = role->publicKeyLength;
+			keyName = role->publicKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			{
+				writeMemoNote("[?] Can't get role public key", 
+					role->publicKeyName);
+			}
 		}
 	}
 	else if (*venture)	/*	Sender is registrar.		*/
@@ -465,13 +881,23 @@ static int	getAuthenticationParms(unsigned char ventureNbr,
 		*authName = (*venture)->app->name;
 		if (sending)
 		{
-			*authKey = (*venture)->app->privateKey;
-			*authKeyLen = (*venture)->app->privateKeyLength;
+			keyName = (*venture)->app->privateKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			{
+				writeMemoNote("[?] Can't get app private key", 
+					(*venture)->app->privateKeyName);
+			}
 		}
 		else
 		{
-			*authKey = (*venture)->app->publicKey;
-			*authKeyLen = (*venture)->app->publicKeyLength;
+			keyName = (*venture)->app->publicKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			{
+				writeMemoNote("[?] Can't get app public key", 
+					(*venture)->app->publicKeyName);
+			}
 		}
 	}
 	else			/*	Sender is CS.		*/
@@ -479,19 +905,28 @@ static int	getAuthenticationParms(unsigned char ventureNbr,
 		*authName = mib->continua[mib->localContinuumNbr]->name;
 		if (sending)
 		{
-			*authKey = mib->csPrivateKey;
-			*authKeyLen = mib->csPrivateKeyLength;
+			keyName = mib->csPrivateKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			{
+				writeMemoNote("[?] Can't get CS private key", 
+					mib->csPrivateKeyName);
+			}
 		}
 		else
 		{
-			*authKey = mib->csPublicKey;
-			*authKeyLen = mib->csPublicKeyLength;
+			keyName = mib->csPublicKeyName;
+			if (keyName
+			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			{
+				writeMemoNote("[?] Can't get CS public key", 
+					mib->csPublicKeyName);
+			}
 		}
 	}
 
 	return 0;
 }
-
 
 /*	*	*	MIB loading functions	*	*	*	*/
 
@@ -510,14 +945,14 @@ static RamsNetProtocol	parseGwEid(char *gwEidString, char **gwEid,
 
 	*gwEid = NULL;					/*	default	*/
 	atSign = strchr(gwEidString, '@');
-	if (atSign == NULL)
+	if (atSign == NULL)			/*	Malformed.	*/
 	{
 		return protocol;
 	}
 
 	*gwEid = atSign + 1;
 	if (**gwEid == '\0'	/*	Endpoint ID is a NULL string.	*/
-	|| strlen(*gwEid) > MAX_GW_EID)
+	|| strlen(*gwEid) > MAX_GW_EID)		/*	Invalid.	*/
 	{
 		return protocol;
 	}
@@ -544,87 +979,6 @@ static RamsNetProtocol	parseGwEid(char *gwEidString, char **gwEid,
 	return protocol;
 }
 
-static void	eraseElement(MsgElement *element)
-{
-	if (element->name)
-	{
-		MRELEASE(element->name);
-	}
-
-	if (element->description)
-	{
-		MRELEASE(element->description);
-	}
-
-	MRELEASE(element);
-}
-
-static void	destroyElement(LystElt elt, void *userdata)
-{
-	MsgElement	*element = (MsgElement *) lyst_data(elt);
-
-	eraseElement(element);
-}
-
-LystElt	createElement(Subject *subj, char *name, ElementType type,
-		char *description)
-{
-	int		length;
-	MsgElement	*element;
-	int		nameLen;
-	int		descLen = 0;
-	LystElt		elt;
-
-	if (subj == NULL || name == NULL
-	|| (length = strlen(name)) > MAX_ELEM_NAME)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return NULL;
-	}
-
-	element = (MsgElement *) MTAKE(sizeof(MsgElement));
-	if (element == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
-	memset((char *) element, 0, sizeof(MsgElement));
-	element->type = type;
-	nameLen = length + 1;
-	element->name = MTAKE(nameLen);
-	if (description)
-	{
-		descLen = strlen(description) + 1;
-		element->description = MTAKE(descLen);
-	}
-
-	if (element->name == NULL
-	|| (description && element->description == NULL))
-	{
-		eraseElement(element);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
-	istrcpy(element->name, name, nameLen);
-	if (description && descLen > 1)
-	{
-		istrcpy(element->description, description, descLen);
-	}
-
-	elt = lyst_insert_last(subj->elements, element);
-	if (elt == NULL)
-	{
-		eraseElement(element);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
-	return elt;
-}
-
 static void	destroyFanModule(LystElt elt, void *userdata)
 {
 	FanModule	*fan = (FanModule *) lyst_data(elt);
@@ -632,468 +986,332 @@ static void	destroyFanModule(LystElt elt, void *userdata)
 	MRELEASE(fan);
 }
 
-void	eraseSubject(Venture *venture, Subject *subj)
+Subject	*createSubject(Venture *venture, int nbr, char *name,
+		char *description, char *symmetricKeyName,
+		char *marshalFnName, char *unmarshalFnName)
 {
-	if (venture == NULL || subj == NULL)
-	{
-		return;
-	}
-
-	if (subj->elt)		/*	Must remove from hashtable.	*/
-	{
-		lyst_delete(subj->elt);
-	}
-
-	if (subj->name)
-	{
-		MRELEASE(subj->name);
-	}
-
-	if (subj->description)
-	{
-		MRELEASE(subj->description);
-	}
-
-	if (subj->symmetricKey)
-	{
-		MRELEASE(subj->symmetricKey);
-	}
-
-	if (subj->elements)
-	{
-		lyst_destroy(subj->elements);
-	}
-
-	if (subj->authorizedSenders)
-	{
-		lyst_destroy(subj->authorizedSenders);
-	}
-
-	if (subj->authorizedReceivers)
-	{
-		lyst_destroy(subj->authorizedReceivers);
-	}
-
-	if (subj->modules)
-	{
-		lyst_destroy(subj->modules);
-	}
-
-	venture->subjects[subj->nbr] = NULL;
-	MRELEASE(subj);
-}
-
-Subject	*createSubject(Venture *venture, int nbr, char *name, char *description,
-		char *symmetricKey, int symmetricKeyLength)
-{
+	int	amsMemory = getIonMemoryMgr();
 	int	length;
 	Subject	*subj;
-	int	nameLen;
-	int	descLen = 0;
 	int	idx;
 
-	if (venture == NULL || nbr < 0 || nbr > MaxSubjNbr
-	|| venture->subjects[nbr] != NULL || name == NULL
-	|| (length = strlen(name)) > MAX_SUBJ_NAME
-	|| symmetricKeyLength < 0
-	|| (symmetricKeyLength > 0 && symmetricKey == NULL))
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return NULL;
-	}
-
+	CHKNULL(venture);
+	CHKNULL(nbr >= 0);
+	CHKNULL(nbr <= MAX_SUBJ_NBR);
+	CHKNULL(venture->subjects[nbr] == NULL);
+	CHKNULL(name);
+	length = strlen(name);
+	CHKNULL(length <= MAX_SUBJ_NAME);
 	subj = (Subject *) MTAKE(sizeof(Subject));
-	if (subj == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(subj);
 	memset((char *) subj, 0, sizeof(Subject));
 	subj->nbr = nbr;
 	subj->isContinuum = 0;
-	nameLen = length + 1;
-	subj->name = MTAKE(nameLen);
+	length += 1;
+	subj->name = MTAKE(length);
+	CHKNULL(subj->name);
+	istrcpy(subj->name, name, length);
 	if (description)
 	{
-		descLen = strlen(description) + 1;
-		subj->description = MTAKE(descLen);
+		length = strlen(description) + 1;
+		subj->description = MTAKE(length);
+		CHKNULL(subj->description);
+		istrcpy(subj->description, description, length);
 	}
 
-	if (symmetricKey)
+	if (symmetricKeyName)
 	{
-		subj->symmetricKey = MTAKE(symmetricKeyLength);
+		length = strlen(symmetricKeyName) + 1;
+		subj->symmetricKeyName = MTAKE(length);
+		CHKNULL(subj->symmetricKeyName);
+		memcpy(subj->symmetricKeyName, symmetricKeyName, length);
 	}
 
-	subj->elements = lyst_create_using(amsMemory);
-/*
-For future use:
-	subj->authorizedSenders = lyst_create_using(amsMemory);
-	subj->authorizedReceivers = lyst_create_using(amsMemory);
-*/
+	if (marshalFnName)
+	{
+		length = strlen(marshalFnName) + 1;
+		subj->marshalFnName = MTAKE(length);
+		CHKNULL(subj->marshalFnName);
+		memcpy(subj->marshalFnName, marshalFnName, length);
+	}
+
+	if (unmarshalFnName)
+	{
+		length = strlen(unmarshalFnName) + 1;
+		subj->unmarshalFnName = MTAKE(length);
+		CHKNULL(subj->unmarshalFnName);
+		memcpy(subj->unmarshalFnName, unmarshalFnName, length);
+	}
+
+	subj->authorizedSenders = NULL;
+	subj->authorizedReceivers = NULL;
 	subj->modules = lyst_create_using(amsMemory);
-	if (subj->name == NULL
-	|| (description && subj->description == NULL)
-	|| (symmetricKey && subj->symmetricKey == NULL)
-	|| subj->elements == NULL
-/*
-For future use:
-	|| subj->authorizedSenders == NULL
-	|| subj->authorizedReceivers == NULL
-*/
-	|| subj->modules == NULL)
-	{
-		eraseSubject(venture, subj);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
-	istrcpy(subj->name, name, nameLen);
-	if (description && descLen > 1)
-	{
-		istrcpy(subj->description, description, descLen);
-	}
-
-	if (symmetricKey)
-	{
-		memcpy(subj->symmetricKey, symmetricKey, symmetricKeyLength);
-	}
-
-	subj->keyLength = symmetricKeyLength;
-	lyst_delete_set(subj->elements, destroyElement, NULL);
+	CHKNULL(subj->modules);
 	lyst_delete_set(subj->modules, destroyFanModule, NULL);
 	venture->subjects[nbr] = subj;
 	idx = hashSubjectName(name);
 	subj->elt = lyst_insert_last(venture->subjLysts[idx], subj);
-       	if (subj->elt == NULL)
-	{
-		eraseSubject(venture, subj);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+       	CHKNULL(subj->elt);
 	return subj;
 }
 
-void	eraseRole(Venture *venture, AppRole *role)
-{
-	if (venture == NULL || role == NULL)
-	{
-		return;
-	}
-
-	if (role->name)
-	{
-		MRELEASE(role->name);
-	}
-
-	if (role->publicKey)
-	{
-		MRELEASE(role->publicKey);
-	}
-
-	if (role->privateKey)
-	{
-		MRELEASE(role->privateKey);
-	}
-
-	venture->roles[role->nbr] = NULL;
-	MRELEASE(role);
-}
-
-AppRole	*createRole(Venture *venture, int nbr, char *name, char *publicKey,
-		int publicKeyLength, char *privateKey, int privateKeyLength)
+AppRole	*createRole(Venture *venture, int nbr, char *name, char *publicKeyName,
+		char *privateKeyName)
 {
 	int	length;
 	AppRole	*role;
-	int	nameLen;
 
-	if (venture == NULL || nbr < 1 || nbr > MaxRoleNbr
-	|| venture->roles[nbr] != NULL || name == NULL
-	|| (length = strlen(name)) > MAX_ROLE_NAME
-	|| publicKeyLength < 0 || (publicKeyLength > 0 && publicKey == NULL)
-	|| privateKeyLength < 0 || (privateKeyLength > 0 && privateKey == NULL))
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return NULL;
-	}
-
+	CHKNULL(venture);
+	CHKNULL(nbr > 0);
+	CHKNULL(nbr <= MAX_ROLE_NBR);
+	CHKNULL(venture->roles[nbr] == NULL);
+	CHKNULL(name);
+	length = strlen(name);
+	CHKNULL(length <= MAX_ROLE_NAME);
 	role = (AppRole *) MTAKE(sizeof(AppRole));
-	if (role == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(role);
 	memset((char *) role, 0, sizeof(AppRole));
 	role->nbr = nbr;
-	nameLen = length + 1;
-	role->name = MTAKE(nameLen);
-	if (publicKey)
+	length += 1;
+	role->name = MTAKE(length);
+	CHKNULL(role->name);
+	istrcpy(role->name, name, length);
+	if (publicKeyName)
 	{
-		role->publicKey = MTAKE(publicKeyLength);
+		length = strlen(publicKeyName);
+		role->publicKeyName = MTAKE(length);
+		CHKNULL(role->publicKeyName);
+		memcpy(role->publicKeyName, publicKeyName, length);
 	}
 
-	if (privateKey)
+	if (privateKeyName)
 	{
-		role->privateKey = MTAKE(privateKeyLength);
+		length = strlen(privateKeyName);
+		role->privateKeyName = MTAKE(length);
+		CHKNULL(role->privateKeyName);
+		memcpy(role->privateKeyName, privateKeyName, length);
 	}
 
-	if (role->name == NULL
-	|| (publicKey && role->publicKey == NULL)
-	|| (privateKey && role->privateKey == NULL))
-	{
-		eraseRole(venture, role);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
-	istrcpy(role->name, name, nameLen);
-	if (publicKey)
-	{
-		memcpy(role->publicKey, publicKey, publicKeyLength);
-	}
-
-	role->publicKeyLength = publicKeyLength;
-	if (privateKey)
-	{
-		memcpy(role->privateKey, privateKey, privateKeyLength);
-	}
-
-	role->privateKeyLength = privateKeyLength;
 	venture->roles[nbr] = role;
 	return role;
 }
 
-static void	eraseApp(AmsApp *app)
+static void	deleteAuthorization(char *roleName, Lyst *authorizations)
 {
-	if (app == NULL)
+	LystElt	elt;
+	char	*name;
+	int	result;
+
+	CHKVOID(roleName);
+	for (elt = lyst_first(*authorizations); elt; elt = lyst_next(elt))
 	{
-		return;
+		name = (char *) lyst_data(elt);
+		result = strcmp(name, roleName);
+		if (result < 0)		/*	Try the next one.	*/
+		{
+			continue;
+		}
+
+		if (result == 0)
+		{
+			break;
+		}
+
+		return;			/*	Already deleted.	*/
 	}
 
-	if (app->name)
+	name = (char *) lyst_data(elt);
+	MRELEASE(name);
+	lyst_delete(elt);
+	if (lyst_length(*authorizations) == 0)
 	{
-		MRELEASE(app->name);
+		lyst_destroy(*authorizations);
+		*authorizations = NULL;
 	}
-
-	if (app->publicKey)
-	{
-		MRELEASE(app->publicKey);
-	}
-
-	if (app->privateKey)
-	{
-		MRELEASE(app->privateKey);
-	}
-
-	MRELEASE(app);
 }
 
-static void	destroyApplication(LystElt elt, void *userdata)
+void	deleteAuthorizedSender(Subject *subj, char *senderRoleName)
 {
-	AmsApp	*app = (AmsApp *) lyst_data(elt);
-
-	eraseApp(app);
+	CHKVOID(subj);
+	deleteAuthorization(senderRoleName, &subj->authorizedSenders);
 }
 
-LystElt	createApp(char *name, char *publicKey, int publicKeyLength,
-		char *privateKey, int privateKeyLength)
+void	deleteAuthorizedReceiver(Subject *subj, char *receiverRoleName)
+{
+	CHKVOID(subj);
+	deleteAuthorization(receiverRoleName, &subj->authorizedReceivers);
+}
+
+static void	destroyAuthorization(LystElt elt, void *userdata)
+{
+	char	*roleName = (char *) lyst_data(elt);
+
+	MRELEASE(roleName);
+}
+
+static int	addAuthorization(Venture *venture, char *roleName,
+			Lyst *authorizations)
+{
+	LystElt	elt;
+	char	*name;
+	int	result;
+	int	length;
+
+	CHKERR(venture);
+	CHKERR(roleName);
+	if (lookUpRole(venture, roleName) == NULL)
+	{
+		return -1;
+	}
+
+	if (*authorizations == NULL)
+	{
+		*authorizations = lyst_create_using(getIonMemoryMgr());
+		CHKERR(*authorizations);
+		lyst_delete_set(*authorizations, destroyAuthorization,
+				NULL);
+	}
+
+	for (elt = lyst_first(*authorizations); elt; elt = lyst_next(elt))
+	{
+		name = (char *) lyst_data(elt);
+		result = strcmp(name, roleName);
+		if (result < 0)		/*	Try the next one.	*/
+		{
+			continue;
+		}
+
+		if (result == 0)
+		{
+			return 0;	/*	Already in list.	*/
+		}
+
+		break;			/*	Insert before this one.	*/
+	}
+
+	length = strlen(roleName);
+	name = MTAKE(length + 1);
+	CHKERR(name);
+	istrcpy(name, roleName, length + 1);
+	if (elt)
+	{
+		elt = lyst_insert_before(elt, name);
+	}
+	else
+	{
+		elt = lyst_insert_last(*authorizations, name);
+	}
+
+	if (elt == NULL)
+	{
+		MRELEASE(name);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	addAuthorizedSender(Venture *venture, Subject *subj,
+		char *senderRoleName)
+{
+	CHKERR(subj);
+	return addAuthorization(venture, senderRoleName,
+			&(subj->authorizedSenders));
+}
+
+int	addAuthorizedReceiver(Venture *venture, Subject *subj,
+		char *receiverRoleName)
+{
+	CHKERR(subj);
+	return addAuthorization(venture, receiverRoleName,
+			&(subj->authorizedReceivers));
+}
+
+LystElt	createApp(char *name, char *publicKeyName, char *privateKeyName)
 {
 	int	length;
 	AmsApp	*app;
-	int	nameLen;
 	LystElt	elt;
 
-	if (name == NULL
-	|| (length = strlen(name)) > MAX_APP_NAME
-	|| publicKeyLength < 0 || (publicKeyLength > 0 && publicKey == NULL)
-	|| privateKeyLength < 0 || (privateKeyLength > 0 && privateKey == NULL))
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return NULL;
-	}
-
+	CHKNULL(name);
+	length = strlen(name);
+	CHKNULL(length <= MAX_APP_NAME);
 	app = (AmsApp *) MTAKE(sizeof(AmsApp));
-	if (app == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(app);
 	memset((char *) app, 0, sizeof(AmsApp));
-	nameLen = length + 1;
-	app->name = MTAKE(nameLen);
-	if (publicKey)
+	length += 1;
+	app->name = MTAKE(length);
+	CHKNULL(app->name);
+	istrcpy(app->name, name, length);
+	if (publicKeyName)
 	{
-		app->publicKey = MTAKE(publicKeyLength);
+		length = strlen(publicKeyName);
+		app->publicKeyName = MTAKE(length);
+		CHKNULL(app->publicKeyName);
+		memcpy(app->publicKeyName, publicKeyName, length);
 	}
 
-	if (privateKey)
+	if (privateKeyName)
 	{
-		app->privateKey = MTAKE(privateKeyLength);
+		length = strlen(privateKeyName);
+		app->privateKeyName = MTAKE(length);
+		CHKNULL(app->privateKeyName);
+		memcpy(app->privateKeyName, privateKeyName, length);
 	}
 
-	if (app->name == NULL
-	|| (publicKey && app->publicKey == NULL)
-	|| (privateKey && app->privateKey == NULL))
-	{
-		eraseApp(app);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
-	istrcpy(app->name, name, nameLen);
-	if (publicKey)
-	{
-		memcpy(app->publicKey, publicKey, publicKeyLength);
-	}
-
-	app->publicKeyLength = publicKeyLength;
-	if (privateKey)
-	{
-		memcpy(app->privateKey, privateKey, privateKeyLength);
-	}
-
-	app->privateKeyLength = privateKeyLength;
-	elt = lyst_insert_last(mib->applications, app);
-	if (elt == NULL)
-	{
-		eraseApp(app);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	elt = lyst_insert_last((_mib(NULL))->applications, app);
+	CHKNULL(elt);
 	return elt;
 }
 
-void	eraseMsgspace(Venture *venture, Subject *msgspace)
+Subject	*createMsgspace(Venture *venture, int continNbr, char *gwEidString,
+		char *symmetricKeyName)
 {
-	if (venture == NULL || msgspace == NULL)
-	{
-		return;
-	}
+	int		amsMemory = getIonMemoryMgr();
+	Subject		*msgspace;
+	RamsNetProtocol	ramsProtocol;
+	char		*gwEid;
+	char		gwEidBuffer[MAX_GW_EID + 1];
+	int		length;
 
-	if (msgspace->symmetricKey)
-	{
-		MRELEASE(msgspace->symmetricKey);
-	}
-
-	if (msgspace->elements)
-	{
-		lyst_destroy(msgspace->elements);
-	}
-
-	if (msgspace->authorizedSenders)
-	{
-		lyst_destroy(msgspace->authorizedSenders);
-	}
-
-	if (msgspace->authorizedReceivers)
-	{
-		lyst_destroy(msgspace->authorizedReceivers);
-	}
-
-	if (msgspace->modules)
-	{
-		lyst_destroy(msgspace->modules);
-	}
-
-	venture->msgspaces[0 - msgspace->nbr] = NULL;
-	MRELEASE(msgspace);
-}
-
-Subject	*createMsgspace(Venture *venture, int continNbr, char *symmetricKey,
-		int symmetricKeyLength)
-{
-	Subject	*msgspace;
-
-	if (venture == NULL || continNbr < 1 || continNbr > MaxContinNbr
-	|| mib->continua[continNbr] == NULL
-	|| venture->msgspaces[continNbr] != NULL
-	|| symmetricKeyLength < 0
-	|| (symmetricKeyLength > 0 && symmetricKey == NULL))
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return NULL;
-	}
-
+	CHKNULL(venture);
+	CHKNULL(continNbr > 0);
+	CHKNULL(continNbr <= MAX_CONTIN_NBR);
+	CHKNULL((_mib(NULL))->continua[continNbr] != NULL);
+	CHKNULL(venture->msgspaces[continNbr] == NULL);
 	msgspace = (Subject *) MTAKE(sizeof(Subject));
-	if (msgspace == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(msgspace);
 	memset((char *) msgspace, 0, sizeof(Subject));
 	msgspace->nbr = 0 - continNbr;	/*	Negative subj number.	*/
 	msgspace->isContinuum = 1;
-	if (symmetricKey)
+	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
+	if (ramsProtocol == RamsNoProtocol)
 	{
-		msgspace->symmetricKey = MTAKE(symmetricKeyLength);
+		ramsProtocol = RamsBp;
+		isprintf(gwEidBuffer, sizeof gwEidBuffer, "ipn:%d.%d",
+				continNbr, venture->nbr);
+		gwEid = gwEidBuffer;
 	}
 
-	msgspace->elements = lyst_create_using(amsMemory);
-#if 0
-	msgspace->authorizedSenders = lyst_create_using(amsMemory);
-	msgspace->authorizedReceivers = lyst_create_using(amsMemory);
-#endif
+	length = strlen(gwEid) + 1;
+	msgspace->gwEid = MTAKE(length);
+	CHKNULL(msgspace->gwEid);
+	istrcpy(msgspace->gwEid, gwEid, length);
+	if (symmetricKeyName)
+	{
+		length = strlen(symmetricKeyName) + 1;
+		msgspace->symmetricKeyName = MTAKE(length);
+		CHKNULL(msgspace->symmetricKeyName);
+		memcpy(msgspace->symmetricKeyName, symmetricKeyName, length);
+	}
+
+	msgspace->authorizedSenders = NULL;
+	msgspace->authorizedReceivers = NULL;
 	msgspace->modules = lyst_create_using(amsMemory);
-	if ((symmetricKey && msgspace->symmetricKey == NULL)
-	|| msgspace->elements == NULL
-#if 0
-	|| msgspace->authorizedSenders == NULL
-	|| msgspace->authorizedReceivers == NULL
-#endif
-	|| msgspace->modules == NULL)
-	{
-		eraseMsgspace(venture, msgspace);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
-	if (symmetricKey)
-	{
-		memcpy(msgspace->symmetricKey, symmetricKey,
-				symmetricKeyLength);
-	}
-
-	msgspace->keyLength = symmetricKeyLength;
-	lyst_delete_set(msgspace->elements, destroyElement, NULL);
+	CHKNULL(msgspace->modules);
 	lyst_delete_set(msgspace->modules, destroyFanModule, NULL);
 	venture->msgspaces[continNbr] = msgspace;
 	return msgspace;
-}
-
-static void	eraseModule(Module *module)
-{
-	LystElt	elt;
-	LystElt	nextElt;
-
-	if (module->amsEndpoints)
-	{
-		for (elt = lyst_first(module->amsEndpoints); elt; elt = nextElt)
-		{
-			nextElt = lyst_next(elt);
-			lyst_delete(elt);
-		}
-	}
-
-	if (module->subjects)
-	{
-		for (elt = lyst_first(module->subjects); elt; elt = nextElt)
-		{
-			nextElt = lyst_next(elt);
-			lyst_delete(elt);
-		}
-	}
-
-	clearMamsEndpoint(&module->mamsEndpoint);
-	module->role = NULL;
 }
 
 static void	destroySubjOfInterest(LystElt elt, void *userdata)
@@ -1108,96 +1326,23 @@ static void	destroySubjOfInterest(LystElt elt, void *userdata)
 
 static Module	*createModule(Cell *cell, int moduleNbr)
 {
+	int	amsMemory = getIonMemoryMgr();
 	Module	*module;
 
 	module = (Module *) MTAKE(sizeof(Module));
-	if (module == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(module);
 	memset((char *) module, 0, sizeof(Module));
 	module->unitNbr = cell->unit->nbr;
 	module->nbr = moduleNbr;
 	module->role = NULL;
 	module->amsEndpoints = lyst_create_using(amsMemory);
-	module->subjects = lyst_create_using(amsMemory);
-	if (module->amsEndpoints == NULL || module->subjects == NULL)
-	{
-		eraseModule(module);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(module->amsEndpoints);
 	lyst_delete_set(module->amsEndpoints, destroyAmsEndpoint, NULL);
+	module->subjects = lyst_create_using(amsMemory);
+	CHKNULL(module->subjects);
 	lyst_delete_set(module->subjects, destroySubjOfInterest, NULL);
 	cell->modules[moduleNbr] = module;
 	return module;
-}
-
-void	eraseUnit(Venture *venture, Unit *unit)
-{
-	Cell	*cell;
-	int	i;
-	Unit	*superunit;
-	LystElt	elt;
-	LystElt	nextElt;
-	Unit	*subunit;
-
-	if (venture == NULL || unit == NULL)
-	{
-		return;
-	}
-
-	if (unit->name)
-	{
-		MRELEASE(unit->name);
-	}
-
-	/*	Erase all local cell data.				*/
-
-	cell = unit->cell;
-	clearMamsEndpoint(&cell->mamsEndpoint);
-	for (i = 1; i <= MaxModuleNbr; i++)
-	{
-		if (cell->modules[i])
-		{
-			eraseModule(cell->modules[i]);
-		}
-	}
-
-	/*	Reattach erased unit's subunits directly to its
-	 *	superunit, if any.					*/
-
-	superunit = unit->superunit;
-	for (elt = lyst_first(unit->subunits); elt; elt = nextElt)
-	{
-		nextElt = lyst_next(elt);
-		subunit = (Unit *) lyst_data(elt);
-		lyst_delete(subunit->inclusionElt);
-		if (superunit)
-		{
-			subunit->inclusionElt =
-				lyst_insert_last(superunit->subunits, subunit);
-		}
-
-		subunit->superunit = superunit;
-	}
-
-	/*	Detach erased unit from its superunit.			*/
-
-	if (unit->inclusionElt)
-	{
-		lyst_delete(unit->inclusionElt);
-	}
-
-	unit->superunit = NULL;
-
-	/*	Erase the unit object itself.				*/
-
-	venture->units[unit->nbr] = NULL;
-	MRELEASE(unit);
 }
 
 static Unit	*initializeUnit(Venture *venture, int nbr, char *name,
@@ -1213,13 +1358,7 @@ static Unit	*initializeUnit(Venture *venture, int nbr, char *name,
 	Unit	*subunit;
 
 	unit = (Unit *) MTAKE(sizeof(Unit));
-	if (unit == NULL)
-	{
-		lyst_destroy(subunits);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(unit);
 	memset((char *) unit, 0, sizeof(Unit));
 	unit->cell = &(unit->cellData);
 	cell = unit->cell;
@@ -1227,25 +1366,16 @@ static Unit	*initializeUnit(Venture *venture, int nbr, char *name,
 	unit->nbr = nbr;
 	nameLen = length + 1;
 	unit->name = MTAKE(nameLen);
-	if (unit->name == NULL)
-	{
-		eraseUnit(venture, unit);
-		lyst_destroy(subunits);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(unit->name);
 	istrcpy(unit->name, name, nameLen);
 
 	/*	Initialize cell data of unit.				*/
 
-	for (i = 1; i <= MaxModuleNbr; i++)
+	for (i = 1; i <= MAX_MODULE_NBR; i++)
 	{
 		if (createModule(cell, i) < 0)
 		{
 			eraseUnit(venture, unit);
-			lyst_destroy(subunits);
-			putSysErrmsg(NoMemoryMemo, NULL);
 			return NULL;
 		}
 	}
@@ -1259,13 +1389,7 @@ static Unit	*initializeUnit(Venture *venture, int nbr, char *name,
 	{
 		unit->inclusionElt = lyst_insert_last(superunit->subunits,
 				unit);
-		if (unit->inclusionElt == NULL)
-		{
-			eraseUnit(venture, unit);
-			lyst_destroy(subunits);
-			putSysErrmsg(NoMemoryMemo, NULL);
-			return NULL;
-		}
+		CHKNULL(unit->inclusionElt);
 	}
 
 	/*	Assert new unit as superunit of its subunits.		*/
@@ -1308,30 +1432,26 @@ Unit	*createUnit(Venture *venture, int nbr, char *name, int resyncPeriod)
 	Unit	*unit;
 	int	j;
 
-	if (venture == NULL || nbr < 1 || nbr > MaxUnitNbr
-	|| venture->units[nbr] != NULL || name == NULL || resyncPeriod < 0
-	|| (namelen = strlen(name)) == 0 || namelen > MAX_UNIT_NAME)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return NULL;
-	}
+	CHKNULL(venture);
+	CHKNULL(nbr > 0);
+	CHKNULL(nbr <= MAX_UNIT_NBR);
+	CHKNULL(venture->units[nbr] == NULL);
+	CHKNULL(name);
+	namelen = strlen(name);
+	CHKNULL(namelen > 0);
+	CHKNULL(namelen <= MAX_UNIT_NAME);
+	CHKNULL(resyncPeriod >= 0);
 
 	/*	Unit whose name is the longest prefix of the new
 	 *	unit's name is the new unit's superunit.  Every
 	 *	unit whose name is prefixed by the new unit's name
 	 *	is a candidate subunit of the new unit.			*/
 
-	subunits = lyst_create_using(amsMemory);
-	if (subunits == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	subunits = lyst_create_using(getIonMemoryMgr());
+	CHKNULL(subunits);
 	bestLength = 0;
 	superunit = venture->units[0];	/*	Default is root cell.	*/
-	for (i = 0; i <= MaxUnitNbr; i++)
+	for (i = 0; i <= MAX_UNIT_NBR; i++)
 	{
 		if ((unit = venture->units[i]) == NULL) continue;
 		for (j= 0;; j++)
@@ -1356,7 +1476,6 @@ Unit	*createUnit(Venture *venture, int nbr, char *name, int resyncPeriod)
 				if (lyst_insert_last(subunits, unit) == NULL)
 				{
 					lyst_destroy(subunits);
-					putSysErrmsg(NoMemoryMemo, NULL);
 					return NULL;
 				}
 
@@ -1372,86 +1491,50 @@ Unit	*createUnit(Venture *venture, int nbr, char *name, int resyncPeriod)
 
 	if (bestLength == namelen)	/*	Perfect match for name.	*/
 	{
-		putErrmsg("Duplicate unit name.", NULL);
-		errno = EINVAL;
+		writeMemoNote("[?] Duplicate unit name", name);
+		lyst_destroy(subunits);
 		return NULL;
 	}
 
-	return initializeUnit(venture, nbr, name, namelen, resyncPeriod,
+	unit = initializeUnit(venture, nbr, name, namelen, resyncPeriod,
 			superunit, subunits);
-}
-
-void	eraseVenture(Venture *venture)
-{
-	int	i;
-
-	if (venture == NULL)
+	if (unit == NULL)
 	{
-		return;
+		lyst_destroy(subunits);
 	}
 
-	for (i = 1; i <= MaxRoleNbr; i++)
-	{
-		if (venture->roles[i])
-		{
-			eraseRole(venture, venture->roles[i]);
-		}
-	}
-
-	for (i = 1; i <= MaxSubjNbr; i++)
-	{
-		if (venture->subjects[i])
-		{
-			eraseSubject(venture, venture->subjects[i]);
-		}
-	}
-
-	for (i = 0; i < SUBJ_LIST_CT; i++)
-	{
-		if (venture->subjLysts[i])
-		{
-			lyst_destroy(venture->subjLysts[i]);
-		}
-	}
-
-	eraseUnit(venture, venture->units[0]);		/*	Root.	*/
-	for (i = 1; i <= MaxContinNbr; i++)
-	{
-		if (venture->msgspaces[i])
-		{
-			eraseMsgspace(venture, venture->msgspaces[i]);
-		}
-	}
-
-	mib->ventures[venture->nbr] = NULL;
-	MRELEASE(venture);
+	return unit;
 }
 
 Venture	*createVenture(int nbr, char *appname, char *authname,
-			int rootCellResyncPeriod)
+		char *gwEidString, int ramsNetIsTree, int rootCellResyncPeriod)
 {
-	int	length;
-	LystElt	elt;
-	AmsApp	*app;
-	int	i;
-	Venture	*venture;
-	int	authnameLen;
-	AppRole	*gatewayRole;
-	Subject	*allSubjects;
-	Lyst	subunits;
-	Unit	*rootUnit;
-	Subject	*msgspace;	/*	Msgspace in local continuum.	*/
+	AmsMib		*mib = _mib(NULL);
+	int		amsMemory = getIonMemoryMgr();
+	int		length;
+	LystElt		elt;
+	AmsApp		*app;
+	int		i;
+	Venture		*venture;
+	int		authnameLen;
+	RamsNetProtocol	ramsProtocol;
+	char		*gwEid;
+	char		gwEidBuffer[MAX_GW_EID + 1];
+	AppRole		*gatewayRole;
+	AppRole		*shutdownRole;
+	Subject		*allSubjects;
+	Lyst		subunits;
+	Unit		*rootUnit;
+	Subject		*msgspace;	/*	In local continuum.	*/
 
-	if (nbr < 1 || nbr > MaxVentureNbr || mib->ventures[nbr] != NULL
-	|| appname == NULL || authname == NULL
-	|| (length = strlen(authname)) > MAX_AUTH_NAME
-	|| rootCellResyncPeriod < 0)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return NULL;
-	}
-
+	CHKNULL(nbr > 0);
+	CHKNULL(nbr <= MAX_VENTURE_NBR);
+	CHKNULL(mib->ventures[nbr] == NULL);
+	CHKNULL(appname);
+	CHKNULL(authname);
+	length = strlen(authname);
+	CHKNULL(length <= MAX_AUTH_NAME);
+	CHKNULL(rootCellResyncPeriod >= 0);
 	for (elt = lyst_first(mib->applications); elt; elt = lyst_next(elt))
 	{
 		app = (AmsApp *) lyst_data(elt);
@@ -1463,60 +1546,53 @@ Venture	*createVenture(int nbr, char *appname, char *authname,
 
 	if (elt == NULL)
 	{
-		putErrmsg("Adding venture for unknown application.",
+		writeMemoNote("[?] Adding venture for unknown application",
 				appname);
-		errno = EINVAL;
 		return NULL;
 	}
 
 	venture = (Venture *) MTAKE(sizeof(Venture));
-	if (venture == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(venture);
 	memset((char *) venture, 0, sizeof(Venture));
 	venture->nbr = nbr;
 	venture->app = app;
 	authnameLen = length + 1;
 	venture->authorityName = MTAKE(authnameLen);
-	if (venture->authorityName == NULL)
-	{
-		eraseVenture(venture);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(venture->authorityName);
 	istrcpy(venture->authorityName, authname, authnameLen);
 	for (i = 0; i < SUBJ_LIST_CT; i++)
 	{
 		venture->subjLysts[i] = lyst_create_using(amsMemory);
-		if (venture->subjLysts[i] == NULL)
-		{
-			eraseVenture(venture);
-			putSysErrmsg(NoMemoryMemo, NULL);
-			return NULL;
-		}
+		CHKNULL(venture->subjLysts[i]);
 	}
 
+	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
+	if (ramsProtocol == RamsNoProtocol)
+	{
+		ramsProtocol = RamsBp;
+	}
+
+	venture->gwProtocol = ramsProtocol;
+	venture->ramsNetIsTree = ramsNetIsTree;
 	mib->ventures[nbr] = venture;
 
-	/*	Automatically create venture's RAMS gateway role.	*/
+	/*	Automatically create venture's RAMS gateway and
+	 *	(ION extension) shutdown roles.				*/
 
-	gatewayRole = createRole(venture, 1, "RAMS", NULL, 0, NULL, 0);
-	if (gatewayRole == NULL)
+	gatewayRole = createRole(venture, 1, "RAMS", NULL, NULL);
+	shutdownRole = createRole(venture, MAX_ROLE_NBR, "stop", NULL, NULL);
+	if (gatewayRole == NULL || shutdownRole == NULL)
 	{
 		eraseVenture(venture);
-		putErrmsg("Can't create RAMS gateway role for venture.",
+		putErrmsg("Can't create standard roles for venture.",
 				appname);
 		return NULL;
 	}
 
 	/*	Automatically create venture's "all subjects" subject.	*/
 
-	allSubjects = createSubject(venture, 0, "everything", "messages on \
-all subjects", NULL, 0);
+	allSubjects = createSubject(venture, 0, "everything",
+			"messages on all subjects", NULL, NULL, NULL);
 	if (allSubjects == NULL)
 	{
 		eraseVenture(venture);
@@ -1528,122 +1604,60 @@ all subjects", NULL, 0);
 	/*	Automatically create venture's root unit.		*/
 
 	subunits = lyst_create_using(amsMemory);
-	if (subunits == NULL)
-	{
-		eraseVenture(venture);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(subunits);
 	rootUnit = initializeUnit(venture, 0, "", 0, rootCellResyncPeriod,
 			NULL, subunits);
 	if (rootUnit == NULL)
 	{
+		putErrmsg("Can't initialize root unit for venture.", appname);
+		lyst_destroy(subunits);
 		eraseVenture(venture);
-		putErrmsg(NoMemoryMemo, NULL);
 		return NULL;
 	}
 
 	/*	Automatically create the local message space.		*/
 
-	msgspace = createMsgspace(venture, mib->localContinuumNbr, NULL, 0);
+	msgspace = createMsgspace(venture, mib->localContinuumNbr, gwEidString,
+			NULL);
 	if (msgspace == NULL)
 	{
+		putErrmsg("Can't create local msgspace for venture.", appname);
 		eraseVenture(venture);
-		putErrmsg(NoMemoryMemo, NULL);
 		return NULL;
 	}
 
 	return venture;
 }
 
-static void	eraseContinuum(Continuum *contin)
+Continuum	*createContinuum(int nbr, char *name, int isNeighbor,
+			char *description)
 {
-	if (contin == NULL)
-	{
-		return;
-	}
-
-	if (contin->name)
-	{
-		MRELEASE(contin->name);
-	}
-
-	if (contin->gwEid)
-	{
-		MRELEASE(contin->gwEid);
-	}
-
-	if (contin->description)
-	{
-		MRELEASE(contin->description);
-	}
-
-	MRELEASE(contin);
-}
-
-Continuum	*createContinuum(int nbr, char *name, char *gwEidString,
-			int isNeighbor, char *description)
-{
+	AmsMib		*mib = _mib(NULL);
 	int		length;
-	RamsNetProtocol	ramsProtocol;
-	char		*gwEid;
-	char		gwEidBuffer[MAX_GW_EID + 1];
 	Continuum	*contin;
-	int		gwEidLen;
 	int		nameLen;
 	int		descLen = 0;
 
-	if (nbr < 1 || nbr > MaxContinNbr || mib->continua[nbr] != NULL
-	|| name == NULL || (length = strlen(name)) > MAX_SUBJ_NAME)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return NULL;
-	}
-
-	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
-	if (ramsProtocol == RamsNoProtocol)
-	{
-		ramsProtocol = RamsBp;
-		isprintf(gwEidBuffer, sizeof gwEidBuffer, "ipn:%d.9", nbr);
-		gwEid = gwEidBuffer;
-	}
-
+	CHKNULL(nbr > 0);
+	CHKNULL(nbr <= MAX_CONTIN_NBR);
+	CHKNULL(mib->continua[nbr] == NULL);
+	CHKNULL(name);
+	length = strlen(name);
+	CHKNULL(length <= MAX_SUBJ_NAME);
 	contin = (Continuum *) MTAKE(sizeof(Continuum));
-	if (contin == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(contin);
 	memset((char *) contin, 0, sizeof(Continuum));
 	contin->nbr = nbr;
-	contin->gwProtocol = ramsProtocol;
-	gwEidLen = strlen(gwEid) + 1;
-	contin->gwEid = MTAKE(gwEidLen);
 	contin->isNeighbor = 1 - (isNeighbor == 0);
 	nameLen = length + 1;
 	contin->name = MTAKE(nameLen);
+	CHKNULL(contin->name);
+	istrcpy(contin->name, name, nameLen);
 	if (description)
 	{
 		descLen = strlen(description) + 1;
 		contin->description = MTAKE(descLen);
-	}
-
-	if (contin->name == NULL
-	|| contin->gwEid == NULL
-	|| (description && contin->description == NULL))
-	{
-		eraseContinuum(contin);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
-	istrcpy(contin->name, name, nameLen);
-	istrcpy(contin->gwEid, gwEid, gwEidLen);
-	if (description && descLen > 1)
-	{
+		CHKNULL(contin->description);
 		istrcpy(contin->description, description, descLen);
 	}
 
@@ -1651,46 +1665,29 @@ Continuum	*createContinuum(int nbr, char *name, char *gwEidString,
 	return contin;
 }
 
-static void	eraseCsEndpoint(MamsEndpoint *ep)
-{
-	clearMamsEndpoint(ep);
-	MRELEASE(ep);
-}
-
-static void	destroyCsEndpoint(LystElt elt, void *userdata)
-{
-	MamsEndpoint	*ep = (MamsEndpoint *) lyst_data(elt);
-
-	eraseCsEndpoint(ep);
-}
-
 LystElt	createCsEndpoint(char *endpointSpec, LystElt nextElt)
 {
+	AmsMib		*mib = _mib(NULL);
 	int		len;
 	char		endpointName[MAX_EP_NAME + 1];
 	MamsEndpoint	*ep;
 	LystElt		elt;
 
+	CHKNULL(endpointSpec);
 	if (mib->pts->csepNameFn(endpointSpec, endpointName) < 0)
 	{
 		putErrmsg("Can't compute CS endpoint name.", endpointSpec);
-		errno = EINVAL;
 		return NULL;
 	}
 
 	len = strlen(endpointName);
 	ep = (MamsEndpoint *) MTAKE(sizeof(MamsEndpoint));
-	if (ep == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(ep);
 	memset((char *) ep, 0, sizeof(MamsEndpoint));
 	if (constructMamsEndpoint(ep, len, endpointName) < 0)
 	{
+		putErrmsg("Can't construct MAMS endpoint for CS.", NULL);
 		eraseCsEndpoint(ep);
-		putErrmsg("Can't construct CS endpoint.", NULL);
 		return NULL;
 	}
 
@@ -1703,47 +1700,24 @@ LystElt	createCsEndpoint(char *endpointSpec, LystElt nextElt)
 		elt = lyst_insert_last(mib->csEndpoints, ep);
 	}
 
-	if (elt == NULL)
-	{
-		eraseCsEndpoint(ep);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(elt);
 	return elt;
-}
-
-static void	eraseAmsEpspec(AmsEpspec *amses)
-{
-	MRELEASE(amses);
-}
-
-static void	destroyAmsEpspec(LystElt elt, void *userdata)
-{
-	AmsEpspec	*amses = (AmsEpspec *) lyst_data(elt);
-
-	eraseAmsEpspec(amses);
 }
 
 LystElt	createAmsEpspec(char *tsname, char *epspec)
 {
+	AmsMib		*mib = _mib(NULL);
 	int		i;
 	TransSvc	*ts;
 	AmsEpspec	amses;
 	AmsEpspec	*amsesPtr;
 	LystElt		elt;
 
-	if (epspec == NULL || tsname == NULL)
-	{
-		putErrmsg("NULL parameter(s) for AMS endpoint spec.", NULL);
-		errno = EINVAL;
-		return NULL;
-	}
-	
+	CHKNULL(tsname);
+	CHKNULL(epspec);
 	if (strlen(epspec) > MAX_EP_SPEC)
 	{
-		putErrmsg("AMS endpoint spec is too long.", epspec);
-		errno = EINVAL;
+		writeMemoNote("[?] AMS endpoint spec is too long", epspec);
 		return NULL;
 	}
 
@@ -1761,229 +1735,17 @@ LystElt	createAmsEpspec(char *tsname, char *epspec)
 
 	if (amses.ts == NULL)
 	{
-		putErrmsg("Unknown transport service for AMS endpoint spec.",
-				tsname);
-		errno = EINVAL;
+		writeMemoNote("[?] Unknown transport service for AMS endpoint \
+spec", tsname);
 		return NULL;
 	}
 
 	amsesPtr = (AmsEpspec *) MTAKE(sizeof(AmsEpspec));
-	if (amsesPtr == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(amsesPtr);
 	memcpy((char *) amsesPtr, &amses, sizeof(AmsEpspec));
 	elt = lyst_insert_last(mib->amsEndpointSpecs, amsesPtr);
-	if (elt == NULL)
-	{
-		eraseAmsEpspec(amsesPtr);
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return NULL;
-	}
-
+	CHKNULL(elt);
 	return elt;
-}
-
-void	eraseMib()
-{
-	int	i;
-
-	if (mib->localContinuumGwEid)
-	{
-		MRELEASE(mib->localContinuumGwEid);
-	}
-
-	pthread_mutex_destroy(&(mib->mutex));
-	if (mib->csPublicKey)
-	{
-		MRELEASE(mib->csPublicKey);
-	}
-
-	if (mib->csPrivateKey)
-	{
-		MRELEASE(mib->csPrivateKey);
-	}
-
-	if (mib->amsEndpointSpecs)
-	{
-		lyst_destroy(mib->amsEndpointSpecs);
-	}
-
-	if (mib->applications)
-	{
-		lyst_destroy(mib->applications);
-	}
-
-	if (mib->csEndpoints)
-	{
-		lyst_destroy(mib->csEndpoints);
-	}
-
-	for (i = 1; i <= MaxContinNbr; i++)
-	{
-		if (mib->continua[i])
-		{
-			eraseContinuum(mib->continua[i]);
-		}
-	}
-
-	for (i = 1; i <= MaxVentureNbr; i++)
-	{
-		if (mib->ventures[i])
-		{
-			eraseVenture(mib->ventures[i]);
-		}
-	}
-
-	MRELEASE(mib);
-	mib = NULL;
-}
-
-static int	addTs(int idx, TsLoadFn loadTs)
-{
-	TransSvc	*ts;
-       
-	if (idx < 0)	/*	Adding services in order.		*/
-	{
-		if (mib->transportServiceCount > TS_INDEX_LIMIT)
-		{
-			putErrmsg("Transport service table is full.", NULL);
-			errno = EINVAL;
-			return -1;
-		}
-
-		idx = mib->transportServiceCount;
-	}
-
-	ts = &(mib->transportServices[idx]);
-	loadTs(ts);	/*	Execute the transport service loader.	*/
-	mib->transportServiceCount++;
-	return 0;
-}
-
-static int	loadTransportService(int i, char *ptsName)
-{
-	if (addTs(-1, transportServiceLoaders[i]) < 0)
-	{
-		return -1;
-	}
-
-	if (strcmp(mib->transportServices[i].name, ptsName) == 0)
-	{
-		mib->pts = &(mib->transportServices[i]);
-	}
-
-	return 0;
-}
-
-int	createMib(int nbr, char *gwEidString, int ramsNetIsTree, char *ptsName,
-		char *pubkey, int pubkeylen, char *privkey, int privkeylen)
-{
-	int		i;
-	RamsNetProtocol	ramsProtocol;
-	char		*gwEid;
-	char		gwEidBuffer[MAX_GW_EID + 1];
-	int		eidLen;
-
-	if (mib != NULL || nbr < 1 || nbr > MaxContinNbr || ptsName == NULL
-	|| pubkeylen < 0 || (pubkeylen > 0 && pubkey == NULL)
-	|| privkeylen < 0 || (privkeylen > 0 && privkey == NULL))
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
-	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
-	if (ramsProtocol == RamsNoProtocol)
-	{
-		ramsProtocol = RamsBp;
-		isprintf(gwEidBuffer, sizeof gwEidBuffer, "ipn:%d.9", nbr);
-		gwEid = gwEidBuffer;
-	}
-
-	mib = (AmsMib *) MTAKE(sizeof(AmsMib));
-	if (mib == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
-	memset((char *) mib, 0, sizeof(AmsMib));
-	for (i = 0; i < transportServiceCount; i++)
-	{
-		if (loadTransportService(i, ptsName) < 0)
-		{
-			eraseMib();
-			return -1;
-		}
-	}
-
-	if (mib->pts == NULL)
-	{
-		eraseMib();
-		errno = EINVAL;
-		putErrmsg("No loader for primary transport service.", ptsName);
-		return -1;
-	}
-
-	if (pthread_mutex_init(&(mib->mutex), NULL))
-	{
-		eraseMib();
-		putSysErrmsg("MIB mutex init failed", NULL);
-		return -1;
-	}
-
-	mib->amsEndpointSpecs = lyst_create_using(amsMemory);
-	mib->applications = lyst_create_using(amsMemory);
-	mib->csEndpoints = lyst_create_using(amsMemory);
-	mib->localContinuumNbr = nbr;
-	mib->localContinuumGwProtocol = ramsProtocol;
-	eidLen = strlen(gwEid) + 1;
-	mib->localContinuumGwEid = MTAKE(eidLen);
-	mib->ramsNetIsTree = ramsNetIsTree;
-	if (pubkey)
-	{
-		mib->csPublicKey = MTAKE(pubkeylen);
-	}
-
-	if (privkey)
-	{
-		mib->csPrivateKey = MTAKE(privkeylen);
-	}
-
-	if (mib->amsEndpointSpecs == NULL
-	|| mib->applications == NULL
-	|| mib->csEndpoints == NULL
-	|| mib->localContinuumGwEid == NULL
-	|| (pubkey && mib->csPublicKey == NULL)
-	|| (privkey && mib->csPrivateKey == NULL)
-	|| createContinuum(nbr, "local", NULL, 0, "local continuum") == NULL)
-	{
-		eraseMib();
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
-	istrcpy(mib->localContinuumGwEid, gwEid, eidLen);
-	lyst_delete_set(mib->amsEndpointSpecs, destroyAmsEpspec, NULL);
-	lyst_delete_set(mib->applications, destroyApplication, NULL);
-	lyst_delete_set(mib->csEndpoints, destroyCsEndpoint, NULL);
-	if (pubkey)
-	{
-		memcpy(mib->csPublicKey, pubkey, pubkeylen);
-	}
-
-	mib->csPublicKeyLength = pubkeylen;
-	if (privkey)
-	{
-		memcpy(mib->csPrivateKey, privkey, privkeylen);
-	}
-
-	mib->csPrivateKeyLength = privkeylen;
-	return 0;
 }
 
 /*	*	*	MIB management functions	*	*	*/
@@ -2000,24 +1762,27 @@ int	parseModuleId(int memo, int *roleNbr, int *unitNbr, int *moduleNbr)
 {
 	unsigned int	moduleId = (unsigned int) memo;
 
+	CHKERR(roleNbr);
+	CHKERR(unitNbr);
+	CHKERR(moduleNbr);
 	*roleNbr = (moduleId >> 24) & 0x000000ff;
-	if (*roleNbr < 1 || *roleNbr > MaxRoleNbr)
+	if (*roleNbr < 1 || *roleNbr > MAX_ROLE_NBR)
 	{
-		putErrmsg("Role nbr invalid.", itoa(*roleNbr));
+		writeMemoNote("[?] Role nbr invalid", itoa(*roleNbr));
 		return -1;
 	}
 
 	*unitNbr = (moduleId >> 8) & 0x0000ffff;
-	if (*unitNbr > MaxUnitNbr)
+	if (*unitNbr > MAX_UNIT_NBR)
 	{
-		putErrmsg("Unit nbr invalid.", itoa(*unitNbr));
+		writeMemoNote("[?] Unit nbr invalid", itoa(*unitNbr));
 		return -1;
 	}
 
 	*moduleNbr = moduleId & 0x000000ff;
-	if (*moduleNbr < 1 || *moduleNbr > MaxModuleNbr)
+	if (*moduleNbr < 1 || *moduleNbr > MAX_MODULE_NBR)
 	{
-		putErrmsg("Module nbr invalid.", itoa(*moduleNbr));
+		writeMemoNote("[?] Module nbr invalid", itoa(*moduleNbr));
 		return -1;
 	}
 
@@ -2051,23 +1816,17 @@ char	*parseString(char **cursor, int *bytesRemaining, int *len)
 int	constructMamsEndpoint(MamsEndpoint *endpoint, int eptLength, char *ept)
 {
 	endpoint->ept = MTAKE(eptLength + 1);
-	if (endpoint->ept == NULL)
-	{
-		putErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(endpoint->ept);
 	memcpy(endpoint->ept, ept, eptLength);
 	endpoint->ept[eptLength] = '\0';
-//PUTMEMO("Constructing MAMS endpoint", endpoint->ept);
 
 	/*	The primary transport service's endpoint parsing
 	 *	function examines the endpoint name text and fills
 	 *	in the tsep of the endpoint.				*/
 
-	if (((mib->pts->parseMamsEndpointFn)(endpoint)) < 0)
+	if ((((_mib(NULL))->pts->parseMamsEndpointFn)(endpoint)) < 0)
 	{
-		putErrmsg("Can't parse endpoint name.", ept);
+		writeMemoNote("[?] Can't parse endpoint name", ept);
 		return -1;
 	}
 
@@ -2076,8 +1835,7 @@ int	constructMamsEndpoint(MamsEndpoint *endpoint, int eptLength, char *ept)
 
 void	clearMamsEndpoint(MamsEndpoint *ep)
 {
-//PUTS("...in clearMamsEndpoint...");
-	mib->pts->clearMamsEndpointFn(ep);
+	(_mib(NULL))->pts->clearMamsEndpointFn(ep);
 	ep->tsep = NULL;
 	if (ep->ept)
 	{
@@ -2144,13 +1902,8 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 	unsigned short	checksum;
 	int		result;
 
-	if (endpoint == NULL || tsif == NULL)
-	{
-		putErrmsg(BadParmsMemo, NULL);
-		errno = EINVAL;
-		return -1;
-	}
-
+	CHKERR(endpoint);
+	CHKERR(tsif);
 	if (getAuthenticationParms(tsif->ventureNbr, tsif->unitNbr,
 			tsif->roleNbr, &venture, &unit, 1, &authName, &authKey,
 			&authKeyLen))
@@ -2159,7 +1912,12 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 		return -1;
 	}
 
-	if (authName && authKey && authKeyLen > 0)
+	if (authName == NULL)		/*	Invalid parameters.	*/
+	{
+		return 0;		/*	Don't send message.	*/
+	}
+	
+	if (authKey && authKeyLen > 0)
 	{
 		authNameLen = strlen(authName);
 		if (authNameLen == 0 || authNameLen > (AUTHENTICAT_LEN - 9))
@@ -2175,8 +1933,8 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 		istrcpy((char *) (authenticator + 8), authName,
 				sizeof authenticator - 8);
 		encryptUsingPrivateKey((char *) (authenticator + 4),
-				encryptLength, authKey, authKeyLen,
-				(char *) (authenticator + 4), &encryptLength);
+				&encryptLength, authKey, authKeyLen,
+				(char *) (authenticator + 4), encryptLength);
 		authenticatorLength = encryptLength + 4;
 	}
 
@@ -2206,11 +1964,7 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 
 	msgLength = 12 + 5 + authenticatorLength + supplementLength + 2;
 	msg = MTAKE(msgLength);
-	if (msg == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
+	CHKERR(msg);
 
 	/*	Construct the message.	First octet is two bits of
 	 *	version number (which is always 00 for now) followed
@@ -2256,7 +2010,8 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 
 	/*	Send the message.					*/
 
-	result = mib->pts->sendMamsFn(endpoint, tsif, (char *) msg, msgLength);
+	result = (_mib(NULL))->pts->sendMamsFn(endpoint, tsif, (char *) msg,
+			msgLength);
 	MRELEASE(msg);
 	return result;
 }
@@ -2280,8 +2035,7 @@ int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 		llcv_unlock(eventsQueue);
 		if (elt == NULL)
 		{
-			MRELEASE(evt);
-			putSysErrmsg(NoMemoryMemo, NULL);
+			putErrmsg("Can't insert event.", NULL);
 			return -1;
 		}
 
@@ -2293,7 +2047,7 @@ int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 	 *	data variable.  In order to make the current query
 	 *	ID number accessible to an llcv condition function,
 	 *	we stuff it into the "compare" function pointer in
-	 *	the Lyst structure.*/
+	 *	the Lyst structure.					*/
 
 	queryNbr = (long) lyst_compare_get(eventsQueue->list);
 	if (queryNbr != 0)	/*	Need response to specfic msg.	*/
@@ -2326,13 +2080,13 @@ int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 	llcv_unlock(eventsQueue);
 	if (elt == NULL)
 	{
+		putErrmsg("Can't insert event.", NULL);
 		MRELEASE(evt);
 		if (ancillaryBlock)
 		{
 			MRELEASE(ancillaryBlock);
 		}
 
-		putSysErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
@@ -2352,7 +2106,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	unsigned short	checksum;
 	unsigned short	u2;
 	int		authenticatorLength;
-	unsigned char	*authenticator;
+	unsigned char	*authenticator = NULL;
 	unsigned char	*supplement;
 	Venture		*venture;
 	Unit		*unit;
@@ -2361,21 +2115,15 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	int		authKeyLen;
 	int		authNameLen;
 	unsigned char	nonce[4];
-	int		encryptLength;
+	int		decryptLength;
 	AmsEvt		*evt;
 
-	authenticator = NULL;  //initialized to avoid warning
-
-	if (eventsQueue == NULL || msgBuffer == NULL || length < 0)
-	{
-		errno = EINVAL;
-		putSysErrmsg(BadParmsMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(eventsQueue);
+	CHKERR(length >= 0);
+	CHKERR(msgBuffer);
 	if (length < 14)
 	{
-		putErrmsg("MAMS msg header incomplete.", itoa(length));
+		writeMemoNote("[?] MAMS msg header incomplete", itoa(length));
 		return -1;
 	}
 
@@ -2386,7 +2134,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	timeCode = (preamble >> 4) & 0x07;
 	if (timeCode != 1)
 	{
-		putErrmsg("Unknown time code in MAMS msg header.",
+		writeMemoNote("[?] Unknown time code in MAMS msg header",
 				itoa(timeCode));
 		return -1;
 	}
@@ -2396,7 +2144,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	expectedLength = 12 + 1 + coarseTimeLength + fineTimeLength;
 	if (length < expectedLength)
 	{
-		putErrmsg("MAMS message truncated.", NULL);
+		writeMemo("[?] MAMS message truncated.");
 		return -1;
 	}
 
@@ -2425,7 +2173,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 		expectedLength += 2;
 		if (length < expectedLength)
 		{
-			putErrmsg("MAMS message truncated.", NULL);
+			writeMemo("[?] MAMS message truncated.");
 			return -1;
 		}
 
@@ -2433,8 +2181,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 		checksum = ntohs(checksum);
 		if (checksum != computeAmsChecksum(msgBuffer, length - 2))
 		{
-			putErrmsg("Checksum failed, MAMS message discarded.",
-					NULL);
+			writeMemo("[?] Checksum failed, MAMS msg discarded.");
 			return -1;
 		}
 	}
@@ -2463,7 +2210,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	if (length != expectedLength)
 	{
 		length -= expectedLength;
-		putErrmsg("MAMS message length error.", itoa(length));
+		writeMemoNote("[?] MAMS message length error", itoa(length));
 		return -1;
 	}
 
@@ -2474,39 +2221,33 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 		return -1;
 	}
 
-	if (authName && authKey && authKeyLen > 0)
+	if (authName == NULL)		/*	Invalid parameters.	*/
+	{
+		return 0;		/*	Don't deliver message.	*/
+	}
+	
+	if (authKey && authKeyLen > 0)
 	{
 		/*	Authentication is required.			*/
 
 		authNameLen = strlen(authName);
-		if (authNameLen == 0 || authNameLen > (AUTHENTICAT_LEN - 9))
-		{
-			putErrmsg(BadParmsMemo, NULL);
-			errno = EINVAL;
-			return -1;
-		}
-
+		CHKERR(authNameLen > 0);
+		CHKERR(authNameLen <= (AUTHENTICAT_LEN - 9));
 		if (authenticatorLength != authNameLen + 8)
 		{
-//PUTMEMO("authenticatorLength", utoa(authenticatorLength));
-//PUTMEMO("authNameLen", utoa(authNameLen));
-//PUTMEMO("authName", authName);
-			putErrmsg("MAMS msg discarded; bad authenticator.",
-					NULL);
-			errno = EINVAL;
+			writeMemo("[?] MAMS msg discarded; bad authenticator.");
 			return -1;
 		}
 
 		memcpy(nonce, authenticator, 4);
 		decryptUsingPublicKey((char *) (authenticator + 4),
-				authenticatorLength - 4, authKey, authKeyLen,
-				(char *) (authenticator + 4), &encryptLength);
+				&decryptLength, authKey, authKeyLen,
+				(char *) (authenticator + 4),
+				authenticatorLength - 4);
 		if (memcmp(nonce, authenticator + 4, 4) != 0
 		|| memcmp(authName, authenticator + 8, authNameLen) != 0)
 		{
-			putErrmsg("MAMS msg discarded; authentication failed.",
-					NULL);
-			errno = EINVAL;
+			writeMemo("[?] MAMS msg discarded; auth. failed.");
 			return -1;
 		}
 	}
@@ -2519,12 +2260,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	if (msg.supplementLength > 0)
 	{
 		msg.supplement = MTAKE(msg.supplementLength);
-		if (msg.supplement == NULL)
-		{
-			putSysErrmsg(NoMemoryMemo, NULL);
-			return -1;
-		}
-
+		CHKERR(msg.supplement);
 		memcpy(msg.supplement, supplement, msg.supplementLength);
 	}
 	else
@@ -2533,16 +2269,17 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	}
 
 	evt = MTAKE(1 + sizeof(MamsMsg));
-	if (evt == NULL)
+	CHKERR(evt);
+	evt->type = MAMS_MSG_EVT;
+	memcpy(evt->value, (char *) &msg, sizeof(MamsMsg));
+	if (enqueueMamsEvent(eventsQueue, evt, msg.supplement, msg.memo))
 	{
-		MRELEASE(msg.supplement);
-		putSysErrmsg(NoMemoryMemo, NULL);
+		putErrmsg("Can't enqueue MAMS message.", NULL);
+		MRELEASE(evt);
 		return -1;
 	}
 
-	evt->type = MAMS_MSG_EVT;
-	memcpy(evt->value, (char *) &msg, sizeof(MamsMsg));
-	return enqueueMamsEvent(eventsQueue, evt, msg.supplement, msg.memo);
+	return 0;
 }
 
 int	enqueueMamsCrash(Llcv eventsQueue, char *text)
@@ -2562,19 +2299,14 @@ int	enqueueMamsCrash(Llcv eventsQueue, char *text)
 	}
 
 	evt = (AmsEvt *) MTAKE(1 + textLength + 1);
-	if (evt == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(evt);
 	evt->type = CRASH_EVT;
 	memcpy(evt->value, text, textLength);
 	evt->value[textLength] = '\0';
 	if (enqueueMamsEvent(eventsQueue, evt, NULL, 0))
 	{
+		putErrmsg("Can't enqueue MAMS crash.", NULL);
 		MRELEASE(evt);
-		putErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
@@ -2586,17 +2318,12 @@ int	enqueueMamsStubEvent(Llcv eventsQueue, int eventType)
 	AmsEvt	*evt;
 
 	evt = (AmsEvt *) MTAKE(sizeof(AmsEvt));
-	if (evt == NULL)
-	{
-		putSysErrmsg(NoMemoryMemo, NULL);
-		return -1;
-	}
-
+	CHKERR(evt);
 	evt->type = eventType;
 	if (enqueueMamsEvent(eventsQueue, evt, NULL, 0))
 	{
+		putErrmsg("Can't enqueue stub event.", NULL);
 		MRELEASE(evt);
-		putErrmsg(NoMemoryMemo, NULL);
 		return -1;
 	}
 
