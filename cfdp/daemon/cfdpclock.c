@@ -95,13 +95,64 @@ reached.", NULL);
 	return 0;
 }
 
+static int	enqueueIndications(Sdr sdr, OutFdu *fdu)
+{
+	CfdpEvent	event;
+	BpUtParms	*bpUtParms;
+	int		bestEfforts = 0;
+
+	if (fdu->utParmsLength == sizeof(BpUtParms))
+	{
+		bpUtParms = (BpUtParms *) &(fdu->utParms);
+		if (bpUtParms->extendedCOS.flags & BP_BEST_EFFORT)
+		{
+			bestEfforts = 1;
+		}
+	}
+
+	/*	Post EOF-sent.ind event.				*/
+
+	memset((char *) &event, 0, sizeof(CfdpEvent));
+	event.type = CfdpEofSentInd;
+	event.fileSize = fdu->fileSize;
+	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
+			sizeof(CfdpTransactionId));
+	event.reqNbr = fdu->reqNbr;
+	if (enqueueCfdpEvent(&event) < 0)
+	{
+		putErrmsg("CFDP can't report on EOF sent.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	/*	Post Transaction-Finished.ind event.  (Unacknowledged)	*/
+
+	memset((char *) &event, 0, sizeof(CfdpEvent));
+	event.type = CfdpTransactionFinishedInd;
+	event.condition = CfdpNoError;
+	event.fileStatus = CfdpFileStatusUnreported;
+	event.deliveryCode = bestEfforts ? CfdpDataComplete
+			: CfdpDataIncomplete;
+	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
+			sizeof(CfdpTransactionId));
+	event.reqNbr = fdu->reqNbr;
+	if (enqueueCfdpEvent(&event) < 0)
+	{
+		putErrmsg("CFDP can't report on EOF sent.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	return 0;
+}
+
 static int	scanOutFdus(Sdr sdr, time_t currentTime)
 {
 	CfdpDB	*cfdpConstants;
 	Object	elt;
 	Object	nextElt;
 	Object	fduObj;
-		OBJ_POINTER(OutFdu, fdu);
+	OutFdu	fdu;
 	Object	elt2;
 
 	cfdpConstants = getCfdpConstants();
@@ -111,12 +162,12 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 	{
 		nextElt = sdr_list_next(sdr, elt);
 		fduObj = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, OutFdu, fdu, fduObj);
-		if (fdu->state == FduCanceled)
+		sdr_stage(sdr, (char *) &fdu, fduObj, sizeof(OutFdu));
+		if (fdu.state == FduCanceled)
 		{
 			while (1)
 			{
-				elt2 = sdr_list_first(sdr, fdu->extantPdus);
+				elt2 = sdr_list_first(sdr, fdu.extantPdus);
 				if (elt2 == 0)
 				{
 					break;
@@ -139,20 +190,49 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 
 			/*	Simulate completion of transmission.	*/
 
-			sdr_stage(sdr, NULL, fduObj, 0);
-			fdu->progress = fdu->fileSize;
-			sdr_write(sdr, fduObj, (char *) fdu, sizeof(OutFdu));
+			fdu.progress = fdu.fileSize;
+			sdr_write(sdr, fduObj, (char *) &fdu, sizeof(OutFdu));
 		}
 
-		/*	If the entire file has been transmitted and
-		 *	all resulting bundles have been either
-		 *	delivered or destroyed (e.g., due to TTL
-		 *	expiration) -- then destroy the FDU.		*/
+		/*	If not all of this FDU's file data PDUs have
+		 *	been issued yet, move on to the next FDU.	*/
 
-		if (fdu->progress == fdu->fileSize
-		&& sdr_list_length(sdr, fdu->extantPdus) == 0)
+		if (fdu.progress < fdu.fileSize)
 		{
-			destroyOutFdu(fdu, fduObj, elt);
+			continue;
+		}
+
+		/*	If all of those file data PDUs have actually
+		 *	been transmitted, then we infer that the EOF
+		 *	PDU has also been transmitted.  So if we
+		 *	haven't already delivered the EOF-Sent
+		 *	indication and Transaction-Finished indication
+		 *	(Unacknowledged procedures) for this FDU, we
+		 *	do it now.					*/
+
+		if (zco_file_ref_xmit_eof(sdr, fdu.fileRef))
+		{
+			if (fdu.transmitted == 0 && fdu.state != FduCanceled)
+			{
+				fdu.transmitted = 1;
+				sdr_write(sdr, fduObj, (char *) &fdu,
+						sizeof(OutFdu));
+				if (enqueueIndications(sdr, &fdu) < 0)
+				{
+					sdr_cancel_xn(sdr);
+					putErrmsg("Can't note EOF-sent.", NULL);
+					return -1;
+				}
+			}
+		}
+
+		/*	If all of the PDUs have been either delivered
+		 *	or destroyed (e.g., due to FDU cancellation or
+		 *	to expiration of bundle TTL), destroy the FDU.	*/
+
+		if (sdr_list_length(sdr, fdu.extantPdus) == 0)
+		{
+			destroyOutFdu(&fdu, fduObj, elt);
 		}
 	}
 

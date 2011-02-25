@@ -339,7 +339,7 @@ static void	destroyAmsEvent(LystElt elt, void *userdata)
 		amsMsg = (AmsMsg *) (event->value);
 		if (amsMsg->content)
 		{
-			MRELEASE(amsMsg->content);
+			RELEASE_CONTENT_SPACE(amsMsg->content);
 		}
 	}
 	else if (event->type == MAMS_MSG_EVT)
@@ -573,10 +573,10 @@ static int	recoverMsgContent(AmsMsg *msg, Subject *subject)
 	|| subject->symmetricKeyName == NULL)	/*	not encrypted	*/
 	{
 		newContentLength = msg->contentLength;
-		newContent = MTAKE(msg->contentLength);
+		newContent = TAKE_CONTENT_SPACE(msg->contentLength);
 		if (newContent == NULL)
 		{
-			putErrmsg("Can't copy AAMS msg content.",
+			writeMemoNote("[?] Can't copy AAMS msg content",
 					itoa(msg->contentLength));
 			msg->content = NULL;
 			return -1;
@@ -623,7 +623,7 @@ static int	recoverMsgContent(AmsMsg *msg, Subject *subject)
 	if (newContentLength == 0)
 	{
 		putErrmsg("Can't unmarshal AAMS msg content.", subject->name);
-		MRELEASE(msg->content);
+		RELEASE_CONTENT_SPACE(msg->content);
 		msg->content = NULL;
 		return -1;
 	}
@@ -898,7 +898,14 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	memcpy(header + 12, (char *) &i2, 2);
 	*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
 	*(header + 15) = (*contentLength) & 0x000000ff;
-	subject = sap->venture->subjects[subjectNbr];
+	if (subjectNbr > 0)
+	{
+		subject = sap->venture->subjects[subjectNbr];
+	}
+	else
+	{
+		subject = sap->venture->msgspaces[0 - subjectNbr];
+	}
 
 	/*	Marshal content as necessary.				*/
 
@@ -2453,7 +2460,7 @@ printf("Parsing new subscription with %d bytes remaining.\n", bytesRemaining);
 		return;
 
 	case unsubscribe:
-		if (msg->supplementLength < 7)
+		if (msg->supplementLength < CANCEL_LEN)
 		{
 			putErrmsg("unsubscribe lacks cancellation.", NULL);
 			return;
@@ -2689,7 +2696,7 @@ printf("Parsing new invitation with %d bytes remaining.\n", bytesRemaining);
 		return;
 
 	case disinvite:
-		if (msg->supplementLength < 7)
+		if (msg->supplementLength < CANCEL_LEN)
 		{
 			putErrmsg("disinvite lacks cancellation.", NULL);
 			return;
@@ -4716,7 +4723,7 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		return 0;		/*	Redundant but okay.	*/
 	}
 
-	cancellation = MTAKE(7);
+	cancellation = MTAKE(CANCEL_LEN);
 	CHKERR(cancellation);
 	i2 = subjectNbr;
 	i2 = htons(i2);
@@ -4729,7 +4736,7 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	*(cancellation + 6) = roleNbr;
 	if (enqueueMsgToRegistrar(sap, disinvite,
 			computeModuleId(sap->role->nbr, sap->unit->nbr,
-			sap->moduleNbr), 7, (char *) cancellation) < 0)
+			sap->moduleNbr), CANCEL_LEN, (char *) cancellation) < 0)
 	{
 		return -1;
 	}
@@ -4910,7 +4917,7 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		return 0;		/*	Redundant but okay.	*/
 	}
 
-	cancellation = MTAKE(7);
+	cancellation = MTAKE(CANCEL_LEN);
 	CHKERR(cancellation);
 	i2 = subjectNbr;
 	i2 = htons(i2);
@@ -4924,7 +4931,7 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	*(cancellation + 6) = roleNbr;
 	if (enqueueMsgToRegistrar(sap, unsubscribe,
 			computeModuleId(sap->role->nbr, sap->unit->nbr,
-			sap->moduleNbr), 7, (char *) cancellation) < 0)
+			sap->moduleNbr), CANCEL_LEN, (char *) cancellation) < 0)
 	{
 		return -1;
 	}
@@ -6287,7 +6294,7 @@ int	ams_recycle_event(AmsEvent event)
 		msg = (AmsMsg *) (event->value);
 		if (msg->content)
 		{
-			MRELEASE(msg->content);
+			RELEASE_CONTENT_SPACE(msg->content);
 		}
 	}
 

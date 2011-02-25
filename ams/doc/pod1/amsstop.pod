@@ -1,0 +1,67 @@
+=head1 NAME
+
+amsstop - Asynchronous Message Service (AMS) shutdown utility
+
+=head1 SYNOPSIS
+
+B<amsstop> I<application_name> I<authority_name>
+
+=head1 DESCRIPTION
+
+B<amsstop> is a utility program that terminates the operation of all
+registrars and all application modules running in the message space which is
+that portion of the indicated AMS venture that is operating in the local
+continuum.  If the B<amsd> task that is functioning as the root cell registrar
+for this venture is also functioning as the configuration server for
+the local continuum, and no other ventures are operating in the continuum,
+then that configuration server is also terminated.
+
+I<application_name> and I<authority_name> must identify an AMS venture that
+is known to operate in the local continuum, as noted in the MIB for the
+B<amsstop> application module.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item 0
+
+An anomalous exit status, indicating that B<amsstop> registered successfully
+and therefore failed to shut down its registrar, for reasons noted in the
+ion.log file.
+
+=item 1
+
+B<amsstop> terminated normally.
+
+=back
+
+=head1 FILES
+
+A MIB initialization file with the applicable default name (see amsrc(5))
+must be present.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item amsstop can't register.
+
+This message indicates normal operation of B<amsstop>: it fails to register,
+because it has shut down the registrar.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+amsrc(5)

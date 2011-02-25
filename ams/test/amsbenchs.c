@@ -9,7 +9,7 @@
 /*	All rights reserved.						*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#include <ams.h>
+#include "ams.h"
 
 static void	reportError(void *userData, AmsEvent *event)
 {

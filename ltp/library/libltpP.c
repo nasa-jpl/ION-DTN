@@ -13,7 +13,9 @@
 
 #define	EST_LINK_OHD	16
 
+#ifndef LTPDEBUG
 #define	LTPDEBUG	0
+#endif
 
 #define LTP_VERSION	0;
 
@@ -852,6 +854,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 	spanBuf.importSessionsHash = sdr_hash_create(ltpSdr,
 			sizeof(unsigned long), maxImportSessions,
 			LTP_MEAN_SEARCH_LENGTH);
+	spanBuf.closedImports = sdr_list_create(ltpSdr);
 	spanBuf.deadImports = sdr_list_create(ltpSdr);
 	addr = sdr_malloc(ltpSdr, sizeof(LtpSpan));
 	if (addr)
@@ -1077,6 +1080,7 @@ removed yet.", itoa(engineId));
 	sdr_list_destroy(ltpSdr, span->segments, NULL, NULL);
 	sdr_list_destroy(ltpSdr, span->importSessions, NULL, NULL);
 	sdr_hash_destroy(ltpSdr, span->importSessionsHash);
+	sdr_list_destroy(ltpSdr, span->closedImports, NULL, NULL);
 	sdr_list_destroy(ltpSdr, span->deadImports, NULL, NULL);
 	sdr_free(ltpSdr, spanObj);
 	sdr_list_delete(ltpSdr, spanElt, NULL, NULL);
@@ -1588,6 +1592,43 @@ static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 	*sessionObj = 0;
 }
 
+static int	sessionIsClosed(LtpVspan *vspan, unsigned long sessionNbr)
+{
+	Sdr		ltpSdr = getIonsdr();
+			OBJ_POINTER(LtpSpan, span);
+	Object		elt;
+	unsigned long	closedSessionNbr;
+
+	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
+			vspan->spanElt));
+
+	/*	Closed-sessions list is in ascending session number
+	 *	order.  Incoming segments are most likely to apply
+	 *	to more recent sessions, so we search from end of
+	 *	list rather from start.					*/
+
+	for (elt = sdr_list_last(ltpSdr, span->closedImports); elt;
+			elt = sdr_list_prev(ltpSdr, elt))
+	{
+		closedSessionNbr = (unsigned long) sdr_list_data(ltpSdr, elt);
+		if (closedSessionNbr > sessionNbr)
+		{
+			continue;
+		}
+
+		if (closedSessionNbr == sessionNbr)
+		{
+			return 1;
+		}
+
+		break;		/*	No need to search further.	*/
+	}
+
+	/*	Not a recently closed import session.			*/
+
+	return 0;
+}
+
 static void	getCanceledImport(LtpVspan *vspan, unsigned long sessionNbr,
 			Object *sessionObj, Object *sessionElt)
 {
@@ -1721,6 +1762,68 @@ putErrmsg("Stopped import session.", itoa(session->sessionNbr));
 #endif
 }
 
+static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
+{
+	Object		elt;
+	unsigned long	closedSessionNbr;
+	Object		elt2;
+	LtpEvent	event;
+	time_t		currentTime;
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
+
+	/*	The closed-sessions list is in ascending session
+	 *	number order, so we insert at the end of the list.	*/
+
+	for (elt = sdr_list_last(sdr, span->closedImports); elt;
+			elt = sdr_list_prev(sdr, elt))
+	{
+		closedSessionNbr = (unsigned long) sdr_list_data(sdr, elt);
+		if (closedSessionNbr > session->sessionNbr)
+		{
+			continue;
+		}
+
+		break;
+	}
+
+	if (elt)
+	{
+		elt2 = sdr_list_insert_after(sdr, elt, session->sessionNbr);
+	}
+	else
+	{
+		elt2 = sdr_list_insert_first(sdr, span->closedImports,
+				session->sessionNbr);
+	}
+
+	/*	Schedule removal of this closed-session note from
+	 *	the list after a single round-trip time (plus 10
+	 *	seconds of margin to allow for processing delay).
+	 *
+	 *	In the event of the sender unnecessarily retransmitting
+	 *	a checkpoint segment before receiving a final RS and
+	 *	closing the export session, that late checkpoint will
+	 *	arrive (and be discarded) before this scheduled event.
+	 *
+	 *	An additional checkpoint can arrive after the removal
+	 *	event -- and thereby resurrect the import session -- 
+	 *	only if the export session is still open.  In that
+	 *	case the export session's timeout sequence will
+	 *	eventually result in re-closure of the reanimated
+	 *	import session; there will be erroneous duplicate
+	 *	data delivery, but no heap space leak.			*/
+
+	memset((char *) &event, 0, sizeof(LtpEvent));
+	event.parm = elt2;
+	currentTime = getUTCTime();
+	findSpan(span->engineId, &vspan, &vspanElt);
+	event.scheduledTime = currentTime + vspan->owltOutbound
+			+ vspan->owltInbound + 10;
+	event.type = LtpForgetSession;
+	oK(insertLtpTimelineEvent(&event));
+}
+
 static void	closeImportSession(Object sessionObj)
 {
 	Sdr	ltpSdr = getIonsdr();
@@ -1731,6 +1834,7 @@ static void	closeImportSession(Object sessionObj)
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, ImportSession, session, sessionObj);
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, session->span);
+	noteClosedImport(ltpSdr, span, session);
 	sdr_hash_remove(ltpSdr, span->importSessionsHash,
 			(char *) &(session->sessionNbr), (Address *) &elt);
 	sdr_list_delete(ltpSdr, elt, NULL, NULL);
@@ -1994,7 +2098,7 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 			LtpVspan *vspan, int segmentLength, LtpEvent *event)
 {
 	Sdr	ltpSdr = getIonsdr();
-	LtpDB		*ltpConstants = _ltpConstants();
+	LtpDB	*ltpConstants = _ltpConstants();
 	int	radTime;
 		OBJ_POINTER(LtpSpan, span);
 
@@ -2092,6 +2196,7 @@ static int	readFromExportBlock(char *buffer, Object svcDataObjects,
 
 		handle = zco_add_reference(ltpSdr, sdu);
 		zco_start_transmitting(ltpSdr, handle, &reader);
+		zco_track_file_offset(&reader);
 		if (offset > 0)
 		{
 			if (zco_transmit(ltpSdr, &reader, offset, NULL) < 0)
@@ -3555,6 +3660,18 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		/*	Segment is from an engine that is not supposed
 		 *	to be sending at this time, so we treat it as
 		 *	a misdirected transmission.			*/
+
+		sdr_exit_xn(ltpSdr);
+		return 0;
+	}
+
+	if (sessionIsClosed(vspan, sessionNbr))
+	{
+#if LTPDEBUG
+putErrmsg("Discarding late segment.", itoa(sessionNbr));
+#endif
+		/*	Segment is for a session that is already
+		 *	closed, so we don't care about it.		*/
 
 		sdr_exit_xn(ltpSdr);
 		return 0;

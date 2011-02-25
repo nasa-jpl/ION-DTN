@@ -1,0 +1,84 @@
+=head1 NAME
+
+amsbenchs - Asynchronous Message Service (AMS) benchmarking driver
+
+=head1 SYNOPSIS
+
+B<amsbenchs> I<count> I<size>
+
+=head1 DESCRIPTION
+
+B<amsbenchs> is a test program that simply publishes I<count> messages of
+I<size> bytes each on subject "bench", then waits while all published
+messages are transmitted, terminating when the user uses ^C to interrupt
+the program.  The remaining number of messages to be published in the test
+is written into the first four octets of each message.
+
+B<amsbenchs> will register as an application module in the root unit of
+the venture identified by application name "amsdemo" and authority name
+"test".  A configuration server for the local continuum and a registrar
+for the root unit of that venture (which may both be instantiated in a
+single B<amsd> daemon task) must be running in order for B<amsbenchs> to
+commence operations.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item -1
+
+B<amsbenchs> failed, for reasons noted in the ion.log file.
+
+=item 0
+
+B<amsbenchs> terminated normally.
+
+=back
+
+=head1 FILES
+
+A MIB initialization file with the applicable default name (see amsrc(5))
+must be present.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item No memory for amsbenchs.
+
+Insufficient available memory for a message content buffer of the
+indicated size.
+
+=item amsbenchs can't register.
+
+B<amsbenchs> failed to register, for reasons noted in the ion.log file.
+
+=item amsbenchs can't set event manager.
+
+B<amsbenchs> failed to start its background event management thread, for
+reasons noted in the ion.log file.
+
+=item amsbenchs: subject 'bench' is unknown.
+
+B<amsbenchs> can't publish test messages; probably an error in the MIB
+initialization file.
+
+=item amsbenchs can't publish message.
+
+B<amsbenchs> failed to publish, for reasons noted in the ion.log file.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+amsrc(5)

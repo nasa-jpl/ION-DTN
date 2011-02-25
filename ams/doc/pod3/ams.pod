@@ -241,9 +241,11 @@ transport service preference order defined by the hard-coded array of
 transportServiceLoaders in the libams.c source file.  Each character of
 the I<tsorder> string must represent the index position of one of the
 transport services within the array.  For example, if services "udp", "dgr",
-"vmq", and "tcp" are all available in the array, a I<tsorder> string of "12" 
-would indicate that this application will only communicate using the dgr
-and vmq service; services 0 (udp) and 3 (tcp) will not be used.
+"vmq", and "tcp" are all available in the array, a I<tsorder> string of "32" 
+would indicate that this application will only communicate using the tcp
+and vmq services; services 0 (udp) and 1 (dgr) will not be used, and tcp
+is preferred to vmq when both are candidate services for transmission of
+a given message.
 
 Returns 0 on success.  On any error, sets I<module> to NULL and returns -1.
 

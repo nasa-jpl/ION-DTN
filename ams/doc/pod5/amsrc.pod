@@ -1,0 +1,540 @@
+=head1 NAME
+
+amsrc - CCSDS Asynchronous Message Service MIB initialization file
+
+=head1 DESCRIPTION
+
+The Management Information Base (MIB) for an AMS communicating entity (either
+B<amsd> or an AMS application module) must contain enough information to
+enable the entity to initiate participation in AMS message exchange, such
+as the network location of the configuration server and the roles and message
+subjects defined for some venture.
+
+AMS entities automatically load their MIBs from initialization files at
+startup.  When AMS is built with the -DNOEXPAT compiler option set, the
+MIB initialization file must conform to the I<amsrc> syntax described
+below; otherwise the I<expat> XML parsing library must be linked into
+the AMS executable and the MIB initialization file must conform to the
+I<amsxml> syntax described in amsxml(5).
+
+The MIB initialization file lists I<elements> of MIB update information,
+each of which may have one or more I<attributes>.  An element may also
+have sub-elements that are listed within the declaration of the parent
+element, and so on.
+
+The declaration of an element may occupy a single line of text in the
+MIB initialization file or may extend across multiple files.  A single-line
+element declaration is indicated by a '*' in the first character of the
+line.  The beginning of a multi-line element declaration is indicated by
+a '+' in the first character of the line, while the end of that declaration
+is indicated by a '-' in the first character of the line.  In every case,
+the type of element must be indicated by an element-type name beginning
+in the second character of the line and terminated by whitespace.  Every
+start-of-element line B<must> be matched by a subsequent end-of-element
+line that precedes the start of any other element that is not a nested
+sub-element of this element.
+
+Attributes are represented by whitespace-terminated <name>=<value>
+expressions immediately following the element-type name on a '*' or
+'+' line.  An attribute value that contains whitespace must be enclosed
+within a pair of single-quote (') characters.
+
+Two types of elements are recognized in the MIB initialization file:
+control elements and configuration elements.  A control element establishes
+the update context within which the configuration elements nested within
+it are processed, while a configuration element declares values for one
+or more items of AMS configuration information in the MIB.
+
+=head1 CONTROL ELEMENTS
+
+=over 4
+
+=item B<ams_mib_init>
+
+Initializes an empty MIB.  This element must be declared prior to the
+declaration of any other element.
+
+Sub-elements: none
+
+Attributes:
+
+=over 4
+
+=item continuum_nbr
+
+Identifies the local continuum.
+
+=item ptsname
+
+Identifies the primary transport service for the continuum.  Valid values
+include "dgr" and "udp".
+
+=item pubkey
+
+This is the name of the public key used for validating the digital
+signatures of meta-AMS messages received from the configuration server
+for this continuum.  The value of this attribute (if present) must
+identify a key that has been loaded into the ION security database,
+nominally by ionsecadmin(1).
+
+=item privkey
+
+This is the name of the private key used for constructing the digital
+signatures of meta-AMS messages sent by the configuration server
+for this continuum.  This attribute should B<only> be present in
+the MIB initialization file for amsd().  The value of this attribute
+(if present) must identify a key that has been loaded into the ION
+security database, nominally by ionsecadmin(1).
+
+=back
+
+=item B<ams_mib_add>
+
+This element contains a list of configuration items that are to be
+added to the MIB.
+
+=item B<ams_mib_change>
+
+This element contains a list of configuration items that are to be
+revised in the MIB.
+
+=item B<ams_mib_delete>
+
+This element contains a list of configuration items that are to be
+deleted from the MIB.
+
+=back
+
+=head1 CONFIGURATION ELEMENTS
+
+=over 4
+
+=item B<continuum>
+
+Identifies a known remote continuum.
+
+Sub-elements: none
+
+Attributes:
+
+=over 4
+
+=item nbr
+
+Identifies the local continuum.
+
+=item name
+
+Identifies the local continuum.
+
+=item neighbor
+
+1 if the continuum is a neighbor of the local continuum, zero otherwise.
+
+=item desc
+
+A textual description of this continuum.
+
+=back
+
+=item B<csendpoint>
+
+Identifies one of the network locations at which the configuration server
+may be reachable.  If the configuration server might be running at any one
+of several locations, the number of other locations that are preferred to
+this one is noted; in this case, csendpoints must be listed within the
+ams_mib_add element in descending order of preference, i.e., with the most
+preferred network location listed first.
+
+Sub-elements: none
+
+Attributes:
+
+=over 4
+
+=item epspec
+
+Identifies the endpoint at which the configuration server may be
+reachable.  The endpoint specification must conform the endpoint
+specification syntax defined for the continuum's primary transport
+service; see the AMS Blue Book for details.
+
+=item after
+
+If present, indicates the number of other configuration server network
+locations that are considered preferable to this one.  This attribute is
+used to ensure that csendpoints are listed in descending order of
+preference.
+
+=back
+
+=item B<amsendpoint>
+
+Normally the specifications of the transport service endpoints at which
+an AMS application module can receive messages are computed automatically
+using standard transport-service-specific rules.  However, in some cases
+it might be necessary for a module to receive messages at one or more
+non-standard endpoints; in these cases, amsendpoint elements can be
+declared in order to override the standard endpoint specification rules.
+
+Sub-elements: none
+
+Attributes:
+
+=over 4
+
+=item tsname
+
+Identifies the transport service for which a non-standard endpoint
+specification is being supplied.
+
+=item epspec
+
+Identifies an endpoint at which the application module will be reachable,
+in the context of the named transport service.  The endpoint specification
+must conform the endpoint specification syntax defined for the named transport
+service; see the AMS Blue Book for details.
+
+=back
+
+=item B<application>
+
+Identifies one of the applications supported within this continuum.
+
+Sub-elements: none
+
+Attributes:
+
+=over 4
+
+=item name
+
+Identifies the application.
+
+=item pubkey
+
+This is the name of the public key used for validating the digital
+signatures of meta-AMS messages received from the registrars for all
+cells of any message space in this continuum that is characterized by
+this application name.  The value of this attribute (if present) must
+identify a key that has been loaded into the ION security database,
+nominally by ionsecadmin(1).
+
+=item privkey
+
+This is the name of the private key used for constructing the digital
+signatures of meta-AMS messages sent by the registrars for all cells
+of any message space in this continuum that is characterized by this
+application name.  This attribute should B<only> be present in
+the MIB initialization file for amsd().  The value of this attribute
+(if present) must identify a key that has been loaded into the ION
+security database, nominally by ionsecadmin(1).
+
+=back
+
+=item B<venture>
+
+Identifies one of the ventures operating within the local continuum.
+
+Sub-elements: role, subject, unit, msgspace
+
+Attributes:
+
+=over 4
+
+=item nbr
+
+Identifies the venture.
+
+=item appname
+
+Identifies the application addressed by this venture.
+
+=item authname
+
+Identifies the authority under which the venture operates, distinguishing
+this venture from all other ventures that address the same application.
+
+=item gweid
+
+Identifies the RAMS network endpoint ID of the RAMS gateway module for
+this venture's message space in the local continuum.  Gateway endpoint
+ID is expressed as <protocol_name>@<eid_string> where I<protocol_name>
+is either "bp" or "udp".  If protocol name is "bp" then I<eid_string>
+must be a valid Bundle Protocol endpoint ID; otherwise, I<eid_string>
+must be of the form <hostname>:<port_number>.  If the gweid attribute
+is omitted, the RAMS gateway module's RAMS network endpoint ID defaults
+to "bp@ipn:<local_continuum_number>.<venture_number>".
+
+=item net_config
+
+Has the value "tree" if the RAMS network supporting this venture is
+configured as a tree; otherwise "mesh", indicating that the RAMS network
+supporting this venture is configured as a mesh.
+
+=item root_cell_resync_period
+
+Indicates the number of seconds in the period on which resynchronization is
+performed for the root cell of this venture's message space in the local
+continuum.  If this attribute is omitted, resynchronization in that cell
+is disabled.
+
+=back
+
+=item B<role>
+
+Identifies one of the functional roles in the venture that is the element
+that's currently being configured.
+
+Sub-elements: none
+
+Attributes:
+
+=over 4
+
+=item nbr
+
+Identifies the role.
+
+=item name
+
+Identifies the role.
+
+=item authname
+
+Identifies the authority under which the venture operates, distinguishing
+this venture from all other ventures that address the same application.
+
+=item pubkey
+
+This is the name of the public key used for validating the digital
+signatures of meta-AMS messages received from all application modules
+that register in this functional role.  The value of this attribute
+(if present) must identify a key that has been loaded into the ION
+security database, nominally by ionsecadmin(1).
+
+=item privkey
+
+This is the name of the private key used for constructing the digital
+signatures of meta-AMS messages sent by all application modules that
+register in this functional role.  This attribute should B<only> be
+present in the MIB initialization file for application modules that
+register in this role.  The value of this attribute (if present) must
+identify a key that has been loaded into the ION security database,
+nominally by ionsecadmin(1).
+
+=back
+
+=item B<subject>
+
+Identifies one of the subjects on which messages may be sent, within
+the venture that is the element that's currently being configured.
+
+Sub-elements: sender, receiver
+
+Attributes:
+
+=over 4
+
+=item nbr
+
+Identifies the subject.
+
+=item name
+
+Identifies the subject.
+
+=item desc
+
+A textual description of this message subject.
+
+=item symkey
+
+This is the name of the symmetric key used for both encrypting and
+decrypting the content of messages on this subject; if omitted, messages
+on this subject are not encrypted by AMS.  If authorized senders and
+receivers are defined for this subject, then this attribute should
+B<only> be present in the MIB initialization file for application
+modules that register in roles that appear in the subject's lists of
+authorized senders and/or receivers.  The value of this attribute
+(if present) must identify a key that has been loaded into the ION
+security database, nominally by ionsecadmin(1).
+
+=item marshal
+
+This is the name associated with the content marshaling function
+defined for this message subject.  If present, whenever a message on
+this subject is issued the associated function is automatically called
+to convert the supplied content data to a platform-independent representation
+for transmission; this conversion occurs before any applicable content
+encryption is performed.  If omitted, content data are transmitted without
+conversion to a platform-independent representation.  Marshaling functions
+are defined in the marshalRules table in the marshal.c source file.
+
+=item unmarshal
+
+This is the name associated with the content unmarshaling function
+defined for this message subject.  If present, whenever a message on
+this subject is received the associated function is automatically called
+to convert the transmitted content to local platform-specific
+representation; this conversion occurs after any applicable content
+decryption is performed.  If omitted, received content data are
+delivered without conversion to a local platform-specific representation.
+Unmarshaling functions are defined in the unmarshalRules table in the
+marshal.c source file.
+
+=back
+
+=item B<sender>
+
+Identifies one of the roles in which application modules must register
+in order to be authorized senders of messages on the subject that is the
+element that's currently being configured.
+
+Sub-elements: none
+
+Attributes:
+
+=over 4
+
+=item name
+
+Identifies the sender.  The value of this attribute must be the name of a role
+that has been defined for the venture that is currently being configured.
+
+=back
+
+=item B<receiver>
+
+Identifies one of the roles in which application modules must register
+in order to be authorized receivers of messages on the subject that is the
+element that's currently being configured.
+
+Sub-elements: none
+
+Attributes:
+
+=over 4
+
+=item name
+
+Identifies the receiver.  The value of this attribute must be the name of a
+role that has been defined for the venture that is currently being configured.
+
+=back
+
+=item B<unit>
+
+Identifies one of the organizational units within the venture that is the
+element that's currently being configured.
+
+Sub-elements: none
+
+Attributes:
+
+=over 4
+
+=item nbr
+
+Identifies the venture.
+
+=item name
+
+Identifies the venture.
+
+=item resync_period
+
+Indicates the number of seconds in the period on which resynchronization is
+performed, for the cell of this venture's message space that is the portion
+of the indicated unit which resides in the local continuum.  If this attribute
+is omitted, resynchronization in that cell is disabled.
+
+=back
+
+=item B<msgspace>
+
+Identifies one of the message spaces in remote continua that are encompassed
+by the venture that is the element that's currently being configured.
+
+Sub-elements: none
+
+Attributes:
+
+=over 4
+
+=item nbr
+
+Identifies the remote continuum within which the message space operates.
+
+=item gweid
+
+Identifies the RAMS network endpoint ID of the RAMS gateway module for
+this message space.  Gateway endpoint ID is expressed as
+<protocol_name>@<eid_string> where I<protocol_name> is either "bp"
+or "udp".  If protocol name is "bp" then I<eid_string> must be a
+valid Bundle Protocol endpoint ID; otherwise, I<eid_string> must be
+of the form <hostname>:<port_number>.  If the gweid attribute is omitted,
+the RAMS network endpoint ID of the message space's RAMS gateway
+module defaults to "bp@ipn:<remote_continuum_number>.<venture_number>".
+
+=item symkey
+
+This is the name of the symmetric key used for both encrypting and
+decrypting all messages to and from modules in the remote message
+space that are forwarded between the local RAMS gateway server and
+modules in the local message space; if omitted, these messages
+are not encrypted.  The value of this attribute (if present) must
+identify a key that has been loaded into the ION security database,
+nominally by ionsecadmin(1).
+
+=back
+
+=back
+
+=head1 EXAMPLE
+
+*ams_mib_init continuum_nbr=2 ptsname=dgr
+
++ams_mib_add
+
+*continuum nbr=1 name=apl desc=APL
+
+*csendpoint epspec=beaumont.stepsoncats.com:2357
+
+*application name=amsdemo
+
++venture nbr=1 appname=amsdemo authname=test
+
+*role nbr=2 name=shell
+
+*role nbr=3 name=log
+
+*role nbr=4 name=pitch
+
+*role nbr=5 name=catch
+
+*role nbr=6 name=benchs
+
+*role nbr=7 name=benchr
+
+*subject nbr=1 name=text desc='ASCII text'
+
+*subject nbr=2 name=noise desc='more ASCII text'
+
+*subject nbr=3 name=bench desc='numbered msgs'
+
+*unit nbr=1 name=orbiters
+
+*unit nbr=2 name=orbiters.near
+
+*unit nbr=3 name=orbiters.far
+
+*msgspace nbr=2
+
+-venture
+
+-ams_mib_add
+
+=head1 SEE ALSO
+
+amsxml(5)
