@@ -399,7 +399,9 @@ as expected.", NULL);
     * added a pre-payload block to the bundle already, in which case, we have
     * somehow lost data coherency in the bundle.
     */
-   bsp_getSecurityInfo(bundle, BSP_TX, BSP_BAB_TYPE, COR_BAB_TYPE, /*NIELS "ipn:1.1"*/ "<BVB/placeholder>", ctxt->proxNodeEid, &secInfo);
+
+/* TODO EJB: Grab this form the bundle object...*/
+   bsp_getSecurityInfo(bundle, BSP_BAB_TYPE, COR_BAB_TYPE, "<BVB/placeholder>", ctxt->proxNodeEid, &secInfo);
    if (secInfo.cipherKeyName[0] == '\0')
    {
       int result = 0;
@@ -794,8 +796,9 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
 
    BSP_DEBUG_INFO("i bsp_babPreCheck: len %d", resultLen);
 
-
-   bsp_getSecurityInfo(&(wk->bundle), BSP_RX, BSP_BAB_TYPE, COR_BAB_TYPE, /*EJB*/wk->senderEid /*"ipn:1.1"*/, /*NIELS "ipn:1.1"*/ "<BVB/temp>", &secInfo);
+/* TODO...?? */
+/* Can we pull our EID? */
+   bsp_getSecurityInfo(&(wk->bundle), BSP_BAB_TYPE, COR_BAB_TYPE, wk->senderEid, "<BVB/temp>", &secInfo);
    if (secInfo.cipherKeyName[0] == '\0')
    {
       /*   No rule, or no key.               */

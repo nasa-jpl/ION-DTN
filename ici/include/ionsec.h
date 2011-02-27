@@ -81,7 +81,7 @@ typedef struct
 extern int		secInitialize();
 extern int		secAttach();
 extern Object		getSecDbObject();
-extern void		ionClear(char *eid);
+extern void		ionClear(char *srcEid, char *destEid, char *blockType);
 
 /*	*	Functions for managing security information.		*/
 

@@ -11,6 +11,9 @@
 									*/
 #include "ionsec.h"
 
+
+static int eidsMatch(char *searchEid, int searchEidLen, char *valueEid, int valueEidLen);
+
 static char	*_secDbName()
 {
 	return "secdb";
@@ -153,7 +156,13 @@ Object	getSecDbObject()
    2011-02-22
 */
 
-void	ionClear(char *eid)
+
+/* block type: bab, pib, pcb, esb.  ~ implies all block types.
+   destEid implies rules whose security destination eid matches.
+   srcEid implies rules whose security srouce mateches.
+*/
+
+void	ionClear(char *srcEid, char *destEid, char *blockType)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
@@ -161,7 +170,14 @@ void	ionClear(char *eid)
 	Object	ruleObj;
 	int rmCount = 0;
 	char rmStr [5];
-	OBJ_POINTER(BspBabRule, rule);
+	int srcEidLen, destEidLen;
+        int curEidLen;
+	char eidBuffer[SDRSTRING_BUFSZ];
+
+/* Check to be sure none of these are null... */
+        CHKVOID(srcEid);
+        CHKVOID(destEid);
+        CHKVOID(blockType);
 
 	if (secAttach() < 0)
 	{
@@ -169,28 +185,39 @@ void	ionClear(char *eid)
 		return;
 	}
 
-	if (eid == NULL || *eid == '\0' || *eid == '~')
-	{
-		/*	Function must remove all BAB reception rules,
-		 *	effectively disabling BAB reception checking
-		 *	altogether.					*/
-		
+	srcEidLen = strlen(srcEid);
+	destEidLen = strlen(destEid);
+
+       	if (blockType[0] == '~' || (strncmp(blockType,"bab",3) == 0))
+       	{
+        	// For each bab rule, if src/dest match, delete it.  
+         	OBJ_POINTER(BspBabRule, rule);
+
 		sdr_begin_xn(sdr);
-		while (1)
+
+		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
+			elt = sdr_list_next(sdr, elt))
 		{
-			elt = sdr_list_first(sdr, secdb->bspBabRules);
-			if (elt == 0)
-			{
-				break;
-			}
 
 			ruleObj = sdr_list_data(sdr, elt);
-			sdr_list_delete(sdr, elt, NULL, NULL);
 			GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleObj);
-			sdr_free(sdr, rule->securitySrcEid);
-			sdr_free(sdr, rule->securityDestEid);
-			sdr_free(sdr, ruleObj);
-			rmCount++;
+
+		        curEidLen = sdr_string_read(sdr, eidBuffer, rule->securitySrcEid);
+
+			if(eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
+			{
+				
+		        	curEidLen = sdr_string_read(sdr, eidBuffer, rule->securityDestEid);
+				if(eidsMatch(destEid, destEidLen, eidBuffer, curEidLen))
+				{
+
+					sdr_list_delete(sdr, elt, NULL, NULL);
+					sdr_free(sdr, rule->securitySrcEid);
+					sdr_free(sdr, rule->securityDestEid);
+					sdr_free(sdr, ruleObj);
+					rmCount++;
+				}
+			}
 		}
 
 		snprintf(rmStr, 4, "%d", rmCount);
@@ -202,22 +229,24 @@ void	ionClear(char *eid)
 		}
 		else
 		{
-			writeMemo("[i] ionClear: no remaining BAB rules.");
+			writeMemo("[i] ionClear: no matching BAB rules remaining.");
 		}
-		return;
 	}
 
-	/*	Function must disable the BAB reception rule identified
-	 *	by this EID (which may be wild-carded).			*/
 
-	if (sec_updateBspBabRule("~", eid, "", "") < 1)
-	{
-		writeMemoNote("[?] ionClear: can't clear BAB reception rule.", eid);
-	}
-	else
-	{
-		writeMemo("[i] ionClear: cleared BAB reception rule.");
-	}
+       	if (blockType[0] == '~' || (strncmp(blockType,"pib",3) == 0))
+        {
+        }
+	
+       	if (blockType[0] == '~' || (strncmp(blockType,"pcb",3) == 0))
+        {
+        }
+ 
+       	if (blockType[0] == '~' || (strncmp(blockType,"esb",3) == 0))
+        {
+        }
+
+	return;
 }
 
 static Object	locateKey(char *keyName, Object *nextKey)
@@ -600,47 +629,49 @@ static int	filterEid(char *outputEid, char *inputEid)
 
 
 /* Returns whether a valueEid matches a searchEid. */
-int eidsMatch(char *searchEid, int searchEidLen, char *valueEid)
-{
-	int match = 0;
-	int result = strcmp(searchEid, valueEid);
+/* EJB: Update to match if either has a wildcard. */
 
-        if((searchEid[0] == '~') || (valueEid[0] == '~'))
+/* ipn:1.~        ipn~ */
+int eidsMatch(char *searchEid, int searchEidLen, char *valueEid, int valueEidLen)
+{
+	int result = 1;
+        int eid1_pos = -1, eid2_pos = -1;
+
+        CHKERR(searchEid);
+        CHKERR(valueEid);
+
+        if(valueEid[valueEidLen-1] == '~')
         {
-           /* Instant match. */
-           return 1;
+          eid2_pos = valueEidLen-1;
         }
 
-	/* EIDs do not match, no room for wild-cards.*/
-	if (result < 0)
-	{
-		match = 0;
-	}
-	/* EIDs are an exact match. */
-	else if (result == 0)
-	{
-		match = 1;
-	}
-	/* Might be a wild-card match. */
-	else
-	{
-	   /* Wildcard match: First N non-wildcard letters of search EID match first N
-              letters of value EID. */ 
+        if(searchEid[searchEidLen-1] == '~')
+        {
+          eid1_pos = searchEidLen - 1;
+        }
 
-           int last = searchEidLen- 1;
-	   char buf[512];
-		if(searchEid[last] == '~' &&
-                   strncmp(searchEid, valueEid, searchEidLen - 1) == 0)
-		{
-			match = 1;
-		}
+        if((eid1_pos == 0) || (eid2_pos == 0))
+        {
+          result = 0;
+        }
+        else if((eid1_pos > 0) && (eid2_pos > 0))
+        {
+          result = strncmp(searchEid, valueEid, MIN(eid1_pos, eid2_pos));      
+        }
+        else if(eid1_pos > 0)
+        {
+          result = strncmp(searchEid, valueEid, MIN(eid1_pos, valueEidLen));
+        }
+        else if(eid2_pos > 0)
+        {
+          result = strncmp(searchEid, valueEid, MIN(searchEidLen, eid2_pos));
+        }
+        else 
+        {
+          result = strcmp(searchEid, valueEid);
+        }
 
-sprintf(buf, "search is %s and value is %s and last is %d. Match is %d", searchEid, valueEid, last, match);
-writeMemo(buf);
-
-	}
-
-	return match;
+	return (result == 0);
 }
 
 int	sec_get_bspBabTxRule(char *destEid, Object *ruleAddr, Object *eltp)
@@ -687,12 +718,12 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *el
 		eidLen = sdr_string_read(sdr, eidBuffer, rule->securityDestEid);
 
 		/* If destinations match... */
-		if(eidsMatch(eidBuffer, eidLen, destEid) == 1)
+		if(eidsMatch(eidBuffer, eidLen, destEid, strlen(destEid)) == 1)
 		{
 			writeMemo("EJB: Destinations match.");
 			eidLen = sdr_string_read(sdr, eidBuffer, rule->securitySrcEid);
 			/* If sources match ... */
-			if(eidsMatch(eidBuffer, eidLen, srcEid) == 1)
+			if(eidsMatch(eidBuffer, eidLen, srcEid, strlen(srcEid)) == 1)
 			{
 			writeMemo("EJB: Sources match.");
 				result = 1;
@@ -958,11 +989,11 @@ int	sec_get_bspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr, Obje
 		eidLen = sdr_string_read(sdr, eidBuffer, rule->securityDestEid);
 
 		/* If destinations match... */
-		if((rule->blockTypeNbr == blockTypeNbr) && (eidsMatch(eidBuffer, eidLen, secDestEid) == 1))
+		if((rule->blockTypeNbr == blockTypeNbr) && (eidsMatch(eidBuffer, eidLen, secDestEid, strlen(secDestEid)) == 1))
 		{
 			eidLen = sdr_string_read(sdr, eidBuffer, rule->securitySrcEid);
 			/* If sources match ... */
-			if(eidsMatch(eidBuffer, eidLen, secSrcEid) == 1)
+			if(eidsMatch(eidBuffer, eidLen, secSrcEid, strlen(secSrcEid)) == 1)
 			{
 				result = 1;
 				*eltp = elt;	/*	Exact match.	*/

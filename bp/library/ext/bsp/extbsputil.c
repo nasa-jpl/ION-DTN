@@ -739,7 +739,6 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
  *****************************************************************************/
 
 void bsp_getSecurityInfo(Bundle *bundle, 
-		int which,
 		unsigned char blockType,
 		int bspType,
 		char *eidSourceString,
@@ -758,58 +757,38 @@ void bsp_getSecurityInfo(Bundle *bundle,
 	if(eidSourceString == NULL)
 	{
 		BSP_DEBUG_WARN("? bsp_getSecurityInfo: Can't get EID from bundle \
-				%x. Not using BAB.", (unsigned long) bundle);
+				%x.", (unsigned long) bundle);
 	}
 	else
 	{
 		Object ruleAddr;
 		Object eltp;
-		OBJ_POINTER(BspBabRule, txRule);
-		OBJ_POINTER(BspBabRule, rxRule);
-		int result;
+                int result;
 
-		/*
-		 * Grab the security rule (BAB use, cipherKeyName) based on whether this
-		 * is a TX or an RX rule.
-		 */
-		if(which == BSP_TX)
-		{
-			result = sec_get_bspBabTxRule(eidDestString, &ruleAddr, &eltp);
-		}
-		else
-		{
-			result = sec_get_bspBabRxRule(eidSourceString, &ruleAddr, &eltp);
-		}
 
-		if((result == -1) || (eltp == 0))
+                if(bspType == BSP_BAB_TYPE)
 		{
-			BSP_DEBUG_INFO("x bsp_getSecurityInfo: No TX/RX entry for EID %s.", eidSourceString);
-		}
-		else
-		{
-			/** \todo: Check ciphersuite name */
-			//GET_OBJ_POINTER(getIonsdr(), BspRule, rule, ruleAddr);
+			OBJ_POINTER(BspBabRule, babRule);
+			int result;
 
-			if (which == BSP_TX)
+			result = sec_get_bspBabRule(eidSourceString, eidDestString, &ruleAddr, &eltp);
+
+			if((result == -1) || (eltp == 0))
 			{
-				GET_OBJ_POINTER(getIonsdr(), BspBabRule, txRule, ruleAddr);
-
-				if (txRule->ciphersuiteName[0] != '\0')
-				{
-					istrcpy(secInfo->cipherKeyName, txRule->keyName, sizeof(secInfo->cipherKeyName));
-				}
+				BSP_DEBUG_INFO("x bsp_getSecurityInfo: No TX/RX entry for EID %s.", eidSourceString);
 			}
 			else
 			{
-				GET_OBJ_POINTER(getIonsdr(), BspBabRule, rxRule, ruleAddr);
+				/** \todo: Check ciphersuite name */
+				GET_OBJ_POINTER(getIonsdr(), BspBabRule, babRule, ruleAddr);
 
-				if (txRule->ciphersuiteName[0] != '\0')
+				if (babRule->ciphersuiteName[0] != '\0')
 				{
-					istrcpy(secInfo->cipherKeyName, rxRule->keyName, sizeof(secInfo->cipherKeyName));
+					istrcpy(secInfo->cipherKeyName, babRule->keyName, sizeof(secInfo->cipherKeyName));
 				}
-			}
 
-			BSP_DEBUG_INFO("i bsp_getSecurityInfo: get TX/RX key name of '%s'", secInfo->cipherKeyName);
+				BSP_DEBUG_INFO("i bsp_getSecurityInfo: get TX/RX key name of '%s'", secInfo->cipherKeyName);
+			}
 		}
 	}
 

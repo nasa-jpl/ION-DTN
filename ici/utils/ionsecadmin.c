@@ -95,6 +95,7 @@ i.e., a partial eid expression ending in '*'.");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\tx\tClear all tx/rx BAB security rules (BVB)."); /* BVB - used to call ionClear */
+	PUTS("\t   x <security source eid> <security destination eid> <block type (bab, pib, pcb, esb)>");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
 }
@@ -578,11 +579,28 @@ static int	processLine(char *line, int lineLength)
 		case 'x':
 			if (secAttach() == 0)
 			{
-				/* Clear ALL BAB rules...
-				 * TODO: Include PIB and PCB as well. 
-				 * An equivalent call would be:
-				 * ionClear(NULL), ionClear("") */
-				ionClear("~");		
+
+
+			   	if(tokenCount > 4)
+				{
+					SYNTAX_ERROR;
+				}
+				else if(tokenCount == 4)
+				{
+					ionClear(tokens[1], tokens[2], tokens[3]);
+				}
+				else if(tokenCount == 3)
+				{
+					ionClear(tokens[1], tokens[2], "~");
+				}
+				else if(tokenCount == 2)
+				{
+					ionClear(tokens[1], "~", "~");
+				}
+				else
+				{
+					ionClear("~", "~", "~");
+				}
 			}
 			return 0;
 	
