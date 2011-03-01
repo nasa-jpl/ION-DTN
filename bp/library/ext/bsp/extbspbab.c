@@ -344,6 +344,41 @@ result len %lu data %x", asb->resultLen, (unsigned long) asb->resultData);
  *         modification performed on the bundle before it is transmitted.
  *****************************************************************************/
 
+
+
+/* If we are only in 1 scheme, return custodian EID for that scheme. If we
+   are in  multiple schemes, return custodian EID for the peerEid given.
+*/
+char *getCustodianEid(char *peerEid)
+{
+  char *temp = NULL;
+
+   VScheme	*vscheme = NULL;
+   PsmAddress	vschemeElt;
+   MetaEid	metaEid;
+
+   int len = strlen(peerEid);
+   if((temp = MTAKE(len + 1)) == 0)
+   {
+     BSP_DEBUG_ERR("x getCustodianEid: Unable to allocate EID of size %d", len + 1);
+     return NULL;  
+   }
+  
+   strcpy(temp, peerEid);
+   
+   if (parseEidString(temp, &metaEid, &vscheme, &vschemeElt) == 0)
+   {
+      BSP_DEBUG_ERR("x getCustodianEid: Cannot find scheme for dest EID: %s", temp);
+      MRELEASE(temp);
+      return NULL;
+   }
+
+   MRELEASE(temp);
+   return vscheme->custodianEidString;
+}
+
+
+
 int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
                                 Bundle *bundle,
                                 void *parm)
@@ -400,8 +435,11 @@ as expected.", NULL);
     * somehow lost data coherency in the bundle.
     */
 
-/* TODO EJB: Grab this form the bundle object...*/
-   bsp_getSecurityInfo(bundle, BSP_BAB_TYPE, COR_BAB_TYPE, "<BVB/placeholder>", ctxt->proxNodeEid, &secInfo);
+   /* The BAB sender EID is the administrative EID for the current node. */ 
+   bsp_getSecurityInfo(bundle, COR_BAB_TYPE, BSP_BAB_TYPE, 
+                       getCustodianEid(ctxt->proxNodeEid),
+                       ctxt->proxNodeEid, &secInfo);
+ 
    if (secInfo.cipherKeyName[0] == '\0')
    {
       int result = 0;
@@ -413,7 +451,7 @@ payload block, but found collab struct.", NULL);
       }
       else
       {
-         BSP_DEBUG_INFO("i bsp_babPreProcessOnDequeue: No key found for BAB. \
+         BSP_DEBUG_INFO("i bsp_babPostProcessOnDequeue: No key found for BAB. \
 Not using BAB blocks for this bundle.", NULL);
 
       }
@@ -428,7 +466,7 @@ Not using BAB blocks for this bundle.", NULL);
     */
    else if(collabAddr == 0)
    {
-      BSP_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Trying to insert post-  \
+      BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Trying to insert post-  \
 payload block without collab struct.", NULL);
       scratchExtensionBlock(post_blk);
       BSP_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
@@ -445,7 +483,7 @@ payload block without collab struct.", NULL);
      (collabBlk.hmacLen != 0) ||
      (collabBlk.expectedResult[0] != '\0'))
    {
-      BSP_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Data mismatch in  \
+      BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Data mismatch in  \
 collab struct.", NULL);
       scratchExtensionBlock(post_blk);
       BSP_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
@@ -796,9 +834,11 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
 
    BSP_DEBUG_INFO("i bsp_babPreCheck: len %d", resultLen);
 
-/* TODO...?? */
-/* Can we pull our EID? */
-   bsp_getSecurityInfo(&(wk->bundle), BSP_BAB_TYPE, COR_BAB_TYPE, wk->senderEid, "<BVB/temp>", &secInfo);
+   bsp_getSecurityInfo(&(wk->bundle), COR_BAB_TYPE, BSP_BAB_TYPE,  
+                       wk->senderEid,
+                       getCustodianEid(wk->senderEid),
+                       &secInfo);
+
    if (secInfo.cipherKeyName[0] == '\0')
    {
       /*   No rule, or no key.               */
@@ -953,7 +993,10 @@ expected.", NULL);
 
    // EJB: Don't need to read this. Can save a little processing...
    sdr_read(bpSdr, (char *) &asb, blk->object, blk->size);
-   bsp_getSecurityInfo(bundle, BSP_TX, BSP_BAB_TYPE, COR_BAB_TYPE,/*NIELS "ipn:1.1"*/ "<BVB/ignore>", ctxt->proxNodeEid, &secInfo);
+   
+   bsp_getSecurityInfo(bundle, COR_BAB_TYPE, BSP_BAB_TYPE,  
+		    getCustodianEid(ctxt->proxNodeEid),
+		    ctxt->proxNodeEid, &secInfo);
 
    /* If we have no rule, or no key, then we are not going to add BAB blocks
     * to this bundle. This is not an error, but a security policy decision.
@@ -1006,6 +1049,7 @@ expected.", NULL);
          lyst_insert_last(eidRefs,
       (void *) (tmp = bundle->destination.d.nssOffset));
       }
+      BSP_DEBUG_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", NULL);
    }
 
 

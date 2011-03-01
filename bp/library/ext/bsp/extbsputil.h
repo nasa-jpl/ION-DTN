@@ -514,6 +514,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
  *  06/18/09  E. Birrane           Re-write to incorporate Other BSP blocks
  *****************************************************************************/
 
+#if 0
 void bsp_getSecurityInfo(Bundle *bundle, 
                          int which,
                          unsigned char blockType,
@@ -521,6 +522,14 @@ void bsp_getSecurityInfo(Bundle *bundle,
                          char *eidSourceString,
                          char *eidDestString,
                          BspSecurityInfo *secInfo);
+#endif
+
+void bsp_getSecurityInfo(	Bundle * bundle,
+			unsigned char blockType,
+			int bspType,
+			char * eidSourceString,
+			char * eidDestString,
+			BspSecurityInfo * secInfo);
 
 
 void	getBspItem(int itemNeeded, unsigned char *bspBuf,

@@ -723,18 +723,17 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
  * \par Function Name: bsp_getSecurityInfo
  *
  * \par Purpose: This utility function retrieves security information for a
- *               given BAB block from the ION security manager.
+ *               given block from the ION security manager.
  *
  * \retval void 
  *
  * \param[in]  bundle    The bundle that holding the block whose security
  *                       information is being requested.
- * \param[in]  which     Whether we are receiving or transmitting the block.
  * \param]in]  blockType The block whose key information is being requested.
  * \param[in]  bspType   The type of BSP block whose key is being requested.
  * \param[in]  eidSourceString The name of the source endpoint.
  * \param[in]  eidDestString The name of the destination endpoint.
- * \param[out] scratch   The block scratchpad holding security information for 
+ * \param[out] secInfo   The block scratchpad holding security information for 
  *                       this block.
  *****************************************************************************/
 
@@ -745,8 +744,8 @@ void bsp_getSecurityInfo(Bundle *bundle,
 		char *eidDestString,
 		BspSecurityInfo *secInfo)
 {
-	BSP_DEBUG_PROC("+ bsp_getSecurityInfo(%x %d, %s, %s, %x)",
-			(unsigned long) bundle, which, eidSourceString, eidDestString,(unsigned long) secInfo);
+	BSP_DEBUG_PROC("+ bsp_getSecurityInfo(0x%08x, 0x%02x, %d, %s, %s, 0x%08x)",
+			(unsigned long) bundle, blockType, bspType, eidSourceString, eidDestString,(unsigned long) secInfo);
 
 	secInfo->cipherKeyName[0] = '\0';
 
@@ -763,7 +762,6 @@ void bsp_getSecurityInfo(Bundle *bundle,
 	{
 		Object ruleAddr;
 		Object eltp;
-                int result;
 
 
                 if(bspType == BSP_BAB_TYPE)
@@ -775,7 +773,8 @@ void bsp_getSecurityInfo(Bundle *bundle,
 
 			if((result == -1) || (eltp == 0))
 			{
-				BSP_DEBUG_INFO("x bsp_getSecurityInfo: No TX/RX entry for EID %s.", eidSourceString);
+// EJB TODO: Make this INFO again...
+				BSP_DEBUG_ERR("x bsp_getSecurityInfo: No TX/RX entry for EID %s.", eidSourceString);
 			}
 			else
 			{
@@ -786,8 +785,8 @@ void bsp_getSecurityInfo(Bundle *bundle,
 				{
 					istrcpy(secInfo->cipherKeyName, babRule->keyName, sizeof(secInfo->cipherKeyName));
 				}
-
-				BSP_DEBUG_INFO("i bsp_getSecurityInfo: get TX/RX key name of '%s'", secInfo->cipherKeyName);
+// EJB TODO: Make this info again. 
+				BSP_DEBUG_ERR("i bsp_getSecurityInfo: get TX/RX key name of '%s'", secInfo->cipherKeyName);
 			}
 		}
 	}
