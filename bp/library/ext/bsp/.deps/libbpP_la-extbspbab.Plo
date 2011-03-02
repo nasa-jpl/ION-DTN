@@ -69,10 +69,7 @@ bp/library/ext/bsp/libbpP_la-extbspbab.lo: bp/library/ext/bsp/extbspbab.c \
  bp/include/bp.h ici/include/platform.h ici/include/psm.h \
  ici/include/sdr.h ici/include/zco.h ici/include/lyst.h \
  ici/include/smlist.h ici/include/ion.h bp/library/ext/bsp/extbspbab.h \
- bp/library/bei.h bp/library/ext/bsp/../../crypto/crypto.h \
- bp/library/ext/bsp/../../crypto/NULL_SUITES/sha1.h \
- bp/library/ext/bsp/../../crypto/NULL_SUITES/hmac.h \
- bp/library/ext/bsp/../../crypto/NULL_SUITES/sha1.h
+ bp/library/ext/bsp/../../crypto/crypto.h
 
 config.h:
 
@@ -382,12 +379,4 @@ ici/include/ion.h:
 
 bp/library/ext/bsp/extbspbab.h:
 
-bp/library/bei.h:
-
 bp/library/ext/bsp/../../crypto/crypto.h:
-
-bp/library/ext/bsp/../../crypto/NULL_SUITES/sha1.h:
-
-bp/library/ext/bsp/../../crypto/NULL_SUITES/hmac.h:
-
-bp/library/ext/bsp/../../crypto/NULL_SUITES/sha1.h:

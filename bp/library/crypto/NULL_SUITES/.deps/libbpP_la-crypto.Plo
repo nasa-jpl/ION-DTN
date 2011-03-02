@@ -1,6 +1,5 @@
 bp/library/crypto/NULL_SUITES/libbpP_la-crypto.lo: \
  bp/library/crypto/NULL_SUITES/crypto.c config.h \
- bp/library/crypto/NULL_SUITES/sha1.h \
  bp/library/crypto/NULL_SUITES/../crypto.h ici/include/platform.h \
  /usr/lib/gcc/i686-linux-gnu/4.4.5/include/stddef.h /usr/include/stdio.h \
  /usr/include/features.h /usr/include/bits/predefs.h \
@@ -62,14 +61,9 @@ bp/library/crypto/NULL_SUITES/libbpP_la-crypto.lo: \
  /usr/include/linux/param.h /usr/include/asm/param.h \
  /usr/include/asm-generic/param.h /usr/include/pthread.h \
  /usr/include/sched.h /usr/include/bits/sched.h \
- /usr/include/bits/setjmp.h ici/include/platform_sm.h \
- bp/library/crypto/NULL_SUITES/../NULL_SUITES/sha1.h \
- bp/library/crypto/NULL_SUITES/../NULL_SUITES/hmac.h \
- bp/library/crypto/NULL_SUITES/../NULL_SUITES/sha1.h
+ /usr/include/bits/setjmp.h ici/include/platform_sm.h
 
 config.h:
-
-bp/library/crypto/NULL_SUITES/sha1.h:
 
 bp/library/crypto/NULL_SUITES/../crypto.h:
 
@@ -332,9 +326,3 @@ ici/include/platform.h:
 /usr/include/bits/setjmp.h:
 
 ici/include/platform_sm.h:
-
-bp/library/crypto/NULL_SUITES/../NULL_SUITES/sha1.h:
-
-bp/library/crypto/NULL_SUITES/../NULL_SUITES/hmac.h:
-
-bp/library/crypto/NULL_SUITES/../NULL_SUITES/sha1.h:

@@ -1,23 +1,25 @@
 #!/usr/bin/perl
 
 if ($#ARGV == -1) {
-	print "Must include size of file in bytes...\n";
+	print "Include file size as 2^n\n";
 	exit;
 }
 
-print "Creating a file of $ARGV[0] bytes... ";
-
-
-`rm -f largefile.dmp`;
-
-
-# TODO - Get back to this later
-
-`touch largefile.dmp`;
-
-for ($i=0; $i < $ARGV[0]/10; $i++)
-{
-	`echo "---- ----" >> largefile.dmp`;
+if ($ARGV[0] > 23) {
+	print "Cannot do exponent higher than 23..";
+	exit;
 }
 
-print "Check largefile.dmp\n";
+`touch tempfile.swap`;
+`touch hugefile.big`;
+`echo "0" > hugefile.big`;
+
+
+for ($i=1;$i<$ARGV[0];$i++) {
+	`cat hugefile.big > tempfile.swap`;
+	`cat tempfile.swap >> hugefile.big`;
+}
+
+`rm tempfile.swap`;
+
+

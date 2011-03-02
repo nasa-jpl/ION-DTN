@@ -1,7 +1,10 @@
 #!/bin/bash
 #
-# Scott Burleigh
+# Based off earlier test by Scott Burleigh
 # April 12, 2010
+#
+# Adapted to BSP, Bill Van Besien
+# 2 March 2011
 
 echo "Cleaning up old ION..."
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 
@@ -220,7 +223,9 @@ fi
 
 #############
 # Test 5 ....
-
+#
+# This test consists of passing a huge file protected by bab.
+# In this case we will use a script to generate a ~4MB file.
 
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
@@ -232,31 +237,36 @@ ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
 
+bprecvfile ipn:3.2 &
+
 cd ../2.ipn.ltp
-#bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test4_trace" rcv,ct,fwd,dlv,del
 
-# Create a 5 MB file
-perl file_make.pl 5242880 
-
+# Create a ~4 MB file
+# 2^22 = ~ 4MB.  Do _NOT_ run this script with a large number
+perl file_make.pl 10
+ 
 # Send the 5 MB file
-bpsendfile ipn:2.1 ipn:3.2 bigfile.big
+bpsendfile ipn:2.1 ipn:3.2 hugefile.big
 
 # Wait 2 seconds while it transfers
 sleep 2
 
-rm bigfile.big
 cd ..
 
-#echo `stat -c %s testfile1`
+RECV_SIZE=`stat -c %s 3.ipn.ltp/testfile1`
+SEND_SIZE=`stat -c %s 2.ipn.ltp/hugefile.big`
 
-#if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
-if true 
+echo "Receive size: $RECV_SIZE; Send size: $SEND_SIZE"
+if [ $RECV_SIZE = $SEND_SIZE ] 
 then
-	echo "FAIL (test5)" 
-	PASS=0
+	echo "SUCCESS (test5)" 
 else
-	echo "SUCCESS (test5)"
+	echo "FAIL (test5)"
+	PASS=0
 fi
+
+rm -f 2.ipn.ltp/hugefile.big
+rm -f 3.ipn.ltp/testfile1
 
 
 ############################################################
@@ -274,7 +284,7 @@ cd ../3.ipn.ltp
 cd ..
 
 # Give all three nodes time to shut down, then clean up.
-sleep 5
+sleep 7
 killm
 echo "Status reports test completed."
 
