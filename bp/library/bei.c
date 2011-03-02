@@ -35,11 +35,6 @@
 #include "bpP.h"
 #include "bei.h"
 
-// TODO: This assumes the extension block is coming from a bundle and not
-//       from an acquisition structure. Can we come up with some terminology to
-//       identify extension blocks in bundles versus ext blks in acquisition
-//       structures?
-
 
 /******************************************************************************
  *                               BUNDLE OPERATIONS                            *
@@ -80,13 +75,11 @@ int 	addCollaborationBlock(Bundle *bundle,
 		return -1;
 	}
 
-	/* XXX is this redundant? */	
+	/* TODO: This may now be a redundant check. Consider removing. */
 	if (bundle->collabBlocks == 0)
 	{
-		putErrmsg("[BVB] bundle->collabBlocks list not allocated", NULL);
 		bundle->collabBlocks = sdr_list_create(bpSdr);
-		putErrmsg("[BVB] (TODO: MRELEASE this later!) collabBlocks list allocated to address ", itoa(bundle->collabBlocks));
-    	}
+	}
 
 	/* Insert the new block. */
 	if(sdr_list_insert_last(bpSdr,bundle->collabBlocks,newBlkAddr) == 0)
@@ -802,7 +795,10 @@ int 	updateCollaborationBlock(Object collabAddr,
 		return -1;
 	}
 
-	// TODO: Can we do a size check here to make sure size didn't change?
+	/* TODO: When and if resizing collaboration blocks are supported, must
+	 *       check to be sure size did not change if writing collab back to
+	 *       sdr.  If it did change, must try and reallocate SDR storage.
+	 */
 	sdr_write(bpSdr, collabAddr, (char *) data, blkHdr->size);
 
 	return 0;
@@ -933,12 +929,10 @@ int 	addAcqCollabBlock(AcqWorkArea *work,
 	memcpy((char *) dataPtr, data, blkHdr->size);
 
 
-	/* XXX is this check redundant? */
+	/* TODO: This may be a redundant check.  Consider removing. */
 	if (work->collabBlocks == 0)
 	{
-		putErrmsg("[BVB] work->collabBlocks is zero; list not created.", "Check TODO comment.");
 		work->collabBlocks = lyst_create();
-		putErrmsg("[BVB] \"lyst\" created.  Why not use sdr_create_list? collabBlocks = ", itoa((int)work->collabBlocks));
 	}
 
 	/*	Store extension block within bundle.			*/
@@ -1106,7 +1100,6 @@ int		recordExtensionBlocks(AcqWorkArea *work)
 	Object		newBlkAddr;
 	int		additionalOverhead;
 
-	//EJB
 	bundle->collabBlocks = sdr_list_create(bpSdr);
 	if(bundle->collabBlocks == 0)
 	{

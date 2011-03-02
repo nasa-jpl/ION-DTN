@@ -15,6 +15,15 @@
 
 #include "ion.h"
 
+/**
+ * BAB Block Type Fields
+ * TODO: Link this back to header files within BP to avoid code duplication.
+ */
+#define BSP_BAB_TYPE  0x02 /** pre-payload bab block type.  */
+#define BSP_PIB_TYPE  0x03 /** BSP PIB block type.          */
+#define BSP_PCB_TYPE  0x04 /** BSP PCB block type.          */
+#define BSP_ESB_TYPE  0x09 /** BSP ESB block type.          */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -81,7 +90,10 @@ typedef struct
 extern int		secInitialize();
 extern int		secAttach();
 extern Object		getSecDbObject();
-extern void		ionClear(char *srcEid, char *destEid, char *blockType);
+
+int bspTypeToString(int bspType, char *retVal);
+int bspTypeToInt(char *bspType);
+extern void	ionClear(char *srcEid, char *destEid, char *blockType);
 
 /*	*	Functions for managing security information.		*/
 

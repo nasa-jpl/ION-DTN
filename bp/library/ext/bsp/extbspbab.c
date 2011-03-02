@@ -183,7 +183,6 @@ int bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
     * sure that we will be using the BAB, so we don't go through the hassle of
     * allocating objects in the SDR yet, as that would incur a larger performance
     * penalty on bundles that do not use the BAB.
-   * EJB HOw do we do this? In the short term, just always add the ASB.
     */
    blk->size = sizeof(BspAbstractSecurityBlock);
 
@@ -343,42 +342,6 @@ result len %lu data %x", asb->resultLen, (unsigned long) asb->resultData);
  *         in the bundle will be modified.  This must be the last block
  *         modification performed on the bundle before it is transmitted.
  *****************************************************************************/
-
-
-
-/* If we are only in 1 scheme, return custodian EID for that scheme. If we
-   are in  multiple schemes, return custodian EID for the peerEid given.
-*/
-char *getCustodianEid(char *peerEid)
-{
-  char *temp = NULL;
-
-   VScheme	*vscheme = NULL;
-   PsmAddress	vschemeElt;
-   MetaEid	metaEid;
-
-   int len = strlen(peerEid);
-   if((temp = MTAKE(len + 1)) == 0)
-   {
-     BSP_DEBUG_ERR("x getCustodianEid: Unable to allocate EID of size %d", len + 1);
-     return NULL;  
-   }
-  
-   strcpy(temp, peerEid);
-   
-   if (parseEidString(temp, &metaEid, &vscheme, &vschemeElt) == 0)
-   {
-      BSP_DEBUG_ERR("x getCustodianEid: Cannot find scheme for dest EID: %s", temp);
-      MRELEASE(temp);
-      return NULL;
-   }
-
-   MRELEASE(temp);
-   return vscheme->custodianEidString;
-}
-
-
-
 int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
                                 Bundle *bundle,
                                 void *parm)
@@ -436,7 +399,7 @@ as expected.", NULL);
     */
 
    /* The BAB sender EID is the administrative EID for the current node. */ 
-   bsp_getSecurityInfo(bundle, COR_BAB_TYPE, BSP_BAB_TYPE, 
+   bsp_getSecurityInfo(bundle, BSP_BAB_TYPE,
                        getCustodianEid(ctxt->proxNodeEid),
                        ctxt->proxNodeEid, &secInfo);
  
@@ -496,7 +459,7 @@ collab struct.", NULL);
     ***************************************************************************/
 
    /* post-payload BAB must be the last one in the bundle. */
-   // TODO: This may have changed in version 15 of the spec.
+
    post_blk->blkProcFlags |= BLK_IS_LAST;
    asb.cipher = BSP_CSTYPE_BAB_HMAC;
    asb.cipherFlags = BSP_ASB_CORR | BSP_ASB_RES;
@@ -510,7 +473,7 @@ collab struct.", NULL);
    raw_asb = bsp_serializeASB(&(post_blk->dataLength), &(asb));
    if((raw_asb == NULL) || (post_blk->dataLength == 0))
    {
-      /* TODO: Remove the pre block as well?? */
+      /* TODO: Consider whether to remove pre block at this point?? */
       BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Serialization failed.\
 raw_asb = %x", (unsigned long) raw_asb);
       scratchExtensionBlock(post_blk);
@@ -824,7 +787,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
 
    rawBundleLen = zco_length(bpSdr, wk->bundle.payload.content);
    lengthToHash = rawBundleLen - resultLen;
-   // TODO: Equal to zero?
+   // TODO: Should we consider it an error if length is equal to zero?
    if (lengthToHash < 0)
    {
       BSP_DEBUG_ERR("x bsp_babPreCheck: Can't hash %d bytes", lengthToHash);
@@ -834,7 +797,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
 
    BSP_DEBUG_INFO("i bsp_babPreCheck: len %d", resultLen);
 
-   bsp_getSecurityInfo(&(wk->bundle), COR_BAB_TYPE, BSP_BAB_TYPE,  
+   bsp_getSecurityInfo(&(wk->bundle), BSP_BAB_TYPE,
                        wk->senderEid,
                        getCustodianEid(wk->senderEid),
                        &secInfo);
@@ -991,10 +954,10 @@ expected.", NULL);
     * the final selected security destination.      //   SB 3 Aug 2009
     */
 
-   // EJB: Don't need to read this. Can save a little processing...
+   /* TODO: Confirm that we can skip this read. at this point. */
    sdr_read(bpSdr, (char *) &asb, blk->object, blk->size);
    
-   bsp_getSecurityInfo(bundle, COR_BAB_TYPE, BSP_BAB_TYPE,  
+   bsp_getSecurityInfo(bundle, BSP_BAB_TYPE,
 		    getCustodianEid(ctxt->proxNodeEid),
 		    ctxt->proxNodeEid, &secInfo);
 
@@ -1049,7 +1012,6 @@ expected.", NULL);
          lyst_insert_last(eidRefs,
       (void *) (tmp = bundle->destination.d.nssOffset));
       }
-      BSP_DEBUG_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", NULL);
    }
 
 
@@ -1065,8 +1027,10 @@ expected.", NULL);
        */
       asb.cipherFlags |= BSP_ASB_CORR;
 
-      //TODO: We can hve nested BABs now, so need to be smarter regarding
-      //      Correlators.
+      /*
+       *  TODO: Spec does allow for nested BABs.  May need to enumerate correlators
+       *        if we choose to support this.
+       */
       asb.correlator = BAB_CORRELATOR;
 
       /* Serialize the Abstract Security Block. */
@@ -1223,7 +1187,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
       return NULL;
    }
 
-   BSP_DEBUG_INFO("ED: context length is %d", authCtxLen);
+   BSP_DEBUG_INFO("i bsp_babGetSecResult: context length is %d", authCtxLen);
 
    if((authContext = MTAKE(authCtxLen)) == NULL)
    {
@@ -1233,8 +1197,6 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
       BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
       return NULL;
    }
-
-   BSP_DEBUG_INFO("ED: allocated context.", NULL);
 
    /*   Prepare the data for processing. */
    /**   \todo: watch pointer arithmetic if sizeof(char) != 1      */
@@ -1246,8 +1208,8 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    hmac_sha1_init(authContext, (unsigned char *)keyValue, keyLen);
    bytesRemaining = dataLen;
 
-   BSP_DEBUG_INFO("ED: size is %d", bytesRemaining);
-   BSP_DEBUG_INFO("ED: Key value is %s and key length is %d", keyValue, keyLen);
+   BSP_DEBUG_INFO("i bsp_babGetSecResult: size is %d", bytesRemaining);
+   BSP_DEBUG_INFO("i bsp_babGetSecResult: Key value is %s and key length is %d", keyValue, keyLen);
 
    while(bytesRemaining > 0)
    {
@@ -1259,7 +1221,6 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
      }
 
      /* Read in the appropriate number of bytes. */
-//EJB     sdr_begin_xn(bpSdr);
      bytesRetrieved = zco_transmit(bpSdr, &dataReader, chunkSize, dataBuffer);
 
      if(bytesRetrieved != chunkSize)
@@ -1304,7 +1265,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    return NULL;
    }
 
-   BSP_DEBUG_INFO("ED: allocated hash data.",NULL);
+   BSP_DEBUG_INFO("i bsp_babGetSecResult: allocated hash data.",NULL);
 
    /* Calculate the hash result. */
    hmac_sha1_final(authContext, hashData, BAB_HMAC_SHA1_RESULT_LEN);

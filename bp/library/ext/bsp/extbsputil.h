@@ -74,8 +74,7 @@ extern int extensionsCt;
 
 int extensionBlockTypeToInt(char *blockType);
 int extensionBlockTypeToString(unsigned char blockType, char *retVal);
-int bspTypeToString(int bspType, char *retVal);
-int bspTypeToInt(char *bspType);
+
 
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *
@@ -83,7 +82,7 @@ int bspTypeToInt(char *bspType);
 
 extern char gMsg[256];
 
-/** \todo remove this and require that it be passed in on the command line. */
+/* TODO: Consider making this read in from ionsecadmin? */
 #define BSP_DEBUGGING 1  /** Whether to enable (1) or disable (0) debugging */
 
 #define BSP_DEBUG_LVL_PROC 1 /** Function entry/exit and above debugging */
@@ -183,9 +182,6 @@ extern char gMsg[256];
 
 /** 
  * BAB Block Type Fields 
- * 
- * \todo: 
- * 1: Consider making these enum fields
  */
 #define PAYLOAD_BLOCK_TYPE  0x01 /* The type of a payload block*/
 #define BSP_BAB_TYPE  0x02 /** pre-payload bab block type.  */
@@ -223,6 +219,13 @@ extern char gMsg[256];
 /*****************************************************************************
  *                        BSP MODULE VARIABLE DEFINITIONS                    *
  *****************************************************************************/
+
+/*
+ * At times it is useful to identify which block types manage correlation
+ * information.  For BSP we set up specific enumerations for these so as to
+ * not confuse them with the block types themselves and, thus, imply a
+ * correlation.
+ */
 #define COR_BAB_TYPE 0
 #define COR_PIB_TYPE 1
 #define COR_PCB_TYPE 2
@@ -260,6 +263,34 @@ typedef struct {
 /*****************************************************************************
  *                             FUNCTION DEFINITIONS                          *
  *****************************************************************************/
+
+
+/*****************************************************************************
+ *
+ * \par Function Name: getCustodianEid
+ *
+ * \par Purpose: This utilitity function returns the custodian node number
+ *               for the peer ID given. The EID is used to identify a scheme,
+ *               and the custodian EID for the scheme is returned.  Note: The
+ *               peer ID may actually refer to a different node than
+ *               the current node.  For example, if we are communicating
+ *               with a "far" node in scheme "A", we may pass in the far
+ *               node's EID to determine our own, local custodian EID
+ *               for scheme "A".
+ *
+ * \par Date Written: 2/28/2011
+ *
+ * \retval char * -- Custodian EID (e.g., ipn:1.0)
+ *
+ * \param[in] peerEid - EID string of the destination(?) endpoint.
+ *
+ * \par Revision History:
+ *
+ * MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
+ * --------  ------------  ------------------------------------------------
+ * 02/28/11  E. Birrane            Initial implementation
+ * **************************************************************************/
+char * getCustodianEid(char *peerEid);
 
 
 /*****************************************************************************
@@ -482,50 +513,23 @@ unsigned char *bsp_serializeASB(unsigned int *length,
  *
  * \param[in]  bundle    The bundle that holding the block whose security
  *                       information is being requested.
- * \param[in]  which     Whether we are receiving or transmitting the block.
  * \param]in]  blockType The block whose key information is being requested.
  * \param[in]  bspType   The type of BSP block whose key is being requested.
- * \param[in]  eidString The name of the source endpoint.
- * \param[out] scratch   The block scratchpad holding security information for 
+ * \param[in]  eidSourceString The name of the source endpoint.
+ * \param[in]  eidDestString The name of the destination endpoint.
+ * \param[out] secInfo   The block scratchpad holding security information for
  *                       this block.
  * 
- * \par Notes: 
- * The relationship between blockType and bspType is as follows:
- *
- *    Block Type | BSP Type
- *    -----------+----------
- *      BAB      |  BAB
- *    -----------+----------
- *      Payload  |  PIB
- *      PIB      |  PIB
- *      PCB      |  PIB
- *    -----------+----------
- *      Payload  |  PCB
- *      PIB      |  PCB
- *      PCB      |  PCB
- *    -----------+----------
- *      <any>    |  ESB
- *
  * \par Revision History:
  * 
  *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
  *  --------  ------------  -----------------------------------------------
  *  06/02/09  E. Birrane           Initial Implementation.
  *  06/18/09  E. Birrane           Re-write to incorporate Other BSP blocks
+ *  02/10/11  E. Birrane           Updated based on ionsecadmin changes.
  *****************************************************************************/
 
-#if 0
-void bsp_getSecurityInfo(Bundle *bundle, 
-                         int which,
-                         unsigned char blockType,
-                         int bspType,
-                         char *eidSourceString,
-                         char *eidDestString,
-                         BspSecurityInfo *secInfo);
-#endif
-
 void bsp_getSecurityInfo(	Bundle * bundle,
-			unsigned char blockType,
 			int bspType,
 			char * eidSourceString,
 			char * eidDestString,

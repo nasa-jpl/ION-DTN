@@ -10,13 +10,7 @@
  **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
-/*********
-EJB
-1. In offer, just fake size NO need to allocate ASB that we may not use.
-2. Do we ever need to write the asb to the sdr? Pre doesn't seem to ever need it
-3. On post, do we need ASB in the SDR? Not for dequeue. Maybe for xmit, but xmit may
-		just be able to de-serialize??
- ***********/
+
 
 /*****************************************************************************
  ** \file extbsp.c
@@ -77,6 +71,42 @@ EJB
  *                            VARIABLE DEFINITIONS                           *
  *****************************************************************************/
 
+
+/* If we are only in 1 scheme, return custodian EID for that scheme. If we
+   are in  multiple schemes, return custodian EID for the peerEid given.
+*/
+
+char * getCustodianEid(char *peerEid)
+{
+  char *temp = NULL;
+
+   VScheme	*vscheme = NULL;
+   PsmAddress	vschemeElt;
+   MetaEid	metaEid;
+
+   int len = strlen(peerEid);
+   if((temp = MTAKE(len + 1)) == 0)
+   {
+     BSP_DEBUG_ERR("x getCustodianEid: Unable to allocate EID of size %d", len + 1);
+     return NULL;  
+   }
+  
+   strcpy(temp, peerEid);
+   
+   if (parseEidString(temp, &metaEid, &vscheme, &vschemeElt) == 0)
+   {
+      BSP_DEBUG_ERR("x getCustodianEid: Cannot find scheme for dest EID: %s", temp);
+      MRELEASE(temp);
+      return NULL;
+   }
+
+   MRELEASE(temp);
+   return vscheme->custodianEidString;
+}
+
+
+
+
 /** \var gMsg
  * Global variable used to hold a constructed error message. NOT RE-ENTRANT! 
  * This is accessed by the BSP_DEBUG macros.
@@ -127,52 +157,6 @@ int extensionBlockTypeToString(unsigned char blockType, char *s)
 	return -1;
 }
 
-int bspTypeToString(int bspType, char *s)
-{
-	switch (bspType)
-	{
-	case COR_BAB_TYPE:
-		strcat(s,"BAB");
-		break;
-	case COR_PIB_TYPE:
-		strcat(s,"PIB");
-		break;
-	case COR_PCB_TYPE:
-		strcat(s,"PCB");
-		break;
-	case COR_ESB_TYPE:
-		strcat(s,"ESB");
-		break;
-	default:
-		strcat(s," ");
-		return -1;
-		break;
-	}
-	return 1;
-}
-int bspTypeToInt(char *bspType)
-{
-	CHKERR(bspType);
-
-	if (strcmp(bspType, "BAB") == 0)
-		return COR_BAB_TYPE;
-	else if (strcmp(bspType, "bab") == 0)
-		return COR_BAB_TYPE;
-	else if (strcmp(bspType, "PIB") == 0)
-		return COR_PIB_TYPE;
-	else if (strcmp(bspType, "pib") == 0)
-		return COR_PIB_TYPE;
-	else if (strcmp(bspType, "PCB") == 0)
-		return COR_PCB_TYPE;
-	else if (strcmp(bspType, "pcb") == 0)
-		return COR_PCB_TYPE;
-	else if (strcmp(bspType, "ESB") == 0)
-		return COR_ESB_TYPE;
-	else if (strcmp(bspType, "esb") == 0)
-		return COR_ESB_TYPE;
-
-	return -1;
-}
 
 
 
@@ -729,7 +713,6 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
  *
  * \param[in]  bundle    The bundle that holding the block whose security
  *                       information is being requested.
- * \param]in]  blockType The block whose key information is being requested.
  * \param[in]  bspType   The type of BSP block whose key is being requested.
  * \param[in]  eidSourceString The name of the source endpoint.
  * \param[in]  eidDestString The name of the destination endpoint.
@@ -738,14 +721,13 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
  *****************************************************************************/
 
 void bsp_getSecurityInfo(Bundle *bundle, 
-		unsigned char blockType,
 		int bspType,
 		char *eidSourceString,
 		char *eidDestString,
 		BspSecurityInfo *secInfo)
 {
-	BSP_DEBUG_PROC("+ bsp_getSecurityInfo(0x%08x, 0x%02x, %d, %s, %s, 0x%08x)",
-			(unsigned long) bundle, blockType, bspType, eidSourceString, eidDestString,(unsigned long) secInfo);
+	BSP_DEBUG_PROC("+ bsp_getSecurityInfo(0x%08x, %d, %s, %s, 0x%08x)",
+			(unsigned long) bundle, bspType, eidSourceString, eidDestString,(unsigned long) secInfo);
 
 	secInfo->cipherKeyName[0] = '\0';
 
@@ -764,7 +746,7 @@ void bsp_getSecurityInfo(Bundle *bundle,
 		Object eltp;
 
 
-                if(bspType == BSP_BAB_TYPE)
+		if(bspType == BSP_BAB_TYPE)
 		{
 			OBJ_POINTER(BspBabRule, babRule);
 			int result;
@@ -773,8 +755,7 @@ void bsp_getSecurityInfo(Bundle *bundle,
 
 			if((result == -1) || (eltp == 0))
 			{
-// EJB TODO: Make this INFO again...
-				BSP_DEBUG_ERR("x bsp_getSecurityInfo: No TX/RX entry for EID %s.", eidSourceString);
+				BSP_DEBUG_INFO("i bsp_getSecurityInfo: No TX/RX entry for EID %s.", eidSourceString);
 			}
 			else
 			{
@@ -785,8 +766,7 @@ void bsp_getSecurityInfo(Bundle *bundle,
 				{
 					istrcpy(secInfo->cipherKeyName, babRule->keyName, sizeof(secInfo->cipherKeyName));
 				}
-// EJB TODO: Make this info again. 
-				BSP_DEBUG_ERR("i bsp_getSecurityInfo: get TX/RX key name of '%s'", secInfo->cipherKeyName);
+				BSP_DEBUG_INFO("i bsp_getSecurityInfo: get TX/RX key name of '%s'", secInfo->cipherKeyName);
 			}
 		}
 	}

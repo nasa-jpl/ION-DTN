@@ -12,7 +12,7 @@
 #include "ionsec.h"
 
 
-static int eidsMatch(char *searchEid, int searchEidLen, char *valueEid, int valueEidLen);
+static int eidsMatch(char *firstEid, int firstEidLen, char *secondEid, int secondEidLen);
 
 static char	*_secDbName()
 {
@@ -140,27 +140,74 @@ Object	getSecDbObject()
 	return _secdbObject(NULL);
 }
 
+int bspTypeToString(int bspType, char *s)
+{
+	switch (bspType)
+	{
+	case BSP_BAB_TYPE:
+		strcat(s,"BAB");
+		break;
+	case BSP_PIB_TYPE:
+		strcat(s,"PIB");
+		break;
+	case BSP_PCB_TYPE:
+		strcat(s,"PCB");
+		break;
+	case BSP_ESB_TYPE:
+		strcat(s,"ESB");
+		break;
+	default:
+		strcat(s," ");
+		return -1;
+		break;
+	}
+	return 1;
+}
+
+int bspTypeToInt(char *bspType)
+{
+	CHKERR(bspType);
 
 
+	if (strcmp(bspType, "BAB") == 0)
+		return BSP_BAB_TYPE;
+	else if (strcmp(bspType, "bab") == 0)
+		return BSP_BAB_TYPE;
+	else if (strcmp(bspType, "PIB") == 0)
+		return BSP_PIB_TYPE;
+	else if (strcmp(bspType, "pib") == 0)
+		return BSP_PIB_TYPE;
+	else if (strcmp(bspType, "PCB") == 0)
+		return BSP_PCB_TYPE;
+	else if (strcmp(bspType, "pcb") == 0)
+		return BSP_PCB_TYPE;
+	else if (strcmp(bspType, "ESB") == 0)
+		return BSP_ESB_TYPE;
+	else if (strcmp(bspType, "esb") == 0)
+		return BSP_ESB_TYPE;
+
+	return -1;
+}
 
 
-/* EJB: Need to update man page for ionClear. Also, if we get a 
-        wildcard, how do we know which rx EIDS match us? What
-        about PIBs and other security blocks? Can we rename this command?
-*/
-
-/* BVB: Usage is as follows:
-	(1) eid = NULL, or *eid={'~', '\0'} -- Will remove ALL BSP BAB rules.
-	(2) Anything else, then will only remove specific rules
-
-   2011-02-22
-*/
-
-
-/* block type: bab, pib, pcb, esb.  ~ implies all block types.
-   destEid implies rules whose security destination eid matches.
-   srcEid implies rules whose security srouce mateches.
-*/
+/******************************************************************************
+ *
+ * \par Function Name: ionClear 
+ *
+ * \par Purpose: Clears bsp rules configured on the node.  Rules are 
+ *               identified by their security source and security destination
+ *               and targetted BSP block type.  For EIDs, ~ is accepted as a
+ *               end-of-string wildcard.
+ *
+ * \param[in]  srcEid  The security source of all rules being cleared. This
+ *                     may be "~" to match all security sources.
+ *             destEid The security destination of all rules being cleared.
+ *                     This may be "~" to match all security destinations.
+ *             blockType This is the BSP block of the rule to be cleared. 
+ *                       This is one of "bab", "pib", "pcb", "esb" or 
+ *                       "~" to match all block types.
+ * \par Notes:
+ *****************************************************************************/
 
 void	ionClear(char *srcEid, char *destEid, char *blockType)
 {
@@ -174,7 +221,6 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
         int curEidLen;
 	char eidBuffer[SDRSTRING_BUFSZ];
 
-/* Check to be sure none of these are null... */
         CHKVOID(srcEid);
         CHKVOID(destEid);
         CHKVOID(blockType);
@@ -188,7 +234,7 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
 	srcEidLen = strlen(srcEid);
 	destEidLen = strlen(destEid);
 
-       	if (blockType[0] == '~' || (strncmp(blockType,"bab",3) == 0))
+       	if ((blockType[0] == '~') || (bspTypeToInt(blockType) == BSP_BAB_TYPE))
        	{
         	// For each bab rule, if src/dest match, delete it.  
          	OBJ_POINTER(BspBabRule, rule);
@@ -234,6 +280,7 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
 	}
 
 
+	/* TODO: Implement as we add additional security block types. */
        	if (blockType[0] == '~' || (strncmp(blockType,"pib",3) == 0))
         {
         }
@@ -628,61 +675,80 @@ static int	filterEid(char *outputEid, char *inputEid)
 }
 
 
-/* Returns whether a valueEid matches a searchEid. */
-/* EJB: Update to match if either has a wildcard. */
+/******************************************************************************
+ *
+ * \par Function Name: eidsMatch 
+ *
+ * \par Purpose: This function accepts two string EIDs and determines if they
+ *               match.  Significantly, each EID may contain an end-of-string
+ *               wildcard character ("~"). For example, the two EIDs compared
+ *               can be "ipn:1.~" and "ipn~".
+ *
+ * \retval int -- 1 - The EIDs matched, counting wildcards.
+ *                0 - The EIDs did not match.
+ *
+ * \param[in]  firstEid     The first EID to compare. 
+ *             firstEidLen  The length of the first EID string.
+ *             secondEid    The second EID to compare.
+ *             secondEidLen The length of the second EID string.
+ *
+ * \par Notes:
+ *****************************************************************************/
 
-/* ipn:1.~        ipn~ */
-int eidsMatch(char *searchEid, int searchEidLen, char *valueEid, int valueEidLen)
+int eidsMatch(char *firstEid, int firstEidLen, char *secondEid, int secondEidLen)
 {
 	int result = 1;
-        int eid1_pos = -1, eid2_pos = -1;
+	int firstPos = -1, secondPos = -1;
 
-        CHKERR(searchEid);
-        CHKERR(valueEid);
+	CHKERR(firstEid);
+	CHKERR(secondEid);
 
-        if(valueEid[valueEidLen-1] == '~')
-        {
-          eid2_pos = valueEidLen-1;
-        }
 
-        if(searchEid[searchEidLen-1] == '~')
-        {
-          eid1_pos = searchEidLen - 1;
-        }
+	/*
+	 * First, determine if (and the pos) of end-of-line wildcards.
+	 */
+	if(firstEid[firstEidLen-1] == '~')
+	{
+		firstPos = firstEidLen - 1;
+	}
 
-        if((eid1_pos == 0) || (eid2_pos == 0))
-        {
-          result = 0;
-        }
-        else if((eid1_pos > 0) && (eid2_pos > 0))
-        {
-          result = strncmp(searchEid, valueEid, MIN(eid1_pos, eid2_pos));      
-        }
-        else if(eid1_pos > 0)
-        {
-          result = strncmp(searchEid, valueEid, MIN(eid1_pos, valueEidLen));
-        }
-        else if(eid2_pos > 0)
-        {
-          result = strncmp(searchEid, valueEid, MIN(searchEidLen, eid2_pos));
-        }
-        else 
-        {
-          result = strcmp(searchEid, valueEid);
-        }
+	if(secondEid[secondEidLen-1] == '~')
+	{
+		secondPos = secondEidLen-1;
+	}
 
+
+    /* If both EIDs are wildcards, this is a match. */
+	if((firstPos == 0) || (secondPos == 0))
+	{
+	  result = 0;
+	}
+
+	/* If one/the other/both EIDs have wildcards, do a compare
+	 * up to the shortest length. */
+	else if((firstPos > 0) && (secondPos > 0))
+	{
+	  result = strncmp(firstEid, secondEid, MIN(firstPos, secondPos));
+	}
+	else if(firstPos > 0)
+	{
+	  result = strncmp(firstEid, secondEid, MIN(firstPos, secondEidLen));
+	}
+	else if(secondPos > 0)
+	{
+	  result = strncmp(firstEid, secondEid, MIN(firstEidLen, secondPos));
+	}
+
+	/* If no wildcards are used, do a regular compare. */
+	else
+	{
+	  result = strcmp(firstEid, secondEid);
+	}
+
+	/* If we have no differences, the EIDs must match. */
 	return (result == 0);
 }
 
-int	sec_get_bspBabTxRule(char *destEid, Object *ruleAddr, Object *eltp)
-{
-	return sec_get_bspBabRule("~", destEid, ruleAddr, eltp);
-}
-
-int	sec_get_bspBabRxRule(char *srcEid, Object *ruleAddr, Object *eltp)
-{
-	return sec_get_bspBabRule(srcEid, "~", ruleAddr, eltp);
-}
 
 int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *eltp)
 {
@@ -703,6 +769,7 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *el
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
+
 	if (secAttach() < 0)
 	{
 		writeMemo("[?] sec_get_bspBabRule can't find ION security.");
@@ -720,18 +787,16 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *el
 		/* If destinations match... */
 		if(eidsMatch(eidBuffer, eidLen, destEid, strlen(destEid)) == 1)
 		{
-			writeMemo("EJB: Destinations match.");
 			eidLen = sdr_string_read(sdr, eidBuffer, rule->securitySrcEid);
+
 			/* If sources match ... */
 			if(eidsMatch(eidBuffer, eidLen, srcEid, strlen(srcEid)) == 1)
 			{
-			writeMemo("EJB: Sources match.");
 				result = 1;
 				*eltp = elt;	/*	Exact match.	*/
 				break;		/*	Stop searching.	*/
 			}
 		}
-		/* EJB: Should keep this clean on no match.*/
 		*ruleAddr = 0;
 	}
 
@@ -742,14 +807,12 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *el
 /* 1 if found. 0 if not. and -1 on error. */
 int	sec_findBspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *eltp)
 {
-	/*	This function finds the BspBabRule for the specified
-	 *	endpoint, if any.					*/
-
 	CHKERR(srcEid);
 	CHKERR(destEid);
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
+
 	if (secAttach() < 0)
 	{
 		writeMemo("[?] sec_findBspBabRule can't find ION security.");
@@ -828,7 +891,7 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName, char *
 		return -1;
 	}
 
-	/* EJB: We no longer sort the rules list */
+	/* No longer sort the rules list */
 	elt = sdr_list_insert_last(sdr, secdb->bspBabRules,ruleObj);
 
 	sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BspBabRule));
@@ -1000,7 +1063,7 @@ int	sec_get_bspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr, Obje
 				break;		/*	Stop searching.	*/
 			}
 		}
-		/* EJB: Should keep this clean on no match.*/
+
 		*ruleAddr = 0;
 	}
 
@@ -1096,7 +1159,6 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr, char 
 		return -1;
 	}
 
-	/* EJB: We no longer sort the rules list */
 	elt = sdr_list_insert_last(sdr, secdb->bspPibRules,ruleObj);
 
 	sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BspPibRule));

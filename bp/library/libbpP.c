@@ -1667,15 +1667,10 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 		idLen = neighborIdLen < ductIdLen ? neighborIdLen : ductIdLen;
 	}
 
-writeMemoNote("EJB: neighbotClId", neighborClId);
-writeMemoNote("EJBL ductClId", ductClId);
-writeMemoNote("EJBL idLen", itoa(idLen));
-
 	if (strncmp(neighborClId, ductClId, idLen) == 0)
 	{
 		return 1;		/*	Found neighbor's duct.	*/
 	}
-writeMemo("EJB: Did not match.");
 
 	return 0;			/*	A different neighbor.	*/
 }
@@ -5576,8 +5571,6 @@ int	bpBeginAcq(AcqWorkArea *work, int authentic, char *senderEid)
 {
 	int	eidLen;
 
-writeMemoNote("EJB: SenderEID from CL is: ", senderEid);
-
 	CHKERR(work);
 
 	/*	Re-initialize the per-bundle parameters.		*/
@@ -6439,7 +6432,7 @@ void	initAuthenticity(AcqWorkArea *work)
 		return;			/*	So can't be authentic.	*/
 	}
 
-	sec_get_bspBabRxRule(work->senderEid, &ruleAddr, &elt);
+	sec_findBspBabRule(work->senderEid, getCustodianEid(work->senderEid), &ruleAddr, &elt);
 	if (elt)
 	{
 		GET_OBJ_POINTER(bpSdr, BspBabRule, rule, ruleAddr);

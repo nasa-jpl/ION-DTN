@@ -208,7 +208,6 @@ int 	copyCollaborationBlocks(Bundle *newBundle,
  * \param[out] newBundle The Bundle receiving the copied blocks
  * \param[in]  oldBundle The Bundle containing the original blocks.
  * \par Notes:
- * TODO: Need to verify that we have no memory leaks on failure...
  * \par Revision History:
  *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
  *  --------  ------------  ------ ----------------------------------------

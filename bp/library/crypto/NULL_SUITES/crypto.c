@@ -18,7 +18,7 @@
 
 int hmac_sha1_context_length()
 {
-	// EJB Made it maximum
+	// Made it maximum
 	return 20; 
 }
 
