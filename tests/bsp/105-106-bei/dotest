@@ -86,6 +86,7 @@ q
 ENDOFIONSECADMINCOMMANDS
 IONMESSAGE="$( date ) using BAB"
 bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE"
+sleep 2
 predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
 
 if tryreceive
@@ -95,8 +96,6 @@ else
     echo "BAB authentication failed."
     PASS=0
 fi
-
-echo
 
 echo "Stopping bpsink"
 kill -2 $BPSINKPID >/dev/null 2>&1
