@@ -14,9 +14,9 @@ When B<amsshell> is started, it registers as an application module in the
 unit identified by I<unit_name> of the venture identified by
 I<application_name> and I<authority_name>; the role in which it registers
 must be indicated in I<role_name>.  A configuration server for the local
-continuum and a registrar for the root unit of the indicated venture (which
-may both be instantiated in a single B<amsd> daemon task) must be running
-in order for B<amsshell> to run.
+continuum and a registrar for the indicated unit of the indicated venture
+(which may both be instantiated in a single B<amsd> daemon task) must be
+running in order for B<amsshell> to run.
 
 B<amsshell> runs as two threads: a background thread that receives watches
 for AMS configuration events (including shutdown), together with a foreground

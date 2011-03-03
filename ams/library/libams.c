@@ -550,26 +550,29 @@ static UnmarshalFn	findUnmarshalFn(Subject *subject)
 
 	for (i = 0; i < unmarshalRulesCount; i++)
 	{
-		if (unmarshalRules[i].name == subject->unmarshalFnName)
+		if (strcmp(unmarshalRules[i].name, subject->unmarshalFnName)
+				== 0)
 		{
 			return unmarshalRules[i].function;
 		}
 	}
-	
+
 	return NULL;
 }
 
-static int	recoverMsgContent(AmsMsg *msg, Subject *subject)
+static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 {
 	char		*newContent;
 	int		newContentLength;
 	UnmarshalFn	unmarshal;
 	char		keyBuffer[512];
 	int		keyBufferLength = sizeof keyBuffer;
+	int		keyLength;
 
 	/*	Decrypt content as necessary.				*/
 
-	if (subject->nbr < 0			/*	RAMS		*/
+	if (sap->role->nbr == 1			/*	RAMS		*/
+		/*	If encrypted, leave it so for transmission.	*/
 	|| subject->symmetricKeyName == NULL)	/*	not encrypted	*/
 	{
 		newContentLength = msg->contentLength;
@@ -586,8 +589,9 @@ static int	recoverMsgContent(AmsMsg *msg, Subject *subject)
 	}
 	else
 	{
-		if (sec_get_key(subject->symmetricKeyName, &keyBufferLength,
-				keyBuffer) <= 0)
+		keyLength = sec_get_key(subject->symmetricKeyName,
+				&keyBufferLength, keyBuffer);
+		if (keyLength <= 0)
 		{
 			putErrmsg("Can't fetch symmetric key.",
 					subject->symmetricKeyName);
@@ -596,7 +600,7 @@ static int	recoverMsgContent(AmsMsg *msg, Subject *subject)
 		}
 
 		newContentLength = decryptUsingSymmetricKey(&newContent,
-				keyBuffer, keyBufferLength, msg->content,
+				keyBuffer, keyLength, msg->content,
 				msg->contentLength);
 		if (newContentLength == 0)
 		{
@@ -612,7 +616,17 @@ static int	recoverMsgContent(AmsMsg *msg, Subject *subject)
 
 	/*	Unmarshal content as necessary.				*/
 
-	unmarshal = findUnmarshalFn(subject);
+	if (sap->role->nbr == 1)		/*	RAMS		*/
+	{
+		/*	If marshaled, leave it so for transmission.	*/
+
+		unmarshal = NULL;
+	}
+	else
+	{
+		unmarshal = findUnmarshalFn(subject);
+	}
+
 	if (unmarshal == NULL)
 	{
 		return 0;	/*	Original content recovered.	*/
@@ -823,7 +837,7 @@ unsolicited message.", subject->name);
 	else
 	{
 		msg.content = msgContent;
-		if (recoverMsgContent(&msg, subject) < 0)
+		if (recoverMsgContent(sap, &msg, subject) < 0)
 		{
 			return -1;
 		}
@@ -851,12 +865,12 @@ static MarshalFn	findMarshalFn(Subject *subject)
 
 	for (i = 0; i < marshalRulesCount; i++)
 	{
-		if (marshalRules[i].name == subject->marshalFnName)
+		if (strcmp(marshalRules[i].name, subject->marshalFnName) == 0)
 		{
 			return marshalRules[i].function;
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -875,6 +889,7 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	int		newContentLength;
 	char		keyBuffer[512];
 	int		keyBufferLength = sizeof keyBuffer;
+	int		keyLength;
 
 	/*	First octet is two bits of version number (which is
 	 *	always 00 for now) followed by two bits of message
@@ -896,8 +911,6 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	memcpy(header + 8, (char *) &context, 4);
 	i2 = htons(subjectNbr);
 	memcpy(header + 12, (char *) &i2, 2);
-	*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
-	*(header + 15) = (*contentLength) & 0x000000ff;
 	if (subjectNbr > 0)
 	{
 		subject = sap->venture->subjects[subjectNbr];
@@ -909,7 +922,17 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 
 	/*	Marshal content as necessary.				*/
 
-	marshal = findMarshalFn(subject);
+	if (sap->role->nbr == 1)		/*	RAMS		*/
+	{
+		/*	If message needs marshaling, it's already done.	*/
+
+		marshal = NULL;
+	}
+	else
+	{
+		marshal = findMarshalFn(subject);
+	}
+
 	if (marshal)
 	{
 		newContentLength = marshal(&newContent, (void *) *content,
@@ -940,14 +963,18 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 
 	/*	Encrypt content as necessary.				*/
 
-	if (subject->nbr < 0			/*	RAMS		*/
-	|| subject->symmetricKeyName == NULL)	/*	not encrypted	*/
+	if (sap->role->nbr == 1			/*	RAMS		*/
+		/*	If message needs encryption, it's already done.	*/
+	|| subject->symmetricKeyName == NULL)	/*	no encryption	*/
 	{
+		*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
+		*(header + 15) = (*contentLength) & 0x000000ff;
 		return 0;	/*	Content is ready to send.	*/
 	}
 
-	if (sec_get_key(subject->symmetricKeyName, &keyBufferLength, keyBuffer)
-			<= 0)
+	keyLength = sec_get_key(subject->symmetricKeyName, &keyBufferLength,
+			keyBuffer);
+	if (keyLength <= 0)
 	{
 		putErrmsg("Can't fetch symmetric key.",
 				subject->symmetricKeyName);
@@ -957,7 +984,7 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	}
 
 	newContentLength = encryptUsingSymmetricKey(&newContent, keyBuffer,
-			keyBufferLength, *content, *contentLength);
+			keyLength, *content, *contentLength);
 	if (newContentLength == 0)
 	{
 		putErrmsg("Can't encrypt AAMS msg content.", subject->name);
@@ -968,6 +995,8 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 
 	*content = newContent;
 	*contentLength = newContentLength;
+	*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
+	*(header + 15) = (*contentLength) & 0x000000ff;
 	return 0;
 }
 
