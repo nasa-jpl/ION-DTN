@@ -67,6 +67,7 @@
  * calculated.
  */ 
 #include "bpP.h" 
+#include "bei.h"
 
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *
@@ -80,7 +81,7 @@
 #define BSP_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BSP_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define BSP_DEBUG_LVL BSP_DEBUG_LVL_WARN
+#define BSP_DEBUG_LVL BSP_DEBUG_LVL_PROC
 
 /**
  * \def BSP_DEBUG

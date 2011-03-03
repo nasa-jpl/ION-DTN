@@ -9,6 +9,8 @@
  *	Author: Scott Burleigh, JPL
  */
 
+#include "bei.h"
+
 #define	EXTENSION_TYPE_ECOS	19
 
 extern int	ecos_offer(ExtensionBlock *, Bundle *);

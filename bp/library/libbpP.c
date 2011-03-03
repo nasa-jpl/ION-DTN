@@ -51,9 +51,9 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 			BpCtReason reasonCode);
 static BpVdb	*_bpvdb(char **);
 #ifdef BP_EXTENDED
-#include "bpextensions.c"
+#include "ext/bpextensions.c"
 #else
-#include "noextensions.c"
+#include "ext/noextensions.c"
 #endif
 
 /*	*	*	Helpful utility functions	*	*	*/
@@ -1200,13 +1200,13 @@ void	manageProductionThrottle(BpVdb *bpvdb)
 	}
 }
 
-static void	noteBundleInserted(Bundle *bundle)
+void	noteBundleInserted(Bundle *bundle)
 {
 	ionOccupy(bundle->dbTotal);
 	manageProductionThrottle(getBpVdb());
 }
 
-static void	noteBundleRemoved(Bundle *bundle)
+void	noteBundleRemoved(Bundle *bundle)
 {
 	ionVacate(bundle->dbTotal);
 	manageProductionThrottle(getBpVdb());
@@ -1555,6 +1555,7 @@ BpEidLookupFn	*senderEidLookupFunctions(BpEidLookupFn fn)
 
 	if (fn == NULL)		/*	Requesting pointer to table.	*/
 	{
+writeMemo("fn is null. returning FNS.");
 		return fns;
 	}
 
@@ -1595,6 +1596,7 @@ void	getSenderEid(char **eidBuffer, char *neighborClId)
 	istrcpy(*uriBuffer, "dtn::", 6);
 	uriBuffer += 5;
 #endif
+
 	lookupFns = senderEidLookupFunctions(NULL);
 	for (i = 0; i < 16; i++)
 	{
@@ -1603,7 +1605,6 @@ void	getSenderEid(char **eidBuffer, char *neighborClId)
 		{
 			break;		/*	Reached end of table.	*/
 		}
-
 		switch (lookupEid(uriBuffer, neighborClId))
 		{
 		case -1:
@@ -1617,7 +1618,6 @@ void	getSenderEid(char **eidBuffer, char *neighborClId)
 			return;		/*	Figured out sender EID.	*/
 		}
 	}
-
 	*eidBuffer = NULL;	/*	Sender EID not found.		*/
 }
 
@@ -1911,150 +1911,6 @@ void	reportAllStateStats()
 	}
 }
 
-static ExtensionDef	*findExtensionDef(unsigned char type, unsigned char idx)
-{
-	int		i;
-	ExtensionDef	*def;
-
-	if (type == 0) return NULL;
-	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
-	{
-		if (def->type == type && def->listIdx == idx)
-		{
-			return def;
-		}
-	}
-
-	return NULL;
-}
-
-int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
-		char *blockData)
-{
-	Sdr		bpSdr = getIonsdr();
-	unsigned long	blkProcFlags = blk->blkProcFlags;
-	Sdnv		blkProcFlagsSdnv;
-	unsigned long	dataLength = blk->dataLength;
-	Sdnv		dataLengthSdnv;
-	int		listLength;
-	LystElt		elt;
-	unsigned long	offset;
-	Sdnv		offsetSdnv;
-	unsigned long	referenceCount;
-	Sdnv		referenceCountSdnv;
-	Object		newElt;
-	char		*blkBuffer;
-	char		*cursor;
-
-	if (blk->bytes)
-	{
-		sdr_free(bpSdr, blk->bytes);
-	}
-
-	blk->bytes = 0;
-	if (blk->eidReferences)
-	{
-		sdr_list_destroy(bpSdr, blk->eidReferences, NULL, NULL);
-	}
-
-	blk->eidReferences = 0;
-	encodeSdnv(&blkProcFlagsSdnv, blkProcFlags);
-	encodeSdnv(&dataLengthSdnv, dataLength);
-	blk->length = 1 + blkProcFlagsSdnv.length + dataLengthSdnv.length
-			+ dataLength;
-	if (eidReferences != NULL)
-	{
-		listLength = lyst_length(eidReferences);
-
-		/*	Each reference is a pair of offsets, i.e., two
-		 *	list elements.					*/
-
-		if (listLength & 0x00000001)	/*	Not pairs.	*/
-		{
-			putErrmsg("Invalid EID references list.", NULL);
-			return -1;
-		}
-
-		blkProcFlags |= BLK_HAS_EID_REFERENCES;
-		referenceCount = (listLength >> 1) & 0x7fffffff;
-		encodeSdnv(&referenceCountSdnv, referenceCount);
-		blk->length += referenceCountSdnv.length;
-		blk->eidReferences = sdr_list_create(bpSdr);
-		if (blk->eidReferences == 0)
-		{
-			putErrmsg("No space for EID references list.", NULL);
-			return -1;
-		}
-
-		for (elt = lyst_first(eidReferences); elt; elt = lyst_next(elt))
-		{
-			offset = (unsigned long) lyst_data(elt);
-			encodeSdnv(&offsetSdnv, offset);
-			blk->length += offsetSdnv.length;
-			newElt = sdr_list_insert_last(bpSdr,
-					blk->eidReferences, offset);
-		}
-	}
-
-	blk->bytes = sdr_malloc(bpSdr, blk->length);
-	if (blk->bytes == 0)
-	{
-		putErrmsg("No space for block.", itoa(blk->length));
-		return -1;
-	}
-
-	blkBuffer = MTAKE(blk->length);
-	if (blkBuffer == NULL)
-	{
-		putErrmsg("No space for block buffer.", itoa(blk->length));
-		return -1;
-	}
-
-	*blkBuffer = blk->type;
-	cursor = blkBuffer + 1;
-	memcpy(cursor, blkProcFlagsSdnv.text, blkProcFlagsSdnv.length);
-	cursor += blkProcFlagsSdnv.length;
-	if (eidReferences)
-	{
-		memcpy(cursor, referenceCountSdnv.text,
-				referenceCountSdnv.length);
-		cursor += referenceCountSdnv.length;
-		for (elt = lyst_first(eidReferences); elt; elt = lyst_next(elt))
-		{
-			offset = (unsigned long) lyst_data(elt);
-			encodeSdnv(&offsetSdnv, offset);
-			memcpy(cursor, offsetSdnv.text, offsetSdnv.length);
-			cursor += offsetSdnv.length;
-		}
-	}
-
-	memcpy(cursor, dataLengthSdnv.text, dataLengthSdnv.length);
-	cursor += dataLengthSdnv.length;
-	memcpy(cursor, blockData, dataLength);
-	sdr_write(bpSdr, blk->bytes, blkBuffer, blk->length);
-	MRELEASE(blkBuffer);
-	return 0;
-}
-
-void	discardExtensionBlock(AcqExtBlock *blk)
-{
-	blk->length = 0;
-}
-
-void	scratchExtensionBlock(ExtensionBlock *blk)
-{
-	blk->length = 0;
-}
-
-void	suppressExtensionBlock(ExtensionBlock *blk)
-{
-	blk->suppressed = 1;
-}
-
-void	restoreExtensionBlock(ExtensionBlock *blk)
-{
-	blk->suppressed = 0;
-}
 
 /*	*	*	Bundle destruction functions	*	*	*/
 
@@ -2213,62 +2069,7 @@ static void	purgeStationsStack(Bundle *bundle)
 	}
 }
 
-static void	deleteExtensionBlock(Object elt, unsigned int listIdx)
-{
-	Sdr		bpSdr = getIonsdr();
-	Object		blkAddr;
-			OBJ_POINTER(ExtensionBlock, blk);
-	ExtensionDef	*def;
 
-	blkAddr = sdr_list_data(bpSdr, elt);
-	sdr_list_delete(bpSdr, elt, NULL, NULL);
-	GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk, blkAddr);
-	def = findExtensionDef(blk->type, listIdx);
-	if (def && def->release)
-	{
-		def->release(blk);
-	}
-
-	if (blk->eidReferences)
-	{
-		sdr_list_destroy(bpSdr, blk->eidReferences, NULL, NULL);
-	}
-
-	if (blk->bytes)
-	{
-		sdr_free(bpSdr, blk->bytes);
-	}
-
-	sdr_free(bpSdr, blkAddr);
-}
-
-static void	destroyExtensionBlocks(Bundle *bundle)
-{
-	Sdr	bpSdr = getIonsdr();
-	int	i;
-	Object	elt;
-
-	for (i = 0; i < 2; i++)
-	{
-		if (bundle->extensions[i] == 0)
-		{
-			continue;
-		}
-
-		while (1)
-		{
-			elt = sdr_list_first(bpSdr, bundle->extensions[i]);
-			if (elt == 0)
-			{
-				break;
-			}
-
-			deleteExtensionBlock(elt, i);
-		}
-
-		sdr_list_destroy(bpSdr, bundle->extensions[i], NULL, NULL);
-	}
-}
 
 int	bpDestroyBundle(Object bundleObj, int ttlExpired)
 {
@@ -2456,6 +2257,9 @@ incomplete bundle.", NULL);
 	}
 
 	destroyExtensionBlocks(&bundle);
+
+        destroyCollaborationBlocks(&bundle);
+
 	purgeStationsStack(&bundle);
 	if (bundle.stations)
 	{
@@ -4068,203 +3872,7 @@ static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 	return 0;
 }
 
-static int	insertExtensionBlock(ExtensionDef *def, ExtensionBlock *newBlk,
-			Object blkAddr, Bundle *bundle, unsigned char listIdx)
-{
-	Sdr	bpSdr = getIonsdr();
-	int	result;
-	Object	elt;
-		OBJ_POINTER(ExtensionBlock, blk);
 
-	if (def == NULL)	/*	Don't care where this goes.	*/
-	{
-		if (listIdx == 0)	/*	Pre-payload block.	*/
-		{
-			/*	Insert after all pre-payload blocks
-			 *	inserted by the local node and after
-			 *	all preceding pre-payload blocks
-			 *	inserted by upstream nodes.		*/
-
-			newBlk->rank = 255;
-		}
-		else			/*	Post-payload block.	*/
-		{
-			/*	Insert *before* all post-payload blocks
-			 *	inserted by the local node and after
-			 *	all preceding post-payload blocks
-			 *	inserted by upstream nodes.		*/
-
-			newBlk->rank = 0;
-		}
-	}
-	else			/*	Order in list is important.	*/
-	{
-		newBlk->rank =
-			((unsigned long) def - (unsigned long) extensions)
-				/ sizeof(ExtensionDef);
-	}
-
-	for (elt = sdr_list_first(bpSdr, bundle->extensions[listIdx]);
-			elt; elt = sdr_list_next(bpSdr, elt))
-	{
-		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk,
-				sdr_list_data(bpSdr, elt));
-		if (blk->rank > newBlk->rank)
-		{
-			break;	/*	Found a higher-ranking block.	*/
-		}
-	}
-
-	if (elt)	/*	Add before first higher-ranking block.	*/
-	{
-		result = sdr_list_insert_before(bpSdr, elt, blkAddr);
-	}
-	else		/*	There is no higher-ranking block.	*/
-	{
-		result = sdr_list_insert_last(bpSdr,
-				bundle->extensions[listIdx], blkAddr);
-	}
-
-	if (result == 0)
-	{
-		putErrmsg("Failed inserting extension block.", NULL);
-		return -1;
-	}
-
-	sdr_write(bpSdr, blkAddr, (char *) newBlk, sizeof(ExtensionBlock));
-	return 0;
-}
-
-static int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
-{
-	Sdr		bpSdr = getIonsdr();
-	int		i;
-	Object		elt;
-	Object		blkAddr;
-			OBJ_POINTER(ExtensionBlock, oldBlk);
-	Object		newBlkAddr;
-	ExtensionBlock	newBlk;
-	char		*buf = NULL;
-	unsigned int	buflen = 0;
-	ExtensionDef	*def;
-
-	for (i = 0; i < 2; i++)
-	{
-		newBundle->extensions[i] = sdr_list_create(bpSdr);
-		if (newBundle->extensions[i] == 0)
-		{
-			putErrmsg("No space for extensions list.", NULL);
-			return -1;
-		}
-
-		if (oldBundle->extensions[i] == 0)
-		{
-			continue;
-		}
-
-		for (elt = sdr_list_first(bpSdr, oldBundle->extensions[i]); elt;
-				elt = sdr_list_next(bpSdr, elt))
-		{
-			blkAddr = sdr_list_data(bpSdr, elt);
-			GET_OBJ_POINTER(bpSdr, ExtensionBlock, oldBlk, blkAddr);
-			if (oldBlk->length > buflen)
-			{
-				if (buf)
-				{
-					MRELEASE(buf);
-				}
-
-				buflen = oldBlk->length;
-				buf = MTAKE(buflen);
-				if (buf == NULL)
-				{
-					putErrmsg("Extension too big to copy.",
-							itoa(buflen));
-					return -1;
-				}
-			}
-
-			memset((char *) &newBlk, 0, sizeof(ExtensionBlock));
-			newBlk.type = oldBlk->type;
-			newBlk.blkProcFlags = oldBlk->blkProcFlags;
-			newBlk.dataLength = oldBlk->dataLength;
-			if (oldBlk->eidReferences == 0)
-			{
-				newBlk.eidReferences = 0;
-			}
-			else
-			{
-				newBlk.eidReferences = sdr_list_create(bpSdr);
-				if (newBlk.eidReferences == 0)
-				{
-					putErrmsg("No space for EID refs list.",
-							NULL);
-					return -1;
-				}
-
-				for (elt = sdr_list_first(bpSdr,
-						oldBlk->eidReferences); elt;
-						elt = sdr_list_next(bpSdr, elt))
-				{
-					if (sdr_list_insert_last(bpSdr,
-						newBlk.eidReferences,
-						sdr_list_data(bpSdr, elt)) == 0)
-					{
-						putErrmsg("No space for EIDR.",
-							NULL);
-						return -1;
-					}
-				}
-			}
-
-			newBlk.length = oldBlk->length;
-			if (newBlk.length > 0)
-			{
-				newBlk.bytes = sdr_malloc(bpSdr, newBlk.length);
-				if (newBlk.bytes == 0)
-				{
-					putErrmsg("No space for block.",
-							utoa(newBlk.length));
-					return -1;
-				}
-
-				sdr_read(bpSdr, buf, oldBlk->bytes, buflen);
-				sdr_write(bpSdr, newBlk.bytes, buf, buflen);
-			}
-
-			def = findExtensionDef(oldBlk->type, i);
-			if (def && def->copy)
-			{
-				/*	Must copy extension object.	*/
-
-				def->copy(&newBlk, oldBlk);
-			}
-			else
-			{
-				newBlk.object = 0;
-				newBlk.size = 0;
-			}
-
-			newBlkAddr = sdr_malloc(bpSdr, sizeof(ExtensionBlock));
-			if (newBlkAddr == 0
-			|| insertExtensionBlock(def, &newBlk, newBlkAddr,
-					newBundle, i) < 0)
-			{
-				putErrmsg("Failed copying ext. block.", NULL);
-				return -1;
-			}
-		}
-
-		newBundle->extensionsLength[i] = oldBundle->extensionsLength[i];
-	}
-
-	if (buf)
-	{
-		MRELEASE(buf);
-	}
-
-	return 0;
-}
 
 static int	copyBundle(Bundle *newBundle, Object *newBundleObj,
 			Bundle *oldBundle)
@@ -4332,7 +3940,7 @@ static int	copyBundle(Bundle *newBundle, Object *newBundleObj,
 	return 0;
 }
 
-static void	adjustDbOverhead(Bundle *bundle, unsigned int oldLength,
+void	adjustDbOverhead(Bundle *bundle, unsigned int oldLength,
 			unsigned int newLength, unsigned int oldSize,
 			unsigned int newSize)
 {
@@ -4340,119 +3948,6 @@ static void	adjustDbOverhead(Bundle *bundle, unsigned int oldLength,
 	bundle->dbOverhead += newLength;
 	bundle->dbOverhead -= oldSize;
 	bundle->dbOverhead += newSize;
-}
-
-static int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
-{
-	Sdr			bpSdr = getIonsdr();
-	int			oldDbOverhead;
-	int			i;
-	Object			elt;
-	Object			nextElt;
-	Object			blkAddr;
-	ExtensionBlock		blk;
-	ExtensionDef		*def;
-	BpExtBlkProcessFn	processExtension;
-	unsigned int		oldLength;
-	unsigned int		oldSize;
-	unsigned int		wasSuppressed;
-
-	oldDbOverhead = bundle->dbOverhead;
-	for (i = 0; i < 2; i++)
-	{
-		if (bundle->extensions[i] == 0)
-		{
-			continue;
-		}
-
-		for (elt = sdr_list_first(bpSdr, bundle->extensions[i]); elt;
-				elt = nextElt)
-		{
-			nextElt = sdr_list_next(bpSdr, elt);
-			blkAddr = sdr_list_data(bpSdr, elt);
-			sdr_stage(bpSdr, (char *) &blk, blkAddr,
-					sizeof(ExtensionBlock));
-			def = findExtensionDef(blk.type, i);
-			if (def == NULL
-			|| (processExtension = def->process[fnIdx]) == NULL)
-			{
-				continue;
-			}
-
-			oldLength = blk.length;
-			oldSize = blk.size;
-			wasSuppressed = blk.suppressed;
-			if (processExtension(&blk, bundle, context) < 0)
-			{
-				putErrmsg("Failed processing extension block.",
-						def->name);
-				return -1;
-			}
-
-			if (blk.length == 0)	/*	Scratched.	*/
-			{
-				bundle->extensionsLength[i] -= oldLength;
-				adjustDbOverhead(bundle, oldLength, 0,
-						oldSize, 0);
-				deleteExtensionBlock(elt, i);
-				continue;
-			}
-
-			/*	Revise aggregate extensions length as
-			 *	necessary.				*/
-
-			if (wasSuppressed)
-			{
-				if (!blk.suppressed)	/*	restore	*/
-				{
-					bundle->extensionsLength[i]
-							+= blk.length;
-				}
-
-				/*	Still suppressed: no change.	*/
-			}
-			else	/*	Wasn't suppressed before.	*/
-			{
-				if (!blk.suppressed)
-				{
-					/*	Still not suppressed,
-					 *	but length may have
-					 *	changed.  Subtract the
-					 *	old length and add the
-					 *	new length.		*/
-
-					bundle->extensionsLength[i]
-							-= oldLength;
-					bundle->extensionsLength[i]
-							+= blk.length;
-				}
-				else	/*	Newly suppressed.	*/
-				{
-					bundle->extensionsLength[i]
-							-= oldLength;
-				}
-			}
-
-			if (blk.length != oldLength || blk.size != oldSize)
-			{
-				adjustDbOverhead(bundle, oldLength, blk.length,
-						oldSize, blk.size);
-			}
-
-			sdr_write(bpSdr, blkAddr, (char *) &blk,
-					sizeof(ExtensionBlock));
-		}
-	}
-
-	if (bundle->dbOverhead != oldDbOverhead)
-	{
-		noteBundleRemoved(bundle);
-		bundle->dbTotal -= oldDbOverhead;
-		bundle->dbTotal += bundle->dbOverhead;
-		noteBundleInserted(bundle);
-	}
-
-	return 0;
 }
 
 int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
@@ -4798,49 +4293,6 @@ static char	*loadDtnEids(Bundle *bundle, MetaEid *destMetaEid,
 	return dictionary;
 }
 
-Object	findExtensionBlock(Bundle *bundle, unsigned int type, unsigned int idx)
-{
-	Sdr	bpSdr = getIonsdr();
-	Object	elt;
-	Object	addr;
-		OBJ_POINTER(ExtensionBlock, blk);
-
-	for (elt = sdr_list_first(bpSdr, bundle->extensions[idx]); elt;
-			elt = sdr_list_next(bpSdr, elt))
-	{
-		addr = sdr_list_data(bpSdr, elt);
-		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk, addr);
-		if (blk->type == type)
-		{
-			return elt;
-		}
-	}
-
-	return 0;
-}
-
-static int	attachExtensionBlock(ExtensionDef *def, ExtensionBlock *blk,
-			Bundle *bundle)
-{
-	Object	blkAddr;
-	int	additionalOverhead;
-
-	blk->type = def->type;
-	blkAddr = sdr_malloc(getIonsdr(), sizeof(ExtensionBlock));
-	if (blkAddr == 0
-	|| insertExtensionBlock(def, blk, blkAddr, bundle, def->listIdx) < 0)
-	{
-		putErrmsg("Failed attaching extension block.", NULL);
-		return -1;
-	}
-
-	bundle->extensionsLength[def->listIdx] += blk->length;
-	additionalOverhead = SDR_LIST_ELT_OVERHEAD + sizeof(ExtensionBlock)
-			+ blk->length + blk->size;
-	bundle->dbOverhead += additionalOverhead;
-	return 0;
-}
-
 int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		char *reportToEidString, int lifespan, int classOfService,
 		BpCustodySwitch custodySwitch, unsigned char srrFlagsByte,
@@ -5120,16 +4572,20 @@ status reports for admin records.");
 	bundle.extensionsLength[0] = 0;
 	bundle.extensions[1] = sdr_list_create(bpSdr);
 	bundle.extensionsLength[1] = 0;
+        bundle.collabBlocks = sdr_list_create(bpSdr);
+        bundle.collabLength = 0;
 	bundle.stations = sdr_list_create(bpSdr);
 	bundle.trackingElts = sdr_list_create(bpSdr);
 	bundle.xmitRefs = sdr_list_create(bpSdr);
 	*bundleObj = sdr_malloc(bpSdr, sizeof(Bundle));
+
 	if (*bundleObj == 0
 	|| bundle.xmitRefs == 0
 	|| bundle.stations == 0
 	|| bundle.trackingElts == 0
 	|| bundle.extensions[0] == 0
-	|| bundle.extensions[1] == 0)
+	|| bundle.extensions[1] == 0
+        || bundle.collabBlocks == 0)
 	{
 		putErrmsg("No space for bundle object.", NULL);
 		sdr_cancel_xn(bpSdr);
@@ -5861,48 +5317,7 @@ static int	deliverBundle(Object bundleObj, Bundle *bundle,
 	return enqueueForDelivery(bundleObj, bundle, vpoint);
 }
 
-static int	patchExtensionBlocks(Bundle *bundle)
-{
-	int		i;
-	ExtensionDef	*def;
-	ExtensionBlock	blk;
 
-	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
-	{
-		if (def->type != 0 && def->offer != NULL
-		&& findExtensionBlock(bundle, def->type, def->listIdx) == 0)
-		{
-			/*	This is a type of extension block that
-			 *	the local node normally offers, which
-			 *	is missing from the received bundle.
-			 *	Insert a block of this type if it is
-			 *	appropriate.				*/
-
-			memset((char *) &blk, 0, sizeof(ExtensionBlock));
-			blk.type = def->type;
-			if (def->offer(&blk, bundle) < 0)
-			{
-				putErrmsg("Failed offering patch block.",
-						NULL);
-				return -1;
-			}
-
-			if (blk.length == 0 && blk.size == 0)
-			{
-				continue;
-			}
-
-			if (attachExtensionBlock(def, &blk, bundle) < 0)
-			{
-				putErrmsg("Failed attaching patch block.",
-						NULL);
-				return -1;
-			}
-		}
-	}
-
-	return 0;
-}
 
 static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 {
@@ -6047,6 +5462,8 @@ AcqWorkArea	*bpGetAcqArea(VInduct *vduct)
 	work = (AcqWorkArea *) MTAKE(sizeof(AcqWorkArea));
 	if (work)
 	{
+		work->collabBlocks = lyst_create_using(memIdx);
+
 		work->vduct = vduct;
 		for (i = 0; i < 2; i++)
 		{
@@ -6063,26 +5480,7 @@ AcqWorkArea	*bpGetAcqArea(VInduct *vduct)
 	return work;
 }
 
-static void	deleteAcqExtBlock(LystElt elt, unsigned int listIdx)
-{
-	AcqExtBlock	*blk;
-	ExtensionDef	*def;
 
-	blk = (AcqExtBlock *) lyst_data(elt);
-	def = findExtensionDef(blk->type, listIdx);
-	if (def && def->clear)
-	{
-		def->clear(blk);
-	}
-
-	if (blk->eidReferences)
-	{
-		lyst_destroy(blk->eidReferences);
-	}
-
-	MRELEASE(blk);
-	lyst_delete(elt);
-}
 
 static void	clearAcqArea(AcqWorkArea *work)
 {
@@ -6113,6 +5511,10 @@ static void	clearAcqArea(AcqWorkArea *work)
 			deleteAcqExtBlock(elt, i);
 		}
 	}
+
+        /* Destroy collaboration blocks */
+        destroyAcqCollabBlocks(work);
+
 
 	/*	Reset all other per-bundle parameters.			*/
 
@@ -6624,94 +6026,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	return bytesParsed;
 }
 
-static int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
-			unsigned char *startOfBlock, unsigned long blockLength,
-			unsigned char blkType, unsigned long blkProcFlags,
-			Lyst *eidReferences, unsigned long dataLength,
-			unsigned char *cursor)
-{
-	Bundle		*bundle = &(work->bundle);
-	int		blkSize;
-	AcqExtBlock	*blk;
-	Sdnv		blkProcFlagsSdnv;
-	int		i;
-	LystElt		elt;
-	int		additionalOverhead;
 
-	blkSize = sizeof(AcqExtBlock) + (blockLength - 1);
-	blk = (AcqExtBlock *) MTAKE(blkSize);
-	if (blk == NULL)
-	{
-		putErrmsg("Can't acquire extension block.", itoa(blkSize));
-		return -1;
-	}
-
-	/*	Populate the extension block structure.			*/
-
-	memset((char *) blk, 0, sizeof(AcqExtBlock));
-	blk->type = blkType;
-	blk->blkProcFlags = blkProcFlags;
-	blk->eidReferences = *eidReferences;
-	*eidReferences = NULL;
-	blk->dataLength = dataLength;
-	blk->length = blockLength;
-	memcpy(blk->bytes, startOfBlock, blockLength);
-
-	/*	Block processing flags may already have been modified.	*/
-
-	encodeSdnv(&blkProcFlagsSdnv, blkProcFlags);
-	memcpy(blk->bytes + 1, blkProcFlagsSdnv.text, blkProcFlagsSdnv.length);
-
-	/*	Store extension block within bundle.			*/
-
-	i = work->currentExtBlocksList;
-	elt = lyst_insert_last(work->extBlocks[i], blk);
-	if (elt == NULL)
-	{
-		MRELEASE(blk);
-		putErrmsg("Can't acquire extension block.", NULL);
-		return -1;
-	}
-
-	/*	Block-specific processing.				*/
-
-	if (def && def->acquire)
-	{
-		switch (def->acquire(blk, work))
-		{
-		case 0:		/*	Malformed block.		*/
-			work->malformed = 1;
-			break;
-
-		case 1:		/*	No problem.			*/
-			break;
-		
-		default:	/*	System failure.			*/
-			lyst_delete(elt);
-			MRELEASE(blk);
-			putErrmsg("Can't accept extension block.",
-					itoa(blkType));
-			return -1;
-		}
-
-		if (blk->length == 0)	/*	Discarded.		*/
-		{
-			deleteAcqExtBlock(elt, i);
-			return 0;
-		}
-	}
-
-	/*	Note that this calculation of dbObverhead is tentative,
-	 *	to aid in making acquisition decisions.  The real
-	 *	calculation happens when the bundle is accepted and
-	 *	the extension blocks are recorded.			*/
-
-	bundle->extensionsLength[i] += blk->length;
-	additionalOverhead = SDR_LIST_ELT_OVERHEAD + sizeof(ExtensionBlock)
-			+ blk->length + blk->size;
-	bundle->dbOverhead += additionalOverhead;
-	return 0;
-}
 
 static int	acquireBlock(AcqWorkArea *work)
 {
@@ -7102,14 +6417,14 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 	return abortBundleAcq(work);
 }
 
-static void	initAuthenticity(AcqWorkArea *work)
+void	initAuthenticity(AcqWorkArea *work)
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	secdbObj;
 		OBJ_POINTER(SecDB, secdb);
 	Object	ruleAddr;
 	Object	elt;
-		OBJ_POINTER(BabRxRule, rule);
+		OBJ_POINTER(BspBabRule, rule);
 	char	senderEid[256];
 
 	work->authentic = work->allAuthentic;
@@ -7128,7 +6443,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 	}
 
 	GET_OBJ_POINTER(bpSdr, SecDB, secdb, secdbObj);
-	if (sdr_list_length(bpSdr, secdb->babRxRules) == 0)
+	if (sdr_list_length(bpSdr, secdb->bspBabRules) == 0)
 	{
 		work->authentic = 1;	/*	No rules, proceed.	*/
 		return;
@@ -7139,152 +6454,16 @@ static void	initAuthenticity(AcqWorkArea *work)
 		return;			/*	So can't be authentic.	*/
 	}
 
-	sec_get_babRxRule(work->senderEid, &ruleAddr, &elt);
+	sec_findBspBabRule(work->senderEid, getCustodianEid(work->senderEid), &ruleAddr, &elt);
 	if (elt)
 	{
-		GET_OBJ_POINTER(bpSdr, BabRxRule, rule, ruleAddr);
-		sdr_string_read(bpSdr, senderEid, rule->xmitEid);
+		GET_OBJ_POINTER(bpSdr, BspBabRule, rule, ruleAddr);
+		sdr_string_read(bpSdr, senderEid, rule->securityDestEid);
 		if (rule->ciphersuiteName[0] == '\0')
 		{
 			work->authentic = 1;	/*	Trusted node.	*/
 		}
 	}
-}
-
-static int	checkExtensionBlocks(AcqWorkArea *work)
-{
-	Bundle		*bundle = &(work->bundle);
-	int		i;
-	LystElt		elt;
-	LystElt		nextElt;
-	AcqExtBlock	*blk;
-	ExtensionDef	*def;
-	unsigned long	oldLength;
-
-	initAuthenticity(work);		/*	Set default.		*/
-	bundle->clDossier.authentic = work->authentic;
-	for (i = 0; i < 2; i++)
-	{
-		for (elt = lyst_first(work->extBlocks[i]); elt; elt = nextElt)
-		{
-			nextElt = lyst_next(elt);
-			blk = (AcqExtBlock *) lyst_data(elt);
-			def = findExtensionDef(blk->type, i);
-			if (def == NULL || def->check == NULL)
-			{
-				continue;
-			}
-
-			oldLength = blk->length;
-			switch (def->check(blk, work))
-			{
-			case 2:		/*	Bundle is authentic.	*/
-				bundle->clDossier.authentic = 1;
-				break;
-
-			case 1:		/*	Bundle is inauthentic.	*/
-				bundle->clDossier.authentic = 0;
-				break;
-
-			case 0:		/*	No additional info.	*/
-				break;
-
-			default:
-				putErrmsg("Failed checking extension block.",
-						def->name);
-				return -1;
-			}
-
-			if (blk->length == 0)	/*	Discarded.	*/
-			{
-				bundle->extensionsLength[i] -= oldLength;
-				deleteAcqExtBlock(elt, i);
-				continue;
-			}
-
-			/*	Revise aggregate extensions length as
-			 *	necessary.				*/
-
-			if (blk->length != oldLength)
-			{
-				bundle->extensionsLength[i] -= oldLength;
-				bundle->extensionsLength[i] += blk->length;
-			}
-		}
-	}
-
-	return 0;
-}
-
-static int	recordExtensionBlocks(AcqWorkArea *work)
-{
-	Sdr		bpSdr = getIonsdr();
-	Bundle		*bundle = &(work->bundle);
-	int		i;
-	LystElt		elt;
-	AcqExtBlock	*oldBlk;
-	ExtensionBlock	newBlk;
-	int		headerLength;
-	ExtensionDef	*def;
-	Object		newBlkAddr;
-	int		additionalOverhead;
-
-	for (i = 0; i < 2; i++)
-	{
-		bundle->extensions[i] = sdr_list_create(bpSdr);
-		if (bundle->extensions[i] == 0)
-		{
-			putErrmsg("No space for extensions list.", NULL);
-			return -1;
-		}
-
-		bundle->extensionsLength[i] = 0;
-		for (elt = lyst_first(work->extBlocks[i]); elt;
-				elt = lyst_next(elt))
-		{
-			oldBlk = (AcqExtBlock *) lyst_data(elt);
-			memset((char *) &newBlk, 0, sizeof(ExtensionBlock));
-			newBlk.type = oldBlk->type;
-			newBlk.blkProcFlags = oldBlk->blkProcFlags;
-			newBlk.dataLength = oldBlk->dataLength;
-			headerLength = oldBlk->length - oldBlk->dataLength;
-			if (serializeExtBlk(&newBlk, oldBlk->eidReferences,
-				(char *) (oldBlk->bytes + headerLength)) < 0)
-			{
-				putErrmsg("No space for block.", NULL);
-				return -1;
-			}
-
-			def = findExtensionDef(oldBlk->type, i);
-			if (def && def->record)
-			{
-				/*	Record extension object.	*/
-
-				def->record(&newBlk, oldBlk);
-			}
-			else
-			{
-				newBlk.object = 0;
-			}
-
-			newBlkAddr = sdr_malloc(bpSdr, sizeof(ExtensionBlock));
-			if (newBlkAddr == 0
-			|| insertExtensionBlock(def, &newBlk, newBlkAddr,
-					bundle, i) < 0)
-			{
-				putErrmsg("Failed recording ext. block.", NULL);
-				return -1;
-			}
-
-			bundle->extensionsLength[i] += newBlk.length;
-			additionalOverhead = SDR_LIST_ELT_OVERHEAD
-					+ sizeof(ExtensionBlock)
-					+ newBlk.length + newBlk.size;
-			bundle->dbOverhead += additionalOverhead;
-		}
-	}
-
-	return 0;
 }
 
 static char	*getCustodialSchemeName(Bundle *bundle)

@@ -8,6 +8,7 @@
 /*									*/
 
 #include <bpP.h>
+#include <bei.h>
 
 static void	printDictionary(char *dictionary, int dictionaryLength)
 {

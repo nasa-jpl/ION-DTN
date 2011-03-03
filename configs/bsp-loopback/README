@@ -1,0 +1,4 @@
+Note:
+
+The ion1/ion2 rc files assume that ion-1, and ion-2 are in the /etc/hosts file for each machine, respectively.
+
