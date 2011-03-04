@@ -18,7 +18,7 @@
 #include "ipnfw.h"
 #include "dtn2fw.h"
 #include "ionsec.h"
-#include "hmac.h"
+#include "../library/crypto/crypto.h"
 
 #ifdef __cplusplus
 extern "C" {

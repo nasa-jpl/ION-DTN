@@ -3608,7 +3608,7 @@ static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 			OBJ_POINTER(LtpSpan, span);
 	LtpVclient	*client;
 	int		result;
-	Object		clientSvcData;
+	Object		clientSvcData = 0;
 	unsigned long	segUpperBound;
 	Object		segmentObj = 0;
 

@@ -2,10 +2,21 @@
 # 
 # this test checks the linking cleanliness of the shared libraries
 #
+# documentation boilerplate
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Check the linking cleanliness of the shared libraries."
+echo
+echo "CONFIG: None"
+echo
+echo "OUTPUT: This test fails because of libtool bugs on pre-karmic versions of
+	Ubuntu (v10.04); other systems presumably have the same problem. 
+	For now it reports 'PASS' even if it detects problems"
+echo
+echo "########################################"
 
-echo "this test fails because of libtool bugs on pre-karmic versions of Ubuntu"
-echo "other systems presumably have the same problem"
-echo "for now it reports 'PASS' even if it detects problems"
 
 RETVAL=0
 

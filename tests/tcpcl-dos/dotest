@@ -10,6 +10,42 @@
 # and send a bundle. If we can receive the bundle successfully,
 # then the dos bug has been fixed
 
+# documentation boilerplate
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-tcp/loopback.ionrc \
+${CONFIGSROOT}/loopback-tcp/loopback.bprc  \
+${CONFIGSROOT}/loopback-tcp/loopback.ionsecrc \
+${CONFIGSROOT}/loopback-tcp/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To ensure that tcpcli doesn't have a denial-of-service type bug.
+	The bug, described in issue 146, is that tcpcli will not accept any new
+	connections if it is waiting on a contact header initialization from
+	the other end.  Tcpcli should still accept more incoming connections
+	even if one is improperly initialized."
+echo
+echo "CONFIG: The standard configuration loopback-tcp: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: While running a single node loopback configuration, we will
+	use netcat to connect to the node.  This connection will not function
+	properly- netcat will not respond with any initialization header.  This
+	leaves the netcat-initialized tcp connection in a bad state with ION.
+	During this process, a single bundle is sent to the node via loopback.
+	Messages below will confirm if the bundle was successfully sent (PASS)
+	or if the bad tcp connection has halted the tcpcl, prohibiting bundle
+	transmission (FAIL)."
+echo
+echo "########################################"
 
 # message sent over ion
 IONMESSAGE="iontestmessage"
