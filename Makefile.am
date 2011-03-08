@@ -791,13 +791,14 @@ bpinclude = \
 #bp/library/ecos.h 
 bpnoinst = \
 	bp/library/bpP.h \
-#	bp/library/ext/phn/phn.h \
 	bp/ipn/ipnfw.h \
 	bp/dtn2/dtn2fw.h \
 	bp/brs/brscla.h \
 	bp/udp/udpcla.h \
 	bp/ltp/ltpcla.h \
 	bp/tcp/tcpcla.h 
+
+#	bp/library/ext/phn/phn.h 
 
 bpextra = \
 	bp/doc/pod1/bpadmin.pod \
@@ -1004,6 +1005,10 @@ bpcancel_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bplist_SOURCES = bp/utils/bplist.c
 bplist_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS) 
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+hmackeys_SOURCES = bp/utils/hmackeys.c
+hmackeys_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS) 
+hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- IPN Executables --- #
 
