@@ -12,7 +12,8 @@
 #include "ionsec.h"
 
 
-static int eidsMatch(char *firstEid, int firstEidLen, char *secondEid, int secondEidLen);
+static int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
+			int secondEidLen);
 
 static char	*_secDbName()
 {
@@ -140,55 +141,56 @@ Object	getSecDbObject()
 	return _secdbObject(NULL);
 }
 
-int bspTypeToString(int bspType, char *s)
+int	bspTypeToString(int bspType, char *s, int buflen)
 {
+	CHKERR(s);
 	switch (bspType)
 	{
 	case BSP_BAB_TYPE:
-		strcat(s,"BAB");
+		istrcat(s, "BAB", buflen);
 		break;
+
 	case BSP_PIB_TYPE:
-		strcat(s,"PIB");
+		istrcat(s, "PIB", buflen);
 		break;
+
 	case BSP_PCB_TYPE:
-		strcat(s,"PCB");
+		istrcat(s, "PCB", buflen);
 		break;
+
 	case BSP_ESB_TYPE:
-		strcat(s,"ESB");
+		istrcat(s, "ESB", buflen);
 		break;
+
 	default:
-		strcat(s," ");
+		istrcat(s, " ", buflen);
 		return -1;
-		break;
 	}
-	return 1;
+
+	return 0;
 }
 
 int bspTypeToInt(char *bspType)
 {
 	CHKERR(bspType);
-
-
-	if (strcmp(bspType, "BAB") == 0)
+	if (strncmp(bspType, "BAB", 3) == 0)
 		return BSP_BAB_TYPE;
-	else if (strcmp(bspType, "bab") == 0)
+	else if (strncmp(bspType, "bab", 3) == 0)
 		return BSP_BAB_TYPE;
-	else if (strcmp(bspType, "PIB") == 0)
+	else if (strncmp(bspType, "PIB", 3) == 0)
 		return BSP_PIB_TYPE;
-	else if (strcmp(bspType, "pib") == 0)
+	else if (strncmp(bspType, "pib", 3) == 0)
 		return BSP_PIB_TYPE;
-	else if (strcmp(bspType, "PCB") == 0)
+	else if (strncmp(bspType, "PCB", 3) == 0)
 		return BSP_PCB_TYPE;
-	else if (strcmp(bspType, "pcb") == 0)
+	else if (strncmp(bspType, "pcb", 3) == 0)
 		return BSP_PCB_TYPE;
-	else if (strcmp(bspType, "ESB") == 0)
+	else if (strncmp(bspType, "ESB", 3) == 0)
 		return BSP_ESB_TYPE;
-	else if (strcmp(bspType, "esb") == 0)
+	else if (strncmp(bspType, "esb", 3) == 0)
 		return BSP_ESB_TYPE;
-
 	return -1;
 }
-
 
 /******************************************************************************
  *
@@ -215,16 +217,16 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
 	SecDB	*secdb = _secConstants();
 	Object	elt;
 	Object	ruleObj;
-	int rmCount = 0;
-	char rmStr [5];
-	int srcEidLen, destEidLen;
-        int curEidLen;
-	char eidBuffer[SDRSTRING_BUFSZ];
+	int	rmCount = 0;
+	char	rmStr [5];
+	int	srcEidLen;
+	int	destEidLen;
+        int	curEidLen;
+	char	eidBuffer[SDRSTRING_BUFSZ];
 
         CHKVOID(srcEid);
         CHKVOID(destEid);
         CHKVOID(blockType);
-
 	if (secAttach() < 0)
 	{
 		writeMemo("[?] ionClear can't find ION security.");
@@ -233,30 +235,25 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
 
 	srcEidLen = strlen(srcEid);
 	destEidLen = strlen(destEid);
-
        	if ((blockType[0] == '~') || (bspTypeToInt(blockType) == BSP_BAB_TYPE))
        	{
         	// For each bab rule, if src/dest match, delete it.  
          	OBJ_POINTER(BspBabRule, rule);
-
 		sdr_begin_xn(sdr);
-
 		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 			elt = sdr_list_next(sdr, elt))
 		{
-
 			ruleObj = sdr_list_data(sdr, elt);
 			GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleObj);
-
-		        curEidLen = sdr_string_read(sdr, eidBuffer, rule->securitySrcEid);
-
-			if(eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
+		        curEidLen = sdr_string_read(sdr, eidBuffer,
+					rule->securitySrcEid);
+			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
 			{
-				
-		        	curEidLen = sdr_string_read(sdr, eidBuffer, rule->securityDestEid);
-				if(eidsMatch(destEid, destEidLen, eidBuffer, curEidLen))
+		        	curEidLen = sdr_string_read(sdr, eidBuffer,
+						rule->securityDestEid);
+				if (eidsMatch(destEid, destEidLen, eidBuffer,
+						curEidLen))
 				{
-
 					sdr_list_delete(sdr, elt, NULL, NULL);
 					sdr_free(sdr, rule->securitySrcEid);
 					sdr_free(sdr, rule->securityDestEid);
@@ -266,19 +263,17 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
 			}
 		}
 
-		snprintf(rmStr, 4, "%d", rmCount);
-		writeMemoNote("[i] BAB rules removed:", rmStr);
-
+		isprintf(rmStr, 5, "%d", rmCount);
+		writeMemoNote("[i] BAB rules removed", rmStr);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			writeMemo("[?] ionClear: failed deleting BAB rules.");
 		}
 		else
 		{
-			writeMemo("[i] ionClear: no matching BAB rules remaining.");
+			writeMemo("[i] ionClear: matching BAB rules cleared.");
 		}
 	}
-
 
 	/* TODO: Implement as we add additional security block types. */
        	if (blockType[0] == '~' || (strncmp(blockType,"pib",3) == 0))
@@ -674,7 +669,6 @@ static int	filterEid(char *outputEid, char *inputEid)
 	return 1;
 }
 
-
 /******************************************************************************
  *
  * \par Function Name: eidsMatch 
@@ -695,81 +689,83 @@ static int	filterEid(char *outputEid, char *inputEid)
  * \par Notes:
  *****************************************************************************/
 
-int eidsMatch(char *firstEid, int firstEidLen, char *secondEid, int secondEidLen)
+static int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
+			int secondEidLen)
 {
-	int result = 1;
-	int firstPos = -1, secondPos = -1;
+	int	result = 1;
+	int	firstPos = -1;
+	int	secondPos = -1;
 
 	CHKERR(firstEid);
 	CHKERR(secondEid);
 
-
 	/*
-	 * First, determine if (and the pos) of end-of-line wildcards.
+	 * First, determine if (and the pos of) end-of-line wildcards.
 	 */
-	if(firstEid[firstEidLen-1] == '~')
+	if (firstEid[firstEidLen - 1] == '~')
 	{
 		firstPos = firstEidLen - 1;
 	}
 
-	if(secondEid[secondEidLen-1] == '~')
+	if (secondEid[secondEidLen - 1] == '~')
 	{
 		secondPos = secondEidLen-1;
 	}
 
-
-    /* If both EIDs are wildcards, this is a match. */
-	if((firstPos == 0) || (secondPos == 0))
+	/* If either or both EIDs are simply '~', this is a match. */
+	if ((firstPos == 0) || (secondPos == 0))
 	{
-	  result = 0;
+		result = 0;
 	}
 
 	/* If one/the other/both EIDs have wildcards, do a compare
 	 * up to the shortest length. */
-	else if((firstPos > 0) && (secondPos > 0))
+	else if ((firstPos > 0) && (secondPos > 0))
 	{
-	  result = strncmp(firstEid, secondEid, MIN(firstPos, secondPos));
+		result = strncmp(firstEid, secondEid, MIN(firstPos, secondPos));
 	}
-	else if(firstPos > 0)
+	else if (firstPos > 0)
 	{
-	  result = strncmp(firstEid, secondEid, MIN(firstPos, secondEidLen));
+		result = strncmp(firstEid, secondEid, MIN(firstPos,
+				secondEidLen));
 	}
-	else if(secondPos > 0)
+	else if (secondPos > 0)
 	{
-	  result = strncmp(firstEid, secondEid, MIN(firstEidLen, secondPos));
+		result = strncmp(firstEid, secondEid, MIN(firstEidLen,
+				secondPos));
 	}
 
 	/* If no wildcards are used, do a regular compare. */
 	else
 	{
-	  result = strcmp(firstEid, secondEid);
+		result = strncmp(firstEid, secondEid, MIN(firstEidLen,
+				secondEidLen));
 	}
 
 	/* If we have no differences, the EIDs must match. */
 	return (result == 0);
 }
 
-
-int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *eltp)
+int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
+		Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
 	Object	elt;
-	OBJ_POINTER(BspBabRule, rule);
+		OBJ_POINTER(BspBabRule, rule);
 	int	eidLen;
 	char	eidBuffer[SDRSTRING_BUFSZ];
 	int	result = 0;
 
-
 	/*	This function determines the relevant BspBabRule for
 	 *	the specified receiving endpoint, if any.  Wild card
 	 *	match is okay.						*/
+
 	CHKERR(srcEid);
 	CHKERR(destEid);
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
-
 	if (secAttach() < 0)
 	{
 		writeMemo("[?] sec_get_bspBabRule can't find ION security.");
@@ -783,20 +779,21 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *el
 		*ruleAddr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, BspBabRule, rule, *ruleAddr);
 		eidLen = sdr_string_read(sdr, eidBuffer, rule->securityDestEid);
-
 		/* If destinations match... */
-		if(eidsMatch(eidBuffer, eidLen, destEid, strlen(destEid)) == 1)
+		if (eidsMatch(eidBuffer, eidLen, destEid, strlen(destEid)))
 		{
-			eidLen = sdr_string_read(sdr, eidBuffer, rule->securitySrcEid);
-
+			eidLen = sdr_string_read(sdr, eidBuffer,
+					rule->securitySrcEid);
 			/* If sources match ... */
-			if(eidsMatch(eidBuffer, eidLen, srcEid, strlen(srcEid)) == 1)
+			if (eidsMatch(eidBuffer, eidLen, srcEid,
+					strlen(srcEid)))
 			{
 				result = 1;
 				*eltp = elt;	/*	Exact match.	*/
 				break;		/*	Stop searching.	*/
 			}
 		}
+
 		*ruleAddr = 0;
 	}
 
@@ -805,22 +802,22 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *el
 }
 
 /* 1 if found. 0 if not. and -1 on error. */
-int	sec_findBspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *eltp)
+int	sec_findBspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
+		Object *eltp)
 {
 	CHKERR(srcEid);
 	CHKERR(destEid);
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
-
 	if (secAttach() < 0)
 	{
 		writeMemo("[?] sec_findBspBabRule can't find ION security.");
 		return -1;
 	}
 
-	if ((filterEid(srcEid, srcEid) == 0) ||
-            (filterEid(destEid, destEid) == 0))
+	if ((filterEid(srcEid, srcEid) == 0)
+	|| (filterEid(destEid, destEid) == 0))
 	{
 		return -1;
 	}
@@ -835,7 +832,6 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName, char *
 	BspBabRule	rule;
 	Object		ruleObj;
 	Object		elt;
-
 	Object		ruleAddr;
 
 	CHKERR(srcEid);
@@ -861,23 +857,22 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName, char *
 		return 0;
 	}
 
-	if ((filterEid(srcEid, srcEid) == 0) ||
-	    (filterEid(destEid, destEid) == 0))
+	if ((filterEid(srcEid, srcEid) == 0)
+	|| (filterEid(destEid, destEid) == 0))
 	{
 		return 0;
 	}
 
-
 	/* Don't expect a rule here already...*/
-	if(sec_findBspBabRule(srcEid, destEid, &ruleAddr, &elt) != 0)
+	if (sec_findBspBabRule(srcEid, destEid, &ruleAddr, &elt) != 0)
 	{
 		writeMemoNote("[?] This rule is already defined.", destEid);
 		return 0;
 	}
 
 	/*	Okay to add this rule to the database.			*/
-	sdr_begin_xn(sdr);
 
+	sdr_begin_xn(sdr);
 	rule.securitySrcEid = sdr_string_create(sdr, srcEid);
 	rule.securityDestEid = sdr_string_create(sdr, destEid);
 	istrcpy(rule.ciphersuiteName, ciphersuiteName,
@@ -891,9 +886,13 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName, char *
 		return -1;
 	}
 
-	/* No longer sort the rules list */
-	elt = sdr_list_insert_last(sdr, secdb->bspBabRules,ruleObj);
+	/*	Note that the rules list is not sorted, as there
+	 *	is no obviously correct sorting order: rules are
+	 *	symmetrical, specifying both security source and
+	 *	security destination, and the local node might be
+	 *	neither.						*/
 
+	elt = sdr_list_insert_last(sdr, secdb->bspBabRules,ruleObj);
 	sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BspBabRule));
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -904,7 +903,8 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName, char *
 	return 1;
 }
 
-int	sec_updateBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName, char *keyName)
+int	sec_updateBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
+		char *keyName)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
@@ -933,17 +933,17 @@ int	sec_updateBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName, cha
 		return 0;
 	}
 
-	if ((filterEid(srcEid, srcEid) == 0) ||
-            (filterEid(destEid, destEid) == 0))
+	if ((filterEid(srcEid, srcEid) == 0)
+	|| (filterEid(destEid, destEid) == 0))
 	{
 		return 0;
 	}
 
-
 	/* Need to have a rule to update it. */
-	if(sec_findBspBabRule(srcEid, destEid, &ruleObj, &elt) == 0)
+	if (sec_findBspBabRule(srcEid, destEid, &ruleObj, &elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.", destEid);
+		writeMemoNote("[?] No rule defined for this endpoint.",
+				destEid);
 		return 0;
 	}
 
@@ -977,16 +977,17 @@ int	sec_removeBspBabRule(char *srcEid, char *destEid)
 		return 0;
 	}
 
-	if ((filterEid(srcEid, srcEid) == 0) ||
-            (filterEid(destEid, destEid) == 0))
+	if ((filterEid(srcEid, srcEid) == 0)
+	|| (filterEid(destEid, destEid) == 0))
 	{
 		return 0;
 	}
 
 	/* Need to have a rule to delete it. */
-	if(sec_findBspBabRule(srcEid, destEid, &ruleObj, &elt) == 0)
+	if (sec_findBspBabRule(srcEid, destEid, &ruleObj, &elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.", destEid);
+		writeMemoNote("[?] No rule defined for this endpoint.",
+				destEid);
 		return 0;
 	}
 
@@ -1005,33 +1006,36 @@ int	sec_removeBspBabRule(char *srcEid, char *destEid)
 	return 1;
 }
 
-
 /* Payload Integrity Block Support */
 
-int	sec_get_bspPibTxRule(char *secDestEid, int blockTypeNbr, Object *ruleAddr, Object *eltp)
+int	sec_get_bspPibTxRule(char *secDestEid, int blockTypeNbr,
+		Object *ruleAddr, Object *eltp)
 {
-	return sec_get_bspPibRule("~", secDestEid, blockTypeNbr, ruleAddr, eltp);
+	return sec_get_bspPibRule("~", secDestEid, blockTypeNbr, ruleAddr,
+			eltp);
 }
 
-int	sec_get_bspPibRxRule(char *secSrcEid, int blockTypeNbr, Object *ruleAddr, Object *eltp)
+int	sec_get_bspPibRxRule(char *secSrcEid, int blockTypeNbr,
+		Object *ruleAddr, Object *eltp)
 {
 	return sec_get_bspPibRule(secSrcEid, "~", blockTypeNbr, ruleAddr, eltp);
 }
 
-int	sec_get_bspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr, Object *ruleAddr, Object *eltp)
+int	sec_get_bspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
+		Object *ruleAddr, Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
 	Object	elt;
-	OBJ_POINTER(BspPibRule, rule);
+		OBJ_POINTER(BspPibRule, rule);
 	int	eidLen;
 	char	eidBuffer[SDRSTRING_BUFSZ];
 	int	result = 0;
 
-
 	/*	This function determines the relevant BspPibRule for
 	 *	the specified receiving endpoint, if any.  Wild card
 	 *	match is okay.						*/
+
 	CHKERR(secSrcEid);
 	CHKERR(secDestEid);
 	CHKERR(ruleAddr);
@@ -1052,11 +1056,15 @@ int	sec_get_bspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr, Obje
 		eidLen = sdr_string_read(sdr, eidBuffer, rule->securityDestEid);
 
 		/* If destinations match... */
-		if((rule->blockTypeNbr == blockTypeNbr) && (eidsMatch(eidBuffer, eidLen, secDestEid, strlen(secDestEid)) == 1))
+		if ((rule->blockTypeNbr == blockTypeNbr)
+		&& (eidsMatch(eidBuffer, eidLen, secDestEid,
+				strlen(secDestEid))))
 		{
-			eidLen = sdr_string_read(sdr, eidBuffer, rule->securitySrcEid);
+			eidLen = sdr_string_read(sdr, eidBuffer,
+					rule->securitySrcEid);
 			/* If sources match ... */
-			if(eidsMatch(eidBuffer, eidLen, secSrcEid, strlen(secSrcEid)) == 1)
+			if (eidsMatch(eidBuffer, eidLen, secSrcEid,
+					strlen(secSrcEid)) == 1)
 			{
 				result = 1;
 				*eltp = elt;	/*	Exact match.	*/
@@ -1072,9 +1080,10 @@ int	sec_get_bspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr, Obje
 }
 
 /* 1 if found. 0 if not. -1 on error. */
-int	sec_findBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr, Object *ruleAddr, Object *eltp)
+int	sec_findBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr,
+		Object *ruleAddr, Object *eltp)
 {
-	/*	This function finds the BspBabRule for the specified
+	/*	This function finds the BspPibRule for the specified
 	 *	endpoint, if any.					*/
 
 	CHKERR(secSrcEid);
@@ -1088,16 +1097,18 @@ int	sec_findBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr, Obje
 		return -1;
 	}
 
-	if ((filterEid(secSrcEid, secSrcEid) == 0) ||
-            (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid) == 0)
+	|| (filterEid(secDestEid, secDestEid) == 0))
 	{
 		return -1;
 	}
 
-	return sec_get_bspPibRule(secSrcEid, secDestEid, BlockTypeNbr, ruleAddr, eltp);
+	return sec_get_bspPibRule(secSrcEid, secDestEid, BlockTypeNbr,
+			ruleAddr, eltp);
 }
 
-int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr, char *ciphersuiteName, char *keyName)
+int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
+		char *ciphersuiteName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
@@ -1109,7 +1120,6 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr, char 
 	CHKERR(secDestEid);
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
-
 	if (secAttach() < 0)
 	{
 		writeMemo("[?] sec_addBspPibRule can't find ION security.");
@@ -1128,23 +1138,24 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr, char 
 		return 0;
 	}
 
-	if ((filterEid(secSrcEid, secSrcEid) == 0) ||
-	    (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid) == 0)
+	|| (filterEid(secDestEid, secDestEid) == 0))
 	{
 		return 0;
 	}
 
 
 	/* Don't expect a rule here already...*/
-	if(sec_findBspPibRule(secSrcEid, secDestEid, blockTypeNbr, &ruleObj, &elt) != 0)
+	if (sec_findBspPibRule(secSrcEid, secDestEid, blockTypeNbr, &ruleObj,
+			&elt) != 0)
 	{
 		writeMemoNote("[?] This rule is already defined.", secDestEid);
 		return 0;
 	}
 
 	/*	Okay to add this rule to the database.			*/
-	sdr_begin_xn(sdr);
 
+	sdr_begin_xn(sdr);
 	rule.securitySrcEid = sdr_string_create(sdr, secSrcEid);
 	rule.securityDestEid = sdr_string_create(sdr, secDestEid);
 	rule.blockTypeNbr = blockTypeNbr;
@@ -1171,7 +1182,8 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr, char 
 	return 1;
 }
 
-int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr, char *ciphersuiteName, char *keyName)
+int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid,
+		int BlockTypeNbr, char *ciphersuiteName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
@@ -1200,17 +1212,18 @@ int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr, ch
 		return 0;
 	}
 
-	if ((filterEid(secSrcEid, secSrcEid) == 0) ||
-            (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid) == 0)
+	|| (filterEid(secDestEid, secDestEid) == 0))
 	{
 		return 0;
 	}
 
-
 	/* Need to have a rule to update it. */
-	if(sec_findBspPibRule(secSrcEid, secDestEid, BlockTypeNbr, &ruleObj, &elt) == 0)
+	if (sec_findBspPibRule(secSrcEid, secDestEid, BlockTypeNbr, &ruleObj,
+			&elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.", secDestEid);
+		writeMemoNote("[?] No rule defined for this endpoint.",
+				secDestEid);
 		return 0;
 	}
 
@@ -1229,12 +1242,13 @@ int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr, ch
 	return 1;
 }
 
-int	sec_removeBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr)
+int	sec_removeBspPibRule(char *secSrcEid, char *secDestEid,
+		int BlockTypeNbr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 	Object	ruleObj;
-	OBJ_POINTER(BspPibRule, rule);
+		OBJ_POINTER(BspPibRule, rule);
 
 	CHKERR(secSrcEid);
 	CHKERR(secDestEid);
@@ -1244,16 +1258,18 @@ int	sec_removeBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr)
 		return 0;
 	}
 
-	if ((filterEid(secSrcEid, secSrcEid) == 0) ||
-            (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid) == 0)
+	|| (filterEid(secDestEid, secDestEid) == 0))
 	{
 		return 0;
 	}
 
 	/* Need to have a rule to delete it. */
-	if(sec_findBspPibRule(secSrcEid, secDestEid, BlockTypeNbr, &ruleObj, &elt) == 0)
+	if (sec_findBspPibRule(secSrcEid, secDestEid, BlockTypeNbr, &ruleObj,
+			&elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.", secDestEid);
+		writeMemoNote("[?] No rule defined for this endpoint.",
+				secDestEid);
 		return 0;
 	}
 
@@ -1271,5 +1287,3 @@ int	sec_removeBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr)
 
 	return 1;
 }
-
-

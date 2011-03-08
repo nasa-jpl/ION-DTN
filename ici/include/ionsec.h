@@ -87,12 +87,11 @@ typedef struct
 	Object	bspEsbRules;		/*	SdrList of BspEsbRule	*/
 } SecDB;
 
-extern int		secInitialize();
-extern int		secAttach();
-extern Object		getSecDbObject();
-
-int bspTypeToString(int bspType, char *retVal);
-int bspTypeToInt(char *bspType);
+extern int	secInitialize();
+extern int	secAttach();
+extern Object	getSecDbObject();
+extern int	bspTypeToString(int bspType, char *retVal, int retValSize);
+extern int	bspTypeToInt(char *bspType);
 extern void	ionClear(char *srcEid, char *destEid, char *blockType);
 
 /*	*	Functions for managing security information.		*/
@@ -114,7 +113,6 @@ extern int	sec_addBspPibRule(char *srcEid, char *destEid, int type, char *cipher
 extern int	sec_updateBspPibRule(char *srcEid, char *destEid, int type, char *ciphersuiteName, char *keyName);
 extern int	sec_removeBspPibRule(char *srcEid, char *destEid, int type);
 
-
 /*	*	Functions for retrieving security information.		*/
 
 extern int	sec_get_key(char *keyName,
@@ -135,8 +133,6 @@ extern int	sec_get_key(char *keyName,
 		 *	failure returns -1.				*/
 
 
-extern int	sec_get_bspBabTxRule(char *destEid, Object *ruleAddr, Object *eltp);
-extern int	sec_get_bspBabRxRule(char *srcEid, Object *ruleAddr, Object *eltp);
 extern int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *eltp);
 
 extern int	sec_get_bspPibTxRule(char *destEid, int blockTypeNbr, Object *ruleAddr, Object *eltp);

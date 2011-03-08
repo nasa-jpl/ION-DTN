@@ -71,7 +71,8 @@
 #include "ionsec.h"
 
 int extensionBlockTypeToInt(char *blockType);
-int extensionBlockTypeToString(unsigned char blockType, char *retVal);
+int extensionBlockTypeToString(unsigned char blockType, char *retVal,
+		unsigned int retValLength);
 
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *
@@ -87,7 +88,7 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal);
 #define BSP_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BSP_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define BSP_DEBUG_LVL	BSP_DEBUG_LVL_PROC
+#define BSP_DEBUG_LVL	BSP_DEBUG_LVL_ERR
 
 #define	GMSG_BUFLEN	256
 #if BSP_DEBUGGING == 1

@@ -62,6 +62,7 @@ int bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
    BSP_DEBUG_PROC("+ bsp_babAcquire(%x, %x)",
                   (unsigned long)blk, (unsigned long)wk);
 
+   CHKERR(blk);
    /* Allocate a scratchpad object to hold a structured view of the block. */
    blk->size = sizeof(BspAbstractSecurityBlock);
    if((blk->object = MTAKE(blk->size)) == NULL)
@@ -112,6 +113,7 @@ void	bsp_babClear(AcqExtBlock *blk)
 {
    BSP_DEBUG_PROC("+ bsp_babClear(%x)", (unsigned long) blk);
 
+   CHKVOID(blk);
    if(blk->size > 0)
    {
       BspAbstractSecurityBlock *asb = (BspAbstractSecurityBlock *) blk->object;
@@ -169,6 +171,7 @@ int bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
    BSP_DEBUG_PROC("+ bsp_babOffer(%x, %x)",
                   (unsigned long) blk, (unsigned long) bundle);
 
+   CHKERR(blk);
    memset((char *) &asb,0,sizeof(BspAbstractSecurityBlock));
 
    /*
@@ -767,6 +770,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
     *                             Sanity Checks                               *
     ***************************************************************************/
 
+   CHKERR(wk);
    /* We need blocks! */
    if((pre_blk == NULL) || (pre_blk->object == NULL))
    {
@@ -1115,6 +1119,7 @@ void    bsp_babRelease(ExtensionBlock *blk)
 
    BSP_DEBUG_PROC("+ bsp_babRelease(%x)", (unsigned long) blk);
 
+   CHKVOID(blk);
    if(blk->size > 0)
    {
       sdr_free(getIonsdr(), blk->object);
@@ -1158,7 +1163,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
 {
    Sdr bpSdr = getIonsdr();
    unsigned char *hashData = NULL;
-   char dataBuffer[BSP_BAB_BLOCKING_SIZE];
+   char *dataBuffer;
    int i = 0;
    Object dataRef;
    ZcoReader dataReader;
@@ -1175,6 +1180,13 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
                   keyLen,
                   (unsigned long) hashLen);
 
+   CHKNULL(keyValue);
+   CHKNULL(hashLen);
+
+   /*	Allocate a data buffer.	*/
+
+   dataBuffer = MTAKE(BSP_BAB_BLOCKING_SIZE);
+   CHKNULL(dataBuffer);
 
    /* Grab a context for the hmac. A local context allows re-entrant calls to the
       HMAC libraries. */
@@ -1184,6 +1196,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
          authCtxLen);
          *hashLen = 0;
       BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
+      MRELEASE(dataBuffer);
       return NULL;
    }
 
@@ -1195,6 +1208,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
          authCtxLen);
          *hashLen = 0;
       BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
+      MRELEASE(dataBuffer);
       return NULL;
    }
 
@@ -1235,6 +1249,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
 
          *hashLen = 0;
       BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
+      MRELEASE(dataBuffer);
       return NULL;
      }
 
@@ -1262,6 +1277,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
 
       *hashLen = 0;
    BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
+   MRELEASE(dataBuffer);
    return NULL;
    }
 
@@ -1284,6 +1300,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
       MRELEASE(hashData);
       *hashLen = 0;
    BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
+   MRELEASE(dataBuffer);
    return NULL;
    }
 
@@ -1297,6 +1314,7 @@ BSP_DEBUG_INFO("Result Byte %d is 0x%x", i, hashData[i]);
 
    BSP_DEBUG_PROC("- bsp_babGetSecResult(%x)", (unsigned long) hashData);
 
+   MRELEASE(dataBuffer);
    return (unsigned char *) hashData;
 }
 

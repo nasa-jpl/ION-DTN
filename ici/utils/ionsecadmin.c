@@ -59,7 +59,6 @@ ionsecadmin.c", lineNbr);
 
 #define	SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-
 static void	printUsage()
 {
 	PUTS("Valid commands are:");
@@ -70,23 +69,25 @@ static void	printUsage()
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a key <key name> <name of file containing key value>");
-	PUTS("\t   a bspbabrule <sender eid expression> <receiver eid expression> { '' | \
-<ciphersuite name> <key name> }");
+	PUTS("\t   a bspbabrule <sender eid expression> <receiver eid \
+expression> { '' |  <ciphersuite name> <key name> }");
 	PUTS("\t\tAn eid expression may be either an EID or a wild card, \
 i.e., a partial eid expression ending in '*'.");
-	PUTS("\t   a bsppibrule <sender eid expression> <receiver eid expression> <block type number> { '' | \
-<ciphersuite name> <key name> }");
+	PUTS("\t   a bsppibrule <sender eid expression> <receiver eid \
+expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\tc\tChange");
 	PUTS("\t   c key <key name> <name of file containing key value>");
-	PUTS("\t   c bspbabrule <sender eid expression> <receiver eid expression> { '' | \
-<ciphersuite name> <key name> }");
-	PUTS("\t   c bsppibrule <sender eid expression> <receiver eid expression> <block type number> { '' | \
-<ciphersuite name> <key name> }");
+	PUTS("\t   c bspbabrule <sender eid expression> <receiver eid \
+expression> { '' | <ciphersuite name> <key name> }");
+	PUTS("\t   c bsppibrule <sender eid expression> <receiver eid \
+expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} key <key name>");
-	PUTS("\t   {d|i} bspbabrule <sender eid expression> <receiver eid expression>");
-	PUTS("\t   {d|i} bsppibrule <sender eid expression> <receiver eid expression> <block type number>");
+	PUTS("\t   {d|i} bspbabrule <sender eid expression> <receiver eid \
+expression>");
+	PUTS("\t   {d|i} bsppibrule <sender eid expression> <receiver eid \
+expression> <block type number>");
 	PUTS("\tl\tList");
 	PUTS("\t   l key");
 	PUTS("\t   l bspbabrule");
@@ -94,7 +95,8 @@ i.e., a partial eid expression ending in '*'.");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\tx\tClear BSP security rules.");
-	PUTS("\t   x <security source eid> <security destination eid> <block type (bab, pib, pcb, esb)>");
+	PUTS("\t   x <security source eid> <security destination eid> \
+{ bab | pib | pcb | esb | ~ }");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
 }
@@ -173,7 +175,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		sec_addBspPibRule(tokens[2], tokens[3], atoi(tokens[4]), tokens[5], keyName);
+		sec_addBspPibRule(tokens[2], tokens[3], atoi(tokens[4]),
+				tokens[5], keyName);
 		return;
 	}
 			
@@ -240,7 +243,8 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		sec_updateBspPibRule(tokens[2], tokens[3], atoi(tokens[4]), tokens[5], keyName);
+		sec_updateBspPibRule(tokens[2], tokens[3], atoi(tokens[4]),
+				tokens[5], keyName);
 		return;
 	}
 			
@@ -304,17 +308,16 @@ static void	printBspBabRule(Object ruleAddr)
 	GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleAddr);
 	sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
 	sdr_string_read(sdr, destEidBuf, rule->securityDestEid);
-
 	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.2555s' \
-ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf, rule->ciphersuiteName,
-			rule->keyName);
+ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
+		rule->ciphersuiteName, rule->keyName);
 	printText(buf);
 }
 
 static void	printBspPibRule(Object ruleAddr)
 {
 	Sdr	sdr = getIonsdr();
-	OBJ_POINTER(BspPibRule, rule);
+		OBJ_POINTER(BspPibRule, rule);
 	char	srcEidBuf[SDRSTRING_BUFSZ], destEidBuf[SDRSTRING_BUFSZ];
 	char	buf[512];
 
@@ -322,7 +325,8 @@ static void	printBspPibRule(Object ruleAddr)
 	sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
 	sdr_string_read(sdr, destEidBuf, rule->securityDestEid);
 	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
-type '%.5s' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf, rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
+type '%.5s' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
+		rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
 	printText(buf);
 }
 
@@ -361,7 +365,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		sec_findBspBabRule(tokens[2], tokens[3], &addr, &elt);
 		if (elt == 0)
 		{
-			printText("Key not found.");
+			printText("BAB rule not found.");
 			return;
 		}
 
@@ -371,10 +375,11 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
-		sec_findBspPibRule(tokens[2], tokens[3], atoi(tokens[4]), &addr, &elt);
+		sec_findBspPibRule(tokens[2], tokens[3], atoi(tokens[4]),
+				&addr, &elt);
 		if (elt == 0)
 		{
-			printText("Key not found.");
+			printText("PIB rule not found.");
 			return;
 		}
 
@@ -578,21 +583,20 @@ static int	processLine(char *line, int lineLength)
 		case 'x':
 			if (secAttach() == 0)
 			{
-
-
-			   	if(tokenCount > 4)
+			   	if (tokenCount > 4)
 				{
 					SYNTAX_ERROR;
 				}
-				else if(tokenCount == 4)
+				else if (tokenCount == 4)
 				{
-					ionClear(tokens[1], tokens[2], tokens[3]);
+					ionClear(tokens[1], tokens[2],
+							tokens[3]);
 				}
-				else if(tokenCount == 3)
+				else if (tokenCount == 3)
 				{
 					ionClear(tokens[1], tokens[2], "~");
 				}
-				else if(tokenCount == 2)
+				else if (tokenCount == 2)
 				{
 					ionClear(tokens[1], "~", "~");
 				}
@@ -601,6 +605,7 @@ static int	processLine(char *line, int lineLength)
 					ionClear("~", "~", "~");
 				}
 			}
+
 			return 0;
 	
 		case 'q':

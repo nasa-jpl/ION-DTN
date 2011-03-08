@@ -1140,21 +1140,11 @@ int	recordExtensionBlocks(AcqWorkArea *work)
 
 	CHKERR(work);
 	bundle->collabBlocks = sdr_list_create(bpSdr);
-	if(bundle->collabBlocks == 0)
-	{
-		putErrmsg("No space for collaboration blocks.", NULL);
-		return -1;
-	}
-
+	CHKERR(bundle->collabBlocks);
 	for (i = 0; i < 2; i++)
 	{
 		bundle->extensions[i] = sdr_list_create(bpSdr);
-		if (bundle->extensions[i] == 0)
-		{
-			putErrmsg("No space for extensions list.", NULL);
-			return -1;
-		}
-
+		CHKERR(bundle->extensions[i]);
 		bundle->extensionsLength[i] = 0;
 		for (elt = lyst_first(work->extBlocks[i]); elt;
 				elt = lyst_next(elt))

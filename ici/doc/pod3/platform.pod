@@ -116,13 +116,35 @@ it always NULL-terminates the string in I<buffer>, even if the length of the
 composed string would equal or exceed I<bufSize>.  Buffer overruns are
 reported by log message; unlike snprintf(), isprintf() returns void.
 
+=item size_t istrlen(const char *sourceString, size_t maxlen)
+
+istrlen() is a safe implementation of strlen(); see the strlen(3) man 
+page for details.  istrlen() differs from strlen() in that it takes a second
+argument, the maximum valid length of I<sourceString>.  The function
+returns the number of non-NULL characters in I<sourceString> preceding
+the first NULL character in I<sourceString>, provided that a NULL
+character appears somewhere within the first I<maxlen> characters of
+I<sourceString>; otherwise it returns I<maxlen>.
+
 =item char *istrcpy(char *buffer, char *sourceString, int bufSize)
 
-istrcpy() is a safe implementation of strncpy(); see the strncpy(P) man
-page for details.  istrcpy() differs from strncpy() in that it always
-NULL-terminates the string in I<buffer>, even if the length of I<sourceString>
-string would equal or exceed I<bufSize> (in which case I<sourceString> is
-truncated).
+istrcpy() is a safe implementation of strcpy(); see the strcpy(3) man
+page for details.  istrcpy() differs from strcpy() in that it takes a
+third argument, the total size of the buffer into which I<sourceString>
+is to be copied.  istrcpy() always NULL-terminates the string in I<buffer>,
+even if the length of I<sourceString> string would equal or exceed
+I<bufSize> (in which case I<sourceString> is truncated to fit within
+the buffer).
+
+=item char *istrcat(char *buffer, char *sourceString, int bufSize)
+
+istrcat() is a safe implementation of strcat(); see the strcat(3) man
+page for details.  istrcat() differs from strcat() in that it takes a
+third argument, the total size of the buffer for the string that is being
+aggregated. istrcat() always NULL-terminates the string in I<buffer>, even
+if the length of I<sourceString> string would equal or exceed the sum of
+I<bufSize> and the length of the string currently occupying the buffer
+(in which case I<sourceString> is truncated to fit within the buffer).
 
 =item char *igetcwd(char *buf, size_t size)
 

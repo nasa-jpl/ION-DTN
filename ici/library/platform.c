@@ -2109,16 +2109,56 @@ int	_isprintf(const char *file, int line, char *buffer, int bufSize,
 
 /*	*	*	Other portability adaptations	*	*	*/
 
-char	*istrcpy(char *buffer, char *text, size_t bufSize)
+size_t	istrlen(char *from, size_t maxlen)
+{
+	size_t	length = 0;
+	char	*cursor;
+
+	CHKZERO(from);
+	CHKZERO(maxlen > 0);
+	for (cursor = from; *cursor; cursor++)
+	{
+		length++;
+		if (length == maxlen)
+		{
+			break;
+		}
+	}
+
+	return length;
+}
+
+char	*istrcpy(char *buffer, char *from, size_t bufSize)
 {
 	int	maxText;
+	int	copySize;
 
-	CHKNULL(buffer != NULL);
-	CHKNULL(text != NULL);
+	CHKNULL(buffer);
+	CHKNULL(from);
 	CHKNULL(bufSize > 0);
 	maxText = bufSize - 1;
-	strncpy(buffer, text, maxText);
-	*(buffer + maxText) = '\0';
+	copySize = istrlen(from, maxText);
+	memcpy(buffer, from, copySize);
+	*(buffer + copySize) = '\0';
+	return buffer;
+}
+
+char	*istrcat(char *buffer, char *from, size_t bufSize)
+{
+	int	maxText;
+	int	currTextSize;
+	int	maxCopy;
+	int	copySize;
+
+	CHKNULL(buffer);
+	CHKNULL(from);
+	CHKNULL(bufSize > 0);
+	maxText = bufSize - 1;
+	currTextSize = istrlen(buffer, maxText);
+	maxCopy = maxText - currTextSize;
+	copySize = istrlen(from, maxCopy);
+	memcpy(buffer + currTextSize, from, copySize);
+	*(buffer + currTextSize + copySize) = '\0';
 	return buffer;
 }
 

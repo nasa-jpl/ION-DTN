@@ -13,7 +13,7 @@
 /*****************************************************************************
  ** \file extbsp.c
  ** 
- ** File Name: extbsp.c
+ ** File Name: extbsputil.c
  **
  **
  ** Subsystem:
@@ -84,19 +84,22 @@ char * getCustodianEid(char *peerEid)
    VScheme	*vscheme = NULL;
    PsmAddress	vschemeElt;
    MetaEid	metaEid;
+   int		len;
 
-   int len = strlen(peerEid);
-   if((temp = MTAKE(len + 1)) == 0)
+   CHKNULL(peerEid);
+   len = strlen(peerEid);
+   if ((temp = MTAKE(len + 1)) == 0)
    {
-     BSP_DEBUG_ERR("x getCustodianEid: Unable to allocate EID of size %d", len + 1);
+     BSP_DEBUG_ERR("x getCustodianEid: Unable to allocate EID of size %d",
+		     len + 1);
      return NULL;  
    }
-  
-   strcpy(temp, peerEid);
-   
+
+   istrcpy(temp, peerEid, len + 1);
    if (parseEidString(temp, &metaEid, &vscheme, &vschemeElt) == 0)
    {
-      BSP_DEBUG_ERR("x getCustodianEid: Cannot find scheme for dest EID: %s", temp);
+      BSP_DEBUG_ERR("x getCustodianEid: Cannot find scheme for dest EID: %s",
+		      temp);
       MRELEASE(temp);
       return NULL;
    }
@@ -112,8 +115,8 @@ int	extensionBlockTypeToInt(char *blockType)
 	int		i;
 	ExtensionDef	*def;
 
-	if (blockType == 0) return -1;
-	else if (strcmp("payload", blockType) == 0)
+	CHKERR(blockType);
+	if (strcmp("payload", blockType) == 0)
 		return PAYLOAD_BLOCK_TYPE;
 	getExtensionDefs(&extensions, &extensionsCt);
 	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
@@ -123,10 +126,12 @@ int	extensionBlockTypeToInt(char *blockType)
 			return def->type;
 		}
 	}
+
 	return -1;
 }
 
-int	extensionBlockTypeToString(unsigned char blockType, char *s)
+int	extensionBlockTypeToString(unsigned char blockType, char *s,
+		unsigned int buflen)
 {
 	ExtensionDef	*extensions;
 	int		extensionsCt;
@@ -134,10 +139,11 @@ int	extensionBlockTypeToString(unsigned char blockType, char *s)
 	ExtensionDef	*def;
 
 	if (blockType == 0) return -1;
-	else if (blockType == PAYLOAD_BLOCK_TYPE)
+	CHKERR(s);
+	if (blockType == PAYLOAD_BLOCK_TYPE)
 	{
-		strcat(s,"payload");
-		return 1;
+		istrcat(s, "payload", buflen);
+		return 0;
 	}
 
 	getExtensionDefs(&extensions, &extensionsCt);
@@ -145,15 +151,13 @@ int	extensionBlockTypeToString(unsigned char blockType, char *s)
 	{
 		if (def->type == blockType)
 		{
-			strcat(s,def->name);
-			return 1;
+			istrcat(s, def->name, buflen);
+			return 0;
 		}
 	}
+
 	return -1;
 }
-
-
-
 
 /*****************************************************************************
  *                           GENERAL BSP FUNCTIONS                           *
@@ -396,7 +400,7 @@ AcqExtBlock *bsp_findAcqExtBlk(AcqWorkArea *wk, int listIdx, int type)
 
 	BSP_DEBUG_PROC("+ bsp_findAcqExtBlk(%x, %d, %d",
 			(unsigned long) wk, listIdx, type);
-
+	CHKNULL(wk);
 	for (elt = lyst_first(wk->extBlocks[listIdx]); elt; elt = lyst_next(elt))
 	{
 		result = (AcqExtBlock *) lyst_data(elt);
@@ -443,6 +447,8 @@ unsigned char *bsp_retrieveKey(int *keyLen, char *keyName)
 	 * function populating this value with the key length.  We cannot pass in a
 	 * value of NULL for the keyValueBuffer, so we pass in a single char pointer.
 	 */
+	CHKNULL(keyLen);
+	CHKNULL(keyName);
 	*keyLen = 0;
 	if(sec_get_key(keyName, keyLen, &c) != 0)
 	{
@@ -651,6 +657,9 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
 	int		sdnvLength;
 	unsigned long	itemLength;
 
+	CHKVOID(bspBuf);
+	CHKVOID(val);
+	CHKVOID(len);
 	*val = NULL;		/*	Default.			*/
 	*len = 0;		/*	Default.			*/
 
@@ -724,6 +733,7 @@ void bsp_getSecurityInfo(Bundle *bundle,
 	BSP_DEBUG_PROC("+ bsp_getSecurityInfo(0x%08x, %d, %s, %s, 0x%08x)",
 			(unsigned long) bundle, bspType, eidSourceString, eidDestString,(unsigned long) secInfo);
 
+	CHKVOID(secInfo);
 	secInfo->cipherKeyName[0] = '\0';
 
 	/* Since we look up key information by EndPointID, if we do not have the
