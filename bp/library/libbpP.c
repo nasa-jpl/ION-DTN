@@ -8221,6 +8221,7 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 
 	xrAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
+	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
 	sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
 	removeBundleFromQueue(xmitElt, &bundle, protocol, outductObj, outduct);
 	if (xr.proxNodeEid)
@@ -8238,7 +8239,6 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 	/*	If bundle is MINIMUM_LATENCY, nothing more to do.
 	 *	We never put critical bundles into limbo.		*/
 
-	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
 		return 0;
