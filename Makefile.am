@@ -1457,7 +1457,7 @@ TESTUTILOBJS = tests/library/libtestutil.la
 TESTUTILCFLAGS = -Itests/library
 check_LTLIBRARIES = $(TESTUTILOBJS)
 tests_library_libtestutil_la_SOURCES = \
-    tests/library/check.c \
+	tests/library/check.c \
 	tests/library/ionstart.c \
 	tests/library/ionstop.c
 tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1471,7 +1471,8 @@ tests_library_libtestutil_la_LDFLAGS = $(ION_LINK_FLAGS)
 # If a test uses the testutil helpers, include $(TESTUTILOBJS) in _LDADD,
 #    and $(TESTUTILCFLAGS) in _CFLAGS.
 check_PROGRAMS = tests/1000.loopback/dotest \
-    tests/issue-188-common-cos-syntax/dotest
+	tests/issue-188-common-cos-syntax/dotest \
+	tests/issue-260-teach-valgrind-mtake/domtake
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libbp.la libbpP.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
@@ -1480,6 +1481,11 @@ tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
 tests_issue_188_common_cos_syntax_dotest_LDADD = libbp.la libbpP.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_issue_260_teach_valgrind_mtake_domtake_SOURCES = tests/issue-260-teach-valgrind-mtake/domtake.c
+tests_issue_260_teach_valgrind_mtake_domtake_LDADD = libici.la $(LIBOBJS) $(TESTUTILOBJS)
+tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
 
 
 ##########################
