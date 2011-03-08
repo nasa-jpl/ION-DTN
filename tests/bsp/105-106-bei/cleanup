@@ -1,2 +1,3 @@
 #!/bin/bash
-rm -f ion.log ionreceivefile.txt ionexpectedfile.txt
+rm -f tmp snd rcv
+rm -f ion.log 
