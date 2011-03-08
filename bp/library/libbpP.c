@@ -9037,7 +9037,6 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 	/*	If bundle is MINIMUM_LATENCY, nothing more to do.
 	 *	We never put critical bundles into limbo.		*/
 
-	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
 		return 0;
