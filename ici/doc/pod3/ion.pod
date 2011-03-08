@@ -122,16 +122,20 @@ ION status message logging functions.
 B<NOTE> that the ionProd() function must be invoked twice in order
 to establish bidirectional communication.
 
-=item void ionClear(char *eid)
+=item void ionClear(char *srcEid, char *destEid, char *blockType)
 
 This function is designed to be called from an operating environment command
-or a fault protection routine, to disable Bundle Authentication Block (BAB)
-checking when it is preventing nominal authorized operation of a node.  If
-I<eid> is NULL or is a zero-length string, all BAB reception rules are
-deleted from the security policy database and all BAB validation is disabled.
-Otherwise, the ciphersuite name for the BAB reception rule for I<eid> is
-set to a zero-length string, disabling the checking of BABs on all bundles
-received from endpoints matching I<eid>.
+or a fault protection routine, to delete some or all of ION's Bundle Security
+Protocol rules when they are preventing nominal authorized operation of a node.
+If the first character of I<blockType> is '~' then the function applies to
+rules for all types of BSP block; otherwise it applies only to rules for the
+named BSP block type: "bab", "pib", "pcb", or "esb".  Only rules whose security
+source EIDs match I<srcEid> and whose security destination EIDs match
+I<destEid> are deleted.  A rule EID matches a "clearing" EID if (a) every
+character of the clearing EID prior to the first '~' in the clearing ID (if
+any) is equal to the corresponding character of the rule EID B<and> either the
+first '~' character in the clearing EID is the clearing EID's last character
+or else the rule EID and clearing EID are of equal length.
 
 =item Sdr getIonsdr()
 

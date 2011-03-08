@@ -84,7 +84,7 @@ int	decryptUsingSymmetricKey(char **plaintext, char *key,
 		return 0;
 	}
 
-	*plaintext = MTAKE(ctlen);
+	*plaintext = TAKE_CONTENT_SPACE(ctlen);
 	if (*plaintext == NULL)
 	{
 		return 0;

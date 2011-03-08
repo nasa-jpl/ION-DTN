@@ -6,7 +6,7 @@
  									*/
 /*	Copyright (c) 2006, California Institute of Technology.		*/
 /*	All rights reserved.						*/
-/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
+/*	Author: Amalaye Oyake, Jet Propulsion Laboratory		*/
 
 #include "ams.h"
 
@@ -44,7 +44,7 @@ name>\", \"<subject name>\"");
 	if (subjectNbr < 0)
 	{
 		ams_unregister(me);
-		writeMemoNote("[?] amssub subject is unknown", subjectName);
+		putErrmsg("amssub: subject is unknown", subjectName);
 		return -1;
 	}
 
@@ -108,7 +108,7 @@ name>\", \"<subject name>\", \"<message text>\"");
 	subjectNbr = ams_lookup_subject_nbr(me, subjectName);
 	if (subjectNbr < 0)
 	{
-		writeMemoNote("[?] amssub subject is unknown", subjectName);
+		putErrmsg("amspub: subject is unknown", subjectName);
 		ams_unregister(me);
 		return -1;
 	}

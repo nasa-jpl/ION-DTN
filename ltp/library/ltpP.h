@@ -228,7 +228,8 @@ typedef enum
 	LtpResendCheckpoint = 1,
 	LtpResendXmitCancel,
 	LtpResendReport,
-	LtpResendRecvCancel
+	LtpResendRecvCancel,
+	LtpForgetSession
 } LtpEventType;
 
 typedef struct
@@ -236,7 +237,7 @@ typedef struct
 	unsigned long	refNbr1;	/*	Engine ID.		*/
 	unsigned long	refNbr2;	/*	Session number.		*/
 	unsigned long	refNbr3;	/*	Serial number.		*/
-	Object		parm;		/*	Possible future use.	*/
+	Object		parm;		/*	Non-specific use.	*/
 	time_t		scheduledTime;	/*	Seconds since Jan 1970.	*/
 	LtpEventType	type;
 } LtpEvent;
@@ -271,6 +272,7 @@ typedef struct
 	Object		segments;	/*	SDR list: LtpXmitSeg	*/
 	Object		importSessions;	/*	SDR list: ImportSession	*/
 	Object		importSessionsHash;
+	Object		closedImports;	/*	SDR list: session nbr	*/
 	Object		deadImports;	/*	SDR list: ImportSession	*/
 } LtpSpan;
 

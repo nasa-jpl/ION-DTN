@@ -69,29 +69,34 @@ static void	printUsage()
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a key <key name> <name of file containing key value>");
-	PUTS("\t   a babtxrule <receiver eid expression> { '' | \
-<ciphersuite name> <key name> }");
+	PUTS("\t   a bspbabrule <sender eid expression> <receiver eid \
+expression> { '' |  <ciphersuite name> <key name> }");
 	PUTS("\t\tAn eid expression may be either an EID or a wild card, \
 i.e., a partial eid expression ending in '*'.");
-	PUTS("\t   a babrxrule <sender eid expression> { '' | \
-<ciphersuite name> <key name> }");
+	PUTS("\t   a bsppibrule <sender eid expression> <receiver eid \
+expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\tc\tChange");
 	PUTS("\t   c key <key name> <name of file containing key value>");
-	PUTS("\t   c babtxrule <receiver eid expression> { '' | \
-<ciphersuite name> <key name> }");
-	PUTS("\t   c babrxrule <sender eid expression> { '' | \
-<ciphersuite name> <key name> }");
+	PUTS("\t   c bspbabrule <sender eid expression> <receiver eid \
+expression> { '' | <ciphersuite name> <key name> }");
+	PUTS("\t   c bsppibrule <sender eid expression> <receiver eid \
+expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} key <key name>");
-	PUTS("\t   {d|i} babtxrule <receiver eid expression>");
-	PUTS("\t   {d|i} babrxrule <sender eid expression>");
+	PUTS("\t   {d|i} bspbabrule <sender eid expression> <receiver eid \
+expression>");
+	PUTS("\t   {d|i} bsppibrule <sender eid expression> <receiver eid \
+expression> <block type number>");
 	PUTS("\tl\tList");
 	PUTS("\t   l key");
-	PUTS("\t   l babtxrule");
-	PUTS("\t   l babrxrule");
+	PUTS("\t   l bspbabrule");
+	PUTS("\t   l bsppibrule");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
+	PUTS("\tx\tClear BSP security rules.");
+	PUTS("\t   x <security source eid> <security destination eid> \
+{ bab | pib | pcb | esb | ~ }");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
 }
@@ -132,15 +137,15 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "babtxrule") == 0)
+	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
 		switch (tokenCount)
 		{
-		case 5:
-			keyName = tokens[4];
+		case 6:
+			keyName = tokens[5];
 			break;
 
-		case 4:
+		case 5:
 			keyName = _omitted();
 			break;
 
@@ -149,19 +154,19 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		sec_addBabTxRule(tokens[2], tokens[3], keyName);
+		sec_addBspBabRule(tokens[2], tokens[3], tokens[4], keyName);
 		return;
 	}
 
-	if (strcmp(tokens[1], "babrxrule") == 0)
+	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		switch (tokenCount)
 		{
-		case 5:
-			keyName = tokens[4];
+		case 7:
+			keyName = tokens[6];
 			break;
 
-		case 4:
+		case 6:
 			keyName = _omitted();
 			break;
 
@@ -170,7 +175,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		sec_addBabRxRule(tokens[2], tokens[3], keyName);
+		sec_addBspPibRule(tokens[2], tokens[3], atoi(tokens[4]),
+				tokens[5], keyName);
 		return;
 	}
 			
@@ -199,15 +205,15 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "babtxrule") == 0)
+	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
 		switch (tokenCount)
 		{
-		case 5:
-			keyName = tokens[4];
+		case 6:
+			keyName = tokens[5];
 			break;
 
-		case 4:
+		case 5:
 			keyName = _omitted();
 			break;
 
@@ -216,19 +222,19 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		sec_updateBabTxRule(tokens[2], tokens[3], keyName);
+		sec_updateBspBabRule(tokens[2], tokens[3], tokens[4], keyName);
 		return;
 	}
 
-	if (strcmp(tokens[1], "babrxrule") == 0)
+	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		switch (tokenCount)
 		{
-		case 5:
-			keyName = tokens[4];
+		case 7:
+			keyName = tokens[6];
 			break;
 
-		case 4:
+		case 6:
 			keyName = _omitted();
 			break;
 
@@ -237,7 +243,8 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		sec_updateBabRxRule(tokens[2], tokens[3], keyName);
+		sec_updateBspPibRule(tokens[2], tokens[3], atoi(tokens[4]),
+				tokens[5], keyName);
 		return;
 	}
 			
@@ -252,7 +259,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (tokenCount != 3)
+	if (tokenCount > 5)
 	{
 		SYNTAX_ERROR;
 		return;
@@ -264,15 +271,15 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "babtxrule") == 0)
+	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
-		sec_removeBabTxRule(tokens[2]);
+		sec_removeBspBabRule(tokens[2], tokens[3]);
 		return;
 	}
 
-	if (strcmp(tokens[1], "babrxrule") == 0)
+	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
-		sec_removeBabRxRule(tokens[2]);
+		sec_removeBspPibRule(tokens[2], tokens[3], atoi(tokens[4]));
 		return;
 	}
 
@@ -291,32 +298,35 @@ static void	printKey(Object keyAddr)
 	printText(buf);
 }
 
-static void	printBabTxRule(Object ruleAddr)
+static void	printBspBabRule(Object ruleAddr)
 {
 	Sdr	sdr = getIonsdr();
-		OBJ_POINTER(BabTxRule, rule);
-	char	eidbuf[SDRSTRING_BUFSZ];
+		OBJ_POINTER(BspBabRule, rule);
+	char	srcEidBuf[SDRSTRING_BUFSZ], destEidBuf[SDRSTRING_BUFSZ];
 	char	buf[512];
 
-	GET_OBJ_POINTER(sdr, BabTxRule, rule, ruleAddr);
-	sdr_string_read(sdr, eidbuf, rule->recvEid);
-	isprintf(buf, sizeof buf, "txrule eid '%.255s' ciphersuite '%.31s' \
-			key name '%.31s'", eidbuf, rule->ciphersuiteName,
-			rule->keyName);
+	GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleAddr);
+	sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
+	sdr_string_read(sdr, destEidBuf, rule->securityDestEid);
+	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.2555s' \
+ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
+		rule->ciphersuiteName, rule->keyName);
 	printText(buf);
 }
 
-static void	printBabRxRule(Object ruleAddr)
+static void	printBspPibRule(Object ruleAddr)
 {
 	Sdr	sdr = getIonsdr();
-		OBJ_POINTER(BabRxRule, rule);
-	char	eidbuf[SDRSTRING_BUFSZ];
+		OBJ_POINTER(BspPibRule, rule);
+	char	srcEidBuf[SDRSTRING_BUFSZ], destEidBuf[SDRSTRING_BUFSZ];
 	char	buf[512];
 
-	GET_OBJ_POINTER(sdr, BabRxRule, rule, ruleAddr);
-	sdr_string_read(sdr, eidbuf, rule->xmitEid);
-	isprintf(buf, sizeof buf, "rxrule eid '%.255s' ciphersuite '%.31s' \
-key name '%.31s'", eidbuf, rule->ciphersuiteName, rule->keyName);
+	GET_OBJ_POINTER(sdr, BspPibRule, rule, ruleAddr);
+	sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
+	sdr_string_read(sdr, destEidBuf, rule->securityDestEid);
+	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
+type '%.5s' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
+		rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
 	printText(buf);
 }
 
@@ -331,7 +341,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (tokenCount != 3)
+	if (tokenCount > 5)
 	{
 		SYNTAX_ERROR;
 		return;
@@ -350,29 +360,30 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "babtxrule") == 0)
+	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
-		sec_findBabTxRule(tokens[2], &addr, &elt);
+		sec_findBspBabRule(tokens[2], tokens[3], &addr, &elt);
 		if (elt == 0)
 		{
-			printText("Key not found.");
+			printText("BAB rule not found.");
 			return;
 		}
 
-		printBabTxRule(addr);
+		printBspBabRule(addr);
 		return;
 	}
 
-	if (strcmp(tokens[1], "babrxrule") == 0)
+	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
-		sec_findBabRxRule(tokens[2], &addr, &elt);
+		sec_findBspPibRule(tokens[2], tokens[3], atoi(tokens[4]),
+				&addr, &elt);
 		if (elt == 0)
 		{
-			printText("Key not found.");
+			printText("PIB rule not found.");
 			return;
 		}
 
-		printBabRxRule(addr);
+		printBspPibRule(addr);
 		return;
 	}
 
@@ -411,25 +422,25 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "babtxrule") == 0)
+	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
-		for (elt = sdr_list_first(sdr, db->babTxRules); elt;
+		for (elt = sdr_list_first(sdr, db->bspBabRules); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
 			obj = sdr_list_data(sdr, elt);
-			printBabTxRule(obj);
+			printBspBabRule(obj);
 		}
 
 		return;
 	}
 
-	if (strcmp(tokens[1], "babrxrule") == 0)
+	if (strcmp(tokens[1], "bspPibrule") == 0)
 	{
-		for (elt = sdr_list_first(sdr, db->babRxRules); elt;
+		for (elt = sdr_list_first(sdr, db->bspPibRules); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
 			obj = sdr_list_data(sdr, elt);
-			printBabRxRule(obj);
+			printBspPibRule(obj);
 		}
 
 		return;
@@ -568,6 +579,35 @@ static int	processLine(char *line, int lineLength)
 			switchEcho(tokenCount, tokens);
 			return 0;
 
+		/* Call for ionClear() to clear all security rules */
+		case 'x':
+			if (secAttach() == 0)
+			{
+			   	if (tokenCount > 4)
+				{
+					SYNTAX_ERROR;
+				}
+				else if (tokenCount == 4)
+				{
+					ionClear(tokens[1], tokens[2],
+							tokens[3]);
+				}
+				else if (tokenCount == 3)
+				{
+					ionClear(tokens[1], tokens[2], "~");
+				}
+				else if (tokenCount == 2)
+				{
+					ionClear(tokens[1], "~", "~");
+				}
+				else
+				{
+					ionClear("~", "~", "~");
+				}
+			}
+
+			return 0;
+	
 		case 'q':
 			return -1;	/*	End program.		*/
 

@@ -33,8 +33,9 @@ int main(int argc, char **argv)
 	{
 		putErrmsg("ramsgate can't run.", NULL);
 		writeErrmsgMemos();
+		return 1;
 	}
 
 	PUTS("ramsgate terminated.");
-	return 1;
+	return 0;
 }

@@ -18,6 +18,18 @@
 #define AMSDEBUG	0
 #endif
 
+#ifndef AMS_INDUSTRIAL
+#define AMS_INDUSTRIAL	0
+#endif
+
+#if AMS_INDUSTRIAL
+#define TAKE_CONTENT_SPACE(size)	malloc(size)
+#define RELEASE_CONTENT_SPACE(size)	free(size)
+#else
+#define TAKE_CONTENT_SPACE(size)	MTAKE(size)
+#define RELEASE_CONTENT_SPACE(size)	MRELEASE(size)
+#endif
+
 #include "platform.h"
 #include "memmgr.h"
 #include "psm.h"
@@ -32,6 +44,7 @@ extern "C" {
 
 #define INVITE_LEN	(9)
 #define SUBSCRIBE_LEN	(9)
+#define CANCEL_LEN	(7)
 
 #define	MAX_APP_NAME	32
 #define	MAX_AUTH_NAME	32

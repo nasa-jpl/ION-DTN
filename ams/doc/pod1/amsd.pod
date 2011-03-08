@@ -1,0 +1,86 @@
+=head1 NAME
+
+amsd - AMS configuration server and/or registrar daemon
+
+=head1 SYNOPSIS
+
+B<amsd> { @ | I<MIB_source_name> } { . | @ | I<config_server_endpoint_spec> } [I<registrar_application_name> I<registrar_authority_name> I<registrar_unit_name>]
+
+=head1 DESCRIPTION
+
+B<amsd> is a background "daemon" task that functions as an AMS "configuration
+server" in the local continuum, as an AMS "registrar" in a specified cell,
+or both.
+
+If I<MIB_source_name> is specified, it must name a MIB initialization file
+in the correct format for B<amsd>, either amsrc(5) or amsxml(5), depending on
+whether or not -DNOEXPAT was set at compile time.  Otherwise B<@> is required;
+in this case, the built-in default MIB is loaded.
+
+If this B<amsd> task is B<NOT> to run as a configuration server then the
+second command-line argument must be a '.' character.  Otherwise the second
+command-line argument must be either '@' or I<config_server_endpoint_spec>.
+If '@' then the endpoint specification for this configuration server is
+automatically computed as the defaut endpoint specification for the primary
+transport service as noted in the MIB: "I<hostname>:2357".
+
+If this B<amsd> task is B<NOT> to run as a registrar then the last three
+command-line arguments must be omitted.  Otherwise the last three command-line
+arguments are required and they must identify a unit in an AMS venture for
+the indicated application and authority that is known to operate in the local
+continuum, as noted in the MIB.  Note that the unit name for the "root unit"
+of a venture is the zero-length string "".
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item 0
+
+B<amsd> terminated without error.
+
+=item -1
+
+B<amsd> terminated due to an anomaly as noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and restart B<amsd>.
+
+=back
+
+=head1 FILES
+
+If I<MIB source name> is specified, then a file of this name must be present.
+Otherwise a MIB initialization file with the applicable default name (see
+amsrc(5)) must be present.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item amsd can't load MIB.
+
+MIB initialization file was missing, unreadable, or invalid.
+
+=item amsd can't start CS.
+
+Configuration server initialization failed for reasons noted in ion.log file.
+
+=item amsd can't start RS.
+
+Registrar initialization failed for reasons noted in ion.log file.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+amsrc(5), amsxml(5)

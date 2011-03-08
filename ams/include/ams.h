@@ -41,8 +41,8 @@ typedef enum
 	AmsAssured
 } AmsDiligence;
 
-typedef struct amssapst	*AmsModule;
-typedef struct amsevtst	*AmsEvent;
+typedef struct amssapst		*AmsModule;
+typedef struct amsevtst		*AmsEvent;
 
 /*	AMS event types.						*/
 #define	AMS_MSG_EVT		1

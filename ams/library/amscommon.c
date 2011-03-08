@@ -809,9 +809,23 @@ int	lookUpContinuum(char *contName)
 	return -1;
 }
 
+static int	getKey(char *keyName, int *authKeyLen, char *authKey)
+{
+	int	keyLen;
+
+	keyLen = sec_get_key(keyName, authKeyLen, authKey);
+	if (keyLen <= 0)
+	{
+		return -1;
+	}
+
+	*authKeyLen = keyLen;
+	return 0;
+}
+
 static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 			Venture **venture, Unit **unit, int sending,
-			char **authName, char **authKey, int *authKeyLen)
+			char **authName, char *authKey, int *authKeyLen)
 {
 	AmsMib	*mib = _mib(NULL);
 	AppRole	*role = NULL;
@@ -820,8 +834,6 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 	*venture = NULL;
 	*unit = NULL;
 	*authName = NULL;
-	*authKey = NULL;		/*	Default.		*/
-	*authKeyLen = 0;		/*	Default.		*/
 	if (ventureNbr > 0)
 	{
 		if (ventureNbr > MAX_VENTURE_NBR
@@ -858,8 +870,11 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		if (sending)
 		{
 			keyName = role->privateKeyName;
-			if (keyName
-			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			if (keyName == NULL)
+			{
+				*authKeyLen = 0;
+			}
+			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
 				writeMemoNote("[?] Can't get role private key", 
 					role->privateKeyName);
@@ -868,8 +883,11 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		else
 		{
 			keyName = role->publicKeyName;
-			if (keyName
-			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			if (keyName == NULL)
+			{
+				*authKeyLen = 0;
+			}
+			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
 				writeMemoNote("[?] Can't get role public key", 
 					role->publicKeyName);
@@ -882,8 +900,11 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		if (sending)
 		{
 			keyName = (*venture)->app->privateKeyName;
-			if (keyName
-			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			if (keyName == NULL)
+			{
+				*authKeyLen = 0;
+			}
+			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
 				writeMemoNote("[?] Can't get app private key", 
 					(*venture)->app->privateKeyName);
@@ -892,8 +913,11 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		else
 		{
 			keyName = (*venture)->app->publicKeyName;
-			if (keyName
-			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			if (keyName == NULL)
+			{
+				*authKeyLen = 0;
+			}
+			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
 				writeMemoNote("[?] Can't get app public key", 
 					(*venture)->app->publicKeyName);
@@ -906,8 +930,11 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		if (sending)
 		{
 			keyName = mib->csPrivateKeyName;
-			if (keyName
-			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			if (keyName == NULL)
+			{
+				*authKeyLen = 0;
+			}
+			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
 				writeMemoNote("[?] Can't get CS private key", 
 					mib->csPrivateKeyName);
@@ -916,8 +943,11 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		else
 		{
 			keyName = mib->csPublicKeyName;
-			if (keyName
-			&& sec_get_key(keyName, authKeyLen, *authKey) <= 0)
+			if (keyName == NULL)
+			{
+				*authKeyLen = 0;
+			}
+			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
 				writeMemoNote("[?] Can't get CS public key", 
 					mib->csPublicKeyName);
@@ -1078,7 +1108,7 @@ AppRole	*createRole(Venture *venture, int nbr, char *name, char *publicKeyName,
 	istrcpy(role->name, name, length);
 	if (publicKeyName)
 	{
-		length = strlen(publicKeyName);
+		length = strlen(publicKeyName) + 1;
 		role->publicKeyName = MTAKE(length);
 		CHKNULL(role->publicKeyName);
 		memcpy(role->publicKeyName, publicKeyName, length);
@@ -1086,7 +1116,7 @@ AppRole	*createRole(Venture *venture, int nbr, char *name, char *publicKeyName,
 
 	if (privateKeyName)
 	{
-		length = strlen(privateKeyName);
+		length = strlen(privateKeyName) + 1;
 		role->privateKeyName = MTAKE(length);
 		CHKNULL(role->privateKeyName);
 		memcpy(role->privateKeyName, privateKeyName, length);
@@ -1245,7 +1275,7 @@ LystElt	createApp(char *name, char *publicKeyName, char *privateKeyName)
 	istrcpy(app->name, name, length);
 	if (publicKeyName)
 	{
-		length = strlen(publicKeyName);
+		length = strlen(publicKeyName) + 1;
 		app->publicKeyName = MTAKE(length);
 		CHKNULL(app->publicKeyName);
 		memcpy(app->publicKeyName, publicKeyName, length);
@@ -1253,7 +1283,7 @@ LystElt	createApp(char *name, char *publicKeyName, char *privateKeyName)
 
 	if (privateKeyName)
 	{
-		length = strlen(privateKeyName);
+		length = strlen(privateKeyName) + 1;
 		app->privateKeyName = MTAKE(length);
 		CHKNULL(app->privateKeyName);
 		memcpy(app->privateKeyName, privateKeyName, length);
@@ -1886,8 +1916,8 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 	Venture		*venture;
 	Unit		*unit;
 	char		*authName;
-	char		*authKey;
-	int		authKeyLen; 
+	char		authKey[32];
+	int		authKeyLen = sizeof authKey; 
 	int		authNameLen;
 	int		nonce;
 	unsigned char	authenticator[AUTHENTICAT_LEN];
@@ -1905,7 +1935,7 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 	CHKERR(endpoint);
 	CHKERR(tsif);
 	if (getAuthenticationParms(tsif->ventureNbr, tsif->unitNbr,
-			tsif->roleNbr, &venture, &unit, 1, &authName, &authKey,
+			tsif->roleNbr, &venture, &unit, 1, &authName, authKey,
 			&authKeyLen))
 	{
 		putErrmsg("Can't get authentication parameters.", NULL);
@@ -1917,7 +1947,7 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 		return 0;		/*	Don't send message.	*/
 	}
 	
-	if (authKey && authKeyLen > 0)
+	if (authKeyLen > 0)
 	{
 		authNameLen = strlen(authName);
 		if (authNameLen == 0 || authNameLen > (AUTHENTICAT_LEN - 9))
@@ -2111,8 +2141,8 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	Venture		*venture;
 	Unit		*unit;
 	char		*authName;
-	char		*authKey;
-	int		authKeyLen;
+	char		authKey[32];
+	int		authKeyLen = sizeof authKey;
 	int		authNameLen;
 	unsigned char	nonce[4];
 	int		decryptLength;
@@ -2215,7 +2245,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	}
 
 	if (getAuthenticationParms(msg.ventureNbr, msg.unitNbr, msg.roleNbr,
-			&venture, &unit, 0, &authName, &authKey, &authKeyLen))
+			&venture, &unit, 0, &authName, authKey, &authKeyLen))
 	{
 		putErrmsg("Can't get authentication parameters.", NULL);
 		return -1;
@@ -2226,7 +2256,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 		return 0;		/*	Don't deliver message.	*/
 	}
 	
-	if (authKey && authKeyLen > 0)
+	if (authKeyLen > 0)
 	{
 		/*	Authentication is required.			*/
 

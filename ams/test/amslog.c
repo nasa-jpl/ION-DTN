@@ -157,15 +157,19 @@ static void	interruptAmslog(void *userData, AmsEvent *event)
 int	amslog(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char		*applicationName = (char *) a1;
-	char		*authorityName = (char *) a2;
-	char		*mode = (a3 == 0 ? "s" : (char *) a3);
+	char		*ownUnitName = (char *) a1;
+	char		*ownRoleName = (char *) a2;
+	char		*applicationName = (char *) a3;
+	char		*authorityName = (char *) a4;
+	char		*mode = (a5 == 0 ? "s" : (char *) a5);
 #else
 int	main(int argc, char **argv)
 {
-	char		*applicationName = (argc > 1 ? argv[1] : NULL);
-	char		*authorityName = (argc > 2 ? argv[2] : NULL);
-	char		*mode = (argc > 3 ? argv[3] : "s");
+	char		*ownUnitName = (argc > 1 ? argv[1] : NULL);
+	char		*ownRoleName = (argc > 2 ? argv[2] : NULL);
+	char		*applicationName = (argc > 3 ? argv[3] : NULL);
+	char		*authorityName = (argc > 4 ? argv[4] : NULL);
+	char		*mode = (argc > 5 ? argv[5] : "s");
 #endif
 	pthread_t	self;
 	AmsModule	me;
@@ -186,11 +190,13 @@ int	main(int argc, char **argv)
 	int		roleNbr;
 	int		continNbr;			// CW, 5/1/06
 
-	if (applicationName == NULL || authorityName == NULL
+	if (unitName == NULL || roleName == NULL
+	|| applicationName == NULL || authorityName == NULL
 	|| (strcmp(mode, "s") && strcmp(mode, "i")))
 	{
-		fputs("Usage: amslog <application name> <authority name>\
-[{ s | i }]\n", stderr);
+		fputs("Usage: amslog <unit name> <role name> <application \
+name> <authority name> [{ s | i }]\n", stderr);
+		fputs("   e.g., amslog \"\" log amsdemo test\n", stderr);
 		fputs("   By default, subscribes to subjects.\n", stderr);
 		fputs("   To override, use 'i' (invite).\n", stderr);
 		fputs("   Takes subject names from stdin, logs all \
@@ -204,8 +210,8 @@ messages to stdout.\n", stderr);
 	oK(_amslog_running(&start));
 	isignal(SIGINT, handleQuit);
 	setLogger(logToStderr);
-	if (ams_register("", NULL, applicationName, authorityName, "", "log",
-			&me) < 0)
+	if (ams_register("", NULL, applicationName, authorityName, ownUnitName,
+			ownRoleName, &me) < 0)
 	{
 		putErrmsg("amslog can't register.", NULL);
 		return -1;

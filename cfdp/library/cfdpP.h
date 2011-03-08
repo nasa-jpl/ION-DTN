@@ -78,6 +78,7 @@ typedef struct
 	CfdpNumber		destinationEntityNbr;
 	unsigned char		utParms[sizeof(BpUtParms)];
 	int			utParmsLength;
+	int			reqNbr;		/*	Creation req.	*/
 	CfdpTransactionId	originatingTransactionId;
 
 	/*	File Delivery Unit transmission status			*/
@@ -86,7 +87,8 @@ typedef struct
 	CfdpHandler		faultHandlers[16];
 	Object			metadataPdu;	/*	ZCO reference	*/
 	unsigned int		fileSize;	/*	in bytes	*/
-	unsigned int		progress;	/*	bytes sent	*/
+	unsigned int		progress;	/*	bytes issued	*/
+	int			transmitted;	/*	Boolean		*/
 	Object			fileRef;	/*	ZCO file ref	*/
 	Object			recordLengths;	/*	sdrlist		*/
 	Object			eofPdu;		/*	ZCO reference	*/

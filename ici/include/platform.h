@@ -511,7 +511,9 @@ extern int			scalarIsValid(Scalar *);
 
 extern int			_isprintf(const char *, int, char *, int,
 					char *, ...);
+extern size_t			istrlen(char *, size_t);
 extern char			*istrcpy(char *, char *, size_t);
+extern char			*istrcat(char *, char *, size_t);
 extern char			*igetcwd(char *, size_t);
 extern void			isignal(int, void (*)(int));
 extern void			iblock(int);

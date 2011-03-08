@@ -1044,7 +1044,6 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	CfdpVdb		*vdb = getCfdpVdb();
 	Sdr		sdr = getIonsdr();
 	Object		dbObj = getCfdpDbObject();
-	int		bestEfforts = 0;
 	OutFdu		fdu;
 	int		recordBoundariesRespected = 1;
 	int		sourceFile;
@@ -1052,10 +1051,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	int		recordLength;
 	unsigned int	checksum = 0;
 	CfdpHandler	handler;
-	BpUtParms	*bpUtParms = NULL;
 	CfdpDB		db;
 	Object		fduObj;
-	int		reqNbr;
 	CfdpEvent	event;
 
 	CHKZERO(transactionId);
@@ -1086,18 +1083,14 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	memset((char *) &fdu, 0, sizeof(OutFdu));
 	memcpy((char *) &fdu.transactionId.sourceEntityNbr,
 			(char *) &db.ownEntityNbr, sizeof(CfdpNumber));
-	fdu.utParmsLength = utParmsLength;
 	if (utParms)
 	{
+		fdu.utParmsLength = utParmsLength;
 		memcpy(fdu.utParms, utParms, utParmsLength);
-		if (utParmsLength == sizeof(BpUtParms))
-		{
-			bpUtParms = (BpUtParms *) utParms;
-			if (bpUtParms->extendedCOS.flags & BP_BEST_EFFORT)
-			{
-				bestEfforts = 1;
-			}
-		}
+	}
+	else
+	{
+		fdu.utParmsLength = 0;
 	}
 
 	if (sdr_heap_depleted(sdr))
@@ -1236,6 +1229,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 
 	/*	Prepare for construction of PDUs for this FDU.		*/
 
+	fdu.reqNbr = getReqNbr();
 	if (originatingTransactionId)
 	{
 		memcpy((char *) &fdu.originatingTransactionId,
@@ -1321,48 +1315,14 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 
 	/*	Post Transaction.ind event.				*/
 
-	reqNbr = getReqNbr();
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpTransactionInd;
 	memcpy((char *) &event.transactionId, (char *) &fdu.transactionId,
 			sizeof(CfdpTransactionId));
-	event.reqNbr = reqNbr;
+	event.reqNbr = fdu.reqNbr;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't report on new transaction.", NULL);
-		sdr_cancel_xn(sdr);
-		return -1;
-	}
-
-	/*	Post EOF-Sent.ind event.				*/
-
-	memset((char *) &event, 0, sizeof(CfdpEvent));
-	event.type = CfdpEofSentInd;
-	event.fileSize = fdu.fileSize;
-	memcpy((char *) &event.transactionId, (char *) &fdu.transactionId,
-			sizeof(CfdpTransactionId));
-	event.reqNbr = reqNbr;
-	if (enqueueCfdpEvent(&event) < 0)
-	{
-		putErrmsg("CFDP can't report on EOF sent.", NULL);
-		sdr_cancel_xn(sdr);
-		return -1;
-	}
-
-	/*	Post Transaction-Finished.ind event.  (Class 1 CFDP)	*/
-
-	memset((char *) &event, 0, sizeof(CfdpEvent));
-	event.type = CfdpTransactionFinishedInd;
-	event.condition = CfdpNoError;
-	event.fileStatus = CfdpFileStatusUnreported;
-	event.deliveryCode = bestEfforts ? CfdpDataComplete
-			: CfdpDataIncomplete;
-	memcpy((char *) &event.transactionId, (char *) &fdu.transactionId,
-			sizeof(CfdpTransactionId));
-	event.reqNbr = reqNbr;
-	if (enqueueCfdpEvent(&event) < 0)
-	{
-		putErrmsg("CFDP can't report on EOF sent.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -1374,7 +1334,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	}
 
 	sm_SemGive(vdb->fduSemaphore);
-	return reqNbr;
+	return fdu.reqNbr;
 }
 
 int	cfdp_put(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,

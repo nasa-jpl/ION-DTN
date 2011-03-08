@@ -80,8 +80,3 @@ s
 #   (destination address) of '127.0.0.1:4556'
 a plan 1 udp/*,127.0.0.1:4556
 ## end ipnadmin 
-
-## begin ionsecadmin
-1
-e 1
-## end ionsecadmin

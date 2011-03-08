@@ -1,0 +1,46 @@
+=head1 NAME
+
+amslogprt - UNIX utility program for printing AMS log messages from amslog
+
+=head1 SYNOPSIS
+
+B<amslogprt>
+
+=head1 DESCRIPTION
+
+B<amslogprt> simply reads AMS activity log messages from standard input
+(nominally written by B<amslog> and prints them.  When the content of a
+logged message is judged not to be an ASCII text string, the content is
+printed in hexadecimal.
+
+B<amslogprt> terminates at the end of input.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item 0
+
+B<amslogprt> terminated normally.
+
+=back
+
+=head1 FILES
+
+No files are needed by amslogprt.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+None.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+amsrc(5)

@@ -25,6 +25,8 @@
 extern "C" {
 #endif
 
+#define SDR_LIST_ELT_OVERHEAD		(WORD_SIZE * 4)
+
 /*	A note on coding technique: the checking of return codes
  *	can safely be foregone in some circumstances, to simplify
  *	the code and marginally improve performance.  The general
@@ -175,20 +177,6 @@ typedef struct
 	Object		content;	/*	a ZCO reference in SDR	*/
 } Payload;
 
-typedef struct
-{
-	unsigned char	rank;		/*	Order within def array.	*/
-	unsigned char	type;		/*	Per definitions array.	*/
-	unsigned short	blkProcFlags;	/*	Per BP spec.		*/
-	unsigned int	dataLength;	/*	Block content.		*/
-	unsigned int	length;		/*	Length of bytes array.	*/
-	unsigned int	size;		/*	Size of scratchpad obj.	*/
-	Object		object;		/*	Opaque scratchpad.	*/
-	Object		eidReferences;	/*	SDR list (may be 0).	*/
-	Object		bytes;		/*	Array in SDR heap.	*/
-	int		suppressed;
-} ExtensionBlock;
-
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
@@ -319,6 +307,7 @@ typedef struct
 
 	Object		extensions[2];
 	int		extensionsLength[2];	/*	Concatenated.	*/
+	Object		collabBlocks;	/*	SDR list of C. blocks.	*/
 
 	/*	Internal housekeeping stuff.				*/
 
@@ -591,18 +580,6 @@ typedef struct
 	time_t		statsStartTime;	/*	Sourced, forwarded.	*/
 } BpVdb;
 
-typedef struct
-{
-	unsigned char	type;		/*	Per extensions array.	*/
-	unsigned short	blkProcFlags;	/*	Per BP spec.		*/
-	unsigned int	dataLength;	/*	Block content.		*/
-	unsigned int	length;		/*	Length of bytes array.	*/
-	unsigned int	size;		/*	Size of scratchpad obj.	*/
-	void		*object;	/*	Opaque scratchpad.	*/
-	Lyst		eidReferences;	/*	May be NULL.		*/
-	unsigned char	bytes[1];
-} AcqExtBlock;
-
 typedef enum
 {
 	AcqTBD = 0,
@@ -622,6 +599,7 @@ typedef struct
 	int		bundleLength;
 	int		authentic;	/*	Boolean.		*/
 	char		*dictionary;
+	Lyst		collabBlocks;	
 	Lyst		extBlocks[2];	/*	(AcqExtBlock *)		*/
 	int		currentExtBlocksList;	/*	0 or 1.		*/
 	AcqDecision	decision;
@@ -668,49 +646,7 @@ extern BpEidLookupFn	*senderEidLookupFunctions(BpEidLookupFn fn);
 extern void		getSenderEid(char **eidBuffer, char *neighborClId);
 extern int		clIdMatches(char *neighborClId, FwdDirective *dir);
 
-/*	Definitions supporting the use of Bundle Protocol extensions.	*/
-
-typedef int		(*BpExtBlkOfferFn)(ExtensionBlock *, Bundle *);
-typedef void		(*BpExtBlkReleaseFn)(ExtensionBlock *);
-typedef int		(*BpExtBlkRecordFn)(ExtensionBlock *, AcqExtBlock *);
-typedef int		(*BpExtBlkCopyFn)(ExtensionBlock *, ExtensionBlock *);
-typedef int		(*BpExtBlkProcessFn)(ExtensionBlock *, Bundle *, void*);
-typedef int		(*BpAcqExtBlkAcquireFn)(AcqExtBlock *, AcqWorkArea *);
-typedef int		(*BpAcqExtBlkCheckFn)(AcqExtBlock *, AcqWorkArea *);
-typedef void		(*BpAcqExtBlkClearFn)(AcqExtBlock *);
-
 extern void		getSenderEid(char **eidBuffer, char *neighborClId);
-
-#define	PROCESS_ON_FORWARD	0
-#define	PROCESS_ON_TAKE_CUSTODY	1
-#define	PROCESS_ON_ENQUEUE	2
-#define	PROCESS_ON_DEQUEUE	3
-#define	PROCESS_ON_TRANSMIT	4
-
-typedef struct
-{
-	char			name[32];
-	unsigned char		type;
-	unsigned char		listIdx;	/*	0 or 1		*/
-	BpExtBlkOfferFn		offer;
-	BpExtBlkReleaseFn	release;
-	BpAcqExtBlkAcquireFn	acquire;
-	BpAcqExtBlkCheckFn	check;
-	BpExtBlkRecordFn	record;
-	BpAcqExtBlkClearFn	clear;
-	BpExtBlkCopyFn		copy;
-	BpExtBlkProcessFn	process[5];
-} ExtensionDef;
-
-extern void		discardExtensionBlock(AcqExtBlock *blk);
-extern int		serializeExtBlk(ExtensionBlock *blk,
-					Lyst eidReferences,
-					char *blockData);
-extern void		scratchExtensionBlock(ExtensionBlock *blk);
-extern void		suppressExtensionBlock(ExtensionBlock *blk);
-extern void		restoreExtensionBlock(ExtensionBlock *blk);
-extern Object		findExtensionBlock(Bundle *bundle, unsigned int type,
-					unsigned int listIdx);
 
 /*	Definitions supporting the use of QoS-sensitive bandwidth
  *	management.							*/
@@ -1259,7 +1195,6 @@ typedef struct bpsap_st
 extern int		_handleAdminBundles(char *adminEid,
 				StatusRptCB handleStatusRpt,
 				CtSignalCB handleCtSignal);
-
 #ifdef __cplusplus
 }
 #endif
