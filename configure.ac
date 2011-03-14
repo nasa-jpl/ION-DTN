@@ -49,6 +49,12 @@ AC_CHECK_LIB([pthread], [pthread_create], [],
 	#echo "Error! You need to have the Pthread library installed."
 	#exit -1
 
+#
+# If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
+#
+AC_CHECK_HEADERS(valgrind/valgrind.h)
+
+
 # Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
