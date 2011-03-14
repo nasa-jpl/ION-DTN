@@ -595,7 +595,7 @@ ltpcounter_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 # --- Daemon Executables --- #
 
 ltpclock_SOURCES = ltp/daemon/ltpclock.c
-ltpclock_LDADD = libltpp.la libici.la $(LIBOBJS)
+ltpclock_LDADD = libltp.la libici.la $(LIBOBJS)
 ltpclock_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 ltpmeter_SOURCES = ltp/daemon/ltpmeter.c
@@ -1225,7 +1225,6 @@ amsd_SOURCES = \
 	ams/library/dgrts.c \
 	ams/library/udpts.c \
 	ams/library/tcpts.c
-amsd_LDADD = libdgr.la libici.la $(LIBOBJS)
 amsd_CFLAGS = $(amscflags) $(AM_CFLAGS)
 amsd_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
 
