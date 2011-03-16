@@ -13,6 +13,34 @@ if ! which ldd > /dev/null; then
 	exit 2;
 fi
 
+# vercmp ripped from
+# http://rubinium.org/blog/archives/2010/04/05/shell-script-version-compare-vercmp/
+function vercmp()
+{
+	RETVAL=`expr '(' "$1" : '\([^.]*\)' ')' '-' '(' "$2" : '\([^.]*\)' ')' '|' \
+		'(' "$1" : '[^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.]\([^.]*\)' ')' '|' \
+		'(' "$1" : '[^.]*[.][^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.][^.]*[.]\([^.]*\)' ')' '|' \
+		'(' "$1" : '[^.]*[.][^.]*[.][^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.][^.]*[.][^.]*[.]\([^.]*\)' ')'`
+}
+# Check the version of libtool because it was noticed that ubuntu 8.10's
+# libtool v2.2.4 automatically generates -lpthread in some libraries even
+# if they don't use it.
+# This check is fragile in that it assumes "libtool --version" returns:
+# ltmain.sh (GNU libtool) 2.2.6
+# as the first line returned.
+
+# Initialize myversion in case libtool --version doesn't work.
+# default behavior is to assume libtool is working fine and report errors.
+MYVERSION='999'
+MYVERSION=`libtool --version | head -n1 | cut -d' ' -f4 | tr -dc [:digit:].`
+MINVERSION='2.2.5'
+OLDLIBTOOL=0
+vercmp $MYVERSION $MINVERSION
+if [ $RETVAL -le 0 ] ; then
+	echo "Libtool is older than $MINVERSION."
+	OLDLIBTOOL=1
+fi
+
 RETVAL=0
 
 CURDIR=$PWD
@@ -34,8 +62,13 @@ fi
 if grep -q 'color=purple' ionliblinks.dot; then
 	echo "Unused link between libraries:"
 	grep 'color=purple' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+	if [ $OLDLIBTOOL -eq 1 ] ; then
+		echo "Libtool is too old and inserts spurious -pthreads; ignoring error."
+		RETVAL=0
+	else
+		RETVAL=1
+	fi
 	echo
-	RETVAL=1
 fi
 
 if [ "$RETVAL" != "0" ]; then
@@ -54,8 +87,13 @@ fi
 if grep -q 'color=purple' ionliblinks.dot; then
 	echo "Unused link between libraries:"
 	grep 'color=purple' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+	if [ $OLDLIBTOOL -eq 1 ] ; then
+		echo "Libtool is too old and inserts spurious -pthreads; ignoring error."
+		RETVAL=0
+	else
+		RETVAL=1
+	fi
 	echo
-	RETVAL=1
 fi
 
 if [ "$RETVAL" != "0" ]; then
