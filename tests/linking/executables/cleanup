@@ -1,4 +1,0 @@
-#!/bin/bash
-
-rm -fr out.ldd* tmp-install
-

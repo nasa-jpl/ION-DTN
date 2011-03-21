@@ -38,16 +38,26 @@ fi
 
 # Checks for libraries.
 # these are libraries that ALREADY EXIST BEFORE BUILDING
-AC_CHECK_LIB([expat], [XML_GetCurrentLineNumber], [], 
-	[AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])
-	])
-        #echo "Error! You need to have the Expat XML library installed."
-	#exit -1
-AC_CHECK_LIB([pthread], [pthread_create], [], 
-	[AC_MSG_ERROR([You need pthread library.])
-	])
-	#echo "Error! You need to have the Pthread library installed."
-	#exit -1
+AC_CHECK_LIB(
+    [expat], 
+    [XML_GetCurrentLineNumber], 
+    [ AC_SUBST( [EXPAT_LIBS], ["-lexpat"] ) ],
+    [AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])]
+)
+
+AC_CHECK_LIB(
+    [pthread], 
+    [pthread_create], 
+    [ AC_SUBST( [PTHREAD_LIBS], ["-lpthread"] ) ],
+    [AC_MSG_ERROR([You need pthread library.]) ]
+)
+
+
+#
+# If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
+#
+AC_CHECK_HEADERS(valgrind/valgrind.h)
+
 
 # Checks for header files.
 AC_HEADER_DIRENT

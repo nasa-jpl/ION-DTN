@@ -4725,6 +4725,7 @@ int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 			&bundle->ctSignal.sourceEid) < 0)
 	{
 		putErrmsg("Can't print source EID.", NULL);
+		MRELEASE(custodianEid);
 		return -1;
 	}
 

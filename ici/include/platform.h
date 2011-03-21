@@ -407,6 +407,10 @@ typedef int			socklen_t;
 #endif				/****	End of #if defined (RTEMS)	****/
 #endif				/****	End of #if defined (VXWORKS)	****/
 
+#ifdef HAVE_VALGRIND_VALGRIND_H
+#include "valgrind/valgrind.h"
+#endif
+
 typedef void			(* Logger)(char *);
 
 extern void			*acquireSystemMemory(size_t);

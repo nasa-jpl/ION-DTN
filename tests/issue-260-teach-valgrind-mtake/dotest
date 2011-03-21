@@ -1,0 +1,41 @@
+#!/bin/bash
+
+FAIL=0
+
+# "which valgrind" that works with platform idiosyncracies.
+# Thanks to David for figuring this out.
+PROGRAMTEST="valgrind"
+RESULTS=`which ${PROGRAMTEST}`
+WHICHRETURN=$?
+echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
+WHICHFAILMESSAGE=$?
+# which could return the proper fail condition, or the results could be
+# empty, or you're on solaris and your results will be "no netcat in $PATH".
+if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
+    echo "${PROGRAMTEST} is not present in this system; skipping..."
+    exit 2
+fi
+
+
+echo "Starting ION..."
+CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
+echo "ionstart -i ${CONFIGDIR}/loopback.ionrc -l ${CONFIGDIR}/loopback.ltprc -b ${CONFIGDIR}/loopback.bprc -p ${CONFIGDIR}/loopback.ipnrc -s ${CONFIGDIR}/loopback.ionsecrc"
+"ionstart" -i "${CONFIGDIR}/loopback.ionrc" -l "${CONFIGDIR}/loopback.ltprc" -b "${CONFIGDIR}/loopback.bprc" -p "${CONFIGDIR}/loopback.ipnrc" -s "${CONFIGDIR}/loopback.ionsecrc"
+
+libtool --mode=execute valgrind --tool=memcheck ./domtake 2> valgrind-output
+
+echo "Valgrind said..."
+cat valgrind-output
+
+echo -n "Verifying valgrind noticed the leaked block..."
+if grep -q "definitely lost: 128 bytes in 1 blocks" valgrind-output; then
+    echo "OK"
+else
+    echo "FAIL"
+    FAIL=1
+fi
+
+echo "Stopping ion..."
+ionstop
+
+exit $FAIL

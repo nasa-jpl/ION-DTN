@@ -1,0 +1,105 @@
+#!/bin/bash
+# 
+# this test checks the linking cleanliness of the executables
+#
+# it's a bit icky, because it's not obvious what files are executables
+# so we install them all in a throw-away directory, then check the matching files in $IONDIR
+#
+
+#set -x
+
+if ! which ldd > /dev/null; then
+	echo "This system doesn't have 'ldd'; Skipping"
+	exit 2;
+fi
+
+# vercmp ripped from
+# http://rubinium.org/blog/archives/2010/04/05/shell-script-version-compare-vercmp/
+function vercmp()
+{
+	RETVAL=`expr '(' "$1" : '\([^.]*\)' ')' '-' '(' "$2" : '\([^.]*\)' ')' '|' \
+		'(' "$1" : '[^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.]\([^.]*\)' ')' '|' \
+		'(' "$1" : '[^.]*[.][^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.][^.]*[.]\([^.]*\)' ')' '|' \
+		'(' "$1" : '[^.]*[.][^.]*[.][^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.][^.]*[.][^.]*[.]\([^.]*\)' ')'`
+}
+# Check the version of libtool because it was noticed that ubuntu 8.10's
+# libtool v2.2.4 automatically generates -lpthread in some libraries even
+# if they don't use it.
+# This check is fragile in that it assumes "libtool --version" returns:
+# ltmain.sh (GNU libtool) 2.2.6
+# as the first line returned.
+
+# Initialize myversion in case libtool --version doesn't work.
+# default behavior is to assume libtool is working fine and report errors.
+MYVERSION='999'
+MYVERSION=`libtool --version | head -n1 | cut -d' ' -f4 | tr -dc [:digit:].`
+MINVERSION='2.2.5'
+OLDLIBTOOL=0
+vercmp $MYVERSION $MINVERSION
+if [ $RETVAL -le 0 ] ; then
+	echo "Libtool is older than $MINVERSION."
+	OLDLIBTOOL=1
+fi
+
+RETVAL=0
+
+CURDIR=$PWD
+
+(cd "$IONDIR" && "$CURDIR/make-link-graph.sh" -o "$CURDIR/ionliblinks.dot")
+(cd "$IONDIR" && "$CURDIR/make-link-graph.sh" -x -o "$CURDIR/ionexelinks.dot")
+
+bail () {
+	exit $RETVAL
+}
+
+#Check library links first.
+if grep -q 'color=red' ionliblinks.dot; then
+	echo "Missing link between libraries:"
+	grep 'color=red' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+	echo
+	RETVAL=1
+fi
+if grep -q 'color=purple' ionliblinks.dot; then
+	echo "Unused link between libraries:"
+	grep 'color=purple' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+	if [ $OLDLIBTOOL -eq 1 ] ; then
+		echo "Libtool is too old and inserts spurious -pthreads; ignoring error."
+		RETVAL=0
+	else
+		RETVAL=1
+	fi
+	echo
+fi
+
+if [ "$RETVAL" != "0" ]; then
+	echo "Errors found in libraries."
+       	echo "Run 'dot -Tpng -o ionliblinks.png ionliblinks.dot' for details"
+	bail
+fi
+
+#If no errors, also check executables
+if grep -q 'color=red' ionliblinks.dot; then
+	echo "Missing link between libraries:"
+	grep 'color=red' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+	echo
+	RETVAL=1
+fi
+if grep -q 'color=purple' ionliblinks.dot; then
+	echo "Unused link between libraries:"
+	grep 'color=purple' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+	if [ $OLDLIBTOOL -eq 1 ] ; then
+		echo "Libtool is too old and inserts spurious -pthreads; ignoring error."
+		RETVAL=0
+	else
+		RETVAL=1
+	fi
+	echo
+fi
+
+if [ "$RETVAL" != "0" ]; then
+	echo "Errors found in executables."
+       	echo "Run 'dot -Tpng -o ionexelinks.png ionexelinks.dot' for details"
+fi
+
+bail
+
