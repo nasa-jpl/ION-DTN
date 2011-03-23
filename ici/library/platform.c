@@ -2115,13 +2115,15 @@ size_t	istrlen(char *from, size_t maxlen)
 	char	*cursor;
 
 	CHKZERO(from);
-	CHKZERO(maxlen > 0);
-	for (cursor = from; *cursor; cursor++)
+	if (maxlen > 0)
 	{
-		length++;
-		if (length == maxlen)
+		for (cursor = from; *cursor; cursor++)
 		{
-			break;
+			length++;
+			if (length == maxlen)
+			{
+				break;
+			}
 		}
 	}
 

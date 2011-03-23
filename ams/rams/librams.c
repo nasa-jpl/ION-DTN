@@ -2467,8 +2467,8 @@ destinationContinuumNbr);
 #if RAMSDEBUG
 PUTS("<handle announced message> send message to modules:");
 #endif
-	for (modulesElt = lyst_first(moduleList); elt;
-			elt = lyst_next(modulesElt))
+	for (modulesElt = lyst_first(moduleList); modulesElt;
+			modulesElt = lyst_next(modulesElt))
 	{
 		amsModule = (Module *) lyst_data(modulesElt);
 #if RAMSDEBUG

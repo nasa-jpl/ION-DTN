@@ -911,6 +911,13 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	memcpy(header + 8, (char *) &context, 4);
 	i2 = htons(subjectNbr);
 	memcpy(header + 12, (char *) &i2, 2);
+	if (*contentLength == 0)
+	{
+		*(header + 14) = 0;
+		*(header + 15) = 0;
+		return 0;
+	}
+
 	if (subjectNbr > 0)
 	{
 		subject = sap->venture->subjects[subjectNbr];
