@@ -211,7 +211,9 @@ int	main(int argc, char *argv[])
 
 	oK(stcpcloSemaphore(&(vduct->semaphore)));
 	isignal(SIGTERM, shutDownClo);
+#ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
+#endif
 
 	/*	Start the keepalive thread to manage the connection.	*/
 

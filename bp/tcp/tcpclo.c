@@ -337,7 +337,9 @@ int	main(int argc, char *argv[])
 	tcpcloSemaphore = vduct->semaphore;
 	sm_TaskVarAdd(&tcpcloSemaphore);
 	isignal(SIGTERM, shutDownClo);
+#ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
+#endif
 
 	/*	Start the keepalive thread for the eventual connection.	*/
 	

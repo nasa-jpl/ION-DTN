@@ -296,13 +296,15 @@ static int	_petitionLog(char *logLine)
 
 /*	*	*	RAMS gateway main line	*	*	*	*/
 
-static pthread_t	_mainThread(pthread_t *value)
+static pthread_t	_mainThread()
 {
-	static pthread_t	mainThread = 0;
+	static pthread_t	mainThread;
+	static int		haveMainThread = 0;
 
-	if (value)
+	if (haveMainThread == 0)
 	{
-		mainThread = *value;
+		mainThread = pthread_self();
+		haveMainThread = 1;
 	}
 
 	return mainThread;

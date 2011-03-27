@@ -1489,7 +1489,7 @@ static void	frReplaceFile(char *firstFileName, char *secondFileName,
 static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
-#ifdef VXWORKS
+#if (defined(VXWORKS) || defined(mingw))
 	if (mkdir(firstFileName) < 0)
 #else
 	if (mkdir(firstFileName, 00777) < 0)

@@ -47,6 +47,14 @@ typedef struct
 	char	pathName[MAXPATHLEN + 1];
 } IonParms;
 
+typedef struct
+{
+	unsigned int	term;		/*	In seconds.		*/
+	unsigned int	cycles;		/*	0 = forever.		*/
+	int		(*proceed)(void *);
+	void		*userData;
+} IonAlarm;
+
 /*	The IonDB lists of IonContacts and IonRanges are time-ordered,
  *	encyclopedic, and non-volatile.  With the passage of time their
  *	contents are propagated into the IonVdb lists of IonNodes and
@@ -256,6 +264,9 @@ extern int		ionLocked();
 extern int		readIonParms(	char *configFileName,
 					IonParms *parms);
 extern void		printIonParms(	IonParms *parms);
+
+extern void		ionSetAlarm(	IonAlarm *alarm, pthread_t *thread);
+extern void		ionCancelAlarm(	pthread_t thread);
 
 #ifdef __cplusplus
 }

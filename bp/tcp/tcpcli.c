@@ -136,7 +136,8 @@ static void	*receiveBundles(void *parm)
 	KeepaliveThreadParms	*kparms;
 	AcqWorkArea		*work;
 	char			*buffer;
-	pthread_t		kthread = 0;
+	pthread_t		kthread;
+	int			haveKthread = 0;
 
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
@@ -235,6 +236,10 @@ static void	*receiveBundles(void *parm)
 keepalives", NULL);
 			*(parms->cliRunning) = 0;
 		}
+		else
+		{
+			haveKthread = 1;
+		}
 	}
 
 	/*	Now start receiving bundles.				*/
@@ -277,7 +282,7 @@ keepalives", NULL);
 
 	/*	End of receiver thread; release resources.		*/
 
-	if (kthread)
+	if (haveKthread)
 	{
 		pthread_kill(kthread, SIGTERM);
 		pthread_join(kthread, NULL);

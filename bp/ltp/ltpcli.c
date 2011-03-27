@@ -14,13 +14,15 @@
 #include "ipnfw.h"
 #include "dtn2fw.h"
 
-static pthread_t	ltpcliMainThread(pthread_t tid)
+static pthread_t	ltpcliMainThread()
 {
-	static pthread_t	mainThread = 0;
+	static pthread_t	mainThread;
+	static int		haveMainThread = 0;
 
-	if (tid)
+	if (haveMainThread == 0)
 	{
-		mainThread = tid;
+		mainThread = pthread_self();
+		haveMainThread = 1;
 	}
 
 	return mainThread;
@@ -28,7 +30,7 @@ static pthread_t	ltpcliMainThread(pthread_t tid)
 
 static void	interruptThread()
 {
-	pthread_t	mainThread = ltpcliMainThread(0);
+	pthread_t	mainThread = ltpcliMainThread();
 
 	isignal(SIGTERM, interruptThread);
 	if (!pthread_equal(mainThread, pthread_self()))
@@ -522,7 +524,7 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 
-	oK(ltpcliMainThread(pthread_self()));
+	oK(ltpcliMainThread());
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the receiver thread.				*/

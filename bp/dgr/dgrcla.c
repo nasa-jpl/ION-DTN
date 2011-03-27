@@ -18,13 +18,15 @@
 #define	DGRCLA_BUFSZ		65535
 #define	DEFAULT_DGR_RATE	11250000
 
-static pthread_t	dgrclaMainThread(pthread_t tid)
+static pthread_t	dgrclaMainThread()
 {
-	static pthread_t	mainThread = 0;
+	static pthread_t	mainThread;
+	static int		haveMainThread = 0;
 
-	if (tid)
+	if (haveMainThread == 0)
 	{
-		mainThread = tid;
+		mainThread = pthread_self();
+		haveMainThread = 1;
 	}
 
 	return mainThread;
@@ -32,7 +34,7 @@ static pthread_t	dgrclaMainThread(pthread_t tid)
 
 static void	interruptThread()
 {
-	pthread_t	mainThread = dgrclaMainThread(0);
+	pthread_t	mainThread = dgrclaMainThread();
 
 	isignal(SIGTERM, interruptThread);
 	if (!pthread_equal(mainThread, pthread_self()))
@@ -46,7 +48,6 @@ static void	interruptThread()
 typedef struct
 {
 	VOutduct	*vduct;
-	pthread_t	mainThread;
 	int		*running;
 	Dgr		dgrSap;
 } SenderThreadParms;
@@ -80,7 +81,7 @@ static void	*sendBundles(void *parm)
 	{
 		putErrmsg("dgrcla can't get DGR buffer.", NULL);
 		*(parms->running) = 0;
-		pthread_kill(parms->mainThread, SIGTERM);
+		pthread_kill(dgrclaMainThread(), SIGTERM);
 		return NULL;
 	}
 
@@ -199,7 +200,7 @@ failure.", NULL);
 	}
 
 	*(parms->running) = 0;
-	pthread_kill(parms->mainThread, SIGTERM);
+	pthread_kill(dgrclaMainThread(), SIGTERM);
 	writeErrmsgMemos();
 	isprintf(buffer, DGRCLA_BUFSZ, "[i] dgrcla outduct ended.  %d \
 transmissions failed.", failedTransmissions);
@@ -213,7 +214,6 @@ transmissions failed.", failedTransmissions);
 typedef struct
 {
 	VInduct		*vduct;
-	pthread_t	mainThread;
 	int		*running;
 	Dgr		dgrSap;
 } ReceiverThreadParms;
@@ -242,7 +242,7 @@ static void	*receiveBundles(void *parm)
 	{
 		putErrmsg("dgrcla can't get acquisition work area.", NULL);
 		*(parms->running) = 0;
-		pthread_kill(parms->mainThread, SIGTERM);
+		pthread_kill(dgrclaMainThread(), SIGTERM);
 		return NULL;
 	}
 
@@ -251,7 +251,7 @@ static void	*receiveBundles(void *parm)
 	{
 		putErrmsg("dgrcla can't get DGR buffer.", NULL);
 		*(parms->running) = 0;
-		pthread_kill(parms->mainThread, SIGTERM);
+		pthread_kill(dgrclaMainThread(), SIGTERM);
 		return NULL;
 	}
 
@@ -366,7 +366,7 @@ bundle ZCO.", NULL);
 
 		if (rc == DgrFailed)
 		{
-			if (parms->mainThread != 0)
+			if (*(parms->running) != 0)
 			{
 				/*	Not terminated by main thread.	*/
 
@@ -404,7 +404,7 @@ bundle ZCO.", NULL);
 	}
 
 	*(parms->running) = 0;
-	pthread_kill(parms->mainThread, SIGTERM);
+	pthread_kill(dgrclaMainThread(), SIGTERM);
 
 	/*	Finish releasing receiver thread's resources.		*/
 
@@ -522,14 +522,13 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
-	oK(dgrclaMainThread(pthread_self()));
+	oK(dgrclaMainThread());
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the sender thread; a single sender for all
 	 *	destinations.						*/
 
 	senderParms.vduct = voutduct;
-	senderParms.mainThread = pthread_self();
 	senderParms.running = &running;
 	senderParms.dgrSap = dgrSap;
 	if (pthread_create(&senderThread, NULL, sendBundles, &senderParms))
@@ -542,7 +541,6 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 
 	rtp.vduct = vinduct;
-	rtp.mainThread = pthread_self();
 	rtp.running = &running;
 	rtp.dgrSap = dgrSap;
 	if (pthread_create(&receiverThread, NULL, receiveBundles, &rtp))

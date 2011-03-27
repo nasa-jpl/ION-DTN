@@ -147,25 +147,10 @@ int	getpid()
 
 int	gettimeofday(struct timeval *tvp, void *tzp)
 {
-	/*	Note: we now use clock_gettime() for this purpose
-	 *	instead of tickGet(), etc.  Although this requires
-	 *	that clock_settime() be called during ION startup
-	 *	on a VxWorks platform, the result is more reliably
-	 *	accurate.  The older implementation is retained
-	 *	for information purposes only.				*/
-#if 0
-	unsigned long	tickCount;
-	int		ticksPerSec;
-#endif
 	struct timespec	cur_time;
 
 	CHKERR(tvp);
-#if 0
-	tickCount = tickGet();
-	ticksPerSec = sysClkRateGet();
-	tvp->tv_sec = tickCount / ticksPerSec;
-	tvp->tv_usec = ((tickCount % ticksPerSec) * 1000000) / ticksPerSec;
-#endif
+
 	/*	Use the internal POSIX timer.				*/
 
 	clock_gettime(CLOCK_REALTIME, &cur_time);
@@ -330,9 +315,9 @@ int	strncasecmp(const char *s1, const char *s2, size_t n)
 	return 0;
 }
 
-#else				/*	Not VxWorks.			*/
+#endif				/*	End of #if defined VXWORKS	*/
 
-#if defined (darwin) || defined (freebsd)
+#if defined (darwin) || defined (freebsd) || defined (mingw)
 
 void	*memalign(size_t boundary, size_t size)
 {
@@ -461,9 +446,9 @@ void	unlockResource(ResourceLock *rl)
 	return;
 }
 
-#endif
+#endif				/*	end #ifdef _MULTITHREADED	*/
 
-#if (!defined (linux) && !defined (freebsd) && !defined (cygwin) && !defined (darwin) && !defined (RTEMS)) 
+#if (!defined (linux) && !defined (freebsd) && !defined (cygwin) && !defined (darwin) && !defined (RTEMS)) && !defined (mingw)
 /*	These things are defined elsewhere for Linux-like op systems.	*/
 
 extern int	sys_nerr;
@@ -481,14 +466,17 @@ char	*system_error_msg()
 
 char	*getNameOfUser(char *buffer)
 {
+	CHKNULL(buffer);
 	return cuserid(buffer);
 }
 
-#endif	/*	end #if (!defined(linux, cygwin, darwin, RTEMS))	*/
+#endif	/*	end #if (!defined(linux, cygwin, darwin, RTEMS, mingw))	*/
 
 void	closeOnExec(int fd)
 {
+#ifndef mingw
 	fcntl(fd, F_SETFD, FD_CLOEXEC);
+#endif
 }
 
 #ifdef cygwin	/*	select may be slower but 1.3 lacks nanosleep.	*/
@@ -523,9 +511,9 @@ void	microsnooze(unsigned int usec)
 	oK(select(0, &rfds, &wfds, &xfds, &tv));
 }
 
-#else
+#endif					/*	end #ifdef cygwin	*/
 
-#if defined (interix)
+#ifdef interix
 
 void	snooze(unsigned int seconds)
 {
@@ -541,7 +529,25 @@ void	microsnooze(unsigned int usec)
 	oK(usleep(usec));
 }
 
-#else		/*	Not Cygwin or Interix; nanosleep is supported.	*/
+#endif					/*	end #ifdef interix	*/
+
+#if defined (mingw)
+
+void	snooze(unsigned int seconds)
+{
+	Sleep(seconds * 1000);
+}
+
+void	microsnooze(unsigned int usec)
+{
+	Sleep(usec / 1000);
+}
+
+#endif					/*	end #ifdef mingw	*/
+
+#if (!defined (cygwin) && !defined (interix) && !defined (mingw))
+
+					/*	nanosleep is defined.	*/
 
 void	snooze(unsigned int seconds)
 {
@@ -561,8 +567,7 @@ void	microsnooze(unsigned int usec)
 	oK(nanosleep(&ts, NULL));
 }
 
-#endif		/*	end #ifdef interix				*/
-#endif		/*	end #ifdef cygwin				*/
+#endif		/*	end #if (!defined(cygwin, interix, mingw))	*/
 
 void	getCurrentTime(struct timeval *tvp)
 {
@@ -785,11 +790,11 @@ int	watchSocket(int fd)
 	return result;
 }
 
-#endif				/*	End of _REENTRANT subtree.	*/
+#endif			/*	end of #if defined _REENTRANT		*/
 
-#else				/*	Neither VxWorks nor SVR4.	*/
+#endif			/*	end of #if defined _SVR4		*/
 
-#if defined (sun)		/*	(Meaning SunOS 4; a BSD Unix.)	*/
+#if defined (sun)	/*	not SVR4, but Sun, i.e., SunOS 4; a BSD */
 
 unsigned int	getInternetAddress(char *hostName)
 {
@@ -899,9 +904,140 @@ int	watchSocket(int fd)
 	return result;
 }
 
-#else
+#endif			/*	end of #if defined (sun)		*/
+
+#if (defined mingw)
+
+char	*system_error_msg()
+{
+	return strerror(errno);
+}
+
+char	*getNameOfUser(char *buffer)
+{
+	unsigned long	bufsize = 8;
+
+	if (GetUserName(buffer, &bufsize))
+	{
+		istrcpy(buffer, "unknown", 8);
+	}
+
+	return buffer;
+}
+
+unsigned int	getInternetAddress(char *hostName)
+{
+	struct hostent	*hostInfo;
+	unsigned int	hostInetAddress;
+
+	CHKZERO(hostName);
+	hostInfo = gethostbyname(hostName);
+	if (hostInfo == NULL)
+	{
+		putSysErrmsg("can't get host info", hostName);
+		return BAD_HOST_NAME;
+	}
+
+	if (hostInfo->h_length != sizeof hostInetAddress)
+	{
+		putErrmsg("Address length invalid in host info.", hostName);
+		return BAD_HOST_NAME;
+	}
+
+	memcpy((char *) &hostInetAddress, hostInfo->h_addr, 4);
+	return ntohl(hostInetAddress);
+}
+
+char	*getInternetHostName(unsigned int hostNbr, char *buffer)
+{
+	struct hostent	*hostInfo;
+
+	CHKNULL(buffer);
+	hostNbr = htonl(hostNbr);
+	hostInfo = gethostbyaddr((char *) &hostNbr, sizeof hostNbr, AF_INET);
+	if (hostInfo == NULL)
+	{
+		putSysErrmsg("can't get host info", utoa(hostNbr));
+		return NULL;
+	}
+
+	strncpy(buffer, hostInfo->h_name, MAXHOSTNAMELEN);
+	return buffer;
+}
+
+int	getNameOfHost(char *buffer, int bufferLength)
+{
+	int	result;
+
+	CHKERR(buffer);
+	CHKERR(bufferLength > 0);
+	result = gethostname(buffer, bufferLength);
+	if (result < 0)
+	{
+		putSysErrmsg("can't local host name", NULL);
+	}
+
+	return result;
+}
+
+int	reUseAddress(int fd)
+{
+	int	result;
+	int	i = 1;
+
+	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &i,
+			sizeof i);
+	if (result < 0)
+	{
+		putSysErrmsg("can't make socket address reusable", NULL);
+	}
+
+	return result;
+}
+ 
+int	makeIoNonBlocking(int fd)
+{
+	int		result = 0;
+	unsigned long	setting = 1;
+ 
+	if (ioctlsocket(fd, FIONBIO, &setting) == SOCKET_ERROR)
+	{
+		putSysErrmsg("can't make IO non-blocking", NULL);
+		result = -1;
+	}
+
+	return result;
+}
+
+int	watchSocket(int fd)
+{
+	int		result;
+	struct linger	lctrl = {0, 0};
+	int		kctrl = 1;
+
+	result = setsockopt(fd, SOL_SOCKET, SO_LINGER, (void *) &lctrl,
+			sizeof lctrl);
+	if (result < 0)
+	{
+		putSysErrmsg("can't set linger on socket", NULL);
+		return result;
+	}
+
+	result = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (void *) &kctrl,
+			sizeof kctrl);
+	if (result < 0)
+	{
+		putSysErrmsg("can't set keepalive on socket", NULL);
+	}
+
+	return result;
+}
+
+#endif			/*	end of #if defined (mingw)		*/
 
 #if (defined (linux) || defined (freebsd) || defined (cygwin) || defined (darwin) || defined (RTEMS))
+
+			/*	Not SVR4, not sun, and not mingw.	*/
 
 char	*system_error_msg()
 {
@@ -912,6 +1048,9 @@ char	*getNameOfUser(char *buffer)
 {
 	uid_t		euid;
 	struct passwd	*pwd;
+
+	/*	Note: buffer is in argument list for portability but
+	 *	is not used and therefore is not checked for non-NULL.	*/
 
 	euid = geteuid();
 	pwd = getpwuid(euid);
@@ -1031,14 +1170,7 @@ int	watchSocket(int fd)
 	return result;
 }
 
-#else				/*	Unknown platform.		*/
-
-#error "Can't determine operating system to compile for."
-
-#endif				/*	End of #if defined (linux-like)	*/
-#endif				/*	End of #if defined (sun)	*/
-#endif				/*	End of #if defined (__SVR4)	*/
-#endif				/*	End of #if defined (VXWORKS)	*/
+#endif	/* end #if (!defined(linux, freebsd, cygwin, darwin, RTEMS))	*/
 
 /******************* platform-independent functions *********************/
 
@@ -1125,17 +1257,17 @@ void	writeErrMemo(char *text)
 	writeMemoNote(text, system_error_msg());
 }
 
-char	*itoa(int arg)
+char	*iToa(int arg)
 {
-	static char	itoa_str[32];
+	static char	itoa_str[33];
 
 	isprintf(itoa_str, sizeof itoa_str, "%d", arg);
 	return itoa_str;
 }
 
-char	*utoa(unsigned int arg)
+char	*uToa(unsigned int arg)
 {
-	static char	utoa_str[32];
+	static char	utoa_str[33];
 
 	isprintf(utoa_str, sizeof utoa_str, "%u", arg);
 	return utoa_str;
@@ -2180,7 +2312,7 @@ char	*igetcwd(char *buf, size_t size)
 #endif
 }
 
-#if RTEMS
+#ifdef RTEMS
 
 #ifndef SIGNAL_RULE_CT
 #define SIGNAL_RULE_CT	100
@@ -2292,7 +2424,20 @@ static void	threadSignalHandler(int signbr)
 		handler(signbr);
 	}
 }
-#endif
+#endif					/*	end of #ifdef RTEMS	*/
+
+#ifdef mingw
+void	isignal(int signbr, void (*handler)(int))
+{
+	oK(signal(signbr, handler));
+}
+
+void	iblock(int signbr)
+{
+	oK(signal(signbr, SIG_IGN));	/*	Not thread granularity!	*/
+}
+
+#else					/*	Any POSIX O/S.		*/
 
 void	isignal(int signbr, void (*handler)(int))
 {
@@ -2322,6 +2467,7 @@ void	iblock(int signbr)
 	oK(sigaddset(&signals, signbr));
 	oK(pthread_sigmask(SIG_BLOCK, &signals, NULL));
 }
+#endif
 
 char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 {

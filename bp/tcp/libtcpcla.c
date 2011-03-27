@@ -113,10 +113,12 @@ list.", ductName);
 
 /*	*	*	Sender functions	*	*	*	*/
 
+#ifndef mingw
 void	handleConnectionLoss()
 {
-	signal(SIGPIPE, handleConnectionLoss);
+	isignal(SIGPIPE, handleConnectionLoss);
 }
+#endif
 
 int	connectToCLI(struct sockaddr *sn, int *sock)
 {
@@ -169,6 +171,13 @@ int	sendBytesByTCP(int *bundleSocket, char *from, int length,
 	while (1)	/*	Continue until not interrupted.		*/
 	{
 		bytesWritten = write(*bundleSocket, from, length);
+#ifdef mingw
+		if (bytesWritten == 0)	/*	Lost connection.	*/
+		{
+			bytesWritten = -1;
+			errno = EPIPE;
+		}
+#endif
 		if (bytesWritten < 0)
 		{
 			switch (errno)

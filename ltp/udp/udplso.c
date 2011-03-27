@@ -11,27 +11,25 @@
 	
 	7/6/2010, modified as per issue 132-udplso-tx-rate-limit
 	Greg Menke, Raytheon, under contract METS-MR-679-0909
-	with NASA GSFC
-
+	with NASA GSFC.
 									*/
 
 #include "udplsa.h"
 
-#include "arpa/inet.h"
-#include "netinet/ip.h"
-#include "netinet/udp.h"
-
-
 #if defined(linux)
 
-#define IPHDR_SIZE		(sizeof(struct iphdr) + sizeof(struct udphdr))
+#define IPHDR_SIZE	(sizeof(struct iphdr) + sizeof(struct udphdr))
+
+#elif defined(mingw)
+
+#define IPHDR_SIZE	(20 + 8)
 
 #else
 
 #include "netinet/ip_var.h"
 #include "netinet/udp_var.h"
 
-#define IPHDR_SIZE		(sizeof(struct udpiphdr))
+#define IPHDR_SIZE	(sizeof(struct udpiphdr))
 
 #endif
 

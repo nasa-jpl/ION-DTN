@@ -10,6 +10,7 @@
 
 #include "ion.h"
 #include "rfx.h"
+#include "time.h"
 
 #define	ION_DEFAULT_SM_KEY	((255 * 256) + 1)
 #define	ION_SM_NAME		"ionwm"
@@ -527,6 +528,29 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 	return 0;
 }
 
+#ifdef mingw
+static DWORD WINAPI	waitForSigterm(LPVOID parm)
+{
+	DWORD	processId = (DWORD) parm;
+	char	eventName[32];
+	HANDLE	event;
+
+	processId = GetCurrentProcessId();
+	sprintf(eventName, "%lu.sigterm", processId);
+	event = CreateEvent(NULL, FALSE, FALSE, eventName);
+	if (event == NULL)
+	{
+		putSysErrmsg("Can't create event handle", itoa(processId));
+		return 0;
+	}
+
+	oK(WaitForSingleObject(event, INFINITE));
+	raise(SIGTERM);
+	CloseHandle(event);
+	return 0;
+}
+#endif
+
 int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 {
 	char		wdname[256];
@@ -650,6 +674,21 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 	}
 
 	ionRedirectMemos();
+#ifdef mingw
+	DWORD	processId = GetCurrentProcessId();
+	DWORD	threadId;
+	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm,
+			(void *) processId, 0, &threadId);
+	if (thread == NULL)
+	{
+		putSysErrmsg("Can't create signal handler thread",
+				itoa(processId));
+	}
+	else
+	{
+		CloseHandle(thread);
+	}
+#endif
 	return 0;
 }
 
@@ -749,6 +788,21 @@ int	ionAttach()
 	}
 
 	ionRedirectMemos();
+#ifdef mingw
+	DWORD	processId = GetCurrentProcessId();
+	DWORD	threadId;
+	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm,
+			(void *) processId, 0, &threadId);
+	if (thread == NULL)
+	{
+		putSysErrmsg("Can't create signal handler thread",
+				itoa(processId));
+	}
+	else
+	{
+		CloseHandle(thread);
+	}
+#endif
 	return 0;
 }
 
@@ -1021,7 +1075,11 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 	ts.tm_mon -= 1;
 	ts.tm_isdst = 0;		/*	Default is UTC.		*/
 #ifndef VXWORKS
+#ifdef mingw
+	_tzset();	/*	Need to orient mktime properly.		*/
+#else
 	tzset();	/*	Need to orient mktime properly.		*/
+#endif
 	if (timestampIsUTC)
 	{
 		/*	Must convert UTC time to local time for mktime.	*/
@@ -1030,6 +1088,8 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 		ts.tm_sec -= ts.tm_gmtoff;
 #elif defined (RTEMS)
 		/*	RTEMS has no concept of time zones.		*/
+#elif defined (mingw)
+		ts.tm_sec -= _timezone;
 #else
 		ts.tm_sec -= timezone;
 #endif
@@ -1057,7 +1117,7 @@ void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 	struct tm	ts;
 
 	CHKVOID(timestampBuffer);
-	localtime_r(&timestamp, &ts);
+	oK(localtime_r(&timestamp, &ts));
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
 			ts.tm_hour, ts.tm_min, ts.tm_sec);
@@ -1068,7 +1128,7 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 	struct tm	ts;
 
 	CHKVOID(timestampBuffer);
-	gmtime_r(&timestamp, &ts);
+	oK(gmtime_r(&timestamp, &ts));
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
 			ts.tm_hour, ts.tm_min, ts.tm_sec);
@@ -1326,4 +1386,75 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "pathName:       '%.256s'",
 			parms->pathName);
 	writeMemo(buffer);
+}
+
+/*	*	*	Portable alarm functions	*	*	*/
+
+static void	*alarmMain(void *parm)
+{
+	IonAlarm	*alarm = (IonAlarm *) parm;
+	pthread_mutex_t	mutex;
+	pthread_cond_t	cv;
+	struct timeval	workTime;
+	struct timespec	deadline;
+	int		result;
+
+	if (alarm->cycles == 0)
+	{
+		alarm->cycles -= 1;	/*	Underflow to max uint.	*/
+	}
+
+	memset((char *) &mutex, 0, sizeof mutex);
+	if (pthread_mutex_init(&mutex, NULL))
+	{
+		putSysErrmsg("Can't start alarm, mutex init failed", NULL);
+		return NULL;
+	}
+
+	memset((char *) &cv, 0, sizeof cv);
+	if (pthread_cond_init(&cv, NULL))
+	{
+		putSysErrmsg("Can't start alarm, cond init failed", NULL);
+		return NULL;
+	}
+
+	while (alarm->cycles > 0)
+	{
+		getCurrentTime(&workTime);
+		deadline.tv_sec = workTime.tv_sec + alarm->term;
+		deadline.tv_nsec = workTime.tv_usec * 1000;
+		pthread_mutex_lock(&mutex);
+		result = pthread_cond_timedwait(&cv, &mutex, &deadline);
+		pthread_mutex_unlock(&mutex);
+		if (result != ETIMEDOUT)
+		{
+			putSysErrmsg("Alarm failure", NULL);
+			break;
+		}
+
+		if ((alarm->proceed)(alarm->userData) < 0)
+		{
+			break;
+		}
+
+		alarm->cycles -= 1;
+	}
+
+	pthread_mutex_destroy(&mutex);
+	pthread_cond_destroy(&cv);
+	return NULL;
+}
+
+void	ionSetAlarm(IonAlarm *alarm, pthread_t *alarmThread)
+{
+	if (pthread_create(alarmThread, NULL, alarmMain, alarm) < 0)
+	{
+		putSysErrmsg("Can't set alarm", NULL);
+	}
+}
+
+void	ionCancelAlarm(pthread_t alarmThread)
+{
+	pthread_cancel(alarmThread);
+	pthread_join(alarmThread, NULL);
 }

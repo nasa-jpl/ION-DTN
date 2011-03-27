@@ -23,9 +23,28 @@ static void	giveIpcLock();
 	 *	       -1 - could not attach to memory segment
 	 */
 
-#if defined (VXWORKS) || defined (RTEMS)
+#ifdef RTOS_SHM
 
-	/* ---- Shared Memory services (VxWorks and RTEMS) ------------ */
+	/* ----- Unique IPC key system for "task" architecture --------- */
+
+int	sm_GetUniqueKey()
+{
+	static unsigned long	ipcUniqueKey = 0x80000000;
+	int			result;
+
+	takeIpcLock();
+	ipcUniqueKey++;
+	result = (int) ipcUniqueKey;
+	giveIpcLock();
+	return result;
+}
+
+sm_SemId	sm_GetTaskSemaphore(int taskId)
+{
+	return sm_SemCreate(taskId, SM_SEM_FIFO);
+}
+
+	/* ---- Shared Memory services (RTOS) ------------------------- */
 
 #define nShmIds	50
 
@@ -143,11 +162,162 @@ sm_ShmDestroy(int i)
 	shm->nUsers = 0;
 }
 
-#else	/*	Neither VxWorks nor RTEMS; assumed Unix-like.		*/
+#endif			/*	end of #ifdef RTOS_SHM			*/
+
+#ifdef MINGW_SHM
+
+	/* ---- Shared Memory services (mingw -- Windows) ------------- */
+
+typedef struct
+{
+	char	memName[32];
+	char	*shmPtr;
+	int	id;
+} SmSegment;
+
+#define	MAX_SM_SEGMENTS	10
+
+static int	_smSegment(char *memName, char *shmPtr, int *id)
+{
+	static SmSegment	segments[MAX_SM_SEGMENTS];
+	static int		segmentsCreated = 0;
+	int			i;
+
+	if (shmPtr == NULL)	/*	Checking for room in table.	*/
+	{
+		return MAX_SM_SEGMENTS - segmentsCreated;
+	}
+
+	if (memName)		/*	Adding a segment.		*/
+	{
+		if (segmentsCreated == MAX_SM_SEGMENTS)
+		{
+			return -1;
+		}
+
+		strncpy(segments[segmentsCreated].memName, memName, 32);
+		segments[segmentsCreated].shmPtr = shmPtr;
+		segments[segmentsCreated].id = *id;
+		segmentsCreated += 1;
+		return MAX_SM_SEGMENTS - segmentsCreated;
+	}
+
+	/*	Looking up a segment ID.				*/
+
+	*id = 0;		/*	Default.			*/
+	for (i = 0; i < segmentsCreated; i++)
+	{
+		if (segments[i].shmPtr == shmPtr)
+		{
+			*id = segments[i].id;
+			break;
+		}
+	}
+
+	return MAX_SM_SEGMENTS - segmentsCreated;
+}
+
+int
+sm_ShmAttach(int key, int size, char **shmPtr, int *id)
+{
+	char		memName[32];
+	int		minSegSize = 16;
+	HANDLE		mappingObj;
+	void		*mem;
+	int		newSegment = 0;
+
+	CHKERR(shmPtr);
+	CHKERR(id);
+
+    /* if key is not specified, make up one */
+	if (key == SM_NO_KEY)
+	{
+		key = sm_GetUniqueKey();
+	}
+
+	sprintf(memName, "%d.mmap", key);
+	if (size != 0)	/*	Want to create segment if not present.	*/
+	{
+		if (size < minSegSize)
+		{
+			size = minSegSize;
+		}
+	}
+
+    /* first try to attach to an existing shared memory segment */
+	mappingObj = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, memName);
+	if (mappingObj == NULL)		/*	Not found.		*/
+	{
+		if (size == 0)		/*	Just attaching.		*/
+		{
+			putSysErrmsg("Can't open shared memory segment",
+					itoa(key));
+			return -1;
+		}
+
+		/*	Need to create this shared memory segment.	*/
+
+		if (_smSegment(NULL, NULL, NULL) == 0)
+		{
+			/*	No room in table for any more.		*/
+
+			putErrmsg("No room in SM segments table.", NULL);
+			return -1;
+		}
+
+		mappingObj = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
+				PAGE_READWRITE, 0, size, memName);
+		if (mappingObj == NULL)
+		{
+			putSysErrmsg("Can't create shared memory segment",
+					itoa(key));
+			return -1;
+		}
+
+		newSegment = 1;
+	}
+
+	mem = MapViewOfFile(mappingObj, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+	if (mem == NULL)
+	{
+		putSysErrmsg("Can't map shared memory segment", itoa(key));
+		return -1;
+	}
+
+	if (newSegment)
+	{
+		oK(_smSegment(memName, mem, (int *) &mappingObj));
+		memset(mem, 0, size);	/*	Initialize to zeroes.	*/
+	}
+
+	*shmPtr = (char *) mem;
+	*id = (int) mappingObj;
+	return 0;
+}
+
+void
+sm_ShmDetach(char *shmPtr)
+{
+	int	id = 0;
+
+	oK(_smSegment(NULL, shmPtr, &id));
+	if (id)
+	{
+		CloseHandle((HANDLE) id);
+	}
+}
+
+void
+sm_ShmDestroy(int id)
+{
+	return;		/*	Closing last handle destroys mapping.	*/
+}
+
+#endif			/*	end of #ifdef MINGW_SHM			*/
+
+#ifdef SVR4_SHM
 
 	/* ---- Shared Memory services (Unix) ------------------------- */
-
-#if (defined (SVR4_SHM))
 
 int
 sm_ShmAttach(int key, int size, char **shmPtr, int *id)
@@ -228,174 +398,16 @@ sm_ShmDestroy(int id)
 	}
 }
 
-#else				/*	No shared memory supported.	*/
+#endif			/*	End of #ifdef SVR4_SHM			*/
 
-int	sm_ShmAttach(int key, int size, char **shmPtr, int *id)
-{
-	return needIPC("shared memory");
-}
+/****************** Semaphore services **********************************/
 
-int	sm_ShmDetach(char *shmPtr)
-{
-	return needIPC("shared memory");
-}
-
-int	sm_ShmDestroy(int id)
-{
-	return needIPC("shared memory");
-}
-
-#endif	/*	End of #if (defined (SVR4_SHM))				*/
-#endif	/*	End of #if defined (VXWORKS) || defined (RTEMS)		*/
-
-/************************* Symbol table services  *****************************/
-
-#ifdef PRIVATE_SYMTAB
-
-extern FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize);
-
-#if defined (FSWSYMTAB) || defined (GDSSYMTAB)
-#include "mysymtab.c"
-#else
-#include "symtab.c"
-#endif
-
-#endif
-
-/****************** Semaphore and Task Control services ***********************/
-
-#if defined (VXWORKS) || defined (RTEMS)
-
-#define	ARG_BUFFER_CT	256
-#define	MAX_ARG_LENGTH	63
-
-typedef struct
-{
-	int		ownerTid;
-	char		arg[MAX_ARG_LENGTH + 1];
-} ArgBuffer;
-
-static ArgBuffer	*_argBuffers()
-{
-	static ArgBuffer argBufTable[ARG_BUFFER_CT];
-
-	return argBufTable;
-}
-
-static int	_argBuffersAvbl(int *val)
-{
-	static int	argBufsAvbl = 0;
-
-	if (val == NULL)
-	{
-		return argBufsAvbl;
-	}
-
-	argBufsAvbl = *val;
-	return 0;
-}
-
-static int	copyArgs(int argc, char **argv)
-{
-	int		i;
-	int		j;
-	ArgBuffer	*buf;
-	char		*arg;
-	int		argLen;
-
-	if (argc > _argBuffersAvbl(NULL))
-	{
-		putErrmsg("No available argument buffers.", NULL);
-		return -1;
-	}
-
-	/*	Copy each argument into the next available argument
-	 *	buffer, tagging each consumed buffer with -1 so that
-	 *	it can be permanently tagged when the ownerTid is
-	 *	known, and replace each original argument with a
-	 *	pointer to its copy in the argBuffers.			*/
-
-	for (i = 0, buf = _argBuffers(), j = 0; j < argc; j++)
-	{
-		arg = argv[j];
-		argLen = strlen(arg);
-		if (argLen > MAX_ARG_LENGTH)
-		{
-			argLen = MAX_ARG_LENGTH;
-		}
-
-		while (1)
-		{
-			CHKERR(i < ARG_BUFFER_CT);
-			if (buf->ownerTid != 0)	/*	Unavailable.	*/
-			{
-				i++;
-				buf++;
-				continue;
-			}
-
-			/*	Copy argument into this buffer.		*/
-
-			memcpy(buf->arg, arg, argLen);
-			buf->arg[argLen] = '\0';
-			buf->ownerTid = -1;
-			argv[j] = buf->arg;
-
-			/*	Skip over this buffer for next arg.	*/
-
-			i++;
-			buf++;
-			break;
-		}
-	}
-
-	return 0;
-}
-
-static void	tagArgBuffers(int tid)
-{
-	int		avbl;
-	int		i;
-	ArgBuffer	*buf;
-
-	avbl = _argBuffersAvbl(NULL);
-	for (i = 0, buf = _argBuffers(); i < ARG_BUFFER_CT; i++, buf++)
-	{
-		if (buf->ownerTid == -1)
-		{
-			buf->ownerTid = tid;
-			if (tid != 0)
-			{
-				avbl--;
-			}
-		}
-#if defined (RTEMS)
-		else	/*	An opportunity to release arg buffers.	*/
-		{
-			if (buf->ownerTid != 0 && !sm_TaskExists(buf->ownerTid))
-			{
-				buf->ownerTid = 0;
-				avbl++;
-			}
-		}
-#endif
-	}
-
-	oK(_argBuffersAvbl(&avbl));
-}
-
-#endif
-
-#if defined (VXWORKS)
+#ifdef VXWORKS_SEMAPHORES
 
 	/* ---- IPC services access control (VxWorks) ----------------- */
 
 #include <vxWorks.h>
-#ifdef MSAP
-#include <msgQLib.h>
-#else
 #include <semLib.h>
-#endif
 #include <taskLib.h>
 #include <timers.h>
 #include <sysSymTbl.h>
@@ -406,39 +418,16 @@ static void	tagArgBuffers(int tid)
 
 typedef struct
 {
-	int		key;
-#ifdef MSAP
-	MSG_Q__ID	id;
-#else
-	SEM_ID		id;
-#endif
-	int		ended;
+	int	key;
+	SEM_ID	id;
+	int	ended;
 } SmSem;
 
-static SmSem		*_semTbl()
+static SmSem	*_semTbl()
 {
 	static SmSem	semTable[nSemIds];
 
 	return semTable;
-}
-
-	/* ----- Unique IPC key system for "task" architecture --------- */
-
-int	sm_GetUniqueKey()
-{
-	static unsigned long	ipcUniqueKey = 0x80000000;
-	int			result;
-
-	takeIpcLock();
-	ipcUniqueKey++;
-	result = (int) ipcUniqueKey;
-	giveIpcLock();
-	return result;
-}
-
-sm_SemId	sm_GetTaskSemaphore(int taskId)
-{
-	return sm_SemCreate(taskId, SM_SEM_FIFO);
 }
 
 	/* ---- Semaphor services (VxWorks) --------------------------- */
@@ -516,52 +505,6 @@ static int	initializeIpc()
 	return 0;
 }
 
-#ifdef MSAP
-/*	We use VxWorks message queues to serve the functions of
- *	semaphores.  Each message queue defined in this way has a
- *	length of just one, and only 1-byte "messages" pass through
- *	the queue.  To "take" the semaphore is to read a message
- *	from it, using a blocking read.  To "give" the semaphore
- *	is to write a message to it, using a non-blocking write;
- *	this makes the giving of the semaphore idempotent.		*/
-
-static MSG_Q_ID	_ipcSemaphore(int stop)
-{
-	static MSG_Q_ID	ipcSem = NULL;
-
-	if (stop)
-	{
-		if (ipcSem)
-		{
-			msgQDelete(ipcSem);
-			ipcSem = NULL;
-		}
-
-		return NULL;
-	}
-
-	if (ipcSem == NULL)
-	{
-		ipcSem = msgQCreate(1, 1, MSG_Q_FIFO);
-		if (ipcSem == NULL)
-		{
-			putSysErrmsg("Can't initialize IPC semaphore", NULL);
-		}
-		else
-		{
-			if (initializeIpc() < 0)
-			{
-				msgQDelete(ipcSem);
-				ipcSem = NULL;
-			}
-		}
-	}
-
-	return ipcSem;
-}
-
-#else
-
 /*	Note that the ipcSemaphore is allocated using the VxWorks
  *	semBLib functions directly rather than the ICI VxWorks
  *	semaphore system.  This is necessary for bootstrapping the
@@ -604,15 +547,9 @@ static SEM_ID	_ipcSemaphore(int stop)
 	return ipcSem;
 }
 
-#endif
-
 int	sm_ipc_init()
 {
-#ifdef MSAP
-	MSG_Q_ID	sem = _ipcSemaphore(0);
-#else
-	SEM_ID		sem = _ipcSemaphore(0);
-#endif
+	SEM_ID	sem = _ipcSemaphore(0);
 
 	if (sem == NULL)
 	{
@@ -630,36 +567,20 @@ void	sm_ipc_stop()
 
 static void	takeIpcLock()
 {
-#ifdef MSAP
-	char	nullMsg[1];
-
-	msgQReceive(_ipcSemaphore(0), nullMsg, 1, WAIT_FOREVER);
-#else
 	semTake(_ipcSemaphore(0), WAIT_FOREVER);
-#endif
 }
 
 static void	giveIpcLock()
 {
-#ifdef MSAP
-	char	nullMsg[1] = "";
-
-	msgQSend(_ipcSemaphore(0), nullMsg, 1, NO_WAIT, MSG_PRI_NORMAL);
-#else
 	semGive(_ipcSemaphore(0));
-#endif
 }
 
 sm_SemId	sm_SemCreate(int key, int semType)
 {
-	SmSem		*semTbl = _semTbl();
-	SmSem		*sem;
-#ifdef MSAP
-	MSG_Q_ID	semId;
-#else
-	SEM_ID		semId;
-#endif
-	int		i;
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
+	SEM_ID	semId;
+	int	i;
 
 	takeIpcLock();
     /* If semaphor exists, return its ID */
@@ -680,16 +601,6 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	{
 		if (sem->id == NULL)
 		{
-#ifdef MSAP
-			if (semType == SM_SEM_PRIORITY)
-			{
-				semId = msgQCreate(1, 1, MSG_Q_PRIORITY);
-			}
-			else
-			{
-				semId = msgQCreate(1, 1, MSG_Q_FIFO);
-			}
-#else
 			if (semType == SM_SEM_PRIORITY)
 			{
 				semId = semBCreate(SEM_Q_PRIORITY, SEM_EMPTY);
@@ -698,7 +609,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 			{
 				semId = semBCreate(SEM_Q_FIFO, SEM_EMPTY);
 			}
-#endif
+
 			if (semId == NULL)
 			{
 				giveIpcLock();
@@ -730,11 +641,7 @@ void	sm_SemDelete(sm_SemId i)
 	CHKVOID(i < nSemIds);
 	sem = semTbl + i;
 	takeIpcLock();
-#ifdef MSAP
-	if (msgQDelete(sem->id) == ERROR)
-#else
 	if (semDelete(sem->id) == ERROR)
-#endif
 	{
 		giveIpcLock();
 		putSysErrmsg("Can't delete semaphore", itoa(i));
@@ -754,13 +661,7 @@ int	sm_SemTake(sm_SemId i)
 	CHKERR(i >= 0);
 	CHKERR(i < nSemIds);
 	sem = semTbl + i;
-#ifdef MSAP
-	char	nullMsg[1];
-
-	if (msgQReceive(sem->id, nullMsg, 1, WAIT_FOREVER) == ERROR)
-#else
 	if (semTake(sem->id, WAIT_FOREVER) == ERROR)
-#endif
 	{
 		putSysErrmsg("Can't take semaphore", itoa(i));
 		return -1;
@@ -777,14 +678,7 @@ void	sm_SemGive(sm_SemId i)
 	CHKVOID(i >= 0);
 	CHKVOID(i < nSemIds);
 	sem = semTbl + i;
-#ifdef MSAP
-	char	nullMsg[1] = "";
-
-	if (msgQSend(sem->id, nullMsg, 1, NO_WAIT, MSG_PRI_NORMAL)
-			== ERROR)
-#else
 	if (semGive(sem->id) == ERROR)
-#endif
 	{
 		putSysErrmsg("Can't give semaphore", itoa(i));
 	}
@@ -831,188 +725,243 @@ void	sm_SemUnend(sm_SemId i)
 	sem->ended = 0;
 }
 
-	/* ---- Task Control services (VxWorks) ----------------------- */
+#endif			/*	End of #ifdef VXWORKS_SEMAPHORES	*/
 
-int	sm_TaskIdSelf()
+#ifdef MINGW_SEMAPHORES
+
+	/* ---- Semaphor services (mingw) --------------------------- */
+
+#define	NUM_SEMAPHORES	200
+
+typedef struct
 {
-	return (taskIdSelf());
+	int	key;
+	HANDLE	id;
+	int	ended;
+} SmSem;
+
+static SmSem	*_semTbl()
+{
+	static SmSem	semTable[NUM_SEMAPHORES];
+	static int	semTableInitialized = 0;
+
+	if (!semTableInitialized)
+	{
+		memset((char *) semTable, 0, sizeof semTable);
+		semTableInitialized = 1;
+	}
+
+	return semTable;
 }
 
-int	sm_TaskExists(int task)
+static HANDLE	_ipcSemaphore(int stop)
 {
-	if (taskIdVerify(task) == OK)
+	static HANDLE	ipcSem = NULL;
+
+	if (stop)
 	{
-		return 1;
+		if (ipcSem)
+		{
+			CloseHandle(ipcSem);
+			ipcSem = NULL;
+		}
+
+		return NULL;
+	}
+
+	if (ipcSem == NULL)
+	{
+		ipcSem = CreateMutex(NULL, FALSE, NULL);
+		if (ipcSem == NULL)
+		{
+			putSysErrmsg("Can't initialize IPC semaphore", NULL);
+			return NULL;
+		}
+
+		/*	Initialize the semaphore system.		*/
+
+		oK(_semTbl());
+		giveIpcLock();
+	}
+
+	return ipcSem;
+}
+
+int	sm_ipc_init()
+{
+	if (_ipcSemaphore(0) == NULL)
+	{
+		putErrmsg("Can't initialize IPC.", NULL);
+		return -1;
 	}
 
 	return 0;
 }
 
-void	sm_TaskVarAdd(int *var)
+void	sm_ipc_stop()
 {
-	taskVarAdd(0, var);
+	oK(_ipcSemaphore(1));
 }
 
-void	sm_TaskSuspend()
+static void	takeIpcLock()
 {
-	if (taskSuspend(sm_TaskIdSelf()) == ERROR)
+	oK(WaitForSingleObject(_ipcSemaphore(0), INFINITE));
+}
+
+static void	giveIpcLock()
+{
+	oK(ReleaseMutex(_ipcSemaphore(0)));
+}
+
+sm_SemId	sm_SemCreate(int key, int semType)
+{
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
+	char	semName[32];
+	HANDLE	semId;
+	int	i;
+
+	takeIpcLock();
+    /* If semaphor exists, return its ID */
+	if (key != SM_NO_KEY)
 	{
-		putSysErrmsg("Can't suspend task (self)", NULL);
-	}
-}
-
-void	sm_TaskDelay(int seconds)
-{
-	if (taskDelay(seconds * sysClkRateGet()) == ERROR)
-	{
-		putSysErrmsg("Can't pause task", itoa(seconds));
-	}
-}
-
-void	sm_TaskYield()
-{
-	taskDelay(0);
-}
-
-int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
-		char *arg4, char *arg5, char *arg6, char *arg7, char *arg8,
-		char *arg9, char *arg10, int priority, int stackSize)
-{
-	char	namebuf[33];
-	FUNCPTR	entryPoint;
-	int	result;
-#ifdef PRIVATE_SYMTAB
-
-	CHKERR(name);
-	if ((entryPoint = sm_FindFunction(name, &priority, &stackSize)) == NULL)
-	{
-		isprintf(namebuf, sizeof namebuf, "_%s", name);
-		if ((entryPoint = sm_FindFunction(namebuf, &priority,
-				&stackSize)) == NULL)
+		for (i = 0; i < NUM_SEMAPHORES; i++)
 		{
-			putErrmsg("Can't spawn task; function not in private \
-symbol table; must be added to mysymtab.c.", name);
-			return -1;
-		}
-	}
-#else
-	SYM_TYPE	type;
-
-	CHKERR(name);
-	if (symFindByName(sysSymTbl, name, (char **) &entryPoint, &type)
-			== ERROR)
-	{
-		isprintf(namebuf, sizeof namebuf, "_%s", name);
-		if (symFindByName(sysSymTbl, namebuf, (char **) &entryPoint,
-				&type) == ERROR)
-		{
-			putSysErrmsg("Can't spawn task; function not in \
-VxWorks symbol table", name);
-			return -1;
+			if (semTbl[i].key == key)
+			{
+				giveIpcLock();
+				return i;
+			}
 		}
 	}
 
-	if (priority <= 0)
+    /* create a new semaphor */
+	sprintf(semName, "%d.mutex", key);
+	for (i = 0, sem = semTbl; i < NUM_SEMAPHORES; i++, sem++)
 	{
-		priority = ICI_PRIORITY;
-	}
-
-	if (stackSize <= 0)
-	{
-		stackSize = 32768;
-	}
-#endif
-
-	result = taskSpawn(name, priority, VX_FP_TASK, stackSize, entryPoint,
-			(int) arg1, (int) arg2, (int) arg3, (int) arg4,
-			(int) arg5, (int) arg6, (int) arg7, (int) arg8,
-			(int) arg9, (int) arg10);
-	if (result == ERROR)
-	{
-		putSysErrmsg("Failed spawning task", name);
-	}
-
-	return result;
-}
-
-void	sm_TaskKill(int task, int sigNbr)
-{
-	oK(kill(task, sigNbr));
-}
-
-void	sm_TaskDelete(int task)
-{
-	if (taskIdVerify(task) == OK)
-	{
-		if (taskDelete(task) == ERROR)
+		if (sem->id == NULL)
 		{
-			putSysErrmsg("Failed deleting task", itoa(task));
+			semId = CreateMutex(NULL, FALSE, semName);
+			if (semId == NULL)
+			{
+				giveIpcLock();
+				putSysErrmsg("Can't create semaphore",
+						itoa(key));
+				return SM_SEM_NONE;
+			}
+
+			sem->id = semId;
+			sem->key = key;
+			sem->ended = 0;
+			sm_SemGive(i);	/*	(First taker succeeds.)	*/
+			giveIpcLock();
+			return i;
 		}
 	}
+
+	giveIpcLock();
+	putErrmsg("Too many semaphores.", itoa(NUM_SEMAPHORES));
+	return SM_SEM_NONE;
 }
 
-void	sm_Abort()
+void	sm_SemDelete(sm_SemId i)
 {
-	char	string[32];
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
 
-	isprintf(string, sizeof string, "tt %d", taskIdSelf());
-	pseudoshell(string);
-	snooze(2);
-	oK(taskDelete(taskIdSelf()));
+	CHKVOID(i >= 0);
+	CHKVOID(i < NUM_SEMAPHORES);
+	sem = semTbl + i;
+	takeIpcLock();
+	if (sem->id)
+	{
+		CloseHandle(sem->id);
+		sem->id = NULL;
+	}
+
+	sem->key = SM_NO_KEY;
+	giveIpcLock();
 }
 
-#else		/*	Not VxWorks.  Assumed Unix-like or RTEMS.	*/
-
-/*	Note: the RTEMS API is UNIX-like except that it omits all SVR4
- *	features.  RTEMS uses POSIX semaphores, and its shared-memory
- *	mechanism is the same as the one we use for VxWorks.		*/
-
-	/* ---- IPC services access control (Unix) -------------------- */
-
-#include <sys/stat.h>
-#ifdef noipc			/****	Cygwin without cygserver.	****/
-static int	needIPC(char *svcname)
+int	sm_SemTake(sm_SemId i)
 {
-	putErrmsg("Service unavailable, 'platform' compiled without IPC; \
-install cygserver and remake without the -Dnoipc option.", svcname);
-	return -1;
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
+
+	CHKERR(i >= 0);
+	CHKERR(i < NUM_SEMAPHORES);
+	sem = semTbl + i;
+	if (sem->id == NULL
+	|| WaitForSingleObject(sem->id, INFINITE) != WAIT_OBJECT_0)
+	{
+		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
+	}
+
+	return 0;
 }
-#else				/*	IPC system is provided by O/S.	*/
-#ifndef RTEMS			/*	(RTEMS doesn't need this.)	*/
-#include <sys/ipc.h>
-#endif				/****	End of #ifndef RTEMS		****/
-#endif				/****	End of #ifdef noipc		****/
 
-#include <sched.h>
-
-#ifndef SM_SEMKEY
-#define SM_SEMKEY	(0xee01)/*	Formerly 0x30ff, then 1.	*/
-#endif
-
-	/* ---- Unique IPC key system for "process" architecture ------ */
-
-int	sm_GetUniqueKey()
+void	sm_SemGive(sm_SemId i)
 {
-	static int	ipcUniqueKey = 0;
-	int		result;
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
 
-	/*	Compose unique key: low-order 16 bits of process ID
-		followed by low-order 16 bits of process-specific
-		sequence count.						*/
-
-	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
-	result = (getpid() << 16) + ipcUniqueKey;
-	return result;
+	CHKVOID(i >= 0);
+	CHKVOID(i < NUM_SEMAPHORES);
+	sem = semTbl + i;
+	if (sem->id == NULL
+	|| ReleaseMutex(sem->id) == 0)
+	{
+		putSysErrmsg("Can't give semaphore", itoa(i));
+	}
 }
 
-sm_SemId	sm_GetTaskSemaphore(int taskId)
+void	sm_SemEnd(sm_SemId i)
 {
-	return sm_SemCreate((taskId << 16), SM_SEM_FIFO);
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
+
+	CHKVOID(i >= 0);
+	CHKVOID(i < NUM_SEMAPHORES);
+	sem = semTbl + i;
+	sem->ended = 1;
+	sm_SemGive(i);
 }
 
-	/* ---- Semaphor services (RTEMS) ----------------------------- */
+int	sm_SemEnded(sm_SemId i)
+{
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
+	int	ended;
 
-#if (defined (POSIX1B_SEMAPHORES))
+	CHKZERO(i >= 0);
+	CHKZERO(i < NUM_SEMAPHORES);
+	sem = semTbl + i;
+	ended = sem->ended;
+	if (ended)
+	{
+		sm_SemGive(i);	/*	Enable multiple tests.		*/
+	}
+
+	return ended;
+}
+
+void	sm_SemUnend(sm_SemId i)
+{
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
+
+	CHKVOID(i >= 0);
+	CHKVOID(i < NUM_SEMAPHORES);
+	sem = semTbl + i;
+	sem->ended = 0;
+}
+
+#endif			/*	End of #ifdef MINGW_SEMAPHORES		*/
+
+#ifdef POSIX1B_SEMAPHORES
+
+	/* ---- Semaphor services (POSIX1B, including RTEMS) ----------	*/
 
 typedef struct
 {
@@ -1246,10 +1195,17 @@ void	sm_SemUnend(sm_SemId i)
 	sem->ended = 0;
 }
 
-#elif defined (SVR4_SEMAPHORES)		/*	The default.		*/
+#endif			/*	End of #ifdef POSIX1B_SEMAPHORES	*/
 
+#ifdef SVR4_SEMAPHORES
+
+	/* ---- Semaphor services (SVR4) ------------------------------	*/
+
+#ifndef SM_SEMKEY
+#define SM_SEMKEY	(0xee01)
+#endif
 #ifndef SM_SEMBASEKEY
-#define SM_SEMBASEKEY	(0xee02)/*	Formerly 0x3e, then 2.		*/
+#define SM_SEMBASEKEY	(0xee02)
 #endif
 
 typedef struct
@@ -1659,51 +1615,290 @@ void	sm_SemUnend(sm_SemId i)
 	sem->ended = 0;
 }
 
-#else				/*	No semaphores supported.	*/
+#endif			/*	End of #ifdef SVR4_SEMAPHORES		*/
 
-int	sm_ipc_init()
+/************************* Symbol table services  *****************************/
+
+#ifdef PRIVATE_SYMTAB
+
+extern FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize);
+
+#if defined (FSWSYMTAB) || defined (GDSSYMTAB)
+#include "mysymtab.c"
+#else
+#include "symtab.c"
+#endif
+
+#endif
+
+/****************** Argument buffer services **********************************/
+
+#if defined (VXWORKS) || defined (RTEMS)
+
+#define	ARG_BUFFER_CT	256
+#define	MAX_ARG_LENGTH	63
+
+typedef struct
 {
-	return needIPC("semaphore");
+	int		ownerTid;
+	char		arg[MAX_ARG_LENGTH + 1];
+} ArgBuffer;
+
+static ArgBuffer	*_argBuffers()
+{
+	static ArgBuffer argBufTable[ARG_BUFFER_CT];
+
+	return argBufTable;
 }
 
-void	sm_ipc_stop()
+static int	_argBuffersAvbl(int *val)
 {
-	return needIPC("semaphore");
+	static int	argBufsAvbl = 0;
+
+	if (val == NULL)
+	{
+		return argBufsAvbl;
+	}
+
+	argBufsAvbl = *val;
+	return 0;
 }
 
-static void	takeIpcLock()
+static int	copyArgs(int argc, char **argv)
 {
-	int	result = needIPC("semaphore");
+	int		i;
+	int		j;
+	ArgBuffer	*buf;
+	char		*arg;
+	int		argLen;
+
+	if (argc > _argBuffersAvbl(NULL))
+	{
+		putErrmsg("No available argument buffers.", NULL);
+		return -1;
+	}
+
+	/*	Copy each argument into the next available argument
+	 *	buffer, tagging each consumed buffer with -1 so that
+	 *	it can be permanently tagged when the ownerTid is
+	 *	known, and replace each original argument with a
+	 *	pointer to its copy in the argBuffers.			*/
+
+	for (i = 0, buf = _argBuffers(), j = 0; j < argc; j++)
+	{
+		arg = argv[j];
+		argLen = strlen(arg);
+		if (argLen > MAX_ARG_LENGTH)
+		{
+			argLen = MAX_ARG_LENGTH;
+		}
+
+		while (1)
+		{
+			CHKERR(i < ARG_BUFFER_CT);
+			if (buf->ownerTid != 0)	/*	Unavailable.	*/
+			{
+				i++;
+				buf++;
+				continue;
+			}
+
+			/*	Copy argument into this buffer.		*/
+
+			memcpy(buf->arg, arg, argLen);
+			buf->arg[argLen] = '\0';
+			buf->ownerTid = -1;
+			argv[j] = buf->arg;
+
+			/*	Skip over this buffer for next arg.	*/
+
+			i++;
+			buf++;
+			break;
+		}
+	}
+
+	return 0;
 }
 
-static void	giveIpcLock()
+static void	tagArgBuffers(int tid)
 {
-	int	result = needIPC("semaphore");
-}
+	int		avbl;
+	int		i;
+	ArgBuffer	*buf;
 
-sm_SemId	sm_SemCreate(int key, int semType)
-{
-	return needIPC("semaphore");
-}
-
-int	sm_SemDelete(sm_SemId i)
-{
-	return needIPC("semaphore");
-}
-
-int	sm_SemTake(sm_SemId i)
-{
-	return needIPC("semaphore");
-}
-
-int	sm_SemGive(sm_SemId i)
-{
-	return needIPC("semaphore");
-}
-
-#endif			/*	End of #if defined (POSIX1B_SEMAPHORES)	*/
-
+	avbl = _argBuffersAvbl(NULL);
+	for (i = 0, buf = _argBuffers(); i < ARG_BUFFER_CT; i++, buf++)
+	{
+		if (buf->ownerTid == -1)
+		{
+			buf->ownerTid = tid;
+			if (tid != 0)
+			{
+				avbl--;
+			}
+		}
 #if defined (RTEMS)
+		else	/*	An opportunity to release arg buffers.	*/
+		{
+			if (buf->ownerTid != 0 && !sm_TaskExists(buf->ownerTid))
+			{
+				buf->ownerTid = 0;
+				avbl++;
+			}
+		}
+#endif
+	}
+
+	oK(_argBuffersAvbl(&avbl));
+}
+
+#endif			/*	End of #if defined (VXWORKS, RTEMS)	*/
+
+/****************** Task control services *************************************/
+
+#ifdef VXWORKS
+
+	/* ---- Task Control services (VxWorks) ----------------------- */
+
+int	sm_TaskIdSelf()
+{
+	return (taskIdSelf());
+}
+
+int	sm_TaskExists(int task)
+{
+	if (taskIdVerify(task) == OK)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+void	sm_TaskVarAdd(int *var)
+{
+	taskVarAdd(0, var);
+}
+
+void	sm_TaskSuspend()
+{
+	if (taskSuspend(sm_TaskIdSelf()) == ERROR)
+	{
+		putSysErrmsg("Can't suspend task (self)", NULL);
+	}
+}
+
+void	sm_TaskDelay(int seconds)
+{
+	if (taskDelay(seconds * sysClkRateGet()) == ERROR)
+	{
+		putSysErrmsg("Can't pause task", itoa(seconds));
+	}
+}
+
+void	sm_TaskYield()
+{
+	taskDelay(0);
+}
+
+int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
+		char *arg4, char *arg5, char *arg6, char *arg7, char *arg8,
+		char *arg9, char *arg10, int priority, int stackSize)
+{
+	char	namebuf[33];
+	FUNCPTR	entryPoint;
+	int	result;
+#ifdef PRIVATE_SYMTAB
+
+	CHKERR(name);
+	if ((entryPoint = sm_FindFunction(name, &priority, &stackSize)) == NULL)
+	{
+		isprintf(namebuf, sizeof namebuf, "_%s", name);
+		if ((entryPoint = sm_FindFunction(namebuf, &priority,
+				&stackSize)) == NULL)
+		{
+			putErrmsg("Can't spawn task; function not in private \
+symbol table; must be added to mysymtab.c.", name);
+			return -1;
+		}
+	}
+#else
+	SYM_TYPE	type;
+
+	CHKERR(name);
+	if (symFindByName(sysSymTbl, name, (char **) &entryPoint, &type)
+			== ERROR)
+	{
+		isprintf(namebuf, sizeof namebuf, "_%s", name);
+		if (symFindByName(sysSymTbl, namebuf, (char **) &entryPoint,
+				&type) == ERROR)
+		{
+			putSysErrmsg("Can't spawn task; function not in \
+VxWorks symbol table", name);
+			return -1;
+		}
+	}
+
+	if (priority <= 0)
+	{
+		priority = ICI_PRIORITY;
+	}
+
+	if (stackSize <= 0)
+	{
+		stackSize = 32768;
+	}
+#endif
+
+	result = taskSpawn(name, priority, VX_FP_TASK, stackSize, entryPoint,
+			(int) arg1, (int) arg2, (int) arg3, (int) arg4,
+			(int) arg5, (int) arg6, (int) arg7, (int) arg8,
+			(int) arg9, (int) arg10);
+	if (result == ERROR)
+	{
+		putSysErrmsg("Failed spawning task", name);
+	}
+
+	return result;
+}
+
+void	sm_TaskKill(int task, int sigNbr)
+{
+	oK(kill(task, sigNbr));
+}
+
+void	sm_TaskDelete(int task)
+{
+	if (taskIdVerify(task) == OK)
+	{
+		if (taskDelete(task) == ERROR)
+		{
+			putSysErrmsg("Failed deleting task", itoa(task));
+		}
+	}
+}
+
+void	sm_Abort()
+{
+	char	string[32];
+
+	isprintf(string, sizeof string, "tt %d", taskIdSelf());
+	pseudoshell(string);
+	snooze(2);
+	oK(taskDelete(taskIdSelf()));
+}
+
+#endif			/*	End of #ifdef VXWORKS			*/
+
+#ifdef RTEMS
+
+/*	Note: the RTEMS API is UNIX-like except that it omits all SVR4
+ *	features.  RTEMS uses POSIX semaphores, and its shared-memory
+ *	mechanism is the same as the one we use for VxWorks.		*/
+
+#include <sys/stat.h>
+#include <sched.h>
 
 	/* ---- Task Control services (RTEMS) ------------------------- */
 
@@ -2097,7 +2292,219 @@ void	sm_Abort()
 	sm_TaskDelete(taskId);
 }
 
-#else
+#endif			/*	End of #ifdef RTEMS			*/
+
+#ifdef mingw
+
+	/* ---- Unique IPC key system for "process" architecture ------ */
+
+int	sm_GetUniqueKey()
+{
+	static int	ipcUniqueKey = 0;
+	int		result;
+
+	/*	Compose unique key: low-order 16 bits of process ID
+		followed by low-order 16 bits of process-specific
+		sequence count.						*/
+
+	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
+	result = (_getpid() << 16) + ipcUniqueKey;
+	return result;
+}
+
+sm_SemId	sm_GetTaskSemaphore(int taskId)
+{
+	return sm_SemCreate((taskId << 16), SM_SEM_FIFO);
+}
+
+	/* ---- Task Control services (mingw) ----------------------- */
+
+int	sm_TaskIdSelf()
+{
+	return _getpid();
+}
+
+int	sm_TaskExists(int task)
+{
+	DWORD	processId = task;
+	HANDLE	process;
+	DWORD	status;
+	BOOL	result;
+
+	process = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+	if (process == NULL)
+	{
+		return 0;
+	}
+
+	result = GetExitCodeProcess(process, &status);
+	CloseHandle(process);
+       	if (result == 0 || status != STILL_ACTIVE)
+	{
+		return 0;		/*	No such process.	*/
+	}
+
+	return 1;
+}
+
+void	sm_TaskVarAdd(int *var)
+{
+	return;	/*	All globals of Windows process are "task vars."	*/
+}
+
+void	sm_TaskSuspend()
+{
+	writeMemo("[?] ION for Windows doesn't support sm_TaskSuspend().");
+}
+
+void	sm_TaskDelay(int seconds)
+{
+	Sleep(seconds * 1000);
+}
+
+void	sm_TaskYield()
+{
+	Sleep(0);
+}
+
+int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
+		char *arg4, char *arg5, char *arg6, char *arg7, char *arg8,
+		char *arg9, char *arg10, int priority, int stackSize)
+{
+	STARTUPINFO		si;
+	PROCESS_INFORMATION	pi;
+	char			cmdLine[256];
+
+	CHKERR(name);
+	ZeroMemory(&si, sizeof si);
+	si.cb = sizeof si;
+	ZeroMemory(&pi, sizeof pi);
+	if (arg1 == NULL) arg1 = "";
+	if (arg2 == NULL) arg2 = "";
+	if (arg3 == NULL) arg3 = "";
+	if (arg4 == NULL) arg4 = "";
+	if (arg5 == NULL) arg5 = "";
+	if (arg6 == NULL) arg6 = "";
+	if (arg7 == NULL) arg7 = "";
+	if (arg8 == NULL) arg8 = "";
+	if (arg9 == NULL) arg9 = "";
+	if (arg10 == NULL) arg1 = "";
+	isprintf(cmdLine, sizeof cmdLine,
+			"\"%s %s %s %s %s %s %s %s %s %s %s\"",
+			name, arg1, arg2, arg3, arg4, arg5,
+			arg6, arg7, arg8, arg9, arg10);
+	if (CreateProcess(NULL, cmdLine, NULL, NULL, FALSE, 0, NULL, NULL,
+			&si, &pi) == 0)
+	{
+		putSysErrmsg("Can't create process", cmdLine);
+		return -1;
+	}
+
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+	return pi.dwProcessId;
+}
+
+void	sm_TaskKill(int task, int sigNbr)
+{
+	char	eventName[32];
+	HANDLE	event;
+	BOOL	result;
+
+	if (task <= 1)
+	{
+		writeMemoNote("[?] Can't delete invalid process ID",
+				itoa(task));
+		return;
+	}
+
+	if (sigNbr != SIGTERM)
+	{
+		writeMemoNote("[?] ION for Windows only delivers SIGTERM",
+				itoa(sigNbr));
+		return;
+	}
+
+	sprintf(eventName, "%d.sigterm", task);
+	event = OpenEvent(EVENT_ALL_ACCESS, FALSE, eventName);
+	if (event)
+	{
+		result = SetEvent(event);
+		CloseHandle(event);
+		if (result == 0)
+		{
+			putSysErrmsg("Can't signal SIGTERM", itoa(task));
+		}
+	}
+else
+{
+	putSysErrmsg("Can't open event handle", itoa(task));
+}
+}
+
+void	sm_TaskDelete(int task)
+{
+	DWORD	processId = task;
+	HANDLE	process;
+	BOOL	result;
+
+	sm_TaskKill(task, SIGTERM);
+	Sleep(1000);
+	process = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+	if (process)
+	{
+		result = TerminateProcess(process, 0);
+		CloseHandle(process);
+		if (result == 0)
+		{
+			putSysErrmsg("Can't terminate process", itoa(task));
+		}
+	}
+else
+{
+	putSysErrmsg("Can't open process handle", itoa(task));
+}
+}
+
+void	sm_Abort()
+{
+	abort();
+}
+
+#endif			/*	End of #ifdef mingw			*/
+
+#if (!defined(VXWORKS) && !defined(RTEMS) && !defined(mingw))
+
+	/* ---- IPC services access control (Unix) -------------------- */
+
+#ifdef noipc			/****	Cygwin without cygserver.	****/
+#error "'platform' needs IPC; install cygserver and remake without -Dnoipc."
+#endif
+
+#include <sys/stat.h>
+#include <sys/ipc.h>
+#include <sched.h>
+
+	/* ---- Unique IPC key system for "process" architecture ------ */
+
+int	sm_GetUniqueKey()
+{
+	static int	ipcUniqueKey = 0;
+	int		result;
+
+	/*	Compose unique key: low-order 16 bits of process ID
+		followed by low-order 16 bits of process-specific
+		sequence count.						*/
+
+	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
+	result = (getpid() << 16) + ipcUniqueKey;
+	return result;
+}
+
+sm_SemId	sm_GetTaskSemaphore(int taskId)
+{
+	return sm_SemCreate((taskId << 16), SM_SEM_FIFO);
+}
 
 	/* ---- Task Control services (Unix) -------------------------- */
 
@@ -2187,9 +2594,7 @@ void	sm_Abort()
 	abort();
 }
 
-#endif			/*	End of #if defined (RTEMS)		*/
-
-#endif			/*	End of #if defined (VXWORKS)		*/
+#endif		/*	End of #if !defined (VXWORKS, RTEMS, mingw)	*/
 
 /******************* platform-independent functions ***********************/
 

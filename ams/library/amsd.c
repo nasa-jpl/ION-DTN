@@ -105,7 +105,6 @@ static void	*csHeartbeat(void *parm)
 	CsState		*csState = (CsState *) parm;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cv;
-	sigset_t	signals;
 	int		cycleCount = 6;
 	int		i;
 	Venture		*venture;
@@ -129,9 +128,12 @@ static void	*csHeartbeat(void *parm)
 		putSysErrmsg("Can't start heartbeat, cond init failed", NULL);
 		return NULL;
 	}
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		LOCK_MIB;
@@ -549,13 +551,16 @@ static void	*csMain(void *parm)
 {
 	AmsMib		*mib = _mib(NULL);
 	CsState		*csState = (CsState *) parm;
-	sigset_t	signals;
 	LystElt		elt;
 	AmsEvt		*evt;
 
 	CHKNULL(csState);
+#ifndef mingw
+	sigset_t	signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	csState->csRunning = 1;
 	writeMemo("[i] Configuration server is running.");
 	while (1)
@@ -994,7 +999,6 @@ static void	*rsHeartbeat(void *parm)
 	int		cycleCount = 0;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cv;
-	sigset_t	signals;
 	int		supplementLen;
 	char		*ept;
 	int		beatsSinceResync = -1;
@@ -1015,9 +1019,12 @@ static void	*rsHeartbeat(void *parm)
 		putSysErrmsg("Can't start heartbeat, cond init failed", NULL);
 		return NULL;
 	}
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)		/*	Every 10 seconds.		*/
 	{
 		LOCK_MIB;
@@ -1704,14 +1711,17 @@ static void	*rsMain(void *parm)
 {
 	AmsMib		*mib = _mib(NULL);
 	RsState		*rsState = (RsState *) parm;
-	sigset_t	signals;
 	LystElt		elt;
 	AmsEvt		*evt;
 	int		result;
 
 	CHKNULL(rsState);
+#ifndef mingw
+	sigset_t	signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	rsState->rsRunning = 1;
 	writeMemo("[i] Registrar is running.");
 	while (1)

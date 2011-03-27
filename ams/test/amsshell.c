@@ -14,13 +14,15 @@
 
 #define	MAX_SUBJ_NAME	32
 
-static pthread_t	_mainThread(pthread_t *value)
+static pthread_t	_mainThread()
 {
-	static pthread_t	mainThread = 0;
+	static pthread_t	mainThread;
+	static int		haveMainThread = 0;
 
-	if (value)
+	if (haveMainThread == 0)
 	{
-		mainThread = *value;
+		mainThread = pthread_self();
+		haveMainThread = 1;
 	}
 
 	return mainThread;
@@ -238,7 +240,7 @@ message", subjectName);
 static void	reportError(void *userData, AmsEvent *event)
 {
 	puts("AMS event loop terminated.");
-	oK(pthread_kill(_mainThread(NULL), SIGINT));
+	oK(pthread_kill(_mainThread(), SIGINT));
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -259,14 +261,12 @@ int	main(int argc, char **argv)
 	char	*authorityName = (argc > 4 ? argv[4] : NULL);
 	char	*mode = (argc > 5 ? argv[5] : "p");
 #endif
-	pthread_t	self;
 	AmsModule	me;
 	AmsEventMgt	rules;
 	int		start = 1;
 
 #ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
-	self = pthread_self();
-	oK(_mainThread(&self));
+	oK(_mainThread());
 	oK(_amsshell_running(&start));
 	isignal(SIGINT, handleQuit);
 	if (unitName == NULL || roleName == NULL

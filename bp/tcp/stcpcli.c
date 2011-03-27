@@ -12,13 +12,15 @@
 									*/
 #include "tcpcla.h"
 
-static pthread_t	stcpcliMainThread(pthread_t tid)
+static pthread_t	stcpcliMainThread()
 {
-	static pthread_t	mainThread = 0;
+	static pthread_t	mainThread;
+	static int		haveMainThread = 0;
 
-	if (tid)
+	if (haveMainThread == 0)	/*	Call first from main().	*/
 	{
-		mainThread = tid;
+		mainThread = pthread_self();
+		haveMainThread = 1;
 	}
 
 	return mainThread;
@@ -26,7 +28,7 @@ static pthread_t	stcpcliMainThread(pthread_t tid)
 
 static void	interruptThread()
 {
-	pthread_t	mainThread = stcpcliMainThread(0);
+	pthread_t	mainThread = stcpcliMainThread();
 
 	isignal(SIGTERM, interruptThread);
 	if (!pthread_equal(mainThread, pthread_self()))
@@ -187,7 +189,7 @@ static void	*spawnReceivers(void *parm)
 		if (newSocket < 0)
 		{
 			putSysErrmsg("stcpcli accept() failed", NULL);
-			pthread_kill(stcpcliMainThread(0), SIGTERM);
+			pthread_kill(stcpcliMainThread(), SIGTERM);
 			continue;
 		}
 
@@ -202,7 +204,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putErrmsg("stcpcli can't allocate for new thread.",
 					NULL);
-			pthread_kill(stcpcliMainThread(0), SIGTERM);
+			pthread_kill(stcpcliMainThread(), SIGTERM);
 			continue;
 		}
 
@@ -215,7 +217,7 @@ static void	*spawnReceivers(void *parm)
 			putErrmsg("stcpcli can't allocate for new thread.",
 					NULL);
 			MRELEASE(parms);
-			pthread_kill(stcpcliMainThread(0), SIGTERM);
+			pthread_kill(stcpcliMainThread(), SIGTERM);
 			continue;
 		}
 
@@ -240,7 +242,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putSysErrmsg("stcpcli can't create new thread", NULL);
 			MRELEASE(parms);
-			pthread_kill(stcpcliMainThread(0), SIGTERM);
+			pthread_kill(stcpcliMainThread(), SIGTERM);
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/
@@ -409,7 +411,7 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
-	oK(stcpcliMainThread(pthread_self()));
+	oK(stcpcliMainThread());
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the access thread.				*/

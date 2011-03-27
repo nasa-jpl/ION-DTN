@@ -12,13 +12,15 @@
 									*/
 #include "brscla.h"
 
-static pthread_t	brssclaMainThread(pthread_t tid)
+static pthread_t	brssclaMainThread()
 {
-	static pthread_t	mainThread = 0;
+	static pthread_t	mainThread;
+	static int		haveMainThread = 0;
 
-	if (tid)
+	if (haveMainThread == 0)
 	{
-		mainThread = tid;
+		mainThread = pthread_self();
+		haveMainThread = 1;
 	}
 
 	return mainThread;
@@ -26,7 +28,7 @@ static pthread_t	brssclaMainThread(pthread_t tid)
 
 static void	interruptThread()
 {
-	pthread_t	mainThread = brssclaMainThread(0);
+	pthread_t	mainThread = brssclaMainThread();
 
 	isignal(SIGTERM, interruptThread);
 	if (!pthread_equal(mainThread, pthread_self()))
@@ -194,7 +196,7 @@ static void	*sendBundles(void *parm)
 		sm_TaskYield();
 	}
 
-	pthread_kill(brssclaMainThread(0), SIGTERM);
+	pthread_kill(brssclaMainThread(), SIGTERM);
 	writeMemo("[i] brsscla outduct has ended.");
 	MRELEASE(buffer);
 	return terminateSenderThread(parms);
@@ -573,7 +575,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putSysErrmsg("brsscla accept() failed", NULL);
 			pthread_mutex_destroy(&mutex);
-			pthread_kill(brssclaMainThread(0), SIGTERM);
+			pthread_kill(brssclaMainThread(), SIGTERM);
 			continue;
 		}
 
@@ -588,7 +590,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putErrmsg("brsscla can't allocate for thread", NULL);
 			pthread_mutex_destroy(&mutex);
-			pthread_kill(brssclaMainThread(0), SIGTERM);
+			pthread_kill(brssclaMainThread(), SIGTERM);
 			continue;
 		}
 
@@ -601,7 +603,7 @@ static void	*spawnReceivers(void *parm)
 			putErrmsg("brsscla can't allocate for thread", NULL);
 			MRELEASE(receiverParms);
 			pthread_mutex_destroy(&mutex);
-			pthread_kill(brssclaMainThread(0), SIGTERM);
+			pthread_kill(brssclaMainThread(), SIGTERM);
 			continue;
 		}
 
@@ -619,7 +621,7 @@ static void	*spawnReceivers(void *parm)
 			putSysErrmsg("brsscla can't create new thread", NULL);
 			MRELEASE(receiverParms);
 			pthread_mutex_destroy(&mutex);
-			pthread_kill(brssclaMainThread(0), SIGTERM);
+			pthread_kill(brssclaMainThread(), SIGTERM);
 			continue;
 		}
 
@@ -774,9 +776,11 @@ port 80)", NULL);
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
-	oK(brssclaMainThread(pthread_self()));
+	oK(brssclaMainThread());
 	isignal(SIGTERM, interruptThread);
+#ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
+#endif
 
 	/*	Start the sender thread; a single sender for all
 	 *	connections.						*/

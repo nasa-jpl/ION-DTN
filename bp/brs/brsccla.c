@@ -247,6 +247,7 @@ int	main(int argc, char *argv[])
 	ReceiverThreadParms	receiverParms;
 	int			running = 1;
 	pthread_t		receiverThread;
+	int			haveReceiverThread = 0;
 	pthread_mutex_t		mutex;
 	KeepaliveThreadParms	ktparms;
 	pthread_t		keepaliveThread;
@@ -415,7 +416,9 @@ number>");
 
 	oK(brscclaSemaphore(&(voutduct->semaphore)));
 	isignal(SIGTERM, interruptThread);
+#ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
+#endif
 
 	/*	Start the receiver thread.				*/
 
@@ -438,6 +441,8 @@ number>");
 		close(ductSocket);
 		return 1;
 	}
+
+	haveReceiverThread = 1;
 
 	/*	Start the keepalive thread for this connection.		*/
 
@@ -506,7 +511,7 @@ number>");
 	/*	Finish cleaning up.					*/
 
 	running = 0;
-	if (receiverThread)
+	if (haveReceiverThread)
 	{
 		pthread_kill(receiverThread, SIGTERM);
 		pthread_join(receiverThread, NULL);

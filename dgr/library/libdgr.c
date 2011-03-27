@@ -269,9 +269,9 @@ typedef struct dgrsapst
 
 typedef enum
 {
-	SendMessage = 1,
-	HandleTimeout,
-	HandleRpt
+	DgrSendMessage = 1,
+	DgrHandleTimeout,
+	DgrHandleRpt
 } RecordOperation;
 
 #if DGRDEBUG
@@ -1180,7 +1180,7 @@ static int	arq(DgrSAP *sap, unsigned long engineId,
 	bucket = sap->buckets + (sessionNbr & DGR_SESNBR_MASK);
 	pthread_mutex_lock(&bucket->mutex);
 	pthread_mutex_lock(&sap->destsMutex);
-	if (op == SendMessage)
+	if (op == DgrSendMessage)
 	{
 		for (elt = lyst_last(bucket->msgs); elt; elt = lyst_prev(elt))
 		{
@@ -1275,7 +1275,7 @@ static int	arq(DgrSAP *sap, unsigned long engineId,
 	}
 
 	dest = findDest(sap, rec->portNbr, rec->ipAddress, &destIdx);
-	if (op == HandleRpt)
+	if (op == DgrHandleRpt)
 	{
 		result = handleRpt(sap, rec, elt, dest, destIdx);
 	}
@@ -1555,14 +1555,16 @@ appliedAcks = 0;
 static void	*sender(void *parm)
 {
 	DgrSAP		*sap = (DgrSAP *) parm;
-	sigset_t	signals;
 	LystElt		elt;
 	SendReq		*req;
 	unsigned long	engineId;
 	unsigned long	sessionNbr;
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (sap->state == DgrSapOpen)
 	{
 		if (llcv_wait(sap->outboundCV, llcv_lyst_not_empty,
@@ -1591,7 +1593,7 @@ static void	*sender(void *parm)
 			engineId = req->id.engineId;
 			sessionNbr = req->id.sessionNbr;
 			llcv_unlock(sap->outboundCV);
-			if (arq(sap, engineId, sessionNbr, SendMessage))
+			if (arq(sap, engineId, sessionNbr, DgrSendMessage))
 			{
 				writeMemo("[i] DGR sender thread ended.");
 				return NULL;
@@ -1605,16 +1607,18 @@ static void	*sender(void *parm)
 static void	*resender(void *parm)
 {
 	DgrSAP		*sap = (DgrSAP *) parm;
-	sigset_t	signals;
 	int		cycleNbr = 1;
 	struct timeval	currentTime;
 	LystElt		elt;
 	ResendReq	*req;
 	unsigned long	engineId;
 	unsigned long	sessionNbr;
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		microsnooze(EPISODE_PERIOD);
@@ -1658,7 +1662,7 @@ static void	*resender(void *parm)
 				sessionNbr = req->id.sessionNbr;
 				pthread_mutex_unlock(&sap->pendingResendsMutex);
 				if (arq(sap, engineId, sessionNbr,
-						HandleTimeout))
+						DgrHandleTimeout))
 				{
 					writeMemo("[i] DGR resender ended.");
 					return NULL;
@@ -1793,7 +1797,6 @@ report");
 static void	*receiver(void *parm)
 {
 	DgrSAP			*sap = (DgrSAP *) parm;
-	sigset_t		signals;
 	struct sockaddr_in	socketAddress;
 	struct sockaddr		*sockName = (struct sockaddr *) &socketAddress;
 	socklen_t		sockaddrlen;
@@ -1816,9 +1819,12 @@ static void	*receiver(void *parm)
 	char			reportBuffer[64];
 	int			reclength;
 	DgrRecord		rec;
+#ifndef mingw
+	sigset_t		signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		sockaddrlen = sizeof(struct sockaddr_in);
@@ -1953,7 +1959,7 @@ recvfrom");
 				break;		/*	Main loop.	*/
 			}
 
-			if (arq(sap, engineId, sessionNbr, HandleRpt))
+			if (arq(sap, engineId, sessionNbr, DgrHandleRpt))
 			{
 				writeMemo("[i] DGR receiver thread ended.");
 				break;	/*	Out of main loop.	*/
@@ -2271,7 +2277,7 @@ int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
 
 	/*	Initialize UDP socket for DGR service.			*/
 
-	sap->udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	sap->udpSocket = socket(AF_INET, SOCK_DGRAM|SOCK_CLOEXEC, IPPROTO_UDP);
 	if (sap->udpSocket < 0)
 	{
 		putSysErrmsg("Can't open DGR UDP socket", NULL);
@@ -2279,6 +2285,9 @@ int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
 		return -1;
 	}
 
+#if (SOCK_CLOEXEC == 0)
+	closeOnExec(sap->udpSocket);
+#endif
 	if (reUseAddress(sap->udpSocket) < 0)
 	{
 		putSysErrmsg("Can't reuse address on DGR UDP socket",
@@ -2294,8 +2303,6 @@ int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
 		cleanUpSAP(sap);
 		return -1;
 	}
-
-	closeOnExec(sap->udpSocket);
 
 	/*	Create lists and management structures.			*/
 
