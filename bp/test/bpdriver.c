@@ -11,6 +11,7 @@
 #include <bp.h>
 
 #define	DEFAULT_ADU_LENGTH	(60000)
+#define	DEFAULT_TTL 300
 
 #if 0
 #define	CYCLE_TRACE
@@ -41,7 +42,7 @@ static void	handleQuit()
 }
 
 static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
-			int aduLength, int streaming)
+			int aduLength, int streaming, int ttl)
 {
 	static char	buffer[DEFAULT_ADU_LENGTH] = "test...";
 	BpSAP		sap;
@@ -66,8 +67,9 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	|| aduLength == 0)
 	{
 		PUTS("Usage: bpdriver <number of cycles> <own endpoint ID> \
-<destination endpoint ID> [<payload size>]");
+<destination endpoint ID> [<payload size>] [t<Bundle TTL>]");
 		PUTS("  Payload size defaults to 60000 bytes.");
+		PUTS("  Bundle TTL defaults to 300 seconds.");
 		PUTS("");
 		PUTS("  Normal operation of bpdriver is to wait for");
 		PUTS("  acknowledgment after sending each bundle.  To run");
@@ -121,6 +123,11 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	{
 		randomAduLength = 1;
 		srand((unsigned int) time(NULL));
+	}
+
+	if(ttl == 0)
+	{
+		ttl = DEFAULT_TTL;
 	}
 
 	aduFile = open("bpdriverAduFile", O_WRONLY | O_CREAT | O_TRUNC, 0777);
@@ -191,7 +198,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 			continue;
 		}
 
-		if (bp_send(sap, BP_BLOCKING, destEid, NULL, 300,
+		if (bp_send(sap, BP_BLOCKING, destEid, NULL, ttl,
 				BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
 				bundleZco, &newBundle) < 1)
 		{
@@ -282,6 +289,7 @@ int	bpdriver(int a1, int a2, int a3, int a4, int a5,
 	char	*destEid = (char *) a3;
 	int	aduLength = (a4 == 0 ? DEFAULT_ADU_LENGTH : atoi((char *) a4));
 	int	streaming = 0;
+	int ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
 #else
 int	main(int argc, char **argv)
 {
@@ -290,12 +298,29 @@ int	main(int argc, char **argv)
 	char	*destEid = NULL;
 	int	aduLength = DEFAULT_ADU_LENGTH;
 	int	streaming = 0;
+	int ttl=0;
 
-	if (argc > 5) argc = 5;
+	if (argc > 6) argc = 6;
 	switch (argc)
 	{
+	case 6:
+		if(argv[5][0] == 't')
+		{
+				ttl = atoi(&argv[5][1]);
+		}
+		else
+		{
+			aduLength = atoi(argv[5]);
+		}
 	case 5:
-	  	aduLength = atoi(argv[4]);
+		if(argv[4][0] == 't')
+		{
+				ttl = atoi(&argv[4][1]);
+		}
+		else
+		{
+			aduLength = atoi(argv[4]);
+		}
 	case 4:
 		destEid = argv[3];
 	case 3:
@@ -313,5 +338,5 @@ int	main(int argc, char **argv)
 	}
 
 	return run_bpdriver(cyclesRemaining, ownEid, destEid, aduLength,
-			streaming);
+			streaming, ttl);
 }
