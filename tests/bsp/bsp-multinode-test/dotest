@@ -253,8 +253,25 @@ sleep 2
 
 cd ..
 
-RECV_SIZE=`stat -c %s 3.ipn.ltp/testfile1`
-SEND_SIZE=`stat -c %s 2.ipn.ltp/hugefile.big`
+PROGRAMTEST="stat"
+RESULTS=`which ${PROGRAMTEST}`
+WHICHRETURN=$?
+echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
+WHICHFAILMESSAGE=$?
+# which could return the proper fail condition, or the results could be
+# empty, or you're on solaris and your results will be "no stat in $PATH".
+if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
+	echo "${PROGRAMTEST} is not present in this system; using ls"
+# ls -l on solaris (and other platforms) puts the byte size in the 5th column
+# of output and we use sed to eliminate long strings of whitespace since cut
+# is fragile and interprets each instance of space as a delimiter
+# IF ls changes its column order, this will break, but it is only a fallback.
+	RECV_SIZE=`ls -1l 3.ipn.ltp/testfile1 | sed 's/ [ ]*/ /g' | cut -d' ' -f5`
+	SEND_SIZE=`ls -1l 2.ipn.ltp/hugefile.big | sed 's/ [ ]*/ /g' | cut -d' ' -f5`
+else
+	RECV_SIZE=`stat -c %s 3.ipn.ltp/testfile1`
+	SEND_SIZE=`stat -c %s 2.ipn.ltp/hugefile.big`
+fi
 
 echo "Receive size: $RECV_SIZE; Send size: $SEND_SIZE"
 if [ $RECV_SIZE = $SEND_SIZE ] 
