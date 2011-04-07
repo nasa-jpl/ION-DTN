@@ -72,26 +72,14 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	}
 
 	greenPartLength = dataLength - redPartLength;
-
-	/*	The sum of red data size and green data size is
-	 *	limited by span export max block size.			*/
-
 	spanObj = sdr_list_data(sdr, vspan->spanElt);
 	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
-	if ((redPartLength + greenPartLength) > span.maxExportBlockSize)
-	{
-		sdr_exit_xn(sdr);
-		putErrmsg("Client service data size exceeds max block size.",
-				utoa((redPartLength + greenPartLength)
-					- span.maxExportBlockSize));
-		return 0;
-	}
 
-	/*	Wait until there's enough room in the span's session
-	 *	buffer (block) for this service data unit.  Also, if
-	 *	current block has different client service ID or if
-	 *	it contains any green data, wait until it has been
-	 *	written out to the link service layer.			*/
+	/*	All service data units aggregated into any single
+	 *	block must have the same client service ID, and
+	 *	no service data unit can be added to a block that
+	 *	has any green data (only all-red service data units
+	 *	can be aggregated in a single block.			*/
 
 	while (1)
 	{
@@ -117,11 +105,6 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 			/*	No green data in block.			*/
 			&& span.lengthOfBufferedBlock < span.aggrSizeLimit
 			/*	Not yet aggregated up to nominal limit.	*/
-			&& (span.maxExportBlockSize
-				- span.lengthOfBufferedBlock) > dataLength
-			/*	Inserting this SDU into the block
-			 *	would not cause block size to exceed
-			 *	the span's export block size limit.	*/
 			&& clientSvcId == span.clientSvcIdOfBufferedBlock
 			/*	This SDU is destined for the same
 			 *	engine as all other data in the block.	*/)
