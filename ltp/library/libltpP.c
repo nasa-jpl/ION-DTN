@@ -2842,8 +2842,15 @@ static int	initializeRs(LtpXmitSeg *rs, int baseOhdLength,
 	Sdnv	sdnv;
 
 	rs->ohdLength = baseOhdLength;
-	do rs->pdu.rptSerialNbr = rand();
-		while (rs->pdu.rptSerialNbr == 0);
+	if (rs->pdu.rptSerialNbr == 0)
+	{
+		do rs->pdu.rptSerialNbr = rand();
+			while (rs->pdu.rptSerialNbr == 0);
+	}
+	else
+	{
+		rs->pdu.rptSerialNbr++;
+	}
 	encodeSdnv(&sdnv, rs->pdu.rptSerialNbr);
 	rs->ohdLength += sdnv.length;
 	rs->ohdLength += checkpointSerialNbrSdnvLength;
@@ -2995,6 +3002,7 @@ putErrmsg("Too many reports, canceling session.", itoa(session->sessionNbr));
 	rsBuf.segmentClass = LtpReportSeg;
 	rsBuf.pdu.segTypeCode = LtpRS;
 	rsBuf.pdu.ckptSerialNbr = checkpointSerialNbr;
+	rsBuf.pdu.rptSerialNbr = reportSerialNbr;
 	encodeSdnv(&checkpointSerialNbrSdnv, checkpointSerialNbr);
 
 	/*	Initialize the first report segment and start adding

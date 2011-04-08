@@ -173,6 +173,9 @@ void	*allocFromIonMemory(char *fileName, int lineNbr, size_t length)
 
 	block = psp(ionwm, address);
 	memset(block, 0, length);
+#ifdef HAVE_VALGRIND_VALGRIND_H
+    VALGRIND_MALLOCLIKE_BLOCK(block, length, 0, 1);
+#endif
 	return block;
 }
 
@@ -181,6 +184,9 @@ void	releaseToIonMemory(char *fileName, int lineNbr, void *block)
 	PsmPartition	ionwm = _ionwm(NULL);
 
 	Psm_free(fileName, lineNbr, ionwm, psa(ionwm, (char *) block));
+#ifdef HAVE_VALGRIND_VALGRIND_H
+    VALGRIND_FREELIKE_BLOCK(block, 0);
+#endif
 }
 
 void	*ionMemAtoP(unsigned long address)

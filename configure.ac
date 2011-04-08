@@ -8,7 +8,7 @@
 #is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
 # fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, 2.3.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, 2.4.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
 # shall we put extra scripts in a special directory?
 # AC_CONFIG_AUX_DIR(build-aux)
@@ -38,16 +38,26 @@ fi
 
 # Checks for libraries.
 # these are libraries that ALREADY EXIST BEFORE BUILDING
-AC_CHECK_LIB([expat], [XML_GetCurrentLineNumber], [], 
-	[AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])
-	])
-        #echo "Error! You need to have the Expat XML library installed."
-	#exit -1
-AC_CHECK_LIB([pthread], [pthread_create], [], 
-	[AC_MSG_ERROR([You need pthread library.])
-	])
-	#echo "Error! You need to have the Pthread library installed."
-	#exit -1
+AC_CHECK_LIB(
+    [expat], 
+    [XML_GetCurrentLineNumber], 
+    [ AC_SUBST( [EXPAT_LIBS], ["-lexpat"] ) ],
+    [AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])]
+)
+
+AC_CHECK_LIB(
+    [pthread], 
+    [pthread_create], 
+    [ AC_SUBST( [PTHREAD_LIBS], ["-lpthread"] ) ],
+    [AC_MSG_ERROR([You need pthread library.]) ]
+)
+
+
+#
+# If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
+#
+AC_CHECK_HEADERS(valgrind/valgrind.h)
+
 
 # Checks for header files.
 AC_HEADER_DIRENT
