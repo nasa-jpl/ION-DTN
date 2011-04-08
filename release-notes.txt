@@ -1,7 +1,7 @@
 
-= Release Notes for ION 2.3.0 =
+= Release Notes for ION 2.4.0 =
 
-December 5, 2010
+April 5, 2011
 
 %%%%%%%%%%%
 = GENERAL =
@@ -54,6 +54,58 @@ Features included:
   information, check man brsscla and man brsccla.
 
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.4.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue 105: Add correlation blocks to the bundle protocol block extension
+  interface.
+
+- Issue 106: Extract bundle block-related functionality into separate source .c
+  and .h files to allow for future modular development of block extensions.
+
+- Issue 161: Corrected some redundant and/or circular library linking when
+  using autotools.
+
+- Issue 176: Upgrade ltp-cla to better conform to current ltpcla draft in the
+  DTNRG.  Particularly the new "green" service handling.
+
+- Issue 195: sm_SemUnwedge() in platform_sm.c uses a pthread to ensure a
+  semaphore is not already taken.  Some platforms do not include pthreads and
+  the function can be implemented using semaphore trywait semantics().
+
+- Issue 233: Manage some processing statistics for LTP like those that are
+  currently managed for BP.
+
+- Issue 238: Fixed possible leak of custodianEid in sendCtSignal.
+
+- Issue 247: Updating the syntax of ionsecadmin for flexibility and readability.
+
+- Issue 248: Fixed a timeline ordering bug in LTP.
+
+- Issue 249: Added support to ION's LTP for section 6.21 of RFC 5326, the LTP
+  specification.  Specifically detecting "red" and "green" segments that overlap:
+  an error-state.
+
+- Issue 253: Fixed a tcpcl bug: When connection is lost to a node, a keepalive
+  needs to be at the end of the backoff period. TCPCL waits backoff period +
+  keepalive period to send the keepalive.
+
+- Issue 254: Fixed LTP report serial number bug.
+
+- Issue 255: Fixed bug where pseudoshell can cause duplicate parent processes.
+
+- Issue 256: Fixed Uninitialized memory read in reverseEnqueue().
+
+- Issue 258: ZCO referenced file progress.
+
+- Issue 260: Teach memcheck about MTAKE/MRELEASE for improved testing using
+  valgrind.
+
+- Various bugfixes and features for AMS package.
+
+- Various bugfixes and features for CFDP package.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.3.0 =
