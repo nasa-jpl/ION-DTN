@@ -8213,7 +8213,7 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 }
 
 int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
-		Outduct *outduct)
+		Outduct *outduct, int sendToLimbo)
 {
 	Sdr		bpSdr = getIonsdr();
 	Object		xrAddr;
@@ -8222,7 +8222,7 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 
 	xrAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
-	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
+	sdr_read(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
 	sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
 	removeBundleFromQueue(xmitElt, &bundle, protocol, outductObj, outduct);
 	if (xr.proxNodeEid)
@@ -8237,16 +8237,25 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 
 	sdr_free(bpSdr, xrAddr);
 
-	/*	If bundle is MINIMUM_LATENCY, nothing more to do.
-	 *	We never put critical bundles into limbo.		*/
+	/*	If bundle is MINIMUM_LATENCY, nothing more to do.  We
+	 *	never reforward critical bundles or send them to limbo.	*/
 
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
 		return 0;
 	}
 
-	/*	Non-critical bundle, so let's redirect it into limbo.	*/
+	if (!sendToLimbo)
+	{
+		/*	Want to give bundle another chance to be
+		 *	transmitted at next opportunity.		*/
 
+		return bpReforwardBundle(xr.bundleObj);
+	}
+
+	/*	Must queue the bundle into limbo unconditionally.	*/
+
+	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, 0);
 	if (bundle.overdueElt)
 	{
 		/*	Bundle was un-queued before "overdue"
@@ -8314,8 +8323,7 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 0))
 		{
 			putErrmsg("Can't requeue urgent bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -8327,8 +8335,7 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 0))
 		{
 			putErrmsg("Can't requeue std bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -8340,8 +8347,7 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 0))
 		{
 			putErrmsg("Can't requeue bulk bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
