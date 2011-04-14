@@ -29,15 +29,20 @@ BPINCLS = \
 	$(TCP)/tcpcla.h \
 	$(LTP)/ltpcla.h
 
-BPLIBS = libbpP.so libbp.so
+BPLIBS = \
+	libbp.so \
+	libbpP.so 
 
+BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o crypto.o
+# phn.o
+#
 LFW = -lipnfw -ldtn2fw
 
 LBP = -lbp -lbpP
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
 
-ALL = check $(BPLIBS) libbp.so libipnfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -91,6 +96,18 @@ bptrace:	bptrace.o $(BPLIBS)
 bpstats:	bpstats.o $(BPLIBS)
 		$(CC) -o bpstats bpstats.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lrt -lsocket
 		cp bpstats ./bin
+
+bpstats2:	bpstats2.o $(BPLIBS)
+		$(CC) -o bpstats2 bpstats2.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lrt -lsocket
+		cp bpstats2 ./bin
+
+bping:		bping.o $(BPLIBS)
+		$(CC) -o bping bping.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lrt -lsocket
+		cp bping ./bin
+
+bpchat:		bpchat.o $(BPLIBS)
+		$(CC) -o bpchat bpchat.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lrt -lsocket
+		cp bpchat ./bin
 
 bplist:		bplist.o $(BPLIBS)
 		$(CC) -o bplist bplist.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lrt -lsocket
@@ -212,9 +229,8 @@ bprecvfile:	bprecvfile.o libbp.so $(BPLIBS)
 
 #	-	-	Libraries	-	-	-	-	-
 
-libbpP.so:	libbpP.o ecos.o bsp.o hmac.o sha1.o
-# phn.o
-		$(LD) -o libbpP.so libbpP.o ecos.o bsp.o hmac.o sha1.o
+libbpP.so:	$(BPPOBJS)
+		$(LD) -o libbpP.so $(BPPOBJS)
 		cp libbpP.so ./lib
 
 libbp.so:	libbp.o
@@ -245,6 +261,18 @@ libudpcla.so:	libudpcla.o
 
 %.o:		$(API)/%.c
 		$(CC) -c $<
+
+%.o:		$(API)/crypto/NULL_SUITES/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/ecos/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/bsp/%.c
+		$(CC) -c $<
+
+#%.o:		$(API)/ext/phn/%.c
+#		$(CC) -c $<
 
 %.o:		$(TEST)/%.c
 		$(CC) -c $<

@@ -47,6 +47,7 @@ BPSOURCES =      \
 	libipnfw.c   \
 	ltpcli.c     \
 	ltpclo.c     \
+	bei.c        \
 	ecos.c
 
 #	phn.c        \
@@ -61,9 +62,9 @@ LTPSOURCES =     \
 	ltpadmin.c
 
 BSPSOURCES =     \
-	hmac.c       \
-	sha1.c       \
-	bsp.c          
+	extbsputil.c \
+	extbspbab.c  \
+	crypto.c          
 
 DTN2SOURCES =        \
 	libdtn2fw.c 
@@ -81,6 +82,9 @@ TESTSOURCES =      \
 	bpsink.c
 
 #	sptrace.c    \
+#	bpstats2.c   \
+#	bping.c      \
+#	bpchat.c     \
 #	bpcounter.c  \
 #	bpdriver.c   \
 #	bpecho.c     \
