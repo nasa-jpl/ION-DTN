@@ -11,7 +11,7 @@ The ION (interplanetary overlay network) software is a suite of communication
 protocol implementations designed to support mission operation communications
 across an end-to-end interplanetary network, which might include on-board
 (flight) subnets, in-situ planetary or lunar networks, proximity links, deep
-space links, and terrestrial internets.  Included in the ION softwarex
+space links, and terrestrial internets.  Included in the ION software
 distribution are the following packages:
 
 - ici (interplanetary communication infrastructure), a set of libraries
@@ -28,13 +28,14 @@ distribution are the following packages:
 - bp (bundle protocol), an implementation of the Delay-Tolerant
   Networking (DTN) architecture's Bundle Protocol.
 
-- dgr (datagram retransmission), a UDP reliability system that
-  implements congestion control and is designed for relatively high
-  performance.
-
 - ltp (licklider transmission protocol), a DTN convergence layer for
   reliable transmission over links characterized by long or highly
   variable delay.
+
+- dgr (datagram retransmission), an alternative implementation of ltp
+  that is designed for use over the Internet protocol stack.  dgr
+  implements congestion control and is designed for relatively high
+  performance.
 
 - ams - an implementation of the CCSDS Asynchronous Message Service.
 
@@ -71,12 +72,10 @@ Features included:
 - Issue 176: Upgrade ltp-cla to better conform to current ltpcla draft in the
   DTNRG.  Particularly the new "green" service handling.
 
-- Issue 195: sm_SemUnwedge() in platform_sm.c uses a pthread to ensure a
-  semaphore is not already taken.  Some platforms do not include pthreads and
-  the function can be implemented using semaphore trywait semantics().
+- Issue 195: pthread_t is an opaque data type, which should not be initialized
+  or compared to an integer.
 
-- Issue 233: Manage some processing statistics for LTP like those that are
-  currently managed for BP.
+- Issue 233: Some additional LTP debugging hooks added.
 
 - Issue 238: Fixed possible leak of custodianEid in sendCtSignal.
 
@@ -85,8 +84,8 @@ Features included:
 - Issue 248: Fixed a timeline ordering bug in LTP.
 
 - Issue 249: Added support to ION's LTP for section 6.21 of RFC 5326, the LTP
-  specification.  Specifically detecting "red" and "green" segments that overlap:
-  an error-state.
+  specification.  Specifically detecting "red" and "green" segments that
+  overlap: an error-state.
 
 - Issue 253: Fixed a tcpcl bug: When connection is lost to a node, a keepalive
   needs to be at the end of the backoff period. TCPCL waits backoff period +
@@ -96,7 +95,7 @@ Features included:
 
 - Issue 255: Fixed bug where pseudoshell can cause duplicate parent processes.
 
-- Issue 256: Fixed Uninitialized memory read in reverseEnqueue().
+- Issue 256: Fixed uninitialized memory read in reverseEnqueue().
 
 - Issue 258: ZCO referenced file progress.
 
