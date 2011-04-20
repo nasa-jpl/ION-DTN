@@ -91,7 +91,7 @@ rule pertaining to I<eid_expr>.  Note that I<eid_expr> must exactly match
 the EID expression of the rule that is to be deleted, including any
 terminating wild-card character.
 
-=item B<d babrxrule> I<eid_expr>
+=item B<i babrxrule> I<eid_expr>
 
 This command will print information (the ciphersuite and key names) about the
 BAB reception rule pertaining to I<eid_expr>.
@@ -132,7 +132,7 @@ rule pertaining to I<eid_expr>.  Note that I<eid_expr> must exactly match
 the EID expression of the rule that is to be deleted, including any
 terminating wild-card character.
 
-=item B<d babtxrule> I<eid_expr>
+=item B<i babtxrule> I<eid_expr>
 
 This command will print information (the ciphersuite and key names) about the
 BAB transmission rule pertaining to I<eid_expr>.

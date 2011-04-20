@@ -9,8 +9,8 @@ file of text lines or interactively at B<dtn2admin>'s command prompt (:).
 Commands are interpreted line-by line, with exactly one command per line.
 
 "dtn" scheme configuration commands mainly establish static routing rules
-for forwarding bundles to "dtn"-scheme endpoints, identified by node names
-and demux names.
+for forwarding bundles to "dtn"-scheme destination endpoints, identified by
+node names and demux names.
 
 Static routes are expressed as B<plan>s in the "dtn"-scheme routing database.
 A plan that is established for a given node name associates a default routing
@@ -43,6 +43,19 @@ to be queued for transmission via the indicated convergence layer protocol
 outduct.  I<destination_induct_name> must be provided when the indicated
 outduct is "promiscuous", i.e., not configured for transmission only to
 a single neighboring node; this is protocol-specific.
+
+The node names and demux names cited in dtn2rc plans and overriding rules
+may be "wild-carded".  That is, when the last character of a node name is
+either '*' or '~' (these two wild-card characters are equivalent for this
+purpose), the plan or rule applies to all nodes whose names are identical
+to the wild-carded node name up to the wild-card character; wild-carded
+demux names function in the same way.  For example, a bundle whose
+destination EID's node name is "//foghorn" would be routed by plans citing
+the following node names: "//foghorn", "//fogh*", "//fog~", "//*".  When
+multiple plans are all applicable to the same destination EID, the one citing
+the longest (i.e., most narrowly targeted) node name will be applied; when
+multiple rules overriding the same plan are all applicable to the same
+destination EID, the one citing the longest demux name will be applied.
 
 The formats and effects of the DTN scheme configuration commands are
 described below.
