@@ -1161,6 +1161,11 @@ static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
 
 	if (buffer)		/*	Retrieving an errmsg.		*/
 	{
+		if (errmsgsLength == 0)	/*	No more msgs in pool.	*/
+		{
+			return 0;
+		}
+
 		lockResource(&errmsgsLock);
 		msgLength = strlen(errmsgs);
 		if (msgLength == 0)	/*	No more msgs in pool.	*/
