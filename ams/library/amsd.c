@@ -57,10 +57,14 @@ static int	_amsdRunning(int *state)
 		if (*state == 0)	/*	Stopping.		*/
 		{
 			running = 0;
+#ifdef mingw
+			sm_Wakeup(GetCurrentProcessId());
+#else
 			if (pthread_equal(amsdThread, pthread_self()) == 0)
 			{
 				pthread_kill(amsdThread, SIGINT);
 			}
+#endif
 		}
 		else			/*	Starting.		*/
 		{
@@ -76,8 +80,8 @@ static void	shutDownAmsd()
 {
 	int	stop = 0;
 
-	oK(_amsdRunning(&stop));
 	isignal(SIGINT, shutDownAmsd);
+	oK(_amsdRunning(&stop));
 }
 
 /*	*	*	Configuration server code	*	*	*/
@@ -2004,7 +2008,11 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 			}
 		}
 
+#ifdef mingw
+		sm_WaitForWakeup(N5_INTERVAL);
+#else
 		snooze(N5_INTERVAL);
+#endif
 	}
 }
 

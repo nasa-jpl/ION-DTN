@@ -827,7 +827,7 @@ static int	sendMessage(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 	socketAddress.sin_family = AF_INET;
 	socketAddress.sin_port = htons(rec->portNbr);
 	socketAddress.sin_addr.s_addr = htonl(rec->ipAddress);
-	if (sendto(sap->udpSocket, sap->outputBuffer, length, 0, sockName,
+	if (isendto(sap->udpSocket, sap->outputBuffer, length, 0, sockName,
 			sizeof(struct sockaddr_in)) < 0)
 	{
 		putSysErrmsg("DGR can't send segment", NULL);
@@ -1699,7 +1699,7 @@ static int	sendAck(DgrSAP *sap, char *reportBuffer, int headerLength,
 
 	/*	ACK is now ready to transmit.				*/
 
-	if (sendto(sap->udpSocket, reportBuffer, length, 0, sockName,
+	if (isendto(sap->udpSocket, reportBuffer, length, 0, sockName,
 			sockaddrlen) < 0)
 	{
 		if (errno != EBADF)		/*	Socket closed.	*/
@@ -1779,7 +1779,7 @@ static int	sendReport(DgrSAP *sap, char *reportBuffer, int headerLength,
 
 	/*	Report is now ready to transmit.			*/
 
-	if (sendto(sap->udpSocket, reportBuffer, length, 0, sockName,
+	if (isendto(sap->udpSocket, reportBuffer, length, 0, sockName,
 			sockaddrlen) < 0)
 	{
 		if (errno != EBADF)		/*	Socket closed.	*/
@@ -1828,15 +1828,16 @@ static void	*receiver(void *parm)
 	while (1)
 	{
 		sockaddrlen = sizeof(struct sockaddr_in);
-		length = recvfrom(sap->udpSocket, sap->inputBuffer,
+		length = irecvfrom(sap->udpSocket, sap->inputBuffer,
 				DGR_BUF_SIZE, 0, sockName, &sockaddrlen);
 		if (length < 0)
 		{
 			switch (errno)
 			{
 			case EBADF:	/*	Socket has been closed.	*/
-				break;	/*	Out of switch.		*/
+				break;
 
+			case ECONNRESET:/*	Connection reset.	*/
 			case EAGAIN:	/*	Bad checksum?  Ignore.	*/
 				continue;
 
@@ -2142,7 +2143,7 @@ static void	cleanUpSAP(DgrSAP *sap)
 
 	if (sap->udpSocket >= 0)
 	{
-		close(sap->udpSocket);
+		closesocket(sap->udpSocket);
 	}
 
 	if (sap->outboundMsgs)
@@ -2449,7 +2450,7 @@ void	dgr_close(DgrSAP *sap)
 	}
 	else
 	{
-		if (sendto(sap->udpSocket, &shutdown, 1, 0, &sockName,
+		if (isendto(sap->udpSocket, &shutdown, 1, 0, &sockName,
 				sizeof(struct sockaddr_in)) < 0)
 		{
 			putSysErrmsg("DGR can't send shutdown packet", NULL);

@@ -75,6 +75,10 @@ extern void		sm_TaskForget();
 extern void		sm_TaskKill(int taskId, int sigNbr);
 extern void		sm_TaskDelete(int taskId);
 extern void		sm_Abort();
+#ifdef mingw
+extern void		sm_WaitForWakeup(int seconds);
+extern void		sm_Wakeup(DWORD);
+#endif
 extern void		sm_ConfigurePthread(pthread_attr_t *attr,
 				size_t stackSize);
 extern int		pseudoshell(char *commandLine);

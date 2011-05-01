@@ -18,29 +18,10 @@
 #define	DGRCLA_BUFSZ		65535
 #define	DEFAULT_DGR_RATE	11250000
 
-static pthread_t	dgrclaMainThread()
-{
-	static pthread_t	mainThread;
-	static int		haveMainThread = 0;
-
-	if (haveMainThread == 0)
-	{
-		mainThread = pthread_self();
-		haveMainThread = 1;
-	}
-
-	return mainThread;
-}
-
 static void	interruptThread()
 {
-	pthread_t	mainThread = dgrclaMainThread();
-
 	isignal(SIGTERM, interruptThread);
-	if (!pthread_equal(mainThread, pthread_self()))
-	{
-		pthread_kill(mainThread, SIGTERM);
-	}
+	ionKillMainThread("dgrcla");
 }
 
 /*	*	*	Sender thread functions	*	*	*	*/
@@ -58,6 +39,7 @@ static void	*sendBundles(void *parm)
 	 *	serving all DGR destination inducts.			*/
 
 	SenderThreadParms	*parms = (SenderThreadParms *) parm;
+	char			*procName = "dgrcla";
 	char			*buffer;
 	Sdr			sdr;
 	Outduct			outduct;
@@ -76,12 +58,13 @@ static void	*sendBundles(void *parm)
 	int			bytesToSend;
 	DgrRC			rc;
 
+	snooze(1);	/*	Let main thread become interruptable.	*/
 	buffer = MTAKE(DGRCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("dgrcla can't get DGR buffer.", NULL);
 		*(parms->running) = 0;
-		pthread_kill(dgrclaMainThread(), SIGTERM);
+		ionKillMainThread(procName);
 		return NULL;
 	}
 
@@ -200,7 +183,7 @@ failure.", NULL);
 	}
 
 	*(parms->running) = 0;
-	pthread_kill(dgrclaMainThread(), SIGTERM);
+	ionKillMainThread(procName);
 	writeErrmsgMemos();
 	isprintf(buffer, DGRCLA_BUFSZ, "[i] dgrcla outduct ended.  %d \
 transmissions failed.", failedTransmissions);
@@ -224,6 +207,7 @@ static void	*receiveBundles(void *parm)
 
 	Sdr			sdr = getIonsdr();
 	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
+	char			*procName = "dgrcla";
 	char			*buffer;
 	AcqWorkArea		*work;
 	int			threadRunning = 1;
@@ -237,12 +221,13 @@ static void	*receiveBundles(void *parm)
 	char			senderEidBuffer[SDRSTRING_BUFSZ];
 	char			*senderEid;
 
+	snooze(1);	/*	Let main thread become interruptable.	*/
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
 		putErrmsg("dgrcla can't get acquisition work area.", NULL);
 		*(parms->running) = 0;
-		pthread_kill(dgrclaMainThread(), SIGTERM);
+		ionKillMainThread(procName);
 		return NULL;
 	}
 
@@ -251,7 +236,7 @@ static void	*receiveBundles(void *parm)
 	{
 		putErrmsg("dgrcla can't get DGR buffer.", NULL);
 		*(parms->running) = 0;
-		pthread_kill(dgrclaMainThread(), SIGTERM);
+		ionKillMainThread(procName);
 		return NULL;
 	}
 
@@ -404,7 +389,7 @@ bundle ZCO.", NULL);
 	}
 
 	*(parms->running) = 0;
-	pthread_kill(dgrclaMainThread(), SIGTERM);
+	ionKillMainThread(procName);
 
 	/*	Finish releasing receiver thread's resources.		*/
 
@@ -447,7 +432,7 @@ int	main(int argc, char *argv[])
 	if (ductName == NULL)
 	{
 		PUTS("Usage: dgrcla <local host name>[:<port number>]");
-		PUTS("[port number defaults to 5101]");
+		PUTS("[port number defaults to 1113]");
 		return 0;
 	}
 
@@ -522,7 +507,7 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
-	oK(dgrclaMainThread());
+	ionNoteMainThread("dgrcla");
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the sender thread; a single sender for all
@@ -553,17 +538,15 @@ int	main(int argc, char *argv[])
 	}
 
 	writeMemo("[i] dgrcla is running.");
-	if (running)		/*	May have been stopped by child.	*/
-	{
-		/*	Now sleep until interrupted by SIGTERM, at
-		 *	which point it's time to stop the ducts.	*/
 
-		snooze(2000000000);
+	/*	Now sleep until interrupted by SIGTERM, at which point
+	 *	it's time to stop the ducts.				*/
 
-		/*	Time to shut down.				*/
+	ionPauseMainThread(-1);
 
-		running = 0;
-	}
+	/*	Time to shut down.					*/
+
+	running = 0;
 
 	/*	Shut down the sender thread.				*/
 

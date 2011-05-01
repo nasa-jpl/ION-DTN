@@ -81,9 +81,6 @@ extern "C" {
 #include <sys/time.h>
 #include <sys/types.h>
 #include <ws2tcpip.h>
-//typedef SOCKET		IciSock;
-//#define CLOSE_SOCKET(x)	closesocket(x)
-//#define WSA_VERSION		(0x0101)
 #define MAXHOSTNAMELEN		256
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC		0
@@ -101,10 +98,11 @@ extern "C" {
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
-//typedef int			IciSock;
-//#define CLOSE_SOCKET(x)	close(x)
-//#define SOCKET_ERROR		(-1)
-//#define INVALID_SOCKET	(-1)
+#define closesocket(x)		close(x)
+#define isend(a,b,c,d)		send(a,b,c,d)
+#define irecv(a,b,c,d)		recv(a,b,c,d)
+#define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
+#define irecvfrom(a,b,c,de,f)	recvfrom(a,b,c,d,e,f)
 #endif				/****   End of #ifdef mingw	*********/
 /*
 ** End of Standard Headers
@@ -112,8 +110,8 @@ extern "C" {
 
 /*	Handy definitions that are mostly platform-independent.		*/
 
-#define itoa		iToa
-#define utoa		uToa
+#define itoa			iToa
+#define utoa			uToa
 
 #ifdef ERROR
 #undef ERROR
@@ -126,6 +124,20 @@ extern "C" {
 #ifndef MAX
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
+
+#ifndef LONG_MAX
+
+#if defined(_ILP32)
+#define LONG_MAX 0x7fffffffL
+#elif defined(_LP64)
+#define LONG_MAX 0x7fffffffffffffffL
+#elif (SIZEOF_LONG == 4)
+#define LONG_MAX 0x7fffffffL
+#elif (SIZEOF_LONG == 8)
+#define LONG_MAX 0x7fffffffffffffffL
+#endif
+
+#endif				/****	End of #ifndef LONG_MAX   *******/
 
 #define	PATHLENMAX		(256)
 
@@ -255,6 +267,14 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define	_MULTITHREADED
 #define	MAXPATHLEN		(MAX_PATH)
+
+extern int	_winsock(int stopping);
+extern int	isend(int sockfd, char *buf, int len, int flags);
+extern int	irecv(int sockfd, char *buf, int len, int flags);
+extern int	isendto(int sockfd, char *buf, int len, int flags,
+			const struct sockaddr *to, int tolen);
+extern int	irecvfrom(int sockfd, char *buf, int len, int flags,
+			struct sockaddr *from, int *fromlen);
 
 #endif				/****	End of #ifdef mingw          ****/
 

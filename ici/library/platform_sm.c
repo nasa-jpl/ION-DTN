@@ -166,70 +166,165 @@ sm_ShmDestroy(int i)
 
 #ifdef MINGW_SHM
 
+static int	retainIpc(int type, int key)
+{
+	char	*pipeName = "\\\\.\\pipe\\ion.pipe";
+	DWORD	keyDword = (DWORD) key;
+	char	msg[5];
+	int	startedWinion = 0;
+	HANDLE	hPipe;
+	DWORD	dwMode;
+	BOOL	fSuccess = FALSE; 
+	DWORD	bytesWritten;
+	char	reply[1];
+	DWORD	bytesRead;
+
+	msg[0] = type;
+	memcpy(msg + 1, (char *) &keyDword, sizeof(DWORD));
+
+	/*	Keep trying to open pipe to winion until succeed.	*/
+ 
+	while (1) 
+	{
+      		if (WaitNamedPipe(pipeName, 100) == 0) 	/*	Failed.	*/
+		{
+			if (GetLastError() != ERROR_FILE_NOT_FOUND)
+			{
+				putErrmsg("Timed out opening pipe to winion.",
+						NULL);
+				return -1;
+			}
+
+			/*	Pipe doesn't exist, so start winion.	*/
+
+			if (startedWinion)	/*	Already did.	*/
+			{
+				putErrmsg("Can't keep winion runnning.", NULL);
+				return -1;
+			}
+
+			startedWinion = 1;
+			pseudoshell("winion");
+			Sleep(100);	/*	Let winion start.	*/
+			continue;
+		}
+
+		/*	Pipe exists, winion is waiting for connection.	*/
+
+		hPipe = CreateFile(pipeName, GENERIC_READ | GENERIC_WRITE,
+				0, NULL, OPEN_EXISTING, 0, NULL);
+		if (hPipe != INVALID_HANDLE_VALUE) 
+		{
+			break; 		/*	Got it.			*/
+		}
+ 
+		if (GetLastError() != ERROR_PIPE_BUSY) 
+		{
+			putErrmsg("Can't open pipe to winion.",
+					itoa(GetLastError()));
+			return -1;
+		}
+	}
+ 
+	/*	Connected to pipe.  Change read-mode to message(?!).	*/
+ 
+	dwMode = PIPE_READMODE_MESSAGE; 
+	fSuccess = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
+	if (!fSuccess) 
+	{
+		putErrmsg("Can't change pipe's read mode.",
+				itoa(GetLastError()));
+		return -1;
+	}
+ 
+	fSuccess = WriteFile(hPipe, msg, 5, &bytesWritten, NULL);
+	if (!fSuccess) 
+	{
+		putErrmsg("Can't write to pipe.", itoa(GetLastError()));
+		return -1;
+	}
+ 
+	fSuccess = ReadFile(hPipe, reply, 1, &bytesRead, NULL);
+	if (!fSuccess) 
+	{
+		putErrmsg("Can't read from pipe.", itoa(GetLastError()));
+		return -1;
+	}
+ 
+	CloseHandle(hPipe); 
+	if (reply[0] == 0 && type != '?')
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
 	/* ---- Shared Memory services (mingw -- Windows) ------------- */
 
 typedef struct
 {
-	char	memName[32];
 	char	*shmPtr;
-	int	id;
+	int	key;
 } SmSegment;
 
-#define	MAX_SM_SEGMENTS	10
+#define	MAX_SM_SEGMENTS	20
 
-static int	_smSegment(char *memName, char *shmPtr, int *id)
+static void	_smSegment(char *shmPtr, int *key)
 {
 	static SmSegment	segments[MAX_SM_SEGMENTS];
-	static int		segmentsCreated = 0;
+	static int		segmentsNoted = 0;
 	int			i;
 
-	if (shmPtr == NULL)	/*	Checking for room in table.	*/
-	{
-		return MAX_SM_SEGMENTS - segmentsCreated;
-	}
-
-	if (memName)		/*	Adding a segment.		*/
-	{
-		if (segmentsCreated == MAX_SM_SEGMENTS)
-		{
-			return -1;
-		}
-
-		strncpy(segments[segmentsCreated].memName, memName, 32);
-		segments[segmentsCreated].shmPtr = shmPtr;
-		segments[segmentsCreated].id = *id;
-		segmentsCreated += 1;
-		return MAX_SM_SEGMENTS - segmentsCreated;
-	}
-
-	/*	Looking up a segment ID.				*/
-
-	*id = 0;		/*	Default.			*/
-	for (i = 0; i < segmentsCreated; i++)
+	for (i = 0; i < segmentsNoted; i++)
 	{
 		if (segments[i].shmPtr == shmPtr)
 		{
-			*id = segments[i].id;
-			break;
+			/*	Segment previously noted.		*/
+
+			if (key == NULL)	/*	Looking up key.	*/
+			{
+				*key = segments[i].key;
+			}
+
+			return;
 		}
 	}
 
-	return MAX_SM_SEGMENTS - segmentsCreated;
+	/*	This is not a previously noted shared memory segment.	*/
+
+	if (key == NULL)			/*	Looking up key.	*/
+	{
+		return;			/*	No luck.		*/
+	}
+
+	/*	Newly noting a shared memory segment.			*/
+
+	if (segmentsNoted == MAX_SM_SEGMENTS)
+	{
+		puts("No more room for shared memory segments.");
+		return;
+	}
+
+	segments[segmentsNoted].shmPtr = shmPtr;
+	segments[segmentsNoted].key = *key;
+	segmentsNoted += 1;
 }
 
 int
 sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 {
-	char		memName[32];
-	int		minSegSize = 16;
-	HANDLE		mappingObj;
-	void		*mem;
-	int		newSegment = 0;
+	char	memName[32];
+	int	minSegSize = 16;
+	HANDLE	mappingObj;
+	void	*mem;
+	int	newSegment = 0;
 
 	CHKERR(shmPtr);
 	CHKERR(id);
 
-    /* if key is not specified, make up one */
+    	/*	If key is not specified, make one up.			*/
+
 	if (key == SM_NO_KEY)
 	{
 		key = sm_GetUniqueKey();
@@ -244,33 +339,33 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 		}
 	}
 
-    /* first try to attach to an existing shared memory segment */
+	/*	Locate the shared memory segment.  If doesn't exist
+	 *	yet, create it.						*/
+
 	mappingObj = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, memName);
 	if (mappingObj == NULL)		/*	Not found.		*/
 	{
 		if (size == 0)		/*	Just attaching.		*/
 		{
-			putSysErrmsg("Can't open shared memory segment",
-					itoa(key));
+			putErrmsg("Can't open shared memory segment.",
+					utoa(GetLastError()));
 			return -1;
 		}
 
 		/*	Need to create this shared memory segment.	*/
 
-		if (_smSegment(NULL, NULL, NULL) == 0)
-		{
-			/*	No room in table for any more.		*/
-
-			putErrmsg("No room in SM segments table.", NULL);
-			return -1;
-		}
-
 		mappingObj = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
 				PAGE_READWRITE, 0, size, memName);
 		if (mappingObj == NULL)
 		{
-			putSysErrmsg("Can't create shared memory segment",
-					itoa(key));
+			putErrmsg("Can't create shared memory segment.",
+					utoa(GetLastError()));
+			return -1;
+		}
+
+		if (retainIpc(1, key) < 0)
+		{
+			putErrmsg("Can't retain shared memory segment.", NULL);
 			return -1;
 		}
 
@@ -280,31 +375,30 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 	mem = MapViewOfFile(mappingObj, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 	if (mem == NULL)
 	{
-		putSysErrmsg("Can't map shared memory segment", itoa(key));
+		putErrmsg("Can't map shared memory segment.",
+				utoa(GetLastError()));
 		return -1;
 	}
 
-	if (newSegment)
-	{
-		oK(_smSegment(memName, mem, (int *) &mappingObj));
-		memset(mem, 0, size);	/*	Initialize to zeroes.	*/
-	}
+	/*	Record the ID of this segment in case the segment
+	 *	must be detached later.					*/
 
+	_smSegment(mem, &key);
 	*shmPtr = (char *) mem;
 	*id = (int) mappingObj;
+	if (newSegment)
+	{
+		memset(mem, 0, size);	/*	Initialize to zeroes.	*/
+		return 1;
+	}
+
 	return 0;
 }
 
 void
 sm_ShmDetach(char *shmPtr)
 {
-	int	id = 0;
-
-	oK(_smSegment(NULL, shmPtr, &id));
-	if (id)
-	{
-		CloseHandle((HANDLE) id);
-	}
+	return;		/*	Closing last handle destroys mapping.	*/
 }
 
 void
@@ -582,17 +676,21 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	SEM_ID	semId;
 	int	i;
 
+	/*	If key is not specified, invent one.			*/
+
+	if (key == SM_NO_KEY)
+	{
+		key = sm_GetUniqueKey();
+	}
+
 	takeIpcLock();
     /* If semaphor exists, return its ID */
-	if (key != SM_NO_KEY)
+	for (i = 0; i < nSemIds; i++)
 	{
-		for (i = 0; i < nSemIds; i++)
+		if (semTbl[i].key == key)
 		{
-			if (semTbl[i].key == key)
-			{
-				giveIpcLock();
-				return i;
-			}
+			giveIpcLock();
+			return i;
 		}
 	}
 
@@ -731,68 +829,92 @@ void	sm_SemUnend(sm_SemId i)
 
 	/* ---- Semaphor services (mingw) --------------------------- */
 
+#ifndef SM_SEMKEY
+#define SM_SEMKEY	(0xee01)
+#endif
+#ifndef SM_SEMTBLKEY
+#define SM_SEMTBLKEY	(0xee02)
+#endif
 #define	NUM_SEMAPHORES	200
 
 typedef struct
 {
 	int	key;
-	HANDLE	id;
 	int	ended;
-} SmSem;
+} IciSemaphore;
 
-static SmSem	*_semTbl()
+typedef struct
 {
-	static SmSem	semTable[NUM_SEMAPHORES];
-	static int	semTableInitialized = 0;
+	IciSemaphore	semaphores[NUM_SEMAPHORES];
+	int		semaphoreCount;
+} SemaphoreTable;
 
-	if (!semTableInitialized)
-	{
-		memset((char *) semTable, 0, sizeof semTable);
-		semTableInitialized = 1;
-	}
-
-	return semTable;
-}
-
-static HANDLE	_ipcSemaphore(int stop)
+static SemaphoreTable	*_semTbl(int stop)
 {
-	static HANDLE	ipcSem = NULL;
+	static SemaphoreTable	*semaphoreTable = NULL;
+	static int		semtblId = 0;
 
 	if (stop)
 	{
-		if (ipcSem)
+		if (semaphoreTable != NULL)
 		{
-			CloseHandle(ipcSem);
-			ipcSem = NULL;
+			sm_ShmDetach((char *) semaphoreTable);
+			semaphoreTable = NULL;
 		}
 
 		return NULL;
 	}
 
-	if (ipcSem == NULL)
+	if (semaphoreTable == NULL)
 	{
-		ipcSem = CreateMutex(NULL, FALSE, NULL);
-		if (ipcSem == NULL)
+		switch(sm_ShmAttach(SM_SEMTBLKEY, sizeof(SemaphoreTable),
+				(char **) &semaphoreTable, &semtblId))
 		{
-			putSysErrmsg("Can't initialize IPC semaphore", NULL);
-			return NULL;
+		case -1:
+			putErrmsg("Can't create semaphore table.", NULL);
+			break;
+
+		case 0:
+			break;		/*	Semaphore table exists.	*/
+
+		default:		/*	New SemaphoreTable.	*/
+			memset((char *) semaphoreTable, 0,
+					sizeof(semaphoreTable));
 		}
-
-		/*	Initialize the semaphore system.		*/
-
-		oK(_semTbl());
-		giveIpcLock();
 	}
 
-	return ipcSem;
+	return semaphoreTable;
 }
 
 int	sm_ipc_init()
 {
-	if (_ipcSemaphore(0) == NULL)
+	char	semName[32];
+	HANDLE	ipcSemaphore;
+
+	oK(_semTbl(0));
+
+	/*	Create the IPC semaphore and retain a handle to it.	*/
+
+	sprintf(semName, "%d.event", SM_SEMKEY);
+	ipcSemaphore = CreateEvent(NULL, FALSE, FALSE, semName);
+	if (ipcSemaphore == NULL)
 	{
-		putErrmsg("Can't initialize IPC.", NULL);
+		putErrmsg("Can't create IPC semaphore.", NULL);
 		return -1;
+	}
+
+	if (GetLastError() != ERROR_ALREADY_EXISTS)
+	{
+		oK(SetEvent(ipcSemaphore));
+
+		/*	Retain the IPC semaphore.			*/
+
+		if (retainIpc(2, SM_SEMKEY) < 0)
+		{
+			putErrmsg("Can't retain IPC semaphore.", NULL);
+			sm_ipc_stop();
+			return -1;
+		}
 	}
 
 	return 0;
@@ -800,143 +922,183 @@ int	sm_ipc_init()
 
 void	sm_ipc_stop()
 {
-	oK(_ipcSemaphore(1));
+	oK(retainIpc(0, 0));
+}
+
+static HANDLE	getSemaphoreHandle(int key)
+{
+	char	semName[32];
+
+	sprintf(semName, "%d.event", key);
+	return OpenEvent(EVENT_ALL_ACCESS, FALSE, semName);
 }
 
 static void	takeIpcLock()
 {
-	oK(WaitForSingleObject(_ipcSemaphore(0), INFINITE));
+	HANDLE	ipcSemaphore = getSemaphoreHandle(SM_SEMKEY);
+
+	oK(WaitForSingleObject(ipcSemaphore, INFINITE));
+	CloseHandle(ipcSemaphore);
 }
 
 static void	giveIpcLock()
 {
-	oK(ReleaseMutex(_ipcSemaphore(0)));
+	HANDLE	ipcSemaphore = getSemaphoreHandle(SM_SEMKEY);
+
+	oK(SetEvent(ipcSemaphore));
+	CloseHandle(ipcSemaphore);
 }
 
 sm_SemId	sm_SemCreate(int key, int semType)
 {
-	SmSem	*semTbl = _semTbl();
-	SmSem	*sem;
-	char	semName[32];
-	HANDLE	semId;
-	int	i;
+	SemaphoreTable	*semTbl;
+	int		i;
+	IciSemaphore	*sem;
+	char		semName[32];
+	HANDLE		semId;
+
+	/*	If key is not specified, invent one.			*/
+
+	if (key == SM_NO_KEY)
+	{
+		key = sm_GetUniqueKey();
+	}
+
+	/*	Look through list of all existing ICI semaphores.	*/
 
 	takeIpcLock();
-    /* If semaphor exists, return its ID */
-	if (key != SM_NO_KEY)
+	semTbl = _semTbl(0);
+	if (semTbl == NULL)
 	{
-		for (i = 0; i < NUM_SEMAPHORES; i++)
-		{
-			if (semTbl[i].key == key)
-			{
-				giveIpcLock();
-				return i;
-			}
-		}
+		giveIpcLock();
+		putErrmsg("No semaphore table.", NULL);
+		return SM_SEM_NONE;
 	}
 
-    /* create a new semaphor */
-	sprintf(semName, "%d.mutex", key);
-	for (i = 0, sem = semTbl; i < NUM_SEMAPHORES; i++, sem++)
+	for (i = 0, sem = semTbl->semaphores; i < semTbl->semaphoreCount;
+			i++, sem++)
 	{
-		if (sem->id == NULL)
+		if (sem->key == key)
 		{
-			semId = CreateMutex(NULL, FALSE, semName);
-			if (semId == NULL)
-			{
-				giveIpcLock();
-				putSysErrmsg("Can't create semaphore",
-						itoa(key));
-				return SM_SEM_NONE;
-			}
-
-			sem->id = semId;
-			sem->key = key;
-			sem->ended = 0;
-			sm_SemGive(i);	/*	(First taker succeeds.)	*/
 			giveIpcLock();
-			return i;
+			return i;	/*	already created		*/
 		}
 	}
 
+	/*	No existing semaphore for this key; allocate new one.	*/
+
+	if (semTbl->semaphoreCount == NUM_SEMAPHORES)
+	{
+		giveIpcLock();
+		putErrmsg("Can't add any more semaphores.", NULL);
+		return SM_SEM_NONE;
+	}
+
+	sprintf(semName, "%d.event", key);
+	semId = CreateEvent(NULL, FALSE, FALSE, semName);
+	if (semId == NULL)
+	{
+		giveIpcLock();
+		putErrmsg("Can't create semaphore.", utoa(GetLastError()));
+		return SM_SEM_NONE;
+	}
+
+	if (GetLastError() != ERROR_ALREADY_EXISTS)
+	{
+		if (retainIpc(2, key) < 0)
+		{
+			CloseHandle(semId);
+			putErrmsg("Can't retain semaphore.", NULL);
+			return SM_SEM_NONE;
+		}
+	}
+
+	CloseHandle(semId);
+	sem->key = key;
+	sem->ended = 0;
+	semTbl->semaphoreCount++;
+	sm_SemGive(i);			/*	(First taker succeeds.)	*/
 	giveIpcLock();
-	putErrmsg("Too many semaphores.", itoa(NUM_SEMAPHORES));
-	return SM_SEM_NONE;
+	return i;
 }
 
 void	sm_SemDelete(sm_SemId i)
 {
-	SmSem	*semTbl = _semTbl();
-	SmSem	*sem;
+	SemaphoreTable	*semTbl = _semTbl(0);
+	IciSemaphore	*sem;
 
 	CHKVOID(i >= 0);
 	CHKVOID(i < NUM_SEMAPHORES);
-	sem = semTbl + i;
+	sem = semTbl->semaphores + i;
 	takeIpcLock();
-	if (sem->id)
-	{
-		CloseHandle(sem->id);
-		sem->id = NULL;
-	}
-
 	sem->key = SM_NO_KEY;
 	giveIpcLock();
 }
 
 int	sm_SemTake(sm_SemId i)
 {
-	SmSem	*semTbl = _semTbl();
-	SmSem	*sem;
+	SemaphoreTable	*semTbl = _semTbl(0);
+	IciSemaphore	*sem;
+	HANDLE		semId;
+	int		result = 0;
 
 	CHKERR(i >= 0);
 	CHKERR(i < NUM_SEMAPHORES);
-	sem = semTbl + i;
-	if (sem->id == NULL
-	|| WaitForSingleObject(sem->id, INFINITE) != WAIT_OBJECT_0)
+	sem = semTbl->semaphores + i;
+	semId = getSemaphoreHandle(sem->key);
+	if (semId == NULL)
 	{
 		putSysErrmsg("Can't take semaphore", itoa(i));
 		return -1;
 	}
 
-	return 0;
+	oK(WaitForSingleObject(semId, INFINITE));
+	CloseHandle(semId);
+	return result;
 }
 
 void	sm_SemGive(sm_SemId i)
 {
-	SmSem	*semTbl = _semTbl();
-	SmSem	*sem;
+	SemaphoreTable	*semTbl = _semTbl(0);
+	IciSemaphore	*sem;
+	HANDLE		semId;
 
 	CHKVOID(i >= 0);
 	CHKVOID(i < NUM_SEMAPHORES);
-	sem = semTbl + i;
-	if (sem->id == NULL
-	|| ReleaseMutex(sem->id) == 0)
+	sem = semTbl->semaphores + i;
+	semId = getSemaphoreHandle(sem->key);
+	if (semId == NULL)
 	{
 		putSysErrmsg("Can't give semaphore", itoa(i));
+		CloseHandle(semId);
+		return;
 	}
+
+	oK(SetEvent(semId));
+	CloseHandle(semId);
 }
 
 void	sm_SemEnd(sm_SemId i)
 {
-	SmSem	*semTbl = _semTbl();
-	SmSem	*sem;
+	SemaphoreTable	*semTbl = _semTbl(0);
+	IciSemaphore	*sem;
 
 	CHKVOID(i >= 0);
 	CHKVOID(i < NUM_SEMAPHORES);
-	sem = semTbl + i;
+	sem = semTbl->semaphores + i;
 	sem->ended = 1;
 	sm_SemGive(i);
 }
 
 int	sm_SemEnded(sm_SemId i)
 {
-	SmSem	*semTbl = _semTbl();
-	SmSem	*sem;
+	SemaphoreTable	*semTbl = _semTbl(0);
+	IciSemaphore	*sem;
 	int	ended;
 
 	CHKZERO(i >= 0);
 	CHKZERO(i < NUM_SEMAPHORES);
-	sem = semTbl + i;
+	sem = semTbl->semaphores + i;
 	ended = sem->ended;
 	if (ended)
 	{
@@ -948,12 +1110,12 @@ int	sm_SemEnded(sm_SemId i)
 
 void	sm_SemUnend(sm_SemId i)
 {
-	SmSem	*semTbl = _semTbl();
-	SmSem	*sem;
+	SemaphoreTable	*semTbl = _semTbl(0);
+	IciSemaphore	*sem;
 
 	CHKVOID(i >= 0);
 	CHKVOID(i < NUM_SEMAPHORES);
-	sem = semTbl + i;
+	sem = semTbl->semaphores + i;
 	sem->ended = 0;
 }
 
@@ -2388,9 +2550,9 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 	if (arg7 == NULL) arg7 = "";
 	if (arg8 == NULL) arg8 = "";
 	if (arg9 == NULL) arg9 = "";
-	if (arg10 == NULL) arg1 = "";
+	if (arg10 == NULL) arg10 = "";
 	isprintf(cmdLine, sizeof cmdLine,
-			"\"%s %s %s %s %s %s %s %s %s %s %s\"",
+			"\"%s\" %s %s %s %s %s %s %s %s %s %s",
 			name, arg1, arg2, arg3, arg4, arg5,
 			arg6, arg7, arg8, arg9, arg10);
 	if (CreateProcess(NULL, cmdLine, NULL, NULL, FALSE, 0, NULL, NULL,
@@ -2433,13 +2595,14 @@ void	sm_TaskKill(int task, int sigNbr)
 		CloseHandle(event);
 		if (result == 0)
 		{
-			putSysErrmsg("Can't signal SIGTERM", itoa(task));
+			putErrmsg("Can't set SIGTERM event.",
+					utoa(GetLastError()));
 		}
 	}
-else
-{
-	putSysErrmsg("Can't open event handle", itoa(task));
-}
+	else
+	{
+		putErrmsg("Can't open SIGTERM event.", utoa(GetLastError()));
+	}
 }
 
 void	sm_TaskDelete(int task)
@@ -2457,13 +2620,14 @@ void	sm_TaskDelete(int task)
 		CloseHandle(process);
 		if (result == 0)
 		{
-			putSysErrmsg("Can't terminate process", itoa(task));
+			putErrmsg("Can't terminate process.",
+					utoa(GetLastError()));
 		}
 	}
-else
-{
-	putSysErrmsg("Can't open process handle", itoa(task));
-}
+	else
+	{
+		putErrmsg("Can't open process.", utoa(GetLastError()));
+	}
 }
 
 void	sm_Abort()
@@ -2471,6 +2635,57 @@ void	sm_Abort()
 	abort();
 }
 
+void	sm_WaitForWakeup(int seconds)
+{
+	DWORD	millisec;
+	char	eventName[32];
+	HANDLE	event;
+
+	if (seconds < 0)
+	{
+		millisec = INFINITE;
+	}
+	else
+	{
+		millisec = seconds * 1000;
+	}
+
+	sprintf(eventName, "%u.wakeup", (unsigned int) GetCurrentProcessId());
+	event = CreateEvent(NULL, FALSE, FALSE, eventName);
+	if (event)
+	{
+		oK(WaitForSingleObject(event, millisec));
+		CloseHandle(event);
+	}
+	else
+	{
+		putErrmsg("Can't open wakeup event.", utoa(GetLastError()));
+	}
+}
+
+void	sm_Wakeup(DWORD processId)
+{
+	char	eventName[32];
+	HANDLE	event;
+	int	result;
+
+	sprintf(eventName, "%u.wakeup", (unsigned int) processId);
+	event = OpenEvent(EVENT_ALL_ACCESS, FALSE, eventName);
+	if (event)
+	{
+		result = SetEvent(event);
+		CloseHandle(event);
+		if (result == 0)
+		{
+			putErrmsg("Can't set wakeup event.",
+					utoa(GetLastError()));
+		}
+	}
+	else
+	{
+		putErrmsg("Can't open wakeup event.", utoa(GetLastError()));
+	}
+}
 #endif			/*	End of #ifdef mingw			*/
 
 #if (!defined(VXWORKS) && !defined(RTEMS) && !defined(mingw))

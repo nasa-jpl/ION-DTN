@@ -14,29 +14,10 @@
 #include "ipnfw.h"
 #include "dtn2fw.h"
 
-static pthread_t	ltpcliMainThread()
-{
-	static pthread_t	mainThread;
-	static int		haveMainThread = 0;
-
-	if (haveMainThread == 0)
-	{
-		mainThread = pthread_self();
-		haveMainThread = 1;
-	}
-
-	return mainThread;
-}
-
 static void	interruptThread()
 {
-	pthread_t	mainThread = ltpcliMainThread();
-
 	isignal(SIGTERM, interruptThread);
-	if (!pthread_equal(mainThread, pthread_self()))
-	{
-		pthread_kill(mainThread, SIGTERM);
-	}
+	ionKillMainThread("ltpcli");
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
@@ -44,7 +25,6 @@ static void	interruptThread()
 typedef struct
 {
 	VInduct		*vduct;
-	pthread_t	mainThread;
 	int		running;
 } ReceiverThreadParms;
 
@@ -268,6 +248,7 @@ static void	*handleNotices(void *parm)
 
 	Sdr			sdr = getIonsdr();
 	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
+	char			*procName = "ltpcli";
 	AcqWorkArea		*redWork;
 	AcqWorkArea		*greenWork;
 	LtpNoticeType		type;
@@ -285,7 +266,7 @@ static void	*handleNotices(void *parm)
 	{
 		putErrmsg("ltpcli can't open client access.",
 				itoa(BpLtpClientId));
-		pthread_kill(rtp->mainThread, SIGTERM);
+		ionKillMainThread(procName);
 		return NULL;
 	}
 
@@ -295,7 +276,7 @@ static void	*handleNotices(void *parm)
 	{
 		ltp_close(BpLtpClientId);
 		putErrmsg("ltpcli can't get acquisition work areas", NULL);
-		pthread_kill(rtp->mainThread, SIGTERM);
+		ionKillMainThread(procName);
 		return NULL;
 	}
 
@@ -303,13 +284,13 @@ static void	*handleNotices(void *parm)
 	 *	down the CLI.						*/
 
 	while (rtp->running)
-	{	
+	{
 		if (ltp_get_notice(BpLtpClientId, &type, &sessionId,
 				&reasonCode, &endOfBlock, &dataOffset,
 				&dataLength, &data) < 0)
 		{
 			putErrmsg("Can't get LTP notice.", NULL);
-			pthread_kill(rtp->mainThread, SIGTERM);
+			ionKillMainThread(procName);
 			rtp->running = 0;
 			continue;
 		}
@@ -325,7 +306,7 @@ static void	*handleNotices(void *parm)
 			if (bpHandleXmitSuccess(data) < 0)
 			{
 				putErrmsg("Crashed on xmit success.", NULL);
-				pthread_kill(rtp->mainThread, SIGTERM);
+				ionKillMainThread(procName);
 				rtp->running = 0;
 				break;		/*	Out of switch.	*/
 			}
@@ -335,7 +316,7 @@ static void	*handleNotices(void *parm)
 			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("Crashed on data cleanup.", NULL);
-				pthread_kill(rtp->mainThread, SIGTERM);
+				ionKillMainThread(procName);
 				rtp->running = 0;
 			}
 
@@ -350,7 +331,7 @@ static void	*handleNotices(void *parm)
 			if (bpHandleXmitFailure(data) < 0)
 			{
 				putErrmsg("Crashed on xmit failure.", NULL);
-				pthread_kill(rtp->mainThread, SIGTERM);
+				ionKillMainThread(procName);
 				rtp->running = 0;
 				break;		/*	Out of switch.	*/
 			}
@@ -360,7 +341,7 @@ static void	*handleNotices(void *parm)
 			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("Crashed on data cleanup.", NULL);
-				pthread_kill(rtp->mainThread, SIGTERM);
+				ionKillMainThread(procName);
 				rtp->running = 0;
 			}
 
@@ -380,7 +361,7 @@ static void	*handleNotices(void *parm)
 					0, 0, 0, 0, NULL, NULL) < 0)
 			{
 				putErrmsg("Can't cancel green session.", NULL);
-				pthread_kill(rtp->mainThread, SIGTERM);
+				ionKillMainThread(procName);
 				rtp->running = 0;
 			}
 
@@ -401,7 +382,7 @@ static void	*handleNotices(void *parm)
 				{
 					putErrmsg("Crashed: partially red.",
 							NULL);
-					pthread_kill(rtp->mainThread, SIGTERM);
+					ionKillMainThread(procName);
 					rtp->running = 0;
 				}
 
@@ -412,7 +393,7 @@ static void	*handleNotices(void *parm)
 					sessionId.sourceEngineId) < 0)
 			{
 				putErrmsg("Can't acquire bundle(s).", NULL);
-				pthread_kill(rtp->mainThread, SIGTERM);
+				ionKillMainThread(procName);
 				rtp->running = 0;
 			}
 
@@ -424,7 +405,7 @@ static void	*handleNotices(void *parm)
 					data, &greenBuflen, &greenBuffer) < 0)
 			{
 				putErrmsg("Can't handle green segment.", NULL);
-				pthread_kill(rtp->mainThread, SIGTERM);
+				ionKillMainThread(procName);
 				rtp->running = 0;
 			}
 
@@ -435,7 +416,7 @@ static void	*handleNotices(void *parm)
 			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("Crashed: green segment.", NULL);
-				pthread_kill(rtp->mainThread, SIGTERM);
+				ionKillMainThread(procName);
 				rtp->running = 0;
 			}
 
@@ -524,14 +505,13 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 
-	oK(ltpcliMainThread());
+	ionNoteMainThread("ltpcli");
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the receiver thread.				*/
 
 	rtp.vduct = vduct;
 	rtp.running = 1;
-	rtp.mainThread = pthread_self();
 	if (pthread_create(&receiverThread, NULL, handleNotices, &rtp))
 	{
 		putSysErrmsg("ltpcli can't create receiver thread", NULL);
@@ -542,7 +522,7 @@ int	main(int argc, char *argv[])
 	 *	it's time to stop the induct.				*/
 
 	writeMemo("[i] ltpcli is running.");
-	snooze(2000000000);
+	ionPauseMainThread(-1);
 
 	/*	Time to shut down.					*/
 

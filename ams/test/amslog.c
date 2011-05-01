@@ -14,6 +14,30 @@
 
 #include "ams.h"
 
+static int	_amslog_running(int *value)
+{
+	static int	running = 0;
+
+	if (value)
+	{
+		running = (*value == 0 ? 0 : 1);
+	}
+
+	return running;
+}
+
+#ifdef mingw
+static void	killMainThread()
+{
+	int	stop = 0;
+
+	oK(_amslog_running(&stop));
+
+	/*	Must make sure fgets is interrupted.			*/
+
+	fclose(stdin);
+}
+#else
 static pthread_t	_mainThread()
 {
 	static pthread_t	mainThread;
@@ -28,23 +52,26 @@ static pthread_t	_mainThread()
 	return mainThread;
 }
 
-static int	_amslog_running(int *value)
+static void	killMainThread()
 {
-	static int	running = 0;
+	int		stop = 0;
+	pthread_t	mainThread = _mainThread();
 
-	if (value)
+	oK(_amslog_running(&stop));
+
+	/*	Must make sure fgets is interrupted.			*/
+
+	if (!pthread_equal(mainThread, pthread_self()))
 	{
-		running = (*value == 0 ? 0 : 1);
+		pthread_kill(mainThread, SIGTERM);
 	}
-
-	return running;
 }
+#endif
 
 static void	handleQuit()
 {
-	int	stop = 0;
-
-	oK(_amslog_running(&stop));
+	isignal(SIGINT, handleQuit);
+	killMainThread();
 }
 
 static void	logToStderr(char *text)
@@ -79,7 +106,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			perror("amslog error writing subject length");
 		}
 
-		oK(pthread_kill(_mainThread(), SIGINT));
+		killMainThread();
 		return;
 	}
 #else
@@ -92,7 +119,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			perror("amslog error writing subject length");
 		}
 
-		oK(pthread_kill(_mainThread(), SIGINT));
+		killMainThread();
 		return;
 	}
 
@@ -103,7 +130,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			perror("amslog error writing subject name");
 		}
 
-		oK(pthread_kill(_mainThread(), SIGINT));
+		killMainThread();
 		return;
 	}
 
@@ -115,7 +142,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			perror("amslog error writing content length");
 		}
 
-		oK(pthread_kill(_mainThread(), SIGINT));
+		killMainThread();
 		return;
 	}
 
@@ -128,7 +155,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 				perror("amslog error writing content");
 			}
 
-			oK(pthread_kill(_mainThread(), SIGINT));
+			killMainThread();
 			return;
 		}
 	}
@@ -141,7 +168,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 				replyText) < 0)
 		{
 			putErrmsg("amslog can't send reply message.", NULL);
-			oK(pthread_kill(_mainThread(), SIGINT));
+			killMainThread();
 			return;
 		}
 	}
@@ -152,7 +179,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 static void	interruptAmslog(void *userData, AmsEvent *event)
 {
 	fputs("AMS event loop terminated.\n", stderr);
-	oK(pthread_kill(_mainThread(), SIGINT));
+	killMainThread();
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -206,7 +233,9 @@ messages to stdout.\n", stderr);
 		return 0;
 	}
 
+#ifndef mingw
 	oK(_mainThread());
+#endif
 	oK(_amslog_running(&start));
 	isignal(SIGINT, handleQuit);
 	setLogger(logToStderr);

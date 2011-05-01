@@ -25,9 +25,14 @@ static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 	return semaphore;
 }
 
-static void	interruptThread()	/*	Commands termination.	*/
+static void	killMainThread()
 {
 	sm_SemEnd(brscclaSemaphore(NULL));
+}
+
+static void	interruptThread()	/*	Commands termination.	*/
+{
+	killMainThread();
 }
 
 /*	*	*	Keepalive thread functions	*	*	*/
@@ -38,7 +43,6 @@ typedef struct
 	struct sockaddr	*socketName;
 	int		*ductSocket;
 	int		*running;
-	pthread_t	mainThread;
 } KeepaliveThreadParms;
 
 static void	*sendKeepalives(void *parm)
@@ -47,24 +51,18 @@ static void	*sendKeepalives(void *parm)
 	int			count = KEEPALIVE_PERIOD;
 	int			bytesSent;
 
-	iblock(SIGTERM);
-	while (1)
+	snooze(1);	/*	Let main thread become interruptable.	*/
+	while (*(parms->running))
 	{
-		snooze(1);
-		if (*(parms->running) == 0)
-		{
-			break;
-		}
-
-		count++;
 		if (count < KEEPALIVE_PERIOD)
 		{
+			count++;
+			snooze(1);
 			continue;
 		}
 
 		/*	Time to send a keepalive.			*/
 
-		count = 0;
 		pthread_mutex_lock(parms->mutex);
 		bytesSent = sendBundleByTCP(parms->socketName,
 				parms->ductSocket, 0, 0, NULL);
@@ -79,9 +77,13 @@ static void	*sendKeepalives(void *parm)
 			 *	automatic reconnect within the
 			 *	keepalive thread won't work.		*/
 
-			pthread_kill(parms->mainThread, SIGTERM);
-			break;
+			killMainThread();
+			*(parms->running) = 0;
+			continue;
 		}
+
+		count = 0;
+		snooze(1);
 	}
 
 	return NULL;
@@ -96,8 +98,6 @@ typedef struct
 	VInduct		*vduct;
 	int		*ductSocket;
 	int		*running;
-	pthread_t	mainThread;
-	char		countersign[DIGEST_LEN];
 } ReceiverThreadParms;
 
 static void	*receiveBundles(void *parm)
@@ -106,41 +106,15 @@ static void	*receiveBundles(void *parm)
 	 *	terminating when connection is lost.			*/
 
 	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
-	char			countersign[DIGEST_LEN];
-	char			*buffer;
 	AcqWorkArea		*work;
-	int			threadRunning = 1;
+	char			*buffer;
 
-	/*	First look for correct countersign.  If not provided,
-	 *	assume the BRS server is inauthentic.			*/
-
-	switch (receiveBytesByTCP(*(parms->ductSocket), countersign,
-				DIGEST_LEN))
+	work = bpGetAcqArea(parms->vduct);
+	if (work == NULL)
 	{
-		case DIGEST_LEN:
-			break;			/*	Out of switch.	*/
-
-		case -1:
-			putErrmsg("Can't get countersign.", NULL);
-
-			/*	Intentional fall-through to next case.	*/
-
-		default:
-			writeErrmsgMemos();
-			writeMemo("[i] brsccla receiver thread failed.");
-			pthread_kill(parms->mainThread, SIGTERM);
-			return NULL;
-	}
-
-	if (memcmp(countersign, parms->countersign, DIGEST_LEN) != 0)
-	{
-		writeErrmsgMemos();
-		writeMemo("[i] brs server judged inauthentic.");
-		pthread_kill(parms->mainThread, SIGTERM);
+		putErrmsg("brsccla can't get acquisition work area.", NULL);
 		return NULL;
 	}
-
-	/*	Server is now known to be authentic.  Carry on.		*/
 
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
@@ -149,22 +123,15 @@ static void	*receiveBundles(void *parm)
 		return NULL;
 	}
 
-	work = bpGetAcqArea(parms->vduct);
-	if (work == NULL)
-	{
-		putErrmsg("brsccla can't get acquisition work area.", NULL);
-		MRELEASE(buffer);
-		return NULL;
-	}
-
 	/*	Now start receiving bundles.				*/
 
-	while (threadRunning && *(parms->running))
+	while (*(parms->running))
 	{
 		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
 		{
 			putErrmsg("can't begin acquisition of bundle.", NULL);
-			threadRunning = 0;
+			killMainThread();
+			*(parms->running) = 0;
 			continue;
 		}
 
@@ -172,11 +139,12 @@ static void	*receiveBundles(void *parm)
 		{
 		case -1:
 			putErrmsg("can't acquire bundle.", NULL);
+			killMainThread();
 
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:				/*	Normal stop.	*/
-			threadRunning = 0;
+			*(parms->running) = 0;
 			continue;
 
 		default:
@@ -186,7 +154,9 @@ static void	*receiveBundles(void *parm)
 		if (bpEndAcq(work) < 0)
 		{
 			putErrmsg("can't end acquisition of bundle.", NULL);
-			threadRunning = 0;
+			killMainThread();
+			*(parms->running) = 0;
+			continue;
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/
@@ -194,10 +164,8 @@ static void	*receiveBundles(void *parm)
 		sm_TaskYield();
 	}
 
-	/*	End of receiver thread; tell main thread to shut
-	 *	down (if necessary) and release resources.		*/
+	/*	End of receiver thread; release resources.		*/
 
-	pthread_kill(parms->mainThread, SIGTERM);
 	bpReleaseAcqArea(work);
 	MRELEASE(buffer);
 	writeErrmsgMemos();
@@ -244,6 +212,8 @@ int	main(int argc, char *argv[])
 	int			ductSocket;
 	time_t			timeTag;
 	char			registration[REGISTRATION_LEN];
+	char			expectedCountersign[DIGEST_LEN];
+	char			receivedCountersign[DIGEST_LEN];
 	ReceiverThreadParms	receiverParms;
 	int			running = 1;
 	pthread_t		receiverThread;
@@ -403,11 +373,46 @@ number>");
 	{
 		putErrmsg("Can't register with server.", itoa(ductSocket));
 		MRELEASE(buffer);
-		close(ductSocket);
+		closesocket(ductSocket);
 		return 1;
 	}
 
-	/*	Initialize sender endpoint ID lookup.			*/
+	/*	Now look for correct countersign.  If not provided,
+	 *	the BRS server is inauthentic.				*/
+
+	timeTag = ntohl(timeTag);
+	timeTag++;
+	timeTag = htonl(timeTag);
+	oK(hmac_authenticate(expectedCountersign, DIGEST_LEN, key, keyLen,
+			(char *) &timeTag, 4));
+	switch (receiveBytesByTCP(ductSocket, receivedCountersign, DIGEST_LEN))
+	{
+		case DIGEST_LEN:
+			break;			/*	Out of switch.	*/
+
+		case -1:
+			putErrmsg("Can't get countersign.", NULL);
+
+			/*	Intentional fall-through to next case.	*/
+
+		default:
+			writeMemo("[i] brsccla registration failed.");
+			MRELEASE(buffer);
+			closesocket(ductSocket);
+			return 1;
+	}
+
+	if (memcmp(receivedCountersign, expectedCountersign, DIGEST_LEN) != 0)
+	{
+		writeMemo("[i] brs server judged inauthentic.");
+		MRELEASE(buffer);
+		closesocket(ductSocket);
+		return 1;
+	}
+
+	/*	Server is now known to be authentic; proceed with
+	 *	thread instantiation.  First initialize the sender
+	 *	endpoint ID lookup.					*/
 
 	ipnInit();
 	dtn2Init();
@@ -425,20 +430,14 @@ number>");
 	receiverParms.vduct = vinduct;
 	receiverParms.ductSocket = &ductSocket;
 	receiverParms.running = &running;
-	receiverParms.mainThread = pthread_self();
 	receiverParms.senderEid = receiverParms.senderEidBuffer;
 	getSenderEid(&(receiverParms.senderEid), hostName);
-	timeTag = ntohl(timeTag);
-	timeTag++;
-	timeTag = htonl(timeTag);
-	oK(hmac_authenticate(receiverParms.countersign, DIGEST_LEN, key, keyLen,
-			(char *) &timeTag, 4));
         if (pthread_create(&receiverThread, NULL, receiveBundles,
 			&receiverParms))
 	{
 		putSysErrmsg("brsccla can't create receiver thread", NULL);
 		MRELEASE(buffer);
-		close(ductSocket);
+		closesocket(ductSocket);
 		return 1;
 	}
 
@@ -451,24 +450,23 @@ number>");
 	ktparms.socketName = &socketName;
 	ktparms.ductSocket = &ductSocket;
 	ktparms.running = &running;
-	ktparms.mainThread = pthread_self();
 	if (pthread_create(&keepaliveThread, NULL, sendKeepalives, &ktparms))
 	{
 		putSysErrmsg("brsccla can't create keepalive thread", NULL);
 		MRELEASE(buffer);
-		close(ductSocket);
+		closesocket(ductSocket);
 		return 1;
 	}
 
 	/*	Can now begin transmitting to server.			*/
 
 	{
-		char txt[500];
+		char	txt[500];
 
-		isprintf(txt, sizeof(txt), "[i] brsccla is running, spec=[%s:%d].", 
-			inet_ntoa(inetName->sin_addr), ntohs(inetName->sin_port) );
-
-		writeMemo(txt );
+		isprintf(txt, sizeof(txt),
+			"[i] brsccla is running, spec=[%s:%d].", 
+			inet_ntoa(inetName->sin_addr), ntohs(portNbr));
+		writeMemo(txt);
 	}
 
 	while (!(sm_SemEnded(brscclaSemaphore(NULL))))
@@ -513,14 +511,18 @@ number>");
 	running = 0;
 	if (haveReceiverThread)
 	{
+#ifdef mingw
+		shutdown(ductSocket, SD_BOTH);
+#else
 		pthread_kill(receiverThread, SIGTERM);
+#endif
 		pthread_join(receiverThread, NULL);
 	}
 
 	pthread_join(keepaliveThread, NULL);
 	if (ductSocket != -1)
 	{
-		close(ductSocket);
+		closesocket(ductSocket);
 	}
 
 	pthread_mutex_destroy(&mutex);

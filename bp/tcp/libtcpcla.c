@@ -143,7 +143,7 @@ int	connectToCLI(struct sockaddr *sn, int *sock)
 
 	if (connect(*sock, sn, sizeof(struct sockaddr)) < 0)
 	{
-		close(*sock);
+		closesocket(*sock);
 		*sock = -1;
 		putSysErrmsg("CLO can't connect to TCP socket", NULL);
 		return -1;
@@ -170,14 +170,7 @@ int	sendBytesByTCP(int *bundleSocket, char *from, int length,
 
 	while (1)	/*	Continue until not interrupted.		*/
 	{
-		bytesWritten = write(*bundleSocket, from, length);
-#ifdef mingw
-		if (bytesWritten == 0)	/*	Lost connection.	*/
-		{
-			bytesWritten = -1;
-			errno = EPIPE;
-		}
-#endif
+		bytesWritten = isend(*bundleSocket, from, length, 0);
 		if (bytesWritten < 0)
 		{
 			switch (errno)
@@ -189,7 +182,7 @@ int	sendBytesByTCP(int *bundleSocket, char *from, int length,
 			case EBADF:
 			case ETIMEDOUT:
 			case ECONNRESET:
-				close(*bundleSocket);
+				closesocket(*bundleSocket);
 				*bundleSocket = -1;
 				bytesWritten = 0;
 			}
@@ -448,7 +441,7 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 			if (sendContactHeader(&tempBundleSocket, buffer,
 					socketName) < 0)
 			{
-				close(tempBundleSocket);
+				closesocket(tempBundleSocket);
 				tempBundleSocket = -1;
 				putErrmsg("Could not send Contact Header.",
 						NULL);			
@@ -458,7 +451,7 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 			if (receiveContactHeader(&tempBundleSocket, buffer,
 					keepalivePeriod) < 0)
 			{
-				close(tempBundleSocket);
+				closesocket(tempBundleSocket);
 				tempBundleSocket = -1;
 				putErrmsg("Could not receive Contact Header.",
 						NULL);
@@ -547,11 +540,11 @@ int	receiveBytesByTCP(int bundleSocket, char *into, int length)
 {
 	int	bytesRead;
 
-	bytesRead = read(bundleSocket, into, length);
+	bytesRead = irecv(bundleSocket, into, length, 0);
 	switch (bytesRead)
 	{
 	case -1:
-		/*	The read() call may have been interrupted by
+		/*	The recv() call may have been interrupted by
 		 *	arrival of SIGTERM, in which case reception
 		 *	should report that it's time to shut down.	*/
 

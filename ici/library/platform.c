@@ -908,6 +908,43 @@ int	watchSocket(int fd)
 
 #if (defined mingw)
 
+int	_winsock(int stopping)
+{
+	static int	winsockStarted = 0;
+	static WSADATA	wsaData;
+	WORD		wVersionRequested;
+	int		errcode;
+
+	if (stopping)
+	{
+		if (winsockStarted)
+		{
+			WSACleanup();
+			winsockStarted = 0;
+		}
+
+		return 0;
+	}
+
+	/*	Starting WinSock.					*/
+
+	if (winsockStarted)
+	{
+		return 0;	/*	Already started.		*/
+	}
+
+	wVersionRequested = MAKEWORD(2, 2);
+	errcode = WSAStartup(wVersionRequested, &wsaData);
+	if (errcode != 0)
+	{
+		putErrmsg("Can't start WinSock.", utoa(GetLastError()));
+		return -1;
+	}
+
+	winsockStarted = 1;
+	return 0;
+}
+
 char	*system_error_msg()
 {
 	return strerror(errno);
@@ -931,10 +968,16 @@ unsigned int	getInternetAddress(char *hostName)
 	unsigned int	hostInetAddress;
 
 	CHKZERO(hostName);
+	if (_winsock(0) < 0)
+	{
+		putErrmsg("Can't start WinSock.", NULL);
+		return 0;
+	}
+
 	hostInfo = gethostbyname(hostName);
 	if (hostInfo == NULL)
 	{
-		putSysErrmsg("can't get host info", hostName);
+		putSysErrmsg("Can't get host info", hostName);
 		return BAD_HOST_NAME;
 	}
 
@@ -953,11 +996,17 @@ char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 	struct hostent	*hostInfo;
 
 	CHKNULL(buffer);
+	if (_winsock(0) < 0)
+	{
+		putErrmsg("Can't start WinSock.", NULL);
+		return 0;
+	}
+
 	hostNbr = htonl(hostNbr);
 	hostInfo = gethostbyaddr((char *) &hostNbr, sizeof hostNbr, AF_INET);
 	if (hostInfo == NULL)
 	{
-		putSysErrmsg("can't get host info", utoa(hostNbr));
+		putSysErrmsg("Can't get host info", utoa(hostNbr));
 		return NULL;
 	}
 
@@ -967,17 +1016,16 @@ char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 
 int	getNameOfHost(char *buffer, int bufferLength)
 {
-	int	result;
-
 	CHKERR(buffer);
+	*buffer = '\0';			/*	Default.		*/
 	CHKERR(bufferLength > 0);
-	result = gethostname(buffer, bufferLength);
-	if (result < 0)
+	if (_winsock(0) < 0)
 	{
-		putSysErrmsg("can't local host name", NULL);
+		putErrmsg("Can't start WinSock.", NULL);
+		return 0;
 	}
 
-	return result;
+	return gethostname(buffer, bufferLength);
 }
 
 int	reUseAddress(int fd)
@@ -985,11 +1033,17 @@ int	reUseAddress(int fd)
 	int	result;
 	int	i = 1;
 
+	if (_winsock(0) < 0)
+	{
+		putErrmsg("Can't start WinSock.", NULL);
+		return 0;
+	}
+
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &i,
 			sizeof i);
 	if (result < 0)
 	{
-		putSysErrmsg("can't make socket address reusable", NULL);
+		putSysErrmsg("Can't make socket address reusable", NULL);
 	}
 
 	return result;
@@ -1000,9 +1054,15 @@ int	makeIoNonBlocking(int fd)
 	int		result = 0;
 	unsigned long	setting = 1;
  
+	if (_winsock(0) < 0)
+	{
+		putErrmsg("Can't start WinSock.", NULL);
+		return 0;
+	}
+
 	if (ioctlsocket(fd, FIONBIO, &setting) == SOCKET_ERROR)
 	{
-		putSysErrmsg("can't make IO non-blocking", NULL);
+		putSysErrmsg("Can't make IO non-blocking", NULL);
 		result = -1;
 	}
 
@@ -1015,11 +1075,17 @@ int	watchSocket(int fd)
 	struct linger	lctrl = {0, 0};
 	int		kctrl = 1;
 
+	if (_winsock(0) < 0)
+	{
+		putErrmsg("Can't start WinSock.", NULL);
+		return 0;
+	}
+
 	result = setsockopt(fd, SOL_SOCKET, SO_LINGER, (void *) &lctrl,
 			sizeof lctrl);
 	if (result < 0)
 	{
-		putSysErrmsg("can't set linger on socket", NULL);
+		putSysErrmsg("Can't set linger on socket", NULL);
 		return result;
 	}
 
@@ -1027,7 +1093,7 @@ int	watchSocket(int fd)
 			sizeof kctrl);
 	if (result < 0)
 	{
-		putSysErrmsg("can't set keepalive on socket", NULL);
+		putSysErrmsg("Can't set keepalive on socket", NULL);
 	}
 
 	return result;
@@ -1172,6 +1238,119 @@ int	watchSocket(int fd)
 
 #endif	/* end #if (!defined(linux, freebsd, cygwin, darwin, RTEMS))	*/
 
+/**********************	WinSock adaptations *****************************/
+
+#ifdef mingw
+int	isend(int sockfd, char *buf, int len, int flags)
+{
+	int	length;
+	int	errcode;
+
+	CHKERR(len >= 0);
+	length = send(sockfd, buf, len, flags);
+	if (length == SOCKET_ERROR)
+	{
+		length = -1;
+		errcode = WSAGetLastError();
+		switch (errcode)
+		{
+		case WSAECONNRESET:
+		case WSAENETRESET:
+		case WSAECONNABORTED:
+		case WSAETIMEDOUT:
+			errno = EPIPE;	/*	Connection closed.	*/
+			break;
+
+		default:
+			writeMemoNote("[?] WinSock send error",
+					itoa(errcode));
+		}
+	}
+	else
+	{
+		if (length == 0)
+		{
+			length = -1;
+			errno = EPIPE;	/*	Connection closed.	*/
+		}
+	}
+
+	return length;
+}
+
+int	irecv(int sockfd, char *buf, int len, int flags)
+{
+	int	length;
+	int	errcode;
+
+	CHKERR(len >= 0);
+	length = recv(sockfd, buf, len, flags);
+	if (length < 0)
+	{
+		errcode = WSAGetLastError();
+		switch (errcode)
+		{
+		case WSAECONNRESET:
+		case WSAECONNABORTED:
+			errno = ECONNRESET;
+			length = 0;	/*	Connection closed.	*/
+			break;
+
+		case WSAESHUTDOWN:
+			errno = EINTR;	/*	Shut down socket.	*/
+			break;
+
+		default:
+			writeMemoNote("[?] WinSock recv error",
+					itoa(errcode));
+		}
+	}
+
+	return length;
+}
+
+int	isendto(int sockfd, char *buf, int len, int flags,
+		const struct sockaddr *to, int tolen)
+{
+	CHKERR(len >= 0);
+	return sendto(sockfd, buf, len, flags, to, tolen);
+}
+
+int	irecvfrom(int sockfd, char *buf, int len, int flags,
+		struct sockaddr *from, int *fromlen)
+{
+	int	length;
+	int	errcode;
+
+	CHKERR(len >= 0);
+	while (1)	/*	Continue until valid result.		*/
+	{
+		length = recvfrom(sockfd, buf, len, flags, from, fromlen);
+		if (length < 0)
+		{
+			errcode = WSAGetLastError();
+			switch (errcode)
+			{
+			case WSAECONNRESET:
+			case WSAECONNABORTED:
+			case WSAESHUTDOWN:
+				/*	Ignore; peer socket was closed.	*/
+
+				continue;
+
+			default:
+				writeMemoNote("[?] WinSock recvfrom error",
+						itoa(errcode));
+			}
+		}
+
+		break;
+	}
+
+	return length;
+}
+#endif
+
 /******************* platform-independent functions *********************/
 
 void	*acquireSystemMemory(size_t size)
@@ -1293,6 +1472,11 @@ static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
 
 	if (buffer)		/*	Retrieving an errmsg.		*/
 	{
+		if (errmsgsLength == 0)	/*	No more msgs in pool.	*/
+		{
+			return 0;
+		}
+
 		lockResource(&errmsgsLock);
 		msgLength = strlen(errmsgs);
 		if (msgLength == 0)	/*	No more msgs in pool.	*/
@@ -1829,7 +2013,7 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		i4 = getInternetAddress(hostname);
 		if (i4 < 1)		/*	Invalid hostname.	*/
 		{
-			writeMemoNote("[?] Can't get IP address.", hostname);
+			writeMemoNote("[?] Can't get IP address", hostname);
 		}
 		else
 		{
@@ -2434,7 +2618,7 @@ void	isignal(int signbr, void (*handler)(int))
 
 void	iblock(int signbr)
 {
-	oK(signal(signbr, SIG_IGN));	/*	Not thread granularity!	*/
+	oK(signal(signbr, SIG_IGN));	/*	No thread granularity!	*/
 }
 
 #else					/*	Any POSIX O/S.		*/

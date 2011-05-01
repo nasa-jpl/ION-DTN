@@ -268,6 +268,10 @@ extern void		printIonParms(	IonParms *parms);
 extern void		ionSetAlarm(	IonAlarm *alarm, pthread_t *thread);
 extern void		ionCancelAlarm(	pthread_t thread);
 
+extern void		ionNoteMainThread(char *procName);
+extern void		ionPauseMainThread(int seconds);
+extern void		ionKillMainThread(char *procName);
+
 #ifdef __cplusplus
 }
 #endif

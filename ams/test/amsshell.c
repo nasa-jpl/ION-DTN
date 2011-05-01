@@ -14,6 +14,30 @@
 
 #define	MAX_SUBJ_NAME	32
 
+static int	_amsshell_running(int *value)
+{
+	static int	running = 0;
+
+	if (value)
+	{
+		running = (*value == 0 ? 0 : 1);
+	}
+
+	return running;
+}
+
+#ifdef mingw
+static void	killMainThread()
+{
+	int	stop = 0;
+
+	oK(_amsshell_running(&stop));
+
+	/*	Must make sure fgets is interrupted.			*/
+
+	fclose(stdin);
+}
+#else
 static pthread_t	_mainThread()
 {
 	static pthread_t	mainThread;
@@ -28,23 +52,26 @@ static pthread_t	_mainThread()
 	return mainThread;
 }
 
-static int	_amsshell_running(int *value)
+static void	killMainThread()
 {
-	static int	running = 0;
+	int		stop = 0;
+	pthread_t	mainThread = _mainThread();
 
-	if (value)
+	oK(_amsshell_running(&stop));
+
+	/*	Must make sure fgets is interrupted.			*/
+
+	if (!pthread_equal(mainThread, pthread_self()))
 	{
-		running = (*value == 0 ? 0 : 1);
+		pthread_kill(mainThread, SIGTERM);
 	}
-
-	return running;
 }
+#endif
 
 static void	handleQuit()
 {
-	int	stop = 0;
-
-	oK(_amsshell_running(&stop));
+	isignal(SIGINT, handleQuit);
+	killMainThread();
 }
 
 static void	handleCommand(AmsModule me, char *mode)
@@ -240,7 +267,7 @@ message", subjectName);
 static void	reportError(void *userData, AmsEvent *event)
 {
 	puts("AMS event loop terminated.");
-	oK(pthread_kill(_mainThread(), SIGINT));
+	killMainThread();
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -266,9 +293,6 @@ int	main(int argc, char **argv)
 	int		start = 1;
 
 #ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
-	oK(_mainThread());
-	oK(_amsshell_running(&start));
-	isignal(SIGINT, handleQuit);
 	if (unitName == NULL || roleName == NULL
 	|| applicationName == NULL || authorityName == NULL
 	|| (strcmp(mode, "p") && strcmp(mode, "s") && strcmp(mode, "q")
@@ -286,6 +310,11 @@ messages.\n", stderr);
 		return 0;
 	}
 
+#ifndef mingw
+	oK(_mainThread());
+#endif
+	oK(_amsshell_running(&start));
+	isignal(SIGINT, handleQuit);
 	if (ams_register("", NULL, applicationName, authorityName, unitName,
 			roleName, &me) < 0)
 	{

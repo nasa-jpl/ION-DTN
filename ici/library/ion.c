@@ -531,16 +531,16 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 #ifdef mingw
 static DWORD WINAPI	waitForSigterm(LPVOID parm)
 {
-	DWORD	processId = (DWORD) parm;
+	DWORD	processId;
 	char	eventName[32];
 	HANDLE	event;
 
 	processId = GetCurrentProcessId();
-	sprintf(eventName, "%lu.sigterm", processId);
+	sprintf(eventName, "%u.sigterm", (unsigned int) processId);
 	event = CreateEvent(NULL, FALSE, FALSE, eventName);
 	if (event == NULL)
 	{
-		putSysErrmsg("Can't create event handle", itoa(processId));
+		putErrmsg("Can't create sigterm event.", utoa(GetLastError()));
 		return 0;
 	}
 
@@ -562,6 +562,12 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 
 	CHKERR(parms);
 	CHKERR(ownNodeNbr);
+#ifdef mingw
+	if (_winsock(0) < 0)
+	{
+		return -1;
+	}
+#endif
 	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
@@ -675,14 +681,12 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 
 	ionRedirectMemos();
 #ifdef mingw
-	DWORD	processId = GetCurrentProcessId();
 	DWORD	threadId;
-	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm,
-			(void *) processId, 0, &threadId);
+	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm, NULL, 0,
+			&threadId);
 	if (thread == NULL)
 	{
-		putSysErrmsg("Can't create signal handler thread",
-				itoa(processId));
+		putErrmsg("Can't create sigterm thread.", utoa(GetLastError()));
 	}
 	else
 	{
@@ -709,6 +713,12 @@ int	ionAttach()
 		return 0;	/*	Already attached.		*/
 	}
 
+#ifdef mingw
+	if (_winsock(0) < 0)
+	{
+		return -1;
+	}
+#endif
 	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
@@ -789,14 +799,12 @@ int	ionAttach()
 
 	ionRedirectMemos();
 #ifdef mingw
-	DWORD	processId = GetCurrentProcessId();
 	DWORD	threadId;
-	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm,
-			(void *) processId, 0, &threadId);
+	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm, NULL, 0,
+			&threadId);
 	if (thread == NULL)
 	{
-		putSysErrmsg("Can't create signal handler thread",
-				itoa(processId));
+		putErrmsg("Can't create sigterm thread.", utoa(GetLastError()));
 	}
 	else
 	{
@@ -821,6 +829,9 @@ void	ionDetach()
 		ionsdr = NULL;		/*	To reset to NULL.	*/
 		oK(_ionsdr(&ionsdr));
 	}
+#ifdef mingw
+	oK(_winsock(1));
+#endif
 #endif
 }
 
@@ -1458,3 +1469,92 @@ void	ionCancelAlarm(pthread_t alarmThread)
 	pthread_cancel(alarmThread);
 	pthread_join(alarmThread, NULL);
 }
+
+#ifdef mingw
+void	ionNoteMainThread(char *procName)
+{
+	return;		/*	Just for compatibility.			*/
+}
+
+void	ionPauseMainThread(int seconds)
+{
+	sm_WaitForWakeup(seconds);
+}
+
+void	ionKillMainThread(char *procName)
+{
+	sm_Wakeup(GetCurrentProcessId());
+}
+#else
+#define	PROC_NAME_LEN	16
+#define	MAX_PROCS	16
+
+typedef struct
+{
+	char		procName[PROC_NAME_LEN];
+	pthread_t	mainThread;
+} IonProc;
+
+static pthread_t	_mainThread(char *procName)
+{
+	static IonProc	proc[MAX_PROCS + 1];
+	static int	procCount = 0;
+	int		i;
+
+	for (i = 0; i < procCount; i++)
+	{
+		if (strcmp(proc[i].procName, procName) == 0)
+		{
+			break;
+		}
+	}
+
+	if (i == procCount)	/*	Registering new process.	*/
+	{
+		if (procCount == MAX_PROCS)
+		{
+			/*	Can't register process; return an
+			 *	invalid value for mainThread.		*/
+
+			return proc[MAX_PROCS].mainThread;
+		}
+
+		/*	Initial call to _mainThread for any process
+		 *	must be from the main thread of that process.	*/
+
+		procCount++;
+		istrcpy(proc[i].procName, procName, PROC_NAME_LEN);
+		proc[i].mainThread = pthread_self();
+	}
+
+	return proc[i].mainThread;
+}
+
+void	ionNoteMainThread(char *procName)
+{
+	CHKVOID(procName);
+	oK(_mainThread(procName));
+}
+
+void	ionPauseMainThread(int seconds)
+{
+	if (seconds < 0)
+	{
+		seconds = 2000000000;
+	}
+
+	snooze(seconds);
+}
+
+void	ionKillMainThread(char *procName)
+{
+	pthread_t	mainThread;
+
+	CHKVOID(procName);
+       	mainThread = _mainThread(procName);
+	if (!pthread_equal(mainThread, pthread_self()))
+	{
+		pthread_kill(mainThread, SIGTERM);
+	}
+}
+#endif

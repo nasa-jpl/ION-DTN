@@ -119,7 +119,7 @@ printf("resulting ept is '%s'.\n", endpointNameText);
 	if (tsif->ept == NULL)
 	{
 		putErrmsg("Can't record endpoint name.", NULL);
-		close(fd);
+		closesocket(fd);
 		return -1;
 	}
 
@@ -151,7 +151,7 @@ static void	*udpMamsReceiver(void *parm)
 	while (1)
 	{
 		fromSize = sizeof fromAddr;
-		length = recvfrom(fd, buffer, UDPTS_MAX_MSG_LEN, 0,
+		length = irecvfrom(fd, buffer, UDPTS_MAX_MSG_LEN, 0,
 				(struct sockaddr *) &fromAddr, &fromSize);
 		if (length < 2)	/*	length == 1 is "shutdown"	*/
 		{
@@ -166,7 +166,7 @@ static void	*udpMamsReceiver(void *parm)
 message", NULL);
 			}
 
-			close(fd);
+			closesocket(fd);
 			MRELEASE(buffer);
 			tsif->sap = NULL;
 			return NULL;
@@ -253,7 +253,7 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	if (tsif->ept == NULL)
 	{
 		putErrmsg("Can't record endpoint name.", NULL);
-		close(fd);
+		closesocket(fd);
 		return -1;
 	}
 
@@ -287,7 +287,7 @@ static void	*udpAmsReceiver(void *parm)
 	while (1)
 	{
 		fromSize = sizeof fromAddr;
-		length = recvfrom(fd, buffer, UDPTS_MAX_MSG_LEN, 0,
+		length = irecvfrom(fd, buffer, UDPTS_MAX_MSG_LEN, 0,
 				(struct sockaddr *) &fromAddr, &fromSize);
 		if (length < 2)	/*	length == 1 is "shutdown"	*/
 		{
@@ -302,7 +302,7 @@ static void	*udpAmsReceiver(void *parm)
 message", NULL);
 			}
 
-			close(fd);
+			closesocket(fd);
 			MRELEASE(buffer);
 			tsif->sap = NULL;
 			return NULL;
