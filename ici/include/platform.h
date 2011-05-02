@@ -102,7 +102,7 @@ extern "C" {
 #define isend(a,b,c,d)		send(a,b,c,d)
 #define irecv(a,b,c,d)		recv(a,b,c,d)
 #define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
-#define irecvfrom(a,b,c,de,f)	recvfrom(a,b,c,d,e,f)
+#define irecvfrom(a,b,c,d,e,f)	recvfrom(a,b,c,d,e,f)
 #endif				/****   End of #ifdef mingw	*********/
 /*
 ** End of Standard Headers
