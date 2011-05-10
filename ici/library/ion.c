@@ -10,6 +10,7 @@
 
 #include "ion.h"
 #include "rfx.h"
+#include "time.h"
 
 #define	ION_DEFAULT_SM_KEY	((255 * 256) + 1)
 #define	ION_SM_NAME		"ionwm"
@@ -533,6 +534,29 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 	return 0;
 }
 
+#ifdef mingw
+static DWORD WINAPI	waitForSigterm(LPVOID parm)
+{
+	DWORD	processId;
+	char	eventName[32];
+	HANDLE	event;
+
+	processId = GetCurrentProcessId();
+	sprintf(eventName, "%u.sigterm", (unsigned int) processId);
+	event = CreateEvent(NULL, FALSE, FALSE, eventName);
+	if (event == NULL)
+	{
+		putErrmsg("Can't create sigterm event.", utoa(GetLastError()));
+		return 0;
+	}
+
+	oK(WaitForSingleObject(event, INFINITE));
+	raise(SIGTERM);
+	CloseHandle(event);
+	return 0;
+}
+#endif
+
 int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 {
 	char		wdname[256];
@@ -544,6 +568,12 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 
 	CHKERR(parms);
 	CHKERR(ownNodeNbr);
+#ifdef mingw
+	if (_winsock(0) < 0)
+	{
+		return -1;
+	}
+#endif
 	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
@@ -656,6 +686,19 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 	}
 
 	ionRedirectMemos();
+#ifdef mingw
+	DWORD	threadId;
+	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm, NULL, 0,
+			&threadId);
+	if (thread == NULL)
+	{
+		putErrmsg("Can't create sigterm thread.", utoa(GetLastError()));
+	}
+	else
+	{
+		CloseHandle(thread);
+	}
+#endif
 	return 0;
 }
 
@@ -676,6 +719,12 @@ int	ionAttach()
 		return 0;	/*	Already attached.		*/
 	}
 
+#ifdef mingw
+	if (_winsock(0) < 0)
+	{
+		return -1;
+	}
+#endif
 	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
@@ -755,6 +804,19 @@ int	ionAttach()
 	}
 
 	ionRedirectMemos();
+#ifdef mingw
+	DWORD	threadId;
+	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm, NULL, 0,
+			&threadId);
+	if (thread == NULL)
+	{
+		putErrmsg("Can't create sigterm thread.", utoa(GetLastError()));
+	}
+	else
+	{
+		CloseHandle(thread);
+	}
+#endif
 	return 0;
 }
 
@@ -773,6 +835,9 @@ void	ionDetach()
 		ionsdr = NULL;		/*	To reset to NULL.	*/
 		oK(_ionsdr(&ionsdr));
 	}
+#ifdef mingw
+	oK(_winsock(1));
+#endif
 #endif
 }
 
@@ -1027,7 +1092,11 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 	ts.tm_mon -= 1;
 	ts.tm_isdst = 0;		/*	Default is UTC.		*/
 #ifndef VXWORKS
+#ifdef mingw
+	_tzset();	/*	Need to orient mktime properly.		*/
+#else
 	tzset();	/*	Need to orient mktime properly.		*/
+#endif
 	if (timestampIsUTC)
 	{
 		/*	Must convert UTC time to local time for mktime.	*/
@@ -1036,6 +1105,8 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 		ts.tm_sec -= ts.tm_gmtoff;
 #elif defined (RTEMS)
 		/*	RTEMS has no concept of time zones.		*/
+#elif defined (mingw)
+		ts.tm_sec -= _timezone;
 #else
 		ts.tm_sec -= timezone;
 #endif
@@ -1063,7 +1134,7 @@ void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 	struct tm	ts;
 
 	CHKVOID(timestampBuffer);
-	localtime_r(&timestamp, &ts);
+	oK(localtime_r(&timestamp, &ts));
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
 			ts.tm_hour, ts.tm_min, ts.tm_sec);
@@ -1074,7 +1145,7 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 	struct tm	ts;
 
 	CHKVOID(timestampBuffer);
-	gmtime_r(&timestamp, &ts);
+	oK(gmtime_r(&timestamp, &ts));
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
 			ts.tm_hour, ts.tm_min, ts.tm_sec);
@@ -1333,3 +1404,163 @@ void	printIonParms(IonParms *parms)
 			parms->pathName);
 	writeMemo(buffer);
 }
+
+/*	*	*	Portable alarm functions	*	*	*/
+
+static void	*alarmMain(void *parm)
+{
+	IonAlarm	*alarm = (IonAlarm *) parm;
+	pthread_mutex_t	mutex;
+	pthread_cond_t	cv;
+	struct timeval	workTime;
+	struct timespec	deadline;
+	int		result;
+
+	if (alarm->cycles == 0)
+	{
+		alarm->cycles -= 1;	/*	Underflow to max uint.	*/
+	}
+
+	memset((char *) &mutex, 0, sizeof mutex);
+	if (pthread_mutex_init(&mutex, NULL))
+	{
+		putSysErrmsg("Can't start alarm, mutex init failed", NULL);
+		return NULL;
+	}
+
+	memset((char *) &cv, 0, sizeof cv);
+	if (pthread_cond_init(&cv, NULL))
+	{
+		putSysErrmsg("Can't start alarm, cond init failed", NULL);
+		return NULL;
+	}
+
+	while (alarm->cycles > 0)
+	{
+		getCurrentTime(&workTime);
+		deadline.tv_sec = workTime.tv_sec + alarm->term;
+		deadline.tv_nsec = workTime.tv_usec * 1000;
+		pthread_mutex_lock(&mutex);
+		result = pthread_cond_timedwait(&cv, &mutex, &deadline);
+		pthread_mutex_unlock(&mutex);
+		if (result != ETIMEDOUT)
+		{
+			putSysErrmsg("Alarm failure", NULL);
+			break;
+		}
+
+		if ((alarm->proceed)(alarm->userData) < 0)
+		{
+			break;
+		}
+
+		alarm->cycles -= 1;
+	}
+
+	pthread_mutex_destroy(&mutex);
+	pthread_cond_destroy(&cv);
+	return NULL;
+}
+
+void	ionSetAlarm(IonAlarm *alarm, pthread_t *alarmThread)
+{
+	if (pthread_create(alarmThread, NULL, alarmMain, alarm) < 0)
+	{
+		putSysErrmsg("Can't set alarm", NULL);
+	}
+}
+
+void	ionCancelAlarm(pthread_t alarmThread)
+{
+	pthread_cancel(alarmThread);
+	pthread_join(alarmThread, NULL);
+}
+
+#ifdef mingw
+void	ionNoteMainThread(char *procName)
+{
+	return;		/*	Just for compatibility.			*/
+}
+
+void	ionPauseMainThread(int seconds)
+{
+	sm_WaitForWakeup(seconds);
+}
+
+void	ionKillMainThread(char *procName)
+{
+	sm_Wakeup(GetCurrentProcessId());
+}
+#else
+#define	PROC_NAME_LEN	16
+#define	MAX_PROCS	16
+
+typedef struct
+{
+	char		procName[PROC_NAME_LEN];
+	pthread_t	mainThread;
+} IonProc;
+
+static pthread_t	_mainThread(char *procName)
+{
+	static IonProc	proc[MAX_PROCS + 1];
+	static int	procCount = 0;
+	int		i;
+
+	for (i = 0; i < procCount; i++)
+	{
+		if (strcmp(proc[i].procName, procName) == 0)
+		{
+			break;
+		}
+	}
+
+	if (i == procCount)	/*	Registering new process.	*/
+	{
+		if (procCount == MAX_PROCS)
+		{
+			/*	Can't register process; return an
+			 *	invalid value for mainThread.		*/
+
+			return proc[MAX_PROCS].mainThread;
+		}
+
+		/*	Initial call to _mainThread for any process
+		 *	must be from the main thread of that process.	*/
+
+		procCount++;
+		istrcpy(proc[i].procName, procName, PROC_NAME_LEN);
+		proc[i].mainThread = pthread_self();
+	}
+
+	return proc[i].mainThread;
+}
+
+void	ionNoteMainThread(char *procName)
+{
+	CHKVOID(procName);
+	oK(_mainThread(procName));
+}
+
+void	ionPauseMainThread(int seconds)
+{
+	if (seconds < 0)
+	{
+		seconds = 2000000000;
+	}
+
+	snooze(seconds);
+}
+
+void	ionKillMainThread(char *procName)
+{
+	pthread_t	mainThread;
+
+	CHKVOID(procName);
+       	mainThread = _mainThread(procName);
+	if (!pthread_equal(mainThread, pthread_self()))
+	{
+		pthread_kill(mainThread, SIGTERM);
+	}
+}
+#endif

@@ -15,7 +15,7 @@ DGR convergence layer protocol output.
 The input thread receives DGR messages via a UDP socket bound to
 I<local_hostname> and I<local_port_nbr>, extracts bundles from those
 messages, and passes them to the bundle protocol agent on the local ION node.
-(I<local_port_nbr> defaults to 5101 if not specified.)
+(I<local_port_nbr> defaults to 1113 if not specified.)
 
 The output thread extracts bundles from the queues of bundles ready for
 transmission via DGR to remote bundle protocol agents, encapsulates them

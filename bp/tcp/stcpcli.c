@@ -12,27 +12,10 @@
 									*/
 #include "tcpcla.h"
 
-static pthread_t	stcpcliMainThread(pthread_t tid)
-{
-	static pthread_t	mainThread = 0;
-
-	if (tid)
-	{
-		mainThread = tid;
-	}
-
-	return mainThread;
-}
-
 static void	interruptThread()
 {
-	pthread_t	mainThread = stcpcliMainThread(0);
-
 	isignal(SIGTERM, interruptThread);
-	if (!pthread_equal(mainThread, pthread_self()))
-	{
-		pthread_kill(mainThread, SIGTERM);
-	}
+	ionKillMainThread("stcpcli");
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
@@ -46,6 +29,7 @@ typedef struct
 	pthread_mutex_t	*mutex;
 	int		bundleSocket;
 	pthread_t	thread;
+	int		*running;
 } ReceiverThreadParms;
 
 static void	terminateReceiverThread(ReceiverThreadParms *parms)
@@ -55,12 +39,13 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 	pthread_mutex_lock(parms->mutex);
 	if (parms->bundleSocket != -1)
 	{
-		close(parms->bundleSocket);
+		closesocket(parms->bundleSocket);
 		parms->bundleSocket = -1;
 	}
 
 	lyst_delete(parms->elt);
 	pthread_mutex_unlock(parms->mutex);
+	MRELEASE(parms);
 }
 
 static void	*receiveBundles(void *parm)
@@ -69,16 +54,16 @@ static void	*receiveBundles(void *parm)
 	 *	connection, terminating when connection is lost.	*/
 
 	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
+	char			*procName = "stcpcli";
 	AcqWorkArea		*work;
 	char			*buffer;
-	int			threadRunning = 1;
 
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
 		putErrmsg("stcpcli can't get acquisition work area.", NULL);
+		ionKillMainThread(procName);
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -86,19 +71,20 @@ static void	*receiveBundles(void *parm)
 	if (buffer == NULL)
 	{
 		putErrmsg("stcpcli can't get TCP buffer.", NULL);
+		ionKillMainThread(procName);
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
 	/*	Now start receiving bundles.				*/
 
-	while (threadRunning)
+	while (*(parms->running))
 	{
 		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
 		{
 			putErrmsg("Can't begin acquisition of bundle.", NULL);
-			threadRunning = 0;
+			ionKillMainThread(procName);
+			*(parms->running) = 0;
 			continue;
 		}
 
@@ -106,11 +92,12 @@ static void	*receiveBundles(void *parm)
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
+			ionKillMainThread(procName);
 
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:				/*	Normal stop.	*/
-			threadRunning = 0;
+			*(parms->running) = 0;
 			continue;
 
 		default:
@@ -120,7 +107,8 @@ static void	*receiveBundles(void *parm)
 		if (bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't end acquisition of bundle.", NULL);
-			threadRunning = 0;
+			ionKillMainThread(procName);
+			*(parms->running) = 0;
 			continue;
 		}
 
@@ -134,7 +122,6 @@ static void	*receiveBundles(void *parm)
 	bpReleaseAcqArea(work);
 	MRELEASE(buffer);
 	terminateReceiverThread(parms);
-	MRELEASE(parms);
 	return NULL;
 }
 
@@ -155,6 +142,7 @@ static void	*spawnReceivers(void *parm)
 	 *	creation of receivers to service those connections.	*/
 
 	AccessThreadParms	*atp = (AccessThreadParms *) parm;
+	char			*procName = "stcpcli";
 	pthread_mutex_t		mutex;
 	Lyst			threads;
 	int			newSocket;
@@ -167,11 +155,13 @@ static void	*spawnReceivers(void *parm)
 	char			hostName[MAXHOSTNAMELEN + 1];
 	pthread_t		thread;
 
+	snooze(1);	/*	Let main thread become interruptable.	*/
 	pthread_mutex_init(&mutex, NULL);
 	threads = lyst_create_using(getIonMemoryMgr());
 	if (threads == NULL)
 	{
 		putErrmsg("stcpcli can't create threads list.", NULL);
+		ionKillMainThread(procName);
 		pthread_mutex_destroy(&mutex);
 		return NULL;
 	}
@@ -179,7 +169,7 @@ static void	*spawnReceivers(void *parm)
 	/*	Can now begin accepting connections from remote
 	 *	contacts.  On failure, take down the whole CLI.		*/
 
-	while (1)
+	while (atp->running)
 	{
 		nameLength = sizeof(struct sockaddr);
 		newSocket = accept(atp->ductSocket, &cloSocketName,
@@ -187,7 +177,8 @@ static void	*spawnReceivers(void *parm)
 		if (newSocket < 0)
 		{
 			putSysErrmsg("stcpcli accept() failed", NULL);
-			pthread_kill(stcpcliMainThread(0), SIGTERM);
+			ionKillMainThread(procName);
+			atp->running = 0;
 			continue;
 		}
 
@@ -200,9 +191,9 @@ static void	*spawnReceivers(void *parm)
 				MTAKE(sizeof(ReceiverThreadParms));
 		if (parms == NULL)
 		{
-			putErrmsg("stcpcli can't allocate for new thread.",
-					NULL);
-			pthread_kill(stcpcliMainThread(0), SIGTERM);
+			putErrmsg("stcpcli can't allocate for thread.", NULL);
+			ionKillMainThread(procName);
+			atp->running = 0;
 			continue;
 		}
 
@@ -212,10 +203,10 @@ static void	*spawnReceivers(void *parm)
 		pthread_mutex_unlock(&mutex);
 		if (parms->elt == NULL)
 		{
-			putErrmsg("stcpcli can't allocate for new thread.",
-					NULL);
+			putErrmsg("stcpcli can't allocate for thread.", NULL);
 			MRELEASE(parms);
-			pthread_kill(stcpcliMainThread(0), SIGTERM);
+			ionKillMainThread(procName);
+			atp->running = 0;
 			continue;
 		}
 
@@ -234,13 +225,16 @@ static void	*spawnReceivers(void *parm)
 		{
 			parms->senderEid = NULL;
 		}
-	
+
+		parms->running = &(atp->running);
 		if (pthread_create(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{
 			putSysErrmsg("stcpcli can't create new thread", NULL);
 			MRELEASE(parms);
-			pthread_kill(stcpcliMainThread(0), SIGTERM);
+			ionKillMainThread(procName);
+			atp->running = 0;
+			continue;
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/
@@ -248,7 +242,7 @@ static void	*spawnReceivers(void *parm)
 		sm_TaskYield();
 	}
 
-	close(atp->ductSocket);
+	closesocket(atp->ductSocket);
 	writeErrmsgMemos();
 
 	/*	Shut down all current CLI threads cleanly.		*/
@@ -266,11 +260,14 @@ static void	*spawnReceivers(void *parm)
 		/*	Trigger termination of thread.			*/
 
 		parms = (ReceiverThreadParms *) lyst_data(elt);
-		pthread_mutex_unlock(&mutex);
 		thread = parms->thread;
+#ifdef mingw
+		shutdown(parms->bundleSocket, SD_BOTH);
+#else
 		pthread_kill(thread, SIGTERM);
+#endif
+		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
-		close(parms->bundleSocket);
 	}
 
 	lyst_destroy(threads);
@@ -381,7 +378,7 @@ int	main(int argc, char *argv[])
 	|| listen(atp.ductSocket, 5) < 0
 	|| getsockname(atp.ductSocket, &(atp.socketName), &nameLength) < 0)
 	{
-		close(atp.ductSocket);
+		closesocket(atp.ductSocket);
 		putSysErrmsg("Can't initialize socket", NULL);
 		return 1;
 	}
@@ -391,7 +388,7 @@ int	main(int argc, char *argv[])
 	{
 		tcpDelayEnabled = 0;
 	}
-	else
+	else	/*	Artificial TCP delay, for testing purposes.	*/
 	{
 		tcpDelayEnabled = 1;
 		tcpDelayNsecPerByte = strtol(tcpDelayString, NULL, 0);
@@ -409,7 +406,7 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
-	oK(stcpcliMainThread(pthread_self()));
+	ionNoteMainThread("stcpcli");
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the access thread.				*/
@@ -417,7 +414,7 @@ int	main(int argc, char *argv[])
 	atp.running = 1;
 	if (pthread_create(&accessThread, NULL, spawnReceivers, &atp))
 	{
-		close(atp.ductSocket);
+		closesocket(atp.ductSocket);
 		putSysErrmsg("stcpcli can't create access thread", NULL);
 		return 1;
 	}
@@ -426,14 +423,15 @@ int	main(int argc, char *argv[])
 	 *	it's time to stop the induct.				*/
 
 	{
-		char txt[500];
+		char	txt[500];
 
-		isprintf(txt, sizeof(txt), "[i] stcpcli is running, spec=[%s:%d].", 
-			inet_ntoa(atp.inetName->sin_addr), ntohs(atp.inetName->sin_port) );
-
-		writeMemo(txt );
+		isprintf(txt, sizeof(txt),
+			"[i] stcpcli is running, spec=[%s:%d].", 
+			inet_ntoa(atp.inetName->sin_addr), ntohs(portNbr));
+		writeMemo(txt);
 	}
-	snooze(2000000000);
+
+	ionPauseMainThread(-1);
 
 	/*	Time to shut down.					*/
 
@@ -448,7 +446,7 @@ int	main(int argc, char *argv[])
 
 		/*	Immediately discard the connected socket.	*/
 
-		close(fd);
+		closesocket(fd);
 	}
 
 	pthread_join(accessThread, NULL);

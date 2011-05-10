@@ -34,7 +34,7 @@ int	sendSegmentByAOS(int linkSocket, char *from, int length)
 
 	while (1)	/*	Continue until not interrupted.		*/
 	{
-		bytesWritten = send(linkSocket, from, length, 0);
+		bytesWritten = isend(linkSocket, from, length, 0);
 		if (bytesWritten < 0)
 		{
 			if (errno == EINTR)	/*	Interrupted.	*/
@@ -153,7 +153,7 @@ int	main(int argc, char *argv[])
 
 	if (connect(linkSocket, &socketName, sizeof(struct sockaddr_in)) < 0)
 	{
-		close( linkSocket );
+		closesocket( linkSocket );
 		putSysErrmsg("LSO can't connect AOS socket", NULL);
 		return 1;
 	}
@@ -165,16 +165,14 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote engine.		*/
 	{
-		char txt[500];
+		char	txt[500];
 
 		isprintf(txt, sizeof(txt),
-			"[i] aolslso is running, spec=[%s:%d], txbps=%d (0=unlimited), rengine=%lu.", 
-			(char *)inet_ntoa( inetName->sin_addr ), 
-			ntohs( portNbr ), txbps, remoteEngineId );
-
-		writeMemo(txt );
+			"[i] aolslso is running, spec=[%s:%d], txbps=%d \
+(0=unlimited), rengine=%lu.", (char *) inet_ntoa(inetName->sin_addr), 
+			ntohs(portNbr), txbps, remoteEngineId);
+		writeMemo(txt);
 	}
-
 
 	while (running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
@@ -229,7 +227,7 @@ int	main(int argc, char *argv[])
 		sm_TaskYield();
 	}
 
-	close(linkSocket);
+	closesocket(linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] aoslso duct has ended.");
 	return 0;

@@ -131,11 +131,11 @@ static void	*receiveUdp(void *parm)
 	char			*buffer;
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
-	unsigned int		nameLength;
+	socklen_t		nameLength;
 	unsigned int		ipAddress;
 	int			datagramLen;
 	struct sockaddr_in	fromAddr;
-	unsigned int		fromSize;
+	socklen_t		fromSize;
 	struct timeval		currentTime;
 	DG			*dg;
 	char			timebuf[256];

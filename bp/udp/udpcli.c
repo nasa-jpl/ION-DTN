@@ -15,27 +15,10 @@
 #include "ipnfw.h"
 #include "dtn2fw.h"
 
-static pthread_t	udpcliMainThread(pthread_t tid)
-{
-	static pthread_t	mainThread = 0;
-
-	if (tid)
-	{
-		mainThread = tid;
-	}
-
-	return mainThread;
-}
-
 static void	interruptThread()
 {
-	pthread_t	mainThread = udpcliMainThread(0);
-
 	isignal(SIGTERM, interruptThread);
-	if (!pthread_equal(mainThread, pthread_self()))
-	{
-		pthread_kill(mainThread, SIGTERM);
-	}
+	ionKillMainThread("udpcli");
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
@@ -44,7 +27,6 @@ typedef struct
 {
 	VInduct		*vduct;
 	int		ductSocket;
-	pthread_t	mainThread;
 	int		running;
 } ReceiverThreadParms;
 
@@ -53,6 +35,7 @@ static void	*handleDatagrams(void *parm)
 	/*	Main loop for UDP datagram reception and handling.	*/
 
 	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
+	char			*procName = "udpcli";
 	AcqWorkArea		*work;
 	char			*buffer;
 	int			bundleLength;
@@ -62,11 +45,12 @@ static void	*handleDatagrams(void *parm)
 	char			senderEidBuffer[SDRSTRING_BUFSZ];
 	char			*senderEid;
 
+	snooze(1);	/*	Let main thread become interruptable.	*/
 	work = bpGetAcqArea(rtp->vduct);
 	if (work == NULL)
 	{
 		putErrmsg("udpcli can't get acquisition work area.", NULL);
-		pthread_kill(rtp->mainThread, SIGTERM);
+		ionKillMainThread(procName);
 		return NULL;
 	}
 
@@ -74,7 +58,7 @@ static void	*handleDatagrams(void *parm)
 	if (buffer == NULL)
 	{
 		putErrmsg("udpcli can't get UDP buffer.", NULL);
-		pthread_kill(rtp->mainThread, SIGTERM);
+		ionKillMainThread(procName);
 		return NULL;
 	}
 
@@ -90,7 +74,7 @@ static void	*handleDatagrams(void *parm)
 		case -1:
 		case 0:
 			putErrmsg("Can't acquire bundle.", NULL);
-			pthread_kill(rtp->mainThread, SIGTERM);
+			ionKillMainThread(procName);
 
 			/*	Intentional fall-through to next case.	*/
 
@@ -120,7 +104,7 @@ static void	*handleDatagrams(void *parm)
 		|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);
-			pthread_kill(rtp->mainThread, SIGTERM);
+			ionKillMainThread(procName);
 			rtp->running = 0;
 			continue;
 		}
@@ -242,7 +226,7 @@ int	main(int argc, char *argv[])
 	|| bind(rtp.ductSocket, &socketName, nameLength) < 0
 	|| getsockname(rtp.ductSocket, &socketName, &nameLength) < 0)
 	{
-		close(rtp.ductSocket);
+		closesocket(rtp.ductSocket);
 		putSysErrmsg("Can't initialize socket", NULL);
 		return -1;
 	}
@@ -254,16 +238,15 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 
-	oK(udpcliMainThread(pthread_self()));
+	ionNoteMainThread("udpcli");
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the receiver thread.				*/
 
 	rtp.running = 1;
-	rtp.mainThread = pthread_self();
 	if (pthread_create(&receiverThread, NULL, handleDatagrams, &rtp))
 	{
-		close(rtp.ductSocket);
+		closesocket(rtp.ductSocket);
 		putSysErrmsg("udpcli can't create receiver thread", NULL);
 		return -1;
 	}
@@ -272,14 +255,15 @@ int	main(int argc, char *argv[])
 	 *	it's time to stop the induct.				*/
 
 	{
-		char txt[500];
+		char	txt[500];
 
-		isprintf(txt, sizeof(txt), "[i] udpcli is running, spec=[%s:%d].", 
-			inet_ntoa(inetName->sin_addr), ntohs(inetName->sin_port) );
-
-		writeMemo(txt );
+		isprintf(txt, sizeof(txt),
+			"[i] udpcli is running, spec=[%s:%d].", 
+			inet_ntoa(inetName->sin_addr), ntohs(portNbr));
+		writeMemo(txt);
 	}
-	snooze(2000000000);
+
+	ionPauseMainThread(-1);
 
 	/*	Time to shut down.					*/
 
@@ -291,12 +275,12 @@ int	main(int argc, char *argv[])
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		sendto(fd, &quit, 1, 0, &socketName, sizeof(struct sockaddr));
-		close(fd);
+		isendto(fd, &quit, 1, 0, &socketName, sizeof(struct sockaddr));
+		closesocket(fd);
 	}
 
 	pthread_join(receiverThread, NULL);
-	close(rtp.ductSocket);
+	closesocket(rtp.ductSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udpcli duct has ended.");
 	ionDetach();

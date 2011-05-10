@@ -105,7 +105,7 @@ typedef enum { NotAnObject, SmallObject, LargeObject } ObjectScale;
 
 typedef union
 {
-	SmallOhd	small;
+	SmallOhd	wee;
 	BigOhd1		leading;
 	BigOhd2		trailing;
 } Ohd;
@@ -138,8 +138,8 @@ static ObjectScale	scaleOf(Sdr sdrv, Address addr, Ohd *ohd)
 	&& addr < map->endOfSmallPool)
 	{
 		leader = addr - SMALL_BLOCK_OHD;
-		sdrFetch(ohd->small, leader);
-		if ((ohd->small.next & SMALL_IN_USE) != SMALL_IN_USE)
+		sdrFetch(ohd->wee, leader);
+		if ((ohd->wee.next & SMALL_IN_USE) != SMALL_IN_USE)
 		{
 			return NotAnObject;
 		}
@@ -886,10 +886,10 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 		/*	Select appropriate small free space stack
 			and push object's space onto that stack.	*/
 
-		userDataWords = ohd.small.next & 0xff;
+		userDataWords = ohd.wee.next & 0xff;
 		i = userDataWords - 1;
 		sdrFetch(next, ADDRESS_OF(firstSmallFree[i]));
-		ohd.small.next = (next << 8) + userDataWords;
+		ohd.wee.next = (next << 8) + userDataWords;
 		block = addr - SMALL_BLOCK_OHD;
 		sdrPatch(block, ohd);
 		patchMap(firstSmallFree[i], block);
@@ -985,7 +985,7 @@ long	sdr_object_length(Sdr sdrv, Object object)
 	switch (scaleOf(sdrv, addr, &ohd))
 	{
 	case SmallObject:
-		return WORD_SIZE * (ohd.small.next & 0xff);
+		return WORD_SIZE * (ohd.wee.next & 0xff);
 
 	case LargeObject:
 		return ohd.leading.userDataSize;
@@ -1021,7 +1021,7 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 	SdrMap		*map;
 	int		i;
 	u_long		size;
-	Address		small;
+	Address		smallBlk;
 	SmallOhd	smallHead;
 	Address		nextSmall;
 	Address		large;
@@ -1044,10 +1044,10 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 	{
 		size += WORD_SIZE;
 		count = 0;
-		for (small = (Address) (map->firstSmallFree[i]); small;
-				small = nextSmall)
+		for (smallBlk = (Address) (map->firstSmallFree[i]); smallBlk;
+				smallBlk = nextSmall)
 		{
-			sdrFetch(smallHead, small);
+			sdrFetch(smallHead, smallBlk);
 			nextSmall = (Address)
 				((smallHead.next >> 8) & SMALL_NEXT_ADDR);
 			count++;

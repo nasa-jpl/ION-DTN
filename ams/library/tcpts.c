@@ -57,7 +57,7 @@ static void	removeReceiver(TcpRcvr *rcvr)
 	pthread_mutex_lock(&sap->rcvrPoolMutex);
 	if (rcvr->fd != -1)
 	{
-		close(rcvr->fd);
+		closesocket(rcvr->fd);
 	}
 
 	if (rcvr->next)
@@ -89,7 +89,7 @@ static int	receiveBytesByTCP(int fd, char *into, int length)
 
 	while (1)	/*	Continue until not interrupted.		*/
 	{
-		bytesRead = read(fd, into, length);
+		bytesRead = irecv(fd, into, length, 0);
 		switch (bytesRead)
 		{
 		case -1:
@@ -98,7 +98,7 @@ static int	receiveBytesByTCP(int fd, char *into, int length)
 				continue;
 			}
 
-			putSysErrmsg("tcpts read() error on socket", NULL);
+			putSysErrmsg("tcpts recv() error on socket", NULL);
 			return -1;
 
 		case 0:			/*	Connection closed.	*/
@@ -159,7 +159,7 @@ static void	removeSender(TcpTsep *tsep)
 	TcptsSap	*sap = tsep->sap;
 
 	pthread_mutex_lock(&sap->sendPoolMutex);
-	close(tsep->fd);
+	closesocket(tsep->fd);
 	tsep->fd = -1;
 	if (tsep->next)
 	{
@@ -189,7 +189,7 @@ static int	sendBytesByTCP(TcpTsep *tsep, char *bytes, int length)
 
 	while (1)	/*	Continue until not interrupted.		*/
 	{
-		result = send(tsep->fd, bytes, length, 0);
+		result = isend(tsep->fd, bytes, length, 0);
 		if (result < 0)
 		{
 			if (errno == EINTR)	/*	Interrupted.	*/
@@ -312,7 +312,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	|| getsockname(sap->accessSocket, &(sap->addrbuf), &buflen) < 0)
 	{
 		putSysErrmsg("tcpts can't configure AMS access socket", NULL);
-		close(sap->accessSocket);
+		closesocket(sap->accessSocket);
 		MRELEASE(sap);
 		return -1;
 	}
@@ -330,7 +330,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	if (tsif->ept == NULL)
 	{
 		putErrmsg("tcpts can't record endpoint name.", NULL);
-		close(sap->accessSocket);
+		closesocket(sap->accessSocket);
 		MRELEASE(sap);
 		return -1;
 	}
@@ -345,15 +345,18 @@ static void	*tcpAmsReceiver(void *parm)
 	TcpRcvr		*me = (TcpRcvr *) parm;
 	TcptsSap	*sap;
 	char		*buffer;
-	sigset_t	signals;
 	int		length;
 
 	CHKNULL(me);
 	sap = me->sap;
 	buffer = MTAKE(TCPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
+#ifndef mingw
+	sigset_t	signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		length = receiveMsgByTCP(me->fd, buffer);
@@ -420,14 +423,17 @@ static void	*tcpAmsAccess(void *parm)
 	int			childSocket;
 	struct sockaddr		clientSockname;
 	socklen_t		len;
-	sigset_t		signals;
 	TcpRcvr			*rcvr;
 
 	CHKNULL(tsif);
 	sap = (TcptsSap *) (tsif->sap);
 	CHKNULL(sap);
+#ifndef mingw
+	sigset_t		signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		len = sizeof clientSockname;
@@ -440,7 +446,7 @@ static void	*tcpAmsAccess(void *parm)
 
 		if (sap->stopped)
 		{
-			close(childSocket);
+			closesocket(childSocket);
 			break;
 		}
 
@@ -448,7 +454,7 @@ static void	*tcpAmsAccess(void *parm)
 		if (rcvr == NULL)
 		{
 			putErrmsg("tcpts out of memory.", NULL);
-			close(childSocket);
+			closesocket(childSocket);
 			break;
 		}
 
@@ -467,7 +473,7 @@ static void	*tcpAmsAccess(void *parm)
 		}
 		else
 		{
-			close(sap->lastInRcvrPool->fd);
+			closesocket(sap->lastInRcvrPool->fd);
 			sap->lastInRcvrPool->fd = -1;
 			pthread_mutex_unlock(&sap->rcvrPoolMutex);
 			pthread_join(sap->lastInRcvrPool->thread, NULL);
@@ -510,7 +516,7 @@ static void	*tcpAmsAccess(void *parm)
 	pthread_mutex_lock(&sap->rcvrPoolMutex);
 	while (sap->firstInRcvrPool)
 	{
-		close(sap->firstInRcvrPool->fd);
+		closesocket(sap->firstInRcvrPool->fd);
 		sap->firstInRcvrPool->fd = -1;
 		pthread_mutex_unlock(&sap->rcvrPoolMutex);
 		pthread_join(sap->firstInRcvrPool->thread, NULL);
@@ -520,7 +526,7 @@ static void	*tcpAmsAccess(void *parm)
 	pthread_mutex_unlock(&sap->rcvrPoolMutex);
 	if (sap->accessSocket != -1)
 	{
-		close(sap->accessSocket);
+		closesocket(sap->accessSocket);
 	}
 
 	MRELEASE(sap);
@@ -630,7 +636,7 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 
 		if (connect(tsep->fd, &buf, sizeof(struct sockaddr)) < 0)
 		{
-			close(tsep->fd);
+			closesocket(tsep->fd);
 			tsep->fd = -1;
 			putSysErrmsg("tcpts can't connect to TCP socket", NULL);
 			return -1;
@@ -736,7 +742,7 @@ static void	tcpShutdown(void *abstract_sap)
 
 		/*	Immediately discard the connected socket.	*/
 
-		close(fd);
+		closesocket(fd);
 	}
 }
 
@@ -756,5 +762,7 @@ void	tcptsLoadTs(TransSvc *ts)
 	ts->clearAmsEndpointFn = tcpClearAmsEndpoint;
 	ts->sendAmsFn = tcpSendAms;
 	ts->shutdownFn = tcpShutdown;
+#ifndef mingw
 	isignal(SIGPIPE, SIG_IGN);
+#endif
 }

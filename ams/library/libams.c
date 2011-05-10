@@ -261,13 +261,13 @@ static void	eraseSAP(AmsSAP *sap)
 
 	/*	Stop heartbeat, MAMS handler, and MAMS rcvr threads.	*/
 
-	if (sap->heartbeatThread)
+	if (sap->haveHeartbeatThread)
 	{
 		pthread_cancel(sap->heartbeatThread);
 		pthread_join(sap->heartbeatThread, NULL);
 	}
 
-	if (sap->mamsThread)
+	if (sap->haveMamsThread)
 	{
 		llcv_signal_while_locked(sap->mamsEventsCV, time_to_stop);
 		pthread_join(sap->mamsThread, NULL);
@@ -3413,13 +3413,15 @@ static void	*mamsMain(void *parm)
 {
 	AmsMib		*mib = _mib(NULL);
 	AmsSAP		*sap = (AmsSAP *) parm;
-	sigset_t	signals;
 	LystElt		elt;
 	AmsEvt		*evt;
 	int		result;
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 
 	/*	MAMS thread starts off in Unregistered state and
 	 *	stays there until registration is complete.  Then
@@ -3553,7 +3555,6 @@ static void	*heartbeatMain(void *parm)
 	AmsSAP		*sap = (AmsSAP *) parm;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cv;
-	sigset_t	signals;
 	int		result;
 	struct timeval	workTime;
 	struct timespec	deadline;
@@ -3571,8 +3572,12 @@ static void	*heartbeatMain(void *parm)
 		return NULL;
 	}
 
+#ifndef mingw
+	sigset_t	signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		getCurrentTime(&workTime);
@@ -3927,12 +3932,20 @@ static int	ams_register2(char *applicationName, char *authorityName,
 
 	/*	Create the auxiliary module threads: heartbeat, MAMS.	*/
 
-	if (pthread_create(&(sap->heartbeatThread), NULL, heartbeatMain, sap)
-	|| pthread_create(&(sap->mamsThread), NULL, mamsMain, sap))
+	if (pthread_create(&(sap->heartbeatThread), NULL, heartbeatMain, sap))
 	{
-		putSysErrmsg("can't spawn sap auxiliary threads", NULL);
+		putSysErrmsg("Can't spawn sap heartbeat thread", NULL);
 		return -1;
 	}
+
+	sap->haveHeartbeatThread = 1;
+	if (pthread_create(&(sap->mamsThread), NULL, mamsMain, sap))
+	{
+		putSysErrmsg("Can't spawn sap MAMS thread", NULL);
+		return -1;
+	}
+
+	sap->haveMamsThread = 1;
 
 	/*	Wait for MAMS thread to complete registration dialogue.	*/
 
@@ -5441,7 +5454,6 @@ static void	*eventMgrMain(void *parm)
 {
 	AmsSAP		*sap = (AmsSAP *) parm;
 	AmsEventMgt	*rules = &(sap->eventMgtRules);
-	sigset_t	signals;
 	AmsEvt		*evt;
 	int		continuumNbr;
 	int		unitNbr;
@@ -5456,9 +5468,12 @@ static void	*eventMgrMain(void *parm)
 	int		code;
 	int		dataLength;
 	char		*data;
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	sap->eventMgr = sap->authorizedEventMgr = pthread_self();
 	while (pthread_equal(sap->eventMgr, sap->authorizedEventMgr))
 	{

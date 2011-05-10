@@ -174,7 +174,7 @@ int	main(int argc, char *argv[])
 
 	if (ductSocket != -1)
 	{
-		close(ductSocket);
+		closesocket(ductSocket);
 	}
 
 	writeErrmsgMemos();
