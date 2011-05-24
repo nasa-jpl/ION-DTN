@@ -34,8 +34,7 @@ static void	createIonConfigFiles()
 	int	globalLineCount = sizeof globalLines / sizeof (char *);
 	char	*ionsecrcLines[] =	{
 "1\n",
-"a babrxrule ipn:19.* '' ''\n",
-"a babtxrule ipn:19.* '' ''\n"
+"a bspbabrule ipn:19.* ipn:19.* '' ''\n"
 					};
 	int	ionsecrcLineCount = sizeof ionsecrcLines / sizeof (char *);
 	char	*ltprcLines[] =		{
