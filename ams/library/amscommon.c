@@ -530,53 +530,106 @@ static int	initializeMemMgt(int continuumNbr)
 	return 0;
 }
 
+static void	_mibLock(int lock)
+{
+	static ResourceLock	mibLock;
+
+	/*	The MIB is shared among threads, so access to it must
+	 *	be mutexed.						*/
+
+	if (initResourceLock(&mibLock) == 0)
+	{
+		switch (lock)
+		{
+		case -1:
+			killResourceLock(&mibLock);
+			break;
+
+		case 0:
+			unlockResource(&mibLock);
+			break;
+
+		default:
+			lockResource(&mibLock);
+		}
+	}
+}
+
+void	lockMib()
+{
+	_mibLock(1);
+}
+
+void	unlockMib()
+{
+	_mibLock(0);
+}
+
 AmsMib	*_mib(AmsMibParameters *parms)
 {
 	static AmsMib	*mib = NULL;
 
 	if (parms)
 	{
+		lockMib();
 		if (parms->continuumNbr == 0)	/*	Terminating.	*/
 		{
 			if (mib)
 			{
+				ionDetach();
 				eraseMib(mib);
 				mib = NULL;
-				ionDetach();
 			}
+
+			_mibLock(-1);
+			return mib;
 		}
 		else				/*	Initializing.	*/
 		{
 			if (mib)
 			{
-				writeMemo("[?] AMS MIB already created.");
+				writeMemo("[i] AMS MIB already created.");
 			}
 			else
 			{
-				CHKNULL(parms->continuumNbr > 0);
-				CHKNULL(parms->continuumNbr <= MAX_CONTIN_NBR);
-				CHKNULL(parms->ptsName);
+				if (parms->continuumNbr < 1
+				|| parms->continuumNbr > MAX_CONTIN_NBR
+				|| parms->ptsName == NULL
+				|| (mib = (AmsMib *) MTAKE(sizeof(AmsMib)))
+						== NULL)
+				{
+					putErrmsg("Can't create MIB.", NULL);
+					_mibLock(-1);
+					return mib;
+				}
+
 				if (initializeMemMgt(parms->continuumNbr) < 0)
 				{
 					putErrmsg("Can't attach to ION.", NULL);
-					return NULL;
+					MRELEASE(mib);
+					mib = NULL;
+					_mibLock(-1);
+					return mib;
 				}
 
-				mib = (AmsMib *) MTAKE(sizeof(AmsMib));
-				CHKNULL(mib);
 				memset((char *) mib, 0, sizeof(AmsMib));
 				if (initializeMib(mib, parms->continuumNbr,
 						parms->ptsName,
 						parms->publicKeyName,
 						parms->privateKeyName) < 0)
 				{
-					putErrmsg("Can't create MIB.", NULL);
+					putErrmsg("Can't initialize MIB.",
+							parms->ptsName);
+					ionDetach();
 					eraseMib(mib);
 					mib = NULL;
-					ionDetach();
+					_mibLock(-1);
+					return mib;
 				}
 			}
 		}
+
+		unlockMib();
 	}
 
 	return mib;

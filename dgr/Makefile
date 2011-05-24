@@ -1,5 +1,5 @@
 OPT = /opt
-PLATFORMS = i86-mingw
+PLATFORMS = i86-redhat
 # i86_64-fedora
 # sparc-sol9
 # i86-freebsd

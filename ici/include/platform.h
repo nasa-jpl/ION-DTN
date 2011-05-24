@@ -98,6 +98,9 @@ extern "C" {
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+#ifndef SOCK_CLOEXEC
+#define SOCK_CLOEXEC		0
+#endif
 #define closesocket(x)		close(x)
 #define isend(a,b,c,d)		send(a,b,c,d)
 #define irecv(a,b,c,d)		recv(a,b,c,d)
