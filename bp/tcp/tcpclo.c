@@ -138,14 +138,14 @@ static void	*receiveBundles(void *parm)
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
-		putSysErrmsg("tcpclo receiver can't get TCP buffer", NULL);
+		putErrmsg("tcpclo receiver can't get TCP buffer", NULL);
 		return NULL;
 	}
 
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
-		putSysErrmsg("tcpclo receiver can't get acquisition work area",
+		putErrmsg("tcpclo receiver can't get acquisition work area",
 				NULL);
 		MRELEASE(buffer);
 		return NULL;
@@ -254,7 +254,7 @@ int	main(int argc, char *argv[])
 
 	if (bpAttach() < 0)
 	{
-		putSysErrmsg("tcpclo can't attach to BP", NULL);
+		putErrmsg("tcpclo can't attach to BP", NULL);
 		return 1;
 	}
 
@@ -315,7 +315,7 @@ int	main(int argc, char *argv[])
 	portNbr = htons(portNbr);
 	if (hostNbr == 0)
 	{
-		putSysErrmsg("Can't get IP address for host.", hostName);
+		putErrmsg("Can't get IP address for host.", hostName);
 		MRELEASE(buffer);
 		return 1;
 	}
@@ -369,7 +369,7 @@ int	main(int argc, char *argv[])
 	findVInduct(&viduct,protocol.name);
 	if(viduct == NULL)
 	{
-		putSysErrmsg("tcpclo can't get VInduct", NULL);
+		putErrmsg("tcpclo can't get VInduct", NULL);
 		MRELEASE(buffer);
 		pthread_mutex_destroy(&mutex);
 		return 1;

@@ -794,118 +794,6 @@ int	watchSocket(int fd)
 
 #endif			/*	end of #if defined _SVR4		*/
 
-#if defined (sun)	/*	not SVR4, but Sun, i.e., SunOS 4; a BSD */
-
-unsigned int	getInternetAddress(char *hostName)
-{
-	struct hostent	*hostInfo;
-	unsigned int	hostInetAddress;
-
-	CHKZERO(hostName);
-	hostInfo = gethostbyname(hostName);
-	if (hostInfo == NULL)
-	{
-		putSysErrmsg("can't get host info", hostName);
-		return BAD_HOST_NAME;
-	}
-
-	if (hostInfo->h_length != sizeof hostInetAddress)
-	{
-		putErrmsg("Address length invalid in host info.", hostName);
-		return BAD_HOST_NAME;
-	}
-
-	memcpy((char *) &hostInetAddress, hostInfo->h_addr, 4);
-	return ntohl(hostInetAddress);
-}
-
-char	*getInternetHostName(unsigned int hostNbr, char *buffer)
-{
-	struct hostent	*hostInfo;
-
-	CHKNULL(buffer);
-	hostNbr = htonl(hostNbr);
-	hostInfo = gethostbyaddr((char *) &hostNbr, sizeof hostNbr, AF_INET);
-	if (hostInfo == NULL)
-	{
-		putSysErrmsg("can't get host info", utoa(hostNbr));
-		return NULL;
-	}
-
-	strncpy(buffer, hostInfo->h_name, MAXHOSTNAMELEN);
-	return buffer;
-}
-
-int	getNameOfHost(char *buffer, int bufferLength)
-{
-	int	result;
-
-	CHKERR(buffer);
-	CHKERR(bufferLength > 0);
-	result = gethostname(buffer, bufferLength);
-	if (result < 0)
-	{
-		putSysErrmsg("can't get local host name", NULL);
-	}
-
-	return result;
-}
-
-int	reUseAddress(int fd)
-{
-	int	result;
-	int	i = 1;
-
-	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &i,
-			sizeof i);
-	if (result < 0)
-	{
-		putSysErrmsg("can't make socket address reusable", NULL);
-	}
-
-	return result;
-}
- 
-int	makeIoNonBlocking(int fd)
-{
-	int	result;
-	int	setting = 1;
- 
-	result = ioctl(fd, FIONBIO, &setting);
-	if (result < 0)
-	{
-		putSysErrmsg("can't make IO non-blocking", NULL);
-	}
-
-	return result;
-}
-
-int	watchSocket(int fd)
-{
-	int		result;
-	struct linger	lctrl = {0, 0};
-	int		kctrl = 1;
-
-	result = setsockopt(fd, SOL_SOCKET, SO_LINGER, (char *) &lctrl,
-			sizeof lctrl);
-	if (result < 0)
-	{
-		putSysErrmsg("can't set linger on socket", NULL);
-		return result;
-	}
-
-	result = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (char *) &kctrl,
-			sizeof kctrl);
-	if (result < 0)
-	{
-		putSysErrmsg("can't set keepalive on socket", NULL);
-	}
-
-	return result;
-}
-
-#endif			/*	end of #if defined (sun)		*/
-
 #if (defined mingw)
 
 int	_winsock(int stopping)
@@ -1103,8 +991,6 @@ int	watchSocket(int fd)
 
 #if (defined (linux) || defined (freebsd) || defined (cygwin) || defined (darwin) || defined (RTEMS))
 
-			/*	Not SVR4, not sun, and not mingw.	*/
-
 char	*system_error_msg()
 {
 	return strerror(errno);
@@ -1236,7 +1122,7 @@ int	watchSocket(int fd)
 	return result;
 }
 
-#endif	/* end #if (!defined(linux, freebsd, cygwin, darwin, RTEMS))	*/
+#endif	/* end #if (defined(linux, freebsd, cygwin, darwin, RTEMS))	*/
 
 /**********************	WinSock adaptations *****************************/
 

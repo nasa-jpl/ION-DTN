@@ -328,26 +328,11 @@ int getpriority(int, id_t);
 #endif				/****	End of #ifdef (sol5)         ****/
 #endif				/****	End of #ifdef (sparc)        ****/
 
-#else				/****	Not SVR4 at all (BSD?)	     ****/
+#else				/****	Not __SVR4 at all (BSD?)     ****/
 
 #define FIFO_READ_MODE          (O_RDWR)
 #define FIFO_WRITE_MODE         (O_RDWR)
 #define	FDTABLE_SIZE		(getdtablesize())
-
-#ifdef sun			/****	pre-Solaris SunOS (v. < 5)   ****/
-
-#include <malloc.h>
-#include <sys/filio.h>
-
-#endif				/****	End of #ifdef sun	     ****/
-
-#ifdef hpux			/****	HPUX			     ****/
-
-#define _INCLUDE_HPUX_SOURCE
-#define _INCLUDE_POSIX_SOURCE
-#define _INCLUDE_XOPEN_SOURCE
-
-#endif				/****	End of #ifdef hpux	     ****/
 
 #ifdef linux			/****	Linux			     ****/
 

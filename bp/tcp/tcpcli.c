@@ -150,7 +150,7 @@ static void	*receiveBundles(void *parm)
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
-		putSysErrmsg("tcpcli can't get TCP buffer", NULL);
+		putErrmsg("tcpcli can't get TCP buffer", NULL);
 		terminateReceiverThread(parms);
 		MRELEASE(parms);
 		ionKillMainThread(procName);
@@ -160,7 +160,7 @@ static void	*receiveBundles(void *parm)
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
-		putSysErrmsg("tcpcli can't get acquisition work area", NULL);
+		putErrmsg("tcpcli can't get acquisition work area", NULL);
 		MRELEASE(buffer);
 		terminateReceiverThread(parms);
 		MRELEASE(parms);
@@ -191,7 +191,7 @@ static void	*receiveBundles(void *parm)
 	if (sendContactHeader(&parms->bundleSocket, (unsigned char *) buffer,
 			NULL) < 0)
 	{
-		putSysErrmsg("tcpcli couldn't send contact header", NULL);
+		putErrmsg("tcpcli couldn't send contact header", NULL);
 		MRELEASE(buffer);
 		MRELEASE(kparms);
 		closesocket(parms->bundleSocket);
@@ -200,7 +200,6 @@ static void	*receiveBundles(void *parm)
 		bpReleaseAcqArea(work);
 		terminateReceiverThread(parms);
 		MRELEASE(parms);
-		ionKillMainThread(procName);
 		return NULL;
 	}
 
@@ -208,7 +207,7 @@ static void	*receiveBundles(void *parm)
 	if (receiveContactHeader(&parms->bundleSocket, (unsigned char *) buffer,
 			&kparms->keepalivePeriod) < 0)
 	{
-		putSysErrmsg("tcpcli couldn't receive contact header", NULL);
+		putErrmsg("tcpcli couldn't receive contact header", NULL);
 		MRELEASE(buffer);
 		MRELEASE(kparms);
 		pthread_mutex_lock(parms->mutex);
@@ -218,7 +217,6 @@ static void	*receiveBundles(void *parm)
 		bpReleaseAcqArea(work);
 		terminateReceiverThread(parms);
 		MRELEASE(parms);
-		ionKillMainThread(procName);
 		return NULL;
 	}
 
@@ -266,7 +264,6 @@ keepalives", NULL);
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
-			ionKillMainThread(procName);
 
 			/*	Intentional fall-through to next case.	*/
 
@@ -344,7 +341,7 @@ static void	*spawnReceivers(void *parm)
 	threads = lyst_create_using(getIonMemoryMgr());
 	if (threads == NULL)
 	{
-		putSysErrmsg("tcpcli can't create threads list", NULL);
+		putErrmsg("tcpcli can't create threads list", NULL);
 		pthread_mutex_destroy(&mutex);
 		ionKillMainThread(procName);
 		return NULL;
