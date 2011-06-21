@@ -2692,10 +2692,6 @@ void	sm_Wakeup(DWORD processId)
 
 	/* ---- IPC services access control (Unix) -------------------- */
 
-#ifdef noipc			/****	Cygwin without cygserver.	****/
-#error "'platform' needs IPC; install cygserver and remake without -Dnoipc."
-#endif
-
 #include <sys/stat.h>
 #include <sys/ipc.h>
 #include <sched.h>
