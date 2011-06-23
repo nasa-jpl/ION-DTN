@@ -74,6 +74,35 @@ static void	printUsage()
 	PUTS("\t   #");
 }
 
+static int      _echo(int *newValue)
+{
+        static int      state = 0;
+
+        if (newValue)
+        {
+                if (*newValue == 1)
+                {
+                        state = 1;
+                }
+                else
+                {
+                        state = 0;
+                }
+        }
+
+        return state;
+}     
+
+static void     printText(char *text)
+{
+        if (_echo(NULL))
+        {
+                writeMemo(text);
+        }
+
+        PUTS(text);
+}
+
 static void	setDestinationEntityNbr(int tokenCount, char **tokens,
 			CfdpNumber *destinationEntityNbr)
 {
@@ -599,45 +628,19 @@ static int	runCfdptestInteractive()
 int	cfdptest(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	unsigned long	destNode = a1 ? strtol((char *) a1, NULL, 0) : 0;
-	char		*sourcePath = (char *) a2;
-	char		*destPath = (char *) a3;
-	unsigned int	ttl = a4 ? atoi((char *) a4) : 0;
-	unsigned int	priority = a5 ? atoi((char *) a5) : 0;
-	unsigned int	ordinal = a6 ? atoi((char *) a6) : 0;
-	unsigned int	unreliable = a7 ? atoi((char *) a7) : 0;
-	unsigned int	critical = a8 ? atoi((char *) a8) : 0;
+	char		*cmdFileName = (char *) a1;
 	int		interactive = 0;
 #else
 int	main(int argc, char **argv)
 {
-	unsigned long	destNode = argc > 1 ? strtol(argv[1], NULL, 0) : 0;
-	char		*sourcePath = argc > 2 ? argv[2] : NULL;
-	char		*destPath = argc > 3 ? argv[3] : NULL;
-	unsigned int	ttl = argc > 4 ? atoi(argv[4]) : 0;
-	unsigned int	priority = argc > 5 ? atoi(argv[5]) : 0;
-	unsigned int	ordinal = argc > 6 ? atoi(argv[6]) : 0;
-	unsigned int	unreliable = argc > 7 ? atoi(argv[7]) : 0;
-	unsigned int	critical = argc > 8 ? atoi(argv[8]) : 0;
+	char		*cmdFileName = argc > 1 ? argv[1] : NULL;
 	int		interactive = (argc == 1);
 #endif
-	int		retval = 0;
-	CfdpHandler	faultHandlers[16];
-	CfdpNumber	destinationEntityNbr;
-	char		sourceFileNameBuf[256] = "";
-	char		*sourceFileName = NULL;
-	char		destFileNameBuf[256] = "";
-	char		*destFileName = NULL;
-	BpUtParms	utParms = {	0,
-					86400,
-					BP_STD_PRIORITY,
-					NoCustodyRequested,
-					0,
-					0,
-					{ 0, 0, 0 }	};
-	MetadataList	msgsToUser = 0;
-	MetadataList	fsRequests = 0;
-	CfdpTransactionId	transactionId;
+	int		retval=0;
+	CfdpReqParms	parms;
+	int		cmdFile;
+	char		line[256];
+	int		len;
 
 	if (cfdp_init() < 0)
 	{
@@ -654,44 +657,52 @@ int	main(int argc, char **argv)
 		return retval;
 	}
 
-	if (destNode == 0 || sourcePath == NULL || destPath == NULL || ttl == 0)
+	memset((char *) &parms, 0, sizeof(CfdpReqParms));
+	cfdp_compress_number(&parms.destinationEntityNbr, 0);
+	parms.utParms.lifespan = 86400;
+	parms.utParms.classOfService = BP_STD_PRIORITY;
+	parms.utParms.custodySwitch = NoCustodyRequested;
+	if (cmdFileName != NULL)	/*	Scripted.	*/
 	{
-		ionDetach();
-		PUTS("Usage: cfdptest [<destination entity nbr> <source file \
-name> <destination file name> [<time-to-live, in seconds> [<priority: 0, 1, 2> \
-[<ordinal: 0-254> [<unreliable: 0 or 1> [<critical: 0 or 1>]]]]]]");
-		return 0;
+		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		if (cmdFile < 0)
+		{
+			PERROR("Can't open command file");
+		}
+		else
+		{
+			while (1)
+			{
+				if (igets(cmdFile, line, sizeof line, &len)
+						== NULL)
+				{
+					if (len == 0)
+					{
+						break;	/*	Loop.	*/
+					}
+
+					putErrmsg("igets failed.", NULL);
+					break;		/*	Loop.	*/
+				}
+
+				if (len == 0
+				|| line[0] == '#')	/*	Comment.*/
+				{
+					continue;
+				}
+
+				if (processLine(line, len, &parms))
+				{
+					break;	/*	Out of loop.	*/
+				}
+			}
+
+			close(cmdFile);
+		}
 	}
 
-	cfdp_compress_number(&destinationEntityNbr, destNode);
-	isprintf(sourceFileNameBuf, sizeof sourceFileNameBuf, "%.255s",
-			sourcePath);
-	sourceFileName = sourceFileNameBuf;
-	isprintf(destFileNameBuf, sizeof destFileNameBuf, "%.255s", destPath);
-	destFileName = destFileNameBuf;
-	utParms.classOfService = priority;
-	utParms.extendedCOS.ordinal = ordinal;
-	utParms.extendedCOS.flags = 0;
-	if (unreliable)
-	{
-		utParms.extendedCOS.flags |= BP_BEST_EFFORT;
-	}
-
-	if (critical)
-	{
-		utParms.extendedCOS.flags |= BP_MINIMUM_LATENCY;
-	}
-
-	utParms.lifespan = ttl;
-	if (cfdp_put(&destinationEntityNbr, sizeof utParms,
-			(unsigned char *) &utParms, sourceFileName,
-			destFileName, NULL, faultHandlers, 0, NULL,
-			msgsToUser, fsRequests, &transactionId) < 0)
-	{
-		putErrmsg("Can't put FDU.", NULL);
-		retval = 1;
-	}
-
+	writeErrmsgMemos();
+	printText("Stopping cfdptest.");
 	ionDetach();
 	return retval;
 }
