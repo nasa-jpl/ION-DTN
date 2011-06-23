@@ -210,7 +210,7 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 		 *	(Unacknowledged procedures) for this FDU, we
 		 *	do it now.					*/
 
-		if (zco_file_ref_xmit_eof(sdr, fdu.fileRef))
+		if (fdu.fileRef && zco_file_ref_xmit_eof(sdr, fdu.fileRef))
 		{
 			if (fdu.transmitted == 0 && fdu.state != FduCanceled)
 			{
