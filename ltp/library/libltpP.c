@@ -4558,6 +4558,13 @@ putErrmsg("Discarding report.", NULL);
 	sdr_begin_xn(ltpSdr);
 	getSessionContext(ltpdb, sessionNbr, &sessionObj,
 			&sessionBuf, &spanObj, &spanBuf, &vspan, &vspanElt);
+	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
+	{
+		sdr_exit_xn(ltpSdr);
+		MRELEASE(newClaims);
+		return 0;
+	}
+
 	if (sessionObj == 0)
 	{
 		/*	Report for an unknown session: must be in
@@ -4587,8 +4594,7 @@ putErrmsg("Discarding report.", NULL);
 
 	/*	Now process the report if possible.			*/
 
-	if (sessionObj == 0		/*	Session is closed.	*/
-	|| sessionBuf.totalLength == 0)	/*	Reused session nbr.	*/
+	if (sessionBuf.totalLength == 0)/*	Reused session nbr.	*/
 	{
 #if LTPDEBUG
 putErrmsg("Discarding report.", NULL);
