@@ -1486,13 +1486,69 @@ static void	frReplaceFile(char *firstFileName, char *secondFileName,
 			O_TRUNC);
 }
 
+#if (!(defined(VXWORKS) || defined(mingw)))
+static int	mkdirp(const char *pathName, const mode_t fmode)
+{
+	/*	Per Josh Schoolcraft, 23 June 2011.  If the name of
+	 *	the directory to be created is a qualified name,
+	 *	each directory on the path that doesn't already
+	 *	exist is created: at each level of the directory
+	 *	tree a qualified name is used to create the directory
+	 *	that is needed at that level.				*/
+
+	char	pathNameBuf[2560];
+	size_t	pathNameLen;
+	char	*cursor = NULL;
+ 
+	isprintf(pathNameBuf, sizeof(pathNameBuf), "%s", pathName);
+
+	/*	Erase trailing path name separator if any.		*/
+
+	pathNameLen = strlen(pathNameBuf);
+	if (pathNameBuf[pathNameLen - 1] == ION_PATH_DELIMITER)
+	{
+		pathNameBuf[pathNameLen - 1] = 0;
+	}
+
+	/*	Wherever a path name separator is found, we change it
+	 *	to NULL, create a directory using all qualification
+	 *	to that point, and then restore the separator to
+	 *	enable creation of the next directory in the path.	*/
+
+	for (cursor = pathNameBuf + 1; *cursor; cursor++)
+	{
+		if (*cursor == ION_PATH_DELIMITER)
+		{
+		        *cursor = 0;
+			mkdir(pathNameBuf, fmode);
+
+			/*	NOTE: if the qualification path is
+			 *	explicitly relative, mkdirp executes
+			 *	'mkdir .', trying (and failing) to
+			 *	create the current working directory.
+			 *	If the qualification path is absolute,
+			 *	mkdirp tries (and fails) to create
+			 *	the top-level directory for the file
+			 *	system.  In short, the failure of
+			 *	path mkdir operations in mkdirp is
+			 *	not anomalous, so we don't check
+			 *	the return code.			*/
+
+                	*cursor = ION_PATH_DELIMITER;
+		}
+	}
+
+	return mkdir(pathNameBuf, fmode);
+}
+#endif
+
 static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
-#ifdef VXWORKS
+#if (defined(VXWORKS) || defined(mingw))
 	if (mkdir(firstFileName) < 0)
 #else
-	if (mkdir(firstFileName, 00777) < 0)
+	if (mkdirp(firstFileName, 00777) < 0)
 #endif
 	{
 		resp->status = 1;
