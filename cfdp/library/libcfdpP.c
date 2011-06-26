@@ -1323,7 +1323,7 @@ static int	abandonInFdu(CfdpTransactionId *transactionId,
 static void	frCreateFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
-	int	fd = open(firstFileName, O_CREAT, 00777);
+	int	fd = open(firstFileName, O_CREAT, 0777);
 
 	if (fd < 0)
 	{
@@ -1486,69 +1486,13 @@ static void	frReplaceFile(char *firstFileName, char *secondFileName,
 			O_TRUNC);
 }
 
-#if (!(defined(VXWORKS) || defined(mingw)))
-static int	mkdirp(const char *pathName, const mode_t fmode)
-{
-	/*	Per Josh Schoolcraft, 23 June 2011.  If the name of
-	 *	the directory to be created is a qualified name,
-	 *	each directory on the path that doesn't already
-	 *	exist is created: at each level of the directory
-	 *	tree a qualified name is used to create the directory
-	 *	that is needed at that level.				*/
-
-	char	pathNameBuf[2560];
-	size_t	pathNameLen;
-	char	*cursor = NULL;
- 
-	isprintf(pathNameBuf, sizeof(pathNameBuf), "%s", pathName);
-
-	/*	Erase trailing path name separator if any.		*/
-
-	pathNameLen = strlen(pathNameBuf);
-	if (pathNameBuf[pathNameLen - 1] == ION_PATH_DELIMITER)
-	{
-		pathNameBuf[pathNameLen - 1] = 0;
-	}
-
-	/*	Wherever a path name separator is found, we change it
-	 *	to NULL, create a directory using all qualification
-	 *	to that point, and then restore the separator to
-	 *	enable creation of the next directory in the path.	*/
-
-	for (cursor = pathNameBuf + 1; *cursor; cursor++)
-	{
-		if (*cursor == ION_PATH_DELIMITER)
-		{
-		        *cursor = 0;
-			mkdir(pathNameBuf, fmode);
-
-			/*	NOTE: if the qualification path is
-			 *	explicitly relative, mkdirp executes
-			 *	'mkdir .', trying (and failing) to
-			 *	create the current working directory.
-			 *	If the qualification path is absolute,
-			 *	mkdirp tries (and fails) to create
-			 *	the top-level directory for the file
-			 *	system.  In short, the failure of
-			 *	path mkdir operations in mkdirp is
-			 *	not anomalous, so we don't check
-			 *	the return code.			*/
-
-                	*cursor = ION_PATH_DELIMITER;
-		}
-	}
-
-	return mkdir(pathNameBuf, fmode);
-}
-#endif
-
 static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
 #if (defined(VXWORKS) || defined(mingw))
 	if (mkdir(firstFileName) < 0)
 #else
-	if (mkdirp(firstFileName, 00777) < 0)
+	if (mkdir(firstFileName, 0777) < 0)
 #endif
 	{
 		resp->status = 1;
@@ -1753,20 +1697,156 @@ static int	executeFilestoreRequests(InFdu *fdu,
 	return 0;
 }
 
+static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
+			char *fileName, int newFile)
+{
+	char	*wdname;
+
+	if (*fileName == ION_PATH_DELIMITER)	/*	Absolute path.	*/
+	{
+		istrcpy(pathNameBuf, fileName, bufLen);
+	}
+	else
+	{
+		/*	ION working directory is the location for all
+		 *	received files for which destination path name
+		 *	is not absolute.				*/
+
+		wdname = getIonWorkingDirectory();
+		if (*wdname == ION_PATH_DELIMITER)
+		{
+			/*	The cwd path name starts with the path
+			 *	delimiter, so it's a POSIX file system,
+			 *	so stringBuf is *not* an absolute path
+			 *	name, so compute absolute path name.	*/
+
+			isprintf(pathNameBuf, bufLen, "%.255s%c%.255s",
+					wdname, ION_PATH_DELIMITER, fileName);
+		}
+		else	/*	Assume file name is an absolute path.	*/
+		{
+			istrcpy(pathNameBuf, fileName, bufLen);
+		}
+	}
+
+	if (!newFile)
+	{
+		return;
+	}
+
+#if (!(defined(VXWORKS) || defined(mingw)))
+	/*	If nothing has yet been written to this file, create
+	 *	(as necessary) the directory in which the file is to
+	 *	be created.
+	 *
+	 *	Per Josh Schoolcraft, 23 June 2011.
+	 *
+	 *	Given the destination file's qualified pathname, try
+	 *	to make sure the directory in which the file is to be
+	 *	created exists.
+	 *
+	 *	Each directory on the path that doesn't already exist
+	 *	is created: at each level of the directory tree a
+	 *	qualified name is used to create the directory that
+	 *	is needed at that level.
+	 *
+	 *	Note that the length of the path name is known not
+	 *	to be zero: if no Metadata yet, or if the destination
+	 *	file name in the Metadata PDU was of length zero,
+	 *	then getFileName() made up a name based on the FDU's
+	 *	transaction ID because fdu->workingFileName was zero.	*/
+
+	size_t	pathNameLen;
+	char	*cursor;
+	char	*lastPathSeparator = NULL;
+ 
+	pathNameLen = istrlen(pathNameBuf, bufLen);
+	if (pathNameLen > MAXPATHLEN)		/*	Too long.	*/
+	{
+		return;		/*	Can't create the directory.	*/
+	}
+
+	/*	Temporarily strip off the unqualified file name, i.e.,
+	 *	everything after and including the last path separator
+	 *	character.						*/
+
+	cursor = pathNameBuf + pathNameLen;	/*	Terminal NULL.	*/
+	while (cursor > pathNameBuf)
+	{
+		if (*cursor == ION_PATH_DELIMITER)
+		{
+			lastPathSeparator = cursor;
+			*cursor = 0;	/*	Delimit at file name.	*/
+			break;
+		}
+
+		cursor--;
+	}
+
+	/*	Now create directories along the path as necessary.
+	 *	Wherever a path name separator is found, we change
+	 *	it to NULL, create a directory using all qualification
+	 *	to that point, and then restore the separator to
+	 *	enable creation of the next directory in the path.
+	 *
+	 *	We skip over the first byte of the path name: if
+	 *	it's not a path name separator then we wouldn't act
+	 *	on it anyway, and if it is then we want to ignore
+	 *	it since we'd never create a top-level directory
+	 *	with a name of length zero.				*/
+
+	for (cursor = pathNameBuf + 1; *cursor; cursor++)
+	{
+		if (*cursor == ION_PATH_DELIMITER)
+		{
+		        *cursor = 0;
+			oK(mkdir(pathNameBuf, 0777));
+
+			/*	NOTE: if the qualification path is
+			 *	explicitly relative, we execute
+			 *	'mkdir .', trying (and failing) to
+			 *	create the current working directory.
+			 *	If the qualification path is absolute,
+			 *	we might try (and fail) to create the
+			 *	top-level directory for the file
+			 *	system.  In short, the failure of path
+			 *	mkdir operations is not anomalous, so
+			 *	we don't check the return code.		*/
+
+                	*cursor = ION_PATH_DELIMITER;
+		}
+	}
+
+	/*	Now create the destination directory itself.		*/
+
+	oK(mkdir(pathNameBuf, 0777));
+
+	/*	And restore the original qualified path name.		*/
+
+	if (lastPathSeparator)
+	{
+		*lastPathSeparator = ION_PATH_DELIMITER;
+	}
+}
+#endif
+
 static void	renameWorkingFile(InFdu *fduBuf)
 {
 	Sdr	sdr = getIonsdr();
 	char	workingFileName[256];
 	char	destFileName[256];
+	char	qualifiedFileName[MAXPATHLEN + 2];
 	char	renameErrBuffer[600];
 
 	sdr_string_read(sdr, workingFileName, fduBuf->workingFileName);
 	sdr_string_read(sdr, destFileName, fduBuf->destFileName);
-	if (rename(workingFileName, destFileName) < 0)
+	getQualifiedFileName(qualifiedFileName, sizeof qualifiedFileName,
+			destFileName, 1);
+	if (rename(workingFileName, qualifiedFileName) < 0)
 	{
 		isprintf(renameErrBuffer, sizeof renameErrBuffer,
 				"CFDP can't rename '%s' to '%s'",
-				workingFileName, destFileName);
+				workingFileName, qualifiedFileName);
 		putSysErrmsg(renameErrBuffer, NULL);
 	}
 }
@@ -2412,6 +2492,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 			int dataFieldLength, InFdu *fdu, Object fduObj,
 			Object fduElt)
 {
+	int		firstSegment = (fdu->progress == 0);
 	int		i;
 	unsigned int	segmentOffset = 0;
 	CfdpEvent	event;
@@ -2427,8 +2508,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	Object		nextElt = 0;
 	unsigned int	bytesToSkip;
 	char		stringBuf[256];
-	char		*wdname;
-	char		workingNameBuffer[600];
+	char		workingNameBuffer[MAXPATHLEN + 2];
 	off_t		endOfFile;
 	unsigned int	fileLength;
 	Object		nextAddr;
@@ -2571,7 +2651,9 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 
 	nextElt = sdr_list_next(sdr, elt);
 
-	/*	Open the file if necessary.				*/
+	/*	Open the file (possibly a temporary working file) if
+	 *	it's not the currently open file.  First figure out
+	 *	the file's fully-qualified name.			*/
 
 	if (getFileName(fdu, stringBuf, sizeof stringBuf) < 0)
 	{
@@ -2579,36 +2661,12 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 		return -1;
 	}
 
-	if (stringBuf[0] == ION_PATH_DELIMITER)	/*	Absolute path.	*/
-	{
-		istrcpy(workingNameBuffer, stringBuf, sizeof workingNameBuffer);
-	}
-	else
-	{
-		/*	ION working directory is the location for all
-		 *	received files for which destination path name
-		 *	is not absolute.				*/
+	getQualifiedFileName(workingNameBuffer, sizeof workingNameBuffer,
+			stringBuf, firstSegment);
 
-		wdname = getIonWorkingDirectory();
-		if (*wdname == ION_PATH_DELIMITER)
-		{
-			/*	Path names *do* start with the path
-			 *	delimiter, so it's a POSIX file system,
-			 *	so stringBuf is *not* an absolute path
-			 *	name, so compute absolute path name.	*/
+	/*	Now open the file, creating it if necessary.		*/
 
-			isprintf(workingNameBuffer, sizeof workingNameBuffer,
-					"%.255s%c%.255s", wdname,
-					ION_PATH_DELIMITER, stringBuf);
-		}
-		else	/*	Assume file name is an absolute path.	*/
-		{
-			istrcpy(workingNameBuffer, stringBuf,
-					sizeof workingNameBuffer);
-		}
-	}
-
-	if (cfdpvdb->currentFdu != fduObj)
+	if (cfdpvdb->currentFdu != fduObj)	/*	Switching FDU.	*/
 	{
 		if (cfdpvdb->currentFile != -1)
 		{
@@ -2618,7 +2676,7 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 
 		cfdpvdb->currentFdu = fduObj;
 		cfdpvdb->currentFile = open(workingNameBuffer,
-				O_RDWR | O_CREAT, 00777);
+				O_RDWR | O_CREAT, 0777);
 		if (cfdpvdb->currentFile < 0)
 		{
 			putSysErrmsg("Can't open working file",
