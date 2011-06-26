@@ -16,6 +16,7 @@ AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
 AC_CONFIG_SRCDIR([ici/include/ion.h])
 AC_CONFIG_HEADER([config.h])
 
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_LIBTOOL
@@ -39,17 +40,17 @@ fi
 # Checks for libraries.
 # these are libraries that ALREADY EXIST BEFORE BUILDING
 AC_CHECK_LIB(
-    [expat], 
-    [XML_GetCurrentLineNumber], 
-    [ AC_SUBST( [EXPAT_LIBS], ["-lexpat"] ) ],
-    [AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])]
+	[expat], 
+	[XML_GetCurrentLineNumber], 
+	[ AC_SUBST( [EXPAT_LIBS], ["-lexpat"] ) ],
+	[AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])]
 )
 
 AC_CHECK_LIB(
-    [pthread], 
-    [pthread_create], 
-    [ AC_SUBST( [PTHREAD_LIBS], ["-lpthread"] ) ],
-    [AC_MSG_ERROR([You need pthread library.]) ]
+	[pthread], 
+	[pthread_create], 
+	[ AC_SUBST( [PTHREAD_LIBS], ["-lpthread"] ) ],
+	[AC_MSG_ERROR([You need pthread library.]) ]
 )
 
 
@@ -58,6 +59,22 @@ AC_CHECK_LIB(
 #
 AC_CHECK_HEADERS(valgrind/valgrind.h)
 
+
+# Dynamically choose whether or not to instrument code for gcov code coverage
+# Default is not to instrument the code for gcov code coverage.
+# To use gcov code coverage instrumentation, use "./configure --enable-gcov"
+AC_ARG_WITH([gcov],
+[AS_HELP_STRING([--with-gcov], [Turn on code coverage instrumentation])],
+[gcov=yes;],
+[])
+if test "x$gcov" = "xyes" ; then
+	echo "Instrument code for gcov coverage analysis... yes"
+	CFLAGS="${CFLAGS} -g -O0 -fprofile-arcs -ftest-coverage"
+	LDFLAGS="${LDFLAGS} -fprofile-arcs -ftest-coverage -lgcov"
+else
+	echo "Instrument code for gcov coverage analysis... no"
+fi
+AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
 
 # Checks for header files.
 AC_HEADER_DIRENT
