@@ -84,7 +84,7 @@ cov-clean:
 
 cov-report:
 	@mkdir -p coverage
-	@lcov --compat-libtool --directory . --capture --output-file coverage/app.info  
+	@lcov --compat-libtool --directory . -b . --capture --output-file coverage/app.info  
 	@genhtml -o coverage/ coverage/app.info 
 
 cov:
