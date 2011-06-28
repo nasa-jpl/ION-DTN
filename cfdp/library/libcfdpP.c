@@ -2681,7 +2681,7 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 		{
 			putSysErrmsg("Can't open working file",
 					workingNameBuffer);
-			return handleFilestoreRejection(fdu, -1, &handler);
+			return handleFilestoreRejection(fdu, 0, &handler);
 		}
 	}
 

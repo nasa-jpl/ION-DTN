@@ -78,8 +78,10 @@ Valid values are 0-254.  If not specified, ordinal is 0.
 
 The B<mode> command.  This command establishes the transmission mode
 ("best-effort" or assured) for all subsequently issued bundles containing
-CFDP PDUs.  Valid values are 0 (assured, reliable) and 1 (best-effort,
-unreliable).  If not specified, transmission mode is 0.
+CFDP PDUs.  Valid values are 0 (assured, reliable, with reliability
+provided by a reliable DTN convergence layer protocol), 1 (best-effort,
+unreliable), and 2 (assured, reliable, but with reliability provided by BP
+custody transfer).  If not specified, transmission mode is 0.
 
 =item B<c> <criticality>
 

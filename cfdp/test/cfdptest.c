@@ -183,23 +183,23 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 		return;
 	}
 
-	mode = (strtol(tokens[1], NULL, 0) == 0 ? 0 : 1);
-	if (mode & 0x01)
+	mode = strtol(tokens[1], NULL, 0);
+	if (mode & 0x01)	/*	Unreliable.			*/
 	{
 		utParms->extendedCOS.flags |= BP_BEST_EFFORT;
 	}
 	else	/*	Default: ECOS best-efforts flag = 0.		*/
 	{
-		utParms->extendedCOS.flags &= (~BP_BEST_EFFORT);
-	}
-
-	if (mode & 0x02)
-	{
-		utParms->custodySwitch = SourceCustodyRequired;
-	}
-	else	/*	Default: no BP custody transfer.		*/
-	{
-		utParms->custodySwitch = NoCustodyRequested;
+		if (mode & 0x02)	/*	Native BP reliability.	*/
+		{
+			utParms->extendedCOS.flags |= BP_BEST_EFFORT;
+			utParms->custodySwitch = SourceCustodyRequired;
+		}
+		else		/*	Convergence-layer reliability.	*/
+		{
+			utParms->extendedCOS.flags &= (~BP_BEST_EFFORT);
+			utParms->custodySwitch = NoCustodyRequested;
+		}
 	}
 }
 
