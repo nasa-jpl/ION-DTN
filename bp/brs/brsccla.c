@@ -207,6 +207,7 @@ int	main(int argc, char *argv[])
 	char			*hostName;
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
+	char			clEid[MAXHOSTNAMELEN + 7];
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
 	int			ductSocket;
@@ -328,6 +329,7 @@ number>");
 		portNbr = 80;
 	}
 
+	isprintf(clEid, sizeof clEid, "%.255s:%hu", hostName, portNbr);
 	portNbr = htons(portNbr);
 	if (hostNbr == 0)
 	{
@@ -431,7 +433,7 @@ number>");
 	receiverParms.ductSocket = &ductSocket;
 	receiverParms.running = &running;
 	receiverParms.senderEid = receiverParms.senderEidBuffer;
-	getSenderEid(&(receiverParms.senderEid), hostName);
+	getSenderEid(&(receiverParms.senderEid), clEid);
         if (pthread_create(&receiverThread, NULL, receiveBundles,
 			&receiverParms))
 	{

@@ -42,6 +42,8 @@ static void	*handleDatagrams(void *parm)
 	struct sockaddr_in	fromAddr;
 	unsigned int		hostNbr;
 	char			hostName[MAXHOSTNAMELEN + 1];
+	unsigned short		portNbr;
+	char			clEid[MAXHOSTNAMELEN + 7];
 	char			senderEidBuffer[SDRSTRING_BUFSZ];
 	char			*senderEid;
 
@@ -89,10 +91,13 @@ static void	*handleDatagrams(void *parm)
 		memcpy((char *) &hostNbr,
 				(char *) &(fromAddr.sin_addr.s_addr), 4);
 		hostNbr = ntohl(hostNbr);
+		portNbr = ntohs(fromAddr.sin_port);
 		if (getInternetHostName(hostNbr, hostName))
 		{
+			isprintf(clEid, sizeof clEid, "%.255s:%hu",
+					hostName, portNbr);
 			senderEid = senderEidBuffer;
-			getSenderEid(&senderEid, hostName);
+			getSenderEid(&senderEid, clEid);
 		}
 		else
 		{

@@ -334,6 +334,8 @@ static void	*spawnReceivers(void *parm)
 	struct sockaddr_in	*fromAddr;
 	unsigned int		hostNbr;
 	char			hostName[MAXHOSTNAMELEN + 1];
+	unsigned short		portNbr;
+	char			clEid[MAXHOSTNAMELEN + 7];
 	pthread_t		thread;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -398,10 +400,13 @@ thread", NULL);
 		memcpy((char *) &hostNbr,
 				(char *) &(fromAddr->sin_addr.s_addr), 4);
 		hostNbr = ntohl(hostNbr);
+		portNbr = ntohs(fromAddr->sin_port);
 		if (getInternetHostName(hostNbr, hostName))
 		{
+			isprintf(clEid, sizeof clEid, "%.255s:%hu",
+					hostName, portNbr);
 			parms->senderEid = parms->senderEidBuffer;
-			getSenderEid(&(parms->senderEid), hostName);
+			getSenderEid(&(parms->senderEid), clEid);
 		}
 		else
 		{

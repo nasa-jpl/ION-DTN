@@ -218,6 +218,7 @@ static void	*receiveBundles(void *parm)
 	int			errnbr;
 	Object			bundleZco;
 	char			hostName[MAXHOSTNAMELEN + 1];
+	char			clEid[MAXHOSTNAMELEN + 7];
 	char			senderEidBuffer[SDRSTRING_BUFSZ];
 	char			*senderEid;
 
@@ -366,8 +367,10 @@ bundle ZCO.", NULL);
 
 		if (getInternetHostName(fromHostNbr, hostName))
 		{
+			isprintf(clEid, sizeof clEid, "%.255s:%hu", hostName,
+					fromPortNbr);
 			senderEid = senderEidBuffer;
-			getSenderEid(&senderEid, hostName);
+			getSenderEid(&senderEid, clEid);
 		}
 		else
 		{
