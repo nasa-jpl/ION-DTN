@@ -558,7 +558,6 @@ origin->nodeNbr, node->nodeNbr);
 static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 			Object bundleObj, IonNode *stationNode)
 {
-	char		*decoration;
 	unsigned long	serviceNbr;
 	char		stationEid[64];
 	PsmPartition	ionwm;
@@ -566,11 +565,6 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	IonSnub		*snub;
 	BpEvent		event;
 
-#if BP_URI_RFC
-	decoration = "dtn::";
-#else
-	decoration = "";
-#endif
 	if (proxNode->neighborNodeNbr == bundle->destination.c.nodeNbr)
 	{
 		serviceNbr = bundle->destination.c.serviceNbr;
@@ -580,8 +574,8 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 		serviceNbr = 0;
 	}
 
-	isprintf(stationEid, sizeof stationEid, "%.5s%.8s:%lu.%lu", decoration,
-		CBHE_SCHEME_NAME, proxNode->neighborNodeNbr, serviceNbr);
+	isprintf(stationEid, sizeof stationEid, "ipn:%lu.%lu",
+			proxNode->neighborNodeNbr, serviceNbr);
 
 	/*	If this neighbor is a currently snubbing neighbor
 	 *	for this final destination (i.e., one that has been

@@ -1131,7 +1131,7 @@ int	handleDirectoryListingRequest(CfdpUserOpsData *opsData)
 
 	isprintf(listingFileName, sizeof listingFileName, "dirlist_%lu",
 			(unsigned long) time(NULL));
-	listing = open(listingFileName, O_WRONLY | O_CREAT | O_TRUNC, 00777);
+	listing = iopen(listingFileName, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (listing < 0)
 	{
 		putSysErrmsg("Can't create directory listing file",

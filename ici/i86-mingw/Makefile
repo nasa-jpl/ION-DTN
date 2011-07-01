@@ -61,7 +61,7 @@ UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh owltsim
 # owlttb
 
-ALL = check libici.dll rfxclock winion $(UTILITIES) $(TESTPGMS)
+ALL = check libici.dll rfxclock killm winion $(UTILITIES) $(TESTPGMS)
 
 all:		$(ALL)
 
@@ -102,6 +102,10 @@ ionadmin:	ionadmin.o libici.dll
 ionsecadmin:	ionsecadmin.o libici.dll
 		$(CC) -o ionsecadmin ionsecadmin.o -L./lib -lici -lpthread
 		cp ionsecadmin ./bin
+
+killm:		killm.o libici.dll
+		$(CC) -o killm killm.o -L./lib -lici -lpthread
+		cp killm ./bin
 
 #	-	-	Test executables	-	-	-	-
 

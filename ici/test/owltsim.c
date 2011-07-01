@@ -38,6 +38,14 @@ typedef struct
 	char		content[1];
 } DG;
 
+static void	owltsimExit(int returnCode)
+{
+#ifdef mingw
+	oK(_winsock(1));
+#endif
+	exit(returnCode);
+}
+
 /*	*	*	Timer thread functions	*	*	*	*/
 
 static void	deleteDG(LystElt elt, void *userdata)
@@ -65,7 +73,7 @@ static void	*sendUdp(void *parm)
 		getCurrentTime(&currentTime);
 		if (sm_SemTake(stp->mutex) < 0)
 		{
-			exit(0);
+			owltsimExit(0);
 		}
 
 		for (elt = lyst_first(stp->transmission); elt; elt = nextElt)
@@ -144,7 +152,7 @@ static void	*receiveUdp(void *parm)
 	if (buffer == NULL)
 	{
 		puts("owltsim out of memory.");
-		exit(0);
+		owltsimExit(0);
 	}
 
 	/*	Create reception socket.				*/
@@ -153,7 +161,7 @@ static void	*receiveUdp(void *parm)
 	if (stp->insock < 0)
 	{
 		perror("owltsim can't open reception socket");
-		exit(1);
+		owltsimExit(1);
 	}
 
 	inetName = (struct sockaddr_in *) &socketName;
@@ -168,7 +176,7 @@ static void	*receiveUdp(void *parm)
 	{
 		perror("owltsim can't initialize reception socket");
 		printf("port number: %hu\n", stp->myPortNbr);
-		exit(0);
+		owltsimExit(0);
 	}
 
 	/*	Create transmisssion socket.				*/
@@ -183,7 +191,7 @@ static void	*receiveUdp(void *parm)
 	if (stp->outsock < 0)
 	{
 		perror("owltsim can't open transmission socket");
-		exit(1);
+		owltsimExit(1);
 	}
 
 	nameLength = sizeof(struct sockaddr);
@@ -194,7 +202,7 @@ static void	*receiveUdp(void *parm)
 		perror("owltsim can't initialize transmission socket");
 		printf("host name: %s\n", stp->destHostName);
 		printf("port number: %hu\n", stp->destPortNbr);
-		exit(1);
+		owltsimExit(1);
 	}
 
 	/*	Create transmission stream list and mutex.		*/
@@ -203,7 +211,7 @@ static void	*receiveUdp(void *parm)
 	if (stp->transmission == NULL)
 	{
 		puts("owltsim out of memory.");
-		exit(1);
+		owltsimExit(1);
 	}
 
 	lyst_delete_set(stp->transmission, deleteDG, NULL);
@@ -214,7 +222,7 @@ static void	*receiveUdp(void *parm)
 	if (pthread_create(&(stp->timerThread), NULL, sendUdp, stp))
 	{
 		perror("owltsim can't spawn timer thread");
-		exit(1);
+		owltsimExit(1);
 	}
 
 	/*	Main loop for UDP datagram reception and handling.	*/
@@ -254,7 +262,7 @@ a dg of length %d from %s destined for %s.\n", timebuf, datagramLen,
 		if (dg == NULL)
 		{
 			puts("owltsim out of memory.");
-			exit(0);
+			owltsimExit(0);
 		}
 
 		dg->xmitTime.tv_sec = currentTime.tv_sec + stp->owlt;
@@ -263,13 +271,13 @@ a dg of length %d from %s destined for %s.\n", timebuf, datagramLen,
 		memcpy(dg->content, buffer, datagramLen);
 		if (sm_SemTake(stp->mutex) < 0)
 		{
-			exit(0);
+			owltsimExit(0);
 		}
 
 		if (lyst_insert_last(stp->transmission, dg) == NULL)
 		{
 			puts("owltsim out of memory.");
-			exit(0);
+			owltsimExit(0);
 		}
 
 		sm_SemGive(stp->mutex);
@@ -322,6 +330,13 @@ int	main(int argc, char *argv[])
 	 *	the indicated link.  Then snooze forever.		*/
 
 	srand(time(NULL));
+#ifdef mingw
+	if (_winsock(0) < 0)
+	{
+		putErrmsg("Can't start WinSock.", NULL);
+		exit(1);
+	}
+#endif
 	stpBuf.verbose = 0;
 	switch (argc)
 	{
@@ -349,7 +364,7 @@ int	main(int argc, char *argv[])
 		puts("a non-zero value for <modulus> then owltsim will");
 		puts("randomly discard one out of every <modulus> datagrams");
 		puts("it receives on this simulated link.");
-		exit(0);
+		owltsimExit(0);
 	}
 
 	sm_ipc_init();
@@ -358,7 +373,7 @@ int	main(int argc, char *argv[])
 	{
 		perror("owltsim can't open configuration file");
 		printf("file name is '%s'.\n", argv[1]);
-		exit(1);
+		owltsimExit(1);
 	}
 
 	while (reading)
@@ -379,14 +394,14 @@ int	main(int argc, char *argv[])
 			}
 
 			perror("owltsim failed on fscanf");
-			exit(1);
+			owltsimExit(1);
 
 		case 7:
 			stp = (SimThreadParms *) malloc(sizeof(SimThreadParms));
 			if (stp == NULL)
 			{
 				puts("owltsim out of memory.");
-				exit(1);
+				owltsimExit(1);
 			}
 
 			memcpy((char *) stp, (char *) &stpBuf,
@@ -394,14 +409,14 @@ int	main(int argc, char *argv[])
 			if (pthread_create(&simThread, NULL, receiveUdp, stp))
 			{
 				perror("owltsim can't spawn receiver thread");
-				exit(1);
+				owltsimExit(1);
 			}
 
 			continue;
 
 		default:
 			printf("owlt stopped: malformed config file line %d.\n",					lineNbr);
-			exit(1);
+			owltsimExit(1);
 		}
 	}
 
@@ -410,5 +425,8 @@ int	main(int argc, char *argv[])
 
 	snooze(2000000000);
 	puts("owltsim is ending.");
-	exit(0);
+#ifdef mingw
+	oK(_winsock(1));
+#endif
+	return 0;
 }

@@ -3233,7 +3233,7 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 
 	isprintf(name, sizeof name, "%s%cltpblock.%lu.%lu", cwd,
 		ION_PATH_DELIMITER, span->engineId, session->sessionNbr);
-	fd = open(name, O_WRONLY | O_CREAT, 0666);
+	fd = iopen(name, O_WRONLY | O_CREAT, 0666);
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't create block file", name);
@@ -3360,7 +3360,7 @@ static int	writeBlockExtentToFile(ImportSession *session,
 	 *	recreate that file for as long as is needed to deal
 	 *	with the leftover retransmitted segments.		*/
 
-	fd = open(fileName, O_WRONLY | O_CREAT, 0666);
+	fd = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't open block file", fileName);

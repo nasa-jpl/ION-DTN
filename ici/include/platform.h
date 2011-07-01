@@ -102,6 +102,7 @@ extern "C" {
 #define SOCK_CLOEXEC		0
 #endif
 #define closesocket(x)		close(x)
+#define iopen(a,b,c)		open(a,b,c)
 #define isend(a,b,c,d)		send(a,b,c,d)
 #define irecv(a,b,c,d)		recv(a,b,c,d)
 #define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
@@ -272,6 +273,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #define	MAXPATHLEN		(MAX_PATH)
 
 extern int	_winsock(int stopping);
+extern int	iopen(const char *fileName, int flags, int pmode);
 extern int	isend(int sockfd, char *buf, int len, int flags);
 extern int	irecv(int sockfd, char *buf, int len, int flags);
 extern int	isendto(int sockfd, char *buf, int len, int flags,
@@ -353,25 +355,6 @@ int getpriority(int, id_t);
 
 #endif				/****	End of #ifdef freebsd	     ****/
 
-#ifdef cygwin			/****	Cygwin			     ****/
-
-#include <malloc.h>
-#include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
-#include <pthread.h>
-
-#define	_MULTITHREADED
-
-struct msgbuf			/****	Might be defined in cygipc...****/
-{
-	long 		mtype;		/*	type of rcvd/sent msg	*/
-	char		mtext[1];	/*	text of the message	*/
-};
-
-#undef FDTABLE_SIZE
-#define	FDTABLE_SIZE	(64)	/****	getdtablesize() is buggy?    ****/
-
-#endif				/****	End of #ifdef cygwin	     ****/
-
 #ifdef darwin			/****	Mac OS X		     ****/
 
 #include <sys/malloc.h>
@@ -385,20 +368,6 @@ struct msgbuf			/****	Might be defined in cygipc...****/
 #define	_MULTITHREADED
 
 #endif				/****	End of #ifdef darwin	     ****/
-
-#ifdef interix			/****	Windows services for Unix    ****/
-
-#include <pthread.h>
-
-#define	_MULTITHREADED
-
-#ifndef MSG_NOSIGNAL
-#define	MSG_NOSIGNAL		0
-#endif
-
-typedef int			socklen_t;
-
-#endif				/****	End of #ifdef interix        ****/
 
 #endif				/****	End of #ifdef (__SVR4)       ****/
 
@@ -423,9 +392,7 @@ typedef int			socklen_t;
  *	exceed SEMMNI * SEMMSL.						*/
 
 #ifndef SEMMNI			/****	SEMMNI			     ****/
-#if defined (cygwin)
-#define SEMMNI			10
-#elif defined (freebsd)
+#if defined (freebsd)
 #define SEMMNI			10
 #else
 #define SEMMNI			128
@@ -433,9 +400,7 @@ typedef int			socklen_t;
 #endif				/****	End of #ifndef SEMMNI	     ****/
 
 #ifndef SEMMSL			/****	SEMMSL			     ****/
-#if defined (cygwin)
-#define SEMMSL			6
-#elif defined (freebsd)
+#if defined (freebsd)
 #define SEMMSL			6
 #else
 #define SEMMSL			250
@@ -443,9 +408,7 @@ typedef int			socklen_t;
 #endif				/****	End of #ifndef SEMMSL	     ****/
 
 #ifndef SEMMNS			/****	SEMMNS			     ****/
-#if defined (cygwin)
-#define SEMMNS			60
-#elif defined (freebsd)
+#if defined (freebsd)
 #define SEMMNS			60
 #else
 #define SEMMNS			32000

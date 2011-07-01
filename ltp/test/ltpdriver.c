@@ -59,7 +59,7 @@ static int	run_ltpdriver(int cyclesRemaining, unsigned long destEngineId,
 		randomAduLength = 1;
 	}
 
-	aduFile = open("ltpdriverAduFile", O_WRONLY | O_CREAT, 0666);
+	aduFile = iopen("ltpdriverAduFile", O_WRONLY | O_CREAT, 0666);
 	if (aduFile < 0)
 	{
 		putSysErrmsg("Can't create ADU file", NULL);

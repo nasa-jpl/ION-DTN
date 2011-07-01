@@ -33,10 +33,11 @@ software or related materials to foreign countries or providing
 access to foreign persons.
 *******************************************************************
 
-Note: ION's implementation of AMS depends on the "expat" XML parsing library
+Note: the default build of AMS depends on the "expat" XML parsing library
 for C.  expat is included in just about all distributions of Linux and other
 Unix-derived operating systems, but not in (for example) VxWorks 5.4.  If
-you need to build AMS for an operating environment that lacks expat, please
-download expat from SourceForge and install as advised:
+you need to build AMS for an operating environment that lacks expat, either
+compile with the -DNOEXPAT switch set or else download expat from SourceForge
+and install as advised:
 
 	http://expat.sourceforge.net

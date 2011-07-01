@@ -1004,7 +1004,7 @@ static int	runIonadmin(char *cmdFileName)
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
 			PERROR("Can't open command file");

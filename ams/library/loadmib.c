@@ -1471,7 +1471,7 @@ static AmsMib	*loadMibFromRcSource(char *mibSource)
 		mibSource = "mib.amsrc";
 	}
 
-	sourceFile = open(mibSource, O_RDONLY, 00777);
+	sourceFile = iopen(mibSource, O_RDONLY, 0777);
 	if (sourceFile < 0)
 	{
 		putSysErrmsg("Can't open MIB source file", mibSource);
@@ -1540,7 +1540,7 @@ static AmsMib	*loadMibFromXmlSource(char *mibSource)
 		mibSource = "amsmib.xml";
 	}
 
-	sourceFile = open(mibSource, O_RDONLY, 00777);
+	sourceFile = iopen(mibSource, O_RDONLY, 0777);
 	if (sourceFile < 0)
 	{
 		putSysErrmsg("Can't open MIB source file", mibSource);

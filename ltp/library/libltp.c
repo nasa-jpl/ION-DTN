@@ -79,7 +79,7 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	 *	block must have the same client service ID, and
 	 *	no service data unit can be added to a block that
 	 *	has any green data (only all-red service data units
-	 *	can be aggregated in a single block.			*/
+	 *	can be aggregated in a single block).			*/
 
 	while (1)
 	{

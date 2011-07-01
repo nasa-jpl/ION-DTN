@@ -247,7 +247,7 @@ static int	_petitionLog(char *logLine)
 		{
 			/*	Recover all known petition activity.	*/
 
-			petitionLog = open("petition.log",
+			petitionLog = iopen("petition.log",
 					O_RDWR | O_CREAT | O_APPEND, 0777);
 			if (petitionLog < 0)
 			{

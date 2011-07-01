@@ -6,9 +6,9 @@
 	Copyright (c) 2011, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
 									*/
 #include "ion.h"
+#include <signal.h>
 
 #define	MAX_ION_IPCS	200
 
@@ -106,6 +106,7 @@ int	main(int argc, char *argv[])
 	}
 
 	memset((char *) ipcs, 0, sizeof ipcs);
+	signal(SIGINT, SIG_IGN);
 	while (ionRunning)
 	{
 		fConnected = ConnectNamedPipe(hPipe, NULL) ? TRUE

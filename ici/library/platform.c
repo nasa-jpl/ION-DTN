@@ -326,6 +326,7 @@ void	*memalign(size_t boundary, size_t size)
 
 #endif
 
+#ifndef VXWORKS
 int	createFile(const char *filename, int flags)
 {
 	int	result;
@@ -334,7 +335,7 @@ int	createFile(const char *filename, int flags)
 	 *	writing.  The only portable flag values are
 	 *	O_WRONLY and O_RDWR.  See creat(2) and open(2).		*/
 
-	result = open(filename, (flags | O_CREAT | O_TRUNC), 0666);
+	result = iopen(filename, (flags | O_CREAT | O_TRUNC), 0666);
 	if (result < 0)
 	{
 		putSysErrmsg("can't create file", filename);
@@ -342,6 +343,7 @@ int	createFile(const char *filename, int flags)
 
 	return result;
 }
+#endif
 
 #ifdef _MULTITHREADED
 
@@ -448,7 +450,7 @@ void	unlockResource(ResourceLock *rl)
 
 #endif				/*	end #ifdef _MULTITHREADED	*/
 
-#if (!defined (linux) && !defined (freebsd) && !defined (cygwin) && !defined (darwin) && !defined (RTEMS)) && !defined (mingw)
+#if (!defined (linux) && !defined (freebsd) && !defined (darwin) && !defined (RTEMS)) && !defined (mingw)
 /*	These things are defined elsewhere for Linux-like op systems.	*/
 
 extern int	sys_nerr;
@@ -470,7 +472,7 @@ char	*getNameOfUser(char *buffer)
 	return cuserid(buffer);
 }
 
-#endif	/*	end #if (!defined(linux, cygwin, darwin, RTEMS, mingw))	*/
+#endif	/*	end #if (!defined(linux, darwin, RTEMS, mingw))		*/
 
 void	closeOnExec(int fd)
 {
@@ -478,58 +480,6 @@ void	closeOnExec(int fd)
 	fcntl(fd, F_SETFD, FD_CLOEXEC);
 #endif
 }
-
-#ifdef cygwin	/*	select may be slower but 1.3 lacks nanosleep.	*/
-
-void	snooze(unsigned int seconds)
-{
-	struct timeval	tv;
-	fd_set		rfds;
-	fd_set		wfds;
-	fd_set		xfds;
-
-	FD_ZERO(&rfds);
-	FD_ZERO(&wfds);
-	FD_ZERO(&xfds);
-	tv.tv_sec = seconds;
-	tv.tv_usec = 0;
-	oK(select(0, &rfds, &wfds, &xfds, &tv));
-}
-
-void	microsnooze(unsigned int usec)
-{
-	struct timeval	tv;
-	fd_set		rfds;
-	fd_set		wfds;
-	fd_set		xfds;
-
-	FD_ZERO(&rfds);
-	FD_ZERO(&wfds);
-	FD_ZERO(&xfds);
-	tv.tv_sec = usec / 1000000;
-	tv.tv_usec = usec % 1000000;
-	oK(select(0, &rfds, &wfds, &xfds, &tv));
-}
-
-#endif					/*	end #ifdef cygwin	*/
-
-#ifdef interix
-
-void	snooze(unsigned int seconds)
-{
-	oK(sleep(seconds));
-}
-
-void	microsnooze(unsigned int usec)
-{
-	unsigned int	seconds = usec / 1000000;
-
-	if (seconds > 0) seconds = sleep(seconds);
-	usec = usec % 1000000;
-	oK(usleep(usec));
-}
-
-#endif					/*	end #ifdef interix	*/
 
 #if defined (mingw)
 
@@ -545,9 +495,7 @@ void	microsnooze(unsigned int usec)
 
 #endif					/*	end #ifdef mingw	*/
 
-#if (!defined (cygwin) && !defined (interix) && !defined (mingw))
-
-					/*	nanosleep is defined.	*/
+#if (!defined (mingw))			/*	nanosleep is defined.	*/
 
 void	snooze(unsigned int seconds)
 {
@@ -567,7 +515,7 @@ void	microsnooze(unsigned int usec)
 	oK(nanosleep(&ts, NULL));
 }
 
-#endif		/*	end #if (!defined(cygwin, interix, mingw))	*/
+#endif	/*	end #if (!defined(mingw))				*/
 
 void	getCurrentTime(struct timeval *tvp)
 {
@@ -989,7 +937,7 @@ int	watchSocket(int fd)
 
 #endif			/*	end of #if defined (mingw)		*/
 
-#if (defined (linux) || defined (freebsd) || defined (cygwin) || defined (darwin) || defined (RTEMS))
+#if (defined (linux) || defined (freebsd) || defined (darwin) || defined (RTEMS))
 
 char	*system_error_msg()
 {
@@ -1122,11 +1070,17 @@ int	watchSocket(int fd)
 	return result;
 }
 
-#endif	/* end #if (defined(linux, freebsd, cygwin, darwin, RTEMS))	*/
+#endif	/*	end #if (defined(linux, freebsd, darwin, RTEMS))	*/
 
 /**********************	WinSock adaptations *****************************/
 
 #ifdef mingw
+int	iopen(const char *fileName, int flags, int pmode)
+{
+	flags |= _O_BINARY;
+	return _open(fileName, flags, pmode);
+}
+
 int	isend(int sockfd, char *buf, int len, int flags)
 {
 	int	length;

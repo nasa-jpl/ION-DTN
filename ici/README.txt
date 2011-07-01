@@ -35,12 +35,6 @@ access to foreign persons.
 
 Highly incomplete and preliminary notes on building the ICI library:
 
-The top-level Makefile makes the system for all of the platforms you list
-in the PLATFORMS variable.  However, all the development is done on a
-Red Hat machine, so you may not get flawless results when you try building
-for ARM or Cygwin; tell me what problems you run into and I will try to
-fix them.
-
 To build, type:
 
 	make

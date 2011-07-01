@@ -301,8 +301,8 @@ static void	writeMemoToIonLog(char *text)
 					ION_PATH_DELIMITER);
 		}
 
-		ionLogFile = open(ionLogFileName, O_WRONLY | O_APPEND | O_CREAT,
-				00666);
+		ionLogFile = iopen(ionLogFileName,
+				O_WRONLY | O_APPEND | O_CREAT, 0666);
 		if (ionLogFile == -1)
 		{
 			unlockResource(&logFileLock);
@@ -383,11 +383,11 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 			nodeListDir, ION_PATH_DELIMITER);
 	if (nodeNbr == 0)	/*	Just attaching.			*/
 	{
-		nodeListFile = open(nodeListFileName, O_RDONLY, 0);
+		nodeListFile = iopen(nodeListFileName, O_RDONLY, 0);
 	}
 	else			/*	Initializing the node.		*/
 	{
-		nodeListFile = open(nodeListFileName, O_RDWR | O_CREAT, 00666);
+		nodeListFile = iopen(nodeListFileName, O_RDWR | O_CREAT, 0666);
 	}
 
 	if (nodeListFile < 0)
@@ -724,6 +724,8 @@ int	ionAttach()
 	{
 		return -1;
 	}
+
+	signal(SIGINT, SIG_IGN);
 #endif
 	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
 	{
@@ -1240,7 +1242,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 
 	/*	Get overrides from config file.				*/
 
-	configFile = open(configFileName, O_RDONLY, 0777);
+	configFile = iopen(configFileName, O_RDONLY, 0777);
 	if (configFile < 0)
 	{
 		if (errno == ENOENT)	/*	No overrides apply.	*/

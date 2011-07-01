@@ -110,7 +110,7 @@ psm_start_trace(sdrwm, 5000000, NULL);
 	PUTMEMO("Working on cycle", utoa(currentCycle.cycleNbr));
 	isprintf(fileName, sizeof fileName, "file_copy_%d",
 			currentCycle.cycleNbr);
-	outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
+	outputFile = iopen(fileName, O_WRONLY | O_APPEND, 0666);
 	if (outputFile < 0)
 	{
 		PERROR("Can't open output file");
@@ -228,7 +228,7 @@ if (lineCount > 100)
 					utoa(currentCycle.cycleNbr));
 			isprintf(fileName, sizeof fileName, "file_copy_%d",
 					currentCycle.cycleNbr);
-			outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
+			outputFile = iopen(fileName, O_WRONLY | O_APPEND, 0666);
 			if (outputFile < 0)
 			{
 				PERROR("Can't open output file");

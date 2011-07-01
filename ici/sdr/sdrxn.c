@@ -613,7 +613,7 @@ static void	clearTransaction(Sdr sdrv)
 		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
 				sdrv->sdr->pathName, ION_PATH_DELIMITER,
 				sdrv->sdr->name);
-		sdrv->logfile = open(logfilename, O_RDWR | O_CREAT | O_TRUNC,
+		sdrv->logfile = iopen(logfilename, O_RDWR | O_CREAT | O_TRUNC,
 				0777);
 		if (sdrv->logfile == -1)
 		{
@@ -815,7 +815,7 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 	}
 
 	memset(buffer, 0 , sizeof buffer);
-	dbfile = open(dbfilename, O_RDWR | O_CREAT, 0777);
+	dbfile = iopen(dbfilename, O_RDWR | O_CREAT, 0777);
 	if (dbfile == -1)
 	{
 		MRELEASE(buffer);
@@ -967,7 +967,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	{
 		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
 				sdr->pathName, ION_PATH_DELIMITER, name);
-		logfile = open(logfilename, O_RDWR | O_CREAT | O_APPEND, 0777);
+		logfile = iopen(logfilename, O_RDWR | O_CREAT | O_APPEND, 0777);
 		if (logfile == -1)
 		{
 			psm_free(sdrwm, newSdrAddress);
@@ -1001,7 +1001,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	{
 		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
 				sdr->pathName, ION_PATH_DELIMITER, name);
-		dbfile = open(dbfilename, O_RDWR, 0777);
+		dbfile = iopen(dbfilename, O_RDWR, 0777);
 		if (dbfile == -1)
 		{
 			dbfile = createDbFile(sdr, dbfilename);
@@ -1238,7 +1238,7 @@ Sdr	Sdr_start_using(char *name)
 	{
 		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
 				sdr->pathName, ION_PATH_DELIMITER, name);
-		sdrv->dbfile = open(dbfilename, O_RDWR, 0777);
+		sdrv->dbfile = iopen(dbfilename, O_RDWR, 0777);
 		if (sdrv->dbfile == -1)
 		{
 			sm_SemGive(sch->lock);
@@ -1268,7 +1268,7 @@ Sdr	Sdr_start_using(char *name)
 	{
 		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
 				sdr->pathName, ION_PATH_DELIMITER, name);
-		sdrv->logfile = open(logfilename, O_RDWR | O_CREAT | O_APPEND,
+		sdrv->logfile = iopen(logfilename, O_RDWR | O_CREAT | O_APPEND,
 				0777);
 		if (sdrv->logfile == -1)
 		{

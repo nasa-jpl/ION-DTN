@@ -124,7 +124,7 @@ load, no further activity.", itoa(line - content));
 			/*	Remainder of line is file name.		*/
 
 			fileName = line + 1;
-			opsFile = open(fileName, O_RDWR | O_CREAT, 00777);
+			opsFile = iopen(fileName, O_RDWR | O_CREAT, 0777);
 			if (opsFile < 0)
 			{
 				putSysErrmsg("lgagent: can't open operations \
@@ -169,7 +169,7 @@ load, no further activity.", itoa(line - content));
 #if TargetFFS
 			if (opsFile == -1)	/*	Must reopen.	*/
 			{
-				if ((opsFile = open(fileName, O_RDWR, 0)) < 0
+				if ((opsFile = iopen(fileName, O_RDWR, 0)) < 0
 				|| lseek(opsFile, SEEK_END, 0) < 0)
 				{
 					putSysErrmsg("lgagent: can't reopen \

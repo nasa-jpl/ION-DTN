@@ -100,7 +100,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return bpAbandon(bundleObj, bundle);
 	}
 
-	if (strcmp(vscheme->name, DTN2_SCHEME_NAME) != 0)
+	if (strcmp(vscheme->name, "dtn") != 0)
 	{
 		putErrmsg("Forwarding error; EID scheme wrong for dtn2fw.",
 				vscheme->name);
@@ -180,10 +180,10 @@ int	main(int argc, char *argv[])
 	}
 
 	sdr = getIonsdr();
-	findScheme(DTN2_SCHEME_NAME, &vscheme, &vschemeElt);
+	findScheme("dtn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
-		putErrmsg("Scheme name for dtn2 is unknown.", DTN2_SCHEME_NAME);
+		putErrmsg("Scheme name for dtn2 is unknown.", "dtn");
 		return 1;
 	}
 
