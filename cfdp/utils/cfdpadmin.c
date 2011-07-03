@@ -69,7 +69,8 @@ static void	printUsage()
 	PUTS("\t   m ckperiod <check cycle period, in seconds>");
 	PUTS("\t   m maxtimeouts <max number of check cycle timeouts>");
 	PUTS("\t   m maxtrnbr <max transaction number>");
-	PUTS("\t   m segsize <max bytes per reliable file data segment>");
+	PUTS("\t   m segsize <max bytes per file data segment>");
+	PUTS("\t   m inactivity <inactivity limit, in seconds>");
 	PUTS("\ti\tInfo");
 	PUTS("\t   i");
 	PUTS("\ts\tStart");
@@ -315,6 +316,35 @@ static void	manageSegsize(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageInactivity(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	Object	cfdpdbObj = getCfdpDbObject();
+	CfdpDB	cfdpdb;
+	int	newLimit;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+	}
+
+	newLimit = atoi(tokens[2]);
+	if (newLimit < 0)
+	{
+		putErrmsg("transactionInactivityLimit invalid.", tokens[2]);
+		return;
+	}
+
+	sdr_begin_xn(sdr);
+	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
+	cfdpdb.transactionInactivityLimit = newLimit;
+	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change transactionInactivityLimit.", NULL);
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -362,6 +392,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "segsize") == 0)
 	{
 		manageSegsize(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "inactivity") == 0)
+	{
+		manageInactivity(tokenCount, tokens);
 		return;
 	}
 

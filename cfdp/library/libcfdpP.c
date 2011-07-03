@@ -406,7 +406,7 @@ int	cfdpInit()
 		cfdpdbBuf.discardIncompleteFile = 1;
 		cfdpdbBuf.crcRequired = 0;
 		cfdpdbBuf.maxFileDataLength = 65000;
-		cfdpdbBuf.transactionInactivityLimit = 2000000000;
+		cfdpdbBuf.transactionInactivityLimit = 86400;
 		cfdpdbBuf.checkTimerPeriod = 86400;	/*	1 day.	*/
 		cfdpdbBuf.checkTimeoutLimit = 7;
 
@@ -893,6 +893,7 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 			InFdu *fdubuf, Object *fduElt)
 {
 	Sdr	sdr = getIonsdr();
+	CfdpDB	*cfdpConstants = _cfdpConstants();
 	Object	fduObj;
 
 	memset((char *) fdubuf, 0, sizeof(InFdu));
@@ -910,6 +911,8 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 		return 0;		/*	System failure.		*/
 	}
 
+	fdubuf->inactivityDeadline = getUTCTime()
+			+ cfdpConstants->transactionInactivityLimit;
 	sdr_write(sdr, fduObj, (char *) fdubuf, sizeof(InFdu));
 	return fduObj;
 }
@@ -2393,6 +2396,8 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 		return 0;			/*	Nothing to do.	*/
 	}
 
+	fdu->inactivityDeadline += cfdpConstants->transactionInactivityLimit;
+
 	/*	Prepare to issue indication.				*/
 
 	memset((char *) &event, 0, sizeof(CfdpEvent));
@@ -2998,6 +3003,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	if (bytesRemaining < 9) return 0;	/*	Malformed.	*/
+	fdu->inactivityDeadline += cfdpConstants->transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = (*cursor >> 4) & 0x0f;
 	cursor++;
@@ -3080,6 +3086,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 			int dataFieldLength, InFdu *fdu, Object fduObj,
 		       	Object fduElt)
 {
+	CfdpDB		*cfdpConstants = _cfdpConstants();
 	int		i;
 	unsigned int	fileSize = 0;		/*	Ignore it.	*/
 	char		stringBuf[256];
@@ -3093,6 +3100,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	if (bytesRemaining < 5) return 0;	/*	Malformed.	*/
+	fdu->inactivityDeadline += cfdpConstants->transactionInactivityLimit;
 	fdu->metadataReceived = 1;
 	fdu->recordBoundsRespected = (*cursor >> 7) & 0x01;
 	cursor++;
