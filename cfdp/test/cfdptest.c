@@ -522,17 +522,15 @@ static void	*handleEvents(void *parm)
 
 		while (messagesToUser)
 		{
-			switch (cfdp_get_usrmsg(&messagesToUser, usrmsgBuf,
-					(int *) &length))
+			if (cfdp_get_usrmsg(&messagesToUser, usrmsgBuf,
+					(int *) &length) < 0)
 			{
-			case -1:
 				putErrmsg("Failed getting user msg.", NULL);
 				return NULL;
+			}
 
-			case 0:
-				break;
-
-			default:
+			if (length > 0)
+			{
 				usrmsgBuf[length] = '\0';
 				printf("\tMessage '%s'\n", usrmsgBuf);
 			}
@@ -540,22 +538,16 @@ static void	*handleEvents(void *parm)
 
 		while (filestoreResponses)
 		{
-			switch (cfdp_get_fsresp(&filestoreResponses, &action,
+			if (cfdp_get_fsresp(&filestoreResponses, &action,
 					&status, firstPathName, secondPathName,
-					msgBuf))
+					msgBuf) < 0)
 			{
-			case -1:
 				putErrmsg("Failed getting FS response.", NULL);
 				return NULL;
-
-			case 0:
-				break;
-
-			default:
-				printf("\tResponse %d %d '%s' '%s' '%s'\n",
-						action, status, firstPathName,
-						secondPathName, msgBuf);
 			}
+
+			printf("\tResponse %d %d '%s' '%s' '%s'\n", action,
+				status, firstPathName, secondPathName, msgBuf);
 		}
 
 		printf(": ");

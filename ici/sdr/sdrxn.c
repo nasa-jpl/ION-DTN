@@ -1364,6 +1364,10 @@ void	sdr_stop_using(Sdr sdrv)
 		lyst_destroy(sdrv->knownObjects);
 	}
 
+	/*	Erase content of SdrView, in case space is re-used
+	 *	for another SdrView; then delete it.			*/
+
+	memset((char *) sdrv, 0, sizeof(SdrView));
 	psm_free(sdrwm, psa(sdrwm, sdrv));
 }
 
