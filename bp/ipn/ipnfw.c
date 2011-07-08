@@ -238,8 +238,6 @@ int	main(int argc, char *argv[])
 {
 #endif
 	int		ionMemIdx;
-	Lyst		proximateNodes;
-	Lyst		excludedNodes;
 	int		running = 1;
 	Sdr		sdr;
 	VScheme		*vscheme;
@@ -262,14 +260,6 @@ int	main(int argc, char *argv[])
 	}
 
 	ionMemIdx = getIonMemoryMgr();
-	proximateNodes = lyst_create_using(ionMemIdx);
-	excludedNodes = lyst_create_using(ionMemIdx);
-	if (proximateNodes == NULL || excludedNodes == NULL)
-	{
-		putErrmsg("Can't create lists for route computation.", NULL);
-		return 1;
-	}
-
 	sdr = getIonsdr();
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
