@@ -522,8 +522,8 @@ ltpbin = \
 	dccplso
 
 ltplib = \
-	libltpP.la \
 	libltp.la
+#	libltpP.la
 
 ltpinclude = \
 	ltp/include/ltp.h
@@ -584,9 +584,9 @@ libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libltp_la_LIBADD = libici.la
 
-libltpP_la_SOURCES = ltp/library/libltpP.c
-libltpP_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
-libltpP_la_LDFLAGS = $(ION_LINK_FLAGS)
+#libltpP_la_SOURCES = ltp/library/libltpP.c
+#libltpP_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+#libltpP_la_LDFLAGS = $(ION_LINK_FLAGS)
 
 # --- Utility Programs --- #
 
@@ -636,10 +636,10 @@ aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 dccplsi_SOURCES = ltp/dccp/dccplsi.c
-dccplsi_LDADD = libltpP.la libici.la $(LIBOBJS) 
+dccplsi_LDADD = libltp.la libici.la $(LIBOBJS) 
 dccplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 dccplso_SOURCES = ltp/dccp/dccplso.c
-dccplso_LDADD = libltpP.la libici.la $(LIBOBJS) 
+dccplso_LDADD = libltp.la libici.la $(LIBOBJS) 
 dccplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 
