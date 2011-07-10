@@ -75,6 +75,8 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	tcp2file lt-tcp2file \
 	udpcli lt-udpcli \
 	udpclo lt-udpclo \
+	dccpcli	lt-dccpcli \
+	dccpclo lt-dccpclo \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
 	udp2file lt-udp2file \
