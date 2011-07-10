@@ -107,9 +107,6 @@ extern "C" {
 
 #define N5_INTERVAL	(N4_INTERVAL * N6_COUNT)
 
-#define	LOCK_MIB	pthread_mutex_lock(&mib->mutex)
-#define	UNLOCK_MIB	pthread_mutex_unlock(&mib->mutex)
-
 /*	Reason codes for "rejection" MAMS messages.			*/
 #define	REJ_DUPLICATE	1
 #define	REJ_NO_CENSUS	2
@@ -387,7 +384,6 @@ typedef struct ventstr
 
 typedef struct
 {
-	pthread_mutex_t	mutex;
 	int		transportServiceCount;
 	TransSvc	transportServices[TS_INDEX_LIMIT + 1];
 	TransSvc	*pts;			/*	Primary TS.	*/
@@ -399,6 +395,7 @@ typedef struct
 	int		localContinuumNbr;
 	char		*csPublicKeyName;
 	char		*csPrivateKeyName;	/*	Only for CS MIB.*/
+	int		users;			/*	Reference count.*/
 } AmsMib;
 
 /*	*	*	MAMS message structure	*	*	*	*/
@@ -449,6 +446,9 @@ typedef struct
 extern int	initMemoryMgt(char *mName, char *memory, unsigned mSize);
 extern AmsMib	*_mib(AmsMibParameters *parms);
 extern AmsMib	*loadMib(char *mibSource);
+extern void	lockMib();
+extern void	unlockMib();
+extern void	unloadMib();
 extern char	*_rejectionMemos(int idx);
 
 extern int	time_to_stop(Llcv llcv);

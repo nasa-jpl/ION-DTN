@@ -1617,9 +1617,12 @@ AmsMib	*loadMib(char *mibSource)
 	TransSvc		*ts;
 	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
 
+	lockMib();
 	mib = _mib(NULL);
 	if (mib)
 	{
+		mib->users += 1;
+		unlockMib();
 		return mib;	/*	MIB is already loaded.		*/
 	}
 
@@ -1639,6 +1642,7 @@ AmsMib	*loadMib(char *mibSource)
 	if (mib == NULL)
 	{
 		putErrmsg("Failed loading AMS MIB.", NULL);
+		unlockMib();
 		return NULL;
 	}
 
@@ -1652,10 +1656,32 @@ AmsMib	*loadMib(char *mibSource)
 				putErrmsg("Can't load default AMS endpoint \
 specs.", NULL);
 				oK(_mib(&parms));	/*	Erase.	*/
+				unlockMib();
 				return NULL;
 			}
 		}
 	}
 
+	mib->users = 1;
+	unlockMib();
 	return mib;
+}
+
+void	unloadMib()
+{
+	AmsMib			*mib;
+	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
+
+	lockMib();
+	mib = _mib(NULL);
+	if (mib)
+	{
+		mib->users -= 1;
+		if (mib->users <= 0)
+		{
+			oK(_mib(&parms));		/*	Erase.	*/
+		}
+	}
+
+	unlockMib();
 }

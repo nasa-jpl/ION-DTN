@@ -215,11 +215,15 @@ void	eraseUnit(Venture *venture, Unit *unit)
 			subunit->inclusionElt =
 				lyst_insert_last(superunit->subunits, subunit);
 		}
+		else
+		{
+			subunit->inclusionElt = NULL;
+		}
 
 		subunit->superunit = superunit;
 	}
 
-	/*	Detach erased unit from its superunit.			*/
+	/*	Detach erased unit from its own superunit.		*/
 
 	if (unit->inclusionElt)
 	{
@@ -241,6 +245,12 @@ void	eraseVenture(Venture *venture)
 	if (venture == NULL)
 	{
 		return;
+	}
+
+	lockMib();
+	for (i = 0; i <= MAX_UNIT_NBR; i++)
+	{
+		eraseUnit(venture, venture->units[i]);
 	}
 
 	for (i = 1; i <= MAX_ROLE_NBR; i++)
@@ -267,7 +277,6 @@ void	eraseVenture(Venture *venture)
 		}
 	}
 
-	eraseUnit(venture, venture->units[0]);		/*	Root.	*/
 	for (i = 1; i <= MAX_CONTIN_NBR; i++)
 	{
 		if (venture->msgspaces[i])
@@ -278,13 +287,17 @@ void	eraseVenture(Venture *venture)
 
 	(_mib(NULL))->ventures[venture->nbr] = NULL;
 	MRELEASE(venture);
+	unlockMib();
 }
 
 static void	eraseMib(AmsMib *mib)
 {
 	int	i;
 
-	pthread_mutex_destroy(&(mib->mutex));
+	/*	Note: no need to lockMib() because this function
+	 *	is called only from inside _mib(), which has
+	 *	already called lockMib().				*/
+
 	if (mib->csPublicKeyName)
 	{
 		MRELEASE(mib->csPublicKeyName);
@@ -404,6 +417,11 @@ static void	addTs(AmsMib *mib, TsLoadFn loadTs)
 	int		idx;
 	TransSvc	*ts;
 
+	/*	Note: no need to lockMib() because this function
+	 *	is called only from inside initializeMib(), which
+	 *	is only called from inside _mib(), which has
+	 *	already called lockMib().				*/
+
 	idx = mib->transportServiceCount;
 	ts = &(mib->transportServices[idx]);
 	loadTs(ts);	/*	Execute the transport service loader.	*/
@@ -440,7 +458,11 @@ static int	initializeMib(AmsMib *mib, int continuumNbr, char *ptsName,
 	static int		transportServiceCount =
 					sizeof transportServiceLoaders /
 					sizeof(TsLoadFn);
-       
+
+	/*	Note: no need to lockMib() because this function
+	 *	is called only from inside _mib(), which has already
+	 *	called lockMib().					*/
+
 	if (transportServiceCount > TS_INDEX_LIMIT)
 	{
 		putErrmsg("Transport service table overflow.", NULL);
@@ -459,12 +481,6 @@ static int	initializeMib(AmsMib *mib, int continuumNbr, char *ptsName,
 	if (mib->pts == NULL)
 	{
 		putErrmsg("No loader for primary transport service.", ptsName);
-		return -1;
-	}
-
-	if (pthread_mutex_init(&(mib->mutex), NULL))
-	{
-		putSysErrmsg("MIB mutex init failed", NULL);
 		return -1;
 	}
 
@@ -576,7 +592,6 @@ AmsMib	*_mib(AmsMibParameters *parms)
 		{
 			if (mib)
 			{
-				ionDetach();
 				eraseMib(mib);
 				mib = NULL;
 			}
@@ -594,11 +609,9 @@ AmsMib	*_mib(AmsMibParameters *parms)
 			{
 				if (parms->continuumNbr < 1
 				|| parms->continuumNbr > MAX_CONTIN_NBR
-				|| parms->ptsName == NULL
-				|| (mib = (AmsMib *) MTAKE(sizeof(AmsMib)))
-						== NULL)
+				|| parms->ptsName == NULL)
 				{
-					putErrmsg("Can't create MIB.", NULL);
+					putErrmsg("Invalid MIB parms.", NULL);
 					_mibLock(-1);
 					return mib;
 				}
@@ -606,8 +619,16 @@ AmsMib	*_mib(AmsMibParameters *parms)
 				if (initializeMemMgt(parms->continuumNbr) < 0)
 				{
 					putErrmsg("Can't attach to ION.", NULL);
-					MRELEASE(mib);
-					mib = NULL;
+					_mibLock(-1);
+					return mib;
+				}
+
+				mib = (AmsMib *) MTAKE(sizeof(AmsMib));
+				if (mib == NULL)
+				{
+					putErrmsg("Can't create MIB.",
+							parms->ptsName);
+					ionDetach();
 					_mibLock(-1);
 					return mib;
 				}
@@ -620,8 +641,8 @@ AmsMib	*_mib(AmsMibParameters *parms)
 				{
 					putErrmsg("Can't initialize MIB.",
 							parms->ptsName);
-					ionDetach();
 					eraseMib(mib);
+					ionDetach();
 					mib = NULL;
 					_mibLock(-1);
 					return mib;
@@ -698,16 +719,19 @@ static LystElt	findApplication(char *appName)
 	LystElt	elt;
 	AmsApp	*app;
 
+	lockMib();
 	for (elt = lyst_first((_mib(NULL))->applications); elt;
 			elt = lyst_next(elt))
 	{
 		app = (AmsApp *) lyst_data(elt);
 		if (strcmp(app->name, appName) == 0)
 		{
+			unlockMib();
 			return elt;
 		}
 	}
 
+	unlockMib();
 	return NULL;
 }
 
@@ -800,6 +824,7 @@ Venture	*lookUpVenture(char *appName, char *authName)
 		return NULL;
 	}
 
+	lockMib();
 	for (i = 1; i <= MAX_VENTURE_NBR; i++)
 	{
 		venture = (_mib(NULL))->ventures[i];
@@ -811,10 +836,12 @@ Venture	*lookUpVenture(char *appName, char *authName)
 		if (strcmp(venture->app->name, appName) == 0
 		&& strcmp(venture->authorityName, authName) == 0)
 		{
+			unlockMib();
 			return venture;
 		}
 	}
 
+	unlockMib();
 	return NULL;
 }
 
@@ -845,6 +872,7 @@ int	lookUpContinuum(char *contName)
 	int		i;
 	Continuum	*continuum;
 
+	lockMib();
 	for (i = 1; i <= MAX_CONTIN_NBR; i++)
 	{
 		continuum = (_mib(NULL))->continua[i];
@@ -855,10 +883,12 @@ int	lookUpContinuum(char *contName)
 
 		if (strcmp(continuum->name, contName) == 0)
 		{
+			unlockMib();
 			return i;
 		}
 	}
 
+	unlockMib();
 	return -1;
 }
 
@@ -887,6 +917,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 	*venture = NULL;
 	*unit = NULL;
 	*authName = NULL;
+	lockMib();
 	if (ventureNbr > 0)
 	{
 		if (ventureNbr > MAX_VENTURE_NBR
@@ -894,6 +925,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		{
 			writeMemoNote("[?] MAMS msg from unknown msgspace",
 					itoa(ventureNbr));
+			unlockMib();
 			return 0;
 		}
 
@@ -902,6 +934,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		{
 			writeMemoNote("[?] MAMS msg from unknown cell",
 					itoa(unitNbr));
+			unlockMib();
 			return 0;
 		}
 	}
@@ -913,6 +946,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		{
 			writeMemoNote("[?] MAMS message dropped; unknown role",
 					itoa(roleNbr));
+			unlockMib();
 			return 0;
 		}
 	}
@@ -1008,6 +1042,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 		}
 	}
 
+	unlockMib();
 	return 0;
 }
 
@@ -1342,7 +1377,9 @@ LystElt	createApp(char *name, char *publicKeyName, char *privateKeyName)
 		memcpy(app->privateKeyName, privateKeyName, length);
 	}
 
+	lockMib();
 	elt = lyst_insert_last((_mib(NULL))->applications, app);
+	unlockMib();
 	CHKNULL(elt);
 	return elt;
 }
@@ -1589,8 +1626,9 @@ Unit	*createUnit(Venture *venture, int nbr, char *name, int resyncPeriod)
 	return unit;
 }
 
-Venture	*createVenture(int nbr, char *appname, char *authname,
-		char *gwEidString, int ramsNetIsTree, int rootCellResyncPeriod)
+static Venture	*createVenture2(int nbr, char *appname, char *authname,
+			char *gwEidString, int ramsNetIsTree,
+			int rootCellResyncPeriod)
 {
 	AmsMib		*mib = _mib(NULL);
 	int		amsMemory = getIonMemoryMgr();
@@ -1712,8 +1750,20 @@ Venture	*createVenture(int nbr, char *appname, char *authname,
 	return venture;
 }
 
-Continuum	*createContinuum(int nbr, char *name, int isNeighbor,
-			char *description)
+Venture	*createVenture(int nbr, char *appname, char *authname,
+		char *gwEidString, int ramsNetIsTree, int rootCellResyncPeriod)
+{
+	Venture	*result;
+
+	lockMib();
+	result = createVenture2(nbr, appname, authname, gwEidString,
+			ramsNetIsTree, rootCellResyncPeriod);
+	unlockMib();
+	return result;
+}
+
+static Continuum	*createContinuum2(int nbr, char *name, int isNeighbor,
+				char *description)
 {
 	AmsMib		*mib = _mib(NULL);
 	int		length;
@@ -1748,6 +1798,17 @@ Continuum	*createContinuum(int nbr, char *name, int isNeighbor,
 	return contin;
 }
 
+Continuum	*createContinuum(int nbr, char *name, int isNeighbor,
+			char *description)
+{
+	Continuum	*result;
+
+	lockMib();
+	result = createContinuum2(nbr, name, isNeighbor, description);
+	unlockMib();
+	return result;
+}
+
 LystElt	createCsEndpoint(char *endpointSpec, LystElt nextElt)
 {
 	AmsMib		*mib = _mib(NULL);
@@ -1755,6 +1816,10 @@ LystElt	createCsEndpoint(char *endpointSpec, LystElt nextElt)
 	char		endpointName[MAX_EP_NAME + 1];
 	MamsEndpoint	*ep;
 	LystElt		elt;
+
+	/*	Note: no need to lockMib() because this function
+	 *	is called only from inside loadMib, which has
+	 *	already called lockMib().				*/
 
 	CHKNULL(endpointSpec);
 	if (mib->pts->csepNameFn(endpointSpec, endpointName) < 0)
@@ -1795,6 +1860,10 @@ LystElt	createAmsEpspec(char *tsname, char *epspec)
 	AmsEpspec	amses;
 	AmsEpspec	*amsesPtr;
 	LystElt		elt;
+
+	/*	Note: no need to lockMib() because this function
+	 *	is called only from inside loadMib, which has
+	 *	already called lockMib().				*/
 
 	CHKNULL(tsname);
 	CHKNULL(epspec);
@@ -1898,6 +1967,8 @@ char	*parseString(char **cursor, int *bytesRemaining, int *len)
 
 int	constructMamsEndpoint(MamsEndpoint *endpoint, int eptLength, char *ept)
 {
+	int	result;
+
 	endpoint->ept = MTAKE(eptLength + 1);
 	CHKERR(endpoint->ept);
 	memcpy(endpoint->ept, ept, eptLength);
@@ -1907,7 +1978,10 @@ int	constructMamsEndpoint(MamsEndpoint *endpoint, int eptLength, char *ept)
 	 *	function examines the endpoint name text and fills
 	 *	in the tsep of the endpoint.				*/
 
-	if ((((_mib(NULL))->pts->parseMamsEndpointFn)(endpoint)) < 0)
+	lockMib();
+	result = ((_mib(NULL))->pts->parseMamsEndpointFn)(endpoint); 
+	unlockMib();
+	if (result < 0)
 	{
 		writeMemoNote("[?] Can't parse endpoint name", ept);
 		return -1;
@@ -1918,7 +1992,9 @@ int	constructMamsEndpoint(MamsEndpoint *endpoint, int eptLength, char *ept)
 
 void	clearMamsEndpoint(MamsEndpoint *ep)
 {
+	lockMib();
 	(_mib(NULL))->pts->clearMamsEndpointFn(ep);
+	unlockMib();
 	ep->tsep = NULL;
 	if (ep->ept)
 	{
@@ -2093,8 +2169,10 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 
 	/*	Send the message.					*/
 
+	lockMib();
 	result = (_mib(NULL))->pts->sendMamsFn(endpoint, tsif, (char *) msg,
 			msgLength);
+	unlockMib();
 	MRELEASE(msg);
 	return result;
 }

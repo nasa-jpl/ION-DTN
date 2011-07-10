@@ -105,7 +105,6 @@ static void	stopOtherConfigServers(CsState *csState)
 
 static void	*csHeartbeat(void *parm)
 {
-	AmsMib		*mib = _mib(NULL);
 	CsState		*csState = (CsState *) parm;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cv;
@@ -140,7 +139,7 @@ static void	*csHeartbeat(void *parm)
 #endif
 	while (1)
 	{
-		LOCK_MIB;
+		lockMib();
 		if (cycleCount > 5)	/*	Every N5_INTERVAL sec.	*/
 		{
 			cycleCount = 0;
@@ -183,7 +182,7 @@ heartbeat.", NULL);
 
 		/*	Now sleep for N3_INTERVAL seconds.		*/
 
-		UNLOCK_MIB;
+		unlockMib();
 		getCurrentTime(&workTime);
 		deadline.tv_sec = workTime.tv_sec + N3_INTERVAL;
 		deadline.tv_nsec = workTime.tv_usec * 1000;
@@ -553,10 +552,9 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 static void	*csMain(void *parm)
 {
-	AmsMib		*mib = _mib(NULL);
-	CsState		*csState = (CsState *) parm;
-	LystElt		elt;
-	AmsEvt		*evt;
+	CsState	*csState = (CsState *) parm;
+	LystElt	elt;
+	AmsEvt	*evt;
 
 	CHKNULL(csState);
 #ifndef mingw
@@ -590,9 +588,9 @@ static void	*csMain(void *parm)
 		switch (evt->type)
 		{
 		case MAMS_MSG_EVT:
-			LOCK_MIB;
+			lockMib();
 			processMsgToCs(csState, evt);
-			UNLOCK_MIB;
+			unlockMib();
 			recycleEvent(evt);
 			continue;
 
@@ -651,7 +649,7 @@ static int	startConfigServer(CsState *csState)
 	 *	function is one of the ones that the continuum knows
 	 *	about.							*/
 
-	LOCK_MIB;
+	lockMib();
 	for (elt = lyst_first(mib->csEndpoints); elt; elt = lyst_next(elt))
 	{
 		ep = (MamsEndpoint *) lyst_data(elt);
@@ -662,7 +660,7 @@ static int	startConfigServer(CsState *csState)
 		}
 	}
 
-	UNLOCK_MIB;
+	unlockMib();
 	if (csState->startOfFailoverChain == NULL)
 	{
 		putErrmsg("Endpoint spec doesn't match any catalogued \
@@ -998,7 +996,6 @@ termination to peer modules.", NULL);
 
 static void	*rsHeartbeat(void *parm)
 {
-	AmsMib		*mib = _mib(NULL);
 	RsState		*rsState = (RsState *) parm;
 	int		cycleCount = 0;
 	pthread_mutex_t	mutex;
@@ -1031,7 +1028,7 @@ static void	*rsHeartbeat(void *parm)
 #endif
 	while (1)		/*	Every 10 seconds.		*/
 	{
-		LOCK_MIB;
+		lockMib();
 
 		/*	Send heartbeat to configuration server.		*/
 
@@ -1050,7 +1047,7 @@ static void	*rsHeartbeat(void *parm)
 			ept = MTAKE(supplementLen);
 			if (ept == NULL)
 			{
-				UNLOCK_MIB;
+				unlockMib();
 				putErrmsg("Can't record endpoint.", NULL);
 				return NULL;
 			}
@@ -1065,7 +1062,7 @@ static void	*rsHeartbeat(void *parm)
 		/*	Send heartbeats to all modules in cell; resync.	*/
 
 		processHeartbeatCycle(rsState, &cycleCount, &beatsSinceResync);
-		UNLOCK_MIB;
+		unlockMib();
 
 		/*	Sleep for N3_INTERVAL seconds and repeat.	*/
 
@@ -1713,11 +1710,10 @@ accepting it", itoa(unitNbr));
 
 static void	*rsMain(void *parm)
 {
-	AmsMib		*mib = _mib(NULL);
-	RsState		*rsState = (RsState *) parm;
-	LystElt		elt;
-	AmsEvt		*evt;
-	int		result;
+	RsState	*rsState = (RsState *) parm;
+	LystElt	elt;
+	AmsEvt	*evt;
+	int	result;
 
 	CHKNULL(rsState);
 #ifndef mingw
@@ -1751,16 +1747,16 @@ static void	*rsMain(void *parm)
 		switch (evt->type)
 		{
 		case MAMS_MSG_EVT:
-			LOCK_MIB;
+			lockMib();
 			processMsgToRs(rsState, evt);
-			UNLOCK_MIB;
+			unlockMib();
 			recycleEvent(evt);
 			continue;
 
 		case MSG_TO_SEND_EVT:
-			LOCK_MIB;
+			lockMib();
 			result = sendMsgToCS(rsState, evt);
-			UNLOCK_MIB;
+			unlockMib();
 			if (result < 0)
 			{
 				putErrmsg("Registrar CS contact failed.", NULL);
@@ -1988,6 +1984,7 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 			return 0;
 		}
 
+		lockMib();
 		if (csState.csRequired == 1 && csState.csRunning == 0)
 		{
 			writeMemo("[i] Starting configuration server.");
@@ -2008,6 +2005,7 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 			}
 		}
 
+		unlockMib();
 #ifdef mingw
 		sm_WaitForWakeup(N5_INTERVAL);
 #else
