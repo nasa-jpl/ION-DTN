@@ -78,6 +78,8 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
 	udp2file lt-udp2file \
+	dccplsi lt-dccplsi \
+	dccplso lt-dccplso \
 	"
 
 sw_vers 2> /dev/null > /dev/null

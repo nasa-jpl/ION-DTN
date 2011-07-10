@@ -517,7 +517,9 @@ ltpbin = \
 	aoslsi \
 	aoslso \
 	ltpdriver \
-	ltpcounter
+	ltpcounter \
+	dccplsi	 \
+	dccplso
 
 ltplib = \
 	libltp.la
@@ -528,7 +530,8 @@ ltpinclude = \
 ltpnoinst = \
 	ltp/library/ltpP.h \
 	ltp/udp/udplsa.h \
-	ltp/aos/aoslsa.h
+	ltp/aos/aoslsa.h \
+	ltp/dccp/dccplsa.h
 
 ltpextra = \
 	ltp/README.txt \
@@ -539,6 +542,8 @@ ltpextra = \
 	ltp/doc/pod1/ltpmeter.pod \
 	ltp/doc/pod1/udplsi.pod \
 	ltp/doc/pod1/udplso.pod \
+	ltp/doc/pod1/dccplsi.pod \
+	ltp/doc/pod1/dccplso.pod \
 	ltp/doc/pod5/ltprc.pod \
 	ltp/doc/pod3/ltp.pod
 
@@ -550,6 +555,8 @@ ltpmans = \
 	$(top_builddir)/ltp/doc/ltpmeter.1 \
 	$(top_builddir)/ltp/doc/udplsi.1 \
 	$(top_builddir)/ltp/doc/udplso.1 \
+	$(top_builddir)/ltp/doc/dccplsi.1 \
+	$(top_builddir)/ltp/doc/dccplso.1 \
 	$(top_builddir)/ltp/doc/ltprc.5 \
 	$(top_builddir)/ltp/doc/ltp.3 
 
@@ -621,6 +628,15 @@ aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 aoslso_SOURCES = ltp/aos/aoslso.c
 aoslso_LDADD = libltp.la libici.la $(LIBOBJS) 
 aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+# --- DCCP Executables --- #
+dccplsi_SOURCES = ltp/dccp/dccplsi.c
+dccplsi_LDADD = libltpP.la libici.la $(LIBOBJS) 
+dccplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+dccplso_SOURCES = ltp/dccp/dccplso.c
+dccplso_LDADD = libltpP.la libici.la $(LIBOBJS) 
+dccplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
 
 ##########################
 #
