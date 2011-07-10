@@ -55,6 +55,36 @@ Features included:
   information, check man brsscla and man brsccla.
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.4.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #240: Added DCCP link service adapters to ION for the purpose of 
+  providing congestion control without reliability guarantees, which is
+  beneficial for LTP deployments over IP networks, particularly when traversing
+  the Internet. The sender program is called "dccplso" and the receiver program
+  is called "dccplsi".
+
+- Issue #241: Added DCCP convergence layer for BP. The sender program is called
+  "dccpclo" and the receiver program is called "dccpcli".
+
+- Issue #245: Added support for using the character "*" as a wildcard to remove
+  multiple contacts and ranges at once.
+
+- Issue #257: Fixed issue where bundles would remain in the limbo queue after
+  an outduct was blocked rather than be reforwarded.
+
+- Issue #263: Fixed issue with pthread_t.  pthread_t is now treated as an
+  opaque type for the purpose of improving code correctness and portability.
+
+- Issue #273: Added a ".hgignore" file that can be populated with regular
+  expressions of files to suppress when the "hg status" command is run.
+
+- Issue #277: Fixed 3-node-stcp-ltp configuration to remove an unintentional
+  connection between nodes 1 and 3.
+
+- Issue #278: Updated various test configuration files to have more recent
+  contact times.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.0 =
