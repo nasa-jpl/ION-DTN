@@ -1415,92 +1415,109 @@ node %10lu to node %10lu is %10lu bytes/sec.", fromTimeBuffer, toTimeBuffer,
 int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 		unsigned long toNode)
 {
-	Sdr		sdr;
-	Object		iondbObj;
-	IonDB		iondb;
-	Object		elt;
-	Object		obj;
-	IonContact	contact;
-	IonVdb		*ionvdb;
-	IonNode		*node;
-	PsmAddress	nextElt;
+   Sdr		sdr;
+   Object		iondbObj;
+   IonDB		iondb;
+   Object		elt;
+   Object		obj;
+   IonContact	contact;
+   IonVdb		*ionvdb;
+   IonNode		*node;
+   PsmAddress	nextElt;
+   int		didwork, dbmod = 0;
 
-	sdr = getIonsdr();
-	iondbObj = getIonDbObject();
-	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	sdr_begin_xn(sdr);
-	for (elt = sdr_list_first(sdr, iondb.contacts); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		obj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
-		if (contact.fromTime < fromTime)
-		{
-			continue;
-		}
+   sdr = getIonsdr();
+   iondbObj = getIonDbObject();
+   sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+   sdr_begin_xn(sdr);
 
-		if (contact.fromTime > fromTime)
-		{
-			break;
-		}
+   for(;;)
+   {
+      didwork = 0;
 
-		if (contact.fromNode < fromNode)
-		{
-			continue;
-		}
+      for (elt = sdr_list_first(sdr, iondb.contacts); elt;
+           elt = sdr_list_next(sdr, elt))
+      {
+         obj = sdr_list_data(sdr, elt);
+         sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
 
-		if (contact.fromNode > fromNode)
-		{
-			break;
-		}
+         if (contact.fromTime < fromTime && fromTime != 0 )
+         {
+            continue;
+         }
 
-		if (contact.toNode < toNode)
-		{
-			continue;
-		}
+         if (contact.fromTime > fromTime  && fromTime != 0 )
+         {
+            break;
+         }
 
-		if (contact.toNode > toNode)
-		{
-			break;
-		}
+         if (contact.fromNode < fromNode)
+         {
+            continue;
+         }
 
-		/*	Contact has been located in database.		*/
+         if (contact.fromNode > fromNode)
+         {
+            continue;
+         }
 
-		sdr_free(sdr, obj);
-		sdr_list_delete(sdr, elt, NULL, NULL);
+         if (contact.toNode < toNode)
+         {
+            continue;
+         }
 
-		/*	If contact bears on routing, remove xmit.	*/
+         if (contact.toNode > toNode)
+         {
+            continue;
+         }
 
-		if (toNode != iondb.ownNodeNbr	/*	To remote node.	*/
-		|| fromNode == iondb.ownNodeNbr)/*	Loopback.	*/
-		{
-			ionvdb = getIonVdb();
-			node = findNode(ionvdb, toNode, &nextElt);
-			if (node)
-			{
-				forgetXmit(node, &contact);
-				if (setMootAfterTimes() < 0)
-				{
-					sdr_cancel_xn(sdr);
-					putErrmsg("Can't update mootAfter \
+         /*	Contact has been located in database.		*/
+
+         sdr_free(sdr, obj);
+         sdr_list_delete(sdr, elt, NULL, NULL);
+
+         /*	If contact bears on routing, remove xmit.	*/
+
+         if (toNode != iondb.ownNodeNbr	/*	To remote node.	*/
+             || fromNode == iondb.ownNodeNbr)/*	Loopback.	*/
+         {
+            ionvdb = getIonVdb();
+            node = findNode(ionvdb, toNode, &nextElt);
+            if (node)
+            {
+               forgetXmit(node, &contact);
+               if (setMootAfterTimes() < 0)
+               {
+                  sdr_cancel_xn(sdr);
+                  putErrmsg("Can't update mootAfter \
 times.", NULL);
-					return -1;
-				}
-			}
-		}
+                  return -1;
+               }
+            }
+         }
 
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't remove contact.", NULL);
-			return -1;
-		}
+         didwork = -1;
+         dbmod += 1;
+         break;
+      }
 
-		return 0;
-	}
+      if( ! didwork ) break;
+   }
 
-	sdr_cancel_xn(sdr);
-	writeMemo("[?] Contact not found in database.");
-	return 0;
+   if( dbmod )
+   {
+      if (sdr_end_xn(sdr) < 0)
+      {
+         putErrmsg("Can't remove contact.", NULL);
+         return -1;
+      }
+
+      return 0;
+   }
+
+   sdr_cancel_xn(sdr);
+   writeMemo("[?] Contact not found in database.");
+   return 0;
 }
 
 Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
@@ -1653,71 +1670,90 @@ char	*rfx_print_range(Object obj, char *buffer)
 int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 		unsigned long toNode)
 {
-	Sdr		sdr;
-	Object		iondbObj;
-	IonDB		iondb;
-	Object		elt;
-	Object		obj;
-	IonRange	range;
-	char		rangeIdString[128];
+   Sdr		sdr;
+   Object		iondbObj;
+   IonDB		iondb;
+   Object		elt;
+   Object		obj;
+   IonRange	range;
+   char		rangeIdString[128];
+   int		didwork, dbmod = 0;
 
-	sdr = getIonsdr();
-	iondbObj = getIonDbObject();
-	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	sdr_begin_xn(sdr);
-	for (elt = sdr_list_first(sdr, iondb.ranges); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		obj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
-		if (range.fromTime < fromTime)
-		{
-			continue;
-		}
+   sdr = getIonsdr();
+   iondbObj = getIonDbObject();
+   sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+   sdr_begin_xn(sdr);
 
-		if (range.fromTime > fromTime)
-		{
-			break;
-		}
 
-		if (range.fromNode < fromNode)
-		{
-			continue;
-		}
+   for(;;)
+   {
+      didwork = 0;
 
-		if (range.fromNode > fromNode)
-		{
-			break;
-		}
+      for (elt = sdr_list_first(sdr, iondb.ranges); elt;
+           elt = sdr_list_next(sdr, elt))
+      {
+         obj = sdr_list_data(sdr, elt);
+         sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
 
-		if (range.toNode < toNode)
-		{
-			continue;
-		}
+         if (range.fromTime < fromTime && fromTime != 0 )
+         {
+            continue;
+         }
 
-		if (range.toNode > toNode)
-		{
-			break;
-		}
+         if (range.fromTime > fromTime  && fromTime != 0 )
+         {
+            break;
+         }
 
-		/*	Range has been located in database.		*/
+         if (range.fromNode < fromNode)
+         {
+            continue;
+         }
 
-		sdr_free(sdr, obj);
-		sdr_list_delete(sdr, elt, NULL, NULL);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't remove range.", NULL);
-			return -1;
-		}
+         if (range.fromNode > fromNode)
+         {
+            continue;
+         }
 
-		return 0;
-	}
+         if (range.toNode < toNode)
+         {
+            continue;
+         }
 
-	sdr_cancel_xn(sdr);
-	isprintf(rangeIdString, sizeof rangeIdString, "from %lu, %lu->%lu",
-			fromTime, fromNode, toNode);
-	writeMemoNote("[?] Range not found in database", rangeIdString);
-	return 0;
+         if (range.toNode > toNode)
+         {
+            continue;
+         }
+
+         /*	Range has been located in database.		*/
+
+         sdr_free(sdr, obj);
+         sdr_list_delete(sdr, elt, NULL, NULL);
+
+
+         didwork = -1;
+         dbmod += 1;
+         break;
+      }
+      if( ! didwork ) break;
+   }
+
+   if( dbmod )
+   {
+      if (sdr_end_xn(sdr) < 0)
+      {
+         putErrmsg("Can't remove range.", NULL);
+         return -1;
+      }
+
+      return 0;
+   }
+
+   sdr_cancel_xn(sdr);
+   isprintf(rangeIdString, sizeof rangeIdString, "from %lu, %lu->%lu",
+            fromTime, fromNode, toNode);
+   writeMemoNote("[?] Range not found in database", rangeIdString);
+   return 0;
 }
 
 int	rfx_start()
