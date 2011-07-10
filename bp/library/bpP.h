@@ -1175,7 +1175,8 @@ extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 
 extern int		reverseEnqueue(Object xmitElt, ClProtocol *protocol,
-				Object outductObj, Outduct *outduct);
+				Object outductObj, Outduct *outduct,
+				int sendToLimbo);
 
 extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
 extern int		releaseFromLimbo(Object xmitElt, int resume);

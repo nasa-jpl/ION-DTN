@@ -413,6 +413,7 @@ int	bp_suspend(Object bundleObj)
 	Outduct		outduct;
 	ClProtocol	protocol;
 
+	CHKERR(bundleObj);
 	sdr_begin_xn(sdr);
 	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
@@ -448,8 +449,7 @@ int	bp_suspend(Object bundleObj)
 		sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
 		sdr_read(sdr, (char *) &protocol, outduct.protocol,
 				sizeof(ClProtocol));
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 1))
 		{
 			putErrmsg("Can't reverse bundle enqueue.", NULL);
 			sdr_cancel_xn(sdr);
@@ -471,6 +471,7 @@ int	bp_resume(Object bundleObj)
 	Sdr	sdr = getIonsdr();
 	Bundle	bundle;
 
+	CHKERR(bundleObj);
 	sdr_begin_xn(sdr);
 	sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	if (bundle.suspended == 0)
@@ -486,6 +487,7 @@ int	bp_cancel(Object bundleObj)
 {
 	Sdr	sdr = getIonsdr();
 
+	CHKERR(bundleObj);
 	sdr_begin_xn(sdr);
 	if (bpDestroyBundle(bundleObj, 1) < 0)
 	{
