@@ -522,6 +522,7 @@ ltpbin = \
 	dccplso
 
 ltplib = \
+	libltpP.la \
 	libltp.la
 
 ltpinclude = \
@@ -582,6 +583,10 @@ libltp_la_SOURCES = \
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libltp_la_LIBADD = libici.la
+
+libltpP_la_SOURCES = ltp/library/libltpP.c
+libltpP_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+libltpP_la_LDFLAGS = $(ION_LINK_FLAGS)
 
 # --- Utility Programs --- #
 
@@ -1096,11 +1101,11 @@ udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- DCCP Executables --- #
 
 dccpcli_SOURCES = bp/dccp/dccpcli.c
-dccpcli_LDADD = libipnfw.la libdtn2fw.la libbp.la libbpP.la libici.la $(LIBOBJS) 
+dccpcli_LDADD = libipnfw.la libdtn2fw.la libbp.la libici.la $(LIBOBJS) 
 dccpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 dccpclo_SOURCES = bp/dccp/dccpclo.c
-dccpclo_LDADD = libbp.la libbpP.la libici.la $(LIBOBJS) 
+dccpclo_LDADD = libbp.la libici.la $(LIBOBJS) 
 dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
