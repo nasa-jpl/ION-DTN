@@ -261,6 +261,8 @@ typedef struct
 	unsigned int	aggrSizeLimit;	/*	Bytes.			*/
 	unsigned int	aggrTimeLimit;	/*	Seconds.		*/
 	unsigned int	maxSegmentSize;	/*	MTU size, in bytes.	*/
+	Object		stats;		/*	LtpSpanStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 
 	Object		currentExportSessionObj;
 	unsigned int	ageOfBufferedBlock;
@@ -276,12 +278,57 @@ typedef struct
 	Object		deadImports;	/*	SDR list: ImportSession	*/
 } LtpSpan;
 
+/*	*	*	LTP statistics management	*	*	*/
+
+#define	OUT_SEG_QUEUED		0
+#define	OUT_SEG_POPPED		1
+#define	CKPT_XMIT		2
+#define	POS_RPT_RECV		3
+#define	NEG_RPT_RECV		4
+#define	EXPORT_CANCEL_RECV	5
+#define	CKPT_RE_XMIT		6
+#define	EXPORT_CANCEL_XMIT	7
+#define	EXPORT_COMPLETE		8
+#define	CKPT_RECV		9
+#define	POS_RPT_XMIT		10
+#define	NEG_RPT_XMIT		11
+#define	IMPORT_CANCEL_RECV	12
+#define	RPT_RE_XMIT		13
+#define	IMPORT_CANCEL_XMIT	14
+#define	IMPORT_COMPLETE		15
+#define	IN_SEG_RECV_RED		16
+#define	IN_SEG_RECV_GREEN	17
+#define	IN_SEG_REDUNDANT	18
+#define	IN_SEG_MALFORMED	19
+#define	IN_SEG_UNK_SENDER	20
+#define	IN_SEG_UNK_CLIENT	21
+#define	IN_SEG_SCREENED		22
+#define	IN_SEG_MISCOLORED	23
+#define	IN_SEG_SES_CLOSED	24
+#define	LTP_SPAN_STATS		25
+
+typedef struct
+{
+	unsigned int	totalCount;
+	unsigned int	totalBytes;
+	unsigned int	currentCount;
+	unsigned int	currentBytes;
+} Tally;
+
+typedef struct
+{
+	time_t		resetTime;
+	Tally		tallies[LTP_SPAN_STATS];
+} LtpSpanStats;
+
 /* The volatile span object encapsulates the current volatile state
  * of the corresponding LtpSpan. 					*/
 
 typedef struct
 {
 	Object		spanElt;	/*	Reference to LtpSpan.	*/
+	Object		stats;		/*	LtpSpanStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 	unsigned long	engineId;	/*	ID of remote engine.	*/
 	unsigned long	localXmitRate;	/*	Bytes per second.	*/
 	unsigned long	remoteXmitRate;	/*	Bytes per second.	*/
@@ -525,6 +572,8 @@ extern int		ltpResendReport(unsigned long engineId,
 extern int		ltpResendRecvCancel(unsigned long engineId,
 				unsigned long sessionNbr);
 
+extern void		ltpSpanTally(LtpVspan *vspan, unsigned int idx,
+				unsigned int size);
 #ifdef __cplusplus
 }
 #endif

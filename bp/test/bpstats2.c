@@ -43,6 +43,13 @@ void sendDefault(int sig)
 /* This is basically libbpP.c's "reportStateStats()" except to a buffer. */
 int appendStateStats(char *buffer, size_t len, int stateIdx)
 {
+	/*	Note: needs to be rewritten per changes in ION
+	 *	instrumentation.					*/
+
+	putErrmsg("bpstats2 needs to be rewritten per instrumentation changes.",
+			NULL);
+	return -1;
+#if 0
 	static char *classnames[] = 
 	{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "ctt", "exp" };
 	time_t startTime;
@@ -62,6 +69,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 			state->stats[1].bundles, state->stats[1].bytes,
 			state->stats[2].bundles, state->stats[2].bytes,
 			state->stats[3].bundles, state->stats[3].bytes);
+#endif
 }
 
 int sendStats(char *destEid, char *buffer, size_t len)

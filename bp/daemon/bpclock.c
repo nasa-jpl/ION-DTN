@@ -202,13 +202,11 @@ static int	adjustThrottles()
 				{
 					/*	End of xmit contact.	*/
 					reportAllStateStats();
-					clearAllStateStats();
 				}
 				else if (neighbor->prevXmitRate == 0)
 				{
 					/*	Start of xmit contact.	*/
 					reportAllStateStats();
-					clearAllStateStats();
 				}
 			}
 #endif
@@ -242,13 +240,11 @@ static int	adjustThrottles()
 				{
 					/*	End of recv contact.	*/
 					reportAllStateStats();
-					clearAllStateStats();
 				}
 				else if (neighbor->prevRecvRate == 0)
 				{
 					/*	Start of recv contact.	*/
 					reportAllStateStats();
-					clearAllStateStats();
 				}
 			}
 #endif
