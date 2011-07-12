@@ -86,6 +86,9 @@ Features included:
 - Issue #278: Updated various test configuration files to have more recent
   contact times.
 
+- Tests have been scrubbed to adopt the new security syntax enhancements
+  introduced in Issue #247.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.0 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%

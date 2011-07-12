@@ -88,7 +88,7 @@ e 1
 
 # This rule isn't loaded on startup; rather it's added partway through
 # the test.  All bundles sent before it's added should fail as inauthentic
-# (since we have a babrxrule).  All bundles sent after it's added should
+# (since we have an bspbabrule).  All bundles sent after it's added should
 # succeed as authentic.
 
 # a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey
