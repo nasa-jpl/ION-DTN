@@ -610,7 +610,6 @@ typedef struct
 #define BP_REASON_EXPIRED	1
 #define BP_REASON_FWD_UNIDIR	2
 #define BP_REASON_CANCELED	3
-#define BP_REASON_REDUNDANT	3
 #define BP_REASON_DEPLETION	4
 #define BP_REASON_EID_MALFORMED	5
 #define BP_REASON_NO_ROUTE	6
@@ -618,17 +617,25 @@ typedef struct
 #define BP_REASON_BLK_MALFORMED	8
 #define BP_REASON_STATS		9
 
+#define	BP_CT_CUSTODY_ACCEPTED	0
+#define	BP_CT_CUSTODY_RELEASED	1
+#define	BP_CT_CUSTODY_EXPIRED	2
+#define BP_CT_REDUNDANT		3
+#define BP_CT_DEPLETION		4
+#define BP_CT_EID_MALFORMED	5
+#define BP_CT_NO_ROUTE		6
+#define BP_CT_NO_CONTACT	7
+#define BP_CT_BLK_MALFORMED	8
+#define BP_CT_STATS		9
+
 #define	BP_DB_QUEUED_FOR_FWD	0
 #define	BP_DB_FWD_OKAY		1
 #define	BP_DB_FWD_FAILED	2
 #define	BP_DB_REQUEUED_FOR_FWD	3
 #define	BP_DB_TO_LIMBO		4
 #define	BP_DB_FROM_LIMBO	5
-#define	BP_DB_CUSTODY_ACCEPTED	6
-#define	BP_DB_CUSTODY_RELEASED	7
-#define	BP_DB_CUSTODY_EXPIRED	8
-#define	BP_DB_EXPIRED		9
-#define	BP_DB_STATS		10
+#define	BP_DB_EXPIRED		6
+#define	BP_DB_STATS		7
 
 typedef struct
 {
@@ -645,7 +652,7 @@ typedef struct
 
 typedef struct
 {
-	Tally		tallies[BP_REASON_STATS];
+	Tally		tallies[BP_CT_STATS];
 } BpCtStats;
 
 typedef struct

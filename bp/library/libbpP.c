@@ -2460,7 +2460,7 @@ incomplete bundle.", NULL);
 		bpDbTally(BP_DB_EXPIRED, bundle.payload.length);
 		if (bundle.custodyTaken)
 		{
-			bpDbTally(BP_DB_CUSTODY_EXPIRED, bundle.payload.length);
+			bpCtTally(BP_CT_CUSTODY_EXPIRED, bundle.payload.length);
 		}
 
 		if ((_bpvdb(NULL))->watching & WATCH_expire)
@@ -8089,7 +8089,7 @@ static int	signalCustodyAcceptance(Bundle *bundle)
 		return -1;
 	}
 
-	bpDbTally(BP_DB_CUSTODY_ACCEPTED, bundle->payload.length);
+	bpCtTally(BP_CT_CUSTODY_ACCEPTED, bundle->payload.length);
 	result = sendCtSignal(bundle, dictionary, 1, 0);
 	releaseDictionary(dictionary);
 	if (result < 0)
@@ -8894,7 +8894,7 @@ static void	releaseCustody(Object bundleAddr, Bundle *bundle)
 	}
 
 	sdr_write(bpSdr, bundleAddr, (char *) bundle, sizeof(Bundle));
-	bpDbTally(BP_DB_CUSTODY_RELEASED, bundle->payload.length);
+	bpCtTally(BP_CT_CUSTODY_RELEASED, bundle->payload.length);
 }
 
 int	bpAbandon(Object bundleObj, Bundle *bundle)
