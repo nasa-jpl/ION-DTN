@@ -155,6 +155,8 @@ static void	eraseModule(Module *module)
 			nextElt = lyst_next(elt);
 			lyst_delete(elt);
 		}
+
+		lyst_destroy(module->amsEndpoints);
 	}
 
 	if (module->subjects)
@@ -164,10 +166,13 @@ static void	eraseModule(Module *module)
 			nextElt = lyst_next(elt);
 			lyst_delete(elt);
 		}
+
+		lyst_destroy(module->subjects);
 	}
 
 	clearMamsEndpoint(&module->mamsEndpoint);
 	module->role = NULL;
+	MRELEASE(module);
 }
 
 void	eraseUnit(Venture *venture, Unit *unit)
@@ -223,6 +228,8 @@ void	eraseUnit(Venture *venture, Unit *unit)
 		subunit->superunit = superunit;
 	}
 
+	lyst_destroy(unit->subunits);
+
 	/*	Detach erased unit from its own superunit.		*/
 
 	if (unit->inclusionElt)
@@ -248,6 +255,11 @@ void	eraseVenture(Venture *venture)
 	}
 
 	lockMib();
+	if (venture->authorityName)
+	{
+		MRELEASE(venture->authorityName);
+	}
+
 	for (i = 0; i <= MAX_UNIT_NBR; i++)
 	{
 		eraseUnit(venture, venture->units[i]);
@@ -261,7 +273,7 @@ void	eraseVenture(Venture *venture)
 		}
 	}
 
-	for (i = 1; i <= MAX_SUBJ_NBR; i++)
+	for (i = 0; i <= MAX_SUBJ_NBR; i++)
 	{
 		if (venture->subjects[i])
 		{
@@ -2242,12 +2254,6 @@ int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 	if (elt == NULL)
 	{
 		putErrmsg("Can't insert event.", NULL);
-		MRELEASE(evt);
-		if (ancillaryBlock)
-		{
-			MRELEASE(ancillaryBlock);
-		}
-
 		return -1;
 	}
 
@@ -2437,6 +2443,11 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	{
 		putErrmsg("Can't enqueue MAMS message.", NULL);
 		MRELEASE(evt);
+		if (msg.supplement)
+		{
+			MRELEASE(msg.supplement);
+		}
+
 		return -1;
 	}
 

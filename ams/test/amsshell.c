@@ -63,7 +63,7 @@ static void	killMainThread()
 
 	if (!pthread_equal(mainThread, pthread_self()))
 	{
-		pthread_kill(mainThread, SIGTERM);
+		pthread_kill(mainThread, SIGINT);
 	}
 }
 #endif

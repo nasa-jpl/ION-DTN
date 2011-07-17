@@ -213,6 +213,11 @@ static void	cleanUpCsState(CsState *csState)
 		csState->tsif.ts->shutdownFn(csState->tsif.sap);
 	}
 
+	if (csState->tsif.ept)
+	{
+		MRELEASE(csState->tsif.ept);
+	}
+
 	if (csState->csEvents)
 	{
 		lyst_destroy(csState->csEvents);
@@ -329,7 +334,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		{
 			reasonCode = REJ_NO_UNIT;
 			endpoint.ept = ept;
-			if (((mib->pts->parseMamsEndpointFn)(&endpoint)) < 0)
+			if (((mib->pts->parseMamsEndpointFn)(&endpoint)) == 0)
 			{
 				if (sendMamsMsg(&endpoint, &(csState->tsif),
 						rejection, msg->memo, 1,
@@ -338,6 +343,8 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 					putErrmsg("CS can't reject registrar.",
 							NULL);
 				}
+
+				(mib->pts->clearMamsEndpointFn)(&endpoint);
 			}
 
 			return;
@@ -363,7 +370,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 			reasonCode = REJ_DUPLICATE;
 			endpoint.ept = ept;
-			if (((mib->pts->parseMamsEndpointFn)(&endpoint)) < 0)
+			if (((mib->pts->parseMamsEndpointFn)(&endpoint)) == 0)
 			{
 				if (sendMamsMsg(&endpoint, &(csState->tsif),
 						rejection, msg->memo, 1,
@@ -372,6 +379,8 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 					putErrmsg("CS can't reject registrar.",
 							NULL);
 				}
+
+				(mib->pts->clearMamsEndpointFn)(&endpoint);
 			}
 
 			return;
@@ -495,6 +504,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 						NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			shutDownMsgspace(csState, venture);
 			shutDownAmsd();
 			return;
@@ -526,6 +536,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 						NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -543,6 +554,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			putErrmsg("CS can't send cell_spec.", NULL);
 		}
 
+		(mib->pts->clearMamsEndpointFn)(&endpoint);
 		return;
 
 	default:		/*	Inapplicable message; ignore.	*/
@@ -1096,6 +1108,11 @@ static void	cleanUpRsState(RsState *rsState)
 		rsState->tsif.ts->shutdownFn(rsState->tsif.sap);
 	}
 
+	if (rsState->tsif.ept)
+	{
+		MRELEASE(rsState->tsif.ept);
+	}
+
 	if (rsState->rsEvents)
 	{
 		lyst_destroy(rsState->rsEvents);
@@ -1406,6 +1423,7 @@ accepting it", itoa(unitNbr));
 				putErrmsg("RS can't reject MAMS msg.", NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1437,6 +1455,7 @@ accepting it", itoa(unitNbr));
 				putErrmsg("RS can't reject MAMS msg.", NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1446,6 +1465,7 @@ accepting it", itoa(unitNbr));
 		if (rememberModule(module, role, eptLength, ept))
 		{
 			putErrmsg("RS can't register new module.", NULL);
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1455,17 +1475,20 @@ accepting it", itoa(unitNbr));
 		{
 			forgetModule(module);
 			putErrmsg("RS can't send module number.", NULL);
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
 		*supplement = moduleNbr;
 		result = sendMamsMsg(&endpoint, &(rsState->tsif), you_are_in,
 				msg->memo, supplementLength, supplement);
+		(mib->pts->clearMamsEndpointFn)(&endpoint);
 		MRELEASE(supplement);
 		if (result < 0)
 		{
 			forgetModule(module);
 			putErrmsg("RS can't accept module registration.", NULL);
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1541,6 +1564,7 @@ accepting it", itoa(unitNbr));
 				putErrmsg("RS can't ditch reconnect.", NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1549,16 +1573,19 @@ accepting it", itoa(unitNbr));
 
 		if (skipDeliveryVectorList(&bytesRemaining, &cursor) < 0)
 		{
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;		/*	Ignore malformed msg.	*/
 		}
 
 		if (skipDeclaration(&bytesRemaining, &cursor) < 0)
 		{
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;		/*	Ignore malformed msg.	*/
 		}
 
 		if (bytesRemaining == 0)
 		{
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;		/*	Ignore malformed msg.	*/
 		}
 
@@ -1567,6 +1594,7 @@ accepting it", itoa(unitNbr));
 		bytesRemaining--;
 		if (bytesRemaining != moduleCount)
 		{
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;		/*	Ignore malformed msg.	*/
 		}
 
@@ -1585,6 +1613,7 @@ accepting it", itoa(unitNbr));
 				putErrmsg("RS can't ditch reconnect.", NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1601,6 +1630,7 @@ accepting it", itoa(unitNbr));
 				putErrmsg("RS can't ditch reconnect.", NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1610,6 +1640,7 @@ accepting it", itoa(unitNbr));
 		if (result < 0)
 		{
 			putErrmsg("RS can't reconnect module.", NULL);
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1643,8 +1674,10 @@ accepting it", itoa(unitNbr));
 
 		/*	Let module go about its business.		*/
 
-		if (sendMamsMsg(&endpoint, &(rsState->tsif), reconnected,
-				msg->memo, 0, NULL) < 0)
+		result = sendMamsMsg(&endpoint, &(rsState->tsif), reconnected,
+				msg->memo, 0, NULL);
+		(mib->pts->clearMamsEndpointFn)(&endpoint);
+		if (result < 0)
 		{
 			putErrmsg("RS can't acknowledge MAMS msg.", NULL);
 		}
@@ -1981,6 +2014,7 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 		{
 			stopConfigServer(&csState);
 			stopRegistrar(&rsState);
+			unloadMib();
 			return 0;
 		}
 

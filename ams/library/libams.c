@@ -277,6 +277,10 @@ static void	eraseSAP(AmsSAP *sap)
 	{
 		sap->mamsTsif.ts->shutdownFn(sap->mamsTsif.sap);
 		pthread_join(sap->mamsTsif.receiver, NULL);
+		if (sap->mamsTsif.ept)
+		{
+			MRELEASE(sap->mamsTsif.ept);
+		}
 	}
 
 	/*	Stop all AMS message interfaces.			*/
@@ -2936,6 +2940,7 @@ static int	locateRegistrar(AmsSAP *sap)
 			switch (msg->type)
 			{
 			case registrar_unknown:
+				recycleEvent(evt);
 				writeMemo("[?] No registrar for this cell.");
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return -1;

@@ -942,6 +942,7 @@ printf("Before bp_receive...\n");
 		bp_detach();
 	}
 
+	oK(_gWay(gWay));
 	oK(_petitionLog(NULL));		/*	Close the petition log.	*/
 	writeMemo("[i] Stopping RAMS gateway.");
 	return 0;
@@ -1063,8 +1064,6 @@ ownPseudoSubject, node->continuumNbr);
 	{
 		lyst_destroy(gWay->udpRpdus);
 	}
-
-	MRELEASE(gWay);
 }
 
 #if RAMSDEBUG
