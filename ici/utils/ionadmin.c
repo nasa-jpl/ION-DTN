@@ -91,6 +91,8 @@ relative times (+ss) are computed.");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} contact <from time> <from node#> <to node#>");
 	PUTS("\t   {d|i} range <from time> <from node#> <to node#>");
+	PUTS("\t\tTo delete all contacts or ranges for some pair of nodes,");
+	PUTS("\t\tuse '*' as <from time>.");
 	PUTS("\tl\tList");
 	PUTS("\t   l contact");
 	PUTS("\t   l range");
@@ -216,8 +218,21 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	refTime = _referenceTime(NULL);
-	timestamp = readTimestampUTC(tokens[2], refTime);
+	if (tokens[2][0] == '*')
+	{
+		timestamp = 0;
+	}
+	else
+	{
+		refTime = _referenceTime(NULL);
+		timestamp = readTimestampUTC(tokens[2], refTime);
+		if (timestamp == 0)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+	}
+
 	fromNodeNbr = strtol(tokens[3], NULL, 0);
 	toNodeNbr = strtol(tokens[4], NULL, 0);
 	if (strcmp(tokens[1], "contact") == 0)

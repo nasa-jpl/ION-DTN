@@ -43,7 +43,8 @@ LFW = -lipnfw -ldtn2fw
 
 LBP = -lbp -lbpP
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat dccpcli dccpclo
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
+#dccpcli dccpclo
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
 
@@ -314,8 +315,8 @@ libudpcla.so:	libudpcla.o
 %.o:		$(UDP)/%.c
 		$(CC) -c $<
 
-%.o:		$(DCCP)/%.c
-		$(CC) -c $<
+#%.o:		$(DCCP)/%.c
+#		$(CC) -c $<
 
 %.o:		$(BRS)/%.c
 		$(CC) -c $<

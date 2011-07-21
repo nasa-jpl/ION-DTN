@@ -8222,7 +8222,7 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 
 	xrAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
-	sdr_read(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
+	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
 	sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
 	removeBundleFromQueue(xmitElt, &bundle, protocol, outductObj, outduct);
 	if (xr.proxNodeEid)
@@ -8255,7 +8255,6 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 
 	/*	Must queue the bundle into limbo unconditionally.	*/
 
-	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, 0);
 	if (bundle.overdueElt)
 	{
 		/*	Bundle was un-queued before "overdue"

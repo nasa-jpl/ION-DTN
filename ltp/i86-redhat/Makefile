@@ -20,7 +20,8 @@ LTPINCLS = \
 	$(UDP)/udplsa.h \
 	$(DCCP)/dccplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter dccplsi dccplso
+RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter
+#dccplsi dccplso
 
 ALL = check libltpP.so libltp.so $(RUNTIMES)
 
@@ -113,5 +114,5 @@ libltp.so:	libltp.o
 %.o:		$(UDP)/%.c
 		$(CC) -c $<
 
-%.o:		$(DCCP)/%.c
-		$(CC) -c $<
+#%.o:		$(DCCP)/%.c
+#		$(CC) -c $<
