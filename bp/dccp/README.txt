@@ -3,7 +3,7 @@ README for DCCPCLO/DCCPCLI
 DCCPCLO/DCCPCLI are DCCP (Datagram Congestion Control Protocol) based convergence
 layer daemons for BP. The unique feature of DCCP is that it provides congestion
 control without guaranteeing reliable, in-order delivery. This makes it a good
-choice for testing BP's Custody Transfer.
+convergence-layer protocol for use with BP's Custody Transfer.
 
 Please note that there is no fragmentation support in this convergence layer and
 we do not intend to add any. This means that this convergence layer is limited
@@ -27,10 +27,10 @@ that anyone attempting to use DCCP with ION at this time do the same.
 
 The DCCP testing tree is maintained as a git repository at 
 http://eden-feed.erg.abdn.ac.uk/. Once you pull the tree, you need to select the
-"dccp" branch. For detailed in instructions on pulling the testing tree, please see:
+"dccp" branch. For detailed instructions on pulling the testing tree, please see:
 http://www.linuxfoundation.org/collaborate/workgroups/networking/dccp_testing#Cloning_the_entire_tree
 Once you have the testing tree, simply configure, build, and install the kernel as
-appropriate for your system. You you are not familiar with the steps required to
+appropriate for your system. If you are not familiar with the steps required to
 build a Linux kernel, here is a good guide: 
 http://www.cyberciti.biz/tips/compiling-linux-kernel-26.html
 
