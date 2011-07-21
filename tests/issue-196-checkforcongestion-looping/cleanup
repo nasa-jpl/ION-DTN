@@ -1,0 +1,5 @@
+#!/bin/bash
+
+rm -f ion.log ion.sdr ion.sdrlog
+
+killm
