@@ -112,7 +112,6 @@ extern "C" {
 #define	REJ_NO_CENSUS	2
 #define	REJ_CELL_FULL	3
 #define	REJ_NO_UNIT	4
-#define	REJ_SHUTDOWN	5
 
 /*	Common event types.						*/
 #define CRASH_EVT	11
@@ -446,6 +445,7 @@ typedef struct
 extern int	initMemoryMgt(char *mName, char *memory, unsigned mSize);
 extern AmsMib	*_mib(AmsMibParameters *parms);
 extern AmsMib	*loadMib(char *mibSource);
+extern int	updateMib(char *mibSource);
 extern void	lockMib();
 extern void	unlockMib();
 extern void	unloadMib();

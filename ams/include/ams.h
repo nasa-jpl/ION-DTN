@@ -21,6 +21,8 @@
 extern "C" {
 #endif
 
+#define	MAX_AMS_CONTENT		(65000)
+
 #define THIS_CONTINUUM		(-1)
 #define ALL_CONTINUA		(0)
 #define ANY_CONTINUUM		(0)

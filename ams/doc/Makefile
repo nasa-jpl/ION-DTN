@@ -13,6 +13,7 @@ MANFILES = \
 	./man/man1/amspub.1 \
 	./man/man1/amsshell.1 \
 	./man/man1/amsstop.1 \
+	./man/man1/amsmib.1 \
 	./man/man1/amssub.1 \
 	./man/man1/ramsgate.1 \
 	./man/man3/ams.3 \
@@ -29,6 +30,7 @@ HTMLFILES = \
 	./html/man1/amspub.html \
 	./html/man1/amsshell.html \
 	./html/man1/amsstop.html \
+	./html/man1/amsmib.html \
 	./html/man1/amssub.html \
 	./html/man1/ramsgate.html \
 	./html/man3/ams.html \

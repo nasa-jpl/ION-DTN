@@ -840,7 +840,7 @@ Venture	*lookUpVenture(char *appName, char *authName)
 	for (i = 1; i <= MAX_VENTURE_NBR; i++)
 	{
 		venture = (_mib(NULL))->ventures[i];
-		if (venture == NULL)
+		if (venture == NULL)	/*	Number not in use.	*/
 		{
 			continue;
 		}
@@ -865,7 +865,7 @@ Unit	*lookUpUnit(Venture *venture, char *unitName)
 	for (i = 0; i <= MAX_UNIT_NBR; i++)
 	{
 		unit = venture->units[i];
-		if (unit == NULL)
+		if (unit == NULL)	/*	Number not in use.	*/
 		{
 			continue;
 		}
@@ -1709,8 +1709,7 @@ static Venture	*createVenture2(int nbr, char *appname, char *authname,
 	venture->ramsNetIsTree = ramsNetIsTree;
 	mib->ventures[nbr] = venture;
 
-	/*	Automatically create venture's RAMS gateway and
-	 *	(ION extension) shutdown roles.				*/
+	/*	Automatically create venture's RAMS gateway role.	*/
 
 	gatewayRole = createRole(venture, 1, "RAMS", NULL, NULL);
 	shutdownRole = createRole(venture, MAX_ROLE_NBR, "stop", NULL, NULL);

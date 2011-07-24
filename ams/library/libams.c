@@ -41,8 +41,6 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence);
 
-#define	MAX_AMS_CONTENT	(65000)
-
 /*			Privately defined event types.			*/
 #define ACCEPTED_EVT	32
 #define SHUTDOWN_EVT	33
@@ -651,6 +649,39 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 	return 0;
 }
 
+static int	handleMibUpdate(int contentLength, char *content)
+{
+	char	fileName[MAXPATHLEN];
+	int	fd;
+	int	result = 0;
+
+	isprintf(fileName, MAXPATHLEN, "amsmib.%d", sm_GetUniqueKey());
+	fd = iopen(fileName, O_WRONLY | O_CREAT, 0777);
+	if (fd < 0)
+	{
+		putSysErrmsg("AMS can't open temporary MIB update file",
+				fileName);
+		return -1;
+	}
+
+	if (write(fd, content, contentLength) < contentLength)
+	{
+		putSysErrmsg("AMS can't write to temporary MIB update file",
+				itoa(contentLength));
+		result = -1;
+	}
+
+	close(fd);
+	if (result < 0)
+	{
+		return result;
+	}
+
+	result = updateMib(fileName);
+	unlink(fileName);
+	return result;
+}
+
 int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 {
 	char	*msgContent = ((char *) msgBuffer) + 16;
@@ -845,6 +876,13 @@ unsolicited message.", subject->name);
 		{
 			return -1;
 		}
+	}
+
+	/*	If message subject is "amsmib", handle it here.		*/
+
+	if (subject->name && strcmp(subject->name, "amsmib") == 0)
+	{
+		return handleMibUpdate(msg.contentLength, msg.content);
 	}
 
 	/*	Create and enqueue event, signal application thread.	*/
@@ -3654,6 +3692,8 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	char		*tspos;
 	DeliveryVector	*vector;
 	AmsEvt		*evt;
+	Subject		*amsmibSubject;
+	AppRole		*amsmibRole;
 
 	CHKERR(applicationName);
 	CHKERR(authorityName);
@@ -4003,15 +4043,31 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	/*	Note: reliable delivery would be much better, but
 	 *	not all implementations of AMS support that QOS.	*/
 
-	result = ams_invite2(sap, 1, THIS_CONTINUUM, 0,
+	if (ams_invite2(sap, 1, THIS_CONTINUUM, 0,
 			(0 - mib->localContinuumNbr), 8, 0, AmsArrivalOrder,
-			AmsBestEffort);
-	if (result < 0)
+			AmsBestEffort) < 0)
 	{
 		putErrmsg("Can't invite RAMS enclosure messages.", NULL);
+		return -1;
 	}
 
-	return result;
+	/*	Finally, if subject "amsmib" is defined in the MIB,
+	 *	then invite messages on that subject.			*/
+
+	amsmibSubject = lookUpSubject(sap->venture, "amsmib");
+	amsmibRole = lookUpRole(sap->venture, "amsmib");
+	if (amsmibSubject && amsmibRole)
+	{
+		if (ams_invite2(sap, amsmibRole->nbr, ALL_CONTINUA, 0,
+				amsmibSubject->nbr, 8, 0, AmsArrivalOrder,
+				AmsBestEffort) < 0)
+		{
+			putErrmsg("Can't invite MIB update messages.", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
 }
 
 int	ams_register(char *mibSource, char *tsorder, char *applicationName,

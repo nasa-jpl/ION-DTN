@@ -45,6 +45,11 @@ the update context within which the configuration elements nested within
 it are processed, while a configuration element declares values for one
 or more items of AMS configuration information in the MIB.
 
+Note that an aggregate configuration element (i.e., one which may contain
+other interior configuration elements; venture, for example) may be presented
+outside of any control element, simply to establish the context in which 
+subsequent control elements are to be interpreted.
+
 =head1 CONTROL ELEMENTS
 
 =over 4
@@ -517,11 +522,21 @@ nominally by ionsecadmin(1).
 
 *role nbr=7 name=benchr
 
+*role nbr=96 name=amsd
+
+*role nbr=97 name=amsmib
+
+*role nbr=98 name=amsstop
+
 *subject nbr=1 name=text desc='ASCII text'
 
 *subject nbr=2 name=noise desc='more ASCII text'
 
 *subject nbr=3 name=bench desc='numbered msgs'
+
+*subject nbr=97 name=amsmib desc='MIB updates'
+
+*subject nbr=98 name=amsstop desc='shutdown'
 
 *unit nbr=1 name=orbiters
 
