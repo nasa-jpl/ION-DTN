@@ -2647,6 +2647,7 @@ printf("Skipping %d bytes, segmentOffset changed to %d.\n", bytesToSkip, segment
 #if CFDPDEBUG
 printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.length);
 #endif
+		extentEnd = extent.offset + extent.length;
 	}
 
 	nextElt = sdr_list_next(sdr, elt);

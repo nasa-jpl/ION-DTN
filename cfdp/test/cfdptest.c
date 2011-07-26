@@ -546,8 +546,12 @@ static void	*handleEvents(void *parm)
 				return NULL;
 			}
 
-			printf("\tResponse %d %d '%s' '%s' '%s'\n", action,
-				status, firstPathName, secondPathName, msgBuf);
+			if (action != ((CfdpAction) -1))
+			{
+				printf("\tResponse %d %d '%s' '%s' '%s'\n",
+						action, status, firstPathName,
+						secondPathName, msgBuf);
+			}
 		}
 
 		printf(": ");
