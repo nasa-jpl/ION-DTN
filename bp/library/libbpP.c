@@ -5024,12 +5024,6 @@ status reports for admin records.");
 		return -1;
 	}
 
-	if (sdr_end_xn(bpSdr) < 0)
-	{
-		putErrmsg("Can't send bundle.", NULL);
-		return -1;
-	}
-
 	if (vpoint)
 	{
 		bpEndpointTally(vpoint, BP_ENDPOINT_SOURCED,
@@ -5041,6 +5035,12 @@ status reports for admin records.");
 	{
 		putchar('a');
 		fflush(stdout);
+	}
+
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't send bundle.", NULL);
+		return -1;
 	}
 
 	return 1;
@@ -8538,7 +8538,6 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	sdr_write(bpSdr, xmitRefAddr, (char *) &xr, sizeof(XmitRef));
 	bundle->xmitsNeeded += 1;
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-	bpOutductTally(vduct, BP_OUTDUCT_ENQUEUED, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_b)
 	{
 		putchar('b');
@@ -8560,6 +8559,8 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 
 	if (vductElt != 0)
 	{
+		bpOutductTally(vduct, BP_OUTDUCT_ENQUEUED,
+				bundle->payload.length);
 		if (vduct->semaphore != SM_SEM_NONE)
 		{
 			sm_SemGive(vduct->semaphore);
