@@ -303,7 +303,7 @@ number>");
 		return 1;
 	}
 
-	if (vinduct->cliPid > 0 && vinduct->cliPid != sm_TaskIdSelf())
+	if ( VALIDPID(vinduct->cliPid ) && vinduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
 				itoa(vinduct->cliPid));

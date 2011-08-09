@@ -31,7 +31,7 @@ int	bp_agent_is_started()
 {
 	BpVdb	*vdb = getBpVdb();
 
-	return (vdb && vdb->clockPid > 0) ? 1 : 0;
+	return (vdb && VALIDPID( vdb->clockPid)) ? 1 : 0;
 }
 
 Sdr	bp_get_sdr()
@@ -88,7 +88,7 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 	/*	Endpoint exists; make sure it's not already opened
 	 *	by some application.					*/
 
-	if (vpoint->appPid > 0)	/*	Endpoint not closed.		*/
+	if ( VALIDPID(vpoint->appPid ))	/*	Endpoint not closed.		*/
 	{
 		if (sm_TaskExists(vpoint->appPid))
 		{

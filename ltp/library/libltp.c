@@ -25,7 +25,7 @@ int	ltp_engine_is_started()
 {
 	LtpVdb	*vdb = getLtpVdb();
 
-	return (vdb && vdb->clockPid > 0) ? 1 : 0;
+	return (vdb && VALIDPID( vdb->clockPid)) ? 1 : 0;
 }
 
 int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,

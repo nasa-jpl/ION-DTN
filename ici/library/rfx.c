@@ -30,7 +30,7 @@ int	rfx_system_is_started()
 {
 	IonVdb	*vdb = getIonVdb();
 
-	return (vdb && vdb->clockPid > 0) ? 1 : 0;
+	return (vdb && VALIDPID( vdb->clockPid )) ? 1 : 0;
 }
 
 IonNeighbor	*findNeighbor(IonVdb *ionvdb, unsigned long nodeNbr,
@@ -1805,7 +1805,7 @@ int	rfx_start()
 
 	/*	Start the rfx clock if necessary.			*/
 
-	if (vdb->clockPid < 1 || sm_TaskExists(vdb->clockPid) == 0)
+	if ( INVALIDPID( vdb->clockPid ) || sm_TaskExists(vdb->clockPid) == 0)
 	{
 		vdb->clockPid = pseudoshell("rfxclock");
 	}
@@ -1819,7 +1819,7 @@ void	rfx_stop()
 	IonVdb	*vdb;
 
 	vdb = getIonVdb();
-	if (vdb->clockPid > 0)
+	if ( VALIDPID( vdb->clockPid ))
 	{
 		sm_TaskKill(vdb->clockPid, SIGTERM);
 		while (sm_TaskExists(vdb->clockPid))

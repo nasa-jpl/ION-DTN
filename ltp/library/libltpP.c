@@ -243,7 +243,7 @@ static void	stopSpan(LtpVspan *vspan)
 
 static void	waitForSpan(LtpVspan *vspan)
 {
-	if (vspan->lsoPid > 0)
+   if ( VALIDPID( vspan->lsoPid ))
 	{
 		while (sm_TaskExists(vspan->lsoPid))
 		{
@@ -251,7 +251,7 @@ static void	waitForSpan(LtpVspan *vspan)
 		}
 	}
 
-	if (vspan->meterPid > 0)
+   if ( VALIDPID( vspan->meterPid ))
 	{
 		while (sm_TaskExists(vspan->meterPid))
 		{
@@ -501,14 +501,14 @@ int	ltpStart(char *lsiCmd)
 
 	/*	Start the LTP events clock if necessary.		*/
 
-	if (ltpvdb->clockPid < 1 || sm_TaskExists(ltpvdb->clockPid) == 0)
+	if ( INVALIDPID( ltpvdb->clockPid ) || sm_TaskExists(ltpvdb->clockPid) == 0)
 	{
 		ltpvdb->clockPid = pseudoshell("ltpclock");
 	}
 
 	/*	Start input link service if necessary.			*/
 
-	if (ltpvdb->lsiPid < 1 || sm_TaskExists(ltpvdb->lsiPid) == 0)
+	if ( INVALIDPID( ltpvdb->lsiPid ) || sm_TaskExists(ltpvdb->lsiPid) == 0)
 	{
 		ltpvdb->lsiPid = pseudoshell(lsiCmd);
 	}
@@ -552,7 +552,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		}
 	}
 
-	if (ltpvdb->lsiPid > 0)
+	if ( VALIDPID( ltpvdb->lsiPid ))
 	{
 		sm_TaskKill(ltpvdb->lsiPid, SIGTERM);
 	}
@@ -564,7 +564,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		stopSpan(vspan);
 	}
 
-	if (ltpvdb->clockPid > 0)
+	if ( VALIDPID( ltpvdb->clockPid ))
 	{
 		sm_TaskKill(ltpvdb->clockPid, SIGTERM);
 	}
@@ -573,7 +573,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 
 	/*	Wait until all LTP processes have stopped.		*/
 
-	if (ltpvdb->lsiPid > 0)
+	if ( VALIDPID( ltpvdb->lsiPid ))
 	{
 		while (sm_TaskExists(ltpvdb->lsiPid))
 		{
@@ -588,7 +588,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		waitForSpan(vspan);
 	}
 
-	if (ltpvdb->clockPid > 0)
+	if ( VALIDPID( ltpvdb->clockPid ))
 	{
 		while (sm_TaskExists(ltpvdb->clockPid))
 		{
@@ -1262,7 +1262,7 @@ int	ltpAttachClient(unsigned long clientSvcId)
 
 	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
 	client = (_ltpvdb(NULL))->clients + clientSvcId;
-	if (client->pid > 0)
+	if ( VALIDPID( client->pid ))
 	{
 		if (sm_TaskExists(client->pid))
 		{
@@ -1324,7 +1324,7 @@ int	enqueueNotice(LtpVclient *client, unsigned long sourceEngineId,
 	LtpNotice	notice;
 
 	CHKERR(client);
-	if (client->pid <= 0)
+	if ( INVALIDPID( client->pid ))
 	{
 		return 0;	/*	No client task to report to.	*/
 	}
@@ -3693,7 +3693,7 @@ putErrmsg("Discarding late segment.", itoa(sessionNbr));
 	getImportSession(vspan, sessionNbr, &sessionObj);
 	segment->segmentClass = LtpDataSeg;
 	if (pdu->clientSvcId > MAX_LTP_CLIENT_NBR
-	|| (client = ltpvdb->clients + pdu->clientSvcId)->pid <= 0)
+            || INVALIDPID( (client = ltpvdb->clients + pdu->clientSvcId)->pid ) )
 	{
 		/*	Data segment is for an unknown client service,
 		 *	so must discard it and cancel the session.	*/

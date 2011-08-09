@@ -484,14 +484,14 @@ int	_cfdpStart(char *utaCmd)
 
 	/*	Start the CFDP events clock if necessary.		*/
 
-	if (cfdpvdb->clockPid < 1 || sm_TaskExists(cfdpvdb->clockPid) == 0)
+	if ( INVALIDPID( cfdpvdb->clockPid ) || sm_TaskExists(cfdpvdb->clockPid) == 0)
 	{
 		cfdpvdb->clockPid = pseudoshell("cfdpclock");
 	}
 
 	/*	Start UT adapter service if necessary.			*/
 
-	if (cfdpvdb->utaPid < 1 || sm_TaskExists(cfdpvdb->utaPid) == 0)
+	if ( INVALIDPID( cfdpvdb->utaPid ) || sm_TaskExists(cfdpvdb->utaPid) == 0)
 	{
 		cfdpvdb->utaPid = pseudoshell(utaCmd);
 	}
@@ -525,7 +525,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Stop clock task.					*/
 
-	if (cfdpvdb->clockPid > 0)
+	if ( VALIDPID( cfdpvdb->clockPid ))
 	{
 		sm_TaskKill(cfdpvdb->clockPid, SIGTERM);
 	}
@@ -534,7 +534,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Wait until all CFDP processes have stopped.		*/
 
-	if (cfdpvdb->utaPid > 0)
+	if ( VALIDPID( cfdpvdb->utaPid ))
 	{
 		while (sm_TaskExists(cfdpvdb->utaPid))
 		{
@@ -542,7 +542,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 		}
 	}
 
-	if (cfdpvdb->clockPid > 0)
+	if ( VALIDPID( cfdpvdb->clockPid ))
 	{
 		while (sm_TaskExists(cfdpvdb->clockPid))
 		{

@@ -34,6 +34,12 @@ extern int		sm_GetUniqueKey();
 
 #define	ICI_PRIORITY	250
 
+
+static inline int VALIDPID(_p) { return ( (_p) != 0 && (_p) != -1) ? -1 : 0; }
+static inline int INVALIDPID(_p) { return ! VALIDPID( _p ); }
+
+
+
 /*      IPC services access control */
 extern int		sm_ipc_init();
 extern void		sm_ipc_stop();
