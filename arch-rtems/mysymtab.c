@@ -11,6 +11,7 @@
 									*/
 
 extern int	ionadmin(int, int, int, int, int, int, int, int, int, int);
+extern int	ionexit(int, int, int, int, int, int, int, int, int, int);
 extern int	rfxclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ionsecadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpadmin(int, int, int, int, int, int, int, int, int, int);
@@ -45,6 +46,7 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 	static SymTabEntry	symbols[] =
 	{
 		{ "ionadmin",	(FUNCPTR) ionadmin,	ICI_PRIORITY,	32768 },
+		{ "ionexit",	(FUNCPTR) ionexit,	ICI_PRIORITY,	32768 },
 		{ "rfxclock",	(FUNCPTR) rfxclock,	ICI_PRIORITY,	32768 },
 		{ "ionsecadmin",(FUNCPTR) ionsecadmin,	ICI_PRIORITY,	32768 },
 		{ "ltpadmin",	(FUNCPTR) ltpadmin,	ICI_PRIORITY,	32768 },

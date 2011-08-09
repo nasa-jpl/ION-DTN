@@ -1384,8 +1384,8 @@ void	sdr_destroy(Sdr sdrv)
 	SdrState		*sdr;
 	char			dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
 	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
-	char			*dbsm;
-	int			dbsmId;
+	char			*dbsm = NULL;
+	int			dbsmId = 0;
 
 	CHKVOID(sdrv);
 

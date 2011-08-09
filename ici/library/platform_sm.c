@@ -131,7 +131,7 @@ sm_ShmDestroy(int i)
 
 	CHKVOID(i >= 0);
 	CHKVOID(i < nShmIds);
-	shm = _shmTbl() + 1;
+	shm = _shmTbl() + i;
 	if (shm->freeNeeded)
 	{
 		free(shm->ptr);
@@ -1286,12 +1286,21 @@ static SemaphoreBase	*_sembase(int stop)
 {
 	static SemaphoreBase	*semaphoreBase = NULL;
 	static int		sembaseId = 0;
+	int			semSetIdx;
 	IciSemaphoreSet		*semset;
 
 	if (stop)
 	{
 		if (semaphoreBase != NULL)
 		{
+			semSetIdx = 0;
+			while (semSetIdx < SEMMNI)
+			{
+				semset = semaphoreBase->semSets + semSetIdx;
+				oK(semctl(semset->semid, 0, IPC_RMID, NULL));
+            semSetIdx++;
+			}
+
 			sm_ShmDestroy(sembaseId);
 			semaphoreBase = NULL;
 		}
