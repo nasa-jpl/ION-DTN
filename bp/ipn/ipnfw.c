@@ -63,7 +63,6 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			unsigned long nodeNbr, unsigned long serviceNbr)
 {
 	FwdDirective	directive;
-	char		*decoration;
 	char		stationEid[64];
 	IonNode		*stationNode;
 	PsmAddress	nextElt;
@@ -79,13 +78,8 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 
 	/*	The station node is a neighbor.				*/
 
-#if BP_URI_RFC
-	decoration = "dtn::";
-#else
-	decoration = "";
-#endif
-	isprintf(stationEid, sizeof stationEid, "%.5sipn:%lu.%lu", decoration,
-			nodeNbr, serviceNbr);
+	isprintf(stationEid, sizeof stationEid, "ipn:%lu.%lu", nodeNbr,
+			serviceNbr);
 
 	/*	Is neighbor refusing to be a station for bundles?	*/
 

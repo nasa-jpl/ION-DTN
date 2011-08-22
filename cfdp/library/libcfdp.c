@@ -1127,7 +1127,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			readerFn = defaultReader;
 		}
 
-		sourceFile = open(sourceFileName, O_RDONLY, 0);
+		sourceFile = iopen(sourceFileName, O_RDONLY, 0);
 		if (sourceFile < 0)
 		{
 			sdr_exit_xn(sdr);
@@ -1931,7 +1931,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset,
 
 	sdr_string_read(sdr, fileName, fduBuf.workingFileName);
 	sdr_exit_xn(sdr);
-	fd = open(fileName, O_RDONLY, 0);
+	fd = iopen(fileName, O_RDONLY, 0);
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't open working file", fileName);

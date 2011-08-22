@@ -5,8 +5,8 @@ UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
 
-OPT = -g -Wall -Dinterix
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(INCL)
+OPT = -g -Wall -Dmingw
+CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -20,6 +20,8 @@ LIBICIOBJS = \
 	smlist.o \
 	sptrace.o \
 	ion.o \
+	rfx.o \
+	ionsec.o \
 	zco.o \
 	sdrxn.o \
 	sdrmgt.o \
@@ -39,8 +41,9 @@ PUBINCLS = \
 	$(INCL)/smlist.h \
 	$(INCL)/sptrace.h \
 	$(INCL)/ion.h \
-	$(INCL)/zco.h \
 	$(INCL)/rfx.h \
+	$(INCL)/ionsec.h \
+	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \
 	$(INCL)/sdrmgt.h \
 	$(INCL)/sdrstring.h \
@@ -51,13 +54,14 @@ PUBINCLS = \
 
 ICIINCLS = \
 	$(SRC)/lystP.h \
-	$(SRC)/sdrP.h
+	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwath ionadmin sdrmend
+UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend
 
-TESTPGMS = psmshell smlistsh file2sm sm2file file2sdr sdr2file
+TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh owltsim
+# owlttb
 
-ALL = check libici.so librfx.so rfxclock $(UTILITIES) $(TESTPGMS)
+ALL = check libici.dll rfxclock killm winion $(UTILITIES) $(TESTPGMS)
 
 all:		$(ALL)
 
@@ -67,6 +71,7 @@ check:		$(ICIINCLS) $(PUBINCLS)
 
 clean:
 		rm -f *.o
+		rm -f *.exe
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -78,70 +83,93 @@ install:
 
 #	-	-	Utility executables	-	-	-	-
 
-sdrwatch:	sdrwatch.o libici.so
+sdrwatch:	sdrwatch.o libici.dll
 		$(CC) -o sdrwatch sdrwatch.o -L./lib -lici -lpthread
 		cp sdrwatch ./bin
 
-sdrmend:	sdrmend.o libici.so
+sdrmend:	sdrmend.o libici.dll
 		$(CC) -o sdrmend sdrmend.o -L./lib -lici -lpthread
 		cp sdrmend ./bin
 
-psmwatch:	psmwatch.o libici.so
+psmwatch:	psmwatch.o libici.dll
 		$(CC) -o psmwatch psmwatch.o -L./lib -lici -lpthread
 		cp psmwatch ./bin
 
-ionadmin:	ionadmin.o libici.so librfx.so
-		$(CC) -o ionadmin ionadmin.o -L./lib -lrfx -lici -lpthread
+ionadmin:	ionadmin.o libici.dll
+		$(CC) -o ionadmin ionadmin.o -L./lib -lici -lpthread
 		cp ionadmin ./bin
+
+ionsecadmin:	ionsecadmin.o libici.dll
+		$(CC) -o ionsecadmin ionsecadmin.o -L./lib -lici -lpthread
+		cp ionsecadmin ./bin
+
+killm:		killm.o libici.dll
+		$(CC) -o killm killm.o -L./lib -lici -lpthread
+		cp killm ./bin
 
 #	-	-	Test executables	-	-	-	-
 
-psmshell:	psmshell.o libici.so
+psmshell:	psmshell.o libici.dll
 		$(CC) -o psmshell psmshell.o -L./lib -lici -lpthread
 		cp psmshell ./bin
 
-smlistsh:	smlistsh.o libici.so
+smlistsh:	smlistsh.o libici.dll
 		$(CC) -o smlistsh smlistsh.o -L./lib -lici -lpthread
 		cp smlistsh ./bin
 
-file2sm:	file2sm.o libici.so
+file2sm:	file2sm.o libici.dll
 		$(CC) -I. -o file2sm file2sm.o -L./lib -lici -lpthread
 		cp file2sm ./bin
 
-sm2file:	sm2file.o libici.so
+sm2file:	sm2file.o libici.dll
 		$(CC) -I. -o sm2file sm2file.o -L./lib -lici -lpthread
 		cp sm2file ./bin
 
-file2sdr:	file2sdr.o libici.so
+file2sdr:	file2sdr.o libici.dll
 		$(CC) -I. -o file2sdr file2sdr.o -L./lib -lici -lpthread
 		cp file2sdr ./bin
 
-sdr2file:	sdr2file.o libici.so
+sdr2file:	sdr2file.o libici.dll
 		$(CC) -o sdr2file sdr2file.o -L./lib -lici -lpthread
 		cp sdr2file ./bin
 
-#	-	-	Daemon executable	-	-	-	-
+owltsim:	owltsim.o libici.dll
+		$(CC) -o owltsim owltsim.o -L./lib -lici -lpthread -lws2_32
+		cp owltsim ./bin
 
-rfxclock:	rfxclock.o libici.so librfx.so
-		$(CC) -o rfxclock rfxclock.o -L./lib -lrfx -lici -lpthread
+owlttb:		owlttb.o libici.dll
+		$(CC) -o owlttb owlttb.o -L./lib -lici -lpthread
+		cp owlttb ./bin
+
+#	-	-	Daemon executables	-	-	-	-
+
+rfxclock:	rfxclock.o libici.dll
+		$(CC) -I. -o rfxclock rfxclock.o -L./lib -lici -lpthread
 		cp rfxclock ./bin
+
+winion:		winion.o libici.dll
+		$(CC) -I. -o winion winion.o -L./lib -lici -lpthread
+		cp winion ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
-libici.so:	$(LIBICIOBJS)
-		$(LD) -o libici.so $(LIBICIOBJS)
-		cp libici.so ./lib
-
-librfx.so:	rfx.o
-		$(LD) -o librfx.so rfx.o
-		cp librfx.so ./lib
+libici.dll:	$(LIBICIOBJS)
+		$(LD) -o libici.dll $(LIBICIOBJS) -lpthread -lws2_32
+		cp libici.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
-.SUFFIXES:	.c .o .h
+%.o:		$(SRC)/%.c
+		$(CC) -c $<
 
-.PATH.c:	$(SRC) $(SDR) $(UTILS) $(DAEMON) $(TEST)
-.PATH.h:	$(INCL) $(SRC) $(SDR) $(UTILS) $(DAEMON) $(TEST)
+%.o:		$(SDR)/%.c
+		$(CC) -c $<
 
-.c.o:
-		$(CC) -o $(.PREFIX).o -c $(.IMPSRC)
+%.o:		$(UTILS)/%.c
+		$(CC) -c $<
+
+%.o:		$(DAEMON)/%.c
+		$(CC) -c $<
+
+%.o:		$(TEST)/%.c
+		$(CC) -c $<

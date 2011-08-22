@@ -35,7 +35,7 @@ B<amssub> terminated normally.
 
 =head1 FILES
 
-The B<amssub> source code is in the amssubsub.c source file.
+The B<amssub> source code is in the amspubsub.c source file.
 
 A MIB initialization file with the applicable default name (see amsrc(5))
 must be present.

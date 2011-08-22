@@ -1,9 +1,9 @@
 /*
-  aoslso.c - LTP over AOS Link Service Adapter, output
+  aoslsi.c - LTP over AOS Link Service Adapter, input
 
 */
 
-/* 7/6/2010, copied from udplso, as per issue 101-LTP-over-AOS-via-UDP
+/* 7/6/2010, copied from udplsi, as per issue 101-LTP-over-AOS-via-UDP
    Greg Menke, Raytheon, under contract METS-MR-679-0909 with NASA GSFC */
 
 
@@ -11,7 +11,8 @@
 
 static void	interruptThread()
 {
-	signal(SIGTERM, interruptThread);
+	isignal(SIGTERM, interruptThread);
+	ionKillMainThread("aoslsi");
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
@@ -19,7 +20,6 @@ static void	interruptThread()
 typedef struct
 {
 	int		linkSocket;
-	pthread_t	mainThread;
 	int		running;
 } ReceiverThreadParms;
 
@@ -28,16 +28,18 @@ static void	*handleDatagrams(void *parm)
 	/*	Main loop for AOS datagram reception and handling.	*/
 
 	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
+	char			*procName = "aoslsi";
 	char			*buffer;
 	int			segmentLength;
 	struct sockaddr_in	fromAddr;
 	unsigned int		fromSize;
 
+	snooze(1);	/*	Let main thread become interruptible.	*/
 	buffer = MTAKE(AOSLSA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("aoslsi can't get AOS buffer.", NULL);
-		pthread_kill(rtp->mainThread, SIGTERM);
+		ionKillMainThread(procName);
 		return NULL;
 	}
 
@@ -47,13 +49,13 @@ static void	*handleDatagrams(void *parm)
 	while (rtp->running)
 	{	
 		fromSize = sizeof fromAddr;
-		segmentLength = recvfrom(rtp->linkSocket, buffer, AOSLSA_BUFSZ,
+		segmentLength = irecvfrom(rtp->linkSocket, buffer, AOSLSA_BUFSZ,
 				0, (struct sockaddr *) &fromAddr, &fromSize);
-		switch(segmentLength)
+		switch (segmentLength)
 		{
 		case -1:
 			putSysErrmsg("Can't acquire segment", NULL);
-			pthread_kill(rtp->mainThread, SIGTERM);
+			ionKillMainThread(procName);
 
 			/*	Intentional fall-through to next case.	*/
 
@@ -65,7 +67,7 @@ static void	*handleDatagrams(void *parm)
 		if (ltpHandleInboundSegment(buffer, segmentLength) < 0)
 		{
 			putErrmsg("Can't handle inbound segment.", NULL);
-			pthread_kill(rtp->mainThread, SIGTERM);
+			ionKillMainThread(procName);
 			rtp->running = 0;
 			continue;
 		}
@@ -162,37 +164,39 @@ int	main(int argc, char *argv[])
 	|| bind(rtp.linkSocket, &socketName, nameLength) < 0
 	|| getsockname(rtp.linkSocket, &socketName, &nameLength) < 0)
 	{
-		close(rtp.linkSocket);
+		closesocket(rtp.linkSocket);
 		putSysErrmsg("Can't initialize socket", NULL);
 		return 1;
 	}
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 
-	signal(SIGTERM, interruptThread);
+	ionNoteMainThread("aoslsi");
+	isignal(SIGTERM, interruptThread);
 
 	/*	Start the receiver thread.				*/
 
 	rtp.running = 1;
-	rtp.mainThread = pthread_self();
 	if (pthread_create(&receiverThread, NULL, handleDatagrams, &rtp))
 	{
-		close(rtp.linkSocket);
+		closesocket(rtp.linkSocket);
 		putSysErrmsg("aoslsi can't create receiver thread", NULL);
 		return 1;
 	}
 
 	/*	Now sleep until interrupted by SIGTERM, at which point
 	 *	it's time to stop the link service.			*/
+
 	{
-		char txt[500];
+		char	txt[500];
 
-		isprintf(txt, sizeof(txt), "[i] aoslsi is running, spec=[%s:%d].", 
-			inet_ntoa(inetName->sin_addr), ntohs(portNbr) );
-
-		writeMemo(txt );
+		isprintf(txt, sizeof(txt),
+			"[i] aoslsi is running, spec=[%s:%d].", 
+			inet_ntoa(inetName->sin_addr), ntohs(portNbr));
+		writeMemo(txt);
 	}
-	snooze(2000000000);
+
+	ionPauseMainThread(-1);
 
 	/*	Time to shut down.					*/
 
@@ -204,13 +208,14 @@ int	main(int argc, char *argv[])
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		sendto(fd, &quit, 1, 0, &socketName, sizeof(struct sockaddr));
-		close(fd);
+		isendto(fd, &quit, 1, 0, &socketName, sizeof(struct sockaddr));
+		closesocket(fd);
 	}
 
 	pthread_join(receiverThread, NULL);
-	close(rtp.linkSocket);
+	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] aoslsi duct has ended.");
+	ionDetach();
 	return 0;
 }

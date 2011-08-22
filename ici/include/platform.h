@@ -38,17 +38,34 @@ extern "C" {
 #define LARGE_ORDERn	((WORD_SIZE * 8) - 1)	/*	8 bits/byte	*/
 #define LARGE_ORDERS	((LARGE_ORDERn - LARGE_ORDER1) + 1)
 
+#define	ONE_GIG			(1 << 30)
+
+#ifndef ERRMSGS_BUFSIZE
+#define ERRMSGS_BUFSIZE		(256*16)
+#endif
+
+#ifdef  DOS_PATH_DELIMITER
+#define ION_PATH_DELIMITER	'\\'
+#else
+#define ION_PATH_DELIMITER	'/'
+#endif
+
+/*	Return values for error conditions.				*/
+#ifndef CORE_FILE_NEEDED
+#define CORE_FILE_NEEDED	(0)
+#endif
+
 /*
-** Standard Headers: Common to All Supported Platforms (incl. VxWorks and BSD)
+** Standard Headers: Common to All Supported Platforms (incl. RTOS & Windows)
 */
 			/* STDC.88 */
-#include <stddef.h>
-#include <stdio.h>
+#include <time.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <stddef.h>
 #include <string.h>
 #include <ctype.h>
 #include <signal.h>
-#include <time.h>
 #include <errno.h>
 #include <stdarg.h>
 			/* POSIX.1 */
@@ -56,23 +73,75 @@ extern "C" {
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+
+#ifdef mingw			/****   Windows vs all others	*********/
+#include <windows.h>
+#include <process.h>
+#include <Winbase.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <ws2tcpip.h>
+#define MAXHOSTNAMELEN		256
+#ifndef SOCK_CLOEXEC
+#define SOCK_CLOEXEC		0
+#endif
+#define	ECONNREFUSED		WSAECONNREFUSED
+#define ECONNRESET		WSAECONNRESET
+#define EWOULDBLOCK		WSAEWOULDBLOCK
+#else				/****	not Windows		*********/
 #include <sys/times.h>
-//#include <sys/types.h>
 #include <limits.h>
 #include <sys/wait.h>
-			/* Other */
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
+#ifndef SOCK_CLOEXEC
+#define SOCK_CLOEXEC		0
+#endif
+#define closesocket(x)		close(x)
+#define iopen(a,b,c)		open(a,b,c)
+#define isend(a,b,c,d)		send(a,b,c,d)
+#define irecv(a,b,c,d)		recv(a,b,c,d)
+#define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
+#define irecvfrom(a,b,c,d,e,f)	recvfrom(a,b,c,d,e,f)
+#endif				/****   End of #ifdef mingw	*********/
 /*
 ** End of Standard Headers
 */
+
+/*	Handy definitions that are mostly platform-independent.		*/
+
+#define itoa			iToa
+#define utoa			uToa
 
 #ifdef ERROR
 #undef ERROR
 #endif
 #define ERROR			(-1)
+
+#ifndef MIN
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#endif
+#ifndef MAX
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#endif
+
+#ifndef LONG_MAX
+
+#if defined(_ILP32)
+#define LONG_MAX 0x7fffffffL
+#elif defined(_LP64)
+#define LONG_MAX 0x7fffffffffffffffL
+#elif (SIZEOF_LONG == 4)
+#define LONG_MAX 0x7fffffffL
+#elif (SIZEOF_LONG == 8)
+#define LONG_MAX 0x7fffffffffffffffL
+#endif
+
+#endif				/****	End of #ifndef LONG_MAX   *******/
 
 #define	PATHLENMAX		(256)
 
@@ -113,13 +182,6 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 #define	GDSSYMTAB
 #endif
 
-#ifndef MIN
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
-#endif
-#ifndef MAX
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
-#endif
-
 /*	Macros for expunging access to stdout and stderr.		*/
 
 #ifdef FSWLOGGER
@@ -132,7 +194,18 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 #define PUTMEMO(text, memo)	printf("%s: %s\n", text, memo)
 #endif
 
-#ifdef VXWORKS			/****	VxWorks				****/
+/*	Configure for platform-specific headers and IPC services.	*/
+
+#define SVR4_SEMAPHORES		/****	default			*********/
+#define SVR4_SHM		/****	default			*********/
+
+#ifdef VXWORKS			/****	VxWorks			*********/
+
+#undef	SVR4_SHM
+#define RTOS_SHM
+
+#undef	SVR4_SEMAPHORES
+#define VXWORKS_SEMAPHORES
 
 #include <vxWorks.h>
 #include <sockLib.h>
@@ -157,36 +230,62 @@ oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
 typedef int			socklen_t;
 #endif
 
-#else				/****	Not VxWorks			****/
+#endif				/****   End of #ifdef VXWORKS	*********/
 
-#if defined (RTEMS)             /****   RTEMS is UNIXy but not enough   ****/
+#ifdef RTEMS			/****	RTEMS			*********/
 
+#undef	SVR4_SHM
+#define RTOS_SHM
+
+#undef	SVR4_SEMAPHORES
 #define POSIX1B_SEMAPHORES
 
 typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define PRIVATE_SYMTAB
 
-/** RTEMS has some SVR4 stuff  **/
 #include <bsp.h>
 #include <rtems.h>
 #include <pthread.h>
 #include <pwd.h>
 #include <netdb.h>
 #include <mqueue.h>
-#include <semaphore.h>		/****	POSIX1B semaphores		****/
 #include <sys/utsname.h>
-#include <sys/param.h>		/****	...to pick up MAXHOSTNAMELEN	****/
+#include <sys/param.h>		/****	...to get MAXHOSTNAMELEN	*/
 #include <sys/resource.h>
 #include <sys/time.h>
 
 #define	_MULTITHREADED		/*	To pick up resource lock code.	*/
 
-#else				/****	Neither VxWorks nor RTEMS	****/
+#endif				/****	End of #ifdef (RTEMS)	     ****/
 
-#if defined (unix)		/****	All UNIX platforms		****/
+#ifdef mingw			/****	Windows			     ****/
 
-#define __GNU_SOURCE		/****	Needed for Linux & Darwin	****/
+#undef	SVR4_SHM
+#define MINGW_SHM
+
+#undef	SVR4_SEMAPHORES
+#define MINGW_SEMAPHORES
+
+#include <pthread.h>
+
+#define	_MULTITHREADED
+#define	MAXPATHLEN		(MAX_PATH)
+
+extern int	_winsock(int stopping);
+extern int	iopen(const char *fileName, int flags, int pmode);
+extern int	isend(int sockfd, char *buf, int len, int flags);
+extern int	irecv(int sockfd, char *buf, int len, int flags);
+extern int	isendto(int sockfd, char *buf, int len, int flags,
+			const struct sockaddr *to, int tolen);
+extern int	irecvfrom(int sockfd, char *buf, int len, int flags,
+			struct sockaddr *from, int *fromlen);
+
+#endif				/****	End of #ifdef mingw          ****/
+
+#ifdef unix			/****	All UNIX platforms	     ****/
+
+#define __GNU_SOURCE		/****	Needed for Linux & Darwin    ****/
 
 /*
 ** *NIX Headers: Common to All Supported *NIX Platforms
@@ -196,84 +295,18 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include <netdb.h>
 #include <sys/resource.h>
 #include <sys/time.h>
-
-#define SVR4_MSGQS		/****	default				****/
-#define SVR4_SEMAPHORES		/****	default				****/
-#define SVR4_SHM		/****	default				****/
-
-#ifdef noipc			/****	Cygwin without cygipc		****/
-#undef SVR4_MSGQS
-#undef SVR4_SEMAPHORES
-#undef SVR4_SHM
-#endif				/****	End of #ifdef noipc		****/
-
-#ifdef SVR4_MSGQS
-#include <sys/msg.h>
-#elif defined (POSIX1B_MSGQS)
-#include <sys/mqueue.h>
-#endif
-
-#ifdef SVR4_SEMAPHORES
-#include <sys/ipc.h>
-#include <sys/sem.h>
-/*	Override these macros with -D option on gcc command line
- *	if system's parameters differ from these.  SEMMNI is the
- *	maximum number of semaphore sets in the system.  SEMMSL is
- *	the maximum number of semaphores per set (i.e., per semid).
- *	SEMMNS is the maximum number of semaphores, which cannot
- *	exceed SEMMNI * SEMMSL.						*/
-#ifndef SEMMNI
-#if defined (cygwin)
-#define SEMMNI			10
-#elif defined (freebsd)
-#define SEMMNI			10
-#else
-#define SEMMNI			128
-#endif
-#endif
-
-#ifndef SEMMSL
-#if defined (cygwin)
-#define SEMMSL			6
-#elif defined (freebsd)
-#define SEMMSL			6
-#else
-#define SEMMSL			250
-#endif
-#endif
-
-#ifndef SEMMNS
-#if defined (cygwin)
-#define SEMMNS			60
-#elif defined (freebsd)
-#define SEMMNS			60
-#else
-#define SEMMNS			32000
-#endif
-#endif
-
-#elif defined (POSIX1B_SEMAPHORES)
-#include <semaphore.h>		/*	In case not already included.	*/
-#endif
-
-#ifdef SVR4_SHM
-#include <sys/shm.h>
-#elif defined (POSIX1B_SHM)
-#include <sys/mman.h>
-#endif
-
 /*
 ** End of *NIX Headers
 */
 
-#if defined (__SVR4)		/****	All Sys 5, Rev 4 UNIX systems	****/
+#ifdef __SVR4			/****	All Sys 5 Rev 4 UNIX systems ****/
 
 #define FIFO_READ_MODE		(O_RDWR)
 #define FIFO_WRITE_MODE		(O_WRONLY)
 
 #define	FDTABLE_SIZE		(sysconf(_SC_OPEN_MAX))
 
-#if defined (_REENTRANT)	/****	SVR4 multithreaded		****/
+#ifdef _REENTRANT		/****	SVR4 multithreaded	     ****/
 
 /*
 ** SVR4 Headers: Common to All Supported SVR4 Multithreaded Platforms
@@ -288,124 +321,111 @@ extern int			strcasecmp(const char*, const char*);
 extern int			strncasecmp(const char*, const char*, size_t);
 
 #define	_MULTITHREADED
+#endif				/****	End of #ifdef _REENTRANT     ****/
 
-#else				/****	Not SVR4 multithreaded		****/
-
-#endif				/****	End of #if defined (_REENTRANT) ****/
-
-#if defined (sparc)		/****	Solaris (SunOS 5+)		****/
-
-#if defined (sol5)		/****	Solaris 5.5.x			****/
+#ifdef sparc			/****	Solaris (SunOS 5+)	     ****/
+#ifdef sol5			/****	Solaris 5.5.x		     ****/
 int gettimeofday(struct timeval*, void*);
 int getpriority(int, id_t);
-#endif				/****	End of #if defined (sol5)	****/
+#endif				/****	End of #ifdef (sol5)         ****/
+#endif				/****	End of #ifdef (sparc)        ****/
 
-#else				/****	Not Solaris			****/
-
-#endif				/****	End of #if defined (sparc)	****/
-
-#else				/****	Not SVR4 at all (probably BSD)	****/
+#else				/****	Not __SVR4 at all (BSD?)     ****/
 
 #define FIFO_READ_MODE          (O_RDWR)
 #define FIFO_WRITE_MODE         (O_RDWR)
-
 #define	FDTABLE_SIZE		(getdtablesize())
 
-#if defined (sun)		/****	pre-Solaris SunOS (v. < 5)	****/
+#ifdef linux			/****	Linux			     ****/
 
 #include <malloc.h>
-#include <sys/filio.h>
-
-#else				/****	Not pre-Solaris SunOS		****/
-
-#if defined (hpux)		/****	HPUX				****/
-
-#define _INCLUDE_HPUX_SOURCE
-#define _INCLUDE_POSIX_SOURCE
-#define _INCLUDE_XOPEN_SOURCE
-
-#else				/****	Not HPUX			****/
-
-#if defined (linux)		/****	Linux				****/
-
-#include <malloc.h>
-#include <rpc/types.h>		/****	...to pick up MAXHOSTNAMELEN	****/
+#include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
 
 #define	_MULTITHREADED
 
-#else                           /****	Not Linux			****/
+#endif				/****	End of #ifdef linux	     ****/
 
-#if defined (freebsd)		/****	FreeBSD				****/
+#ifdef freebsd			/****	FreeBSD			     ****/
 
-#include <sys/param.h>		/****	...to pick up MAXHOSTNAMELEN	****/
+#include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
 
 #define	_MULTITHREADED
 
-#else                           /****	Not FreeBSD			****/
+#endif				/****	End of #ifdef freebsd	     ****/
 
-#if defined (cygwin)		/****	Cygwin				****/
-
-#include <malloc.h>
-#include <sys/param.h>		/****	...to pick up MAXHOSTNAMELEN	****/
-#include <pthread.h>
-
-#define	_MULTITHREADED
-
-struct msgbuf			/****	Might be defined in cygipc...	****/
-{
-	long 		mtype;		/*	type of rcvd/sent msg	*/
-	char		mtext[1];	/*	text of the message	*/
-};
-
-#undef FDTABLE_SIZE
-#define	FDTABLE_SIZE	(64)	/****	getdtablesize() is buggy?	****/
-
-#else                           /****	Not Cygwin			****/
-
-#if defined (darwin)		/****	Mac OS X			****/
+#ifdef darwin			/****	Mac OS X		     ****/
 
 #include <sys/malloc.h>
 #include <stdlib.h>
-#include <sys/param.h>		/****	...to pick up MAXHOSTNAMELEN	****/
+#include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
 
 #include <sys/msg.h>
-#define	msgbuf		mymsg	/****	Mac OS X doesn't have msgbuf,	****/
-				/****	but it has mymsg (same thing).	****/
-
+#define	msgbuf		mymsg	/****	Mac OS X has no msgbuf,	but  ****/
+				/****	it has mymsg (same thing).   ****/
 #define	_MULTITHREADED
 
-#else                           /****	Not Mac OS X			****/
+#endif				/****	End of #ifdef darwin	     ****/
 
-#if defined (interix)		/****	Windows				****/
+#endif				/****	End of #ifdef (__SVR4)       ****/
 
-#include <pthread.h>
+#endif				/****	End of #ifdef (unix)         ****/
 
-#define	_MULTITHREADED
+#if defined(SVR4_SHM)		/****	SVR4_SHM		     ****/
+#include <sys/shm.h>
+#elif defined (POSIX1B_SHM)
+#include <sys/mman.h>
+#endif				/****	End of #ifdef SVR4-SHM	     ****/
 
-#ifndef MSG_NOSIGNAL
-#define	MSG_NOSIGNAL		0
+#if defined (SVR4_SEMAPHORES)	/****	SVR4_SEMAPHORES		     ****/
+
+#include <sys/ipc.h>
+#include <sys/sem.h>
+
+/*	Override these macros with -D option on gcc command line
+ *	if system's parameters differ from these.  SEMMNI is the
+ *	maximum number of semaphore sets in the system.  SEMMSL is
+ *	the maximum number of semaphores per set (i.e., per semid).
+ *	SEMMNS is the maximum number of semaphores, which cannot
+ *	exceed SEMMNI * SEMMSL.						*/
+
+#ifndef SEMMNI			/****	SEMMNI			     ****/
+#if defined (freebsd)
+#define SEMMNI			10
+#else
+#define SEMMNI			128
+#endif
+#endif				/****	End of #ifndef SEMMNI	     ****/
+
+#ifndef SEMMSL			/****	SEMMSL			     ****/
+#if defined (freebsd)
+#define SEMMSL			6
+#else
+#define SEMMSL			250
+#endif
+#endif				/****	End of #ifndef SEMMSL	     ****/
+
+#ifndef SEMMNS			/****	SEMMNS			     ****/
+#if defined (freebsd)
+#define SEMMNS			60
+#else
+#define SEMMNS			32000
+#endif
+#endif				/****	End of #ifndef SEMMNS	     ****/
+
+#elif defined (POSIX1B_SEMAPHORES)
+
+#include <semaphore.h>
+
+#endif				/****	End #if defined SVR4_SEMAPHORES */
+
+#ifdef HAVE_VALGRIND_VALGRIND_H
+#include "valgrind/valgrind.h"
 #endif
 
-typedef int			socklen_t;
-
-#else				/****	Not Interix			****/
-
-#error "Can't determine operating system to compile for."
-
-#endif				/****	End of #if defined (interix)	****/
-#endif				/****	End of #if defined (darwin)	****/
-#endif				/****	End of #if defined (cygwin)	****/
-#endif				/****	End of #if defined (freebsd)	****/
-#endif				/****	End of #if defined (linux)	****/
-#endif				/****	End of #if defined (hpux)	****/
-#endif				/****	End of #if defined (sun)	****/
-#endif				/****	End of #if defined (__SVR4)	****/
-#endif				/****	End of #if defined (unix)	****/
-#endif				/****	End of #if defined (RTEMS)	****/
-#endif				/****	End of #if defined (VXWORKS)	****/
+/*	Prototypes for standard ION platform functions.			*/
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include "valgrind/valgrind.h"
@@ -439,16 +459,6 @@ extern void			killResourceLock(ResourceLock *);
 extern void			lockResource(ResourceLock *);
 extern void			unlockResource(ResourceLock *);
 
-#ifndef ERRMSGS_BUFSIZE
-#define ERRMSGS_BUFSIZE		(256*16)
-#endif
-
-#ifdef  DOS_PATH_DELIMITER
-#define ION_PATH_DELIMITER	'\\'
-#else
-#define ION_PATH_DELIMITER	'/'
-#endif
-
 extern char			*itoa(int);
 extern char			*utoa(unsigned int);
 #define postErrmsg(txt, arg)	_postErrmsg(__FILE__, __LINE__, txt, arg)
@@ -466,11 +476,6 @@ extern void			_putSysErrmsg(const char *, int, const char *,
 extern int			getErrmsg(char *buffer);
 extern void			writeErrmsgMemos();
 extern void			discardErrmsgs();
-
-/*	Return values for error conditions.				*/
-#ifndef CORE_FILE_NEEDED
-#define CORE_FILE_NEEDED	(0)
-#endif
 
 #define iEnd(arg)		_iEnd(__FILE__, __LINE__, arg)
 extern int			_iEnd(const char *, int, const char *);
@@ -494,8 +499,6 @@ typedef struct
 
 extern void			encodeSdnv(Sdnv *, unsigned long);
 extern int			decodeSdnv(unsigned long *, unsigned char *);
-
-#define	ONE_GIG			(1 << 30)
 
 typedef struct
 {
@@ -528,7 +531,6 @@ extern void			findToken(char **cursorPtr, char **token);
 extern void			parseSocketSpec(char *socketSpec,
 					unsigned short *portNbr,
 					unsigned int *ipAddress);
-
 #include "platform_sm.h"
 
 #ifdef __cplusplus

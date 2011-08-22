@@ -12,7 +12,6 @@
 #include "platform.h"
 #include "lyst.h"
 #include "ion.h"
-#include <arpa/inet.h>
 
 #define	BUFFER_SIZE	65535
 

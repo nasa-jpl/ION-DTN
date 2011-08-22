@@ -105,8 +105,9 @@ Features included:
 - Issue 176: Upgrade ltp-cla to better conform to current ltpcla draft in the
   DTNRG.  Particularly the new "green" service handling.
 
-- Issue 195: pthread_t is an opaque data type, which should not be initialized
-  or compared to an integer.
+- Issue 195: sm_SemUnwedge() in platform_sm.c uses a pthread to ensure a
+  semaphore is not already taken.  Some platforms do not include pthreads and
+  the function can be implemented using semaphore trywait semantics().
 
 - Issue 233: Some additional LTP debugging hooks added.
 

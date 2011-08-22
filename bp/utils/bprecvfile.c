@@ -45,7 +45,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 	fileCount++;
 	isprintf(fileName, sizeof fileName, "testfile%d", fileCount);
 	contentLength = zco_source_data_length(sdr, dlv->adu);
-	testFile = open(fileName, O_WRONLY | O_CREAT, 0666);
+	testFile = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 	if (testFile < 0)
 	{
 		putSysErrmsg("bprecvfile: can't open test file", fileName);

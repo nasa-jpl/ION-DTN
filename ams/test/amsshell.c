@@ -14,18 +14,6 @@
 
 #define	MAX_SUBJ_NAME	32
 
-static pthread_t	_mainThread(pthread_t *value)
-{
-	static pthread_t	mainThread = 0;
-
-	if (value)
-	{
-		mainThread = *value;
-	}
-
-	return mainThread;
-}
-
 static int	_amsshell_running(int *value)
 {
 	static int	running = 0;
@@ -38,11 +26,52 @@ static int	_amsshell_running(int *value)
 	return running;
 }
 
-static void	handleQuit()
+#ifdef mingw
+static void	killMainThread()
 {
 	int	stop = 0;
 
 	oK(_amsshell_running(&stop));
+
+	/*	Must make sure fgets is interrupted.			*/
+
+	fclose(stdin);
+}
+#else
+static pthread_t	_mainThread()
+{
+	static pthread_t	mainThread;
+	static int		haveMainThread = 0;
+
+	if (haveMainThread == 0)
+	{
+		mainThread = pthread_self();
+		haveMainThread = 1;
+	}
+
+	return mainThread;
+}
+
+static void	killMainThread()
+{
+	int		stop = 0;
+	pthread_t	mainThread = _mainThread();
+
+	oK(_amsshell_running(&stop));
+
+	/*	Must make sure fgets is interrupted.			*/
+
+	if (!pthread_equal(mainThread, pthread_self()))
+	{
+		pthread_kill(mainThread, SIGINT);
+	}
+}
+#endif
+
+static void	handleQuit()
+{
+	isignal(SIGINT, handleQuit);
+	killMainThread();
 }
 
 static void	handleCommand(AmsModule me, char *mode)
@@ -238,7 +267,7 @@ message", subjectName);
 static void	reportError(void *userData, AmsEvent *event)
 {
 	puts("AMS event loop terminated.");
-	oK(pthread_kill(_mainThread(NULL), SIGINT));
+	killMainThread();
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -259,16 +288,11 @@ int	main(int argc, char **argv)
 	char	*authorityName = (argc > 4 ? argv[4] : NULL);
 	char	*mode = (argc > 5 ? argv[5] : "p");
 #endif
-	pthread_t	self;
 	AmsModule	me;
 	AmsEventMgt	rules;
 	int		start = 1;
 
 #ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
-	self = pthread_self();
-	oK(_mainThread(&self));
-	oK(_amsshell_running(&start));
-	isignal(SIGINT, handleQuit);
 	if (unitName == NULL || roleName == NULL
 	|| applicationName == NULL || authorityName == NULL
 	|| (strcmp(mode, "p") && strcmp(mode, "s") && strcmp(mode, "q")
@@ -286,6 +310,11 @@ messages.\n", stderr);
 		return 0;
 	}
 
+#ifndef mingw
+	oK(_mainThread());
+#endif
+	oK(_amsshell_running(&start));
+	isignal(SIGINT, handleQuit);
 	if (ams_register("", NULL, applicationName, authorityName, unitName,
 			roleName, &me) < 0)
 	{

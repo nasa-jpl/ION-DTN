@@ -64,11 +64,21 @@ in order for the file to be parsed successfully by expat.
 
 			<role nbr="7" name="benchr"/>
 
+			<role nbr="96" name="amsd"/>
+
+			<role nbr="97" name="amsmib"/>
+
+			<role nbr="98" name="amsstop"/>
+
 			<subject nbr="1" name="text" desc="ASCII text"/>
 
 			<subject nbr="2" name="noise" desc="more ASCII text"/>
 
 			<subject nbr="3" name="bench" desc="numbered msgs"/>
+
+			<subject nbr="97" name="amsmib" desc="MIB updates"/>
+
+			<subject nbr="98" name="amsstop" desc="shutdown"/>
 
 			<unit nbr="1" name="orbiters"/>
 

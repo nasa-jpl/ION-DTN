@@ -123,7 +123,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		srand((unsigned int) time(NULL));
 	}
 
-	aduFile = open("bpdriverAduFile", O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	aduFile = iopen("bpdriverAduFile", O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (aduFile < 0)
 	{
 		bp_close(sap);

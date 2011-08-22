@@ -45,9 +45,10 @@ To build the ION system, build the subsystems in the following order:
 Additional details are provided in the README.txt files in the root
 directories of some of the subsystems.
 
-Note that the ams subsystem requires that the "expat" library be installed.
-Also note that all Makefiles are for gmake; on a freebsd platform, be sure
-to install gmake before trying to build ION.
+Note that the default build of the ams subsystem requires that the "expat"
+library be installed; this can be overridden at compile time.  Also note
+that all Makefiles are for gmake; on a freebsd platform, be sure to install
+gmake before trying to build ION.
 
 Scott Burleigh, JPL
 scott.burleigh@jpl.nasa.gov 

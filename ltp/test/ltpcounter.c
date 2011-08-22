@@ -59,11 +59,11 @@ static int	_bytesReceived(int increment)
 	return count;
 }
 
-static void	showProgress()
+static int	showProgress(void *userData)
 {
 	PUTS("v");
 	fflush(stdout);
-	alarm(5);
+	return 0;
 }
 
 static void	handleQuit()
@@ -92,6 +92,8 @@ int	main(int argc, char **argv)
 {
 	int		maxBytes = (argc > 1 ? atoi(argv[1]) : 0);
 #endif
+	IonAlarm	alarm = { 5, 0, showProgress, NULL };
+	pthread_t	alarmThread;
 	int		state = 1;
 	LtpNoticeType	type;
 	LtpSessionId	sessionId;
@@ -119,8 +121,7 @@ int	main(int argc, char **argv)
 		return 1;
 	}
 
-	isignal(SIGALRM, showProgress);
-	alarm(5);
+	ionSetAlarm(&alarm, &alarmThread);
 	isignal(SIGINT, handleQuit);
 	oK((_running(&state)));
 	while (_running(NULL))
@@ -184,6 +185,7 @@ eob=%d.", sessionId.sourceEngineId, sessionId.sessionNbr, dataOffset,
 		}
 	}
 
+	ionCancelAlarm(alarmThread);
 	writeErrmsgMemos();
 	printCount();
 	PUTS("Stopping ltpcounter.");

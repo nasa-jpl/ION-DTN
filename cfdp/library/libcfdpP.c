@@ -1326,7 +1326,7 @@ static int	abandonInFdu(CfdpTransactionId *transactionId,
 static void	frCreateFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
-	int	fd = open(firstFileName, O_CREAT, 00777);
+	int	fd = iopen(firstFileName, O_CREAT, 0777);
 
 	if (fd < 0)
 	{
@@ -1390,7 +1390,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 		return;
 	}
 
-	destFd = open(firstFileName, O_WRONLY | flag, 0);
+	destFd = iopen(firstFileName, O_WRONLY | flag, 0);
 	if (destFd < 0)
 	{
 		MRELEASE(buf);
@@ -1399,7 +1399,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 		return;
 	}
 
-	sourceFd = open(secondFileName, O_RDONLY, 0);
+	sourceFd = iopen(secondFileName, O_RDONLY, 0);
 	if (sourceFd < 0)
 	{
 		close(destFd);
@@ -1492,7 +1492,7 @@ static void	frReplaceFile(char *firstFileName, char *secondFileName,
 static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
-#ifdef VXWORKS
+#if (defined(VXWORKS) || defined(mingw))
 	if (mkdir(firstFileName) < 0)
 #else
 	if (mkdir(firstFileName, 00777) < 0)
@@ -2566,8 +2566,8 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 		}
 
 		cfdpvdb->currentFdu = fduObj;
-		cfdpvdb->currentFile = open(workingNameBuffer,
-				O_RDWR | O_CREAT, 00777);
+		cfdpvdb->currentFile = iopen(workingNameBuffer,
+				O_RDWR | O_CREAT, 0777);
 		if (cfdpvdb->currentFile < 0)
 		{
 			putSysErrmsg("Can't open working file",

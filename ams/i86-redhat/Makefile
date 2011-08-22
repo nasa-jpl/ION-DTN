@@ -39,7 +39,7 @@ PUBINCLS = \
 
 LBP = -lbp -lbpP
 
-RUNTIMES = amsd amshello amsshell amslog amslogprt amsbenchs amsbenchr ramsgate amsstop
+RUNTIMES = amsd amshello amsshell amslog amslogprt amsbenchs amsbenchr ramsgate amsstop amsmib
 
 ALL = check libams.so $(RUNTIMES)
 
@@ -97,6 +97,10 @@ amslogprt:	amslogprt.o
 amsstop:	amsstop.o libams.so $(INCL)/ams.h
 		$(CC) -o amsstop amsstop.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lexpat
 		cp amsstop ./bin
+
+amsmib:		amsmib.o libams.so $(INCL)/ams.h
+		$(CC) -o amsmib amsmib.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lexpat
+		cp amsmib ./bin
 
 #	-	-	RAMS executable		-	-	-	-
 

@@ -9,7 +9,8 @@
 			Promiscuous CLO daemons need to be based on
 			UDP, Dgr, etc.
 			
-			Modification : This has been made compliant to draft-irtf-dtnrg-tcp-clayer-02.
+			Modification : This has been made compliant
+			to draft-irtf-dtnrg-tcp-clayer-02.
 
 	Author: Scott Burleigh, JPL
 
@@ -137,14 +138,14 @@ static void	*receiveBundles(void *parm)
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
-		putSysErrmsg("tcpclo receiver can't get TCP buffer", NULL);
+		putErrmsg("tcpclo receiver can't get TCP buffer", NULL);
 		return NULL;
 	}
 
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
-		putSysErrmsg("tcpclo receiver can't get acquisition work area",
+		putErrmsg("tcpclo receiver can't get acquisition work area",
 				NULL);
 		MRELEASE(buffer);
 		return NULL;
@@ -177,7 +178,7 @@ static void	*receiveBundles(void *parm)
 		case 0:			/*	Shutdown message	*/	
 			/*	Go back to the start of the while loop	*/
 			pthread_mutex_lock(parms->mutex);
-			close(*(parms->bundleSocket));
+			closesocket(*(parms->bundleSocket));
 			*(parms->bundleSocket) = -1;
 			pthread_mutex_unlock(parms->mutex);			
 			threadRunning = 0;
@@ -253,7 +254,7 @@ int	main(int argc, char *argv[])
 
 	if (bpAttach() < 0)
 	{
-		putSysErrmsg("tcpclo can't attach to BP", NULL);
+		putErrmsg("tcpclo can't attach to BP", NULL);
 		return 1;
 	}
 
@@ -314,7 +315,7 @@ int	main(int argc, char *argv[])
 	portNbr = htons(portNbr);
 	if (hostNbr == 0)
 	{
-		putSysErrmsg("Can't get IP address for host.", hostName);
+		putErrmsg("Can't get IP address for host.", hostName);
 		MRELEASE(buffer);
 		return 1;
 	}
@@ -337,7 +338,9 @@ int	main(int argc, char *argv[])
 	tcpcloSemaphore = vduct->semaphore;
 	sm_TaskVarAdd(&tcpcloSemaphore);
 	isignal(SIGTERM, shutDownClo);
+#ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
+#endif
 
 	/*	Start the keepalive thread for the eventual connection.	*/
 	
@@ -366,7 +369,7 @@ int	main(int argc, char *argv[])
 	findVInduct(&viduct,protocol.name);
 	if(viduct == NULL)
 	{
-		putSysErrmsg("tcpclo can't get VInduct", NULL);
+		putErrmsg("tcpclo can't get VInduct", NULL);
 		MRELEASE(buffer);
 		pthread_mutex_destroy(&mutex);
 		return 1;
@@ -388,12 +391,13 @@ int	main(int argc, char *argv[])
 	/*	Can now begin transmitting to remote duct.		*/
 
 	{
-		char txt[500];
+		char	txt[500];
 
-		isprintf(txt, sizeof(txt), "[i] tcpclo is running, spec=[%s:%d].", 
-			inet_ntoa(inetName->sin_addr), ntohs(inetName->sin_port) );
-
-		writeMemo(txt );
+		isprintf(txt, sizeof(txt),
+			"[i] tcpclo is running, spec=[%s:%d].", 
+			inet_ntoa(inetName->sin_addr),
+			ntohs(inetName->sin_port));
+		writeMemo(txt);
 	}
 
 	while (running && !(sm_SemEnded(tcpcloSemaphore)))
@@ -432,7 +436,7 @@ int	main(int argc, char *argv[])
 
 	if (ductSocket != -1)
 	{
-		close(ductSocket);
+		closesocket(ductSocket);
 	}
 
 	pthread_join(keepaliveThread, NULL);
