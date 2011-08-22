@@ -146,6 +146,7 @@ static void	*receiveBundles(void *parm)
 	char			*buffer;
 	pthread_t		kthread;
 	int			haveKthread = 0;
+	int			threadRunning = 1;
 
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
@@ -240,7 +241,7 @@ static void	*receiveBundles(void *parm)
 			putSysErrmsg("tcpcli can't create new thread for \
 keepalives", NULL);
 			ionKillMainThread(procName);
-			*(parms->cliRunning) = 0;
+			threadRunning = 0;
 		}
 		else
 		{
@@ -250,13 +251,13 @@ keepalives", NULL);
 
 	/*	Now start receiving bundles.				*/
 
-	while (*(parms->cliRunning))
+	while (threadRunning && *(parms->cliRunning))
 	{
 		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
 		{
 			putErrmsg("Can't begin acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
-			*(parms->cliRunning) = 0;
+			threadRunning = 0;
 			continue;
 		}
 
@@ -268,7 +269,7 @@ keepalives", NULL);
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:				/*	Normal stop.	*/
-			*(parms->cliRunning) = 0;
+			threadRunning = 0;
 			continue;
 
 		default:
@@ -279,7 +280,7 @@ keepalives", NULL);
 		{
 			putErrmsg("Can't end acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
-			*(parms->cliRunning) = 0;
+			threadRunning = 0;
 			continue;
 		}
 

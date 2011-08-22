@@ -19,10 +19,8 @@ POSSIBILITY.
 USER BEARS ALL RISK RELATING TO QUALITY AND PERFORMANCE OF THE
 SOFTWARE AND/OR RELATED MATERIALS.
 *******************************************************************
-Copyright 2004-2007, by the California Institute of Technology. ALL
-RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.  Any
-commercial use must be negotiated with the Office of Technology
-Transfer at the California Institute of Technology.
+Copyright 2002-2011, by the California Institute of Technology. ALL
+RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.
 
 This software and/or related materials may be subject to U.S. export
 control laws.  By accepting this software and related materials, the
@@ -36,8 +34,8 @@ access to foreign persons.
 To build the ION system, build the subsystems in the following order:
 
 1.	ici
-2.	ltp
-3.	dgr
+2.	dgr
+3.	ltp
 4.	bp
 5.	cfdp
 6.	ams
@@ -51,4 +49,4 @@ that all Makefiles are for gmake; on a freebsd platform, be sure to install
 gmake before trying to build ION.
 
 Scott Burleigh, JPL
-scott.burleigh@jpl.nasa.gov 
+scott.c.burleigh@jpl.nasa.gov 

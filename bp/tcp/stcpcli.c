@@ -57,6 +57,7 @@ static void	*receiveBundles(void *parm)
 	char			*procName = "stcpcli";
 	AcqWorkArea		*work;
 	char			*buffer;
+	int			threadRunning = 1;
 
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
@@ -78,13 +79,13 @@ static void	*receiveBundles(void *parm)
 
 	/*	Now start receiving bundles.				*/
 
-	while (*(parms->running))
+	while (threadRunning && *(parms->running))
 	{
 		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
 		{
 			putErrmsg("Can't begin acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
-			*(parms->running) = 0;
+			threadRunning = 0;
 			continue;
 		}
 
@@ -92,12 +93,11 @@ static void	*receiveBundles(void *parm)
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
-			ionKillMainThread(procName);
 
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:				/*	Normal stop.	*/
-			*(parms->running) = 0;
+			threadRunning = 0;
 			continue;
 
 		default:
@@ -108,7 +108,7 @@ static void	*receiveBundles(void *parm)
 		{
 			putErrmsg("Can't end acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
-			*(parms->running) = 0;
+			threadRunning = 0;
 			continue;
 		}
 
