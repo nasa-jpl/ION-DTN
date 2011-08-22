@@ -3,9 +3,9 @@ README for DCCPLSO/DCCPLSI
 DCCPLSO/DCCPLSI are DCCP (Datagram Congestion Control Protocol) based link service
 daemons for LTP. DCCP provides congestion control without guaranteeing reliable, 
 in-order delivery. As such, it is a good choice for use with LTP which can
-selectively provide reliable, in-order delivery via it's red/green parts.
+selectively provide reliable, in-order delivery via its red/green parts.
 
-DCCP is a connection oriented protocol that provides congestion control without
+DCCP is a connection-oriented protocol that provides congestion control without
 reliability. It can be thought of as TCP without retransmissions or UDP with
 handshakes and congestion control. Despite being defined in an RFC in 2006, DCCP
 has yet to become popular on the general Internet. In fact, the only maintained
@@ -18,10 +18,10 @@ that anyone attempting to use DCCP with ION at this time do the same.
 
 The DCCP testing tree is maintained as a git repository at 
 http://eden-feed.erg.abdn.ac.uk/. Once you pull the tree, you need to select the
-"dccp" branch. For detailed in instructions on pulling the testing tree, please see:
+"dccp" branch. For detailed instructions on pulling the testing tree, please see:
 http://www.linuxfoundation.org/collaborate/workgroups/networking/dccp_testing#Cloning_the_entire_tree
 Once you have the testing tree, simply configure, build, and install the kernel as
-appropriate for your system. You you are not familiar with the steps required to
+appropriate for your system. If you are not familiar with the steps required to
 build a Linux kernel, here is a good guide: 
 http://www.cyberciti.biz/tips/compiling-linux-kernel-26.html
 
