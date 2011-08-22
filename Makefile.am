@@ -75,6 +75,39 @@ install-data-hook:
 #	cd $(srcdir)/unreleased-doc && pdflatex tutorial.tex && pdflatex tutorial.tex 
 #	mv $(srcdir)/unreleased-doc/tutorial.pdf ./tutorial.pdf
 
+if ENABLE_GCOV
+cov-clean:
+	@rm -rf coverage
+	@find . -name "*.gcda" -exec rm {} \;
+	@find . -name "*.gcno" -exec rm {} \;
+	@lcov --directory . --zerocounters
+
+cov-report:
+	@mkdir -p coverage
+	@lcov --compat-libtool --directory . -b . --capture --output-file coverage/app.info  
+	@genhtml -o coverage/ coverage/app.info 
+
+cov:
+	@make cov-report
+
+#clean-local:
+#    @make cov-reset 
+
+#check:
+#    @make cov
+
+else
+cov-clean:
+	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
+
+cov-report:
+	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
+
+cov:
+	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
+endif
+
+
 # clean-local refers to existing documents. there are no manpages for ams
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local cfdpclean-local
 #icixclean-local
