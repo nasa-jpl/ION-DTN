@@ -207,6 +207,7 @@ static IonVdb	*_ionvdb(char **name)
 	PsmAddress	elt;
 	Sdr		sdr;
 	PsmPartition	ionwm;
+	IonDB		iondb;
 
 	if (name)
 	{
@@ -255,7 +256,9 @@ static IonVdb	*_ionvdb(char **name)
 			return NULL;
 		}
 
-		vdb->deltaFromUTC = (_ionConstants())->deltaFromUTC;
+		sdr_read(sdr, (char *) &iondb, _iondbObject(NULL),
+				sizeof(IonDB));
+		vdb->deltaFromUTC = iondb.deltaFromUTC;
 		sdr_exit_xn(sdr);	/*	Unlock memory.		*/
 	}
 
@@ -1033,13 +1036,13 @@ int	setDeltaFromUTC(int newDelta)
 {
 	Sdr	ionsdr = _ionsdr(NULL);
 	Object	iondbObject = _iondbObject(NULL);
-	IonDB	*ionConstants = _ionConstants();
 	IonVdb	*ionvdb = _ionvdb(NULL);
+	IonDB	iondb;
 
 	sdr_begin_xn(ionsdr);
-	sdr_stage(ionsdr, (char *) ionConstants, iondbObject, sizeof(IonDB));
-	ionConstants->deltaFromUTC = newDelta;
-	sdr_write(ionsdr, iondbObject, (char *) ionConstants, sizeof(IonDB));
+	sdr_stage(ionsdr, (char *) &iondb, iondbObject, sizeof(IonDB));
+	iondb.deltaFromUTC = newDelta;
+	sdr_write(ionsdr, iondbObject, (char *) &iondb, sizeof(IonDB));
 	if (sdr_end_xn(ionsdr) < 0)
 	{
 		putErrmsg("Can't change delta from UTC.", NULL);

@@ -825,7 +825,8 @@ int	sec_findBspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 	return sec_get_bspBabRule(srcEid, destEid, ruleAddr, eltp);
 }
 
-int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName, char *keyName)
+int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
+		char *keyName)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();

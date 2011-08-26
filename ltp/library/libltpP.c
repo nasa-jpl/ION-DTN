@@ -2034,11 +2034,12 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 			LtpVspan *vspan, int segmentLength, LtpEvent *event)
 {
 	Sdr	ltpSdr = getIonsdr();
-	LtpDB	*ltpConstants = _ltpConstants();
+	LtpDB	ltpdb;
 	int	radTime;
 		OBJ_POINTER(LtpSpan, span);
 
 	CHKERR(ionLocked());
+	sdr_read(ltpSdr, (char *) &ltpdb, getLtpDbObject(), sizeof(LtpDB));
 	if (vspan->localXmitRate == 0)	/*	Should never be, but...	*/
 	{
 		radTime = 0;		/*	Avoid divide by zero.	*/
@@ -2057,7 +2058,7 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 	 *	the current outbound signal propagation time (owlt).	*/
 
 	timer->segArrivalTime = currentSec + radTime + vspan->owltOutbound
-			+ ((ltpConstants->ownQtime >> 1) & 0x7fffffff);
+			+ ((ltpdb.ownQtime >> 1) & 0x7fffffff);
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
 			vspan->spanElt));
 
@@ -2080,7 +2081,7 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 
 	timer->ackDeadline = timer->segArrivalTime
 			+ span->remoteQtime + vspan->owltInbound
-			+ ((ltpConstants->ownQtime >> 1) & 0x7fffffff);
+			+ ((ltpdb.ownQtime >> 1) & 0x7fffffff);
 	if (vspan->remoteXmitRate > 0)
 	{
 		event->scheduledTime = timer->ackDeadline;
