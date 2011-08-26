@@ -68,8 +68,8 @@ cd ../5.ipn.tcp
 ./ionstart
 cd ../2.ipn.tcp
 ./ionstart
-echo "Sleeping 30 sec to give keepalive threads time to detect open sockets..."
-sleep 30
+echo "Sleeping 60 sec to give keepalive threads time to detect open sockets..."
+sleep 60
 
 # Start file receiver on node 3.
 cd ../3.ipn.tcp
@@ -167,8 +167,8 @@ echo "Breaking TCP connection to node 3 to test automatic blocking..."
 cd ../3.ipn.tcp
 ./ionstop
 echo "Node 3 is stopped."
-echo "Sleeping 30 sec to give keepalive thread time to detect closed socket..."
-sleep 30
+echo "Sleeping 60 sec to give keepalive thread time to detect closed socket..."
+sleep 60
 
 # Send fourth file from node 2.
 cd ../2.ipn.tcp
@@ -198,8 +198,8 @@ sleep 1
 rm testfile*
 echo "Restarting bprecvfile..."
 bprecvfile ipn:3.1 &
-echo "Sleeping 30 sec to give keepalive thread time to detect open socket..."
-sleep 30
+echo "Sleeping 60 sec to give keepalive thread time to detect open socket..."
+sleep 60
 echo ""
 echo "Bundle for 4th file should have been released from limbo -- k."
 
@@ -284,7 +284,7 @@ else
 fi
 
 cd ../5.ipn.tcp
-NODE_5_TCPCLO_PID=`echo "i outduct stcp localhost:5001" | bpadmin | grep 'pid:' | sed 's/^.*pid: \([0-9]*\) .*$/\1/'`
+NODE_5_TCPCLO_PID=`echo "i outduct tcp localhost:5001" | bpadmin | grep 'pid:' | sed 's/^.*pid: \([0-9]*\) .*$/\1/'`
 echo ""
 echo "Pausing node 5's tcpclo ($NODE_5_TCPCLO_PID), so it won't dequeue bundles"
 kill -STOP $NODE_5_TCPCLO_PID
@@ -304,7 +304,7 @@ bpsendfile ipn:5.1 ipn:3.1 testfile5b
 
 echo "Resuming tcpclo..."
 kill -CONT $NODE_5_TCPCLO_PID
-sleep 30
+sleep 60
 
 # Verify that this file has arrived twice.
 cd ../3.ipn.tcp
