@@ -868,6 +868,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	SdrState		*sdr;
 	PsmAddress		newSdrAddress;
 	long			limit;
+	struct stat		statbuf;
 	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
 	int			logfile = -1;
 	Lyst			logEntries = NULL;
@@ -948,6 +949,14 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	sdr->traceSize = 0;
 	limit = sizeof(sdr->pathName) - 1;
 	istrcpy(sdr->pathName, pathName, limit);
+	if (stat(sdr->pathName, &statbuf) < 0
+	|| (statbuf.st_mode & S_IFDIR) == 0)
+	{
+		writeMemoNote("[?] No such directory; heap residence in file \
+and transaction reversibility are disabled", sdr->pathName);
+		configFlags &= (~SDR_IN_DRAM); 
+		configFlags &= (~SDR_REVERSIBLE); 
+	}
 
 	/*	Add SDR to linked list of defined SDRs.			*/
 
