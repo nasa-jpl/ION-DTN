@@ -952,10 +952,10 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	if (stat(sdr->pathName, &statbuf) < 0
 	|| (statbuf.st_mode & S_IFDIR) == 0)
 	{
-		writeMemoNote("[?] No such directory; heap residence in file \
-and transaction reversibility are disabled", sdr->pathName);
-		configFlags &= (~SDR_IN_DRAM); 
-		configFlags &= (~SDR_REVERSIBLE); 
+		writeMemoNote("[?] No such directory; disabling heap residence \
+in file and transaction reversibility", sdr->pathName);
+		sdr->configFlags &= (~SDR_IN_FILE); 
+		sdr->configFlags &= (~SDR_REVERSIBLE); 
 	}
 
 	/*	Add SDR to linked list of defined SDRs.			*/
@@ -972,7 +972,7 @@ and transaction reversibility are disabled", sdr->pathName);
 	/*	If database exists, back out any current transaction.
 		If not, create the database and initialize it.		*/
 
-	if (configFlags & SDR_REVERSIBLE)
+	if (sdr->configFlags & SDR_REVERSIBLE)
 	{
 		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
 				sdr->pathName, ION_PATH_DELIMITER, name);
@@ -1006,7 +1006,7 @@ and transaction reversibility are disabled", sdr->pathName);
 		}
 	}
 
-	if (configFlags & SDR_IN_FILE)
+	if (sdr->configFlags & SDR_IN_FILE)
 	{
 		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
 				sdr->pathName, ION_PATH_DELIMITER, name);
@@ -1041,7 +1041,7 @@ and transaction reversibility are disabled", sdr->pathName);
 		}
 	}
 
-	if (configFlags & SDR_IN_DRAM)
+	if (sdr->configFlags & SDR_IN_DRAM)
 	{
 		dbsm = NULL;
 		switch (sm_ShmAttach(sdr->sdrKey, sdr->sdrSize, &dbsm, &dbsmId))
