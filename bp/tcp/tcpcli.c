@@ -453,6 +453,7 @@ thread", NULL);
 
 		closesocket(parms->bundleSocket);
 		parms->bundleSocket = -1;
+		pthread_kill(thread, SIGTERM);
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
 		MRELEASE(parms);
