@@ -81,7 +81,7 @@ sleep 10
 echo "Test 1---Check bpdriver default TTL (300 sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
-netcat -u -l -p 4556 > response.bpseg &
+netcat -u -l 4556 > response.bpseg &
 NETCAT_SVR_PID=$!
 cd ../
 
@@ -119,6 +119,7 @@ else
 	echo "The Bundle sent by ION did not have the correct default TTL.  FAILURE!"
 	echo ""
 	RETVAL=1
+	cd ..
 	end
 fi
 cd ..
@@ -128,7 +129,7 @@ cd ..
 echo "Test 2---Try Increasing bpdriver TTL (3000sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
-netcat -u -l -p 4556 > response.bpseg &
+netcat -u -l 4556 > response.bpseg &
 NETCAT_SVR_PID=$!
 cd ../
 
@@ -166,6 +167,7 @@ else
 	echo "The Bundle sent by ION did not have the correct TTL.  FAILURE!"
 	echo ""
 	RETVAL=1
+	cd ..
 	end
 fi
 cd ..
@@ -175,7 +177,7 @@ cd ..
 echo "Test 3--Try Decreasing bpdriver TTL (30sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
-netcat -u -l -p 4556 > response.bpseg &
+netcat -u -l 4556 > response.bpseg &
 NETCAT_SVR_PID=$!
 cd ../
 
