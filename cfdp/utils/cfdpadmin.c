@@ -122,6 +122,7 @@ static void	manageDiscard(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newDiscard = atoi(tokens[2]);
@@ -151,6 +152,7 @@ static void	manageRequirecrc(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newRequirecrc = atoi(tokens[2]);
@@ -181,6 +183,7 @@ static void	manageFillchar(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newFillchar = strtol(tokens[2], &trailing, 16);
@@ -210,6 +213,7 @@ static void	manageCkperiod(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newCkperiod = atoi(tokens[2]);
@@ -239,6 +243,7 @@ static void	manageMaxtimeouts(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newMaxtimeouts = atoi(tokens[2]);
@@ -268,6 +273,7 @@ static void	manageMaxtrnbr(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newMaxtrnbr = atoi(tokens[2]);
@@ -297,6 +303,7 @@ static void	manageSegsize(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newSegsize = atoi(tokens[2]);

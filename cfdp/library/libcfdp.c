@@ -1081,8 +1081,6 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	}
 
 	memset((char *) &fdu, 0, sizeof(OutFdu));
-	memcpy((char *) &fdu.transactionId.sourceEntityNbr,
-			(char *) &db.ownEntityNbr, sizeof(CfdpNumber));
 	if (utParms)
 	{
 		fdu.utParmsLength = utParmsLength;
@@ -1281,6 +1279,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	}
 
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(CfdpDB));
+	memcpy((char *) &fdu.transactionId.sourceEntityNbr,
+			(char *) &db.ownEntityNbr, sizeof(CfdpNumber));
 	db.transactionCounter++;
 	if (db.transactionCounter > db.maxTransactionNbr)
 	{

@@ -868,6 +868,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	SdrState		*sdr;
 	PsmAddress		newSdrAddress;
 	long			limit;
+	struct stat		statbuf;
 	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
 	int			logfile = -1;
 	Lyst			logEntries = NULL;
@@ -948,6 +949,14 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	sdr->traceSize = 0;
 	limit = sizeof(sdr->pathName) - 1;
 	istrcpy(sdr->pathName, pathName, limit);
+	if (stat(sdr->pathName, &statbuf) < 0
+	|| (statbuf.st_mode & S_IFDIR) == 0)
+	{
+		writeMemoNote("[?] No such directory; disabling heap residence \
+in file and transaction reversibility", sdr->pathName);
+		sdr->configFlags &= (~SDR_IN_FILE); 
+		sdr->configFlags &= (~SDR_REVERSIBLE); 
+	}
 
 	/*	Add SDR to linked list of defined SDRs.			*/
 
@@ -963,7 +972,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	/*	If database exists, back out any current transaction.
 		If not, create the database and initialize it.		*/
 
-	if (configFlags & SDR_REVERSIBLE)
+	if (sdr->configFlags & SDR_REVERSIBLE)
 	{
 		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
 				sdr->pathName, ION_PATH_DELIMITER, name);
@@ -997,7 +1006,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 		}
 	}
 
-	if (configFlags & SDR_IN_FILE)
+	if (sdr->configFlags & SDR_IN_FILE)
 	{
 		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
 				sdr->pathName, ION_PATH_DELIMITER, name);
@@ -1032,7 +1041,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 		}
 	}
 
-	if (configFlags & SDR_IN_DRAM)
+	if (sdr->configFlags & SDR_IN_DRAM)
 	{
 		dbsm = NULL;
 		switch (sm_ShmAttach(sdr->sdrKey, sdr->sdrSize, &dbsm, &dbsmId))
@@ -1364,6 +1373,10 @@ void	sdr_stop_using(Sdr sdrv)
 		lyst_destroy(sdrv->knownObjects);
 	}
 
+	/*	Erase content of SdrView, in case space is re-used
+	 *	for another SdrView; then delete it.			*/
+
+	memset((char *) sdrv, 0, sizeof(SdrView));
 	psm_free(sdrwm, psa(sdrwm, sdrv));
 }
 

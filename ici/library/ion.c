@@ -1210,7 +1210,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	memset((char *) parms, 0, sizeof(IonParms));
 	parms->wmSize = 5000000;
 	parms->wmAddress = 0;		/*	Dyamically allocated.	*/
-	parms->configFlags = SDR_IN_DRAM;
+	parms->configFlags = SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED;
 	parms->heapWords = 250000;
 	parms->heapKey = SM_NO_KEY;
 	istrcpy(parms->pathName, "/usr/ion", sizeof parms->pathName);
