@@ -56,6 +56,50 @@ Features included:
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.4.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- ION now has rudimentary Windows support via MingW.
+
+- Issue #270: Fixed issue in cfdptest that prevented the "Custody Requested"
+  switch from being set.
+
+- Issue #275: ION now has support for code coverage analysis via lcov/gcov.
+  To enable this feature, use "--configure --with-gcov".
+  Building with code coverage support enables the following new directives:
+     make cov: creates a "coverage" subfolder from the top of the ION
+               directory where HTML coverage results are stored
+     make cov clean: removes the trace files and the "coverage" subdirectory
+
+- Issue #281: Fixed issue that stopped bputa from running when it was directed
+  to write to a file without sufficient write permissions.
+
+- Issue #282: Fixed issue where LTP segments received outside of a contact
+  were mishandled.
+
+- Issue #283: Fixed issue where the CFDP FDU didn't load the database before
+  using it, resulting in erroneous data being fed into the CFDP event queue.
+
+- Issue #284: Fixed issue where CFDP mishandled extent merges, resulting
+  in checksum failures.
+
+- Issue #285: Fixed issue in cfdpadmin where malformed commands could cause the
+  application to crash.
+
+- Issue #287: Fixed issue that prevented the reporting of user messages and
+  filestore responses in cfdptest.
+
+- Issue #293: Fixed issue in the ION LTP Worksheet where the spreadsheet
+  doesn't account for a small aggregation size limit when calculating
+  export blocks
+
+- Issue #295: ION's internal contact graph routing routines have been
+  parameterized to enable better support for deployment-specific variations
+  of the algorithm.
+
+- Various other fixes.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
