@@ -31,7 +31,7 @@ static int	processLine(char *line, int lineLength)
 	}
 
 	isprintf(fileName, sizeof fileName, "./%.80s.hmk", line);
-	fd = open(fileName, O_RDWR | O_CREAT, 00777);
+	fd = iopen(fileName, O_RDWR | O_CREAT, 0777);
 	if (fd < 0)
 	{
 		printf("Can't create file '%s': %s\n", fileName,
@@ -95,7 +95,7 @@ int	main(int argc, char **argv)
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
 			PERROR("Can't open keynames file");

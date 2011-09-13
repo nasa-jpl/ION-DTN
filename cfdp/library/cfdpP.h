@@ -141,6 +141,7 @@ typedef struct
 	int			checkTimeouts;
 	unsigned int		bytesReceived;
 	Object			extents;		/*	sdrlist	*/
+	time_t			inactivityDeadline;
 } InFdu;
 
 typedef struct

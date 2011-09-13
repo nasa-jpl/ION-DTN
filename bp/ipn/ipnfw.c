@@ -28,11 +28,41 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 	sm_SemEnd(_ipnfwSemaphore(NULL));
 }
 
+static int	getDirective(unsigned long nodeNbr, Object plans,
+			Bundle *bundle, FwdDirective *directive)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+	Object	planAddr;
+	IpnPlan plan;
+
+	for (elt = sdr_list_first(sdr, plans); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		planAddr = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &plan, planAddr, sizeof(IpnPlan));
+		if (plan.nodeNbr < nodeNbr)
+		{
+			continue;
+		}
+		
+		if (plan.nodeNbr > nodeNbr)
+		{
+			return 0;	/*	Same as end of list.	*/
+		}
+
+		memcpy((char *) directive, (char *) &plan.defaultDirective,
+				sizeof(FwdDirective));
+		return 1;
+	}
+
+	return 0;
+}
+
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			unsigned long nodeNbr, unsigned long serviceNbr)
 {
 	FwdDirective	directive;
-	char		*decoration;
 	char		stationEid[64];
 	IonNode		*stationNode;
 	PsmAddress	nextElt;
@@ -48,13 +78,8 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 
 	/*	The station node is a neighbor.				*/
 
-#if BP_URI_RFC
-	decoration = "dtn::";
-#else
-	decoration = "";
-#endif
-	isprintf(stationEid, sizeof stationEid, "%.5sipn:%lu.%lu", decoration,
-			nodeNbr, serviceNbr);
+	isprintf(stationEid, sizeof stationEid, "ipn:%lu.%lu", nodeNbr,
+			serviceNbr);
 
 	/*	Is neighbor refusing to be a station for bundles?	*/
 
@@ -126,7 +151,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	}
 
 	if (cgr_forward(bundle, bundleObj, metaEid.nodeNbr,
-			(getIpnConstants())->plans) < 0)
+			(getIpnConstants())->plans, getDirective) < 0)
 	{
 		putErrmsg("CGR failed.", NULL);
 		return -1;
@@ -207,8 +232,6 @@ int	main(int argc, char *argv[])
 {
 #endif
 	int		ionMemIdx;
-	Lyst		proximateNodes;
-	Lyst		excludedNodes;
 	int		running = 1;
 	Sdr		sdr;
 	VScheme		*vscheme;
@@ -231,14 +254,6 @@ int	main(int argc, char *argv[])
 	}
 
 	ionMemIdx = getIonMemoryMgr();
-	proximateNodes = lyst_create_using(ionMemIdx);
-	excludedNodes = lyst_create_using(ionMemIdx);
-	if (proximateNodes == NULL || excludedNodes == NULL)
-	{
-		putErrmsg("Can't create lists for route computation.", NULL);
-		return 1;
-	}
-
 	sdr = getIonsdr();
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)

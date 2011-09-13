@@ -17,6 +17,7 @@
 #define _IPNFW_H_
 
 #include "bpP.h"
+#include "cgr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -159,9 +160,6 @@ extern int		ipn_lookupGroupDirective(unsigned long nodeNbr,
 				unsigned long sourceServiceNbr,
 				unsigned long sourceNodeNbr,
 				FwdDirective *directive);
-
-extern int		cgr_forward(Bundle *bundle, Object bundleObj,
-				unsigned long stationNodeNbr, Object plans);
 #ifdef __cplusplus
 }
 #endif

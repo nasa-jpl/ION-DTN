@@ -119,7 +119,7 @@ printf("resulting ept is '%s'.\n", endpointNameText);
 	if (tsif->ept == NULL)
 	{
 		putErrmsg("Can't record endpoint name.", NULL);
-		close(fd);
+		closesocket(fd);
 		return -1;
 	}
 
@@ -134,21 +134,24 @@ static void	*udpMamsReceiver(void *parm)
 	MamsInterface		*tsif = (MamsInterface *) parm;
 	int			fd;
 	char			*buffer;
-	sigset_t		signals;
 	int			length;
 	struct sockaddr_in	fromAddr;
-	unsigned int		fromSize;
+	socklen_t		fromSize;
 
 	CHKNULL(tsif);
 	fd = (long) (tsif->sap);
 	buffer = MTAKE(UDPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
+#ifndef mingw
+	sigset_t		signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		fromSize = sizeof fromAddr;
-		length = recvfrom(fd, buffer, UDPTS_MAX_MSG_LEN, 0,
+		length = irecvfrom(fd, buffer, UDPTS_MAX_MSG_LEN, 0,
 				(struct sockaddr *) &fromAddr, &fromSize);
 		if (length < 2)	/*	length == 1 is "shutdown"	*/
 		{
@@ -163,7 +166,7 @@ static void	*udpMamsReceiver(void *parm)
 message", NULL);
 			}
 
-			close(fd);
+			closesocket(fd);
 			MRELEASE(buffer);
 			tsif->sap = NULL;
 			return NULL;
@@ -250,7 +253,7 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	if (tsif->ept == NULL)
 	{
 		putErrmsg("Can't record endpoint name.", NULL);
-		close(fd);
+		closesocket(fd);
 		return -1;
 	}
 
@@ -266,22 +269,25 @@ static void	*udpAmsReceiver(void *parm)
 	int			fd;
 	AmsSAP			*amsSap;
 	char			*buffer;
-	sigset_t		signals;
 	int			length;
 	struct sockaddr_in	fromAddr;
-	unsigned int		fromSize;
+	socklen_t		fromSize;
 
 	CHKNULL(tsif);
 	fd = (long) (tsif->sap);
 	amsSap = tsif->amsSap;
 	buffer = MTAKE(UDPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
+#ifndef mingw
+	sigset_t		signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		fromSize = sizeof fromAddr;
-		length = recvfrom(fd, buffer, UDPTS_MAX_MSG_LEN, 0,
+		length = irecvfrom(fd, buffer, UDPTS_MAX_MSG_LEN, 0,
 				(struct sockaddr *) &fromAddr, &fromSize);
 		if (length < 2)	/*	length == 1 is "shutdown"	*/
 		{
@@ -296,7 +302,7 @@ static void	*udpAmsReceiver(void *parm)
 message", NULL);
 			}
 
-			close(fd);
+			closesocket(fd);
 			MRELEASE(buffer);
 			tsif->sap = NULL;
 			return NULL;

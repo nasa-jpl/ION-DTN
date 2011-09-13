@@ -148,7 +148,7 @@ static int	run_file2sdr(int configFlags, char *fileName)
 
 	/*	Establish position at first unread record of file.	*/
 
-	inputFile = open(fileName, O_RDONLY, 0777);
+	inputFile = iopen(fileName, O_RDONLY, 0777);
 	if (inputFile < 0)
 	{
 		PERROR("Can't open input file");
@@ -170,7 +170,7 @@ static int	run_file2sdr(int configFlags, char *fileName)
 					return 0;
 				}
 
-				inputFile = open(fileName, O_RDONLY, 0777);
+				inputFile = iopen(fileName, O_RDONLY, 0777);
 				if (inputFile < 0)
 				{
 					PERROR("Can't reopen input file");
@@ -229,7 +229,7 @@ microsnooze(10000);
 					return 0;
 				}
 
-				inputFile = open(fileName, O_RDONLY, 0777);
+				inputFile = iopen(fileName, O_RDONLY, 0777);
 				if (inputFile < 0)
 				{
 					PERROR("Can't reopen input file");

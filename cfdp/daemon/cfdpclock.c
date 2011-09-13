@@ -61,6 +61,39 @@ static int	scanInFdus(Sdr sdr, time_t currentTime)
 			nextElt = sdr_list_next(sdr, elt);
 			fduObj = sdr_list_data(sdr, elt);
 			GET_OBJ_POINTER(sdr, InFdu, fdu, fduObj);
+			if (fdu->inactivityDeadline > 0
+			&& fdu->inactivityDeadline < currentTime)
+			{
+				/*	Inactivity limit reached.
+				 *	Disable the timer so it won't
+				 *	be triggered again in the event
+				 *	that the fault handler doesn't
+				 *	destroy the InFdu.		*/
+
+				sdr_stage(sdr, NULL, fduObj, 0);
+				fdu->inactivityDeadline = 0;
+				sdr_write(sdr, fduObj, (char *) fdu,
+						sizeof(InFdu));
+				if (handleFault(&(fdu->transactionId),
+					CfdpInactivityDetected, &handler) < 0)
+				{
+					sdr_cancel_xn(sdr);
+					putErrmsg("Can't handle inactivity.",
+							NULL);
+					return -1;
+				}
+
+				switch (handler)
+				{
+				case CfdpCancel:
+				case CfdpAbandon:
+					continue;	/*	Done.	*/
+
+				default:
+					break;	/*	Proceed.	*/
+				}
+			}
+
 			if (fdu->eofReceived && fdu->checkTime < currentTime)
 			{
 				sdr_stage(sdr, NULL, fduObj, 0);
@@ -210,7 +243,7 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 		 *	(Unacknowledged procedures) for this FDU, we
 		 *	do it now.					*/
 
-		if (zco_file_ref_xmit_eof(sdr, fdu.fileRef))
+		if (fdu.fileRef && zco_file_ref_xmit_eof(sdr, fdu.fileRef))
 		{
 			if (fdu.transmitted == 0 && fdu.state != FduCanceled)
 			{

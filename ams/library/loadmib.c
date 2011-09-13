@@ -37,16 +37,13 @@ typedef struct
 	void		*target;	/*	For deletion.		*/
 } LoadMibState;
 
-static AmsMib	*crash(AmsMib *mib)
+static int	crash()
 {
-	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
-
 	putErrmsg("Loading of test MIB failed.", NULL);
-	oK(_mib(&parms));		/*	Erase.			*/
-	return NULL;
+	return -1;
 }
 
-static AmsMib	*loadTestMib()
+static int	loadTestMib()
 {
 	AmsMibParameters	parms = { 1, "dgr", NULL, NULL };
 	AmsMib			*mib;
@@ -60,7 +57,7 @@ static AmsMib	*loadTestMib()
 	mib = _mib(&parms);
 	if (mib == NULL)
 	{
-		return crash(mib);
+		return crash();
 	}
 
 	getNameOfHost(ownHostName, sizeof ownHostName);
@@ -68,53 +65,85 @@ static AmsMib	*loadTestMib()
 	elt = createCsEndpoint(eps, NULL);
        	if (elt == NULL)
 	{
-		return crash(mib);
+		return crash();
 	}
 
 	elt = createApp("amsdemo", NULL, NULL);
        	if (elt == NULL)
 	{
-		return crash(mib);
+		return crash();
 	}
 
 	venture = createVenture(1, "amsdemo", "test", NULL, 0, 0);
 	if (venture == NULL)
 	{
-		return crash(mib);
+		return crash();
 	}
 
 	role = createRole(venture, 2, "shell", NULL, NULL);
 	if (role == NULL)
 	{
-		return crash(mib);
+		return crash();
 	}
 
 	role = createRole(venture, 3, "log", NULL, NULL);
 	if (role == NULL)
 	{
-		return crash(mib);
+		return crash();
 	}
 
 	role = createRole(venture, 4, "pitch", NULL, NULL);
 	if (role == NULL)
 	{
-		return crash(mib);
+		return crash();
 	}
 
 	role = createRole(venture, 5, "catch", NULL, NULL);
 	if (role == NULL)
 	{
-		return crash(mib);
+		return crash();
+	}
+
+	role = createRole(venture, 96, "amsd", NULL, NULL);
+	if (role == NULL)
+	{
+		return crash();
+	}
+
+	role = createRole(venture, 97, "amsstop", NULL, NULL);
+	if (role == NULL)
+	{
+		return crash();
+	}
+
+	role = createRole(venture, 98, "amsmib", NULL, NULL);
+	if (role == NULL)
+	{
+		return crash();
 	}
 
 	subject = createSubject(venture, 1, "text",
 			"Arbitrary variable-length text.", NULL, NULL, NULL);
 	if (subject == NULL)
 	{
-		return crash(mib);
+		return crash();
 	}
 
-	return mib;
+	subject = createSubject(venture, 97, "amsstop",
+			"Message space shutdown command.", NULL, NULL, NULL);
+	if (subject == NULL)
+	{
+		return crash();
+	}
+
+	subject = createSubject(venture, 98, "amsmib",
+			"Runtime MIB updates.", NULL, NULL, NULL);
+	if (subject == NULL)
+	{
+		return crash();
+	}
+
+	return 0;
 }
 
 static void	noteLoadError(LoadMibState *state, char *text)
@@ -510,7 +539,7 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 		break;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		break;				/*	Just context.	*/
 	}
 }
 
@@ -611,7 +640,7 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 		break;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		break;				/*	Just context.	*/
 	}
 }
 
@@ -790,7 +819,7 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 		break;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		break;				/*	Just context.	*/
 	}
 }
 
@@ -998,7 +1027,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 
 	if (state->subject)
 	{
-		return noteLoadError(state, "Already working on a msgspace.");
+		return noteLoadError(state, "Already working on a subject.");
 	}
 
 	for (att = (char **) atts; *att; att++)
@@ -1456,7 +1485,7 @@ static int	rcParse(LoadMibState *state, char *buf, size_t length)
 	return 0;
 }
 
-static AmsMib	*loadMibFromRcSource(char *mibSource)
+static int	loadMibFromRcSource(char *mibSource)
 {
 	int			sourceFile;
 	LoadMibState		state;
@@ -1471,11 +1500,11 @@ static AmsMib	*loadMibFromRcSource(char *mibSource)
 		mibSource = "mib.amsrc";
 	}
 
-	sourceFile = open(mibSource, O_RDONLY, 00777);
+	sourceFile = iopen(mibSource, O_RDONLY, 0777);
 	if (sourceFile < 0)
 	{
 		putSysErrmsg("Can't open MIB source file", mibSource);
-		return NULL;
+		return -1;
 	}
 
 	memset((char *) &state, 0, sizeof state);
@@ -1514,37 +1543,28 @@ static AmsMib	*loadMibFromRcSource(char *mibSource)
 	}
 
 	close(sourceFile);
-	mib = _mib(NULL);
-	if (result < 0)
-	{
-		oK(_mib(&parms));	/*	Erase.			*/
-		mib = NULL;
-	}
-
-	return mib;
+	return result;
 }
 #else
-static AmsMib	*loadMibFromXmlSource(char *mibSource)
+static int	loadMibFromXmlSource(char *mibSource)
 {
-	int			sourceFile;
-	LoadMibState		state;
-	char			buf[256];
-	int			done = 0;
-	size_t			length;
-	int			result = 0;
-	AmsMib			*mib;
-	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
+	int		sourceFile;
+	LoadMibState	state;
+	char		buf[256];
+	int		done = 0;
+	size_t		length;
+	int		result = 0;
 
 	if (*mibSource == '\0')		/*	Use default file name.	*/
 	{
 		mibSource = "amsmib.xml";
 	}
 
-	sourceFile = open(mibSource, O_RDONLY, 00777);
+	sourceFile = iopen(mibSource, O_RDONLY, 0777);
 	if (sourceFile < 0)
 	{
 		putSysErrmsg("Can't open MIB source file", mibSource);
-		return NULL;
+		return -1;
 	}
 
 	memset((char *) &state, 0, sizeof state);
@@ -1555,7 +1575,7 @@ static AmsMib	*loadMibFromXmlSource(char *mibSource)
 	{
 		putSysErrmsg("Can't open XML parser", NULL);
 		close(sourceFile);
-		return NULL;
+		return -1;
 	}
 
 	XML_SetElementHandler(state.parser, startElement, endElement);
@@ -1575,7 +1595,7 @@ static AmsMib	*loadMibFromXmlSource(char *mibSource)
 			break;
 
 		default:
-			done = length < sizeof buf;
+			done = (length < sizeof buf);
 		}
 
 		if (XML_Parse(state.parser, buf, length, done)
@@ -1599,46 +1619,73 @@ static AmsMib	*loadMibFromXmlSource(char *mibSource)
 
 	XML_ParserFree(state.parser);
 	close(sourceFile);
-	mib = _mib(NULL);
-	if (result < 0)
-	{
-		oK(_mib(&parms));	/*	Erase.			*/
-		mib = NULL;
-	}
-
-	return mib;
+	return result;
 }
 #endif
+
+int	updateMib(char *mibSource)
+{
+	int	result;
+
+	if (mibSource == NULL)
+	{
+		return 0;		/*	Nothing to do.		*/
+	}
+
+	lockMib();
+#ifdef NOEXPAT
+	result = loadMibFromRcSource(mibSource);
+#else
+	result = loadMibFromXmlSource(mibSource);
+#endif
+	unlockMib();
+	return result;
+}
 
 AmsMib	*loadMib(char *mibSource)
 {
 	AmsMib			*mib;
+	int			result;
 	int			i;
 	TransSvc		*ts;
 	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
 
+	lockMib();
 	mib = _mib(NULL);
 	if (mib)
 	{
+		mib->users += 1;
+		unlockMib();
 		return mib;	/*	MIB is already loaded.		*/
 	}
 
 	if (mibSource == NULL)
 	{
-		mib = loadTestMib();
+		result = loadTestMib();
 	}
 	else
 	{
 #ifdef NOEXPAT
-		mib = loadMibFromRcSource(mibSource);
+		result = loadMibFromRcSource(mibSource);
 #else
-		mib = loadMibFromXmlSource(mibSource);
+		result = loadMibFromXmlSource(mibSource);
 #endif
+	}
+
+	if (result < 0)
+	{
+		oK(_mib(&parms));	/*	Erase.			*/
+		mib = NULL;
+	}
+	else
+	{
+		mib = _mib(NULL);
 	}
 
 	if (mib == NULL)
 	{
 		putErrmsg("Failed loading AMS MIB.", NULL);
+		unlockMib();
 		return NULL;
 	}
 
@@ -1652,10 +1699,32 @@ AmsMib	*loadMib(char *mibSource)
 				putErrmsg("Can't load default AMS endpoint \
 specs.", NULL);
 				oK(_mib(&parms));	/*	Erase.	*/
+				unlockMib();
 				return NULL;
 			}
 		}
 	}
 
+	mib->users = 1;
+	unlockMib();
 	return mib;
+}
+
+void	unloadMib()
+{
+	AmsMib			*mib;
+	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
+
+	lockMib();
+	mib = _mib(NULL);
+	if (mib)
+	{
+		mib->users -= 1;
+		if (mib->users <= 0)
+		{
+			oK(_mib(&parms));		/*	Erase.	*/
+		}
+	}
+
+	unlockMib();
 }

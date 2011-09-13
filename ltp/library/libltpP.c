@@ -710,29 +710,18 @@ void	checkReservationLimit()
 	Object	dbobj = getLtpDbObject();
 	LtpDB	db;
 	int	totalSessionsAvbl;
-	Scalar	totalBytesAvbl;
-	Scalar	totalBytesNeeded;
-	Scalar	increment;
 	Object	elt;
 		OBJ_POINTER(LtpSpan, span);
 
 	sdr_begin_xn(ltpSdr);
-	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
+	sdr_read(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 	totalSessionsAvbl = db.estMaxExportSessions;
-	loadScalar(&totalBytesAvbl, db.heapSpaceBytesReserved);
-	loadScalar(&totalBytesNeeded, 0);
 	for (elt = sdr_list_first(ltpSdr, db.spans); elt;
 			elt = sdr_list_next(ltpSdr, elt))
 	{
 		GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
 				elt));
 		totalSessionsAvbl -= span->maxExportSessions;
-		loadScalar(&increment, (int) (span->maxExportSessions));
-		multiplyScalar(&increment, (int) (span->maxExportBlockSize));
-		addToScalar(&totalBytesNeeded, &increment);
-		loadScalar(&increment, (int) (span->maxImportSessions));
-		multiplyScalar(&increment, (int) (span->maxImportBlockSize));
-		addToScalar(&totalBytesNeeded, &increment);
 	}
 
 	if (totalSessionsAvbl < 0)
@@ -746,30 +735,11 @@ estimate.  Session lookup speed may be degraded", itoa(totalSessionsAvbl));
 estimate.");
 	}
 
-	subtractFromScalar(&totalBytesAvbl, &totalBytesNeeded);
-	if (scalarIsValid(&totalBytesAvbl))
-	{
-		db.allBlocksInHeap = 1;
-		writeMemo("[i] LTP space reservation is large enough to manage \
-all sessions in heap.");
-	}
-	else
-	{
-		db.allBlocksInHeap = 0;
-		writeMemo("[?] LTP space reservation can be exceeded.  Multi-\
-segment import blocks will be written to files.");
-	}
-
-	sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
-	if (sdr_end_xn(ltpSdr))
-	{
-		putErrmsg("Can't update allBlocksInHeap switch.", NULL);
-	}
+	sdr_exit_xn(ltpSdr);
 }
 
 int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
-		unsigned int maxExportBlockSize, unsigned int maxImportSessions,
-		unsigned int maxImportBlockSize, unsigned int maxSegmentSize,
+		unsigned int maxImportSessions, unsigned int maxSegmentSize,
 		unsigned int aggrSizeLimit, unsigned int aggrTimeLimit,
 		char *lsoCmd, unsigned int qTime, int purge)
 {
@@ -787,19 +757,11 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 		return 0;
 	}
 
-	if ( engineId == 0
-	|| maxExportSessions == 0 || maxExportBlockSize == 0
-	|| maxImportSessions == 0 || maxImportBlockSize == 0
+	if (engineId == 0
+	|| maxExportSessions == 0 || maxImportSessions == 0
 	|| aggrSizeLimit == 0 || aggrTimeLimit == 0)
 	{
 		writeMemoNote("[?] Missing span parameter(s)", utoa(engineId));
-		return 0;
-	}
-
-	if (aggrSizeLimit > maxExportBlockSize)
-	{
-		writeMemoNote("[?] Aggregation size limit too large",
-				itoa(aggrSizeLimit - maxExportBlockSize));
 		return 0;
 	}
 
@@ -842,9 +804,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 	spanBuf.purge = purge ? 1 : 0;
 	spanBuf.lsoCmd = sdr_string_create(ltpSdr, lsoCmd);
 	spanBuf.maxExportSessions = maxExportSessions;
-	spanBuf.maxExportBlockSize = maxExportBlockSize;
 	spanBuf.maxImportSessions = maxImportSessions;
-	spanBuf.maxImportBlockSize = maxImportBlockSize;
 	spanBuf.aggrSizeLimit = aggrSizeLimit;
 	spanBuf.aggrTimeLimit = aggrTimeLimit;
 	spanBuf.maxSegmentSize = maxSegmentSize;
@@ -883,8 +843,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 }
 
 int	updateSpan(unsigned long engineId, unsigned int maxExportSessions,
-		unsigned int maxExportBlockSize, unsigned int maxImportSessions,
-		unsigned int maxImportBlockSize, unsigned int maxSegmentSize,
+		unsigned int maxImportSessions, unsigned int maxSegmentSize,
 		unsigned int aggrSizeLimit, unsigned int aggrTimeLimit,
 		char *lsoCmd, unsigned int qTime, int purge)
 {
@@ -938,35 +897,14 @@ string too long.", lsoCmd);
 		maxExportSessions = spanBuf.maxExportSessions;
 	}
 
-	if (maxExportBlockSize == 0)
-	{
-		maxExportBlockSize = spanBuf.maxExportBlockSize;
-	}
-
 	if (maxImportSessions == 0)
 	{
 		maxImportSessions = spanBuf.maxImportSessions;
 	}
 
-	if (maxImportBlockSize == 0)
-	{
-		maxImportBlockSize = spanBuf.maxImportBlockSize;
-	}
-
 	if (aggrSizeLimit == 0)
 	{
 		aggrSizeLimit = spanBuf.aggrSizeLimit;
-	}
-
-	if (aggrSizeLimit)
-	{
-		if (aggrSizeLimit > maxExportBlockSize)
-		{
-			sdr_exit_xn(ltpSdr);
-			writeMemoNote("[?] Aggregation size limit too large",
-				itoa(aggrSizeLimit - maxExportBlockSize));
-			return 0;
-		}
 	}
 
 	if (aggrTimeLimit == 0)
@@ -977,9 +915,7 @@ string too long.", lsoCmd);
 	/*	All parameters validated, okay to update the span.	*/
 
 	spanBuf.maxExportSessions = maxExportSessions;
-	spanBuf.maxExportBlockSize = maxExportBlockSize;
 	spanBuf.maxImportSessions = maxImportSessions;
-	spanBuf.maxImportBlockSize = maxImportBlockSize;
 	if (lsoCmd)
 	{
 		if (spanBuf.lsoCmd)
@@ -3297,7 +3233,7 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 
 	isprintf(name, sizeof name, "%s%cltpblock.%lu.%lu", cwd,
 		ION_PATH_DELIMITER, span->engineId, session->sessionNbr);
-	fd = open(name, O_WRONLY | O_CREAT, 0666);
+	fd = iopen(name, O_WRONLY | O_CREAT, 0666);
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't create block file", name);
@@ -3424,7 +3360,7 @@ static int	writeBlockExtentToFile(ImportSession *session,
 	 *	recreate that file for as long as is needed to deal
 	 *	with the leftover retransmitted segments.		*/
 
-	fd = open(fileName, O_WRONLY | O_CREAT, 0666);
+	fd = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't open block file", fileName);
@@ -3818,45 +3754,6 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	}
 
 	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
-	if (pdu->offset + pdu->length > span->maxImportBlockSize)
-	{
-		/*	Red part of block exceeds limit on block size,
-		 *	which prevents buffer overflow.  Segment must
-		 *	be discarded and session canceled.		*/
-
-		if (sessionObj)		/*	Session exists.		*/
-		{
-			sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
-					sizeof(ImportSession));
-#if LTPDEBUG
-putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
-#endif
-			cancelSessionByReceiver(&sessionBuf, sessionObj,
-					LtpCancelByEngine);
-		}
-		else	/*	Just send cancel segment to sender.	*/
-		{
-			if (constructDestCancelReqSegment(span,
-					&(span->engineIdSdnv), sessionNbr,
-					0, LtpCancelByEngine) < 0)
-			{
-				putErrmsg("Can't send CR segment.", NULL);
-				sdr_cancel_xn(ltpSdr);
-				return -1;
-			}
-		}
-
-		if (sdr_end_xn(ltpSdr) < 0)
-		{
-			putErrmsg("Can't handle overflow segment.", NULL);
-			return -1;
-		}
-
-#if LTPDEBUG
-putErrmsg("Discarded data segment.", itoa(sessionNbr));
-#endif
-		return 0;
-	}
 
 	/*	Data segment must be accepted into an import session,
 	 *	unless that session is already canceled.		*/
@@ -3912,23 +3809,18 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		}
 
 		sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
-		if (db.allBlocksInHeap == 0)
+		if (pdu->offset != 0	/*	Not segment #1.	*/
+		|| (pdu->segTypeCode != LtpDsRedEORP
+				&& pdu->segTypeCode != LtpDsRedEOB))
 		{
-			if (pdu->offset != 0	/*	Not segment #1.	*/
-			|| (pdu->segTypeCode != LtpDsRedEORP
-					&& pdu->segTypeCode != LtpDsRedEOB))
+			/*	This is a large (i.e., multi-segment)
+			 *	block; must receive it into a file.	*/
+		
+			if (createBlockFile(span, &sessionBuf) < 0)
 			{
-				/*	This is a large (i.e., multi-
-				 *	segment) block; must receive
-				 *	it into a file.			*/
-			
-				if (createBlockFile(span, &sessionBuf) < 0)
-				{
-					putErrmsg("Can't receive large block.",
-							NULL);
-					sdr_cancel_xn(ltpSdr);
-					return -1;
-				}
+				putErrmsg("Can't receive large block.", NULL);
+				sdr_cancel_xn(ltpSdr);
+				return -1;
 			}
 		}
 	}
@@ -4558,6 +4450,13 @@ putErrmsg("Discarding report.", NULL);
 	sdr_begin_xn(ltpSdr);
 	getSessionContext(ltpdb, sessionNbr, &sessionObj,
 			&sessionBuf, &spanObj, &spanBuf, &vspan, &vspanElt);
+	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
+	{
+		sdr_exit_xn(ltpSdr);
+		MRELEASE(newClaims);
+		return 0;
+	}
+
 	if (sessionObj == 0)
 	{
 		/*	Report for an unknown session: must be in
@@ -4587,8 +4486,7 @@ putErrmsg("Discarding report.", NULL);
 
 	/*	Now process the report if possible.			*/
 
-	if (sessionObj == 0		/*	Session is closed.	*/
-	|| sessionBuf.totalLength == 0)	/*	Reused session nbr.	*/
+	if (sessionBuf.totalLength == 0)/*	Reused session nbr.	*/
 	{
 #if LTPDEBUG
 putErrmsg("Discarding report.", NULL);

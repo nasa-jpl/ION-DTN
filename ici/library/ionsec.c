@@ -369,7 +369,7 @@ static int	loadKeyValue(SecKey *key, char *fileName)
 	int	bytesRead;
 	int	keyfd;
 
-	keyfd = open(fileName, O_RDONLY, 0);
+	keyfd = iopen(fileName, O_RDONLY, 0);
 	if (keyfd < 0)
 	{
 		putSysErrmsg("Can't open key value file", fileName);

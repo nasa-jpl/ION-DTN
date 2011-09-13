@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-#define	DEFAULT_BRS_RATE	1000000
+#define	DEFAULT_BRS_RATE	125000000
 
 /*	BRSTERM is maximum allowable number of seconds between the
  *	time tag in the authentication message and the current time

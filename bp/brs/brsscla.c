@@ -12,27 +12,10 @@
 									*/
 #include "brscla.h"
 
-static pthread_t	brssclaMainThread(pthread_t tid)
-{
-	static pthread_t	mainThread = 0;
-
-	if (tid)
-	{
-		mainThread = tid;
-	}
-
-	return mainThread;
-}
-
 static void	interruptThread()
 {
-	pthread_t	mainThread = brssclaMainThread(0);
-
 	isignal(SIGTERM, interruptThread);
-	if (!pthread_equal(mainThread, pthread_self()))
-	{
-		pthread_kill(mainThread, SIGTERM);
-	}
+	ionKillMainThread("brsscla");
 }
 
 /*	*	*	Sender thread functions	*	*	*	*/
@@ -58,6 +41,7 @@ static void	*sendBundles(void *parm)
 	 *	serving all BRS sockets.				*/
 
 	SenderThreadParms	*parms = (SenderThreadParms *) parm;
+	char			*procName = "brsscla";
 	unsigned char		*buffer;
 	Outduct			outduct;
 	Sdr			sdr;
@@ -72,10 +56,12 @@ static void	*sendBundles(void *parm)
 	Object			bundleAddr;
 	Bundle			bundle;
 
+	snooze(1);	/*	Let main thread become interruptable.	*/
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("No memory for TCP buffer in brsscla.", NULL);
+		ionKillMainThread(procName);
 		return terminateSenderThread(parms);
 	}
 
@@ -93,7 +79,6 @@ static void	*sendBundles(void *parm)
 
 	/*	Can now begin transmitting to clients.			*/
 
-	iblock(SIGTERM);
 	while (!(sm_SemEnded(parms->vduct->semaphore)))
 	{
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
@@ -120,7 +105,7 @@ static void	*sendBundles(void *parm)
 			 *	the brsscla induct's output functions;
 			 *	those functions never connect to remote
 			 *	sockets and never behave like a TCP
-			 *	outduct, so the_tcpOutductId table is
+			 *	outduct, so the _tcpOutductId table is
 			 *	never populated.			*/
 
 			if (bytesSent < 0)
@@ -194,7 +179,7 @@ static void	*sendBundles(void *parm)
 		sm_TaskYield();
 	}
 
-	pthread_kill(brssclaMainThread(0), SIGTERM);
+	ionKillMainThread(procName);
 	writeMemo("[i] brsscla outduct has ended.");
 	MRELEASE(buffer);
 	return terminateSenderThread(parms);
@@ -238,8 +223,9 @@ typedef struct
 	VInduct		*vduct;
 	LystElt		elt;
 	pthread_mutex_t	*mutex;
-	pthread_t	thread;
 	int		bundleSocket;
+	pthread_t	thread;
+	int		*running;
 	unsigned long	ductNbr;
 	int		*authenticated;
 	int		baseDuctNbr;
@@ -256,7 +242,7 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 	pthread_mutex_lock(parms->mutex);
 	if (parms->bundleSocket != -1)
 	{
-		close(parms->bundleSocket);
+		closesocket(parms->bundleSocket);
 		if (parms->ductNbr != (unsigned long) -1)
 		{
 			senderSocket = parms->ductNbr - parms->baseDuctNbr;
@@ -264,7 +250,8 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 					parms->bundleSocket)
 			{
 				/*	Stop sender thread transmission
-				 *	over this socket.		*/
+				 *	over this socket.  Note: does
+				 *	not halt the sender thread.	*/
 
 				parms->brsSockets[senderSocket] = -1;
 			}
@@ -275,6 +262,7 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 
 	lyst_delete(parms->elt);
 	pthread_mutex_unlock(parms->mutex);
+	MRELEASE(parms);
 }
 
 static void	*receiveBundles(void *parm)
@@ -283,6 +271,7 @@ static void	*receiveBundles(void *parm)
 	 *	connection, terminating when connection is lost.	*/
 
 	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
+	char			*procName = "brsscla";
 	time_t			currentTime;
 	unsigned char		sdnvText[10];
 	int			sdnvLength = 0;
@@ -296,7 +285,6 @@ static void	*receiveBundles(void *parm)
 	int			keyLen;
 	char			errtext[300];
 	char			digest[DIGEST_LEN];
-	int			threadRunning = 1;
 	AcqWorkArea		*work;
 	char			*buffer;
 
@@ -321,7 +309,6 @@ static void	*receiveBundles(void *parm)
 			default:		/*	Inauthentic.	*/
 				*parms->authenticated = 1;
 				terminateReceiverThread(parms);
-				MRELEASE(parms);
 				return NULL;
 		}
 
@@ -339,7 +326,6 @@ static void	*receiveBundles(void *parm)
 		putErrmsg("Duct number SDNV is too long.", NULL);
 		*parms->authenticated = 1;	/*	Inauthentic.	*/
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -349,7 +335,6 @@ static void	*receiveBundles(void *parm)
 		putErrmsg("Duct number is too large.", utoa(ductNbr));
 		*parms->authenticated = 1;	/*	Inauthentic.	*/
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -360,7 +345,6 @@ static void	*receiveBundles(void *parm)
 		putErrmsg("Client is already connected.", utoa(ductNbr));
 		*parms->authenticated = 1;	/*	Inauthentic.	*/
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -371,7 +355,6 @@ static void	*receiveBundles(void *parm)
 		putErrmsg("Can't get HMAC key for duct.", keyName);
 		*parms->authenticated = 1;	/*	Inauthentic.	*/
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -391,7 +374,6 @@ static void	*receiveBundles(void *parm)
 		default:
 			*parms->authenticated = 1;
 			terminateReceiverThread(parms);
-			MRELEASE(parms);
 			return NULL;
 	}
 
@@ -406,7 +388,6 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		writeMemo(errtext);
 		*parms->authenticated = 1;	/*	Inauthentic.	*/
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -416,7 +397,6 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		writeMemo("[?] Registration rejected: digest is incorrect.");
 		*parms->authenticated = 1;	/*	Inauthentic.	*/
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -434,10 +414,9 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 	if (sendBytesByTCP(&parms->bundleSocket, registration + 4,
 			DIGEST_LEN, NULL) < DIGEST_LEN)
 	{
-		putErrmsg("Can't countersign client.",
+		putErrmsg("Can't countersign to client.",
 				itoa(parms->bundleSocket));
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -450,7 +429,6 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 	{
 		putErrmsg("brssscla can't reforward bundles.", NULL);
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -459,7 +437,6 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 	{
 		putErrmsg("brsscla can't get acquisition work area.", NULL);
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -468,7 +445,6 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 	{
 		putErrmsg("brsscla can't get TCP buffer.", NULL);
 		terminateReceiverThread(parms);
-		MRELEASE(parms);
 		return NULL;
 	}
 
@@ -478,12 +454,13 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 
 	/*	Now start receiving bundles.				*/
 
-	while (threadRunning)
+	while (*(parms->running))
 	{
 		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
 		{
 			putErrmsg("can't begin acquisition of bundle.", NULL);
-			threadRunning = 0;
+			ionKillMainThread(procName);
+			*(parms->running) = 0;
 			continue;
 		}
 
@@ -491,11 +468,12 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
+			ionKillMainThread(procName);
 
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:				/*	Normal stop.	*/
-			threadRunning = 0;
+			*(parms->running) = 0;
 			continue;
 
 		default:
@@ -505,7 +483,8 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		if (bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't end acquisition of bundle.", NULL);
-			threadRunning = 0;
+			ionKillMainThread(procName);
+			*(parms->running) = 0;
 			continue;
 		}
 
@@ -519,7 +498,6 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 	bpReleaseAcqArea(work);
 	MRELEASE(buffer);
 	terminateReceiverThread(parms);
-	MRELEASE(parms);
 	return NULL;
 }
 
@@ -543,6 +521,7 @@ static void	*spawnReceivers(void *parm)
 	 *	creation of receivers to service those connections.	*/
 
 	AccessThreadParms	*atp = (AccessThreadParms *) parm;
+	char			*procName = "brsscla";
 	pthread_mutex_t		mutex;
 	Lyst			threads;
 	int			newSocket;
@@ -553,11 +532,13 @@ static void	*spawnReceivers(void *parm)
 	LystElt			elt;
 	pthread_t		thread;
 
+	snooze(1);	/*	Let main thread become interruptable.	*/
 	pthread_mutex_init(&mutex, NULL);
 	threads = lyst_create_using(getIonMemoryMgr());
 	if (threads == NULL)
 	{
 		putErrmsg("brsscla can't create threads list.", NULL);
+		ionKillMainThread(procName);
 		pthread_mutex_destroy(&mutex);
 		return NULL;
 	}
@@ -565,15 +546,16 @@ static void	*spawnReceivers(void *parm)
 	/*	Can now begin accepting connections from clients.  On
 	 *	failure, take down the whole CLI.			*/
 
-	while (1)
+	while (atp->running)
 	{
+		nameLength = sizeof(struct sockaddr);
 		newSocket = accept(atp->ductSocket, &clientSocketName,
 				&nameLength);
 		if (newSocket < 0)
 		{
 			putSysErrmsg("brsscla accept() failed", NULL);
-			pthread_mutex_destroy(&mutex);
-			pthread_kill(brssclaMainThread(0), SIGTERM);
+			ionKillMainThread(procName);
+			atp->running = 0;
 			continue;
 		}
 
@@ -587,21 +569,21 @@ static void	*spawnReceivers(void *parm)
 		if (receiverParms == NULL)
 		{
 			putErrmsg("brsscla can't allocate for thread", NULL);
-			pthread_mutex_destroy(&mutex);
-			pthread_kill(brssclaMainThread(0), SIGTERM);
+			ionKillMainThread(procName);
+			atp->running = 0;
 			continue;
 		}
 
-		pthread_mutex_lock(&mutex);
 		receiverParms->vduct = atp->vduct;
+		pthread_mutex_lock(&mutex);
 		receiverParms->elt = lyst_insert_last(threads, receiverParms);
 		pthread_mutex_unlock(&mutex);
 		if (receiverParms->elt == NULL)
 		{
 			putErrmsg("brsscla can't allocate for thread", NULL);
 			MRELEASE(receiverParms);
-			pthread_mutex_destroy(&mutex);
-			pthread_kill(brssclaMainThread(0), SIGTERM);
+			ionKillMainThread(procName);
+			atp->running = 0;
 			continue;
 		}
 
@@ -613,13 +595,14 @@ static void	*spawnReceivers(void *parm)
 		receiverParms->baseDuctNbr = atp->baseDuctNbr;
 		receiverParms->lastDuctNbr = atp->lastDuctNbr;
 		receiverParms->brsSockets = atp->brsSockets;
+		receiverParms->running = &(atp->running);
 		if (pthread_create(&(receiverParms->thread), NULL,
 				receiveBundles, receiverParms))
 		{
 			putSysErrmsg("brsscla can't create new thread", NULL);
 			MRELEASE(receiverParms);
-			pthread_mutex_destroy(&mutex);
-			pthread_kill(brssclaMainThread(0), SIGTERM);
+			ionKillMainThread(procName);
+			atp->running = 0;
 			continue;
 		}
 
@@ -630,13 +613,12 @@ static void	*spawnReceivers(void *parm)
 
 			thread = receiverParms->thread;
 			pthread_cancel(thread);
-			terminateReceiverThread(receiverParms);
-			MRELEASE(receiverParms);
 			pthread_join(thread, NULL);
+			terminateReceiverThread(receiverParms);
 		}
 	}
 
-	close(atp->ductSocket);
+	closesocket(atp->ductSocket);
 	writeErrmsgMemos();
 
 	/*	Shut down all clients' receiver threads cleanly.	*/
@@ -654,11 +636,14 @@ static void	*spawnReceivers(void *parm)
 		/*	Trigger termination of thread.			*/
 
 		receiverParms = (ReceiverThreadParms *) lyst_data(elt);
-		pthread_mutex_unlock(&mutex);
 		thread = receiverParms->thread;
+#ifdef mingw
+		shutdown(receiverParms->bundleSocket, SD_BOTH);
+#else
 		pthread_kill(thread, SIGTERM);
+#endif
+		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
-		close(receiverParms->bundleSocket);
 	}
 
 	lyst_destroy(threads);
@@ -684,9 +669,9 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	unsigned int		hostNbr;
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
-	pthread_t		accessThread;
 	SenderThreadParms	senderParms;
 	pthread_t		senderThread;
+	pthread_t		accessThread;
 	int			fd;
 
 	findInduct("brss", ductName, &vinduct, &vductElt);
@@ -731,7 +716,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	parseSocketSpec(ductName, &portNbr, &hostNbr);
 	if (portNbr == 0)
 	{
-		portNbr = 80;
+		portNbr = 80;	/*	Default to HTTP's port number.	*/
 	}
 
 	portNbr = htons(portNbr);
@@ -741,8 +726,8 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 		return 1;
 	}
 
-	atp.vduct = vinduct;
 	hostNbr = htonl(hostNbr);
+	atp.vduct = vinduct;
 	memset((char *) &(atp.socketName), 0, sizeof(struct sockaddr));
 	atp.inetName = (struct sockaddr_in *) &(atp.socketName);
 	atp.inetName->sin_family = AF_INET;
@@ -761,7 +746,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	|| listen(atp.ductSocket, 5) < 0
 	|| getsockname(atp.ductSocket, &(atp.socketName), &nameLength) < 0)
 	{
-		close(atp.ductSocket);
+		closesocket(atp.ductSocket);
 		putSysErrmsg("Can't initialize socket (note: must be root for \
 port 80)", NULL);
 		return 1;
@@ -774,9 +759,11 @@ port 80)", NULL);
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
-	oK(brssclaMainThread(pthread_self()));
+	ionNoteMainThread("brsscla");
+#ifndef mingw
+	isignal(SIGPIPE, handleConnectionLoss);	/*	For sender.	*/
+#endif
 	isignal(SIGTERM, interruptThread);
-	isignal(SIGPIPE, handleConnectionLoss);
 
 	/*	Start the sender thread; a single sender for all
 	 *	connections.						*/
@@ -787,7 +774,7 @@ port 80)", NULL);
 	senderParms.brsSockets = brsSockets;
 	if (pthread_create(&senderThread, NULL, sendBundles, &senderParms))
 	{
-		close(atp.ductSocket);
+		closesocket(atp.ductSocket);
 		putSysErrmsg("brsscla can't create sender thread", NULL);
 		return 1;
 	}
@@ -802,23 +789,24 @@ port 80)", NULL);
 	{
 		sm_SemEnd(voutduct->semaphore);
 		pthread_join(senderThread, NULL);
-		close(atp.ductSocket);
+		closesocket(atp.ductSocket);
 		putSysErrmsg("brsscla can't create access thread", NULL);
 		return 1;
 	}
 
 	/*	Now sleep until interrupted by SIGTERM, at which point
-	 *	it's time to stop the induct.				*/
+	 *	it's time to stop the server.				*/
 
 	{
-		char txt[500];
+		char	txt[500];
 
-		isprintf(txt, sizeof(txt), "[i] brsscla is running, spec=[%s:%d].", 
-			inet_ntoa(atp.inetName->sin_addr), ntohs(atp.inetName->sin_port) );
-
-		writeMemo(txt );
+		isprintf(txt, sizeof(txt),
+			"[i] brsscla is running, spec=[%s:%d].", 
+			inet_ntoa(atp.inetName->sin_addr), ntohs(portNbr));
+		writeMemo(txt);
 	}
-	snooze(2000000000);
+
+	ionPauseMainThread(-1);
 
 	/*	Time to shut down.					*/
 
@@ -842,7 +830,7 @@ port 80)", NULL);
 
 		/*	Immediately discard the connected socket.	*/
 
-		close(fd);
+		closesocket(fd);
 	}
 
 	pthread_join(accessThread, NULL);
@@ -867,16 +855,13 @@ int	brsscla(int a1, int a2, int a3, int a4, int a5,
 	char	*ductName = (char *) a1;
 	int	baseDuctNbr = a2 ? atoi((char *) a2) : 1;
 	int	lastDuctNbr = a3 ? atoi((char *) a3) : baseDuctNbr + 255;
-	int	scope;
-	int	i;
-	int	result;
-	int	*brsSockets;
 #else
 int	main(int argc, char *argv[])
 {
 	char	*ductName = argc > 1 ? argv[1] : NULL;
 	int	baseDuctNbr = argc > 2 ? atoi(argv[2]) : 1;
 	int	lastDuctNbr = argc > 3 ? atoi(argv[3]) : baseDuctNbr + 255;
+#endif
 	int	scope;
 	int	i;
 	int	result;
@@ -888,9 +873,10 @@ int	main(int argc, char *argv[])
 [<first duct nbr in scope>[ <last duct nbr in scope>]]");
 		return 0;
 	}
-#endif
+
 	if (bpAttach() < 0)
 	{
+		putErrmsg("brsscla can't attach to BP.", NULL);
 		return 1;
 	}
 

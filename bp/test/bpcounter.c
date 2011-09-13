@@ -55,12 +55,11 @@ static int	_bundleCount(int increment)
 	return count;
 }
 
-static void	printCount()
+static int	printCount(void *userData)
 {
-	signal(SIGALRM, printCount);
 	PUTMEMO("Bundles received", itoa(_bundleCount(0)));
 	fflush(stdout);
-	alarm(5);
+	return 0;
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -82,6 +81,8 @@ int	main(int argc, char **argv)
 	time_t		startTime = 0;
 	int		bytesReceived;
 	int		bundlesReceived = 0;
+	IonAlarm	alarm = { 5, 0, printCount, NULL };
+	pthread_t	alarmThread;
 	time_t		endTime;
 	long		interval;
 
@@ -112,8 +113,7 @@ int	main(int argc, char **argv)
 	sdr = bp_get_sdr();
 	bundlesReceived = 0;
 	bytesReceived = 0;
-	isignal(SIGALRM, printCount);
-	alarm(5);
+	ionSetAlarm(&alarm, &alarmThread);
 	isignal(SIGINT, handleQuit);
 	while (_running(NULL))
 	{
@@ -153,6 +153,7 @@ int	main(int argc, char **argv)
 		}
 	}
 
+	ionCancelAlarm(alarmThread);
 	if (bundlesReceived > 0)
 	{
 		endTime = time(NULL);

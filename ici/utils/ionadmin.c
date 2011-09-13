@@ -967,16 +967,8 @@ no time.");
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
-int	ionadmin(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+static int	runIonadmin(char *cmdFileName)
 {
-	char	*cmdFileName = (char *) a1;
-#else
-int	main(int argc, char **argv)
-{
-	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
-#endif
 	time_t	currentTime;
 	int	cmdFile;
 	char	line[256];
@@ -1027,7 +1019,7 @@ int	main(int argc, char **argv)
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
 			PERROR("Can't open command file");
@@ -1076,6 +1068,27 @@ int	main(int argc, char **argv)
 
 	printText("Stopping ionadmin.");
 	ionDetach();
+	return 0;
+}
+
+#if defined (VXWORKS) || defined (RTEMS)
+int	ionadmin(int a1, int a2, int a3, int a4, int a5,
+		int a6, int a7, int a8, int a9, int a10)
+{
+	char	*cmdFileName = (char *) a1;
+#else
+int	main(int argc, char **argv)
+{
+	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
+#endif
+	int	result;
+
+	result = runIonadmin(cmdFileName);
+	if (result < 0)
+	{
+		puts("ionadmin failed.");
+		return 1;
+	}
 
 	return 0;
 }

@@ -1081,8 +1081,6 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	}
 
 	memset((char *) &fdu, 0, sizeof(OutFdu));
-	memcpy((char *) &fdu.transactionId.sourceEntityNbr,
-			(char *) &db.ownEntityNbr, sizeof(CfdpNumber));
 	if (utParms)
 	{
 		fdu.utParmsLength = utParmsLength;
@@ -1127,7 +1125,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			readerFn = defaultReader;
 		}
 
-		sourceFile = open(sourceFileName, O_RDONLY, 0);
+		sourceFile = iopen(sourceFileName, O_RDONLY, 0);
 		if (sourceFile < 0)
 		{
 			sdr_exit_xn(sdr);
@@ -1281,6 +1279,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	}
 
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(CfdpDB));
+	memcpy((char *) &fdu.transactionId.sourceEntityNbr,
+			(char *) &db.ownEntityNbr, sizeof(CfdpNumber));
 	db.transactionCounter++;
 	if (db.transactionCounter > db.maxTransactionNbr)
 	{
@@ -1931,7 +1931,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset,
 
 	sdr_string_read(sdr, fileName, fduBuf.workingFileName);
 	sdr_exit_xn(sdr);
-	fd = open(fileName, O_RDONLY, 0);
+	fd = iopen(fileName, O_RDONLY, 0);
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't open working file", fileName);

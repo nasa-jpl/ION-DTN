@@ -288,6 +288,18 @@ libudpcla.so:	libudpcla.o
 #%.o:		$(API)/ext/phn/%.c
 #		$(CC) -c $<
 
+%.o:		$(API)/crypto/NULL_SUITES/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/ecos/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/bsp/%.c
+		$(CC) -c $<
+
+#%.o:		$(API)/ext/phn/%.c
+#		$(CC) -c $<
+
 %.o:		$(TEST)/%.c
 		$(CC) -c $<
 

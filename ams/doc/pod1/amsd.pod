@@ -4,7 +4,7 @@ amsd - AMS configuration server and/or registrar daemon
 
 =head1 SYNOPSIS
 
-B<amsd> { @ | I<MIB_source_name> } { . | @ | I<config_server_endpoint_spec> } [I<registrar_application_name> I<registrar_authority_name> I<registrar_unit_name>]
+B<amsd> { @ | I<MIB_source_name> } { . | @ | I<config_server_endpoint_spec> } [I<application_name> I<authority_name> I<registrar_unit_name>]
 
 =head1 DESCRIPTION
 
@@ -21,11 +21,18 @@ If this B<amsd> task is B<NOT> to run as a configuration server then the
 second command-line argument must be a '.' character.  Otherwise the second
 command-line argument must be either '@' or I<config_server_endpoint_spec>.
 If '@' then the endpoint specification for this configuration server is
-automatically computed as the defaut endpoint specification for the primary
+automatically computed as the default endpoint specification for the primary
 transport service as noted in the MIB: "I<hostname>:2357".
 
-If this B<amsd> task is B<NOT> to run as a registrar then the last three
-command-line arguments must be omitted.  Otherwise the last three command-line
+If an AMS module is B<NOT> to be run in a background thread for this daemon
+(enabling shutdown by amsstop(1) and/or runtime MIB update by amsmib(1)), 
+then either the last three command-line arguments must be omitted or else the
+"amsd" role must not be defined in the MIB loaded for this daemon.  Otherwise
+the I<application_name> and I<authority_name> arguments are required and
+the "amsd" role must be defined in the MIB.
+
+If this B<amsd> task is B<NOT> to run as a registrar then the last
+command-line argument must be omitted.  Otherwise the last three command-line
 arguments are required and they must identify a unit in an AMS venture for
 the indicated application and authority that is known to operate in the local
 continuum, as noted in the MIB.  Note that the unit name for the "root unit"
@@ -83,4 +90,4 @@ Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
 
 =head1 SEE ALSO
 
-amsrc(5), amsxml(5)
+amsmib(1), amsstop(1), amsrc(5), amsxml(5)

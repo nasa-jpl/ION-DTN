@@ -193,8 +193,8 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 	unsigned int myFlowLabel;
 
 	count = sscanf(token, "%11u.%11u.%11u.%11u.%11u.%11u",
-			&myCustodyRequested, &myPriority, &myOrdinal, &myUnreliable,
-			&myCritical, &myFlowLabel);
+			&myCustodyRequested, &myPriority, &myOrdinal,
+			&myUnreliable, &myCritical, &myFlowLabel);
 	switch (count)
 	{
 	case 6:
@@ -245,9 +245,11 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 
 	if (count >= 5)
 	{
-		extendedCOS->flags |=	(myUnreliable ? BP_BEST_EFFORT : 0)
-					| (myCritical ? BP_MINIMUM_LATENCY : 0);
-	} else {
+		extendedCOS->flags |= ((myUnreliable ? BP_BEST_EFFORT : 0)
+				| (myCritical ? BP_MINIMUM_LATENCY : 0));
+	}
+	else
+	{
 		extendedCOS->flags = 0;
 	}
 
@@ -258,12 +260,9 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
  
 	*priority = myPriority;
 	*custodySwitch = (myCustodyRequested ? 
-				SourceCustodyRequired : NoCustodyRequested);
-	
+			SourceCustodyRequired : NoCustodyRequested);
 	return 1;
 }
-
-
 
 int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 		int lifespan, int classOfService, BpCustodySwitch custodySwitch,

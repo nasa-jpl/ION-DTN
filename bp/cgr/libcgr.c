@@ -7,7 +7,7 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 									*/
-#include "ipnfw.h"
+#include "cgr.h"
 
 #ifndef CGRDEBUG
 #define CGRDEBUG	0
@@ -62,40 +62,15 @@ static int	_visitorCount(int increment)
 	return count;
 }
 
-static int	getPlan(Sdr sdr, int nodeNbr, Object plans, IpnPlan *plan)
-{
-	Object	elt;
-	Object	planAddr;
-
-	for (elt = sdr_list_first(sdr, plans); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		planAddr = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) plan, planAddr, sizeof(IpnPlan));
-		if (plan->nodeNbr < nodeNbr)
-		{
-			continue;
-		}
-		
-		if (plan->nodeNbr > nodeNbr)
-		{
-			return 0;	/*	Same as end of list.	*/
-		}
-
-		return 1;
-	}
-
-	return 0;
-}
-
 static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 			Object plans, Lyst proximateNodes, time_t forfeitTime,
-			time_t deliveryTime, int distance)
+			time_t deliveryTime, int distance,
+			CgrLookupFn getDirective)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	snubElt;
 	IonSnub		*snub;
-	IpnPlan		plan;
+	FwdDirective	directive;
 	Sdr		sdr;
 	Scalar		capacity;
 	Outduct		outduct;
@@ -139,31 +114,21 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 		}
 	}
 
-	/*	ION currently supports only a single contact plan: all
-	 *	contacts are assumed to be implemented per the default
-	 *	directive in the IpnPlan defined for each neighboring
-	 *	node.  Overriding plan rules whose directives would
-	 *	implement supplementary contact plans are not supported.
-	 *	That support would require a means of characterizing a
-	 *	Contact by the specific directive that would implement
-	 *	it.  This level of complexity is not required by any
-	 *	currently anticipated application of ION.		*/
-
 	sdr = getIonsdr();
-	if (getPlan(sdr, neighbor->nodeNbr, plans, &plan) == 0)
+	if (getDirective(neighbor->nodeNbr, plans, bundle, &directive) == 0)
 	{
-		return 0;		/*	No plan on file.	*/
+		return 0;		/*	No applicable directive.*/
 	}
 
-	/*	Now determine whether or not the bundle could be
-	 *	sent to this neighbor via the outduct for this plan's
-	 *	default directive during the contact that is being
-	 *	considered.  There are two criteria.  First, is the
-	 *	duct blocked (e.g., no TCP connection)?			*/
+	/*	Now determine whether or not the bundle could be sent
+	 *	to this neighbor via the outduct for this directive
+	 *	during the contact that is being considered.  There
+	 *	are two criteria.  First, is the duct blocked (e.g.,
+	 *	no TCP connection)?					*/
 
 	copyScalar(&capacity, &(xmit->aggrCapacity));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
-			plan.defaultDirective.outductElt), sizeof(Outduct));
+			directive.outductElt), sizeof(Outduct));
 	if (outduct.blocked)
 	{
 		return 0;		/*	Outduct is unusable.	*/
@@ -256,7 +221,7 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 	}
 
 	proxNode->neighborNodeNbr = neighbor->nodeNbr;
-	memcpy((char *) &(proxNode->directive), (char *) &plan.defaultDirective,
+	memcpy((char *) &(proxNode->directive), (char *) &directive,
 			sizeof(FwdDirective));
 	proxNode->deliveryTime = deliveryTime;
 	proxNode->distance = distance;
@@ -284,7 +249,7 @@ static int	identifyProximateNodes(IonNode *node, Object plans,
 			Bundle *bundle, Object bundleObj, Lyst excludedNodes,
 			Lyst proximateNodes, time_t forfeitTime,
 			time_t deliveryTime, int distance,
-			unsigned int visitorNbr)
+			unsigned int visitorNbr, CgrLookupFn getDirective)
 {
 	PsmPartition	ionwm = getIonwm();
 	LystElt		exclusion;
@@ -404,7 +369,8 @@ node->nodeNbr, deadline);
 
 			if (tryContact(node, xmit, bundle, plans, 
 					proximateNodes, closingTime,
-					deliveryTime, distance))
+					deliveryTime, distance,
+					getDirective))
 			{
 				putErrmsg("Can't check contact.", NULL);
 				return -1;
@@ -479,7 +445,8 @@ printf("Queueing directly from local node to node %lu.\n", node->nodeNbr);
 
 			if (tryContact(node, xmit, bundle, plans, 
 					proximateNodes, closingTime,
-					deliveryTime, distance))
+					deliveryTime, distance,
+					getDirective))
 			{
 				putErrmsg("Can't check contact.", NULL);
 				return -1;
@@ -536,7 +503,8 @@ printf("New deadline changed to %lu.\n", maxFromTime);
 			if (identifyProximateNodes(originNode, plans,
 				maxFromTime, stationNode, bundle, bundleObj,
 				excludedNodes, proximateNodes, closingTime,
-				deliveryTime, distance + 1, visitorNbr) < 0)
+				deliveryTime, distance + 1, visitorNbr,
+				getDirective) < 0)
 			{
 				putErrmsg("Can't identify origin prox. nodes.",
 						NULL);
@@ -558,7 +526,6 @@ origin->nodeNbr, node->nodeNbr);
 static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 			Object bundleObj, IonNode *stationNode)
 {
-	char		*decoration;
 	unsigned long	serviceNbr;
 	char		stationEid[64];
 	PsmPartition	ionwm;
@@ -566,11 +533,6 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	IonSnub		*snub;
 	BpEvent		event;
 
-#if BP_URI_RFC
-	decoration = "dtn::";
-#else
-	decoration = "";
-#endif
 	if (proxNode->neighborNodeNbr == bundle->destination.c.nodeNbr)
 	{
 		serviceNbr = bundle->destination.c.serviceNbr;
@@ -580,8 +542,8 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 		serviceNbr = 0;
 	}
 
-	isprintf(stationEid, sizeof stationEid, "%.5s%.8s:%lu.%lu", decoration,
-		CBHE_SCHEME_NAME, proxNode->neighborNodeNbr, serviceNbr);
+	isprintf(stationEid, sizeof stationEid, "ipn:%lu.%lu",
+			proxNode->neighborNodeNbr, serviceNbr);
 
 	/*	If this neighbor is a currently snubbing neighbor
 	 *	for this final destination (i.e., one that has been
@@ -655,8 +617,8 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	return 0;
 }
 
-int	cgr_forward(Bundle *bundle, Object bundleObj,
-		unsigned long stationNodeNbr, Object plans)
+int	cgr_forward(Bundle *bundle, Object bundleObj, unsigned long
+		stationNodeNbr, Object plans, CgrLookupFn getDirective)
 {
 	int		ionMemIdx;
 	Lyst		proximateNodes;
@@ -689,7 +651,7 @@ int	cgr_forward(Bundle *bundle, Object bundleObj,
 	 *	the simplest case, the bundle's destination is the
 	 *	only "station" selected for the bundle.			*/
 
-	CHKERR(bundle && bundleObj && stationNodeNbr && plans);
+	CHKERR(bundle && bundleObj && stationNodeNbr && plans && getDirective);
 	stationNode = findNode(ionvdb, stationNodeNbr, &nextNode);
 	if (stationNode == NULL)
 	{
@@ -760,7 +722,7 @@ printf("--------------- Start of contact graph traversal -------------\n");
 	if (identifyProximateNodes(stationNode, plans,
 			bundle->expirationTime + EPOCH_2000_SEC,
 			stationNode, bundle, bundleObj, excludedNodes,
-			proximateNodes, 0, 0, 0, visitorNbr) < 0)
+			proximateNodes, 0, 0, 0, visitorNbr, getDirective) < 0)
 	{
 		putErrmsg("Can't identify proximate nodes for bundle.", NULL);
 		return -1;

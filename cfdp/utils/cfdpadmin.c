@@ -69,7 +69,8 @@ static void	printUsage()
 	PUTS("\t   m ckperiod <check cycle period, in seconds>");
 	PUTS("\t   m maxtimeouts <max number of check cycle timeouts>");
 	PUTS("\t   m maxtrnbr <max transaction number>");
-	PUTS("\t   m segsize <max bytes per reliable file data segment>");
+	PUTS("\t   m segsize <max bytes per file data segment>");
+	PUTS("\t   m inactivity <inactivity limit, in seconds>");
 	PUTS("\ti\tInfo");
 	PUTS("\t   i");
 	PUTS("\ts\tStart");
@@ -121,6 +122,7 @@ static void	manageDiscard(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newDiscard = atoi(tokens[2]);
@@ -150,6 +152,7 @@ static void	manageRequirecrc(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newRequirecrc = atoi(tokens[2]);
@@ -180,6 +183,7 @@ static void	manageFillchar(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newFillchar = strtol(tokens[2], &trailing, 16);
@@ -209,6 +213,7 @@ static void	manageCkperiod(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newCkperiod = atoi(tokens[2]);
@@ -238,6 +243,7 @@ static void	manageMaxtimeouts(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newMaxtimeouts = atoi(tokens[2]);
@@ -267,6 +273,7 @@ static void	manageMaxtrnbr(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newMaxtrnbr = atoi(tokens[2]);
@@ -296,6 +303,7 @@ static void	manageSegsize(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newSegsize = atoi(tokens[2]);
@@ -312,6 +320,35 @@ static void	manageSegsize(int tokenCount, char **tokens)
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change maxFileDataLength.", NULL);
+	}
+}
+
+static void	manageInactivity(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	Object	cfdpdbObj = getCfdpDbObject();
+	CfdpDB	cfdpdb;
+	int	newLimit;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+	}
+
+	newLimit = atoi(tokens[2]);
+	if (newLimit < 0)
+	{
+		putErrmsg("transactionInactivityLimit invalid.", tokens[2]);
+		return;
+	}
+
+	sdr_begin_xn(sdr);
+	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
+	cfdpdb.transactionInactivityLimit = newLimit;
+	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change transactionInactivityLimit.", NULL);
 	}
 }
 
@@ -362,6 +399,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "segsize") == 0)
 	{
 		manageSegsize(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "inactivity") == 0)
+	{
+		manageInactivity(tokenCount, tokens);
 		return;
 	}
 
@@ -662,7 +705,7 @@ int	main(int argc, char **argv)
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
 			PERROR("Can't open command file");

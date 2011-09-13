@@ -74,7 +74,7 @@ static int	run_file2sm(char *fileName)
 
 	/*	Establish position at first record of file.		*/
 
-	inputFile = open(fileName, O_RDONLY, 0777);
+	inputFile = iopen(fileName, O_RDONLY, 0777);
 	if (inputFile < 0)
 	{
 		PERROR("Can't open input file");
@@ -122,7 +122,7 @@ static int	run_file2sm(char *fileName)
 				}
 
 				sm_SemGive(semaphore);
-				inputFile = open(fileName, O_RDONLY, 0777);
+				inputFile = iopen(fileName, O_RDONLY, 0777);
 				if (inputFile < 0)
 				{
 					PERROR("Can't reopen input file");

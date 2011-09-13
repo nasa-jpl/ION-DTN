@@ -211,7 +211,9 @@ int	main(int argc, char *argv[])
 
 	oK(stcpcloSemaphore(&(vduct->semaphore)));
 	isignal(SIGTERM, shutDownClo);
+#ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
+#endif
 
 	/*	Start the keepalive thread to manage the connection.	*/
 
@@ -231,12 +233,13 @@ int	main(int argc, char *argv[])
 	/*	Can now begin transmitting to remote duct.		*/
 
 	{
-		char txt[500];
+		char	txt[500];
 
-		isprintf(txt, sizeof(txt), "[i] stcpclo is running, spec=[%s:%d].", 
-			inet_ntoa(inetName->sin_addr), ntohs(inetName->sin_port) );
-
-		writeMemo(txt );
+		isprintf(txt, sizeof(txt),
+			"[i] stcpclo is running, spec=[%s:%d].", 
+			inet_ntoa(inetName->sin_addr),
+			ntohs(inetName->sin_port));
+		writeMemo(txt);
 	}
 
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
@@ -273,7 +276,7 @@ int	main(int argc, char *argv[])
 	pthread_join(keepaliveThread, NULL);
 	if (ductSocket != -1)
 	{
-		close(ductSocket);
+		closesocket(ductSocket);
 	}
 
 	pthread_mutex_destroy(&mutex);

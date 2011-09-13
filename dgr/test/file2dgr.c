@@ -192,7 +192,7 @@ psm_start_trace(dgrwm, 10000000, NULL);
 
 	report(&startTime, bytesSent);
 	writeMemo("[i] file2dgr waiting 10 sec for retransmission to stop.");
-	sleep(10);
+	snooze(10);
 	dgr_close(dgr);
 #if 0
 psm_print_trace(dgrwm, 0);
