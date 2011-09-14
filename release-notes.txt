@@ -112,7 +112,9 @@ Features included:
 
 - Fixed memory leaks in AMS shutdown.
 
-- Added ability to update AMS modules’ management information bases while the modules are running, by using the new amsmib utility.  Modified amsstop to use a similar mechanism.
+- Added ability to update AMS modules’ management information bases while the
+  modules are running, by using the new amsmib utility.  Modified amsstop to
+  use a similar mechanism.
 
 - Added AMS Programmer’s Guide to distribution.
 
@@ -450,6 +452,7 @@ Features included:
   rewritten.
 
 - Various bug fixes.
+
 
 - 2008-11-11 Added the ION Design and Operation manual v1.6.
 
