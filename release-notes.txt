@@ -58,8 +58,14 @@ Features included:
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+- Issue #264: Removed checks for maximum block size in LTP, simplifying LTP
+  configuration and fixing a bug.
+  Related to the fix for issue #293, upgrading the LTP configuration worksheet.
 
-- ION now has rudimentary Windows support via MingW.
+- Issue #269: Clean up platform (portability) files, making it easier to add
+  new ports.
+  Removed support for some obsolete platforms (e.g., HP-UX).
 
 - Issue #270: Fixed issue in cfdptest that prevented the "Custody Requested"
   switch from being set.
@@ -97,7 +103,20 @@ Features included:
   parameterized to enable better support for deployment-specific variations
   of the algorithm.
 
-- Various other fixes.
+- ION now has native Windows support via MingW.  
+  Support for Cygwin and Interix has been removed.
+
+- Added support for inactivity timer in CFDP.
+
+- Fixed race conditions in support for multithreaded AMS.
+
+- Fixed memory leaks in AMS shutdown.
+
+- Added ability to update AMS modules’ management information bases while the modules are running, by using the new amsmib utility.  Modified amsstop to use a similar mechanism.
+
+- Added AMS Programmer’s Guide to distribution.
+
+- Various minor bug fixes.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.1 =
