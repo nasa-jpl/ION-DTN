@@ -1027,6 +1027,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	heapmax = strtol(tokens[2], NULL, 0);
