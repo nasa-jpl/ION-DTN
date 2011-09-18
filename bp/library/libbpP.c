@@ -9546,11 +9546,18 @@ int	bpMemo(Object bundleObj, int interval)
 
 	CHKERR(bundleObj);
 	CHKERR(interval > 0);
-	sdr_begin_xn(bpSdr);
-	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	event.type = ctDue;
 	event.time = getUTCTime() + interval;
 	event.ref = bundleObj;
+	sdr_begin_xn(bpSdr);
+	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+	if (bundle.ctDueElt)
+	{
+		writeMemo("Revising a custody acceptance due timer.");
+		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
+		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+	}
+
 	bundle.ctDueElt = insertBpTimelineEvent(&event);
 	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 	if (sdr_end_xn(bpSdr) < 0)
