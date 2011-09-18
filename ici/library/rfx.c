@@ -1448,12 +1448,12 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 			obj = sdr_list_data(sdr, elt);
 			sdr_read(sdr, (char *) &contact, obj,
 					sizeof(IonContact));
-			if (contact.fromTime < fromTime && fromTime != 0 )
+			if (contact.fromTime < fromTime && fromTime != 0)
 			{
 				continue;
 			}
 
-			if (contact.fromTime > fromTime  && fromTime != 0 )
+			if (contact.fromTime > fromTime && fromTime != 0)
 			{
 				break;
 			}
@@ -1541,11 +1541,6 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 	IonRange	range;
 	char		rangeIdString[128];
 	Object		newElt = 0;
-
-	if (fromNode == toNode)
-	{
-		return 0;	/*	Loopback OWLT is always zero.	*/
-	}
 
 	CHKZERO(toTime > fromTime);
 
@@ -1706,12 +1701,12 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 		{
 			obj = sdr_list_data(sdr, elt);
 			sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
-			if (range.fromTime < fromTime && fromTime != 0 )
+			if (range.fromTime < fromTime && fromTime != 0)
 			{
 				continue;
 			}
 
-			if (range.fromTime > fromTime  && fromTime != 0 )
+			if (range.fromTime > fromTime && fromTime != 0)
 			{
 				break;
 			}
