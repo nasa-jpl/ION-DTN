@@ -128,7 +128,7 @@ static void	resetEndpoint(VEndpoint *vpoint)
 	}
 
 	sm_SemTake(vpoint->semaphore);			/*	Lock.	*/
-	vpoint->appPid = -1;
+	vpoint->appPid = ERROR;				/*	None.	*/
 }
 
 static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)
@@ -214,8 +214,8 @@ static void	resetScheme(VScheme *vscheme)
 		resetEndpoint(vpoint);
 	}
 
-	vscheme->fwdPid = -1;
-	vscheme->admAppPid = -1;
+	vscheme->fwdPid = ERROR;
+	vscheme->admAppPid = ERROR;
 }
 
 static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
@@ -418,7 +418,7 @@ static void	stopScheme(VScheme *vscheme)
 		sm_SemEnd(vscheme->semaphore);	/*	Stop fwd.	*/
 	}
 
-	if ( VALIDPID(vscheme->admAppPid ) )
+	if (vscheme->admAppPid != ERROR)
 	{
 		sm_TaskKill(vscheme->admAppPid, SIGTERM);
 	}
@@ -437,7 +437,7 @@ static void	stopScheme(VScheme *vscheme)
 
 static void	waitForScheme(VScheme *vscheme)
 {
-   if ( VALIDPID(vscheme->fwdPid ) )
+	if (vscheme->fwdPid != ERROR)
 	{
 		while (sm_TaskExists(vscheme->fwdPid))
 		{
@@ -445,7 +445,7 @@ static void	waitForScheme(VScheme *vscheme)
 		}
 	}
 
-   if ( VALIDPID( vscheme->admAppPid ) )
+	if (vscheme->admAppPid != ERROR)
 	{
 		while (sm_TaskExists(vscheme->admAppPid))
 		{
@@ -467,7 +467,7 @@ static void	resetInduct(VInduct *vduct)
 	}
 
 	sm_SemTake(vduct->acqThrottle.semaphore);	/*	Lock.	*/
-	vduct->cliPid = -1;
+	vduct->cliPid = ERROR;
 }
 
 static int	raiseInduct(Object inductElt, BpVdb *bpvdb)
@@ -548,7 +548,7 @@ static void	startInduct(VInduct *vduct)
 
 static void	stopInduct(VInduct *vduct)
 {
-   if (VALIDPID( vduct->cliPid ) )
+	if (vduct->cliPid != ERROR)
 	{
 		sm_TaskKill(vduct->cliPid, SIGTERM);
 	}
@@ -561,7 +561,7 @@ static void	stopInduct(VInduct *vduct)
 
 static void	waitForInduct(VInduct *vduct)
 {
-   if ( VALIDPID( vduct->cliPid ))
+	if (vduct->cliPid != ERROR)
 	{
 		while (sm_TaskExists(vduct->cliPid))
 		{
@@ -593,7 +593,7 @@ static void	resetOutduct(VOutduct *vduct)
 	}
 
 	sm_SemTake(vduct->xmitThrottle.semaphore);	/*	Lock.	*/
-	vduct->cloPid = -1;
+	vduct->cloPid = ERROR;
 }
 
 static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
@@ -693,7 +693,7 @@ static void	stopOutduct(VOutduct *vduct)
 
 static void	waitForOutduct(VOutduct *vduct)
 {
-   if ( VALIDPID( vduct->cloPid ))
+	if (vduct->cloPid != ERROR)
 	{
 		while (sm_TaskExists(vduct->cloPid))
 		{
@@ -786,7 +786,7 @@ static BpVdb	*_bpvdb(char **name)
 		memset((char *) vdb, 0, sizeof(BpVdb));
 		vdb->creationTimeSec = 0;
 		vdb->bundleCounter = 0;
-		vdb->clockPid = -1;
+		vdb->clockPid = ERROR;
 		vdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
 				SM_SEM_FIFO);
 		sm_SemTake(vdb->productionThrottle.semaphore);
@@ -951,7 +951,7 @@ int	bpStart()
 
 	/*	Start the bundle expiration clock if necessary.		*/
 
-	if ( INVALIDPID(bpvdb->clockPid) || sm_TaskExists(bpvdb->clockPid) == 0)
+	if (bpvdb->clockPid == ERROR || sm_TaskExists(bpvdb->clockPid) == 0)
 	{
 		sdr_string_read(bpSdr, cmdString, (_bpConstants())->clockCmd);
 		bpvdb->clockPid = pseudoshell(cmdString);
@@ -1025,7 +1025,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		stopOutduct(voutduct);
 	}
 
-	if ( VALIDPID( bpvdb->clockPid ))
+	if (bpvdb->clockPid != ERROR)
 	{
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
 	}
@@ -1055,7 +1055,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		waitForOutduct(voutduct);
 	}
 
-	if ( VALIDPID( bpvdb->clockPid ))
+	if (bpvdb->clockPid != ERROR)
 	{
 		while (sm_TaskExists(bpvdb->clockPid))
 		{
@@ -1066,7 +1066,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	sdr_begin_xn(bpSdr);
-	bpvdb->clockPid = -1;
+	bpvdb->clockPid = ERROR;
 	if (bpvdb->productionThrottle.semaphore == SM_SEM_NONE)
 	{
 		bpvdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
@@ -1716,7 +1716,7 @@ int	startBpTask(Object cmd, Object cmdParms, int *pid)
 	}
 
 	*pid = pseudoshell(buffer);
-	if ( INVALIDPID( *pid ))
+	if (*pid == ERROR)
 	{
 		putErrmsg("Can't start task.", buffer);
 		return -1;
@@ -2929,7 +2929,7 @@ int	removeEndpoint(char *eid)
 		return 0;
 	}
 
-	if ( VALIDPID( vpoint->appPid ) && sm_TaskExists(vpoint->appPid))
+	if (vpoint->appPid != ERROR && sm_TaskExists(vpoint->appPid))
 	{
 		sdr_exit_xn(bpSdr);
 		writeMemoNote("[?] Endpoint can't be removed while open", eid);
@@ -4890,7 +4890,7 @@ static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
 
 	GET_OBJ_POINTER(bpSdr, Endpoint, endpoint, sdr_list_data(bpSdr,
 				vpoint->endpointElt));
-	if ( INVALIDPID( vpoint->appPid ))		/*	Not open by any app.	*/
+	if (vpoint->appPid == ERROR)	/*	Not open by any app.	*/
 	{
 		/*	Execute reanimation script, if any.		*/
 

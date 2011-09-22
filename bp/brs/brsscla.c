@@ -696,7 +696,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 		return 1;
 	}
 
-	if ( VALIDPID( vinduct->cliPid ) && vinduct->cliPid != sm_TaskIdSelf())
+	if (vinduct->cliPid != ERROR && vinduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
 				itoa(vinduct->cliPid));

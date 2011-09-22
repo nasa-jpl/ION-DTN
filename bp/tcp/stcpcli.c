@@ -325,7 +325,7 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	if ( VALIDPID(vduct->cliPid ) && vduct->cliPid != sm_TaskIdSelf())
+	if (vduct->cliPid != ERROR && vduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
 				itoa(vduct->cliPid));

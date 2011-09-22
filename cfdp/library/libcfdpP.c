@@ -319,6 +319,8 @@ static CfdpVdb	*_cfdpvdb(char **name)
 
 		vdb = (CfdpVdb *) psp(wm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(CfdpVdb));
+		vdb->utaPid = ERROR;		/*	None yet.	*/
+		vdb->clockPid = ERROR;		/*	None yet.	*/
 		vdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		vdb->fduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		if (vdb->eventSemaphore == SM_SEM_NONE
@@ -484,14 +486,14 @@ int	_cfdpStart(char *utaCmd)
 
 	/*	Start the CFDP events clock if necessary.		*/
 
-	if ( INVALIDPID( cfdpvdb->clockPid ) || sm_TaskExists(cfdpvdb->clockPid) == 0)
+	if (cfdpvdb->clockPid == ERROR || sm_TaskExists(cfdpvdb->clockPid) == 0)
 	{
 		cfdpvdb->clockPid = pseudoshell("cfdpclock");
 	}
 
 	/*	Start UT adapter service if necessary.			*/
 
-	if ( INVALIDPID( cfdpvdb->utaPid ) || sm_TaskExists(cfdpvdb->utaPid) == 0)
+	if (cfdpvdb->utaPid == ERROR || sm_TaskExists(cfdpvdb->utaPid) == 0)
 	{
 		cfdpvdb->utaPid = pseudoshell(utaCmd);
 	}
@@ -525,7 +527,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Stop clock task.					*/
 
-	if ( VALIDPID( cfdpvdb->clockPid ))
+	if (cfdpvdb->clockPid != ERROR)
 	{
 		sm_TaskKill(cfdpvdb->clockPid, SIGTERM);
 	}
@@ -534,7 +536,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Wait until all CFDP processes have stopped.		*/
 
-	if ( VALIDPID( cfdpvdb->utaPid ))
+	if (cfdpvdb->utaPid != ERROR)
 	{
 		while (sm_TaskExists(cfdpvdb->utaPid))
 		{
@@ -542,7 +544,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 		}
 	}
 
-	if ( VALIDPID( cfdpvdb->clockPid ))
+	if (cfdpvdb->clockPid != ERROR)
 	{
 		while (sm_TaskExists(cfdpvdb->clockPid))
 		{
@@ -553,8 +555,8 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
-	cfdpvdb->utaPid = -1;
-	cfdpvdb->clockPid = -1;
+	cfdpvdb->utaPid = ERROR;
+	cfdpvdb->clockPid = ERROR;
 	if (cfdpvdb->eventSemaphore == SM_SEM_NONE)
 	{
 		cfdpvdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);

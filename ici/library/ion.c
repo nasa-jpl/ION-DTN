@@ -254,6 +254,7 @@ static IonVdb	*_ionvdb(char **name)
 			return NULL;
 		}
 
+		vdb->clockPid = ERROR;	/*	None yet.		*/
 		vdb->deltaFromUTC = (_ionConstants())->deltaFromUTC;
 		sdr_exit_xn(sdr);	/*	Unlock memory.		*/
 	}

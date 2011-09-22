@@ -79,8 +79,8 @@ static void	resetClient(LtpVclient *client)
 		sm_SemUnend(client->semaphore);
 	}
 
-	sm_SemTake(client->semaphore);		/*	Lock.	*/
-	client->pid = -1;
+	sm_SemTake(client->semaphore);			/*	Lock.	*/
+	client->pid = ERROR;				/*	None.	*/
 }
 
 static void	raiseClient(LtpVclient *client)
@@ -111,7 +111,7 @@ static void	resetSpan(LtpVspan *vspan)
 		sm_SemUnend(vspan->bufFullSemaphore);
 	}
 
-	sm_SemTake(vspan->bufFullSemaphore);	/*	Lock.	*/
+	sm_SemTake(vspan->bufFullSemaphore);		/*	Lock.	*/
 	if (vspan->segSemaphore == SM_SEM_NONE)
 	{
 		vspan->segSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -122,8 +122,8 @@ static void	resetSpan(LtpVspan *vspan)
 	}
 
 	sm_SemTake(vspan->segSemaphore);		/*	Lock.	*/
-	vspan->meterPid = -1;
-	vspan->lsoPid = -1;
+	vspan->meterPid = ERROR;			/*	None.	*/
+	vspan->lsoPid = ERROR;				/*	None.	*/
 }
 
 static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
@@ -243,7 +243,7 @@ static void	stopSpan(LtpVspan *vspan)
 
 static void	waitForSpan(LtpVspan *vspan)
 {
-   if ( VALIDPID( vspan->lsoPid ))
+	if (vspan->lsoPid != ERROR)
 	{
 		while (sm_TaskExists(vspan->lsoPid))
 		{
@@ -251,7 +251,7 @@ static void	waitForSpan(LtpVspan *vspan)
 		}
 	}
 
-   if ( VALIDPID( vspan->meterPid ))
+	if (vspan->meterPid != ERROR)
 	{
 		while (sm_TaskExists(vspan->meterPid))
 		{
@@ -316,6 +316,8 @@ static LtpVdb		*_ltpvdb(char **name)
 
 		vdb = (LtpVdb *) psp(wm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(LtpVdb));
+		vdb->lsiPid = ERROR;		/*	None yet.	*/
+		vdb->clockPid = ERROR;		/*	None yet.	*/
 		vdb->sessionSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		sm_SemGive(vdb->sessionSemaphore);
 		if ((vdb->spans = sm_list_create(wm)) == 0
@@ -501,14 +503,14 @@ int	ltpStart(char *lsiCmd)
 
 	/*	Start the LTP events clock if necessary.		*/
 
-	if ( INVALIDPID( ltpvdb->clockPid ) || sm_TaskExists(ltpvdb->clockPid) == 0)
+	if (ltpvdb->clockPid == ERROR || sm_TaskExists(ltpvdb->clockPid) == 0)
 	{
 		ltpvdb->clockPid = pseudoshell("ltpclock");
 	}
 
 	/*	Start input link service if necessary.			*/
 
-	if ( INVALIDPID( ltpvdb->lsiPid ) || sm_TaskExists(ltpvdb->lsiPid) == 0)
+	if (ltpvdb->lsiPid == ERROR || sm_TaskExists(ltpvdb->lsiPid) == 0)
 	{
 		ltpvdb->lsiPid = pseudoshell(lsiCmd);
 	}
@@ -552,7 +554,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		}
 	}
 
-	if ( VALIDPID( ltpvdb->lsiPid ))
+	if (ltpvdb->lsiPid != ERROR)
 	{
 		sm_TaskKill(ltpvdb->lsiPid, SIGTERM);
 	}
@@ -564,7 +566,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		stopSpan(vspan);
 	}
 
-	if ( VALIDPID( ltpvdb->clockPid ))
+	if (ltpvdb->clockPid != ERROR)
 	{
 		sm_TaskKill(ltpvdb->clockPid, SIGTERM);
 	}
@@ -573,7 +575,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 
 	/*	Wait until all LTP processes have stopped.		*/
 
-	if ( VALIDPID( ltpvdb->lsiPid ))
+	if (ltpvdb->lsiPid != ERROR)
 	{
 		while (sm_TaskExists(ltpvdb->lsiPid))
 		{
@@ -588,7 +590,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		waitForSpan(vspan);
 	}
 
-	if ( VALIDPID( ltpvdb->clockPid ))
+	if (ltpvdb->clockPid != ERROR)
 	{
 		while (sm_TaskExists(ltpvdb->clockPid))
 		{
@@ -599,7 +601,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
-	ltpvdb->clockPid = -1;
+	ltpvdb->clockPid = ERROR;
 	if (ltpvdb->sessionSemaphore == SM_SEM_NONE)
 	{
 		ltpvdb->sessionSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -616,7 +618,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		resetClient(client);
 	}
 
-	ltpvdb->lsiPid = -1;
+	ltpvdb->lsiPid = ERROR;
 	for (elt = sm_list_first(ltpwm, ltpvdb->spans); elt;
 			elt = sm_list_next(ltpwm, elt))
 	{
@@ -629,10 +631,10 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 
 int	ltpAttach()
 {
-	Object		ltpdbObject = _ltpdbObject(NULL);
-	LtpVdb		*ltpvdb = _ltpvdb(NULL);
-	Sdr		ltpSdr;
-	char		*ltpvdbName = _ltpvdbName();
+	Object	ltpdbObject = _ltpdbObject(NULL);
+	LtpVdb	*ltpvdb = _ltpvdb(NULL);
+	Sdr	ltpSdr;
+	char	*ltpvdbName = _ltpvdbName();
 
 	if (ltpdbObject && ltpvdb)
 	{
@@ -1262,7 +1264,7 @@ int	ltpAttachClient(unsigned long clientSvcId)
 
 	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
 	client = (_ltpvdb(NULL))->clients + clientSvcId;
-	if ( VALIDPID( client->pid ))
+	if (client->pid != ERROR)
 	{
 		if (sm_TaskExists(client->pid))
 		{
@@ -1280,7 +1282,7 @@ int	ltpAttachClient(unsigned long clientSvcId)
 		/*	Application terminated without closing the
 		 *	endpoint, so simply close it now.		*/
 
-		client->pid = -1;
+		client->pid = ERROR;
 	}
 
 	client->pid = sm_TaskIdSelf();
@@ -1324,7 +1326,7 @@ int	enqueueNotice(LtpVclient *client, unsigned long sourceEngineId,
 	LtpNotice	notice;
 
 	CHKERR(client);
-	if ( INVALIDPID( client->pid ))
+	if (client->pid == ERROR)
 	{
 		return 0;	/*	No client task to report to.	*/
 	}
@@ -3693,7 +3695,7 @@ putErrmsg("Discarding late segment.", itoa(sessionNbr));
 	getImportSession(vspan, sessionNbr, &sessionObj);
 	segment->segmentClass = LtpDataSeg;
 	if (pdu->clientSvcId > MAX_LTP_CLIENT_NBR
-            || INVALIDPID( (client = ltpvdb->clients + pdu->clientSvcId)->pid ) )
+	|| (client = ltpvdb->clients + pdu->clientSvcId)->pid == ERROR)
 	{
 		/*	Data segment is for an unknown client service,
 		 *	so must discard it and cancel the session.	*/

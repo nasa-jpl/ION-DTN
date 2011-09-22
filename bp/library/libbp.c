@@ -31,7 +31,7 @@ int	bp_agent_is_started()
 {
 	BpVdb	*vdb = getBpVdb();
 
-	return (vdb && VALIDPID( vdb->clockPid)) ? 1 : 0;
+	return (vdb && vdb->clockPid != ERROR);
 }
 
 Sdr	bp_get_sdr()
@@ -88,7 +88,7 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 	/*	Endpoint exists; make sure it's not already opened
 	 *	by some application.					*/
 
-	if ( VALIDPID(vpoint->appPid ))	/*	Endpoint not closed.		*/
+	if (vpoint->appPid != ERROR)	/*	Endpoint not closed.	*/
 	{
 		if (sm_TaskExists(vpoint->appPid))
 		{
@@ -107,7 +107,7 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 		/*	Application terminated without closing the
 		 *	endpoint, so simply close it now.		*/
 
-		vpoint->appPid = -1;
+		vpoint->appPid = ERROR;
 	}
 
 	/*	Construct the service access point.			*/
@@ -173,7 +173,7 @@ void	bp_close(BpSAP sap)
 	vpoint = sap->vpoint;
 	if (vpoint->appPid == sm_TaskIdSelf())
 	{
-		vpoint->appPid = -1;
+		vpoint->appPid = ERROR;
 	}
 
 	MRELEASE(sap->endpointMetaEid.nss);

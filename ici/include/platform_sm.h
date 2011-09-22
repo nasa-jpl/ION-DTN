@@ -29,16 +29,9 @@ typedef int             sm_SemId;
 #define SM_SEM_FIFO	0
 #define SM_SEM_PRIORITY	1
 
-#define SM_NO_KEY	-1
-extern int		sm_GetUniqueKey();
+#define SM_NO_KEY	(-1)
 
 #define	ICI_PRIORITY	250
-
-
-static inline int VALIDPID(_p) { return ( (_p) != 0 && (_p) != -1) ? -1 : 0; }
-static inline int INVALIDPID(_p) { return ! VALIDPID( _p ); }
-
-
 
 /*      IPC services access control */
 extern int		sm_ipc_init();
