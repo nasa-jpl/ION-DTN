@@ -1419,20 +1419,21 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 	Object		iondbObj;
 	IonDB		iondb;
 	Object		elt;
+	Object		nextElt;
 	Object		obj;
 	IonContact	contact;
 	IonVdb		*ionvdb;
 	IonNode		*node;
-	PsmAddress	nextElt;
+	PsmAddress	nextNodeElt;
 	int		removalCount = 0;
 
 	sdr = getIonsdr();
 	iondbObj = getIonDbObject();
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	sdr_begin_xn(sdr);
-	for (elt = sdr_list_first(sdr, iondb.contacts); elt;
-			elt = sdr_list_next(sdr, elt))
+	for (elt = sdr_list_first(sdr, iondb.contacts); elt; elt = nextElt)
 	{
+		nextElt = sdr_list_next(sdr, elt);
 		obj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
 		if (fromTime != 0)	/*	Not wildcard removal.	*/
@@ -1473,7 +1474,7 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 		|| fromNode == iondb.ownNodeNbr)/*	Loopback.	*/
 		{
 			ionvdb = getIonVdb();
-			node = findNode(ionvdb, toNode, &nextElt);
+			node = findNode(ionvdb, toNode, &nextNodeElt);
 			if (node)
 			{
 				forgetXmit(node, &contact);
@@ -1666,6 +1667,7 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 	Object		iondbObj;
 	IonDB		iondb;
 	Object		elt;
+	Object		nextElt;
 	Object		obj;
 	IonRange	range;
 	char		rangeIdString[128];
@@ -1675,9 +1677,9 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 	iondbObj = getIonDbObject();
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	sdr_begin_xn(sdr);
-	for (elt = sdr_list_first(sdr, iondb.ranges); elt;
-			elt = sdr_list_next(sdr, elt))
+	for (elt = sdr_list_first(sdr, iondb.ranges); elt; elt = nextElt)
 	{
+		nextElt = sdr_list_next(sdr, elt);
 		obj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
 		if (fromTime != 0)	/*	Not wildcard removal.	*/
