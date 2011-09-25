@@ -672,6 +672,8 @@ int	checkForCongestion()
 	IonDB		iondb;
 	long		maxForecastOccupancy;
 	long		maxForecastInTransit;
+	long		forecastOccupancy;
+	long		forecastInTransit;
 	long		netGrowthPerSec;
 	IonVdb		*ionvdb;
 	PsmAddress	elt1;
@@ -684,6 +686,12 @@ int	checkForCongestion()
 	RateChange	*newChange;
 	LystElt		elt4;
 	RateChange	*change;
+	long		secInEpoch;
+	long		secAdvanced = 0;
+	long		increment;
+	long		spaceRemaining;
+	long		secUntilOutOfSpace;
+	long		netInTransitGrowthPerSec;
 	time_t		alarmTime = 0;
 	long		delta;
 	char		timestampBuffer[TIMESTAMPBUFSZ];
@@ -705,8 +713,8 @@ int	checkForCongestion()
 	iondbObj = getIonDbObject();
 	sdr_begin_xn(sdr);
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-       	maxForecastOccupancy = iondb.currentOccupancy;
-       	maxForecastInTransit = iondb.currentOccupancy;
+ 	forecastOccupancy = maxForecastOccupancy = iondb.currentOccupancy;
+ 	forecastInTransit = maxForecastInTransit = iondb.currentOccupancy;
 	netGrowthPerSec = iondb.productionRate - iondb.consumptionRate;
 	ionvdb = getIonVdb();
 	for (elt1 = sm_list_first(ionwm, ionvdb->neighbors); elt1;
@@ -914,163 +922,174 @@ int	checkForCongestion()
 	}
 
 	/*	Now revise occupancy level over time as growth occurs
-	 *	and growth rates change.				*/
+	 *	and growth rates change.  Occupancy computation
+	 *	optimized by Greg Menke 22 September 2011.		*/
 
 	for (elt4 = lyst_first(changes); elt4; elt4 = lyst_next(elt4))
 	{
 		change = (RateChange *) lyst_data(elt4);
 
 		/*	Let occupancy level change per current rate
-		 *	up to time of next rate change.			*/
+		 *	up to time of next rate change.
+		 *
+		 *	NOTE: change->time can never be less than
+		 *	forecastTime because contacts that started
+		 *	in the past are reflected in the initial
+		 *	netGrowthPerSec; the start of such a contact
+		 *	is never posted to the list of RateChanges. 	*/
 
-#if 1
-      if( forecastTime < change->time )
-      {
-         long secs_available, secs_used = 0;
-
-         if( iondb.horizon > 0 && iondb.horizon < change->time ) 
-            secs_available = (iondb.horizon - forecastTime);
-         else
-            secs_available = (change->time - forecastTime);
-
-         if( netGrowthPerSec > 0 )
-         {
-            /* net growth > 0 means we are receiving more than
-             * transmitting.  Project the rate out till the forecast
-             * reaches the occupancy ceiling */
-            long vacancy      = (iondb.occupancyCeiling - maxForecastOccupancy);
-            long secs_to_fill = (vacancy / netGrowthPerSec);
-
-            if( secs_available < secs_to_fill )
-               secs_used = secs_available;
-            else
-               secs_used = secs_to_fill;
-         }
-
-         else if( netGrowthPerSec < 0 )
-         {
-            /* net growth < 0 means we are transmitting more than
-             * receiving.  Project the rate untill the occupancy
-             * forecast == 0 */
-            long secs_to_amortize = maxForecastOccupancy / (netGrowthPerSec * -1);
-
-            if( secs_available < secs_to_amortize )
-               secs_used = secs_available;
-            else
-               secs_used = secs_to_amortize;
-         }
-         else
-         {
-            /* netGrowthPerSec == 0 */
-            secs_used = secs_available;
-         }
-
-         maxForecastOccupancy += (netGrowthPerSec * secs_used);
-         //maxForecastInTransit += ((netGrowthPerSec - iondb.productionRate) * secs_used);
-         {
-            long long llnetGrowthPerSec = netGrowthPerSec;
-            long long llproductionRate  = iondb.productionRate;
-            long long llsecs_used = secs_used;
-            long long llmaxForecastInTransit = maxForecastInTransit;
-
-            llmaxForecastInTransit += ((llnetGrowthPerSec - llproductionRate) * llsecs_used);
-
-            if( llmaxForecastInTransit < 0 ) llmaxForecastInTransit = 0;
-
-            maxForecastInTransit = llmaxForecastInTransit;
-         }
-
-         forecastTime += secs_used;
-
-
-#if 0
-         {
-            char msg[1024];
-            sprintf(msg, "c4c1a: horizon=%d, change->time=%d, forecasttime=%d, netgrowthpersec=%d, productionRate=%d",
-                    (int)iondb.horizon,
-                    (int)change->time,
-                    (int)forecastTime,
-                    (int)netGrowthPerSec,
-                    (int)iondb.productionRate );
-
-            writeMemo(msg);
-            sprintf(msg, "c4c1b: maxForecastOccupancy=%d, maxForecastInTransit=%d, secs_used=%d",
-                    (int)maxForecastOccupancy,
-                    (int)maxForecastInTransit,
-                    (int)secs_used );
-
-            writeMemo(msg);
-         }
-#endif
-
-
-         if (maxForecastOccupancy < 0)
-         {
-            maxForecastOccupancy = 0;
-         }
-         if (maxForecastInTransit < 0)
-         {
-            maxForecastInTransit = 0;
-         }
-
-
-         if (maxForecastOccupancy > iondb.occupancyCeiling && alarmTime == 0)
-         {
-            alarmTime = forecastTime;
-         }
-      }
-
-#else
-
-		while (forecastTime < change->time)
+		if (change->time < forecastTime)
 		{
-			forecastTime++;
-			if (iondb.horizon > 0 && forecastTime > iondb.horizon)
-			{
-				break;	/*	Stop advancing time.	*/
-			}
+			putErrmsg("Investigate congestion check error.",
+					utoa(change->time));
+			continue;
+		}
 
-			maxForecastOccupancy += netGrowthPerSec;
-			if (maxForecastOccupancy < 0)
+		if (iondb.horizon > 0 && iondb.horizon < change->time) 
+		{
+			secInEpoch = iondb.horizon - forecastTime;
+			if (secInEpoch < 0)
 			{
-				maxForecastOccupancy = 0;
-			}
-
-			/*	The in-transit high-water mark is the
-			 *	total occupancy high-water mark less
-			 *	the estimated occupancy due to local
-			 *	bundle origination, i.e. all bundles
-			 *	originating at other nodes that were
-			 *	received at this node and have not yet
-			 *	been either forwarded or delivered.
-			 *	It constitutes the available margin
-			 *	for local bundle origination and, as
-			 *	such, is the basis for local bundle
-			 *	admission control.			*/
-
-			maxForecastInTransit +=
-				(netGrowthPerSec - iondb.productionRate);
-			if (maxForecastInTransit < 0)
-			{
-				maxForecastInTransit = 0;
-			}
-
-			if (maxForecastOccupancy > iondb.occupancyCeiling
-			&& alarmTime == 0)
-			{
-				alarmTime = forecastTime;
-				break;	/*	Stop advancing time.	*/
+				secInEpoch = 0;
 			}
 		}
-#endif
+		else
+		{
+			secInEpoch = change->time - forecastTime;
+		}
 
-		if ((iondb.horizon > 0 && forecastTime > iondb.horizon)
-		|| alarmTime != 0)
+		if (netGrowthPerSec > 0)
+		{
+			/*	net growth > 0 means we are receiving
+			 *	more than transmitting.  Project the
+			 *	rate out till the forecast reaches
+			 *	the occupancy ceiling (round up to
+			 *	next second) or we reach the end of
+			 *	the epoch, whichever occurs first.	*/
+
+			spaceRemaining = iondb.occupancyCeiling
+					- forecastOccupancy;
+			secUntilOutOfSpace = 1 + (spaceRemaining
+					/ netGrowthPerSec);
+			if (secInEpoch < secUntilOutOfSpace)
+			{
+				secAdvanced = secInEpoch;
+			}
+			else
+			{
+				secAdvanced = secUntilOutOfSpace;
+			}
+		}
+		else	/*	netGrowthPerSec is <= 0			*/
+		{
+			/*	Note: net growth < 0 means we are
+			 *	transmitting more than receiving.
+			 *	Although this rate of growth is the
+			 *	one that is theoretically correct
+			 *	throughout the epoch, the reduction
+			 *	in occupancy will obviously stop
+			 *	when occupancy reaches zero; from
+			 *	that time until the end of the epoch
+			 *	the theoretical negative net growth
+			 *	in fact represents unused transmission
+			 *	capacity.  We correct for this by
+			 *	changing forecastOccupancy to zero
+			 *	whenever it is driven negative.		*/
+
+			secAdvanced = secInEpoch;
+		}
+
+		increment = netGrowthPerSec * secAdvanced;
+		if (netGrowthPerSec > 0 && increment < 0)
+		{
+			/*	Multiplication overflow.		*/
+
+			forecastOccupancy = iondb.occupancyCeiling;
+		}
+		else
+		{
+			forecastOccupancy += increment;
+		}
+
+		if (forecastOccupancy < 0)
+		{
+			forecastOccupancy = 0;
+		}
+
+		if (forecastOccupancy > maxForecastOccupancy)
+		{
+			maxForecastOccupancy = forecastOccupancy;
+		}
+
+		/*	The in-transit high-water mark is the total
+		 *	occupancy high-water mark less the estimated
+		 *	occupancy due to local bundle origination,
+		 *	i.e., all bundles originating at other nodes
+		 *	that were received at this node and have not
+		 *	yet been either forwarded or delivered.  It
+		 *	constitutes the available margin for local
+		 *	bundle origination and, as such, is the basis
+		 *	for local bundle admission control.		*/
+
+		netInTransitGrowthPerSec = netGrowthPerSec 
+				- iondb.productionRate;
+		increment = netInTransitGrowthPerSec * secAdvanced;
+		if (netInTransitGrowthPerSec > 0 && increment < 0)
+		{
+			/*	Multiplication overflow.		*/
+
+			forecastInTransit = iondb.occupancyCeiling;
+		}
+		else
+		{
+			forecastInTransit += increment;
+		}
+
+		if (forecastInTransit < 0)
+		{
+			forecastInTransit = 0;
+		}
+
+		if (forecastInTransit > maxForecastInTransit)
+		{
+			maxForecastInTransit = forecastInTransit;
+		}
+#if 0
+		{
+			char msg[1024];
+			sprintf(msg, "c4c1a: horizon=%d, change->time=%d, forecasttime=%d, netgrowthpersec=%d, productionRate=%d",
+					  (int)iondb.horizon,
+					  (int)change->time,
+					  (int)forecastTime,
+					  (int)netGrowthPerSec,
+					  (int)iondb.productionRate );
+
+			writeMemo(msg);
+			sprintf(msg, "c4c1b: forecastOccupancy=%d, forecastInTransit=%d, secAdvanced=%d",
+					  (int)forecastOccupancy,
+					  (int)forecastInTransit,
+					  (int)secAdvanced );
+
+			writeMemo(msg);
+		}
+#endif
+		/*	Advance the forecast time, by epoch or to end,
+		 *	and check for congestion alarm.			*/
+
+		forecastTime += secAdvanced;
+		if (maxForecastOccupancy >= iondb.occupancyCeiling)
+		{
+			alarmTime = forecastTime;
+		}
+
+		if (alarmTime != 0
+		|| (iondb.horizon > 0 && forecastTime > iondb.horizon))
 		{
 			break;		/*	Stop forecast.		*/
 		}
 
-		/*	Forecast time has caught up to time of change.	*/
+		/*	Apply the adjustment that occurs at the time
+		 *	of this change (end of prior epoch).		*/
 
 		delta = change->xmitRate - change->prevXmitRate;
 		if (change->fromNeighbor)
@@ -1089,86 +1108,80 @@ int	checkForCongestion()
 	if (netGrowthPerSec > 0 && alarmTime == 0)
 	{
 		/*	Unconstrained growth; will max out eventually,
-		 *	just need to determine when.			*/
+		 *	just need to determine when.  Final epoch.	*/
 
-#if 1
-      {
-         long secs_available, secs_used = 0;
-
-         if( iondb.horizon > 0 ) 
-            secs_available = (iondb.horizon - forecastTime);
-         else
-            secs_available = LONG_MAX;
-
-         {
-            /* net growth > 0 means we are receiving more than
-             * transmitting.  Project the rate out till the forecast
-             * reaches the occupancy ceiling */
-            long vacancy      = (iondb.occupancyCeiling - maxForecastOccupancy);
-            long secs_to_fill = (vacancy / netGrowthPerSec);
-	    
-            if( secs_available < secs_to_fill )
-               secs_used = secs_available;
-            else
-               secs_used = secs_to_fill;
-         }
-
-         maxForecastOccupancy += (netGrowthPerSec * secs_used);
-         //maxForecastInTransit += ((netGrowthPerSec - iondb.productionRate) * secs_used);
-         {
-            long long llnetGrowthPerSec = netGrowthPerSec;
-            long long llproductionRate  = iondb.productionRate;
-            long long llsecs_used = secs_used;
-            long long llmaxForecastInTransit = maxForecastInTransit;
-
-            llmaxForecastInTransit += ((llnetGrowthPerSec - llproductionRate) * llsecs_used);
-
-            if( llmaxForecastInTransit < 0 ) llmaxForecastInTransit = 0;
-
-            maxForecastInTransit = llmaxForecastInTransit;
-         }
-
-         forecastTime += secs_used;
-
-         if (maxForecastOccupancy < 0)
-         {
-            maxForecastOccupancy = 0;
-         }
-         if (maxForecastInTransit < 0)
-         {
-            maxForecastInTransit = 0;
-         }
-
-         if (maxForecastOccupancy > iondb.occupancyCeiling)
-         {
-            alarmTime = forecastTime;
-         }
-      }
-
-#else
-		while (1)
+		if (iondb.horizon > 0) 
 		{
-			forecastTime++;
-			if (iondb.horizon > 0 && forecastTime > iondb.horizon)
-			{
-				break;	/*	Stop forecast.		*/
-			}
-
-			maxForecastOccupancy += netGrowthPerSec;
-			if (maxForecastOccupancy > iondb.occupancyCeiling)
-			{
-				alarmTime = forecastTime;
-				break;
-			}
-
-			maxForecastInTransit +=
-				(netGrowthPerSec - iondb.productionRate);
-			if (maxForecastInTransit < 0)
-			{
-				maxForecastInTransit = 0;
-			}
+			secInEpoch = (iondb.horizon - forecastTime);
 		}
-#endif
+		else
+		{
+			secInEpoch = LONG_MAX;
+		}
+
+		/*	net growth > 0 means we are receiving more than
+		 *	transmitting.  Project the rate out till the
+		 *	forecast reaches the occupancy ceiling (round
+		 *	up to the next second) or we reach the end of
+		 *	the epoch, whichever occurs first.		*/
+
+		spaceRemaining = iondb.occupancyCeiling - forecastOccupancy;
+		secUntilOutOfSpace = 1 + (spaceRemaining / netGrowthPerSec);
+		if (secInEpoch < secUntilOutOfSpace)
+		{
+			secAdvanced = secInEpoch;
+		}
+		else
+		{
+			secAdvanced = secUntilOutOfSpace;
+		}
+
+		increment = netGrowthPerSec * secAdvanced;
+		if (increment < 0)
+		{
+			/*	Multiplication overflow.		*/
+
+			forecastOccupancy = iondb.occupancyCeiling;
+		}
+		else
+		{
+			forecastOccupancy += increment;
+		}
+
+		if (forecastOccupancy > maxForecastOccupancy)
+		{
+			maxForecastOccupancy = forecastOccupancy;
+		}
+
+		netInTransitGrowthPerSec = netGrowthPerSec 
+				- iondb.productionRate;
+		increment = netInTransitGrowthPerSec * secAdvanced;
+		if (netInTransitGrowthPerSec > 0 && increment < 0)
+		{
+			/*	Multiplication overflow.		*/
+
+			forecastInTransit = iondb.occupancyCeiling;
+		}
+		else
+		{
+			forecastInTransit += increment;
+		}
+
+		if (forecastInTransit < 0)
+		{
+			forecastInTransit = 0;
+		}
+
+		if (forecastInTransit > maxForecastInTransit)
+		{
+			maxForecastInTransit = forecastInTransit;
+		}
+
+		forecastTime += secAdvanced;
+		if (maxForecastOccupancy >= iondb.occupancyCeiling)
+		{
+			alarmTime = forecastTime;
+		}
 	}
 
 	if (alarmTime == 0)
@@ -1178,7 +1191,7 @@ int	checkForCongestion()
 	else
 	{
 		/*	Have determined time at which occupancy limit
-		 *	will be exceeded.				*/
+		 *	will be reached.				*/
 
 		writeTimestampUTC(alarmTime, timestampBuffer);
 		isprintf(alarmBuffer, sizeof alarmBuffer,
@@ -1238,7 +1251,7 @@ static int	isExcluded(unsigned long nodeNbr, Lyst excludedNodes)
 	{
 		if ((unsigned long) lyst_data(elt) == nodeNbr)
 		{
-			return 1;       /*      Node is in the list.    */
+			return 1;	/*	Node is in the list.	*/
 		}
 	}
 
@@ -1571,109 +1584,109 @@ node %10lu to node %10lu is %10lu bytes/sec.", fromTimeBuffer, toTimeBuffer,
 int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 		unsigned long toNode)
 {
-   Sdr		sdr;
-   Object		iondbObj;
-   IonDB		iondb;
-   Object		elt;
-   Object		obj;
-   IonContact	contact;
-   IonVdb		*ionvdb;
-   IonNode		*node;
-   PsmAddress	nextElt;
-   int		didwork, dbmod = 0;
+	Sdr		sdr;
+	Object		iondbObj;
+	IonDB		iondb;
+	Object		elt;
+	Object		obj;
+	IonContact	contact;
+	IonVdb		*ionvdb;
+	IonNode		*node;
+	PsmAddress	nextElt;
+	int		didwork, dbmod = 0;
 
-   sdr = getIonsdr();
-   iondbObj = getIonDbObject();
-   sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-   sdr_begin_xn(sdr);
+	sdr = getIonsdr();
+	iondbObj = getIonDbObject();
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_begin_xn(sdr);
 
-   for(;;)
-   {
-      didwork = 0;
+	for(;;)
+	{
+		didwork = 0;
 
-      for (elt = sdr_list_first(sdr, iondb.contacts); elt;
-           elt = sdr_list_next(sdr, elt))
-      {
-         obj = sdr_list_data(sdr, elt);
-         sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
+		for (elt = sdr_list_first(sdr, iondb.contacts); elt;
+			  elt = sdr_list_next(sdr, elt))
+		{
+			obj = sdr_list_data(sdr, elt);
+			sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
 
-         if (contact.fromTime < fromTime && fromTime != 0 )
-         {
-            continue;
-         }
+			if (contact.fromTime < fromTime && fromTime != 0 )
+			{
+				continue;
+			}
 
-         if (contact.fromTime > fromTime  && fromTime != 0 )
-         {
-            break;
-         }
+			if (contact.fromTime > fromTime  && fromTime != 0 )
+			{
+				break;
+			}
 
-         if (contact.fromNode < fromNode)
-         {
-            continue;
-         }
+			if (contact.fromNode < fromNode)
+			{
+				continue;
+			}
 
-         if (contact.fromNode > fromNode)
-         {
-            continue;
-         }
+			if (contact.fromNode > fromNode)
+			{
+				continue;
+			}
 
-         if (contact.toNode < toNode)
-         {
-            continue;
-         }
+			if (contact.toNode < toNode)
+			{
+				continue;
+			}
 
-         if (contact.toNode > toNode)
-         {
-            continue;
-         }
+			if (contact.toNode > toNode)
+			{
+				continue;
+			}
 
-         /*	Contact has been located in database.		*/
+			/*	Contact has been located in database.		*/
 
-         sdr_free(sdr, obj);
-         sdr_list_delete(sdr, elt, NULL, NULL);
+			sdr_free(sdr, obj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
 
-         /*	If contact bears on routing, remove xmit.	*/
+			/*	If contact bears on routing, remove xmit.	*/
 
-         if (toNode != iondb.ownNodeNbr	/*	To remote node.	*/
-             || fromNode == iondb.ownNodeNbr)/*	Loopback.	*/
-         {
-            ionvdb = getIonVdb();
-            node = findNode(ionvdb, toNode, &nextElt);
-            if (node)
-            {
-               forgetXmit(node, &contact);
-               if (setMootAfterTimes() < 0)
-               {
-                  sdr_cancel_xn(sdr);
-                  putErrmsg("Can't update mootAfter \
+			if (toNode != iondb.ownNodeNbr	/*	To remote node.	*/
+				 || fromNode == iondb.ownNodeNbr)/*	Loopback.	*/
+			{
+				ionvdb = getIonVdb();
+				node = findNode(ionvdb, toNode, &nextElt);
+				if (node)
+				{
+					forgetXmit(node, &contact);
+					if (setMootAfterTimes() < 0)
+					{
+						sdr_cancel_xn(sdr);
+						putErrmsg("Can't update mootAfter \
 times.", NULL);
-                  return -1;
-               }
-            }
-         }
+						return -1;
+					}
+				}
+			}
 
-         didwork = -1;
-         dbmod += 1;
-         break;
-      }
+			didwork = -1;
+			dbmod += 1;
+			break;
+		}
 
-      if( ! didwork ) break;
-   }
+		if( ! didwork ) break;
+	}
 
-   if( dbmod )
-   {
-      if (sdr_end_xn(sdr) < 0)
-      {
-         putErrmsg("Can't remove contact.", NULL);
-         return -1;
-      }
+	if( dbmod )
+	{
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't remove contact.", NULL);
+			return -1;
+		}
 
-      return 0;
-   }
+		return 0;
+	}
 
-   sdr_cancel_xn(sdr);
-   writeMemo("[?] Contact not found in database.");
-   return 0;
+	sdr_cancel_xn(sdr);
+	writeMemo("[?] Contact not found in database.");
+	return 0;
 }
 
 Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
@@ -1826,90 +1839,90 @@ char	*rfx_print_range(Object obj, char *buffer)
 int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 		unsigned long toNode)
 {
-   Sdr		sdr;
-   Object		iondbObj;
-   IonDB		iondb;
-   Object		elt;
-   Object		obj;
-   IonRange	range;
-   char		rangeIdString[128];
-   int		didwork, dbmod = 0;
+	Sdr		sdr;
+	Object		iondbObj;
+	IonDB		iondb;
+	Object		elt;
+	Object		obj;
+	IonRange	range;
+	char		rangeIdString[128];
+	int		didwork, dbmod = 0;
 
-   sdr = getIonsdr();
-   iondbObj = getIonDbObject();
-   sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-   sdr_begin_xn(sdr);
-
-
-   for(;;)
-   {
-      didwork = 0;
-
-      for (elt = sdr_list_first(sdr, iondb.ranges); elt;
-           elt = sdr_list_next(sdr, elt))
-      {
-         obj = sdr_list_data(sdr, elt);
-         sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
-
-         if (range.fromTime < fromTime && fromTime != 0 )
-         {
-            continue;
-         }
-
-         if (range.fromTime > fromTime  && fromTime != 0 )
-         {
-            break;
-         }
-
-         if (range.fromNode < fromNode)
-         {
-            continue;
-         }
-
-         if (range.fromNode > fromNode)
-         {
-            continue;
-         }
-
-         if (range.toNode < toNode)
-         {
-            continue;
-         }
-
-         if (range.toNode > toNode)
-         {
-            continue;
-         }
-
-         /*	Range has been located in database.		*/
-
-         sdr_free(sdr, obj);
-         sdr_list_delete(sdr, elt, NULL, NULL);
+	sdr = getIonsdr();
+	iondbObj = getIonDbObject();
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_begin_xn(sdr);
 
 
-         didwork = -1;
-         dbmod += 1;
-         break;
-      }
-      if( ! didwork ) break;
-   }
+	for(;;)
+	{
+		didwork = 0;
 
-   if( dbmod )
-   {
-      if (sdr_end_xn(sdr) < 0)
-      {
-         putErrmsg("Can't remove range.", NULL);
-         return -1;
-      }
+		for (elt = sdr_list_first(sdr, iondb.ranges); elt;
+			  elt = sdr_list_next(sdr, elt))
+		{
+			obj = sdr_list_data(sdr, elt);
+			sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
 
-      return 0;
-   }
+			if (range.fromTime < fromTime && fromTime != 0 )
+			{
+				continue;
+			}
 
-   sdr_cancel_xn(sdr);
-   isprintf(rangeIdString, sizeof rangeIdString, "from %lu, %lu->%lu",
-            fromTime, fromNode, toNode);
-   writeMemoNote("[?] Range not found in database", rangeIdString);
-   return 0;
+			if (range.fromTime > fromTime  && fromTime != 0 )
+			{
+				break;
+			}
+
+			if (range.fromNode < fromNode)
+			{
+				continue;
+			}
+
+			if (range.fromNode > fromNode)
+			{
+				continue;
+			}
+
+			if (range.toNode < toNode)
+			{
+				continue;
+			}
+
+			if (range.toNode > toNode)
+			{
+				continue;
+			}
+
+			/*	Range has been located in database.		*/
+
+			sdr_free(sdr, obj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+
+
+			didwork = -1;
+			dbmod += 1;
+			break;
+		}
+		if( ! didwork ) break;
+	}
+
+	if( dbmod )
+	{
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't remove range.", NULL);
+			return -1;
+		}
+
+		return 0;
+	}
+
+	sdr_cancel_xn(sdr);
+	isprintf(rangeIdString, sizeof rangeIdString, "from %lu, %lu->%lu",
+				fromTime, fromNode, toNode);
+	writeMemoNote("[?] Range not found in database", rangeIdString);
+	return 0;
 }
 
 int	rfx_start()
