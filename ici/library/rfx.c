@@ -1616,7 +1616,7 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 		{
 			obj = sdr_list_data(sdr, elt);
 			sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
-					sizeof(IonContact));
+
 			if (contact.fromTime < fromTime && fromTime != 0)
 			{
 				continue;
@@ -1651,11 +1651,6 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 
 			sdr_free(sdr, obj);
 			sdr_list_delete(sdr, elt, NULL, NULL);
-
-			/*	If contact bears on routing, remove xmit.	*/
-			 *	toNode is a remote node or else both
-			 *	toNode and fromNode are the local node
-			 *	-- loopback), remove xmit.		*/
 
 			if (toNode != iondb.ownNodeNbr	/*	To remote node.	*/
 				 || fromNode == iondb.ownNodeNbr)/*	Loopback.	*/
