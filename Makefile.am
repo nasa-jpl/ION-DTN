@@ -301,12 +301,13 @@ iciPODM5 = pod2man -s 5 -c "ICI configuration files"
 # compile these for the website use only?
 # iciPODH = pod2html --noindex
 
-icicflags = -I$(srcdir)/ici/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr 
+icicflags = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr 
 
 icibin = \
 	sdrwatch \
 	psmwatch \
 	ionadmin \
+	ionexit \
 	ionsecadmin \
 	sdrmend \
 	file2sm \
@@ -476,6 +477,10 @@ psmwatch_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionadmin_SOURCES = ici/utils/ionadmin.c
 ionadmin_LDADD = libici.la $(LIBOBJS) 
 ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+ionexit_SOURCES = ici/utils/ionexit.c
+ionexit_LDADD = libbp.la libltp.la libici.la $(LIBOBJS) 
+ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
 ionsecadmin_LDADD = libici.la $(LIBOBJS) 
