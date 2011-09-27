@@ -1,0 +1,104 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 21, 2010
+# documentation boilerplate
+CONFIGFILES=" \
+./amroc.ltprc \
+./amroc.bprc \
+./global.ionrc \
+./amroc.ionrc \
+./amroc.ionsecrc \
+./amroc.ipnrc
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that non-zero loopback one-way light time is supported."
+echo
+echo "CONFIG: A contact graph with 100-second loopback one-way light time:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Searching for bundle reforwarding messages in ion.log to ensure 
+	that non-zero loopback one-way light time is correctly handled."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+
+# Start node 9, with 20-second loopback range.
+./ionstart
+
+# Send a loopback bundle with lifetime = 300.
+echo "Sending 10-byte bundle with 5-minute lifetime from ipn:9.1 to ipn:9.2."
+bptrace ipn:9.1 ipn:9.2 ipn:9.0 300 0.1 "Hello Bob"
+sleep 1
+echo "Watch characters should be 'abcdefg'."
+sleep 1
+# Send a non-loopback bundle with lifetime = 300.
+echo "Sending 3-byte bundle with 5-minute lifetime from ipn:9.1 to ipn:5.2."
+bptrace ipn:9.1 ipn:5.2 ipn:9.0 300 0.1 "Hi"
+sleep 1
+echo "Watch characters should be 'abcdefg'."
+sleep 1
+echo "Both should be forwarded: CGR can't route, but destination is a neighbor."
+sleep 1
+
+# Wait for all sessions to terminate.
+echo "Only the non-loopback bundle should be reforwarded on block transmission
+failure due to excessive ack timeouts (watch character '#'), because only that
+bundle's RTT is short enough to trigger timeout before end of contact."
+echo "Waiting for contact to terminate..."
+sleep 70
+echo "Contact has terminated.  Verifying results..."
+
+# Verify bundle was forwarded.
+RETVAL=0
+
+echo "Checking ion.log for 'src' message '(1) 2 13'..."
+COUNT=`grep src ion.log | grep "(1) 2 13" | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "OK: All bundles sourced."
+else
+	echo "ERROR: Bundles not sourced."
+	RETVAL=1
+fi
+
+echo "Checking ion.log for 'fwd' message '(1) 3 16'..."
+COUNT=`grep fwd ion.log | grep "(1) 3 16" | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "OK: All bundles forwarded."
+else
+	echo "ERROR: Bundles not forwarded."
+	RETVAL=1
+fi
+
+echo "Checking ion.log for 'rfw' message '(1) 1 3'..."
+COUNT=`grep rfw ion.log | grep "(1) 1 3" | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "OK: One bundle reforwarded."
+else
+	echo "ERROR: Bundle not reforwarded."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+./ionstop
+echo "Non-zero loopback range test completed."
+exit $RETVAL
