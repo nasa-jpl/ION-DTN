@@ -427,6 +427,7 @@ static void	manageScreening(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	switch (*(tokens[2]))
@@ -468,6 +469,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newOwnQtime = strtol(tokens[2], NULL, 0);

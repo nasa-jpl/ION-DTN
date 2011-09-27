@@ -333,6 +333,7 @@ static void	manageInactivity(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newLimit = atoi(tokens[2]);
