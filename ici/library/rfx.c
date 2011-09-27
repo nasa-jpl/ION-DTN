@@ -34,7 +34,7 @@ int	rfx_system_is_started()
 {
 	IonVdb	*vdb = getIonVdb();
 
-	return (vdb && vdb->clockPid > 0) ? 1 : 0;
+	return (vdb && vdb->clockPid != ERROR);
 }
 
 IonNeighbor	*findNeighbor(IonVdb *ionvdb, unsigned long nodeNbr,
@@ -1592,14 +1592,15 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 	Object		iondbObj;
 	IonDB		iondb;
 	Object		elt;
+	Object		nextElt;
 	Object		obj;
 	IonContact	contact;
 	IonVdb		*ionvdb;
 	IonNode		*node;
-	PsmAddress	nextElt;
-	int		didwork, dbmod = 0;
+	PsmAddress	nextNodeElt;
+	int		removalCount = 0;
 
-	/*	Note: when the fromTime passed to ionadmin is '*'
+	/*	Note: when the fromTIme passed to ionadmin is '*'
 	 *	a fromTime of zero is passed to rfx_remove_contact,
 	 *	where it is interpreted as "all contacts between
 	 *	these two nodes".					*/
@@ -1608,81 +1609,77 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 	iondbObj = getIonDbObject();
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	sdr_begin_xn(sdr);
-	for(;;)
+	for (elt = sdr_list_first(sdr, iondb.contacts); elt; elt = nextElt)
 	{
-		didwork = 0;
-		for (elt = sdr_list_first(sdr, iondb.contacts); elt;
-			  elt = sdr_list_next(sdr, elt))
+		nextElt = sdr_list_next(sdr, elt);
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
+		if (fromTime != 0)	/*	Not wildcard removal.	*/
 		{
-			obj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
+			/*	fromTimes must exactly match in order
+			 *	for contact to be removed.  Contacts
+			 *	are in fromTime/fromNode/toNode order.	*/
 
-			if (contact.fromTime < fromTime && fromTime != 0)
+			if (contact.fromTime < fromTime)
 			{
-				continue;
+				continue;	/*	Keep looking.	*/
 			}
 
-			if (contact.fromTime > fromTime && fromTime != 0)
+			if (contact.fromTime > fromTime)
 			{
-				break;
+				break;	/*	Contact not found.	*/
 			}
-
-			if (contact.fromNode < fromNode)
-			{
-				continue;
-			}
-
-			if (contact.fromNode > fromNode)
-			{
-				continue;
-			}
-
-			if (contact.toNode < toNode)
-			{
-				continue;
-			}
-
-			if (contact.toNode > toNode)
-			{
-				continue;
-			}
-
-			/*	Contact has been located in database.		*/
-
-			sdr_free(sdr, obj);
-			sdr_list_delete(sdr, elt, NULL, NULL);
-
-			if (toNode != iondb.ownNodeNbr	/*	To remote node.	*/
-				 || fromNode == iondb.ownNodeNbr)/*	Loopback.	*/
-			{
-				ionvdb = getIonVdb();
-				node = findNode(ionvdb, toNode, &nextElt);
-				if (node)
-				{
-					forgetXmit(node, &contact);
-					if (setMootAfterTimes() < 0)
-					{
-						sdr_cancel_xn(sdr);
-						putErrmsg("Can't update mootAfter \
-mootAfter times.", NULL);
-						return -1;
-					}
-				}
-			}
-
-			didwork = -1;
-			dbmod += 1;
-			break;
 		}
 
-		if( ! didwork ) break;
+		if (contact.fromNode != fromNode)
+		{
+			continue;		/*	Keep looking.	*/
+		}
+
+		if (contact.toNode != toNode)
+		{
+			continue;
+		}
+
+		/*	Found a contact to remove.			*/
+
+		sdr_free(sdr, obj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
+
+		/*	If contact bears on routing, remove xmit.	*/
+
+		if (toNode != iondb.ownNodeNbr	/*	To remote node.	*/
+		|| fromNode == iondb.ownNodeNbr)/*	Loopback.	*/
+		{
+			ionvdb = getIonVdb();
+			node = findNode(ionvdb, toNode, &nextNodeElt);
+			if (node)
+			{
+				forgetXmit(node, &contact);
+				if (setMootAfterTimes() < 0)
+				{
+					sdr_cancel_xn(sdr);
+					putErrmsg("Can't update mootAfter \
+times.", NULL);
+					return -1;
+				}
+			}
+		}
+
+		removalCount += 1;
+		if (fromTime == 0)	/*	Wild-card removal.	*/
+		{
+			continue;	/*	Keep looking.		*/
+		}
+
+		break;	/*	Have removed the only possible match.	*/
 	}
 
-	if( dbmod )
+	if (removalCount > 0)
 	{
 		if (sdr_end_xn(sdr) < 0)
 		{
-			putErrmsg("Can't remove contact.", NULL);
+			putErrmsg("Can't remove contact(s).", NULL);
 			return -1;
 		}
 
@@ -1843,75 +1840,66 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 	Object		iondbObj;
 	IonDB		iondb;
 	Object		elt;
+	Object		nextElt;
 	Object		obj;
 	IonRange	range;
 	char		rangeIdString[128];
-	int		didwork, dbmod = 0;
-
-	/*	Note: when the fromTime passed to ionadmin is '*'
-	 *	a fromTime of zero is passed to rfx_remove_range,
-	 *	where it is interpreted as "all ranges between
-	 *	these two nodes".					*/
+	int		removalCount = 0;
 
 	sdr = getIonsdr();
 	iondbObj = getIonDbObject();
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	sdr_begin_xn(sdr);
-	for(;;)
+	for (elt = sdr_list_first(sdr, iondb.ranges); elt; elt = nextElt)
 	{
-		didwork = 0;
-		for (elt = sdr_list_first(sdr, iondb.ranges); elt;
-			  elt = sdr_list_next(sdr, elt))
+		nextElt = sdr_list_next(sdr, elt);
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
+		if (fromTime != 0)	/*	Not wildcard removal.	*/
 		{
-			obj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &range, obj, sizeof(IonRange));
-			if (range.fromTime < fromTime && fromTime != 0)
+			/*	fromTimes must exactly match in order
+			 *	for range to be deleted.  Ranges are
+			 *	in fromTime/fromNode/toNode order.	*/
+
+			if (range.fromTime < fromTime)
 			{
-				continue;
+				continue;	/*	Keep looking.	*/
 			}
 
-			if (range.fromTime > fromTime && fromTime != 0)
+			if (range.fromTime > fromTime)
 			{
-				break;
+				break;	/*	Range not found.	*/
 			}
-
-			if (range.fromNode < fromNode)
-			{
-				continue;
-			}
-
-			if (range.fromNode > fromNode)
-			{
-				continue;
-			}
-
-			if (range.toNode < toNode)
-			{
-				continue;
-			}
-
-			if (range.toNode > toNode)
-			{
-				continue;
-			}
-
-			/*	Range has been located in database.		*/
-
-			sdr_free(sdr, obj);
-			sdr_list_delete(sdr, elt, NULL, NULL);
-			didwork = -1;
-			dbmod += 1;
-			break;
 		}
 
-		if( ! didwork ) break;
+		if (range.fromNode != fromNode)
+		{
+			continue;
+		}
+
+		if (range.toNode != toNode)
+		{
+			continue;
+		}
+
+		/*	Found a range to remove.			*/
+
+		sdr_free(sdr, obj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
+		removalCount += 1;
+		if (fromTime == 0)	/*	Wild-card removal.	*/
+		{
+			continue;		/*	Keep looking.	*/
+		}
+
+		break;
 	}
 
-	if( dbmod )
+	if (removalCount > 0)
 	{
 		if (sdr_end_xn(sdr) < 0)
 		{
-			putErrmsg("Can't remove range.", NULL);
+			putErrmsg("Can't remove range(s).", NULL);
 			return -1;
 		}
 
@@ -1974,7 +1962,7 @@ int	rfx_start()
 
 	/*	Start the rfx clock if necessary.			*/
 
-	if (vdb->clockPid < 1 || sm_TaskExists(vdb->clockPid) == 0)
+	if (vdb->clockPid == ERROR || sm_TaskExists(vdb->clockPid) == 0)
 	{
 		vdb->clockPid = pseudoshell("rfxclock");
 	}
@@ -1988,7 +1976,7 @@ void	rfx_stop()
 	IonVdb	*vdb;
 
 	vdb = getIonVdb();
-	if (vdb->clockPid > 0)
+	if (vdb->clockPid != ERROR)
 	{
 		sm_TaskKill(vdb->clockPid, SIGTERM);
 		while (sm_TaskExists(vdb->clockPid))
@@ -1996,6 +1984,6 @@ void	rfx_stop()
 			microsnooze(100000);
 		}
 
-		vdb->clockPid = -1;
+		vdb->clockPid = ERROR;
 	}
 }

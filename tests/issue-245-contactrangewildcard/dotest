@@ -81,12 +81,7 @@ rm -f /tmp/245-cmdfile
 
 numleft=$((numc+numr))
 
-
 numdeleted=$((numadded-numleft))
-
-# shut down ion processes
-echo "**** Stopping ion..."
-ionstop
 
 echo "**** Checking contacts..."
 
@@ -107,4 +102,3 @@ fi
 rm -f $contactfile
 
 exit $RETVAL
-
