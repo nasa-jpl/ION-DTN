@@ -5593,6 +5593,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	static int		maxAcqInHeap = 0;
 	Sdr			sdr = getIonsdr();
 	BpDB			*bpConstants = _bpConstants();
+	BpDB			bpdb;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
 	int			fd;
@@ -5601,6 +5602,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	CHKERR(work);
 	CHKERR(bytes);
 	CHKERR(length >= 0);
+	sdr_begin_xn(sdr);
 	if (maxAcqInHeap == 0)
 	{
 		/*	Initialize threshold for acquiring bundle
@@ -5611,13 +5613,13 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		 *	bundle were entirely acquired into a file.	*/
 
 		maxAcqInHeap = zco_file_ref_occupancy(sdr, 0);
-		if (bpConstants->maxAcqInHeap > maxAcqInHeap)
+		sdr_read(sdr, (char *) &bpdb, getBpDbObject(), sizeof(BpDB));
+		if (bpdb.maxAcqInHeap > maxAcqInHeap)
 		{
-			maxAcqInHeap = bpConstants->maxAcqInHeap;
+			maxAcqInHeap = bpdb.maxAcqInHeap;
 		}
 	}
 
-	sdr_begin_xn(sdr);
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
 		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);

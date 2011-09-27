@@ -893,7 +893,7 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 			InFdu *fdubuf, Object *fduElt)
 {
 	Sdr	sdr = getIonsdr();
-	CfdpDB	*cfdpConstants = _cfdpConstants();
+	CfdpDB	cfdpdb;
 	Object	fduObj;
 
 	memset((char *) fdubuf, 0, sizeof(InFdu));
@@ -911,8 +911,9 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 		return 0;		/*	System failure.		*/
 	}
 
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	fdubuf->inactivityDeadline = getUTCTime()
-			+ cfdpConstants->transactionInactivityLimit;
+			+ cfdpdb.transactionInactivityLimit;
 	sdr_write(sdr, fduObj, (char *) fdubuf, sizeof(InFdu));
 	return fduObj;
 }
@@ -2009,7 +2010,8 @@ int	enqueueCfdpEvent(CfdpEvent *event)
 int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		CfdpHandler *handler)
 {
-	CfdpDB		*cfdpConstants = _cfdpConstants();
+	Sdr		sdr = getIonsdr();
+	CfdpDB		cfdpdb;
 	Object		fduObj;
 	InFdu		inFdu;
 	OutFdu		outFdu;
@@ -2019,9 +2021,9 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 	CHKERR(transactionId);
 	CHKERR(handler);
 	*handler = CfdpNoHandler;
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	if (memcmp((char *) &transactionId->sourceEntityNbr,
-			(char *) &cfdpConstants->ownEntityNbr,
-			sizeof(CfdpNumber)) == 0)
+			(char *) &cfdpdb.ownEntityNbr, sizeof(CfdpNumber)) == 0)
 	{
 		memset((char *) &outFdu, 0, sizeof(OutFdu));
 		fduObj = findOutFdu(transactionId, &outFdu, &fduElt);
@@ -2042,7 +2044,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 
 	if (*handler == CfdpNoHandler)
 	{
-		*handler = cfdpConstants->faultHandlers[fault];
+		*handler = cfdpdb.faultHandlers[fault];
 	}
 
 	switch (*handler)
@@ -2054,7 +2056,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		}
 
 		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpConstants->ownEntityNbr,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber)) == 0)
 		{
 			return cancelOutFdu(transactionId, fault, 0);
@@ -2069,7 +2071,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		}
 
 		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpConstants->ownEntityNbr,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber)) == 0)
 		{
 			return suspendOutFdu(transactionId, fault, 0);
@@ -2084,7 +2086,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 				sizeof(CfdpTransactionId));
 		event.condition = fault;
 		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpConstants->ownEntityNbr,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber)) == 0)
 		{
 			event.progress = outFdu.progress;
@@ -2110,7 +2112,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		}
 
 		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpConstants->ownEntityNbr,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber)) == 0)
 		{
 			return abandonOutFdu(transactionId, fault);
@@ -2212,10 +2214,10 @@ static Object	selectOutPdu(OutFdu *fdu, int *pduIsFileData)
 int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 {
 	Sdr		sdr = getIonsdr();
-	CfdpDB		*cfdpConstants = _cfdpConstants();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
+	CfdpDB		cfdpdb;
 	Object		fduObj;
-	int		pduIsFileData = 0;		/*	Boolean.	*/
+	int		pduIsFileData = 0;	/*	Boolean.	*/
 	unsigned int	dataFieldLength;
 	unsigned int	octet;
 	int		pduSourceDataLength;
@@ -2263,13 +2265,14 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 		return -1;
 	}
 
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	octet = (pduIsFileData << 4)	/*	bit 3 is PDU type	*/
 			+ 4		/*	1 in bit 6 == unack	*/
-			+ (cfdpConstants->crcRequired ? 2 : 0);
+			+ (cfdpdb.crcRequired ? 2 : 0);
 	pduHeader[0] = octet;
 	pduSourceDataLength = zco_length(sdr, *pdu);
 	dataFieldLength = pduSourceDataLength
-			+ (cfdpConstants->crcRequired ? 2 : 0);
+			+ (cfdpdb.crcRequired ? 2 : 0);
 
 	/*	Note that length of CRC, if present, is included in
 	 *	the data field length per 4.1.1.3.2.			*/
@@ -2279,7 +2282,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 	/*	Compute the lengths byte value.				*/
 
-	entityNbrLength = cfdpConstants->ownEntityNbr.length;
+	entityNbrLength = cfdpdb.ownEntityNbr.length;
 	if (fduBuffer->destinationEntityNbr.length > entityNbrLength)
 	{
 		entityNbrLength = fduBuffer->destinationEntityNbr.length;
@@ -2301,7 +2304,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 		return -1;
 	}
 
-	memcpy(pduHeader + pduHeaderLength, cfdpConstants->ownEntityNbr.buffer,
+	memcpy(pduHeader + pduHeaderLength, cfdpdb.ownEntityNbr.buffer,
 			entityNbrLength);
 	pduHeaderLength += entityNbrLength;
 	memcpy(pduHeader + pduHeaderLength,
@@ -2320,7 +2323,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 	/*	If CRC required, compute CRC and append to pdu.		*/
 
-	if (cfdpConstants->crcRequired)
+	if (cfdpdb.crcRequired)
 	{
 		buf = _crcComputationBuf();
 		memcpy((char *) buf, pduHeader, pduHeaderLength);
@@ -2502,8 +2505,8 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	unsigned int	segmentEnd;
 	CfdpHandler	handler;
 	Sdr		sdr = getIonsdr();
-	CfdpDB		*cfdpConstants = _cfdpConstants();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
+	CfdpDB		cfdpdb;
 	Object		elt;
 	Object		addr;
 	CfdpExtent	extent;
@@ -2532,7 +2535,8 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 		return 0;			/*	Nothing to do.	*/
 	}
 
-	fdu->inactivityDeadline += cfdpConstants->transactionInactivityLimit;
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
+	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
 
 	/*	Prepare to issue indication.				*/
 
@@ -2704,7 +2708,7 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 	while (fileLength < segmentOffset)
 	{
 		if (write(cfdpvdb->currentFile,
-				&(cfdpConstants->fillCharacter), 1) < 0)
+				&(cfdpdb.fillCharacter), 1) < 0)
 		{
 			putSysErrmsg("Can't write to file", workingNameBuffer);
 			return handleFilestoreRejection(fdu, -1, &handler);
@@ -3110,7 +3114,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	CfdpHandler	handler;
 	CfdpEvent	event;
 	Sdr		sdr = getIonsdr();
-	CfdpDB		*cfdpConstants = _cfdpConstants();
+	CfdpDB		cfdpdb;
 
 	if (fdu->eofReceived)
 	{
@@ -3118,7 +3122,8 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	if (bytesRemaining < 9) return 0;	/*	Malformed.	*/
-	fdu->inactivityDeadline += cfdpConstants->transactionInactivityLimit;
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
+	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = (*cursor >> 4) & 0x0f;
 	cursor++;
@@ -3192,7 +3197,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	fdu->checkTime = getUTCTime();
-	fdu->checkTime += cfdpConstants->checkTimerPeriod;
+	fdu->checkTime += cfdpdb.checkTimerPeriod;
 	sdr_write(sdr, fduObj, (char *) fdu, sizeof(InFdu));
 	return checkInFduComplete(fdu, fduObj, fduElt);
 }
@@ -3201,7 +3206,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 			int dataFieldLength, InFdu *fdu, Object fduObj,
 		       	Object fduElt)
 {
-	CfdpDB		*cfdpConstants = _cfdpConstants();
+	CfdpDB		cfdpdb;
 	int		i;
 	unsigned int	fileSize = 0;		/*	Ignore it.	*/
 	char		stringBuf[256];
@@ -3215,7 +3220,8 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	if (bytesRemaining < 5) return 0;	/*	Malformed.	*/
-	fdu->inactivityDeadline += cfdpConstants->transactionInactivityLimit;
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
+	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
 	fdu->metadataReceived = 1;
 	fdu->recordBoundsRespected = (*cursor >> 7) & 0x01;
 	cursor++;
