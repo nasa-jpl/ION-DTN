@@ -54,6 +54,33 @@ Features included:
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.5.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #189/#250: ION now shuts down more cleanly.
+
+- Issue #196: The congestion checking subroutines have been implemented more
+  efficiently.
+
+- Issue #252: ION's user interface has been changed to be more uniform beteween
+  wrt platforms and new commands.
+
+- Issue #264: Removed checks for maximum block size in LTP, simplifying LTP
+  configuration and fixing a bug.
+  Related to the fix for issue #293, upgrading the LTP configuration worksheet.
+
+- Issue #276: Fixed issue where loopback ranges larger than 1 second were not
+  being recognized.
+
+- Issue #279: Fixed issue where calling bpMemo twice created timeline events
+  that could not be removed.
+
+- Issue #285/#286: Fixed issue where erroneous input to several administrative
+  applications could cause them to crash.
+
+- Issue #296: Corrected usage of an internal _xxxConstants() function to ensure
+  it is only used with invariant values.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.2 =
