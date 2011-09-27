@@ -1,7 +1,7 @@
 
-= Release Notes for ION 2.4.0 =
+= Release Notes for ION 2.5.0 =
 
-April 5, 2011
+September 29, 2011
 
 %%%%%%%%%%%
 = GENERAL =
@@ -58,29 +58,21 @@ Features included:
 = NOTES ON RELEASE 2.5.0 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-- Issue #189/#250: ION now shuts down more cleanly.
+- Issue #189/#250/#252: ION shutdown utility added.
 
 - Issue #196: The congestion checking subroutines have been implemented more
   efficiently.
 
-- Issue #252: ION's user interface has been changed to be more uniform beteween
-  wrt platforms and new commands.
-
-- Issue #264: Removed checks for maximum block size in LTP, simplifying LTP
-  configuration and fixing a bug.
-  Related to the fix for issue #293, upgrading the LTP configuration worksheet.
-
-- Issue #276: Fixed issue where loopback ranges larger than 1 second were not
-  being recognized.
+- Issue #276: Loopback range can now be set to a non-zero value.
 
 - Issue #279: Fixed issue where calling bpMemo twice created timeline events
   that could not be removed.
 
-- Issue #285/#286: Fixed issue where erroneous input to several administrative
+- Issue #286: Fixed issue where erroneous input to several administrative
   applications could cause them to crash.
 
-- Issue #296: Corrected usage of an internal _xxxConstants() function to ensure
-  it is only used with invariant values.
+- Issue #296: Corrected usage of internal _xxxConstants() functions to ensure
+  they are only used with invariant values.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.2 =
@@ -104,7 +96,7 @@ Features included:
                directory where HTML coverage results are stored
      make cov clean: removes the trace files and the "coverage" subdirectory
 
-- Issue #281: Fixed issue that stopped bputa from running when it was directed
+- Issue #281: Fixed issue that terminated bputa when it was directed
   to write to a file without sufficient write permissions.
 
 - Issue #282: Fixed issue where LTP segments received outside of a contact
@@ -274,8 +266,6 @@ Features included:
 - Bug fixes to: LTP, CGR, SDR mutex, bpcounter, ionscript, tcpcl, stcp,
   PSM mutex, SDR, bpsink, and others.
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.2.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -293,8 +283,6 @@ Features included:
   API changes.
 
 - Various other bug fixes and tweaks.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.2.0 =
@@ -319,8 +307,6 @@ Features included:
 - Optimize contact graph routing.
 
 - Various bug fixes and tweaks.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.1.0 =
@@ -350,8 +336,6 @@ Features included:
 
 - Bug fixes in the TCP convergence layer, particularly in the interest of interoperability
   with dtn2.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.0.0 =
@@ -385,8 +369,6 @@ Features included:
 - Documentation updates.
 
 - Various testing applications in earlier releases are split from the ion release.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 1.1.0 =
@@ -450,8 +432,6 @@ Features included:
 
 - Add interface for inserting BP extensions.
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 1.0_r203 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -483,8 +463,6 @@ Features included:
 
 - 2008-11-11 Added the ION Design and Operation manual v1.6.
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 0.3 =
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -510,8 +488,6 @@ Features included:
 
 - Added ionstart and ionstop scripts.
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 0.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -528,8 +504,6 @@ Features included:
   CWE site for AMS.  The API for AMS is unchanged.
 
 - A variety of miscellaneous bugs have been fixed.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 0.1 =
