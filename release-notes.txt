@@ -63,6 +63,9 @@ Features included:
 - Issue #196: The congestion checking subroutines have been implemented more
   efficiently.
 
+- Issue #265: The "bpdriver" application now allows users to set the TTL value
+  dynamically via a the "t<ttl>" command line parameter.
+
 - Issue #276: Loopback range can now be set to a non-zero value.
 
 - Issue #279: Fixed issue where calling bpMemo twice created timeline events
@@ -70,6 +73,9 @@ Features included:
 
 - Issue #286: Fixed issue where erroneous input to several administrative
   applications could cause them to crash.
+
+- Issue #292: Fixed issue where pid-checking routines can give false-negatives
+  for vxworks processes.
 
 - Issue #296: Corrected usage of internal _xxxConstants() functions to ensure
   they are only used with invariant values.
@@ -113,9 +119,6 @@ Features included:
 
 - Issue #287: Fixed issue that prevented the reporting of user messages and
   filestore responses in cfdptest.
-
-- Issue #292: Fixed issue where pid-checking routines can give false-negatives
-  for vxworks processes.
 
 - Issue #293: Fixed issue in the ION LTP Worksheet where the spreadsheet
   doesn't account for a small aggregation size limit when calculating
