@@ -320,7 +320,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] dccplsi is experimental software. Please see the README in the ltp/dccp source directory.");
 
 	vdb = getLtpVdb();
-	if (vdb->lsiPid > 0 && vdb->lsiPid != sm_TaskIdSelf())
+	if (vdb->lsiPid != ERROR && vdb->lsiPid != sm_TaskIdSelf())
 	{
 		putErrmsg("LSI task is already started.", itoa(vdb->lsiPid));
 		return 1;

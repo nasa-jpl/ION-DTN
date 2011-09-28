@@ -256,6 +256,7 @@ static IonVdb	*_ionvdb(char **name)
 			return NULL;
 		}
 
+		vdb->clockPid = ERROR;	/*	None yet.		*/
 		sdr_read(sdr, (char *) &iondb, _iondbObject(NULL),
 				sizeof(IonDB));
 		vdb->deltaFromUTC = iondb.deltaFromUTC;

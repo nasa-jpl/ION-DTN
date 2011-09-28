@@ -59,7 +59,7 @@ int	cfdp_entity_is_started()
 {
 	CfdpVdb	*vdb = getCfdpVdb();
 
-	return (vdb && vdb->clockPid > 0) ? 1 : 0;
+	return (vdb && vdb->clockPid != ERROR);
 }
 
 void	cfdp_compress_number(CfdpNumber *nbr, unsigned long val)

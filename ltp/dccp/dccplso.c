@@ -260,7 +260,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (vspan->lsoPid > 0 && vspan->lsoPid != sm_TaskIdSelf())
+	if (vspan->lsoPid != ERROR && vspan->lsoPid != sm_TaskIdSelf())
 	{
 		sdr_exit_xn(sdr);
 		putErrmsg("LSO task is already started for this span.",
