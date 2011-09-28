@@ -114,6 +114,9 @@ Features included:
 - Issue #287: Fixed issue that prevented the reporting of user messages and
   filestore responses in cfdptest.
 
+- Issue #292: Fixed issue where pid-checking routines can give false-negatives
+  for vxworks processes.
+
 - Issue #293: Fixed issue in the ION LTP Worksheet where the spreadsheet
   doesn't account for a small aggregation size limit when calculating
   export blocks
