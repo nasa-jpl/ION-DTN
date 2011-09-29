@@ -75,13 +75,9 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	tcp2file lt-tcp2file \
 	udpcli lt-udpcli \
 	udpclo lt-udpclo \
-	dccpcli	lt-dccpcli \
-	dccpclo lt-dccpclo \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
 	udp2file lt-udp2file \
-	dccplsi lt-dccplsi \
-	dccplso lt-dccplso \
 	"
 
 sw_vers 2> /dev/null > /dev/null
@@ -91,29 +87,34 @@ if [[ ! $? ]]; then
 	OS_VERS=`sw_vers | grep 10.4`
 fi
 
+OSNAME=`uname`
+if [ "$OSNAME" == "SunOS" ]; then
+    killcmd="pkill"
+else
+    killcmd="killall"
+fi
+
+
 echo "Sending TERM to ${KILLPROCESSLIST}..."
 for THECOMMAND in ${KILLPROCESSLIST}; do
-       killall "${THECOMMAND}" &> /dev/null
+    $killcmd "${THECOMMAND}" &> /dev/null
 done
 
 sleep 2
 
 echo "Sending KILL to the processes..."
 for THECOMMAND in ${KILLPROCESSLIST}; do
-        killall -9 "${THECOMMAND}" &> /dev/null
+    $killcmd -KILL "${THECOMMAND}" &> /dev/null
 done
 
 sleep 2
 
-PS_LIST=`ps -e`
-
 echo "Checking if all processes ended..."
 for THECOMMAND in ${KILLPROCESSLIST}; do
-	NOT_KILLED=`echo "${PS_LIST}" | grep '${THECOMMAND}' | grep -v grep`
-	if [[ "$NOT_KILLED" ]]; then
+	NOT_KILLED=`ps -e | grep "${THECOMMAND}" | grep -v grep | wc -l`
+	if [ "$NOT_KILLED" -gt 0 ]; then
 		echo "Unknown error: process '${THECOMMAND}' not killed...try rebooting?"
 	fi
-	NOT_KILLED=""
 done
 
 echo "Deleting shared memory to remove SDR..."
