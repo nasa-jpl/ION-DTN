@@ -2628,8 +2628,6 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 		unsigned int *fromIpAddress, char *content, int *length,
 		int *errnbr, int timeoutSeconds, DgrRC *rc)
 {
-	time_t		currentTime;
-	time_t		wakeupTime;
 	int		timeoutUsec;
 	LystElt		elt;
 	DgrRecord	rec;
@@ -2661,8 +2659,6 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 	}
 	else
 	{
-		currentTime = time(NULL);
-		wakeupTime = currentTime + timeoutSeconds;
 		timeoutUsec = timeoutSeconds * 1000000;
 	}
 

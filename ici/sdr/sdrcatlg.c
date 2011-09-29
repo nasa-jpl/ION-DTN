@@ -196,13 +196,11 @@ Object	sdr_read_catlg(Sdr sdrv, char *name, int *type, Object *object,
 		Object prev_elt)
 {
 	SdrMap		*map = _mapImage(sdrv);
-	SdrState	*sdr;
 	Object		catalogue;
 	Object		elt;
 	CatalogueEntry	entry;
 
 	CHKZERO(sdr_in_xn(sdrv));
-	sdr = sdrv->sdr;
 	if (prev_elt == 0)
 	{
 		sdrFetch(catalogue, ADDRESS_OF(catalogue));

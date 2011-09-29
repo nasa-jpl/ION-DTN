@@ -153,7 +153,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 	unsigned long	toNodeNbr;
 	unsigned long	xmitRate;
 	unsigned int	owlt;
-	Object		elt;
 
 	if (tokenCount < 2)
 	{
@@ -181,7 +180,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		xmitRate = strtol(tokens[6], NULL, 0);
-		elt = rfx_insert_contact(fromTime, toTime, fromNodeNbr,
+		rfx_insert_contact(fromTime, toTime, fromNodeNbr,
 				toNodeNbr, xmitRate);
 		return;
 	}
@@ -189,7 +188,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "range") == 0)
 	{
 		owlt = atoi(tokens[6]);
-		elt = rfx_insert_range(fromTime, toTime, fromNodeNbr,
+		rfx_insert_range(fromTime, toTime, fromNodeNbr,
 				toNodeNbr, owlt);
 		return;
 	}

@@ -5339,7 +5339,6 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 static int	ignoreHeaderExtensions(int extensionsCount, char **cursor,
 			int *bytesRemaining)
 {
-	unsigned char	tag;
 	unsigned long	extensionLength;
 
 	while (extensionsCount > 0)
@@ -5351,7 +5350,6 @@ static int	ignoreHeaderExtensions(int extensionsCount, char **cursor,
 			return -1;
 		}
 
-		tag = (unsigned char) **cursor;
 		(*cursor)++;
 		(*bytesRemaining)--;
 
@@ -5383,7 +5381,6 @@ int	ltpHandleInboundSegment(char *buf, int length)
 	LtpPdu		*pdu = &segment.pdu;
 	char		*cursor = buf;
 	int		bytesRemaining = length;
-	unsigned char	versionNbr;
 	unsigned long	sourceEngineId;
 	unsigned long	sessionNbr;
 	unsigned long	extensionLengths;
@@ -5395,7 +5392,6 @@ int	ltpHandleInboundSegment(char *buf, int length)
 
 	/*	Get version number and segment type (flags).		*/
 
-	versionNbr = ((*cursor) >> 4) & 0x0f;
 	pdu->segTypeCode = (*cursor) & 0x0f;
 	cursor++;
 	bytesRemaining--;

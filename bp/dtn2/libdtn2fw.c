@@ -382,7 +382,6 @@ int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 	Object		nextPlan;
 	Dtn2Plan	plan;
 	Object		planObj;
-	Object		elt;
 
 	CHKERR(nodeNm && defaultDir);
 	if (filterNodeName(nodeName, nodeNm) < 0)
@@ -409,11 +408,11 @@ int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 	{
 		if (nextPlan)
 		{
-			elt = sdr_list_insert_before(sdr, nextPlan, planObj);
+			sdr_list_insert_before(sdr, nextPlan, planObj);
 		}
 		else
 		{
-			elt = sdr_list_insert_last(sdr,
+			sdr_list_insert_last(sdr,
 					(_dtn2Constants())->plans, planObj);
 		}
 
