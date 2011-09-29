@@ -290,8 +290,8 @@ int	dtn2_lookupDirective(char *nodeName, char *demux, FwdDirective *dirbuf)
 		 *	might still be a wild-card match.		*/
 
 		last = stringLen - 1;
-		if (stringBuffer[last] == '~'	/*	"all nodes"	*/
-		&& strncmp(stringBuffer, nodeName, stringLen - 1) == 0)
+		if (stringBuffer[last] == '~'	/*	"all demuxes"	*/
+		&& strncmp(stringBuffer, demux, stringLen - 1) == 0)
 		{
 			break;		/*	Stop searching.		*/
 		}

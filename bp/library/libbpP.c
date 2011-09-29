@@ -96,7 +96,7 @@ static char	*_nullEid()
 
 static char		*_cbheSchemeName()
 {
-	return CBHE_SCHEME_NAME;
+	return "ipn";
 }
 
 /*	This is the scheme name for the legacy endpoint naming scheme
@@ -104,7 +104,7 @@ static char		*_cbheSchemeName()
 
 static char		*_dtn2SchemeName()
 {
-	return DTN2_SCHEME_NAME;
+	return "dtn";
 }
 
 /*	*	*	BP service control functions	*	*	*/
@@ -128,7 +128,7 @@ static void	resetEndpoint(VEndpoint *vpoint)
 	}
 
 	sm_SemTake(vpoint->semaphore);			/*	Lock.	*/
-	vpoint->appPid = -1;
+	vpoint->appPid = ERROR;				/*	None.	*/
 }
 
 static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)
@@ -214,8 +214,8 @@ static void	resetScheme(VScheme *vscheme)
 		resetEndpoint(vpoint);
 	}
 
-	vscheme->fwdPid = -1;
-	vscheme->admAppPid = -1;
+	vscheme->fwdPid = ERROR;
+	vscheme->admAppPid = ERROR;
 }
 
 static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
@@ -418,7 +418,7 @@ static void	stopScheme(VScheme *vscheme)
 		sm_SemEnd(vscheme->semaphore);	/*	Stop fwd.	*/
 	}
 
-	if (vscheme->admAppPid > 0)
+	if (vscheme->admAppPid != ERROR)
 	{
 		sm_TaskKill(vscheme->admAppPid, SIGTERM);
 	}
@@ -437,7 +437,7 @@ static void	stopScheme(VScheme *vscheme)
 
 static void	waitForScheme(VScheme *vscheme)
 {
-	if (vscheme->fwdPid > 0)
+	if (vscheme->fwdPid != ERROR)
 	{
 		while (sm_TaskExists(vscheme->fwdPid))
 		{
@@ -445,7 +445,7 @@ static void	waitForScheme(VScheme *vscheme)
 		}
 	}
 
-	if (vscheme->admAppPid > 0)
+	if (vscheme->admAppPid != ERROR)
 	{
 		while (sm_TaskExists(vscheme->admAppPid))
 		{
@@ -467,7 +467,7 @@ static void	resetInduct(VInduct *vduct)
 	}
 
 	sm_SemTake(vduct->acqThrottle.semaphore);	/*	Lock.	*/
-	vduct->cliPid = -1;
+	vduct->cliPid = ERROR;
 }
 
 static int	raiseInduct(Object inductElt, BpVdb *bpvdb)
@@ -548,7 +548,7 @@ static void	startInduct(VInduct *vduct)
 
 static void	stopInduct(VInduct *vduct)
 {
-	if (vduct->cliPid > 0)
+	if (vduct->cliPid != ERROR)
 	{
 		sm_TaskKill(vduct->cliPid, SIGTERM);
 	}
@@ -561,7 +561,7 @@ static void	stopInduct(VInduct *vduct)
 
 static void	waitForInduct(VInduct *vduct)
 {
-	if (vduct->cliPid > 0)
+	if (vduct->cliPid != ERROR)
 	{
 		while (sm_TaskExists(vduct->cliPid))
 		{
@@ -593,7 +593,7 @@ static void	resetOutduct(VOutduct *vduct)
 	}
 
 	sm_SemTake(vduct->xmitThrottle.semaphore);	/*	Lock.	*/
-	vduct->cloPid = -1;
+	vduct->cloPid = ERROR;
 }
 
 static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
@@ -693,7 +693,7 @@ static void	stopOutduct(VOutduct *vduct)
 
 static void	waitForOutduct(VOutduct *vduct)
 {
-	if (vduct->cloPid > 0)
+	if (vduct->cloPid != ERROR)
 	{
 		while (sm_TaskExists(vduct->cloPid))
 		{
@@ -786,7 +786,7 @@ static BpVdb	*_bpvdb(char **name)
 		memset((char *) vdb, 0, sizeof(BpVdb));
 		vdb->creationTimeSec = 0;
 		vdb->bundleCounter = 0;
-		vdb->clockPid = -1;
+		vdb->clockPid = ERROR;
 		vdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
 				SM_SEM_FIFO);
 		sm_SemTake(vdb->productionThrottle.semaphore);
@@ -951,7 +951,7 @@ int	bpStart()
 
 	/*	Start the bundle expiration clock if necessary.		*/
 
-	if (bpvdb->clockPid < 1 || sm_TaskExists(bpvdb->clockPid) == 0)
+	if (bpvdb->clockPid == ERROR || sm_TaskExists(bpvdb->clockPid) == 0)
 	{
 		sdr_string_read(bpSdr, cmdString, (_bpConstants())->clockCmd);
 		bpvdb->clockPid = pseudoshell(cmdString);
@@ -1025,7 +1025,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		stopOutduct(voutduct);
 	}
 
-	if (bpvdb->clockPid > 0)
+	if (bpvdb->clockPid != ERROR)
 	{
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
 	}
@@ -1055,7 +1055,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		waitForOutduct(voutduct);
 	}
 
-	if (bpvdb->clockPid > 0)
+	if (bpvdb->clockPid != ERROR)
 	{
 		while (sm_TaskExists(bpvdb->clockPid))
 		{
@@ -1066,7 +1066,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	sdr_begin_xn(bpSdr);
-	bpvdb->clockPid = -1;
+	bpvdb->clockPid = ERROR;
 	if (bpvdb->productionThrottle.semaphore == SM_SEM_NONE)
 	{
 		bpvdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
@@ -1354,8 +1354,6 @@ void	releaseDictionary(char *dictionary)
 int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		PsmAddress *vschemeElt)
 {
-	char	*uri;
-
 	/*	parseEidString is a Boolean function, returning 1 if
 	 *	the EID string was successfully parsed.			*/
 
@@ -1379,18 +1377,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	/*	EID string does not identify the null endpoint.		*/
 
 	metaEid->nullEndpoint = 0;
-#if BP_URI_RFC
-	if (strncmp(eid, "dtn::", 5) != 0)
-	{
-		writeMemoNote("[?] Don't know how to parse EID", eidString);
-		return 0;
-	}
-
-	uri = eidString + 5;
-#else
-	uri = eidString;
-#endif
-	metaEid->colon = strchr(uri, ':');
+	metaEid->colon = strchr(eidString, ':');
 	if (metaEid->colon == NULL)
 	{
 		writeMemoNote("[?] Malformed EID", eidString);
@@ -1398,8 +1385,8 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	}
 
 	*(metaEid->colon) = '\0';
-	metaEid->schemeName = uri;
-	metaEid->schemeNameLength = metaEid->colon - uri;
+	metaEid->schemeName = eidString;
+	metaEid->schemeNameLength = metaEid->colon - eidString;
 	metaEid->nss = metaEid->colon + 1;
 	metaEid->nssLength = strlen(metaEid->nss);
 
@@ -1452,31 +1439,19 @@ void	restoreEidString(MetaEid *metaEid)
 
 static int	printCbheEid(CbheEid *eid, char **result)
 {
-	char	*schemeName;
-	int	eidLength;
-	char	*decoration;
 	char	*eidString;
+	int	eidLength = 46;
 
-	schemeName = _cbheSchemeName();
-	eidLength = strlen(schemeName);
-#if BP_URI_RFC
 	/*	Printed EID string is
 	 *
-	 *	   dtn::<schemename>:<elementnbr>.<servicenbr>\0
+	 *	   ipn:<elementnbr>.<servicenbr>\0
 	 *
-	 *	so max EID string length is 5 for "dtn::" plus
-	 *	length of schemename plus 1 for ':' plus max
-	 *	length of nodeNbr (which is a 64-bit number, so
-	 *	20 digits) plus 1 for '.' plus max length of
-	 *	serviceNbr (which is a 64-bit number, so 20 digits)
+	 *	so max EID string length is 3 for "ipn" plus 1 for
+	 *	':' plus max length of nodeNbr (which is a 64-bit
+	 *	number, so 20 digits) plus 1 for '.' plus max lengthx
+	 *	of serviceNbr (which is a 64-bit number, so 20 digits)
 	 *	plus 1 for the terminating NULL.			*/
 
-	eidLength += 48;
-	decoration = "dtn::";
-#else
-	eidLength += 43;
-	decoration = "";
-#endif
 	eidString = MTAKE(eidLength);
 	if (eidString == NULL)
 	{
@@ -1490,8 +1465,8 @@ static int	printCbheEid(CbheEid *eid, char **result)
 	}
 	else
 	{
-		isprintf(eidString, eidLength, "%s%s:%lu.%lu", decoration,
-				schemeName, eid->nodeNbr, eid->serviceNbr);
+		isprintf(eidString, eidLength, "ipn:%lu.%lu", eid->nodeNbr,
+				eid->serviceNbr);
 	}
 
 	*result = eidString;
@@ -1503,19 +1478,12 @@ static int	printDtnEid(DtnEid *eid, char *dictionary, char **result)
 	int	schemeNameLength;
 	int	nssLength;
 	int	eidLength;
-	char	*decoration;
 	char	*eidString;
 
 	CHKERR(dictionary);
 	schemeNameLength = strlen(dictionary + eid->schemeNameOffset);
 	nssLength = strlen(dictionary + eid->nssOffset);
 	eidLength = schemeNameLength + nssLength + 2;
-#if BP_URI_RFC
-	eidLength += 5;
-	decoration = "dtn::";
-#else
-	decoration = "";
-#endif
 	eidString = MTAKE(eidLength);
 	if (eidString == NULL)
 	{
@@ -1523,7 +1491,7 @@ static int	printDtnEid(DtnEid *eid, char *dictionary, char **result)
 		return -1;
 	}
 
-	isprintf(eidString, eidLength, "%s%s:%s", decoration,
+	isprintf(eidString, eidLength, "%s:%s",
 			dictionary + eid->schemeNameOffset,
 			dictionary + eid->nssOffset);
 	*result = eidString;
@@ -1576,21 +1544,15 @@ BpEidLookupFn	*senderEidLookupFunctions(BpEidLookupFn fn)
 	return NULL;
 }
 
-void	getSenderEid(char **eidBuffer, char *neighborClId)
+void	getSenderEid(char **eidBuffer, char *neighborClEid)
 {
-	char		*uriBuffer;
 	BpEidLookupFn	*lookupFns;
 	int		i;
 	BpEidLookupFn	lookupEid;
 
 	CHKVOID(eidBuffer);
 	CHKVOID(*eidBuffer);
-	CHKVOID(*neighborClId);
-	uriBuffer = *eidBuffer;
-#ifdef BP_URI_RFC
-	istrcpy(*uriBuffer, "dtn::", 6);
-	uriBuffer += 5;
-#endif
+	CHKVOID(*neighborClEid);
 	lookupFns = senderEidLookupFunctions(NULL);
 	for (i = 0; i < 16; i++)
 	{
@@ -1599,7 +1561,8 @@ void	getSenderEid(char **eidBuffer, char *neighborClId)
 		{
 			break;		/*	Reached end of table.	*/
 		}
-		switch (lookupEid(uriBuffer, neighborClId))
+
+		switch (lookupEid(*eidBuffer, neighborClEid))
 		{
 		case -1:
 			putErrmsg("Failed getting sender EID.", NULL);
@@ -1716,7 +1679,7 @@ int	startBpTask(Object cmd, Object cmdParms, int *pid)
 	}
 
 	*pid = pseudoshell(buffer);
-	if (*pid < 0)
+	if (*pid == ERROR)
 	{
 		putErrmsg("Can't start task.", buffer);
 		return -1;
@@ -2929,7 +2892,7 @@ int	removeEndpoint(char *eid)
 		return 0;
 	}
 
-	if (vpoint->appPid > 0 && sm_TaskExists(vpoint->appPid))
+	if (vpoint->appPid != ERROR && sm_TaskExists(vpoint->appPid))
 	{
 		sdr_exit_xn(bpSdr);
 		writeMemoNote("[?] Endpoint can't be removed while open", eid);
@@ -4890,7 +4853,7 @@ static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
 
 	GET_OBJ_POINTER(bpSdr, Endpoint, endpoint, sdr_list_data(bpSdr,
 				vpoint->endpointElt));
-	if (vpoint->appPid < 1)		/*	Not open by any app.	*/
+	if (vpoint->appPid == ERROR)	/*	Not open by any app.	*/
 	{
 		/*	Execute reanimation script, if any.		*/
 
@@ -5630,6 +5593,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	static int		maxAcqInHeap = 0;
 	Sdr			sdr = getIonsdr();
 	BpDB			*bpConstants = _bpConstants();
+	BpDB			bpdb;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
 	int			fd;
@@ -5638,6 +5602,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	CHKERR(work);
 	CHKERR(bytes);
 	CHKERR(length >= 0);
+	sdr_begin_xn(sdr);
 	if (maxAcqInHeap == 0)
 	{
 		/*	Initialize threshold for acquiring bundle
@@ -5648,13 +5613,13 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		 *	bundle were entirely acquired into a file.	*/
 
 		maxAcqInHeap = zco_file_ref_occupancy(sdr, 0);
-		if (bpConstants->maxAcqInHeap > maxAcqInHeap)
+		sdr_read(sdr, (char *) &bpdb, getBpDbObject(), sizeof(BpDB));
+		if (bpdb.maxAcqInHeap > maxAcqInHeap)
 		{
-			maxAcqInHeap = bpConstants->maxAcqInHeap;
+			maxAcqInHeap = bpdb.maxAcqInHeap;
 		}
 	}
 
-	sdr_begin_xn(sdr);
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
 		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
@@ -5700,7 +5665,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		acqCount++;
 		isprintf(fileName, sizeof fileName, "%s%cbpacq.%lu", cwd,
 				ION_PATH_DELIMITER, acqCount);
-		fd = open(fileName, O_WRONLY | O_CREAT, 0666);
+		fd = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0)
 		{
 			putSysErrmsg("Can't create acq file", fileName);
@@ -5715,7 +5680,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	{
 		oK(zco_file_ref_path(sdr, work->acqFileRef, fileName,
 				sizeof fileName));
-		fd = open(fileName, O_WRONLY, 0666);
+		fd = iopen(fileName, O_WRONLY, 0666);
 		if (fd < 0 || (fileLength = lseek(fd, 0, SEEK_END)) < 0)
 		{
 			putSysErrmsg("Can't reopen acq file", fileName);
@@ -8213,7 +8178,7 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 }
 
 int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
-		Outduct *outduct)
+		Outduct *outduct, int sendToLimbo)
 {
 	Sdr		bpSdr = getIonsdr();
 	Object		xrAddr;
@@ -8222,7 +8187,7 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 
 	xrAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
-	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
+	sdr_read(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
 	sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
 	removeBundleFromQueue(xmitElt, &bundle, protocol, outductObj, outduct);
 	if (xr.proxNodeEid)
@@ -8237,16 +8202,25 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 
 	sdr_free(bpSdr, xrAddr);
 
-	/*	If bundle is MINIMUM_LATENCY, nothing more to do.
-	 *	We never put critical bundles into limbo.		*/
+	/*	If bundle is MINIMUM_LATENCY, nothing more to do.  We
+	 *	never reforward critical bundles or send them to limbo.	*/
 
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
 		return 0;
 	}
 
-	/*	Non-critical bundle, so let's redirect it into limbo.	*/
+	if (!sendToLimbo)
+	{
+		/*	Want to give bundle another chance to be
+		 *	transmitted at next opportunity.		*/
 
+		return bpReforwardBundle(xr.bundleObj);
+	}
+
+	/*	Must queue the bundle into limbo unconditionally.	*/
+
+	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, 0);
 	if (bundle.overdueElt)
 	{
 		/*	Bundle was un-queued before "overdue"
@@ -8314,8 +8288,7 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 0))
 		{
 			putErrmsg("Can't requeue urgent bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -8327,8 +8300,7 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 0))
 		{
 			putErrmsg("Can't requeue std bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -8340,8 +8312,7 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 0))
 		{
 			putErrmsg("Can't requeue bulk bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -9577,11 +9548,18 @@ int	bpMemo(Object bundleObj, int interval)
 
 	CHKERR(bundleObj);
 	CHKERR(interval > 0);
-	sdr_begin_xn(bpSdr);
-	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	event.type = ctDue;
 	event.time = getUTCTime() + interval;
 	event.ref = bundleObj;
+	sdr_begin_xn(bpSdr);
+	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+	if (bundle.ctDueElt)
+	{
+		writeMemo("Revising a custody acceptance due timer.");
+		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
+		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+	}
+
 	bundle.ctDueElt = insertBpTimelineEvent(&event);
 	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 	if (sdr_end_xn(bpSdr) < 0)

@@ -4,7 +4,7 @@ bpdriver - Bundle Protocol transmission test program
 
 =head1 SYNOPSIS
 
-B<bpdriver> I<nbrOfCycles> I<ownEndpointId> I<destinationEndpointId> [I<length>]
+B<bpdriver> I<nbrOfCycles> I<ownEndpointId> I<destinationEndpointId> [I<length>] [tI<TTL>]
 
 =head1 DESCRIPTION
 
@@ -13,6 +13,10 @@ units of length indicated by I<length>, to a counterpart application task
 that has opened the BP endpoint identified by I<destinationEndpointId>.
 
 If omitted, I<length> defaults to 60000.  
+
+I<TTL> indicates the number of seconds the bundles may remain in the
+network, undelivered, before they are automatically destroyed. If omitted, I<TTL>
+defaults to 300 seconds.
 
 B<bpdriver> normally runs in "echo" mode: after sending each bundle it
 waits for an acknowledgment bundle before sending the next one.  For this

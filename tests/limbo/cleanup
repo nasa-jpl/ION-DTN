@@ -4,5 +4,5 @@
 # October 11, 2010
 
 echo "Cleaning up old ION..."
-rm -f ion_nodes 2.ipn.tcp/ion.log 3.ipn.tcp/ion.log 3.ipn.tcp/testfile*
+rm -f ion_nodes *.ipn.tcp/ion.log 3.ipn.tcp/testfile*
 killm

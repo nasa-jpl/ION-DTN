@@ -4,30 +4,29 @@ cfdptest - CFDP test shell for ION
 
 =head1 SYNOPSIS
 
-B<cfdptest> [I<destination entity nbr> I<source file name> I<destination file name> [I<time-to-live> [I<priority> [I<ordinal> [I<unreliable> [I<critical>]]]]]]
+B<cfdptest> [ I<commands_filename> ]
 
 =head1 DESCRIPTION
 
 B<cfdptest> provides a mechanism for testing CFDP file transmission.  It can
 be used in either scripted or interactive mode.  All bundles containing CFDP
-PDUs are sent with custody transfer requested and all bundle status reporting
-disabled.
+PDUs are sent with custody transfer requested and with all bundle status
+reporting disabled.
 
-When command-line parameters are used to specify destination entity number,
-source file name, destination file name, and (optionally) quality-of-service
-paramter values, B<cfdptest> uses those values to initiate transmission of
-the indicated file and then immediately terminates.  Omitted parameters
-default as noted below.
+When scripted with I<commands_filename>, B<cfdptest> operates in response to
+CFDP management commands contained in the provided commands file.  Each line
+of text in the file is interpreted as a single command comprising several
+tokens: a one-character command code and, in most cases, one or more command
+arguments of one or more characters.  The commands configure and initiate
+CFDP file transmission operations.
 
-Otherwise, B<cfdptest> offers the user an interactive "shell" for testing CFDP
-file transmission.  B<cfdptest> prints a prompt string (": ") to stdout,
-accepts strings of text from stdin, and uses the strings to configure and
-initiate a CFDP file transmission operation.  Each string of text from stdin
-is interpreted as a command comprising several tokens: a one-character
-command code and, in most cases, one or more command argument of one or
-more characters.
+If no file is specified, B<cfdptest> instead offers the user an interactive
+"shell" for command entry.  B<cfdptest> prints a prompt string (": ") to
+stdout, accepts strings of text from stdin, and interprets each string as
+a command.
 
-The supported interactive B<cfdptest> commands are as follows:
+The supported B<cfdptest> commands (whether interactive or scripted) are as
+follows:
 
 =over 4
 
@@ -79,8 +78,10 @@ Valid values are 0-254.  If not specified, ordinal is 0.
 
 The B<mode> command.  This command establishes the transmission mode
 ("best-effort" or assured) for all subsequently issued bundles containing
-CFDP PDUs.  Valid values are 0 (assured, reliable) and 1 (best-effort,
-unreliable).  If not specified, transmission mode is 0.
+CFDP PDUs.  Valid values are 0 (assured, reliable, with reliability
+provided by a reliable DTN convergence layer protocol), 1 (best-effort,
+unreliable), and 2 (assured, reliable, but with reliability provided by BP
+custody transfer).  If not specified, transmission mode is 0.
 
 =item B<c> <criticality>
 
@@ -177,7 +178,7 @@ will be noted in the B<ion.log> log file.
 
 =head1 FILES
 
-No configuration files are needed.
+See above for details on valid I<commands_filename> commands.
 
 =head1 ENVIRONMENT
 
@@ -189,6 +190,10 @@ Diagnostic messages produced by B<cfdptest> are written to the ION log
 file I<ion.log>.
 
 =over 4
+
+=item Can't open command file...
+
+The file identified by I<commands_filename> doesn't exist.
 
 =item cfdptest can't initialize CFDP.
 

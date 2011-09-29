@@ -190,7 +190,9 @@ typedef struct amssapst
 	Lyst		invitations;		/*	(MsgRule *)	*/
 
 	pthread_t	heartbeatThread;
+	int		haveHeartbeatThread;
 	pthread_t	mamsThread;
+	int		haveMamsThread;
 
 	Lyst		mamsEvents;		/*	(AmsEvt *)	*/
 	struct llcv_str	mamsEventsCV_str;

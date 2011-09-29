@@ -1027,6 +1027,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	heapmax = strtol(tokens[2], NULL, 0);
@@ -1463,7 +1464,7 @@ int	main(int argc, char **argv)
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
 			PERROR("Can't open command file");

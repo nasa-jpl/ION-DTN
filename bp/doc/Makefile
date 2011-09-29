@@ -37,6 +37,8 @@ MANFILES = \
 	./man/man1/tcpclo.1 \
 	./man/man1/udpcli.1 \
 	./man/man1/udpclo.1 \
+	./man/man1/dccpcli.1 \
+	./man/man1/dccpclo.1 \
 	./man/man5/bprc.5 \
 	./man/man5/ipnrc.5 \
 	./man/man5/dtn2rc.5 \
@@ -78,6 +80,8 @@ HTMLFILES = \
 	./html/man1/tcpclo.html \
 	./html/man1/udpcli.html \
 	./html/man1/udpclo.html \
+	./html/man1/dccpcli.html \
+	./html/man1/dccpclo.html \
 	./html/man5/bprc.html \
 	./html/man5/ipnrc.html \
 	./html/man5/dtn2rc.html \

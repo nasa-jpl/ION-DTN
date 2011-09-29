@@ -153,7 +153,7 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 		return 0;
 	}
 
-	sourceFd = open(pathName, O_RDONLY, 0);
+	sourceFd = iopen(pathName, O_RDONLY, 0);
 	if (sourceFd == -1)
 	{
 		putSysErrmsg("Can't open source file", pathName);
@@ -265,7 +265,7 @@ int	zco_revise_file_ref(Sdr sdr, Object fileRefObj, char *pathName,
 		return -1;
 	}
 
-	sourceFd = open(pathName, O_RDONLY, 0);
+	sourceFd = iopen(pathName, O_RDONLY, 0);
 	if (sourceFd == -1)
 	{
 		putSysErrmsg("Can't open source file", pathName);
@@ -1089,7 +1089,7 @@ static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 
 		sdr_stage(sdr, (char *) &fileRef, extent->location,
 				sizeof(FileRef));
-		fd = open(fileRef.pathName, O_RDONLY, 0);
+		fd = iopen(fileRef.pathName, O_RDONLY, 0);
 		if (fd >= 0)
 		{
 			if (fstat(fd, &statbuf) < 0)

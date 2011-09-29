@@ -47,14 +47,14 @@ each "span" of potential LTP data exchange between the local LTP and
 neighboring engines are non-trivial to determine.  See the ION LTP
 configuration spreadsheet and accompanying documentation for details.
 
-=item B<a span> I<peer_engine_nbr> I<max_export_sessions> I<max_export_session_block_size> I<max_import_sessions> I<max_import_session_block_size> I<max_segment_size> I<aggregation_size_limit> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
+=item B<a span> I<peer_engine_nbr> I<max_export_sessions> I<max_import_sessions> I<max_segment_size> I<aggregation_size_limit> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
 
 The B<add span> command.  This command declares that a I<span> of potential
 LTP data interchange exists between the local LTP engine and the indicated
 (neighboring) LTP engine.
 
-The I<max_segment_size>, the I<aggregation_size_limit>, and both block size
-limits are expressed as numbers of bytes of data.  I<max_segment_size>
+The I<max_segment_size> and I<aggregation_size_limit>
+are expressed as numbers of bytes of data.  I<max_segment_size>
 limits the size of each of the segments into which each outbound data
 I<block> will be divided; typically this limit will be the maximum number
 of bytes that can be encapsulated within a single transmission frame of the
@@ -72,21 +72,16 @@ it is segmented and transmitted regardless of size.  The aggregation time
 limit prevents undue delay before the transmission of data during periods
 of low activity.
 
-I<max_export_session_block_size> limits the size of any single service data
-unit (e.g., bundle) that may be conveyed by LTP over this span.  The product
-of I<max_export_sessions> and I<max_export_session_block_size> will be the
-size of the local LTP engine's retransmission "window" for this span.  The
+I<max_export_sessions> constitutes, in effect,
+the local LTP engine's retransmission "window" for this span.  The
 retransmission windows of the spans impose flow control on LTP transmission,
-preventing the allocation of all available space in the ION node's data
+reducing the chance of allocation of all available space in the ION node's data
 store to LTP transmission sessions.
 
-The I<max_import_session_block_size> and I<max_import_sessions> parameters
-are simply the neighoring engine's own values for the corresponding export
-session parameters; their product is the neighboring engine's retransmission
-window size for this span.
-
-The total I<database_bytes_needed> for LTP is simply the sum of all local
-and remote retransmission window sizes for all spans.
+I<max_import_sessions> is simply the neighoring engine's own value for the
+corresponding export session parameter; it is the neighboring engine's
+retransmission window size for this span.  It reduces the chance of allocation
+of all available space in the ION node's data store to LTP reception sessions.
 
 I<LSO_command> is script text that will be executed when LTP is started on
 this node, to initiate operation of a link service output task for this
@@ -110,7 +105,7 @@ bundles in each session's block, to avoid having to wait for the restart
 of transmission on this span before those bundles can be successfully
 transmitted.
 
-=item B<c span> I<peer_engine_nbr> I<max_export_sessions> I<max_export_session_block_size> I<max_import_sessions> I<max_import_session_block_size> I<max_segment_size> I<aggregation_size_limit> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
+=item B<c span> I<peer_engine_nbr> I<max_export_sessions> I<max_import_sessions> I<max_segment_size> I<aggregation_size_limit> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
 
 The B<change span> command.  This command sets the indicated span's 
 configuration parameters to the values provided as arguments.
@@ -212,14 +207,12 @@ formats.  It is the same as the B<?> command.
 
 =over 4
 
-=item a span 19 20 1000000 5 50000 1024 32768 2 'udplso node19.ohio.edu:5001'
+=item a span 19 20 5 1024 32768 2 'udplso node19.ohio.edu:5001'
 
 Declares a data interchange span between the local LTP engine and the remote
 engine (ION node) numbered 19.  There can be at most 20 concurrent sessions
-of export activity to this node, and the maximum size of any single bundle
-that can be sent to this node is 1000000 bytes.  Conversely, node 19 can
-have at most 5 concurrent sessions of export activity to the local node and
-the maximum size of any single bundle sent by node 19 over LTP is 50000 bytes.
+of export activity to this node.  Conversely, node 19 can
+have at most 5 concurrent sessions of export activity to the local node.
 Maximum segment size for this span is set to 1024 bytes, aggregation size
 limit is 32768 bytes, aggregation time limit is 2 seconds, and the link service
 output task that is initiated when LTP is started on the local ION node

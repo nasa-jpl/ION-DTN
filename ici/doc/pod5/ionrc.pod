@@ -93,7 +93,8 @@ and the rate of data transmission will be I<xmit_data_rate> bytes/second.
 
 The B<delete contact> command.  This command deletes the scheduled
 period of data transmission from I<source_node> to I<dest_node> starting
-at I<start_time>.
+at I<start_time>.  To delete all contacts between some pair of nodes,
+use '*' as I<start_time>.
 
 =item B<i contact> I<start_time> I<source_node> I<dest_node>
 
@@ -117,7 +118,8 @@ will be I<distance> light seconds.
 
 The B<delete range> command.  This command deletes the predicted period of
 constant distance between I<one_node> and I<the_other_node> starting
-at I<start_time>.
+at I<start_time>.  To delete all ranges between some pair of nodes,
+use '*' as I<start_time>.
 
 =item B<i range> I<start_time> I<one_node> I<the_other_node>
 

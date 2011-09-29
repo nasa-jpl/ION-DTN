@@ -183,18 +183,20 @@ extern int		sdr_end_xn(Sdr sdr);
 
 /*		Low-level SDR I/O functions.				*/
 
-typedef long		Address;
+typedef long		SdrAddress;
+#define	Address		SdrAddress
 
-/*	Both Objects and Addresses are absolute offsets from the
+/*	Both SdrObjects and SdrAddresses are absolute offsets from the
 	start of an SDR heap; they are functionally equivalent
 	to pointers in DRAM.  They are differentiated to enable
 	compile-time type checking to detect some possible SDR
-	access errors: an Object is the address of some block of
+	access errors: an SdrObject is the address of some block of
 	SDR space allocated by sdr_malloc() in the sdrmgt library,
-	while an Address can point to any location in the SDR
+	while an SdrAddress can point to any location in the SDR
 	(i.e., it can point anywhere inside an object).			*/
 
-typedef unsigned long	Object;
+typedef unsigned long	SdrObject;
+#define	Object		SdrObject
 
 extern void		*sdr_pointer(Sdr sdr, Address address);
 extern Address		sdr_address(Sdr sdr, void *pointer);

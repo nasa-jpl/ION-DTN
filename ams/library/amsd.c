@@ -9,6 +9,9 @@
 	acknowledged.
 									*/
 #include "amscommon.h"
+#include "ams.h"
+
+#define	RS_STOP_EVT	21
 
 typedef struct
 {
@@ -47,6 +50,20 @@ typedef struct
 	MamsInterface	tsif;
 } RsState;
 
+typedef struct
+{
+	int		dmRequired;
+	int		dmRunning;
+	char		*mibSource;
+	char		*dmAppName;
+	char		*dmAuthName;
+	char		*dmUnitName;
+	AmsModule	dmModule;
+	pthread_t	dmThread;
+	CsState		*csState;
+	RsState		*rsState;
+} DmState;
+
 static int	_amsdRunning(int *state)
 {
 	static int		running = 0;
@@ -57,10 +74,14 @@ static int	_amsdRunning(int *state)
 		if (*state == 0)	/*	Stopping.		*/
 		{
 			running = 0;
+#ifdef mingw
+			sm_Wakeup(GetCurrentProcessId());
+#else
 			if (pthread_equal(amsdThread, pthread_self()) == 0)
 			{
 				pthread_kill(amsdThread, SIGINT);
 			}
+#endif
 		}
 		else			/*	Starting.		*/
 		{
@@ -76,8 +97,8 @@ static void	shutDownAmsd()
 {
 	int	stop = 0;
 
-	oK(_amsdRunning(&stop));
 	isignal(SIGINT, shutDownAmsd);
+	oK(_amsdRunning(&stop));
 }
 
 /*	*	*	Configuration server code	*	*	*/
@@ -101,11 +122,9 @@ static void	stopOtherConfigServers(CsState *csState)
 
 static void	*csHeartbeat(void *parm)
 {
-	AmsMib		*mib = _mib(NULL);
 	CsState		*csState = (CsState *) parm;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cv;
-	sigset_t	signals;
 	int		cycleCount = 6;
 	int		i;
 	Venture		*venture;
@@ -129,12 +148,15 @@ static void	*csHeartbeat(void *parm)
 		putSysErrmsg("Can't start heartbeat, cond init failed", NULL);
 		return NULL;
 	}
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
-		LOCK_MIB;
+		lockMib();
 		if (cycleCount > 5)	/*	Every N5_INTERVAL sec.	*/
 		{
 			cycleCount = 0;
@@ -177,7 +199,7 @@ heartbeat.", NULL);
 
 		/*	Now sleep for N3_INTERVAL seconds.		*/
 
-		UNLOCK_MIB;
+		unlockMib();
 		getCurrentTime(&workTime);
 		deadline.tv_sec = workTime.tv_sec + N3_INTERVAL;
 		deadline.tv_nsec = workTime.tv_usec * 1000;
@@ -208,6 +230,11 @@ static void	cleanUpCsState(CsState *csState)
 		csState->tsif.ts->shutdownFn(csState->tsif.sap);
 	}
 
+	if (csState->tsif.ept)
+	{
+		MRELEASE(csState->tsif.ept);
+	}
+
 	if (csState->csEvents)
 	{
 		lyst_destroy(csState->csEvents);
@@ -221,31 +248,6 @@ static void	cleanUpCsState(CsState *csState)
 static void	reloadRsRegistrations(CsState *csState)
 {
 	return;		/*	Maybe do this eventually.		*/
-}
-
-static void	shutDownMsgspace(CsState *csState, Venture *venture)
-{
-	int	i;
-	Unit	*unit;
-	Cell	*cell;
-	char	reasonCode = REJ_SHUTDOWN;
-
-	for (i = 0; i <= MAX_UNIT_NBR; i++)
-	{
-		unit = venture->units[i];
-		if (unit == NULL
-		|| (cell = unit->cell)->mamsEndpoint.ept == NULL)
-		{
-			continue;
-		}
-
-		if (sendMamsMsg(&(cell->mamsEndpoint), &(csState->tsif),
-					rejection, 0, 1, &reasonCode) < 0)
-		{
-			putErrmsg("CS can't send rejection.", NULL);
-			break;
-		}
-	}
 }
 
 static void	processMsgToCs(CsState *csState, AmsEvt *evt)
@@ -324,7 +326,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		{
 			reasonCode = REJ_NO_UNIT;
 			endpoint.ept = ept;
-			if (((mib->pts->parseMamsEndpointFn)(&endpoint)) < 0)
+			if (((mib->pts->parseMamsEndpointFn)(&endpoint)) == 0)
 			{
 				if (sendMamsMsg(&endpoint, &(csState->tsif),
 						rejection, msg->memo, 1,
@@ -333,6 +335,8 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 					putErrmsg("CS can't reject registrar.",
 							NULL);
 				}
+
+				(mib->pts->clearMamsEndpointFn)(&endpoint);
 			}
 
 			return;
@@ -358,7 +362,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 			reasonCode = REJ_DUPLICATE;
 			endpoint.ept = ept;
-			if (((mib->pts->parseMamsEndpointFn)(&endpoint)) < 0)
+			if (((mib->pts->parseMamsEndpointFn)(&endpoint)) == 0)
 			{
 				if (sendMamsMsg(&endpoint, &(csState->tsif),
 						rejection, msg->memo, 1,
@@ -367,6 +371,8 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 					putErrmsg("CS can't reject registrar.",
 							NULL);
 				}
+
+				(mib->pts->clearMamsEndpointFn)(&endpoint);
 			}
 
 			return;
@@ -468,35 +474,6 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			return;		/*	Can't respond.		*/
 		}
 
-		/*	ION extension: if role number of this message
-		 *	is MAX_ROLE_NBR then role is assumed to be
-		 *	"stop".  An authenticated registrar_query
-		 *	message from a module whose role is "stop"
-		 *	causes the configuration server to shut down
-		 *	the indicated message space by sending
-		 *	"rejection" messages to all registrars for
-		 *	that message space, then terminate amsd
-		 *	itself.  Since the message space is being
-		 *	shut down, the "stop" module clearly cannot
-		 *	register; a registrar_unknown message is
-		 *	returned to the module.				*/
-
-		if (msg->roleNbr == MAX_ROLE_NBR)
-		{
-			if (sendMamsMsg(&endpoint, &(csState->tsif),
-				registrar_unknown, msg->memo, 0, NULL) < 0)
-			{
-				putErrmsg("CS can't send registrar_unknown",
-						NULL);
-			}
-
-			shutDownMsgspace(csState, venture);
-			shutDownAmsd();
-			return;
-		}
-
-		/*	End of ION "stop" extension.			*/
-
 		if (unit == NULL)
 		{
 			unitNbr = 0;
@@ -521,6 +498,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 						NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -538,6 +516,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			putErrmsg("CS can't send cell_spec.", NULL);
 		}
 
+		(mib->pts->clearMamsEndpointFn)(&endpoint);
 		return;
 
 	default:		/*	Inapplicable message; ignore.	*/
@@ -547,15 +526,17 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 static void	*csMain(void *parm)
 {
-	AmsMib		*mib = _mib(NULL);
-	CsState		*csState = (CsState *) parm;
-	sigset_t	signals;
-	LystElt		elt;
-	AmsEvt		*evt;
+	CsState	*csState = (CsState *) parm;
+	LystElt	elt;
+	AmsEvt	*evt;
 
 	CHKNULL(csState);
+#ifndef mingw
+	sigset_t	signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	csState->csRunning = 1;
 	writeMemo("[i] Configuration server is running.");
 	while (1)
@@ -581,9 +562,9 @@ static void	*csMain(void *parm)
 		switch (evt->type)
 		{
 		case MAMS_MSG_EVT:
-			LOCK_MIB;
+			lockMib();
 			processMsgToCs(csState, evt);
-			UNLOCK_MIB;
+			unlockMib();
 			recycleEvent(evt);
 			continue;
 
@@ -642,7 +623,7 @@ static int	startConfigServer(CsState *csState)
 	 *	function is one of the ones that the continuum knows
 	 *	about.							*/
 
-	LOCK_MIB;
+	lockMib();
 	for (elt = lyst_first(mib->csEndpoints); elt; elt = lyst_next(elt))
 	{
 		ep = (MamsEndpoint *) lyst_data(elt);
@@ -653,7 +634,7 @@ static int	startConfigServer(CsState *csState)
 		}
 	}
 
-	UNLOCK_MIB;
+	unlockMib();
 	if (csState->startOfFailoverChain == NULL)
 	{
 		putErrmsg("Endpoint spec doesn't match any catalogued \
@@ -989,12 +970,10 @@ termination to peer modules.", NULL);
 
 static void	*rsHeartbeat(void *parm)
 {
-	AmsMib		*mib = _mib(NULL);
 	RsState		*rsState = (RsState *) parm;
 	int		cycleCount = 0;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cv;
-	sigset_t	signals;
 	int		supplementLen;
 	char		*ept;
 	int		beatsSinceResync = -1;
@@ -1015,12 +994,15 @@ static void	*rsHeartbeat(void *parm)
 		putSysErrmsg("Can't start heartbeat, cond init failed", NULL);
 		return NULL;
 	}
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)		/*	Every 10 seconds.		*/
 	{
-		LOCK_MIB;
+		lockMib();
 
 		/*	Send heartbeat to configuration server.		*/
 
@@ -1039,7 +1021,7 @@ static void	*rsHeartbeat(void *parm)
 			ept = MTAKE(supplementLen);
 			if (ept == NULL)
 			{
-				UNLOCK_MIB;
+				unlockMib();
 				putErrmsg("Can't record endpoint.", NULL);
 				return NULL;
 			}
@@ -1054,7 +1036,7 @@ static void	*rsHeartbeat(void *parm)
 		/*	Send heartbeats to all modules in cell; resync.	*/
 
 		processHeartbeatCycle(rsState, &cycleCount, &beatsSinceResync);
-		UNLOCK_MIB;
+		unlockMib();
 
 		/*	Sleep for N3_INTERVAL seconds and repeat.	*/
 
@@ -1086,6 +1068,11 @@ static void	cleanUpRsState(RsState *rsState)
 	if (rsState->tsif.ts)
 	{
 		rsState->tsif.ts->shutdownFn(rsState->tsif.sap);
+	}
+
+	if (rsState->tsif.ept)
+	{
+		MRELEASE(rsState->tsif.ept);
 	}
 
 	if (rsState->rsEvents)
@@ -1199,16 +1186,6 @@ static int	skipDeclaration(int *bytesRemaining, char **cursor)
 	return 0;
 }
 
-static void	shutDownCell(RsState *rsState)
-{
-	if (forwardMsg(rsState, you_are_dead, 0, rsState->cell->unit->nbr,
-				0, 0, NULL) < 0)
-	{
-		putErrmsg("Registrar can't shut down cell.",
-				itoa(rsState->cell->unit->nbr));
-	}
-}
-
 static void	processMsgToRs(RsState *rsState, AmsEvt *evt)
 {
 	AmsMib		*mib = _mib(NULL);
@@ -1285,11 +1262,6 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 		case REJ_NO_UNIT:
 			reasonString = "No such unit";
-			break;
-
-		case REJ_SHUTDOWN:	/*	ION extension.		*/
-			shutDownCell(rsState);
-			reasonString = "Shut down";
 			break;
 
 		default:
@@ -1398,6 +1370,7 @@ accepting it", itoa(unitNbr));
 				putErrmsg("RS can't reject MAMS msg.", NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1429,6 +1402,7 @@ accepting it", itoa(unitNbr));
 				putErrmsg("RS can't reject MAMS msg.", NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1438,6 +1412,7 @@ accepting it", itoa(unitNbr));
 		if (rememberModule(module, role, eptLength, ept))
 		{
 			putErrmsg("RS can't register new module.", NULL);
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1447,17 +1422,20 @@ accepting it", itoa(unitNbr));
 		{
 			forgetModule(module);
 			putErrmsg("RS can't send module number.", NULL);
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
 		*supplement = moduleNbr;
 		result = sendMamsMsg(&endpoint, &(rsState->tsif), you_are_in,
 				msg->memo, supplementLength, supplement);
+		(mib->pts->clearMamsEndpointFn)(&endpoint);
 		MRELEASE(supplement);
 		if (result < 0)
 		{
 			forgetModule(module);
 			putErrmsg("RS can't accept module registration.", NULL);
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1533,6 +1511,7 @@ accepting it", itoa(unitNbr));
 				putErrmsg("RS can't ditch reconnect.", NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1541,16 +1520,19 @@ accepting it", itoa(unitNbr));
 
 		if (skipDeliveryVectorList(&bytesRemaining, &cursor) < 0)
 		{
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;		/*	Ignore malformed msg.	*/
 		}
 
 		if (skipDeclaration(&bytesRemaining, &cursor) < 0)
 		{
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;		/*	Ignore malformed msg.	*/
 		}
 
 		if (bytesRemaining == 0)
 		{
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;		/*	Ignore malformed msg.	*/
 		}
 
@@ -1559,6 +1541,7 @@ accepting it", itoa(unitNbr));
 		bytesRemaining--;
 		if (bytesRemaining != moduleCount)
 		{
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;		/*	Ignore malformed msg.	*/
 		}
 
@@ -1577,6 +1560,7 @@ accepting it", itoa(unitNbr));
 				putErrmsg("RS can't ditch reconnect.", NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1593,6 +1577,7 @@ accepting it", itoa(unitNbr));
 				putErrmsg("RS can't ditch reconnect.", NULL);
 			}
 
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1602,6 +1587,7 @@ accepting it", itoa(unitNbr));
 		if (result < 0)
 		{
 			putErrmsg("RS can't reconnect module.", NULL);
+			(mib->pts->clearMamsEndpointFn)(&endpoint);
 			return;
 		}
 
@@ -1635,8 +1621,10 @@ accepting it", itoa(unitNbr));
 
 		/*	Let module go about its business.		*/
 
-		if (sendMamsMsg(&endpoint, &(rsState->tsif), reconnected,
-				msg->memo, 0, NULL) < 0)
+		result = sendMamsMsg(&endpoint, &(rsState->tsif), reconnected,
+				msg->memo, 0, NULL);
+		(mib->pts->clearMamsEndpointFn)(&endpoint);
+		if (result < 0)
 		{
 			putErrmsg("RS can't acknowledge MAMS msg.", NULL);
 		}
@@ -1700,18 +1688,30 @@ accepting it", itoa(unitNbr));
 	}
 }
 
+static void	shutDownCell(RsState *rsState)
+{
+	if (forwardMsg(rsState, you_are_dead, 0, rsState->cell->unit->nbr,
+				0, 0, NULL) < 0)
+	{
+		putErrmsg("Registrar can't shut down cell.",
+				itoa(rsState->cell->unit->nbr));
+	}
+}
+
 static void	*rsMain(void *parm)
 {
-	AmsMib		*mib = _mib(NULL);
-	RsState		*rsState = (RsState *) parm;
-	sigset_t	signals;
-	LystElt		elt;
-	AmsEvt		*evt;
-	int		result;
+	RsState	*rsState = (RsState *) parm;
+	LystElt	elt;
+	AmsEvt	*evt;
+	int	result;
 
 	CHKNULL(rsState);
+#ifndef mingw
+	sigset_t	signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	rsState->rsRunning = 1;
 	writeMemo("[i] Registrar is running.");
 	while (1)
@@ -1737,16 +1737,16 @@ static void	*rsMain(void *parm)
 		switch (evt->type)
 		{
 		case MAMS_MSG_EVT:
-			LOCK_MIB;
+			lockMib();
 			processMsgToRs(rsState, evt);
-			UNLOCK_MIB;
+			unlockMib();
 			recycleEvent(evt);
 			continue;
 
 		case MSG_TO_SEND_EVT:
-			LOCK_MIB;
+			lockMib();
 			result = sendMsgToCS(rsState, evt);
-			UNLOCK_MIB;
+			unlockMib();
 			if (result < 0)
 			{
 				putErrmsg("Registrar CS contact failed.", NULL);
@@ -1754,6 +1754,12 @@ static void	*rsMain(void *parm)
 
 			recycleEvent(evt);
 			continue;
+
+		case RS_STOP_EVT:
+			shutDownCell(rsState);
+			writeMemoNote("[i] RS thread terminated", "Shut down");
+			recycleEvent(evt);
+			break;	/*	Out of switch.			*/
 
 		case CRASH_EVT:
 			writeMemoNote("[i] RS thread terminated", evt->value);
@@ -1780,10 +1786,9 @@ static void	*rsMain(void *parm)
 static int	startRegistrar(RsState *rsState)
 {
 	AmsMib		*mib = _mib(NULL);
-	int		i;
 	Venture		*venture = NULL;
-	Unit		*unit = NULL;
 	char		ventureName[MAX_APP_NAME + 2 + MAX_AUTH_NAME + 1];
+	Unit		*unit = NULL;
 	MamsInterface	*tsif;
 
 	CHKERR(rsState->rsAppName);
@@ -1791,22 +1796,8 @@ static int	startRegistrar(RsState *rsState)
 	CHKERR(rsState->rsAuthName);
 	CHKERR(*(rsState->rsAuthName));
 	CHKERR(rsState->rsUnitName);
-	for (i = 1; i <= MAX_VENTURE_NBR; i++)
-	{
-		venture = mib->ventures[i];
-		if (venture == NULL)	/*	Number not in use.	*/
-		{
-			continue;
-		}
-
-		if (strcmp(venture->app->name, rsState->rsAppName) == 0
-		&& strcmp(venture->authorityName, rsState->rsAuthName) == 0)
-		{
-			break;
-		}
-	}
-
-	if (i > MAX_VENTURE_NBR)
+	venture = lookUpVenture(rsState->rsAppName, rsState->rsAuthName);
+	if (venture == NULL)
 	{
 		isprintf(ventureName, sizeof ventureName, "%s(%s)",
 				rsState->rsAppName, rsState->rsAuthName);
@@ -1816,21 +1807,8 @@ static int	startRegistrar(RsState *rsState)
 	}
 
 	rsState->venture = venture;
-	for (i = 0; i <= MAX_UNIT_NBR; i++)
-	{
-		unit = venture->units[i];
-		if (unit == NULL)	/*	Number not in use.	*/
-		{
-			continue;
-		}
-
-		if (strcmp(unit->name, rsState->rsUnitName) == 0)
-		{
-			break;
-		}
-	}
-
-	if (i > MAX_UNIT_NBR)
+	unit = lookUpUnit(venture, rsState->rsUnitName);
+	if (unit == NULL)
 	{
 		putErrmsg("Can't start registrar: no such unit.",
 				rsState->rsUnitName);
@@ -1909,6 +1887,151 @@ static void	stopRegistrar(RsState *rsState)
 	}
 }
 
+/*	*	*	Daemon module code	*	*	*	*/
+
+static void	cleanUpDmState(DmState *dmState)
+{
+	dmState->dmModule = NULL;
+	dmState->dmRunning = 0;
+}
+
+static void	enqueueRegistrarStop(RsState *rsState)
+{
+	AmsEvt	*evt;
+
+	evt = (AmsEvt *) MTAKE(2);
+	CHKVOID(evt);
+	evt->type = RS_STOP_EVT;
+	evt->value[0] = '\0';
+	if (enqueueMamsEvent(rsState->rsEventsCV, evt, NULL, 0))
+	{
+		putErrmsg("Can't enqueue registrar stop.", NULL);
+		MRELEASE(evt);
+	}
+}
+
+static void	*dmMain(void *parm)
+{
+	DmState		*dmState = (DmState *) parm;
+	int		amsstopSubj;
+	int		amsstopRole;
+	AmsEvent	event;
+	int		eventType;
+	RsState		*rsState;
+	int		stop = 0;
+
+	CHKNULL(dmState);
+#ifndef mingw
+	sigset_t	signals;
+
+	sigfillset(&signals);
+	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
+	dmState->dmRunning = 1;
+	if (ams_register(dmState->mibSource, NULL, dmState->dmAppName,
+			dmState->dmAuthName, dmState->dmUnitName, "amsd",
+			&(dmState->dmModule)) < 0)
+	{
+		writeMemo("[?] AAMS module can't register.");
+		writeErrmsgMemos();
+		cleanUpDmState(dmState);
+		return NULL;
+	}
+
+	writeMemo("[i] Daemon AAMS module is running.");
+	amsstopSubj = ams_lookup_subject_nbr(dmState->dmModule, "amsstop");
+	amsstopRole = ams_lookup_role_nbr(dmState->dmModule, "amsstop");
+	if (amsstopSubj < 0 || amsstopRole < 0
+	|| ams_subscribe(dmState->dmModule, amsstopRole, 0, 0, amsstopSubj,
+			1, 0, AmsTransmissionOrder, AmsAssured) < 0)
+	{
+		writeMemo("[i] AAMS module can't subscribe to 'amsstop'.");
+	}
+
+	while (1)
+	{
+		if (ams_get_event(dmState->dmModule, AMS_BLOCKING, &event) < 0)
+		{
+			ams_recycle_event(event);
+			putErrmsg("AAMS module can't get event.", NULL);
+			break;			/*	Out of loop.	*/
+		}
+
+		eventType = ams_get_event_type(event);
+		ams_recycle_event(event);
+		switch (ams_get_event_type(event))
+		{
+		case USER_DEFINED_EVT:		/*	Termination.	*/
+			break;			/*	Out of switch.	*/
+
+		case AMS_MSG_EVT:		/*	Only amsstop.	*/
+			stopConfigServer(dmState->csState);
+			rsState = dmState->rsState;
+			if (rsState->rsRequired == 1 && rsState->rsRunning == 1)
+			{
+				enqueueRegistrarStop(dmState->rsState);
+			}
+
+			/*	Wait for modules to be canceled, then
+			 *	shut down the AMS daemon.		*/
+
+			snooze(3);
+			oK(_amsdRunning(&stop));
+			break;			/*	Out of switch.	*/
+
+		default:
+			continue;
+		}
+
+		writeMemo("[i] AAMS module terminated.");
+		break;				/*	Out of loop.	*/
+	}
+
+	/*	Operation of the module is terminated.		*/
+
+	writeErrmsgMemos();
+	ams_unregister(dmState->dmModule);
+	cleanUpDmState(dmState);
+	return NULL;
+}
+
+static int	startModule(DmState *dmState)
+{
+	CHKERR(dmState->dmAppName);
+	CHKERR(*(dmState->dmAppName));
+	CHKERR(dmState->dmAuthName);
+	CHKERR(*(dmState->dmAuthName));
+	CHKERR(dmState->dmUnitName);
+
+	/*	Start the AAMS module main thread.			*/
+
+	if (pthread_create(&(dmState->dmThread), NULL, dmMain, dmState))
+	{
+		putSysErrmsg("Can't spawn AAMS module thread", NULL);
+		return -1;
+	}
+
+	/*	AAMS module is now running.				*/
+
+	return 0;
+}
+
+static void	stopModule(DmState *dmState)
+{
+	if (dmState->dmRunning)
+	{
+		if (ams_post_user_event(dmState->dmModule, 0, 0, NULL, 0) < 0)
+		{
+			putErrmsg("Can't post STOP user event.", NULL);
+			cleanUpDmState(dmState);
+		}
+		else
+		{
+			pthread_join(dmState->dmThread, NULL);
+		}
+	}
+}
+
 /*	*	*	AMSD code	*	*	*	*	*/
 
 static int	run_amsd(char *mibSource, char *csEndpointSpec,
@@ -1918,6 +2041,8 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 	char		eps[MAXHOSTNAMELEN + 5 + 1];
 	CsState		csState;
 	RsState		rsState;
+	DmState		dmState;
+	Venture		*venture;
 	int		start = 1;
 
 	/*	Apply defaults as necessary.				*/
@@ -1958,9 +2083,35 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 	rsState.rsAppName = rsAppName;
 	rsState.rsAuthName = rsAuthName;
 	rsState.rsUnitName = rsUnitName;
-	if (rsAppName)
+	if (rsUnitName)
 	{
 		rsState.rsRequired = 1;
+	}
+
+	memset((char *) &dmState, 0, sizeof dmState);
+	dmState.dmAppName = rsAppName;
+	dmState.dmAuthName = rsAuthName;
+	dmState.csState = &csState;
+	dmState.rsState = &rsState;
+	if (rsUnitName)
+	{
+		dmState.dmUnitName = rsUnitName;
+	}
+	else
+	{
+		dmState.dmUnitName = "";	/*	Root unit.	*/
+	}
+
+	if (rsAppName && rsAuthName)
+	{
+		venture = lookUpVenture(rsAppName, rsAuthName);
+		if (venture)
+		{
+			if (lookUpRole(venture, "amsd") != NULL)
+			{
+				dmState.dmRequired = 1;
+			}
+		}
 	}
 
 	oK(_amsdRunning(&start));
@@ -1969,11 +2120,14 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 	{
 		if (_amsdRunning(NULL) == 0)
 		{
-			stopConfigServer(&csState);
+			stopModule(&dmState);
 			stopRegistrar(&rsState);
+			stopConfigServer(&csState);
+			unloadMib();
 			return 0;
 		}
 
+		lockMib();
 		if (csState.csRequired == 1 && csState.csRunning == 0)
 		{
 			writeMemo("[i] Starting configuration server.");
@@ -1994,7 +2148,22 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 			}
 		}
 
+		if (dmState.dmRequired == 1 && dmState.dmRunning == 0)
+		{
+			writeMemo("[i] Starting daemon's AAMS module.");
+			if (startModule(&dmState) < 0)
+			{
+				cleanUpDmState(&dmState);
+				putErrmsg("amsd can't start DM.", NULL);
+			}
+		}
+
+		unlockMib();
+#ifdef mingw
+		sm_WaitForWakeup(N5_INTERVAL);
+#else
 		snooze(N5_INTERVAL);
+#endif
 	}
 }
 
@@ -2018,13 +2187,13 @@ int	main(int argc, char *argv[])
 	char		*rsUnitName = NULL;
 	int		result;
 
-	if (argc != 3 && argc != 6)
+	if (argc != 3 && argc != 5 && argc != 6)
 	{
 		PUTS("Usage:  amsd { @ | <MIB source name> }");
 		PUTS("             { . | @ | <config. server endpoint spec> }");
 		PUTS("             [<registrar application name>");
 		PUTS("              <registrar authority name>");
-		PUTS("              <registrar unit name>]");
+		PUTS("              [<registrar unit name>]]");
 		return 0;
 	}
 
@@ -2034,7 +2203,10 @@ int	main(int argc, char *argv[])
 	{
 		rsAppName = argv[3];
 		rsAuthName = argv[4];
-		rsUnitName = argv[5];
+		if (argc > 5)
+		{
+			rsUnitName = argv[5];
+		}
 	}
 #endif
 	result = run_amsd(mibSource, csEndpointSpec, rsAppName, rsAuthName,

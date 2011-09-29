@@ -41,8 +41,6 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence);
 
-#define	MAX_AMS_CONTENT	(65000)
-
 /*			Privately defined event types.			*/
 #define ACCEPTED_EVT	32
 #define SHUTDOWN_EVT	33
@@ -261,13 +259,13 @@ static void	eraseSAP(AmsSAP *sap)
 
 	/*	Stop heartbeat, MAMS handler, and MAMS rcvr threads.	*/
 
-	if (sap->heartbeatThread)
+	if (sap->haveHeartbeatThread)
 	{
 		pthread_cancel(sap->heartbeatThread);
 		pthread_join(sap->heartbeatThread, NULL);
 	}
 
-	if (sap->mamsThread)
+	if (sap->haveMamsThread)
 	{
 		llcv_signal_while_locked(sap->mamsEventsCV, time_to_stop);
 		pthread_join(sap->mamsThread, NULL);
@@ -277,6 +275,10 @@ static void	eraseSAP(AmsSAP *sap)
 	{
 		sap->mamsTsif.ts->shutdownFn(sap->mamsTsif.sap);
 		pthread_join(sap->mamsTsif.receiver, NULL);
+		if (sap->mamsTsif.ept)
+		{
+			MRELEASE(sap->mamsTsif.ept);
+		}
 	}
 
 	/*	Stop all AMS message interfaces.			*/
@@ -647,6 +649,39 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 	return 0;
 }
 
+static int	handleMibUpdate(int contentLength, char *content)
+{
+	char	fileName[MAXPATHLEN];
+	int	fd;
+	int	result = 0;
+
+	isprintf(fileName, MAXPATHLEN, "amsmib.%d", sm_GetUniqueKey());
+	fd = iopen(fileName, O_WRONLY | O_CREAT, 0777);
+	if (fd < 0)
+	{
+		putSysErrmsg("AMS can't open temporary MIB update file",
+				fileName);
+		return -1;
+	}
+
+	if (write(fd, content, contentLength) < contentLength)
+	{
+		putSysErrmsg("AMS can't write to temporary MIB update file",
+				itoa(contentLength));
+		result = -1;
+	}
+
+	close(fd);
+	if (result < 0)
+	{
+		return result;
+	}
+
+	result = updateMib(fileName);
+	unlink(fileName);
+	return result;
+}
+
 int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 {
 	char	*msgContent = ((char *) msgBuffer) + 16;
@@ -843,6 +878,13 @@ unsolicited message.", subject->name);
 		}
 	}
 
+	/*	If message subject is "amsmib", handle it here.		*/
+
+	if (subject->name && strcmp(subject->name, "amsmib") == 0)
+	{
+		return handleMibUpdate(msg.contentLength, msg.content);
+	}
+
 	/*	Create and enqueue event, signal application thread.	*/
 
 	evt = (AmsEvt *) MTAKE(1 + sizeof(AmsMsg));
@@ -911,6 +953,13 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	memcpy(header + 8, (char *) &context, 4);
 	i2 = htons(subjectNbr);
 	memcpy(header + 12, (char *) &i2, 2);
+	if (*contentLength == 0)
+	{
+		*(header + 14) = 0;
+		*(header + 15) = 0;
+		return 0;
+	}
+
 	if (subjectNbr > 0)
 	{
 		subject = sap->venture->subjects[subjectNbr];
@@ -1317,7 +1366,7 @@ printf("subjects list length is %d.\n", (int) lyst_length(module->subjects));
 }
 
 static LystElt	findFanModule(AmsSAP *sap, Subject *subject, Module *module,
-			LystElt *nextIntn)
+			LystElt *nextFan)
 {
 	LystElt		elt;
 	FanModule	*fan;
@@ -1326,7 +1375,7 @@ static LystElt	findFanModule(AmsSAP *sap, Subject *subject, Module *module,
 	 *	all XmitRule asserted by this module for the specified
 	 *	subject, if any.					*/
 
-	if (nextIntn) *nextIntn = NULL;	/*	Default.		*/
+	if (nextFan) *nextFan = NULL;	/*	Default.		*/
 	for (elt = lyst_first(subject->modules); elt; elt = lyst_next(elt))
 	{
 		fan = (FanModule *) lyst_data(elt);
@@ -1337,7 +1386,7 @@ static LystElt	findFanModule(AmsSAP *sap, Subject *subject, Module *module,
 
 		if (fan->module->unitNbr > module->unitNbr)
 		{
-			if (nextIntn) *nextIntn = elt;
+			if (nextFan) *nextFan = elt;
 			break;		/*	Same as end of list.	*/
 		}
 
@@ -1350,7 +1399,7 @@ static LystElt	findFanModule(AmsSAP *sap, Subject *subject, Module *module,
 
 		if (fan->module->nbr > module->nbr)
 		{
-			if (nextIntn) *nextIntn = elt;
+			if (nextFan) *nextFan = elt;
 			break;		/*	Same as end of list.	*/
 		}
 
@@ -1491,7 +1540,7 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 	LystElt		elt;
 	LystElt		nextSubj;
 	SubjOfInterest	*subj;
-	LystElt		nextIntn;
+	LystElt		nextFan;
 	FanModule	*fan = NULL;
 	Lyst		rules;
 	LystElt		nextRule;
@@ -1527,7 +1576,7 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 		/*	Also need to insert new FanModule for
 		 *	this subject.					*/
 
-		elt = findFanModule(sap, subject, module, &nextIntn);
+		elt = findFanModule(sap, subject, module, &nextFan);
 		if (elt)	/*	Should be NULL.			*/
 		{
 			putErrmsg("FanModules list out of sync!",
@@ -1539,9 +1588,9 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 		CHKERR(fan);
 		fan->module = module;
 		fan->subj = subj;
-		if (nextIntn)	/*	Insert before this point.	*/
+		if (nextFan)	/*	Insert before this point.	*/
 		{
-			subj->fanElt = lyst_insert_before(nextIntn, fan);
+			subj->fanElt = lyst_insert_before(nextFan, fan);
 		}
 		else		/*	Insert at end of list.		*/
 		{
@@ -2172,6 +2221,7 @@ static int	parseDeliveryVector(Module *module, int *bytesRemaining,
 
 		/*	Look for a tsif that can send to this point.	*/
 
+		lockMib();
 		for (i = 0; i < mib->transportServiceCount; i++)
 		{
 			ts = &(mib->transportServices[i]);
@@ -2184,6 +2234,7 @@ static int	parseDeliveryVector(Module *module, int *bytesRemaining,
 				if (result < 0)
 				{
 					writeMemo("[?] AMS err inserting ept.");
+					unlockMib();
 					return -1;
 				}
 
@@ -2191,6 +2242,8 @@ static int	parseDeliveryVector(Module *module, int *bytesRemaining,
 				break;
 			}
 		}
+
+		unlockMib();
 	}
 
 	/*	Note: if endpointInserted is still zero at this point,
@@ -2836,10 +2889,12 @@ static int	locateRegistrar(AmsSAP *sap)
 
 	if (sap->csEndpoint == NULL)
 	{
+		lockMib();
 		if (lyst_length(mib->csEndpoints) == 0)
 		{
 			putErrmsg("Configuration server endpoints list empty.",
 					NULL);
+			unlockMib();
 			return -1;
 		}
 
@@ -2857,6 +2912,7 @@ static int	locateRegistrar(AmsSAP *sap)
 			}
 		}
 
+		unlockMib();
 		ep = (MamsEndpoint *) lyst_data(sap->csEndpointElt);
 	}
 	else
@@ -2882,10 +2938,10 @@ static int	locateRegistrar(AmsSAP *sap)
 
 	while (1)
 	{
-		UNLOCK_MIB;
+		unlockMib();
 		result = llcv_wait(sap->mamsEventsCV, llcv_reply_received,
 				N2_INTERVAL * 1000000);
-		LOCK_MIB;
+		lockMib();
 		if (result < 0)
 		{
 			if (errno == ETIMEDOUT)
@@ -2922,6 +2978,7 @@ static int	locateRegistrar(AmsSAP *sap)
 			switch (msg->type)
 			{
 			case registrar_unknown:
+				recycleEvent(evt);
 				writeMemo("[?] No registrar for this cell.");
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return -1;
@@ -2970,7 +3027,6 @@ static int	locateRegistrar(AmsSAP *sap)
 
 static int	reconnectToRegistrar(AmsSAP *sap)
 {
-	AmsMib		*mib = _mib(NULL);
 	int		moduleCount = 0;
 	int		i;
 	unsigned char	modules[MAX_MODULE_NBR];
@@ -3043,7 +3099,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 
 	while (1)
 	{
-		UNLOCK_MIB;
+		unlockMib();
 		result = llcv_wait(sap->mamsEventsCV, llcv_reply_received,
 				N5_INTERVAL * 1000000);
 		if (result < 0)
@@ -3063,7 +3119,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 
 		/*	A response message has arrived.			*/
 
-		LOCK_MIB;
+		lockMib();
 		llcv_lock(sap->mamsEventsCV);
 		elt = lyst_first(sap->mamsEvents);
 		if (elt == NULL)	/*	Interrupted; try again.	*/
@@ -3089,14 +3145,14 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 					putErrmsg("Can't enqueue crash.", NULL);
 				}
 
-				UNLOCK_MIB;
+				unlockMib();
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 
 			case reconnected:
 				sap->heartbeatsMissed = 0;
 				recycleEvent(evt);
-				UNLOCK_MIB;
+				unlockMib();
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 
@@ -3111,7 +3167,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 		case CRASH_EVT:
 			putErrmsg("Can't reconnect to registrar.", evt->value);
 			recycleEvent(evt);
-			UNLOCK_MIB;
+			unlockMib();
 			return -1;
 
 		default:		/*	Stray message; ignore.	*/
@@ -3250,7 +3306,6 @@ static int	process_you_are_in(AmsSAP *sap, MamsMsg *msg)
 
 static int	getModuleNbr(AmsSAP *sap)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	supplementLength;
 	char	*supplement;
 	long	queryNbr;
@@ -3307,7 +3362,7 @@ static int	getModuleNbr(AmsSAP *sap)
 
 	while (1)			/*	Loop past anomalies.	*/
 	{
-		UNLOCK_MIB;
+		unlockMib();
 		result = llcv_wait(sap->mamsEventsCV, llcv_reply_received,
 				N2_INTERVAL * 1000000);
 		if (result < 0)
@@ -3336,7 +3391,7 @@ static int	getModuleNbr(AmsSAP *sap)
 
 		/*	A response message has arrived.			*/
 
-		LOCK_MIB;
+		lockMib();
 		llcv_lock(sap->mamsEventsCV);
 		elt = lyst_first(sap->mamsEvents);
 		if (elt == NULL)	/*	Interrupted; try again.	*/
@@ -3357,7 +3412,7 @@ static int	getModuleNbr(AmsSAP *sap)
 			case rejection:
 				process_rejection(sap, msg);
 				recycleEvent(evt);
-				UNLOCK_MIB;
+				unlockMib();
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 
@@ -3368,7 +3423,7 @@ static int	getModuleNbr(AmsSAP *sap)
 
 				result = process_you_are_in(sap, msg);
 				recycleEvent(evt);
-				UNLOCK_MIB;
+				unlockMib();
 				if (result < 0)
 				{
 					putErrmsg("Can't handle acceptance.",
@@ -3390,7 +3445,7 @@ static int	getModuleNbr(AmsSAP *sap)
 		case CRASH_EVT:
 			putErrmsg("Can't register.", evt->value);
 			recycleEvent(evt);
-			UNLOCK_MIB;
+			unlockMib();
 			return -1;	/*	Unrecoverable failure.	*/
 
 		default:		/*	Stray event; ignore.	*/
@@ -3404,15 +3459,16 @@ static int	getModuleNbr(AmsSAP *sap)
 
 static void	*mamsMain(void *parm)
 {
-	AmsMib		*mib = _mib(NULL);
 	AmsSAP		*sap = (AmsSAP *) parm;
-	sigset_t	signals;
 	LystElt		elt;
 	AmsEvt		*evt;
 	int		result;
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 
 	/*	MAMS thread starts off in Unregistered state and
 	 *	stays there until registration is complete.  Then
@@ -3423,9 +3479,9 @@ static void	*mamsMain(void *parm)
 
 	while (1)	/*	Registration event loop.		*/
 	{
-		LOCK_MIB;
+		lockMib();
 		result = getModuleNbr(sap);
-		UNLOCK_MIB;
+		unlockMib();
 		if (result < 0)		/*	Unrecoverable failure.	*/
 		{
 			putErrmsg("Can't register module.", NULL);
@@ -3494,18 +3550,18 @@ static void	*mamsMain(void *parm)
 		case MAMS_MSG_EVT:
 			if (sap->state == AmsSapOpen)
 			{
-				LOCK_MIB;
+				lockMib();
 				processMamsMsg(sap, evt);
-				UNLOCK_MIB;
+				unlockMib();
 			}
 
 			recycleEvent(evt);
 			continue;
 
 		case MSG_TO_SEND_EVT:
-			LOCK_MIB;
+			lockMib();
 			result = sendMsgToRegistrar(sap, evt);
-			UNLOCK_MIB;
+			unlockMib();
 			if (result < 0)
 			{
 				putErrmsg("MAMS service failed.", NULL);
@@ -3542,11 +3598,9 @@ static void	*mamsMain(void *parm)
 
 static void	*heartbeatMain(void *parm)
 {
-	AmsMib		*mib = _mib(NULL);
 	AmsSAP		*sap = (AmsSAP *) parm;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cv;
-	sigset_t	signals;
 	int		result;
 	struct timeval	workTime;
 	struct timespec	deadline;
@@ -3564,8 +3618,12 @@ static void	*heartbeatMain(void *parm)
 		return NULL;
 	}
 
+#ifndef mingw
+	sigset_t	signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		getCurrentTime(&workTime);
@@ -3589,7 +3647,7 @@ static void	*heartbeatMain(void *parm)
 			continue;
 		}
 
-		LOCK_MIB;
+		lockMib();
 		if (sap->heartbeatsMissed == 3)
 		{
 			clearMamsEndpoint(sap->rsEndpoint);
@@ -3598,7 +3656,7 @@ static void	*heartbeatMain(void *parm)
 		result = enqueueMsgToRegistrar(sap, heartbeat, sap->moduleNbr,
 				0, NULL);
 		sap->heartbeatsMissed++;
-		UNLOCK_MIB;
+		unlockMib();
 		if (result < 0)
 		{
 			break;
@@ -3634,6 +3692,8 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	char		*tspos;
 	DeliveryVector	*vector;
 	AmsEvt		*evt;
+	Subject		*amsmibSubject;
+	AppRole		*amsmibRole;
 
 	CHKERR(applicationName);
 	CHKERR(authorityName);
@@ -3920,21 +3980,29 @@ static int	ams_register2(char *applicationName, char *authorityName,
 
 	/*	Create the auxiliary module threads: heartbeat, MAMS.	*/
 
-	if (pthread_create(&(sap->heartbeatThread), NULL, heartbeatMain, sap)
-	|| pthread_create(&(sap->mamsThread), NULL, mamsMain, sap))
+	if (pthread_create(&(sap->heartbeatThread), NULL, heartbeatMain, sap))
 	{
-		putSysErrmsg("can't spawn sap auxiliary threads", NULL);
+		putSysErrmsg("Can't spawn sap heartbeat thread", NULL);
 		return -1;
 	}
+
+	sap->haveHeartbeatThread = 1;
+	if (pthread_create(&(sap->mamsThread), NULL, mamsMain, sap))
+	{
+		putSysErrmsg("Can't spawn sap MAMS thread", NULL);
+		return -1;
+	}
+
+	sap->haveMamsThread = 1;
 
 	/*	Wait for MAMS thread to complete registration dialogue.	*/
 
 	while (1)
 	{
-		UNLOCK_MIB;
+		unlockMib();
 		result = llcv_wait(sap->amsEventsCV, llcv_lyst_not_empty,
 					LLCV_BLOCKING);
-		LOCK_MIB;
+		lockMib();
 		if (result < 0)
 		{
 			putErrmsg("Registration abandoned.", NULL);
@@ -3975,15 +4043,31 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	/*	Note: reliable delivery would be much better, but
 	 *	not all implementations of AMS support that QOS.	*/
 
-	result = ams_invite2(sap, 1, THIS_CONTINUUM, 0,
+	if (ams_invite2(sap, 1, THIS_CONTINUUM, 0,
 			(0 - mib->localContinuumNbr), 8, 0, AmsArrivalOrder,
-			AmsBestEffort);
-	if (result < 0)
+			AmsBestEffort) < 0)
 	{
 		putErrmsg("Can't invite RAMS enclosure messages.", NULL);
+		return -1;
 	}
 
-	return result;
+	/*	Finally, if subject "amsmib" is defined in the MIB,
+	 *	then invite messages on that subject.			*/
+
+	amsmibSubject = lookUpSubject(sap->venture, "amsmib");
+	amsmibRole = lookUpRole(sap->venture, "amsmib");
+	if (amsmibSubject && amsmibRole)
+	{
+		if (ams_invite2(sap, amsmibRole->nbr, ALL_CONTINUA, 0,
+				amsmibSubject->nbr, 8, 0, AmsArrivalOrder,
+				AmsBestEffort) < 0)
+		{
+			putErrmsg("Can't invite MIB update messages.", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
 }
 
 int	ams_register(char *mibSource, char *tsorder, char *applicationName,
@@ -4003,10 +4087,10 @@ int	ams_register(char *mibSource, char *tsorder, char *applicationName,
 	}
 
 	*module = NULL;
-	LOCK_MIB;
+	lockMib();
 	result = ams_register2(applicationName, authorityName, unitName,
 			roleName, tsorder, module);
-	UNLOCK_MIB;
+	unlockMib();
 	if (result == 0)		/*	Succeeded.		*/
 	{
 		(*module)->state = AmsSapOpen;
@@ -4015,6 +4099,7 @@ int	ams_register(char *mibSource, char *tsorder, char *applicationName,
 	{
 		eraseSAP(*module);
 		*module = NULL;
+		unloadMib();
 	}
 
 	return result;
@@ -4042,7 +4127,6 @@ int	ams_get_unit_nbr(AmsSAP *sap)
 
 static int	ams_unregister2(AmsSAP *sap)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result;
 	LystElt	elt;
 	AmsEvt	*evt;
@@ -4057,9 +4141,9 @@ static int	ams_unregister2(AmsSAP *sap)
 		return -1;
 	}
 
-	UNLOCK_MIB;
+	unlockMib();
 	ams_remove_event_mgr(sap);
-	LOCK_MIB;
+	lockMib();
 	result = enqueueMsgToRegistrar(sap, I_am_stopping,
 		computeModuleId(sap->role->nbr, sap->unit->nbr, sap->moduleNbr),
 		0, NULL);
@@ -4069,14 +4153,14 @@ static int	ams_unregister2(AmsSAP *sap)
 
 	if (enqueueMamsStubEvent(sap->mamsEventsCV, SHUTDOWN_EVT) < 0)
 	{
-		UNLOCK_MIB;
+		unlockMib();
 		putErrmsg("Crashed AMS service.", NULL);
 		return 0;
 	}
 
 	while (1)
 	{
-		UNLOCK_MIB;
+		unlockMib();
 		result = llcv_wait(sap->amsEventsCV, llcv_lyst_not_empty,
 					LLCV_BLOCKING);
 		if (result < 0)
@@ -4085,7 +4169,7 @@ static int	ams_unregister2(AmsSAP *sap)
 			return 0;
 		}
 
-		LOCK_MIB;
+		lockMib();
 		llcv_lock(sap->amsEventsCV);
 		elt = lyst_first(sap->amsEvents);
 		if (elt == NULL)
@@ -4107,7 +4191,7 @@ static int	ams_unregister2(AmsSAP *sap)
 		/*	MAMS thread has caught up; time to stop.	*/
 
 		recycleEvent(evt);
-		UNLOCK_MIB;
+		unlockMib();
 		break;
 	}
 
@@ -4116,16 +4200,16 @@ static int	ams_unregister2(AmsSAP *sap)
 
 int	ams_unregister(AmsSAP *sap)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result;
 
-	LOCK_MIB;
+	lockMib();
 	result = ams_unregister2(sap);
-	UNLOCK_MIB;
+	unlockMib();
 	if (result == 0)
 	{
 		eraseSAP(sap);
 		writeMemo("[i] AMS service terminated.");
+		unloadMib();
 	}
 
 	return result;
@@ -4166,14 +4250,13 @@ static char	*ams_get_role_name2(AmsSAP *sap, int unitNbr, int moduleNbr)
 
 char	*ams_get_role_name(AmsSAP *sap, int unitNbr, int moduleNbr)
 {
-	AmsMib	*mib = _mib(NULL);
 	char	*result = NULL;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_get_role_name2(sap, unitNbr, moduleNbr);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -4181,7 +4264,6 @@ char	*ams_get_role_name(AmsSAP *sap, int unitNbr, int moduleNbr)
 
 Lyst	ams_list_msgspaces(AmsSAP *sap)
 {
-	AmsMib	*mib = _mib(NULL);
 	Lyst	msgspaces = NULL;
 	int	i;
 	Subject	**msgspace;
@@ -4189,7 +4271,7 @@ Lyst	ams_list_msgspaces(AmsSAP *sap)
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		msgspaces = lyst_create_using(getIonMemoryMgr());
 		if (msgspaces)
 		{
@@ -4210,7 +4292,7 @@ Lyst	ams_list_msgspaces(AmsSAP *sap)
 			}
 		}
 
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return msgspaces;
@@ -4220,8 +4302,15 @@ int	ams_continuum_is_neighbor(int continuumNbr)
 {
 	Continuum	*contin;
 
-	if (continuumNbr < 1 || continuumNbr > MAX_CONTIN_NBR
-	|| (contin = (_mib(NULL))->continua[continuumNbr]) == NULL)
+	if (continuumNbr < 1 || continuumNbr > MAX_CONTIN_NBR)
+	{
+		return 0;
+	}
+
+	lockMib();
+	contin = (_mib(NULL))->continua[continuumNbr];
+	unlockMib();
+	if (contin == NULL)
 	{
 		return 0;
 	}
@@ -4242,14 +4331,13 @@ int	ams_rams_net_is_tree(AmsSAP *sap)
 
 int	ams_subunit_of(AmsSAP *sap, int argUnitNbr, int refUnitNbr)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = 0;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = subunitOf(sap, argUnitNbr, refUnitNbr);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -4445,16 +4533,15 @@ int	ams_publish(AmsSAP *sap, int subjectNbr, int priority,
 		unsigned char flowLabel, int contentLength, char *content,
 		int context)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
 		CHKERR(subjectNbr > 0);
-		LOCK_MIB;
+		lockMib();
 		result = ams_publish2(sap, subjectNbr, priority, flowLabel,
 				contentLength, content, context);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -4698,15 +4785,14 @@ int	ams_invite(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		int subjectNbr, int priority, unsigned char flowLabel,
 		AmsSequence sequence, AmsDiligence diligence)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_invite2(sap, roleNbr, continuumNbr, unitNbr,
 			subjectNbr, priority, flowLabel, sequence, diligence);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -4780,15 +4866,14 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 int	ams_disinvite(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		int subjectNbr)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_disinvite2(sap, roleNbr, continuumNbr, unitNbr,
 				subjectNbr);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -4912,15 +4997,14 @@ int	ams_subscribe(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		int subjectNbr, int priority, unsigned char flowLabel,
 		AmsSequence sequence, AmsDiligence diligence)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_subscribe2(sap, roleNbr, continuumNbr, unitNbr,
 			subjectNbr, priority, flowLabel, sequence, diligence);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -4975,15 +5059,14 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 int	ams_unsubscribe(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		int subjectNbr)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_unsubscribe2(sap, roleNbr, continuumNbr, unitNbr,
 				subjectNbr);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -5218,16 +5301,15 @@ int	ams_send(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 		int subjectNbr, int priority, unsigned char flowLabel,
 		int contentLength, char *content, int context)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_send2(sap, continuumNbr, unitNbr, moduleNbr,
 				subjectNbr, priority, flowLabel, contentLength,
 				content, context);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -5247,7 +5329,6 @@ static int	deliverTimeout(AmsEvent *event)
 static int	getEvent(AmsSAP *sap, int term, AmsEvent *event,
 			LlcvPredicate condition)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result;
 	LystElt	elt;
 	AmsEvt	*evt;
@@ -5255,9 +5336,9 @@ static int	getEvent(AmsSAP *sap, int term, AmsEvent *event,
 	*event = NULL;
 	while (1)
 	{
-		UNLOCK_MIB;
+		unlockMib();
 		result = llcv_wait(sap->amsEventsCV, condition, term);
-		LOCK_MIB;
+		lockMib();
 		if (result < 0)
 		{
 			lyst_compare_set(sap->amsEvents, NULL);
@@ -5434,7 +5515,6 @@ static void	*eventMgrMain(void *parm)
 {
 	AmsSAP		*sap = (AmsSAP *) parm;
 	AmsEventMgt	*rules = &(sap->eventMgtRules);
-	sigset_t	signals;
 	AmsEvt		*evt;
 	int		continuumNbr;
 	int		unitNbr;
@@ -5449,9 +5529,12 @@ static void	*eventMgrMain(void *parm)
 	int		code;
 	int		dataLength;
 	char		*data;
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	sap->eventMgr = sap->authorizedEventMgr = pthread_self();
 	while (pthread_equal(sap->eventMgr, sap->authorizedEventMgr))
 	{
@@ -5532,8 +5615,6 @@ static void	*eventMgrMain(void *parm)
 
 static void	stopEventMgr(AmsSAP *sap)
 {
-	AmsMib	*mib = _mib(NULL);
-
 	/*	End event manager's authority to manage events.		*/
 
 	sap->authorizedEventMgr = pthread_self();
@@ -5548,9 +5629,9 @@ static void	stopEventMgr(AmsSAP *sap)
 
 	/*	Now wait for event manager thread to shut itself down.	*/
 
-	UNLOCK_MIB;
+	unlockMib();
 	pthread_join(sap->eventMgr, NULL);
-	LOCK_MIB;
+	lockMib();
 
 	/*	Complete transfer of event management responsibility
 	 *	to self.						*/
@@ -5637,16 +5718,15 @@ int	ams_query(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 		int contentLength, char *content, int context, int term,
 		AmsEvent *event)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_query2(sap, continuumNbr, unitNbr, moduleNbr,
 				subjectNbr, priority, flowLabel, contentLength,
 				content, context, term, event);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -5671,15 +5751,14 @@ static int	ams_reply2(AmsSAP *sap, AmsEvt *evt, int subjectNbr,
 int	ams_reply(AmsSAP *sap, AmsEvt *evt, int subjectNbr, int priority,
 		unsigned char flowLabel, int contentLength, char *content)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_reply2(sap, evt, subjectNbr, priority,
 				flowLabel, contentLength, content);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -5899,16 +5978,15 @@ int	ams_announce(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 		int subjectNbr, int priority, unsigned char flowLabel,
 		int contentLength, char *content, int context)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_announce2(sap, roleNbr, continuumNbr, unitNbr,
 				subjectNbr, priority, flowLabel, contentLength,
 				content, context);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -5942,15 +6020,14 @@ static int	ams_post_user_event2(AmsSAP *sap, int code, int dataLength,
 int	ams_post_user_event(AmsSAP *sap, int code, int dataLength, char *data,
 		int priority)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_post_user_event2(sap, code, dataLength, data,
 				priority);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -5971,14 +6048,13 @@ static int	ams_get_event2(AmsSAP *sap, int term, AmsEvent *event)
 
 int	ams_get_event(AmsSAP *sap, int term, AmsEvent *event)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_get_event2(sap, term, event);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -6046,14 +6122,13 @@ static int	ams_lookup_unit_nbr2(AmsSAP *sap, char *unitName)
 
 int	ams_lookup_unit_nbr(AmsSAP *sap, char *unitName)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (unitName && validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_lookup_unit_nbr2(sap, unitName);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -6073,14 +6148,13 @@ static int	ams_lookup_role_nbr2(AmsSAP *sap, char *roleName)
 
 int	ams_lookup_role_nbr(AmsSAP *sap, char *roleName)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (roleName && validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_lookup_role_nbr2(sap, roleName);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -6100,14 +6174,13 @@ static int	ams_lookup_subject_nbr2(AmsSAP *sap, char *subjectName)
 
 int	ams_lookup_subject_nbr(AmsSAP *sap, char *subjectName)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (subjectName && validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_lookup_subject_nbr2(sap, subjectName);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -6115,14 +6188,13 @@ int	ams_lookup_subject_nbr(AmsSAP *sap, char *subjectName)
 
 int	ams_lookup_continuum_nbr(AmsSAP *sap, char *continuumName)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (continuumName && validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = lookUpContinuum(continuumName);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -6146,14 +6218,13 @@ static char	*ams_lookup_unit_name2(AmsSAP *sap, int unitNbr)
 
 char	*ams_lookup_unit_name(AmsSAP *sap, int unitNbr)
 {
-	AmsMib	*mib = _mib(NULL);
 	char	*result = NULL;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_lookup_unit_name2(sap, unitNbr);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -6177,14 +6248,13 @@ static char	*ams_lookup_role_name2(AmsSAP *sap, int roleNbr)
 
 char	*ams_lookup_role_name(AmsSAP *sap, int roleNbr)
 {
-	AmsMib	*mib = _mib(NULL);
 	char	*result = NULL;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_lookup_role_name2(sap, roleNbr);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -6208,14 +6278,13 @@ static char	*ams_lookup_subject_name2(AmsSAP *sap, int subjectNbr)
 
 char	*ams_lookup_subject_name(AmsSAP *sap, int subjectNbr)
 {
-	AmsMib	*mib = _mib(NULL);
 	char	*result = NULL;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_lookup_subject_name2(sap, subjectNbr);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -6225,29 +6294,31 @@ static char	*ams_lookup_continuum_name2(AmsSAP *sap, int continuumNbr)
 {
 	Continuum	*contin;
 
+	lockMib();
 	if (continuumNbr < 0) continuumNbr = 0 - continuumNbr;
        	if (continuumNbr > 0 && continuumNbr <= MAX_CONTIN_NBR)
 	{
 		contin = (_mib(NULL))->continua[continuumNbr];
 		if (contin)	/*	Known continuum.		*/
 		{
+			unlockMib();
 			return contin->name;
 		}
 	}
 
+	unlockMib();
 	return NULL;
 }
 
 char	*ams_lookup_continuum_name(AmsSAP *sap, int continuumNbr)
 {
-	AmsMib	*mib = _mib(NULL);
 	char	*result = NULL;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_lookup_continuum_name2(sap, continuumNbr);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -6366,14 +6437,13 @@ static int	ams_set_event_mgr2(AmsSAP *sap, AmsEventMgt *rules)
 
 int	ams_set_event_mgr(AmsSAP *sap, AmsEventMgt *rules)
 {
-	AmsMib	*mib = _mib(NULL);
 	int	result = -1;
 
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		result = ams_set_event_mgr2(sap, rules);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 
 	return result;
@@ -6393,12 +6463,10 @@ static void	ams_remove_event_mgr2(AmsSAP *sap)
 
 void	ams_remove_event_mgr(AmsSAP *sap)
 {
-	AmsMib	*mib = _mib(NULL);
-
 	if (validSap(sap))
 	{
-		LOCK_MIB;
+		lockMib();
 		ams_remove_event_mgr2(sap);
-		UNLOCK_MIB;
+		unlockMib();
 	}
 }

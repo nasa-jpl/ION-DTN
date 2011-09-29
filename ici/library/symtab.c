@@ -21,6 +21,7 @@
 									*/
 
 extern int	ionadmin(int, int, int, int, int, int, int, int, int, int);
+extern int	ionexit(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	bpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ipnadmin(int, int, int, int, int, int, int, int, int, int);
@@ -56,6 +57,7 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 	static SymTabEntry	symbols[] =
 	{
 		{ "ionadmin",	(FUNCPTR) ionadmin,	ICI_PRIORITY,	32768 },
+		{ "ionexit",	(FUNCPTR) ionexit,	ICI_PRIORITY,	32768 },
 		{ "ltpadmin",	(FUNCPTR) ltpadmin,	ICI_PRIORITY,	32768 },
 		{ "bpadmin",	(FUNCPTR) bpadmin,	ICI_PRIORITY,	32768 },
 		{ "ipnadmin",	(FUNCPTR) ipnadmin,	ICI_PRIORITY,	32768 },

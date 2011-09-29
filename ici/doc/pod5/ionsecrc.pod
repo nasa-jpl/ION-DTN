@@ -10,6 +10,14 @@ in a file of text lines or interactively at B<ionsecadmin>'s command prompt
 line.  The formats and effects of the ION security policy management commands
 are described below.
 
+A parameter identifed as an I<eid_expr> is an "endpoint ID expression."  For
+all commands, whenever the last character of an endpoint ID expression is
+the wild-card character '*', an applicable endpoint ID "matches" this EID
+expression if all characters of the endpoint ID expression prior to the last
+one are equal to the corresponding characters of that endpoint ID.  Otherwise
+an applicable endpoint ID "matches" the EID expression only when all characters
+of the EID and EID expression are identical.
+
 =head1 COMMANDS
 
 =over 4
@@ -58,88 +66,91 @@ its current value.
 
 This command lists all keys in the security policy database.
 
-=item B<a babrxrule> I<eid_expr> I<ciphersuite_name> I<key_name>
+=item B<a bspbabrule> I<sender_eid_expr> I<receiver_eid_expr> I<{ '' | ciphersuite_name key_name }>
 
-The B<add babrxrule> command.  This command adds a rule specifying the
+The B<add bspbabrule> command.  This command adds a rule specifying the
 manner in which Bundle Authentication Block (BAB) validation will be applied
-to all bundles received from any endpoint whose ID matches I<eid_expr>.
-If the last character of I<eid_expr> is the wild-card character '*'
-then a sending endpoint ID matches this EID expression when all
-characters of I<eid_expr> prior to the last are equal to the corresponding
-characters of that endpoint ID; otherwise the rule pertains only to bundles
-whose sending EID is exactly equal to I<eid_expr>.
+to all bundles sent from any node whose administrative endpoint ID matches
+I<sender_eid_expr> and received at any node whose administrative endpoint ID
+ID matches I<receiver_eid_expr>.
 
-If I<ciphersuite_name> is a zero-length string ('') then BAB validation
-is disabled for I<eid_expr>: all bundles from matching endpoints will be
-immediately deemed authentic.  Otherwise, a bundle from a matching endpoint
-will only be deemed authentic if it contains a BAB computed via the
-ciphersuite named by I<ciphersuite_name> using a key value that is
-identical to the current value of the key named I<key_name> in the
-local security policy database.
-
-=item B<c babrxrule> I<eid_expr> I<ciphersuite_name> I<key_name>
-
-The B<change babrxrule> command.  This command changes the ciphersuite
-name and/or key name for the BAB reception rule pertaining to I<eid_expr>.
-Note that I<eid_expr> must exactly match the EID expression of the rule
-that is to be modified, including any terminating wild-card character.
-
-=item B<d babrxrule> I<eid_expr>
-
-The B<delete babrxrule> command.  This command deletes the BAB reception
-rule pertaining to I<eid_expr>.  Note that I<eid_expr> must exactly match
-the EID expression of the rule that is to be deleted, including any
-terminating wild-card character.
-
-=item B<d babrxrule> I<eid_expr>
-
-This command will print information (the ciphersuite and key names) about the
-BAB reception rule pertaining to I<eid_expr>.
-
-=item B<l babrxrule>
-
-This command lists all BAB reception rules in the security policy database.
-
-=item B<a babtxrule> I<eid_expr> I<ciphersuite_name> I<key_name>
-
-The B<add babtxrule> command.  This command adds a rule specifying the
-manner in which Bundle Authentication Block (BAB) production will be applied
-to all bundles sent to any endpoint whose ID matches I<eid_expr>.
-If the last character of I<eid_expr> is the wild-card character '*'
-then a receiving endpoint ID matches this EID expression when all
-characters of I<eid_expr> prior to the last are equal to the corresponding
-characters of that endpoint ID; otherwise the rule pertains only to bundles
-whose receiving EID is exactly equal to I<eid_expr>.
-
-If I<ciphersuite_name> is a zero-length string ('') then BAB production
-is disabled for I<eid_expr>: BABs will be omitted from all bundles sent to
-matching endpoints.  Otherwise, each bundle sent to any matching endpoint
-will contain a BAB computed via the ciphersuite named by I<ciphersuite_name>
+If a zero-length string ('') is indicated instead of a I<ciphersuite_name> then
+BAB validation is disabled for this sender/receiver EID expression pair: all
+bundles sent from nodes with matching administrative endpoint IDs to nodes
+with matching administrative endpoint IDs will be immediately deemed authentic.
+Otherwise, a bundle from a node with matching administrative endpoint ID to a
+node with matching administrative endpoint ID will only be deemed authentic
+if it contains a BAB computed via the ciphersuite named by I<ciphersuite_name>
 using a key value that is identical to the current value of the key named
 I<key_name> in the local security policy database.
 
-=item B<c babtxrule> I<eid_expr> I<ciphersuite_name> I<key_name>
+=item B<c bspbabrule> I<sender_eid_expr> I<receiver_eid_expr> I<{ '' | ciphersuite_name key_name }>
 
-The B<change babtxrule> command.  This command changes the ciphersuite
-name and/or key name for the BAB transmission rule pertaining to I<eid_expr>.
-Note that I<eid_expr> must exactly match the EID expression of the rule
-that is to be modified, including any terminating wild-card character.
+The B<change bspbabrule> command.  This command changes the ciphersuite
+name and/or key name for the BAB rule pertaining to the sender/receiver EID
+expression pair identified by I<sender_eid_expr> and I<receiver_eid_expr>.
+Note that the I<eid_expr>s must exactly match those of the rule that is to
+be modified, including any terminating wild-card character.  
 
-=item B<d babtxrule> I<eid_expr>
+=item B<d bspbabrule> I<sender_eid_expr> I<receiver_eid_expr>
 
-The B<delete babtxrule> command.  This command deletes the BAB transmission
-rule pertaining to I<eid_expr>.  Note that I<eid_expr> must exactly match
-the EID expression of the rule that is to be deleted, including any
+The B<delete bspbabrule> command.  This command deletes the BAB rule
+pertaining to the sender/receiver EID expression pair identified by
+I<sender_eid_expr> and I<receiver_eid_expr>.  Note that the I<eid_expr>s
+must exactly match those of the rule that is to be deleted, including any
 terminating wild-card character.
 
-=item B<d babtxrule> I<eid_expr>
+=item B<i bspbabrule> I<sender_eid_expr> I<receiver_eid_expr>
 
 This command will print information (the ciphersuite and key names) about the
-BAB transmission rule pertaining to I<eid_expr>.
+BAB rule pertaining to I<sender_eid_expr> and I<receiver_eid_expr>.
 
-=item B<l babtxrule>
+=item B<l bspbabrule>
 
-This command lists all BAB transmission rules in the security policy database.
+This command lists all BAB rules in the security policy database.
+
+=item B<a bsppibrule> I<sender_eid_expr> I<receiver_eid_expr> I<block type number> I<{ '' | ciphersuite_name key_name }>
+
+The B<add bsppibrule> command.  This command adds a rule specifying the
+manner in which Payload Integrity Block (PIB) validation will be applied
+to all bundles sent from any node whose administrative endpoint ID matches
+I<sender_eid_expr> and received at any node whose administrative endpoint ID
+ID matches I<receiver_eid_expr>.
+
+If a zero-length string ('') is indicated instead of a I<ciphersuite_name> then
+PIB validation is disabled for this sender/receiver EID expression pair: all
+bundles sent from nodes with matching administrative endpoint IDs to nodes
+with matching administrative endpoint IDs will be immediately deemed secure.
+Otherwise, a bundle from a node with matching administrative endpoint ID to a
+node with matching administrative endpoint ID will only be deemed secure
+if it contains a PIB computed via the ciphersuite named by I<ciphersuite_name>
+using a key value that is identical to the current value of the key named
+I<key_name> in the local security policy database.
+
+=item B<c bsppibrule> I<sender_eid_expr> I<receiver_eid_expr> I<block type number> I<{ '' | ciphersuite_name key_name }>
+
+The B<change bsppibrule> command.  This command changes the ciphersuite
+name and/or key name for the PIB rule pertaining to the sender/receiver EID
+expression pair identified by I<sender_eid_expr> and I<receiver_eid_expr>.
+Note that the I<eid_expr>s must exactly match those of the rule that is to
+be modified, including any terminating wild-card character.  
+
+=item B<d bsppibrule> I<sender_eid_expr> I<receiver_eid_expr> I<block type number>
+
+The B<delete bsppibrule> command.  This command deletes the PIB rule
+pertaining to the sender/receiver EID expression pair identified by
+I<sender_eid_expr> and I<receiver_eid_expr>.  Note that the I<eid_expr>s
+must exactly match those of the rule that is to be deleted, including any
+terminating wild-card character.
+
+=item B<i bsppibrule> I<sender_eid_expr> I<receiver_eid_expr> I<block type number>
+
+This command will print information (the ciphersuite and key names) about the
+PIB rule pertaining to I<sender_eid_expr> and I<receiver_eid_expr>.
+
+=item B<l bsppibrule>
+
+This command lists all PIB rules in the security policy database.
 
 =item B<h>
 
@@ -157,18 +168,18 @@ formats.  It is the same as the B<?> command.
 Adds a new key named "BABKEY" whose value is the content of the file
 "./babkey.txt".
 
-=item a babrxrule ipn:19.* HMAC_SHA1 BABKEY
+=item a bspbabrule ipn:19.* ipn:11.* HMAC_SHA1 BABKEY
 
-Adds a BAB reception rule requiring that all bundles received from
-node number 19 contain Bundle Authentication Blocks computed via the
-HMAC_SHA1 ciphersuite using a key value that is identical to the current
-value of the key named "BABKEY" in the local security policy database.
+Adds a BAB rule requiring that all bundles sent from node number 19 to node
+number 11 contain Bundle Authentication Blocks computed via the HMAC_SHA1
+ciphersuite using a key value that is identical to the current value of the
+key named "BABKEY" in the local security policy database.
 
-=item c babrxrule ipn:19.* '' ''
+=item c bspbabrule ipn:19.* ipn:11.* ''
 
-Changes the a BAB reception rule pertaining to all bundles received from
-node number 19.  BAB checking is disabled; these bundles will be
-automatically deemed authentic.
+Changes the BAB rule pertaining to all bundles sent from node number 19 to
+node number 11.  BAB checking is disabled; these bundles will be automatically
+deemed authentic.
 
 =back
 

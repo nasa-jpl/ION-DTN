@@ -369,7 +369,7 @@ static int	loadKeyValue(SecKey *key, char *fileName)
 	int	bytesRead;
 	int	keyfd;
 
-	keyfd = open(fileName, O_RDONLY, 0);
+	keyfd = iopen(fileName, O_RDONLY, 0);
 	if (keyfd < 0)
 	{
 		putSysErrmsg("Can't open key value file", fileName);
@@ -825,7 +825,8 @@ int	sec_findBspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 	return sec_get_bspBabRule(srcEid, destEid, ruleAddr, eltp);
 }
 
-int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName, char *keyName)
+int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
+		char *keyName)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();

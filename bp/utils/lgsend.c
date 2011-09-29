@@ -54,7 +54,7 @@ int	main(int argc, char **argv)
 	}
 
 	sdr = bp_get_sdr();
-	cmdFile = open(cmdFileName, O_RDONLY, 0777);
+	cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
 	if (cmdFile < 0)
 	{
 		bp_close(sap);

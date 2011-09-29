@@ -8,13 +8,14 @@
 #is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
 # fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, 2.4.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, 2.5.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
 # shall we put extra scripts in a special directory?
 # AC_CONFIG_AUX_DIR(build-aux)
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
 AC_CONFIG_HEADER([config.h])
+
 
 # Checks for programs.
 AC_PROG_CC
@@ -39,17 +40,17 @@ fi
 # Checks for libraries.
 # these are libraries that ALREADY EXIST BEFORE BUILDING
 AC_CHECK_LIB(
-    [expat], 
-    [XML_GetCurrentLineNumber], 
-    [ AC_SUBST( [EXPAT_LIBS], ["-lexpat"] ) ],
-    [AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])]
+	[expat], 
+	[XML_GetCurrentLineNumber], 
+	[ AC_SUBST( [EXPAT_LIBS], ["-lexpat"] ) ],
+	[AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])]
 )
 
 AC_CHECK_LIB(
-    [pthread], 
-    [pthread_create], 
-    [ AC_SUBST( [PTHREAD_LIBS], ["-lpthread"] ) ],
-    [AC_MSG_ERROR([You need pthread library.]) ]
+	[pthread], 
+	[pthread_create], 
+	[ AC_SUBST( [PTHREAD_LIBS], ["-lpthread"] ) ],
+	[AC_MSG_ERROR([You need pthread library.]) ]
 )
 
 
@@ -59,11 +60,29 @@ AC_CHECK_LIB(
 AC_CHECK_HEADERS(valgrind/valgrind.h)
 
 
+# Dynamically choose whether or not to instrument code for gcov code coverage
+# Default is not to instrument the code for gcov code coverage.
+# To use gcov code coverage instrumentation, use "./configure --enable-gcov"
+AC_ARG_WITH([gcov],
+[AS_HELP_STRING([--with-gcov], [Turn on code coverage instrumentation])],
+[gcov=yes;],
+[])
+if test "x$gcov" = "xyes" ; then
+	echo "Instrument code for gcov coverage analysis... yes"
+	CFLAGS="${CFLAGS} -g -O0 -fprofile-arcs -ftest-coverage"
+	LDFLAGS="${LDFLAGS} -fprofile-arcs -ftest-coverage -lgcov"
+else
+	echo "Instrument code for gcov coverage analysis... no"
+fi
+AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
+
 # Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([fcntl.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
+
+m4_include([./dccp_macro.m4])
 
 # Checks for typedefs, structures, and compiler characteristics.
 case $host_os in
@@ -80,6 +99,9 @@ case $host_os in
 		fi
 		;;
 	linux*) 
+		#check for DCCP support
+		CHECK_DCCP()
+
 		if test $host_cpu = "x86_64" ; then
 			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.]) 
 			AC_SUBST([ION_LINK_FLAGS]," -fPIC -shared ")

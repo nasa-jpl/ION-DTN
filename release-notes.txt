@@ -1,7 +1,7 @@
 
-= Release Notes for ION 2.4.0 =
+= Release Notes for ION 2.5.0 =
 
-April 5, 2011
+September 29, 2011
 
 %%%%%%%%%%%
 = GENERAL =
@@ -54,7 +54,130 @@ Features included:
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.5.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+- Issue #189/#250/#252: ION shutdown utility added.
+
+- Issue #196: The congestion checking subroutines have been implemented more
+  efficiently.
+
+- Issue #265: The "bpdriver" application now allows users to set the TTL value
+  dynamically via a the "t<ttl>" command line parameter.
+
+- Issue #276: Loopback range can now be set to a non-zero value.
+
+- Issue #279: Fixed issue where calling bpMemo twice created timeline events
+  that could not be removed.
+
+- Issue #286: Fixed issue where erroneous input to several administrative
+  applications could cause them to crash.
+
+- Issue #292: Fixed issue where pid-checking routines can give false-negatives
+  for vxworks processes.
+
+- Issue #296: Corrected usage of internal _xxxConstants() functions to ensure
+  they are only used with invariant values.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.4.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+- Issue #264: Removed checks for maximum block size in LTP, simplifying LTP
+  configuration and fixing a bug.
+  Related to the fix for issue #293, upgrading the LTP configuration worksheet.
+
+- Issue #269: Clean up platform (portability) files, making it easier to add
+  new ports.
+  Removed support for some obsolete platforms (e.g., HP-UX).
+
+- Issue #270: Fixed issue in cfdptest that prevented the "Custody Requested"
+  switch from being set.
+
+- Issue #275: ION now has support for code coverage analysis via lcov/gcov.
+  To enable this feature, use "--configure --with-gcov".
+  Building with code coverage support enables the following new directives:
+     make cov: creates a "coverage" subfolder from the top of the ION
+               directory where HTML coverage results are stored
+     make cov clean: removes the trace files and the "coverage" subdirectory
+
+- Issue #281: Fixed issue that terminated bputa when it was directed
+  to write to a file without sufficient write permissions.
+
+- Issue #282: Fixed issue where LTP segments received outside of a contact
+  were mishandled.
+
+- Issue #283: Fixed issue where the CFDP FDU didn't load the database before
+  using it, resulting in erroneous data being fed into the CFDP event queue.
+
+- Issue #284: Fixed issue where CFDP mishandled extent merges, resulting
+  in checksum failures.
+
+- Issue #285: Fixed issue in cfdpadmin where malformed commands could cause the
+  application to crash.
+
+- Issue #287: Fixed issue that prevented the reporting of user messages and
+  filestore responses in cfdptest.
+
+- Issue #293: Fixed issue in the ION LTP Worksheet where the spreadsheet
+  doesn't account for a small aggregation size limit when calculating
+  export blocks
+
+- Issue #295: ION's internal contact graph routing routines have been
+  parameterized to enable better support for deployment-specific variations
+  of the algorithm.
+
+- ION now has native Windows support via MingW.  
+  Support for Cygwin and Interix has been removed.
+
+- Added support for inactivity timer in CFDP.
+
+- Fixed race conditions in support for multithreaded AMS.
+
+- Fixed memory leaks in AMS shutdown.
+
+- Added ability to update AMS modules’ management information bases while the
+  modules are running, by using the new amsmib utility.  Modified amsstop to
+  use a similar mechanism.
+
+- Added AMS Programmer’s Guide to distribution.
+
+- Various minor bug fixes.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.4.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #240: Added DCCP link service adapters to ION for the purpose of 
+  providing congestion control without reliability guarantees, which is
+  beneficial for LTP deployments over IP networks, particularly when traversing
+  the Internet. The sender program is called "dccplso" and the receiver program
+  is called "dccplsi".
+
+- Issue #241: Added DCCP convergence layer for BP. The sender program is called
+  "dccpclo" and the receiver program is called "dccpcli".
+
+- Issue #245: Added support for using the character "*" as a wildcard to remove
+  multiple contacts and ranges at once.
+
+- Issue #257: Fixed issue where bundles would remain in the limbo queue after
+  an outduct was blocked rather than be reforwarded.
+
+- Issue #263: Fixed issue with pthread_t.  pthread_t is now treated as an
+  opaque type for the purpose of improving code correctness and portability.
+
+- Issue #273: Added a ".hgignore" file that can be populated with regular
+  expressions of files to suppress when the "hg status" command is run.
+
+- Issue #277: Fixed 3-node-stcp-ltp configuration to remove an unintentional
+  connection between nodes 1 and 3.
+
+- Issue #278: Updated various test configuration files to have more recent
+  contact times.
+
+- Tests have been scrubbed to adopt the new security syntax enhancements
+  introduced in Issue #247.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.0 =
@@ -72,8 +195,9 @@ Features included:
 - Issue 176: Upgrade ltp-cla to better conform to current ltpcla draft in the
   DTNRG.  Particularly the new "green" service handling.
 
-- Issue 195: pthread_t is an opaque data type, which should not be initialized
-  or compared to an integer.
+- Issue 195: sm_SemUnwedge() in platform_sm.c uses a pthread to ensure a
+  semaphore is not already taken.  Some platforms do not include pthreads and
+  the function can be implemented using semaphore trywait semantics().
 
 - Issue 233: Some additional LTP debugging hooks added.
 
@@ -148,8 +272,6 @@ Features included:
 - Bug fixes to: LTP, CGR, SDR mutex, bpcounter, ionscript, tcpcl, stcp,
   PSM mutex, SDR, bpsink, and others.
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.2.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -167,8 +289,6 @@ Features included:
   API changes.
 
 - Various other bug fixes and tweaks.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.2.0 =
@@ -193,8 +313,6 @@ Features included:
 - Optimize contact graph routing.
 
 - Various bug fixes and tweaks.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.1.0 =
@@ -224,8 +342,6 @@ Features included:
 
 - Bug fixes in the TCP convergence layer, particularly in the interest of interoperability
   with dtn2.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.0.0 =
@@ -259,8 +375,6 @@ Features included:
 - Documentation updates.
 
 - Various testing applications in earlier releases are split from the ion release.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 1.1.0 =
@@ -324,8 +438,6 @@ Features included:
 
 - Add interface for inserting BP extensions.
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 1.0_r203 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -354,9 +466,8 @@ Features included:
 
 - Various bug fixes.
 
+
 - 2008-11-11 Added the ION Design and Operation manual v1.6.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 0.3 =
@@ -383,8 +494,6 @@ Features included:
 
 - Added ionstart and ionstop scripts.
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 0.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -401,8 +510,6 @@ Features included:
   CWE site for AMS.  The API for AMS is unchanged.
 
 - A variety of miscellaneous bugs have been fixed.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 0.1 =

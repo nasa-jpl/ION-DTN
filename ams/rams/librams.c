@@ -247,7 +247,7 @@ static int	_petitionLog(char *logLine)
 		{
 			/*	Recover all known petition activity.	*/
 
-			petitionLog = open("petition.log",
+			petitionLog = iopen("petition.log",
 					O_RDWR | O_CREAT | O_APPEND, 0777);
 			if (petitionLog < 0)
 			{
@@ -296,18 +296,7 @@ static int	_petitionLog(char *logLine)
 
 /*	*	*	RAMS gateway main line	*	*	*	*/
 
-static pthread_t	_mainThread(pthread_t *value)
-{
-	static pthread_t	mainThread = 0;
-
-	if (value)
-	{
-		mainThread = *value;
-	}
-
-	return mainThread;
-}
-
+#ifdef mingw
 static void	KillGateway()
 {
 	RamsGateway	*gWay = _gWay(NULL);
@@ -317,6 +306,51 @@ static void	KillGateway()
 	{
 		bp_interrupt(gWay->sap);
 	}
+	else	/*	Must make sure recvfrom is interrupted.		*/
+	{
+		shutdown(gWay->ownUdpFd, SD_BOTH);
+	}
+}
+#else
+static pthread_t	_mainThread()
+{
+	static pthread_t	mainThread;
+	static int		haveMainThread = 0;
+
+	if (haveMainThread == 0)
+	{
+		mainThread = pthread_self();
+		haveMainThread = 1;
+	}
+
+	return mainThread;
+}
+
+static void	KillGateway()
+{
+	RamsGateway	*gWay = _gWay(NULL);
+	pthread_t	mainThread;
+
+	gWay->stopping = 1;
+	if (gWay->netProtocol == RamsBp)
+	{
+		bp_interrupt(gWay->sap);
+	}
+	else	/*	Must make sure recvfrom is interrupted.		*/
+	{
+		mainThread = _mainThread();
+		if (!pthread_equal(mainThread, pthread_self()))
+		{
+			pthread_kill(mainThread, SIGTERM);
+		}
+	}
+}
+#endif
+
+static void	InterruptGateway()
+{
+	isignal(SIGTERM, InterruptGateway);
+	KillGateway();
 }
 
 static int	HandleBundle(BpDelivery *dlv, char *buffer)
@@ -490,7 +524,6 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		char *authorityName, char *unitName, char *roleName,
 		long lifetime)
 {
-	pthread_t		self;
 	AmsModule		amsModule;
 	AmsMib			*mib;
 	int			ownContinuumNbr;
@@ -807,9 +840,10 @@ printf("Gateway declares itself to all RAMS network neighbors ....\n");
 		return -1;
 	}
 
-	self = pthread_self();
-	oK(_mainThread(&self));
-	isignal(SIGTERM, KillGateway);
+#ifndef mingw
+	oK(_mainThread());
+#endif
+	isignal(SIGTERM, InterruptGateway);
 	while (gWay->stopping == 0)
 	{
 		switch (gWay->netProtocol)
@@ -908,6 +942,7 @@ printf("Before bp_receive...\n");
 		bp_detach();
 	}
 
+	oK(_gWay(gWay));
 	oK(_petitionLog(NULL));		/*	Close the petition log.	*/
 	writeMemo("[i] Stopping RAMS gateway.");
 	return 0;
@@ -992,7 +1027,7 @@ ownPseudoSubject, node->continuumNbr);
 		break;
 
 	case RamsUdp:
-		close(gWay->ownUdpFd);
+		closesocket(gWay->ownUdpFd);
 		break;
 
 	default:
@@ -1029,8 +1064,6 @@ ownPseudoSubject, node->continuumNbr);
 	{
 		lyst_destroy(gWay->udpRpdus);
 	}
-
-	MRELEASE(gWay);
 }
 
 #if RAMSDEBUG
@@ -1131,8 +1164,8 @@ sub=%d\n", inv->inviteSpecification->domainUnitNbr,
 
 static void	HandleAamsError(void *userData, AmsEvent *event)
 {
-	ErrMsg("Can't receive Aams Message.");
-	oK(pthread_kill(_mainThread(NULL), SIGTERM));
+	ErrMsg("AAMS error.");
+	KillGateway();
 }
 
 static void	HandleSubscription(AmsModule module, void *userData,
@@ -2467,8 +2500,8 @@ destinationContinuumNbr);
 #if RAMSDEBUG
 PUTS("<handle announced message> send message to modules:");
 #endif
-	for (modulesElt = lyst_first(moduleList); elt;
-			elt = lyst_next(modulesElt))
+	for (modulesElt = lyst_first(moduleList); modulesElt;
+			modulesElt = lyst_next(modulesElt))
 	{
 		amsModule = (Module *) lyst_data(modulesElt);
 #if RAMSDEBUG
