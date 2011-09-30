@@ -35,20 +35,17 @@
 #include "bpP.h"
 #include "bei.h"
 
-
-#ifdef BP_EXTENDED
-#include "ext/bpextensions.c"
-#else
-#include "ext/noextensions.c"
-#endif
-
-
 /******************************************************************************
  *               OPERATIONS ON THE EXTENSION DEFINITIONS ARRAY                *
  ******************************************************************************/
 
 void	getExtensionDefs(ExtensionDef **array, int *count)
 {
+#ifdef BP_EXTENDED
+#include "ext/bpextensions.c"
+#else
+#include "ext/noextensions.c"
+#endif
 	static int	extensionsCt = sizeof extensions / sizeof(ExtensionDef);
 
 	*array = extensions;

@@ -1180,6 +1180,9 @@ typedef struct bpsap_st
 extern int		_handleAdminBundles(char *adminEid,
 				StatusRptCB handleStatusRpt,
 				CtSignalCB handleCtSignal);
+
+extern int eidIsLocal(EndpointId eid, char* dictionary);
+
 #ifdef __cplusplus
 }
 #endif

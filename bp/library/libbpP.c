@@ -96,7 +96,7 @@ static char	*_nullEid()
 
 static char		*_cbheSchemeName()
 {
-	return CBHE_SCHEME_NAME;
+	return "ipn";
 }
 
 /*	This is the scheme name for the legacy endpoint naming scheme
@@ -104,7 +104,7 @@ static char		*_cbheSchemeName()
 
 static char		*_dtn2SchemeName()
 {
-	return DTN2_SCHEME_NAME;
+	return "dtn";
 }
 
 /*	*	*	BP service control functions	*	*	*/
@@ -1354,8 +1354,6 @@ void	releaseDictionary(char *dictionary)
 int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		PsmAddress *vschemeElt)
 {
-	char	*uri;
-
 	/*	parseEidString is a Boolean function, returning 1 if
 	 *	the EID string was successfully parsed.			*/
 
@@ -1379,18 +1377,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	/*	EID string does not identify the null endpoint.		*/
 
 	metaEid->nullEndpoint = 0;
-#if BP_URI_RFC
-	if (strncmp(eid, "dtn::", 5) != 0)
-	{
-		writeMemoNote("[?] Don't know how to parse EID", eidString);
-		return 0;
-	}
-
-	uri = eidString + 5;
-#else
-	uri = eidString;
-#endif
-	metaEid->colon = strchr(uri, ':');
+	metaEid->colon = strchr(eidString, ':');
 	if (metaEid->colon == NULL)
 	{
 		writeMemoNote("[?] Malformed EID", eidString);
@@ -1398,8 +1385,8 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	}
 
 	*(metaEid->colon) = '\0';
-	metaEid->schemeName = uri;
-	metaEid->schemeNameLength = metaEid->colon - uri;
+	metaEid->schemeName = eidString;
+	metaEid->schemeNameLength = metaEid->colon - eidString;
 	metaEid->nss = metaEid->colon + 1;
 	metaEid->nssLength = strlen(metaEid->nss);
 
@@ -1452,31 +1439,19 @@ void	restoreEidString(MetaEid *metaEid)
 
 static int	printCbheEid(CbheEid *eid, char **result)
 {
-	char	*schemeName;
-	int	eidLength;
-	char	*decoration;
 	char	*eidString;
+	int	eidLength = 46;
 
-	schemeName = _cbheSchemeName();
-	eidLength = strlen(schemeName);
-#if BP_URI_RFC
 	/*	Printed EID string is
 	 *
-	 *	   dtn::<schemename>:<elementnbr>.<servicenbr>\0
+	 *	   ipn:<elementnbr>.<servicenbr>\0
 	 *
-	 *	so max EID string length is 5 for "dtn::" plus
-	 *	length of schemename plus 1 for ':' plus max
-	 *	length of nodeNbr (which is a 64-bit number, so
-	 *	20 digits) plus 1 for '.' plus max length of
-	 *	serviceNbr (which is a 64-bit number, so 20 digits)
+	 *	so max EID string length is 3 for "ipn" plus 1 for
+	 *	':' plus max length of nodeNbr (which is a 64-bit
+	 *	number, so 20 digits) plus 1 for '.' plus max lengthx
+	 *	of serviceNbr (which is a 64-bit number, so 20 digits)
 	 *	plus 1 for the terminating NULL.			*/
 
-	eidLength += 48;
-	decoration = "dtn::";
-#else
-	eidLength += 43;
-	decoration = "";
-#endif
 	eidString = MTAKE(eidLength);
 	if (eidString == NULL)
 	{
@@ -1490,8 +1465,8 @@ static int	printCbheEid(CbheEid *eid, char **result)
 	}
 	else
 	{
-		isprintf(eidString, eidLength, "%s%s:%lu.%lu", decoration,
-				schemeName, eid->nodeNbr, eid->serviceNbr);
+		isprintf(eidString, eidLength, "ipn:%lu.%lu", eid->nodeNbr,
+				eid->serviceNbr);
 	}
 
 	*result = eidString;
@@ -1503,19 +1478,12 @@ static int	printDtnEid(DtnEid *eid, char *dictionary, char **result)
 	int	schemeNameLength;
 	int	nssLength;
 	int	eidLength;
-	char	*decoration;
 	char	*eidString;
 
 	CHKERR(dictionary);
 	schemeNameLength = strlen(dictionary + eid->schemeNameOffset);
 	nssLength = strlen(dictionary + eid->nssOffset);
 	eidLength = schemeNameLength + nssLength + 2;
-#if BP_URI_RFC
-	eidLength += 5;
-	decoration = "dtn::";
-#else
-	decoration = "";
-#endif
 	eidString = MTAKE(eidLength);
 	if (eidString == NULL)
 	{
@@ -1523,7 +1491,7 @@ static int	printDtnEid(DtnEid *eid, char *dictionary, char **result)
 		return -1;
 	}
 
-	isprintf(eidString, eidLength, "%s%s:%s", decoration,
+	isprintf(eidString, eidLength, "%s:%s",
 			dictionary + eid->schemeNameOffset,
 			dictionary + eid->nssOffset);
 	*result = eidString;
@@ -1576,21 +1544,15 @@ BpEidLookupFn	*senderEidLookupFunctions(BpEidLookupFn fn)
 	return NULL;
 }
 
-void	getSenderEid(char **eidBuffer, char *neighborClId)
+void	getSenderEid(char **eidBuffer, char *neighborClEid)
 {
-	char		*uriBuffer;
 	BpEidLookupFn	*lookupFns;
 	int		i;
 	BpEidLookupFn	lookupEid;
 
 	CHKVOID(eidBuffer);
 	CHKVOID(*eidBuffer);
-	CHKVOID(*neighborClId);
-	uriBuffer = *eidBuffer;
-#ifdef BP_URI_RFC
-	istrcpy(*uriBuffer, "dtn::", 6);
-	uriBuffer += 5;
-#endif
+	CHKVOID(*neighborClEid);
 	lookupFns = senderEidLookupFunctions(NULL);
 	for (i = 0; i < 16; i++)
 	{
@@ -1599,7 +1561,8 @@ void	getSenderEid(char **eidBuffer, char *neighborClId)
 		{
 			break;		/*	Reached end of table.	*/
 		}
-		switch (lookupEid(uriBuffer, neighborClId))
+
+		switch (lookupEid(*eidBuffer, neighborClEid))
 		{
 		case -1:
 			putErrmsg("Failed getting sender EID.", NULL);
@@ -5700,7 +5663,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		acqCount++;
 		isprintf(fileName, sizeof fileName, "%s%cbpacq.%lu", cwd,
 				ION_PATH_DELIMITER, acqCount);
-		fd = open(fileName, O_WRONLY | O_CREAT, 0666);
+		fd = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0)
 		{
 			putSysErrmsg("Can't create acq file", fileName);
@@ -5715,7 +5678,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	{
 		oK(zco_file_ref_path(sdr, work->acqFileRef, fileName,
 				sizeof fileName));
-		fd = open(fileName, O_WRONLY, 0666);
+		fd = iopen(fileName, O_WRONLY, 0666);
 		if (fd < 0 || (fileLength = lseek(fd, 0, SEEK_END)) < 0)
 		{
 			putSysErrmsg("Can't reopen acq file", fileName);
@@ -6445,10 +6408,10 @@ static void	initAuthenticity(AcqWorkArea *work)
 	}
 
 	GET_OBJ_POINTER(bpSdr, SecDB, secdb, secdbObj);
-	if (sdr_list_length(bpSdr, secdb->bspBabRules) == 0 && 
-            sdr_list_length(bpSdr, secdb->bspPibRules) == 0)
+	if ((sdr_list_length(bpSdr, secdb->bspBabRules) == 0) &&
+            (sdr_list_length(bpSdr, secdb->bspPibRules) == 0))
 	{
-		work->authentic = 1;	//	No rules, proceed.
+		work->authentic = 1;	/*	No rules, proceed.	*/
 		return;
 	}
 
@@ -8214,7 +8177,7 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 }
 
 int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
-		Outduct *outduct)
+		Outduct *outduct, int sendToLimbo)
 {
 	Sdr		bpSdr = getIonsdr();
 	Object		xrAddr;
@@ -8223,7 +8186,7 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 
 	xrAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
-	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
+	sdr_read(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
 	sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
 	removeBundleFromQueue(xmitElt, &bundle, protocol, outductObj, outduct);
 	if (xr.proxNodeEid)
@@ -8238,16 +8201,25 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 
 	sdr_free(bpSdr, xrAddr);
 
-	/*	If bundle is MINIMUM_LATENCY, nothing more to do.
-	 *	We never put critical bundles into limbo.		*/
+	/*	If bundle is MINIMUM_LATENCY, nothing more to do.  We
+	 *	never reforward critical bundles or send them to limbo.	*/
 
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
 		return 0;
 	}
 
-	/*	Non-critical bundle, so let's redirect it into limbo.	*/
+	if (!sendToLimbo)
+	{
+		/*	Want to give bundle another chance to be
+		 *	transmitted at next opportunity.		*/
 
+		return bpReforwardBundle(xr.bundleObj);
+	}
+
+	/*	Must queue the bundle into limbo unconditionally.	*/
+
+	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, 0);
 	if (bundle.overdueElt)
 	{
 		/*	Bundle was un-queued before "overdue"
@@ -8315,8 +8287,7 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 0))
 		{
 			putErrmsg("Can't requeue urgent bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -8328,8 +8299,7 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 0))
 		{
 			putErrmsg("Can't requeue std bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -8341,8 +8311,7 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 0))
 		{
 			putErrmsg("Can't requeue bulk bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -10291,7 +10260,6 @@ forwarding.", NULL);
 	writeErrmsgMemos();
 	return 0;
 }
-
 
 int eidIsLocal(EndpointId eid, char* dictionary)
 {
