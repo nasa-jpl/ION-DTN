@@ -64,18 +64,16 @@ static void	printUsage()
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1 <est. number of sessions> <bytes reserved for LTP>");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a span <engine ID#> <max export sessions> <max export \
-session block size> <max import sessions> <max import session block size> \
-<max segment size> <aggregation size limit> <aggregation time limit> \
-'<LSO command>' [queuing latency, in seconds]");
+	PUTS("\t   a span <engine ID#> <max export sessions> \
+<max import sessions> <max segment size> <aggregation size limit> \
+<aggregation time limit> '<LSO command>' [queuing latency, in seconds]");
 	PUTS("\t\tIf queuing latency is negative, the absolute value of this \
 number is used as the actual queuing latency and session purging is enabled.  \
 See man(5) for ltprc.");
 	PUTS("\tc\tChange");
-	PUTS("\t   c span <engine ID#> <max export sessions> <max export \
-session block size> <max import sessions> <max import session block size> \
-<max segment size> <aggregation size limit> <aggregation time limit> \
-'<LSO command>' [queuing latency, in seconds]");
+	PUTS("\t   c span <engine ID#> <max export sessions> \
+<max import sessions> <max segment size> <aggregation size limit> \
+<aggregation time limit> '<LSO command>' [queuing latency, in seconds]");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} span <engine ID#>");
@@ -149,10 +147,31 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "span") == 0)
 	{
+		/*	Temporary patch for backward compatibility
+		 *	in configuration files.  Ditch tokens [4] and
+		 *	[6], which were maximum block sizes.		*/
+
+		if (tokenCount > 10)
+		{
+			tokens[4] = tokens[5];
+			tokens[5] = tokens[7];
+			tokens[6] = tokens[8];
+			tokens[7] = tokens[9];
+			tokens[8] = tokens[10];
+			if (tokenCount > 11)
+			{
+				tokens[9] = tokens[11];
+			}
+
+			tokenCount -= 2;
+		}
+
+		/*	End of temporary patch.				*/
+
 		switch (tokenCount)
 		{
-		case 12:
-			qTime = strtol(tokens[11], NULL, 0);
+		case 10:
+			qTime = strtol(tokens[9], NULL, 0);
 			if (qTime < 0)
 			{
 				purge = 1;
@@ -161,7 +180,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 			/*	Intentional fall-through to next case.	*/
 
-		case 11:
+		case 9:
 			break;
 
 		default:
@@ -175,9 +194,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 				strtol(tokens[5], NULL, 0),
 				strtol(tokens[6], NULL, 0),
 				strtol(tokens[7], NULL, 0),
-				strtol(tokens[8], NULL, 0),
-				strtol(tokens[9], NULL, 0),
-				tokens[10], (unsigned int) qTime, purge));
+				tokens[8], (unsigned int) qTime, purge));
 		return;
 	}
 
@@ -198,10 +215,31 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "span") == 0)
 	{
+		/*	Temporary patch for backward compatibility
+		 *	in configuration files.  Ditch tokens [4] and
+		 *	[6], which were maximum block sizes.		*/
+
+		if (tokenCount > 10)
+		{
+			tokens[4] = tokens[5];
+			tokens[5] = tokens[7];
+			tokens[6] = tokens[8];
+			tokens[7] = tokens[9];
+			tokens[8] = tokens[10];
+			if (tokenCount > 11)
+			{
+				tokens[9] = tokens[11];
+			}
+
+			tokenCount -= 2;
+		}
+
+		/*	End of temporary patch.				*/
+
 		switch (tokenCount)
 		{
-		case 12:
-			qTime = strtol(tokens[11], NULL, 0);
+		case 10:
+			qTime = strtol(tokens[9], NULL, 0);
 			if (qTime < 0)
 			{
 				purge = 1;
@@ -210,7 +248,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 			/*	Intentional fall-through to next case.	*/
 
-		case 11:
+		case 9:
 			break;
 
 		default:
@@ -224,9 +262,7 @@ static void	executeChange(int tokenCount, char **tokens)
 				strtol(tokens[5], NULL, 0),
 				strtol(tokens[6], NULL, 0),
 				strtol(tokens[7], NULL, 0),
-				strtol(tokens[8], NULL, 0),
-				strtol(tokens[9], NULL, 0),
-				tokens[10], (unsigned int) qTime, purge));
+				tokens[8], (unsigned int) qTime, purge));
 		return;
 	}
 
@@ -271,11 +307,11 @@ static void	printSpan(LtpVspan *vspan)
 	isprintf(buffer, sizeof buffer, "%lu  pid: %d  cmd: %.128s",
 			vspan->engineId, vspan->lsoPid, cmd);
 	printText(buffer);
-	isprintf(buffer, sizeof buffer, "\tmax export sessions: %u  max \
-export block size: %u", span->maxExportSessions, span->maxExportBlockSize);
+	isprintf(buffer, sizeof buffer, "\tmax export sessions: %u",
+			span->maxExportSessions);
 	printText(buffer);
-	isprintf(buffer, sizeof buffer, "\tmax import sessions: %u  max \
-import block size: %u", span->maxImportSessions, span->maxImportBlockSize);
+	isprintf(buffer, sizeof buffer, "\tmax import sessions: %u",
+			span->maxImportSessions);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "\taggregation size limit: %u  \
 aggregation time limit: %u", span->aggrSizeLimit, span->aggrTimeLimit);
@@ -391,6 +427,7 @@ static void	manageScreening(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	switch (*(tokens[2]))
@@ -432,6 +469,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
+		return;
 	}
 
 	newOwnQtime = strtol(tokens[2], NULL, 0);
@@ -834,7 +872,7 @@ int	main(int argc, char **argv)
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = open(cmdFileName, O_RDONLY, 0777);
+		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
 			PERROR("Can't open command file");

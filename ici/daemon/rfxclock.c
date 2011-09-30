@@ -206,12 +206,10 @@ static int	applyRange(IonVdb *ionvdb, IonDB *iondb, IonRange *range)
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
 
-	/*	Note that range's From and To nodes are known to be
-	 *	different: rfx_insert_range silently rejects OWLT
-	 *	for loopback links.					*/
-
 	if (range->fromNode == iondb->ownNodeNbr)
 	{
+		/*	Note: includes the loopback case.		*/
+
 		neighborNodeNbr = range->toNode;
 		setOriginOwlt(range->toNode, range->fromNode, range->owlt);
 	}
@@ -258,14 +256,14 @@ static int	applyRange(IonVdb *ionvdb, IonDB *iondb, IonRange *range)
 	if (range->fromNode == iondb->ownNodeNbr)
 	{
 		neighbor->owltOutbound = range->owlt;
-		if (range->fromNode < range->toNode)
+		if (range->fromNode <= range->toNode)
 		{
 			/*	Use as default for Inbound as well.	*/
 
 			neighbor->owltInbound = range->owlt;
 		}
 	}
-	else	/*	Range is from neighbor to self.			*/
+	else	/*	Range is from NON-LOOPBACK neighbor to self.	*/
 	{
 		neighbor->owltInbound = range->owlt;
 		if (range->fromNode < range->toNode)

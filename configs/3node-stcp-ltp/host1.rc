@@ -47,7 +47,6 @@ a range +1 +3600 1 1 1
 #	Note that ranges cover both directions, so you only need define
 #	one range for any combination of nodes.
 a range +1 +3600 1 2 1
-a range +1 +3600 1 3 2
 a range +1 +3600 2 2 1
 a range +1 +3600 2 3 1
 a range +1 +3600 3 3 1

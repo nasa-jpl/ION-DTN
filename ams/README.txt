@@ -19,10 +19,8 @@ POSSIBILITY.
 USER BEARS ALL RISK RELATING TO QUALITY AND PERFORMANCE OF THE
 SOFTWARE AND/OR RELATED MATERIALS.
 *******************************************************************
-Copyright 2004-2007, by the California Institute of Technology. ALL
-RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.  Any
-commercial use must be negotiated with the Office of Technology
-Transfer at the California Institute of Technology.
+Copyright 2002-2011, by the California Institute of Technology. ALL
+RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.
 
 This software and/or related materials may be subject to U.S. export
 control laws.  By accepting this software and related materials, the
@@ -33,10 +31,11 @@ software or related materials to foreign countries or providing
 access to foreign persons.
 *******************************************************************
 
-Note: ION's implementation of AMS depends on the "expat" XML parsing library
+Note: the default build of AMS depends on the "expat" XML parsing library
 for C.  expat is included in just about all distributions of Linux and other
 Unix-derived operating systems, but not in (for example) VxWorks 5.4.  If
-you need to build AMS for an operating environment that lacks expat, please
-download expat from SourceForge and install as advised:
+you need to build AMS for an operating environment that lacks expat, either
+compile with the -DNOEXPAT switch set or else download expat from SourceForge
+and install as advised:
 
 	http://expat.sourceforge.net

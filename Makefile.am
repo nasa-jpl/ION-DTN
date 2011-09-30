@@ -75,6 +75,39 @@ install-data-hook:
 #	cd $(srcdir)/unreleased-doc && pdflatex tutorial.tex && pdflatex tutorial.tex 
 #	mv $(srcdir)/unreleased-doc/tutorial.pdf ./tutorial.pdf
 
+if ENABLE_GCOV
+cov-clean:
+	@rm -rf coverage
+	@find . -name "*.gcda" -exec rm {} \;
+	@find . -name "*.gcno" -exec rm {} \;
+	@lcov --directory . --zerocounters
+
+cov-report:
+	@mkdir -p coverage
+	@lcov --compat-libtool --directory . -b . --capture --output-file coverage/app.info  
+	@genhtml -o coverage/ coverage/app.info 
+
+cov:
+	@make cov-report
+
+#clean-local:
+#    @make cov-reset 
+
+#check:
+#    @make cov
+
+else
+cov-clean:
+	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
+
+cov-report:
+	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
+
+cov:
+	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
+endif
+
+
 # clean-local refers to existing documents. there are no manpages for ams
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local cfdpclean-local
 #icixclean-local
@@ -268,12 +301,13 @@ iciPODM5 = pod2man -s 5 -c "ICI configuration files"
 # compile these for the website use only?
 # iciPODH = pod2html --noindex
 
-icicflags = -I$(srcdir)/ici/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr 
+icicflags = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr 
 
 icibin = \
 	sdrwatch \
 	psmwatch \
 	ionadmin \
+	ionexit \
 	ionsecadmin \
 	sdrmend \
 	file2sm \
@@ -444,6 +478,10 @@ ionadmin_SOURCES = ici/utils/ionadmin.c
 ionadmin_LDADD = libici.la $(LIBOBJS) 
 ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
+ionexit_SOURCES = ici/utils/ionexit.c
+ionexit_LDADD = libbp.la libltp.la libici.la $(LIBOBJS) 
+ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
 ionsecadmin_LDADD = libici.la $(LIBOBJS) 
 ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
@@ -517,10 +555,13 @@ ltpbin = \
 	aoslsi \
 	aoslso \
 	ltpdriver \
-	ltpcounter
+	ltpcounter \
+	dccplsi	 \
+	dccplso
 
 ltplib = \
 	libltp.la
+#	libltpP.la
 
 ltpinclude = \
 	ltp/include/ltp.h
@@ -528,7 +569,8 @@ ltpinclude = \
 ltpnoinst = \
 	ltp/library/ltpP.h \
 	ltp/udp/udplsa.h \
-	ltp/aos/aoslsa.h
+	ltp/aos/aoslsa.h \
+	ltp/dccp/dccplsa.h
 
 ltpextra = \
 	ltp/README.txt \
@@ -539,6 +581,8 @@ ltpextra = \
 	ltp/doc/pod1/ltpmeter.pod \
 	ltp/doc/pod1/udplsi.pod \
 	ltp/doc/pod1/udplso.pod \
+	ltp/doc/pod1/dccplsi.pod \
+	ltp/doc/pod1/dccplso.pod \
 	ltp/doc/pod5/ltprc.pod \
 	ltp/doc/pod3/ltp.pod
 
@@ -550,6 +594,8 @@ ltpmans = \
 	$(top_builddir)/ltp/doc/ltpmeter.1 \
 	$(top_builddir)/ltp/doc/udplsi.1 \
 	$(top_builddir)/ltp/doc/udplso.1 \
+	$(top_builddir)/ltp/doc/dccplsi.1 \
+	$(top_builddir)/ltp/doc/dccplso.1 \
 	$(top_builddir)/ltp/doc/ltprc.5 \
 	$(top_builddir)/ltp/doc/ltp.3 
 
@@ -575,6 +621,10 @@ libltp_la_SOURCES = \
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libltp_la_LIBADD = libici.la
+
+#libltpP_la_SOURCES = ltp/library/libltpP.c
+#libltpP_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+#libltpP_la_LDFLAGS = $(ION_LINK_FLAGS)
 
 # --- Utility Programs --- #
 
@@ -621,6 +671,15 @@ aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 aoslso_SOURCES = ltp/aos/aoslso.c
 aoslso_LDADD = libltp.la libici.la $(LIBOBJS) 
 aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+# --- DCCP Executables --- #
+dccplsi_SOURCES = ltp/dccp/dccplsi.c
+dccplsi_LDADD = libltp.la libici.la $(LIBOBJS) 
+dccplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+dccplso_SOURCES = ltp/dccp/dccplso.c
+dccplso_LDADD = libltp.la libici.la $(LIBOBJS) 
+dccplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
 
 ##########################
 #
@@ -758,6 +817,8 @@ bpbin = \
 	brsccla \
 	udpcli \
 	udpclo \
+	dccpcli \
+	dccpclo	\
 	dgrcla \
 	ltpcli \
 	ltpclo \
@@ -794,7 +855,8 @@ bpnoinst = \
 	bp/brs/brscla.h \
 	bp/udp/udpcla.h \
 	bp/ltp/ltpcla.h \
-	bp/tcp/tcpcla.h 
+	bp/tcp/tcpcla.h \
+	bp/dccp/dccpcla.h
 
 #	bp/library/ext/phn/phn.h 
 
@@ -831,6 +893,8 @@ bpextra = \
 	bp/doc/pod1/tcpclo.pod \
 	bp/doc/pod1/udpcli.pod \
 	bp/doc/pod1/udpclo.pod \
+	bp/doc/pod1/dccpcli.pod \
+	bp/doc/pod1/dccpclo.pod \
 	bp/doc/pod1/bping.pod \
 	bp/doc/pod1/bpstats2.pod \
 	bp/doc/pod1/bpchat.pod \
@@ -892,6 +956,8 @@ bpmans = \
 	$(top_builddir)/bp/doc/tcpclo.1 \
 	$(top_builddir)/bp/doc/udpcli.1 \
 	$(top_builddir)/bp/doc/udpclo.1 \
+	$(top_builddir)/bp/doc/dccpcli.1 \
+	$(top_builddir)/bp/doc/dccpclo.1 \
 	$(top_builddir)/bp/doc/bping.1 \
 	$(top_builddir)/bp/doc/bpstats2.1 \
 	$(top_builddir)/bp/doc/bpchat.1 \
@@ -1069,6 +1135,16 @@ udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 udpclo_SOURCES = bp/udp/udpclo.c
 udpclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) 
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+# --- DCCP Executables --- #
+
+dccpcli_SOURCES = bp/dccp/dccpcli.c
+dccpcli_LDADD = libipnfw.la libdtn2fw.la libbp.la libici.la $(LIBOBJS) 
+dccpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+dccpclo_SOURCES = bp/dccp/dccpclo.c
+dccpclo_LDADD = libbp.la libici.la $(LIBOBJS) 
+dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 
@@ -1485,7 +1561,8 @@ tests_library_libtestutil_la_LDFLAGS = $(ION_LINK_FLAGS)
 #    and $(TESTUTILCFLAGS) in _CFLAGS.
 check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/issue-188-common-cos-syntax/dotest \
-	tests/issue-260-teach-valgrind-mtake/domtake
+	tests/issue-260-teach-valgrind-mtake/domtake \
+	tests/issue-279-bpMemo-timeline/driver
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
@@ -1498,6 +1575,10 @@ tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TES
 tests_issue_260_teach_valgrind_mtake_domtake_SOURCES = tests/issue-260-teach-valgrind-mtake/domtake.c
 tests_issue_260_teach_valgrind_mtake_domtake_LDADD = libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline/driver.c
+tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
+tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 
 

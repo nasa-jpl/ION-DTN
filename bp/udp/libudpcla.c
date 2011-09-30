@@ -36,7 +36,7 @@ int	sendBytesByUDP(int *bundleSocket, char *from, int length,
 	CHKERR(socketName && bundleSocket && from);
 	while (1)	/*	Continue until not interrupted.		*/
 	{
-		bytesWritten = sendto(*bundleSocket, from, length, 0,
+		bytesWritten = isendto(*bundleSocket, from, length, 0,
 			socketName, sizeof(struct sockaddr));
 		if (bytesWritten < 0)
 		{
@@ -49,7 +49,7 @@ int	sendBytesByUDP(int *bundleSocket, char *from, int length,
 			case EBADF:
 			case ETIMEDOUT:
 			case ECONNRESET:
-				close(*bundleSocket);
+				closesocket(*bundleSocket);
 				*bundleSocket = -1;
 			}
 
@@ -153,7 +153,7 @@ int	receiveBytesByUDP(int bundleSocket, struct sockaddr_in *fromAddr,
 
 	CHKERR(fromAddr && length);
 	fromSize = sizeof(struct sockaddr_in);
-	bytesRead = recvfrom(bundleSocket, into, length, 0,
+	bytesRead = irecvfrom(bundleSocket, into, length, 0,
 			(struct sockaddr *) fromAddr, &fromSize);
 	if (bytesRead < 0)
 	{

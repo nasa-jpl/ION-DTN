@@ -96,7 +96,6 @@ static void	*dgrMamsReceiver(void *parm)
 	MamsInterface	*tsif = (MamsInterface *) parm;
 	Dgr		dgrSap;
 	char		*buffer;
-	sigset_t	signals;
 	unsigned int	ipAddress;
 	unsigned short	portNbr;
 	int		length;
@@ -108,8 +107,12 @@ static void	*dgrMamsReceiver(void *parm)
 	CHKNULL(dgrSap);
 	buffer = MTAKE(DGRTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
+#ifndef mingw
+	sigset_t	signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		oK(dgr_receive(dgrSap, &portNbr, &ipAddress,
@@ -194,7 +197,6 @@ static void	*dgrAmsReceiver(void *parm)
 	Dgr		dgrSap;
 	AmsSAP		*amsSap;
 	char		*buffer;
-	sigset_t	signals;
 	unsigned short	portNbr;
 	unsigned int	ipAddress;
 	int		length;
@@ -208,8 +210,12 @@ static void	*dgrAmsReceiver(void *parm)
 	CHKNULL(amsSap);
 	buffer = MTAKE(DGRTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
+#ifndef mingw
+	sigset_t	signals;
+
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		oK(dgr_receive(dgrSap, &portNbr, &ipAddress, buffer,

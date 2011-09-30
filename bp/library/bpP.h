@@ -74,14 +74,6 @@ extern "C" {
 #define MAX_CBHE_NODE_NBR		(16777215)
 #define MAX_CBHE_SERVICE_NBR		(32767)
 
-#ifndef	CBHE_SCHEME_NAME
-#define CBHE_SCHEME_NAME		"ipn"
-#endif
-
-#ifndef	DTN2_SCHEME_NAME
-#define DTN2_SCHEME_NAME		"dtn"
-#endif
-
 #ifndef	BP_MAX_BLOCK_SIZE
 #define BP_MAX_BLOCK_SIZE		(2000)
 #endif
@@ -1286,7 +1278,8 @@ extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 
 extern int		reverseEnqueue(Object xmitElt, ClProtocol *protocol,
-				Object outductObj, Outduct *outduct);
+				Object outductObj, Outduct *outduct,
+				int sendToLimbo);
 
 extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
 extern int		releaseFromLimbo(Object xmitElt, int resume);

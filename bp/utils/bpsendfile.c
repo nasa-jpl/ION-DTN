@@ -29,8 +29,8 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	else
 	{
-		if (!bp_parse_class_of_service(svcClass, &extendedCOS, &custodySwitch,
-				&priority))
+		if (!bp_parse_class_of_service(svcClass, &extendedCOS,
+				&custodySwitch, &priority))
 		{
 			putErrmsg("Invalid class of service for bpsendfile.",
 					svcClass);

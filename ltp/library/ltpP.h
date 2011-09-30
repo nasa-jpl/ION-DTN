@@ -255,9 +255,7 @@ typedef struct
 	int		purge;		/*	Boolean.		*/
 	Object		lsoCmd;		/*	For starting the LSO.	*/
 	unsigned int	maxExportSessions;
-	unsigned int	maxExportBlockSize;
 	unsigned int	maxImportSessions;
-	unsigned int	maxImportBlockSize;
 	unsigned int	aggrSizeLimit;	/*	Bytes.			*/
 	unsigned int	aggrTimeLimit;	/*	Seconds.		*/
 	unsigned int	maxSegmentSize;	/*	MTU size, in bytes.	*/
@@ -442,7 +440,6 @@ typedef struct
 	int		estMaxExportSessions;
 	int		heapSpaceBytesReserved;
 	int		heapSpaceBytesOccupied;
-	int		allBlocksInHeap;/*	Boolean.		*/
 	unsigned int	ownQtime;
 	unsigned int	enforceSchedule;/*	Boolean.		*/
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
@@ -512,18 +509,14 @@ extern void		findSpan(unsigned long engineId, LtpVspan **vspan,
 				PsmAddress *vspanElt);
 extern int		addSpan(unsigned long engineId,
 				unsigned int maxExportSessions,
-				unsigned int maxExportBlockSize,
 				unsigned int maxImportSessions,
-				unsigned int maxImportBlockSize,
 				unsigned int maxSegmentSize,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,
 				char *lsoCmd, unsigned int qTime, int purge);
 extern int		updateSpan(unsigned long engineId,
 	       			unsigned int maxExportSessions,
-				unsigned int maxExportBlockSize,
 				unsigned int maxImportSessions,
-				unsigned int maxImportBlockSize,
 				unsigned int maxSegmentSize,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,

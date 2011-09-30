@@ -3,6 +3,7 @@ INCL = ../include
 UTILS = ../utils
 DAEMON = ../daemon
 UDP = ../udp
+DCCP = ../dccp
 TEST = ../test
 
 # OPT = -O -Dlinux
@@ -16,9 +17,11 @@ PUBINCLS = \
 
 LTPINCLS = \
 	$(API)/ltpP.h \
-	$(UDP)/udplsa.h
+	$(UDP)/udplsa.h \
+	$(DCCP)/dccplsa.h
 
 RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter
+#dccplsi dccplso
 
 ALL = check libltpP.so libltp.so $(RUNTIMES)
 
@@ -75,6 +78,15 @@ udplso:		udplso.o libltpP.so
 		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
 		cp udplso ./bin
 
+#	-	-	DCCP executables-	-	-	-	-
+dccplsi:	dccplsi.o libltpP.so
+		$(CC) -o dccplsi dccplsi.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		cp dccplsi ./bin
+
+dccpplso:	dccplso.o libltpP.so
+		$(CC) -o dccplso dccplso.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		cp dccplso ./bin
+
 #	-	-	Libraries	-	-	-	-	-
 
 libltpP.so:	libltpP.o
@@ -101,3 +113,6 @@ libltp.so:	libltp.o
 
 %.o:		$(UDP)/%.c
 		$(CC) -c $<
+
+#%.o:		$(DCCP)/%.c
+#		$(CC) -c $<

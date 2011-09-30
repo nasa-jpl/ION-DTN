@@ -34,8 +34,7 @@ static void	createIonConfigFiles()
 	int	globalLineCount = sizeof globalLines / sizeof (char *);
 	char	*ionsecrcLines[] =	{
 "1\n",
-"a babrxrule ipn:19.* '' ''\n",
-"a babtxrule ipn:19.* '' ''\n"
+"a bspbabrule ipn:19.* ipn:19.* '' ''\n"
 					};
 	int	ionsecrcLineCount = sizeof ionsecrcLines / sizeof (char *);
 	char	*ltprcLines[] =		{
@@ -81,7 +80,7 @@ static void	createIonConfigFiles()
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.ionconfig",
 			nodenbr);
-	fd = open(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
 		printf("Can't create .ionconfig file '%s'.\n", filenamebuf);
@@ -98,7 +97,7 @@ static void	createIonConfigFiles()
 	/*	Create ionrc file.					*/
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.ionrc", nodenbr);
-	fd = open(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
 		printf("Can't create .ionrc file '%s'.\n", filenamebuf);
@@ -114,7 +113,7 @@ static void	createIonConfigFiles()
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/global.ionrc",
 			nodenbr);
-	fd = open(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
 		printf("Can't create global.ionrc file '%s'.\n", filenamebuf);
@@ -132,7 +131,7 @@ static void	createIonConfigFiles()
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.ionsecrc",
 			nodenbr);
-	fd = open(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
 		printf("Can't create .ionsecrc file '%s'.\n", filenamebuf);
@@ -150,7 +149,7 @@ static void	createIonConfigFiles()
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.ltprc",
 			nodenbr);
-	fd = open(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
 		printf("Can't create .ltprc file '%s'.\n", filenamebuf);
@@ -168,7 +167,7 @@ static void	createIonConfigFiles()
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.ipnrc",
 			nodenbr);
-	fd = open(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
 		printf("Can't create .ipnrc file '%s'.\n", filenamebuf);
@@ -186,7 +185,7 @@ static void	createIonConfigFiles()
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.bprc",
 			nodenbr);
-	fd = open(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
 		printf("Can't create .bprc file '%s'.\n", filenamebuf);
@@ -207,7 +206,7 @@ static void	createIonConfigFiles()
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.cfdprc",
 			nodenbr);
-	fd = open(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
 		printf("Can't create .cfdprc file '%s'.\n", filenamebuf);

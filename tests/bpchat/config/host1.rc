@@ -1,4 +1,5 @@
 
+
 ## begin ionadmin 
 
 # Initialization command (command 1). 
@@ -29,6 +30,9 @@ a range +1 +3600 2 1 1
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
 m consumption 1000000
+
+# Disable congestion forecasting
+m horizon +0
 ## end ionadmin 
 
 ## begin bpadmin 

@@ -269,9 +269,9 @@ typedef struct dgrsapst
 
 typedef enum
 {
-	SendMessage = 1,
-	HandleTimeout,
-	HandleRpt
+	DgrSendMessage = 1,
+	DgrHandleTimeout,
+	DgrHandleRpt
 } RecordOperation;
 
 #if DGRDEBUG
@@ -827,7 +827,7 @@ static int	sendMessage(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 	socketAddress.sin_family = AF_INET;
 	socketAddress.sin_port = htons(rec->portNbr);
 	socketAddress.sin_addr.s_addr = htonl(rec->ipAddress);
-	if (sendto(sap->udpSocket, sap->outputBuffer, length, 0, sockName,
+	if (isendto(sap->udpSocket, sap->outputBuffer, length, 0, sockName,
 			sizeof(struct sockaddr_in)) < 0)
 	{
 		putSysErrmsg("DGR can't send segment", NULL);
@@ -1180,7 +1180,7 @@ static int	arq(DgrSAP *sap, unsigned long engineId,
 	bucket = sap->buckets + (sessionNbr & DGR_SESNBR_MASK);
 	pthread_mutex_lock(&bucket->mutex);
 	pthread_mutex_lock(&sap->destsMutex);
-	if (op == SendMessage)
+	if (op == DgrSendMessage)
 	{
 		for (elt = lyst_last(bucket->msgs); elt; elt = lyst_prev(elt))
 		{
@@ -1275,7 +1275,7 @@ static int	arq(DgrSAP *sap, unsigned long engineId,
 	}
 
 	dest = findDest(sap, rec->portNbr, rec->ipAddress, &destIdx);
-	if (op == HandleRpt)
+	if (op == DgrHandleRpt)
 	{
 		result = handleRpt(sap, rec, elt, dest, destIdx);
 	}
@@ -1555,14 +1555,16 @@ appliedAcks = 0;
 static void	*sender(void *parm)
 {
 	DgrSAP		*sap = (DgrSAP *) parm;
-	sigset_t	signals;
 	LystElt		elt;
 	SendReq		*req;
 	unsigned long	engineId;
 	unsigned long	sessionNbr;
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (sap->state == DgrSapOpen)
 	{
 		if (llcv_wait(sap->outboundCV, llcv_lyst_not_empty,
@@ -1591,7 +1593,7 @@ static void	*sender(void *parm)
 			engineId = req->id.engineId;
 			sessionNbr = req->id.sessionNbr;
 			llcv_unlock(sap->outboundCV);
-			if (arq(sap, engineId, sessionNbr, SendMessage))
+			if (arq(sap, engineId, sessionNbr, DgrSendMessage))
 			{
 				writeMemo("[i] DGR sender thread ended.");
 				return NULL;
@@ -1605,16 +1607,18 @@ static void	*sender(void *parm)
 static void	*resender(void *parm)
 {
 	DgrSAP		*sap = (DgrSAP *) parm;
-	sigset_t	signals;
 	int		cycleNbr = 1;
 	struct timeval	currentTime;
 	LystElt		elt;
 	ResendReq	*req;
 	unsigned long	engineId;
 	unsigned long	sessionNbr;
+#ifndef mingw
+	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		microsnooze(EPISODE_PERIOD);
@@ -1658,7 +1662,7 @@ static void	*resender(void *parm)
 				sessionNbr = req->id.sessionNbr;
 				pthread_mutex_unlock(&sap->pendingResendsMutex);
 				if (arq(sap, engineId, sessionNbr,
-						HandleTimeout))
+						DgrHandleTimeout))
 				{
 					writeMemo("[i] DGR resender ended.");
 					return NULL;
@@ -1695,7 +1699,7 @@ static int	sendAck(DgrSAP *sap, char *reportBuffer, int headerLength,
 
 	/*	ACK is now ready to transmit.				*/
 
-	if (sendto(sap->udpSocket, reportBuffer, length, 0, sockName,
+	if (isendto(sap->udpSocket, reportBuffer, length, 0, sockName,
 			sockaddrlen) < 0)
 	{
 		if (errno != EBADF)		/*	Socket closed.	*/
@@ -1775,7 +1779,7 @@ static int	sendReport(DgrSAP *sap, char *reportBuffer, int headerLength,
 
 	/*	Report is now ready to transmit.			*/
 
-	if (sendto(sap->udpSocket, reportBuffer, length, 0, sockName,
+	if (isendto(sap->udpSocket, reportBuffer, length, 0, sockName,
 			sockaddrlen) < 0)
 	{
 		if (errno != EBADF)		/*	Socket closed.	*/
@@ -1793,7 +1797,6 @@ report");
 static void	*receiver(void *parm)
 {
 	DgrSAP			*sap = (DgrSAP *) parm;
-	sigset_t		signals;
 	struct sockaddr_in	socketAddress;
 	struct sockaddr		*sockName = (struct sockaddr *) &socketAddress;
 	socklen_t		sockaddrlen;
@@ -1816,21 +1819,25 @@ static void	*receiver(void *parm)
 	char			reportBuffer[64];
 	int			reclength;
 	DgrRecord		rec;
+#ifndef mingw
+	sigset_t		signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
+#endif
 	while (1)
 	{
 		sockaddrlen = sizeof(struct sockaddr_in);
-		length = recvfrom(sap->udpSocket, sap->inputBuffer,
+		length = irecvfrom(sap->udpSocket, sap->inputBuffer,
 				DGR_BUF_SIZE, 0, sockName, &sockaddrlen);
 		if (length < 0)
 		{
 			switch (errno)
 			{
 			case EBADF:	/*	Socket has been closed.	*/
-				break;	/*	Out of switch.		*/
+				break;
 
+			case ECONNRESET:/*	Connection reset.	*/
 			case EAGAIN:	/*	Bad checksum?  Ignore.	*/
 				continue;
 
@@ -1953,7 +1960,7 @@ recvfrom");
 				break;		/*	Main loop.	*/
 			}
 
-			if (arq(sap, engineId, sessionNbr, HandleRpt))
+			if (arq(sap, engineId, sessionNbr, DgrHandleRpt))
 			{
 				writeMemo("[i] DGR receiver thread ended.");
 				break;	/*	Out of main loop.	*/
@@ -2136,7 +2143,7 @@ static void	cleanUpSAP(DgrSAP *sap)
 
 	if (sap->udpSocket >= 0)
 	{
-		close(sap->udpSocket);
+		closesocket(sap->udpSocket);
 	}
 
 	if (sap->outboundMsgs)
@@ -2271,7 +2278,7 @@ int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
 
 	/*	Initialize UDP socket for DGR service.			*/
 
-	sap->udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	sap->udpSocket = socket(AF_INET, SOCK_DGRAM|SOCK_CLOEXEC, IPPROTO_UDP);
 	if (sap->udpSocket < 0)
 	{
 		putSysErrmsg("Can't open DGR UDP socket", NULL);
@@ -2279,6 +2286,9 @@ int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
 		return -1;
 	}
 
+#if (SOCK_CLOEXEC == 0)
+	closeOnExec(sap->udpSocket);
+#endif
 	if (reUseAddress(sap->udpSocket) < 0)
 	{
 		putSysErrmsg("Can't reuse address on DGR UDP socket",
@@ -2294,8 +2304,6 @@ int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
 		cleanUpSAP(sap);
 		return -1;
 	}
-
-	closeOnExec(sap->udpSocket);
 
 	/*	Create lists and management structures.			*/
 
@@ -2442,7 +2450,7 @@ void	dgr_close(DgrSAP *sap)
 	}
 	else
 	{
-		if (sendto(sap->udpSocket, &shutdown, 1, 0, &sockName,
+		if (isendto(sap->udpSocket, &shutdown, 1, 0, &sockName,
 				sizeof(struct sockaddr_in)) < 0)
 		{
 			putSysErrmsg("DGR can't send shutdown packet", NULL);

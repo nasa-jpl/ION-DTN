@@ -861,11 +861,31 @@ printf("<assertion set> final set size is %lu\n", lyst_length(assertionSet));
 void	DeletePetition(Petition *pet)
 {
 	CHKVOID(pet);
-	lyst_destroy(pet->SourceNodeSet);
-	lyst_destroy(pet->DestinationNodeSet);
-	lyst_destroy(pet->DistributionModuleSet);
-	MRELEASE(pet->specification->envelope);
-	MRELEASE(pet->specification);
+	if (pet->SourceNodeSet)
+	{
+		lyst_destroy(pet->SourceNodeSet);
+	}
+
+	if (pet->DestinationNodeSet)
+	{
+		lyst_destroy(pet->DestinationNodeSet);
+	}
+
+	if (pet->DistributionModuleSet)
+	{
+		lyst_destroy(pet->DistributionModuleSet);
+	}
+
+	if (pet->specification)
+	{
+		if (pet->specification->envelope)
+		{
+			MRELEASE(pet->specification->envelope);
+		}
+
+		MRELEASE(pet->specification);
+	}
+
 	MRELEASE(pet);
 }
 

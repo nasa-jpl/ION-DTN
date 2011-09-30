@@ -59,7 +59,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (vspan->meterPid > 0 && vspan->meterPid != sm_TaskIdSelf())
+	if (vspan->meterPid != ERROR && vspan->meterPid != sm_TaskIdSelf())
 	{
 		sdr_exit_xn(sdr);
 		putErrmsg("ltpmeter task is already started for this engine.",

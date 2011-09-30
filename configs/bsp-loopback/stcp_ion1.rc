@@ -114,9 +114,6 @@ a plan 2 stcp/ion-2:4556
 1
 e 1
 
-# a babtxrule ipn:1.* 'HMAC-SHA1' testkey
-# a babrxrule ipn:1.* 'HMAC-SHA1' testkey
-
 a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey
 a bspbabrule ipn:2.* ipn:2.* 'HMAC-SHA1' testkey
 

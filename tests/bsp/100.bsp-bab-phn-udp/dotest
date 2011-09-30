@@ -103,7 +103,7 @@ bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) no BAB"
 # Send one bundle with the wrong BAB; it shouldn't get through.
 echo "Sending a bundle with the wrong BAB... it should fail."
 ionsecadmin <<ENDOFIONSECADMINCOMMANDS
-a babtxrule ipn:1.* 'HMAC-SHA1' testkey2
+a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey2
 q
 ENDOFIONSECADMINCOMMANDS
 bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) wrong BAB"
@@ -112,8 +112,8 @@ bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) wrong BAB"
 # Send one bundle with fixed security; it should get through.
 echo "Sending a bundle with the right BAB... it should pass."
 ionsecadmin <<ENDOFIONSECADMINCOMMANDS
-d babtxrule ipn:1.*
-a babtxrule ipn:1.* 'HMAC-SHA1' testkey
+d bspbabrule ipn:1.* ipn:1.*
+a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey
 q
 ENDOFIONSECADMINCOMMANDS
 IONMESSAGE="$( date ) right BAB"

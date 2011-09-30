@@ -73,7 +73,7 @@ int	main(int argc, char **argv)
 
 	PUTMEMO("Working on cycle", utoa(cycleNbr));
 	isprintf(fileName, sizeof fileName, "file_copy_%d", cycleNbr);
-	outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
+	outputFile = iopen(fileName, O_WRONLY | O_APPEND, 0666);
 	if (outputFile < 0)
 	{
 		PERROR("can't open output file");
@@ -102,7 +102,7 @@ int	main(int argc, char **argv)
 			PUTMEMO("Working on cycle", utoa(cycleNbr));
 			isprintf(fileName, sizeof fileName, "file_copy_%d",
 					cycleNbr);
-			outputFile = open(fileName, O_WRONLY | O_APPEND, 0666);
+			outputFile = iopen(fileName, O_WRONLY | O_APPEND, 0666);
 			if (outputFile < 0)
 			{
 				PERROR("Can't open output file");

@@ -34,7 +34,7 @@ int	bp_agent_is_started()
 {
 	BpVdb	*vdb = getBpVdb();
 
-	return (vdb && vdb->clockPid > 0) ? 1 : 0;
+	return (vdb && vdb->clockPid != ERROR);
 }
 
 Sdr	bp_get_sdr()
@@ -91,7 +91,7 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 	/*	Endpoint exists; make sure it's not already opened
 	 *	by some application.					*/
 
-	if (vpoint->appPid > 0)	/*	Endpoint not closed.		*/
+	if (vpoint->appPid != ERROR)	/*	Endpoint not closed.	*/
 	{
 		if (sm_TaskExists(vpoint->appPid))
 		{
@@ -110,7 +110,7 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 		/*	Application terminated without closing the
 		 *	endpoint, so simply close it now.		*/
 
-		vpoint->appPid = -1;
+		vpoint->appPid = ERROR;
 	}
 
 	/*	Construct the service access point.			*/
@@ -176,7 +176,7 @@ void	bp_close(BpSAP sap)
 	vpoint = sap->vpoint;
 	if (vpoint->appPid == sm_TaskIdSelf())
 	{
-		vpoint->appPid = -1;
+		vpoint->appPid = ERROR;
 	}
 
 	MRELEASE(sap->endpointMetaEid.nss);
@@ -196,8 +196,8 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 	unsigned int myFlowLabel;
 
 	count = sscanf(token, "%11u.%11u.%11u.%11u.%11u.%11u",
-			&myCustodyRequested, &myPriority, &myOrdinal, &myUnreliable,
-			&myCritical, &myFlowLabel);
+			&myCustodyRequested, &myPriority, &myOrdinal,
+			&myUnreliable, &myCritical, &myFlowLabel);
 	switch (count)
 	{
 	case 6:
@@ -248,9 +248,11 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 
 	if (count >= 5)
 	{
-		extendedCOS->flags |=	(myUnreliable ? BP_BEST_EFFORT : 0)
-					| (myCritical ? BP_MINIMUM_LATENCY : 0);
-	} else {
+		extendedCOS->flags |= ((myUnreliable ? BP_BEST_EFFORT : 0)
+				| (myCritical ? BP_MINIMUM_LATENCY : 0));
+	}
+	else
+	{
 		extendedCOS->flags = 0;
 	}
 
@@ -261,12 +263,9 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
  
 	*priority = myPriority;
 	*custodySwitch = (myCustodyRequested ? 
-				SourceCustodyRequired : NoCustodyRequested);
-	
+			SourceCustodyRequired : NoCustodyRequested);
 	return 1;
 }
-
-
 
 int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 		int lifespan, int classOfService, BpCustodySwitch custodySwitch,
@@ -416,6 +415,7 @@ int	bp_suspend(Object bundleObj)
 	Outduct		outduct;
 	ClProtocol	protocol;
 
+	CHKERR(bundleObj);
 	sdr_begin_xn(sdr);
 	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
@@ -451,8 +451,7 @@ int	bp_suspend(Object bundleObj)
 		sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
 		sdr_read(sdr, (char *) &protocol, outduct.protocol,
 				sizeof(ClProtocol));
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct)
-				< 0)
+		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 1))
 		{
 			putErrmsg("Can't reverse bundle enqueue.", NULL);
 			sdr_cancel_xn(sdr);
@@ -474,6 +473,7 @@ int	bp_resume(Object bundleObj)
 	Sdr	sdr = getIonsdr();
 	Bundle	bundle;
 
+	CHKERR(bundleObj);
 	sdr_begin_xn(sdr);
 	sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	if (bundle.suspended == 0)
@@ -489,6 +489,7 @@ int	bp_cancel(Object bundleObj)
 {
 	Sdr	sdr = getIonsdr();
 
+	CHKERR(bundleObj);
 	sdr_begin_xn(sdr);
 	if (bpDestroyBundle(bundleObj, 1) < 0)
 	{

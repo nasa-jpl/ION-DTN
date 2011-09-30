@@ -19,10 +19,8 @@ POSSIBILITY.
 USER BEARS ALL RISK RELATING TO QUALITY AND PERFORMANCE OF THE
 SOFTWARE AND/OR RELATED MATERIALS.
 *******************************************************************
-Copyright 2004-2007, by the California Institute of Technology. ALL
-RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.  Any
-commercial use must be negotiated with the Office of Technology
-Transfer at the California Institute of Technology.
+Copyright 2002-2011, by the California Institute of Technology. ALL
+RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.
 
 This software and/or related materials may be subject to U.S. export
 control laws.  By accepting this software and related materials, the
@@ -34,12 +32,6 @@ access to foreign persons.
 *******************************************************************
 
 Highly incomplete and preliminary notes on building the ICI library:
-
-The top-level Makefile makes the system for all of the platforms you list
-in the PLATFORMS variable.  However, all the development is done on a
-Red Hat machine, so you may not get flawless results when you try building
-for ARM or Cygwin; tell me what problems you run into and I will try to
-fix them.
 
 To build, type:
 
@@ -56,5 +48,4 @@ Makefile.  If you've got an altogether different directory structure,
 you will need to hack the platform-specific Makefiles.
 
 Scott Burleigh, JPL
-scott.burleigh@jpl.nasa.gov
-28 December 2004
+scott.c.burleigh@jpl.nasa.gov

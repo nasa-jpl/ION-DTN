@@ -110,9 +110,7 @@ a plan 1 stcp/127.0.0.1:4556
 1
 e 1
 
-a babtxrule ipn:1.* 'HMAC-SHA1' testkey
-
-a babrxrule ipn:1.* 'HMAC-SHA1' testkey
+a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey
 
 a key 'testkey' testkey.bin
 a key 'testkey2' testkey2.bin

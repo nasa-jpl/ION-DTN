@@ -1,0 +1,146 @@
+=head1 NAME
+
+amsmib - Asynchronous Message Service (AMS) MIB update utility
+
+=head1 SYNOPSIS
+
+B<amsmib> I<application_name> I<authority_name> I<role_name> I<continuum_name> I<unit_name> I<file_name>
+
+=head1 DESCRIPTION
+
+B<amsmib> is a utility program that announces relatively brief Management
+Information Base (MIB) updates to a select population of AMS modules.  Because
+B<amsd> processes may run AAMS modules in background threads, and because a
+single MIB is shared in common among all threads of any process, B<amsmib> may
+update the MIBs used by registrars and/or configuration servers as well.
+
+MIB updates can only be propagated to modules for which the subject "amsmib"
+was defined in the MIB initialization files cited at module registration
+time.  All ION AMS modules implicitly invite messages on subject "amsmib"
+(from all modules registered in role "amsmib" in all continua of the same
+venture) at registration time if subject "amsmib" and role "amsmib" are
+defined in the MIB.
+
+B<amsmib> registers in the root cell of the message space identified by
+I<application_name> and I<authority_name>, within the local continuum.  It
+registers in the role "amsmib"; if this role is not defined in the (initial)
+MIB loaded by B<amsmib> at registration time, then registration fails and
+B<amsmib> terminates.
+
+B<amsmib> then reads into a memory buffer up to 4095 bytes of MIB update
+text from the file identified by I<file_name>.  The MIB update text must
+conform to amsxml(5) or amsrc(5) syntax, depending on whether or not the
+intended recipient modules were compiled with the -DNOEXPAT option.
+
+B<amsmib> then "announces" (see ams_announce() in ams(3)) the contents of the
+memory buffer to all modules of this same venture (identified by
+I<application_name> and I<authority_name>) that registered in the indicated
+role, in the indicated unit of the indicated continuum.  If I<continuum_name>
+is "" then the message will be sent to modules in all continua.  If
+I<role_name> is "" then all modules will be eligible to receive the message,
+regardless of the role in which they registered.  If I<unit_name> is "" (the
+root unit) then all modules will be eligible to receive the message,
+regardless of the unit in which they registered.
+
+Upon reception of the announced message, each destination module will apply
+all of the MIB updates in the content of the message, in exactly the same
+way that its original MIB was loaded from the MIB initialization file when
+the module started running.
+
+If multiple modules are running in the same memory space (e.g., in different
+threads of the same process, or in different tasks on the same VxWorks target)
+then the updates will be applied multiple times, because all modules in the
+same memory space share a single MIB.  MIB updates are idempotent, so this
+is harmless (though some diagnostics may be printed).
+
+Moreover, an B<amsd> daemon will have a relevant "MIB update" module running
+in a background thread if I<application_name> and I<authority_name> were cited 
+on the command line that started the daemon (provided the role "amsd" was
+defined in the initial MIB loaded at the time B<amsd> began running).  The
+MIB exposed to the configuration server and/or registrar running in that
+daemon will likewise be updated upon reception of the announced message.
+
+The name of the subject of the announced mib update message is "amsmib"; if
+this subject is not defined in the (initial) MIB loaded by B<amsmib> then
+the message cannot be announced.  Nor can any potential recipient module
+receive the message if subject "amsmib" is not defined in that module's MIB.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item 0
+
+B<amsmib> terminated normally.
+
+=item 1
+
+An anomalous exit status, indicating that B<amsmib> failed to register.
+
+=back
+
+=head1 FILES
+
+A MIB initialization file with the applicable default name (see amsrc(5) and
+amsxml(5)) must be present.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item amsmib subject undefined.
+
+The B<amsmib> utility was unable to announce the MIB update message.
+
+=item amsmib domain role unknown.
+
+The B<amsmib> utility was unable to announce the MIB update message.
+
+=item amsmib domain continuum unknown.
+
+The B<amsmib> utility was unable to announce the MIB update message.
+
+=item amsmib domain unit unknown.
+
+The B<amsmib> utility was unable to announce the MIB update message.
+
+=item amsmib can't open MIB file.
+
+The B<amsmib> utility was unable to construct the MIB update message.
+
+=item MIB file length > 4096.
+
+The MIB update text file was too long to fit into the B<amsmib> message buffer.
+
+=item Can't seek to end of MIB file.
+
+I/O error in processing the MIB update text file.
+
+=item Can't read MIB file.
+
+I/O error in processing the MIB update text file.
+
+=item amsmib can't announce 'amsmib' message.
+
+The B<amsmib> utility was unable to announce the MIB update message, for
+reasons noted in the log file.
+
+=item amsmib can't register.
+
+The B<amsmib> utility failed to register, for reasons noted in the log file.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+amsd(1), ams(3), amsrc(5), amsxml(5)

@@ -130,6 +130,7 @@ int	main(int argc, char **argv)
 	RxThreadParms	parms;
 	Sdr		sdr;
 	pthread_t	rxThread;
+	int		haveRxThread = 0;
 	Object		pduZco;
 	OutFdu		fduBuffer;
 	BpUtParms	utParms;
@@ -177,6 +178,7 @@ int	main(int argc, char **argv)
 		return -1;
 	}
 
+	haveRxThread = 1;
 	writeMemo("[i] bputa is running.");
 	while (parms.running)
 	{
@@ -300,7 +302,7 @@ terminating.", NULL);
 		sm_TaskYield();
 	}
 
-	if (rxThread)
+	if (haveRxThread)
 	{
 		bp_interrupt(parms.rxSap);
 		pthread_join(rxThread, NULL);

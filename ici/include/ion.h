@@ -21,8 +21,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2011-03-20 the open channel release version number is this: */
-#define IONVERSIONNUMBER "2.4.0"
+/* As of 2011-09-26 the open channel release version number is this: */
+#define IONVERSIONNUMBER "2.5.0"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -46,6 +46,14 @@ typedef struct
 	int	heapKey;
 	char	pathName[MAXPATHLEN + 1];
 } IonParms;
+
+typedef struct
+{
+	unsigned int	term;		/*	In seconds.		*/
+	unsigned int	cycles;		/*	0 = forever.		*/
+	int		(*proceed)(void *);
+	void		*userData;
+} IonAlarm;
 
 /*	The IonDB lists of IonContacts and IonRanges are time-ordered,
  *	encyclopedic, and non-volatile.  With the passage of time their
@@ -256,6 +264,13 @@ extern int		ionLocked();
 extern int		readIonParms(	char *configFileName,
 					IonParms *parms);
 extern void		printIonParms(	IonParms *parms);
+
+extern void		ionSetAlarm(	IonAlarm *alarm, pthread_t *thread);
+extern void		ionCancelAlarm(	pthread_t thread);
+
+extern void		ionNoteMainThread(char *procName);
+extern void		ionPauseMainThread(int seconds);
+extern void		ionKillMainThread(char *procName);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,6 @@
 =head1 NAME
 
-amsstop - Asynchronous Message Service (AMS) shutdown utility
+amsstop - Asynchronous Message Service (AMS) message space shutdown utility
 
 =head1 SYNOPSIS
 
@@ -11,14 +11,16 @@ B<amsstop> I<application_name> I<authority_name>
 B<amsstop> is a utility program that terminates the operation of all
 registrars and all application modules running in the message space which is
 that portion of the indicated AMS venture that is operating in the local
-continuum.  If the B<amsd> task that is functioning as the root cell registrar
+continuum.  If one of the B<amsd> tasks that are functioning as registrars
 for this venture is also functioning as the configuration server for
-the local continuum, and no other ventures are operating in the continuum,
-then that configuration server is also terminated.
+the local continuum, then that configuration server is also terminated.
 
 I<application_name> and I<authority_name> must identify an AMS venture that
 is known to operate in the local continuum, as noted in the MIB for the
 B<amsstop> application module.
+
+A message space can only be shut down by B<amsstop> if the subject "amsstop"
+is defined in the MIBs of all modules in the message spaces.
 
 =head1 EXIT STATUS
 
@@ -26,20 +28,20 @@ B<amsstop> application module.
 
 =item 0
 
-An anomalous exit status, indicating that B<amsstop> registered successfully
-and therefore failed to shut down its registrar, for reasons noted in the
-ion.log file.
+B<amsstop> terminated normally.
 
 =item 1
 
-B<amsstop> terminated normally.
+An anomalous exit status, indicating that B<amsstop> was unable to register
+and therefore failed to shut down its message space, for reasons noted in the
+ion.log file.
 
 =back
 
 =head1 FILES
 
-A MIB initialization file with the applicable default name (see amsrc(5))
-must be present.
+A MIB initialization file with the applicable default name (see amsrc(5)
+and amsxml(5)) must be present.
 
 =head1 ENVIRONMENT
 
@@ -53,8 +55,18 @@ The following diagnostics may be issued to the B<ion.log> log file:
 
 =item amsstop can't register.
 
-This message indicates normal operation of B<amsstop>: it fails to register,
-because it has shut down the registrar.
+This message indicates that B<amsstop> was unable to register, possibly
+because the "amsstop" role is not defined in the MIB initialization file.
+
+=item amsstop subject undefined.
+
+This message indicates that B<amsstop> was unable to stop the message space
+because the "amsstop" subject is not defined in the MIB initialization file.
+
+=item amsstop can't publish 'amsstop' message.
+
+This message indicates that B<amsstop> was unable to publish a message on
+subject 'amsstop' for reasons noted in the B<ion.log> log file.
 
 =back
 

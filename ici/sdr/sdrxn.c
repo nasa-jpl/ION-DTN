@@ -613,7 +613,7 @@ static void	clearTransaction(Sdr sdrv)
 		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
 				sdrv->sdr->pathName, ION_PATH_DELIMITER,
 				sdrv->sdr->name);
-		sdrv->logfile = open(logfilename, O_RDWR | O_CREAT | O_TRUNC,
+		sdrv->logfile = iopen(logfilename, O_RDWR | O_CREAT | O_TRUNC,
 				0777);
 		if (sdrv->logfile == -1)
 		{
@@ -815,7 +815,7 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 	}
 
 	memset(buffer, 0 , sizeof buffer);
-	dbfile = open(dbfilename, O_RDWR | O_CREAT, 0777);
+	dbfile = iopen(dbfilename, O_RDWR | O_CREAT, 0777);
 	if (dbfile == -1)
 	{
 		MRELEASE(buffer);
@@ -868,6 +868,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	SdrState		*sdr;
 	PsmAddress		newSdrAddress;
 	long			limit;
+	struct stat		statbuf;
 	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
 	int			logfile = -1;
 	Lyst			logEntries = NULL;
@@ -948,6 +949,14 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	sdr->traceSize = 0;
 	limit = sizeof(sdr->pathName) - 1;
 	istrcpy(sdr->pathName, pathName, limit);
+	if (stat(sdr->pathName, &statbuf) < 0
+	|| (statbuf.st_mode & S_IFDIR) == 0)
+	{
+		writeMemoNote("[?] No such directory; disabling heap residence \
+in file and transaction reversibility", sdr->pathName);
+		sdr->configFlags &= (~SDR_IN_FILE); 
+		sdr->configFlags &= (~SDR_REVERSIBLE); 
+	}
 
 	/*	Add SDR to linked list of defined SDRs.			*/
 
@@ -963,11 +972,11 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	/*	If database exists, back out any current transaction.
 		If not, create the database and initialize it.		*/
 
-	if (configFlags & SDR_REVERSIBLE)
+	if (sdr->configFlags & SDR_REVERSIBLE)
 	{
 		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
 				sdr->pathName, ION_PATH_DELIMITER, name);
-		logfile = open(logfilename, O_RDWR | O_CREAT | O_APPEND, 0777);
+		logfile = iopen(logfilename, O_RDWR | O_CREAT | O_APPEND, 0777);
 		if (logfile == -1)
 		{
 			psm_free(sdrwm, newSdrAddress);
@@ -997,11 +1006,11 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 		}
 	}
 
-	if (configFlags & SDR_IN_FILE)
+	if (sdr->configFlags & SDR_IN_FILE)
 	{
 		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
 				sdr->pathName, ION_PATH_DELIMITER, name);
-		dbfile = open(dbfilename, O_RDWR, 0777);
+		dbfile = iopen(dbfilename, O_RDWR, 0777);
 		if (dbfile == -1)
 		{
 			dbfile = createDbFile(sdr, dbfilename);
@@ -1032,7 +1041,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 		}
 	}
 
-	if (configFlags & SDR_IN_DRAM)
+	if (sdr->configFlags & SDR_IN_DRAM)
 	{
 		dbsm = NULL;
 		switch (sm_ShmAttach(sdr->sdrKey, sdr->sdrSize, &dbsm, &dbsmId))
@@ -1238,7 +1247,7 @@ Sdr	Sdr_start_using(char *name)
 	{
 		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
 				sdr->pathName, ION_PATH_DELIMITER, name);
-		sdrv->dbfile = open(dbfilename, O_RDWR, 0777);
+		sdrv->dbfile = iopen(dbfilename, O_RDWR, 0777);
 		if (sdrv->dbfile == -1)
 		{
 			sm_SemGive(sch->lock);
@@ -1268,7 +1277,7 @@ Sdr	Sdr_start_using(char *name)
 	{
 		isprintf(logfilename, sizeof logfilename, "%s%c%s.sdrlog",
 				sdr->pathName, ION_PATH_DELIMITER, name);
-		sdrv->logfile = open(logfilename, O_RDWR | O_CREAT | O_APPEND,
+		sdrv->logfile = iopen(logfilename, O_RDWR | O_CREAT | O_APPEND,
 				0777);
 		if (sdrv->logfile == -1)
 		{
@@ -1364,6 +1373,10 @@ void	sdr_stop_using(Sdr sdrv)
 		lyst_destroy(sdrv->knownObjects);
 	}
 
+	/*	Erase content of SdrView, in case space is re-used
+	 *	for another SdrView; then delete it.			*/
+
+	memset((char *) sdrv, 0, sizeof(SdrView));
 	psm_free(sdrwm, psa(sdrwm, sdrv));
 }
 
@@ -1384,8 +1397,8 @@ void	sdr_destroy(Sdr sdrv)
 	SdrState		*sdr;
 	char			dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
 	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
-	char			*dbsm;
-	int			dbsmId;
+	char			*dbsm = NULL;
+	int			dbsmId = 0;
 
 	CHKVOID(sdrv);
 

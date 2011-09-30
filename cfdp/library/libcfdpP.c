@@ -319,6 +319,8 @@ static CfdpVdb	*_cfdpvdb(char **name)
 
 		vdb = (CfdpVdb *) psp(wm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(CfdpVdb));
+		vdb->utaPid = ERROR;		/*	None yet.	*/
+		vdb->clockPid = ERROR;		/*	None yet.	*/
 		vdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		vdb->fduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		if (vdb->eventSemaphore == SM_SEM_NONE
@@ -406,7 +408,7 @@ int	cfdpInit()
 		cfdpdbBuf.discardIncompleteFile = 1;
 		cfdpdbBuf.crcRequired = 0;
 		cfdpdbBuf.maxFileDataLength = 65000;
-		cfdpdbBuf.transactionInactivityLimit = 2000000000;
+		cfdpdbBuf.transactionInactivityLimit = 86400;
 		cfdpdbBuf.checkTimerPeriod = 86400;	/*	1 day.	*/
 		cfdpdbBuf.checkTimeoutLimit = 7;
 
@@ -484,14 +486,14 @@ int	_cfdpStart(char *utaCmd)
 
 	/*	Start the CFDP events clock if necessary.		*/
 
-	if (cfdpvdb->clockPid < 1 || sm_TaskExists(cfdpvdb->clockPid) == 0)
+	if (cfdpvdb->clockPid == ERROR || sm_TaskExists(cfdpvdb->clockPid) == 0)
 	{
 		cfdpvdb->clockPid = pseudoshell("cfdpclock");
 	}
 
 	/*	Start UT adapter service if necessary.			*/
 
-	if (cfdpvdb->utaPid < 1 || sm_TaskExists(cfdpvdb->utaPid) == 0)
+	if (cfdpvdb->utaPid == ERROR || sm_TaskExists(cfdpvdb->utaPid) == 0)
 	{
 		cfdpvdb->utaPid = pseudoshell(utaCmd);
 	}
@@ -525,7 +527,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Stop clock task.					*/
 
-	if (cfdpvdb->clockPid > 0)
+	if (cfdpvdb->clockPid != ERROR)
 	{
 		sm_TaskKill(cfdpvdb->clockPid, SIGTERM);
 	}
@@ -534,7 +536,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Wait until all CFDP processes have stopped.		*/
 
-	if (cfdpvdb->utaPid > 0)
+	if (cfdpvdb->utaPid != ERROR)
 	{
 		while (sm_TaskExists(cfdpvdb->utaPid))
 		{
@@ -542,7 +544,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 		}
 	}
 
-	if (cfdpvdb->clockPid > 0)
+	if (cfdpvdb->clockPid != ERROR)
 	{
 		while (sm_TaskExists(cfdpvdb->clockPid))
 		{
@@ -553,8 +555,8 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
-	cfdpvdb->utaPid = -1;
-	cfdpvdb->clockPid = -1;
+	cfdpvdb->utaPid = ERROR;
+	cfdpvdb->clockPid = ERROR;
 	if (cfdpvdb->eventSemaphore == SM_SEM_NONE)
 	{
 		cfdpvdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -893,6 +895,7 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 			InFdu *fdubuf, Object *fduElt)
 {
 	Sdr	sdr = getIonsdr();
+	CfdpDB	cfdpdb;
 	Object	fduObj;
 
 	memset((char *) fdubuf, 0, sizeof(InFdu));
@@ -910,6 +913,9 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 		return 0;		/*	System failure.		*/
 	}
 
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
+	fdubuf->inactivityDeadline = getUTCTime()
+			+ cfdpdb.transactionInactivityLimit;
 	sdr_write(sdr, fduObj, (char *) fdubuf, sizeof(InFdu));
 	return fduObj;
 }
@@ -1323,7 +1329,7 @@ static int	abandonInFdu(CfdpTransactionId *transactionId,
 static void	frCreateFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
-	int	fd = open(firstFileName, O_CREAT, 00777);
+	int	fd = iopen(firstFileName, O_CREAT, 0777);
 
 	if (fd < 0)
 	{
@@ -1387,7 +1393,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 		return;
 	}
 
-	destFd = open(firstFileName, O_WRONLY | flag, 0);
+	destFd = iopen(firstFileName, O_WRONLY | flag, 0);
 	if (destFd < 0)
 	{
 		MRELEASE(buf);
@@ -1396,7 +1402,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 		return;
 	}
 
-	sourceFd = open(secondFileName, O_RDONLY, 0);
+	sourceFd = iopen(secondFileName, O_RDONLY, 0);
 	if (sourceFd < 0)
 	{
 		close(destFd);
@@ -1489,10 +1495,10 @@ static void	frReplaceFile(char *firstFileName, char *secondFileName,
 static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
-#ifdef VXWORKS
+#if (defined(VXWORKS) || defined(mingw))
 	if (mkdir(firstFileName) < 0)
 #else
-	if (mkdir(firstFileName, 00777) < 0)
+	if (mkdir(firstFileName, 0777) < 0)
 #endif
 	{
 		resp->status = 1;
@@ -1697,20 +1703,156 @@ static int	executeFilestoreRequests(InFdu *fdu,
 	return 0;
 }
 
+static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
+			char *fileName, int newFile)
+{
+	char	*wdname;
+
+	if (*fileName == ION_PATH_DELIMITER)	/*	Absolute path.	*/
+	{
+		istrcpy(pathNameBuf, fileName, bufLen);
+	}
+	else
+	{
+		/*	ION working directory is the location for all
+		 *	received files for which destination path name
+		 *	is not absolute.				*/
+
+		wdname = getIonWorkingDirectory();
+		if (*wdname == ION_PATH_DELIMITER)
+		{
+			/*	The cwd path name starts with the path
+			 *	delimiter, so it's a POSIX file system,
+			 *	so stringBuf is *not* an absolute path
+			 *	name, so compute absolute path name.	*/
+
+			isprintf(pathNameBuf, bufLen, "%.255s%c%.255s",
+					wdname, ION_PATH_DELIMITER, fileName);
+		}
+		else	/*	Assume file name is an absolute path.	*/
+		{
+			istrcpy(pathNameBuf, fileName, bufLen);
+		}
+	}
+
+	if (!newFile)
+	{
+		return;
+	}
+
+#if (!(defined(VXWORKS) || defined(mingw)))
+	/*	If nothing has yet been written to this file, create
+	 *	(as necessary) the directory in which the file is to
+	 *	be created.
+	 *
+	 *	Per Josh Schoolcraft, 23 June 2011.
+	 *
+	 *	Given the destination file's qualified pathname, try
+	 *	to make sure the directory in which the file is to be
+	 *	created exists.
+	 *
+	 *	Each directory on the path that doesn't already exist
+	 *	is created: at each level of the directory tree a
+	 *	qualified name is used to create the directory that
+	 *	is needed at that level.
+	 *
+	 *	Note that the length of the path name is known not
+	 *	to be zero: if no Metadata yet, or if the destination
+	 *	file name in the Metadata PDU was of length zero,
+	 *	then getFileName() made up a name based on the FDU's
+	 *	transaction ID because fdu->workingFileName was zero.	*/
+
+	size_t	pathNameLen;
+	char	*cursor;
+	char	*lastPathSeparator = NULL;
+ 
+	pathNameLen = istrlen(pathNameBuf, bufLen);
+	if (pathNameLen > MAXPATHLEN)		/*	Too long.	*/
+	{
+		return;		/*	Can't create the directory.	*/
+	}
+
+	/*	Temporarily strip off the unqualified file name, i.e.,
+	 *	everything after and including the last path separator
+	 *	character.						*/
+
+	cursor = pathNameBuf + pathNameLen;	/*	Terminal NULL.	*/
+	while (cursor > pathNameBuf)
+	{
+		if (*cursor == ION_PATH_DELIMITER)
+		{
+			lastPathSeparator = cursor;
+			*cursor = 0;	/*	Delimit at file name.	*/
+			break;
+		}
+
+		cursor--;
+	}
+
+	/*	Now create directories along the path as necessary.
+	 *	Wherever a path name separator is found, we change
+	 *	it to NULL, create a directory using all qualification
+	 *	to that point, and then restore the separator to
+	 *	enable creation of the next directory in the path.
+	 *
+	 *	We skip over the first byte of the path name: if
+	 *	it's not a path name separator then we wouldn't act
+	 *	on it anyway, and if it is then we want to ignore
+	 *	it since we'd never create a top-level directory
+	 *	with a name of length zero.				*/
+
+	for (cursor = pathNameBuf + 1; *cursor; cursor++)
+	{
+		if (*cursor == ION_PATH_DELIMITER)
+		{
+		        *cursor = 0;
+			oK(mkdir(pathNameBuf, 0777));
+
+			/*	NOTE: if the qualification path is
+			 *	explicitly relative, we execute
+			 *	'mkdir .', trying (and failing) to
+			 *	create the current working directory.
+			 *	If the qualification path is absolute,
+			 *	we might try (and fail) to create the
+			 *	top-level directory for the file
+			 *	system.  In short, the failure of path
+			 *	mkdir operations is not anomalous, so
+			 *	we don't check the return code.		*/
+
+                	*cursor = ION_PATH_DELIMITER;
+		}
+	}
+
+	/*	Now create the destination directory itself.		*/
+
+	oK(mkdir(pathNameBuf, 0777));
+
+	/*	And restore the original qualified path name.		*/
+
+	if (lastPathSeparator)
+	{
+		*lastPathSeparator = ION_PATH_DELIMITER;
+	}
+}
+#endif
+
 static void	renameWorkingFile(InFdu *fduBuf)
 {
 	Sdr	sdr = getIonsdr();
 	char	workingFileName[256];
 	char	destFileName[256];
+	char	qualifiedFileName[MAXPATHLEN + 2];
 	char	renameErrBuffer[600];
 
 	sdr_string_read(sdr, workingFileName, fduBuf->workingFileName);
 	sdr_string_read(sdr, destFileName, fduBuf->destFileName);
-	if (rename(workingFileName, destFileName) < 0)
+	getQualifiedFileName(qualifiedFileName, sizeof qualifiedFileName,
+			destFileName, 1);
+	if (rename(workingFileName, qualifiedFileName) < 0)
 	{
 		isprintf(renameErrBuffer, sizeof renameErrBuffer,
 				"CFDP can't rename '%s' to '%s'",
-				workingFileName, destFileName);
+				workingFileName, qualifiedFileName);
 		putSysErrmsg(renameErrBuffer, NULL);
 	}
 }
@@ -1870,7 +2012,8 @@ int	enqueueCfdpEvent(CfdpEvent *event)
 int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		CfdpHandler *handler)
 {
-	CfdpDB		*cfdpConstants = _cfdpConstants();
+	Sdr		sdr = getIonsdr();
+	CfdpDB		cfdpdb;
 	Object		fduObj;
 	InFdu		inFdu;
 	OutFdu		outFdu;
@@ -1880,9 +2023,9 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 	CHKERR(transactionId);
 	CHKERR(handler);
 	*handler = CfdpNoHandler;
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	if (memcmp((char *) &transactionId->sourceEntityNbr,
-			(char *) &cfdpConstants->ownEntityNbr,
-			sizeof(CfdpNumber)) == 0)
+			(char *) &cfdpdb.ownEntityNbr, sizeof(CfdpNumber)) == 0)
 	{
 		memset((char *) &outFdu, 0, sizeof(OutFdu));
 		fduObj = findOutFdu(transactionId, &outFdu, &fduElt);
@@ -1903,7 +2046,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 
 	if (*handler == CfdpNoHandler)
 	{
-		*handler = cfdpConstants->faultHandlers[fault];
+		*handler = cfdpdb.faultHandlers[fault];
 	}
 
 	switch (*handler)
@@ -1915,7 +2058,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		}
 
 		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpConstants->ownEntityNbr,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber)) == 0)
 		{
 			return cancelOutFdu(transactionId, fault, 0);
@@ -1930,7 +2073,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		}
 
 		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpConstants->ownEntityNbr,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber)) == 0)
 		{
 			return suspendOutFdu(transactionId, fault, 0);
@@ -1945,7 +2088,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 				sizeof(CfdpTransactionId));
 		event.condition = fault;
 		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpConstants->ownEntityNbr,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber)) == 0)
 		{
 			event.progress = outFdu.progress;
@@ -1971,7 +2114,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		}
 
 		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpConstants->ownEntityNbr,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber)) == 0)
 		{
 			return abandonOutFdu(transactionId, fault);
@@ -2073,10 +2216,10 @@ static Object	selectOutPdu(OutFdu *fdu, int *pduIsFileData)
 int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 {
 	Sdr		sdr = getIonsdr();
-	CfdpDB		*cfdpConstants = _cfdpConstants();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
+	CfdpDB		cfdpdb;
 	Object		fduObj;
-	int		pduIsFileData = 0;		/*	Boolean.	*/
+	int		pduIsFileData = 0;	/*	Boolean.	*/
 	unsigned int	dataFieldLength;
 	unsigned int	octet;
 	int		pduSourceDataLength;
@@ -2124,13 +2267,14 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 		return -1;
 	}
 
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	octet = (pduIsFileData << 4)	/*	bit 3 is PDU type	*/
 			+ 4		/*	1 in bit 6 == unack	*/
-			+ (cfdpConstants->crcRequired ? 2 : 0);
+			+ (cfdpdb.crcRequired ? 2 : 0);
 	pduHeader[0] = octet;
 	pduSourceDataLength = zco_length(sdr, *pdu);
 	dataFieldLength = pduSourceDataLength
-			+ (cfdpConstants->crcRequired ? 2 : 0);
+			+ (cfdpdb.crcRequired ? 2 : 0);
 
 	/*	Note that length of CRC, if present, is included in
 	 *	the data field length per 4.1.1.3.2.			*/
@@ -2140,7 +2284,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 	/*	Compute the lengths byte value.				*/
 
-	entityNbrLength = cfdpConstants->ownEntityNbr.length;
+	entityNbrLength = cfdpdb.ownEntityNbr.length;
 	if (fduBuffer->destinationEntityNbr.length > entityNbrLength)
 	{
 		entityNbrLength = fduBuffer->destinationEntityNbr.length;
@@ -2162,7 +2306,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 		return -1;
 	}
 
-	memcpy(pduHeader + pduHeaderLength, cfdpConstants->ownEntityNbr.buffer,
+	memcpy(pduHeader + pduHeaderLength, cfdpdb.ownEntityNbr.buffer,
 			entityNbrLength);
 	pduHeaderLength += entityNbrLength;
 	memcpy(pduHeader + pduHeaderLength,
@@ -2181,7 +2325,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 	/*	If CRC required, compute CRC and append to pdu.		*/
 
-	if (cfdpConstants->crcRequired)
+	if (cfdpdb.crcRequired)
 	{
 		buf = _crcComputationBuf();
 		memcpy((char *) buf, pduHeader, pduHeaderLength);
@@ -2356,14 +2500,15 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 			int dataFieldLength, InFdu *fdu, Object fduObj,
 			Object fduElt)
 {
+	int		firstSegment = (fdu->progress == 0);
 	int		i;
 	unsigned int	segmentOffset = 0;
 	CfdpEvent	event;
 	unsigned int	segmentEnd;
 	CfdpHandler	handler;
 	Sdr		sdr = getIonsdr();
-	CfdpDB		*cfdpConstants = _cfdpConstants();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
+	CfdpDB		cfdpdb;
 	Object		elt;
 	Object		addr;
 	CfdpExtent	extent;
@@ -2371,8 +2516,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	Object		nextElt = 0;
 	unsigned int	bytesToSkip;
 	char		stringBuf[256];
-	char		*wdname;
-	char		workingNameBuffer[600];
+	char		workingNameBuffer[MAXPATHLEN + 2];
 	off_t		endOfFile;
 	unsigned int	fileLength;
 	Object		nextAddr;
@@ -2392,6 +2536,9 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	{
 		return 0;			/*	Nothing to do.	*/
 	}
+
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
+	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
 
 	/*	Prepare to issue indication.				*/
 
@@ -2511,11 +2658,14 @@ printf("Skipping %d bytes, segmentOffset changed to %d.\n", bytesToSkip, segment
 #if CFDPDEBUG
 printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.length);
 #endif
+		extentEnd = extent.offset + extent.length;
 	}
 
 	nextElt = sdr_list_next(sdr, elt);
 
-	/*	Open the file if necessary.				*/
+	/*	Open the file (possibly a temporary working file) if
+	 *	it's not the currently open file.  First figure out
+	 *	the file's fully-qualified name.			*/
 
 	if (getFileName(fdu, stringBuf, sizeof stringBuf) < 0)
 	{
@@ -2523,36 +2673,12 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 		return -1;
 	}
 
-	if (stringBuf[0] == ION_PATH_DELIMITER)	/*	Absolute path.	*/
-	{
-		istrcpy(workingNameBuffer, stringBuf, sizeof workingNameBuffer);
-	}
-	else
-	{
-		/*	ION working directory is the location for all
-		 *	received files for which destination path name
-		 *	is not absolute.				*/
+	getQualifiedFileName(workingNameBuffer, sizeof workingNameBuffer,
+			stringBuf, firstSegment);
 
-		wdname = getIonWorkingDirectory();
-		if (*wdname == ION_PATH_DELIMITER)
-		{
-			/*	Path names *do* start with the path
-			 *	delimiter, so it's a POSIX file system,
-			 *	so stringBuf is *not* an absolute path
-			 *	name, so compute absolute path name.	*/
+	/*	Now open the file, creating it if necessary.		*/
 
-			isprintf(workingNameBuffer, sizeof workingNameBuffer,
-					"%.255s%c%.255s", wdname,
-					ION_PATH_DELIMITER, stringBuf);
-		}
-		else	/*	Assume file name is an absolute path.	*/
-		{
-			istrcpy(workingNameBuffer, stringBuf,
-					sizeof workingNameBuffer);
-		}
-	}
-
-	if (cfdpvdb->currentFdu != fduObj)
+	if (cfdpvdb->currentFdu != fduObj)	/*	Switching FDU.	*/
 	{
 		if (cfdpvdb->currentFile != -1)
 		{
@@ -2561,13 +2687,13 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 		}
 
 		cfdpvdb->currentFdu = fduObj;
-		cfdpvdb->currentFile = open(workingNameBuffer,
-				O_RDWR | O_CREAT, 00777);
+		cfdpvdb->currentFile = iopen(workingNameBuffer,
+				O_RDWR | O_CREAT, 0777);
 		if (cfdpvdb->currentFile < 0)
 		{
 			putSysErrmsg("Can't open working file",
 					workingNameBuffer);
-			return handleFilestoreRejection(fdu, -1, &handler);
+			return handleFilestoreRejection(fdu, 0, &handler);
 		}
 	}
 
@@ -2584,7 +2710,7 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 	while (fileLength < segmentOffset)
 	{
 		if (write(cfdpvdb->currentFile,
-				&(cfdpConstants->fillCharacter), 1) < 0)
+				&(cfdpdb.fillCharacter), 1) < 0)
 		{
 			putSysErrmsg("Can't write to file", workingNameBuffer);
 			return handleFilestoreRejection(fdu, -1, &handler);
@@ -2990,7 +3116,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	CfdpHandler	handler;
 	CfdpEvent	event;
 	Sdr		sdr = getIonsdr();
-	CfdpDB		*cfdpConstants = _cfdpConstants();
+	CfdpDB		cfdpdb;
 
 	if (fdu->eofReceived)
 	{
@@ -2998,6 +3124,8 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	if (bytesRemaining < 9) return 0;	/*	Malformed.	*/
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
+	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = (*cursor >> 4) & 0x0f;
 	cursor++;
@@ -3071,7 +3199,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	fdu->checkTime = getUTCTime();
-	fdu->checkTime += cfdpConstants->checkTimerPeriod;
+	fdu->checkTime += cfdpdb.checkTimerPeriod;
 	sdr_write(sdr, fduObj, (char *) fdu, sizeof(InFdu));
 	return checkInFduComplete(fdu, fduObj, fduElt);
 }
@@ -3080,6 +3208,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 			int dataFieldLength, InFdu *fdu, Object fduObj,
 		       	Object fduElt)
 {
+	CfdpDB		cfdpdb;
 	int		i;
 	unsigned int	fileSize = 0;		/*	Ignore it.	*/
 	char		stringBuf[256];
@@ -3093,6 +3222,8 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	if (bytesRemaining < 5) return 0;	/*	Malformed.	*/
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
+	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
 	fdu->metadataReceived = 1;
 	fdu->recordBoundsRespected = (*cursor >> 7) & 0x01;
 	cursor++;
