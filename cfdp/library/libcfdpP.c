@@ -1833,8 +1833,8 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 	{
 		*lastPathSeparator = ION_PATH_DELIMITER;
 	}
-}
 #endif
+}
 
 static void	renameWorkingFile(InFdu *fduBuf)
 {

@@ -11,6 +11,9 @@ else
 	exit
 fi
 
+mv Makefile Makefile.saved
+mv Makefile.winion Makefile
+
 cp /bin/make.exe /bin/gmake.exe
 
 mkdir /opt/bin
@@ -38,7 +41,7 @@ for f in ${makefiles[@]}; do
 	rm $fnameold
 done
 
-rm ~/.profile
+mv ~/.profile ~/.profile.saved
 echo -e "export PATH=/opt/bin:/opt/lib:/c/DTN/test:\$PATH\nalias ll='ls -l'\nalias vi='vim'" > ~/.profile
 
 source ~/.profile
