@@ -67,7 +67,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	Sdr			sdr = getIonsdr();
 	static LtpSessionId	currentSessionId = { 0, 0 };
 	static unsigned long	currentOffset = 0;
-	static int		gapFound = 0;
 	unsigned long		fillLength;
 	char			engineNbrString[21];
 	char			senderEidBuffer[SDRSTRING_BUFSZ];
@@ -80,7 +79,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		currentSessionId.sourceEngineId = 0;
 		currentSessionId.sessionNbr = 0;
 		currentOffset = 0;
-		gapFound = 0;
 		return 0;
 	}
 
@@ -101,7 +99,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		currentSessionId.sourceEngineId = 0;
 		currentSessionId.sessionNbr = 0;
 		currentOffset = 0;
-		gapFound = 0;
 	}
 
 	if (currentOffset == 0)
@@ -132,7 +129,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		/*	Must insert fill data -- partial loss of
 		 *	bundle payload, for example, may be okay.	*/
 
-		gapFound = 1;
 		fillLength = offset - currentOffset;
 		if (fillLength > *buflen)
 		{
@@ -156,7 +152,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 				currentSessionId.sourceEngineId = 0;
 				currentSessionId.sessionNbr = 0;
 				currentOffset = 0;
-				gapFound = 0;
 				return 0;
 			}
 
@@ -193,7 +188,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 			currentSessionId.sourceEngineId = 0;
 			currentSessionId.sessionNbr = 0;
 			currentOffset = 0;
-			gapFound = 0;
 			return 0;
 		}
 
@@ -236,7 +230,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		currentSessionId.sourceEngineId = 0;
 		currentSessionId.sessionNbr = 0;
 		currentOffset = 0;
-		gapFound = 0;
 	}
 
 	return 0;

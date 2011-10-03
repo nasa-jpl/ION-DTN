@@ -49,11 +49,9 @@ static void	*sendBundles(void *parm)
 	Object			bundleZco;
 	BpExtendedCOS		extendedCOS;
 	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
-	char			*hostName;
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
 	int			failedTransmissions = 0;
-	unsigned int		bundleLength;
 	ZcoReader		reader;
 	int			bytesToSend;
 	DgrRC			rc;
@@ -102,7 +100,6 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
-		hostName = destDuctName;
 		parseSocketSpec(destDuctName, &portNbr, &hostNbr);
 		if (portNbr == 0)
 		{
@@ -110,7 +107,6 @@ static void	*sendBundles(void *parm)
 		}
 
 		sdr_begin_xn(sdr);
-		bundleLength = zco_length(sdr, bundleZco);
 		if (hostNbr == 0)		/*	Can't send it.	*/
 		{
 			failedTransmissions++;

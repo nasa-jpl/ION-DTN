@@ -1296,7 +1296,6 @@ amsd_SOURCES = \
 	ams/library/amsd.c \
 	ams/library/libams.c \
 	ams/library/amscommon.c \
-	ams/library/loadmib.c \
 	ams/library/crypt.c \
 	ams/library/dgrts.c \
 	ams/library/udpts.c \
