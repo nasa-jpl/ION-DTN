@@ -326,7 +326,8 @@ void	*memalign(size_t boundary, size_t size)
 
 #endif
 
-#ifndef VXWORKS
+#ifndef VXWORKS			/*	Common for all O/S but VXWORKS.	*/
+
 int	createFile(const char *filename, int flags)
 {
 	int	result;
@@ -343,7 +344,6 @@ int	createFile(const char *filename, int flags)
 
 	return result;
 }
-#endif
 
 #ifdef _MULTITHREADED
 
@@ -534,6 +534,8 @@ unsigned long	getClockResolution()
 
 	return 10000;
 }
+
+#endif				/*	End of #ifndef VXWORKS		*/
 
 #if defined (__SVR4)
 
