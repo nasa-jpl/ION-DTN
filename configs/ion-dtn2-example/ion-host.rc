@@ -38,7 +38,7 @@ a endpoint dtn://host1.dtn/ping q
 # add the tcp convergence layer and outducts
 # note that your IPs will be different
 a protocol tcp 1400 100
-a induct tcp 10.1.1.8:4556 tcpcli
+a induct tcp 0.0.0.0:4556 tcpcli
 #loopback outduct
 a outduct tcp 10.1.1.8:4556 tcpclo
 # outduct to dtn2 node

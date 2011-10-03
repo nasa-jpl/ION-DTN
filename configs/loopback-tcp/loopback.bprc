@@ -36,7 +36,7 @@ a protocol tcp 1400 100
 # Add an induct. (listen)
 #	Add an induct to accept bundles using the tcp protocol.
 #	The induct itself is implemented by the 'tcpcli' command.
-a induct tcp 127.0.0.1:4556 tcpcli
+a induct tcp 0.0.0.0:4556 tcpcli
 
 # Add an outduct. (send to yourself)
 #	Add an outduct to send bundles using the tcp protocol.

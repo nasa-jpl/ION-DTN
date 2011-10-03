@@ -1,6 +1,6 @@
 /*
 
-	1000.loopback/dotest.c:	Loopback test
+	1300.loopback/dotest.c:	Loopback test using TCP.
 
 									*/
 
@@ -25,11 +25,11 @@ int main(int argc, char **argv)
 	char rxContent[sizeof(testLine)];
 
 	/* Start ION */
-	ionstart_default_config("loopback-ltp/loopback.ionrc", 
+	ionstart_default_config("loopback-tcp/loopback.ionrc", 
 			 NULL,
-			 "loopback-ltp/loopback.ltprc",
-			 "loopback-ltp/loopback.bprc",
-			 "loopback-ltp/loopback.ipnrc",
+			 NULL,
+			 "loopback-tcp/loopback.bprc",
+			 "loopback-tcp/loopback.ipnrc",
 			 NULL);
 
 	/* Attach to ION */

@@ -194,21 +194,19 @@ int	main(int argc, char *argv[])
 	}
 
 	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
+	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", hostName);
+		return -1;
+	}
 	if (portNbr == 0)
 	{
 		portNbr = BpUdpDefaultPortNbr;
 	}
-
 	portNbr = htons(portNbr);
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		return -1;
-	}
+	hostNbr = htonl(hostNbr);
 
 	rtp.vduct = vduct;
-	hostNbr = htonl(hostNbr);
 	memset((char *) &socketName, 0, sizeof socketName);
 	inetName = (struct sockaddr_in *) &socketName;
 	inetName->sin_family = AF_INET;

@@ -1,16 +1,57 @@
 /*
 
-	1000.loopback/dotest.c:	Loopback test
+	1500.loopback-brs/dotest.c:	Loopback test using BRS.
 
 									*/
 
+#include <ion.h>
+#include <ionsec.h>
 #include <bp.h>
+#include <bpP.h>
 #include "check.h"
 #include "testutil.h"
 
 static BpSAP	rxSap;
 static char testEid[] = "ipn:1.1";
 static char testLine[] = "Loopback bundle over ION";
+
+void do_brs_startup()
+{
+	VInduct *vBrscin;
+	PsmAddress vBrscinElt;	/* Don't use, but findInduct() requires. */
+
+	/* Start the base of the ION node. */
+	ionstart_default_config("loopback-brs/loopback.ionrc", 
+			 "loopback-brs/loopback.ionsecrc",
+			 NULL,
+			 NULL, /* Must start bpadmin after adding 1.brs key */
+			 NULL, /* Must start ipnadmin after starting bpadmin */
+			 NULL);
+
+	/* The ionsecrc file tries to add the key we need, named "1.brs", but when
+	 * running with a working directory inside the tests/ tree, it will fail.
+	 * We need to provide it a more elaborate path to "1.brs". */
+	fail_unless(secAttach() >= 0);
+	fail_unless(sec_addKey_default_config("1.brs", "loopback-brs/1.brs") == 1);
+
+	/* Now start BP and IPN portions of node. */
+	bpadmin_default_config("loopback-brs/loopback.bprc");
+	ipnadmin_default_config("loopback-brs/loopback.ipnrc");
+
+	/* It is possible that the BRS client tried to connect to the BRS server
+	 * before the BRS server had started.  We check if the BRS client failed
+	 * to startup, and if so, we restart it. */
+	sleep(2);
+	fail_unless(bp_attach() >= 0);
+	findInduct("brsc", "localhost:4556_1", &vBrscin, &vBrscinElt);
+	fail_unless(vBrscin != NULL);
+	if(! sm_TaskExists(vBrscin->cliPid))
+	{
+		bpadmin_default_config("loopback-brs/restart-brsc.bprc");
+	}
+}
+
+
 
 int main(int argc, char **argv)
 {
@@ -24,17 +65,18 @@ int main(int argc, char **argv)
 	int rxLen;
 	char rxContent[sizeof(testLine)];
 
-	/* Start ION */
-	ionstart_default_config("loopback-ltp/loopback.ionrc", 
-			 NULL,
-			 "loopback-ltp/loopback.ltprc",
-			 "loopback-ltp/loopback.bprc",
-			 "loopback-ltp/loopback.ipnrc",
-			 NULL);
+	do_brs_startup();
 
 	/* Attach to ION */
 	fail_unless(bp_attach() >= 0);
 	sdr = bp_get_sdr();
+
+	/* Verify our key is installed correctly. */
+	{
+		char key[20];
+		int keyBufLen = sizeof(key);
+		fail_unless(sec_get_key("1.brs", &keyBufLen, key) == 20);
+	}
 
 	/* Send the loopback bundle */
 	sdr_begin_xn(sdr);

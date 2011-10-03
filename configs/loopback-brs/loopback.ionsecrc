@@ -1,0 +1,20 @@
+# loopback-brs/loopback.ionsecrc
+#
+# The BRS system uses HMAC to authenticate clients that connect, so we
+# must initialize the ION security database before using HMAC.  
+# The BRS server must have a key "X.brs" for each BRS client wishing to 
+#  connect to duct X.
+# Each client X must have that same key "X.brs"
+# In this loopback configuration, there is one server and one client with
+# one key ("1.brs") for duct 1.
+
+# Initialize the ION security database.
+1
+
+# Add a key named "1.brs" for the BRS server to use for authenticating
+# BRS clients.  Note that some versions of ION may not come with ciphersuites,
+# in which case this authentication is trivially insecure.
+a key 1.brs ../1.brs
+
+# Don't require or transmit BABs
+a bspbabrule * * '' ''
