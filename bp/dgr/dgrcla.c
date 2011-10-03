@@ -414,7 +414,6 @@ int	main(int argc, char *argv[])
 	Sdr			sdr;
 	Induct			induct;
 	ClProtocol		protocol;
-	char			*hostName;
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
 	Dgr			dgrSap;
@@ -476,7 +475,6 @@ int	main(int argc, char *argv[])
 		voutduct->xmitThrottle.nominalRate = protocol.nominalRate;
 	}
 
-	hostName = ductName;
 	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
 	{
 		putErrmsg("Can't get IP/port for host.", ductName);

@@ -231,7 +231,6 @@ int	ipnfw(int a1, int a2, int a3, int a4, int a5,
 int	main(int argc, char *argv[])
 {
 #endif
-	int		ionMemIdx;
 	int		running = 1;
 	Sdr		sdr;
 	VScheme		*vscheme;
@@ -253,7 +252,6 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	ionMemIdx = getIonMemoryMgr();
 	sdr = getIonsdr();
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
