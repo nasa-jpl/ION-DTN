@@ -1654,10 +1654,7 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 	}
 
 	ductIdLen = strlen(ductClId);
-	if(strtol(ductClId, &firstNonNumeric, 0)){
-		/*Prevent strtol unused result complier warnings
-		 * We just need it to find first non-numeric*/
-	}
+	oK(strtol(ductClId, &firstNonNumeric, 0));
 	if (*firstNonNumeric == '\0')
 	{
 		/*	Neighbor CL ID is a number, e.g., an LTP

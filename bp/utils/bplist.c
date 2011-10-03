@@ -302,10 +302,7 @@ int	main(int argc, char **argv)
 		{
 			count = 1;
 		}
-		else if (strcmp(rpt, "detail") == 0)
-		{
-		}
-		else
+		else if (strcmp(rpt, "detail") != 0)
 		{
 			printUsage();
 			return 0;

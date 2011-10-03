@@ -479,11 +479,11 @@ int	sec_addKey(char *keyName, char *fileName)
 
 	if (nextKey)
 	{
-		sdr_list_insert_before(sdr, nextKey, keyObj);
+		oK(sdr_list_insert_before(sdr, nextKey, keyObj));
 	}
 	else
 	{
-		sdr_list_insert_last(sdr, secdb->keys, keyObj);
+		oK(sdr_list_insert_last(sdr, secdb->keys, keyObj));
 	}
 
 	sdr_write(sdr, keyObj, (char *) &key, sizeof(SecKey));

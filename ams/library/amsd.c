@@ -1100,7 +1100,7 @@ static void	cleanUpRsState(RsState *rsState)
 
 static int	skipDeliveryVector(int *bytesRemaining, char **cursor)
 {
-	int		len;
+	int	len;
 
 	if (*bytesRemaining < 1)
 	{
