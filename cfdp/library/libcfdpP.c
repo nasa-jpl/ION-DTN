@@ -847,7 +847,7 @@ int	addFsResp(Object list, CfdpAction action, int status,
 	{
 		sdr_write(sdr, addr, (char *) &fsresp,
 				sizeof(FilestoreResponse));
-		sdr_list_insert_last(sdr, list, addr);
+		oK(sdr_list_insert_last(sdr, list, addr));
 	}
 
 	if (sdr_end_xn(sdr) < 0)

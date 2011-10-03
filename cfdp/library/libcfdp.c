@@ -352,7 +352,7 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 		{
 			sdr_write(sdr, addr, (char *) &usrmsg,
 					sizeof(MsgToUser));
-			sdr_list_insert_last(sdr, list, addr);
+			oK(sdr_list_insert_last(sdr, list, addr));
 		}
 	}
 
@@ -466,7 +466,7 @@ int	cfdp_add_fsreq(MetadataList list, CfdpAction action,
 	{
 		sdr_write(sdr, addr, (char *) &fsreq,
 				sizeof(FilestoreRequest));
-		sdr_list_insert_last(sdr, list, addr);
+		oK(sdr_list_insert_last(sdr, list, addr));
 	}
 
 	if (sdr_end_xn(sdr) < 0)

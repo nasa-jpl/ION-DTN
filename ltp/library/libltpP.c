@@ -5291,7 +5291,7 @@ int	ltpHandleInboundSegment(char *buf, int length)
 	CHKERR(length > 0);
 	memset((char *) &segment, 0, sizeof(LtpRecvSeg));
 
-	/*	Get version number and segment type (flags).		*/
+	/*	Get segment type (flags).  Ignore version number.	*/
 
 	pdu->segTypeCode = (*cursor) & 0x0f;
 	cursor++;

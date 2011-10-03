@@ -408,12 +408,12 @@ int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 	{
 		if (nextPlan)
 		{
-			sdr_list_insert_before(sdr, nextPlan, planObj);
+			oK(sdr_list_insert_before(sdr, nextPlan, planObj));
 		}
 		else
 		{
-			sdr_list_insert_last(sdr,
-					(_dtn2Constants())->plans, planObj);
+			oK(sdr_list_insert_last(sdr,
+					(_dtn2Constants())->plans, planObj));
 		}
 
 		sdr_write(sdr, planObj, (char *) &plan, sizeof(Dtn2Plan));

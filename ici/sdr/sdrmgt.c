@@ -710,6 +710,7 @@ Object	_sdrmalloc(Sdr sdrv, unsigned long nbytes)
 		{
 			memset((char *) &ohd, 0, sizeof(Ohd));
 			addr = (Address) object;
+			oK(scaleOf(sdrv, addr, &ohd));
 			if (noteKnownObject(sdrv, addr,
 				addr + ohd.leading.userDataSize) == NULL)
 			{

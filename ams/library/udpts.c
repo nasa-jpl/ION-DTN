@@ -537,8 +537,8 @@ static void	udpShutdown(void *abstract_sap)
 
 	if (getsockname(fd, &sockName, &sockNameLen) == 0)
 	{
-		sendto(fd, &shutdown, 1, 0, &sockName,
-			sizeof(struct sockaddr_in));
+		oK(sendto(fd, &shutdown, 1, 0, &sockName,
+			sizeof(struct sockaddr_in)));
 	}
 }
 
