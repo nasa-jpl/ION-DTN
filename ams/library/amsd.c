@@ -1914,6 +1914,7 @@ static void	*dmMain(void *parm)
 	int		amsstopSubj;
 	int		amsstopRole;
 	AmsEvent	event;
+	int		eventType;
 	RsState		*rsState;
 	int		stop = 0;
 
@@ -1954,8 +1955,9 @@ static void	*dmMain(void *parm)
 			break;			/*	Out of loop.	*/
 		}
 
+		eventType = ams_get_event_type(event);
 		ams_recycle_event(event);
-		switch (ams_get_event_type(event))
+		switch (eventType)
 		{
 		case USER_DEFINED_EVT:		/*	Termination.	*/
 			break;			/*	Out of switch.	*/
