@@ -1,0 +1,25 @@
+all:
+	gmake -C ici $@
+	gmake -C ici install
+	gmake -C ltp $@
+	gmake -C ltp install
+	gmake -C dgr $@
+	gmake -C dgr install
+	gmake -C bp $@
+	gmake -C bp install
+	gmake -C ams $@
+	gmake -C ams install
+	gmake -C cfdp $@
+	gmake -C cfdp install
+
+clean:
+	gmake -C ici $@
+	gmake -C ltp $@
+	gmake -C dgr $@
+	gmake -C bp $@
+	gmake -C ams $@
+	gmake -C cfdp $@
+
+test:
+	cd tests
+	./runtests
