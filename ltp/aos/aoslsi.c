@@ -101,7 +101,6 @@ int	main(int argc, char *argv[])
 	LtpVdb			*vdb;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
-	char			ownHostName[MAXHOSTNAMELEN];
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
 	ReceiverThreadParms	rtp;
@@ -131,22 +130,19 @@ int	main(int argc, char *argv[])
 
 	if (endpointSpec)
 	{
-		parseSocketSpec(endpointSpec, &portNbr, &ipAddress);
+		if(parseSocketSpec(endpointSpec, &portNbr, &ipAddress) != 0)
+		{
+			putErrmsg("Can't get IP/port for endpointSpec.", endpointSpec);
+			return -1;
+		}
 	}
-
 	if (portNbr == 0)
 	{
 		portNbr = LtpAosDefaultPortNbr;
 	}
-	
-	if (ipAddress == 0)		/*	Default to local host.	*/
-	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		ipAddress = getInternetAddress(ownHostName);
-	}
-
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
+
 	memset((char *) &socketName, 0, sizeof socketName);
 	inetName = (struct sockaddr_in *) &socketName;
 	inetName->sin_family = AF_INET;

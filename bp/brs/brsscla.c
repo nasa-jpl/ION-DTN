@@ -666,7 +666,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	ClProtocol		protocol;
 	char			*hostName;
 	unsigned short		portNbr;
-	unsigned int		hostNbr;
+	unsigned int		hostNbr = INADDR_ANY;
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
 	SenderThreadParms	senderParms;
@@ -713,20 +713,18 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	}
 
 	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
+	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", hostName);
+		return 1;
+	}
 	if (portNbr == 0)
 	{
 		portNbr = 80;	/*	Default to HTTP's port number.	*/
 	}
-
 	portNbr = htons(portNbr);
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		return 1;
-	}
-
 	hostNbr = htonl(hostNbr);
+
 	atp.vduct = vinduct;
 	memset((char *) &(atp.socketName), 0, sizeof(struct sockaddr));
 	atp.inetName = (struct sockaddr_in *) &(atp.socketName);

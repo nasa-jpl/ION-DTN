@@ -534,12 +534,11 @@ static void	udpShutdown(void *abstract_sap)
 	struct sockaddr	sockName;
 	socklen_t	sockNameLen = sizeof sockName;
 	char		shutdown = 1;
-	int		result;
 
 	if (getsockname(fd, &sockName, &sockNameLen) == 0)
 	{
-		result = sendto(fd, &shutdown, 1, 0, &sockName,
-			sizeof(struct sockaddr_in));
+		oK(sendto(fd, &shutdown, 1, 0, &sockName,
+			sizeof(struct sockaddr_in)));
 	}
 }
 

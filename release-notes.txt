@@ -55,6 +55,18 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.5.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #185: ION now supports binding to INADDR_ANY in UDP/TCP ports and link
+  service adapters.
+
+- Issue #298: Code scrub to remove unused variable warnings that prevent
+  compilation of ION under the default settings of gcc 4.6.1.
+
+- Issue #310: Fixed broken Windows support.  Fixed several minor issues.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.0 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 

@@ -423,7 +423,6 @@ int	sec_addKey(char *keyName, char *fileName)
 	struct stat	statbuf;
 	SecKey		key;
 	Object		keyObj;
-	Object		elt;
 
 	CHKERR(keyName);
 	CHKERR(fileName);
@@ -480,11 +479,11 @@ int	sec_addKey(char *keyName, char *fileName)
 
 	if (nextKey)
 	{
-		elt = sdr_list_insert_before(sdr, nextKey, keyObj);
+		oK(sdr_list_insert_before(sdr, nextKey, keyObj));
 	}
 	else
 	{
-		elt = sdr_list_insert_last(sdr, secdb->keys, keyObj);
+		oK(sdr_list_insert_last(sdr, secdb->keys, keyObj));
 	}
 
 	sdr_write(sdr, keyObj, (char *) &key, sizeof(SecKey));

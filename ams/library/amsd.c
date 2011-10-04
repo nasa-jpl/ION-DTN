@@ -1087,15 +1087,13 @@ static void	cleanUpRsState(RsState *rsState)
 
 static int	skipDeliveryVector(int *bytesRemaining, char **cursor)
 {
-	unsigned char	u1;
-	int		len;
+	int	len;
 
 	if (*bytesRemaining < 1)
 	{
 		return -1;
 	}
 
-	u1 = **cursor;
 	(*cursor)++;
 	(*bytesRemaining)--;
 	if (parseString(cursor, bytesRemaining, &len) < 0)
@@ -1959,7 +1957,7 @@ static void	*dmMain(void *parm)
 
 		eventType = ams_get_event_type(event);
 		ams_recycle_event(event);
-		switch (ams_get_event_type(event))
+		switch (eventType)
 		{
 		case USER_DEFINED_EVT:		/*	Termination.	*/
 			break;			/*	Out of switch.	*/

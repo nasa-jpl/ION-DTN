@@ -47,5 +47,5 @@ a span 1 128 1024 128 1024 1024 1024 1 'udplso localhost:1113'
 #	This command actually runs the link service output commands
 #	(defined above, in the "a span" commands).
 #	Also starts the link service INPUT task 'udplsi localhost:1113' to
-#	listen locally on UDP port 1113 for incoming LTP traffic.
-s 'udplsi localhost:1113'
+#	listen on UDP port 1113 for incoming LTP traffic.
+s 'udplsi 0.0.0.0:1113'

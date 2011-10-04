@@ -272,7 +272,6 @@ int	main(int argc, char **argv)
 	char		*queue = argc > 2 ? argv[2] : NULL;
 #endif
 	int		count = 0;
-	int		detail = 0;
 	char		*cursor;
 	char		*protocolName = NULL;
 	char		*ductName = NULL;
@@ -303,11 +302,7 @@ int	main(int argc, char **argv)
 		{
 			count = 1;
 		}
-		else if (strcmp(rpt, "detail") == 0)
-		{
-			detail = 1;
-		}
-		else
+		else if (strcmp(rpt, "detail") != 0)
 		{
 			printUsage();
 			return 0;

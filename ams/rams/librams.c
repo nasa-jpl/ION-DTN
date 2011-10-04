@@ -1525,22 +1525,9 @@ printf("Unknown RPDU CC: %d.\n", cc);
 
 static int	AssertPetition(RamsGateway *gWay, Petition *pet)
 {
-	int		continuumNbr;
-	int		unitNbr;
-	int		sourceId;
-	int		subjectNbr;
 	Lyst		assertionSet;
 	LystElt		elt;
 	RamsNode	*node;
-
-	continuumNbr = EnvelopeHeader(pet->specification->envelope,
-		 	Env_ContinuumNbr);
-	unitNbr = EnvelopeHeader(pet->specification->envelope,
-			 Env_PublishUnitNbr);
-	sourceId = EnvelopeHeader(pet->specification->envelope,
-			 Env_PublishRoleNbr);
-	subjectNbr = EnvelopeHeader(pet->specification->envelope,
-			 Env_SubjectNbr);
 
 	/*	The petition may or may not be assertable.
 	 *

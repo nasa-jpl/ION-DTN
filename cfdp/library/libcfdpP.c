@@ -814,7 +814,6 @@ int	addFsResp(Object list, CfdpAction action, int status,
 	Sdr			sdr = getIonsdr();
 	CfdpDB			*cfdpConstants = _cfdpConstants();
 	FilestoreResponse	fsresp;
-	Object			elt;
 	Object			addr;
 
 	CHKERR(list);
@@ -848,7 +847,7 @@ int	addFsResp(Object list, CfdpAction action, int status,
 	{
 		sdr_write(sdr, addr, (char *) &fsresp,
 				sizeof(FilestoreResponse));
-		elt = sdr_list_insert_last(sdr, list, addr);
+		oK(sdr_list_insert_last(sdr, list, addr));
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -1833,8 +1832,8 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 	{
 		*lastPathSeparator = ION_PATH_DELIMITER;
 	}
-}
 #endif
+}
 
 static void	renameWorkingFile(InFdu *fduBuf)
 {
@@ -3372,9 +3371,7 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 {
 	unsigned char		*cursor = buf;
 	int			bytesRemaining = length;
-	int			versionNbr;
 	int			pduIsFileData;
-	int			pduIsTowardSender;
 	int			modeIsUnacknowledged;
 	Sdr			sdr = getIonsdr();
 	CfdpDB			*cfdpConstants = _cfdpConstants();
@@ -3411,9 +3408,7 @@ printf("...in cfdpHandleInboundPdu...\n");
 		return 0;		/*	Malformed PDU.		*/
 	}
 
-	versionNbr = ((*cursor) >> 5) & 0x07;
 	pduIsFileData = ((*cursor) >> 4) & 0x01;
-	pduIsTowardSender = ((*cursor) >> 3) & 0x01;
 	modeIsUnacknowledged = ((*cursor) >> 2) & 0x01;
 	crcIsPresent = ((*cursor) >> 1) & 0x01;
 	cursor++;

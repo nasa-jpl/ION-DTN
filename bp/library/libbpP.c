@@ -1589,8 +1589,8 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 		OBJ_POINTER(Outduct, duct);
 	int	neighborIdLen;
 	int	ductIdLen;
-	long	ductId;		/*	To turn off compiler warning.	*/
 	int	idLen;
+	int	digitCount UNUSED;
 
 	if (dir->action == fwd)
 	{
@@ -1618,7 +1618,7 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 	}
 
 	ductIdLen = strlen(ductClId);
-	ductId = strtol(ductClId, &firstNonNumeric, 0);
+	digitCount = strtol(ductClId, &firstNonNumeric, 0);
 	if (*firstNonNumeric == '\0')
 	{
 		/*	Neighbor CL ID is a number, e.g., an LTP

@@ -39,7 +39,6 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	PsmAddress	vspanElt;
 	unsigned int	dataLength;
 	unsigned int	occupancy;
-	unsigned int	greenPartLength;
 	Object		spanObj;
 	LtpSpan		span;
 	LtpDB		db;
@@ -71,7 +70,6 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 		redPartLength = dataLength;
 	}
 
-	greenPartLength = dataLength - redPartLength;
 	spanObj = sdr_list_data(sdr, vspan->spanElt);
 	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 

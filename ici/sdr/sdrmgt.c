@@ -699,7 +699,6 @@ Object	_sdrmalloc(Sdr sdrv, unsigned long nbytes)
 	SdrState	*sdr = sdrv->sdr;
 	Object		object;
 	Address		addr;
-	ObjectScale	scale;
 	Ohd		ohd;
 
 	CHKZERO(sdrv);
@@ -711,7 +710,7 @@ Object	_sdrmalloc(Sdr sdrv, unsigned long nbytes)
 		{
 			memset((char *) &ohd, 0, sizeof(Ohd));
 			addr = (Address) object;
-			scale = scaleOf(sdrv, addr, &ohd);
+			oK(scaleOf(sdrv, addr, &ohd));
 			if (noteKnownObject(sdrv, addr,
 				addr + ohd.leading.userDataSize) == NULL)
 			{

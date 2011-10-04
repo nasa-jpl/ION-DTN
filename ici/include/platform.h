@@ -122,6 +122,12 @@ extern "C" {
 #endif
 #define ERROR			(-1)
 
+#ifdef __GNUC__
+#define UNUSED  __attribute__((unused))
+#else
+#define UNUSED
+#endif
+
 #ifndef MIN
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #endif
@@ -528,7 +534,7 @@ extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 
 extern void			findToken(char **cursorPtr, char **token);
-extern void			parseSocketSpec(char *socketSpec,
+extern int			parseSocketSpec(char *socketSpec,
 					unsigned short *portNbr,
 					unsigned int *ipAddress);
 #include "platform_sm.h"

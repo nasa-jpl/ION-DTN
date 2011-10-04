@@ -1,0 +1,11 @@
+# loopback-brs/restart-brsc.bprc
+# Restarts the BRS client CLA task, in case it started before the
+# BRS server was ready to serve.
+#
+# If you get an error message like this:
+#    bp/brs/brsccla.c, Can't connect to server. (localhost:4556)
+# then you should pass this snippet to bpadmin to restart the BRS client CLA:
+#    bpadmin restart-brsc.bprc
+#
+x induct brsc localhost:4556_1
+s induct brsc localhost:4556_1

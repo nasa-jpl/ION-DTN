@@ -49,11 +49,9 @@ static void	*sendBundles(void *parm)
 	Object			bundleZco;
 	BpExtendedCOS		extendedCOS;
 	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
-	char			*hostName;
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
 	int			failedTransmissions = 0;
-	unsigned int		bundleLength;
 	ZcoReader		reader;
 	int			bytesToSend;
 	DgrRC			rc;
@@ -102,7 +100,6 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
-		hostName = destDuctName;
 		parseSocketSpec(destDuctName, &portNbr, &hostNbr);
 		if (portNbr == 0)
 		{
@@ -110,7 +107,6 @@ static void	*sendBundles(void *parm)
 		}
 
 		sdr_begin_xn(sdr);
-		bundleLength = zco_length(sdr, bundleZco);
 		if (hostNbr == 0)		/*	Can't send it.	*/
 		{
 			failedTransmissions++;
@@ -418,7 +414,6 @@ int	main(int argc, char *argv[])
 	Sdr			sdr;
 	Induct			induct;
 	ClProtocol		protocol;
-	char			*hostName;
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
 	Dgr			dgrSap;
@@ -480,17 +475,14 @@ int	main(int argc, char *argv[])
 		voutduct->xmitThrottle.nominalRate = protocol.nominalRate;
 	}
 
-	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
+	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", ductName);
+		return 1;
+	}
 	if (portNbr == 0)
 	{
 		portNbr = DGRCLA_PORT_NBR;
-	}
-
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		return 1;
 	}
 
 	if (dgr_open(getOwnNodeNbr(), 1, portNbr, hostNbr, NULL, &dgrSap, &rc)

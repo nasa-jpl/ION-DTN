@@ -1487,13 +1487,11 @@ static int	rcParse(LoadMibState *state, char *buf, size_t length)
 
 static int	loadMibFromRcSource(char *mibSource)
 {
-	int			sourceFile;
-	LoadMibState		state;
-	char			buf[256];
-	int			length;
-	int			result = 0;
-	AmsMib			*mib;
-	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
+	int		sourceFile;
+	LoadMibState	state;
+	char		buf[256];
+	int		length;
+	int		result = 0;
 
 	if (*mibSource == '\0')		/*	Use default file name.	*/
 	{

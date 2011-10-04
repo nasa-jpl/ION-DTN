@@ -218,7 +218,6 @@ int	ipn_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct)
 	Object	nextPlan;
 	IpnPlan	plan;
 	Object	planObj;
-	Object	elt;
 
 	CHKERR(nodeNbr && defaultDuct);
 	sdr_begin_xn(sdr);
@@ -239,12 +238,12 @@ int	ipn_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct)
 	{
 		if (nextPlan)
 		{
-			elt = sdr_list_insert_before(sdr, nextPlan, planObj);
+			oK(sdr_list_insert_before(sdr, nextPlan, planObj));
 		}
 		else
 		{
-			elt = sdr_list_insert_last(sdr,
-					(_ipnConstants())->plans, planObj);
+			oK(sdr_list_insert_last(sdr,
+					(_ipnConstants())->plans, planObj));
 		}
 
 		sdr_write(sdr, planObj, (char *) &plan, sizeof(IpnPlan));

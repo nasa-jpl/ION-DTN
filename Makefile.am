@@ -1296,7 +1296,6 @@ amsd_SOURCES = \
 	ams/library/amsd.c \
 	ams/library/libams.c \
 	ams/library/amscommon.c \
-	ams/library/loadmib.c \
 	ams/library/crypt.c \
 	ams/library/dgrts.c \
 	ams/library/udpts.c \
@@ -1547,6 +1546,7 @@ TESTUTILCFLAGS = -Itests/library
 check_LTLIBRARIES = $(TESTUTILOBJS)
 tests_library_libtestutil_la_SOURCES = \
 	tests/library/check.c \
+	tests/library/paths.c \
 	tests/library/ionstart.c \
 	tests/library/ionstop.c
 tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1560,6 +1560,9 @@ tests_library_libtestutil_la_LDFLAGS = $(ION_LINK_FLAGS)
 # If a test uses the testutil helpers, include $(TESTUTILOBJS) in _LDADD,
 #    and $(TESTUTILCFLAGS) in _CFLAGS.
 check_PROGRAMS = tests/1000.loopback/dotest \
+	tests/1300.loopback-tcp/dotest \
+	tests/1400.loopback-stcp/dotest \
+	tests/1500.loopback-brs/dotest \
 	tests/issue-188-common-cos-syntax/dotest \
 	tests/issue-260-teach-valgrind-mtake/domtake \
 	tests/issue-279-bpMemo-timeline/driver
@@ -1567,6 +1570,18 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
+tests_1300_loopback_tcp_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1300_loopback_tcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_1400_loopback_stcp_dotest_SOURCES = tests/1400.loopback-stcp/dotest.c
+tests_1400_loopback_stcp_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1400_loopback_stcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
+tests_1500_loopback_brs_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
 tests_issue_188_common_cos_syntax_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
@@ -1579,7 +1594,6 @@ tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) 
 tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline/driver.c
 tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-
 
 
 ##########################

@@ -731,7 +731,6 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 	Sdnv		offsetSdnv;
 	unsigned long	referenceCount;
 	Sdnv		referenceCountSdnv;
-	Object		newElt;
 	char		*blkBuffer;
 	char		*cursor;
 
@@ -778,8 +777,8 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 			offset = (unsigned long) lyst_data(elt);
 			encodeSdnv(&offsetSdnv, offset);
 			blk->length += offsetSdnv.length;
-			newElt = sdr_list_insert_last(bpSdr,
-					blk->eidReferences, offset);
+			oK(sdr_list_insert_last(bpSdr,
+					blk->eidReferences, offset));
 		}
 	}
 
