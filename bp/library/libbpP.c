@@ -1590,6 +1590,7 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 	int	neighborIdLen;
 	int	ductIdLen;
 	int	idLen;
+	int	digitCount UNUSED;
 
 	if (dir->action == fwd)
 	{
@@ -1617,7 +1618,7 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 	}
 
 	ductIdLen = strlen(ductClId);
-	oK(strtol(ductClId, &firstNonNumeric, 0));
+	digitCount = strtol(ductClId, &firstNonNumeric, 0);
 	if (*firstNonNumeric == '\0')
 	{
 		/*	Neighbor CL ID is a number, e.g., an LTP

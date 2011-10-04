@@ -122,6 +122,12 @@ extern "C" {
 #endif
 #define ERROR			(-1)
 
+#ifdef __GNUC__
+#define UNUSED  __attribute__((unused))
+#else
+#define UNUSED
+#endif
+
 #ifndef MIN
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #endif
