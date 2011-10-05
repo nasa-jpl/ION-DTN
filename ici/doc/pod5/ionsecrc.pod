@@ -70,9 +70,12 @@ This command lists all keys in the security policy database.
 
 The B<add bspbabrule> command.  This command adds a rule specifying the
 manner in which Bundle Authentication Block (BAB) validation will be applied
-to all bundles sent from any node whose administrative endpoint ID matches
-I<sender_eid_expr> and received at any node whose administrative endpoint ID
-ID matches I<receiver_eid_expr>.
+to all bundles sent from any node whose endpoints' IDs match
+I<sender_eid_expr> and received at any node whose endpoints' IDs
+match I<receiver_eid_expr>.  Both I<sender_eid_expr> and I<receiver_eid_expr>
+should terminate in wild-card characters, because both the security source
+and security destination of a BAB are actually nodes rather than individual
+endpoints.
 
 If a zero-length string ('') is indicated instead of a I<ciphersuite_name> then
 BAB validation is disabled for this sender/receiver EID expression pair: all

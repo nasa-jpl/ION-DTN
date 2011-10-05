@@ -233,8 +233,8 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
 		return;
 	}
 
-	srcEidLen = strlen(srcEid);
-	destEidLen = strlen(destEid);
+	srcEidLen = istrlen(srcEid, SDRSTRING_BUFSZ);
+	destEidLen = istrlen(destEid, SDRSTRING_BUFSZ);
        	if ((blockType[0] == '~') || (bspTypeToInt(blockType) == BSP_BAB_TYPE))
        	{
         	// For each bab rule, if src/dest match, delete it.  
@@ -399,7 +399,7 @@ static int	loadKeyValue(SecKey *key, char *fileName)
 		case 0:
 			MRELEASE(keybuf);
 			close(keyfd);
-			writeMemoNote("[?] Key value file truncated.",
+			writeMemoNote("[?] Key value file truncated",
 					fileName);
 			return 0;
 		}
@@ -427,7 +427,7 @@ int	sec_addKey(char *keyName, char *fileName)
 
 	CHKERR(keyName);
 	CHKERR(fileName);
-	if (*keyName == '\0' || strlen(keyName) > 31)
+	if (*keyName == '\0' || istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid key name", keyName);
 		return 0;
@@ -435,7 +435,7 @@ int	sec_addKey(char *keyName, char *fileName)
 
 	if (stat(fileName, &statbuf) < 0)
 	{
-		writeMemoNote("[?] Can't stat the key value file.", fileName);
+		writeMemoNote("[?] Can't stat the key value file", fileName);
 		return 0;
 	}
 
@@ -449,7 +449,7 @@ int	sec_addKey(char *keyName, char *fileName)
 	if (locateKey(keyName, &nextKey) != 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] This key is already defined.", keyName);
+		writeMemoNote("[?] This key is already defined", keyName);
 		return 0;
 	}
 
@@ -507,7 +507,7 @@ int	sec_updateKey(char *keyName, char *fileName)
 
 	CHKERR(keyName);
 	CHKERR(fileName);
-	if (*keyName == '\0' || strlen(keyName) > 31)
+	if (*keyName == '\0' || istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid key name", keyName);
 		return 0;
@@ -515,7 +515,7 @@ int	sec_updateKey(char *keyName, char *fileName)
 
 	if (stat(fileName, &statbuf) < 0)
 	{
-		writeMemoNote("[?] Can't stat the key value file.", fileName);
+		writeMemoNote("[?] Can't stat the key value file", fileName);
 		return 0;
 	}
 
@@ -530,7 +530,7 @@ int	sec_updateKey(char *keyName, char *fileName)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] This key is not defined.", keyName);
+		writeMemoNote("[?] This key is not defined", keyName);
 		return 0;
 	}
 
@@ -644,7 +644,7 @@ int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 
 static int	filterEid(char *outputEid, char *inputEid)
 {
-	int	eidLength = strlen(inputEid);
+	int	eidLength = istrlen(inputEid, MAX_SDRSTRING + 1);
 	int	last = eidLength - 1;
 
 	if (eidLength == 0 || eidLength > MAX_SDRSTRING)
@@ -834,6 +834,7 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 	Object		ruleObj;
 	Object		elt;
 	Object		ruleAddr;
+	int		last;
 
 	CHKERR(srcEid);
 	CHKERR(destEid);
@@ -846,13 +847,13 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 		return 0;
 	}
 
-	if (strlen(ciphersuiteName) > 31)
+	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
 		return 0;
 	}
 
-	if (strlen(keyName) > 31)
+	if (istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid keyName", keyName);
 		return 0;
@@ -867,11 +868,25 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 	/* Don't expect a rule here already...*/
 	if (sec_findBspBabRule(srcEid, destEid, &ruleAddr, &elt) != 0)
 	{
-		writeMemoNote("[?] This rule is already defined.", destEid);
+		writeMemoNote("[?] This rule is already defined", destEid);
 		return 0;
 	}
 
 	/*	Okay to add this rule to the database.			*/
+
+	last = istrlen(srcEid, 32) - 1;
+	if (*(srcEid + last) != '~')
+	{
+		writeMemoNote("[?] Warning: this BAB rule authenticates only a \
+single sender endpoint, not all endpoints on the sending node", srcEid);
+	}
+
+	last = istrlen(destEid, 32) - 1;
+	if (*(destEid + last) != '~')
+	{
+		writeMemoNote("[?] Warning: this BAB rule authenticates only a \
+single receiver endpoint, not all endpoints on the receiving node", destEid);
+	}
 
 	sdr_begin_xn(sdr);
 	rule.securitySrcEid = sdr_string_create(sdr, srcEid);
@@ -922,7 +937,7 @@ int	sec_updateBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 		return 0;
 	}
 
-	if (strlen(ciphersuiteName) > 31)
+	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
 		return 0;
@@ -943,7 +958,7 @@ int	sec_updateBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 	/* Need to have a rule to update it. */
 	if (sec_findBspBabRule(srcEid, destEid, &ruleObj, &elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.",
+		writeMemoNote("[?] No rule defined for this endpoint",
 				destEid);
 		return 0;
 	}
@@ -987,7 +1002,7 @@ int	sec_removeBspBabRule(char *srcEid, char *destEid)
 	/* Need to have a rule to delete it. */
 	if (sec_findBspBabRule(srcEid, destEid, &ruleObj, &elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.",
+		writeMemoNote("[?] No rule defined for this endpoint",
 				destEid);
 		return 0;
 	}
@@ -1127,13 +1142,13 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 		return 0;
 	}
 
-	if (strlen(ciphersuiteName) > 31)
+	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
 		return 0;
 	}
 
-	if (strlen(keyName) > 31)
+	if (istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid keyName", keyName);
 		return 0;
@@ -1150,7 +1165,7 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	if (sec_findBspPibRule(secSrcEid, secDestEid, blockTypeNbr, &ruleObj,
 			&elt) != 0)
 	{
-		writeMemoNote("[?] This rule is already defined.", secDestEid);
+		writeMemoNote("[?] This rule is already defined", secDestEid);
 		return 0;
 	}
 
@@ -1201,13 +1216,13 @@ int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	if (strlen(ciphersuiteName) > 31)
+	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
 		return 0;
 	}
 
-	if (strlen(keyName) > 31)
+	if (istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid keyName", keyName);
 		return 0;
@@ -1223,7 +1238,7 @@ int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid,
 	if (sec_findBspPibRule(secSrcEid, secDestEid, BlockTypeNbr, &ruleObj,
 			&elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.",
+		writeMemoNote("[?] No rule defined for this endpoint",
 				secDestEid);
 		return 0;
 	}
@@ -1269,7 +1284,7 @@ int	sec_removeBspPibRule(char *secSrcEid, char *secDestEid,
 	if (sec_findBspPibRule(secSrcEid, secDestEid, BlockTypeNbr, &ruleObj,
 			&elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.",
+		writeMemoNote("[?] No rule defined for this endpoint",
 				secDestEid);
 		return 0;
 	}
