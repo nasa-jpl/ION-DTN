@@ -1,0 +1,20 @@
+# cfdprc configuration file for the loopback test.
+#	Command: % cfdpadmin loopback.cfdprc
+#
+#	Ohio University, Oct 2011
+#
+#initialize
+1
+
+#echo
+e 1
+
+#discard partially received files
+m discard 0
+
+#require CRCs on PDUs
+m requirecrc 1
+
+m segsize 100
+
+s 'bputa'
