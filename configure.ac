@@ -76,6 +76,29 @@ else
 fi
 AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
 
+
+# Find tools for compiling documentation.
+AC_PATH_PROG([PS2PDF], [ps2pdf])
+AC_PATH_PROG([PDF2PS], [pdf2ps])
+AC_PATH_PROG([PSJOIN], [psjoin])
+AC_MSG_CHECKING([for groff that suports -ms])
+AC_PATH_PROGS_FEATURE_CHECK([GROFF], [groff],
+  [echo | $ac_path_GROFF -ms - > /dev/null || break
+   AC_MSG_RESULT($ac_path_GROFF); ac_cv_path_GROFF=$ac_path_GROFF ac_path_GROFF_found=:],
+  [AC_MSG_RESULT([not found])
+   AC_MSG_WARN([try installing groff])])
+AC_SUBST([GROFF], [$ac_cv_path_GROFF])
+
+AC_MSG_CHECKING([for tools to build autodoc])
+if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFF"; then
+    AC_MSG_RESULT([found])
+    buildautodoc="yes"
+else
+    AC_MSG_RESULT([not found (skipping autodoc)])
+    AC_MSG_NOTICE([Ensure the ghostscript, psutils, groff-base and groff packages are installed.])
+fi
+AM_CONDITIONAL([ENABLE_AUTODOC], [ test "$buildautodoc" ]) 
+
 # Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
