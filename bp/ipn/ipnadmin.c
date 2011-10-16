@@ -528,6 +528,7 @@ static void	printPlan(IpnPlan *plan)
 
 static void	infoPlan(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	int	nodeNbr;
 	Object	planAddr;
 	Object	elt;
@@ -540,7 +541,9 @@ static void	infoPlan(int tokenCount, char **tokens)
 	}
 
 	nodeNbr = atoi(tokens[2]);
+	sdr_begin_xn(sdr);
 	ipn_findPlan(nodeNbr, &planAddr, &elt);
+	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
@@ -601,7 +604,9 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 	}
 
 	nodeNbr = atoi(tokens[2]);
+	sdr_begin_xn(sdr);
 	ipn_findPlan(nodeNbr, &planAddr, &elt);
+	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
@@ -628,8 +633,10 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 		sourceNodeNbr = atoi(tokens[4]);
 	}
 
+	sdr_begin_xn(sdr);
 	ipn_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
 			&ruleAddr, &elt);
+	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown rule.");
@@ -709,7 +716,9 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 
 	firstNodeNbr = atoi(tokens[2]);
 	lastNodeNbr = atoi(tokens[3]);
+	sdr_begin_xn(sdr);
 	ipn_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
+	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
@@ -736,8 +745,10 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 		sourceNodeNbr = atoi(tokens[5]);
 	}
 
+	sdr_begin_xn(sdr);
 	ipn_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
 			sourceNodeNbr, group, &ruleAddr, &elt);
+	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown rule.");
@@ -827,6 +838,7 @@ static void	listGroups()
 
 static void	executeList(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	unsigned long	nodeNbr;
 	Object		planAddr;
 	Object		elt;
@@ -853,7 +865,9 @@ static void	executeList(int tokenCount, char **tokens)
 		}
 
 		nodeNbr = atoi(tokens[2]);
+		sdr_begin_xn(sdr);
 		ipn_findPlan(nodeNbr, &planAddr, &elt);
+		sdr_exit_xn(sdr);
 		if (elt == 0)
 		{
 			printText("Unknown node.");
