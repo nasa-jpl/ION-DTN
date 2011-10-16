@@ -115,6 +115,8 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
     Object          spanObj;
     LtpSpan         span;
     LtpSpanStats    stats;
+    Object          elt2;
+    ImportSession   isession;
     
     CHKVOID(engineIdWanted > 0);
     CHKVOID(results);
@@ -130,13 +132,24 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
         if (engineIdWanted == span.engineId)
         {
             sdr_read(sdr, (char *) & stats, span.stats, sizeof(LtpSpanStats));
-            sdr_exit_xn(sdr);
 
             /* DEBUGGING AID ONLY:  Useful for showing which fields have yet to be assigned. */
             memset_IncFillPat ( (char *) results, LTPNM_SPAN_FILLPATT, sizeof(NmltpSpan) );
 
             results->remoteEngineNbr         = span.engineId;
+
+	    results->currentExportSessions   = sdr_list_length(sdr, span.exportSessions);
+	    results->currentOutboundSegments = sdr_list_length(sdr, span.segments);
+	    results->currentImportSessions   = sdr_list_length(sdr, span.importSessions);
+	    results->currentInboundSegments  = 0;
+	    for (elt2 = sdr_list_first(sdr, span.importSessions); elt2; elt2 = sdr_list_next(sdr, elt2))
+	    {
+                sdr_read(sdr, (char *) & isession, sdr_list_data(sdr, elt2), sizeof(ImportSession));
+		results->currentInboundSegments += sdr_list_length(sdr, isession.redSegments);
+	    }
         
+            sdr_exit_xn(sdr);
+
             results->lastResetTime           = stats.resetTime;
         
             results->outputSegQueuedCount    = stats.tallies[OUT_SEG_QUEUED].currentCount;

@@ -12,6 +12,24 @@
 #include "bpP.h"
 #include "bpnm.h"
 
+void    bpnm_resources(unsigned long * heapOccupancyLimit,
+		unsigned long * heapMaxOccupancyForecast,
+		unsigned long * heapOccupancy)
+{
+    Sdr     sdr = getIonsdr();
+    IonDB   db;
+
+    CHKVOID(heapOccupancyLimit);
+    CHKVOID(heapMaxOccupancyForecast);
+    CHKVOID(heapOccupancy);
+    sdr_begin_xn(sdr);
+    sdr_read(sdr, (char *) &db, getIonDbObject(), sizeof(IonDB));
+    *heapOccupancyLimit = db.occupancyCeiling;
+    *heapMaxOccupancyForecast = db.maxForecastOccupancy;
+    *heapOccupancy = db.currentOccupancy;
+    sdr_exit_xn(sdr);
+}
+
 /*	*	*	*	Utility		*	*	*	*/
 
 /*****************************************************************************/
@@ -59,6 +77,9 @@ void	bpnm_endpointNamesGet(char * nameBuffer, char * nameArray [], int * numStri
     char            computedName [BPNM_ENDPOINT_EIDSTRING_LEN];
     char          * buffPtr;
 
+    CHKVOID(nameBuffer);
+    CHKVOID(nameArray);
+    CHKVOID(numStrings);
     (* numStrings) = 0;
 
     /* The caller must supply the 2 buffers that will each return data. */
@@ -99,34 +120,25 @@ void	bpnm_endpointNamesGet(char * nameBuffer, char * nameArray [], int * numStri
 
 
 /*****************************************************************************/
-/* This routine will examine the current ION node and return the EndPoint
-   statistics for the node requested.  The calling routine should provide:
+/* This routine will examine the current ION node and return the VEndpoint
+   for the endpoint requested.  The calling routine should provide:
      1) a string containing the name of the endpoint to be found.  It is 
         assumed that this name would have been returned to the caller via a  
         previous call to the function bpnm_endpointNamesGet (above).
-     2) A buffer large enough to hold the appropriate statistics.  The data will
-        be read by this routine and returned to the caller.
+     2) A buffer large enough to hold a pointer to the VEndpoint.
      3) an integer flag indicating whether the buffer contains data when returned.
         (0 = data not updated, 1 = data has been updated
 */   
-static void getBpEndpointStats (char * targetName, EndpointStats * results, int  * success)
+static void getBpEndpoint(char * targetName, VEndpoint **vpoint, int  * success)
 {
-    Sdr             sdr = getIonsdr();
     PsmPartition    ionwm = getIonwm();
     VScheme       * vscheme;
-    VEndpoint     * vpoint;
     PsmAddress      schemeElt;
     PsmAddress      endpointElt;
     char            computedName [BPNM_ENDPOINT_EIDSTRING_LEN];
 
     * success = 0;
 
-    /* The caller must supply both a targetName and a results buffers of data. */
-    if ( (targetName == NULL) || (results == NULL) )
-    {
-        return;
-    }
-    
     for (schemeElt = sm_list_first(ionwm, (getBpVdb())->schemes); 
          schemeElt;
          schemeElt = sm_list_next(ionwm, schemeElt) )
@@ -137,18 +149,15 @@ static void getBpEndpointStats (char * targetName, EndpointStats * results, int 
              endpointElt;
              endpointElt = sm_list_next(ionwm, endpointElt))
         {
-            vpoint = (VEndpoint *) psp(ionwm, sm_list_data(ionwm, endpointElt));
+            *vpoint = (VEndpoint *) psp(ionwm, sm_list_data(ionwm, endpointElt));
 
             /* form the Scheme Name and the NSS into the Endpoint ID in the form "ipn:4.2" */
             isprintf(computedName, sizeof(computedName), BPNM_ENDPOINT_NAME_FMT_STRING, 
-                     vscheme->name, vpoint->nss);
+                     vscheme->name, (*vpoint)->nss);
                      
             /* Is the current EID string the one that you're looking for */
             if (strcmp (targetName, computedName) == 0)
             {
-                sdr_begin_xn(sdr);
-                sdr_read(sdr, (char *) results, vpoint->stats, sizeof(EndpointStats));
-                sdr_end_xn(sdr);
           
                 * success = 1;
                 return;
@@ -160,9 +169,17 @@ static void getBpEndpointStats (char * targetName, EndpointStats * results, int 
 /*****************************************************************************/
 void bpnm_endpoint_get (char * targetName, NmbpEndpoint * results, int * success)
 {
+    Sdr             sdr = getIonsdr();
+    VEndpoint     * vpoint;
+    Endpoint        endpoint;
+    Object          elt;
+    Bundle          bundle;
     EndpointStats   stats;
 
-    getBpEndpointStats (targetName, & stats, success);
+    CHKVOID(targetName);
+    CHKVOID(results);
+    CHKVOID(success);
+    getBpEndpoint(targetName, & vpoint, success);
     
     if ( (* success) != 0)
     {
@@ -172,6 +189,19 @@ void bpnm_endpoint_get (char * targetName, NmbpEndpoint * results, int * success
         /* Copy extra byte to ensure that the NULL byte gets copied. */
         memcpy (results->eid, targetName, strlen (targetName)+1 );
     
+        sdr_begin_xn(sdr);
+        sdr_read(sdr, (char *) & endpoint, sdr_list_data(sdr, vpoint->endpointElt), sizeof(Endpoint));
+	results->currentQueuedBundlesCount = sdr_list_length(sdr, endpoint.deliveryQueue);
+	results->currentQueuedBundlesBytes = 0;
+	for (elt = sdr_list_first(sdr, endpoint.deliveryQueue); elt; elt = sdr_list_next(sdr, elt))
+	{
+            sdr_read(sdr, (char *) & bundle, sdr_list_data(sdr, elt), sizeof(Bundle));
+	    results->currentQueuedBundlesBytes += bundle.payload.length;
+	}
+
+        sdr_read(sdr, (char *) & stats, endpoint.stats, sizeof(EndpointStats));
+        sdr_exit_xn(sdr);
+
         results->lastResetTime             = stats.resetTime;
 
         results->bundleEnqueuedCount       = stats.tallies[BP_ENDPOINT_QUEUED   ].currentCount;
@@ -207,6 +237,8 @@ void  bpnm_endpoint_reset (char * targetName, int * success)
     Tally         * tally;
     int             tallyLoop;
 
+    CHKVOID(targetName);
+    CHKVOID(success);
     * success = 0;
     if (targetName == NULL)     /* The caller must supply the name to be found. */
     {
@@ -279,6 +311,9 @@ void bpnm_inductNames_get (char * nameBuffer, char * nameArray [], int * numStri
     char            computedName [BPNM_INDUCT_NAME_LEN];
     char          * buffPtr;
 
+    CHKVOID(nameBuffer);
+    CHKVOID(nameArray);
+    CHKVOID(numStrings);
     (* numStrings) = 0;
 
     /* The caller must supply the 2 buffers that will each return data. */
@@ -319,33 +354,26 @@ void bpnm_inductNames_get (char * nameBuffer, char * nameArray [], int * numStri
 }   /* end of bpnm_inductNames_get */
 
 /*****************************************************************************/
-/* This routine will examine the current ION node and return the Induct
-   statistics for the node requested.  The calling routine should provide:
+/* This routine will examine the current ION node and return the VInduct
+   for the node requested.  The calling routine should provide:
      1) a string containing the name of the item to be found.  It is 
         assumed that this name would have been returned to the caller via a  
         previous call to the function bpnm_inductNames_get (above).
-     2) A buffer large enough to hold the appropriate statistics.
+     2) A buffer large enough to hold a pointer to the VInduct.
      3) an integer flag that indicates whether the buffer contains data.
         (0 = data not updated, 1 = data has been updated
 */ 
-static void getBpInductStats (char * targetName, InductStats * results, int  * success)
+static void getBpInductStats (char * targetName, VInduct ** vduct, int  * success)
 {
     Sdr             sdr = getIonsdr();
     PsmPartition    ionwm = getIonwm();
     ClProtocol      clpbuf;
     Object          protoElt;
-    VInduct       * vduct;
     PsmAddress      ductElt;
     char            computedName [BPNM_INDUCT_NAME_LEN];
 
     * success = 0;
 
-    /* The caller must supply both a targetName and a results buffers of data. */
-    if ( (targetName == NULL) || (results == NULL) )
-    {
-        return;
-    }
-    
     for (protoElt = sdr_list_first(sdr, (getBpConstants())->protocols);
          protoElt; 
          protoElt = sdr_list_next(sdr, protoElt))
@@ -356,18 +384,14 @@ static void getBpInductStats (char * targetName, InductStats * results, int  * s
              ductElt; 
              ductElt = sm_list_next(ionwm, ductElt))
         {
-            vduct = (VInduct *) psp(ionwm, sm_list_data(ionwm, ductElt));
-            if (strcmp(vduct->protocolName, clpbuf.name) == 0)
+            *vduct = (VInduct *) psp(ionwm, sm_list_data(ionwm, ductElt));
+            if (strcmp((*vduct)->protocolName, clpbuf.name) == 0)
             {
                 /* form the Induct Name in the form protocol/duct_name" */
-                isprintf(computedName, sizeof(computedName), BPNM_INDUCT_NAME_FMT_STRING, clpbuf.name, vduct->ductName);
+                isprintf(computedName, sizeof(computedName), BPNM_INDUCT_NAME_FMT_STRING, clpbuf.name, (*vduct)->ductName);
 
                 if (strcmp (targetName, computedName) == 0)
                 {
-                    sdr_begin_xn(sdr);
-                    sdr_read(sdr, (char *) results, vduct->stats, sizeof(InductStats));
-                    sdr_end_xn(sdr);
-              
                     * success = 1;
                     return;
                 }
@@ -379,9 +403,15 @@ static void getBpInductStats (char * targetName, InductStats * results, int  * s
 /*****************************************************************************/
 void bpnm_induct_get (char * targetName, NmbpInduct * results, int * success)
 {
+    Sdr             sdr = getIonsdr();
+    VInduct       * vduct;
+    Induct          duct;
     InductStats     stats;
 
-    getBpInductStats (targetName, & stats, success);
+    CHKVOID(targetName);
+    CHKVOID(results);
+    CHKVOID(success);
+    getBpInductStats (targetName, & vduct, success);
     
     if ( (* success) != 0)
     {              
@@ -391,6 +421,11 @@ void bpnm_induct_get (char * targetName, NmbpInduct * results, int * success)
         /* Copy extra byte to ensure that the NULL byte gets copied. */
         memcpy (results->inductName, targetName, strlen (targetName)+1 );
     
+        sdr_begin_xn(sdr);
+        sdr_read(sdr, (char *) & duct, sdr_list_data(sdr, vduct->inductElt), sizeof(Induct));
+        sdr_read(sdr, (char *) & stats, duct.stats, sizeof(InductStats));
+        sdr_exit_xn(sdr);
+
         results->lastResetTime          = stats.resetTime;
         
         results->bundleRecvCount        = stats.tallies[BP_INDUCT_RECEIVED   ].currentCount;
@@ -428,6 +463,8 @@ void bpnm_induct_reset (char * targetName, int * success)
     Tally         * tally;
     int             tallyLoop;
 
+    CHKVOID(targetName);
+    CHKVOID(success);
     * success = 0;
     if (targetName == NULL)     /* The caller must supply the name to be found. */
     {
@@ -500,6 +537,9 @@ void bpnm_outductNames_get (char * nameBuffer, char * nameArray [], int * numStr
     char            computedName [BPNM_OUTDUCT_NAME_LEN];
     char          * buffPtr;
 
+    CHKVOID(nameBuffer);
+    CHKVOID(nameArray);
+    CHKVOID(numStrings);
     * numStrings = 0;
 
     /* The caller must supply the 2 buffers that will each return data. */
@@ -540,33 +580,26 @@ void bpnm_outductNames_get (char * nameBuffer, char * nameArray [], int * numStr
 }   /* end of bpnm_outductNames_get */
 
 /*****************************************************************************/
-/* This routine will examine the current ION node and return the Outduct
-   statistics for the node requested.  The calling routine should provide:
+/* This routine will examine the current ION node and return the VOutduct
+   for the node requested.  The calling routine should provide:
      1) a string containing the name of the item to be found.  It is 
         assumed that this name would have been returned to the caller via a  
         previous call to the function bpnm_outductNames_get (above).
-     2) A buffer large enough to hold the appropriate statistics.
+     2) A buffer large enough to hold a pointer to the VOutduct.
      3) an integer flag that indicates whether the buffer contains data.
         (0 = data not updated, 1 = data has been updated
 */   
-static void getBpOutductStats (char * targetName, OutductStats * results, int  * success)
+static void getBpOutductStats (char * targetName, VOutduct ** vduct, int  * success)
 {
     Sdr             sdr = getIonsdr();
     PsmPartition    ionwm = getIonwm();
     ClProtocol      clpbuf;
     Object          protoElt;
-    VOutduct      * vduct;
     PsmAddress      ductElt;
     char            computedName [BPNM_OUTDUCT_NAME_LEN];
 
     * success = 0;
 
-    /* The caller must supply both a targetName and a results buffers of data. */
-    if ( (targetName == NULL) || (results == NULL) )
-    {
-        return;
-    }
-    
     for (protoElt = sdr_list_first(sdr, (getBpConstants())->protocols);
          protoElt; 
          protoElt = sdr_list_next(sdr, protoElt))
@@ -577,18 +610,14 @@ static void getBpOutductStats (char * targetName, OutductStats * results, int  *
              ductElt; 
              ductElt = sm_list_next(ionwm, ductElt))
         {
-            vduct = (VOutduct *) psp(ionwm, sm_list_data(ionwm, ductElt));
-            if (strcmp(vduct->protocolName, clpbuf.name) == 0)
+            *vduct = (VOutduct *) psp(ionwm, sm_list_data(ionwm, ductElt));
+            if (strcmp((*vduct)->protocolName, clpbuf.name) == 0)
             {
                 /* form the Induct Name in the form protocol/duct_name" */
-                isprintf(computedName, sizeof(computedName), BPNM_OUTDUCT_NAME_FMT_STRING, clpbuf.name, vduct->ductName);
+                isprintf(computedName, sizeof(computedName), BPNM_OUTDUCT_NAME_FMT_STRING, clpbuf.name, (*vduct)->ductName);
 
                 if (strcmp (targetName, computedName) == 0)
                 {
-                    sdr_begin_xn(sdr);
-                    sdr_read(sdr, (char *) results, vduct->stats, sizeof(OutductStats));
-                    sdr_end_xn(sdr);
-              
                     * success = 1;
                     return;
                 }
@@ -600,10 +629,16 @@ static void getBpOutductStats (char * targetName, OutductStats * results, int  *
 /*****************************************************************************/
 void bpnm_outduct_get (char * targetName, NmbpOutduct * results, int * success)
 {
+    Sdr             sdr = getIonsdr();
+    VOutduct      * vduct;
+    Outduct         duct;
     OutductStats    stats;
-
-    getBpOutductStats (targetName, & stats, success);
     
+    CHKVOID(targetName);
+    CHKVOID(results);
+    CHKVOID(success);
+    getBpOutductStats (targetName, & vduct, success);
+
     if ( (* success) != 0)
     {
         /* DEBUGGING AID ONLY:  Useful for showing which fields have yet to be assigned. */
@@ -611,6 +646,19 @@ void bpnm_outduct_get (char * targetName, NmbpOutduct * results, int * success)
         
         /* Copy extra byte to ensure that the NULL byte gets copied. */
         memcpy (results->outductName, targetName, strlen (targetName)+1 );
+
+        sdr_begin_xn(sdr);
+        sdr_read(sdr, (char *) & duct, sdr_list_data(sdr, vduct->outductElt), sizeof(Outduct));
+        results->currentQueuedBundlesCount =
+                sdr_list_length(sdr, duct.urgentQueue)
+                + sdr_list_length(sdr, duct.stdQueue)
+		+ sdr_list_length(sdr, duct.bulkQueue);
+        results->currentQueuedBundlesBytes =
+		(ONE_GIG * duct.urgentBacklog.gigs) + duct.urgentBacklog.units
+		+ (ONE_GIG * duct.stdBacklog.gigs) + duct.stdBacklog.units
+		+ (ONE_GIG * duct.bulkBacklog.gigs) + duct.bulkBacklog.units;
+        sdr_read(sdr, (char *) & stats, duct.stats, sizeof(OutductStats));
+        sdr_exit_xn(sdr);
 
         results->lastResetTime       = stats.resetTime;
 
@@ -644,6 +692,8 @@ void bpnm_outduct_reset (char * targetName, int * success)
     Tally         * tally;
     int             tallyLoop;
 
+    CHKVOID(targetName);
+    CHKVOID(success);
     * success = 0;
     if (targetName == NULL)     /* The caller must supply the name to be found. */
     {
@@ -698,11 +748,26 @@ void    bpnm_limbo_get(NmbpOutduct * results)
     Sdr             sdr = getIonsdr();
     Object          bpDbObject = getBpDbObject();
     BpDB            bpdb;
+    Object          elt;
+    XmitRef         xref;
+    Bundle          bundle;
     BpDbStats       dbStats;
 
     CHKVOID(results);
+    istrcpy(results->outductName, "limbo", BPNM_OUTDUCT_NAME_LEN);
     sdr_begin_xn(sdr);
     sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
+    results->currentQueuedBundlesCount = sdr_list_length(sdr, bpdb.limboQueue);
+    results->currentQueuedBundlesBytes = 0;
+    for (elt = sdr_list_first(sdr, bpdb.limboQueue); elt;
+            elt = sdr_list_next(sdr, elt))
+    {
+	    sdr_read(sdr, (char *) &xref, sdr_list_data(sdr, elt),
+                    sizeof(XmitRef));
+	    sdr_read(sdr, (char *) &bundle, xref.bundleObj, sizeof(Bundle));
+	    results->currentQueuedBundlesBytes += bundle.payload.length;
+    }
+
     results->lastResetTime = bpdb.resetTime;
     sdr_read(sdr, (char *) &dbStats, bpdb.dbStats, sizeof(BpDbStats));
     results->bundleEnqueuedCount
@@ -727,6 +792,12 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     int             i;
     Tally           *tally;
     BpCosStats      cosStats;
+    Object          elt;
+    Scheme          scheme;
+    Object          elt2;
+    Endpoint        endpoint;
+    ClProtocol      protocol;
+    Outduct         duct;
     BpRptStats      rptStats;
     BpCtStats       ctStats;
     BpDbStats       dbStats;
@@ -736,11 +807,19 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
     results->lastResetTime = bpdb.resetTime;
 
+    for (i = 0; i < 3; i++)
+    {
+        results->currentResidentCount[i] = 0;
+        results->currentResidentBytes[i] = 0;
+    }
+
     sdr_read(sdr, (char *) &cosStats, bpdb.sourceStats, sizeof(BpCosStats));
     for (i = 0, tally = cosStats.tallies; i < 3; i++, tally++)
     {
     	results->bundleSourceCount[i] = tally->currentCount;
     	results->bundleSourceBytes[i] = tally->currentBytes;
+        results->currentResidentCount[i] += tally->totalCount;
+        results->currentResidentBytes[i] += tally->totalBytes;
     }
 
     sdr_read(sdr, (char *) &cosStats, bpdb.recvStats, sizeof(BpCosStats));
@@ -748,6 +827,8 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     {
     	results->bundleRecvCount[i] = tally->currentCount;
     	results->bundleRecvBytes[i] = tally->currentBytes;
+        results->currentResidentCount[i] += tally->totalCount;
+        results->currentResidentBytes[i] += tally->totalBytes;
     }
 
     sdr_read(sdr, (char *) &cosStats, bpdb.discardStats, sizeof(BpCosStats));
@@ -755,6 +836,8 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     {
     	results->bundleDiscardCount[i] = tally->currentCount;
     	results->bundleDiscardBytes[i] = tally->currentBytes;
+        results->currentResidentCount[i] -= tally->totalCount;
+        results->currentResidentBytes[i] -= tally->totalBytes;
     }
 
     sdr_read(sdr, (char *) &cosStats, bpdb.xmitStats, sizeof(BpCosStats));
@@ -762,6 +845,46 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     {
     	results->bundleXmitCount[i] = tally->currentCount;
     	results->bundleXmitBytes[i] = tally->currentBytes;
+    }
+
+    results->currentInLimbo = sdr_list_length(sdr, bpdb.limboQueue);
+    results->currentDispatchPending = 0;
+    results->currentReassemblyPending = 0;
+    for (elt = sdr_list_first(sdr, bpdb.schemes); elt;
+            elt = sdr_list_next(sdr, elt))
+    {
+	    sdr_read(sdr, (char *) & scheme, sdr_list_data(sdr, elt),
+                    sizeof(Scheme));
+            results->currentDispatchPending
+		    += sdr_list_length(sdr, scheme.forwardQueue);
+	    for (elt2 = sdr_list_first(sdr, scheme.endpoints); elt2;
+                    elt2 = sdr_list_next(sdr, elt2))
+	    {
+	        sdr_read(sdr, (char *) & endpoint, sdr_list_data(sdr, elt),
+                        sizeof(Endpoint));
+                results->currentReassemblyPending
+		        += sdr_list_length(sdr, endpoint.incompletes);
+	    }
+    }
+
+    results->currentForwardPending = results->currentInLimbo;
+    for (elt = sdr_list_first(sdr, bpdb.protocols); elt;
+            elt = sdr_list_next(sdr, elt))
+    {
+	    sdr_read(sdr, (char *) & protocol, sdr_list_data(sdr, elt),
+                    sizeof(ClProtocol));
+	    for (elt2 = sdr_list_first(sdr, protocol.outducts); elt2;
+                    elt2 = sdr_list_next(sdr, elt2))
+	    {
+	        sdr_read(sdr, (char *) & duct, sdr_list_data(sdr, elt),
+                        sizeof(Outduct));
+                results->currentForwardPending
+		        += sdr_list_length(sdr, duct.urgentQueue);
+                results->currentForwardPending
+		        += sdr_list_length(sdr, duct.stdQueue);
+                results->currentForwardPending
+		        += sdr_list_length(sdr, duct.bulkQueue);
+	    }
     }
 
     sdr_read(sdr, (char *) &rptStats, bpdb.rptStats, sizeof(BpRptStats));
@@ -828,6 +951,16 @@ void    bpnm_disposition_get(NmbpDisposition * results)
 	    = ctStats.tallies[BP_CT_BLK_MALFORMED].currentCount;
     results->custodyBlkMalformedBytes
 	    = ctStats.tallies[BP_CT_BLK_MALFORMED].currentBytes;
+
+    results->currentInCustody
+	    = ctStats.tallies[BP_CT_CUSTODY_ACCEPTED].totalCount
+	    - (ctStats.tallies[BP_CT_CUSTODY_RELEASED].totalCount
+	    +  ctStats.tallies[BP_CT_CUSTODY_EXPIRED].totalCount);
+    results->currentNotInCustody
+	    = (results->currentResidentCount[0]
+            + results->currentResidentCount[1]
+	    + results->currentResidentCount[2])
+	    - results->currentInCustody;
 
     sdr_read(sdr, (char *) &dbStats, bpdb.dbStats, sizeof(BpDbStats));
     results->bundleQueuedForFwdCount

@@ -30,7 +30,7 @@ extern "C" {
 /*****************************************/
 typedef struct
 {
-    char            eid [BPNM_ENDPOINT_EIDSTRING_LEN];
+    char            eid[BPNM_ENDPOINT_EIDSTRING_LEN];
 
     unsigned long   currentQueuedBundlesCount;
     unsigned long   currentQueuedBundlesBytes;
@@ -76,6 +76,12 @@ typedef struct
 
 typedef struct
 {
+    unsigned long   currentResidentCount[3];
+    unsigned long   currentResidentBytes[3];
+    unsigned long   currentInLimbo;
+    unsigned long   currentDispatchPending;
+    unsigned long   currentForwardPending;
+    unsigned long   currentReassemblyPending;
     unsigned long   currentInCustody;
     unsigned long   currentNotInCustody;
 
@@ -138,7 +144,7 @@ typedef struct
 } NmbpDisposition;
 
 extern void	bpnm_resources(unsigned long * heapOccupancyLimit, 
-			unsigned long * heapMaxHeapOccupancyForecast, 
+			unsigned long * heapMaxOccupancyForecast, 
 			unsigned long * heapOccupancy);
 
 extern void	bpnm_endpointNames_get(char * nameBuffer, char * nameArray [],
