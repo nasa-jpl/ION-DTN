@@ -83,6 +83,15 @@ provided by a reliable DTN convergence layer protocol), 1 (best-effort,
 unreliable), and 2 (assured, reliable, but with reliability provided by BP
 custody transfer).  If not specified, transmission mode is 0.
 
+=item B<g> <srrflags>
+
+The B<srrflags> command.  This command establishes the BP status reporting
+that will be requested for all subsequently issued bundles containing
+CFDP PDUs.  I<srrflags> must be a status reporting flags string as defined
+for bptrace(1): a sequence of status report flags, separated by commas,
+with no embedded whitespace.  Each status report flag must be one of the
+following: rcv, ct, fwd, dlv, del.
+
 =item B<c> <criticality>
 
 The B<criticality> command.  This command establishes the criticality
