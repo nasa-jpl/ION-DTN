@@ -307,14 +307,6 @@ typedef struct
 
 typedef struct
 {
-	unsigned int	totalCount;
-	unsigned int	totalBytes;
-	unsigned int	currentCount;
-	unsigned int	currentBytes;
-} Tally;
-
-typedef struct
-{
 	time_t		resetTime;
 	Tally		tallies[LTP_SPAN_STATS];
 } LtpSpanStats;

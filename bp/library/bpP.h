@@ -163,14 +163,6 @@ typedef struct
 	char		*proxNodeEid;
 } DequeueContext;
 
-typedef struct
-{
-	unsigned int	totalCount;
-	unsigned int	totalBytes;
-	unsigned int	currentCount;
-	unsigned int	currentBytes;
-} Tally;
-
 /*	*	*	Bundle structures	*	*	*	*/
 
 /*	For non-fragmentary bundles, and for the first fragmentary
