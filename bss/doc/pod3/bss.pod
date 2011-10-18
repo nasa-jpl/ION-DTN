@@ -1,0 +1,34 @@
+=head1 NAME
+
+bss - Bundle Streaming Service library
+
+=head1 SYNOPSIS
+
+    #include "bss.h"
+
+    [see description for available functions]
+
+=head1 DESCRIPTION
+
+The BSS library supports the streaming of data over delay-tolerant
+networking bundles.  More documentation to come.
+
+=over 4
+
+=item int bssOpen(char *bssName, char *path, char *eid)
+
+Opens read-only access to a BSS database, to enable data playback only.
+
+I<bssName> identifies the specific BSS database that is to be opened.
+
+I<path> identifies the directory in which the database resides.
+
+I<eid> is ignored at this time.
+
+On any failure, returns -1.  On success, returns zero.
+
+=back
+
+=head1 SEE ALSO
+
+bp(3)

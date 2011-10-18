@@ -1,0 +1,38 @@
+=head1 NAME
+
+bssrecv - BSS reception test program
+
+=head1 SYNOPSIS
+
+B<bssrecv>
+
+=head1 DESCRIPTION
+
+B<bssrecv> uses BSS to acquire streaming data from bssStreamingApp.  More
+documentation to come.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item 0
+
+B<bssrecv> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bssStreamingApp(1), bss(3)

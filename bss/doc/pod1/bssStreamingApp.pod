@@ -1,0 +1,30 @@
+=head1 NAME
+
+bssStreamingApp - BSS transmission test program
+
+=head1 SYNOPSIS
+
+B<bssStreamingApp> I<own endpoint ID> I<destination endpoint ID> [I<class of service>]
+
+=head1 DESCRIPTION
+
+B<bssStreamingApp> uses BSS to send streaming data to bssrecv.  More
+documentation to come.
+
+I<class of service> is as specified for bptrace(1).
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bssrecv(1), bptrace(1), dgr(3)
