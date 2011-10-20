@@ -87,6 +87,13 @@ if it contains a BAB computed via the ciphersuite named by I<ciphersuite_name>
 using a key value that is identical to the current value of the key named
 I<key_name> in the local security policy database.
 
+B<NOTE>: if the security policy database contains no BAB rules at all, then
+BAB authentication is disabled; all bundles received from all neighboring
+nodes are considered authentic.  Otherwise, BAB rules B<must> be defined
+for all nodes from which bundles are to be received; all bundles received
+from any node for which no BAB rule is defined are considered inauthentic
+and are discarded.
+
 =item B<c bspbabrule> I<sender_eid_expr> I<receiver_eid_expr> I<{ '' | ciphersuite_name key_name }>
 
 The B<change bspbabrule> command.  This command changes the ciphersuite
