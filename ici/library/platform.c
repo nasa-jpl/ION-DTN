@@ -1628,6 +1628,12 @@ void	increaseScalar(Scalar *s, signed int i)
 		i = 0 - i;
 	}
 
+	while (i >= ONE_GIG)
+	{
+		i -= ONE_GIG;
+		s->gigs++;
+	}
+
 	s->units += i;
 	while (s->units >= ONE_GIG)
 	{
@@ -1642,6 +1648,12 @@ void	reduceScalar(Scalar *s, signed int i)
 	if (i < 0)
 	{
 		i = 0 - i;
+	}
+
+	while (i >= ONE_GIG)
+	{
+		i -= ONE_GIG;
+		s->gigs--;
 	}
 
 	while (i > s->units)
