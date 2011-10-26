@@ -64,6 +64,15 @@ static int	udpMamsInit(MamsInterface *tsif)
 
 	CHKERR(tsif);
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
+	if (ipAddress == 0)
+	{
+		if ((ipAddress = getAddressOfHost()) == 0)
+		{
+			putErrmsg("udpts can't get own IP address.", NULL);
+			return -1;
+		}
+	}
+
 #if AMSDEBUG
 printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
 #endif
@@ -206,7 +215,11 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	if (ipAddress == 0)
 	{
 		getNameOfHost(hostName, sizeof hostName);
-		ipAddress = getInternetAddress(hostName);
+		if ((ipAddress = getInternetAddress(hostName)) == 0)
+		{
+			putErrmsg("udpts can't get own IP address.", NULL);
+			return -1;
+		}
 	}
 	else
 	{

@@ -50,7 +50,6 @@ int	main(int argc, char *argv[])
 	ClProtocol		protocol;
 	Outflow			outflows[3];
 	int			i;
-	char			*hostName;
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
 	struct sockaddr		socketName;
@@ -137,7 +136,6 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		hostName = destDuctName;
 		parseSocketSpec(destDuctName, &portNbr, &hostNbr);
 		if (portNbr == 0)
 		{
@@ -145,10 +143,19 @@ int	main(int argc, char *argv[])
 		}
 
 		portNbr = htons(portNbr);
-		if (hostNbr == 0)
+		if (hostNbr == 0)	/*	Can't send bundle.	*/
 		{
 			writeMemoNote("[?] Can't get IP address for host",
-					hostName);
+					destDuctName);
+			sdr_begin_xn(sdr);
+			zco_destroy_reference(sdr, bundleZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO reference.", NULL);
+				sm_SemEnd(udpcloSemaphore(NULL));
+			}
+
+			continue;
 		}
 
 		hostNbr = htonl(hostNbr);

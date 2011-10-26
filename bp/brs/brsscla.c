@@ -718,13 +718,16 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 		putErrmsg("Can't get IP/port for host.", hostName);
 		return 1;
 	}
+
 	if (portNbr == 0)
 	{
 		portNbr = 80;	/*	Default to HTTP's port number.	*/
 	}
+
+	/*	hostNbr == 0 (INADDR_ANY) is okay for BRS server.	*/
+
 	portNbr = htons(portNbr);
 	hostNbr = htonl(hostNbr);
-
 	atp.vduct = vinduct;
 	memset((char *) &(atp.socketName), 0, sizeof(struct sockaddr));
 	atp.inetName = (struct sockaddr_in *) &(atp.socketName);

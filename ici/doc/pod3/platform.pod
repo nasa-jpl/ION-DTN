@@ -218,7 +218,8 @@ return values, see creat(2) and open(2).
 
 =item unsigned int getInternetAddress(char *hostName)
 
-Returns the host number of the indicated host machine.
+Returns the IP address of the indicated host machine, or zero if the
+address cannot be determined.
 
 =item char *getInternetHostName(unsigned int hostNbr, char *buffer)
 
@@ -231,6 +232,11 @@ should be (MAXHOSTNAMELEN + 1).
 Writes the first (I<bufferLength> - 1) characters of the
 host name of the local machine into I<buffer>.  Returns 0 on success, -1 on
 any error.
+
+=item unsigned int getAddressOfHost()
+
+Returns the IP address for the host name of the local machine, or 0 on any
+error.
 
 =item void parseSocketSpec(char *socketSpec, unsigned short *portNbr, unsigned int *hostNbr)
 

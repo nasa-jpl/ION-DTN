@@ -454,6 +454,7 @@ extern unsigned long		getClockResolution();	/*	usec	*/
 extern unsigned int		getInternetAddress(char *);
 extern char *			getInternetHostName(unsigned int, char *);
 extern int			getNameOfHost(char *, int);
+extern unsigned int		getAddressOfHost();
 extern char *			getNameOfUser(char *);
 extern int			reUseAddress(int);
 extern int			watchSocket(int);

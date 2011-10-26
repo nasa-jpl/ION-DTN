@@ -31,7 +31,6 @@ static int	dgrComputeCsepName(char *endpointSpec, char *endpointName)
 {
 	unsigned short	portNbr;
 	unsigned int	ipAddress;
-	char		ownHostName[MAXHOSTNAMELEN + 1];
 
 	CHKERR(endpointName);
 	parseSocketSpec(endpointSpec, &portNbr, &ipAddress);
@@ -42,8 +41,7 @@ static int	dgrComputeCsepName(char *endpointSpec, char *endpointName)
 
 	if (ipAddress == 0)		/*	Default to local host.	*/
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		ipAddress = getInternetAddress(ownHostName);
+		ipAddress = getAddressOfHost();
 	}
 
 	isprintf(endpointName, MAX_EP_NAME + 1, "%u:%hu", ipAddress, portNbr);
@@ -61,6 +59,15 @@ static int	dgrMamsInit(MamsInterface *tsif)
 
 	CHKERR(tsif);
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
+	if (ipAddress == 0)
+	{
+		if ((ipAddress = getAddressOfHost()) == 0)
+		{
+			putErrmsg("dgrts can't get own IP address.", NULL);
+			return -1;
+		}
+	}
+
 #if AMSDEBUG
 printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
 #endif
@@ -167,6 +174,15 @@ static int	dgrAmsInit(AmsInterface *tsif, char *epspec)
 	}
 
 	parseSocketSpec(epspec, &portNbr, &ipAddress);
+	if (ipAddress == 0)
+	{
+		if ((ipAddress = getAddressOfHost()) == 0)
+		{
+			putErrmsg("dgrts can't get own IP address.", NULL);
+			return -1;
+		}
+	}
+
 	if (dgr_open(sm_TaskIdSelf(), DGRTS_CLIENT_SVC_ID, portNbr, ipAddress,
 			memmgr_name(getIonMemoryMgr()), &dgrSap, &rc) < 0)
 	{
