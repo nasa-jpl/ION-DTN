@@ -1737,7 +1737,7 @@ void	scalarToSdnv(Sdnv *sdnv, Scalar *scalar)
 	unsigned char	flag = 0;
 	unsigned char	*cursor;
 
-	CHKVOID(scalar);
+	CHKVOID(scalarIsValid(scalar));
 	CHKVOID(sdnv);
 	sdnv->length = 0;
 
