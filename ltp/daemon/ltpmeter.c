@@ -91,20 +91,20 @@ int	main(int argc, char *argv[])
 	while (1)
 	{
 		/*	First wait until block aggregation buffer for
-		 *	this span is full.				*/
+		 *	this span is closed.				*/
 
 		if (span.lengthOfBufferedBlock < span.aggrSizeLimit)
 		{
 			sdr_exit_xn(sdr);
-			if (sm_SemTake(vspan->bufFullSemaphore) < 0)
+			if (sm_SemTake(vspan->bufClosedSemaphore) < 0)
 			{
-				putErrmsg("Can't take bufFullSemaphore.",
+				putErrmsg("Can't take bufClosedSemaphore.",
 						itoa(remoteEngineId));
 				returnCode = 1;
 				break;		/*	Outer loop.	*/
 			}
 
-			if (sm_SemEnded(vspan->bufFullSemaphore))
+			if (sm_SemEnded(vspan->bufClosedSemaphore))
 			{
 				isprintf(memo, sizeof memo, "[i] LTP meter to \
 engine %lu is stopped.", remoteEngineId);
@@ -198,32 +198,6 @@ engine %lu is stopped.", remoteEngineId);
 			break;			/*	Outer loop.	*/
 		}
 
-		/*	Wait until window opens enabling start of next
-		 *	session.					*/
-
-		while (sdr_list_length(sdr, span.exportSessions)
-				>= span.maxExportSessions)
-		{
-			if (sm_SemTake(vdb->sessionSemaphore) < 0)
-			{
-				putErrmsg("Can't take sessionSemaphore.", NULL);
-				returnCode = 1;
-				break;		/*	Inner loop.	*/
-			}
-
-			if (sm_SemEnded(vdb->sessionSemaphore))
-			{
-				writeMemo("[i] ltpmeter has been stopped.");
-				returnCode = 2;
-				break;		/*	Inner loop.	*/
-			}
-		}
-
-		if (returnCode != 0)
-		{
-			break;			/*	Outer loop.	*/
-		}
-
 		/*	Start an export session for the next block.	*/
 
 		if (startExportSession(sdr, spanObj, vspan) < 0)
@@ -239,7 +213,7 @@ engine %lu is stopped.", remoteEngineId);
 		sm_TaskYield();
 
 		/*	Now start next cycle of main loop, waiting
-		 *	for the new session's buffer to be filled.	*/
+		 *	for the new session's buffer to be closed.	*/
 
 		sdr_begin_xn(sdr);
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
