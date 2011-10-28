@@ -1656,7 +1656,7 @@ doc/appendix-a-contents.txt: $(mans_as_ps)
 	@echo ".br" >> $@
 
 doc/appendix-a-contents.ps: doc/appendix-a-contents.txt
-	$(GROFFMS) -ms $^ > $@
+	$(GROFF) -ms $^ > $@
 
 doc/ION-manpages.ps: doc/appendix-a-contents.ps $(mans_as_ps_sorted) 
 	$(PSJOIN) $^ > $@
