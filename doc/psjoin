@@ -1,0 +1,209 @@
+#!/usr/bin/perl
+#
+# psjoin - concatenate PostScript files
+#
+# version 0.2, 2002-07-18
+# version 0.3, 2003-11-30
+#
+# by Tom Sato <VEF00200@nifty.ne.jp>, http://homepage3.nifty.com/tsato/
+#  License: Public Domain
+
+$force_even = 0;
+$force_save = 0;
+$dont_strip = 0;
+$save = "save %psjoin\n";
+$restore = "restore %psjoin\n";
+while ($ARGV[0] =~ /^-[a-z]/i) {
+    if ($ARGV[0] eq "-a") {
+	$force_even = 1;
+	shift;
+    } elsif ($ARGV[0] eq "-s") {
+	$force_save = 1;
+	$save = "/#psjoin-save# save def %psjoin\n";
+	$restore = "#psjoin-save# restore %psjoin\n";
+	shift;
+    } elsif ($ARGV[0] eq "-p") {
+	$dont_strip = 1;
+	shift;
+    } elsif ($ARGV[0] eq "-h") {
+	print STDERR "psjoin - concatenate PostScript files (version 0.3)\n";
+	print STDERR "by Tom Sato <VEF00200\@nifty.ne.jp>,";
+	print STDERR " http://member.nifty.ne.jp/tsato/\n\n";
+	print STDERR "Usage: psjoin [ options... ] filenames...\n\n";
+	print STDERR "Option:\n";
+	print STDERR "  -a: align first page of each documents to odd page\n";
+	print STDERR "  -s: try to close unclosed save operators\n";
+	print STDERR "  -p: not strip prolog/trailer of the input files\n";
+	print STDERR "  -h: display this\n";
+	exit 0;
+    } else {
+	print STDERR "$0: unknown option: $ARGV[0]\n";
+	print STDERR "(\"$0 -h\" for short description)\n";
+	exit 2;
+    }
+}
+shift if $ARGV[0] eq "--";
+
+if ($dont_strip) {
+    $prolog_inx = 9999;
+    $prolog[$prolog_inx] = "% [ psjoin: don't strip ]\n";
+    $trailer[$prolog_inx] = "% [ psjoin: don't strip ]\n";
+} else {
+    for ($i = 0; $i <= $#ARGV; $i++) {
+	open(IN, $ARGV[$i]) || die "$0: can't open \"$ARGV[$i]\" ($!)";
+
+	$in_comment = 1;
+	$in_prolog = 1;
+	$in_trailer = 0;
+	$comments[$i] = "";
+	$prolog[$i] = "";
+	$trailer[$i] = "";
+	$pages[$i] = 0;
+	while (<IN>) {
+	    next if /^%%BeginDocument/ .. /^%%EndDocument/;
+
+	    if ($in_comment) {
+		next if /^%!PS-Adobe-/; 
+		next if /^%%Title/;
+		next if /^%%Pages/;
+		next if /^%%Creator/;
+		$in_comment = 0 if /^%%EndComments/;
+		$comments[$i] .= $_;
+		next;
+	    } elsif ($in_prolog) {
+		if (/^%%Page:/) {
+		    $in_prolog = 0;
+		} else {
+		    $prolog[$i] .= $_;
+		    next;
+		}
+	    }
+
+	    $in_trailer = 1 if /^%%Trailer/;
+	    if ($in_trailer) {
+		$trailer[$i] .= $_;
+		next;
+	    }
+
+	    $pages[$i]++ if /^%%Page:/;
+	}
+	close(IN);
+
+	if ($prolog[$i]) {
+	    for ($j = 0; $j < $i; $j++) {
+		if ($prolog[$j] eq $prolog[$i]) {
+		    $pages[$j] += $pages[$i];
+		    break;
+		}
+	    }
+	}
+    }
+
+    $largest = 0;
+    $prolog_inx = 0;
+    for ($i = 0; $i <= $#ARGV; $i++) {
+	$size = length($prolog[$i]) * $pages[$i];
+	if ($largest < $size) {
+	    $largest = $size;
+	    $prolog_inx = $i;
+	}
+    }
+}
+
+print "%!PS-Adobe-3.0\n";
+print "%%Title: @ARGV\n";
+print "%%Creator: psjoin 0.2\n";
+print "%%Pages: (atend)\n";
+print $comments[$prolog_inx];
+
+print "\n";
+print $prolog[$prolog_inx];
+for ($i = 0; $i <= $#ARGV; $i++) {
+    $prolog[$i] =~ s/^%%/% %%/;
+    $prolog[$i] =~ s/\n%%/\n% %%/g;
+    $trailer[$i] =~ s/^%%/% %%/;
+    $trailer[$i] =~ s/\n%%/\n% %%/g;
+}
+
+$total_pages = 0;
+for ($i = 0; $i <= $#ARGV; $i++) {
+    print "\n";
+    print "% [ psjoin: file = $ARGV[$i] ]\n";
+    if ($prolog[$i] ne $prolog[$prolog_inx]) {
+        print "% [ psjoin: Prolog/Trailer will be inserted to every page ]\n";
+    } else {
+        print "% [ psjoin: common Prolog/Trailer will be used ]\n";
+    }
+
+    $in_comment = 1 if !$dont_strip;
+    $in_prolog = 1 if !$dont_strip;
+    $in_trailer = 0;
+    $saved = 0;
+    $pages = 0;
+
+    open(IN, $ARGV[$i]) || die "$0: can't open \"$ARGV[$i]\" ($!)";
+    while (<IN>) {
+        if (/^%%BeginDocument/ .. /^%%EndDocument/) {
+            # s/^(%[%!])/% \1/;
+            print $_;
+        } else {
+            if ($in_comment) {
+                $in_comment = 0 if /^%%EndComments/;
+            } elsif ($in_prolog) {
+                if (/^%%Page:/) {
+                    $in_prolog = 0;
+                } else {
+                    next;
+                }
+            }
+            $in_trailer = 1 if !$dont_strip && /^%%Trailer/;
+            next if $in_trailer;
+
+            if (/^%%Page:/) {
+                if ($saved) {
+                    print $trailer[$i];
+		    print $restore;
+                    $saved = 0;
+                }
+
+                $pages++;
+                $total_pages++;
+                print "\n";
+                print "%%Page: ($i-$pages) $total_pages\n";
+                if ($prolog[$i] ne $prolog[$prolog_inx]) {
+		    print $save;
+                    print $prolog[$i];
+                    $saved = 1;
+                } elsif ($force_save) {
+		    print $save;
+		}
+            } else {
+                s/^(%[%!])/% \1/;
+                print $_;
+            }
+        }
+    }
+    close(IN);
+
+    if ($force_even && $pages % 2 != 0) {
+	$pages++;
+	$total_pages++;
+	print "\n";
+	print "%%Page: ($i-E) $total_pages\n";
+	print "% [ psjoin: empty page inserted to force even pages ]\n";
+	print "showpage\n";
+    }
+
+    if ($saved) {
+        print $trailer[$i];
+        print $restore;
+    } elsif ($force_save) {
+        print $restore;
+    }
+}
+
+print "\n";
+print "%%Trailer\n";
+print $trailer[$prolog_inx];
+print "%%Pages: $total_pages\n";
+print "%%EOF\n";
