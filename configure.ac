@@ -57,7 +57,42 @@ AC_CHECK_LIB(
 #
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
 #
-AC_CHECK_HEADERS(valgrind/valgrind.h)
+AC_ARG_ENABLE([valgrind], AC_HELP_STRING([--disable-valgrind],[Do not enable valgrind debugging [default=check]]),
+              [ ], [ enable_valgrind=check ])
+
+if test "x$enable_valgrind" != xno; then
+  AC_CHECK_HEADER(valgrind/valgrind.h, 
+                  [AC_DEFINE([HAVE_VALGRIND_VALGRIND_H], [1], [enable valgrind macros])
+                   valgrind_present=yes],
+                  [valgrind_present=no])
+
+  if test "x$enable_valgrind" == xyes && test "x$valgrind_present" == xno; then
+    # User specifically requested valgrind but we can't find it.
+    AC_MSG_ERROR([valgrind/valgrind.h not found but --enable-valgrind requested])
+  fi
+
+  if test "x$valgrind_present" == xyes; then
+    # Valgrind < 3.6.1-1 (Debian/Ubuntu) and gcc >= 4.6 triggers "unused-but-set-variable"
+    # warnings in the valgrind macros.  This version is present in debian unstable
+    # 10/11, and Ubuntu 11.10.
+    AC_MSG_CHECKING([if valgrind is compatible with -Wunused-but-set])
+    ORIGCFLAGS=$CFLAGS
+    CFLAGS="$CFLAGS -Wall -Werror"
+    AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM([[#include <valgrind/valgrind.h>]],
+                     [[VALGRIND_MALLOCLIKE_BLOCK(1, 100, 0, 1);
+                       VALGRIND_FREELIKE_BLOCK(1, 0);]])],
+    [AC_MSG_RESULT([yes]); valgrind_wunused_but_set_compat=yes],
+    [AC_MSG_RESULT([no]); valgrind_wunused_but_set_compat=no])
+    CFLAGS="$ORIGCFLAGS"
+
+    # If not compatible with -Wset-but-not-used, then disable this warning.
+    if test "x$valgrind_wunused_but_set_compat" == "xno"; then
+      AC_MSG_NOTICE([adding -Wno-unused-but-set-variable to VALGRIND_COMPAT_CFLAGS])
+      AC_SUBST([VALGRIND_COMPAT_CFLAGS], [-Wno-unused-but-set-variable])
+    fi
+  fi
+fi
 
 
 # Dynamically choose whether or not to instrument code for gcov code coverage
