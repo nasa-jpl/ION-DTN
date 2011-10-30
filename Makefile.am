@@ -1595,6 +1595,83 @@ tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline
 tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
+##########################
+#
+# AUTODOC SECTION
+#
+##########################
+
+if ENABLE_AUTODOC
+
+ION.pdf: doc/ION-beginning.ps doc/ION-manpages.ps
+	$(PSJOIN) $^ | $(PS2PDF) - $@
+
+# The targets in man_MANS that are actually manpages (and not phony targets
+# for making directories, etc.)
+justmans := $(filter %.1 %.3 %.5,$(man_MANS))
+
+mans_as_ps := $(patsubst %,%.ps,$(justmans))
+mans_1_as_ps := $(sort $(filter %.1.ps,$(mans_as_ps)))
+mans_3_as_ps := $(sort $(filter %.3.ps,$(mans_as_ps)))
+mans_5_as_ps := $(sort $(filter %.5.ps,$(mans_as_ps)))
+mans_as_ps_sorted := $(mans_1_as_ps) $(mans_3_as_ps) $(mans_5_as_ps)
+
+
+%.1.ps: %.1
+	man -l -Tps $^ > $@
+
+%.3.ps: %.3
+	man -l -Tps $^ > $@
+
+%.5.ps: %.5
+	man -l -Tps $^ > $@
+
+doc/appendix-a-contents.txt: $(mans_as_ps)
+	@rm -f $@
+	@echo ".tl 'Appendix A: ION Manpages''$$(hg id)" >> $@
+	@echo "" >> $@
+	@echo ".2C" >> $@
+	@echo ".ps 10" >> $@
+	@echo ".nf" >> $@
+	@echo ".ps 14" >> $@
+	@echo ".pvs +3p" >> $@
+	@echo "\fBExecutables (man section 1)\fP" >> $@
+	@echo ".pvs" >> $@
+	@echo ".ps 10" >> $@
+	@echo $(strip $(mans_1_as_ps)) | sed -e 's/ /\n/g' | sed -e 's/.*\///' -e 's/\.[0-9]\.ps//' >> $@
+	@echo ".ps 14" >> $@
+	@echo ".vs +10p" >> $@
+	@echo ".sp 0.1i" >> $@
+	@echo "\fBLibraries (man section 3)\fP" >> $@
+	@echo ".vs" >> $@
+	@echo ".ps 10" >> $@
+	@echo $(strip $(mans_3_as_ps)) | sed -e 's/ /\n/g' | sed -e 's/.*\///' -e 's/\.[0-9]\.ps//' >> $@
+	@echo ".ps 14" >> $@
+	@echo ".vs +10p" >> $@
+	@echo ".sp 0.1i" >> $@
+	@echo "\fBConfiguration files (man section 5)\fP" >> $@
+	@echo ".vs" >> $@
+	@echo ".ps 10" >> $@
+	@echo $(strip $(mans_5_as_ps)) | sed -e 's/ /\n/g' | sed -e 's/.*\///' -e 's/\.[0-9]\.ps//' >> $@
+	@echo ".br" >> $@
+
+doc/appendix-a-contents.ps: doc/appendix-a-contents.txt
+	$(GROFFMS) -ms $^ > $@
+
+doc/ION-manpages.ps: doc/appendix-a-contents.ps $(mans_as_ps_sorted) 
+	$(PSJOIN) $^ > $@
+
+doc/ION-beginning.ps: doc/ION-beginning.pdf
+	$(PDF2PS) $^ $@
+
+else
+
+ION.pdf: doc/ION-beginning.pdf
+	@echo "ION.pdf will not have appendix."
+	cp $^ $@
+
+endif #ENABLE_AUTODOC
+
 
 ##########################
 #

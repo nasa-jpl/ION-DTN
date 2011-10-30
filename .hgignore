@@ -112,6 +112,16 @@ udplso
 .*/doc/.*\.3
 .*/doc/.*\.5
 
+# Compiled documentation
+.*/doc/.*\.1.ps
+.*/doc/.*\.3.ps
+.*/doc/.*\.5.ps
+ION.pdf
+doc/ION-beginning.ps
+doc/ION-manpages.ps
+doc/appendix-a-contents.ps
+doc/appendix-a-contents.txt
+
 
 # Test output
 ion.log
