@@ -19,6 +19,12 @@ AM_CFLAGS = \
 	-I$(srcdir)/cfdp/include
 #	-I$(srcdir)/icix/include
 
+# This will add CFLAGS to make the valgrind macros compile without
+# warnings/errors on some systems with specific versions of valgrind
+# and gcc (see configure.ac and issue #298 for details).  If valgrind
+# support is not present, this variable is empty.
+AM_CFLAGS += $(VALGRIND_COMPAT_CFLAGS)
+
 # don't use AM_LDFLAGS because autoconf sets it INCORRECTLY and it will
 # segfault anything using libraries... which is everything.
 #AM_LDFLAGS = $(ION_LINK_FLAGS) 
