@@ -140,7 +140,7 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 			sdr_write(sdr, obj, (char *) &span, sizeof(LtpSpan));
 			if (span.ageOfBufferedBlock >= span.aggrTimeLimit)
 			{
-				sm_SemGive(vspan->bufFullSemaphore);
+				sm_SemGive(vspan->bufClosedSemaphore);
 			}
 		}
 

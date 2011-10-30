@@ -92,11 +92,7 @@ Redundant initiation of B<ltpmeter>.
 
 An unrecoverable database error was encountered.  B<ltpmeter> terminates.
 
-=item Can't take sessionSemaphore.
-
-An unrecoverable database error was encountered.  B<ltpmeter> terminates.
-
-=item Can't take bufFullSemaphore.
+=item Can't take bufClosedSemaphore.
 
 An unrecoverable database error was encountered.  B<ltpmeter> terminates.
 
