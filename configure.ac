@@ -81,16 +81,26 @@ AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
 AC_PATH_PROG([PS2PDF], [ps2pdf])
 AC_PATH_PROG([PDF2PS], [pdf2ps])
 AC_PATH_PROG([PSJOIN], [psjoin])
-AC_MSG_CHECKING([for groff that suports -ms])
-AC_PATH_PROGS_FEATURE_CHECK([GROFF], [groff],
-  [echo | $ac_path_GROFF -ms - > /dev/null || break
-   AC_MSG_RESULT($ac_path_GROFF); ac_cv_path_GROFF=$ac_path_GROFF ac_path_GROFF_found=:],
-  [AC_MSG_RESULT([not found])
-   AC_MSG_WARN([try installing groff])])
-AC_SUBST([GROFF], [$ac_cv_path_GROFF])
+AC_MSG_CHECKING([for fallback included psjoin])
+if test -x "$PWD/doc/psjoin"; then
+    PSJOIN="$PWD/doc/psjoin"
+    AC_MSG_RESULT($PSJOIN)
+else
+    AC_MSG_RESULT([not found])
+fi
+AC_PATH_PROG([GROFF], [groff])
+AC_MSG_CHECKING([if groff suports -ms])
+if test "$GROFF" && echo | $GROFF -ms - >/dev/null 2>/dev/null; then
+    AC_MSG_RESULT($GROFF)
+    GROFFMS="$GROFF"
+else
+    AC_MSG_RESULT([not found])
+    AC_MSG_NOTICE([try installing groff and the ms plugin])
+fi
+AC_SUBST([GROFFMS], $GROFFMS)
 
 AC_MSG_CHECKING([for tools to build autodoc])
-if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFF"; then
+if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS"; then
     AC_MSG_RESULT([found])
     buildautodoc="yes"
 else
