@@ -633,8 +633,8 @@ static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
 			continue;
 		}
 
-		if (rule->srcServiceNbr > sourceServiceNbr
-			&& rule->srcServiceNbr != IPN_ALL_OTHERS)
+		if (rule->srcNodeNbr > sourceNodeNbr
+			&& rule->srcNodeNbr != IPN_ALL_OTHERS)
 		{
 			continue;
 		}
