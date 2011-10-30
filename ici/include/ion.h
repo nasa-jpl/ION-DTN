@@ -21,8 +21,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2011-10-03 the open channel release version number is this: */
-#define IONVERSIONNUMBER "2.5.1"
+/* As of 2011-10-30 the open channel release version number is this: */
+#define IONVERSIONNUMBER "2.5.2"
 #endif
 
 /* Allow the compile option -D to override this in the future */
