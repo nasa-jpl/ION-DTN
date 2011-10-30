@@ -1216,7 +1216,7 @@ bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #
 ##########################
 
-amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams
+amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -DUDPTS -DTCPTS -DDGRTS
 
 amsbin = \
 	amsd \
