@@ -1,0 +1,51 @@
+# bprc configuration file for the loopback test.
+#	Command: % bpadmin loopback.bprc
+#	This command should be run AFTER ionadmin and ltpadmin and 
+#	BEFORE ipnadmin or dtnadmin.
+#
+#	Ohio University, Oct 2011
+
+# Initialization command (command 1).
+1 
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:1.1 and ipn:1.2 on the local node.
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+#	Note that the custodian endpoint ipn:1.0 is automatically generated.
+a endpoint ipn:1.1 x
+a endpoint ipn:1.2 x
+a endpoint ipn:1.64 x
+a endpoint ipn:1.65 x
+
+# Add a protocol. 
+#	Add the protocol named ltp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, udp on ethernet) for payload, and 100 bytes for overhead.
+a protocol ltp 1400 100
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the ltp protocol.
+#	The duct's name is 1 (this is for future changing/deletion of the
+#	induct).
+#	The induct itself is implemented by the 'ltpcli' command.
+a induct ltp 1 ltpcli
+
+# Add an outduct. (send to yourself)
+#	Add an outduct to send bundles using the ltp protocol.
+#	The duct's name is 1 (this is for future changing/deletion of the
+#	outduct).
+#	The outduct itself is implemented by the 'ltpclo' command.
+a outduct ltp 1 ltpclo
+
+# Start the daemons
+s
