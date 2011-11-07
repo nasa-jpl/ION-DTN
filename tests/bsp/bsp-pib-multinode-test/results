@@ -1,0 +1,766 @@
+Cleaning up old ION...
+Sending TERM to amsbenchr lt-amsbenchr 	amsbenchs lt-amsbenchs 	amsd lt-amsd 	amshello lt-amshello 	amslog lt-amslog 	amslogport lt-amslogport 	amsshell lt-amsshell 	bpadmin lt-bpadmin 	bpchat lt-bpchat 	bpclock lt-bpclock 	bpcounter lt-bpcounter 	bpdriver lt-bpdriver 	bpecho lt-bpecho 	bping lt-bping 	bprecvfile lt-bprecvfile 	bpsendfile lt-bpsendfile 	bpsink lt-bpsink 	bpsource lt-bpsource 	bpstats lt-bpstats 	bpstats2 lt-bpstats2 	bptrace lt-bptrace 	brsccla lt-brsccla 	brsscla lt-brsscla 	bputa lt-bputa 	cfdpadmin lt-cfdpadmin 	cfdpclock lt-cfdpclock 	cfdptest lt-cfdptest 	dgr2file lt-dgr2file 	dgrcla lt-dgrcla 	dtn2admin lt-dtn2admin 	dtn2adminep lt-dtn2adminep 	dtn2fw lt-dtn2fw 	file2dgr lt-file2dgr 	file2sdr lt-file2sdr 	file2sm lt-file2sm 	file2tcp lt-file2tcp 	file2udp lt-file2udp 	ionadmin lt-ionadmin 	ipnadmin lt-ipnadmin 	ipnadminep lt-ipnadminep 	ipnfw lt-ipnfw 	lgagent lt-lgagent 	lgsend lt-lgsend 	ltpadmin lt-ltpadmin 	ltpcli lt-ltpcli 	ltpclo lt-ltpclo 	ltpclock lt-ltpclock 	ltpcounter lt-ltpcounter 	ltpdriver lt-ltpdriver 	ltpmeter lt-ltpmeter 	owltsim lt-owltsim 	owlttb lt-owlttb 	psmshell lt-psmshell 	psmwatch lt-psmwatch 	ramstest lt-ramstest 	rfxclock lt-rfxclock 	sdr2file lt-sdr2file 	sdrmend lt-sdrmend 	sdrwatch lt-sdrwatch 	sm2file lt-sm2file 	smlistsh lt-smlistsh 	tcpcli lt-tcpcli 	tcpclo lt-tcpclo 	stcpcli lt-stcpcli 	stcpclo lt-stcpclo 	tcp2file lt-tcp2file 	udpcli lt-udpcli 	udpclo lt-udpclo 	udplsi lt-udplsi 	udplso lt-udplso 	udp2file lt-udp2file 	...
+Sending KILL to the processes...
+Checking if all processes ended...
+Deleting shared memory to remove SDR...
+Killm completed.
+Starting ION...
+[i] admin pgm using SDR parm overrides from amroc.ionconfig.
+wmKey:           66236
+wmSize:          2000000
+wmAddress:       0
+sdrName:        'ion2'
+configFlags:     1
+heapWords:       100000
+heapKey:         -1
+pathName:       '/usr/ion'
+Stopping ionadmin.
+[i] admin pgm using SDR parm overrides from amroc.ionconfig.
+wmKey:           66336
+wmSize:          2000000
+wmAddress:       0
+sdrName:        'ion3'
+configFlags:     1
+heapWords:       100000
+heapKey:         -1
+pathName:       '/usr/ion'
+Stopping ionadmin.
+[i] admin pgm using SDR parm overrides from amroc.ionconfig.
+wmKey:           66436
+wmSize:          2000000
+wmAddress:       0
+sdrName:        'ion4'
+configFlags:     1
+heapWords:       100000
+heapKey:         -1
+pathName:       '/usr/ion'
+Stopping ionadmin.
+Stopping ionadmin.
+Stopping ionadmin.
+Stopping ionadmin.
+Stopping ionsecadmin.
+Stopping ionsecadmin.
+Stopping ionsecadmin.
+Stopping ltpadmin.
+Stopping ltpadmin.
+Stopping ltpadmin.
+Stopping ipnadmin.
+Stopping bpadmin.
+Stopping ipnadmin.
+Stopping bpadmin.
+Stopping ipnadmin.
+Stopping bpadmin.
+Stopping cfdpadmin.
+Stopping cfdpadmin.
+Stopping cfdpadmin.
+
+
+***2 node Tests***
+------------------
+Starting bpsink on node 3...
+
+
+
+*****TEST 1*****
+Sending Bundle (no-PIB) to ipn:3.1, should be delivered...
++ bsp_pibOffer(bfde4ca4, bfde4b64)
+- bsp_pibOffer -> 0
+abw+ bsp_pibOffer(bfd8b464, bfd8b324)
+- bsp_pibOffer -> 0
+a+ bsp_pibProcessOnDequeue(bfcfb734, bfcfb7dc, bfcfb91c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfcfb6d0)
+- bsp_pibRelease( )
+cbd+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cdefefgsgstgtsy+ bsp_pibOffer(b759fd74, b759fc34)
+- bsp_pibOffer -> 0
+azghbyzgssh+ bsp_pibProcessOnDequeue(bffc7164, bffc720c, bffc734c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bffc7100)
+- bsp_pibRelease( )
+cb+ bsp_pibOffer(b767f024, b767eee4)
+- bsp_pibOffer -> 0
+adgsb+ bsp_pibProcessOnDequeue(bffc7164, bffc720c, bffc734c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bffc7100)
+- bsp_pibRelease( )
+cd+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cdefgstgshgyzyzsmefgstyzgshgs/home/brownrp1/Projects/dtn/ion-2.4.0/tests/bsp/bsp-pib-multinode-test
+SUCCESS (test 1)
+
+
+
+
+
+*****TEST 2*****
+Deliver payload with PIB (should receive)
+: : : Stopping ionsecadmin.
+: : : Stopping ionsecadmin.
++ bsp_pibOffer(bfcd31a4, bfcd3064)
+- bsp_pibOffer -> 0
+abw+ bsp_pibOffer(bfd8b464, bfd8b324)
+- bsp_pibOffer -> 0
+ab+ bsp_pibProcessOnDequeue(bfcfb734, bfcfb7dc, bfcfb91c)
++ bsp_pibGetSecResult(0x61288, 12, ^!ükÌ£ÒSØ·’­QOå€ 20, 0xbfcfb6b0)
+i bsp_pibGetSecResult: context length is 32
+i bsp_pibGetSecResult: size is 12
+i bsp_pibGetSecResult: Key value is ^!ükÌ£ÒSØ·’­QOå€ and key length is 20
+i bsp_pibGetSecResult: allocated hash data.
+Result Byte 0 is 0x5e
+Result Byte 1 is 0x21
+Result Byte 2 is 0x11
+Result Byte 3 is 0xfc
+Result Byte 4 is 0x17
+Result Byte 5 is 0x6b
+Result Byte 6 is 0xcc
+Result Byte 7 is 0xa3
+Result Byte 8 is 0xd2
+Result Byte 9 is 0xc
+Result Byte 10 is 0x53
+Result Byte 11 is 0xd8
+Result Byte 12 is 0xb7
+Result Byte 13 is 0x92
+Result Byte 14 is 0xad
+Result Byte 15 is 0x51
+Result Byte 16 is 0x4f
+Result Byte 17 is 0x1f
+Result Byte 18 is 0xe5
+Result Byte 19 is 0x80
+Result Byte 20 is 0x0
+Result Byte 21 is 0x0
+Result Byte 22 is 0x0
+Result Byte 23 is 0x0
+Result Byte 24 is 0x0
+Result Byte 25 is 0x0
+Result Byte 26 is 0x0
+Result Byte 27 is 0x0
+Result Byte 28 is 0x0
+Result Byte 29 is 0x0
+Result Byte 30 is 0x0
+Result Byte 31 is 0x0
+- bsp_pibGetSecResult(b6b83f84)
+- bsp_pibProcessOnDequeue(0)
+c+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cddefefgsgstg+ bsp_pibAcquire(b6b55ea4, b6c3b6d0)
+i bsp_pibAcquire: Deserialize result 1
+- bsp_pibAcquire -> 1
++ bsp_pibCheck(b6b55ea4, b6c3b6d0)
++ bsp_pibGetSecResult(0x5e648, 12, ^!ükÌ£ÒSØ·’­QOå€ÿÿÿ 20, 0xb759ff20)
+i bsp_pibGetSecResult: context length is 32
+i bsp_pibGetSecResult: size is 12
+i bsp_pibGetSecResult: Key value is ^!ükÌ£ÒSØ·’­QOå€ÿÿÿ and key length is 20
+i bsp_pibGetSecResult: allocated hash data.
+Result Byte 0 is 0x5e
+Result Byte 1 is 0x21
+Result Byte 2 is 0x11
+Result Byte 3 is 0xfc
+Result Byte 4 is 0x17
+Result Byte 5 is 0x6b
+Result Byte 6 is 0xcc
+Result Byte 7 is 0xa3
+Result Byte 8 is 0xd2
+Result Byte 9 is 0xc
+Result Byte 10 is 0x53
+Result Byte 11 is 0xd8
+Result Byte 12 is 0xb7
+Result Byte 13 is 0x92
+Result Byte 14 is 0xad
+Result Byte 15 is 0x51
+Result Byte 16 is 0x4f
+Result Byte 17 is 0x1f
+Result Byte 18 is 0xe5
+Result Byte 19 is 0x80
+Result Byte 20 is 0x0
+Result Byte 21 is 0x0
+Result Byte 22 is 0x0
+Result Byte 23 is 0x0
+Result Byte 24 is 0x0
+Result Byte 25 is 0x0
+Result Byte 26 is 0x0
+Result Byte 27 is 0x0
+Result Byte 28 is 0x0
+Result Byte 29 is 0x0
+Result Byte 30 is 0x0
+Result Byte 31 is 0x0
+- bsp_pibGetSecResult(b6b55f58)
+- bsp_pibCheck(2)
++ bsp_pibClear(b6b55ea4)
+i bsp_pibClear: Release result of len 34
+i bsp_pibClear: Release ASB of len 64
+- bsp_pibClear( )
+y+ bsp_pibOffer(b759fd74, b759fc34)
+- bsp_pibOffer -> 0
+azbtsh+ bsp_pibProcessOnDequeue(bffc7164, bffc720c, bffc734c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bffc7100)
+- bsp_pibRelease( )
+cggssbhds+ bsp_pibOffer(b767f024, b767eee4)
+- bsp_pibOffer -> 0
+a+ bsp_pibProcessOnDequeue(bffc7164, bffc720c, bffc734c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bffc7100)
+- bsp_pibRelease( )
+cdb+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cdefgstgshgsefgstgshgs!+ bsp_pibOffer(bf9eb1b4, bf9eb074)
+- bsp_pibOffer -> 0
+ab+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cd/home/brownrp1/Projects/dtn/ion-2.4.0/tests/bsp/bsp-pib-multinode-test
+efgstgshgsSUCCESS (test2)
+
+
+
+
+
+*****TEST 3*****
+Deliver payload with diferrent PIB keys (shouldn't accept)
+: : : : Stopping ionsecadmin.
+: : : : Stopping ionsecadmin.
++ bsp_pibOffer(bfc17b74, bfc17a34)
+- bsp_pibOffer -> 0
+abw+ bsp_pibOffer(bfd8b464, bfd8b324)
+- bsp_pibOffer -> 0
+ab+ bsp_pibProcessOnDequeue(bfcfb734, bfcfb7dc, bfcfb91c)
++ bsp_pibGetSecResult(0x5e9c8, 12, - ÑnlF›ÅóùæõýoÁ¡Aÿÿÿipn:2.0 20, 0xbfcfb6b0)
+i bsp_pibGetSecResult: context length is 32
+i bsp_pibGetSecResult: size is 12
+i bsp_pibGetSecResult: Key value is - ÑnlF›ÅóùæõýoÁ¡Aÿÿÿipn:2.0 and key length is 20
+i bsp_pibGetSecResult: allocated hash data.
+Result Byte 0 is 0x11
+Result Byte 1 is 0x2d
+Result Byte 2 is 0xa0
+Result Byte 3 is 0xd1
+Result Byte 4 is 0x6e
+Result Byte 5 is 0x6c
+Result Byte 6 is 0x1e
+Result Byte 7 is 0x46
+Result Byte 8 is 0x9b
+Result Byte 9 is 0xc5
+Result Byte 10 is 0xf3
+Result Byte 11 is 0xf9
+Result Byte 12 is 0xe6
+Result Byte 13 is 0x4
+Result Byte 14 is 0xf5
+Result Byte 15 is 0xfd
+Result Byte 16 is 0x6f
+Result Byte 17 is 0xc1
+Result Byte 18 is 0xa1
+Result Byte 19 is 0x41
+Result Byte 20 is 0x0
+Result Byte 21 is 0x0
+Result Byte 22 is 0x0
+Result Byte 23 is 0x0
+Result Byte 24 is 0x0
+Result Byte 25 is 0x0
+Result Byte 26 is 0x0
+Result Byte 27 is 0x0
+Result Byte 28 is 0x0
+Result Byte 29 is 0x0
+Result Byte 30 is 0x0
+Result Byte 31 is 0x0
+- bsp_pibGetSecResult(b6b83b08)
+- bsp_pibProcessOnDequeue(0)
+c+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cddefgefgstgtsghsgshgs+ bsp_pibOffer(b767f024, b767eee4)
+- bsp_pibOffer -> 0
+ab+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cdefgstgshgs+ bsp_pibRelease(bf9eb2c0)
+- bsp_pibRelease( )
+!+ bsp_pibOffer(bf9eb1b4, bf9eb074)
+- bsp_pibOffer -> 0
+ab+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cdefgstgshgs/home/brownrp1/Projects/dtn/ion-2.4.0/tests/bsp/bsp-pib-multinode-test
+1d0
+< 'test3_trace'
+SUCCESS (test3)
+
+
+
+
+
+*****TEST 4*****
+Clear security rules, deliver payload without PIB again (should deliver)
+: : Stopping ionsecadmin.
+: : Stopping ionsecadmin.
++ bsp_pibOffer(bf982864, bf982724)
+- bsp_pibOffer -> 0
+abw+ bsp_pibOffer(bfd8b464, bfd8b324)
+- bsp_pibOffer -> 0
+ab+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+c+ bsp_pibProcessOnDequeue(bfcfb734, bfcfb7dc, bfcfb91c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfcfb6d0)
+- bsp_pibRelease( )
+cddefefgsgstg+ bsp_pibAcquire(b6b55ea4, b6c3b6d0)
+i bsp_pibAcquire: Deserialize result 1
+- bsp_pibAcquire -> 1
++ bsp_pibCheck(b6b55ea4, b6c3b6d0)
++ bsp_pibGetSecResult(0x5e4f0, 12, ^!ükÌ£ÒSØ·’­QOå€ÿÿÿ 20, 0xb759ff20)
+i bsp_pibGetSecResult: context length is 32
+i bsp_pibGetSecResult: size is 12
+i bsp_pibGetSecResult: Key value is ^!ükÌ£ÒSØ·’­QOå€ÿÿÿ and key length is 20
+i bsp_pibGetSecResult: allocated hash data.
+Result Byte 0 is 0x5e
+Result Byte 1 is 0x21
+Result Byte 2 is 0x11
+Result Byte 3 is 0xfc
+Result Byte 4 is 0x17
+Result Byte 5 is 0x6b
+Result Byte 6 is 0xcc
+Result Byte 7 is 0xa3
+Result Byte 8 is 0xd2
+Result Byte 9 is 0xc
+Result Byte 10 is 0x53
+Result Byte 11 is 0xd8
+Result Byte 12 is 0xb7
+Result Byte 13 is 0x92
+Result Byte 14 is 0xad
+Result Byte 15 is 0x51
+Result Byte 16 is 0x4f
+Result Byte 17 is 0x1f
+Result Byte 18 is 0xe5
+Result Byte 19 is 0x80
+Result Byte 20 is 0x0
+Result Byte 21 is 0x0
+Result Byte 22 is 0x0
+Result Byte 23 is 0x0
+Result Byte 24 is 0x0
+Result Byte 25 is 0x0
+Result Byte 26 is 0x0
+Result Byte 27 is 0x0
+Result Byte 28 is 0x0
+Result Byte 29 is 0x0
+Result Byte 30 is 0x0
+Result Byte 31 is 0x0
+- bsp_pibGetSecResult(b6b55bf0)
+x bsp_pibCheck: memcmp failed: -1
+- bsp_pibCheck(1)
++ bsp_pibClear(b6b55ea4)
+i bsp_pibClear: Release result of len 34
+i bsp_pibClear: Release ASB of len 64
+- bsp_pibClear( )
+y+ bsp_pibOffer(b759fd74, b759fc34)
+- bsp_pibOffer -> 0
+azbsghyzgshg+ bsp_pibProcessOnDequeue(bffc7164, bffc720c, bffc734c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bffc7100)
+- bsp_pibRelease( )
+cs+ bsp_pibOffer(b767f024, b767eee4)
+- bsp_pibOffer -> 0
+abbds+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cd+ bsp_pibProcessOnDequeue(bffc7164, bffc720c, bffc734c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bffc7100)
+- bsp_pibRelease( )
+cdefgstgshyzyzmgsefgstgshgsyz/home/brownrp1/Projects/dtn/ion-2.4.0/tests/bsp/bsp-pib-multinode-test
+SUCCESS (test4)
+
+
+
+
+
+*****TEST 5*****
+Add same key, deliver BIG payload with PIB (should deliver)
+: : Stopping ionsecadmin.
+: : Stopping ionsecadmin.
++ bsp_pibOffer(bfeb8374, bfeb8234)
+- bsp_pibOffer -> 0
+abStopping bpsendfile.
++ bsp_pibProcessOnDequeue(bfcfb734, bfcfb7dc, bfcfb91c)
++ bsp_pibGetSecResult(0x5ee28, 1024, ^!ükÌ£ÒSØ·’­QOå€ÿÿÿipn:2.0 20, 0xbfcfb6b0)
+i bsp_pibGetSecResult: context length is 32
+i bsp_pibGetSecResult: size is 1024
+i bsp_pibGetSecResult: Key value is ^!ükÌ£ÒSØ·’­QOå€ÿÿÿipn:2.0 and key length is 20
+i bsp_pibGetSecResult: allocated hash data.
+Result Byte 0 is 0x5e
+Result Byte 1 is 0x21
+Result Byte 2 is 0x11
+Result Byte 3 is 0xfc
+Result Byte 4 is 0x17
+Result Byte 5 is 0x6b
+Result Byte 6 is 0xcc
+Result Byte 7 is 0xa3
+Result Byte 8 is 0xd2
+Result Byte 9 is 0xc
+Result Byte 10 is 0x53
+Result Byte 11 is 0xd8
+Result Byte 12 is 0xb7
+Result Byte 13 is 0x92
+Result Byte 14 is 0xad
+Result Byte 15 is 0x51
+Result Byte 16 is 0x4f
+Result Byte 17 is 0x1f
+Result Byte 18 is 0xe5
+Result Byte 19 is 0x80
+Result Byte 20 is 0x0
+Result Byte 21 is 0x0
+Result Byte 22 is 0x0
+Result Byte 23 is 0x0
+Result Byte 24 is 0x0
+Result Byte 25 is 0x0
+Result Byte 26 is 0x0
+Result Byte 27 is 0x0
+Result Byte 28 is 0x0
+Result Byte 29 is 0x0
+Result Byte 30 is 0x0
+Result Byte 31 is 0x0
+- bsp_pibGetSecResult(b6b83f84)
+- bsp_pibProcessOnDequeue(0)
+cdeefgsgstgshgs+ bsp_pibAcquire(b6b55ea4, b6c3b6d0)
+i bsp_pibAcquire: Deserialize result 1
+- bsp_pibAcquire -> 1
++ bsp_pibCheck(b6b55ea4, b6c3b6d0)
++ bsp_pibGetSecResult(0x5ed40, 1024, ^!ükÌ£ÒSØ·’­QOå€ÿÿÿ 20, 0xb759ff20)
+i bsp_pibGetSecResult: context length is 32
+i bsp_pibGetSecResult: size is 1024
+i bsp_pibGetSecResult: Key value is ^!ükÌ£ÒSØ·’­QOå€ÿÿÿ and key length is 20
+i bsp_pibGetSecResult: allocated hash data.
+Result Byte 0 is 0x5e
+Result Byte 1 is 0x21
+Result Byte 2 is 0x11
+Result Byte 3 is 0xfc
+Result Byte 4 is 0x17
+Result Byte 5 is 0x6b
+Result Byte 6 is 0xcc
+Result Byte 7 is 0xa3
+Result Byte 8 is 0xd2
+Result Byte 9 is 0xc
+Result Byte 10 is 0x53
+Result Byte 11 is 0xd8
+Result Byte 12 is 0xb7
+Result Byte 13 is 0x92
+Result Byte 14 is 0xad
+Result Byte 15 is 0x51
+Result Byte 16 is 0x4f
+Result Byte 17 is 0x1f
+Result Byte 18 is 0xe5
+Result Byte 19 is 0x80
+Result Byte 20 is 0x0
+Result Byte 21 is 0x0
+Result Byte 22 is 0x0
+Result Byte 23 is 0x0
+Result Byte 24 is 0x0
+Result Byte 25 is 0x0
+Result Byte 26 is 0x0
+Result Byte 27 is 0x0
+Result Byte 28 is 0x0
+Result Byte 29 is 0x0
+Result Byte 30 is 0x0
+Result Byte 31 is 0x0
+- bsp_pibGetSecResult(b6b55f58)
+- bsp_pibCheck(2)
++ bsp_pibClear(b6b55ea4)
+i bsp_pibClear: Release result of len 34
+i bsp_pibClear: Release ASB of len 64
+- bsp_pibClear( )
+yzReceive size: 1024; Send size: 1024
+SUCCESS (test5)
+
+
+***3 node Tests***
+------------------
+Starting bpsink on node 4...
+
+
+
+*****TEST 6*****
+Sending Bundle with PIB to ipn:4.1 from ipn:2.1. This will pass through node ipn:3.1 who doesn't have pib key..it should still be forwarded and delivered...
+: : : : Stopping ionsecadmin.
+: : Stopping ionsecadmin.
+: : : : Stopping ionsecadmin.
++ bsp_pibOffer(bf9e6bc4, bf9e6a84)
+- bsp_pibOffer -> 0
+abw+ bsp_pibOffer(bfd8b464, bfd8b324)
+- bsp_pibOffer -> 0
+a+ bsp_pibProcessOnDequeue(bfcfb734, bfcfb7dc, bfcfb91c)
++ bsp_pibGetSecResult(0x5e9a0, 12, ^!ükÌ£ÒSØ·’­QOå€ÿÿÿipn:2.0 20, 0xbfcfb6b0)
+i bsp_pibGetSecResult: context length is 32
+i bsp_pibGetSecResult: size is 12
+i bsp_pibGetSecResult: Key value is ^!ükÌ£ÒSØ·’­QOå€ÿÿÿipn:2.0 and key length is 20
+i bsp_pibGetSecResult: allocated hash data.
+Result Byte 0 is 0x5e
+Result Byte 1 is 0x21
+Result Byte 2 is 0x11
+Result Byte 3 is 0xfc
+Result Byte 4 is 0x17
+Result Byte 5 is 0x6b
+Result Byte 6 is 0xcc
+Result Byte 7 is 0xa3
+Result Byte 8 is 0xd2
+Result Byte 9 is 0xc
+Result Byte 10 is 0x53
+Result Byte 11 is 0xd8
+Result Byte 12 is 0xb7
+Result Byte 13 is 0x92
+Result Byte 14 is 0xad
+Result Byte 15 is 0x51
+Result Byte 16 is 0x4f
+Result Byte 17 is 0x1f
+Result Byte 18 is 0xe5
+Result Byte 19 is 0x80
+Result Byte 20 is 0x0
+Result Byte 21 is 0x0
+Result Byte 22 is 0x0
+Result Byte 23 is 0x0
+Result Byte 24 is 0x0
+Result Byte 25 is 0x0
+Result Byte 26 is 0x0
+Result Byte 27 is 0x0
+Result Byte 28 is 0x0
+Result Byte 29 is 0x0
+Result Byte 30 is 0x0
+Result Byte 31 is 0x0
+- bsp_pibGetSecResult(b6b83b08)
+- bsp_pibProcessOnDequeue(0)
+cdb+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cdefefgsgstg+ bsp_pibAcquire(b6b55ea4, b6c3b6d0)
+i bsp_pibAcquire: Deserialize result 1
+- bsp_pibAcquire -> 1
++ bsp_pibCheck(b6b55ea4, b6c3b6d0)
+- bsp_pibCheck - Node is not security dest.
+- bsp_pibCheck(2)
+ytsg+ bsp_pibOffer(bfc26ea4, bfc26d64)
+- bsp_pibOffer -> 0
+aw+ bsp_pibOffer(bfc26f04, bfc26dc4)
+- bsp_pibOffer -> 0
+ag+ bsp_pibRelease(b767efa0)
+- bsp_pibRelease( )
++ bsp_pibOffer(b767f024, b767eee4)
+- bsp_pibOffer -> 0
+ab+ bsp_pibProcessOnDequeue(bfa63b74, bfa63c1c, bfa63d5c)
+cdsb+ bsp_pibProcessOnDequeue(bfb7c024, bfb7c0cc, bfb7c20c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfb7bfc0)
+- bsp_pibRelease( )
+cdshgs+ bsp_pibProcessOnDequeue(bffc7164, bffc720c, bffc734c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bffc7100)
+- bsp_pibRelease( )
+cdb+ bsp_pibProcessOnDequeue(bffc7164, bffc720c, bffc734c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bffc7100)
+- bsp_pibRelease( )
+cdefefgsgstgsghgshgs+ bsp_pibClear(b6b55ea4)
+i bsp_pibClear: Release result of len 34
+i bsp_pibClear: Release ASB of len 64
+- bsp_pibClear( )
++ bsp_pibOffer(b75a0024, b759fee4)
+- bsp_pibOffer -> 0
+as+ bsp_pibOffer(b7600d74, b7600c34)
+- bsp_pibOffer -> 0
+azbbb+ bsp_pibProcessOnDequeue(bffc7164, bffc720c, bffc734c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bffc7100)
+- bsp_pibRelease( )
+cd+ bsp_pibProcessOnDequeue(bfe12644, bfe126ec, bfe1282c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfe125e0)
+- bsp_pibRelease( )
+cd+ bsp_pibProcessOnDequeue(bfe12644, bfe126ec, bfe1282c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bfe125e0)
+- bsp_pibRelease( )
+cdefgstgshgsefgstgshgsefgstgsyzmhybgs+ bsp_pibProcessOnDequeue(bffc7164, bffc720c, bffc734c)
+i bsp_pibProcessOnDequeue: No key found for PIB. Not using PIB blocks for this bundle.
+- bsp_pibProcessOnDequeue --> 0
++ bsp_pibRelease(bffc7100)
+- bsp_pibRelease( )
+cdefgstgshgs/home/brownrp1/Projects/dtn/ion-2.4.0/tests/bsp/bsp-pib-multinode-test
+SUCCESS (test 6)
+
+
+
+*****TEST 7*****
+Sending ANONYMOUS Bundle with PIBs to from ipn:2.1 through ipn:3.1 to ipn:4.1.
+It should be authenticated at node 4.
+: : : : Stopping ionsecadmin.
+: : : Stopping ionsecadmin.
+: : : : Stopping ionsecadmin.
+b+ bsp_pibOffer(bfd12bf4, bfd12ab4)
+- bsp_pibOffer -> 0
+a+ bsp_pibProcessOnDequeue(bfcfb734, bfcfb7dc, bfcfb91c)
++ bsp_pibGetSecResult(0x5e7d8, 11, ^!ükÌ£ÒSØ·’­QOå€ÿÿÿipn:2.0 20, 0xbfcfb6b0)
+i bsp_pibGetSecResult: context length is 32
+i bsp_pibGetSecResult: size is 11
+i bsp_pibGetSecResult: Key value is ^!ükÌ£ÒSØ·’­QOå€ÿÿÿipn:2.0 and key length is 20
+i bsp_pibGetSecResult: allocated hash data.
+Result Byte 0 is 0x5e
+Result Byte 1 is 0x21
+Result Byte 2 is 0x11
+Result Byte 3 is 0xfc
+Result Byte 4 is 0x17
+Result Byte 5 is 0x6b
+Result Byte 6 is 0xcc
+Result Byte 7 is 0xa3
+Result Byte 8 is 0xd2
+Result Byte 9 is 0xc
+Result Byte 10 is 0x53
+Result Byte 11 is 0xd8
+Result Byte 12 is 0xb7
+Result Byte 13 is 0x92
+Result Byte 14 is 0xad
+Result Byte 15 is 0x51
+Result Byte 16 is 0x4f
+Result Byte 17 is 0x1f
+Result Byte 18 is 0xe5
+Result Byte 19 is 0x80
+Result Byte 20 is 0x0
+Result Byte 21 is 0x0
+Result Byte 22 is 0x0
+Result Byte 23 is 0x0
+Result Byte 24 is 0x0
+Result Byte 25 is 0x0
+Result Byte 26 is 0x0
+Result Byte 27 is 0x0
+Result Byte 28 is 0x0
+Result Byte 29 is 0x0
+Result Byte 30 is 0x0
+Result Byte 31 is 0x0
+- bsp_pibGetSecResult(b6b83f84)
+- bsp_pibProcessOnDequeue(0)
+cdefgstgshgs+ bsp_pibOffer(b759ff20, b6c3b6d4)
+- bsp_pibOffer -> 0
++ bsp_pibAcquire(b6b56938, b6c3b6d0)
+i bsp_pibAcquire: Deserialize result 1
+- bsp_pibAcquire -> 1
++ bsp_pibCheck(b6b56938, b6c3b6d0)
+- bsp_pibCheck - Node is not security dest.
+- bsp_pibCheck(2)
+yb+ bsp_pibProcessOnDequeue(bfa63b74, bfa63c1c, bfa63d5c)
+cdefgstgshgs+ bsp_pibAcquire(b6bb6f04, b6d0cfd0)
+i bsp_pibAcquire: Deserialize result 1
+- bsp_pibAcquire -> 1
++ bsp_pibCheck(b6bb6f04, b6d0cfd0)
++ bsp_pibGetSecResult(0x5f970, 11, ^!ükÌ£ÒSØ·’­QOå€ 20, 0xb7600f20)
+i bsp_pibGetSecResult: context length is 32
+i bsp_pibGetSecResult: size is 11
+i bsp_pibGetSecResult: Key value is ^!ükÌ£ÒSØ·’­QOå€ and key length is 20
+i bsp_pibGetSecResult: allocated hash data.
+Result Byte 0 is 0x5e
+Result Byte 1 is 0x21
+Result Byte 2 is 0x11
+Result Byte 3 is 0xfc
+Result Byte 4 is 0x17
+Result Byte 5 is 0x6b
+Result Byte 6 is 0xcc
+Result Byte 7 is 0xa3
+Result Byte 8 is 0xd2
+Result Byte 9 is 0xc
+Result Byte 10 is 0x53
+Result Byte 11 is 0xd8
+Result Byte 12 is 0xb7
+Result Byte 13 is 0x92
+Result Byte 14 is 0xad
+Result Byte 15 is 0x51
+Result Byte 16 is 0x4f
+Result Byte 17 is 0x1f
+Result Byte 18 is 0xe5
+Result Byte 19 is 0x80
+Result Byte 20 is 0x0
+Result Byte 21 is 0x0
+Result Byte 22 is 0x0
+Result Byte 23 is 0x0
+Result Byte 24 is 0x0
+Result Byte 25 is 0x0
+Result Byte 26 is 0x0
+Result Byte 27 is 0x0
+Result Byte 28 is 0x0
+Result Byte 29 is 0x0
+Result Byte 30 is 0x0
+Result Byte 31 is 0x0
+- bsp_pibGetSecResult(b6bb6ba8)
+- bsp_pibCheck(2)
++ bsp_pibClear(b6bb6f04)
+i bsp_pibClear: Release result of len 34
+i bsp_pibClear: Release ASB of len 64
+- bsp_pibClear( )
+yz/home/brownrp1/Projects/dtn/ion-2.4.0/tests/bsp/bsp-pib-multinode-test
+SUCCESS (test 7)
+Stopping ION...
+Stopping cfdpadmin.
+Stopping cfdpadmin.
+Stopping cfdpadmin.
++ bsp_pibRelease(bfd3f680)
+- bsp_pibRelease( )
++ bsp_pibRelease(bf9eb2c0)
+- bsp_pibRelease( )
++ bsp_pibClear(b6b56938)
+i bsp_pibClear: Release result of len 34
+i bsp_pibClear: Release ASB of len 64
+- bsp_pibClear( )
++ bsp_pibRelease(b759ffa0)
+- bsp_pibRelease( )
++ bsp_pibRelease(b767efa0)
+- bsp_pibRelease( )
+Stopping bpadmin.
+Stopping bpadmin.
+Stopping bpadmin.
+Stopping ltpadmin.
+Stopping ltpadmin.
+Stopping ltpadmin.
+Stopping ionadmin.
+Stopping ionadmin.
+Stopping ionadmin.
+Sending TERM to amsbenchr lt-amsbenchr 	amsbenchs lt-amsbenchs 	amsd lt-amsd 	amshello lt-amshello 	amslog lt-amslog 	amslogport lt-amslogport 	amsshell lt-amsshell 	bpadmin lt-bpadmin 	bpchat lt-bpchat 	bpclock lt-bpclock 	bpcounter lt-bpcounter 	bpdriver lt-bpdriver 	bpecho lt-bpecho 	bping lt-bping 	bprecvfile lt-bprecvfile 	bpsendfile lt-bpsendfile 	bpsink lt-bpsink 	bpsource lt-bpsource 	bpstats lt-bpstats 	bpstats2 lt-bpstats2 	bptrace lt-bptrace 	brsccla lt-brsccla 	brsscla lt-brsscla 	bputa lt-bputa 	cfdpadmin lt-cfdpadmin 	cfdpclock lt-cfdpclock 	cfdptest lt-cfdptest 	dgr2file lt-dgr2file 	dgrcla lt-dgrcla 	dtn2admin lt-dtn2admin 	dtn2adminep lt-dtn2adminep 	dtn2fw lt-dtn2fw 	file2dgr lt-file2dgr 	file2sdr lt-file2sdr 	file2sm lt-file2sm 	file2tcp lt-file2tcp 	file2udp lt-file2udp 	ionadmin lt-ionadmin 	ipnadmin lt-ipnadmin 	ipnadminep lt-ipnadminep 	ipnfw lt-ipnfw 	lgagent lt-lgagent 	lgsend lt-lgsend 	ltpadmin lt-ltpadmin 	ltpcli lt-ltpcli 	ltpclo lt-ltpclo 	ltpclock lt-ltpclock 	ltpcounter lt-ltpcounter 	ltpdriver lt-ltpdriver 	ltpmeter lt-ltpmeter 	owltsim lt-owltsim 	owlttb lt-owlttb 	psmshell lt-psmshell 	psmwatch lt-psmwatch 	ramstest lt-ramstest 	rfxclock lt-rfxclock 	sdr2file lt-sdr2file 	sdrmend lt-sdrmend 	sdrwatch lt-sdrwatch 	sm2file lt-sm2file 	smlistsh lt-smlistsh 	tcpcli lt-tcpcli 	tcpclo lt-tcpclo 	stcpcli lt-stcpcli 	stcpclo lt-stcpclo 	tcp2file lt-tcp2file 	udpcli lt-udpcli 	udpclo lt-udpclo 	udplsi lt-udplsi 	udplso lt-udplso 	udp2file lt-udp2file 	...
+Sending KILL to the processes...
+Checking if all processes ended...
+Deleting shared memory to remove SDR...
+Killm completed.
+Status reports test completed.
