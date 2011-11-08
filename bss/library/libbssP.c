@@ -370,36 +370,29 @@ int readPayload(int fileD, char* buffer, int length)
 	return 0;
 }
 
-static long addDataRecord(int fileD, BpTimestamp time, int payloadLength)
+static long addDataRecord(int fileD, long datOffset, BpTimestamp time,
+		int payloadLength)
 {
-	long datOffset;
 	dataRecord data;
 
 	data.crtnTime = time;
 	data.pLen = payloadLength;
-	
-	datOffset = (long) lseek(fileD, 0, SEEK_END);
 
+	if (write(fileD, &data, sizeof(dataRecord)) < 0)
+	{
+		putSysErrmsg("BSS library: can't write to .dat file", NULL);
+		return -1;
+	}
 #if BSSLIBDEBUG
 printf("New data record added to the database\n");
 printf("-------------------------------------\n");
 printf("data Offset: %ld - creation time: %lu - length: %d\n", datOffset, 
 	time.seconds, payloadLength);
 #endif
-
-	if ((datOffset < 0) || (write(fileD, &data, sizeof(dataRecord)) < 0))
-	{
-		putSysErrmsg("BSS library: can't seek or write to .dat file", 
-				NULL);
-		return -1;
-	}
-
-	return datOffset;		
+	return 0;		
 }
 
-
-
-/* receiver operations - section */
+/* receiver's operations - section */
 
 static int updateLstEntries(int lstFile, long lstEntryOffset,
 		long newEntryOffset, long datOffset, BpTimestamp time,
@@ -408,33 +401,43 @@ static int updateLstEntries(int lstFile, long lstEntryOffset,
 	lstEntry 	curEntry;
 	
 	/*
-	 *  this function adds new entries and applies appropriate updates    
-	 *  on the contents of *.lst file, as needed. The fact of providing   
-	 *  updateLstEntries function with a value of lstEntryOffset that     
-	 *  equals zero, means that there are no entries related to the       
-	 *  specified time, so a new entry, that isn't connected to any other 
-	 *  entries, is created  and appended at the end of the file. In case 
-	 *  that lstEntryOffset has a value other than zero, that means there 
-	 *  is already a doubly-linked list created for the specified time,   
-         *  so a new entry with the proper contents is created and appended   
-         *  to the end of the file while the other entries of the particular  
-	 *  doubly-linked list get updated (based on their count value) in    
-         *  order for the new entry to be placed at the right spot.	       
+	 *  This function adds new entries and applies appropriate
+	 *  updates on the contents of *.lst file, as needed. The
+	 *  operation of  the function depends on the value of
+	 *  lstEntryOffset.
+	 *
+	 *  If lstEntryOffset is 1 then it can't be a legitimate
+	 *  list entry offset, since the size of a list entry is
+	 *  greater than 1.  (The first entry in the .lst file is
+	 *  at offset zero, the second is at offset N where N is the
+	 *  size of a list entry, etc.)  Therefore this value of
+	 *  lstEntryOffset is used to indicate that the linked list
+	 *  of entries for the indicated time is currently empty.
+	 *  A new entry that isn't connected to any other entries
+	 *  is created and appended at the end of the file.
+	 *
+	 *  If lstEntryOffset has a value other than 1, that means
+	 *  that the linked list of entries for the indicated time
+	 *  is not empty.  A new entry with the proper contents is
+	 *  created and appended to the end of the file and the
+	 *  pointer to lstEntryOffset is used as a starting point
+	 *  for stepping through the other entries of that doubly-
+	 *  linked list so that they can get updated (based on their
+	 *  count value), placing the new entry at the right spot.	       
 	 */
 
-	if (lstEntryOffset == 0)
+	if (lstEntryOffset == 1)
 	{
-#if BSSLIBDEBUG
-printf("List is empty. Adding the first entry for %lu second\n", time.seconds);
-printf("ADD // new Entry Offset: %ld - previous offset: -1 - next offset: -1\n",
-	newEntryOffset);
-#endif
+		/*	Doubly-linked list is empty.	*/
 		if(addEntry(lstFile, time, datOffset, -1, -1, dataLength) < 0)
 		{
 			putErrmsg("Update of .lst file failed", NULL);
 			return -1;
 		}
-
+#if BSSLIBDEBUG
+printf("ADD // new Entry Offset: %ld - previous offset: -1 - next offset: -1\n",
+	newEntryOffset);
+#endif
 		return 1;
 	}
 	
@@ -446,24 +449,24 @@ printf("ADD // new Entry Offset: %ld - previous offset: -1 - next offset: -1\n",
 	
 	if (curEntry.crtnTime.count < time.count)
 	{
-#if BSSLIBDEBUG
-printf("Same as end of list. Adding an entry at the end of the list for %lu second\n", 
-	time.seconds);
-printf("UPDATE // offset: %ld - previous offset: %ld - next offset: %ld\n", 
-	lstEntryOffset, curEntry.prev, newEntryOffset);
-printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: -1\n", 
-	newEntryOffset, lstEntryOffset);
-#endif
-
 		if (insertLstEdge(lstFile, &curEntry, curEntry.prev, 
 			newEntryOffset, lstEntryOffset, time, datOffset, 
 			lstEntryOffset, -1, dataLength) < 0)
 		{
 			return -1;
 		}
-		
-
+#if BSSLIBDEBUG
+printf("Same as end of list. Adding an entry at the end of the list for %lu \
+second\n", time.seconds);
+printf("UPDATE // offset: %ld - previous offset: %ld - next offset: %ld\n", 
+lstEntryOffset, curEntry.prev, newEntryOffset);
+printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: -1\n", newEntryOffset, lstEntryOffset);
+#endif
 		return 1;
+	}
+	else if (curEntry.crtnTime.count == time.count)
+	{
+		return 0;		/*	Avoid duplicate entry.	*/
 	}
 
 	while (curEntry.prev != -1)
@@ -487,6 +490,22 @@ printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: -1\n"
 
 			return 1;
 		}
+		else if (curEntry.crtnTime.count == time.count)
+		{
+			return 0;	/*	Avoid duplicate entry.	*/
+		}
+	}
+
+	if (curEntry.crtnTime.count == time.count)
+	{
+		return 0;		/*	Avoid duplicate entry.	*/
+	}
+
+	if (insertLstEdge(lstFile, &curEntry, newEntryOffset, 
+			curEntry.next, lstEntryOffset, time, datOffset, 
+			-1, lstEntryOffset, dataLength) < 0)
+	{
+		return -1;
 	}
 #if BSSLIBDEBUG
 printf("Adding an entry at the beginning of the list for %lu second\n", 
@@ -496,13 +515,6 @@ printf("UPDATE // offset: %ld - previous offset: %ld - next offset: %ld\n",
 printf("ADD // Entry Offset: %ld - previous offset: -1 - next offset: %ld\n", 
 	newEntryOffset, lstEntryOffset);
 #endif
-	if (insertLstEdge(lstFile, &curEntry, newEntryOffset, 
-			curEntry.next, lstEntryOffset, time, datOffset, 
-			-1, lstEntryOffset, dataLength) < 0)
-	{
-		return -1;
-	}
-
 	return 1;
 }
 
@@ -510,7 +522,7 @@ static int counterCheck(tblIndex *index, int position, long offset,
 		BpTimestamp time)
 {
 	/*
-	 *  this function checks whether the contents of *.tbl file 
+	 *  This function checks whether the contents of *.tbl file 
 	 *  need an update based on the values of lwstCountVal and  
 	 *  hgstCountVal variable. 				      
 	 */
@@ -557,9 +569,10 @@ static long getEntryPosition(int tblFile, BpTimestamp time, long offset)
 	int		flag=0;
 	
 	/* 
-	 *  this function calculates in which position (row number),  
+	 *  This function calculates in which position (row number),  
 	 *  of the lists stored in .tbl, the new entry should be     
-	 *  added and updates the proper elements, as needed.         
+	 *  inserted, updates the proper elements as needed and returns
+	 *  last entry's offset in .lst file for the indicated second.         
 	 */
 
 	if (readTblFile(tblFile, &index) < 0)
@@ -587,20 +600,19 @@ printf("(BEFORE) Creation time of the newest frame stored in *.tbl file: %lu\n",
 printf("(before calculation) position value: %d - NewestRowIndex value %d\n",
 position, index.newestRowIndex);
 #endif
-
 	if (position < 0)
 	{
-		/* 
-		 *  bundle's creation time is too old. A dataRecord will be  
-		 *  inserted to *.dat file but it will not be trackable by   
-		 *  *.tbl or *.lst files. 				    
-		 */
+		/* Bundle is too old. A dataRecord will be inserted to
+		 * *.dat file but it will not be trackable by *.tbl or
+		 * *.lst files.			    			*/
+
 		return -2; 
 	}
 	else if (position > (SOD-1))
 	{
-		/* In case position's value is a multiple of SOD, detract  
-		 *  SOD from position. */
+		/* In case position's value is a multiple of SOD,
+		 * subtract SOD from position. */
+
 		while (position > (SOD-1)) 
 		{	
 			position = position - SOD;
@@ -626,8 +638,10 @@ position, index.newestRowIndex);
 		}
 		else
 		{
-			/*  intermediate entries must be deleted in order for  
-			 *  the time scale of *.tbl lists to be retained. */
+			/*  Intermediate entries must be deleted in
+			 *  order for the time scale of *.tbl lists
+			 *  to be retained.				*/
+
 			eraseIntrmdRows(&index, index.newestRowIndex, position);
 			oldestRow = position+1;
 			newestRow = position;			
@@ -637,8 +651,10 @@ position, index.newestRowIndex);
 	{
 		if (position > index.newestRowIndex)
 		{ 
-			/* intermediate entries must be deleted in order for 
-			 *  the time scale of *.tbl lists to be retained   */			
+			/*  Intermediate entries must be deleted in
+			 *  order for the time scale of *.tbl lists
+			 *  to be retained.				*/
+
 			eraseIntrmdRows(&index, index.newestRowIndex, position);
 			newestRow = position;
 		}
@@ -649,30 +665,29 @@ printf("(after calculation) position value: %d - NewestRowIndex value %d\n",
 position, index.newestRowIndex);
 #endif
 	/*
-	 *  Checks if there is already a doubly-linked list created for this   
-	 *  particular second. In case that a doubly-linked list already       
-	 *  exists, it returns the position (offset) of the doubly-linked list 
-	 *  and updates accordingly the .tbl file. Otherwise, it returns a     
-	 *  zero value to indicate that a doubly-linked list for this          
-	 *  particular second doesn't exist and updates accordingly the .tbl   
-	 *  file. 					      		       
+	 *  Checks if there is already a doubly-linked list created
+	 *  for this second. If a doubly-linked list already exists,
+	 *  returns the position (offset) of the last entry in the
+	 *  doubly-linked list and updates accordingly the .tbl file.
+	 *  Otherwise, returns a zero value to indicate that a  doubly-
+	 *  linked list for this second doesn't exist and updates
+	 *  accordingly the .tbl file.
 	 */	
 	if (index.lastEntryOffset[position] != -1)
 	{
 		lastOffset = index.lastEntryOffset[position];
-		counterCheck(&index, position, offset, time);	
+		counterCheck(&index, position, offset, time);
 	}
 	else
 	{
-		lastOffset = 0; //no records for this second yet
+		lastOffset = 1;	 /*	no records for this second yet	*/
 		updateTbl(&index, position, 2, offset, time);	
 	}
 
 	/*
-	 *  if either newest or oldest row values got updated throughout the  
-	 *  execution of this function, update index structure values in order   
-	 *  to save changes later. 					      
-	 */
+	 *  If either newest or oldest row values got updated during
+	 *  the execution of this function, update index structure
+	 *  values in order to save changes later. 					 */
 	if (oldestRow!=-1)
 	{
 		index.oldestTime = index.oldestTime + oldestRow;
@@ -698,7 +713,7 @@ printf("(AFTER) Creation time of the oldest frame stored in *.tbl file: %lu\n",
 printf("(AFTER) Creation time of the newest frame stored in *.tbl file: %lu\n", 
 	index.newestTime);
 printf("firstEntryOffset: %lu - lastEntryOffset: %lu  returned value: %ld\n", 
-index.firstEntryOffset[position], index.lastEntryOffset[position], firstOffset);
+index.firstEntryOffset[position], index.lastEntryOffset[position], lastOffset);
 #endif
 
 	return lastOffset;
@@ -714,6 +729,7 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 	long		datOffset;
 	long 		newEntryOffset;
 	long		lstEntryOffset;
+	int		updateStat;
 
 	memset(buffer, '\0', bufLength);
 	contentLength = zco_source_data_length(sdr, dlv->adu);
@@ -726,89 +742,115 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 		{
 			zco_stop_receiving(sdr, &reader);
 			sdr_cancel_xn(sdr);
-			putErrmsg("bss: can't receive bundle content.",
-				NULL);
+			putErrmsg("bss: can't receive bundle content.", NULL);
 			return -1;
 		}
 
 		zco_stop_receiving(sdr, &reader);
-		if(sdr_end_xn(sdr) < 0)
+		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't handle delivery.", NULL);
 			return -1;
 		}
 
-		if(_lockMutex(1) == -1)
+		if (_lockMutex(1) == -1)
 		{
 			return -1;
 		}
 
-		/*	write dataRecord information into .dat file 	*/
-		datOffset = addDataRecord(datFile, dlv->bundleCreationTime, 
-				contentLength);
-		if (datOffset < 0)
-		{
-			sdr_cancel_xn(sdr);
-			oK(_lockMutex(0));
-			return -1;
-		}
-#if BSSLIBDEBUG
-printf(".dat file offset that was returned from addDataRecord: %ld\n", datOffset);
-#endif
-		/*	write bundle's payload into .dat file	*/
-		if (write(datFile, buffer, contentLength) < 1)
-		{
-			sdr_cancel_xn(sdr);
-			putSysErrmsg("bss: can't write to .dat file",
-				NULL);
-			oK(_lockMutex(0));
-			return -1;
-		}
-	
+		/*	Locate the offset within lstFile at which the
+		 *	new entry will be inserted.			*/
 		newEntryOffset = (long) lseek(lstFile, 0, SEEK_END);
 		if (newEntryOffset < 0)
 		{
-			putSysErrmsg("BSS library can't get the last offset of \
+			putSysErrmsg("BSS library can't seek to the end of \
 					.lst file", NULL);
 			oK(_lockMutex(0));
 			return -1;
 		}
-#if BSSLIBDEBUG
+#if BSSRECVLIBDEBUG
 printf("new Entry Offset returned from seeking to the end of .lst file: %ld\n", 
 newEntryOffset);
-#endif	
+#endif
+		/*	Locate the offset within datFile at which the
+		 *	new data record will be inserted.		*/
+
+		datOffset = (long) lseek(datFile, 0, SEEK_END);
+		if (datOffset < 0)
+		{
+			putSysErrmsg("BSS library can't seek to the end of \
+					.dat file", NULL);
+			oK(_lockMutex(0));
+			return -1;
+		}
+	
+		/* 
+		 *  Find offset of last entry in the doubly-linked list
+		 *  that  holds the entries for the second on which this
+		 *  bundle was created. 
+		 */
 		lstEntryOffset = getEntryPosition(tblFile,
 				dlv->bundleCreationTime, newEntryOffset);
-#if BSSLIBDEBUG
+		switch (lstEntryOffset)
+		{
+		case -1:
+			oK(_lockMutex(0));
+			return -1;	/*	Unresolved error.	*/
+
+		case -2:
+			break; /* 
+				*  Bundle is too old. It will be 
+				*  discarded from .lst file but its 
+ 				*  payload will be saved for later 
+				*  processing in .dat file.			
+				*/
+		default:
+			updateStat = updateLstEntries(lstFile, lstEntryOffset, 
+						newEntryOffset, datOffset, 
+						dlv->bundleCreationTime, 
+						contentLength);
+			switch (updateStat)
+			{
+			case -1:
+				oK(_lockMutex(0));
+				return -1;	/*	Unsuccessful.	*/
+
+			case 0:
+				/*	Already received.  Discard.	*/
+
+				oK(_lockMutex(0));
+				return 0;
+
+			default:
+				break;
+			}
+		}
+#if BSSRECVLIBDEBUG
 printf(".lst file Entry Offset that was returned from getEntryPosition function: \
 	%ld\n", lstEntryOffset);
 #endif
-		if (lstEntryOffset == -2)
+	
+		/*	OK to write dataRecord information and payload
+		 *	into .dat file.					*/
+
+		if (addDataRecord(datFile, datOffset, dlv->bundleCreationTime, 
+				contentLength) < 0
+		|| write(datFile, buffer, contentLength) < 0)
 		{
+			putSysErrmsg("bss: can't write to .dat file", NULL);
 			oK(_lockMutex(0));
-			return 0; 	/*	frame too old, discard	*/
-		}
-		else if (lstEntryOffset == -1)
-		{
-			oK(_lockMutex(0));
-			return -1;
+			return -1;	/*	Unresolved error.	*/
 		}
 
-		if (updateLstEntries(lstFile, lstEntryOffset, newEntryOffset, 
-			datOffset, dlv->bundleCreationTime, contentLength) < 0)
-		{
-			oK(_lockMutex(0));
-			return -1;
-		}
-
-		oK(_lockMutex(0));	/*	unlock mutex 	*/
+		oK(_lockMutex(0));	/*	Unlock mutex 		*/
 		
 #if BSSLIBDEBUG
-printf("from this point on, the execution of the provided display function starts\n");
+printf("from this point on, the execution of the provided display function begins\n");
 #endif
-		/*  display function is called only if the current frame has 
-		 *  a creation time greater than the last displayed frame.  */ 
-			
+		/*	Display function is called only if the current
+		 *	frame has a creation time greater than the last
+		 *	displayed frame.  				*/ 
+
 		if (dlv->bundleCreationTime.seconds > lastDis->seconds)
 		{
 			display(dlv->bundleCreationTime.seconds, 
@@ -818,7 +860,7 @@ printf("from this point on, the execution of the provided display function start
 		}
 		else if (dlv->bundleCreationTime.seconds == lastDis->seconds)
 		{
-			if(dlv->bundleCreationTime.count > lastDis->count)
+			if (dlv->bundleCreationTime.count > lastDis->count)
 			{
 				display(dlv->bundleCreationTime.seconds, 
 					dlv->bundleCreationTime.count, buffer, 
@@ -832,7 +874,7 @@ printf("from this point on, the execution of the provided display function start
 		display(0, 0, error, sizeof(error));
 	}
 
-	return 0;	
+	return 0;
 }
 
 void*	recvBundles(void *args)
@@ -843,8 +885,9 @@ void*	recvBundles(void *args)
 	bss_thread_data 	*db;
 	BpTimestamp		lastDis;
 	
-	/* initialize the variable that holds the time of the 
-	 *  last displayed frame from receiving thread. */	
+	/*	Initialize the variable that holds the time of the 
+	 *	last displayed frame from receiving thread.		*/	
+
 	lastDis.seconds = 0;
 	lastDis.count = 0;
 
@@ -872,12 +915,12 @@ void*	recvBundles(void *args)
 
 	oK(_bpsap(&sap));
 	sdr = bp_get_sdr();
-	writeMemo("[i] bss is running.");
+	writeMemo("[i] bss reception thread is running.");
 	while (_running(NULL))
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
-			putErrmsg("bprecvfile bundle reception failed.", NULL);
+			putErrmsg("bss bundle reception failed.", NULL);
 			_running(&stopLoop);
 			continue;
 		}
@@ -906,19 +949,21 @@ void*	recvBundles(void *args)
 		bp_release_delivery(&dlv, 1);
 	}
 
-	/* close the files that recv thread had opened and has rd/rw access */
+	/*	Close the files that recv thread had opened and had
+	 *	rd/rw access.						*/
+
 	close(db->dat);
 	close(db->lst);
 	close(db->tbl);
 	bp_close(sap);
 	writeErrmsgMemos();
-	writeMemo("[i] Stopping bss.");
+	writeMemo("[i] Stopping bss reception thread.");
 	bp_detach();
 	bssStop();
 	return NULL;
 }
 
-/* Create/Load database - section */
+/*	Create/Load database - section		*/
 
 static int checkDb(int dat, int lst, int tbl)
 {	
@@ -926,6 +971,7 @@ static int checkDb(int dat, int lst, int tbl)
 	lstEntry 	entry;
 	tblIndex 	index;
 	char*		payload;
+	int		result;
 
 	if (_lockMutex(1) == -1)
 	{
@@ -939,7 +985,7 @@ static int checkDb(int dat, int lst, int tbl)
 
 	if (index.newestRowIndex != 0)
 	{
-		 if (getLstEntry(lst, &entry, 
+		if (getLstEntry(lst, &entry,
 			index.firstEntryOffset[index.oldestRowIndex]) < 0)
 		{
 			return -1;
@@ -950,28 +996,27 @@ static int checkDb(int dat, int lst, int tbl)
 			return -1;
 		}
 			
-		payload = calloc(data.pLen,sizeof(char));
+		payload = calloc(data.pLen, sizeof(char));
 		if (payload == NULL)
 		{
-			free(payload);
 			return -2;
 		}
 
-		if (readPayload(dat, payload, data.pLen) < 0)
-		{
-			free(payload);		/* unresolved error  */
-			return -1;
-		}
-
-		if ((index.oldestTime != entry.crtnTime.seconds) ||
-		    (entry.crtnTime.seconds != data.crtnTime.seconds) ||
-		    (entry.crtnTime.count != data.crtnTime.count))
-		{
-			free(payload);  /* database corruption detected  */
-			return -1;
-		}
-
+		result = readPayload(dat, payload, data.pLen);
 		free(payload);			
+		if (result < 0)
+		{
+			return -1;	/*	Unresolved error.	*/
+		}
+
+		if ((index.oldestTime != entry.crtnTime.seconds)
+		|| (entry.crtnTime.seconds != data.crtnTime.seconds)
+		|| (entry.crtnTime.count != data.crtnTime.count))
+		{
+			/*	Database corruption detected.		*/
+
+			return -1;
+		}
 	}
 
 	oK(_lockMutex(0));
@@ -1008,7 +1053,9 @@ int loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 		return -1;
 	}
 	
-	/* Checks if DB already exists. If not, inits *.tbl file contents. */
+	/*	Checks if DB already exists. If not, initializes the
+	 *	*.tbl file contents.					*/
+
 	tblSize = (long) lseek(*tbl, 0, SEEK_END);
 	if (tblSize < 0)
 	{
@@ -1022,7 +1069,6 @@ int loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 	else if (tblSize == 0)
 	{
 		initializeDB(&index);
-		
 		if (saveTblFile(*tbl, &index) < 0)
 		{
 			putSysErrmsg("Write to .tbl file failed", NULL);
@@ -1030,11 +1076,11 @@ int loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 		}
 	}
 	
-	/* database's integrity check*/
-	if(checkDb(*dat, *lst, *tbl) == -1)
+	/*	Database's integrity check	*/
+
+	if (checkDb(*dat, *lst, *tbl) == -1)
 	{
-		putErrmsg("Database is corrupted. Use recovery\
-				 	mode", NULL);
+		putErrmsg("Database is corrupted. Use recovery mode.", NULL);
 		close(*dat);
 		close(*lst);
 		close(*tbl);
@@ -1080,17 +1126,18 @@ int loadRDonlyDB(char* bssName, char* path)
 	_lstFile(1,lstRO);
 	_tblFile(1,tblRO);
 	
-	/* database's integrity check */
+	/*	Database's integrity check	*/
+
 	if (checkDb(_datFile(0,0),_lstFile(0,0), _tblFile(0,0)) == -1)
 	{
-		putErrmsg("Database is corrupted. Use recovery mode", NULL);
+		putErrmsg("Database is corrupted. Use recovery mode.", NULL);
 		return -1;
 	}
 
 	return 0;
 }
 
-/*database navigation - section*/
+/*	Database navigation - section	*/
 
 void updateNavInfo(bssNav *nav, int position, long datOffset, long prev, 
 		long next)
@@ -1104,23 +1151,25 @@ void updateNavInfo(bssNav *nav, int position, long datOffset, long prev,
 int findLstEntryOffset(tblIndex index, time_t time, long *entryOffset)
 {
 	/*
-	 *  this function locates the starting offset of the doubly-linked   
-	 *  list  for the specified time and returns the position (row number) 
-	 *  in which the offset was founded. 				 
-	 */
+	 *  This function locates the starting offset of the doubly-
+	 *  linked list for the specified time and returns the position
+	 *  (row number) in which the offset was found. 				 */
 	int	i;
 	int	position = -1;
 
 	for (i = 0; i < SOD; i++)
 	{
-		#if BSSLIBDEBUG
-		printf("time1: %lu - time2: %lu\n", index.time[i].seconds,u
-				time);
-		#endif
+#if BSSLIBDEBUG
+printf("oldestTime: %lu >= time: %lu\n", index.oldestTime + i, time);
+#endif
 		if ((index.oldestTime + i) >= time)
 		{
-			position=index.oldestRowIndex + i;
-			if (position >= SOD) position = position - SOD;
+			position = index.oldestRowIndex + i;
+			while (position >= SOD)
+			{
+				position = position - SOD;
+			}
+
 			*entryOffset = index.firstEntryOffset[position];
 			break;
 		}
