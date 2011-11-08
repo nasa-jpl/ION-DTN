@@ -3380,27 +3380,33 @@ static int	writeBlockExtentToFile(ImportSession *session,
 	oK(zco_file_ref_path(ltpSdr, session->blockFileRef, fileName,
 				sizeof fileName));
 
-	/*	Note: it's possible for a session to be closed,
-	 *	causing the blockFileRef to be "destroyed", while
-	 *	there are still ZCO references to the file in the
-	 *	delivery queue -- and for a late retransmitted
-	 *	segment for this session to arrive during this
-	 *	window.  In that case a new session would be created
-	 *	and a new blockFileRef for the same file would be
-	 *	created, but the file itself would still exist and
-	 *	therefore NOT be created.  Bust as soon as the last
-	 *	ZCO reference was delivered the file would be
-	 *	automatically unlinked by the destruction of the
-	 *	old file reference, so the next retransmitted
-	 *	segment for this old session would be recorded
-	 *	in a file that no longer exists -- an error.  To
-	 *	avert this, we retain the option to temporarily
-	 *	recreate that file for as long as is needed to deal
-	 *	with the leftover retransmitted segments.		*/
-
-	fd = iopen(fileName, O_WRONLY | O_CREAT, 0666);
+	fd = iopen(fileName, O_WRONLY, 0666);
 	if (fd < 0)
 	{
+		if (errno == ENOENT)
+		{
+		/*	Note: it's possible for a session to be closed,
+		 *	causing the blockFileRef to be flagged for
+		 *	destruction, while there are still references
+		 *	to that ZCO file in the delivery queue -- and
+		 *	for a late retransmitted segment for this
+		 *	session to arrive during this window.  In that
+		 *	case a new session would be created and a new
+		 *	blockFileRef for the same file would be
+		 *	created, but the file itself would still exist
+		 *	and therefore NOT be created.  But as soon as
+		 *	the last ZCO reference was delivered the file
+		 *	would be automatically unlinked by the
+		 *	destruction of the old file reference, so the
+		 *	next retransmitted segment for this old session
+		 *	would be destined for a file that no longer
+		 *	exists.  Since this data acquisition is not
+		 *	necessary (block has already been delivered),
+		 *	we simply ignore this retransmitted segment.	*/
+
+			return 0;
+		}
+
 		putSysErrmsg("Can't open block file", fileName);
 		return -1;
 	}
