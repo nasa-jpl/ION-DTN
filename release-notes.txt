@@ -85,7 +85,8 @@ Features included:
      - Before putting a bundle into the Limbo list, ipnfw now searches for
        blocked outducts and discards the bundle if none are found.
 
-- Issue #301: Fixed issue where Ctl+C no longer terminated the bpsink utility.
+- Issue #301: Fixed issue where Ctl+C no longer terminated the bpsink and
+  bprecvfile utilities.
 
 - Issue #303: Fixed issue where new all-green transmission sessions could be
   inhibited by the LTP limit on the total number of export sessions.
