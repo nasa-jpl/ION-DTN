@@ -2052,10 +2052,7 @@ void	sm_TaskDelete(int task)
 
 void	sm_Abort()
 {
-	char	string[32];
-
-	isprintf(string, sizeof string, "tt %d", taskIdSelf());
-	pseudoshell(string);
+	oK(tt(taskIdSelf()));
 	snooze(2);
 	oK(taskDelete(taskIdSelf()));
 }
@@ -2976,7 +2973,11 @@ int	pseudoshell(char *commandLine)
 	int	argc = 0;
 	int	pid;
 
-	CHKERR(commandLine);
+	if (commandLine == NULL)
+	{
+		return ERROR;
+	}
+
 	length = strlen(commandLine);
 	if (length > 255)		/*	Too long to parse.	*/
 	{

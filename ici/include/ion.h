@@ -145,7 +145,6 @@ typedef struct
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned long	xmitRate;	/*	In bytes per second.	*/
 	Scalar		aggrCapacity;	/*	Including this xmit.	*/
-	time_t		mootAfter;	/*	As from time(2).	*/
 	unsigned int	lastVisitor;
 	time_t		visitHorizon;	/*	As from time(2).	*/
 } IonXmit;
