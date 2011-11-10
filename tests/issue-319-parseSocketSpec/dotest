@@ -8,6 +8,7 @@ CONFIGFILES=" \
 ./amroc.bprc \
 ./global.ionrc \
 ./amroc.ionrc \
+./amroc.ionconfig \
 ./amroc.ionsecrc \
 ./amroc.ipnrc \
 ./amsmib.xml
