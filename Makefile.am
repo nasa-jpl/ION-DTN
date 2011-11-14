@@ -1226,6 +1226,7 @@ amsbin = \
 	amslogprt \
 	amsbenchs \
 	amsbenchr \
+	amsstop \
 	ramsgate
 
 amslib = \
@@ -1289,6 +1290,10 @@ amsbenchs_CFLAGS = $(amscflags) $(AM_CFLAGS)
 amsbenchr_SOURCES = ams/test/amsbenchr.c
 amsbenchr_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
 amsbenchr_CFLAGS = $(amscflags) $(AM_CFLAGS)
+
+amsstop_SOURCES =ams/utils/amsstop.c
+amsstop_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
+amsstop_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
