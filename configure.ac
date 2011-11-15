@@ -59,6 +59,12 @@ AC_CHECK_LIB(
 #
 AC_CHECK_HEADERS(valgrind/valgrind.h)
 
+# Control whether AMS debugging info is printed.
+# Default is that the AMS debugging info is not printed.
+# To enable AMS debugging info, use "./configure --enable-ams-debug"
+AC_ARG_ENABLE([ams-debug],
+	[  --enable-ams-debug    Enable AMS debugging info],
+	[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
 
 # Dynamically choose whether or not to instrument code for gcov code coverage
 # Default is not to instrument the code for gcov code coverage.
