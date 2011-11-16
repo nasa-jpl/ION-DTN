@@ -1340,7 +1340,7 @@ static LystElt	findSubjOfInterest(AmsSAP *sap, Module *module,
 	 *	subject, if any.					*/
 
 #if AMSDEBUG
-printf("subjects list length is %d.\n", (int) lyst_length(module->subjects));
+printf("subjects list length is %lu.\n", lyst_length(module->subjects));
 #endif
 	if (nextSubj) *nextSubj = NULL;	/*	Default.		*/
 	for (elt = lyst_first(module->subjects); elt; elt = lyst_next(elt))
@@ -1607,7 +1607,8 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 	rules = (ruleType == SUBSCRIPTION ?
 			subj->subscriptions : subj->invitations);
 #if AMSDEBUG
-printf("ruleType = %d, subj = %d, subject = %d, rules list is %d.\n",ruleType, (int) subj, subj->subject->nbr, (int) rules);
+printf("ruleType = %d, subj = %lu, subject = %d, rules list is %lu.\n",
+ruleType, (unsigned long) subj, subj->subject->nbr, (unsigned long) rules);
 #endif
 	elt = findXmitRule(sap, rules, domainRoleNbr, domainContinuumNbr,
 			domainUnitNbr, &nextRule);
@@ -1660,7 +1661,7 @@ printf("ruleType = %d, subj = %d, subject = %d, rules list is %d.\n",ruleType, (
 
 	CHKERR(elt);
 #if AMSDEBUG
-printf("...inserted rule in rules list %d...\n", (int) rules);
+printf("...inserted rule in rules list %lu...\n", (unsigned long) rules);
 #endif
 
 	/*	Load XmitRule information, including pre-determination

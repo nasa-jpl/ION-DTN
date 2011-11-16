@@ -74,7 +74,7 @@ static int	udpMamsInit(MamsInterface *tsif)
 	}
 
 #if AMSDEBUG
-printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
+printf("parsed endpoint spec to port %hu address %u.\n", portNbr, ipAddress);
 #endif
 	if (ipAddress == 0)
 	{
@@ -348,7 +348,7 @@ static int	udpParseMamsEndpoint(MamsEndpoint *ep)
 	CHKERR(ep->tsep);
 	memcpy((char *) (ep->tsep), (char *) &tsep, sizeof(UdpTsep));
 #if AMSDEBUG
-printf("parsed '%s' to port %d address %d.\n", ep->ept, tsep.portNbr,
+printf("parsed '%s' to port %hu address %u.\n", ep->ept, tsep.portNbr,
 tsep.ipAddress);
 #endif
 	return 0;
@@ -413,8 +413,8 @@ static int	udpSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 	CHKERR(msgLen >= 0);
 	tsep = (UdpTsep *) (ep->tsep);
 #if AMSDEBUG
-printf("in udpSendMams, tsep at %d has port %d, address %d.\n", (int) tsep,
-tsep->portNbr, tsep->ipAddress);
+printf("in udpSendMams, tsep at %lu has port %hu, address %u.\n",
+(unsigned long) tsep, tsep->portNbr, tsep->ipAddress);
 #endif
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{
@@ -475,7 +475,7 @@ static int	udpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	CHKERR(len <= UDPTS_MAX_MSG_LEN);
 	tsep = (UdpTsep *) (dp->tsep);
 #if AMSDEBUG
-printf("in udpSendAms, tsep is %d.\n", (int) tsep);
+printf("in udpSendAms, tsep is %lu.\n", (unsigned long) tsep);
 #endif
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{
