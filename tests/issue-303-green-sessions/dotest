@@ -60,9 +60,9 @@ COUNT=`grep "Bytes: 100000" red_driver.output | wc -l`
 if [ $COUNT -eq 1 ]
 then
 	echo "ERROR: Red transmission not blocked."
+	RETVAL=1
 else
 	echo "OK: Red transmission blocked."
-	RETVAL=1
 fi
 
 echo "Checking green_driver.output for completion message..."
