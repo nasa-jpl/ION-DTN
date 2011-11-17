@@ -101,6 +101,11 @@ Features included:
 - Issue #313: Fixed issue with overlapping bundle source/destination memory
   addresses that could cause bundle corruption on 64-bit systems.
 
+- Issue #319: Fixed issue with AMS where the parseSocketSpec() function could
+  return INADDR_ANY, which isn't an acceptable IP address within AMS.  
+  Now possible to enable  AMS debug output via the following configure flag:
+     ./configure --enable-ams-debug:  Build with AMS debugging output
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
