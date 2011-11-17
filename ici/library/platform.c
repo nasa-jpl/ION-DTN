@@ -2026,6 +2026,21 @@ void	findToken(char **cursorPtr, char **token)
 }
 
 #ifdef ION_NO_DNS
+unsigned int	getAddressOfHost()
+{
+	return 0;
+}
+#else
+unsigned int	getAddressOfHost()
+{
+	char	hostnameBuf[MAXHOSTNAMELEN + 1];
+
+	getNameOfHost(hostnameBuf, sizeof hostnameBuf);
+	return getInternetAddress(hostnameBuf);
+}
+#endif
+
+#ifdef ION_NO_DNS
 int		parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		unsigned int *ipAddress)
 {
@@ -2074,13 +2089,16 @@ int		parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 			}
 
 			i4 = getInternetAddress(hostname);
-			if (i4 < 1)		/*	Invalid hostname.	*/
+			if (i4 < 1)	/*	Invalid hostname.	*/
 			{
-			writeMemoNote("[?] Can't get IP address", hostname);
+				writeMemoNote("[?] Can't get IP address",
+						hostname);
 				if (delimiter)
 				{
-					*delimiter = ':';	/* Nondestructive parse */
+					/*	Nondestructive parse.	*/
+					*delimiter = ':';
 				}
+
 				return -1;
 			}
 			else
@@ -2114,6 +2132,7 @@ int		parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 			*portNbr = i4;
 		}
 	}
+
 	return 0;
 }
 #endif

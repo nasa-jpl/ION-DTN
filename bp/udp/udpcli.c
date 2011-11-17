@@ -199,13 +199,14 @@ int	main(int argc, char *argv[])
 		putErrmsg("Can't get IP/port for host.", hostName);
 		return -1;
 	}
+
 	if (portNbr == 0)
 	{
 		portNbr = BpUdpDefaultPortNbr;
 	}
+
 	portNbr = htons(portNbr);
 	hostNbr = htonl(hostNbr);
-
 	rtp.vduct = vduct;
 	memset((char *) &socketName, 0, sizeof socketName);
 	inetName = (struct sockaddr_in *) &socketName;

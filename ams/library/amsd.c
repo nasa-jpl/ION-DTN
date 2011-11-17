@@ -2043,6 +2043,9 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 	Venture		*venture;
 	int		start = 1;
 
+#if AMSDEBUG
+PUTS("...in run_amsd...");
+#endif
 	/*	Apply defaults as necessary.				*/
 
 	if (strcmp(mibSource, "@") == 0)
@@ -2070,6 +2073,9 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 		return -1;
 	}
 
+#if AMSDEBUG
+PUTS("...amsd loaded MIB...");
+#endif
 	memset((char *) &csState, 0, sizeof csState);
 	csState.csEndpointSpec = csEndpointSpec;
 	if (csEndpointSpec)
@@ -2114,6 +2120,9 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 
 	oK(_amsdRunning(&start));
 	isignal(SIGINT, shutDownAmsd);
+#if AMSDEBUG
+PUTS("...amsd starting main loop...");
+#endif
 	while (1)
 	{
 		if (_amsdRunning(NULL) == 0)
