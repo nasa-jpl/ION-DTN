@@ -57,7 +57,7 @@ Features included:
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
-
+ 
 - Issue #297: The ION design guide "ION.pdf" now dynamically incorporates the
   ION manpages.
   This feature requires ghostscript, psutils, groff, and groff-base.
@@ -66,45 +66,50 @@ Features included:
   ION.pdf is built automatically via the "make" command.
   To explicitly build the ION design guide document, use the following command:
      make ION.pdf
-
+ 
 - Issue #298+: Fixed build incompatibility between gcc v4.6.1 and later with 
   valgrind v3.6.1 and earlier.  If needed to compile with Valgrind support,
   ION will add -Wno-unused-but-set-variable to AM_CFLAGS.
   Valgrind inclusion can also be explicitly controlled via the following flags:
      ./configure --enable-valgrind:  Build with Valgrind support
      ./configure --disable-valgrind: Build without Valgrind support
-
-- Issue #299: ION now prints a warning when given any BAB that is not a
+ 
+- Issue #299: ION now prints a warning when given any BAB rule that is not for a
   wild-carded EID signifying "all endpoints at the indicated node".
-
+ 
 - Issue #300: Fixed several bugs in ipnfw:
      - lookupRule() function of libipnfw.c incorrectly used srcServiceNbr
        instead of srcNodeNbr.
      - Several IPN function calls in ipnadmin.c have been wrapped in
-       sdr_begin_xn/sdr_exit_xn blocks to protect against assertions.
+       sdr_begin_xn/sdr_exit_xn blocks to protect against assertion failures.
      - Before putting a bundle into the Limbo list, ipnfw now searches for
        blocked outducts and discards the bundle if none are found.
-
+ 
 - Issue #301: Fixed issue where Ctl+C no longer terminated the bpsink and
   bprecvfile utilities.
-
+ 
 - Issue #303: Fixed issue where new all-green transmission sessions could be
   inhibited by the LTP limit on the total number of export sessions.
   Since LTP green is unreliable, LTP green sessions don't need to occupy
   resources at the sender for retransmissions, so the sessions need not be
   restricted.
-
+ 
 - Issue #307: Fixed overflow bugs in the increaseScalar() and reduceScalar()
   functions.
   Added Scalar to SDNV conversion functions.
-
+ 
 - Issue #313: Fixed issue with overlapping bundle source/destination memory
   addresses that could cause bundle corruption on 64-bit systems.
 
 - Issue #319: Fixed issue with AMS where the parseSocketSpec() function could
-  return INADDR_ANY, which isn't an acceptable IP address within AMS.  
+  return INADDR_ANY, which isn't an acceptable IP address within AMS. 
   Now possible to enable  AMS debug output via the following configure flag:
      ./configure --enable-ams-debug:  Build with AMS debugging output
+
+- Issue #324: Fixed issue where LTP could accumulate block acquisision files
+  after the block acquisition had already been completed.  This was generally
+  due to unnecessary retransmitted segments that arrived late.  Since the
+  blocks had already been delivered, the ensuing files were never destroyed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.1 =
