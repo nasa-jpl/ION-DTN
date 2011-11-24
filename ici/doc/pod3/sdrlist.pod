@@ -55,15 +55,15 @@ object that somehow characterizes the list as a whole, such as a name.
 
 Returns the value of the "user data" word of I<list>, or zero on any error.
 
-=item Object sdr_list_insert(Sdr sdr, Object list, Address data, SdrListCompareFn fn, void *arg)
+=item Object sdr_list_insert(Sdr sdr, Object list, Address data, SdrListCompareFn fn, void *dataBuffer)
 
 Creates a new list element whose data value is I<data> and
 inserts that element into the list.  If I<fn> is NULL,
 the new list element is simply appended to the
 list; otherwise, the new list element is inserted
 after the last element in the list whose data value is
-"less than or equal to" the data value of the new element according 
-to the collating sequence established by I<fn>.  Returns the address
+"less than or equal to" the data value of the new element (in dataBuffer)
+according to the collating sequence established by I<fn>.  Returns the address
 of the newly created element, or zero on any error.
 
 =item Object sdr_list_insert_first(Sdr sdr, Object list, Address data)
@@ -107,9 +107,9 @@ any error.
 Returns the address of the element following/preceding I<elt>
 in that element's list, or zero on any error.
 
-=item Object sdr_list_search(Sdr sdr, Object elt, int reverse, SdrListCompareFn fn, void *arg);
+=item Object sdr_list_search(Sdr sdr, Object elt, int reverse, SdrListCompareFn fn, void *dataBuffer);
 
-Search a list for an element which matches the given argument,
+Search a list for an element whose data matches the data in I<dataBuffer>,
 starting at the indicated initial list element.  If the I<compare>
 function is non-NULL, the list is assumed to be sorted
 in the order implied by that function and the function is automatically
@@ -117,13 +117,13 @@ called once for each element of the list until it returns a value that is
 greater than or equal to zero (where zero indicates an exact match and a
 value greater than zero indicates that the list contains no matching
 element); each time I<compare> is called it is passed the Address that is
-the element's data value and the I<arg> value passed to sm_list_search().
+the element's data value and the I<dataBuffer> value passed to sm_list_search().
 If I<reverse> is non-zero, then the list is searched in reverse order
 (starting at the indicated initial list element) and the search ends
 when I<compare> returns a value that is less than or equal to zero.  If
 I<compare> is NULL, then the entire list is searched (in either
 forward or reverse order, as directed) until an element is
-located whose data value is equal to ((Address) I<arg>).  Returns
+located whose data value is equal to ((Address) I<dataBuffer>).  Returns
 the address of the matching element if one is found, 0 otherwise.
 
 =item Object sdr_list_list(Sdr sdr, Object elt)
@@ -153,18 +153,18 @@ the ordering of the list.
 When inserting elements or searching a list, the user may
 optionally provide a compare function of the form:
 
-    int user_comp_name(Sdr sdr, Address eltData, void *argData);
+    int user_comp_name(Sdr sdr, Address eltData, void *dataBuffer);
 
 When provided, this function is automatically called by the sdrlist function
 being invoked; when the function is called it is passed the content of a
 list element (I<eltData>, nominally the Address of an item in the SDR's
-heap space) and an argument, I<argData>, which is nominally the address
+heap space) and an argument, I<dataBuffer>, which is nominally the address
 in local memory of some other item in the same format.
 The user-supplied function normally compares some key values of the two
 data items and returns 0 if they are equal, an integer less
-than 0 if I<eltData>'s key value is less than that of I<argData>, and an
+than 0 if I<eltData>'s key value is less than that of I<dataBuffer>, and an
 integer greater than 0 if I<eltData>'s key value is greater than that of
-I<argData>.  These return values will produce a list in ascending order.  
+I<dataBuffer>.  These return values will produce a list in ascending order.  
 If the user desires the list to be in descending
 order, the function must reverse the signs of these return values.
 

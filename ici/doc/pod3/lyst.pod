@@ -127,6 +127,7 @@ Delete the specified element from its Lyst and deallocate its memory.
 Calls the user delete function if defined.
 
 =item LystElt lyst_first(Lyst list)
+
 =item LystElt lyst_last(Lyst list)
 
 Return a pointer to the first/last element of a Lyst.

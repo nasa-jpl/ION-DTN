@@ -413,7 +413,7 @@ Object	Sdr_list_insert_after(char *file, int line, Sdr sdrv, Object oldElt,
 }
 
 Object	Sdr_list_insert(char *file, int line, Sdr sdrv, Object list,
-		Address data, SdrListCompareFn compare, void *argData)
+		Address data, SdrListCompareFn compare, void *dataBuffer)
 {
 	SdrList		listBuffer;
 	SdrListElt	eltBuffer;
@@ -448,7 +448,7 @@ Object	Sdr_list_insert(char *file, int line, Sdr sdrv, Object list,
 	for (elt = listBuffer.last; elt != 0; elt = eltBuffer.prev)
 	{
 		sdrFetch(eltBuffer, (Address) elt);
-		if (compare(sdrv, eltBuffer.data, argData) <= 0) break;
+		if (compare(sdrv, eltBuffer.data, dataBuffer) <= 0) break;
 	}
 
 	/*	Insert into list at this point.				*/
@@ -591,7 +591,7 @@ Object	sdr_list_prev(Sdr sdrv, Object elt)
 }
 
 Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
-			SdrListCompareFn compare, void *arg)
+			SdrListCompareFn compare, void *dataBuffer)
 {
 	Object		eltAddr;
 	SdrListElt	elt;
@@ -607,7 +607,7 @@ Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
 					eltAddr = elt.prev)
 			{
 				sdrFetch(elt, (Address) eltAddr);
-				result = compare(sdrv, elt.data, arg);
+				result = compare(sdrv, elt.data, dataBuffer);
 				if (result < 0)
 				{
 					/*	past any possible match	*/
@@ -627,7 +627,7 @@ Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
 					eltAddr = elt.next)
 			{
 				sdrFetch(elt, (Address) eltAddr);
-				result = compare(sdrv, elt.data, arg);
+				result = compare(sdrv, elt.data, dataBuffer);
 				if (result > 0)
 				{
 					/*	past any possible match	*/
@@ -652,7 +652,7 @@ Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
 		for (eltAddr = fromElt; eltAddr != 0; eltAddr = elt.prev)
 		{
 			sdrFetch(elt, (Address) eltAddr);
-			if (elt.data == (Address) arg) break;
+			if (elt.data == (Address) dataBuffer) break;
 		}
 	}
 	else
@@ -660,7 +660,7 @@ Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
 		for (eltAddr = fromElt; eltAddr != 0; eltAddr = elt.next)
 		{
 			sdrFetch(elt, (Address) eltAddr);
-			if (elt.data == (Address) arg) break;
+			if (elt.data == (Address) dataBuffer) break;
 		}
 	}
 

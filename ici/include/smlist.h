@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 typedef int		(*SmListCompareFn)(PsmPartition partition,
-				PsmAddress eltData, void *argData);
+				PsmAddress eltData, void *dataBuffer);
 /*	Note: an SmListCompareFn operates by comparing some value(s)
 	derived from its first argument (which will always be the
 	sm_list_data of some shared memory list element) to some
@@ -31,7 +31,7 @@ typedef int		(*SmListCompareFn)(PsmPartition partition,
 	a pointer to an object residing in memory).			*/
 
 typedef void		(*SmListDeleteFn)(PsmPartition partition,
-				PsmAddress elt, void *argData);
+				PsmAddress elt, void *arg);
 
 #define sm_list_create(partition) \
 Sm_list_create(__FILE__, __LINE__, partition)
@@ -61,7 +61,7 @@ Sm_list_insert(__FILE__, __LINE__, partition, list, data, fn, arg)
 extern PsmAddress	Sm_list_insert(char *file, int line,
 				PsmPartition partition, PsmAddress list,
 				PsmAddress data, SmListCompareFn compare,
-				void *arg);
+				void *dataBuffer);
 #define sm_list_insert_first(partition, list, data) \
 Sm_list_insert_first(__FILE__, __LINE__, partition, list, data)
 extern PsmAddress	Sm_list_insert_first(char *file, int line,
@@ -95,7 +95,7 @@ extern PsmAddress	sm_list_last(PsmPartition partition, PsmAddress list);
 extern PsmAddress	sm_list_next(PsmPartition partition, PsmAddress elt);
 extern PsmAddress	sm_list_prev(PsmPartition partition, PsmAddress elt);
 extern PsmAddress	sm_list_search(PsmPartition partition, PsmAddress elt,
-				SmListCompareFn compare, void *arg);
+				SmListCompareFn compare, void *dataBuffer);
 
 extern PsmAddress	sm_list_list(PsmPartition partition, PsmAddress elt);
 extern PsmAddress	sm_list_data(PsmPartition partition, PsmAddress elt);
