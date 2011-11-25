@@ -218,13 +218,13 @@ Features included:
 = NOTES ON RELEASE 2.4.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-- Issue #240: Added DCCP link service adapters to ION for the purpose of 
+- *Issue #240: Added DCCP link service adapters to ION for the purpose of 
   providing congestion control without reliability guarantees, which is
   beneficial for LTP deployments over IP networks, particularly when traversing
   the Internet. The sender program is called "dccplso" and the receiver program
   is called "dccplsi".
 
-- Issue #241: Added DCCP convergence layer for BP. The sender program is called
+- *Issue #241: Added DCCP convergence layer for BP. The sender program is called
   "dccpclo" and the receiver program is called "dccpcli".
 
 - Issue #245: Added support for using the character "*" as a wildcard to remove
@@ -247,6 +247,12 @@ Features included:
 
 - Tests have been scrubbed to adopt the new security syntax enhancements
   introduced in Issue #247.
+
+* Note: Due to an immature DCCP implementation in most native OS kernels at the
+        time of release, formal DCCP testing on 64-bit systems has yet to be
+        conducted.  Currently an experimental kernel containing several DCCP
+        fixes must be built to achieve acceptable performance.  These fixes are
+        expected to become standard in the native linux 3.1 kernel.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.0 =
@@ -397,9 +403,11 @@ Features included:
 
 - Modified custodian EID generated from dtn://hostname to dtn://hostname.dtn
 
-- Modified the loopback and ion-dtn2 configuration files for the new command syntax.
+- Modified the loopback and ion-dtn2 configuration files for the new command
+  syntax.
 
-- Added BSP implementation using "stub" versions of hmac and sha1 for public release.
+- Added BSP implementation using "stub" versions of hmac and sha1 for public
+  release.
 
 - Added CFDP implementation.
 
@@ -409,8 +417,8 @@ Features included:
 
 - Added assertions.
 
-- Bug fixes in the TCP convergence layer, particularly in the interest of interoperability
-  with dtn2.
+- Bug fixes in the TCP convergence layer, particularly in the interest of
+  interoperability with dtn2.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.0.0 =
@@ -443,7 +451,8 @@ Features included:
 
 - Documentation updates.
 
-- Various testing applications in earlier releases are split from the ion release.
+- Various testing applications in earlier releases are split from the ion
+  release.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 1.1.0 =
@@ -467,10 +476,10 @@ Features included:
 - Updates to various user-contrib programs; added a bpmon_query program to work
   with SNMP.
 
-- Revise LTP to use randomly selected session numbers rather than recycling small
-  session numbers - prevent data loss and corruption due to application of late-
-  arriving segments to sessions that are re-using the session numbers of earlier
-  sessions.
+- Revise LTP to use randomly selected session numbers rather than recycling
+  small session numbers - prevent data loss and corruption due to application of
+  late-arriving segments to sessions that are re-using the session numbers of
+  earlier sessions.
 
 - added the bplive program.
 
@@ -493,9 +502,9 @@ Features included:
 
 - added new ION.pdf to the in-development release
 
-- overhauled ionstart, ionscript, ionstart.awk to account for the dtnadmin need for
-  a node name as well as the bpadmin/dtnadmin/ipnadmin startup order bug found by
-  Andrew.Jenkins@colorado.edu
+- overhauled ionstart, ionscript, ionstart.awk to account for the dtnadmin need
+  for a node name as well as the bpadmin/dtnadmin/ipnadmin startup order bug
+  found by Andrew.Jenkins@colorado.edu
 
 - Revise routing to match applicable backlog (based on bundle's priority; not
   necessarily total backlog) against aggregate capacity when determining route
@@ -585,5 +594,3 @@ Features included:
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 - Initial code released for review.
-
-% vim: ft=txt2tags
