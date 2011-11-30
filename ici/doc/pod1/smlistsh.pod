@@ -128,4 +128,4 @@ Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
 
 =head1 SEE ALSO
 
-psm(3)
+smlist(3)

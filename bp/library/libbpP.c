@@ -20,6 +20,7 @@
 #include "bpP.h"
 #include "bei.h"
 #include "sdrhash.h"
+#include "smrbt.h"
 
 #define	BP_VERSION		6
 
@@ -737,6 +738,62 @@ static char	*_bpvdbName()
 	return "bpvdb";
 }
 
+int	orderBpEvents(PsmPartition partition, PsmAddress nodeData,
+		void *dataBuffer)
+{
+	Sdr	sdr = getIonsdr();
+	BpEvent	*argEvent;
+	Object	elt;
+	BpEvent	event;
+
+	if (partition == NULL || nodeData == 0 || dataBuffer == 0)
+	{
+		putErrmsg("Error calling smrbt BP timeline compare function.",
+				NULL);
+		return 0;
+	}
+
+	argEvent = (BpEvent *) dataBuffer;
+	elt = (Object) nodeData;
+	sdr_read(sdr, (char *) &event, sdr_list_data(sdr, elt),
+			sizeof(BpEvent));
+	if (event.time < argEvent->time)
+	{
+		return -1;
+	}
+
+	if (event.time > argEvent->time)
+	{
+		return 1;
+	}
+
+	/*	Same time.						*/
+
+	if (event.ref < argEvent->ref)
+	{
+		return -1;
+	}
+
+	if (event.ref > argEvent->ref)
+	{
+		return 1;
+	}
+
+	/*	Same object.						*/
+
+	if (event.type < argEvent->type)
+	{
+		return -1;
+	}
+
+	if (event.type > argEvent->type)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
 static BpVdb	*_bpvdb(char **name)
 {
 	static BpVdb	*vdb = NULL;
@@ -746,6 +803,7 @@ static BpVdb	*_bpvdb(char **name)
 	Sdr		sdr;
 	Object		sdrElt;
 	Object		addr;
+	BpEvent		event;
 
 	if (name)
 	{
@@ -794,6 +852,7 @@ static BpVdb	*_bpvdb(char **name)
 		if ((vdb->schemes = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
+		|| (vdb->timeline = sm_rbt_create(wm)) == 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
 			sdr_exit_xn(sdr);
@@ -824,6 +883,22 @@ static BpVdb	*_bpvdb(char **name)
 			{
 				sdr_exit_xn(sdr);
 				putErrmsg("Can't raise all protocols.", NULL);
+				return NULL;
+			}
+		}
+
+		/*	Raise the timeline.				*/
+
+		for (sdrElt = sdr_list_first(sdr, (_bpConstants())->timeline);
+				sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
+		{
+			addr = sdr_list_data(sdr, sdrElt);
+			sdr_read(sdr, (char *) &event, addr, sizeof(BpEvent));
+			if (sm_rbt_insert(wm, vdb->timeline, (PsmAddress)
+					sdrElt, orderBpEvents, &event) == 0)
+			{
+				sdr_exit_xn(sdr);
+				putErrmsg("Can't stage event timeline.", NULL);
 				return NULL;
 			}
 		}
@@ -1999,6 +2074,21 @@ static void	purgeXmitRefs(Bundle *bundle)
 	}
 }
 
+void	destroyBpTimelineEvent(Object timelineElt)
+{
+	Sdr	sdr = getIonsdr();
+	Object	eventObj;
+	BpEvent	event;
+
+	CHKVOID(timelineElt);
+	eventObj = sdr_list_data(sdr, timelineElt);
+	sdr_read(sdr, (char *) &event, eventObj, sizeof(BpEvent));
+	sm_rbt_delete(getIonwm(), (getBpVdb())->timeline, orderBpEvents,
+			&event, NULL, NULL);
+	sdr_free(sdr, eventObj);
+	sdr_list_delete(sdr, timelineElt, NULL, NULL);
+}
+
 static void	purgeStationsStack(Bundle *bundle)
 {
 	Sdr	bpSdr = getIonsdr();
@@ -2132,21 +2222,18 @@ incomplete bundle.", NULL);
 
 	/*	Remove bundle from timeline.				*/
 
-	sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.timelineElt));
-	sdr_list_delete(bpSdr, bundle.timelineElt, NULL, NULL);
+	destroyBpTimelineEvent(bundle.timelineElt);
 
 	/*	Turn off automatic re-forwarding.			*/
 
 	if (bundle.overdueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 	}
 
 	if (bundle.ctDueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 	}
 
 	if (bundle.inTransitEntry)
@@ -3773,13 +3860,24 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 
 Object	insertBpTimelineEvent(BpEvent *newEvent)
 {
-	Sdr	bpSdr = getIonsdr();
-	BpDB	*bpConstants = _bpConstants();
-	Address	addr;
-	Object	elt;
-		OBJ_POINTER(BpEvent, event);
+	PsmPartition	wm = getIonwm();
+	PsmAddress	timeline = (getBpVdb())->timeline;
+	PsmAddress	node;
+	PsmAddress	successor;
+	Sdr		bpSdr = getIonsdr();
+	BpDB		*bpConstants = _bpConstants();
+	Address		addr;
+	Object		elt;
 
 	CHKZERO(ionLocked());
+	node = sm_rbt_search(wm, timeline, orderBpEvents, newEvent, &successor);
+	if (node != 0)
+	{
+		/*	Event already exists; return its list elt.	*/
+
+		return sm_rbt_data(wm, node);
+	}
+
 	addr = sdr_malloc(bpSdr, sizeof(BpEvent));
 	if (addr == 0)
 	{
@@ -3788,18 +3886,27 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	}
 
 	sdr_write(bpSdr, addr, (char *) newEvent, sizeof(BpEvent));
-	for (elt = sdr_list_last(bpSdr, bpConstants->timeline); elt;
-			elt = sdr_list_prev(bpSdr, elt))
+	if (successor)
 	{
-		GET_OBJ_POINTER(bpSdr, BpEvent, event,
-				sdr_list_data(bpSdr, elt));
-		if (event->time <= newEvent->time)
-		{
-			return sdr_list_insert_after(bpSdr, elt, addr);
-		}
+		elt = sdr_list_insert_before(bpSdr,
+				(Object) sm_rbt_data(wm, successor), addr);
+	}
+	else
+	{
+		elt = sdr_list_insert_last(bpSdr, bpConstants->timeline, addr);
 	}
 
-	return sdr_list_insert_first(bpSdr, bpConstants->timeline, addr);
+	if (elt == 0)
+	{
+		return 0;	/*	No room for list element.	*/
+	}
+
+	if (sm_rbt_insert(wm, timeline, elt, orderBpEvents, newEvent) == 0)
+	{
+		return 0;	/*	No room for lookup tree node.	*/
+	}
+
+	return elt;
 }
 
 /*	*	*	Bundle origination functions	*	*	*/
@@ -8226,15 +8333,13 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 		/*	Bundle was un-queued before "overdue"
 	 	*	alarm went off, so disable the alarm.		*/
 
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
 	}
 
 	if (bundle.ctDueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 		bundle.ctDueElt = 0;
 	}
 
@@ -8449,8 +8554,7 @@ static void	releaseCustody(Object bundleAddr, Bundle *bundle)
 		/*	Bundle was transmitted before "CT due" alarm
 		 *	went off, so disable the alarm.			*/
 
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle->ctDueElt));
-		sdr_list_delete(bpSdr, bundle->ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle->ctDueElt);
 		bundle->ctDueElt = 0;
 	}
 
@@ -8912,8 +9016,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		/*	Bundle was transmitted before "overdue"
 		 *	alarm went off, so disable the alarm.		*/
 
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
 	}
 
@@ -9556,8 +9659,7 @@ int	bpMemo(Object bundleObj, int interval)
 	if (bundle.ctDueElt)
 	{
 		writeMemo("Revising a custody acceptance due timer.");
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 	}
 
 	bundle.ctDueElt = insertBpTimelineEvent(&event);
@@ -9851,15 +9953,13 @@ int	bpReforwardBundle(Object bundleAddr)
 	purgeXmitRefs(&bundle);
 	if (bundle.overdueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
 	}
 
 	if (bundle.ctDueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 		bundle.ctDueElt = 0;
 	}
 

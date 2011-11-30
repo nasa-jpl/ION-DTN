@@ -98,8 +98,7 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 			break;		/*	Out of switch.		*/
 
 		default:		/*	Spurious event; erase.	*/
-			sdr_free(sdr, eventObj);
-			sdr_list_delete(sdr, elt, NULL, NULL);
+			destroyBpTimelineEvent(elt);
 			result = 0;	/*	Event is ignored.	*/
 		}
 

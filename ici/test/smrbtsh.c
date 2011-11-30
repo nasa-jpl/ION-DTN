@@ -11,10 +11,6 @@
 
 #define	TEST_MEM_SIZE	(1000000)
 
-#ifndef SMRBT_DEBUG
-#define	SMRBT_DEBUG	1
-#endif
-
 #if SMRBT_DEBUG
 extern int	printTree(PsmPartition partition, PsmAddress rbt);
 extern int	treeBroken(PsmPartition partition, PsmAddress rbt);
@@ -47,7 +43,7 @@ static void	printUsage()
 	PUTS("\t?\tHelp");
 	PUTS("\ts\tSeed");
 	PUTS("\t   s [<seed value for rand(); default is current time>]");
-	PUTS("\ti\tInsert");
+	PUTS("\tr\tRandom");
 	PUTS("\t   r [<nbr of random values to insert into tree; default 1>]");
 	PUTS("\ti\tInsert");
 	PUTS("\t   i <value to insert into tree>");
@@ -83,17 +79,17 @@ static void	destroyNode(PsmPartition partition, PsmAddress nodeData,
 static int	processLine(PsmPartition partition, PsmAddress rbt, char *line,
 			int lineLength)
 {
-	int		tokenCount;
-	char		*cursor;
-	int		i;
-	char		*tokens[9];
-	unsigned int	seed;
-	unsigned long	data;
-	unsigned int	count;
-	PsmAddress	node;
-	PsmAddress	next;
-	unsigned long	prevdata;
-	char		*memo = "";
+	int			tokenCount;
+	char			*cursor;
+	int			i;
+	char			*tokens[9];
+	static unsigned int	seed;
+	unsigned long		data;
+	unsigned int		count;
+	PsmAddress		node;
+	PsmAddress		next;
+	unsigned long		prevdata;
+	char			*memo = "";
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -243,7 +239,7 @@ if (treeBroken(partition, rbt)) PUTS("Tree is broken.");
 				}
 				else
 				{
-					sm_rbt_delete(partition, node,
+					sm_rbt_delete(partition, rbt,
 							compareNodes, &data,
 							destroyNode, NULL);
 					PUTS("Node deleted.");
@@ -430,6 +426,7 @@ static int	run_smrbtsh(char *cmdFileName)
 	PUTS("Stopping smrbtsh.");
 	sm_rbt_destroy(partition, rbt, destroyNode, NULL);
 	sm_ShmDetach((char *) allocation);
+	sm_ShmDestroy(partitionId);
 	return 0;
 }
 

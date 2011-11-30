@@ -555,6 +555,7 @@ typedef struct
 	PsmAddress	cbheScheme;	/*	A single VScheme.	*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
+	PsmAddress	timeline;	/*	SM RB tree: list xref.	*/
 
 	/*	For monitoring network performance.			*/
 
@@ -1148,6 +1149,7 @@ extern int		bpBlockOutduct(char *protocolName, char *ductName);
 extern int		bpUnblockOutduct(char *protocolName, char *ductName);
 
 extern Object		insertBpTimelineEvent(BpEvent *newEvent);
+extern void		destroyBpTimelineEvent(Object timelineElt);
 
 extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned long fragmentOffset,

@@ -21,6 +21,10 @@
 
 #include "psm.h"
 
+#ifndef SMRBT_DEBUG
+#define SMRBT_DEBUG	0
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -64,11 +68,11 @@ extern PsmAddress	Sm_rbt_insert(char *file, int line,
 				PsmAddress data, SmRbtCompareFn compare,
 				void *dataBuffer);
 
-#define sm_rbt_delete(partition, node, compare, dataBuffer, deleteFn, \
-argument) Sm_rbt_delete(__FILE__, __LINE__, partition, node, compare, \
+#define sm_rbt_delete(partition, rbt, compare, dataBuffer, deleteFn, \
+argument) Sm_rbt_delete(__FILE__, __LINE__, partition, rbt, compare, \
 dataBuffer, deleteFn, argument)
 extern void		Sm_rbt_delete(char *file, int line,
-				PsmPartition partition, PsmAddress node,
+				PsmPartition partition, PsmAddress rbt,
 				SmRbtCompareFn compare, void *dataBuffer,
 				SmRbtDeleteFn deleteFn, void *argument);
 
@@ -78,13 +82,13 @@ extern PsmAddress	sm_rbt_search(PsmPartition partition, PsmAddress rbt,
 
 extern PsmAddress	sm_rbt_first(PsmPartition partition, PsmAddress rbt);
 extern PsmAddress	sm_rbt_last(PsmPartition partition, PsmAddress rbt);
-extern PsmAddress	sm_rbt_next(PsmPartition partition, PsmAddress node);
-extern PsmAddress	sm_rbt_prev(PsmPartition partition, PsmAddress node);
+#define sm_rbt_prev(partition, node) Sm_rbt_traverse(partition, node, 0)
+#define sm_rbt_next(partition, node) Sm_rbt_traverse(partition, node, 1)
+extern PsmAddress	Sm_rbt_traverse(PsmPartition partition,
+				PsmAddress node, int direction);
 
 extern PsmAddress	sm_rbt_rbt(PsmPartition partition, PsmAddress node);
 extern PsmAddress	sm_rbt_data(PsmPartition partition, PsmAddress node);
-extern PsmAddress	sm_rbt_data_set(PsmPartition partition, PsmAddress node,
-				PsmAddress data);
 #ifdef __cplusplus
 }
 #endif

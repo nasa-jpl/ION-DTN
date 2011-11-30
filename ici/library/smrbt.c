@@ -17,16 +17,10 @@
 #include "platform.h"
 #include "smrbt.h"
 
-#ifndef	SMRBT_DEBUG
-#define	SMRBT_DEBUG	1
-#endif
-
 /*		Private definitions of shared-memory rbt structures.	*/
 
 #define	LEFT		0
 #define	RIGHT		1
-
-#define	MAX_LEVELS	100
 
 typedef struct
 {
@@ -62,6 +56,19 @@ static void	eraseTreeNode(SmRbtNode *node)
 	node->child[RIGHT] = 0;
 	node->data = 0;
 	node->isRed = 0;
+}
+
+static int	nodeIsRed(PsmPartition partition, PsmAddress node)
+{
+	SmRbtNode	*nodePtr;
+
+	if (node == 0)
+	{
+		return 0;
+	}
+
+	nodePtr = (SmRbtNode *) psp(partition, node);
+	return nodePtr->isRed;
 }
 
 static int	lockSmrbt(SmRbt *rbt)
@@ -133,7 +140,7 @@ void	Sm_rbt_destroy(char *file, int line, PsmPartition partition,
 	rbtPtr = (SmRbt *) psp(partition, rbt);
 	node = rbtPtr->root;
 	nodePtr = (SmRbtNode *) psp(partition, node);
-	while (1)
+	while (node)
 	{
 		/*	If node has a left subtree, descend into it.	*/
 
@@ -428,37 +435,31 @@ PsmAddress	Sm_rbt_insert(char *file, int line, PsmPartition partition,
 
 			/*	Check for need to flip colors.		*/
 
-			if (nodePtr->child[LEFT] && nodePtr->child[RIGHT])
+			if (nodeIsRed(partition, nodePtr->child[LEFT])
+			&& nodeIsRed(partition, nodePtr->child[RIGHT]))
 			{
+				/*	The two children are RED, so
+				 *	make current node RED and
+				 *	children BLACK.			*/
+
+				nodePtr->isRed = 1;
 				childPtr[LEFT] = (SmRbtNode *)
 						psp(partition,
 						nodePtr->child[LEFT]);
+				childPtr[LEFT]->isRed = 0;
 				childPtr[RIGHT] = (SmRbtNode *)
 						psp(partition,
 						nodePtr->child[RIGHT]);
-				if (childPtr[LEFT]->isRed
-				&& childPtr[RIGHT]->isRed)
-				{
-					/*	The two children are
-					 *	RED, so make current
-					 *	node RED and children
-					 *	BLACK.			*/
-
-					nodePtr->isRed = 1;
-					childPtr[LEFT]->isRed = 0;
-					childPtr[RIGHT]->isRed = 0;
-				}
+				childPtr[RIGHT]->isRed = 0;
 			}
 		}
 
 		/*	Now look for a newly introduced red violation;
-		 *	if present, fix it.  Note that there's no need
-		 *	to check for a violation if this is the root
-		 *	node, because the parent is the dummy root,
-		 *	which is black.  Checking for non-zero parent
-		 *	covers this case.				*/
+		 *	if present, fix it.  Note that there can't be
+		 *	a violation if this is the root node, because
+		 *	the parent is the dummy root, which is black.	*/
 
-		if (parent != 0 && parentPtr->isRed && nodePtr->isRed)
+		if (nodeIsRed(partition, parent) && nodeIsRed(partition, node))
 		{
 			if (greatgrandparentPtr->child[RIGHT] == grandparent)
 			{
@@ -527,27 +528,19 @@ PsmAddress	Sm_rbt_insert(char *file, int line, PsmPartition partition,
 	/*	Make sure the root node is black.			*/
 
 	nodePtr = (SmRbtNode *) psp(partition, rbtPtr->root);
-	if (nodePtr->isRed)
-	{
-		nodePtr->isRed = 0;
-	}
-
+	nodePtr->isRed = 0;
 	unlockSmrbt(rbtPtr);
 	return node;
 }
 
 void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
-		PsmAddress target, SmRbtCompareFn compare, void *dataBuffer,
+		PsmAddress rbt, SmRbtCompareFn compare, void *dataBuffer,
 		SmRbtDeleteFn deleteFn, void *arg)
 {
 	SmRbtNode	dummyRootBuffer = { 0, 0, {0, 0}, 0, 0 };
 				/*	Dummy root is a trick; it
 				 *	lets us avoid special cases.	*/
-	SmRbtNode	*targetPtr;
-	PsmAddress	rbt;
 	SmRbt		*rbtPtr;
-	SmRbtNode	*childPtr[2];
-	int		result;
 	PsmAddress	node;			//	q
 	SmRbtNode	*nodePtr;		//	q
 	PsmAddress	sibling;		//	s
@@ -558,20 +551,21 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 	SmRbtNode	*stepparentPtr;		//	p
 	PsmAddress	grandparent;		//	g
 	SmRbtNode	*grandparentPtr;	//	g
+	PsmAddress	target;			//	f
+	SmRbtNode	*targetPtr;		//	f
 	int		direction;		//	dir
+	int		otherDirection;		//	!dir
 	int		prevDirection;		//	last
+	int		prevOtherDirection;	//	!last
 	int		subtree;		//	dir2
-	int		otherDirection;
+	SmRbtNode	*childPtr[2];
+	int		result;
 	int		i;
 	int		j;
 
 	CHKVOID(partition);
-	CHKVOID(compare);
-	CHKVOID(target);
-	targetPtr = (SmRbtNode *) psp(partition, target);
-	CHKVOID(targetPtr);
-	rbt = targetPtr->rbt;
 	CHKVOID(rbt);
+	CHKVOID(compare);
 	rbtPtr = (SmRbt *) psp(partition, rbt);
 	CHKVOID(rbtPtr);
 	CHKVOID(rbtPtr->length > 0);
@@ -582,7 +576,7 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 	}
 
 	/*	We descend the tree, searching for the node that is
-	 *	to be deleted (even though we know its address)
+	 *	to be deleted (rather than requiring its address),
 	 *	because we want to ensure that the node has been
 	 *	recolored red -- if necessary -- by the time we
 	 *	reach it.  This is because deleting a red node never
@@ -592,7 +586,12 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 	 *	node, rotating as necessary to ensure that the target
 	 *	node is transformed into a red leaf.
 	 *
-	 *	Note: this searching strategy is the reason we need
+	 *	Note: a special case is when the node that is to be
+	 *	deleted is the only node in the tree, hence the root.
+	 *	In this case (only), we can delete a black node
+	 *	without violating any red-black tree rules.
+	 *
+	 *	Note 2: this searching strategy is the reason we need
 	 *	the compare function provided on node deletion just
 	 *	as on node insertion.					*/
 
@@ -656,19 +655,10 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 			}
 		}
  
-		if (nodePtr->isRed)
+ 		if (nodeIsRed(partition, node)
+		|| nodeIsRed(partition, nodePtr->child[direction]))
 		{
 			continue;	/*	No recolor needed.	*/
-		}
-
-		if (nodePtr->child[direction])
-		{
-			childPtr[direction] = (SmRbtNode *) psp(partition,
-					nodePtr->child[direction]);
-			if (childPtr[direction]->isRed)
-			{
-				continue;	/*	No recolor.	*/
-			}
 		}
 
 		/*	Neither the node nor its child (if any) in
@@ -676,35 +666,30 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 		 *	we must introduce some redness.			*/
 
 		otherDirection = 1 - direction;
-		if (nodePtr->child[otherDirection])
+		if (nodeIsRed(partition, nodePtr->child[otherDirection]))
 		{
+			/*	This is the "red sibling" case.  Rotate
+			 *	current node down/red.			*/
+
 			childPtr[otherDirection] = (SmRbtNode *)
 				psp(partition, nodePtr->child[otherDirection]);
-			if (childPtr[otherDirection]->isRed)
-			{
-				/*	This is the "red sibling" case.
-				 *	Rotate current node down/red.	*/
+			parentPtr->child[prevDirection] =
+				rotateOnce(partition, node, direction);
 
-				parentPtr->child[prevDirection] =
-					rotateOnce(partition, node, direction);
+			/*	The new root of the subtree whose root
+			 *	before rotation was "node" [the red
+			 *	sibling] must be noted as "parent" in
+			 *	place of the original parent of "node",
+			 *	because it is now the actual parent
+			 *	of "node".				*/
 
-				/*	The new root of the subtree
-				 *	whose root before rotation
-				 *	was "node" [the red sibling]
-				 *	must be noted as "parent" in
-				 *	place of the original parent
-				 *	of "node", because it is now
-				 *	the actual parent of "node".	*/
+			parent = parentPtr->child[prevDirection];
+			parentPtr = (SmRbtNode *) psp(partition, parent);
 
-				parent = parentPtr->child[prevDirection];
-				parentPtr = (SmRbtNode *) psp(partition,
-						parent);
+			/*	We've introduced the necessary redness;
+			 *	time to descend again.			*/
 
-				/*	We've introduced the necessary
-				 *	redness; time to descend again.	*/
-
-				continue;
-			}
+			continue;
 		}
 
 		/*	Node and all of its children (if any) are now
@@ -713,8 +698,8 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 		 *	Remaining cases concern the children (if any)
 		 *	of the sibling (if any) of the current node.	*/
 
-		otherDirection = 1 - prevDirection;
-		sibling = parentPtr->child[otherDirection];
+		prevOtherDirection = 1 - prevDirection;
+		sibling = parentPtr->child[prevOtherDirection];
 		if (sibling == 0)	/*	(True of tree root.)	*/
 		{
 			continue;	/*	No sibling, no problem.	*/
@@ -731,38 +716,23 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 		 *	be NULL.					*/
 
 		siblingPtr = (SmRbtNode *) psp(partition, sibling);
-		if (siblingPtr->child[LEFT])
-		{
-			childPtr[LEFT] = (SmRbtNode *) psp(partition,
-					siblingPtr->child[LEFT]);
-		}
-
-		if (siblingPtr->child[RIGHT])
-		{
-			childPtr[RIGHT] = (SmRbtNode *) psp(partition,
-					siblingPtr->child[RIGHT]);
-		}
 
 		/*	Check for need to flip colors.  NOT TREE ROOT.	*/
 
-		if (siblingPtr->child[LEFT] && siblingPtr->child[RIGHT])
+		if (nodeIsRed(partition, siblingPtr->child[LEFT]) == 0
+		&& nodeIsRed(partition, siblingPtr->child[RIGHT]) == 0)
 		{
-			if (childPtr[LEFT]->isRed == 0
-			&& childPtr[RIGHT]->isRed == 0)
-			{
-				/*	Sibling's two children are
-				 *	both BLACK, so make current
-				 *	node and its sibling RED and
-				 *	their parent BLACK.		*/
+			/*	Sibling has no red children, so it's
+			 *	safe to make both the current node and
+			 *	its sibling RED and their parent BLACK.	*/
 
-				nodePtr->isRed = 1;
-				siblingPtr->isRed = 1;
-				parentPtr->isRed = 0;
-				continue;
-			}
+			parentPtr->isRed = 0;
+			siblingPtr->isRed = 1;
+			nodePtr->isRed = 1;
+			continue;
 		}
 
-		if (grandparentPtr->child[RIGHT] == parent)
+		if (parent == grandparentPtr->child[RIGHT])
 		{
 			subtree = RIGHT;
 		}
@@ -777,16 +747,15 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 		 *	known to have two children -- "node" and
 		 *	"sibling".					*/
 
-		if (siblingPtr->child[prevDirection]
-		&& childPtr[prevDirection]->isRed)
+		if (nodeIsRed(partition, siblingPtr->child[prevDirection]))
 		{
 			grandparentPtr->child[subtree] =
 				rotateTwice(partition, parent, prevDirection);
 		}
 		else
 		{
-			if (siblingPtr->child[otherDirection]
-			&& childPtr[otherDirection]->isRed)
+			if (nodeIsRed(partition,
+					siblingPtr->child[prevOtherDirection]))
 			{
 				grandparentPtr->child[subtree] =
 				rotateOnce(partition, parent, prevDirection);
@@ -798,44 +767,26 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 
 		stepparent = grandparentPtr->child[subtree];
 		stepparentPtr = (SmRbtNode *) psp(partition, stepparent);
-		if (stepparentPtr->isRed == 0)
-		{
-			stepparentPtr->isRed = 1;
-		}
-
-		if (nodePtr->isRed == 0)
-		{
-			nodePtr->isRed = 1;
-		}
-
-		if (stepparentPtr->child[LEFT])
-		{
-			childPtr[LEFT] = (SmRbtNode *) psp(partition,
-					stepparentPtr->child[LEFT]);
-			if (childPtr[LEFT]->isRed)
-			{
-				childPtr[LEFT]->isRed = 0;
-			}
-		}
-
-		if (stepparentPtr->child[RIGHT])
-		{
-			childPtr[RIGHT] = (SmRbtNode *) psp(partition,
-					stepparentPtr->child[RIGHT]);
-			if (childPtr[RIGHT]->isRed)
-			{
-				childPtr[RIGHT]->isRed = 0;
-			}
-		}
+		stepparentPtr->isRed = 1;
+		nodePtr->isRed = 1;
+		childPtr[LEFT] = (SmRbtNode *) psp(partition,
+				stepparentPtr->child[LEFT]);
+		childPtr[LEFT]->isRed = 0;
+		childPtr[RIGHT] = (SmRbtNode *) psp(partition,
+				stepparentPtr->child[RIGHT]);
+		childPtr[RIGHT]->isRed = 0;
 	}
  
-	/*	The current node is not the one we're trying to delete
-	 *	but rather the inorder predecessor of the node we're
-	 *	trying to delete.  The data that's in this predecessor
-	 *	is *retained* by copying it into the tree location that
-	 *	is current occupied by the target node -- which
-	 *	effectively deletes that node.  Then the inorder
-	 *	predecessor node itself is destroyed.			*/
+	/*	At this point the current node is NOT the one we're
+	 *	trying to delete.  It is the inorder predecessor of
+	 *	the node we're trying to delete -- a node whose
+	 *	content we want to retain.  The data that's in this
+	 *	predecessor is retained by copying it into the 
+	 *	target node -- which effectively deletes the target
+	 *	node without actually removing it from the tree.
+	 *	Then the current node (the inorder predecessor of
+	 *	the target node, which is now redundant) is removed
+	 *	from the tree.						*/
 
 	if (target)
 	{
@@ -885,10 +836,7 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 	if (rbtPtr->root)
 	{
 		nodePtr = (SmRbtNode *) psp(partition, rbtPtr->root);
-		if (nodePtr->isRed)
-		{
-			nodePtr->isRed = 0;
-		}
+		nodePtr->isRed = 0;
 	}
 
 	unlockSmrbt(rbtPtr);
@@ -969,20 +917,9 @@ static PsmAddress	traverseRbt(PsmPartition partition,
 {
 	int		otherDirection = 1 - direction;
 	SmRbtNode	*nodePtr;
-	SmRbt		*rbtPtr;
 	PsmAddress	next;
 
-	CHKZERO(partition);
-	CHKZERO(fromNode);
 	nodePtr = (SmRbtNode *) psp(partition, fromNode);
-	CHKZERO(nodePtr);
-	rbtPtr = (SmRbt *) psp(partition, nodePtr->rbt);
-	CHKZERO(rbtPtr);
-	if (lockSmrbt(rbtPtr) == ERROR)
-	{
-		return 0;
-	}
-
 	if (nodePtr->child[direction] == 0)
 	{
 		/*	No next neighbor in this direction in the
@@ -1025,7 +962,6 @@ static PsmAddress	traverseRbt(PsmPartition partition,
 			next = nodePtr->parent;
 		}
 
-		unlockSmrbt(rbtPtr);
 		return next;
 	}
 
@@ -1047,18 +983,35 @@ static PsmAddress	traverseRbt(PsmPartition partition,
 		nodePtr = (SmRbtNode *) psp(partition, next);
 	}
 
-	unlockSmrbt(rbtPtr);
 	return next;
 }
 
-PsmAddress	sm_rbt_next(PsmPartition partition, PsmAddress fromNode)
+PsmAddress	Sm_rbt_traverse(PsmPartition partition, PsmAddress fromNode,
+			int direction)
 {
-	return traverseRbt(partition, fromNode, RIGHT);
-}
+	SmRbtNode	*nodePtr;
+	SmRbt		*rbtPtr;
+	int		nextNode;
 
-PsmAddress	sm_rbt_prev(PsmPartition partition, PsmAddress fromNode)
-{
-	return traverseRbt(partition, fromNode, LEFT);
+	CHKZERO(partition);
+	CHKZERO(fromNode);
+	nodePtr = (SmRbtNode *) psp(partition, fromNode);
+	CHKZERO(nodePtr);
+	rbtPtr = (SmRbt *) psp(partition, nodePtr->rbt);
+	CHKZERO(rbtPtr);
+	if (lockSmrbt(rbtPtr) == ERROR)
+	{
+		return 0;
+	}
+
+	if (direction != LEFT)
+	{
+		direction = RIGHT;
+	}
+
+	nextNode = traverseRbt(partition, fromNode, direction);
+	unlockSmrbt(rbtPtr);
+	return nextNode;
 }
 
 PsmAddress	sm_rbt_search(PsmPartition partition, PsmAddress rbt,
@@ -1067,7 +1020,8 @@ PsmAddress	sm_rbt_search(PsmPartition partition, PsmAddress rbt,
 {
 	SmRbt		*rbtPtr;
 	PsmAddress	node;
-	PsmAddress	nextNode;
+	PsmAddress	prevNode;
+	int		direction;
 	SmRbtNode	*nodePtr;
 	int		result;
 
@@ -1082,35 +1036,49 @@ PsmAddress	sm_rbt_search(PsmPartition partition, PsmAddress rbt,
 	}
 
 	node = rbtPtr->root;
-	nextNode = 0;
+	prevNode = 0;
 	while (node)
 	{
 		nodePtr = (SmRbtNode *) psp(partition, node);
 		result = compare(partition, nodePtr->data, dataBuffer);
+		if (result == 0)	/*	Found the node.		*/
+		{
+			break;
+		}
+
+		prevNode = node;
 		if (result < 0)	/*	Haven't reached that node yet.	*/
 		{
-			node = nodePtr->child[RIGHT];
-			nextNode = node;
-			continue;
+			direction = RIGHT;
 		}
-
-		if (result > 0)	/*	Need an earlier node.		*/
+		else		/*	Seeking an earlier node.	*/
 		{
-			nextNode = node;
-			node = nodePtr->child[LEFT];
-			continue;
+			direction = LEFT;
 		}
 
-		/*	Found the node we were searching for.		*/
-
-		break;
+		node = nodePtr->child[direction];
 	}
 
 	if (successor)
 	{
 		if (node == 0)	/*	Didn't find it; note position.	*/
 		{
-			*successor = nextNode;
+			if (direction == LEFT)
+			{
+				*successor = prevNode;
+			}
+			else
+			{
+				if (prevNode == 0)
+				{
+					*successor = 0;
+				}
+				else
+				{
+					*successor = traverseRbt(partition,
+							prevNode, RIGHT);
+				}
+			}
 		}
 		else		/*	Successor is moot.		*/
 		{
@@ -1142,29 +1110,6 @@ PsmAddress	sm_rbt_data(PsmPartition partition, PsmAddress node)
 	nodePtr = (SmRbtNode *) psp(partition, node);
 	CHKZERO(nodePtr);
 	return nodePtr->data;
-}
-
-PsmAddress	sm_rbt_data_set(PsmPartition partition, PsmAddress node,
-			PsmAddress new)
-{
-	SmRbtNode	*nodePtr;
-	SmRbt		*rbtPtr;
-	PsmAddress	old;
-
-	CHKZERO(partition);
-	CHKZERO(node);
-	nodePtr = (SmRbtNode *) psp(partition, node);
-	CHKZERO(nodePtr);
-	rbtPtr = (SmRbt *) psp(partition, nodePtr->rbt);
-	if (lockSmrbt(rbtPtr) == ERROR)
-	{
-		return 0;
-	}
-
-	old = nodePtr->data;
-	nodePtr->data = new;
-	unlockSmrbt(rbtPtr);
-	return old;
 }
 
 #if	SMRBT_DEBUG
@@ -1199,7 +1144,6 @@ void	printTree(PsmPartition partition, PsmAddress rbt)
 			{
 				depth++;
 				node = nodePtr->child[LEFT];
-//printf("Next is left child of %lu.\n", nodePtr->data);
 				continue;
 			}
 
@@ -1207,7 +1151,6 @@ void	printTree(PsmPartition partition, PsmAddress rbt)
 			{
 				depth++;
 				node = nodePtr->child[RIGHT];
-//printf("Next is right child of %lu.\n", nodePtr->data);
 				continue;
 			}
 
@@ -1217,7 +1160,6 @@ void	printTree(PsmPartition partition, PsmAddress rbt)
 			prevNode = node;
 			depth--;
 			node = nodePtr->parent;
-//printf("Next is parent of %lu.\n", nodePtr->data);
 			continue;
 		}
 
@@ -1231,7 +1173,6 @@ void	printTree(PsmPartition partition, PsmAddress rbt)
 			descending = 1;
 			depth++;
 			node = nodePtr->child[RIGHT];
-//printf("Next is right child of %lu.\n", nodePtr->data);
 			continue;
 		}
 
@@ -1240,7 +1181,6 @@ void	printTree(PsmPartition partition, PsmAddress rbt)
 		prevNode = node;
 		depth--;
 		node = nodePtr->parent;
-//printf("Next is parent of %lu.\n", nodePtr->data);
 	}
 
 	fflush(stdout);
@@ -1290,6 +1230,7 @@ static int	subtreeBlackHeight(PsmPartition partition, PsmAddress node)
 			nodePtr->child[RIGHT]);
 	if (blackHeight[LEFT] == 0 || blackHeight[RIGHT] == 0)
 	{
+		puts("No black nodes.");
 		return 0;
 	}
 

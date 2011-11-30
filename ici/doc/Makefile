@@ -16,6 +16,7 @@ MANFILES = \
 	./man/man1/sdr2file.1 \
 	./man/man1/sm2file.1 \
 	./man/man1/smlistsh.1 \
+	./man/man1/smrbtsh.1 \
 	./man/man1/owltsim.1 \
 	./man/man1/owlttb.1 \
 	./man/man5/ionconfig.5 \
@@ -29,6 +30,7 @@ MANFILES = \
 	./man/man3/psm.3 \
 	./man/man3/zco.3 \
 	./man/man3/smlist.3 \
+	./man/man3/smrbt.3 \
 	./man/man3/sdrlist.3 \
 	./man/man3/sdrstring.3 \
 	./man/man3/sdrtable.3 \
@@ -48,6 +50,7 @@ HTMLFILES = \
 	./html/man1/sdr2file.html \
 	./html/man1/sm2file.html \
 	./html/man1/smlistsh.html \
+	./html/man1/smrbtsh.html \
 	./html/man1/owltsim.html \
 	./html/man1/owlttb.html \
 	./html/man5/ionconfig.html \
@@ -61,6 +64,7 @@ HTMLFILES = \
 	./html/man3/psm.html \
 	./html/man3/zco.html \
 	./html/man3/smlist.html \
+	./html/man3/smrbt.html \
 	./html/man3/sdrlist.html \
 	./html/man3/sdrstring.html \
 	./html/man3/sdrtable.html \
