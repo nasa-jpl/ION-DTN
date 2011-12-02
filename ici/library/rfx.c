@@ -1037,16 +1037,27 @@ int	checkForCongestion()
 
 		netInTransitGrowthPerSec = netGrowthPerSec 
 				- iondb.productionRate;
+
+
+
 		increment = netInTransitGrowthPerSec * secAdvanced;
 		if (netInTransitGrowthPerSec > 0 && increment < 0)
 		{
-			/*	Multiplication overflow.		*/
+			/*	Multiplication overflow. Positive Direction*/
 
 			forecastInTransit = iondb.occupancyCeiling;
 		}
 		else
 		{
-			forecastInTransit += increment;
+			if(netInTransitGrowthPerSec<0 && increment > 0)
+			{
+				/*Multiplication overflow. Negative Direction*/
+				netInTransitGrowthPerSec=0;
+			}
+			else
+			{
+				forecastInTransit += increment;
+			}
 		}
 
 		if (forecastInTransit < 0)
