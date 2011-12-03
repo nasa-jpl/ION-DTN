@@ -1259,7 +1259,7 @@ libams_la_SOURCES = \
 	ams/library/dgrts.c \
 	ams/library/udpts.c \
 	ams/library/tcpts.c
-libams_la_LDFLAGS = $(ION_LINK_FLAGS)
+libams_la_LDFLAGS = $(ION_LINK_FLAGS) -static
 libams_la_CFLAGS = $(amscflags) $(AM_CFLAGS)
 libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la
 
