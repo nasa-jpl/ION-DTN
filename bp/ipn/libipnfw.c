@@ -608,7 +608,7 @@ static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
 
 	/*	Universal wild-card match (IPN_ALL_OTHERS), if any,
 	 *	is at the end of the list, so there's no way to
-	 *	terminate the search only.				*/
+	 *	terminate the search early.				*/
 
 	for (elt = sdr_list_first(sdr, rules); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -633,8 +633,8 @@ static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
 			continue;
 		}
 
-		if (rule->srcServiceNbr > sourceServiceNbr
-			&& rule->srcServiceNbr != IPN_ALL_OTHERS)
+		if (rule->srcNodeNbr > sourceNodeNbr
+			&& rule->srcNodeNbr != IPN_ALL_OTHERS)
 		{
 			continue;
 		}

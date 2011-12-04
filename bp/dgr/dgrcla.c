@@ -113,8 +113,8 @@ static void	*sendBundles(void *parm)
 			zco_destroy_reference(sdr, bundleZco);
 			if (sdr_end_xn(sdr) < 0)
 			{
-				threadRunning = 0;
 				putErrmsg("Can't destroy ZCO reference.", NULL);
+				threadRunning = 0;
 			}
 
 			continue;
@@ -480,6 +480,7 @@ int	main(int argc, char *argv[])
 		putErrmsg("Can't get IP/port for host.", ductName);
 		return 1;
 	}
+
 	if (portNbr == 0)
 	{
 		portNbr = DGRCLA_PORT_NBR;

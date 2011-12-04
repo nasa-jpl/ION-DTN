@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# Samuel Jero
+# Ohio University
+# October 10, 2011
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion_nodes 1.ipn.bp.ltp.udp/ion.log 1.ipn.bp.ltp.udp/node.stdout 1.ipn.bp.ltp.udp/test 1.ipn.bp.ltp.udp/bpdriverAduFile 1.ipn.bp.ltp.udp/cfdpcmds
+
+

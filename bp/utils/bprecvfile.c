@@ -25,8 +25,24 @@ static BpSAP	_bpsap(BpSAP *newSAP)
 	return sap;
 }
 
+static int	_running(int *newState)
+{
+	static int	state = 1;
+
+	if (newState)
+	{
+		state = *newState;
+	}
+
+	return state;
+}
+
 static void	handleQuit()
 {
+	int	stop = 0;
+
+	writeMemo("[i] bprecvfile interrupted.");
+	oK(_running(&stop));
 	bp_interrupt(_bpsap(NULL));
 }
 
@@ -113,8 +129,8 @@ int	main(int argc, char **argv)
 #endif
 	BpSAP		sap;
 	Sdr		sdr;
-	int		running = 1;
 	BpDelivery	dlv;
+	int		stop = 0;
 
 	if (ownEid == NULL)
 	{
@@ -138,26 +154,26 @@ int	main(int argc, char **argv)
 	sdr = bp_get_sdr();
 	isignal(SIGINT, handleQuit);
 	writeMemo("[i] bprecvfile is running.");
-	while (running)
+	while (_running(NULL))
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
 			putErrmsg("bprecvfile bundle reception failed.", NULL);
-			running = 0;
+			oK(_running(&stop));
 			continue;
 		}
 
 		switch (dlv.result)
 		{
 		case BpEndpointStopped:
-			running = 0;
+			oK(_running(&stop));
 			break;		/*	Out of switch.		*/
 
 		case BpPayloadPresent:
 			if (receiveFile(sdr, &dlv) < 0)
 			{
 				putErrmsg("bprecvfile cannot continue.", NULL);
-				running = 0;
+				oK(_running(&stop));
 			}
 
 			/*	Intentional fall-through to default.	*/

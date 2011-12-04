@@ -55,6 +55,63 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.5.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+- Issue #297: The ION design guide "ION.pdf" now dynamically incorporates the
+  ION manpages.
+  This feature requires ghostscript, psutils, groff, and groff-base.
+  If not all are present, ION will build but ION.pdf will not have the latest
+  manpages appended.
+  ION.pdf is built automatically via the "make" command.
+  To explicitly build the ION design guide document, use the following command:
+     make ION.pdf
+ 
+- Issue #298+: Fixed build incompatibility between gcc v4.6.1 and later with 
+  valgrind v3.6.1 and earlier.  If needed to compile with Valgrind support,
+  ION will add -Wno-unused-but-set-variable to AM_CFLAGS.
+  Valgrind inclusion can also be explicitly controlled via the following flags:
+     ./configure --enable-valgrind:  Build with Valgrind support
+     ./configure --disable-valgrind: Build without Valgrind support
+ 
+- Issue #299: ION now prints a warning when given any BAB rule that is not for a
+  wild-carded EID signifying "all endpoints at the indicated node".
+ 
+- Issue #300: Fixed several bugs in ipnfw:
+     - lookupRule() function of libipnfw.c incorrectly used srcServiceNbr
+       instead of srcNodeNbr.
+     - Several IPN function calls in ipnadmin.c have been wrapped in
+       sdr_begin_xn/sdr_exit_xn blocks to protect against assertion failures.
+     - Before putting a bundle into the Limbo list, ipnfw now searches for
+       blocked outducts and discards the bundle if none are found.
+ 
+- Issue #301: Fixed issue where Ctl+C no longer terminated the bpsink and
+  bprecvfile utilities.
+ 
+- Issue #303: Fixed issue where new all-green transmission sessions could be
+  inhibited by the LTP limit on the total number of export sessions.
+  Since LTP green is unreliable, LTP green sessions don't need to occupy
+  resources at the sender for retransmissions, so the sessions need not be
+  restricted.
+ 
+- Issue #307: Fixed overflow bugs in the increaseScalar() and reduceScalar()
+  functions.
+  Added Scalar to SDNV conversion functions.
+ 
+- Issue #313: Fixed issue with overlapping bundle source/destination memory
+  addresses that could cause bundle corruption on 64-bit systems.
+
+- Issue #319: Fixed issue with AMS where the parseSocketSpec() function could
+  return INADDR_ANY, which isn't an acceptable IP address within AMS. 
+  Now possible to enable  AMS debug output via the following configure flag:
+     ./configure --enable-ams-debug:  Build with AMS debugging output
+
+- Issue #324: Fixed issue where LTP could accumulate block acquisision files
+  after the block acquisition had already been completed.  This was generally
+  due to unnecessary retransmitted segments that arrived late.  Since the
+  blocks had already been delivered, the ensuing files were never destroyed.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -161,13 +218,13 @@ Features included:
 = NOTES ON RELEASE 2.4.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-- Issue #240: Added DCCP link service adapters to ION for the purpose of 
+- *Issue #240: Added DCCP link service adapters to ION for the purpose of 
   providing congestion control without reliability guarantees, which is
   beneficial for LTP deployments over IP networks, particularly when traversing
   the Internet. The sender program is called "dccplso" and the receiver program
   is called "dccplsi".
 
-- Issue #241: Added DCCP convergence layer for BP. The sender program is called
+- *Issue #241: Added DCCP convergence layer for BP. The sender program is called
   "dccpclo" and the receiver program is called "dccpcli".
 
 - Issue #245: Added support for using the character "*" as a wildcard to remove
@@ -190,6 +247,12 @@ Features included:
 
 - Tests have been scrubbed to adopt the new security syntax enhancements
   introduced in Issue #247.
+
+* Note: Due to an immature DCCP implementation in most native OS kernels at the
+        time of release, formal DCCP testing on 64-bit systems has yet to be
+        conducted.  Currently an experimental kernel containing several DCCP
+        fixes must be built to achieve acceptable performance.  These fixes are
+        expected to become standard in the native linux 3.1 kernel.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.0 =
@@ -340,9 +403,11 @@ Features included:
 
 - Modified custodian EID generated from dtn://hostname to dtn://hostname.dtn
 
-- Modified the loopback and ion-dtn2 configuration files for the new command syntax.
+- Modified the loopback and ion-dtn2 configuration files for the new command
+  syntax.
 
-- Added BSP implementation using "stub" versions of hmac and sha1 for public release.
+- Added BSP implementation using "stub" versions of hmac and sha1 for public
+  release.
 
 - Added CFDP implementation.
 
@@ -352,8 +417,8 @@ Features included:
 
 - Added assertions.
 
-- Bug fixes in the TCP convergence layer, particularly in the interest of interoperability
-  with dtn2.
+- Bug fixes in the TCP convergence layer, particularly in the interest of
+  interoperability with dtn2.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.0.0 =
@@ -386,7 +451,8 @@ Features included:
 
 - Documentation updates.
 
-- Various testing applications in earlier releases are split from the ion release.
+- Various testing applications in earlier releases are split from the ion
+  release.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 1.1.0 =
@@ -410,10 +476,10 @@ Features included:
 - Updates to various user-contrib programs; added a bpmon_query program to work
   with SNMP.
 
-- Revise LTP to use randomly selected session numbers rather than recycling small
-  session numbers - prevent data loss and corruption due to application of late-
-  arriving segments to sessions that are re-using the session numbers of earlier
-  sessions.
+- Revise LTP to use randomly selected session numbers rather than recycling
+  small session numbers - prevent data loss and corruption due to application of
+  late-arriving segments to sessions that are re-using the session numbers of
+  earlier sessions.
 
 - added the bplive program.
 
@@ -436,9 +502,9 @@ Features included:
 
 - added new ION.pdf to the in-development release
 
-- overhauled ionstart, ionscript, ionstart.awk to account for the dtnadmin need for
-  a node name as well as the bpadmin/dtnadmin/ipnadmin startup order bug found by
-  Andrew.Jenkins@colorado.edu
+- overhauled ionstart, ionscript, ionstart.awk to account for the dtnadmin need
+  for a node name as well as the bpadmin/dtnadmin/ipnadmin startup order bug
+  found by Andrew.Jenkins@colorado.edu
 
 - Revise routing to match applicable backlog (based on bundle's priority; not
   necessarily total backlog) against aggregate capacity when determining route
@@ -528,5 +594,3 @@ Features included:
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 - Initial code released for review.
-
-% vim: ft=txt2tags

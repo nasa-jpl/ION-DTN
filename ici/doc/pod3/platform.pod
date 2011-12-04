@@ -218,7 +218,8 @@ return values, see creat(2) and open(2).
 
 =item unsigned int getInternetAddress(char *hostName)
 
-Returns the host number of the indicated host machine.
+Returns the IP address of the indicated host machine, or zero if the
+address cannot be determined.
 
 =item char *getInternetHostName(unsigned int hostNbr, char *buffer)
 
@@ -231,6 +232,11 @@ should be (MAXHOSTNAMELEN + 1).
 Writes the first (I<bufferLength> - 1) characters of the
 host name of the local machine into I<buffer>.  Returns 0 on success, -1 on
 any error.
+
+=item unsigned int getAddressOfHost()
+
+Returns the IP address for the host name of the local machine, or 0 on any
+error.
 
 =item void parseSocketSpec(char *socketSpec, unsigned short *portNbr, unsigned int *hostNbr)
 
@@ -554,6 +560,23 @@ Subtracts I<decrement> (a Scalar rather than a C integer) from I<scalar>.
 
 Returns 1 if the arithmetic performed on I<scalar> has not resulted in
 overflow or underflow.
+
+=item int scalarToSdnv(Sdnv *sdnv, Scalar *scalar)
+
+If I<scalar> points to a valid Scalar, stores the value of I<scalar> in
+I<sdnv>; otherwise sets the length of I<sdnv> to zero.
+
+=item int sdnvToScalar(Scalar *scalar, unsigned char *sdnvText)
+
+If I<sdnvText> points to a sequence of bytes that, when interpreted as
+the text of an Sdnv, has a value that can be represented in a 61-bit
+unsigned binary integer, then this function stores that value in I<scalar>
+and returns the detected Sdnv length.  Otherwise returns zero.
+
+Note that Scalars and Sdnvs are both representations of potentially large
+unsigned integer values.  Any Scalar can alternatively be represented as
+an Sdnv.  However, it is possible for a valid Sdnv to be too large to
+represent in a Scalar.
 
 =back
 

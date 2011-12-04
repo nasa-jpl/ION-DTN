@@ -191,7 +191,7 @@ static int	vmqSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	CHKERR(contentLen <= VMQTS_MAX_MSG_LEN);
 	tsep = (VmqTsep *) (dp->tsep);
 #if AMSDEBUG
-printf("in vmqSendAms, tsep is %d.\n", (int) tsep);
+printf("in vmqSendAms, tsep is %lu.\n", (unsigned long) tsep);
 #endif
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{

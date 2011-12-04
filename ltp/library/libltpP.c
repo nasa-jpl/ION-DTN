@@ -91,27 +91,39 @@ static void	raiseClient(LtpVclient *client)
 
 static void	resetSpan(LtpVspan *vspan)
 {
-	if (vspan->bufEmptySemaphore == SM_SEM_NONE)
+	if (vspan->bufOpenRedSemaphore == SM_SEM_NONE)
 	{
-		vspan->bufEmptySemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+		vspan->bufOpenRedSemaphore =
+				sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	}
 	else
 	{
-		sm_SemUnend(vspan->bufEmptySemaphore);
+		sm_SemUnend(vspan->bufOpenRedSemaphore);
 	}
 
-	sm_SemTake(vspan->bufEmptySemaphore);		/*	Lock.	*/
-	if (vspan->bufFullSemaphore == SM_SEM_NONE)
+	sm_SemTake(vspan->bufOpenRedSemaphore);		/*	Lock.	*/
+	if (vspan->bufOpenGreenSemaphore == SM_SEM_NONE)
 	{
-		vspan->bufFullSemaphore = sm_SemCreate(SM_NO_KEY,
+		vspan->bufOpenGreenSemaphore =
+				sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+	}
+	else
+	{
+		sm_SemUnend(vspan->bufOpenGreenSemaphore);
+	}
+
+	sm_SemTake(vspan->bufOpenGreenSemaphore);	/*	Lock.	*/
+	if (vspan->bufClosedSemaphore == SM_SEM_NONE)
+	{
+		vspan->bufClosedSemaphore = sm_SemCreate(SM_NO_KEY,
 				SM_SEM_FIFO);
 	}
 	else
 	{
-		sm_SemUnend(vspan->bufFullSemaphore);
+		sm_SemUnend(vspan->bufClosedSemaphore);
 	}
 
-	sm_SemTake(vspan->bufFullSemaphore);		/*	Lock.	*/
+	sm_SemTake(vspan->bufClosedSemaphore);		/*	Lock.	*/
 	if (vspan->segSemaphore == SM_SEM_NONE)
 	{
 		vspan->segSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -169,8 +181,9 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 		return -1;
 	}
 
-	vspan->bufEmptySemaphore = SM_SEM_NONE;
-	vspan->bufFullSemaphore = SM_SEM_NONE;
+	vspan->bufOpenRedSemaphore = SM_SEM_NONE;
+	vspan->bufOpenGreenSemaphore = SM_SEM_NONE;
+	vspan->bufClosedSemaphore = SM_SEM_NONE;
 	vspan->segSemaphore = SM_SEM_NONE;
 	resetSpan(vspan);
 	return 0;
@@ -182,14 +195,19 @@ static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
 	PsmAddress	vspanAddr;
 
 	vspanAddr = sm_list_data(ltpwm, vspanElt);
-	if (vspan->bufEmptySemaphore != SM_SEM_NONE)
+	if (vspan->bufOpenRedSemaphore != SM_SEM_NONE)
 	{
-		sm_SemDelete(vspan->bufEmptySemaphore);
+		sm_SemDelete(vspan->bufOpenRedSemaphore);
 	}
 
-	if (vspan->bufFullSemaphore != SM_SEM_NONE)
+	if (vspan->bufOpenGreenSemaphore != SM_SEM_NONE)
 	{
-		sm_SemDelete(vspan->bufFullSemaphore);
+		sm_SemDelete(vspan->bufOpenGreenSemaphore);
+	}
+
+	if (vspan->bufClosedSemaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vspan->bufClosedSemaphore);
 	}
 
 	if (vspan->segSemaphore != SM_SEM_NONE)
@@ -225,14 +243,19 @@ static void	startSpan(LtpVspan *vspan)
 
 static void	stopSpan(LtpVspan *vspan)
 {
-	if (vspan->bufEmptySemaphore != SM_SEM_NONE)
+	if (vspan->bufOpenRedSemaphore != SM_SEM_NONE)
 	{
-		sm_SemEnd(vspan->bufEmptySemaphore);
+		sm_SemEnd(vspan->bufOpenRedSemaphore);
 	}
 
-	if (vspan->bufFullSemaphore != SM_SEM_NONE)
+	if (vspan->bufOpenGreenSemaphore != SM_SEM_NONE)
 	{
-		sm_SemEnd(vspan->bufFullSemaphore);
+		sm_SemEnd(vspan->bufOpenGreenSemaphore);
+	}
+
+	if (vspan->bufClosedSemaphore != SM_SEM_NONE)
+	{
+		sm_SemEnd(vspan->bufClosedSemaphore);
 	}
 
 	if (vspan->segSemaphore != SM_SEM_NONE)
@@ -318,8 +341,6 @@ static LtpVdb		*_ltpvdb(char **name)
 		memset((char *) vdb, 0, sizeof(LtpVdb));
 		vdb->lsiPid = ERROR;		/*	None yet.	*/
 		vdb->clockPid = ERROR;		/*	None yet.	*/
-		vdb->sessionSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-		sm_SemGive(vdb->sessionSemaphore);
 		if ((vdb->spans = sm_list_create(wm)) == 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
@@ -540,11 +561,6 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 	/*	Tell all LTP processes to stop.				*/
 
 	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
-	if (ltpvdb->sessionSemaphore != SM_SEM_NONE)
-	{
-		sm_SemEnd(ltpvdb->sessionSemaphore);
-	}
-
 	for (i = 0, client = ltpvdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
 			i++, client++)
 	{
@@ -602,16 +618,6 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 
 	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
 	ltpvdb->clockPid = ERROR;
-	if (ltpvdb->sessionSemaphore == SM_SEM_NONE)
-	{
-		ltpvdb->sessionSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-	}
-	else
-	{
-		sm_SemUnend(ltpvdb->sessionSemaphore);
-	}
-
-	sm_SemGive(ltpvdb->sessionSemaphore);		/*	Unlock.	*/
 	for (i = 0, client = ltpvdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
 			i++, client++)
 	{
@@ -1136,7 +1142,8 @@ int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
 	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 	if (vspan->localXmitRate > 0)
 	{
-		sm_SemGive(vspan->bufEmptySemaphore);
+		sm_SemGive(vspan->bufOpenRedSemaphore);
+		sm_SemGive(vspan->bufOpenGreenSemaphore);
 	}
 
 	if (sdr_end_xn(sdr))
@@ -1440,16 +1447,21 @@ has reception claims", itoa(sdr_list_length(ltpSdr, session->claims)));
 
 static void	closeExportSession(Object sessionObj)
 {
-	Sdr	ltpSdr = getIonsdr();
-	LtpVdb	*ltpvdb = _ltpvdb(NULL);
-	Object	dbobj = getLtpDbObject();
-		OBJ_POINTER(ExportSession, session);
-	LtpDB	db;
-	Object	elt;
-	Object	sdu;	/*	A ZcoRef object.			*/
+	Sdr		ltpSdr = getIonsdr();
+	LtpVdb		*ltpvdb = _ltpvdb(NULL);
+	Object		dbobj = getLtpDbObject();
+			OBJ_POINTER(ExportSession, session);
+			OBJ_POINTER(LtpSpan, span);
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
+	LtpDB		db;
+	Object		elt;
+	Object		sdu;	/*	A ZcoRef object.		*/
 
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(ltpSdr, ExportSession, session, sessionObj);
+	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, session->span);
+	findSpan(span->engineId, &vspan, &vspanElt);
 	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 
 	/*	Note that cancellation of an export session causes
@@ -1495,8 +1507,9 @@ notice.", NULL);
 
 	clearExportSession(session);
 
-	/*	Finally erase the session itself and authorize the
-	 *	initiation of a new export session.			*/
+	/*	Finally erase the session itself, reducing the session
+	 *	list length and thereby possibly enabling a blocked
+	 *	client to append an SDU to the current block.		*/
 
 	sdr_hash_remove(ltpSdr, db.exportSessionsHash,
 			(char *) &(session->sessionNbr), (Address *) &elt);
@@ -1505,7 +1518,15 @@ notice.", NULL);
 #if LTPDEBUG
 putErrmsg("Closed export session.", itoa(session->sessionNbr));
 #endif
-	sm_SemGive((_ltpvdb(NULL))->sessionSemaphore);
+	if (vspanElt == 0)
+	{
+		putErrmsg("Can't find vspan for engine.", utoa(span->engineId));
+	}
+	else
+	{
+		sm_SemGive(vspan->bufOpenRedSemaphore);
+		sm_SemGive(vspan->bufOpenGreenSemaphore);
+	}
 }
 
 static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
@@ -2583,10 +2604,14 @@ static int	cancelSessionBySender(ExportSession *session,
 
 	CHKERR(ionLocked());
 	session->reasonCode = reasonCode;	/*	(For CS resend.)*/
-
-	/*	Span now has room for another session to start.		*/
-
 	sdr_stage(ltpSdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	findSpan(span.engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		putErrmsg("Can't find vspan for engine.", utoa(span.engineId));
+		return -1;
+	}
+
 	if (sessionObj == span.currentExportSessionObj)
 	{
 		/*	Finish up session so it can be reported.	*/
@@ -2595,30 +2620,6 @@ static int	cancelSessionBySender(ExportSession *session,
 		encodeSdnv(&(session->clientSvcIdSdnv), session->clientSvcId);
 		session->totalLength = span.lengthOfBufferedBlock;
 		session->redPartLength = span.redLengthOfBufferedBlock;
-
-		/*	Reinitialize span's block buffer.		*/
-
-		span.ageOfBufferedBlock = 0;
-		span.lengthOfBufferedBlock = 0;
-		span.redLengthOfBufferedBlock = 0;
-		span.clientSvcIdOfBufferedBlock = 0;
-		span.currentExportSessionObj = 0;
-		sdr_write(ltpSdr, spanObj, (char *) &span, sizeof(LtpSpan));
-
-		/*	Start a replacement export session.		*/
-
-		findSpan(span.engineId, &vspan, &vspanElt);
-		if (vspanElt == 0
-		|| startExportSession(ltpSdr, spanObj, vspan) < 0)
-		{
-			putErrmsg("Can't start replacement session.",
-					utoa(span.engineId));
-			return -1;
-		}
-	}
-	else	/*	Like closeExportSession, triggers ltpmeter.	*/
-	{
-		sm_SemGive(ltpvdb->sessionSemaphore);
 	}
 
 	if (ltpvdb->watching & WATCH_CS)
@@ -2659,6 +2660,40 @@ static int	cancelSessionBySender(ExportSession *session,
 	/*	Insert into list of canceled sessions instead.		*/
 
 	elt = sdr_list_insert_last(ltpSdr, db.deadExports, sessionObj);
+
+	/*	Span now has room for another session to start.		*/
+
+	if (sessionObj == span.currentExportSessionObj)
+	{
+		/*	Reinitialize span's block buffer.		*/
+
+		span.ageOfBufferedBlock = 0;
+		span.lengthOfBufferedBlock = 0;
+		span.redLengthOfBufferedBlock = 0;
+		span.clientSvcIdOfBufferedBlock = 0;
+		span.currentExportSessionObj = 0;
+		sdr_write(ltpSdr, spanObj, (char *) &span, sizeof(LtpSpan));
+
+		/*	Re-start the current export session.		*/
+
+		if (startExportSession(ltpSdr, spanObj, vspan) < 0)
+		{
+			putErrmsg("Can't re-start the current session.",
+					utoa(span.engineId));
+			return -1;
+		}
+	}
+	else
+	{
+		/*	The canceled session isn't the current
+		 *	session, but cancelling this session
+		 *	reduced the session list length, possibly
+		 *	enabling a blocked client to append an SDU
+		 *	to the current block.				*/
+
+		sm_SemGive(vspan->bufOpenRedSemaphore);
+		sm_SemGive(vspan->bufOpenGreenSemaphore);
+	}
 
 	/*	Finally, inform receiver of cancellation.		*/
 
@@ -3345,27 +3380,33 @@ static int	writeBlockExtentToFile(ImportSession *session,
 	oK(zco_file_ref_path(ltpSdr, session->blockFileRef, fileName,
 				sizeof fileName));
 
-	/*	Note: it's possible for a session to be closed,
-	 *	causing the blockFileRef to be "destroyed", while
-	 *	there are still ZCO references to the file in the
-	 *	delivery queue -- and for a late retransmitted
-	 *	segment for this session to arrive during this
-	 *	window.  In that case a new session would be created
-	 *	and a new blockFileRef for the same file would be
-	 *	created, but the file itself would still exist and
-	 *	therefore NOT be created.  Bust as soon as the last
-	 *	ZCO reference was delivered the file would be
-	 *	automatically unlinked by the destruction of the
-	 *	old file reference, so the next retransmitted
-	 *	segment for this old session would be recorded
-	 *	in a file that no longer exists -- an error.  To
-	 *	avert this, we retain the option to temporarily
-	 *	recreate that file for as long as is needed to deal
-	 *	with the leftover retransmitted segments.		*/
-
-	fd = iopen(fileName, O_WRONLY | O_CREAT, 0666);
+	fd = iopen(fileName, O_WRONLY, 0666);
 	if (fd < 0)
 	{
+		if (errno == ENOENT)
+		{
+		/*	Note: it's possible for a session to be closed,
+		 *	causing the blockFileRef to be flagged for
+		 *	destruction, while there are still references
+		 *	to that ZCO file in the delivery queue -- and
+		 *	for a late retransmitted segment for this
+		 *	session to arrive during this window.  In that
+		 *	case a new session would be created and a new
+		 *	blockFileRef for the same file would be
+		 *	created, but the file itself would still exist
+		 *	and therefore NOT be created.  But as soon as
+		 *	the last ZCO reference was delivered the file
+		 *	would be automatically unlinked by the
+		 *	destruction of the old file reference, so the
+		 *	next retransmitted segment for this old session
+		 *	would be destined for a file that no longer
+		 *	exists.  Since this data acquisition is not
+		 *	necessary (block has already been delivered),
+		 *	we simply ignore this retransmitted segment.	*/
+
+			return 0;
+		}
+
 		putSysErrmsg("Can't open block file", fileName);
 		return -1;
 	}
@@ -5388,11 +5429,8 @@ void	ltpStartXmit(LtpVspan *vspan)
 	CHKVOID(vspan);
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
 	sdr_read(ltpSdr, (char *) &span, spanObj, sizeof(LtpSpan));
-	if (span.lengthOfBufferedBlock == 0)
-	{
-		sm_SemGive(vspan->bufEmptySemaphore);
-	}
-
+	sm_SemGive(vspan->bufOpenRedSemaphore);
+	sm_SemGive(vspan->bufOpenGreenSemaphore);
 	if (sdr_list_length(ltpSdr, span.segments) > 0)
 	{
 		sm_SemGive(vspan->segSemaphore);

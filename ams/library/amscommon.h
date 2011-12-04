@@ -123,7 +123,7 @@ typedef void		*(*ThreadMain)(void *parms);
 
 typedef struct amsevtst
 {
-	char		type;
+	long		type;
 	char		value[1];
 } AmsEvt;
 

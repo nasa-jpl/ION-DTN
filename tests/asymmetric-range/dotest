@@ -55,7 +55,7 @@ echo "Sending bundle with 10-second lifetime from ipn:9.1 to ipn:6.1."
 echo "Should be abandoned as unroutable prior to expiration."
 bptrace ipn:9.1 ipn:6.1 ipn:9.0 10 1.1 "Hi"
 sleep 1
-echo "Watch characters should be 'ajw'."
+echo "Watch characters should be 'a~'."
 
 echo "Sending bundle with 25-second lifetime from ipn:9.1 to ipn:6.1."
 # Send a bundle destined for (noexistent) node 6 with lifetime = 25.
@@ -98,8 +98,8 @@ else
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'exp' message '(1) 2 6'..."
-COUNT=`grep exp ion.log | grep "(1) 2 6" | wc -l`
+echo "Checking ion.log for 'exp' message '(1) 1 3'..."
+COUNT=`grep exp ion.log | grep "(1) 1 3" | wc -l`
 if [ $COUNT -eq 1 ]
 then
 	echo "OK: One bundle expired."

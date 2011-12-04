@@ -350,13 +350,14 @@ int	main(int argc, char *argv[])
 		putErrmsg("Can't get IP/port for host.", hostName);
 		return -1;
 	}
+
 	if (portNbr == 0)
 	{
 		portNbr = BpTcpDefaultPortNbr;
 	}
+
 	portNbr = htons(portNbr);
 	hostNbr = htonl(hostNbr);
-
 	atp.vduct = vduct;
 	memset((char *) &(atp.socketName), 0, sizeof(struct sockaddr));
 	atp.inetName = (struct sockaddr_in *) &(atp.socketName);

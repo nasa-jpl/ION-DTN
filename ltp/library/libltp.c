@@ -28,6 +28,112 @@ int	ltp_engine_is_started()
 	return (vdb && vdb->clockPid != ERROR);
 }
 
+static int	sduCanBeAppendedToBlock(LtpSpan *span,
+			unsigned long clientSvcId,
+			unsigned int redPartLength)
+{
+	Sdr	sdr = getIonsdr();
+
+	if (span->lengthOfBufferedBlock == 0)
+	{
+		/*	This is a brand-new, empty block.
+		 *
+		 *	If the span's session count exceeds the
+		 *	limit, then this is the over-limit session
+		 *	and it can ONLY be used for transmission
+		 *	of an all-green block.
+		 *
+		 *	Note that appending any single SDU with
+		 *	green length greater than zero terminates
+		 *	aggregation for this session (whether the
+		 *	block was previously empty or not) and
+		 *	causes the block to be segmented immediately.
+		 *	When transmission via the Span is enabled,
+		 *	these segments will be dequeued; dequeuing
+		 *	the last segment in the block -- a green
+		 *	EOB -- will cause the session to be closed,
+		 *	reducing the length of the session list to
+		 *	no more than the limit.  This will enable
+		 *	another (possibly over-limit) session to
+		 *	be started, which again can be used for
+		 *	transmission of all-green data even if the
+		 *	session limit has been reached (meaning
+		 *	the transmission of new red data must wait
+		 *	until one of the blocked -- therefore
+		 *	implicitly all-red -- sessions is closed).
+		 *
+		 *	So green data may continue to flow even
+		 *	while the session count is at the limit,
+		 *	because it doesn't result in growth in
+		 *	resource allocation (no retransmission
+		 *	buffers are maintained).  The LTP flow
+		 *	control window applies only to the flow
+		 *	of red data.					*/
+
+		if (sdr_list_length(sdr, span->exportSessions)
+				> span->maxExportSessions)
+		{
+			if (redPartLength == 0)	/*	All-green SDU.	*/
+			{
+				return 1;	/*	Okay.		*/
+			}
+
+			return 0;	/*	Red data; no good.	*/
+		}
+
+		/*	This is not the over-limit session, so any SDU
+		 *	of any size can be inserted into the block at
+		 *	this time.					*/
+
+		return 1;			/*	Okay.		*/
+	}
+
+	/*	The current export block already contains some data.	*/
+
+	if (span->lengthOfBufferedBlock > span->redLengthOfBufferedBlock)
+	{
+		/*	Block contains some green data, so it's
+		 *	already released for transmission and just
+		 *	hasn't been fully segmented yet, possibly
+		 *	because transmission is stopped.  Can't
+		 *	append the SDU to this block, must wait for
+		 *	the next session.				*/
+
+		return 0;
+	}
+
+	if (span->lengthOfBufferedBlock >= span->aggrSizeLimit)
+	{
+		/*	Block has reached its aggregation limit, so
+		 *	it's already released for transmission and
+		 *	just hasn't been fully segmented yet, possibly
+		 *	because transmission is stopped.  Can't
+		 *	append the SDU to this block, must wait for
+		 *	the next session.				*/
+
+		return 0;
+	}
+
+	if (clientSvcId != span->clientSvcIdOfBufferedBlock)
+	{
+		/*	This SDU is destined for a different client
+		 *	than the client for all other data in the
+		 *	block.  Can't append the SDU to this block,
+		 *	must wait for the next session.  (This block
+		 *	will be released for transmission either when
+		 *	its aggregation size limit is reached, due to
+		 *	additional traffic inserted by some other
+		 *	thread, or when the session's aggregation
+		 *	time limit is reached.				*/
+
+		return 0;
+	}
+
+	/*	No problems, can append SDU to this block.		*/
+
+	return 1;
+}
+
 int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 		Object clientServiceData, unsigned int redPartLength,
 		LtpSessionId *sessionId)
@@ -87,53 +193,50 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 			 *	session buffer (block) into which
 			 *	service data can be inserted.		*/
 
-			if (span.lengthOfBufferedBlock == 0)
+			if (sduCanBeAppendedToBlock(&span, clientSvcId,
+					redPartLength))
 			{
-				/*	Brand-new session; any SDU
-				 *	of any size can be inserted
-				 *	into the block at this time.	*/
-
-				break;		/*	Out of loop.	*/
-			}
-
-			/*	Block already contains some data.	*/
-
-			if (span.lengthOfBufferedBlock
-				== span.redLengthOfBufferedBlock
-			/*	No green data in block.			*/
-			&& span.lengthOfBufferedBlock < span.aggrSizeLimit
-			/*	Not yet aggregated up to nominal limit.	*/
-			&& clientSvcId == span.clientSvcIdOfBufferedBlock
-			/*	This SDU is destined for the same
-			 *	engine as all other data in the block.	*/)
-			{
-				/*	Okay to insert this service
-				 *	data unit into the block.	*/
-
 				break;		/*	Out of loop.	*/
 			}
 		}
 
-		/*	Can't insert service data unit into block.  Wait
-		 *	until span has been initialized for new session
-		 *	with new session buffer -- either by ltpmeter's
-		 *	initialization or by ltpmeter segmenting the
-		 *	current block and writing the segments out to
-		 *	the link service layer.				*/
+		/*	Can't append service data unit to block.  Wait
+		 *	until block is open for insertion of SDUs of
+		 *	the same color as the SDU we're trying to send,
+		 *	based on redPartLength.				*/
 
 		sdr_exit_xn(sdr);
-		if (sm_SemTake(vspan->bufEmptySemaphore) < 0)
+		if (redPartLength > 0)
 		{
-			putErrmsg("Can't take buffer-empty semaphore.",
-					itoa(vspan->engineId));
-			return -1;
-		}
+			if (sm_SemTake(vspan->bufOpenRedSemaphore) < 0)
+			{
+				putErrmsg("Can't take buffer open semaphore.",
+						itoa(vspan->engineId));
+				return -1;
+			}
 
-		if (sm_SemEnded(vspan->bufEmptySemaphore))
+			if (sm_SemEnded(vspan->bufOpenRedSemaphore))
+			{
+				putErrmsg("Span has been stopped.",
+						itoa(vspan->engineId));
+				return 0;
+			}
+		}
+		else
 		{
-			putErrmsg("Span has been stopped.",
-					itoa(vspan->engineId));
-			return 0;
+			if (sm_SemTake(vspan->bufOpenGreenSemaphore) < 0)
+			{
+				putErrmsg("Can't take buffer open semaphore.",
+						itoa(vspan->engineId));
+				return -1;
+			}
+
+			if (sm_SemEnded(vspan->bufOpenGreenSemaphore))
+			{
+				putErrmsg("Span has been stopped.",
+						itoa(vspan->engineId));
+				return 0;
+			}
 		}
 
 		sdr_begin_xn(sdr);
@@ -167,7 +270,7 @@ reservation; restart LTP client.", utoa(occupancy));
 	if (span.lengthOfBufferedBlock >= span.aggrSizeLimit
 	|| span.redLengthOfBufferedBlock < span.lengthOfBufferedBlock)
 	{
-		sm_SemGive(vspan->bufFullSemaphore);
+		sm_SemGive(vspan->bufClosedSemaphore);
 	}
 
 	if (vdb->watching & WATCH_d)

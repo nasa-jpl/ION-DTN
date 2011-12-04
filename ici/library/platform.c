@@ -8,6 +8,9 @@
 /*									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
+/*	Scalar/SDNV conversion functions written by			*/
+/*	Ioannis Alexiadis, Democritus University of Thrace, 2011.	*/
+/*									*/
 #include "platform.h"
 
 #if defined (VXWORKS)
@@ -1628,6 +1631,12 @@ void	increaseScalar(Scalar *s, signed int i)
 		i = 0 - i;
 	}
 
+	while (i >= ONE_GIG)
+	{
+		i -= ONE_GIG;
+		s->gigs++;
+	}
+
 	s->units += i;
 	while (s->units >= ONE_GIG)
 	{
@@ -1642,6 +1651,12 @@ void	reduceScalar(Scalar *s, signed int i)
 	if (i < 0)
 	{
 		i = 0 - i;
+	}
+
+	while (i >= ONE_GIG)
+	{
+		i -= ONE_GIG;
+		s->gigs--;
 	}
 
 	while (i > s->units)
@@ -1712,6 +1727,206 @@ int	scalarIsValid(Scalar *s)
 {
 	CHKZERO(s);
 	return (s->gigs >= 0);
+}
+
+void	scalarToSdnv(Sdnv *sdnv, Scalar *scalar)
+{
+	int		gigs;
+	int		units;
+	int		i;
+	unsigned char	flag = 0;
+	unsigned char	*cursor;
+
+	CHKVOID(scalarIsValid(scalar));
+	CHKVOID(sdnv);
+	sdnv->length = 0;
+
+	/*		Calculate sdnv length				*/
+
+	gigs = scalar->gigs;
+	units = scalar->units;
+	if (gigs) 
+	{
+		/*	The scalar is greater than 2^30 - 1, so start
+		 *	with the length occupied by all 30 bits of
+		 *	"units" in the scalar.  This will occupy 5
+		 *	bytes in the sdnv with room for an additional
+		 *	5 high-order bits.  These bits will be the
+		 *	low-order 5 bits of gigs.  If the value in
+		 *	gigs is greater than 2^5 -1, increase sdnv
+		 *	length accordingly.				*/
+
+		sdnv->length += 5;			
+		gigs >>= 5;
+		while (gigs)
+		{
+			gigs >>= 7;
+			sdnv->length++;
+		}
+	}
+	else
+	{
+		/*	gigs = 0, so calculate the sdnv length from
+			units only.					*/
+
+		do
+		{
+			units >>= 7;
+			sdnv->length++;
+		} while (units);
+	}
+
+	/*		Fill the sdnv text.				*/
+
+	cursor = sdnv->text + sdnv->length;
+	i = sdnv->length;
+	gigs = scalar->gigs;
+	units = scalar->units;
+	do
+	{
+		cursor--;
+
+		/*	Start filling the sdnv text from the last byte.
+			Get 7 low-order bits from units and add the
+			flag to the high-order bit. Flag is 0 for the
+			last byte and 1 for all the previous bytes.	*/
+
+		*cursor = (units & 0x7f) | flag;
+		units >>= 7;
+		flag = 0x80;		/*	Flag is now 1.		*/
+		i--;
+	} while (units);
+
+	if (gigs)
+	{
+		while (sdnv->length - i < 5)
+		{
+			cursor--;
+
+			/* Fill remaining sdnv bytes corresponding to
+			   units with zeroes.				*/
+
+			*cursor = 0x00 | flag;
+			i--;
+		}
+
+		/*	Place the 5 low-order bits of gigs in the
+			current	sdnv byte.				*/
+
+		*cursor |= ((gigs & 0x1f) << 2);
+		gigs >>= 5;
+		while (i)
+		{
+			cursor--;
+
+			/*	Now fill the remaining sdnv bytes
+				from gigs.				*/
+
+			*cursor = (gigs & 0x7f) | flag;
+			gigs >>= 7;
+			i--;
+		}
+	}
+}
+
+int	sdnvToScalar(Scalar *scalar, unsigned char *sdnvText)
+{
+	int		sdnvLength;
+	int		i;
+	int		numSize = 0; /* Size of stored number in bits.	*/
+	unsigned char	*cursor;
+	unsigned char	flag;
+	unsigned char	k;
+
+	CHKZERO(scalar);
+	CHKZERO(sdnvText);
+	cursor = sdnvText;
+
+	/*	Find out the sdnv length and size of stored number,
+	 *	stripping off all leading zeroes.			*/
+
+	flag = (*cursor & 0x80);/*	Get flag of 1st byte.		*/
+	k = *cursor << 1;	/*	Discard the flag bit.		*/
+	i = 7;
+	while (i)
+	{
+		if (k & 0x80)
+		{
+			break;	/*	Loop until a '1' is found.	*/
+		}
+
+		i--;
+		k <<= 1;
+	}
+
+	numSize += i;	/*	Add significant bits from first byte.	*/
+	if (flag)	/*	Not end of SDNV.			*/
+	{
+		/*	Sdnv has more than one byte.  Add 7 bits for
+		 *	the last byte and advance cursor to add the
+		 *	bits for all intermediate bytes.		*/
+
+		numSize += 7;
+		cursor++;
+		while (*cursor & 0x80)
+		{
+			numSize += 7;
+			cursor++;
+		}
+	}
+
+	if (numSize > 61)
+	{
+		return 0;	/*	Too long to fit in a Scalar.	*/
+	}
+
+	sdnvLength = (cursor - sdnvText) + 1;
+
+	/*		Now start filling gigs and units.		*/
+
+	scalar->gigs = 0;
+	scalar->units = 0;
+	cursor = sdnvText;
+	i = sdnvLength;
+
+	while (i > 5)
+	{	/*	Sdnv bytes containing gigs only.		*/
+
+		scalar->gigs <<= 7;
+		scalar->gigs |= (*cursor & 0x7f);
+		cursor++;
+		i--;
+	}
+
+	if (i == 5)
+	{	/* Sdnv byte containing units and possibly gigs too.	*/
+
+		if (numSize > 30)
+		{
+			/* Fill the gigs bits after shifting out
+			   the 2 bits that belong to units.		*/
+
+			scalar->gigs <<= 5;
+			scalar->gigs |= ((*cursor >> 2) & 0x1f);
+		}
+
+		/*		Fill the units bits.			*/
+
+		scalar->units = (*cursor & 0x03);
+		cursor++;
+		i--;
+	}
+
+	while (i)
+	{	/*	Sdnv bytes containing units only.		*/
+
+		scalar->units <<= 7;
+		scalar->units |= (*cursor & 0x7f);
+		cursor++;
+		i--;
+	}
+
+	return sdnvLength;
 }
 
 void	findToken(char **cursorPtr, char **token)
@@ -1811,6 +2026,21 @@ void	findToken(char **cursorPtr, char **token)
 }
 
 #ifdef ION_NO_DNS
+unsigned int	getAddressOfHost()
+{
+	return 0;
+}
+#else
+unsigned int	getAddressOfHost()
+{
+	char	hostnameBuf[MAXHOSTNAMELEN + 1];
+
+	getNameOfHost(hostnameBuf, sizeof hostnameBuf);
+	return getInternetAddress(hostnameBuf);
+}
+#endif
+
+#ifdef ION_NO_DNS
 int		parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		unsigned int *ipAddress)
 {
@@ -1859,13 +2089,16 @@ int		parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 			}
 
 			i4 = getInternetAddress(hostname);
-			if (i4 < 1)		/*	Invalid hostname.	*/
+			if (i4 < 1)	/*	Invalid hostname.	*/
 			{
-			writeMemoNote("[?] Can't get IP address", hostname);
+				writeMemoNote("[?] Can't get IP address",
+						hostname);
 				if (delimiter)
 				{
-					*delimiter = ':';	/* Nondestructive parse */
+					/*	Nondestructive parse.	*/
+					*delimiter = ':';
 				}
+
 				return -1;
 			}
 			else
@@ -1899,6 +2132,7 @@ int		parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 			*portNbr = i4;
 		}
 	}
+
 	return 0;
 }
 #endif

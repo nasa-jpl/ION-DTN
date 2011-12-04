@@ -19,6 +19,12 @@ AM_CFLAGS = \
 	-I$(srcdir)/cfdp/include
 #	-I$(srcdir)/icix/include
 
+# This will add CFLAGS to make the valgrind macros compile without
+# warnings/errors on some systems with specific versions of valgrind
+# and gcc (see configure.ac and issue #298 for details).  If valgrind
+# support is not present, this variable is empty.
+AM_CFLAGS += $(VALGRIND_COMPAT_CFLAGS)
+
 # don't use AM_LDFLAGS because autoconf sets it INCORRECTLY and it will
 # segfault anything using libraries... which is everything.
 #AM_LDFLAGS = $(ION_LINK_FLAGS) 
@@ -1216,7 +1222,7 @@ bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #
 ##########################
 
-amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams
+amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -DUDPTS -DTCPTS -DDGRTS
 
 amsbin = \
 	amsd \
@@ -1226,6 +1232,7 @@ amsbin = \
 	amslogprt \
 	amsbenchs \
 	amsbenchr \
+	amsstop \
 	ramsgate
 
 amslib = \
@@ -1258,7 +1265,7 @@ libams_la_SOURCES = \
 	ams/library/dgrts.c \
 	ams/library/udpts.c \
 	ams/library/tcpts.c
-libams_la_LDFLAGS = $(ION_LINK_FLAGS)
+libams_la_LDFLAGS = $(ION_LINK_FLAGS) -static
 libams_la_CFLAGS = $(amscflags) $(AM_CFLAGS)
 libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la
 
@@ -1289,6 +1296,10 @@ amsbenchs_CFLAGS = $(amscflags) $(AM_CFLAGS)
 amsbenchr_SOURCES = ams/test/amsbenchr.c
 amsbenchr_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
 amsbenchr_CFLAGS = $(amscflags) $(AM_CFLAGS)
+
+amsstop_SOURCES =ams/utils/amsstop.c
+amsstop_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
+amsstop_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
@@ -1594,6 +1605,83 @@ tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) 
 tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline/driver.c
 tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+##########################
+#
+# AUTODOC SECTION
+#
+##########################
+
+if ENABLE_AUTODOC
+
+ION.pdf: doc/ION-beginning.ps doc/ION-manpages.ps
+	$(PSJOIN) $^ | $(PS2PDF) - $@
+
+# The targets in man_MANS that are actually manpages (and not phony targets
+# for making directories, etc.)
+justmans := $(filter %.1 %.3 %.5,$(man_MANS))
+
+mans_as_ps := $(patsubst %,%.ps,$(justmans))
+mans_1_as_ps := $(sort $(filter %.1.ps,$(mans_as_ps)))
+mans_3_as_ps := $(sort $(filter %.3.ps,$(mans_as_ps)))
+mans_5_as_ps := $(sort $(filter %.5.ps,$(mans_as_ps)))
+mans_as_ps_sorted := $(mans_1_as_ps) $(mans_3_as_ps) $(mans_5_as_ps)
+
+
+%.1.ps: %.1
+	man -l -Tps $^ > $@
+
+%.3.ps: %.3
+	man -l -Tps $^ > $@
+
+%.5.ps: %.5
+	man -l -Tps $^ > $@
+
+doc/appendix-a-contents.txt: $(mans_as_ps)
+	@rm -f $@
+	@echo ".tl 'Appendix A: ION Manpages''$$(hg id)" >> $@
+	@echo "" >> $@
+	@echo ".2C" >> $@
+	@echo ".ps 10" >> $@
+	@echo ".nf" >> $@
+	@echo ".ps 14" >> $@
+	@echo ".pvs +3p" >> $@
+	@echo "\fBExecutables (man section 1)\fP" >> $@
+	@echo ".pvs" >> $@
+	@echo ".ps 10" >> $@
+	@echo $(strip $(mans_1_as_ps)) | sed -e 's/ /\n/g' | sed -e 's/.*\///' -e 's/\.[0-9]\.ps//' >> $@
+	@echo ".ps 14" >> $@
+	@echo ".vs +10p" >> $@
+	@echo ".sp 0.1i" >> $@
+	@echo "\fBLibraries (man section 3)\fP" >> $@
+	@echo ".vs" >> $@
+	@echo ".ps 10" >> $@
+	@echo $(strip $(mans_3_as_ps)) | sed -e 's/ /\n/g' | sed -e 's/.*\///' -e 's/\.[0-9]\.ps//' >> $@
+	@echo ".ps 14" >> $@
+	@echo ".vs +10p" >> $@
+	@echo ".sp 0.1i" >> $@
+	@echo "\fBConfiguration files (man section 5)\fP" >> $@
+	@echo ".vs" >> $@
+	@echo ".ps 10" >> $@
+	@echo $(strip $(mans_5_as_ps)) | sed -e 's/ /\n/g' | sed -e 's/.*\///' -e 's/\.[0-9]\.ps//' >> $@
+	@echo ".br" >> $@
+
+doc/appendix-a-contents.ps: doc/appendix-a-contents.txt
+	$(GROFFMS) -ms $^ > $@
+
+doc/ION-manpages.ps: doc/appendix-a-contents.ps $(mans_as_ps_sorted) 
+	$(PSJOIN) $^ > $@
+
+doc/ION-beginning.ps: doc/ION-beginning.pdf
+	$(PDF2PS) $^ $@
+
+else
+
+ION.pdf: doc/ION-beginning.pdf
+	@echo "ION.pdf will not have appendix."
+	cp $^ $@
+
+endif #ENABLE_AUTODOC
 
 
 ##########################

@@ -5792,7 +5792,7 @@ static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
 	/*	Shift buffer left by number of bytes parsed.		*/
 
 	work->bytesBuffered -= bytesParsed;
-	memcpy(work->buffer, work->buffer + bytesParsed, work->bytesBuffered);
+	memmove(work->buffer, work->buffer + bytesParsed, work->bytesBuffered);
 
 	/*	Now read from ZCO to fill the buffer space that was
 	 *	vacated.						*/
