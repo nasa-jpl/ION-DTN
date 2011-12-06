@@ -1,5 +1,5 @@
 configFlags 1
-heapWords 20000000
+heapWords 500000
 heapKey -1
 pathName 'usr/ion'
 wmSize 5000000
