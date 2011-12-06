@@ -322,7 +322,7 @@ typedef struct
 	int		xmitsNeeded;
 	time_t		enqueueTime;	/*	When queued for xmit.	*/
 
-	Object		inTransitEntry;	/*	Hash table entry.	*/
+	Object		hashEntry;	/*	Entry in bundles hash.	*/
 } Bundle;
 
 #define COS_FLAGS(bundleProcFlags)	((bundleProcFlags >> 7) & 0x7f)
@@ -490,7 +490,7 @@ typedef struct
 	Object		schemes;	/*	SDR list of Schemes	*/
 	Object		protocols;	/*	SDR list of ClProtocols	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
-	Object		inTransitHash;	/*	SDR hash of Bundles	*/
+	Object		bundles;	/*	SDR hash of Bundles	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
 	Object		limboQueue;	/*	SDR list of XmitRefs	*/
 	Object		clockCmd; 	/*	For starting clock.	*/
@@ -1154,7 +1154,7 @@ extern void		destroyBpTimelineEvent(Object timelineElt);
 extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned long fragmentOffset,
 				unsigned long fragmentLength,
-				Object *bundleAddr, Object *timelineElt);
+				Object *bundleAddr);
 extern int		retrieveInTransitBundle(Object bundleZco, Object *obj);
 
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
