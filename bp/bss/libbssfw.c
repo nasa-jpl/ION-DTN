@@ -192,7 +192,7 @@ Object locateBssEntry (CbheEid dst, Object *nextEntry)
 
 		if (entry->dstServiceNbr > serviceNbr)
 		{
-			if (entry->dstServiceNbr!=BSS_ALL_OTHERS)
+			if (entry->dstServiceNbr != BSS_ALL_OTHERS)
 			{						
 				if (nextEntry) *nextEntry = elt;
 				break;	/*	Same as end of list.	*/
@@ -208,7 +208,7 @@ Object locateBssEntry (CbheEid dst, Object *nextEntry)
 
 		if (entry->dstNodeNbr > nodeNbr)
 		{
-			if (entry->dstNodeNbr!=BSS_ALL_OTHERS)
+			if (entry->dstNodeNbr != BSS_ALL_OTHERS)
 			{					
 				if (nextEntry) *nextEntry = elt;
 				break;	/*	Same as end of list.	*/
