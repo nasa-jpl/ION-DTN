@@ -361,14 +361,14 @@ PsmAddress	Sm_rbt_insert(char *file, int line, PsmPartition partition,
 	SmRbtNode	*childPtr[2];
 	PsmAddress	node;			//	q
 	SmRbtNode	*nodePtr;		//	q
-	PsmAddress	greatgrandparent;	//	t
+// 	PsmAddress	greatgrandparent;	//	t    // Note: Variable removed due to being unused
 	SmRbtNode	*greatgrandparentPtr;	//	t
 	PsmAddress	grandparent;		//	g
 	SmRbtNode	*grandparentPtr;	//	g
 	PsmAddress	parent;			//	p
 	SmRbtNode	*parentPtr;		//	p
 	int		direction = LEFT;	//	dir
-	int		prevDirection;		//	last
+	int		prevDirection = -1;	//	last  // Note: Variable initialized to fix a "possibly uninitialized" warning
 	int		subtree;		//	dir2
 
 	CHKZERO(partition);
@@ -399,7 +399,7 @@ PsmAddress	Sm_rbt_insert(char *file, int line, PsmPartition partition,
 	 *	will be a leaf with a non-zero parent (at least at
 	 *	first).							*/
 
-	greatgrandparent = 0;
+//	greatgrandparent = 0;  // Note: Variable removed due to being unused
 	greatgrandparentPtr = &dummyRootBuffer;
 	greatgrandparentPtr->child[RIGHT] = rbtPtr->root;
 	grandparent = 0;			/*	None.		*/
@@ -508,7 +508,7 @@ PsmAddress	Sm_rbt_insert(char *file, int line, PsmPartition partition,
 
 		if (grandparent)
 		{
-			greatgrandparent = grandparent;
+//			greatgrandparent = grandparent;  // Note: Variable removed due to being unused
 			greatgrandparentPtr = grandparentPtr;
 		}
 
@@ -549,7 +549,7 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 	SmRbtNode	*parentPtr;		//	p
 	PsmAddress	stepparent;		//	p
 	SmRbtNode	*stepparentPtr;		//	p
-	PsmAddress	grandparent;		//	g
+//	PsmAddress	grandparent;		//	g   // Note: Variable removed due to being unused
 	SmRbtNode	*grandparentPtr;	//	g
 	PsmAddress	target;			//	f
 	SmRbtNode	*targetPtr;		//	f
@@ -595,7 +595,7 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 	 *	the compare function provided on node deletion just
 	 *	as on node insertion.					*/
 
-	grandparent = 0;			/*	None.		*/
+//	grandparent = 0;			/*	None.		*/  // Note: Variable removed due to being unused
 	grandparentPtr = NULL;
 	parent = 0;				/*	None.		*/
 	parentPtr = NULL;
@@ -607,7 +607,7 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 	while (nodePtr->child[direction])
 	{
 		prevDirection = direction;
-		grandparent = parent;
+//		grandparent = parent;  // Note: Variable removed due to being unused
 		grandparentPtr = parentPtr;
 
 		/*	The first time through the loop, parentPtr
@@ -1021,7 +1021,7 @@ PsmAddress	sm_rbt_search(PsmPartition partition, PsmAddress rbt,
 	SmRbt		*rbtPtr;
 	PsmAddress	node;
 	PsmAddress	prevNode;
-	int		direction;
+	int		direction = -1; // Note: Variable initialized to fix a "possibly uninitialized" warning
 	SmRbtNode	*nodePtr;
 	int		result;
 

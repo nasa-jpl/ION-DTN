@@ -343,7 +343,8 @@ iciinclude = \
 	ici/include/sdrlist.h \
 	ici/include/sdrtable.h \
 	ici/include/sdrhash.h \
-	ici/include/sdr.h
+	ici/include/sdr.h \
+	ici/include/smrbt.h
 
 icinoinst = \
 	ici/library/lystP.h \
@@ -444,6 +445,7 @@ libici_la_SOURCES =	ici/library/llcv.c \
 			ici/library/ion.c \
 			ici/library/ionsec.c \
 			ici/library/zco.c \
+			ici/library/smrbt.c \
 			ici/sdr/sdrxn.c \
 			ici/sdr/sdrmgt.c \
 			ici/sdr/sdrstring.c \
@@ -451,6 +453,7 @@ libici_la_SOURCES =	ici/library/llcv.c \
 			ici/sdr/sdrtable.c \
 			ici/sdr/sdrhash.c \
 			ici/sdr/sdrcatlg.c
+
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
 libici_la_LDFLAGS = $(ION_LINK_FLAGS)
