@@ -212,7 +212,7 @@ int	main(int argc, char **argv)
          * ********************************************************
 	 * In order for the BSS receiving thread to work properly
 	 * BSS receiving application must always allocate a buffer
-	 * of a certain size and provide its address and its lenght 
+	 * of a certain size and provide its address and its length 
 	 * to bssRun or bssStart function.
          * ********************************************************
 	 */ 
