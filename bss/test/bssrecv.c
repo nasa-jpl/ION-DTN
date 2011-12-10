@@ -58,6 +58,7 @@ static int display(time_t time, unsigned long count, char* buf, int bufLength)
 static int replay (time_t fromTime, time_t toTime)
 {
 	time_t		curTime = 0;
+	time_t		lastTime = 0;
 	bssNav		nav;
 	char*		data;
 	int 		bytesRead;
@@ -94,6 +95,7 @@ static int replay (time_t fromTime, time_t toTime)
 		}
 		/*	call the display function	*/
 		display(curTime, count, data, sizeof(data));
+		lastTime = curTime;
 
 		/*	get next frame	    */
 		pLen = bssNext(&nav, &curTime, &count);
@@ -116,7 +118,7 @@ static int replay (time_t fromTime, time_t toTime)
 	PUTS("---------------------------------------------------------");
 	fflush(stdout);
 
-	if(bssSeek(&nav, toTime, &curTime, &count) < 0)
+	if(bssSeek(&nav, lastTime, &curTime, &count) < 0)
 	{
 		PUTS("bssSeek failed");
 		return -1;

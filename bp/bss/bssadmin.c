@@ -756,6 +756,7 @@ static void	infoPlan(int tokenCount, char **tokens)
 	}
 	
 	sdr_begin_xn(sdr);		
+	nodeNbr = strtol(tokens[2], NULL, 0);
 	bss_findPlan(nodeNbr, &planAddr, &elt);
 	sdr_exit_xn(sdr);
 	if (elt == 0)
