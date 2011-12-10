@@ -1,5 +1,5 @@
 /*
- *	libbssrecv.h:	BSS API, functions enabling the implementation 
+ *	libbss.c:	BSS API, functions enabling the implementation 
  *			of BSS applications that support the reception
  *			of a bundle stream and are able to provide
  *			playback control over the stream.
@@ -16,12 +16,17 @@
 
 #include "bssP.h"
 
-bss_thread_data DB;
-
-void bssStop()
+void	bssStop()
 {
-	pthread_t	stopThread=-1;
+	pthread_t	stopThread = -1;
 	int		stopLoop = 0;
+	int		destroy = 0;
+
+	if (_datFile(0,0) == -1)	/*	Must destroy tblIndex.	*/
+	{
+		oK(_tblIndex(&destroy));
+		ionDetach();
+	}
 
 	_running(&stopLoop);
 
@@ -34,14 +39,22 @@ void bssStop()
 	else
 	{
 		PUTS("No active thread detected");
-		return ;
+		return;
 	}
 
 	PUTS("BSS receiving thread has been stopped");
 }
 
-void bssClose()
+void	bssClose()
 {
+	int	destroy = 0;
+
+	if (_recvThreadId(NULL) == -1)	/*	Must destroy tblIndex.	*/
+	{
+		oK(_tblIndex(&destroy));
+		ionDetach();
+	}
+
 	if (_datFile(0,0) != -1)
 	{
 		close(_datFile(-1,0));
@@ -51,13 +64,13 @@ void bssClose()
 	else
 	{
 		PUTS("No BSS database RONLY files are opened");
-		return ;
+		return;
 	}
 
 	PUTS("BSS database RONLY files were successfully closed");
 }
 
-void bssExit()
+void	bssExit()
 {
 	bssStop();
 	bssClose();
@@ -65,7 +78,7 @@ void bssExit()
 }
 
 /* Start and terminate BSS receiver operations */
-int bssOpen(char* bssName, char* path, char* eid)
+int	bssOpen(char* bssName, char* path, char* eid)
 {
 	CHKERR(bssName);
 	CHKERR(path); 
@@ -75,7 +88,8 @@ int bssOpen(char* bssName, char* path, char* eid)
 	 *  RDONLY access rights that is necessary for stream's 	
 	 *  playback functionality.				
 	 */
-	
+
+	ionAttach();
 	if (_datFile(0,0) == -1 && _lstFile(0,0) == -1 && _tblFile(0,0) == -1)
 	{
 		if (loadRDonlyDB(bssName, path)!=0)
@@ -83,6 +97,7 @@ int bssOpen(char* bssName, char* path, char* eid)
 			putErrmsg("BSS library: Database creation failed.", 
 				   path);
 			bssClose();
+			ionDetach();
 			return -1;
 		}
 	}
@@ -90,20 +105,22 @@ int bssOpen(char* bssName, char* path, char* eid)
 	{
 		writeMemo("Please terminate the already active playback \
 session in order to initiate a new one.");
+		ionDetach();
 		return -1;
 	}
 	
 	return 0;
 }
 
-int bssStart(char* bssName, char* path, char* eid, char* buffer, int bufLength,
-	RTBHandler display)
+int	bssStart(char* bssName, char* path, char* eid, char* buffer,
+		int bufLength, RTBHandler display)
 {	
-	int 		dat;
-	int		lst;
-	int 		tbl;
- 	pthread_t    	bssRecvThread;
-	int		enableLoop = 1;
+	int 			dat;
+	int			lst;
+	int 			tbl;
+	static bss_thread_data	DB;
+ 	pthread_t    		bssRecvThread;
+	int			enableLoop = 1;
 
 	CHKERR(bssName);
 	CHKERR(path); 
@@ -118,6 +135,7 @@ int bssStart(char* bssName, char* path, char* eid, char* buffer, int bufLength,
 	 *  real-time mode.					
          */
 
+	ionAttach();
 	if (_recvThreadId(NULL) == -1)
 	{
 		if (loadRDWRDB(bssName, path, &dat, &lst, &tbl) != 0)
@@ -125,6 +143,7 @@ int bssStart(char* bssName, char* path, char* eid, char* buffer, int bufLength,
 			putErrmsg("BSS library: Database creation failed.", 
 				   path);
 			bssStop();
+			ionDetach();
 			return -1;
 		}
 	}
@@ -132,6 +151,7 @@ int bssStart(char* bssName, char* path, char* eid, char* buffer, int bufLength,
 	{
 		writeMemo("Please terminate the already active real-time \
 session in order to initiate a new one.");
+		ionDetach();
 		return -1;
 	}
 
@@ -150,6 +170,7 @@ session in order to initiate a new one.");
 	{
 		putSysErrmsg("Can't create recvBundles thread", NULL);
 		bssStop();
+		ionDetach();
 		return -1;
 	}
 
@@ -158,8 +179,8 @@ session in order to initiate a new one.");
 	return 0;
 }
 
-int bssRun(char* bssName, char* path, char* eid, char* buffer, int bufLength,
-	RTBHandler display)
+int	bssRun(char* bssName, char* path, char* eid, char* buffer,
+		int bufLength, RTBHandler display)
 {
 	if (_datFile(0,0) == -1 && _lstFile(0,0) == -1 && _tblFile(0,0) == -1 
 		&& _recvThreadId(NULL) == -1)
@@ -186,7 +207,7 @@ in order to initiate a new one.");
 	return 0;
 }
 
-int bssRead(bssNav nav, char* data, int dataLen)
+long	bssRead(bssNav nav, char* data, int dataLen)
 {
 	dataRecord rec;
 
@@ -226,37 +247,26 @@ int bssRead(bssNav nav, char* data, int dataLen)
 	return rec.pLen;
 }
 
-int bssSeek(bssNav *nav, time_t time, time_t *curTime, unsigned long *count)
+long	 bssSeek(bssNav *nav, time_t time, time_t *curTime,
+		unsigned long *count)
 {
-	tblIndex 	index;
-	lstEntry 	entry;
+	tblIndex 	*index = _tblIndex(NULL);
+	long 		position;
 	long 		lstEntryOffset;
-	int 		position;
+	lstEntry 	entry;
 
 	CHKERR(nav);
 	CHKERR(time > 0);
 	CHKERR(curTime); 
 	CHKERR(count);
+	CHKERR(index);
 	
 	if (_lockMutex(1) == -1)	/*	Protecting transaction.	*/
 	{
 		return -1;
 	}
 
-	if (readTblFile(_tblFile(0,0), &index) < 0)
-	{
-		oK(_lockMutex(0));	/*	unlocking mutex		*/
-		return -1;
-	}
-
-	if (time < index.oldestTime || index.oldestTime == 0)
-	{
-		PUTS("Cannot seek to the specified time. Entry does not exist");
-		_lockMutex(0);
-		return -1;
-	}
-
-	position = findLstEntryOffset(index, time, &lstEntryOffset);
+	findIndexRow(time, &position);
 	if (position == -1)
 	{
 		PUTS("Cannot seek to the specified time. No match was found");
@@ -264,7 +274,8 @@ int bssSeek(bssNav *nav, time_t time, time_t *curTime, unsigned long *count)
 		return -1;
 	}
 
-	if (getLstEntry(_lstFile(0,0), &entry, lstEntryOffset)==-1)
+	lstEntryOffset = index->rows[position].firstEntryOffset;
+	if (getLstEntry(_lstFile(0,0), &entry, lstEntryOffset) == -1)
 	{
 		oK(_lockMutex(0));
 		return -1;
@@ -279,33 +290,41 @@ int bssSeek(bssNav *nav, time_t time, time_t *curTime, unsigned long *count)
 	return entry.pLen;
 }
 
-int bssSeek_read(bssNav *nav, time_t time, time_t *curTime,
+long	 bssSeek_read(bssNav *nav, time_t time, time_t *curTime,
 		unsigned long *count, char* data, int dataLen)
 {
-	if (bssSeek(nav, time, curTime, count) < 0)
+	long	pLen;
+
+	pLen = bssSeek(nav, time, curTime, count);
+	if (pLen < 0)
 	{
 		return -1;
 	}
 
-	if (bssRead(*nav, data, dataLen) < 0)
+	pLen = bssRead(*nav, data, dataLen);
+	if (pLen < 0)
 	{
 		return -1;
 	}
 
-	return strlen(data);
+	return pLen;
 }
 
-int bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
+long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 {
-	tblIndex 	index;
+	tblIndex 	*index = _tblIndex(NULL);
+	tblHeader	*hdr;
+	tblRow		*row;
 	lstEntry 	entry;
 	int		curPosition = nav->curPosition;
-	int 		i=0;
+	int 		i = 0;
 	unsigned long	nextTime;
 
 	CHKERR(nav);
 	CHKERR(curTime); 
 	CHKERR(count);
+	CHKERR(index);
+	hdr = &(index->header);
 
 	if (_lockMutex(1) == -1)	/*	Protecting transaction.	*/
 	{
@@ -314,53 +333,48 @@ int bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 
 	if (nav->nextOffset == -1) 
 	{
-		/* The end of the current doubly-linked list was reached */
-
-		if (readTblFile(_tblFile(0,0),&index) < 0)
-		{
-			_lockMutex(0); /*	unlocking mutex		*/
-			return -1;
-		}
-		
-		/*	The following check ensures that bssNext  	*
+		/*	The end of the current doubly-linked list was
+		 *	reached.
+		 *
+		 *	The following check ensures that bssNext 
 		 *	 function will either break or return.		*/
 
-		if (index.oldestTime == 0)
+		if (hdr->oldestTime == 0)
 		{
 			oK(_lockMutex(0));
 			return -1;
 		}
 
-		/* 	move to the next position 	*/
+		/* 	move to the next position 			*/
 		curPosition = curPosition + 1;
 
-		while (i < SOD)
+		while (i < WINDOW)
 		{
 			/*	 
 			 *  Each row of the tables stored in .tbl file
 			 *  represents a specific second (from the last
-			 *  SOD seconds stored).  The curPosition value
+			 *  WINDOW seconds stored).  The curPosition value
 			 *  refers to these rows.  The position in
 			 *  which the information for each second is
 			 *  stored is relative to the value of the
-			 *  second stored in the index.oldestRowIndex
+			 *  second stored in the hdr->oldestRowIndex
 			 *  position. The time (in seconds) represented
 			 *  by the curPosition is calculated by
 			 *  comparing the curPosition with the 
-			 *  index.oldestRowIndex value.
+			 *  hdr->oldestRowIndex value.
 			 */
 
-			if (curPosition >= index.oldestRowIndex)
+			if (curPosition >= hdr->oldestRowIndex)
 			{
-				nextTime = index.oldestTime
-					+ (curPosition % SOD)
-					- index.oldestRowIndex;
+				nextTime = hdr->oldestTime
+					+ (curPosition % WINDOW)
+					- hdr->oldestRowIndex;
 			}
 			else
 			{
-				nextTime = index.oldestTime + SOD
-					- index.oldestRowIndex
-					+ (curPosition % SOD);	
+				nextTime = hdr->oldestTime + WINDOW
+					- hdr->oldestRowIndex
+					+ (curPosition % WINDOW);	
 			}
 			
 			if (nextTime <= *curTime)
@@ -369,7 +383,8 @@ int bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 				return -2;	/* 	end of list	*/
 			}
 
-			if (index.firstEntryOffset[curPosition % SOD] == -1)
+			row = index->rows + (curPosition % WINDOW);
+			if (row->firstEntryOffset == -1)
 			{
 				/*  
 				 *  if there is no doubly-linked list
@@ -380,22 +395,23 @@ int bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			}
 			else
 			{
-				curPosition = curPosition % SOD;
+				curPosition = curPosition % WINDOW;
 				break;
 			}
 			
 			i++;
 		}
 
-		if (getLstEntry(_lstFile(0,0), &entry, 
-			index.firstEntryOffset[curPosition%SOD]) == -1)
+		row = index->rows + (curPosition % WINDOW);
+		if (getLstEntry(_lstFile(0,0), &entry, row->firstEntryOffset)
+				== -1)
 		{
 			oK(_lockMutex(0));
 			return -1;
 		}
 
-		updateNavInfo(nav, curPosition%SOD, entry.datOffset, entry.prev,
-				entry.next);
+		updateNavInfo(nav, curPosition % WINDOW, entry.datOffset,
+				entry.prev, entry.next);
 	}
 	else
 	{
@@ -406,7 +422,7 @@ int bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 		}
 	
 		updateNavInfo(nav, curPosition, entry.datOffset, entry.prev, 
-			entry.next);
+				entry.next);
 	}
 		
 	*curTime = entry.crtnTime.seconds;
@@ -417,32 +433,35 @@ int bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 	return entry.pLen;
 }
 
-int bssNext_read(bssNav *nav, time_t *curTime, unsigned long *count, char* data,
-	int dataLen)
+long	bssNext_read(bssNav *nav, time_t *curTime, unsigned long *count,
+		char* data, int dataLen)
 {
-	int checkErr;
-	
-	checkErr = bssNext(nav, curTime, count); 
-	if (checkErr == -2)
+	long	pLen;
+
+	pLen = bssNext(nav, curTime, count); 
+	if (pLen == -2)
 	{
 		return -2;
 	}
-	else if (checkErr < 0)
+	else if (pLen < 0)
 	{
 		return -1;
 	}
 
-	if (bssRead(*nav, data, dataLen) < 0)
+	pLen = bssRead(*nav, data, dataLen);
+	if (pLen < 0)
 	{
 		return -1;
 	}
 
-	return strlen(data);
+	return pLen;
 }
 
-int bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
+long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 {
-	tblIndex 	index;
+	tblIndex 	*index = _tblIndex(NULL);
+	tblHeader	*hdr;
+	tblRow		*row;
 	lstEntry 	entry;
 	int		curPosition = nav->curPosition;
 	int 		i=0;
@@ -451,6 +470,8 @@ int bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 	CHKERR(nav);
 	CHKERR(curTime); 
 	CHKERR(count);
+	CHKERR(index);
+	hdr = &(index->header);
 
 	if (_lockMutex(1) == -1)	/*	Protecting transaction.	*/
 	{
@@ -459,16 +480,10 @@ int bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 
 	if (nav->prevOffset == -1) 
 	{
-		if (readTblFile(_tblFile(0,0),&index) < 0)
-		{
-			oK(_lockMutex(0));
-			return -1;
-		}
-
 		/*	The following check ensures that bssPrev  	*
 		 *	 function will either break or return.		*/
 
-		if (index.oldestTime == 0)
+		if (hdr->oldestTime == 0)
 		{
 			oK(_lockMutex(0));
 			return -1;
@@ -477,26 +492,26 @@ int bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 		curPosition = curPosition - 1;
 		if (curPosition < 0) curPosition = -1 * curPosition;
 
-		while (i < SOD)
+		while (i < WINDOW)
 		{
 			/*
 		 	 *  The time (in seconds) represented by the
 			 *  curPosition is calculated by comparing
 			 *  the curPosition with the 
-			 *  index.oldestRowIndex value.
+			 *  hdr->oldestRowIndex value.
 			 */
 
-			if (curPosition >= index.oldestRowIndex)
+			if (curPosition >= hdr->oldestRowIndex)
 			{
-				prevTime = index.oldestTime
-					+ (curPosition % SOD) 
-					- index.oldestRowIndex;
+				prevTime = hdr->oldestTime
+					+ (curPosition % WINDOW) 
+					- hdr->oldestRowIndex;
 			}
 			else
 			{
-				prevTime = index.oldestTime + SOD 
-					- index.oldestRowIndex
-					+ (curPosition % SOD);	
+				prevTime = hdr->oldestTime + WINDOW 
+					- hdr->oldestRowIndex
+					+ (curPosition % WINDOW);	
 			}
 
 			if (prevTime >= *curTime)
@@ -505,7 +520,8 @@ int bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 				return -2;	/* 	end of list	*/
 			}
 
-			if (index.firstEntryOffset[curPosition % SOD] == -1)
+			row = index->rows + (curPosition % WINDOW);
+			if (row->firstEntryOffset == -1)
 			{
 				/*  
 				 *  if there is no doubly-linked list
@@ -520,15 +536,16 @@ int bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 			}
 			else
 			{
-				curPosition = curPosition % SOD;
+				curPosition = curPosition % WINDOW;
 				break;
 			}
 
 			i++;
 		}
 
-		if (getLstEntry(_lstFile(0,0), &entry, 
-			index.lastEntryOffset[curPosition % SOD]) == -1)
+		row = index->rows + (curPosition % WINDOW);
+		if (getLstEntry(_lstFile(0,0), &entry, row->lastEntryOffset)
+				== -1)
 		{
 			oK(_lockMutex(0));
 			return -1;
@@ -552,28 +569,29 @@ int bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 	*curTime = entry.crtnTime.seconds;
 	*count = entry.crtnTime.count;
 	oK(_lockMutex(0));
-	return 0;
+	return entry.pLen;
 }
 
-int bssPrev_read(bssNav *nav, time_t *curTime, unsigned long *count, char* data,
-	int dataLen)
+long	bssPrev_read(bssNav *nav, time_t *curTime, unsigned long *count,
+		char* data, int dataLen)
 {
-	int checkErr;
-	
-	checkErr = bssPrev(nav, curTime, count); 
-	if (checkErr == -2)
+	long	pLen;
+
+	pLen = bssPrev(nav, curTime, count); 
+	if (pLen == -2)
 	{
 		return -2;
 	}
-	else if (checkErr < 0)
+	else if (pLen < 0)
 	{
 		return -1;
 	}
 
-	if(bssRead(*nav, data, dataLen) < 0)
+	pLen = bssRead(*nav, data, dataLen);
+	if (pLen < 0)
 	{
 		return -1;
 	}
 
-	return strlen(data);
+	return pLen;
 }

@@ -17,7 +17,7 @@
 
 #include <bp.h>
 
-int 	running =1;
+static int 	running =1;
 
 static BpSAP	_bpsap(BpSAP *newSAP)
 {
@@ -175,7 +175,7 @@ int	main(int argc, char **argv)
 #endif
 	if (ownEid == NULL || destEid == NULL)
 	{
-		PUTS("Usage: bssStreaming app <own endpoint ID> <destination \
+		PUTS("Usage: bssStreamingApp <own endpoint ID> <destination \
 endpoint ID> [<class of service>]");
 		PUTS("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
 		return 0;

@@ -58,18 +58,18 @@ extern void		bssClose();
 extern void		bssStop();
 extern void		bssExit();
 
-extern int		bssRead(bssNav nav, char* data, int dataLen);
-extern int		bssSeek(bssNav *nav, time_t time, time_t *curTime, 
+extern long		bssRead(bssNav nav, char* data, int dataLen);
+extern long		bssSeek(bssNav *nav, time_t time, time_t *curTime, 
 				unsigned long *count);
-extern int		bssSeek_read(bssNav *nav, time_t time, time_t *curTime, 
+extern long		bssSeek_read(bssNav *nav, time_t time, time_t *curTime, 
 				unsigned long *count, char* data, int dataLen);
-extern int		bssNext(bssNav *nav, time_t *curTime, 
+extern long		bssNext(bssNav *nav, time_t *curTime, 
 				unsigned long *count);
-extern int		bssNext_read(bssNav *nav, time_t *curTime, 
+extern long		bssNext_read(bssNav *nav, time_t *curTime, 
 				unsigned long *count, char* data, int dataLen);
-extern int		bssPrev(bssNav *nav, time_t *curTime, 
+extern long		bssPrev(bssNav *nav, time_t *curTime, 
 				unsigned long *count);
-extern int		bssPrev_read(bssNav *nav, time_t *curTime, 
+extern long		bssPrev_read(bssNav *nav, time_t *curTime, 
 				unsigned long *count, char* data, int dataLen);
 
 /*	extern int		bssRecover();  - Under Development	*/

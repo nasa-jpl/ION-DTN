@@ -46,9 +46,8 @@ this structure; it's strictly for the private use of the BSS library.
 
 Opens access to a BSS database, to enable data playback.  I<bssName>
 identifies the specific BSS database that is to be opened.  I<path> identifies
-the directory in which the database resides.  I<eid> is ignored.
-
-On any failure, returns -1.  On success, returns zero.
+the directory in which the database resides.  I<eid> is ignored.  On any
+failure, returns -1.  On success, returns zero.
 
 =item int bssStart(char *bssName, char *path, char *eid, char *buffer, int bufLen, RTBHandler handler)
 
@@ -58,17 +57,14 @@ directory in which that database resides.  I<eid> is used to open the BP
 endpoint at which the delivered BSS bundle payload contents will be
 acquired.  I<buffer> identifies a data acquisition buffer, which must be
 provided by the application, and I<bufLen> indicates the length of that
-buffer; received bundle payloads in excess of this length will be truncated
-to fit into the buffer.  I<handler> identifies the display function to which
-each in-order bundle payload will be passed.
-
-On any failure, returns -1.  On success, returns zero.
+buffer; received bundle payloads in excess of this length will be discarded.
+I<handler> identifies the display function to which each in-order bundle
+payload will be passed.  On any failure, returns -1.  On success, returns zero.
 
 =item int bssRun(char *bssName, char *path, char *eid, char *buffer, int bufLen, RTBHandler handler)
 
-A convenience function that performs both bssOpen() and bssStart().
-
-On any failure, returns -1.  On success, returns zero.
+A convenience function that performs both bssOpen() and bssStart().  On any
+failure, returns -1.  On success, returns zero.
 
 =item void bssClose()
 
@@ -82,51 +78,58 @@ Terminates the most recently initiated BSS data acquisition background thread.
 
 A convenience function that performs both bssClose() and bssStop().
 
-=item void bssRead(bssNav nav, char *data, int dataLen)
+=item long bssRead(bssNav nav, char *data, int dataLen)
 
 Copies the data at the current playback position in the database, as indicated
 by I<nav>, into I<data>; if the length of the data is in excess of I<dataLen>
-then it will be truncated to fit into I<data>.  Note that bssRead() cannot be
-successfully called until I<nav> has been populated, nominally by a preceding
-call to bssSeek(), bssNext(), or bssPrev().
+then an error condition is asserted (i.e., -1 is returned).  Note that bssRead()
+cannot be successfully called until I<nav> has been populated, nominally by
+a preceding call to bssSeek(), bssNext(), or bssPrev().  Returns the length
+of data read, or -1 on any error.
 
-=item void bssSeek(bssNav *nav, time_t time, time_t *curTime, unsigned long *count)
+=item long bssSeek(bssNav *nav, time_t time, time_t *curTime, unsigned long *count)
 
 Sets the current playback position in the database, in I<nav>, to the data
 received in the bundle with the earliest creation time that was greater than
 or equal to I<time>.  Populates I<nav> and also returns the creation time and
-bundle ID count of that bundle in I<curTime> and I<count>.
+bundle ID count of that bundle in I<curTime> and I<count>.  Returns the length
+of data at this location, or -1 on any error.
 
-=item void bssSeek_read(bssNav *nav, time_t time, time_t *curTime, unsigned long *count, char *data, int dataLen)
+=item long bssSeek_read(bssNav *nav, time_t time, time_t *curTime, unsigned long *count, char *data, int dataLen)
 
 A convenience function that performs bssSeek() followed by an immediate
-bssRead() to return the data at the new playback position.
+bssRead() to return the data at the new playback position.  Returns the length
+of data read, or -1 on any error.
 
-=item void bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
+=item long bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 
 Sets the playback position in the database, in I<nav>, to the data received
 in the bundle with the earliest creation time and ID count greater than that
 of the bundle at the current playback position.  Populates I<nav> and also
 returns the creation time and bundle ID count of that bundle in I<curTime>
-and I<count>.
+and I<count>.  Returns the length of data at this location (if any),
+-2 on reaching end of list, or -1 on any error.
 
-=item void bssNext_read(bssNav *nav, time_t *curTime, unsigned long *count, char *data, int dataLen)
+=item long bssNext_read(bssNav *nav, time_t *curTime, unsigned long *count, char *data, int dataLen)
 
 A convenience function that performs bssNext() followed by an immediate
-bssRead() to return the data at the new playback position.
+bssRead() to return the data at the new playback position.  Returns the
+length of data read, -2 on reaching end of list, or -1 on any error.
 
-=item void bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
+=item long bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 
 Sets the playback position in the database, in I<nav>, to the data received
 in the bundle with the latest creation time and ID count earlier than that
 of the bundle at the current playback position.  Populates I<nav> and also
 returns the creation time and bundle ID count of that bundle in I<curTime>
-and I<count>.
+and I<count>.  Returns the length of data at this location (if any), -2 on
+reaching end of list, or -1 on any error.
 
-=item void bssPrev_read(bssNav *nav, time_t *curTime, unsigned long *count, char *data, int dataLen)
+=item long bssPrev_read(bssNav *nav, time_t *curTime, unsigned long *count, char *data, int dataLen)
 
 A convenience function that performs bssPrev() followed by an immediate
-bssRead() to return the data at the new playback position.
+bssRead() to return the data at the new playback position.  Returns the
+length of data read, -2 on reaching end of list, or -1 on any error.
 
 =back
 

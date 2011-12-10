@@ -61,7 +61,7 @@ static int replay (time_t fromTime, time_t toTime)
 	bssNav		nav;
 	char*		data;
 	int 		bytesRead;
-	int 		position;
+	int 		pLen;
 	unsigned long 	count;
 
 	data = calloc(65536, sizeof(char));
@@ -96,13 +96,13 @@ static int replay (time_t fromTime, time_t toTime)
 		display(curTime, count, data, sizeof(data));
 
 		/*	get next frame	    */
-		position = bssNext(&nav, &curTime, &count);
-		if(position == -2)
+		pLen = bssNext(&nav, &curTime, &count);
+		if(pLen == -2)
 		{
 			PUTS("End of list");
 			break;
 		}
-		else if (position < 0)
+		else if (pLen < 0)
 		{
 			PUTS("bssNext failed");
 			return -1;
@@ -125,13 +125,13 @@ static int replay (time_t fromTime, time_t toTime)
 	while(curTime >= fromTime)
 	{
 		/*	get previous frame	*/
-		position = bssPrev(&nav, &curTime, &count);
-		if(position == -2)
+		pLen = bssPrev(&nav, &curTime, &count);
+		if(pLen == -2)
 		{
 			PUTS("End of list");
 			break;
 		}
-		else if (position < 0)
+		else if (pLen < 0)
 		{
 			PUTS("bssPrev failed");
 			return -1;
@@ -157,8 +157,9 @@ static int replay (time_t fromTime, time_t toTime)
 
 static int userInput(int fd, char* bssName, char* path, char* eid )
 {
-	char		parameters[512];
-	int		paramLen;
+	char	parameters[512];
+	int	paramLen;
+
 	PUTS("Please enter DB name, path and eid separated by whitespace.");
 	PUTS("e.g.: bssDB /home/user/experiments/bss ipn:2.71");
 	fflush(stdout);
