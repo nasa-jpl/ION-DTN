@@ -124,7 +124,7 @@ void	parseProxyMsgToUser(char *text, int bytesRemaining,
 
 	if (opsData->proxyMsgsToUser == 0)
 	{
-		opsData->proxyMsgsToUser = sdr_list_create(sdr);
+		opsData->proxyMsgsToUser = cfdp_create_usrmsg_list();
 		if (opsData->proxyMsgsToUser == 0)
 		{
 			return;
@@ -225,7 +225,7 @@ void	parseProxyFilestoreRequest(char *text, int bytesRemaining,
 
 	if (opsData->proxyFilestoreRequests == 0)
 	{
-		opsData->proxyFilestoreRequests = sdr_list_create(sdr);
+		opsData->proxyFilestoreRequests = cfdp_create_fsreq_list();
 		if (opsData->proxyFilestoreRequests == 0)
 		{
 			return;
@@ -430,7 +430,7 @@ void	parseProxyFilestoreResponse(char *text, int bytesRemaining,
 
 	if (opsData->proxyFilestoreResponses == 0)
 	{
-		opsData->proxyFilestoreResponses = sdr_list_create(sdr);
+		opsData->proxyFilestoreResponses = cfdp_create_fsreq_list();
 		if (opsData->proxyFilestoreResponses == 0)
 		{
 			return;
@@ -493,7 +493,7 @@ static int	reportOnProxyPut(CfdpUserOpsData *opsData,
 			CfdpFileStatus fileStatus)
 {
 	Sdr			sdr = getIonsdr();
-	Object			msgs = sdr_list_create(sdr);
+	Object			msgs = cfdp_create_usrmsg_list();
 	MsgToUser		msg;
 	unsigned char		textBuffer[6];
 	Object			msgObj;
@@ -652,7 +652,7 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 
 	if (messagesToUser == 0)
 	{
-		if ((msgs = sdr_list_create(sdr)) == 0)
+		if ((msgs = cfdp_create_usrmsg_list()) == 0)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create user messages list.", NULL);
@@ -908,7 +908,7 @@ int	cfdp_rput_cancel(CfdpNumber *respondentEntityNbr,
 
 	if (messagesToUser == 0)
 	{
-		if ((messagesToUser = sdr_list_create(sdr)) == 0)
+		if ((messagesToUser = cfdp_create_usrmsg_list()) == 0)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create user messages list.", NULL);
@@ -1073,7 +1073,7 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 			int responseCode, char *listingFileName)
 {
 	Sdr			sdr = getIonsdr();
-	Object			msgs = sdr_list_create(sdr);
+	Object			msgs = cfdp_create_usrmsg_list();
 	int			dirNameLen = strlen(opsData->directoryName);
 	int			destFileNameLen =
 					strlen(opsData->directoryDestFileName);
@@ -1194,7 +1194,7 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 
 	if (messagesToUser == 0)
 	{
-		if ((messagesToUser = sdr_list_create(sdr)) == 0)
+		if ((messagesToUser = cfdp_create_usrmsg_list()) == 0)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create user messages list.", NULL);
