@@ -1102,7 +1102,8 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 	sdr_write(sdr, msg.text, (char *) textBuffer, msg.length);
 	sdr_write(sdr, msgObj, (char *) &msg, sizeof(MsgToUser));
 	return createFDU(&opsData->originatingTransactionId.sourceEntityNbr, 0,
-			NULL, listingFileName, opsData->directoryDestFileName,
+			NULL, listingFileName,
+			(listingFileName!=NULL ? opsData->directoryDestFileName : NULL),
 			NULL, NULL, 0, NULL, msgs, 0,
 			&opsData->originatingTransactionId, &transactionId);
 }
