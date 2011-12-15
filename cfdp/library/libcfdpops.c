@@ -1082,7 +1082,7 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 	Object			msgObj;
 	CfdpTransactionId	transactionId;
 
-	msg.length = 5 + 1 + 1 + dirNameLen + destFileNameLen;
+	msg.length = 6 + 1 + 1 + dirNameLen + destFileNameLen;
 	if (msgs == 0 || (msg.text = sdr_malloc(sdr, msg.length)) == 0
 	|| (msgObj = sdr_malloc(sdr, sizeof(MsgToUser))) == 0
 	|| sdr_list_insert_last(sdr, msgs, msgObj) == 0)
