@@ -243,7 +243,12 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 		 *	(Unacknowledged procedures) for this FDU, we
 		 *	do it now.					*/
 
-		if (fdu.fileRef && zco_file_ref_xmit_eof(sdr, fdu.fileRef))
+		if (fdu.fileRef && !zco_file_ref_xmit_eof(sdr, fdu.fileRef))
+		{
+			continue;
+		}
+
+		if (fdu.eofPdu == 0)
 		{
 			if (fdu.transmitted == 0 && fdu.state != FduCanceled)
 			{
@@ -263,7 +268,7 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 		 *	or destroyed (e.g., due to FDU cancellation or
 		 *	to expiration of bundle TTL), destroy the FDU.	*/
 
-		if (sdr_list_length(sdr, fdu.extantPdus) == 0)
+		if (fdu.transmitted == 1 && sdr_list_length(sdr, fdu.extantPdus) == 0)
 		{
 			destroyOutFdu(&fdu, fduObj, elt);
 		}
