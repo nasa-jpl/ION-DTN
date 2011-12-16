@@ -915,7 +915,7 @@ static int	constructMetadataPdu(OutFdu *fdu,
 		}
 		else
 		{
-			*cursor = 0x0a;			/*	Type.	*/
+			*cursor = 0x02;			/*	Type: Special User Message.	*/
 			cursor++;
 			mpduLength++;
 			*cursor = length;
