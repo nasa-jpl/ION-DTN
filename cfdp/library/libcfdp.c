@@ -340,6 +340,12 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 	CHKERR(length > 0);
 	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
 			== cfdpConstants->usrmsgLists);
+	if (length > 255)
+	{
+		putErrmsg("CFDP: User Message too long.", itoa(length));
+		return -1;
+	}
+
 	memset((char *) &usrmsg, 0, sizeof(MsgToUser));
 	sdr_begin_xn(sdr);
 	usrmsg.length = length;

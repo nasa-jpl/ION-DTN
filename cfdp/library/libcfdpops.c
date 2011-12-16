@@ -684,6 +684,13 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	length++;
 	memcpy(textBuffer + length, task->destFileName, destFileNameLen);
 	length += destFileNameLen;
+	if (length > 255)
+	{
+		sdr_list_destroy(sdr, msgs, NULL, NULL);
+		sdr_end_xn(sdr);
+		putErrmsg("Message to User Too Long.", itoa(length));
+		return -1;
+	}
 	if (cfdp_add_usrmsg(msgs, textBuffer, length) < 0)
 	{
 		sdr_cancel_xn(sdr);
@@ -712,6 +719,14 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 					proxyMsg->text, proxyMsg->length);
 				sdr_free(sdr, proxyMsg->text);
 				length += proxyMsg->length;
+				if (length > 255)
+				{
+					sdr_list_destroy(sdr, msgs, NULL, NULL);
+					sdr_list_destroy(sdr, task->messagesToUser, NULL, NULL);
+					sdr_end_xn(sdr);
+					putErrmsg("Message to User Too Long.", itoa(length));
+					return -1;
+				}
 				if (cfdp_add_usrmsg(msgs, textBuffer, length)
 						< 0)
 				{
@@ -778,6 +793,14 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 				length += length;
 			}
 
+			if (length > 255)
+			{
+				sdr_list_destroy(sdr, msgs, NULL, NULL);
+				sdr_list_destroy(sdr, task->filestoreRequests, NULL, NULL);
+				sdr_end_xn(sdr);
+				putErrmsg("Message to User Too Long.", itoa(length));
+				return -1;
+			}
 			if (cfdp_add_usrmsg(msgs, textBuffer, length) < 0)
 			{
 				sdr_cancel_xn(sdr);
@@ -843,6 +866,13 @@ handler override.", NULL);
 		memcpy(textBuffer + length, task->flowLabel,
 				task->flowLabelLength);
 		length += task->flowLabelLength;
+		if (length > 255)
+		{
+			sdr_list_destroy(sdr, msgs, NULL, NULL);
+			sdr_end_xn(sdr);
+			putErrmsg("Message to User Too Long.", itoa(length));
+			return -1;
+		}
 		if (cfdp_add_usrmsg(msgs, textBuffer, length) < 0)
 		{
 			sdr_cancel_xn(sdr);
@@ -1082,6 +1112,12 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 	Object			msgObj;
 	CfdpTransactionId	transactionId;
 
+	if (6 + 1 + 1 + dirNameLen + destFileNameLen > 255)
+	{
+		putErrmsg("CFDP: User Message too long.",  NULL);
+		return -1;
+	}
+
 	msg.length = 6 + 1 + 1 + dirNameLen + destFileNameLen;
 	if (msgs == 0 || (msg.text = sdr_malloc(sdr, msg.length)) == 0
 	|| (msgObj = sdr_malloc(sdr, sizeof(MsgToUser))) == 0
@@ -1216,6 +1252,13 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	length++;
 	memcpy(textBuffer + length, task->destFileName, destFileNameLen);
 	length += destFileNameLen;
+	if (length > 255)
+	{
+		sdr_list_destroy(sdr, messagesToUser, NULL, NULL);
+		sdr_end_xn(sdr);
+		putErrmsg("Message to User Too Long.", itoa(length));
+		return -1;
+	}
 	if (cfdp_add_usrmsg(messagesToUser, textBuffer, length) < 0)
 	{
 		sdr_cancel_xn(sdr);
