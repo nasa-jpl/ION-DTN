@@ -1317,6 +1317,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	event.type = CfdpTransactionInd;
 	memcpy((char *) &event.transactionId, (char *) &fdu.transactionId,
 			sizeof(CfdpTransactionId));
+	memcpy((char *) transactionId, (char *) &fdu.transactionId,
+				sizeof(CfdpTransactionId));
 	event.reqNbr = fdu.reqNbr;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
