@@ -66,12 +66,12 @@ tryreceive () {
             X=`expr $X + 1`
         else
             # We received it.  Hooray.
-            return 0
+            return 1 
         fi
     done
     # We didn't receive it, even after 10 tries; bummer.
     diff $IONRECEIVEFILE $IONEXPECTEDFILE
-    return 1
+    return 0 
 }
 
 
@@ -113,10 +113,10 @@ bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) no BAB"
 sleep ${TIMETOWAITFORTESTFINISH}
 if tryreceive
 then
-    echo "OK: Payload delivery absence matched expected output."
-else
     echo "ERROR: Payload was possibly delivered, didn't match expected output."
     PASS=0
+else
+    echo "OK: Payload delivery absence matched expected output."
 fi
 
 # RPB: not sure if this test possible on loopback anymore
