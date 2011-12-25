@@ -2,7 +2,7 @@
 # Samuel Jero
 # December 15, 2011
 # Initialization command (command 1). 
-1 1 ""
+1 1 ./cfdp.ipn.bp.ltp.udp/mem.conf
 
 # start ion node
 s

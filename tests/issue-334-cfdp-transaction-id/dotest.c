@@ -70,17 +70,22 @@ int main(int argc, char **argv)
 	printf("Call returned...\n");
 
 	/* Stop ION */
-	printf("Stoping ION...\n");
+	printf("Stopping ION...\n");
 	writeErrmsgMemos();
 	_xadmin("cfdpadmin", "", ".");
 	ionstop();
+
+	/*Fail on ION start/stop errors*/
+	if(check_summary(argv[0])==1){
+		return 1;
+	}
 
 	/* Check to see if a transaction ID was returned*/
 	printf("Checking transaction ID...\n");
 	cfdp_decompress_number(&src, &parms.transactionId.sourceEntityNbr);
 	cfdp_decompress_number(&tid, &parms.transactionId.transactionNbr);
 	if(src != 0 && tid!=0) {
-		/*Sucess!*/
+		/*Success!*/
 		ret=0;
 		printf("A valid Transaction ID was returned. SUCCESS!\n");
 	} else {
