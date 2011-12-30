@@ -60,7 +60,7 @@ sleep 10
 
 #Create large file to send
 echo "Creating test file..."
-dd if=/dev/zero of=./testfile bs=1024 count=1K
+dd if=/dev/zero of=./testfile bs=1024 count=512
 
 #Starting Listener
 echo "Starting CFDP message listener..."
@@ -69,7 +69,7 @@ CFDPLISTEN_PID=$!
 
 #End bputa to hold transfers in queue
 echo "Stopping bputa..."
-ps aux | grep "bputa" | grep -v "grep" | awk '{print $2}' | xargs kill
+ps -e | grep "bputa" | grep -v "grep" | awk '{print $1}' | xargs kill
 
 #Start transfer 1
 echo "Starting transfer of large file..."
@@ -105,6 +105,9 @@ if [ -n "$RESULTS" ]; then
 else
 	echo "The FDU was not sent.  FAILURE!"
 	echo ""
+	echo `ls -al`
+	cat ion.log
+	cat output
 	RETVAL=1
 	end
 fi
@@ -118,6 +121,9 @@ if [ $RESULTS -eq 2 ]; then
 else
 	echo "EOF Sent Message was not logged.  FAILURE!"
 	echo ""
+	echo `ls -al`
+	cat ion.log
+	cat output
 	RETVAL=1
 	end
 fi
