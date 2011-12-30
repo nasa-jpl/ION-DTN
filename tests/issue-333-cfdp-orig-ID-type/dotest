@@ -27,7 +27,7 @@ CONFIGFILES=" \
 ./1.cfdp.ipn.bp.ltp.udp/config.ionrc \
 ./1.cfdp.ipn.bp.ltp.udp/config.ltprc \
 ./1.cfdp.ipn.bp.ltp.udp/config.bprc \
-./1.cfdp.ipn.bp.ltp.udpp/config.ipnrc \
+./1.cfdp.ipn.bp.ltp.udp/config.ipnrc \
 ./1.cfdp.ipn.bp.ltp.udp/config.cfdprc"
 
 echo "########################################"
@@ -88,8 +88,8 @@ cd 1.cfdp.ipn.bp.ltp.udp
 ../send
 cd ../
 
-echo "Waiting 2 seconds for netcat server to receive bundle..."
-sleep 2
+echo "Waiting 10 seconds for netcat server to receive bundle..."
+sleep 10
 
 echo "Stopping netcat server..."
 kill -2 $NETCAT_SVR_PID >/dev/null 2>&1
