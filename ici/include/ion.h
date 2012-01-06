@@ -70,7 +70,7 @@ typedef struct
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned long	fromNode;	/*	LTP engineID, a.k.a.	*/
-	unsigned long	toNode;		/*	... BP CBHE elementNbr.	*/
+	unsigned long	toNode;		/*	... BP CBHE nodeNbr.	*/
 	unsigned long	xmitRate;	/*	In bytes per second.	*/
 } IonContact;
 
@@ -79,8 +79,8 @@ typedef struct
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned long	fromNode;	/*	LTP engineID, a.k.a.	*/
-	unsigned long	toNode;		/*	... BP CBHE elementNbr.	*/
-	unsigned int	owlt;		/*	In seconds.		*/
+	unsigned long	toNode;		/*	... BP CBHE nodeNbr.	*/
+	unsigned long	owlt;		/*	In seconds.		*/
 } IonRange;
 
 /*	The ION database is shared by BP, LTP, and RFX.			*/
@@ -104,20 +104,23 @@ typedef struct
 	char		workingDirectoryName[256];
 } IonDB;
 
-/*	The IonVdb list of IonNodes, in volatile memory, contains
- *	objects representing all nodes in the network other than the
- *	local node.  Each IonNode has lists of all of *its* neigbors
- *	(the origins list) and of references to all IonContacts for
- *	transmission to this node (the xmits list); each xmit refers
- *	to the origin that is the neighbor from which the indicated
- *	traffic will be transmitted.  All of this information is
- *	used for time-sensitive route computation.
+/*	The IonVdb red-black tree of IonNodes, in volatile memory,
+ *	contains objects representing all nodes in the network other
+ *	than the local node.  Each IonNode has a list of "snubs"
+ *	(described below), plus a "routing object" that points to
+ *	data that has structure and function specific to the routing
+ *	system established for the bundle protocol agent.
  *
- *	The aggregate capacity noted in each xmit is the sum of the
- *	capacities of that xmit and all prior xmits that have not yet
- *	been purged from the database.  The capacity of an xmit is the
- *	product of its xmitRate and the difference between its toTime
- *	and its fromTime.
+ *	The IonVdb also contains red-black trees that (a) index all
+ *	contacts in the non-volatile database, by "from" node, "to"
+ *	node, and time, and (b) support immediate lookup of the
+ *	current one-way light time from any node to any other node,
+ *	based on the range information in the non-volatile database.
+ *	Both of these are provided to support route computation.
+ *
+ *	The IonVdb also contains a red-black tree of all of the local
+ *	node's neighbors, characterizing the current state of
+ *	communications between the local node and each neighbor.
  *
  *	An IonSnub object identifies a neighboring node that has
  *	refused custody of bundles destined for the associated
@@ -130,39 +133,21 @@ typedef struct
  *	the snubbing neighbor as a "probe", to determine whether or
  *	not the neighbor is still refusing bundles destined for the
  *	associated IonNode.  Probe activity is initiated by scheduling
- *	IonProbe event objects.						*/
-
-typedef struct
-{
-	unsigned long	nodeNbr;	/*	As from IonContact.	*/
-	unsigned int	owlt;		/*	In seconds, current.	*/
-} IonOrigin;
-
-typedef struct
-{
-	PsmAddress	origin;		/*	Cross-ref to IonOrigin	*/
-	time_t		fromTime;	/*	As from time(2).	*/
-	time_t		toTime;		/*	As from time(2).	*/
-	unsigned long	xmitRate;	/*	In bytes per second.	*/
-	Scalar		aggrCapacity;	/*	Including this xmit.	*/
-	time_t		mootAfter;	/*	As from time(2).	*/
-	unsigned int	lastVisitor;
-	time_t		visitHorizon;	/*	As from time(2).	*/
-} IonXmit;
+ *	IonProbe event objects.  A list of all scheduled probes is
+ *	included in the IonVdb.						*/
 
 typedef struct
 {
 	unsigned long	nodeNbr;	/*	Of the snubbing node.	*/
 	int		probeIsDue;	/*	Boolean.		*/
-} IonSnub;
+} IonSnub;		/*	An uncooperative neighboring node.	*/
 
 typedef struct
 {
 	unsigned long	nodeNbr;	/*	As from IonContact.	*/
-	PsmAddress	xmits;		/*	SM list: IonXmit	*/
-	PsmAddress	origins;	/*	SM list: IonOrigin	*/
 	PsmAddress	snubs;		/*	SM list: IonSnub	*/
-} IonNode;
+	PsmAddress	routingObject;	/*	Routing-dependent.	*/
+} IonNode;		/*	A potential bundle destination node.	*/
 
 typedef struct
 {
@@ -171,7 +156,7 @@ typedef struct
 	time_t		time;
 } IonProbe;
 
-/*	The IonVdb list of IonNeighbors, in volatile memory, contains
+/*	The IonVdb tree of IonNeighbors, in volatile memory, contains
  *	the *currrent* contact state of the local node.  BP uses this
  *	information for rate control.  LTP uses it for computation of
  *	timeout intervals for timers, and changes in this state
@@ -190,6 +175,56 @@ typedef struct
 	unsigned int	owltOutbound;	/*	In seconds.		*/
 } IonNeighbor;
 
+typedef struct
+{
+	unsigned long	fromNode;	/*	LTP engineID, a.k.a.	*/
+	unsigned long	toNode;		/*	... BP CBHE nodeNbr.	*/
+	time_t		fromTime;	/*	As from time(2).	*/
+	time_t		toTime;		/*	As from time(2).	*/
+	unsigned long	owlt;		/*	Current, in seconds.	*/
+	Object		rangeElt;	/*	In iondb->ranges.	*/
+} IonRXref;
+
+typedef struct
+{
+	unsigned long	fromNode;	/*	LTP engineID, a.k.a.	*/
+	unsigned long	toNode;		/*	... BP CBHE nodeNbr.	*/
+	time_t		fromTime;	/*	As from time(2).	*/
+	time_t		toTime;		/*	As from time(2).	*/
+	unsigned long	xmitRate;	/*	In bytes per second.	*/
+	time_t		startXmit;	/*	Computed when inserted.	*/
+	time_t		stopXmit;	/*	Computed when inserted.	*/
+	time_t		startFire;	/*	Computed when inserted.	*/
+	time_t		stopFire;	/*	Computed when inserted.	*/
+	time_t		startRecv;	/*	Computed when inserted.	*/
+	time_t		stopRecv;	/*	Computed when inserted.	*/
+	time_t		purgeTime;	/*	Computed when inserted.	*/
+	Object		contactElt;	/*	In iondb->contacts.	*/
+	PsmAddress	routingObject;	/*	Routing-dependent.	*/
+} IonCXref;
+
+typedef enum
+{
+	IonStopImputedRange = 0,
+	IonStopAssertedRange = 1,
+	IonStopXmit = 2,
+	IonStopFire = 3,
+	IonStopRecv = 4,
+	IonStartImputedRange = 16,
+	IonStartAssertedRange = 17,
+	IonStartXmit = 18,
+	IonStartFire = 19,
+	IonStartRecv = 20,
+	IonPurgeContact = 21,
+} IonEventType;
+
+typedef struct
+{
+	time_t		time;		/*	As from time(2).	*/
+	IonEventType	type;
+	PsmAddress	elt;		/*	A node in an RB tree.	*/
+} IonEvent;
+
 /*	The volatile database object encapsulates the current volatile
  *	state of the database.						*/
 
@@ -197,9 +232,13 @@ typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
-	PsmAddress	nodes;		/*	SM list: IonNode*	*/
-	PsmAddress	neighbors;	/*	SM list: IonNeighbor*	*/
-	PsmAddress	probes;		/*	SM list: IonProbe*	*/
+	time_t		lastEditTime;	/*	Add/del contacts/ranges	*/
+	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
+	PsmAddress	neighbors;	/*	SM RB tree: IonNeighbor	*/
+	PsmAddress	contactIndex;	/*	SM RB tree: IonCXref	*/
+	PsmAddress	rangeIndex;	/*	SM RB tree: IonRXref	*/
+	PsmAddress	timeline;	/*	SM RB tree: IonEvent	*/
+	PsmAddress	probes;		/*	SM list: IonProbe	*/
 } IonVdb;
 
 #ifndef MTAKE
