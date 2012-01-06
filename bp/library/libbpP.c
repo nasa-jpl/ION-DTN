@@ -2088,7 +2088,8 @@ incomplete bundle.", NULL);
 			purgeXmitRefs(&bundle);
 		}
 
-		/*	Notify sender, if so requested or if custodian.	*/
+		/*	Notify sender, if so requested or if custodian.
+		 *	But never for admin bundles.			*/
 
 		noteStateStats(BPSTATS_EXPIRE, &bundle);
 		if ((_bpvdb(NULL))->watching & WATCH_expire)
@@ -2097,8 +2098,9 @@ incomplete bundle.", NULL);
 			fflush(stdout);
 		}
 
-		if (bundle.custodyTaken
-		|| (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT))
+		if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
+		&& (bundle.custodyTaken
+		|| (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT)))
 		{
 			bundle.statusRpt.flags |= BP_DELETED_RPT;
 			bundle.statusRpt.reasonCode = SrLifetimeExpired;
