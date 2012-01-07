@@ -100,6 +100,7 @@ static void	discardRouteLists(CgrVdb *vdb)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
+	PsmAddress	nextElt;
 	PsmAddress	routes;		/*	SM list: CgrRoute	*/
 	PsmAddress	addr;
 	IonNode		*node;
@@ -121,7 +122,7 @@ static void	discardRouteLists(CgrVdb *vdb)
 
 		/*	And delete the reference to the destroyed list.	*/
 
-		sm_list_delete(ionwm, elt, NULL);
+		sm_list_delete(ionwm, elt, NULL, NULL);
 	}
 }
 
@@ -130,11 +131,12 @@ static void	clearRoutingObjects(PsmPartition ionwm)
 	IonVdb		*ionvdb = getIonVdb();
 	PsmAddress	elt;
 	IonNode		*node;
+	PsmAddress	routes;
 
 	for (elt = sm_rbt_first(ionwm, ionvdb->nodes); elt;
 			elt = sm_rbt_next(ionwm, elt))
 	{
-		node = sm_rbt_data(ionwm, elt);
+		node = (IonNode *) psp(ionwm, sm_rbt_data(ionwm, elt));
 		if (node->routingObject)
 		{
 			routes = node->routingObject;
@@ -212,7 +214,6 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
-	CgrVdb		*cgrvdb = _cgrvdb(NULL);
 	IonCXref	*current;
 	CgrContactNote	*currentWork;
 	IonCXref	arg;
@@ -221,7 +222,6 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 	CgrContactNote	*work;
 	IonRXref	arg2;
 	PsmAddress	elt2;
-	PsmAddress	successor;
 	IonRXref	*range;
 	unsigned long	owltMargin;
 	unsigned long	owlt;
@@ -364,7 +364,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 
 		nextContact = NULL;
 		earliestArrivalTime = (unsigned long) -1;
-		for (elt = sm_rbt_first(ionwm, ionvdb->contactsIndex); elt;
+		for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
 				elt = sm_rbt_next(ionwm, elt))
 		{
 			contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm,
@@ -474,7 +474,7 @@ static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime)
 
 	/*	Next clear Dijkstra work areas for all contacts.	*/
 
-	for (elt = sm_rbt_first(ionwm, ionvdb->contactsIndex); elt;
+	for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
 			elt = sm_rbt_next(ionwm, elt))
 	{
 		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
@@ -550,7 +550,7 @@ static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime)
 		/*	Found best route, given current exclusions.	*/
 
 		if (sm_list_insert_last(ionwm, stationNode->routingObject,
-				route) == 0)
+				routeAddr) == 0)
 		{
 			putErrmsg("Can't add route to list.", NULL);
 			return 0;
@@ -564,7 +564,7 @@ static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime)
 		work = (CgrContactNote *)
 				psp(ionwm, firstContact->routingObject);
 		work->suppressed = 1;
-		for (elt = sm_rbt_first(ionwm, ionvdb->contactsIndex); elt;
+		for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
 				elt = sm_rbt_next(ionwm, elt))
 		{
 			contact = (IonCXref *)
@@ -579,8 +579,8 @@ static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime)
 
 /*		Functions for identifying viable proximate nodes.	*/
 
-static int	tryRoute(CgrRoute *route, time_t currentTime,
-			Bundle *bundle, Object plans, CgrLookupFn getDirective,
+static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
+			Object plans, CgrLookupFn getDirective,
 			Lyst proximateNodes)
 {
 	Sdr		sdr = getIonsdr();
@@ -640,7 +640,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime,
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.fromNode = ownNodeNbr;
 	arg.toNode = route->toNodeNbr;
-	for (oK(sm_rbt_search(ionwm, vdb->contactsIndex, rfx_order_contacts,
+	for (oK(sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &elt)); elt; elt = sm_rbt_next(ionwm, elt))
 	{
 		contact = (IonCXref *) psp(ionwm, elt);
@@ -709,8 +709,8 @@ static int	tryRoute(CgrRoute *route, time_t currentTime,
 
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
 	eccc = computeECCC(guessBundleSize(bundle), &protocol);
-	reduceScalar(&capacity, eccc);
-	if (!scalarIsValid(&capacity))
+	reduceScalar(&aggregateCapacity, eccc);
+	if (!scalarIsValid(&aggregateCapacity))
 	{
 		/*	Available residual capacity is not enough
 		 *	to get all of this bundle transmitted.		*/
@@ -747,7 +747,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime,
 	for (elt2 = lyst_first(proximateNodes); elt2; elt2 = lyst_next(elt2))
 	{
 		proxNode = (ProximateNode *) lyst_data(elt2);
-		if (proxNode->neighborNodeNbr == neighbor->nodeNbr)
+		if (proxNode->neighborNodeNbr == route->toNodeNbr)
 		{
 			/*	This route starts with contact with a
 			 *	neighbor that's already in the list.	*/
@@ -816,7 +816,6 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 {
 	PsmPartition	ionwm = getIonwm();
 	unsigned long	deadline;
-	unsigned long	radiationLatency;
 	time_t		currentTime;
 	PsmAddress	routes;		/*	SmList of CgrRoutes.	*/
 	PsmAddress	elt;
@@ -824,6 +823,8 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 	PsmAddress	addr;
 	CgrRoute	*route;
 	unsigned long	radiationLatency;
+	PsmAddress	elt2;
+	IonCXref	*contact;
 
 	deadline = bundle->expirationTime + EPOCH_2000_SEC;
 
@@ -892,7 +893,7 @@ node->nodeNbr, deadline);
 		if (route->toNodeNbr == getOwnNodeNbr())
 		{
 			if (!(bundle->destination.cbhe
-			&& bundle->destination.c.nodeNbr == route->nodeNbr))
+			&& bundle->destination.c.nodeNbr == route->toNodeNbr))
 			{
 				/*	Never route via self -- a loop.	*/
 
@@ -908,7 +909,7 @@ node->nodeNbr, deadline);
 		 *	radiation latency is computed as bundle size
 		 *	divided by data rate.				*/
 
-		ratiationLatency = 0;
+		radiationLatency = 0;
 		for (elt2 = sm_list_first(ionwm, route->hops); elt2;
 				elt2 = sm_list_next(ionwm, elt2))
 		{
@@ -934,13 +935,15 @@ node->nodeNbr, deadline);
 		 *	neighbor is a candidate proximate node for
 		 *	forwarding the bundle to the station node.	*/
 
-		if (tryRoute(route, currentTime, stationNode, bundle, plans,
+		if (tryRoute(route, currentTime, bundle, plans,
 				getDirective, proximateNodes) < 0)
 		{
 			putErrmsg("Can't check route.", NULL);
 			return -1;
 		}
 	}
+
+	return 0;
 }
 
 /*		Functions for routing bundle to appropriate neighbor.	*/

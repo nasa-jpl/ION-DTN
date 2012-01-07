@@ -71,15 +71,15 @@ whole, or 0 on any error.
 
 Return the number of elements in the list.
 
-=item PsmAddress sm_list_insert(PsmPartition partition, PsmAddress list, PsmAddress data, SmListCompareFn compare, void *arg);
+=item PsmAddress sm_list_insert(PsmPartition partition, PsmAddress list, PsmAddress data, SmListCompareFn compare, void *dataBuffer);
 
 Create a new list element whose data value is I<data> and insert it
 into the given list.  If the I<compare> function is NULL, the new list element
 is simply appended to the list; otherwise, the new list element is inserted
 after the last element in the list whose data value is "less than or equal to"
-the data value of the new element according to the collating sequence
-established by I<compare>.  Returns the PsmAddress of the new element,
-or 0 on any error.
+the data value of the new element (in I<dataBuffer>) according to the
+collating sequence established by I<compare>.  Returns the PsmAddress of
+the new element, or 0 on any error.
 
 =item PsmAddress sm_list_insert_first(PsmPartition partition, PsmAddress list, PsmAddress data);
 
@@ -117,18 +117,18 @@ Return the PsmAddress of the first/last element in I<list>, or 0 on any error.
 Return the PsmAddress of the element following/preceding I<elt> in
 that element's list, or 0 on any error.
 
-=item PsmAddress sm_list_search(PsmPartition partition, PsmAddress elt, SmListCompareFn compare, void *arg);
+=item PsmAddress sm_list_search(PsmPartition partition, PsmAddress elt, SmListCompareFn compare, void *dataBuffer);
 
-Search a list for an element which matches the given argument.  If
+Search a list for an element whose data matches the data in I<dataBuffer>.  If
 the I<compare> function is non-NULL, the list is assumed to be sorted
 in the order implied by that function and the function is automatically
 called once for each element of the list until it returns a value that is
 greater than or equal to zero (where zero indicates an exact match and a
 value greater than zero indicates that the list contains no matching
 element); each time I<compare> is called it is passed the PsmAddress that is
-the element's data value and the I<arg> value passed to sm_list_search().
+the element's data value and the I<dataBuffer> value passed to sm_list_search().
 If I<compare> is NULL, then the entire list is searched until an element is
-located whose data value is equal to ((PsmAddress) I<arg>).
+located whose data value is equal to ((PsmAddress) I<dataBuffer>).
 Returns the PsmAddress of the matching element if one is found, 0 otherwise.
 
 =item PsmAddress sm_list_list(PsmPartition partition, PsmAddress elt);
@@ -184,18 +184,18 @@ When inserting elements or searching a list, the user may
 optionally provide a compare function of the form:
 
     int user_comp_name(PsmPartition partition, PsmAddress eltData, 
-                       void *argData);
+                       void *dataBuffer);
 
 When provided, this function is automatically called by the smlist function
 being invoked; when the function is called it is passed the content of a
 list element (I<eltData>, nominally the PsmAddress of an item in shared
-memory) and an argument, I<argData>, which is nominally the address
+memory) and an argument, I<dataBuffer>, which is nominally the address
 in local memory of some other item in the same format.
 The user-supplied function normally compares some key values of the two
 data items and returns 0 if they are equal, an integer less
-than 0 if I<eltData>'s key value is less than that of I<argData>, and an
+than 0 if I<eltData>'s key value is less than that of I<dataBuffer>, and an
 integer greater than 0 if I<eltData>'s key value is greater than that of
-I<argData>.  These return values will produce a list in ascending order.  
+I<dataBuffer>.  These return values will produce a list in ascending order.  
 If the user desires the list to be in descending
 order, the function must reverse the signs of these return values.
 

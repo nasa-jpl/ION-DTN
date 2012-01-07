@@ -30,7 +30,6 @@ int	main(int argc, char **argv)
 	Sdr		sdr;
 	BpTimestamp	creationTime;
 	Object		bundleObj;
-	Object		elt;
 
 	if (sourceEid == NULL || creationSec == 0)
 	{
@@ -50,7 +49,7 @@ int	main(int argc, char **argv)
 	sdr = bp_get_sdr();
 	sdr_begin_xn(sdr);
 	if (findBundle(sourceEid, &creationTime, fragmentOffset, fragmentLength,
-			&bundleObj, &elt) < 0)
+			&bundleObj) < 0)
 	{
 		sdr_cancel_xn(sdr);
 		bp_detach();
@@ -58,12 +57,15 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	if (bpDestroyBundle(bundleObj, 1) < 0)
+	if (bundleObj)
 	{
-		sdr_cancel_xn(sdr);
-		bp_detach();
-		putErrmsg("bpcancel failed destroying bundle.", NULL);
-		return 0;
+		if (bpDestroyBundle(bundleObj, 1) < 0)
+		{
+			sdr_cancel_xn(sdr);
+			bp_detach();
+			putErrmsg("bpcancel failed destroying bundle.", NULL);
+			return 0;
+		}
 	}
 
 	if (sdr_end_xn(sdr) < 0)

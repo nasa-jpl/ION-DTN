@@ -21,6 +21,20 @@ extern "C" {
 
 #define	RFX_NOTE_LEN	144
 
+/*	*	Red-black tree ordering and deletion functions.	*	*/
+
+extern int	rfx_order_ranges(PsmPartition partition, PsmAddress nodeData,
+			void *dataBuffer);
+
+extern int	rfx_order_contacts(PsmPartition partition, PsmAddress nodeData,
+			void *dataBuffer);
+
+extern int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
+			void *dataBuffer);
+
+extern void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
+			void *argument);
+
 /*	*	Functions for inserting and removing contact notes.	*/
 
 extern PsmAddress	rfx_insert_contact(time_t fromTime,

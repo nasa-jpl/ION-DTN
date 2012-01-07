@@ -260,10 +260,8 @@ static void	executeInfo(int tokenCount, char **tokens)
 	IonCXref	arg1;
 	PsmAddress	elt;
 	PsmAddress	nextElt;
-	IonCXref	*cfref;
 	char		buffer[RFX_NOTE_LEN];
 	IonRXref	arg2;
-	IonRXref	*rfref;
 
 	if (tokenCount < 2)
 	{
@@ -286,7 +284,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		memset((char *) &arg1, 0, sizeof(IonCXref));
 		arg1.fromNode = fromNode;
 		arg1.toNode = toNode;
-		arg1.fromTime = fromTime;
+		arg1.fromTime = timestamp;
 		elt = sm_rbt_search(ionwm, vdb->contactIndex,
 				rfx_order_contacts, &arg1, &nextElt);
 		if (elt)
@@ -305,7 +303,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		memset((char *) &arg2, 0, sizeof(IonRXref));
 		arg2.fromNode = fromNode;
 		arg2.toNode = toNode;
-		arg2.fromTime = fromTime;
+		arg2.fromTime = timestamp;
 		elt = sm_rbt_search(ionwm, vdb->rangeIndex,
 				rfx_order_ranges, &arg2, &nextElt);
 		if (elt)
@@ -326,10 +324,8 @@ static void	executeList(int tokenCount, char **tokens)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
-	IonCXref	arg1;
 	PsmAddress	elt;
 	char		buffer[RFX_NOTE_LEN];
-	IonRXref	arg2;
 
 	if (tokenCount < 2)
 	{
@@ -340,7 +336,7 @@ static void	executeList(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		for (elt = sm_rbt_first(ionwm, vdb->contactIndex); elt;
-				elt = sm_rbt_next(sdr, elt))
+				elt = sm_rbt_next(ionwm, elt))
 		{
 			rfx_print_contact(elt, buffer);
 			printText(buffer);
@@ -352,7 +348,7 @@ static void	executeList(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "range") == 0)
 	{
 		for (elt = sm_rbt_first(ionwm, vdb->rangeIndex); elt;
-				elt = sm_rbt_next(sdr, elt))
+				elt = sm_rbt_next(ionwm, elt))
 		{
 			rfx_print_range(elt, buffer);
 			printText(buffer);

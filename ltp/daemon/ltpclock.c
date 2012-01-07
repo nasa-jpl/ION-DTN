@@ -150,8 +150,7 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 		neighbor = findNeighbor(ionvdb, vspan->engineId, &nextElt);
 		if (neighbor == NULL)
 		{
-			neighbor = addNeighbor(ionvdb, vspan->engineId,
-					nextElt);
+			neighbor = addNeighbor(ionvdb, vspan->engineId);
 			if (neighbor == NULL)
 			{
 				putErrmsg("Can't update span.", NULL);

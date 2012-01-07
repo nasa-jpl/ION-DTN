@@ -61,8 +61,8 @@ static int	rfx_order_neighbors(PsmPartition partition, PsmAddress nodeData,
 	IonNeighbor	*neighbor;
 	IonNeighbor	*argNeighbor;
 
-	neighbor = (IonNode *) psp(partition, nodeData);
-	argNeighbor = (IonNode *) dataBuffer;
+	neighbor = (IonNeighbor *) psp(partition, nodeData);
+	argNeighbor = (IonNeighbor *) dataBuffer;
 	if (neighbor->nodeNbr < argNeighbor->nodeNbr)
 	{
 		return -1;
@@ -84,7 +84,7 @@ int	rfx_order_ranges(PsmPartition partition, PsmAddress nodeData,
 	IonRXref	*range;
 	IonRXref	*argRange;
 
-	if (partition == NULL || nodeData == || dataBuffer == NULL)
+	if (partition == NULL || nodeData == 0 || dataBuffer == NULL)
 	{
 		putErrmsg("Error calling smrbt rangeIndex compare function.",
 				NULL);
@@ -138,7 +138,7 @@ int	rfx_order_contacts(PsmPartition partition, PsmAddress nodeData,
 	IonCXref	*contact;
 	IonCXref	*argContact;
 
-	if (partition == NULL || nodeData == || dataBuffer == NULL)
+	if (partition == NULL || nodeData == 0 || dataBuffer == NULL)
 	{
 		putErrmsg("Error calling smrbt contactIndex compare function.",
 				NULL);
@@ -186,8 +186,8 @@ int	rfx_order_contacts(PsmPartition partition, PsmAddress nodeData,
 	return 0;
 }
 
-static int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
-			void *dataBuffer)
+int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
+		void *dataBuffer)
 {
 	IonEvent	*event;
 	IonEvent	*argEvent;
@@ -218,12 +218,12 @@ static int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
 
 	/*	Matching event type as well.				*/
 
-	if (event->xref < argEvent->xref)
+	if (event->elt < argEvent->elt)
 	{
 		return -1;
 	}
 
-	if (event->xref > argEvent->xref)
+	if (event->elt > argEvent->elt)
 	{
 		return 1;
 	}
@@ -233,8 +233,8 @@ static int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
 	return 0;
 }
 
-static void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
-			void *argument)
+void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
+		void *argument)
 {
 	psm_free(partition, nodeData);
 }
@@ -254,7 +254,6 @@ IonNeighbor	*findNeighbor(IonVdb *ionvdb, unsigned long nodeNbr,
 	PsmPartition	ionwm = getIonwm();
 	IonNeighbor	arg;
 	PsmAddress	elt;
-	IonNeighbor	*neighbor;
 
 	CHKNULL(ionvdb);
 	CHKNULL(nextElt);
@@ -319,7 +318,6 @@ IonNode	*findNode(IonVdb *ionvdb, unsigned long nodeNbr, PsmAddress *nextElt)
 	PsmPartition	ionwm = getIonwm();
 	IonNode		arg;
 	PsmAddress	elt;
-	IonNode		*node;
 
 	CHKNULL(ionvdb);
 	CHKNULL(nextElt);
@@ -1113,9 +1111,11 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
-	IonNode		node;
+	IonNode		*node;
 	PsmAddress	nextElt;
 	PsmAddress	cxaddr;
+	Object		iondbObj;
+	IonDB		iondb;
 	PsmAddress	cxelt;
 	PsmAddress	addr;
 	IonEvent	*event;
@@ -1153,6 +1153,8 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 	/*	Compute times of relevant events.			*/
 
+	iondbObj = getIonDbObject();
+	sdr_read(getIonsdr(), (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (cxref->fromNode == getOwnNodeNbr())
 	{
 		/*	Be a little slow to start transmission, and
@@ -1259,7 +1261,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 		event = (IonEvent *) psp(ionwm, addr);
 		event->time = cxref->stopFire;
-		event->type = IonstopFire;
+		event->type = IonStopFire;
 		event->elt = cxelt;
 		if (sm_rbt_insert(ionwm, vdb->timeline, addr, rfx_order_events,
 				event) == 0)
@@ -1454,7 +1456,6 @@ static void	deleteContact(PsmAddress cxelt)
 	IonEvent	event;
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
-	time_t		currentTime = getUTCTime();
 
 	addr = sm_rbt_data(ionwm, cxelt);
 	cxref = (IonCXref *) psp(ionwm, addr);
@@ -1637,7 +1638,7 @@ static int	insertRXref(IonRXref *rxref)
 	PsmAddress	rxelt;
 	PsmAddress	addr;
 	IonEvent	*event;
-	IonRXref	rxref2;
+	IonRXref	*rxref2;
 	time_t		currentTime = getUTCTime();
 
 	/*	Load the affected nodes.				*/
@@ -1675,7 +1676,7 @@ static int	insertRXref(IonRXref *rxref)
 		arg1.fromNode = rxref->fromNode;
 		arg1.toNode = rxref->toNode;
 		arg1.fromTime = rxref->fromTime;
-		rxelt = sm_rbt_search(ionwm, ionvdb->rangeIndex,
+		rxelt = sm_rbt_search(ionwm, vdb->rangeIndex,
 				rfx_order_ranges, &arg1, &nextElt);
 		if (rxelt)	/*	Imputed range exists; lose it.	*/
 		{
@@ -1836,7 +1837,7 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 	PsmAddress	rxelt;
 	PsmAddress	nextElt;
 	PsmAddress	addr;
-	IonRxref	*rxref;
+	IonRXref	*rxref;
 	PsmAddress	prevElt;
 	char		rangeIdString[128];
 	IonRange	range;
@@ -1973,13 +1974,13 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 
 char	*rfx_print_range(PsmAddress addr, char *buffer)
 {
-	IonRxref	*range;
+	IonRXref	*range;
 	char		fromTimeBuffer[TIMESTAMPBUFSZ];
 	char		toTimeBuffer[TIMESTAMPBUFSZ];
 
 	CHKNULL(addr);
 	CHKNULL(buffer);
-	range = (IonRxref *) psp(getIonwm(), addr);
+	range = (IonRXref *) psp(getIonwm(), addr);
 	writeTimestampUTC(range->fromTime, fromTimeBuffer);
 	writeTimestampUTC(range->toTime, toTimeBuffer);
 	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the OWLT from node \
@@ -2000,7 +2001,6 @@ static void	deleteRange(PsmAddress rxelt, int conditional)
 	IonEvent	event;
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
-	time_t		currentTime = getUTCTime();
 
 	addr = sm_rbt_data(ionwm, rxelt);
 	rxref = (IonRXref *) psp(ionwm, addr);
@@ -2128,7 +2128,7 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 				break;	/*	No more ranges.		*/
 			}
 
-			deleteRange(cxelt, 0);
+			deleteRange(rxelt, 0);
 		}
 	}
 
@@ -2178,7 +2178,7 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 				break;	/*	No more ranges.		*/
 			}
 
-			deleteRange(cxelt, 1);
+			deleteRange(rxelt, 1);
 		}
 	}
 
@@ -2222,12 +2222,8 @@ static int	loadRange(Object elt)
 static int	loadContact(Object elt)
 {
 	Sdr		sdr = getIonsdr();
-	PsmPartition	ionwm = getIonwm();
-	IonVdb		*vdb = getIonVdb();
 	Object		obj;
 	IonContact	contact;
-	IonNode		*node;
-	PsmAddress	nextElt;
 	IonCXref	cxref;
 
 	obj = sdr_list_data(sdr, elt);
@@ -2253,12 +2249,10 @@ static int	loadContact(Object elt)
 int	rfx_start()
 {
 	Sdr		sdr = getIonsdr();
-	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	Object		iondbObj;
 	IonDB		iondb;
 	Object		elt;
-	Object		obj;
 
 	iondbObj = getIonDbObject();
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/

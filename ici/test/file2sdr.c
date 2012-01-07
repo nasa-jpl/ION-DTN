@@ -13,7 +13,7 @@
 
 static int	file2sdr_stopped(int *newState)
 {
-	int	state = 0;
+	static int	state = 0;
 
 	if (newState)
 	{

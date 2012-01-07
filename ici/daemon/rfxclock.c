@@ -78,10 +78,10 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	addr;
-	IonRxref	*rxref;
+	IonRXref	*rxref;
 	IonNeighbor	*neighbor;
 	PsmAddress	next;
-	IonCxref	*cxref;
+	IonCXref	*cxref;
 	PsmAddress	cxelt;
 	Object		iondbObj;
 	IonDB		iondb;
@@ -91,12 +91,12 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 	{
 	case IonStopImputedRange:
 	case IonStopAssertedRange:
-		rxref = (IonRxref *) psp(ionwm, addr);
+		rxref = (IonRXref *) psp(ionwm, addr);
 		return rfx_remove_range(rxref->fromTime,
 				rxref->fromNode, rxref->toNode);
 
 	case IonStopXmit:
-		cxref = (IonCxref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, addr);
 		if (cxref->fromNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->toNode, &next);
@@ -109,7 +109,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonStopFire:
-		cxref = (IonCxref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, addr);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
@@ -122,7 +122,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonStopRecv:
-		cxref = (IonCxref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, addr);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
@@ -136,7 +136,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 
 	case IonStartImputedRange:
 	case IonStartAssertedRange:
-		rxref = (IonRxref *) psp(ionwm, addr);
+		rxref = (IonRXref *) psp(ionwm, addr);
 		if (rxref->fromNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, rxref->toNode, &next);
@@ -158,7 +158,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonStartXmit:
-		cxref = (IonCxref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, addr);
 		if (cxref->fromNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->toNode, &next);
@@ -171,7 +171,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonStartFire:
-		cxref = (IonCxref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, addr);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
@@ -262,7 +262,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonStartRecv:
-		cxref = (IonCxref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, addr);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
@@ -275,7 +275,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonPurgeContact:
-		cxref = (IonCxref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, addr);
 		return rfx_remove_contact(cxref->fromTime,
 				cxref->fromNode, cxref->toNode);
 

@@ -16,7 +16,7 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To test the elimination of bug issue 236. The script runs
-	bpdriver and bpecho, if the src-eid gets trucncated bpecho will not
+	bpdriver and bpecho, if the src-eid gets truncated bpecho will not
 	respond back to bpdriver. Bpdriver will send one bundle at a time,
 	only after bpecho responds to one bundle, will it send the next one.
 	This test will try to send 10 bundles and only if bpdriver 

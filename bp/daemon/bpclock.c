@@ -98,8 +98,7 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 			break;		/*	Out of switch.		*/
 
 		default:		/*	Spurious event; erase.	*/
-			sdr_free(sdr, eventObj);
-			sdr_list_delete(sdr, elt, NULL, NULL);
+			destroyBpTimelineEvent(elt);
 			result = 0;	/*	Event is ignored.	*/
 		}
 
@@ -175,7 +174,7 @@ static int	adjustThrottles()
 		neighbor = findNeighbor(ionvdb, nodeNbr, &nextElt);
 		if (neighbor == NULL)
 		{
-			neighbor = addNeighbor(ionvdb, nodeNbr, nextElt);
+			neighbor = addNeighbor(ionvdb, nodeNbr);
 			if (neighbor == NULL)
 			{
 				putErrmsg("Can't adjust outduct throttle.",

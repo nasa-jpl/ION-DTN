@@ -14,6 +14,7 @@
 #include "memmgr.h"
 #include "sdr.h"
 #include "smlist.h"
+#include "smrbt.h"
 
 #ifdef __cplusplus
 extern "C" {
