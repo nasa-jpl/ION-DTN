@@ -248,7 +248,6 @@ int	main(int argc, char *argv[])
 		writeErrmsgMemos();
 		return 1;
 	}
-	writeMemo("[i] dccplso is experimental software. Please see the README in the ltp/dccp source directory.");
 
 	sdr = getIonsdr();
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
@@ -371,7 +370,7 @@ int	dccplso(int a1, int a2, int a3, int a4, int a5,
 int	main(int argc, char *argv[])
 {
 #endif
-putErrmsg("dccplso (and the DCCP protocol) are only available under Linux (>2.6.36). Please see the README in the ltp/dccp source directory for more information.", NULL);
+putErrmsg("dccplso (and the DCCP protocol) are only available under Linux (>=3.2.0). Please see the README in the ltp/dccp source directory for more information.", NULL);
 writeErrmsgMemos();
 return 0;
 }
