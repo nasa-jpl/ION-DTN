@@ -6731,13 +6731,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		return -1;
 	}
 
-	if (setBundleTTL(bundle, bundleObj) < 0)
-	{
-		putErrmsg("Can't insert new bundle into timeline.", NULL);
-		sdr_cancel_xn(bpSdr);
-		return -1;
-	}
-
 	if (bundle->dictionaryLength > 0)
 	{
 		bundle->dictionary = sdr_malloc(bpSdr,
@@ -6752,6 +6745,13 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		sdr_write(bpSdr, bundle->dictionary, work->dictionary,
 				bundle->dictionaryLength);
 		bundle->dbOverhead += bundle->dictionaryLength;
+	}
+
+	if (setBundleTTL(bundle, bundleObj) < 0)
+	{
+		putErrmsg("Can't insert new bundle into timeline.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
 	}
 
 	if (recordExtensionBlocks(work) < 0)
