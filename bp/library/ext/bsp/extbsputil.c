@@ -954,7 +954,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 	// if a bab block, try to use convergence layer sender addr
         if(blockType == BSP_BAB_TYPE && wk->senderEid != NULL)
         {
-            bzero(tmp, MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+            memset(tmp, 0, MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
             memcpy(tmp, wk->senderEid, strlen(wk->senderEid));
 	    // parseEidString will mess up the char * given to it..
 	    // so just copy it to a temp variable
@@ -1004,7 +1004,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
         // if a bab block, try to use convergence layer sender addr
         if(blockType == BSP_BAB_TYPE && wk->senderEid != NULL)
         {   
-            bzero(tmp, MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+            memset(tmp, 0, MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
             tmp2 = getCustodianEid(wk->senderEid);
             memcpy(tmp, tmp2, strlen(tmp2));
             MRELEASE(tmp2);

@@ -794,7 +794,7 @@ unsigned char *bsp_pibGetSecResult(Object dataObj,
       return NULL;
    }
    // set to zero in case hmac_sha1_final doesn't fill up the buffer
-   bzero(hashData, BSP_PIB_HMAC_SHA256_RESULT_LEN);
+   memset(hashData, 0, BSP_PIB_HMAC_SHA256_RESULT_LEN);
 
    PIB_DEBUG_INFO("i bsp_pibGetSecResult: allocated hash data.",NULL);
 

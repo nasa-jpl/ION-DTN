@@ -931,7 +931,7 @@ int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,
    while(bytesRemaining > 0)
    {
      // Clear last round's buffer data
-     bzero(dataBuffer, sizeof(PCB_ENCRYPTION_CHUNK_SIZE));
+     memset(dataBuffer, 0, sizeof(PCB_ENCRYPTION_CHUNK_SIZE));
      
      /* See how many bytes we wish to read in at this time. */
      if(bytesRemaining < chunkSize)
