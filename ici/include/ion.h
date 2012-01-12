@@ -223,7 +223,7 @@ typedef struct
 {
 	time_t		time;		/*	As from time(2).	*/
 	IonEventType	type;
-	PsmAddress	elt;		/*	A node in an RB tree.	*/
+	PsmAddress	ref;		/*	A CXref or RXref addr.	*/
 } IonEvent;
 
 /*	The volatile database object encapsulates the current volatile

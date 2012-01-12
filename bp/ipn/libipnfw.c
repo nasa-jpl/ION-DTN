@@ -129,6 +129,7 @@ int	ipnInit()
 
 	oK(_ipndbObject(&ipndbObject));
 	oK(_ipnConstants());
+	cgr_start();
 	return 0;
 }
 

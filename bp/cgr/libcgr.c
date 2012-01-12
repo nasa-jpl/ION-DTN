@@ -258,6 +258,14 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 				continue;
 			}
 
+			if (contact->toNode == contact->fromNode)
+			{
+				/*	Loopback contact; can't
+				 *	consider in CGR.		*/
+
+				continue;
+			}
+
 			if (contact->fromNode > arg.fromNode)
 			{
 				/*	No more relevant contacts.	*/
@@ -286,7 +294,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 			{
 				range = (IonRXref *)
 					psp(ionwm, sm_rbt_data(ionwm, elt2));
-				if (range->fromNode >arg2.fromNode
+				if (range->fromNode > arg2.fromNode
 				|| range->toNode > arg2.toNode)
 				{
 					elt2 = 0;
@@ -482,7 +490,8 @@ static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime)
 		{
 			contact->routingObject = psm_zalloc(ionwm,
 					sizeof(CgrContactNote));
-			work = (CgrContactNote *) (contact->routingObject);
+			work = (CgrContactNote *) psp(ionwm,
+					contact->routingObject);
 			if (work == 0)
 			{
 				putErrmsg("Can't create CGR contact note.",
@@ -1266,4 +1275,18 @@ printf("CGR found no route.\n");
 	lyst_destroy(excludedNodes);
 	lyst_destroy(proximateNodes);
 	return 0;
+}
+
+void	cgr_start()
+{
+	char	*name = "cgrvdb";
+
+	oK(_cgrvdb(&name));
+}
+
+void	cgr_stop()
+{
+	char	*name = NULL;
+
+	oK(_cgrvdb(&name));
 }

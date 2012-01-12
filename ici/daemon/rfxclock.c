@@ -82,21 +82,20 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 	IonNeighbor	*neighbor;
 	PsmAddress	next;
 	IonCXref	*cxref;
-	PsmAddress	cxelt;
+	PsmAddress	ref;
 	Object		iondbObj;
 	IonDB		iondb;
 
-	addr = sm_rbt_data(ionwm, event->elt);
 	switch (event->type)
 	{
 	case IonStopImputedRange:
 	case IonStopAssertedRange:
-		rxref = (IonRXref *) psp(ionwm, addr);
+		rxref = (IonRXref *) psp(ionwm, event->ref);
 		return rfx_remove_range(rxref->fromTime,
 				rxref->fromNode, rxref->toNode);
 
 	case IonStopXmit:
-		cxref = (IonCXref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->fromNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->toNode, &next);
@@ -109,7 +108,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonStopFire:
-		cxref = (IonCXref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
@@ -122,7 +121,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonStopRecv:
-		cxref = (IonCXref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
@@ -136,7 +135,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 
 	case IonStartImputedRange:
 	case IonStartAssertedRange:
-		rxref = (IonRXref *) psp(ionwm, addr);
+		rxref = (IonRXref *) psp(ionwm, event->ref);
 		if (rxref->fromNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, rxref->toNode, &next);
@@ -158,7 +157,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonStartXmit:
-		cxref = (IonCXref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->fromNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->toNode, &next);
@@ -171,7 +170,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonStartFire:
-		cxref = (IonCXref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
@@ -186,7 +185,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 				 *	range (one-way light time)
 				 *	from this neighbor.		*/
 
-				cxelt = event->elt;
+				ref = event->ref;
 				iondbObj = getIonDbObject();
 				sdr_read(getIonsdr(), (char *) &iondb, iondbObj,
 						sizeof(IonDB));
@@ -208,7 +207,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 					(cxref->fromTime - iondb.maxClockError)
 						+ neighbor->owltInbound;
 				event->type = IonStartRecv;
-				event->elt = cxelt;
+				event->ref = ref;
 				if (sm_rbt_insert(ionwm, vdb->timeline, addr,
 						rfx_order_events, event) == 0)
 				{
@@ -227,7 +226,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 					(cxref->toTime + iondb.maxClockError)
 						+ neighbor->owltInbound;
 				event->type = IonStopRecv;
-				event->elt = cxelt;
+				event->ref = ref;
 				if (sm_rbt_insert(ionwm, vdb->timeline, addr,
 						rfx_order_events, event) == 0)
 				{
@@ -249,7 +248,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 					(cxref->toTime + iondb.maxClockError)
 						+ neighbor->owltInbound;
 				event->type = IonPurgeContact;
-				event->elt = cxelt;
+				event->ref = ref;
 				if (sm_rbt_insert(ionwm, vdb->timeline, addr,
 						rfx_order_events, event) == 0)
 				{
@@ -262,7 +261,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonStartRecv:
-		cxref = (IonCXref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
 			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
@@ -275,7 +274,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		return 0;
 
 	case IonPurgeContact:
-		cxref = (IonCXref *) psp(ionwm, addr);
+		cxref = (IonCXref *) psp(ionwm, event->ref);
 		return rfx_remove_contact(cxref->fromTime,
 				cxref->fromNode, cxref->toNode);
 
@@ -323,6 +322,7 @@ int	main(int argc, char *argv[])
 
 	oK(_running(&start));
 	writeMemo("[i] rfxclock is running.");
+snooze(30);
 	while (_running(NULL))
 	{
 		/*	Sleep for 1 second, then dispatch all events
@@ -382,7 +382,7 @@ int	main(int argc, char *argv[])
 			}
 
 			oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-					event, rfx_erase_data, NULL));
+					event, NULL, NULL));
 		}
 
 		if (sdr_end_xn(sdr) < 0)
