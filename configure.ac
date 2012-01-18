@@ -163,7 +163,7 @@ case $host_os in
 	darwin*)
 		AC_DEFINE([darwin],[1],[Build Darwin specific platform code.])
 		AC_DEFINE([unix],[1],[Build Unix specific platform code.]) 
-		AC_SUBST([ION_LINK_FLAGS]," -dynamiclib -undefined dynamic_lookup -lrt")
+		AC_SUBST([ION_LINK_FLAGS]," -dynamiclib -undefined dynamic_lookup")
 		if test $host_cpu = "x86_64" ; then
 			AC_SUBST([ION_CFLAGS]," -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 ")
 			echo "Build 64-bit Darwin specific platform code."
@@ -178,12 +178,10 @@ case $host_os in
 
 		if test $host_cpu = "x86_64" ; then
 			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.]) 
-			AC_SUBST([ION_LINK_FLAGS],"-lrt")
 			AC_SUBST([ION_CFLAGS]," -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing")
 			echo "Build 64-bit Linux specific platform code."
 		else
 			AC_DEFINE([linux],[1],[Build 32-bit Linux specific platform code.]) 
-			AC_SUBST([ION_LINK_FLAGS],"-lrt")
 			AC_SUBST([ION_CFLAGS]," -Dlinux -fno-strict-aliasing")
 			echo "Build 32-bit Linux specific platform code."
 		fi
