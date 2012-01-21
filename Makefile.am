@@ -25,7 +25,9 @@ AM_CFLAGS = \
 # support is not present, this variable is empty.
 AM_CFLAGS += $(VALGRIND_COMPAT_CFLAGS)
 
-AM_LDFLAGS = $(ION_LINK_FLAGS) 
+# don't use AM_LDFLAGS because autoconf sets it INCORRECTLY and it will
+# segfault anything using libraries... which is everything.
+#AM_LDFLAGS = $(ION_LINK_FLAGS) 
 
 # EXTRA_DIST gets sent in the tarball, but isn't really a program
 # anything NOT compiled: scripts, readmes, tar files, config files.
@@ -457,12 +459,12 @@ libici_la_SOURCES =	ici/library/llcv.c \
 			ici/sdr/sdrcatlg.c
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
-libici_la_LDFLAGS = $(AM_LDFLAGS)
+libici_la_LDFLAGS = $(ION_LINK_FLAGS)
 libici_la_LIBADD = $(PTHREAD_LIBS)
 
 #librfx_la_SOURCES = ici/library/rfx.c
 #librfx_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
-#librfx_la_LDFLAGS = $(AM_LDFLAGS)
+#librfx_la_LDFLAGS = $(ION_LINK_FLAGS)
 
 # --- Utility Programs --- #
 
@@ -623,7 +625,7 @@ libltp_la_SOURCES = \
 	ltp/library/libltp.c \
 	ltp/library/libltpP.c
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
-libltp_la_LDFLAGS = $(AM_LDFLAGS)
+libltp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libltp_la_LIBADD = libici.la
 
 #libltpP_la_SOURCES = ltp/library/libltpP.c
@@ -744,7 +746,7 @@ $(top_builddir)/dgr/doc/%.3: dgr/doc/pod3/%.pod
 
 libdgr_la_SOURCES = dgr/library/libdgr.c
 libdgr_la_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
-libdgr_la_LDFLAGS = $(AM_LDFLAGS)
+libdgr_la_LDFLAGS = $(ION_LINK_FLAGS)
 libdgr_la_LIBADD = libici.la $(PTHREAD_LIBS)
 
 # --- Test Executables --- #
@@ -991,22 +993,22 @@ $(top_builddir)/bp/doc/%.5: bp/doc/pod5/%.pod
 
 libipnfw_la_SOURCES = bp/ipn/libipnfw.c 
 libipnfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libipnfw_la_LDFLAGS = $(AM_LDFLAGS)
+libipnfw_la_LDFLAGS = $(ION_LINK_FLAGS)
 libipnfw_la_LIBADD = libbp.la libici.la
 
 libdtn2fw_la_SOURCES = bp/dtn2/libdtn2fw.c
 libdtn2fw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libdtn2fw_la_LDFLAGS = $(AM_LDFLAGS)
+libdtn2fw_la_LDFLAGS = $(ION_LINK_FLAGS)
 libdtn2fw_la_LIBADD = libbp.la libici.la
 
 libtcpcla_la_SOURCES = bp/tcp/libtcpcla.c
 libtcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libtcpcla_la_LDFLAGS = $(AM_LDFLAGS)
+libtcpcla_la_LDFLAGS = $(ION_LINK_FLAGS)
 libtcpcla_la_LIBADD = libbp.la libici.la
 
 libudpcla_la_SOURCES = bp/udp/libudpcla.c
 libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libudpcla_la_LDFLAGS = $(AM_LDFLAGS)
+libudpcla_la_LDFLAGS = $(ION_LINK_FLAGS)
 libudpcla_la_LIBADD = libbp.la libici.la
 
 #bvb (added bei.c), does bsp.c remain?
@@ -1020,22 +1022,22 @@ libbp_la_SOURCES = \
 	bp/library/ext/bsp/extbspbab.c \
 	bp/library/crypto/NULL_SUITES/crypto.c 
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libbp_la_LDFLAGS = $(AM_LDFLAGS)
+libbp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libbp_la_LIBADD = libici.la $(PTHREAD_LIBS)
 
 # ecos, phn, and bpP had a circular dependency;
 # now they are one.
 #libecos_la_SOURCES = bp/library/ecos.c
 #libecos_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-#libecos_la_LDFLAGS = $(AM_LDFLAGS)
+#libecos_la_LDFLAGS = $(ION_LINK_FLAGS)
 #
 #libphn_la_SOURCES = bp/library/phn.c
 #libphn_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-#libphn_la_LDFLAGS = $(AM_LDFLAGS)
+#libphn_la_LDFLAGS = $(ION_LINK_FLAGS)
 
 libcgr_la_SOURCES = bp/cgr/libcgr.c
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libcgr_la_LDFLAGS = $(AM_LDFLAGS)
+libcgr_la_LDFLAGS = $(ION_LINK_FLAGS)
 libcgr_la_LIBADD = libbp.la libici.la
 
 # --- Utility Programs --- #
@@ -1263,7 +1265,7 @@ libams_la_SOURCES = \
 	ams/library/dgrts.c \
 	ams/library/udpts.c \
 	ams/library/tcpts.c
-libams_la_LDFLAGS = $(AM_LDFLAGS) -static
+libams_la_LDFLAGS = $(ION_LINK_FLAGS) -static
 libams_la_CFLAGS = $(amscflags) $(AM_CFLAGS)
 libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la
 
@@ -1389,7 +1391,7 @@ libcfdp_la_SOURCES = \
 	cfdp/library/libcfdpops.c \
 	cfdp/library/libcfdpP.c
 libcfdp_la_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-libcfdp_la_LDFLAGS = $(AM_LDFLAGS)
+libcfdp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libcfdp_la_LIBADD = libici.la
 
 # --- Utility Programs --- #
@@ -1477,11 +1479,11 @@ cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 #	icix/library/vf.c \
 #	icix/library/search.c
 #libicix_la_CFLAGS = $(icixcflags) $(AM_CFLAGS)
-#libicix_la_LDFLAGS = $(AM_LDFLAGS)
+#libicix_la_LDFLAGS = $(ION_LINK_FLAGS)
 
 #libipcx_la_SOURCES = icix/library/ipcx.c
 #libipcx_la_CFLAGS = $(icixcflags) $(AM_CFLAGS)
-#libipcx_la_LDFLAGS = $(AM_LDFLAGS)
+#libipcx_la_LDFLAGS = $(ION_LINK_FLAGS)
 
 # --- Test Executables --- #
 
@@ -1559,7 +1561,7 @@ tests_library_libtestutil_la_SOURCES = \
 	tests/library/ionstart.c \
 	tests/library/ionstop.c
 tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-tests_library_libtestutil_la_LDFLAGS = $(AM_LDFLAGS) 
+tests_library_libtestutil_la_LDFLAGS = $(ION_LINK_FLAGS) 
 
 # TEST AUTHORS: README
 # If a test does not require compilation, it should not be listed here.  Just make a
