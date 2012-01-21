@@ -1662,7 +1662,8 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 				rfx_order_contacts, &arg, &nextElt);
 		if (cxelt)	/*	Found it.			*/
 		{
-			deleteContact(cxelt);
+			cxaddr = sm_rbt_data(ionwm, cxelt);
+			deleteContact(cxaddr);
 		}
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
@@ -2178,7 +2179,8 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 				&arg, &nextElt);
 		if (rxelt)	/*	Found it.			*/
 		{
-			deleteRange(rxelt, 0);
+			rxaddr = sm_rbt_data(ionwm, rxelt);
+			deleteRange(rxaddr, 0);
 		}
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
@@ -2228,7 +2230,8 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 				&arg, &nextElt);
 		if (rxelt)	/*	Found it.			*/
 		{
-			deleteRange(rxelt, 1);
+			rxaddr = sm_rbt_data(ionwm, rxelt);
+			deleteRange(rxaddr, 1);
 		}
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/

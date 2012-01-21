@@ -303,7 +303,6 @@ int	main(int argc, char *argv[])
 	IonProbe	*probe;
 	int		destNodeNbr;
 	int		neighborNodeNbr;
-	PsmAddress	nextElt;
 	IonEvent	*event;
 
 	if (ionAttach() < 0)
@@ -322,7 +321,6 @@ int	main(int argc, char *argv[])
 
 	oK(_running(&start));
 	writeMemo("[i] rfxclock is running.");
-snooze(30);
 	while (_running(NULL))
 	{
 		/*	Sleep for 1 second, then dispatch all events
@@ -364,10 +362,14 @@ snooze(30);
 		 *	so doing, adjust the volatile contact and
 		 *	range state of the local node.			*/
 
-		for (elt = sm_rbt_first(ionwm, vdb->timeline); elt;
-				elt = nextElt)
+		while (1)
 		{
-			nextElt = sm_rbt_next(ionwm, elt);
+			elt = sm_rbt_first(ionwm, vdb->timeline);
+			if (elt == 0)
+			{
+				break;
+			}
+
 			addr = sm_rbt_data(ionwm, elt);
 			event = (IonEvent *) psp(ionwm, addr);
 			if (event->time > currentTime)
