@@ -538,7 +538,8 @@ int	handleProxyPutRequest(CfdpUserOpsData *opsData)
 			 		stdReaderFn : NULL),
 			opsData->proxyFaultHandlers,
 			opsData->proxyFlowLabelLength,
-			opsData->proxyFlowLabel,
+			(opsData->proxyFlowLabelLength>0 ?
+					opsData->proxyFlowLabel : NULL),
 			opsData->proxyMsgsToUser,
 			opsData->proxyFilestoreRequests,
 			&opsData->originatingTransactionId,
