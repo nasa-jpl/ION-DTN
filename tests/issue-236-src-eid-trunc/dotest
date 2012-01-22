@@ -54,6 +54,7 @@ ionstart                           \
 echo "Starting bpecho on dtn://host1.dtn/b ..."
 bpecho dtn://host1.dtn/b > $BPECHOFILE &
 BPECHOPID=$!
+sleep 1
 
 # starting bpdriver on dtn://host1.dtn/a to send 10 bundles
 echo "Starting bpdriver on dtn://host1.dtn/a ..."

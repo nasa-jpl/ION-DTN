@@ -1347,11 +1347,11 @@ cfdplib = \
 	libcfdp.la
 
 cfdpinclude = \
-	cfdp/include/cfdp.h
+	cfdp/include/cfdp.h \
+	cfdp/include/cfdpops.h
 
 cfdpnoinst = \
-	cfdp/library/cfdpP.h \
-	cfdp/include/cfdpops.h
+	cfdp/library/cfdpP.h
 
 cfdpextra = \
 	cfdp/doc/pod3/cfdp.pod \
