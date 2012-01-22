@@ -47,7 +47,13 @@ static void	printUsage()
 	PUTS("\to\tSet ordinal (sub-priority within priority 2)");
 	PUTS("\t   o <ordinal>");
 	PUTS("\tm\tSet transmission mode");
-	PUTS("\t   m <0 = reliable (the default), 1 = unreliable>");
+	PUTS("\t   m <0 = CL reliability (the default), 1 = unreliable, 2 = \
+custody transfer>");
+	PUTS("\tg\tSet status reporting flags");
+	PUTS("\t   g <status report flag string>");
+	PUTS("\t   Status report flag string is a sequence of status report");
+	PUTS("\t   flags, separated by commas, with no embedded whitespace.");
+	PUTS("\t   Each flag must be one of: rcv, ct, fwd, dlv, del.");
 	PUTS("\tr\tAdd filestore request");
 	PUTS("\t   r <action code nbr> <first path name> <second path name>");
 	PUTS("\t\t\tAction code numbers are:");
@@ -201,6 +207,73 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 			utParms->custodySwitch = NoCustodyRequested;
 		}
 	}
+}
+
+static void	setFlag(int *srrFlags, char *arg)
+{
+	if (strcmp(arg, "rcv") == 0)
+	{
+		(*srrFlags) |= BP_RECEIVED_RPT;
+	}
+
+	if (strcmp(arg, "ct") == 0)
+	{
+		(*srrFlags) |= BP_CUSTODY_RPT;
+	}
+
+	if (strcmp(arg, "fwd") == 0)
+	{
+		(*srrFlags) |= BP_FORWARDED_RPT;
+	}
+
+	if (strcmp(arg, "dlv") == 0)
+	{
+		(*srrFlags) |= BP_DELIVERED_RPT;
+	}
+
+	if (strcmp(arg, "del") == 0)
+	{
+		(*srrFlags) |= BP_DELETED_RPT;
+	}
+}
+
+static void	setFlags(int *srrFlags, char *flagString)
+{
+	char	*cursor = flagString;
+	char	*comma;
+
+	while (1)
+	{
+		comma = strchr(cursor, ',');
+		if (comma)
+		{
+			*comma = '\0';
+			setFlag(srrFlags, cursor);
+			*comma = ',';
+			cursor = comma + 1;
+			continue;
+		}
+
+		setFlag(srrFlags, cursor);
+		return;
+	}
+}
+
+static void	setSrrFlags(int tokenCount, char **tokens, BpUtParms *utParms)
+{
+	char	*flagString;
+	int	flags;
+
+	if (tokenCount != 2)
+	{
+		PUTS("What status report flags should be set?");
+		return;
+	}
+
+	flagString = tokens[1];
+	flags = 0;
+	setFlags(&flags, flagString);
+	utParms->srrFlags = flags;
 }
 
 static void	setCriticality(int tokenCount, char **tokens,
@@ -374,6 +447,10 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 
 		case 'm':
 			setMode(tokenCount, tokens, &(parms->utParms));
+			return 0;
+
+		case 'g':
+			setSrrFlags(tokenCount, tokens, &(parms->utParms));
 			return 0;
 
 		case 'c':
