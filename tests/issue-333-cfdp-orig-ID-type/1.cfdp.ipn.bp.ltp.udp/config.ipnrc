@@ -1,0 +1,5 @@
+# Config file for issue-333-cfdp-orig-ID-type test
+# Samuel Jero
+# December 30, 2011
+# Add an egress plan.
+a plan 1 ltp/1
