@@ -55,6 +55,55 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.5.3 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #271: Various autotools changes to update how CFDP is built.
+
+- Issue #288: Fixed bug in CFDP implementation where performing a proxy "puts"
+  operation without supplying a flow label would trigger an assertion failure.
+
+- Issue #290: Fixed bug in CFDP implementation where an internal SDR list was
+  improperly referenced.
+
+- Issue #316: Fixed several unresolved symbolic links in the "limbo" subsection
+  of the test suite.
+
+- Issue #318: Fixed bug in CFDP implementation where an assertion was triggered
+  when a remote directory listing was performed for a directory that did not
+  exist.
+
+- Issue #323: Fixed bug in BP implementation where an integer overflow in the
+  congestion forecasting code would cause BP to refuse bundles from local user
+  applications on 32-bit machines with long, busy contacts.
+
+- Issue #330: Fixed bug in CFDP implementation where cfdpclock would remove
+  unsent FDUs that did not contain any actual file data.
+
+- Issue #331: Fixed bug in CFDP implementation where user messages where not
+  restricted to a maximum of 255 characters in length, as per the CFDP
+  specification.
+
+- Issue #333: Fixed bug in CFDP implementation where originating transaction ID
+  messages were not wrapped as CFDP user messages as per the CFDP specification,
+  resulting in messages that contained the wrong type codes.
+
+- Issue #334: Fixed bug in CFDP implementation where the cfdp_put() and
+  cfdp_get() operations returned "0" as transactionId rather than the actual
+  CFDP transaction number.
+
+- Issue #338: Modified test suite to use relative times instead of absolute
+  times wherever possible.  This fixes several tests with configurations that
+  became obsolete after the start of 2012 and ensures better resilience of the
+  test suite to any kind of absolute time boundaries.
+
+- Issue #340: Several minor updates have been applied to the DCCP implementation
+  to detect and build DCCP for linux kernels that meet or exceed version 3.2.0,
+  which puts several key DCCP fixes into the kernel baseline.
+
+- Status reporting support has been added to cfdptest. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
  
