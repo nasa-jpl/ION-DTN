@@ -296,7 +296,7 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			if (bpHandleXmitSuccess(data) < 0)
+			if (bpHandleXmitSuccess(data, 0) < 0)
 			{
 				putErrmsg("Crashed on xmit success.", NULL);
 				ionKillMainThread(procName);

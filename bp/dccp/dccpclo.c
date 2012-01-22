@@ -287,7 +287,7 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedC
 			}while(1);
 
 			/* Notify BP of success transmitting		*/
-			if (bpHandleXmitSuccess(*bundleZco) < 0)
+			if (bpHandleXmitSuccess(*bundleZco, 0) < 0)
 			{
 				putErrmsg("Can't handle xmit success.", NULL);
 				bytesSent=-1;
@@ -445,7 +445,7 @@ int	main(int argc, char *argv[])
 	{
 		
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 1) < 0)
+				destDuctName, -1) < 0)
 		{
 			sm_SemEnd(dccpcloSemaphore(NULL));
 			continue;

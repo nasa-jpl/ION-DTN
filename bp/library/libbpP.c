@@ -8867,9 +8867,10 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 
 int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		BpExtendedCOS *extendedCOS, char *destDuctName,
-		int stewardshipAccepted)
+		int timeoutInterval)
 {
 	Sdr		bpSdr = getIonsdr();
+	int		stewardshipAccepted;
 	Object		outductObj;
 	Outduct		outduct;
 			OBJ_POINTER(ClProtocol, protocol);
@@ -8885,6 +8886,19 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	CHKERR(vduct && flows && bundleZco && extendedCOS && destDuctName);
 	*bundleZco = 0;			/*	Default behavior.	*/
 	*destDuctName = '\0';		/*	Default behavior.	*/
+	if (timeoutInterval < 0)
+	{
+		/*	Note that stewardship and custody acceptance
+		 *	timeout are mutually exclusive.			*/
+
+		stewardshipAccepted = 1;
+		timeoutInterval = 0;
+	}
+	else
+	{
+		stewardshipAccepted = 0;
+	}
+
 	sdr_begin_xn(bpSdr);
 
 	/*	Transmission rate control: wait for capacity.		*/
@@ -9062,7 +9076,20 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	 *	will survive.  Since a ZCO is never destroyed until
 	 *	its reference count drops to zero, the payload ZCO
 	 *	will remain available to the CLO for transmission and
-	 *	retransmission.						*/
+	 *	retransmission.
+	 *
+	 *	If the bundle is indeed custodial and a custody
+	 *	acceptance timer has been requested, set the timer now.	*/
+
+	if (bundle.custodyTaken && timeoutInterval > 0)
+	{
+		if (bpMemo(bundleObj, timeoutInterval) < 0)
+		{
+			putErrmsg("Can't set custody timeout.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+	}
 
 	/*	Track this transmission event.				*/
 
@@ -9530,7 +9557,7 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 	return 0;
 }
 
-int	bpMemo(Object bundleObj, int interval)
+int	bpMemo(Object bundleObj, unsigned int interval)
 {
 	Sdr	bpSdr = getIonsdr();
 	Bundle	bundle;
@@ -9613,7 +9640,7 @@ int	retrieveInTransitBundle(Object bundleZco, Object *bundleObj)
 	return result;
 }
 
-int	bpHandleXmitSuccess(Object bundleZco)
+int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
@@ -9624,8 +9651,8 @@ int	bpHandleXmitSuccess(Object bundleZco)
 	sdr_begin_xn(bpSdr);
 	if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't locate bundle for okay transmission.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -9641,6 +9668,15 @@ int	bpHandleXmitSuccess(Object bundleZco)
 	}
 
 	sdr_read(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+	if (bundle.custodyTaken && timeoutInterval > 0)
+	{
+		if (bpMemo(bundleAddr, timeoutInterval) < 0)
+		{
+			putErrmsg("Can't set custody timeout.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+	}
 
 	/*	Send "forwarded" status report if necessary.		*/
 

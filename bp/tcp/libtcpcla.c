@@ -396,7 +396,7 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 		return handleTcpFailure(socketName, bundleZco);
 	}
 
-	if (bpHandleXmitSuccess(bundleZco) < 0)
+	if (bpHandleXmitSuccess(bundleZco, 0) < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
 		result = -1;
@@ -517,7 +517,7 @@ not sent.");
 		return handleTcpFailure(socketName, bundleZco);
 	}
 
-	if (bpHandleXmitSuccess(bundleZco) < 0)
+	if (bpHandleXmitSuccess(bundleZco, 0) < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
 		result = -1;
