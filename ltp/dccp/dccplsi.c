@@ -255,7 +255,6 @@ static void	*Listen_for_connections(void *parm)
 
 int bindDCCPsock(int* sock, struct sockaddr* socketName)
 {
-	int on;
 	socklen_t nameLength;
 
 	if(sock==NULL || socketName==NULL)
@@ -269,7 +268,6 @@ int bindDCCPsock(int* sock, struct sockaddr* socketName)
 		return -1;
 	}
 
-	on=1;
 	if(reUseAddress(*sock)<0)
 	{
 		putSysErrmsg("LSI can't initialize socket.", "SO_REUSEADDR");
@@ -317,7 +315,6 @@ int	main(int argc, char *argv[])
 		putErrmsg("dccplsi can't initialize LTP.", NULL);
 		return 1;
 	}
-	writeMemo("[i] dccplsi is experimental software. Please see the README in the ltp/dccp source directory.");
 
 	vdb = getLtpVdb();
 	if (vdb->lsiPid != ERROR && vdb->lsiPid != sm_TaskIdSelf())
@@ -398,7 +395,7 @@ int	dccplsi(int a1, int a2, int a3, int a4, int a5,
 int	main(int argc, char *argv[])
 {
 #endif	
-putErrmsg("dccplsi (and the DCCP protocol) are only available under Linux (>2.6.36). Please see the README in the ltp/dccp source directory for more information.", NULL);
+putErrmsg("dccplsi (and the DCCP protocol) are only available under Linux (>=3.2.0). Please see the README in the ltp/dccp source directory for more information.", NULL);
 writeErrmsgMemos();
 return 0;
 }
