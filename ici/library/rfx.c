@@ -1465,6 +1465,7 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 
 	/*	Contact isn't already in database; okay to add.		*/
 
+	cxaddr = 0;
 	contact.fromTime = fromTime;
 	contact.toTime = toTime;
 	contact.fromNode = fromNode;
@@ -1477,15 +1478,14 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 		iondbObj = getIonDbObject();
 		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 		elt = sdr_list_insert_last(sdr, iondb.contacts, obj);
-	}
-
-	if (obj && elt)
-	{
-		arg.contactElt = elt;
-		cxaddr = insertCXref(&arg);
-		if (cxaddr == 0)
+		if (elt)
 		{
-			sdr_cancel_xn(sdr);
+			arg.contactElt = elt;
+			cxaddr = insertCXref(&arg);
+			if (cxaddr == 0)
+			{
+				sdr_cancel_xn(sdr);
+			}
 		}
 	}
 
@@ -2009,6 +2009,7 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 
 	/*	Range isn't already in database; okay to add.		*/
 
+	rxaddr = 0;
 	range.fromTime = fromTime;
 	range.toTime = toTime;
 	range.fromNode = fromNode;
@@ -2021,15 +2022,14 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 		iondbObj = getIonDbObject();
 		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 		elt = sdr_list_insert_last(sdr, iondb.ranges, obj);
-	}
-
-	if (obj && elt)
-	{
-		arg.rangeElt = elt;
-		rxaddr = insertRXref(&arg);
-		if (rxaddr == 0)
+		if (elt)
 		{
-			sdr_cancel_xn(sdr);
+			arg.rangeElt = elt;
+			rxaddr = insertRXref(&arg);
+			if (rxaddr == 0)
+			{
+				sdr_cancel_xn(sdr);
+			}
 		}
 	}
 
