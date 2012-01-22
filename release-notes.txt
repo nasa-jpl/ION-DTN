@@ -80,7 +80,7 @@ Features included:
 - Issue #330: Fixed bug in CFDP implementation where cfdpclock would remove
   unsent FDUs that did not contain any actual file data.
 
-- Issue #331: Fixed bug in CFDP implementation where user messages where not
+- Issue #331: Fixed bug in CFDP implementation where user messages were not
   restricted to a maximum of 255 characters in length, as per the CFDP
   specification.
 
