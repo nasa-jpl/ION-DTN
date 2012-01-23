@@ -286,6 +286,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	cgr_start();
 	sdr = getIonsdr();
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
