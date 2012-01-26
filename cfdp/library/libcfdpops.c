@@ -124,7 +124,7 @@ void	parseProxyMsgToUser(char *text, int bytesRemaining,
 
 	if (opsData->proxyMsgsToUser == 0)
 	{
-		opsData->proxyMsgsToUser = sdr_list_create(sdr);
+		opsData->proxyMsgsToUser = cfdp_create_usrmsg_list();
 		if (opsData->proxyMsgsToUser == 0)
 		{
 			return;
@@ -225,7 +225,7 @@ void	parseProxyFilestoreRequest(char *text, int bytesRemaining,
 
 	if (opsData->proxyFilestoreRequests == 0)
 	{
-		opsData->proxyFilestoreRequests = sdr_list_create(sdr);
+		opsData->proxyFilestoreRequests = cfdp_create_fsreq_list();
 		if (opsData->proxyFilestoreRequests == 0)
 		{
 			return;
@@ -430,7 +430,7 @@ void	parseProxyFilestoreResponse(char *text, int bytesRemaining,
 
 	if (opsData->proxyFilestoreResponses == 0)
 	{
-		opsData->proxyFilestoreResponses = sdr_list_create(sdr);
+		opsData->proxyFilestoreResponses = cfdp_create_fsreq_list();
 		if (opsData->proxyFilestoreResponses == 0)
 		{
 			return;
@@ -493,7 +493,7 @@ static int	reportOnProxyPut(CfdpUserOpsData *opsData,
 			CfdpFileStatus fileStatus)
 {
 	Sdr			sdr = getIonsdr();
-	Object			msgs = sdr_list_create(sdr);
+	Object			msgs = cfdp_create_usrmsg_list();
 	MsgToUser		msg;
 	unsigned char		textBuffer[6];
 	Object			msgObj;
@@ -538,7 +538,8 @@ int	handleProxyPutRequest(CfdpUserOpsData *opsData)
 			 		stdReaderFn : NULL),
 			opsData->proxyFaultHandlers,
 			opsData->proxyFlowLabelLength,
-			opsData->proxyFlowLabel,
+			(opsData->proxyFlowLabelLength>0 ?
+					opsData->proxyFlowLabel : NULL),
 			opsData->proxyMsgsToUser,
 			opsData->proxyFilestoreRequests,
 			&opsData->originatingTransactionId,
@@ -652,7 +653,7 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 
 	if (messagesToUser == 0)
 	{
-		if ((msgs = sdr_list_create(sdr)) == 0)
+		if ((msgs = cfdp_create_usrmsg_list()) == 0)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create user messages list.", NULL);
@@ -684,6 +685,13 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	length++;
 	memcpy(textBuffer + length, task->destFileName, destFileNameLen);
 	length += destFileNameLen;
+	if (length > 255)
+	{
+		sdr_list_destroy(sdr, msgs, NULL, NULL);
+		sdr_end_xn(sdr);
+		putErrmsg("Message to User Too Long.", itoa(length));
+		return -1;
+	}
 	if (cfdp_add_usrmsg(msgs, textBuffer, length) < 0)
 	{
 		sdr_cancel_xn(sdr);
@@ -712,6 +720,14 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 					proxyMsg->text, proxyMsg->length);
 				sdr_free(sdr, proxyMsg->text);
 				length += proxyMsg->length;
+				if (length > 255)
+				{
+					sdr_list_destroy(sdr, msgs, NULL, NULL);
+					sdr_list_destroy(sdr, task->messagesToUser, NULL, NULL);
+					sdr_end_xn(sdr);
+					putErrmsg("Message to User Too Long.", itoa(length));
+					return -1;
+				}
 				if (cfdp_add_usrmsg(msgs, textBuffer, length)
 						< 0)
 				{
@@ -778,6 +794,14 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 				length += length;
 			}
 
+			if (length > 255)
+			{
+				sdr_list_destroy(sdr, msgs, NULL, NULL);
+				sdr_list_destroy(sdr, task->filestoreRequests, NULL, NULL);
+				sdr_end_xn(sdr);
+				putErrmsg("Message to User Too Long.", itoa(length));
+				return -1;
+			}
 			if (cfdp_add_usrmsg(msgs, textBuffer, length) < 0)
 			{
 				sdr_cancel_xn(sdr);
@@ -843,6 +867,13 @@ handler override.", NULL);
 		memcpy(textBuffer + length, task->flowLabel,
 				task->flowLabelLength);
 		length += task->flowLabelLength;
+		if (length > 255)
+		{
+			sdr_list_destroy(sdr, msgs, NULL, NULL);
+			sdr_end_xn(sdr);
+			putErrmsg("Message to User Too Long.", itoa(length));
+			return -1;
+		}
 		if (cfdp_add_usrmsg(msgs, textBuffer, length) < 0)
 		{
 			sdr_cancel_xn(sdr);
@@ -908,7 +939,7 @@ int	cfdp_rput_cancel(CfdpNumber *respondentEntityNbr,
 
 	if (messagesToUser == 0)
 	{
-		if ((messagesToUser = sdr_list_create(sdr)) == 0)
+		if ((messagesToUser = cfdp_create_usrmsg_list()) == 0)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create user messages list.", NULL);
@@ -1073,7 +1104,7 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 			int responseCode, char *listingFileName)
 {
 	Sdr			sdr = getIonsdr();
-	Object			msgs = sdr_list_create(sdr);
+	Object			msgs = cfdp_create_usrmsg_list();
 	int			dirNameLen = strlen(opsData->directoryName);
 	int			destFileNameLen =
 					strlen(opsData->directoryDestFileName);
@@ -1082,7 +1113,13 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 	Object			msgObj;
 	CfdpTransactionId	transactionId;
 
-	msg.length = 5 + 1 + 1 + dirNameLen + destFileNameLen;
+	if (6 + 1 + 1 + dirNameLen + destFileNameLen > 255)
+	{
+		putErrmsg("CFDP: User Message too long.",  NULL);
+		return -1;
+	}
+
+	msg.length = 6 + 1 + 1 + dirNameLen + destFileNameLen;
 	if (msgs == 0 || (msg.text = sdr_malloc(sdr, msg.length)) == 0
 	|| (msgObj = sdr_malloc(sdr, sizeof(MsgToUser))) == 0
 	|| sdr_list_insert_last(sdr, msgs, msgObj) == 0)
@@ -1102,7 +1139,8 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 	sdr_write(sdr, msg.text, (char *) textBuffer, msg.length);
 	sdr_write(sdr, msgObj, (char *) &msg, sizeof(MsgToUser));
 	return createFDU(&opsData->originatingTransactionId.sourceEntityNbr, 0,
-			NULL, listingFileName, opsData->directoryDestFileName,
+			NULL, listingFileName,
+			(listingFileName!=NULL ? opsData->directoryDestFileName : NULL),
 			NULL, NULL, 0, NULL, msgs, 0,
 			&opsData->originatingTransactionId, &transactionId);
 }
@@ -1194,7 +1232,7 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 
 	if (messagesToUser == 0)
 	{
-		if ((messagesToUser = sdr_list_create(sdr)) == 0)
+		if ((messagesToUser = cfdp_create_usrmsg_list()) == 0)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create user messages list.", NULL);
@@ -1216,6 +1254,13 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	length++;
 	memcpy(textBuffer + length, task->destFileName, destFileNameLen);
 	length += destFileNameLen;
+	if (length > 255)
+	{
+		sdr_list_destroy(sdr, messagesToUser, NULL, NULL);
+		sdr_end_xn(sdr);
+		putErrmsg("Message to User Too Long.", itoa(length));
+		return -1;
+	}
 	if (cfdp_add_usrmsg(messagesToUser, textBuffer, length) < 0)
 	{
 		sdr_cancel_xn(sdr);

@@ -1,0 +1,7 @@
+# shell script take node down
+#!/bin/bash
+ipnadmin	.
+sleep 1
+bpadmin		.
+sleep 1
+ionadmin	.

@@ -1,0 +1,5 @@
+# Config file for issue-330-cfdpclock-FDU-removal test
+# Samuel Jero
+# December 15, 2011
+# Add an egress plan.
+a plan 1 ltp/1

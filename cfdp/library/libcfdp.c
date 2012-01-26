@@ -340,6 +340,12 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 	CHKERR(length > 0);
 	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
 			== cfdpConstants->usrmsgLists);
+	if (length > 255)
+	{
+		putErrmsg("CFDP: User Message too long.", itoa(length));
+		return -1;
+	}
+
 	memset((char *) &usrmsg, 0, sizeof(MsgToUser));
 	sdr_begin_xn(sdr);
 	usrmsg.length = length;
@@ -915,7 +921,7 @@ static int	constructMetadataPdu(OutFdu *fdu,
 		}
 		else
 		{
-			*cursor = 0x0a;			/*	Type.	*/
+			*cursor = 0x02;			/*	Type: Special User Message.	*/
 			cursor++;
 			mpduLength++;
 			*cursor = length;
@@ -1317,6 +1323,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	event.type = CfdpTransactionInd;
 	memcpy((char *) &event.transactionId, (char *) &fdu.transactionId,
 			sizeof(CfdpTransactionId));
+	memcpy((char *) transactionId, (char *) &fdu.transactionId,
+				sizeof(CfdpTransactionId));
 	event.reqNbr = fdu.reqNbr;
 	if (enqueueCfdpEvent(&event) < 0)
 	{

@@ -8,7 +8,7 @@
 #is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
 # fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, 2.5.2, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, 2.5.3, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
 # shall we put extra scripts in a special directory?
 # AC_CONFIG_AUX_DIR(build-aux)
@@ -163,7 +163,7 @@ case $host_os in
 	darwin*)
 		AC_DEFINE([darwin],[1],[Build Darwin specific platform code.])
 		AC_DEFINE([unix],[1],[Build Unix specific platform code.]) 
-		AC_SUBST([ION_LINK_FLAGS]," -dynamiclib -undefined dynamic_lookup ")
+		AC_SUBST([ION_LINK_FLAGS]," -dynamiclib -undefined dynamic_lookup")
 		if test $host_cpu = "x86_64" ; then
 			AC_SUBST([ION_CFLAGS]," -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 ")
 			echo "Build 64-bit Darwin specific platform code."
@@ -178,13 +178,11 @@ case $host_os in
 
 		if test $host_cpu = "x86_64" ; then
 			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.]) 
-			AC_SUBST([ION_LINK_FLAGS]," -fPIC -shared ")
-			AC_SUBST([ION_CFLAGS]," -Dlinux -fPIC -DSPACE_ORDER=3 -fno-strict-aliasing")
+			AC_SUBST([ION_CFLAGS]," -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing")
 			echo "Build 64-bit Linux specific platform code."
 		else
 			AC_DEFINE([linux],[1],[Build 32-bit Linux specific platform code.]) 
-			AC_SUBST([ION_LINK_FLAGS]," -fPIC -shared ")
-			AC_SUBST([ION_CFLAGS]," -Dlinux -fno-strict-aliasing -DNO_PROXY -DNO_DIRLIST")
+			AC_SUBST([ION_CFLAGS]," -Dlinux -fno-strict-aliasing")
 			echo "Build 32-bit Linux specific platform code."
 		fi
 		;;
@@ -194,13 +192,13 @@ case $host_os in
 	solaris*) 
 		if test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
-			AC_SUBST([ION_LINK_FLAGS]," -fPIC -shared -lrt -lsocket -lnsl")
-			AC_SUBST([ION_CFLAGS]," -Dsol -Dunix -D__SVR4 -D_REENTRANT -fPIC -fno-strict-aliasing -fno-builtin")
+			AC_SUBST([ION_LINK_FLAGS],"-lrt -lsocket -lnsl")
+			AC_SUBST([ION_CFLAGS]," -Dsol -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin")
 			echo "Build Solaris/SPARC specific platform code."
 		else
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
-			AC_SUBST([ION_LINK_FLAGS]," -fPIC -shared -lrt -lsocket -lnsl")
-			AC_SUBST([ION_CFLAGS]," -Dsol -Dunix -D__SVR4 -D_REENTRANT -fPIC -fno-strict-aliasing")
+			AC_SUBST([ION_LINK_FLAGS],"-lrt -lsocket -lnsl")
+			AC_SUBST([ION_CFLAGS]," -Dsol -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing")
 			echo "Build Solaris specific platform code."
 		fi
 		;;
