@@ -74,13 +74,26 @@ static int	setProbeIsDue(unsigned long destNodeNbr,
 	return 0;	/*	Snub no longer exists; no problem.	*/
 }
 
+static IonNeighbor	*getNeighbor(IonVdb *vdb, unsigned long nodeNbr)
+{
+	IonNeighbor	*neighbor;
+	PsmAddress	next;
+
+	neighbor = findNeighbor(vdb, nodeNbr, &next);
+	if (neighbor == NULL)
+	{
+		neighbor = addNeighbor(vdb, nodeNbr);
+	}
+
+	return neighbor;
+}
+
 static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	addr;
 	IonRXref	*rxref;
 	IonNeighbor	*neighbor;
-	PsmAddress	next;
 	IonCXref	*cxref;
 	PsmAddress	ref;
 	Object		iondbObj;
@@ -98,7 +111,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->fromNode == getOwnNodeNbr())
 		{
-			neighbor = findNeighbor(vdb, cxref->toNode, &next);
+			neighbor = getNeighbor(vdb, cxref->toNode);
 			if (neighbor)
 			{
 				neighbor->xmitRate = 0;
@@ -111,7 +124,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
-			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
+			neighbor = getNeighbor(vdb, cxref->fromNode);
 			if (neighbor)
 			{
 				neighbor->fireRate = 0;
@@ -124,7 +137,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
-			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
+			neighbor = getNeighbor(vdb, cxref->fromNode);
 			if (neighbor)
 			{
 				neighbor->recvRate = 0;
@@ -138,7 +151,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		rxref = (IonRXref *) psp(ionwm, event->ref);
 		if (rxref->fromNode == getOwnNodeNbr())
 		{
-			neighbor = findNeighbor(vdb, rxref->toNode, &next);
+			neighbor = getNeighbor(vdb, rxref->toNode);
 			if (neighbor)
 			{
 				neighbor->owltOutbound = rxref->owlt;
@@ -147,7 +160,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 
 		if (rxref->toNode == getOwnNodeNbr())
 		{
-			neighbor = findNeighbor(vdb, rxref->fromNode, &next);
+			neighbor = getNeighbor(vdb, rxref->fromNode);
 			if (neighbor)
 			{
 				neighbor->owltInbound = rxref->owlt;
@@ -160,7 +173,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->fromNode == getOwnNodeNbr())
 		{
-			neighbor = findNeighbor(vdb, cxref->toNode, &next);
+			neighbor = getNeighbor(vdb, cxref->toNode);
 			if (neighbor)
 			{
 				neighbor->xmitRate = cxref->xmitRate;
@@ -173,7 +186,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
-			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
+			neighbor = getNeighbor(vdb, cxref->fromNode);
 			if (neighbor)
 			{
 				neighbor->fireRate = cxref->xmitRate;
@@ -264,7 +277,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 		cxref = (IonCXref *) psp(ionwm, event->ref);
 		if (cxref->toNode == getOwnNodeNbr())
 		{
-			neighbor = findNeighbor(vdb, cxref->fromNode, &next);
+			neighbor = getNeighbor(vdb, cxref->fromNode);
 			if (neighbor)
 			{
 				neighbor->recvRate = cxref->xmitRate;

@@ -203,24 +203,9 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 			}
 		}
 
-		if (neighbor->recvRate == 0)
-		{
-			vspan->receptionRate = 0;
-		}
-		else
-		{
-			vspan->receptionRate = neighbor->recvRate;
-		}
-
-		if (neighbor->owltInbound != vspan->owltInbound)
-		{
-			vspan->owltInbound = neighbor->owltInbound;
-		}
-
-		if (neighbor->owltOutbound != vspan->owltOutbound)
-		{
-			vspan->owltOutbound = neighbor->owltOutbound;
-		}
+		vspan->receptionRate = neighbor->recvRate;
+		vspan->owltInbound = neighbor->owltInbound;
+		vspan->owltOutbound = neighbor->owltOutbound;
 	}
 
 	if (sdr_end_xn(sdr) < 0)

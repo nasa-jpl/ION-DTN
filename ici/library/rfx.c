@@ -1702,12 +1702,12 @@ static int	insertRXref(IonRXref *rxref)
 	IonVdb		*vdb = getIonVdb();
 	IonNode		*node;
 	PsmAddress	nextElt;
-	IonRXref	arg1;
-	IonEvent	arg2;
+	IonRXref	arg;
 	PsmAddress	rxaddr;
 	PsmAddress	rxelt;
 	PsmAddress	addr;
 	IonEvent	*event;
+	PsmAddress	rxaddr2;
 	IonRXref	*rxref2;
 	time_t		currentTime = getUTCTime();
 
@@ -1730,37 +1730,6 @@ static int	insertRXref(IonRXref *rxref)
 		if (node == NULL)
 		{
 			return 0;
-		}
-	}
-
-	/*	Destroy imputed range entry if necessary.		*/
-
-	if (rxref->fromNode > rxref->toNode)
-	{
-		/*	This is a non-canonical range assertion,
-		 *	indicating an override of the normal
-		 *	symmetry in the owlt between nodes.  Must
-		 *	delete any imputed range for the same node
-		 *	pair, together with the associated events.	*/
-
-		arg1.fromNode = rxref->fromNode;
-		arg1.toNode = rxref->toNode;
-		arg1.fromTime = rxref->fromTime;
-		rxelt = sm_rbt_search(ionwm, vdb->rangeIndex,
-				rfx_order_ranges, &arg1, &nextElt);
-		if (rxelt)	/*	Imputed range exists; lose it.	*/
-		{
-			arg2.ref = sm_rbt_data(ionwm, rxelt);
-			sm_rbt_delete(ionwm, vdb->rangeIndex, rfx_order_ranges,
-					&arg1, rfx_erase_data, NULL);
-			arg2.time = rxref->fromTime;
-			arg2.type = IonStartImputedRange;
-			sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-					&arg2, rfx_erase_data, NULL);
-			arg2.time = rxref->toTime;
-			arg2.type = IonStopImputedRange;
-			sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-					&arg2, rfx_erase_data, NULL);
 		}
 	}
 
@@ -1830,31 +1799,44 @@ static int	insertRXref(IonRXref *rxref)
 		return rxaddr;
 	}
 
-	/*	This is a canonical range assertion, so we need to
-	 *	insert the imputed (symmetrical) reverse range
-	 *	assertion as well.
+	/*	This is a canonical range assertion, so we may need
+	 *	to insert the imputed (symmetrical) reverse range
+	 *	assertion as well.  Is the reverse range already
+	 *	asserted?						*/
+
+	arg.fromNode = rxref->toNode;
+	arg.toNode = rxref->fromNode;
+	arg.fromTime = rxref->fromTime;
+	rxelt = sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges,
+			&arg, &nextElt);
+	if (rxelt)	/*	Asserted range exists; we're done.	*/
+	{
+		return rxaddr;
+	}
+
+	/*	Reverse range is not asserted, so it must be imputed.
 	 *
 	 *	First, load index entry for the imputed range.		*/
 
-	addr = psm_zalloc(ionwm, sizeof(IonRXref));
-	if (addr == 0)
+	rxaddr2 = psm_zalloc(ionwm, sizeof(IonRXref));
+	if (rxaddr2 == 0)
 	{
 		return 0;
 	}
 
-	rxref2 = (IonRXref *) psp(ionwm, addr);
+	rxref2 = (IonRXref *) psp(ionwm, rxaddr2);
 	rxref2->fromNode = rxref->toNode;	/*	Reversed.	*/
 	rxref2->toNode = rxref->fromNode;	/*	Reversed.	*/
 	rxref2->fromTime = rxref->fromTime;
 	rxref2->toTime = rxref->toTime;
 	rxref2->owlt = rxref->owlt;
 	rxref2->rangeElt = 0;		/*	Indicates "imputed".	*/
-	memcpy((char *) psp(ionwm, addr), (char *) rxref2, sizeof(IonRXref));
-	rxelt = sm_rbt_insert(ionwm, vdb->rangeIndex, addr, rfx_order_ranges,
+	memcpy((char *) psp(ionwm, rxaddr2), (char *) rxref2, sizeof(IonRXref));
+	rxelt = sm_rbt_insert(ionwm, vdb->rangeIndex, rxaddr2, rfx_order_ranges,
 			rxref2);
 	if (rxelt == 0)
 	{
-		psm_free(ionwm, addr);
+		psm_free(ionwm, rxaddr2);
 		return 0;
 	}
 
@@ -1869,7 +1851,7 @@ static int	insertRXref(IonRXref *rxref)
 	event = (IonEvent *) psp(ionwm, addr);
 	event->time = rxref->fromTime;
 	event->type = IonStartImputedRange;
-	event->ref = rxaddr;
+	event->ref = rxaddr2;
 	if (sm_rbt_insert(ionwm, vdb->timeline, addr, rfx_order_events, event)
 			== 0)
 	{
@@ -1886,7 +1868,7 @@ static int	insertRXref(IonRXref *rxref)
 	event = (IonEvent *) psp(ionwm, addr);
 	event->time = rxref->toTime;
 	event->type = IonStopImputedRange;
-	event->ref = rxaddr;
+	event->ref = rxaddr2;
 	if (sm_rbt_insert(ionwm, vdb->timeline, addr, rfx_order_events, event)
 			== 0)
 	{
@@ -1903,11 +1885,12 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
-	IonRXref	arg;
+	IonRXref	arg1;
 	PsmAddress	rxelt;
 	PsmAddress	nextElt;
 	PsmAddress	rxaddr;
 	IonRXref	*rxref;
+	IonEvent	arg2;
 	PsmAddress	prevElt;
 	char		rangeIdString[128];
 	IonRange	range;
@@ -1945,65 +1928,98 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 	/*	Make sure range doesn't overlap with any pre-existing
 	 *	ranges.							*/
 
-	memset((char *) &arg, 0, sizeof(IonRXref));
-	arg.fromNode = fromNode;
-	arg.toNode = toNode;
-	arg.fromTime = fromTime;
-	arg.toTime = toTime;
-	arg.owlt = owlt;
+	memset((char *) &arg1, 0, sizeof(IonRXref));
+	arg1.fromNode = fromNode;
+	arg1.toNode = toNode;
+	arg1.fromTime = fromTime;
+	arg1.toTime = toTime;
+	arg1.owlt = owlt;
 	rxelt = sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges,
-			&arg, &nextElt);
+			&arg1, &nextElt);
 	if (rxelt)	/*	Range is in database already.		*/
 	{
 		rxaddr = sm_rbt_data(ionwm, rxelt);
 		rxref = (IonRXref *) psp(ionwm, rxaddr);
-		if (rxref->owlt == owlt)
+		if (rxref->rangeElt == 0)	/*	Imputed.	*/
 		{
+			/*	The existing range for the same nodes
+			 *	and time is merely an imputed range,
+			 *	which is being overridden by a non-
+			 *	canonical range assertion indicating
+			 *	an override of the normal symmetry in
+			 *	the owlt between nodes.  Must delete
+			 *	that imputed range, together with the
+			 *	associated events, after which there
+			 *	is no duplication.			*/
+
+			sm_rbt_delete(ionwm, vdb->rangeIndex, rfx_order_ranges,
+					&arg1, rfx_erase_data, NULL);
+			arg2.ref = rxaddr;
+			arg2.time = rxref->fromTime;
+			arg2.type = IonStartImputedRange;
+			sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+					&arg2, rfx_erase_data, NULL);
+			arg2.time = rxref->toTime;
+			arg2.type = IonStopImputedRange;
+			sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+					&arg2, rfx_erase_data, NULL);
+		}
+		else	/*	Overriding an asserted range.		*/
+		{
+			/*	This is an attempt to replace an
+			 *	existing asserted range with another
+			 *	asserted range, which is prohibited.	*/
+
+			if (rxref->owlt == owlt)
+			{
+				sdr_exit_xn(sdr);
+				return rxaddr;	/*	Idempotent.	*/
+			}
+
+			isprintf(rangeIdString, sizeof rangeIdString,
+					"from %lu, %lu->%lu", fromTime,
+					fromNode, toNode);
+			writeMemoNote("[?] Range OWLT not revised",
+					rangeIdString);
 			sdr_exit_xn(sdr);
-			return rxaddr;
+			return 0;
 		}
-
-		isprintf(rangeIdString, sizeof rangeIdString,
-			"from %lu, %lu->%lu", fromTime, fromNode, toNode);
-		writeMemoNote("[?] Range OWLT not revised", rangeIdString);
-		sdr_exit_xn(sdr);
-		return 0;
 	}
-	else	/*	Check for overlap, which is not allowed.	*/
-	{
-		if (nextElt)
-		{
-			prevElt = sm_rbt_prev(ionwm, nextElt);
-			rxref = (IonRXref *)
-				psp(ionwm, sm_rbt_data(ionwm, nextElt));
-			if (fromNode == rxref->fromNode
-			&& toNode == rxref->toNode
-			&& toTime > rxref->fromTime)
-			{
-				writeMemoNote("[?] Overlapping range",
-						utoa(fromNode));
-				sdr_exit_xn(sdr);
-				return 0;
-			}
-		}
-		else
-		{
-			prevElt = sm_rbt_last(ionwm, vdb->contactIndex);
-		}
 
-		if (prevElt)
+	/*	Check for overlap, which is not allowed.		*/
+
+	if (nextElt)
+	{
+		prevElt = sm_rbt_prev(ionwm, nextElt);
+		rxref = (IonRXref *)
+			psp(ionwm, sm_rbt_data(ionwm, nextElt));
+		if (fromNode == rxref->fromNode
+		&& toNode == rxref->toNode
+		&& toTime > rxref->fromTime)
 		{
-			rxref = (IonRXref *)
-				psp(ionwm, sm_rbt_data(ionwm, prevElt));
-			if (fromNode == rxref->fromNode
-			&& toNode == rxref->toNode
-			&& fromTime < rxref->toTime)
-			{
-				writeMemoNote("[?] Overlapping range",
-						utoa(fromNode));
-				sdr_exit_xn(sdr);
-				return 0;
-			}
+			writeMemoNote("[?] Overlapping range",
+					utoa(fromNode));
+			sdr_exit_xn(sdr);
+			return 0;
+		}
+	}
+	else
+	{
+		prevElt = sm_rbt_last(ionwm, vdb->rangeIndex);
+	}
+
+	if (prevElt)
+	{
+		rxref = (IonRXref *)
+			psp(ionwm, sm_rbt_data(ionwm, prevElt));
+		if (fromNode == rxref->fromNode
+		&& toNode == rxref->toNode
+		&& fromTime < rxref->toTime)
+		{
+			writeMemoNote("[?] Overlapping range",
+					utoa(fromNode));
+			sdr_exit_xn(sdr);
+			return 0;
 		}
 	}
 
@@ -2024,8 +2040,8 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
 		elt = sdr_list_insert_last(sdr, iondb.ranges, obj);
 		if (elt)
 		{
-			arg.rangeElt = elt;
-			rxaddr = insertRXref(&arg);
+			arg1.rangeElt = elt;
+			rxaddr = insertRXref(&arg1);
 			if (rxaddr == 0)
 			{
 				sdr_cancel_xn(sdr);
