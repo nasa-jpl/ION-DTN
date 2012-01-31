@@ -216,7 +216,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 				}
 
 				event = (IonEvent *) psp(ionwm, addr);
-				event->time =
+				cxref->startRecv = event->time =
 					(cxref->fromTime - iondb.maxClockError)
 						+ neighbor->owltInbound;
 				event->type = IonStartRecv;
@@ -235,7 +235,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 				}
 
 				event = (IonEvent *) psp(ionwm, addr);
-				event->time =
+				cxref->stopRecv = event->time =
 					(cxref->toTime + iondb.maxClockError)
 						+ neighbor->owltInbound;
 				event->type = IonStopRecv;
@@ -257,7 +257,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 				}
 
 				event = (IonEvent *) psp(ionwm, addr);
-				event->time =
+				cxref->purgeTime = event->time =
 					(cxref->toTime + iondb.maxClockError)
 						+ neighbor->owltInbound;
 				event->type = IonPurgeContact;

@@ -23,7 +23,7 @@ do
 	echo
 done
 echo "OUTPUT: A variety of contact volumes are configured while a test bundle
-	is sent on loopback.  If the espected bundle contents are received,
+	is sent on loopback.  If the expected bundle contents are received,
 	the test passed.
 NOTE: contact-volume/volume_functions.sh provides functions in this script."
 echo

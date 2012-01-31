@@ -1668,17 +1668,24 @@ int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
-		for (oK(sm_rbt_search(ionwm, vdb->contactIndex,
-				rfx_order_contacts, &arg, &cxelt));
-				cxelt; cxelt = nextElt)
+		while (1)
 		{
-			nextElt = sm_rbt_next(ionwm, cxelt);
+			/*	Get first remaining contact for this
+			 *	to/from node pair.			*/
+
+			oK(sm_rbt_search(ionwm, vdb->contactIndex,
+					rfx_order_contacts, &arg, &cxelt));
+			if (cxelt == 0)
+			{
+				break;	/*	No more contacts.	*/
+			}
+
 			cxaddr = sm_rbt_data(ionwm, cxelt);
 			cxref = (IonCXref *) psp(ionwm, cxaddr);
 			if (cxref->fromNode > fromNode
 			|| cxref->toNode > toNode)
 			{
-				break;	/*	No more contacts.	*/
+				break;	/*	No more matches.	*/
 			}
 
 			deleteContact(cxaddr);
@@ -2201,16 +2208,24 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
-		for (oK(sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges,
-				&arg, &rxelt)); rxelt; rxelt = nextElt)
+		while (1)
 		{
-			nextElt = sm_rbt_next(ionwm, rxelt);
+			/*	Get first remaining range for this
+			 *	to/from node pair.			*/
+
+			oK(sm_rbt_search(ionwm, vdb->rangeIndex,
+					rfx_order_ranges, &arg, &rxelt));
+			if (rxelt == 0)
+			{
+				break;	/*	No more ranges.		*/
+			}
+
 			rxaddr = sm_rbt_data(ionwm, rxelt);
 			rxref = (IonRXref *) psp(ionwm, rxaddr);
 			if (rxref->fromNode > arg.fromNode
 			|| rxref->toNode > arg.toNode)
 			{
-				break;	/*	No more ranges.		*/
+				break;	/*	No more matches.	*/
 			}
 
 			deleteRange(rxaddr, 0);
@@ -2234,11 +2249,11 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 		return 0;
 	}
 
-	/*	Canonical range assertion(s); delete all corresponding
-	 *	imputed ranges as well.					*/
+	/*	Canonical range assertion(s); delete corresponding
+	 *	imputed range(s) as well.				*/
 
-	arg.fromNode = toNode;
-	arg.toNode = fromNode;
+	arg.fromNode = toNode;	/*	Reverse direction.		*/
+	arg.toNode = fromNode;	/*	Reverse direction.		*/
 	if (fromTime)		/*	Not a wild-card deletion.	*/
 	{
 		arg.fromTime = fromTime;
@@ -2252,16 +2267,24 @@ int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
-		for (oK(sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges,
-				&arg, &rxelt)); rxelt; rxelt = nextElt)
+		while (1)
 		{
-			nextElt = sm_rbt_next(ionwm, rxelt);
+			/*	Get first remaining range for this
+			 *	to/from node pair.			*/
+
+			oK(sm_rbt_search(ionwm, vdb->rangeIndex,
+					rfx_order_ranges, &arg, &rxelt));
+			if (rxelt == 0)
+			{
+				break;	/*	No more ranges.		*/
+			}
+
 			rxaddr = sm_rbt_data(ionwm, rxelt);
 			rxref = (IonRXref *) psp(ionwm, rxaddr);
 			if (rxref->fromNode > arg.fromNode
 			|| rxref->toNode > arg.toNode)
 			{
-				break;	/*	No more ranges.		*/
+				break;	/*	No more matches.	*/
 			}
 
 			deleteRange(rxaddr, 1);
