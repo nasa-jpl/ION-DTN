@@ -25,6 +25,22 @@
 extern "C" {
 #endif
 
+/*	"Watch" switches for bundle protocol operation.			*/
+#define	WATCH_a				(1)
+#define	WATCH_b				(2)
+#define	WATCH_c				(4)
+#define	WATCH_m				(8)
+#define	WATCH_w				(16)
+#define	WATCH_x				(32)
+#define	WATCH_y				(64)
+#define	WATCH_z				(128)
+#define	WATCH_abandon			(256)
+#define	WATCH_expire			(512)
+#define	WATCH_refusal			(1024)
+#define	WATCH_timeout			(2048)
+#define	WATCH_limbo			(4096)
+#define	WATCH_delimbo			(8192)
+
 #define SDR_LIST_ELT_OVERHEAD		(WORD_SIZE * 4)
 
 /*	A note on coding technique: the checking of return codes
@@ -140,6 +156,14 @@ typedef struct
 	Object		proxNodeEid;	/*	An SDR string		*/
 	Object		destDuctName;	/*	An SDR string		*/
 } XmitRef;
+
+typedef struct
+{
+	char		*protocolName;
+	char		*proxNodeEid;
+} DequeueContext;
+
+/*	*	*	Bundle structures	*	*	*	*/
 
 /*	For non-fragmentary bundles, and for the first fragmentary
  *	bundle of a fragmented source bundle, fragmentOffset is zero.
@@ -349,6 +373,8 @@ typedef struct
 	unsigned long	totalAduLength;
 } IncompleteBundle;
 
+/*	*	*	Endpoint structures	*	*	*	*/
+
 typedef enum
 {
 	DiscardBundle = 0,
@@ -366,7 +392,21 @@ typedef struct
 	Object		incompletes;	/*	SDR list of Incompletes	*/
 	Object		deliveryQueue;	/*	SDR list of Bundles	*/
 	Object		scheme;		/*	back-reference		*/
+	Object		stats;		/*	EndpointStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 } Endpoint;
+
+#define	BP_ENDPOINT_SOURCED		0
+#define	BP_ENDPOINT_QUEUED		1
+#define	BP_ENDPOINT_ABANDONED		2
+#define	BP_ENDPOINT_DELIVERED		3
+#define BP_ENDPOINT_STATS		4
+
+typedef struct
+{
+	time_t		resetTime;
+	Tally		tallies[BP_ENDPOINT_STATS];
+} EndpointStats;
 
 /*	The volatile endpoint object encapsulates the volatile state
  *	of the corresponding Endpoint.					*/
@@ -374,10 +414,14 @@ typedef struct
 typedef struct
 {
 	Object		endpointElt;	/*	Reference to Endpoint.	*/
+	Object		stats;		/*	EndpointStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 	char		nss[MAX_NSS_LEN + 1];
 	int		appPid;		/*	Consumes dlv notices.	*/
 	sm_SemId	semaphore;	/*	For dlv notices.	*/
 } VEndpoint;
+
+/*	*	*	Scheme structures	*	*	*	*/
 
 /*	Scheme objects are used to encapsulate knowledge about how to
  *	forward bundles.  CBHE-conformant schemes are so noted.		*/
@@ -406,21 +450,41 @@ typedef struct
 	PsmAddress	endpoints;	/*	SM list: VEndpoint.	*/
 } VScheme;
 
+/*	*	*	Induct structures	*	*	*	*/
+
 typedef struct
 {
 	char		name[MAX_CL_DUCT_NAME_LEN + 1];
 	Object		cliCmd;		/*	For starting the CLI.	*/
 	Object		protocol;	/*	back-reference		*/
+	Object		stats;		/*	InductStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 } Induct;
+
+#define	BP_INDUCT_RECEIVED		0
+#define	BP_INDUCT_MALFORMED		1
+#define	BP_INDUCT_INAUTHENTIC		2
+#define	BP_INDUCT_CONGESTIVE		3
+#define	BP_INDUCT_STATS			4
+
+typedef struct
+{
+	time_t		resetTime;
+	Tally		tallies[BP_INDUCT_STATS];
+} InductStats;
 
 typedef struct
 {
 	Object		inductElt;	/*	Reference to Induct.	*/
+	Object		stats;		/*	InductStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cliPid;		/*	For stopping the CLI.	*/
 	Throttle	acqThrottle;	/*	For congestion control.	*/
 } VInduct;
+
+/*	*	*	Outduct structures	*	*	*	*/
 
 typedef struct
 {
@@ -440,18 +504,34 @@ typedef struct
 	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
 	Object		protocol;	/*	back-reference		*/
+	Object		stats;		/*	OutductStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 	int		blocked;	/*	Boolean			*/
 } Outduct;
+
+#define	BP_OUTDUCT_ENQUEUED		0
+#define	BP_OUTDUCT_DEQUEUED		1
+#define	BP_OUTDUCT_STATS		2
+
+typedef struct
+{
+	time_t		resetTime;
+	Tally		tallies[BP_OUTDUCT_STATS];
+} OutductStats;
 
 typedef struct
 {
 	Object		outductElt;	/*	Reference to Outduct.	*/
+	Object		stats;		/*	OutductStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cloPid;		/*	For stopping the CLO.	*/
 	sm_SemId	semaphore;	/*	For transmit notices.	*/
 	Throttle	xmitThrottle;	/*	For rate control.	*/
 } VOutduct;
+
+/*	*	*	Protocol structures	*	*	*	*/
 
 typedef struct
 {
@@ -463,11 +543,7 @@ typedef struct
 	Object		outducts;	/*	SDR list of Outducts	*/
 } ClProtocol;
 
-typedef struct
-{
-	char		*protocolName;
-	char		*proxNodeEid;
-} DequeueContext;
+/*	*	*	BP Database structures	*	*	*	*/
 
 #define	EPOCH_2000_SEC	946684800
 
@@ -496,50 +572,91 @@ typedef struct
 	Object		clockCmd; 	/*	For starting clock.	*/
 	BpString	custodianEidString;
 	int		maxAcqInHeap;
+	time_t		resetTime;	/*	Stats reset time.	*/
+	Object		sourceStats;	/*	BpCosStats address.	*/
+	Object		recvStats;	/*	BpCosStats address.	*/
+	Object		discardStats;	/*	BpCosStats address.	*/
+	Object		xmitStats;	/*	BpCosStats address.	*/
+	Object		rptStats;	/*	BpRptStats address.	*/
+	Object		ctStats;	/*	BpCtStats address.	*/
+	Object		dbStats;	/*	BpDbStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 } BpDB;
+
+#define BP_STATUS_RECEIVE	0
+#define BP_STATUS_ACCEPT	1
+#define BP_STATUS_FORWARD	2
+#define BP_STATUS_DELIVER	3
+#define BP_STATUS_DELETE	4
+#define BP_STATUS_STATS		5
+
+#define BP_REASON_NONE		0
+#define BP_REASON_EXPIRED	1
+#define BP_REASON_FWD_UNIDIR	2
+#define BP_REASON_CANCELED	3
+#define BP_REASON_DEPLETION	4
+#define BP_REASON_EID_MALFORMED	5
+#define BP_REASON_NO_ROUTE	6
+#define BP_REASON_NO_CONTACT	7
+#define BP_REASON_BLK_MALFORMED	8
+#define BP_REASON_STATS		9
+
+#define	BP_CT_CUSTODY_ACCEPTED	0
+#define	BP_CT_CUSTODY_RELEASED	1
+#define	BP_CT_CUSTODY_EXPIRED	2
+#define BP_CT_REDUNDANT		3
+#define BP_CT_DEPLETION		4
+#define BP_CT_EID_MALFORMED	5
+#define BP_CT_NO_ROUTE		6
+#define BP_CT_NO_CONTACT	7
+#define BP_CT_BLK_MALFORMED	8
+#define BP_CT_STATS		9
+
+#define	BP_DB_QUEUED_FOR_FWD	0
+#define	BP_DB_FWD_OKAY		1
+#define	BP_DB_FWD_FAILED	2
+#define	BP_DB_REQUEUED_FOR_FWD	3
+#define	BP_DB_TO_LIMBO		4
+#define	BP_DB_FROM_LIMBO	5
+#define	BP_DB_EXPIRED		6
+#define	BP_DB_STATS		7
+
+typedef struct
+{
+	Tally		tallies[3];
+} BpCosStats;
+
+typedef struct
+{
+	unsigned int	totalRptByStatus[BP_STATUS_STATS];
+	unsigned int	currentRptByStatus[BP_STATUS_STATS];
+	unsigned int	totalRptByReason[BP_REASON_STATS];
+	unsigned int	currentRptByReason[BP_REASON_STATS];
+} BpRptStats;
+
+typedef struct
+{
+	Tally		tallies[BP_CT_STATS];
+} BpCtStats;
+
+typedef struct
+{
+	Tally		tallies[BP_DB_STATS];
+} BpDbStats;
 
 /*	Volatile database encapsulates the volatile state of the
  *	database.							*/
 
 typedef struct
 {
-	unsigned long	bytes;		/*	Of payload data.	*/
-	unsigned int	bundles;	/*	Count.			*/
-} BpClassStats;
-
-
-typedef struct
-{
-	BpClassStats	stats[4];	/*	Indexed by priority.	*/
-} BpStateStats;
-
-#define	BPSTATS_SOURCE	(0)
-#define	BPSTATS_FORWARD	(1)
-#define	BPSTATS_XMIT	(2)
-#define	BPSTATS_RECEIVE	(3)
-#define	BPSTATS_DELIVER	(4)
-#define	BPSTATS_REFUSE	(5)
-#define	BPSTATS_TIMEOUT	(6)
-#define	BPSTATS_EXPIRE	(7)
-
-/*	"Watch" switches for bundle protocol operation.			*/
-#define	WATCH_a			(1)
-#define	WATCH_b			(2)
-#define	WATCH_c			(4)
-#define	WATCH_m			(8)
-#define	WATCH_w			(16)
-#define	WATCH_x			(32)
-#define	WATCH_y			(64)
-#define	WATCH_z			(128)
-#define	WATCH_abandon		(256)
-#define	WATCH_expire		(512)
-#define	WATCH_refusal		(1024)
-#define	WATCH_timeout		(2048)
-#define	WATCH_limbo		(4096)
-#define	WATCH_delimbo		(8192)
-
-typedef struct
-{
+	Object		sourceStats;	/*	BpCosStats address.	*/
+	Object		recvStats;	/*	BpCosStats address.	*/
+	Object		discardStats;	/*	BpCosStats address.	*/
+	Object		xmitStats;	/*	BpCosStats address.	*/
+	Object		rptStats;	/*	BpRptStats address.	*/
+	Object		ctStats;	/*	BpCtStats address.	*/
+	Object		dbStats;	/*	BpDbStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 	unsigned long	creationTimeSec;
 	int		bundleCounter;
 	int		clockPid;	/*	For stopping clock.	*/
@@ -555,20 +672,14 @@ typedef struct
 	PsmAddress	cbheScheme;	/*	A single VScheme.	*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
-
-	/*	For monitoring network performance.			*/
-
-	BpStateStats	stateStats[8];
-	time_t		xmitStartTime;	/*	Transmitted.		*/
-	time_t		recvStartTime;	/*	Received, delivered.	*/
-	time_t		statsStartTime;	/*	Sourced, forwarded.	*/
 } BpVdb;
+
+/*	*	*	Acquisition structures	*	*	*	*/
 
 typedef enum
 {
 	AcqTBD = 0,
-	AcqOK,
-	AcqNG
+	AcqOK
 } AcqDecision;
 
 typedef struct

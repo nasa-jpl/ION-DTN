@@ -23,7 +23,7 @@ LTPINCLS = \
 RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter
 #dccplsi dccplso
 
-ALL = check libltpP.so libltp.so $(RUNTIMES)
+ALL = check libltpP.so libltp.so libltpnm.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -96,6 +96,10 @@ libltpP.so:	libltpP.o
 libltp.so:	libltp.o
 		$(LD) -o libltp.so libltp.o
 		cp libltp.so ./lib
+
+libltpnm.so:	libltpnm.o $(API)/ltpnm.h
+		$(LD) -o libltpnm.so libltpnm.o
+		cp libltpnm.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
