@@ -205,9 +205,9 @@ typedef struct
 typedef struct
 {
 	unsigned int	totalCount;
-	unsigned int	totalBytes;
+	unsigned long	totalBytes;
 	unsigned int	currentCount;
-	unsigned int	currentBytes;
+	unsigned long	currentBytes;
 } Tally;
 
 #ifndef MTAKE
