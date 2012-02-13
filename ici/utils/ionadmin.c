@@ -251,18 +251,18 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	IonDB		iondb;
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*vdb = getIonVdb();
 	time_t		refTime;
 	time_t		timestamp;
 	unsigned long	fromNode;
 	unsigned long	toNode;
-	Object		elt;
-	Object		contactObj;
-	IonContact	contact;
+	IonCXref	arg1;
+	PsmAddress	elt;
+	PsmAddress	addr;
+	PsmAddress	nextElt;
 	char		buffer[RFX_NOTE_LEN];
-	Object		rangeObj;
-	IonRange	range;
+	IonRXref	arg2;
 
 	if (tokenCount < 2)
 	{
@@ -276,106 +276,47 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
 	refTime = _referenceTime(NULL);
 	timestamp = readTimestampUTC(tokens[2], refTime);
 	fromNode = strtol(tokens[3], NULL, 0);
 	toNode = strtol(tokens[4], NULL, 0);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		for (elt = sdr_list_first(sdr, iondb.contacts); elt;
-				elt = sdr_list_next(sdr, elt))
+		memset((char *) &arg1, 0, sizeof(IonCXref));
+		arg1.fromNode = fromNode;
+		arg1.toNode = toNode;
+		arg1.fromTime = timestamp;
+		elt = sm_rbt_search(ionwm, vdb->contactIndex,
+				rfx_order_contacts, &arg1, &nextElt);
+		if (elt)
 		{
-			contactObj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &contact, contactObj,
-					sizeof(IonContact));
-			if (contact.fromTime < timestamp)
-			{
-				continue;
-			}
-
-			if (contact.fromTime > timestamp)
-			{
-				break;
-			}
-
-			if (contact.fromNode < fromNode)
-			{
-				continue;
-			}
-
-			if (contact.fromNode > fromNode)
-			{
-				break;
-			}
-
-			if (contact.toNode < toNode)
-			{
-				continue;
-			}
-
-			if (contact.toNode > toNode)
-			{
-				break;
-			}
-
-			/*	Contact has been located in database.	*/
-
-			rfx_print_contact(contactObj, buffer);
+			addr = sm_rbt_data(ionwm, elt);
+			oK(rfx_print_contact(addr, buffer));
 			printText(buffer);
 			return;
 		}
 
-		putErrmsg("Contact not found in database.", NULL);
+		printText("Contact not found in database.");
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		for (elt = sdr_list_first(sdr, iondb.ranges); elt;
-				elt = sdr_list_next(sdr, elt))
+		memset((char *) &arg2, 0, sizeof(IonRXref));
+		arg2.fromNode = fromNode;
+		arg2.toNode = toNode;
+		arg2.fromTime = timestamp;
+		elt = sm_rbt_search(ionwm, vdb->rangeIndex,
+				rfx_order_ranges, &arg2, &nextElt);
+		if (elt)
 		{
-			rangeObj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &range, rangeObj,
-					sizeof(IonRange));
-			if (range.fromTime < timestamp)
-			{
-				continue;
-			}
-
-			if (range.fromTime > timestamp)
-			{
-				break;
-			}
-
-			if (range.fromNode < fromNode)
-			{
-				continue;
-			}
-
-			if (range.fromNode > fromNode)
-			{
-				break;
-			}
-
-			if (range.toNode < toNode)
-			{
-				continue;
-			}
-
-			if (range.toNode > toNode)
-			{
-				break;
-			}
-
-			/*	Range has been located in database.	*/
-
-			rfx_print_range(rangeObj, buffer);
+			addr = sm_rbt_data(ionwm, elt);
+			oK(rfx_print_range(addr, buffer));
 			printText(buffer);
 			return;
 		}
 
-		putErrmsg("Range not found in database.", NULL);
+		printText("Range not found in database.");
 		return;
 	}
 
@@ -384,11 +325,11 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	executeList(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	IonDB	iondb;
-	Object	elt;
-	Object	obj;
-	char	buffer[RFX_NOTE_LEN];
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*vdb = getIonVdb();
+	PsmAddress	elt;
+	PsmAddress	addr;
+	char		buffer[RFX_NOTE_LEN];
 
 	if (tokenCount < 2)
 	{
@@ -396,14 +337,13 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		for (elt = sdr_list_first(sdr, iondb.contacts); elt;
-				elt = sdr_list_next(sdr, elt))
+		for (elt = sm_rbt_first(ionwm, vdb->contactIndex); elt;
+				elt = sm_rbt_next(ionwm, elt))
 		{
-			obj = sdr_list_data(sdr, elt);
-			rfx_print_contact(obj, buffer);
+			addr = sm_rbt_data(ionwm, elt);
+			rfx_print_contact(addr, buffer);
 			printText(buffer);
 		}
 
@@ -412,11 +352,11 @@ static void	executeList(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		for (elt = sdr_list_first(sdr, iondb.ranges); elt;
-				elt = sdr_list_next(sdr, elt))
+		for (elt = sm_rbt_first(ionwm, vdb->rangeIndex); elt;
+				elt = sm_rbt_next(ionwm, elt))
 		{
-			obj = sdr_list_data(sdr, elt);
-			rfx_print_range(obj, buffer);
+			addr = sm_rbt_data(ionwm, elt);
+			rfx_print_range(addr, buffer);
 			printText(buffer);
 		}
 

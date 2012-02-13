@@ -19,6 +19,7 @@ LIBICIOBJS = \
 	lyst.o \
 	psm.o \
 	smlist.o \
+	smrbt.o \
 	sptrace.o \
 	ion.o \
 	rfx.o \
@@ -40,6 +41,7 @@ PUBINCLS = \
 	$(INCL)/lyst.h \
 	$(INCL)/psm.h \
 	$(INCL)/smlist.h \
+	$(INCL)/smrbt.h \
 	$(INCL)/sptrace.h \
 	$(INCL)/ion.h \
 	$(INCL)/rfx.h \
@@ -59,7 +61,7 @@ ICIINCLS = \
 
 UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend
 
-TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh owltsim owlttb
+TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
 
 ALL = check libici.so rfxclock $(UTILITIES) $(TESTPGMS)
 
@@ -111,6 +113,10 @@ psmshell:	psmshell.o libici.so
 smlistsh:	smlistsh.o libici.so
 		$(CC) -o smlistsh smlistsh.o -L./lib -lici -lpthread
 		cp smlistsh ./bin
+
+smrbtsh:	smrbtsh.o libici.so
+		$(CC) -o smrbtsh smrbtsh.o -L./lib -lici -lpthread
+		cp smrbtsh ./bin
 
 file2sm:	file2sm.o libici.so
 		$(CC) -I. -o file2sm file2sm.o -L./lib -lici -lpthread

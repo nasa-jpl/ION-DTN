@@ -128,7 +128,7 @@ hmackeys:	hmackeys.o $(BPLIBS)
 #	-	-	IPN executables	-	-	-	-	-
 
 ipnfw:		ipnfw.o $(BPLIBS) libipnfw.so libcgr.so
-		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lipnfw -lcgr $(LBP) -lici -lpthread
+		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lcgr -lipnfw $(LBP) -lici -lpthread
 		cp ipnfw ./bin
 
 ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.so

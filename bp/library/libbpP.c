@@ -20,6 +20,7 @@
 #include "bpP.h"
 #include "bei.h"
 #include "sdrhash.h"
+#include "smrbt.h"
 
 #define	BP_VERSION		6
 
@@ -34,18 +35,18 @@
 				+ SDR_LIST_OVERHEAD	/*	xmitRefs*/ \
 				+ XMIT_REF_OVERHEAD	/*	one Ref	*/)
 
-#ifndef IN_TRANSIT_KEY_LEN
-#define	IN_TRANSIT_KEY_LEN	64
+#ifndef BUNDLES_HASH_KEY_LEN
+#define	BUNDLES_HASH_KEY_LEN	64
 #endif
 
-#define	IN_TRANSIT_KEY_BUFLEN	(IN_TRANSIT_KEY_LEN << 1)
+#define	BUNDLES_HASH_KEY_BUFLEN	(BUNDLES_HASH_KEY_LEN << 1)
 
-#ifndef IN_TRANSIT_EST_ENTRIES
-#define	IN_TRANSIT_EST_ENTRIES	1000
+#ifndef BUNDLES_HASH_ENTRIES
+#define	BUNDLES_HASH_ENTRIES	10000
 #endif
 
-#ifndef IN_TRANSIT_SEARCH_LEN
-#define	IN_TRANSIT_SEARCH_LEN	20
+#ifndef BUNDLES_HASH_SEARCH_LEN
+#define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
 static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
@@ -737,6 +738,62 @@ static char	*_bpvdbName()
 	return "bpvdb";
 }
 
+int	orderBpEvents(PsmPartition partition, PsmAddress nodeData,
+		void *dataBuffer)
+{
+	Sdr	sdr = getIonsdr();
+	BpEvent	*argEvent;
+	Object	elt;
+	BpEvent	event;
+
+	if (partition == NULL || nodeData == 0 || dataBuffer == 0)
+	{
+		putErrmsg("Error calling smrbt BP timeline compare function.",
+				NULL);
+		return 0;
+	}
+
+	argEvent = (BpEvent *) dataBuffer;
+	elt = (Object) nodeData;
+	sdr_read(sdr, (char *) &event, sdr_list_data(sdr, elt),
+			sizeof(BpEvent));
+	if (event.time < argEvent->time)
+	{
+		return -1;
+	}
+
+	if (event.time > argEvent->time)
+	{
+		return 1;
+	}
+
+	/*	Same time.						*/
+
+	if (event.ref < argEvent->ref)
+	{
+		return -1;
+	}
+
+	if (event.ref > argEvent->ref)
+	{
+		return 1;
+	}
+
+	/*	Same object.						*/
+
+	if (event.type < argEvent->type)
+	{
+		return -1;
+	}
+
+	if (event.type > argEvent->type)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
 static BpVdb	*_bpvdb(char **name)
 {
 	static BpVdb	*vdb = NULL;
@@ -746,6 +803,7 @@ static BpVdb	*_bpvdb(char **name)
 	Sdr		sdr;
 	Object		sdrElt;
 	Object		addr;
+	BpEvent		event;
 
 	if (name)
 	{
@@ -794,6 +852,7 @@ static BpVdb	*_bpvdb(char **name)
 		if ((vdb->schemes = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
+		|| (vdb->timeline = sm_rbt_create(wm)) == 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
 			sdr_exit_xn(sdr);
@@ -824,6 +883,22 @@ static BpVdb	*_bpvdb(char **name)
 			{
 				sdr_exit_xn(sdr);
 				putErrmsg("Can't raise all protocols.", NULL);
+				return NULL;
+			}
+		}
+
+		/*	Raise the timeline.				*/
+
+		for (sdrElt = sdr_list_first(sdr, (_bpConstants())->timeline);
+				sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
+		{
+			addr = sdr_list_data(sdr, sdrElt);
+			sdr_read(sdr, (char *) &event, addr, sizeof(BpEvent));
+			if (sm_rbt_insert(wm, vdb->timeline, (PsmAddress)
+					sdrElt, orderBpEvents, &event) == 0)
+			{
+				sdr_exit_xn(sdr);
+				putErrmsg("Can't stage event timeline.", NULL);
 				return NULL;
 			}
 		}
@@ -880,10 +955,10 @@ int	bpInit()
 		bpdbBuf.schemes = sdr_list_create(bpSdr);
 		bpdbBuf.protocols = sdr_list_create(bpSdr);
 		bpdbBuf.timeline = sdr_list_create(bpSdr);
-		bpdbBuf.inTransitHash = sdr_hash_create(bpSdr,
-				IN_TRANSIT_KEY_LEN,
-				IN_TRANSIT_EST_ENTRIES,
-				IN_TRANSIT_SEARCH_LEN);
+		bpdbBuf.bundles = sdr_hash_create(bpSdr,
+				BUNDLES_HASH_KEY_LEN,
+				BUNDLES_HASH_ENTRIES,
+				BUNDLES_HASH_SEARCH_LEN);
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
@@ -1999,6 +2074,21 @@ static void	purgeXmitRefs(Bundle *bundle)
 	}
 }
 
+void	destroyBpTimelineEvent(Object timelineElt)
+{
+	Sdr	sdr = getIonsdr();
+	Object	eventObj;
+	BpEvent	event;
+
+	CHKVOID(timelineElt);
+	eventObj = sdr_list_data(sdr, timelineElt);
+	sdr_read(sdr, (char *) &event, eventObj, sizeof(BpEvent));
+	sm_rbt_delete(getIonwm(), (getBpVdb())->timeline, orderBpEvents,
+			&event, NULL, NULL);
+	sdr_free(sdr, eventObj);
+	sdr_list_delete(sdr, timelineElt, NULL, NULL);
+}
+
 static void	purgeStationsStack(Bundle *bundle)
 {
 	Sdr	bpSdr = getIonsdr();
@@ -2088,7 +2178,8 @@ incomplete bundle.", NULL);
 			purgeXmitRefs(&bundle);
 		}
 
-		/*	Notify sender, if so requested or if custodian.	*/
+		/*	Notify sender, if so requested or if custodian.
+		 *	But never for admin bundles.			*/
 
 		noteStateStats(BPSTATS_EXPIRE, &bundle);
 		if ((_bpvdb(NULL))->watching & WATCH_expire)
@@ -2097,8 +2188,9 @@ incomplete bundle.", NULL);
 			fflush(stdout);
 		}
 
-		if (bundle.custodyTaken
-		|| (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT))
+		if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
+		&& (bundle.custodyTaken
+		|| (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT)))
 		{
 			bundle.statusRpt.flags |= BP_DELETED_RPT;
 			bundle.statusRpt.reasonCode = SrLifetimeExpired;
@@ -2130,28 +2222,24 @@ incomplete bundle.", NULL);
 		return 0;	/*	Can't destroy bundle yet.	*/
 	}
 
-	/*	Remove bundle from timeline.				*/
+	/*	Remove bundle from timeline and bundles hash table.	*/
 
-	sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.timelineElt));
-	sdr_list_delete(bpSdr, bundle.timelineElt, NULL, NULL);
+	destroyBpTimelineEvent(bundle.timelineElt);
+	if (bundle.hashEntry)
+	{
+		sdr_hash_delete_entry(bpSdr, bundle.hashEntry);
+	}
 
 	/*	Turn off automatic re-forwarding.			*/
 
 	if (bundle.overdueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 	}
 
 	if (bundle.ctDueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
-	}
-
-	if (bundle.inTransitEntry)
-	{
-		sdr_hash_delete_entry(bpSdr, bundle.inTransitEntry);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 	}
 
 	/*	Remove bundle from applications' bundle tracking lists.	*/
@@ -2226,128 +2314,40 @@ incomplete bundle.", NULL);
 
 /*	*	*	BP database mgt and access functions	*	*/
 
+static int	constructBundleHashKey(char *buffer, char *sourceEid,
+			unsigned long seconds, unsigned long count,
+			unsigned long offset, unsigned long length)
+{
+	memset(buffer, 0, BUNDLES_HASH_KEY_BUFLEN);
+	isprintf(buffer, BUNDLES_HASH_KEY_BUFLEN, "%s:%lu:%lu:%lu:%lu",
+			sourceEid, seconds, count, offset, length);
+	return strlen(buffer);
+}
+
 int	findBundle(char *sourceEid, BpTimestamp *creationTime,
 		unsigned long fragmentOffset, unsigned long fragmentLength,
-		Object *bundleAddr, Object *timelineElt)
+		Object *bundleAddr)
 {
 	Sdr	bpSdr = getIonsdr();
-	Object	elt;
-		OBJ_POINTER(BpEvent, event);
-		OBJ_POINTER(Bundle, bundle);
-	int	dictionaryBuflen = 0;
-	char	*dictionary = NULL;
-	char	*eidString;
-	int	result;
+	char	key[BUNDLES_HASH_KEY_BUFLEN];
 
+	CHKERR(sourceEid);
+	CHKERR(creationTime);
+	CHKERR(bundleAddr);
+	*bundleAddr = 0;	/*	Default: not found.		*/
 	CHKERR(ionLocked());
-	*timelineElt = 0;
-	for (elt = sdr_list_first(bpSdr, (_bpConstants())->timeline); elt;
-			elt = sdr_list_next(bpSdr, elt))
+	if (constructBundleHashKey(key, sourceEid, creationTime->seconds,
+			creationTime->count, fragmentOffset, fragmentLength)
+			> BUNDLES_HASH_KEY_LEN)
 	{
-		GET_OBJ_POINTER(bpSdr, BpEvent, event,
-				sdr_list_data(bpSdr, elt));
-		if (event->type != expiredTTL)
-		{
-			continue;
-		}
-
-		/*	Event references a bundle that still exists.	*/
-
-		*bundleAddr = event->ref;
-		GET_OBJ_POINTER(bpSdr, Bundle, bundle, *bundleAddr);
-
-		/*	See if bundle's ID matches search arguments.	*/
-
-		if (bundle->id.creationTime.seconds != creationTime->seconds
-		|| bundle->id.creationTime.count != creationTime->count)
-		{
-			continue;	/*	Different time tags.	*/
-		}
-
-		if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
-		{
-			if (fragmentLength == 0)
-			{
-				continue;	/*	Fragment n.g.	*/
-			}
-
-			if (bundle->id.fragmentOffset != fragmentOffset)
-			{
-				continue;	/*	Wrong fragment.	*/
-			}
-
-			if (bundle->payload.length != fragmentLength)
-			{
-				continue;	/*	Wrong fragment.	*/
-			}
-		}
-		else	/*	This bundle is not a fragment.		*/
-		{
-			if (fragmentLength != 0)
-			{
-				continue;	/*	Need fragment.	*/
-			}
-		}
-
-		/*	Note: we don't use retrieveDictionary() here
-		 *	because it would allocate dictionary buffer
-		 *	space every time.  This is faster.		*/
-
-		if (bundle->dictionaryLength == 0)	/*	CBHE.	*/
-		{
-			dictionary = NULL;
-		}
-		else
-		{
-			if (bundle->dictionaryLength > dictionaryBuflen)
-			{
-				if (dictionary)
-				{
-					MRELEASE(dictionary);
-					dictionary = NULL;
-				}
-
-				dictionaryBuflen = bundle->dictionaryLength;
-				dictionary = MTAKE(dictionaryBuflen);
-				if (dictionary == NULL)
-				{
-					putErrmsg("Can't retrieve dictionary.",
-							itoa(dictionaryBuflen));
-					return -1;
-				}
-			}
-
-			sdr_read(bpSdr, dictionary, bundle->dictionary,
-					bundle->dictionaryLength);
-		}
-
-		if (printEid(&(bundle->id.source), dictionary, &eidString) < 0)
-		{
-			putErrmsg("Can't print EID string.", NULL);
-			if (dictionary)
-			{
-				MRELEASE(dictionary);
-			}
-
-			return -1;
-		}
-
-		result = strcmp(eidString, sourceEid);
-		MRELEASE(eidString);
-		if (result != 0)	/*	Different sources.	*/
-		{
-			continue;
-		}
-
-		/*	Found the matching bundle.			*/
-
-		*timelineElt = elt;
-		break;
+		return 0;	/*	Can't be in hash table.		*/
 	}
 
-	if (dictionary)
+	if (sdr_hash_retrieve(bpSdr, (_bpConstants())->bundles, key,
+			(Address *) bundleAddr) < 0)
 	{
-		MRELEASE(dictionary);
+		putErrmsg("Failed locating bundle in hash table.", NULL);
+		return -1;
 	}
 
 	return 0;
@@ -3773,13 +3773,24 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 
 Object	insertBpTimelineEvent(BpEvent *newEvent)
 {
-	Sdr	bpSdr = getIonsdr();
-	BpDB	*bpConstants = _bpConstants();
-	Address	addr;
-	Object	elt;
-		OBJ_POINTER(BpEvent, event);
+	PsmPartition	wm = getIonwm();
+	PsmAddress	timeline = (getBpVdb())->timeline;
+	PsmAddress	node;
+	PsmAddress	successor;
+	Sdr		bpSdr = getIonsdr();
+	BpDB		*bpConstants = _bpConstants();
+	Address		addr;
+	Object		elt;
 
 	CHKZERO(ionLocked());
+	node = sm_rbt_search(wm, timeline, orderBpEvents, newEvent, &successor);
+	if (node != 0)
+	{
+		/*	Event already exists; return its list elt.	*/
+
+		return sm_rbt_data(wm, node);
+	}
+
 	addr = sdr_malloc(bpSdr, sizeof(BpEvent));
 	if (addr == 0)
 	{
@@ -3788,27 +3799,41 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	}
 
 	sdr_write(bpSdr, addr, (char *) newEvent, sizeof(BpEvent));
-	for (elt = sdr_list_last(bpSdr, bpConstants->timeline); elt;
-			elt = sdr_list_prev(bpSdr, elt))
+	if (successor)
 	{
-		GET_OBJ_POINTER(bpSdr, BpEvent, event,
-				sdr_list_data(bpSdr, elt));
-		if (event->time <= newEvent->time)
-		{
-			return sdr_list_insert_after(bpSdr, elt, addr);
-		}
+		elt = sdr_list_insert_before(bpSdr,
+				(Object) sm_rbt_data(wm, successor), addr);
+	}
+	else
+	{
+		elt = sdr_list_insert_last(bpSdr, bpConstants->timeline, addr);
 	}
 
-	return sdr_list_insert_first(bpSdr, bpConstants->timeline, addr);
+	if (elt == 0)
+	{
+		return 0;	/*	No room for list element.	*/
+	}
+
+	if (sm_rbt_insert(wm, timeline, elt, orderBpEvents, newEvent) == 0)
+	{
+		return 0;	/*	No room for lookup tree node.	*/
+	}
+
+	return elt;
 }
 
 /*	*	*	Bundle origination functions	*	*	*/
 
 static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 {
+	Sdr	sdr = getIonsdr();
 	BpEvent	event;
+	char	*dictionary;
+	char	*sourceEid;
+	char	bundleKey[BUNDLES_HASH_KEY_BUFLEN];
 
 	CHKERR(ionLocked());
+
 	/*	Schedule purge of this bundle on expiration of its
 	 *	time-to-live.  Bundle expiration time is event time.	*/
 
@@ -3822,6 +3847,45 @@ static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
+	/*	Also insert bundle into hashtable of all bundles.	*/
+
+	if ((dictionary = retrieveDictionary(bundle)) == (char *) bundle)
+	{
+		putErrmsg("Can't retrieve dictionary.", NULL);
+		return -1;
+	}
+
+	if (printEid(&(bundle->id.source), dictionary, &sourceEid) < 0)
+	{
+		putErrmsg("Can't print source EID.", NULL);
+		releaseDictionary(dictionary);
+		return -1;
+	}
+
+	if (constructBundleHashKey(bundleKey, sourceEid,
+			bundle->id.creationTime.seconds,
+			bundle->id.creationTime.count,
+			bundle->id.fragmentOffset,
+			bundle->totalAduLength == 0 ? 0 :
+			bundle->payload.length) > BUNDLES_HASH_KEY_LEN)
+	{
+		writeMemoNote("[?] Source EID too long.  Max hash key length \
+exceeded, bundle won't be locatable for reforwarding.", sourceEid);
+	}
+	else
+	{
+		if (sdr_hash_insert(sdr, (_bpConstants())->bundles,
+				bundleKey, bundleObj, &(bundle->hashEntry)) < 0)
+		{
+			putErrmsg("Can't insert into hash table.", NULL);
+			MRELEASE(sourceEid);
+			releaseDictionary(dictionary);
+			return -1;
+		}
+	}
+
+	MRELEASE(sourceEid);
+	releaseDictionary(dictionary);
 	return 0;
 }
 
@@ -6462,7 +6526,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	Object		bundleZco;
 	ZcoReader	reader;
 	Object		bundleAddr;
-	Object		timelineElt;
 	MetaEid		senderMetaEid;
 	Object		bundleObj;
 
@@ -6600,7 +6663,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 				bundle->id.fragmentOffset,
 				(bundle->bundleProcFlags & BDL_IS_FRAGMENT ?
 					bundle->payload.length : 0),
-				&bundleAddr, &timelineElt);
+				&bundleAddr);
 			MRELEASE(eidString);
 			sdr_exit_xn(bpSdr);
 			if (result < 0)
@@ -6609,7 +6672,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 				return -1;
 			}
 
-			if (timelineElt)	/*	Redundant.	*/
+			if (bundleAddr)		/*	Redundant.	*/
 			{
 				return discardReceivedBundle(work,
 					CtRedundantReception, 0,
@@ -6670,13 +6733,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		return -1;
 	}
 
-	if (setBundleTTL(bundle, bundleObj) < 0)
-	{
-		putErrmsg("Can't insert new bundle into timeline.", NULL);
-		sdr_cancel_xn(bpSdr);
-		return -1;
-	}
-
 	if (bundle->dictionaryLength > 0)
 	{
 		bundle->dictionary = sdr_malloc(bpSdr,
@@ -6691,6 +6747,13 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		sdr_write(bpSdr, bundle->dictionary, work->dictionary,
 				bundle->dictionaryLength);
 		bundle->dbOverhead += bundle->dictionaryLength;
+	}
+
+	if (setBundleTTL(bundle, bundleObj) < 0)
+	{
+		putErrmsg("Can't insert new bundle into timeline.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
 	}
 
 	if (recordExtensionBlocks(work) < 0)
@@ -8226,22 +8289,14 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 		/*	Bundle was un-queued before "overdue"
 	 	*	alarm went off, so disable the alarm.		*/
 
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
 	}
 
 	if (bundle.ctDueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 		bundle.ctDueElt = 0;
-	}
-
-	if (bundle.inTransitEntry)
-	{
-		sdr_hash_delete_entry(bpSdr, bundle.inTransitEntry);
-		bundle.inTransitEntry = 0;
 	}
 
 	bundle.xmitsNeeded -= 1;
@@ -8449,8 +8504,7 @@ static void	releaseCustody(Object bundleAddr, Bundle *bundle)
 		/*	Bundle was transmitted before "CT due" alarm
 		 *	went off, so disable the alarm.			*/
 
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle->ctDueElt));
-		sdr_list_delete(bpSdr, bundle->ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle->ctDueElt);
 		bundle->ctDueElt = 0;
 	}
 
@@ -8813,16 +8867,6 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 	}
 }
 
-static int	constructInTransitHashKey(char *buffer, char *sourceEid,
-			unsigned long seconds, unsigned long count,
-			unsigned long offset, unsigned long length)
-{
-	memset(buffer, 0, IN_TRANSIT_KEY_BUFLEN);
-	isprintf(buffer, IN_TRANSIT_KEY_BUFLEN, "%s:%lu:%lu:%lu:%lu",
-			sourceEid, seconds, count, offset, length);
-	return strlen(buffer);
-}
-
 int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		BpExtendedCOS *extendedCOS, char *destDuctName,
 		int stewardshipAccepted)
@@ -8839,8 +8883,6 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	DequeueContext	context;
 	char		*dictionary;
 	int		xmitLength;
-	char		*sourceEid;
-	char		inTransitKey[IN_TRANSIT_KEY_BUFLEN];
 
 	CHKERR(vduct && flows && bundleZco && extendedCOS && destDuctName);
 	*bundleZco = 0;			/*	Default behavior.	*/
@@ -8912,8 +8954,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		/*	Bundle was transmitted before "overdue"
 		 *	alarm went off, so disable the alarm.		*/
 
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
 	}
 
@@ -8970,15 +9011,9 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		return -1;
 	}
 
-	/*	There are a couple of things that we may need the
-	 *	dictionary for.						*/
+	/*	That's the end of the changes to the bundle.		*/
 
-	if ((dictionary = retrieveDictionary(&bundle)) == (char *) &bundle)
-	{
-		putErrmsg("Can't retrieve dictionary.", NULL);
-		sdr_cancel_xn(bpSdr);
-		return -1;
-	}
+	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 
 	/*	At this point we check the stewardshipAccepted flag.
 	 *	If the bundle is critical then it has been queued
@@ -8997,32 +9032,27 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		stewardshipAccepted = 0;
 	}
 
-	/*	If stewardship of this bundle is accepted by the CLO
-	 *	then we know that the bundle's inTransitEntry is zero:
-	 *	the bundle can't be critical, therefore it can't have
-	 *	been queued for transmission at any other outduct, and
-	 *	if it was previously queued for transmission on this
-	 *	outduct it can only be subject to re-dequeue in the
-	 *	event that it was reforwarded -- and all paths to
-	 *	reforwarding it entailed erasing the prior value of
-	 *	inTransitEntry.  So we now attempt to construct a key
-	 *	for inserting the bundle into the inTransitHash; if
-	 *	the key is small enough, then the bundle goes into
-	 *	the inTransit hash table (if possible) pending a
-	 *	determination by the CLO as to the success or
-	 *	failure of convergence-layer transmission.
-	 *
-	 *	Note that the convergence-layer adapter task *must*
+	/*	Note that the convergence-layer adapter task *must*
 	 *	call either the bpHandleXmitSuccess function or
 	 *	the bpHandleXmitFailure function for *every*
 	 *	bundle it obtains via bpDequeue for which it has
 	 *	accepted stewardship.
 	 *
-	 *	If the bundle is not inserted into the inTransit
-	 *	hash table, for any reason, then the bundle object
+	 *	If the bundle isn't in the node's hash table of all
+	 *	bundles then neither of these stewardship resolution
+	 *	functions can succeed, so stewardship cannot be
+	 *	successfully accepted.  Again, stewardshipAccepted
+	 *	is forced to zero.					*/
+
+	if (bundle.hashEntry == 0)
+	{
+		stewardshipAccepted = 0;
+	}
+
+	/*	Note that when stewardship is not accepted, the bundle
 	 *	is subject to destruction immediately unless it is
-	 *	pending delivery or it is pending another transmis-
-	 *	sion or custody of the bundle has been accepted.
+	 *	pending delivery or it is pending another transmission
+	 *	or custody of the bundle has been accepted.
 	 *
 	 *	Note that the bundle's *payload* object (the ZCO we
 	 *	are delivering for transmission) is protected from
@@ -9035,45 +9065,6 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	 *	its reference count drops to zero, the payload ZCO
 	 *	will remain available to the CLO for transmission and
 	 *	retransmission.						*/
-
-	if (stewardshipAccepted)
-	{
-		if (printEid(&bundle.id.source, dictionary, &sourceEid) < 0)
-		{
-			releaseDictionary(dictionary);
-			putErrmsg("Can't print source EID.", NULL);
-			sdr_cancel_xn(bpSdr);
-			return -1;
-		}
-
-		if (constructInTransitHashKey(inTransitKey, sourceEid,
-				bundle.id.creationTime.seconds,
-				bundle.id.creationTime.count,
-				bundle.id.fragmentOffset,
-				bundle.totalAduLength == 0 ? 0
-						: bundle.payload.length)
-				<= IN_TRANSIT_KEY_LEN)
-		{
-			if (sdr_hash_insert(bpSdr,
-					(_bpConstants())->inTransitHash,
-					inTransitKey, bundleObj,
-					&bundle.inTransitEntry) < 0)
-			{
-				MRELEASE(sourceEid);
-				releaseDictionary(dictionary);
-				putErrmsg("Can't post to in-transit hash.",
-						NULL);
-				sdr_cancel_xn(bpSdr);
-				return -1;
-			}
-		}
-
-		MRELEASE(sourceEid);
-	}
-
-	/*	That's the end of the changes to the bundle.		*/
-
-	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 
 	/*	Track this transmission event.				*/
 
@@ -9111,10 +9102,18 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	 *	report message and destruction of the bundle object
 	 *	unless stewardship was successfully accepted.		*/
 
-	if (bundle.inTransitEntry == 0)
+	if (!stewardshipAccepted)
 	{
 		if (SRR_FLAGS(bundle.bundleProcFlags) & BP_FORWARDED_RPT)
 		{
+			if ((dictionary = retrieveDictionary(&bundle))
+					== (char *) &bundle)
+			{
+				putErrmsg("Can't retrieve dictionary.", NULL);
+				sdr_cancel_xn(bpSdr);
+				return -1;
+			}
+
 			bundle.statusRpt.flags |= BP_FORWARDED_RPT;
 			getCurrentDtnTime(&bundle.statusRpt.forwardTime);
 			if (sendStatusRpt(&bundle, dictionary) < 0)
@@ -9124,18 +9123,18 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 				sdr_cancel_xn(bpSdr);
 				return -1;
 			}
+
+			releaseDictionary(dictionary);
 		}
 
 		if (bpDestroyBundle(bundleObj, 0) < 0)
 		{
-			releaseDictionary(dictionary);
 			putErrmsg("Can't destroy bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
 			return -1;
 		}
 	}
 
-	releaseDictionary(dictionary);
 	if (sdr_end_xn(bpSdr))
 	{
 		putErrmsg("Can't get outbound bundle.", NULL);
@@ -9482,7 +9481,6 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 	unsigned int	bundleLength;
 	int		result;
 	char		*sourceEid;
-	Object		timelineElt;
 
 	CHKERR(bundleZco);
 	CHKERR(bundleObj);
@@ -9521,20 +9519,14 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 
 	sdr_begin_xn(bpSdr);		/*	Just to lock memory.	*/
 	result = findBundle(sourceEid, &image.id.creationTime,
-			image.id.fragmentOffset,
-			image.totalAduLength == 0 ? 0 : image.payload.length,
-			bundleObj, &timelineElt);
+			image.id.fragmentOffset, image.totalAduLength == 0 ? 0
+			: image.payload.length, bundleObj);
 	sdr_exit_xn(bpSdr);
 	MRELEASE(sourceEid);
 	if (result < 0)
 	{
 		putErrmsg("Failed seeking bundle.", NULL);
 		return -1;
-	}
-
-	if (timelineElt == 0)		/*	Probably TTL expired.	*/
-	{
-		*bundleObj = 0;		/*	Bundle not located.	*/
 	}
 
 	return 0;
@@ -9556,8 +9548,7 @@ int	bpMemo(Object bundleObj, int interval)
 	if (bundle.ctDueElt)
 	{
 		writeMemo("Revising a custody acceptance due timer.");
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 	}
 
 	bundle.ctDueElt = insertBpTimelineEvent(&event);
@@ -9565,33 +9556,6 @@ int	bpMemo(Object bundleObj, int interval)
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Failed posting ctDue event.", NULL);
-		return -1;
-	}
-
-	return 0;
-}
-
-static int	extractInTransitBundle(Object *bundleAddr, char *sourceEid,
-			BpTimestamp *creationTime,
-			unsigned long fragmentOffset,
-			unsigned long fragmentLength)
-{
-	Sdr	bpSdr = getIonsdr();
-	char	key[IN_TRANSIT_KEY_BUFLEN];
-
-	CHKERR(ionLocked());
-	if (constructInTransitHashKey(key, sourceEid,
-			creationTime->seconds, creationTime->count,
-			fragmentOffset, fragmentLength)
-			> IN_TRANSIT_KEY_LEN)
-	{
-		return 0;	/*	Can't be in hash table.		*/
-	}
-
-	if (sdr_hash_remove(bpSdr, (_bpConstants())->inTransitHash, key,
-			(Address *) bundleAddr) < 0)
-	{
-		putErrmsg("Can't extract bundle from in-transit hash.", NULL);
 		return -1;
 	}
 
@@ -9644,17 +9608,11 @@ int	retrieveInTransitBundle(Object bundleZco, Object *bundleObj)
 
 	/*	Now use this bundle ID to retrieve the bundle.		*/
 
-	result = extractInTransitBundle(bundleObj, sourceEid,
-			&image.id.creationTime, image.id.fragmentOffset,
-			image.totalAduLength == 0 ? 0 : image.payload.length);
+	result = findBundle(sourceEid, &image.id.creationTime,
+			image.id.fragmentOffset, image.totalAduLength == 0 ? 0
+			: image.payload.length, bundleObj);
 	MRELEASE(sourceEid);
-	if (result < 0)
-	{
-		putErrmsg("Failed retrieving in-transit bundle.", NULL);
-		return -1;
-	}
-
-	return 0;
+	return result;
 }
 
 int	bpHandleXmitSuccess(Object bundleZco)
@@ -9673,7 +9631,7 @@ int	bpHandleXmitSuccess(Object bundleZco)
 		return -1;
 	}
 
-	if (bundleAddr == 0)	/*	Bundle not found in inTransit.	*/
+	if (bundleAddr == 0)	/*	Bundle not found.		*/
 	{
 		if (sdr_end_xn(bpSdr) < 0)
 		{
@@ -9684,9 +9642,7 @@ int	bpHandleXmitSuccess(Object bundleZco)
 		return 0;	/*	bpDestroyBundle already called.	*/
 	}
 
-	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-	bundle.inTransitEntry = 0;
-	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+	sdr_read(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 
 	/*	Send "forwarded" status report if necessary.		*/
 
@@ -9752,7 +9708,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		return -1;
 	}
 
-	if (bundleAddr == 0)	/*	Bundle not found in inTransit.	*/
+	if (bundleAddr == 0)	/*	Bundle not found.		*/
 	{
 		if (sdr_end_xn(bpSdr) < 0)
 		{
@@ -9763,9 +9719,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		return 0;	/*	No bundle, can't retransmit.	*/
 	}
 
-	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-	bundle.inTransitEntry = 0;
-	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+	sdr_read(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 
 	/*	Note that the "timeout" statistics count failures of
 	 *	convergence-layer transmission of bundles for which
@@ -9851,22 +9805,14 @@ int	bpReforwardBundle(Object bundleAddr)
 	purgeXmitRefs(&bundle);
 	if (bundle.overdueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
 	}
 
 	if (bundle.ctDueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 		bundle.ctDueElt = 0;
-	}
-
-	if (bundle.inTransitEntry)
-	{
-		sdr_hash_delete_entry(bpSdr, bundle.inTransitEntry);
-		bundle.inTransitEntry = 0;
 	}
 
 	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
@@ -10031,7 +9977,6 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 	int		adminRecType;
 	BpStatusRpt	rpt;
 	BpCtSignal	cts;
-	Object		timelineElt;
 	Object		bundleAddr;
 	Bundle		bundleBuf;
 	Bundle		*bundle = &bundleBuf;
@@ -10140,7 +10085,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 			sdr_begin_xn(bpSdr);
 			if (findBundle(cts.sourceEid, &cts.creationTime,
 					cts.fragmentOffset, cts.fragmentLength,
-					&bundleAddr, &timelineElt) < 0)
+					&bundleAddr) < 0)
 			{
 				sdr_exit_xn(bpSdr);
 				putErrmsg("Can't fetch bundle.", NULL);
@@ -10149,7 +10094,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 				break;		/*	Out of switch.	*/
 			}
 
-			if (timelineElt == 0)
+			if (bundleAddr == 0)
 			{
 				/*	No such bundle; ignore CTS.	*/
 
