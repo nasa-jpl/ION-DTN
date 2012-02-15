@@ -1,7 +1,7 @@
 /*
  *	bss.h:	Bundle Streaming Service API.
- *			For more details please refer to bssP.h
- *			and libbss.c files.
+ *		For more details please refer to bssrecvP.h
+ *		and libbssrecv.c files.
  *								
  *									
  *	Copyright (c) 2011, Space Internetworking Center,
@@ -16,8 +16,18 @@
 #ifndef _BSS_H_
 #define _BSS_H_
 
+#define _GNU_SOURCE
+#define _FILE_OFFSET_BITS 64
+#define _LARGEFILE_SOURCE 
+#define _LARGEFILE64_SOURCE
+
 #include <ion.h>
+
 #define EPOCH_2000_SEC	946684800
+#define RCV_LENGTH 	20866
+#define SNOOZE_INTERVAL 33333
+#define BSSRECV_EXIT_SUCCESS              (0)
+#define BSSRECV_EXIT_ERROR                (1)
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,14 +51,14 @@ typedef struct
 	int 		curPosition;
 	long 		prevOffset; 
 	long 		nextOffset;
-	long 		datOffset; 	
+	off_t 		datOffset;	
 } bssNav;
 
-/*	callback function declaration		*/
+/*	Callback function declaration		*/
 typedef int		(*RTBHandler)(time_t time, unsigned long count, 
-					char* buffer, int bufLength);
+					char* buffer, unsigned long bufLength);
 
-extern int		bssOpen(char* bssName, char* path, char* eid);
+extern int		bssOpen(char* bssName, char* path);
 extern int		bssStart(char* bssName, char* path, char* eid, 
 				char* buffer, int bufLen, RTBHandler handler);
 extern int		bssRun(char* bssName, char* path, char* eid,

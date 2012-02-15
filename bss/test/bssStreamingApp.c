@@ -3,10 +3,10 @@
  *				stream of bundles.
  *									
  *	BSS Streaming Application Specifications			
- *	Simulated Compression: H.264/MPEG-4 - level 3				
- *	Resolution: 720×480 @ 30fps. Constant Bit Rate: 40000kbs
+ *	Simulated Compression: H.264/MPEG-4
+ *	Resolution: 1280×720 @ 30fps. Constant Bit Rate: 5Mbps
  *								
- *	Copyright (c) 2006, California Institute of Technology.	
+ *	Copyright (c) 2011, California Institute of Technology.	
  *	Copyright (c) 2011, Space Internetworking Center,
  *	Democritus University of Thrace.
  *
@@ -17,7 +17,7 @@
 
 #include <bp.h>
 
-static int 	running =1;
+static int 	running = 1;
 
 static BpSAP	_bpsap(BpSAP *newSAP)
 {
@@ -55,12 +55,12 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 	Object		bundleZco;
 	Object		newBundle;
 	int 		i=0;
-	char		framePayload[65000];    /*  bitrate = 40000kbps (30 fps)  	
-					   	 *  1334 kbps/frame	
-					   	 *  or 166667 Bps/frame	
-						 *  but maximum UDP CLA 65535 --> 
-						 *  CBR = 65000bytes / 12800usecs
-						 */    
+	char		framePayload[20866];    /*  bitrate = 5Mbps (30 fps)  	
+					   	 *  166.7 kb/frame	
+						 *  CBR = 20866 bytes per
+						 *  33333 usec		*/    
+	char		info[100];
+
 	if (svcClass == NULL)
 	{
 		priority = BP_STD_PRIORITY;
@@ -135,9 +135,10 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 			break;
 		}
 
-		printf("A frame with payload: %s and size: %d has been sent\n", 
-			framePayload, sizeof(framePayload));
-		microsnooze(12800);
+		isprintf(info, sizeof info, "A frame with payload: %s and \
+size: %d has been sent\n", framePayload, sizeof(framePayload));
+		PUTS(info);
+		microsnooze(33333);
 	}
 	bp_close(sap);
 	writeErrmsgMemos();

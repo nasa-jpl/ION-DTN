@@ -18,23 +18,24 @@
 
 void	bssStop()
 {
-	pthread_t	stopThread = -1;
-	int		stopLoop = 0;
 	int		destroy = 0;
+	int		stopLoop = 0;
+	pthread_t	stopThread = 0;
+	pthread_t	recvThread;
 
-	if (_datFile(0,0) == -1)	/*	Must destroy tblIndex.	*/
+	if (_datFile(0, 0) == -1)	/*	Must destroy tblIndex.	*/
 	{
 		oK(_tblIndex(&destroy));
 		ionDetach();
 	}
 
-	_running(&stopLoop);
-
-	if (_recvThreadId(NULL) != -1)
+	recvThread = _recvThreadId(NULL);
+	oK(_running(&stopLoop));
+	if (recvThread != 0)
 	{
 		bp_interrupt(_bpsap(NULL));
-		pthread_join(_recvThreadId(NULL), NULL);
-		_recvThreadId(&stopThread);
+		oK(_recvThreadId(&stopThread));
+		oK(pthread_join(recvThread, NULL));
 	}
 	else
 	{
@@ -49,7 +50,7 @@ void	bssClose()
 {
 	int	destroy = 0;
 
-	if (_recvThreadId(NULL) == -1)	/*	Must destroy tblIndex.	*/
+	if (_recvThreadId(NULL) == 0)	/*	Must destroy tblIndex.	*/
 	{
 		oK(_tblIndex(&destroy));
 		ionDetach();
@@ -72,17 +73,16 @@ void	bssClose()
 
 void	bssExit()
 {
+	PUTS("BSS is exiting...");
 	bssStop();
 	bssClose();
-	PUTS("BSS is exiting...");
 }
 
 /* Start and terminate BSS receiver operations */
-int	bssOpen(char* bssName, char* path, char* eid)
+int	bssOpen(char* bssName, char* path)
 {
 	CHKERR(bssName);
 	CHKERR(path); 
-	CHKERR(eid);
 	/*
 	 *  This function loads BSS receiver's database with	
 	 *  RDONLY access rights that is necessary for stream's 	
@@ -103,8 +103,8 @@ int	bssOpen(char* bssName, char* path, char* eid)
 	}
 	else
 	{
-		writeMemo("Please terminate the already active playback \
-session in order to initiate a new one.");
+		PUTS("An active playback session was detected.  If you \
+wish to initiate a new one, please first close the active playback session.");
 		ionDetach();
 		return -1;
 	}
@@ -136,7 +136,7 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
          */
 
 	ionAttach();
-	if (_recvThreadId(NULL) == -1)
+	if (_recvThreadId(NULL) == 0)
 	{
 		if (loadRDWRDB(bssName, path, &dat, &lst, &tbl) != 0)
 		{	
@@ -149,7 +149,7 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
 	}
 	else
 	{
-		writeMemo("Please terminate the already active real-time \
+		PUTS("Please terminate the already active real-time \
 session in order to initiate a new one.");
 		ionDetach();
 		return -1;
@@ -175,7 +175,6 @@ session in order to initiate a new one.");
 	}
 
 	oK(_recvThreadId(&bssRecvThread));
-
 	return 0;
 }
 
@@ -183,25 +182,24 @@ int	bssRun(char* bssName, char* path, char* eid, char* buffer,
 		int bufLength, RTBHandler display)
 {
 	if (_datFile(0,0) == -1 && _lstFile(0,0) == -1 && _tblFile(0,0) == -1 
-		&& _recvThreadId(NULL) == -1)
+		&& _recvThreadId(NULL) == 0)
 	{
 		if (bssStart(bssName, path, eid, buffer, bufLength, display)
 				< 0)
 		{
-			PUTS("bssStart failed");
 			return -1;
 		}
 		
-		if (bssOpen(bssName, path, eid) < 0)
+		if (bssOpen(bssName, path) < 0)
 		{
-			PUTS("bssOpen failed");
 			return -1;
 		}
 	}
 	else
 	{
-		writeMemo("Please terminate the already active session \
-in order to initiate a new one.");
+		PUTS("A real-time and/or a playback session is/are already \
+active.  Please terminate them in order to initiate a new one.");
+		return -1;
 	}
 
 	return 0;
@@ -247,6 +245,15 @@ long	bssRead(bssNav nav, char* data, int dataLen)
 	return rec.pLen;
 }
 
+static void	updateNavInfo(bssNav *nav, int position, long datOffset,
+			long prev, long next)
+{
+	nav->curPosition = position;
+	nav->datOffset = datOffset;
+	nav->prevOffset = prev;
+	nav->nextOffset = next;
+}
+
 long	 bssSeek(bssNav *nav, time_t time, time_t *curTime,
 		unsigned long *count)
 {
@@ -282,9 +289,8 @@ long	 bssSeek(bssNav *nav, time_t time, time_t *curTime,
 	}
 	
 	updateNavInfo(nav, position, entry.datOffset, entry.prev, entry.next);
-	*curTime = entry.crtnTime.seconds;
+	*curTime = (time_t) entry.crtnTime.seconds;
 	*count = entry.crtnTime.count;
-
 	oK(_lockMutex(0));
 		
 	return entry.pLen;
@@ -345,7 +351,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			return -1;
 		}
 
-		/* 	move to the next position 			*/
+		/* 	Move to the next position 			*/
 		curPosition = curPosition + 1;
 
 		while (i < WINDOW)
@@ -387,7 +393,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			if (row->firstEntryOffset == -1)
 			{
 				/*  
-				 *  if there is no doubly-linked list
+				 *  If there is no doubly-linked list
 				 *  created for that particular second,
 				 *  move to the next position. 
 				 */
@@ -425,7 +431,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 				entry.next);
 	}
 		
-	*curTime = entry.crtnTime.seconds;
+	*curTime = (time_t) entry.crtnTime.seconds;
 	*count = entry.crtnTime.count;
 
 	oK(_lockMutex(0));
@@ -441,7 +447,7 @@ long	bssNext_read(bssNav *nav, time_t *curTime, unsigned long *count,
 	pLen = bssNext(nav, curTime, count); 
 	if (pLen == -2)
 	{
-		return -2;
+		return -2;	/*	Indicates end of list.		*/
 	}
 	else if (pLen < 0)
 	{
@@ -514,7 +520,7 @@ long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 					+ (curPosition % WINDOW);	
 			}
 
-			if (prevTime >= *curTime)
+			if (prevTime >= (unsigned long) *curTime)
 			{
 				oK(_lockMutex(0));
 				return -2;	/* 	end of list	*/
@@ -524,7 +530,7 @@ long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 			if (row->firstEntryOffset == -1)
 			{
 				/*  
-				 *  if there is no doubly-linked list
+				 *  If there is no doubly-linked list
 				 *  created for that particular second,
 				 *  move to the next position. 
 				 */
@@ -566,7 +572,7 @@ long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 			entry.next);
 	}
 
-	*curTime = entry.crtnTime.seconds;
+	*curTime = (time_t) entry.crtnTime.seconds;
 	*count = entry.crtnTime.count;
 	oK(_lockMutex(0));
 	return entry.pLen;
@@ -580,7 +586,7 @@ long	bssPrev_read(bssNav *nav, time_t *curTime, unsigned long *count,
 	pLen = bssPrev(nav, curTime, count); 
 	if (pLen == -2)
 	{
-		return -2;
+		return -2;	/*	Indicates start of list.	*/
 	}
 	else if (pLen < 0)
 	{

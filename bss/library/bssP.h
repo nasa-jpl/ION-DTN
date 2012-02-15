@@ -144,7 +144,7 @@ typedef struct
 typedef struct 
 {
 	BpTimestamp 	crtnTime;
-	long		datOffset;
+	off_t		datOffset;
 	long		pLen;
 	long		prev;
 	long		next;
@@ -177,7 +177,7 @@ extern BpSAP		_bpsap(BpSAP *newSAP);
 extern int 		getLstEntry(int fileD, lstEntry *entry,
 				long lstEntryOffset);
 
-extern int 		readRecord(int fileD, dataRecord *rec, long datOffset);
+extern int 		readRecord(int fileD, dataRecord *rec, off_t datOffset);
 extern int 		readPayload(int fileD, char* buffer, int length);
 
 extern int 		loadRDWRDB(char* bssName, char* path, int* dat, 
@@ -185,8 +185,6 @@ extern int 		loadRDWRDB(char* bssName, char* path, int* dat,
 extern int 		loadRDonlyDB(char* bssName, char* path);
 extern void		*recvBundles(void *args);
 
-extern void 		updateNavInfo(bssNav *nav, int position, long datOffset,
-				long prev, long next);
 extern void		findIndexRow(time_t time, long *position);
 #ifdef __cplusplus
 }

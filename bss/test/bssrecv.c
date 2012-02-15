@@ -1,5 +1,5 @@
 /*
- *	bssrecv.c:	a test application that demonstrates the 
+ *	bssrecv.c:	A test application that demonstrates the 
  *			functionality of BSS API. It receives 
  *			a stream of bundles and display its contents.
  *								
@@ -27,10 +27,12 @@ static char*	_threadBuf(char *newValue)
 	return buffer;
 }
 
-/* implementation of the callback function */
+/* Implementation of the callback function */
 
-static int display(time_t time, unsigned long count, char* buf, int bufLength)
+static int display(time_t sec, unsigned long count, char* buf,
+		unsigned long bufLength)
 {
+	int 	reps;
 
 	/*
 	 * This function is called either by the receiving thread or the BSS
@@ -41,15 +43,16 @@ static int display(time_t time, unsigned long count, char* buf, int bufLength)
 	if (atoi(buf) == -1)
 	{
 		PUTS("#######ERROR########");
-		return 0;
+		return -1;
 	}
 
-	int 	reps = atoi(buf)%150; /* maximum repetitions number of each sequence */
+	reps = atoi(buf)%150; /* Maximum repetitions number of each sequence */
 	while (reps!=0)
 	{
 		putchar('*');
 		reps--;
 	}
+
 	PUTS(buf);
 	fflush(stdout);
 	return 0;
@@ -58,99 +61,111 @@ static int display(time_t time, unsigned long count, char* buf, int bufLength)
 static int replay (time_t fromTime, time_t toTime)
 {
 	time_t		curTime = 0;
-	time_t		lastTime = 0;
 	bssNav		nav;
 	char*		data;
 	int 		bytesRead;
-	int 		pLen;
+	int 		position;
 	unsigned long 	count;
 
-	data = calloc(65536, sizeof(char));
+	data = calloc(RCV_LENGTH, sizeof(char));
 
-	if (fromTime==0 || toTime==0)
+	if (data == NULL)
 	{
-		PUTS("from h to == 0");
+		PUTS("Memory allocation error");
 		return -1;
 	}
 
-	PUTS("----------demonstrating bssNext functionality------------");
-	PUTS("---------------------------------------------------------");
+	if (fromTime==0 || toTime==0)
+	{
+		PUTS("fromTime or toTime equals to 0");
+		free(data);
+		return -1;
+	}
+
+	PUTS("----------Demonstrating bssNext() functionality------------");
+	PUTS("-----------------------------------------------------------");
 	fflush(stdout);
 
 	if(bssSeek(&nav, fromTime, &curTime, &count) < 0)
 	{
 		PUTS("bssSeek failed");
+		free(data);
 		return -1;
 	}
 	
 	while(curTime < toTime)
 	{
-		memset(data, '\0', 65536);
-		bytesRead = bssRead(nav, data, 65536);
+		memset(data, 0, RCV_LENGTH);
+		bytesRead = bssRead(nav, data, RCV_LENGTH);
 		if(bytesRead == -1)
 		{
 			PUTS("bssRead failed");
 			fflush(stdout);
+			free(data);
 			return -1;
 		}
-		/*	call the display function	*/
-		display(curTime, count, data, sizeof(data));
-		lastTime = curTime;
+		/*	Call the display function	*/
+		oK(display(curTime, count, data, bytesRead));
 
-		/*	get next frame	    */
-		pLen = bssNext(&nav, &curTime, &count);
-		if(pLen == -2)
+		/*	Get next frame	    */
+		position = bssNext(&nav, &curTime, &count);
+		if(position == -2)
 		{
 			PUTS("End of list");
 			break;
 		}
-		else if (pLen < 0)
+		else if (position < 0)
 		{
 			PUTS("bssNext failed");
+			free(data);
 			return -1;
 		}
-		microsnooze(12800);
+		microsnooze(SNOOZE_INTERVAL);
 	}
 	
 	PUTS("\n");
 
-	PUTS("----------demonstrating bssPrev functionality------------");
-	PUTS("---------------------------------------------------------");
+	PUTS("----------Demonstrating bssPrev() functionality------------");
+	PUTS("-----------------------------------------------------------");
 	fflush(stdout);
 
-	if(bssSeek(&nav, lastTime, &curTime, &count) < 0)
+	if(bssSeek(&nav, toTime, &curTime, &count) < 0)
 	{
 		PUTS("bssSeek failed");
+		free(data);
 		return -1;
 	}
 	
 	while(curTime >= fromTime)
 	{
-		/*	get previous frame	*/
-		pLen = bssPrev(&nav, &curTime, &count);
-		if(pLen == -2)
+		/*	Get previous frame	*/
+		position = bssPrev(&nav, &curTime, &count);
+		if(position == -2)
 		{
 			PUTS("End of list");
 			break;
 		}
-		else if (pLen < 0)
+		else if (position < 0)
 		{
 			PUTS("bssPrev failed");
+			free(data);
 			return -1;
 		}
 		
-		memset(data, '\0', 65536);
-		bytesRead = bssRead(nav, data, 65536);
+		memset(data, 0, RCV_LENGTH);
+		bytesRead = bssRead(nav, data, RCV_LENGTH);
 		if(bytesRead == -1)
 		{
 			PUTS("bssRead failed");
 			fflush(stdout);
+			free(data);
 			return -1;
 		}
-		/*	call the display function	*/
-		display(curTime, count, data, sizeof(data));
+
+		/*	Call the display function	*/
 		
-		microsnooze(12800);
+		oK(display(curTime, count, data, bytesRead));
+		microsnooze(SNOOZE_INTERVAL);
 	}
 
 	free(data);
@@ -181,46 +196,102 @@ static int userInput(int fd, char* bssName, char* path, char* eid )
 	return 0;
 }
 
-void handleQuit(int sig)
+static void handleQuit(int sig)
 {
 	bssExit();
-	free(_threadBuf(NULL));
-	exit(1);
+	if (_threadBuf(NULL)!=NULL)
+	{
+		free(_threadBuf(NULL));
+	}
+
+	exit(BSSRECV_EXIT_SUCCESS);
 }
 
 #ifdef VXWORKS
 int	bssrecv(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
+	char	menuNav[512];
+	int	navLen;
+	int 	choice = atoi((char *) a1);
+	char	*aBssName = (char *) a2;
+	char	*aPath = (char *) a3;
+	char	*aEid = (char *) a4;
+	char	*aToTime = (char *) a5;
+	char	*aFromTime = (char *) a6;
+	char	bssName[64];
+	char	path[256];
+	char	eid[32];
+	char	fromTime[TIMESTAMPBUFSZ];
+	char	toTime[TIMESTAMPBUFSZ];
+	int	cmdFile = fileno(stdin);
+	time_t	from = 0;
+	time_t	to = 0;
+	time_t	refTime = 0;
+	char	*buffer;
+	int	reqArgs = 0;		/*	Boolean		*/
+	
+	
 #else
 int	main(int argc, char **argv)
 {
-#endif
-	int 		choice;
-	char		parameters[512];
-	char		bssName[64];
-	char		path[256];
-	char		eid[32];
-	char		toTime[TIMESTAMPBUFSZ];
-	char		fromTime[TIMESTAMPBUFSZ];
-	int		paramLen;
-	int		cmdFile = fileno(stdin);
-	int		recvLength = 65536;
-	time_t		from = 0;
-	time_t		to = 0;
-	time_t		refTime = 0;
-	char*		buffer;
 
+	char	menuNav[512];
+	int	navLen;
+	int 	choice=0;
+	char	*aBssName = NULL;
+	char	*aPath = NULL;
+	char	*aEid = NULL;
+	char	*aToTime = NULL;
+	char	*aFromTime = NULL;
+	char	bssName[64];
+	char	path[256];
+	char	eid[32];
+	char	fromTime[TIMESTAMPBUFSZ];
+	char	toTime[TIMESTAMPBUFSZ];
+	int	cmdFile = fileno(stdin);
+	time_t	from = 0;
+	time_t	to = 0;
+	time_t	refTime = 0;
+	char	*buffer;
+	int	reqArgs = 0;		/*	Boolean		*/
+
+	if (argc > 7) argc = 7;
+	switch (argc)
+	{
+		case 7:
+			aToTime = argv[6];
+		case 6:
+			aFromTime = argv[5];
+		case 5:
+			aEid = argv[4];
+		case 4:
+			aPath = argv[3];
+		case 3:
+			aBssName = argv[2];
+		case 2:
+			choice = atoi(argv[1]);
+		default:
+			break;
+	}
+#endif
 	/*
          * ********************************************************
 	 * In order for the BSS receiving thread to work properly
 	 * BSS receiving application must always allocate a buffer
-	 * of a certain size and provide its address and its length 
+	 * of a certain size and provide its address and its lenght 
 	 * to bssRun or bssStart function.
          * ********************************************************
 	 */ 
-	buffer = calloc(recvLength, sizeof(char));
-	_threadBuf(buffer);
+	buffer = calloc(RCV_LENGTH, sizeof(char));
+
+	if (buffer == NULL)
+	{
+		PUTS("Memory allocation error - bssrecv will exit");
+		exit(BSSRECV_EXIT_ERROR);
+	}
+
+	oK(_threadBuf(buffer));
 	
 	isignal(SIGINT, handleQuit);
 	isignal(SIGTERM, handleQuit);
@@ -238,102 +309,183 @@ int	main(int argc, char **argv)
 
 	do 
 	{
-		PUTS("\n");
-		PUTS("---------------Menu-----------------");
-		PUTS("1. Open BSS Receiver in playback mode");
-		PUTS("2. Start BSS receiving thread");
-		PUTS("3. Start BSS Receiver");
-		PUTS("4. Close current playback session");
-		PUTS("5. Stop BSS receiving thread");
-		PUTS("6. Stop BSS Receiver");
-		PUTS("7. Replay session");
-		PUTS("8. Exit");
+		if(choice==0)
+		{
+			PUTS("\n");
+			PUTS("---------------Menu-----------------");
+			PUTS("1. Open BSS Receiver in playback mode");
+			PUTS("2. Start BSS receiving thread");
+			PUTS("3. Start BSS Receiver");
+			PUTS("4. Close current playback session");
+			PUTS("5. Stop BSS receiving thread");
+			PUTS("6. Stop BSS Receiver");
+			PUTS("7. Exit");
 
-		if(igets(cmdFile, parameters, sizeof parameters, &paramLen) == NULL)
-		{
-   			printf("Error in reading choice");
-			continue;
-  		}
+			if(igets(cmdFile, menuNav, sizeof menuNav, &navLen) == NULL)
+			{
+   				printf("Error in reading choice");
+				continue;
+  			}
       				
-		if(sscanf (parameters, "%d", &choice) != 1)
-		{
-			PUTS("Invalid choice!");
-			continue;
+			if(sscanf (menuNav, "%d", &choice) != 1)
+			{
+				PUTS("Invalid choice!");
+				continue;
+			}
 		}
 		PUTS("");
 		switch(choice)
 		{
-			case 1: 
-				
-				if(userInput(cmdFile, bssName, path, eid)<0)
-				{
-					break;
+			case 1:  
+				if (aBssName == NULL || aPath == NULL || aEid == NULL)
+				{										
+					if(reqArgs == 0)
+					{					
+						if(userInput(cmdFile, bssName, path, eid) < 0)
+						{
+							break;
+						}
+						reqArgs = 1;
+					}
+					if(bssOpen(bssName, path) == -1)
+					{
+						PUTS("bssOpen failed");
+					}	
 				}
-				bssOpen(bssName, path, eid);
+				else
+				{
+					if(bssOpen(aBssName, aPath) == -1)
+					{
+						PUTS("bssOpen failed");
+					}
+				}
+
+				if (aFromTime == NULL || aToTime == NULL)
+				{			
+					PUTS("Pls provide replay period: fromTime toTime ");
+					PUTS("fromTime and toTime format: yyyy/mm/dd-hh:mm:ss");
+					if(igets(cmdFile, menuNav, sizeof(menuNav), 
+						&navLen) == NULL)
+					{
+   						PUTS("Error in reading arguments");
+						break;
+  					}
+      				
+					if(sscanf (menuNav, "%s %s", fromTime, toTime) != 2)
+					{
+						PUTS("Wrong number of arguments");
+						break;
+					}
+
+					from = readTimestampLocal(fromTime, refTime) - EPOCH_2000_SEC;
+					to = readTimestampLocal(toTime, refTime) - EPOCH_2000_SEC;
+				}
+				else
+				{
+					from = readTimestampLocal(aFromTime, refTime) - EPOCH_2000_SEC;
+					to = readTimestampLocal(aToTime, refTime) - EPOCH_2000_SEC;
+				}
+				
+				/*	Call the replay function      */
+				if(replay(from, to) == -1)
+				{
+					PUTS("Replay failed");
+				}
+				aFromTime = NULL;
+				aToTime = NULL;
+				choice=0;
 				break;
 
-			case 2:		
-				if(userInput(cmdFile, bssName, path, eid)<0)
-				{
-					break;
+			case 2:	
+				if (aBssName == NULL || aPath == NULL || aEid == NULL)
+				{										
+					if(userInput(cmdFile, bssName, path, eid) < 0)
+					{
+						break;
+					}
+					if(bssStart(bssName, path, eid,_threadBuf(NULL), 
+					   RCV_LENGTH*sizeof(char), display) == -1)
+					{
+						PUTS("bssStart failed");
+					}	
 				}
-				bssStart(bssName, path, eid, _threadBuf(NULL), 
-					recvLength*sizeof(char), display);
+				else
+				{
+					if(bssStart(aBssName, aPath, aEid, _threadBuf(NULL), 
+					   RCV_LENGTH*sizeof(char), display) == -1)
+					{
+						PUTS("bssStart failed");
+					}
+				}
+				choice=0;
 				break;
 
 			case 3: 
-				if(userInput(cmdFile, bssName, path, eid)<0)
+				if (aBssName == NULL || aPath == NULL || aEid == NULL)
 				{
-					break;
+					if(userInput(cmdFile, bssName, path, eid) < 0)
+					{
+						break;
+					}
+					if(bssRun(bssName, path, eid, _threadBuf(NULL), 
+					   RCV_LENGTH*sizeof(char), display) == -1)
+					{
+						PUTS("bssRun failed");
+					}
+					
 				}
-				bssRun(bssName, path, eid, _threadBuf(NULL), 
-					recvLength*sizeof(char), display);
+				else
+				{
+					if(bssRun(aBssName, aPath, aEid, _threadBuf(NULL), 
+					   RCV_LENGTH*sizeof(char), display) == -1)
+					{
+						PUTS("bssRun failed");
+					}
+				}
+				choice=0;
 				break;
+
 			case 4: 
 				PUTS("Closing current playback session...\n");
-				bssClose();
+				oK(bssClose());
+				aBssName=NULL;
+				aPath=NULL;
+				aEid=NULL;
+				reqArgs=0;
+				choice=0;				
 				break;
 				
 			case 5: 
 				PUTS("Stopping receiving thread...\n");
-				bssStop();
+				oK(bssStop());
+				aBssName=NULL;
+				aPath=NULL;
+				aEid=NULL;
+				choice=0;
 				break;
+
 			case 6: 
-				PUTS("Exiting BSS receiver app...\n");
-				bssExit();
+				oK(bssExit());
+				aBssName=NULL;
+				aPath=NULL;
+				aEid=NULL;
+				reqArgs=0;
+				choice=0;
 				break;
-			case 7: PUTS("Pls provide replay period: fromTime toTime ");
-				PUTS("fromTime and toTime format: yyyy/mm/dd-hh:mm:ss");
-				if(igets(cmdFile, parameters, sizeof(parameters), 
-					&paramLen) == NULL)
-				{
-   					PUTS("Error in reading arguments");
-					break;
-  				}
-      				
-				if(sscanf (parameters, "%s %s", fromTime, toTime) != 2)
-				{
-					PUTS("Wrong number of arguments");
-					break;
-				}
 
-				from = readTimestampLocal(fromTime, refTime) - EPOCH_2000_SEC;
-				to = readTimestampLocal(toTime, refTime) - EPOCH_2000_SEC;
-				
-				/*	call the replay function      */
-				if(replay(from, to) == -1)
-				{
-					PUTS("replay failed");
-				}
+			case 7: PUTS("Quitting program!\n");
+				break;
 
-				break;
-			case 8: PUTS("Quitting program!\n");
-				bssExit();
-				free(_threadBuf(NULL));
-				break;
 			default: printf("Invalid choice!\n");
 				break;
 		}
-	} while (choice != 8);
+	} while (choice != 7);
+
+	oK(bssExit());
+	if (_threadBuf(NULL)!=NULL)
+	{
+		free(_threadBuf(NULL));
+	}
+
 	return 0;
 }

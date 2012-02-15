@@ -32,7 +32,7 @@ int	_running(int *newValue)
 
 pthread_t	_recvThreadId(pthread_t *newValue)
 {
-	static int    recvThreadId = -1;
+	static pthread_t    recvThreadId = 0;
 
 	if (newValue)
 	{
@@ -48,7 +48,7 @@ int	_lockMutex(int value)
 
 	if (value == 1)
 	{
-		if(_recvThreadId(NULL) != -1)
+		if(_recvThreadId(NULL) != 0)
 		{
 			if(pthread_mutex_lock(&dbmutex) != 0)
 			{
@@ -60,7 +60,7 @@ int	_lockMutex(int value)
 
 	if (value == 0)
 	{
-		if(_recvThreadId(NULL) != -1)
+		if(_recvThreadId(NULL) != 0)
 		{
 			pthread_mutex_unlock(&dbmutex);
 		}
@@ -78,13 +78,16 @@ int	_datFile(int control, int fileDescriptor)
 		case 1: 
 			dat = fileDescriptor;
 			break;
+
 		case -1:
 			close(dat);
 			dat = -1;
 			break;
+
 		default:
 			break;
 	}
+
 	return  dat;		
 }
 
@@ -106,6 +109,7 @@ int	_lstFile(int control, int fileDescriptor)
 	default:
 		break;
 	}
+
 	return  lst;		
 }
 
@@ -127,6 +131,7 @@ int	_tblFile(int control, int fileDescriptor)
 	default:
 		break;
 	}
+
 	return  tbl;		
 }
 
@@ -178,7 +183,7 @@ static int	initializeTblIndex(int fd, tblIndex *index)
 		row = index->rows + i;
 		row->firstEntryOffset = -1;
 		row->lastEntryOffset = -1;
-		row->hgstCountVal = -1;
+		row->hgstCountVal = 0;
 		row->lwstCountVal = 0;
 	}
 
@@ -230,7 +235,7 @@ int	getLstEntry(int fileD, lstEntry *entry, long lstEntryOffset)
 	if ((lseek(fileD, lstEntryOffset, SEEK_SET) < 0) ||
 	    (read(fileD, entry, sizeof(lstEntry)) < 0))
 	{
-		putSysErrmsg("BSS library: can't seek or write to .lst file", 
+		putSysErrmsg("BSS library: can't seek or read from .lst file", 
 				NULL);
 		return -1;
 	}
@@ -238,7 +243,7 @@ int	getLstEntry(int fileD, lstEntry *entry, long lstEntryOffset)
 	return 0;
 }
 
-static int	addEntry(int fileD, BpTimestamp time, long datOffset,
+static int	addEntry(int fileD, BpTimestamp time, off_t datOffset,
 			long prev, long next, long dataLength)
 {
 	lstEntry entry;
@@ -279,7 +284,7 @@ static int	updateEntry(int fileD, lstEntry *entry, long prev, long next,
 
 static int	insertLstEdge(int fileD, lstEntry *curEntry, long curPrev, 
 			long curNext, long offset, BpTimestamp time,
-			long datOffset, long prev, long next, long dataLength)
+			off_t datOffset, long prev, long next, long dataLength)
 {
 	if (updateEntry(fileD, curEntry, curPrev, curNext, offset) < 0)
 	{
@@ -298,10 +303,10 @@ static int	insertLstEdge(int fileD, lstEntry *curEntry, long curPrev,
 
 static int	insertLstIntrmd(int fileD, lstEntry *curEntry,
 			long lstEntryOffset, long newEntryOffset,
-			BpTimestamp time, long datOffset, long dataLength)
+			BpTimestamp time, off_t datOffset, long dataLength)
 {
 	lstEntry	nextEntry;
-	
+
 	if (addEntry(fileD, time, datOffset, lstEntryOffset, curEntry->next, 
 			dataLength) < 0)
 	{
@@ -344,12 +349,12 @@ printf("UPDATE CURRENT // offset: %ld - previous offset: %ld - next offset: %ld\
 
 /* .dat database file management functions */
 
-int	readRecord(int fileD, dataRecord *rec, long datOffset)
+int	readRecord(int fileD, dataRecord *rec, off_t datOffset)
 {
 	if ((lseek(fileD, datOffset, SEEK_SET) < 0) ||
 	    (read(fileD, rec, sizeof(dataRecord)) < 0))
 	{
-		putSysErrmsg("BSS library: can't seek to / read from .dat file", 
+		putSysErrmsg("BSS library: can't seek to read from .dat file",
 				NULL);
 		return -1;
 	}
@@ -369,7 +374,7 @@ int	readPayload(int fileD, char* buffer, int length)
 	return 0;
 }
 
-static long	addDataRecord(int fileD, long datOffset, BpTimestamp time,
+static long	addDataRecord(int fileD, off_t datOffset, BpTimestamp time,
 			int payloadLength)
 {
 	dataRecord data;
@@ -391,10 +396,10 @@ printf("data Offset: %ld - creation time: %lu - length: %d\n", datOffset,
 	return 0;		
 }
 
-/* receiver's operations - section */
+/* Receiver's operations - section */
 
 static int	updateLstEntries(int lstFile, long lstEntryOffset,
-			long newEntryOffset, long datOffset, BpTimestamp time,
+			long newEntryOffset, off_t datOffset, BpTimestamp time,
 			long dataLength)
 {
 	lstEntry 	curEntry;
@@ -794,8 +799,8 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 {
 	ZcoReader       reader;
 	int		contentLength;
-	char		error[2] = "-1";
-	long		datOffset;
+	char		error[3] = "-1";
+	off_t		datOffset;
 	long 		newEntryOffset;
 	long		lstEntryOffset;
 	int		updateStat;
@@ -844,7 +849,7 @@ newEntryOffset);
 		/*	Locate the offset within datFile at which the
 		 *	new data record will be inserted.		*/
 
-		datOffset = (long) lseek(datFile, 0, SEEK_END);
+		datOffset = (off_t) lseek(datFile, 0, SEEK_END);
 		if (datOffset < 0)
 		{
 			putSysErrmsg("BSS library can't seek to the end of \
@@ -924,7 +929,7 @@ printf("from this point on, the execution of the provided display function begin
 		{
 			display(dlv->bundleCreationTime.seconds, 
 				dlv->bundleCreationTime.count, buffer, 
-				strlen(buffer));
+				contentLength);
 			*lastDis = dlv->bundleCreationTime;
 		}
 		else if (dlv->bundleCreationTime.seconds == lastDis->seconds)
@@ -933,14 +938,14 @@ printf("from this point on, the execution of the provided display function begin
 			{
 				display(dlv->bundleCreationTime.seconds, 
 					dlv->bundleCreationTime.count, buffer, 
-					strlen(buffer));
+					contentLength);
 				*lastDis = dlv->bundleCreationTime;
 			}
 		}
 	}
 	else
 	{
-		display(0, 0, error, sizeof(error));
+		display((time_t) 0, 0, error, sizeof(error));
 	}
 
 	return 0;
@@ -954,6 +959,7 @@ void	*recvBundles(void *args)
 	BpDelivery	dlv;
 	bss_thread_data	*db;
 	BpTimestamp	lastDis;
+	pthread_t	stopThread = 0;
 	
 	/*	Initialize the variable that holds the time of the 
 	 *	last displayed frame from receiving thread.		*/	
@@ -969,8 +975,8 @@ void	*recvBundles(void *args)
 		close(db->dat);
 		close(db->lst);
 		close(db->tbl);
-		bssStop();
-		return NULL;
+		oK(_recvThreadId(&stopThread));
+		pthread_exit(NULL);
 	}
 
 	if (bp_open(db->eid, &sap) < 0)
@@ -979,8 +985,8 @@ void	*recvBundles(void *args)
 		close(db->dat);
 		close(db->lst);
 		close(db->tbl);
-		bssStop();
-		return NULL;
+		oK(_recvThreadId(&stopThread));
+		pthread_exit(NULL);
 	}
 
 	oK(_bpsap(&sap));
@@ -991,14 +997,14 @@ void	*recvBundles(void *args)
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
 			putErrmsg("bss bundle reception failed.", NULL);
-			_running(&stopLoop);
+			oK(_running(&stopLoop));
 			continue;
 		}
 
 		switch (dlv.result)
 		{
 		case BpEndpointStopped:
-			_running(&stopLoop);
+			oK(_running(&stopLoop));
 			break;		/*	Out of switch.		*/
 
 		case BpPayloadPresent:
@@ -1007,7 +1013,7 @@ void	*recvBundles(void *args)
 				db->function) < 0)
 			{
 				putErrmsg("bss failed.", NULL);
-				_running(&stopLoop);
+				oK(_running(&stopLoop));
 			}
 
 			/*	Intentional fall-through to default.	*/
@@ -1029,7 +1035,7 @@ void	*recvBundles(void *args)
 	writeErrmsgMemos();
 	writeMemo("[i] Stopping bss reception thread.");
 	bp_detach();
-	bssStop();
+	oK(_recvThreadId(&stopThread));
 	return NULL;
 }
 
@@ -1103,7 +1109,7 @@ int	loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 	tblIndex	*index;
 
 	isprintf(fileName, sizeof(fileName), "%s/%s.dat", path, bssName);
-	*dat = open(fileName, O_RDWR | O_CREAT, 0666);
+	*dat = open(fileName, O_RDWR | O_CREAT | O_LARGEFILE, 0666);
 	if (dat < 0)
 	{
 		putSysErrmsg("BSS Library: can't open .dat file", fileName);
@@ -1172,8 +1178,8 @@ int	loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 			return -1;
 		}
 	}
-	
-	/*	Database's integrity check	*/
+
+	/*	Database's integrity check				*/
 
 	if (checkDb(*dat, *lst, *tbl) == -1)
 	{
@@ -1199,7 +1205,7 @@ int	loadRDonlyDB(char* bssName, char* path)
 	int		destroy = 0;
 
 	isprintf(fileName, sizeof(fileName), "%s/%s.dat", path, bssName);
-	datRO = open(fileName, O_RDONLY, 0666);
+	datRO = open(fileName, O_RDONLY | O_LARGEFILE, 0666);
 	if (datRO < 0)
 	{
 		putSysErrmsg("BSS Library: can't open .dat file", fileName);
@@ -1222,9 +1228,9 @@ int	loadRDonlyDB(char* bssName, char* path)
 		return -1;
 	}
 
-	_datFile(1, datRO);
-	_lstFile(1, lstRO);
-	_tblFile(1, tblRO);
+	oK(_datFile(1, datRO));
+	oK(_lstFile(1, lstRO));
+	oK(_tblFile(1, tblRO));
 	index = _tblIndex(&create);
 	if (loadTblIndex(tblRO, index) < 0)
 	{
@@ -1234,7 +1240,7 @@ int	loadRDonlyDB(char* bssName, char* path)
 	
 	/*	Database's integrity check	*/
 
-	if (checkDb(_datFile(0,0),_lstFile(0,0), _tblFile(0,0)) == -1)
+	if (checkDb(_datFile(0,0), _lstFile(0,0), _tblFile(0,0)) == -1)
 	{
 		putErrmsg("Database is corrupted. Use recovery mode.", NULL);
 		oK(_tblIndex(&destroy));
@@ -1245,15 +1251,6 @@ int	loadRDonlyDB(char* bssName, char* path)
 }
 
 /*	Database navigation - section	*/
-
-void	updateNavInfo(bssNav *nav, int position, long datOffset, long prev, 
-		long next)
-{
-	nav->curPosition = position;
-	nav->datOffset = datOffset;
-	nav->prevOffset = prev;
-	nav->nextOffset = next;
-}
 
 void	findIndexRow(time_t time, long *position)
 {
