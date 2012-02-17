@@ -9,6 +9,8 @@
 
 #include <bp.h>
 
+#define	DEFAULT_TTL 300
+
 static int	_running(int *newState)
 {
 	int	state = 1;
@@ -50,7 +52,7 @@ int	main(int argc, char **argv)
 
 	if (destEid == NULL)
 	{
-		PUTS("Usage: bpsource <destination endpoint ID> ['<text>']");
+		PUTS("Usage: bpsource <destination endpoint ID> ['<text>'] [t<Bundle TTL>]");
 		return 0;
 	}
 
@@ -91,7 +93,12 @@ int	main(int argc, char **argv)
 			return 0;
 		}
 
-		if (bp_send(NULL, BP_BLOCKING, destEid, NULL, 300,
+		if(ttl == 0)
+		{
+			ttl = DEFAULT_TTL;
+		}
+
+		if (bp_send(NULL, BP_BLOCKING, destEid, NULL, ttl,
 				BP_STD_PRIORITY, NoCustodyRequested,
 				0, 0, NULL, bundleZco, &newBundle) < 1)
 		{
@@ -147,7 +154,7 @@ int	main(int argc, char **argv)
 				break;
 			}
 
-			if (bp_send(NULL, BP_BLOCKING, destEid, NULL, 300,
+			if (bp_send(NULL, BP_BLOCKING, destEid, NULL, ttl,
 					BP_STD_PRIORITY, NoCustodyRequested,
 					0, 0, NULL, bundleZco, &newBundle) < 1)
 			{

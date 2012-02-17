@@ -4,7 +4,7 @@ bpsource - Bundle Protocol transmission test shell
 
 =head1 SYNOPSIS
 
-B<bpsource> I<destinationEndpointId> ['I<text>']
+B<bpsource> I<destinationEndpointId> ['I<text>'] [tI<TTL>]
 
 =head1 DESCRIPTION
 
@@ -12,6 +12,10 @@ When I<text> is supplied, B<bpsource> simply uses Bundle Protocol
 to send I<text> to a counterpart B<bpsink> application task that
 has opened the BP endpoint identified by I<destinationEndpointId>, then
 terminates.
+
+I<TTL> indicates the number of seconds the bundles may remain in the
+network, undelivered, before they are automatically destroyed. If omitted, I<TTL>
+defaults to 300 seconds.
 
 Otherwise, B<bpsource> offers the user an interactive "shell" for testing
 Bundle Protocol data transmission.  B<bpsource> prints a prompt string (": ")
