@@ -104,18 +104,19 @@ sleep 2
 
 # Send one bundle with no PIB; it shouldn't get through.
 echo -e "\n\n\n\n*****TEST 1*****"
-echo -e "Sending a bundle over a hop that doesn't have a defined PIB rule.\nNo PIB will be added, but this node contains a different pib rule (aka pib security policy is present)...\nThe bundle won't deliver."
+echo -e "Sending a bundle over a hop that doesn't have a defined PIB rule.\nNo PIB will be added, but this node contains a different pib rule (aka pib security policy is present)...\nThe bundle will still deliver."
 sleep ${TIMETODISPLAYTEXT}
 echo "" >> $IONEXPECTEDFILE
-bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) no PIB"
-# Don't predictreceived this one; it shouldn't be received. 
+IONMESSAGE="$( date ) no PIB"
+bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE"
+predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
 sleep ${TIMETOWAITFORTESTFINISH}
 if tryreceive
 then
-    echo "ERROR: Payload was possibly delivered, didn't match expected output."
-    PASS=0
+    echo "OK: Payload was delivered, which is OK for PIB."
 else
-    echo "OK: Payload delivery absence matched expected output."
+    echo "ERROR: Payload was not delivered. It is OK to not have a PIB destination if other PIB rules are specified. This is different than BAB."
+    PASS=0
 fi
 
 # Send one bundle with fixed security; it should get through.
