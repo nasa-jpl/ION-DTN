@@ -41,7 +41,6 @@
 
 void	getExtensionDefs(ExtensionDef **array, int *count)
 {
-#define BSP_DEBUGGING	0
 #ifdef BP_EXTENDED
 #include "ext/bpextensions.c"
 #else

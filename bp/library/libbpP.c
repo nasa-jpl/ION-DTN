@@ -1688,7 +1688,7 @@ int	startBpTask(Object cmd, Object cmdParms, int *pid)
 	return 0;
 }
 
-static void	lookUpDestScheme(Bundle *bundle, char *dictionary,
+static void	lookUpEidScheme(EndpointId eid, char *dictionary,
 			VScheme **vscheme)
 {
 	PsmPartition	bpwm = getIonwm();
@@ -1700,7 +1700,7 @@ static void	lookUpDestScheme(Bundle *bundle, char *dictionary,
 	if (dictionary == NULL)
 	{
 		*vscheme = NULL;	/*	Default.		*/
-		if (!bundle->destination.cbhe)
+		if (!eid.cbhe)
 		{
 			return;		/*	Can't determine scheme.	*/
 		}
@@ -1715,7 +1715,7 @@ static void	lookUpDestScheme(Bundle *bundle, char *dictionary,
 		return;
 	}
 
-	schemeName = dictionary + bundle->destination.d.schemeNameOffset;
+	schemeName = dictionary + eid.d.schemeNameOffset;
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -4808,7 +4808,7 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 	return 0;
 }
 
-static void	lookUpDestEndpoint(Bundle *bundle, char *dictionary,
+static void	lookUpEidEndpoint(EndpointId eid, char *dictionary,
 			VScheme *vscheme, VEndpoint **vpoint)
 {
 	PsmPartition	bpwm = getIonwm();
@@ -4819,13 +4819,13 @@ static void	lookUpDestEndpoint(Bundle *bundle, char *dictionary,
 	if (dictionary == NULL)
 	{
 		isprintf(nssBuf, sizeof nssBuf, "%lu.%lu",
-				bundle->destination.c.nodeNbr,
-				bundle->destination.c.serviceNbr);
+				eid.c.nodeNbr,
+				eid.c.serviceNbr);
 		nss = nssBuf;
 	}
 	else
 	{
-		nss = dictionary + bundle->destination.d.nssOffset;
+		nss = dictionary + eid.d.nssOffset;
 	}
 
 	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt;
@@ -5276,10 +5276,10 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 		return -1;
 	}
 
-	lookUpDestScheme(bundle, dictionary, &vscheme);
+	lookUpEidScheme(bundle->destination, dictionary, &vscheme);
 	if (vscheme != NULL)	/*	Destination might be local.	*/
 	{
-		lookUpDestEndpoint(bundle, dictionary, vscheme, &vpoint);
+		lookUpEidEndpoint(bundle->destination, dictionary, vscheme, &vpoint);
 		if (vpoint != NULL)	/*	Destination is here.	*/
 		{
 			if (deliverBundle(bundleObj, bundle, vpoint) < 0)
@@ -6410,7 +6410,8 @@ static void	initAuthenticity(AcqWorkArea *work)
 	}
 
 	GET_OBJ_POINTER(bpSdr, SecDB, secdb, secdbObj);
-	if (sdr_list_length(bpSdr, secdb->bspBabRules) == 0)
+	if ((sdr_list_length(bpSdr, secdb->bspBabRules) == 0) &&
+            (sdr_list_length(bpSdr, secdb->bspPibRules) == 0))
 	{
 		work->authentic = 1;	/*	No rules, proceed.	*/
 		return;
@@ -10267,4 +10268,24 @@ forwarding.", NULL);
 	writeMemo("[i] Administrative endpoint terminated.");
 	writeErrmsgMemos();
 	return 0;
+}
+
+int eidIsLocal(EndpointId eid, char* dictionary)
+{
+	VScheme		*vscheme;
+	VEndpoint	*vpoint;
+	int result = 0;
+
+
+	lookUpEidScheme(eid, dictionary, &vscheme);
+	if (vscheme != NULL)	/*	Destination might be local.	*/
+	{
+		lookUpEidEndpoint(eid, dictionary, vscheme, &vpoint);
+		if (vpoint != NULL)	/*	Destination is here.	*/
+		{
+			result = 1;
+		}
+	}
+
+	return result;
 }

@@ -14,8 +14,6 @@ s
 #	It will connect node 1 to itself
 #	It will transmit 100000 bytes/second.
 a contact +1 +3600 1 1 100000
-a contact +1 +3600 1 2 100000
-a contact +1 +3600 2 1 100000
 
 # Add a range. This is the physical distance between nodes.
 #	It will start at +1 seconds from now, ending +3600 seconds from now.
@@ -23,8 +21,6 @@ a contact +1 +3600 2 1 100000
 #	Data on the link is expected to take 1 second to reach the other
 #	end (One Way Light Time).
 a range +1 +3600 1 1 1
-a range +1 +3600 1 2 1
-a range +1 +3600 2 1 1
 
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
@@ -59,7 +55,7 @@ a endpoint ipn:1.2 q
 a protocol udp 1400 100
 
 # Add an induct. (listen)
-a induct udp 127.0.0.1:4556 udpcli
+a induct udp localhost.localdomain:4556 udpcli
 
 # Add an outduct. (since one UDP socket can address any IP, use '*' 
 # for the destination address, then this clo can send to any udp cli)
@@ -77,20 +73,17 @@ s
 #	the outduct identified as '*,127.0.0.1:4556'.  This specification
 #   will match the udpclo '*' and pass it an auxiliary parameter
 #   (destination address) of '127.0.0.1:4556'
-a plan 1 udp/*,127.0.0.1:4556
+a plan 1 udp/*,localhost.localdomain:4556
 ## end ipnadmin 
 
 ## begin ionsecadmin
 1
 e 1
 
-# This rule isn't loaded on startup; rather it's added partway through
-# the test.  All bundles sent before it's added should fail as inauthentic
-# (since we have an incoming bspbabrule).  All bundles sent after it's added should
-# succeed as authentic.
-#a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey
+# Add a dummy rule to start with
+x
+a bspbabrule nullnode nullnode 'HMAC-SHA1' testkey
 
-a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey
 a key 'testkey' config/testkey.bin
 a key 'testkey2' config/testkey2.bin
 ## end ionsecadmin

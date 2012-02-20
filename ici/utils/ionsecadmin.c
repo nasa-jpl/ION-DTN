@@ -75,11 +75,15 @@ expression> { '' |  <ciphersuite name> <key name> }");
 i.e., a partial eid expression ending in '*'.");
 	PUTS("\t   a bsppibrule <sender eid expression> <receiver eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
+	PUTS("\t   a bsppcbrule <sender eid expression> <receiver eid \
+expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\tc\tChange");
 	PUTS("\t   c key <key name> <name of file containing key value>");
 	PUTS("\t   c bspbabrule <sender eid expression> <receiver eid \
 expression> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   c bsppibrule <sender eid expression> <receiver eid \
+expression> <block type number> { '' | <ciphersuite name> <key name> }");
+	PUTS("\t   c bsppcbrule <sender eid expression> <receiver eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
@@ -88,10 +92,13 @@ expression> <block type number> { '' | <ciphersuite name> <key name> }");
 expression>");
 	PUTS("\t   {d|i} bsppibrule <sender eid expression> <receiver eid \
 expression> <block type number>");
+	PUTS("\t   {d|i} bsppcbrule <sender eid expression> <receiver eid \
+expression> <block type number>");
 	PUTS("\tl\tList");
 	PUTS("\t   l key");
 	PUTS("\t   l bspbabrule");
 	PUTS("\t   l bsppibrule");
+	PUTS("\t   l bsppcbrule");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\tx\tClear BSP security rules.");
@@ -179,6 +186,28 @@ static void	executeAdd(int tokenCount, char **tokens)
 				tokens[5], keyName);
 		return;
 	}
+
+        if (strcmp(tokens[1], "bsppcbrule") == 0)
+        {
+                switch (tokenCount)
+                {
+                case 7:
+                        keyName = tokens[6];
+                        break;
+
+                case 6:
+                        keyName = _omitted();
+                        break;
+
+                default:
+                        SYNTAX_ERROR;
+                        return;
+                }
+
+                sec_addBspPcbRule(tokens[2], tokens[3], atoi(tokens[4]),
+                                tokens[5], keyName);
+                return;
+        }
 			
 	SYNTAX_ERROR;
 }
@@ -247,13 +276,36 @@ static void	executeChange(int tokenCount, char **tokens)
 				tokens[5], keyName);
 		return;
 	}
+
+        if (strcmp(tokens[1], "bsppcbrule") == 0)
+        {
+                switch (tokenCount)
+                {
+                case 7:
+                        keyName = tokens[6];
+                        break;
+
+                case 6:
+                        keyName = _omitted();
+                        break;
+
+                default:
+                        SYNTAX_ERROR;
+                        return;
+                }
+
+                sec_updateBspPcbRule(tokens[2], tokens[3], atoi(tokens[4]),
+                                tokens[5], keyName);
+                return;
+        }
+
 			
 	SYNTAX_ERROR;
 }
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
-	if (tokenCount < 2)
+	if (tokenCount < 3)
 	{
 		printText("Delete what?");
 		return;
@@ -277,11 +329,23 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
+        if(tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		sec_removeBspPibRule(tokens[2], tokens[3], atoi(tokens[4]));
 		return;
 	}
+
+        if (strcmp(tokens[1], "bsppcbrule") == 0)
+        {
+                sec_removeBspPcbRule(tokens[2], tokens[3], atoi(tokens[4]));
+                return;
+        }
 
 	SYNTAX_ERROR;
 }
@@ -325,9 +389,25 @@ static void	printBspPibRule(Object ruleAddr)
 	sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
 	sdr_string_read(sdr, destEidBuf, rule->securityDestEid);
 	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
-type '%.5s' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
-		rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
+type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
+              rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
 	printText(buf);
+}
+
+static void     printBspPcbRule(Object ruleAddr)
+{
+        Sdr     sdr = getIonsdr();
+                OBJ_POINTER(BspPcbRule, rule);
+        char    srcEidBuf[SDRSTRING_BUFSZ], destEidBuf[SDRSTRING_BUFSZ];
+        char    buf[512];
+
+        GET_OBJ_POINTER(sdr, BspPcbRule, rule, ruleAddr);
+        sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
+        sdr_string_read(sdr, destEidBuf, rule->securityDestEid);
+        isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
+type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
+                rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
+        printText(buf);
 }
 
 static void	executeInfo(int tokenCount, char **tokens)
@@ -387,6 +467,20 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
+        if (strcmp(tokens[1], "bsppcbrule") == 0)
+        {
+                sec_findBspPcbRule(tokens[2], tokens[3], atoi(tokens[4]),
+                                &addr, &elt);
+                if (elt == 0)
+                {
+                        printText("PCB rule not found.");
+                        return;
+                }
+
+                printBspPcbRule(addr);
+                return;
+        }
+
 	SYNTAX_ERROR;
 }
 
@@ -434,7 +528,7 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "bspPibrule") == 0)
+	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		for (elt = sdr_list_first(sdr, db->bspPibRules); elt;
 				elt = sdr_list_next(sdr, elt))
@@ -445,6 +539,18 @@ static void	executeList(int tokenCount, char **tokens)
 
 		return;
 	}
+
+	if (strcmp(tokens[1], "bsppcbrule") == 0)
+	{
+		for (elt = sdr_list_first(sdr, db->bspPcbRules); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			obj = sdr_list_data(sdr, elt);
+			printBspPcbRule(obj);
+		}
+
+		return;
+        }
 
 	SYNTAX_ERROR;
 }
