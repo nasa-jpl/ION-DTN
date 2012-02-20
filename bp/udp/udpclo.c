@@ -126,7 +126,7 @@ int	main(int argc, char *argv[])
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 0) < 0)
+				destDuctName, outduct.maxPayloadLen, 0) < 0)
 		{
 			sm_SemEnd(udpcloSemaphore(NULL));/*	Stop.	*/
 			continue;

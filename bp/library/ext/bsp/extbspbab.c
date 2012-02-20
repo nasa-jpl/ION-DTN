@@ -593,9 +593,7 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
     * Grab the serialized bundle. It lives in bundle.payload.
     * Get it ready to serialize, and grab the bundle length.
     */
-   Object bundleRef = zco_add_reference(bpSdr, bundle->payload.content);
-   rawBundleLength = zco_length(bpSdr, bundleRef) - asb.resultLen;
-   zco_destroy_reference(bpSdr, bundleRef);
+   rawBundleLength = zco_length(bpSdr, bundle->payload.content) - asb.resultLen;
    digest = bsp_babGetSecResult(bundle->payload.content, rawBundleLength, keyValue, keyLen, &digestLen);
    MRELEASE(keyValue);
 
@@ -1165,7 +1163,6 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    unsigned char *hashData = NULL;
    char *dataBuffer;
    int i = 0;
-   Object dataRef;
    ZcoReader dataReader;
    char *authContext;
    int authCtxLen = 0;
@@ -1216,8 +1213,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    /**   \todo: watch pointer arithmetic if sizeof(char) != 1      */
 
    sdr_begin_xn(bpSdr);
-   dataRef = zco_add_reference(bpSdr, dataObj);
-   zco_start_transmitting(bpSdr, dataRef, &dataReader);
+   zco_start_transmitting(dataObj, &dataReader);
    
    hmac_sha1_init(authContext, (unsigned char *)keyValue, keyLen);
    bytesRemaining = dataLen;
@@ -1243,8 +1239,6 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
          bytesRetrieved, chunkSize);
 
       MRELEASE(authContext);
-         zco_stop_transmitting(bpSdr, &dataReader);
-      zco_destroy_reference(bpSdr, dataRef);
       sdr_end_xn(bpSdr);
 
          *hashLen = 0;
@@ -1271,8 +1265,6 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
                      BAB_HMAC_SHA1_RESULT_LEN);
 
    MRELEASE(authContext);
-      zco_stop_transmitting(bpSdr, &dataReader);
-      zco_destroy_reference(bpSdr, dataRef);
       sdr_end_xn(bpSdr);
 
       *hashLen = 0;
@@ -1288,10 +1280,6 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    hmac_sha1_reset(authContext);
 
    MRELEASE(authContext);
-   zco_stop_transmitting(bpSdr, &dataReader);
-
-   zco_destroy_reference(bpSdr, dataRef);
-
    if ((i = sdr_end_xn(bpSdr)) < 0)
    {
       BSP_DEBUG_ERR("x bsp_babGetSecResult: Failed closing transaction. Result is %d.",

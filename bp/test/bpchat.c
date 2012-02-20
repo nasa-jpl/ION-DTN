@@ -108,8 +108,8 @@ static void *       recvBundles(void *args)
 			break;
 		}
 		bundleLenRemaining = zco_source_data_length(sdr, dlv.adu);
+		zco_start_receiving(dlv.adu, &reader);
 		sdr_begin_xn(sdr);
-		zco_start_receiving(sdr, dlv.adu, &reader);
 		while(bundleLenRemaining > 0) {
 			bytesToRead = MIN(bundleLenRemaining, sizeof(buffer)-1);
 			rc = zco_receive_source(sdr, &reader, bytesToRead, buffer);
@@ -118,12 +118,7 @@ static void *       recvBundles(void *args)
 			printf("%.*s", rc, buffer);
 			fflush(stdout);
 		}
-		zco_stop_receiving(sdr, &reader);
-		if(sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't handle delivery.", NULL);
-			pthread_exit(NULL);
-		}
+		sdr_exit_xn(sdr);
 		pthread_mutex_unlock(&sdrmutex);
 		bp_release_delivery(&dlv, 1);
 	}        

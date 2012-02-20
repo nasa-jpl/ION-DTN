@@ -88,7 +88,7 @@ static void	*sendBundles(void *parm)
 		}
 
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName, -1) < 0)
+				&extendedCOS, destDuctName, 0, -1) < 0)
 		{
 			threadRunning = 0;
 			writeMemo("[?] dgrcla failed de-queueing bundle.");
@@ -110,7 +110,7 @@ static void	*sendBundles(void *parm)
 		if (hostNbr == 0)		/*	Can't send it.	*/
 		{
 			failedTransmissions++;
-			zco_destroy_reference(sdr, bundleZco);
+			zco_destroy(sdr, bundleZco);
 			if (sdr_end_xn(sdr) < 0)
 			{
 				threadRunning = 0;
@@ -120,22 +120,14 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
-		zco_start_transmitting(sdr, bundleZco, &reader);
+		zco_start_transmitting(bundleZco, &reader);
 		zco_track_file_offset(&reader);
 		bytesToSend = zco_transmit(sdr, &reader, DGRCLA_BUFSZ, buffer);
-		zco_stop_transmitting(sdr, &reader);
+		sdr_exit_xn(sdr);
 		if (bytesToSend < 0)
 		{
-			sdr_cancel_xn(sdr);
 			threadRunning = 0;
 			putErrmsg("Can't issue from ZCO.", NULL);
-			continue;
-		}
-
-		if (sdr_end_xn(sdr) < 0)
-		{
-			threadRunning = 0;
-			putErrmsg("Failed sending bundle.", NULL);
 			continue;
 		}
 
@@ -165,7 +157,7 @@ failure.", NULL);
 		}
 
 		sdr_begin_xn(sdr);
-		zco_destroy_reference(sdr, bundleZco);
+		zco_destroy(sdr, bundleZco);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			threadRunning = 0;
@@ -275,7 +267,7 @@ success.", NULL);
 					}
 
 					sdr_begin_xn(sdr);
-					zco_destroy_reference(sdr, bundleZco);
+					zco_destroy(sdr, bundleZco);
 					if (sdr_end_xn(sdr) < 0)
 					{
 						threadRunning = 0;
@@ -311,7 +303,7 @@ failure.", NULL);
 					}
 
 					sdr_begin_xn(sdr);
-					zco_destroy_reference(sdr, bundleZco);
+					zco_destroy(sdr, bundleZco);
 					if (sdr_end_xn(sdr) < 0)
 					{
 						threadRunning = 0;

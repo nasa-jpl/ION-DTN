@@ -22,8 +22,23 @@ static BpSAP	_bpsap(BpSAP *newSAP)
 	return sap;
 }
 
+static int	_running(int *newState)
+{
+	static int	state = 1;
+
+	if (newState)
+	{
+		state = *newState;
+	}
+
+	return state;
+}
+
 static void	handleQuit()
 {
+	int	stop = 0;
+
+	oK(_running(&stop));
 	bp_interrupt(_bpsap(NULL));
 }
 
@@ -45,8 +60,8 @@ int	main(int argc, char **argv)
 						};
 	BpSAP		sap;
 	Sdr		sdr;
-	int		running = 1;
 	BpDelivery	dlv;
+	int		stop = 0;
 	int		contentLength;
 	ZcoReader	reader;
 	int		len;
@@ -77,12 +92,12 @@ int	main(int argc, char **argv)
 	oK(_bpsap(&sap));
 	sdr = bp_get_sdr();
 	isignal(SIGINT, handleQuit);
-	while (running)
+	while (_running(NULL))
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
 			putErrmsg("bpsink bundle reception failed.", NULL);
-			running = 0;
+			oK(_running(&stop));
 			continue;
 		}
 
@@ -94,7 +109,7 @@ int	main(int argc, char **argv)
 
 		if (dlv.result == BpEndpointStopped)
 		{
-			running = 0;
+			oK(_running(&stop));
 			continue;
 		}
 
@@ -106,17 +121,16 @@ int	main(int argc, char **argv)
 			PUTS(line);
 			if (contentLength < sizeof content)
 			{
+				zco_start_receiving(dlv.adu, &reader);
 				sdr_begin_xn(sdr);
-				zco_start_receiving(sdr, dlv.adu, &reader);
 				len = zco_receive_source(sdr, &reader,
 						contentLength, content);
-				zco_stop_receiving(sdr, &reader);
-
-				if (sdr_end_xn(sdr) < 0 || len < 0)
+				sdr_exit_xn(sdr);
+				if (len < 0)
 				{
 					putErrmsg("Can't handle delivery.",
 							NULL);
-					running = 0;
+					oK(_running(&stop));
 					continue;
 				}
 

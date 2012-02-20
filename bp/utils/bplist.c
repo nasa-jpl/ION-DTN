@@ -132,7 +132,6 @@ static void	printPayload(Sdr sdr, Bundle *bundle)
 {
 	int		buflen;
 	char		*buf;
-	Object		ref;
 	ZcoReader	reader;
 	int		len;
 
@@ -144,23 +143,14 @@ static void	printPayload(Sdr sdr, Bundle *bundle)
 		return;
 	}
 
-	ref = zco_add_reference(sdr, bundle->payload.content);
-	if (ref == 0)
-	{
-		putErrmsg("bplist can't add ZCO reference.", NULL);
-		return;
-	}
-
-	zco_start_receiving(sdr, ref, &reader);
+	zco_start_receiving(bundle->payload.content, &reader);
 	len = zco_receive_source(sdr, &reader, bundle->payload.length, buf);
-	zco_stop_receiving(sdr, &reader);
 	if (len < 0)
 	{
 		putErrmsg("bplist can't read ZCO source.", NULL);
 		return;
 	}
 
-	zco_destroy_reference(sdr, ref);
 	PUTS("****** Payload");
 	printBytes(buf, bundle->payload.length);
 	MRELEASE(buf);
@@ -288,7 +278,6 @@ int	main(int argc, char **argv)
 			OBJ_POINTER(Bundle, bundle);
 	long		bundlesCount = 0;
 			OBJ_POINTER(Outduct, duct);
-			OBJ_POINTER(XmitRef, xr);
 
 	if (bp_attach() < 0)
 	{
@@ -414,9 +403,8 @@ in outduct '%.64s' of protocol '%.16s', priority %d.", ductName, protocolName,
 						elt = sdr_list_next(sdr, elt))
 				{
 					addr = sdr_list_data(sdr, elt);
-					GET_OBJ_POINTER(sdr, XmitRef, xr, addr);
 					GET_OBJ_POINTER(sdr, Bundle, bundle,
-							xr->bundleObj);
+							addr);
 					printBundle(sdr, bundle);
 				}
 			}

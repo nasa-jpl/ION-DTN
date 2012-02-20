@@ -82,7 +82,7 @@ static void	*sendBundles(void *parm)
 	while (!(sm_SemEnded(parms->vduct->semaphore)))
 	{
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName, -1) < 0)
+				&extendedCOS, destDuctName, 0, -1) < 0)
 		{
 			break;
 		}
@@ -140,7 +140,7 @@ static void	*sendBundles(void *parm)
 				 *	put it in limbo for another
 				 *	attempt later; discard the ADU.	*/
 
-				zco_destroy_reference(sdr, bundleZco);
+				zco_destroy(sdr, bundleZco);
 			}
 			else
 			{
@@ -152,7 +152,7 @@ static void	*sendBundles(void *parm)
 					/*	We never put critical
 					 *	bundles into limbo.	*/
 
-					zco_destroy_reference(sdr, bundleZco);
+					zco_destroy(sdr, bundleZco);
 				}
 				else
 				{

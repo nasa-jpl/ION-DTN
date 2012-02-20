@@ -160,7 +160,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	If dynamic routing succeeded in enqueuing the bundle
 	 *	to a neighbor, accept the bundle and return.		*/
 
-	if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
+	if (bundle->ductXmitElt)
 	{
 		/*	Enqueued.					*/
 
@@ -178,7 +178,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
+	if (bundle->ductXmitElt)
 	{
 		/*	Enqueued.					*/
 
@@ -211,7 +211,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
+	if (bundle->ductXmitElt)
 	{
 		/*	Enqueued.					*/
 

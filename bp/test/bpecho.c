@@ -62,7 +62,8 @@ int	main(int argc, char **argv)
 	BpDelivery	dlv;
 	ZcoReader	reader;
  	char		sourceEid[1024];
-	int			bytesToEcho = 0;
+	int		bytesToEcho = 0;
+	int		result;
 
 	if (ownEid == NULL)
 	{
@@ -113,20 +114,14 @@ fflush(stdout);
 				istrcpy(sourceEid, dlv.bundleSourceEid,
 						sizeof sourceEid);
 				bytesToEcho = MIN(zco_source_data_length(sdr, dlv.adu), ADU_LEN);
+				zco_start_receiving(dlv.adu, &reader);
 				sdr_begin_xn(sdr);
-				zco_start_receiving(sdr, dlv.adu, &reader);
-				if(zco_receive_source(sdr, &reader, bytesToEcho, 
-					dataToSend) < 0)
+				result = zco_receive_source(sdr, &reader,
+						bytesToEcho, dataToSend);
+				sdr_exit_xn(sdr);
+			       	if (result < 0)
 				{
-					sdr_cancel_xn(sdr);
 					putErrmsg("Can't receive payload.", NULL);
-					running = 0;
-					continue;
-				}
-				zco_stop_receiving(sdr, &reader);
-				if(sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("Can't handle delivery.", NULL);
 					running = 0;
 					continue;
 				}

@@ -123,7 +123,7 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 	/*	Now determine whether or not the bundle could be sent
 	 *	to this neighbor via the outduct for this directive
 	 *	during the contact that is being considered.  There
-	 *	are two criteria.  First, is the duct blocked (e.g.,
+	 *	are three criteria.  First, is the duct blocked (e.g.,
 	 *	no TCP connection)?					*/
 
 	copyScalar(&capacity, &(xmit->aggrCapacity));
@@ -134,7 +134,20 @@ static int	tryContact(IonNode *neighbor, IonXmit *xmit, Bundle *bundle,
 		return 0;		/*	Outduct is unusable.	*/
 	}
 
-	/*	Second: is the total capacity of this contact,
+	/*	Second: if the bundle is flagged "do not fragment",
+	 *	does the length of its payload exceed the duct's
+	 *	payload size limit (if any)?				*/
+
+	if (bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT
+	&& outduct.maxPayloadLen != 0)
+	{
+		if (bundle->payload.length > outduct.maxPayloadLen)
+		{
+			return 0;	/*	Bundle can't be sent.	*/
+		}
+	}
+
+	/*	Third: is the total capacity of this contact,
 	 *	plus the sum of the capacities of all preceding
 	 *	contacts with the same neighbor, greater than the
 	 *	sum of the current applicable backlog of pending
@@ -633,6 +646,8 @@ int	cgr_forward(Bundle *bundle, Object bundleObj, unsigned long
 	LystElt		elt;
 	LystElt		nextElt;
 	ProximateNode	*proxNode;
+	Bundle		newBundle;
+	Object		newBundleObj;
 	ProximateNode	*selectedNeighbor;
 	time_t		earliestDeliveryTime = 0;
 	int		shortestDistance = 0;
@@ -753,6 +768,22 @@ printf("--------------- Start of contact graph traversal -------------\n");
 			}
 
 			MRELEASE(proxNode);
+			if (nextElt)
+			{
+				/*	Every transmission after the
+				 *	first must operate on a new
+				 *	clone of the original bundle.	*/
+
+				if (bpClone(bundle, &newBundle, &newBundleObj,
+							0, 0) < 0)
+				{
+					putErrmsg("Can't clone bundle.", NULL);
+					return -1;
+				}
+
+				bundle = &newBundle;
+				bundleObj = newBundleObj;
+			}
 		}
 
 		lyst_destroy(excludedNodes);

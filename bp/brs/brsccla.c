@@ -472,7 +472,7 @@ number>");
 	while (!(sm_SemEnded(brscclaSemaphore(NULL))))
 	{
 		if (bpDequeue(voutduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, -1) < 0)
+				destDuctName, 0, -1) < 0)
 		{
 			sm_SemEnd(brscclaSemaphore(NULL));/*	Stop.	*/
 			continue;

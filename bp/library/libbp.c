@@ -405,8 +405,6 @@ int	bp_suspend(Object bundleObj)
 {
 	Sdr		sdr = getIonsdr();
 	Bundle		bundle;
-	Object		xmitElt;
-			OBJ_POINTER(XmitRef, xr);
 	Object		queue;
 	Object		outductObj;
 	Outduct		outduct;
@@ -422,16 +420,14 @@ int	bp_suspend(Object bundleObj)
 		return 0;
 	}
 
-	if (bundle.suspended == 1)
+	if (bundle.suspended == 1)	/*	Already suspended.	*/
 	{
 		sdr_exit_xn(sdr);	/*	Nothing to do.		*/
 		return 0;
 	}
 
 	bundle.suspended = 1;
-	xmitElt = sdr_list_first(sdr, bundle.xmitRefs);
-	GET_OBJ_POINTER(sdr, XmitRef, xr, sdr_list_data(sdr, xmitElt));
-	queue = sdr_list_list(sdr, xr->ductXmitElt);
+	queue = sdr_list_list(sdr, bundle.ductXmitElt);
 	outductObj = sdr_list_user_data(sdr, queue);
 	if (outductObj == 0)
 	{
@@ -448,7 +444,8 @@ int	bp_suspend(Object bundleObj)
 		sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
 		sdr_read(sdr, (char *) &protocol, outduct.protocol,
 				sizeof(ClProtocol));
-		if (reverseEnqueue(xmitElt, &protocol, outductObj, &outduct, 1))
+		if (reverseEnqueue(bundle.ductXmitElt, &protocol, outductObj,
+				&outduct, 1))
 		{
 			putErrmsg("Can't reverse bundle enqueue.", NULL);
 			sdr_cancel_xn(sdr);
@@ -479,7 +476,7 @@ int	bp_resume(Object bundleObj)
 		return 0;
 	}
 
-	return releaseFromLimbo(sdr_list_first(sdr, bundle.xmitRefs), 1);
+	return releaseFromLimbo(bundle.ductXmitElt, 1);
 }
 
 int	bp_cancel(Object bundleObj)
@@ -715,7 +712,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	dlvBuffer->bundleCreationTime.seconds = bundle.id.creationTime.seconds;
 	dlvBuffer->bundleCreationTime.count = bundle.id.creationTime.count;
 	dlvBuffer->adminRecord = bundle.bundleProcFlags & BDL_IS_ADMIN;
-	dlvBuffer->adu = zco_add_reference(sdr, bundle.payload.content);
+	dlvBuffer->adu = bundle.payload.content;
 	dlvBuffer->ackRequested = bundle.bundleProcFlags & BDL_APP_ACK_REQUEST;
 
 	/*	Now before returning we send delivery status report
@@ -738,8 +735,8 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		}
 	}
 
-	/*	Finally delete the delivery list element and, if
-	 *	possible, destroy the bundle itself.			*/
+	/*	Finally delete the delivery list element and destroy
+	 *	the bundle itself.					*/
 
 	if (dictionary)
 	{
@@ -748,6 +745,8 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 
 	sdr_list_delete(sdr, dlvElt, (SdrListDeleteFn) NULL, NULL);
 	bundle.dlvQueueElt = 0;
+	bundle.payload.content = 0;
+	bundle.payload.length = 0;
 	sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 	if (bpDestroyBundle(bundleAddr, 0) < 0)
 	{
@@ -793,7 +792,7 @@ void	bp_release_delivery(BpDelivery *dlvBuffer, int releasePayload)
 			if (dlvBuffer->adu)
 			{
 				sdr_begin_xn(sdr);
-				zco_destroy_reference(sdr, dlvBuffer->adu);
+				zco_destroy(sdr, dlvBuffer->adu);
 				if (sdr_end_xn(sdr) < 0)
 				{
 					putErrmsg("Failed releasing delivery.",
