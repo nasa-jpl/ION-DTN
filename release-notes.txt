@@ -55,6 +55,20 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.0.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #242: Removed unnecessary recursion from the CGR implementation to help
+  protect against overflows from incorrect configurations.
+
+- Issue #302: Implemented red-black trees as an alternative data structure to
+  linked lists for some performance-sensitive applications.  Migrated the BP
+  timeline to use red-black trees.
+
+- Issue #304: Optimized CGR route computation by developing a new algorithm that
+  employs Dijkstra's Algorithm.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.3 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
