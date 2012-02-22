@@ -88,7 +88,7 @@ static void	*sendBundles(void *parm)
 		}
 
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName, 1) < 0)
+				&extendedCOS, destDuctName, -1) < 0)
 		{
 			threadRunning = 0;
 			writeMemo("[?] dgrcla failed de-queueing bundle.");
@@ -267,7 +267,7 @@ temporary ZCO.", NULL);
 						break;	/*	Switch.	*/
 					}
 
-					if (bpHandleXmitSuccess(bundleZco))
+					if (bpHandleXmitSuccess(bundleZco, 0))
 					{
 						threadRunning = 0;
 						putErrmsg("Crashed handling \

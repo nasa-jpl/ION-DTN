@@ -755,7 +755,7 @@ extern int		bpDequeue(	VOutduct *vduct,
 					Object *outboundZco,
 					BpExtendedCOS *extendedCOS,
 					char *destDuctName,
-					int stewardshipAccepted);
+					int timeoutInterval);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
 			 *	outduct) to get a bundle that it is to
@@ -803,15 +803,24 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	of at least MAX_CL_DUCT_NAME_LEN + 1
 			 *	bytes.
 			 *
-			 *	The stewardshipAccepted argument, a
-			 *	Boolean, indicates whether or not
-			 *	the calling function commits to
-			 *	dispositioning the returned bundle
-			 *	when the results of convergence-
-			 *	layer transmission are known, by
-			 *	calling one of two functions:
+			 *	The timeoutInterval argument indicates
+			 *	the length of time following return of
+			 *	a bundle after which failure of custody
+			 *	transfer should be inferred if no
+			 *	custody acceptance signal for this
+			 *	bundle has been received.  Any negative
+			 *	value signifies that the calling
+			 *	function accepts "stewardship" of the
+			 *	bundle, i.e., commits to dispositioning
+			 *	the returned bundle as soon as results
+			 *	of convergence-layer transmission are
+			 *	known, by calling one of two functions:
 			 *	either bpHandleXmitSuccess or else
-			 *	bpHandleXmitFailure.
+			 *	bpHandleXmitFailure.  A value of zero
+			 *	signifies that the calling function
+			 *	does not accept stewardship but also
+			 *	does not want to set a custody transfer
+			 *	timer.
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
@@ -843,7 +852,7 @@ extern int		bpIdentify(Object bundleZco, Object *bundleObj);
 			 *	was located or not), -1 on system
 			 *	failure.				*/
 
-extern int		bpMemo(Object bundleObj, int interval); 
+extern int		bpMemo(Object bundleObj, unsigned int interval); 
 			/*	This function inserts a "custody-
 			 *	acceptance due" event into the
 			 *	timeline.  The event causes bpclock
@@ -856,17 +865,27 @@ extern int		bpMemo(Object bundleObj, int interval);
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
-extern int		bpHandleXmitSuccess(Object zco);
+extern int		bpHandleXmitSuccess(Object zco, unsigned int interval);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
 			 *	outduct) on detection of convergence-
 			 *	layer protocol transmission success.
 			 *	It causes the serialized (catenated)
-			 *	outbound custodial bundle in zco to
-			 *	be destroyed, unless some constraint
-			 *	(such as acceptance of custody)
-			 *	requires that bundle destruction be
-			 *	deferred.
+			 *	outbound bundle in zco to be destroyed,
+			 *	unless some constraint (such as
+			 *	acceptance of custody) requires that
+			 *	bundle destruction be deferred.
+			 *
+			 *	In the event that custody of the
+			 *	bundle has indeed been accepted, the
+			 *	calling function can request a further
+			 *	increment of reliability: when the
+			 *	value of "interval" is greater than
+			 *	zero, it indicates the length of time
+			 *	after which failure of custody transfer
+			 *	should be inferred if no custody
+			 *	acceptance signal for this bundle has
+			 *	been received.
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
@@ -876,13 +895,8 @@ extern int		bpHandleXmitFailure(Object zco);
 			 *	outduct) on detection of a convergence-
 			 *	layer protocol transmission error.
 			 *	It causes the serialized (catenated)
-			 *	outbound custodial bundle in zco to
-			 *	be queued up for re-forwarding.  In
-			 *	effect, this function implements
-			 *	custodial retransmission due to
-			 *	"timeout" - that is, convergence-layer
-			 *	protocol failure - rather than due
-			 *	to explicit refusal of custody.
+			 *	outbound bundle in zco to be queued
+			 *	up for re-forwarding.
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
