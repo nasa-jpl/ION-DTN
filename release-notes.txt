@@ -68,6 +68,17 @@ Features included:
 - Issue #304: Optimized CGR route computation by developing a new algorithm that
   employs Dijkstra's Algorithm.
 
+- Issue #322: Improved reliability for custodial retransmissions when the next
+  custodian is a neighbor by making the following tweaks in libbpP.c:
+    - Changed the bpDequeue "stewardship accepted" flag to a custodial timeout
+      interval value (in seconds) that is computed by the CL output daemon,
+      based on CL-specific knowledge, in the event that the CL protocol is not
+      reliable and therefore can't accept stewardship of the bundle. 
+    - Added the same custodial timeout interval value to bpHandleXmitSuccess, to
+      trigger reforwarding of the bundle even when stewardship has been taken
+      and CL transmission has been nominally successful and reliable, in the
+      event that the CL transmission ultimately (unexpectedly) does not succeed.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.3 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
