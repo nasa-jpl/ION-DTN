@@ -187,7 +187,7 @@ static int userInput(int fd, char* bssName, char* path, char* eid )
 		return -1;
   	}
 	
-	if(sscanf (parameters, "%s %s %s", bssName, path, eid) != 3)
+	if(sscanf (parameters, "%63s %255s %31s", bssName, path, eid) != 3)
 	{
 		PUTS("Wrong number of arguments");
 		return -1;
@@ -371,7 +371,7 @@ int	main(int argc, char **argv)
 						break;
   					}
       				
-					if(sscanf (menuNav, "%s %s", fromTime, toTime) != 2)
+					if(sscanf (menuNav, "%19s %19s", fromTime, toTime) != 2)
 					{
 						PUTS("Wrong number of arguments");
 						break;
