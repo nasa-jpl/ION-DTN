@@ -241,7 +241,7 @@ echo "Getting stats from node 2..."
 cd ../2.ipn.tcp
 bpstats 
 sleep 1
-START_COUNT=`getStatsCounter 'fwd' '1' ion.log`
+START_COUNT=`getStatsCounter 'fwd' '+' ion.log`
 echo " -> $START_COUNT fwd bundles"
 
 
@@ -269,7 +269,7 @@ echo "Getting stats from node 2 to verify it increased..."
 cd ../2.ipn.tcp
 bpstats 
 sleep 1
-END_COUNT=`getStatsCounter 'fwd' '1' ion.log`
+END_COUNT=`getStatsCounter 'fwd' '+' ion.log`
 echo " -> $END_COUNT fwd bundles"
 
 if [ "$START_COUNT" -lt "$END_COUNT" ]

@@ -54,17 +54,38 @@ static LtpDB	*_ltpConstants()
 }
 
 	/*	Note: to avoid running out of database heap space,
-	 *	LTP uses flow control based on limiting (a) the number
-	 *	of export sessions that can be concurrently active
-	 *	and (b) the maximum block size for any single export
-	 *	session.  The product of these two values constitutes
-	 *	the flow control "window" for LTP.  The limits are
-	 *	set at the time LTP is initialized and are used to
-	 *	fix the size of the window at that time; specifically,
-	 *	they fix the size of the exportSessions hash table.
-	 *	(Note that the maximum block size for a given Span
-	 *	can be less than the global limit, for purposes of
-	 *	aggregation tuning.)					*/
+	 *	LTP uses flow control based on limiting the number
+	 *	of export sessions that can be concurrently active.
+	 *	This value constitutes the flow control "window" for
+	 *	LTP.  The limit is set at the time LTP is initialized
+	 *	and are used to fix the size of the window at that
+	 *	time; specifically, it fixes the size of the
+	 *	exportSessions hash table. 				*/
+
+void	ltpSpanTally(LtpVspan *vspan, unsigned int idx, unsigned int size)
+{
+	Sdr		sdr = getIonsdr();
+	LtpSpanStats	stats;
+	Tally		*tally;
+	int		offset;
+
+	CHKVOID(vspan && vspan->stats);
+	if (!(vspan->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(idx < LTP_SPAN_STATS);
+	sdr_stage(sdr, (char *) &stats, vspan->stats, sizeof(LtpSpanStats));
+	tally = stats.tallies + idx;
+	tally->totalCount += 1;
+	tally->totalBytes += size;
+	tally->currentCount += 1;
+	tally->currentBytes += size;
+	offset = (char *) tally - ((char *) &stats);
+	sdr_write(sdr, vspan->stats + offset, (char *) tally, sizeof(Tally));
+}
 
 /*	*	*	LTP service control functions	*	*	*/
 
@@ -172,6 +193,8 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 	vspan = (LtpVspan *) psp(ltpwm, addr);
 	memset((char *) vspan, 0, sizeof(LtpVspan));
 	vspan->spanElt = spanElt;
+	vspan->stats = span.stats;
+	vspan->updateStats = span.updateStats;
 	vspan->engineId = span.engineId;
 	vspan->segmentBuffer = psm_malloc(ltpwm, span.maxSegmentSize);
 	if (vspan->segmentBuffer == 0)
@@ -755,6 +778,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	LtpSpan		spanBuf;
+	LtpSpanStats	statsInit;
 	Object		addr;
 	Object		spanElt = 0;
 
@@ -824,6 +848,15 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 			LTP_MEAN_SEARCH_LENGTH);
 	spanBuf.closedImports = sdr_list_create(ltpSdr);
 	spanBuf.deadImports = sdr_list_create(ltpSdr);
+	spanBuf.stats = sdr_malloc(ltpSdr, sizeof(LtpSpanStats));
+	if (spanBuf.stats)
+	{
+		memset((char *) &statsInit, 0, sizeof(LtpSpanStats));
+		sdr_write(ltpSdr, spanBuf.stats, (char *) &statsInit,
+				sizeof(LtpSpanStats));
+	}
+
+	spanBuf.updateStats = 1;	/*	Default.		*/
 	addr = sdr_malloc(ltpSdr, sizeof(LtpSpan));
 	if (addr)
 	{
@@ -2209,6 +2242,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	int		segmentLength;
 	Object		sessionObj;
 	Object		sessionElt;
+			OBJ_POINTER(LtpReceptionClaim, claim);
 	ExportSession	xsessionBuf;
 	time_t		currentTime;
 	LtpEvent	event;
@@ -2332,6 +2366,15 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			return -1;
 		}
 
+		if (timer->expirationCount == 0)
+		{
+			ltpSpanTally(vspan, CKPT_XMIT, 0);
+		}
+		else
+		{
+			ltpSpanTally(vspan, CKPT_RE_XMIT, 0);
+		}
+
 		break;
 
 	case 8:
@@ -2346,6 +2389,27 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			putErrmsg("Can't schedule event.", NULL);
 			sdr_cancel_xn(ltpSdr);
 			return -1;
+		}
+
+		if (timer->expirationCount == 0)
+		{
+			GET_OBJ_POINTER(ltpSdr, LtpReceptionClaim, claim,
+				sdr_list_data(ltpSdr, sdr_list_first(ltpSdr,
+				segment.pdu.receptionClaims)));
+			if (claim->offset == segment.pdu.lowerBound
+			&& claim->length == segment.pdu.upperBound
+					- segment.pdu.lowerBound)
+			{
+				ltpSpanTally(vspan, POS_RPT_XMIT, 0);
+			}
+			else
+			{
+				ltpSpanTally(vspan, NEG_RPT_XMIT, 0);
+			}
+		}
+		else
+		{
+			ltpSpanTally(vspan, RPT_RE_XMIT, 0);
 		}
 
 		break;
@@ -2373,6 +2437,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			return -1;
 		}
 
+		ltpSpanTally(vspan, EXPORT_CANCEL_XMIT, 0);
 		break;
 
 	case 14:
@@ -2408,6 +2473,9 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			sdr_cancel_xn(ltpSdr);
 			return -1;
 		}
+
+		ltpSpanTally(vspan, IMPORT_CANCEL_XMIT, 0);
+		break;
 
 	default:
 		break;
@@ -2458,6 +2526,8 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 					if (xsessionBuf.redPartLength == 0)
 					{
 						closeExportSession(sessionObj);
+						ltpSpanTally(vspan,
+							EXPORT_COMPLETE, 0);
 					}
 				}
 			}
@@ -2470,6 +2540,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 	if (segment.pdu.segTypeCode < 8)
 	{
+		ltpSpanTally(vspan, OUT_SEG_POPPED, segment.pdu.length);
 		serializeDataSegment(&segment, *buf);
 	}
 	else
@@ -3616,6 +3687,7 @@ static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 	/*	At this point, the remaining bytes should all be
 	 *	client service data.					*/
 
+	sdr_begin_xn(ltpSdr);
 	if (pdu->length > *bytesRemaining)
 	{
 #if LTPDEBUG
@@ -3624,12 +3696,12 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		/*	Malformed segment: data length is overstated.
 		 *	Segment must be discarded.			*/
 
-		return 0;
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
 	}
 
 	/*	Now process the data.					*/
 
-	sdr_begin_xn(ltpSdr);
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -3639,8 +3711,8 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		/*	Segment is from an unknown engine, so we
 		 *	can't process it.				*/
 
-		sdr_exit_xn(ltpSdr);
-		return 0;
+		ltpSpanTally(vspan, IN_SEG_UNK_SENDER, pdu->length);
+		return sdr_end_xn(ltpSdr);
 	}
 
 	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
@@ -3652,8 +3724,8 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		 *	to be sending at this time, so we treat it as
 		 *	a misdirected transmission.			*/
 
-		sdr_exit_xn(ltpSdr);
-		return 0;
+		ltpSpanTally(vspan, IN_SEG_SCREENED, pdu->length);
+		return sdr_end_xn(ltpSdr);
 	}
 
 	if (sessionIsClosed(vspan, sessionNbr))
@@ -3664,8 +3736,8 @@ putErrmsg("Discarding late segment.", itoa(sessionNbr));
 		/*	Segment is for a session that is already
 		 *	closed, so we don't care about it.		*/
 
-		sdr_exit_xn(ltpSdr);
-		return 0;
+		ltpSpanTally(vspan, IN_SEG_REDUNDANT, pdu->length);
+		return sdr_end_xn(ltpSdr);
 	}
 
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
@@ -3678,6 +3750,7 @@ putErrmsg("Discarding late segment.", itoa(sessionNbr));
 		/*	Data segment is for an unknown client service,
 		 *	so must discard it and cancel the session.	*/
 
+		ltpSpanTally(vspan, IN_SEG_UNK_CLIENT, pdu->length);
 		if (sessionObj)	/*	Session already exists.		*/
 		{
 			sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
@@ -3717,6 +3790,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		/*	This is a green-part data segment; deliver
 		 *	immediately to client service.			*/
 
+		ltpSpanTally(vspan, IN_SEG_RECV_GREEN, pdu->length);
 		if (sessionNbr == vspan->greenSessionNbr)
 		{
 			if (pdu->offset < vspan->greenOffset)
@@ -3763,6 +3837,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	{
 		/*	Miscolored segment: red after start of green.	*/
 
+		ltpSpanTally(vspan, IN_SEG_MISCOLORED, pdu->length);
 		if (sessionObj)		/*	Session exists.		*/
 		{
 			sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
@@ -3812,6 +3887,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 			 *	waiting for report acknowledgment.
 			 *	Discard the segment.			*/
 
+			ltpSpanTally(vspan, IN_SEG_REDUNDANT, pdu->length);
 			if (sdr_end_xn(ltpSdr) < 0)
 			{
 				putErrmsg("Can't handle data segment.", NULL);
@@ -3831,6 +3907,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 			/*	Session exists but has already been
 			 *	canceled.  Discard the segment.		*/
 
+			ltpSpanTally(vspan, IN_SEG_SES_CLOSED, pdu->length);
 			if (sdr_end_xn(ltpSdr) < 0)
 			{
 				putErrmsg("Can't handle data segment.", NULL);
@@ -3877,6 +3954,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	case 0:
 		/*	Segment was found to be useless.  Discard it.	*/
 
+		ltpSpanTally(vspan, IN_SEG_REDUNDANT, pdu->length);
 		return sdr_end_xn(ltpSdr);
 
 	case -1:
@@ -3887,6 +3965,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 
 	/*	Write the red-part reception segment to the database.	*/
 
+	ltpSpanTally(vspan, IN_SEG_RECV_RED, pdu->length);
 	if (sessionBuf.blockFileRef == 0)	/*	Store in heap.	*/
 	{
 		if (db.heapSpaceBytesOccupied + pdu->length
@@ -3957,6 +4036,7 @@ utoa(pdu->length));
 		/*	This segment is a checkpoint, so we have to
 		 *	send a report in response.			*/
 
+		ltpSpanTally(vspan, CKPT_RECV, 0);
 		if (sendReport(&sessionBuf, sessionObj, ckptSerialNbr,
 				rptSerialNbr, segUpperBound) < 0)
 		{
@@ -4331,6 +4411,7 @@ putErrmsg(buf, itoa(session->sessionNbr));
 		fflush(stdout);
 	}
 
+	ltpSpanTally(vspan, OUT_SEG_QUEUED, length);
 	return 0;
 }
 
@@ -4730,10 +4811,12 @@ putErrmsg("Discarding report.", NULL);
 
 	if (claim->offset == 0 && claim->length == sessionBuf.redPartLength)
 	{
+		ltpSpanTally(vspan, POS_RPT_RECV, 0);
 		MRELEASE(claim);	/*	(Sole claim in list.)	*/
 		lyst_destroy(claims);
 		stopExportSession(&sessionBuf);
 		closeExportSession(sessionObj);
+		ltpSpanTally(vspan, EXPORT_COMPLETE, 0);
 		if (sdr_end_xn(ltpSdr) < 0)
 		{
 			putErrmsg("Can't handle report segment.", NULL);
@@ -4751,6 +4834,7 @@ putErrmsg("Discarding report.", NULL);
 
 	/*	Not all data in the block has yet been received.	*/
 
+	ltpSpanTally(vspan, NEG_RPT_RECV, 0);
 	if (sessionBuf.checkpointsCount == MAX_NBR_OF_CHECKPOINTS)
 	{
 		/*	Limit reached, can't retransmit any more.
@@ -4976,6 +5060,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 			sdr_write(ltpSdr, sessionObj, (char *) &session,
 					sizeof(ImportSession));
 			closeImportSession(sessionObj);
+			ltpSpanTally(vspan, IMPORT_COMPLETE, 0);
 		}
 
 		if (sdr_end_xn(ltpSdr) < 0)
@@ -5048,6 +5133,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		return -1;
 	}
 
+	ltpSpanTally(vspan, EXPORT_CANCEL_RECV, 0);
 	getImportSession(vspan, sessionNbr, &sessionObj);
 	if (sessionObj)	/*	Can cancel session as requested.	*/
 	{
@@ -5164,6 +5250,7 @@ putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 		return -1;
 	}
 
+	ltpSpanTally(vspan, IMPORT_CANCEL_RECV, 0);
 	if (sessionObj)
 	{
 		sessionBuf.reasonCode = **cursor;

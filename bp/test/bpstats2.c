@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 #include "bpP.h"
-#include <bp.h>
+#include "ion.h"
 
 static BpSAP        sap;
 static BpVdb        *vdb;
@@ -44,24 +44,130 @@ void sendDefault(int sig)
 int appendStateStats(char *buffer, size_t len, int stateIdx)
 {
 	static char *classnames[] = 
-	{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "ctt", "exp" };
+	{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "rfw", "exp" };
+	Sdr		sdr = getIonsdr();
+	Object		bpDbObject = getBpDbObject();
+	BpDB		bpdb;
 	time_t startTime;
 	time_t currentTime;
-	BpStateStats *state;
+	BpCosStats	cosStats;
+	BpDbStats	dbStats;
+	Tally		tallies[4];
 
-	if(stateIdx < 0 || stateIdx > 7) { return -1; }
+	if (stateIdx < 0 || stateIdx > 7) { return -1; }
 
+	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
+	startTime = bpdb.resetTime;
 	currentTime = getUTCTime();
-	startTime = vdb->statsStartTime;
-	state = &(vdb->stateStats[stateIdx]);
+	switch (stateIdx)
+	{
+	case 0:
+		sdr_read(sdr, (char *) &cosStats, bpdb.sourceStats,
+				sizeof(BpCosStats));
+		memcpy((char *) &tallies[0], (char *) &cosStats.tallies[0],
+				sizeof(Tally));
+		memcpy((char *) &tallies[1], (char *) &cosStats.tallies[1],
+				sizeof(Tally));
+		memcpy((char *) &tallies[2], (char *) &cosStats.tallies[2],
+				sizeof(Tally));
+		tallies[3].currentCount = tallies[0].currentCount
+			+ tallies[1].currentCount + tallies[2].currentCount;
+		tallies[3].currentBytes = tallies[0].currentBytes
+			+ tallies[1].currentBytes + tallies[2].currentBytes;
+		break;
 
-	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) %u %lu (1) %u %lu \
-(2) %u %lu (@) %u %lu\n", classnames[stateIdx], (unsigned int) startTime,
+	case 1:
+		sdr_read(sdr, (char *) &dbStats, bpdb.dbStats,
+				sizeof(BpDbStats));
+		memset((char *) &tallies[0], 0, sizeof(Tally));
+		memset((char *) &tallies[1], 0, sizeof(Tally));
+		memset((char *) &tallies[2], 0, sizeof(Tally));
+		memcpy((char *) &tallies[3], (char *)
+				&dbStats.tallies[BP_DB_FWD_OKAY],
+				sizeof(Tally));
+		break;
+
+	case 2:
+		sdr_read(sdr, (char *) &cosStats, bpdb.xmitStats,
+				sizeof(BpCosStats));
+		memcpy((char *) &tallies[0], (char *) &cosStats.tallies[0],
+				sizeof(Tally));
+		memcpy((char *) &tallies[1], (char *) &cosStats.tallies[1],
+				sizeof(Tally));
+		memcpy((char *) &tallies[2], (char *) &cosStats.tallies[2],
+				sizeof(Tally));
+		tallies[3].currentCount = tallies[0].currentCount
+			+ tallies[1].currentCount + tallies[2].currentCount;
+		tallies[3].currentBytes = tallies[0].currentBytes
+			+ tallies[1].currentBytes + tallies[2].currentBytes;
+		break;
+
+	case 3:
+		sdr_read(sdr, (char *) &cosStats, bpdb.recvStats,
+				sizeof(BpCosStats));
+		memcpy((char *) &tallies[0], (char *) &cosStats.tallies[0],
+				sizeof(Tally));
+		memcpy((char *) &tallies[1], (char *) &cosStats.tallies[1],
+				sizeof(Tally));
+		memcpy((char *) &tallies[2], (char *) &cosStats.tallies[2],
+				sizeof(Tally));
+		tallies[3].currentCount = tallies[0].currentCount
+			+ tallies[1].currentCount + tallies[2].currentCount;
+		tallies[3].currentBytes = tallies[0].currentBytes
+			+ tallies[1].currentBytes + tallies[2].currentBytes;
+		break;
+
+	case 4:
+		memset((char *) &tallies[0], 0, sizeof(Tally));
+		memset((char *) &tallies[1], 0, sizeof(Tally));
+		memset((char *) &tallies[2], 0, sizeof(Tally));
+		memset((char *) &tallies[3], 0, sizeof(Tally));
+		break;
+
+	case 5:
+		memset((char *) &tallies[0], 0, sizeof(Tally));
+		memset((char *) &tallies[1], 0, sizeof(Tally));
+		memset((char *) &tallies[2], 0, sizeof(Tally));
+		memset((char *) &tallies[3], 0, sizeof(Tally));
+		break;
+
+	case 6:
+		sdr_read(sdr, (char *) &dbStats, bpdb.dbStats,
+				sizeof(BpDbStats));
+		memset((char *) &tallies[0], 0, sizeof(Tally));
+		memset((char *) &tallies[1], 0, sizeof(Tally));
+		memset((char *) &tallies[2], 0, sizeof(Tally));
+		memcpy((char *) &tallies[3], (char *)
+				&dbStats.tallies[BP_DB_REQUEUED_FOR_FWD],
+				sizeof(Tally));
+		break;
+
+	case 7:
+		sdr_read(sdr, (char *) &dbStats, bpdb.dbStats,
+				sizeof(BpDbStats));
+		memset((char *) &tallies[0], 0, sizeof(Tally));
+		memset((char *) &tallies[1], 0, sizeof(Tally));
+		memset((char *) &tallies[2], 0, sizeof(Tally));
+		memcpy((char *) &tallies[3], (char *)
+				&dbStats.tallies[BP_DB_EXPIRED],
+				sizeof(Tally));
+		break;
+
+	default:
+		memset((char *) &tallies[0], 0, sizeof(Tally));
+		memset((char *) &tallies[1], 0, sizeof(Tally));
+		memset((char *) &tallies[2], 0, sizeof(Tally));
+		memset((char *) &tallies[3], 0, sizeof(Tally));
+	}
+
+	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) %u %lu \
+(1) %u %lu (2) %u %lu (+) %u %lu\n", classnames[stateIdx],
+			(unsigned int) startTime,
 			(unsigned int) currentTime,
-			state->stats[0].bundles, state->stats[0].bytes,
-			state->stats[1].bundles, state->stats[1].bytes,
-			state->stats[2].bundles, state->stats[2].bytes,
-			state->stats[3].bundles, state->stats[3].bytes);
+			tallies[0].currentCount, tallies[0].currentBytes,
+			tallies[1].currentCount, tallies[1].currentBytes,
+			tallies[2].currentCount, tallies[2].currentBytes,
+			tallies[3].currentCount, tallies[3].currentBytes);
 }
 
 int sendStats(char *destEid, char *buffer, size_t len)

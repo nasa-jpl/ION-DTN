@@ -56,9 +56,9 @@ echo "Contact has terminated.  Verifying results..."
 # Verify bundle was forwarded.
 RETVAL=0
 
-echo "Checking ion.log for 'src' message '(1) 1 6'..."
-COUNT=`grep src ion.log | grep "(1) 1 6" | wc -l`
-if [ $COUNT -eq 1 ]
+echo "Checking ion.log for 'src' message '(+) 1 6'..."
+COUNT=`grep src ion.log | grep "(+) 1 6" | wc -l`
+if [ $COUNT -gt 0 ]
 then
 	echo "OK: Bundle was sourced."
 else
@@ -66,9 +66,9 @@ else
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'fwd' message '(1) 2 12'..."
-COUNT=`grep fwd ion.log | grep "(1) 2 12" | wc -l`
-if [ $COUNT -eq 1 ]
+echo "Checking ion.log for 'fwd' message '(+) 2 12'..."
+COUNT=`grep fwd ion.log | grep "(+) 2 12" | wc -l`
+if [ $COUNT -gt 0 ]
 then
 	echo "OK: Bundle was reforwarded exactly once."
 else

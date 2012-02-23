@@ -242,6 +242,14 @@ typedef struct
 	PsmAddress	probes;		/*	SM list: IonProbe	*/
 } IonVdb;
 
+typedef struct
+{
+	unsigned int	totalCount;
+	unsigned long	totalBytes;
+	unsigned int	currentCount;
+	unsigned long	currentBytes;
+} Tally;
+
 #ifndef MTAKE
 #define MTAKE(size)	allocFromIonMemory(__FILE__, __LINE__, size)
 #define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)
