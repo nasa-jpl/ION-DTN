@@ -138,6 +138,56 @@ void	bsp_babClear(AcqExtBlock *blk)
    return;
 }
 
+int	bsp_babCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
+{
+	Sdr	bpSdr = getIonsdr();
+	char	*buffer;
+	int	result = 0;
+
+	BSP_DEBUG_PROC("+ bsp_babCopy(%x, %x)", (unsigned long) newBlk,
+		   (unsigned long) oldBlk);
+	CHKERR(newBlk);
+	CHKERR(oldBlk);
+	if (oldBlk->size == 0)
+	{
+		newBlk->object = 0;
+		newBlk->size = 0;
+	}
+	else
+	{
+		buffer = MTAKE(oldBlk->size);
+		if (buffer == NULL)
+		{
+      			BSP_DEBUG_ERR("x bsp_babCopy: Failed to allocate \
+buffer of size: %d", oldBlk->size);
+			result = -1;
+		}
+		else
+		{
+			sdr_read(bpSdr, buffer, oldBlk->object, oldBlk->size);
+			newBlk->object = sdr_malloc(bpSdr, oldBlk->size);
+			if (newBlk->object == 0)
+			{
+				BSP_DEBUG_ERR("x bsp_babCopy: Failed to SDR \
+allocate object of size: %d", oldBlk->size);
+				result = -1;
+			}
+			else
+			{
+				sdr_write(bpSdr, newBlk->object, buffer,
+						oldBlk->size);
+				newBlk->size = oldBlk->size;
+			}
+
+			MRELEASE(buffer);
+		}
+	}
+
+	BSP_DEBUG_PROC("- bsp_babCopy(%c)", ' ');
+
+	return result;
+}
+
 
 /******************************************************************************
  *
@@ -1239,9 +1289,8 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
          bytesRetrieved, chunkSize);
 
       MRELEASE(authContext);
-      sdr_end_xn(bpSdr);
-
-         *hashLen = 0;
+      oK(sdr_end_xn(bpSdr));
+      *hashLen = 0;
       BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
       MRELEASE(dataBuffer);
       return NULL;
@@ -1265,8 +1314,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
                      BAB_HMAC_SHA1_RESULT_LEN);
 
    MRELEASE(authContext);
-      sdr_end_xn(bpSdr);
-
+      oK(sdr_end_xn(bpSdr));
       *hashLen = 0;
    BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
    MRELEASE(dataBuffer);
@@ -1282,8 +1330,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    MRELEASE(authContext);
    if ((i = sdr_end_xn(bpSdr)) < 0)
    {
-      BSP_DEBUG_ERR("x bsp_babGetSecResult: Failed closing transaction. Result is %d.",
-                     i);
+      BSP_DEBUG_ERR("x bsp_babGetSecResult: Failed closing transaction. Result is %d.", i);
 
       MRELEASE(hashData);
       *hashLen = 0;

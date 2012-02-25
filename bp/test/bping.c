@@ -163,8 +163,7 @@ void *receiveResponses(void *x)
 		zco_start_receiving(dlv.adu, &reader);
 		sdr_begin_xn(sdr);
 		result = zco_receive_source(sdr, &reader, bytesToRead, buffer);
-		sdr_exit_xn(sdr);
-	       	if (result < 0)
+		if (sdr_end_xn(sdr) < 0 || result < 0)
 		{
 			putErrmsg("Can't receive payload.", NULL);
 			fprintf(stderr, "Can't receive payload.\n");

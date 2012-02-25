@@ -201,8 +201,7 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	zco_start_receiving(zco, &reader);
 	sdr_begin_xn(sdr);
 	result = zco_receive_source(sdr, &reader, length, *buffer);
-	sdr_exit_xn(sdr);
-       	if (result < 0)
+	if (sdr_end_xn(sdr) < 0 || result < 0)
 	{
 		putErrmsg("Failed reading green segment data.", NULL);
 		return -1;

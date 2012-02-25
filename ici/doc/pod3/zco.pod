@@ -43,8 +43,11 @@ that reference them have been deleted.
 Note that the safety of shared access to a ZCO is protected by the
 fact that the ZCO resides in SDR and therefore cannot be modified
 other than in the course of an SDR transaction, which serializes
-access.  For this reason, all ZCO "transmit" and "receive" functions
-should be performed within SDR transactions.
+access.  Moreover, extraction of data from a ZCO may entail the reading
+of file-based source data extents, which may cause file progress to
+be updated in one or more file reference objects in the SDR heap.  For
+this reason, all ZCO "transmit" and "receive" functions must be performed
+within SDR transactions.
 
 Note also that ZCO can more broadly be used as a general-purpose
 reference counting system for non-volatile data objects, where a

@@ -103,7 +103,8 @@ int	main(int argc, char **argv)
 putchar(dlvmarks[dlv.result]);
 fflush(stdout);
 			if (dlv.result == BpEndpointStopped
-			|| (dlv.result == BpReceptionInterrupted && running == 0))
+			|| (dlv.result == BpReceptionInterrupted
+					&& running == 0))
 			{
 				running = 0;
 				continue;
@@ -113,18 +114,20 @@ fflush(stdout);
 			{
 				istrcpy(sourceEid, dlv.bundleSourceEid,
 						sizeof sourceEid);
-				bytesToEcho = MIN(zco_source_data_length(sdr, dlv.adu), ADU_LEN);
+				bytesToEcho = MIN(zco_source_data_length(sdr,
+						dlv.adu), ADU_LEN);
 				zco_start_receiving(dlv.adu, &reader);
 				sdr_begin_xn(sdr);
 				result = zco_receive_source(sdr, &reader,
 						bytesToEcho, dataToSend);
-				sdr_exit_xn(sdr);
-			       	if (result < 0)
+				if (sdr_end_xn(sdr) < 0 || result < 0)
 				{
-					putErrmsg("Can't receive payload.", NULL);
+					putErrmsg("Can't receive payload.",
+							NULL);
 					running = 0;
 					continue;
 				}
+
 				bp_release_delivery(&dlv, 1);
 				break;	/*	Out of reception loop.	*/
 			}
@@ -149,7 +152,8 @@ fflush(stdout);
 		}
 
 		sdr_write(sdr, extent, dataToSend, bytesToEcho);
-		bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0, bytesToEcho);
+		bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0,
+				bytesToEcho);
 		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
 		{
 			putErrmsg("Can't create ZCO.", NULL);

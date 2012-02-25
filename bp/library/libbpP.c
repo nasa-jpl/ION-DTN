@@ -3882,7 +3882,7 @@ static int	catalogueBundle(Bundle *bundle, Object bundleObj)
 			bundle->payload.length) > BUNDLES_HASH_KEY_LEN)
 	{
 		writeMemoNote("[?] Max hash key length exceeded; bundle \
-cannot be retrieved by key.", bundleKey);
+cannot be retrieved by key", bundleKey);
 		MRELEASE(sourceEid);
 		releaseDictionary(dictionary);
 		return 0;
@@ -3909,7 +3909,7 @@ cannot be retrieved by key.", bundleKey);
 		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
 		bundle->hashEntry = hashElt;
 		writeMemoNote("[?] Bundle hash key is not unique; bundles \
-cannot be retrieved by key.", bundleKey);
+cannot be retrieved by key", bundleKey);
 		break;
 
 	default:	/*	No such pre-existing entry.		*/
@@ -4007,23 +4007,28 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	{
 		/*	The new bundle is a fragment of the original.	*/
 
-		if (oldBundle->totalAduLength == 0)
-		{
-			/*	Original bundle is NOT a fragment.	*/
-
-			newBundle->id.fragmentOffset = offset;
-			newBundle->totalAduLength = oldBundle->payload.length;
-		}
-		else	/*	Original bundle is a fragment.		*/
+		if (oldBundle->bundleProcFlags & BDL_IS_FRAGMENT)
 		{
 			newBundle->id.fragmentOffset =
 					oldBundle->id.fragmentOffset + offset;
 			/*	totalAduLength has already been copied.	*/
+
+		}
+		else	/*	Original bundle is NOT a fragment.	*/
+		{
+			newBundle->id.fragmentOffset = offset;
+			newBundle->totalAduLength = oldBundle->payload.length;
+			newBundle->bundleProcFlags |= BDL_IS_FRAGMENT;
 		}
 	}
 
 	/*	Copy extension blocks and collaboration blocks.		*/
 
+	newBundle->extensions[0] = 0;
+	newBundle->extensionsLength[1] = 0;
+	newBundle->extensions[1] = 0;
+	newBundle->extensionsLength[0] = 0;
+	newBundle->collabBlocks = 0;
 	if (copyExtensionBlocks(newBundle, oldBundle) < 0)
 	{
 		putErrmsg("Can't copy extensions.", NULL);
@@ -4061,15 +4066,15 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 
 	/*	Add new bundle to lookup hash table and timeline.	*/
 
-	if (setBundleTTL(newBundle, *newBundleObj) < 0)
-	{
-		putErrmsg("Can't insert copy of bundle into timeline.", NULL);
-		return -1;
-	}
-
 	if (catalogueBundle(newBundle, *newBundleObj) < 0)
 	{
 		putErrmsg("Can't catalogue bundle copy in hash table.", NULL);
+		return -1;
+	}
+
+	if (setBundleTTL(newBundle, *newBundleObj) < 0)
+	{
+		putErrmsg("Can't insert copy of bundle into timeline.", NULL);
 		return -1;
 	}
 
@@ -4083,9 +4088,30 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	newBundle->trackingElts = sdr_list_create(bpSdr);
 	newBundle->incompleteElt = 0;
 	newBundle->ductXmitElt = 0;
-	newBundle->proxNodeEid = 0;
-	newBundle->destDuctName = 0;
-	newBundle->enqueueTime = 0;
+
+	/*	Retain relevant routing information.			*/
+
+	if (oldBundle->proxNodeEid)
+	{
+		newBundle->proxNodeEid = sdr_string_dup(bpSdr,
+				oldBundle->proxNodeEid);
+		if (newBundle->proxNodeEid == 0)
+		{
+			putErrmsg("Can't copy proxNodeEid.", NULL);
+			return -1;
+		}
+	}
+
+	if (oldBundle->destDuctName)
+	{
+		newBundle->destDuctName = sdr_string_dup(bpSdr,
+				oldBundle->destDuctName);
+		if (newBundle->destDuctName == 0)
+		{
+			putErrmsg("Can't copy destDuctName.", NULL);
+			return -1;
+		}
+	}
 
 	/*	Adjust database occupancy, record bundle, return.	*/
 
@@ -5217,9 +5243,14 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 	/*	Now collect payload data from all remaining fragments,
 	 *	discarding overlaps, and destroy the fragments.		*/
 
-	for (elt = sdr_list_next(bpSdr, elt); elt;
-			elt = sdr_list_next(bpSdr, elt))
+	while (1)
 	{
+		elt = sdr_list_first(bpSdr, incomplete->fragments);
+		if (elt == 0)
+		{
+			break;
+		}
+
 		fragmentObj = sdr_list_data(bpSdr, elt);
 		sdr_stage(bpSdr, (char *) &fragBuf, fragmentObj,
 				sizeof(Bundle));
@@ -6956,16 +6987,17 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 int	bpEndAcq(AcqWorkArea *work)
 {
-	Sdr		bpSdr = getIonsdr();
-	int		acqLength;
+	Sdr	bpSdr = getIonsdr();
+	int	result;
+	int	acqLength;
 
 	CHKERR(work);
 	CHKERR(work->zco);
 	work->zcoLength = zco_length(bpSdr, work->zco);
 	sdr_begin_xn(bpSdr);
 	zco_start_receiving(work->zco, &(work->reader));
-	CHKERR(advanceWorkBuffer(work, 0) == 0);
-	if (sdr_end_xn(bpSdr) < 0)
+	result = advanceWorkBuffer(work, 0);
+	if (sdr_end_xn(bpSdr) < 0 || result < 0)
 	{
 		putErrmsg("Acq buffer initialization failed.", NULL);
 		return -1;
@@ -7497,7 +7529,7 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	if ((buffer = MTAKE(buflen)) == NULL)
 	{
 		putErrmsg("Can't start parsing admin record.", NULL);
-		sdr_exit_xn(bpSdr);
+		oK(sdr_end_xn(bpSdr));
 		return -1;
 	}
 
@@ -7506,7 +7538,7 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	if (bytesToParse < 0)
 	{
 		putErrmsg("Can't receive admin record.", NULL);
-		sdr_exit_xn(bpSdr);
+		oK(sdr_end_xn(bpSdr));
 		MRELEASE(buffer);
 		return -1;
 	}
@@ -7517,7 +7549,7 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	{
 		writeMemoNote("[?] Incoming admin record too short",
 				itoa(unparsedBytes));
-		sdr_exit_xn(bpSdr);
+		oK(sdr_end_xn(bpSdr));
 		MRELEASE(buffer);
 		return 0;
 	}
@@ -7544,7 +7576,7 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 		result = 0;
 	}
 
-	sdr_exit_xn(bpSdr);
+	oK(sdr_end_xn(bpSdr));
 	MRELEASE(buffer);
 	return result;
 }
@@ -8362,8 +8394,18 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 		return 0;
 	}
 
-	bundle->proxNodeEid = 0;
-	bundle->destDuctName = 0;
+	if (bundle->proxNodeEid)
+	{
+		sdr_free(bpSdr, bundle->proxNodeEid);
+		bundle->proxNodeEid = 0;
+	}
+
+	if (bundle->destDuctName)
+	{
+		sdr_free(bpSdr, bundle->destDuctName);
+		bundle->destDuctName = 0;
+	}
+
 	bundle->ductXmitElt = sdr_list_insert_last(bpSdr,
 			bpConstants->limboQueue, bundleObj);
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
@@ -8973,10 +9015,15 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 			}
 
 			/*	Lose the original bundle, inserting
-			 *	the two fragments in its place.		*/
+			 *	the two fragments in its place.  No
+			 *	significant change to backlog, so we
+			 *	don't call purgeDuctXmitElt which calls
+			 *	removeBundleFromQueue.			*/
 
 			sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
 			bundle->ductXmitElt = 0;
+			sdr_write(bpSdr, *bundleObj, (char *) bundle,
+					sizeof(Bundle));
 			if (bpDestroyBundle(*bundleObj, 0) < 0)
 			{
 				putErrmsg("CLO can't destroy original bundle.",
@@ -8986,8 +9033,12 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 
 			secondBundle.ductXmitElt = sdr_list_insert_first(bpSdr,
 				sourceFlow->outboundBundles, secondBundleObj);
+			sdr_write(bpSdr, secondBundleObj,
+				(char *) &secondBundle, sizeof(Bundle));
 			firstBundle.ductXmitElt = sdr_list_insert_first(bpSdr,
 				sourceFlow->outboundBundles, firstBundleObj);
+			sdr_write(bpSdr, firstBundleObj,
+				(char *) &firstBundle, sizeof(Bundle));
 			xmitElt = firstBundle.ductXmitElt;
 			*bundleObj = firstBundleObj;
 			memcpy((char *) bundle, (char *) &firstBundle,
@@ -9005,13 +9056,16 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 		 *	since this bundle was enqueued to this duct,
 		 *	re-forward the bundle on a different route
 		 *	(if possible).  Note that we can only track
-		 *	snubs for CBHE-conformant destination nodes.	*/
+		 *	snubs that are issued by neighbors reached
+		 *	via LTP ducts and are for nodes identified by
+		 *	CBHE-conformant endpoint IDs.			*/
 
-		if (bundle->id.source.cbhe)
+		if (bundle->destination.cbhe
+		&& strcmp(vduct->protocolName, "ltp") == 0)
 		{
 			neighborNodeNbr = strtoul(vduct->ductName, NULL, 0);
 			destNode = findNode(getIonVdb(),
-				bundle->id.source.c.nodeNbr, &nextNode);
+				bundle->destination.c.nodeNbr, &nextNode);
 			if (destNode)	/*	Node might have snubs.	*/
 			{
 				/*	Check list of nodes that have
@@ -9655,7 +9709,7 @@ static int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer,
 	if (bytesBuffered < 0)
 	{
 		putErrmsg("Can't extract primary block.", NULL);
-		sdr_exit_xn(sdr);
+		oK(sdr_end_xn(sdr));
 		return -1;
 	}
 
@@ -9663,12 +9717,11 @@ static int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer,
 			dictionary, bundleLength) < 0)
 	{
 		putErrmsg("Can't decode bundle header.", NULL);
-		sdr_exit_xn(sdr);
+		oK(sdr_end_xn(sdr));
 		return -1;
 	}
 
-	sdr_exit_xn(sdr);
-	return 0;
+	return sdr_end_xn(sdr);
 }
 
 int	bpIdentify(Object bundleZco, Object *bundleObj)

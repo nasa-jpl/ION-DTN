@@ -222,8 +222,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 		sdr_begin_xn(sdr);
 		bytesLoaded = zco_transmit(sdr, &reader, bytesToLoad,
 				(char *) buffer + bytesBuffered);
-		sdr_exit_xn(sdr);
-		if (bytesLoaded != bytesToLoad)
+		if (sdr_end_xn(sdr) < 0 || bytesLoaded != bytesToLoad)
 		{
 			putErrmsg("ZCO length error.", NULL);
 			return -1;

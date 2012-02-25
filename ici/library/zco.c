@@ -709,9 +709,10 @@ Object	zco_clone(Sdr sdr, Object zco, unsigned int offset,
 	/*	Set up reading of old ZCO.				*/
 
 	sdr_read(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
-	if ((offset + length) > zcoBuf.totalLength)
+	if ((offset + length) >
+			(zcoBuf.totalLength - zcoBuf.aggregateCapsuleLength))
 	{
-		putErrmsg("Offset + length exceeds zco length",
+		putErrmsg("Offset + length exceeds zco source data length",
 				utoa(offset + length));
 		return 0;
 	}
@@ -1095,7 +1096,11 @@ int	zco_transmit(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 	CHKERR(sdr);
 	CHKERR(reader);
-	CHKERR(length);
+	if (length == 0)
+	{
+		return 0;
+	}
+
 	sdr_read(sdr, (char *) &zco, reader->zco, sizeof(Zco));
 	bytesToSkip = reader->lengthCopied;
 	bytesToTransmit = length;
@@ -1246,7 +1251,11 @@ int	zco_receive_headers(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 	CHKERR(sdr);
 	CHKERR(reader);
-	CHKERR(length > 0);
+	if (length == 0)
+	{
+		return 0;
+	}
+
 	sdr_read(sdr, (char *) &zco, reader->zco, sizeof(Zco));
 	bytesToSkip = reader->headersLengthCopied;
 	bytesToReceive = length;
@@ -1337,7 +1346,11 @@ int	zco_receive_source(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 	CHKERR(sdr);
 	CHKERR(reader);
-	CHKERR(length > 0);
+	if (length == 0)
+	{
+		return 0;
+	}
+
 	sdr_read(sdr, (char *) &zco, reader->zco, sizeof(Zco));
 	bytesToSkip = zco.headersLength + reader->sourceLengthCopied;
 	bytesToReceive = length;
@@ -1404,7 +1417,11 @@ int	zco_receive_trailers(Sdr sdr, ZcoReader *reader, unsigned int length,
 
 	CHKERR(sdr);
 	CHKERR(reader);
-	CHKERR(length > 0);
+	if (length == 0)
+	{
+		return 0;
+	}
+
 	sdr_read(sdr, (char *) &zco, reader->zco, sizeof(Zco));
 	bytesToSkip = zco.headersLength + zco.sourceLength
 			+ reader->trailersLengthCopied;

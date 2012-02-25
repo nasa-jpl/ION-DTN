@@ -107,6 +107,7 @@ static void *       recvBundles(void *args)
 			putErrmsg("Couldn't take sdr mutex.", NULL);
 			break;
 		}
+
 		bundleLenRemaining = zco_source_data_length(sdr, dlv.adu);
 		zco_start_receiving(dlv.adu, &reader);
 		sdr_begin_xn(sdr);
@@ -118,7 +119,12 @@ static void *       recvBundles(void *args)
 			printf("%.*s", rc, buffer);
 			fflush(stdout);
 		}
-		sdr_exit_xn(sdr);
+
+		if (sdr_end_xn(sdr) < 0)
+		{
+			running = 0;
+		}
+
 		pthread_mutex_unlock(&sdrmutex);
 		bp_release_delivery(&dlv, 1);
 	}        

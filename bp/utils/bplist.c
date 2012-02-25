@@ -10,6 +10,12 @@
 #include <bpP.h>
 #include <bei.h>
 
+static void	handleQuit()
+{
+	oK(sdr_end_xn(bp_get_sdr()));
+	sm_TaskKill(sm_TaskIdSelf(), SIGKILL);
+}
+
 static void	printDictionary(char *dictionary, int dictionaryLength)
 {
 	int	offset = 0;
@@ -333,6 +339,7 @@ in outduct '%.64s' of protocol '%.16s', priority %d.", ductName, protocolName,
 
 	sdr = bp_get_sdr();
 	sdr_begin_xn(sdr);	/*	Lock database for duration.	*/
+	isignal(SIGINT, handleQuit);
 	if (protocolName == NULL)	/*	All bundles.		*/
 	{
 		bpConstants = getBpConstants();
@@ -395,7 +402,7 @@ in outduct '%.64s' of protocol '%.16s', priority %d.", ductName, protocolName,
 			{
 				isprintf(msgbuf, sizeof msgbuf, "Count is %ld.",
 						sdr_list_length(sdr, list));
-				sdr_exit_xn(sdr);
+				writeMemo(msgbuf);
 			}
 			else
 			{

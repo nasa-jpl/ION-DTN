@@ -298,7 +298,12 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 			{
 				/*	Must copy extension object.	*/
 
-				def->copy(&newBlk, oldBlk);
+				if (def->copy(&newBlk, oldBlk) < 0)
+				{
+					putErrmsg("Can't copy extension obj.",
+							utoa(oldBlk->size));
+					return -1;
+				}
 			}
 			else
 			{

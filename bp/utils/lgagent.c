@@ -83,7 +83,11 @@ static int	processCmdFile(Sdr sdr, BpDelivery *dlv)
 	zco_start_receiving(dlv->adu, &reader);
 	sdr_begin_xn(sdr);
 	len = zco_receive_source(sdr, &reader, contentLength, content);
-	sdr_exit_xn(sdr);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		return -1;
+	}
+
 	if (len < 0)
 	{
 		MRELEASE(content);

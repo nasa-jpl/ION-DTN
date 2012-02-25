@@ -65,30 +65,34 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 
 		if (zco_receive_source(sdr, &reader, recvLength, buffer) < 0)
 		{
-			close(testFile);
-			sdr_exit_xn(sdr);
 			putErrmsg("bprecvfile: can't receive bundle content.",
 					fileName);
+			close(testFile);
+			oK(sdr_end_xn(sdr));
 			return -1;
 		}
 
 		if (write(testFile, buffer, recvLength) < 1)
 		{
-			close(testFile);
-			sdr_exit_xn(sdr);
 			putSysErrmsg("bprecvfile: can't write to test file",
 					fileName);
+			close(testFile);
+			oK(sdr_end_xn(sdr));
 			return -1;
 		}
 
 		remainingLength -= recvLength;
 	}
 
-	close(testFile);
-	sdr_exit_xn(sdr);
-	isprintf(completionText, sizeof completionText, "bprecvfile has \
+	isprintf(completionText, sizeof completionText, "[i] bprecvfile has \
 created '%s', size %d.", fileName, contentLength);
 	writeMemo(completionText);
+	close(testFile);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		return -1;
+	}
+
 	return 0;
 }
 

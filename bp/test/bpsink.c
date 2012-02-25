@@ -125,8 +125,7 @@ int	main(int argc, char **argv)
 				sdr_begin_xn(sdr);
 				len = zco_receive_source(sdr, &reader,
 						contentLength, content);
-				sdr_exit_xn(sdr);
-				if (len < 0)
+				if (sdr_end_xn(sdr) < 0 || len < 0)
 				{
 					putErrmsg("Can't handle delivery.",
 							NULL);
