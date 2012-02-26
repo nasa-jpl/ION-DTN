@@ -456,7 +456,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr, vinduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
-	if (protocol.nominalRate <= 0)
+	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_DGR_RATE;
 		voutduct->xmitThrottle.nominalRate = DEFAULT_DGR_RATE;

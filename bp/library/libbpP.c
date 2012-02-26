@@ -1984,14 +1984,13 @@ static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
 	return 0;
 }
 
-static void	removeBundleFromQueue(Bundle *bundle, ClProtocol *protocol,
-			Object outductObj, Outduct *outduct)
+static void	removeBundleFromQueue(Bundle *bundle, Object bundleObj,
+			ClProtocol *protocol, Object outductObj,
+			Outduct *outduct)
 {
 	Sdr		bpSdr = getIonsdr();
 	int		backlogDecrement;
 	OrdinalState	*ord;
-
-	sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
 
 	/*	Removal from queue reduces outduct's backlog.		*/
 
@@ -2016,9 +2015,14 @@ static void	removeBundleFromQueue(Bundle *bundle, ClProtocol *protocol,
 
 		reduceScalar(&(outduct->urgentBacklog), backlogDecrement);
 	}
+
+	sdr_write(bpSdr, outductObj, (char *) outduct, sizeof(Outduct));
+	sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
+	bundle->ductXmitElt = 0;
+	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 }
 
-static void	purgeDuctXmitElt(Bundle *bundle)
+static void	purgeDuctXmitElt(Bundle *bundle, Object bundleObj)
 {
 	Sdr		bpSdr = getIonsdr();
 	Object		queue;
@@ -2037,8 +2041,8 @@ static void	purgeDuctXmitElt(Bundle *bundle)
 	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 	sdr_read(bpSdr, (char *) &protocol, outduct.protocol,
 			sizeof(ClProtocol));
-	removeBundleFromQueue(bundle, &protocol, outductObj, &outduct);
-	sdr_write(bpSdr, outductObj, (char *) &outduct, sizeof(Outduct));
+	removeBundleFromQueue(bundle, bundleObj, &protocol, outductObj,
+			&outduct);
 }
 
 void	destroyBpTimelineEvent(Object timelineElt)
@@ -2144,8 +2148,7 @@ incomplete bundle.", NULL);
 
 		if (bundle.ductXmitElt)
 		{
-			purgeDuctXmitElt(&bundle);
-			bundle.ductXmitElt = 0;
+			purgeDuctXmitElt(&bundle, bundleObj);
 		}
 
 		if (bundle.proxNodeEid)
@@ -2987,6 +2990,11 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 	istrcpy(clpbuf.name, protocolName, sizeof clpbuf.name);
 	clpbuf.payloadBytesPerFrame = payloadPerFrame;
 	clpbuf.overheadPerFrame = ohdPerFrame;
+	if (nominalRate < 0)
+	{
+		nominalRate = -1;	/*	Disables rate control.	*/
+	}
+
 	clpbuf.nominalRate = nominalRate;
 	clpbuf.inducts = sdr_list_create(bpSdr);
 	clpbuf.outducts = sdr_list_create(bpSdr);
@@ -5991,10 +5999,16 @@ static int	applyRecvRateControl(AcqWorkArea *work)
 	sdr_begin_xn(bpSdr);		/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(bpSdr, Induct, induct, sdr_list_data(bpSdr,
 			work->vduct->inductElt));
+	throttle = &(work->vduct->acqThrottle);
+	if (throttle->nominalRate < 0)	/*	No rate control.	*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	GET_OBJ_POINTER(bpSdr, ClProtocol, protocol, induct->protocol);
 	recvLength = computeECCC(bundle->payload.length
 			+ NOMINAL_PRIMARY_BLKSIZE, protocol);
-	throttle = &(work->vduct->acqThrottle);
 	while (throttle->capacity <= 0)
 	{
 		sdr_exit_xn(bpSdr);
@@ -8427,7 +8441,8 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 
 	bundleAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-	removeBundleFromQueue(&bundle, protocol, outductObj, outduct);
+	removeBundleFromQueue(&bundle, bundleAddr, protocol, outductObj,
+			outduct);
 	if (bundle.proxNodeEid)
 	{
 		sdr_free(bpSdr, bundle.proxNodeEid);
@@ -8968,10 +8983,8 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 				 *	with.  Reforward it and get
 				 *	another bundle.			*/
 
-				removeBundleFromQueue(bundle, protocol,
-						outductObj, outduct);
-				sdr_write(bpSdr, outductObj, (char *) outduct,
-						sizeof(Outduct));
+				removeBundleFromQueue(bundle, *bundleObj,
+						protocol, outductObj, outduct);
 				if (bpReforwardBundle(*bundleObj) < 0)
 				{
 					putErrmsg("Frag refwd failed.", NULL);
@@ -9048,8 +9061,8 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 		/*	Pop the selected bundle out of its transmission
 		 *	queue.						*/
 
-		removeBundleFromQueue(bundle, protocol, outductObj, outduct);
-		sdr_write(bpSdr, outductObj, (char *) outduct, sizeof(Outduct));
+		removeBundleFromQueue(bundle, *bundleObj, protocol, outductObj,
+				outduct);
 
 		/*	If the neighbor for this duct has begun
 		 *	snubbing bundles for the indicated destination
@@ -9164,27 +9177,32 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 
 	sdr_begin_xn(bpSdr);
 
-	/*	Transmission rate control: wait for capacity.		*/
+	/*	Transmission rate control: wait for capacity.  But
+	 *	no rate control if throttle nominal rate < 0.		*/
 
-	while (vduct->xmitThrottle.capacity <= 0)
+	if (vduct->xmitThrottle.nominalRate >= 0)
 	{
-		sdr_exit_xn(bpSdr);
-		if (sm_SemTake(vduct->xmitThrottle.semaphore) < 0)
+		while (vduct->xmitThrottle.capacity <= 0)
 		{
-			putErrmsg("CLO can't take throttle semaphore.", NULL);
-			return -1;
+			sdr_exit_xn(bpSdr);
+			if (sm_SemTake(vduct->xmitThrottle.semaphore) < 0)
+			{
+				putErrmsg("CLO can't take throttle semaphore.",
+						NULL);
+				return -1;
+			}
+
+			if (sm_SemEnded(vduct->xmitThrottle.semaphore))
+			{
+				writeMemo("[i] Outduct has been stopped.");
+
+				/*	End task, but without error.	*/
+
+				return -1;
+			}
+
+			sdr_begin_xn(bpSdr);
 		}
-
-		if (sm_SemEnded(vduct->xmitThrottle.semaphore))
-		{
-			writeMemo("[i] Outduct has been stopped.");
-
-			/*	End task, but without error.		*/
-
-			return -1;
-		}
-
-		sdr_begin_xn(bpSdr);
 	}
 
 	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
@@ -10066,8 +10084,7 @@ int	bpReforwardBundle(Object bundleAddr)
 
 	if (bundle.ductXmitElt)
 	{
-		purgeDuctXmitElt(&bundle);
-		bundle.ductXmitElt = 0;
+		purgeDuctXmitElt(&bundle, bundleAddr);
 	}
 
 	if (bundle.proxNodeEid)

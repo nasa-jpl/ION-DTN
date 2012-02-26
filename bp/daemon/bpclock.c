@@ -268,7 +268,6 @@ static void	applyRateControl(Sdr sdr)
 	PsmAddress	elt;
 	VInduct		*induct;
 	VOutduct	*outduct;
-	long		capacityLimit;
 
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 
@@ -283,11 +282,14 @@ static void	applyRateControl(Sdr sdr)
 	{
 		induct = (VInduct *) psp(ionwm, sm_list_data(ionwm, elt));
 		throttle = &(induct->acqThrottle);
-		capacityLimit = throttle->nominalRate << 1;
-		throttle->capacity += throttle->nominalRate;
-		if (throttle->capacity > capacityLimit)
+		if (throttle->nominalRate < 0)
 		{
-			throttle->capacity = capacityLimit;
+			continue;	/*	Not rate-controlled.	*/
+		}
+
+		if (throttle->capacity <= 0)
+		{
+			throttle->capacity += throttle->nominalRate;
 		}
 
 		if (throttle->capacity > 0)
@@ -303,11 +305,14 @@ static void	applyRateControl(Sdr sdr)
 	{
 		outduct = (VOutduct *) psp(ionwm, sm_list_data(ionwm, elt));
 		throttle = &(outduct->xmitThrottle);
-		capacityLimit = throttle->nominalRate << 1;
-		throttle->capacity += throttle->nominalRate;
-		if (throttle->capacity > capacityLimit)
+		if (throttle->nominalRate < 0)
 		{
-			throttle->capacity = capacityLimit;
+			continue;	/*	Not rate-controlled.	*/
+		}
+
+		if (throttle->capacity <= 0)
+		{
+			throttle->capacity += throttle->nominalRate;
 		}
 
 		if (throttle->capacity > 0)

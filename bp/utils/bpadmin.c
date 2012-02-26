@@ -272,11 +272,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (tokenCount == 6)
 		{
 			nominalRate = atol(tokens[5]);
-			if (nominalRate < 0)
-			{
-				SYNTAX_ERROR;
-				return;
-			}
 		}
 
 		addProtocol(tokens[2], atoi(tokens[3]), atoi(tokens[4]),

@@ -294,7 +294,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
-	if (protocol.nominalRate <= 0)
+	if (protocol.nominalRate == 0)
 	{
 		vduct->xmitThrottle.nominalRate = DEFAULT_TCP_RATE;
 	}

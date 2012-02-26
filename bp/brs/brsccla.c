@@ -298,7 +298,7 @@ number>");
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			voutduct->outductElt), sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
-	if (protocol.nominalRate <= 0)
+	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_BRS_RATE;
 		voutduct->xmitThrottle.nominalRate = DEFAULT_BRS_RATE;
