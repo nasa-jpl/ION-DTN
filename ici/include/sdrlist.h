@@ -26,7 +26,7 @@ extern "C" {
 /*	Functions for operating on linked lists in SDR.			*/
 
 typedef int		(*SdrListCompareFn)(Sdr sdr, Address eltData,
-				void *argData);
+				void *dataBuffer);
 /*	Note: an SdrListCompareFn operates by comparing some value(s)
 	derived from its first argument (which will always be the
 	sdr_list_data of some SDR list element) to some value(s)
@@ -59,7 +59,7 @@ extern long		sdr_list_length(Sdr sdr, Object list);
 Sdr_list_insert(__FILE__, __LINE__, sdr, list, data, compare, arg)
 extern Object		Sdr_list_insert(char *file, int line,
 				Sdr sdr, Object list, Address data,
-				SdrListCompareFn compare, void *arg);
+				SdrListCompareFn compare, void *dataBuffer);
 
 #define sdr_list_insert_first(sdr, list, data) \
 Sdr_list_insert_first(__FILE__, __LINE__, sdr, list, data)
@@ -94,7 +94,7 @@ extern Object		sdr_list_next(Sdr sdr, Object elt);
 extern Object		sdr_list_prev(Sdr sdr, Object elt);
 
 extern Object		sdr_list_search(Sdr sdr, Object elt, int reverse,
-				SdrListCompareFn compare, void *arg);
+				SdrListCompareFn compare, void *dataBuffer);
 
 extern Address		sdr_list_data(Sdr sdr, Object elt);
 

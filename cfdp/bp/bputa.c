@@ -69,7 +69,7 @@ static void	*receivePdus(void *parm)
 		case BpPayloadPresent:
 			contentLength = zco_source_data_length(sdr, dlv.adu);
 			sdr_begin_xn(sdr);
-			zco_start_receiving(sdr, dlv.adu, &reader);
+			zco_start_receiving(dlv.adu, &reader);
 			if (zco_receive_source(sdr, &reader, contentLength,
 					(char *) buffer) < 0)
 			{
@@ -80,7 +80,6 @@ static void	*receivePdus(void *parm)
 				continue;
 			}
 
-			zco_stop_receiving(sdr, &reader);
 			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("bputa can't handle bundle delivery.",

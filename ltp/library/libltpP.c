@@ -1311,7 +1311,7 @@ static void	getExportSession(unsigned long sessionNbr, Object *sessionObj)
 
 	CHKVOID(ionLocked());
 	if (sdr_hash_retrieve(ltpSdr, (_ltpConstants())->exportSessionsHash,
-			(char *) &sessionNbr, (Address *) &elt) == 1)
+			(char *) &sessionNbr, (Address *) &elt, NULL) == 1)
 	{
 		*sessionObj = sdr_list_data(ltpSdr, elt);
 		return; 
@@ -1483,7 +1483,7 @@ static void	closeExportSession(Object sessionObj)
 			 *	by the client, in either Complete or
 			 *	Canceled notices, and the client is
 			 *	responsible for destroying them, so
-			 *	we don't zco_destroy_reference here.
+			 *	we don't zco_destroy them here.
 			 *	And since ltp_get_notice will reduce
 			 *	db.heapSpaceBytesOccupied, we don't
 			 *	do that either.				*/
@@ -1540,7 +1540,7 @@ static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
 			vspan->spanElt));
 	if (sdr_hash_retrieve(ltpSdr, span->importSessionsHash,
-			(char *) &sessionNbr, (Address *) &elt) == 1)
+			(char *) &sessionNbr, (Address *) &elt, NULL) == 1)
 	{
 		*sessionObj = sdr_list_data(ltpSdr, elt);
 		return; 
@@ -2132,7 +2132,6 @@ static int	readFromExportBlock(char *buffer, Object svcDataObjects,
 	Object		elt;
 	Object		sdu;	/*	Each member of list is a ZCO.	*/
 	unsigned int	sduLength;
-	Object		handle;
 	int		totalBytesRead = 0;
 	ZcoReader	reader;
 	unsigned int	bytesToRead;
@@ -2149,13 +2148,7 @@ static int	readFromExportBlock(char *buffer, Object svcDataObjects,
 			continue;
 		}
 
-		/*	Reading from a ZCO reference precludes future
-		 *	re-reading of the same data from the same
-		 *	reference.  So we make an additional reference
-		 *	just for the purpose of this read request.	*/
-
-		handle = zco_add_reference(ltpSdr, sdu);
-		zco_start_transmitting(ltpSdr, handle, &reader);
+		zco_start_transmitting(sdu, &reader);
 		zco_track_file_offset(&reader);
 		if (offset > 0)
 		{
@@ -2185,7 +2178,6 @@ static int	readFromExportBlock(char *buffer, Object svcDataObjects,
 
 		totalBytesRead += bytesRead;
 		length -= bytesRead;
-		zco_destroy_reference(ltpSdr, handle);
 		if (length == 0)	/*	Have read enough.	*/
 		{
 			break;

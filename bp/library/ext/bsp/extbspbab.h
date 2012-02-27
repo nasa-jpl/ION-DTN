@@ -111,6 +111,31 @@ void bsp_babClear(AcqExtBlock *blk);
 
 /******************************************************************************
  *
+ * \par Function Name: bsp_babCopy
+ *
+ * \par Purpose: This callback makes a copy in newBlk of the scratchpad
+ * 		 object in oldBlk.  This function is the same for both
+ * 		 PRE and POST payload blocks.
+ *
+ * \par Date Written:  2/24/12
+ *
+ * \retval int
+ *
+ * \param[in]   oldBlk  The block whose object must be copied.
+ * \param[out]  newBlk  The block for which a copy of this object must be made.
+ *
+ * \par Revision History:
+ *
+ *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
+ *  --------  ------------  -----------------------------------------------
+ *  02/24/12  S. Burleigh          Initial Implementation.
+ *****************************************************************************/
+
+int bsp_babCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
+
+
+/******************************************************************************
+ *
  * \par Function Name: bsp_babOffer
  *
  * \par Purpose: This callback determines whether a BAB block is necessary for
@@ -361,7 +386,7 @@ void bsp_babRelease(ExtensionBlock *blk);
 unsigned char *bsp_babGetSecResult(Object dataObj,
                                    unsigned long dataLen,
                                    char *cipherKeyName,
-					     unsigned long keyLen,
+				   unsigned long keyLen,
                                    unsigned long *hashLen);
 
 

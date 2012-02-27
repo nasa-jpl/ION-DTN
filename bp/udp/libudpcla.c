@@ -92,7 +92,7 @@ int	sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
 	/*	Send the bundle in a single UDP datagram.		*/
 
 	sdr = getIonsdr();
-	zco_start_transmitting(sdr, bundleZco, &reader);
+	zco_start_transmitting(bundleZco, &reader);
 	zco_track_file_offset(&reader);
 	sdr_begin_xn(sdr);
 	bytesToSend = zco_transmit(sdr, &reader, UDPCLA_BUFSZ, (char *) buffer);
@@ -131,9 +131,8 @@ when connectivity is restored.");
 		}
 	}
 
-	zco_stop_transmitting(sdr, &reader);
 	sdr_begin_xn(sdr);
-	zco_destroy_reference(sdr, bundleZco);
+	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't destroy bundle ZCO.", NULL);

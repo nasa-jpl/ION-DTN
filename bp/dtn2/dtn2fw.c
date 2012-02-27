@@ -131,7 +131,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 			return -1;
 		}
 
-		if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
+		if (bundle->ductXmitElt)
 		{
 			/*	Enqueued.				*/
 

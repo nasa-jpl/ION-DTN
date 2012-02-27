@@ -373,7 +373,7 @@ printf("Can't find source gateway '%s'.\n", dlv->bundleSourceEid);
 		return 0;
 	}
 
-	zco_start_receiving(sdr, dlv->adu, &reader);
+	zco_start_receiving(dlv->adu, &reader);
 	if ((bytesCopied = zco_receive_source(sdr, &reader, ENVELOPELENGTH,
 			buffer)) < ENVELOPELENGTH)
 	{
@@ -408,8 +408,6 @@ enclosureLength, fromNode->continuumNbr);
 			return -1;
 		}
 	}
-
-	zco_stop_receiving(sdr, &reader);
 
 	/*	Handle RAMS PDU from remote RAMS gateway.		*/
 
@@ -867,8 +865,7 @@ printf("Before bp_receive...\n");
 
 			case BpPayloadPresent:
 				sdr_begin_xn(sdr);
-				if (HandleBundle(&dlv, buffer)
-						< 0)
+				if (HandleBundle(&dlv, buffer) < 0)
 				{
 					sdr_cancel_xn(sdr);
 					gWay->stopping = 1;

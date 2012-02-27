@@ -1140,7 +1140,7 @@ void	destroyOutFdu(OutFdu *fdu, Object fduObj, Object fduElt)
 		}
 
 		obj = sdr_list_data(sdr, elt);
-		zco_destroy_reference(sdr, obj);
+		zco_destroy(sdr, obj);
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
@@ -2328,7 +2328,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 	{
 		buf = _crcComputationBuf();
 		memcpy((char *) buf, pduHeader, pduHeaderLength);
-		zco_start_receiving(sdr, *pdu, &reader);
+		zco_start_receiving(*pdu, &reader);
 		if (zco_receive_source(sdr, &reader, pduSourceDataLength,
 				((char *) buf) + pduHeaderLength) < 0)
 		{
@@ -2337,7 +2337,6 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 			return -1;
 		}
 
-		zco_stop_receiving(sdr, &reader);
 		crc = computeCRC(buf, pduHeaderLength + pduSourceDataLength);
 		crc = htons(crc);
 		oK(zco_append_trailer(sdr, *pdu, (char *) &crc, 2));

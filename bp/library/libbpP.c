@@ -20,6 +20,7 @@
 #include "bpP.h"
 #include "bei.h"
 #include "sdrhash.h"
+#include "smrbt.h"
 
 #define	BP_VERSION		6
 
@@ -29,27 +30,22 @@
 
 #define SDR_LIST_OVERHEAD	(WORD_SIZE * 4)
 #define SDR_LIST_ELT_OVERHEAD	(WORD_SIZE * 4)
-#define XMIT_REF_OVERHEAD	((WORD_SIZE * 4) + SDR_LIST_ELT_OVERHEAD)
-#define	BASE_BUNDLE_OVERHEAD	(sizeof(Bundle) \
-				+ SDR_LIST_OVERHEAD	/*	xmitRefs*/ \
-				+ XMIT_REF_OVERHEAD	/*	one Ref	*/)
+#define	BASE_BUNDLE_OVERHEAD	(sizeof(Bundle))
 
-#ifndef IN_TRANSIT_KEY_LEN
-#define	IN_TRANSIT_KEY_LEN	64
+#ifndef BUNDLES_HASH_KEY_LEN
+#define	BUNDLES_HASH_KEY_LEN	64
 #endif
 
-#define	IN_TRANSIT_KEY_BUFLEN	(IN_TRANSIT_KEY_LEN << 1)
+#define	BUNDLES_HASH_KEY_BUFLEN	(BUNDLES_HASH_KEY_LEN << 1)
 
-#ifndef IN_TRANSIT_EST_ENTRIES
-#define	IN_TRANSIT_EST_ENTRIES	1000
+#ifndef BUNDLES_HASH_ENTRIES
+#define	BUNDLES_HASH_ENTRIES	10000
 #endif
 
-#ifndef IN_TRANSIT_SEARCH_LEN
-#define	IN_TRANSIT_SEARCH_LEN	20
+#ifndef BUNDLES_HASH_SEARCH_LEN
+#define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
-static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
-			BpCtReason reasonCode);
 static BpVdb	*_bpvdb(char **);
 
 /*	*	*	Helpful utility functions	*	*	*/
@@ -737,6 +733,62 @@ static char	*_bpvdbName()
 	return "bpvdb";
 }
 
+int	orderBpEvents(PsmPartition partition, PsmAddress nodeData,
+		void *dataBuffer)
+{
+	Sdr	sdr = getIonsdr();
+	BpEvent	*argEvent;
+	Object	elt;
+	BpEvent	event;
+
+	if (partition == NULL || nodeData == 0 || dataBuffer == 0)
+	{
+		putErrmsg("Error calling smrbt BP timeline compare function.",
+				NULL);
+		return 0;
+	}
+
+	argEvent = (BpEvent *) dataBuffer;
+	elt = (Object) nodeData;
+	sdr_read(sdr, (char *) &event, sdr_list_data(sdr, elt),
+			sizeof(BpEvent));
+	if (event.time < argEvent->time)
+	{
+		return -1;
+	}
+
+	if (event.time > argEvent->time)
+	{
+		return 1;
+	}
+
+	/*	Same time.						*/
+
+	if (event.ref < argEvent->ref)
+	{
+		return -1;
+	}
+
+	if (event.ref > argEvent->ref)
+	{
+		return 1;
+	}
+
+	/*	Same object.						*/
+
+	if (event.type < argEvent->type)
+	{
+		return -1;
+	}
+
+	if (event.type > argEvent->type)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
 static BpVdb	*_bpvdb(char **name)
 {
 	static BpVdb	*vdb = NULL;
@@ -746,6 +798,7 @@ static BpVdb	*_bpvdb(char **name)
 	Sdr		sdr;
 	Object		sdrElt;
 	Object		addr;
+	BpEvent		event;
 
 	if (name)
 	{
@@ -794,6 +847,7 @@ static BpVdb	*_bpvdb(char **name)
 		if ((vdb->schemes = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
+		|| (vdb->timeline = sm_rbt_create(wm)) == 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
 			sdr_exit_xn(sdr);
@@ -824,6 +878,22 @@ static BpVdb	*_bpvdb(char **name)
 			{
 				sdr_exit_xn(sdr);
 				putErrmsg("Can't raise all protocols.", NULL);
+				return NULL;
+			}
+		}
+
+		/*	Raise the timeline.				*/
+
+		for (sdrElt = sdr_list_first(sdr, (_bpConstants())->timeline);
+				sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
+		{
+			addr = sdr_list_data(sdr, sdrElt);
+			sdr_read(sdr, (char *) &event, addr, sizeof(BpEvent));
+			if (sm_rbt_insert(wm, vdb->timeline, (PsmAddress)
+					sdrElt, orderBpEvents, &event) == 0)
+			{
+				sdr_exit_xn(sdr);
+				putErrmsg("Can't stage event timeline.", NULL);
 				return NULL;
 			}
 		}
@@ -880,10 +950,10 @@ int	bpInit()
 		bpdbBuf.schemes = sdr_list_create(bpSdr);
 		bpdbBuf.protocols = sdr_list_create(bpSdr);
 		bpdbBuf.timeline = sdr_list_create(bpSdr);
-		bpdbBuf.inTransitHash = sdr_hash_create(bpSdr,
-				IN_TRANSIT_KEY_LEN,
-				IN_TRANSIT_EST_ENTRIES,
-				IN_TRANSIT_SEARCH_LEN);
+		bpdbBuf.bundles = sdr_hash_create(bpSdr,
+				BUNDLES_HASH_KEY_LEN,
+				BUNDLES_HASH_ENTRIES,
+				BUNDLES_HASH_SEARCH_LEN);
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
@@ -1106,7 +1176,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	{
 		nextElt = sdr_list_next(bpSdr, zcoElt);
 		zco = sdr_list_data(bpSdr, zcoElt);
-		zco_destroy_reference(bpSdr, zco);
+		zco_destroy(bpSdr, zco);
 		sdr_list_delete(bpSdr, zcoElt, NULL, NULL);
 	}
 
@@ -1412,9 +1482,9 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 
 	if (sscanf(metaEid->nss, "%20lu.%20lu", &(metaEid->nodeNbr),
 			&(metaEid->serviceNbr)) < 2
-	|| metaEid->nodeNbr == 0	/*	Must use "dtn:none".	*/
 	|| metaEid->nodeNbr > MAX_CBHE_NODE_NBR
-	|| metaEid->serviceNbr > MAX_CBHE_SERVICE_NBR)
+	|| metaEid->serviceNbr > MAX_CBHE_SERVICE_NBR
+	|| (metaEid->nodeNbr == 0 && metaEid->serviceNbr == 0))
 	{
 		*(metaEid->colon) = ':';
 		writeMemoNote("[?] Malformed CBHE-conformant URI", eidString);
@@ -1459,7 +1529,7 @@ static int	printCbheEid(CbheEid *eid, char **result)
 		return -1;
 	}
 
-	if (eid->nodeNbr == 0)
+	if (eid->nodeNbr == 0 && eid->serviceNbr == 0)
 	{
 		istrcpy(eidString, _nullEid(), eidLength);
 	}
@@ -1869,6 +1939,18 @@ void	reportAllStateStats()
 	}
 }
 
+static int	bundleIsCustodial(Bundle *bundle)
+{
+	/*	Custodial procedures are undefined for bundles destined
+	 *	for non-singleton endpoints, so we can't treat any such
+	 *	bundle as "custodial" even if its BDL_IS_CUSTODIAL flag
+	 *	is set.							*/
+
+	int	reqdFlags = BDL_IS_CUSTODIAL | BDL_DEST_IS_SINGLETON;
+
+	return ((bundle->bundleProcFlags & reqdFlags) == reqdFlags);
+}
+
 /*	*	*	Bundle destruction functions	*	*	*/
 
 static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
@@ -1902,15 +1984,13 @@ static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
 	return 0;
 }
 
-static void	removeBundleFromQueue(Object ductXmitElt, Bundle *bundle,
+static void	removeBundleFromQueue(Bundle *bundle, Object bundleObj,
 			ClProtocol *protocol, Object outductObj,
 			Outduct *outduct)
 {
 	Sdr		bpSdr = getIonsdr();
 	int		backlogDecrement;
 	OrdinalState	*ord;
-
-	sdr_list_delete(bpSdr, ductXmitElt, NULL, NULL);
 
 	/*	Removal from queue reduces outduct's backlog.		*/
 
@@ -1928,16 +2008,21 @@ static void	removeBundleFromQueue(Object ductXmitElt, Bundle *bundle,
 	default:			/*	Urgent priority.	*/
 		ord = &(outduct->ordinals[bundle->extendedCOS.ordinal]);
 		reduceScalar(&(ord->backlog), backlogDecrement);
-		if (ord->lastForOrdinal == ductXmitElt)
+		if (ord->lastForOrdinal == bundle->ductXmitElt)
 		{
 			ord->lastForOrdinal = 0;
 		}
 
 		reduceScalar(&(outduct->urgentBacklog), backlogDecrement);
 	}
+
+	sdr_write(bpSdr, outductObj, (char *) outduct, sizeof(Outduct));
+	sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
+	bundle->ductXmitElt = 0;
+	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 }
 
-static void	purgeDuctXmitElt(Bundle *bundle, Object ductXmitElt)
+static void	purgeDuctXmitElt(Bundle *bundle, Object bundleObj)
 {
 	Sdr		bpSdr = getIonsdr();
 	Object		queue;
@@ -1945,58 +2030,34 @@ static void	purgeDuctXmitElt(Bundle *bundle, Object ductXmitElt)
 	Outduct		outduct;
 	ClProtocol	protocol;
 
-	queue = sdr_list_list(bpSdr, ductXmitElt);
+	queue = sdr_list_list(bpSdr, bundle->ductXmitElt);
 	outductObj = sdr_list_user_data(bpSdr, queue);
 	if (outductObj == 0)	/*	Bundle is in Limbo queue.	*/
 	{
-		sdr_list_delete(bpSdr, ductXmitElt, NULL, NULL);
+		sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
 		return;
 	}
 
 	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 	sdr_read(bpSdr, (char *) &protocol, outduct.protocol,
 			sizeof(ClProtocol));
-	removeBundleFromQueue(ductXmitElt, bundle, &protocol, outductObj,
+	removeBundleFromQueue(bundle, bundleObj, &protocol, outductObj,
 			&outduct);
-	sdr_write(bpSdr, outductObj, (char *) &outduct, sizeof(Outduct));
 }
 
-static void	purgeXmitRefs(Bundle *bundle)
+void	destroyBpTimelineEvent(Object timelineElt)
 {
-	Sdr	bpSdr = getIonsdr();
-	Object	elt;
-	Object	nextElt;
-	Object	xrAddr;
-		OBJ_POINTER(XmitRef, xr);
+	Sdr	sdr = getIonsdr();
+	Object	eventObj;
+	BpEvent	event;
 
-	if (bundle->xmitRefs == 0)
-	{
-		return;
-	}
-
-	bundle->xmitsNeeded = 0;
-
-	/*	Remove bundle from all transmission queues.		*/
-
-	for (elt = sdr_list_first(bpSdr, bundle->xmitRefs); elt; elt = nextElt)
-	{
-		nextElt = sdr_list_next(bpSdr, elt);
-		xrAddr = sdr_list_data(bpSdr, elt);
-		sdr_list_delete(bpSdr, elt, NULL, NULL);
-		GET_OBJ_POINTER(bpSdr, XmitRef, xr, xrAddr);
-		purgeDuctXmitElt(bundle, xr->ductXmitElt);
-		if (xr->proxNodeEid)
-		{
-			sdr_free(bpSdr, xr->proxNodeEid);
-		}
-
-		if (xr->destDuctName)
-		{
-			sdr_free(bpSdr, xr->destDuctName);
-		}
-
-		sdr_free(bpSdr, xrAddr);
-	}
+	CHKVOID(timelineElt);
+	eventObj = sdr_list_data(sdr, timelineElt);
+	sdr_read(sdr, (char *) &event, eventObj, sizeof(BpEvent));
+	sm_rbt_delete(getIonwm(), (getBpVdb())->timeline, orderBpEvents,
+			&event, NULL, NULL);
+	sdr_free(sdr, eventObj);
+	sdr_list_delete(sdr, timelineElt, NULL, NULL);
 }
 
 static void	purgeStationsStack(Bundle *bundle)
@@ -2028,12 +2089,14 @@ static void	purgeStationsStack(Bundle *bundle)
 
 int	bpDestroyBundle(Object bundleObj, int ttlExpired)
 {
-	Sdr	bpSdr = getIonsdr();
-	Bundle	bundle;
-		OBJ_POINTER(IncompleteBundle, incomplete);
-	char	*dictionary;
-	int	result;
-	Object	elt;
+	Sdr		bpSdr = getIonsdr();
+	Bundle		bundle;
+			OBJ_POINTER(IncompleteBundle, incomplete);
+	char		*dictionary;
+	int		result;
+	Object		bsetObj;
+	BundleSet	bset;
+	Object		elt;
 
 	CHKERR(ionLocked());
 	CHKERR(bundleObj);
@@ -2081,11 +2144,23 @@ incomplete bundle.", NULL);
 			bundle.dlvQueueElt = 0;
 		}
 
-		/*	Remove any remaining transmission references.	*/
+		/*	Remove any transmission reference.		*/
 
-		if (bundle.xmitRefs)
+		if (bundle.ductXmitElt)
 		{
-			purgeXmitRefs(&bundle);
+			purgeDuctXmitElt(&bundle, bundleObj);
+		}
+
+		if (bundle.proxNodeEid)
+		{
+			sdr_free(bpSdr, bundle.proxNodeEid);
+			bundle.proxNodeEid = 0;
+		}
+
+		if (bundle.destDuctName)
+		{
+			sdr_free(bpSdr, bundle.destDuctName);
+			bundle.proxNodeEid = 0;
 		}
 
 		/*	Notify sender, if so requested or if custodian.	*/
@@ -2124,34 +2199,42 @@ incomplete bundle.", NULL);
 
 	/*	Check for any remaining constraints on deletion.	*/
 
-	if (bundle.dlvQueueElt || bundle.fragmentElt || bundle.fwdQueueElt
-	|| bundle.xmitsNeeded > 0 || bundle.custodyTaken)
+	if (bundle.fragmentElt || bundle.dlvQueueElt || bundle.fwdQueueElt
+	|| bundle.ductXmitElt || bundle.custodyTaken)
 	{
 		return 0;	/*	Can't destroy bundle yet.	*/
 	}
 
-	/*	Remove bundle from timeline.				*/
+	/*	Remove bundle from timeline and bundles hash table.	*/
 
-	sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.timelineElt));
-	sdr_list_delete(bpSdr, bundle.timelineElt, NULL, NULL);
+	destroyBpTimelineEvent(bundle.timelineElt);
+	if (bundle.hashEntry)
+	{
+		bsetObj = sdr_hash_entry_value(bpSdr, (_bpConstants())->bundles,
+				bundle.hashEntry);
+		sdr_stage(bpSdr, (char *) &bset, bsetObj, sizeof(BundleSet));
+		bset.count--;
+		if (bset.count == 0)
+		{
+			sdr_hash_delete_entry(bpSdr, bundle.hashEntry);
+		}
+		else
+		{
+			sdr_write(bpSdr, bsetObj, (char *) &bset,
+					sizeof(BundleSet));
+		}
+	}
 
 	/*	Turn off automatic re-forwarding.			*/
 
 	if (bundle.overdueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 	}
 
 	if (bundle.ctDueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
-	}
-
-	if (bundle.inTransitEntry)
-	{
-		sdr_hash_delete_entry(bpSdr, bundle.inTransitEntry);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 	}
 
 	/*	Remove bundle from applications' bundle tracking lists.	*/
@@ -2183,14 +2266,14 @@ incomplete bundle.", NULL);
 		sdr_list_destroy(bpSdr, bundle.trackingElts, NULL, NULL);
 	}
 
-	/*	Remove BP's own reference to the bundle's payload
-	 *	ZCO.  There may still be some application reference
-	 *	to this ZCO, but if not then deleting the bundle's
-	 *	reference will implicitly destroy the ZCO itself.	*/
+	/*	Destroy the bundle's payload ZCO.  There may still
+	 *	be some application reference to the source data of
+	 *	this ZCO, but if not then deleting the payload ZCO
+	 *	will implicitly destroy the source data itself.		*/
 
 	if (bundle.payload.content)
 	{
-		zco_destroy_reference(bpSdr, bundle.payload.content);
+		zco_destroy(bpSdr, bundle.payload.content);
 	}
 
 	/*	Destroy all SDR objects managed for this bundle and
@@ -2206,13 +2289,8 @@ incomplete bundle.", NULL);
 		sdr_free(bpSdr, bundle.dictionary);
 	}
 
-	if (bundle.xmitRefs)
-	{
-		sdr_list_destroy(bpSdr, bundle.xmitRefs, NULL, NULL);
-	}
-
 	destroyExtensionBlocks(&bundle);
-        destroyCollaborationBlocks(&bundle);
+	destroyCollaborationBlocks(&bundle);
 	purgeStationsStack(&bundle);
 	if (bundle.stations)
 	{
@@ -2226,131 +2304,53 @@ incomplete bundle.", NULL);
 
 /*	*	*	BP database mgt and access functions	*	*/
 
+static int	constructBundleHashKey(char *buffer, char *sourceEid,
+			unsigned long seconds, unsigned long count,
+			unsigned long offset, unsigned long length)
+{
+	memset(buffer, 0, BUNDLES_HASH_KEY_BUFLEN);
+	isprintf(buffer, BUNDLES_HASH_KEY_BUFLEN, "%s:%lu:%lu:%lu:%lu",
+			sourceEid, seconds, count, offset, length);
+	return strlen(buffer);
+}
+
 int	findBundle(char *sourceEid, BpTimestamp *creationTime,
 		unsigned long fragmentOffset, unsigned long fragmentLength,
-		Object *bundleAddr, Object *timelineElt)
+		Object *bundleAddr)
 {
-	Sdr	bpSdr = getIonsdr();
-	Object	elt;
-		OBJ_POINTER(BpEvent, event);
-		OBJ_POINTER(Bundle, bundle);
-	int	dictionaryBuflen = 0;
-	char	*dictionary = NULL;
-	char	*eidString;
-	int	result;
+	Sdr		bpSdr = getIonsdr();
+	char		key[BUNDLES_HASH_KEY_BUFLEN];
+	Address		bsetObj;
+	Object		hashElt;
+	BundleSet	bset;
 
+	CHKERR(sourceEid);
+	CHKERR(creationTime);
+	CHKERR(bundleAddr);
+	*bundleAddr = 0;	/*	Default: not found.		*/
 	CHKERR(ionLocked());
-	*timelineElt = 0;
-	for (elt = sdr_list_first(bpSdr, (_bpConstants())->timeline); elt;
-			elt = sdr_list_next(bpSdr, elt))
+	if (constructBundleHashKey(key, sourceEid, creationTime->seconds,
+			creationTime->count, fragmentOffset, fragmentLength)
+			> BUNDLES_HASH_KEY_LEN)
 	{
-		GET_OBJ_POINTER(bpSdr, BpEvent, event,
-				sdr_list_data(bpSdr, elt));
-		if (event->type != expiredTTL)
-		{
-			continue;
-		}
-
-		/*	Event references a bundle that still exists.	*/
-
-		*bundleAddr = event->ref;
-		GET_OBJ_POINTER(bpSdr, Bundle, bundle, *bundleAddr);
-
-		/*	See if bundle's ID matches search arguments.	*/
-
-		if (bundle->id.creationTime.seconds != creationTime->seconds
-		|| bundle->id.creationTime.count != creationTime->count)
-		{
-			continue;	/*	Different time tags.	*/
-		}
-
-		if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
-		{
-			if (fragmentLength == 0)
-			{
-				continue;	/*	Fragment n.g.	*/
-			}
-
-			if (bundle->id.fragmentOffset != fragmentOffset)
-			{
-				continue;	/*	Wrong fragment.	*/
-			}
-
-			if (bundle->payload.length != fragmentLength)
-			{
-				continue;	/*	Wrong fragment.	*/
-			}
-		}
-		else	/*	This bundle is not a fragment.		*/
-		{
-			if (fragmentLength != 0)
-			{
-				continue;	/*	Need fragment.	*/
-			}
-		}
-
-		/*	Note: we don't use retrieveDictionary() here
-		 *	because it would allocate dictionary buffer
-		 *	space every time.  This is faster.		*/
-
-		if (bundle->dictionaryLength == 0)	/*	CBHE.	*/
-		{
-			dictionary = NULL;
-		}
-		else
-		{
-			if (bundle->dictionaryLength > dictionaryBuflen)
-			{
-				if (dictionary)
-				{
-					MRELEASE(dictionary);
-					dictionary = NULL;
-				}
-
-				dictionaryBuflen = bundle->dictionaryLength;
-				dictionary = MTAKE(dictionaryBuflen);
-				if (dictionary == NULL)
-				{
-					putErrmsg("Can't retrieve dictionary.",
-							itoa(dictionaryBuflen));
-					return -1;
-				}
-			}
-
-			sdr_read(bpSdr, dictionary, bundle->dictionary,
-					bundle->dictionaryLength);
-		}
-
-		if (printEid(&(bundle->id.source), dictionary, &eidString) < 0)
-		{
-			putErrmsg("Can't print EID string.", NULL);
-			if (dictionary)
-			{
-				MRELEASE(dictionary);
-			}
-
-			return -1;
-		}
-
-		result = strcmp(eidString, sourceEid);
-		MRELEASE(eidString);
-		if (result != 0)	/*	Different sources.	*/
-		{
-			continue;
-		}
-
-		/*	Found the matching bundle.			*/
-
-		*timelineElt = elt;
-		break;
+		return 0;	/*	Can't be in hash table.		*/
 	}
 
-	if (dictionary)
+	switch (sdr_hash_retrieve(bpSdr, (_bpConstants())->bundles, key,
+			&bsetObj, &hashElt))
 	{
-		MRELEASE(dictionary);
-	}
+	case -1:
+		putErrmsg("Failed locating bundle in hash table.", NULL);
+		return -1;
 
-	return 0;
+	case 0:
+		return 0;	/*	No such entry in hash table.	*/
+
+	default:
+		sdr_read(bpSdr, (char *) &bset, bsetObj, sizeof(BundleSet));
+		*bundleAddr = bset.bundleObj;
+		return bset.count;
+	}
 }
 
 void	findScheme(char *schemeName, VScheme **scheme, PsmAddress *schemeElt)
@@ -2990,6 +2990,11 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 	istrcpy(clpbuf.name, protocolName, sizeof clpbuf.name);
 	clpbuf.payloadBytesPerFrame = payloadPerFrame;
 	clpbuf.overheadPerFrame = ohdPerFrame;
+	if (nominalRate < 0)
+	{
+		nominalRate = -1;	/*	Disables rate control.	*/
+	}
+
 	clpbuf.nominalRate = nominalRate;
 	clpbuf.inducts = sdr_list_create(bpSdr);
 	clpbuf.outducts = sdr_list_create(bpSdr);
@@ -3397,7 +3402,8 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 	*vductElt = elt;
 }
 
-int	addOutduct(char *protocolName, char *ductName, char *cloCmd)
+int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
+		unsigned long maxPayloadLength)
 {
 	Sdr		bpSdr = getIonsdr();
 	ClProtocol	clpbuf;
@@ -3464,6 +3470,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd)
 		ductBuf.cloCmd = sdr_string_create(bpSdr, cloCmd);
 	}
 
+	ductBuf.maxPayloadLen = maxPayloadLength;
 	ductBuf.bulkQueue = sdr_list_create(bpSdr);
 	ductBuf.stdQueue = sdr_list_create(bpSdr);
 	ductBuf.urgentQueue = sdr_list_create(bpSdr);
@@ -3502,7 +3509,8 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd)
 	return 1;
 }
 
-int	updateOutduct(char *protocolName, char *ductName, char *cloCmd)
+int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
+		unsigned long maxPayloadLength)
 {
 	Sdr		bpSdr = getIonsdr();
 	VOutduct	*vduct;
@@ -3559,6 +3567,7 @@ int	updateOutduct(char *protocolName, char *ductName, char *cloCmd)
 		ductBuf.cloCmd = sdr_string_create(bpSdr, cloCmd);
 	}
 
+	ductBuf.maxPayloadLen = maxPayloadLength;
 	sdr_write(bpSdr, addr, (char *) &ductBuf, sizeof(Outduct));
 	if (sdr_end_xn(bpSdr) < 0)
 	{
@@ -3773,13 +3782,24 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 
 Object	insertBpTimelineEvent(BpEvent *newEvent)
 {
-	Sdr	bpSdr = getIonsdr();
-	BpDB	*bpConstants = _bpConstants();
-	Address	addr;
-	Object	elt;
-		OBJ_POINTER(BpEvent, event);
+	PsmPartition	wm = getIonwm();
+	PsmAddress	timeline = (getBpVdb())->timeline;
+	PsmAddress	node;
+	PsmAddress	successor;
+	Sdr		bpSdr = getIonsdr();
+	BpDB		*bpConstants = _bpConstants();
+	Address		addr;
+	Object		elt;
 
 	CHKZERO(ionLocked());
+	node = sm_rbt_search(wm, timeline, orderBpEvents, newEvent, &successor);
+	if (node != 0)
+	{
+		/*	Event already exists; return its list elt.	*/
+
+		return sm_rbt_data(wm, node);
+	}
+
 	addr = sdr_malloc(bpSdr, sizeof(BpEvent));
 	if (addr == 0)
 	{
@@ -3788,18 +3808,27 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	}
 
 	sdr_write(bpSdr, addr, (char *) newEvent, sizeof(BpEvent));
-	for (elt = sdr_list_last(bpSdr, bpConstants->timeline); elt;
-			elt = sdr_list_prev(bpSdr, elt))
+	if (successor)
 	{
-		GET_OBJ_POINTER(bpSdr, BpEvent, event,
-				sdr_list_data(bpSdr, elt));
-		if (event->time <= newEvent->time)
-		{
-			return sdr_list_insert_after(bpSdr, elt, addr);
-		}
+		elt = sdr_list_insert_before(bpSdr,
+				(Object) sm_rbt_data(wm, successor), addr);
+	}
+	else
+	{
+		elt = sdr_list_insert_last(bpSdr, bpConstants->timeline, addr);
 	}
 
-	return sdr_list_insert_first(bpSdr, bpConstants->timeline, addr);
+	if (elt == 0)
+	{
+		return 0;	/*	No room for list element.	*/
+	}
+
+	if (sm_rbt_insert(wm, timeline, elt, orderBpEvents, newEvent) == 0)
+	{
+		return 0;	/*	No room for lookup tree node.	*/
+	}
+
+	return elt;
 }
 
 /*	*	*	Bundle origination functions	*	*	*/
@@ -3808,7 +3837,6 @@ static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 {
 	BpEvent	event;
 
-	CHKERR(ionLocked());
 	/*	Schedule purge of this bundle on expiration of its
 	 *	time-to-live.  Bundle expiration time is event time.	*/
 
@@ -3825,11 +3853,121 @@ static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 	return 0;
 }
 
-static int	copyBundle(Bundle *newBundle, Object *newBundleObj,
-			Bundle *oldBundle)
+static int	catalogueBundle(Bundle *bundle, Object bundleObj)
 {
-	Sdr	bpSdr = getIonsdr();
-	char	*dictionaryBuffer;
+	Sdr		sdr = getIonsdr();
+	Object		bundles = (_bpConstants())->bundles;
+	char		*dictionary;
+	char		*sourceEid;
+	char		bundleKey[BUNDLES_HASH_KEY_BUFLEN];
+	Address		bsetObj;
+	Object		hashElt;
+	BundleSet	bset;
+	int		result = 0;
+
+	CHKERR(ionLocked());
+
+	/*	Insert bundle into hashtable of all bundles.		*/
+
+	if ((dictionary = retrieveDictionary(bundle)) == (char *) bundle)
+	{
+		putErrmsg("Can't retrieve dictionary.", NULL);
+		return -1;
+	}
+
+	if (printEid(&(bundle->id.source), dictionary, &sourceEid) < 0)
+	{
+		putErrmsg("Can't print source EID.", NULL);
+		releaseDictionary(dictionary);
+		return -1;
+	}
+
+	if (constructBundleHashKey(bundleKey, sourceEid,
+			bundle->id.creationTime.seconds,
+			bundle->id.creationTime.count,
+			bundle->id.fragmentOffset,
+			bundle->totalAduLength == 0 ? 0 :
+			bundle->payload.length) > BUNDLES_HASH_KEY_LEN)
+	{
+		writeMemoNote("[?] Max hash key length exceeded; bundle \
+cannot be retrieved by key", bundleKey);
+		MRELEASE(sourceEid);
+		releaseDictionary(dictionary);
+		return 0;
+	}
+
+	/*	If a hashtable entry for this key already exists, then
+	 *	we've got a non-unique key (cloned bundles) and no
+	 *	single bundle address can be associated with this key.
+	 *	So our first step is to retrieve that entry if it
+	 *	exists.  If we find it, we set its bundleObj to zero
+	 *	and add 1 to its count.  If not, we insert a new entry.	*/
+
+	switch (sdr_hash_retrieve(sdr, bundles, bundleKey, &bsetObj, &hashElt))
+	{
+	case -1:
+		putErrmsg("Can't revise hash table entry.", NULL);
+		result = -1;
+		break;
+
+	case 1:		/*	Retrieval succeeded, non-unique key.	*/
+		sdr_stage(sdr, (char *) &bset, bsetObj, sizeof(BundleSet));
+		bset.bundleObj = 0;
+		bset.count++;
+		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
+		bundle->hashEntry = hashElt;
+		writeMemoNote("[?] Bundle hash key is not unique; bundles \
+cannot be retrieved by key", bundleKey);
+		break;
+
+	default:	/*	No such pre-existing entry.		*/
+		bsetObj = sdr_malloc(sdr, sizeof(BundleSet));
+		if (bsetObj == 0)
+		{
+			putErrmsg("Can't create hash table entry.", NULL);
+			result = -1;
+			break;
+		}
+
+		bset.bundleObj = bundleObj;
+		bset.count = 1;
+		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
+		if (sdr_hash_insert(sdr, bundles, bundleKey, bsetObj,
+				&(bundle->hashEntry)) < 0)
+		{
+			putErrmsg("Can't insert into hash table.", NULL);
+			result = -1;
+		}
+	}
+
+	MRELEASE(sourceEid);
+	releaseDictionary(dictionary);
+	return result;
+}
+
+int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
+		unsigned int offset, unsigned int length)
+{
+	Sdr		bpSdr = getIonsdr();
+	char		*dictionaryBuffer;
+	char		*senderEid;
+	BpString	*oldSenderEid;
+	int		result;
+
+	CHKERR(oldBundle);
+	CHKERR(newBundle);
+	CHKERR(newBundleObj);
+	if (length == 0)	/*	"Clone entire payload."		*/
+	{
+		length = oldBundle->payload.length;
+	}
+
+	if (length == 0
+	|| (offset + length) > oldBundle->payload.length)
+	{
+		putErrmsg("Invalid payload clone scope.", utoa(length));
+		return -1;
+	}
 
 	*newBundleObj = sdr_malloc(bpSdr, sizeof(Bundle));
 	if (*newBundleObj == 0)
@@ -3862,32 +4000,133 @@ static int	copyBundle(Bundle *newBundle, Object *newBundleObj,
 		releaseDictionary(dictionaryBuffer);
 	}
 
+	/*	Clone part or all of payload.				*/
+
+	newBundle->payload.content = zco_clone(bpSdr,
+			oldBundle->payload.content, offset, length);
+	if (newBundle->payload.content == 0)
+	{
+		putErrmsg("Can't clone payload content", NULL);
+		return -1;
+	}
+
+	newBundle->payload.length = length;
+	if (length != oldBundle->payload.length)
+	{
+		/*	The new bundle is a fragment of the original.	*/
+
+		if (oldBundle->bundleProcFlags & BDL_IS_FRAGMENT)
+		{
+			newBundle->id.fragmentOffset =
+					oldBundle->id.fragmentOffset + offset;
+			/*	totalAduLength has already been copied.	*/
+
+		}
+		else	/*	Original bundle is NOT a fragment.	*/
+		{
+			newBundle->id.fragmentOffset = offset;
+			newBundle->totalAduLength = oldBundle->payload.length;
+			newBundle->bundleProcFlags |= BDL_IS_FRAGMENT;
+		}
+	}
+
+	/*	Copy extension blocks and collaboration blocks.		*/
+
+	newBundle->extensions[0] = 0;
+	newBundle->extensionsLength[1] = 0;
+	newBundle->extensions[1] = 0;
+	newBundle->extensionsLength[0] = 0;
+	newBundle->collabBlocks = 0;
 	if (copyExtensionBlocks(newBundle, oldBundle) < 0)
 	{
 		putErrmsg("Can't copy extensions.", NULL);
 		return -1;
 	}
 
+	/*	Copy sender endpoint ID.				*/
+
+	oldSenderEid = &(oldBundle->clDossier.senderEid);
+	senderEid = getBpString(oldSenderEid);
+	if (senderEid == NULL)
+	{
+		memset(&(newBundle->clDossier.senderEid), 0, sizeof(BpString));
+	}
+	else if (senderEid == (char *) oldSenderEid)
+	{
+		putErrmsg("Can't copy sender EID.", NULL);
+		return -1;
+	}
+	else	/*	Sender EID must be copied.			*/
+	{
+		result = putBpString(&(newBundle->clDossier.senderEid), 
+				senderEid);
+		MRELEASE(senderEid);
+		if (result < 0)
+		{
+			putErrmsg("Can't copy sender EID.", NULL);
+			return -1;
+		}
+	}
+
+	/*	Initialize stations stack.				*/
+
+	newBundle->stations = sdr_list_create(bpSdr);
+
+	/*	Add new bundle to lookup hash table and timeline.	*/
+
+	if (catalogueBundle(newBundle, *newBundleObj) < 0)
+	{
+		putErrmsg("Can't catalogue bundle copy in hash table.", NULL);
+		return -1;
+	}
+
 	if (setBundleTTL(newBundle, *newBundleObj) < 0)
 	{
-		putErrmsg("Can't insert copy of bundle into timeline", NULL);
+		putErrmsg("Can't insert copy of bundle into timeline.", NULL);
 		return -1;
 	}
 
-	newBundle->payload.content = zco_add_reference(bpSdr,
-			oldBundle->payload.content);
-	if (newBundle->payload.content == 0)
+	/*	Detach new bundle from all pointers to old bundle.	*/
+
+	newBundle->overdueElt = 0;
+	newBundle->ctDueElt = 0;
+	newBundle->fwdQueueElt = 0;
+	newBundle->fragmentElt = 0;
+	newBundle->dlvQueueElt = 0;
+	newBundle->trackingElts = sdr_list_create(bpSdr);
+	newBundle->incompleteElt = 0;
+	newBundle->ductXmitElt = 0;
+
+	/*	Retain relevant routing information.			*/
+
+	if (oldBundle->proxNodeEid)
 	{
-		putErrmsg("Can't add reference to payload content", NULL);
-		return -1;
+		newBundle->proxNodeEid = sdr_string_dup(bpSdr,
+				oldBundle->proxNodeEid);
+		if (newBundle->proxNodeEid == 0)
+		{
+			putErrmsg("Can't copy proxNodeEid.", NULL);
+			return -1;
+		}
 	}
 
-	/*	Note that, since we don't copy the payload but instead
-	 *	just add a reference to it, total database occupancy
-	 *	increases by only the new bundle's overhead size.	*/
+	if (oldBundle->destDuctName)
+	{
+		newBundle->destDuctName = sdr_string_dup(bpSdr,
+				oldBundle->destDuctName);
+		if (newBundle->destDuctName == 0)
+		{
+			putErrmsg("Can't copy destDuctName.", NULL);
+			return -1;
+		}
+	}
 
-	newBundle->dbTotal = newBundle->dbOverhead;
+	/*	Adjust database occupancy, record bundle, return.	*/
+
+	newBundle->dbTotal = newBundle->dbOverhead
+			+ zco_occupancy(bpSdr, newBundle->payload.content);
 	noteBundleInserted(newBundle);
+	sdr_write(bpSdr, *newBundleObj, (char *) newBundle, sizeof(Bundle));
 	return 0;
 }
 
@@ -3900,18 +4139,28 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	Object		stationEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	Bundle		newBundle;
-	Object		newBundleObj;
 	Scheme		schemeBuf;
 
-	if (bundle->fwdQueueElt || bundle->xmitsNeeded > 0)
-	{
-		/*	Bundle is already being forwarded.  An
-		 *	additional CT signal indicating custody
-		 *	refusal has been received, and we haven't
-		 *	yet finished responding to the prior one.
-		 *	So nothing to do at this point.			*/
+	CHKERR(bundleObj);
+	CHKERR(bundle);
+	CHKERR(eid);
 
+	/*	Error if this bundle is already in the process of
+	 *	being delivered locally.  A bundle that is being
+	 *	delivered and must also be forwarded must be cloned,
+	 *	and only the clone may be passed to this function.	*/
+
+	CHKERR(bundle->dlvQueueElt == 0);
+	CHKERR(bundle->fragmentElt == 0);
+
+	/*	If bundle is already being forwarded, then a
+	 *	redundant CT signal indicating custody refusal
+	 *	has been received, and we haven't yet finished
+	 *	responding to the prior one.  So nothing to do
+	 *	at this point.						*/
+
+	if (bundle->fwdQueueElt || bundle->ductXmitElt)
+	{
 		return 0;
 	}
 
@@ -3922,11 +4171,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	forward this bundle.
 		 *
 		 *	Must write the bundle to the SDR in order to
-		 *	destroy it successfully.  This might already
-		 *	have been done by deliverBundle() as invoked
-		 *	by dispatchBundle(), in which case our write
-		 *	here is redundant but harmless.  However, we
-		 *	have no assurance that this happened.		*/
+		 *	destroy it successfully.			*/
 
 		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return bpAbandon(bundleObj, bundle);
@@ -3981,28 +4226,6 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	{
 		putErrmsg("Can't push EID onto stations stack.", NULL);
 		return -1;
-	}
-
-	/*	Make copy of bundle as necessary.			*/
-
-	if (bundle->dlvQueueElt || bundle->fragmentElt)
-	{
-		/*	Bundle is already queued for delivery as well.
-		 *	Delivery and forwarding will affect the bundle
-		 *	in incompatible ways, so we must create a copy
-		 *	of the bundle and forward the copy.		*/
-
-		if (copyBundle(&newBundle, &newBundleObj, bundle) < 0)
-		{
-			putErrmsg("Can't create copy of bundle.", NULL);
-			return -1;
-		}
-
-		bundleObj = newBundleObj;
-		bundle = &newBundle;
-		bundle->fragmentElt = 0;
-		bundle->dlvQueueElt = 0;
-		bundle->incompleteElt = 0;
 	}
 
 	/*	Do any forwarding-triggered extension block processing
@@ -4242,10 +4465,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 {
 	Sdr		bpSdr = getIonsdr();
 	BpVdb		*bpvdb = _bpvdb(NULL);
-	int		bundleProcFlags = BDL_DEST_IS_SINGLETON;
-			/*	Note: for now, we have no way of
-			 *	recognizing non-singleton destination
-			 *	endpoints.				*/
+	int		bundleProcFlags = 0;
 	unsigned int	srrFlags = srrFlagsByte;
 	int		aduLength;
 	Bundle		bundle;
@@ -4344,13 +4564,23 @@ status reports for admin records.");
 
 	if (destMetaEid.nullEndpoint)	/*	Do not send bundle.	*/
 	{
-		zco_destroy_reference(bpSdr, adu);
+		zco_destroy(bpSdr, adu);
 		return 1;
 	}
 
-	if (!destMetaEid.cbhe
-	|| strcmp(destMetaEid.schemeName, _cbheSchemeName()) != 0)
+	if (destMetaEid.cbhe)
 	{
+		/*	In the IPN scheme we use node number zero
+		 *	to indicate a non-singleton destination.	*/
+
+		if (destMetaEid.nodeNbr != 0)
+		{
+			bundleProcFlags |= BDL_DEST_IS_SINGLETON;
+		}
+	}
+	else	/*	Non-IPN destination: no multicast convention.	*/
+	{
+		bundleProcFlags |= BDL_DEST_IS_SINGLETON;
 		nonCbheEidCount++;
 	}
 
@@ -4469,7 +4699,6 @@ status reports for admin records.");
 	restoreEidString(reportToMetaEid);
 	bundle.id.fragmentOffset = 0;
 	bundle.custodyTaken = 0;
-	bundle.catenated = 0;
 	bundle.bundleProcFlags = bundleProcFlags;
 	bundle.bundleProcFlags += (classOfService << 7);
 	bundle.bundleProcFlags += (srrFlags << 14);
@@ -4480,7 +4709,6 @@ status reports for admin records.");
 	bundle.payloadBlockProcFlags = BLK_MUST_BE_COPIED;
 	bundle.payload.length = aduLength;
 	bundle.payload.content = adu;
-	bundle.xmitsNeeded = 0;
 
 	/*	Bundle is almost fully constructed at this point.	*/
 
@@ -4518,10 +4746,8 @@ status reports for admin records.");
 	bundle.collabBlocks = sdr_list_create(bpSdr);
 	bundle.stations = sdr_list_create(bpSdr);
 	bundle.trackingElts = sdr_list_create(bpSdr);
-	bundle.xmitRefs = sdr_list_create(bpSdr);
 	*bundleObj = sdr_malloc(bpSdr, sizeof(Bundle));
 	if (*bundleObj == 0
-	|| bundle.xmitRefs == 0
 	|| bundle.stations == 0
 	|| bundle.trackingElts == 0
 	|| bundle.extensions[0] == 0
@@ -4536,6 +4762,13 @@ status reports for admin records.");
 	if (setBundleTTL(&bundle, *bundleObj) < 0)
 	{
 		putErrmsg("Can't insert new bundle into timeline.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	if (catalogueBundle(&bundle, *bundleObj) < 0)
+	{
+		putErrmsg("Can't catalogue new bundle in hash table.", NULL);
 		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
@@ -4616,8 +4849,8 @@ status reports for admin records.");
 
 /*	*	*	Bundle reception functions	*	*	*/
 
-int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
-		BpCtReason reasonCode)
+static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
+			BpCtReason reasonCode)
 {
 	char		*custodianEid;
 	unsigned int	ttl;	/*	Original bundle's TTL.		*/
@@ -4639,7 +4872,6 @@ int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 			MRELEASE(custodianEid);
 			return 0;	/*	No current custodian.	*/
 		}
-
 	}
 	else
 	{
@@ -4892,6 +5124,7 @@ static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
 		return -1;
 	}
 
+	bundle->delivered = 1;
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	if (vpoint->semaphore != SM_SEM_NONE)
 	{
@@ -4954,6 +5187,7 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 		return -1;
 	}
 
+	bundle->delivered = 1;
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 
 	/*	Now see if entire ADU has been received.		*/
@@ -5017,9 +5251,14 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 	/*	Now collect payload data from all remaining fragments,
 	 *	discarding overlaps, and destroy the fragments.		*/
 
-	for (elt = sdr_list_next(bpSdr, elt); elt;
-			elt = sdr_list_next(bpSdr, elt))
+	while (1)
 	{
+		elt = sdr_list_first(bpSdr, incomplete->fragments);
+		if (elt == 0)
+		{
+			break;
+		}
+
 		fragmentObj = sdr_list_data(bpSdr, elt);
 		sdr_stage(bpSdr, (char *) &fragBuf, fragmentObj,
 				sizeof(Bundle));
@@ -5031,27 +5270,12 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 
 		bytesToCopy = fragBuf.payload.length - bytesToSkip;
 		aggregateAduLength += bytesToCopy;
-		zco_start_receiving(bpSdr, fragBuf.payload.content, &reader);
-		while (bytesToSkip > 0)
+		zco_start_receiving(fragBuf.payload.content, &reader);
+		if (zco_receive_source(bpSdr, &reader, bytesToSkip, NULL) < 0)
 		{
-			bytesToExtract = buflen;
-			if (bytesToExtract > bytesToSkip)
-			{
-				bytesToExtract = bytesToSkip;
-			}
-
-			bytesExtracted = zco_receive_source(bpSdr, &reader,
-					bytesToExtract, buffer);
-			if (bytesExtracted < 0)
-			{
-				zco_stop_receiving(bpSdr, &reader);
-				MRELEASE(buffer);
-				putErrmsg("Can't extract from ADU fragment.",
-						NULL);
-				return -1;
-			}
-
-			bytesToSkip -= bytesExtracted;
+			MRELEASE(buffer);
+			putErrmsg("Can't skip within ADU fragment.", NULL);
+			return -1;
 		}
 
 		while (bytesToCopy > 0)
@@ -5066,7 +5290,6 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 					bytesToExtract, buffer);
 			if (bytesExtracted < 0)
 			{
-				zco_stop_receiving(bpSdr, &reader);
 				MRELEASE(buffer);
 				putErrmsg("Can't extract from ADU fragment.",
 						NULL);
@@ -5076,7 +5299,6 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 			extent = sdr_insert(bpSdr, buffer, bytesExtracted);
 			if (extent == 0)
 			{
-				zco_stop_receiving(bpSdr, &reader);
 				MRELEASE(buffer);
 				putErrmsg("Can't copy fragment content.",
 						NULL);
@@ -5087,7 +5309,6 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 				aggregateBundle.payload.content,
 				ZcoSdrSource, extent, 0, bytesExtracted) < 0)
 			{
-				zco_stop_receiving(bpSdr, &reader);
 				MRELEASE(buffer);
 				putErrmsg("Can't append extent.", NULL);
 				return -1;
@@ -5096,7 +5317,6 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 			bytesToCopy -= bytesExtracted;
 		}
 
-		zco_stop_receiving(bpSdr, &reader);
 		sdr_list_delete(bpSdr, fragBuf.fragmentElt, NULL, NULL);
 		fragBuf.fragmentElt = 0;
 		sdr_write(bpSdr, fragmentObj, (char *) &fragBuf,
@@ -5187,6 +5407,7 @@ static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
 		return -1;
 	}
 
+	bundle->delivered = 1;
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	return 0;
 }
@@ -5203,10 +5424,11 @@ static int	deliverBundle(Object bundleObj, Bundle *bundle,
 	CHKERR(ionLocked());
 
 	/*	Regardless of delivery outcome, current custodian
-	 *	(if any) may now release custody.  NOTE: the local
-	 *	node has NOT taken custody of this bundle.		*/
+	 *	(if any) may now release custody, because the bundle
+	 *	has reached its destination.  NOTE: the local node
+	 *	has NOT taken custody of this bundle.			*/
 
-	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+	if (bundleIsCustodial(bundle))
 	{
 		if ((dictionary = retrieveDictionary(bundle))
 				== (char *) bundle)
@@ -5227,8 +5449,7 @@ static int	deliverBundle(Object bundleObj, Bundle *bundle,
 	/*	Next check to see if we've already got one or more
 	 *	fragments of this bundle; if so, invoke reassembly
 	 *	(which may or may not result in delivery of a new
-	 *	reconstructed original bundle to the application)
-	 *	and return for possible forwarding of this fragment.	*/
+	 *	reconstructed original bundle to the application).	*/
 
 	if (findIncomplete(bundle, vpoint, &incompleteAddr, &elt) < 0)
 	{
@@ -5244,10 +5465,9 @@ static int	deliverBundle(Object bundleObj, Bundle *bundle,
 				vpoint);
 	}
 
-	/*	No existing incomplete bundle to extend.  But if the
-	 *	current bundle is a fragment we still can't do anything
-	 *	with it; start a new IncompleteBundle and return for
-	 *	possible forwarding of this fragment.			*/
+	/*	No existing incomplete bundle to extend, so if the
+	 *	current bundle is a fragment we can't do anything
+	 *	with it; start a new IncompleteBundle.			*/
 
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
@@ -5266,6 +5486,8 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 	char		*dictionary;
 	VScheme		*vscheme;
 	VEndpoint	*vpoint;
+	Bundle		newBundle;
+	Object		newBundleObj;
 	char		*eidString;
 	int		result;
 
@@ -5289,6 +5511,8 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 				return -1;
 			}
 
+			/*	Bundle delivery did not fail.		*/
+
 			noteStateStats(BPSTATS_DELIVER, bundle);
 			if ((_bpvdb(NULL))->watching & WATCH_z)
 			{
@@ -5299,24 +5523,28 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 			if (bundle->bundleProcFlags & BDL_DEST_IS_SINGLETON)
 			{
 				/*	Can't be forwarded to any other
-				 *	node.  Destroy the bundle as
-				 *	necessary.			*/
+				 *	node.  No further need for the
+				 *	dictionary.			*/
 
 				releaseDictionary(dictionary);
 
-				/*	Note that we have to write the
-				 *	bundle to the SDR in order to
-				 *	destroy it successfully: the
-				 *	deliverBundle() function will
-				 *	normally do this (in which case
-				 *	our write here is redundant but
-				 *	harmless) but might not have
-				 *	done so in the event that the
-				 *	endpoint is not currently active
-				 *	(i.e., is not currently opened
-				 *	by any application) and the
-				 *	delivery failure action for this
-				 *	endpoint is DiscardBundle.	*/
+				/*	We now write the bundle state
+				 *	object to the SDR and authorize
+				 *	destruction of the bundle.  If
+				 *	deliverBundle() enqueued the
+				 *	bundle at an endpoint or
+				 *	retained it as a fragment
+				 *	needed for bundle reassembly,
+				 *	then the bundle will not be
+				 *	destroyed.  But in the event
+				 *	that the endpoint is not
+				 *	currently active (i.e., is
+				 *	not currently opened by any
+				 *	application) and the delivery
+				 *	failure action for this
+				 *	endpoint is DiscardBundle,
+				 *	now the the time to destroy
+				 *	the bundle.			*/
 
 				sdr_write(bpSdr, bundleObj, (char *) bundle,
 						sizeof(Bundle));
@@ -5338,9 +5566,15 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 				/*	Destination is known to be the
 				 *	local bundle agent.  Since the
 				 *	bundle can't be delivered, it
-				 *	must be abandoned.  It can't
+				 *	must be abandoned.  (It can't
 				 *	be forwarded, as this would be
-				 *	an infinite forwarding loop.
+				 *	an infinite forwarding loop,
+				 *	and the destination can't be
+				 *	multi-point because the IPN
+				 *	endpoint ID designation of a
+				 *	multi-point destination is node
+				 *	number zero, which would not
+				 *	match the local node number.)
 				 *	But must first accept it, to
 				 *	prevent current custodian from
 				 *	re-forwarding it endlessly back
@@ -5366,6 +5600,21 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 	}
 
 	/*	There may be a non-local destination.			*/
+
+	if (bundle->fragmentElt || bundle->dlvQueueElt)
+	{
+		/*	Bundle has been delivered locally; the bundle
+		 *	we forward must be a copy.			*/
+
+		if (bpClone(bundle, &newBundle, &newBundleObj, 0, 0) < 0)
+		{
+			putErrmsg("Failed cloning bundle.", NULL);
+			return -1;
+		}
+
+		bundle = &newBundle;
+		bundleObj = newBundleObj;
+	}
 
 	if (printEid(&bundle->destination, dictionary, &eidString) < 0)
 	{
@@ -5488,13 +5737,12 @@ static int	eraseWorkZco(AcqWorkArea *work)
 		sdr_begin_xn(bpSdr);
 		sdr_list_delete(bpSdr, work->zcoElt, NULL, NULL);
 
-		/*	Destroying the last reference to the ZCO will
-		 *	destroy the ZCO, which will in turn cause the
-		 *	acquisition FileRef to be deleted, which will
-		 *	unlink the acquisition file when the FileRef's
-		 *	cleanup script is executed.			*/
+		/*	Destroying the ZCO will cause the acquisition
+		 *	FileRef to be deleted, which will unlink the
+		 *	acquisition file when the FileRef's cleanup
+		 *	script is executed.				*/
 
-		zco_destroy_reference(bpSdr, work->zco);
+		zco_destroy(bpSdr, work->zco);
 		if (sdr_end_xn(bpSdr) < 0)
 		{
 			putErrmsg("Can't clear inbound bundle ZCO.", NULL);
@@ -5751,10 +5999,16 @@ static int	applyRecvRateControl(AcqWorkArea *work)
 	sdr_begin_xn(bpSdr);		/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(bpSdr, Induct, induct, sdr_list_data(bpSdr,
 			work->vduct->inductElt));
+	throttle = &(work->vduct->acqThrottle);
+	if (throttle->nominalRate < 0)	/*	No rate control.	*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	GET_OBJ_POINTER(bpSdr, ClProtocol, protocol, induct->protocol);
 	recvLength = computeECCC(bundle->payload.length
 			+ NOMINAL_PRIMARY_BLKSIZE, protocol);
-	throttle = &(work->vduct->acqThrottle);
 	while (throttle->capacity <= 0)
 	{
 		sdr_exit_xn(bpSdr);
@@ -5848,7 +6102,6 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	bundle = &(work->bundle);
 	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
 	bundle->custodyTaken = 0;
-	bundle->catenated = 0;
 	bytesToParse = work->bytesBuffered;
 	unparsedBytes = bytesToParse;
 	cursor = (unsigned char *) (work->buffer);
@@ -6296,7 +6549,7 @@ static int	abortBundleAcq(AcqWorkArea *work)
 	if (work->bundle.payload.content)
 	{
 		sdr_begin_xn(bpSdr);
-		zco_destroy_reference(bpSdr, work->bundle.payload.content);
+		zco_destroy(bpSdr, work->bundle.payload.content);
 		if (sdr_end_xn(bpSdr) < 0)
 		{
 			putErrmsg("Can't destroy bundle ZCO.", NULL);
@@ -6330,7 +6583,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 	 *	forwarder because it applies to bundles sourced locally
 	 *	as well as to bundles accepted from other endpoints.	*/
 
-	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+	if (bundleIsCustodial(bundle))
 	{
 		if (sendCtSignal(bundle, dictionary, 0, ctReason) < 0)
 		{
@@ -6457,12 +6710,9 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	char		*custodialSchemeName;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	int		result;
+	int		count;
 	char		*eidString;
-	Object		bundleZco;
-	ZcoReader	reader;
 	Object		bundleAddr;
-	Object		timelineElt;
 	MetaEid		senderMetaEid;
 	Object		bundleObj;
 
@@ -6562,7 +6812,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	 *	-- we still have a local copy for which we have
 	 *	accepted custody.					*/
 
-	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+	if (bundleIsCustodial(bundle))
 	{
 		if (printEid(&(bundle->custodian), work->dictionary,
 				&eidString) < 0)
@@ -6595,22 +6845,24 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 			}
 
 			sdr_begin_xn(bpSdr);
-			result = findBundle(eidString,
+			count = findBundle(eidString,
 				&(bundle->id.creationTime),
 				bundle->id.fragmentOffset,
 				(bundle->bundleProcFlags & BDL_IS_FRAGMENT ?
 					bundle->payload.length : 0),
-				&bundleAddr, &timelineElt);
+				&bundleAddr);
 			MRELEASE(eidString);
 			sdr_exit_xn(bpSdr);
-			if (result < 0)
+			switch (count)
 			{
-				putErrmsg("Can't fetch bundle.", NULL);
+			case -1:
+				putErrmsg("Failed seeking bundle.", NULL);
 				return -1;
-			}
 
-			if (timelineElt)	/*	Redundant.	*/
-			{
+			case 0:		/*	No entry in table.	*/
+				break;	/*	Bundle is new.		*/
+
+			default:	/*	Entry found; redundant.	*/
 				return discardReceivedBundle(work,
 					CtRedundantReception, 0,
 					work->dictionary);
@@ -6631,13 +6883,9 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	/*	Reduce payload ZCO to just its source data, discarding
 	 *	BP header and trailer.					*/
 
-	bundleZco = zco_add_reference(bpSdr, bundle->payload.content);
-	zco_start_receiving(bpSdr, bundleZco, &reader);
-	zco_receive_headers(bpSdr, &reader, work->headerLength, NULL);
-	zco_delimit_source(bpSdr, &reader, work->bundle.payload.length);
-	zco_strip(bpSdr, bundleZco);
-	zco_stop_receiving(bpSdr, &reader);
-	zco_destroy_reference(bpSdr, bundleZco);
+	zco_delimit_source(bpSdr, bundle->payload.content, work->headerLength,
+			bundle->payload.length);
+	zco_strip(bpSdr, bundle->payload.content);
 
 	/*	Record bundle's sender EID, if known.			*/
 
@@ -6661,18 +6909,10 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 	bundle->stations = sdr_list_create(bpSdr);
 	bundle->trackingElts = sdr_list_create(bpSdr);
-	bundle->xmitRefs = sdr_list_create(bpSdr);
 	bundleObj = sdr_malloc(bpSdr, sizeof(Bundle));
 	if (bundleObj == 0)
 	{
 		putErrmsg("No space for bundle object.", NULL);
-		sdr_cancel_xn(bpSdr);
-		return -1;
-	}
-
-	if (setBundleTTL(bundle, bundleObj) < 0)
-	{
-		putErrmsg("Can't insert new bundle into timeline.", NULL);
 		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
@@ -6691,6 +6931,20 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		sdr_write(bpSdr, bundle->dictionary, work->dictionary,
 				bundle->dictionaryLength);
 		bundle->dbOverhead += bundle->dictionaryLength;
+	}
+
+	if (setBundleTTL(bundle, bundleObj) < 0)
+	{
+		putErrmsg("Can't insert new bundle into timeline.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	if (catalogueBundle(bundle, bundleObj) < 0)
+	{
+		putErrmsg("Can't catalogue new bundle in hash table.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
 	}
 
 	if (recordExtensionBlocks(work) < 0)
@@ -6747,16 +7001,17 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 int	bpEndAcq(AcqWorkArea *work)
 {
-	Sdr		bpSdr = getIonsdr();
-	int		acqLength;
+	Sdr	bpSdr = getIonsdr();
+	int	result;
+	int	acqLength;
 
 	CHKERR(work);
 	CHKERR(work->zco);
 	work->zcoLength = zco_length(bpSdr, work->zco);
 	sdr_begin_xn(bpSdr);
-	zco_start_receiving(bpSdr, work->zco, &(work->reader));
-	CHKERR(advanceWorkBuffer(work, 0) == 0);
-	if (sdr_end_xn(bpSdr) < 0)
+	zco_start_receiving(work->zco, &(work->reader));
+	result = advanceWorkBuffer(work, 0);
+	if (sdr_end_xn(bpSdr) < 0 || result < 0)
 	{
 		putErrmsg("Acq buffer initialization failed.", NULL);
 		return -1;
@@ -6788,7 +7043,6 @@ int	bpEndAcq(AcqWorkArea *work)
 		clearAcqArea(work);
 	}
 
-	zco_stop_receiving(bpSdr, &(work->reader));
 	return eraseWorkZco(work);
 }
 
@@ -7289,16 +7543,16 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	if ((buffer = MTAKE(buflen)) == NULL)
 	{
 		putErrmsg("Can't start parsing admin record.", NULL);
-		sdr_cancel_xn(bpSdr);
+		oK(sdr_end_xn(bpSdr));
 		return -1;
 	}
 
-	zco_start_receiving(bpSdr, payload, &reader);
+	zco_start_receiving(payload, &reader);
 	bytesToParse = zco_receive_source(bpSdr, &reader, buflen, buffer);
 	if (bytesToParse < 0)
 	{
 		putErrmsg("Can't receive admin record.", NULL);
-		sdr_cancel_xn(bpSdr);
+		oK(sdr_end_xn(bpSdr));
 		MRELEASE(buffer);
 		return -1;
 	}
@@ -7309,49 +7563,41 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	{
 		writeMemoNote("[?] Incoming admin record too short",
 				itoa(unparsedBytes));
-		sdr_cancel_xn(bpSdr);
+		oK(sdr_end_xn(bpSdr));
 		MRELEASE(buffer);
+		return 0;
+	}
+
+	*adminRecordType = (*cursor >> 4 ) & 0x0f;
+	bundleIsFragment = *cursor & 0x01;
+	cursor++;
+	unparsedBytes--;
+	switch (*adminRecordType)
+	{
+	case BP_STATUS_REPORT:
+		result = bpParseStatusRpt(rpt, (unsigned char *) cursor,
+				unparsedBytes, bundleIsFragment);
+		break;
+
+	case BP_CUSTODY_SIGNAL:
+		result = bpParseCtSignal(csig, (unsigned char *) cursor,
+				unparsedBytes, bundleIsFragment);
+		break;
+
+	default:
+		writeMemoNote("[?] Unknown admin record type",
+				itoa(*adminRecordType));
 		result = 0;
 	}
-	else
-	{
-		*adminRecordType = (*cursor >> 4 ) & 0x0f;
-		bundleIsFragment = *cursor & 0x01;
-		cursor++;
-		unparsedBytes--;
-		switch (*adminRecordType)
-		{
-		case BP_STATUS_REPORT:
-			result = bpParseStatusRpt(rpt, (unsigned char *) cursor,
-					unparsedBytes, bundleIsFragment);
-			break;
 
-		case BP_CUSTODY_SIGNAL:
-			result = bpParseCtSignal(csig, (unsigned char *) cursor,
-					unparsedBytes, bundleIsFragment);
-			break;
-
-		default:
-			writeMemoNote("[?] Unknown admin record type",
-					itoa(*adminRecordType));
-			result = 0;
-		}
-	}
-
+	oK(sdr_end_xn(bpSdr));
 	MRELEASE(buffer);
-	zco_stop_receiving(bpSdr, &reader);
-	if (sdr_end_xn(bpSdr) < 0)
-	{
-		putErrmsg("Can't update status report after parsing.", NULL);
-		return -1;
-	}
-
 	return result;
 }
 
 /*	*	*	Bundle catenation functions	*	*	*/
 
-static Object	catenateBundle(Bundle *bundle)
+static int	catenateBundle(Bundle *bundle)
 {
 	Sdr		bpSdr = getIonsdr();
 	Sdnv		bundleProcFlagsSdnv;
@@ -7475,7 +7721,7 @@ static Object	catenateBundle(Bundle *bundle)
 	if (buffer == NULL)
 	{
 		putErrmsg("Can't construct bundle header.", NULL);
-		return 0;
+		return -1;
 	}
 
 	cursor = buffer;
@@ -7583,7 +7829,7 @@ static Object	catenateBundle(Bundle *bundle)
 		if (buffer == NULL)
 		{
 			putErrmsg("Can't construct bundle trailer.", NULL);
-			return 0;
+			return -1;
 		}
 
 		cursor = buffer;
@@ -7633,7 +7879,7 @@ static Object	catenateBundle(Bundle *bundle)
 		MRELEASE(buffer);
 	}
 
-	return zco_add_reference(bpSdr, bundle->payload.content);
+	return 0;
 }
 
 /*	*	*	Bundle transmission queue functions	*	*/
@@ -7819,26 +8065,12 @@ static int	takeCustody(Bundle *bundle)
 
 int	bpAccept(Bundle *bundle)
 {
-	Sdr	bpSdr = getIonsdr();
 	char	*dictionary;
 	int	result;
 
 	CHKERR(ionLocked());
 	purgeStationsStack(bundle);
-	if (bundle->catenated)	/*	Re-forwarding custodial bundle.	*/
-	{
-		zco_discard_first_header(bpSdr, bundle->payload.content);
-		if (bundle->extensionsLength[POST_PAYLOAD] > 0)
-		{
-			zco_discard_last_trailer(bpSdr,
-					bundle->payload.content);
-		}
-
-		bundle->catenated = 0;
-		return 0;
-	}
-
-	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+	if (bundleIsCustodial(bundle))
 	{
 		if (takeCustody(bundle) < 0)
 		{
@@ -7872,12 +8104,11 @@ int	bpAccept(Bundle *bundle)
 	return 0;
 }
 
-static Object	insertXrefIntoList(Object queue, Object lastElt,
-			Object xmitRefAddr, int priority,
+static Object	insertBundleIntoQueue(Object queue, Object lastElt,
+			Object bundleAddr, int priority,
 			unsigned char ordinal, time_t enqueueTime)
 {
 	Sdr	bpSdr = getIonsdr();
-		OBJ_POINTER(XmitRef, xr);
 		OBJ_POINTER(Bundle, bundle);
 
 	/*	Bundles have transmission seniority which must be
@@ -7886,8 +8117,7 @@ static Object	insertXrefIntoList(Object queue, Object lastElt,
 	 *	the queue ahead of bundles of the same priority that
 	 *	were enqueued more recently.				*/
 
-	GET_OBJ_POINTER(bpSdr, XmitRef, xr, sdr_list_data(bpSdr, lastElt));
-	GET_OBJ_POINTER(bpSdr, Bundle, bundle, xr->bundleObj);
+	GET_OBJ_POINTER(bpSdr, Bundle, bundle, sdr_list_data(bpSdr, lastElt));
 	while (enqueueTime < bundle->enqueueTime)
 	{
 		lastElt = sdr_list_prev(bpSdr, lastElt);
@@ -7896,9 +8126,8 @@ static Object	insertXrefIntoList(Object queue, Object lastElt,
 			break;		/*	Reached head of queue.	*/
 		}
 
-		GET_OBJ_POINTER(bpSdr, XmitRef, xr,
+		GET_OBJ_POINTER(bpSdr, Bundle, bundle,
 				sdr_list_data(bpSdr, lastElt));
-		GET_OBJ_POINTER(bpSdr, Bundle, bundle, xr->bundleObj);
 		if (priority < 2)
 		{
 			continue;	/*	Don't check ordinal.	*/
@@ -7912,16 +8141,16 @@ static Object	insertXrefIntoList(Object queue, Object lastElt,
 
 	if (lastElt)
 	{
-		return sdr_list_insert_after(bpSdr, lastElt, xmitRefAddr);
+		return sdr_list_insert_after(bpSdr, lastElt, bundleAddr);
 	}
 
-	return sdr_list_insert_first(bpSdr, queue, xmitRefAddr);
+	return sdr_list_insert_first(bpSdr, queue, bundleAddr);
 }
 
-static Object	enqueueUrgentBundle(Outduct *duct, int ordinal,
-			Object xmitRefAddr, time_t enqueueTime,
-			int backlogIncrement)
+static Object	enqueueUrgentBundle(Outduct *duct, Bundle *bundle,
+			Object bundleObj, int backlogIncrement)
 {
+	unsigned char	ordinal = bundle->extendedCOS.ordinal;
 	OrdinalState	*ord = &(duct->ordinals[ordinal]);
 	Object		lastElt = 0;	// initialized to avoid warning
 	int		i;
@@ -7943,12 +8172,12 @@ static Object	enqueueUrgentBundle(Outduct *duct, int ordinal,
 	if (i == 256)	/*	No more urgent bundle to enqueue after.	*/
 	{
 		xmitElt = sdr_list_insert_first(getIonsdr(), duct->urgentQueue,
-				xmitRefAddr);
+				bundleObj);
 	}
 	else		/*	Enqueue after this one.			*/
 	{
-		xmitElt = insertXrefIntoList(duct->urgentQueue, lastElt,
-				xmitRefAddr, 2, ordinal, enqueueTime);
+		xmitElt = insertBundleIntoQueue(duct->urgentQueue, lastElt,
+				bundleObj, 2, ordinal, bundle->enqueueTime);
 	}
 
 	if (xmitElt)
@@ -7958,6 +8187,31 @@ static Object	enqueueUrgentBundle(Outduct *duct, int ordinal,
 	}
 
 	return xmitElt;
+}
+
+static int	isLoopback(char *eid)
+{
+	int		result;
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	elt;
+
+	result = parseEidString(eid, &metaEid, &vscheme, &elt);
+	restoreEidString(&metaEid);
+	if (result == 0)
+	{
+		/*	Unrecognizable EID, so can't be an ION node,
+		 *	so can't be the local node, so not loopback.	*/
+
+		return 0;
+	}
+
+	if (strncmp(eid, vscheme->custodianEidString, MAX_EID_LEN) == 0)
+	{
+		return 1;
+	}
+
+	return 0;
 }
 
 int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
@@ -7971,8 +8225,6 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	PsmAddress	vductElt;
 	VOutduct	*vduct;
 	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
-	Object		xmitRefAddr;
-	XmitRef		xr;
 	int		backlogIncrement;
 	ClProtocol	protocol;
 	time_t		enqueueTime;
@@ -7982,13 +8234,30 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	CHKERR(ionLocked());
 	CHKERR(directive && bundle && bundleObj && proxNodeEid);
 	CHKERR(*proxNodeEid && strlen(proxNodeEid) < MAX_SDRSTRING);
+	CHKERR(bundle->ductXmitElt == 0);
 
-	/*	We have settled on the best node to send this bundle
-	 *	to; if it can't get there because the duct to that
-	 *	node is blocked, then the bundle goes into limbo
-	 *	until something changes.
+	/*	We have settled on a neighboring node to forward
+	 *	this bundle to; if it can't get there because the
+	 *	duct to that node is blocked, then the bundle goes
+	 *	into limbo until something changes.
 	 *
-	 *	First check to see if the duct is blocked.		*/
+	 *	But if the selected node is the local node (loopback)
+	 *	and the bundle has already been delivered, we prevent
+	 *	a loopback routing loop by NOT enqueueing the bundle.
+	 *	Note that this is a backup check: the scheme-specific
+	 *	forwarder should have checked the "delivered" flag
+	 *	itself and refrained from trying to enqueue the bundle
+	 *	for transmission to the local node.			*/
+
+	if (bundle->delivered)
+	{
+		if (isLoopback(proxNodeEid))
+		{
+			return 0;
+		}
+	}
+
+	/*	Next we check to see if the duct is blocked.		*/
 
 	ductAddr = sdr_list_data(bpSdr, directive->outductElt);
 	sdr_stage(bpSdr, (char *) &duct, ductAddr, sizeof(Outduct));
@@ -7997,10 +8266,9 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 		return enqueueToLimbo(bundle, bundleObj);
 	}
 
-	/*      Now construct a transmission reference.			*/
+	/*      Now construct transmission parameters.			*/
 
-	xr.bundleObj = bundleObj;
-	xr.proxNodeEid = sdr_string_create(bpSdr, proxNodeEid);
+	bundle->proxNodeEid = sdr_string_create(bpSdr, proxNodeEid);
 
 	/*	Retrieve destination induct name, if applicable.	*/
 
@@ -8013,18 +8281,11 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 			return -1;
 		}
 
-		xr.destDuctName = sdr_string_create(bpSdr, destDuctName);
+		bundle->destDuctName = sdr_string_create(bpSdr, destDuctName);
 	}
 	else
 	{
-		xr.destDuctName = 0;
-	}
-
-	xmitRefAddr = sdr_malloc(bpSdr, sizeof(XmitRef));
-	if (xmitRefAddr == 0)
-	{
-		putErrmsg("Can't enqueue bundle.", NULL);
-		return -1;
+		bundle->destDuctName = 0;
 	}
 
 	if (processExtensionBlocks(bundle, PROCESS_ON_ENQUEUE, NULL) < 0)
@@ -8044,8 +8305,8 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 		enqueueTime = bundle->enqueueTime;
 	}
 
-	/*	Insert bundle's xmitRef into the appropriate
-	 *	transmission queue of the selected Duct.		*/
+	/*	Insert bundle into the appropriate transmission queue
+	 *	of the selected Duct.					*/
 
 	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 	switch (priority)
@@ -8054,13 +8315,14 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 		lastElt = sdr_list_last(bpSdr, duct.bulkQueue);
 		if (lastElt == 0)
 		{
-			xr.ductXmitElt = sdr_list_insert_first(bpSdr,
-				duct.bulkQueue, xmitRefAddr);
+			bundle->ductXmitElt = sdr_list_insert_first(bpSdr,
+				duct.bulkQueue, bundleObj);
 		}
 		else
 		{
-			xr.ductXmitElt = insertXrefIntoList(duct.bulkQueue,
-				lastElt, xmitRefAddr, 0, 0, enqueueTime);
+			bundle->ductXmitElt =
+				insertBundleIntoQueue(duct.bulkQueue,
+				lastElt, bundleObj, 0, 0, enqueueTime);
 		}
 
 		increaseScalar(&duct.bulkBacklog, backlogIncrement);
@@ -8070,30 +8332,26 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 		lastElt = sdr_list_last(bpSdr, duct.stdQueue);
 		if (lastElt == 0)
 		{
-			xr.ductXmitElt = sdr_list_insert_first(bpSdr,
-				duct.stdQueue, xmitRefAddr);
+			bundle->ductXmitElt = sdr_list_insert_first(bpSdr,
+				duct.stdQueue, bundleObj);
 		}
 		else
 		{
-			xr.ductXmitElt = insertXrefIntoList(duct.stdQueue,
-				lastElt, xmitRefAddr, 1, 0, enqueueTime);
+			bundle->ductXmitElt =
+			       	insertBundleIntoQueue(duct.stdQueue,
+				lastElt, bundleObj, 1, 0, enqueueTime);
 		}
 
 		increaseScalar(&duct.stdBacklog, backlogIncrement);
 		break;
 
 	default:
-		xr.ductXmitElt = enqueueUrgentBundle(&duct,
-				bundle->extendedCOS.ordinal, xmitRefAddr,
-				enqueueTime, backlogIncrement);
+		bundle->ductXmitElt = enqueueUrgentBundle(&duct,
+				bundle, bundleObj, backlogIncrement);
 		increaseScalar(&duct.urgentBacklog, backlogIncrement);
 	}
 
 	sdr_write(bpSdr, ductAddr, (char *) &duct, sizeof(Outduct));
-	xr.bundleXmitElt = sdr_list_insert_last(bpSdr, bundle->xmitRefs,
-			xmitRefAddr);
-	sdr_write(bpSdr, xmitRefAddr, (char *) &xr, sizeof(XmitRef));
-	bundle->xmitsNeeded += 1;
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	noteStateStats(BPSTATS_FORWARD, bundle);
 	if ((_bpvdb(NULL))->watching & WATCH_b)
@@ -8130,16 +8388,15 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 {
 	Sdr	bpSdr = getIonsdr();
 	BpDB	*bpConstants = getBpConstants();
-	Object	xmitRefAddr;
-	XmitRef	xr;
 
 	/*      ION has determined that this bundle must wait
 	 *      in limbo until a duct is unblocked, enabling
-	 *      transmission.  So construct a "limbo" transmission
-	 *      reference.						*/
+	 *      transmission.  So append bundle to the "limbo"
+	 *      list.							*/
 
 	CHKERR(ionLocked());
 	CHKERR(bundleObj && bundle);
+	CHKERR(bundle->ductXmitElt == 0);
 	if (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
 		/*	"Critical" bundles are never reforwarded
@@ -8151,22 +8408,20 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 		return 0;
 	}
 
-	xmitRefAddr = sdr_malloc(bpSdr, sizeof(XmitRef));
-	if (xmitRefAddr == 0)
+	if (bundle->proxNodeEid)
 	{
-		putErrmsg("Can't put bundle in limbo.", NULL);
-		return -1;
+		sdr_free(bpSdr, bundle->proxNodeEid);
+		bundle->proxNodeEid = 0;
 	}
 
-	xr.bundleObj = bundleObj;
-	xr.proxNodeEid = 0;
-	xr.destDuctName = 0;
-	xr.ductXmitElt = sdr_list_insert_last(bpSdr,
-			bpConstants->limboQueue, xmitRefAddr);
-	xr.bundleXmitElt = sdr_list_insert_last(bpSdr,
-			bundle->xmitRefs, xmitRefAddr);
-	sdr_write(bpSdr, xmitRefAddr, (char *) &xr, sizeof(XmitRef));
-	bundle->xmitsNeeded += 1;
+	if (bundle->destDuctName)
+	{
+		sdr_free(bpSdr, bundle->destDuctName);
+		bundle->destDuctName = 0;
+	}
+
+	bundle->ductXmitElt = sdr_list_insert_last(bpSdr,
+			bpConstants->limboQueue, bundleObj);
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	if ((_bpvdb(NULL))->watching & WATCH_limbo)
 	{
@@ -8180,27 +8435,27 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 		Outduct *outduct, int sendToLimbo)
 {
-	Sdr		bpSdr = getIonsdr();
-	Object		xrAddr;
-	XmitRef		xr;
-	Bundle		bundle;
+	Sdr	bpSdr = getIonsdr();
+	Object	bundleAddr;
+	Bundle	bundle;
 
-	xrAddr = sdr_list_data(bpSdr, xmitElt);
-	sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
-	sdr_read(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
-	sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
-	removeBundleFromQueue(xmitElt, &bundle, protocol, outductObj, outduct);
-	if (xr.proxNodeEid)
+	bundleAddr = sdr_list_data(bpSdr, xmitElt);
+	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+	removeBundleFromQueue(&bundle, bundleAddr, protocol, outductObj,
+			outduct);
+	if (bundle.proxNodeEid)
 	{
-		sdr_free(bpSdr, xr.proxNodeEid);
+		sdr_free(bpSdr, bundle.proxNodeEid);
+		bundle.proxNodeEid = 0;
 	}
 
-	if (xr.destDuctName)
+	if (bundle.destDuctName)
 	{
-		sdr_free(bpSdr, xr.destDuctName);
+		sdr_free(bpSdr, bundle.destDuctName);
+		bundle.destDuctName = 0;
 	}
 
-	sdr_free(bpSdr, xrAddr);
+	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 
 	/*	If bundle is MINIMUM_LATENCY, nothing more to do.  We
 	 *	never reforward critical bundles or send them to limbo.	*/
@@ -8215,37 +8470,27 @@ int	reverseEnqueue(Object xmitElt, ClProtocol *protocol, Object outductObj,
 		/*	Want to give bundle another chance to be
 		 *	transmitted at next opportunity.		*/
 
-		return bpReforwardBundle(xr.bundleObj);
+		return bpReforwardBundle(bundleAddr);
 	}
 
 	/*	Must queue the bundle into limbo unconditionally.	*/
 
-	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, 0);
 	if (bundle.overdueElt)
 	{
 		/*	Bundle was un-queued before "overdue"
 	 	*	alarm went off, so disable the alarm.		*/
 
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
 	}
 
 	if (bundle.ctDueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 		bundle.ctDueElt = 0;
 	}
 
-	if (bundle.inTransitEntry)
-	{
-		sdr_hash_delete_entry(bpSdr, bundle.inTransitEntry);
-		bundle.inTransitEntry = 0;
-	}
-
-	bundle.xmitsNeeded -= 1;
-	return enqueueToLimbo(&bundle, xr.bundleObj);
+	return enqueueToLimbo(&bundle, bundleAddr);
 }
 
 int	bpBlockOutduct(char *protocolName, char *ductName)
@@ -8333,15 +8578,13 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 int	releaseFromLimbo(Object xmitElt, int resuming)
 {
 	Sdr	bpSdr = getIonsdr();
-	Object	xrAddr;
-	XmitRef	xr;
+	Object	bundleAddr;
 	Bundle	bundle;
 
 	CHKERR(ionLocked());
 	CHKERR(xmitElt);
-	xrAddr = sdr_list_data(bpSdr, xmitElt);
-	sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
-	sdr_stage(bpSdr, (char *) &bundle, xr.bundleObj, sizeof(Bundle));
+	bundleAddr = sdr_list_data(bpSdr, xmitElt);
+	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 	if (bundle.suspended)
 	{
 		if (resuming)
@@ -8355,16 +8598,14 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 	}
 
 	/*	Erase this bogus transmission reference.  Note that
-	 *	by deleting the two XmitElt objects in this bundle
+	 *	by deleting the ductXmitElt object in this bundle
 	 *	we are deleting the xmitElt that was passed to
 	 *	this function -- don't count on being able to
 	 *	navigate to the next xmitElt in limboQueue from it!	*/
 
-	sdr_free(bpSdr, xrAddr);
-	sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
-	sdr_list_delete(bpSdr, xr.ductXmitElt, NULL, NULL);
-	bundle.xmitsNeeded -= 1;
-	sdr_write(bpSdr, xr.bundleObj, (char *) &bundle, sizeof(Bundle));
+	sdr_list_delete(bpSdr, bundle.ductXmitElt, NULL, NULL);
+	bundle.ductXmitElt = 0;
+	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 	if ((_bpvdb(NULL))->watching & WATCH_delimbo)
 	{
 		putchar('k');
@@ -8373,7 +8614,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 
 	/*	Now see if the bundle can finally be transmitted.	*/
 
-	if (bpReforwardBundle(xr.bundleObj) < 0)
+	if (bpReforwardBundle(bundleAddr) < 0)
 	{
 		putErrmsg("Failed releasing bundle from limbo.", NULL);
 		return -1;
@@ -8449,8 +8690,7 @@ static void	releaseCustody(Object bundleAddr, Bundle *bundle)
 		/*	Bundle was transmitted before "CT due" alarm
 		 *	went off, so disable the alarm.			*/
 
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle->ctDueElt));
-		sdr_list_delete(bpSdr, bundle->ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle->ctDueElt);
 		bundle->ctDueElt = 0;
 	}
 
@@ -8493,7 +8733,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	}
 	else
 	{
-		if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+		if (bundleIsCustodial(bundle))
 		{
 			result2 = sendCtSignal(bundle, dictionary, 0,
 					CtNoKnownRoute);
@@ -8637,7 +8877,6 @@ static void	selectNextBundleForTransmission(Outflow *flows,
 	Outflow	*flow;
 	Object	elt;
 
-	*winner = NULL;		/*	N/A for strict priority.	*/
 	*eltp = 0;		/*	Default: nothing ready.		*/
 	i = EXPEDITED_FLOW;	/*	Start with highest priority.	*/
 	while (1)
@@ -8646,6 +8885,7 @@ static void	selectNextBundleForTransmission(Outflow *flows,
 		elt = sdr_list_first(getIonsdr(), flow->outboundBundles);
 		if (elt)
 		{
+			*winner = flow;
 			*eltp = elt;
 			return;	/*	Got highest-priority bundle.	*/
 		}
@@ -8661,16 +8901,18 @@ static void	selectNextBundleForTransmission(Outflow *flows,
 
 static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 			Outduct *outduct, Object outductObj,
-			Object *bundleObj, Bundle *bundle,
-			Object *proxNodeEid, Object *destDuctName)
+			ClProtocol *protocol, unsigned long maxPayloadLength,
+			Object *bundleObj, Bundle *bundle)
 {
 	Sdr		bpSdr = getIonsdr();
 	PsmPartition	bpwm = getIonwm();
-	ClProtocol	protocol;
 	Outflow		*selectedFlow;
 	Object		xmitElt;
-	Object		xrAddr;
-	XmitRef		xr;
+	Outflow		*sourceFlow;
+	Bundle		firstBundle;
+	Object		firstBundleObj;
+	Bundle		secondBundle;
+	Object		secondBundleObj;
 	unsigned long	neighborNodeNbr;
 	IonNode		*destNode;
 	PsmAddress	nextNode;
@@ -8678,9 +8920,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 	PsmAddress	nextSnub;
 	IonSnub		*snub;
 
-	CHKERR(ionLocked());
-	sdr_read(bpSdr, (char *) &protocol, outduct->protocol,
-			sizeof(ClProtocol));
+	sdr_stage(bpSdr, (char *) outduct, outductObj, 0);
 	while (1)	/*	Might do one or more reforwards.	*/
 	{
 		selectNextBundleForTransmission(flows, &selectedFlow, &xmitElt);
@@ -8688,8 +8928,10 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 		{
 			sdr_exit_xn(bpSdr);
 
-			/*	Wait until forwarder announces an outbound
-		 	*	bundle by giving duct's semaphore.	*/
+			/*	Wait until forwarder announces an
+			 *	outbound bundle by giving duct's
+			 *	semaphore.  Duct might have changed
+			 *	in the interim, so re-read it.		*/
 
 			if (sm_SemTake(vduct->semaphore) < 0)
 			{
@@ -8704,7 +8946,8 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 
 				/*	End task, but without error.	*/
 
-				return -1;
+				*bundleObj = 0;
+				return 0;
 			}
 
 			sdr_begin_xn(bpSdr);
@@ -8713,17 +8956,11 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 			continue;	/*	Should succeed now.	*/
 		}
 
-		/*	Got next outbound transmission.  Remove it
-		 *	from the queue for this duct and from the list
-		 *	of transmissions for the referenced bundle.
-		 *	Do NOT delete destDuctName (if present); it
-		 *	must be passed back to bpDequeue.		*/
+		/*	Got next outbound bundle.  Resync flows as
+		 *	necessary.					*/
 
-		xrAddr = sdr_list_data(bpSdr, xmitElt);
-		sdr_read(bpSdr, (char *) &xr, xrAddr, sizeof(XmitRef));
-		sdr_free(bpSdr, xrAddr);
-		sdr_list_delete(bpSdr, xr.bundleXmitElt, NULL, NULL);
-		sdr_stage(bpSdr, (char *) bundle, xr.bundleObj, sizeof(Bundle));
+		*bundleObj = sdr_list_data(bpSdr, xmitElt);
+		sdr_stage(bpSdr, (char *) bundle, *bundleObj, sizeof(Bundle));
 #ifdef ION_BANDWIDTH_RESERVED
 		if (selectedFlow != NULL)	/*	Not urgent.	*/
 		{
@@ -8731,22 +8968,117 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 			resyncFlows(flows);
 		}
 #endif
-		removeBundleFromQueue(xmitElt, bundle, &protocol, outductObj,
+		/*	Fragment bundle as necessary.			*/
+
+		if (maxPayloadLength > 0
+		&& bundle->payload.length > maxPayloadLength)
+		{
+			/*	Must fragment this bundle.		*/
+
+			if (bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT)
+			{
+				/*	Bundle can't be fragmented,
+				 *	shouldn't have been queued
+				 *	on this outduct to start
+				 *	with.  Reforward it and get
+				 *	another bundle.			*/
+
+				removeBundleFromQueue(bundle, *bundleObj,
+						protocol, outductObj, outduct);
+				if (bpReforwardBundle(*bundleObj) < 0)
+				{
+					putErrmsg("Frag refwd failed.", NULL);
+					return -1;
+				}
+
+				/*	Try next bundle.	*/
+
+				if (sdr_end_xn(bpSdr) < 0)
+				{
+					putErrmsg("Reforward failed.", NULL);
+					return -1;
+				}
+
+				sdr_begin_xn(bpSdr);
+				sdr_stage(bpSdr, (char *) outduct, outductObj,
+						sizeof(Outduct));
+				continue;
+			}
+
+			/*	Okay to fragment.			*/
+
+			if (selectedFlow == NULL)
+			{
+				sourceFlow = flows + EXPEDITED_FLOW;
+			}
+			else
+			{
+				sourceFlow = selectedFlow;
+			}
+
+			if (bpClone(bundle, &firstBundle, &firstBundleObj, 0,
+					maxPayloadLength) < 0
+			|| bpClone(bundle, &secondBundle, &secondBundleObj,
+					maxPayloadLength, bundle->payload.length
+					- maxPayloadLength) < 0)
+			{
+				putErrmsg("CLO can't fragment bundle.",
+						NULL);
+				return -1;
+			}
+
+			/*	Lose the original bundle, inserting
+			 *	the two fragments in its place.  No
+			 *	significant change to backlog, so we
+			 *	don't call purgeDuctXmitElt which calls
+			 *	removeBundleFromQueue.			*/
+
+			sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
+			bundle->ductXmitElt = 0;
+			sdr_write(bpSdr, *bundleObj, (char *) bundle,
+					sizeof(Bundle));
+			if (bpDestroyBundle(*bundleObj, 0) < 0)
+			{
+				putErrmsg("CLO can't destroy original bundle.",
+						NULL);
+				return -1;
+			}
+
+			secondBundle.ductXmitElt = sdr_list_insert_first(bpSdr,
+				sourceFlow->outboundBundles, secondBundleObj);
+			sdr_write(bpSdr, secondBundleObj,
+				(char *) &secondBundle, sizeof(Bundle));
+			firstBundle.ductXmitElt = sdr_list_insert_first(bpSdr,
+				sourceFlow->outboundBundles, firstBundleObj);
+			sdr_write(bpSdr, firstBundleObj,
+				(char *) &firstBundle, sizeof(Bundle));
+			xmitElt = firstBundle.ductXmitElt;
+			*bundleObj = firstBundleObj;
+			memcpy((char *) bundle, (char *) &firstBundle,
+					sizeof(Bundle));
+		}
+
+		/*	Pop the selected bundle out of its transmission
+		 *	queue.						*/
+
+		removeBundleFromQueue(bundle, *bundleObj, protocol, outductObj,
 				outduct);
-		sdr_write(bpSdr, outductObj, (char *) outduct, sizeof(Outduct));
 
 		/*	If the neighbor for this duct has begun
 		 *	snubbing bundles for the indicated destination
 		 *	since this bundle was enqueued to this duct,
 		 *	re-forward the bundle on a different route
 		 *	(if possible).  Note that we can only track
-		 *	snubs for CBHE-conformant destination nodes.	*/
+		 *	snubs that are issued by neighbors reached
+		 *	via LTP ducts and are for nodes identified by
+		 *	CBHE-conformant endpoint IDs.			*/
 
-		if (bundle->id.source.cbhe)
+		if (bundle->destination.cbhe
+		&& strcmp(vduct->protocolName, "ltp") == 0)
 		{
 			neighborNodeNbr = strtoul(vduct->ductName, NULL, 0);
 			destNode = findNode(getIonVdb(),
-				bundle->id.source.c.nodeNbr, &nextNode);
+				bundle->destination.c.nodeNbr, &nextNode);
 			if (destNode)	/*	Node might have snubs.	*/
 			{
 				/*	Check list of nodes that have
@@ -8780,7 +9112,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 					 *	bundles for this
 					 *	destination.		*/
 
-					if (bpReforwardBundle(xr.bundleObj) < 0)
+					if (bpReforwardBundle(*bundleObj) < 0)
 					{
 						putErrmsg("Snub refwd failed.",
 								NULL);
@@ -8806,91 +9138,96 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 
 		/*	Return this bundle to the CLO.			*/
 
-		*bundleObj = xr.bundleObj;
-		*proxNodeEid = xr.proxNodeEid;
-		*destDuctName = xr.destDuctName;
 		return 0;
 	}
 }
 
-static int	constructInTransitHashKey(char *buffer, char *sourceEid,
-			unsigned long seconds, unsigned long count,
-			unsigned long offset, unsigned long length)
-{
-	memset(buffer, 0, IN_TRANSIT_KEY_BUFLEN);
-	isprintf(buffer, IN_TRANSIT_KEY_BUFLEN, "%s:%lu:%lu:%lu:%lu",
-			sourceEid, seconds, count, offset, length);
-	return strlen(buffer);
-}
-
 int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		BpExtendedCOS *extendedCOS, char *destDuctName,
-		int stewardshipAccepted)
+		unsigned long maxPayloadLength, int timeoutInterval)
 {
 	Sdr		bpSdr = getIonsdr();
+	int		stewardshipAccepted;
 	Object		outductObj;
 	Outduct		outduct;
 			OBJ_POINTER(ClProtocol, protocol);
 	Object		bundleObj;
 	Bundle		bundle;
-	Object		proxNodeEidObj;
-	Object		destDuctNameObj;
+	BundleSet	bset;
 	char		proxNodeEid[SDRSTRING_BUFSZ];
 	DequeueContext	context;
 	char		*dictionary;
 	int		xmitLength;
-	char		*sourceEid;
-	char		inTransitKey[IN_TRANSIT_KEY_BUFLEN];
 
 	CHKERR(vduct && flows && bundleZco && extendedCOS && destDuctName);
 	*bundleZco = 0;			/*	Default behavior.	*/
 	*destDuctName = '\0';		/*	Default behavior.	*/
+	if (timeoutInterval < 0)
+	{
+		/*	Note that stewardship and custody acceptance
+		 *	timeout are mutually exclusive.			*/
+
+		stewardshipAccepted = 1;
+		timeoutInterval = 0;
+	}
+	else
+	{
+		stewardshipAccepted = 0;
+	}
+
 	sdr_begin_xn(bpSdr);
 
-	/*	Transmission rate control: wait for capacity.		*/
+	/*	Transmission rate control: wait for capacity.  But
+	 *	no rate control if throttle nominal rate < 0.		*/
 
-	while (vduct->xmitThrottle.capacity <= 0)
+	if (vduct->xmitThrottle.nominalRate >= 0)
 	{
-		sdr_exit_xn(bpSdr);
-		if (sm_SemTake(vduct->xmitThrottle.semaphore) < 0)
+		while (vduct->xmitThrottle.capacity <= 0)
 		{
-			putErrmsg("CLO can't take throttle semaphore.", NULL);
-			return -1;
+			sdr_exit_xn(bpSdr);
+			if (sm_SemTake(vduct->xmitThrottle.semaphore) < 0)
+			{
+				putErrmsg("CLO can't take throttle semaphore.",
+						NULL);
+				return -1;
+			}
+
+			if (sm_SemEnded(vduct->xmitThrottle.semaphore))
+			{
+				writeMemo("[i] Outduct has been stopped.");
+
+				/*	End task, but without error.	*/
+
+				return -1;
+			}
+
+			sdr_begin_xn(bpSdr);
 		}
-
-		if (sm_SemEnded(vduct->xmitThrottle.semaphore))
-		{
-			writeMemo("[i] Outduct has been stopped.");
-
-			/*	End task, but without error.		*/
-
-			return -1;
-		}
-
-		sdr_begin_xn(bpSdr);
 	}
 
 	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
-	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
+	sdr_read(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 	GET_OBJ_POINTER(bpSdr, ClProtocol, protocol, outduct.protocol);
 
 	/*	Get a transmittable bundle.				*/
 
-	if (getOutboundBundle(flows, vduct, &outduct, outductObj,
-		&bundleObj, &bundle, &proxNodeEidObj, &destDuctNameObj) < 0)
+	if (getOutboundBundle(flows, vduct, &outduct, outductObj, protocol,
+			maxPayloadLength, &bundleObj, &bundle) < 0)
 	{
-		writeMemo("[?] CLO can't get next outbound bundle.");
+		putErrmsg("CLO can't get next outbound bundle.", NULL);
 		sdr_cancel_xn(bpSdr);
-
-		/*	End task; may be with or without error.		*/
-
 		return -1;
 	}
 
-	if (proxNodeEidObj)
+	if (bundleObj == 0)	/*	Outduct has been stopped.	*/
 	{
-		sdr_string_read(bpSdr, proxNodeEid, proxNodeEidObj);
-		sdr_free(bpSdr, proxNodeEidObj);
+		sdr_exit_xn(bpSdr);
+		return -1;	/*	End task, but without error.	*/
+	}
+
+	if (bundle.proxNodeEid)
+	{
+		sdr_string_read(bpSdr, proxNodeEid, bundle.proxNodeEid);
 	}
 	else
 	{
@@ -8906,58 +9243,28 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		return -1;
 	}
 
-	bundle.xmitsNeeded -= 1;
 	if (bundle.overdueElt)
 	{
 		/*	Bundle was transmitted before "overdue"
 		 *	alarm went off, so disable the alarm.		*/
 
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
 	}
 
-	/*	This bundle may have been queued for transmission via
-	 *	multiple outducts, in which case it might have been
-	 *	catenated for transmission by a previous bpDequeue().
-	 *	If so, strip off the BP header and trailer: the
-	 *	extension blocks for the bundle we are issuing now
-	 *	may be entirely different.
-	 *
-	 *	NOTE the potential for problems here!  If the
-	 *	previously catenated bundle is still in the system
-	 *	and liable to retransmission, by rebuilding its
-	 *	header and trailer we may corrupt the retransmission
-	 *	of that earlier catenated bundle.  The only way to
-	 *	avoid this is to create entirely new, distinct copies
-	 *	of the bundle rather than use the zero-copy system
-	 *	and reference counting.  For the foreseeable future
-	 *	this should be no problem, since we're not doing any
-	 *	flooding or multicast or even any "critical bundle"
-	 *	routing.  But in more complex topologies and operating
-	 *	scenarios this problem will have to be addressed.	*/
+	/*	We now serialize the bundle header and prepend that
+	 *	header to the payload of the bundle; if there are
+	 *	post-payload extension blocks we also serialize
+	 *	them into a single trailer and append it to the
+	 *	payload.  This transforms the payload ZCO into a
+	 *	fully catenated bundle, ready for transmission.		*/
 
-	if (bundle.catenated)
+	if (catenateBundle(&bundle) < 0)
 	{
-		zco_discard_first_header(bpSdr, bundle.payload.content);
-		if (bundle.extensionsLength[POST_PAYLOAD] > 0)
-		{
-			zco_discard_last_trailer(bpSdr, bundle.payload.content);
-		}
+		putErrmsg("Can't catenate bundle.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
 	}
-
-	/*	In any case, we now serialize the bundle header and
-	 *	prepend that header to the payload of the bundle;
-	 *	if there are post-payload extension blocks we also
-	 *	serialize them into a single trailer and append it
-	 *	to the payload.  The output of the catenateBundle
-	 *	function is a new ZCO reference to the ZCO that was
-	 *	originally just the payload of the selected bundle
-	 *	but is now the fully catenated bundle, ready for
-	 *	transmission.						*/
-
-	*bundleZco = catenateBundle(&bundle);
-	bundle.catenated = 1;
 
 	/*	Some final extension-block processing may be necessary
 	 *	after catenation of the bundle, notably BAB hash
@@ -8970,22 +9277,26 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		return -1;
 	}
 
-	/*	There are a couple of things that we may need the
-	 *	dictionary for.						*/
+	/*	That's the end of the changes to the bundle.  Pass
+	 *	the catenated bundle (the payload ZCO) to the calling
+	 *	function, then replace it in the bundle structure with
+	 *	a clone of the payload source data only; cloning the
+	 *	zco strips off the headers and trailers added by
+	 *	the catenation function.  This is necessary in case
+	 *	the bundle is subject to re-forwarding (due to either
+	 *	stewardship or custody) and thus re-catenation.		*/
 
-	if ((dictionary = retrieveDictionary(&bundle)) == (char *) &bundle)
-	{
-		putErrmsg("Can't retrieve dictionary.", NULL);
-		sdr_cancel_xn(bpSdr);
-		return -1;
-	}
+	*bundleZco = bundle.payload.content;
+	bundle.payload.content = zco_clone(bpSdr, *bundleZco, 0,
+			zco_source_data_length(bpSdr, *bundleZco));
+	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 
 	/*	At this point we check the stewardshipAccepted flag.
-	 *	If the bundle is critical then it has been queued
-	 *	for transmission on all possible routes and is not
-	 *	subject to reforwarding (see notes on this in
-	 *	bpReforwardBundle); since it is not subject to
-	 *	reforwarding, stewardship is meaningless -- on
+	 *	If the bundle is critical then copies have been queued
+	 *	for transmission on all possible routes and none of
+	 *	them are subject to reforwarding (see notes on this in
+	 *	bpReforwardBundle).  Since this bundle is not subject
+	 *	to reforwarding, stewardship is meaningless -- on
 	 *	convergence-layer transmission failure the attempt
 	 *	to transmit the bundle is simply abandoned.  So
 	 *	in this event the stewardshipAccepted flag is forced
@@ -8997,83 +9308,51 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		stewardshipAccepted = 0;
 	}
 
-	/*	If stewardship of this bundle is accepted by the CLO
-	 *	then we know that the bundle's inTransitEntry is zero:
-	 *	the bundle can't be critical, therefore it can't have
-	 *	been queued for transmission at any other outduct, and
-	 *	if it was previously queued for transmission on this
-	 *	outduct it can only be subject to re-dequeue in the
-	 *	event that it was reforwarded -- and all paths to
-	 *	reforwarding it entailed erasing the prior value of
-	 *	inTransitEntry.  So we now attempt to construct a key
-	 *	for inserting the bundle into the inTransitHash; if
-	 *	the key is small enough, then the bundle goes into
-	 *	the inTransit hash table (if possible) pending a
-	 *	determination by the CLO as to the success or
-	 *	failure of convergence-layer transmission.
-	 *
-	 *	Note that the convergence-layer adapter task *must*
+	/*	Note that the convergence-layer adapter task *must*
 	 *	call either the bpHandleXmitSuccess function or
 	 *	the bpHandleXmitFailure function for *every*
 	 *	bundle it obtains via bpDequeue for which it has
 	 *	accepted stewardship.
 	 *
-	 *	If the bundle is not inserted into the inTransit
-	 *	hash table, for any reason, then the bundle object
-	 *	is subject to destruction immediately unless it is
-	 *	pending delivery or it is pending another transmis-
-	 *	sion or custody of the bundle has been accepted.
-	 *
-	 *	Note that the bundle's *payload* object (the ZCO we
-	 *	are delivering for transmission) is protected from
-	 *	destruction in any case because *bundleZco will be
-	 *	an additional reference to that reference-counted
-	 *	ZCO.  Even if bpDestroyBundle is called and the
-	 *	bundle is in fact destroyed (destroying its reference
-	 *	to the payload ZCO) at least one reference to that ZCO
-	 *	will survive.  Since a ZCO is never destroyed until
-	 *	its reference count drops to zero, the payload ZCO
-	 *	will remain available to the CLO for transmission and
-	 *	retransmission.						*/
+	 *	If the bundle isn't in the node's hash table of all
+	 *	bundles -- or if multiple bundles have the same key
+	 *	-- then neither of these stewardship resolution
+	 *	functions can succeed, so stewardship cannot be
+	 *	successfully accepted.  Again, stewardshipAccepted
+	 *	is forced to zero.					*/
 
-	if (stewardshipAccepted)
+	if (bundle.hashEntry == 0)
 	{
-		if (printEid(&bundle.id.source, dictionary, &sourceEid) < 0)
+		stewardshipAccepted = 0;
+	}
+	else	/*	Does hash entry resolve to only this bundle?	*/
+	{
+		sdr_read(bpSdr, (char *) &bset, sdr_hash_entry_value(bpSdr,
+				(_bpConstants())->bundles, bundle.hashEntry),
+				sizeof(BundleSet));
+		if (bset.bundleObj != bundleObj)
 		{
-			releaseDictionary(dictionary);
-			putErrmsg("Can't print source EID.", NULL);
+			stewardshipAccepted = 0;
+		}
+	}
+
+	/*	Note that when stewardship is not accepted, the bundle
+	 *	is subject to destruction immediately unless custody
+	 *	of the bundle has been accepted.
+	 *
+	 *	If custody of the bundle has indeed been taken and
+	 *	a custody acceptance timer has been requested, set
+	 *	the timer now.						*/
+
+	if (bundle.custodyTaken && timeoutInterval > 0)
+	{
+		if (bpMemo(bundleObj, timeoutInterval) < 0)
+		{
+			putErrmsg("Can't set custody timeout.", NULL);
 			sdr_cancel_xn(bpSdr);
 			return -1;
 		}
-
-		if (constructInTransitHashKey(inTransitKey, sourceEid,
-				bundle.id.creationTime.seconds,
-				bundle.id.creationTime.count,
-				bundle.id.fragmentOffset,
-				bundle.totalAduLength == 0 ? 0
-						: bundle.payload.length)
-				<= IN_TRANSIT_KEY_LEN)
-		{
-			if (sdr_hash_insert(bpSdr,
-					(_bpConstants())->inTransitHash,
-					inTransitKey, bundleObj,
-					&bundle.inTransitEntry) < 0)
-			{
-				MRELEASE(sourceEid);
-				releaseDictionary(dictionary);
-				putErrmsg("Can't post to in-transit hash.",
-						NULL);
-				sdr_cancel_xn(bpSdr);
-				return -1;
-			}
-		}
-
-		MRELEASE(sourceEid);
 	}
-
-	/*	That's the end of the changes to the bundle.		*/
-
-	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 
 	/*	Track this transmission event.				*/
 
@@ -9101,20 +9380,27 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 
 	/*	Note destination duct name for this bundle, if any.	*/
 
-	if (destDuctNameObj)
+	if (bundle.destDuctName)
 	{
-		sdr_string_read(bpSdr, destDuctName, destDuctNameObj);
-		sdr_free(bpSdr, destDuctNameObj);
+		sdr_string_read(bpSdr, destDuctName, bundle.destDuctName);
 	}
 
 	/*	Finally, authorize transmission of applicable status
 	 *	report message and destruction of the bundle object
 	 *	unless stewardship was successfully accepted.		*/
 
-	if (bundle.inTransitEntry == 0)
+	if (!stewardshipAccepted)
 	{
 		if (SRR_FLAGS(bundle.bundleProcFlags) & BP_FORWARDED_RPT)
 		{
+			if ((dictionary = retrieveDictionary(&bundle))
+					== (char *) &bundle)
+			{
+				putErrmsg("Can't retrieve dictionary.", NULL);
+				sdr_cancel_xn(bpSdr);
+				return -1;
+			}
+
 			bundle.statusRpt.flags |= BP_FORWARDED_RPT;
 			getCurrentDtnTime(&bundle.statusRpt.forwardTime);
 			if (sendStatusRpt(&bundle, dictionary) < 0)
@@ -9124,18 +9410,18 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 				sdr_cancel_xn(bpSdr);
 				return -1;
 			}
+
+			releaseDictionary(dictionary);
 		}
 
 		if (bpDestroyBundle(bundleObj, 0) < 0)
 		{
-			releaseDictionary(dictionary);
 			putErrmsg("Can't destroy bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
 			return -1;
 		}
 	}
 
-	releaseDictionary(dictionary);
 	if (sdr_end_xn(bpSdr))
 	{
 		putErrmsg("Can't get outbound bundle.", NULL);
@@ -9160,7 +9446,7 @@ static int	nextBlock(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	 *	vacated.						*/
 
 	bytesToReceive = BP_MAX_BLOCK_SIZE - *bytesBuffered;
-	bytesReceived = zco_receive_source(sdr, reader, bytesToReceive,
+	bytesReceived = zco_transmit(sdr, reader, bytesToReceive,
 			((char *) buffer) + *bytesBuffered);
 	if (bytesReceived < 0)
 	{
@@ -9190,9 +9476,9 @@ static int	bufAdvance(int length, unsigned int *bundleLength,
 	return *bundleLength;
 }
 
-static int	decodeHeader(Sdr sdr, Object zco, ZcoReader *reader,
-			unsigned char *buffer, int bytesBuffered, Bundle *image,
-			char **dictionary, unsigned int *bundleLength)
+static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
+			int bytesBuffered, Bundle *image, char **dictionary,
+			unsigned int *bundleLength)
 {
 	unsigned char	*endOfBuffer;
 	unsigned char	*cursor;
@@ -9425,52 +9711,35 @@ static int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer,
 			Bundle *image, char **dictionary,
 			unsigned int *bundleLength)
 {
-	Object		handle;
 	ZcoReader	reader;
 	int		bytesBuffered;
 
 	*bundleLength = 0;	/*	Initialize to default.		*/
 	memset((char *) image, 0, sizeof(Bundle));
 
-	/*	Must use a *different* ZCO reference for extraction,
-	 *	because the original may be needed for other purposes.	*/
+	/*	This is an outbound bundle, so the headers and trailers
+	 *	are in capsules and we use zco_transmit to re-read it.	*/
 
+	zco_start_transmitting(zco, &reader);
 	sdr_begin_xn(sdr);
-	handle = zco_add_reference(sdr, zco);
-	if (handle == 0)
-	{
-		putErrmsg("Can't get new handle for catenated bundle.", NULL);
-		sdr_cancel_xn(sdr);
-		return -1;
-	}
-
-	zco_start_transmitting(sdr, handle, &reader);
 	bytesBuffered = zco_transmit(sdr, &reader, BP_MAX_BLOCK_SIZE,
 			(char *) buffer);
 	if (bytesBuffered < 0)
 	{
 		putErrmsg("Can't extract primary block.", NULL);
-		sdr_cancel_xn(sdr);
+		oK(sdr_end_xn(sdr));
 		return -1;
 	}
 
-	if (decodeHeader(sdr, handle, &reader, buffer,
-			bytesBuffered, image, dictionary, bundleLength) < 0)
+	if (decodeHeader(sdr, &reader, buffer, bytesBuffered, image,
+			dictionary, bundleLength) < 0)
 	{
 		putErrmsg("Can't decode bundle header.", NULL);
-		sdr_cancel_xn(sdr);
+		oK(sdr_end_xn(sdr));
 		return -1;
 	}
 
-	zco_stop_transmitting(sdr, &reader);
-	zco_destroy_reference(sdr, handle);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't decode bundle.", NULL);
-		return -1;
-	}
-
-	return 0;
+	return sdr_end_xn(sdr);
 }
 
 int	bpIdentify(Object bundleZco, Object *bundleObj)
@@ -9482,10 +9751,10 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 	unsigned int	bundleLength;
 	int		result;
 	char		*sourceEid;
-	Object		timelineElt;
 
 	CHKERR(bundleZco);
 	CHKERR(bundleObj);
+	*bundleObj = 0;			/*	Default: not located.	*/
 	buffer = (unsigned char *) MTAKE(BP_MAX_BLOCK_SIZE);
 	if (buffer == NULL)
 	{
@@ -9503,7 +9772,6 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 
 	if (bundleLength == 0)		/*	Can't get bundle ID.	*/
 	{
-		*bundleObj = 0;		/*	Bundle not located.	*/
 		return 0;
 	}
 
@@ -9521,9 +9789,8 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 
 	sdr_begin_xn(bpSdr);		/*	Just to lock memory.	*/
 	result = findBundle(sourceEid, &image.id.creationTime,
-			image.id.fragmentOffset,
-			image.totalAduLength == 0 ? 0 : image.payload.length,
-			bundleObj, &timelineElt);
+			image.id.fragmentOffset, image.totalAduLength == 0 ? 0
+			: image.payload.length, bundleObj);
 	sdr_exit_xn(bpSdr);
 	MRELEASE(sourceEid);
 	if (result < 0)
@@ -9532,15 +9799,10 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 		return -1;
 	}
 
-	if (timelineElt == 0)		/*	Probably TTL expired.	*/
-	{
-		*bundleObj = 0;		/*	Bundle not located.	*/
-	}
-
 	return 0;
 }
 
-int	bpMemo(Object bundleObj, int interval)
+int	bpMemo(Object bundleObj, unsigned int interval)
 {
 	Sdr	bpSdr = getIonsdr();
 	Bundle	bundle;
@@ -9556,8 +9818,7 @@ int	bpMemo(Object bundleObj, int interval)
 	if (bundle.ctDueElt)
 	{
 		writeMemo("Revising a custody acceptance due timer.");
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 	}
 
 	bundle.ctDueElt = insertBpTimelineEvent(&event);
@@ -9565,33 +9826,6 @@ int	bpMemo(Object bundleObj, int interval)
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Failed posting ctDue event.", NULL);
-		return -1;
-	}
-
-	return 0;
-}
-
-static int	extractInTransitBundle(Object *bundleAddr, char *sourceEid,
-			BpTimestamp *creationTime,
-			unsigned long fragmentOffset,
-			unsigned long fragmentLength)
-{
-	Sdr	bpSdr = getIonsdr();
-	char	key[IN_TRANSIT_KEY_BUFLEN];
-
-	CHKERR(ionLocked());
-	if (constructInTransitHashKey(key, sourceEid,
-			creationTime->seconds, creationTime->count,
-			fragmentOffset, fragmentLength)
-			> IN_TRANSIT_KEY_LEN)
-	{
-		return 0;	/*	Can't be in hash table.		*/
-	}
-
-	if (sdr_hash_remove(bpSdr, (_bpConstants())->inTransitHash, key,
-			(Address *) bundleAddr) < 0)
-	{
-		putErrmsg("Can't extract bundle from in-transit hash.", NULL);
 		return -1;
 	}
 
@@ -9629,6 +9863,7 @@ int	retrieveInTransitBundle(Object bundleZco, Object *bundleObj)
 
 	if (bundleLength == 0)		/*	Can't get bundle ID.	*/
 	{
+		MRELEASE(buffer);
 		return 0;
 	}
 
@@ -9644,20 +9879,14 @@ int	retrieveInTransitBundle(Object bundleZco, Object *bundleObj)
 
 	/*	Now use this bundle ID to retrieve the bundle.		*/
 
-	result = extractInTransitBundle(bundleObj, sourceEid,
-			&image.id.creationTime, image.id.fragmentOffset,
-			image.totalAduLength == 0 ? 0 : image.payload.length);
+	result = findBundle(sourceEid, &image.id.creationTime,
+			image.id.fragmentOffset, image.totalAduLength == 0 ? 0
+			: image.payload.length, bundleObj);
 	MRELEASE(sourceEid);
-	if (result < 0)
-	{
-		putErrmsg("Failed retrieving in-transit bundle.", NULL);
-		return -1;
-	}
-
-	return 0;
+	return (result < 0 ? result : 0);
 }
 
-int	bpHandleXmitSuccess(Object bundleZco)
+int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
@@ -9668,12 +9897,12 @@ int	bpHandleXmitSuccess(Object bundleZco)
 	sdr_begin_xn(bpSdr);
 	if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
 	{
-		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't locate bundle for okay transmission.", NULL);
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
-	if (bundleAddr == 0)	/*	Bundle not found in inTransit.	*/
+	if (bundleAddr == 0)	/*	Bundle not found.		*/
 	{
 		if (sdr_end_xn(bpSdr) < 0)
 		{
@@ -9684,9 +9913,16 @@ int	bpHandleXmitSuccess(Object bundleZco)
 		return 0;	/*	bpDestroyBundle already called.	*/
 	}
 
-	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-	bundle.inTransitEntry = 0;
-	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+	sdr_read(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+	if (bundle.custodyTaken && timeoutInterval > 0)
+	{
+		if (bpMemo(bundleAddr, timeoutInterval) < 0)
+		{
+			putErrmsg("Can't set custody timeout.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+	}
 
 	/*	Send "forwarded" status report if necessary.		*/
 
@@ -9752,7 +9988,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		return -1;
 	}
 
-	if (bundleAddr == 0)	/*	Bundle not found in inTransit.	*/
+	if (bundleAddr == 0)	/*	Bundle not found.		*/
 	{
 		if (sdr_end_xn(bpSdr) < 0)
 		{
@@ -9763,9 +9999,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		return 0;	/*	No bundle, can't retransmit.	*/
 	}
 
-	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-	bundle.inTransitEntry = 0;
-	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+	sdr_read(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 
 	/*	Note that the "timeout" statistics count failures of
 	 *	convergence-layer transmission of bundles for which
@@ -9848,25 +10082,33 @@ int	bpReforwardBundle(Object bundleAddr)
 	/*	Non-critical bundle, so let's compute another route
 	 *	for it.							*/
 
-	purgeXmitRefs(&bundle);
+	if (bundle.ductXmitElt)
+	{
+		purgeDuctXmitElt(&bundle, bundleAddr);
+	}
+
+	if (bundle.proxNodeEid)
+	{
+		sdr_free(bpSdr, bundle.proxNodeEid);
+		bundle.proxNodeEid = 0;
+	}
+
+	if (bundle.destDuctName)
+	{
+		sdr_free(bpSdr, bundle.destDuctName);
+		bundle.proxNodeEid = 0;
+	}
+
 	if (bundle.overdueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.overdueElt));
-		sdr_list_delete(bpSdr, bundle.overdueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
 	}
 
 	if (bundle.ctDueElt)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, bundle.ctDueElt));
-		sdr_list_delete(bpSdr, bundle.ctDueElt, NULL, NULL);
+		destroyBpTimelineEvent(bundle.ctDueElt);
 		bundle.ctDueElt = 0;
-	}
-
-	if (bundle.inTransitEntry)
-	{
-		sdr_hash_delete_entry(bpSdr, bundle.inTransitEntry);
-		bundle.inTransitEntry = 0;
 	}
 
 	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
@@ -10031,7 +10273,6 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 	int		adminRecType;
 	BpStatusRpt	rpt;
 	BpCtSignal	cts;
-	Object		timelineElt;
 	Object		bundleAddr;
 	Bundle		bundleBuf;
 	Bundle		*bundle = &bundleBuf;
@@ -10140,7 +10381,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 			sdr_begin_xn(bpSdr);
 			if (findBundle(cts.sourceEid, &cts.creationTime,
 					cts.fragmentOffset, cts.fragmentLength,
-					&bundleAddr, &timelineElt) < 0)
+					&bundleAddr) < 0)
 			{
 				sdr_exit_xn(bpSdr);
 				putErrmsg("Can't fetch bundle.", NULL);
@@ -10149,7 +10390,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 				break;		/*	Out of switch.	*/
 			}
 
-			if (timelineElt == 0)
+			if (bundleAddr == 0)
 			{
 				/*	No such bundle; ignore CTS.	*/
 

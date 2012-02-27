@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 8, 2010
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion_nodes 2.ipn.udp/ion.log 2.ipn.udp/node2.stdout 3.ipn.udp/ion.log 3.ipn.udp/node3.stdout 3.ipn.udp/testfile*

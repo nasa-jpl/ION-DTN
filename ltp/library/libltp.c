@@ -426,7 +426,7 @@ void	ltp_release_data(Object data)
 	if (data)
 	{
 		sdr_begin_xn(ltpSdr);
-		zco_destroy_reference(ltpSdr, data);
+		zco_destroy(ltpSdr, data);
 		if (sdr_end_xn(ltpSdr) < 0)
 		{
 			putErrmsg("Failed releasing LTP notice object.", NULL);

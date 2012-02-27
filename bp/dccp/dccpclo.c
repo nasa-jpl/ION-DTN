@@ -206,7 +206,7 @@ int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 	}
 
 	sdr_begin_xn(sdr);
-	zco_destroy_reference(sdr, *bundleZco);
+	zco_destroy(sdr, *bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't destroy bundle ZCO.", NULL);
@@ -246,7 +246,7 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedC
 			}
 
 			/*Get Data to Send from ZCO			*/
-			zco_start_transmitting(sdr, *bundleZco, &reader);
+			zco_start_transmitting(*bundleZco, &reader);
 			sdr_begin_xn(sdr);
 			bytesToSend = zco_transmit(sdr, &reader, DCCPCLA_BUFSZ, buffer);
 			if (sdr_end_xn(sdr) < 0 || bytesToSend < 0)
@@ -287,16 +287,15 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedC
 			}while(1);
 
 			/* Notify BP of success transmitting		*/
-			if (bpHandleXmitSuccess(*bundleZco) < 0)
+			if (bpHandleXmitSuccess(*bundleZco, 0) < 0)
 			{
 				putErrmsg("Can't handle xmit success.", NULL);
 				bytesSent=-1;
 			}
 
 			/* Cleanup ZCO					*/
-			zco_stop_transmitting(sdr, &reader);
 			sdr_begin_xn(sdr);
-			zco_destroy_reference(sdr, *bundleZco);
+			zco_destroy(sdr, *bundleZco);
 			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("Can't destroy bundle ZCO.", NULL);
@@ -445,7 +444,7 @@ int	main(int argc, char *argv[])
 	{
 		
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 1) < 0)
+				destDuctName, -1) < 0)
 		{
 			sm_SemEnd(dccpcloSemaphore(NULL));
 			continue;

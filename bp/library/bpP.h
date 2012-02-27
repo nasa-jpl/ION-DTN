@@ -132,15 +132,6 @@ typedef struct
 	char		nullEndpoint;	/*	Boolean.		*/
 } MetaEid;
 
-typedef struct
-{
-	Object		bundleXmitElt;
-	Object		ductXmitElt;
-	Object		bundleObj;
-	Object		proxNodeEid;	/*	An SDR string		*/
-	Object		destDuctName;	/*	An SDR string		*/
-} XmitRef;
-
 /*	For non-fragmentary bundles, and for the first fragmentary
  *	bundle of a fragmented source bundle, fragmentOffset is zero.
  *	For fragmentary bundles other than the first, fragmentOffset
@@ -296,8 +287,8 @@ typedef struct
 	/*	Internal housekeeping stuff.				*/
 
 	char		custodyTaken;	/*	Boolean.		*/
+	char		delivered;	/*	Boolean.		*/
 	char		suspended;	/*	Boolean.		*/
-	char		catenated;	/*	Boolean.		*/
 	char		returnToSender;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	int		dbTotal;	/*	Overhead + payload len.	*/
@@ -307,6 +298,8 @@ typedef struct
 	Object		stations;	/*	Stack of EIDs (route).	*/
 
 	/*	Database navigation stuff (back-references).		*/
+
+	Object		hashEntry;	/*	Entry in bundles hash.	*/
 
 	Object		timelineElt;	/*	TTL expire list ref.	*/
 	Object		overdueElt;	/*	Xmit overdue ref.	*/
@@ -318,11 +311,12 @@ typedef struct
 
 	Object		incompleteElt;	/*	Ref. to Incomplete.	*/
 
-	Object		xmitRefs;	/*	SDR list of XmitRefs	*/
-	int		xmitsNeeded;
-	time_t		enqueueTime;	/*	When queued for xmit.	*/
+	/*	Transmission queue (or limbo list) stuff.		*/
 
-	Object		inTransitEntry;	/*	Hash table entry.	*/
+	Object		ductXmitElt;	/*	Transmission queue ref.	*/
+	Object		proxNodeEid;	/*	An SDR string		*/
+	Object		destDuctName;	/*	An SDR string		*/
+	time_t		enqueueTime;	/*	When queued for xmit.	*/
 } Bundle;
 
 #define COS_FLAGS(bundleProcFlags)	((bundleProcFlags >> 7) & 0x7f)
@@ -432,15 +426,16 @@ typedef struct
 {
 	char		name[MAX_CL_DUCT_NAME_LEN + 1];
 	Object		cloCmd;		/*	For starting the CLO.	*/
-	Object		bulkQueue;	/*	SDR list of XmitRefs	*/
+	Object		bulkQueue;	/*	SDR list of Bundles	*/
 	Scalar		bulkBacklog;	/*	Bulk bytes enqueued.	*/
-	Object		stdQueue;	/*	SDR list of XmitRefs	*/
+	Object		stdQueue;	/*	SDR list of Bundles	*/
 	Scalar		stdBacklog;	/*	Std bytes enqueued.	*/
-	Object		urgentQueue;	/*	SDR list of XmitRefs	*/
+	Object		urgentQueue;	/*	SDR list of Bundles	*/
 	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
-	Object		protocol;	/*	back-reference		*/
+	unsigned long	maxPayloadLen;	/*	0 = no limit.		*/
 	int		blocked;	/*	Boolean			*/
+	Object		protocol;	/*	back-reference		*/
 } Outduct;
 
 typedef struct
@@ -487,12 +482,18 @@ typedef struct
 
 typedef struct
 {
+	Object		bundleObj;	/*	0 if count > 1.		*/
+	unsigned int	count;
+} BundleSet;
+
+typedef struct
+{
 	Object		schemes;	/*	SDR list of Schemes	*/
 	Object		protocols;	/*	SDR list of ClProtocols	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
-	Object		inTransitHash;	/*	SDR hash of Bundles	*/
+	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
-	Object		limboQueue;	/*	SDR list of XmitRefs	*/
+	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting clock.	*/
 	BpString	custodianEidString;
 	int		maxAcqInHeap;
@@ -555,6 +556,7 @@ typedef struct
 	PsmAddress	cbheScheme;	/*	A single VScheme.	*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
+	PsmAddress	timeline;	/*	SM RB tree: list xref.	*/
 
 	/*	For monitoring network performance.			*/
 
@@ -722,6 +724,30 @@ extern int		bpAccept(	Bundle *bundle);
 			 *	bundle.	 Returns 0 on success, -1 on
 			 *	any failure.				*/
 
+extern int		bpClone(	Bundle *originalBundle,
+					Bundle *newBundleBuffer,
+					Object *newBundleObj,
+					unsigned int offset,
+					unsigned int length);
+			/*	The function creates a copy of part
+			 *	or all of originalBundle, writing
+			 *	it to the location returned in
+			 *	newBundleObj.  newBundleBuffer is
+			 *	required: it is used as the work
+			 *	area for constructing the new bundle.
+			 *	If offset is zero and length is the
+			 *	length of originalBundle's payload
+			 *	(or zero, which is used to indicate
+			 *	"length of original bundle's payload")
+			 *	then the copy will have a copy of
+			 *	the entire payload of the original
+			 *	bundle.  Otherwise the function is
+			 *	used to "fragment" the bundle: the
+			 *	new bundle's payload will be the
+			 *	indicated subset of the original
+			 *	payload.  Returns 0 on success,
+			 *	-1 on any error.			*/
+
 extern int		bpEnqueue(	FwdDirective *directive,
 					Bundle *bundle,
 					Object bundleObj,
@@ -754,14 +780,22 @@ extern int		bpDequeue(	VOutduct *vduct,
 					Object *outboundZco,
 					BpExtendedCOS *extendedCOS,
 					char *destDuctName,
-					int stewardshipAccepted);
+					unsigned long maxPayloadLength,
+					int timeoutInterval);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
 			 *	outduct) to get a bundle that it is to
 			 *	transmit to some remote convergence-
 			 *	layer input adapter (induct).
 			 *
-			 *	The function first selects the next
+			 *	bpDequeue first blocks until the
+			 *	capacity of the outduct's xmitThrottle
+			 *	is non-negative.  In this way BP imposes
+			 *	rate control on outbound traffic,
+			 *	limiting transmission rate to the
+			 *	nominal data rate of the outduct.
+			 *
+			 *	The function then selects the next
 			 *	outbound bundle from the set of outduct
 			 *	bundle queues identified by outflows.
 			 *	If no such bundle is currently waiting
@@ -769,13 +803,14 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	is [or until a signal handler calls
 			 *	bp_interrupt()].
 			 *
-			 *	Then, if the outduct is rate-controlled,
-			 *	bpDequeue blocks until the capacity
-			 *	of the outduct's xmitThrottle is non-
-			 *	negative.  In this way BP imposes rate
-			 *	control on outbound traffic, limiting
-			 *	transmission rate to the nominal data
-			 *	rate of the outduct.
+			 *	On selecting a bundle, if the bundle's
+			 *	payload is longer than the indicated
+			 *	maximum then bpDequeue fragments the
+			 *	bundle: a cloned bundle whose payload
+			 *	is all bytes beyond the initial
+			 *	maxPayloadLength bytes is created and
+			 *	inserted back to the front of the queue
+			 *	from which the bundle was selected.
 			 *
 			 *	Then bpDequeue catenates (serializes)
 			 *	the BP block information in the bundle
@@ -802,15 +837,24 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	of at least MAX_CL_DUCT_NAME_LEN + 1
 			 *	bytes.
 			 *
-			 *	The stewardshipAccepted argument, a
-			 *	Boolean, indicates whether or not
-			 *	the calling function commits to
-			 *	dispositioning the returned bundle
-			 *	when the results of convergence-
-			 *	layer transmission are known, by
-			 *	calling one of two functions:
+			 *	The timeoutInterval argument indicates
+			 *	the length of time following return of
+			 *	a bundle after which failure of custody
+			 *	transfer should be inferred if no
+			 *	custody acceptance signal for this
+			 *	bundle has been received.  Any negative
+			 *	value signifies that the calling
+			 *	function accepts "stewardship" of the
+			 *	bundle, i.e., commits to dispositioning
+			 *	the returned bundle as soon as results
+			 *	of convergence-layer transmission are
+			 *	known, by calling one of two functions:
 			 *	either bpHandleXmitSuccess or else
-			 *	bpHandleXmitFailure.
+			 *	bpHandleXmitFailure.  A value of zero
+			 *	signifies that the calling function
+			 *	does not accept stewardship but also
+			 *	does not want to set a custody transfer
+			 *	timer.
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
@@ -820,13 +864,13 @@ extern int		bpIdentify(Object bundleZco, Object *bundleObj);
 			 *	bundleZco, locates the bundle that
 			 *	is identified by that bundle ID, and
 			 *	passes that bundle's address back in
-			 *	bundleObj to enable the insertion
+			 *	bundleObj, e.g., to enable insertion
 			 *	of a custody timeout event via bpMemo.
 			 *
 			 *	bpIdentify allocates a temporary
 			 *	buffer of size BP_MAX_BLOCK_SIZE
 			 *	into which the initial block(s) of
-			 *	the concatenated bundle identified
+			 *	the catenated bundle identified
 			 *	by bundleZco are read for parsing.
 			 *	If that buffer is not long enough
 			 *	to contain the entire primary block
@@ -842,7 +886,7 @@ extern int		bpIdentify(Object bundleZco, Object *bundleObj);
 			 *	was located or not), -1 on system
 			 *	failure.				*/
 
-extern int		bpMemo(Object bundleObj, int interval); 
+extern int		bpMemo(Object bundleObj, unsigned int interval); 
 			/*	This function inserts a "custody-
 			 *	acceptance due" event into the
 			 *	timeline.  The event causes bpclock
@@ -855,17 +899,27 @@ extern int		bpMemo(Object bundleObj, int interval);
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
-extern int		bpHandleXmitSuccess(Object zco);
+extern int		bpHandleXmitSuccess(Object zco, unsigned int interval);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
 			 *	outduct) on detection of convergence-
 			 *	layer protocol transmission success.
 			 *	It causes the serialized (catenated)
-			 *	outbound custodial bundle in zco to
-			 *	be destroyed, unless some constraint
-			 *	(such as acceptance of custody)
-			 *	requires that bundle destruction be
-			 *	deferred.
+			 *	outbound bundle in zco to be destroyed,
+			 *	unless some constraint (such as
+			 *	acceptance of custody) requires that
+			 *	bundle destruction be deferred.
+			 *
+			 *	In the event that custody of the
+			 *	bundle has indeed been accepted, the
+			 *	calling function can request a further
+			 *	increment of reliability: when the
+			 *	value of "interval" is greater than
+			 *	zero, it indicates the length of time
+			 *	after which failure of custody transfer
+			 *	should be inferred if no custody
+			 *	acceptance signal for this bundle has
+			 *	been received.
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
@@ -875,13 +929,8 @@ extern int		bpHandleXmitFailure(Object zco);
 			 *	outduct) on detection of a convergence-
 			 *	layer protocol transmission error.
 			 *	It causes the serialized (catenated)
-			 *	outbound custodial bundle in zco to
-			 *	be queued up for re-forwarding.  In
-			 *	effect, this function implements
-			 *	custodial retransmission due to
-			 *	"timeout" - that is, convergence-layer
-			 *	protocol failure - rather than due
-			 *	to explicit refusal of custody.
+			 *	outbound bundle in zco to be queued
+			 *	up for re-forwarding.
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
@@ -1138,9 +1187,9 @@ extern void		bpStopInduct(char *protocolName, char *ductName);
 extern void		findOutduct(char *protocolName, char *name,
 				VOutduct **vduct, PsmAddress *elt);
 extern int		addOutduct(char *protocolName, char *name,
-				char *cloCmd);
+				char *cloCmd, unsigned long maxPayloadLength);
 extern int		updateOutduct(char *protocolName, char *name,
-				char *cloCmd);
+				char *cloCmd, unsigned long maxPayloadLength);
 extern int		removeOutduct(char *protocolName, char *name);
 extern int		bpStartOutduct(char *protocolName, char *ductName);
 extern void		bpStopOutduct(char *protocolName, char *ductName);
@@ -1148,11 +1197,12 @@ extern int		bpBlockOutduct(char *protocolName, char *ductName);
 extern int		bpUnblockOutduct(char *protocolName, char *ductName);
 
 extern Object		insertBpTimelineEvent(BpEvent *newEvent);
+extern void		destroyBpTimelineEvent(Object timelineElt);
 
 extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned long fragmentOffset,
 				unsigned long fragmentLength,
-				Object *bundleAddr, Object *timelineElt);
+				Object *bundleAddr);
 extern int		retrieveInTransitBundle(Object bundleZco, Object *obj);
 
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
