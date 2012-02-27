@@ -78,13 +78,13 @@ int	main(int argc, char **argv)
 	Sdr		sdr;
 	BpDelivery	dlv;
 	int		stop = 0;
-	time_t		startTime = 0;
+	struct timeval	startTime;
 	double		bytesReceived = 0.0;
 	int		bundlesReceived = -1;
 	IonAlarm	alarm = { 5, 0, printCount, NULL };
 	pthread_t	alarmThread;
-	time_t		endTime;
-	long		interval;
+	struct timeval	endTime;
+	double		interval;
 	char		textBuf[256];
 
 	if (ownEid == NULL)
@@ -138,7 +138,7 @@ int	main(int argc, char **argv)
 				/*	This is just the pilot bundle
 				 *	that starts bpcounter's timer.	*/
 
-				startTime = time(NULL);
+				getCurrentTime(&startTime);
 				bundlesReceived = 0;
 			}
 			else
@@ -160,25 +160,34 @@ int	main(int argc, char **argv)
 		}
 	}
 
+	getCurrentTime(&endTime);
 	ionCancelAlarm(alarmThread);
 	bp_close(sap);
 	PUTMEMO("Stopping bpcounter; bundles received", itoa(bundlesReceived));
 	if (bundlesReceived > 0)
 	{
-		endTime = time(NULL);
-		interval = endTime - startTime;
-		PUTMEMO("Time (seconds)", itoa(interval));
+		if (endTime.tv_usec < startTime.tv_usec)
+		{
+			endTime.tv_usec += 1000000;
+			endTime.tv_sec -= 1;
+		}
+
+		interval = (endTime.tv_usec - startTime.tv_usec)
+			+ (1000000 * (endTime.tv_sec - startTime.tv_sec));
+		isprintf(textBuf, sizeof textBuf, "%.3f", interval / 1000000);
+		PUTMEMO("Time (seconds)", textBuf);
 		isprintf(textBuf, sizeof textBuf, "%.0f", bytesReceived);
 		PUTMEMO("Total bytes", textBuf);
-		if (interval <= 0)
+		if (interval > 0.0)
 		{
-			PUTS("Interval is too short to measure rate.");
+			isprintf(textBuf, sizeof textBuf, "%.3f",
+				((bytesReceived * 8) / (interval / 1000000))
+				/ 1000000);
+			PUTMEMO("Throughput (Mbps)", textBuf);
 		}
 		else
 		{
-			isprintf(textBuf, sizeof textBuf, "%.3f",
-				((bytesReceived * 8) / interval) / 1000000);
-			PUTMEMO("Throughput (Mbps)", textBuf);
+			PUTS("Interval is too short to measure rate.");
 		}
 	}
 

@@ -444,7 +444,7 @@ int	main(int argc, char *argv[])
 	{
 		
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, -1) < 0)
+				destDuctName, 0, -1) < 0)
 		{
 			sm_SemEnd(dccpcloSemaphore(NULL));
 			continue;

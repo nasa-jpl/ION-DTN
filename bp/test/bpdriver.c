@@ -59,10 +59,10 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	Object		bundleZco;
 	Object		newBundle;
 	double		bytesSent = 0.0;
-	time_t		startTime;
+	struct timeval	startTime;
 	BpDelivery	dlv;
-	time_t		endTime;
-	long		interval;
+	struct timeval	endTime;
+	double		interval;
 	char		textBuf[256];
 
 	if (cyclesRemaining == 0 || ownEid == NULL || destEid == NULL
@@ -238,7 +238,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	/*	Begin timed bundle transmission.			*/
 
 	isignal(SIGINT, handleQuit);
-	startTime = time(NULL);
+	getCurrentTime(&startTime);
 	while (running && cyclesRemaining > 0)
 	{
 		if (randomAduLength)
@@ -310,7 +310,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	}
 
 	bp_close(sap);
-	endTime = time(NULL);
+	getCurrentTime(&endTime);
 	writeErrmsgMemos();
 	PUTS("Stopping bpdriver.");
 	sdr_begin_xn(sdr);
@@ -320,20 +320,28 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		putErrmsg("bpdriver can't destroy file reference.", NULL);
 	}
 
-	interval = endTime - startTime;
+	if (endTime.tv_usec < startTime.tv_usec)
+	{
+		endTime.tv_usec += 1000000;
+		endTime.tv_sec -= 1;
+	}
+
 	PUTMEMO("Total bundles", itoa(cycles - cyclesRemaining));
-	PUTMEMO("Time (seconds)", itoa(interval));
+	interval = (endTime.tv_usec - startTime.tv_usec)
+			+ (1000000 * (endTime.tv_sec - startTime.tv_sec));
+	isprintf(textBuf, sizeof textBuf, "%.3f", interval / 1000000);
+	PUTMEMO("Time (seconds)", textBuf);
 	isprintf(textBuf, sizeof textBuf, "%.0f", bytesSent);
 	PUTMEMO("Total bytes", textBuf);
-	if (interval <= 0)
+	if (interval > 0.0)
 	{
-		PUTS("Interval is too short to measure rate.");
+		isprintf(textBuf, sizeof textBuf, "%.3f",
+			((bytesSent * 8) / (interval / 1000000)) / 1000000);
+		PUTMEMO("Throughput (Mbps)", textBuf);
 	}
 	else
 	{
-		isprintf(textBuf, sizeof textBuf, "%.3f",
-				((bytesSent * 8) / interval) / 1000000);
-		PUTMEMO("Throughput (Mbps)", textBuf);
+		PUTS("Interval is too short to measure rate.");
 	}
 
 	bp_detach();

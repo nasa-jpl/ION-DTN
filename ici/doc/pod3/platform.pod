@@ -84,15 +84,25 @@ file system used by the local platform.
 The oK macro simply casts the value of I<expression> to void, a way of
 handling function return codes that are not meaningful in this context.
 
-=item REQUIRE(condition)
+=item CHKERR(condition)
 
-The REQUIRE macro is an "assert" mechanism.  It terminates the task, possibly
-writing a core file for fault analysis, if I<condition> is false. 
-
-=item CHECKERR(condition)
-
-The CHECKERR macro is an "assert" mechanism.  It causes the calling function
+The CHKERR macro is an "assert" mechanism.  It causes the calling function
 to return -1 immediately if I<condition> is false. 
+
+=item CHKZERO(condition)
+
+The CHKZERO macro is an "assert" mechanism.  It causes the calling function
+to return 0 immediately if I<condition> is false. 
+
+=item CHKNULL(condition)
+
+The CHKNULL macro is an "assert" mechanism.  It causes the calling function
+to return NULL immediately if I<condition> is false. 
+
+=item CHKVOID(condition)
+
+The CHKVOID macro is an "assert" mechanism.  It causes the calling function
+to return immediately if I<condition> is false. 
 
 =item void snooze(unsigned int seconds)
 
