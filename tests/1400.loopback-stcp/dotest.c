@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 	rxContentLength = zco_source_data_length(sdr, rxDlv.adu);
 	fail_unless(rxContentLength == sizeof(testLine) - 1);
 	sdr_begin_xn(sdr);
-	zco_start_receiving(sdr, rxDlv.adu, &rxReader);
+	zco_start_receiving(rxDlv.adu, &rxReader);
 	rxLen = zco_receive_source(sdr, &rxReader, rxContentLength, 
 		rxContent);
 	fail_unless(rxLen == rxContentLength);

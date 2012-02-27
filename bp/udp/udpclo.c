@@ -148,7 +148,7 @@ int	main(int argc, char *argv[])
 			writeMemoNote("[?] Can't get IP address for host",
 					destDuctName);
 			sdr_begin_xn(sdr);
-			zco_destroy_reference(sdr, bundleZco);
+			zco_destroy(sdr, bundleZco);
 			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("Can't destroy ZCO reference.", NULL);
