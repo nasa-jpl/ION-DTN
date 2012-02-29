@@ -292,16 +292,17 @@ void	DeleteEnclosure(Enclosure *enc)
 Petition	*ConstructPetition(int domainContinuum, int domainRole,
 			int domainUnit, int subNbr, int cCode)
 {
+	int		amsMemory = getIonMemoryMgr();
 	Petition	*pet;
 
 	pet = MTAKE(sizeof(Petition));
 	CHKNULL(pet);
 	memset((char *) pet, 0, sizeof(Petition));
-	pet->DistributionModuleSet = lyst_create();
+	pet->DistributionModuleSet = lyst_create_using(amsMemory);
 	CHKNULL(pet->DistributionModuleSet);
-	pet->DestinationNodeSet = lyst_create();
+	pet->DestinationNodeSet = lyst_create_using(amsMemory);
 	CHKNULL(pet->DestinationNodeSet);
-	pet->SourceNodeSet = lyst_create();
+	pet->SourceNodeSet = lyst_create_using(amsMemory);
 	CHKNULL(pet->SourceNodeSet);
 	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
 	CHKNULL(pet->specification);
@@ -317,17 +318,18 @@ Petition	*ConstructPetition(int domainContinuum, int domainRole,
 
 Petition	*ConstructPetitionFromEnvelope(char* envelope)
 {
+	int		amsMemory = getIonMemoryMgr();
 	Petition	*pet;
 
 	CHKNULL(envelope);
 	pet = MTAKE(sizeof(Petition));
 	CHKNULL(pet);
 	memset((char *) pet, 0, sizeof(Petition));
-	pet->DistributionModuleSet = lyst_create();
+	pet->DistributionModuleSet = lyst_create_using(amsMemory);
 	CHKNULL(pet->DistributionModuleSet);
-	pet->DestinationNodeSet = lyst_create();
+	pet->DestinationNodeSet = lyst_create_using(amsMemory);
 	CHKNULL(pet->DestinationNodeSet);
-	pet->SourceNodeSet = lyst_create();
+	pet->SourceNodeSet = lyst_create_using(amsMemory);
 	CHKNULL(pet->SourceNodeSet);
 	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
 	CHKNULL(pet->specification);

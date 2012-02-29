@@ -4501,7 +4501,7 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 	}
 
 	protectedBits = amsHeader[0] & 0xf0;
-	recipients = lyst_create();
+	recipients = lyst_create_using(getIonMemoryMgr());
 	CHKERR(recipients);
 
 	/*	Now send a copy of the message to every subscriber
@@ -5838,7 +5838,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	 *	message space now.					*/
 
 	protectedBits = amsHeader[0] & 0xf0;
-	recipients = lyst_create();
+	recipients = lyst_create_using(getIonMemoryMgr());
 	CHKERR(recipients);
 
 	/*	First send a copy of the message to every module in the
