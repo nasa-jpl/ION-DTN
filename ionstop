@@ -7,6 +7,9 @@
 # will quickly and completely stop an ion node.
 
 echo "IONSTOP will now stop ion and clean up the node for you..."
+echo "acsadmin ."
+acsadmin .
+sleep 1
 echo "bpadmin ."
 bpadmin .
 sleep 1

@@ -837,6 +837,12 @@ bpbin = \
 	bpchat \
 	hmackeys
 
+if ENABLE_BPACS
+bpbin += acsadmin \
+	acslist
+endif
+
+
 bplib = \
 	libbp.la \
 	libcgr.la \
@@ -975,6 +981,14 @@ bpmans = \
 	$(top_builddir)/bp/doc/bp.3 \
 	$(top_builddir)/bp/doc/bpextensions.3
 
+if ENABLE_BPACS
+bpmans += \
+	$(top_builddir)/bp/doc/acsadmin.1 \
+	$(top_builddir)/bp/doc/acslist.1 \
+	$(top_builddir)/bp/doc/acsrc.5
+endif
+
+
 bpclean-local:
 	rm -f $(top_builddir)/bp/doc/*.1
 	rm -f $(top_builddir)/bp/doc/*.3
@@ -1035,6 +1049,17 @@ libbp_la_LIBADD = libici.la $(PTHREAD_LIBS)
 #libphn_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #libphn_la_LDFLAGS = $(ION_LINK_FLAGS)
 
+if ENABLE_BPACS
+libbp_la_SOURCES += \
+	bp/library/acs/acsrx.c \
+	bp/library/acs/acstx.c \
+	bp/library/acs/acsserialize.c \
+	bp/library/acs/acsappend.c \
+	bp/library/acs/acsid.c \
+	bp/library/ext/cteb/cteb.c \
+	$(NULL)
+endif
+
 libcgr_la_SOURCES = bp/cgr/libcgr.c
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libcgr_la_LDFLAGS = $(ION_LINK_FLAGS)
@@ -1049,6 +1074,16 @@ bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 ipnadmin_SOURCES = bp/ipn/ipnadmin.c
 ipnadmin_LDADD = libipnfw.la libbp.la libici.la $(LIBOBJS) 
 ipnadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+if ENABLE_BPACS
+acsadmin_SOURCES = bp/utils/acsadmin.c
+acsadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+acsadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+acslist_SOURCES = bp/utils/acslist.c
+acslist_LDADD = libbp.la libici.la $(LIBOBJS)
+acslist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+endif
 
 dtn2admin_SOURCES = bp/dtn2/dtn2admin.c
 dtn2admin_LDADD = libdtn2fw.la libbp.la libici.la $(LIBOBJS) 

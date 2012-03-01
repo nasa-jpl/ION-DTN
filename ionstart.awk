@@ -26,7 +26,7 @@
 # information to both nodes with the same file.
 #
 # program names accepted are:
-# ionadmin bpadmin ltpadmin ipnadmin dtn2admin
+# ionadmin bpadmin ltpadmin ipnadmin dtn2admin acsadmin
 #
 # Program sections may not overlap.
 # Lines with unsupported program names will be ignored.
@@ -60,6 +60,7 @@ BEGIN {
 	programs[5] = "cfdpadmin"
 	programs[6] = "ipnadmin"
 	programs[7] = "dtn2admin"
+	programs[8] = "acsadmin"
 	# programoptions are special options for certain programs that take them
 	# rcname is the name of an rc file associated with the program
 	rcname["ionadmin"] = ionrc
@@ -69,6 +70,7 @@ BEGIN {
 	rcname["ipnadmin"] = ipnrc
 	rcname["dtn2admin"] = dtn2rc
 	rcname["ltpadmin"] = ltprc
+	rcname["acsadmin"] = acsrc
 	# firstline is associative array of the "first line" for a program
 	# lastline is associative array of the "last line" for a program
 	# currentsection is the state of the program section we are in
@@ -259,7 +261,7 @@ END {
 	# ignore sections with last line one greater than first line.
 
 	# run programs in order- but only if they have defined linenumbers
-	for (x = 1; x <= 7; x++) {
+	for (x = 1; x <= 8; x++) {
 		if (firstline[programs[x]] > 0 && 
 		    firstline[programs[x]] <= lastline[programs[x]]) {
 			if (echo == "") {
