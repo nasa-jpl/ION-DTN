@@ -15,6 +15,9 @@
 
 #include "ecos/ecos.h"
 #include "bsp/extbspbab.h"
+#ifdef ENABLE_BPACS
+#include "cteb/cteb.h"
+#endif /* ENABLE_BPACS */
 #if 0
 #include "bsp/extbsppib.h"
 #include "bsp/extbsppcb.h"
@@ -53,6 +56,22 @@ static ExtensionDef	extensions[] =
 				ecos_processOnDequeue,
 				0}
 		},
+#ifdef ENABLE_BPACS
+        { "cteb", EXTENSION_TYPE_CTEB, 0,
+				cteb_offer,
+				cteb_release,
+				cteb_acquire,
+				0,
+				cteb_record,
+				cteb_clear,
+				cteb_copy,
+				{0,
+				0,
+				0,
+				cteb_processOnDequeue,
+				0}
+       	},
+#endif /* ENABLE_BPACS */
 #if 0
 		{ "pib", BSP_PIB_TYPE, 0,
 				bsp_pibOffer,

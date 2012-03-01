@@ -1,0 +1,64 @@
+#!/usr/bin/python
+# Receives bundles and prints their CTEB info.
+usage = """\
+usage: %prog [options]
+    Prints information about a custody transfer enhancement block.
+"""
+
+from optparse import OptionParser
+from sys import exit, stdout, stdin
+import socket
+from bundle import Bundle
+from cteb import Cteb
+import bp
+
+parser = OptionParser(usage)
+global options
+
+def receive_bundle_udp():
+    global options
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    host="localhost"
+    port="4556"
+    try:
+        (host, port) = parser.values.udp.split(":")
+    except ValueError:
+        (port) = parser.values.udp
+    sock.bind( (host, int(port)) )
+        
+    data, addr = sock.recvfrom(64*1024)
+    return data
+
+def receive_bundle_stdin():
+    return stdin.read()
+
+def main():
+    # Set up the option parser.
+    global parser
+   
+    parser.add_option("-u", "--udp", dest="udp", 
+        help="Listen for bundles on [host:]port.")
+    
+    parser.add_option("-q", "--quiet", action="store_true",
+        dest="quiet", default=False,
+        help="ignore bundles without a CTEB")
+
+    parser.add_option("-c", "--count", dest="count",
+        default=1, help="Listen for this many bundles")
+    
+    # Parse options to construct scs bundle.
+    (options, args) = parser.parse_args()
+    
+    for i in range(int(parser.values.count)):
+        # Receive bundle with CTEB.
+        if parser.values.udp:
+            bundleBytes = receive_bundle_udp()
+        else:
+            bundleBytes = receive_bundle_stdin()
+        
+        # Decode bundle.
+        (bundle, bundle_len, remainder) = bp.decode(bundleBytes)
+        print Cteb(bundle)
+
+if __name__ == '__main__':
+    main()
