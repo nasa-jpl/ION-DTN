@@ -1281,6 +1281,12 @@ void	destroyInFdu(InFdu *fdu, Object fduObj, Object fduElt)
 	sdr_list_delete(sdr, fduElt, NULL, NULL);
 	if (cfdpvdb->currentFdu == fduObj)
 	{
+		if (cfdpvdb->currentFile != -1)
+		{
+			close(cfdpvdb->currentFile);
+			cfdpvdb->currentFile = -1;
+		}
+
 		cfdpvdb->currentFdu = 0;
 	}
 }
@@ -2364,7 +2370,6 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 {
-	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	CfdpHandler	handler;
 
 	if (!fdu->metadataReceived)
@@ -2380,12 +2385,6 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 	if (fdu->bytesReceived < fdu->fileSize)	/*	Missing data.	*/
 	{
 		return 0;
-	}
-
-	if (cfdpvdb->currentFile != -1)
-	{
-		close(cfdpvdb->currentFile);
-		cfdpvdb->currentFile = -1;
 	}
 
 	if (fdu->computedChecksum == fdu->eofChecksum)
@@ -2800,6 +2799,7 @@ printf("Continuing to extent from %d to %d; segmentOffset is %d.\n", nextExtent.
 #ifdef TargetFFS
 	close(cfdpvdb->currentFile);
 	cfdpvdb->currentFile = -1;
+	cfdpvdb->currentFdu = 0;
 #endif
 	/*	Deliver File-Segment-Recv indication.			*/
 

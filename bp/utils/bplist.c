@@ -13,7 +13,8 @@
 static void	handleQuit()
 {
 	oK(sdr_end_xn(bp_get_sdr()));
-	sm_TaskKill(sm_TaskIdSelf(), SIGKILL);
+	isignal(SIGINT, SIG_DFL);
+	sm_TaskKill(sm_TaskIdSelf(), SIGINT);
 }
 
 static void	printDictionary(char *dictionary, int dictionaryLength)

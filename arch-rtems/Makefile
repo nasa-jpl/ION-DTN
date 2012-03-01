@@ -14,6 +14,7 @@ ICISOURCES =     \
    lyst.c        \
    psm.c         \
    smlist.c      \
+   smrbt.c      \
    ion.c         \
    rfx.c         \
    zco.c         \
