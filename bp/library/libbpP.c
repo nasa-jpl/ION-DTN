@@ -52,6 +52,13 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 			BpCtReason reasonCode);
 static BpVdb	*_bpvdb(char **);
 
+static int		noteCtSignal(Bundle *bundle, AcqWorkArea *work,
+				char *dictionary, int succeeded, BpCtReason reasonCode);
+
+#ifdef ENABLE_BPACS
+#include "acs/acs.h"
+#endif
+
 /*	*	*	Helpful utility functions	*	*	*/
 
 static Object	_bpdbObject(Object *newDbObj)
@@ -2195,6 +2202,14 @@ incomplete bundle.", NULL);
 
 	/*	Destroy all SDR objects managed for this bundle and
 	 *	free space occupied by the bundle itself.		*/
+
+#ifdef ENABLE_BPACS
+	/* Destroy the metadata that ACS is keeping for this bundle. */
+	if (bundle.bundleProcFlags & BDL_IS_CUSTODIAL)
+	{
+		destroyAcsMetadata(&bundle);
+	}
+#endif
 
 	if (bundle.clDossier.senderEid.text)
 	{
@@ -4721,6 +4736,25 @@ int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 	}
 }
 
+
+int noteCtSignal(Bundle *bundle, AcqWorkArea *work, char *dictionary,
+		int succeeded, BpCtReason reasonCode)
+{
+
+#ifdef ENABLE_BPACS
+	/* Try to use ACS to deliver the custody signal */
+	if (offerNoteAcs(bundle, work, dictionary, succeeded, reasonCode) == 1)
+	{
+		return 0;
+	}
+#endif /* ENABLE_BPACS */
+
+	/* Use default custody signalling call. */
+	return sendCtSignal(bundle, dictionary, succeeded, reasonCode);
+}
+
+
+
 int	sendStatusRpt(Bundle *bundle, char *dictionary)
 {
 	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
@@ -5215,7 +5249,7 @@ static int	deliverBundle(Object bundleObj, Bundle *bundle,
 			return -1;
 		}
 
-		result = sendCtSignal(bundle, dictionary, 1, 0);
+		result = noteCtSignal(bundle, NULL, dictionary, 1, 0);
 		releaseDictionary(dictionary);
 		if (result < 0)
 		{
@@ -6332,7 +6366,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 
 	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
 	{
-		if (sendCtSignal(bundle, dictionary, 0, ctReason) < 0)
+		if (noteCtSignal(bundle, work, work->dictionary, 0, ctReason) < 0)
 		{
 			putErrmsg("Can't send custody signal.", NULL);
 			return -1;
@@ -7270,8 +7304,10 @@ void	bpEraseStatusRpt(BpStatusRpt *rpt)
 	MRELEASE(rpt->sourceEid);
 }
 
+
+
 int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
-		BpCtSignal *csig, Object payload)
+		BpCtSignal *csig, void **acsptr, Object payload)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned int	buflen;
@@ -7649,7 +7685,7 @@ static int	signalCustodyAcceptance(Bundle *bundle)
 		return -1;
 	}
 
-	result = sendCtSignal(bundle, dictionary, 1, 0);
+	result = noteCtSignal(bundle, NULL, dictionary, 1, 0);
 	releaseDictionary(dictionary);
 	if (result < 0)
 	{
@@ -8495,7 +8531,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	{
 		if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
 		{
-			result2 = sendCtSignal(bundle, dictionary, 0,
+			result2 = noteCtSignal(bundle, NULL, dictionary, 0,
 					CtNoKnownRoute);
 			if (result2 < 0)
 			{
@@ -10020,122 +10056,8 @@ static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 	removeSnub(node, metaEid.nodeNbr);
 }
 
-int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
-		CtSignalCB handleCtSignal)
-{
-	Sdr		bpSdr = getIonsdr();
-	BpVdb		*bpvdb = _bpvdb(NULL);
-	int		running = 1;
-	BpSAP		sap;
-	BpDelivery	dlv;
-	int		adminRecType;
-	BpStatusRpt	rpt;
-	BpCtSignal	cts;
-	Object		timelineElt;
-	Object		bundleAddr;
-	Bundle		bundleBuf;
-	Bundle		*bundle = &bundleBuf;
-	char		*dictionary;
-	char		*eidString;
-	int		result;
 
-	CHKERR(adminEid);
-	if (handleStatusRpt == NULL)
-	{
-		handleStatusRpt = defaultSrh;
-	}
-
-	if (handleCtSignal == NULL)
-	{
-		handleCtSignal = defaultCsh;
-	}
-
-	if (bp_open(adminEid, &sap) < 0)
-	{
-		putErrmsg("Can't open admin endpoint.", adminEid);
-		return -1;
-	}
-
-	oK(_bpadminSap(&sap));
-	isignal(SIGTERM, shutDownAdminApp);
-	while (running && !(sm_SemEnded(sap->recvSemaphore)))
-	{
-		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
-		{
-			putErrmsg("Admin bundle reception failed.", NULL);
-			running = 0;
-			continue;
-		}
-
-		switch (dlv.result)
-		{
-		case BpPayloadPresent:
-			break;
-
-		case BpEndpointStopped:
-			running = 0;
-
-			/*	Intentional fall-through to default.	*/
-
-		default:
-			continue;
-		}
-
-		if (dlv.adminRecord == 0)
-		{
-			bp_release_delivery(&dlv, 1);
-			continue;
-		}
-
-		switch (bpParseAdminRecord(&adminRecType, &rpt, &cts, dlv.adu))
-		{
-		case 1: 			/*	No problem.	*/
-			break;
-
-		case 0:				/*	Parsing failed.	*/
-			putErrmsg("Malformed admin record.", NULL);
-			bp_release_delivery(&dlv, 1);
-			continue;
-
-		default:			/*	System failure.	*/
-			putErrmsg("Failed parsing admin record.", NULL);
-			running = 0;
-			bp_release_delivery(&dlv, 1);
-			continue;
-		}
-
-		switch (adminRecType)
-		{
-		case 1:		/*	Status report.			*/
-			if (handleStatusRpt(&dlv, &rpt) < 0)
-			{
-				putErrmsg("Status report handler failed.",
-						NULL);
-				running = 0;
-			}
-
-			bpEraseStatusRpt(&rpt);
-			break;			/*	Out of switch.	*/
-
-		case 2:		/*	Custody signal.			*/
-
-			/*	Node-defined handler is given a
-			 *	chance to respond to the custody signal
-			 *	before the standard procedures are
-			 *	invoked; it can, for example, adjust
-			 *	routing tables.  If the handler fails,
-			 *	it aborts handling of this custody
-			 *	signal and all subsequent administrative
-			 *	bundles.				*/
-
-			if (handleCtSignal(&dlv, &cts) < 0)
-			{
-				putErrmsg("Custody signal handler failed",
-						NULL);
-				running = 0;
-				bpEraseCtSignal(&cts);
-				break;		/*	Out of switch.	*/
-			}
+#if 0
 
 			sdr_begin_xn(bpSdr);
 			if (findBundle(cts.sourceEid, &cts.creationTime,
@@ -10179,7 +10101,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 				if (bpvdb->watching & WATCH_m)
 				{
 					putchar('m');
-					fflush(stdout);
+					/* fflush(stdout);  no stdout references here, put them in platform.c */
 				}
 
 				forgetSnub(bundle, bundleAddr,
@@ -10251,7 +10173,266 @@ forwarding.", NULL);
 				running = 0;
 			}
 
+#endif
+
+
+
+int handleAbstractCtSignal(BpCtSignal *cts, char *bundleSourceEid)
+{
+	Sdr		bpSdr = getIonsdr();
+	BpVdb		*bpvdb = _bpvdb(NULL);
+	Object		timelineElt;
+	Object		bundleAddr;
+	Bundle		bundleBuf;
+	Bundle		*bundle = &bundleBuf;
+	char		*dictionary;
+	char		*eidString;
+	int		result;
+
+	sdr_begin_xn(bpSdr);
+	if (findBundle(cts->sourceEid, &cts->creationTime,
+			cts->fragmentOffset, cts->fragmentLength,
+			&bundleAddr, &timelineElt) < 0)
+	{
+		sdr_exit_xn(bpSdr);
+		putErrmsg("Can't fetch bundle.", NULL);
+		return -1;
+	}
+
+	if (timelineElt == 0)
+	{
+		/*	No such bundle; ignore CTS.	*/
+
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
+	/*	If custody was accepted, or if custody
+	 *	was refused due to redundant reception
+	 *	(meaning the receiver had previously
+	 *	accepted custody and we just never got
+	 *	the signal) we destroy the copy of the
+	 *	bundle retained here.  Otherwise we
+	 *	immediately re-dispatch the bundle,
+	 *	hoping that a change in the condition
+	 *	of the network (reduced congestion,
+	 *	revised routing) has occurred since
+	 *	the previous transmission so that
+	 *	re-transmission will succeed.		*/
+
+	sdr_stage(bpSdr, (char *) bundle, bundleAddr,
+			sizeof(Bundle));
+	if (cts->succeeded
+	|| cts->reasonCode == CtRedundantReception)
+	{
+		if (bpvdb->watching & WATCH_m)
+		{
+			putchar('m');
+                        fflush(stdout);
+		}
+
+		forgetSnub(bundle, bundleAddr,
+				bundleSourceEid);
+		releaseCustody(bundleAddr, bundle);
+		if (bpDestroyBundle(bundleAddr, 0) < 0)
+		{
+			putErrmsg("Can't destroy bundle.",
+					NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+	}
+	else	/*	Custody refused; try again.	*/
+	{
+		noteSnub(bundle, bundleAddr,
+				bundleSourceEid);
+		if ((dictionary = retrieveDictionary(bundle))
+				== (char *) bundle)
+		{
+			putErrmsg("Can't retrieve dictionary.",
+					NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+
+		if (printEid(&bundle->destination, dictionary,
+				&eidString) < 0)
+		{
+			putErrmsg("Can't print dest EID.",
+					NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+
+		result = forwardBundle(bundleAddr, bundle,
+				eidString);
+		MRELEASE(eidString);
+		releaseDictionary(dictionary);
+		if (result < 0)
+		{
+			putErrmsg("Can't re-queue bundle for \
+forwarding.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+
+		noteStateStats(BPSTATS_REFUSE, &bundleBuf);
+		if (bpvdb->watching & WATCH_refusal)
+		{
+			putchar('&');
+                        fflush(stdout);
+		}
+	}
+
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't handle custody signal.",
+				NULL);
+		return -1;
+	}
+	return 0;
+}
+
+
+
+
+
+int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
+		CtSignalCB handleCtSignal)
+{
+	int		running = 1;
+	BpSAP		sap;
+	BpDelivery	dlv;
+	int		adminRecType;
+	BpStatusRpt	rpt;
+	BpCtSignal	cts;
+	void		*acs;
+
+	CHKERR(adminEid);
+	if (handleStatusRpt == NULL)
+	{
+		handleStatusRpt = defaultSrh;
+	}
+
+	if (handleCtSignal == NULL)
+	{
+		handleCtSignal = defaultCsh;
+	}
+
+	if (bp_open(adminEid, &sap) < 0)
+	{
+		putErrmsg("Can't open admin endpoint.", adminEid);
+		return -1;
+	}
+
+	oK(_bpadminSap(&sap));
+	isignal(SIGTERM, shutDownAdminApp);
+	while (running && !(sm_SemEnded(sap->recvSemaphore)))
+	{
+		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
+		{
+			putErrmsg("Admin bundle reception failed.", NULL);
+			running = 0;
+			continue;
+		}
+
+		switch (dlv.result)
+		{
+		case BpPayloadPresent:
+			break;
+
+		case BpEndpointStopped:
+			running = 0;
+
+			/*	Intentional fall-through to default.	*/
+
+		default:
+			continue;
+		}
+
+		if (dlv.adminRecord == 0)
+		{
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		switch (bpParseAdminRecord(&adminRecType, &rpt, &cts, &acs, dlv.adu))
+		{
+		case 1: 			/*	No problem.	*/
+			break;
+
+		case 0:				/*	Parsing failed.	*/
+			putErrmsg("Malformed admin record.", NULL);
+			bp_release_delivery(&dlv, 1);
+			continue;
+
+		default:			/*	System failure.	*/
+			putErrmsg("Failed parsing admin record.", NULL);
+			running = 0;
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		switch (adminRecType)
+		{
+		case 1:		/*	Status report.			*/
+			if (handleStatusRpt(&dlv, &rpt) < 0)
+			{
+				putErrmsg("Status report handler failed.",
+						NULL);
+				running = 0;
+			}
+
+			bpEraseStatusRpt(&rpt);
 			break;			/*	Out of switch.	*/
+
+		case 2:		/*	Custody signal.			*/
+
+			/*	Node-defined handler is given a
+			 *	chance to respond to the custody signal
+			 *	before the standard procedures are
+			 *	invoked; it can, for example, adjust
+			 *	routing tables.  If the handler fails,
+			 *	it aborts handling of this custody
+			 *	signal and all subsequent administrative
+			 *	bundles.				*/
+
+			if (handleCtSignal(&dlv, &cts) < 0)
+			{
+				putErrmsg("Custody signal handler failed",
+						NULL);
+				running = 0;
+				bpEraseCtSignal(&cts);
+				break;		/*	Out of switch.	*/
+			}
+
+			if (handleAbstractCtSignal(&cts, dlv.bundleSourceEid) < 0)
+			{
+				putErrmsg("Abstract custody signal handler failed", NULL);
+				running = 0;
+			}
+
+			bpEraseCtSignal(&cts);
+			break;			/*	Out of switch.	*/
+
+
+
+#ifdef ENABLE_BPACS
+		case BP_AGGREGATE_CUSTODY_SIGNAL:	/*  Aggregate custody signal.	*/
+
+			/*  An aggregate custody signal is a custody signal
+			 *  that covers possibly many bundles, instead of
+			 *  just one.  Expand the ACS into a list of "logical"
+			 *  custody signals and handle each one in the list. */
+			if (handleAcs(acs, &dlv, handleCtSignal) != 0)
+			{
+				running = 0;
+			}
+			break;
+#endif /* ENABLE_BPACS */
+
+
+
 
 		default:	/*	Unknown admin payload type.	*/
 			break;			/*	Out of switch.	*/

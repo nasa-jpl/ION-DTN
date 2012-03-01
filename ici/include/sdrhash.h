@@ -60,6 +60,12 @@ extern int		Sdr_hash_delete_entry(char *file, int line, Sdr sdr,
 extern int		sdr_hash_retrieve(Sdr sdr,
 				Object hash, char *key, Address *value);
 
+typedef void	(*sdr_hash_callback)(Sdr sdr, Object hash,
+				char *key, Address value, void *args);
+
+extern int 		sdr_hash_foreach(Sdr sdrv, Object hash,
+				sdr_hash_callback callback, void *args);
+
 extern int		sdr_hash_count(Sdr sdr,
 				Object hash);
 
