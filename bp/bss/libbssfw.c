@@ -234,7 +234,6 @@ int bss_addBssEntry(long argServiceNbr, long argNodeNbr)
 	bssEntry	entry;
 	Object		entryObj;
 	Object		nextEntry;
-	Object		elt;
 	CbheEid		eid;
 	char 		memo[256];
 
@@ -260,11 +259,11 @@ int bss_addBssEntry(long argServiceNbr, long argNodeNbr)
 	{
 		if (nextEntry)
 		{
-			elt = sdr_list_insert_before(sdr, nextEntry, entryObj);
+			sdr_list_insert_before(sdr, nextEntry, entryObj);
 		}
 		else
 		{
-			elt = sdr_list_insert_last(sdr, 
+			sdr_list_insert_last(sdr, 
 				(_bssConstants())->bssList, entryObj);
 		}
 
@@ -538,7 +537,6 @@ int	bss_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct,
 	Object	nextPlan;
 	BssPlan	plan;
 	Object	planObj;
-	Object	elt;
 
 	CHKERR(nodeNbr && defaultDuct);
 	sdr_begin_xn(sdr);
@@ -562,11 +560,11 @@ int	bss_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct,
 	{
 		if (nextPlan)
 		{
-			elt = sdr_list_insert_before(sdr, nextPlan, planObj);
+			sdr_list_insert_before(sdr, nextPlan, planObj);
 		}
 		else
 		{
-			elt = sdr_list_insert_last(sdr,
+			sdr_list_insert_last(sdr,
 					(_bssConstants())->plans, planObj);
 		}
 
