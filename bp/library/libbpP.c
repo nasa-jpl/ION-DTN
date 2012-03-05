@@ -7367,6 +7367,14 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 					unparsedBytes, bundleIsFragment);
 			break;
 
+
+#ifdef ENABLE_BPACS
+		case BP_AGGREGATE_CUSTODY_SIGNAL:
+			result = parseAggregateCtSignal(acsptr, (unsigned char *) cursor,
+					unparsedBytes, bundleIsFragment);
+			break;
+#endif /* ENABLE_BPACS */
+
 		default:
 			writeMemoNote("[?] Unknown admin record type",
 					itoa(*adminRecordType));
