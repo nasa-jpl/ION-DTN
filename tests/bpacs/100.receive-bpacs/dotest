@@ -28,7 +28,7 @@ sleep 1
 # Send it some bundles with "custody transfer requested" set.
 BUNDLESRX=0
 for i in $(ls ../canned-bundles/canned-bundle-*); do
-    netcat -w 0 -u 127.0.0.1 4556 < $i
+    netcat -c -u 127.0.0.1 4556 < $i
     sleep 1
     let BUNDLESRX+=1
 done
@@ -50,7 +50,7 @@ else
     echo "ION accepted custody of $NUMBUNDLES bundles, OK 1 of 2"
 fi
 
-echo "udpcli PID is $(pidof lt-udpcli), ipnadminep is $(pidof lt-ipnadminep)"
+# pidof not present on solaris..  echo "udpcli PID is $(pidof lt-udpcli), ipnadminep is $(pidof lt-ipnadminep)"
 
 # Send it an ACS.
 ../makeacs -u 4556 0-7 || ( echo "Couldn't send ACS"; PASS=0)
@@ -65,7 +65,7 @@ sleep 2
 #fi
 
 NUMBUNDLES=`bplist | grep '**** Bundle' | wc -l`
-if [ $NUMBUNDLES != $BUNDLESRX ]; then
+if [ $NUMBUNDLES != 0 ]; then
     echo "ION thought the ACS didn't cover $NUMBUNDLES bundles."
     PASS=0
 else
