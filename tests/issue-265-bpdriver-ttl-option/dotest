@@ -87,7 +87,7 @@ cd ../
 
 echo "Using bpdriver to send bundles with default ttl..."
 cd 1.ipn.bp.udp
-bpdriver 1 ipn:1.1 ipn:1.2 -100
+bpdriver 1 ipn:1.1 ipn:1.2 -3
 cd ../
 
 echo "Waiting 2 seconds for netcat server to receive bundle..."
@@ -135,7 +135,7 @@ cd ../
 
 echo "Using bpdriver to send bundles with ttl of 3000 sec..."
 cd 1.ipn.bp.udp
-bpdriver 1 ipn:1.1 ipn:1.2 -100 t3000
+bpdriver 1 ipn:1.1 ipn:1.2 -3 t3000
 cd ../
 
 echo "Waiting 2 seconds for netcat server to receive bundle..."
@@ -183,7 +183,7 @@ cd ../
 
 echo "Using bpdriver to send bundles with ttl of 30 sec..."
 cd 1.ipn.bp.udp
-bpdriver 1 ipn:1.1 ipn:1.2 -100 t30
+bpdriver 1 ipn:1.1 ipn:1.2 -3 t30
 cd ../
 
 echo "Waiting 2 seconds for netcat server to receive bundle..."
