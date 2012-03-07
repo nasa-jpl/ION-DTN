@@ -252,7 +252,7 @@ static void	*Listen_for_connections(void *parm)
 	socklen_t				solen;
 	ReceiverThreadParms		*rp;
 
-	list=lyst_create();
+	list=lyst_create_using(getIonMemoryMgr());
 	lyst_clear(list);
 	pthread_mutex_init(&elk, NULL);
 	
