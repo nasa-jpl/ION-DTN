@@ -72,6 +72,13 @@ Features included:
 - Issue #304: Optimized CGR route computation by developing a new algorithm that
   employs Dijkstra's Algorithm.
 
+- Issue #314: Standardized spelling of the word "semaphore" throughout the ION
+  codebase.
+
+- Issue #342: Adapted a new lyst_create_using() function from the lyst_create()
+  function.  This variation uses memory allocation routines that are safer for
+  use during program operation than the lyst_create function, which should only
+  be invoked during the program's initialization.
 - Issue #322: Improved reliability for custodial retransmissions when the next
   custodian is a neighbor by making the following tweaks in libbpP.c:
     - Changed the bpDequeue "stewardship accepted" flag to a custodial timeout
