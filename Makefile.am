@@ -16,7 +16,8 @@ AM_CFLAGS = \
 	-I$(srcdir)/dgr/include \
 	-I$(srcdir)/bp/include \
 	-I$(srcdir)/ams/include \
-	-I$(srcdir)/cfdp/include
+	-I$(srcdir)/cfdp/include \
+	-I$(srcdir)/bss/include
 #	-I$(srcdir)/icix/include
 
 # don't use AM_LDFLAGS because autoconf sets it INCORRECTLY and it will
@@ -48,7 +49,8 @@ EXTRA_DIST = 	\
 	$(dgrextra) \
 	$(bpextra) \
 	$(amsextra) \
-	$(cfdpextra)
+	$(cfdpextra) \
+	$(bssextra)
 #	$(icixextra) 
 #	$(usercontribextra)
 #	$(twonodestcp_DATA) \
@@ -119,6 +121,7 @@ build-man-directories:
 	mkdir -p $(top_builddir)/dgr/doc
 	mkdir -p $(top_builddir)/bp/doc
 	mkdir -p $(top_builddir)/cfdp/doc
+	mkdir -p $(top_builddir)/bss/doc
 #	mkdir -p $(top_builddir)/icix/doc
 
 bin_PROGRAMS = \
@@ -127,7 +130,8 @@ bin_PROGRAMS = \
 	$(dgrbin) \
 	$(bpbin) \
 	$(amsbin) \
-	$(cfdpbin)
+	$(cfdpbin) \
+	$(bssbin)
 #	$(usercontribbin)
 #	$(icixbin)
 #	yeah, icix text programs are still excluded from makefile.
@@ -138,7 +142,8 @@ lib_LTLIBRARIES = \
 	$(dgrlib) \
 	$(bplib) \
 	$(amslib) \
-	$(cfdplib)
+	$(cfdplib) \
+	$(bsslib)
 #	$(icixlib)
 
 include_HEADERS = \
@@ -147,7 +152,8 @@ include_HEADERS = \
 	$(dgrinclude) \
 	$(bpinclude) \
 	$(amsinclude) \
-	$(cfdpinclude)
+	$(cfdpinclude) \
+	$(bssinclude)
 #	$(icixinclude)
 
 noinst_HEADERS = \
@@ -156,7 +162,8 @@ noinst_HEADERS = \
 	$(dgrnoinst) \
 	$(bpnoinst) \
 	$(amsnoinst) \
-	$(cfdpnoinst)
+	$(cfdpnoinst) \
+	$(bssnoinst)
 #	$(icixnoinst) 
 #	$(usercontribnoinst)
 
@@ -166,7 +173,8 @@ man_MANS = \
 	$(ltpmans) \
 	$(dgrmans) \
 	$(bpmans) \
-	$(cfdpmans)
+	$(cfdpmans) \
+	$(bssmans)
 #	$(icixmans)
 
 #################
@@ -1111,6 +1119,7 @@ bssfw_SOURCES = bp/bss/bssfw.c
 bssfw_LDADD = libbssfw.la libcgr.la libbp.la libici.la $(LIBOBJS)
 bssfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+#this is where bssadminep stuff would go if it existed
 #ipnadminep_SOURCES = bp/ipn/ipnadminep.c
 #ipnadminep_LDADD = libipnfw.la libbp.la libici.la $(LIBOBJS)
 #ipnadminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1435,6 +1444,76 @@ cfdptest_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 cfdpclock_SOURCES = cfdp/daemon/cfdpclock.c
 cfdpclock_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+
+
+
+##############
+#
+# BSS SECTION
+#
+##############
+
+# Define pod2man stuff
+bssPODM1 = pod2man -s 1 -c "BSS executables"
+bssPODM3 = pod2man -s 3 -c "BSS library functions"
+#cfdpPODM5 = pod2man -s 5 -c "CFDP configuration files"
+#cfdpPODH = pod2html --noindex
+
+bsscflags = -I$(srcdir)/bss/library -I$(srcdir)/bss/include 
+
+bssbin = \
+	bssrecv \
+	bssStreamingApp
+
+bsslib = \
+	libbss.la
+
+bssinclude = \
+	bss/include/bss.h
+
+bssnoinst = \
+	bss/library/bssP.h
+
+bssextra = \
+	bss/doc/pod1/bssrecv.pod \
+	bss/doc/pod1/bssStreamingApp.pod \
+	bss/doc/pod3/bss.pod \
+	bss/README.txt
+
+bssmans = \
+	$(top_builddir)/bss/doc/bssrecv.1 \
+	$(top_builddir)/bss/doc/bssStreamingApp.1 \
+	$(top_builddir)/bss/doc/bss.3
+
+bssclean-local:
+	rm -f $(top_builddir)/bss/doc/*.1
+	rm -f $(top_builddir)/bss/doc/*.3
+
+$(top_builddir)/bss/doc/%.1: bss/doc/pod1/%.pod
+	$(bssPODM1) $< $@
+
+$(top_builddir)/bss/doc/%.3: bss/doc/pod3/%.pod
+	$(bssPODM3) $< $@
+
+# --- Libraries --- #
+
+libbss_la_SOURCES = \
+	bss/library/libbss.c \
+	bss/library/libbssP.c
+libbss_la_CFLAGS = $(bsscflags) $(AM_CFLAGS)
+libbss_la_LDFLAGS = $(ION_LINK_FLAGS)
+libbss_la_LIBADD = libici.la libbp.la
+
+# --- Test Programs --- #
+
+bssrecv_SOURCES = bss/test/bssrecv.c
+bssrecv_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
+bssrecv_CFLAGS = $(bsscflags) $(AM_CFLAGS)
+
+bssStreamingApp_SOURCES = bss/test/bssStreamingApp.c
+bssStreamingApp_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
+bssStreamingApp_CFLAGS = $(bsscflags) $(AM_CFLAGS)
+
 
 ##############
 #

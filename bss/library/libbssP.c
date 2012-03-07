@@ -567,9 +567,9 @@ static long	getEntryPosition(int tblFile, BpTimestamp time, long entry)
 	long		position;
 	long		offset;
 	long		newestRow = -1;
-	time_t		newestTime;
+	time_t		newestTime = 0;
 	long		oldestRow = -1;
-	time_t		oldestTime;
+	time_t		oldestTime = 0;
 	long		lastEntry; 	/*	offset of last in list	*/
 
 	/* 
