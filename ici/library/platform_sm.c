@@ -648,7 +648,7 @@ static SmSem	*_semTbl()
 	return semTable;
 }
 
-	/* ---- Semaphor services (VxWorks) --------------------------- */
+	/* ---- Semaphore services (VxWorks) --------------------------- */
 
 static void	releaseArgBuffers(WIND_TCB *pTcb)
 {
@@ -808,7 +808,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	}
 
 	takeIpcLock();
-    /* If semaphor exists, return its ID */
+    /* If semaphore exists, return its ID */
 	for (i = 0; i < nSemIds; i++)
 	{
 		if (semTbl[i].key == key)
@@ -818,7 +818,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		}
 	}
 
-    /* create a new semaphor */
+    /* create a new semaphore */
 	for (i = 0, sem = semTbl; i < nSemIds; i++, sem++)
 	{
 		if (sem->id == NULL)
@@ -951,7 +951,7 @@ void	sm_SemUnend(sm_SemId i)
 
 #ifdef MINGW_SEMAPHORES
 
-	/* ---- Semaphor services (mingw) --------------------------- */
+	/* ---- Semaphore services (mingw) --------------------------- */
 
 #ifndef SM_SEMKEY
 #define SM_SEMKEY	(0xee01)
@@ -1247,7 +1247,7 @@ void	sm_SemUnend(sm_SemId i)
 
 #ifdef POSIX1B_SEMAPHORES
 
-	/* ---- Semaphor services (POSIX1B, including RTEMS) ----------	*/
+	/* ---- Semaphore services (POSIX1B, including RTEMS) ---------	*/
 
 typedef struct
 {
@@ -1485,7 +1485,7 @@ void	sm_SemUnend(sm_SemId i)
 
 #ifdef SVR4_SEMAPHORES
 
-	/* ---- Semaphor services (SVR4) ------------------------------	*/
+	/* ---- Semaphore services (SVR4) -----------------------------	*/
 
 #ifndef SM_SEMKEY
 #define SM_SEMKEY	(0xee01)
