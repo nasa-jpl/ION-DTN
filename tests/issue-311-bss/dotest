@@ -89,14 +89,14 @@ cd ../2.ipn.bss
 echo
 echo "Starting bssrecv application..."
 #xterm -geom 200x40 -e bssrecv &
-xterm -geom 200x40 -e bssrecv 3 bssDB ../ ipn:2.71 &
+bssrecv 3 bssDB ../ ipn:2.71 > /dev/null &
 sleep 2
 
 cd ../1.ipn.bss
 echo
 echo "Sending a stream of bundles from node 1 to node 2 for 30 seconds..."
 echo "bssStreamingApp started at $(date +"%Y/%m/%d-%T")"
-xterm -e bssStreamingApp ipn:1.2 ipn:2.71 &
+bssStreamingApp ipn:1.2 ipn:2.71 > /dev/null &
 sleep 1
 FROMTIME=$(date +"%Y/%m/%d-%T")
 sleep 29
@@ -111,7 +111,7 @@ pkill bssrecv
 echo
 echo "Replaying the received stream."
 cd ../2.ipn.bss
-xterm -geom 200x40 -e bssrecv 1 bssDB ../ ipn:2.71 $FROMTIME $TOTIME &
+bssrecv 1 bssDB ../ ipn:2.71 $FROMTIME $TOTIME > /dev/null &
 echo
 sleep 70
 pkill bssrecv

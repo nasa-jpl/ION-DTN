@@ -261,16 +261,22 @@ int	main(int argc, char **argv)
 	{
 		case 7:
 			aToTime = argv[6];
+            argc--;
 		case 6:
 			aFromTime = argv[5];
+            argc--;
 		case 5:
 			aEid = argv[4];
+            argc--;
 		case 4:
 			aPath = argv[3];
+            argc--;
 		case 3:
 			aBssName = argv[2];
+            argc--;
 		case 2:
 			choice = atoi(argv[1]);
+            argc--;
 		default:
 			break;
 	}

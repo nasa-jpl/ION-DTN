@@ -161,15 +161,18 @@ int	main(int argc, char **argv)
 	char	*destEid = NULL;
 	char	*classOfService = NULL;
 
-	if (argc > 3) argc = 3;
+	if (argc > 4) argc = 4;
 	switch (argc)
 	{
-	case 3:
+	case 4:
 		classOfService = argv[3];
-	case 2:
+        argc--;
+	case 3:
 		destEid = argv[2];
-	case 1:
+        argc--;
+	case 2:
 		ownEid = argv[1];
+        argc--;
 	default:
 		break;
 	}
