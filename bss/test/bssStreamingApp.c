@@ -166,13 +166,10 @@ int	main(int argc, char **argv)
 	{
 	case 4:
 		classOfService = argv[3];
-        argc--;
 	case 3:
 		destEid = argv[2];
-        argc--;
 	case 2:
 		ownEid = argv[1];
-        argc--;
 	default:
 		break;
 	}

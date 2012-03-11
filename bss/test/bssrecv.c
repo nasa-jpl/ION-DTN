@@ -15,6 +15,8 @@
 
 #include "bss.h"
 
+int     istty = 0;
+
 static char*	_threadBuf(char *newValue)
 {
 	static char*	buffer = NULL;
@@ -42,7 +44,7 @@ static int display(time_t sec, unsigned long count, char* buf,
  	 */
 	if (atoi(buf) == -1)
 	{
-		PUTS("#######ERROR########");
+        PUTS("#######ERROR########");
 		return -1;
 	}
 
@@ -53,7 +55,7 @@ static int display(time_t sec, unsigned long count, char* buf,
 		reps--;
 	}
 
-	PUTS(buf);
+    PUTS(buf);
 	fflush(stdout);
 	return 0;
 }
@@ -104,8 +106,11 @@ static int replay (time_t fromTime, time_t toTime)
 			free(data);
 			return -1;
 		}
+
 		/*	Call the display function	*/
-		oK(display(curTime, count, data, bytesRead));
+
+        if(istty)
+    		oK(display(curTime, count, data, bytesRead));
 
 		/*	Get next frame	    */
 		position = bssNext(&nav, &curTime, &count);
@@ -163,10 +168,13 @@ static int replay (time_t fromTime, time_t toTime)
 		}
 
 		/*	Call the display function	*/
-		
-		oK(display(curTime, count, data, bytesRead));
-		microsnooze(SNOOZE_INTERVAL);
-	}
+
+        if(istty)	
+        {
+    		oK(display(curTime, count, data, bytesRead));
+	    	microsnooze(SNOOZE_INTERVAL);
+	    }
+    }
 
 	free(data);
 	return 0;
@@ -177,9 +185,12 @@ static int userInput(int fd, char* bssName, char* path, char* eid )
 	char	parameters[512];
 	int	paramLen;
 
-	PUTS("Please enter DB name, path and eid separated by whitespace.");
-	PUTS("e.g.: bssDB /home/user/experiments/bss ipn:2.71");
-	fflush(stdout);
+	if(istty)
+    {
+        PUTS("Please enter DB name, path and eid separated by whitespace.");
+	    PUTS("e.g.: bssDB /home/user/experiments/bss ipn:2.71");
+	}
+    fflush(stdout);
 
 	if(igets(fd, parameters, sizeof parameters, &paramLen) == NULL)
 	{
@@ -249,34 +260,30 @@ int	main(int argc, char **argv)
 	char	eid[32];
 	char	fromTime[TIMESTAMPBUFSZ];
 	char	toTime[TIMESTAMPBUFSZ];
-	int	cmdFile = fileno(stdin);
+	int	    cmdFile = fileno(stdin);
 	time_t	from = 0;
 	time_t	to = 0;
 	time_t	refTime = 0;
 	char	*buffer;
 	int	reqArgs = 0;		/*	Boolean		*/
 
+    istty = isatty( fileno(stdin) );
+
 	if (argc > 7) argc = 7;
 	switch (argc)
 	{
 		case 7:
 			aToTime = argv[6];
-            argc--;
 		case 6:
 			aFromTime = argv[5];
-            argc--;
 		case 5:
 			aEid = argv[4];
-            argc--;
 		case 4:
 			aPath = argv[3];
-            argc--;
 		case 3:
 			aBssName = argv[2];
-            argc--;
 		case 2:
 			choice = atoi(argv[1]);
-            argc--;
 		default:
 			break;
 	}
@@ -315,21 +322,26 @@ int	main(int argc, char **argv)
 
 	do 
 	{
-		if(choice==0)
+        if(choice == -1)
+        {
+            sleep(2);
+            continue;
+        }
+		else if(choice==0 && istty)
 		{
-			PUTS("\n");
-			PUTS("---------------Menu-----------------");
-			PUTS("1. Open BSS Receiver in playback mode");
-			PUTS("2. Start BSS receiving thread");
-			PUTS("3. Start BSS Receiver");
-			PUTS("4. Close current playback session");
-			PUTS("5. Stop BSS receiving thread");
-			PUTS("6. Stop BSS Receiver");
-			PUTS("7. Exit");
+            PUTS("\n");
+            PUTS("---------------Menu-----------------");
+            PUTS("1. Open BSS Receiver in playback mode");
+            PUTS("2. Start BSS receiving thread");
+            PUTS("3. Start BSS Receiver");
+            PUTS("4. Close current playback session");
+            PUTS("5. Stop BSS receiving thread");
+            PUTS("6. Stop BSS Receiver");
+            PUTS("7. Exit");
 
 			if(igets(cmdFile, menuNav, sizeof menuNav, &navLen) == NULL)
 			{
-   				printf("Error in reading choice");
+   				PUTS("Error in reading choice");
 				continue;
   			}
       				
@@ -399,7 +411,10 @@ int	main(int argc, char **argv)
 				}
 				aFromTime = NULL;
 				aToTime = NULL;
-				choice=0;
+                if(!istty)
+                    choice=-1;
+                else
+    				choice=0;
 				break;
 
 			case 2:	
@@ -423,7 +438,10 @@ int	main(int argc, char **argv)
 						PUTS("bssStart failed");
 					}
 				}
-				choice=0;
+				if(!istty)
+                    choice=-1;
+                else
+    				choice=0;
 				break;
 
 			case 3: 
@@ -448,7 +466,10 @@ int	main(int argc, char **argv)
 						PUTS("bssRun failed");
 					}
 				}
-				choice=0;
+				if(!istty)
+                    choice=-1;
+                else
+    				choice=0;
 				break;
 
 			case 4: 
@@ -458,7 +479,10 @@ int	main(int argc, char **argv)
 				aPath=NULL;
 				aEid=NULL;
 				reqArgs=0;
-				choice=0;				
+				if(!istty)
+                    choice=-1;
+                else
+    				choice=0;				
 				break;
 				
 			case 5: 
@@ -467,7 +491,10 @@ int	main(int argc, char **argv)
 				aBssName=NULL;
 				aPath=NULL;
 				aEid=NULL;
-				choice=0;
+				if(!istty)
+                    choice=-1;
+                else
+    				choice=0;
 				break;
 
 			case 6: 
@@ -476,13 +503,18 @@ int	main(int argc, char **argv)
 				aPath=NULL;
 				aEid=NULL;
 				reqArgs=0;
-				choice=0;
+				if(!istty)
+                    choice=-1;
+                else
+    				choice=0;
 				break;
 
-			case 7: PUTS("Quitting program!\n");
+			case 7: 
+                PUTS("Quitting program!\n");
 				break;
 
-			default: printf("Invalid choice!\n");
+			default:
+                PUTS("Invalid choice!\n");
 				break;
 		}
 	} while (choice != 7);
