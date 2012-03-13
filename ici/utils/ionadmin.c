@@ -7,6 +7,7 @@
 /*	All rights reserved.						*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 
+#include "zco.h"
 #include "rfx.h"
 
 static time_t	_referenceTime(time_t *newValue)
@@ -19,6 +20,24 @@ static time_t	_referenceTime(time_t *newValue)
 	}
 
 	return reftime;
+}
+
+static int	_forecastNeeded(int parm)
+{
+	static int	needed = 0;
+	int		result;
+
+	result = needed;
+	if (parm)	/*	Signaling that forecast is needed.	*/
+	{
+		needed = 1;
+	}
+	else		/*	Signaling intent to forecast as nec.	*/
+	{
+		needed = 0;	/*	Forecasting resets flag value.	*/
+	}
+
+	return result;
 }
 
 static int	_echo(int *newValue)
@@ -101,7 +120,8 @@ relative times (+ss) are computed.");
 	PUTS("\t   m clockerr <new known maximum clock error, in seconds>");
 	PUTS("\t   m production <new planned production rate, in bytes/sec>");
 	PUTS("\t   m consumption <new planned consumption rate, in bytes/sec>");
-	PUTS("\t   m occupancy <new occupancy limit value, in bytes>");
+	PUTS("\t   m occupancy <new ZCO heap occupancy limit, in KB> [<new \
+ZCO file occupancy limit, in KB>]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m usage");
@@ -184,6 +204,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		xmitRate = strtol(tokens[6], NULL, 0);
 		oK(rfx_insert_contact(fromTime, toTime, fromNodeNbr,
 				toNodeNbr, xmitRate));
+		oK(_forecastNeeded(1));
 		return;
 	}
 
@@ -237,6 +258,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		oK(rfx_remove_contact(timestamp, fromNodeNbr, toNodeNbr));
+		oK(_forecastNeeded(1));
 		return;
 	}
 
@@ -499,6 +521,8 @@ static void	manageProduction(int tokenCount, char **tokens)
 	{
 		putErrmsg("Can't change bundle production rate.", NULL);
 	}
+
+	oK(_forecastNeeded(1));
 }
 
 static void	manageConsumption(int tokenCount, char **tokens)
@@ -530,6 +554,8 @@ static void	manageConsumption(int tokenCount, char **tokens)
 	{
 		putErrmsg("Can't change bundle consumption rate.", NULL);
 	}
+
+	oK(_forecastNeeded(1));
 }
 
 static void	manageOccupancy(int tokenCount, char **tokens)
@@ -537,31 +563,109 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
-	int	newLimit;
+	long	newFileLimit = 0;	/*	0 = "no change"		*/
+	Scalar	fileLimit;
+	long	newHeapLimit = 0;	/*	0 = "no change"		*/
+	Scalar	heapLimit;
+	long	maxHeapLimit;
+	double	reserve;
 
-	if (tokenCount != 3)
+	switch (tokenCount != 3)
 	{
+	case 4:
+		newFileLimit = strtol(tokens[3], NULL, 0);
+		newFileLimit *= 1000;	/*	Change KB to bytes.	*/
+
+		/*	Intentional fall-through to next case.		*/
+
+	case 3:
+		newHeapLimit = strtol(tokens[2], NULL, 0);
+		newHeapLimit *= 1000;	/*	Change KB to bytes.	*/
+		break;
+
+	default:
 		SYNTAX_ERROR;
 		return;
 	}
 
-	newLimit = atoi(tokens[2]);
-	if (newLimit <= 0)
+	if (newFileLimit < 0)
 	{
-		putErrmsg("Bundle storage occupancy limit must be greater \
-than zero.", itoa(newLimit));
+		putErrmsg("ZCO file occupancy limit can't be negative.", NULL);
+		return;
+	}
+
+	if (newHeapLimit < 0)
+	{
+		putErrmsg("ZCO heap occupancy limit can't be negative.", NULL);
 		return;
 	}
 
 	sdr_begin_xn(sdr);
+	if (newFileLimit)
+	{
+		fileLimit.units = newFileLimit % ONE_GIG;
+		fileLimit.gigs = newFileLimit % ONE_GIG;
+		if (scalarIsValid(&fileLimit))
+		{
+			zco_set_max_file_occupancy(sdr, &fileLimit);
+			writeMemo("[i] ZCO max file space changed.");
+		}
+		else
+		{
+			writeMemo("[i] New ZCO file space limit too big!");
+		}
+	}
+	else
+	{
+		zco_get_max_file_occupancy(sdr, &fileLimit);
+	}
+
+	if (newHeapLimit)
+	{
+		maxHeapLimit = ((sdr_heap_size(sdr) / 100)
+				* (100 - ION_SEQUESTERED));
+		if (newHeapLimit > maxHeapLimit
+		|| newHeapLimit < MIN_SPIKE_RSRV)
+		{
+			writeMemo("[i] New ZCO heap limit invalid!");
+		}
+		else
+		{
+			heapLimit.units = newHeapLimit % ONE_GIG;
+			heapLimit.gigs = newHeapLimit % ONE_GIG;
+			if (scalarIsValid(&heapLimit))
+			{
+				zco_set_max_heap_occupancy(sdr, &heapLimit);
+				writeMemo("[i] ZCO max heap changed.");
+			}
+			else
+			{
+				writeMemo("[i] New ZCO heap limit too big!");
+			}
+		}
+	}
+	else
+	{
+		zco_get_max_heap_occupancy(sdr, &heapLimit);
+	}
+
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	iondb.occupancyCeiling = newLimit;
+	copyScalar(&iondb.occupancyCeiling, &fileLimit);
+	addToScalar(&iondb.occupancyCeiling, &heapLimit);
+	reserve = (heapLimit.units + (ONE_GIG * heapLimit.gigs)) / 16;
+	if (reserve < MIN_SPIKE_RSRV)
+	{
+		reserve = MIN_SPIKE_RSRV;
+	}
+
+	iondb.receptionSpikeReserve = reserve;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't change bundle storage occupancy limit.",
-				NULL);
+		putErrmsg("Can't change bundle storage occupancy limit.", NULL);
 	}
+
+	oK(_forecastNeeded(1));
 }
 
 static void	manageHorizon(int tokenCount, char **tokens)
@@ -598,6 +702,8 @@ static void	manageHorizon(int tokenCount, char **tokens)
 	{
 		putErrmsg("Can't change congestion forecast horizon.", NULL);
 	}
+
+	oK(_forecastNeeded(1));
 }
 
 static void	manageAlarm(int tokenCount, char **tokens)
@@ -641,6 +747,11 @@ static void	manageUsage(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(IonDB, iondb);
 	char	buffer[128];
+	Scalar	heapOccupancy;
+	Scalar	fileOccupancy;
+	double	currentOccupancy;	/*	In KBytes.		*/
+	double	occupancyCeiling;	/*	In KBytes.		*/
+	double	maxForecastOccupancy;	/*	In KBytes.		*/
 
 	if (tokenCount != 2)
 	{
@@ -648,10 +759,19 @@ static void	manageUsage(int tokenCount, char **tokens)
 		return;
 	}
 
+	zco_get_heap_occupancy(sdr, &heapOccupancy);
+	zco_get_file_occupancy(sdr, &fileOccupancy);
+	currentOccupancy = (heapOccupancy.units
+			+ (ONE_GIG * heapOccupancy.gigs)
+			+ fileOccupancy.units
+			+ (ONE_GIG * fileOccupancy.gigs)) / 1000;
 	GET_OBJ_POINTER(sdr, IonDB, iondb, getIonDbObject());
-	isprintf(buffer, sizeof buffer, "current = %ld  limit = %ld  max \
-forecast = %ld", iondb->currentOccupancy, iondb->occupancyCeiling,
-			iondb->maxForecastOccupancy);
+	occupancyCeiling = (iondb->occupancyCeiling.units
+			+ (ONE_GIG * iondb->occupancyCeiling.gigs)) / 1000;
+	maxForecastOccupancy = (iondb->maxForecastOccupancy.units
+			+ (ONE_GIG * iondb->maxForecastOccupancy.gigs)) / 1000;
+	isprintf(buffer, sizeof buffer, "current = %.0fKB, limit = %.0fKB, max \
+forecast = %.0fKB", currentOccupancy, occupancyCeiling, maxForecastOccupancy);
 	printText(buffer);
 }
 
@@ -1058,11 +1178,10 @@ static int	runIonadmin(char *cmdFileName)
 	writeErrmsgMemos();
 	if (ionAttach() == 0)
 	{
-		oK(checkForCongestion());
-	}
-	else
-	{
-		printText("Can't check for congestion.");
+		if (_forecastNeeded(0))
+		{
+			oK(pseudoshell("ionwarn"));
+		}
 	}
 
 	printText("Stopping ionadmin.");

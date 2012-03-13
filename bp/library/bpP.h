@@ -62,6 +62,16 @@ extern "C" {
 #define BP_MAX_BLOCK_SIZE		(2000)
 #endif
 
+/*	We hitchhike on the ZCO heap space management system to 
+ *	manage the space occupied by Bundle objects.  In effect,
+ *	the Bundle overhead objects compete with ZCOs for available
+ *	SDR heap space.  We don't want this practice to become
+ *	widespread, which is why these functions are declared
+ *	privately here rather than publicly in the zco.h header.	*/
+
+extern void	zco_increase_heap_occupancy(Sdr sdr, Scalar *delta);
+extern void	zco_reduce_heap_occupancy(Sdr sdr, Scalar *delta);
+
 /*	A BP "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR database, in a DTN-based network.
@@ -291,7 +301,6 @@ typedef struct
 	char		suspended;	/*	Boolean.		*/
 	char		returnToSender;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
-	int		dbTotal;	/*	Overhead + payload len.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/

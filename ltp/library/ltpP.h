@@ -141,8 +141,7 @@ typedef enum
 
 typedef struct
 {
-	unsigned long	fileOffset;	/*	In file; 0 if in heap.	*/
-	Object		heapAddress;	/*	In heap; 0 if in file.	*/
+	unsigned long	acqOffset;	/*	Within acquisition ZCO.	*/
 	Object		sessionObj;
 	Object		sessionListElt;
 	LtpSegmentClass	segmentClass;
@@ -191,6 +190,7 @@ typedef struct
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
 	int		reportsCount;
 	Object		blockFileRef;	/*	A ZCO File Ref object.	*/
+	Object		svcData;	/*	The acquisition ZCO.	*/
 
 	/*	Backward reference.					*/
 
@@ -208,7 +208,7 @@ typedef struct
 	int		redPartLength;
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
-	Object		svcDataObjects;	/*	SDR list of ZCO refs.	*/
+	Object		svcDataObjects;	/*	SDR list of ZCOs.	*/
 	Object		redSegments;	/*	SDR list of LtpXmitSegs	*/
 	Object		greenSegments;	/*	SDR list of LtpXmitSegs	*/
 	Object		claims;		/*	reception claims list	*/
@@ -389,17 +389,9 @@ typedef struct
 	 *	of rows in the export sessions hash table in the LTP
 	 *	database.  If the summation of maxExportSessions over
 	 *	all spans exceeds estMaxExportSessions, LTP export
-	 *	session lookup performance may be compromised.
-	 *
-	 *	heapSpaceBytesReserved is used to reserve SDR heap
-	 *	space for LTP activity.  This reservation may be
-	 *	allocated among the import and export spans in any
-	 *	way, and may be reallocated as necessary, so
-	 *	long as the reserved limit is not exceeded.		*/
+	 *	session lookup performance may be compromised.		*/
 
 	int		estMaxExportSessions;
-	int		heapSpaceBytesReserved;
-	int		heapSpaceBytesOccupied;
 	unsigned int	ownQtime;
 	unsigned int	enforceSchedule;/*	Boolean.		*/
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
@@ -431,6 +423,7 @@ typedef struct
 
 typedef struct
 {
+	unsigned long	ownEngineId;
 	int		lsiPid;		/*	For stopping the LSI.	*/
 	int		clockPid;	/*	For stopping ltpclock.	*/
 	int		watching;	/*	Boolean activity watch.	*/

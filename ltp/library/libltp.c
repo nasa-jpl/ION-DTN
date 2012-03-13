@@ -140,14 +140,11 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 {
 	LtpVdb		*vdb = getLtpVdb();
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getLtpDbObject();
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	unsigned int	dataLength;
-	unsigned int	occupancy;
 	Object		spanObj;
 	LtpSpan		span;
-	LtpDB		db;
 			OBJ_POINTER(ExportSession, session);
 
 	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
@@ -163,7 +160,6 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	}
 
 	dataLength = zco_length(sdr, clientServiceData);
-	occupancy = zco_occupancy(sdr, clientServiceData);
 
 	/*	We spare the client service from needing to know the
 	 *	exact length of the ZCO before calling ltp_send():
@@ -249,17 +245,6 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	 *	any green data, notify ltpmeter that block segmentation
 	 *	can begin.						*/
 
-	sdr_stage(sdr, (char *) &db, dbobj, sizeof(LtpDB));
-	if (db.heapSpaceBytesOccupied + occupancy > db.heapSpaceBytesReserved)
-	{
-		sdr_exit_xn(sdr);
-		putErrmsg("ltp_send failed, would exceed LTP heap space \
-reservation; restart LTP client.", utoa(occupancy));
-		return -1;
-	}
-
-	db.heapSpaceBytesOccupied += occupancy;
-	sdr_write(sdr, dbobj, (char *) &db, sizeof(LtpDB));
 	GET_OBJ_POINTER(sdr, ExportSession, session,
 			span.currentExportSessionObj);
 	sdr_list_insert_last(sdr, session->svcDataObjects, clientServiceData);
@@ -285,7 +270,7 @@ reservation; restart LTP client.", utoa(occupancy));
 		return -1;
 	}
 
-	sessionId->sourceEngineId = db.ownEngineId;
+	sessionId->sourceEngineId = vdb->ownEngineId;
 	sessionId->sessionNbr = session->sessionNbr;
 	return 1;
 }
@@ -306,8 +291,6 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 	Object		elt;
 	Object		noticeAddr;
 	LtpNotice	notice;
-	LtpDB		db;
-	Object		dbobj;
 
 	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
 	CHKERR(type);
@@ -378,14 +361,6 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 	 *	the session's list of service data units to be
 	 *	destroyed, but both cancellations cause notices
 	 *	to be sent to the user.					*/
-
-	if (notice.data)
-	{
-		dbobj = getLtpDbObject();
-		sdr_stage(sdr, (char *) &db, dbobj, sizeof(LtpDB));
-		db.heapSpaceBytesOccupied -= zco_occupancy(sdr, notice.data);
-		sdr_write(sdr, dbobj, (char *) &db, sizeof(LtpDB));
-	}
 
 	if (sdr_end_xn(sdr))
 	{

@@ -21,9 +21,9 @@ designed to minimize I/O in the encapsulation of application source
 data within one or more layers of communication protocol structure.  ZCOs
 are constructed within the heap space of an SDR to which implementations
 of all layers of the stack must have access.  Each ZCO contains information
-enabling access to the source data object, together with (a) a linked list
-of zero or more "extents" that reference portions of this source data
-object and (b) linked lists of protocol header and trailer capsules that
+enabling access to the source data objects, together with (a) a linked list
+of zero or more "extents" that reference portions of these source data
+objects and (b) linked lists of protocol header and trailer capsules that
 have been explicitly attached to the ZCO since its creation.  The
 concatenation of the headers (in ascending stack sequence), source data
 object extents, and trailers (in descending stack sequence) is what is to
@@ -100,6 +100,16 @@ the indicated Sdr is no longer in use (no longer referenced by any ZCO),
 destroys this file reference object immediately.  Otherwise, flags this
 file reference object for destruction as soon as the last reference to
 it is removed.
+
+=item int zco_enough_file_space(Sdr sdr, unsigned int length)
+
+Returns 1 if the total remaining file system space available for ZCOs is
+greater than I<length>.  Returns 0 otherwise.
+
+=item int zco_enough_heap_space(Sdr sdr, unsigned int length)
+
+Returns 1 if the total remaining SDR heap space available for ZCOs is
+greater than I<length>.  Returns 0 otherwise.
 
 =item Object zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium, Object firstExtentLocation, unsigned int firstExtentOffset, unsigned int firstExtentLength)
 

@@ -291,13 +291,6 @@ static char 	*_ltpvdbName()
 static LtpVdb		*_ltpvdb(char **name)
 {
 	static LtpVdb	*vdb = NULL;
-	PsmPartition	wm;
-	PsmAddress	vdbAddress;
-	PsmAddress	elt;
-	Sdr		sdr;
-	Object		sdrElt;
-	int		i;
-	LtpVclient	*client;
 
 	if (name)
 	{
@@ -308,6 +301,10 @@ static LtpVdb		*_ltpvdb(char **name)
 		}
 
 		/*	Attaching to volatile database.			*/
+
+		PsmPartition	wm;
+		PsmAddress	vdbAddress;
+		PsmAddress	elt;
 
 		wm = getIonwm();
 		if (psm_locate(wm, *name, &vdbAddress, &elt) < 0)
@@ -324,6 +321,12 @@ static LtpVdb		*_ltpvdb(char **name)
 
 		/*	LTP volatile database doesn't exist yet.	*/
 
+		Sdr		sdr;
+		LtpDB		*db;
+		Object		sdrElt;
+		int		i;
+		LtpVclient	*client;
+
 		sdr = getIonsdr();
 		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
 
@@ -337,8 +340,10 @@ static LtpVdb		*_ltpvdb(char **name)
 			return NULL;
 		}
 
+		db = _ltpConstants();
 		vdb = (LtpVdb *) psp(wm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(LtpVdb));
+		vdb->ownEngineId = db->ownEngineId;
 		vdb->lsiPid = ERROR;		/*	None yet.	*/
 		vdb->clockPid = ERROR;		/*	None yet.	*/
 		if ((vdb->spans = sm_list_create(wm)) == 0
@@ -354,13 +359,13 @@ static LtpVdb		*_ltpvdb(char **name)
 		for (i = 0, client = vdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
 				i++, client++)
 		{
-			client->notices = (_ltpConstants())->clients[i].notices;
+			client->notices = db->clients[i].notices;
 			raiseClient(client);
 		}
 
 		/*	Raise all spans.				*/
 
-		for (sdrElt = sdr_list_first(sdr, (_ltpConstants())->spans);
+		for (sdrElt = sdr_list_first(sdr, db->spans);
 				sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
 		{
 			if (raiseSpan(sdrElt, vdb) < 0)
@@ -387,11 +392,12 @@ int	ltpInit(int estMaxExportSessions, int bytesReserved)
 	Sdr		ltpSdr;
 	Object		ltpdbObject;
 	IonDB		iondb;
-	long		avblForBP;
-	char		avbltyMsg[160];
 	LtpDB		ltpdbBuf;
 	int		i;
 	char		*ltpvdbName = _ltpvdbName();
+
+	/*	Note: bytesReserved is now ignored, should be
+	 *	removed from the API at some point in the future.	*/
 
 	if (ionAttach() < 0)
 	{
@@ -414,26 +420,15 @@ int	ltpInit(int estMaxExportSessions, int bytesReserved)
 		return -1;
 
 	case 0:			/*	Not found; must create new DB.	*/
-		if (estMaxExportSessions <= 0 || bytesReserved <= 0)
+		if (estMaxExportSessions <= 0)
 		{
 			sdr_exit_xn(ltpSdr);
-			putErrmsg("Must supply estMaxExportSessions and \
-bytesReserved.", NULL);
+			putErrmsg("Must supply estMaxExportSessions.", NULL);
 			return -1;
 		}
 
 		sdr_read(ltpSdr, (char *) &iondb, getIonDbObject(),
 				sizeof(IonDB));
-		avblForBP = iondb.occupancyCeiling
-				- (iondb.receptionSpikeReserve + bytesReserved);
-		if (avblForBP < 1000000)
-		{
-			isprintf(avbltyMsg, sizeof avbltyMsg, "[?] LTP \
-reservation size %d limits space available for bundles to %ld bytes.",
-					bytesReserved, avblForBP);
-			writeMemo(avbltyMsg);
-		}
-
 		ltpdbObject = sdr_malloc(ltpSdr, sizeof(LtpDB));
 		if (ltpdbObject == 0)
 		{
@@ -448,7 +443,6 @@ reservation size %d limits space available for bundles to %ld bytes.",
 		ltpdbBuf.ownEngineId = iondb.ownNodeNbr;
 		encodeSdnv(&(ltpdbBuf.ownEngineIdSdnv), ltpdbBuf.ownEngineId);
 		ltpdbBuf.estMaxExportSessions = estMaxExportSessions;
-		ltpdbBuf.heapSpaceBytesReserved = bytesReserved;
 		ltpdbBuf.ownQtime = 1;		/*	Default.	*/
 		ltpdbBuf.enforceSchedule = 1;	/*	Default.	*/
 		for (i = 0; i < LTP_MAX_NBR_OF_CLIENTS; i++)
@@ -465,7 +459,6 @@ reservation size %d limits space available for bundles to %ld bytes.",
 		sdr_write(ltpSdr, ltpdbObject, (char *) &ltpdbBuf,
 				sizeof(LtpDB));
 		sdr_catlg(ltpSdr, _ltpdbName(), 0, ltpdbObject);
-		ionOccupy(bytesReserved);	/*	Reserve space.	*/
 		if (sdr_end_xn(ltpSdr))
 		{
 			putErrmsg("Can't create LTP database.", NULL);
@@ -1479,14 +1472,11 @@ static void	closeExportSession(Object sessionObj)
 		{
 			sdu = sdr_list_data(ltpSdr, elt);
 
-			/*	All service data units are received
-			 *	by the client, in either Complete or
+			/*	All service data units are passed back
+			 *	up to the client, in either Complete or
 			 *	Canceled notices, and the client is
 			 *	responsible for destroying them, so
-			 *	we don't zco_destroy them here.
-			 *	And since ltp_get_notice will reduce
-			 *	db.heapSpaceBytesOccupied, we don't
-			 *	do that either.				*/
+			 *	we don't zco_destroy them here.		*/
 
 			if (enqueueNotice(ltpvdb->clients
 					+ session->clientSvcId, db.ownEngineId,
@@ -1647,24 +1637,12 @@ static void	destroyRsXmitSeg(Object rsElt, Object rsObj, LtpXmitSeg *rs)
 	sdr_list_delete(ltpSdr, rsElt, NULL, NULL);
 }
 
-static void	destroyDataRecvSeg(Object dsElt, Object dsObj, LtpRecvSeg *ds)
-{
-	Sdr	ltpSdr = getIonsdr();
-
-	CHKVOID(ionLocked());
-	sdr_free(ltpSdr, dsObj);
-	sdr_list_delete(ltpSdr, dsElt, NULL, NULL);
-}
-
 static void	stopImportSession(ImportSession *session)
 {
 	Sdr	ltpSdr = getIonsdr();
-	Object	dbobj = getLtpDbObject();
 	Object	elt;
 	Object	segObj;
-	LtpDB	db;
 		OBJ_POINTER(LtpXmitSeg, rs);
-		OBJ_POINTER(LtpRecvSeg, ds);
 
 	CHKVOID(ionLocked());
 	while ((elt = sdr_list_first(ltpSdr, session->rsSegments)) != 0)
@@ -1682,24 +1660,21 @@ static void	stopImportSession(ImportSession *session)
 
 	if (session->redSegments)
 	{
-		sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 		while ((elt = sdr_list_first(ltpSdr, session->redSegments)))
 		{
 			segObj = sdr_list_data(ltpSdr, elt);
-			GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, ds, segObj);
-			db.heapSpaceBytesOccupied -= sizeof(LtpRecvSeg);
-			if (ds->heapAddress)	/*	Stored in heap.	*/
-			{
-				sdr_free(ltpSdr, ds->heapAddress);
-				db.heapSpaceBytesOccupied -= ds->pdu.length;
-			}
-
-			destroyDataRecvSeg(elt, segObj, ds);
+			sdr_free(ltpSdr, segObj);
+			sdr_list_delete(ltpSdr, elt, NULL, NULL);
 		}
 
-		sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
 		sdr_list_destroy(ltpSdr, session->redSegments, NULL, NULL);
 		session->redSegments = 0;
+	}
+
+	if (session->svcData)
+	{
+		zco_destroy(ltpSdr, session->svcData);
+		session->svcData = 0;
 	}
 
 	if (session->blockFileRef)
@@ -3184,7 +3159,7 @@ static int	constructReportAckSegment(LtpSpan *span, Object spanObj,
 
 static int	startImportSession(Object spanObj, unsigned long sessionNbr,
 			ImportSession *sessionBuf, Object *sessionObj,
-			unsigned long clientSvcId, LtpDB *db)
+			unsigned long clientSvcId)
 {
 	Sdr	ltpSdr = getIonsdr();
 	Object	elt;
@@ -3232,9 +3207,11 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	sessionBuf->clientSvcId = clientSvcId;
 	sessionBuf->redSegments = sdr_list_create(ltpSdr);
 	sessionBuf->rsSegments = sdr_list_create(ltpSdr);
+	sessionBuf->svcData = zco_create(ltpSdr, 0, 0, 0, 0);
 	sessionBuf->span = spanObj;
 	if (sessionBuf->redSegments == 0
-	|| sessionBuf->rsSegments == 0)
+	|| sessionBuf->rsSegments == 0
+	|| sessionBuf->svcData == 0)
 	{
 		putErrmsg("Can't create import session.", NULL);
 		return -1;
@@ -3360,6 +3337,42 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 	return segUpperBound;
 }
 
+static int	writeBlockExtentToHeap(ImportSession *session,
+			LtpRecvSeg *segment, char *from, unsigned long length)
+{
+	Sdr	ltpSdr = getIonsdr();
+	Object	heapAddress;
+
+	if (!zco_enough_heap_space(ltpSdr, length))
+	{
+		/*	To avert possible DOS attack, silently discard 
+		 *	this segment.					*/
+#if LTPDEBUG
+putErrmsg("Can't handle red data, would exceed available heap space.",
+utoa(pdu->length));
+#endif
+		segment->sessionObj = 0;	/*	"discard"	*/
+		return 0;
+	}
+
+	segment->acqOffset = zco_length(ltpSdr, session->svcData);
+	heapAddress = sdr_insert(ltpSdr, from, length);
+	if (heapAddress == 0)
+	{
+		putErrmsg("Can't record block extent.", NULL);
+		return -1;
+	}
+
+	if (zco_append_extent(ltpSdr, session->svcData, ZcoSdrSource,
+			heapAddress, 0, length) < 0)
+	{
+		putErrmsg("Can't append to acquisition ZCO.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 static int	writeBlockExtentToFile(ImportSession *session,
 			LtpRecvSeg *segment, char *from, unsigned long length)
 {
@@ -3368,10 +3381,20 @@ static int	writeBlockExtentToFile(ImportSession *session,
 	int	fd;
 	long	fileLength;
 
-	segment->heapAddress = 0;
+	if (!zco_enough_file_space(ltpSdr, length))
+	{
+		/*	To avert possible DOS attack, silently discard
+		 *	this segment.					*/
+#if LTPDEBUG
+putErrmsg("Can't handle red data, would exceed available file space.",
+utoa(pdu->length));
+#endif
+		segment->sessionObj = 0;	/*	"discard"	*/
+		return 0;
+	}
+
 	oK(zco_file_ref_path(ltpSdr, session->blockFileRef, fileName,
 				sizeof fileName));
-
 	fd = iopen(fileName, O_WRONLY, 0666);
 	if (fd < 0)
 	{
@@ -3396,6 +3419,7 @@ static int	writeBlockExtentToFile(ImportSession *session,
 		 *	necessary (block has already been delivered),
 		 *	we simply ignore this retransmitted segment.	*/
 
+			segment->sessionObj = 0;/*	"discard"	*/
 			return 0;
 		}
 
@@ -3403,21 +3427,30 @@ static int	writeBlockExtentToFile(ImportSession *session,
 		return -1;
 	}
 
+	segment->acqOffset = zco_length(ltpSdr, session->svcData);
 	fileLength = (long) lseek(fd, 0, SEEK_END);
 	if (fileLength < 0)
 	{
 		putSysErrmsg("Can't seek to end of block file", fileName);
+		close(fd);
 		return -1;
 	}
 
-	segment->fileOffset = fileLength;
 	if (write(fd, from, length) < 0)
 	{
 		putSysErrmsg("Can't append to block file", fileName);
+		close(fd);
 		return -1;
 	}
 
 	close(fd);
+	if (zco_append_extent(ltpSdr, session->svcData, ZcoFileSource,
+			session->blockFileRef, fileLength, length) < 0)
+	{
+		putErrmsg("Can't append to acquisition ZCO.", NULL);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -3426,9 +3459,7 @@ static int	deliverSvcData(LtpVclient *client, unsigned long sourceEngineId,
 {
 	Sdr	ltpSdr = getIonsdr();
 	LtpVdb	*ltpvdb = _ltpvdb(NULL);
-	Object	dbobj = getLtpDbObject();
 	Object	svcDataObject;
-	LtpDB	db;
 	Object	elt;
 	Object	segObj;
 		OBJ_POINTER(LtpRecvSeg, segment);
@@ -3438,9 +3469,10 @@ static int	deliverSvcData(LtpVclient *client, unsigned long sourceEngineId,
 	 *	segments in the block in *transmission* order.
 	 *
 	 *	In the process, terminate reception of red-part data
-	 *	for this session and adjust heap reservation occupancy:
-	 *	back out the individual data segments' lengths and
-	 *	replace with the size of the concatenated ZCO.		*/
+	 *	for this session and adjust heap reservation occupancy.
+	 *	ZCO space occupancy is unchanged: in effect, we're
+	 *	just using the redSegments list to re-sort the extents
+	 *	of the acquisition ZCO.					*/
 
 	svcDataObject = zco_create(ltpSdr, 0, 0, 0, 0);
 	if (svcDataObject == 0)
@@ -3449,43 +3481,26 @@ static int	deliverSvcData(LtpVclient *client, unsigned long sourceEngineId,
 		return -1;
 	}
 
-	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 	while ((elt = sdr_list_first(ltpSdr, session->redSegments)))
 	{
 		segObj = sdr_list_data(ltpSdr, elt);
 		GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, segment, segObj);
-		db.heapSpaceBytesOccupied -= sizeof(LtpRecvSeg);
-		if (segment->heapAddress)	/*	Data in heap.	*/
+		if (zco_append_extent(ltpSdr, svcDataObject, ZcoZcoSource,
+				session->svcData, segment->acqOffset,
+				segment->pdu.length) < 0)
 		{
-			if (zco_append_extent(ltpSdr, svcDataObject,
-					ZcoSdrSource, segment->heapAddress, 0,
-					segment->pdu.length) < 0)
-			{
-				putErrmsg("Can't add heap ZCO extent.", NULL);
-				return -1;
-			}
-
-			db.heapSpaceBytesOccupied -= segment->pdu.length;
-		}
-		else			/*	Data written to file.	*/
-		{
-			if (zco_append_extent(ltpSdr, svcDataObject,
-					ZcoFileSource, session->blockFileRef,
-					segment->fileOffset,
-					segment->pdu.length) < 0)
-			{
-				putErrmsg("Can't add file ZCO extent.", NULL);
-				return -1;
-			}
+			putErrmsg("Can't deliver ZCO extent.", NULL);
+			return -1;
 		}
 
-		destroyDataRecvSeg(elt, segObj, segment);
+		sdr_list_delete(ltpSdr, elt, NULL, NULL);
+		sdr_free(ltpSdr, segObj);
 	}
 
-	db.heapSpaceBytesOccupied += zco_occupancy(ltpSdr, svcDataObject);
-	sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
 	sdr_list_destroy(ltpSdr, session->redSegments, NULL, NULL);
 	session->redSegments = 0;
+	zco_destroy(ltpSdr, session->svcData);
+	session->svcData = 0;
 
 	/*	Pass the block content ZCO to the client service.	*/
 
@@ -3512,12 +3527,10 @@ static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 			Object sessionObj, Object *clientSvcData)
 {
 	Sdr		ltpSdr = getIonsdr();
-	Object		dbobj = _ltpdbObject(NULL);
 	ImportSession	sessionBuf;
 	Object		segmentElt;
 	Object		segmentObj;
 			OBJ_POINTER(LtpRecvSeg, seg);
-	LtpDB		db;
 
 	if (sessionObj)
 	{
@@ -3532,25 +3545,22 @@ static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 			{
 				/*	Miscolored segment: green data
 				 *	before end of red.		*/
-
 #if LTPDEBUG
 putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 #endif
 				cancelSessionByReceiver(&sessionBuf, sessionObj,
 						LtpMiscoloredSegment);
-				return 1;
+				return 0;
 			}
 		}
 	}
 
-	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
-	if (db.heapSpaceBytesOccupied + pdu->length
-			> db.heapSpaceBytesReserved)
+	if (!zco_enough_heap_space(ltpSdr, pdu->length))
 	{
 		/*	To avert possible DOS attack, silently discard
 		 *	this segment.					*/
 #if LTPDEBUG
-putErrmsg("Can't handle green data, would exceed LTP heap space reservation.",
+putErrmsg("Can't handle green data, would exceed available heap space.",
 utoa(pdu->length));
 #endif
 		return 0;
@@ -3564,9 +3574,7 @@ utoa(pdu->length));
 		return -1;
 	}
 
-	db.heapSpaceBytesOccupied += zco_occupancy(ltpSdr, *clientSvcData);
-	sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
-	return 1;
+	return 0;
 }
 
 static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
@@ -3575,8 +3583,6 @@ static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 {
 	Sdr		ltpSdr = getIonsdr();
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
-	Object		dbobj = _ltpdbObject(NULL);
-	LtpDB		db;
 	unsigned long	ckptSerialNbr;
 	unsigned long	rptSerialNbr;
 	LtpVspan	*vspan;
@@ -3724,7 +3730,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 
 		result = handleGreenDataSegment(pdu, *cursor, sessionObj,
 				&clientSvcData);
-		if (result < 1)
+		if (result < 0)
 		{
 			sdr_cancel_xn(ltpSdr);
 			return result;
@@ -3789,8 +3795,6 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		return 0;
 	}
 
-	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
-
 	/*	Data segment must be accepted into an import session,
 	 *	unless that session is already canceled.		*/
 
@@ -3803,15 +3807,10 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 			/*	Reception already completed, just
 			 *	waiting for report acknowledgment.
 			 *	Discard the segment.			*/
-
-			if (sdr_end_xn(ltpSdr) < 0)
-			{
-				putErrmsg("Can't handle data segment.", NULL);
-				return -1;
-			}
 #if LTPDEBUG
 putErrmsg("Discarded data segment.", itoa(sessionNbr));
 #endif
+			sdr_exit_xn(ltpSdr);
 			return 0;
 		}
 	}
@@ -3822,30 +3821,24 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		{
 			/*	Session exists but has already been
 			 *	canceled.  Discard the segment.		*/
-
-			if (sdr_end_xn(ltpSdr) < 0)
-			{
-				putErrmsg("Can't handle data segment.", NULL);
-				return -1;
-			}
 #if LTPDEBUG
 putErrmsg("Discarded data segment.", itoa(sessionNbr));
 #endif
+			sdr_exit_xn(ltpSdr);
 			return 0;
 		}
 
 		/*	Must start a new import session.		*/
 
 		if (startImportSession(spanObj, sessionNbr, &sessionBuf,
-				&sessionObj, pdu->clientSvcId, &db) < 0)
+				&sessionObj, pdu->clientSvcId) < 0)
 		{
 			putErrmsg("Can't create reception session.", NULL);
 			sdr_cancel_xn(ltpSdr);
 			return -1;
 		}
 
-		sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
-		if (pdu->offset != 0	/*	Not segment #1.	*/
+		if (pdu->offset != 0	/*	Not segment #1.		*/
 		|| (pdu->segTypeCode != LtpDsRedEORP
 				&& pdu->segTypeCode != LtpDsRedEOB))
 		{
@@ -3881,47 +3874,33 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 
 	if (sessionBuf.blockFileRef == 0)	/*	Store in heap.	*/
 	{
-		if (db.heapSpaceBytesOccupied + pdu->length
-				> db.heapSpaceBytesReserved)
+		if (writeBlockExtentToHeap(&sessionBuf, segment, *cursor,
+				pdu->length) < 0)
 		{
-			/*	To avert possible DOS attack, silently
-			 *	discard this segment.			*/
-#if LTPDEBUG
-putErrmsg("Can't handle red data, would exceed LTP heap space reservation.",
-utoa(pdu->length));
-#endif
-			sdr_cancel_xn(ltpSdr);
-			return 0;
-		}
-
-		segment->fileOffset = 0;
-		segment->heapAddress = sdr_insert(ltpSdr, *cursor, pdu->length);
-		if (segment->heapAddress == 0)
-		{
-			putErrmsg("Can't record block extent.", NULL);
+			putErrmsg("Can't write block extent to heap.", NULL);
 			sdr_cancel_xn(ltpSdr);
 			return -1;
 		}
-
-		db.heapSpaceBytesOccupied += pdu->length;
 	}
 	else					/*	Store in file.	*/
 	{
 		if (writeBlockExtentToFile(&sessionBuf, segment, *cursor,
 				pdu->length) < 0)
 		{
-			putErrmsg("Can't record block extent.", NULL);
+			putErrmsg("Can't write block extent to heap.", NULL);
 			sdr_cancel_xn(ltpSdr);
 			return -1;
 		}
 	}
 
+	if (segment->sessionObj == 0)		/*	Must discard.	*/
+	{
+		sdr_list_delete(ltpSdr, segment->sessionListElt, NULL, NULL);
+		sdr_free(ltpSdr, segmentObj);
+		return sdr_end_xn(ltpSdr);
+	}
+
 	sdr_write(ltpSdr, segmentObj, (char *) segment, sizeof(LtpRecvSeg));
-
-	/*	Adjust heap space occupancy per insertion of extent.	*/
-
-	db.heapSpaceBytesOccupied += sizeof(LtpRecvSeg);
-	sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
 
 	/*	Based on the segment type code, infer additional
 	 *	information and do additional processing.		*/
@@ -3986,7 +3965,7 @@ utoa(pdu->length));
 		return -1;
 	}
 
-	return 1;	/*	Red-part data handled okay.		*/
+	return 0;	/*	Red-part data handled okay.		*/
 }
 
 static int	loadClaimsArray(char **cursor, int *bytesRemaining,

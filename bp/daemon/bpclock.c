@@ -269,7 +269,7 @@ static void	applyRateControl(Sdr sdr)
 	VInduct		*induct;
 	VOutduct	*outduct;
 
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	sdr_begin_xn(sdr);
 
 	/*	Recalculate limit on local bundle generation.		*/
 
@@ -321,7 +321,7 @@ static void	applyRateControl(Sdr sdr)
 		}
 	}
 
-	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
+	oK(sdr_end_xn(sdr));
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
