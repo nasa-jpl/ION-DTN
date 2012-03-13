@@ -9,6 +9,9 @@
 # Sends bundles to the local ION node with custody transfer requested,
 # and then verifies that ION emits properly-formatted ACS bundles.
 
+export PYTHONPATH=`pwd`/..:`pwd`/../../pylib:$PYTHONPATH
+echo "Setting PYTHONPATH to $PYTHONPATH"
+
 FAIL=0
 
 echo "Killing old ION..."

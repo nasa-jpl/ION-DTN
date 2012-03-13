@@ -11,6 +11,9 @@
 # correctly signalled that custody of those bundles could be released
 # by the local node.
 
+export PYTHONPATH=`pwd`/..:`pwd`/../../pylib:$PYTHONPATH
+echo "Setting PYTHONPATH to $PYTHONPATH"
+
 PASS=1
 
 echo "Killing old ION..."
@@ -25,11 +28,31 @@ echo "ionstart -I host1.rc"
 # give ION some time to start up
 sleep 1
 
+
+#
+# OMFG I really hate this... bsd vs gnu netcat
+#
+if `(nc --help 2>&1) | head -n 1 | fgrep GNU > /dev/null`; then
+    NETCAT_VERSION="gnu"
+    echo "Detected GNU netcat"
+else
+    NETCAT_VERSION="bsd"
+    echo "Detected bsd netcat"
+    # osx seems to conform to this as well
+fi
+
+
 # Send it some bundles with "custody transfer requested" set.
 BUNDLESRX=0
 for i in $(ls ../canned-bundles/canned-bundle-*); do
-    netcat -c -u 127.0.0.1 4556 < $i
-    sleep 1
+
+    if [ "$NETCAT_VERSION" == "gnu" ]; then
+        nc -c -u 127.0.0.1 4556 < $i
+        sleep 1
+    else
+        nc -w 1 -u 127.0.0.1 4556 < $i
+    fi
+
     let BUNDLESRX+=1
 done
 

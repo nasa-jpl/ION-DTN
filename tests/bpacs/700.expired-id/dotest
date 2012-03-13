@@ -6,6 +6,9 @@
 # Sends an ACS with a custody ID of an expired bundle to the ION node
 # and verifies that the ION node handles this properly.
 
+export PYTHONPATH=`pwd`/..:`pwd`/../../pylib:$PYTHONPATH
+echo "Setting PYTHONPATH to $PYTHONPATH"
+
 FAIL=0
 
 echo "Killing old ION..."
