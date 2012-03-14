@@ -1,7 +1,7 @@
 
 = Release Notes for ION 2.5.0 =
 
-September 29, 2011
+March 20, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -89,6 +89,14 @@ Features included:
       trigger reforwarding of the bundle even when stewardship has been taken
       and CL transmission has been nominally successful and reliable, in the
       event that the CL transmission ultimately (unexpectedly) does not succeed.
+
+- Issue 343: Fixed bugs in LTP that could cause crashes at high data loss rates:
+    - Fixed mechanisms for preventing resurrection of closed Import sessions.
+    - Fixed issue where the same report number could become assigned to two
+      different reports, resulting in link service daemons crashing.
+
+- Issue #345: The ION Deployment Guide is now bundled with ION.  It provides
+  FAQ-style documentation for helping new users familiarize themselves with ION.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.3 =
