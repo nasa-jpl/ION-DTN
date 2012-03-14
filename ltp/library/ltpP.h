@@ -189,6 +189,7 @@ typedef struct
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
+	unsigned long	lastRptSerialNbr;
 	int		reportsCount;
 	Object		blockFileRef;	/*	A ZCO File Ref object.	*/
 
