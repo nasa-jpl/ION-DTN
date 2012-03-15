@@ -4,7 +4,7 @@
  *									
  *	BSS Streaming Application Specifications			
  *	Simulated Compression: H.264/MPEG-4
- *	Resolution: 1280×720 @ 30fps. Constant Bit Rate: 5Mbps
+ *	Resolution: 1280×720 @ 30fps. Constant Bit Rate: 3Mbps
  *								
  *	Copyright (c) 2011, California Institute of Technology.	
  *	Copyright (c) 2011, Space Internetworking Center,
@@ -55,10 +55,9 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 	Object		bundleZco;
 	Object		newBundle;
 	int 		i=0;
-	char		framePayload[20866];    /*  bitrate = 5Mbps (30 fps)  	
-					   	 *  166.7 kb/frame	
+	char		framePayload[20866];    /*  bitrate = 3Mbps
 						 *  CBR = 20866 bytes per
-						 *  33333 usec		*/    
+						 *  55642 usec		*/    
 	char		info[100];
 
 	if (svcClass == NULL)
@@ -67,8 +66,8 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 	}
 	else
 	{
-		if (!bp_parse_class_of_service(svcClass, &extendedCOS, &custodySwitch,
-				&priority))
+		if (!bp_parse_class_of_service(svcClass, &extendedCOS,
+				&custodySwitch, &priority))
 		{
 			putErrmsg("Invalid class of service for bpsendfile.",
 					svcClass);
@@ -138,8 +137,9 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		isprintf(info, sizeof info, "A frame with payload: %s and \
 size: %d has been sent\n", framePayload, sizeof(framePayload));
 		PUTS(info);
-		microsnooze(33333);
+		microsnooze(55642);
 	}
+
 	bp_close(sap);
 	writeErrmsgMemos();
 	PUTS("Stopping bssStreamingApp.");

@@ -88,21 +88,24 @@ cd ../2.ipn.bss
 cd ../2.ipn.bss
 echo
 echo "Starting bssrecv application..."
-#xterm -geom 200x40 -e bssrecv &
-bssrecv 3 bssDB ../ ipn:2.71 & # > /dev/null &
+xterm -geom 160x40 -e bssrecv 3 bssDB ../ ipn:2.71 &
+#bssrecv 3 bssDB ../ ipn:2.71 & # > /dev/null &
 sleep 2
 
 cd ../1.ipn.bss
 echo
 echo "Sending a stream of bundles from node 1 to node 2 for 30 seconds..."
 echo "bssStreamingApp started at $(date +"%Y/%m/%d-%T")"
-bssStreamingApp ipn:1.2 ipn:2.71 & # > /dev/null &
-sleep 1
-FROMTIME=$(date +"%Y/%m/%d-%T")
-sleep 29
+xterm -e bssStreamingApp ipn:1.2 ipn:2.71 &
+sleep 30
+# bssStreamingApp ipn:1.2 ipn:2.71 & # > /dev/null &
+# sleep 1
+# FROMTIME=$(date +"%Y/%m/%d-%T")
+# sleep 29
 pkill -SIGINT bssStreamingApp
 TOTIME=$(date +"%Y/%m/%d-%T")
 echo
+
 # Give node 2 enough time to receive all the reforwarded frames from node 1.
 echo "Wait 15 seconds to ensure the complete reception of the stream from node 2..."
 sleep 15
@@ -111,7 +114,8 @@ pkill bssrecv
 echo
 echo "Replaying the received stream."
 cd ../2.ipn.bss
-bssrecv 1 bssDB ../ ipn:2.71 $FROMTIME $TOTIME & # > /dev/null &
+xterm -geom 160x40 -e bssrecv 1 bssDB ../ ipn:2.71 0 $TOTIME &
+#bssrecv 1 bssDB ../ ipn:2.71 $FROMTIME $TOTIME & # > /dev/null &
 echo
 sleep 70
 pkill bssrecv
@@ -122,7 +126,7 @@ RETVAL=0
 FILENAME=../bssDB.dat
 FILESIZE=$(stat -c%s "$FILENAME")
 
-if [ $FILESIZE -gt 18000000 ]
+if [ $FILESIZE -gt 10000000 ]
 then
 	echo "All frames were successfully received."
 	

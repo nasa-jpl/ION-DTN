@@ -362,7 +362,7 @@ int	readRecord(int fileD, dataRecord *rec, off_t datOffset)
 	return 0;
 }
 
-int	readPayload(int fileD, char* buffer, int length)
+int	readPayload(int fileD, char* buffer, long length)
 {
 	if (read(fileD, buffer, length*sizeof(char)) < 0)
 	{
@@ -375,7 +375,7 @@ int	readPayload(int fileD, char* buffer, int length)
 }
 
 static long	addDataRecord(int fileD, off_t datOffset, BpTimestamp time,
-			int payloadLength)
+			long payloadLength)
 {
 	dataRecord data;
 
@@ -390,8 +390,7 @@ static long	addDataRecord(int fileD, off_t datOffset, BpTimestamp time,
 #if BSSLIBDEBUG
 printf("New data record added to the database\n");
 printf("-------------------------------------\n");
-printf("data Offset: %ld - creation time: %lu - length: %d\n", datOffset, 
-	time.seconds, payloadLength);
+printf("creation time: %lu - length: %ld\n", time.seconds, payloadLength);
 #endif
 	return 0;		
 }
@@ -407,7 +406,7 @@ static int	updateLstEntries(int lstFile, long lstEntryOffset,
 	/*
 	 *  This function adds new entries and applies appropriate
 	 *  updates on the contents of *.lst file, as needed. The
-	 *  operation of  the function depends on the value of
+	 *  operation of the function depends on the value of
 	 *  lstEntryOffset.
 	 *
 	 *  If lstEntryOffset is 1 then it can't be a legitimate
@@ -622,7 +621,7 @@ printf("(BEFORE) Creation time of the newest frame stored in *.tbl file: %lu\n",
 	}
 
 #if BSSLIBDEBUG
-printf("(before calculation) position value: %d - NewestRowIndex value %d\n",
+printf("(before calculation) position value: %ld - NewestRowIndex value %ld\n",
 position, hdr->newestRowIndex);
 #endif
 
@@ -689,12 +688,6 @@ position, hdr->newestRowIndex);
 					}
 				}
 
-				elapsed -= 1;
-				if (elapsed == 0)
-				{
-					break;	/*	Done erasing.	*/
-				}
-
 				/*	Erase this intervening second.	*/
 
 				row = index->rows + position;
@@ -711,6 +704,12 @@ position, hdr->newestRowIndex);
 #if BSSLIBDEBUG
 printf("Row (%lu) was erased\n", position);
 #endif
+				elapsed -= 1;
+				if (elapsed == 0)
+				{
+					break;	/*	Done erasing.	*/
+				}
+
 				position++;
 			}
 
@@ -720,7 +719,7 @@ printf("Row (%lu) was erased\n", position);
 	}
 
 #if BSSLIBDEBUG
-printf("(after calculation) position value: %d - NewestRowIndex value %d\n",
+printf("(after calculation) position value: %ld - NewestRowIndex value %ld\n",
 position, hdr->newestRowIndex);
 #endif
 	/*
@@ -795,10 +794,10 @@ index->rows[position].firstEntryOffset, index->rows[position].lastEntryOffset, l
 
 static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 			int tblFile, BpTimestamp *lastDis, char *buffer, 
-			int bufLength, RTBHandler display)
+			long bufLength, RTBHandler display)
 {
 	ZcoReader       reader;
-	int		contentLength;
+	long		contentLength;
 	char		error[3] = "-1";
 	off_t		datOffset;
 	long 		newEntryOffset;
@@ -806,12 +805,11 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 	int		updateStat;
 
 	memset(buffer, '\0', bufLength);
-	contentLength = zco_source_data_length(sdr, dlv->adu);
+	contentLength = (long) zco_source_data_length(sdr, dlv->adu);
 	if (contentLength <= bufLength)
 	{
 		sdr_begin_xn(sdr);
 		zco_start_receiving(sdr, dlv->adu, &reader);
-	
 		if (zco_receive_source(sdr, &reader, bufLength, buffer) < 0)
 		{
 			zco_stop_receiving(sdr, &reader);
@@ -834,6 +832,7 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 
 		/*	Locate the offset within lstFile at which the
 		 *	new entry will be inserted.			*/
+
 		newEntryOffset = (long) lseek(lstFile, 0, SEEK_END);
 		if (newEntryOffset < 0)
 		{
@@ -927,25 +926,25 @@ printf("from this point on, the execution of the provided display function begin
 
 		if (dlv->bundleCreationTime.seconds > lastDis->seconds)
 		{
-			display(dlv->bundleCreationTime.seconds, 
+			oK(display(dlv->bundleCreationTime.seconds, 
 				dlv->bundleCreationTime.count, buffer, 
-				contentLength);
+				contentLength));
 			*lastDis = dlv->bundleCreationTime;
 		}
 		else if (dlv->bundleCreationTime.seconds == lastDis->seconds)
 		{
 			if (dlv->bundleCreationTime.count > lastDis->count)
 			{
-				display(dlv->bundleCreationTime.seconds, 
+				oK(display(dlv->bundleCreationTime.seconds, 
 					dlv->bundleCreationTime.count, buffer, 
-					contentLength);
+					contentLength));
 				*lastDis = dlv->bundleCreationTime;
 			}
 		}
 	}
 	else
 	{
-		display((time_t) 0, 0, error, sizeof(error));
+		oK(display((time_t) 0, 0, error, sizeof(error)));
 	}
 
 	return 0;
@@ -1232,6 +1231,15 @@ int	loadRDonlyDB(char* bssName, char* path)
 	oK(_lstFile(1, lstRO));
 	oK(_tblFile(1, tblRO));
 	index = _tblIndex(&create);
+	if (index == NULL)
+	{
+		putErrmsg("BSS library: can't create table index image.", NULL);
+		close(_datFile(-1,0));
+		close(_lstFile(-1,0));
+		close(_tblFile(-1,0));
+		return -1;
+	}
+
 	if (loadTblIndex(tblRO, index) < 0)
 	{
 		oK(_tblIndex(&destroy));

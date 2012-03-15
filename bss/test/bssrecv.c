@@ -15,8 +15,6 @@
 
 #include "bss.h"
 
-int     istty = 0;
-
 static char*	_threadBuf(char *newValue)
 {
 	static char*	buffer = NULL;
@@ -44,7 +42,7 @@ static int display(time_t sec, unsigned long count, char* buf,
  	 */
 	if (atoi(buf) == -1)
 	{
-        PUTS("#######ERROR########");
+		PUTS("#######ERROR########");
 		return -1;
 	}
 
@@ -55,7 +53,7 @@ static int display(time_t sec, unsigned long count, char* buf,
 		reps--;
 	}
 
-    PUTS(buf);
+	PUTS(buf);
 	fflush(stdout);
 	return 0;
 }
@@ -65,8 +63,8 @@ static int replay (time_t fromTime, time_t toTime)
 	time_t		curTime = 0;
 	bssNav		nav;
 	char*		data;
-	int 		bytesRead;
-	int 		position;
+	long 		bytesRead;
+	long 		result;
 	unsigned long 	count;
 
 	data = calloc(RCV_LENGTH, sizeof(char));
@@ -77,9 +75,9 @@ static int replay (time_t fromTime, time_t toTime)
 		return -1;
 	}
 
-	if (fromTime==0 || toTime==0)
+	if (fromTime < 0 || toTime <= fromTime || toTime <= 0)
 	{
-		PUTS("fromTime or toTime equals to 0");
+		PUTS("wrong fromTime/toTime arguments");
 		free(data);
 		return -1;
 	}
@@ -97,7 +95,7 @@ static int replay (time_t fromTime, time_t toTime)
 	
 	while(curTime < toTime)
 	{
-		memset(data, 0, RCV_LENGTH);
+		memset(data, '\0', RCV_LENGTH);
 		bytesRead = bssRead(nav, data, RCV_LENGTH);
 		if(bytesRead == -1)
 		{
@@ -109,17 +107,16 @@ static int replay (time_t fromTime, time_t toTime)
 
 		/*	Call the display function	*/
 
-        if(istty)
-    		oK(display(curTime, count, data, bytesRead));
+		oK(display(curTime, count, data, bytesRead));
 
 		/*	Get next frame	    */
-		position = bssNext(&nav, &curTime, &count);
-		if(position == -2)
+		result = bssNext(&nav, &curTime, &count);
+		if(result == -2)
 		{
 			PUTS("End of list");
 			break;
 		}
-		else if (position < 0)
+		else if (result < 0)
 		{
 			PUTS("bssNext failed");
 			free(data);
@@ -144,13 +141,13 @@ static int replay (time_t fromTime, time_t toTime)
 	while(curTime >= fromTime)
 	{
 		/*	Get previous frame	*/
-		position = bssPrev(&nav, &curTime, &count);
-		if(position == -2)
+		result = bssPrev(&nav, &curTime, &count);
+		if(result == -2)
 		{
-			PUTS("End of list");
+			PUTS("Start of list");
 			break;
 		}
-		else if (position < 0)
+		else if (result < 0)
 		{
 			PUTS("bssPrev failed");
 			free(data);
@@ -169,12 +166,9 @@ static int replay (time_t fromTime, time_t toTime)
 
 		/*	Call the display function	*/
 
-        if(istty)	
-        {
-    		oK(display(curTime, count, data, bytesRead));
-	    	microsnooze(SNOOZE_INTERVAL);
-	    }
-    }
+		oK(display(curTime, count, data, bytesRead));
+		microsnooze(SNOOZE_INTERVAL);
+	}
 
 	free(data);
 	return 0;
@@ -185,12 +179,9 @@ static int userInput(int fd, char* bssName, char* path, char* eid )
 	char	parameters[512];
 	int	paramLen;
 
-	if(istty)
-    {
-        PUTS("Please enter DB name, path and eid separated by whitespace.");
-	    PUTS("e.g.: bssDB /home/user/experiments/bss ipn:2.71");
-	}
-    fflush(stdout);
+	PUTS("Please enter DB name, path and eid separated by whitespace.");
+	PUTS("e.g.: bssDB /home/user/experiments/bss ipn:2.71");
+	fflush(stdout);
 
 	if(igets(fd, parameters, sizeof parameters, &paramLen) == NULL)
 	{
@@ -260,14 +251,12 @@ int	main(int argc, char **argv)
 	char	eid[32];
 	char	fromTime[TIMESTAMPBUFSZ];
 	char	toTime[TIMESTAMPBUFSZ];
-	int	    cmdFile = fileno(stdin);
+	int	cmdFile = fileno(stdin);
 	time_t	from = 0;
 	time_t	to = 0;
 	time_t	refTime = 0;
 	char	*buffer;
 	int	reqArgs = 0;		/*	Boolean		*/
-
-    istty = isatty( fileno(stdin) );
 
 	if (argc > 7) argc = 7;
 	switch (argc)
@@ -283,7 +272,7 @@ int	main(int argc, char **argv)
 		case 3:
 			aBssName = argv[2];
 		case 2:
-			choice = atoi(argv[1]);
+			choice = strtol(argv[1], NULL, 0);
 		default:
 			break;
 	}
@@ -313,38 +302,34 @@ int	main(int argc, char **argv)
 	 * Each BSS receiving application supports two modes of operation,
 	 * the real-time and the playback mode. In real-time mode (bssStart()), 
 	 * BSS receiver starts a thread, enabling the reception of a bundle  
-	 * stream, and creates a database in which it stores the received frames.  
-	 * In playback mode (bssOpen()), BSS receiver is able to replay the last 
-	 * SOD seconds of a stream which is stored in an already existing database. 
-	 * The simultaneous operation of both, real-time and playback mode, in a
-	 * BSS receiving application is also supported (bssRun()). 
+	 * stream, and creates a database in which it stores the received
+	 * frames.  In playback mode (bssOpen()), BSS receiver is able to
+	 * replay the last WINDOW seconds of a stream which is stored in an
+	 * already existing database.  The simultaneous operation of both
+	 * real-time and playback mode in a BSS receiving application is
+	 * also supported (bssRun()). 
 	 */
 
 	do 
 	{
-        if(choice == -1)
-        {
-            sleep(2);
-            continue;
-        }
-		else if(choice==0 && istty)
+		if(choice==0)
 		{
-            PUTS("\n");
-            PUTS("---------------Menu-----------------");
-            PUTS("1. Open BSS Receiver in playback mode");
-            PUTS("2. Start BSS receiving thread");
-            PUTS("3. Start BSS Receiver");
-            PUTS("4. Close current playback session");
-            PUTS("5. Stop BSS receiving thread");
-            PUTS("6. Stop BSS Receiver");
-            PUTS("7. Exit");
+			PUTS("\n");
+			PUTS("---------------Menu-----------------");
+			PUTS("1. Open BSS Receiver in playback mode");
+			PUTS("2. Start BSS receiving thread");
+			PUTS("3. Start BSS Receiver");
+			PUTS("4. Close current playback session");
+			PUTS("5. Stop BSS receiving thread");
+			PUTS("6. Stop BSS Receiver");
+			PUTS("7. Exit");
 
 			if(igets(cmdFile, menuNav, sizeof menuNav, &navLen) == NULL)
 			{
    				PUTS("Error in reading choice");
 				continue;
   			}
-      				
+
 			if(sscanf (menuNav, "%d", &choice) != 1)
 			{
 				PUTS("Invalid choice!");
@@ -368,6 +353,9 @@ int	main(int argc, char **argv)
 					if(bssOpen(bssName, path) == -1)
 					{
 						PUTS("bssOpen failed");
+						choice=0;
+						reqArgs = 0;
+						break;
 					}	
 				}
 				else
@@ -375,6 +363,8 @@ int	main(int argc, char **argv)
 					if(bssOpen(aBssName, aPath) == -1)
 					{
 						PUTS("bssOpen failed");
+						choice=0;
+						break;
 					}
 				}
 
@@ -396,11 +386,13 @@ int	main(int argc, char **argv)
 					}
 
 					from = readTimestampLocal(fromTime, refTime) - EPOCH_2000_SEC;
+					if (from < 0) from = 0;
 					to = readTimestampLocal(toTime, refTime) - EPOCH_2000_SEC;
 				}
 				else
 				{
 					from = readTimestampLocal(aFromTime, refTime) - EPOCH_2000_SEC;
+					if (from < 0) from = 0;
 					to = readTimestampLocal(aToTime, refTime) - EPOCH_2000_SEC;
 				}
 				
@@ -411,10 +403,7 @@ int	main(int argc, char **argv)
 				}
 				aFromTime = NULL;
 				aToTime = NULL;
-                if(!istty)
-                    choice=-1;
-                else
-    				choice=0;
+				choice=0;
 				break;
 
 			case 2:	
@@ -438,10 +427,7 @@ int	main(int argc, char **argv)
 						PUTS("bssStart failed");
 					}
 				}
-				if(!istty)
-                    choice=-1;
-                else
-    				choice=0;
+				choice=0;
 				break;
 
 			case 3: 
@@ -466,10 +452,7 @@ int	main(int argc, char **argv)
 						PUTS("bssRun failed");
 					}
 				}
-				if(!istty)
-                    choice=-1;
-                else
-    				choice=0;
+				choice=0;
 				break;
 
 			case 4: 
@@ -479,10 +462,7 @@ int	main(int argc, char **argv)
 				aPath=NULL;
 				aEid=NULL;
 				reqArgs=0;
-				if(!istty)
-                    choice=-1;
-                else
-    				choice=0;				
+				choice=0;				
 				break;
 				
 			case 5: 
@@ -491,10 +471,7 @@ int	main(int argc, char **argv)
 				aBssName=NULL;
 				aPath=NULL;
 				aEid=NULL;
-				if(!istty)
-                    choice=-1;
-                else
-    				choice=0;
+				choice=0;
 				break;
 
 			case 6: 
@@ -503,18 +480,15 @@ int	main(int argc, char **argv)
 				aPath=NULL;
 				aEid=NULL;
 				reqArgs=0;
-				if(!istty)
-                    choice=-1;
-                else
-    				choice=0;
+				choice=0;
 				break;
 
 			case 7: 
-                PUTS("Quitting program!\n");
+                		PUTS("Quitting program!\n");
 				break;
 
 			default:
-                PUTS("Invalid choice!\n");
+                		PUTS("Invalid choice!\n");
 				break;
 		}
 	} while (choice != 7);

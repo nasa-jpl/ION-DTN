@@ -34,7 +34,7 @@ typedef struct
 	int		lst;
 	RTBHandler 	function;
 	char*		buffer;
-	int		bufLength;
+	long		bufLength;
 } bss_thread_data;
 
 /* 
@@ -178,7 +178,7 @@ extern int 		getLstEntry(int fileD, lstEntry *entry,
 				long lstEntryOffset);
 
 extern int 		readRecord(int fileD, dataRecord *rec, off_t datOffset);
-extern int 		readPayload(int fileD, char* buffer, int length);
+extern int 		readPayload(int fileD, char* buffer, long length);
 
 extern int 		loadRDWRDB(char* bssName, char* path, int* dat, 
 				int* lst, int* tbl);

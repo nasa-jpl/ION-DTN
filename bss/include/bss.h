@@ -25,7 +25,7 @@
 
 #define EPOCH_2000_SEC	946684800
 #define RCV_LENGTH 	20866
-#define SNOOZE_INTERVAL 33333
+#define SNOOZE_INTERVAL 55642
 #define BSSRECV_EXIT_SUCCESS              (0)
 #define BSSRECV_EXIT_ERROR                (1)
 
@@ -48,7 +48,7 @@ extern "C" {
 
 typedef struct 
 {
-	int 		curPosition;
+	long 		curPosition;
 	long 		prevOffset; 
 	long 		nextOffset;
 	off_t 		datOffset;	
@@ -60,27 +60,27 @@ typedef int		(*RTBHandler)(time_t time, unsigned long count,
 
 extern int		bssOpen(char* bssName, char* path);
 extern int		bssStart(char* bssName, char* path, char* eid, 
-				char* buffer, int bufLen, RTBHandler handler);
+				char* buffer, long bufLen, RTBHandler handler);
 extern int		bssRun(char* bssName, char* path, char* eid,
-				char* buffer, int bufLen, RTBHandler handler);
+				char* buffer, long bufLen, RTBHandler handler);
 
 extern void		bssClose();
 extern void		bssStop();
 extern void		bssExit();
 
-extern long		bssRead(bssNav nav, char* data, int dataLen);
+extern long		bssRead(bssNav nav, char* data, long dataLen);
 extern long		bssSeek(bssNav *nav, time_t time, time_t *curTime, 
 				unsigned long *count);
 extern long		bssSeek_read(bssNav *nav, time_t time, time_t *curTime, 
-				unsigned long *count, char* data, int dataLen);
+				unsigned long *count, char* data, long dataLen);
 extern long		bssNext(bssNav *nav, time_t *curTime, 
 				unsigned long *count);
 extern long		bssNext_read(bssNav *nav, time_t *curTime, 
-				unsigned long *count, char* data, int dataLen);
+				unsigned long *count, char* data, long dataLen);
 extern long		bssPrev(bssNav *nav, time_t *curTime, 
 				unsigned long *count);
 extern long		bssPrev_read(bssNav *nav, time_t *curTime, 
-				unsigned long *count, char* data, int dataLen);
+				unsigned long *count, char* data, long dataLen);
 
 /*	extern int		bssRecover();  - Under Development	*/
 #ifdef __cplusplus

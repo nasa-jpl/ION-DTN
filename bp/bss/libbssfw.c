@@ -259,12 +259,12 @@ int bss_addBssEntry(long argServiceNbr, long argNodeNbr)
 	{
 		if (nextEntry)
 		{
-			sdr_list_insert_before(sdr, nextEntry, entryObj);
+			oK(sdr_list_insert_before(sdr, nextEntry, entryObj));
 		}
 		else
 		{
-			sdr_list_insert_last(sdr, 
-				(_bssConstants())->bssList, entryObj);
+			oK(sdr_list_insert_last(sdr, 
+				(_bssConstants())->bssList, entryObj));
 		}
 
 		sdr_write(sdr, entryObj, (char *) &entry, sizeof(bssEntry));
@@ -560,12 +560,12 @@ int	bss_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct,
 	{
 		if (nextPlan)
 		{
-			sdr_list_insert_before(sdr, nextPlan, planObj);
+			oK(sdr_list_insert_before(sdr, nextPlan, planObj));
 		}
 		else
 		{
-			sdr_list_insert_last(sdr,
-					(_bssConstants())->plans, planObj);
+			oK(sdr_list_insert_last(sdr,
+					(_bssConstants())->plans, planObj));
 		}
 
 		sdr_write(sdr, planObj, (char *) &plan, sizeof(BssPlan));
