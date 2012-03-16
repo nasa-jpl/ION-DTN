@@ -122,12 +122,10 @@ int	main(int argc, char **argv)
 			PUTS(line);
 			if (contentLength < sizeof content)
 			{
+				zco_start_receiving(dlv.adu, &reader);
 				sdr_begin_xn(sdr);
-				zco_start_receiving(sdr, dlv.adu, &reader);
 				len = zco_receive_source(sdr, &reader,
 						contentLength, content);
-				zco_stop_receiving(sdr, &reader);
-
 				if (sdr_end_xn(sdr) < 0 || len < 0)
 				{
 					putErrmsg("Can't handle delivery.",

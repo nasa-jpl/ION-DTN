@@ -159,6 +159,11 @@ int	Sdr_hash_insert(char *file, int line, Sdr sdrv, Object hash, char *key,
 	int	result;
 	Object	hashElt;
 
+	if (entry)
+	{
+		*entry = 0;	/*	Default result.			*/
+	}
+
 	if (!(sdr_in_xn(sdrv)))
 	{
 		oK(_iEnd(file, line, _notInXnMsg()));
@@ -256,7 +261,26 @@ int	Sdr_hash_delete_entry(char *file, int line, Sdr sdrv, Object entry)
 	return 1;
 }
 
-int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value)
+Address	sdr_hash_entry_value(Sdr sdrv, Object hash, Object entry)
+{
+	int	keyLength;
+	int	kvpairLength;
+	Object	kvpairAddr;
+	KvPair	kvpair;
+
+	CHKERR(sdrv);
+	CHKERR(entry);
+	CHKERR(takeSdr(sdrv->sdr) == 0);
+	keyLength = sdr_table_user_data(sdrv, hash);
+	kvpairLength = sizeof(Address) + keyLength;
+	kvpairAddr = sdr_list_data(sdrv, entry);
+	sdr_read(sdrv, (char *) &kvpair, kvpairAddr, kvpairLength);
+	releaseSdr(sdrv->sdr);
+	return kvpair.value;
+}
+
+int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value,
+		Object *entry)
 {
 	SdrState	*sdr;
 	int		keyLength;
@@ -270,6 +294,11 @@ int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value)
 	Address		kvpairAddr;
 	KvPair		kvpair;
 	int		result;
+
+	if (entry)
+	{
+		*entry = 0;	/*	Default result.			*/
+	}
 
 	CHKERR(sdrv);
 	CHKERR(hash);
@@ -300,6 +329,11 @@ int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value)
 		}
 
 		*value = kvpair.value;
+		if (entry)
+		{
+			*entry = elt;
+		}
+
 		releaseSdr(sdr);
 		return 1;	/*	Got it.				*/
 	}

@@ -87,7 +87,7 @@ cd ../
 
 echo "Using bpdriver to send bundles with default ttl..."
 cd 1.ipn.bp.udp
-bpdriver 1 ipn:1.1 ipn:1.2 -100
+bpdriver 1 ipn:1.1 ipn:1.2 -3
 cd ../
 
 echo "Waiting 2 seconds for netcat server to receive bundle..."
@@ -108,7 +108,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c106 | head -c2 | xxd -p`
+RESULTS=`cat response.cap | tail  -c9 | head -c2 | xxd -p`
 #echo "$RESULTS"
 if [ "$RESULTS" = "822c" ]; then
 	echo "The Bundle set by ION had the correct default TTL."
@@ -135,7 +135,7 @@ cd ../
 
 echo "Using bpdriver to send bundles with ttl of 3000 sec..."
 cd 1.ipn.bp.udp
-bpdriver 1 ipn:1.1 ipn:1.2 -100 t3000
+bpdriver 1 ipn:1.1 ipn:1.2 -3 t3000
 cd ../
 
 echo "Waiting 2 seconds for netcat server to receive bundle..."
@@ -156,7 +156,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c106 | head -c2 | xxd -p`
+RESULTS=`cat response.cap | tail  -c9 | head -c2 | xxd -p`
 #echo "$RESULTS"
 if [ "$RESULTS" = "9738" ]; then
 	echo "The Bundle set by ION had the correct TTL."
@@ -183,7 +183,7 @@ cd ../
 
 echo "Using bpdriver to send bundles with ttl of 30 sec..."
 cd 1.ipn.bp.udp
-bpdriver 1 ipn:1.1 ipn:1.2 -100 t30
+bpdriver 1 ipn:1.1 ipn:1.2 -3 t30
 cd ../
 
 echo "Waiting 2 seconds for netcat server to receive bundle..."
@@ -204,7 +204,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c105 | head -c1 | xxd -p`
+RESULTS=`cat response.cap | tail  -c8 | head -c1 | xxd -p`
 #echo "$RESULTS"
 if [ "$RESULTS" = "1e" ]; then
 	echo "The Bundle set by ION had the correct TTL. SUCCESS!"

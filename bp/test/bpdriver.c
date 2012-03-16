@@ -54,14 +54,16 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	int		randomAduLength = 0;
 	int		bytesRemaining;
 	int		bytesToWrite;
+	Object		pilotAdu;
 	Object		fileRef;
 	Object		bundleZco;
 	Object		newBundle;
-	int		bytesSent = 0;
-	time_t		startTime;
+	double		bytesSent = 0.0;
+	struct timeval	startTime;
 	BpDelivery	dlv;
-	time_t		endTime;
-	long		interval;
+	struct timeval	endTime;
+	double		interval;
+	char		textBuf[256];
 
 	if (cyclesRemaining == 0 || ownEid == NULL || destEid == NULL
 	|| aduLength == 0)
@@ -126,15 +128,15 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	}
 
 	aduFile = iopen("bpdriverAduFile", O_WRONLY | O_CREAT | O_TRUNC, 0777);
-	if(ttl == 0)
+	if (ttl == 0)
 	{
 		ttl = DEFAULT_TTL;
 	}
 
 	if (aduFile < 0)
 	{
-		bp_close(sap);
 		putSysErrmsg("can't create ADU file", NULL);
+		bp_close(sap);
 		return 0;
 	}
 
@@ -160,9 +162,9 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 
 		if (write(aduFile, buffer, bytesToWrite) < 0)
 		{
+			putSysErrmsg("error writing to ADU file", NULL);
 			bp_close(sap);
 			close(aduFile);
-			putSysErrmsg("error writing to ADU file", NULL);
 			return 0;
 		}
 
@@ -174,13 +176,69 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	fileRef = zco_create_file_ref(sdr, "bpdriverAduFile", NULL);
 	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
 	{
-		bp_close(sap);
 		putErrmsg("bpdriver can't create file ref.", NULL);
+		bp_close(sap);
 		return 0;
 	}
 
+	/*	Send pilot bundle to start bpcounter's timer.		*/
+
+	sdr_begin_xn(sdr);
+	pilotAdu = sdr_string_create(sdr, "Go.");
+	bundleZco = zco_create(sdr, ZcoSdrSource, pilotAdu, 0,
+			sdr_string_length(sdr, pilotAdu));
+	if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	{
+		putErrmsg("bpdriver can't create ZCO.", NULL);
+		bp_close(sap);
+		return 0;
+	}
+
+	if (bp_send(sap, BP_BLOCKING, destEid, NULL, ttl,
+			BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
+			bundleZco, &newBundle) < 1)
+	{
+		putErrmsg("bpdriver can't send pilot bundle.",
+				itoa(aduLength));
+		bp_close(sap);
+		return 0;
+	}
+
+	if (!streaming)
+	{
+		/*	Must wait for acknowledgment before sending
+			first bundle.					*/
+
+		while (running)
+		{
+			if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
+			{
+				putErrmsg("bpdriver reception failed.", NULL);
+				running = 0;
+				continue;
+			}
+
+			bp_release_delivery(&dlv, 1);
+//putchar(dlvmarks[dlv.result]);
+//fflush(stdout);
+			if (dlv.result == BpReceptionInterrupted
+			|| dlv.result == BpEndpointStopped)
+			{
+				running = 0;
+				continue;
+			}
+
+			if (dlv.result == BpPayloadPresent)
+			{
+				break;	/*	Out of reception loop.	*/
+			}
+		}
+	}
+
+	/*	Begin timed bundle transmission.			*/
+
 	isignal(SIGINT, handleQuit);
-	startTime = time(NULL);
+	getCurrentTime(&startTime);
 	while (running && cyclesRemaining > 0)
 	{
 		if (randomAduLength)
@@ -252,7 +310,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	}
 
 	bp_close(sap);
-	endTime = time(NULL);
+	getCurrentTime(&endTime);
 	writeErrmsgMemos();
 	PUTS("Stopping bpdriver.");
 	sdr_begin_xn(sdr);
@@ -262,18 +320,28 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		putErrmsg("bpdriver can't destroy file reference.", NULL);
 	}
 
-	interval = endTime - startTime;
-	PUTMEMO("Time (seconds)", itoa(interval));
-	PUTMEMO("Total bundles", itoa(cycles - cyclesRemaining));
-	PUTMEMO("Total bytes", itoa(bytesSent));
-	if (interval <= 0)
+	if (endTime.tv_usec < startTime.tv_usec)
 	{
-		PUTS("Interval is too short to measure rate.");
+		endTime.tv_usec += 1000000;
+		endTime.tv_sec -= 1;
+	}
+
+	PUTMEMO("Total bundles", itoa(cycles - cyclesRemaining));
+	interval = (endTime.tv_usec - startTime.tv_usec)
+			+ (1000000 * (endTime.tv_sec - startTime.tv_sec));
+	isprintf(textBuf, sizeof textBuf, "%.3f", interval / 1000000);
+	PUTMEMO("Time (seconds)", textBuf);
+	isprintf(textBuf, sizeof textBuf, "%.0f", bytesSent);
+	PUTMEMO("Total bytes", textBuf);
+	if (interval > 0.0)
+	{
+		isprintf(textBuf, sizeof textBuf, "%.3f",
+			((bytesSent * 8) / (interval / 1000000)) / 1000000);
+		PUTMEMO("Throughput (Mbps)", textBuf);
 	}
 	else
 	{
-		PUTMEMO("Throughput (bytes per second)",
-				itoa(bytesSent / interval));
+		PUTS("Interval is too short to measure rate.");
 	}
 
 	bp_detach();

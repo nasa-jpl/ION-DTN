@@ -96,7 +96,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
-	if (protocol.nominalRate <= 0)
+	if (protocol.nominalRate == 0)
 	{
 		vduct->xmitThrottle.nominalRate = DEFAULT_UDP_RATE;
 	}
@@ -125,7 +125,7 @@ int	main(int argc, char *argv[])
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 0) < 0)
+				destDuctName, outduct.maxPayloadLen, 0) < 0)
 		{
 			sm_SemEnd(udpcloSemaphore(NULL));/*	Stop.	*/
 			continue;
@@ -148,7 +148,7 @@ int	main(int argc, char *argv[])
 			writeMemoNote("[?] Can't get IP address for host",
 					destDuctName);
 			sdr_begin_xn(sdr);
-			zco_destroy_reference(sdr, bundleZco);
+			zco_destroy(sdr, bundleZco);
 			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("Can't destroy ZCO reference.", NULL);

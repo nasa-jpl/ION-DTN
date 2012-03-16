@@ -749,7 +749,6 @@ void    bpnm_limbo_get(NmbpOutduct * results)
     Object          bpDbObject = getBpDbObject();
     BpDB            bpdb;
     Object          elt;
-    XmitRef         xref;
     Bundle          bundle;
     BpDbStats       dbStats;
 
@@ -762,9 +761,8 @@ void    bpnm_limbo_get(NmbpOutduct * results)
     for (elt = sdr_list_first(sdr, bpdb.limboQueue); elt;
             elt = sdr_list_next(sdr, elt))
     {
-	    sdr_read(sdr, (char *) &xref, sdr_list_data(sdr, elt),
-                    sizeof(XmitRef));
-	    sdr_read(sdr, (char *) &bundle, xref.bundleObj, sizeof(Bundle));
+	    sdr_read(sdr, (char *) &bundle, sdr_list_data(sdr, elt),
+			    sizeof(Bundle));
 	    results->currentQueuedBundlesBytes += bundle.payload.length;
     }
 

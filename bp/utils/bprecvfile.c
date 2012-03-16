@@ -68,9 +68,9 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 		return -1;
 	}
 
-	sdr_begin_xn(sdr);
-	zco_start_receiving(sdr, dlv->adu, &reader);
+	zco_start_receiving(dlv->adu, &reader);
 	remainingLength = contentLength;
+	sdr_begin_xn(sdr);
 	while (remainingLength > 0)
 	{
 		recvLength = BPRECVBUFSZ;
@@ -81,39 +81,34 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 
 		if (zco_receive_source(sdr, &reader, recvLength, buffer) < 0)
 		{
-			zco_stop_receiving(sdr, &reader);
-			close(testFile);
-			sdr_cancel_xn(sdr);
 			putErrmsg("bprecvfile: can't receive bundle content.",
 					fileName);
+			close(testFile);
+			oK(sdr_end_xn(sdr));
 			return -1;
 		}
 
 		if (write(testFile, buffer, recvLength) < 1)
 		{
-			zco_stop_receiving(sdr, &reader);
-			close(testFile);
-			sdr_cancel_xn(sdr);
 			putSysErrmsg("bprecvfile: can't write to test file",
 					fileName);
+			close(testFile);
+			oK(sdr_end_xn(sdr));
 			return -1;
 		}
 
 		remainingLength -= recvLength;
 	}
 
-	zco_stop_receiving(sdr, &reader);
+	isprintf(completionText, sizeof completionText, "[i] bprecvfile has \
+created '%s', size %d.", fileName, contentLength);
+	writeMemo(completionText);
 	close(testFile);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("bprecvfile: can't handle bundle delivery.",
-				fileName);
 		return -1;
 	}
 
-	isprintf(completionText, sizeof completionText, "bprecvfile has \
-created '%s', size %d.", fileName, contentLength);
-	writeMemo(completionText);
 	return 0;
 }
 

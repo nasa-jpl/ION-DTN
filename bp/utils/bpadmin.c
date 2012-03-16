@@ -70,12 +70,14 @@ static void	printUsage()
 	PUTS("\t   a protocol <protocol name> <payload bytes per frame> \
 <overhead bytes per frame> [<nominal data rate, in bytes/sec>]");
 	PUTS("\t   a induct <protocol name> <duct name> '<CLI command>'");
-	PUTS("\t   a outduct <protocol name> <duct name> '<CLO command>'");
+	PUTS("\t   a outduct <protocol name> <duct name> '<CLO command>' [max \
+payload length]");
 	PUTS("\tc\tChange");
 	PUTS("\t   c scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
 	PUTS("\t   c endpoint <endpoint name> {q|x} ['<recv script>']");
 	PUTS("\t   c induct <protocol name> <duct name> '<CLI command>'");
-	PUTS("\t   c outduct <protocol name> <duct name> '<CLO command>'");
+	PUTS("\t   c outduct <protocol name> <duct name> '<CLO command>' [max \
+payload length");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} scheme <scheme name>");
@@ -209,6 +211,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	char		*script;
 	BpRecvRule	rule;
 	long		nominalRate = 0;
+	unsigned long	maxPayloadLength;
 
 	if (tokenCount < 2)
 	{
@@ -290,13 +293,22 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "outduct") == 0)
 	{
-		if (tokenCount != 5)
+		switch (tokenCount)
 		{
+		case 6:
+			maxPayloadLength = strtoul(tokens[5], NULL, 0);
+			break;
+
+		case 5:
+			maxPayloadLength = 0;
+			break;
+
+		default:
 			SYNTAX_ERROR;
 			return;
 		}
 
-		addOutduct(tokens[2], tokens[3], tokens[4]);
+		addOutduct(tokens[2], tokens[3], tokens[4], maxPayloadLength);
 		return;
 	}
 
@@ -307,6 +319,7 @@ static void	executeChange(int tokenCount, char **tokens)
 {
 	char		*script;
 	BpRecvRule	rule;
+	unsigned long	maxPayloadLen;
 
 	if (tokenCount < 2)
 	{
@@ -370,13 +383,22 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "outduct") == 0)
 	{
-		if (tokenCount != 5)
+		switch (tokenCount)
 		{
+		case 6:
+			maxPayloadLen = strtoul(tokens[5], NULL, 0);
+			break;
+
+		case 5:
+			maxPayloadLen = 0;
+			break;
+
+		default:
 			SYNTAX_ERROR;
 			return;
 		}
 
-		updateOutduct(tokens[2], tokens[3], tokens[4]);
+		updateOutduct(tokens[2], tokens[3], tokens[4], maxPayloadLen);
 		return;
 	}
 
@@ -670,8 +692,8 @@ static void	printOutduct(VOutduct *vduct)
 		cloCmd = cloCmdBuffer;
 	}
 
-	isprintf(buffer, sizeof buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s",
-			clp->name, duct->name, vduct->cloPid, cloCmd);
+	isprintf(buffer, sizeof buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s \
+max: %lu", clp->name, duct->name, vduct->cloPid, cloCmd, duct->maxPayloadLen);
 	printText(buffer);
 }
 

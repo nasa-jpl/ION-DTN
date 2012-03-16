@@ -690,7 +690,7 @@ puts("No applicable directive.");
 	/*	Now determine whether or not the bundle could be sent
 	 *	to this neighbor via the outduct for this directive
 	 *	in time to follow the route that is being considered.
-	 *	There are two criteria.  First, is the duct blocked
+	 *	There are three criteria.  First, is the duct blocked
 	 *	(e.g., no TCP connection)?				*/
 
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
@@ -703,7 +703,20 @@ puts("Outduct is blocked.");
 		return 0;		/*	Outduct is unusable.	*/
 	}
 
-	/*	Second: is the sum of the capacities of all scheduled
+	/*	Second: if the bundle is flagged "do not fragment",
+	 *	does the length of its payload exceed the duct's
+	 *	payload size limit (if any)?				*/
+
+	if (bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT
+	&& outduct.maxPayloadLen != 0)
+	{
+		if (bundle->payload.length > outduct.maxPayloadLen)
+		{
+			return 0;	/*	Bundle can't be sent.	*/
+		}
+	}
+
+	/*	Third: is the sum of the capacities of all scheduled
 	 *	contact intervals with this route's initial proximate
 	 *	destination, through the end of the initial contact
 	 *	on this route, greater than the sum of the current
@@ -1182,6 +1195,8 @@ int	cgr_forward(Bundle *bundle, Object bundleObj, unsigned long
 	LystElt		elt;
 	LystElt		nextElt;
 	ProximateNode	*proxNode;
+	Bundle		newBundle;
+	Object		newBundleObj;
 	ProximateNode	*selectedNeighbor;
 	time_t		earliestDeliveryTime = 0;
 	int		smallestHopCount = 0;
@@ -1305,6 +1320,22 @@ printf("No routing information for node %lu.\n", stationNodeNbr);
 			}
 
 			MRELEASE(proxNode);
+			if (nextElt)
+			{
+				/*	Every transmission after the
+				 *	first must operate on a new
+				 *	clone of the original bundle.	*/
+
+				if (bpClone(bundle, &newBundle, &newBundleObj,
+							0, 0) < 0)
+				{
+					putErrmsg("Can't clone bundle.", NULL);
+					return -1;
+				}
+
+				bundle = &newBundle;
+				bundleObj = newBundleObj;
+			}
 		}
 
 		lyst_destroy(excludedNodes);

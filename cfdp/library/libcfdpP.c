@@ -1140,7 +1140,7 @@ void	destroyOutFdu(OutFdu *fdu, Object fduObj, Object fduElt)
 		}
 
 		obj = sdr_list_data(sdr, elt);
-		zco_destroy_reference(sdr, obj);
+		zco_destroy(sdr, obj);
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
@@ -1281,6 +1281,12 @@ void	destroyInFdu(InFdu *fdu, Object fduObj, Object fduElt)
 	sdr_list_delete(sdr, fduElt, NULL, NULL);
 	if (cfdpvdb->currentFdu == fduObj)
 	{
+		if (cfdpvdb->currentFile != -1)
+		{
+			close(cfdpvdb->currentFile);
+			cfdpvdb->currentFile = -1;
+		}
+
 		cfdpvdb->currentFdu = 0;
 	}
 }
@@ -2328,7 +2334,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 	{
 		buf = _crcComputationBuf();
 		memcpy((char *) buf, pduHeader, pduHeaderLength);
-		zco_start_receiving(sdr, *pdu, &reader);
+		zco_start_receiving(*pdu, &reader);
 		if (zco_receive_source(sdr, &reader, pduSourceDataLength,
 				((char *) buf) + pduHeaderLength) < 0)
 		{
@@ -2337,7 +2343,6 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 			return -1;
 		}
 
-		zco_stop_receiving(sdr, &reader);
 		crc = computeCRC(buf, pduHeaderLength + pduSourceDataLength);
 		crc = htons(crc);
 		oK(zco_append_trailer(sdr, *pdu, (char *) &crc, 2));
@@ -2365,7 +2370,6 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 {
-	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	CfdpHandler	handler;
 
 	if (!fdu->metadataReceived)
@@ -2381,12 +2385,6 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 	if (fdu->bytesReceived < fdu->fileSize)	/*	Missing data.	*/
 	{
 		return 0;
-	}
-
-	if (cfdpvdb->currentFile != -1)
-	{
-		close(cfdpvdb->currentFile);
-		cfdpvdb->currentFile = -1;
 	}
 
 	if (fdu->computedChecksum == fdu->eofChecksum)
@@ -2801,6 +2799,7 @@ printf("Continuing to extent from %d to %d; segmentOffset is %d.\n", nextExtent.
 #ifdef TargetFFS
 	close(cfdpvdb->currentFile);
 	cfdpvdb->currentFile = -1;
+	cfdpvdb->currentFdu = 0;
 #endif
 	/*	Deliver File-Segment-Recv indication.			*/
 
