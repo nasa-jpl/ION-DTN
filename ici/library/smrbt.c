@@ -564,9 +564,8 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 	CHKVOID(compare);
 	rbtPtr = (SmRbt *) psp(partition, rbt);
 	CHKVOID(rbtPtr);
-	CHKVOID(rbtPtr->length > 0);
-	CHKVOID(rbtPtr->root != 0);
-	if (lockSmrbt(rbtPtr) == ERROR)
+	if (rbtPtr->length == 0 || rbtPtr->root == 0
+	|| lockSmrbt(rbtPtr) == ERROR)
 	{
 		return;
 	}

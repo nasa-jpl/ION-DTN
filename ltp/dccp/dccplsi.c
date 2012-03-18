@@ -176,7 +176,7 @@ static void	*Listen_for_connections(void *parm)
 	Lyst			list;
 
 
-	list=lyst_create();
+	list=lyst_create_using(getIonMemoryMgr());
 	lyst_clear(list);
 	pthread_mutex_init(&elk, NULL);
 	

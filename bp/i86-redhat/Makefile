@@ -46,7 +46,7 @@ LBP = -lbp -lbpP
 RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
 #dccpcli dccpclo
 
-ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libtcpcla.so libudpcla.so libbpnm.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -128,7 +128,7 @@ hmackeys:	hmackeys.o $(BPLIBS)
 #	-	-	IPN executables	-	-	-	-	-
 
 ipnfw:		ipnfw.o $(BPLIBS) libipnfw.so libcgr.so
-		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lipnfw -lcgr $(LBP) -lici -lpthread
+		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lcgr -lipnfw $(LBP) -lici -lpthread
 		cp ipnfw ./bin
 
 ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.so
@@ -270,6 +270,10 @@ libtcpcla.so:	libtcpcla.o
 libudpcla.so:	libudpcla.o
 		$(LD) -o libudpcla.so libudpcla.o
 		cp libudpcla.so ./lib
+
+libbpnm.so:	libbpnm.o $(API)/bpnm.h
+		$(LD) -o libbpnm.so libbpnm.o
+		cp libbpnm.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 

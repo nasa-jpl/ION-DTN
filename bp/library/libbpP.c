@@ -90,7 +90,7 @@ static char	*_nullEid()
 /*	Note that ION currently supports CBHE compression only for
  *	a single DTN endpoint scheme.					*/
 
-static char		*_cbheSchemeName()
+static char	*_cbheSchemeName()
 {
 	return "ipn";
 }
@@ -98,9 +98,295 @@ static char		*_cbheSchemeName()
 /*	This is the scheme name for the legacy endpoint naming scheme
  *	developed for the DTN2 implementation.				*/
 
-static char		*_dtn2SchemeName()
+static char	*_dtn2SchemeName()
 {
 	return "dtn";
+}
+
+/*	*	*	Instrumentation functions	*	*	*/
+
+void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx, unsigned int size)
+{
+	Sdr		sdr = getIonsdr();
+	EndpointStats	stats;
+	Tally		*tally;
+	int		offset;
+
+	CHKVOID(vpoint && vpoint->stats);
+	if (!(vpoint->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(idx < BP_ENDPOINT_STATS);
+	sdr_stage(sdr, (char *) &stats, vpoint->stats, sizeof(EndpointStats));
+	tally = stats.tallies + idx;
+	tally->totalCount += 1;
+	tally->totalBytes += size;
+	tally->currentCount += 1;
+	tally->currentBytes += size;
+	offset = (char *) tally - ((char *) &stats);
+	sdr_write(sdr, vpoint->stats + offset, (char *) tally, sizeof(Tally));
+}
+
+void	bpInductTally(VInduct *vduct, unsigned int idx, unsigned int size)
+{
+	Sdr		sdr = getIonsdr();
+	InductStats	stats;
+	Tally		*tally;
+	int		offset;
+
+	CHKVOID(vduct && vduct->stats);
+	if (!(vduct->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(idx < BP_INDUCT_STATS);
+	sdr_stage(sdr, (char *) &stats, vduct->stats, sizeof(InductStats));
+	tally = stats.tallies + idx;
+	tally->totalCount += 1;
+	tally->totalBytes += size;
+	tally->currentCount += 1;
+	tally->currentBytes += size;
+	offset = (char *) tally - ((char *) &stats);
+	sdr_write(sdr, vduct->stats + offset, (char *) tally, sizeof(Tally));
+}
+
+void	bpOutductTally(VOutduct *vduct, unsigned int idx, unsigned int size)
+{
+	Sdr		sdr = getIonsdr();
+	OutductStats	stats;
+	Tally		*tally;
+	int		offset;
+
+	CHKVOID(vduct && vduct->stats);
+	if (!(vduct->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(idx < BP_OUTDUCT_STATS);
+	sdr_stage(sdr, (char *) &stats, vduct->stats, sizeof(OutductStats));
+	tally = stats.tallies + idx;
+	tally->totalCount += 1;
+	tally->totalBytes += size;
+	tally->currentCount += 1;
+	tally->currentBytes += size;
+	offset = (char *) tally - ((char *) &stats);
+	sdr_write(sdr, vduct->stats + offset, (char *) tally, sizeof(Tally));
+}
+
+void	bpSourceTally(unsigned int priority, unsigned int size)
+{
+	Sdr		sdr = getIonsdr();
+	BpVdb		*vdb = getBpVdb();
+	BpCosStats	stats;
+	Tally		*tally;
+	int		offset;
+
+	CHKVOID(vdb && vdb->sourceStats);
+	if (!(vdb->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(priority < 3);
+	sdr_stage(sdr, (char *) &stats, vdb->sourceStats, sizeof(BpCosStats));
+	tally = stats.tallies + priority;
+	tally->totalCount += 1;
+	tally->totalBytes += size;
+	tally->currentCount += 1;
+	tally->currentBytes += size;
+	offset = (char *) tally - ((char *) &stats);
+	sdr_write(sdr, vdb->sourceStats + offset, (char *) tally,
+			sizeof(Tally));
+}
+
+void	bpRecvTally(unsigned int priority, unsigned int size)
+{
+	Sdr		sdr = getIonsdr();
+	BpVdb		*vdb = getBpVdb();
+	BpCosStats	stats;
+	Tally		*tally;
+	int		offset;
+
+	CHKVOID(vdb && vdb->recvStats);
+	if (!(vdb->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(priority < 3);
+	sdr_stage(sdr, (char *) &stats, vdb->recvStats, sizeof(BpCosStats));
+	tally = stats.tallies + priority;
+	tally->totalCount += 1;
+	tally->totalBytes += size;
+	tally->currentCount += 1;
+	tally->currentBytes += size;
+	offset = (char *) tally - ((char *) &stats);
+	sdr_write(sdr, vdb->recvStats + offset, (char *) tally, sizeof(Tally));
+}
+
+void	bpDiscardTally(unsigned int priority, unsigned int size)
+{
+	Sdr		sdr = getIonsdr();
+	BpVdb		*vdb = getBpVdb();
+	BpCosStats	stats;
+	Tally		*tally;
+	int		offset;
+
+	CHKVOID(vdb && vdb->discardStats);
+	if (!(vdb->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(priority < 3);
+	sdr_stage(sdr, (char *) &stats, vdb->discardStats, sizeof(BpCosStats));
+	tally = stats.tallies + priority;
+	tally->totalCount += 1;
+	tally->totalBytes += size;
+	tally->currentCount += 1;
+	tally->currentBytes += size;
+	offset = (char *) tally - ((char *) &stats);
+	sdr_write(sdr, vdb->discardStats + offset, (char *) tally,
+			sizeof(Tally));
+}
+
+void	bpXmitTally(unsigned int priority, unsigned int size)
+{
+	Sdr		sdr = getIonsdr();
+	BpVdb		*vdb = getBpVdb();
+	BpCosStats	stats;
+	Tally		*tally;
+	int		offset;
+
+	CHKVOID(vdb && vdb->xmitStats);
+	if (!(vdb->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(priority < 3);
+	sdr_stage(sdr, (char *) &stats, vdb->xmitStats, sizeof(BpCosStats));
+	tally = stats.tallies + priority;
+	tally->totalCount += 1;
+	tally->totalBytes += size;
+	tally->currentCount += 1;
+	tally->currentBytes += size;
+	offset = (char *) tally - ((char *) &stats);
+	sdr_write(sdr, vdb->xmitStats + offset, (char *) tally, sizeof(Tally));
+}
+
+void	bpRptTally(unsigned char status, unsigned int reason)
+{
+	Sdr		sdr = getIonsdr();
+	BpVdb		*vdb = getBpVdb();
+	BpRptStats	stats;
+
+	CHKVOID(vdb && vdb->rptStats);
+	if (!(vdb->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(status < 32);
+	CHKVOID(reason < BP_REASON_STATS);
+	sdr_stage(sdr, (char *) &stats, vdb->rptStats, sizeof(BpRptStats));
+	if (status & BP_RECEIVED_RPT)
+	{
+		stats.totalRptByStatus[BP_STATUS_RECEIVE] += 1;
+		stats.currentRptByStatus[BP_STATUS_RECEIVE] += 1;
+	}
+
+	if (status & BP_CUSTODY_RPT)
+	{
+		stats.totalRptByStatus[BP_STATUS_ACCEPT] += 1;
+		stats.currentRptByStatus[BP_STATUS_ACCEPT] += 1;
+	}
+
+	if (status & BP_FORWARDED_RPT)
+	{
+		stats.totalRptByStatus[BP_STATUS_FORWARD] += 1;
+		stats.currentRptByStatus[BP_STATUS_FORWARD] += 1;
+	}
+
+	if (status & BP_DELIVERED_RPT)
+	{
+		stats.totalRptByStatus[BP_STATUS_DELIVER] += 1;
+		stats.currentRptByStatus[BP_STATUS_DELIVER] += 1;
+	}
+
+	if (status & BP_DELETED_RPT)
+	{
+		stats.totalRptByStatus[BP_STATUS_DELETE] += 1;
+		stats.currentRptByStatus[BP_STATUS_DELETE] += 1;
+	}
+
+	stats.totalRptByReason[reason] += 1;
+	stats.currentRptByReason[reason] += 1;
+	sdr_write(sdr, vdb->rptStats, (char *) &stats, sizeof(BpRptStats));
+}
+
+void	bpCtTally(unsigned int reason, unsigned int size)
+{
+	Sdr		sdr = getIonsdr();
+	BpVdb		*vdb = getBpVdb();
+	BpCtStats	stats;
+	Tally		*tally;
+	int		offset;
+
+	CHKVOID(vdb && vdb->ctStats);
+	if (!(vdb->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(reason < BP_REASON_STATS);
+	sdr_stage(sdr, (char *) &stats, vdb->ctStats, sizeof(BpCtStats));
+	tally = stats.tallies + reason;
+	tally->totalCount += 1;
+	tally->totalBytes += size;
+	tally->currentCount += 1;
+	tally->currentBytes += size;
+	offset = (char *) tally - ((char *) &stats);
+	sdr_write(sdr, vdb->ctStats + offset, (char *) tally, sizeof(Tally));
+}
+
+void	bpDbTally(unsigned int idx, unsigned int size)
+{
+	Sdr		sdr = getIonsdr();
+	BpVdb		*vdb = getBpVdb();
+	BpDbStats	stats;
+	Tally		*tally;
+	int		offset;
+
+	CHKVOID(vdb && vdb->dbStats);
+	if (!(vdb->updateStats))
+	{
+		return;
+	}
+
+	CHKVOID(ionLocked());
+	CHKVOID(idx < BP_DB_STATS);
+	sdr_stage(sdr, (char *) &stats, vdb->dbStats, sizeof(BpDbStats));
+	tally = stats.tallies + idx;
+	tally->totalCount += 1;
+	tally->totalBytes += size;
+	tally->currentCount += 1;
+	tally->currentBytes += size;
+	offset = (char *) tally - ((char *) &stats);
+	sdr_write(sdr, vdb->dbStats + offset, (char *) tally, sizeof(Tally));
 }
 
 /*	*	*	BP service control functions	*	*	*/
@@ -164,6 +450,8 @@ static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)
 	vpoint = (VEndpoint *) psp(bpwm, addr);
 	memset((char *) vpoint, 0, sizeof(VEndpoint));
 	vpoint->endpointElt = endpointElt;
+	vpoint->stats = endpoint.stats;
+	vpoint->updateStats = endpoint.updateStats;
 	istrcpy(vpoint->nss, endpoint.nss, sizeof vpoint->nss);
 	vpoint->semaphore = SM_SEM_NONE;
 	resetEndpoint(vpoint);
@@ -502,6 +790,8 @@ static int	raiseInduct(Object inductElt, BpVdb *bpvdb)
 	vduct = (VInduct *) psp(bpwm, addr);
 	memset((char *) vduct, 0, sizeof(VInduct));
 	vduct->inductElt = inductElt;
+	vduct->stats = duct.stats;
+	vduct->updateStats = duct.updateStats;
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
 	vduct->acqThrottle.semaphore = SM_SEM_NONE;
@@ -628,6 +918,8 @@ static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
 	vduct = (VOutduct *) psp(bpwm, addr);
 	memset((char *) vduct, 0, sizeof(VOutduct));
 	vduct->outductElt = outductElt;
+	vduct->stats = duct.stats;
+	vduct->updateStats = duct.updateStats;
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
 	vduct->semaphore = SM_SEM_NONE;
@@ -796,6 +1088,7 @@ static BpVdb	*_bpvdb(char **name)
 	PsmAddress	vdbAddress;
 	PsmAddress	elt;
 	Sdr		sdr;
+	BpDB		*db;
 	Object		sdrElt;
 	Object		addr;
 	BpEvent		event;
@@ -835,8 +1128,17 @@ static BpVdb	*_bpvdb(char **name)
 			return NULL;
 		}
 
+		db = _bpConstants();
 		vdb = (BpVdb *) psp(wm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(BpVdb));
+		vdb->sourceStats = db->sourceStats;
+		vdb->recvStats = db->recvStats;
+		vdb->discardStats = db->discardStats;
+		vdb->xmitStats = db->xmitStats;
+		vdb->rptStats = db->rptStats;
+		vdb->ctStats = db->ctStats;
+		vdb->dbStats = db->dbStats;
+		vdb->updateStats = db->updateStats;
 		vdb->creationTimeSec = 0;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
@@ -857,8 +1159,8 @@ static BpVdb	*_bpvdb(char **name)
 
 		/*	Raise all schemes and all of their endpoints.	*/
 
-		for (sdrElt = sdr_list_first(sdr, (_bpConstants())->schemes);
-				sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
+		for (sdrElt = sdr_list_first(sdr, db->schemes); sdrElt;
+				sdrElt = sdr_list_next(sdr, sdrElt))
 		{
 			if (raiseScheme(sdrElt, vdb) < 0)
 			{
@@ -870,8 +1172,8 @@ static BpVdb	*_bpvdb(char **name)
 
 		/*	Raise all ducts for all CL protocol adapters.	*/
 
-		for (sdrElt = sdr_list_first(sdr, (_bpConstants())->protocols);
-				sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
+		for (sdrElt = sdr_list_first(sdr, db->protocols); sdrElt;
+				sdrElt = sdr_list_next(sdr, sdrElt))
 		{
 			addr = sdr_list_data(sdr, sdrElt);
 			if (raiseProtocol(addr, vdb) < 0)
@@ -914,6 +1216,10 @@ int	bpInit()
 	Sdr		bpSdr;
 	Object		bpdbObject;
 	BpDB		bpdbBuf;
+	BpCosStats	cosStatsInit;
+	BpRptStats	rptStatsInit;
+	BpCtStats	ctStatsInit;
+	BpDbStats	dbStatsInit;
 	char		*bpvdbName = _bpvdbName();
 
 	if (ionAttach() < 0)
@@ -957,6 +1263,49 @@ int	bpInit()
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
+		bpdbBuf.sourceStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
+		bpdbBuf.recvStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
+		bpdbBuf.discardStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
+		bpdbBuf.xmitStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
+		bpdbBuf.rptStats = sdr_malloc(bpSdr, sizeof(BpRptStats));
+		bpdbBuf.ctStats = sdr_malloc(bpSdr, sizeof(BpCtStats));
+		bpdbBuf.dbStats = sdr_malloc(bpSdr, sizeof(BpDbStats));
+		if (bpdbBuf.sourceStats && bpdbBuf.recvStats
+		&& bpdbBuf.discardStats && bpdbBuf.xmitStats
+		&& bpdbBuf.rptStats && bpdbBuf.ctStats && bpdbBuf.dbStats)
+		{
+			memset((char *) &cosStatsInit, 0,
+					sizeof(BpCosStats));
+			sdr_write(bpSdr, bpdbBuf.sourceStats,
+					(char *) &cosStatsInit,
+					sizeof(BpCosStats));
+			sdr_write(bpSdr, bpdbBuf.recvStats,
+					(char *) &cosStatsInit,
+					sizeof(BpCosStats));
+			sdr_write(bpSdr, bpdbBuf.discardStats,
+					(char *) &cosStatsInit,
+					sizeof(BpCosStats));
+			sdr_write(bpSdr, bpdbBuf.xmitStats,
+					(char *) &cosStatsInit,
+					sizeof(BpCosStats));
+			memset((char *) &rptStatsInit, 0,
+					sizeof(BpRptStats));
+			sdr_write(bpSdr, bpdbBuf.rptStats,
+					(char *) &rptStatsInit,
+					sizeof(BpRptStats));
+			memset((char *) &ctStatsInit, 0,
+					sizeof(BpCtStats));
+			sdr_write(bpSdr, bpdbBuf.ctStats,
+					(char *) &ctStatsInit,
+					sizeof(BpCtStats));
+			memset((char *) &dbStatsInit, 0,
+					sizeof(BpDbStats));
+			sdr_write(bpSdr, bpdbBuf.dbStats,
+					(char *) &dbStatsInit,
+					sizeof(BpDbStats));
+		}
+
+		bpdbBuf.updateStats = 1;	/*	Default.	*/
 		sdr_write(bpSdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
 		sdr_catlg(bpSdr, _bpdbName(), 0, bpdbObject);
 		if (sdr_end_xn(bpSdr))
@@ -1246,13 +1595,16 @@ void	manageProductionThrottle(BpVdb *bpvdb)
 	IonDB		iondb;
 	Throttle	*throttle;
 	Scalar		occupied;
+	double		temp;
 	Scalar		totalOccupancy;
 	Scalar		fileOccupancy;
 	Scalar		unoccupied;
 	Scalar		spikeReserve;
 
 	sdr_read(getIonsdr(), (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	copyScalar(&occupied, &iondb.reserveForInTransit);
+	occupied.gigs = iondb.reserveForInTransit / ONE_GIG;
+	temp = occupied.gigs * ONE_GIG;
+	occupied.units = iondb.reserveForInTransit - temp;
 	zco_get_heap_occupancy(sdr, &totalOccupancy);
 	zco_get_file_occupancy(sdr, &fileOccupancy);
 	addToScalar(&totalOccupancy, &fileOccupancy);
@@ -1265,10 +1617,12 @@ void	manageProductionThrottle(BpVdb *bpvdb)
 		copyScalar(&occupied, &totalOccupancy);
 	}
 
-	copyScalar(&unoccupied, &iondb.occupancyCeiling);
+	unoccupied.gigs = iondb.occupancyCeiling / ONE_GIG;
+	temp = unoccupied.gigs * ONE_GIG;
+	unoccupied.units = iondb.occupancyCeiling - temp;
 	subtractFromScalar(&unoccupied, &occupied);
-	spikeReserve.units = iondb.receptionSpikeReserve % ONE_GIG;
 	spikeReserve.gigs = iondb.receptionSpikeReserve / ONE_GIG;
+	spikeReserve.units = iondb.receptionSpikeReserve % ONE_GIG;
 	subtractFromScalar(&unoccupied, &spikeReserve);
 	throttle = &(bpvdb->productionThrottle);
 	if (scalarIsValid(&unoccupied))
@@ -1830,141 +2184,123 @@ static void	lookUpDestScheme(Bundle *bundle, char *dictionary,
 	}
 }
 
-void	noteStateStats(int stateIdx, Bundle *bundle)
+static void	reportStateStats(int i, char *fromTimestamp, char *toTimestamp,
+			unsigned int count_0, unsigned long bytes_0,
+			unsigned int count_1, unsigned long bytes_1,
+			unsigned int count_2, unsigned long bytes_2,
+			unsigned int count_total, unsigned long bytes_total)
 {
-	BpVdb		*bpvdb = _bpvdb(NULL);
-	int		priority;
-	BpClassStats	*stats;
-	
-	if (stateIdx < 0 || stateIdx > 7 || bundle == NULL)
-	{
-		return;
-	}
-
-	if (bundle->bundleProcFlags & BDL_IS_ADMIN)
-	{
-		priority = 3;		/*	Isolate admin traffic.	*/
-	}
-	else
-	{
-		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
-	}
-
-	stats = &(bpvdb->stateStats[stateIdx].stats[priority]);
-	stats->bytes += bundle->payload.length;
-	stats->bundles++;
-}
-
-static void	clearStateStats(int stateIdx)
-{
-	BpVdb		*bpvdb = _bpvdb(NULL);
-	BpStateStats	*state;
-	int		i;
-	
-	if (stateIdx < 0 || stateIdx > 7)
-	{
-		return;
-	}
-
-	state = &(bpvdb->stateStats[stateIdx]);
-	for (i = 0; i < 4; i++)
-	{
-		state->stats[i].bytes = 0;
-		state->stats[i].bundles = 0;
-	}
-}
-
-void	clearAllStateStats()
-{
-	BpVdb		*bpvdb = _bpvdb(NULL);
-	int		i;
-	BpStateStats	*state;
-	time_t		currentTime;
-
-	for (i = 0; i < 8; i++)
-	{
-		state = &(bpvdb->stateStats[i]);
-		if (state->stats[0].bundles > 0
-		|| state->stats[1].bundles > 0
-		|| state->stats[2].bundles > 0
-		|| state->stats[3].bundles > 0)
-		{
-			break;	/*	Found activity.			*/
-		}
-	}
-
-	if (i == 8)		/*	No activity.			*/
-	{
-		return;		/*	Don't clear.			*/
-	}
-
-	currentTime = getUTCTime();
-	for (i = 0; i < 8; i++)
-	{
-		clearStateStats(i);
-	}
-
-	bpvdb->statsStartTime = currentTime;
-}
-
-static void	reportStateStats(int stateIdx)
-{
-	BpVdb		*bpvdb = _bpvdb(NULL);
-	time_t		startTime;
-	time_t		currentTime;
-	char		fromTimestamp[20];
-	char		toTimestamp[20];
-	BpStateStats	*state;
 	char		buffer[256];
 	static char	*classnames[] =
 		{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "rfw", "exp" };
-	
-	if (stateIdx < 0 || stateIdx > 7)
-	{
-		return;
-	}
 
-	currentTime = getUTCTime();
-	writeTimestampLocal(currentTime, toTimestamp);
-	startTime = bpvdb->statsStartTime;
-	writeTimestampLocal(startTime, fromTimestamp);
-	state = &(bpvdb->stateStats[stateIdx]);
 	isprintf(buffer, sizeof buffer, "[x] %s from %s to %s: (0) %u %lu (1) \
-%u %lu (2) %u %lu (@) %u %lu", classnames[stateIdx], fromTimestamp, toTimestamp,
-			state->stats[0].bundles, state->stats[0].bytes,
-			state->stats[1].bundles, state->stats[1].bytes,
-			state->stats[2].bundles, state->stats[2].bytes,
-			state->stats[3].bundles, state->stats[3].bytes);
+%u %lu (2) %u %lu (+) %u %lu", classnames[i], fromTimestamp, toTimestamp,
+			count_0, bytes_0, count_1, bytes_1,
+			count_2, bytes_2, count_total, bytes_total);
 	writeMemo(buffer);
 }
 
 void	reportAllStateStats()
 {
-	BpVdb		*bpvdb = _bpvdb(NULL);
-	int		i;
-	BpStateStats	*state;
+	Sdr		sdr = getIonsdr();
+	Object		bpDbObject = getBpDbObject();
+	time_t		currentTime;
+	char		toTimestamp[20];
+	BpDB		bpdb;
+	time_t		startTime;
+	char		fromTimestamp[20];
+	BpCosStats	sourceStats;
+	BpCosStats	recvStats;
+	BpCosStats	xmitStats;
+	BpDbStats	dbStats;
 
-	for (i = 0; i < 8; i++)
-	{
-		state = &(bpvdb->stateStats[i]);
-		if (state->stats[0].bundles > 0
-		|| state->stats[1].bundles > 0
-		|| state->stats[2].bundles > 0
-		|| state->stats[3].bundles > 0)
-		{
-			break;	/*	Found activity.			*/
-		}
-	}
+	currentTime = getUTCTime();
+	writeTimestampLocal(currentTime, toTimestamp);
+	sdr_begin_xn(sdr);
+	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
+	startTime = bpdb.resetTime;
+	writeTimestampLocal(startTime, fromTimestamp);
 
-	if (i == 8)		/*	No activity.			*/
-	{
-		return;		/*	Don't report.			*/
-	}
+	/*	Sourced.						*/
 
-	for (i = 0; i < 8; i++)
-	{
-		reportStateStats(i);
-	}
+	sdr_read(sdr, (char *) &sourceStats, bpdb.sourceStats,
+			sizeof(BpCosStats));
+	reportStateStats(0, fromTimestamp, toTimestamp,
+			sourceStats.tallies[0].currentCount,
+			sourceStats.tallies[0].currentBytes,
+			sourceStats.tallies[1].currentCount,
+			sourceStats.tallies[1].currentBytes,
+			sourceStats.tallies[2].currentCount,
+			sourceStats.tallies[2].currentBytes,
+			sourceStats.tallies[0].currentCount +
+				sourceStats.tallies[1].currentCount +
+				sourceStats.tallies[2].currentCount,
+			sourceStats.tallies[0].currentBytes +
+				sourceStats.tallies[1].currentBytes +
+				sourceStats.tallies[2].currentBytes);
+
+	/*	Forwarded.						*/
+
+	sdr_read(sdr, (char *) &dbStats, bpdb.dbStats, sizeof(BpDbStats));
+	reportStateStats(1, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0,
+			dbStats.tallies[BP_DB_FWD_OKAY].currentCount,
+			dbStats.tallies[BP_DB_FWD_OKAY].currentBytes);
+
+	/*	Transmitted.						*/
+
+	sdr_read(sdr, (char *) &xmitStats, bpdb.xmitStats, sizeof(BpCosStats));
+	reportStateStats(2, fromTimestamp, toTimestamp,
+			xmitStats.tallies[0].currentCount,
+			xmitStats.tallies[0].currentBytes,
+			xmitStats.tallies[1].currentCount,
+			xmitStats.tallies[1].currentBytes,
+			xmitStats.tallies[2].currentCount,
+			xmitStats.tallies[2].currentBytes,
+			xmitStats.tallies[0].currentCount +
+				xmitStats.tallies[1].currentCount +
+				xmitStats.tallies[2].currentCount,
+			xmitStats.tallies[0].currentBytes +
+				xmitStats.tallies[1].currentBytes +
+				xmitStats.tallies[2].currentBytes);
+
+	/*	Received.						*/
+
+	sdr_read(sdr, (char *) &recvStats, bpdb.recvStats, sizeof(BpCosStats));
+	reportStateStats(3, fromTimestamp, toTimestamp,
+			recvStats.tallies[0].currentCount,
+			recvStats.tallies[0].currentBytes,
+			recvStats.tallies[1].currentCount,
+			recvStats.tallies[1].currentBytes,
+			recvStats.tallies[2].currentCount,
+			recvStats.tallies[2].currentBytes,
+			recvStats.tallies[0].currentCount +
+				recvStats.tallies[1].currentCount +
+				recvStats.tallies[2].currentCount,
+			recvStats.tallies[0].currentBytes +
+				recvStats.tallies[1].currentBytes +
+				recvStats.tallies[2].currentBytes);
+
+	/*	Delivered.  Nothing for now; need to poll endpoints.	*/
+
+	reportStateStats(4, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0, 0, 0);
+
+	/*	Custody refused.  Not counted; check reforwarded.	*/
+
+	reportStateStats(5, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0, 0, 0);
+
+	/*	Reforwarded.						*/
+
+	reportStateStats(6, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0,
+			dbStats.tallies[BP_DB_REQUEUED_FOR_FWD].currentCount,
+			dbStats.tallies[BP_DB_REQUEUED_FOR_FWD].currentBytes);
+
+	/*	Expired.						*/
+
+	reportStateStats(7, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0,
+			dbStats.tallies[BP_DB_EXPIRED].currentCount,
+			dbStats.tallies[BP_DB_EXPIRED].currentBytes);
+	sdr_exit_xn(sdr);
 }
 
 static int	bundleIsCustodial(Bundle *bundle)
@@ -2191,17 +2527,24 @@ incomplete bundle.", NULL);
 			bundle.proxNodeEid = 0;
 		}
 
-		/*	Notify sender, if so requested or if custodian.	*/
+		/*	Notify sender, if so requested or if custodian.
+		 *	But never for admin bundles.			*/
 
-		noteStateStats(BPSTATS_EXPIRE, &bundle);
+		bpDbTally(BP_DB_EXPIRED, bundle.payload.length);
+		if (bundle.custodyTaken)
+		{
+			bpCtTally(BP_CT_CUSTODY_EXPIRED, bundle.payload.length);
+		}
+
 		if ((_bpvdb(NULL))->watching & WATCH_expire)
 		{
 			putchar('!');
 			fflush(stdout);
 		}
 
-		if (bundle.custodyTaken
-		|| (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT))
+		if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
+		&& (bundle.custodyTaken
+		|| (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT)))
 		{
 			bundle.statusRpt.flags |= BP_DELETED_RPT;
 			bundle.statusRpt.reasonCode = SrLifetimeExpired;
@@ -2326,6 +2669,8 @@ incomplete bundle.", NULL);
 	}
 
 	sdr_free(bpSdr, bundleObj);
+	bpDiscardTally(COS_FLAGS(bundle.bundleProcFlags) & 0x03,
+			bundle.payload.length);
 	noteBundleRemoved(&bundle);
 	return 0;
 }
@@ -2768,6 +3113,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	VEndpoint	*vpoint;
 	Endpoint	endpointBuf;
 	Scheme		scheme;
+	EndpointStats	statsInit;
 	Object		addr;
 	Object		endpointElt = 0;	/*	To hush gcc.	*/
 
@@ -2808,6 +3154,15 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	endpointBuf.incompletes = sdr_list_create(bpSdr);
 	endpointBuf.deliveryQueue = sdr_list_create(bpSdr);
 	endpointBuf.scheme = (Object) sdr_list_data(bpSdr, vscheme->schemeElt);
+	endpointBuf.stats = sdr_malloc(bpSdr, sizeof(EndpointStats));
+	if (endpointBuf.stats)
+	{
+		memset((char *) &statsInit, 0, sizeof(EndpointStats));
+		sdr_write(bpSdr, endpointBuf.stats, (char *) &statsInit,
+				sizeof(EndpointStats));
+	}
+
+	endpointBuf.updateStats = 1;	/*	Default.		*/
 	addr = sdr_malloc(bpSdr, sizeof(Endpoint));
 	if (addr)
 	{
@@ -3190,6 +3545,7 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 	VInduct		*vduct;
 	PsmAddress	vductElt;
 	Induct		ductBuf;
+	InductStats	statsInit;
 	Object		addr;
 	Object		elt = 0;
 
@@ -3235,6 +3591,15 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 	istrcpy(ductBuf.name, ductName, sizeof ductBuf.name);
 	ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
 	ductBuf.protocol = (Object) sdr_list_data(bpSdr, clpElt);
+	ductBuf.stats = sdr_malloc(bpSdr, sizeof(InductStats));
+	if (ductBuf.stats)
+	{
+		memset((char *) &statsInit, 0, sizeof(InductStats));
+		sdr_write(bpSdr, ductBuf.stats, (char *) &statsInit,
+				sizeof(InductStats));
+	}
+
+	ductBuf.updateStats = 1;	/*	Default.		*/
 	addr = sdr_malloc(bpSdr, sizeof(Induct));
 	if (addr)
 	{
@@ -3439,6 +3804,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 	Outduct		ductBuf;
+	OutductStats	statsInit;
 	Object		addr;
 	Object		elt = 0;
 
@@ -3503,6 +3869,15 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 	ductBuf.stdQueue = sdr_list_create(bpSdr);
 	ductBuf.urgentQueue = sdr_list_create(bpSdr);
 	ductBuf.protocol = (Object) sdr_list_data(bpSdr, clpElt);
+	ductBuf.stats = sdr_malloc(bpSdr, sizeof(OutductStats));
+	if (ductBuf.stats)
+	{
+		memset((char *) &statsInit, 0, sizeof(OutductStats));
+		sdr_write(bpSdr, ductBuf.stats, (char *) &statsInit,
+				sizeof(OutductStats));
+	}
+
+	ductBuf.updateStats = 1;	/*	Default.		*/
 	addr = sdr_malloc(bpSdr, sizeof(Outduct));
 	if (addr)
 	{
@@ -3946,6 +4321,7 @@ cannot be retrieved by key", bundleKey);
 		bundle->hashEntry = hashElt;
 		writeMemoNote("[?] Bundle hash key is not unique; bundles \
 cannot be retrieved by key", bundleKey);
+abort();
 		break;
 
 	default:	/*	No such pre-existing entry.		*/
@@ -4190,6 +4566,20 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		return 0;
 	}
 
+	/*	Count as queued for forwarding, but only when the
+	 *	station stack depth is 1.  Forwarders handing the
+	 *	bundle off to one another doesn't count as queuing
+	 *	a bundle for forwarding.				*/
+
+	if (sdr_list_length(bpSdr, bundle->stations) == 1)
+	{
+		bpDbTally(BP_DB_QUEUED_FOR_FWD, bundle->payload.length);
+	}
+
+	/*	Now the forwarding of (i.e., the selection of a
+	 *	transmission outduct for) this bundle either fails
+	 *	for some reason or succeeds.				*/
+
 	if (strlen(eid) >= SDRSTRING_BUFSZ)
 	{
 		/*	EID is too long to insert into the stations
@@ -4236,6 +4626,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	should be forwarded to the bit bucket, so
 		 *	we must do so.					*/
 
+		bpDbTally(BP_DB_FWD_FAILED, bundle->payload.length);
 		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return bpAbandon(bundleObj, bundle);
 	}
@@ -4503,6 +4894,8 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	MetaEid		tempMetaEid;
 	VScheme		*vscheme2;
 	PsmAddress	vschemeElt2;
+	VEndpoint	*vpoint = NULL;
+	PsmAddress	vpointElt;
 	MetaEid		reportToMetaEidBuf;
 	MetaEid		*reportToMetaEid;
 	DtnTime		currentDtnTime;
@@ -4647,6 +5040,11 @@ status reports for admin records.");
 		{
 			nonCbheEidCount++;
 		}
+
+		/*	For network management....			*/
+
+		findEndpoint(sourceMetaEid->schemeName, sourceMetaEid->nss,
+				NULL, &vpoint, &vpointElt);
 	}
 
 	if (reportToEidString == NULL)	/*	default to source	*/
@@ -4851,17 +5249,23 @@ status reports for admin records.");
 		return -1;
 	}
 
-	if (sdr_end_xn(bpSdr) < 0)
+	if (vpoint)
 	{
-		putErrmsg("Can't send bundle.", NULL);
-		return -1;
+		bpEndpointTally(vpoint, BP_ENDPOINT_SOURCED,
+				bundle.payload.length);
 	}
 
-	noteStateStats(BPSTATS_SOURCE, &bundle);
+	bpSourceTally(classOfService, bundle.payload.length);
 	if (bpvdb->watching & WATCH_a)
 	{
 		putchar('a');
 		fflush(stdout);
+	}
+
+	if (sdr_end_xn(bpSdr) < 0)
+	{
+		putErrmsg("Can't send bundle.", NULL);
+		return -1;
 	}
 
 	return 1;
@@ -5047,6 +5451,8 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 		break;
 	}
 
+	bpRptTally(bundle->statusRpt.flags, bundle->statusRpt.reasonCode);
+
 	/*	Erase flags and times in case another status report for
 	 *	the same bundle needs to be sent later.			*/
 
@@ -5129,6 +5535,8 @@ static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
 		{
 			sdr_write(bpSdr, bundleObj, (char *) bundle,
 					sizeof(Bundle));
+			bpEndpointTally(vpoint, BP_ENDPOINT_ABANDONED,
+					bundle->payload.length);
 			return 0;
 		}
 	}
@@ -5151,6 +5559,7 @@ static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
 		sm_SemGive(vpoint->semaphore);
 	}
 
+	bpEndpointTally(vpoint, BP_ENDPOINT_QUEUED, bundle->payload.length);
 	return 0;
 }
 
@@ -5526,7 +5935,6 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 
 			/*	Bundle delivery did not fail.		*/
 
-			noteStateStats(BPSTATS_DELIVER, bundle);
 			if ((_bpvdb(NULL))->watching & WATCH_z)
 			{
 				putchar('z');
@@ -5605,6 +6013,8 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 				 *	to the SDR in order to destroy
 				 *	it successfully.		*/
 
+				bpDbTally(BP_DB_QUEUED_FOR_FWD,
+						bundle->payload.length);
 				sdr_write(bpSdr, bundleObj, (char *) bundle,
 						sizeof(Bundle));
 				return bpAbandon(bundleObj, bundle);
@@ -6598,6 +7008,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 
 	if (bundleIsCustodial(bundle))
 	{
+		bpCtTally(ctReason, bundle->payload.length);
 		if (sendCtSignal(bundle, dictionary, 0, ctReason) < 0)
 		{
 			putErrmsg("Can't send custody signal.", NULL);
@@ -6766,6 +7177,8 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 	if (work->malformed || work->lastBlockParsed == 0)
 	{
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
 		writeMemo("[?] Malformed bundle.");
 		return abortBundleAcq(work);
 	}
@@ -6779,22 +7192,20 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 	if (bundle->clDossier.authentic == 0)
 	{
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+				bundle->payload.length);
 		writeMemo("[?] Bundle judged inauthentic.");
 		return abortBundleAcq(work);
 	}
 
-	if (work->decision == AcqNG)
-	{
-		writeMemo("[?] Extension-related problem found in bundle.");
-		return abortBundleAcq(work);
-	}
-
 	/*	Unintelligible extension headers don't make a bundle
-	 *	malformed, but they may make it necessary to discard
-	 *	the bundle.						*/
+	 *	malformed (though we count it that way), but they may
+	 *	make it necessary to discard the bundle.		*/
 
 	if (work->mustAbort)
 	{
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
 		return discardReceivedBundle(work, CtBlockUnintelligible,
 				SrBlockUnintelligible, work->dictionary);
 	}
@@ -6809,6 +7220,8 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	{
 		/*	Not enough heap space for bundle.		*/
 
+		bpInductTally(work->vduct, BP_INDUCT_CONGESTIVE,
+				bundle->payload.length);
 		return discardReceivedBundle(work, CtDepletedStorage,
 				SrDepletedStorage, work->dictionary);
 	}
@@ -6963,7 +7376,9 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	}
 
 	noteBundleInserted(bundle);
-	noteStateStats(BPSTATS_RECEIVE, bundle);
+	bpInductTally(work->vduct, BP_INDUCT_RECEIVED, bundle->payload.length);
+	bpRecvTally(COS_FLAGS(bundle->bundleProcFlags) & 0x03,
+			bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
 		putchar('y');
@@ -7901,6 +8316,7 @@ static int	signalCustodyAcceptance(Bundle *bundle)
 		return -1;
 	}
 
+	bpCtTally(BP_CT_CUSTODY_ACCEPTED, bundle->payload.length);
 	result = sendCtSignal(bundle, dictionary, 1, 0);
 	releaseDictionary(dictionary);
 	if (result < 0)
@@ -8241,6 +8657,7 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	CHKERR(directive && bundle && bundleObj && proxNodeEid);
 	CHKERR(*proxNodeEid && strlen(proxNodeEid) < MAX_SDRSTRING);
 	CHKERR(bundle->ductXmitElt == 0);
+	bpDbTally(BP_DB_FWD_OKAY, bundle->payload.length);
 
 	/*	We have settled on a neighboring node to forward
 	 *	this bundle to; if it can't get there because the
@@ -8359,7 +8776,6 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 
 	sdr_write(bpSdr, ductAddr, (char *) &duct, sizeof(Outduct));
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-	noteStateStats(BPSTATS_FORWARD, bundle);
 	if ((_bpvdb(NULL))->watching & WATCH_b)
 	{
 		putchar('b');
@@ -8381,6 +8797,8 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 
 	if (vductElt != 0)
 	{
+		bpOutductTally(vduct, BP_OUTDUCT_ENQUEUED,
+				bundle->payload.length);
 		if (vduct->semaphore != SM_SEM_NONE)
 		{
 			sm_SemGive(vduct->semaphore);
@@ -8429,6 +8847,7 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	bundle->ductXmitElt = sdr_list_insert_last(bpSdr,
 			bpConstants->limboQueue, bundleObj);
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	bpDbTally(BP_DB_TO_LIMBO, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_limbo)
 	{
 		putchar('j');
@@ -8612,6 +9031,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 	sdr_list_delete(bpSdr, bundle.ductXmitElt, NULL, NULL);
 	bundle.ductXmitElt = 0;
 	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+	bpDbTally(BP_DB_FROM_LIMBO, bundle.payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_delimbo)
 	{
 		putchar('k');
@@ -8701,6 +9121,7 @@ static void	releaseCustody(Object bundleAddr, Bundle *bundle)
 	}
 
 	sdr_write(bpSdr, bundleAddr, (char *) bundle, sizeof(Bundle));
+	bpCtTally(BP_CT_CUSTODY_RELEASED, bundle->payload.length);
 }
 
 int	bpAbandon(Object bundleObj, Bundle *bundle)
@@ -8709,6 +9130,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	int	result1 = 0;
 	int	result2 = 0;
 
+	bpDbTally(BP_DB_FWD_FAILED, bundle->payload.length);
 	CHKERR(bundleObj && bundle);
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
@@ -8741,6 +9163,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	{
 		if (bundleIsCustodial(bundle))
 		{
+			bpCtTally(CtNoKnownRoute, bundle->payload.length);
 			result2 = sendCtSignal(bundle, dictionary, 0,
 					CtNoKnownRoute);
 			if (result2 < 0)
@@ -9362,7 +9785,9 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 
 	/*	Track this transmission event.				*/
 
-	noteStateStats(BPSTATS_XMIT, &bundle);
+	bpOutductTally(vduct, BP_OUTDUCT_DEQUEUED, bundle.payload.length);
+	bpXmitTally(COS_FLAGS(bundle.bundleProcFlags) & 0x03,
+			bundle.payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_c)
 	{
 		putchar('c');
@@ -10012,7 +10437,6 @@ int	bpHandleXmitFailure(Object bundleZco)
 	 *	stewardship was accepted.  This has nothing to do
 	 *	with custody transfer.					*/
 
-	noteStateStats(BPSTATS_TIMEOUT, &bundle);
 	if ((_bpvdb(NULL))->watching & WATCH_timeout)
 	{
 		putchar('#');
@@ -10088,6 +10512,7 @@ int	bpReforwardBundle(Object bundleAddr)
 	/*	Non-critical bundle, so let's compute another route
 	 *	for it.							*/
 
+	purgeStationsStack(&bundle);
 	if (bundle.ductXmitElt)
 	{
 		purgeDuctXmitElt(&bundle, bundleAddr);
@@ -10129,7 +10554,8 @@ int	bpReforwardBundle(Object bundleAddr)
 		putErrmsg("Can't print destination EID.", NULL);
 		return -1;
 	}
-		
+
+	bpDbTally(BP_DB_REQUEUED_FOR_FWD, bundle.payload.length);
 	result = forwardBundle(bundleAddr, &bundle, eidString);
 	MRELEASE(eidString);
 	releaseDictionary(dictionary);
@@ -10282,9 +10708,6 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 	Object		bundleAddr;
 	Bundle		bundleBuf;
 	Bundle		*bundle = &bundleBuf;
-	char		*dictionary;
-	char		*eidString;
-	int		result;
 
 	CHKERR(adminEid);
 	if (handleStatusRpt == NULL)
@@ -10446,33 +10869,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 			{
 				noteSnub(bundle, bundleAddr,
 						dlv.bundleSourceEid);
-				if ((dictionary = retrieveDictionary(bundle))
-						== (char *) bundle)
-				{
-					putErrmsg("Can't retrieve dictionary.",
-							NULL);
-					sdr_cancel_xn(bpSdr);
-					running = 0;
-					bpEraseCtSignal(&cts);
-					break;	/*	Out of switch.	*/
-				}
-
-				if (printEid(&bundle->destination, dictionary,
-						&eidString) < 0)
-				{
-					putErrmsg("Can't print dest EID.",
-							NULL);
-					sdr_cancel_xn(bpSdr);
-					running = 0;
-					bpEraseCtSignal(&cts);
-					break;	/*	Out of switch.	*/
-				}
-
-				result = forwardBundle(bundleAddr, bundle,
-						eidString);
-				MRELEASE(eidString);
-				releaseDictionary(dictionary);
-				if (result < 0)
+				if (bpReforwardBundle(bundleAddr) < 0)
 				{
 					putErrmsg("Can't re-queue bundle for \
 forwarding.", NULL);
@@ -10482,7 +10879,6 @@ forwarding.", NULL);
 					break;	/*	Out of switch.	*/
 				}
 
-				noteStateStats(BPSTATS_REFUSE, &bundleBuf);
 				if (bpvdb->watching & WATCH_refusal)
 				{
 					putchar('&');

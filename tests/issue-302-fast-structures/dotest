@@ -13,7 +13,6 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ionrc \
 ./2.ipn.ltp/amroc.ionsecrc \
 ./2.ipn.ltp/amroc.ipnrc \
-./global.ionrc \
 ./3.ipn.ltp/amroc.ltprc \
 ./3.ipn.ltp/amroc.bprc \
 ./3.ipn.ltp/amroc.ionconfig \

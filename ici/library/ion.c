@@ -215,8 +215,8 @@ static IonVdb	*_ionvdb(char **name)
 		ionwm = _ionwm(NULL);
 		if (psm_locate(ionwm, *name, &vdbAddress, &elt) < 0)
 		{
-			putErrmsg("Failed searching for vdb.", NULL);
-			return vdb;
+			putErrmsg("Failed searching for vdb.", *name);
+			return NULL;
 		}
 
 		if (elt)
@@ -233,19 +233,22 @@ static IonVdb	*_ionvdb(char **name)
 		if (vdbAddress == 0)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("No space for volatile database.", NULL);
+			putErrmsg("No space for volatile database.", *name);
 			return NULL;
 		}
 
 		vdb = (IonVdb *) psp(ionwm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(IonVdb));
-		if ((vdb->nodes = sm_list_create(ionwm)) == 0
-		|| (vdb->neighbors = sm_list_create(ionwm)) == 0
+		if ((vdb->nodes = sm_rbt_create(ionwm)) == 0
+		|| (vdb->neighbors = sm_rbt_create(ionwm)) == 0
+		|| (vdb->contactIndex = sm_rbt_create(ionwm)) == 0
+		|| (vdb->rangeIndex = sm_rbt_create(ionwm)) == 0
+		|| (vdb->timeline = sm_rbt_create(ionwm)) == 0
 		|| (vdb->probes = sm_list_create(ionwm)) == 0
 		|| psm_catlg(ionwm, *name, vdbAddress) < 0)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("Can't initialize volatile database.", NULL);
+			putErrmsg("Can't initialize volatile database.", *name);
 			return NULL;
 		}
 
@@ -629,8 +632,8 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
-		heapLimit = ((sdr_heap_size(ionsdr) / 100)
-			 	* (100 - ION_SEQUESTERED));
+		heapLimit = (sdr_heap_size(ionsdr) / 100)
+			 	* (100 - ION_SEQUESTERED);
 		iondbBuf.receptionSpikeReserve = heapLimit / 16;
 		if (iondbBuf.receptionSpikeReserve < MIN_SPIKE_RSRV)
 		{
@@ -641,8 +644,10 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		limit.gigs = heapLimit / ONE_GIG;
 		zco_set_max_heap_occupancy(ionsdr, &limit);
 		zco_get_max_file_occupancy(ionsdr, &limit);
-		copyScalar(&iondbBuf.occupancyCeiling, &limit);
-		increaseScalar(&iondbBuf.occupancyCeiling, heapLimit);
+		iondbBuf.occupancyCeiling = limit.gigs;
+		iondbBuf.occupancyCeiling *= ONE_GIG;
+		iondbBuf.occupancyCeiling += limit.units;
+		iondbBuf.occupancyCeiling += heapLimit;
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;

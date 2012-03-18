@@ -8,10 +8,10 @@
 s
 
 # Add a contact.
-a contact +1 +360 1 1 50000
+a contact  +1 +360		1 1   50000
 
 # Add a range. This is the physical distance between nodes.
-a range +1 +360 1 1 1
+a range    +1 +360		1 1   1
 
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 50000

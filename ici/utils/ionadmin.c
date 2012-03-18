@@ -120,8 +120,8 @@ relative times (+ss) are computed.");
 	PUTS("\t   m clockerr <new known maximum clock error, in seconds>");
 	PUTS("\t   m production <new planned production rate, in bytes/sec>");
 	PUTS("\t   m consumption <new planned consumption rate, in bytes/sec>");
-	PUTS("\t   m occupancy <new ZCO heap occupancy limit, in KB> [<new \
-ZCO file occupancy limit, in KB>]");
+	PUTS("\t   m occupancy <new ZCO heap occupancy limit, in MB; -1 means \
+\"unchanged\"> [<new ZCO file occupancy limit, in MB>]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m usage");
@@ -273,18 +273,18 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	IonDB		iondb;
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*vdb = getIonVdb();
 	time_t		refTime;
 	time_t		timestamp;
 	unsigned long	fromNode;
 	unsigned long	toNode;
-	Object		elt;
-	Object		contactObj;
-	IonContact	contact;
+	IonCXref	arg1;
+	PsmAddress	elt;
+	PsmAddress	addr;
+	PsmAddress	nextElt;
 	char		buffer[RFX_NOTE_LEN];
-	Object		rangeObj;
-	IonRange	range;
+	IonRXref	arg2;
 
 	if (tokenCount < 2)
 	{
@@ -298,106 +298,47 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
 	refTime = _referenceTime(NULL);
 	timestamp = readTimestampUTC(tokens[2], refTime);
 	fromNode = strtol(tokens[3], NULL, 0);
 	toNode = strtol(tokens[4], NULL, 0);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		for (elt = sdr_list_first(sdr, iondb.contacts); elt;
-				elt = sdr_list_next(sdr, elt))
+		memset((char *) &arg1, 0, sizeof(IonCXref));
+		arg1.fromNode = fromNode;
+		arg1.toNode = toNode;
+		arg1.fromTime = timestamp;
+		elt = sm_rbt_search(ionwm, vdb->contactIndex,
+				rfx_order_contacts, &arg1, &nextElt);
+		if (elt)
 		{
-			contactObj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &contact, contactObj,
-					sizeof(IonContact));
-			if (contact.fromTime < timestamp)
-			{
-				continue;
-			}
-
-			if (contact.fromTime > timestamp)
-			{
-				break;
-			}
-
-			if (contact.fromNode < fromNode)
-			{
-				continue;
-			}
-
-			if (contact.fromNode > fromNode)
-			{
-				break;
-			}
-
-			if (contact.toNode < toNode)
-			{
-				continue;
-			}
-
-			if (contact.toNode > toNode)
-			{
-				break;
-			}
-
-			/*	Contact has been located in database.	*/
-
-			rfx_print_contact(contactObj, buffer);
+			addr = sm_rbt_data(ionwm, elt);
+			oK(rfx_print_contact(addr, buffer));
 			printText(buffer);
 			return;
 		}
 
-		putErrmsg("Contact not found in database.", NULL);
+		printText("Contact not found in database.");
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		for (elt = sdr_list_first(sdr, iondb.ranges); elt;
-				elt = sdr_list_next(sdr, elt))
+		memset((char *) &arg2, 0, sizeof(IonRXref));
+		arg2.fromNode = fromNode;
+		arg2.toNode = toNode;
+		arg2.fromTime = timestamp;
+		elt = sm_rbt_search(ionwm, vdb->rangeIndex,
+				rfx_order_ranges, &arg2, &nextElt);
+		if (elt)
 		{
-			rangeObj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &range, rangeObj,
-					sizeof(IonRange));
-			if (range.fromTime < timestamp)
-			{
-				continue;
-			}
-
-			if (range.fromTime > timestamp)
-			{
-				break;
-			}
-
-			if (range.fromNode < fromNode)
-			{
-				continue;
-			}
-
-			if (range.fromNode > fromNode)
-			{
-				break;
-			}
-
-			if (range.toNode < toNode)
-			{
-				continue;
-			}
-
-			if (range.toNode > toNode)
-			{
-				break;
-			}
-
-			/*	Range has been located in database.	*/
-
-			rfx_print_range(rangeObj, buffer);
+			addr = sm_rbt_data(ionwm, elt);
+			oK(rfx_print_range(addr, buffer));
 			printText(buffer);
 			return;
 		}
 
-		putErrmsg("Range not found in database.", NULL);
+		printText("Range not found in database.");
 		return;
 	}
 
@@ -406,11 +347,11 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	executeList(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	IonDB	iondb;
-	Object	elt;
-	Object	obj;
-	char	buffer[RFX_NOTE_LEN];
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*vdb = getIonVdb();
+	PsmAddress	elt;
+	PsmAddress	addr;
+	char		buffer[RFX_NOTE_LEN];
 
 	if (tokenCount < 2)
 	{
@@ -418,14 +359,13 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		for (elt = sdr_list_first(sdr, iondb.contacts); elt;
-				elt = sdr_list_next(sdr, elt))
+		for (elt = sm_rbt_first(ionwm, vdb->contactIndex); elt;
+				elt = sm_rbt_next(ionwm, elt))
 		{
-			obj = sdr_list_data(sdr, elt);
-			rfx_print_contact(obj, buffer);
+			addr = sm_rbt_data(ionwm, elt);
+			rfx_print_contact(addr, buffer);
 			printText(buffer);
 		}
 
@@ -434,11 +374,11 @@ static void	executeList(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		for (elt = sdr_list_first(sdr, iondb.ranges); elt;
-				elt = sdr_list_next(sdr, elt))
+		for (elt = sm_rbt_first(ionwm, vdb->rangeIndex); elt;
+				elt = sm_rbt_next(ionwm, elt))
 		{
-			obj = sdr_list_data(sdr, elt);
-			rfx_print_range(obj, buffer);
+			addr = sm_rbt_data(ionwm, elt);
+			rfx_print_range(addr, buffer);
 			printText(buffer);
 		}
 
@@ -563,24 +503,22 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
-	long	newFileLimit = 0;	/*	0 = "no change"		*/
+	long	newFileLimit = -1;	/*	-1 = "unchanged"	*/
+	long	newHeapLimit = -1;	/*	-1 = "unchanged"	*/
 	Scalar	fileLimit;
-	long	newHeapLimit = 0;	/*	0 = "no change"		*/
-	Scalar	heapLimit;
 	long	maxHeapLimit;
+	Scalar	heapLimit;
 	double	reserve;
 
-	switch (tokenCount != 3)
+	switch (tokenCount)
 	{
 	case 4:
 		newFileLimit = strtol(tokens[3], NULL, 0);
-		newFileLimit *= 1000;	/*	Change KB to bytes.	*/
 
 		/*	Intentional fall-through to next case.		*/
 
 	case 3:
 		newHeapLimit = strtol(tokens[2], NULL, 0);
-		newHeapLimit *= 1000;	/*	Change KB to bytes.	*/
 		break;
 
 	default:
@@ -588,71 +526,65 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (newFileLimit < 0)
+	if (newFileLimit < -1)
 	{
-		putErrmsg("ZCO file occupancy limit can't be negative.", NULL);
+		writeMemo("[?] ZCO file occupancy limit can't be negative.");
 		return;
 	}
 
-	if (newHeapLimit < 0)
+	if (newHeapLimit < -1)
 	{
-		putErrmsg("ZCO heap occupancy limit can't be negative.", NULL);
+		writeMemo("[?] ZCO heap occupancy limit can't be negative.");
 		return;
 	}
 
 	sdr_begin_xn(sdr);
-	if (newFileLimit)
+	if (newFileLimit != -1)	/*	Overriding current value.	*/
 	{
+		fileLimit.gigs = newFileLimit / ONE_GIG;
 		fileLimit.units = newFileLimit % ONE_GIG;
-		fileLimit.gigs = newFileLimit % ONE_GIG;
-		if (scalarIsValid(&fileLimit))
-		{
-			zco_set_max_file_occupancy(sdr, &fileLimit);
-			writeMemo("[i] ZCO max file space changed.");
-		}
-		else
-		{
-			writeMemo("[i] New ZCO file space limit too big!");
-		}
-	}
-	else
-	{
-		zco_get_max_file_occupancy(sdr, &fileLimit);
+
+		/*	Convert from MB to bytes.			*/
+
+		multiplyScalar(&fileLimit, 1000000);
+		zco_set_max_file_occupancy(sdr, &fileLimit);
+		writeMemo("[i] ZCO max file space changed.");
 	}
 
-	if (newHeapLimit)
+	if (newHeapLimit != -1)	/*	Overriding the default.		*/
 	{
-		maxHeapLimit = ((sdr_heap_size(sdr) / 100)
-				* (100 - ION_SEQUESTERED));
-		if (newHeapLimit > maxHeapLimit
-		|| newHeapLimit < MIN_SPIKE_RSRV)
+		maxHeapLimit = (sdr_heap_size(sdr) / 100)
+				* (100 - ION_SEQUESTERED);
+		if (newHeapLimit > (maxHeapLimit / 1000000)
+		|| newHeapLimit < (MIN_SPIKE_RSRV / 1000000))
 		{
 			writeMemo("[i] New ZCO heap limit invalid!");
 		}
 		else
 		{
+			heapLimit.gigs = newHeapLimit / ONE_GIG;
 			heapLimit.units = newHeapLimit % ONE_GIG;
-			heapLimit.gigs = newHeapLimit % ONE_GIG;
-			if (scalarIsValid(&heapLimit))
-			{
-				zco_set_max_heap_occupancy(sdr, &heapLimit);
-				writeMemo("[i] ZCO max heap changed.");
-			}
-			else
-			{
-				writeMemo("[i] New ZCO heap limit too big!");
-			}
+
+			/*	Convert from MB to bytes.		*/
+
+			multiplyScalar(&heapLimit, 1000000);
+			zco_set_max_heap_occupancy(sdr, &heapLimit);
+			writeMemo("[i] ZCO max heap changed.");
 		}
 	}
-	else
-	{
-		zco_get_max_heap_occupancy(sdr, &heapLimit);
-	}
 
+	/*	Revise occupancy ceiling and reserve as needed.		*/
+
+	zco_get_max_heap_occupancy(sdr, &heapLimit);
+	zco_get_max_file_occupancy(sdr, &fileLimit);
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	copyScalar(&iondb.occupancyCeiling, &fileLimit);
-	addToScalar(&iondb.occupancyCeiling, &heapLimit);
-	reserve = (heapLimit.units + (ONE_GIG * heapLimit.gigs)) / 16;
+	iondb.occupancyCeiling = fileLimit.gigs + heapLimit.gigs;
+	iondb.occupancyCeiling *= ONE_GIG;
+	iondb.occupancyCeiling += (fileLimit.units + heapLimit.units);
+	reserve = heapLimit.gigs;
+	reserve *= ONE_GIG;
+	reserve += heapLimit.units;
+	reserve /= 16;
 	if (reserve < MIN_SPIKE_RSRV)
 	{
 		reserve = MIN_SPIKE_RSRV;
@@ -749,9 +681,9 @@ static void	manageUsage(int tokenCount, char **tokens)
 	char	buffer[128];
 	Scalar	heapOccupancy;
 	Scalar	fileOccupancy;
-	double	currentOccupancy;	/*	In KBytes.		*/
-	double	occupancyCeiling;	/*	In KBytes.		*/
-	double	maxForecastOccupancy;	/*	In KBytes.		*/
+	double	currentOccupancy;	/*	In MBytes.		*/
+	double	occupancyCeiling;	/*	In MBytes.		*/
+	double	maxForecastOccupancy;	/*	In MBytes.		*/
 
 	if (tokenCount != 2)
 	{
@@ -759,19 +691,19 @@ static void	manageUsage(int tokenCount, char **tokens)
 		return;
 	}
 
+	sdr_begin_xn(sdr);
 	zco_get_heap_occupancy(sdr, &heapOccupancy);
 	zco_get_file_occupancy(sdr, &fileOccupancy);
+	oK(sdr_end_xn(sdr));
 	currentOccupancy = (heapOccupancy.units
 			+ (ONE_GIG * heapOccupancy.gigs)
 			+ fileOccupancy.units
-			+ (ONE_GIG * fileOccupancy.gigs)) / 1000;
+			+ (ONE_GIG * fileOccupancy.gigs)) / 1000000;
 	GET_OBJ_POINTER(sdr, IonDB, iondb, getIonDbObject());
-	occupancyCeiling = (iondb->occupancyCeiling.units
-			+ (ONE_GIG * iondb->occupancyCeiling.gigs)) / 1000;
-	maxForecastOccupancy = (iondb->maxForecastOccupancy.units
-			+ (ONE_GIG * iondb->maxForecastOccupancy.gigs)) / 1000;
-	isprintf(buffer, sizeof buffer, "current = %.0fKB, limit = %.0fKB, max \
-forecast = %.0fKB", currentOccupancy, occupancyCeiling, maxForecastOccupancy);
+	occupancyCeiling = iondb->occupancyCeiling / 1000000;
+	maxForecastOccupancy = iondb->maxForecastOccupancy / 1000000;
+	isprintf(buffer, sizeof buffer, "current %.2f MB, limit %.2f MB, max \
+forecast %.2f MB", currentOccupancy, occupancyCeiling, maxForecastOccupancy);
 	printText(buffer);
 }
 

@@ -973,7 +973,7 @@ int 	addAcqCollabBlock(AcqWorkArea *work, CollabBlockHdr *blkHdr)
 	/* TODO: This may be a redundant check.  Consider removing. */
 	if (work->collabBlocks == 0)
 	{
-		work->collabBlocks = lyst_create();
+		work->collabBlocks = lyst_create_using(getIonMemoryMgr());
 	}
 
 	/*	Store extension block within bundle.			*/

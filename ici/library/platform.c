@@ -13,6 +13,8 @@
 /*									*/
 #include "platform.h"
 
+#define	ABORT_AS_REQD		if (_coreFileNeeded(NULL)) sm_Abort()
+
 #if defined (VXWORKS)
 
 typedef struct rlock_str
@@ -26,6 +28,12 @@ typedef struct rlock_str
 int	createFile(const char *filename, int flags)
 {
 	int	result;
+
+	if (filename == NULL)
+	{
+		ABORT_AS_REQD;
+		return ERROR;
+	}
 
 	/*	VxWorks open(2) will only create a file on an NFS
 	 *	network device.  The only portable flag values are
@@ -44,7 +52,12 @@ int	initResourceLock(ResourceLock *rl)
 {
 	Rlock	*lock = (Rlock *) rl;
 
-	CHKERR(rl);
+	if (lock == NULL)
+	{
+		ABORT_AS_REQD;
+		return ERROR;
+	}
+
 	if (lock->init)
 	{
 		return 0;
@@ -53,8 +66,7 @@ int	initResourceLock(ResourceLock *rl)
 	lock->semaphore = semBCreate(SEM_Q_PRIORITY, SEM_FULL);
 	if (lock->semaphore == NULL)
 	{
-		writeErrMemo("Can't create lock semaphore");
-		return -1;
+		return ERROR;
 	}
 
 	lock->owner = NONE;
@@ -339,6 +351,12 @@ int	createFile(const char *filename, int flags)
 	 *	writing.  The only portable flag values are
 	 *	O_WRONLY and O_RDWR.  See creat(2) and open(2).		*/
 
+	if (filename == NULL)
+	{
+		ABORT_AS_REQD;
+		return ERROR;
+	}
+
 	result = iopen(filename, (flags | O_CREAT | O_TRUNC), 0666);
 	if (result < 0)
 	{
@@ -362,7 +380,12 @@ int	initResourceLock(ResourceLock *rl)
 {
 	Rlock	*lock = (Rlock *) rl;
 
-	CHKERR(rl);
+	if (lock == NULL)
+	{
+		ABORT_AS_REQD;
+		return ERROR;
+	}
+
 	if (lock->init)
 	{
 		return 0;
@@ -795,6 +818,7 @@ char	*getNameOfUser(char *buffer)
 {
 	unsigned long	bufsize = 8;
 
+	CHKNULL(buffer);
 	if (GetUserName(buffer, &bufsize))
 	{
 		istrcpy(buffer, "unknown", 8);
@@ -1082,6 +1106,7 @@ int	watchSocket(int fd)
 #ifdef mingw
 int	iopen(const char *fileName, int flags, int pmode)
 {
+	CHKERR(fileName);
 	flags |= _O_BINARY;
 	return _open(fileName, flags, pmode);
 }
@@ -1092,6 +1117,7 @@ int	isend(int sockfd, char *buf, int len, int flags)
 	int	errcode;
 
 	CHKERR(len >= 0);
+	CHKERR(buf);
 	length = send(sockfd, buf, len, flags);
 	if (length == SOCKET_ERROR)
 	{
@@ -1129,6 +1155,7 @@ int	irecv(int sockfd, char *buf, int len, int flags)
 	int	errcode;
 
 	CHKERR(len >= 0);
+	CHKERR(buf);
 	length = recv(sockfd, buf, len, flags);
 	if (length < 0)
 	{
@@ -1158,6 +1185,8 @@ int	isendto(int sockfd, char *buf, int len, int flags,
 		const struct sockaddr *to, int tolen)
 {
 	CHKERR(len >= 0);
+	CHKERR(buf);
+	CHKERR(to);
 	return sendto(sockfd, buf, len, flags, to, tolen);
 }
 
@@ -1168,6 +1197,9 @@ int	irecvfrom(int sockfd, char *buf, int len, int flags,
 	int	errcode;
 
 	CHKERR(len >= 0);
+	CHKERR(buf);
+	CHKERR(from);
+	CHKERR(fromLen);
 	while (1)	/*	Continue until valid result.		*/
 	{
 		length = recvfrom(sockfd, buf, len, flags, from, fromlen);
@@ -1238,13 +1270,12 @@ static Logger	_logOneMessage(Logger *logFunction)
 {
 	static Logger	logger = logToStdout;
 
-	if (logFunction == NULL)
+	if (logFunction)
 	{
-		return logger;
+		logger = *logFunction;
 	}
 
-	logger = *logFunction;
-	return NULL;
+	return logger;
 }
 
 void	setLogger(Logger logFunction)
@@ -1312,6 +1343,7 @@ static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
 
 	if (initResourceLock(&errmsgsLock) < 0)
 	{
+		ABORT_AS_REQD;
 		return 0;
 	}
 
@@ -1440,7 +1472,12 @@ void	_putSysErrmsg(const char *fileName, int lineNbr, const char *text,
 
 int	getErrmsg(char *buffer)
 {
-	CHKZERO(buffer);
+	if (buffer == NULL)
+	{
+		ABORT_AS_REQD;
+		return 0;
+	}
+
 	return _errmsgs(0, NULL, NULL, NULL, buffer);
 }
 
@@ -1456,6 +1493,7 @@ excessive length";
 
 	if (initResourceLock(&memosLock) < 0)
 	{
+		ABORT_AS_REQD;
 		return;
 	}
 
@@ -1933,11 +1971,20 @@ void	findToken(char **cursorPtr, char **token)
 {
 	char	*cursor;
 
-	CHKVOID(cursorPtr);
-	CHKVOID(*cursorPtr);
-	CHKVOID(token);
-	cursor = *cursorPtr;
+	if (token == NULL)
+	{
+		ABORT_AS_REQD;
+		return;
+	}
+
 	*token = NULL;		/*	The default.			*/
+	if (cursorPtr == NULL || (*cursorPtr) == NULL)
+	{
+		ABORT_AS_REQD;
+		return;
+	}
+
+	cursor = *cursorPtr;
 
 	/*	Skip over any leading whitespace.			*/
 
@@ -2041,13 +2088,13 @@ unsigned int	getAddressOfHost()
 #endif
 
 #ifdef ION_NO_DNS
-int		parseSocketSpec(char *socketSpec, unsigned short *portNbr,
+int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		unsigned int *ipAddress)
 {
 	return 0;
 }
 #else
-int		parseSocketSpec(char *socketSpec, unsigned short *portNbr,
+int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		unsigned int *ipAddress)
 {
 	char		*delimiter;
@@ -2264,8 +2311,7 @@ static void	snGetNumber(char **cursor, char *fmt, int *fmtLen, int *number)
 	}
 }
 
-int	_isprintf(const char *file, int line, char *buffer, int bufSize,
-		char *format, ...)
+int	_isprintf(char *buffer, int bufSize, char *format, ...)
 {
 	va_list	args;
 	char	*cursor;
@@ -2284,9 +2330,28 @@ int	_isprintf(const char *file, int line, char *buffer, int bufSize,
 	double	dval;
 	void	*vpval;
 
-	CHKZERO(buffer != NULL);
-       	CHKZERO(format != NULL);
-       	CHKZERO(bufSize > 0);
+	if (buffer == NULL || bufSize < 1)
+	{
+		ABORT_AS_REQD;
+		return 0;
+	}
+
+	if (format == NULL)
+	{
+		ABORT_AS_REQD;
+		if (bufSize < 2)
+		{
+			*buffer = '\0';
+		}
+		else
+		{
+			*buffer = '?';
+			*(buffer + 1) = '\0';
+		}
+
+		return 0;
+	}
+
 	va_start(args, format);
 	for (cursor = format; *cursor != '\0'; cursor++)
 	{
@@ -2507,8 +2572,6 @@ int	_isprintf(const char *file, int line, char *buffer, int bufSize,
 	}
 	else
 	{
-		_putErrmsg(file, line, "isprintf error, buffer size exceeded.",
-				itoa(stringLength));
 		*(buffer + printLength) = '\0';
 	}
 
@@ -2519,10 +2582,16 @@ int	_isprintf(const char *file, int line, char *buffer, int bufSize,
 
 size_t	istrlen(char *from, size_t maxlen)
 {
-	size_t	length = 0;
+	size_t	length;
 	char	*cursor;
 
-	CHKZERO(from);
+	if (from == NULL)
+	{
+		ABORT_AS_REQD;
+		return 0;
+	}
+
+	length = 0;
 	if (maxlen > 0)
 	{
 		for (cursor = from; *cursor; cursor++)
@@ -2543,9 +2612,12 @@ char	*istrcpy(char *buffer, char *from, size_t bufSize)
 	int	maxText;
 	int	copySize;
 
-	CHKNULL(buffer);
-	CHKNULL(from);
-	CHKNULL(bufSize > 0);
+	if (buffer == NULL || from == NULL || bufSize < 1)
+	{
+		ABORT_AS_REQD;
+		return NULL;
+	}
+
 	maxText = bufSize - 1;
 	copySize = istrlen(from, maxText);
 	memcpy(buffer, from, copySize);
@@ -2560,9 +2632,12 @@ char	*istrcat(char *buffer, char *from, size_t bufSize)
 	int	maxCopy;
 	int	copySize;
 
-	CHKNULL(buffer);
-	CHKNULL(from);
-	CHKNULL(bufSize > 0);
+	if (buffer == NULL || from == NULL || bufSize < 1)
+	{
+		ABORT_AS_REQD;
+		return NULL;
+	}
+
 	maxText = bufSize - 1;
 	currTextSize = istrlen(buffer, maxText);
 	maxCopy = maxText - currTextSize;
@@ -2577,8 +2652,11 @@ char	*igetcwd(char *buf, size_t size)
 #ifdef FSWWDNAME
 #include "wdname.c"
 #else
-	char	*cwdName = getcwd(buf, size);
+	char	*cwdName;
 
+	CHKNULL(buf);
+	CHKNULL(size > 0);
+	cwdName = getcwd(buf, size);
 	if (cwdName == NULL)
 	{
 		putSysErrmsg("Can't get CWD name", itoa(size));
@@ -2753,6 +2831,7 @@ char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 
 	if (fd < 0 || buffer == NULL || buflen < 1 || lineLen == NULL)
 	{
+		ABORT_AS_REQD;
 		putErrmsg("Invalid argument(s) passed to igets().", NULL);
 		return NULL;
 	}
@@ -2829,7 +2908,13 @@ int	iputs(int fd, char *string)
 	int	length;
 	int	bytesWritten;
 
-	CHKERR(fd >= 0 && string != NULL);
+	if (fd < 0 || string == NULL)
+	{
+		ABORT_AS_REQD;
+		putErrmsg("Invalid argument(s) passed to iputs().", NULL);
+		return -1;
+	}
+
 	length = strlen(string);
 	while (totalBytesWritten < length)
 	{

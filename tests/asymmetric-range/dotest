@@ -51,24 +51,24 @@ rm -f ./ion_nodes
 ./ionstart
 
 echo "Sending bundle with 10-second lifetime from ipn:9.1 to ipn:6.1."
-# Send a bundle destined for (noexistent) node 6 with lifetime = 10.
+# Send a bundle destined for (nonexistent) node 6 with lifetime = 10.
 echo "Should be abandoned as unroutable prior to expiration."
-bptrace ipn:9.1 ipn:6.1 ipn:9.0 10 1.1 "Hi"
+bptrace ipn:9.1 ipn:6.1 ipn:9.0 10 0.1 "Hi"
 sleep 1
 echo "Watch characters should be 'a~'."
 
 echo "Sending bundle with 25-second lifetime from ipn:9.1 to ipn:6.1."
-# Send a bundle destined for (noexistent) node 6 with lifetime = 25.
+# Send a bundle destined for (nonexistent) node 6 with lifetime = 25.
 echo "Should be forwarded and transmitted but expire prior to end of session."
-bptrace ipn:9.1 ipn:6.1 ipn:9.0 25 1.1 "Hi"
+bptrace ipn:9.1 ipn:6.1 ipn:9.0 25 0.1 "Hi"
 sleep 1
 echo "Watch characters should be 'abwcdefg'."
 
 echo "Sending bundle with 120-second lifetime from ipn:9.1 to ipn:6.1."
-# Send a bundle destined for (noexistent) node 6 with lifetime = 120.
+# Send a bundle destined for (nonexistent) node 6 with lifetime = 120.
 echo "Should be forwarded and transmitted, but session will end before ack."
 echo "Should be retransmitted and later reforwarded."
-bptrace ipn:9.1 ipn:6.1 ipn:9.0 120 1.1 "Hi"
+bptrace ipn:9.1 ipn:6.1 ipn:9.0 120 0.1 "Hi"
 
 # Wait for all sessions to terminate.
 echo "Waiting for contact to terminate..."
@@ -78,9 +78,9 @@ echo "Contact has terminated.  Verifying results..."
 # Verify bundle was forwarded.
 RETVAL=0
 
-echo "Checking ion.log for 'src' message '(1) 3 9'..."
-COUNT=`grep src ion.log | grep "(1) 3 9" | wc -l`
-if [ $COUNT -eq 1 ]
+echo "Checking ion.log for 'src' message '(+) 3 9'..."
+COUNT=`grep src ion.log | grep "(+) 3 9" | wc -l`
+if [ $COUNT -gt 0 ]
 then
 	echo "OK: All bundles sourced."
 else
@@ -88,9 +88,9 @@ else
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'fwd' message '(1) 2 6'..."
-COUNT=`grep fwd ion.log | grep "(1) 2 6" | wc -l`
-if [ $COUNT -eq 1 ]
+echo "Checking ion.log for 'fwd' message '(+) 2 6'..."
+COUNT=`grep fwd ion.log | grep "(+) 2 6" | wc -l`
+if [ $COUNT -gt 0 ]
 then
 	echo "OK: Two bundles forwarded."
 else
@@ -98,9 +98,9 @@ else
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'exp' message '(1) 1 3'..."
-COUNT=`grep exp ion.log | grep "(1) 1 3" | wc -l`
-if [ $COUNT -eq 1 ]
+echo "Checking ion.log for 'exp' message '(+) 1 3'..."
+COUNT=`grep exp ion.log | grep "(+) 1 3" | wc -l`
+if [ $COUNT -gt 0 ]
 then
 	echo "OK: One bundle expired."
 else
@@ -108,9 +108,9 @@ else
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'rfw' message '(1) 1 3'..."
-COUNT=`grep rfw ion.log | grep "(1) 1 3" | wc -l`
-if [ $COUNT -eq 1 ]
+echo "Checking ion.log for 'rfw' message '(+) 1 3'..."
+COUNT=`grep rfw ion.log | grep "(+) 1 3" | wc -l`
+if [ $COUNT -gt 0 ]
 then
 	echo "OK: One bundle reforwarded."
 else

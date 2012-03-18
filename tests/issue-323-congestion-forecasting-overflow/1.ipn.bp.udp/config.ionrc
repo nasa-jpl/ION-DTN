@@ -13,19 +13,19 @@ s
 # 	It will start at +1 seconds from now, ending +3600 seconds from now.
 #	It will connect node 1 to itself
 #	It will transmit 100000 bytes/second.
-a contact +1 +360000 1 1 100000000
-a contact +1 +360000 1 2 100000000
-a contact +1 +360000 2 1 100000000
-a contact +1 +360000 2 2 100000000
+a contact  +1 +360000		1 1   100000000
+a contact  +1 +360000		1 2   100000000
+a contact  +1 +360000		2 1   100000000
+a contact  +1 +360000		2 2   100000000
 
 # Add a range. This is the physical distance between nodes.
 #	It will start at +1 seconds from now, ending +3600 seconds from now.
 #	It will connect node 1 to itself.
 #	Data on the link is expected to take 1 second to reach the other
 #	end (One Way Light Time).
-a range +1 +360000 1 1 1
-a range +1 +360000 1 2 2
-a range +1 +360000 2 2 1
+a range    +1 +360000		1 1   1
+a range    +1 +360000		1 2   2
+a range    +1 +360000		2 2   1
 
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 100000000

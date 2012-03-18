@@ -1,7 +1,7 @@
 
 = Release Notes for ION 2.5.0 =
 
-September 29, 2011
+March 20, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -53,6 +53,50 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.0.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #242: Removed unnecessary recursion from the CGR implementation to help
+  protect against overflows from incorrect configurations.
+
+- Issue #262: ION is now wired with a rudimentary instrumentation framework for
+  for insight into run-time status, including bundle processing statistics and
+  node state metrics.
+
+- Issue #302: Implemented red-black trees as an alternative data structure to
+  linked lists for some performance-sensitive applications.  Migrated the BP
+  timeline to use red-black trees.
+
+- Issue #304: Optimized CGR route computation by developing a new algorithm that
+  employs Dijkstra's Algorithm.
+
+- Issue #314: Standardized spelling of the word "semaphore" throughout the ION
+  codebase.
+
+- Issue #342: Adapted a new lyst_create_using() function from the lyst_create()
+  function.  This variation uses memory allocation routines that are safer for
+  use during program operation than the lyst_create function, which should only
+  be invoked during the program's initialization.
+- Issue #322: Improved reliability for custodial retransmissions when the next
+  custodian is a neighbor by making the following tweaks in libbpP.c:
+    - Changed the bpDequeue "stewardship accepted" flag to a custodial timeout
+      interval value (in seconds) that is computed by the CL output daemon,
+      based on CL-specific knowledge, in the event that the CL protocol is not
+      reliable and therefore can't accept stewardship of the bundle. 
+    - Added the same custodial timeout interval value to bpHandleXmitSuccess, to
+      trigger reforwarding of the bundle even when stewardship has been taken
+      and CL transmission has been nominally successful and reliable, in the
+      event that the CL transmission ultimately (unexpectedly) does not succeed.
+
+- Issue 343: Fixed bugs in LTP that could cause crashes at high data loss rates:
+    - Fixed mechanisms for preventing resurrection of closed Import sessions.
+    - Fixed issue where the same report number could become assigned to two
+      different reports, resulting in link service daemons crashing.
+
+- Issue #345: The ION Deployment Guide is now bundled with ION.  It provides
+  FAQ-style documentation for helping new users familiarize themselves with ION.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.3 =

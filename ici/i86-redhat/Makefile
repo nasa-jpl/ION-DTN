@@ -59,11 +59,11 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend
+UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
 
-ALL = check libici.so rfxclock $(UTILITIES) $(TESTPGMS)
+ALL = check libici.so libicinm.so rfxclock $(UTILITIES) $(TESTPGMS)
 
 all:		$(ALL)
 
@@ -99,6 +99,10 @@ psmwatch:	psmwatch.o libici.so
 ionadmin:	ionadmin.o libici.so
 		$(CC) -o ionadmin ionadmin.o -L./lib -lici -lpthread
 		cp ionadmin ./bin
+
+ionwarn:	ionwarn.o libici.so
+		$(CC) -o ionwarn ionwarn.o -L./lib -lici -lpthread
+		cp ionwarn ./bin
 
 ionsecadmin:	ionsecadmin.o libici.so
 		$(CC) -o ionsecadmin ionsecadmin.o -L./lib -lici -lpthread
@@ -153,6 +157,10 @@ rfxclock:	rfxclock.o libici.so
 libici.so:	$(LIBICIOBJS)
 		$(LD) -o libici.so $(LIBICIOBJS)
 		cp libici.so ./lib
+
+libicinm.so:	libicinm.o $(INCL)/icinm.h
+		$(LD) -o libicinm.so libicinm.o
+		cp libicinm.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 

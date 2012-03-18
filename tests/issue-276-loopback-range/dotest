@@ -53,13 +53,11 @@ bptrace ipn:9.1 ipn:5.2 ipn:9.0 300 0.1 "Hi"
 sleep 1
 echo "Watch characters should be 'abcdefg'."
 sleep 1
-echo "Both should be forwarded: CGR can't route, but destination is a neighbor."
+echo "Both should be forwarded to node 5: the loopback owlt is so long that CGR decides it will be faster to transmit to node 5 and then back again."
 sleep 1
 
 # Wait for all sessions to terminate.
-echo "Only the non-loopback bundle should be reforwarded on block transmission
-failure due to excessive ack timeouts (watch character '#'), because only that
-bundle's RTT is short enough to trigger timeout before end of contact."
+echo "Both bundles should be reforwarded on block transmission failure due to excessive ack timeouts (watch character '#'), because even the loopback bundle was sent to nonexistent node 5 due to the length of the loopback RTT."
 echo "Waiting for contact to terminate..."
 sleep 70
 echo "Contact has terminated.  Verifying results..."
@@ -67,9 +65,9 @@ echo "Contact has terminated.  Verifying results..."
 # Verify bundle was forwarded.
 RETVAL=0
 
-echo "Checking ion.log for 'src' message '(1) 2 13'..."
-COUNT=`grep src ion.log | grep "(1) 2 13" | wc -l`
-if [ $COUNT -eq 1 ]
+echo "Checking ion.log for 'src' message '(+) 2 13'..."
+COUNT=`grep src ion.log | grep "(+) 2 13" | wc -l`
+if [ $COUNT -gt 0 ]
 then
 	echo "OK: All bundles sourced."
 else
@@ -77,9 +75,9 @@ else
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'fwd' message '(1) 3 16'..."
-COUNT=`grep fwd ion.log | grep "(1) 3 16" | wc -l`
-if [ $COUNT -eq 1 ]
+echo "Checking ion.log for 'fwd' message '(+) 4 26'..."
+COUNT=`grep fwd ion.log | grep "(+) 4 26" | wc -l`
+if [ $COUNT -gt 0 ]
 then
 	echo "OK: All bundles forwarded."
 else
@@ -87,13 +85,13 @@ else
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'rfw' message '(1) 1 3'..."
-COUNT=`grep rfw ion.log | grep "(1) 1 3" | wc -l`
-if [ $COUNT -eq 1 ]
+echo "Checking ion.log for 'rfw' message '(+) 2 13'..."
+COUNT=`grep rfw ion.log | grep "(+) 2 13" | wc -l`
+if [ $COUNT -gt 0 ]
 then
-	echo "OK: One bundle reforwarded."
+	echo "OK: Both bundles reforwarded."
 else
-	echo "ERROR: Bundle not reforwarded."
+	echo "ERROR: Bundles not reforwarded."
 	RETVAL=1
 fi
 

@@ -24,7 +24,7 @@ do
 	echo
 done
 echo "OUTPUT: A variety of contact volumes are configured while a test bundle
-	is sent on loopback.  If the espected bundle contents are received,
+	is sent on loopback.  If the expected bundle contents are received,
 	the test passed.
 NOTE: contact-volume/volume_functions.sh provides functions in this script."
 echo
@@ -39,7 +39,8 @@ EXPECTEDCOUNT=3
 
 echo "Starting ION..."
 ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback.rc
-#The sample config adds contacts
+
+#The sample config adds contacts we don't care about
 deleteallvolumes
 
 # receive the message and store it in a file via test bundle sink

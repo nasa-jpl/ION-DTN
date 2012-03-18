@@ -16,6 +16,9 @@
 
 #include "bpP.h"
 
+extern int	bpEndpointTally(VEndpoint *vpoint, unsigned int idx,
+			unsigned int size);
+
 typedef struct
 {
 	int		interval;	/*	Seconds.		*/
@@ -748,6 +751,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	bundle.payload.content = 0;
 	bundle.payload.length = 0;
 	sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+	bpEndpointTally(vpoint, BP_ENDPOINT_DELIVERED, bundle.payload.length);
 	if (bpDestroyBundle(bundleAddr, 0) < 0)
 	{
 		sdr_cancel_xn(sdr);

@@ -127,6 +127,7 @@ static int	adjustThrottles()
 	unsigned long	nodeNbr;
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
+	int		mustPrintStats = 0;
 	int		delta;
 	VInduct		*induct;
 
@@ -174,7 +175,7 @@ static int	adjustThrottles()
 		neighbor = findNeighbor(ionvdb, nodeNbr, &nextElt);
 		if (neighbor == NULL)
 		{
-			neighbor = addNeighbor(ionvdb, nodeNbr, nextElt);
+			neighbor = addNeighbor(ionvdb, nodeNbr);
 			if (neighbor == NULL)
 			{
 				putErrmsg("Can't adjust outduct throttle.",
@@ -188,26 +189,24 @@ static int	adjustThrottles()
 #ifndef ION_NOSTATS
 			if (neighbor->nodeNbr != getOwnNodeNbr())
 			{
-			/*	We report and clear transmission
-			 *	statistics as necessary.  NOTE that
-			 *	this procedure is based on the
-			 *	assumption that the local node is
-			 *	in LTP transmission contact with
-			 *	AT MOST ONE neighbor at any time.
-			 *	For more complex topologies it will
-			 *	need to be redesigned.			*/
+			/*	We report transmission statistics
+			 *	as necessary.  NOTE that this
+			 *	procedure is based on the assumption
+			 *	that the local node is in LTP
+			 *	transmission contact with AT MOST
+			 *	ONE neighbor at any time.  For more
+			 *	complex topologies it will need to
+			 *	be redesigned.				*/
 
 				if (neighbor->xmitRate == 0)
 				{
 					/*	End of xmit contact.	*/
-					reportAllStateStats();
-					clearAllStateStats();
+					mustPrintStats = 1;
 				}
 				else if (neighbor->prevXmitRate == 0)
 				{
 					/*	Start of xmit contact.	*/
-					reportAllStateStats();
-					clearAllStateStats();
+					mustPrintStats = 1;
 				}
 			}
 #endif
@@ -240,14 +239,12 @@ static int	adjustThrottles()
 				if (neighbor->recvRate == 0)
 				{
 					/*	End of recv contact.	*/
-					reportAllStateStats();
-					clearAllStateStats();
+					mustPrintStats = 1;
 				}
 				else if (neighbor->prevRecvRate == 0)
 				{
 					/*	Start of recv contact.	*/
-					reportAllStateStats();
-					clearAllStateStats();
+					mustPrintStats = 1;
 				}
 			}
 #endif
@@ -255,6 +252,11 @@ static int	adjustThrottles()
 			induct->acqThrottle.nominalRate += delta;
 			neighbor->prevRecvRate = neighbor->recvRate;
 		}
+	}
+
+	if (mustPrintStats)
+	{
+		reportAllStateStats();
 	}
 
 	return 0;
