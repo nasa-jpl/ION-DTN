@@ -4205,11 +4205,7 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 
 static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 {
-	Sdr	sdr = getIonsdr();
 	BpEvent	event;
-	char	*dictionary;
-	char	*sourceEid;
-	char	bundleKey[BUNDLES_HASH_KEY_BUFLEN];
 
 	/*	Schedule purge of this bundle on expiration of its
 	 *	time-to-live.  Bundle expiration time is event time.	*/
@@ -4224,45 +4220,6 @@ static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	/*	Also insert bundle into hashtable of all bundles.	*/
-
-	if ((dictionary = retrieveDictionary(bundle)) == (char *) bundle)
-	{
-		putErrmsg("Can't retrieve dictionary.", NULL);
-		return -1;
-	}
-
-	if (printEid(&(bundle->id.source), dictionary, &sourceEid) < 0)
-	{
-		putErrmsg("Can't print source EID.", NULL);
-		releaseDictionary(dictionary);
-		return -1;
-	}
-
-	if (constructBundleHashKey(bundleKey, sourceEid,
-			bundle->id.creationTime.seconds,
-			bundle->id.creationTime.count,
-			bundle->id.fragmentOffset,
-			bundle->totalAduLength == 0 ? 0 :
-			bundle->payload.length) > BUNDLES_HASH_KEY_LEN)
-	{
-		writeMemoNote("[?] Source EID too long.  Max hash key length \
-exceeded, bundle won't be locatable for reforwarding.", sourceEid);
-	}
-	else
-	{
-		if (sdr_hash_insert(sdr, (_bpConstants())->bundles,
-				bundleKey, bundleObj, &(bundle->hashEntry)) < 0)
-		{
-			putErrmsg("Can't insert into hash table.", NULL);
-			MRELEASE(sourceEid);
-			releaseDictionary(dictionary);
-			return -1;
-		}
-	}
-
-	MRELEASE(sourceEid);
-	releaseDictionary(dictionary);
 	return 0;
 }
 
