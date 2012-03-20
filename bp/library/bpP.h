@@ -314,6 +314,7 @@ typedef struct
 	char		delivered;	/*	Boolean.		*/
 	char		suspended;	/*	Boolean.		*/
 	char		returnToSender;	/*	Boolean.		*/
+	char		accepted;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	int		dbTotal;	/*	Overhead + payload len.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
@@ -818,7 +819,8 @@ extern int		bpAbandon(	Object bundleObj,
 			 *	bundle.	 Returns 0 on success, -1 on
 			 *	any failure.				*/
 
-extern int		bpAccept(	Bundle *bundle);
+extern int		bpAccept(	Object bundleObj,
+					Bundle *bundle);
 			/*	This is the common processing for any
 			 *	bundle that a forwarder decides it
 			 *	can accept for forwarding, whether
@@ -831,9 +833,10 @@ extern int		bpAccept(	Bundle *bundle);
 			 *	bundle; and it sends any applicable
 			 *	status reports.
 			 *
-			 *	Call this function at most once per
-			 *	bundle.	 Returns 0 on success, -1 on
-			 *	any failure.				*/
+			 *	This function may be called multiple
+			 *	times per bundle but will take effect
+			 *	only once.  Returns 0 on success, -1
+			 *	on any failure.				*/
 
 extern int		bpClone(	Bundle *originalBundle,
 					Bundle *newBundleBuffer,

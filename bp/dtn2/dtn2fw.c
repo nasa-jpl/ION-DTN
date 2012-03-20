@@ -135,7 +135,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		{
 			/*	Enqueued.				*/
 
-			return bpAccept(bundle);
+			return bpAccept(bundleObj, bundle);
 		}
 		else
 		{
@@ -146,6 +146,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	Can't transmit to indicated next node directly, must
 	 *	forward through some other node.			*/
 
+	sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 	sdr_string_read(sdr, eidString, directive.eid);
 	return forwardBundle(bundleObj, bundle, eidString);
 }
@@ -236,7 +237,6 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't enqueue bundle.", NULL);

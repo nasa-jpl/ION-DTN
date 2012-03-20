@@ -2402,7 +2402,7 @@ static void	purgeStationsStack(Bundle *bundle)
 		return;
 	}
 
-	/*	Remove bundle from all transmission queues.		*/
+	/*	Discard all intermediate routing destinations.		*/
 
 	while (1)
 	{
@@ -5983,7 +5983,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 				 *	to the local bundle agent.	*/
 
 				releaseDictionary(dictionary);
-				if (bpAccept(bundle) < 0)
+				if (bpAccept(bundleObj, bundle) < 0)
 				{
 					putErrmsg("Failed dispatching bundle.",
 							NULL);
@@ -8473,13 +8473,11 @@ static int	takeCustody(Bundle *bundle)
 	return 0;
 }
 
-int	bpAccept(Bundle *bundle)
+static int	sendAcceptanceAdminRecords(Bundle *bundle)
 {
 	char	*dictionary;
 	int	result;
 
-	CHKERR(ionLocked());
-	purgeStationsStack(bundle);
 	if (bundleIsCustodial(bundle))
 	{
 		if (takeCustody(bundle) < 0)
@@ -8511,6 +8509,24 @@ int	bpAccept(Bundle *bundle)
 		}
 	}
 
+	return 0;
+}
+
+int	bpAccept(Object bundleObj, Bundle *bundle)
+{
+	CHKERR(ionLocked());
+	if (!bundle->accepted)	/*	Accept bundle only once.	*/
+	{
+		if (sendAcceptanceAdminRecords(bundle) < 0)
+		{
+			putErrmsg("Bundle acceptance failed.", NULL);
+			return -1;
+		}
+
+		bundle->accepted = 1;
+	}
+
+	sdr_write(getIonsdr(), bundleObj, (char *) bundle, sizeof(Bundle));
 	return 0;
 }
 
@@ -9118,8 +9134,8 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	int	result1 = 0;
 	int	result2 = 0;
 
-	bpDbTally(BP_DB_FWD_FAILED, bundle->payload.length);
 	CHKERR(bundleObj && bundle);
+	bpDbTally(BP_DB_FWD_FAILED, bundle->payload.length);
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
 	{
@@ -9162,6 +9178,11 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	}
 
 	releaseDictionary(dictionary);
+
+	/*	Must record updated state of bundle in case
+	 *	bpDestroyBundle doesn't erase it.			*/
+
+	sdr_write(getIonsdr(), bundleObj, (char *) bundle, sizeof(Bundle));
 	if (bpDestroyBundle(bundleObj, 0) < 0)
 	{
 		putErrmsg("Can't destroy bundle.", NULL);

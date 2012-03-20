@@ -194,7 +194,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	{
 		/*	Enqueued.					*/
 
-		return bpAccept(bundle);
+		return bpAccept(bundleObj, bundle);
 	}
 
 	/*	No luck using the contact graph to compute a route
@@ -212,7 +212,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	{
 		/*	Enqueued.					*/
 
-		return bpAccept(bundle);
+		return bpAccept(bundleObj, bundle);
 	}
 
 	/*	Destination isn't a neighbor that accepts bundles.
@@ -227,6 +227,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		/*	Found directive; forward via the indicated
 		 *	endpoint.					*/
 
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 		sdr_string_read(sdr, eidString, directive.eid);
 		return forwardBundle(bundleObj, bundle, eidString);
 	}
@@ -249,7 +250,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	{
 		/*	Enqueued to limbo.				*/
 
-		return bpAccept(bundle);
+		return bpAccept(bundleObj, bundle);
 	}
 	else
 	{
@@ -344,7 +345,6 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't enqueue bundle.", NULL);
