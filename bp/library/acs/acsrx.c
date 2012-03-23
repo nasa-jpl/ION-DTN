@@ -171,7 +171,6 @@ static void acsForeach(const Acs *acs,
 	void acsCallback(BpCtSignal *, void *), void *userdata)
 {	
 	unsigned long i;
-	unsigned long endOfLastFill = 0;
 	int rc;
 	BpCtSignal	ctSig;
 	LystElt	fillLElt;
@@ -191,7 +190,7 @@ static void acsForeach(const Acs *acs,
 
 		for (i = fillElt->start; i < fillElt->start + fillElt->length; i++)
 		{
-			cid.id = i + endOfLastFill;
+			cid.id = i;
 			rc = get_bundle_id(&cid, &bid);
 			if (rc == -1) {
 				/* system error already logged. */
@@ -212,10 +211,6 @@ static void acsForeach(const Acs *acs,
 
 			acsCallback(&ctSig, userdata);
 		}
-
-		/* Update endOfLastFill for next iteration through loop.
-		 * parenthesization prevents unintended integer wraparound. */
-		endOfLastFill = endOfLastFill + fillElt->start + (fillElt->length - 1);
 	}
 }
 

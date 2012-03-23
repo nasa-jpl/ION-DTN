@@ -257,7 +257,7 @@ class Tester:
         # Compare received acs to the one we're expecting; error if not equal.
         if (acs != toCompare):
             raise TestFailureError("Expected %s, got %s" % (toCompare, acs))
-        
+
         # Reset the ACS we're expecting for this (success, reason) to empty.
         del expected_acs[bool(acs.succeeded)][acs.reason]
     
@@ -277,9 +277,9 @@ class Tester:
 
     def receiveuntil(self, timeout):
         start = time.time()
-        while(time.time() < start + timeout):
+        while(time.time() < (start + timeout)):
             try:
-                self.receive(start + timeout - time.time())
+                self.receive( (start + timeout) - time.time())
             except BundleNotReceivedError:
                 # Receiving until timeout has passed, so its OK if no bundle.
                 pass

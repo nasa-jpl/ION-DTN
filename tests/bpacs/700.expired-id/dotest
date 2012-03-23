@@ -35,9 +35,11 @@ echo "Stopping ion..."
 ionstop
 
 # Check for anything bad in ion.log
-echo Checking for bad SDR operations in ion.log...
+echo "Checking for bad SDR operations in ion.log..."
 if egrep -e '(Transaction aborted|SDR boundaries)' ion.log; then
     FAIL=1
 fi
+
+echo "return value is $FAIL"
 
 exit $FAIL
