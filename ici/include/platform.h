@@ -373,6 +373,8 @@ int getpriority(int, id_t);
 				/****	it has mymsg (same thing).   ****/
 #define	_MULTITHREADED
 
+#define	O_LARGEFILE	0
+
 #endif				/****	End of #ifdef darwin	     ****/
 
 #endif				/****	End of #ifdef (__SVR4)       ****/

@@ -9160,7 +9160,7 @@ static int	nextBlock(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	 *	vacated.						*/
 
 	bytesToReceive = BP_MAX_BLOCK_SIZE - *bytesBuffered;
-	bytesReceived = zco_receive_source(sdr, reader, bytesToReceive,
+	bytesReceived = zco_transmit(sdr, reader, bytesToReceive,
 			((char *) buffer) + *bytesBuffered);
 	if (bytesReceived < 0)
 	{

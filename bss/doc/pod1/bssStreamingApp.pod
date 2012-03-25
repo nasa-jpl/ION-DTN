@@ -1,0 +1,39 @@
+=head1 NAME
+
+bssStreamingApp - Bundle Streaming Service transmission test program
+
+=head1 SYNOPSIS
+
+B<bssStreamingApp> I<own_endpoint_ID> I<destination_endpoint_ID> [I<class_of_service>]
+
+=head1 DESCRIPTION
+
+B<bssStreamingApp> uses BSS to send streaming data over BP from
+I<own_endpoint_ID> to bssrecv listening at I<destination_endpoint_ID>.
+I<class_of_service> is as specified for bptrace(1); if omitted, bundles
+are sent at BP's standard priority (1).
+
+The bundles issued by B<bssStreamingApp> all have 65000-byte payloads, where
+the ASCII representation of a positive integer (increasing monotonically
+from 0, by 1, throughout the operation of the program) appears at the start
+of each payload.  All bundles are sent with custody transfer requested, with
+time-to-live set to 1 day.  The application meters output by sleeping for
+12800 microseconds after issuing each bundle.
+
+Use CTRL-C to terminate the program.
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bssrecv(1), bss(3)
