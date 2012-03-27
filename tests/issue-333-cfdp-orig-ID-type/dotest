@@ -80,7 +80,7 @@ cd ../
 sleep 10
 
 echo "Starting netcat server for test..."
-netcat -u -l 1113 > response &
+netcat -u -l -p 1113 > response &
 NETCAT_SVR_PID=$!
 
 echo "Sending FDU..."
