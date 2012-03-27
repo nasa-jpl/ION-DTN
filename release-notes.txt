@@ -75,10 +75,6 @@ Features included:
 - Issue #314: Standardized spelling of the word "semaphore" throughout the ION
   codebase.
 
-- Issue #342: Adapted a new lyst_create_using() function from the lyst_create()
-  function.  This variation uses memory allocation routines that are safer for
-  use during program operation than the lyst_create function, which should only
-  be invoked during the program's initialization.
 - Issue #322: Improved reliability for custodial retransmissions when the next
   custodian is a neighbor by making the following tweaks in libbpP.c:
     - Changed the bpDequeue "stewardship accepted" flag to a custodial timeout
@@ -89,6 +85,17 @@ Features included:
       trigger reforwarding of the bundle even when stewardship has been taken
       and CL transmission has been nominally successful and reliable, in the
       event that the CL transmission ultimately (unexpectedly) does not succeed.
+
+- Issue #325: Fixed a bug that could cause ION to crash bundles for which the
+  destination endpoint is not a singleton.
+
+- Issue #329: ION now supports sending (rather than just receiving) fragmented
+  bundles.
+
+- Issue #342: Adapted a new lyst_create_using() function from the lyst_create()
+  function.  This variation uses memory allocation routines that are safer for
+  use during program operation than the lyst_create function, which should only
+  be invoked during the program's initialization.
 
 - Issue 343: Fixed bugs in LTP that could cause crashes at high data loss rates:
     - Fixed mechanisms for preventing resurrection of closed Import sessions.
