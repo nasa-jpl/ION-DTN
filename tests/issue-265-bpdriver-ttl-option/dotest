@@ -108,7 +108,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c106 | cut -c 1-2 | xxd -p`
+RESULTS=`cat response.cap | tail  -c106 | cut -b 1-2 | xxd -p`
 #echo "$RESULTS"
 if [ "$RESULTS" = "822c" ]; then
 	echo "The Bundle set by ION had the correct default TTL."
@@ -156,7 +156,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c106 | cut -c 1-2 | xxd -p`
+RESULTS=`cat response.cap | tail  -c106 | cut -b 1-2 | xxd -p`
 #echo "$RESULTS"
 if [ "$RESULTS" = "9738" ]; then
 	echo "The Bundle set by ION had the correct TTL."
@@ -204,7 +204,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c105 | cut -c 1-2 | xxd -p`
+RESULTS=`cat response.cap | tail  -c105 | cut -b 1 | xxd -p`
 #echo "$RESULTS"
 if [ "$RESULTS" = "1e" ]; then
 	echo "The Bundle set by ION had the correct TTL. SUCCESS!"
