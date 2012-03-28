@@ -5,6 +5,7 @@ TEST = ../test
 DAEMON = ../daemon
 CGR = ../cgr
 IPN = ../ipn
+BSS = ../bss
 DTN2 = ../dtn2
 LTP = ../ltp
 TCP = ../tcp
@@ -25,6 +26,7 @@ PUBINCLS = \
 BPINCLS = \
 	$(API)/bpP.h \
 	$(IPN)/ipnfw.h \
+	$(BSS)/bssfw.h \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
@@ -39,14 +41,15 @@ BPLIBS = \
 BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o crypto.o
 # phn.o
 
-LFW = -lipnfw -ldtn2fw
+LFW = -lbssfw -ldtn2fw
+# -lipnfw
 
 LBP = -lbp -lbpP
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep bssadmin bssfw dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
 #dccpcli dccpclo
 
-ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libtcpcla.so libudpcla.so libbpnm.so $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libbssfw.so libtcpcla.so libudpcla.so libbpnm.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -80,6 +83,10 @@ bpadmin:	bpadmin.o $(BPLIBS)
 ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.so
 		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
 		cp ipnadmin ./bin
+
+bssadmin:	bssadmin.o $(BPLIBS) libbssfw.so
+		$(CC) -o bssadmin bssadmin.o -L./lib -L$(ROOT)/lib -lbssfw $(LBP) -lici -lpthread
+		cp bssadmin ./bin
 
 dtn2admin:	dtn2admin.o $(BPLIBS) libdtn2fw.so
 		$(CC) -o dtn2admin dtn2admin.o -L./lib -L$(ROOT)/lib -ldtn2fw $(LBP) -lici -lpthread
@@ -134,6 +141,12 @@ ipnfw:		ipnfw.o $(BPLIBS) libipnfw.so libcgr.so
 ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.so
 		$(CC) -o ipnadminep ipnadminep.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
 		cp ipnadminep ./bin
+
+#	-	-	BSS executables	-	-	-	-	-
+
+bssfw:		bssfw.o $(BPLIBS) libbssfw.so libcgr.so
+		$(CC) -o bssfw bssfw.o -L./lib -L$(ROOT)/lib -lbssfw -lcgr $(LBP) -lici -lpthread
+		cp bssfw ./bin
 
 #	-	-	DTN2 executables	-	-	-	-
 
@@ -259,6 +272,10 @@ libipnfw.so:	libipnfw.o
 		$(LD) -o libipnfw.so libipnfw.o
 		cp libipnfw.so ./lib
 
+libbssfw.so:	libbssfw.o
+		$(LD) -o libbssfw.so libbssfw.o
+		cp libbssfw.so ./lib
+
 libdtn2fw.so:	libdtn2fw.o
 		$(LD) -o libdtn2fw.so libdtn2fw.o
 		cp libdtn2fw.so ./lib
@@ -305,6 +322,9 @@ libbpnm.so:	libbpnm.o $(API)/bpnm.h
 		$(CC) -c $<
 
 %.o:		$(IPN)/%.c
+		$(CC) -c $<
+
+%.o:		$(BSS)/%.c
 		$(CC) -c $<
 
 %.o:		$(DTN2)/%.c
