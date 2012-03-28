@@ -11,6 +11,7 @@
 
 #define	DEFAULT_TTL 300
 
+
 static int	_running(int *newState)
 {
 	int	state = 1;
@@ -36,11 +37,42 @@ int	bpsource(int a1, int a2, int a3, int a4, int a5,
 {
 	char	*destEid = (char *) a1;
 	char	*text = (char *) a2;
+	int ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
 #else
 int	main(int argc, char **argv)
 {
-	char	*destEid = (argc > 1 ? argv[1] : NULL);
-	char	*text = (argc > 2 ? argv[2] : NULL);
+	char	*destEid = NULL;
+	char	*text = NULL;
+	int 	ttl = 300;
+
+	if(argc > 4) argc=4;
+
+	switch (argc)
+	{
+	case 4:
+		if(argv[3][0]=='-' && argv[3][1]=='t')
+		{
+			ttl=atoi(&argv[3][2]);
+		}else{
+			text=argv[3];
+		}
+		/*Fall Through*/
+	case 3:
+		if(argv[2][0]=='-' && argv[2][1]=='t')
+		{
+			ttl=atoi(&argv[2][2]);
+		}else{
+			text=argv[2];
+		}
+		/*Fall Through*/
+	case 2:
+		destEid = argv[1];
+		/*Fall Through*/
+	default:
+		break;
+	}
+
+
 #endif
 	Sdr	sdr;
 	char	line[256];
@@ -52,7 +84,13 @@ int	main(int argc, char **argv)
 
 	if (destEid == NULL)
 	{
-		PUTS("Usage: bpsource <destination endpoint ID> ['<text>'] [t<Bundle TTL>]");
+		PUTS("Usage: bpsource <destination endpoint ID> ['<text>'] [-t<Bundle TTL>]");
+		return 0;
+	}
+
+	if(ttl <= 0)
+	{
+		PUTS("Usage: bpsource <destination endpoint ID> ['<text>'] [-t<Bundle TTL>]");
 		return 0;
 	}
 
@@ -91,11 +129,6 @@ int	main(int argc, char **argv)
 			putErrmsg("Can't create ZCO extent.", NULL);
 			bp_detach();
 			return 0;
-		}
-
-		if(ttl == 0)
-		{
-			ttl = DEFAULT_TTL;
 		}
 
 		if (bp_send(NULL, BP_BLOCKING, destEid, NULL, ttl,
