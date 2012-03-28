@@ -43,47 +43,13 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = i686-pc-linux-gnu
-host_triplet = i686-pc-linux-gnu
+build_triplet = sparc-sun-solaris2.10
+host_triplet = sparc-sun-solaris2.10
 bin_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
-	$(am__EXEEXT_5) $(am__EXEEXT_6) $(am__EXEEXT_7)
-am__append_1 = acsadmin \
-	acslist
-
-am__append_2 = \
-	$(top_builddir)/bp/doc/acsadmin.1 \
-	$(top_builddir)/bp/doc/acslist.1 \
-	$(top_builddir)/bp/doc/acsrc.5
-
-
-# ecos, phn, and bpP had a circular dependency;
-# now they are one.
-#libecos_la_SOURCES = bp/library/ecos.c
-#libecos_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-#libecos_la_LDFLAGS = $(ION_LINK_FLAGS)
-#
-#libphn_la_SOURCES = bp/library/phn.c
-#libphn_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-#libphn_la_LDFLAGS = $(ION_LINK_FLAGS)
-am__append_3 = \
-	bp/library/acs/acsrx.c \
-	bp/library/acs/acstx.c \
-	bp/library/acs/acsserialize.c \
-	bp/library/acs/acsappend.c \
-	bp/library/acs/acsid.c \
-	bp/library/ext/cteb/cteb.c \
-	$(NULL)
-
+	$(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_6)
 check_PROGRAMS = tests/1000.loopback/dotest$(EXEEXT) \
-	tests/1300.loopback-tcp/dotest$(EXEEXT) \
-	tests/1400.loopback-stcp/dotest$(EXEEXT) \
-	tests/1500.loopback-brs/dotest$(EXEEXT) \
 	tests/issue-188-common-cos-syntax/dotest$(EXEEXT) \
-	tests/issue-260-teach-valgrind-mtake/domtake$(EXEEXT) \
-	tests/issue-279-bpMemo-timeline/driver$(EXEEXT) \
-	tests/issue-330-cfdpclock-FDU-removal/cfdplisten$(EXEEXT) \
-	tests/issue-333-cfdp-orig-ID-type/send$(EXEEXT) \
-	tests/issue-334-cfdp-transaction-id/dotest$(EXEEXT)
+	tests/issue-260-teach-valgrind-mtake/domtake$(EXEEXT)
 subdir = .
 DIST_COMMON = $(am__configure_deps) $(include_HEADERS) \
 	$(noinst_HEADERS) $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -128,20 +94,6 @@ libams_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libams_la_CFLAGS) \
 	$(CFLAGS) $(libams_la_LDFLAGS) $(LDFLAGS) -o $@
 libbp_la_DEPENDENCIES = libici.la $(am__DEPENDENCIES_1)
-am__libbp_la_SOURCES_DIST = bp/library/libbp.c bp/library/libbpP.c \
-	bp/library/ext/phn/phn.c bp/library/ext/ecos/ecos.c \
-	bp/library/bei.c bp/library/ext/bsp/extbsputil.c \
-	bp/library/ext/bsp/extbspbab.c \
-	bp/library/crypto/NULL_SUITES/crypto.c bp/library/acs/acsrx.c \
-	bp/library/acs/acstx.c bp/library/acs/acsserialize.c \
-	bp/library/acs/acsappend.c bp/library/acs/acsid.c \
-	bp/library/ext/cteb/cteb.c
-am__objects_1 = bp/library/acs/libbp_la-acsrx.lo \
-	bp/library/acs/libbp_la-acstx.lo \
-	bp/library/acs/libbp_la-acsserialize.lo \
-	bp/library/acs/libbp_la-acsappend.lo \
-	bp/library/acs/libbp_la-acsid.lo \
-	bp/library/ext/cteb/libbp_la-cteb.lo
 am_libbp_la_OBJECTS = bp/library/libbp_la-libbp.lo \
 	bp/library/libbp_la-libbpP.lo \
 	bp/library/ext/phn/libbp_la-phn.lo \
@@ -149,8 +101,7 @@ am_libbp_la_OBJECTS = bp/library/libbp_la-libbp.lo \
 	bp/library/libbp_la-bei.lo \
 	bp/library/ext/bsp/libbp_la-extbsputil.lo \
 	bp/library/ext/bsp/libbp_la-extbspbab.lo \
-	bp/library/crypto/NULL_SUITES/libbp_la-crypto.lo \
-	$(am__objects_1)
+	bp/library/crypto/NULL_SUITES/libbp_la-crypto.lo
 libbp_la_OBJECTS = $(am_libbp_la_OBJECTS)
 libbp_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(libbp_la_CFLAGS) $(CFLAGS) \
@@ -225,7 +176,6 @@ libudpcla_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 tests_library_libtestutil_la_LIBADD =
 am_tests_library_libtestutil_la_OBJECTS =  \
 	tests/library/tests_library_libtestutil_la-check.lo \
-	tests/library/tests_library_libtestutil_la-paths.lo \
 	tests/library/tests_library_libtestutil_la-ionstart.lo \
 	tests/library/tests_library_libtestutil_la-ionstop.lo
 tests_library_libtestutil_la_OBJECTS =  \
@@ -235,18 +185,17 @@ tests_library_libtestutil_la_LINK = $(LIBTOOL) --tag=CC \
 	$(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) \
 	$(tests_library_libtestutil_la_LDFLAGS) $(LDFLAGS) -o $@
 am__EXEEXT_1 = sdrwatch$(EXEEXT) psmwatch$(EXEEXT) ionadmin$(EXEEXT) \
-	ionexit$(EXEEXT) ionsecadmin$(EXEEXT) sdrmend$(EXEEXT) \
-	file2sm$(EXEEXT) sm2file$(EXEEXT) file2sdr$(EXEEXT) \
-	sdr2file$(EXEEXT) psmshell$(EXEEXT) smlistsh$(EXEEXT) \
-	rfxclock$(EXEEXT) owlttb$(EXEEXT) owltsim$(EXEEXT)
+	ionsecadmin$(EXEEXT) sdrmend$(EXEEXT) file2sm$(EXEEXT) \
+	sm2file$(EXEEXT) file2sdr$(EXEEXT) sdr2file$(EXEEXT) \
+	psmshell$(EXEEXT) smlistsh$(EXEEXT) rfxclock$(EXEEXT) \
+	owlttb$(EXEEXT) owltsim$(EXEEXT)
 am__EXEEXT_2 = ltpadmin$(EXEEXT) ltpclock$(EXEEXT) ltpmeter$(EXEEXT) \
 	udplsi$(EXEEXT) udplso$(EXEEXT) aoslsi$(EXEEXT) \
 	aoslso$(EXEEXT) ltpdriver$(EXEEXT) ltpcounter$(EXEEXT) \
 	dccplsi$(EXEEXT) dccplso$(EXEEXT)
 am__EXEEXT_3 = file2dgr$(EXEEXT) dgr2file$(EXEEXT) file2tcp$(EXEEXT) \
 	tcp2file$(EXEEXT) file2udp$(EXEEXT) udp2file$(EXEEXT)
-am__EXEEXT_4 = acsadmin$(EXEEXT) acslist$(EXEEXT)
-am__EXEEXT_5 = bpadmin$(EXEEXT) bpsink$(EXEEXT) bpdriver$(EXEEXT) \
+am__EXEEXT_4 = bpadmin$(EXEEXT) bpsink$(EXEEXT) bpdriver$(EXEEXT) \
 	bpsource$(EXEEXT) bpecho$(EXEEXT) bpcancel$(EXEEXT) \
 	bpcounter$(EXEEXT) bplist$(EXEEXT) bpsendfile$(EXEEXT) \
 	bprecvfile$(EXEEXT) bpclock$(EXEEXT) ipnadmin$(EXEEXT) \
@@ -258,32 +207,14 @@ am__EXEEXT_5 = bpadmin$(EXEEXT) bpsink$(EXEEXT) bpdriver$(EXEEXT) \
 	dgrcla$(EXEEXT) ltpcli$(EXEEXT) ltpclo$(EXEEXT) \
 	lgsend$(EXEEXT) lgagent$(EXEEXT) bptrace$(EXEEXT) \
 	bping$(EXEEXT) bpstats$(EXEEXT) bpstats2$(EXEEXT) \
-	bpchat$(EXEEXT) hmackeys$(EXEEXT) $(am__EXEEXT_4)
-am__EXEEXT_6 = amsd$(EXEEXT) amshello$(EXEEXT) amsshell$(EXEEXT) \
+	bpchat$(EXEEXT) hmackeys$(EXEEXT)
+am__EXEEXT_5 = amsd$(EXEEXT) amshello$(EXEEXT) amsshell$(EXEEXT) \
 	amslog$(EXEEXT) amslogprt$(EXEEXT) amsbenchs$(EXEEXT) \
-	amsbenchr$(EXEEXT) amsstop$(EXEEXT) ramsgate$(EXEEXT)
-am__EXEEXT_7 = cfdpadmin$(EXEEXT) cfdpclock$(EXEEXT) bputa$(EXEEXT) \
+	amsbenchr$(EXEEXT) ramsgate$(EXEEXT)
+am__EXEEXT_6 = cfdpadmin$(EXEEXT) cfdpclock$(EXEEXT) bputa$(EXEEXT) \
 	cfdptest$(EXEEXT)
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am__acsadmin_SOURCES_DIST = bp/utils/acsadmin.c
-am_acsadmin_OBJECTS =  \
-	bp/utils/acsadmin-acsadmin.$(OBJEXT)
-acsadmin_OBJECTS = $(am_acsadmin_OBJECTS)
-acsadmin_DEPENDENCIES = libbp.la libici.la \
-	$(LIBOBJS)
-acsadmin_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(acsadmin_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
-am__acslist_SOURCES_DIST = bp/utils/acslist.c
-am_acslist_OBJECTS =  \
-	bp/utils/acslist-acslist.$(OBJEXT)
-acslist_OBJECTS = $(am_acslist_OBJECTS)
-acslist_DEPENDENCIES = libbp.la libici.la \
-	$(LIBOBJS)
-acslist_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(acslist_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
 am_amsbenchr_OBJECTS = ams/test/amsbenchr-amsbenchr.$(OBJEXT)
 amsbenchr_OBJECTS = $(am_amsbenchr_OBJECTS)
 amsbenchr_DEPENDENCIES = libams.la libdgr.la libici.la $(LIBOBJS)
@@ -299,6 +230,7 @@ amsbenchs_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 am_amsd_OBJECTS = ams/library/amsd-amsd.$(OBJEXT) \
 	ams/library/amsd-libams.$(OBJEXT) \
 	ams/library/amsd-amscommon.$(OBJEXT) \
+	ams/library/amsd-loadmib.$(OBJEXT) \
 	ams/library/amsd-crypt.$(OBJEXT) \
 	ams/library/amsd-dgrts.$(OBJEXT) \
 	ams/library/amsd-udpts.$(OBJEXT) \
@@ -331,12 +263,6 @@ amsshell_OBJECTS = $(am_amsshell_OBJECTS)
 amsshell_DEPENDENCIES = libams.la libdgr.la libici.la $(LIBOBJS)
 amsshell_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(amsshell_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
-am_amsstop_OBJECTS = ams/utils/amsstop-amsstop.$(OBJEXT)
-amsstop_OBJECTS = $(am_amsstop_OBJECTS)
-amsstop_DEPENDENCIES = libams.la libdgr.la libici.la $(LIBOBJS)
-amsstop_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(amsstop_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 am_aoslsi_OBJECTS = ltp/aos/aoslsi-aoslsi.$(OBJEXT)
 aoslsi_OBJECTS = $(am_aoslsi_OBJECTS)
@@ -582,12 +508,6 @@ ionadmin_DEPENDENCIES = libici.la $(LIBOBJS)
 ionadmin_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(ionadmin_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-am_ionexit_OBJECTS = ici/utils/ionexit-ionexit.$(OBJEXT)
-ionexit_OBJECTS = $(am_ionexit_OBJECTS)
-ionexit_DEPENDENCIES = libbp.la libltp.la libici.la $(LIBOBJS)
-ionexit_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(ionexit_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
 am_ionsecadmin_OBJECTS = ici/utils/ionsecadmin-ionsecadmin.$(OBJEXT)
 ionsecadmin_OBJECTS = $(am_ionsecadmin_OBJECTS)
 ionsecadmin_DEPENDENCIES = libici.la $(LIBOBJS)
@@ -778,33 +698,6 @@ tests_1000_loopback_dotest_LINK = $(LIBTOOL) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-am_tests_1300_loopback_tcp_dotest_OBJECTS = tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.$(OBJEXT)
-tests_1300_loopback_tcp_dotest_OBJECTS =  \
-	$(am_tests_1300_loopback_tcp_dotest_OBJECTS)
-tests_1300_loopback_tcp_dotest_DEPENDENCIES = libbp.la libici.la \
-	$(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
-tests_1300_loopback_tcp_dotest_LINK = $(LIBTOOL) --tag=CC \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(tests_1300_loopback_tcp_dotest_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_tests_1400_loopback_stcp_dotest_OBJECTS = tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.$(OBJEXT)
-tests_1400_loopback_stcp_dotest_OBJECTS =  \
-	$(am_tests_1400_loopback_stcp_dotest_OBJECTS)
-tests_1400_loopback_stcp_dotest_DEPENDENCIES = libbp.la libici.la \
-	$(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
-tests_1400_loopback_stcp_dotest_LINK = $(LIBTOOL) --tag=CC \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(tests_1400_loopback_stcp_dotest_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_tests_1500_loopback_brs_dotest_OBJECTS = tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.$(OBJEXT)
-tests_1500_loopback_brs_dotest_OBJECTS =  \
-	$(am_tests_1500_loopback_brs_dotest_OBJECTS)
-tests_1500_loopback_brs_dotest_DEPENDENCIES = libbp.la libici.la \
-	$(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
-tests_1500_loopback_brs_dotest_LINK = $(LIBTOOL) --tag=CC \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(tests_1500_loopback_brs_dotest_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_tests_issue_188_common_cos_syntax_dotest_OBJECTS = tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.$(OBJEXT)
 tests_issue_188_common_cos_syntax_dotest_OBJECTS =  \
 	$(am_tests_issue_188_common_cos_syntax_dotest_OBJECTS)
@@ -823,42 +716,6 @@ tests_issue_260_teach_valgrind_mtake_domtake_LINK = $(LIBTOOL) \
 	--tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
 	$(CCLD) $(tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_tests_issue_279_bpMemo_timeline_driver_OBJECTS = tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.$(OBJEXT)
-tests_issue_279_bpMemo_timeline_driver_OBJECTS =  \
-	$(am_tests_issue_279_bpMemo_timeline_driver_OBJECTS)
-tests_issue_279_bpMemo_timeline_driver_DEPENDENCIES = libbp.la \
-	libici.la $(LIBOBJS) $(TESTUTILOBJS)
-tests_issue_279_bpMemo_timeline_driver_LINK = $(LIBTOOL) --tag=CC \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(tests_issue_279_bpMemo_timeline_driver_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_tests_issue_330_cfdpclock_FDU_removal_cfdplisten_OBJECTS = tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.$(OBJEXT)
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_OBJECTS = $(am_tests_issue_330_cfdpclock_FDU_removal_cfdplisten_OBJECTS)
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_DEPENDENCIES =  \
-	libcfdp.la libici.la libbp.la $(LIBOBJS)
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LINK = $(LIBTOOL) \
-	--tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
-	$(CCLD) \
-	$(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_tests_issue_333_cfdp_orig_ID_type_send_OBJECTS = tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.$(OBJEXT)
-tests_issue_333_cfdp_orig_ID_type_send_OBJECTS =  \
-	$(am_tests_issue_333_cfdp_orig_ID_type_send_OBJECTS)
-tests_issue_333_cfdp_orig_ID_type_send_DEPENDENCIES = libcfdp.la \
-	libici.la libbp.la $(LIBOBJS)
-tests_issue_333_cfdp_orig_ID_type_send_LINK = $(LIBTOOL) --tag=CC \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_tests_issue_334_cfdp_transaction_id_dotest_OBJECTS = tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.$(OBJEXT)
-tests_issue_334_cfdp_transaction_id_dotest_OBJECTS =  \
-	$(am_tests_issue_334_cfdp_transaction_id_dotest_OBJECTS)
-tests_issue_334_cfdp_transaction_id_dotest_DEPENDENCIES = libcfdp.la \
-	libici.la $(LIBOBJS) $(TESTUTILOBJS)
-tests_issue_334_cfdp_transaction_id_dotest_LINK = $(LIBTOOL) --tag=CC \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(tests_issue_334_cfdp_transaction_id_dotest_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_udp2file_OBJECTS = dgr/test/udp2file-udp2file.$(OBJEXT)
 udp2file_OBJECTS = $(am_udp2file_OBJECTS)
 udp2file_DEPENDENCIES = libici.la $(LIBOBJS)
@@ -910,10 +767,9 @@ SOURCES = $(libams_la_SOURCES) $(libbp_la_SOURCES) \
 	$(libici_la_SOURCES) $(libipnfw_la_SOURCES) \
 	$(libltp_la_SOURCES) $(libtcpcla_la_SOURCES) \
 	$(libudpcla_la_SOURCES) \
-	$(tests_library_libtestutil_la_SOURCES) $(acsadmin_SOURCES) \
-	$(acslist_SOURCES) $(amsbenchr_SOURCES) $(amsbenchs_SOURCES) \
-	$(amsd_SOURCES) $(amshello_SOURCES) $(amslog_SOURCES) \
-	$(amslogprt_SOURCES) $(amsshell_SOURCES) $(amsstop_SOURCES) \
+	$(tests_library_libtestutil_la_SOURCES) $(amsbenchr_SOURCES) \
+	$(amsbenchs_SOURCES) $(amsd_SOURCES) $(amshello_SOURCES) \
+	$(amslog_SOURCES) $(amslogprt_SOURCES) $(amsshell_SOURCES) \
 	$(aoslsi_SOURCES) $(aoslso_SOURCES) $(bpadmin_SOURCES) \
 	$(bpcancel_SOURCES) $(bpchat_SOURCES) $(bpclock_SOURCES) \
 	$(bpcounter_SOURCES) $(bpdriver_SOURCES) $(bpecho_SOURCES) \
@@ -927,53 +783,7 @@ SOURCES = $(libams_la_SOURCES) $(libbp_la_SOURCES) \
 	$(dtn2admin_SOURCES) $(dtn2adminep_SOURCES) $(dtn2fw_SOURCES) \
 	$(file2dgr_SOURCES) $(file2sdr_SOURCES) $(file2sm_SOURCES) \
 	$(file2tcp_SOURCES) $(file2udp_SOURCES) $(hmackeys_SOURCES) \
-	$(ionadmin_SOURCES) $(ionexit_SOURCES) $(ionsecadmin_SOURCES) \
-	$(ipnadmin_SOURCES) $(ipnadminep_SOURCES) $(ipnfw_SOURCES) \
-	$(lgagent_SOURCES) $(lgsend_SOURCES) $(ltpadmin_SOURCES) \
-	$(ltpcli_SOURCES) $(ltpclo_SOURCES) $(ltpclock_SOURCES) \
-	$(ltpcounter_SOURCES) $(ltpdriver_SOURCES) $(ltpmeter_SOURCES) \
-	$(owltsim_SOURCES) $(owlttb_SOURCES) $(psmshell_SOURCES) \
-	$(psmwatch_SOURCES) $(ramsgate_SOURCES) $(rfxclock_SOURCES) \
-	$(sdr2file_SOURCES) $(sdrmend_SOURCES) $(sdrwatch_SOURCES) \
-	$(sm2file_SOURCES) $(smlistsh_SOURCES) $(stcpcli_SOURCES) \
-	$(stcpclo_SOURCES) $(tcp2file_SOURCES) $(tcpcli_SOURCES) \
-	$(tcpclo_SOURCES) $(tests_1000_loopback_dotest_SOURCES) \
-	$(tests_1300_loopback_tcp_dotest_SOURCES) \
-	$(tests_1400_loopback_stcp_dotest_SOURCES) \
-	$(tests_1500_loopback_brs_dotest_SOURCES) \
-	$(tests_issue_188_common_cos_syntax_dotest_SOURCES) \
-	$(tests_issue_260_teach_valgrind_mtake_domtake_SOURCES) \
-	$(tests_issue_279_bpMemo_timeline_driver_SOURCES) \
-	$(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES) \
-	$(tests_issue_333_cfdp_orig_ID_type_send_SOURCES) \
-	$(tests_issue_334_cfdp_transaction_id_dotest_SOURCES) \
-	$(udp2file_SOURCES) $(udpcli_SOURCES) $(udpclo_SOURCES) \
-	$(udplsi_SOURCES) $(udplso_SOURCES)
-DIST_SOURCES = $(libams_la_SOURCES) $(am__libbp_la_SOURCES_DIST) \
-	$(libcfdp_la_SOURCES) $(libcgr_la_SOURCES) \
-	$(libdgr_la_SOURCES) $(libdtn2fw_la_SOURCES) \
-	$(libici_la_SOURCES) $(libipnfw_la_SOURCES) \
-	$(libltp_la_SOURCES) $(libtcpcla_la_SOURCES) \
-	$(libudpcla_la_SOURCES) \
-	$(tests_library_libtestutil_la_SOURCES) \
-	$(am__acsadmin_SOURCES_DIST) $(am__acslist_SOURCES_DIST) \
-	$(amsbenchr_SOURCES) $(amsbenchs_SOURCES) $(amsd_SOURCES) \
-	$(amshello_SOURCES) $(amslog_SOURCES) $(amslogprt_SOURCES) \
-	$(amsshell_SOURCES) $(amsstop_SOURCES) $(aoslsi_SOURCES) \
-	$(aoslso_SOURCES) $(bpadmin_SOURCES) $(bpcancel_SOURCES) \
-	$(bpchat_SOURCES) $(bpclock_SOURCES) $(bpcounter_SOURCES) \
-	$(bpdriver_SOURCES) $(bpecho_SOURCES) $(bping_SOURCES) \
-	$(bplist_SOURCES) $(bprecvfile_SOURCES) $(bpsendfile_SOURCES) \
-	$(bpsink_SOURCES) $(bpsource_SOURCES) $(bpstats_SOURCES) \
-	$(bpstats2_SOURCES) $(bptrace_SOURCES) $(bputa_SOURCES) \
-	$(brsccla_SOURCES) $(brsscla_SOURCES) $(cfdpadmin_SOURCES) \
-	$(cfdpclock_SOURCES) $(cfdptest_SOURCES) $(dccpcli_SOURCES) \
-	$(dccpclo_SOURCES) $(dccplsi_SOURCES) $(dccplso_SOURCES) \
-	$(dgr2file_SOURCES) $(dgrcla_SOURCES) $(dtn2admin_SOURCES) \
-	$(dtn2adminep_SOURCES) $(dtn2fw_SOURCES) $(file2dgr_SOURCES) \
-	$(file2sdr_SOURCES) $(file2sm_SOURCES) $(file2tcp_SOURCES) \
-	$(file2udp_SOURCES) $(hmackeys_SOURCES) $(ionadmin_SOURCES) \
-	$(ionexit_SOURCES) $(ionsecadmin_SOURCES) $(ipnadmin_SOURCES) \
+	$(ionadmin_SOURCES) $(ionsecadmin_SOURCES) $(ipnadmin_SOURCES) \
 	$(ipnadminep_SOURCES) $(ipnfw_SOURCES) $(lgagent_SOURCES) \
 	$(lgsend_SOURCES) $(ltpadmin_SOURCES) $(ltpcli_SOURCES) \
 	$(ltpclo_SOURCES) $(ltpclock_SOURCES) $(ltpcounter_SOURCES) \
@@ -984,15 +794,45 @@ DIST_SOURCES = $(libams_la_SOURCES) $(am__libbp_la_SOURCES_DIST) \
 	$(smlistsh_SOURCES) $(stcpcli_SOURCES) $(stcpclo_SOURCES) \
 	$(tcp2file_SOURCES) $(tcpcli_SOURCES) $(tcpclo_SOURCES) \
 	$(tests_1000_loopback_dotest_SOURCES) \
-	$(tests_1300_loopback_tcp_dotest_SOURCES) \
-	$(tests_1400_loopback_stcp_dotest_SOURCES) \
-	$(tests_1500_loopback_brs_dotest_SOURCES) \
 	$(tests_issue_188_common_cos_syntax_dotest_SOURCES) \
 	$(tests_issue_260_teach_valgrind_mtake_domtake_SOURCES) \
-	$(tests_issue_279_bpMemo_timeline_driver_SOURCES) \
-	$(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES) \
-	$(tests_issue_333_cfdp_orig_ID_type_send_SOURCES) \
-	$(tests_issue_334_cfdp_transaction_id_dotest_SOURCES) \
+	$(udp2file_SOURCES) $(udpcli_SOURCES) $(udpclo_SOURCES) \
+	$(udplsi_SOURCES) $(udplso_SOURCES)
+DIST_SOURCES = $(libams_la_SOURCES) $(libbp_la_SOURCES) \
+	$(libcfdp_la_SOURCES) $(libcgr_la_SOURCES) \
+	$(libdgr_la_SOURCES) $(libdtn2fw_la_SOURCES) \
+	$(libici_la_SOURCES) $(libipnfw_la_SOURCES) \
+	$(libltp_la_SOURCES) $(libtcpcla_la_SOURCES) \
+	$(libudpcla_la_SOURCES) \
+	$(tests_library_libtestutil_la_SOURCES) $(amsbenchr_SOURCES) \
+	$(amsbenchs_SOURCES) $(amsd_SOURCES) $(amshello_SOURCES) \
+	$(amslog_SOURCES) $(amslogprt_SOURCES) $(amsshell_SOURCES) \
+	$(aoslsi_SOURCES) $(aoslso_SOURCES) $(bpadmin_SOURCES) \
+	$(bpcancel_SOURCES) $(bpchat_SOURCES) $(bpclock_SOURCES) \
+	$(bpcounter_SOURCES) $(bpdriver_SOURCES) $(bpecho_SOURCES) \
+	$(bping_SOURCES) $(bplist_SOURCES) $(bprecvfile_SOURCES) \
+	$(bpsendfile_SOURCES) $(bpsink_SOURCES) $(bpsource_SOURCES) \
+	$(bpstats_SOURCES) $(bpstats2_SOURCES) $(bptrace_SOURCES) \
+	$(bputa_SOURCES) $(brsccla_SOURCES) $(brsscla_SOURCES) \
+	$(cfdpadmin_SOURCES) $(cfdpclock_SOURCES) $(cfdptest_SOURCES) \
+	$(dccpcli_SOURCES) $(dccpclo_SOURCES) $(dccplsi_SOURCES) \
+	$(dccplso_SOURCES) $(dgr2file_SOURCES) $(dgrcla_SOURCES) \
+	$(dtn2admin_SOURCES) $(dtn2adminep_SOURCES) $(dtn2fw_SOURCES) \
+	$(file2dgr_SOURCES) $(file2sdr_SOURCES) $(file2sm_SOURCES) \
+	$(file2tcp_SOURCES) $(file2udp_SOURCES) $(hmackeys_SOURCES) \
+	$(ionadmin_SOURCES) $(ionsecadmin_SOURCES) $(ipnadmin_SOURCES) \
+	$(ipnadminep_SOURCES) $(ipnfw_SOURCES) $(lgagent_SOURCES) \
+	$(lgsend_SOURCES) $(ltpadmin_SOURCES) $(ltpcli_SOURCES) \
+	$(ltpclo_SOURCES) $(ltpclock_SOURCES) $(ltpcounter_SOURCES) \
+	$(ltpdriver_SOURCES) $(ltpmeter_SOURCES) $(owltsim_SOURCES) \
+	$(owlttb_SOURCES) $(psmshell_SOURCES) $(psmwatch_SOURCES) \
+	$(ramsgate_SOURCES) $(rfxclock_SOURCES) $(sdr2file_SOURCES) \
+	$(sdrmend_SOURCES) $(sdrwatch_SOURCES) $(sm2file_SOURCES) \
+	$(smlistsh_SOURCES) $(stcpcli_SOURCES) $(stcpclo_SOURCES) \
+	$(tcp2file_SOURCES) $(tcpcli_SOURCES) $(tcpclo_SOURCES) \
+	$(tests_1000_loopback_dotest_SOURCES) \
+	$(tests_issue_188_common_cos_syntax_dotest_SOURCES) \
+	$(tests_issue_260_teach_valgrind_mtake_domtake_SOURCES) \
 	$(udp2file_SOURCES) $(udpcli_SOURCES) $(udpclo_SOURCES) \
 	$(udplsi_SOURCES) $(udplso_SOURCES)
 man1dir = $(mandir)/man1
@@ -1027,16 +867,16 @@ DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /home/spwdev/greg/cstl/ion-codebase/missing --run aclocal-1.10
-AMTAR = ${SHELL} /home/spwdev/greg/cstl/ion-codebase/missing --run tar
+ACLOCAL = ${SHELL} /mnt/spwdev/greg/temp/ion-open-source/missing --run aclocal-1.10
+AMTAR = ${SHELL} /mnt/spwdev/greg/temp/ion-open-source/missing --run tar
 AR = ar
-AUTOCONF = ${SHELL} /home/spwdev/greg/cstl/ion-codebase/missing --run autoconf
-AUTOHEADER = ${SHELL} /home/spwdev/greg/cstl/ion-codebase/missing --run autoheader
-AUTOMAKE = ${SHELL} /home/spwdev/greg/cstl/ion-codebase/missing --run automake-1.10
+AUTOCONF = ${SHELL} /mnt/spwdev/greg/temp/ion-open-source/missing --run autoconf
+AUTOHEADER = ${SHELL} /mnt/spwdev/greg/temp/ion-open-source/missing --run autoheader
+AUTOMAKE = ${SHELL} /mnt/spwdev/greg/temp/ion-open-source/missing --run automake-1.10
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -DENABLE_BPACS 
+CFLAGS = -g -O2
 CPP = gcc -E
 CPPFLAGS = 
 CYGPATH_W = echo
@@ -1047,21 +887,19 @@ DUMPBIN =
 ECHO_C = 
 ECHO_N = -n
 ECHO_T = 
-EGREP = /bin/grep -E
+EGREP = /usr/sfw/bin/ggrep -E
 EXEEXT = 
 EXPAT_LIBS = -lexpat
-FGREP = /bin/grep -F
-GREP = /bin/grep
-GROFF = /usr/bin/groff
-GROFFMS = /usr/bin/groff
-INSTALL = /usr/bin/install -c
+FGREP = /usr/sfw/bin/ggrep -F
+GREP = /usr/sfw/bin/ggrep
+INSTALL = /opt/csw/bin/ginstall -c
 INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-ION_CFLAGS =  -Dlinux -fno-strict-aliasing
-ION_LINK_FLAGS = 
-LD = /usr/bin/ld
+ION_CFLAGS =  -Dsol -Dunix -D__SVR4 -D_REENTRANT -fPIC -fno-strict-aliasing -fno-builtin
+ION_LINK_FLAGS =  -fPIC -shared -lrt -lsocket -lnsl
+LD = /usr/ccs/bin/ld
 LDFLAGS = 
 LIBOBJS = 
 LIBS = 
@@ -1069,9 +907,9 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIPO = 
 LN_S = ln -s
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/spwdev/greg/cstl/ion-codebase/missing --run makeinfo
-MKDIR_P = /bin/mkdir -p
-NM = /usr/bin/nm -B
+MAKEINFO = ${SHELL} /mnt/spwdev/greg/temp/ion-open-source/missing --run makeinfo
+MKDIR_P = /opt/csw/bin/gmkdir -p
+NM = /usr/ccs/bin/nm -p
 NMEDIT = 
 OBJEXT = o
 OTOOL = 
@@ -1079,26 +917,22 @@ OTOOL64 =
 PACKAGE = ion
 PACKAGE_BUGREPORT = http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs
 PACKAGE_NAME = ion
-PACKAGE_STRING = ion 2.5.3
+PACKAGE_STRING = ion 2.4.1
 PACKAGE_TARNAME = ion
-PACKAGE_VERSION = 2.5.3
+PACKAGE_VERSION = 2.4.1
 PATH_SEPARATOR = :
-PDF2PS = /usr/bin/pdf2ps
 POD_DOCUMENTATION = pod2man
-PS2PDF = /usr/bin/ps2pdf
-PSJOIN = /home/spwdev/greg/cstl/ion-codebase/doc/psjoin
 PTHREAD_LIBS = -lpthread
 RANLIB = ranlib
 SED = /bin/sed
 SET_MAKE = 
-SHELL = /bin/sh
+SHELL = /bin/bash
 STRIP = strip
-VALGRIND_COMPAT_CFLAGS = 
-VERSION = 2.5.3
-abs_builddir = /home/spwdev/greg/cstl/ion-codebase
-abs_srcdir = /home/spwdev/greg/cstl/ion-codebase
-abs_top_builddir = /home/spwdev/greg/cstl/ion-codebase
-abs_top_srcdir = /home/spwdev/greg/cstl/ion-codebase
+VERSION = 2.4.1
+abs_builddir = /mnt/spwdev/greg/temp/ion-open-source
+abs_srcdir = /mnt/spwdev/greg/temp/ion-open-source
+abs_top_builddir = /mnt/spwdev/greg/temp/ion-open-source
+abs_top_srcdir = /mnt/spwdev/greg/temp/ion-open-source
 ac_ct_CC = gcc
 ac_ct_DUMPBIN = 
 am__include = include
@@ -1107,33 +941,33 @@ am__quote =
 am__tar = ${AMTAR} chof - "$$tardir"
 am__untar = ${AMTAR} xf -
 bindir = ${exec_prefix}/bin
-build = i686-pc-linux-gnu
+build = sparc-sun-solaris2.10
 build_alias = 
-build_cpu = i686
-build_os = linux-gnu
-build_vendor = pc
+build_cpu = sparc
+build_os = solaris2.10
+build_vendor = sun
 builddir = .
 datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
 exec_prefix = ${prefix}
-host = i686-pc-linux-gnu
+host = sparc-sun-solaris2.10
 host_alias = 
-host_cpu = i686
-host_os = linux-gnu
-host_vendor = pc
+host_cpu = sparc
+host_os = solaris2.10
+host_vendor = sun
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = $(SHELL) /home/spwdev/greg/cstl/ion-codebase/install-sh
+install_sh = $(SHELL) /mnt/spwdev/greg/temp/ion-open-source/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
 localstatedir = ${prefix}/var
 lt_ECHO = echo
 mandir = ${datarootdir}/man
-mkdir_p = /bin/mkdir -p
+mkdir_p = /opt/csw/bin/gmkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
 prefix = /usr/local
@@ -1146,17 +980,18 @@ sysconfdir = ${prefix}/etc
 target_alias = 
 top_builddir = .
 top_srcdir = .
-#	-I$(srcdir)/icix/include
+AM_CFLAGS = \
+	$(ION_CFLAGS) \
+	-Wall -Werror -g \
+	-include config.h \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/ltp/include \
+	-I$(srcdir)/dgr/include \
+	-I$(srcdir)/bp/include \
+	-I$(srcdir)/ams/include \
+	-I$(srcdir)/cfdp/include
 
-# This will add CFLAGS to make the valgrind macros compile without
-# warnings/errors on some systems with specific versions of valgrind
-# and gcc (see configure.ac and issue #298 for details).  If valgrind
-# support is not present, this variable is empty.
-AM_CFLAGS = $(ION_CFLAGS) -Wall -Werror -g -include config.h \
-	-I$(srcdir)/ici/include -I$(srcdir)/ltp/include \
-	-I$(srcdir)/dgr/include -I$(srcdir)/bp/include \
-	-I$(srcdir)/ams/include -I$(srcdir)/cfdp/include \
-	$(VALGRIND_COMPAT_CFLAGS)
+#	-I$(srcdir)/icix/include
 
 # don't use AM_LDFLAGS because autoconf sets it INCORRECTLY and it will
 # segfault anything using libraries... which is everything.
@@ -1367,12 +1202,11 @@ iciPODM5 = pod2man -s 5 -c "ICI configuration files"
 # can we use pod2html in the release? or should we just
 # compile these for the website use only?
 # iciPODH = pod2html --noindex
-icicflags = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr 
+icicflags = -I$(srcdir)/ici/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr 
 icibin = \
 	sdrwatch \
 	psmwatch \
 	ionadmin \
-	ionexit \
 	ionsecadmin \
 	sdrmend \
 	file2sm \
@@ -1524,9 +1358,6 @@ psmwatch_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionadmin_SOURCES = ici/utils/ionadmin.c
 ionadmin_LDADD = libici.la $(LIBOBJS) 
 ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
-ionexit_SOURCES = ici/utils/ionexit.c
-ionexit_LDADD = libbp.la libltp.la libici.la $(LIBOBJS) 
-ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
 ionsecadmin_LDADD = libici.la $(LIBOBJS) 
 ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
@@ -1783,12 +1614,46 @@ bpPODM5 = pod2man -s 5 -c "BP configuration files"
 # compile these for the website use only?
 #bpPODH = pod2html --noindex
 bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -DBP_EXTENDED
-bpbin = bpadmin bpsink bpdriver bpsource bpecho bpcancel bpcounter \
-	bplist bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep \
-	dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo \
-	brsscla brsccla udpcli udpclo dccpcli dccpclo dgrcla ltpcli \
-	ltpclo lgsend lgagent bptrace bping bpstats bpstats2 bpchat \
-	hmackeys $(am__append_1)
+bpbin = \
+	bpadmin \
+	bpsink \
+	bpdriver \
+	bpsource \
+	bpecho \
+	bpcancel \
+	bpcounter \
+	bplist \
+	bpsendfile \
+	bprecvfile \
+	bpclock \
+	ipnadmin \
+	ipnfw \
+	ipnadminep \
+	dtn2admin \
+	dtn2fw \
+	dtn2adminep \
+	tcpcli \
+	tcpclo \
+	stcpcli \
+	stcpclo \
+	brsscla \
+	brsccla \
+	udpcli \
+	udpclo \
+	dccpcli \
+	dccpclo	\
+	dgrcla \
+	ltpcli \
+	ltpclo \
+	lgsend \
+	lgagent \
+	bptrace \
+	bping \
+	bpstats \
+	bpstats2 \
+	bpchat \
+	hmackeys
+
 bplib = \
 	libbp.la \
 	libcgr.la \
@@ -1882,7 +1747,8 @@ bpextra = \
 # For this reason, it is extra_DIST.
 # ecos and myextensions are optional and it is unclear if they must be
 # installed in the normal case- so we shall leave them extra_DIST for now.
-bpmans = $(top_builddir)/bp/doc/bpadmin.1 \
+bpmans = \
+	$(top_builddir)/bp/doc/bpadmin.1 \
 	$(top_builddir)/bp/doc/bpclock.1 \
 	$(top_builddir)/bp/doc/bpcounter.1 \
 	$(top_builddir)/bp/doc/bpcancel.1 \
@@ -1920,10 +1786,13 @@ bpmans = $(top_builddir)/bp/doc/bpadmin.1 \
 	$(top_builddir)/bp/doc/bpstats2.1 \
 	$(top_builddir)/bp/doc/bpchat.1 \
 	$(top_builddir)/bp/doc/hmackeys.1 \
-	$(top_builddir)/bp/doc/bprc.5 $(top_builddir)/bp/doc/ipnrc.5 \
+	$(top_builddir)/bp/doc/bprc.5 \
+	$(top_builddir)/bp/doc/ipnrc.5 \
 	$(top_builddir)/bp/doc/dtn2rc.5 \
-	$(top_builddir)/bp/doc/lgfile.5 $(top_builddir)/bp/doc/bp.3 \
-	$(top_builddir)/bp/doc/bpextensions.3 $(am__append_2)
+	$(top_builddir)/bp/doc/lgfile.5 \
+	$(top_builddir)/bp/doc/bp.3 \
+	$(top_builddir)/bp/doc/bpextensions.3
+
 
 # -- Libraries --- #
 libipnfw_la_SOURCES = bp/ipn/libipnfw.c 
@@ -1944,14 +1813,29 @@ libudpcla_la_LDFLAGS = $(ION_LINK_FLAGS)
 libudpcla_la_LIBADD = libbp.la libici.la
 
 #bvb (added bei.c), does bsp.c remain?
-libbp_la_SOURCES = bp/library/libbp.c bp/library/libbpP.c \
-	bp/library/ext/phn/phn.c bp/library/ext/ecos/ecos.c \
-	bp/library/bei.c bp/library/ext/bsp/extbsputil.c \
+libbp_la_SOURCES = \
+	bp/library/libbp.c \
+	bp/library/libbpP.c \
+	bp/library/ext/phn/phn.c \
+	bp/library/ext/ecos/ecos.c \
+	bp/library/bei.c \
+	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.c \
-	bp/library/crypto/NULL_SUITES/crypto.c $(am__append_3)
+	bp/library/crypto/NULL_SUITES/crypto.c 
+
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libbp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libbp_la_LIBADD = libici.la $(PTHREAD_LIBS)
+
+# ecos, phn, and bpP had a circular dependency;
+# now they are one.
+#libecos_la_SOURCES = bp/library/ecos.c
+#libecos_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+#libecos_la_LDFLAGS = $(ION_LINK_FLAGS)
+#
+#libphn_la_SOURCES = bp/library/phn.c
+#libphn_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+#libphn_la_LDFLAGS = $(ION_LINK_FLAGS)
 libcgr_la_SOURCES = bp/cgr/libcgr.c
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libcgr_la_LDFLAGS = $(ION_LINK_FLAGS)
@@ -1964,12 +1848,6 @@ bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 ipnadmin_SOURCES = bp/ipn/ipnadmin.c
 ipnadmin_LDADD = libipnfw.la libbp.la libici.la $(LIBOBJS) 
 ipnadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-acsadmin_SOURCES = bp/utils/acsadmin.c
-acsadmin_LDADD = libbp.la libici.la $(LIBOBJS)
-acsadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-acslist_SOURCES = bp/utils/acslist.c
-acslist_LDADD = libbp.la libici.la $(LIBOBJS)
-acslist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 dtn2admin_SOURCES = bp/dtn2/dtn2admin.c
 dtn2admin_LDADD = libdtn2fw.la libbp.la libici.la $(LIBOBJS) 
 dtn2admin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -2106,7 +1984,7 @@ bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # AMS SECTION
 #
 ##########################
-amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -DUDPTS -DTCPTS -DDGRTS
+amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams
 amsbin = \
 	amsd \
 	amshello \
@@ -2115,7 +1993,6 @@ amsbin = \
 	amslogprt \
 	amsbenchs \
 	amsbenchr \
-	amsstop \
 	ramsgate
 
 amslib = \
@@ -2149,7 +2026,7 @@ libams_la_SOURCES = \
 	ams/library/udpts.c \
 	ams/library/tcpts.c
 
-libams_la_LDFLAGS = $(ION_LINK_FLAGS) -static
+libams_la_LDFLAGS = $(ION_LINK_FLAGS)
 libams_la_CFLAGS = $(amscflags) $(AM_CFLAGS)
 libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la
 
@@ -2174,15 +2051,13 @@ amsbenchs_CFLAGS = $(amscflags) $(AM_CFLAGS)
 amsbenchr_SOURCES = ams/test/amsbenchr.c
 amsbenchr_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
 amsbenchr_CFLAGS = $(amscflags) $(AM_CFLAGS)
-amsstop_SOURCES = ams/utils/amsstop.c
-amsstop_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
-amsstop_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 amsd_SOURCES = \
 	ams/library/amsd.c \
 	ams/library/libams.c \
 	ams/library/amscommon.c \
+	ams/library/loadmib.c \
 	ams/library/crypt.c \
 	ams/library/dgrts.c \
 	ams/library/udpts.c \
@@ -2222,11 +2097,11 @@ cfdplib = \
 	libcfdp.la
 
 cfdpinclude = \
-	cfdp/include/cfdp.h \
-	cfdp/include/cfdpops.h
+	cfdp/include/cfdp.h
 
 cfdpnoinst = \
-	cfdp/library/cfdpP.h
+	cfdp/library/cfdpP.h \
+	cfdp/include/cfdpops.h
 
 cfdpextra = \
 	cfdp/doc/pod3/cfdp.pod \
@@ -2282,7 +2157,6 @@ TESTUTILCFLAGS = -Itests/library
 check_LTLIBRARIES = $(TESTUTILOBJS)
 tests_library_libtestutil_la_SOURCES = \
 	tests/library/check.c \
-	tests/library/paths.c \
 	tests/library/ionstart.c \
 	tests/library/ionstop.c
 
@@ -2291,42 +2165,12 @@ tests_library_libtestutil_la_LDFLAGS = $(ION_LINK_FLAGS)
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
-tests_1300_loopback_tcp_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
-tests_1300_loopback_tcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-tests_1400_loopback_stcp_dotest_SOURCES = tests/1400.loopback-stcp/dotest.c
-tests_1400_loopback_stcp_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
-tests_1400_loopback_stcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
-tests_1500_loopback_brs_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
-tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
 tests_issue_188_common_cos_syntax_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_issue_260_teach_valgrind_mtake_domtake_SOURCES = tests/issue-260-teach-valgrind-mtake/domtake.c
 tests_issue_260_teach_valgrind_mtake_domtake_LDADD = libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline/driver.c
-tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
-tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-tests_issue_333_cfdp_orig_ID_type_send_SOURCES = tests/issue-333-cfdp-orig-ID-type/send.c
-tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
-tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
-tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
-tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-
-# The targets in man_MANS that are actually manpages (and not phony targets
-# for making directories, etc.)
-justmans := $(filter %.1 %.3 %.5,$(man_MANS))
-mans_as_ps := $(patsubst %,%.ps,$(justmans))
-mans_1_as_ps := $(sort $(filter %.1.ps,$(mans_as_ps)))
-mans_3_as_ps := $(sort $(filter %.3.ps,$(mans_as_ps)))
-mans_5_as_ps := $(sort $(filter %.5.ps,$(mans_as_ps)))
-mans_as_ps_sorted := $(mans_1_as_ps) $(mans_3_as_ps) $(mans_5_as_ps)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -2491,32 +2335,6 @@ bp/library/crypto/NULL_SUITES/$(DEPDIR)/$(am__dirstamp):
 bp/library/crypto/NULL_SUITES/libbp_la-crypto.lo:  \
 	bp/library/crypto/NULL_SUITES/$(am__dirstamp) \
 	bp/library/crypto/NULL_SUITES/$(DEPDIR)/$(am__dirstamp)
-bp/library/acs/$(am__dirstamp):
-	@$(MKDIR_P) bp/library/acs
-	@: > bp/library/acs/$(am__dirstamp)
-bp/library/acs/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) bp/library/acs/$(DEPDIR)
-	@: > bp/library/acs/$(DEPDIR)/$(am__dirstamp)
-bp/library/acs/libbp_la-acsrx.lo: bp/library/acs/$(am__dirstamp) \
-	bp/library/acs/$(DEPDIR)/$(am__dirstamp)
-bp/library/acs/libbp_la-acstx.lo: bp/library/acs/$(am__dirstamp) \
-	bp/library/acs/$(DEPDIR)/$(am__dirstamp)
-bp/library/acs/libbp_la-acsserialize.lo:  \
-	bp/library/acs/$(am__dirstamp) \
-	bp/library/acs/$(DEPDIR)/$(am__dirstamp)
-bp/library/acs/libbp_la-acsappend.lo: bp/library/acs/$(am__dirstamp) \
-	bp/library/acs/$(DEPDIR)/$(am__dirstamp)
-bp/library/acs/libbp_la-acsid.lo: bp/library/acs/$(am__dirstamp) \
-	bp/library/acs/$(DEPDIR)/$(am__dirstamp)
-bp/library/ext/cteb/$(am__dirstamp):
-	@$(MKDIR_P) bp/library/ext/cteb
-	@: > bp/library/ext/cteb/$(am__dirstamp)
-bp/library/ext/cteb/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) bp/library/ext/cteb/$(DEPDIR)
-	@: > bp/library/ext/cteb/$(DEPDIR)/$(am__dirstamp)
-bp/library/ext/cteb/libbp_la-cteb.lo:  \
-	bp/library/ext/cteb/$(am__dirstamp) \
-	bp/library/ext/cteb/$(DEPDIR)/$(am__dirstamp)
 libbp.la: $(libbp_la_OBJECTS) $(libbp_la_DEPENDENCIES) 
 	$(libbp_la_LINK) -rpath $(libdir) $(libbp_la_OBJECTS) $(libbp_la_LIBADD) $(LIBS)
 cfdp/library/$(am__dirstamp):
@@ -2666,9 +2484,6 @@ tests/library/$(DEPDIR)/$(am__dirstamp):
 tests/library/tests_library_libtestutil_la-check.lo:  \
 	tests/library/$(am__dirstamp) \
 	tests/library/$(DEPDIR)/$(am__dirstamp)
-tests/library/tests_library_libtestutil_la-paths.lo:  \
-	tests/library/$(am__dirstamp) \
-	tests/library/$(DEPDIR)/$(am__dirstamp)
 tests/library/tests_library_libtestutil_la-ionstart.lo:  \
 	tests/library/$(am__dirstamp) \
 	tests/library/$(DEPDIR)/$(am__dirstamp)
@@ -2712,22 +2527,6 @@ clean-checkPROGRAMS:
 	  echo " rm -f $$p $$f"; \
 	  rm -f $$p $$f ; \
 	done
-bp/utils/$(am__dirstamp):
-	@$(MKDIR_P) bp/utils
-	@: > bp/utils/$(am__dirstamp)
-bp/utils/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) bp/utils/$(DEPDIR)
-	@: > bp/utils/$(DEPDIR)/$(am__dirstamp)
-bp/utils/acsadmin-acsadmin.$(OBJEXT): bp/utils/$(am__dirstamp) \
-	bp/utils/$(DEPDIR)/$(am__dirstamp)
-acsadmin$(EXEEXT): $(acsadmin_OBJECTS) $(acsadmin_DEPENDENCIES) 
-	@rm -f acsadmin$(EXEEXT)
-	$(acsadmin_LINK) $(acsadmin_OBJECTS) $(acsadmin_LDADD) $(LIBS)
-bp/utils/acslist-acslist.$(OBJEXT): bp/utils/$(am__dirstamp) \
-	bp/utils/$(DEPDIR)/$(am__dirstamp)
-acslist$(EXEEXT): $(acslist_OBJECTS) $(acslist_DEPENDENCIES) 
-	@rm -f acslist$(EXEEXT)
-	$(acslist_LINK) $(acslist_OBJECTS) $(acslist_LDADD) $(LIBS)
 ams/test/$(am__dirstamp):
 	@$(MKDIR_P) ams/test
 	@: > ams/test/$(am__dirstamp)
@@ -2749,6 +2548,8 @@ ams/library/amsd-amsd.$(OBJEXT): ams/library/$(am__dirstamp) \
 ams/library/amsd-libams.$(OBJEXT): ams/library/$(am__dirstamp) \
 	ams/library/$(DEPDIR)/$(am__dirstamp)
 ams/library/amsd-amscommon.$(OBJEXT): ams/library/$(am__dirstamp) \
+	ams/library/$(DEPDIR)/$(am__dirstamp)
+ams/library/amsd-loadmib.$(OBJEXT): ams/library/$(am__dirstamp) \
 	ams/library/$(DEPDIR)/$(am__dirstamp)
 ams/library/amsd-crypt.$(OBJEXT): ams/library/$(am__dirstamp) \
 	ams/library/$(DEPDIR)/$(am__dirstamp)
@@ -2781,17 +2582,6 @@ ams/test/amsshell-amsshell.$(OBJEXT): ams/test/$(am__dirstamp) \
 amsshell$(EXEEXT): $(amsshell_OBJECTS) $(amsshell_DEPENDENCIES) 
 	@rm -f amsshell$(EXEEXT)
 	$(amsshell_LINK) $(amsshell_OBJECTS) $(amsshell_LDADD) $(LIBS)
-ams/utils/$(am__dirstamp):
-	@$(MKDIR_P) ams/utils
-	@: > ams/utils/$(am__dirstamp)
-ams/utils/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) ams/utils/$(DEPDIR)
-	@: > ams/utils/$(DEPDIR)/$(am__dirstamp)
-ams/utils/amsstop-amsstop.$(OBJEXT): ams/utils/$(am__dirstamp) \
-	ams/utils/$(DEPDIR)/$(am__dirstamp)
-amsstop$(EXEEXT): $(amsstop_OBJECTS) $(amsstop_DEPENDENCIES) 
-	@rm -f amsstop$(EXEEXT)
-	$(amsstop_LINK) $(amsstop_OBJECTS) $(amsstop_LDADD) $(LIBS)
 ltp/aos/$(am__dirstamp):
 	@$(MKDIR_P) ltp/aos
 	@: > ltp/aos/$(am__dirstamp)
@@ -2808,6 +2598,12 @@ ltp/aos/aoslso-aoslso.$(OBJEXT): ltp/aos/$(am__dirstamp) \
 aoslso$(EXEEXT): $(aoslso_OBJECTS) $(aoslso_DEPENDENCIES) 
 	@rm -f aoslso$(EXEEXT)
 	$(aoslso_LINK) $(aoslso_OBJECTS) $(aoslso_LDADD) $(LIBS)
+bp/utils/$(am__dirstamp):
+	@$(MKDIR_P) bp/utils
+	@: > bp/utils/$(am__dirstamp)
+bp/utils/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) bp/utils/$(DEPDIR)
+	@: > bp/utils/$(DEPDIR)/$(am__dirstamp)
 bp/utils/bpadmin-bpadmin.$(OBJEXT): bp/utils/$(am__dirstamp) \
 	bp/utils/$(DEPDIR)/$(am__dirstamp)
 bpadmin$(EXEEXT): $(bpadmin_OBJECTS) $(bpadmin_DEPENDENCIES) 
@@ -3077,11 +2873,6 @@ ici/utils/ionadmin-ionadmin.$(OBJEXT): ici/utils/$(am__dirstamp) \
 ionadmin$(EXEEXT): $(ionadmin_OBJECTS) $(ionadmin_DEPENDENCIES) 
 	@rm -f ionadmin$(EXEEXT)
 	$(ionadmin_LINK) $(ionadmin_OBJECTS) $(ionadmin_LDADD) $(LIBS)
-ici/utils/ionexit-ionexit.$(OBJEXT): ici/utils/$(am__dirstamp) \
-	ici/utils/$(DEPDIR)/$(am__dirstamp)
-ionexit$(EXEEXT): $(ionexit_OBJECTS) $(ionexit_DEPENDENCIES) 
-	@rm -f ionexit$(EXEEXT)
-	$(ionexit_LINK) $(ionexit_OBJECTS) $(ionexit_LDADD) $(LIBS)
 ici/utils/ionsecadmin-ionsecadmin.$(OBJEXT):  \
 	ici/utils/$(am__dirstamp) ici/utils/$(DEPDIR)/$(am__dirstamp)
 ionsecadmin$(EXEEXT): $(ionsecadmin_OBJECTS) $(ionsecadmin_DEPENDENCIES) 
@@ -3279,42 +3070,6 @@ tests/1000.loopback/tests_1000_loopback_dotest-dotest.$(OBJEXT):  \
 tests/1000.loopback/dotest$(EXEEXT): $(tests_1000_loopback_dotest_OBJECTS) $(tests_1000_loopback_dotest_DEPENDENCIES) tests/1000.loopback/$(am__dirstamp)
 	@rm -f tests/1000.loopback/dotest$(EXEEXT)
 	$(tests_1000_loopback_dotest_LINK) $(tests_1000_loopback_dotest_OBJECTS) $(tests_1000_loopback_dotest_LDADD) $(LIBS)
-tests/1300.loopback-tcp/$(am__dirstamp):
-	@$(MKDIR_P) tests/1300.loopback-tcp
-	@: > tests/1300.loopback-tcp/$(am__dirstamp)
-tests/1300.loopback-tcp/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) tests/1300.loopback-tcp/$(DEPDIR)
-	@: > tests/1300.loopback-tcp/$(DEPDIR)/$(am__dirstamp)
-tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.$(OBJEXT):  \
-	tests/1300.loopback-tcp/$(am__dirstamp) \
-	tests/1300.loopback-tcp/$(DEPDIR)/$(am__dirstamp)
-tests/1300.loopback-tcp/dotest$(EXEEXT): $(tests_1300_loopback_tcp_dotest_OBJECTS) $(tests_1300_loopback_tcp_dotest_DEPENDENCIES) tests/1300.loopback-tcp/$(am__dirstamp)
-	@rm -f tests/1300.loopback-tcp/dotest$(EXEEXT)
-	$(tests_1300_loopback_tcp_dotest_LINK) $(tests_1300_loopback_tcp_dotest_OBJECTS) $(tests_1300_loopback_tcp_dotest_LDADD) $(LIBS)
-tests/1400.loopback-stcp/$(am__dirstamp):
-	@$(MKDIR_P) tests/1400.loopback-stcp
-	@: > tests/1400.loopback-stcp/$(am__dirstamp)
-tests/1400.loopback-stcp/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) tests/1400.loopback-stcp/$(DEPDIR)
-	@: > tests/1400.loopback-stcp/$(DEPDIR)/$(am__dirstamp)
-tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.$(OBJEXT):  \
-	tests/1400.loopback-stcp/$(am__dirstamp) \
-	tests/1400.loopback-stcp/$(DEPDIR)/$(am__dirstamp)
-tests/1400.loopback-stcp/dotest$(EXEEXT): $(tests_1400_loopback_stcp_dotest_OBJECTS) $(tests_1400_loopback_stcp_dotest_DEPENDENCIES) tests/1400.loopback-stcp/$(am__dirstamp)
-	@rm -f tests/1400.loopback-stcp/dotest$(EXEEXT)
-	$(tests_1400_loopback_stcp_dotest_LINK) $(tests_1400_loopback_stcp_dotest_OBJECTS) $(tests_1400_loopback_stcp_dotest_LDADD) $(LIBS)
-tests/1500.loopback-brs/$(am__dirstamp):
-	@$(MKDIR_P) tests/1500.loopback-brs
-	@: > tests/1500.loopback-brs/$(am__dirstamp)
-tests/1500.loopback-brs/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) tests/1500.loopback-brs/$(DEPDIR)
-	@: > tests/1500.loopback-brs/$(DEPDIR)/$(am__dirstamp)
-tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.$(OBJEXT):  \
-	tests/1500.loopback-brs/$(am__dirstamp) \
-	tests/1500.loopback-brs/$(DEPDIR)/$(am__dirstamp)
-tests/1500.loopback-brs/dotest$(EXEEXT): $(tests_1500_loopback_brs_dotest_OBJECTS) $(tests_1500_loopback_brs_dotest_DEPENDENCIES) tests/1500.loopback-brs/$(am__dirstamp)
-	@rm -f tests/1500.loopback-brs/dotest$(EXEEXT)
-	$(tests_1500_loopback_brs_dotest_LINK) $(tests_1500_loopback_brs_dotest_OBJECTS) $(tests_1500_loopback_brs_dotest_LDADD) $(LIBS)
 tests/issue-188-common-cos-syntax/$(am__dirstamp):
 	@$(MKDIR_P) tests/issue-188-common-cos-syntax
 	@: > tests/issue-188-common-cos-syntax/$(am__dirstamp)
@@ -3339,54 +3094,6 @@ tests/issue-260-teach-valgrind-mtake/tests_issue_260_teach_valgrind_mtake_domtak
 tests/issue-260-teach-valgrind-mtake/domtake$(EXEEXT): $(tests_issue_260_teach_valgrind_mtake_domtake_OBJECTS) $(tests_issue_260_teach_valgrind_mtake_domtake_DEPENDENCIES) tests/issue-260-teach-valgrind-mtake/$(am__dirstamp)
 	@rm -f tests/issue-260-teach-valgrind-mtake/domtake$(EXEEXT)
 	$(tests_issue_260_teach_valgrind_mtake_domtake_LINK) $(tests_issue_260_teach_valgrind_mtake_domtake_OBJECTS) $(tests_issue_260_teach_valgrind_mtake_domtake_LDADD) $(LIBS)
-tests/issue-279-bpMemo-timeline/$(am__dirstamp):
-	@$(MKDIR_P) tests/issue-279-bpMemo-timeline
-	@: > tests/issue-279-bpMemo-timeline/$(am__dirstamp)
-tests/issue-279-bpMemo-timeline/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) tests/issue-279-bpMemo-timeline/$(DEPDIR)
-	@: > tests/issue-279-bpMemo-timeline/$(DEPDIR)/$(am__dirstamp)
-tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.$(OBJEXT):  \
-	tests/issue-279-bpMemo-timeline/$(am__dirstamp) \
-	tests/issue-279-bpMemo-timeline/$(DEPDIR)/$(am__dirstamp)
-tests/issue-279-bpMemo-timeline/driver$(EXEEXT): $(tests_issue_279_bpMemo_timeline_driver_OBJECTS) $(tests_issue_279_bpMemo_timeline_driver_DEPENDENCIES) tests/issue-279-bpMemo-timeline/$(am__dirstamp)
-	@rm -f tests/issue-279-bpMemo-timeline/driver$(EXEEXT)
-	$(tests_issue_279_bpMemo_timeline_driver_LINK) $(tests_issue_279_bpMemo_timeline_driver_OBJECTS) $(tests_issue_279_bpMemo_timeline_driver_LDADD) $(LIBS)
-tests/issue-330-cfdpclock-FDU-removal/$(am__dirstamp):
-	@$(MKDIR_P) tests/issue-330-cfdpclock-FDU-removal
-	@: > tests/issue-330-cfdpclock-FDU-removal/$(am__dirstamp)
-tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)
-	@: > tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/$(am__dirstamp)
-tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.$(OBJEXT):  \
-	tests/issue-330-cfdpclock-FDU-removal/$(am__dirstamp) \
-	tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/$(am__dirstamp)
-tests/issue-330-cfdpclock-FDU-removal/cfdplisten$(EXEEXT): $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_OBJECTS) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_DEPENDENCIES) tests/issue-330-cfdpclock-FDU-removal/$(am__dirstamp)
-	@rm -f tests/issue-330-cfdpclock-FDU-removal/cfdplisten$(EXEEXT)
-	$(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LINK) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_OBJECTS) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD) $(LIBS)
-tests/issue-333-cfdp-orig-ID-type/$(am__dirstamp):
-	@$(MKDIR_P) tests/issue-333-cfdp-orig-ID-type
-	@: > tests/issue-333-cfdp-orig-ID-type/$(am__dirstamp)
-tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)
-	@: > tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/$(am__dirstamp)
-tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.$(OBJEXT):  \
-	tests/issue-333-cfdp-orig-ID-type/$(am__dirstamp) \
-	tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/$(am__dirstamp)
-tests/issue-333-cfdp-orig-ID-type/send$(EXEEXT): $(tests_issue_333_cfdp_orig_ID_type_send_OBJECTS) $(tests_issue_333_cfdp_orig_ID_type_send_DEPENDENCIES) tests/issue-333-cfdp-orig-ID-type/$(am__dirstamp)
-	@rm -f tests/issue-333-cfdp-orig-ID-type/send$(EXEEXT)
-	$(tests_issue_333_cfdp_orig_ID_type_send_LINK) $(tests_issue_333_cfdp_orig_ID_type_send_OBJECTS) $(tests_issue_333_cfdp_orig_ID_type_send_LDADD) $(LIBS)
-tests/issue-334-cfdp-transaction-id/$(am__dirstamp):
-	@$(MKDIR_P) tests/issue-334-cfdp-transaction-id
-	@: > tests/issue-334-cfdp-transaction-id/$(am__dirstamp)
-tests/issue-334-cfdp-transaction-id/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) tests/issue-334-cfdp-transaction-id/$(DEPDIR)
-	@: > tests/issue-334-cfdp-transaction-id/$(DEPDIR)/$(am__dirstamp)
-tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.$(OBJEXT):  \
-	tests/issue-334-cfdp-transaction-id/$(am__dirstamp) \
-	tests/issue-334-cfdp-transaction-id/$(DEPDIR)/$(am__dirstamp)
-tests/issue-334-cfdp-transaction-id/dotest$(EXEEXT): $(tests_issue_334_cfdp_transaction_id_dotest_OBJECTS) $(tests_issue_334_cfdp_transaction_id_dotest_DEPENDENCIES) tests/issue-334-cfdp-transaction-id/$(am__dirstamp)
-	@rm -f tests/issue-334-cfdp-transaction-id/dotest$(EXEEXT)
-	$(tests_issue_334_cfdp_transaction_id_dotest_LINK) $(tests_issue_334_cfdp_transaction_id_dotest_OBJECTS) $(tests_issue_334_cfdp_transaction_id_dotest_LDADD) $(LIBS)
 dgr/test/udp2file-udp2file.$(OBJEXT): dgr/test/$(am__dirstamp) \
 	dgr/test/$(DEPDIR)/$(am__dirstamp)
 udp2file$(EXEEXT): $(udp2file_OBJECTS) $(udp2file_DEPENDENCIES) 
@@ -3445,6 +3152,7 @@ mostlyclean-compile:
 	-rm -f ams/library/amsd-crypt.$(OBJEXT)
 	-rm -f ams/library/amsd-dgrts.$(OBJEXT)
 	-rm -f ams/library/amsd-libams.$(OBJEXT)
+	-rm -f ams/library/amsd-loadmib.$(OBJEXT)
 	-rm -f ams/library/amsd-tcpts.$(OBJEXT)
 	-rm -f ams/library/amsd-udpts.$(OBJEXT)
 	-rm -f ams/library/libams_la-amscommon.$(OBJEXT)
@@ -3470,7 +3178,6 @@ mostlyclean-compile:
 	-rm -f ams/test/amslog-amslog.$(OBJEXT)
 	-rm -f ams/test/amslogprt-amslogprt.$(OBJEXT)
 	-rm -f ams/test/amsshell-amsshell.$(OBJEXT)
-	-rm -f ams/utils/amsstop-amsstop.$(OBJEXT)
 	-rm -f bp/brs/brsccla-brsccla.$(OBJEXT)
 	-rm -f bp/brs/brsscla-brsscla.$(OBJEXT)
 	-rm -f bp/cgr/libcgr_la-libcgr.$(OBJEXT)
@@ -3489,24 +3196,12 @@ mostlyclean-compile:
 	-rm -f bp/ipn/ipnfw-ipnfw.$(OBJEXT)
 	-rm -f bp/ipn/libipnfw_la-libipnfw.$(OBJEXT)
 	-rm -f bp/ipn/libipnfw_la-libipnfw.lo
-	-rm -f bp/library/acs/libbp_la-acsappend.$(OBJEXT)
-	-rm -f bp/library/acs/libbp_la-acsappend.lo
-	-rm -f bp/library/acs/libbp_la-acsid.$(OBJEXT)
-	-rm -f bp/library/acs/libbp_la-acsid.lo
-	-rm -f bp/library/acs/libbp_la-acsrx.$(OBJEXT)
-	-rm -f bp/library/acs/libbp_la-acsrx.lo
-	-rm -f bp/library/acs/libbp_la-acsserialize.$(OBJEXT)
-	-rm -f bp/library/acs/libbp_la-acsserialize.lo
-	-rm -f bp/library/acs/libbp_la-acstx.$(OBJEXT)
-	-rm -f bp/library/acs/libbp_la-acstx.lo
 	-rm -f bp/library/crypto/NULL_SUITES/libbp_la-crypto.$(OBJEXT)
 	-rm -f bp/library/crypto/NULL_SUITES/libbp_la-crypto.lo
 	-rm -f bp/library/ext/bsp/libbp_la-extbspbab.$(OBJEXT)
 	-rm -f bp/library/ext/bsp/libbp_la-extbspbab.lo
 	-rm -f bp/library/ext/bsp/libbp_la-extbsputil.$(OBJEXT)
 	-rm -f bp/library/ext/bsp/libbp_la-extbsputil.lo
-	-rm -f bp/library/ext/cteb/libbp_la-cteb.$(OBJEXT)
-	-rm -f bp/library/ext/cteb/libbp_la-cteb.lo
 	-rm -f bp/library/ext/ecos/libbp_la-ecos.$(OBJEXT)
 	-rm -f bp/library/ext/ecos/libbp_la-ecos.lo
 	-rm -f bp/library/ext/phn/libbp_la-phn.$(OBJEXT)
@@ -3537,8 +3232,6 @@ mostlyclean-compile:
 	-rm -f bp/udp/libudpcla_la-libudpcla.lo
 	-rm -f bp/udp/udpcli-udpcli.$(OBJEXT)
 	-rm -f bp/udp/udpclo-udpclo.$(OBJEXT)
-	-rm -f bp/utils/acsadmin-acsadmin.$(OBJEXT)
-	-rm -f bp/utils/acslist-acslist.$(OBJEXT)
 	-rm -f bp/utils/bpadmin-bpadmin.$(OBJEXT)
 	-rm -f bp/utils/bpcancel-bpcancel.$(OBJEXT)
 	-rm -f bp/utils/bplist-bplist.$(OBJEXT)
@@ -3615,7 +3308,6 @@ mostlyclean-compile:
 	-rm -f ici/test/sm2file-sm2file.$(OBJEXT)
 	-rm -f ici/test/smlistsh-smlistsh.$(OBJEXT)
 	-rm -f ici/utils/ionadmin-ionadmin.$(OBJEXT)
-	-rm -f ici/utils/ionexit-ionexit.$(OBJEXT)
 	-rm -f ici/utils/ionsecadmin-ionsecadmin.$(OBJEXT)
 	-rm -f ici/utils/psmwatch-psmwatch.$(OBJEXT)
 	-rm -f ici/utils/sdrmend-sdrmend.$(OBJEXT)
@@ -3636,23 +3328,14 @@ mostlyclean-compile:
 	-rm -f ltp/udp/udplso-udplso.$(OBJEXT)
 	-rm -f ltp/utils/ltpadmin-ltpadmin.$(OBJEXT)
 	-rm -f tests/1000.loopback/tests_1000_loopback_dotest-dotest.$(OBJEXT)
-	-rm -f tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.$(OBJEXT)
-	-rm -f tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.$(OBJEXT)
-	-rm -f tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.$(OBJEXT)
 	-rm -f tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.$(OBJEXT)
 	-rm -f tests/issue-260-teach-valgrind-mtake/tests_issue_260_teach_valgrind_mtake_domtake-domtake.$(OBJEXT)
-	-rm -f tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.$(OBJEXT)
-	-rm -f tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.$(OBJEXT)
-	-rm -f tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.$(OBJEXT)
-	-rm -f tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.$(OBJEXT)
 	-rm -f tests/library/tests_library_libtestutil_la-check.$(OBJEXT)
 	-rm -f tests/library/tests_library_libtestutil_la-check.lo
 	-rm -f tests/library/tests_library_libtestutil_la-ionstart.$(OBJEXT)
 	-rm -f tests/library/tests_library_libtestutil_la-ionstart.lo
 	-rm -f tests/library/tests_library_libtestutil_la-ionstop.$(OBJEXT)
 	-rm -f tests/library/tests_library_libtestutil_la-ionstop.lo
-	-rm -f tests/library/tests_library_libtestutil_la-paths.$(OBJEXT)
-	-rm -f tests/library/tests_library_libtestutil_la-paths.lo
 
 distclean-compile:
 	-rm -f *.tab.c
@@ -3662,6 +3345,7 @@ include ams/library/$(DEPDIR)/amsd-amsd.Po
 include ams/library/$(DEPDIR)/amsd-crypt.Po
 include ams/library/$(DEPDIR)/amsd-dgrts.Po
 include ams/library/$(DEPDIR)/amsd-libams.Po
+include ams/library/$(DEPDIR)/amsd-loadmib.Po
 include ams/library/$(DEPDIR)/amsd-tcpts.Po
 include ams/library/$(DEPDIR)/amsd-udpts.Po
 include ams/library/$(DEPDIR)/libams_la-amscommon.Plo
@@ -3680,7 +3364,6 @@ include ams/test/$(DEPDIR)/amshello-amshello.Po
 include ams/test/$(DEPDIR)/amslog-amslog.Po
 include ams/test/$(DEPDIR)/amslogprt-amslogprt.Po
 include ams/test/$(DEPDIR)/amsshell-amsshell.Po
-include ams/utils/$(DEPDIR)/amsstop-amsstop.Po
 include bp/brs/$(DEPDIR)/brsccla-brsccla.Po
 include bp/brs/$(DEPDIR)/brsscla-brsscla.Po
 include bp/cgr/$(DEPDIR)/libcgr_la-libcgr.Plo
@@ -3699,15 +3382,9 @@ include bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Plo
 include bp/library/$(DEPDIR)/libbp_la-bei.Plo
 include bp/library/$(DEPDIR)/libbp_la-libbp.Plo
 include bp/library/$(DEPDIR)/libbp_la-libbpP.Plo
-include bp/library/acs/$(DEPDIR)/libbp_la-acsappend.Plo
-include bp/library/acs/$(DEPDIR)/libbp_la-acsid.Plo
-include bp/library/acs/$(DEPDIR)/libbp_la-acsrx.Plo
-include bp/library/acs/$(DEPDIR)/libbp_la-acsserialize.Plo
-include bp/library/acs/$(DEPDIR)/libbp_la-acstx.Plo
 include bp/library/crypto/NULL_SUITES/$(DEPDIR)/libbp_la-crypto.Plo
 include bp/library/ext/bsp/$(DEPDIR)/libbp_la-extbspbab.Plo
 include bp/library/ext/bsp/$(DEPDIR)/libbp_la-extbsputil.Plo
-include bp/library/ext/cteb/$(DEPDIR)/libbp_la-cteb.Plo
 include bp/library/ext/ecos/$(DEPDIR)/libbp_la-ecos.Plo
 include bp/library/ext/phn/$(DEPDIR)/libbp_la-phn.Plo
 include bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Po
@@ -3728,8 +3405,6 @@ include bp/test/$(DEPDIR)/bpstats2-bpstats2.Po
 include bp/udp/$(DEPDIR)/libudpcla_la-libudpcla.Plo
 include bp/udp/$(DEPDIR)/udpcli-udpcli.Po
 include bp/udp/$(DEPDIR)/udpclo-udpclo.Po
-include bp/utils/$(DEPDIR)/acsadmin-acsadmin.Po
-include bp/utils/$(DEPDIR)/acslist-acslist.Po
 include bp/utils/$(DEPDIR)/bpadmin-bpadmin.Po
 include bp/utils/$(DEPDIR)/bpcancel-bpcancel.Po
 include bp/utils/$(DEPDIR)/bplist-bplist.Po
@@ -3783,7 +3458,6 @@ include ici/test/$(DEPDIR)/sdr2file-sdr2file.Po
 include ici/test/$(DEPDIR)/sm2file-sm2file.Po
 include ici/test/$(DEPDIR)/smlistsh-smlistsh.Po
 include ici/utils/$(DEPDIR)/ionadmin-ionadmin.Po
-include ici/utils/$(DEPDIR)/ionexit-ionexit.Po
 include ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Po
 include ici/utils/$(DEPDIR)/psmwatch-psmwatch.Po
 include ici/utils/$(DEPDIR)/sdrmend-sdrmend.Po
@@ -3802,19 +3476,11 @@ include ltp/udp/$(DEPDIR)/udplsi-udplsi.Po
 include ltp/udp/$(DEPDIR)/udplso-udplso.Po
 include ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Po
 include tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Po
-include tests/1300.loopback-tcp/$(DEPDIR)/tests_1300_loopback_tcp_dotest-dotest.Po
-include tests/1400.loopback-stcp/$(DEPDIR)/tests_1400_loopback_stcp_dotest-dotest.Po
-include tests/1500.loopback-brs/$(DEPDIR)/tests_1500_loopback_brs_dotest-dotest.Po
 include tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Po
 include tests/issue-260-teach-valgrind-mtake/$(DEPDIR)/tests_issue_260_teach_valgrind_mtake_domtake-domtake.Po
-include tests/issue-279-bpMemo-timeline/$(DEPDIR)/tests_issue_279_bpMemo_timeline_driver-driver.Po
-include tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.Po
-include tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Po
-include tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Po
 include tests/library/$(DEPDIR)/tests_library_libtestutil_la-check.Plo
 include tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Plo
 include tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstop.Plo
-include tests/library/$(DEPDIR)/tests_library_libtestutil_la-paths.Plo
 
 .c.o:
 	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -3944,48 +3610,6 @@ bp/library/crypto/NULL_SUITES/libbp_la-crypto.lo: bp/library/crypto/NULL_SUITES/
 #	source='bp/library/crypto/NULL_SUITES/crypto.c' object='bp/library/crypto/NULL_SUITES/libbp_la-crypto.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/library/crypto/NULL_SUITES/libbp_la-crypto.lo `test -f 'bp/library/crypto/NULL_SUITES/crypto.c' || echo '$(srcdir)/'`bp/library/crypto/NULL_SUITES/crypto.c
-
-bp/library/acs/libbp_la-acsrx.lo: bp/library/acs/acsrx.c
-	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/library/acs/libbp_la-acsrx.lo -MD -MP -MF bp/library/acs/$(DEPDIR)/libbp_la-acsrx.Tpo -c -o bp/library/acs/libbp_la-acsrx.lo `test -f 'bp/library/acs/acsrx.c' || echo '$(srcdir)/'`bp/library/acs/acsrx.c
-	mv -f bp/library/acs/$(DEPDIR)/libbp_la-acsrx.Tpo bp/library/acs/$(DEPDIR)/libbp_la-acsrx.Plo
-#	source='bp/library/acs/acsrx.c' object='bp/library/acs/libbp_la-acsrx.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/library/acs/libbp_la-acsrx.lo `test -f 'bp/library/acs/acsrx.c' || echo '$(srcdir)/'`bp/library/acs/acsrx.c
-
-bp/library/acs/libbp_la-acstx.lo: bp/library/acs/acstx.c
-	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/library/acs/libbp_la-acstx.lo -MD -MP -MF bp/library/acs/$(DEPDIR)/libbp_la-acstx.Tpo -c -o bp/library/acs/libbp_la-acstx.lo `test -f 'bp/library/acs/acstx.c' || echo '$(srcdir)/'`bp/library/acs/acstx.c
-	mv -f bp/library/acs/$(DEPDIR)/libbp_la-acstx.Tpo bp/library/acs/$(DEPDIR)/libbp_la-acstx.Plo
-#	source='bp/library/acs/acstx.c' object='bp/library/acs/libbp_la-acstx.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/library/acs/libbp_la-acstx.lo `test -f 'bp/library/acs/acstx.c' || echo '$(srcdir)/'`bp/library/acs/acstx.c
-
-bp/library/acs/libbp_la-acsserialize.lo: bp/library/acs/acsserialize.c
-	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/library/acs/libbp_la-acsserialize.lo -MD -MP -MF bp/library/acs/$(DEPDIR)/libbp_la-acsserialize.Tpo -c -o bp/library/acs/libbp_la-acsserialize.lo `test -f 'bp/library/acs/acsserialize.c' || echo '$(srcdir)/'`bp/library/acs/acsserialize.c
-	mv -f bp/library/acs/$(DEPDIR)/libbp_la-acsserialize.Tpo bp/library/acs/$(DEPDIR)/libbp_la-acsserialize.Plo
-#	source='bp/library/acs/acsserialize.c' object='bp/library/acs/libbp_la-acsserialize.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/library/acs/libbp_la-acsserialize.lo `test -f 'bp/library/acs/acsserialize.c' || echo '$(srcdir)/'`bp/library/acs/acsserialize.c
-
-bp/library/acs/libbp_la-acsappend.lo: bp/library/acs/acsappend.c
-	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/library/acs/libbp_la-acsappend.lo -MD -MP -MF bp/library/acs/$(DEPDIR)/libbp_la-acsappend.Tpo -c -o bp/library/acs/libbp_la-acsappend.lo `test -f 'bp/library/acs/acsappend.c' || echo '$(srcdir)/'`bp/library/acs/acsappend.c
-	mv -f bp/library/acs/$(DEPDIR)/libbp_la-acsappend.Tpo bp/library/acs/$(DEPDIR)/libbp_la-acsappend.Plo
-#	source='bp/library/acs/acsappend.c' object='bp/library/acs/libbp_la-acsappend.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/library/acs/libbp_la-acsappend.lo `test -f 'bp/library/acs/acsappend.c' || echo '$(srcdir)/'`bp/library/acs/acsappend.c
-
-bp/library/acs/libbp_la-acsid.lo: bp/library/acs/acsid.c
-	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/library/acs/libbp_la-acsid.lo -MD -MP -MF bp/library/acs/$(DEPDIR)/libbp_la-acsid.Tpo -c -o bp/library/acs/libbp_la-acsid.lo `test -f 'bp/library/acs/acsid.c' || echo '$(srcdir)/'`bp/library/acs/acsid.c
-	mv -f bp/library/acs/$(DEPDIR)/libbp_la-acsid.Tpo bp/library/acs/$(DEPDIR)/libbp_la-acsid.Plo
-#	source='bp/library/acs/acsid.c' object='bp/library/acs/libbp_la-acsid.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/library/acs/libbp_la-acsid.lo `test -f 'bp/library/acs/acsid.c' || echo '$(srcdir)/'`bp/library/acs/acsid.c
-
-bp/library/ext/cteb/libbp_la-cteb.lo: bp/library/ext/cteb/cteb.c
-	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/library/ext/cteb/libbp_la-cteb.lo -MD -MP -MF bp/library/ext/cteb/$(DEPDIR)/libbp_la-cteb.Tpo -c -o bp/library/ext/cteb/libbp_la-cteb.lo `test -f 'bp/library/ext/cteb/cteb.c' || echo '$(srcdir)/'`bp/library/ext/cteb/cteb.c
-	mv -f bp/library/ext/cteb/$(DEPDIR)/libbp_la-cteb.Tpo bp/library/ext/cteb/$(DEPDIR)/libbp_la-cteb.Plo
-#	source='bp/library/ext/cteb/cteb.c' object='bp/library/ext/cteb/libbp_la-cteb.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/library/ext/cteb/libbp_la-cteb.lo `test -f 'bp/library/ext/cteb/cteb.c' || echo '$(srcdir)/'`bp/library/ext/cteb/cteb.c
 
 cfdp/library/libcfdp_la-libcfdp.lo: cfdp/library/libcfdp.c
 	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfdp_la_CFLAGS) $(CFLAGS) -MT cfdp/library/libcfdp_la-libcfdp.lo -MD -MP -MF cfdp/library/$(DEPDIR)/libcfdp_la-libcfdp.Tpo -c -o cfdp/library/libcfdp_la-libcfdp.lo `test -f 'cfdp/library/libcfdp.c' || echo '$(srcdir)/'`cfdp/library/libcfdp.c
@@ -4204,13 +3828,6 @@ tests/library/tests_library_libtestutil_la-check.lo: tests/library/check.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -c -o tests/library/tests_library_libtestutil_la-check.lo `test -f 'tests/library/check.c' || echo '$(srcdir)/'`tests/library/check.c
 
-tests/library/tests_library_libtestutil_la-paths.lo: tests/library/paths.c
-	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -MT tests/library/tests_library_libtestutil_la-paths.lo -MD -MP -MF tests/library/$(DEPDIR)/tests_library_libtestutil_la-paths.Tpo -c -o tests/library/tests_library_libtestutil_la-paths.lo `test -f 'tests/library/paths.c' || echo '$(srcdir)/'`tests/library/paths.c
-	mv -f tests/library/$(DEPDIR)/tests_library_libtestutil_la-paths.Tpo tests/library/$(DEPDIR)/tests_library_libtestutil_la-paths.Plo
-#	source='tests/library/paths.c' object='tests/library/tests_library_libtestutil_la-paths.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -c -o tests/library/tests_library_libtestutil_la-paths.lo `test -f 'tests/library/paths.c' || echo '$(srcdir)/'`tests/library/paths.c
-
 tests/library/tests_library_libtestutil_la-ionstart.lo: tests/library/ionstart.c
 	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -MT tests/library/tests_library_libtestutil_la-ionstart.lo -MD -MP -MF tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Tpo -c -o tests/library/tests_library_libtestutil_la-ionstart.lo `test -f 'tests/library/ionstart.c' || echo '$(srcdir)/'`tests/library/ionstart.c
 	mv -f tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Tpo tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Plo
@@ -4224,34 +3841,6 @@ tests/library/tests_library_libtestutil_la-ionstop.lo: tests/library/ionstop.c
 #	source='tests/library/ionstop.c' object='tests/library/tests_library_libtestutil_la-ionstop.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_library_libtestutil_la_CFLAGS) $(CFLAGS) -c -o tests/library/tests_library_libtestutil_la-ionstop.lo `test -f 'tests/library/ionstop.c' || echo '$(srcdir)/'`tests/library/ionstop.c
-
-bp/utils/acsadmin-acsadmin.o: bp/utils/acsadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(acsadmin_CFLAGS) $(CFLAGS) -MT bp/utils/acsadmin-acsadmin.o -MD -MP -MF bp/utils/$(DEPDIR)/acsadmin-acsadmin.Tpo -c -o bp/utils/acsadmin-acsadmin.o `test -f 'bp/utils/acsadmin.c' || echo '$(srcdir)/'`bp/utils/acsadmin.c
-	mv -f bp/utils/$(DEPDIR)/acsadmin-acsadmin.Tpo bp/utils/$(DEPDIR)/acsadmin-acsadmin.Po
-#	source='bp/utils/acsadmin.c' object='bp/utils/acsadmin-acsadmin.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(acsadmin_CFLAGS) $(CFLAGS) -c -o bp/utils/acsadmin-acsadmin.o `test -f 'bp/utils/acsadmin.c' || echo '$(srcdir)/'`bp/utils/acsadmin.c
-
-bp/utils/acsadmin-acsadmin.obj: bp/utils/acsadmin.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(acsadmin_CFLAGS) $(CFLAGS) -MT bp/utils/acsadmin-acsadmin.obj -MD -MP -MF bp/utils/$(DEPDIR)/acsadmin-acsadmin.Tpo -c -o bp/utils/acsadmin-acsadmin.obj `if test -f 'bp/utils/acsadmin.c'; then $(CYGPATH_W) 'bp/utils/acsadmin.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/acsadmin.c'; fi`
-	mv -f bp/utils/$(DEPDIR)/acsadmin-acsadmin.Tpo bp/utils/$(DEPDIR)/acsadmin-acsadmin.Po
-#	source='bp/utils/acsadmin.c' object='bp/utils/acsadmin-acsadmin.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(acsadmin_CFLAGS) $(CFLAGS) -c -o bp/utils/acsadmin-acsadmin.obj `if test -f 'bp/utils/acsadmin.c'; then $(CYGPATH_W) 'bp/utils/acsadmin.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/acsadmin.c'; fi`
-
-bp/utils/acslist-acslist.o: bp/utils/acslist.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(acslist_CFLAGS) $(CFLAGS) -MT bp/utils/acslist-acslist.o -MD -MP -MF bp/utils/$(DEPDIR)/acslist-acslist.Tpo -c -o bp/utils/acslist-acslist.o `test -f 'bp/utils/acslist.c' || echo '$(srcdir)/'`bp/utils/acslist.c
-	mv -f bp/utils/$(DEPDIR)/acslist-acslist.Tpo bp/utils/$(DEPDIR)/acslist-acslist.Po
-#	source='bp/utils/acslist.c' object='bp/utils/acslist-acslist.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(acslist_CFLAGS) $(CFLAGS) -c -o bp/utils/acslist-acslist.o `test -f 'bp/utils/acslist.c' || echo '$(srcdir)/'`bp/utils/acslist.c
-
-bp/utils/acslist-acslist.obj: bp/utils/acslist.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(acslist_CFLAGS) $(CFLAGS) -MT bp/utils/acslist-acslist.obj -MD -MP -MF bp/utils/$(DEPDIR)/acslist-acslist.Tpo -c -o bp/utils/acslist-acslist.obj `if test -f 'bp/utils/acslist.c'; then $(CYGPATH_W) 'bp/utils/acslist.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/acslist.c'; fi`
-	mv -f bp/utils/$(DEPDIR)/acslist-acslist.Tpo bp/utils/$(DEPDIR)/acslist-acslist.Po
-#	source='bp/utils/acslist.c' object='bp/utils/acslist-acslist.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(acslist_CFLAGS) $(CFLAGS) -c -o bp/utils/acslist-acslist.obj `if test -f 'bp/utils/acslist.c'; then $(CYGPATH_W) 'bp/utils/acslist.c'; else $(CYGPATH_W) '$(srcdir)/bp/utils/acslist.c'; fi`
 
 ams/test/amsbenchr-amsbenchr.o: ams/test/amsbenchr.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsbenchr_CFLAGS) $(CFLAGS) -MT ams/test/amsbenchr-amsbenchr.o -MD -MP -MF ams/test/$(DEPDIR)/amsbenchr-amsbenchr.Tpo -c -o ams/test/amsbenchr-amsbenchr.o `test -f 'ams/test/amsbenchr.c' || echo '$(srcdir)/'`ams/test/amsbenchr.c
@@ -4322,6 +3911,20 @@ ams/library/amsd-amscommon.obj: ams/library/amscommon.c
 #	source='ams/library/amscommon.c' object='ams/library/amsd-amscommon.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-amscommon.obj `if test -f 'ams/library/amscommon.c'; then $(CYGPATH_W) 'ams/library/amscommon.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/amscommon.c'; fi`
+
+ams/library/amsd-loadmib.o: ams/library/loadmib.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-loadmib.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-loadmib.Tpo -c -o ams/library/amsd-loadmib.o `test -f 'ams/library/loadmib.c' || echo '$(srcdir)/'`ams/library/loadmib.c
+	mv -f ams/library/$(DEPDIR)/amsd-loadmib.Tpo ams/library/$(DEPDIR)/amsd-loadmib.Po
+#	source='ams/library/loadmib.c' object='ams/library/amsd-loadmib.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-loadmib.o `test -f 'ams/library/loadmib.c' || echo '$(srcdir)/'`ams/library/loadmib.c
+
+ams/library/amsd-loadmib.obj: ams/library/loadmib.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-loadmib.obj -MD -MP -MF ams/library/$(DEPDIR)/amsd-loadmib.Tpo -c -o ams/library/amsd-loadmib.obj `if test -f 'ams/library/loadmib.c'; then $(CYGPATH_W) 'ams/library/loadmib.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/loadmib.c'; fi`
+	mv -f ams/library/$(DEPDIR)/amsd-loadmib.Tpo ams/library/$(DEPDIR)/amsd-loadmib.Po
+#	source='ams/library/loadmib.c' object='ams/library/amsd-loadmib.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -c -o ams/library/amsd-loadmib.obj `if test -f 'ams/library/loadmib.c'; then $(CYGPATH_W) 'ams/library/loadmib.c'; else $(CYGPATH_W) '$(srcdir)/ams/library/loadmib.c'; fi`
 
 ams/library/amsd-crypt.o: ams/library/crypt.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsd_CFLAGS) $(CFLAGS) -MT ams/library/amsd-crypt.o -MD -MP -MF ams/library/$(DEPDIR)/amsd-crypt.Tpo -c -o ams/library/amsd-crypt.o `test -f 'ams/library/crypt.c' || echo '$(srcdir)/'`ams/library/crypt.c
@@ -4434,20 +4037,6 @@ ams/test/amsshell-amsshell.obj: ams/test/amsshell.c
 #	source='ams/test/amsshell.c' object='ams/test/amsshell-amsshell.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsshell_CFLAGS) $(CFLAGS) -c -o ams/test/amsshell-amsshell.obj `if test -f 'ams/test/amsshell.c'; then $(CYGPATH_W) 'ams/test/amsshell.c'; else $(CYGPATH_W) '$(srcdir)/ams/test/amsshell.c'; fi`
-
-ams/utils/amsstop-amsstop.o: ams/utils/amsstop.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsstop_CFLAGS) $(CFLAGS) -MT ams/utils/amsstop-amsstop.o -MD -MP -MF ams/utils/$(DEPDIR)/amsstop-amsstop.Tpo -c -o ams/utils/amsstop-amsstop.o `test -f 'ams/utils/amsstop.c' || echo '$(srcdir)/'`ams/utils/amsstop.c
-	mv -f ams/utils/$(DEPDIR)/amsstop-amsstop.Tpo ams/utils/$(DEPDIR)/amsstop-amsstop.Po
-#	source='ams/utils/amsstop.c' object='ams/utils/amsstop-amsstop.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsstop_CFLAGS) $(CFLAGS) -c -o ams/utils/amsstop-amsstop.o `test -f 'ams/utils/amsstop.c' || echo '$(srcdir)/'`ams/utils/amsstop.c
-
-ams/utils/amsstop-amsstop.obj: ams/utils/amsstop.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsstop_CFLAGS) $(CFLAGS) -MT ams/utils/amsstop-amsstop.obj -MD -MP -MF ams/utils/$(DEPDIR)/amsstop-amsstop.Tpo -c -o ams/utils/amsstop-amsstop.obj `if test -f 'ams/utils/amsstop.c'; then $(CYGPATH_W) 'ams/utils/amsstop.c'; else $(CYGPATH_W) '$(srcdir)/ams/utils/amsstop.c'; fi`
-	mv -f ams/utils/$(DEPDIR)/amsstop-amsstop.Tpo ams/utils/$(DEPDIR)/amsstop-amsstop.Po
-#	source='ams/utils/amsstop.c' object='ams/utils/amsstop-amsstop.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(amsstop_CFLAGS) $(CFLAGS) -c -o ams/utils/amsstop-amsstop.obj `if test -f 'ams/utils/amsstop.c'; then $(CYGPATH_W) 'ams/utils/amsstop.c'; else $(CYGPATH_W) '$(srcdir)/ams/utils/amsstop.c'; fi`
 
 ltp/aos/aoslsi-aoslsi.o: ltp/aos/aoslsi.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(aoslsi_CFLAGS) $(CFLAGS) -MT ltp/aos/aoslsi-aoslsi.o -MD -MP -MF ltp/aos/$(DEPDIR)/aoslsi-aoslsi.Tpo -c -o ltp/aos/aoslsi-aoslsi.o `test -f 'ltp/aos/aoslsi.c' || echo '$(srcdir)/'`ltp/aos/aoslsi.c
@@ -5009,20 +4598,6 @@ ici/utils/ionadmin-ionadmin.obj: ici/utils/ionadmin.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionadmin_CFLAGS) $(CFLAGS) -c -o ici/utils/ionadmin-ionadmin.obj `if test -f 'ici/utils/ionadmin.c'; then $(CYGPATH_W) 'ici/utils/ionadmin.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionadmin.c'; fi`
 
-ici/utils/ionexit-ionexit.o: ici/utils/ionexit.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionexit_CFLAGS) $(CFLAGS) -MT ici/utils/ionexit-ionexit.o -MD -MP -MF ici/utils/$(DEPDIR)/ionexit-ionexit.Tpo -c -o ici/utils/ionexit-ionexit.o `test -f 'ici/utils/ionexit.c' || echo '$(srcdir)/'`ici/utils/ionexit.c
-	mv -f ici/utils/$(DEPDIR)/ionexit-ionexit.Tpo ici/utils/$(DEPDIR)/ionexit-ionexit.Po
-#	source='ici/utils/ionexit.c' object='ici/utils/ionexit-ionexit.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionexit_CFLAGS) $(CFLAGS) -c -o ici/utils/ionexit-ionexit.o `test -f 'ici/utils/ionexit.c' || echo '$(srcdir)/'`ici/utils/ionexit.c
-
-ici/utils/ionexit-ionexit.obj: ici/utils/ionexit.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionexit_CFLAGS) $(CFLAGS) -MT ici/utils/ionexit-ionexit.obj -MD -MP -MF ici/utils/$(DEPDIR)/ionexit-ionexit.Tpo -c -o ici/utils/ionexit-ionexit.obj `if test -f 'ici/utils/ionexit.c'; then $(CYGPATH_W) 'ici/utils/ionexit.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionexit.c'; fi`
-	mv -f ici/utils/$(DEPDIR)/ionexit-ionexit.Tpo ici/utils/$(DEPDIR)/ionexit-ionexit.Po
-#	source='ici/utils/ionexit.c' object='ici/utils/ionexit-ionexit.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionexit_CFLAGS) $(CFLAGS) -c -o ici/utils/ionexit-ionexit.obj `if test -f 'ici/utils/ionexit.c'; then $(CYGPATH_W) 'ici/utils/ionexit.c'; else $(CYGPATH_W) '$(srcdir)/ici/utils/ionexit.c'; fi`
-
 ici/utils/ionsecadmin-ionsecadmin.o: ici/utils/ionsecadmin.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ionsecadmin_CFLAGS) $(CFLAGS) -MT ici/utils/ionsecadmin-ionsecadmin.o -MD -MP -MF ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Tpo -c -o ici/utils/ionsecadmin-ionsecadmin.o `test -f 'ici/utils/ionsecadmin.c' || echo '$(srcdir)/'`ici/utils/ionsecadmin.c
 	mv -f ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Tpo ici/utils/$(DEPDIR)/ionsecadmin-ionsecadmin.Po
@@ -5471,48 +5046,6 @@ tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj: tests/1000.loopback/d
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) -c -o tests/1000.loopback/tests_1000_loopback_dotest-dotest.obj `if test -f 'tests/1000.loopback/dotest.c'; then $(CYGPATH_W) 'tests/1000.loopback/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1000.loopback/dotest.c'; fi`
 
-tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.o: tests/1300.loopback-tcp/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1300_loopback_tcp_dotest_CFLAGS) $(CFLAGS) -MT tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.o -MD -MP -MF tests/1300.loopback-tcp/$(DEPDIR)/tests_1300_loopback_tcp_dotest-dotest.Tpo -c -o tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.o `test -f 'tests/1300.loopback-tcp/dotest.c' || echo '$(srcdir)/'`tests/1300.loopback-tcp/dotest.c
-	mv -f tests/1300.loopback-tcp/$(DEPDIR)/tests_1300_loopback_tcp_dotest-dotest.Tpo tests/1300.loopback-tcp/$(DEPDIR)/tests_1300_loopback_tcp_dotest-dotest.Po
-#	source='tests/1300.loopback-tcp/dotest.c' object='tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1300_loopback_tcp_dotest_CFLAGS) $(CFLAGS) -c -o tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.o `test -f 'tests/1300.loopback-tcp/dotest.c' || echo '$(srcdir)/'`tests/1300.loopback-tcp/dotest.c
-
-tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.obj: tests/1300.loopback-tcp/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1300_loopback_tcp_dotest_CFLAGS) $(CFLAGS) -MT tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.obj -MD -MP -MF tests/1300.loopback-tcp/$(DEPDIR)/tests_1300_loopback_tcp_dotest-dotest.Tpo -c -o tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.obj `if test -f 'tests/1300.loopback-tcp/dotest.c'; then $(CYGPATH_W) 'tests/1300.loopback-tcp/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1300.loopback-tcp/dotest.c'; fi`
-	mv -f tests/1300.loopback-tcp/$(DEPDIR)/tests_1300_loopback_tcp_dotest-dotest.Tpo tests/1300.loopback-tcp/$(DEPDIR)/tests_1300_loopback_tcp_dotest-dotest.Po
-#	source='tests/1300.loopback-tcp/dotest.c' object='tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1300_loopback_tcp_dotest_CFLAGS) $(CFLAGS) -c -o tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.obj `if test -f 'tests/1300.loopback-tcp/dotest.c'; then $(CYGPATH_W) 'tests/1300.loopback-tcp/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1300.loopback-tcp/dotest.c'; fi`
-
-tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.o: tests/1400.loopback-stcp/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1400_loopback_stcp_dotest_CFLAGS) $(CFLAGS) -MT tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.o -MD -MP -MF tests/1400.loopback-stcp/$(DEPDIR)/tests_1400_loopback_stcp_dotest-dotest.Tpo -c -o tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.o `test -f 'tests/1400.loopback-stcp/dotest.c' || echo '$(srcdir)/'`tests/1400.loopback-stcp/dotest.c
-	mv -f tests/1400.loopback-stcp/$(DEPDIR)/tests_1400_loopback_stcp_dotest-dotest.Tpo tests/1400.loopback-stcp/$(DEPDIR)/tests_1400_loopback_stcp_dotest-dotest.Po
-#	source='tests/1400.loopback-stcp/dotest.c' object='tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1400_loopback_stcp_dotest_CFLAGS) $(CFLAGS) -c -o tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.o `test -f 'tests/1400.loopback-stcp/dotest.c' || echo '$(srcdir)/'`tests/1400.loopback-stcp/dotest.c
-
-tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.obj: tests/1400.loopback-stcp/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1400_loopback_stcp_dotest_CFLAGS) $(CFLAGS) -MT tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.obj -MD -MP -MF tests/1400.loopback-stcp/$(DEPDIR)/tests_1400_loopback_stcp_dotest-dotest.Tpo -c -o tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.obj `if test -f 'tests/1400.loopback-stcp/dotest.c'; then $(CYGPATH_W) 'tests/1400.loopback-stcp/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1400.loopback-stcp/dotest.c'; fi`
-	mv -f tests/1400.loopback-stcp/$(DEPDIR)/tests_1400_loopback_stcp_dotest-dotest.Tpo tests/1400.loopback-stcp/$(DEPDIR)/tests_1400_loopback_stcp_dotest-dotest.Po
-#	source='tests/1400.loopback-stcp/dotest.c' object='tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1400_loopback_stcp_dotest_CFLAGS) $(CFLAGS) -c -o tests/1400.loopback-stcp/tests_1400_loopback_stcp_dotest-dotest.obj `if test -f 'tests/1400.loopback-stcp/dotest.c'; then $(CYGPATH_W) 'tests/1400.loopback-stcp/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1400.loopback-stcp/dotest.c'; fi`
-
-tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.o: tests/1500.loopback-brs/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1500_loopback_brs_dotest_CFLAGS) $(CFLAGS) -MT tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.o -MD -MP -MF tests/1500.loopback-brs/$(DEPDIR)/tests_1500_loopback_brs_dotest-dotest.Tpo -c -o tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.o `test -f 'tests/1500.loopback-brs/dotest.c' || echo '$(srcdir)/'`tests/1500.loopback-brs/dotest.c
-	mv -f tests/1500.loopback-brs/$(DEPDIR)/tests_1500_loopback_brs_dotest-dotest.Tpo tests/1500.loopback-brs/$(DEPDIR)/tests_1500_loopback_brs_dotest-dotest.Po
-#	source='tests/1500.loopback-brs/dotest.c' object='tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1500_loopback_brs_dotest_CFLAGS) $(CFLAGS) -c -o tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.o `test -f 'tests/1500.loopback-brs/dotest.c' || echo '$(srcdir)/'`tests/1500.loopback-brs/dotest.c
-
-tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.obj: tests/1500.loopback-brs/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1500_loopback_brs_dotest_CFLAGS) $(CFLAGS) -MT tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.obj -MD -MP -MF tests/1500.loopback-brs/$(DEPDIR)/tests_1500_loopback_brs_dotest-dotest.Tpo -c -o tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.obj `if test -f 'tests/1500.loopback-brs/dotest.c'; then $(CYGPATH_W) 'tests/1500.loopback-brs/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1500.loopback-brs/dotest.c'; fi`
-	mv -f tests/1500.loopback-brs/$(DEPDIR)/tests_1500_loopback_brs_dotest-dotest.Tpo tests/1500.loopback-brs/$(DEPDIR)/tests_1500_loopback_brs_dotest-dotest.Po
-#	source='tests/1500.loopback-brs/dotest.c' object='tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_1500_loopback_brs_dotest_CFLAGS) $(CFLAGS) -c -o tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.obj `if test -f 'tests/1500.loopback-brs/dotest.c'; then $(CYGPATH_W) 'tests/1500.loopback-brs/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/1500.loopback-brs/dotest.c'; fi`
-
 tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o: tests/issue-188-common-cos-syntax/dotest.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_188_common_cos_syntax_dotest_CFLAGS) $(CFLAGS) -MT tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o -MD -MP -MF tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Tpo -c -o tests/issue-188-common-cos-syntax/tests_issue_188_common_cos_syntax_dotest-dotest.o `test -f 'tests/issue-188-common-cos-syntax/dotest.c' || echo '$(srcdir)/'`tests/issue-188-common-cos-syntax/dotest.c
 	mv -f tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Tpo tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_syntax_dotest-dotest.Po
@@ -5540,62 +5073,6 @@ tests/issue-260-teach-valgrind-mtake/tests_issue_260_teach_valgrind_mtake_domtak
 #	source='tests/issue-260-teach-valgrind-mtake/domtake.c' object='tests/issue-260-teach-valgrind-mtake/tests_issue_260_teach_valgrind_mtake_domtake-domtake.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS) $(CFLAGS) -c -o tests/issue-260-teach-valgrind-mtake/tests_issue_260_teach_valgrind_mtake_domtake-domtake.obj `if test -f 'tests/issue-260-teach-valgrind-mtake/domtake.c'; then $(CYGPATH_W) 'tests/issue-260-teach-valgrind-mtake/domtake.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-260-teach-valgrind-mtake/domtake.c'; fi`
-
-tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.o: tests/issue-279-bpMemo-timeline/driver.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_279_bpMemo_timeline_driver_CFLAGS) $(CFLAGS) -MT tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.o -MD -MP -MF tests/issue-279-bpMemo-timeline/$(DEPDIR)/tests_issue_279_bpMemo_timeline_driver-driver.Tpo -c -o tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.o `test -f 'tests/issue-279-bpMemo-timeline/driver.c' || echo '$(srcdir)/'`tests/issue-279-bpMemo-timeline/driver.c
-	mv -f tests/issue-279-bpMemo-timeline/$(DEPDIR)/tests_issue_279_bpMemo_timeline_driver-driver.Tpo tests/issue-279-bpMemo-timeline/$(DEPDIR)/tests_issue_279_bpMemo_timeline_driver-driver.Po
-#	source='tests/issue-279-bpMemo-timeline/driver.c' object='tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_279_bpMemo_timeline_driver_CFLAGS) $(CFLAGS) -c -o tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.o `test -f 'tests/issue-279-bpMemo-timeline/driver.c' || echo '$(srcdir)/'`tests/issue-279-bpMemo-timeline/driver.c
-
-tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.obj: tests/issue-279-bpMemo-timeline/driver.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_279_bpMemo_timeline_driver_CFLAGS) $(CFLAGS) -MT tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.obj -MD -MP -MF tests/issue-279-bpMemo-timeline/$(DEPDIR)/tests_issue_279_bpMemo_timeline_driver-driver.Tpo -c -o tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.obj `if test -f 'tests/issue-279-bpMemo-timeline/driver.c'; then $(CYGPATH_W) 'tests/issue-279-bpMemo-timeline/driver.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-279-bpMemo-timeline/driver.c'; fi`
-	mv -f tests/issue-279-bpMemo-timeline/$(DEPDIR)/tests_issue_279_bpMemo_timeline_driver-driver.Tpo tests/issue-279-bpMemo-timeline/$(DEPDIR)/tests_issue_279_bpMemo_timeline_driver-driver.Po
-#	source='tests/issue-279-bpMemo-timeline/driver.c' object='tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_279_bpMemo_timeline_driver_CFLAGS) $(CFLAGS) -c -o tests/issue-279-bpMemo-timeline/tests_issue_279_bpMemo_timeline_driver-driver.obj `if test -f 'tests/issue-279-bpMemo-timeline/driver.c'; then $(CYGPATH_W) 'tests/issue-279-bpMemo-timeline/driver.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-279-bpMemo-timeline/driver.c'; fi`
-
-tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.o: tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS) $(CFLAGS) -MT tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.o -MD -MP -MF tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.Tpo -c -o tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.o `test -f 'tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c' || echo '$(srcdir)/'`tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
-	mv -f tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.Tpo tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.Po
-#	source='tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c' object='tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS) $(CFLAGS) -c -o tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.o `test -f 'tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c' || echo '$(srcdir)/'`tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
-
-tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.obj: tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS) $(CFLAGS) -MT tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.obj -MD -MP -MF tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.Tpo -c -o tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.obj `if test -f 'tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c'; then $(CYGPATH_W) 'tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c'; fi`
-	mv -f tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.Tpo tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.Po
-#	source='tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c' object='tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS) $(CFLAGS) -c -o tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.obj `if test -f 'tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c'; then $(CYGPATH_W) 'tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c'; fi`
-
-tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.o: tests/issue-333-cfdp-orig-ID-type/send.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) $(CFLAGS) -MT tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.o -MD -MP -MF tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Tpo -c -o tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.o `test -f 'tests/issue-333-cfdp-orig-ID-type/send.c' || echo '$(srcdir)/'`tests/issue-333-cfdp-orig-ID-type/send.c
-	mv -f tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Tpo tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Po
-#	source='tests/issue-333-cfdp-orig-ID-type/send.c' object='tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) $(CFLAGS) -c -o tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.o `test -f 'tests/issue-333-cfdp-orig-ID-type/send.c' || echo '$(srcdir)/'`tests/issue-333-cfdp-orig-ID-type/send.c
-
-tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.obj: tests/issue-333-cfdp-orig-ID-type/send.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) $(CFLAGS) -MT tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.obj -MD -MP -MF tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Tpo -c -o tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.obj `if test -f 'tests/issue-333-cfdp-orig-ID-type/send.c'; then $(CYGPATH_W) 'tests/issue-333-cfdp-orig-ID-type/send.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-333-cfdp-orig-ID-type/send.c'; fi`
-	mv -f tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Tpo tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Po
-#	source='tests/issue-333-cfdp-orig-ID-type/send.c' object='tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) $(CFLAGS) -c -o tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.obj `if test -f 'tests/issue-333-cfdp-orig-ID-type/send.c'; then $(CYGPATH_W) 'tests/issue-333-cfdp-orig-ID-type/send.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-333-cfdp-orig-ID-type/send.c'; fi`
-
-tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.o: tests/issue-334-cfdp-transaction-id/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_334_cfdp_transaction_id_dotest_CFLAGS) $(CFLAGS) -MT tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.o -MD -MP -MF tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Tpo -c -o tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.o `test -f 'tests/issue-334-cfdp-transaction-id/dotest.c' || echo '$(srcdir)/'`tests/issue-334-cfdp-transaction-id/dotest.c
-	mv -f tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Tpo tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Po
-#	source='tests/issue-334-cfdp-transaction-id/dotest.c' object='tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_334_cfdp_transaction_id_dotest_CFLAGS) $(CFLAGS) -c -o tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.o `test -f 'tests/issue-334-cfdp-transaction-id/dotest.c' || echo '$(srcdir)/'`tests/issue-334-cfdp-transaction-id/dotest.c
-
-tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.obj: tests/issue-334-cfdp-transaction-id/dotest.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_334_cfdp_transaction_id_dotest_CFLAGS) $(CFLAGS) -MT tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.obj -MD -MP -MF tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Tpo -c -o tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.obj `if test -f 'tests/issue-334-cfdp-transaction-id/dotest.c'; then $(CYGPATH_W) 'tests/issue-334-cfdp-transaction-id/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-334-cfdp-transaction-id/dotest.c'; fi`
-	mv -f tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Tpo tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Po
-#	source='tests/issue-334-cfdp-transaction-id/dotest.c' object='tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_334_cfdp_transaction_id_dotest_CFLAGS) $(CFLAGS) -c -o tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.obj `if test -f 'tests/issue-334-cfdp-transaction-id/dotest.c'; then $(CYGPATH_W) 'tests/issue-334-cfdp-transaction-id/dotest.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-334-cfdp-transaction-id/dotest.c'; fi`
 
 dgr/test/udp2file-udp2file.o: dgr/test/udp2file.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(udp2file_CFLAGS) $(CFLAGS) -MT dgr/test/udp2file-udp2file.o -MD -MP -MF dgr/test/$(DEPDIR)/udp2file-udp2file.Tpo -c -o dgr/test/udp2file-udp2file.o `test -f 'dgr/test/udp2file.c' || echo '$(srcdir)/'`dgr/test/udp2file.c
@@ -5677,10 +5154,8 @@ clean-libtool:
 	-rm -rf bp/dtn2/.libs bp/dtn2/_libs
 	-rm -rf bp/ipn/.libs bp/ipn/_libs
 	-rm -rf bp/library/.libs bp/library/_libs
-	-rm -rf bp/library/acs/.libs bp/library/acs/_libs
 	-rm -rf bp/library/crypto/NULL_SUITES/.libs bp/library/crypto/NULL_SUITES/_libs
 	-rm -rf bp/library/ext/bsp/.libs bp/library/ext/bsp/_libs
-	-rm -rf bp/library/ext/cteb/.libs bp/library/ext/cteb/_libs
 	-rm -rf bp/library/ext/ecos/.libs bp/library/ext/ecos/_libs
 	-rm -rf bp/library/ext/phn/.libs bp/library/ext/phn/_libs
 	-rm -rf bp/tcp/.libs bp/tcp/_libs
@@ -5691,15 +5166,8 @@ clean-libtool:
 	-rm -rf ici/sdr/.libs ici/sdr/_libs
 	-rm -rf ltp/library/.libs ltp/library/_libs
 	-rm -rf tests/1000.loopback/.libs tests/1000.loopback/_libs
-	-rm -rf tests/1300.loopback-tcp/.libs tests/1300.loopback-tcp/_libs
-	-rm -rf tests/1400.loopback-stcp/.libs tests/1400.loopback-stcp/_libs
-	-rm -rf tests/1500.loopback-brs/.libs tests/1500.loopback-brs/_libs
 	-rm -rf tests/issue-188-common-cos-syntax/.libs tests/issue-188-common-cos-syntax/_libs
 	-rm -rf tests/issue-260-teach-valgrind-mtake/.libs tests/issue-260-teach-valgrind-mtake/_libs
-	-rm -rf tests/issue-279-bpMemo-timeline/.libs tests/issue-279-bpMemo-timeline/_libs
-	-rm -rf tests/issue-330-cfdpclock-FDU-removal/.libs tests/issue-330-cfdpclock-FDU-removal/_libs
-	-rm -rf tests/issue-333-cfdp-orig-ID-type/.libs tests/issue-333-cfdp-orig-ID-type/_libs
-	-rm -rf tests/issue-334-cfdp-transaction-id/.libs tests/issue-334-cfdp-transaction-id/_libs
 	-rm -rf tests/library/.libs tests/library/_libs
 
 distclean-libtool:
@@ -6225,8 +5693,6 @@ distclean-generic:
 	-rm -f ams/rams/$(am__dirstamp)
 	-rm -f ams/test/$(DEPDIR)/$(am__dirstamp)
 	-rm -f ams/test/$(am__dirstamp)
-	-rm -f ams/utils/$(DEPDIR)/$(am__dirstamp)
-	-rm -f ams/utils/$(am__dirstamp)
 	-rm -f bp/brs/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/brs/$(am__dirstamp)
 	-rm -f bp/cgr/$(DEPDIR)/$(am__dirstamp)
@@ -6243,14 +5709,10 @@ distclean-generic:
 	-rm -f bp/ipn/$(am__dirstamp)
 	-rm -f bp/library/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/library/$(am__dirstamp)
-	-rm -f bp/library/acs/$(DEPDIR)/$(am__dirstamp)
-	-rm -f bp/library/acs/$(am__dirstamp)
 	-rm -f bp/library/crypto/NULL_SUITES/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/library/crypto/NULL_SUITES/$(am__dirstamp)
 	-rm -f bp/library/ext/bsp/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/library/ext/bsp/$(am__dirstamp)
-	-rm -f bp/library/ext/cteb/$(DEPDIR)/$(am__dirstamp)
-	-rm -f bp/library/ext/cteb/$(am__dirstamp)
 	-rm -f bp/library/ext/ecos/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/library/ext/ecos/$(am__dirstamp)
 	-rm -f bp/library/ext/phn/$(DEPDIR)/$(am__dirstamp)
@@ -6305,24 +5767,10 @@ distclean-generic:
 	-rm -f ltp/utils/$(am__dirstamp)
 	-rm -f tests/1000.loopback/$(DEPDIR)/$(am__dirstamp)
 	-rm -f tests/1000.loopback/$(am__dirstamp)
-	-rm -f tests/1300.loopback-tcp/$(DEPDIR)/$(am__dirstamp)
-	-rm -f tests/1300.loopback-tcp/$(am__dirstamp)
-	-rm -f tests/1400.loopback-stcp/$(DEPDIR)/$(am__dirstamp)
-	-rm -f tests/1400.loopback-stcp/$(am__dirstamp)
-	-rm -f tests/1500.loopback-brs/$(DEPDIR)/$(am__dirstamp)
-	-rm -f tests/1500.loopback-brs/$(am__dirstamp)
 	-rm -f tests/issue-188-common-cos-syntax/$(DEPDIR)/$(am__dirstamp)
 	-rm -f tests/issue-188-common-cos-syntax/$(am__dirstamp)
 	-rm -f tests/issue-260-teach-valgrind-mtake/$(DEPDIR)/$(am__dirstamp)
 	-rm -f tests/issue-260-teach-valgrind-mtake/$(am__dirstamp)
-	-rm -f tests/issue-279-bpMemo-timeline/$(DEPDIR)/$(am__dirstamp)
-	-rm -f tests/issue-279-bpMemo-timeline/$(am__dirstamp)
-	-rm -f tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/$(am__dirstamp)
-	-rm -f tests/issue-330-cfdpclock-FDU-removal/$(am__dirstamp)
-	-rm -f tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/$(am__dirstamp)
-	-rm -f tests/issue-333-cfdp-orig-ID-type/$(am__dirstamp)
-	-rm -f tests/issue-334-cfdp-transaction-id/$(DEPDIR)/$(am__dirstamp)
-	-rm -f tests/issue-334-cfdp-transaction-id/$(am__dirstamp)
 	-rm -f tests/library/$(DEPDIR)/$(am__dirstamp)
 	-rm -f tests/library/$(am__dirstamp)
 
@@ -6337,7 +5785,7 @@ clean-am: clean-binPROGRAMS clean-checkLTLIBRARIES clean-checkPROGRAMS \
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) ams/utils/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/library/acs/$(DEPDIR) bp/library/crypto/NULL_SUITES/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/cteb/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/1300.loopback-tcp/$(DEPDIR) tests/1400.loopback-stcp/$(DEPDIR) tests/1500.loopback-brs/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/issue-279-bpMemo-timeline/$(DEPDIR) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR) tests/issue-334-cfdp-transaction-id/$(DEPDIR) tests/library/$(DEPDIR)
+	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/library/crypto/NULL_SUITES/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/library/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-libtool distclean-tags
@@ -6381,7 +5829,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) ams/utils/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/library/acs/$(DEPDIR) bp/library/crypto/NULL_SUITES/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/cteb/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/1300.loopback-tcp/$(DEPDIR) tests/1400.loopback-stcp/$(DEPDIR) tests/1500.loopback-brs/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/issue-279-bpMemo-timeline/$(DEPDIR) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR) tests/issue-334-cfdp-transaction-id/$(DEPDIR) tests/library/$(DEPDIR)
+	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) bp/brs/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/ipn/$(DEPDIR) bp/library/$(DEPDIR) bp/library/crypto/NULL_SUITES/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) ici/daemon/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/library/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -6466,35 +5914,6 @@ install-data-hook:
 #tutorial.pdf: 
 #	cd $(srcdir)/unreleased-doc && pdflatex tutorial.tex && pdflatex tutorial.tex 
 #	mv $(srcdir)/unreleased-doc/tutorial.pdf ./tutorial.pdf
-
-#cov-clean:
-#	@rm -rf coverage
-#	@find . -name "*.gcda" -exec rm {} \;
-#	@find . -name "*.gcno" -exec rm {} \;
-#	@lcov --directory . --zerocounters
-
-#cov-report:
-#	@mkdir -p coverage
-#	@lcov --compat-libtool --directory . -b . --capture --output-file coverage/app.info  
-#	@genhtml -o coverage/ coverage/app.info 
-
-#cov:
-#	@make cov-report
-
-#clean-local:
-#    @make cov-reset 
-
-#check:
-#    @make cov
-
-cov-clean:
-	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
-
-cov-report:
-	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
-
-cov:
-	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
 
 # clean-local refers to existing documents. there are no manpages for ams
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local cfdpclean-local
@@ -6704,66 +6123,6 @@ retest: buildcheck
 
 # "make check" is the same as "make test"
 check: test
-
-##########################
-#
-# AUTODOC SECTION
-#
-##########################
-
-ION.pdf: doc/ION-beginning.ps doc/ION-manpages.ps
-	$(PSJOIN) $^ | $(PS2PDF) - $@
-
-%.1.ps: %.1
-	man -l -Tps $^ > $@
-
-%.3.ps: %.3
-	man -l -Tps $^ > $@
-
-%.5.ps: %.5
-	man -l -Tps $^ > $@
-
-doc/appendix-a-contents.txt: $(mans_as_ps)
-	@rm -f $@
-	@echo ".tl 'Appendix A: ION Manpages''$$(hg id)" >> $@
-	@echo "" >> $@
-	@echo ".2C" >> $@
-	@echo ".ps 10" >> $@
-	@echo ".nf" >> $@
-	@echo ".ps 14" >> $@
-	@echo ".pvs +3p" >> $@
-	@echo "\fBExecutables (man section 1)\fP" >> $@
-	@echo ".pvs" >> $@
-	@echo ".ps 10" >> $@
-	@echo $(strip $(mans_1_as_ps)) | sed -e 's/ /\n/g' | sed -e 's/.*\///' -e 's/\.[0-9]\.ps//' >> $@
-	@echo ".ps 14" >> $@
-	@echo ".vs +10p" >> $@
-	@echo ".sp 0.1i" >> $@
-	@echo "\fBLibraries (man section 3)\fP" >> $@
-	@echo ".vs" >> $@
-	@echo ".ps 10" >> $@
-	@echo $(strip $(mans_3_as_ps)) | sed -e 's/ /\n/g' | sed -e 's/.*\///' -e 's/\.[0-9]\.ps//' >> $@
-	@echo ".ps 14" >> $@
-	@echo ".vs +10p" >> $@
-	@echo ".sp 0.1i" >> $@
-	@echo "\fBConfiguration files (man section 5)\fP" >> $@
-	@echo ".vs" >> $@
-	@echo ".ps 10" >> $@
-	@echo $(strip $(mans_5_as_ps)) | sed -e 's/ /\n/g' | sed -e 's/.*\///' -e 's/\.[0-9]\.ps//' >> $@
-	@echo ".br" >> $@
-
-doc/appendix-a-contents.ps: doc/appendix-a-contents.txt
-	$(GROFFMS) -ms $^ > $@
-
-doc/ION-manpages.ps: doc/appendix-a-contents.ps $(mans_as_ps_sorted) 
-	$(PSJOIN) $^ > $@
-
-doc/ION-beginning.ps: doc/ION-beginning.pdf
-	$(PDF2PS) $^ $@
-
-#ION.pdf: doc/ION-beginning.pdf
-#	@echo "ION.pdf will not have appendix."
-#	cp $^ $@
 
 ##########################
 #
