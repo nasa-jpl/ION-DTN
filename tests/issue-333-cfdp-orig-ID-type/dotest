@@ -55,6 +55,7 @@ echo "########################################"
 
 # Check that prerequisite software for the test is installed
 PROGRAMTEST="netcat"
+OS=`uname`
 RESULTS=`which ${PROGRAMTEST}`
 WHICHRETURN=$?
 echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
@@ -80,8 +81,13 @@ cd ../
 sleep 10
 
 echo "Starting netcat server for test..."
-netcat -u -l 1113 > response &
-NETCAT_SVR_PID=$!
+if [ "$OS" = "SunOS" ]; then
+	netcat -u -l -p 1113 -s localhost > response &
+	NETCAT_SVR_PID=$!
+else
+	netcat -u -l -p 1113 > response &
+	NETCAT_SVR_PID=$!
+fi
 
 echo "Sending FDU..."
 cd 1.cfdp.ipn.bp.ltp.udp

@@ -52,6 +52,7 @@ echo "########################################"
 
 # Check that prerequisite software for the test is installed
 PROGRAMTEST="netcat"
+OS=`uname`
 RESULTS=`which ${PROGRAMTEST}`
 WHICHRETURN=$?
 echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
@@ -81,8 +82,13 @@ sleep 10
 echo "Test 1---Check bpdriver default TTL (300 sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
-netcat -u -l 4556 > response.bpseg &
-NETCAT_SVR_PID=$!
+if [ "$OS" = "SunOS" ]; then
+	netcat -u -l -p 4556 -s localhost > response.bpseg &
+	NETCAT_SVR_PID=$!
+else
+	netcat -u -l -p 4556 > response.bpseg &
+	NETCAT_SVR_PID=$!
+fi
 cd ../
 
 echo "Using bpdriver to send bundles with default ttl..."
@@ -108,8 +114,9 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c106 | head -c2 | xxd -p`
-#echo "$RESULTS"
+RESULTS=`cat response.cap | tail  -c106 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
+echo "Expected value: 822c"
+echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "822c" ]; then
 	echo "The Bundle set by ION had the correct default TTL."
 	echo ""
@@ -129,8 +136,13 @@ cd ..
 echo "Test 2---Try Increasing bpdriver TTL (3000sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
-netcat -u -l 4556 > response.bpseg &
-NETCAT_SVR_PID=$!
+if [ "$OS" = "SunOS" ]; then
+	netcat -u -l -p 4556 -s localhost > response.bpseg &
+	NETCAT_SVR_PID=$!
+else
+	netcat -u -l -p 4556 > response.bpseg &
+	NETCAT_SVR_PID=$!
+fi
 cd ../
 
 echo "Using bpdriver to send bundles with ttl of 3000 sec..."
@@ -156,8 +168,9 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c106 | head -c2 | xxd -p`
-#echo "$RESULTS"
+RESULTS=`cat response.cap | tail  -c106 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
+echo "Expected value: 9738"
+echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "9738" ]; then
 	echo "The Bundle set by ION had the correct TTL."
 	echo ""
@@ -177,8 +190,14 @@ cd ..
 echo "Test 3--Try Decreasing bpdriver TTL (30sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
-netcat -u -l 4556 > response.bpseg &
-NETCAT_SVR_PID=$!
+
+if [ "$OS" = "SunOS" ]; then
+	netcat -u -l -p 4556 -s localhost > response.bpseg &
+	NETCAT_SVR_PID=$!
+else
+	netcat -u -l -p 4556 > response.bpseg &
+	NETCAT_SVR_PID=$!
+fi
 cd ../
 
 echo "Using bpdriver to send bundles with ttl of 30 sec..."
@@ -204,8 +223,9 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c105 | head -c1 | xxd -p`
-#echo "$RESULTS"
+RESULTS=`cat response.cap | tail  -c105 | xxd -p -c 256 | cut -c 1-2 | tr -d '\n'`
+echo "Expected value: 1e"
+echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "1e" ]; then
 	echo "The Bundle set by ION had the correct TTL. SUCCESS!"
 	echo ""
