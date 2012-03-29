@@ -228,7 +228,7 @@ unsigned char *bsp_addSdnvToStream(unsigned char *stream, Sdnv* value)
  *          the caller may examine it.
  *****************************************************************************/
 
-int bsp_deserializeASB(AcqExtBlock *blk)
+int bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 {
 	int result = 1;
 
@@ -278,6 +278,12 @@ int bsp_deserializeASB(AcqExtBlock *blk)
 		BSP_DEBUG_INFO("i bsp_deserializeASB: cipher %ld, flags %ld, length %d",
 				asb->cipher, asb->cipherFlags, blk->dataLength);
 
+                if(setSecPointsRecv(blk, wk, blockType) != 0)
+                {
+			BSP_DEBUG_ERR("x bsp_deserializeASB: Failed to set ASB sec src/dest", NULL);
+                	result = -1;
+		}
+
 		if(asb->cipherFlags & BSP_ASB_CORR)
 		{
 			extractSdnv(&(asb->correlator), &cursor, &unparsedBytes);
@@ -286,7 +292,7 @@ int bsp_deserializeASB(AcqExtBlock *blk)
 
 		if(asb->cipherFlags & BSP_ASB_HAVE_PARM)
 		{
-			/* TODO: Not implemented yet. */
+			/* Not implemented yet. */
 		}
 
 		if(asb->cipherFlags & BSP_ASB_RES)
@@ -324,7 +330,7 @@ int bsp_deserializeASB(AcqExtBlock *blk)
 }
 
 
-#if 0
+
 /******************************************************************************
  *
  * \par Function Name: bsp_eidNil
@@ -372,7 +378,7 @@ int bsp_eidNil(EndpointId *eid)
 
 	return result;
 }
-#endif
+
 
 
 /******************************************************************************
@@ -538,6 +544,7 @@ unsigned char *bsp_serializeASB(unsigned int *length, BspAbstractSecurityBlock *
 	encodeSdnv(&cipherFlags, asb->cipherFlags);
 	encodeSdnv(&cipher, asb->cipher);
 	encodeSdnv(&correlator, asb->correlator);
+	BSP_DEBUG_PROC("+ bsp_serializeASB KEY LENGTH IS CURRENTLY (%d)", asb->resultLen);
 	encodeSdnv(&resultLen, asb->resultLen);
 
 	*length = cipherFlags.length + cipher.length;
@@ -549,7 +556,7 @@ unsigned char *bsp_serializeASB(unsigned int *length, BspAbstractSecurityBlock *
 
 	if(asb->cipherFlags & BSP_ASB_HAVE_PARM)
 	{
-		/* TODO: Not implemented yet. */
+		/* Not implemented yet. */
 	}
 
 	if(asb->cipherFlags & BSP_ASB_RES)
@@ -581,7 +588,7 @@ unsigned char *bsp_serializeASB(unsigned int *length, BspAbstractSecurityBlock *
 
 		if(asb->cipherFlags & BSP_ASB_HAVE_PARM)
 		{
-			/* TODO: Not implemented yet. */
+			/* Not implemented yet. */
 		}
 
 		if(asb->cipherFlags & BSP_ASB_RES)
@@ -617,7 +624,6 @@ unsigned char *bsp_serializeASB(unsigned int *length, BspAbstractSecurityBlock *
 
 	return result;
 }
-
 
 /******************************************************************************
  *
@@ -677,6 +683,8 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
 			return;		/*	Malformed result data.	*/
 		}
 
+                itemLength = *cursor;
+
 		sdnvLength = decodeSdnv(&itemLength, cursor);
 		if (sdnvLength == 0 || sdnvLength > bspLen)
 		{
@@ -685,6 +693,7 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
 
 		cursor += sdnvLength;
 		bspLen -= sdnvLength;
+
 		if (itemLength == 0)	/*	Empty item.		*/
 		{
 			continue;
@@ -697,14 +706,12 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
 			return;
 		}
 
-		/*	Look at next item in result data.		*/
 
+		/*	Look at next item in result data.		*/
 		cursor += itemLength;
 		bspLen -= itemLength;
 	}
 }
-
-
 
 /******************************************************************************
  *
@@ -726,6 +733,7 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
 
 void bsp_getSecurityInfo(Bundle *bundle, 
 		int bspType,
+		int blockType,
 		char *eidSourceString,
 		char *eidDestString,
 		BspSecurityInfo *secInfo)
@@ -764,7 +772,6 @@ void bsp_getSecurityInfo(Bundle *bundle,
 			}
 			else
 			{
-				/** \todo: Check ciphersuite name */
 				GET_OBJ_POINTER(getIonsdr(), BspBabRule, babRule, ruleAddr);
 
 				if (babRule->ciphersuiteName[0] != '\0')
@@ -774,9 +781,508 @@ void bsp_getSecurityInfo(Bundle *bundle,
 				BSP_DEBUG_INFO("i bsp_getSecurityInfo: get TX/RX key name of '%s'", secInfo->cipherKeyName);
 			}
 		}
+
+		if(bspType == BSP_PIB_TYPE)
+		{
+			OBJ_POINTER(BspPibRule, pibRule);
+			int result;
+
+			result = sec_get_bspPibRule(eidSourceString, eidDestString, blockType, &ruleAddr, &eltp);
+
+			if((result == -1) || (eltp == 0))
+			{
+				BSP_DEBUG_INFO("i bsp_getSecurityInfo: No TX/RX entry for EID %s.", eidSourceString);
+			}
+			else
+			{
+				GET_OBJ_POINTER(getIonsdr(), BspPibRule, pibRule, ruleAddr);
+
+				if (pibRule->ciphersuiteName[0] != '\0')
+				{
+					istrcpy(secInfo->cipherKeyName, pibRule->keyName, sizeof(secInfo->cipherKeyName));
+				}
+				BSP_DEBUG_INFO("i bsp_getSecurityInfo: get TX/RX key name of '%s'", secInfo->cipherKeyName);
+			}
+		}
+
+                if(bspType == BSP_PCB_TYPE)
+                {
+                        OBJ_POINTER(BspPcbRule, pcbRule);
+                        int result;
+
+                        result =  sec_get_bspPcbRule(eidSourceString, eidDestString, blockType, &ruleAddr, &eltp);
+
+                        if((result == -1) || (eltp == 0))
+                        {
+                                BSP_DEBUG_INFO("i bsp_getSecurityInfo: No TX/RX entry for EID %s.", eidSourceString);
+                        }
+                        else
+                        {
+                                GET_OBJ_POINTER(getIonsdr(), BspPcbRule, pcbRule, ruleAddr);
+
+                                if (pcbRule->ciphersuiteName[0] != '\0')
+                                {
+                                        istrcpy(secInfo->cipherKeyName, pcbRule->keyName, sizeof(secInfo->cipherKeyName));
+                                }
+                                BSP_DEBUG_INFO("i bsp_getSecurityInfo: get TX/RX key name of '%s'", secInfo->cipherKeyName);
+                        }
+                }
+
+
 	}
 
 	BSP_DEBUG_PROC("- bsp_getSecurityInfo %c", ' ');
 }
 
+char *getLocalCustodianEid(DequeueContext *ctxt)
+{
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	char		*custodianEid;
+	unsigned long len;
+	unsigned long node = getOwnNodeNbr();
+	char *nodeTxt = itoa(node);
+	unsigned long nodeLen = strlen(nodeTxt);
+	int		offset;
+	char *result;
 
+	/*
+	 * Look at scheme we are delivering to, as that will be the scheme of our
+	 * local custodian EID, as we don't cross schemes in transmit
+	 */
+	if (parseEidString(ctxt->proxNodeEid, &metaEid, &vscheme,
+			&vschemeElt) == 0)
+	{
+		/*	Can't know which custodian EID to use.		*/
+		return NULL;
+	}
+
+	restoreEidString(&metaEid);
+
+	len = vscheme->custodianSchemeNameLength + nodeLen + 4; // (:  .0  /0)
+	custodianEid = MTAKE(len);
+	if (custodianEid == NULL)
+	{
+		return NULL;
+	}
+
+	memcpy(custodianEid, vscheme->custodianEidString, vscheme->custodianSchemeNameLength);
+	offset = vscheme->custodianSchemeNameLength;
+	*(custodianEid + offset) = '\0';
+
+	memcpy(custodianEid + offset, ":", 1);
+	offset++;
+	memcpy(custodianEid + offset, nodeTxt, nodeLen);
+	offset += nodeLen;
+	*(custodianEid + offset) = '\0';
+
+	memcpy(custodianEid + offset, ".0", 2);
+	offset += 2;
+	*(custodianEid + offset) = '\0';
+
+	result = getCustodianEid(custodianEid);
+	MRELEASE(custodianEid);
+	return result;
+}
+
+/******************************************************************************
+ *
+ * \par Function Name: setSecPointsRecv
+ *
+ * \par Purpose: This utility function takes care of all addressing operations
+ *               in deserialize. Most importantly, it sets the sec Src and dest
+ *               of the asb block in blk->object. This is dependent on the given
+ *               block type, the presence of any already existing eid references in blk,               
+ *               and the availiability of convergence layer given sender eid (wk->senderEid)
+ *
+ * \retval int - 0 indicates success, -1 is an error
+ *
+ * \param[out]  blk       our extension block, needed to get any existing eid refs
+ *                        also holds our asb in blk->object
+ * \param]in]  wk         our acquired work area, holds info on bundle like src/dest addr
+ * \param[in]  blockType  BAB, PCB, PIB
+ *****************************************************************************/
+
+int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
+{
+    BspAbstractSecurityBlock *asb = (BspAbstractSecurityBlock *) blk->object;
+    LystElt eidElt = NULL;
+    unsigned long   schemeOffset;
+    unsigned long   nssOffset;
+    VScheme      *vscheme = NULL;        
+    PsmAddress   vschemeElt;
+    MetaEid      metaEid;
+    char *tmp = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+    char *tmp2 = NULL;
+
+    // SECURITY POLICY: If a security source or destination are not present,
+    // then we will assume they are the bundle's source and destination.
+    // The exception is BAB block, where we check for convergence layer
+    // given eid addr before trying to use bundle source/dest
+
+    // Extract EID references if they are present. If security source is
+    // present, it will be first, so set up an eidReferences iterator and
+    // let it run first looking for source EID and then for dest EID.
+    if(asb->cipherFlags & BSP_ASB_SEC_SRC || asb->cipherFlags & BSP_ASB_SEC_DEST)
+	eidElt = lyst_first(blk->eidReferences);
+
+    if(asb->cipherFlags & BSP_ASB_SEC_SRC)
+    {
+	// Grab the security source and stuff it in the sec src EID 
+	schemeOffset = (unsigned long) lyst_data(eidElt);
+	eidElt = lyst_next(eidElt);
+	nssOffset = (unsigned long) lyst_data(eidElt);
+	// In case theres a destination too:
+	eidElt = lyst_next(eidElt);
+
+	asb->secSrc.cbhe = (wk->dictionary == NULL);
+	if(asb->secSrc.cbhe)
+	{
+		asb->secSrc.c.nodeNbr = schemeOffset;
+		asb->secSrc.c.serviceNbr = nssOffset;
+	}
+	else
+	{
+		asb->secSrc.d.schemeNameOffset = schemeOffset;
+		asb->secSrc.d.nssOffset = nssOffset;
+	}
+    }
+    else
+    {
+        // No given sec src
+	// if a bab block, try to use convergence layer sender addr
+        if(blockType == BSP_BAB_TYPE && wk->senderEid != NULL)
+        {
+            memset(tmp, 0, MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+            memcpy(tmp, wk->senderEid, strlen(wk->senderEid));
+	    // parseEidString will mess up the char * given to it..
+	    // so just copy it to a temp variable
+            parseEidString(tmp, &metaEid, &vscheme, &vschemeElt);
+            if(strcmp(tmp, "") != 0 && metaEid.nodeNbr != 0)
+            {
+		// It worked, use it
+		asb->secSrc.cbhe = 1;  
+		asb->secSrc.c.nodeNbr = metaEid.nodeNbr;
+		asb->secSrc.c.serviceNbr = metaEid.serviceNbr;
+            }
+            else
+            {
+                // failed
+	        asb->secSrc = wk->bundle.id.source;
+            }
+        }
+	else 
+	{
+	    // Not a BAB block
+	    asb->secSrc = wk->bundle.id.source;
+        }
+    }
+
+    if(asb->cipherFlags & BSP_ASB_SEC_DEST)
+    {
+	// Grab the security destination and stuff it in the sec dest EID 
+	schemeOffset = (unsigned long) lyst_data(eidElt);
+	eidElt = lyst_next(eidElt);
+	nssOffset = (unsigned long) lyst_data(eidElt);
+
+	asb->secDest.cbhe = (wk->dictionary == NULL);
+	if(asb->secDest.cbhe)
+	{
+	    asb->secDest.c.nodeNbr = schemeOffset;
+	    asb->secDest.c.serviceNbr = nssOffset;
+	}
+	else
+	{
+	    asb->secDest.d.schemeNameOffset = schemeOffset;
+	    asb->secDest.d.nssOffset = nssOffset;
+        }
+    }
+    else
+    {
+        // No given sec dest
+        // if a bab block, try to use convergence layer sender addr
+        if(blockType == BSP_BAB_TYPE && wk->senderEid != NULL)
+        {   
+            memset(tmp, 0, MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+            tmp2 = getCustodianEid(wk->senderEid);
+            memcpy(tmp, tmp2, strlen(tmp2));
+            MRELEASE(tmp2);
+            // parseEidString will mess up the char * given to it..
+            // so just copy it to a temp variable
+            parseEidString(tmp, &metaEid, &vscheme, &vschemeElt);
+            if(strcmp(tmp, "") != 0 && metaEid.nodeNbr != 0)
+            {
+                // It worked, use it
+                asb->secDest.cbhe = 1;
+                asb->secDest.c.nodeNbr = metaEid.nodeNbr;
+                asb->secDest.c.serviceNbr = metaEid.serviceNbr;
+            }
+            else
+            {
+                // failed
+                asb->secDest = wk->bundle.destination;
+            }
+	} 
+	else 
+	{  
+            // Not a BAB block
+            asb->secDest = wk->bundle.destination;
+	} 
+
+    }
+    MRELEASE(tmp);
+    return 0;
+}
+
+/******************************************************************************
+ *
+ * \par Function Name: setSecPointsTrans
+ *
+ * \par Purpose: This utility function takes care of all addressing operations
+ *               in the bsp dequeue callback. Most importantly, it sets the given
+ *               srcNode and destNode strings to the correct eids for finding the
+ *               correct security key for the given block type. Additionally,
+ *               this function will set the given eidRefs if it sees that a sec Src
+ *               and dest will be needed in the ASB block for future hops.
+ *
+ * \retval int - 0 indicates success, -1 is an error
+ *
+ * \param[in]  blk        our extension block, needed to set flags
+ * \param]in]  bundle     the attained bundle, needed to get bundle src/dest addr
+ * \param[in]  asb        our security block, may need to set sec src/dest
+ * \param[out] eidRefs    list that will hold any eid references
+ * \param[in]  blockType  post BAB, PCB, PIB, 0 for undefined (pre BAB)
+ * \param[in]  ctxt       object relevant to this node, needed for next hop, the admin
+ *                        node addr of this hop
+ * \param[out] srcNode    string that will hold eid for getting the right sec key 
+ * \param[out] destNode   string that will hold eid for getting the right sec key 
+ *****************************************************************************/
+
+int setSecPointsTrans(ExtensionBlock *blk, Bundle *bundle, BspAbstractSecurityBlock *asb,
+                      Lyst *eidRefs, int blockType, DequeueContext *ctxt, char *srcNode, char *destNode) 
+{
+    VScheme      *vscheme = NULL;        
+    PsmAddress   vschemeElt;
+    MetaEid      srcEid, destEid;
+    char *dictionary = NULL;
+    unsigned long tmp = 0;
+    char *tmp2 = NULL;
+    if(blockType != 0)
+    {
+        CHKERR(eidRefs);
+    }
+    CHKERR(blk); CHKERR(bundle); CHKERR(asb); CHKERR(ctxt);
+
+    // No matter what, we need to set the srcNode and destNode to find the right key:
+    // We wouldn't be here if we aren't adding a block. For all block types,
+    // the source is this current node
+    if(blockType == BSP_BAB_TYPE || blockType == 0)
+    {
+        // BAB is hop to hop, so the security source is our current node.
+        tmp2 = getLocalCustodianEid(ctxt);
+        memcpy(srcNode, tmp2, strlen(tmp2));
+
+        // For pre bab blocks or blocks without defined type (likely post bab), 
+        // dest will be next hop
+        memcpy(destNode, ctxt->proxNodeEid, strlen(ctxt->proxNodeEid));
+    }
+    else
+    {
+        dictionary = retrieveDictionary(bundle);
+
+	// By policy, PIB/PCB security src/destination is currently just the
+        // bundle src/destination. So, if we have a bundle src, use it, else
+        // use the local custodian for this node.
+	if(bsp_eidNil(&(bundle->id.source)))
+	{
+	  tmp2 = getLocalCustodianEid(ctxt);
+	  memcpy(srcNode, tmp2, strlen(tmp2));
+	}
+        else
+        {
+	  printEid(&(bundle->id.source), dictionary, &tmp2);
+          memcpy(srcNode, tmp2, strlen(tmp2));
+	}
+
+        // For pib/pcb destination will be the bundle destination
+        printEid(&(bundle->destination), dictionary, &tmp2);
+        memcpy(destNode, tmp2, strlen(tmp2));
+        // since printEid does an MTAKE
+        MRELEASE(dictionary);
+    }
+
+    MRELEASE(tmp2);
+
+    if(blockType == 0)
+    {
+        // No real blockType defined here according to RFC spec (likely a post bab block)
+        // don't mess with sec src/dest; do nothing more
+        return 0;
+    }
+
+    // Assign some memory for some operations below
+    tmp2 = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+    // We need the Eids, copy our src/dest node strings to tmp vars
+    // as parseEidString will mess with them in the process
+    // We need the MetaEid objects from srcNode and destNode
+    memcpy(tmp2, srcNode, strlen(srcNode));
+    if (parseEidString(tmp2, &srcEid, &vscheme, &vschemeElt) == 0)
+    {
+	MRELEASE(tmp2);
+	BSP_DEBUG_ERR("x setSecPointsTrans: Cannot get src EID:", NULL);
+	return -1;
+    } 
+    memcpy(tmp2, destNode, strlen(destNode));
+    if(parseEidString(tmp2, &destEid, &vscheme, &vschemeElt) == 0) 
+    {
+	MRELEASE(tmp2);
+	BSP_DEBUG_ERR("x setSecPointsTrans: Cannot get dest EID:", NULL);
+	return -1;
+    }
+    MRELEASE(tmp2);
+
+
+
+    // if true: This bundle is from anonymous, and the next node is going to need a 
+    // sec src/dest since there won't be enough info to figure them out. 
+    if(bsp_eidNil(&bundle->id.source))
+    {
+	if((*eidRefs = lyst_create_using(getIonMemoryMgr())) == NULL)
+	{
+	    BSP_DEBUG_ERR("x setSecPointsTrans: Can't allocate eidRefs%c.", ' ');
+	    return -1;
+	}
+	else
+	{
+            //  Every block needs the src since its an anonymous bundle
+	    blk->blkProcFlags |= BLK_HAS_EID_REFERENCES;
+	    asb->cipherFlags |= (BSP_ASB_SEC_SRC);
+	    lyst_insert_last(*eidRefs, (void *) (tmp = srcEid.nodeNbr));
+	    lyst_insert_last(*eidRefs, (void *) (tmp = srcEid.serviceNbr));
+            // Only bab needs the destination, since for that block only it
+            // will be the next hop
+
+	   // Always assume destination inferred on the receiving side from the
+ 	   // convergence layer for bab, and always assume this is the bundle dest
+	   // for pib/pcb, so no need to waste space in the block for a security
+  	   // dest.
+
+	   /* if(blockType == BSP_BAB_TYPE) 
+	    { 
+                asb->cipherFlags |= (BSP_ASB_SEC_DEST);
+		lyst_insert_last(*eidRefs, (void *) (tmp = destEid.nodeNbr));
+		lyst_insert_last(*eidRefs, (void *) (tmp = destEid.serviceNbr));
+	    }*/
+	}
+    }
+    
+    return 0;
+}
+
+/******************************************************************************
+ *
+ * \par Function Name: transferToZcoFileSource
+ *
+ * \par Purpose: This utility function attains a zco object, a file reference, a 
+ *               character string and appends the string to a file. A file
+ *               reference to the new data is appended to the zco object. If given
+ *               an empty zco object- it will create a new one on the empty pointer.
+ *               If given an empty file reference, it will create a new file.
+ *
+ * \retval int - 0 indicates success, -1 is an error
+ *
+ * \param[in]  sdr        ion sdr
+ * \param]in]  resultZco  Object where the file references will go
+ * \param[in]  acqFileRef A file references pointing to the file
+ * \param[in]  fname      A string to be used as the base of the filename
+ * \param[in]  bytes      The string data to write in the file
+ * \param[in]  length     Length of the string data
+ *****************************************************************************/
+
+int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, char *fname, 
+                                char *bytes, int length)
+{
+        static unsigned long    acqCount = 0;
+        char                    cwd[200];
+        char                    fileName[SDRSTRING_BUFSZ];
+        int                     fd;
+        long                    fileLength;
+
+        CHKERR(bytes);
+        CHKERR(length >= 0);
+
+        sdr_begin_xn(sdr);
+        if (*resultZco == 0)     /*      First extent of acquisition.    */
+        {
+                *resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
+                if (*resultZco == 0)
+                {
+                        putErrmsg("extbsputil: Can't start file source ZCO.", NULL);
+                        sdr_cancel_xn(sdr);
+                        return -1;
+                }
+        }
+
+        /*      This extent of this acquisition must be acquired into
+         *      a file.                                                 */
+
+        if (*acqFileRef == 0)      /*      First file extent.      */
+        {
+                if (igetcwd(cwd, sizeof cwd) == NULL)
+                {
+                        putErrmsg("extbsputil: Can't get CWD for acq file name.", NULL);
+                        sdr_cancel_xn(sdr);
+                        return -1;
+                }
+
+                acqCount++;
+                isprintf(fileName, sizeof fileName, "%s%c%s.%lu", cwd,
+                                ION_PATH_DELIMITER, fname, acqCount);
+                fd = open(fileName, O_WRONLY | O_CREAT, 0666);
+                if (fd < 0)
+                {
+                        putSysErrmsg("extbsputil: Can't create acq file", fileName);
+                        sdr_cancel_xn(sdr);
+                        return -1;
+                }
+
+                fileLength = 0;
+                *acqFileRef = zco_create_file_ref(sdr, fileName, "");
+        }
+        else                            /*      Writing more to file.   */
+        {
+                oK(zco_file_ref_path(sdr, *acqFileRef, fileName,
+                                sizeof fileName));
+                fd = open(fileName, O_WRONLY, 0666);
+                if (fd < 0 || (fileLength = lseek(fd, 0, SEEK_END)) < 0)
+                {
+                        putSysErrmsg("extbsputil: Can't reopen acq file", fileName);
+                        sdr_cancel_xn(sdr);
+                        return -1;
+                }
+        }
+
+        // Write the data to the file
+        if (write(fd, bytes, length) < 0)
+        {
+                putSysErrmsg("extbsputil: Can't append to acq file", fileName);
+                sdr_cancel_xn(sdr);
+                return -1;
+        }
+
+        close(fd);
+        oK(zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
+                        fileLength, length));
+
+        /*      Flag file reference for deletion as soon as the last
+         *      ZCO extent that references it is deleted.               */
+        zco_destroy_file_ref(sdr, *acqFileRef);
+        if (sdr_end_xn(sdr) < 0)
+        {
+                putErrmsg("extbsputil: Can't acquire extent into file.", NULL);
+                return -1;
+        }
+
+        return 0;
+}

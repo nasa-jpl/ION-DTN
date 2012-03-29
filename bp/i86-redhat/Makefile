@@ -38,7 +38,7 @@ BPLIBS = \
 	libbp.so \
 	libbpP.so
 
-BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o crypto.o
+BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o crypto.o
 # phn.o
 
 LFW = -lbssfw -ldtn2fw

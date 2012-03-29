@@ -113,6 +113,12 @@ extern int	sec_addBspPibRule(char *srcEid, char *destEid, int type, char *cipher
 extern int	sec_updateBspPibRule(char *srcEid, char *destEid, int type, char *ciphersuiteName, char *keyName);
 extern int	sec_removeBspPibRule(char *srcEid, char *destEid, int type);
 
+/* Bundle Security Protocol Payload Confidentiality Blocks */
+extern int	sec_findBspPcbRule(char *srcEid, char *destEid, int type, Object *ruleAddr, Object *eltp);
+extern int	sec_addBspPcbRule(char *srcEid, char *destEid, int type, char *ciphersuiteName, char *keyName);
+extern int	sec_updateBspPcbRule(char *srcEid, char *destEid, int type, char *ciphersuiteName, char *keyName);
+extern int	sec_removeBspPcbRule(char *srcEid, char *destEid, int type);
+
 /*	*	Functions for retrieving security information.		*/
 
 extern int	sec_get_key(char *keyName,
@@ -138,6 +144,7 @@ extern int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Obj
 extern int	sec_get_bspPibTxRule(char *destEid, int blockTypeNbr, Object *ruleAddr, Object *eltp);
 extern int	sec_get_bspPibRxRule(char *srcEid,  int blockTypeNbr, Object *ruleAddr, Object *eltp);
 extern int	sec_get_bspPibRule(char *srcEid, char *destEid,  int blockTypeNbr, Object *ruleAddr, Object *eltp);
+extern int	sec_get_bspPcbRule(char *srcEid, char *destEid,  int blockTypeNbr, Object *ruleAddr, Object *eltp);
 
 		/*	Finds the BAB transmission rule that most
 		 *	narrowly applies to the endpoint identified

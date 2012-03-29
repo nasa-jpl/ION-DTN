@@ -41,7 +41,6 @@
 
 void	getExtensionDefs(ExtensionDef **array, int *count)
 {
-#define BSP_DEBUGGING	0
 #ifdef BP_EXTENDED
 #include "ext/bpextensions.c"
 #else
@@ -1015,6 +1014,10 @@ int	checkExtensionBlocks(AcqWorkArea *work)
 			oldLength = blk->length;
 			switch (def->check(blk, work))
 			{
+			case 3:		/*	Bundle is corrupt.	*/
+				bundle->corrupt = 1;
+				break;
+
 			case 2:		/*	Bundle is authentic.	*/
 				bundle->clDossier.authentic = 1;
 				break;

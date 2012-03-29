@@ -939,6 +939,10 @@ bpextra = \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.h \
 	bp/library/ext/bsp/extbspbab.c \
+	bp/library/ext/bsp/extbsppcb.h \
+	bp/library/ext/bsp/extbsppcb.c \
+	bp/library/ext/bsp/extbsppib.h \
+	bp/library/ext/bsp/extbsppib.c \
 	bp/library/crypto/crypto.h 
 
 # noextensions.c is C code, but it isn't explicitly compiled.
@@ -1046,6 +1050,8 @@ libbp_la_SOURCES = \
 	bp/library/bei.c \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.c \
+	bp/library/ext/bsp/extbsppcb.c \
+	bp/library/ext/bsp/extbsppib.c \
 	bp/library/crypto/NULL_SUITES/crypto.c 
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libbp_la_LDFLAGS = $(ION_LINK_FLAGS)

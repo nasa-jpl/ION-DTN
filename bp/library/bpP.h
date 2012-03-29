@@ -315,6 +315,7 @@ typedef struct
 	char		suspended;	/*	Boolean.		*/
 	char		returnToSender;	/*	Boolean.		*/
 	char		accepted;	/*	Boolean.		*/
+	char		corrupt;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	int		dbTotal;	/*	Overhead + payload len.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
@@ -1344,6 +1345,9 @@ typedef struct bpsap_st
 extern int		_handleAdminBundles(char *adminEid,
 				StatusRptCB handleStatusRpt,
 				CtSignalCB handleCtSignal);
+
+extern int eidIsLocal(EndpointId eid, char* dictionary);
+
 #ifdef __cplusplus
 }
 #endif

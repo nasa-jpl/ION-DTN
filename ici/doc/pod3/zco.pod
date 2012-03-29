@@ -179,7 +179,7 @@ multiple parts of a single SDR object in different extents of a ZCO and
 ((b) the ZCOs that are likely to be cloned are bundle payloads, most of
 whose extents are likely to reference file source data objects.
 
-=item void zco_start_transmitting(Sdr sdr, Object zco, ZcoReader *reader)
+=item void zco_start_transmitting(Object zco, ZcoReader *reader)
 
 Used by underlying protocol layer to start extraction of an outbound ZCO's
 bytes (both from header and trailer capsules and from source data extents) for
@@ -205,7 +205,7 @@ Copies I<length> as-yet-uncopied bytes of the total concatenated ZCO
 over I<length> bytes without copying.  Returns the number of bytes copied
 (or skipped) on success, 0 on any file access error, -1 on any other error.
 
-=item void zco_start_receiving(Sdr sdr, Object zco, ZcoReader *reader)
+=item void zco_start_receiving(Object zco, ZcoReader *reader)
 
 Used by overlying protocol layer to start extraction of an inbound ZCO's
 bytes for "reception" -- i.e., the copying of bytes into a memory buffer
