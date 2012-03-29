@@ -72,6 +72,17 @@ Features included:
 - Issue #304: Optimized CGR route computation by developing a new algorithm that
   employs Dijkstra's Algorithm.
 
+- Issue #308: Several updates to ION's Payload Integrity Blocks (PIB) and
+  Payload Confidentiality Blocks (PCB):
+    - Bundle Security Protocol (BSP) utilities now support PIB and PCB.
+    - PIB and PCB extension block code has been added.
+    - Roughly 40 new test cases for PIB, PCB, and BAB combinations have been
+      introduced.
+
+- Issue #311: Bundle Streaming Service (BSS) support has been added to ION.
+  BSS passes "real-time" bundle payloads to an application callback while also
+  storing the bundle payloads to a database for user-directed playback.
+
 - Issue #314: Standardized spelling of the word "semaphore" throughout the ION
   codebase.
 
@@ -178,12 +189,12 @@ Features included:
   wild-carded EID signifying "all endpoints at the indicated node".
  
 - Issue #300: Fixed several bugs in ipnfw:
-     - lookupRule() function of libipnfw.c incorrectly used srcServiceNbr
-       instead of srcNodeNbr.
-     - Several IPN function calls in ipnadmin.c have been wrapped in
-       sdr_begin_xn/sdr_exit_xn blocks to protect against assertion failures.
-     - Before putting a bundle into the Limbo list, ipnfw now searches for
-       blocked outducts and discards the bundle if none are found.
+    - lookupRule() function of libipnfw.c incorrectly used srcServiceNbr
+      instead of srcNodeNbr.
+    - Several IPN function calls in ipnadmin.c have been wrapped in
+      sdr_begin_xn/sdr_exit_xn blocks to protect against assertion failures.
+    - Before putting a bundle into the Limbo list, ipnfw now searches for
+      blocked outducts and discards the bundle if none are found.
  
 - Issue #301: Fixed issue where Ctl+C no longer terminated the bpsink and
   bprecvfile utilities.
