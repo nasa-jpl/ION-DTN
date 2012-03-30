@@ -522,7 +522,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		char *authorityName, char *unitName, char *roleName,
 		long lifetime)
 {
-	int			amsMemory = getIonMemoryMgr();
+	int			amsMemory;
 	AmsModule		amsModule;
 	AmsMib			*mib;
 	int			ownContinuumNbr;
@@ -568,6 +568,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	mib = _mib(NULL);
 	ownContinuumNbr = mib->localContinuumNbr;
 	ownMsgspace = amsModule->venture->msgspaces[ownContinuumNbr];
+	amsMemory = getIonMemoryMgr();
 
 	/*	Construct RAMS gateway state.				*/
 
