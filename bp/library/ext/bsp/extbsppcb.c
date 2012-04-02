@@ -131,6 +131,62 @@ void    bsp_pcbClear(AcqExtBlock *blk)
 
 /******************************************************************************
  *
+ * \par Function Name: bsp_pcbCopy
+ *
+ * \par Purpose: This callback copies the scratchpad object of a PCB
+ * 		 block to a new block that is a copy of the original.
+ *
+ * \retval int 0 - The block was successfully processed.
+ *            -1 - There was a system error.
+ *
+ * \param[in,out]  newBlk The new copy of this extension block.
+ * \param[in]      oldBlk The original extension block.
+ *
+ * \par Notes:
+ *      1. All block memory is allocated using sdr_malloc.
+ *****************************************************************************/
+
+int  bsp_pcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
+{
+   Sdr bpSdr = getIonsdr();
+   BspAbstractSecurityBlock asb;
+   int result = -1;
+
+   PCB_DEBUG_PROC("+ bsp_pcbCopy(%x, %x)",
+                  (unsigned long) blk, (unsigned long) bundle);
+
+   CHKERR(newBlk);
+   CHKERR(oldBlk);
+   sdr_read(bpSdr, (char *) &asb, oldBlk->object ,sizeof asb);
+
+   /*
+    * Reserve space for the scratchpad object in the block. We aren't actually
+    * sure that we will be using the PCB, so we don't go through the hassle of
+    * allocating objects in the SDR yet, as that would incur a larger
+    * performance penalty on bundles that do not use the PCB.
+    */
+
+   newBlk->size = sizeof asb;
+   newBlk->object = sdr_malloc(bpSdr, sizeof asb);
+   if (newBlk->object == 0)
+   {
+      PCB_DEBUG_ERR("x bsp_pcbCopy: Failed to SDR allocate of size: %d",
+			sizeof asb);
+      result = -1;
+   }
+   else
+   {
+      sdr_write(bpSdr, newBlk->object, (char *) &asb, sizeof asb);
+      result = 0;
+   }
+
+   PCB_DEBUG_PROC("- bsp_pcbCopy -> %d", result);
+
+   return result;
+}
+
+/******************************************************************************
+ *
  * \par Function Name: bsp_pcbOffer
  *
  * \par Purpose: This callback determines whether a PCB block is necessary for

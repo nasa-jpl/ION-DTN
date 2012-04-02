@@ -1,5 +1,5 @@
 # dtn2rc configuration file for the src-eid truncation test.
-#	Essentially, this is the IPN scheme's routing table.
+#	Essentially, this is the DTN scheme's routing table.
 #	Command: % dtn2admin loopback.dtn2rc
 #	This command should be run AFTER bpadmin (likely to be run last).
 #

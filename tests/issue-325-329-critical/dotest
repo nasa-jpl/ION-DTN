@@ -10,8 +10,6 @@
 # the likelihood of arrival.  This results in two copies of the file
 # being written at node 4.
 
-./cleanup
-sleep 1
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes

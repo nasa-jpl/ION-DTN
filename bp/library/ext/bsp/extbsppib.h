@@ -161,6 +161,34 @@ void bsp_pibClear(AcqExtBlock *blk);
 
 /******************************************************************************
  *
+ * \par Function Name: bsp_pibCopy
+ *
+ * \par Purpose: This callback copies the scratchpad object of a PIB block
+ * 		 to a new block that is a copy of the original.
+ *
+ * \par Date Written:  4/02/12
+ *
+ * \retval int 0 - The block was successfully processed.
+ *            -1 - There was a system error.
+ *
+ * \param[in,out]  newBlk The new copy of this extension block.
+ * \param[in]      oldBlk The original extension block.
+ *
+ * \par Notes:
+ *      1. All block memory is allocated using sdr_malloc.
+ *
+ * \par Revision History:
+ *
+ *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
+ *  --------  ------------  -----------------------------------------------
+ *  04/02/12  S. Burleigh           Initial Implementation.
+ *****************************************************************************/
+
+extern int bsp_pibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
+
+
+/******************************************************************************
+ *
  * \par Function Name: bsp_pibOffer
  *
  * \par Purpose: This callback determines whether a PIB block is necessary for

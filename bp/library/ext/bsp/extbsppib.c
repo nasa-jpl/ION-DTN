@@ -130,6 +130,63 @@ void	bsp_pibClear(AcqExtBlock *blk)
 
 /******************************************************************************
  *
+ * \par Function Name: bsp_pibCopy
+ *
+ * \par Purpose: This callback copies the scratchpad object of a PIB block
+ * 		 to a new block that is a copy of the original.
+ *
+ * \retval int 0 - The block was successfully processed.
+ *            -1 - There was a system error.
+ *
+ * \param[in,out]  newBlk The new copy of this extension block.
+ * \param[in]      oldBlk The original extension block.
+ *
+ * \par Notes:
+ *      1. All block memory is allocated using sdr_malloc.
+ *****************************************************************************/
+
+int bsp_pibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
+{
+   Sdr bpSdr = getIonsdr();
+   BspAbstractSecurityBlock asb;
+   int result = -1;
+
+   PIB_DEBUG_PROC("+ bsp_pibOffer(%x, %x)",
+                  (unsigned long) blk, (unsigned long) bundle);
+
+   CHKERR(newBlk);
+   CHKERR(oldBlk);
+   sdr_read(bpSdr, (char *) &asb, oldBlk->object, sizeof asb);
+
+   /*
+    * Reserve space for the scratchpad object in the block. We aren't actually
+    * sure that we will be using the PIB, so we don't go through the hassle of
+    * allocating objects in the SDR yet, as that would incur a larger
+    * performance penalty on bundles that do not use the PIB.
+    */
+
+   newBlk->size = sizeof asb;
+   newBlk->object = sdr_malloc(bpSdr, sizeof asb);
+   if (newBlk->object == 0)
+   {
+      PIB_DEBUG_ERR("x bsp_pibCopy: Failed to SDR allocate of size: %d",
+			sizeof asb);
+      result = -1;
+   }
+   else
+   {
+      sdr_write(bpSdr, newBlk->object, (char *) &asb, sizeof asb);
+      result = 0;
+   }
+
+   PIB_DEBUG_PROC("- bsp_pibCopy -> %d", result);
+
+   return result;
+}
+
+
+/******************************************************************************
+ *
  * \par Function Name: bsp_pibOffer
  *
  * \par Purpose: This callback determines whether a PIB block is necessary for

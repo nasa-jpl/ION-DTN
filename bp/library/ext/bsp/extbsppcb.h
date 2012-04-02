@@ -178,6 +178,31 @@ void bsp_pcbClear(AcqExtBlock *blk);
 
 /******************************************************************************
  *
+ * \par Function Name: bsp_pcbCopy
+ *
+ * \par Purpose: This callback copies the scratchpad object of a PCB
+ * 		 block to a new block that is a copy of the original.
+ *
+ * \retval int 0 - The block was successfully processed.
+ *            -1 - There was a system error.
+ *
+ * \param[in,out]  newBlk The new copy of this extension block.
+ * \param[in]      oldBlk The original extension block.
+ *
+ * \par Notes:
+ *      1. All block memory is allocated using sdr_malloc.
+ *
+ * \par Revision History:
+ *
+ *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
+ *  --------  ------------  -----------------------------------------------
+ *  04/02/12  S. Burleigh   Initial Implementation.
+ *****************************************************************************/
+
+int  bsp_pcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
+
+/******************************************************************************
+ *
  * \par Function Name: bsp_pcbOffer
  *
  * \par Purpose: This callback determines whether a PCB block is necessary for
