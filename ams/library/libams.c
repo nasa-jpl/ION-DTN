@@ -2467,8 +2467,8 @@ printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
 				return;
 			}
 
-			memcpy((char *) &unitNbr, cursor, 2);
-			unitNbr = ntohs(unitNbr);
+			memcpy((char *) &u2, cursor, 2);
+			unitNbr = ntohs(u2);
 			moduleNbr = (unsigned char) *(cursor + 2);
 			roleNbr = (unsigned char) *(cursor + 3);
 			bytesRemaining -= 4;
@@ -2707,8 +2707,8 @@ printf("Parsing new subscription with %d bytes remaining.\n", bytesRemaining);
 				return;
 			}
 
-			memcpy((char *) &unitNbr, cursor, 2);
-			unitNbr = ntohs(unitNbr);
+			memcpy((char *) &u2, cursor, 2);
+			unitNbr = ntohs(u2);
 			moduleNbr = (unsigned char) *(cursor + 2);
 			roleNbr = (unsigned char) *(cursor + 3);
 			bytesRemaining -= 4;
