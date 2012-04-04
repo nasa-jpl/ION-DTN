@@ -648,6 +648,9 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
+
+                memcpy( &iondbBuf.parmcopy, parms, sizeof(IonParms));
+
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
 		{

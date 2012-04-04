@@ -11,6 +11,10 @@
 #include "bpP.h"
 #include "smlist.h"
 
+#ifdef ENABLE_BPACS
+#include "acs/acs.h"		/* provides sendAcs */
+#endif /* ENABLE_ACS */
+
 extern void	manageProductionThrottle(BpVdb *vdb);
 
 static int	_running(int *newValue)
@@ -96,6 +100,17 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 			 *	we must NOT do so here.			*/
 
 			break;		/*	Out of switch.		*/
+
+#ifdef ENABLE_BPACS
+        case csDue:
+            result = sendAcs(event->ref);
+
+			/* Note that sendAcs() always erases the 
+			 * csDue event, so we must NOT do so
+			 * here. */
+
+			break;		/*	Out of switch.		*/
+#endif
 
 		default:		/*	Spurious event; erase.	*/
 			destroyBpTimelineEvent(elt);

@@ -64,6 +64,12 @@ extern int		sdr_hash_retrieve(Sdr sdr,
 				Object hash, char *key, Address *value,
 				Object *entry);
 
+typedef void	(*sdr_hash_callback)(Sdr sdr, Object hash,
+				char *key, Address value, void *args);
+
+extern int 		sdr_hash_foreach(Sdr sdrv, Object hash,
+				sdr_hash_callback callback, void *args);
+
 extern int		sdr_hash_count(Sdr sdr,
 				Object hash);
 

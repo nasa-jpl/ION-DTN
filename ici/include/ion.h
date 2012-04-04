@@ -103,6 +103,9 @@ typedef struct
 	int		deltaFromUTC;	/*	In seconds.		*/
 	int		maxClockError;	/*	In seconds.		*/
 	char		workingDirectoryName[256];
+
+        IonParms        parmcopy;       /* copy of the ion startup parms as known to ionadmin at startup */
+
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,

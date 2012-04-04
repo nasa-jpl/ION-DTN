@@ -179,6 +179,7 @@ typedef struct
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
+#define	BP_AGGREGATE_CUSTODY_SIGNAL	(4)
 
 /*	Administrative record flags	*/
 #define BP_BDL_IS_A_FRAGMENT	(1)	/*	00000001		*/
@@ -548,7 +549,8 @@ typedef enum
 {
 	expiredTTL = 1,
 	xmitOverdue = 2,
-	ctDue = 3
+	ctDue = 3,
+	csDue = 4
 } BpEventType;
 
 typedef struct
@@ -585,6 +587,13 @@ typedef struct
 	Object		dbStats;	/*	BpDbStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 } BpDB;
+
+/*  CT database encapsulates custody transfer configuration. */
+
+typedef struct
+{
+	unsigned long	ctExpiredTimeout;
+} BpctDB;
 
 #define BP_STATUS_RECEIVE	0
 #define BP_STATUS_ACCEPT	1
@@ -1222,6 +1231,7 @@ extern void		bpEraseCtSignal(BpCtSignal *signal);
 extern int		bpParseAdminRecord(int *adminRecordType,
 					BpStatusRpt *rpt,
 					BpCtSignal *signal,
+					void **acsptr,
 					Object payload);
 			/*	Populates the appropriate structure
 			 *	from payload content and notes the
@@ -1232,6 +1242,7 @@ extern int		bpParseAdminRecord(int *adminRecordType,
 			 *	failure, -1 on any other error.		*/
 
 extern int		bpInit();
+extern int		bpSetCTCountdownTimer(time_t newTimeout);
 extern int		bpStart();
 extern void		bpStop();
 extern int		bpAttach();
@@ -1342,6 +1353,7 @@ typedef struct bpsap_st
 	sm_SemId	recvSemaphore;
 } Sap;
 
+extern int		handleAbstractCtSignal(BpCtSignal *, char *);
 extern int		_handleAdminBundles(char *adminEid,
 				StatusRptCB handleStatusRpt,
 				CtSignalCB handleCtSignal);

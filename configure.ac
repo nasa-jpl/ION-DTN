@@ -16,6 +16,17 @@ AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
 AC_CONFIG_SRCDIR([ici/include/ion.h])
 AC_CONFIG_HEADER([config.h])
 
+#
+# allow the user running configure to disable ACS
+#
+AC_ARG_ENABLE(
+    acs,
+    AC_HELP_STRING([--disable-acs], [disable Aggregate Custody Signals]),
+    [],
+    [CFLAGS="-DENABLE_BPACS $CFLAGS"
+     ENABLE_BPACS=yes])
+AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
+
 
 # Checks for programs.
 AC_PROG_CC

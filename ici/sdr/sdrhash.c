@@ -364,6 +364,54 @@ int	sdr_hash_count(Sdr sdrv, Object hash)
 	return count;
 }
 
+
+int sdr_hash_foreach(Sdr sdrv, Object hash,
+		sdr_hash_callback callback, void *args)
+{
+	SdrState	*sdr;
+	int		keyLength;
+	int		kvpairLength;
+	int		rowSize;
+	int		rowCount;
+	int		rowNbr;
+	Address		rowAddr;
+	Object		listAddr;
+	Object	elt;
+	Object	kvpairAddr;
+	KvPair		kvpair;
+
+	CHKERR(sdrv);
+	CHKERR(hash);
+	CHKERR(callback);
+	//Passing NULL args is OK (passed through to callback)
+	sdr = sdrv->sdr;
+	takeSdr(sdr);
+	keyLength = sdr_table_user_data(sdrv, hash);
+	kvpairLength = sizeof(Address) + keyLength;
+	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
+
+	/* Iterate over each row/bucket, loading the sdrlist of members of each. */
+	for (rowNbr = 0; rowNbr < rowCount; rowNbr++)
+	{
+		rowAddr = sdr_table_row(sdrv, hash, rowNbr);
+		sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(Object));
+
+		/* Iterate over each member of this bucket. */
+		for (elt = sdr_list_first(sdrv, listAddr); elt;
+				elt = sdr_list_next(sdrv, elt))
+		{
+			kvpairAddr = sdr_list_data(sdrv, elt);
+			sdr_read(sdrv, (char *) &kvpair, kvpairAddr, kvpairLength);
+
+			/* Call the callback passed to us with the key, value pair. */
+			callback(sdrv, hash, kvpair.key, kvpair.value, args);
+		}
+	}
+	releaseSdr(sdr);
+	return 0;
+}
+
+
 int	Sdr_hash_revise(char *file, int line, Sdr sdrv, Object hash, char *key,
 		Address value)
 {

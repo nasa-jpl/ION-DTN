@@ -1,0 +1,7 @@
+# Send a bundle with ID 1.
+# This should append to a brand new (succeeded, no reason) ACS
+sendexpectacsandcustody("dtn://custodiannode/custodian", "dtn://sourcenode/app", "6/30/2010 16:47:08", 1)
+
+receiveall(10.0)
+
+checkcustody()
