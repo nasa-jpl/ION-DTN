@@ -293,7 +293,7 @@ static void releaseSdrAcsFill(Sdr sdr, Object fillAddr, void *arg)
 
 static void releaseSdrAcsSignal(Object signalLElt)
 {
-	Sdr					bpSdr = getIonsdr();
+	Sdr			bpSdr = getIonsdr();
 	Sdr                 acsSdr = getAcssdr();
 	Object              signalAddr;
 	SdrAcsSignal        signal;
@@ -327,7 +327,7 @@ static void releaseSdrAcsSignal(Object signalLElt)
 	}
 
 	if(signal.serializedZco != 0) {
-		zco_destroy_reference(bpSdr, signal.serializedZco);
+		zco_destroy(bpSdr, signal.serializedZco);
 	}
 
 	/* Destroy this AcsSignal */
@@ -381,17 +381,17 @@ int sendAcs(Object signalLElt)
 	 * we can do is delete it from our node without sending. */
 	case -1:
 		ACSLOG_ERROR("Can't send custody transfer signal.");
-		zco_destroy_reference(bpSdr, signal.serializedZco);
+		zco_destroy(bpSdr, signal.serializedZco);
 		break;
 
 	case 0:
 		ACSLOG_ERROR("Custody transfer signal not transmitted.");
-		zco_destroy_reference(bpSdr, signal.serializedZco);
+		zco_destroy(bpSdr, signal.serializedZco);
 		break;
 
 	default:
 		/* bpSend() gave the serializedZco to a forwarder, so don't
-		 * zco_destroy_reference(). */
+		 * zco_destroy(). */
 		break;
 	}
 
@@ -544,7 +544,7 @@ int trySendAcs(SdrAcsPendingCust *custodian,
 		if (signal.serializedZco != 0)
 		{
 			/* Free the old payload zco. */
-			zco_destroy_reference(bpSdr, signal.serializedZco);
+			zco_destroy(bpSdr, signal.serializedZco);
 		}
 	}
 

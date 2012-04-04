@@ -28,11 +28,12 @@ int get_or_make_custody_id(const char *sourceEid,
 		const BpTimestamp *creationTime, unsigned long fragmentOffset,
 		unsigned long fragmentLength, AcsCustodyId *cid)
 {
-	AcsBundleId		bid;
-	Address			cbidAddr;
+	AcsBundleId	bid;
+	Address		cbidAddr;
 	AcsCbidEntry	cbid;
-	Object			cbidObj;
-	int rc;
+	Object		cbidObj;
+	int		rc;
+	Object		hashEntry;
 
 	if (acsAttach() < 0)
 	{
@@ -57,7 +58,7 @@ int get_or_make_custody_id(const char *sourceEid,
 	sdr_begin_xn(acsSdr);
 
 	rc = sdr_hash_retrieve(acsSdr, acsConstants->bidHash,
-			(char *)(&bid), &cbidAddr);
+			(char *)(&bid), &cbidAddr, &hashEntry);
 	if (rc == -1)
 	{
 		ACSLOG_ERROR("Couldn't search for (%s,%lu,%lu,%lu,%lu) in bidHash",
@@ -114,9 +115,10 @@ int get_or_make_custody_id(const char *sourceEid,
 
 int get_bundle_id(AcsCustodyId *custodyId, AcsBundleId *id)
 {
-	int rc;
-	Address		 cbidAddr;
-	AcsCbidEntry cbid;
+	int		rc;
+	Address		cbidAddr;
+	AcsCbidEntry	cbid;
+	Object		hashEntry;
 
 	if (acsAttach() < 0)
 	{
@@ -132,7 +134,7 @@ int get_bundle_id(AcsCustodyId *custodyId, AcsBundleId *id)
 
 	sdr_begin_xn(acsSdr);
 	rc = sdr_hash_retrieve(acsSdr, acsConstants->cidHash,
-			(char *)(custodyId), &cbidAddr);
+			(char *)(custodyId), &cbidAddr, &hashEntry);
 	if (rc == 1)
 	{
 		sdr_peek(acsSdr, cbid, cbidAddr);
@@ -164,9 +166,10 @@ int get_bundle_id(AcsCustodyId *custodyId, AcsBundleId *id)
 
 int destroy_custody_id(AcsBundleId *bundleId)
 {
-	Address			cbidAddr;
+	Address		cbidAddr;
 	AcsCbidEntry	cbid;
-	int				rc;
+	int		rc;
+	Object		hashEntry;
 
 	if (acsAttach() < 0)
 	{
@@ -183,7 +186,7 @@ int destroy_custody_id(AcsBundleId *bundleId)
 	/* Lookup the cbid. */
 	sdr_begin_xn(acsSdr);
 	rc = sdr_hash_retrieve(acsSdr, acsConstants->bidHash,
-					(char *)(bundleId), &cbidAddr);
+			(char *)(bundleId), &cbidAddr, &hashEntry);
 	if (rc == -1)
 	{
 		ACSLOG_ERROR("Couldn't search for (%s,%lu,%lu,%lu,%lu) in bidHash"

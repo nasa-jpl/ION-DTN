@@ -16,6 +16,7 @@ DCCP = ../dccp
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
+# -DENABLE_BPACS
 CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -33,12 +34,14 @@ BPINCLS = \
 	$(TCP)/tcpcla.h \
 	$(LTP)/ltpcla.h \
 	$(DCCP)/dccpcla.h
+#	$(API)/acs/acs.h
 
 BPLIBS = \
 	libbp.so \
 	libbpP.so
 
 BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o crypto.o
+# acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 # phn.o
 
 LFW = -lbssfw -ldtn2fw
@@ -47,7 +50,7 @@ LFW = -lbssfw -ldtn2fw
 LBP = -lbp -lbpP
 
 RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep bssadmin bssfw dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
-#dccpcli dccpclo
+# dccpcli dccpclo
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libbssfw.so libtcpcla.so libudpcla.so libbpnm.so $(RUNTIMES)
 
@@ -131,6 +134,14 @@ bpcancel:	bpcancel.o $(BPLIBS)
 hmackeys:	hmackeys.o $(BPLIBS)
 		$(CC) -o hmackeys hmackeys.o -L$(ROOT)/lib -lici -lpthread
 		cp hmackeys ./bin
+
+#acsadmin:	acsadmin.o $(BPLIBS)
+#		$(CC) -o acsadmin acsadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+#		cp acsadmin ./bin
+
+#acslist:	acslist.o $(BPLIBS)
+#		$(CC) -o acslist acslist.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+#		cp acslist ./bin
 
 #	-	-	IPN executables	-	-	-	-	-
 
@@ -347,3 +358,9 @@ libbpnm.so:	libbpnm.o $(API)/bpnm.h
 
 %.o:		$(DGR)/%.c
 		$(CC) -c $<
+
+#%.o:		$(API)/acs/%.c
+#		$(CC) -c $<
+
+#%.o:		$(API)/ext/cteb/%.c
+#		$(CC) -c $<
