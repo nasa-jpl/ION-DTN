@@ -108,10 +108,15 @@ Features included:
   use during program operation than the lyst_create function, which should only
   be invoked during the program's initialization.
 
-- Issue 343: Fixed bugs in LTP that could cause crashes at high data loss rates:
+- Issue #343: Fixed bugs in LTP that could cause crashes at high data loss rates
     - Fixed mechanisms for preventing resurrection of closed Import sessions.
     - Fixed issue where the same report number could become assigned to two
       different reports, resulting in link service daemons crashing.
+
+- Issue #344: Added a "-t <ttl>" command line parameter to set the time-to-live
+  for bundles sent from the application.  Previously bundles were hard-coded
+  with lifetimes of 300 seconds, which is now the default if the TTL is not
+  explicitly specified.
 
 - Issue #345: The ION Deployment Guide is now bundled with ION.  It provides
   FAQ-style documentation for helping new users familiarize themselves with ION.
