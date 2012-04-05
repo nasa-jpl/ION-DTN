@@ -62,8 +62,8 @@ Features included:
   protect against overflows from incorrect configurations.
 
 - Issue #262: ION is now wired with a rudimentary instrumentation framework for
-  for insight into run-time status, including bundle processing statistics and
-  node state metrics.
+  insight into run-time status, including bundle processing statistics and node
+  state metrics.  This is in preparation for standardized network management. 
 
 - Issue #302: Implemented red-black trees as an alternative data structure to
   linked lists for some performance-sensitive applications.  Migrated the BP
@@ -97,16 +97,22 @@ Features included:
       and CL transmission has been nominally successful and reliable, in the
       event that the CL transmission ultimately (unexpectedly) does not succeed.
 
-- Issue #325: Fixed a bug that could cause ION to crash bundles for which the
-  destination endpoint is not a singleton.
+- Issue #325: Fixed a bug that could cause ION to crash when sending bundles for
+  which the destination endpoint is not a singleton.
 
 - Issue #329: ION now supports sending (rather than just receiving) fragmented
-  bundles.
+  bundles.  (NOTE: this entailed several changes to the ZCO API.) 
 
-- Issue #342: Adapted a new lyst_create_using() function from the lyst_create()
-  function.  This variation uses memory allocation routines that are safer for
-  use during program operation than the lyst_create function, which should only
-  be invoked during the program's initialization.
+- Issue #339: Aggregate Custody Signals (ACS) have been added to ION.
+    - ACS is a technology that combines information from various separate
+      custody signals into a single bundle, which has the potential to save
+      "ack channel" bandwidth.
+    - For more information on ACS, see the following document:
+        <http://bioserve.colorado.edu/bp-acs/draft-kuzminsky-aggregate-custody-signals-02.txt>
+  
+- Issue #342: Changed several invocations of lyst_create() to
+  lyst_create_using(), to ensure that ION’s private memory management is always
+  used.
 
 - Issue #343: Fixed bugs in LTP that could cause crashes at high data loss rates
     - Fixed mechanisms for preventing resurrection of closed Import sessions.
@@ -114,9 +120,9 @@ Features included:
       different reports, resulting in link service daemons crashing.
 
 - Issue #344: Added a "-t <ttl>" command line parameter to set the time-to-live
-  for bundles sent from the application.  Previously bundles were hard-coded
-  with lifetimes of 300 seconds, which is now the default if the TTL is not
-  explicitly specified.
+  for bundles sent from the bpsource application.  Previously bundles were
+  hard-coded with lifetimes of 300 seconds, which is now the default if the TTL
+  is not explicitly specified.
 
 - Issue #345: The ION Deployment Guide is now bundled with ION.  It provides
   FAQ-style documentation for helping new users familiarize themselves with ION.
@@ -357,6 +363,7 @@ Features included:
 
 - Issue #277: Fixed 3-node-stcp-ltp configuration to remove an unintentional
   connection between nodes 1 and 3.
+
 
 - Issue #278: Updated various test configuration files to have more recent
   contact times.
