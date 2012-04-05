@@ -38,14 +38,14 @@ static int errors = 0;
  *     matching custody ID.
  *  2) Using the value's bundle ID as the key in a search of the other hash
  *     table (mapping custody IDs to CBID pairs), we find the same result. */
-static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
-			void *args)
+static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidAddr, void *args)
 {
-	int				*cidCount = (int *)(args);
+	int		*cidCount = (int *)(args);
 	AcsCustodyId	*cid = (AcsCustodyId *)(key);
 	AcsCbidEntry	cbid;
-	int 			hasMismatch = 0;
-	int 			rc;
+	int 		hasMismatch = 0;
+	int 		rc;
+	Object		hashEntry;
 
 	/* These two variables should match cbidAddr & cbid; but they're looked up
 	 * in the bid hash table rather than cid hash table as a consistency check. */
@@ -76,8 +76,8 @@ static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidA
 
 	/* Verify that if we look up using the bundle ID we've found, we get the
 	 * same cbid (there are no dangling entries in the cidHash) */
-	rc = sdr_hash_retrieve(acsSdr, acsConstants->bidHash, (char *)(&cbid.bundleId),
-			&bidCbidAddr);
+	rc = sdr_hash_retrieve(acsSdr, acsConstants->bidHash,
+			(char *)(&cbid.bundleId), &bidCbidAddr, &hashEntry);
 	if (rc == -1)
 	{
 		writeMemoOrStdout("Mismatch: can't find (%s,%lu,%lu,%lu,%lu) "
@@ -147,10 +147,11 @@ static void printAndCheckByCids(Sdr acsSdr)
 static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
 			void *args)
 {
-	AcsBundleId		*bid = (AcsBundleId *)(key);
+	AcsBundleId	*bid = (AcsBundleId *)(key);
 	AcsCbidEntry	cbid;
-	int 			hasMismatch = 0;
-	int 			rc;
+	int 		hasMismatch = 0;
+	int 		rc;
+	Object		hashEntry;
 
 	/* These two variables should match cbidAddr & cbid; but they're looked up
 	 * in the cid hash table rather than bid hash table as a consistency check. */
@@ -191,8 +192,8 @@ static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
 
 	/* Verify that if we look up using the custody ID we've found, we get the
 	 * same cbid (there are no dangling entries in the bidHash) */
-	rc = sdr_hash_retrieve(acsSdr, acsConstants->cidHash, (char *)(&cbid.custodyId),
-			&cidCbidAddr);
+	rc = sdr_hash_retrieve(acsSdr, acsConstants->cidHash,
+			(char *)(&cbid.custodyId), &cidCbidAddr, &hashEntry);
 	if (rc == -1)
 	{
 		writeMemoOrStdout("Mismatch: can't find (%lu) "

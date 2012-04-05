@@ -34,7 +34,7 @@ BPINCLS = \
 	$(TCP)/tcpcla.h \
 	$(LTP)/ltpcla.h \
 	$(DCCP)/dccpcla.h
-#	$(API)/acs/acs.h
+# $(API)/acs/acs.h
 
 BPLIBS = \
 	libbp.so \
@@ -50,6 +50,7 @@ LFW = -lbssfw -ldtn2fw
 LBP = -lbp -lbpP
 
 RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep bssadmin bssfw dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
+# acsadmin acslist
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libbssfw.so libtcpcla.so libudpcla.so libbpnm.so $(RUNTIMES)
@@ -362,5 +363,5 @@ libbpnm.so:	libbpnm.o $(API)/bpnm.h
 #%.o:		$(API)/acs/%.c
 #		$(CC) -c $<
 
-#%.o:		$(API)/ext/cteb/%.c
-#		$(CC) -c $<
+%.o:		$(API)/ext/cteb/%.c
+		$(CC) -c $<
