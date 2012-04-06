@@ -187,7 +187,7 @@ int	sendBytesByTCP(int *bundleSocket, char *from, int length,
 				bytesWritten = 0;
 			}
 
-			putSysErrmsg("CLO write() error on socket", NULL);
+			putSysErrmsg("write() error on socket", NULL);
 		}
 
 		return bytesWritten;
