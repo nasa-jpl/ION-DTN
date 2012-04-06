@@ -127,6 +127,9 @@ Features included:
 - Issue #345: The ION Deployment Guide is now bundled with ION.  It provides
   FAQ-style documentation for helping new users familiarize themselves with ION.
 
+- Issue #347: Fixed bug in re-establishing connectivity via TCPCL when a node
+  shuts down and then restarts.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.3 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
