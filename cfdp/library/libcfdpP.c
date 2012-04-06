@@ -814,7 +814,6 @@ int	addFsResp(Object list, CfdpAction action, int status,
 	Sdr			sdr = getIonsdr();
 	CfdpDB			*cfdpConstants = _cfdpConstants();
 	FilestoreResponse	fsresp;
-	Object			elt;
 	Object			addr;
 
 	CHKERR(list);
@@ -848,7 +847,7 @@ int	addFsResp(Object list, CfdpAction action, int status,
 	{
 		sdr_write(sdr, addr, (char *) &fsresp,
 				sizeof(FilestoreResponse));
-		elt = sdr_list_insert_last(sdr, list, addr);
+		oK(sdr_list_insert_last(sdr, list, addr));
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -1141,7 +1140,7 @@ void	destroyOutFdu(OutFdu *fdu, Object fduObj, Object fduElt)
 		}
 
 		obj = sdr_list_data(sdr, elt);
-		zco_destroy_reference(sdr, obj);
+		zco_destroy(sdr, obj);
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
@@ -1282,6 +1281,12 @@ void	destroyInFdu(InFdu *fdu, Object fduObj, Object fduElt)
 	sdr_list_delete(sdr, fduElt, NULL, NULL);
 	if (cfdpvdb->currentFdu == fduObj)
 	{
+		if (cfdpvdb->currentFile != -1)
+		{
+			close(cfdpvdb->currentFile);
+			cfdpvdb->currentFile = -1;
+		}
+
 		cfdpvdb->currentFdu = 0;
 	}
 }
@@ -1833,8 +1838,8 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 	{
 		*lastPathSeparator = ION_PATH_DELIMITER;
 	}
-}
 #endif
+}
 
 static void	renameWorkingFile(InFdu *fduBuf)
 {
@@ -2329,7 +2334,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 	{
 		buf = _crcComputationBuf();
 		memcpy((char *) buf, pduHeader, pduHeaderLength);
-		zco_start_receiving(sdr, *pdu, &reader);
+		zco_start_receiving(*pdu, &reader);
 		if (zco_receive_source(sdr, &reader, pduSourceDataLength,
 				((char *) buf) + pduHeaderLength) < 0)
 		{
@@ -2338,7 +2343,6 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 			return -1;
 		}
 
-		zco_stop_receiving(sdr, &reader);
 		crc = computeCRC(buf, pduHeaderLength + pduSourceDataLength);
 		crc = htons(crc);
 		oK(zco_append_trailer(sdr, *pdu, (char *) &crc, 2));
@@ -2366,7 +2370,6 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 {
-	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	CfdpHandler	handler;
 
 	if (!fdu->metadataReceived)
@@ -2382,12 +2385,6 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 	if (fdu->bytesReceived < fdu->fileSize)	/*	Missing data.	*/
 	{
 		return 0;
-	}
-
-	if (cfdpvdb->currentFile != -1)
-	{
-		close(cfdpvdb->currentFile);
-		cfdpvdb->currentFile = -1;
 	}
 
 	if (fdu->computedChecksum == fdu->eofChecksum)
@@ -2802,6 +2799,7 @@ printf("Continuing to extent from %d to %d; segmentOffset is %d.\n", nextExtent.
 #ifdef TargetFFS
 	close(cfdpvdb->currentFile);
 	cfdpvdb->currentFile = -1;
+	cfdpvdb->currentFdu = 0;
 #endif
 	/*	Deliver File-Segment-Recv indication.			*/
 
@@ -3372,9 +3370,7 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 {
 	unsigned char		*cursor = buf;
 	int			bytesRemaining = length;
-	int			versionNbr;
 	int			pduIsFileData;
-	int			pduIsTowardSender;
 	int			modeIsUnacknowledged;
 	Sdr			sdr = getIonsdr();
 	CfdpDB			*cfdpConstants = _cfdpConstants();
@@ -3411,9 +3407,7 @@ printf("...in cfdpHandleInboundPdu...\n");
 		return 0;		/*	Malformed PDU.		*/
 	}
 
-	versionNbr = ((*cursor) >> 5) & 0x07;
 	pduIsFileData = ((*cursor) >> 4) & 0x01;
-	pduIsTowardSender = ((*cursor) >> 3) & 0x01;
 	modeIsUnacknowledged = ((*cursor) >> 2) & 0x01;
 	crcIsPresent = ((*cursor) >> 1) & 0x01;
 	cursor++;

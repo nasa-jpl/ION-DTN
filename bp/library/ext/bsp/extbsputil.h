@@ -78,9 +78,8 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
  *                              DEBUG DEFINITIONS                            *
  *****************************************************************************/
 
-/* TODO: Consider making this read in from ionsecadmin? */
 #ifndef BSP_DEBUGGING
-#define BSP_DEBUGGING	1  /** Whether to enable (1) or disable (0) debugging */
+#define BSP_DEBUGGING	0  /** Whether to enable (1) or disable (0) debugging */
 #endif
 
 #define BSP_DEBUG_LVL_PROC 1 /** Function entry/exit and above debugging */
@@ -88,12 +87,11 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
 #define BSP_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BSP_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define BSP_DEBUG_LVL	BSP_DEBUG_LVL_ERR
+#define BSP_DEBUG_LVL	BSP_DEBUG_LVL_PROC
 
 #define	GMSG_BUFLEN	256
 #if BSP_DEBUGGING == 1
 extern char		gMsg[];		/*	Debug message buffer.	*/
-#endif
 
 /**
  * \def BSP_DEBUG
@@ -122,35 +120,10 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
  * Debugging can be turned off at compile time by removing the
  * BSP_DEBUGGING #define.
  */
-#ifdef TORNADO_2_0_2
-#if BSP_DEBUGGING == 1
-   #define BSP_DEBUG(level, format, args...) if(level >= BSP_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, format, args); putErrmsg(gMsg, NULL);}
-                                       
-   #define BSP_DEBUG_PROC(format, args...) \
-           BSP_DEBUG(BSP_DEBUG_LVL_PROC,format, args)
 
-   #define BSP_DEBUG_INFO(format, args...) \
-           BSP_DEBUG(BSP_DEBUG_LVL_INFO,format, args)
-
-   #define BSP_DEBUG_WARN(format, args...) \
-           BSP_DEBUG(BSP_DEBUG_LVL_WARN,format, args)
-
-   #define BSP_DEBUG_ERR(format, args...) \
-           BSP_DEBUG(BSP_DEBUG_LVL_ERR,format, args)
-                                        
-#else
-   #define BSP_DEBUG(format, args...)
-   #define BSP_DEBUG_PROC(format, args...) 
-   #define BSP_DEBUG_INFO(format, args...) 
-   #define BSP_DEBUG_WARN(format, args...) 
-   #define BSP_DEBUG_ERR(format, args...)
-#endif
-#else		/*	Not TORNADO_2_0_2				*/
-#if BSP_DEBUGGING == 1
    #define BSP_DEBUG(level, format,...) if(level >= BSP_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); putErrmsg(gMsg, NULL);}
-                                       
+{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
+
    #define BSP_DEBUG_PROC(format,...) \
            BSP_DEBUG(BSP_DEBUG_LVL_PROC,format, __VA_ARGS__)
 
@@ -162,15 +135,24 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
 
    #define BSP_DEBUG_ERR(format,...) \
            BSP_DEBUG(BSP_DEBUG_LVL_ERR,format, __VA_ARGS__)
-                                        
 #else
-   #define BSP_DEBUG(format,...)
-   #define BSP_DEBUG_PROC(format,...) 
-   #define BSP_DEBUG_INFO(format,...) 
-   #define BSP_DEBUG_WARN(format,...) 
-   #define BSP_DEBUG_ERR(format,...)
+   #define BSP_DEBUG(level, format,...) if(level >= BSP_DEBUG_LVL) \
+{}
+
+   #define BSP_DEBUG_PROC(format,...) \
+           BSP_DEBUG(BSP_DEBUG_LVL_PROC,format, __VA_ARGS__)
+
+   #define BSP_DEBUG_INFO(format,...) \
+           BSP_DEBUG(BSP_DEBUG_LVL_INFO,format, __VA_ARGS__)
+
+   #define BSP_DEBUG_WARN(format,...) \
+           BSP_DEBUG(BSP_DEBUG_LVL_WARN,format, __VA_ARGS__)
+
+   #define BSP_DEBUG_ERR(format,...) \
+           BSP_DEBUG(BSP_DEBUG_LVL_ERR,format, __VA_ARGS__)
+
+
 #endif
-#endif		/*	End of #ifdef TORNADO_2_0_2			*/
 
 
 /*****************************************************************************
@@ -193,10 +175,13 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
 #define BSP_ESB_TYPE  0x09 /** BSP ESB block type.          */
 
 /** Ciphersuite types - From BSP Spec. Version 8. */
-#define BSP_CSTYPE_BAB_HMAC 0x001
-#define BSP_CSTYPE_PIB_RSA_SHA256 0x002
+#define BSP_CSTYPE_BAB_HMAC 					  0x001
+#define BSP_CSTYPE_PIB_RSA_SHA256 				  0x002
 #define BSP_CSTYPE_PCB_RSA_AES128_PAYLOAD_PIB_PCB 0x003
-#define BSP_CSTYPE_ESB_RSA_AES128_EXT 0x004
+#define BSP_CSTYPE_ESB_RSA_AES128_EXT 			  0x004
+#define BSP_CSTYPE_PIB_HMAC_SHA256 				  0x005
+#define BSP_CSTYPE_PCB_ARC4 					  0x006
+#define BSP_CSTYPE_PCB_AES128 					  0x007
 
 
 /** Ciphersuite Flags - From BSP Spec. Version 8. */
@@ -207,7 +192,7 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
 #define BSP_ASB_RES       0x01 /** ASB contains a result length and data.  */
 
 
-/** Ciphersuite Parameter Types - From BSP Spec Version 8. */
+/** Ciphersuite Parameter Types - RFC6257 Section 2.6. */
 #define BSP_CSPARM_IV           0x01
 #define BSP_CSPARM_KEY_INFO     0x03
 #define BSP_CSPARM_FRAG_RNG     0x04
@@ -218,6 +203,9 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
 #define BSP_CSPARM_ENV_BLK_TYPE 0x0B
 
 #define BSP_KEY_NAME_LEN     32
+
+/** Misc **/
+#define BSP_ZCO_TRANSFER_BUF_SIZE 4096
 
 /*****************************************************************************
  *                        BSP MODULE VARIABLE DEFINITIONS                    *
@@ -243,6 +231,12 @@ typedef struct {
 	char cipherKeyName[BSP_KEY_NAME_LEN];
 } BspSecurityInfo;
 
+typedef struct {
+	char *header;
+	char *payload;
+	char *trailer;
+} BundleParts;
+
 /** 
  *  \struct BspAbstractSecurityBlock
  *  \brief Canonical Abstract Security Block as defined in the Bundle Security
@@ -253,6 +247,8 @@ typedef struct {
  * Specification, version 8. 
  */
 typedef struct {
+	EndpointId    secSrc;         /** Optional security source            */
+	EndpointId    secDest;        /** Optional security destination       */
 	unsigned long cipher;         /** Ciphersuite Type Field              */
 	unsigned long cipherFlags;    /** Ciphersuite Flags Field             */
 	unsigned long correlator;     /** IFF cipherFlags & BSP_ASB_CORR      */
@@ -272,7 +268,7 @@ typedef struct {
  *
  * \par Function Name: getCustodianEid
  *
- * \par Purpose: This utilitity function returns the custodian node number
+ * \par Purpose: This utility function returns the custodian node number
  *               for the peer ID given. The EID is used to identify a scheme,
  *               and the custodian EID for the scheme is returned.  Note: The
  *               peer ID may actually refer to a different node than
@@ -350,6 +346,7 @@ unsigned char *bsp_addSdnvToStream(unsigned char *stream, Sdnv* value);
  *
  * \param[in,out]  blk  A pointer to the acquisition block holding the
  *                      serialized abstract security block.
+ * \param[in]      wk   Work area holding bundle information.
  *
  * \par Notes: 
  *      1. This function allocates memory using the MTAKE method.  This
@@ -367,12 +364,12 @@ unsigned char *bsp_addSdnvToStream(unsigned char *stream, Sdnv* value);
  *  05/30/09  E. Birrane           Initial Implementation.
  *  06/06/09  E. Birrane           Documentation Pass.
  *  06/20/09  E. Birrane           Cmts and code cleanup for initial release.
+ *  07/26/11  E. Birrane           Added useCbhe and EID ref/deref
  *****************************************************************************/
 
-int bsp_deserializeASB(AcqExtBlock *blk);
+int bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk, int blockType);
 
 
-#if 0
 /******************************************************************************
  *
  * \par Function Name: bsp_eidNil
@@ -400,7 +397,7 @@ int bsp_deserializeASB(AcqExtBlock *blk);
  *****************************************************************************/
 
 int bsp_eidNil(EndpointId *eid);
-#endif
+
 
 
 /******************************************************************************
@@ -518,6 +515,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
  *                       information is being requested.
  * \param]in]  blockType The block whose key information is being requested.
  * \param[in]  bspType   The type of BSP block whose key is being requested.
+ * \param[in]  blockType The type of block affected by the BSP. 0 = whole bundle
  * \param[in]  eidSourceString The name of the source endpoint.
  * \param[in]  eidDestString The name of the destination endpoint.
  * \param[out] secInfo   The block scratchpad holding security information for
@@ -530,18 +528,83 @@ unsigned char *bsp_serializeASB(unsigned int *length,
  *  06/02/09  E. Birrane           Initial Implementation.
  *  06/18/09  E. Birrane           Re-write to incorporate Other BSP blocks
  *  02/10/11  E. Birrane           Updated based on ionsecadmin changes.
+ *  07/27/11  E. Birrane           Updated for PIB.
  *****************************************************************************/
 
-void bsp_getSecurityInfo(	Bundle * bundle,
+void bsp_getSecurityInfo(Bundle * bundle,
 			int bspType,
+			int blockType,
 			char * eidSourceString,
 			char * eidDestString,
 			BspSecurityInfo * secInfo);
 
+/******************************************************************************
+ *
+ * \par Function Name: getBspItem
+ *
+ * \par Purpose: This function searches within a BSP buffer (a ciphersuite
+ *               parameters field or a security result field) for an
+ *               information item of specified type.
+ *
+ * \retval void
+ *
+ * \param[in]  itemNeeded  The code number of the type of item to search
+ *                         for.  Valid item type codes are defined in bsp.h
+ *                         as BSP_CSPARM_xxx macros.
+ * \param[in]  bspBuf      The data buffer in which to search for the item.
+ * \param[in]  bspLen      The length of the data buffer.
+ * \param[in]  val         A pointer to a variable in which the function
+ *                         should place the location (within the buffer)
+ *                         of the first item of specified type that is
+ *                         found within the buffer.  On return, this
+ *                         variable contains NULL if no such item was found.
+ * \param[in]  len         A pointer to a variable in which the function
+ *                         should place the length of the first item of
+ *                         specified type that is found within the buffer.
+ *                         On return, this variable contains 0 if no such
+ *                         item was found.
+ *
+ * \par Notes: 
+ *****************************************************************************/
 
-void	getBspItem(int itemNeeded, unsigned char *bspBuf,
-			unsigned long bspLen, unsigned char **val,
-			unsigned long *len);
+void getBspItem(int itemNeeded, unsigned char *bspBuf,
+		unsigned long bspLen, unsigned char **val,
+		unsigned long *len);
 
+char *getLocalCustodianEid(DequeueContext *ctxt);
 
+int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType);
+
+int setSecPointsTrans(ExtensionBlock *blk, Bundle *bundle, BspAbstractSecurityBlock *asb,
+                      Lyst *eidRefs, int blockType, DequeueContext *ctxt, char *srcNode, char *destNode);
+
+/******************************************************************************
+ *
+ * \par Function Name: transferToZcoFileSource
+ *
+ * \par Purpose: This utility function attains a zco object, a file reference, a 
+ *               character string and appends the string to a file. A file
+ *               reference to the new data is appended to the zco object. If given
+ *               an empty zco object- it will create a new one on the empty pointer.
+ *               If given an empty file reference, it will create a new file.
+ *
+ * \par Date Written:  8/15/11
+ *
+ * \retval int - 0 indicates success, -1 is an error
+ *
+ * \param[in]  sdr        ion sdr
+ * \param]in]  resultZco  Object where the file references will go
+ * \param[in]  acqFileRef A file references pointing to the file
+ * \param[in]  fname      A string to be used as the base of the filename
+ * \param[in]  bytes      The string data to write in the file
+ * \param[in]  length     Length of the string data
+ * \par Revision History:
+ * 
+ *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
+ *  --------  ------------  -----------------------------------------------
+ *  08/20/11  R. Brown           Initial Implementation.
+ *****************************************************************************/
+
+int transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
+                            char *fname, char *bytes, int length); 
 #endif /* _IONBSP_H_ */

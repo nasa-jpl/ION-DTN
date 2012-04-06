@@ -119,6 +119,36 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	return 0;
 }
 
+static int	blockedOutductsCount()
+{
+	Sdr	sdr = getIonsdr();
+	BpDB	*db = getBpConstants();
+	int	count = 0;
+	Object	elt;
+		OBJ_POINTER(ClProtocol, protocol);
+	Object	elt2;
+		OBJ_POINTER(Outduct, duct);
+
+	for (elt = sdr_list_first(sdr, db->protocols); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, ClProtocol, protocol,
+			       	sdr_list_data(sdr, elt));
+		for (elt2 = sdr_list_first(sdr, protocol->outducts); elt2;
+				elt2 = sdr_list_next(sdr, elt2))
+		{
+			GET_OBJ_POINTER(sdr, Outduct, duct,
+			       		sdr_list_data(sdr, elt2));
+			if (duct->blocked)
+			{
+				count++;
+			}
+		}
+	}
+
+	return count;
+}
+
 static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 {
 	Sdr		sdr = getIonsdr();
@@ -160,11 +190,11 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	If dynamic routing succeeded in enqueuing the bundle
 	 *	to a neighbor, accept the bundle and return.		*/
 
-	if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
+	if (bundle->ductXmitElt)
 	{
 		/*	Enqueued.					*/
 
-		return bpAccept(bundle);
+		return bpAccept(bundleObj, bundle);
 	}
 
 	/*	No luck using the contact graph to compute a route
@@ -178,11 +208,11 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
+	if (bundle->ductXmitElt)
 	{
 		/*	Enqueued.					*/
 
-		return bpAccept(bundle);
+		return bpAccept(bundleObj, bundle);
 	}
 
 	/*	Destination isn't a neighbor that accepts bundles.
@@ -197,25 +227,30 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		/*	Found directive; forward via the indicated
 		 *	endpoint.					*/
 
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 		sdr_string_read(sdr, eidString, directive.eid);
 		return forwardBundle(bundleObj, bundle, eidString);
 	}
 
-	/*	No applicable group, so place bundle in limbo until
-	 *	an outduct is unblocked so that CGR can compute a
-	 *	route.							*/
+	/*	No applicable group.  If there's at least one blocked
+	 *	outduct, future outduct unblocking might enable CGR
+	 *	to compute a route that's not currently plausible.
+	 *	So place bundle in limbo.				*/
 
-	if (enqueueToLimbo(bundle, bundleObj) < 0)
+	if (blockedOutductsCount() > 0)
 	{
-		putErrmsg("Can't put bundle in limbo.", NULL);
-		return -1;
+		if (enqueueToLimbo(bundle, bundleObj) < 0)
+		{
+			putErrmsg("Can't put bundle in limbo.", NULL);
+			return -1;
+		}
 	}
 
-	if (sdr_list_length(sdr, bundle->xmitRefs) > 0)
+	if (bundle->ductXmitElt)
 	{
-		/*	Enqueued.					*/
+		/*	Enqueued to limbo.				*/
 
-		return bpAccept(bundle);
+		return bpAccept(bundleObj, bundle);
 	}
 	else
 	{
@@ -231,7 +266,6 @@ int	ipnfw(int a1, int a2, int a3, int a4, int a5,
 int	main(int argc, char *argv[])
 {
 #endif
-	int		ionMemIdx;
 	int		running = 1;
 	Sdr		sdr;
 	VScheme		*vscheme;
@@ -253,7 +287,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	ionMemIdx = getIonMemoryMgr();
+	cgr_start();
 	sdr = getIonsdr();
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
@@ -311,7 +345,6 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't enqueue bundle.", NULL);

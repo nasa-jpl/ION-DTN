@@ -189,6 +189,7 @@ typedef struct
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
+	unsigned long	lastRptSerialNbr;
 	int		reportsCount;
 	Object		blockFileRef;	/*	A ZCO File Ref object.	*/
 
@@ -259,6 +260,8 @@ typedef struct
 	unsigned int	aggrSizeLimit;	/*	Bytes.			*/
 	unsigned int	aggrTimeLimit;	/*	Seconds.		*/
 	unsigned int	maxSegmentSize;	/*	MTU size, in bytes.	*/
+	Object		stats;		/*	LtpSpanStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 
 	Object		currentExportSessionObj;
 	unsigned int	ageOfBufferedBlock;
@@ -274,12 +277,49 @@ typedef struct
 	Object		deadImports;	/*	SDR list: ImportSession	*/
 } LtpSpan;
 
+/*	*	*	LTP statistics management	*	*	*/
+
+#define	OUT_SEG_QUEUED		0
+#define	OUT_SEG_POPPED		1
+#define	CKPT_XMIT		2
+#define	POS_RPT_RECV		3
+#define	NEG_RPT_RECV		4
+#define	EXPORT_CANCEL_RECV	5
+#define	CKPT_RE_XMIT		6
+#define	EXPORT_CANCEL_XMIT	7
+#define	EXPORT_COMPLETE		8
+#define	CKPT_RECV		9
+#define	POS_RPT_XMIT		10
+#define	NEG_RPT_XMIT		11
+#define	IMPORT_CANCEL_RECV	12
+#define	RPT_RE_XMIT		13
+#define	IMPORT_CANCEL_XMIT	14
+#define	IMPORT_COMPLETE		15
+#define	IN_SEG_RECV_RED		16
+#define	IN_SEG_RECV_GREEN	17
+#define	IN_SEG_REDUNDANT	18
+#define	IN_SEG_MALFORMED	19
+#define	IN_SEG_UNK_SENDER	20
+#define	IN_SEG_UNK_CLIENT	21
+#define	IN_SEG_SCREENED		22
+#define	IN_SEG_MISCOLORED	23
+#define	IN_SEG_SES_CLOSED	24
+#define	LTP_SPAN_STATS		25
+
+typedef struct
+{
+	time_t		resetTime;
+	Tally		tallies[LTP_SPAN_STATS];
+} LtpSpanStats;
+
 /* The volatile span object encapsulates the current volatile state
  * of the corresponding LtpSpan. 					*/
 
 typedef struct
 {
 	Object		spanElt;	/*	Reference to LtpSpan.	*/
+	Object		stats;		/*	LtpSpanStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 	unsigned long	engineId;	/*	ID of remote engine.	*/
 	unsigned long	localXmitRate;	/*	Bytes per second.	*/
 	unsigned long	remoteXmitRate;	/*	Bytes per second.	*/
@@ -298,20 +338,27 @@ typedef struct
 
 	PsmAddress	segmentBuffer;	/*	Holds one max-size seg.	*/
 
-	/*	The bufEmptySemaphore of an LtpVspan is given by
-	 *	the span's ltpmeter task upon construction of a new
-	 *	export session.  This signifies that the aggregation
-	 *	service client data objects in this session's block
-	 *	may now begin.  The LtpSend function takes this
-	 *	semaphore when it determines that no more client
-	 *	service data objects may be appended to the current
-	 *	export session's block, so it must wait for a new
-	 *	session to be constructed before the transmission of
-	 *	client service data objects can continue.		*/
+	/*	The bufOpenRedSemaphore and bufOpenGreenSemaphore
+	 *	of an LtpVspan are given by the span's ltpmeter task
+	 *	upon construction of a new export session, or by the
+	 *	ltpclo task upon cancellation of an export session.
+	 *	This signifies that it may now be possible to begin
+	 *	or, if halted, resume the aggregation of service
+	 *	client data objects in this session's block.  The
+	 *	ltp_send function takes this semaphore when it
+	 *	determines that its client service data object
+	 *	cannot be appended to the current export session's
+	 *	block, for some reason, so it must wait for the
+	 *	block to be reopened.  The rules for appending an
+	 *	SDU to a block differ depending on whether or not
+	 *	the SDU contains any "red" data; ltp_send will take
+	 *	the bufOpenRedSemaphore if its SDU's red length is
+	 *	greater than zero, the bufOpenGreenSemaphore if not.	*/
 
-	sm_SemId	bufEmptySemaphore;
+	sm_SemId	bufOpenRedSemaphore;
+	sm_SemId	bufOpenGreenSemaphore;
 
-	/*	The bufFullSemaphore of an LtpVspan is given by
+	/*	The bufClosedSemaphore of an LtpVspan is given by
 	 *	the LtpSend function every time the appending of a
 	 *	client service data unit to the list of service data
 	 *	objects for the current export session causes the
@@ -328,7 +375,7 @@ typedef struct
 	 *	to segment the current outbound block and append
 	 *	its segments to the span's segments queue.		*/
 
-	sm_SemId	bufFullSemaphore;
+	sm_SemId	bufClosedSemaphore;
 
 	/*	The segSemaphore of an LtpVspan is given by the
 	 *	sendBlock function every time an outbound segment is
@@ -429,24 +476,6 @@ typedef struct
 	int		watching;	/*	Boolean activity watch.	*/
 	PsmAddress	spans;		/*	SM list: LtpVspan*	*/
 	LtpVclient	clients[LTP_MAX_NBR_OF_CLIENTS];
-
-	/*	The sessionSemaphore of the LTP engine is given by
-	 *	the closeExportSession function every time an export
-	 *	session is closed.  This signifies that a new export
-	 *	session may begin.  The startExportSession function
-	 *	in the ltpmeter task(s) takes this semaphore before
-	 *	proceeding to construct a new export session.
-	 *
-	 *	Since the number of concurrent export sessions is
-	 *	limited at compile time, this mechanism implements
-	 *	LTP flow control.
-	 *
-	 *	Construction of a new export session for a given span
-	 *	causes the bufEmptySemaphore for that span to be given,
-	 *	potentially enabling a blocked LtpSend() on that span
-	 *	to complete.						*/
-
-	sm_SemId	sessionSemaphore;
 } LtpVdb;
 
 extern int		ltpInit(int estMaxExportSessions, int bytesReserved);
@@ -518,6 +547,8 @@ extern int		ltpResendReport(unsigned long engineId,
 extern int		ltpResendRecvCancel(unsigned long engineId,
 				unsigned long sessionNbr);
 
+extern void		ltpSpanTally(LtpVspan *vspan, unsigned int idx,
+				unsigned int size);
 #ifdef __cplusplus
 }
 #endif

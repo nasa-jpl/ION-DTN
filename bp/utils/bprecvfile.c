@@ -25,8 +25,24 @@ static BpSAP	_bpsap(BpSAP *newSAP)
 	return sap;
 }
 
+static int	_running(int *newState)
+{
+	static int	state = 1;
+
+	if (newState)
+	{
+		state = *newState;
+	}
+
+	return state;
+}
+
 static void	handleQuit()
 {
+	int	stop = 0;
+
+	writeMemo("[i] bprecvfile interrupted.");
+	oK(_running(&stop));
 	bp_interrupt(_bpsap(NULL));
 }
 
@@ -52,9 +68,9 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 		return -1;
 	}
 
-	sdr_begin_xn(sdr);
-	zco_start_receiving(sdr, dlv->adu, &reader);
+	zco_start_receiving(dlv->adu, &reader);
 	remainingLength = contentLength;
+	sdr_begin_xn(sdr);
 	while (remainingLength > 0)
 	{
 		recvLength = BPRECVBUFSZ;
@@ -65,39 +81,34 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 
 		if (zco_receive_source(sdr, &reader, recvLength, buffer) < 0)
 		{
-			zco_stop_receiving(sdr, &reader);
-			close(testFile);
-			sdr_cancel_xn(sdr);
 			putErrmsg("bprecvfile: can't receive bundle content.",
 					fileName);
+			close(testFile);
+			oK(sdr_end_xn(sdr));
 			return -1;
 		}
 
 		if (write(testFile, buffer, recvLength) < 1)
 		{
-			zco_stop_receiving(sdr, &reader);
-			close(testFile);
-			sdr_cancel_xn(sdr);
 			putSysErrmsg("bprecvfile: can't write to test file",
 					fileName);
+			close(testFile);
+			oK(sdr_end_xn(sdr));
 			return -1;
 		}
 
 		remainingLength -= recvLength;
 	}
 
-	zco_stop_receiving(sdr, &reader);
+	isprintf(completionText, sizeof completionText, "[i] bprecvfile has \
+created '%s', size %d.", fileName, contentLength);
+	writeMemo(completionText);
 	close(testFile);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("bprecvfile: can't handle bundle delivery.",
-				fileName);
 		return -1;
 	}
 
-	isprintf(completionText, sizeof completionText, "bprecvfile has \
-created '%s', size %d.", fileName, contentLength);
-	writeMemo(completionText);
 	return 0;
 }
 
@@ -113,8 +124,8 @@ int	main(int argc, char **argv)
 #endif
 	BpSAP		sap;
 	Sdr		sdr;
-	int		running = 1;
 	BpDelivery	dlv;
+	int		stop = 0;
 
 	if (ownEid == NULL)
 	{
@@ -138,26 +149,26 @@ int	main(int argc, char **argv)
 	sdr = bp_get_sdr();
 	isignal(SIGINT, handleQuit);
 	writeMemo("[i] bprecvfile is running.");
-	while (running)
+	while (_running(NULL))
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
 			putErrmsg("bprecvfile bundle reception failed.", NULL);
-			running = 0;
+			oK(_running(&stop));
 			continue;
 		}
 
 		switch (dlv.result)
 		{
 		case BpEndpointStopped:
-			running = 0;
+			oK(_running(&stop));
 			break;		/*	Out of switch.		*/
 
 		case BpPayloadPresent:
 			if (receiveFile(sdr, &dlv) < 0)
 			{
 				putErrmsg("bprecvfile cannot continue.", NULL);
-				running = 0;
+				oK(_running(&stop));
 			}
 
 			/*	Intentional fall-through to default.	*/

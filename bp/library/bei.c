@@ -41,7 +41,6 @@
 
 void	getExtensionDefs(ExtensionDef **array, int *count)
 {
-#define BSP_DEBUGGING	0
 #ifdef BP_EXTENDED
 #include "ext/bpextensions.c"
 #else
@@ -298,7 +297,12 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 			{
 				/*	Must copy extension object.	*/
 
-				def->copy(&newBlk, oldBlk);
+				if (def->copy(&newBlk, oldBlk) < 0)
+				{
+					putErrmsg("Can't copy extension obj.",
+							utoa(oldBlk->size));
+					return -1;
+				}
 			}
 			else
 			{
@@ -731,7 +735,6 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 	Sdnv		offsetSdnv;
 	unsigned long	referenceCount;
 	Sdnv		referenceCountSdnv;
-	Object		newElt;
 	char		*blkBuffer;
 	char		*cursor;
 
@@ -778,8 +781,8 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 			offset = (unsigned long) lyst_data(elt);
 			encodeSdnv(&offsetSdnv, offset);
 			blk->length += offsetSdnv.length;
-			newElt = sdr_list_insert_last(bpSdr,
-					blk->eidReferences, offset);
+			oK(sdr_list_insert_last(bpSdr,
+					blk->eidReferences, offset));
 		}
 	}
 
@@ -968,7 +971,7 @@ int 	addAcqCollabBlock(AcqWorkArea *work, CollabBlockHdr *blkHdr)
 	/* TODO: This may be a redundant check.  Consider removing. */
 	if (work->collabBlocks == 0)
 	{
-		work->collabBlocks = lyst_create();
+		work->collabBlocks = lyst_create_using(getIonMemoryMgr());
 	}
 
 	/*	Store extension block within bundle.			*/
@@ -1011,6 +1014,10 @@ int	checkExtensionBlocks(AcqWorkArea *work)
 			oldLength = blk->length;
 			switch (def->check(blk, work))
 			{
+			case 3:		/*	Bundle is corrupt.	*/
+				bundle->corrupt = 1;
+				break;
+
 			case 2:		/*	Bundle is authentic.	*/
 				bundle->clDossier.authentic = 1;
 				break;

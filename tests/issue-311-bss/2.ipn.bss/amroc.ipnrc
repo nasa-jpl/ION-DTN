@@ -1,0 +1,27 @@
+#Configuring which bundles will be identified as BSS stream traffic.
+#In the following example ION will identify the bundles with destination service
+#number between 68 and 79 (regardless the destination node number) as BSS
+#stream bundles.
+a entry 68 *
+a entry 69 *
+a entry 70 *
+a entry 71 *
+a entry 72 *
+a entry 73 *
+a entry 74 *
+a entry 75 *
+a entry 76 *
+a entry 77 *
+a entry 78 *
+a entry 79 *
+
+#Instead of declaring plan and plan rules in the normal way, in BSS, plans and
+#plan rules are defined by using the following format:
+#a plan node_nbr default_duct realTime-mode_duct playbac-mode_duct expected_RTT
+#a planrule node_nbr qualifier default_duct realTime-mode_duct playbac-mode_duct
+
+#Custody expiration event is set based on expected_RTT value. expected_RTT value
+#is defined ONLY in plans and NOT in planrules.
+
+a plan 1 tcp/127.0.0.1:4567 udp/*,127.0.0.1:5056 tcp/127.0.0.1:4567 1
+a plan 2 tcp/127.0.0.1:4568 null null null

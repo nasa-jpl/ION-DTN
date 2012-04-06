@@ -2202,7 +2202,6 @@ int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
 		unsigned short ownPortNbr, unsigned int ownIpAddress,
 		char *memmgrName, DgrSAP **sapp, DgrRC *rc)
 {
-	char			hostname[MAXHOSTNAMELEN + 1];
 	struct sockaddr_in	socketAddress;
 	struct sockaddr		*sockName = (struct sockaddr *) &socketAddress;
 	int			mmid;
@@ -2214,25 +2213,6 @@ int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
 	CHKERR(clientSvcId);
 	CHKERR(sapp);
 	CHKERR(rc);
-
-	/*	Validate endpoint address.				*/
-
-	if (ownIpAddress == 0)
-	{
-		if (getNameOfHost(hostname, sizeof hostname) < 0)
-		{
-			putErrmsg("DGR can't get name of local host.", NULL);
-			return -1;
-		}
-		
-		ownIpAddress = getInternetAddress(hostname);
-		if (ownIpAddress == 0)
-		{
-			putErrmsg("DGR can't get IP address of local host.",
-					NULL);
-			return -1;
-		}
-	}
 
 	memset((char *) sockName, 0, sizeof(struct sockaddr_in));
 	socketAddress.sin_family = AF_INET;
@@ -2636,8 +2616,6 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 		unsigned int *fromIpAddress, char *content, int *length,
 		int *errnbr, int timeoutSeconds, DgrRC *rc)
 {
-	time_t		currentTime;
-	time_t		wakeupTime;
 	int		timeoutUsec;
 	LystElt		elt;
 	DgrRecord	rec;
@@ -2669,8 +2647,6 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 	}
 	else
 	{
-		currentTime = time(NULL);
-		wakeupTime = currentTime + timeoutSeconds;
 		timeoutUsec = timeoutSeconds * 1000000;
 	}
 

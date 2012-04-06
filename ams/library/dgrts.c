@@ -31,7 +31,6 @@ static int	dgrComputeCsepName(char *endpointSpec, char *endpointName)
 {
 	unsigned short	portNbr;
 	unsigned int	ipAddress;
-	char		ownHostName[MAXHOSTNAMELEN + 1];
 
 	CHKERR(endpointName);
 	parseSocketSpec(endpointSpec, &portNbr, &ipAddress);
@@ -42,8 +41,7 @@ static int	dgrComputeCsepName(char *endpointSpec, char *endpointName)
 
 	if (ipAddress == 0)		/*	Default to local host.	*/
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		ipAddress = getInternetAddress(ownHostName);
+		ipAddress = getAddressOfHost();
 	}
 
 	isprintf(endpointName, MAX_EP_NAME + 1, "%u:%hu", ipAddress, portNbr);
@@ -61,8 +59,17 @@ static int	dgrMamsInit(MamsInterface *tsif)
 
 	CHKERR(tsif);
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
+	if (ipAddress == 0)
+	{
+		if ((ipAddress = getAddressOfHost()) == 0)
+		{
+			putErrmsg("dgrts can't get own IP address.", NULL);
+			return -1;
+		}
+	}
+
 #if AMSDEBUG
-printf("parsed endpoint spec to port %d address %d.\n", portNbr, ipAddress);
+printf("parsed endpoint spec to port %hu address %u.\n", portNbr, ipAddress);
 #endif
 	if (dgr_open(sm_TaskIdSelf(), DGRTS_CLIENT_SVC_ID, portNbr, ipAddress,
 			memmgr_name(getIonMemoryMgr()), &dgrSap, &rc) < 0)
@@ -167,6 +174,15 @@ static int	dgrAmsInit(AmsInterface *tsif, char *epspec)
 	}
 
 	parseSocketSpec(epspec, &portNbr, &ipAddress);
+	if (ipAddress == 0)
+	{
+		if ((ipAddress = getAddressOfHost()) == 0)
+		{
+			putErrmsg("dgrts can't get own IP address.", NULL);
+			return -1;
+		}
+	}
+
 	if (dgr_open(sm_TaskIdSelf(), DGRTS_CLIENT_SVC_ID, portNbr, ipAddress,
 			memmgr_name(getIonMemoryMgr()), &dgrSap, &rc) < 0)
 	{
@@ -266,7 +282,7 @@ static int	dgrParseMamsEndpoint(MamsEndpoint *ep)
 	CHKERR(ep->tsep);
 	memcpy((char *) (ep->tsep), (char *) &tsep, sizeof(DgrTsep));
 #if AMSDEBUG
-printf("parsed '%s' to port %d address %d.\n", ep->ept, tsep.portNbr,
+printf("parsed '%s' to port %hu address %u.\n", ep->ept, tsep.portNbr,
 tsep.ipAddress);
 #endif
 	return 0;
@@ -325,8 +341,8 @@ static int	dgrSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 	CHKERR(msgLen >= 0);
 	tsep = (DgrTsep *) (ep->tsep);
 #if AMSDEBUG
-printf("in dgrSendMams, tsep at %d has port %d, address %d.\n", (int) tsep,
-tsep->portNbr, tsep->ipAddress);
+printf("in dgrSendMams, tsep at %lu has port %hu, address %u.\n",
+(unsigned long) tsep, tsep->portNbr, tsep->ipAddress);
 #endif
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{
@@ -372,7 +388,7 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	CHKERR(len <= DGRTS_MAX_MSG_LEN);
 	tsep = (DgrTsep *) (dp->tsep);
 #if AMSDEBUG
-printf("in dgrSendAms, tsep is %d.\n", (int) tsep);
+printf("in dgrSendAms, tsep is %lu.\n", (unsigned long) tsep);
 #endif
 	if (tsep == NULL)	/*	Lost connectivity to endpoint.	*/
 	{

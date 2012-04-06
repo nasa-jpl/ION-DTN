@@ -1340,7 +1340,7 @@ static LystElt	findSubjOfInterest(AmsSAP *sap, Module *module,
 	 *	subject, if any.					*/
 
 #if AMSDEBUG
-printf("subjects list length is %d.\n", (int) lyst_length(module->subjects));
+printf("subjects list length is %u.\n", lyst_length(module->subjects));
 #endif
 	if (nextSubj) *nextSubj = NULL;	/*	Default.		*/
 	for (elt = lyst_first(module->subjects); elt; elt = lyst_next(elt))
@@ -1607,7 +1607,8 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 	rules = (ruleType == SUBSCRIPTION ?
 			subj->subscriptions : subj->invitations);
 #if AMSDEBUG
-printf("ruleType = %d, subj = %d, subject = %d, rules list is %d.\n",ruleType, (int) subj, subj->subject->nbr, (int) rules);
+printf("ruleType = %d, subj = %lu, subject = %d, rules list is %lu.\n",
+ruleType, (unsigned long) subj, subj->subject->nbr, (unsigned long) rules);
 #endif
 	elt = findXmitRule(sap, rules, domainRoleNbr, domainContinuumNbr,
 			domainUnitNbr, &nextRule);
@@ -1660,7 +1661,7 @@ printf("ruleType = %d, subj = %d, subject = %d, rules list is %d.\n",ruleType, (
 
 	CHKERR(elt);
 #if AMSDEBUG
-printf("...inserted rule in rules list %d...\n", (int) rules);
+printf("...inserted rule in rules list %lu...\n", (unsigned long) rules);
 #endif
 
 	/*	Load XmitRule information, including pre-determination
@@ -2466,8 +2467,8 @@ printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
 				return;
 			}
 
-			memcpy((char *) &unitNbr, cursor, 2);
-			unitNbr = ntohs(unitNbr);
+			memcpy((char *) &u2, cursor, 2);
+			unitNbr = ntohs(u2);
 			moduleNbr = (unsigned char) *(cursor + 2);
 			roleNbr = (unsigned char) *(cursor + 3);
 			bytesRemaining -= 4;
@@ -2706,8 +2707,8 @@ printf("Parsing new subscription with %d bytes remaining.\n", bytesRemaining);
 				return;
 			}
 
-			memcpy((char *) &unitNbr, cursor, 2);
-			unitNbr = ntohs(unitNbr);
+			memcpy((char *) &u2, cursor, 2);
+			unitNbr = ntohs(u2);
 			moduleNbr = (unsigned char) *(cursor + 2);
 			roleNbr = (unsigned char) *(cursor + 3);
 			bytesRemaining -= 4;
@@ -4500,7 +4501,7 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 	}
 
 	protectedBits = amsHeader[0] & 0xf0;
-	recipients = lyst_create();
+	recipients = lyst_create_using(getIonMemoryMgr());
 	CHKERR(recipients);
 
 	/*	Now send a copy of the message to every subscriber
@@ -5837,7 +5838,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	 *	message space now.					*/
 
 	protectedBits = amsHeader[0] & 0xf0;
-	recipients = lyst_create();
+	recipients = lyst_create_using(getIonMemoryMgr());
 	CHKERR(recipients);
 
 	/*	First send a copy of the message to every module in the

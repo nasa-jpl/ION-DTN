@@ -126,7 +126,7 @@ void *receiveResponses(void *x)
 	BpDelivery  dlv;
 	struct timeval tvNow, tvResp, tvDiff;
 	ZcoReader   reader;
-	int         contentLength, bytesToRead;
+	int         contentLength, bytesToRead, result;
 	char        buffer[BPING_PAYLOAD_MAX_LEN];
 	char        respSrcEid[64];
 	char        *saveptr, *countstr, *secstr, *usecstr, *endptr;
@@ -160,20 +160,13 @@ void *receiveResponses(void *x)
 		}
 		contentLength = zco_source_data_length(sdr, dlv.adu);
 		bytesToRead = MIN(contentLength, sizeof(buffer)-1); 
+		zco_start_receiving(dlv.adu, &reader);
 		sdr_begin_xn(sdr);
-		zco_start_receiving(sdr, dlv.adu, &reader);
-		if(zco_receive_source(sdr, &reader, bytesToRead, buffer) < 0)
+		result = zco_receive_source(sdr, &reader, bytesToRead, buffer);
+		if (sdr_end_xn(sdr) < 0 || result < 0)
 		{
-			sdr_cancel_xn(sdr);
 			putErrmsg("Can't receive payload.", NULL);
 			fprintf(stderr, "Can't receive payload.\n");
-			pthread_exit(NULL);
-		}
-		zco_stop_receiving(sdr, &reader);
-		if(sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't handle delivery.", NULL);
-			fprintf(stderr, "Can't handle delivery.\n");
 			pthread_exit(NULL);
 		}
 		buffer[bytesToRead] = '\0';

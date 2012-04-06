@@ -93,6 +93,11 @@ the bundles that must be transmitted to the neighboring node identified
 by I<node_nbr>.  A general plan must be in place for a node before
 any more specific rules are declared.
 
+=item B<c plan> I<node_nbr> I<default_duct_expression>
+
+The B<change plan> command.  This command changes the default duct
+expression for the indicated plan.
+
 =item B<d plan> I<node_nbr>
 
 The B<delete plan> command.  This command deletes the egress plan
@@ -208,18 +213,19 @@ This command lists all grouprules for the indicated group.
 
 =over 4
 
-=item a plan 18 ltp/6
+=item a plan 18 ltp/18
 
 Declares the egress plan to use for transmission from the local node to
 neighboring node 18.  Any bundle for which the computed "next hop" node
-is node 18 will be queued for transmission on LTP outduct 6.
+is node 18 will be queued for transmission on LTP outduct 18.
 
-=item a rule 18 * 9 ltp/18
+=item a rule 18 * 9 ltp/-18
 
 Declares an egress plan override that applies to transmission to node 18
 of any bundle whose source is node 9, regardless of the service that was
-the source of the bundle.  Each such bundle must be queued for transmission
-on LTP outduct 18 rather than the default (LTP outduct 6).
+the source of the bundle.  Each such bundle must be queued for unreliable
+transmission on LTP outduct 18 rather than the default (standard transmission
+on LTP outduct 18).
 
 =item a group 1 999 dtn://stargate
 

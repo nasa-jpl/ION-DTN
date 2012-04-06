@@ -11,6 +11,10 @@
 #include "bpP.h"
 #include "smlist.h"
 
+#ifdef ENABLE_BPACS
+#include "acs/acs.h"		/* provides sendAcs */
+#endif /* ENABLE_ACS */
+
 extern void	manageProductionThrottle(BpVdb *vdb);
 
 static int	_running(int *newValue)
@@ -97,9 +101,19 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 
 			break;		/*	Out of switch.		*/
 
+#ifdef ENABLE_BPACS
+        case csDue:
+            result = sendAcs(event->ref);
+
+			/* Note that sendAcs() always erases the 
+			 * csDue event, so we must NOT do so
+			 * here. */
+
+			break;		/*	Out of switch.		*/
+#endif
+
 		default:		/*	Spurious event; erase.	*/
-			sdr_free(sdr, eventObj);
-			sdr_list_delete(sdr, elt, NULL, NULL);
+			destroyBpTimelineEvent(elt);
 			result = 0;	/*	Event is ignored.	*/
 		}
 
@@ -128,6 +142,7 @@ static int	adjustThrottles()
 	unsigned long	nodeNbr;
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
+	int		mustPrintStats = 0;
 	int		delta;
 	VInduct		*induct;
 
@@ -175,7 +190,7 @@ static int	adjustThrottles()
 		neighbor = findNeighbor(ionvdb, nodeNbr, &nextElt);
 		if (neighbor == NULL)
 		{
-			neighbor = addNeighbor(ionvdb, nodeNbr, nextElt);
+			neighbor = addNeighbor(ionvdb, nodeNbr);
 			if (neighbor == NULL)
 			{
 				putErrmsg("Can't adjust outduct throttle.",
@@ -189,26 +204,24 @@ static int	adjustThrottles()
 #ifndef ION_NOSTATS
 			if (neighbor->nodeNbr != getOwnNodeNbr())
 			{
-			/*	We report and clear transmission
-			 *	statistics as necessary.  NOTE that
-			 *	this procedure is based on the
-			 *	assumption that the local node is
-			 *	in LTP transmission contact with
-			 *	AT MOST ONE neighbor at any time.
-			 *	For more complex topologies it will
-			 *	need to be redesigned.			*/
+			/*	We report transmission statistics
+			 *	as necessary.  NOTE that this
+			 *	procedure is based on the assumption
+			 *	that the local node is in LTP
+			 *	transmission contact with AT MOST
+			 *	ONE neighbor at any time.  For more
+			 *	complex topologies it will need to
+			 *	be redesigned.				*/
 
 				if (neighbor->xmitRate == 0)
 				{
 					/*	End of xmit contact.	*/
-					reportAllStateStats();
-					clearAllStateStats();
+					mustPrintStats = 1;
 				}
 				else if (neighbor->prevXmitRate == 0)
 				{
 					/*	Start of xmit contact.	*/
-					reportAllStateStats();
-					clearAllStateStats();
+					mustPrintStats = 1;
 				}
 			}
 #endif
@@ -241,14 +254,12 @@ static int	adjustThrottles()
 				if (neighbor->recvRate == 0)
 				{
 					/*	End of recv contact.	*/
-					reportAllStateStats();
-					clearAllStateStats();
+					mustPrintStats = 1;
 				}
 				else if (neighbor->prevRecvRate == 0)
 				{
 					/*	Start of recv contact.	*/
-					reportAllStateStats();
-					clearAllStateStats();
+					mustPrintStats = 1;
 				}
 			}
 #endif
@@ -256,6 +267,11 @@ static int	adjustThrottles()
 			induct->acqThrottle.nominalRate += delta;
 			neighbor->prevRecvRate = neighbor->recvRate;
 		}
+	}
+
+	if (mustPrintStats)
+	{
+		reportAllStateStats();
 	}
 
 	return 0;
@@ -269,7 +285,6 @@ static void	applyRateControl(Sdr sdr)
 	PsmAddress	elt;
 	VInduct		*induct;
 	VOutduct	*outduct;
-	long		capacityLimit;
 
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 
@@ -284,11 +299,14 @@ static void	applyRateControl(Sdr sdr)
 	{
 		induct = (VInduct *) psp(ionwm, sm_list_data(ionwm, elt));
 		throttle = &(induct->acqThrottle);
-		capacityLimit = throttle->nominalRate << 1;
-		throttle->capacity += throttle->nominalRate;
-		if (throttle->capacity > capacityLimit)
+		if (throttle->nominalRate < 0)
 		{
-			throttle->capacity = capacityLimit;
+			continue;	/*	Not rate-controlled.	*/
+		}
+
+		if (throttle->capacity <= 0)
+		{
+			throttle->capacity += throttle->nominalRate;
 		}
 
 		if (throttle->capacity > 0)
@@ -304,11 +322,14 @@ static void	applyRateControl(Sdr sdr)
 	{
 		outduct = (VOutduct *) psp(ionwm, sm_list_data(ionwm, elt));
 		throttle = &(outduct->xmitThrottle);
-		capacityLimit = throttle->nominalRate << 1;
-		throttle->capacity += throttle->nominalRate;
-		if (throttle->capacity > capacityLimit)
+		if (throttle->nominalRate < 0)
 		{
-			throttle->capacity = capacityLimit;
+			continue;	/*	Not rate-controlled.	*/
+		}
+
+		if (throttle->capacity <= 0)
+		{
+			throttle->capacity += throttle->nominalRate;
 		}
 
 		if (throttle->capacity > 0)

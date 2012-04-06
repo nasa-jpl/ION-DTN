@@ -494,6 +494,130 @@ sm_ShmDestroy(int id)
 
 #endif			/*	End of #ifdef SVR4_SHM			*/
 
+/****************** Argument buffer services **********************************/
+
+#if defined (VXWORKS) || defined (RTEMS)
+
+#define	ARG_BUFFER_CT	256
+#define	MAX_ARG_LENGTH	63
+
+typedef struct
+{
+	int		ownerTid;
+	char		arg[MAX_ARG_LENGTH + 1];
+} ArgBuffer;
+
+static ArgBuffer	*_argBuffers()
+{
+	static ArgBuffer argBufTable[ARG_BUFFER_CT];
+
+	return argBufTable;
+}
+
+static int	_argBuffersAvbl(int *val)
+{
+	static int	argBufsAvbl = 0;
+
+	if (val == NULL)
+	{
+		return argBufsAvbl;
+	}
+
+	argBufsAvbl = *val;
+	return 0;
+}
+
+static int	copyArgs(int argc, char **argv)
+{
+	int		i;
+	int		j;
+	ArgBuffer	*buf;
+	char		*arg;
+	int		argLen;
+
+	if (argc > _argBuffersAvbl(NULL))
+	{
+		putErrmsg("No available argument buffers.", NULL);
+		return -1;
+	}
+
+	/*	Copy each argument into the next available argument
+	 *	buffer, tagging each consumed buffer with -1 so that
+	 *	it can be permanently tagged when the ownerTid is
+	 *	known, and replace each original argument with a
+	 *	pointer to its copy in the argBuffers.			*/
+
+	for (i = 0, buf = _argBuffers(), j = 0; j < argc; j++)
+	{
+		arg = argv[j];
+		argLen = strlen(arg);
+		if (argLen > MAX_ARG_LENGTH)
+		{
+			argLen = MAX_ARG_LENGTH;
+		}
+
+		while (1)
+		{
+			CHKERR(i < ARG_BUFFER_CT);
+			if (buf->ownerTid != 0)	/*	Unavailable.	*/
+			{
+				i++;
+				buf++;
+				continue;
+			}
+
+			/*	Copy argument into this buffer.		*/
+
+			memcpy(buf->arg, arg, argLen);
+			buf->arg[argLen] = '\0';
+			buf->ownerTid = -1;
+			argv[j] = buf->arg;
+
+			/*	Skip over this buffer for next arg.	*/
+
+			i++;
+			buf++;
+			break;
+		}
+	}
+
+	return 0;
+}
+
+static void	tagArgBuffers(int tid)
+{
+	int		avbl;
+	int		i;
+	ArgBuffer	*buf;
+
+	avbl = _argBuffersAvbl(NULL);
+	for (i = 0, buf = _argBuffers(); i < ARG_BUFFER_CT; i++, buf++)
+	{
+		if (buf->ownerTid == -1)
+		{
+			buf->ownerTid = tid;
+			if (tid != 0)
+			{
+				avbl--;
+			}
+		}
+#if defined (RTEMS)
+		else	/*	An opportunity to release arg buffers.	*/
+		{
+			if (buf->ownerTid != 0 && !sm_TaskExists(buf->ownerTid))
+			{
+				buf->ownerTid = 0;
+				avbl++;
+			}
+		}
+#endif
+	}
+
+	oK(_argBuffersAvbl(&avbl));
+}
+
+#endif			/*	End of #if defined (VXWORKS, RTEMS)	*/
+
 /****************** Semaphore services **********************************/
 
 #ifdef VXWORKS_SEMAPHORES
@@ -524,7 +648,7 @@ static SmSem	*_semTbl()
 	return semTable;
 }
 
-	/* ---- Semaphor services (VxWorks) --------------------------- */
+	/* ---- Semaphore services (VxWorks) --------------------------- */
 
 static void	releaseArgBuffers(WIND_TCB *pTcb)
 {
@@ -684,7 +808,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	}
 
 	takeIpcLock();
-    /* If semaphor exists, return its ID */
+    /* If semaphore exists, return its ID */
 	for (i = 0; i < nSemIds; i++)
 	{
 		if (semTbl[i].key == key)
@@ -694,7 +818,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		}
 	}
 
-    /* create a new semaphor */
+    /* create a new semaphore */
 	for (i = 0, sem = semTbl; i < nSemIds; i++, sem++)
 	{
 		if (sem->id == NULL)
@@ -827,7 +951,7 @@ void	sm_SemUnend(sm_SemId i)
 
 #ifdef MINGW_SEMAPHORES
 
-	/* ---- Semaphor services (mingw) --------------------------- */
+	/* ---- Semaphore services (mingw) --------------------------- */
 
 #ifndef SM_SEMKEY
 #define SM_SEMKEY	(0xee01)
@@ -1123,7 +1247,7 @@ void	sm_SemUnend(sm_SemId i)
 
 #ifdef POSIX1B_SEMAPHORES
 
-	/* ---- Semaphor services (POSIX1B, including RTEMS) ----------	*/
+	/* ---- Semaphore services (POSIX1B, including RTEMS) ---------	*/
 
 typedef struct
 {
@@ -1361,7 +1485,7 @@ void	sm_SemUnend(sm_SemId i)
 
 #ifdef SVR4_SEMAPHORES
 
-	/* ---- Semaphor services (SVR4) ------------------------------	*/
+	/* ---- Semaphore services (SVR4) -----------------------------	*/
 
 #ifndef SM_SEMKEY
 #define SM_SEMKEY	(0xee01)
@@ -1802,130 +1926,6 @@ extern FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize);
 
 #endif
 
-/****************** Argument buffer services **********************************/
-
-#if defined (VXWORKS) || defined (RTEMS)
-
-#define	ARG_BUFFER_CT	256
-#define	MAX_ARG_LENGTH	63
-
-typedef struct
-{
-	int		ownerTid;
-	char		arg[MAX_ARG_LENGTH + 1];
-} ArgBuffer;
-
-static ArgBuffer	*_argBuffers()
-{
-	static ArgBuffer argBufTable[ARG_BUFFER_CT];
-
-	return argBufTable;
-}
-
-static int	_argBuffersAvbl(int *val)
-{
-	static int	argBufsAvbl = 0;
-
-	if (val == NULL)
-	{
-		return argBufsAvbl;
-	}
-
-	argBufsAvbl = *val;
-	return 0;
-}
-
-static int	copyArgs(int argc, char **argv)
-{
-	int		i;
-	int		j;
-	ArgBuffer	*buf;
-	char		*arg;
-	int		argLen;
-
-	if (argc > _argBuffersAvbl(NULL))
-	{
-		putErrmsg("No available argument buffers.", NULL);
-		return -1;
-	}
-
-	/*	Copy each argument into the next available argument
-	 *	buffer, tagging each consumed buffer with -1 so that
-	 *	it can be permanently tagged when the ownerTid is
-	 *	known, and replace each original argument with a
-	 *	pointer to its copy in the argBuffers.			*/
-
-	for (i = 0, buf = _argBuffers(), j = 0; j < argc; j++)
-	{
-		arg = argv[j];
-		argLen = strlen(arg);
-		if (argLen > MAX_ARG_LENGTH)
-		{
-			argLen = MAX_ARG_LENGTH;
-		}
-
-		while (1)
-		{
-			CHKERR(i < ARG_BUFFER_CT);
-			if (buf->ownerTid != 0)	/*	Unavailable.	*/
-			{
-				i++;
-				buf++;
-				continue;
-			}
-
-			/*	Copy argument into this buffer.		*/
-
-			memcpy(buf->arg, arg, argLen);
-			buf->arg[argLen] = '\0';
-			buf->ownerTid = -1;
-			argv[j] = buf->arg;
-
-			/*	Skip over this buffer for next arg.	*/
-
-			i++;
-			buf++;
-			break;
-		}
-	}
-
-	return 0;
-}
-
-static void	tagArgBuffers(int tid)
-{
-	int		avbl;
-	int		i;
-	ArgBuffer	*buf;
-
-	avbl = _argBuffersAvbl(NULL);
-	for (i = 0, buf = _argBuffers(); i < ARG_BUFFER_CT; i++, buf++)
-	{
-		if (buf->ownerTid == -1)
-		{
-			buf->ownerTid = tid;
-			if (tid != 0)
-			{
-				avbl--;
-			}
-		}
-#if defined (RTEMS)
-		else	/*	An opportunity to release arg buffers.	*/
-		{
-			if (buf->ownerTid != 0 && !sm_TaskExists(buf->ownerTid))
-			{
-				buf->ownerTid = 0;
-				avbl++;
-			}
-		}
-#endif
-	}
-
-	oK(_argBuffersAvbl(&avbl));
-}
-
-#endif			/*	End of #if defined (VXWORKS, RTEMS)	*/
-
 /****************** Task control services *************************************/
 
 #ifdef VXWORKS
@@ -2052,10 +2052,7 @@ void	sm_TaskDelete(int task)
 
 void	sm_Abort()
 {
-	char	string[32];
-
-	isprintf(string, sizeof string, "tt %d", taskIdSelf());
-	pseudoshell(string);
+	oK(tt(taskIdSelf()));
 	snooze(2);
 	oK(taskDelete(taskIdSelf()));
 }
@@ -2976,7 +2973,11 @@ int	pseudoshell(char *commandLine)
 	int	argc = 0;
 	int	pid;
 
-	CHKERR(commandLine);
+	if (commandLine == NULL)
+	{
+		return ERROR;
+	}
+
 	length = strlen(commandLine);
 	if (length > 255)		/*	Too long to parse.	*/
 	{

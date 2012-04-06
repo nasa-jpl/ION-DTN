@@ -21,28 +21,37 @@ extern "C" {
 
 #define	RFX_NOTE_LEN	144
 
+/*	*	Red-black tree ordering and deletion functions.	*	*/
+
+extern int	rfx_order_ranges(PsmPartition partition, PsmAddress nodeData,
+			void *dataBuffer);
+
+extern int	rfx_order_contacts(PsmPartition partition, PsmAddress nodeData,
+			void *dataBuffer);
+
+extern int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
+			void *dataBuffer);
+
+extern void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
+			void *argument);
+
 /*	*	Functions for inserting and removing contact notes.	*/
 
-extern Object		rfx_insert_contact(time_t fromTime,
+extern PsmAddress	rfx_insert_contact(time_t fromTime,
 				time_t toTime,
 				unsigned long fromNode,
 				unsigned long toNode,
 				unsigned long xmitRate);
 			/*	Creates a new IonContact object,
-				inserts that object into the time-
-				ordered contacts list in the ION
-				database, and returns the list element
-				resulting from that insertion.
-
-				(NOTE: in order to print this contact
-				you have to use sdr_list_data() to
-				extract the address of the note
-				from the contact list element object.)
+				inserts that object into the contacts
+				list in the ION database, and returns
+				the address of the IonCXref object for
+				that contact.
 
 				Returns zero on any error.		*/
 
-extern char		*rfx_print_contact(Object contact, char *buffer);
-			/*	Prints the indicated IonContact
+extern char		*rfx_print_contact(PsmAddress contact, char *buffer);
+			/*	Prints the indicated IonCXref
 				object into buffer, which must be
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
@@ -56,26 +65,21 @@ extern int		rfx_remove_contact(time_t fromTime,
 
 /*	*	Functions for inserting and removing range notes.	*/
 
-extern Object		rfx_insert_range(time_t fromTime,
+extern PsmAddress	rfx_insert_range(time_t fromTime,
 				time_t toTime,
 				unsigned long fromNode,
 				unsigned long toNode,
 				unsigned int owlt);
 			/*	Creates a new IonRange object,
-				inserts that object into the time-
-				ordered ranges list in the ION
-				database, and returns the list element
-				resulting from that insertion.
-
-				(NOTE: in order to print this range
-				you have to use sdr_list_data() to
-				extract the address of the note
-				from the range list element object.)
+				inserts that object into the ranges
+				list in the ION database, and returns
+				the address of the IonRXref entry for
+				that range.
 
 				Returns zero on any error.		*/
 
-extern char		*rfx_print_range(Object range, char *buffer);
-			/*	Prints the indicated IonRange
+extern char		*rfx_print_range(PsmAddress range, char *buffer);
+			/*	Prints the indicated IonRXref
 				object into buffer, which must be
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
@@ -98,24 +102,12 @@ extern void		rfx_stop();
 extern IonNeighbor	*findNeighbor(IonVdb *ionvdb, unsigned long nodeNbr,
 				PsmAddress *nextElt);
 
-extern IonNeighbor	*addNeighbor(IonVdb *ionvdb, unsigned long nodeNbr,
-				PsmAddress nextElt);
+extern IonNeighbor	*addNeighbor(IonVdb *ionvdb, unsigned long nodeNbr);
 
 extern IonNode		*findNode(IonVdb *ionvdb, unsigned long nodeNbr,
 				PsmAddress *nextElt);
 
-extern IonNode		*addNode(IonVdb *ionvdb, unsigned long nodeNbr,
-				PsmAddress nextElt);
-
-extern IonOrigin	*findOrigin(IonNode *node,
-				unsigned long neighborNodeNbr,
-				PsmAddress *nextElt);
-
-extern IonOrigin	*addOrigin(IonNode *node,
-				unsigned long neighborNodeNbr,
-				PsmAddress nextElt);
-
-extern void		forgetXmit(IonNode *node, IonContact *contact);
+extern IonNode		*addNode(IonVdb *ionvdb, unsigned long nodeNbr);
 
 extern int		addSnub(IonNode *node, unsigned long neighborNodeNbr);
 

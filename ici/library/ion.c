@@ -222,8 +222,8 @@ static IonVdb	*_ionvdb(char **name)
 		ionwm = _ionwm(NULL);
 		if (psm_locate(ionwm, *name, &vdbAddress, &elt) < 0)
 		{
-			putErrmsg("Failed searching for vdb.", NULL);
-			return vdb;
+			putErrmsg("Failed searching for vdb.", *name);
+			return NULL;
 		}
 
 		if (elt)
@@ -240,19 +240,22 @@ static IonVdb	*_ionvdb(char **name)
 		if (vdbAddress == 0)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("No space for volatile database.", NULL);
+			putErrmsg("No space for volatile database.", *name);
 			return NULL;
 		}
 
 		vdb = (IonVdb *) psp(ionwm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(IonVdb));
-		if ((vdb->nodes = sm_list_create(ionwm)) == 0
-		|| (vdb->neighbors = sm_list_create(ionwm)) == 0
+		if ((vdb->nodes = sm_rbt_create(ionwm)) == 0
+		|| (vdb->neighbors = sm_rbt_create(ionwm)) == 0
+		|| (vdb->contactIndex = sm_rbt_create(ionwm)) == 0
+		|| (vdb->rangeIndex = sm_rbt_create(ionwm)) == 0
+		|| (vdb->timeline = sm_rbt_create(ionwm)) == 0
 		|| (vdb->probes = sm_list_create(ionwm)) == 0
 		|| psm_catlg(ionwm, *name, vdbAddress) < 0)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("Can't initialize volatile database.", NULL);
+			putErrmsg("Can't initialize volatile database.", *name);
 			return NULL;
 		}
 
@@ -645,6 +648,9 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
+
+                memcpy( &iondbBuf.parmcopy, parms, sizeof(IonParms));
+
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
 		{

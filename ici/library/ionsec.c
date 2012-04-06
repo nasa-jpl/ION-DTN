@@ -215,7 +215,7 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
-	Object	elt;
+	Object	elt, temp;
 	Object	ruleObj;
 	int	rmCount = 0;
 	char	rmStr [5];
@@ -233,20 +233,21 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
 		return;
 	}
 
-	srcEidLen = strlen(srcEid);
-	destEidLen = strlen(destEid);
+	srcEidLen = istrlen(srcEid, SDRSTRING_BUFSZ);
+	destEidLen = istrlen(destEid, SDRSTRING_BUFSZ);
        	if ((blockType[0] == '~') || (bspTypeToInt(blockType) == BSP_BAB_TYPE))
        	{
         	// For each bab rule, if src/dest match, delete it.  
          	OBJ_POINTER(BspBabRule, rule);
 		sdr_begin_xn(sdr);
 		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
-			elt = sdr_list_next(sdr, elt))
+			elt = temp)
 		{
 			ruleObj = sdr_list_data(sdr, elt);
 			GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleObj);
 		        curEidLen = sdr_string_read(sdr, eidBuffer,
 					rule->securitySrcEid);
+                        temp = sdr_list_next(sdr, elt);
 			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
 			{
 		        	curEidLen = sdr_string_read(sdr, eidBuffer,
@@ -278,10 +279,85 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
 	/* TODO: Implement as we add additional security block types. */
        	if (blockType[0] == '~' || (strncmp(blockType,"pib",3) == 0))
         {
+                // For each pib rule, if src/dest match, delete it.  
+                OBJ_POINTER(BspPibRule, rule);
+                sdr_begin_xn(sdr);
+                for (elt = sdr_list_first(sdr, secdb->bspPibRules); elt;
+                        elt = temp)
+                {
+                        ruleObj = sdr_list_data(sdr, elt);
+                        GET_OBJ_POINTER(sdr, BspPibRule, rule, ruleObj);
+                        curEidLen = sdr_string_read(sdr, eidBuffer,
+                                        rule->securitySrcEid);
+                        temp = sdr_list_next(sdr, elt);
+                        if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
+                        {
+                                curEidLen = sdr_string_read(sdr, eidBuffer,
+                                                rule->securityDestEid);
+                                if (eidsMatch(destEid, destEidLen, eidBuffer,
+                                                curEidLen))
+                                {
+                                        sdr_list_delete(sdr, elt, NULL, NULL);
+                                        sdr_free(sdr, rule->securitySrcEid);
+                                        sdr_free(sdr, rule->securityDestEid);
+                                        sdr_free(sdr, ruleObj);
+                                        rmCount++;
+                                }
+                        }
+                }
+
+                isprintf(rmStr, 5, "%d", rmCount);
+                writeMemoNote("[i] PIB rules removed", rmStr);
+                if (sdr_end_xn(sdr) < 0)
+                {
+                        writeMemo("[?] ionClear: failed deleting PIB rules.");
+                }
+                else
+                {
+                        writeMemo("[i] ionClear: matching PIB rules cleared.");
+                }
         }
 	
        	if (blockType[0] == '~' || (strncmp(blockType,"pcb",3) == 0))
         {
+                // For each pib rule, if src/dest match, delete it.  
+                OBJ_POINTER(BspPcbRule, rule);
+                sdr_begin_xn(sdr);
+                for (elt = sdr_list_first(sdr, secdb->bspPcbRules); elt;
+                        elt = temp)
+                {
+                        ruleObj = sdr_list_data(sdr, elt);
+                        GET_OBJ_POINTER(sdr, BspPcbRule, rule, ruleObj);
+                        curEidLen = sdr_string_read(sdr, eidBuffer,
+                                        rule->securitySrcEid);
+                        temp = sdr_list_next(sdr, elt);
+                        if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
+                        {
+                                curEidLen = sdr_string_read(sdr, eidBuffer,
+                                                rule->securityDestEid);
+                                if (eidsMatch(destEid, destEidLen, eidBuffer,
+                                                curEidLen))
+                                {
+                                        sdr_list_delete(sdr, elt, NULL, NULL);
+                                        sdr_free(sdr, rule->securitySrcEid);
+                                        sdr_free(sdr, rule->securityDestEid);
+                                        sdr_free(sdr, ruleObj);
+                                        rmCount++;
+                                }
+                        }
+                }
+
+                isprintf(rmStr, 5, "%d", rmCount);
+                writeMemoNote("[i] PCB rules removed", rmStr);
+                if (sdr_end_xn(sdr) < 0)
+                {
+                        writeMemo("[?] ionClear: failed deleting PCB rules.");
+                }
+                else
+                {
+                        writeMemo("[i] ionClear: matching PCB rules cleared.");
+                }
+
         }
  
        	if (blockType[0] == '~' || (strncmp(blockType,"esb",3) == 0))
@@ -399,7 +475,7 @@ static int	loadKeyValue(SecKey *key, char *fileName)
 		case 0:
 			MRELEASE(keybuf);
 			close(keyfd);
-			writeMemoNote("[?] Key value file truncated.",
+			writeMemoNote("[?] Key value file truncated",
 					fileName);
 			return 0;
 		}
@@ -423,11 +499,10 @@ int	sec_addKey(char *keyName, char *fileName)
 	struct stat	statbuf;
 	SecKey		key;
 	Object		keyObj;
-	Object		elt;
 
 	CHKERR(keyName);
 	CHKERR(fileName);
-	if (*keyName == '\0' || strlen(keyName) > 31)
+	if (*keyName == '\0' || istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid key name", keyName);
 		return 0;
@@ -435,7 +510,7 @@ int	sec_addKey(char *keyName, char *fileName)
 
 	if (stat(fileName, &statbuf) < 0)
 	{
-		writeMemoNote("[?] Can't stat the key value file.", fileName);
+		writeMemoNote("[?] Can't stat the key value file", fileName);
 		return 0;
 	}
 
@@ -449,7 +524,7 @@ int	sec_addKey(char *keyName, char *fileName)
 	if (locateKey(keyName, &nextKey) != 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] This key is already defined.", keyName);
+		writeMemoNote("[?] This key is already defined", keyName);
 		return 0;
 	}
 
@@ -480,11 +555,11 @@ int	sec_addKey(char *keyName, char *fileName)
 
 	if (nextKey)
 	{
-		elt = sdr_list_insert_before(sdr, nextKey, keyObj);
+		oK(sdr_list_insert_before(sdr, nextKey, keyObj));
 	}
 	else
 	{
-		elt = sdr_list_insert_last(sdr, secdb->keys, keyObj);
+		oK(sdr_list_insert_last(sdr, secdb->keys, keyObj));
 	}
 
 	sdr_write(sdr, keyObj, (char *) &key, sizeof(SecKey));
@@ -507,7 +582,7 @@ int	sec_updateKey(char *keyName, char *fileName)
 
 	CHKERR(keyName);
 	CHKERR(fileName);
-	if (*keyName == '\0' || strlen(keyName) > 31)
+	if (*keyName == '\0' || istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid key name", keyName);
 		return 0;
@@ -515,7 +590,7 @@ int	sec_updateKey(char *keyName, char *fileName)
 
 	if (stat(fileName, &statbuf) < 0)
 	{
-		writeMemoNote("[?] Can't stat the key value file.", fileName);
+		writeMemoNote("[?] Can't stat the key value file", fileName);
 		return 0;
 	}
 
@@ -530,7 +605,7 @@ int	sec_updateKey(char *keyName, char *fileName)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] This key is not defined.", keyName);
+		writeMemoNote("[?] This key is not defined", keyName);
 		return 0;
 	}
 
@@ -644,7 +719,7 @@ int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 
 static int	filterEid(char *outputEid, char *inputEid)
 {
-	int	eidLength = strlen(inputEid);
+	int	eidLength = istrlen(inputEid, MAX_SDRSTRING + 1);
 	int	last = eidLength - 1;
 
 	if (eidLength == 0 || eidLength > MAX_SDRSTRING)
@@ -834,6 +909,7 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 	Object		ruleObj;
 	Object		elt;
 	Object		ruleAddr;
+	int		last;
 
 	CHKERR(srcEid);
 	CHKERR(destEid);
@@ -846,13 +922,13 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 		return 0;
 	}
 
-	if (strlen(ciphersuiteName) > 31)
+	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
 		return 0;
 	}
 
-	if (strlen(keyName) > 31)
+	if (istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid keyName", keyName);
 		return 0;
@@ -867,11 +943,25 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 	/* Don't expect a rule here already...*/
 	if (sec_findBspBabRule(srcEid, destEid, &ruleAddr, &elt) != 0)
 	{
-		writeMemoNote("[?] This rule is already defined.", destEid);
+		writeMemoNote("[?] This rule is already defined", destEid);
 		return 0;
 	}
 
 	/*	Okay to add this rule to the database.			*/
+
+	last = istrlen(srcEid, 32) - 1;
+	if (*(srcEid + last) != '~')
+	{
+		writeMemoNote("[?] Warning: this BAB rule authenticates only a \
+single sender endpoint, not all endpoints on the sending node", srcEid);
+	}
+
+	last = istrlen(destEid, 32) - 1;
+	if (*(destEid + last) != '~')
+	{
+		writeMemoNote("[?] Warning: this BAB rule authenticates only a \
+single receiver endpoint, not all endpoints on the receiving node", destEid);
+	}
 
 	sdr_begin_xn(sdr);
 	rule.securitySrcEid = sdr_string_create(sdr, srcEid);
@@ -922,7 +1012,7 @@ int	sec_updateBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 		return 0;
 	}
 
-	if (strlen(ciphersuiteName) > 31)
+	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
 		return 0;
@@ -943,7 +1033,7 @@ int	sec_updateBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 	/* Need to have a rule to update it. */
 	if (sec_findBspBabRule(srcEid, destEid, &ruleObj, &elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.",
+		writeMemoNote("[?] No rule defined for this endpoint",
 				destEid);
 		return 0;
 	}
@@ -987,7 +1077,7 @@ int	sec_removeBspBabRule(char *srcEid, char *destEid)
 	/* Need to have a rule to delete it. */
 	if (sec_findBspBabRule(srcEid, destEid, &ruleObj, &elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.",
+		writeMemoNote("[?] No rule defined for this endpoint",
 				destEid);
 		return 0;
 	}
@@ -1127,13 +1217,13 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 		return 0;
 	}
 
-	if (strlen(ciphersuiteName) > 31)
+	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
 		return 0;
 	}
 
-	if (strlen(keyName) > 31)
+	if (istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid keyName", keyName);
 		return 0;
@@ -1150,7 +1240,7 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	if (sec_findBspPibRule(secSrcEid, secDestEid, blockTypeNbr, &ruleObj,
 			&elt) != 0)
 	{
-		writeMemoNote("[?] This rule is already defined.", secDestEid);
+		writeMemoNote("[?] This rule is already defined", secDestEid);
 		return 0;
 	}
 
@@ -1201,13 +1291,13 @@ int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	if (strlen(ciphersuiteName) > 31)
+	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
 		return 0;
 	}
 
-	if (strlen(keyName) > 31)
+	if (istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid keyName", keyName);
 		return 0;
@@ -1223,7 +1313,7 @@ int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid,
 	if (sec_findBspPibRule(secSrcEid, secDestEid, BlockTypeNbr, &ruleObj,
 			&elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.",
+		writeMemoNote("[?] No rule defined for this endpoint",
 				secDestEid);
 		return 0;
 	}
@@ -1269,7 +1359,7 @@ int	sec_removeBspPibRule(char *secSrcEid, char *secDestEid,
 	if (sec_findBspPibRule(secSrcEid, secDestEid, BlockTypeNbr, &ruleObj,
 			&elt) == 0)
 	{
-		writeMemoNote("[?] No rule defined for this endpoint.",
+		writeMemoNote("[?] No rule defined for this endpoint",
 				secDestEid);
 		return 0;
 	}
@@ -1287,4 +1377,271 @@ int	sec_removeBspPibRule(char *secSrcEid, char *secDestEid,
 	}
 
 	return 1;
+}
+
+int    sec_get_bspPcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
+                Object *ruleAddr, Object *eltp)
+{
+        Sdr     sdr = getIonsdr();
+        SecDB   *secdb = _secConstants();
+        Object  elt;
+                OBJ_POINTER(BspPcbRule, rule);
+        int     eidLen;
+        char    eidBuffer[SDRSTRING_BUFSZ];
+        int     result = 0;
+
+        /*      This function determines the relevant BspPcbRule for
+         *      the specified receiving endpoint, if any.  Wild card
+         *      match is okay.                                          */
+
+        CHKERR(secSrcEid);
+        CHKERR(secDestEid);
+        CHKERR(ruleAddr);
+        CHKERR(eltp);
+        *eltp = 0;
+        if (secAttach() < 0)
+        {
+                writeMemo("[?] sec_get_bspPcbRule can't find ION security.");
+                return 0;
+        }
+
+        sdr_begin_xn(sdr);
+        for (elt = sdr_list_first(sdr, secdb->bspPcbRules); elt;
+                        elt = sdr_list_next(sdr, elt))
+        {
+                *ruleAddr = sdr_list_data(sdr, elt);
+                GET_OBJ_POINTER(sdr, BspPcbRule, rule, *ruleAddr);
+                eidLen = sdr_string_read(sdr, eidBuffer, rule->securityDestEid);
+
+                /* If destinations match... */
+                if ((rule->blockTypeNbr == blockTypeNbr)
+                && (eidsMatch(eidBuffer, eidLen, secDestEid,
+                                strlen(secDestEid))))
+                {
+                        eidLen = sdr_string_read(sdr, eidBuffer,
+                                        rule->securitySrcEid);
+                        /* If sources match ... */
+                        if (eidsMatch(eidBuffer, eidLen, secSrcEid,
+                                        strlen(secSrcEid)) == 1)
+                        {
+                                result = 1;
+                                *eltp = elt;    /*      Exact match.    */
+                                break;          /*      Stop searching. */
+                        }
+                }
+
+                *ruleAddr = 0;
+        }
+
+        sdr_exit_xn(sdr);
+        return result;
+}
+
+/* 1 if found. 0 if not. -1 on error. */
+int     sec_findBspPcbRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr,
+                Object *ruleAddr, Object *eltp)
+{
+        /*      This function finds the BspPcbRule for the specified
+         *      endpoint, if any.                                       */
+
+        CHKERR(secSrcEid);
+        CHKERR(secDestEid);
+        CHKERR(ruleAddr);
+        CHKERR(eltp);
+        *eltp = 0;
+        if (secAttach() < 0)
+        {
+                writeMemo("[?] sec_findBspPcbRule can't find ION security.");
+                return -1;
+        }
+
+        if ((filterEid(secSrcEid, secSrcEid) == 0)
+        || (filterEid(secDestEid, secDestEid) == 0))
+        {
+                return -1;
+        }
+
+        return sec_get_bspPcbRule(secSrcEid, secDestEid, BlockTypeNbr,
+                        ruleAddr, eltp);
+}
+
+int     sec_addBspPcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
+                char *ciphersuiteName, char *keyName)
+{
+        Sdr             sdr = getIonsdr();
+        SecDB           *secdb = _secConstants();
+        BspPcbRule      rule;
+        Object          ruleObj;
+        Object          elt;            
+
+        CHKERR(secSrcEid);
+        CHKERR(secDestEid);
+        CHKERR(ciphersuiteName);
+        CHKERR(keyName);
+        if (secAttach() < 0)
+        {
+                writeMemo("[?] sec_addBspPcbRule can't find ION security.");
+                return 0;
+        }
+        
+        if (strlen(ciphersuiteName) > 31)
+        {
+                writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+                return 0;
+        }               
+        
+        if (strlen(keyName) > 31)
+        {
+                writeMemoNote("[?] Invalid keyName", keyName);
+                return 0;
+        }
+
+        if ((filterEid(secSrcEid, secSrcEid) == 0)
+        || (filterEid(secDestEid, secDestEid) == 0))
+        {
+                return 0;
+        }
+    
+    
+        /* Don't expect a rule here already...*/
+        if (sec_findBspPcbRule(secSrcEid, secDestEid, blockTypeNbr, &ruleObj,
+                        &elt) != 0)
+        {
+                writeMemoNote("[?] This rule is already defined.", secDestEid);
+                return 0;
+        }
+
+        /*      Okay to add this rule to the database.                  */
+
+        sdr_begin_xn(sdr);
+        rule.securitySrcEid = sdr_string_create(sdr, secSrcEid);
+        rule.securityDestEid = sdr_string_create(sdr, secDestEid);
+        rule.blockTypeNbr = blockTypeNbr;
+        istrcpy(rule.ciphersuiteName, ciphersuiteName,
+                        sizeof rule.ciphersuiteName);
+        istrcpy(rule.keyName, keyName, sizeof rule.keyName);
+        ruleObj = sdr_malloc(sdr, sizeof(BspPcbRule));
+        if (ruleObj == 0)
+        {
+                sdr_cancel_xn(sdr);
+                putErrmsg("Can't create rule.", secDestEid);
+                return -1;
+        }
+
+        elt = sdr_list_insert_last(sdr, secdb->bspPcbRules,ruleObj);
+
+        sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BspPcbRule));
+        if (sdr_end_xn(sdr) < 0)
+        {
+                putErrmsg("Can't add rule.", secDestEid);
+                return -1;
+        }
+
+        return 1;
+}
+
+int     sec_updateBspPcbRule(char *secSrcEid, char *secDestEid,
+                int BlockTypeNbr, char *ciphersuiteName, char *keyName)
+{
+        Sdr             sdr = getIonsdr();
+        Object          elt;
+        Object          ruleObj;
+        BspPcbRule      rule;
+
+        CHKERR(secSrcEid);
+        CHKERR(secDestEid);
+        CHKERR(ciphersuiteName);
+        CHKERR(keyName);
+        if (secAttach() < 0)
+        {
+                writeMemo("[?] sec_updatePcbRule can't find ION security.");
+                return 0;
+        }
+
+        if (strlen(ciphersuiteName) > 31)
+        {
+                writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+                return 0;
+        }
+
+        if (strlen(keyName) > 31)
+        {
+                writeMemoNote("[?] Invalid keyName", keyName);
+                return 0;
+        }
+
+        if ((filterEid(secSrcEid, secSrcEid) == 0)
+        || (filterEid(secDestEid, secDestEid) == 0))
+        {
+                return 0;
+        }
+
+        /* Need to have a rule to update it. */
+        if (sec_findBspPcbRule(secSrcEid, secDestEid, BlockTypeNbr, &ruleObj,
+                        &elt) == 0)
+        {
+                writeMemoNote("[?] No rule defined for this endpoint.",
+                                secDestEid);
+                return 0;
+        }
+
+        sdr_begin_xn(sdr);
+        sdr_stage(sdr, (char *) &rule, ruleObj, sizeof(BspPcbRule));
+        istrcpy(rule.ciphersuiteName, ciphersuiteName,
+                        sizeof rule.ciphersuiteName);
+        istrcpy(rule.keyName, keyName, sizeof rule.keyName);
+        sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BspPcbRule));
+        if (sdr_end_xn(sdr) < 0)
+        {
+                putErrmsg("Can't update rule.", secDestEid);
+                return -1;
+        }
+
+        return 1;
+}
+
+int     sec_removeBspPcbRule(char *secSrcEid, char *secDestEid,
+                int BlockTypeNbr)
+{
+        Sdr     sdr = getIonsdr();
+        Object  elt;
+        Object  ruleObj;
+                OBJ_POINTER(BspPcbRule, rule);
+
+        CHKERR(secSrcEid);
+        CHKERR(secDestEid);
+        if (secAttach() < 0)
+        {
+                writeMemo("[?] sec_removeBspPcbRule can't find ION security.");
+                return 0;
+        }
+
+        if ((filterEid(secSrcEid, secSrcEid) == 0)
+        || (filterEid(secDestEid, secDestEid) == 0))
+        {
+                return 0;
+        }
+
+        /* Need to have a rule to delete it. */
+        if (sec_findBspPcbRule(secSrcEid, secDestEid, BlockTypeNbr, &ruleObj,
+                        &elt) == 0)
+        {
+                writeMemoNote("[?] No rule defined for this endpoint.",
+                                secDestEid);
+                return 0;
+        }
+
+        sdr_begin_xn(sdr);
+        sdr_list_delete(sdr, elt, NULL, NULL);
+        GET_OBJ_POINTER(sdr, BspPcbRule, rule, ruleObj);
+        sdr_free(sdr, rule->securitySrcEid);
+        sdr_free(sdr, rule->securityDestEid);
+        sdr_free(sdr, ruleObj);
+        if (sdr_end_xn(sdr) < 0)
+        {
+                putErrmsg("Can't remove rule.", secDestEid);
+                return -1;
+        }
+
+        return 1;
 }

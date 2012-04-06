@@ -1,0 +1,132 @@
+#!/bin/bash
+#
+# Samuel Jero
+# Ohio University
+# December 30, 2011
+#
+# This test pertains to issue #333 "CFDP Originating transaction ID message has wrong type".
+# This test confirms Confirms that CFDP now sends Originating Transaction ID 
+# messages as special CFDP User Messages.The test uses netcat to receive data.
+
+
+function end(){
+# Shut down ION processes.
+echo "Stopping ION..."
+cd 1.cfdp.ipn.bp.ltp.udp
+./ionstop &
+cd ../
+sleep 5
+killm
+
+echo "cfdp originating transaction ID message type test complete."
+exit $RETVAL	
+}
+
+CONFIGFILES=" \
+./1.cfdp.ipn.bp.ltp.udp/mem.conf \
+./1.cfdp.ipn.bp.ltp.udp/config.ionrc \
+./1.cfdp.ipn.bp.ltp.udp/config.ltprc \
+./1.cfdp.ipn.bp.ltp.udp/config.bprc \
+./1.cfdp.ipn.bp.ltp.udp/config.ipnrc \
+./1.cfdp.ipn.bp.ltp.udp/config.cfdprc"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 333.
+        Confirms that CFDP now sends Originating Transaction ID
+	messages as special CFDP User Messages."
+echo
+echo "CONFIG: 1 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+
+# Check that prerequisite software for the test is installed
+PROGRAMTEST="netcat"
+OS=`uname`
+RESULTS=`which ${PROGRAMTEST}`
+WHICHRETURN=$?
+echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
+WHICHFAILMESSAGE=$?
+# which could return the proper fail condition, or the results could be
+# empty, or you're on solaris and your results will be "no netcat in $PATH".
+if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
+	echo "${PROGRAMTEST} is not present in this system; skipping..."
+	exit 2
+fi
+
+sleep 1
+RETVAL=1
+
+
+#Start ION
+echo "Starting ion node..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+cd 1.cfdp.ipn.bp.ltp.udp
+./ionstart
+cd ../
+sleep 10
+
+echo "Starting netcat server for test..."
+if [ "$OS" = "SunOS" ]; then
+	netcat -u -l -p 1113 -s localhost > response &
+	NETCAT_SVR_PID=$!
+else
+	netcat -u -l -p 1113 > response &
+	NETCAT_SVR_PID=$!
+fi
+
+echo "Sending FDU..."
+cd 1.cfdp.ipn.bp.ltp.udp
+../send
+cd ../
+
+echo "Waiting 10 seconds for netcat server to receive bundle..."
+sleep 10
+
+echo "Stopping netcat server..."
+kill -2 $NETCAT_SVR_PID >/dev/null 2>&1
+sleep 1 
+kill -9 $NETCAT_SVR_PID >/dev/null 2>&1
+
+# Now search for the hex data representing the old, bad response and fail if it is
+#seen. This old value was: 0x0A, length--0x08 for our case, the string "cfdp", and value 0x0A.
+RESULTS=`cat response | xxd -p | grep "0a08636664700a"`
+if [ -n "$RESULTS" ]; then
+	echo "CFDP used an invalid type for the Originating ID.  FAILURE!"
+	echo ""
+	RETVAL=1
+	ls -al
+	cat 1.cfdp.ipn.bp.ltp.udp/ion.log
+	end
+fi
+
+# Now search for the correct value in the received data, and fail if it isn't found.
+#This expected value is: 0x02, length--0x08 for our case, the string "cfdp", and value 0x0A.
+RESULTS=`cat response | xxd -p | grep "0208636664700a"`
+if [ -n "$RESULTS" ]; then
+	echo "CFDP used the correct type for the Originating ID.  SUCCESS!"
+	echo ""
+	RETVAL=0
+else
+	echo "CFDP did not use the correct type for the Originating ID.  FAILURE!"
+	echo ""
+	ls -al
+	cat 1.cfdp.ipn.bp.ltp.udp/ion.log
+	RETVAL=1
+fi
+
+end

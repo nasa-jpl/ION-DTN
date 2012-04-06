@@ -1,0 +1,8 @@
+aION event: Payload delivered.
+	payload length is 11.
+	'test_trace'
+aION event: Payload delivered.
+	payload length is 12.
+	'test2_trace'
+ION event: Endpoint stopped.
+Stopping bpsink.

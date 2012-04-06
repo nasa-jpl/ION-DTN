@@ -22,8 +22,23 @@ static BpSAP	_bpsap(BpSAP *newSAP)
 	return sap;
 }
 
+static int	_running(int *newState)
+{
+	static int	state = 1;
+
+	if (newState)
+	{
+		state = *newState;
+	}
+
+	return state;
+}
+
 static void	handleQuit()
 {
+	int	stop = 0;
+
+	oK(_running(&stop));
 	bp_interrupt(_bpsap(NULL));
 }
 
@@ -65,22 +80,18 @@ static int	processCmdFile(Sdr sdr, BpDelivery *dlv)
 		return -1;
 	}
 
+	zco_start_receiving(dlv->adu, &reader);
 	sdr_begin_xn(sdr);
-	zco_start_receiving(sdr, dlv->adu, &reader);
 	len = zco_receive_source(sdr, &reader, contentLength, content);
-	zco_stop_receiving(sdr, &reader);
-	if (len < 0)
+	if (sdr_end_xn(sdr) < 0)
 	{
-		sdr_cancel_xn(sdr);
-		MRELEASE(content);
-		putErrmsg("lgagent: can't receive bundle content.", NULL);
 		return -1;
 	}
 
-	if (sdr_end_xn(sdr) < 0)
+	if (len < 0)
 	{
 		MRELEASE(content);
-		putErrmsg("lgagent: can't handle bundle delivery.", NULL);
+		putErrmsg("lgagent: can't receive bundle content.", NULL);
 		return -1;
 	}
 
@@ -239,8 +250,8 @@ int	main(int argc, char **argv)
 #endif
 	BpSAP		sap;
 	Sdr		sdr;
-	int		running = 1;
 	BpDelivery	dlv;
+	int		stop = 0;
 
 	if (ownEid == NULL)
 	{
@@ -264,26 +275,26 @@ int	main(int argc, char **argv)
 	sdr = bp_get_sdr();
 	isignal(SIGINT, handleQuit);
 	writeMemo("[i] lgagent is running.");
-	while (running)
+	while (_running(NULL))
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
 			putErrmsg("lgagent bundle reception failed.", NULL);
-			running = 0;
+			oK(_running(&stop));
 			continue;
 		}
 
 		switch (dlv.result)
 		{
 		case BpEndpointStopped:
-			running = 0;
+			oK(_running(&stop));
 			break;		/*	Out of switch.		*/
 
 		case BpPayloadPresent:
 			if (processCmdFile(sdr, &dlv) < 0)
 			{
 				putErrmsg("lgagent cannot continue.", NULL);
-				running = 0;
+				oK(_running(&stop));
 			}
 
 			/*	Intentional fall-through to default.	*/

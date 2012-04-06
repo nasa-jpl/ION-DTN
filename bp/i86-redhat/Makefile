@@ -5,6 +5,7 @@ TEST = ../test
 DAEMON = ../daemon
 CGR = ../cgr
 IPN = ../ipn
+BSS = ../bss
 DTN2 = ../dtn2
 LTP = ../ltp
 TCP = ../tcp
@@ -15,6 +16,7 @@ DCCP = ../dccp
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
+# -DENABLE_BPACS
 CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -25,28 +27,33 @@ PUBINCLS = \
 BPINCLS = \
 	$(API)/bpP.h \
 	$(IPN)/ipnfw.h \
+	$(BSS)/bssfw.h \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
 	$(TCP)/tcpcla.h \
 	$(LTP)/ltpcla.h \
 	$(DCCP)/dccpcla.h
+# $(API)/acs/acs.h
 
 BPLIBS = \
 	libbp.so \
 	libbpP.so
 
-BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o crypto.o
+BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o crypto.o
+# acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 # phn.o
 
-LFW = -lipnfw -ldtn2fw
+LFW = -lbssfw -ldtn2fw
+# -lipnfw
 
 LBP = -lbp -lbpP
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
-#dccpcli dccpclo
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep bssadmin bssfw dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
+# acsadmin acslist
+# dccpcli dccpclo
 
-ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libbssfw.so libtcpcla.so libudpcla.so libbpnm.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -80,6 +87,10 @@ bpadmin:	bpadmin.o $(BPLIBS)
 ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.so
 		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
 		cp ipnadmin ./bin
+
+bssadmin:	bssadmin.o $(BPLIBS) libbssfw.so
+		$(CC) -o bssadmin bssadmin.o -L./lib -L$(ROOT)/lib -lbssfw $(LBP) -lici -lpthread
+		cp bssadmin ./bin
 
 dtn2admin:	dtn2admin.o $(BPLIBS) libdtn2fw.so
 		$(CC) -o dtn2admin dtn2admin.o -L./lib -L$(ROOT)/lib -ldtn2fw $(LBP) -lici -lpthread
@@ -125,15 +136,29 @@ hmackeys:	hmackeys.o $(BPLIBS)
 		$(CC) -o hmackeys hmackeys.o -L$(ROOT)/lib -lici -lpthread
 		cp hmackeys ./bin
 
+#acsadmin:	acsadmin.o $(BPLIBS)
+#		$(CC) -o acsadmin acsadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+#		cp acsadmin ./bin
+
+#acslist:	acslist.o $(BPLIBS)
+#		$(CC) -o acslist acslist.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+#		cp acslist ./bin
+
 #	-	-	IPN executables	-	-	-	-	-
 
 ipnfw:		ipnfw.o $(BPLIBS) libipnfw.so libcgr.so
-		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lipnfw -lcgr $(LBP) -lici -lpthread
+		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lcgr -lipnfw $(LBP) -lici -lpthread
 		cp ipnfw ./bin
 
 ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.so
 		$(CC) -o ipnadminep ipnadminep.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
 		cp ipnadminep ./bin
+
+#	-	-	BSS executables	-	-	-	-	-
+
+bssfw:		bssfw.o $(BPLIBS) libbssfw.so libcgr.so
+		$(CC) -o bssfw bssfw.o -L./lib -L$(ROOT)/lib -lbssfw -lcgr $(LBP) -lici -lpthread
+		cp bssfw ./bin
 
 #	-	-	DTN2 executables	-	-	-	-
 
@@ -259,6 +284,10 @@ libipnfw.so:	libipnfw.o
 		$(LD) -o libipnfw.so libipnfw.o
 		cp libipnfw.so ./lib
 
+libbssfw.so:	libbssfw.o
+		$(LD) -o libbssfw.so libbssfw.o
+		cp libbssfw.so ./lib
+
 libdtn2fw.so:	libdtn2fw.o
 		$(LD) -o libdtn2fw.so libdtn2fw.o
 		cp libdtn2fw.so ./lib
@@ -270,6 +299,10 @@ libtcpcla.so:	libtcpcla.o
 libudpcla.so:	libudpcla.o
 		$(LD) -o libudpcla.so libudpcla.o
 		cp libudpcla.so ./lib
+
+libbpnm.so:	libbpnm.o $(API)/bpnm.h
+		$(LD) -o libbpnm.so libbpnm.o
+		cp libbpnm.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
@@ -303,6 +336,9 @@ libudpcla.so:	libudpcla.o
 %.o:		$(IPN)/%.c
 		$(CC) -c $<
 
+%.o:		$(BSS)/%.c
+		$(CC) -c $<
+
 %.o:		$(DTN2)/%.c
 		$(CC) -c $<
 
@@ -322,4 +358,10 @@ libudpcla.so:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(DGR)/%.c
+		$(CC) -c $<
+
+#%.o:		$(API)/acs/%.c
+#		$(CC) -c $<
+
+%.o:		$(API)/ext/cteb/%.c
 		$(CC) -c $<

@@ -82,7 +82,7 @@ static void	*sendBundles(void *parm)
 	while (!(sm_SemEnded(parms->vduct->semaphore)))
 	{
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName, 1) < 0)
+				&extendedCOS, destDuctName, 0, -1) < 0)
 		{
 			break;
 		}
@@ -140,7 +140,7 @@ static void	*sendBundles(void *parm)
 				 *	put it in limbo for another
 				 *	attempt later; discard the ADU.	*/
 
-				zco_destroy_reference(sdr, bundleZco);
+				zco_destroy(sdr, bundleZco);
 			}
 			else
 			{
@@ -152,7 +152,7 @@ static void	*sendBundles(void *parm)
 					/*	We never put critical
 					 *	bundles into limbo.	*/
 
-					zco_destroy_reference(sdr, bundleZco);
+					zco_destroy(sdr, bundleZco);
 				}
 				else
 				{
@@ -666,7 +666,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	ClProtocol		protocol;
 	char			*hostName;
 	unsigned short		portNbr;
-	unsigned int		hostNbr;
+	unsigned int		hostNbr = INADDR_ANY;
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
 	SenderThreadParms	senderParms;
@@ -701,7 +701,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr, vinduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
-	if (protocol.nominalRate <= 0)
+	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_BRS_RATE;
 		voutduct->xmitThrottle.nominalRate = DEFAULT_BRS_RATE;
@@ -713,19 +713,20 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	}
 
 	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
+	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", hostName);
+		return 1;
+	}
+
 	if (portNbr == 0)
 	{
 		portNbr = 80;	/*	Default to HTTP's port number.	*/
 	}
 
-	portNbr = htons(portNbr);
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		return 1;
-	}
+	/*	hostNbr == 0 (INADDR_ANY) is okay for BRS server.	*/
 
+	portNbr = htons(portNbr);
 	hostNbr = htonl(hostNbr);
 	atp.vduct = vinduct;
 	memset((char *) &(atp.socketName), 0, sizeof(struct sockaddr));

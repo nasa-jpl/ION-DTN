@@ -333,7 +333,6 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 	CfdpDB		*cfdpConstants = getCfdpConstants();
 	Sdr		sdr = getIonsdr();
 	MsgToUser	usrmsg;
-	Object		elt;
 	Object		addr;
 
 	CHKERR(list);
@@ -341,6 +340,12 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 	CHKERR(length > 0);
 	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
 			== cfdpConstants->usrmsgLists);
+	if (length > 255)
+	{
+		putErrmsg("CFDP: User Message too long.", itoa(length));
+		return -1;
+	}
+
 	memset((char *) &usrmsg, 0, sizeof(MsgToUser));
 	sdr_begin_xn(sdr);
 	usrmsg.length = length;
@@ -353,7 +358,7 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 		{
 			sdr_write(sdr, addr, (char *) &usrmsg,
 					sizeof(MsgToUser));
-			elt = sdr_list_insert_last(sdr, list, addr);
+			oK(sdr_list_insert_last(sdr, list, addr));
 		}
 	}
 
@@ -441,7 +446,6 @@ int	cfdp_add_fsreq(MetadataList list, CfdpAction action,
 	CfdpDB			*cfdpConstants = getCfdpConstants();
 	Sdr			sdr = getIonsdr();
 	FilestoreRequest	fsreq;
-	Object			elt;
 	Object			addr;
 
 	CHKERR(list);
@@ -468,7 +472,7 @@ int	cfdp_add_fsreq(MetadataList list, CfdpAction action,
 	{
 		sdr_write(sdr, addr, (char *) &fsreq,
 				sizeof(FilestoreRequest));
-		elt = sdr_list_insert_last(sdr, list, addr);
+		oK(sdr_list_insert_last(sdr, list, addr));
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -917,7 +921,7 @@ static int	constructMetadataPdu(OutFdu *fdu,
 		}
 		else
 		{
-			*cursor = 0x0a;			/*	Type.	*/
+			*cursor = 0x02;			/*	Type: Special User Message.	*/
 			cursor++;
 			mpduLength++;
 			*cursor = length;
@@ -1319,6 +1323,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	event.type = CfdpTransactionInd;
 	memcpy((char *) &event.transactionId, (char *) &fdu.transactionId,
 			sizeof(CfdpTransactionId));
+	memcpy((char *) transactionId, (char *) &fdu.transactionId,
+				sizeof(CfdpTransactionId));
 	event.reqNbr = fdu.reqNbr;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
@@ -1630,12 +1636,10 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 #ifndef NO_PROXY
 	int		proxyPutRequestRecd = 0;
 	int		proxyPutCancelRecd = 0;
-	int		proxyPutResponseRecd = 0;
 #endif
 	int		originatingTransactionIdRecd = 0;
 #ifndef NO_DIRLIST
 	int		directoryListingRequestRecd = 0;
-	int		directoryListingResponseRecd = 0;
 #endif
 	int		result = 0;
 
@@ -1810,7 +1814,6 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 			break;
 
 		case 7:
-			proxyPutResponseRecd = 1;
 			parseProxyPutResponse(content, len, &opsData);
 			break;
 
@@ -1836,7 +1839,6 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 			break;
 
 		case 17:
-			directoryListingResponseRecd = 1;
 			parseDirectoryListingResponse(content, len, &opsData);
 			break;
 #endif

@@ -67,12 +67,12 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	Sdr			sdr = getIonsdr();
 	static LtpSessionId	currentSessionId = { 0, 0 };
 	static unsigned long	currentOffset = 0;
-	static int		gapFound = 0;
 	unsigned long		fillLength;
 	char			engineNbrString[21];
 	char			senderEidBuffer[SDRSTRING_BUFSZ];
 	char			*senderEid;
 	ZcoReader		reader;
+	int			result;
 
 	if (zco == 0)		/*	Import session canceled.	*/
 	{
@@ -80,7 +80,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		currentSessionId.sourceEngineId = 0;
 		currentSessionId.sessionNbr = 0;
 		currentOffset = 0;
-		gapFound = 0;
 		return 0;
 	}
 
@@ -101,7 +100,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		currentSessionId.sourceEngineId = 0;
 		currentSessionId.sessionNbr = 0;
 		currentOffset = 0;
-		gapFound = 0;
 	}
 
 	if (currentOffset == 0)
@@ -132,7 +130,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		/*	Must insert fill data -- partial loss of
 		 *	bundle payload, for example, may be okay.	*/
 
-		gapFound = 1;
 		fillLength = offset - currentOffset;
 		if (fillLength > *buflen)
 		{
@@ -156,7 +153,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 				currentSessionId.sourceEngineId = 0;
 				currentSessionId.sessionNbr = 0;
 				currentOffset = 0;
-				gapFound = 0;
 				return 0;
 			}
 
@@ -193,7 +189,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 			currentSessionId.sourceEngineId = 0;
 			currentSessionId.sessionNbr = 0;
 			currentOffset = 0;
-			gapFound = 0;
 			return 0;
 		}
 
@@ -203,18 +198,12 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	/*	Extract data from segment ZCO so that it can be
 	 *	appended to the bundle acquisition ZCO.			*/
 
+	zco_start_receiving(zco, &reader);
 	sdr_begin_xn(sdr);
-	zco_start_receiving(sdr, zco, &reader);
-	if (zco_receive_source(sdr, &reader, length, *buffer) < 0)
+	result = zco_receive_source(sdr, &reader, length, *buffer);
+	if (sdr_end_xn(sdr) < 0 || result < 0)
 	{
 		putErrmsg("Failed reading green segment data.", NULL);
-		return -1;
-	}
-
-	zco_stop_receiving(sdr, &reader);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Crashed on green data extraction.", NULL);
 		return -1;
 	}
 
@@ -236,7 +225,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		currentSessionId.sourceEngineId = 0;
 		currentSessionId.sessionNbr = 0;
 		currentOffset = 0;
-		gapFound = 0;
 	}
 
 	return 0;
@@ -303,7 +291,7 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			if (bpHandleXmitSuccess(data) < 0)
+			if (bpHandleXmitSuccess(data, 0) < 0)
 			{
 				putErrmsg("Crashed on xmit success.", NULL);
 				ionKillMainThread(procName);
@@ -312,7 +300,7 @@ static void	*handleNotices(void *parm)
 			}
 
 			sdr_begin_xn(sdr);
-			zco_destroy_reference(sdr, data);
+			zco_destroy(sdr, data);
 			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("Crashed on data cleanup.", NULL);
@@ -337,7 +325,7 @@ static void	*handleNotices(void *parm)
 			}
 
 			sdr_begin_xn(sdr);
-			zco_destroy_reference(sdr, data);
+			zco_destroy(sdr, data);
 			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("Crashed on data cleanup.", NULL);
@@ -377,7 +365,7 @@ static void	*handleNotices(void *parm)
 				 *	just discard the data.		*/
 
 				sdr_begin_xn(sdr);
-				zco_destroy_reference(sdr, data);
+				zco_destroy(sdr, data);
 				if (sdr_end_xn(sdr) < 0)
 				{
 					putErrmsg("Crashed: partially red.",
@@ -412,7 +400,7 @@ static void	*handleNotices(void *parm)
 			/*	Discard the ZCO in any case.		*/
 
 			sdr_begin_xn(sdr);
-			zco_destroy_reference(sdr, data);
+			zco_destroy(sdr, data);
 			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("Crashed: green segment.", NULL);

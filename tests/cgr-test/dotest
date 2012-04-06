@@ -66,9 +66,9 @@ echo "Contact has terminated.  Verifying results..."
 # Verify bundle was forwarded.
 RETVAL=0
 
-echo "Searching ion.log for a single 'fwd' message '(1) 1 3'..."
-COUNT=`grep fwd ion.log | grep "(1) 1 3" | wc -l`
-if [ $COUNT -eq 1 ]
+echo "Searching ion.log for a single 'fwd' message '(+) 1 3'..."
+COUNT=`grep fwd ion.log | grep "(+) 1 3" | wc -l`
+if [ $COUNT -gt 0 ]
 then
 	echo "OK: Route was computed."
 else

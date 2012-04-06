@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 
 	/* Start ION */
 	ionstart_default_config("loopback-ltp/loopback.ionrc", 
-			 "loopback-ltp/loopback.ionsecrc", 
+			 NULL,
 			 "loopback-ltp/loopback.ltprc",
 			 "loopback-ltp/loopback.bprc",
 			 "loopback-ltp/loopback.ipnrc",
@@ -48,12 +48,12 @@ int main(int argc, char **argv)
 
 	/* Receive the loopback bundle */
 	fail_unless(bp_open(testEid, &rxSap) >= 0);
-	fail_unless(bp_receive(rxSap, &rxDlv, BP_BLOCKING) >= 0);
+	fail_unless(bp_receive(rxSap, &rxDlv, IONTEST_DEFAULT_RECEIVE_WAIT) >= 0);
 	fail_unless(rxDlv.result == BpPayloadPresent);
 	rxContentLength = zco_source_data_length(sdr, rxDlv.adu);
 	fail_unless(rxContentLength == sizeof(testLine) - 1);
 	sdr_begin_xn(sdr);
-	zco_start_receiving(sdr, rxDlv.adu, &rxReader);
+	zco_start_receiving(rxDlv.adu, &rxReader);
 	rxLen = zco_receive_source(sdr, &rxReader, rxContentLength, 
 		rxContent);
 	fail_unless(rxLen == rxContentLength);

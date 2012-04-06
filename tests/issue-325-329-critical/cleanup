@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 8, 2010
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion_nodes 1.ipn.ltp/ion.log 1.ipn.ltp/node1.stdout 1.ipn.ltp/ltpblock.* 2.ipn.ltp/ion.log 2.ipn.ltp/node2.stdout 2.ipn.ltp/ltpblock.* 3.ipn.ltp/ion.log 3.ipn.ltp/node3.stdout 3.ipn.ltp/ltpblock.* 4.ipn.ltp/ion.log 4.ipn.ltp/node4.stdout 4.ipn.ltp/testfile1 4.ipn.ltp/testfile2 4.ipn.ltp/ltpblock.*

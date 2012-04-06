@@ -12,7 +12,7 @@ B<ipnadmin> configures the local ION node's routing of bundles to endpoints
 whose IDs conform to the I<ipn> endpoint ID scheme.  I<ipn> is a CBHE-conformant
 scheme; that is, every endpoint ID in the I<ipn> scheme is a string of the
 form "ipn:I<element_number>.I<service_number>" where I<element_number> is
-an ION "node number" and I<service_number> identifies a specific application
+a CBHE "node number" and I<service_number> identifies a specific application
 processing point.
 
 B<ipnadmin> operates in response to IPN scheme configuration commands found
@@ -45,9 +45,10 @@ attach to the Bundle Protocol system or to initialize the IPN scheme.
 
 Enter interactive IPN scheme configuration command entry mode.
 
-=item ipnadmin host1.ipn
+=item ipnadmin host1.ipnrc
 
-Execute all configuration commands in I<host1.ipn>, then terminate immediately.
+Execute all configuration commands in I<host1.ipnrc>, then terminate
+immediately.
 
 =back
 
@@ -78,7 +79,7 @@ bpadmin(1) first.
 
 =item ipnadmin can't initialize routing database.
 
-There is no SDR data store for I<dtnadmin> to use.  Please run ionadmin(1) to
+There is no SDR data store for I<ipnadmin> to use.  Please run ionadmin(1) to
 start the local ION node.
 
 =item Can't open command file...

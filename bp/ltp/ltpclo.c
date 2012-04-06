@@ -45,7 +45,8 @@ int	main(int argc, char *argv[])
 	Sdr		sdr;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
-	unsigned long	destEngineNbr;
+	int		allGreen = 0;		/*	Boolean		*/
+	long		destEngineNbr;
 	Outduct		outduct;
 	Outflow		outflows[3];
 	int		i;
@@ -58,7 +59,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		PUTS("Usage: ltpclo <destination engine number>");
+		PUTS("Usage: ltpclo [-]<destination engine number>");
 		return 0;
 	}
 
@@ -88,6 +89,12 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	destEngineNbr = atol(ductName);
+	if (destEngineNbr < 0)
+	{
+		allGreen = 1;
+		destEngineNbr = 0 - destEngineNbr;
+	}
+
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = outduct.bulkQueue;
 	outflows[1].outboundBundles = outduct.stdQueue;
@@ -114,7 +121,7 @@ int	main(int argc, char *argv[])
 	while (running && !(sm_SemEnded(ltpcloSemaphore(NULL))))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 1) < 0)
+				destDuctName, 0, -1) < 0)
 		{
 			running = 0;	/*	Terminate CLO.		*/
 			continue;
@@ -125,21 +132,27 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		if (extendedCOS.flags & BP_BEST_EFFORT)
+		if (allGreen)
 		{
 			redPartLength = 0;
 		}
 		else
 		{
-			redPartLength = LTP_ALL_RED;
+			if (extendedCOS.flags & BP_BEST_EFFORT)
+			{
+				redPartLength = 0;
+			}
+			else
+			{
+				redPartLength = LTP_ALL_RED;
+			}
 		}
 
 		switch (ltp_send(destEngineNbr, BpLtpClientId, bundleZco,
 				redPartLength, &sessionId))
 		{
 		case 0:
-			putErrmsg("Unable to send this bundle via LTP.",
-					NULL);
+			putErrmsg("Unable to send this bundle via LTP.", NULL);
 			break;
 
 		case -1:

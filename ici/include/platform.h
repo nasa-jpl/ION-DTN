@@ -122,6 +122,12 @@ extern "C" {
 #endif
 #define ERROR			(-1)
 
+#ifdef __GNUC__
+#define UNUSED  __attribute__((unused))
+#else
+#define UNUSED
+#endif
+
 #ifndef MIN
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #endif
@@ -164,10 +170,10 @@ typedef struct
 
 #ifdef TORNADO_2_0_2
 #define isprintf(buffer, bufsize, format, args...)	\
-oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, args))
+oK(_isprintf(buffer, bufsize, format, args))
 #else
 #define isprintf(buffer, bufsize, format, ...)		\
-oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, __VA_ARGS__))
+oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 #endif
 
 #ifdef FSWSOURCE
@@ -367,6 +373,8 @@ int getpriority(int, id_t);
 				/****	it has mymsg (same thing).   ****/
 #define	_MULTITHREADED
 
+#define	O_LARGEFILE	0
+
 #endif				/****	End of #ifdef darwin	     ****/
 
 #endif				/****	End of #ifdef (__SVR4)       ****/
@@ -448,6 +456,7 @@ extern unsigned long		getClockResolution();	/*	usec	*/
 extern unsigned int		getInternetAddress(char *);
 extern char *			getInternetHostName(unsigned int, char *);
 extern int			getNameOfHost(char *, int);
+extern unsigned int		getAddressOfHost();
 extern char *			getNameOfUser(char *);
 extern int			reUseAddress(int);
 extern int			watchSocket(int);
@@ -481,7 +490,7 @@ extern void			discardErrmsgs();
 extern int			_iEnd(const char *, int, const char *);
 extern int			_coreFileNeeded(int *);
 
-#define CHKERR(e)    		if (!(e) && iEnd(#e)) return -1
+#define CHKERR(e)    		if (!(e) && iEnd(#e)) return ERROR
 #define CHKZERO(e)    		if (!(e) && iEnd(#e)) return 0
 #define CHKNULL(e)    		if (!(e) && iEnd(#e)) return NULL
 #define CHKVOID(e)    		if (!(e) && iEnd(#e)) return
@@ -516,8 +525,7 @@ extern void			addToScalar(Scalar *, Scalar *);
 extern void			subtractFromScalar(Scalar *, Scalar *);
 extern int			scalarIsValid(Scalar *);
 
-extern int			_isprintf(const char *, int, char *, int,
-					char *, ...);
+extern int			_isprintf(char *, int, char *, ...);
 extern size_t			istrlen(char *, size_t);
 extern char			*istrcpy(char *, char *, size_t);
 extern char			*istrcat(char *, char *, size_t);
@@ -528,7 +536,7 @@ extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 
 extern void			findToken(char **cursorPtr, char **token);
-extern void			parseSocketSpec(char *socketSpec,
+extern int			parseSocketSpec(char *socketSpec,
 					unsigned short *portNbr,
 					unsigned int *ipAddress);
 #include "platform_sm.h"

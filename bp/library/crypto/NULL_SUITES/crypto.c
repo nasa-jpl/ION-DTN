@@ -64,6 +64,49 @@ int hmac_authenticate(char * mac_buffer, const int mac_size, const char * key, c
 }
 
 
+/*****************************************************************************
+ *                     HMAC-SHA-256 FUNCTION DEFINITIONS                        *
+ *****************************************************************************/
+
+int hmac_sha256_context_length()
+{
+	// Made it maximum
+	return 32; 
+}
+
+void hmac_sha256_init(void *context, unsigned char *key, int key_length)
+{
+	/* Set the context as the key, for specious authentication */
+        if(key_length > 32) 
+        {
+          key_length = 32;
+        }
+	memset(context, 0, 32);
+	memcpy(context, key, key_length);
+	return;
+}
+
+void hmac_sha256_update(void *context, unsigned char *data, int data_length)
+{
+	return;
+}
+
+void hmac_sha256_final(void *context, unsigned char *result, int resultLen)
+{
+	/* Context contains the key */
+	/* This function simply sets the security result to be the key */
+	memset(result,0,resultLen);
+	if(resultLen > 32)
+	{
+		resultLen = 32;
+	}
+	memcpy(result, context, resultLen);
+}
+
+void hmac_sha256_reset(void *context)
+{
+	return;
+}
 
 
 /*****************************************************************************
@@ -118,4 +161,24 @@ int rsa_sha256_verify(void *context, int hashlen, void *hashData, int signatureL
 }
 
 
+/*****************************************************************************
+ *                       arc4 FUNCTION DEFINITIONS                           *
+ *****************************************************************************/
 
+/*
+ * ARC4 key schedule
+ */
+void arc4_setup( arc4_context *ctx, const unsigned char *key, unsigned int keylen )
+{
+    return;
+}
+
+/*
+ * ARC4 cipher function
+ */
+int arc4_crypt( arc4_context *ctx, size_t length, const unsigned char *input,
+                unsigned char *output )
+{
+    memcpy(output, input, length);
+    return( 0 );
+}

@@ -1,0 +1,18 @@
+# Config file for issue-334-cfdp-transaction-id test
+# Samuel Jero
+# December 15, 2011
+# Initialization command (command 1). 
+1 1 ./cfdp.ipn.bp.ltp.udp/mem.conf
+
+# start ion node
+s
+
+# Add a contact.
+a contact  +1 +3600		1 1   100000
+
+# Add a range. This is the physical distance between nodes.
+a range    +1 +3600		1 1   1
+
+# set this node to consume and produce a mean of 1000000 bytes/second.
+m production 1000000
+m consumption 1000000

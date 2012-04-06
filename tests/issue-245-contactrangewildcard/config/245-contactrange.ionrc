@@ -29,4 +29,4 @@ s
 # set this node to consume and produce a mean of 1000000 bytes/second
 m production 1000000
 m consumption 1000000
-m horizon +0
+m horizon  +0

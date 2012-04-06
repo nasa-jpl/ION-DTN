@@ -1,0 +1,6 @@
+m horizon  +0
+a range    +0 +70		9 9   1
+a range    +0 +70		5 9   1
+a contact  +0 +70		9 9   16384
+a contact  +0 +70		9 5   16384
+a contact  +0 +70		5 9   16384

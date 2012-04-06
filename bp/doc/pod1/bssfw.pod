@@ -1,0 +1,105 @@
+=head1 NAME
+
+bssfw - bundle route computation task for the IPN scheme, adapted for Bundle Streaming Service
+
+=head1 SYNOPSIS
+
+B<bssfw>
+
+=head1 DESCRIPTION
+
+B<bssfw> is a background "daemon" task that pops bundles from the queue of
+bundle destined for IPN-scheme endpoints, computes proximate destinations
+for those bundles, and appends those bundles to the appropriate queues of
+bundles pending transmission to those computed proximate destinations.
+
+For each possible proximate destination (that is, neighboring node) there is
+a separate queue for each possible level of bundle priority: 0, 1, 2.  Each
+outbound bundle is appended to the queue matching the bundle's designated
+priority.
+
+Proximate destination computation is affected by static and default routes
+as configured by bssadmin(1) and by contact graphs as managed by ionadmin(1)
+and rfxclock(1).  B<bssfw> differs from B<ipnfw> in this way: a bundle that
+is destined for an endpoint associated with a BSS application (as registered
+in an "entry" passed to bssadmin(1) in a bssrc(5) command) is forwarded
+via a duct identified in a separately defined real-time or playback duct
+expression, rather than the standard duct that is used for non-BSS
+traffic.
+
+B<bssfw> is spawned automatically by B<bpadmin> in response to the
+'s' (START) command that starts operation of Bundle Protocol on the local
+ION node, and it is terminated by B<bpadmin> in response to an 'x' (STOP)
+command.  B<bssfw> can also be spawned and terminated in response to
+START and STOP commands that pertain specifically to the IPN scheme.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item 0
+
+B<bssfw> terminated, for reasons noted in the B<ion.log> log file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<bssfw>.
+
+=item 1
+
+B<bssfw> could not commence operations, for reasons noted in the B<ion.log>
+log file.  Investigate and solve the problem identified in the log file, then
+use B<bpadmin> to restart B<bssfw>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item bssfw can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item bssfw can't load routing database.
+
+B<bssadmin> has not yet initialized the IPN scheme.
+
+=item Can't create lists for route computation.
+
+An unrecoverable database error was encountered.  B<bssfw> terminates.
+
+=item 'bss' scheme is unknown.
+
+The IPN scheme was not added when B<bpadmin> initialized BP operations.  Use
+B<bpadmin> to add and start the scheme.
+
+=item Can't take forwarder semaphore.
+
+ION system error.  B<bssfw> terminates.
+
+=item Can't exclude sender from routes.
+
+An unrecoverable database error was encountered.  B<bssfw> terminates.
+
+=item Can't enqueue bundle.
+
+An unrecoverable database error was encountered.  B<bssfw> terminates.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bpadmin(1), bssadmin(1), bprc(5), bssrc(5).

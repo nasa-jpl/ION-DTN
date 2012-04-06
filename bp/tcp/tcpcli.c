@@ -27,6 +27,7 @@ typedef struct
 	struct sockaddr	socketName;
 	int 		keepalivePeriod;
 	int 		*cliRunning;
+        int             *receiveRunning;
 } KeepaliveThreadParms;
 
 static void	terminateKeepaliveThread(KeepaliveThreadParms *parms)
@@ -60,7 +61,7 @@ static void	*sendKeepalives(void *parm)
 		return NULL;
 	}
 	
-	while (*(parms->cliRunning))
+	while ( *(parms->cliRunning) && *(parms->receiveRunning) )
 	{
 		snooze(1);
 		count++;
@@ -78,9 +79,10 @@ static void	*sendKeepalives(void *parm)
 
 		count = 0;
 		pthread_mutex_lock(parms->mutex);
-		if (parms->ductSocket < 0 || !(*(parms->cliRunning)))	
+		if (parms->ductSocket < 0 || 
+                    !((*(parms->cliRunning)) &&  *(parms->receiveRunning)))
 		{
-			*(parms->cliRunning) = 0;
+			*(parms->receiveRunning) = 0;
 			pthread_mutex_unlock(parms->mutex);
 			continue;
 		}
@@ -88,10 +90,10 @@ static void	*sendKeepalives(void *parm)
 		bytesSent = sendBundleByTCPCL(&parms->socketName,
 				&parms->ductSocket, 0, 0, buffer,
 				&parms->keepalivePeriod);
-		pthread_mutex_unlock(parms->mutex);
-		if (bytesSent < 0)
+                pthread_mutex_unlock(parms->mutex);
+                if (bytesSent < 0)
 		{
-			*(parms->cliRunning) = 0;
+			*(parms->receiveRunning) = 0;
 			ionKillMainThread(procName);
 			continue;
 		}
@@ -117,6 +119,7 @@ typedef struct
 	int		bundleSocket;
 	pthread_t	thread;
 	int		*cliRunning;
+        int             receiveRunning;
 } ReceiverThreadParms;
 
 static void	terminateReceiverThread(ReceiverThreadParms *parms)
@@ -232,6 +235,7 @@ static void	*receiveBundles(void *parm)
 		kparms->socketName = parms->cloSocketName;
 		kparms->mutex = parms->mutex;
 		kparms->cliRunning = parms->cliRunning;
+                kparms->receiveRunning = &(parms->receiveRunning);
 		/*
 		 * Creating a thread to send out keep alives, which
 		 * makes the TCPCL bi directional
@@ -251,7 +255,7 @@ keepalives", NULL);
 
 	/*	Now start receiving bundles.				*/
 
-	while (threadRunning && *(parms->cliRunning))
+	while (threadRunning && *(parms->cliRunning) && parms->receiveRunning)
 	{
 		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
 		{
@@ -411,6 +415,7 @@ thread", NULL);
 
 		parms->cloSocketName = cloSocketName;
 		parms->cliRunning = &(atp->running);
+                parms->receiveRunning = 1;
 		if (pthread_create(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{
@@ -524,7 +529,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
-	if (protocol.nominalRate <= 0)
+	if (protocol.nominalRate == 0)
 	{
 		vduct->acqThrottle.nominalRate = DEFAULT_TCP_RATE;
 	}
@@ -534,19 +539,18 @@ int	main(int argc, char *argv[])
 	}
 
 	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
+	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", hostName);
+		return 1;
+	}
+
 	if (portNbr == 0)
 	{
 		portNbr = BpTcpDefaultPortNbr;
 	}
 
 	portNbr = htons(portNbr);
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		return 1;
-	}
-
 	hostNbr = htonl(hostNbr);
 	atp.vduct = vduct;
 	memset((char *) &(atp.socketName), 0, sizeof(struct sockaddr));
@@ -603,6 +607,7 @@ int	main(int argc, char *argv[])
 
 	ionNoteMainThread("tcpcli");
 	isignal(SIGTERM, interruptThread);
+        isignal(SIGPIPE, SIG_IGN); //Ignore pipe break and handle it gracefully
 
 	/*	Start the access thread.				*/
 

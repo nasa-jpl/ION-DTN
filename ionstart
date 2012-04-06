@@ -36,10 +36,10 @@ function USAGE {
 	echo "IONSTART: Interplanetary Overlay Network startup script"
 	echo "USAGE:"
 	echo "	ionstart [-I config] [-t tag] [-b bprc] [-c cfdprc] [-d dtn2rc]"
-	echo "	         [-i ionrc] [-l ltprc] [-p ipnrc] [-s ionsecrc]"
+	echo "	         [-i ionrc] [-l ltprc] [-p ipnrc] [-s ionsecrc] [-a acsrc]"
 	echo
 	echo "	Defined configurations will be run in the following order:"
-	echo "	config, ionrc, ionsecrc, ltprc, bprc, ipnrc, dtn2rc"
+	echo "	config, ionrc, ionsecrc, ltprc, bprc, ipnrc, dtn2rc, acsrc"
 	echo
 	echo "	-I config	Specifies file containing the configuration for each"
 	echo "			ion administration program. Each section must be"
@@ -57,11 +57,12 @@ function USAGE {
 	echo "	-l ltprc	Specifies file ltprc to be used to configure ltpadmin."
 	echo "	-p ipnrc	Specifies file ipnrc to be used to configure ipnadmin."
 	echo "	-s ionsecrc	Specifies file ionsecrc to be used to configure ionsecadmin."
+        echo "  -a acsrc        Specifies file acsrc to be used to configure acsadmin."
 }
 
 # check for all the options
 
-while getopts ":t:i:c:I:d:p:b:l:s:h" options; do
+while getopts ":t:i:c:I:d:p:b:l:s:a:h" options; do
 	case $options in
 		t ) TAG="${OPTARG}";;
 		i ) IONRC="${OPTARG}"
@@ -94,6 +95,12 @@ while getopts ":t:i:c:I:d:p:b:l:s:h" options; do
 				echo "The ionsecrc file ${OPTARG} can't be read."
 				failure="TRUE"
 			fi;;
+		a ) ACSRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The acsrc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
 		b ) BPRC="${OPTARG}"
 			if [[ ! -r "${OPTARG}" ]] ; then
 				echo
@@ -121,10 +128,10 @@ while getopts ":t:i:c:I:d:p:b:l:s:h" options; do
 	esac
 done
 
-if [[ -z "${CONFIGFILE}" && -z "${IONRC}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${DTN2RC}" ]] ; then
+if [[ -z "${CONFIGFILE}" && -z "${IONRC}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${DTN2RC}" && -z "${ACSRC}" ]] ; then
 	echo
 	echo "You must define some configuration files for input, use any combination of the"
-	echo "-b -c -d -i -I -l -p -s options to define them."
+	echo "-b -c -d -i -I -l -p -s -a options to define them."
 	USAGE
 	exit 1
 fi
@@ -181,6 +188,12 @@ if [[ ! -z "${DTN2RC}" ]] ; then
 	echo "Now running dtn2admin using ${DTN2RC}"
 	dtn2admin ${DTN2NODE} "${DTN2RC}"
 	ROUTINGCOMMAND="true"
+fi
+
+if [[ ! -z "${ACSRC}" ]] ; then
+        echo
+        echo "Now running acsadmin using ${ACSRC}"
+        acsadmin "${ACSRC}"
 fi
 
 # if dtn2admin or ipnadmin were run as separate programs, bpadmin should be started

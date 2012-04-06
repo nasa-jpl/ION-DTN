@@ -1,0 +1,12 @@
+# ipnrc configuration file for the loopback test.
+#	Essentially, this is the IPN scheme's routing table.
+#	Command: % ipnadmin loopback.ipnrc
+#	This command should be run AFTER bpadmin (likely to be run last).
+#
+#	Ohio University, July 2009
+
+# Add an egress plan.
+#	Bundles to be transmitted to element number 1.
+#	Transmission should use the BRS convergence layer for 0.0.0.0:4556
+#	See your bprc file or bpadmin for outducts/protocols you can use.
+a plan 1 brsc/localhost:4556_1

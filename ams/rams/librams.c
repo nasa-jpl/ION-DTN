@@ -373,7 +373,7 @@ printf("Can't find source gateway '%s'.\n", dlv->bundleSourceEid);
 		return 0;
 	}
 
-	zco_start_receiving(sdr, dlv->adu, &reader);
+	zco_start_receiving(dlv->adu, &reader);
 	if ((bytesCopied = zco_receive_source(sdr, &reader, ENVELOPELENGTH,
 			buffer)) < ENVELOPELENGTH)
 	{
@@ -408,8 +408,6 @@ enclosureLength, fromNode->continuumNbr);
 			return -1;
 		}
 	}
-
-	zco_stop_receiving(sdr, &reader);
 
 	/*	Handle RAMS PDU from remote RAMS gateway.		*/
 
@@ -524,6 +522,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		char *authorityName, char *unitName, char *roleName,
 		long lifetime)
 {
+	int			amsMemory;
 	AmsModule		amsModule;
 	AmsMib			*mib;
 	int			ownContinuumNbr;
@@ -569,6 +568,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	mib = _mib(NULL);
 	ownContinuumNbr = mib->localContinuumNbr;
 	ownMsgspace = amsModule->venture->msgspaces[ownContinuumNbr];
+	amsMemory = getIonMemoryMgr();
 
 	/*	Construct RAMS gateway state.				*/
 
@@ -585,11 +585,11 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	gWay->amsMib = mib;
 	gWay->neighborsCount = 0;
 	gWay->declaredNeighborsCount = 0;
-	gWay->petitionSet = lyst_create();
-	gWay->registerSet = lyst_create();
-	gWay->invitationSet = lyst_create();
-	gWay->ramsNeighbors = lyst_create();
-	gWay->declaredNeighbors = lyst_create();
+	gWay->petitionSet = lyst_create_using(amsMemory);
+	gWay->registerSet = lyst_create_using(amsMemory);
+	gWay->invitationSet = lyst_create_using(amsMemory);
+	gWay->ramsNeighbors = lyst_create_using(amsMemory);
+	gWay->declaredNeighbors = lyst_create_using(amsMemory);
 	if (gWay->petitionSet == NULL
 	|| gWay->registerSet == NULL
 	|| gWay->invitationSet == NULL
@@ -739,7 +739,7 @@ printf("bp_open succeeds.\n");
 		break;
 
 	case RamsUdp:
-		gWay->udpRpdus = lyst_create();
+		gWay->udpRpdus = lyst_create_using(amsMemory);
 		CHKERR(gWay->udpRpdus);
 		lyst_compare_set(gWay->udpRpdus, compareCheckTimes);
 		lyst_delete_set(gWay->udpRpdus, deleteDeclaration, NULL);
@@ -867,8 +867,7 @@ printf("Before bp_receive...\n");
 
 			case BpPayloadPresent:
 				sdr_begin_xn(sdr);
-				if (HandleBundle(&dlv, buffer)
-						< 0)
+				if (HandleBundle(&dlv, buffer) < 0)
 				{
 					sdr_cancel_xn(sdr);
 					gWay->stopping = 1;
@@ -1302,7 +1301,7 @@ domainUnitNbr);
 		inv->inviteSpecification->domainRoleNbr = domainRoleNbr;
 		inv->inviteSpecification->domainContNbr = domainContinuumNbr;
 		inv->inviteSpecification->subjectNbr = subjectNbr;
-		inv->moduleSet = lyst_create();
+		inv->moduleSet = lyst_create_using(getIonMemoryMgr());
 		CHKVOID(inv->moduleSet);
 		elt = lyst_insert_last(inv->moduleSet, sourceModule);
 		CHKVOID(elt);
@@ -1525,22 +1524,9 @@ printf("Unknown RPDU CC: %d.\n", cc);
 
 static int	AssertPetition(RamsGateway *gWay, Petition *pet)
 {
-	int		continuumNbr;
-	int		unitNbr;
-	int		sourceId;
-	int		subjectNbr;
 	Lyst		assertionSet;
 	LystElt		elt;
 	RamsNode	*node;
-
-	continuumNbr = EnvelopeHeader(pet->specification->envelope,
-		 	Env_ContinuumNbr);
-	unitNbr = EnvelopeHeader(pet->specification->envelope,
-			 Env_PublishUnitNbr);
-	sourceId = EnvelopeHeader(pet->specification->envelope,
-			 Env_PublishRoleNbr);
-	subjectNbr = EnvelopeHeader(pet->specification->envelope,
-			 Env_SubjectNbr);
 
 	/*	The petition may or may not be assertable.
 	 *
@@ -2141,6 +2127,7 @@ PrintGatewayState(gWay);
 static int	HandlePublishedMessage(RamsNode *fromNode, RamsGateway *gWay,
 			char *msg)
 {
+	int		amsMemory = getIonMemoryMgr();
 	LystElt		elt;
 	LystElt		nodesElt;
 	LystElt		modulesElt;
@@ -2158,8 +2145,8 @@ EnclosureHeader(EnvelopeContent(msg, -1), Enc_ContinuumNbr),
 EnclosureHeader(EnvelopeContent(msg, -1), Enc_UnitNbr),
 EnclosureHeader(EnvelopeContent(msg, -1), Enc_ModuleNbr));
 #endif
-	destinationNodes = lyst_create();
-	destinationModules = lyst_create();
+	destinationNodes = lyst_create_using(amsMemory);
+	destinationModules = lyst_create_using(amsMemory);
 	CHKERR(destinationNodes);
 	CHKERR(destinationModules);
 
@@ -2455,7 +2442,7 @@ destinationContinuumNbr);
 	/*	The destination continuum is either the local continuum
 	 *	or all continua, so must announce the message locally.	*/
 
-	moduleList = lyst_create();
+	moduleList = lyst_create_using(getIonMemoryMgr());
 	CHKERR(moduleList);
 	domainUnit = EnvelopeHeader(msg, Env_DestUnitNbr);
 	domainRole = EnvelopeHeader(msg, Env_DestRoleNbr);
@@ -2713,7 +2700,7 @@ printf("<forward published message> contentLength = %d\n", contentLen);
 	 *	is the union of the DGSs of all petitions that
 	 *	are satisfied by the published message.			*/
 
-	nodesList = lyst_create();
+	nodesList = lyst_create_using(getIonMemoryMgr());
 	CHKERR(nodesList);
 	for (elt = lyst_first(gWay->petitionSet); elt; elt = lyst_next(elt))
 	{		

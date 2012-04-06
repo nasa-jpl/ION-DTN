@@ -1,7 +1,7 @@
 
 = Release Notes for ION 2.5.0 =
 
-September 29, 2011
+March 20, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -53,6 +53,200 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.0.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #242: Removed unnecessary recursion from the CGR implementation to help
+  protect against overflows from incorrect configurations.
+
+- Issue #262: ION is now wired with a rudimentary instrumentation framework for
+  insight into run-time status, including bundle processing statistics and node
+  state metrics.  This is in preparation for standardized network management. 
+
+- Issue #302: Implemented red-black trees as an alternative data structure to
+  linked lists for some performance-sensitive applications.  Migrated the BP
+  timeline to use red-black trees.
+
+- Issue #304: Optimized CGR route computation by developing a new algorithm that
+  employs Dijkstra's Algorithm.
+
+- Issue #308: Several updates to ION's Payload Integrity Blocks (PIB) and
+  Payload Confidentiality Blocks (PCB):
+    - Bundle Security Protocol (BSP) utilities now support PIB and PCB.
+    - PIB and PCB extension block code has been added.
+    - Roughly 40 new test cases for PIB, PCB, and BAB combinations have been
+      introduced.
+
+- Issue #311: Bundle Streaming Service (BSS) support has been added to ION.
+  BSS passes "real-time" bundle payloads to an application callback while also
+  storing the bundle payloads to a database for user-directed playback.
+
+- Issue #314: Standardized spelling of the word "semaphore" throughout the ION
+  codebase.
+
+- Issue #322: Improved reliability for custodial retransmissions when the next
+  custodian is a neighbor by making the following tweaks in libbpP.c:
+    - Changed the bpDequeue "stewardship accepted" flag to a custodial timeout
+      interval value (in seconds) that is computed by the CL output daemon,
+      based on CL-specific knowledge, in the event that the CL protocol is not
+      reliable and therefore can't accept stewardship of the bundle. 
+    - Added the same custodial timeout interval value to bpHandleXmitSuccess, to
+      trigger reforwarding of the bundle even when stewardship has been taken
+      and CL transmission has been nominally successful and reliable, in the
+      event that the CL transmission ultimately (unexpectedly) does not succeed.
+
+- Issue #325: Fixed a bug that could cause ION to crash when sending bundles for
+  which the destination endpoint is not a singleton.
+
+- Issue #329: ION now supports sending (rather than just receiving) fragmented
+  bundles.  (NOTE: this entailed several changes to the ZCO API.) 
+
+- Issue #339: Aggregate Custody Signals (ACS) have been added to ION.
+    - ACS is a technology that combines information from various separate
+      custody signals into a single bundle, which has the potential to save
+      "ack channel" bandwidth.
+    - For more information on ACS, see the following document:
+        <http://bioserve.colorado.edu/bp-acs/draft-kuzminsky-aggregate-custody-signals-02.txt>
+  
+- Issue #342: Changed several invocations of lyst_create() to
+  lyst_create_using(), to ensure that ION’s private memory management is always
+  used.
+
+- Issue #343: Fixed bugs in LTP that could cause crashes at high data loss rates
+    - Fixed mechanisms for preventing resurrection of closed Import sessions.
+    - Fixed issue where the same report number could become assigned to two
+      different reports, resulting in link service daemons crashing.
+
+- Issue #344: Added a "-t <ttl>" command line parameter to set the time-to-live
+  for bundles sent from the bpsource application.  Previously bundles were
+  hard-coded with lifetimes of 300 seconds, which is now the default if the TTL
+  is not explicitly specified.
+
+- Issue #345: The ION Deployment Guide is now bundled with ION.  It provides
+  FAQ-style documentation for helping new users familiarize themselves with ION.
+
+- Issue #347: Fixed bug in re-establishing connectivity via TCPCL when a node
+  shuts down and then restarts.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.5.3 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #271: Various autotools changes to update how CFDP is built.
+
+- Issue #288: Fixed bug in CFDP implementation where performing a proxy "puts"
+  operation without supplying a flow label would trigger an assertion failure.
+
+- Issue #290: Fixed bug in CFDP implementation where an internal SDR list was
+  improperly referenced.
+
+- Issue #316: Fixed several unresolved symbolic links in the "limbo" subsection
+  of the test suite.
+
+- Issue #318: Fixed bug in CFDP implementation where an assertion was triggered
+  when a remote directory listing was performed for a directory that did not
+  exist.
+
+- Issue #323: Fixed bug in BP implementation where an integer overflow in the
+  congestion forecasting code would cause BP to refuse bundles from local user
+  applications on 32-bit machines with long, busy contacts.
+
+- Issue #330: Fixed bug in CFDP implementation where cfdpclock would remove
+  unsent FDUs that did not contain any actual file data.
+
+- Issue #331: Fixed bug in CFDP implementation where user messages were not
+  restricted to a maximum of 255 characters in length, as per the CFDP
+  specification.
+
+- Issue #333: Fixed bug in CFDP implementation where originating transaction ID
+  messages were not wrapped as CFDP user messages as per the CFDP specification,
+  resulting in messages that contained the wrong type codes.
+
+- Issue #334: Fixed bug in CFDP implementation where the cfdp_put() and
+  cfdp_get() operations returned "0" as transactionId rather than the actual
+  CFDP transaction number.
+
+- Issue #338: Modified test suite to use relative times instead of absolute
+  times wherever possible.  This fixes several tests with configurations that
+  became obsolete after the start of 2012 and ensures better resilience of the
+  test suite to any kind of absolute time boundaries.
+
+- Issue #340: Several minor updates have been applied to the DCCP implementation
+  to detect and build DCCP for linux kernels that meet or exceed version 3.2.0,
+  which puts several key DCCP fixes into the kernel baseline.
+
+- Status reporting support has been added to cfdptest. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.5.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+- Issue #297: The ION design guide "ION.pdf" now dynamically incorporates the
+  ION manpages.
+  This feature requires ghostscript, psutils, groff, and groff-base.
+  If not all are present, ION will build but ION.pdf will not have the latest
+  manpages appended.
+  ION.pdf is built automatically via the "make" command.
+  To explicitly build the ION design guide document, use the following command:
+     make ION.pdf
+ 
+- Issue #298+: Fixed build incompatibility between gcc v4.6.1 and later with 
+  valgrind v3.6.1 and earlier.  If needed to compile with Valgrind support,
+  ION will add -Wno-unused-but-set-variable to AM_CFLAGS.
+  Valgrind inclusion can also be explicitly controlled via the following flags:
+     ./configure --enable-valgrind:  Build with Valgrind support
+     ./configure --disable-valgrind: Build without Valgrind support
+ 
+- Issue #299: ION now prints a warning when given any BAB rule that is not for a
+  wild-carded EID signifying "all endpoints at the indicated node".
+ 
+- Issue #300: Fixed several bugs in ipnfw:
+    - lookupRule() function of libipnfw.c incorrectly used srcServiceNbr
+      instead of srcNodeNbr.
+    - Several IPN function calls in ipnadmin.c have been wrapped in
+      sdr_begin_xn/sdr_exit_xn blocks to protect against assertion failures.
+    - Before putting a bundle into the Limbo list, ipnfw now searches for
+      blocked outducts and discards the bundle if none are found.
+ 
+- Issue #301: Fixed issue where Ctl+C no longer terminated the bpsink and
+  bprecvfile utilities.
+ 
+- Issue #303: Fixed issue where new all-green transmission sessions could be
+  inhibited by the LTP limit on the total number of export sessions.
+  Since LTP green is unreliable, LTP green sessions don't need to occupy
+  resources at the sender for retransmissions, so the sessions need not be
+  restricted.
+ 
+- Issue #307: Fixed overflow bugs in the increaseScalar() and reduceScalar()
+  functions.
+  Added Scalar to SDNV conversion functions.
+ 
+- Issue #313: Fixed issue with overlapping bundle source/destination memory
+  addresses that could cause bundle corruption on 64-bit systems.
+
+- Issue #319: Fixed issue with AMS where the parseSocketSpec() function could
+  return INADDR_ANY, which isn't an acceptable IP address within AMS. 
+  Now possible to enable  AMS debug output via the following configure flag:
+     ./configure --enable-ams-debug:  Build with AMS debugging output
+
+- Issue #324: Fixed issue where LTP could accumulate block acquisision files
+  after the block acquisition had already been completed.  This was generally
+  due to unnecessary retransmitted segments that arrived late.  Since the
+  blocks had already been delivered, the ensuing files were never destroyed.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 2.5.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #185: ION now supports binding to INADDR_ANY in UDP/TCP ports and link
+  service adapters.
+
+- Issue #298: Code scrub to remove unused variable warnings that prevent
+  compilation of ION under the default settings of gcc 4.6.1.
+
+- Issue #310: Fixed broken Windows support.  Fixed several minor issues.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.0 =
@@ -149,13 +343,13 @@ Features included:
 = NOTES ON RELEASE 2.4.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-- Issue #240: Added DCCP link service adapters to ION for the purpose of 
+- *Issue #240: Added DCCP link service adapters to ION for the purpose of 
   providing congestion control without reliability guarantees, which is
   beneficial for LTP deployments over IP networks, particularly when traversing
   the Internet. The sender program is called "dccplso" and the receiver program
   is called "dccplsi".
 
-- Issue #241: Added DCCP convergence layer for BP. The sender program is called
+- *Issue #241: Added DCCP convergence layer for BP. The sender program is called
   "dccpclo" and the receiver program is called "dccpcli".
 
 - Issue #245: Added support for using the character "*" as a wildcard to remove
@@ -173,11 +367,18 @@ Features included:
 - Issue #277: Fixed 3-node-stcp-ltp configuration to remove an unintentional
   connection between nodes 1 and 3.
 
+
 - Issue #278: Updated various test configuration files to have more recent
   contact times.
 
 - Tests have been scrubbed to adopt the new security syntax enhancements
   introduced in Issue #247.
+
+* Note: Due to an immature DCCP implementation in most native OS kernels at the
+        time of release, formal DCCP testing on 64-bit systems has yet to be
+        conducted.  Currently an experimental kernel containing several DCCP
+        fixes must be built to achieve acceptable performance.  These fixes are
+        expected to become standard in the native linux 3.1 kernel.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.0 =
@@ -328,9 +529,11 @@ Features included:
 
 - Modified custodian EID generated from dtn://hostname to dtn://hostname.dtn
 
-- Modified the loopback and ion-dtn2 configuration files for the new command syntax.
+- Modified the loopback and ion-dtn2 configuration files for the new command
+  syntax.
 
-- Added BSP implementation using "stub" versions of hmac and sha1 for public release.
+- Added BSP implementation using "stub" versions of hmac and sha1 for public
+  release.
 
 - Added CFDP implementation.
 
@@ -340,8 +543,8 @@ Features included:
 
 - Added assertions.
 
-- Bug fixes in the TCP convergence layer, particularly in the interest of interoperability
-  with dtn2.
+- Bug fixes in the TCP convergence layer, particularly in the interest of
+  interoperability with dtn2.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.0.0 =
@@ -374,7 +577,8 @@ Features included:
 
 - Documentation updates.
 
-- Various testing applications in earlier releases are split from the ion release.
+- Various testing applications in earlier releases are split from the ion
+  release.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 1.1.0 =
@@ -398,10 +602,10 @@ Features included:
 - Updates to various user-contrib programs; added a bpmon_query program to work
   with SNMP.
 
-- Revise LTP to use randomly selected session numbers rather than recycling small
-  session numbers - prevent data loss and corruption due to application of late-
-  arriving segments to sessions that are re-using the session numbers of earlier
-  sessions.
+- Revise LTP to use randomly selected session numbers rather than recycling
+  small session numbers - prevent data loss and corruption due to application of
+  late-arriving segments to sessions that are re-using the session numbers of
+  earlier sessions.
 
 - added the bplive program.
 
@@ -424,9 +628,9 @@ Features included:
 
 - added new ION.pdf to the in-development release
 
-- overhauled ionstart, ionscript, ionstart.awk to account for the dtnadmin need for
-  a node name as well as the bpadmin/dtnadmin/ipnadmin startup order bug found by
-  Andrew.Jenkins@colorado.edu
+- overhauled ionstart, ionscript, ionstart.awk to account for the dtnadmin need
+  for a node name as well as the bpadmin/dtnadmin/ipnadmin startup order bug
+  found by Andrew.Jenkins@colorado.edu
 
 - Revise routing to match applicable backlog (based on bundle's priority; not
   necessarily total backlog) against aggregate capacity when determining route
@@ -516,5 +720,3 @@ Features included:
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 - Initial code released for review.
-
-% vim: ft=txt2tags

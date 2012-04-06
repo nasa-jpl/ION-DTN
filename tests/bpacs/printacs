@@ -1,0 +1,75 @@
+#!/usr/bin/python
+# This is a command-line interface for the bpacs class.
+#
+#	Author: Andrew Jenkins
+#				University of Colorado at Boulder
+#	Copyright (c) 2008-2011, Regents of the University of Colorado.
+#	This work was supported by NASA contracts NNJ05HE10G, NNC06CB40C, and
+#	NNC07CB47C.	
+usage = """\
+usage: %prog [options] [bundle specs]
+    Prints an aggregate custody signal.
+
+    [options] are normal flag options, like --output."""
+
+
+from optparse import OptionParser, OptionGroup
+from time import time
+from sys import exit, stdout, stdin
+import socket
+from bpacs import unserialize_acs
+from bundle import Bundle
+from sdnv import sdnv_decode
+import bp
+
+parser = OptionParser(usage)
+global options
+
+def receive_bundle_udp():
+    global options
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    host="localhost"
+    port="4556"
+    try:
+        (host, port) = parser.values.udp.split(":")
+    except ValueError:
+        (port) = parser.values.udp
+    sock.bind( (host, int(port)) )
+        
+    data, addr = sock.recvfrom(64*1024)
+    return data
+
+def receive_bundle_stdin():
+    return stdin.read()
+            
+def main():
+    # Set up the option parser.
+    global parser
+   
+    parser.add_option("-u", "--udp", dest="udp", 
+        help="Listen for the ACS bundle on [host:]port.")
+    
+    # Parse options to construct acs bundle.
+    (options, args) = parser.parse_args()
+    
+    # Receive acs bundle.
+    if parser.values.udp:
+        bundleBytes = receive_bundle_udp()
+    else:
+        bundleBytes = receive_bundle_stdin()
+    
+    # Decode bundle.
+    (bundle, bundle_len, remainder) = bp.decode(bundleBytes)
+    
+    if (bundle.bundle_flags & bp.BUNDLE_IS_ADMIN) == 0:
+        print "Bundle isn't administrative."
+        sys.exit(1)
+    
+    print bundle
+
+    acs = unserialize_acs(bundle.blocks[bp.PAYLOAD_BLOCK][0]["payload"])
+    
+    print acs
+
+if __name__ == '__main__':
+    main()

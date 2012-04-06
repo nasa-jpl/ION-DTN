@@ -108,7 +108,9 @@ void kill(char *name)
 	if (found)
 	{
 		printf("found\n");
+	}
 	else
+	{
 		printf("not found\n");
 	}
 }

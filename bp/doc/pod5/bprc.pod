@@ -299,17 +299,20 @@ task as defined for the indicated CL protocol on the local node.
 
 =over 4
 
-=item B<a outduct> I<protocol_name> I<duct_name> 'I<CLO_command>'
+=item B<a outduct> I<protocol_name> I<duct_name> 'I<CLO_command>' [I<max_payload_length>]
 
 The B<add outduct> command.  This command establishes a "duct" for transmission
 of bundles via the indicated CL protocol.  The duct's data transmission
 structure is serviced by the "outduct" task whose operation is
-initiated by I<CLO_command> at the time the duct is started.
+initiated by I<CLO_command> at the time the duct is started.  A value of
+zero for I<max_payload_length> indicates that bundles of any size can be
+accommodated; this is the default.
 
-=item B<c outduct> I<protocol_name> I<duct_name> 'I<CLO_command>'
+=item B<c outduct> I<protocol_name> I<duct_name> 'I<CLO_command>' [I<max_payload_length>]
 
-The B<change outduct> command.  This command changes the command that is
-used to initiate operation of the outduct task for the indicated duct.
+The B<change outduct> command.  This command sets new values for the indicated
+duct's payload size limit and the command that is used to initiate operation of
+the outduct task for this duct.
 
 =item B<d outduct> I<protocol_name> I<duct_name>
 

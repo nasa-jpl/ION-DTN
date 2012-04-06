@@ -8,7 +8,12 @@
 /*									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
+/*	Scalar/SDNV conversion functions written by			*/
+/*	Ioannis Alexiadis, Democritus University of Thrace, 2011.	*/
+/*									*/
 #include "platform.h"
+
+#define	ABORT_AS_REQD		if (_coreFileNeeded(NULL)) sm_Abort()
 
 #if defined (VXWORKS)
 
@@ -23,6 +28,12 @@ typedef struct rlock_str
 int	createFile(const char *filename, int flags)
 {
 	int	result;
+
+	if (filename == NULL)
+	{
+		ABORT_AS_REQD;
+		return ERROR;
+	}
 
 	/*	VxWorks open(2) will only create a file on an NFS
 	 *	network device.  The only portable flag values are
@@ -41,7 +52,12 @@ int	initResourceLock(ResourceLock *rl)
 {
 	Rlock	*lock = (Rlock *) rl;
 
-	CHKERR(rl);
+	if (lock == NULL)
+	{
+		ABORT_AS_REQD;
+		return ERROR;
+	}
+
 	if (lock->init)
 	{
 		return 0;
@@ -50,8 +66,7 @@ int	initResourceLock(ResourceLock *rl)
 	lock->semaphore = semBCreate(SEM_Q_PRIORITY, SEM_FULL);
 	if (lock->semaphore == NULL)
 	{
-		writeErrMemo("Can't create lock semaphore");
-		return -1;
+		return ERROR;
 	}
 
 	lock->owner = NONE;
@@ -326,7 +341,8 @@ void	*memalign(size_t boundary, size_t size)
 
 #endif
 
-#ifndef VXWORKS
+#ifndef VXWORKS			/*	Common for all O/S but VXWORKS.	*/
+
 int	createFile(const char *filename, int flags)
 {
 	int	result;
@@ -334,6 +350,12 @@ int	createFile(const char *filename, int flags)
 	/*	POSIX-UNIX creat(2) will only create a file for
 	 *	writing.  The only portable flag values are
 	 *	O_WRONLY and O_RDWR.  See creat(2) and open(2).		*/
+
+	if (filename == NULL)
+	{
+		ABORT_AS_REQD;
+		return ERROR;
+	}
 
 	result = iopen(filename, (flags | O_CREAT | O_TRUNC), 0666);
 	if (result < 0)
@@ -343,7 +365,6 @@ int	createFile(const char *filename, int flags)
 
 	return result;
 }
-#endif
 
 #ifdef _MULTITHREADED
 
@@ -359,7 +380,12 @@ int	initResourceLock(ResourceLock *rl)
 {
 	Rlock	*lock = (Rlock *) rl;
 
-	CHKERR(rl);
+	if (lock == NULL)
+	{
+		ABORT_AS_REQD;
+		return ERROR;
+	}
+
 	if (lock->init)
 	{
 		return 0;
@@ -534,6 +560,8 @@ unsigned long	getClockResolution()
 
 	return 10000;
 }
+
+#endif				/*	End of #ifndef VXWORKS		*/
 
 #if defined (__SVR4)
 
@@ -790,6 +818,7 @@ char	*getNameOfUser(char *buffer)
 {
 	unsigned long	bufsize = 8;
 
+	CHKNULL(buffer);
 	if (GetUserName(buffer, &bufsize))
 	{
 		istrcpy(buffer, "unknown", 8);
@@ -1077,6 +1106,7 @@ int	watchSocket(int fd)
 #ifdef mingw
 int	iopen(const char *fileName, int flags, int pmode)
 {
+	CHKERR(fileName);
 	flags |= _O_BINARY;
 	return _open(fileName, flags, pmode);
 }
@@ -1087,6 +1117,7 @@ int	isend(int sockfd, char *buf, int len, int flags)
 	int	errcode;
 
 	CHKERR(len >= 0);
+	CHKERR(buf);
 	length = send(sockfd, buf, len, flags);
 	if (length == SOCKET_ERROR)
 	{
@@ -1124,6 +1155,7 @@ int	irecv(int sockfd, char *buf, int len, int flags)
 	int	errcode;
 
 	CHKERR(len >= 0);
+	CHKERR(buf);
 	length = recv(sockfd, buf, len, flags);
 	if (length < 0)
 	{
@@ -1153,6 +1185,8 @@ int	isendto(int sockfd, char *buf, int len, int flags,
 		const struct sockaddr *to, int tolen)
 {
 	CHKERR(len >= 0);
+	CHKERR(buf);
+	CHKERR(to);
 	return sendto(sockfd, buf, len, flags, to, tolen);
 }
 
@@ -1163,6 +1197,9 @@ int	irecvfrom(int sockfd, char *buf, int len, int flags,
 	int	errcode;
 
 	CHKERR(len >= 0);
+	CHKERR(buf);
+	CHKERR(from);
+	CHKERR(fromLen);
 	while (1)	/*	Continue until valid result.		*/
 	{
 		length = recvfrom(sockfd, buf, len, flags, from, fromlen);
@@ -1233,13 +1270,12 @@ static Logger	_logOneMessage(Logger *logFunction)
 {
 	static Logger	logger = logToStdout;
 
-	if (logFunction == NULL)
+	if (logFunction)
 	{
-		return logger;
+		logger = *logFunction;
 	}
 
-	logger = *logFunction;
-	return NULL;
+	return logger;
 }
 
 void	setLogger(Logger logFunction)
@@ -1307,6 +1343,7 @@ static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
 
 	if (initResourceLock(&errmsgsLock) < 0)
 	{
+		ABORT_AS_REQD;
 		return 0;
 	}
 
@@ -1435,7 +1472,12 @@ void	_putSysErrmsg(const char *fileName, int lineNbr, const char *text,
 
 int	getErrmsg(char *buffer)
 {
-	CHKZERO(buffer);
+	if (buffer == NULL)
+	{
+		ABORT_AS_REQD;
+		return 0;
+	}
+
 	return _errmsgs(0, NULL, NULL, NULL, buffer);
 }
 
@@ -1451,6 +1493,7 @@ excessive length";
 
 	if (initResourceLock(&memosLock) < 0)
 	{
+		ABORT_AS_REQD;
 		return;
 	}
 
@@ -1626,6 +1669,12 @@ void	increaseScalar(Scalar *s, signed int i)
 		i = 0 - i;
 	}
 
+	while (i >= ONE_GIG)
+	{
+		i -= ONE_GIG;
+		s->gigs++;
+	}
+
 	s->units += i;
 	while (s->units >= ONE_GIG)
 	{
@@ -1640,6 +1689,12 @@ void	reduceScalar(Scalar *s, signed int i)
 	if (i < 0)
 	{
 		i = 0 - i;
+	}
+
+	while (i >= ONE_GIG)
+	{
+		i -= ONE_GIG;
+		s->gigs--;
 	}
 
 	while (i > s->units)
@@ -1712,15 +1767,224 @@ int	scalarIsValid(Scalar *s)
 	return (s->gigs >= 0);
 }
 
+void	scalarToSdnv(Sdnv *sdnv, Scalar *scalar)
+{
+	int		gigs;
+	int		units;
+	int		i;
+	unsigned char	flag = 0;
+	unsigned char	*cursor;
+
+	CHKVOID(scalarIsValid(scalar));
+	CHKVOID(sdnv);
+	sdnv->length = 0;
+
+	/*		Calculate sdnv length				*/
+
+	gigs = scalar->gigs;
+	units = scalar->units;
+	if (gigs) 
+	{
+		/*	The scalar is greater than 2^30 - 1, so start
+		 *	with the length occupied by all 30 bits of
+		 *	"units" in the scalar.  This will occupy 5
+		 *	bytes in the sdnv with room for an additional
+		 *	5 high-order bits.  These bits will be the
+		 *	low-order 5 bits of gigs.  If the value in
+		 *	gigs is greater than 2^5 -1, increase sdnv
+		 *	length accordingly.				*/
+
+		sdnv->length += 5;			
+		gigs >>= 5;
+		while (gigs)
+		{
+			gigs >>= 7;
+			sdnv->length++;
+		}
+	}
+	else
+	{
+		/*	gigs = 0, so calculate the sdnv length from
+			units only.					*/
+
+		do
+		{
+			units >>= 7;
+			sdnv->length++;
+		} while (units);
+	}
+
+	/*		Fill the sdnv text.				*/
+
+	cursor = sdnv->text + sdnv->length;
+	i = sdnv->length;
+	gigs = scalar->gigs;
+	units = scalar->units;
+	do
+	{
+		cursor--;
+
+		/*	Start filling the sdnv text from the last byte.
+			Get 7 low-order bits from units and add the
+			flag to the high-order bit. Flag is 0 for the
+			last byte and 1 for all the previous bytes.	*/
+
+		*cursor = (units & 0x7f) | flag;
+		units >>= 7;
+		flag = 0x80;		/*	Flag is now 1.		*/
+		i--;
+	} while (units);
+
+	if (gigs)
+	{
+		while (sdnv->length - i < 5)
+		{
+			cursor--;
+
+			/* Fill remaining sdnv bytes corresponding to
+			   units with zeroes.				*/
+
+			*cursor = 0x00 | flag;
+			i--;
+		}
+
+		/*	Place the 5 low-order bits of gigs in the
+			current	sdnv byte.				*/
+
+		*cursor |= ((gigs & 0x1f) << 2);
+		gigs >>= 5;
+		while (i)
+		{
+			cursor--;
+
+			/*	Now fill the remaining sdnv bytes
+				from gigs.				*/
+
+			*cursor = (gigs & 0x7f) | flag;
+			gigs >>= 7;
+			i--;
+		}
+	}
+}
+
+int	sdnvToScalar(Scalar *scalar, unsigned char *sdnvText)
+{
+	int		sdnvLength;
+	int		i;
+	int		numSize = 0; /* Size of stored number in bits.	*/
+	unsigned char	*cursor;
+	unsigned char	flag;
+	unsigned char	k;
+
+	CHKZERO(scalar);
+	CHKZERO(sdnvText);
+	cursor = sdnvText;
+
+	/*	Find out the sdnv length and size of stored number,
+	 *	stripping off all leading zeroes.			*/
+
+	flag = (*cursor & 0x80);/*	Get flag of 1st byte.		*/
+	k = *cursor << 1;	/*	Discard the flag bit.		*/
+	i = 7;
+	while (i)
+	{
+		if (k & 0x80)
+		{
+			break;	/*	Loop until a '1' is found.	*/
+		}
+
+		i--;
+		k <<= 1;
+	}
+
+	numSize += i;	/*	Add significant bits from first byte.	*/
+	if (flag)	/*	Not end of SDNV.			*/
+	{
+		/*	Sdnv has more than one byte.  Add 7 bits for
+		 *	the last byte and advance cursor to add the
+		 *	bits for all intermediate bytes.		*/
+
+		numSize += 7;
+		cursor++;
+		while (*cursor & 0x80)
+		{
+			numSize += 7;
+			cursor++;
+		}
+	}
+
+	if (numSize > 61)
+	{
+		return 0;	/*	Too long to fit in a Scalar.	*/
+	}
+
+	sdnvLength = (cursor - sdnvText) + 1;
+
+	/*		Now start filling gigs and units.		*/
+
+	scalar->gigs = 0;
+	scalar->units = 0;
+	cursor = sdnvText;
+	i = sdnvLength;
+
+	while (i > 5)
+	{	/*	Sdnv bytes containing gigs only.		*/
+
+		scalar->gigs <<= 7;
+		scalar->gigs |= (*cursor & 0x7f);
+		cursor++;
+		i--;
+	}
+
+	if (i == 5)
+	{	/* Sdnv byte containing units and possibly gigs too.	*/
+
+		if (numSize > 30)
+		{
+			/* Fill the gigs bits after shifting out
+			   the 2 bits that belong to units.		*/
+
+			scalar->gigs <<= 5;
+			scalar->gigs |= ((*cursor >> 2) & 0x1f);
+		}
+
+		/*		Fill the units bits.			*/
+
+		scalar->units = (*cursor & 0x03);
+		cursor++;
+		i--;
+	}
+
+	while (i)
+	{	/*	Sdnv bytes containing units only.		*/
+
+		scalar->units <<= 7;
+		scalar->units |= (*cursor & 0x7f);
+		cursor++;
+		i--;
+	}
+
+	return sdnvLength;
+}
+
 void	findToken(char **cursorPtr, char **token)
 {
 	char	*cursor;
 
-	CHKVOID(cursorPtr);
-	CHKVOID(*cursorPtr);
-	CHKVOID(token);
-	cursor = *cursorPtr;
+	if (token == NULL)
+	{
+		ABORT_AS_REQD;
+		return;
+	}
+
 	*token = NULL;		/*	The default.			*/
+	if (cursorPtr == NULL || (*cursorPtr) == NULL)
+	{
+		ABORT_AS_REQD;
+		return;
+	}
+
+	cursor = *cursorPtr;
 
 	/*	Skip over any leading whitespace.			*/
 
@@ -1809,13 +2073,28 @@ void	findToken(char **cursorPtr, char **token)
 }
 
 #ifdef ION_NO_DNS
-void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
-		unsigned int *ipAddress)
+unsigned int	getAddressOfHost()
 {
-	return;
+	return 0;
 }
 #else
-void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
+unsigned int	getAddressOfHost()
+{
+	char	hostnameBuf[MAXHOSTNAMELEN + 1];
+
+	getNameOfHost(hostnameBuf, sizeof hostnameBuf);
+	return getInternetAddress(hostnameBuf);
+}
+#endif
+
+#ifdef ION_NO_DNS
+int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
+		unsigned int *ipAddress)
+{
+	return 0;
+}
+#else
+int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		unsigned int *ipAddress)
 {
 	char		*delimiter;
@@ -1823,14 +2102,14 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 	char		hostnameBuf[MAXHOSTNAMELEN + 1];
 	unsigned int	i4;
 
-	CHKVOID(portNbr);
-	CHKVOID(ipAddress);
+	CHKERR(portNbr);
+	CHKERR(ipAddress);
 	*portNbr = 0;			/*	Use default port nbr.	*/
-	*ipAddress = 0;			/*	Use local host address.	*/
+	*ipAddress = INADDR_ANY;	/*	Use local host address.	*/
 
 	if (socketSpec == NULL || *socketSpec == '\0')
 	{
-		return;			/*	Use defaults.		*/
+		return 0;		/*	Use defaults.		*/
 	}
 
 	delimiter = strchr(socketSpec, ':');
@@ -1844,20 +2123,35 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 	hostname = socketSpec;
 	if (strlen(hostname) != 0)
 	{
-		if (strcmp(socketSpec, "@") == 0)
+		if (strcmp(hostname, "0.0.0.0") == 0)
 		{
-			getNameOfHost(hostnameBuf, sizeof hostnameBuf);
-			hostname = hostnameBuf;
-		}
-
-		i4 = getInternetAddress(hostname);
-		if (i4 < 1)		/*	Invalid hostname.	*/
-		{
-			writeMemoNote("[?] Can't get IP address", hostname);
+			*ipAddress = INADDR_ANY;
 		}
 		else
 		{
-			*ipAddress = i4;
+			if (strcmp(hostname, "@") == 0)
+			{
+				getNameOfHost(hostnameBuf, sizeof hostnameBuf);
+				hostname = hostnameBuf;
+			}
+
+			i4 = getInternetAddress(hostname);
+			if (i4 < 1)	/*	Invalid hostname.	*/
+			{
+				writeMemoNote("[?] Can't get IP address",
+						hostname);
+				if (delimiter)
+				{
+					/*	Nondestructive parse.	*/
+					*delimiter = ':';
+				}
+
+				return -1;
+			}
+			else
+			{
+				*ipAddress = i4;
+			}
 		}
 	}
 
@@ -1865,7 +2159,11 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 
 	if (delimiter == NULL)		/*	No port number.		*/
 	{
-		return;			/*	All done.		*/
+		return 0;		/*	All done.		*/
+	}
+	else
+	{
+		*delimiter = ':';	/* Nondestructive parse. */
 	}
 
 	i4 = atoi(delimiter + 1);	/*	Get port number.	*/
@@ -1874,6 +2172,7 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		if (i4 < 1024 || i4 > 65535)
 		{
 			writeMemoNote("[?] Invalid port number.", utoa(i4));
+			return -1;
 		}
 		else
 		{
@@ -1881,7 +2180,7 @@ void	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		}
 	}
 
-	*delimiter = ':';		/*	Nondestructive parse.	*/
+	return 0;
 }
 #endif
 
@@ -2012,8 +2311,7 @@ static void	snGetNumber(char **cursor, char *fmt, int *fmtLen, int *number)
 	}
 }
 
-int	_isprintf(const char *file, int line, char *buffer, int bufSize,
-		char *format, ...)
+int	_isprintf(char *buffer, int bufSize, char *format, ...)
 {
 	va_list	args;
 	char	*cursor;
@@ -2032,9 +2330,28 @@ int	_isprintf(const char *file, int line, char *buffer, int bufSize,
 	double	dval;
 	void	*vpval;
 
-	CHKZERO(buffer != NULL);
-       	CHKZERO(format != NULL);
-       	CHKZERO(bufSize > 0);
+	if (buffer == NULL || bufSize < 1)
+	{
+		ABORT_AS_REQD;
+		return 0;
+	}
+
+	if (format == NULL)
+	{
+		ABORT_AS_REQD;
+		if (bufSize < 2)
+		{
+			*buffer = '\0';
+		}
+		else
+		{
+			*buffer = '?';
+			*(buffer + 1) = '\0';
+		}
+
+		return 0;
+	}
+
 	va_start(args, format);
 	for (cursor = format; *cursor != '\0'; cursor++)
 	{
@@ -2255,8 +2572,6 @@ int	_isprintf(const char *file, int line, char *buffer, int bufSize,
 	}
 	else
 	{
-		_putErrmsg(file, line, "isprintf error, buffer size exceeded.",
-				itoa(stringLength));
 		*(buffer + printLength) = '\0';
 	}
 
@@ -2267,10 +2582,16 @@ int	_isprintf(const char *file, int line, char *buffer, int bufSize,
 
 size_t	istrlen(char *from, size_t maxlen)
 {
-	size_t	length = 0;
+	size_t	length;
 	char	*cursor;
 
-	CHKZERO(from);
+	if (from == NULL)
+	{
+		ABORT_AS_REQD;
+		return 0;
+	}
+
+	length = 0;
 	if (maxlen > 0)
 	{
 		for (cursor = from; *cursor; cursor++)
@@ -2291,9 +2612,12 @@ char	*istrcpy(char *buffer, char *from, size_t bufSize)
 	int	maxText;
 	int	copySize;
 
-	CHKNULL(buffer);
-	CHKNULL(from);
-	CHKNULL(bufSize > 0);
+	if (buffer == NULL || from == NULL || bufSize < 1)
+	{
+		ABORT_AS_REQD;
+		return NULL;
+	}
+
 	maxText = bufSize - 1;
 	copySize = istrlen(from, maxText);
 	memcpy(buffer, from, copySize);
@@ -2308,9 +2632,12 @@ char	*istrcat(char *buffer, char *from, size_t bufSize)
 	int	maxCopy;
 	int	copySize;
 
-	CHKNULL(buffer);
-	CHKNULL(from);
-	CHKNULL(bufSize > 0);
+	if (buffer == NULL || from == NULL || bufSize < 1)
+	{
+		ABORT_AS_REQD;
+		return NULL;
+	}
+
 	maxText = bufSize - 1;
 	currTextSize = istrlen(buffer, maxText);
 	maxCopy = maxText - currTextSize;
@@ -2325,8 +2652,11 @@ char	*igetcwd(char *buf, size_t size)
 #ifdef FSWWDNAME
 #include "wdname.c"
 #else
-	char	*cwdName = getcwd(buf, size);
+	char	*cwdName;
 
+	CHKNULL(buf);
+	CHKNULL(size > 0);
+	cwdName = getcwd(buf, size);
 	if (cwdName == NULL)
 	{
 		putSysErrmsg("Can't get CWD name", itoa(size));
@@ -2501,6 +2831,7 @@ char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 
 	if (fd < 0 || buffer == NULL || buflen < 1 || lineLen == NULL)
 	{
+		ABORT_AS_REQD;
 		putErrmsg("Invalid argument(s) passed to igets().", NULL);
 		return NULL;
 	}
@@ -2577,7 +2908,13 @@ int	iputs(int fd, char *string)
 	int	length;
 	int	bytesWritten;
 
-	CHKERR(fd >= 0 && string != NULL);
+	if (fd < 0 || string == NULL)
+	{
+		ABORT_AS_REQD;
+		putErrmsg("Invalid argument(s) passed to iputs().", NULL);
+		return -1;
+	}
+
 	length = strlen(string);
 	while (totalBytesWritten < length)
 	{

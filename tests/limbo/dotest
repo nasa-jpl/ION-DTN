@@ -241,7 +241,7 @@ echo "Getting stats from node 2..."
 cd ../2.ipn.tcp
 bpstats 
 sleep 1
-START_COUNT=`getStatsCounter 'fwd' '1' ion.log`
+START_COUNT=`getStatsCounter 'fwd' '+' ion.log`
 echo " -> $START_COUNT fwd bundles"
 
 
@@ -269,7 +269,7 @@ echo "Getting stats from node 2 to verify it increased..."
 cd ../2.ipn.tcp
 bpstats 
 sleep 1
-END_COUNT=`getStatsCounter 'fwd' '1' ion.log`
+END_COUNT=`getStatsCounter 'fwd' '+' ion.log`
 echo " -> $END_COUNT fwd bundles"
 
 if [ "$START_COUNT" -lt "$END_COUNT" ]
@@ -298,7 +298,7 @@ echo "Node 2 is stopped."
 
 # Send file from node 5 to node 3
 cd ../5.ipn.tcp
-echo "Sending seventh file twice from node 5 to node 3 (should try to go through out clo to node 2, but then be re-routed to out the clo to 3"
+echo "Sending seventh file twice from node 5 to node 3 (should try to go through clo to node 2, but then be re-routed to go out the clo to node 3."
 bpsendfile ipn:5.1 ipn:3.1 testfile5b
 bpsendfile ipn:5.1 ipn:3.1 testfile5b
 

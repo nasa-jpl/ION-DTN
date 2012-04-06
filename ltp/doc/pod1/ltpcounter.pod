@@ -4,16 +4,16 @@ ltpcounter - LTP reception test program
 
 =head1 SYNOPSIS
 
-B<ltpcounter> [I<max_nbr_of_bytes>]
+B<ltpcounter> I<client_ID> [I<max_nbr_of_bytes>]
 
 =head1 DESCRIPTION
 
 B<ltpcounter> uses LTP to receive service data units flagged with client
-service number 1 from a remote B<ltpdriver> client service process.  When
-the total number of bytes of client service data it has received exceeds
-I<max_nbr_of_bytes>, it terminates and prints reception and cancellation
-statistics.  If I<max_nbr_of_bytes> is omitted, the default limit is 2
-billion bytes.
+service number I<client_ID> from a remote B<ltpdriver> client service
+process.  When the total number of bytes of client service data it has
+received exceeds I<max_nbr_of_bytes>, it terminates and prints reception
+and cancellation statistics.  If I<max_nbr_of_bytes> is omitted, the default
+limit is 2 billion bytes.
 
 While receiving data, B<ltpcounter> prints a 'v' character every 5 seconds
 to indicate that it is still alive.
@@ -30,14 +30,15 @@ will be noted in the B<ion.log> log file.
 =item 1
 
 B<ltpcounter> was unable to start, because it could not attach to the LTP
-protocol on the local node or could not open access to client service 1.
+protocol on the local node or could not open access to client service
+I<clientId>.
 
 In the former case, run B<ltpadmin> to start LTP and try again.
 
 In the latter case, some other client service task has already opened
-access to client service 1.  If no such task is currently running (e.g., it
-crashed while holding the client service open), use B<ltpadmin> to stop and
-restart the LTP protocol.
+access to client service I<clientId>.  If no such task is currently running
+(e.g., it crashed while holding the client service open), use B<ltpadmin> to
+stop and restart the LTP protocol.
 
 =back
 
@@ -62,8 +63,8 @@ B<ltpadmin> has not yet initialized LTP protocol operations.
 
 =item ltpcounter can't open client access.
 
-Another task has opened access to service client 1 and has not yet relinquished
-it.
+Another task has opened access to service client I<clientId> and has not yet
+relinquished it.
 
 =item Can't get LTP notice.
 

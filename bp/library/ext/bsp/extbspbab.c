@@ -59,7 +59,7 @@ int bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
    int result = -1;
    BspAbstractSecurityBlock *asb = NULL;
 
-   BSP_DEBUG_PROC("+ bsp_babAcquire(%x, %x)",
+   BAB_DEBUG_PROC("+ bsp_babAcquire(%x, %x)",
                   (unsigned long)blk, (unsigned long)wk);
 
    CHKERR(blk);
@@ -67,7 +67,7 @@ int bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
    blk->size = sizeof(BspAbstractSecurityBlock);
    if((blk->object = MTAKE(blk->size)) == NULL)
    {
-      BSP_DEBUG_ERR("x bsp_babAcquire:  MTAKE failed on size %d", blk->size);
+      BAB_DEBUG_ERR("x bsp_babAcquire:  MTAKE failed on size %d", blk->size);
       blk->size = 0;
       result = -1;
    }
@@ -78,12 +78,12 @@ int bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
       memset((char *) asb,0, blk->size);
 
       /* Populate the scratchpad object's ASB. */
-      result = bsp_deserializeASB(blk);
+      result = bsp_deserializeASB(blk, wk, BSP_BAB_TYPE);
 
-      BSP_DEBUG_INFO("i bsp_babAcquire: Deserialize result %d", result);
+      BAB_DEBUG_INFO("i bsp_babAcquire: Deserialize result %d", result);
    }
 
-   BSP_DEBUG_PROC("- bsp_babAcquire -> %d", result);
+   BAB_DEBUG_PROC("- bsp_babAcquire -> %d", result);
 
    return result;
 }
@@ -111,7 +111,7 @@ int bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 void	bsp_babClear(AcqExtBlock *blk)
 {
-   BSP_DEBUG_PROC("+ bsp_babClear(%x)", (unsigned long) blk);
+   BAB_DEBUG_PROC("+ bsp_babClear(%x)", (unsigned long) blk);
 
    CHKVOID(blk);
    if(blk->size > 0)
@@ -119,23 +119,73 @@ void	bsp_babClear(AcqExtBlock *blk)
       BspAbstractSecurityBlock *asb = (BspAbstractSecurityBlock *) blk->object;
       if(asb->resultLen > 0)
       {
-         BSP_DEBUG_INFO("i bsp_babClear: Release result of len %ld",
+         BAB_DEBUG_INFO("i bsp_babClear: Release result of len %ld",
                         asb->resultLen);
          MRELEASE(asb->resultData);
          asb->resultData = 0;
          asb->resultLen = 0;
       }
 
-      BSP_DEBUG_INFO("i bsp_babClear: Release ASB of len %d", blk->size);
+      BAB_DEBUG_INFO("i bsp_babClear: Release ASB of len %d", blk->size);
 
       MRELEASE(blk->object);
       blk->object = NULL;
       blk->size = 0;
    }
 
-   BSP_DEBUG_PROC("- bsp_babClear(%c)", ' ');
+   BAB_DEBUG_PROC("- bsp_babClear(%c)", ' ');
 
    return;
+}
+
+int	bsp_babCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
+{
+	Sdr	bpSdr = getIonsdr();
+	char	*buffer;
+	int	result = 0;
+
+	BSP_DEBUG_PROC("+ bsp_babCopy(%x, %x)", (unsigned long) newBlk,
+		   (unsigned long) oldBlk);
+	CHKERR(newBlk);
+	CHKERR(oldBlk);
+	if (oldBlk->size == 0)
+	{
+		newBlk->object = 0;
+		newBlk->size = 0;
+	}
+	else
+	{
+		buffer = MTAKE(oldBlk->size);
+		if (buffer == NULL)
+		{
+      			BSP_DEBUG_ERR("x bsp_babCopy: Failed to allocate \
+buffer of size: %d", oldBlk->size);
+			result = -1;
+		}
+		else
+		{
+			sdr_read(bpSdr, buffer, oldBlk->object, oldBlk->size);
+			newBlk->object = sdr_malloc(bpSdr, oldBlk->size);
+			if (newBlk->object == 0)
+			{
+				BSP_DEBUG_ERR("x bsp_babCopy: Failed to SDR \
+allocate object of size: %d", oldBlk->size);
+				result = -1;
+			}
+			else
+			{
+				sdr_write(bpSdr, newBlk->object, buffer,
+						oldBlk->size);
+				newBlk->size = oldBlk->size;
+			}
+
+			MRELEASE(buffer);
+		}
+	}
+
+	BSP_DEBUG_PROC("- bsp_babCopy(%c)", ' ');
+
+	return result;
 }
 
 
@@ -168,7 +218,7 @@ int bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
    BspAbstractSecurityBlock asb;
    int result = -1;
 
-   BSP_DEBUG_PROC("+ bsp_babOffer(%x, %x)",
+   BAB_DEBUG_PROC("+ bsp_babOffer(%x, %x)",
                   (unsigned long) blk, (unsigned long) bundle);
 
    CHKERR(blk);
@@ -192,7 +242,7 @@ int bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
    blk->object = sdr_malloc(bpSdr, blk->size);
    if (blk->object == 0)
    {
-      BSP_DEBUG_ERR("x bsp_babOffer: Failed to SDR allocate of size: %d",
+      BAB_DEBUG_ERR("x bsp_babOffer: Failed to SDR allocate of size: %d",
             blk->size);
       result = -1;
    }
@@ -202,7 +252,7 @@ int bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
       result = 0;
    }
 
-   BSP_DEBUG_PROC("- bsp_babOffer -> %d", result);
+   BAB_DEBUG_PROC("- bsp_babOffer -> %d", result);
 
    return result;
 }
@@ -239,7 +289,7 @@ int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
    unsigned long   digestLen;
    int         cmpResult;
 
-   BSP_DEBUG_PROC("+ bsp_babPostCheck(%x, %x)",
+   BAB_DEBUG_PROC("+ bsp_babPostCheck(%x, %x)",
                   (unsigned long) blk, (unsigned long) wk);
 
    /***************************************************************************
@@ -248,17 +298,17 @@ int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
    if((blk == NULL) || (blk->object == NULL) || (wk == NULL))
    {
-      BSP_DEBUG_ERR("x bspBabPostCheck:  Blocks are NULL. %x",
+      BAB_DEBUG_ERR("x bspBabPostCheck:  Blocks are NULL. %x",
                     (unsigned long) blk);
-      BSP_DEBUG_PROC("- bsp_babPostCheck --> %d", -1);
+      BAB_DEBUG_PROC("- bsp_babPostCheck --> %d", -1);
       return -1;
    }
 
    if (wk->authentic)
    {
-      BSP_DEBUG_INFO("i Authenticity asserted. Accept on faith.", NULL);
+      BAB_DEBUG_INFO("i Authenticity asserted. Accept on faith.", NULL);
       discardExtensionBlock(blk);
-      BSP_DEBUG_PROC("- bsp_babPostCheck --> %d", 0);
+      BAB_DEBUG_PROC("- bsp_babPostCheck --> %d", 0);
       return 0;    /*   Authenticity asserted; bail.   */
    }
 
@@ -268,9 +318,9 @@ int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
    collabBlkAddr = findAcqCollabBlock(wk, COR_BAB_TYPE, asb->correlator);
    if(collabBlkAddr == 0)
    {
-      BSP_DEBUG_ERR("x bspBabPostCheck:  Can't find collab blk for corr %d.",
+      BAB_DEBUG_ERR("x bspBabPostCheck:  Can't find collab blk for corr %d.",
                   asb->correlator);
-      BSP_DEBUG_PROC("- bsp_babPostCheck --> %d", -1);
+      BAB_DEBUG_PROC("- bsp_babPostCheck --> %d", -1);
       return -1;
    }
    collabBlk = (BspBabCollaborationBlock *) lyst_data(collabBlkAddr);
@@ -282,24 +332,24 @@ int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
    /* The post-payload BAB block *must* have a security result. */
    if((asb->cipherFlags & BSP_ASB_RES) == 0)
    {
-      BSP_DEBUG_ERR("x bspBabPostCheck:  No security results. Flags are %ld",
+      BAB_DEBUG_ERR("x bspBabPostCheck:  No security results. Flags are %ld",
                    asb->cipherFlags);
    }
 
    /* Make sure that we found the correlated pre-payload block. */
    else if((collabBlk->rxFlags & BSP_BABSCRATCH_RXFLAG_CORR) == 0)
    {
-      BSP_DEBUG_ERR("x bsp_babPostCheck: No pre-payload block found.%c",' ');
+      BAB_DEBUG_ERR("x bsp_babPostCheck: No pre-payload block found.%c",' ');
    }
 
    else if (collabBlk->hmacLen == 0)
    {
-      BSP_DEBUG_ERR("x bsp_babPostCheck: SHA1 result not computed %s",
+      BAB_DEBUG_ERR("x bsp_babPostCheck: SHA1 result not computed %s",
                 collabBlk->cipherKeyName);
    }
    else if (digest == NULL || digestLen != BAB_HMAC_SHA1_RESULT_LEN)
    {
-      BSP_DEBUG_ERR("x bsp_babPostCheck: no integrity signature: security \
+      BAB_DEBUG_ERR("x bsp_babPostCheck: no integrity signature: security \
 result len %lu data %x", asb->resultLen, (unsigned long) asb->resultData);
    }
    else
@@ -312,14 +362,14 @@ result len %lu data %x", asb->resultLen, (unsigned long) asb->resultData);
       }
       else
       {
-         BSP_DEBUG_ERR("x bsp_babPostCheck: memcmp failed: %d", cmpResult);
+         BAB_DEBUG_ERR("x bsp_babPostCheck: memcmp failed: %d", cmpResult);
          retval = 1;
       }
    }
 
    /* We are done with this block. */
    discardExtensionBlock(blk);
-   BSP_DEBUG_PROC("- bsp_babPostCheck(%d)", retval);
+   BAB_DEBUG_PROC("- bsp_babPostCheck(%d)", retval);
 
    return retval;
 }
@@ -354,11 +404,13 @@ int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
    BspSecurityInfo secInfo;
    BspBabCollaborationBlock collabBlk;
    unsigned char *raw_asb = NULL;
+   char *srcNode = NULL, *destNode = NULL;
    int result = 0;
    Sdr bpSdr = getIonsdr();
    Object collabAddr = 0;
+   Sdnv digestSdnv;
 
-   BSP_DEBUG_PROC("+ bsp_babPostProcessOnDequeue(%x, %x, %x)",
+   BAB_DEBUG_PROC("+ bsp_babPostProcessOnDequeue(%x, %x, %x)",
                   (unsigned long) post_blk,
                   (unsigned long) bundle,
                   (unsigned long) ctxt);
@@ -371,9 +423,9 @@ int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
       post_blk == NULL ||
        post_blk->size != sizeof(BspAbstractSecurityBlock))
    {
-     BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Bundle or ASB were not \
+     BAB_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Bundle or ASB were not \
 as expected.", NULL);
-     BSP_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
+     BAB_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
      return -1;
    }
 
@@ -393,6 +445,26 @@ as expected.", NULL);
     *                VERIFY WE CAN/SHOULD ADD POST-PAYLOAD BLOCK              *
     ***************************************************************************/
 
+   // Take care of our addressing.. fill out eidRefs, sec Src, sec Dest (if applicable)
+   // fill out our srcNode, destNode eid strings for sure
+   srcNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+   destNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+   if(setSecPointsTrans(post_blk, bundle, &asb, NULL, 0, ctxt, srcNode, destNode) != 0)
+   {
+       MRELEASE(srcNode); MRELEASE(destNode);
+       BAB_DEBUG_ERR("x bsp_babPostProcessOnDequeue: setSecPointsTrans failed.", NULL);
+       BAB_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
+       return -1;
+   }
+   else if(srcNode == NULL || destNode == NULL)
+   {
+       MRELEASE(srcNode); MRELEASE(destNode);
+       BAB_DEBUG_ERR("x bsp_babPostProcessOnDequeue: a node address is unexpectedly null! \
+                      srcNode:%s, destNode:%s", srcNode, destNode);
+       BAB_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
+       return -1;
+   }
+
    /*
     * Check that we will need a BAB. If we have no key, then there is either
     * no rule or no key associated with BABs over this hop, so we don't need
@@ -401,29 +473,29 @@ as expected.", NULL);
     * somehow lost data coherency in the bundle.
     */
 
-   /* The BAB sender EID is the administrative EID for the current node. */ 
-   bsp_getSecurityInfo(bundle, BSP_BAB_TYPE,
-                       getCustodianEid(ctxt->proxNodeEid),
-                       ctxt->proxNodeEid, &secInfo);
- 
+   bsp_getSecurityInfo(bundle, BSP_BAB_TYPE, 0,
+                       srcNode,
+                       destNode, &secInfo);
+   MRELEASE(srcNode); MRELEASE(destNode);
+
    if (secInfo.cipherKeyName[0] == '\0')
    {
       int result = 0;
       if(collabAddr != 0)
       {
-         BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: No key found for post- \
+         BAB_DEBUG_ERR("x bsp_babPostProcessOnDequeue: No key found for post- \
 payload block, but found collab struct.", NULL);
          result = -1;
       }
       else
       {
-         BSP_DEBUG_INFO("i bsp_babPostProcessOnDequeue: No key found for BAB. \
+         BAB_DEBUG_INFO("i bsp_babPostProcessOnDequeue: No key found for BAB. \
 Not using BAB blocks for this bundle.", NULL);
 
       }
 
      scratchExtensionBlock(post_blk);
-     BSP_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", result);
+     BAB_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", result);
      return result;
    }
    /*
@@ -432,10 +504,10 @@ Not using BAB blocks for this bundle.", NULL);
     */
    else if(collabAddr == 0)
    {
-      BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Trying to insert post-  \
+      BAB_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Trying to insert post-  \
 payload block without collab struct.", NULL);
       scratchExtensionBlock(post_blk);
-      BSP_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
+      BAB_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
       return -1;
    }
 
@@ -449,10 +521,10 @@ payload block without collab struct.", NULL);
      (collabBlk.hmacLen != 0) ||
      (collabBlk.expectedResult[0] != '\0'))
    {
-      BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Data mismatch in  \
+      BAB_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Data mismatch in  \
 collab struct.", NULL);
       scratchExtensionBlock(post_blk);
-      BSP_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
+      BAB_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
       return -1;
    }
 
@@ -462,12 +534,13 @@ collab struct.", NULL);
     ***************************************************************************/
 
    /* post-payload BAB must be the last one in the bundle. */
-
    post_blk->blkProcFlags |= BLK_IS_LAST;
    asb.cipher = BSP_CSTYPE_BAB_HMAC;
    asb.cipherFlags = BSP_ASB_CORR | BSP_ASB_RES;
    asb.correlator = BAB_CORRELATOR;
-   asb.resultLen = BAB_HMAC_SHA1_RESULT_LEN + 2;
+   // Encode expected digest length into sdnv
+   encodeSdnv(&digestSdnv, BAB_HMAC_SHA1_RESULT_LEN); 
+   asb.resultLen = BAB_HMAC_SHA1_RESULT_LEN + 1 + digestSdnv.length;
 
    /*
     * Serialize the block.  This will do everything except populate
@@ -476,8 +549,7 @@ collab struct.", NULL);
    raw_asb = bsp_serializeASB(&(post_blk->dataLength), &(asb));
    if((raw_asb == NULL) || (post_blk->dataLength == 0))
    {
-      /* TODO: Consider whether to remove pre block at this point?? */
-      BSP_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Serialization failed.\
+      BAB_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Serialization failed.\
 raw_asb = %x", (unsigned long) raw_asb);
       scratchExtensionBlock(post_blk);
       result = -1;
@@ -499,7 +571,7 @@ raw_asb = %x", (unsigned long) raw_asb);
       updateCollaborationBlock(collabAddr, (CollabBlockHdr *) &collabBlk);
    }
 
-   BSP_DEBUG_PROC("- bsp_babPostProcessOnDequeue(%d)", result);
+   BAB_DEBUG_PROC("- bsp_babPostProcessOnDequeue(%d)", result);
 
    return result;
 }
@@ -545,17 +617,19 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
    char *temp = NULL;
    char *keyValue = NULL;
    int keyLen = 0;
+   Sdnv digestSdnv;
+   unsigned long digestOffset = 0;
 
-   BSP_DEBUG_PROC("+ bsp_babPostProcessOnTransmit: %x, %x, %x",
+   BAB_DEBUG_PROC("+ bsp_babPostProcessOnTransmit: %x, %x, %x",
    (unsigned long) blk, (unsigned long) bundle,(unsigned long) ctxt);
 
    memset(&asb,0,sizeof(BspAbstractSecurityBlock));
 
    if((blk == NULL) || (bundle == NULL))
    {
-      BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Bad Parms: Bundle %x",
+      BAB_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Bad Parms: Bundle %x",
                     (unsigned long) bundle);
-      BSP_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
+      BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
       return -1;
    }
 
@@ -569,9 +643,9 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
     collabAddr = findCollaborationBlock(bundle, COR_BAB_TYPE, BAB_CORRELATOR);
     if(collabAddr == 0)
     {
-       BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: No collab block found.",
+       BAB_DEBUG_ERR("x bsp_babPostProcessOnTransmit: No collab block found.",
                    NULL);
-        BSP_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
+        BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
         return -1;
     }
 
@@ -581,10 +655,10 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
     /* Grab the key. */
     if((keyValue = (char *) bsp_retrieveKey(&keyLen, collabBlk.cipherKeyName)) == NULL)
     {
-   BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Can't retrieve key %s.",
+   BAB_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Can't retrieve key %s.",
                  collabBlk.cipherKeyName);
 
-        BSP_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
+        BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
         return -1;
    }
 
@@ -593,11 +667,13 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
     * Grab the serialized bundle. It lives in bundle.payload.
     * Get it ready to serialize, and grab the bundle length.
     */
-   Object bundleRef = zco_add_reference(bpSdr, bundle->payload.content);
-   rawBundleLength = zco_length(bpSdr, bundleRef) - asb.resultLen;
-   zco_destroy_reference(bpSdr, bundleRef);
+   rawBundleLength = zco_length(bpSdr, bundle->payload.content) - asb.resultLen;
    digest = bsp_babGetSecResult(bundle->payload.content, rawBundleLength, keyValue, keyLen, &digestLen);
    MRELEASE(keyValue);
+
+   // Encode real digest length into sdnv
+   encodeSdnv(&digestSdnv, digestLen); 
+   digestOffset = 1 + digestSdnv.length;
 
    /* Let's see if we got a good result */
    if((digest != NULL) && (digestLen == BAB_HMAC_SHA1_RESULT_LEN))   
@@ -611,9 +687,9 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
       {
         MRELEASE(digest);
       }
-      BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Bad hash. hashData is 0x%x and length is %d.",
+      BAB_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Bad hash. hashData is 0x%x and length is %d.",
                     digest, digestLen);
-      BSP_DEBUG_PROC("- bsp_babPostProcessOnTransmit--> 0", NULL);
+      BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit--> 0", NULL);
       return 0;
    }
 
@@ -624,35 +700,35 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
     * block with the new serialized contents in the serialized version of the bundle
     * about to be transmitted.
     */
-   if((asb.resultData = MTAKE(digestLen + 2)) == NULL)
+   if((asb.resultData = MTAKE(digestLen + digestOffset)) == NULL)
    {
-    BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Can't allocate \
- ASB result, len %ld.", digestLen + 2);
+    BAB_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Can't allocate \
+ ASB result, len %ld.", digestLen + digestOffset);
     MRELEASE(digest);
        
-       BSP_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
+       BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
 
        return -1;
    }
 
    /* Construct the new security result. */
    *(asb.resultData) = BSP_CSPARM_INT_SIG;
-   *(asb.resultData + 1) = digestLen;
-   memcpy(asb.resultData + 2, digest, digestLen);
+   memcpy(asb.resultData + 1, digestSdnv.text, digestSdnv.length);
+   memcpy(asb.resultData + digestOffset, digest, digestLen);
    MRELEASE(digest);
 
    /* Locally serialize the ASB. */
    raw_asb = bsp_serializeASB(&(blk->dataLength), &(asb));
    if((raw_asb == NULL) || (blk->dataLength == 0))
    {
-      BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Serialization \
+      BAB_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Serialization \
 failed. raw_asb = %x", (unsigned long) raw_asb);
    
       MRELEASE(asb.resultData);
       asb.resultData = NULL;
       asb.resultLen = 0;
 
-      BSP_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
+      BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
 
       return -1;
    }
@@ -660,7 +736,7 @@ failed. raw_asb = %x", (unsigned long) raw_asb);
    /* Serialize the block into the extension block bytes array. */
    if((result = serializeExtBlk(blk, NULL, (char *) raw_asb)) < 0)
    {
-      BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Failed \
+      BAB_DEBUG_ERR("x bsp_babPostProcessOnTransmit: Failed \
 serializing block. Result is %d", result);
 
       MRELEASE(raw_asb);
@@ -668,7 +744,7 @@ serializing block. Result is %d", result);
       asb.resultData = NULL;
       asb.resultLen = 0;
 
-      BSP_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", result);
+      BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", result);
 
       return result;
    }
@@ -684,19 +760,19 @@ serializing block. Result is %d", result);
    
    if((temp = MTAKE(blk->length)) == NULL)
    {
-           BSP_DEBUG_ERR("x bsp_babPostProcessOnTransmit: \
+           BAB_DEBUG_ERR("x bsp_babPostProcessOnTransmit: \
 Allocation of %d bytes failed.", blk->length);
            MRELEASE(asb.resultData);
            asb.resultData = NULL;
            asb.resultLen = 0;
 
-           BSP_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
+           BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
 
            return -1;
    }
 
    sdr_read(bpSdr, temp, blk->bytes, blk->length);
-   BSP_DEBUG_INFO("i bsp_babPostProcessOnTransmit: New trailer has length %d", blk->length);
+   BAB_DEBUG_INFO("i bsp_babPostProcessOnTransmit: New trailer has length %d", blk->length);
    /* Throw away *old* post-payload block. */
    zco_discard_last_trailer(bpSdr, bundle->payload.content);
  
@@ -706,12 +782,11 @@ Allocation of %d bytes failed.", blk->length);
    MRELEASE(temp);
 
    /* Done with the abstract security block. */
-
    MRELEASE(asb.resultData);
    asb.resultData = NULL;
    asb.resultLen = 0;
 
-   BSP_DEBUG_INFO("- bsp_babPostProcessOnTransmit --> %d", result);
+   BAB_DEBUG_INFO("- bsp_babPostProcessOnTransmit --> %d", result);
    return result;
 }
 
@@ -755,10 +830,11 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
    char         *keyValueBuffer;
    int         keyLen;
    int retval = 0;
+   char *srcNode, *destNode;
    unsigned char *digest;
    unsigned long digestLen;
 
-   BSP_DEBUG_PROC("+ bsp_babPreCheck(%x,%x)",
+   BAB_DEBUG_PROC("+ bsp_babPreCheck(%x,%x)",
                   (unsigned long) pre_blk, (unsigned long) wk);
 
    memset(&collabBlk,0,sizeof(BspBabCollaborationBlock));
@@ -774,9 +850,9 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
    /* We need blocks! */
    if((pre_blk == NULL) || (pre_blk->object == NULL))
    {
-      BSP_DEBUG_ERR("x bsp_babPreCheck:  No blocks. pre_blk is %x",
+      BAB_DEBUG_ERR("x bsp_babPreCheck:  No blocks. pre_blk is %x",
                     (unsigned long) pre_blk);
-      BSP_DEBUG_PROC("- bsp_babPreCheck --> %d", -1);
+      BAB_DEBUG_PROC("- bsp_babPreCheck --> %d", -1);
       return -1;
    }
 
@@ -791,33 +867,44 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
 
    rawBundleLen = zco_length(bpSdr, wk->bundle.payload.content);
    lengthToHash = rawBundleLen - resultLen;
-   // TODO: Should we consider it an error if length is equal to zero?
    if (lengthToHash < 0)
    {
-      BSP_DEBUG_ERR("x bsp_babPreCheck: Can't hash %d bytes", lengthToHash);
-      BSP_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
+      BAB_DEBUG_ERR("x bsp_babPreCheck: Can't hash %d bytes", lengthToHash);
+      BAB_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
       return 0;
    }
 
-   BSP_DEBUG_INFO("i bsp_babPreCheck: len %d", resultLen);
+   BAB_DEBUG_INFO("i bsp_babPreCheck: len %d", resultLen);
 
-   bsp_getSecurityInfo(&(wk->bundle), BSP_BAB_TYPE,
-                       wk->senderEid,
-                       getCustodianEid(wk->senderEid),
+   srcNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+   destNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+
+   if (printEid(&pre_asb->secSrc, wk->dictionary, &srcNode) != 0 && 
+       printEid(&pre_asb->secDest, wk->dictionary, &destNode) != 0)
+   {
+       MRELEASE(srcNode); MRELEASE(destNode);
+       BAB_DEBUG_ERR("x bsp_babPreCheck: Error retrieving src and dest nodes to find key.", NULL);
+       BAB_DEBUG_PROC("- bsp_babPreCheck --> %d", -1);
+       return -1;
+   } 
+
+   bsp_getSecurityInfo(&(wk->bundle), BSP_BAB_TYPE, 0,
+                       srcNode,
+                       destNode,
                        &secInfo);
 
    if (secInfo.cipherKeyName[0] == '\0')
    {
       /*   No rule, or no key.               */
-      BSP_DEBUG_INFO("i bsp_babPreCheck: No rule/key for BAB.", NULL);
-      BSP_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
+      BAB_DEBUG_INFO("i bsp_babPreCheck: No rule/key for BAB.", NULL);
+      BAB_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
       return 0;   /*   No hash computation.         */
    }
 
    keyValueBuffer = (char *) bsp_retrieveKey(&keyLen, secInfo.cipherKeyName);
    if (keyValueBuffer == NULL)
    {
-      BSP_DEBUG_ERR("x bsp_babPreAcquire: Can't retrieve key %s for EID %s",
+      BAB_DEBUG_ERR("x bsp_babPreAcquire: Can't retrieve key %s for EID %s",
                  secInfo.cipherKeyName, wk->senderEid);
 
       /*   Note that collabBlk.hmacLen remains zero.  This is
@@ -825,10 +912,9 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
        *   that the key was not retrieved.
        */
 
-      BSP_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
+      BAB_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
       return 0;
    }
-
 
    /* Read data in chunks and hash. */
    digest = bsp_babGetSecResult(wk->bundle.payload.content, lengthToHash, keyValueBuffer, keyLen, &digestLen);
@@ -847,9 +933,9 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
       {
         MRELEASE(digest);
       }
-      BSP_DEBUG_ERR("x bsp_babPreCheck: Bad hash. digest is 0x%x and length is %d.",
+      BAB_DEBUG_ERR("x bsp_babPreCheck: Bad hash. digest is 0x%x and length is %d.",
                     digest, digestLen);
-      BSP_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
+      BAB_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
       return 0;
    }
 
@@ -862,7 +948,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
    if(((pre_asb->cipherFlags & BSP_ASB_CORR) == 0) ||
        ((pre_asb->cipherFlags & BSP_ASB_RES) != 0))
    {
-      BSP_DEBUG_ERR("x bsp_babPreCheck: Bad Flags! Correlator missing and/or\
+      BAB_DEBUG_ERR("x bsp_babPreCheck: Bad Flags! Correlator missing and/or\
 results present. Flags. %ld", pre_asb->cipherFlags);
 
       retval = 1;
@@ -876,7 +962,7 @@ results present. Flags. %ld", pre_asb->cipherFlags);
                                                 BSP_BAB_TYPE);
       if(post_blk == NULL)
       {
-         BSP_DEBUG_ERR("x bsp_babPreCheck:  Could not find post-payload \
+         BAB_DEBUG_ERR("x bsp_babPreCheck:  Could not find post-payload \
 BAB block! %c",  ' ');
          retval = 1;
       }
@@ -899,7 +985,7 @@ BAB block! %c",  ' ');
     */
 
    discardExtensionBlock(pre_blk);
-   BSP_DEBUG_PROC("- bsp_babPreCheck(%d)", retval);
+   BAB_DEBUG_PROC("- bsp_babPreCheck(%d)", retval);
 
    return retval;
 }
@@ -933,10 +1019,10 @@ int bsp_babPreProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
    BspSecurityInfo secInfo;
    int result = 0;
    unsigned char *raw_asb = NULL;
+   char *srcNode = NULL, *destNode = NULL;
    Sdr bpSdr = getIonsdr();
-   unsigned long tmp;
 
-   BSP_DEBUG_PROC("+ bsp_babPreProcessOnDequeue(%x, %x, %x",
+   BAB_DEBUG_PROC("+ bsp_babPreProcessOnDequeue(%x, %x, %x",
                   (unsigned long) blk,
                   (unsigned long) bundle,
                   (unsigned long) ctxt);
@@ -946,10 +1032,10 @@ int bsp_babPreProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
      (blk == NULL)    ||
         (blk->size != sizeof(BspAbstractSecurityBlock)))
    {
-      BSP_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Bundle or ASB were not as \
+      BAB_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Bundle or ASB were not as \
 expected.", NULL);
 
-      BSP_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", -1);
+      BAB_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", -1);
       return -1;
    }
 
@@ -958,66 +1044,43 @@ expected.", NULL);
     * the final selected security destination.      //   SB 3 Aug 2009
     */
 
-   /* TODO: Confirm that we can skip this read. at this point. */
    sdr_read(bpSdr, (char *) &asb, blk->object, blk->size);
+
+   srcNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+   destNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
+   if(setSecPointsTrans(blk, bundle, &asb, &eidRefs, BSP_BAB_TYPE, ctxt, srcNode, destNode) != 0)
+   {
+       MRELEASE(srcNode); MRELEASE(destNode);
+       BAB_DEBUG_ERR("x bsp_babPreProcessOnDequeue: setSecPointsTrans failed.", NULL);
+       BAB_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", -1);
+       return -1; 
+   }
+   else if(srcNode == NULL || destNode == NULL)
+   {
+       MRELEASE(srcNode); MRELEASE(destNode);
+       BAB_DEBUG_ERR("x bsp_babPreProcessOnDequeue: a node address is unexpectedly null! \
+                      srcNode:%s, destNode:%s", srcNode, destNode);
+       BAB_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", -1);
+       return -1; 
+   }
    
-   bsp_getSecurityInfo(bundle, BSP_BAB_TYPE,
-		    getCustodianEid(ctxt->proxNodeEid),
-		    ctxt->proxNodeEid, &secInfo);
+   bsp_getSecurityInfo(bundle, BSP_BAB_TYPE, 0,
+		    srcNode,
+		    destNode, &secInfo);
+   MRELEASE(srcNode); MRELEASE(destNode);
 
    /* If we have no rule, or no key, then we are not going to add BAB blocks
     * to this bundle. This is not an error, but a security policy decision.
-    * TODO: How do we differentiate from not wanting a BAB and wanting a BAB
-    *       but not having the key or rule for the BAB?
     */
    if (secInfo.cipherKeyName[0] == '\0')
    {
-     BSP_DEBUG_INFO("i bsp_babPreProcessOnDequeue: No key found for BAB. Not \
+     BAB_DEBUG_INFO("i bsp_babPreProcessOnDequeue: No key found for BAB. Not \
  using BAB blocks for this bundle.", NULL);
 
      scratchExtensionBlock(blk);
-
-     BSP_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", 0);
+     BAB_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", 0);
      return 0;
    }
-
-   /*
-    * If we are using EID references, we will populate the BAB with the
-    * security source and security destination.  This is "trivial" for the
-    * BAB, where the security source is the source of this bundle (i.e., us)
-    * and the security destination is the destination of the bundle.  Since
-    * we are looking for these values in the process on dequeue callback, they
-    * have been added to the provided bundle structure.
-    */
-   if(bundle->dictionaryLength != 0)
-   {
-      /*
-       * If using EIDs, we will always specify both a security source and a
-       * security destination.
-       */
-      blk->blkProcFlags |= BLK_HAS_EID_REFERENCES;
-      asb.cipherFlags |= (BSP_ASB_SEC_SRC | BSP_ASB_SEC_DEST);
-
-      if((eidRefs = lyst_create_using(getIonMemoryMgr())) == NULL)
-      {
-        BSP_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Can't allocate eidRefs%c.",
-                      ' ');
-        result = -1;
-      }
-      else
-      {
-         /* TODO: Check return values */
-         lyst_insert_last(eidRefs,
-      (void *) (tmp = bundle->id.source.d.schemeNameOffset));
-         lyst_insert_last(eidRefs,
-      (void *) (tmp = bundle->id.source.d.nssOffset));
-         lyst_insert_last(eidRefs,
-      (void *) (tmp = bundle->destination.d.schemeNameOffset));
-         lyst_insert_last(eidRefs,
-      (void *) (tmp = bundle->destination.d.nssOffset));
-      }
-   }
-
 
    if(result == 0)
    {
@@ -1031,10 +1094,6 @@ expected.", NULL);
        */
       asb.cipherFlags |= BSP_ASB_CORR;
 
-      /*
-       *  TODO: Spec does allow for nested BABs.  May need to enumerate correlators
-       *        if we choose to support this.
-       */
       asb.correlator = BAB_CORRELATOR;
 
       /* Serialize the Abstract Security Block. */
@@ -1042,7 +1101,7 @@ expected.", NULL);
 
       if((raw_asb == NULL) || (blk->dataLength == 0))
       {
-         BSP_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Unable to serialize \
+         BAB_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Unable to serialize \
 ASB. blk->dataLength = %d", blk->dataLength);
          result = -1;
       }
@@ -1083,7 +1142,7 @@ ASB. blk->dataLength = %d", blk->dataLength);
       lyst_destroy(eidRefs);
    }
 
-   BSP_DEBUG_PROC("- bsp_babPreProcessOnDequeue(%d)", result);
+   BAB_DEBUG_PROC("- bsp_babPreProcessOnDequeue(%d)", result);
 
    return result;
 }
@@ -1117,7 +1176,7 @@ ASB. blk->dataLength = %d", blk->dataLength);
 void    bsp_babRelease(ExtensionBlock *blk)
 {
 
-   BSP_DEBUG_PROC("+ bsp_babRelease(%x)", (unsigned long) blk);
+   BAB_DEBUG_PROC("+ bsp_babRelease(%x)", (unsigned long) blk);
 
    CHKVOID(blk);
    if(blk->size > 0)
@@ -1125,7 +1184,7 @@ void    bsp_babRelease(ExtensionBlock *blk)
       sdr_free(getIonsdr(), blk->object);
    }
 
-   BSP_DEBUG_PROC("- bsp_babRelease(%c)", ' ');
+   BAB_DEBUG_PROC("- bsp_babRelease(%c)", ' ');
 
    return;
 }
@@ -1165,7 +1224,6 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    unsigned char *hashData = NULL;
    char *dataBuffer;
    int i = 0;
-   Object dataRef;
    ZcoReader dataReader;
    char *authContext;
    int authCtxLen = 0;
@@ -1173,7 +1231,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    unsigned long chunkSize = BSP_BAB_BLOCKING_SIZE;
    unsigned long bytesRetrieved = 0;
 
-   BSP_DEBUG_INFO("+ bsp_babGetSecResult(0x%x, %ld, %s %d, 0x%x)",
+   BAB_DEBUG_INFO("+ bsp_babGetSecResult(0x%x, %ld, %s %d, 0x%x)",
                   (unsigned long) dataObj,
                   dataLen,
                   keyValue,
@@ -1192,38 +1250,35 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
       HMAC libraries. */
    if((authCtxLen = hmac_sha1_context_length()) <= 0)
    {
-      BSP_DEBUG_ERR("x bsp_babGetSecResult: Bad context length (%d)",
+      BAB_DEBUG_ERR("x bsp_babGetSecResult: Bad context length (%d)",
          authCtxLen);
          *hashLen = 0;
-      BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
+      BAB_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
       MRELEASE(dataBuffer);
       return NULL;
    }
 
-   BSP_DEBUG_INFO("i bsp_babGetSecResult: context length is %d", authCtxLen);
+   BAB_DEBUG_INFO("i bsp_babGetSecResult: context length is %d", authCtxLen);
 
    if((authContext = MTAKE(authCtxLen)) == NULL)
    {
-      BSP_DEBUG_ERR("x bsp_babGetSecResult: Can't allocate %ld bytes",
+      BAB_DEBUG_ERR("x bsp_babGetSecResult: Can't allocate %ld bytes",
          authCtxLen);
          *hashLen = 0;
-      BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
+      BAB_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
       MRELEASE(dataBuffer);
       return NULL;
    }
 
    /*   Prepare the data for processing. */
-   /**   \todo: watch pointer arithmetic if sizeof(char) != 1      */
-
    sdr_begin_xn(bpSdr);
-   dataRef = zco_add_reference(bpSdr, dataObj);
-   zco_start_transmitting(bpSdr, dataRef, &dataReader);
+   zco_start_transmitting(dataObj, &dataReader);
    
    hmac_sha1_init(authContext, (unsigned char *)keyValue, keyLen);
    bytesRemaining = dataLen;
 
-   BSP_DEBUG_INFO("i bsp_babGetSecResult: size is %d", bytesRemaining);
-   BSP_DEBUG_INFO("i bsp_babGetSecResult: Key value is %s and key length is %d", keyValue, keyLen);
+   BAB_DEBUG_INFO("i bsp_babGetSecResult: size is %d", bytesRemaining);
+   BAB_DEBUG_INFO("i bsp_babGetSecResult: Key value is %s and key length is %d", keyValue, keyLen);
 
    while(bytesRemaining > 0)
    {
@@ -1239,15 +1294,12 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
 
      if(bytesRetrieved != chunkSize)
      {
-      BSP_DEBUG_ERR("x bsp_babGetSecResult: Read %d bytes, but expected %d.",
+      BAB_DEBUG_ERR("x bsp_babGetSecResult: Read %d bytes, but expected %d.",
          bytesRetrieved, chunkSize);
 
       MRELEASE(authContext);
-         zco_stop_transmitting(bpSdr, &dataReader);
-      zco_destroy_reference(bpSdr, dataRef);
-      sdr_end_xn(bpSdr);
-
-         *hashLen = 0;
+      oK(sdr_end_xn(bpSdr));
+      *hashLen = 0;
       BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
       MRELEASE(dataBuffer);
       return NULL;
@@ -1256,7 +1308,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
      /* Print out debugging information, if requested */
      for (i = 0; i < chunkSize; i++)
      {
-      //BSP_DEBUG_INFO("Byte %d is %x", i+(dataLen-bytesRemaining), dataBuffer[i]);
+      //BAB_DEBUG_INFO("Byte %d is %x", i+(dataLen-bytesRemaining), dataBuffer[i]);
      }
 
      /* Add the data to the hmac_sha1 */
@@ -1267,39 +1319,31 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    /* This will store the hash result. */
    if((hashData = MTAKE(BAB_HMAC_SHA1_RESULT_LEN)) == NULL)
    {
-      BSP_DEBUG_ERR("x bsp_babGetSecResult: Failed allocating %d bytes.",
+      BAB_DEBUG_ERR("x bsp_babGetSecResult: Failed allocating %d bytes.",
                      BAB_HMAC_SHA1_RESULT_LEN);
 
    MRELEASE(authContext);
-      zco_stop_transmitting(bpSdr, &dataReader);
-      zco_destroy_reference(bpSdr, dataRef);
-      sdr_end_xn(bpSdr);
-
+      oK(sdr_end_xn(bpSdr));
       *hashLen = 0;
-   BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
+   BAB_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
    MRELEASE(dataBuffer);
    return NULL;
    }
 
-   BSP_DEBUG_INFO("i bsp_babGetSecResult: allocated hash data.",NULL);
+   BAB_DEBUG_INFO("i bsp_babGetSecResult: allocated hash data.",NULL);
 
    /* Calculate the hash result. */
    hmac_sha1_final(authContext, hashData, BAB_HMAC_SHA1_RESULT_LEN);
    hmac_sha1_reset(authContext);
 
    MRELEASE(authContext);
-   zco_stop_transmitting(bpSdr, &dataReader);
-
-   zco_destroy_reference(bpSdr, dataRef);
-
    if ((i = sdr_end_xn(bpSdr)) < 0)
    {
-      BSP_DEBUG_ERR("x bsp_babGetSecResult: Failed closing transaction. Result is %d.",
-                     i);
+      BSP_DEBUG_ERR("x bsp_babGetSecResult: Failed closing transaction. Result is %d.", i);
 
       MRELEASE(hashData);
       *hashLen = 0;
-   BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
+   BAB_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
    MRELEASE(dataBuffer);
    return NULL;
    }
@@ -1307,15 +1351,13 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    *hashLen = BAB_HMAC_SHA1_RESULT_LEN;
 
 
-for(i = 0; i < BAB_HMAC_SHA1_RESULT_LEN; i++)
-{
-BSP_DEBUG_INFO("Result Byte %d is 0x%x", i, hashData[i]);
-}
+   for(i = 0; i < BAB_HMAC_SHA1_RESULT_LEN; i++)
+   {
+   BAB_DEBUG_INFO("Result Byte %d is 0x%x", i, hashData[i]);
+   }
 
-   BSP_DEBUG_PROC("- bsp_babGetSecResult(%x)", (unsigned long) hashData);
+   BAB_DEBUG_PROC("- bsp_babGetSecResult(%x)", (unsigned long) hashData);
 
    MRELEASE(dataBuffer);
    return (unsigned char *) hashData;
 }
-
-

@@ -187,7 +187,7 @@ int	sendBytesByTCP(int *bundleSocket, char *from, int length,
 				bytesWritten = 0;
 			}
 
-			putSysErrmsg("CLO write() error on socket", NULL);
+			putSysErrmsg("write() error on socket", NULL);
 		}
 
 		return bytesWritten;
@@ -209,7 +209,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 	char		*from;
 	int		bytesSent;
 
-	zco_start_transmitting(sdr, bundleZco, &reader);
+	zco_start_transmitting(bundleZco, &reader);
 	zco_track_file_offset(&reader);
 	while (bytesRemaining > 0)
 	{
@@ -222,13 +222,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 		sdr_begin_xn(sdr);
 		bytesLoaded = zco_transmit(sdr, &reader, bytesToLoad,
 				(char *) buffer + bytesBuffered);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't issue from ZCO.", NULL);
-			return -1;
-		}
-
-		if (bytesLoaded != bytesToLoad)
+		if (sdr_end_xn(sdr) < 0 || bytesLoaded != bytesToLoad)
 		{
 			putErrmsg("ZCO length error.", NULL);
 			return -1;
@@ -269,7 +263,6 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 		bytesBuffered = 0;
 	}
 
-	zco_stop_transmitting(sdr, &reader);
 	return totalBytesSent;
 }
 
@@ -308,7 +301,7 @@ static int	handleTcpFailure(struct sockaddr *sn, Object bundleZco)
 	}
 
 	sdr_begin_xn(sdr);
-	zco_destroy_reference(sdr, bundleZco);
+	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't destroy bundle ZCO.", NULL);
@@ -396,14 +389,14 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 		return handleTcpFailure(socketName, bundleZco);
 	}
 
-	if (bpHandleXmitSuccess(bundleZco) < 0)
+	if (bpHandleXmitSuccess(bundleZco, 0) < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
 		result = -1;
 	}
 
 	sdr_begin_xn(sdr);
-	zco_destroy_reference(sdr, bundleZco);
+	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't destroy bundle ZCO.", NULL);
@@ -458,12 +451,12 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 				return handleTcpFailure(socketName, bundleZco);
 			}
 
-			*bundleSocket = tempBundleSocket;/* The bundle socket is set to 
-							    to a positive value, only after
-							    the connection is up. Till the 
-							    connection is up the tempBundleSocket
-							    is used.					*/  
+			/*	The bundle socket is only set to to a
+			 *	positive value after the connection is
+			 *	up.  Until then, the tempBundleSocket
+			 *	is used.				*/  
 
+			*bundleSocket = tempBundleSocket;
 		}
 	}
 
@@ -517,14 +510,14 @@ not sent.");
 		return handleTcpFailure(socketName, bundleZco);
 	}
 
-	if (bpHandleXmitSuccess(bundleZco) < 0)
+	if (bpHandleXmitSuccess(bundleZco, 0) < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
 		result = -1;
 	}
 
 	sdr_begin_xn(sdr);
-	zco_destroy_reference(sdr, bundleZco);
+	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't destroy bundle ZCO.", NULL);

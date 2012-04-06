@@ -11,9 +11,22 @@
 #include "platform.h"
 #include "ltpP.h"
 
+static int	_clientId(int *newId)
+{
+	static int	id = 0;
+
+	if (newId)
+	{
+		id = *newId;
+	}
+
+	return id;
+}
+
+
 static int	_running(int *newState)
 {
-	int	state = 1;
+	static int	state = 1;
 
 	if (newState)
 	{
@@ -71,7 +84,7 @@ static void	handleQuit()
 	int	stop = 0;
 
 	oK(_running(&stop));
-	ltp_interrupt(1);
+	ltp_interrupt(_clientId(NULL));
 }
 
 static void	printCount()
@@ -86,11 +99,13 @@ static void	printCount()
 int	ltpcounter(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	int		maxBytes = a1;
+	int		clientId = a1;
+	int		maxBytes = a2;
 #else
 int	main(int argc, char **argv)
 {
-	int		maxBytes = (argc > 1 ? atoi(argv[1]) : 0);
+	int		clientId = (argc > 1 ? strtol(argv[1], NULL, 0) : 0);
+	int		maxBytes = (argc > 2 ? strtol(argv[2], NULL, 0) : 0);
 #endif
 	IonAlarm	alarm = { 5, 0, showProgress, NULL };
 	pthread_t	alarmThread;
@@ -104,6 +119,14 @@ int	main(int argc, char **argv)
 	Object		data;
 	char		buffer[255];
 
+	if (clientId < 1)
+	{
+		PUTS("Usage: ltpcounter <client ID> [<max nbr of bytes>]");
+		PUTS("  Max nbr of bytes defaults to 2 billion.");
+		return 0;
+	}
+
+	oK(_clientId(&clientId));
 	if (maxBytes < 1)
 	{
 		maxBytes = 2000000000;
@@ -115,9 +138,10 @@ int	main(int argc, char **argv)
 		return 1;
 	}
 
-	if (ltp_open(1) < 0)
+	if (ltp_open(_clientId(NULL)) < 0)
 	{
-		putErrmsg("ltpcounter can't open client access.", "1");
+		putErrmsg("ltpcounter can't open client access.",
+				itoa(_clientId(NULL)));
 		return 1;
 	}
 
@@ -126,7 +150,7 @@ int	main(int argc, char **argv)
 	oK((_running(&state)));
 	while (_running(NULL))
 	{
-		if (ltp_get_notice(1, &type, &sessionId,
+		if (ltp_get_notice(_clientId(NULL), &type, &sessionId,
 				&reasonCode, &endOfBlock, &dataOffset,
 				&dataLength, &data) < 0)
 		{
@@ -189,7 +213,7 @@ eob=%d.", sessionId.sourceEngineId, sessionId.sessionNbr, dataOffset,
 	writeErrmsgMemos();
 	printCount();
 	PUTS("Stopping ltpcounter.");
-	ltp_close(1);
+	ltp_close(_clientId(NULL));
 	ltp_detach();
 	return 0;
 }

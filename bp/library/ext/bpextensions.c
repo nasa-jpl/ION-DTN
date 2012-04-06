@@ -15,24 +15,26 @@
 
 #include "ecos/ecos.h"
 #include "bsp/extbspbab.h"
-#if 0
-#include "bsp/extbsppib.h"
 #include "bsp/extbsppcb.h"
-#endif
+#include "bsp/extbsppib.h"
+
+#ifdef ENABLE_BPACS
+#include "cteb/cteb.h"
+#endif /* ENABLE_BPACS */
 
 /*	... and here.							*/
 
 static ExtensionDef	extensions[] =
 {
 		{ "bab", BSP_BAB_TYPE, 0,
-		/*	NK changed the name from "bsp_bab_pre"	*/
+		//	NK changed the name from "bsp_bab_pre"	
 				bsp_babOffer,
 				bsp_babRelease,
 				bsp_babAcquire,
 				bsp_babPreCheck,
 				0,
 				bsp_babClear,
-				0,
+				bsp_babCopy,
 				{0,
 				0,
 				0,
@@ -53,7 +55,22 @@ static ExtensionDef	extensions[] =
 				ecos_processOnDequeue,
 				0}
 		},
-#if 0
+#ifdef ENABLE_BPACS
+        	{ "cteb", EXTENSION_TYPE_CTEB, 0,
+				cteb_offer,
+				cteb_release,
+				cteb_acquire,
+				0,
+				cteb_record,
+				cteb_clear,
+				cteb_copy,
+				{0,
+				0,
+				0,
+				cteb_processOnDequeue,
+				0}
+       		},
+#endif /* ENABLE_BPACS */
 		{ "pib", BSP_PIB_TYPE, 0,
 				bsp_pibOffer,
 				bsp_pibRelease,
@@ -61,7 +78,7 @@ static ExtensionDef	extensions[] =
 				bsp_pibCheck,
 				0,
 				bsp_pibClear,
-				0,
+				bsp_pibCopy,
 				{0,
 				0,
 				0,
@@ -73,16 +90,15 @@ static ExtensionDef	extensions[] =
 				bsp_pcbRelease,
 				bsp_pcbAcquire,
 				bsp_pcbCheck,
-				bsp_pcbRecord,
+                                0,
 				bsp_pcbClear,
 				bsp_pcbCopy,
-				{bsp_pcbProcessOnFwd,
-				bsp_pcbProcessOnAccept,
-				bsp_pcbProcessOnEnqueue,
+				{0,
+				0,
+				0,
 				bsp_pcbProcessOnDequeue,
 				0}
 		},
-#endif
 		{ "bsp_bab_post", BSP_BAB_TYPE, 1,
 				bsp_babOffer,
 				bsp_babRelease,
@@ -90,7 +106,7 @@ static ExtensionDef	extensions[] =
 				bsp_babPostCheck,
 				0,
 				bsp_babClear,
-				0,
+				bsp_babCopy,
 				{0,
 				0,
 				0,

@@ -267,7 +267,6 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 {
 	unsigned short		portNbr;
 	unsigned int		ipAddress;
-	char			ownHostName[MAXHOSTNAMELEN + 1];
 	TcptsSap		*sap;
 	socklen_t		buflen;
 	char			endpointNameText[32];
@@ -283,8 +282,11 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	parseSocketSpec(epspec, &portNbr, &ipAddress);
 	if (ipAddress == 0)
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		ipAddress = getInternetAddress(ownHostName);
+		if ((ipAddress = getAddressOfHost()) == 0)
+		{
+			putErrmsg("tcpcs can't get own IP address.", NULL);
+			return -1;
+		}
 	}
 
 	sap = (TcptsSap *) MTAKE(sizeof(TcptsSap));

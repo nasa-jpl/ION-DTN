@@ -49,11 +49,9 @@ static void	*sendBundles(void *parm)
 	Object			bundleZco;
 	BpExtendedCOS		extendedCOS;
 	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
-	char			*hostName;
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
 	int			failedTransmissions = 0;
-	unsigned int		bundleLength;
 	ZcoReader		reader;
 	int			bytesToSend;
 	DgrRC			rc;
@@ -90,7 +88,7 @@ static void	*sendBundles(void *parm)
 		}
 
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName, 1) < 0)
+				&extendedCOS, destDuctName, 0, -1) < 0)
 		{
 			threadRunning = 0;
 			writeMemo("[?] dgrcla failed de-queueing bundle.");
@@ -102,7 +100,6 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
-		hostName = destDuctName;
 		parseSocketSpec(destDuctName, &portNbr, &hostNbr);
 		if (portNbr == 0)
 		{
@@ -110,36 +107,27 @@ static void	*sendBundles(void *parm)
 		}
 
 		sdr_begin_xn(sdr);
-		bundleLength = zco_length(sdr, bundleZco);
 		if (hostNbr == 0)		/*	Can't send it.	*/
 		{
 			failedTransmissions++;
-			zco_destroy_reference(sdr, bundleZco);
+			zco_destroy(sdr, bundleZco);
 			if (sdr_end_xn(sdr) < 0)
 			{
-				threadRunning = 0;
 				putErrmsg("Can't destroy ZCO reference.", NULL);
+				threadRunning = 0;
 			}
 
 			continue;
 		}
 
-		zco_start_transmitting(sdr, bundleZco, &reader);
+		zco_start_transmitting(bundleZco, &reader);
 		zco_track_file_offset(&reader);
 		bytesToSend = zco_transmit(sdr, &reader, DGRCLA_BUFSZ, buffer);
-		zco_stop_transmitting(sdr, &reader);
+		sdr_exit_xn(sdr);
 		if (bytesToSend < 0)
 		{
-			sdr_cancel_xn(sdr);
 			threadRunning = 0;
 			putErrmsg("Can't issue from ZCO.", NULL);
-			continue;
-		}
-
-		if (sdr_end_xn(sdr) < 0)
-		{
-			threadRunning = 0;
-			putErrmsg("Failed sending bundle.", NULL);
 			continue;
 		}
 
@@ -169,7 +157,7 @@ failure.", NULL);
 		}
 
 		sdr_begin_xn(sdr);
-		zco_destroy_reference(sdr, bundleZco);
+		zco_destroy(sdr, bundleZco);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			threadRunning = 0;
@@ -271,7 +259,7 @@ temporary ZCO.", NULL);
 						break;	/*	Switch.	*/
 					}
 
-					if (bpHandleXmitSuccess(bundleZco))
+					if (bpHandleXmitSuccess(bundleZco, 0))
 					{
 						threadRunning = 0;
 						putErrmsg("Crashed handling \
@@ -279,7 +267,7 @@ success.", NULL);
 					}
 
 					sdr_begin_xn(sdr);
-					zco_destroy_reference(sdr, bundleZco);
+					zco_destroy(sdr, bundleZco);
 					if (sdr_end_xn(sdr) < 0)
 					{
 						threadRunning = 0;
@@ -315,7 +303,7 @@ failure.", NULL);
 					}
 
 					sdr_begin_xn(sdr);
-					zco_destroy_reference(sdr, bundleZco);
+					zco_destroy(sdr, bundleZco);
 					if (sdr_end_xn(sdr) < 0)
 					{
 						threadRunning = 0;
@@ -418,7 +406,6 @@ int	main(int argc, char *argv[])
 	Sdr			sdr;
 	Induct			induct;
 	ClProtocol		protocol;
-	char			*hostName;
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
 	Dgr			dgrSap;
@@ -469,7 +456,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr, vinduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
-	if (protocol.nominalRate <= 0)
+	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_DGR_RATE;
 		voutduct->xmitThrottle.nominalRate = DEFAULT_DGR_RATE;
@@ -480,17 +467,15 @@ int	main(int argc, char *argv[])
 		voutduct->xmitThrottle.nominalRate = protocol.nominalRate;
 	}
 
-	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
+	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", ductName);
+		return 1;
+	}
+
 	if (portNbr == 0)
 	{
 		portNbr = DGRCLA_PORT_NBR;
-	}
-
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		return 1;
 	}
 
 	if (dgr_open(getOwnNodeNbr(), 1, portNbr, hostNbr, NULL, &dgrSap, &rc)

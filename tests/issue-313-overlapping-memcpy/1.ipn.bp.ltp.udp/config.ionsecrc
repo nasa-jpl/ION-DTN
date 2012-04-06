@@ -1,0 +1,7 @@
+# ionsecrc configuration file for the loopback test.
+#	Command: % ionsecadmin loopback.ionsecrc
+#
+#	Ohio University, Oct 2011
+#
+1
+e 1

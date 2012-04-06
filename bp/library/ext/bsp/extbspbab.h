@@ -18,6 +18,85 @@
 #define BAB_CORRELATOR 0xED
 #define BSP_BAB_BLOCKING_SIZE 4096
 
+// If bsp debugging is turned on, then turn on pcb
+#if BSP_DEBUGGING == 1
+#define BAB_DEBUGGING 1
+#endif
+
+#ifndef BAB_DEBUGGING
+#define BAB_DEBUGGING 0  /** Whether to enable (1) or disable (0) debugging */
+#endif
+
+#define BAB_DEBUG_LVL_PROC 1 /** Function entry/exit and above debugging */
+#define BAB_DEBUG_LVL_INFO 2 /** Info information and above debugging */
+#define BAB_DEBUG_LVL_WARN 3 /** Warning and above debugging */
+#define BAB_DEBUG_LVL_ERR  4 /** Error and above debugging */
+
+#define BAB_DEBUG_LVL   BAB_DEBUG_LVL_PROC
+
+#define GMSG_BUFLEN     256
+#if BAB_DEBUGGING == 1
+extern char             gMsg[];         /*      Debug message buffer.   */
+
+/**
+ * \def BAB_DEBUG
+ * Constructs an error string message and sends it to putErrmsg. There are
+ * four levels of debugging specified:
+ * 1: Function entry/exit logging.  This logs the entry and exit of all major
+ *    functions in the BAB library and is useful for confirming control flow
+ *    through the BAB module.
+ * 2: Information logging.  Information statements are peppered through the
+ *    code to provide insight into the state of the module at processing
+ *    points considered useful by BSP module software engineers.
+ * 3: Warning logging.  Warning statements are used to flag unexpected 
+ *    values that, based on context, may not constitute errors.
+ * 4: Error logging.  Errors are areas in the code where some sanity check
+ *    or other required condition fails to be met by the software. 
+ * 
+ * Error logging within the BAB module is of the form:
+ * <id> <function name>: <message>
+ * Where id is one of:
+ * + (function entry)
+ * - (function exit)
+ * i (information statement)
+ * ? (warning statement)
+ * x (error statement)
+ * 
+ * Debugging can be turned off at compile time by removing the
+ * BAB_DEBUGGING #define.
+ */
+
+   #define BAB_DEBUG(level, format,...) if(level >= BAB_DEBUG_LVL) \
+{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
+
+   #define BAB_DEBUG_PROC(format,...) \
+           BAB_DEBUG(BAB_DEBUG_LVL_PROC,format, __VA_ARGS__)
+
+   #define BAB_DEBUG_INFO(format,...) \
+           BAB_DEBUG(BAB_DEBUG_LVL_INFO,format, __VA_ARGS__)
+
+   #define BAB_DEBUG_WARN(format,...) \
+           BAB_DEBUG(BAB_DEBUG_LVL_WARN,format, __VA_ARGS__)
+
+   #define BAB_DEBUG_ERR(format,...) \
+           BAB_DEBUG(BAB_DEBUG_LVL_ERR,format, __VA_ARGS__)
+#else
+   #define BAB_DEBUG(level, format,...) if(level >= BAB_DEBUG_LVL) \
+{}
+
+   #define BAB_DEBUG_PROC(format,...) \
+           BAB_DEBUG(BAB_DEBUG_LVL_PROC,format, __VA_ARGS__)
+
+   #define BAB_DEBUG_INFO(format,...) \
+           BAB_DEBUG(BAB_DEBUG_LVL_INFO,format, __VA_ARGS__)
+
+   #define BAB_DEBUG_WARN(format,...) \
+           BAB_DEBUG(BAB_DEBUG_LVL_WARN,format, __VA_ARGS__)
+
+   #define BAB_DEBUG_ERR(format,...) \
+           BAB_DEBUG(BAB_DEBUG_LVL_ERR,format, __VA_ARGS__)
+
+#endif
 
 /**
  *  \struct BspBabCollaborationBlock
@@ -107,6 +186,31 @@ int bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk);
  *****************************************************************************/
 
 void bsp_babClear(AcqExtBlock *blk);
+
+
+/******************************************************************************
+ *
+ * \par Function Name: bsp_babCopy
+ *
+ * \par Purpose: This callback makes a copy in newBlk of the scratchpad
+ * 		 object in oldBlk.  This function is the same for both
+ * 		 PRE and POST payload blocks.
+ *
+ * \par Date Written:  2/24/12
+ *
+ * \retval int
+ *
+ * \param[in]   oldBlk  The block whose object must be copied.
+ * \param[out]  newBlk  The block for which a copy of this object must be made.
+ *
+ * \par Revision History:
+ *
+ *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
+ *  --------  ------------  -----------------------------------------------
+ *  02/24/12  S. Burleigh          Initial Implementation.
+ *****************************************************************************/
+
+int bsp_babCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
 
 
 /******************************************************************************
@@ -361,7 +465,7 @@ void bsp_babRelease(ExtensionBlock *blk);
 unsigned char *bsp_babGetSecResult(Object dataObj,
                                    unsigned long dataLen,
                                    char *cipherKeyName,
-					     unsigned long keyLen,
+				   unsigned long keyLen,
                                    unsigned long *hashLen);
 
 
