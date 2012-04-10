@@ -153,6 +153,10 @@ Features included:
   congestion forecasting code would cause BP to refuse bundles from local user
   applications on 32-bit machines with long, busy contacts.
 
+- Issue #328: Fixed bug in CFDP implementation where internal calculations for
+  its CFDP Directory Listing Response user messages were one character shorter
+  than they should be.
+
 - Issue #330: Fixed bug in CFDP implementation where cfdpclock would remove
   unsent FDUs that did not contain any actual file data.
 
