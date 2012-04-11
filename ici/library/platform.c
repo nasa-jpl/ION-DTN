@@ -1199,7 +1199,7 @@ int	irecvfrom(int sockfd, char *buf, int len, int flags,
 	CHKERR(len >= 0);
 	CHKERR(buf);
 	CHKERR(from);
-	CHKERR(fromLen);
+	CHKERR(fromlen);
 	while (1)	/*	Continue until valid result.		*/
 	{
 		length = recvfrom(sockfd, buf, len, flags, from, fromlen);

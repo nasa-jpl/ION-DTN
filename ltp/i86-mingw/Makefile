@@ -77,8 +77,8 @@ udplso:		udplso.o libltp.dll
 
 #	-	-	Libraries	-	-	-	-	-
 
-libltp.dll:	libltpP.o libltp.o
-		$(LD) -o libltp.dll libltpP.o libltp.o -L$(ROOT)/lib -lici -lpthread
+libltp.dll:	libltpP.o libltp.o libltpnm.o
+		$(LD) -o libltp.dll libltpP.o libltp.o libltpnm.o -L$(ROOT)/lib -lici -lpthread
 		cp libltp.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
