@@ -331,8 +331,8 @@ extern int			strncasecmp(const char*, const char*, size_t);
 
 #ifdef sparc			/****	Solaris (SunOS 5+)	     ****/
 #ifdef sol5			/****	Solaris 5.5.x		     ****/
-int gettimeofday(struct timeval*, void*);
-int getpriority(int, id_t);
+extern int gettimeofday(struct timeval*, void*);
+extern int getpriority(int, id_t);
 #endif				/****	End of #ifdef (sol5)         ****/
 #endif				/****	End of #ifdef (sparc)        ****/
 
@@ -345,8 +345,32 @@ int getpriority(int, id_t);
 #ifdef linux			/****	Linux			     ****/
 
 #include <malloc.h>
-#include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
+
 #include <pthread.h>
+
+#ifdef bionic			/****	Bionic subset of Linux      ****/
+
+#undef	SVR4_SHM
+#define RTOS_SHM
+
+#undef	SVR4_SEMAPHORES
+#define POSIX1B_SEMAPHORES
+
+#include <sys/param.h>		/****	...to get MAXPATHLEN         ****/
+
+#ifndef SEM_NSEMS_MAX
+#define	SEM_NSEMS_MAX		256
+#endif
+
+extern void pthread_cancel(pthread_t);
+
+typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
+
+#define PRIVATE_SYMTAB
+
+#else
+#include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
+#endif
 
 #define	_MULTITHREADED
 
@@ -432,10 +456,6 @@ int getpriority(int, id_t);
 #endif
 
 /*	Prototypes for standard ION platform functions.			*/
-
-#ifdef HAVE_VALGRIND_VALGRIND_H
-#include "valgrind/valgrind.h"
-#endif
 
 typedef void			(* Logger)(char *);
 

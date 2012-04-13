@@ -14,12 +14,19 @@
 
 static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 {
-	static sm_SemId	semaphore = -1;
+	long		temp;
+	void		*value;
+	sm_SemId	semaphore;
 
-	if (semid)
+	if (semid)			/*	Add task variable.	*/
 	{
-		semaphore = *semid;
-		sm_TaskVarAdd(&semaphore);
+		temp = *semid;
+		value = (void *) temp;
+		semaphore = (sm_SemId) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		semaphore = (sm_SemId) sm_TaskVar(NULL);
 	}
 
 	return semaphore;
@@ -27,7 +34,10 @@ static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 
 static void	killMainThread()
 {
+	void	*erase = NULL;
+
 	sm_SemEnd(brscclaSemaphore(NULL));
+	oK(sm_TaskVar(&erase));
 }
 
 static void	interruptThread()	/*	Commands termination.	*/

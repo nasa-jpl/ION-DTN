@@ -14,12 +14,19 @@
 
 static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
 {
-	static sm_SemId	semaphore = -1;
+	long		temp;
+	void		*value;
+	sm_SemId	semaphore;
 	
-	if (semid)
+	if (semid)			/*	Add task variable.	*/
 	{
-		semaphore = *semid;
-		sm_TaskVarAdd(&semaphore);
+		temp = *semid;
+		value = (void *) temp;
+		semaphore = (sm_SemId) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		semaphore = (sm_SemId) sm_TaskVar(NULL);
 	}
 
 	return semaphore;
@@ -27,12 +34,15 @@ static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
 
 static void	shutDownClo()	/*	Commands CLO termination.	*/
 {
+	void	*erase = NULL;
+
 	sm_SemEnd(ltpcloSemaphore(NULL));
+	oK(sm_TaskVar(&erase));
 }
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	ltpclo(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

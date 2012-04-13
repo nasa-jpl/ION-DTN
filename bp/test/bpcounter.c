@@ -9,14 +9,19 @@
 
 #include <bp.h>
 
-static BpSAP	_bpsap(BpSAP *newSAP)
+static BpSAP	_bpsap(BpSAP *newSap)
 {
-	static BpSAP	sap = NULL;
+	void	*value;
+	BpSAP	sap;
 	
-	if (newSAP)
+	if (newSap)			/*	Add task variable.	*/
 	{
-		sap = *newSAP;
-		sm_TaskVarAdd((int *) &sap);
+		value = (void *) (*newSap);
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
 	}
 
 	return sap;
@@ -24,14 +29,19 @@ static BpSAP	_bpsap(BpSAP *newSAP)
 
 static int	_running(int *newState)
 {
-	static int	state = 1;
+	void	*value = NULL;
+	BpSAP	sap;
 
-	if (newState)
+	if (newState)			/*	Only used for Stop.	*/
 	{
-		state = *newState;
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
 	}
 
-	return state;
+	return (sap == NULL ? 0 : 1);
 }
 
 static void	handleQuit()
@@ -39,8 +49,8 @@ static void	handleQuit()
 	int	stop = 0;
 
 	PUTS("BP reception interrupted.");
-	oK(_running(&stop));
 	bp_interrupt(_bpsap(NULL));
+	oK(_running(&stop));
 }
 
 static int	_bundleCount(int increment)

@@ -60,7 +60,7 @@ extern void		sm_ShmDestroy(int id);
 
 extern int		sm_TaskIdSelf();
 extern int		sm_TaskExists(int taskId);
-extern void		sm_TaskVarAdd(int *var);
+extern void		*sm_TaskVar(void **arg);
 extern void		sm_TaskSuspend();
 extern void		sm_TaskDelay(int seconds);
 extern void		sm_TaskYield();
