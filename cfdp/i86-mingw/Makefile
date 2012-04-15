@@ -18,7 +18,7 @@ CFDPINCLS = \
 
 LBP = -lbp
 
-RUNTIMES = cfdpadmin cfdpclock bputa cfdptest
+RUNTIMES = cfdpadmin cfdpclock bputa cfdptest bpcp bpcpd
 
 ALL = check libcfdp.dll $(RUNTIMES)
 
@@ -63,6 +63,15 @@ cfdptest:	cfdptest.o libcfdp.dll libcfdp.dll
 bputa:		bputa.o libcfdp.dll
 		$(CC) -o bputa bputa.o -L./lib -L$(ROOT)/lib -lcfdp $(LBP) -lici -lpthread
 		cp bputa ./bin
+
+#	-	-	BPCP executables	-	-	-	-	-
+bpcp: bpcp.o bpcp.h
+		$(CC) -o bpcp bpcp.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
+		cp bpcp ./bin
+		
+bpcpd: bpcpd.o bpcp.h
+		$(CC) -o bpcpd bpcpd.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
+		cp bpcpd ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
