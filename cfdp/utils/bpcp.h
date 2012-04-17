@@ -106,3 +106,8 @@ typedef struct
 #ifndef _D_EXACT_NAMLEN
 #define _D_EXACT_NAMLEN(d) (strlen ((d)->d_name))
 #endif
+
+/*Solaris include for working terminal width detection*/
+#if defined(solaris)
+#include <termios.h>
+#endif

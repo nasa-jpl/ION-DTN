@@ -1078,6 +1078,7 @@ void manage_src(struct transfer *t)
 	DIR *dirp;
 	struct dirent *dp;
 	struct transfer tt;
+	struct stat statbuf;
 	int dir;
 	char buff[256];
 	int i=0;
@@ -1119,19 +1120,26 @@ void manage_src(struct transfer *t)
 					{
 						continue;
 					}
-					if (dp->d_type!=DT_REG && dp->d_type!=DT_DIR)
-					{
-						/*Ignore all non-regular, non-directory files*/
-						dbgprintf(0, "Warning: Ignoring non-regular file %s\n", dp->d_name);
-						continue;
-					}
 					if (!strncmp(dp->d_name, ".",_D_EXACT_NAMLEN(dp)) || !strncmp(dp->d_name, "..",_D_EXACT_NAMLEN(dp)))
 					{
 						continue;
 					}
+					memset(buff,0,256);
+					memcpy(buff, dp->d_name,_D_EXACT_NAMLEN(dp));
 					if (strlen(t->sfile) + 1 + _D_EXACT_NAMLEN(dp) >= 255)
 					{
-						dbgprintf(0,"bpcp: %s/%s: name too long\n",t->sfile, dp->d_name);
+						dbgprintf(0,"bpcp: %s/%s: name too long\n",t->sfile, buff);
+						continue;
+					}
+					/*Ignore all non-regular, non-directory files*/
+					if(stat(buff,&statbuf)<0)
+					{
+						dbgprintf(0, "bpcp: %s/%s--%s\n", t->sfile, buff, strerror(errno));
+						continue;
+					}
+					if (!S_ISDIR(statbuf.st_mode) && !S_ISREG(statbuf.st_mode))
+					{
+						dbgprintf(0, "Warning: Ignoring non-regular file %s\n", buff);
 						continue;
 					}
 
@@ -1703,7 +1711,7 @@ void prog_end_dir(struct transfer *t)
 /*Determine the size of the terminal in use*/
 int setscreensize(void)
 {
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || !defined(TIOCGWINSZ)
 	return 80;
 #else
 	int win_size;
