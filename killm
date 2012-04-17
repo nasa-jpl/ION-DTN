@@ -79,6 +79,8 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
 	udp2file lt-udp2file \
+	bpcp lt-bpcp\
+	bpcpd lt-bpcpd\
 	"
 
 sw_vers 2> /dev/null > /dev/null

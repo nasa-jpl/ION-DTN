@@ -201,11 +201,16 @@ void exit_cleanup()
 	isignal(SIGTERM, exit_cleanup);
 	isignal(SIGINT, exit_cleanup);
 
+#if defined (VXWORKS) || defined (RTEMS)
+	/*DO NOTHING. VXWORKS doesn't implement system()!*/
+#else
+
 	/*Cleanup all directory listing files*/
-	if (pseudoshell("rm dirlist_* >/dev/null 2>/dev/null")<0)
+	if (system("rm dirlist_* >/dev/null 2>/dev/null")<0)
 	{
 		dbgprintf(0, "Error running cleanup\n");
 	}
+#endif
 
 	/*Drop to new line*/
 	printf("\n");

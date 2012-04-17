@@ -34,7 +34,8 @@
 /*Currently CFDP's directory operations does not remove
  * temporary files. Define this in order to remove those files
  * when bpcpd exits. This provides a crapy work-around for
- * CFDP's brain damage by executing an "rm dirlist_*" on bpcpd's exit.*/
+ * CFDP's brain damage by executing an "rm dirlist_*" on bpcpd's exit.
+ * THIS WILL NOT WORK ON VXWORKS!!!!*/
 #define CLEAN_ON_EXIT 1
 
 /*Max level of file system recursion*/
