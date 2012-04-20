@@ -49,7 +49,7 @@ bssStreamingApp:	bssStreamingApp.o libbss.dll
 #	-	-	Libraries	-	-	-	-	-
 
 libbss.dll:	$(LIBBSSOBJS) $(API)/bssP.h
-		$(LD) -o libbss.dll $(LIBBSSOBJS)
+		$(LD) -o libbss.dll $(LIBBSSOBJS) -L$(ROOT)/lib -lbp -lici -lpthread -lws2_32
 		cp libbss.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

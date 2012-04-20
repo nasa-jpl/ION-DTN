@@ -88,6 +88,7 @@ extern "C" {
 #define	ECONNREFUSED		WSAECONNREFUSED
 #define ECONNRESET		WSAECONNRESET
 #define EWOULDBLOCK		WSAEWOULDBLOCK
+#define	O_LARGEFILE		0
 #else				/****	not Windows		*********/
 #include <sys/times.h>
 #include <limits.h>

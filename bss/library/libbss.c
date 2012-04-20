@@ -20,7 +20,7 @@ void	bssStop()
 {
 	int		destroy = 0;
 	int		stopLoop = 0;
-	pthread_t	stopThread = 0;
+	int		recvThreadValid;
 	pthread_t	recvThread;
 
 	if (_datFile(0, 0) == -1)	/*	Must destroy tblIndex.	*/
@@ -29,12 +29,12 @@ void	bssStop()
 		ionDetach();
 	}
 
-	recvThread = _recvThreadId(NULL);
+	recvThreadValid = _recvThreadId(&recvThread, 0);
 	oK(_running(&stopLoop));
-	if (recvThread != 0)
+	if (recvThreadValid)
 	{
 		bp_interrupt(_bpsap(NULL));
-		oK(_recvThreadId(&stopThread));
+		oK(_recvThreadId(NULL, -1));
 		oK(pthread_join(recvThread, NULL));
 	}
 	else
@@ -50,9 +50,9 @@ void	bssClose()
 {
 	int	destroy = 0;
 
-	if (_recvThreadId(NULL) == 0)	/*	Must destroy tblIndex.	*/
+	if (_recvThreadId(NULL, 0) == 0)/*	No active receiver.	*/
 	{
-		oK(_tblIndex(&destroy));
+		oK(_tblIndex(&destroy));/*	Must destroy tblIndex.	*/
 		ionDetach();
 	}
 
@@ -136,7 +136,7 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
          */
 
 	ionAttach();
-	if (_recvThreadId(NULL) == 0)
+	if (_recvThreadId(NULL, 0) == 0)/*	No receiver thread.	*/
 	{
 		if (loadRDWRDB(bssName, path, &dat, &lst, &tbl) != 0)
 		{	
@@ -147,7 +147,7 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
 			return -1;
 		}
 	}
-	else
+	else	/*	Receiver thread is active, real-time running.	*/
 	{
 		PUTS("Please terminate the already active real-time \
 session in order to initiate a new one.");
@@ -174,7 +174,7 @@ session in order to initiate a new one.");
 		return -1;
 	}
 
-	oK(_recvThreadId(&bssRecvThread));
+	oK(_recvThreadId(&bssRecvThread, 1));
 	return 0;
 }
 
@@ -182,7 +182,7 @@ int	bssRun(char* bssName, char* path, char* eid, char* buffer,
 		long bufLength, RTBHandler display)
 {
 	if (_datFile(0,0) == -1 && _lstFile(0,0) == -1 && _tblFile(0,0) == -1 
-		&& _recvThreadId(NULL) == 0)
+		&& _recvThreadId(NULL, 0) == 0)
 	{
 		if (bssStart(bssName, path, eid, buffer, bufLength, display)
 				< 0)
