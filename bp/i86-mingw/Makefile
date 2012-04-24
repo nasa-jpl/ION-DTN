@@ -15,7 +15,7 @@ UDP = ../udp
 
 OPT = -g -Wall -Werror -Dmingw
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(API)/crypto -I$(API)/ext/ecos -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -25,6 +25,7 @@ PUBINCLS = \
 BPINCLS = \
 	$(API)/bpP.h \
 	$(IPN)/ipnfw.h \
+	$(BSS)/bssfw.h \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \

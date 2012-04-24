@@ -10,8 +10,8 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "../../bpP.h"
-#include "../../bei.h"
+#include "bpP.h"
+#include "bei.h"
 #include "ecos.h"
 
 int	ecos_offer(ExtensionBlock *blk, Bundle *bundle)

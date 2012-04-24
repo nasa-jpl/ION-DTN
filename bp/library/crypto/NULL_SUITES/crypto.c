@@ -10,7 +10,7 @@
  **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
-#include "../crypto.h"
+#include "crypto.h"
 
 /*****************************************************************************
  *                     HMAC-SHA-1 FUNCTION DEFINITIONS                        *

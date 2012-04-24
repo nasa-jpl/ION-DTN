@@ -55,6 +55,8 @@ extern "C" {
 #define CORE_FILE_NEEDED	(0)
 #endif
 
+typedef unsigned long		n_long;	/*	long as rec'd from net	*/
+
 /*
 ** Standard Headers: Common to All Supported Platforms (incl. RTOS & Windows)
 */

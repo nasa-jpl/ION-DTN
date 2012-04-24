@@ -17,7 +17,7 @@ DCCP = ../dccp
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(API)/crypto -I$(API)/ext/ecos -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
