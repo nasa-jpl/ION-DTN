@@ -17,21 +17,19 @@
 
 extern void	manageProductionThrottle(BpVdb *vdb);
 
-static int	_running(int *newValue)
+static long	_running(long *newValue)
 {
-	static int	state;
+	void	*value;
+	long	state;
 
-	if (newValue)
+	if (newValue)			/*	Changing state.		*/
 	{
-		if (*newValue == 1)
-		{
-			state = 1;
-			sm_TaskVarAdd(&state);
-		}
-		else
-		{
-			state = 0;
-		}
+		value = (void *) (*newValue);
+		state = (long) sm_TaskVar(&value);
+	}
+	else				/*	Just check.		*/
+	{
+		state = (long) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -39,7 +37,7 @@ static int	_running(int *newValue)
 
 static void	shutDown()	/*	Commands bpclock termination.	*/
 {
-	int	stop = 0;
+	long	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates bpclock.		*/
 }
@@ -341,7 +339,7 @@ static void	applyRateControl(Sdr sdr)
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	bpclock(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -351,7 +349,7 @@ int	main(int argc, char *argv[])
 #endif
 	Sdr	sdr;
 	BpDB	*bpConstants;
-	int	state = 1;
+	long	state = 1;
 	time_t	currentTime;
 
 	if (bpAttach() < 0)

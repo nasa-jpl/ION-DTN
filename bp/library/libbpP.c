@@ -10665,12 +10665,17 @@ int	bpReforwardBundle(Object bundleAddr)
 
 static BpSAP	_bpadminSap(BpSAP *newSap)
 {
-	static BpSAP	sap = NULL;
+	void	*value;
+	BpSAP	sap;
 
-	if (newSap)
+	if (newSap)			/*	Add task variable.	*/
 	{
-		sap = *newSap;
-		sm_TaskVarAdd((int *) &sap);
+		value = (void *) (*newSap);
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
 	}
 
 	return sap;
@@ -10678,7 +10683,10 @@ static BpSAP	_bpadminSap(BpSAP *newSap)
 
 static void	shutDownAdminApp()
 {
+	void	*erase = NULL;
+
 	sm_SemEnd((_bpadminSap(NULL))->recvSemaphore);
+	oK(sm_TaskVar(&erase));
 }
 
 static int	defaultSrh(BpDelivery *dlv, BpStatusRpt *rpt)

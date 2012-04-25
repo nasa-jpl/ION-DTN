@@ -152,12 +152,17 @@ int	_tblFile(int control, int fileDescriptor)
 
 BpSAP	_bpsap(BpSAP *newSAP)
 {
-	static BpSAP	sap = NULL;
+	void	*value;
+	BpSAP	sap;
 
-	if (newSAP)
+	if (newSAP)			/*	Add task variable.	*/
 	{
-		sap = *newSAP;
-		sm_TaskVarAdd((int *) &sap);
+		value = (void *) (*newSAP);
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
 	}
 
 	return sap;

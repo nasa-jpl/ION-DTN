@@ -17,25 +17,47 @@
 #define	CYCLE_TRACE
 #endif
 
-static int		running = 1;
-
-static BpSAP	_bpsap(BpSAP *newSAP)
+static BpSAP	_bpsap(BpSAP *newSap)
 {
-	static BpSAP	sap = NULL;
+	void	*value;
+	BpSAP	sap;
 	
-	if (newSAP)
+	if (newSap)			/*	Add task variable.	*/
 	{
-		sap = *newSAP;
-		sm_TaskVarAdd((int *) &sap);
+		value = (void *) (*newSap);
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
 	}
 
 	return sap;
 }
 
+static int	_running(int *newState)
+{
+	void	*value = NULL;
+	BpSAP	sap;
+
+	if (newState)			/*	Only used for Stop.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
+	}
+
+	return (sap == NULL ? 0 : 1);
+}
+
 static void	handleQuit()
 {
-	running = 0;
+	int	stop = 0;
+
 	bp_interrupt(_bpsap(NULL));
+	oK(_running(&stop));
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -60,6 +82,7 @@ int	main(int argc, char **argv)
 	Object		newBundle;
 	Object		extent;
 	BpDelivery	dlv;
+	int		stop = 0;
 	ZcoReader	reader;
  	char		sourceEid[1024];
 	int		bytesToEcho = 0;
@@ -90,7 +113,7 @@ int	main(int argc, char **argv)
 	{
 		/*	Wait for a bundle from the driver.		*/
 
-		while (running)
+		while (_running(NULL))
 		{
 			if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 			{
@@ -104,9 +127,9 @@ putchar(dlvmarks[dlv.result]);
 fflush(stdout);
 			if (dlv.result == BpEndpointStopped
 			|| (dlv.result == BpReceptionInterrupted
-					&& running == 0))
+					&& _running(NULL) == 0))
 			{
-				running = 0;
+				oK(_running(&stop));
 				continue;
 			}
 
@@ -124,7 +147,7 @@ fflush(stdout);
 				{
 					putErrmsg("Can't receive payload.",
 							NULL);
-					running = 0;
+					oK(_running(&stop));
 					continue;
 				}
 
@@ -135,8 +158,10 @@ fflush(stdout);
 			bp_release_delivery(&dlv, 1);
 		}
 
-		if (!running)	/*	Benchmark run terminated.	*/
+		if (_running(NULL) == 0)
 		{
+			/*	Benchmark run terminated.		*/
+
 			break;		/*	Out of main loop.	*/
 		}
 
