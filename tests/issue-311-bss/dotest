@@ -17,8 +17,7 @@ CONFIGFILES=" \
 ./2.ipn.bss/global.ionrc \
 ./2.ipn.bss/amroc.ionrc \
 ./2.ipn.bss/amroc.ionsecrc \
-./2.ipn.bss/amroc.ipnrc \
-./global.ionrc \
+./2.ipn.bss/amroc.ipnrc
 "
 
 echo "########################################"

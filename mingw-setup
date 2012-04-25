@@ -1,6 +1,6 @@
 #!/bin/bash
 
-makefiles=(ici ltp dgr bp cfdp ams)
+makefiles=(ici ltp dgr bp cfdp ams bss)
 
 ismingw=`uname | awk '{print match($0, "MINGW")}'`
 

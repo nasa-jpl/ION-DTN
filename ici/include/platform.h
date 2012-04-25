@@ -55,6 +55,8 @@ extern "C" {
 #define CORE_FILE_NEEDED	(0)
 #endif
 
+typedef unsigned long		n_long;	/*	long as rec'd from net	*/
+
 /*
 ** Standard Headers: Common to All Supported Platforms (incl. RTOS & Windows)
 */
@@ -88,6 +90,7 @@ extern "C" {
 #define	ECONNREFUSED		WSAECONNREFUSED
 #define ECONNRESET		WSAECONNRESET
 #define EWOULDBLOCK		WSAEWOULDBLOCK
+#define	O_LARGEFILE		0
 #else				/****	not Windows		*********/
 #include <sys/times.h>
 #include <limits.h>

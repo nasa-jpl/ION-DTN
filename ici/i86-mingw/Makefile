@@ -159,8 +159,8 @@ winion:		winion.o libici.dll
 
 #	-	-	Libraries	-	-	-	-	-
 
-libici.dll:	$(LIBICIOBJS)
-		$(LD) -o libici.dll $(LIBICIOBJS) -lpthread -lws2_32
+libici.dll:	$(LIBICIOBJS) libicinm.o
+		$(LD) -o libici.dll $(LIBICIOBJS) libicinm.o -lpthread -lws2_32
 		cp libici.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

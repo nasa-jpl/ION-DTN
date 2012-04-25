@@ -11,6 +11,8 @@ all:
 	gmake -C ams install
 	gmake -C cfdp $@
 	gmake -C cfdp install
+	gmake -C bss $@
+	gmake -C bss install
 
 clean:
 	gmake -C ici $@
@@ -19,6 +21,7 @@ clean:
 	gmake -C bp $@
 	gmake -C ams $@
 	gmake -C cfdp $@
+	gmake -C bss $@
 
 test:
 	cd tests

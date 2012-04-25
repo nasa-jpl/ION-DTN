@@ -8,6 +8,7 @@ ln -s ../ici/library/lyst.c
 ln -s ../ici/library/lystP.h
 ln -s ../ici/library/psm.c
 ln -s ../ici/library/smlist.c
+ln -s ../ici/library/smrbt.c
 ln -s ../ici/library/ion.c
 ln -s ../ici/library/ionsec.c
 ln -s ../ici/library/rfx.c
@@ -24,6 +25,7 @@ ln -s ../ici/daemon/rfxclock.c
 ln -s ../ici/utils/ionadmin.c
 ln -s ../ici/utils/ionsecadmin.c
 ln -s ../ici/utils/sdrmend.c
+ln -s ../ici/utils/ionexit.c
 ln -s ../bp/library/libbp.c
 ln -s ../bp/library/libbpP.c
 ln -s ../bp/library/bpP.h
@@ -34,13 +36,15 @@ ln -s ../bp/library/ext/ecos/ecos.c
 ln -s ../bp/library/ext/ecos/ecos.h
 ln -s ../bp/library/ext/bsp/extbspbab.c
 ln -s ../bp/library/ext/bsp/extbspbab.h
+ln -s ../bp/library/ext/bsp/extbsppib.c
+ln -s ../bp/library/ext/bsp/extbsppib.h
+ln -s ../bp/library/ext/bsp/extbsppcb.c
+ln -s ../bp/library/ext/bsp/extbsppcb.h
 ln -s ../bp/library/ext/bsp/extbsputil.c
 ln -s ../bp/library/ext/bsp/extbsputil.h
 ln -s ../bp/library/crypto/crypto.h
 ln -s ../bp/library/crypto/sample_crypto.h
 ln -s ../bp/library/crypto/NULL_SUITES/crypto.c
-ln -s ../bp/library/crypto/NULL_SUITES/hmac.h
-ln -s ../bp/library/crypto/NULL_SUITES/sha1.h
 ln -s ../bp/daemon/bpclock.c
 ln -s ../bp/utils/bpadmin.c
 ln -s ../bp/utils/bpstats.c

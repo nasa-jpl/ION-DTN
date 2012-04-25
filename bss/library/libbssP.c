@@ -30,16 +30,31 @@ int	_running(int *newValue)
 	return  running;	
 }
 
-pthread_t	_recvThreadId(pthread_t *newValue)
+int	_recvThreadId(pthread_t *id, int control)
 {
-	static pthread_t    recvThreadId = 0;
+	static int		threadIdValid = 0;
+	static pthread_t	recvThreadId;
 
-	if (newValue)
+	switch (control)
 	{
-		recvThreadId = *newValue;
+	case -1:		/*	Unregister.			*/
+		threadIdValid = 0;
+		break;
+
+	case 0:			/*	Query.				*/
+		break;
+
+	default:		/*	Register.			*/
+		recvThreadId = *id;
+		threadIdValid = 1;
 	}
 
-	return  recvThreadId;		
+	if (id)
+	{
+		*id = recvThreadId;
+	}
+
+	return  threadIdValid;
 }
 
 int	_lockMutex(int value)
@@ -48,7 +63,7 @@ int	_lockMutex(int value)
 
 	if (value == 1)
 	{
-		if(_recvThreadId(NULL) != 0)
+		if(_recvThreadId(NULL, 0))
 		{
 			if(pthread_mutex_lock(&dbmutex) != 0)
 			{
@@ -60,7 +75,7 @@ int	_lockMutex(int value)
 
 	if (value == 0)
 	{
-		if(_recvThreadId(NULL) != 0)
+		if(_recvThreadId(NULL, 0))
 		{
 			pthread_mutex_unlock(&dbmutex);
 		}
@@ -956,7 +971,6 @@ void	*recvBundles(void *args)
 	BpDelivery	dlv;
 	bss_thread_data	*db;
 	BpTimestamp	lastDis;
-	pthread_t	stopThread = 0;
 	
 	/*	Initialize the variable that holds the time of the 
 	 *	last displayed frame from receiving thread.		*/	
@@ -972,7 +986,7 @@ void	*recvBundles(void *args)
 		close(db->dat);
 		close(db->lst);
 		close(db->tbl);
-		oK(_recvThreadId(&stopThread));
+		oK(_recvThreadId(NULL, -1));
 		pthread_exit(NULL);
 	}
 
@@ -982,7 +996,7 @@ void	*recvBundles(void *args)
 		close(db->dat);
 		close(db->lst);
 		close(db->tbl);
-		oK(_recvThreadId(&stopThread));
+		oK(_recvThreadId(NULL, -1));
 		pthread_exit(NULL);
 	}
 
@@ -1032,7 +1046,7 @@ void	*recvBundles(void *args)
 	writeErrmsgMemos();
 	writeMemo("[i] Stopping bss reception thread.");
 	bp_detach();
-	oK(_recvThreadId(&stopThread));
+	oK(_recvThreadId(NULL, -1));
 	return NULL;
 }
 
