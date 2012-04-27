@@ -123,7 +123,7 @@ static void	*sendBundles(void *parm)
 		zco_start_transmitting(bundleZco, &reader);
 		zco_track_file_offset(&reader);
 		bytesToSend = zco_transmit(sdr, &reader, DGRCLA_BUFSZ, buffer);
-		sdr_exit_xn(sdr);
+		oK(sdr_end_xn(sdr));
 		if (bytesToSend < 0)
 		{
 			threadRunning = 0;
