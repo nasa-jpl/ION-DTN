@@ -61,17 +61,18 @@ fi
 
         # missing libs
         MISSING_SYMBOLS=$(ldd -r $LIB 2>&1 | egrep '^undefined symbol' | sed -r 's/^undefined symbol: ([^ 	]+).*$/\1/')
-        if [ ! -z "$MISSING_SYMBOLS" ]; then
-            for SYM in $MISSING_SYMBOLS; do
-                MISSING_LINK=$(nm -A .libs/*.so | egrep -i " [td] $SYM" | sed -r 's/^.*\/(lib[^.]+).*$/\1/')
-                if [ -z "$MISSING_LINK" ]; then
-                    echo "lib $LIB needs symbol $SYM, but can't find it" 1>&2
-                    echo "$LIB_NAME->NOT_FOUND [color=red] ;"
-                    continue
+        if [ ! -z "$UNUSED_LINKS" ]; then
+            for UNUSED_LINK in $UNUSED_LINKS; do
+                # "linux-gate" has been reported as an unused dependency since the Ubuntu 11.10 -> 12.04 x86 upgrade.  
+                # http://www.trilithium.com/johan/2005/08/linux-gate/ gives a good explanation of the library, which isn't actually a "physical"
+                # but rather "a virtual DSO, a shared object exposed by the kernel at a fixed address in every process' memory"
+                #
+                # Since it isn't a "real" library, for now I think it's safe to exclude it from unused dependency concerns.
+                #
+                # Exception added by Josh Schendel on 5/3/2012 for IOS 3.0.1 release.
+                if [[ "$UNUSED_LINK" != *linux-gate* ]]; then
+                    echo "$LIB_NAME->$UNUSED_LINK [color=purple] ;"
                 fi
-                for I in $(echo $MISSING_LINK | sort | uniq); do
-                    echo "$LIB_NAME->$I [color=red] ;"
-                done
             done
         fi
 
