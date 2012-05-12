@@ -61,6 +61,22 @@ fi
 
         # missing libs
         MISSING_SYMBOLS=$(ldd -r $LIB 2>&1 | egrep '^undefined symbol' | sed -r 's/^undefined symbol: ([^ 	]+).*$/\1/')
+        if [ ! -z "$MISSING_SYMBOLS" ]; then
+            for SYM in $MISSING_SYMBOLS; do
+                MISSING_LINK=$(nm -A .libs/*.so | egrep -i " [td] $SYM" | sed -r 's/^.*\/(lib[^.]+).*$/\1/')
+                if [ -z "$MISSING_LINK" ]; then
+                    echo "lib $LIB needs symbol $SYM, but can't find it" 1>&2
+                    echo "$LIB_NAME->NOT_FOUND [color=red] ;"
+                    continue
+                fi
+                for I in $(echo $MISSING_LINK | sort | uniq); do
+                    echo "$LIB_NAME->$I [color=red] ;"
+                done
+            done
+        fi
+
+        # unused links
+        UNUSED_LINKS=$(ldd -r -u $LIB 2> /dev/null | egrep -v '^(Unused direct dependencies:|[    ]+)$' | sed -r 's/^.*\/(lib[^\.]+)\..*$/\1/')
         if [ ! -z "$UNUSED_LINKS" ]; then
             for UNUSED_LINK in $UNUSED_LINKS; do
                 # "linux-gate" has been reported as an unused dependency since the Ubuntu 11.10 -> 12.04 x86 upgrade.  
@@ -73,14 +89,6 @@ fi
                 if [[ "$UNUSED_LINK" != *linux-gate* ]]; then
                     echo "$LIB_NAME->$UNUSED_LINK [color=purple] ;"
                 fi
-            done
-        fi
-
-        # unused links
-        UNUSED_LINKS=$(ldd -r -u $LIB 2> /dev/null | egrep -v '^(Unused direct dependencies:|[    ]+)$' | sed -r 's/^.*\/(lib[^\.]+)\..*$/\1/')
-        if [ ! -z "$UNUSED_LINKS" ]; then
-            for UNUSED_LINK in $UNUSED_LINKS; do
-                echo "$LIB_NAME->$UNUSED_LINK [color=purple] ;"
             done
         fi
 
