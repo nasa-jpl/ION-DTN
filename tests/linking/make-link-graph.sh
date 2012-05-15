@@ -79,7 +79,16 @@ fi
         UNUSED_LINKS=$(ldd -r -u $LIB 2> /dev/null | egrep -v '^(Unused direct dependencies:|[    ]+)$' | sed -r 's/^.*\/(lib[^\.]+)\..*$/\1/')
         if [ ! -z "$UNUSED_LINKS" ]; then
             for UNUSED_LINK in $UNUSED_LINKS; do
-                echo "$LIB_NAME->$UNUSED_LINK [color=purple] ;"
+                # "linux-gate" has been reported as an unused dependency since the Ubuntu 11.10 -> 12.04 x86 upgrade.  
+                # http://www.trilithium.com/johan/2005/08/linux-gate/ gives a good explanation of the library, which isn't actually a "physical"
+                # but rather "a virtual DSO, a shared object exposed by the kernel at a fixed address in every process' memory"
+                #
+                # Since it isn't a "real" library, for now I think it's safe to exclude it from unused dependency concerns.
+                #
+                # Exception added by Josh Schendel on 5/3/2012 for IOS 3.0.1 release.
+                if [[ "$UNUSED_LINK" != *linux-gate* ]]; then
+                    echo "$LIB_NAME->$UNUSED_LINK [color=purple] ;"
+                fi
             done
         fi
 

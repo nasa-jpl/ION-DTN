@@ -62,6 +62,11 @@ WHICHFAILMESSAGE=$?
 if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
 	echo "${PROGRAMTEST} is not present in this system; skipping..."
 	exit 2
+elif [ "$OS" = "SunOS" ]; then
+	echo "Using SunOS netcat at `which netcat`."
+else
+	echo "Using standard netcat at `which netcat`."
+
 fi
 
 sleep 1
