@@ -14,6 +14,7 @@ B<bpcp> copies files between hosts utilizing NASA JPL's Interplanetary
 Overlay Network (ION) to provide a delay tolerant network. File copies
 from local to remote, remote to local, or remote to remote are permitted.
 B<bpcp> depends on ION to do any authentication or encryption of file transfers.
+All covergence layers over which B<bpcp> runs MUST be reliable.
 
 The options are permitted as follows:
 
@@ -54,10 +55,11 @@ Default is Standard Priority.
 =back
 
 B<bpcp> utilizes CFDP to preform the actual file transfers. This has several
-important implications. First, file permissions are not transferred. Files will
-be made executable on copy. Second, symbolic links are ignored for local to
-remote transfers and their target is copied for remote transfers. Third, all
-hosts must be specified using ION's IPN naming scheme.
+important implications. First, ION's CFDP implementation requires that reliable
+convergence layers be used to transfer the data. Second, file permissions are
+not transferred. Files will be made executable on copy. Third, symbolic links
+are ignored for local to remote transfers and their target is copied for remote
+transfers. Fourth, all hosts must be specified using ION's IPN naming scheme.
 
 In order to preform remote to local transfers or remote to remote transfers,
 B<bpcpd> must be running on the remote hosts. However, B<bpcp> should NOT
