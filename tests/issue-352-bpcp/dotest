@@ -67,7 +67,7 @@ echo "Starting bpcp..."
 bpcp ../dotest 3:test1
 sleep 3
 cd ../3.ipn.cfdp.bp.tcp
-TEST=`diff -u ../dotest test1`
+TEST=`diff ../dotest test1`
 echo $TEST
 if  [ ! -e ./test1 ] || [ -n "$TEST" ]; then
 	echo "ERROR: Local to Remote Copy Failed. FAILED!!"
@@ -97,7 +97,7 @@ cd ../1.ipn.cfdp.bp.tcp
 echo "Starting bpcp..."
 bpcp 3:../dotest test2
 sleep 3
-TEST=`diff -u ../dotest test2`
+TEST=`diff ../dotest test2`
 echo $TEST
 if [ ! -e ./test2 ] || [ -n "$TEST" ]; then
 	echo "ERROR: Remote to Local Copy Failed. FAILED!!"
@@ -132,7 +132,7 @@ echo "Starting bpcp..."
 bpcp 3:../dotest 2:./test3
 sleep 3
 cd ../2.ipn.cfdp.bp.tcp
-TEST=`diff -u ../dotest test3`
+TEST=`diff ../dotest test3`
 echo $TEST
 if  [ ! -e ./test3 ] || [ -n "$TEST" ]; then
 	echo "ERROR: Remote to Remote Copy Failed. FAILED!!"
