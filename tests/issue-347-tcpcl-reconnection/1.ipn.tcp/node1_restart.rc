@@ -1,0 +1,12 @@
+## begin ionadmin 
+1 1 amroc.ionconfig
+s
+## end ionadmin 
+
+## begin bpadmin 
+1
+s
+## end bpadmin 
+
+## begin ipnadmin 
+## end ipnadmin 
