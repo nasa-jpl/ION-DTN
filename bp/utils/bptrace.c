@@ -7,6 +7,7 @@
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
 
+#define _GNU_SOURCE
 #include <bpP.h>
 
 static void	setFlag(int *srrFlags, char *arg)
@@ -102,7 +103,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
             Object	bundleZco;
             char        *fileName;
 
-            fileName = strndup(trace+1, strlen(trace));
+            fileName = strdup(trace+1);
 
             if (stat(fileName, &statbuf) < 0)
             {
