@@ -1,0 +1,26 @@
+The test is designed such that node 1, "1.ipn.tcp" sends to node 2, 
+"2.ipn.tcp". This test is designed to fail for branches which do not 
+have the tcpcli fix. The problem with the original source code was a cascading
+failure in the tcpcli caused by a shutdown message from the neighboring node.
+
+In this test, node 1 will be the neighboring node to the node that shuts down
+for some reason, node 2. The result in unfixed code is that node1 will receive
+the shutdown message and close the tcpcli receiver thread. The shutdown of the
+receiver thread will cause the keepalive thread to terminate upon exiting 
+the receive function, causing cliRunning to be set to zero. This causes the
+tcpcli spawning thread to shut down upon the receipt of a new connection, 
+which will happen when node two is brought back up. When node 2 resumes, 
+a new file will attempt to be sent, and a connection will be accepted by node
+1, which will return from the accept in the spawn receivers thread but 
+cliRunning is equal to zero which will kill the spawnreceivers thread, but not
+kill the main thread. tcpcli will continue to exist but will not do anything 
+meaningful for atleast ... 50ish years or until killed for some reason.
+
+The fix is to seperate the spawn receivers thread from the receiver/keep-alive
+thread pair with the introduction of a new variable in the thread parameters
+for the keepalive and receiver threads. The new variable exists only to the 
+receiver and keepalive and is non-existant to the spawn receivers thread. 
+The cliRunning variable is still exposed to the keepalive and receiver thread
+but should only be treated as read-only to prevent this problem from 
+occuring again. The cliRunning variable should only be written to by the spawn
+receiver thread OR in the case of a massive failure.  
