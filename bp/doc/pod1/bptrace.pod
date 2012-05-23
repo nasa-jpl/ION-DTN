@@ -32,7 +32,8 @@ may result in multiple copies of the bundle arriving at the destination
 endpoint, but when used in conjunction with priority 2.254 it ensures that
 the bundle will be delivered as soon as physically possible.
 
-I<trace_text> can be any string of ASCII text.
+I<trace_text> can be any string of ASCII text; alternatively, if we want to send
+a file, it can be "@" followed by the file name.
 
 I<status_report_flags> must be a sequence of status report flags, separated
 by commas, with no embedded whitespace.  Each status report flag must be one
