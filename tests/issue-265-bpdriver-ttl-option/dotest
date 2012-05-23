@@ -66,6 +66,7 @@ elif [ "$OS" = "SunOS" ]; then
 	echo "Using SunOS netcat at `which netcat`."
 else
 	echo "Using standard netcat at `which netcat`."
+
 fi
 
 sleep 1
