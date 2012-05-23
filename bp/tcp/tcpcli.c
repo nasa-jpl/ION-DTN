@@ -473,7 +473,7 @@ thread", NULL);
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	tcpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -607,7 +607,9 @@ int	main(int argc, char *argv[])
 
 	ionNoteMainThread("tcpcli");
 	isignal(SIGTERM, interruptThread);
+#ifndef mingw
         isignal(SIGPIPE, SIG_IGN); //Ignore pipe break and handle it gracefully
+#endif
 
 	/*	Start the access thread.				*/
 

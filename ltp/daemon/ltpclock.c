@@ -10,21 +10,19 @@
 									*/
 #include "ltpP.h"
 
-static int	_running(int *newValue)
+static long	_running(long *newValue)
 {
-	static int	state;
+	void	*value;
+	long	state;
 
-	if (newValue)
+	if (newValue)			/*	Changing state.		*/
 	{
-		if (*newValue == 1)
-		{
-			state = 1;
-			sm_TaskVarAdd(&state);
-		}
-		else
-		{
-			state = 0;
-		}
+		value = (void *) (*newValue);
+		state = (long) sm_TaskVar(&value);
+	}
+	else				/*	Just check.		*/
+	{
+		state = (long) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -32,7 +30,7 @@ static int	_running(int *newValue)
 
 static void	shutDown()	/*	Commands ltpclock termination.	*/
 {
-	int	stop = 0;
+	long	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates ltpclock.		*/
 }
@@ -217,7 +215,7 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	ltpclock(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -227,7 +225,7 @@ int	main(int argc, char *argv[])
 #endif
 	Sdr	sdr;
 	LtpDB	*ltpConstants;
-	int	state = 1;
+	long	state = 1;
 	time_t	currentTime;
 
 	if (ltpInit(0, 0) < 0)

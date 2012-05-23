@@ -21,12 +21,17 @@ static int 	running = 1;
 
 static BpSAP	_bpsap(BpSAP *newSAP)
 {
-	static BpSAP	sap = NULL;
+	void	*value;
+	BpSAP	sap;
 
-	if (newSAP)
+	if (newSAP)			/*	Add task variable.	*/
 	{
-		sap = *newSAP;
-		sm_TaskVarAdd((int *) &sap);
+		value = (void *) (*newSAP);
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
 	}
 
 	return sap;
@@ -34,7 +39,10 @@ static BpSAP	_bpsap(BpSAP *newSAP)
 
 static void	handleQuit()
 {
+	void	*erase = NULL;
+
 	bp_interrupt(_bpsap(NULL));
+	oK(sm_TaskVar(&erase));
 	running = 0;
 }
 

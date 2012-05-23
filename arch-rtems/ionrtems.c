@@ -425,6 +425,7 @@ void	showUtcDelta()
 
 #define	CONFIGURE_INIT
 
+#undef Object
 #include <rtems/confdefs.h>
 
 /* Loopback Network Configuration needed to prevent linking with dummy.o */

@@ -14,7 +14,7 @@ ICISOURCES =     \
    lyst.c        \
    psm.c         \
    smlist.c      \
-   smrbt.c      \
+   smrbt.c       \
    ion.c         \
    rfx.c         \
    zco.c         \
@@ -29,8 +29,8 @@ ICISOURCES =     \
    ionadmin.c    \
    sdrmend.c     \
    ionsec.c      \
-   ionsecadmin.c 
-
+   ionsecadmin.c \
+   ionexit.c
 
 BPSOURCES =      \
 	libbp.c      \
@@ -65,6 +65,8 @@ LTPSOURCES =     \
 BSPSOURCES =     \
 	extbsputil.c \
 	extbspbab.c  \
+	extbsppib.c  \
+	extbsppcb.c  \
 	crypto.c          
 
 DTN2SOURCES =        \
@@ -101,7 +103,7 @@ include $(PROJECT_ROOT)/make/leaf.cfg
 
 OBJS = $(COBJS) $(CXXOBJS) $(ASOBJS)
 
-CFLAGS = -g -Wall -Werror $(IONFLAGS) -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include -I../cfdp/include -I../ams/include -I. -O2
+CFLAGS = -g -Wall -Werror $(IONFLAGS) -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include -I../bp/library -I../bp/library/crypto -I../bp/library/ext/ecos -I../cfdp/include -I../ams/include -I. -O2
 
 all:    ${ARCH} $(PGM)
 

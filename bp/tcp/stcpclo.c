@@ -20,20 +20,32 @@
 
 static sm_SemId		stcpcloSemaphore(sm_SemId *semid)
 {
-	static sm_SemId	semaphore = -1;
+	long		temp;
+	void		*value;
+	sm_SemId	semaphore;
 
-	if (semid)
+	if (semid)			/*	Add task variable.	*/
 	{
-		semaphore = *semid;
-		sm_TaskVarAdd(&semaphore);
+		temp = *semid;
+		value = (void *) temp;
+		value = sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	semaphore = temp;
 	return semaphore;
 }
 
 static void	shutDownClo()	/*	Commands CLO termination.	*/
 {
+	void	*erase = NULL;
+
 	sm_SemEnd(stcpcloSemaphore(NULL));
+	oK(sm_TaskVar(&erase));
 }
 
 /*	*	*	Keepalive thread functions	*	*	*/

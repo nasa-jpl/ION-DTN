@@ -1,4 +1,3 @@
-
 = Release Notes for ION 3.0.1 =
 
 May 23, 2012
@@ -70,7 +69,7 @@ Features included:
   non-recursive modes.
 
 - Issue #353:  Scrubbed various test configurations in the test suite that 
-  produced superflous regarding the bundle security database not being
+  produced superflous messages regarding the bundle security database not being
   initialized properly.
 
 - Issue #354:  Slightly changed the behavior of "make retest", a directive that
@@ -85,7 +84,8 @@ Features included:
 
 - Issue #356:  Enhanced the bptrace application with file-sending capabilities.
 
-- ION has now been ported to Droid!
+- ION has now been ported to the "bionic" libc implementation, the first
+  step toward porting ION to the Android operating system.
 
 - Starting from this release the ION manual "ION.pdf" will be distributed with
   an appendix containing up-to-date man pages for all ION applications.

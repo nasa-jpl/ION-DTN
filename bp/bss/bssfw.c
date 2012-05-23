@@ -42,20 +42,32 @@ static Lyst	_loggedStreamsList(int control)
 
 static sm_SemId		_bssfwSemaphore(sm_SemId *newValue)
 {
-	static sm_SemId	sem;
+	long		temp;
+	void		*value;
+	sm_SemId	sem;
 
-	if (newValue)
+	if (newValue)			/*	Add task variable.	*/
 	{
-		sem = *newValue;
-		sm_TaskVarAdd(&sem);
+		temp = *newValue;
+		value = (void *) temp;
+		value = sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	sem = temp;
 	return sem;
 }
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
+	void	*erase = NULL;
+
 	sm_SemEnd(_bssfwSemaphore(NULL));
+	oK(sm_TaskVar(&erase));
 }
 
 static int	getDirective(unsigned long nodeNbr, Object plans,

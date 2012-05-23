@@ -1199,7 +1199,7 @@ int	irecvfrom(int sockfd, char *buf, int len, int flags,
 	CHKERR(len >= 0);
 	CHKERR(buf);
 	CHKERR(from);
-	CHKERR(fromLen);
+	CHKERR(fromlen);
 	while (1)	/*	Continue until valid result.		*/
 	{
 		length = recvfrom(sockfd, buf, len, flags, from, fromlen);
@@ -1334,6 +1334,7 @@ static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
 	static char		errmsgs[ERRMSGS_BUFSIZE];
 	static int		errmsgsLength = 0;
 	static ResourceLock	errmsgsLock;
+	static int		errmsgsLockInit = 0;
 	int			msgLength;
 	int			spaceFreed;
 	char			lineNbrBuffer[32];
@@ -1341,10 +1342,16 @@ static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
 	int			spaceForText;
 	int			spaceNeeded;
 
-	if (initResourceLock(&errmsgsLock) < 0)
+	if (!errmsgsLockInit)
 	{
-		ABORT_AS_REQD;
-		return 0;
+		memset((char *) &errmsgsLock, 0, sizeof(ResourceLock));
+		if (initResourceLock(&errmsgsLock) < 0)
+		{
+			ABORT_AS_REQD;
+			return 0;
+		}
+
+		errmsgsLockInit = 1;
 	}
 
 	if (buffer)		/*	Retrieving an errmsg.		*/
@@ -1484,6 +1491,7 @@ int	getErrmsg(char *buffer)
 void	writeErrmsgMemos()
 {
 	static ResourceLock	memosLock;
+	static int		memosLockInit = 0;
 	static char		msgwritebuf[ERRMSGS_BUFSIZE];
 	static char		*omissionMsg = "[?] message omitted due to \
 excessive length";
@@ -1491,10 +1499,16 @@ excessive length";
 	/*	Because buffer is static, it is shared.  So access
 	 *	to it must be mutexed.					*/
 
-	if (initResourceLock(&memosLock) < 0)
+	if (!memosLockInit)
 	{
-		ABORT_AS_REQD;
-		return;
+		memset((char *) &memosLock, 0, sizeof(ResourceLock));
+		if (initResourceLock(&memosLock) < 0)
+		{
+			ABORT_AS_REQD;
+			return;
+		}
+
+		memosLockInit = 1;
 	}
 
 	lockResource(&memosLock);
