@@ -11,37 +11,30 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0
 
+
 env >> ~/postscript
 # Start nodes.
 # Setup node 1
 cd 1.ipn.tcp/
 ./ionstart
-echo "Node 1 started" >> ion.log
 sleep 5
 
 #Set up node 2
 cd ../2.ipn.tcp/
 ./ionstart
-echo "Node 2 started" >> ion.log
 sleep 5
-
-echo "Sleeping for 30s"
-sleep 15
 
 # Start file receiver on node 2.
 cd ../2.ipn.tcp/
 echo "Starting bprecvfile..."
 bprecvfile ipn:2.1 &
-echo "Started bprecvfile" >> ion.log
 sleep 10
 
 # Send one file from node 1 to node 2.
 cd ../1.ipn.tcp/
 echo "Sending first file from node 1 to node 2..."
-echo "Starting File Transfer" >> ion.log
 bpsendfile ipn:1.1 ipn:2.1 testfilex
-echo "Ended file transfer" >> ion.log
-sleep 60
+sleep 10
 
 # Verify that this file arrived.
 cd ../2.ipn.tcp
@@ -50,11 +43,9 @@ if [ $COUNT -eq 1 ]
 then
 	echo ""
 	echo "Okay: got a copy of file x. SUCCESS"
-	echo "Okay: got a copy of file x. SUCCESS" >> ion.log
 else
 	echo ""
 	echo "Error: didn't get a copy of file x. FAIL"
-	echo "Error: didn't get a copy of file x. FAIL" >> ion.log
 	RETVAL=1
 fi
 
@@ -62,29 +53,22 @@ echo ""
 # Now to send shutdown from node 1 to node 2.
 echo "Breaking TCP connection to node 2..."
 cd ../1.ipn.tcp/
-echo "Stopping node 1" >> ion.log
 ./ionstop
 echo "Node 1 is stopped."
-echo "Stopped node 1" >> ion.log
 sleep 30
 
 echo ""
 # Now to restart node 1
 echo "Restarting node 1"
 cd ../1.ipn.tcp/
-echo "Restarting node 1 " >> ion.log
-ionstart -I "node1_restart.rc" 
-echo "Node 1 is restarted" >> ion.log
-echo "Node 1 is restarted. Sleeping for 15"
+ionstart -I "node1_restart.rc"
 sleep 30
 
 # Send second file from node 1 to node 2.
 cd ../1.ipn.tcp/
 echo "Attempting to send a second file from node 1 to node 2..."
-echo "Attempting to send a second file from node 1 to node 2..." >> ion.log
-ps -eLfF | grep tcp > ../process.list
 bpsendfile ipn:1.1 ipn:2.1 testfiley
-sleep 20
+sleep 5
 
 # Verify that this file has NOT arrived.
 cd ../2.ipn.tcp
@@ -93,11 +77,9 @@ if [ $COUNT -eq 1 ]
 then
 	echo ""
 	echo "Okay: got a copy of file y. SUCCESS" 
-	echo "Okay: got a copy of file y. SUCCESS" >> ion.log
 else
 	echo ""
 	echo "Error: did not get a copy of file y. FAIL"
-	echo "Error: did not get a copy of file y. FAIL" >> ion.log
 	RETVAL=1
 fi
 
@@ -105,10 +87,8 @@ echo ""
 # Shut down ION processes.
 echo "Stopping ION..."
 cd ../1.ipn.tcp
-echo "Stopping ION..." >> ion.log
 ./ionstop &
 cd ../2.ipn.tcp
-echo "Stopping ION..." >> ion.log
 ./ionstop &
 
 # Give nodes time to shut down, then clean up.
