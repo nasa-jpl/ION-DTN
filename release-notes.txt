@@ -64,20 +64,21 @@ Features included:
 
 - Issue #352: BPCP, an rcp-like remote copy utility that transfers files via
   CFDP, is a new utility now included with ION.  It is built and installed by
-  default with an interface similar to rcp, with support for local to remote,
-  remote to local, and remote to remote transfers in recursive and
+  default and has an interface similar to rcp, with support for local to
+  remote, remote to local, and remote to remote transfers in recursive and
   non-recursive modes.
 
 - Issue #353:  Scrubbed various test configurations in the test suite that 
-  produced superflous messages regarding the bundle security database not being
-  initialized properly.
+  produced superfluous messages regarding the bundle security database not
+  being initialized properly.
 
 - Issue #354:  Slightly changed the behavior of "make retest", a directive that
   reruns tests that failed on the previous test run.
   Previously "make retest" would re-run the entire test suite if issued
   immediately following a completely sucessful test run.
-  "make retest" now returns SUCCESS immediately if run following a completely
-  successful test run, a behavior more amenable to automated testing.
+  "make retest" now returns SUCCESS immediately if issued following a
+  completely successful test run, a behavior more amenable to automated
+  testing.
 
 - Issue #355:  Updated the ION build process to be compatible with the latest
   versions of autotools, particularly automake v1.12.
