@@ -385,6 +385,8 @@ int open_remote_dir(char *host, char *dir)
 {
 	int res;
 	unsigned long long entityId;
+	char	template[] = "dldfnXXXXXX";
+	int	tempfd;
 	char* tmp;
 	int hndl;
 
@@ -409,12 +411,16 @@ int open_remote_dir(char *host, char *dir)
 		dbgprintf(0, "Error: Too Many Directories Open\n");
 		exit_nicely(1);
 	}
-	tmp=tmpnam(NULL);
-	if(tmp==NULL || strlen(tmp)>254 || strlen(tmp)==0)
+
+	tempfd = mkstemp(template);
+	if (tempfd < 0)
 	{
 		dbgprintf(0, "Error: Can't Get Temporary Filename\n");
 		exit_nicely(1);
 	}
+
+	unlink(template);	/*	Just need name, not the file.	*/
+	tmp = template;
 	strncpy(tmp_files[hndl], tmp, 255);
 
 	/*Setup Dir list*/
