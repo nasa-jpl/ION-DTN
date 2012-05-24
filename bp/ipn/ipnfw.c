@@ -12,20 +12,32 @@
 
 static sm_SemId		_ipnfwSemaphore(sm_SemId *newValue)
 {
-	static sm_SemId	sem;
+	long		temp;
+	void		*value;
+	sm_SemId	sem;
 
-	if (newValue)
+	if (newValue)			/*	Add task variable.	*/
 	{
-		sem = *newValue;
-		sm_TaskVarAdd(&sem);
+		temp = *newValue;
+		value = (void *) temp;
+		value = sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	sem = temp;
 	return sem;
 }
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
+	void	*erase = NULL;
+
 	sm_SemEnd(_ipnfwSemaphore(NULL));
+	oK(sm_TaskVar(&erase));
 }
 
 static int	getDirective(unsigned long nodeNbr, Object plans,
@@ -258,7 +270,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	ipnfw(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

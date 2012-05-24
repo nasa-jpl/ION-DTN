@@ -10,21 +10,19 @@
 									*/
 #include "rfx.h"
 
-static int	_running(int *newValue)
+static long	_running(long *newValue)
 {
-	static int	state;
+	void	*value;
+	long	state;
 	
-	if (newValue)
+	if (newValue)			/*	Changing state.		*/
 	{
-		if (*newValue == 1)
-		{
-			state = 1;
-			sm_TaskVarAdd(&state);
-		}
-		else
-		{
-			state = 0;
-		}
+		value = (void *) (*newValue);
+		state = (long) sm_TaskVar(&value);
+	}
+	else				/*	Just check.		*/
+	{
+		state = (long) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -32,7 +30,7 @@ static int	_running(int *newValue)
 
 static void	shutDown()	/*	Commands rfxclock termination.	*/
 {
-	int	stop = 0;
+	long	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates rfxclock.		*/
 }
@@ -298,7 +296,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	rfxclock(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -309,7 +307,7 @@ int	main(int argc, char *argv[])
 	Sdr		sdr;
 	PsmPartition	ionwm;
 	IonVdb		*vdb;
-	int		start = 1;
+	long		start = 1;
 	time_t		currentTime;
 	PsmAddress	elt;
 	PsmAddress	addr;

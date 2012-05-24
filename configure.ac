@@ -8,13 +8,23 @@
 #is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
 # fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, 3.0.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
-AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
+AC_INIT(ion, 3.0.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+
+#  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
+#  all of the portability warnings introduced by autoconf v2.69 and
+#  automake v1.12.
+#AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
+AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
+
 # shall we put extra scripts in a special directory?
 # AC_CONFIG_AUX_DIR(build-aux)
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
 AC_CONFIG_HEADER([config.h])
+
+# More issue #355 changes
+AC_CONFIG_MACRO_DIR([m4])
+LT_INIT
 
 #
 # allow the user running configure to disable ACS

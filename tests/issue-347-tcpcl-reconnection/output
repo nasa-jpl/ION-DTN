@@ -1,0 +1,90 @@
+== ./1.ipn.tcp/ion.log ==
+[2012/05/02-17:52:38] [i] No congestion collapse predicted.
+[2012/05/02-17:52:38] [i] rfxclock is running.
+[2012/05/02-17:52:40] [i] Bundle security is enabled.
+[2012/05/02-17:52:41] [i] bpclock is running.
+[2012/05/02-17:52:41] [i] tcpcli is running, spec=[127.0.0.1:4555].
+[2012/05/02-17:52:41] [i] ipnadminep is running.
+[2012/05/02-17:52:41] [i] tcpclo is running, spec=[127.0.0.2:4556].
+[2012/05/02-17:52:41] [i] ipnfw is running.
+[2012/05/02-17:53:35] [i] ipnfw forwarder has ended.
+[2012/05/02-17:53:35] [i] Endpoint has been stopped.
+[2012/05/02-17:53:35] [i] Administrative endpoint terminated.
+[2012/05/02-17:53:35] [i] ipnadminep has ended.
+[2012/05/02-17:53:35] [i] bpclock has ended.
+[2012/05/02-17:53:35] [i] Outduct has been stopped.
+[2012/05/02-17:53:35] [i] tcpcli access thread has ended.
+[2012/05/02-17:53:35] [i] tcpcli duct has ended.
+[2012/05/02-17:53:36] at line 190 of bp/tcp/libtcpcla.c, write() error on socket: Bad file descriptor
+[2012/05/02-17:53:36] [?] Lost connection to CLI; keep-alive not sent.
+[2012/05/02-17:53:37] tcpclo keep alive thread killed
+[2012/05/02-17:53:37] tcpclo receiver thread killed
+[2012/05/02-17:53:37] [i] tcpclo duct has ended.
+[2012/05/02-17:53:38] [i] rfxclock has ended.
+[2012/05/02-17:53:38] [i] No congestion collapse predicted.
+[2012/05/02-17:54:09] [i] No congestion collapse predicted.
+[2012/05/02-17:54:09] [i] rfxclock is running.
+[2012/05/02-17:54:11] [i] Bundle security is enabled.
+[2012/05/02-17:54:11] [?] Duplicate scheme: ipn
+[2012/05/02-17:54:11] [?] Duplicate endpoint: ipn
+[2012/05/02-17:54:11] [?] Duplicate endpoint: ipn
+[2012/05/02-17:54:11] [?] Duplicate endpoint: ipn
+[2012/05/02-17:54:11] [?] Duplicate protocol: tcp
+[2012/05/02-17:54:11] [?] Duplicate induct: 127.0.0.1:4555
+[2012/05/02-17:54:11] [?] Duplicate outduct: 127.0.0.2:4556
+[2012/05/02-17:54:11] [?] Duplicate plan: 2
+[2012/05/02-17:54:12] [i] ipnadminep is running.
+[2012/05/02-17:54:12] [i] tcpcli is running, spec=[127.0.0.1:4555].
+[2012/05/02-17:54:12] [i] ipnfw is running.
+[2012/05/02-17:54:12] [i] bpclock is running.
+[2012/05/02-17:54:12] [i] tcpclo is running, spec=[127.0.0.2:4556].
+[2012/05/02-17:55:03] [i] Endpoint has been stopped.
+[2012/05/02-17:55:03] [i] Administrative endpoint terminated.
+[2012/05/02-17:55:03] [i] ipnfw forwarder has ended.
+[2012/05/02-17:55:03] [i] ipnadminep has ended.
+[2012/05/02-17:55:03] [i] bpclock has ended.
+[2012/05/02-17:55:03] [i] Outduct has been stopped.
+[2012/05/02-17:55:03] at line 190 of bp/tcp/libtcpcla.c, write() error on socket: Bad file descriptor
+[2012/05/02-17:55:03] at line 1053 of bp/tcp/libtcpcla.c, Lost connection while trying to send Shutdown message
+[2012/05/02-17:55:03] at line 441 of bp/tcp/tcpclo.c, Sending Shutdown message failed!!
+[2012/05/02-17:55:03] [i] tcpcli access thread has ended.
+[2012/05/02-17:55:03] [i] tcpcli duct has ended.
+[2012/05/02-17:55:04] tcpclo keep alive thread killed
+[2012/05/02-17:55:04] tcpclo receiver thread killed
+[2012/05/02-17:55:04] [i] tcpclo duct has ended.
+[2012/05/02-17:55:05] [i] rfxclock has ended.
+[2012/05/02-17:55:05] [i] No congestion collapse predicted.
+== ./2.ipn.tcp/ion.log ==
+[2012/05/02-17:52:47] [i] No congestion collapse predicted.
+[2012/05/02-17:52:47] [i] rfxclock is running.
+[2012/05/02-17:52:49] [i] Bundle security is enabled.
+[2012/05/02-17:52:50] [i] ipnadminep is running.
+[2012/05/02-17:52:50] [i] bpclock is running.
+[2012/05/02-17:52:50] [i] tcpclo is running, spec=[127.0.0.1:4555].
+[2012/05/02-17:52:50] [i] tcpcli is running, spec=[127.0.0.2:4556].
+[2012/05/02-17:52:50] [i] ipnfw is running.
+[2012/05/02-17:53:10] [i] bprecvfile is running.
+[2012/05/02-17:53:20] [i] bprecvfile has created 'testfile1', size 915.
+[2012/05/02-17:53:35] at line 687 of bp/tcp/libtcpcla.c, Received Shutdown message.
+[2012/05/02-17:53:50] at line 190 of bp/tcp/libtcpcla.c, write() error on socket: Connection reset by peer
+[2012/05/02-17:53:50] [?] Lost connection to CLI; keep-alive not sent.
+[2012/05/02-17:54:05] [i] tcpcli keepalive thread stopping.
+[2012/05/02-17:54:05] [i] tcpcli receiver thread stopping.
+[2012/05/02-17:55:03] [i] Endpoint has been stopped.
+[2012/05/02-17:55:03] [i] Administrative endpoint terminated.
+[2012/05/02-17:55:03] [i] ipnadminep has ended.
+[2012/05/02-17:55:03] [i] Endpoint has been stopped.
+[2012/05/02-17:55:03] [i] Stopping bprecvfile.
+[2012/05/02-17:55:03] [i] ipnfw forwarder has ended.
+[2012/05/02-17:55:03] [i] bpclock has ended.
+[2012/05/02-17:55:03] [i] Outduct has been stopped.
+[2012/05/02-17:55:03] at line 190 of bp/tcp/libtcpcla.c, write() error on socket: Bad file descriptor
+[2012/05/02-17:55:03] at line 1053 of bp/tcp/libtcpcla.c, Lost connection while trying to send Shutdown message
+[2012/05/02-17:55:03] at line 441 of bp/tcp/tcpclo.c, Sending Shutdown message failed!!
+[2012/05/02-17:55:03] [i] tcpcli access thread has ended.
+[2012/05/02-17:55:03] [i] tcpcli duct has ended.
+[2012/05/02-17:55:04] tcpclo keep alive thread killed
+[2012/05/02-17:55:04] tcpclo receiver thread killed
+[2012/05/02-17:55:04] [i] tcpclo duct has ended.
+[2012/05/02-17:55:05] [i] rfxclock has ended.
+[2012/05/02-17:55:05] [i] No congestion collapse predicted.

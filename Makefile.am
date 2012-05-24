@@ -806,7 +806,7 @@ bpPODM5 = pod2man -s 5 -c "BP configuration files"
 # compile these for the website use only?
 #bpPODH = pod2html --noindex
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -DBP_EXTENDED
+bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
@@ -1423,7 +1423,9 @@ cfdpbin = \
 	cfdpadmin \
 	cfdpclock \
 	bputa \
-	cfdptest
+	cfdptest \
+	bpcp \
+	bpcpd
 
 cfdplib = \
 	libcfdp.la
@@ -1433,7 +1435,8 @@ cfdpinclude = \
 	cfdp/include/cfdpops.h
 
 cfdpnoinst = \
-	cfdp/library/cfdpP.h
+	cfdp/library/cfdpP.h \
+	cfdp/utils/bpcp.h
 
 cfdpextra = \
 	cfdp/doc/pod3/cfdp.pod \
@@ -1442,6 +1445,8 @@ cfdpextra = \
 	cfdp/doc/pod1/cfdpclock.pod \
 	cfdp/doc/pod1/bputa.pod \
 	cfdp/doc/pod1/cfdpadmin.pod \
+	cfdp/doc/pod1/bpcp.pod \
+	cfdp/doc/pod1/bpcpd.pod \
 	cfdp/README.txt
 
 cfdpmans = \
@@ -1450,7 +1455,9 @@ cfdpmans = \
 	$(top_builddir)/cfdp/doc/cfdptest.1 \
 	$(top_builddir)/cfdp/doc/cfdpclock.1 \
 	$(top_builddir)/cfdp/doc/bputa.1 \
-	$(top_builddir)/cfdp/doc/cfdpadmin.1
+	$(top_builddir)/cfdp/doc/cfdpadmin.1 \
+	$(top_builddir)/cfdp/doc/bpcp.1 \
+	$(top_builddir)/cfdp/doc/bpcpd.1
 
 cfdpclean-local:
 	rm -f $(top_builddir)/cfdp/doc/*.1
@@ -1481,6 +1488,14 @@ libcfdp_la_LIBADD = libici.la
 cfdpadmin_SOURCES = cfdp/utils/cfdpadmin.c
 cfdpadmin_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 cfdpadmin_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+
+bpcp_SOURCES = cfdp/utils/bpcp.c
+bpcp_LDADD = libcfdp.la libici.la $(LIBOBJS)
+bpcp_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+
+bpcpd_SOURCES = cfdp/utils/bpcpd.c
+bpcpd_LDADD = libcfdp.la libici.la $(LIBOBJS)
+bpcpd_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- BP Programs --- #
 

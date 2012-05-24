@@ -8,6 +8,8 @@ MANFILES = \
 	./man/man1/cfdpclock.1 \
 	./man/man1/cfdptest.1 \
 	./man/man1/bputa.1 \
+	./man/man1/bpcp.1 \
+	./man/man1/bpcpd.1 \
 	./man/man5/cfdprc.5 \
 	./man/man3/cfdp.3
 
@@ -16,6 +18,8 @@ HTMLFILES = \
 	./html/man1/cfdpclock.html \
 	./html/man1/cfdptest.html \
 	./html/man1/bputa.html \
+	./html/man1/bpcp.html \
+	./html/man1/bpcpd.html \
 	./html/man5/cfdprc.html \
 	./html/man3/cfdp.html
 

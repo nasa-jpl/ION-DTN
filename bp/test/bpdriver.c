@@ -23,14 +23,19 @@
 
 //static char	dlvmarks[] = "?.*!";
 
-static BpSAP	_bpsap(BpSAP *newSAP)
+static BpSAP	_bpsap(BpSAP *newSap)
 {
-	static BpSAP	sap = NULL;
+	void	*value;
+	BpSAP	sap;
 
-	if (newSAP)
+	if (newSap)			/*	Add task variable.	*/
 	{
-		sap = *newSAP;
-		sm_TaskVarAdd((int *) &sap);
+		value = (void *) (*newSap);
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
 	}
 
 	return sap;
@@ -38,7 +43,10 @@ static BpSAP	_bpsap(BpSAP *newSAP)
 
 static void	handleQuit()
 {
+	void	*erase = NULL;
+
 	bp_interrupt(_bpsap(NULL));
+	oK(sm_TaskVar(&erase));
 }
 
 static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,

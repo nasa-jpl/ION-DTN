@@ -1551,8 +1551,12 @@ static int	AssertPetition(RamsGateway *gWay, Petition *pet)
 	 *	members of the petition's computed propagation set.	*/
 
 #if RAMSDEBUG
+char	*env = pet->specification->envelope;
 printf("<assert petition> assert petition cId = %d unit = %d role = %d \
-subject = %d \n",  continuumNbr, unitNbr, sourceId, subjectNbr);
+subject = %d \n",  EnvelopeHeader(env, Env_ContinuumNbr),
+EnvelopeHeader(env, Env_UnitField),
+EnvelopeHeader(env, Env_SourceIDField),
+EnvelopeHeader(env, Env_SubjectNbr));
 #endif
 	assertionSet = AssertionSet(gWay, pet);
 	CHKERR(assertionSet);

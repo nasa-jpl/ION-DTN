@@ -496,7 +496,7 @@ sm_ShmDestroy(int id)
 
 /****************** Argument buffer services **********************************/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 
 #define	ARG_BUFFER_CT	256
 #define	MAX_ARG_LENGTH	63
@@ -1947,9 +1947,19 @@ int	sm_TaskExists(int task)
 	return 0;
 }
 
-void	sm_TaskVarAdd(int *var)
+void	*sm_TaskVar(void **arg)
 {
-	taskVarAdd(0, var);
+	static void	*value;
+
+	if (arg != NULL)
+	{
+		/*	Set value by dereferencing argument.		*/
+
+		value = *arg;
+		taskVarAdd(0, (int *) &value);
+	}
+
+	return value;
 }
 
 void	sm_TaskSuspend()
@@ -2059,40 +2069,43 @@ void	sm_Abort()
 
 #endif			/*	End of #ifdef VXWORKS			*/
 
-#ifdef RTEMS
+#if (defined(RTEMS) || defined(bionic))
 
 /*	Note: the RTEMS API is UNIX-like except that it omits all SVR4
  *	features.  RTEMS uses POSIX semaphores, and its shared-memory
- *	mechanism is the same as the one we use for VxWorks.		*/
+ *	mechanism is the same as the one we use for VxWorks.  The same
+ *	is true of Bionic.						*/
 
 #include <sys/stat.h>
 #include <sched.h>
 
-	/* ---- Task Control services (RTEMS) ------------------------- */
+	/* ---- Task Control services (POSIX) ------------------------- */
 
-#ifndef	MAX_RTEMS_TASKS
-#define MAX_RTEMS_TASKS	50
+#ifndef	MAX_POSIX_TASKS
+#define MAX_POSIX_TASKS	50
 #endif
 
 typedef struct
 {
-	int		inUse;			/*	Boolean.	*/
+	int		inUse;		/*	Boolean.		*/
 	pthread_t	threadId;
-} IonRtemsTask;
+	void		*value;		/*	Task variable value.	*/
+} PosixTask;
 
-static int	_rtemsTasks(int taskId, pthread_t *threadId)
+static void	*_posixTasks(int *taskId, pthread_t *threadId, void **arg)
 {
-	static IonRtemsTask	tasks[MAX_RTEMS_TASKS];
-	static int		initialized;	/*	Boolean.	*/
+	static PosixTask	tasks[MAX_POSIX_TASKS];
+	static int		initialized = 0;/*	Boolean.	*/
 	static ResourceLock	tasksLock;
 	pthread_t		ownThreadId;
 	int			i;
 	int			vacancy;
-	IonRtemsTask		*task;
+	PosixTask		*task;
+	void			*value;
 
-	/*	NOTE: the taskId for an IonRtemsTask is 1 more than
+	/*	NOTE: the taskId for a PosixTask is 1 more than
 	 *	the index value for that task in the tasks table.
-	 *	That is, taskIds range from 1 through MAX_RTEMS_TASKS
+	 *	That is, taskIds range from 1 through MAX_POSIX_TASKS
 	 *	and -1 is an invalid task ID signifying "none".		*/
 
 	if (!initialized)
@@ -2100,8 +2113,8 @@ static int	_rtemsTasks(int taskId, pthread_t *threadId)
 		memset((char *) tasks, 0, sizeof tasks);
 		if (initResourceLock(&tasksLock) < 0)
 		{
-			putErrmsg("Can't initialize RTEMS tasks table.", NULL);
-			return -1;
+			putErrmsg("Can't initialize POSIX tasks table.", NULL);
+			return NULL;
 		}
 
 		initialized = 1;
@@ -2109,29 +2122,43 @@ static int	_rtemsTasks(int taskId, pthread_t *threadId)
 
 	lockResource(&tasksLock);
 
-	/*	When taskId is 0, processing depends on the value
+	/*	taskId must never be NULL; it is always needed.		*/
+
+	CHKNULL(taskId);
+
+	/*	When *taskId is 0, processing depends on the value
 	 *	of threadID.  If threadId is NULL, then the task ID
-	 *	of the calling thread is returned (0 if the thread
-	 *	doesn't have an assigned task ID).  Otherwise, the
-	 *	indicated thread is added as a new task and the ID
-	 *	of that task is returned (-1 if the thread could not
-	 *	be assigned a task ID).
+	 *	of the calling thread (0 if the thread doesn't have
+	 *	an assigned task ID) is written into *taskId.
+	 *	Otherwise, the thread identified by *threadId is
+	 *	added as a new task and the ID of that task (-1
+	 *	if the thread could not be assigned a task ID) is
+	 *	written into *taskId.  In either case, NULL is
+	 *	returned.
 	 *
-	 *	Otherwise, taskId must be in the range 1 through
-	 *	MAX_RTEMS_TASKS inclusive and processing again
+	 *	Otherwise, *taskId must be in the range 1 through
+	 *	MAX_POSIX_TASKS inclusive and processing again
 	 *	depends on the value of threadId.  If threadId is
 	 *	NULL then the indicated task ID is unassigned and
 	 *	is available for reassignment to another thread;
-	 *	the return value is -1.  Otherwise, the thread ID
-	 *	for the indicated task is passed back in *threadId
-	 *	and the task ID is returned.				*/
+	 *	-1 is written into *taskId and NULL is returned.
+	 *	Otherwise:
+	 *
+	 *		The thread ID for the indicated task is
+	 *		written into *threadId.
+	 *
+	 *		If arg is non-NULL, then the task variable
+	 *		value for the indicated task is set to *arg.
+	 *
+	 *		The current value of the indicated task's
+	 *		task variable is returned.			*/
 
-	if (taskId == 0)
+	if (*taskId == 0)
 	{
 		if (threadId == NULL)	/*	Look up own task ID.	*/
 		{
 			ownThreadId = pthread_self();
-			for (i = 0, task = tasks; i < MAX_RTEMS_TASKS;
+			for (i = 0, task = tasks; i < MAX_POSIX_TASKS;
 					i++, task++)
 			{
 				if (task->inUse == 0)
@@ -2141,21 +2168,23 @@ static int	_rtemsTasks(int taskId, pthread_t *threadId)
 
 				if (pthread_equal(task->threadId, ownThreadId))
 				{
+					*taskId = i + 1;
 					unlockResource(&tasksLock);
-					return i + 1;
+					return NULL;
 				}
 			}
 
-			/*	No task ID for this thread.		*/
+			/*	No task ID for this thread; sub-thread
+			 *	of a task.				*/
 
 			unlockResource(&tasksLock);
-			return 0;	/*	Sub-thread of a task.	*/
+			return NULL;
 		}
 
 		/*	Assigning a task ID to this thread.		*/
 
 		vacancy = -1;
-		for (i = 0, task = tasks; i < MAX_RTEMS_TASKS; i++, task++)
+		for (i = 0, task = tasks; i < MAX_POSIX_TASKS; i++, task++)
 		{
 			if (task->inUse == 0)
 			{
@@ -2170,8 +2199,9 @@ static int	_rtemsTasks(int taskId, pthread_t *threadId)
 				{
 					/*	Already assigned.	*/
 
+					*taskId = i + 1;
 					unlockResource(&tasksLock);
-					return i + 1;
+					return NULL;
 				}
 			}
 		}
@@ -2179,21 +2209,24 @@ static int	_rtemsTasks(int taskId, pthread_t *threadId)
 		if (vacancy == -1)
 		{
 			putErrmsg("Can't start another task.", NULL);
+			*taskId = -1;
 			unlockResource(&tasksLock);
-			return -1;
+			return NULL;
 		}
 
 		task = tasks + vacancy;
 		task->inUse = 1;
 		task->threadId = *threadId;
+		task->value = NULL;
+		*taskId = vacancy + 1;
 		unlockResource(&tasksLock);
-		return vacancy + 1;
+		return NULL;
 	}
 
 	/*	Operating on a previously assigned task ID.		*/
 
-	CHKERR(taskId > 0 && taskId <= MAX_RTEMS_TASKS);
-	task = tasks + (taskId - 1);
+	CHKNULL((*taskId) > 0 && (*taskId) <= MAX_POSIX_TASKS);
+	task = tasks + ((*taskId) - 1);
 	if (threadId == NULL)	/*	Unassigning this task ID.	*/
 	{
 		if (task->inUse)
@@ -2201,28 +2234,38 @@ static int	_rtemsTasks(int taskId, pthread_t *threadId)
 			task->inUse = 0;
 		}
 
+		*taskId = -1;
 		unlockResource(&tasksLock);
-		return -1;
+		return NULL;
 	}
 
-	/*	Just looking up the thread ID for this task ID.		*/
+	/*	Just looking up the thread ID for this task ID and/or
+	 *	operating on task variable.				*/
 
 	if (task->inUse == 0)	/*	Invalid task ID.		*/
 	{
+		*taskId = -1;
 		unlockResource(&tasksLock);
-		return -1;
+		return NULL;
 	}
 
 	*threadId = task->threadId;
+	if (arg)
+	{
+		task->value = *arg;
+	}
+
+	value = task->value;
 	unlockResource(&tasksLock);
-	return taskId;
+	return value;
 }
 
 int	sm_TaskIdSelf()
 {
-	int		taskId = _rtemsTasks(0, NULL);
+	int		taskId = 0;
 	pthread_t	threadId;
 
+	oK(_posixTasks(&taskId, NULL, NULL));
 	if (taskId > 0)
 	{
 		return taskId;
@@ -2232,7 +2275,7 @@ int	sm_TaskIdSelf()
 	 *	an opportunity to register the thread as a task.	*/
 
 	sm_TaskYield();
-	taskId = _rtemsTasks(0, NULL);
+	oK(_posixTasks(&taskId, NULL, NULL));
 	if (taskId > 0)
 	{
 		return taskId;
@@ -2242,14 +2285,16 @@ int	sm_TaskIdSelf()
 	 *	It needs to register itself as a task.			*/
 
 	threadId = pthread_self();
-	return _rtemsTasks(0, &threadId);
+	oK(_posixTasks(&taskId, &threadId, NULL));
+	return taskId;
 }
 
 int	sm_TaskExists(int taskId)
 {
 	pthread_t	threadId;
 
-	if (_rtemsTasks(taskId, &threadId) != taskId)
+	oK(_posixTasks(&taskId, &threadId, NULL));
+	if (taskId < 0)
 	{
 		return 0;		/*	No such task.		*/
 	}
@@ -2268,9 +2313,12 @@ int	sm_TaskExists(int taskId)
 	return 0;	/*	No such thread, or some other failure.	*/
 }
 
-void	sm_TaskVarAdd(int *var)
+void	*sm_TaskVar(void **arg)
 {
-	oK(rtems_task_variable_add(rtems_task_self(), (void **) var, NULL));
+	int		taskId = sm_TaskIdSelf();
+	pthread_t	threadId;
+
+	return _posixTasks(&taskId, &threadId, arg);
 }
 
 void	sm_TaskSuspend()
@@ -2307,7 +2355,28 @@ typedef struct
 	int	arg10;
 } SpawnParms;
 
-static void	*rtemsDriverThread(void *parm)
+#ifdef bionic
+static void	posixTaskExit(int sig)
+{
+	pthread_exit(0);
+}
+
+void	pthread_cancel(pthread_t threadId)
+{
+	/*	NOTE that this is NOT a faithful implementation of
+	 *	pthread_cancel(); there is no support for deferred
+	 *	thread cancellation in Bionic (the Android subset
+	 *	of Linux).  It's just a code simplification, solely
+	 *	for the express, limited purpose of shutting down a
+	 *	task immediately, under the highly constrained
+	 *	circumstances defined by sm_TaskSpawn, sm_TaskDelete,
+	 *	and sm_Abort, below.					*/
+
+	oK(pthread_kill(threadId, SIGUSR2));
+}
+#endif
+
+static void	*posixDriverThread(void *parm)
 {
 	SpawnParms	parms;
 
@@ -2319,6 +2388,17 @@ static void	*rtemsDriverThread(void *parm)
 
 	memset((char *) parm, 0, sizeof(SpawnParms));
 
+#ifdef bionic
+	/*	Set up SIGUSR2 handler to enable shutdown.		*/
+
+	struct sigaction	actions;
+
+	memset((char *) &actions, 0, sizeof actions);
+	sigemptyset(&actions.sa_mask);
+	actions.sa_flags = 0;
+	actions.sa_handler = posixTaskExit;
+	oK(sigaction(SIGUSR2, &actions, NULL));
+#endif
 	/*	Run main function of thread.				*/
 
 	parms.threadMainFunction(parms.arg1, parms.arg2, parms.arg3,
@@ -2383,7 +2463,7 @@ private symbol table; must be added to mysymtab.c.", name);
 	parms->arg9 = (int) arg9;
 	parms->arg10 = (int) arg10;
 	sm_ConfigurePthread(&attr, stackSize);
-	errno = pthread_create(&threadId, &attr, rtemsDriverThread,
+	errno = pthread_create(&threadId, &attr, posixDriverThread,
 			(void *) parms);
 	if (errno)
 	{
@@ -2391,7 +2471,8 @@ private symbol table; must be added to mysymtab.c.", name);
 		return -1;
 	}
 
-	taskId = _rtemsTasks(0, &threadId);
+	taskId = 0;	/*	Requesting new task ID for thread.	*/
+	oK(_posixTasks(&taskId, &threadId, NULL));
 	if (taskId < 0)		/*	Too many tasks running.		*/
 	{
 		if (pthread_kill(threadId, SIGTERM) == 0)
@@ -2407,14 +2488,15 @@ private symbol table; must be added to mysymtab.c.", name);
 
 void	sm_TaskForget(int taskId)
 {
-	oK(_rtemsTasks(taskId, NULL));
+	oK(_posixTasks(&taskId, NULL, NULL));
 }
 
 void	sm_TaskKill(int taskId, int sigNbr)
 {
 	pthread_t	threadId;
 
-	if (_rtemsTasks(taskId, &threadId) != taskId)
+	oK(_posixTasks(&taskId, &threadId, NULL));
+	if (taskId < 0)
 	{
 		return;		/*	No such task.			*/
 	}
@@ -2426,7 +2508,8 @@ void	sm_TaskDelete(int taskId)
 {
 	pthread_t	threadId;
 
-	if (_rtemsTasks(taskId, &threadId) != taskId)
+	oK(_posixTasks(&taskId, &threadId, NULL));
+	if (taskId < 0)
 	{
 		return;		/*	No such task.			*/
 	}
@@ -2436,7 +2519,7 @@ void	sm_TaskDelete(int taskId)
 		oK(pthread_cancel(threadId));
 	}
 
-	oK(_rtemsTasks(taskId, NULL));
+	oK(_posixTasks(&taskId, NULL, NULL));
 }
 
 void	sm_Abort()
@@ -2460,7 +2543,7 @@ void	sm_Abort()
 	sm_TaskDelete(taskId);
 }
 
-#endif			/*	End of #ifdef RTEMS			*/
+#endif			/*	End of #ifdef RTEMS || bionic		*/
 
 #ifdef mingw
 
@@ -2515,9 +2598,22 @@ int	sm_TaskExists(int task)
 	return 1;
 }
 
-void	sm_TaskVarAdd(int *var)
+void	*sm_TaskVar(void **arg)
 {
-	return;	/*	All globals of Windows process are "task vars."	*/
+	static void	*value;
+
+	/*	Each Windows process has its own distinct instance
+	 *	of each global variable, so all global variables
+	 *	are automatically "task variables".			*/
+
+	if (arg != NULL)
+	{
+		/*	Set value by dereferencing argument.		*/
+
+		value = *arg;
+	}
+
+	return value;
 }
 
 void	sm_TaskSuspend()
@@ -2694,7 +2790,7 @@ void	sm_Wakeup(DWORD processId)
 }
 #endif			/*	End of #ifdef mingw			*/
 
-#if (!defined(VXWORKS) && !defined(RTEMS) && !defined(mingw))
+#if (!defined(VXWORKS) && !defined(RTEMS) && !defined(mingw) && !defined(bionic))
 
 	/* ---- IPC services access control (Unix) -------------------- */
 
@@ -2741,9 +2837,22 @@ int	sm_TaskExists(int task)
 	return 1;
 }
 
-void	sm_TaskVarAdd(int *var)
+void	*sm_TaskVar(void **arg)
 {
-	return;	/*	All globals of a UNIX process are "task vars."	*/
+	static void	*value;
+
+	/*	Each UNIX process has its own distinct instance
+	 *	of each global variable, so all global variables
+	 *	are automatically "task variables".			*/
+
+	if (arg != NULL)
+	{
+		/*	Set value by dereferencing argument.		*/
+
+		value = *arg;
+	}
+
+	return value;
 }
 
 void	sm_TaskSuspend()
@@ -3014,7 +3123,7 @@ int	pseudoshell(char *commandLine)
 		putErrmsg("More than 11 args in command.", commandLine);
 		return -1;
 	}
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 	takeIpcLock();
 	if (copyArgs(argc, argv) < 0)
 	{
@@ -3026,7 +3135,7 @@ int	pseudoshell(char *commandLine)
 	pid = sm_TaskSpawn(argv[0], argv[1], argv[2], argv[3],
 			argv[4], argv[5], argv[6], argv[7], argv[8],
 			argv[9], argv[10], 0, 0);
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 	if (pid == -1)
 	{
 		tagArgBuffers(0);

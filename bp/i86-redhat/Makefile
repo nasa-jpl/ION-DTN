@@ -17,7 +17,7 @@ DCCP = ../dccp
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(API)/crypto -I$(API)/ext/ecos -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -210,7 +210,7 @@ udpclo:		udpclo.o $(BPLIBS) libudpcla.so
 		$(CC) -o udpclo udpclo.o -L./lib -L$(ROOT)/lib -ludpcla $(LBP) -lici -lpthread
 		cp udpclo ./bin
 
-#	-	-	DCCP executables	-	-	-	-	-
+#	-	-	DCCP executables	-	-	-	-
 
 dccpcli:	dccpcli.o $(BPLIBS)
 		$(CC) -o dccpcli dccpcli.o -L./lib -L$(ROOT)/lib $(LFW) $(LBP) -lici -lpthread
@@ -363,5 +363,5 @@ libbpnm.so:	libbpnm.o $(API)/bpnm.h
 #%.o:		$(API)/acs/%.c
 #		$(CC) -c $<
 
-%.o:		$(API)/ext/cteb/%.c
-		$(CC) -c $<
+#%.o:		$(API)/ext/cteb/%.c
+#		$(CC) -c $<

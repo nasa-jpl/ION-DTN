@@ -13,12 +13,19 @@
 
 static sm_SemId	_pmqlsoSemaphore(sm_SemId *semptr)
 {
-	static sm_SemId	sem = SM_SEM_NONE;
+	long		temp;
+	void		*value;
+	sm_SemId	sem;
 
-	if (semptr)
+	if (semptr)			/*	Add task variable.	*/
 	{
-		sem = *semptr;
-		sm_TaskVarAdd(&sem);
+		temp = *semptr;
+		value = (void *) temp;
+		sem = (sm_SemId) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sem = (sm_SemId) sm_TaskVar(NULL);
 	}
 
 	return sem;
@@ -26,7 +33,10 @@ static sm_SemId	_pmqlsoSemaphore(sm_SemId *semptr)
 
 static void	interruptThread()	/*	Shuts down LSO.		*/
 {
+	void	*erase = NULL;
+
 	sm_SemEnd(_pmqlsoSemaphore(NULL));
+	oK(sm_TaskVar(&erase));
 }
 
 int	sendSegmentByPMQ(mqd_t mq, char *from, int length)
@@ -99,7 +109,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if ( VALIDPID(vspan->lsoPid) && vspan->lsoPid != sm_TaskIdSelf())
+	if (vspan->lsoPid > 0 && vspan->lsoPid != sm_TaskIdSelf())
 	{
 		sdr_exit_xn(sdr);
 		putErrmsg("LSO task is already started for this span.",

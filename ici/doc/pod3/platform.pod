@@ -799,15 +799,15 @@ Returns the unique identifying number of the invoking task or process.
 Returns non-zero if a task or process identified by
 I<taskId> is currently running on the local processor, zero otherwise.
 
-=item void sm_TaskVarAdd(int *var)
+=item void *sm_TaskVar(void *arg)
 
-Establishes the static variable I<var> as a "task variable"
-belonging to the invoking task, so that it can be referenced as an
-external variable in application code; all tasks running that 
-code will have their own private values for I<var> even if they
-are in the same address space.  Not applicable for UNIX, since
-every UNIX process already has its own private value for every
-static variable.
+Posts or retrieves the value of the "task variable" belonging to the
+invoking task.  Each task has access to a single task variable, initialized
+to NULL, that resides in the task's private state; this can be convenient
+for passing task-specific information to a signal handler, for example.  If
+I<arg> is non-NULL, then I<*arg> is posted as the new value of the task's
+private task variable.  In any case, the value of that task variable is
+returned.
 
 =item void sm_TaskSuspend( )
 

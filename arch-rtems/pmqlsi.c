@@ -104,7 +104,7 @@ int	main(int argc, char *argv[])
 	}
 
 	vdb = getLtpVdb();
-	if ( VALIDPID(vdb->lsiPid ) && vdb->lsiPid != sm_TaskIdSelf())
+	if (vdb->lsiPid > 0 && vdb->lsiPid != sm_TaskIdSelf())
 	{
 		putErrmsg("LSI task is already started.", itoa(vdb->lsiPid));
 		return 1;

@@ -1,7 +1,6 @@
+= Release Notes for ION 3.0.1 =
 
-= Release Notes for ION 3.0.0 =
-
-April 7, 2012
+May 23, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -53,6 +52,44 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.0.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- *Issue #347: Included a test exercizing the fix for the TCPCL reconnection
+  bug that was made available in ion-open-source v3.0.0.
+
+- Issue #348:  Refreshed the MinGW and RTEMS ports of ION to build properly.
+
+- Issue #352: BPCP, an rcp-like remote copy utility that transfers files via
+  CFDP, is a new utility now included with ION.  It is built and installed by
+  default and has an interface similar to rcp, with support for local to
+  remote, remote to local, and remote to remote transfers in recursive and
+  non-recursive modes.
+
+- Issue #353:  Scrubbed various test configurations in the test suite that 
+  produced superfluous messages regarding the bundle security database not
+  being initialized properly.
+
+- Issue #354:  Slightly changed the behavior of "make retest", a directive that
+  reruns tests that failed on the previous test run.
+  Previously "make retest" would re-run the entire test suite if issued
+  immediately following a completely sucessful test run.
+  "make retest" now returns SUCCESS immediately if issued following a
+  completely successful test run, a behavior more amenable to automated
+  testing.
+
+- Issue #355:  Updated the ION build process to be compatible with the latest
+  versions of autotools, particularly automake v1.12.
+
+- Issue #356:  Enhanced the bptrace application with file-sending capabilities.
+
+- ION has now been ported to the "bionic" libc implementation, the first
+  step toward porting ION to the Android operating system.
+
+- Starting from this release the ION manual "ION.pdf" will be distributed with
+  an appendix containing up-to-date man pages for all ION applications.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.0.0 =
