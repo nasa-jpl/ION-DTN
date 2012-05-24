@@ -119,6 +119,7 @@ static Object	getZcoDB(Sdr sdr)
 				loadScalar(&db.maxFileOccupancy, 1000000000);
 				multiplyScalar(&db.maxFileOccupancy,1000000000);
 				sdr_write(sdr, obj, (char*) &db, sizeof(ZcoDB));
+				sdr_catlg(sdr, dbName, 0, obj);
 			}
 		}
 	}

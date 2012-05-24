@@ -88,7 +88,7 @@ static IonNeighbor	*getNeighbor(IonVdb *vdb, unsigned long nodeNbr)
 	return neighbor;
 }
 
-static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
+static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	addr;
@@ -115,6 +115,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 			if (neighbor)
 			{
 				neighbor->xmitRate = 0;
+				*forecastNeeded = 1;
 			}
 		}
 
@@ -141,6 +142,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 			if (neighbor)
 			{
 				neighbor->recvRate = 0;
+				*forecastNeeded = 1;
 			}
 		}
 
@@ -177,6 +179,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 			if (neighbor)
 			{
 				neighbor->xmitRate = cxref->xmitRate;
+				*forecastNeeded = 1;
 			}
 		}
 
@@ -281,6 +284,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 			if (neighbor)
 			{
 				neighbor->recvRate = cxref->xmitRate;
+				*forecastNeeded = 1;
 			}
 		}
 
@@ -316,6 +320,7 @@ int	main(int argc, char *argv[])
 	IonProbe	*probe;
 	int		destNodeNbr;
 	int		neighborNodeNbr;
+	int		forecastNeeded;
 	IonEvent	*event;
 
 	if (ionAttach() < 0)
@@ -375,6 +380,7 @@ int	main(int argc, char *argv[])
 		 *	so doing, adjust the volatile contact and
 		 *	range state of the local node.			*/
 
+		forecastNeeded = 0;
 		while (1)
 		{
 			elt = sm_rbt_first(ionwm, vdb->timeline);
@@ -390,7 +396,7 @@ int	main(int argc, char *argv[])
 				break;
 			}
 
-			if (dispatchEvent(vdb, event) < 0)
+			if (dispatchEvent(vdb, event, &forecastNeeded) < 0)
 			{
 				putErrmsg("Failed handling event.", NULL);
 				break;
@@ -404,6 +410,11 @@ int	main(int argc, char *argv[])
 		{
 			putErrmsg("Can't set current topology.", NULL);
 			return -1;
+		}
+
+		if (forecastNeeded)
+		{
+			oK(pseudoshell("ionwarn"));
 		}
 	}
 

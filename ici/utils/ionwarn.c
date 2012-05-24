@@ -514,7 +514,7 @@ int	checkForCongestion()
 		 *	and check for congestion alarm.			*/
 
 		forecastTime += secAdvanced;
-		if (maxOccupancy > iondb.occupancyCeiling)
+		if (maxOccupancy >= iondb.occupancyCeiling)
 		{
 			alarmTime = forecastTime;
 		}
@@ -611,7 +611,7 @@ int	checkForCongestion()
 		 *	for congestion alarm.				*/
 
 		forecastTime += secAdvanced;
-		if (maxOccupancy > iondb.occupancyCeiling)
+		if (maxOccupancy >= iondb.occupancyCeiling)
 		{
 			alarmTime = forecastTime;
 		}
@@ -693,7 +693,7 @@ int	main(int argc, char **argv)
 	}
 	else
 	{
-		if (checkForCongestion < 0)
+		if (checkForCongestion() < 0)
 		{
 			putErrmsg("ionwarn failed checking for congestion",
 					NULL);

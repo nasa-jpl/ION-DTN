@@ -164,11 +164,13 @@ data delivery to local BP applications throughout the period of time
 over which congestion forecasts are computed.  For nodes that function only
 as routers this variable will normally be zero, which is the default.
 
-=item B<m occupancy> I<data_store_occupancy_limit>
+=item B<m occupancy> I<heap_occupancy_limit> [I<file_system_occupancy_limit>]
 
-This management command sets the maximum number of bytes of storage space
-in ION's SDR non-volatile data store that can be used for the storage of
-bundles.  The default value is 60% of the SDR data store's total heap size.
+This management command sets the maximum number of megabytes of storage space
+in ION's SDR non-volatile heap, and/or in the local file system, that can be
+used for the storage of bundles.  A value of -1 for either limit signifies
+"leave unchanged".  The default heap limit is 60% of the SDR data store's
+total heap size.  The default file system limit is 1 Terabyte.
 
 =item B<m horizon> { 0 | I<end_time_for_congestion_forecasts> }
 
@@ -188,9 +190,9 @@ at some future time.  By default, there is no alarm command.
 =item B<m usage>
 
 This management command simply prints ION's current data store occupancy
-(the number of bytes of space in the SDR non-volatile data store that are
-occupied by bundles), the limit on occupancy, and the maximum level of
-occupancy predicted by the most recent I<ionadmin> congestion forecast
+(the number of megabytes of space in the SDR non-volatile heap and file system
+that are occupied by bundles), the limit on occupancy, and the maximum level
+of occupancy predicted by the most recent I<ionadmin> congestion forecast
 computation.
 
 =item B<r> 'I<command_text>'
