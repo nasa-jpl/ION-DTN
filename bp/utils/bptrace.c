@@ -229,7 +229,7 @@ int	bptrace(int a1, int a2, int a3, int a4, int a5,
 	char	*flagString = (char *) a7;
 
 	if (ownEid == NULL || destEid == NULL || classOfService == NULL
-	|| traceText == NULL)
+	|| trace == NULL)
 	{
 		PUTS("Missing argument(s) for bptrace.  Ignored.");
 		return 0;
