@@ -6,7 +6,8 @@ BP = ../bp
 TEST = ../test
 
 OPT = -g -Wall -Dmingw
-CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include -DNO_PROXY -DNO_DIRLIST
+# -DNO_PROXY -DNO_DIRLIST
+CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -18,7 +19,8 @@ CFDPINCLS = \
 
 LBP = -lbp
 
-RUNTIMES = cfdpadmin cfdpclock bputa cfdptest bpcp bpcpd
+RUNTIMES = cfdpadmin cfdpclock bputa cfdptest
+# bpcp bpcpd
 
 ALL = check libcfdp.dll $(RUNTIMES)
 
@@ -65,11 +67,11 @@ bputa:		bputa.o libcfdp.dll
 		cp bputa ./bin
 
 #	-	-	BPCP executables	-	-	-	-	-
-bpcp: bpcp.o bpcp.h
+bpcp: bpcp.o
 		$(CC) -o bpcp bpcp.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
 		cp bpcp ./bin
 		
-bpcpd: bpcpd.o bpcp.h
+bpcpd: bpcpd.o
 		$(CC) -o bpcpd bpcpd.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
 		cp bpcpd ./bin
 
