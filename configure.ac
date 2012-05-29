@@ -210,6 +210,17 @@ case $host_os in
 
 	cygwin*)  AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.]) ;;
 	interix*) AC_DEFINE([interix],[1],[Build Interix specific platform code.]) ;;
+  *bsd*)    
+    AC_DEFINE([freebsd],[1],[Build Freebsd specific platform code.])
+    if test $host_cpu = "x86_64" ; then
+      AC_SUBST([ION_CFLAGS]," -Dfreebsd -DSPACE_ORDER=3 -m64 ")
+      echo "Build 64-bit Freebsd specific platform code."
+    else
+      AC_SUBST([ION_CFLAGS]," -Dfreebsd -DSPACE_ORDER=2 -m32 ")
+      echo "Build 32-bit Freebsd specific platform code."
+    fi
+
+    ;;
 	solaris*) 
 		if test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
