@@ -1,0 +1,192 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# May 23, 2012
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.node.tcp/node.bprc \
+./2.node.tcp/node.ionconfig \
+./2.node.tcp/node.ionrc \
+./2.node.tcp/node.ionsecrc \
+./2.node.tcp/node.ipnrc \
+./3.node.tcp/node.bprc \
+./3.node.tcp/node.ionconfig \
+./3.node.tcp/node.ionrc \
+./3.node.tcp/node.ionsecrc \
+./3.node.tcp/node.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: exercise congestion forecasting in various configurations
+	to demonstrate that it is working properly."
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 3.node.tcp
+./ionstart
+cd ../2.node.tcp
+./ionstart
+sleep 3
+
+echo ""
+echo "First test: no horizon, but capacity is huge (default), growth rate zero."
+ionadmin config1
+sleep 1
+bptrace ipn:2.1 ipn:3.1 dtn:none 100 0.1 "abcdefghi" &
+# Should be successfully issued.
+sleep 1
+
+echo ""
+echo "We limit occupancy, but still no problem since net growth is zero."
+ionadmin config2
+sleep 1
+bptrace ipn:2.2 ipn:3.1 dtn:none 100 0.1 "abcdefghi" &
+# Should be successfully issued.
+sleep 1
+
+echo ""
+bpstats
+
+sleep 1
+echo "Checking ion.log for 'src' message '(+) 2 20'..."
+COUNT=`grep src ion.log | grep "(+) 2 20" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "OK: both bundles sent."
+else
+	echo "ERROR: bundles not sent?"
+	RETVAL=1
+fi
+
+sleep 1
+echo ""
+echo "Now we add imbalanced contacts, resulting in growth rate 100000."
+ionadmin config3
+sleep 1
+bptrace ipn:2.3 ipn:3.1 dtn:none 100 0.1 "abcdefghi" &
+# Should be rejected due to admission control.
+sleep 1
+
+echo ""
+bpstats
+
+sleep 1
+echo "Checking ion.log for 'src' message '(+) 3 30'..."
+COUNT=`grep src ion.log | grep "(+) 3 30" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "ERROR: third bundle sent despite congestion forecast."
+	RETVAL=1
+else
+	echo "OK: third bundle waiting for end of congestion."
+fi
+
+sleep 1
+echo ""
+echo "So we resolve the congestion by limiting the horizon (to current time)."
+ionadmin config4
+sleep 1
+bptrace ipn:2.4 ipn:3.1 dtn:none 100 0.1 "abcdefghi" &
+# Should be successfully issued.
+sleep 1
+
+echo ""
+echo "Even when we extend the forecast horizon out 1000 seconds we are okay."
+ionadmin config5
+sleep 1
+bptrace ipn:2.5 ipn:3.1 dtn:none 100 0.1 "abcdefghi" &
+# Should be successfully issued.
+sleep 1
+
+echo ""
+bpstats
+
+sleep 1
+echo "Checking ion.log for 'src' message '(+) 5 50'..."
+COUNT=`grep src ion.log | grep "(+) 5 50" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "OK: bundles 3, 4, and 5 were sent."
+else
+	echo "ERROR: bundles not sent?"
+	RETVAL=1
+fi
+
+sleep 1
+echo ""
+echo "But when horizon is extended to 200000 sec in future, congestion alarm."
+ionadmin config6
+sleep 1
+bptrace ipn:2.6 ipn:3.1 dtn:none 100 0.1 "abcdefghi" &
+# Should be rejected due to admission control.
+sleep 1
+
+echo ""
+bpstats
+
+sleep 1
+echo "Checking ion.log for 'src' message '(+) 6 60'..."
+COUNT=`grep src ion.log | grep "(+) 6 60" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "ERROR: sixth bundle sent despite congestion forecast."
+	RETVAL=1
+else
+	echo "OK: sixth bundle waiting for end of congestion."
+fi
+
+sleep 1
+echo ""
+echo "We turn off that alarm by increasing filesystem occupancy limit."
+ionadmin config7
+sleep 1
+bptrace ipn:2.7 ipn:3.1 dtn:none 100 0.1 "abcdefghi" &
+# Should be successfully issued.
+sleep 1
+
+echo ""
+bpstats
+
+sleep 1
+echo "Checking ion.log for 'src' message '(+) 7 70'..."
+COUNT=`grep src ion.log | grep "(+) 7 70" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "OK: all bundles were sent."
+else
+	echo "ERROR: congestion control not as expected."
+	RETVAL=1
+fi
+
+echo "Stopping ION..."
+./ionstop &
+cd ../3.node.tcp
+./ionstop &
+sleep 5
+killm
+echo "...congestion forecasting test terminated."
+exit $RETVAL

@@ -36,6 +36,15 @@ extern "C" {
 #define	MAX_SPEED_MPH	(150000)
 #define	MAX_SPEED_MPS	(MAX_SPEED_MPH / 3600)
 
+#ifndef ION_SDR_MARGIN
+#define	ION_SDR_MARGIN		(20)	/*	Percent.		*/
+#endif
+#ifndef ION_OPS_ALLOC
+#define	ION_OPS_ALLOC		(20)	/*	Percent.		*/
+#endif
+#define	ION_SEQUESTERED		(ION_SDR_MARGIN + ION_OPS_ALLOC)
+#define	MIN_SPIKE_RSRV		(100000)
+
 typedef struct
 {
 	int	wmKey;
@@ -93,11 +102,10 @@ typedef struct
 	unsigned long	ownNodeNbr;
 	long		productionRate;	/*	Bundles sent by apps.	*/
 	long		consumptionRate;/*	Bundles rec'd by apps.	*/
-	long		occupancyCeiling;
 	long		receptionSpikeReserve;
-	long		maxForecastOccupancy;
-	long		maxForecastInTransit;
-	long		currentOccupancy;
+	double		occupancyCeiling;
+	double		maxForecastOccupancy;
+	double		reserveForInTransit;
 	Object		alarmScript;	/*	Congestion alarm.	*/
 	time_t		horizon;	/*	On congestion forecast.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
@@ -285,9 +293,6 @@ extern int		startIonMemTrace(int size);
 extern void		printIonMemTrace(int verbose);
 extern void		clearIonMemTrace();
 extern void		stopIonMemTrace();
-
-extern void		ionOccupy(	int size);
-extern void		ionVacate(	int size);
 
 #define	TIMESTAMPBUFSZ	20
 

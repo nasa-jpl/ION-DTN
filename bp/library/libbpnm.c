@@ -12,21 +12,38 @@
 #include "bpP.h"
 #include "bpnm.h"
 
-void    bpnm_resources(unsigned long * heapOccupancyLimit,
-		unsigned long * heapMaxOccupancyForecast,
-		unsigned long * heapOccupancy)
+void    bpnm_resources(double * occupancyCeiling,
+		double * maxForecastOccupancy,
+		double * currentOccupancy,
+		double * maxHeapOccupancy,
+		double * currentHeapOccupancy,
+		double * maxFileOccupancy,
+		double * currentFileOccupancy)
 {
     Sdr     sdr = getIonsdr();
     IonDB   db;
+    Scalar  occupancy;
 
-    CHKVOID(heapOccupancyLimit);
-    CHKVOID(heapMaxOccupancyForecast);
-    CHKVOID(heapOccupancy);
+    CHKVOID(occupancyCeiling);
+    CHKVOID(maxForecastOccupancy);
+    CHKVOID(currentOccupancy);
+    CHKVOID(maxHeapOccupancy);
+    CHKVOID(currentHeapOccupancy);
+    CHKVOID(maxFileOccupancy);
+    CHKVOID(currentFileOccupancy);
     sdr_begin_xn(sdr);
     sdr_read(sdr, (char *) &db, getIonDbObject(), sizeof(IonDB));
-    *heapOccupancyLimit = db.occupancyCeiling;
-    *heapMaxOccupancyForecast = db.maxForecastOccupancy;
-    *heapOccupancy = db.currentOccupancy;
+    *occupancyCeiling = db.occupancyCeiling;
+    *maxForecastOccupancy = db.maxForecastOccupancy;
+    zco_get_max_heap_occupancy(sdr, &occupancy);
+    *maxHeapOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
+    zco_get_heap_occupancy(sdr, &occupancy);
+    *currentHeapOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
+    zco_get_max_file_occupancy(sdr, &occupancy);
+    *maxFileOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
+    zco_get_file_occupancy(sdr, &occupancy);
+    *currentFileOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
+    *currentOccupancy = *currentHeapOccupancy + *currentFileOccupancy;
     sdr_exit_xn(sdr);
 }
 

@@ -8,6 +8,7 @@
  *
  */
 
+#include "zco.h"
 #include "ion.h"
 #include "rfx.h"
 #include "time.h"
@@ -15,14 +16,6 @@
 #define	ION_DEFAULT_SM_KEY	((255 * 256) + 1)
 #define	ION_SM_NAME		"ionwm"
 #define	ION_DEFAULT_SDR_NAME	"ion"
-#ifndef ION_SDR_MARGIN
-#define	ION_SDR_MARGIN		(20)	/*	Percent.		*/
-#endif
-#ifndef ION_OPS_ALLOC
-#define	ION_OPS_ALLOC		(20)	/*	Percent.		*/
-#endif
-#define	ION_SEQUESTERED		(ION_SDR_MARGIN + ION_OPS_ALLOC)
-#define	MIN_SPIKE_RSRV		(100000)
 
 #define timestampInFormat	"%4d/%2d/%2d-%2d:%2d:%2d"
 #define timestampOutFormat	"%.4d/%.2d/%.2d-%.2d:%.2d:%.2d"
@@ -570,6 +563,8 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 	Sdr		ionsdr;
 	Object		iondbObject;
 	IonDB		iondbBuf;
+	long		heapLimit;
+	Scalar		limit;
 	sm_WmParms	ionwmParms;
 	char		*ionvdbName = _ionvdbName();
 
@@ -637,14 +632,22 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
-		iondbBuf.occupancyCeiling = ((sdr_heap_size(ionsdr) / 100)
-			 	* (100 - ION_SEQUESTERED));
-		iondbBuf.receptionSpikeReserve = iondbBuf.occupancyCeiling / 16;
+		heapLimit = (sdr_heap_size(ionsdr) / 100)
+			 	* (100 - ION_SEQUESTERED);
+		iondbBuf.receptionSpikeReserve = heapLimit / 16;
 		if (iondbBuf.receptionSpikeReserve < MIN_SPIKE_RSRV)
 		{
 			iondbBuf.receptionSpikeReserve = MIN_SPIKE_RSRV;
 		}
 
+		limit.units = heapLimit % ONE_GIG;
+		limit.gigs = heapLimit / ONE_GIG;
+		zco_set_max_heap_occupancy(ionsdr, &limit);
+		zco_get_max_file_occupancy(ionsdr, &limit);
+		iondbBuf.occupancyCeiling = limit.gigs;
+		iondbBuf.occupancyCeiling *= ONE_GIG;
+		iondbBuf.occupancyCeiling += limit.units;
+		iondbBuf.occupancyCeiling += heapLimit;
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
@@ -991,50 +994,6 @@ void	clearIonMemTrace(int verbose)
 void	stopIonMemTrace(int verbose)
 {
 	psm_stop_trace(_ionwm(NULL));
-}
-
-/*	*	*	Space management 	*	*	*	*/
-
-void	ionOccupy(int size)
-{
-	Sdr	ionsdr = _ionsdr(NULL);
-	Object	iondbObject = _iondbObject(NULL);
-	IonDB	iondbBuf;
-
-	CHKVOID(ionLocked());
-	CHKVOID(size >= 0);
-	sdr_stage(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
-	if (iondbBuf.currentOccupancy + size < 0)/*	Overflow.	*/
-	{
-		iondbBuf.currentOccupancy = iondbBuf.occupancyCeiling;
-	}
-	else
-	{
-		iondbBuf.currentOccupancy += size;
-	}
-
-	sdr_write(ionsdr, iondbObject, (char *) &iondbBuf, sizeof(IonDB));
-}
-
-void	ionVacate(int size)
-{
-	Sdr	ionsdr = _ionsdr(NULL);
-	Object	iondbObject = _iondbObject(NULL);
-	IonDB	iondbBuf;
-
-	CHKVOID(ionLocked());
-	CHKVOID(size >= 0);
-	sdr_stage(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
-	if (size > iondbBuf.currentOccupancy)	/*	Underflow.	*/
-	{
-		iondbBuf.currentOccupancy = 0;
-	}
-	else
-	{
-		iondbBuf.currentOccupancy -= size;
-	}
-
-	sdr_write(ionsdr, iondbObject, (char *) &iondbBuf, sizeof(IonDB));
 }
 
 /*	*	*	Timestamp handling 	*	*	*	*/

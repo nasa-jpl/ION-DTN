@@ -154,7 +154,7 @@ file name, no further activity", fileName);
 				break;		/*	Out of loop.	*/
 			}
 
-#if TargetFFS
+#ifdef TargetFFS
 			closeOpsFile(&opsFile);
 #endif
 			line = nextLine;
@@ -187,7 +187,7 @@ load, no further activity.", itoa(line - content));
 		{
 			/*	Append this command-file line to the
 			 *	ops file that is being loaded.		*/
-#if TargetFFS
+#ifdef TargetFFS
 			if (opsFile == -1)	/*	Must reopen.	*/
 			{
 				if ((opsFile = iopen(fileName, O_RDWR, 0)) < 0
@@ -209,7 +209,7 @@ operations file, no further activity", fileName);
 				break;		/*	Out of loop.	*/
 			}
 
-#if TargetFFS
+#ifdef TargetFFS
 			closeOpsFile(&opsFile);
 #endif
 			line = nextLine;

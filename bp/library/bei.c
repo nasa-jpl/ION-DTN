@@ -603,6 +603,7 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 	unsigned int		oldLength;
 	unsigned int		oldSize;
 	unsigned int		wasSuppressed;
+	Scalar			delta;
 
 	CHKERR(bundle);
 	oldDbOverhead = bundle->dbOverhead;
@@ -694,10 +695,10 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 
 	if (bundle->dbOverhead != oldDbOverhead)
 	{
-		ionVacate(bundle->dbTotal);
-		bundle->dbTotal -= oldDbOverhead;
-		bundle->dbTotal += bundle->dbOverhead;
-		ionOccupy(bundle->dbTotal);
+		loadScalar(&delta, oldDbOverhead);
+		zco_reduce_heap_occupancy(bpSdr, &delta);
+		loadScalar(&delta, bundle->dbOverhead);
+		zco_increase_heap_occupancy(bpSdr, &delta);
 	}
 
 	return 0;
