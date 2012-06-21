@@ -719,6 +719,8 @@ void ion_cfdp_init()
 	parms.faultHandlers[CfdpFilestoreRejection] = CfdpIgnore;
 	parms.faultHandlers[CfdpCheckLimitReached] = CfdpCancel;
 	parms.faultHandlers[CfdpChecksumFailure] = CfdpCancel;
+	parms.faultHandlers[CfdpInactivityDetected] = CfdpCancel;
+	parms.faultHandlers[CfdpFileSizeError] = CfdpCancel;
 }
 
 /*Copy a local file to a remote file. Takes a local file,
