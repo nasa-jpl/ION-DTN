@@ -1572,7 +1572,7 @@ libbss_la_SOURCES = \
 	bss/library/libbssP.c
 libbss_la_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 libbss_la_LDFLAGS = $(ION_LINK_FLAGS)
-libbss_la_LIBADD = libici.la libbp.la
+libbss_la_LIBADD = libici.la libbp.la $(PTHREAD_LIBS)
 
 # --- Test Programs --- #
 
