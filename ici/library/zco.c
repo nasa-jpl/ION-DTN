@@ -419,12 +419,14 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 	/*	Parameters verified.  Proceed with FileRef creation.	*/
 
 	close(sourceFd);
+	memset((char *) &fileRef, 0, sizeof(FileRef));
 	fileRef.refCount = 0;
 	fileRef.okayToDestroy = 0;
 	fileRef.unlinkOnDestroy = 0;
 	fileRef.inode = statbuf.st_ino;
 	fileRef.fileLength = statbuf.st_size;
 	fileRef.xmitProgress = 0;
+	loadScalar(&fileRef.occupancy, 0);
 	memcpy(fileRef.pathName, pathName, pathLen);
 	fileRef.pathName[pathLen] = '\0';
 	if (cleanupScript)
