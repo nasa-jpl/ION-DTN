@@ -192,7 +192,7 @@ int	main(int argc, char *argv[])
 	int			segmentLength;
 	char			*segment;
 	int			bytesSent;
-	float			sleepSecPerBit;
+	float			sleepSecPerBit = 0;
 	float			sleep_secs;
 	unsigned int		usecs;
 	int			fd;
@@ -362,7 +362,7 @@ int	main(int argc, char *argv[])
 				rtp.running = 0;/*	Terminate LSO.	*/
 			}
 
-			if (txbps != 0)
+			if (txbps)
 			{
 				sleep_secs = sleepSecPerBit
 					* ((IPHDR_SIZE + segmentLength) * 8);
