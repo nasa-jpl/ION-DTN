@@ -33,7 +33,7 @@ static unsigned int	sdrwatch_count(int *newValue)
 
 static void	handleQuit()
 {
-	int	newCount = 1;	/*	Advanc to end of last cycle.	*/
+	int	newCount = 1;	/*	Advance to end of last cycle.	*/
 
 	PUTS("[Terminated by user.]");
 	oK(sdrwatch_count(&newCount));

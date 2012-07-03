@@ -1103,16 +1103,17 @@ int setSecPointsTrans(ExtensionBlock *blk, Bundle *bundle, BspAbstractSecurityBl
         {
 	  printEid(&(bundle->id.source), dictionary, &tmp2);
           memcpy(srcNode, tmp2, strlen(tmp2));
+          MRELEASE(tmp2);
 	}
 
         // For pib/pcb destination will be the bundle destination
         printEid(&(bundle->destination), dictionary, &tmp2);
         memcpy(destNode, tmp2, strlen(tmp2));
-        // since printEid does an MTAKE
-        MRELEASE(dictionary);
-    }
+        MRELEASE(tmp2);
 
-    MRELEASE(tmp2);
+	// retrieveDictionary() does an MTAKE
+        releaseDictionary(dictionary);
+    }
 
     if(blockType == 0)
     {

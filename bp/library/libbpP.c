@@ -2482,23 +2482,9 @@ incomplete bundle.", NULL);
 			bundle.dlvQueueElt = 0;
 		}
 
-		/*	Remove any transmission reference.		*/
-
 		if (bundle.ductXmitElt)
 		{
 			purgeDuctXmitElt(&bundle, bundleObj);
-		}
-
-		if (bundle.proxNodeEid)
-		{
-			sdr_free(bpSdr, bundle.proxNodeEid);
-			bundle.proxNodeEid = 0;
-		}
-
-		if (bundle.destDuctName)
-		{
-			sdr_free(bpSdr, bundle.destDuctName);
-			bundle.proxNodeEid = 0;
 		}
 
 		/*	Notify sender, if so requested or if custodian.
@@ -2562,12 +2548,27 @@ incomplete bundle.", NULL);
 		if (bset.count == 0)
 		{
 			sdr_hash_delete_entry(bpSdr, bundle.hashEntry);
+			sdr_free(bpSdr, bsetObj);
 		}
 		else
 		{
 			sdr_write(bpSdr, bsetObj, (char *) &bset,
 					sizeof(BundleSet));
 		}
+	}
+
+	/*	Remove transmission metadata.				*/
+
+	if (bundle.proxNodeEid)
+	{
+		sdr_free(bpSdr, bundle.proxNodeEid);
+		bundle.proxNodeEid = 0;
+	}
+
+	if (bundle.destDuctName)
+	{
+		sdr_free(bpSdr, bundle.destDuctName);
+		bundle.destDuctName = 0;
 	}
 
 	/*	Turn off automatic re-forwarding.			*/
@@ -6059,12 +6060,15 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 	if (printEid(&bundle->destination, dictionary, &eidString) < 0)
 	{
 		putErrmsg("Can't print destination EID.", NULL);
+		releaseDictionary(dictionary);
 		return -1;
 	}
 
 	if (patchExtensionBlocks(bundle) < 0)
 	{
 		putErrmsg("Can't insert missing extensions.", NULL);
+		MRELEASE(eidString);
+		releaseDictionary(dictionary);
 		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
@@ -10622,7 +10626,7 @@ int	bpReforwardBundle(Object bundleAddr)
 	if (bundle.destDuctName)
 	{
 		sdr_free(bpSdr, bundle.destDuctName);
-		bundle.proxNodeEid = 0;
+		bundle.destDuctName = 0;
 	}
 
 	if (bundle.overdueElt)
