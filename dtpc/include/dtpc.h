@@ -12,18 +12,16 @@
 
 #include "bp.h"
 
-
-#define DTPC_POLL                 (0)     /*      Return immediately.     */
-#define DTPC_NONBLOCKING          (0)     /*      Return immediately.     */
-#define DTPC_BLOCKING             (-1)    /*      Wait forever.           */
+#define DTPC_POLL                 (0)	/*      Return immediately.	*/
+#define DTPC_NONBLOCKING          (0)	/*      Return immediately.	*/
+#define DTPC_BLOCKING             (-1)	/*      Wait forever.		*/
 
 typedef struct
 {
         Object          payload;
         Sdnv            length;
-	Object          topicElt;       /* Ref. to Topic - not used     */
+	Object          topicElt;	/*	Ref. to Topic, not used	*/
 } PayloadRecord;
-
 
 typedef int     (*DtpcElisionFn) (Object recordsList, PayloadRecord *newRecord);
 
@@ -42,19 +40,16 @@ typedef struct
         DtpcIndResult   result;
 	char		*srcEid;
 	unsigned int	length;
-        Object          adu;   	 /* ZCO ref  */
-
+        Object          adu;		/*	A zero-copy object	*/
 } DtpcDelivery;
 
-/*      *       *       DTPC initilization       *       *       *       */
-
+/*      *       *       DTPC initilization       *       *       *	*/
 
 extern int      dtpc_init();
 
 extern int      dtpc_entity_is_started();
 
-
-/*      *       *       DTPC local services      *       *       *       */
+/*      *       *       DTPC local services      *       *       *	*/
 
 extern int      dtpc_send(	unsigned int profileID,
 				DtpcSAP sap,
@@ -73,11 +68,13 @@ extern int      dtpc_send(	unsigned int profileID,
 
 extern void     dtpc_interrupt(DtpcSAP sap);
 
-extern int      dtpc_open (unsigned int topicID, DtpcElisionFn elisionFn, DtpcSAP *dtpcsapPtr);
+extern int      dtpc_open (unsigned int topicID, DtpcElisionFn elisionFn,
+			DtpcSAP *dtpcsapPtr);
 
 extern void     dtpc_close(DtpcSAP sap);
 
-extern int      dtpc_receive(DtpcSAP sap, DtpcDelivery *dlv, int timeoutSeconds);
+extern int      dtpc_receive(DtpcSAP sap, DtpcDelivery *dlv,
+			int timeoutSeconds);
 
 extern void	dtpc_interrupt(DtpcSAP sap);
 
