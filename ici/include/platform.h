@@ -280,6 +280,20 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #include <pthread.h>
 
+#ifndef gmtime_r
+#define gmtime_r(_clock, _result) \
+	(*(_result) = *gmtime(_clock), (_result))
+#endif
+
+#ifndef localtime_r
+#define localtime_r(_clock, _result) \
+	(*(_result) = *localtime(_clock), (_result))
+#endif
+
+#ifndef rand_r
+#define rand_r(_seed) (rand())
+#endif
+
 #define	_MULTITHREADED
 #define	MAXPATHLEN		(MAX_PATH)
 
