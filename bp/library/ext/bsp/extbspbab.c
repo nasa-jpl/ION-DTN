@@ -892,6 +892,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
                        srcNode,
                        destNode,
                        &secInfo);
+   MRELEASE(srcNode); MRELEASE(destNode);
 
    if (secInfo.cipherKeyName[0] == '\0')
    {

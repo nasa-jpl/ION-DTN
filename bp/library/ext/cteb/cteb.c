@@ -185,6 +185,7 @@ int cteb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	{
 		putErrmsg("Can't construct CTEB text.", itoa(blk->dataLength));
 		MRELEASE(custodianEid);
+		MRELEASE(sourceEid);
 		return -1;
 	}
 

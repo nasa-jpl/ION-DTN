@@ -526,6 +526,7 @@ as expected.", NULL);
     // with PCBs over this hop, so we don't need a PCB block in this bundle.
     bsp_getSecurityInfo(bundle, BSP_PCB_TYPE, 1,
 			srcNode, destNode, &secInfo);
+    MRELEASE(srcNode); MRELEASE(destNode);
 
     if (secInfo.cipherKeyName[0] == '\0')
     {

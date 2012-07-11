@@ -22,7 +22,27 @@ managed; if they don't match, B<psmwatch> immediately terminates.
 If I<interval> is zero, B<psmwatch> merely prints a current usage summary
 for the indicated shared-memory partition and terminates.
 
-B<psmwatch> is helpful for detecting and diagnosing memory leaks.
+B<psmwatch> is helpful for detecting and diagnosing memory leaks.  For
+debugging the ION protocol stack:
+
+=over 8
+
+=item I<shared_memory_key>
+
+Normally "65281", but might be overridden by the value of wmKey in the
+.ionconfig file used to configure the node under study.
+
+=item I<memory_size>
+
+As given by the value of wmKey in the .ionconfig file used to configure the
+node under study.  If this value is not stated in the .ionconfig file, the
+default value is "5000000".
+
+=item I<partition_name>
+
+Always "ionwm".
+
+=back
 
 =head1 EXIT STATUS
 

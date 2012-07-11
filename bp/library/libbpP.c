@@ -2482,23 +2482,9 @@ incomplete bundle.", NULL);
 			bundle.dlvQueueElt = 0;
 		}
 
-		/*	Remove any transmission reference.		*/
-
 		if (bundle.ductXmitElt)
 		{
 			purgeDuctXmitElt(&bundle, bundleObj);
-		}
-
-		if (bundle.proxNodeEid)
-		{
-			sdr_free(bpSdr, bundle.proxNodeEid);
-			bundle.proxNodeEid = 0;
-		}
-
-		if (bundle.destDuctName)
-		{
-			sdr_free(bpSdr, bundle.destDuctName);
-			bundle.proxNodeEid = 0;
 		}
 
 		/*	Notify sender, if so requested or if custodian.
@@ -2562,12 +2548,27 @@ incomplete bundle.", NULL);
 		if (bset.count == 0)
 		{
 			sdr_hash_delete_entry(bpSdr, bundle.hashEntry);
+			sdr_free(bpSdr, bsetObj);
 		}
 		else
 		{
 			sdr_write(bpSdr, bsetObj, (char *) &bset,
 					sizeof(BundleSet));
 		}
+	}
+
+	/*	Remove transmission metadata.				*/
+
+	if (bundle.proxNodeEid)
+	{
+		sdr_free(bpSdr, bundle.proxNodeEid);
+		bundle.proxNodeEid = 0;
+	}
+
+	if (bundle.destDuctName)
+	{
+		sdr_free(bpSdr, bundle.destDuctName);
+		bundle.destDuctName = 0;
 	}
 
 	/*	Turn off automatic re-forwarding.			*/
@@ -4301,8 +4302,10 @@ cannot be retrieved by key", bundleKey);
 		bset.count++;
 		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
 		bundle->hashEntry = hashElt;
+#if 0
 		writeMemoNote("[?] Bundle hash key is not unique; bundles \
 cannot be retrieved by key", bundleKey);
+#endif
 		break;
 
 	default:	/*	No such pre-existing entry.		*/
@@ -4937,6 +4940,16 @@ for custody transfer and/or status reports.");
 status reports for admin records.");
 			return 0;
 		}
+
+		if (extendedCOS)
+		{
+			if (extendedCOS->flags & BP_MINIMUM_LATENCY)
+			{
+				writeMemo("[?] Can't flag bundle as 'critical' \
+when asking for custody transfer and/or status reports.");
+				return 0;
+			}
+		}
 	}
 
 	if (sourceMetaEid == NULL)
@@ -4993,8 +5006,7 @@ status reports for admin records.");
 		/*	Administrative bundles must not be anonymous.
 		 *	Recipient needs to know source of the status
 		 *	report or custody signal; use own custodian
-		 *	EID for the scheme cited by the destination
-		 *	EID.						*/
+		 *	EID for the scheme cited by destination EID.	*/
 
 		if (sourceMetaEid == NULL)
 		{
@@ -5060,19 +5072,17 @@ status reports for admin records.");
 	/*	Create the outbound bundle.				*/
 
 	memset((char *) &bundle, 0, sizeof(Bundle));
+	if (sourceMetaEid == NULL)
+	{
+		bundle.anonymous = 1;
+	}
+
 	bundle.dbOverhead = BASE_BUNDLE_OVERHEAD;
 
 	/*	The bundle protocol specification authorizes the
-	 *	implementation to fragment an ADU to satisfy, for
-	 *	example, MIB-specified requirements for routing
-	 *	granularity.  This would result in multiple ZCOs,
-	 *	multiple bundles, multiple calls to bpDequeue in
-	 *	the CLO, multiple bundle catenations.  It would
-	 *	degrade performance, as there would have to be a
-	 *	lot of zco_copy activity up and down the stack;
-	 *	there would be more processing.  So in this BP
-	 *	implementation we choose instead to leave ADU
-	 *	fragment granularity decisions to the application.	*/
+	 *	implementation to fragment an ADU.  In the ION
+	 *	implementation we fragment only when necessary,
+	 *	at the moment a bundle is dequeued for transmission.	*/
 
 	aduLength = zco_length(bpSdr, adu);
 	if (aduLength < 0)
@@ -5476,7 +5486,7 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 	return 0;
 }
 
-static void	lookUpEidEndpoint(EndpointId eid, char *dictionary,
+static void	lookUpEndpoint(EndpointId eid, char *dictionary,
 			VScheme *vscheme, VEndpoint **vpoint)
 {
 	PsmPartition	bpwm = getIonwm();
@@ -5940,7 +5950,8 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 	lookUpEidScheme(bundle->destination, dictionary, &vscheme);
 	if (vscheme != NULL)	/*	Destination might be local.	*/
 	{
-		lookUpEidEndpoint(bundle->destination, dictionary, vscheme, &vpoint);
+		lookUpEndpoint(bundle->destination, dictionary, vscheme,
+				&vpoint);
 		if (vpoint != NULL)	/*	Destination is here.	*/
 		{
 			if (deliverBundle(bundleObj, bundle, vpoint) < 0)
@@ -6059,12 +6070,15 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 	if (printEid(&bundle->destination, dictionary, &eidString) < 0)
 	{
 		putErrmsg("Can't print destination EID.", NULL);
+		releaseDictionary(dictionary);
 		return -1;
 	}
 
 	if (patchExtensionBlocks(bundle) < 0)
 	{
 		putErrmsg("Can't insert missing extensions.", NULL);
+		MRELEASE(eidString);
+		releaseDictionary(dictionary);
 		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
@@ -6535,6 +6549,8 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	int		i;
 	unsigned long	eidSdnvValues[8];
 	unsigned long	lifetime;
+	char		*eidString;
+	int		nullEidLen;
 	int		bytesParsed;
 
 	/*	Create the inbound bundle.				*/
@@ -6649,6 +6665,20 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		bundle->custodian.d.nssOffset = eidSdnvValues[7];
 	}
 
+	if (printEid(&(bundle->id.source), work->dictionary, &eidString) < 0)
+	{
+		putErrmsg("Can't print source EID string.", NULL);
+		return 0;
+	}
+
+	nullEidLen = strlen(_nullEid());
+	if (istrlen(eidString, nullEidLen + 1) == nullEidLen
+	&& strcmp(eidString, _nullEid()) == 0)
+	{
+		bundle->anonymous = 1;
+	}
+
+	MRELEASE(eidString);
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
 		extractSdnv(&(bundle->id.fragmentOffset), &cursor,
@@ -9686,7 +9716,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	CHKERR(vduct && flows && bundleZco && extendedCOS && destDuctName);
 	*bundleZco = 0;			/*	Default behavior.	*/
 	*destDuctName = '\0';		/*	Default behavior.	*/
-	if (timeoutInterval < 0)
+	if (timeoutInterval < 0)	/*	CLA is a steward.	*/
 	{
 		/*	Note that stewardship and custody acceptance
 		 *	timeout are mutually exclusive.			*/
@@ -9858,6 +9888,18 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		{
 			stewardshipAccepted = 0;
 		}
+	}
+
+	/*	Finally, if the bundle is anonymous then its key can
+	 *	never be guaranteed to be unique (because the sending
+	 *	EID that qualifies the creation time and sequence
+	 *	number is omitted), so the bundle can't reliably be
+	 *	retrieved via the hash table.  So again stewardship
+	 *	cannot be successfully accepted.			*/
+
+	if (bundle.anonymous)
+	{
+		stewardshipAccepted = 0;
 	}
 
 	/*	Note that when stewardship is not accepted, the bundle
@@ -10622,7 +10664,7 @@ int	bpReforwardBundle(Object bundleAddr)
 	if (bundle.destDuctName)
 	{
 		sdr_free(bpSdr, bundle.destDuctName);
-		bundle.proxNodeEid = 0;
+		bundle.destDuctName = 0;
 	}
 
 	if (bundle.overdueElt)
@@ -11062,7 +11104,7 @@ int	eidIsLocal(EndpointId eid, char* dictionary)
 	lookUpEidScheme(eid, dictionary, &vscheme);
 	if (vscheme != NULL)	/*	Destination might be local.	*/
 	{
-		lookUpEidEndpoint(eid, dictionary, vscheme, &vpoint);
+		lookUpEndpoint(eid, dictionary, vscheme, &vpoint);
 		if (vpoint != NULL)	/*	Destination is here.	*/
 		{
 			result = 1;
