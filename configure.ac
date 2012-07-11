@@ -161,8 +161,17 @@ else
 fi
 AC_SUBST([GROFFMS], $GROFFMS)
 
+AC_PATH_PROG([MANOPTS], [man])
+AC_MSG_CHECKING([if man supports -l])
+if test "$MANOPTS" && echo | $MANOPTS -l - >/dev/null 2>/dev/null; then
+    AC_MSG_RESULT($MANOPTS)
+else
+    AC_MSG_RESULT([not found])
+    AC_MSG_NOTICE([try installing a version of man that supports -l])
+fi
+
 AC_MSG_CHECKING([for tools to build autodoc])
-if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS"; then
+if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS" && test "$MANOPTS"; then
     AC_MSG_RESULT([found])
     buildautodoc="yes"
 else
