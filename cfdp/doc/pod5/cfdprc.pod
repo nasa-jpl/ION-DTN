@@ -86,6 +86,12 @@ number of bytes of file data in each file data PDU transmitted by the
 local CFDP entity in the absence of an application-supplied reader
 function.
 
+=item B<m inactivity> I<inactivity_period>
+
+The B<manage inactivity period> command. This command establishes the number
+of seconds that a CFDP file transfer is allowed to go idle before being
+canceled for inactivity. The default is one day.
+
 =item B<x>
 
 The B<stop> command.  This command stops the UT-layer service task for
