@@ -120,7 +120,7 @@ else
     killcmd="killall"
 fi
 
-$killcmd -KILL "owltsim" &> /def/null
+$killcmd -KILL "owltsim" &> /dev/null
 
 # Shut down ION processes.
 echo "Stopping ION..."
