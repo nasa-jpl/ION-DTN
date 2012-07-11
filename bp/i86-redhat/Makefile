@@ -37,8 +37,7 @@ BPINCLS = \
 # $(API)/acs/acs.h
 
 BPLIBS = \
-	libbp.so \
-	libbpP.so
+	libbp.so
 
 BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o crypto.o
 # acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
@@ -47,13 +46,13 @@ BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o
 LFW = -lbssfw -ldtn2fw
 # -lipnfw
 
-LBP = -lbp -lbpP
+LBP = -lbp
 
 RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep bssadmin bssfw dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
 # acsadmin acslist
 # dccpcli dccpclo
 
-ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libbssfw.so libtcpcla.so libudpcla.so libbpnm.so $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libbssfw.so libtcpcla.so libudpcla.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -268,12 +267,8 @@ bprecvfile:	bprecvfile.o libbp.so $(BPLIBS)
 
 #	-	-	Libraries	-	-	-	-	-
 
-libbpP.so:	$(BPPOBJS)
-		$(LD) -o libbpP.so $(BPPOBJS)
-		cp libbpP.so ./lib
-
-libbp.so:	libbp.o
-		$(LD) -o libbp.so libbp.o
+libbp.so:	libbp.o $(BPPOBJS) libbpnm.o
+		$(LD) -o libbp.so libbp.o $(BPPOBJS) libbpnm.o
 		cp libbp.so ./lib
 
 libcgr.so:	libcgr.o
@@ -299,10 +294,6 @@ libtcpcla.so:	libtcpcla.o
 libudpcla.so:	libudpcla.o
 		$(LD) -o libudpcla.so libudpcla.o
 		cp libudpcla.so ./lib
-
-libbpnm.so:	libbpnm.o $(API)/bpnm.h
-		$(LD) -o libbpnm.so libbpnm.o
-		cp libbpnm.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
