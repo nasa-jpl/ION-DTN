@@ -104,7 +104,6 @@ static int	run_psmwatch(int memKey, long memSize, char *partitionName,
 	}
 
 	psm_stop_trace(psm);
-	psm_unmanage(psm);
 	writeErrmsgMemos();
 	return 0;
 }
