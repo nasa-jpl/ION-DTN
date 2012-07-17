@@ -781,6 +781,7 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent,
 		if (sdrRef.refCount == 0)
 		{
 			sdr_free(sdr, sdrRef.location);
+			sdr_free(sdr, extent->location);
 		}
 		else	/*	Just update the SDR reference count.	*/
 		{

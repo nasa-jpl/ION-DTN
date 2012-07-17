@@ -59,13 +59,7 @@ extern unsigned long	sdrMemPtoA(void *);
 
 typedef struct
 {
-	sm_SemId	lock;	/*	To control access to sdrs list.	*/
 	PsmAddress	sdrs;	/*	An SmList of (SdrState *).	*/
-#if 0
-	int		sdrwmIsPrivate;
-	unsigned long	sdrwmKey;
-	char		sdrwmName[32];
-#endif
 } SdrControlHeader;
 
 /*	SdrState is an object that encapsulates the volatile state of

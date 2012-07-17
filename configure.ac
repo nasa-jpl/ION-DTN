@@ -8,7 +8,7 @@
 #is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
 # fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, 3.0.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, 3.0.2, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -161,8 +161,17 @@ else
 fi
 AC_SUBST([GROFFMS], $GROFFMS)
 
+AC_PATH_PROG([MANOPTS], [man])
+AC_MSG_CHECKING([if man supports -l])
+if test "$MANOPTS" && echo | $MANOPTS -l - >/dev/null 2>/dev/null; then
+    AC_MSG_RESULT($MANOPTS)
+else
+    AC_MSG_RESULT([not found])
+    AC_MSG_NOTICE([try installing a version of man that supports -l])
+fi
+
 AC_MSG_CHECKING([for tools to build autodoc])
-if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS"; then
+if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS" && test "$MANOPTS"; then
     AC_MSG_RESULT([found])
     buildautodoc="yes"
 else
@@ -210,6 +219,17 @@ case $host_os in
 
 	cygwin*)  AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.]) ;;
 	interix*) AC_DEFINE([interix],[1],[Build Interix specific platform code.]) ;;
+  *bsd*)    
+    AC_DEFINE([freebsd],[1],[Build Freebsd specific platform code.])
+    if test $host_cpu = "x86_64" ; then
+      AC_SUBST([ION_CFLAGS]," -Dfreebsd -DSPACE_ORDER=3 -m64 ")
+      echo "Build 64-bit Freebsd specific platform code."
+    else
+      AC_SUBST([ION_CFLAGS]," -Dfreebsd -DSPACE_ORDER=2 -m32 ")
+      echo "Build 32-bit Freebsd specific platform code."
+    fi
+
+    ;;
 	solaris*) 
 		if test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])

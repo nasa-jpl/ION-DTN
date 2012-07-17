@@ -2535,7 +2535,8 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
+	fdu->inactivityDeadline = getUTCTime()
+					+ cfdpdb.transactionInactivityLimit;
 
 	/*	Prepare to issue indication.				*/
 
@@ -3123,7 +3124,8 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 
 	if (bytesRemaining < 9) return 0;	/*	Malformed.	*/
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
+	fdu->inactivityDeadline = getUTCTime()
+					+ cfdpdb.transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = (*cursor >> 4) & 0x0f;
 	cursor++;
@@ -3221,7 +3223,8 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 
 	if (bytesRemaining < 5) return 0;	/*	Malformed.	*/
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
+	fdu->inactivityDeadline = getUTCTime()
+					+ cfdpdb.transactionInactivityLimit;
 	fdu->metadataReceived = 1;
 	fdu->recordBoundsRespected = (*cursor >> 7) & 0x01;
 	cursor++;

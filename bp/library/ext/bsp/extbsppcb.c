@@ -316,13 +316,15 @@ int bsp_pcbCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	return 2;  // Maybe return 0.
     }
 
-    srcNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN); 
-    destNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN); 
+    srcNode = NULL;
+    destNode = NULL;
           // Get the src and dest needed to get key
-    if((printEid(&asb->secSrc, wk->dictionary, &srcNode) != 0) ||
-       (printEid(&asb->secDest, wk->dictionary, &destNode) != 0))
+    oK(printEid(&asb->secSrc, wk->dictionary, &srcNode));
+    oK(printEid(&asb->secDest, wk->dictionary, &destNode));
+    if (srcNode == NULL || destNode == NULL)
     {
-        MRELEASE(srcNode); MRELEASE(destNode);
+        if (srcNode) MRELEASE(srcNode);
+	if (destNode) MRELEASE(destNode);
         discardExtensionBlock(blk);
         PCB_DEBUG_ERR("x bsp_pcbCheck: Error retrieving src and dest nodes to find key.", NULL);
         PCB_DEBUG_PROC("- bsp_pcbCheck --> %d", -1);
@@ -526,6 +528,7 @@ as expected.", NULL);
     // with PCBs over this hop, so we don't need a PCB block in this bundle.
     bsp_getSecurityInfo(bundle, BSP_PCB_TYPE, 1,
 			srcNode, destNode, &secInfo);
+    MRELEASE(srcNode); MRELEASE(destNode);
 
     if (secInfo.cipherKeyName[0] == '\0')
     {

@@ -875,14 +875,14 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
    }
 
    BAB_DEBUG_INFO("i bsp_babPreCheck: len %d", resultLen);
-
-   srcNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
-   destNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
-
-   if (printEid(&pre_asb->secSrc, wk->dictionary, &srcNode) != 0 && 
-       printEid(&pre_asb->secDest, wk->dictionary, &destNode) != 0)
+   srcNode = NULL;
+   destNode = NULL;
+   oK(printEid(&pre_asb->secSrc, wk->dictionary, &srcNode));
+   oK(printEid(&pre_asb->secDest, wk->dictionary, &destNode));
+   if (srcNode == NULL || destNode == NULL)
    {
-       MRELEASE(srcNode); MRELEASE(destNode);
+       if (srcNode) MRELEASE(srcNode);
+       if (destNode) MRELEASE(destNode);
        BAB_DEBUG_ERR("x bsp_babPreCheck: Error retrieving src and dest nodes to find key.", NULL);
        BAB_DEBUG_PROC("- bsp_babPreCheck --> %d", -1);
        return -1;
@@ -892,6 +892,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
                        srcNode,
                        destNode,
                        &secInfo);
+   MRELEASE(srcNode); MRELEASE(destNode);
 
    if (secInfo.cipherKeyName[0] == '\0')
    {
@@ -984,6 +985,7 @@ BAB block! %c",  ' ');
     * Either way, time to drop the pre-payload block.
     */
 
+   MRELEASE(digest);
    discardExtensionBlock(pre_blk);
    BAB_DEBUG_PROC("- bsp_babPreCheck(%d)", retval);
 
@@ -1350,10 +1352,9 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
 
    *hashLen = BAB_HMAC_SHA1_RESULT_LEN;
 
-
    for(i = 0; i < BAB_HMAC_SHA1_RESULT_LEN; i++)
    {
-   BAB_DEBUG_INFO("Result Byte %d is 0x%x", i, hashData[i]);
+      BAB_DEBUG_INFO("Result Byte %d is 0x%x", i, hashData[i]);
    }
 
    BAB_DEBUG_PROC("- bsp_babGetSecResult(%x)", (unsigned long) hashData);

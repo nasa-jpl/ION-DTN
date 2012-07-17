@@ -1007,7 +1007,6 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
             memset(tmp, 0, MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
             tmp2 = getCustodianEid(wk->senderEid);
             memcpy(tmp, tmp2, strlen(tmp2));
-            MRELEASE(tmp2);
             // parseEidString will mess up the char * given to it..
             // so just copy it to a temp variable
             parseEidString(tmp, &metaEid, &vscheme, &vschemeElt);
@@ -1103,16 +1102,17 @@ int setSecPointsTrans(ExtensionBlock *blk, Bundle *bundle, BspAbstractSecurityBl
         {
 	  printEid(&(bundle->id.source), dictionary, &tmp2);
           memcpy(srcNode, tmp2, strlen(tmp2));
+          MRELEASE(tmp2);
 	}
 
         // For pib/pcb destination will be the bundle destination
         printEid(&(bundle->destination), dictionary, &tmp2);
         memcpy(destNode, tmp2, strlen(tmp2));
-        // since printEid does an MTAKE
-        MRELEASE(dictionary);
-    }
+        MRELEASE(tmp2);
 
-    MRELEASE(tmp2);
+	// retrieveDictionary() does an MTAKE
+        releaseDictionary(dictionary);
+    }
 
     if(blockType == 0)
     {

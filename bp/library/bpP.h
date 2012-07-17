@@ -317,6 +317,7 @@ typedef struct
 	char		returnToSender;	/*	Boolean.		*/
 	char		accepted;	/*	Boolean.		*/
 	char		corrupt;	/*	Boolean.		*/
+	char		anonymous;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	int		dbTotal;	/*	Overhead + payload len.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
@@ -937,14 +938,18 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	from which the bundle was selected.
 			 *
 			 *	Then bpDequeue catenates (serializes)
-			 *	the BP block information in the bundle
-			 *	and prepends that serialized block to
-			 *	the source data of the bundle's
-			 *	payload ZCO.  Then it returns the
-			 *	address of that ZCO in *bundleZco
-			 *	for transmission at the convergence
-			 *	layer (possibly entailing segmentation
-			 *	that would be invisible to BP).
+			 *	the BP header information in the
+			 *	bundle and prepends that serialized
+			 *	header to the source data of the
+			 *	bundle's payload ZCO; if there are
+			 *	post-payload blocks, it likewise
+			 *	catenates them into a trailer that
+			 *	is appended to the source data.  Then
+			 *	it returns the address of that ZCO in
+			 *	*bundleZco for transmission at the
+			 *	convergence layer (possibly entailing
+			 *	segmentation that would be invisible
+			 *	to BP).
 			 *
 			 *	The extended class of service for the
 			 *	bundle is provided in *extendedCOS

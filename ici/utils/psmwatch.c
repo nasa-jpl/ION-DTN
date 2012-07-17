@@ -78,7 +78,7 @@ static int	run_psmwatch(int memKey, long memSize, char *partitionName,
 
 	/*	Start watching trace.					*/
 
-	if (psm_start_trace(psm, 5000000, NULL) < 0)
+	if (psm_start_trace(psm, 20000000, NULL) < 0)
 	{
 		putErrmsg("Can't start trace.", NULL);
 		writeErrmsgMemos();
@@ -104,7 +104,6 @@ static int	run_psmwatch(int memKey, long memSize, char *partitionName,
 	}
 
 	psm_stop_trace(psm);
-	psm_unmanage(psm);
 	writeErrmsgMemos();
 	return 0;
 }

@@ -192,6 +192,9 @@ int	main(int argc, char *argv[])
 	int			segmentLength;
 	char			*segment;
 	int			bytesSent;
+	float			sleepSecPerBit = 0;
+	float			sleep_secs;
+	unsigned int		usecs;
 	int			fd;
 	char			quit = '\0';
 
@@ -325,6 +328,11 @@ int	main(int argc, char *argv[])
 		writeMemo(memoBuf);
 	}
 
+	if (txbps)
+	{
+		sleepSecPerBit = 1.0 / txbps;
+	}
+
 	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
@@ -348,29 +356,23 @@ int	main(int argc, char *argv[])
 		else
 		{
 			bytesSent = sendSegmentByUDP(rtp.linkSocket, segment,
-					segmentLength, peerInetName );
+					segmentLength, peerInetName);
 			if (bytesSent < segmentLength)
 			{
 				rtp.running = 0;/*	Terminate LSO.	*/
 			}
 
-			if( txbps != 0 )
+			if (txbps)
 			{
-				unsigned int usecs;
-				float sleep_secs = (1.0 / ((float)txbps)) *
-					((float)((IPHDR_SIZE + segmentLength)
-						* 8));
-				if( sleep_secs < 0.010 )
+				sleep_secs = sleepSecPerBit
+					* ((IPHDR_SIZE + segmentLength) * 8);
+				usecs = sleep_secs * 1000000.0;
+				if (usecs == 0)
 				{
-					usecs = 10000;
-				}
-				else
-				{
-					usecs = (unsigned int)
-						( sleep_secs * 1000000 );
+					usecs = 1;
 				}
 
-				microsnooze( usecs );
+				microsnooze(usecs);
 			}
 		}
 

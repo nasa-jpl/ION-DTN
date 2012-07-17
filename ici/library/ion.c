@@ -12,6 +12,10 @@
 #include "rfx.h"
 #include "time.h"
 
+#ifndef NODE_LIST_SEMKEY
+#define NODE_LIST_SEMKEY	(0xeeee1)
+#endif
+
 #define	ION_DEFAULT_SM_KEY	((255 * 256) + 1)
 #define	ION_SM_NAME		"ionwm"
 #define	ION_DEFAULT_SDR_NAME	"ion"
@@ -342,6 +346,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 			unsigned long nodeNbr)
 {
 	char		*nodeListDir;
+	sm_SemId	nodeListMutex;
 	char		nodeListFileName[265];
 	int		nodeListFile;
 	int		lineNbr = 0;
@@ -386,6 +391,14 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 
 	/*	Configured for multi-node operation.			*/
 
+	nodeListMutex = sm_SemCreate(NODE_LIST_SEMKEY, SM_SEM_FIFO);
+	if (nodeListMutex == SM_SEM_NONE
+	|| sm_SemUnwedge(nodeListMutex, 3) < 0 || sm_SemTake(nodeListMutex) < 0)
+	{
+		putErrmsg("Can't lock node list file.", NULL);
+		return -1;
+	}
+
 	isprintf(nodeListFileName, sizeof nodeListFileName, "%.255s%cion_nodes",
 			nodeListDir, ION_PATH_DELIMITER);
 	if (nodeNbr == 0)	/*	Just attaching.			*/
@@ -399,6 +412,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 
 	if (nodeListFile < 0)
 	{
+		sm_SemGive(nodeListMutex);
 		putSysErrmsg("Can't open ion_nodes file", nodeListFileName);
 		writeMemo("[?] Remove ION_NODE_LIST_DIR from env?");
 		return -1;
@@ -412,6 +426,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 			if (lineLen < 0)
 			{
 				close(nodeListFile);
+				sm_SemGive(nodeListMutex);
 				putErrmsg("Failed reading ion_nodes file.",
 						nodeListFileName);
 				return -1;
@@ -425,6 +440,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 				&lineWmKey, lineSdrName, lineWdName) < 4)
 		{
 			close(nodeListFile);
+			sm_SemGive(nodeListMutex);
 			putErrmsg("Syntax error at line#", itoa(lineNbr));
 			writeMemoNote("[?] Repair ion_nodes file.",
 					nodeListFileName);
@@ -441,6 +457,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 			close(nodeListFile);
 			if (strcmp(lineWdName, wdName) != 0)
 			{
+				sm_SemGive(nodeListMutex);
 				putErrmsg("CWD conflict at line#",
 						itoa(lineNbr));
 				writeMemoNote("[?] Repair ion_nodes file.",
@@ -455,6 +472,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 
 			if (parms->wmKey != lineWmKey)
 			{
+				sm_SemGive(nodeListMutex);
 				putErrmsg("WmKey conflict at line#",
 						itoa(lineNbr));
 				writeMemoNote("[?] Repair ion_nodes file.",
@@ -470,6 +488,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 
 			if (strcmp(parms->sdrName, lineSdrName) != 0)
 			{
+				sm_SemGive(nodeListMutex);
 				putErrmsg("SdrName conflict at line#",
 						itoa(lineNbr));
 				writeMemoNote("[?] Repair ion_nodes file.",
@@ -486,6 +505,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 		if (strcmp(lineWdName, wdName) == 0)	/*	Match.	*/
 		{
 			close(nodeListFile);
+			sm_SemGive(nodeListMutex);
 			if (nodeNbr == 0)	/*	Attaching.	*/
 			{
 				parms->wmKey = lineWmKey;
@@ -510,6 +530,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 	if (nodeNbr == 0)	/*	Attaching to existing node.	*/
 	{
 		close(nodeListFile);
+		sm_SemGive(nodeListMutex);
 		putErrmsg("No node has been initialized in this directory.",
 				wdName);
 		return -1;
@@ -532,6 +553,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 			nodeNbr, parms->wmKey, parms->sdrName, wdName);
 	result = iputs(nodeListFile, lineBuf);
 	close(nodeListFile);
+	sm_SemGive(nodeListMutex);
 	if (result < 0)
 	{
 		putErrmsg("Failed writing to ion_nodes file.", NULL);

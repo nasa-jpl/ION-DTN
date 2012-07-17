@@ -372,14 +372,16 @@ int bsp_pibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	  int cmpResult;
           Object payloadData;
           Sdr bpSdr = getIonsdr();
-          char *srcNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
-          char *destNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN); 
+          char *srcNode = NULL;
+          char *destNode = NULL;
 
           // Get the src and dest needed to get key
-          if((printEid(&asb->secSrc, wk->dictionary, &srcNode) != 0) ||
-             (printEid(&asb->secDest, wk->dictionary, &destNode) != 0))
+          oK(printEid(&asb->secSrc, wk->dictionary, &srcNode));
+          oK(printEid(&asb->secDest, wk->dictionary, &destNode));
+	  if (srcNode == NULL || destNode == NULL)
           {
-	      MRELEASE(srcNode); MRELEASE(destNode);
+	      if (srcNode) MRELEASE(srcNode);
+	      if (destNode) MRELEASE(destNode);
 	      PIB_DEBUG_ERR("x bsp_pibCheck: Error retrieving src and dest nodes to find key.", NULL);
 	      PIB_DEBUG_PROC("- bsp_pibCheck --> %d", -1);
 	      return -1;

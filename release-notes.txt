@@ -1,6 +1,6 @@
-= Release Notes for ION 3.0.1 =
+= Release Notes for ION 3.0.2 =
 
-May 23, 2012
+July 13, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -52,6 +52,37 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.0.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #280: Fixed a deadlock scenario when using "ionstart" to start two nodes
+  nodes in parallel.
+
+- Issue #349: Applied some optimizations to the LTP engine to help it operate
+  at data rates that can exceed 80Mbps.
+
+- Issue #357: Fixed compilation issues that prevented ION from building properly
+  on some kfreebsd systems.
+
+- Issue #358: Fixed a bug in computing the CFDP inactivity deadline.
+  Updated the "cfdprc" man page to expose the parameters for configuring the
+  CFDP inactivity timeout interval. 
+
+- Issue #360: Updated the MinGW port of ION to supply definitions for various
+  required macros that are no longer supplied by newer versions of MinGW.
+
+- Issue #361: Fixed compilation issues that prevented ION from building properly
+  on some debian-unstable systems.
+
+- Issue #362: Fixed a bug where transplantation of man pages into ION.pdf could
+  fail if an obsolete version of man was used, causing compilation to fail.  ION
+  now detects if the required "-l" option for man is supported, and does not
+  attempt to transplant the man pages if the option is not found.
+
+- Issue #363: Fixed several memory leaks where SDR heap space was allocated but
+  not freed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.0.1 =

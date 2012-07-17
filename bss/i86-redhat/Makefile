@@ -38,11 +38,11 @@ install:
 #	-	-	Test executables	-	-	-	-
 
 bssrecv:	bssrecv.o libbss.so
-		$(CC) -o bssrecv bssrecv.o -L./lib -L$(ROOT)/lib -lbss -lbp -lbpP -lici -lpthread
+		$(CC) -o bssrecv bssrecv.o -L./lib -L$(ROOT)/lib -lbss -lbp -lici -lpthread
 		cp bssrecv ./bin
 
 bssStreamingApp:	bssStreamingApp.o libbss.so
-		$(CC) -o bssStreamingApp bssStreamingApp.o -L./lib -L$(ROOT)/lib -lbss -lbp -lbpP -lici -lpthread
+		$(CC) -o bssStreamingApp bssStreamingApp.o -L./lib -L$(ROOT)/lib -lbss -lbp -lici -lpthread
 		cp bssStreamingApp ./bin
 
 #	-	-	Libraries	-	-	-	-	-
