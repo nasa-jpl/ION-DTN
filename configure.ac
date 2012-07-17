@@ -166,12 +166,14 @@ AC_MSG_CHECKING([if man supports -l])
 if test "$MANOPTS" && echo | $MANOPTS -l - >/dev/null 2>/dev/null; then
     AC_MSG_RESULT($MANOPTS)
 else
+    MANOPTS=""
     AC_MSG_RESULT([not found])
     AC_MSG_NOTICE([try installing a version of man that supports -l])
 fi
+AC_SUBST([MANOPTS], $MANOPTS)
 
 AC_MSG_CHECKING([for tools to build autodoc])
-if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS" && test "$MANOPTS"; then
+if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS" && test -n "$MANOPTS"; then
     AC_MSG_RESULT([found])
     buildautodoc="yes"
 else
