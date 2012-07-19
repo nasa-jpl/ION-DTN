@@ -59,7 +59,7 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend
+UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
 
@@ -99,6 +99,10 @@ psmwatch:	psmwatch.o libici.so
 ionadmin:	ionadmin.o libici.so
 		$(CC) -o ionadmin ionadmin.o -L./lib -lici -lpthread
 		cp ionadmin ./bin
+
+ionwarn:	ionwarn.o libici.so
+		$(CC) -o ionwarn ionwarn.o -L./lib -lici -lpthread
+		cp ionwarn ./bin
 
 ionsecadmin:	ionsecadmin.o libici.so
 		$(CC) -o ionsecadmin ionsecadmin.o -L./lib -lici -lpthread
