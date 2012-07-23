@@ -15,7 +15,8 @@ PUBINCLS = \
 	$(INCL)/cfdp.h
 
 CFDPINCLS = \
-	$(API)/cfdpP.h
+	$(API)/cfdpP.h \
+	$(UTILS)/bpcp.h
 
 LBP = -lbp
 
@@ -65,11 +66,11 @@ bputa:		bputa.o libcfdp.so
 		cp bputa ./bin
 		
 #	-	-	BPCP executables	-	-	-	-	-
-bpcp: bpcp.o bpcp.h
+bpcp:		bpcp.o
 		$(CC) -o bpcp bpcp.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
 		cp bpcp ./bin
 		
-bpcpd: bpcpd.o bpcp.h
+bpcpd:		bpcpd.o
 		$(CC) -o bpcpd bpcpd.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
 		cp bpcpd ./bin
 

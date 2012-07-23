@@ -4175,6 +4175,7 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	Sdr		bpSdr = getIonsdr();
 	BpDB		*bpConstants = _bpConstants();
 	Address		addr;
+	Object		nextElt;
 	Object		elt;
 
 	CHKZERO(ionLocked());
@@ -4196,8 +4197,8 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	sdr_write(bpSdr, addr, (char *) newEvent, sizeof(BpEvent));
 	if (successor)
 	{
-		elt = sdr_list_insert_before(bpSdr,
-				(Object) sm_rbt_data(wm, successor), addr);
+		nextElt = (Object) sm_rbt_data(wm, successor);
+		elt = sdr_list_insert_before(bpSdr, nextElt, addr);
 	}
 	else
 	{
