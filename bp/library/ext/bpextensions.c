@@ -14,6 +14,7 @@
 /*	Add external function declarations between here...		*/
 
 #include "ecos/ecos.h"
+#include "bae/bae.h"
 #include "bsp/extbspbab.h"
 #include "bsp/extbsppcb.h"
 #include "bsp/extbsppib.h"
@@ -53,6 +54,20 @@ static ExtensionDef	extensions[] =
 				ecos_processOnAccept,
 				ecos_processOnEnqueue,
 				ecos_processOnDequeue,
+				0}
+		},
+		{ "bae", EXTENSION_TYPE_BAE, 0,
+				bae_offer,
+				bae_release,
+				bae_acquire,
+				bae_check,
+				bae_record,
+				bae_clear,
+				bae_copy,
+				{bae_processOnFwd,
+				bae_processOnAccept,
+				bae_processOnEnqueue,
+				bae_processOnDequeue,
 				0}
 		},
 #ifdef ENABLE_BPACS

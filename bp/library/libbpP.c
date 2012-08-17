@@ -2373,6 +2373,7 @@ static void	purgeDuctXmitElt(Bundle *bundle, Object bundleObj)
 	if (outductObj == 0)	/*	Bundle is in Limbo queue.	*/
 	{
 		sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
+		bundle->ductXmitElt = 0;
 		return;
 	}
 
@@ -4219,6 +4220,93 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 
 /*	*	*	Bundle origination functions	*	*	*/
 
+static void	computeExpirationTime(Bundle *bundle)
+{
+	unsigned long	secConsumed;
+	unsigned long	usecConsumed;
+	struct timeval	timeRemaining;
+	struct timeval	expirationTime;
+	struct timeval	currentTime;
+
+	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
+	{
+		bundle->expirationTime = bundle->id.creationTime.seconds
+				+ bundle->timeToLive;
+	}
+	else	/*	Round remaining time to nearest second.		*/
+	{
+		/*	Default is current time (in EPOCH_2000,
+		 *	like bundle creation time).			*/
+
+		bundle->expirationTime = getUTCTime() - EPOCH_2000_SEC;
+
+		/*	Compute remaining lifetime for bundle.		*/
+
+		timeRemaining.tv_sec = bundle->timeToLive;
+		timeRemaining.tv_usec = 0;
+		secConsumed = bundle->age / 1000000;
+		if (timeRemaining.tv_sec < secConsumed)
+		{
+			return;
+		}
+
+		timeRemaining.tv_sec -= secConsumed;
+		usecConsumed = bundle->age % 1000000;
+		if (timeRemaining.tv_usec < usecConsumed)
+		{
+			if (timeRemaining.tv_sec == 0)
+			{
+				return;
+			}
+
+			timeRemaining.tv_sec -= 1;
+			timeRemaining.tv_usec += 1000000;
+		}
+
+		timeRemaining.tv_usec -= usecConsumed;
+
+		/*	Add remaining lifetime to arrival time,
+		 *	to get expiration time in local time scale.	*/
+
+		expirationTime.tv_sec = bundle->arrivalTime.tv_sec
+				+ timeRemaining.tv_sec;
+		expirationTime.tv_usec = bundle->arrivalTime.tv_usec
+				+ timeRemaining.tv_usec;
+		if (expirationTime.tv_usec > 1000000)
+		{
+			expirationTime.tv_sec += 1;
+			expirationTime.tv_usec -= 1000000;
+		}
+
+		/*	Convert from local expiration time to UTC,
+		 *	by subtracting current time from local
+		 *	expiration time, rounding to the nearest
+		 *	second, and adding the rounded difference
+		 *	to the current UTC time.			*/
+
+		getCurrentTime(&currentTime);
+		if (expirationTime.tv_usec < currentTime.tv_usec)
+		{
+			if (expirationTime.tv_sec == 0)
+			{
+				return;
+			}
+
+			expirationTime.tv_usec += 1000000;
+			expirationTime.tv_sec -= 1;
+		}
+
+		expirationTime.tv_sec -= currentTime.tv_sec;
+		expirationTime.tv_usec -= currentTime.tv_usec;
+		if (expirationTime.tv_usec >= 500000)
+		{
+			expirationTime.tv_sec += 1;
+		}
+
+		bundle->expirationTime += expirationTime.tv_sec; 
+	}
+}
+
 static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 {
 	BpEvent	event;
@@ -4868,6 +4956,8 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 {
 	Sdr		bpSdr = getIonsdr();
 	BpVdb		*bpvdb = _bpvdb(NULL);
+	Object		bpDbObject = getBpDbObject();
+	BpDB		bpdb;
 	int		bundleProcFlags = 0;
 	unsigned int	srrFlags = srrFlagsByte;
 	int		aduLength;
@@ -5130,16 +5220,34 @@ when asking for custody transfer and/or status reports.");
 	/*	Bundle is almost fully constructed at this point.	*/
 
 	sdr_begin_xn(bpSdr);
-	getCurrentDtnTime(&currentDtnTime);
-	if (currentDtnTime.seconds != bpvdb->creationTimeSec)
+	if (ionClockIsSynchronized())
 	{
-		bpvdb->creationTimeSec = currentDtnTime.seconds;
-		bpvdb->bundleCounter = 0;
+		getCurrentDtnTime(&currentDtnTime);
+		if (currentDtnTime.seconds != bpvdb->creationTimeSec)
+		{
+			bpvdb->creationTimeSec = currentDtnTime.seconds;
+			bpvdb->bundleCounter = 0;
+		}
+
+		bundle.id.creationTime.seconds = bpvdb->creationTimeSec;
+		bundle.id.creationTime.count = ++(bpvdb->bundleCounter);
+	}
+	else
+	{
+		/*	If no synchronized clock, then creationTime
+		 *	seconds is always zero and a non-volatile
+		 *	bundle counter increments monotonically.	*/
+
+		bundle.id.creationTime.seconds = 0;
+		sdr_stage(bpSdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
+		bpdb.bundleCounter++;
+		bundle.id.creationTime.count = bpdb.bundleCounter;
+		sdr_write(bpSdr, bpDbObject, (char *) &bpdb, sizeof(BpDB));
 	}
 
-	bundle.id.creationTime.seconds = bpvdb->creationTimeSec;
-	bundle.id.creationTime.count = ++(bpvdb->bundleCounter);
-	bundle.expirationTime = bundle.id.creationTime.seconds + lifespan;
+	getCurrentTime(&bundle.arrivalTime);
+	bundle.timeToLive = lifespan;
+	computeExpirationTime(&bundle);
 	if (dictionary)
 	{
 		bundle.dictionary = sdr_malloc(bpSdr, bundle.dictionaryLength);
@@ -5333,12 +5441,8 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 		}
 	}
 
-	ttl = bundle->expirationTime - bundle->id.creationTime.seconds;
-	if (ttl < 1)
-	{
-		ttl = 1;
-	}
-
+	ttl = bundle->timeToLive;
+	if (ttl < 1) ttl = 1;
 	if (printEid(&bundle->id.source, dictionary,
 			&bundle->ctSignal.sourceEid) < 0)
 	{
@@ -5376,7 +5480,6 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 	}
 }
 
-
 int noteCtSignal(Bundle *bundle, AcqWorkArea *work, char *dictionary,
 		int succeeded, BpCtReason reasonCode)
 {
@@ -5394,8 +5497,6 @@ int noteCtSignal(Bundle *bundle, AcqWorkArea *work, char *dictionary,
 
 	return sendCtSignal(bundle, dictionary, succeeded, reasonCode);
 }
-
-
 
 int	sendStatusRpt(Bundle *bundle, char *dictionary)
 {
@@ -5429,7 +5530,7 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 		}
 	}
 
-	ttl = bundle->expirationTime - bundle->id.creationTime.seconds;
+	ttl = bundle->timeToLive;
 	if (ttl < 1) ttl = 1;
 	if (printEid(&bundle->id.source, dictionary,
 			&bundle->statusRpt.sourceEid) < 0)
@@ -6548,7 +6649,6 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	unsigned long	residualBlockLength;
 	int		i;
 	unsigned long	eidSdnvValues[8];
-	unsigned long	lifetime;
 	char		*eidString;
 	int		nullEidLen;
 	int		bytesParsed;
@@ -6600,18 +6700,25 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		extractSdnv(&(eidSdnvValues[i]), &cursor, &unparsedBytes);
 	}
 
-	/*	Get creation timestamp, lifetime, dictionary length.
-	 *	Expiration time is creation time plus interval.		*/
+	/*	Get creation timestamp, lifetime, dictionary length.	*/
 
 	extractSdnv(&(bundle->id.creationTime.seconds), &cursor,
 			&unparsedBytes);
-	bundle->expirationTime = bundle->id.creationTime.seconds;
 
 	extractSdnv(&(bundle->id.creationTime.count), &cursor,
 			&unparsedBytes);
 
-	extractSdnv(&(lifetime), &cursor, &unparsedBytes);
-	bundle->expirationTime += lifetime;
+	extractSdnv(&(bundle->timeToLive), &cursor, &unparsedBytes);
+	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
+	{
+		/*	Default bundle age, pending override by BAE.	*/
+
+		bundle->age = getUTCTime() - bundle->id.creationTime.seconds;
+	}
+	else
+	{
+		bundle->age = 0;
+	}
 
 	extractSdnv(&(bundle->dictionaryLength), &cursor, &unparsedBytes);
 	bundle->dbOverhead += bundle->dictionaryLength;
@@ -7449,6 +7556,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		bundle->dbOverhead += bundle->dictionaryLength;
 	}
 
+	computeExpirationTime(bundle);
 	if (setBundleTTL(bundle, bundleObj) < 0)
 	{
 		putErrmsg("Can't insert new bundle into timeline.", NULL);
@@ -8132,7 +8240,6 @@ static int	catenateBundle(Bundle *bundle)
 	int		totalLengthOfEidSdnvs;
 	Sdnv		creationTimestampTimeSdnv;
 	Sdnv		creationTimestampCountSdnv;
-	unsigned long	lifetime;
 	Sdnv		lifetimeSdnv;
 	Sdnv		dictionaryLengthSdnv;
 	Sdnv		fragmentOffsetSdnv;
@@ -8211,8 +8318,7 @@ static int	catenateBundle(Bundle *bundle)
 
 	encodeSdnv(&creationTimestampTimeSdnv, bundle->id.creationTime.seconds);
 	encodeSdnv(&creationTimestampCountSdnv, bundle->id.creationTime.count);
-	lifetime = bundle->expirationTime - bundle->id.creationTime.seconds;
-	encodeSdnv(&lifetimeSdnv, lifetime);
+	encodeSdnv(&lifetimeSdnv, bundle->timeToLive);
 	encodeSdnv(&dictionaryLengthSdnv, bundle->dictionaryLength);
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
