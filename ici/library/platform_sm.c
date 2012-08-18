@@ -947,17 +947,17 @@ void	sm_SemUnend(sm_SemId i)
 	sem->ended = 0;
 }
 
-int	sm_SemUnwedge(sm_SemId i, int interval)
+int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 {
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem;
 	int	ticks;
 
 	CHKERR(i >= 0);
-	CHKERR(interval >= 0);
 	CHKERR(i < nSemIds);
 	sem = semTbl + i;
-	ticks = sysClkRateGet() * interval;
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	ticks = sysClkRateGet() * timeoutSeconds;
 	if (semTake(sem->id, ticks) == ERROR)
 	{
 		if (errno != S_objLib_OBJ_TIMEOUT)
@@ -1271,7 +1271,7 @@ void	sm_SemUnend(sm_SemId i)
 	sem->ended = 0;
 }
 
-int	sm_SemUnwedge(sm_SemId i, int interval)
+int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 {
 	SemaphoreTable	*semTbl = _semTbl(0);
 	IciSemaphore	*sem;
@@ -1279,7 +1279,6 @@ int	sm_SemUnwedge(sm_SemId i, int interval)
 	DWORD		millisec;
 
 	CHKERR(i >= 0);
-	CHKERR(interval >= 0);
 	CHKERR(i < NUM_SEMAPHORES);
 	sem = semTbl->semaphores + i;
 	semId = getSemaphoreHandle(sem->key);
@@ -1289,7 +1288,8 @@ int	sm_SemUnwedge(sm_SemId i, int interval)
 		return -1;
 	}
 
-	millisec = interval * 1000;
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	millisec = timeoutSeconds * 1000;
 	oK(WaitForSingleObject(semId, millisec));
 	oK(SetEvent(semId));
 	CloseHandle(semId);
@@ -1538,17 +1538,17 @@ void	sm_SemUnend(sm_SemId i)
 	sem->ended = 0;
 }
 
-int	sm_SemUnwedge(sm_SemId i, int interval)
+int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 {
 	SmSem		*semTbl = _semTbl();
 	SmSem		*sem = semTbl + i;
 	struct timespec	timeout;
 
 	CHKERR(i >= 0);
-	CHKERR(interval >= 0);
 	CHKERR(i < SEM_NSEMS_MAX);
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
 	oK(clock_gettime(CLOCK_REALTIME, &timeout));
-	timeout.tv_sec += interval;
+	timeout.tv_sec += timeoutSeconds;
 	while (sem_timedwait(sem->id, &timeout) < 0)
 	{
 		switch (errno)
@@ -2004,7 +2004,7 @@ static void	handleTimeout()
 	return;
 }
 
-int	sm_SemUnwedge(sm_SemId i, int interval)
+int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 {
 	SemaphoreBase	*sembase = _sembase(0);
 	IciSemaphore	*sem;
@@ -2013,7 +2013,6 @@ int	sm_SemUnwedge(sm_SemId i, int interval)
 
 	CHKERR(sembase);
 	CHKERR(i >= 0);
-	CHKERR(interval >= 0);
 	CHKERR(i < sembase->semaphoresCount);
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
@@ -2024,8 +2023,9 @@ int	sm_SemUnwedge(sm_SemId i, int interval)
 
 	semset = sembase->semSets + sem->semSetIdx;
 	sem_op[0].sem_num = sem_op[1].sem_num = sem_op[2].sem_num = sem->semNbr;
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
 	isignal(SIGALRM, handleTimeout);
-	oK(alarm(interval));
+	oK(alarm(timeoutSeconds));
 	if (semop(semset->semid, sem_op, 2) < 0)
 	{
 		if (errno != EINTR)
