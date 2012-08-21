@@ -4339,7 +4339,6 @@ cannot be retrieved by key", bundleKey);
 		writeMemoNote("[?] Bundle hash key is not unique; bundles \
 cannot be retrieved by key", bundleKey);
 #endif
-abort();
 		break;
 
 	default:	/*	No such pre-existing entry.		*/

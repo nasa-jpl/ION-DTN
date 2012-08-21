@@ -62,7 +62,7 @@ static void	printUsage()
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
 	PUTS("\t1\tInitialize");
-	PUTS("\t   1 <est. number of sessions> <bytes reserved for LTP>");
+	PUTS("\t   1 <est. max number of sessions>");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a span <engine ID#> <max export sessions> \
 <max import sessions> <max segment size> <aggregation size limit> \
@@ -98,24 +98,30 @@ indication characters, e.g., df{].  See man(5) for ltprc.");
 
 static void	initializeLtp(int tokenCount, char **tokens)
 {
-	unsigned int	maxNbrOfSessions;
-	unsigned int	blockSizeLimit;
+	unsigned int	estMaxNbrOfSessions;
 
-	if (tokenCount != 3)
+	/*	For backward compatibility, if second argument is
+	 *	provided it is simply ignored.				*/
+
+	if (tokenCount == 3)
+	{
+		tokenCount = 2;
+	}
+
+	if (tokenCount != 2)
 	{
 		SYNTAX_ERROR;
 		return;
 	}
 
-	maxNbrOfSessions = strtol(tokens[1], NULL, 0);
-	blockSizeLimit = strtol(tokens[2], NULL, 0);
+	estMaxNbrOfSessions = strtol(tokens[1], NULL, 0);
 	if (ionAttach() < 0)
 	{
 		putErrmsg("ltpadmin can't attach to ION.", NULL);
 		return;
 	}
 
-	if (ltpInit(maxNbrOfSessions, blockSizeLimit) < 0)
+	if (ltpInit(estMaxNbrOfSessions) < 0)
 	{
 		putErrmsg("ltpadmin can't initialize LTP.", NULL);
 		return;

@@ -409,17 +409,14 @@ static char	*_ltpdbName()
 	return "ltpdb";
 }
 
-int	ltpInit(int estMaxExportSessions, int bytesReserved)
+int	ltpInit(int estMaxExportSessions)
 {
-	Sdr		ltpSdr;
-	Object		ltpdbObject;
-	IonDB		iondb;
-	LtpDB		ltpdbBuf;
-	int		i;
-	char		*ltpvdbName = _ltpvdbName();
-
-	/*	Note: bytesReserved is now ignored, should be
-	 *	removed from the API at some point in the future.	*/
+	Sdr	ltpSdr;
+	Object	ltpdbObject;
+	IonDB	iondb;
+	LtpDB	ltpdbBuf;
+	int	i;
+	char	*ltpvdbName = _ltpvdbName();
 
 	if (ionAttach() < 0)
 	{

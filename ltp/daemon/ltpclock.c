@@ -228,7 +228,7 @@ int	main(int argc, char *argv[])
 	long	state = 1;
 	time_t	currentTime;
 
-	if (ltpInit(0, 0) < 0)
+	if (ltpInit(0) < 0)
 	{
 		putErrmsg("ltpclock can't initialize LTP.", NULL);
 		return 1;

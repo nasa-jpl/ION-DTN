@@ -471,7 +471,7 @@ typedef struct
 	LtpVclient	clients[LTP_MAX_NBR_OF_CLIENTS];
 } LtpVdb;
 
-extern int		ltpInit(int estMaxExportSessions, int bytesReserved);
+extern int		ltpInit(int estMaxExportSessions);
 extern int		ltpStart();
 extern void		ltpStop();
 extern int		ltpAttach();
