@@ -242,7 +242,7 @@ int	main(int argc, char *argv[])
 	/*	Note that ltpadmin must be run before the first
 	 *	invocation of dccplso, to initialize the LTP database
 	 *	(as necessary) and dynamic database.			*/
-	if (ltpInit(0, 0) < 0)
+	if (ltpInit(0) < 0)
 	{
 		putErrmsg("dccplso can't initialize LTP.", NULL);
 		writeErrmsgMemos();
