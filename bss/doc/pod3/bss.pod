@@ -58,8 +58,17 @@ endpoint at which the delivered BSS bundle payload contents will be
 acquired.  I<buffer> identifies a data acquisition buffer, which must be
 provided by the application, and I<bufLen> indicates the length of that
 buffer; received bundle payloads in excess of this length will be discarded.
+
 I<handler> identifies the display function to which each in-order bundle
-payload will be passed.  On any failure, returns -1.  On success, returns zero.
+payload will be passed.  The I<time> and I<count> parameters passed to this
+function identify the received bundle, indicating the bundle's creation
+timestamp time (in seconds) and counter value.  The I<buffer> and I<bufLength>
+parameters indicate the location into which the bundle's payload was
+acquired and the length of the acquired payload.  I<handler> must return -1 on
+any unrecoverable system error, 0 otherwise.  A return value of -1 from
+I<handler> will terminate the BSS data acquisition background thread.
+
+On any failure, returns -1.  On success, returns zero.
 
 =item int bssRun(char *bssName, char *path, char *eid, char *buffer, int bufLen, RTBHandler handler)
 

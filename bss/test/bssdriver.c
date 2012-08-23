@@ -1,53 +1,26 @@
 /*
- *	bssStreamingApp.c:	a test program that creates and sends a 
- *				stream of bundles.
- *									
- *	BSS Streaming Application Specifications			
+ *	bssdriver.c:	a test program that creates and sends a
+ *			delimited stream of bundles.
+ *
+ *	BSS Driver Specifications			
  *	Simulated Compression: H.264/MPEG-4
  *	Resolution: 1280×720 @ 30fps. Constant Bit Rate: 3Mbps
+ *
+ *	Adapted from bssStreamingApp.c, written by Sotirios-Angelos
+ *	Lenas, Democritus University of Thrace.
  *								
- *	Copyright (c) 2011, California Institute of Technology.	
- *	Copyright (c) 2011, Space Internetworking Center,
- *	Democritus University of Thrace.
+ *	Copyright (c) 2012, California Institute of Technology.	
  *
  *	All rights reserved.						
  *	
- *	Authors: Sotirios-Angelos Lenas, SPICE	 
+ *	Author: Scott Burleigh	 
  */			
 
 #include "bp.h"
 #include "bsstest.h"
 
-static int 	running = 1;
-
-static BpSAP	_bpsap(BpSAP *newSAP)
-{
-	void	*value;
-	BpSAP	sap;
-
-	if (newSAP)			/*	Add task variable.	*/
-	{
-		value = (void *) (*newSAP);
-		sap = (BpSAP) sm_TaskVar(&value);
-	}
-	else				/*	Retrieve task variable.	*/
-	{
-		sap = (BpSAP) sm_TaskVar(NULL);
-	}
-
-	return sap;
-}
-
-static void	handleQuit()
-{
-	void	*erase = NULL;
-
-	bp_interrupt(_bpsap(NULL));
-	oK(sm_TaskVar(&erase));
-	running = 0;
-}
-
-static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
+static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
+			char *svcClass)
 {
 	int		priority = 0;
 	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
@@ -60,15 +33,15 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 	BpCustodySwitch	custodySwitch = SourceCustodyRequired;
 	BpSAP		sap;
 	Sdr		sdr;
+	unsigned int	i = 0;
+	unsigned int	dataValue;
 	Object		bundlePayload;
 	Object		bundleZco;
 	Object		newBundle;
-	int 		i=0;
 
 	/*	bitrate = 3Mbps, CBR = 20866 bytes per 55642 usec	*/    
 
 	char		framePayload[RCV_LENGTH];
-	char		info[100];
 
 	if (svcClass == NULL)
 	{
@@ -97,8 +70,6 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		return 0;
 	}
 
-	oK(_bpsap(&sap));
-
 	sdr = bp_get_sdr();
 	if (sdr_heap_depleted(sdr))
 	{
@@ -107,75 +78,77 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		return 0;
 	}
 
-	isignal(SIGINT, handleQuit);
-
-	writeMemo("[i] bssStreamingApp is running.");
-
-	while(running) {
-
+	writeMemo("[i] bssdriver is running.");
+	while (bundlesToSend > 0)
+	{
 		i++;
-		istrcpy(framePayload, itoa(i), sizeof(framePayload));
-
+		dataValue = htonl(i);
+		memcpy(framePayload, (char *) &dataValue, sizeof(unsigned int));
 		sdr_begin_xn(sdr);
 		bundlePayload = sdr_malloc(sdr, sizeof(framePayload));
-		if(bundlePayload == 0) {
+		if (bundlePayload == 0)
+		{
 			sdr_cancel_xn(sdr);
 			bp_close(sap);
 			putErrmsg("No space for frame payload.", NULL);
 			break;
 		}
 		
-		sdr_write(sdr, bundlePayload, framePayload, sizeof(framePayload));
+		sdr_write(sdr, bundlePayload, framePayload,
+				sizeof(framePayload));
 		bundleZco = zco_create(sdr, ZcoSdrSource, bundlePayload, 0, 
 				sizeof(framePayload));
-		if(sdr_end_xn(sdr) < 0 || bundleZco == 0)
+		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
 		{
 			bp_close(sap);
-			putErrmsg("bssStreamingApp can't create bundle ZCO.", NULL);
+			putErrmsg("bssdriver can't create bundle ZCO.", NULL);
 			break;
 		}
 
-		/* Send the bundle payload. */
-		if(bp_send(sap, BP_BLOCKING, destEid, NULL, 86400,
-		   priority, custodySwitch, 0, 0, &extendedCOS, bundleZco, 
-		   &newBundle) <= 0)
+		/*	Send the bundle payload.	*/
+
+		if (bp_send(sap, BP_BLOCKING, destEid, NULL, 86400, priority,
+				custodySwitch, 0, 0, &extendedCOS, bundleZco, 
+				&newBundle) <= 0)
 		{
-			putErrmsg("bssStreamingApp can't send frame.", NULL);
+			putErrmsg("bssdriver can't send frame.", NULL);
 			break;
 		}
 
-		isprintf(info, sizeof info, "A frame with payload: %s and \
-size: %d has been sent\n", framePayload, sizeof(framePayload));
-		PUTS(info);
+		bundlesToSend--;
 		microsnooze(SNOOZE_INTERVAL);
 	}
 
 	bp_close(sap);
 	writeErrmsgMemos();
-	PUTS("Stopping bssStreamingApp.");
+	puts("Stopping bssdriver.");
 	bp_detach();
 	return 0;
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
-int	bssStreamingApp(int a1, int a2, int a3, int a4, int a5,
+int	bssdriver(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char	*ownEid = (char *) a2;
-	char	*destEid = (char *) a3;
+	char	*ownEid = (char *) a1;
+	char	*destEid = (char *) a2;
+	long	nbrOfBundles = strtol((char *) a3, NULL, 0);
 	char	*classOfService = (char *) a4;
 #else
 int	main(int argc, char **argv)
 {
 	char	*ownEid = NULL;
 	char	*destEid = NULL;
+	long	nbrOfBundles = 0;
 	char	*classOfService = NULL;
 
-	if (argc > 4) argc = 4;
+	if (argc > 5) argc = 5;
 	switch (argc)
 	{
+	case 5:
+		classOfService = argv[4];
 	case 4:
-		classOfService = argv[3];
+		nbrOfBundles = strtol(argv[3], NULL, 0);
 	case 3:
 		destEid = argv[2];
 	case 2:
@@ -184,13 +157,13 @@ int	main(int argc, char **argv)
 		break;
 	}
 #endif
-	if (ownEid == NULL || destEid == NULL)
+	if (ownEid == NULL || destEid == NULL || nbrOfBundles < 1)
 	{
-		PUTS("Usage: bssStreamingApp <own endpoint ID> <destination \
-endpoint ID> [<class of service>]");
-		PUTS("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
+		puts("Usage: bssdriver <own endpoint ID> <destination \
+endpoint ID> <number of bundles> [<class of service>]");
+		puts("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
 		return 0;
 	}
 
-	return run_streamingApp(ownEid, destEid, classOfService);
+	return run_bssdriver(ownEid, destEid, nbrOfBundles, classOfService);
 }

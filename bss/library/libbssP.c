@@ -823,6 +823,7 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 	long 		newEntryOffset;
 	long		lstEntryOffset;
 	int		updateStat;
+	int		res = 0;
 
 	memset(buffer, '\0', bufLength);
 	contentLength = (long) zco_source_data_length(sdr, dlv->adu);
@@ -944,28 +945,28 @@ printf("from this point on, the execution of the provided display function begin
 
 		if (dlv->bundleCreationTime.seconds > lastDis->seconds)
 		{
-			oK(display(dlv->bundleCreationTime.seconds, 
+			res = display(dlv->bundleCreationTime.seconds, 
 				dlv->bundleCreationTime.count, buffer, 
-				contentLength));
+				contentLength);
 			*lastDis = dlv->bundleCreationTime;
 		}
 		else if (dlv->bundleCreationTime.seconds == lastDis->seconds)
 		{
 			if (dlv->bundleCreationTime.count > lastDis->count)
 			{
-				oK(display(dlv->bundleCreationTime.seconds, 
+				res = display(dlv->bundleCreationTime.seconds,
 					dlv->bundleCreationTime.count, buffer, 
-					contentLength));
+					contentLength);
 				*lastDis = dlv->bundleCreationTime;
 			}
 		}
 	}
 	else
 	{
-		oK(display((time_t) 0, 0, error, sizeof(error)));
+		res = display((time_t) 0, 0, error, sizeof(error));
 	}
 
-	return 0;
+	return res;
 }
 
 void	*recvBundles(void *args)
