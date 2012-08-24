@@ -103,7 +103,7 @@ static int	checkReceptionStatus(char *buffer, int limit)
 		switch (bssNext(&nav, &bundleIdTime, &bundleIdCount))
 		{
 		case -2:		/*	End of database.	*/
-			break;
+			break;		/*	Out of switch.		*/
 
 		case -1:
 			putErrmsg("Failed in bssNext.", NULL);
@@ -112,6 +112,8 @@ static int	checkReceptionStatus(char *buffer, int limit)
 		default:
 			continue;
 		}
+
+		break;			/*	Out of loop.		*/
 	}
 
 	return 0;			/*	Not done yet.		*/
@@ -211,8 +213,10 @@ database name> <path for BSS database files> <own endpoint ID>");
 			continue;		/*	Not done yet.	*/
 
 		default:
-			printf("BSS rec'd %d real-time frames.\n", _count(0));
-			printf("BSS rec'd %d frames in total.\n", limit);
+			fprintf(stderr, "Received %d real-time frames.\n",
+					_count(0));
+			fprintf(stderr, "Received %d frames in total.\n",
+					limit);
 			puts("bss test succeeded.");
 			result = 0;		/*	Succeeded.	*/
 			break;			/*	Out of switch.	*/

@@ -26,5 +26,4 @@ a outduct udp * udpclo
 a outduct tcp 127.0.0.1:4567 tcpclo
 a outduct tcp 127.0.0.1:4568 tcpclo
 r 'bssadmin amroc.ipnrc'
-w 0
 s
