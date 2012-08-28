@@ -1533,7 +1533,9 @@ bsscflags = -I$(srcdir)/bss/library -I$(srcdir)/bss/include
 
 bssbin = \
 	bssrecv \
-	bssStreamingApp
+	bssStreamingApp \ 
+	bsscounter \
+	bssdriver
 
 bsslib = \
 	libbss.la
@@ -1583,6 +1585,14 @@ bssrecv_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 bssStreamingApp_SOURCES = bss/test/bssStreamingApp.c
 bssStreamingApp_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bssStreamingApp_CFLAGS = $(bsscflags) $(AM_CFLAGS)
+
+bsscounter_SOURCES = bss/test/bsscounter.c
+bsscounter_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
+bsscounter_CFLAGS = $(bsscflags) $(AM_CFLAGS)
+
+bssdriver_SOURCES = bss/test/bssdriver.c
+bssdriver_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
+bssdriver_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 
 ##############
