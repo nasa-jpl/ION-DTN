@@ -124,7 +124,7 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	nodeNbr;
+	unsigned long	nodeNbr;	/*	For "imc", group nbr.	*/
 	unsigned long	serviceNbr;
 } CbheEid;
 
@@ -133,6 +133,7 @@ typedef struct
 	DtnEid		d;
 	CbheEid		c;
 	char		cbhe;		/*	Boolean.		*/
+	char		unicast;	/*	Boolean.		*/
 } EndpointId;
 
 typedef struct
@@ -179,7 +180,6 @@ typedef struct
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
-#define	BP_AGGREGATE_CUSTODY_SIGNAL	(4)
 
 /*	Administrative record flags	*/
 #define BP_BDL_IS_A_FRAGMENT	(1)	/*	00000001		*/
@@ -427,7 +427,9 @@ typedef struct
 typedef struct
 {
 	char		name[MAX_SCHEME_NAME_LEN + 1];
+	int		nameLength;
 	int		cbhe;		/*	Boolean.		*/
+	int		unicast;	/*	Boolean;		*/
 	Object		fwdCmd; 	/*	For starting forwarder.	*/
 	Object		admAppCmd; 	/*	For starting admin app.	*/
 	Object		forwardQueue;	/*	SDR list of Bundles	*/
@@ -437,11 +439,16 @@ typedef struct
 typedef struct
 {
 	Object		schemeElt;	/*	Reference to scheme.	*/
+
+	/*	Copied from Scheme.	*/
+
 	char		name[MAX_SCHEME_NAME_LEN + 1];
-	char		custodianEidString[MAX_EID_LEN];
-	int		custodianSchemeNameLength;
-	int		custodianNssLength;
-	int		cbhe;		/*	Copied from Scheme.	*/
+	int		nameLength;
+	int		cbhe;
+	int		unicast;
+
+	char		adminEid[MAX_EID_LEN];
+	int		adminNSSLength;
 	int		fwdPid;		/*	For stopping forwarder.	*/
 	int		admAppPid;	/*	For stopping admin app.	*/
 	sm_SemId	semaphore;	/*	For dispatch notices.	*/
@@ -576,7 +583,6 @@ typedef struct
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
 	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting clock.	*/
-	BpString	custodianEidString;
 	int		maxAcqInHeap;
 	time_t		resetTime;	/*	Stats reset time.	*/
 	Object		sourceStats;	/*	BpCosStats address.	*/
@@ -682,7 +688,6 @@ typedef struct
 	/*	For finding structures in database.			*/
 
 	PsmAddress	schemes;	/*	SM list: VScheme.	*/
-	PsmAddress	cbheScheme;	/*	A single VScheme.	*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
 	PsmAddress	timeline;	/*	SM RB tree: list xref.	*/
@@ -1209,43 +1214,6 @@ extern int		bpDestroyBundle(Object bundleToDestroy,
 			 *	retained because not all constraints
 			 *	have been removed, -1 on any error.	*/
 
-extern int		bpConstructStatusRpt(BpStatusRpt *rpt,
-					Object *payloadZco);
-			/*	Catenates (serializes) rpt as the
-			 *	source data of a new ZCO and passes
-			 *	back the address of that new ZCO.
-			 *
-			 *	Returns 0 on success, -1 on any error.	*/
-
-extern void		bpEraseStatusRpt(BpStatusRpt *rpt);
-			/*	Frees any dynamic memory used in
-			 *	expressing this status report.		*/
-
-extern int		bpConstructCtSignal(BpCtSignal *signal,
-					Object *payloadZco);
-			/*	Catenates (serializes) signal as the
-			 *	source data of a new ZCO and passes
-			 *	back the address of that new ZCO.
-			 *
-			 *	Returns 0 on success, -1 on any error.	*/
-
-extern void		bpEraseCtSignal(BpCtSignal *signal);
-			/*	Frees any dynamic memory used in
-			 *	expressing this custody transfer signal.*/
-
-extern int		bpParseAdminRecord(int *adminRecordType,
-					BpStatusRpt *rpt,
-					BpCtSignal *signal,
-					void **acsptr,
-					Object payload);
-			/*	Populates the appropriate structure
-			 *	from payload content and notes the
-			 *	corresponding admin record type (0
-			 *	if payload is not an admin record).
-			 *
-			 *	Returns 1 on success, 0 on parsing
-			 *	failure, -1 on any other error.		*/
-
 extern int		bpInit();
 extern int		bpSetCTCountdownTimer(time_t newTimeout);
 extern int		bpStart();
@@ -1358,12 +1326,11 @@ typedef struct bpsap_st
 	sm_SemId	recvSemaphore;
 } Sap;
 
-extern int		handleAbstractCtSignal(BpCtSignal *, char *);
 extern int		_handleAdminBundles(char *adminEid,
 				StatusRptCB handleStatusRpt,
 				CtSignalCB handleCtSignal);
-
-extern int eidIsLocal(EndpointId eid, char* dictionary);
+extern int		applyCtSignal(BpCtSignal *, char *);
+extern int		eidIsLocal(EndpointId eid, char* dictionary);
 
 #ifdef __cplusplus
 }
