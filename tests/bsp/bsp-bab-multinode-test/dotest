@@ -175,7 +175,7 @@ ENDOFIONSECADMINCOMMANDS
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk
+#a key key1 key1.hmk
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
 
@@ -337,14 +337,14 @@ sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk 
+#a key key1 key1.hmk 
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk 
+#a key key1 key1.hmk 
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 a bspbabrule ipn:3.* ipn:4.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
@@ -352,7 +352,7 @@ ENDOFIONSECADMINCOMMANDS
 cd ../4.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk
+#a key key1 key1.hmk
 a bspbabrule ipn:3.* ipn:4.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
 
@@ -390,14 +390,14 @@ sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk 
+#a key key1 key1.hmk 
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk 
+#a key key1 key1.hmk 
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 a bspbabrule ipn:3.* ipn:4.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
@@ -405,7 +405,7 @@ ENDOFIONSECADMINCOMMANDS
 cd ../4.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk
+#a key key1 key1.hmk
 a bspbabrule ipn:3.* ipn:4.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
 

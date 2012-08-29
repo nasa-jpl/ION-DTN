@@ -2114,6 +2114,10 @@ int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 	char		*delimiter;
 	char		*hostname;
 	char		hostnameBuf[MAXHOSTNAMELEN + 1];
+	unsigned int	d1;
+	unsigned int	d2;
+	unsigned int	d3;
+	unsigned int	d4;
 	unsigned int	i4;
 
 	CHKERR(portNbr);
@@ -2147,6 +2151,16 @@ int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 			{
 				getNameOfHost(hostnameBuf, sizeof hostnameBuf);
 				hostname = hostnameBuf;
+			}
+			else
+			{
+				if (strcmp(hostname, "localhost") != 0
+				&& sscanf(hostname, "%u.%u.%u.%u", &d1, &d2,
+						&d3, &d4) != 4)
+				{
+					writeMemoNote("[!] Warning: safer to \
+use a dotted string IP address than a possibly aliased host name", hostname);
+				}
 			}
 
 			i4 = getInternetAddress(hostname);
@@ -2197,6 +2211,13 @@ int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 	return 0;
 }
 #endif
+
+void	printDottedString(unsigned int hostNbr, char *buffer)
+{
+	CHKVOID(buffer);
+	isprintf(buffer, 16, "%u.%u.%u.%u", (hostNbr >> 24) & 0xff,
+		(hostNbr >> 16) & 0xff, (hostNbr >> 8) & 0xff, hostNbr & 0xff);
+}
 
 /*	Portable implementation of a safe snprintf: always NULL-
  *	terminates the content of the string composition buffer.	*/

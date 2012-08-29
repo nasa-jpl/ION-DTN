@@ -162,6 +162,16 @@ PIB rule pertaining to I<sender_eid_expr> and I<receiver_eid_expr>.
 
 This command lists all PIB rules in the security policy database.
 
+=item B<x> I<[ { ~ | sender_eid_expr } [ { ~ | receiver_eid_expr} [ { ~ | bab | pib | pcb | esb } ] ] ]>
+
+This command will clear all rules for the indicated type of security block
+between the indicated security source and security destination.  If block
+type is omitted it defaults to B<~> signifying "all security blocks".  If
+both block type and security destination are omitted, security destination
+defaults to B<~> signifying "all security destinations".  If all three
+command-line parameters are omitted, then security source defaults to B<~>
+signifying "all security sources".
+
 =item B<h>
 
 The B<help> command.  This will display a listing of the commands and their
