@@ -88,7 +88,7 @@ int	phn_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	}
 
 	restoreExtensionBlock(blk);
-	nameLength = vscheme->nameLength + 1 + vscheme->adminNssLength;
+	nameLength = vscheme->nameLength + 1 + vscheme->adminNSSLength;
 	blk->dataLength = nameLength + 1;
 	adminEid = MTAKE(blk->dataLength);
 	if (adminEid == NULL)
