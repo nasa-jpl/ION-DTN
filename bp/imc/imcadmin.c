@@ -85,7 +85,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	imc_addKin(atoi(tokens[2]), atoi(tokens[3]));
+	imc_addKin(atoi(tokens[1]), atoi(tokens[2]));
 }
 
 static void	executeChange(int tokenCount, char **tokens)
@@ -96,7 +96,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
-	imc_updateKin(atoi(tokens[2]), atoi(tokens[3]));
+	imc_updateKin(atoi(tokens[1]), atoi(tokens[2]));
 }
 
 static void	executeDelete(int tokenCount, char **tokens)
@@ -107,7 +107,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	imc_removeKin(atoi(tokens[2]));
+	imc_removeKin(atoi(tokens[1]));
 }
 
 static void	printKin(unsigned long kin, unsigned long parent)

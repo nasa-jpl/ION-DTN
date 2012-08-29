@@ -14,6 +14,8 @@
 
 #define	IMC_DBNAME	"imcRoute"
 
+static void	destroyGroup(Object groupElt);
+
 /*	*	*	Globals used for IMC scheme service.	*	*/
 
 static Object	_imcdbObject(Object *newDbObj)
@@ -41,6 +43,132 @@ static ImcDB	*_imcConstants()
 	}
 
 	return db;
+}
+
+/*	*	*	Petition exchange functions	*	*	*/
+
+static int	sendPetition(unsigned long nodeNbr, char *buffer, int length)
+{
+	unsigned int	ttl = 86400;
+	BpExtendedCOS	ecos = { 0, 0, 255 };
+	Sdr		sdr = getIonsdr();
+	Object		sourceData;
+	Object		payloadZco;
+	char		destEid[32];
+	Object		bundleObj;
+
+	sdr_begin_xn(sdr);
+	sourceData = sdr_malloc(sdr, length);
+	if (sourceData == 0)
+	{
+		putErrmsg("No space for source data.", NULL);
+		sdr_exit_xn(sdr);
+		return-1;
+	}
+
+	sdr_write(sdr, sourceData, buffer, length);
+	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, length);
+	if (sdr_end_xn(sdr) < 0 || payloadZco == 0)
+	{
+		putErrmsg("Can't create IMC petition.", NULL);
+		return -1;
+	}
+
+	isprintf(destEid, sizeof destEid, "ipn:%lu.0", nodeNbr);
+	switch (bpSend(NULL, destEid, NULL, ttl, BP_EXPEDITED_PRIORITY,
+			NoCustodyRequested, 0, 0, &ecos, payloadZco,
+			&bundleObj, BP_MULTICAST_PETITION))
+	{
+	case -1:
+		putErrmsg("Can't send IMC petition.", NULL);
+		return -1;
+
+	case 0:
+		putErrmsg("IMC petition not sent.", NULL);
+
+		/*	Intentional fall-through to next case.	*/
+
+	default:
+		return 0;
+	}
+}
+
+static int	forwardPetition(ImcGroup *group, int isMember,
+			unsigned long senderNodeNbr)
+{
+	Sdr		sdr = getIonsdr();
+	unsigned char	adminRecordFlag = (BP_MULTICAST_PETITION << 4);
+	Sdnv		groupNbrSdnv;
+	int		petitionLength;
+	char		*buffer;
+	char		*cursor;
+	int		result = 0;
+	Object		elt;
+	unsigned long	nodeNbr;
+
+	encodeSdnv(&groupNbrSdnv, group->groupNbr);
+	petitionLength = 1 + groupNbrSdnv.length + 1;
+	buffer = MTAKE(petitionLength);
+	if (buffer == NULL)
+	{
+		putErrmsg("Can't construct IMC petition.", NULL);
+		return -1;
+	}
+
+	cursor = buffer;
+
+	*cursor = adminRecordFlag;
+	cursor++;
+
+	memcpy(cursor, groupNbrSdnv.text, groupNbrSdnv.length);
+	cursor += groupNbrSdnv.length;
+
+	*cursor = (isMember ? 1 : 0);
+	cursor++;
+
+	for (elt = sdr_list_first(sdr, (_imcConstants())->kin); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		nodeNbr = (unsigned long) sdr_list_data(sdr, elt);
+		if (nodeNbr == senderNodeNbr)
+		{
+			continue;	/*	Would be an echo.	*/
+		}
+
+		if (sendPetition(nodeNbr, buffer, petitionLength) < 0)
+		{
+			result = -1;
+			break;
+		}
+	}
+
+	MRELEASE(buffer);
+	return result;
+}
+
+int	imcParsePetition(void **argp, unsigned char *cursor, int unparsedBytes)
+{
+	ImcPetition	*petition;
+
+	*argp = NULL;		/*	Default.			*/
+	petition = MTAKE(sizeof(ImcPetition));
+	if (petition == NULL)
+	{
+		putErrmsg("Can't allocate IMC petition work area.", NULL);
+		return -1;
+	}
+
+	memset((char *) petition, 0, sizeof(ImcPetition));
+	extractSdnv(&(petition->groupNbr), &cursor, &unparsedBytes);
+	if (unparsedBytes < 1)
+	{
+		writeMemo("[?] IMC petition too short to parse.");
+		return 0;
+	}
+
+	petition->isMember = (*cursor != 0);
+	*argp = petition;
+	return 1;
 }
 
 /*	*	*	Routing information mgt functions	*	*/
@@ -135,10 +263,17 @@ static Object	locateRelative(unsigned long nodeNbr, Object *nextRelative)
 
 int	imc_addKin(unsigned long nodeNbr, int isParent)
 {
-	Sdr	sdr = getIonsdr();
-	Object	dbObj = getImcDbObject();
-	ImcDB	db;
-	Object	nextRelative;
+	Sdr		sdr = getIonsdr();
+	Object		dbObj = getImcDbObject();
+	ImcDB		db;
+	Object		nextRelative;
+	Object		elt;
+			OBJ_POINTER(ImcGroup, group);
+	unsigned char	adminRecordFlag = (BP_MULTICAST_PETITION << 4);
+	Sdnv		groupNbrSdnv;
+	int		petitionLength;
+	char		*buffer;
+	char		*cursor;
 
 	CHKERR(nodeNbr);
 	sdr_begin_xn(sdr);
@@ -165,6 +300,47 @@ int	imc_addKin(unsigned long nodeNbr, int isParent)
 	{
 		db.parent = nodeNbr;
 		sdr_write(sdr, dbObj, (char *) &db, sizeof(ImcDB));
+	}
+
+	/*	Send new relative an assertion petition for every
+	 *	group that has at least one member.			*/
+
+	for (elt = sdr_list_first(sdr, (_imcConstants())->groups); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, ImcGroup, group, sdr_list_data(sdr, elt));
+		if (sdr_list_length(sdr, group->members) == 0)
+		{
+			continue;
+		}
+
+		encodeSdnv(&groupNbrSdnv, group->groupNbr);
+		petitionLength = 1 + groupNbrSdnv.length + 1;
+		buffer = MTAKE(petitionLength);
+		if (buffer == NULL)
+		{
+			putErrmsg("Can't construct IMC petition.", NULL);
+			return -1;
+		}
+
+		cursor = buffer;
+
+		*cursor = adminRecordFlag;
+		cursor++;
+
+		memcpy(cursor, groupNbrSdnv.text, groupNbrSdnv.length);
+		cursor += groupNbrSdnv.length;
+
+		*cursor = 1;
+		cursor++;
+
+		if (sendPetition(nodeNbr, buffer, petitionLength) < 0)
+		{
+			putErrmsg("Can't send subscription to new relative.",
+					itoa(group->groupNbr));
+			sdr_cancel_xn(sdr);
+			break;
+		}
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -219,10 +395,15 @@ int	imc_updateKin(unsigned long nodeNbr, int isParent)
 
 void	imc_removeKin(unsigned long nodeNbr)
 {
-	Sdr	sdr = getIonsdr();
-	Object	dbObj = getImcDbObject();
-	ImcDB	db;
-	Object	elt;
+	Sdr		sdr = getIonsdr();
+	Object		dbObj = getImcDbObject();
+	unsigned long	ownNodeNbr = getOwnNodeNbr();
+	ImcDB		db;
+	Object		elt;
+	Object		elt2;
+	Object		nextElt;
+			OBJ_POINTER(ImcGroup, group);
+	Object		elt3;
 
 	CHKVOID(nodeNbr);
 	sdr_begin_xn(sdr);
@@ -244,6 +425,42 @@ void	imc_removeKin(unsigned long nodeNbr)
 		sdr_write(sdr, dbObj, (char *) &db, sizeof(ImcDB));
 	}
 
+	/*	Cancel all of this relative's group memberships.	*/
+	
+	for (elt2 = sdr_list_first(sdr, (_imcConstants())->groups); elt2;
+			elt2 = nextElt)
+	{
+		nextElt = sdr_list_next(sdr, elt2);
+		GET_OBJ_POINTER(sdr, ImcGroup, group, sdr_list_data(sdr, elt));
+		for (elt3 = sdr_list_first(sdr, group->members); elt3;
+				elt3 = sdr_list_next(sdr, elt3))
+		{
+			if (nodeNbr == (unsigned long) sdr_list_data(sdr, elt3))
+			{
+				break;
+			}
+		}
+
+		if (elt3)	/*	Node is a member of this group.	*/
+		{
+			sdr_list_delete(sdr, elt3, NULL, NULL);
+			if (sdr_list_length(sdr, group->members) == 0)
+			{
+				/*	No more members; unsubscribe.	*/
+
+				if (forwardPetition(group, 0, ownNodeNbr) < 0)
+				{
+					sdr_cancel_xn(sdr);
+					break;
+				}
+				else
+				{
+					destroyGroup(elt2);
+				}
+			}
+		}
+	}
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't remove relative.", itoa(nodeNbr));
@@ -251,31 +468,6 @@ void	imc_removeKin(unsigned long nodeNbr)
 }
 
 /*	*	*	Multicast group mgt functions	*	*	*/
-
-int	imcParsePetition(void **argp, unsigned char *cursor, int unparsedBytes)
-{
-	ImcPetition	*petition;
-
-	*argp = NULL;		/*	Default.			*/
-	petition = MTAKE(sizeof(ImcPetition));
-	if (petition == NULL)
-	{
-		putErrmsg("Can't allocate IMC petition work area.", NULL);
-		return -1;
-	}
-
-	memset((char *) petition, 0, sizeof(ImcPetition));
-	extractSdnv(&(petition->groupNbr), &cursor, &unparsedBytes);
-	if (unparsedBytes < 1)
-	{
-		writeMemo("[?] IMC petition too short to parse.");
-		return 0;
-	}
-
-	petition->isMember = (*cursor != 0);
-	*argp = petition;
-	return 1;
-}
 
 static Object	locateGroup(unsigned long groupNbr, Object *nextGroup)
 {
@@ -312,6 +504,7 @@ void	imcFindGroup(unsigned long groupNbr, Object *addr, Object *eltp)
 
 	CHKVOID(addr);
 	CHKVOID(eltp);
+	CHKVOID(ionLocked());
 	*eltp = 0;		/*	Default.			*/
 	elt = locateGroup(groupNbr, NULL);
 	if (elt == 0)
@@ -323,104 +516,9 @@ void	imcFindGroup(unsigned long groupNbr, Object *addr, Object *eltp)
 	*eltp = elt;
 }
 
-static int	forwardPetition(ImcGroup *group, int isMember,
-			unsigned long senderNodeNbr)
-{
-	Sdr		sdr = getIonsdr();
-	ImcDB		*db = _imcConstants();
-	unsigned char	adminRecordFlag = (BP_MULTICAST_PETITION << 4);
-	unsigned int	ttl = 86400;
-	BpExtendedCOS	ecos = { 0, 0, 255 };
-	Sdnv		groupNbrSdnv;
-	int		petitionLength;
-	char		*buffer;
-	char		*cursor;
-	Object		sourceData;
-	Object		payloadZco;
-	Object		elt;
-	unsigned long	nodeNbr;
-	int		result = 0;
-	char		destEid[32];
-	Object		bundleObj;
-
-	encodeSdnv(&groupNbrSdnv, group->groupNbr);
-	petitionLength = groupNbrSdnv.length + 1;
-	buffer = MTAKE(petitionLength);
-	if (buffer == NULL)
-	{
-		putErrmsg("Can't construct IMC petition.", NULL);
-		return -1;
-	}
-
-	cursor = buffer;
-
-	*cursor = adminRecordFlag;
-	cursor++;
-
-	memcpy(cursor, groupNbrSdnv.text, groupNbrSdnv.length);
-	cursor += groupNbrSdnv.length;
-
-	*cursor = (isMember ? 1 : 0);
-	cursor++;
-
-	for (elt = sdr_list_first(sdr, db->kin); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		nodeNbr = (unsigned long) sdr_list_data(sdr, elt);
-		if (nodeNbr == senderNodeNbr)
-		{
-			continue;	/*	Would be an echo.	*/
-		}
-
-		sdr_begin_xn(sdr);
-		sourceData = sdr_malloc(sdr, petitionLength);
-		if (sourceData == 0)
-		{
-			putErrmsg("No space for source data.", NULL);
-			sdr_cancel_xn(sdr);
-			result = -1;
-			break;		/*	Out of loop.		*/
-		}
-
-		sdr_write(sdr, sourceData, buffer, petitionLength);
-		payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0,
-				petitionLength);
-		if (sdr_end_xn(sdr) < 0 || payloadZco == 0)
-		{
-			putErrmsg("Can't create IMC petition.", NULL);
-			result = -1;
-			break;		/*	Out of loop.		*/
-		}
-
-		isprintf(destEid, sizeof destEid, "ipn:%lu.0", nodeNbr);
-		switch (bpSend(NULL, destEid, NULL, ttl, BP_EXPEDITED_PRIORITY,
-				NoCustodyRequested, 0, 0, &ecos, payloadZco,
-				&bundleObj, BP_MULTICAST_PETITION))
-		{
-		case -1:
-			putErrmsg("Can't send IMC petition.", NULL);
-			result = -1;
-			break;		/*	Out of switch.		*/
-
-		case 0:
-			putErrmsg("IMC petition not sent.", NULL);
-
-			/*	Intentional fall-through to next case.	*/
-
-		default:
-			continue;	/*	Next relative.		*/
-		}
-
-		break;			/*	Out of loop.		*/
-	}
-
-	MRELEASE(buffer);
-	return result;
-}
-
 static Object	createGroup(unsigned long groupNbr, Object nextGroup)
 {
-	Sdr	sdr = getIonsdr();
+	Sdr		sdr = getIonsdr();
 	ImcDB		*db = _imcConstants();
 	ImcGroup	group;
 	Object		addr;
