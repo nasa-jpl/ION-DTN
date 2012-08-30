@@ -23,6 +23,43 @@
 extern "C" {
 #endif
 
+/*	A note on performance optimization:
+ *
+ *	It has been suggested that the performance of LTP could be
+ *	improved by using Red-Black trees to accelerate retrieval
+ *	of individual elements of some of the SDR linked lists used
+ *	in LTP processing, just as Red-Black trees have been used
+ *	to accelerate Contact Graph Routing and the posting of events
+ *	to the BP timeline.  As of this writing (30 August 2012) it
+ *	looks like LTP doesn't offer many such opportunities.  The
+ *	LTP SDR linked lists that may be long (all of the lists of
+ *	segments) are never accessed randomly; the lists that may
+ *	be accessed randomly are generally short.
+ *
+ *	There are two exceptions to this analysis.  First, the
+ *	ExportSession.redSegments list currently might be a problem
+ *	because findCheckpoint() must search it sequentially.  The
+ *	easiest solution, though, is simply to add a separate list
+ *	of checkpoints to ExportSession (analogous to the list of
+ *	rsSegments in ImportSession), each element of which points
+ *	to one of the redSegments.  Searching this list for a
+ *	specific checkpoint will be quick.
+ *
+ *	Second, many of the lists that are generally short are
+ *	so because their lengths are on the order of the maximum
+ *	number of concurrent import and export sessions configured
+ *	for the LTP engine.  [This is true even of the timeline,
+ *	since the scheduled events are all per-session rather than
+ *	per-segment.  The same will be true of the new "checkpoints"
+ *	list as well.]  In typical operations today, these limits
+ *	are very small (sometimes as few as 2), so little would be
+ *	gained by indexing them with Red-Black trees.  But in a
+ *	deployment environment where the number of concurrent
+ *	sessions may be much larger -- e.g., due to extremely
+ *	long signal propagation times -- the balance might change
+ *	and indexing these O(session-limit) lists might be
+ *	advantageous.							*/
+
 #define LTP_MAX_NBR_OF_CLIENTS	8
 
 #ifndef LTP_MEAN_SEARCH_LENGTH
@@ -169,11 +206,24 @@ typedef struct
 	unsigned long	remoteEngineId;
 	short		ohdLength;
 	Object		queueListElt;
+	Object		ckptListElt;	/*	For checkpoints only.	*/
 	Object		sessionObj;	/*	For codes 1-3, 14 only.	*/
 	Object		sessionListElt;	/*	For data segments only.	*/
 	LtpSegmentClass	segmentClass;
 	LtpPdu		pdu;
 } LtpXmitSeg;
+
+/*	An LtpCkpt is a reference to an export session redSegment that
+ *	is a transmission checkpoint.  The list of LtpCheckpoints
+ *	provides a quick way to locate the specific LtpXmitSeg, out of
+ *	a possibly very long list of redSegments, that is a checkpoint
+ *	tagged with a given serial number.				*/
+
+typedef struct
+{
+	unsigned long	serialNbr;
+	Object		sessionListElt;
+} LtpCkpt;
 
 /* Session structures */
 
@@ -209,10 +259,11 @@ typedef struct
 	int		redPartLength;
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
-	Object		svcDataObjects;	/*	SDR list of ZCO refs.	*/
+	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
 	Object		redSegments;	/*	SDR list of LtpXmitSegs	*/
 	Object		greenSegments;	/*	SDR list of LtpXmitSegs	*/
 	Object		claims;		/*	reception claims list	*/
+	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
 	int		checkpointsCount;
 } ExportSession;
 

@@ -1161,6 +1161,7 @@ int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
 	session.redSegments = sdr_list_create(sdr);
 	session.greenSegments = sdr_list_create(sdr);
 	session.claims = sdr_list_create(sdr);
+	session.checkpoints = sdr_list_create(sdr);
 	sdr_write(sdr, sessionObj, (char *) &session, sizeof(ExportSession));
 
 	/*	Note session address in span, then finish: unless span
@@ -1409,10 +1410,15 @@ static void	destroyDataXmitSeg(Object dsElt, Object dsObj, LtpXmitSeg *ds)
 	Sdr	ltpSdr = getIonsdr();
 
 	CHKVOID(ionLocked());
-	if (ds->pdu.ckptSerialNbr != 0)
+	if (ds->pdu.ckptSerialNbr != 0)	/*	A checkpoint segment.	*/
 	{
 		cancelEvent(LtpResendCheckpoint, 0, ds->sessionNbr,
 				ds->pdu.ckptSerialNbr);
+	}
+
+	if (ds->ckptListElt)		/*	A checkpoint segment.	*/
+	{
+		sdr_list_delete(ltpSdr, ds->ckptListElt, NULL, NULL);
 	}
 
 	if (ds->queueListElt)	/*	Queued for retransmission.	*/
@@ -1452,6 +1458,8 @@ static void	clearExportSession(ExportSession *session)
 	Sdr	ltpSdr = getIonsdr();
 	Object	elt;
 
+	sdr_list_destroy(ltpSdr, session->checkpoints, NULL, NULL);
+	session->checkpoints = 0;
 	sdr_list_destroy(ltpSdr, session->redSegments, NULL, NULL);
 	session->redSegments = 0;
 	sdr_list_destroy(ltpSdr, session->greenSegments, NULL, NULL);
@@ -1869,23 +1877,31 @@ static void	findCheckpoint(ExportSession *session,
 	Sdr	ltpSdr = getIonsdr();
 	Object	elt;
 	Object	obj;
-		OBJ_POINTER(LtpXmitSeg, ds);
+		OBJ_POINTER(LtpCkpt, cp);
 
-	for (elt = sdr_list_first(ltpSdr, session->redSegments); elt;
+	for (elt = sdr_list_first(ltpSdr, session->checkpoints); elt;
 			elt = sdr_list_next(ltpSdr, elt))
 	{
 		obj = sdr_list_data(ltpSdr, elt);
-		GET_OBJ_POINTER(ltpSdr, LtpXmitSeg, ds, obj);
-		if (ds->pdu.ckptSerialNbr == ckptSerialNbr)
+		GET_OBJ_POINTER(ltpSdr, LtpCkpt, cp, obj);
+		if (cp->serialNbr < ckptSerialNbr)
 		{
-			*dsElt = elt;
-			*dsObj = obj;
-			return;
+			continue;
 		}
+
+		break;		/*	Equal, or not in list.		*/
 	}
 
-	*dsElt = 0;
-	*dsObj = 0;
+	if (elt)		/*	Found the checkpoint.		*/
+	{
+		*dsElt = cp->sessionListElt;
+		*dsObj = sdr_list_data(ltpSdr, cp->sessionListElt);
+	}
+	else
+	{
+		*dsElt = 0;
+		*dsObj = 0;
+	}
 }
 
 /*	*	*	Segment issuance functions	*	*	*/
@@ -3622,8 +3638,8 @@ static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 	{
 		sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
 				sizeof(ImportSession));
-		segmentElt = sdr_list_last(ltpSdr, sessionBuf.redSegments);
-		if (segmentElt)
+		if (sessionBuf.redSegments != 0 && (segmentElt =
+			sdr_list_last(ltpSdr, sessionBuf.redSegments)) != 0)
 		{
 			segmentObj = sdr_list_data(ltpSdr, segmentElt);
 			GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, seg, segmentObj);
@@ -4151,6 +4167,56 @@ static int	insertClaim(ExportSession *session, LtpReceptionClaim *claim)
 	return 0;
 }
 
+static Object	insertCheckpoint(ExportSession *session, LtpXmitSeg *segment)
+{
+	Sdr	ltpSdr = getIonsdr();
+	Object	elt;
+	Object	obj;
+		OBJ_POINTER(LtpCkpt, cp);
+	LtpCkpt	checkpoint;
+
+	for (elt = sdr_list_first(ltpSdr, session->checkpoints); elt;
+			elt = sdr_list_next(ltpSdr, elt))
+	{
+		obj = sdr_list_data(ltpSdr, elt);
+		GET_OBJ_POINTER(ltpSdr, LtpCkpt, cp, obj);
+		if (cp->serialNbr < segment->pdu.ckptSerialNbr)
+		{
+			continue;
+		}
+
+		if (cp->serialNbr == segment->pdu.ckptSerialNbr)
+		{
+			putErrmsg("Duplicate checkpoint serial numbers.",
+					utoa(segment->pdu.ckptSerialNbr));
+			return 0;
+		}
+
+		/*	Insert before this checkpoint.			*/
+
+		break;
+	}
+
+	checkpoint.serialNbr = segment->pdu.ckptSerialNbr;
+	checkpoint.sessionListElt = segment->sessionListElt;
+	obj = sdr_malloc(ltpSdr, sizeof(LtpCkpt));
+	if (obj == 0)
+	{
+		putErrmsg("Can't create checkpoint reference.", NULL);
+		return 0;
+	}
+
+	sdr_write(ltpSdr, obj, (char *) &checkpoint, sizeof(LtpCkpt));
+	if (elt)
+	{
+		return sdr_list_insert_before(ltpSdr, elt, obj);
+	}
+	else
+	{
+		return sdr_list_insert_last(ltpSdr, session->checkpoints, obj);
+	}
+}
+
 static int	constructDataSegment(Sdr sdr, ExportSession *session,
 			Object sessionObj, unsigned long reportSerialNbr,
 			LtpVspan *vspan, LtpSpan *span, LystElt extentElt)
@@ -4405,6 +4471,11 @@ char		buf[256];
 		segment.pdu.rptSerialNbr = reportSerialNbr;
 		segment.ohdLength += rsnSdnv.length;
 		session->checkpointsCount++;
+		segment.ckptListElt = insertCheckpoint(session, &segment);
+		if (segment.ckptListElt == 0)
+		{
+			return -1;
+		}
 	}
 
 	segment.pdu.clientSvcId = session->clientSvcId;
