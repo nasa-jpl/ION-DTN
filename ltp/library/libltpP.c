@@ -1418,6 +1418,9 @@ static void	destroyDataXmitSeg(Object dsElt, Object dsObj, LtpXmitSeg *ds)
 
 	if (ds->ckptListElt)		/*	A checkpoint segment.	*/
 	{
+		/*	Destroy the LtpCkpt object and its ListElt.	*/
+
+		sdr_free(ltpSdr, sdr_list_data(ltpSdr, ds->ckptListElt));
 		sdr_list_delete(ltpSdr, ds->ckptListElt, NULL, NULL);
 	}
 
