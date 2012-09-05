@@ -88,7 +88,7 @@ ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.so
 		cp ipnadmin ./bin
 
 bssadmin:	bssadmin.o $(BPLIBS) libipnfw.so
-		$(CC) -o bssadmin bssadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
+		$(CC) -o bssadmin bssadmin.o -L./lib -L$(ROOT)/lib -lbssfw $(LBP) -lici -lpthread
 		cp bssadmin ./bin
 
 dtn2admin:	dtn2admin.o $(BPLIBS) libdtn2fw.so
