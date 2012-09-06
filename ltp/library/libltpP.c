@@ -1655,6 +1655,27 @@ static void	addVImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 	*vsessionPtr = vsession;
 }
 
+static int	orderRedSegments(PsmPartition wm, PsmAddress nodeData,
+			void *dataBuffer)
+{
+	LtpSegmentRef	*argRef;
+	LtpSegmentRef	*nodeRef;
+
+	argRef = (LtpSegmentRef *) dataBuffer;
+	nodeRef = (LtpSegmentRef *) psp(wm, nodeData);
+	if (nodeRef->offset < argRef->offset)
+	{
+		return -1;
+	}
+
+	if (nodeRef->offset > argRef->offset)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
 static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 			VImportSession **vsessionPtr, Object *sessionObj)
 {
@@ -1666,6 +1687,12 @@ static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 	VImportSession	*vsession;
 			OBJ_POINTER(LtpSpan, span);
 	Object		elt;
+	ImportSession	session;
+	Object		elt2;
+	Object		segObj;
+			OBJ_POINTER(LtpRecvSeg, segment);
+	LtpSegmentRef	refbuf;
+	Object		addr;
 
 	*sessionObj = 0;		/*	Default.		*/
 	if (vsessionPtr)
@@ -1681,27 +1708,61 @@ static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 	{
 		vsession = (VImportSession *) psp(ltpwm,
 				sm_rbt_data(ltpwm, rbtNode));
+		*sessionObj = sdr_list_data(ltpSdr, vsession->sessionElt);
 	}
-	else
+	else	/*	Must resurrect VImportSession.			*/
 	{
 		GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
 				vspan->spanElt));
 		if (sdr_hash_retrieve(ltpSdr, span->importSessionsHash, (char *)
 				&sessionNbr, (Address *) &elt, NULL) != 1)
 		{
-			return;
+			return;		/*	No such session.	*/
 		}
 
-		/*	Need to add this VImportSession.		*/
+		*sessionObj = sdr_list_data(ltpSdr, elt);
+
+		/*	Need to add this VImportSession and load it
+		 *	with all previously acquired red segments.	*/
 
 		addVImportSession(vspan, sessionNbr, elt, &vsession);
 		if (vsession == NULL)
 		{
 			return;
 		}
+
+		sdr_read(ltpSdr, (char *) &session, *sessionObj,
+				sizeof(ImportSession));
+		for (elt2 = sdr_list_first(ltpSdr, session.redSegments); elt2;
+				elt2 = sdr_list_next(ltpSdr, elt2))
+		{
+			segObj = sdr_list_data(ltpSdr, elt2);
+			GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, segment, segObj);
+			refbuf.offset = segment->pdu.offset;
+			refbuf.length = segment->pdu.length;
+			refbuf.sessionListElt = segment->sessionListElt;
+			addr = psm_zalloc(ltpwm, sizeof(LtpSegmentRef));
+			if (addr == 0)
+			{
+				putErrmsg("Failed resurrecting VImportSession.",
+						NULL);
+				*sessionObj = 0;
+				return;
+			}
+
+			memcpy((char *) psp(ltpwm, addr), (char *) &refbuf,
+					sizeof(LtpSegmentRef));
+			if (sm_rbt_insert(ltpwm, vsession->redSegmentsIdx,
+					addr, orderRedSegments, &refbuf) == 0)
+			{
+				putErrmsg("Failed resurrecting VImportSession.",
+						NULL);
+				*sessionObj = 0;
+				return;
+			}
+		}
 	}
 
-	*sessionObj = sdr_list_data(ltpSdr, vsession->sessionElt);
 	if (vsessionPtr)
 	{
 		*vsessionPtr = vsession;
@@ -3550,27 +3611,6 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 	{
 		putErrmsg("Can't create block file reference.", NULL);
 		return -1;
-	}
-
-	return 0;
-}
-
-static int	orderRedSegments(PsmPartition wm, PsmAddress nodeData,
-			void *dataBuffer)
-{
-	LtpSegmentRef	*argRef;
-	LtpSegmentRef	*nodeRef;
-
-	argRef = (LtpSegmentRef *) dataBuffer;
-	nodeRef = (LtpSegmentRef *) psp(wm, nodeData);
-	if (nodeRef->offset < argRef->offset)
-	{
-		return -1;
-	}
-
-	if (nodeRef->offset > argRef->offset)
-	{
-		return 1;
 	}
 
 	return 0;
