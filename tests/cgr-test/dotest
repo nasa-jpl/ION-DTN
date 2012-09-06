@@ -12,7 +12,6 @@ CONFIGFILES=" \
 ./amroc.ionrc \
 ./amroc.ionsecrc \
 ./amroc.ipnrc \
-./amroc.cfdprc \
 "
 echo "########################################"
 echo
