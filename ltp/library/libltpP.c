@@ -203,12 +203,36 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 		return -1;
 	}
 
+	vspan->importSessions = sm_rbt_create(ltpwm);
+	if (vspan->importSessions == 0)
+	{
+		psm_free(ltpwm, vspan->segmentBuffer);
+		oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
+		psm_free(ltpwm, addr);
+		return -1;
+	}
+
 	vspan->bufOpenRedSemaphore = SM_SEM_NONE;
 	vspan->bufOpenGreenSemaphore = SM_SEM_NONE;
 	vspan->bufClosedSemaphore = SM_SEM_NONE;
 	vspan->segSemaphore = SM_SEM_NONE;
 	resetSpan(vspan);
 	return 0;
+}
+
+static void	deleteSegmentRef(PsmPartition ltpwm, PsmAddress nodeData,
+			void *arg)
+{
+	psm_free(ltpwm, nodeData);	/*	Delete LtpSegmentRef.	*/
+}
+
+static void	deleteVImportSession(PsmPartition ltpwm, PsmAddress nodeData,
+			void *arg)
+{
+	VImportSession	*vsession = (VImportSession *) psp(ltpwm, nodeData);
+
+	oK(sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx, deleteSegmentRef,
+				NULL));
 }
 
 static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
@@ -237,6 +261,8 @@ static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
 		sm_SemDelete(vspan->segSemaphore);
 	}
 
+	oK(sm_rbt_destroy(ltpwm, vspan->importSessions,
+			deleteVImportSession, NULL));
 	psm_free(ltpwm, vspan->segmentBuffer);
 	oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
 	psm_free(ltpwm, vspanAddr);
@@ -1572,26 +1598,114 @@ putErrmsg("Closed export session.", itoa(session->sessionNbr));
 	}
 }
 
-static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
-			Object *sessionObj)
+static int	orderImportSessions(PsmPartition wm, PsmAddress nodeData,
+			void *dataBuffer)
 {
-	Sdr	ltpSdr = getIonsdr();
-		OBJ_POINTER(LtpSpan, span);
-	Object	elt;
+	VImportSession	*argSession;
+	VImportSession	*nodeSession;
 
-	CHKVOID(ionLocked());
-	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
-			vspan->spanElt));
-	if (sdr_hash_retrieve(ltpSdr, span->importSessionsHash,
-			(char *) &sessionNbr, (Address *) &elt, NULL) == 1)
+	argSession = (VImportSession *) dataBuffer;
+	nodeSession = (VImportSession *) psp(wm, nodeData);
+	if (nodeSession->sessionNbr < argSession->sessionNbr)
 	{
-		*sessionObj = sdr_list_data(ltpSdr, elt);
-		return; 
+		return -1;
 	}
 
-	/*	Unknown session.					*/
+	if (nodeSession->sessionNbr > argSession->sessionNbr)
+	{
+		return 1;
+	}
 
-	*sessionObj = 0;
+	return 0;
+}
+
+static void	addVImportSession(LtpVspan *vspan, unsigned long sessionNbr,
+			Object sessionElt, VImportSession **vsessionPtr)
+{
+	PsmPartition	ltpwm = getIonwm();
+	PsmAddress	addr;
+	VImportSession	*vsession;
+
+	*vsessionPtr = NULL;		/*	Default.		*/
+	addr = psm_zalloc(ltpwm, sizeof(VImportSession));
+	if (addr == 0)
+	{
+		return;
+	}
+
+	vsession = (VImportSession *) psp(ltpwm, addr);
+	vsession->sessionNbr = sessionNbr;
+	vsession->sessionElt = sessionElt;
+	vsession->redSegmentsIdx = sm_rbt_create(ltpwm);
+	if (vsession->redSegmentsIdx == 0)
+	{
+		psm_free(ltpwm, addr);
+		return;
+	}
+
+	if (sm_rbt_insert(ltpwm, vspan->importSessions, addr,
+			orderImportSessions, vsession) == 0)
+	{
+		sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx,
+				deleteSegmentRef, NULL);
+		psm_free(ltpwm, addr);
+		return;
+	}
+
+	*vsessionPtr = vsession;
+}
+
+static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
+			VImportSession **vsessionPtr, Object *sessionObj)
+{
+	Sdr		ltpSdr = getIonsdr();
+	PsmPartition	ltpwm = getIonwm();
+	VImportSession	arg;
+	PsmAddress	rbtNode;
+	PsmAddress	nextRbtNode;
+	VImportSession	*vsession;
+			OBJ_POINTER(LtpSpan, span);
+	Object		elt;
+
+	*sessionObj = 0;		/*	Default.		*/
+	if (vsessionPtr)
+	{
+		*vsessionPtr = NULL;	/*	Default.		*/
+	}
+
+	CHKVOID(ionLocked());
+	arg.sessionNbr = sessionNbr;
+	rbtNode = sm_rbt_search(ltpwm, vspan->importSessions,
+			orderImportSessions, &arg, &nextRbtNode);
+	if (rbtNode)
+	{
+		vsession = (VImportSession *) psp(ltpwm,
+				sm_rbt_data(ltpwm, rbtNode));
+	}
+	else
+	{
+		GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
+				vspan->spanElt));
+		if (sdr_hash_retrieve(ltpSdr, span->importSessionsHash, (char *)
+				&sessionNbr, (Address *) &elt, NULL) != 1)
+		{
+			return;
+		}
+
+		/*	Need to add this VImportSession.		*/
+
+		addVImportSession(vspan, sessionNbr, elt, &vsession);
+		if (vsession == NULL)
+		{
+			return;
+		}
+	}
+
+	*sessionObj = sdr_list_data(ltpSdr, vsession->sessionElt);
+	if (vsessionPtr)
+	{
+		*vsessionPtr = vsession;
+	}
 }
 
 static int	sessionIsClosed(LtpVspan *vspan, unsigned long sessionNbr)
@@ -1699,6 +1813,36 @@ static void	destroyDataRecvSeg(Object dsElt, Object dsObj, LtpRecvSeg *ds)
 	sdr_list_delete(ltpSdr, dsElt, NULL, NULL);
 }
 
+static void	destroyRedSegmentsIdx(ImportSession *session)
+{
+	Sdr		ltpSdr = getIonsdr();
+	PsmPartition	ltpwm = getIonwm();
+	LtpSpan		span;
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
+	VImportSession	*vsession;
+	Object		sessionObj;
+
+	sdr_read(ltpSdr, (char *) &span, session->span, sizeof(LtpSpan));
+	findSpan(span.engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		return;
+	}
+
+	getImportSession(vspan, session->sessionNbr, &vsession, &sessionObj);
+	if (vsession == 0)
+	{
+		return;
+	}
+
+	if (vsession->redSegmentsIdx)
+	{
+		sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx,
+				deleteSegmentRef, NULL);
+	}
+}
+
 static void	stopImportSession(ImportSession *session)
 {
 	Sdr	ltpSdr = getIonsdr();
@@ -1745,6 +1889,7 @@ static void	stopImportSession(ImportSession *session)
 		session->redSegments = 0;
 	}
 
+	destroyRedSegmentsIdx(session);
 	if (session->blockFileRef)
 	{
 		zco_destroy_file_ref(ltpSdr, session->blockFileRef);
@@ -3302,7 +3447,8 @@ static int	constructReportAckSegment(LtpSpan *span, Object spanObj,
 
 static int	startImportSession(Object spanObj, unsigned long sessionNbr,
 			ImportSession *sessionBuf, Object *sessionObj,
-			unsigned long clientSvcId, LtpDB *db)
+			unsigned long clientSvcId, LtpDB *db, LtpVspan *vspan,
+			VImportSession **vsessionPtr)
 {
 	Sdr	ltpSdr = getIonsdr();
 	Object	elt;
@@ -3363,6 +3509,16 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 
 	sdr_write(ltpSdr, *sessionObj, (char *) sessionBuf,
 			sizeof(ImportSession));
+
+	/*	Also add volatile reference to this session.		*/
+
+	addVImportSession(vspan, sessionNbr, elt, vsessionPtr);
+	if (*vsessionPtr == NULL)
+	{
+		putErrmsg("Can't create volatile import session.", NULL);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -3399,14 +3555,42 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 	return 0;
 }
 
-static long	insertDataSegment(ImportSession *session, LtpRecvSeg *segment,
+static int	orderRedSegments(PsmPartition wm, PsmAddress nodeData,
+			void *dataBuffer)
+{
+	LtpSegmentRef	*argRef;
+	LtpSegmentRef	*nodeRef;
+
+	argRef = (LtpSegmentRef *) dataBuffer;
+	nodeRef = (LtpSegmentRef *) psp(wm, nodeData);
+	if (nodeRef->offset < argRef->offset)
+	{
+		return -1;
+	}
+
+	if (nodeRef->offset > argRef->offset)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+static long	insertDataSegment(ImportSession *session,
+			VImportSession *vsession, LtpRecvSeg *segment,
 			LtpPdu *pdu, Object *segmentObj)
 {
 	Sdr		ltpSdr = getIonsdr();
+	PsmPartition	wm = getIonwm();
 	long		segUpperBound;
-	Object		elt;
-			OBJ_POINTER(LtpRecvSeg, ds);
-	unsigned long	redPartUpperBound;
+	LtpSegmentRef	arg;
+	PsmAddress	rbtNode;
+	PsmAddress	nextRbtNode;
+	LtpSegmentRef	*nextRef = NULL;
+	PsmAddress	prevRbtNode;
+	LtpSegmentRef	*prevRef = NULL;
+	LtpSegmentRef	refbuf;
+	PsmAddress	addr;
 
 	CHKERR(ionLocked());
 	segUpperBound = segment->pdu.offset + segment->pdu.length;
@@ -3421,41 +3605,56 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 		}
 	}
 
-	for (elt = sdr_list_first(ltpSdr, session->redSegments); elt;
-			elt = sdr_list_next(ltpSdr, elt))
+	arg.offset = segment->pdu.offset;
+	rbtNode = sm_rbt_search(wm, vsession->redSegmentsIdx,
+			orderRedSegments, &arg, &nextRbtNode);
+	if (rbtNode)	/*	Segment has already been received.	*/
 	{
-		GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, ds,
-				sdr_list_data(ltpSdr, elt));
-		if (ds->pdu.offset < segment->pdu.offset)
-		{
-			redPartUpperBound = ds->pdu.offset + ds->pdu.length;
-			if (redPartUpperBound > segment->pdu.offset)
-			{
 #if LTPDEBUG
 putErrmsg("discarded segment", itoa(segment->pdu.offset));
 #endif
-				return 0;	/*	Overlapping.	*/
-			}
-
-			continue;
-		}
-
-		/*	Previously received red segment does not start
-		 *	before start of this one.			*/
-
-		if (ds->pdu.offset < segUpperBound)
-		{
-#if LTPDEBUG
-putErrmsg("discarded segment", itoa(segment->pdu.offset));
-#endif
-			return 0;		/*	Overlapping.	*/
-		}
-
-		/*	Previously received red segment does not start
-		 *	before end of this one.				*/
-
-		break;
+		return 0;			/*	Overlap.	*/
 	}
+
+	if (nextRbtNode)
+	{
+		nextRef = (LtpSegmentRef *)
+				psp(wm, sm_rbt_data(wm, nextRbtNode));
+		prevRbtNode = sm_rbt_prev(wm, nextRbtNode);
+		if (prevRbtNode)
+		{
+			prevRef = (LtpSegmentRef *)
+					psp(wm, sm_rbt_data(wm, prevRbtNode));
+		}
+	}
+	else	/*	No segment with greater offset received so far.	*/
+	{
+		prevRbtNode = sm_rbt_last(wm, vsession->redSegmentsIdx);
+		if (prevRbtNode)
+		{
+			prevRef = (LtpSegmentRef *)
+					psp(wm, sm_rbt_data(wm, prevRbtNode));
+		}
+	}
+
+	if (prevRbtNode
+	&& (prevRef->offset + prevRef->length) > segment->pdu.offset)
+	{
+#if LTPDEBUG
+putErrmsg("discarded segment", itoa(segment->pdu.offset));
+#endif
+		return 0;			/*	Overlap.	*/
+	}
+
+	if (nextRbtNode && nextRef->offset < segUpperBound)
+	{
+#if LTPDEBUG
+putErrmsg("discarded segment", itoa(segment->pdu.offset));
+#endif
+		return 0;			/*	Overlap.	*/
+	}
+
+	/*	Okay to insert this segment into the list.		*/
 
 	session->redPartReceived += segment->pdu.length;
 	*segmentObj = sdr_malloc(ltpSdr, sizeof(LtpRecvSeg));
@@ -3464,15 +3663,37 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 		return -1;
 	}
 
-	if (elt)
+	if (nextRef)
 	{
-		segment->sessionListElt = sdr_list_insert_before(ltpSdr, elt,
-				*segmentObj);
+		segment->sessionListElt = sdr_list_insert_before(ltpSdr,
+				nextRef->sessionListElt, *segmentObj);
 	}
 	else
 	{
 		segment->sessionListElt = sdr_list_insert_last(ltpSdr,
 				session->redSegments, *segmentObj);
+	}
+
+	if (segment->sessionListElt == 0)
+	{
+		return -1;
+	}
+
+	refbuf.offset = segment->pdu.offset;
+	refbuf.length = segment->pdu.length;
+	refbuf.sessionListElt = segment->sessionListElt;
+	addr = psm_zalloc(wm, sizeof(LtpSegmentRef));
+	if (addr == 0)
+	{
+		return -1;
+	}
+
+	memcpy((char *) psp(wm, addr), (char *) &refbuf, sizeof(LtpSegmentRef));
+	rbtNode = sm_rbt_insert(wm, vsession->redSegmentsIdx, addr,
+			orderRedSegments, &refbuf);
+	if (rbtNode == 0)
+	{
+		return -1;
 	}
 
 	return segUpperBound;
@@ -3699,6 +3920,7 @@ static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 	unsigned long	rptSerialNbr;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
+	VImportSession	*vsession;
 	Object		sessionObj = 0;
 	Object		sessionElt;
 	ImportSession	sessionBuf;
@@ -3781,7 +4003,7 @@ putErrmsg("Discarding late segment.", itoa(sessionNbr));
 
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
-	getImportSession(vspan, sessionNbr, &sessionObj);
+	getImportSession(vspan, sessionNbr, &vsession, &sessionObj);
 	segment->segmentClass = LtpDataSeg;
 	if (pdu->clientSvcId > MAX_LTP_CLIENT_NBR
 	|| (client = ltpvdb->clients + pdu->clientSvcId)->pid == ERROR)
@@ -3961,7 +4183,8 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		/*	Must start a new import session.		*/
 
 		if (startImportSession(spanObj, sessionNbr, &sessionBuf,
-				&sessionObj, pdu->clientSvcId, &db) < 0)
+				&sessionObj, pdu->clientSvcId, &db, vspan,
+				&vsession) < 0)
 		{
 			putErrmsg("Can't create reception session.", NULL);
 			sdr_cancel_xn(ltpSdr);
@@ -3986,7 +4209,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	}
 
 	segment->sessionObj = sessionObj;
-	segUpperBound = insertDataSegment(&sessionBuf, segment, pdu,
+	segUpperBound = insertDataSegment(&sessionBuf, vsession, segment, pdu,
 			&segmentObj);
 	switch (segUpperBound)
 	{
@@ -4473,7 +4696,6 @@ char		buf[256];
 		segment.ohdLength += cpsnSdnv.length;
 		segment.pdu.rptSerialNbr = reportSerialNbr;
 		segment.ohdLength += rsnSdnv.length;
-		session->checkpointsCount++;
 		segment.ckptListElt = insertCheckpoint(session, &segment);
 		if (segment.ckptListElt == 0)
 		{
@@ -4929,7 +5151,8 @@ putErrmsg("Discarding report.", NULL);
 	/*	Not all data in the block has yet been received.	*/
 
 	ltpSpanTally(vspan, NEG_RPT_RECV, 0);
-	if (sessionBuf.checkpointsCount == MAX_NBR_OF_CHECKPOINTS)
+	if (sdr_list_length(ltpSdr, sessionBuf.checkpoints)
+			== MAX_NBR_OF_CHECKPOINTS)
 	{
 		/*	Limit reached, can't retransmit any more.
 		 *	Just destroy the claims list and cancel. 	*/
@@ -5120,7 +5343,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		return 0;
 	}
 
-	getImportSession(vspan, sessionNbr, &sessionObj);
+	getImportSession(vspan, sessionNbr, NULL, &sessionObj);
 	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
 	{
 		return sdr_end_xn(ltpSdr);
@@ -5228,7 +5451,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	}
 
 	ltpSpanTally(vspan, EXPORT_CANCEL_RECV, 0);
-	getImportSession(vspan, sessionNbr, &sessionObj);
+	getImportSession(vspan, sessionNbr, NULL, &sessionObj);
 	if (sessionObj)	/*	Can cancel session as requested.	*/
 	{
 		GET_OBJ_POINTER(ltpSdr, ImportSession, session, sessionObj);
@@ -5711,6 +5934,8 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 	ImportSession	rsessionBuf;
 	LtpTimer	*timer;
 	Object		elt2;
+	Object		ckptObj;
+			OBJ_POINTER(LtpCkpt, cp);
 	Object		segmentObj;
 	LtpXmitSeg	rsBuf;
 	ExportSession	xsessionBuf;
@@ -5800,14 +6025,15 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 
 		/*	Suspend chkpt retransmission timers.		*/
 
-		for (elt2 = sdr_list_first(ltpSdr, xsessionBuf.redSegments);
+		for (elt2 = sdr_list_first(ltpSdr, xsessionBuf.checkpoints);
 				elt2; elt2 = sdr_list_next(ltpSdr, elt2))
 		{
-			segmentObj = sdr_list_data(ltpSdr, elt2);
+			ckptObj = sdr_list_data(ltpSdr, elt2);
+			GET_OBJ_POINTER(ltpSdr, LtpCkpt, cp, ckptObj);
+			segmentObj = sdr_list_data(ltpSdr, cp->sessionListElt);
 			sdr_stage(ltpSdr, (char *) &dsBuf, segmentObj,
 					sizeof(LtpXmitSeg));
-			if (dsBuf.pdu.ckptSerialNbr == 0
-			|| dsBuf.pdu.timer.segArrivalTime == 0)
+			if (dsBuf.pdu.timer.segArrivalTime == 0)
 			{
 				continue;	/*	Not active.	*/
 			}
@@ -5877,6 +6103,8 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 	ImportSession	rsessionBuf;
 	LtpTimer	*timer;
 	Object		elt2;
+	Object		ckptObj;
+			OBJ_POINTER(LtpCkpt, cp);
 	Object		segmentObj;
 	LtpXmitSeg	rsBuf;
 	ExportSession	xsessionBuf;
@@ -6003,14 +6231,15 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 
 		/*	Resume chkpt retransmission timers.		*/
 
-		for (elt2 = sdr_list_first(ltpSdr, xsessionBuf.redSegments);
+		for (elt2 = sdr_list_first(ltpSdr, xsessionBuf.checkpoints);
 				elt2; elt2 = sdr_list_next(ltpSdr, elt2))
 		{
-			segmentObj = sdr_list_data(ltpSdr, elt2);
+			ckptObj = sdr_list_data(ltpSdr, elt2);
+			GET_OBJ_POINTER(ltpSdr, LtpCkpt, cp, ckptObj);
+			segmentObj = sdr_list_data(ltpSdr, cp->sessionListElt);
 			sdr_stage(ltpSdr, (char *) &dsBuf, segmentObj,
 					sizeof(LtpXmitSeg));
-			if (dsBuf.pdu.ckptSerialNbr == 0
-			|| dsBuf.pdu.timer.segArrivalTime == 0)
+			if (dsBuf.pdu.timer.segArrivalTime == 0)
 			{
 				continue;	/*	Not active.	*/
 			}
@@ -6197,7 +6426,7 @@ putErrmsg("Resending report.", itoa(sessionNbr));
 		return sdr_end_xn(ltpSdr);
 	}
 
-	getImportSession(vspan, sessionNbr, &sessionObj);
+	getImportSession(vspan, sessionNbr, NULL, &sessionObj);
 	if (sessionObj == 0)	/*	Session is gone.		*/
 	{
 #if LTPDEBUG
