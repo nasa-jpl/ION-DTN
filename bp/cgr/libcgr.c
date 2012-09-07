@@ -271,17 +271,6 @@ printf("Contact to node %lu is suppressed or visited.\n", contact->toNode);
 				continue;
 			}
 
-			if (contact->toNode == contact->fromNode)
-			{
-#if CGRDEBUG
-printf("Contact to node %lu is loopback.\n", contact->toNode);
-#endif
-				/*	Loopback contact; can't
-				 *	consider in CGR.		*/
-
-				continue;
-			}
-
 			if (contact->fromNode > arg.fromNode)
 			{
 #if CGRDEBUG
