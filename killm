@@ -4,17 +4,11 @@
 # shared memory usage, even if you own it; also modified using Jim Wyllie's "kill 
 # all related processes" idea
 
+ION_OPEN_SOURCE=1
 OS_VERS=""
 NOT_KILLED=""
 PS_LIST=""
-KILLPROCESSLIST="amsbenchr lt-amsbenchr \
-	amsbenchs lt-amsbenchs \
-	amsd lt-amsd \
-	amshello lt-amshello \
-	amslog lt-amslog \
-	amslogport lt-amslogport \
-	amsshell lt-amsshell \
-	acsadmin lt-acsadmin \
+KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpadmin lt-bpadmin \
 	bpchat lt-bpchat \
 	bpclock lt-bpclock \
@@ -31,10 +25,6 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	bptrace lt-bptrace \
 	brsccla lt-brsccla \
 	brsscla lt-brsscla \
-	bputa lt-bputa \
-	cfdpadmin lt-cfdpadmin \
-	cfdpclock lt-cfdpclock \
-	cfdptest lt-cfdptest \
 	dgr2file lt-dgr2file \
 	dgrcla lt-dgrcla \
 	dtn2admin lt-dtn2admin \
@@ -79,9 +69,25 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
 	udp2file lt-udp2file \
+	"
+
+if [ "$ION_OPEN_SOURCE" == "1" ];then
+KILLPROCESSLIST="${KILLPROCESSLIST} \
+	amsbenchr lt-amsbenchr \
+	amsbenchs lt-amsbenchs \
+	amsd lt-amsd \
+	amshello lt-amshello \
+	amslog lt-amslog \
+	amslogport lt-amslogport \
+	amsshell lt-amsshell \
+	bputa lt-bputa \
+	cfdpadmin lt-cfdpadmin \
+	cfdpclock lt-cfdpclock \
+	cfdptest lt-cfdptest \
 	bpcp lt-bpcp\
 	bpcpd lt-bpcpd\
 	"
+fi
 
 sw_vers 2> /dev/null > /dev/null
 
