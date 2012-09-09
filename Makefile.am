@@ -1097,7 +1097,7 @@ libbp_la_SOURCES = \
 	bp/library/ext/bsp/extbsppib.c
 
 if CRYPTO
-libbp_la_SOURCES+=
+libbp_la_SOURCES+= \
 	bp/library/crypto/NULL_SUITES/crypto.c
 else
 libbp_la_SOURCES+= \

@@ -13,6 +13,7 @@ DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
 DCCP = ../dccp
+CRYPTO = $(API)/crypto/NULL_SUITES
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC
@@ -300,7 +301,7 @@ libudpcla.so:	libudpcla.o
 %.o:		$(API)/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/crypto/NULL_SUITES/%.c
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/ecos/%.c
