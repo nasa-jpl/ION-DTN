@@ -1,0 +1,256 @@
+#!/bin/bash
+#
+# Keith Scott
+# June 13, 2012
+#
+# documentation boilerplate
+
+function doTestConfig
+{
+	CONFIGFILES=" \
+	./node1/host_1.rc \
+	./node2/host_2.rc \
+	./node3/host_3.rc \
+	./node4/host_4.rc \
+	"
+
+	echo "########################################"
+	echo
+	pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+	echo
+	echo "PURPOSE: Test cgr route cacheing."
+	echo "CGR doesn't work correctly whenever any downstream contact"
+	echo "has end time earlier than the end time of the first contact"
+	echo "on the same route."
+	echo "ion-open-source-3.0.2"
+	echo ""
+	echo "Using the following network:"
+	echo "(1—2, 1—3, 2—4, 3—4) with routing set up as:"
+	echo ""
+	echo "1 is continuously connected to 2 and 3 via a long bi-directional"
+	echo "ltp contact; 2 & 3 are intermittently bi-directionally connected"
+	echo "to 4 via scheduled ltp (30s on, 30s off with the (2-4) and (3-4)"
+	echo "links 180 degrees out of phase until 150s (i.e. when 2-4 is on,"
+	echo "3-4 is off and vice-versa), then both 2-4 and 3-4 constantly"
+	echo "bi-directionally connected via LTP from 150s on)."
+	echo ""
+	echo "TEST A"
+	echo "If I start up the above and wait until after 150s (so that nodes"
+	echo "2 and 3 are 'continuously connected' to node 4) things work as"
+	echo "expected.  From 4 I can bping 2 and 3."
+	echo ""
+	echo "TEST B"
+	echo "If I start up and ping from node 4 to node 2 early on (during"
+	echo "one of the 30s 2--4 connected periods) then wait until after"
+	echo "150s and try to ping from node 4 to nodes 2 and 3:"
+  	echo "  o The ping from 4 to 3 succeeds"
+  	echo "  o The ping from 4 to 2 fails, and the bundle enters a routing"
+	echo "    loop between nodes 1 and 2"
+	echo ""
+	echo "====="
+	echo "If I disable route cacheing by clearing the route cache after"
+	echo "each computation in libcgr.c, the problem does not occur."
+
+	echo
+	echo "CONFIG: 4 nodes w/ initial intermittent connectivity:"
+	echo
+	for N in $CONFIGFILES
+	do
+		echo "$N:"
+		cat $N
+		echo "# EOF"
+		echo
+	done
+	echo "OUTPUT: Terminal messages will relay results."
+	echo
+	echo "########################################"
+
+	./cleanup
+	sleep 1
+	echo "Starting TEST in DIR $PWD..."
+	export ION_NODE_LIST_DIR=$PWD
+	rm -f ./ion_nodes
+	RETVAL=0
+}
+
+function startNodes
+{
+	for i in {1..4}; do
+		cd node$i
+		ionstart -I host_$i.rc &
+		cd ..
+		sleep 1
+	done
+	sleep 10
+}
+
+function finishSetup
+{
+	for i in {1..4}; do
+		cd node$i
+		ionadmin ../global.ionrc &
+		sleep 1
+		echo "l contact" | ionadmin | sed -e "s/^: //" | grep "From" &> ion_contacts.txt
+		bpecho ipn:$i.2 &
+		cd ..
+	done
+}
+
+function stopNodes
+{
+	for i in {1..4}; do
+		cd node$i
+		./ionstop &
+		cd ..
+	done
+	echo "Exiting from stopNodes."
+}
+
+function logReceived
+{
+	for i in {1..4}; do
+		cd node$i
+		bpstats
+		grep "rcv from" ion.log | tail -1 > received_$1
+		cd ..
+	done
+}
+
+function testAConfigs
+{
+	# Start nodes with ONLY constant connectivity after time 151 (no earlier choppiness)
+	startNodes
+	finishSetup
+	echo "Starting network activity after end of intermittent connectivity."
+	for i in {16..1}; do
+		echo "Sleeping...[$i to go]"
+		sleep 10
+	done
+
+
+	# Demonstrate that we can ping nodes 2 and 3
+	cd node4
+	echo "bping from node 4 to node 2..."
+	bping -c 1 ipn:4.1 ipn:2.2 > bping2a.out
+	echo "bping from node 4 to node 3..."
+	bping -c 1 ipn:4.1 ipn:3.2 > bping3a.out
+	cd ..
+	
+	logReceived testA
+}
+
+function testBConfigs
+{
+	startNodes
+	finishSetup
+	echo "Starting network activity during intermittent connectivity."
+	sleep 20
+
+	# At this point node 4 is only indirectly connected to node 2,
+	# through nodes 3 and 1.
+	# Do a ping to show connectivity and cause cgr to compute routes.
+	cd node4
+	echo "bping from node 4 to node 2..."
+	bping -c 1 ipn:4.1 ipn:2.2 > bping2b.out &
+	cd ..
+
+	# Wait until we're in the fully-connected time
+	for i in {15..1}; do
+		echo "Sleeping...[$i to go]"
+		sleep 10
+	done
+
+	# Now try again to nodes 2 and 3; both pings are direct.
+	cd node4
+	echo "bping from node 4 to node 3..."
+	bping -c 1 ipn:4.1 ipn:3.2 > bping3c.out
+	echo "bping from node 4 to node 2..."
+	bping -c 1 ipn:4.1 ipn:2.2 > bping2c.out
+	cd ..
+	
+	# Get bpstats on nodes to detect routing loop.
+	logReceived testB
+}
+
+function evaluateResults
+{
+	TOTALRECEIVEDINDEX=17
+
+	num2a=`grep "1 bundles transmitted, 1 bundles received" node4/bping2a.out | wc -l`
+	num3a=`grep "1 bundles transmitted, 1 bundles received" node4/bping3a.out | wc -l`
+	#
+	if [ $num2a -ne 1 ] || [ $num3a -ne 1 ]; then
+		echo ""
+		echo "FAIL due to bping response not as expected in testA"
+	fi
+
+	num2b=`grep "1 bundles transmitted, 1 bundles received" node4/bping2b.out | wc -l`
+	num2c=`grep "1 bundles transmitted, 1 bundles received" node4/bping2c.out | wc -l`
+	num3c=`grep "1 bundles transmitted, 1 bundles received" node4/bping3c.out | wc -l`
+	#
+	if [ $num2b -ne 1 ] || [ $num2c -ne 1 ] || [ $num3c -ne 1 ]; then
+		echo ""
+		echo "FAIL due to bping response not as expected in testB"
+		RETVAL=1
+	fi
+
+
+	# Examine total # of bundles received at nodes 1 and 2 for testA
+	# Should be 0 at node 1 and 1 at node 2
+	temp1a="`cat node1/received_testA`"
+	temp1aArr=($temp1a)
+	numReceivedAt1a=${temp1aArr[$TOTALRECEIVEDINDEX]}
+	temp2a=`cat node2/received_testA`
+	temp2aArr=($temp2a)
+	numReceivedAt2a=${temp2aArr[$TOTALRECEIVEDINDEX]}
+	if [ $numReceivedAt1a -ne 0 ] || [ $numReceivedAt2a -ne 1 ]; then
+		echo ""
+		echo "FAIL due to numReceivedAt not as expected in testA"
+		RETVAL=1
+	fi
+
+	# Examine total # of bundles received at nodes 1 and 2 for testB
+	# Should be 0 at node 1 and 2 at node 2
+	temp1b="`cat node1/received_testB`"
+	temp1bArr=($temp1b)
+	numReceivedAt1b=${temp1bArr[$TOTALRECEIVEDINDEX]}
+	# Note: node 1 conveyed the initial ping from 4 to 2 and the
+	# resulting echo from 2 to 4, so it has received 2 bundles.
+	temp2b="`cat node2/received_testB`"
+	temp2bArr=($temp2b)
+	numReceivedAt2b=${temp2bArr[$TOTALRECEIVEDINDEX]}
+	if [ $numReceivedAt1b -ne 2 ] || [ $numReceivedAt2b -ne 2 ]; then
+		echo ""
+		echo "FAIL due to numReceivedAt not as expected in testB"
+		RETVAL=1
+	fi
+
+}
+
+function runTest
+{
+	doTestConfig
+
+	testAConfigs
+
+	# Stop everything and restart with initial choppiness
+	echo "Reinitializing the entire network."
+	stopNodes
+	# Note: must destroy the database to make the counts come out right
+	killm
+	for i in {10..1}; do
+		echo "After stopNodes sleeping...[$i to go]"
+		sleep 1
+	done
+
+	testBConfigs
+
+	evaluateResults
+
+	stopNodes
+	sleep 10
+	echo "bug-0002-cgr-recompute test completed."
+	exit $RETVAL
+}
+
+runTest

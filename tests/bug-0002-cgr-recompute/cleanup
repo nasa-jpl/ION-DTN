@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+# Keith Scott
+# June 12, 2012
+
+echo "Cleaning up old ION..."
+rm -f ion_nodes
+killall -9 bpecho
+for i in {1..4}; do
+	rm -f node$i/ion.log
+	rm -f node$i/ion_contacts.txt
+	rm -f node$i/received_test*
+done
+rm -f node4/bping*.out
+killm
+
