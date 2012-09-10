@@ -280,13 +280,13 @@ static int	run_imcadmin(char *cmdFileName)
 
 	if (bpAttach() < 0)
 	{
-		putErrmsg("imcadmin can't attach to BP", NULL);
+		putErrmsg("imcadmin can't attach to BP.", NULL);
 		return -1;
 	}
 
 	if (imcInit() < 0)
 	{
-		putErrmsg("imcadmin can't initialize multicast database", NULL);
+		putErrmsg("imcadmin can't initialize IMC database.", NULL);
 		return -1;
 	}
 

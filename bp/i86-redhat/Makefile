@@ -28,6 +28,7 @@ BPINCLS = \
 	$(API)/bpP.h \
 	$(IPN)/ipnfw.h \
 	$(IMC)/imcfw.h \
+	$(IMC)/imcP.h \
 	$(BSS)/bssfw.h \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \

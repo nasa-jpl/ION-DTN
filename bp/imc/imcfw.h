@@ -20,28 +20,12 @@
 extern "C" {
 #endif
 
-/*	Administrative record type	*/
-#define BP_MULTICAST_PETITION	(5)
-
-typedef struct
-{
-	unsigned long	groupNbr;
-	unsigned int	endpoints;	/*	# of group's endpoints	*/
-	Object		members;	/*	SDR list of node nbrs	*/
-} ImcGroup;
-
 typedef struct
 {
 	unsigned long	parent;		/*	node number		*/
 	Object		kin;		/*	SDR list of node nbrs	*/
-	Object		groups;		/*	SDR list of ImcCGroups	*/
+	Object		groups;		/*	SDR list of ImcGroups	*/
 } ImcDB;
-
-typedef struct
-{
-	unsigned long	groupNbr;
-	int		isMember;	/*	Boolean			*/
-} ImcPetition;
 
 extern int		imcInit();
 extern Object		getImcDbObject();
@@ -50,17 +34,6 @@ extern ImcDB		*getImcConstants();
 extern int		imc_addKin(unsigned long nodeNbr, int isParent);
 extern int		imc_updateKin(unsigned long nodeNbr, int isParent);
 extern void		imc_removeKin(unsigned long nodeNbr);
-
-extern int		imcJoin(unsigned long groupNbr);
-extern int		imcLeave(unsigned long groupNbr);
-
-extern void		imcFindGroup(unsigned long groupNbr, Object *addr,
-				Object *eltp);
-
-extern int		imcParsePetition(void **petition, unsigned char *cursor,
-				int unparsedBytes);
-extern int		imcHandlePetition(void *petition, BpDelivery *dlv);
-
 #ifdef __cplusplus
 }
 #endif

@@ -33,22 +33,22 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.ltp
-./ionstart >& node1.stdout
+./ionstart >& node1.stdout &
 cd ../2.ipn.ltp
-./ionstart >& node2.stdout
+./ionstart >& node2.stdout &
 cd ../3.ipn.ltp
-./ionstart >& node3.stdout
+./ionstart >& node3.stdout &
 cd ../4.ipn.ltp
-./ionstart >& node4.stdout
+./ionstart >& node4.stdout &
 
-sleep 10
+sleep 30
 echo "Starting bprecvfile, both unicast and multicast, on all nodes..."
 cd ../1.ipn.ltp
 bprecvfile ipn:1.1 &
 bprecvfile imc:19.1 &
 cd ../2.ipn.ltp
 bprecvfile ipn:2.1 &
-bprecvfile imc:19.1 &
+bprecvfile imc:19.1 2 &
 cd ../3.ipn.ltp
 bprecvfile ipn:3.1 &
 bprecvfile imc:19.1 &
@@ -58,103 +58,105 @@ bprecvfile imc:19.1 &
 
 sleep 1
 cd ../1.ipn.ltp
-echo "Sending 150-byte file from ipn:1.1 to ipn:3.1 (unicast)...."
-bpsendfile ipn:1.1 ipn:3.1 file150
+echo "Sending 150-byte file from ipn:1.2 to ipn:3.1 (unicast)...."
+bpsendfile ipn:1.2 ipn:3.1 file150
+cd ../3.ipn.ltp
+sleep 2
+mv testfile1 testfile01
 
 sleep 1
-echo "Sending 100-byte file from ipn:1.1 to imc:19.1 (multicast)...."
-bpsendfile ipn:1.1 imc:19.1 file100
+cd ../1.ipn.ltp
+echo "Sending 100-byte file from ipn:1.2 to imc:19.1 (multicast)...."
+bpsendfile ipn:1.2 imc:19.1 file100
 
 sleep 1
 cd ../2.ipn.ltp
-echo "Sending 200-byte file from ipn:2.1 to imc:19.1 (multicast)...."
-bpsendfile ipn:2.1 imc:19.1 file200
+echo "Sending 200-byte file from ipn:2.2 to imc:19.1 (multicast)...."
+bpsendfile ipn:2.2 imc:19.1 file200
 
 sleep 1
 cd ../4.ipn.ltp
-echo "Sending 400-byte file from ipn:4.1 to imc:19.1 (multicast)...."
-bpsendfile ipn:4.1 imc:19.1 file400
+echo "Sending 400-byte file from ipn:4.2 to imc:19.1 (multicast)...."
+bpsendfile ipn:4.2 imc:19.1 file400
 
 sleep 1
 cd ../2.ipn.ltp
 echo "Node 2 unregisters from imc:19.1."
 bpadmin unregister.bprc
+mv testfile1 testfile01
+mv testfile2 testfile02
 
 sleep 1
 cd ../3.ipn.ltp
-echo "Sending 300-byte file from ipn:3.1 to imc:19.1 (multicast)...."
-bpsendfile ipn:3.1 imc:19.1 file300
+echo "Sending 300-byte file from ipn:3.2 to imc:19.1 (multicast)...."
+bpsendfile ipn:3.2 imc:19.1 file300
 
 sleep 1
 cd ../2.ipn.ltp
-echo "Node 4 is removed from the multicast tree."
 imcadmin remove4.imcrc
+cd ../4.ipn.ltp
+imcadmin remove2.imcrc
+echo "Node 4 is removed from the multicast tree."
 
 sleep 1
 cd ../3.ipn.ltp
-echo "Sending 310-byte file from ipn:3.1 to imc:19.1 (multicast)...."
-bpsendfile ipn:3.1 imc:19.1 file310
+echo "Sending 310-byte file from ipn:3.2 to imc:19.1 (multicast)...."
+bpsendfile ipn:3.2 imc:19.1 file310
 
 sleep 1
 cd ../2.ipn.ltp
-echo "Node 2 re-registers in imc:19.1."
 bpadmin reregister.bprc
-echo "Node 4 is restored to the multicast tree."
+echo "Node 2 re-registers in imc:19.1."
+bprecvfile imc:19.1 &
 imcadmin add4.imcrc
+cd ../4.ipn.ltp
+imcadmin add2.imcrc
+echo "Node 4 is restored to the multicast tree."
 
 sleep 1
 cd ../3.ipn.ltp
-echo "Sending 320-byte file from ipn:3.1 to imc:19.1 (multicast)...."
-bpsendfile ipn:3.1 imc:19.1 file320
+echo "Sending 320-byte file from ipn:3.2 to imc:19.1 (multicast)...."
+bpsendfile ipn:3.2 imc:19.1 file320
 
 # Verify that the correct files were received at all nodes.
+sleep 3
 RETVAL=0
 
 # Verify at node 1
 
 cd ../1.ipn.ltp
 
-COUNT=`ls -l | egrep 200 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 200 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 1 did not get file200."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 400 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 400 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 1 did not get file400."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 300 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 300 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 1 did not get file300."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 310 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 310 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 1 did not get file310."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 320 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 320 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 1 did not get file320."
 	RETVAL=1
 fi
@@ -163,56 +165,44 @@ fi
 
 cd ../2.ipn.ltp
 
-COUNT=`ls -l | egrep 150 | wc -l`
-if [ $COUNT -eq 0 ]
+COUNT=`ls -l testfile* | egrep 150 | wc -l`
+if [ $COUNT -ne 0 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 2 got file150."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 100 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 100 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 2 did not get file100."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 400 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 400 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 2 did not get file400."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 300 | wc -l`
-if [ $COUNT -eq 0 ]
+COUNT=`ls -l testfile* | egrep 300 | wc -l`
+if [ $COUNT -ne 0 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 2 got file300."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 310 | wc -l`
-if [ $COUNT -eq 0 ]
+COUNT=`ls -l testfile* | egrep 310 | wc -l`
+if [ $COUNT -ne 0 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 2 got file310."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 320 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 320 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 2 did not get file320."
 	RETVAL=1
 fi
@@ -221,38 +211,30 @@ fi
 
 cd ../3.ipn.ltp
 
-COUNT=`ls -l | egrep 150 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 150 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 3 did not get file150."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 100 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 100 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 3 did not get file100."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 200 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 200 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 3 did not get file200."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 400 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 400 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 3 did not get file400."
 	RETVAL=1
 fi
@@ -261,56 +243,44 @@ fi
 
 cd ../4.ipn.ltp
 
-COUNT=`ls -l | egrep 150 | wc -l`
-if [ $COUNT -eq 0 ]
+COUNT=`ls -l testfile* | egrep 150 | wc -l`
+if [ $COUNT -ne 0 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 4 got file150."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 100 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 100 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 4 did not get file100."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 200 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 200 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 4 did not get file200."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 300 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 300 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 4 did not get file300."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 310 | wc -l`
-if [ $COUNT -eq 0 ]
+COUNT=`ls -l testfile* | egrep 310 | wc -l`
+if [ $COUNT -ne 0 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 4 got file310."
 	RETVAL=1
 fi
 
-COUNT=`ls -l | egrep 320 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | egrep 320 | wc -l`
+if [ $COUNT -ne 1 ]
 then
-	echo "Okay."
-else
 	echo "Error: node 4 did not get file320."
 	RETVAL=1
 fi

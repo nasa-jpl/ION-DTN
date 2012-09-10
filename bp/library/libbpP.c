@@ -124,26 +124,58 @@ static int	applyACS(int adminRecType, void *other, BpDelivery *dlv,
 /*	*	*	IMC Multicast adaptation	*	*	*/
 
 #ifdef ENABLE_IMC
-#include "imcfw.h"
+#include "imcP.h"
 
-static int	addEndpoint_IMC(VScheme *vscheme, unsigned long groupNbr)
+static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 {
-	if (vscheme->unicast || vscheme->cbhe == 0 || groupNbr == 0)
+	MetaEid		metaEid;
+	PsmAddress	elt;
+	int		result;
+
+	if (vscheme->unicast || vscheme->cbhe == 0 || eid == NULL)
 	{
 		return 0;
 	}
 
-	return imcJoin(groupNbr);
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	/*	We know the EID parses okay, because it was already
+	 *	parsed earlier in addEndpoint.				*/
+
+	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	result = imcJoin(metaEid.nodeNbr);
+	restoreEidString(&metaEid);
+	return result;
 }
 
-static int	removeEndpoint_IMC(VScheme *vscheme, unsigned long groupNbr)
+static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 {
-	if (vscheme->unicast || vscheme->cbhe == 0 || groupNbr == 0)
+	MetaEid		metaEid;
+	PsmAddress	elt;
+	int		result;
+
+	if (vscheme->unicast || vscheme->cbhe == 0 || eid == NULL)
 	{
 		return 0;
 	}
 
-	return imcLeave(groupNbr);
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	/*	We know the EID parses okay, because it was already
+	 *	parsed earlier in addEndpoint.				*/
+
+	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	result = imcLeave(metaEid.nodeNbr);
+	restoreEidString(&metaEid);
+	return result;
 }
 
 static int	parseImcPetition(int adminRecordType, void **otherPtr,
@@ -154,6 +186,12 @@ static int	parseImcPetition(int adminRecordType, void **otherPtr,
 		return -2;
 	}
 
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
 	return imcParsePetition(otherPtr, cursor, unparsedBytes);
 }
 
@@ -162,6 +200,12 @@ static int	applyImcPetition(int adminRecType, void *other, BpDelivery *dlv)
 	if (adminRecType != BP_MULTICAST_PETITION)
 	{
 		return -2;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
 	}
 
 	return imcHandlePetition(other, dlv);
@@ -3275,6 +3319,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	if (elt != 0)	/*	This is a known endpoint.	*/
 	{
 		sdr_exit_xn(bpSdr);
+		restoreEidString(&metaEid);
 		writeMemoNote("[?] Duplicate endpoint", eid);
 		return 0;
 	}
@@ -3327,7 +3372,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	}
 
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
-	if (addEndpoint_IMC(vscheme, metaEid.nodeNbr) < 0)
+	if (addEndpoint_IMC(vscheme, eid) < 0)
 	{
 		return -1;
 	}
@@ -3457,7 +3502,7 @@ int	removeEndpoint(char *eid)
 		return -1;
 	}
 
-	if (removeEndpoint_IMC(vscheme, metaEid.nodeNbr) < 0)
+	if (removeEndpoint_IMC(vscheme, eid) < 0)
 	{
 		return -1;
 	}
@@ -5172,7 +5217,7 @@ when asking for custody transfer and/or status reports.");
 
 	if (destMetaEid.cbhe)
 	{
-		if (vscheme->unicast == 0)
+		if (vscheme->unicast == 1)
 		{
 			bundleProcFlags |= BDL_DEST_IS_SINGLETON;
 		}
@@ -5213,9 +5258,7 @@ when asking for custody transfer and/or status reports.");
 	{
 		/*	Submitted by application on open endpoint.	*/
 
-		if (!sourceMetaEid->cbhe
-		|| strcmp(sourceMetaEid->schemeName,
-				destMetaEid.schemeName) != 0)
+		if (!sourceMetaEid->cbhe)
 		{
 			nonCbheEidCount++;
 		}
@@ -5244,9 +5287,7 @@ when asking for custody transfer and/or status reports.");
 		reportToMetaEid = &reportToMetaEidBuf;
 		if (!reportToMetaEid->nullEndpoint)
 		{
-			if (!reportToMetaEid->cbhe
-			|| strcmp(reportToMetaEid->schemeName,
-					destMetaEid.schemeName) != 0)
+			if (!reportToMetaEid->cbhe)
 			{
 				nonCbheEidCount++;
 			}

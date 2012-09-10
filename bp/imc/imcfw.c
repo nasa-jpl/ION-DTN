@@ -9,7 +9,7 @@
 	acknowledged.
 									*/
 #include "ipnfw.h"
-#include "imcfw.h"
+#include "imcP.h"
 
 static sm_SemId		_imcfwSemaphore(sm_SemId *newValue)
 {
@@ -140,9 +140,9 @@ int	imcfw(int a1, int a2, int a3, int a4, int a5,
 int	main(int argc, char *argv[])
 {
 #endif
-	unsigned long	ownNodeNbr = getOwnNodeNbr();
 	int		running = 1;
 	Sdr		sdr;
+	unsigned long	ownNodeNbr;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
@@ -166,11 +166,18 @@ int	main(int argc, char *argv[])
 
 	if (imcInit() < 0)
 	{
-		putErrmsg("imcfw can't load routing database.", NULL);
+		putErrmsg("imcfw can't load IMC routing database.", NULL);
+		return 1;
+	}
+
+	if (ipnInit() < 0)
+	{
+		putErrmsg("imcfw can't load IPN routing database.", NULL);
 		return 1;
 	}
 
 	sdr = getIonsdr();
+	ownNodeNbr = getOwnNodeNbr();
 	findScheme("imc", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -247,7 +254,7 @@ int	main(int argc, char *argv[])
 				{
 					member = (unsigned long)
 						sdr_list_data(sdr, elt3);
-					if (member == ownNodeNbr || member ==
+					if (member ==
 						bundle.clDossier.senderNodeNbr)
 					{
 						continue;

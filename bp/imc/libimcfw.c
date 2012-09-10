@@ -10,7 +10,7 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "imcfw.h"
+#include "imcP.h"
 
 #define	IMC_DBNAME	"imcRoute"
 
@@ -49,6 +49,10 @@ static ImcDB	*_imcConstants()
 
 static int	sendPetition(unsigned long nodeNbr, char *buffer, int length)
 {
+	char		sourceEid[32];
+	MetaEid		sourceMetaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
 	unsigned int	ttl = 86400;
 	BpExtendedCOS	ecos = { 0, 0, 255 };
 	Sdr		sdr = getIonsdr();
@@ -57,6 +61,8 @@ static int	sendPetition(unsigned long nodeNbr, char *buffer, int length)
 	char		destEid[32];
 	Object		bundleObj;
 
+	isprintf(sourceEid, sizeof sourceEid, "ipn:%u.0", getOwnNodeNbr());
+	oK(parseEidString(sourceEid, &sourceMetaEid, &vscheme, &vschemeElt));
 	sdr_begin_xn(sdr);
 	sourceData = sdr_malloc(sdr, length);
 	if (sourceData == 0)
@@ -75,9 +81,9 @@ static int	sendPetition(unsigned long nodeNbr, char *buffer, int length)
 	}
 
 	isprintf(destEid, sizeof destEid, "ipn:%lu.0", nodeNbr);
-	switch (bpSend(NULL, destEid, NULL, ttl, BP_EXPEDITED_PRIORITY,
-			NoCustodyRequested, 0, 0, &ecos, payloadZco,
-			&bundleObj, BP_MULTICAST_PETITION))
+	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl,
+			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0, &ecos,
+			payloadZco, &bundleObj, BP_MULTICAST_PETITION))
 	{
 	case -1:
 		putErrmsg("Can't send IMC petition.", NULL);
@@ -309,7 +315,8 @@ int	imc_addKin(unsigned long nodeNbr, int isParent)
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, ImcGroup, group, sdr_list_data(sdr, elt));
-		if (sdr_list_length(sdr, group->members) == 0)
+		if (sdr_list_length(sdr, group->members) == 0
+		&& group->endpoints == 0)
 		{
 			continue;
 		}
@@ -431,7 +438,7 @@ void	imc_removeKin(unsigned long nodeNbr)
 			elt2 = nextElt)
 	{
 		nextElt = sdr_list_next(sdr, elt2);
-		GET_OBJ_POINTER(sdr, ImcGroup, group, sdr_list_data(sdr, elt));
+		GET_OBJ_POINTER(sdr, ImcGroup, group, sdr_list_data(sdr, elt2));
 		for (elt3 = sdr_list_first(sdr, group->members); elt3;
 				elt3 = sdr_list_next(sdr, elt3))
 		{
@@ -444,7 +451,8 @@ void	imc_removeKin(unsigned long nodeNbr)
 		if (elt3)	/*	Node is a member of this group.	*/
 		{
 			sdr_list_delete(sdr, elt3, NULL, NULL);
-			if (sdr_list_length(sdr, group->members) == 0)
+			if (sdr_list_length(sdr, group->members) == 0
+			&& group->endpoints == 0)
 			{
 				/*	No more members; unsubscribe.	*/
 
@@ -505,7 +513,7 @@ void	imcFindGroup(unsigned long groupNbr, Object *addr, Object *eltp)
 	CHKVOID(addr);
 	CHKVOID(eltp);
 	CHKVOID(ionLocked());
-	*eltp = 0;		/*	Default.			*/
+	*eltp = 0;			/*	Default.		*/
 	elt = locateGroup(groupNbr, NULL);
 	if (elt == 0)
 	{
@@ -639,11 +647,12 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 					metaEid.nodeNbr));
 		}
 
-		/*	If this is the first relative that is a member
-		 *	of this group, then must now subscribe on that
-		 *	member's behalf.				*/
+		/*	If this is the first relative (including self)
+		 *	that is a member of this group, then must now
+		 *	subscribe on that member's behalf.		*/
 
-		if (sdr_list_length(sdr, group->members) == 1)
+		if (sdr_list_length(sdr, group->members) == 1
+		&& group->endpoints == 0)
 		{
 			if (forwardPetition(group, 1, metaEid.nodeNbr) < 0)
 			{
@@ -686,10 +695,11 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 
 	sdr_list_delete(sdr, elt, NULL, NULL);
 
-	/*	If no relatives are members of this group any longer,
-	 *	then must now unsubscribe from this group altogether.	*/
+	/*	If no relatives (including self) are members of this
+	 *	group any longer, then must now unsubscribe from this
+	 *	group altogether.					*/
 
-	if (sdr_list_length(sdr, group->members) == 0)
+	if (sdr_list_length(sdr, group->members) == 0 && group->endpoints == 0)
 	{
 		if (forwardPetition(group, 0, metaEid.nodeNbr) < 0)
 		{
@@ -718,8 +728,6 @@ int	imcJoin(unsigned long groupNbr)
 	Object		nextGroup;
 	Object		groupAddr;
 	ImcGroup	group;
-	Object		elt;
-	unsigned long	nodeNbr;
 
 	sdr_begin_xn(sdr);
 	groupElt = locateGroup(groupNbr, &nextGroup);
@@ -735,46 +743,14 @@ int	imcJoin(unsigned long groupNbr)
 
 	groupAddr = sdr_list_data(sdr, groupElt);
 	sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
-	for (elt = sdr_list_first(sdr, group.members); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		nodeNbr = (unsigned long) sdr_list_data(sdr, elt);
-		if (nodeNbr < ownNodeNbr)
-		{
-			continue;
-		}
-
-		if (nodeNbr == ownNodeNbr)
-		{
-			/*	Local node is already a member.		*/
-
-			group.endpoints++;
-			sdr_write(sdr, groupAddr, (char *) &group,
-					sizeof(ImcGroup));
-			return sdr_end_xn(sdr);
-		}
-
-		break;
-	}
-
-	/*	Must add local node as new member of group.		*/
-
-	if (elt)
-	{
-		oK(sdr_list_insert_before(sdr, elt, ownNodeNbr));
-	}
-	else
-	{
-		oK(sdr_list_insert_last(sdr, group.members, ownNodeNbr));
-	}
-
-	group.endpoints = 1;
+	group.endpoints++;
 	sdr_write(sdr, groupAddr, (char *) &group, sizeof(ImcGroup));
 
-	/*	If no relative is already a member of this group,
-	 *	then must now subscribe.				*/
+	/*	If this is the first endpoint in this group that the
+	 *	local node has registered in, and no relative is
+	 *	already a member of this group, then must now subscribe.*/
 
-	if (sdr_list_length(sdr, group.members) == 1)
+	if (sdr_list_length(sdr, group.members) == 0 && group.endpoints == 1)
 	{
 		if (forwardPetition(&group, 1, ownNodeNbr) < 0)
 		{
@@ -799,8 +775,6 @@ int	imcLeave(unsigned long groupNbr)
 	Object		nextGroup;
 	Object		groupAddr;
 	ImcGroup	group;
-	Object		elt;
-	unsigned long	nodeNbr;
 
 	sdr_begin_xn(sdr);
 	groupElt = locateGroup(groupNbr, &nextGroup);
@@ -814,41 +788,18 @@ int	imcLeave(unsigned long groupNbr)
 
 	groupAddr = sdr_list_data(sdr, groupElt);
 	sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
-	for (elt = sdr_list_first(sdr, group.members); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		nodeNbr = (unsigned long) sdr_list_data(sdr, elt);
-		if (nodeNbr < ownNodeNbr)
-		{
-			continue;
-		}
-
-		break;
-	}
-
-	/*	Either found own subscription or reached end of list.	*/
-
-	if (elt == 0)
-	{
-		/*	Nothing to do: not a current member.		*/
-
-		sdr_exit_xn(sdr);
-		return 0;
-	}
-
 	group.endpoints--;
-	if (group.endpoints == 0)
+	if (group.endpoints < 0)	/*	Defensive coding.	*/
 	{
-		/*	No remaining endpoints for this group, so
-		 *	local node is no longer a member.		*/
-
-		sdr_list_delete(sdr, elt, NULL, NULL);
+		group.endpoints = 0;
 	}
 
-	/*	If no relatives are members of this group either,
-	 *	then must now unsubscribe from this group altogether.	*/
+	/*	If the local node is no longer registered in any
+	 *	endpoint of this group, and no relatives are members
+	 *	of this group any longer, then must now unsubscribe
+	 *	from this group altogether.				*/
 
-	if (sdr_list_length(sdr, group.members) == 0)
+	if (group.endpoints == 0 && sdr_list_length(sdr, group.members) == 0)
 	{
 		if (forwardPetition(&group, 0, ownNodeNbr) < 0)
 		{
