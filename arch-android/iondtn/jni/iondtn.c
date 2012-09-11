@@ -3,6 +3,7 @@
  */
 
 #include <jni.h>
+#include "../config.h"
 #include "gov_nasa_jpl_iondtn_NodeAdministrator.h"
 #include "platform.h"
 #include "ion.h"
@@ -197,6 +198,7 @@ static void	createIonConfigFiles()
 	oK(iputs(fd, linebuf));
 	close(fd);
 
+#ifndef INSERT_ION_NASA_PROTECTED_CODE
 	/*	Create cfdprc file.					*/
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.cfdprc",
@@ -210,6 +212,7 @@ static void	createIonConfigFiles()
 
 	oK(iputs(fd, "1\ns bputa\n"));
 	close(fd);
+#endif
 }
 
 JNIEXPORT jstring JNICALL Java_gov_nasa_jpl_iondtn_NodeAdministrator_init(JNIEnv *env, jobject this)
