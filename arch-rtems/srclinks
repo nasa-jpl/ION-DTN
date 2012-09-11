@@ -1,5 +1,7 @@
 # shell script to populate RTEMS build directory with sym links to source files.
 #!/bin/bash
+ION_OPEN_SOURCE=1
+CRYPTO=NULL_SUITES
 ln -s ../ici/library/platform.c
 ln -s ../ici/library/platform_sm.c
 ln -s ../ici/library/memmgr.c
@@ -44,7 +46,7 @@ ln -s ../bp/library/ext/bsp/extbsputil.c
 ln -s ../bp/library/ext/bsp/extbsputil.h
 ln -s ../bp/library/crypto/crypto.h
 ln -s ../bp/library/crypto/sample_crypto.h
-ln -s ../bp/library/crypto/NULL_SUITES/crypto.c
+ln -s ../bp/library/crypto/$CRYPTO/crypto.c
 ln -s ../bp/daemon/bpclock.c
 ln -s ../bp/utils/bpadmin.c
 ln -s ../bp/utils/bpstats.c
@@ -70,6 +72,7 @@ ln -s ../ltp/library/ltpP.h
 ln -s ../ltp/daemon/ltpclock.c
 ln -s ../ltp/daemon/ltpmeter.c
 ln -s ../ltp/utils/ltpadmin.c
+if [ "$ION_OPEN_SOURCE" == "1" ];then
 ln -s ../cfdp/library/libcfdp.c
 ln -s ../cfdp/library/libcfdpops.c
 ln -s ../cfdp/library/libcfdpP.c
@@ -77,6 +80,7 @@ ln -s ../cfdp/library/cfdpP.h
 ln -s ../cfdp/bp/bputa.c
 ln -s ../cfdp/daemon/cfdpclock.c
 ln -s ../cfdp/utils/cfdpadmin.c
+fi
 
 # Optional extra stuff for testing.
 

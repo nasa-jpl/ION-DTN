@@ -2,6 +2,7 @@
  *  ION runtime image initialization and driver.
  */
 
+#include "../config.h"
 #include <bsp.h>
 #include <rtems.h>
 #include <rtems/rtems_bsdnet.h>
@@ -12,7 +13,10 @@
 #include "rfx.h"
 #include "ltp.h"
 #include "bp.h"
+
+#ifndef INSERT_ION_NASA_PROTECTED_CODE
 #include "cfdp.h"
+#endif
 
 #define	ION_NODE_NBR	19
 
@@ -202,6 +206,7 @@ static void	createIonConfigFiles()
 	oK(iputs(fd, linebuf));
 	close(fd);
 
+#ifndef INSERT_ION_NASA_PROTECTED_CODE
 	/*	Create cfdprc file.					*/
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.cfdprc",
@@ -215,6 +220,7 @@ static void	createIonConfigFiles()
 
 	oK(iputs(fd, "1\ns bputa\n"));
 	close(fd);
+#endif
 }
 
 static int	startDTN()
@@ -278,6 +284,7 @@ static int	startDTN()
 	pseudoshell(cmd);
 	snooze(1);
 
+#ifndef INSERT_ION_NASA_PROTECTED_CODE
 	/*	Now start CFDP.						*/
 
 	isprintf(cmd, sizeof cmd, "cfdpadmin /ion/node%d.cfdprc", nodenbr);
@@ -293,7 +300,7 @@ static int	startDTN()
 			return -1;
 		}
 	}
-
+#endif
 	return 0;
 }
 
@@ -315,6 +322,7 @@ static void	testLoopback()
 int	stopDTN(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
+#ifndef INSERT_ION_NASA_PROTECTED_CODE
 	/*	Stop CFDP.						*/
 
 	pseudoshell("cfdpadmin .");
@@ -322,6 +330,7 @@ int	stopDTN(int a1, int a2, int a3, int a4, int a5,
 	{
 		snooze(1);
 	}
+#endif
 
 	/*	Stop BP.						*/
 
