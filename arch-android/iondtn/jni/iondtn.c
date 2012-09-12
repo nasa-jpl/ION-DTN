@@ -3,7 +3,6 @@
  */
 
 #include <jni.h>
-#include "../config.h"
 #include "gov_nasa_jpl_iondtn_NodeAdministrator.h"
 #include "platform.h"
 #include "ion.h"

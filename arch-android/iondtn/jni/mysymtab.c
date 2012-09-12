@@ -10,8 +10,6 @@
 	acknowledged.
 									*/
 
-#include "../config.h"
-
 extern int	ionadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	rfxclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ionsecadmin(int, int, int, int, int, int, int, int, int, int);

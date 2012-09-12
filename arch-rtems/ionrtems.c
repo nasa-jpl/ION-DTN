@@ -2,7 +2,6 @@
  *  ION runtime image initialization and driver.
  */
 
-#include "../config.h"
 #include <bsp.h>
 #include <rtems.h>
 #include <rtems/rtems_bsdnet.h>
