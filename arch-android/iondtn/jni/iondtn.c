@@ -198,7 +198,7 @@ static void	createIonConfigFiles()
 	oK(iputs(fd, linebuf));
 	close(fd);
 
-#ifndef INSERT_ION_NASA_PROTECTED_CODE
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Create cfdprc file.					*/
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.cfdprc",

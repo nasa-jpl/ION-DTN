@@ -31,7 +31,7 @@ extern int	ipnadminep(int, int, int, int, int, int, int, int, int, int);
 extern int	lgagent(int, int, int, int, int, int, int, int, int, int);
 extern int	bpsource(int, int, int, int, int, int, int, int, int, int);
 extern int	bpsink(int, int, int, int, int, int, int, int, int, int);
-#ifndef INSERT_ION_NASA_PROTECTED_CODE
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 extern int	cfdpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	cfdpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	bputa(int, int, int, int, int, int, int, int, int, int);
@@ -67,7 +67,7 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "lgagent",	(FUNCPTR) lgagent,	ICI_PRIORITY,	24576 },
 		{ "bpsource",	(FUNCPTR) bpsource,	ICI_PRIORITY,	4096  },
 		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  }
-#ifndef INSERT_ION_NASA_PROTECTED_CODE
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 		,{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
 		{ "cfdpclock",	(FUNCPTR) cfdpclock,	ICI_PRIORITY,	24576 },
 		{ "bputa",	(FUNCPTR) bputa,	ICI_PRIORITY,	24576 }

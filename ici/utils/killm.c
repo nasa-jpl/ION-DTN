@@ -56,7 +56,7 @@ char *processes[] = { "bpadmin.exe", \
 "udpclo.exe", "lt-udpclo.exe", "udplsi.exe", \
 "lt-udplsi.exe", "udplso.exe", "lt-udplso.exe", \
 "udp2file.exe", "lt-udp2file.exe"
-#ifndef INSERT_ION_NASA_PROTECTED_CODE
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 ,"amsbenchr.exe", "lt-amsbenchr.exe", "amsbenchs.exe", \
 "lt-amsbenchs.exe", "amsd.exe", "lt-amsd.exe", \
 "amshello.exe", "lt-amshello.exe", "amslog.exe", \

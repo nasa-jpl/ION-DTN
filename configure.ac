@@ -137,7 +137,7 @@ if test "$IS_NASA_B" = "1"; then
 	
 	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
 
-	AC_DEFINE([INSERT_ION_NASA_PROTECTED_CODE],[1],[Build ION NASA protected code])
+	AC_DEFINE([NASA_PROTECTED_FLIGHT_CODE],[1],[Build ION NASA protected flight code])
 else
 	AM_CONDITIONAL([CRYPTO], [false])
 fi

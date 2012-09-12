@@ -14,7 +14,7 @@
 #include "ltp.h"
 #include "bp.h"
 
-#ifndef INSERT_ION_NASA_PROTECTED_CODE
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
 #endif
 
@@ -206,7 +206,7 @@ static void	createIonConfigFiles()
 	oK(iputs(fd, linebuf));
 	close(fd);
 
-#ifndef INSERT_ION_NASA_PROTECTED_CODE
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Create cfdprc file.					*/
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.cfdprc",
@@ -284,7 +284,7 @@ static int	startDTN()
 	pseudoshell(cmd);
 	snooze(1);
 
-#ifndef INSERT_ION_NASA_PROTECTED_CODE
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Now start CFDP.						*/
 
 	isprintf(cmd, sizeof cmd, "cfdpadmin /ion/node%d.cfdprc", nodenbr);
@@ -322,7 +322,7 @@ static void	testLoopback()
 int	stopDTN(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-#ifndef INSERT_ION_NASA_PROTECTED_CODE
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Stop CFDP.						*/
 
 	pseudoshell("cfdpadmin .");
