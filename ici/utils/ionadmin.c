@@ -763,7 +763,7 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case 'v':
-			isprintf(buffer, sizeof buffer, "ION version %s.",
+			isprintf(buffer, sizeof buffer, "%s",
 					IONVERSIONNUMBER);
 			printText(buffer);
 			return 0;
