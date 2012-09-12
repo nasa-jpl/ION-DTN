@@ -124,7 +124,7 @@ static int	applyACS(int adminRecType, void *other, BpDelivery *dlv,
 /*	*	*	IMC Multicast adaptation	*	*	*/
 
 #ifdef ENABLE_IMC
-#include "../imc/imcP.h"
+#include "imcP.h"
 
 static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 {
