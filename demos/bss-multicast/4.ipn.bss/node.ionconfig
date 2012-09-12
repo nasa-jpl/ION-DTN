@@ -1,0 +1,6 @@
+wmKey 4
+sdrName ion4
+wmSize 5000000
+configFlags 1
+heapWords 3000000
+pathName /usr/ion

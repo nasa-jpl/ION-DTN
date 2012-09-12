@@ -5121,6 +5121,14 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	ExtensionBlock	blk;
 
 	*bundleObj = 0;
+	if (lifespan <= 0)
+	{
+		writeMemoNote("[?] Invalid lifespan", itoa(lifespan));
+		return 0;
+	}
+
+	/*	Accommodate destination endpoint.			*/
+
 	CHKERR(destEidString);
 	if (*destEidString == 0)
 	{
@@ -5128,10 +5136,43 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		return 0;
 	}
 
-	if (lifespan <= 0)
+	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
+			== 0)
 	{
-		writeMemoNote("[?] Invalid lifespan", itoa(lifespan));
+		restoreEidString(&destMetaEid);
+		writeMemoNote("[?] Destination EID malformed", destEidString);
 		return 0;
+	}
+
+	if (destMetaEid.nullEndpoint)	/*	Do not send bundle.	*/
+	{
+		zco_destroy(bpSdr, adu);
+		return 1;
+	}
+
+	if (destMetaEid.cbhe)
+	{
+		if (vscheme->unicast)
+		{
+			bundleProcFlags |= BDL_DEST_IS_SINGLETON;
+		}
+	}
+	else	/*	Non-IPN destination: no multicast convention.	*/
+	{
+		bundleProcFlags |= BDL_DEST_IS_SINGLETON;
+		nonCbheEidCount++;
+	}
+
+	if (vscheme->unicast)
+	{
+		if (custodySwitch != NoCustodyRequested)
+		{
+			bundleProcFlags |= BDL_IS_CUSTODIAL;
+		}
+	}
+	else	/*	Multicast: silently disable custody transfer.	*/
+	{
+		custodySwitch = NoCustodyRequested;
 	}
 
 	/*	The bundle protocol specification authorizes the
@@ -5157,6 +5198,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	{
 		if (sourceMetaEid == NULL)
 		{
+			restoreEidString(&destMetaEid);
 			writeMemo("[?] Source can't be anonymous when asking \
 for custody transfer and/or status reports.");
 			return 0;
@@ -5164,6 +5206,7 @@ for custody transfer and/or status reports.");
 
 		if (adminRecordType != 0)
 		{
+			restoreEidString(&destMetaEid);
 			writeMemo("[?] Can't ask for custody transfer and/or \
 status reports for admin records.");
 			return 0;
@@ -5173,12 +5216,15 @@ status reports for admin records.");
 		{
 			if (extendedCOS->flags & BP_MINIMUM_LATENCY)
 			{
+				restoreEidString(&destMetaEid);
 				writeMemo("[?] Can't flag bundle as 'critical' \
 when asking for custody transfer and/or status reports.");
 				return 0;
 			}
 		}
 	}
+
+	/*	Set additional bundle processing flags.			*/
 
 	if (sourceMetaEid == NULL)
 	{
@@ -5192,40 +5238,6 @@ when asking for custody transfer and/or status reports.");
 	if (ackRequested)
 	{
 		bundleProcFlags |= BDL_APP_ACK_REQUEST;
-	}
-
-	if (custodySwitch != NoCustodyRequested)
-	{
-		bundleProcFlags |= BDL_IS_CUSTODIAL;
-	}
-
-	/*	Figure out how to express all endpoint IDs.		*/
-
-	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
-			== 0)
-	{
-		restoreEidString(&destMetaEid);
-		writeMemoNote("[?] Destination EID malformed", destEidString);
-		return 0;
-	}
-
-	if (destMetaEid.nullEndpoint)	/*	Do not send bundle.	*/
-	{
-		zco_destroy(bpSdr, adu);
-		return 1;
-	}
-
-	if (destMetaEid.cbhe)
-	{
-		if (vscheme->unicast == 1)
-		{
-			bundleProcFlags |= BDL_DEST_IS_SINGLETON;
-		}
-	}
-	else	/*	Non-IPN destination: no multicast convention.	*/
-	{
-		bundleProcFlags |= BDL_DEST_IS_SINGLETON;
-		nonCbheEidCount++;
 	}
 
 	if (adminRecordType != 0)
@@ -5253,6 +5265,8 @@ when asking for custody transfer and/or status reports.");
 			sourceMetaEid = &tempMetaEid;
 		}
 	}
+
+	/*	Check source and report-to endpoint IDs.		*/
 
 	if (sourceMetaEid != NULL)	/*	Not "dtn:none".		*/
 	{
@@ -5318,6 +5332,9 @@ when asking for custody transfer and/or status reports.");
 		return -1;
 	}
 
+	bundle.bundleProcFlags = bundleProcFlags;
+	bundle.bundleProcFlags += (classOfService << 7);
+	bundle.bundleProcFlags += (srrFlags << 14);
 	if (nonCbheEidCount == 0)
 	{
 		dictionary = NULL;
@@ -5340,14 +5357,11 @@ when asking for custody transfer and/or status reports.");
 	restoreEidString(&destMetaEid);
 	restoreEidString(reportToMetaEid);
 	bundle.id.fragmentOffset = 0;
-	bundle.custodyTaken = 0;
-	bundle.bundleProcFlags = bundleProcFlags;
-	bundle.bundleProcFlags += (classOfService << 7);
-	bundle.bundleProcFlags += (srrFlags << 14);
 
 	/*	Note: bundle is not a fragment when initially created,
 	 *	so totalAduLength is left at zero.			*/
 
+	bundle.custodyTaken = 0;
 	bundle.payloadBlockProcFlags = BLK_MUST_BE_COPIED;
 	bundle.payload.length = aduLength;
 	bundle.payload.content = adu;

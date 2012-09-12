@@ -12,6 +12,10 @@
 
 #include "imcP.h"
 
+#ifndef IMCDEBUG
+#define	IMCDEBUG	0
+#endif
+
 #define	IMC_DBNAME	"imcRoute"
 
 static void	destroyGroup(Object groupElt);
@@ -594,12 +598,19 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 		return 0;
 	}
 
+#if IMCDEBUG
+printf("Handling type-%d petition from %lu at node %lu.\n", isMember,
+metaEid.nodeNbr, getOwnNodeNbr());
+#endif
 	sdr_begin_xn(sdr);
 	groupElt = locateGroup(groupNbr, &nextGroup);
 	if (groupElt == 0)
 	{
 		if (isMember == 0)	/*	Nothing to do.		*/
 		{
+#if IMCDEBUG
+puts("Ignoring cancellation from nonexistent group.");
+#endif
 			sdr_exit_xn(sdr);
 			return 0;
 		}
@@ -626,6 +637,9 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 
 			if (nodeNbr == metaEid.nodeNbr)
 			{
+#if IMCDEBUG
+puts("Ignoring assertion.");
+#endif
 				/*	Nothing to do: current member.	*/
 
 				sdr_exit_xn(sdr);
@@ -636,7 +650,9 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 		}
 
 		/*	Must add new member of group at this point.	*/
-
+#if IMCDEBUG
+printf("Adding member %lu.\n", metaEid.nodeNbr);
+#endif
 		if (elt)
 		{
 			oK(sdr_list_insert_before(sdr, elt, metaEid.nodeNbr));
@@ -647,17 +663,12 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 					metaEid.nodeNbr));
 		}
 
-		/*	If this is the first relative (including self)
-		 *	that is a member of this group, then must now
-		 *	subscribe on that member's behalf.		*/
+		/*	Assert interest (perhaps redundant) to every
+		 *	relative other than the new member itself.	*/
 
-		if (sdr_list_length(sdr, group->members) == 1
-		&& group->endpoints == 0)
+		if (forwardPetition(group, 1, metaEid.nodeNbr) < 0)
 		{
-			if (forwardPetition(group, 1, metaEid.nodeNbr) < 0)
-			{
-				sdr_cancel_xn(sdr);
-			}
+			sdr_cancel_xn(sdr);
 		}
 
 		if (sdr_end_xn(sdr) < 0)
@@ -688,11 +699,16 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 	if (elt == 0)
 	{
 		/*	Nothing to do: not a current member.		*/
-
+#if IMCDEBUG
+puts("Ignoring cancellation by non-member.");
+#endif
 		sdr_exit_xn(sdr);
 		return 0;
 	}
 
+#if IMCDEBUG
+printf("Deleting member %lu.\n", metaEid.nodeNbr);
+#endif
 	sdr_list_delete(sdr, elt, NULL, NULL);
 
 	/*	If no relatives (including self) are members of this
@@ -701,12 +717,18 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 
 	if (sdr_list_length(sdr, group->members) == 0 && group->endpoints == 0)
 	{
-		if (forwardPetition(group, 0, metaEid.nodeNbr) < 0)
+#if IMCDEBUG
+printf("Canceling own membership in group (%lu).\n", getOwnNodeNbr());
+#endif
+		if (forwardPetition(group, 0, getOwnNodeNbr()) < 0)
 		{
 			sdr_cancel_xn(sdr);
 		}
 		else
 		{
+#if IMCDEBUG
+puts("Destroying group.");
+#endif
 			destroyGroup(groupElt);
 		}
 	}
@@ -733,6 +755,9 @@ int	imcJoin(unsigned long groupNbr)
 	groupElt = locateGroup(groupNbr, &nextGroup);
 	if (groupElt == 0)
 	{
+#if IMCDEBUG
+printf("Creating group (%lu).\n", getOwnNodeNbr());
+#endif
 		groupElt = createGroup(groupNbr, nextGroup);
 		if (groupElt == 0)
 		{
@@ -746,12 +771,15 @@ int	imcJoin(unsigned long groupNbr)
 	group.endpoints++;
 	sdr_write(sdr, groupAddr, (char *) &group, sizeof(ImcGroup));
 
-	/*	If this is the first endpoint in this group that the
-	 *	local node has registered in, and no relative is
-	 *	already a member of this group, then must now subscribe.*/
+	/*	If this is the first endpoint that the local node
+	 *	has registered in, within this group, then must now
+	 *	subscribe.  (This may be redundant.)			*/
 
-	if (sdr_list_length(sdr, group.members) == 0 && group.endpoints == 1)
+	if (group.endpoints == 1)
 	{
+#if IMCDEBUG
+printf("Asserting own membership in group (%lu).\n", getOwnNodeNbr());
+#endif
 		if (forwardPetition(&group, 1, ownNodeNbr) < 0)
 		{
 			sdr_cancel_xn(sdr);
@@ -801,12 +829,18 @@ int	imcLeave(unsigned long groupNbr)
 
 	if (group.endpoints == 0 && sdr_list_length(sdr, group.members) == 0)
 	{
+#if IMCDEBUG
+printf("Cancelling own membership in group (%lu).\n", getOwnNodeNbr());
+#endif
 		if (forwardPetition(&group, 0, ownNodeNbr) < 0)
 		{
 			sdr_cancel_xn(sdr);
 		}
 		else
 		{
+#if IMCDEBUG
+printf("Destroying group (%lu).\n", getOwnNodeNbr());
+#endif
 			destroyGroup(groupElt);
 		}
 	}

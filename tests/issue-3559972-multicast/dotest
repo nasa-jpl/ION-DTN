@@ -34,10 +34,13 @@ rm -f ./ion_nodes
 # Start nodes.
 cd 1.ipn.ltp
 ./ionstart >& node1.stdout &
+sleep 1
 cd ../2.ipn.ltp
 ./ionstart >& node2.stdout &
+sleep 1
 cd ../3.ipn.ltp
 ./ionstart >& node3.stdout &
+sleep 1
 cd ../4.ipn.ltp
 ./ionstart >& node4.stdout &
 

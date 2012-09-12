@@ -1,0 +1,3 @@
+# Node 1 has one relative (2), its child.  It's the root of the tree, so
+# no parent.
+a 2 0

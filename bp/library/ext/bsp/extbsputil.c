@@ -870,6 +870,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 	// In case theres a destination too:
 	eidElt = lyst_next(eidElt);
 
+	asb->secSrc.unicast = 1;
 	asb->secSrc.cbhe = (wk->dictionary == NULL);
 	if(asb->secSrc.cbhe)
 	{
@@ -895,6 +896,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 	    && metaEid.cbhe == 1)
             {
 		// It's CBHE, so we can use it as security source
+		asb->secSrc.unicast = 1;
 		asb->secSrc.cbhe = 1;  
 		asb->secSrc.c.nodeNbr = metaEid.nodeNbr;
 		asb->secSrc.c.serviceNbr = 0;
@@ -919,6 +921,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 	eidElt = lyst_next(eidElt);
 	nssOffset = (unsigned long) lyst_data(eidElt);
 
+	asb->secDest.unicast = 1;
 	asb->secDest.cbhe = (wk->dictionary == NULL);
 	if(asb->secDest.cbhe)
 	{
@@ -944,6 +947,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 	    && metaEid.cbhe == 1)
             {
                 // It's CBHE, so we can use local node as security destination
+		asb->secDest.unicast = 1;
                 asb->secDest.cbhe = 1;
                 asb->secDest.c.nodeNbr = getOwnNodeNbr();
                 asb->secDest.c.serviceNbr = 0;
