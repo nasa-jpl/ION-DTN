@@ -224,8 +224,7 @@ static int	removeEndpoint_IMC(VScheme *scheme, unsigned long groupNbr)
 }
 
 static int	parseImcPetition(int adminRecordType, void **otherPtr,
-			unsigned char *cursor, int unparsedBytes,
-			int bundleIsFragment)
+			unsigned char *cursor, int unparsedBytes)
 {
 	return -2;
 }
