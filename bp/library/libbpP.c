@@ -124,7 +124,7 @@ static int	applyACS(int adminRecType, void *other, BpDelivery *dlv,
 /*	*	*	IMC Multicast adaptation	*	*	*/
 
 #ifdef ENABLE_IMC
-#include "imcP.h"
+#include "../imc/imcP.h"
 
 static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 {
@@ -213,12 +213,12 @@ static int	applyImcPetition(int adminRecType, void *other, BpDelivery *dlv)
 
 #else		/*	Stub functions to enable build.			*/
 
-static int	addEndpoint_IMC(VScheme *scheme, unsigned long groupNbr)
+static int	addEndpoint_IMC(VScheme *scheme, char *eid)
 {
 	return 0;
 }
 
-static int	removeEndpoint_IMC(VScheme *scheme, unsigned long groupNbr)
+static int	removeEndpoint_IMC(VScheme *scheme, char *eid)
 {
 	return 0;
 }
