@@ -1883,6 +1883,7 @@ static void	destroyRedSegmentsIdx(ImportSession *session)
 	PsmAddress	vspanElt;
 	VImportSession	*vsession;
 	Object		sessionObj;
+	VImportSession	arg;
 
 	sdr_read(ltpSdr, (char *) &span, session->span, sizeof(LtpSpan));
 	findSpan(span.engineId, &vspan, &vspanElt);
@@ -1902,6 +1903,10 @@ static void	destroyRedSegmentsIdx(ImportSession *session)
 		sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx,
 				deleteSegmentRef, NULL);
 	}
+
+	arg.sessionNbr = session->sessionNbr;
+	oK(sm_rbt_delete(ltpwm, vspan->importSessions, orderImportSessions,
+				&arg, NULL, NULL));
 }
 
 static void	stopImportSession(ImportSession *session)
