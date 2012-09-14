@@ -2043,7 +2043,7 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 		ductClId = duct->name;
 	}
 
-	if (strcmp(ductClId, "localhost"))
+	if (strcmp(ductClId, "localhost") == 0)
 	{
 		/*	Convert to dotted-string representation for
 		 *	match with canonical form of the IPv4 address
