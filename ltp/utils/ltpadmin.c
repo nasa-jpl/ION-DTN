@@ -9,6 +9,7 @@
 
 #include "ltpP.h"
 #include "ltp.h"
+#include "ion.h"
 
 static int		_echo(int *newValue)
 {
@@ -61,6 +62,7 @@ static void	printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint version of ION.");
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1 <est. number of sessions> <bytes reserved for LTP>");
 	PUTS("\ta\tAdd");
@@ -640,6 +642,7 @@ static int	processLine(char *line, int lineLength, int *checkNeeded)
 	char		*cursor;
 	int		i;
 	char		*tokens[12];
+	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
 
@@ -688,6 +691,12 @@ static int	processLine(char *line, int lineLength, int *checkNeeded)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s",
+					IONVERSIONNUMBER);
+			printText(buffer);
 			return 0;
 
 		case '1':
