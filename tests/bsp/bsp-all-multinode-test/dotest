@@ -95,7 +95,7 @@ sleep ${TIMETOWAITFORTESTFINISH}
 
 grep "test_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-#echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 
@@ -142,7 +142,7 @@ sleep ${TIMETOWAITFORTESTFINISH}
 
 grep "test2_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-#echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 echo "'test2_trace'" >> expected.txt
@@ -187,7 +187,7 @@ sleep ${TIMETOWAITFORTESTFINISH}
 
 grep "test3_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-#echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 echo "'test3_trace'" >> expected.txt
@@ -224,7 +224,7 @@ sleep ${TIMETOWAITFORTESTFINISH}
 
 grep "test4_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-#echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 echo "'test4_trace'" >> expected.txt
@@ -364,7 +364,7 @@ cd ..
 
 grep "test_trace6" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
 
-#echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 
@@ -418,7 +418,7 @@ cd ..
 
 grep "test_trace7" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
 
-#echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 
