@@ -785,19 +785,19 @@ int	sendContactHeader(int *bundleSocket, unsigned char *buffer,
 	int bytesSent;
 	uint16_t keepaliveIntervalNBO = htons(tcpDesiredKeepAlivePeriod);
 	Sdnv eidLength;
-	int	custodianEidStringLen;
-	char    *custodianEidString;
-	int     custodianEidLength;
+	int	adminEidStringLen;
+	char    *adminEidString;
+	int     adminEidLength;
 	char    hostNameBuf[MAXHOSTNAMELEN + 1];
 
         getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
-	custodianEidStringLen = strlen(hostNameBuf) + 11;
-	custodianEidString = MTAKE(custodianEidStringLen);
-	CHKERR(custodianEidString);
-	isprintf(custodianEidString, custodianEidStringLen, "dtn://%.60s.dtn",
+	adminEidStringLen = strlen(hostNameBuf) + 11;
+	adminEidString = MTAKE(adminEidStringLen);
+	CHKERR(adminEidString);
+	isprintf(adminEidString, adminEidStringLen, "dtn://%.60s.dtn",
 			hostNameBuf);
-	custodianEidLength = strlen(custodianEidString);
-	if(TCPCLA_BUFSZ < (18 + (custodianEidLength)))
+	adminEidLength = strlen(adminEidString);
+	if(TCPCLA_BUFSZ < (18 + (adminEidLength)))
 	{
 		putErrmsg("Buffer size not big enough for contact header.",
 				NULL);
@@ -814,15 +814,15 @@ int	sendContactHeader(int *bundleSocket, unsigned char *buffer,
 	bytesToSend +=2;
 	//encode local EID length into Sdnv
 
-	encodeSdnv(&eidLength,custodianEidLength);
+	encodeSdnv(&eidLength,adminEidLength);
 	memcpy(buffer + bytesToSend, eidLength.text, eidLength.length);
 	bytesToSend += eidLength.length;
 
 	//local Eid
-	memcpy(buffer + bytesToSend, custodianEidString, custodianEidLength);
-	bytesToSend += custodianEidLength;
+	memcpy(buffer + bytesToSend, adminEidString, adminEidLength);
+	bytesToSend += adminEidLength;
 
-	MRELEASE(custodianEidString);
+	MRELEASE(adminEidString);
 
 	while(bytesToSend > 0)
 	{

@@ -806,7 +806,7 @@ bpPODM5 = pod2man -s 5 -c "BP configuration files"
 # compile these for the website use only?
 #bpPODH = pod2html --noindex
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -DBP_EXTENDED
+bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
@@ -855,6 +855,10 @@ bpbin += acsadmin \
 	acslist
 endif
 
+if ENABLE_IMC
+bpbin += imcadmin \
+	imcfw
+endif
 
 bplib = \
 	libbp.la \
@@ -1013,6 +1017,13 @@ bpmans += \
 	$(top_builddir)/bp/doc/acsrc.5
 endif
 
+if ENABLE_IMC
+bpmans += \
+	$(top_builddir)/bp/doc/imcadmin.1 \
+	$(top_builddir)/bp/doc/imcfw.1 \
+	$(top_builddir)/bp/doc/imcrc.5
+endif
+
 
 bpclean-local:
 	rm -f $(top_builddir)/bp/doc/*.1
@@ -1092,6 +1103,12 @@ libbp_la_SOURCES += \
 	$(NULL)
 endif
 
+if ENABLE_IMC
+libbp_la_SOURCES += \
+	bp/imc/libimcfw.c \
+	$(NULL)
+endif
+
 libcgr_la_SOURCES = bp/cgr/libcgr.c
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libcgr_la_LDFLAGS = $(ION_LINK_FLAGS)
@@ -1119,6 +1136,16 @@ acsadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 acslist_SOURCES = bp/utils/acslist.c
 acslist_LDADD = libbp.la libici.la $(LIBOBJS)
 acslist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+endif
+
+if ENABLE_IMC
+imcadmin_SOURCES = bp/imc/imcadmin.c
+imcadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+imcadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+imcfw_SOURCES = bp/imc/imcfw.c
+imcfw_LDADD = libipnfw.la libbp.la libici.la $(LIBOBJS)
+imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif
 
 dtn2admin_SOURCES = bp/dtn2/dtn2admin.c

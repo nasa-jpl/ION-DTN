@@ -1,0 +1,34 @@
+1
+a scheme ipn 'bssfw' 'ipnadminep'
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+a endpoint ipn:1.3 q
+a endpoint ipn:1.68 q
+a endpoint ipn:1.69 q
+a endpoint ipn:1.70 q
+a endpoint ipn:1.71 q
+a endpoint ipn:1.72 q
+a endpoint ipn:1.73 q
+a endpoint ipn:1.74 q
+a endpoint ipn:1.75 q
+a endpoint ipn:1.76 q
+a endpoint ipn:1.77 q
+a endpoint ipn:1.78 q
+a endpoint ipn:1.79 q
+
+# Add a protocol. 
+a protocol udp 1400 100
+a protocol tcp 1400 100
+
+# Add an induct. (listen)
+a induct udp 127.0.0.1:4556 udpcli
+a induct tcp 127.0.0.1:4567 tcpcli
+
+# Add an outduct. (since one UDP socket can address any IP, use '*' 
+# for the destination address, then this clo can send to any udp cli)
+a outduct udp * udpclo
+a outduct tcp 127.0.0.1:4567 tcpclo
+a outduct tcp 127.0.0.1:4568 tcpclo
+r 'bssadmin amroc.ipnrc'
+w 0
+s

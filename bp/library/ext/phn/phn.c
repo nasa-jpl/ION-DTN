@@ -58,55 +58,49 @@ int	phn_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	char		*custodianEid;
-	int		offset;
+	int		nameLength;
+	char		*adminEid;
 	int		result;
 
 	suppressExtensionBlock(blk);	/*	Default.		*/
 	if (strcmp(context->protocolName, "ltp") == 0)
 	{
-		/*	The phn block isn't needed; ltpcli can
-		 *	compute the previous-hop node EID from node#.	*/
+		/*	The phn block isn't needed; ltpcli can compute
+		 *	the previous-hop node EID from engine number.	*/
 
 		return 0;
 	}
 
 	/*	The phn block is needed.  To figure out which
-	 *	custodian EID to use as the previous-hop node EID,
+	 *	admin EID to use as the previous-hop node EID,
 	 *	look at the EID scheme of the proximate node EID;
 	 *	use the same scheme, since you know the receiver
 	 *	understands that scheme.				*/
 
-	if (parseEidString(context->proxNodeEid, &metaEid, &vscheme,
-			&vschemeElt) == 0)
+	result = parseEidString(context->proxNodeEid, &metaEid, &vscheme,
+			&vschemeElt);
+	restoreEidString(&metaEid);
+	if (result == 0)
 	{
-		/*	Can't know which custodian EID to use.		*/
+		/*	Can't know which admin EID to use.		*/
 
 		return 0;
 	}
 
-	restoreEidString(&metaEid);
 	restoreExtensionBlock(blk);
-	blk->dataLength = vscheme->custodianSchemeNameLength + 1
-			+ vscheme->custodianNssLength + 1;
-	custodianEid = MTAKE(blk->dataLength);
-	if (custodianEid == NULL)
+	nameLength = vscheme->nameLength + 1 + vscheme->adminNSSLength;
+	blk->dataLength = nameLength + 1;
+	adminEid = MTAKE(blk->dataLength);
+	if (adminEid == NULL)
 	{
 		putErrmsg("Can't construct phn text.", itoa(blk->dataLength));
 		return -1;
 	}
 
-	memcpy(custodianEid, vscheme->custodianEidString,
-			vscheme->custodianSchemeNameLength);
-	offset = vscheme->custodianSchemeNameLength;
-	*(custodianEid + offset) = '\0';
-	offset++;
-	memcpy(custodianEid + offset, vscheme->custodianEidString + offset,
-			vscheme->custodianNssLength);
-	offset += vscheme->custodianNssLength;
-	*(custodianEid + offset) = '\0';
-	result = serializeExtBlk(blk, NULL, custodianEid);
-	MRELEASE(custodianEid);
+	memcpy(adminEid, vscheme->adminEid, nameLength);
+	*(adminEid + nameLength) = '\0';
+	result = serializeExtBlk(blk, NULL, adminEid);
+	MRELEASE(adminEid);
 	return result;
 }
 
