@@ -150,6 +150,16 @@ interval to be sure not to send bundles that arrive before the neighbor
 expects data arrival or to discard bundles that arrive slightly before
 they were expected.
 
+=item B<m clocksync> [ { 1 | 0 } ]
+
+This management command reports whether or not the computer on which
+the local ION node is running has a synchronized clock, as discussed in
+the description of the ionClockIsSynchronized() function (ion(3)).
+
+If a Boolean argument is provided when the command is executed, the
+characterization of the machine's clock is revised to conform with
+the asserted value.  The default value is 1.
+
 =item B<m production> I<planned_data_production_rate>
 
 This management command sets ION's expectation of the mean rate of continuous
@@ -241,4 +251,4 @@ two hours (7200 seconds) after it starts.
 
 =head1 SEE ALSO
 
-ionadmin(1), rfxclock(1)
+ionadmin(1), rfxclock(1), ion(3)

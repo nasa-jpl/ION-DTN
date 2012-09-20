@@ -278,7 +278,8 @@ typedef struct
 
 	/*	Stuff in Primary block.					*/
 
-	unsigned long	bundleProcFlags;	/*	Incl. CoS, SRR.	*/
+	unsigned long	bundleProcFlags;/*	Incl. CoS, SRR.		*/
+	unsigned long	timeToLive;	/*	In seconds.		*/
 	EndpointId	destination;	/*	...of bundle's ADU	*/
 		/*	source of bundle's ADU is in the id field.	*/
 	EndpointId	reportTo;
@@ -293,6 +294,11 @@ typedef struct
 	/*	Stuff in Extended COS extension block.			*/
 
 	BpExtendedCOS	extendedCOS;
+
+	/*	Stuff in (or for) the Bundle Age extension block.	*/
+
+	unsigned long	age;		/*	In microseconds.	*/
+	struct timeval	arrivalTime;
 
 	/*	Stuff in Payload block.					*/
 
@@ -578,6 +584,7 @@ typedef struct
 	Object		clockCmd; 	/*	For starting clock.	*/
 	BpString	custodianEidString;
 	int		maxAcqInHeap;
+	unsigned long	bundleCounter;	/*	For non-synced clock.	*/
 	time_t		resetTime;	/*	Stats reset time.	*/
 	Object		sourceStats;	/*	BpCosStats address.	*/
 	Object		recvStats;	/*	BpCosStats address.	*/
