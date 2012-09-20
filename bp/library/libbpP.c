@@ -2043,6 +2043,15 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 		ductClId = duct->name;
 	}
 
+	if (strcmp(ductClId, "localhost") == 0)
+	{
+		/*	Convert to dotted-string representation for
+		 *	match with canonical form of the IPv4 address
+		 *	that the neighbor CL ID must be.		*/
+
+		ductClId = "127.0.0.1";
+	}
+
 	ductIdLen = strlen(ductClId);
 	digitCount = strtol(ductClId, &firstNonNumeric, 0);
 	if (*firstNonNumeric == '\0')

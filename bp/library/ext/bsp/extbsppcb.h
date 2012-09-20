@@ -39,7 +39,6 @@
 
 #define GMSG_BUFLEN     256
 #if PCB_DEBUGGING == 1
-extern char             gMsg[];         /*      Debug message buffer.   */
 
 /**
  * \def PCB_DEBUG

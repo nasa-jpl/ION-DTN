@@ -352,16 +352,9 @@ bundle ZCO.", NULL);
 
 		/*	Must have received a datagram.			*/
 
-		if (getInternetHostName(fromHostNbr, hostName))
-		{
-			senderEid = senderEidBuffer;
-			getSenderEid(&senderEid, hostName);
-		}
-		else
-		{
-			senderEid = NULL;
-		}
-
+		printDottedString(fromHostNbr, hostName);
+		senderEid = senderEidBuffer;
+		getSenderEid(&senderEid, hostName);
 		if (bpBeginAcq(work, 0, senderEid) < 0
 		|| bpContinueAcq(work, buffer, length) < 0
 		|| bpEndAcq(work) < 0)

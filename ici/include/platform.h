@@ -578,6 +578,8 @@ extern void			findToken(char **cursorPtr, char **token);
 extern int			parseSocketSpec(char *socketSpec,
 					unsigned short *portNbr,
 					unsigned int *ipAddress);
+extern void			printDottedString(unsigned int hostNbr,
+					char *buffer);
 #include "platform_sm.h"
 
 #ifdef __cplusplus
