@@ -1,0 +1,43 @@
+## begin ionadmin
+a range +0 +3600 1 1 1
+a range +0 +3600 2 2 1
+a range +0 +3600 3 3 1
+a range +0 +3600 4 4 1
+a range +0 +3600 5 5 1
+a range +0 +3600 1 2 1
+a range +0 +3600 1 3 1
+a range +0 +3600 2 4 1
+a range +0 +3600 3 4 1
+
+a contact +1 +3600 1 1 100000
+a contact +1 +3600 2 2 100000
+a contact +1 +3600 3 3 100000
+a contact +1 +3600 4 4 100000
+a contact +1 +3600 5 5 100000
+
+a contact +1 +3600 1 2 100000
+a contact +1 +3600 2 1 100000
+a contact +1 +3600 1 3 100000
+a contact +1 +3600 3 1 100000
+
+a contact +0 +30 3 4 100000
+a contact +0 +30 4 3 100000
+
+a contact +31 +60 2 4 100000
+a contact +31 +60 4 2 100000
+
+a contact +61 +90 3 4 100000
+a contact +61 +90 4 3 100000
+
+a contact +91 +120 2 4 100000
+a contact +91 +120 4 2 100000
+
+a contact +121 +150 3 4 100000
+a contact +121 +150 4 3 100000
+
+a contact +151 +3600 2 4 100000
+a contact +151 +3600 4 2 100000
+
+a contact +151 +3600 3 4 100000
+a contact +151 +3600 4 3 100000
+## end ionadmin
