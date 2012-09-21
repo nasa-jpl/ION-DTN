@@ -1598,39 +1598,72 @@ int	bpAttach()
 
 void	manageProductionThrottle(BpVdb *bpvdb)
 {
+	Sdr		sdr = getIonsdr();
 	IonDB		iondb;
 	Throttle	*throttle;
-	long		occupancy;
-	long		unoccupied;
+	Scalar		occupied;
+	double		temp;
+	Scalar		totalOccupancy;
+	Scalar		fileOccupancy;
+	Scalar		unoccupied;
+	Scalar		spikeReserve;
 
 	sdr_read(getIonsdr(), (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	throttle = &(bpvdb->productionThrottle);
-	if (iondb.maxForecastInTransit > iondb.currentOccupancy)
+	occupied.gigs = iondb.reserveForInTransit / ONE_GIG;
+	temp = occupied.gigs * ONE_GIG;
+	occupied.units = iondb.reserveForInTransit - temp;
+	zco_get_heap_occupancy(sdr, &totalOccupancy);
+	zco_get_file_occupancy(sdr, &fileOccupancy);
+	addToScalar(&totalOccupancy, &fileOccupancy);
+	subtractFromScalar(&occupied, &totalOccupancy);
+	if (!scalarIsValid(&occupied))
 	{
-		occupancy = iondb.maxForecastInTransit;
-	}
-	else
-	{
-		occupancy = iondb.currentOccupancy;
+		/*	Total current occupancy exceeds volume
+		 *	reserved for in-transit data.			*/
+
+		copyScalar(&occupied, &totalOccupancy);
 	}
 
-	unoccupied = iondb.occupancyCeiling - occupancy;
-	throttle->capacity = unoccupied - iondb.receptionSpikeReserve;
-	if (throttle->capacity > 0)
+	unoccupied.gigs = iondb.occupancyCeiling / ONE_GIG;
+	temp = unoccupied.gigs * ONE_GIG;
+	unoccupied.units = iondb.occupancyCeiling - temp;
+	subtractFromScalar(&unoccupied, &occupied);
+	spikeReserve.gigs = iondb.receptionSpikeReserve / ONE_GIG;
+	spikeReserve.units = iondb.receptionSpikeReserve % ONE_GIG;
+	subtractFromScalar(&unoccupied, &spikeReserve);
+	throttle = &(bpvdb->productionThrottle);
+	if (scalarIsValid(&unoccupied))
 	{
+		throttle->capacity = unoccupied.units
+				+ (ONE_GIG * unoccupied.gigs);
+		if (throttle->capacity < 0)	/*	Overflow.	*/
+		{
+			throttle->capacity = LONG_MAX;
+		}
+
 		sm_SemGive(throttle->semaphore);
+	}
+	else	/*	No room for any more bundle production.		*/
+	{
+		throttle->capacity = 0;
 	}
 }
 
 static void	noteBundleInserted(Bundle *bundle)
 {
-	ionOccupy(bundle->dbTotal);
+	Scalar	delta;
+
+	loadScalar(&delta, bundle->dbOverhead);
+	zco_increase_heap_occupancy(getIonsdr(), &delta);
 	manageProductionThrottle(getBpVdb());
 }
 
 static void	noteBundleRemoved(Bundle *bundle)
 {
-	ionVacate(bundle->dbTotal);
+	Scalar	delta;
+
+	loadScalar(&delta, bundle->dbOverhead);
+	zco_reduce_heap_occupancy(getIonsdr(), &delta);
 	manageProductionThrottle(getBpVdb());
 }
 
@@ -4511,8 +4544,6 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 
 	/*	Adjust database occupancy, record bundle, return.	*/
 
-	newBundle->dbTotal = newBundle->dbOverhead
-			+ zco_occupancy(bpSdr, newBundle->payload.content);
 	noteBundleInserted(newBundle);
 	sdr_write(bpSdr, *newBundleObj, (char *) newBundle, sizeof(Bundle));
 	return 0;
@@ -5229,12 +5260,6 @@ when asking for custody transfer and/or status reports.");
 		}
 	}
 
-	bundle.dbTotal = bundle.dbOverhead;
-	if (bundle.payload.content)
-	{
-		bundle.dbTotal += zco_occupancy(bpSdr, bundle.payload.content);
-	}
-
 	noteBundleInserted(&bundle);
 	sdr_write(bpSdr, *bundleObj, (char *) &bundle, sizeof(Bundle));
 
@@ -5783,13 +5808,6 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 	/*	Note effect on database occupancy of bundle's
 	 *	revised size.						*/
 
-	aggregateBundle.dbTotal = aggregateBundle.dbOverhead;
-	if (aggregateBundle.payload.content)
-	{
-		aggregateBundle.dbTotal += zco_occupancy(bpSdr,
-				aggregateBundle.payload.content);
-	}
-
 	noteBundleInserted(&aggregateBundle);
 
 	/*	Deliver the aggregate bundle to the endpoint.		*/
@@ -6314,7 +6332,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		 *	file reference object anyway, even if the
 		 *	bundle were entirely acquired into a file.	*/
 
-		maxAcqInHeap = zco_file_ref_occupancy(sdr, 0);
+		maxAcqInHeap = 560;
 		sdr_read(sdr, (char *) &bpdb, getBpDbObject(), sizeof(BpDB));
 		if (bpdb.maxAcqInHeap > maxAcqInHeap)
 		{
@@ -7177,8 +7195,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 {
 	Bundle		*bundle = &(work->bundle);
-	unsigned int	bundleOccupancy;
-			OBJ_POINTER(IonDB, iondb);
+	int		heapOkay;
 	char		*custodialSchemeName;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
@@ -7203,15 +7220,14 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 		bundle->payload.content = zco_clone(bpSdr, work->zco,
 				work->zcoBytesConsumed, work->bundleLength);
-		bundleOccupancy = zco_occupancy(bpSdr, bundle->payload.content);
 		work->zcoBytesConsumed += work->bundleLength;
 	}
 	else
 	{
 		bundle->payload.content = 0;
-		bundleOccupancy = 0;
 	}
 
+	heapOkay = zco_enough_heap_space(bpSdr, bundle->dbOverhead);
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't add reference work ZCO.", NULL);
@@ -7296,14 +7312,11 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 	/*	Bundle acquisition was uneventful but bundle may have
 	 *	to be refused due to insufficient resources.  Must
-	 *	guard against congestion collapse; use bundle's
-	 *	dbOverhead plus SDR occupancy of the bundle's payload
-	 *	ZCO as upper limit on the total SDR occupancy increment
-	 *	that would result from accepting this bundle.		*/
+	 *	guard against congestion collapse; the payload already
+	 *	occupies ZCO space, but we need to make sure there's
+	 *	room in the SDR for the Bundle object as well.		*/
 
-	GET_OBJ_POINTER(bpSdr, IonDB, iondb, getIonDbObject());
-	if (iondb->currentOccupancy + bundle->dbOverhead + bundleOccupancy
-			> iondb->occupancyCeiling)
+	if (!heapOkay)
 	{
 		/*	Not enough heap space for bundle.		*/
 
@@ -7470,8 +7483,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		return -1;
 	}
 
-	bundle->dbTotal = bundle->dbOverhead;
-	bundle->dbTotal += zco_occupancy(bpSdr, bundle->payload.content);
 	noteBundleInserted(bundle);
 	bpInductTally(work->vduct, BP_INDUCT_RECEIVED, bundle->payload.length);
 	bpRecvTally(COS_FLAGS(bundle->bundleProcFlags) & 0x03,

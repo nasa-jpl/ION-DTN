@@ -323,6 +323,7 @@ icibin = \
 	ionadmin \
 	ionexit \
 	ionsecadmin \
+	ionwarn \
 	sdrmend \
 	file2sm \
 	sm2file \
@@ -502,6 +503,10 @@ ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
 ionsecadmin_LDADD = libici.la $(LIBOBJS) 
 ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+ionwarn_SOURCES = ici/utils/ionwarn.c
+ionwarn_LDADD = libici.la $(LIBOBJS) 
+ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 

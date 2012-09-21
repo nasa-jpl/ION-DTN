@@ -310,7 +310,7 @@ int	main(int argc, char *argv[])
 	/*	Note that ltpadmin must be run before the first
 	 *	invocation of dccplsi, to initialize the LTP database
 	 *	(as necessary) and dynamic database.			*/
-	if (ltpInit(0, 0) < 0)
+	if (ltpInit(0) < 0)
 	{
 		putErrmsg("dccplsi can't initialize LTP.", NULL);
 		return 1;

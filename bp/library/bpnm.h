@@ -143,9 +143,13 @@ typedef struct
     unsigned long   bundleExpiredBytes;
 } NmbpDisposition;
 
-extern void	bpnm_resources(unsigned long * heapOccupancyLimit, 
-			unsigned long * heapMaxOccupancyForecast, 
-			unsigned long * heapOccupancy);
+extern void	bpnm_resources(double * occupancyCeiling, 
+			double * maxForecastOccupancy, 
+			double * currentOccupancy,
+			double * maxHeapOccupancy,
+			double * heapOccupancy,
+			double * maxFileOccupancy,
+			double * fileOccupancy);
 
 extern void	bpnm_endpointNames_get(char * nameBuffer, char * nameArray [],
 			int * numStrings);

@@ -41,7 +41,7 @@ int	main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (ltpInit(0, 0) < 0)
+	if (ltpInit(0) < 0)
 	{
 		putErrmsg("ltpmeter can't initialize LTP.",
 				utoa(remoteEngineId));
