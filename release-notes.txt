@@ -54,6 +54,38 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.1.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Began transitioning to the SourceForge issue tracker for code management.
+  SourceForge-originated issues are designated as "Bugs" or "Features".
+
+- Bug #1: Fixed bug where the contact graph routing engine would prefer a
+  multi-hop route to the source over the "no-hop" loopback connection.
+
+- Bug #2: Fixed bug in contact graph routing engine where erroneous routes
+  could be selected if route caching was enabled and any "downstream" contact on
+  a route had an end time earlier than the end time of the first contact on the
+  route.
+
+- Issue #195: Added more platform-specific equivalents for pthread to supplement
+  the original solution introduced in ION 2.4.0.
+
+- Issue #306: Implemented several improvements to congestion forecasting.
+    - Improved the accuracy of the forecast of the maximum data that is
+      in-transit by incorporating estimations based on the rate of data being
+      transmitted in and out of the internal data heaps.
+
+    - ION now raises an alarm if expected peak volume of data is larger than
+      ION's allocated file storage size.
+
+    - Added new utility called "ionwarn" that is used for computing congestion
+      forecast at an ION node based on contact plan.
+
+- Issue #339: Updated tests for aggregate custody signals implementation that
+  was introduced in ION 3.0.0 to function properly on more platforms.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.0.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
