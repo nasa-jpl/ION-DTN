@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+# Samuel Jero
+# Ohio University
+# September 21, 2012
+#
+# This test pertains to bug-0007-ionadmin-duplicate-contacts
+
+CONFIGFILES=" \
+./config.ionrc"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: This test will ensure that ionadmin is not duplicating"
+echo "           contacts/ranges when the 's' command is issued by creating"
+echo "           the conditions under which this duplication would take"
+echo "           place and then listing the contacts."
+echo
+echo "CONFIG: 1 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+
+#Start ION
+echo "Starting ion node..."
+ionadmin ./config.ionrc > tmp.txt
+
+#Count how many contacts ION thinks it has (the last command in config.ionrc lists
+#the contacts). There should only be 1 contact.
+RESULTS=`cat tmp.txt | grep "the xmit rate from node" | wc -l`
+if [ -e "tmp.txt" ] && [ $RESULTS -eq 1 ]; then
+	echo "The Contact was not duplicated! SUCCESS!"
+	echo ""
+	rm tmp.txt
+	RETVAL=0
+else
+	echo "The Contact was duplicated!  FAILURE!"
+	echo ""
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+ionadmin .
+killm
+
+echo "ionadmin duplicate contacts test complete."
+exit $RETVAL
