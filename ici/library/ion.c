@@ -654,14 +654,10 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
+		iondbBuf.productionRate = -1;	/*	Not metered.	*/
+		iondbBuf.consumptionRate = -1;	/*	Not metered.	*/
 		heapLimit = (sdr_heap_size(ionsdr) / 100)
 			 	* (100 - ION_SEQUESTERED);
-		iondbBuf.receptionSpikeReserve = heapLimit / 16;
-		if (iondbBuf.receptionSpikeReserve < MIN_SPIKE_RSRV)
-		{
-			iondbBuf.receptionSpikeReserve = MIN_SPIKE_RSRV;
-		}
-
 		limit.units = heapLimit % ONE_GIG;
 		limit.gigs = heapLimit / ONE_GIG;
 		zco_set_max_heap_occupancy(ionsdr, &limit);

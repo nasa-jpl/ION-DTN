@@ -43,7 +43,6 @@ extern "C" {
 #define	ION_OPS_ALLOC		(20)	/*	Percent.		*/
 #endif
 #define	ION_SEQUESTERED		(ION_SDR_MARGIN + ION_OPS_ALLOC)
-#define	MIN_SPIKE_RSRV		(100000)
 
 typedef struct
 {
@@ -102,7 +101,6 @@ typedef struct
 	unsigned long	ownNodeNbr;
 	long		productionRate;	/*	Bundles sent by apps.	*/
 	long		consumptionRate;/*	Bundles rec'd by apps.	*/
-	long		receptionSpikeReserve;
 	double		occupancyCeiling;
 	double		maxForecastOccupancy;
 	double		reserveForInTransit;

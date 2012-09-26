@@ -333,6 +333,7 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 		sdr_begin_xn(sdr);
 	}
 
+	throttle->capacity -= aduLength;
 	sdr_exit_xn(sdr);	/*	Release memory.			*/
 
 	/*	Now go ahead and send the bundle.			*/

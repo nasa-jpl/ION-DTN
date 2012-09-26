@@ -1181,6 +1181,7 @@ static void	destroyZco(Sdr sdr, Object zcoObj)
 	Zco	zco;
 	Object	obj;
 	Capsule	capsule;
+	Scalar	occupancy;
 
 	sdr_read(sdr, (char *) &zco, zcoObj, sizeof(Zco));
 
@@ -1197,7 +1198,10 @@ static void	destroyZco(Sdr sdr, Object zcoObj)
 	{
 		sdr_read(sdr, (char *) &capsule, obj, sizeof(Capsule));
 		sdr_free(sdr, capsule.text);
+		uintToScalar(&occupancy, capsule.length);
 		sdr_free(sdr, obj);
+		increaseScalar(&occupancy, sizeof(Capsule));
+		zco_reduce_heap_occupancy(sdr, &occupancy);
 	}
 
 	/*	Destroy all trailers.					*/
@@ -1206,12 +1210,17 @@ static void	destroyZco(Sdr sdr, Object zcoObj)
 	{
 		sdr_read(sdr, (char *) &capsule, obj, sizeof(Capsule));
 		sdr_free(sdr, capsule.text);
+		uintToScalar(&occupancy, capsule.length);
 		sdr_free(sdr, obj);
+		increaseScalar(&occupancy, sizeof(Capsule));
+		zco_reduce_heap_occupancy(sdr, &occupancy);
 	}
 
 	/*	Finally destroy the ZCO object.				*/
 
 	sdr_free(sdr, zcoObj);
+	loadScalar(&occupancy, sizeof(Zco));
+	zco_reduce_heap_occupancy(sdr, &occupancy);
 }
 
 void	zco_destroy(Sdr sdr, Object zco)

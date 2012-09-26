@@ -448,9 +448,7 @@ static void	manageProduction(int tokenCount, char **tokens)
 	newRate = atoi(tokens[2]);
 	if (newRate < 0)
 	{
-		putErrmsg("Planned bundle production rate can't be negative.",
-				itoa(newRate));
-		return;
+		newRate = -1;			/*	Not metered.	*/
 	}
 
 	sdr_begin_xn(sdr);
@@ -481,9 +479,7 @@ static void	manageConsumption(int tokenCount, char **tokens)
 	newRate = atoi(tokens[2]);
 	if (newRate < 0)
 	{
-		putErrmsg("Planned bundle consumption rate can't be negative.",
-				itoa(newRate));
-		return;
+		newRate = -1;			/*	Not metered.	*/
 	}
 
 	sdr_begin_xn(sdr);
@@ -508,7 +504,6 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 	Scalar	fileLimit;
 	long	maxHeapLimit;
 	Scalar	heapLimit;
-	double	reserve;
 
 	switch (tokenCount)
 	{
@@ -555,8 +550,7 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 	{
 		maxHeapLimit = (sdr_heap_size(sdr) / 100)
 				* (100 - ION_SEQUESTERED);
-		if (newHeapLimit > (maxHeapLimit / 1000000)
-		|| newHeapLimit < (MIN_SPIKE_RSRV / 1000000))
+		if (newHeapLimit > (maxHeapLimit / 1000000))
 		{
 			writeMemo("[i] New ZCO heap limit invalid!");
 		}
@@ -581,16 +575,6 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 	iondb.occupancyCeiling = fileLimit.gigs + heapLimit.gigs;
 	iondb.occupancyCeiling *= ONE_GIG;
 	iondb.occupancyCeiling += (fileLimit.units + heapLimit.units);
-	reserve = heapLimit.gigs;
-	reserve *= ONE_GIG;
-	reserve += heapLimit.units;
-	reserve /= 16;
-	if (reserve < MIN_SPIKE_RSRV)
-	{
-		reserve = MIN_SPIKE_RSRV;
-	}
-
-	iondb.receptionSpikeReserve = reserve;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
 	if (sdr_end_xn(sdr) < 0)
 	{

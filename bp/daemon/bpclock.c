@@ -277,9 +277,16 @@ static int	adjustThrottles()
 
 static void	applyRateControl(Sdr sdr)
 {
-	BpVdb		*vdb = getBpVdb();
 	PsmPartition	ionwm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
 	Throttle	*throttle;
+	SdrUsageSummary	usage;
+	double		backoff;
+	IonDB		iondb;
+	Scalar		totalOccupancy;
+	Scalar		fileOccupancy;
+	double		occupied;
+	double		nominalRate;
 	PsmAddress	elt;
 	VInduct		*induct;
 	VOutduct	*outduct;
@@ -288,7 +295,50 @@ static void	applyRateControl(Sdr sdr)
 
 	/*	Recalculate limit on local bundle generation.		*/
 
-	manageProductionThrottle(vdb);
+	throttle = &(vdb->productionThrottle);
+	sdr_usage(sdr, &usage);
+	backoff = usage.smallPoolFree + usage.largePoolFree + usage.unusedSize;
+	backoff /= usage.sdrSize;
+	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	if (iondb.productionRate < 0)	/*	No metering.		*/
+	{
+		/*	Always authorize filling up the ZCO space.	*/
+
+		throttle->capacity = 0;	/*	Reset every second.	*/
+		zco_get_heap_occupancy(sdr, &totalOccupancy);
+		zco_get_file_occupancy(sdr, &fileOccupancy);
+		addToScalar(&totalOccupancy, &fileOccupancy);
+		occupied = (totalOccupancy.gigs * ONE_GIG)
+				+ totalOccupancy.units;
+		nominalRate = iondb.occupancyCeiling - occupied;
+		if (nominalRate > LONG_MAX)
+		{
+			nominalRate = LONG_MAX;
+		}
+	}
+	else
+	{
+		nominalRate = iondb.productionRate;
+	}
+
+	nominalRate = nominalRate * backoff * backoff * backoff;
+	if (throttle->capacity > 0)
+	{
+		throttle->capacity += nominalRate;
+		if (throttle->capacity < 0)	/*	Overflow.	*/
+		{
+			throttle->capacity = LONG_MAX;
+		}
+	}
+	else
+	{
+		throttle->capacity += nominalRate;
+	}
+
+	if (throttle->capacity > 0)
+	{
+		sm_SemGive(throttle->semaphore);
+	}
 
 	/*	Enable some bundle acquisition.				*/
 
