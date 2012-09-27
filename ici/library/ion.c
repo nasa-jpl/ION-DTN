@@ -669,9 +669,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
-
                 memcpy( &iondbBuf.parmcopy, parms, sizeof(IonParms));
-
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
 		{
@@ -1200,7 +1198,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	parms->configFlags = SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED;
 	parms->heapWords = 250000;
 	parms->heapKey = SM_NO_KEY;
-	istrcpy(parms->pathName, "/usr/ion", sizeof parms->pathName);
+	istrcpy(parms->pathName, "/tmp", sizeof parms->pathName);
 
 	/*	Determine name of config file.				*/
 

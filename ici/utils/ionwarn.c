@@ -126,9 +126,7 @@ int	checkForCongestion()
 	Scalar		heapOccupancy;
 	double		currentOccupancy;
 	double		maxOccupancy;
-	double		maxInTransit;
 	double		forecastOccupancy;
-	double		forecastInTransit;
 	double		netDomesticGrowth;
 	double		netInTransitGrowth;
 	IonVdb		*ionvdb;
@@ -184,11 +182,18 @@ int	checkForCongestion()
 	currentOccupancy *= ONE_GIG;
 	currentOccupancy += (fileOccupancy.units + heapOccupancy.units);
  	forecastOccupancy = maxOccupancy = currentOccupancy;
- 	forecastInTransit = maxInTransit = currentOccupancy;
 
 	/*	Get net domestic contribution to congestion.		*/
 
-	netDomesticGrowth = iondb.productionRate - iondb.consumptionRate;
+	if (iondb.productionRate < 0)	/*	Unlimited.		*/
+	{
+		netDomesticGrowth = 0;	/*	Ignore local activity.	*/
+	}
+	else
+	{
+		netDomesticGrowth = iondb.productionRate
+				- iondb.consumptionRate;
+	}
 
 	/*	Get current net in-transit contribution to congestion.	*/
 
@@ -485,31 +490,6 @@ int	checkForCongestion()
 			maxOccupancy = forecastOccupancy;
 		}
 
-		/*	Note change in forecast in-transit occupancy,
-		 *	adjust high-water mark as necessary.
-		 *
-		 *	The in-transit high-water mark is the total
-		 *	occupancy high-water mark less the estimated
-		 *	occupancy due to local bundle origination,
-		 *	i.e., all bundles originating at other nodes
-		 *	that were received at this node and have not
-		 *	yet been either forwarded or delivered.  It
-		 *	constitutes the available margin for local
-		 *	bundle origination and, as such, is the basis
-		 *	for local bundle admission control.		*/
-
-		increment = netInTransitGrowth * secAdvanced;
-		forecastInTransit += increment;
-		if (forecastInTransit < 0)
-		{
-			forecastInTransit = 0;
-		}
-
-		if (forecastInTransit > maxInTransit)
-		{
-			maxInTransit = forecastInTransit;
-		}
-
 		/*	Advance the forecast time, by epoch or to end,
 		 *	and check for congestion alarm.			*/
 
@@ -590,23 +570,6 @@ int	checkForCongestion()
 			maxOccupancy = forecastOccupancy;
 		}
 
-		/*	Note change in forecast in-transit occupancy,
-		 *	adjust high-water mark as necessary.  Note
-		 *	that netInTransitGrowth might be negative
-		 *	even though netGrowth is positive.		*/
-
-		increment = netInTransitGrowth * secAdvanced;
-		forecastInTransit += increment;
-		if (forecastInTransit < 0)
-		{
-			forecastInTransit = 0;
-		}
-
-		if (forecastInTransit > maxInTransit)
-		{
-			maxInTransit = forecastInTransit;
-		}
-
 		/*	Advance the forecast time to end and check
 		 *	for congestion alarm.				*/
 
@@ -638,10 +601,9 @@ int	checkForCongestion()
 		}
 	}
 
-	/*	In any case, update maxOccupancy and InTransit.	*/
+	/*	In any case, update maxForecastOccupancy.		*/
 
 	iondb.maxForecastOccupancy = maxOccupancy;
-	iondb.reserveForInTransit = maxInTransit;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
 	result = sdr_end_xn(sdr);
 

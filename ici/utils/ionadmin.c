@@ -664,8 +664,9 @@ static void	manageUsage(int tokenCount, char **tokens)
 		OBJ_POINTER(IonDB, iondb);
 	char	buffer[128];
 	Scalar	heapOccupancy;
+	double	heapSpaceMBInUse;
 	Scalar	fileOccupancy;
-	double	currentOccupancy;	/*	In MBytes.		*/
+	double	fileSpaceMBInUse;
 	double	occupancyCeiling;	/*	In MBytes.		*/
 	double	maxForecastOccupancy;	/*	In MBytes.		*/
 
@@ -679,15 +680,17 @@ static void	manageUsage(int tokenCount, char **tokens)
 	zco_get_heap_occupancy(sdr, &heapOccupancy);
 	zco_get_file_occupancy(sdr, &fileOccupancy);
 	oK(sdr_end_xn(sdr));
-	currentOccupancy = (heapOccupancy.units
-			+ (ONE_GIG * heapOccupancy.gigs)
-			+ fileOccupancy.units
+	heapSpaceMBInUse = (heapOccupancy.units
+			+ (ONE_GIG * heapOccupancy.gigs)) / 1000000;
+	fileSpaceMBInUse = (fileOccupancy.units
 			+ (ONE_GIG * fileOccupancy.gigs)) / 1000000;
 	GET_OBJ_POINTER(sdr, IonDB, iondb, getIonDbObject());
 	occupancyCeiling = iondb->occupancyCeiling / 1000000;
 	maxForecastOccupancy = iondb->maxForecastOccupancy / 1000000;
-	isprintf(buffer, sizeof buffer, "current %.2f MB, limit %.2f MB, max \
-forecast %.2f MB", currentOccupancy, occupancyCeiling, maxForecastOccupancy);
+	isprintf(buffer, sizeof buffer, "current heap %.2f MB, \
+current file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
+			heapSpaceMBInUse, fileSpaceMBInUse, occupancyCeiling,
+			maxForecastOccupancy);
 	printText(buffer);
 }
 

@@ -103,15 +103,14 @@ typedef struct
 	long		consumptionRate;/*	Bundles rec'd by apps.	*/
 	double		occupancyCeiling;
 	double		maxForecastOccupancy;
-	double		reserveForInTransit;
 	Object		alarmScript;	/*	Congestion alarm.	*/
 	time_t		horizon;	/*	On congestion forecast.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
 	int		maxClockError;	/*	In seconds.		*/
 	char		workingDirectoryName[256];
-
-        IonParms        parmcopy;       /* copy of the ion startup parms as known to ionadmin at startup */
-
+        IonParms        parmcopy;       /*	Copy of the ion startup
+						parms as known to
+						ionadmin at startup	*/
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,
