@@ -2373,6 +2373,7 @@ static void	purgeDuctXmitElt(Bundle *bundle, Object bundleObj)
 	if (outductObj == 0)	/*	Bundle is in Limbo queue.	*/
 	{
 		sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
+		bundle->ductXmitElt=0;
 		return;
 	}
 
