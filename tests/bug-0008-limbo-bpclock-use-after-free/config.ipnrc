@@ -1,0 +1,5 @@
+# IPN forwarding configuration
+# bug-008-limbo-bpclock-use-after-free
+# Samuel Jero <sj323707@ohio.edu>
+# Ohio University
+a plan 2 tcp/127.0.0.1:4555
