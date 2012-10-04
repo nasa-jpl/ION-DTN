@@ -60,7 +60,8 @@ sleep 20
 
 log=`grep "Transaction aborted" ion.log | wc -l`
 bundles=`bplist | wc -l`
-if [ "$log" == "1" ] || [ "$bundles" != "0" ];then
+echo $bundles
+if [ $log -eq 1 ] || [ $bundles -ne 0 ];then
 	echo "SDR transaction aborted! bpclock crashed! FAILURE!"
 	RETVAL=1
 else
