@@ -107,16 +107,16 @@ sleep 25
 echo
 echo "Starting bssrecv application..."
 cd ../3.ipn.bss
-xterm -geom 160x40 -e bssrecv 3 bssDB ./ imc:19.1 &
+xterm -geom 160x40 -e bssrecv 3 bssDB ./ imc:19.0 &
 cd ../4.ipn.bss
-xterm -geom 160x40 -e bssrecv 3 bssDB ./ imc:19.1 &
+xterm -geom 160x40 -e bssrecv 3 bssDB ./ imc:19.0 &
 sleep 2
 
 cd ../1.ipn.bss
 echo
 echo "Sending a stream of bundles from node 1 to group 19 for 30 seconds..."
 echo "bssStreamingApp started at $(date +"%Y/%m/%d-%T")"
-xterm -e bssStreamingApp ipn:1.2 imc:19.1 &
+xterm -e bssStreamingApp ipn:1.2 imc:19.0 &
 sleep 30
 pkill -SIGINT bssStreamingApp
 TOTIME=$(date +"%Y/%m/%d-%T")
@@ -130,9 +130,9 @@ pkill bssrecv
 echo
 echo "Replaying the received stream."
 cd ../3.ipn.bss
-xterm -geom 160x40 -e bssrecv 1 bssDB ./ ipn:19.1 0 $TOTIME &
+xterm -geom 160x40 -e bssrecv 1 bssDB ./ imc:19.0 0 $TOTIME &
 cd ../4.ipn.bss
-xterm -geom 160x40 -e bssrecv 1 bssDB ./ ipn:19.1 0 $TOTIME &
+xterm -geom 160x40 -e bssrecv 1 bssDB ./ imc:19.0 0 $TOTIME &
 echo
 sleep 70
 pkill bssrecv

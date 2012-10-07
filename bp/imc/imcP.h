@@ -26,8 +26,9 @@ extern "C" {
 typedef struct
 {
 	unsigned long	groupNbr;
-	unsigned int	endpoints;	/*	# of group's endpoints	*/
+	int		isMember;	/*	Boolean: local node	*/
 	Object		members;	/*	SDR list of node nbrs	*/
+	BpTimestamp	timestamp;
 } ImcGroup;
 
 typedef struct

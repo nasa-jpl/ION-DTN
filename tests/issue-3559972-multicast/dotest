@@ -48,16 +48,16 @@ sleep 30
 echo "Starting bprecvfile, both unicast and multicast, on all nodes..."
 cd ../1.ipn.ltp
 bprecvfile ipn:1.1 &
-bprecvfile imc:19.1 &
+bprecvfile imc:19.0 &
 cd ../2.ipn.ltp
 bprecvfile ipn:2.1 &
-bprecvfile imc:19.1 2 &
+bprecvfile imc:19.0 2 &
 cd ../3.ipn.ltp
 bprecvfile ipn:3.1 &
-bprecvfile imc:19.1 &
+bprecvfile imc:19.0 &
 cd ../4.ipn.ltp
 bprecvfile ipn:4.1 &
-bprecvfile imc:19.1 &
+bprecvfile imc:19.0 &
 
 sleep 1
 cd ../1.ipn.ltp
@@ -69,30 +69,30 @@ mv testfile1 testfile01
 
 sleep 1
 cd ../1.ipn.ltp
-echo "Sending 100-byte file from ipn:1.2 to imc:19.1 (multicast)...."
-bpsendfile ipn:1.2 imc:19.1 file100
+echo "Sending 100-byte file from ipn:1.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:1.2 imc:19.0 file100
 
 sleep 1
 cd ../2.ipn.ltp
-echo "Sending 200-byte file from ipn:2.2 to imc:19.1 (multicast)...."
-bpsendfile ipn:2.2 imc:19.1 file200
+echo "Sending 200-byte file from ipn:2.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:2.2 imc:19.0 file200
 
 sleep 1
 cd ../4.ipn.ltp
-echo "Sending 400-byte file from ipn:4.2 to imc:19.1 (multicast)...."
-bpsendfile ipn:4.2 imc:19.1 file400
+echo "Sending 400-byte file from ipn:4.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:4.2 imc:19.0 file400
 
 sleep 1
 cd ../2.ipn.ltp
-echo "Node 2 unregisters from imc:19.1."
+echo "Node 2 unregisters from imc:19.0."
 bpadmin unregister.bprc
 mv testfile1 testfile01
 mv testfile2 testfile02
 
 sleep 1
 cd ../3.ipn.ltp
-echo "Sending 300-byte file from ipn:3.2 to imc:19.1 (multicast)...."
-bpsendfile ipn:3.2 imc:19.1 file300
+echo "Sending 300-byte file from ipn:3.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:3.2 imc:19.0 file300
 
 sleep 1
 cd ../2.ipn.ltp
@@ -103,14 +103,14 @@ echo "Node 4 is removed from the multicast tree."
 
 sleep 1
 cd ../3.ipn.ltp
-echo "Sending 310-byte file from ipn:3.2 to imc:19.1 (multicast)...."
-bpsendfile ipn:3.2 imc:19.1 file310
+echo "Sending 310-byte file from ipn:3.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:3.2 imc:19.0 file310
 
 sleep 1
 cd ../2.ipn.ltp
 bpadmin reregister.bprc
-echo "Node 2 re-registers in imc:19.1."
-bprecvfile imc:19.1 &
+echo "Node 2 re-registers in imc:19.0."
+bprecvfile imc:19.0 &
 imcadmin add4.imcrc
 cd ../4.ipn.ltp
 imcadmin add2.imcrc
@@ -118,8 +118,8 @@ echo "Node 4 is restored to the multicast tree."
 
 sleep 1
 cd ../3.ipn.ltp
-echo "Sending 320-byte file from ipn:3.2 to imc:19.1 (multicast)...."
-bpsendfile ipn:3.2 imc:19.1 file320
+echo "Sending 320-byte file from ipn:3.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:3.2 imc:19.0 file320
 
 # Verify that the correct files were received at all nodes.
 sleep 3

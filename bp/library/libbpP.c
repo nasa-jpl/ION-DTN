@@ -147,6 +147,13 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 	 *	parsed earlier in addEndpoint.				*/
 
 	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	if (metaEid.serviceNbr != 0)
+	{
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
+		return 0;
+	}
+
 	result = imcJoin(metaEid.nodeNbr);
 	restoreEidString(&metaEid);
 	return result;
@@ -170,9 +177,16 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 	}
 
 	/*	We know the EID parses okay, because it was already
-	 *	parsed earlier in addEndpoint.				*/
+	 *	parsed earlier in removeEndpoint.			*/
 
 	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	if (metaEid.serviceNbr != 0)
+	{
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
+		return 0;
+	}
+
 	result = imcLeave(metaEid.nodeNbr);
 	restoreEidString(&metaEid);
 	return result;

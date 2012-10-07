@@ -320,7 +320,7 @@ int	imc_addKin(unsigned long nodeNbr, int isParent)
 	{
 		GET_OBJ_POINTER(sdr, ImcGroup, group, sdr_list_data(sdr, elt));
 		if (sdr_list_length(sdr, group->members) == 0
-		&& group->endpoints == 0)
+		&& group->isMember == 0)
 		{
 			continue;
 		}
@@ -331,7 +331,8 @@ int	imc_addKin(unsigned long nodeNbr, int isParent)
 		if (buffer == NULL)
 		{
 			putErrmsg("Can't construct IMC petition.", NULL);
-			return -1;
+			sdr_cancel_xn(sdr);
+			break;
 		}
 
 		cursor = buffer;
@@ -456,7 +457,7 @@ void	imc_removeKin(unsigned long nodeNbr)
 		{
 			sdr_list_delete(sdr, elt3, NULL, NULL);
 			if (sdr_list_length(sdr, group->members) == 0
-			&& group->endpoints == 0)
+			&& group->isMember == 0)
 			{
 				/*	No more members; unsubscribe.	*/
 
@@ -537,7 +538,9 @@ static Object	createGroup(unsigned long groupNbr, Object nextGroup)
 	Object		elt = 0;	/*	Default.		*/
 
 	group.groupNbr = groupNbr;
-	group.endpoints = 0;
+	group.isMember = 0;
+	group.timestamp.seconds = 0;
+	group.timestamp.count = 0;
 	group.members = sdr_list_create(sdr);
 	addr = sdr_malloc(sdr, sizeof(ImcGroup));
 	if (addr)
@@ -578,6 +581,7 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	Object		nextRelative;
 	Object		groupElt;
 	Object		nextGroup;
 			OBJ_POINTER(ImcGroup, group);
@@ -603,13 +607,21 @@ printf("Handling type-%d petition from %lu at node %lu.\n", isMember,
 metaEid.nodeNbr, getOwnNodeNbr());
 #endif
 	sdr_begin_xn(sdr);
+	if (locateRelative(metaEid.nodeNbr, &nextRelative) == 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Ignoring petition from non-kin",
+				utoa(metaEid.nodeNbr));
+		return 0;
+	}
+
 	groupElt = locateGroup(groupNbr, &nextGroup);
 	if (groupElt == 0)
 	{
 		if (isMember == 0)	/*	Nothing to do.		*/
 		{
 #if IMCDEBUG
-puts("Ignoring cancellation from nonexistent group.");
+puts("Ignoring cancellation of membership in nonexistent group.");
 #endif
 			sdr_exit_xn(sdr);
 			return 0;
@@ -624,6 +636,18 @@ puts("Ignoring cancellation from nonexistent group.");
 	}
 
 	GET_OBJ_POINTER(sdr, ImcGroup, group, sdr_list_data(sdr, groupElt));
+	if (dlv->bundleCreationTime.seconds < group->timestamp.seconds
+	|| (dlv->bundleCreationTime.seconds == group->timestamp.seconds
+	 && dlv->bundleCreationTime.count < group->timestamp.count))
+	{
+#if IMCDEBUG
+puts("Silently ignoring non-current petition.");
+#endif
+		return sdr_end_xn(sdr);	/*	Not a current petition.	*/
+	}
+
+	group->timestamp.seconds = dlv->bundleCreationTime.seconds;
+	group->timestamp.count = dlv->bundleCreationTime.count;
 	if (isMember)		/*	New member of group.		*/
 	{
 		for (elt = sdr_list_first(sdr, group->members); elt;
@@ -642,8 +666,7 @@ puts("Ignoring assertion.");
 #endif
 				/*	Nothing to do: current member.	*/
 
-				sdr_exit_xn(sdr);
-				return 0;
+				return sdr_end_xn(sdr);
 			}
 
 			break;
@@ -702,8 +725,7 @@ printf("Adding member %lu.\n", metaEid.nodeNbr);
 #if IMCDEBUG
 puts("Ignoring cancellation by non-member.");
 #endif
-		sdr_exit_xn(sdr);
-		return 0;
+		return sdr_end_xn(sdr);
 	}
 
 #if IMCDEBUG
@@ -715,7 +737,7 @@ printf("Deleting member %lu.\n", metaEid.nodeNbr);
 	 *	group any longer, then must now unsubscribe from this
 	 *	group altogether.					*/
 
-	if (sdr_list_length(sdr, group->members) == 0 && group->endpoints == 0)
+	if (sdr_list_length(sdr, group->members) == 0 && group->isMember == 0)
 	{
 #if IMCDEBUG
 printf("Canceling own membership in group (%lu).\n", getOwnNodeNbr());
@@ -768,22 +790,18 @@ printf("Creating group (%lu).\n", getOwnNodeNbr());
 
 	groupAddr = sdr_list_data(sdr, groupElt);
 	sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
-	group.endpoints++;
+	group.isMember = 1;
 	sdr_write(sdr, groupAddr, (char *) &group, sizeof(ImcGroup));
 
-	/*	If this is the first endpoint that the local node
-	 *	has registered in, within this group, then must now
-	 *	subscribe.  (This may be redundant.)			*/
+	/*	Propagate membership to immediate relatives.  (This
+	 *	may be redundant.)					*/
 
-	if (group.endpoints == 1)
-	{
 #if IMCDEBUG
 printf("Asserting own membership in group (%lu).\n", getOwnNodeNbr());
 #endif
-		if (forwardPetition(&group, 1, ownNodeNbr) < 0)
-		{
-			sdr_cancel_xn(sdr);
-		}
+	if (forwardPetition(&group, 1, ownNodeNbr) < 0)
+	{
+		sdr_cancel_xn(sdr);
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -816,18 +834,12 @@ int	imcLeave(unsigned long groupNbr)
 
 	groupAddr = sdr_list_data(sdr, groupElt);
 	sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
-	group.endpoints--;
-	if (group.endpoints < 0)	/*	Defensive coding.	*/
-	{
-		group.endpoints = 0;
-	}
+	group.isMember = 0;
 
-	/*	If the local node is no longer registered in any
-	 *	endpoint of this group, and no relatives are members
-	 *	of this group any longer, then must now unsubscribe
-	 *	from this group altogether.				*/
+	/*	If no relatives are members of this group any longer,
+	 *	then must now unsubscribe from this group altogether.	*/
 
-	if (group.endpoints == 0 && sdr_list_length(sdr, group.members) == 0)
+	if (sdr_list_length(sdr, group.members) == 0)
 	{
 #if IMCDEBUG
 printf("Cancelling own membership in group (%lu).\n", getOwnNodeNbr());
