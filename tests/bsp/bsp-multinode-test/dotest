@@ -44,11 +44,6 @@ bpadmin amroc.bprc
 cd ../3.ipn.ltp
 bpadmin amroc.bprc
 
-cd ../2.ipn.ltp
-cfdpadmin amroc.cfdprc
-cd ../3.ipn.ltp
-cfdpadmin amroc.cfdprc
-
 cd ..
 
 rm -f 3.ipn.ltp/3_receive_file.txt

@@ -18,6 +18,8 @@
 # a large configuration into a smaller one. NOTE: this will remove any lines
 # from the configuration which start with '##'
 
+ION_OPEN_SOURCE=1
+
 # the location of the awkscript.
 # defining the environment variable AWKSCRIPT before running this script
 # will work (for things like make test) before installation
@@ -44,7 +46,11 @@ function USAGE {
 	echo
 	echo "IONSCRIPT: Interplanetary Overlay Network configuration creation script."
 	echo "USAGE:"
+if [ "$ION_OPEN_SOURCE" == "1" ]; then
 	echo "	ionscript <-I input | -O output> [-a] [-t tag] [-b bprc] [-c cfdprc]"
+else
+	echo "	ionscript <-I input | -O output> [-a] [-t tag] [-b bprc]"
+fi
 	echo "	          [-d dtn2rc] [-i ionrc] [-l ltprc] [-p ipnrc] [-s ionsecrc]"
 	echo
 	echo "	-I input	Specifies file containing the configuration for each"
@@ -72,8 +78,10 @@ function USAGE {
 	echo
 	echo "	-b bprc		Specifies file bprc to be used with bpadmin."
 	echo "			Default filename is input|output.tag.bprc."
+if [ "$ION_OPEN_SOURCE" == "1" ]; then
 	echo "	-c cfdprc	Specifies file cfdprc to be used with cfdpadmin."
 	echo "			Default filename is input|output.tag.cfdprc."
+fi
 	echo "	-d dtn2rc	Specifies file dtn2rc to be used with dtn2admin."
 	echo "			Default filename is input|output.tag.dtn2rc."
 	echo "	-i ionrc	Specifies file ionrc to be used with ionadmin."
@@ -161,7 +169,11 @@ while getopts ":i:d:c:p:b:l:I:O:t:s:ha" options; do
 		d ) DTN2RC="${OPTARG}";;
 		p ) IPNRC="${OPTARG}";;
 		b ) BPRC="${OPTARG}";;
-		c ) CFDPRC="${OPTARG}";;
+		c ) CFDPRC="${OPTARG}"
+		    if [ "$ION_OPEN_SOURCE" == "0" ]; then
+			echo "CFDP not available"
+			exit
+		    fi;;
 		l ) LTPRC="${OPTARG}";;
 		s ) IONSECRC="${OPTARG}";;
 		a ) append="TRUE";;
@@ -235,7 +247,7 @@ else
 		cat "${BPRC}" >>"${OUTPUTFILE}"
 		echo "## end bpadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
-	if [[ -r "${CFDPRC}" ]] ; then
+	if [[ -r "${CFDPRC}" ]]  && [ "$ION_OPEN_SOURCE" == "1" ]; then
 		echo
 		echo "Appending ${CFDPRC} into ${OUTPUTFILE}."
 		echo >>"${OUTPUTFILE}"

@@ -8,7 +8,8 @@
 #is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
 # fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, 3.1.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.1.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -115,12 +116,33 @@ if test "x$enable_valgrind" != xno; then
   fi
 fi
 
-# Control whether AMS debugging info is printed.
-# Default is that the AMS debugging info is not printed.
-# To enable AMS debugging info, use "./configure --enable-ams-debug"
-AC_ARG_ENABLE([ams-debug],
-	[  --enable-ams-debug    Enable AMS debugging info],
-	[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
+if test "$IS_NASA_B" = "0"; then
+	# Control whether AMS debugging info is printed.
+	# Default is that the AMS debugging info is not printed.
+	# To enable AMS debugging info, use "./configure --enable-ams-debug"
+	AC_ARG_ENABLE([ams-debug],
+		[  --enable-ams-debug    Enable AMS debugging info],
+		[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
+fi
+
+if test "$IS_NASA_B" = "1"; then
+	# To Disable crypto, use "./configure --disable-crypto"
+	AC_ARG_ENABLE([crypto],
+		[  --disable-crypto    Turn off cryptography],
+		[case "${enableval}" in
+			yes) crypto=true ;;
+			no)  crypto=false ;;
+		*) AC_MSG_ERROR([bad value ${enableval} for --disable-crypto]) ;;
+		esac],[crypto=true])
+	
+	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
+
+	AC_DEFINE([NASA_PROTECTED_FLIGHT_CODE],[1],[Build ION NASA protected flight code])
+else
+	AM_CONDITIONAL([CRYPTO], [false])
+fi
+
+AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 
 # Dynamically choose whether or not to instrument code for gcov code coverage
 # Default is not to instrument the code for gcov code coverage.

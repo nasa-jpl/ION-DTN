@@ -29,10 +29,11 @@ extern int	ipnadminep(int, int, int, int, int, int, int, int, int, int);
 extern int	lgagent(int, int, int, int, int, int, int, int, int, int);
 extern int	bpsource(int, int, int, int, int, int, int, int, int, int);
 extern int	bpsink(int, int, int, int, int, int, int, int, int, int);
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 extern int	cfdpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	cfdpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	bputa(int, int, int, int, int, int, int, int, int, int);
-
+#endif
 typedef struct
 {
 	char	*name;
@@ -63,10 +64,12 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ipnadminep",	(FUNCPTR) ipnadminep,	ICI_PRIORITY,	24576 },
 		{ "lgagent",	(FUNCPTR) lgagent,	ICI_PRIORITY,	24576 },
 		{ "bpsource",	(FUNCPTR) bpsource,	ICI_PRIORITY,	4096  },
-		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  },
-		{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
+		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  }
+#ifndef NASA_PROTECTED_FLIGHT_CODE
+		,{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
 		{ "cfdpclock",	(FUNCPTR) cfdpclock,	ICI_PRIORITY,	24576 },
 		{ "bputa",	(FUNCPTR) bputa,	ICI_PRIORITY,	24576 }
+#endif
 	};
 
 	static int	numSymbols = sizeof symbols / sizeof(SymTabEntry);

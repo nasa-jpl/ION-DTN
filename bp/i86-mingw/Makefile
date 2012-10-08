@@ -12,6 +12,7 @@ TCP = ../tcp
 DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
+CRYPTO = $(API)/crypto/NULL_SUITES
 
 OPT = -g -Wall -Werror -Dmingw
 # -DENABLE_BPACS
@@ -287,7 +288,7 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(API)/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/crypto/NULL_SUITES/%.c
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/ecos/%.c

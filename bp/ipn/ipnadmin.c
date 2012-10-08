@@ -65,6 +65,7 @@ static void	printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a plan <node nbr> <default duct expression>");
 	PUTS("\t   a planrule <node nbr> <qualifier> <duct expression>");
@@ -922,6 +923,7 @@ static int	processLine(char *line, int lineLength)
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
+	char	buffer[80];
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -968,6 +970,12 @@ static int	processLine(char *line, int lineLength)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s",
+					IONVERSIONNUMBER);
+			printText(buffer);
 			return 0;
 
 		case 'a':

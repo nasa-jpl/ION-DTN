@@ -27,6 +27,11 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by cfdpadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
 =item B<1>
 
 The B<initialize> command.  Until this command is executed, CFDP is not

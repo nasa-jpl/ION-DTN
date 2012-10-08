@@ -1,7 +1,9 @@
-IONFLAGS = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER -DUSING_SDR_POINTERS \
+IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER -DUSING_SDR_POINTERS \
 -DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE -DNO_PROXY -DNO_DIRLIST
 
 PGM=${ARCH}/ion.exe
+
+ION_OPEN_SOURCE = 1
 
 # optional managers required
 MANAGERS = io semaphore
@@ -94,7 +96,16 @@ TESTSOURCES =      \
 #	bpsendfile.c \
 #	bprecvfile.c 
 
-CSRCS = ionrtems.c $(ICISOURCES) $(BPSOURCES) $(LTPSOURCES) $(PXSOURCES) $(DTN2SOURCES) $(BSPSOURCES) $(CFDPSOURCES) $(TESTSOURCES)
+CSRCS_I = ionrtems.c $(ICISOURCES) $(BPSOURCES) $(LTPSOURCES) $(PXSOURCES) $(DTN2SOURCES) $(BSPSOURCES) $(TESTSOURCES)
+
+ifeq "$(ION_OPEN_SOURCE)" "1"
+CSRCS = $(CSRCS_I) $(CFDPSOURCES)
+IONFLAGS= $(IONFLAGS_T)
+else
+CSRCS = $(CSRCS_I)
+IONFLAGS = $(IONFLAGS_T) -DNASA_PROTECTED_FLIGHT_CODE
+endif
+
 COBJS = $(CSRCS:%.c=${ARCH}/%.o)
 
 include $(RTEMS_MAKEFILE_PATH)/Makefile.inc
@@ -103,7 +114,16 @@ include $(PROJECT_ROOT)/make/leaf.cfg
 
 OBJS = $(COBJS) $(CXXOBJS) $(ASOBJS)
 
-CFLAGS = -g -Wall -Werror $(IONFLAGS) -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include -I../bp/library -I../bp/library/crypto -I../bp/library/ext/ecos -I../cfdp/include -I../ams/include -I. -O2
+INCLUDES_T= -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include -I../bp/library -I../bp/library/crypto -I../bp/library/ext/ecos -I.
+
+
+ifeq "$(ION_OPEN_SOURCE)" "1"
+INCLUDES = $(INCLUDES_T) -I../cfdp/include -I../ams/include
+else
+INCLUDES = $(INCLUDES_T)
+endif
+
+CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES) -O2
 
 all:    ${ARCH} $(PGM)
 

@@ -6,6 +6,8 @@
 #
 # will quickly and completely stop an ion node.
 
+ION_OPEN_SOURCE=1
+
 echo "IONSTOP will now stop ion and clean up the node for you..."
 echo "acsadmin ."
 acsadmin .
@@ -13,9 +15,11 @@ sleep 1
 echo "bpadmin ."
 bpadmin .
 sleep 1
+if [ "$ION_OPEN_SOURCE" == "1" ]; then
 echo "cfdpadmin ."
 cfdpadmin .
 sleep 1
+fi
 echo "ltpadmin ."
 ltpadmin .
 sleep 1

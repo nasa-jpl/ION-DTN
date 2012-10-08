@@ -48,6 +48,7 @@ static void	printUsage()
 	puts("\tq\tQuit");
 	puts("\th\tHelp");
 	puts("\t?\tHelp");
+	puts("\tv\tPrint version of ION.");
 	puts("\t1\tInitialize");
 	puts("\t   1 <logLevel> [<heapWords>]");
 	puts("\ta\tAdd custodian information");
@@ -188,6 +189,7 @@ static int	acsadmin_processLine(char *line)
 	char	        *cursor;
 	int		i;
 	char		*tokens[9];
+	char	buffer[80];
 
 	if (line == NULL) return 0;
 
@@ -253,6 +255,12 @@ static int	acsadmin_processLine(char *line)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s",
+					IONVERSIONNUMBER);
+			printText(buffer);
 			return 0;
 
 		case '1':
