@@ -1,0 +1,16 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a endpoint ipn:3.2 x
+a endpoint ipn:3.64 x
+a endpoint ipn:3.65 x
+a protocol tcp 1400 100
+a induct tcp localhost:3113 tcpcli
+a outduct tcp localhost:2113 tcpclo
+a outduct tcp localhost:3113 tcpclo
+a outduct tcp localhost:4113 tcpclo
+b outduct tcp localhost:2113
+r 'ipnadmin bench.ipnrc'
+w 1
+s

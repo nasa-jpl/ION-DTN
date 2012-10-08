@@ -973,6 +973,8 @@ bpextra = \
 	bp/library/ext/ecos/ecos.h \
 	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
+	bp/library/ext/bae/bae.h \
+	bp/library/ext/bae/bae.c \
 	bp/library/ext/bsp/extbsputil.h \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.h \
@@ -1096,6 +1098,7 @@ libbp_la_SOURCES = \
 	bp/library/ext/phn/phn.c \
 	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
+	bp/library/ext/bae/bae.c \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.c \
 	bp/library/ext/bsp/extbsppcb.c \

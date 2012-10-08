@@ -118,6 +118,7 @@ relative times (+ss) are computed.");
 	PUTS("\tm\tManage ION database: clock, space occupancy");
 	PUTS("\t   m utcdelta <local clock time minus UTC, in seconds>");
 	PUTS("\t   m clockerr <new known maximum clock error, in seconds>");
+	PUTS("\t   m clocksync [ { 0 | 1 } ]");
 	PUTS("\t   m production <new planned production rate, in bytes/sec>");
 	PUTS("\t   m consumption <new planned consumption rate, in bytes/sec>");
 	PUTS("\t   m occupancy <new ZCO heap occupancy limit, in MB; -1 means \
@@ -392,7 +393,7 @@ static void	manageUtcDelta(int tokenCount, char **tokens)
 {
 	int	newDelta;
 
-	if (tokenCount!= 3)
+	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
 		return;
@@ -409,7 +410,7 @@ static void	manageClockError(int tokenCount, char **tokens)
 	IonDB	iondb;
 	int	newMaxClockError;
 
-	if (tokenCount!= 3)
+	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
 		return;
@@ -430,6 +431,40 @@ static void	manageClockError(int tokenCount, char **tokens)
 	{
 		putErrmsg("Can't change maximum clock error.", NULL);
 	}
+}
+
+static void	manageClockSync(int tokenCount, char **tokens)
+{
+	Sdr	sdr;
+	Object	iondbObj;
+	IonDB	iondb;
+	int	newSyncVal;
+	char	buffer[128];
+
+	if (tokenCount < 2 || tokenCount > 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (tokenCount == 3)
+	{
+		newSyncVal = atoi(tokens[2]);
+		sdr = getIonsdr();
+		iondbObj = getIonDbObject();
+		sdr_begin_xn(sdr);
+		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		iondb.clockIsSynchronized = (!(newSyncVal == 0));
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't change clock sync.", NULL);
+		}
+	}
+
+	isprintf(buffer, sizeof buffer, "clock sync = %d",
+			ionClockIsSynchronized());
+	printText(buffer);
 }
 
 static void	manageProduction(int tokenCount, char **tokens)
@@ -724,6 +759,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "clockerr") == 0)
 	{
 		manageClockError(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "clocksync") == 0)
+	{
+		manageClockSync(tokenCount, tokens);
 		return;
 	}
 

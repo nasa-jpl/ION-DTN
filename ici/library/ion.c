@@ -673,6 +673,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
+		iondbBuf.clockIsSynchronized = 1;
 
                 memcpy( &iondbBuf.parmcopy, parms, sizeof(IonParms));
 
@@ -994,6 +995,16 @@ unsigned long	getOwnNodeNbr()
 	}
 
 	return snapshot->ownNodeNbr;
+}
+
+int	ionClockIsSynchronized()
+{
+	Sdr	ionsdr = _ionsdr(NULL);
+	Object	iondbObject = _iondbObject(NULL);
+	IonDB	iondbBuf;
+
+	sdr_read(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
+	return iondbBuf.clockIsSynchronized;
 }
 
 /*	*	*	Shared-memory tracing 	*	*	*	*/

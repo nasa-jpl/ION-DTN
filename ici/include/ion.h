@@ -110,10 +110,12 @@ typedef struct
 	time_t		horizon;	/*	On congestion forecast.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
 	int		maxClockError;	/*	In seconds.		*/
+	char		clockIsSynchronized;	/*	Boolean.	*/
 	char		workingDirectoryName[256];
 
-        IonParms        parmcopy;       /* copy of the ion startup parms as known to ionadmin at startup */
-
+        IonParms        parmcopy;       /*	Copy of the ion config
+						parms as asserted to
+						ionadmin at startup.	*/
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,
@@ -298,6 +300,7 @@ extern void		stopIonMemTrace();
 
 extern int		setDeltaFromUTC(int newDelta);
 extern time_t		getUTCTime();	/*	UTC scale, 1970 epoch.	*/
+extern int		ionClockIsSynchronized();
 
 extern time_t		readTimestampLocal(char *timestampBuffer,
 					time_t referenceTime);
