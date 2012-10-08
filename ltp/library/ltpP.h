@@ -168,6 +168,7 @@ typedef struct
 	unsigned long	remoteEngineId;
 	short		ohdLength;
 	Object		queueListElt;
+	Object		ckptListElt;	/*	For checkpoints only.	*/
 	Object		sessionObj;	/*	For codes 1-3, 14 only.	*/
 	Object		sessionListElt;	/*	For data segments only.	*/
 	LtpSegmentClass	segmentClass;
@@ -175,6 +176,13 @@ typedef struct
 } LtpXmitSeg;
 
 /* Session structures */
+
+typedef struct
+{
+	unsigned long	offset;
+	unsigned long	length;
+	Object		sessionListElt;
+} LtpSegmentRef;
 
 typedef struct
 {
@@ -198,6 +206,32 @@ typedef struct
 	Object		span;		/*	Reception span.		*/
 } ImportSession;
 
+/*	The volatile import session object encapsulates the current
+ *	volatile state of the corresponding ImportSession.  The main
+ *	purpose of this structure is to accelerate the insertion of
+ *	red-data segments into the very long redSgments list of an
+ *	extremely large block; for a block comprising a small number
+ *	of red-data segments, there is no performance advantage.	*/
+
+typedef struct
+{
+	unsigned long	sessionNbr;	/*	ID of ImportSession.	*/
+	Object		sessionElt;	/*	Ref. to ImportSession.	*/
+	PsmAddress	redSegmentsIdx;	/*	RBT of LtpSegmentRefs	*/
+} VImportSession;
+
+/*	An LtpCkpt is a reference to an export session redSegment that
+ *	is a transmission checkpoint.  The list of LtpCheckpoints
+ *	provides a quick way to locate the specific LtpXmitSeg, out of
+ *	a possibly very long list of redSegments, that is a checkpoint
+ *	tagged with a given serial number.				*/
+
+typedef struct
+{
+	unsigned long	serialNbr;
+	Object		sessionListElt;
+} LtpCkpt;
+
 typedef struct
 {
 	Object		span;		/*	Transmission span.	*/
@@ -209,11 +243,17 @@ typedef struct
 	int		redPartLength;
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
-	Object		svcDataObjects;	/*	SDR list of ZCOs.	*/
+	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
+	Object		claims;		/*	reception claims list	*/
+	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
+
+	/*	Segments are retained in these lists only up to the
+	 *	time of initial transmission, and only to support
+	 *	ExportSession cancellation prior to transmission of
+	 *	the segments.						*/
+
 	Object		redSegments;	/*	SDR list of LtpXmitSegs	*/
 	Object		greenSegments;	/*	SDR list of LtpXmitSegs	*/
-	Object		claims;		/*	reception claims list	*/
-	int		checkpointsCount;
 } ExportSession;
 
 typedef struct
@@ -328,6 +368,7 @@ typedef struct
 	unsigned int	owltOutbound;	/*	In seconds.		*/
 	int		meterPid;	/*	For stopping ltpmeter.	*/
 	int		lsoPid;		/*	For stopping the LSO.	*/
+	PsmAddress	importSessions;	/*	RBT of VImportSessions	*/
 
 	/*	For detecting miscolored segments.			*/
 
