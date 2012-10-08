@@ -36,7 +36,6 @@
 
 #define GMSG_BUFLEN     256
 #if BAB_DEBUGGING == 1
-extern char             gMsg[];         /*      Debug message buffer.   */
 
 /**
  * \def BAB_DEBUG

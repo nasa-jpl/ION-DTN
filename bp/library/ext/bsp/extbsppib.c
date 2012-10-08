@@ -1,6 +1,10 @@
 #include "extbsputil.h"
 #include "extbsppib.h"
 
+#if (PIB_DEBUGGING == 1)
+extern char		gMsg[];		/*	Debug message buffer.	*/
+#endif
+
 #include "../../crypto/crypto.h"
 
 
@@ -151,8 +155,8 @@ int bsp_pibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
    BspAbstractSecurityBlock asb;
    int result = -1;
 
-   PIB_DEBUG_PROC("+ bsp_pibOffer(%x, %x)",
-                  (unsigned long) blk, (unsigned long) bundle);
+   PIB_DEBUG_PROC("+ bsp_pibCopy(%x, %x)",
+                  (unsigned long) newBlk, (unsigned long) oldBlk);
 
    CHKERR(newBlk);
    CHKERR(oldBlk);

@@ -91,7 +91,6 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
 
 #define	GMSG_BUFLEN	256
 #if BSP_DEBUGGING == 1
-extern char		gMsg[];		/*	Debug message buffer.	*/
 
 /**
  * \def BSP_DEBUG

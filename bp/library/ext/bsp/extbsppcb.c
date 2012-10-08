@@ -8,6 +8,10 @@
 #include "extbsputil.h"
 #include "extbsppcb.h"
 
+#if (PCB_DEBUGGING == 1)
+extern char		gMsg[];		/*	Debug message buffer.	*/
+#endif
+
 #include "../../crypto/crypto.h"
 
 
@@ -153,7 +157,7 @@ int  bsp_pcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
    int result = -1;
 
    PCB_DEBUG_PROC("+ bsp_pcbCopy(%x, %x)",
-                  (unsigned long) blk, (unsigned long) bundle);
+                  (unsigned long) newBlk, (unsigned long) oldBlk);
 
    CHKERR(newBlk);
    CHKERR(oldBlk);

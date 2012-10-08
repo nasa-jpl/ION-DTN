@@ -89,16 +89,9 @@ static void	*handleDatagrams(void *parm)
 		memcpy((char *) &hostNbr,
 				(char *) &(fromAddr.sin_addr.s_addr), 4);
 		hostNbr = ntohl(hostNbr);
-		if (getInternetHostName(hostNbr, hostName))
-		{
-			senderEid = senderEidBuffer;
-			getSenderEid(&senderEid, hostName);
-		}
-		else
-		{
-			senderEid = NULL;
-		}
-
+		printDottedString(hostNbr, hostName);
+		senderEid = senderEidBuffer;
+		getSenderEid(&senderEid, hostName);
 		if (bpBeginAcq(work, 0, senderEid) < 0
 		|| bpContinueAcq(work, buffer, bundleLength) < 0
 		|| bpEndAcq(work) < 0)
