@@ -68,6 +68,22 @@ Features included:
   a route had an end time earlier than the end time of the first contact on the
   route.
 
+- Bug #3: Updated code and configurations to always use the dotted-string
+  representation of the sender's IP address rather than hostname.  This was done
+  to mitigate problems that can arise due to aliasing and multihoming.
+
+- Bug #7: Fixed bug where ionadmin would duplicate all currently-added contacts
+  and ranges that were added in the ION configuration files before starting
+  ION with the 's' command.
+
+- Bug #8: Fixed bug where bundles that expired while in the limbo queue were not
+  properly deallocated.
+
+- Feature Request #2: Added support for bundle age extension blocks to help
+  accomodate platforms that may not be able to provide a stable clock. 
+  For more information on the bundle age extension, refer to internet draft
+      draft-irtf-dtnrg-bundle-age-block-01
+
 - Issue #195: Added more platform-specific equivalents for pthread to supplement
   the original solution introduced in ION 2.4.0.
 
@@ -84,6 +100,10 @@ Features included:
 
 - Issue #339: Updated tests for aggregate custody signals implementation that
   was introduced in ION 3.0.0 to function properly on more platforms.
+
+- Issue #349: Optimized the LTP engine to achieve faster data rates by by
+  substituting red-black trees and hash tables in for linked list where
+  appropriate.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.0.2 =
