@@ -43,7 +43,6 @@ extern "C" {
 #define	ION_OPS_ALLOC		(20)	/*	Percent.		*/
 #endif
 #define	ION_SEQUESTERED		(ION_SDR_MARGIN + ION_OPS_ALLOC)
-#define	MIN_SPIKE_RSRV		(100000)
 
 typedef struct
 {
@@ -102,20 +101,17 @@ typedef struct
 	unsigned long	ownNodeNbr;
 	long		productionRate;	/*	Bundles sent by apps.	*/
 	long		consumptionRate;/*	Bundles rec'd by apps.	*/
-	long		receptionSpikeReserve;
 	double		occupancyCeiling;
 	double		maxForecastOccupancy;
-	double		reserveForInTransit;
 	Object		alarmScript;	/*	Congestion alarm.	*/
 	time_t		horizon;	/*	On congestion forecast.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
 	int		maxClockError;	/*	In seconds.		*/
 	char		clockIsSynchronized;	/*	Boolean.	*/
 	char		workingDirectoryName[256];
-
-        IonParms        parmcopy;       /*	Copy of the ion config
-						parms as asserted to
-						ionadmin at startup.	*/
+        IonParms        parmcopy;       /*	Copy of the ion startup
+						parms as known to
+						ionadmin at startup	*/
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,

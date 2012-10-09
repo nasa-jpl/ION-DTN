@@ -275,11 +275,77 @@ static int	adjustThrottles()
 	return 0;
 }
 
+static double	defaultProductionRate(Sdr sdr)
+{
+	/*	To compute the default production rate, we reason
+	 *	as follows:
+	 *
+	 *	The defaultProductionRate function is called once
+	 *	per second, so the "rate" is simply the total
+	 *	volume of bundle payload we are prepared to accept
+	 *	in the next second.  This volume is the sum of the
+	 *	sizes of the payloads of all bundles we can accept
+	 *	in the next second.
+	 *
+	 *	The mean ratio R of heap space occupancy to file
+	 *	system space occupancy for an average bundle can
+	 *	be readily computed from ZCO statistics.
+	 *
+	 *	We assume that outbound bundle payloads are normally
+	 *	in file system space; bundle payloads in heap space
+	 *	are assumed to be reflected in the ratio computed
+	 *	above.  All other resources occupied by a bundle
+	 *	reside in heap space.  We assume an average of K
+	 *	bytes of heap space per bundle for the Bundle object,
+	 *	etc.  Therefore R is equal to K (the mean heap
+	 *	space per bundle) divided by the mean file space
+	 *	per bundle, so the mean volume of file space occupied
+	 *	per bundle is K / R.
+	 *
+	 *	Total unoccupied heap space A can be obtained from
+	 *	SDR statistics.  The limit on the bundle payload
+	 *	volume that can be accepted in the next second
+	 *	is the sum of the sizes of the payloads of Z bundles
+	 *	such that the heap space occupied by those bundles
+	 *	does not exceed A.  Therefore Z = A / K.
+	 *
+	 *	Therefore the maximum total bundle payload volume
+	 *	that can be accepted in the next second is given by
+	 *	Z * (K / R) = (A / K) * (K / R) = A / R.		*/
+
+	Scalar		heapOccupancy;
+	double		heapSpaceInUse;
+	Scalar		fileOccupancy;
+	double		fileSpaceInUse;
+	double		occupancyRatio;
+	SdrUsageSummary	usage;
+	double		avblHeap;
+
+	zco_get_heap_occupancy(sdr, &heapOccupancy);
+	heapSpaceInUse = (heapOccupancy.gigs * ONE_GIG) + heapOccupancy.units;
+	zco_get_file_occupancy(sdr, &fileOccupancy);
+	fileSpaceInUse = (fileOccupancy.gigs * ONE_GIG) + fileOccupancy.units;
+	if (fileSpaceInUse < 1)
+	{
+		fileSpaceInUse = 1;
+	}
+
+	occupancyRatio = heapSpaceInUse / fileSpaceInUse;
+	sdr_usage(sdr, &usage);
+	avblHeap = usage.smallPoolFree + usage.largePoolFree + usage.unusedSize;
+	return avblHeap / occupancyRatio;
+}
+
 static void	applyRateControl(Sdr sdr)
 {
-	BpVdb		*vdb = getBpVdb();
 	PsmPartition	ionwm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
 	Throttle	*throttle;
+	SdrUsageSummary	usage;
+	double		backoff;
+	IonDB		iondb;
+	double		nominalRate;
+	long		increment;
 	PsmAddress	elt;
 	VInduct		*induct;
 	VOutduct	*outduct;
@@ -288,7 +354,46 @@ static void	applyRateControl(Sdr sdr)
 
 	/*	Recalculate limit on local bundle generation.		*/
 
-	manageProductionThrottle(vdb);
+	throttle = &(vdb->productionThrottle);
+	sdr_usage(sdr, &usage);
+	backoff = usage.smallPoolFree + usage.largePoolFree + usage.unusedSize;
+	backoff /= usage.sdrSize;
+	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	if (iondb.productionRate < 0)	/*	No metering.		*/
+	{
+		throttle->capacity = 0;	/*	Reset every second.	*/
+		nominalRate = defaultProductionRate(sdr);
+	}
+	else
+	{
+		nominalRate = iondb.productionRate;
+	}
+
+	/*	Reduce rate when free heap space is low.		*/
+
+	increment = nominalRate * backoff * backoff * backoff;
+	if (increment < 0)
+	{
+		increment = LONG_MAX;
+	}
+
+	if (throttle->capacity > 0)
+	{
+		throttle->capacity += increment;
+		if (throttle->capacity < 0)	/*	Overflow.	*/
+		{
+			throttle->capacity = LONG_MAX;
+		}
+	}
+	else
+	{
+		throttle->capacity += increment;
+	}
+
+	if (throttle->capacity > 0)
+	{
+		sm_SemGive(throttle->semaphore);
+	}
 
 	/*	Enable some bundle acquisition.				*/
 

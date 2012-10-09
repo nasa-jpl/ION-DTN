@@ -32,27 +32,27 @@ databases to be constructed on a single host computer.)  The default value is
 
 =item configFlags
 
-This is the bitwise "OR" of the flag values that characterize the SDR database
-to use for this ION node.  The default value is 1.  The SDR configuration
-flags are documented in detail in sdr(3).  To recap:
+This is the bitwise "OR" (i.e., the sum) of the flag values that characterize
+the SDR database to use for this ION node.  The default value is 1.  The SDR
+configuration flags are documented in detail in sdr(3).  To recap:
 
 =over 4
 
-=item 1
+=item SDR_IN_DRAM (1)
 
 The SDR is implemented in a region of shared memory.  [Possibly with
 write-through to a file, for fault tolerance.]
 
-=item 2
+=item SDR_IN_FILE (2)
 
 The SDR is implemented as a file.  [Possibly cached in a region of shared
 memory, for faster data retrieval.]
 
-=item 4
+=item SDR_REVERSIBLE (4)
 
 Transactions in the SDR are written ahead to a log, making them reversible.
 
-=item 8
+=item SDR_BOUNDED (8)
 
 SDR heap updates are not allowed to cross object boundaries.
 

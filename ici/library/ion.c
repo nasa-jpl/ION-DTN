@@ -654,14 +654,10 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
+		iondbBuf.productionRate = -1;	/*	Not metered.	*/
+		iondbBuf.consumptionRate = -1;	/*	Not metered.	*/
 		heapLimit = (sdr_heap_size(ionsdr) / 100)
 			 	* (100 - ION_SEQUESTERED);
-		iondbBuf.receptionSpikeReserve = heapLimit / 16;
-		if (iondbBuf.receptionSpikeReserve < MIN_SPIKE_RSRV)
-		{
-			iondbBuf.receptionSpikeReserve = MIN_SPIKE_RSRV;
-		}
-
 		limit.units = heapLimit % ONE_GIG;
 		limit.gigs = heapLimit / ONE_GIG;
 		zco_set_max_heap_occupancy(ionsdr, &limit);
@@ -674,9 +670,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
 		iondbBuf.clockIsSynchronized = 1;
-
                 memcpy( &iondbBuf.parmcopy, parms, sizeof(IonParms));
-
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
 		{
@@ -1215,7 +1209,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	parms->configFlags = SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED;
 	parms->heapWords = 250000;
 	parms->heapKey = SM_NO_KEY;
-	istrcpy(parms->pathName, "/usr/ion", sizeof parms->pathName);
+	istrcpy(parms->pathName, "/tmp", sizeof parms->pathName);
 
 	/*	Determine name of config file.				*/
 

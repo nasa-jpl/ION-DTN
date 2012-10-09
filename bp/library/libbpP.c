@@ -1596,66 +1596,12 @@ int	bpAttach()
 
 /*	*	*	Database occupancy functions	*	*	*/
 
-void	manageProductionThrottle(BpVdb *bpvdb)
-{
-	Sdr		sdr = getIonsdr();
-	IonDB		iondb;
-	Throttle	*throttle;
-	Scalar		occupied;
-	double		temp;
-	Scalar		totalOccupancy;
-	Scalar		fileOccupancy;
-	Scalar		unoccupied;
-	Scalar		spikeReserve;
-
-	sdr_read(getIonsdr(), (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	occupied.gigs = iondb.reserveForInTransit / ONE_GIG;
-	temp = occupied.gigs * ONE_GIG;
-	occupied.units = iondb.reserveForInTransit - temp;
-	zco_get_heap_occupancy(sdr, &totalOccupancy);
-	zco_get_file_occupancy(sdr, &fileOccupancy);
-	addToScalar(&totalOccupancy, &fileOccupancy);
-	subtractFromScalar(&occupied, &totalOccupancy);
-	if (!scalarIsValid(&occupied))
-	{
-		/*	Total current occupancy exceeds volume
-		 *	reserved for in-transit data.			*/
-
-		copyScalar(&occupied, &totalOccupancy);
-	}
-
-	unoccupied.gigs = iondb.occupancyCeiling / ONE_GIG;
-	temp = unoccupied.gigs * ONE_GIG;
-	unoccupied.units = iondb.occupancyCeiling - temp;
-	subtractFromScalar(&unoccupied, &occupied);
-	spikeReserve.gigs = iondb.receptionSpikeReserve / ONE_GIG;
-	spikeReserve.units = iondb.receptionSpikeReserve % ONE_GIG;
-	subtractFromScalar(&unoccupied, &spikeReserve);
-	throttle = &(bpvdb->productionThrottle);
-	if (scalarIsValid(&unoccupied))
-	{
-		throttle->capacity = unoccupied.units
-				+ (ONE_GIG * unoccupied.gigs);
-		if (throttle->capacity < 0)	/*	Overflow.	*/
-		{
-			throttle->capacity = LONG_MAX;
-		}
-
-		sm_SemGive(throttle->semaphore);
-	}
-	else	/*	No room for any more bundle production.		*/
-	{
-		throttle->capacity = 0;
-	}
-}
-
 static void	noteBundleInserted(Bundle *bundle)
 {
 	Scalar	delta;
 
 	loadScalar(&delta, bundle->dbOverhead);
 	zco_increase_heap_occupancy(getIonsdr(), &delta);
-	manageProductionThrottle(getBpVdb());
 }
 
 static void	noteBundleRemoved(Bundle *bundle)
@@ -1664,7 +1610,6 @@ static void	noteBundleRemoved(Bundle *bundle)
 
 	loadScalar(&delta, bundle->dbOverhead);
 	zco_reduce_heap_occupancy(getIonsdr(), &delta);
-	manageProductionThrottle(getBpVdb());
 }
 
 /*	*	*	Useful utility functions	*	*	*/
@@ -5209,6 +5154,11 @@ when asking for custody transfer and/or status reports.");
 	}
 
 	bundle.dbOverhead = BASE_BUNDLE_OVERHEAD;
+	if (!zco_enough_heap_space(bpSdr, bundle.dbOverhead + 4096))
+	{
+		writeMemo("[?] Not enough heap space for outbound bundle.");
+		return 0;
+	}
 
 	/*	The bundle protocol specification authorizes the
 	 *	implementation to fragment an ADU.  In the ION
