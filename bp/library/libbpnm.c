@@ -187,7 +187,7 @@ static void getBpEndpoint(char * targetName, VEndpoint **vpoint, int  * success)
 void bpnm_endpoint_get (char * targetName, NmbpEndpoint * results, int * success)
 {
     Sdr             sdr = getIonsdr();
-    VEndpoint     * vpoint;
+    VEndpoint     * vpoint = NULL;
     Endpoint        endpoint;
     Object          elt;
     Bundle          bundle;
@@ -421,7 +421,7 @@ static void getBpInductStats (char * targetName, VInduct ** vduct, int  * succes
 void bpnm_induct_get (char * targetName, NmbpInduct * results, int * success)
 {
     Sdr             sdr = getIonsdr();
-    VInduct       * vduct;
+    VInduct       * vduct = NULL;
     Induct          duct;
     InductStats     stats;
 
@@ -647,7 +647,7 @@ static void getBpOutductStats (char * targetName, VOutduct ** vduct, int  * succ
 void bpnm_outduct_get (char * targetName, NmbpOutduct * results, int * success)
 {
     Sdr             sdr = getIonsdr();
-    VOutduct      * vduct;
+    VOutduct      * vduct = NULL;
     Outduct         duct;
     OutductStats    stats;
     

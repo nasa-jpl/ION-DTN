@@ -1,6 +1,6 @@
-= Release Notes for ION 3.0.2 =
+= Release Notes for ION 3.1.0 =
 
-July 13, 2012
+October 15, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -41,6 +41,12 @@ distribution are the following packages:
 - cfdp - a class-1 (Unacknowledged) implementation of the CCSDS File
   Delivery Protocol.
 
+- bss - a Bundle Streaming Service (BSS) for disruption-tolerant reliable
+  data streaming.  BSS supports real-time streaming applications by
+  passing the bundle payloads to the associated application for immediate
+  display of the most recent data while storing all bundle payloads
+  received into a database for user-directed playback.
+
 
 Features included:
 
@@ -58,7 +64,7 @@ Features included:
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 - Began transitioning to the SourceForge issue tracker for code management.
-  SourceForge-originated issues are designated as "Bugs" or "Features".
+  SourceForge-originated issues are designated as "Bugs" or "Feature Requests".
 
 - Bug #1: Fixed bug where the contact graph routing engine would prefer a
   multi-hop route to the source over the "no-hop" loopback connection.
@@ -86,12 +92,12 @@ Features included:
 
 - Feature Request #3: Added support for bundle multicast.
 
-- Issue #195: Added more platform-specific equivalents for pthread to supplement
-  the original solution introduced in ION 2.4.0.
+- Issue #195: Finished replacement of pthreads-based semaphore "unwedge"
+  function with simpler platform-specific equivalents, begun in ION 2.4.0.
 
 - Issue #306: Implemented several improvements to congestion forecasting.
-    - Improved the accuracy of the forecast of the maximum data that is
-      in-transit by incorporating estimations based on the rate of data being
+    - Improved the accuracy of the forecast of maximum storage occupancy
+      by incorporating estimations based on the rate of data being
       transmitted in and out of the internal data heaps.
 
     - ION now raises an alarm if expected peak volume of data is larger than
@@ -100,17 +106,14 @@ Features included:
     - Added new utility called "ionwarn" that is used for computing congestion
       forecast at an ION node based on contact plan.
 
-- Issue #311: Added Bundle Streaming Service (BSS) implementation.
-  BSS supports real-time streaming applications by passing the bundle payloads
-  to the associated application for immediate playback of the most recent data
-  while storing all bundle payloads received into a database for user-directed
-  playback.
+- Issue #311: Added a Bundle Streaming Service (BSS) regression test that
+  does not require the use of "xterm".
 
-- Issue #339: Updated tests for aggregate custody signals implementation that
-  was introduced in ION 3.0.0 to function properly on more platforms.
+- Issue #339: Fixed bug in aggregate custody signals implementation that
+  prevented successful completion of regression tests on some platforms.
 
 - Issue #349: Optimized the LTP engine to achieve faster data rates by by
-  substituting red-black trees and hash tables in for linked list where
+  substituting red-black trees and hash tables for linked lists where
   appropriate.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%

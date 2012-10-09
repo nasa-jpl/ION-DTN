@@ -1921,12 +1921,13 @@ static void	stopImportSession(ImportSession *session)
 		session->redSegments = 0;
 	}
 
-	destroyRedSegmentsIdx(session);
+	if (session->svcData)
 	{
 		zco_destroy(ltpSdr, session->svcData);
 		session->svcData = 0;
 	}
 
+	destroyRedSegmentsIdx(session);
 	if (session->blockFileRef)
 	{
 		zco_destroy_file_ref(ltpSdr, session->blockFileRef);
@@ -3729,7 +3730,7 @@ static int	writeBlockExtentToHeap(ImportSession *session,
 		 *	this segment.					*/
 #if LTPDEBUG
 putErrmsg("Can't handle red data, would exceed available heap space.",
-utoa(pdu->length));
+utoa(length));
 #endif
 		segment->sessionObj = 0;	/*	"discard"	*/
 		return 0;
@@ -3767,7 +3768,7 @@ static int	writeBlockExtentToFile(ImportSession *session,
 		 *	this segment.					*/
 #if LTPDEBUG
 putErrmsg("Can't handle red data, would exceed available file space.",
-utoa(pdu->length));
+utoa(length));
 #endif
 		segment->sessionObj = 0;	/*	"discard"	*/
 		return 0;
@@ -4201,6 +4202,7 @@ putErrmsg("Discarded redundant data segment.", itoa(sessionNbr));
 				putErrmsg("Can't handle data segment.", NULL);
 				return -1;
 			}
+
 			return 0;
 		}
 	}
@@ -5396,10 +5398,8 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 
 		GET_OBJ_POINTER(ltpSdr, LtpXmitSeg, rs, rsObj);
 		destroyRsXmitSeg(elt, rsObj, rs);
-		if (session.redPartLength > 0
-			/*	EORP has been received.			*/
-		&& session.redPartReceived == session.redPartLength
-		&& sdr_list_length(ltpSdr, session.rsSegments) == 0)
+		if (session.redPartLength > 0	/*	EORP received.	*/
+		&& session.redPartReceived == session.redPartLength)
 		{
 			stopImportSession(&session);
 			sdr_write(ltpSdr, sessionObj, (char *) &session,

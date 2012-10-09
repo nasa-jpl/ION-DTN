@@ -889,7 +889,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 	// if a bab block, try to use convergence layer sender addr
         if(blockType == BSP_BAB_TYPE && wk->senderEid != NULL)
         {
-	    istrcpy(tmp, wk->senderEid, sizeof tmp);
+	    istrcpy(tmp, wk->senderEid, MAX_EID_LEN + 1);
 	    // parseEidString will mess up the char * given to it..
 	    // so just copy it to a temp variable
             if (parseEidString(tmp, &metaEid, &vscheme, &vschemeElt) != 0
@@ -940,7 +940,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
         // if a bab block, assume security destination is the local node
         if(blockType == BSP_BAB_TYPE && wk->senderEid != NULL)
         {   
-	    istrcpy(tmp, wk->senderEid, sizeof tmp);
+	    istrcpy(tmp, wk->senderEid, MAX_EID_LEN + 1);
 	    // parseEidString will mess up the char * given to it..
 	    // so just copy it to a temp variable
             if (parseEidString(tmp, &metaEid, &vscheme, &vschemeElt) != 0

@@ -109,9 +109,9 @@ typedef struct
 	int		maxClockError;	/*	In seconds.		*/
 	char		clockIsSynchronized;	/*	Boolean.	*/
 	char		workingDirectoryName[256];
-        IonParms        parmcopy;       /*	Copy of the ion startup
-						parms as known to
-						ionadmin at startup	*/
+        IonParms        parmcopy;       /*	Copy of the ion config
+						parms as asserted to
+						ionadmin at startup.	*/
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,

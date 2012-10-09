@@ -32,6 +32,7 @@ logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 Version number.  Prints out the version of ION currently installed.  HINT:
 combine with B<e 1> command to log the version number at startup.
 
+=item B<1> I<est_max_export_sessions>
 
 The B<initialize> command.  Until this command is executed, LTP is not
 in operation on the local ION node and most I<ltpadmin> commands will fail.
