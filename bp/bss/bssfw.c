@@ -416,6 +416,23 @@ int	main(int argc, char *argv[])
 				putErrmsg("Failed to set custody expiration \
 event", NULL);
 			}
+
+			/*	Note: in the event that the bundle's
+			 *	destination is a multicast endpoint,
+			 *	multiple copies of the bundle may be
+			 *	forwarded; in that case, the custody
+			 *	signals returned from downstream nodes
+			 *	will not be resolvable to specific
+			 *	bundles and will be discarded.  This
+			 *	means that the custodial retransmission
+			 *	timeout for a BSS bundle forwarded at
+			 *	a fork of a multicast tree may ALWAYS
+			 *	expire, triggering retransmission of
+			 *	the bundle.  This will result in some
+			 *	additional consumption of transmission
+			 *	resources but will tend to increase the
+			 *	likelihood of delivery of the data to
+			 *	all final destination nodes.		*/
 		}
 
 		if (sdr_end_xn(sdr) < 0)

@@ -214,11 +214,13 @@ static void acsForeach(const Acs *acs,
 	}
 }
 
-typedef struct {
-	BpDelivery 			*dlv;
-	CtSignalCB			handleCtSignal;
-	int					*running;
+typedef struct
+{
+	BpDelivery 	*dlv;
+	CtSignalCB	handleCtSignal;
+	int		*running;
 } handleAcssArgs_t;
+
 static void handleAcss(BpCtSignal *ctSignal, void *userdata)
 {
 	handleAcssArgs_t *args = (handleAcssArgs_t *)(userdata);
@@ -235,7 +237,7 @@ static void handleAcss(BpCtSignal *ctSignal, void *userdata)
 		return;
 	}
 
-	if (handleAbstractCtSignal(ctSignal, args->dlv->bundleSourceEid) < 0)
+	if (applyCtSignal(ctSignal, args->dlv->bundleSourceEid) < 0)
 	{
 		putSysErrmsg("Abstract custody signal handler failed",
 				NULL);
@@ -248,8 +250,13 @@ static void handleAcss(BpCtSignal *ctSignal, void *userdata)
 int handleAcs(void *acs_untyped, BpDelivery *dlv, 
 	CtSignalCB handleCtSignal)
 {
+	/*	An aggregate custody signal is a custody signal that
+	 *	covers possibly many bundles, instead of just one.
+	 *	Expand the ACS into a list of "logical" custody signals
+	 *	and apply each one in the list.				*/
+
 	Acs *acs = (Acs *)(acs_untyped);
-	int rc = 0;
+	int rc = 1;		/*	1 means "okay, still running."	*/
 	handleAcssArgs_t args;
 
 	args.dlv = dlv;

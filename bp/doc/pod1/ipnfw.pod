@@ -97,4 +97,4 @@ Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
 
 =head1 SEE ALSO
 
-bpadmin(1), ipnadmin(1), bprc(5), ipnrc(5).
+bpadmin(1), ipnadmin(1), bprc(5), ipnrc(5)

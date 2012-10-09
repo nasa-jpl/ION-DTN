@@ -38,6 +38,18 @@ AC_ARG_ENABLE(
      ENABLE_BPACS=yes])
 AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 
+#
+# allow the user running configure to disable IMC
+#
+AC_ARG_ENABLE(
+    imc,
+    AC_HELP_STRING([--disable-imc], [disable Interplanetary Multicast]),
+    [],
+    [CFLAGS="-DENABLE_IMC $CFLAGS"
+     ENABLE_IMC=yes])
+AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
+
+
 
 # Checks for programs.
 AC_PROG_CC
