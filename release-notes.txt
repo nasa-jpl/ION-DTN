@@ -84,6 +84,8 @@ Features included:
   For more information on the bundle age extension, refer to internet draft
       draft-irtf-dtnrg-bundle-age-block-01
 
+- Feature Request #3: Added support for bundle multicast.
+
 - Issue #195: Added more platform-specific equivalents for pthread to supplement
   the original solution introduced in ION 2.4.0.
 
@@ -97,6 +99,12 @@ Features included:
 
     - Added new utility called "ionwarn" that is used for computing congestion
       forecast at an ION node based on contact plan.
+
+- Issue #311: Added Bundle Streaming Service (BSS) implementation.
+  BSS supports real-time streaming applications by passing the bundle payloads
+  to the associated application for immediate playback of the most recent data
+  while storing all bundle payloads received into a database for user-directed
+  playback.
 
 - Issue #339: Updated tests for aggregate custody signals implementation that
   was introduced in ION 3.0.0 to function properly on more platforms.
