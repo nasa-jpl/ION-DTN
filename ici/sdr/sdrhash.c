@@ -364,8 +364,8 @@ int	sdr_hash_count(Sdr sdrv, Object hash)
 	return count;
 }
 
-int sdr_hash_foreach(Sdr sdrv, Object hash,
-		sdr_hash_callback callback, void *args)
+int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
+		void *args)
 {
 	SdrState	*sdr;
 	int		keyLength;

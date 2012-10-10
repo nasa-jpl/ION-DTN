@@ -11,7 +11,7 @@
 
 #include "../../bei.h" 
 
-#define	EXTENSION_TYPE_BAE	10
+#define	EXTENSION_TYPE_BAE	20
 
 extern int	bae_offer(ExtensionBlock *, Bundle *);
 extern void	bae_release(ExtensionBlock *);
