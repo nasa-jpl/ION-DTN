@@ -1035,13 +1035,25 @@ int setSecPointsTrans(ExtensionBlock *blk, Bundle *bundle, BspAbstractSecurityBl
 	}
         else
         {
-	  printEid(&(bundle->id.source), dictionary, &tmp2);
+	  if (printEid(&(bundle->id.source), dictionary, &tmp2) < 0)
+	  {
+		  putErrmsg("Can't print source EID.", NULL);
+		  releaseDictionary(dictionary);
+		  return -1;
+	  }
+
           memcpy(srcNode, tmp2, strlen(tmp2));
           MRELEASE(tmp2);
 	}
 
         // For pib/pcb destination will be the bundle destination
-        printEid(&(bundle->destination), dictionary, &tmp2);
+	if (printEid(&(bundle->destination), dictionary, &tmp2) < 0)
+	{
+		putErrmsg("Can't print destination EID.", NULL);
+		releaseDictionary(dictionary);
+		return -1;
+	}
+
         memcpy(destNode, tmp2, strlen(tmp2));
         MRELEASE(tmp2);
 

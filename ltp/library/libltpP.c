@@ -3997,6 +3997,18 @@ static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 	 *	client service data.					*/
 
 	sdr_begin_xn(ltpSdr);
+	findSpan(sourceEngineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+#if LTPDEBUG
+putErrmsg("Discarded data segment.", itoa(sessionNbr));
+#endif
+		/*	Segment is from an unknown engine, so we
+		 *	can't process it.				*/
+
+		return sdr_end_xn(ltpSdr);
+	}
+
 	if (pdu->length > *bytesRemaining)
 	{
 #if LTPDEBUG
@@ -4010,19 +4022,6 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	}
 
 	/*	Now process the data.					*/
-
-	findSpan(sourceEngineId, &vspan, &vspanElt);
-	if (vspanElt == 0)
-	{
-#if LTPDEBUG
-putErrmsg("Discarded data segment.", itoa(sessionNbr));
-#endif
-		/*	Segment is from an unknown engine, so we
-		 *	can't process it.				*/
-
-		ltpSpanTally(vspan, IN_SEG_UNK_SENDER, pdu->length);
-		return sdr_end_xn(ltpSdr);
-	}
 
 	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{

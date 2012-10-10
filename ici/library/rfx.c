@@ -1678,7 +1678,7 @@ static int	loadContact(Object elt)
 	cxref.xmitRate = contact.xmitRate;
 	cxref.contactElt = elt;
 	cxref.routingObject = 0;
-	if (insertCXref(&cxref) < 0)
+	if (insertCXref(&cxref) == 0)
 	{
 		return -1;
 	}

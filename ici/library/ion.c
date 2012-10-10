@@ -1438,7 +1438,7 @@ static void	*alarmMain(void *parm)
 		getCurrentTime(&workTime);
 		deadline.tv_sec = workTime.tv_sec + alarm->term;
 		deadline.tv_nsec = workTime.tv_usec * 1000;
-		pthread_mutex_lock(&mutex);
+		oK(pthread_mutex_lock(&mutex));
 		result = pthread_cond_timedwait(&cv, &mutex, &deadline);
 		pthread_mutex_unlock(&mutex);
 		if (result != ETIMEDOUT)

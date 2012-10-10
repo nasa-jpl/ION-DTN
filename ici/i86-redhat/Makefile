@@ -31,8 +31,7 @@ LIBICIOBJS = \
 	sdrlist.o \
 	sdrtable.o \
 	sdrhash.o \
-	sdrcatlg.o \
-	smrbt.o
+	sdrcatlg.o
 
 PUBINCLS = \
 	$(INCL)/llcv.h \
@@ -54,8 +53,7 @@ PUBINCLS = \
 	$(INCL)/sdrlist.h \
 	$(INCL)/sdrtable.h \
 	$(INCL)/sdrhash.h \
-	$(INCL)/sdr.h \
-	$(INCL)/smrbt.h
+	$(INCL)/sdr.h
 
 ICIINCLS = \
 	$(SRC)/lystP.h \

@@ -771,8 +771,10 @@ static int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
 	int	firstPos = -1;
 	int	secondPos = -1;
 
-	CHKERR(firstEid);
-	CHKERR(secondEid);
+	CHKZERO(firstEid);
+	CHKZERO(firstEidLen > 0);
+	CHKZERO(secondEid);
+	CHKZERO(secondEidLen > 0);
 
 	/*
 	 * First, determine if (and the pos of) end-of-line wildcards.

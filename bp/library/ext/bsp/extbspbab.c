@@ -571,7 +571,7 @@ raw_asb = %x", (unsigned long) raw_asb);
             post_blk->size);
       MRELEASE(raw_asb);
 
-      strncpy(collabBlk.cipherKeyName, secInfo.cipherKeyName, BSP_KEY_NAME_LEN);
+      istrcpy(collabBlk.cipherKeyName, secInfo.cipherKeyName, BSP_KEY_NAME_LEN);
 
       updateCollaborationBlock(collabAddr, (CollabBlockHdr *) &collabBlk);
    }
@@ -1137,7 +1137,7 @@ ASB. blk->dataLength = %d", blk->dataLength);
          collab.hdr.size = sizeof(BspBabCollaborationBlock);
          collab.correlator = asb.correlator;
          collab.cipher = asb.cipher;
-         strncpy(collab.cipherKeyName, secInfo.cipherKeyName, BSP_KEY_NAME_LEN);
+         istrcpy(collab.cipherKeyName, secInfo.cipherKeyName, BSP_KEY_NAME_LEN);
          collab.rxFlags = 0;
          collab.hmacLen = 0;
          collab.expectedResult[0] = '\0';

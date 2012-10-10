@@ -36,7 +36,7 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	sprintf(buffer, "Syntax error at line %d of bpadmin.c", lineNbr);
+	isprintf(buffer, sizeof buffer, "Syntax error at line %d of bpadmin.c", lineNbr);
 	printText(buffer);
 }
 
@@ -129,10 +129,10 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		updateCustodianAcsDelay(tokens[1], (unsigned long)(acsDelay));
 
-                sprintf( text, "added acs rule; %s %ld %ld", tokens[1], acsSize, acsDelay );
+                isprintf( text, sizeof text, "added acs rule; %s %ld %ld", tokens[1], acsSize, acsDelay );
 	}
         else
-                sprintf( text, "added acs rule; %s %ld (no delay)", tokens[1], acsSize );
+                isprintf( text, sizeof text, "added acs rule; %s %ld (no delay)", tokens[1], acsSize );
 
         writeMemo( text );
 }

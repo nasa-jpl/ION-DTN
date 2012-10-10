@@ -1243,10 +1243,18 @@ unsigned int	zco_length(Sdr sdr, Object zco)
 unsigned int	zco_source_data_length(Sdr sdr, Object zco)
 {
 	Zco	zcoBuf;
+	double	totalLength;
 
 	CHKZERO(sdr);
 	CHKZERO(zco);
 	sdr_read(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
+	totalLength = zcoBuf.sourceLength + zcoBuf.headersLength
+			+ zcoBuf.trailersLength;
+	if (totalLength > ((unsigned int) -1))
+	{
+		return 0;		/*	Signal overflow.	*/
+	}
+
 	return zcoBuf.sourceLength + zcoBuf.headersLength
 			+ zcoBuf.trailersLength;
 }

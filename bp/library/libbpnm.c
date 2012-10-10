@@ -291,7 +291,7 @@ void  bpnm_endpoint_reset (char * targetName, int * success)
                 }
 
                 sdr_write(sdr, vpoint->stats, (char *) & stats, sizeof(EndpointStats));
-                sdr_end_xn(sdr);
+                oK(sdr_end_xn(sdr));
           
                 * success = 1;
                 return;
@@ -518,7 +518,7 @@ void bpnm_induct_reset (char * targetName, int * success)
                     }
     
                     sdr_write(sdr, vduct->stats, (char *) & stats, sizeof(InductStats));
-                    sdr_end_xn(sdr);
+                    oK(sdr_end_xn(sdr));
               
                     * success = 1;
                     return;
@@ -747,7 +747,7 @@ void bpnm_outduct_reset (char * targetName, int * success)
                     }
     
                     sdr_write(sdr, vduct->stats, (char *) & stats, sizeof(OutductStats));
-                    sdr_end_xn(sdr);
+                    oK(sdr_end_xn(sdr));
               
                     * success = 1;
                     return;
@@ -1158,6 +1158,6 @@ void    bpnm_disposition_reset()
     resetCtStats(&db);
     resetDbStats(&db);
     sdr_write(sdr, dbobj, (char *) &db, sizeof(BpDB));
-    sdr_end_xn(sdr);
+    oK(sdr_end_xn(sdr));
     
 }   /* end of bpnm_disposition_reset */

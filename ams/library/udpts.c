@@ -76,19 +76,10 @@ static int	udpMamsInit(MamsInterface *tsif)
 #if AMSDEBUG
 printf("parsed endpoint spec to port %hu address %u.\n", portNbr, ipAddress);
 #endif
-	if (ipAddress == 0)
+	if (getInternetHostName(ipAddress, hostName) == NULL)
 	{
-		getNameOfHost(hostName, sizeof hostName);
-		ipAddress = getInternetAddress(hostName);
-	}
-	else
-	{
-		if (getInternetHostName(ipAddress, hostName) == NULL)
-		{
-			putErrmsg("Unknown host in endpoint.",
-					tsif->endpointSpec);
-			return -1;
-		}
+		putErrmsg("Unknown host in endpoint.", tsif->endpointSpec);
+		return -1;
 	}
 
 	portNbr = htons(portNbr);

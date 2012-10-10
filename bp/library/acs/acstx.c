@@ -722,5 +722,5 @@ void listCustodianInfo(void (*printer)(const char *))
 			custodian.acsSize);
 		printer(buffer);
 	}
-	sdr_end_xn(acsSdr);
+	oK(sdr_end_xn(acsSdr));
 }

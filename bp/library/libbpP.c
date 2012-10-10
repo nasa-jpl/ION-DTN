@@ -2175,6 +2175,7 @@ void	getSenderEid(char **eidBuffer, char *neighborClEid)
 		case -1:
 			putErrmsg("Failed getting sender EID.", NULL);
 			sm_Abort();
+			break;
 
 		case 0:
 			continue;	/*	No match yet.		*/

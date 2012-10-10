@@ -290,6 +290,7 @@ static void	*receiveBundles(void *parm)
 
 	currentTime = time(NULL);
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+	memset(sdnvText, 0, sizeof sdnvText);
 
 	/*	Get duct number, expressed as an SDNV.			*/
 

@@ -359,7 +359,7 @@ number>");
 		return -1;
 	}
 
-	if (connectToCLI(&socketName, &ductSocket) < 0)
+	if (connectToCLI(&socketName, &ductSocket) < 0 || ductSocket < 0)
 	{
 		putErrmsg("Can't connect to server.", ductName);
 		MRELEASE(buffer);

@@ -173,7 +173,7 @@ static int	processLine(PsmPartition partition, PsmAddress rbt, char *line,
 			{
 				data = rand_r(&seed);
 				if (sm_rbt_insert(partition, rbt, data,
-						compareNodes, &data) < 0)
+						compareNodes, &data) == 0)
 				{
 					PUTS("Insertion failed");
 					break;
@@ -195,10 +195,9 @@ if (treeBroken(partition, rbt)) PUTS("Tree is broken.");
 			{
 				data = strtol(tokens[1], NULL, 0);
 				if (sm_rbt_insert(partition, rbt, data,
-						compareNodes, &data) < 0)
+						compareNodes, &data) == 0)
 				{
 					PUTS("Insertion failed");
-					break;
 				}
 #if SMRBT_DEBUG
 if (treeBroken(partition, rbt)) PUTS("Tree is broken.");
@@ -322,7 +321,7 @@ static int	run_smrbtsh(char *cmdFileName)
 {
 	int		length = TEST_MEM_SIZE;
 	unsigned char	*allocation = NULL;
-	PsmPartition	partition;
+	PsmPartition	partition = NULL;
 	int		partitionId;
 	PsmMgtOutcome	outcome;
 	PsmAddress	rbt;

@@ -525,11 +525,6 @@ static int	validateAmsMsg(AmsSAP *sap, unsigned char *msgBuffer,
 	else				/*	No checksum.		*/
 	{
 		deliveredContentLength = length - 16;
-		if (deliveredContentLength < 0)
-		{
-			writeMemo("[?] AMS message truncated.");
-			return -1;
-		}
 	}
 
 	if (getMsgSender(sap, msg, msgBuffer, sender) < 0)
@@ -4075,11 +4070,12 @@ int	ams_register(char *mibSource, char *tsorder, char *applicationName,
 		char *authorityName, char *unitName, char *roleName,
 		AmsModule *module)
 {
-	AmsMib	*mib = _mib(NULL);
+	AmsMib	*mib;
 	int	result;
 
 	/*	Load Management Information Base as necessary.		*/
 
+	oK(_mib(NULL));
 	mib = loadMib(mibSource);
 	if (mib == NULL)
 	{
