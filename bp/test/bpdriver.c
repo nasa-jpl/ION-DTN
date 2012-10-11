@@ -243,6 +243,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		}
 	}
 
+	snooze(1);	/*	Make sure pilot bundle has been sent.	*/
+
 	/*	Begin timed bundle transmission.			*/
 
 	isignal(SIGINT, handleQuit);

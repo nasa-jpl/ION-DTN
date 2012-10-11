@@ -14,6 +14,8 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpclock lt-bpclock \
 	bpcounter lt-bpcounter \
 	bpdriver lt-bpdriver \
+	bsscounter lt-bsscounter \
+	bssdriver lt-bssdriver \
 	bpecho lt-bpecho \
 	bping lt-bping \
 	bprecvfile lt-bprecvfile \

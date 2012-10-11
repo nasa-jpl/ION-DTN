@@ -9,6 +9,7 @@
 	
 									*/
 #include "bpP.h"
+#include "sdrhash.h"
 #include "smlist.h"
 
 #ifdef ENABLE_BPACS
@@ -281,59 +282,64 @@ static double	defaultProductionRate(Sdr sdr)
 	 *	as follows:
 	 *
 	 *	The defaultProductionRate function is called once
-	 *	per second, so the "rate" is simply the total
-	 *	volume of bundle payload we are prepared to accept
-	 *	in the next second.  This volume is the sum of the
-	 *	sizes of the payloads of all bundles we can accept
-	 *	in the next second.
+	 *	per second, so the "rate" is simply the maximum total
+	 *	volume of bundle payload data we are prepared to
+	 *	accept in the next second.  This volume is the sum
+	 *	of the sizes of the payloads of all bundles we can
+	 *	reasonably accept in the next second.
 	 *
-	 *	The mean ratio R of heap space occupancy to file
-	 *	system space occupancy for an average bundle can
-	 *	be readily computed from ZCO statistics.
+	 *	The size of a payload is the sum of the amount of
+	 *	heap space occupied by the payload and the amount
+	 *	of file space occupied by the payload.  We can
+	 *	compute these figures for the "average" bundle,
+	 *	by retrieving the current number of bundles stored
+	 *	and the total amount of heap space and file space
+	 *	occupied by zero-copy objects, noting that the
+	 *	total heap space occupied by a bundle includes not
+	 *	only the payload space occupied by the bundle but
+	 *	also all bundle storage overhead (mainly the Bundle
+	 *	object itself).
 	 *
-	 *	We assume that outbound bundle payloads are normally
-	 *	in file system space; bundle payloads in heap space
-	 *	are assumed to be reflected in the ratio computed
-	 *	above.  All other resources occupied by a bundle
-	 *	reside in heap space.  We assume an average of K
-	 *	bytes of heap space per bundle for the Bundle object,
-	 *	etc.  Therefore R is equal to K (the mean heap
-	 *	space per bundle) divided by the mean file space
-	 *	per bundle, so the mean volume of file space occupied
-	 *	per bundle is K / R.
-	 *
-	 *	Total unoccupied heap space A can be obtained from
-	 *	SDR statistics.  The limit on the bundle payload
-	 *	volume that can be accepted in the next second
-	 *	is the sum of the sizes of the payloads of Z bundles
-	 *	such that the heap space occupied by those bundles
-	 *	does not exceed A.  Therefore Z = A / K.
-	 *
-	 *	Therefore the maximum total bundle payload volume
-	 *	that can be accepted in the next second is given by
-	 *	Z * (K / R) = (A / K) * (K / R) = A / R.		*/
+	 *	Given the mean number of payload bytes in heap
+	 *	per bundle and the remaining available heap space,
+	 *	we can estimate the maximum number of "average" new
+	 *	bundles that could be accepted.  Multiplying this
+	 *	number by the total mean payload size per bundle
+	 *	(both in heap and in storage) gives us an estimate
+	 *	of the maximum total payload volume that we can
+	 *	accept.							*/
 
+	static int	estOverheadPerBundle = sizeof(Bundle); 
+	BpDB		*db = getBpConstants();
+	int		bundlesInStorage;
 	Scalar		heapOccupancy;
 	double		heapSpaceInUse;
+	double		heapPayloadPerBundle;
 	Scalar		fileOccupancy;
 	double		fileSpaceInUse;
-	double		occupancyRatio;
+	double		filePayloadPerBundle;
 	SdrUsageSummary	usage;
 	double		avblHeap;
+	double		estNewBundles;
 
+	/*	Get current mean resource occupancy figures.		*/
+
+	bundlesInStorage = sdr_hash_count(getIonsdr(), db->bundles);
 	zco_get_heap_occupancy(sdr, &heapOccupancy);
 	heapSpaceInUse = (heapOccupancy.gigs * ONE_GIG) + heapOccupancy.units;
+	heapPayloadPerBundle = (heapSpaceInUse / bundlesInStorage)
+			- estOverheadPerBundle;
 	zco_get_file_occupancy(sdr, &fileOccupancy);
 	fileSpaceInUse = (fileOccupancy.gigs * ONE_GIG) + fileOccupancy.units;
-	if (fileSpaceInUse < 1)
-	{
-		fileSpaceInUse = 1;
-	}
+	filePayloadPerBundle = fileSpaceInUse / bundlesInStorage;
 
-	occupancyRatio = heapSpaceInUse / fileSpaceInUse;
+	/*	Compute estimated capacity for accepting new bundles
+	 *	assuming no divergence from mean resource occupancy.	*/
+
 	sdr_usage(sdr, &usage);
 	avblHeap = usage.smallPoolFree + usage.largePoolFree + usage.unusedSize;
-	return avblHeap / occupancyRatio;
+	estNewBundles = avblHeap / heapPayloadPerBundle;
+	return estNewBundles * (heapPayloadPerBundle + filePayloadPerBundle);
 }
 
 static void	applyRateControl(Sdr sdr)
