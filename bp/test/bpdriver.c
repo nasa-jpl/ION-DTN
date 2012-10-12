@@ -305,8 +305,12 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 			bp_release_delivery(&dlv, 1);
 //putchar(dlvmarks[dlv.result]);
 //fflush(stdout);
-			if (dlv.result == BpReceptionInterrupted
-			|| dlv.result == BpEndpointStopped)
+			if (dlv.result == BpReceptionInterrupted)
+			{
+				continue;
+			}
+
+			if (dlv.result == BpEndpointStopped)
 			{
 				running = 0;
 				continue;
