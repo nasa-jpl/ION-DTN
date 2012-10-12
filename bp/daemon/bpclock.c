@@ -329,6 +329,11 @@ static double	defaultProductionRate(Sdr sdr)
 	heapSpaceInUse = (heapOccupancy.gigs * ONE_GIG) + heapOccupancy.units;
 	heapPayloadPerBundle = (heapSpaceInUse / bundlesInStorage)
 			- estOverheadPerBundle;
+	if (heapPayloadPerBundle < 0)
+	{
+		heapPayloadPerBundle = 0;
+	}
+
 	zco_get_file_occupancy(sdr, &fileOccupancy);
 	fileSpaceInUse = (fileOccupancy.gigs * ONE_GIG) + fileOccupancy.units;
 	filePayloadPerBundle = fileSpaceInUse / bundlesInStorage;
