@@ -12,7 +12,6 @@
 /*	Author: Alan Hylton, NASA Glenn Research Center			*/
 
 #include "ion.h"
-#include "../../config.h"
 #include <tlhelp32.h>
 
 char *processes[] = { "bpadmin.exe", \
@@ -33,7 +32,7 @@ char *processes[] = { "bpadmin.exe", \
 "lt-file2dgr.exe", "file2sdr.exe", "lt-file2sdr.exe", \
 "file2sm.exe", "lt-file2sm.exe", "file2tcp.exe", \
 "lt-file2tcp.exe", "file2udp.exe", "lt-file2udp.exe", \
-"ionadmin.exe", "lt-ionadmin.exe", "ipnadmin.exe", \ 
+"ionadmin.exe", "lt-ionadmin.exe", "ipnadmin.exe", \
 "lt-ipnadmin.exe", "ipnadminep.exe", "lt-ipnadminep.exe", \
 "ipnfw.exe", "lt-ipnfw.exe", "lgagent.exe", \
 "lt-lgagent.exe", "lgsend.exe", "lt-lgsend.exe", \

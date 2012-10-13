@@ -30,8 +30,7 @@ LIBICIOBJS = \
 	sdrlist.o \
 	sdrtable.o \
 	sdrhash.o \
-	sdrcatlg.o \
-	smrbt.o
+	sdrcatlg.o
 
 PUBINCLS = \
 	$(INCL)/llcv.h \
@@ -53,14 +52,13 @@ PUBINCLS = \
 	$(INCL)/sdrlist.h \
 	$(INCL)/sdrtable.h \
 	$(INCL)/sdrhash.h \
-	$(INCL)/sdr.h \
-	$(INCL)/smrbt.h
+	$(INCL)/sdr.h
 
 ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend
+UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim
 # owlttb
@@ -102,6 +100,10 @@ psmwatch:	psmwatch.o libici.dll
 ionadmin:	ionadmin.o libici.dll
 		$(CC) -o ionadmin ionadmin.o -L./lib -lici -lpthread
 		cp ionadmin ./bin
+
+ionwarn:	ionwarn.o libici.dll
+		$(CC) -o ionwarn ionwarn.o -L./lib -lici -lpthread
+		cp ionwarn ./bin
 
 ionsecadmin:	ionsecadmin.o libici.dll
 		$(CC) -o ionsecadmin ionsecadmin.o -L./lib -lici -lpthread
