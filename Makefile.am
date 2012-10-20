@@ -838,7 +838,7 @@ bpPODM5 = pod2man -s 5 -c "BP configuration files"
 # compile these for the website use only?
 #bpPODH = pod2html --noindex
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
+bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
