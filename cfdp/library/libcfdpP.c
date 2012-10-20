@@ -12,7 +12,9 @@
 #include "cfdpP.h"
 #include "lyst.h"
 
+#ifndef CFDPDEBUG
 #define	CFDPDEBUG	0
+#endif
 
 /*	*	*	Helpful utility functions	*	*	*/
 

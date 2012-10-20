@@ -42,9 +42,9 @@
 void	getExtensionDefs(ExtensionDef **array, int *count)
 {
 #ifdef BP_EXTENDED
-#include "ext/bpextensions.c"
+#include "bpextensions.c"
 #else
-#include "ext/noextensions.c"
+#include "noextensions.c"
 #endif
 	static int	extensionsCt = sizeof extensions / sizeof(ExtensionDef);
 

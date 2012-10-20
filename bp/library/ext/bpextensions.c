@@ -13,14 +13,14 @@
 
 /*	Add external function declarations between here...		*/
 
-#include "ecos/ecos.h"
-#include "bae/bae.h"
-#include "bsp/extbspbab.h"
-#include "bsp/extbsppcb.h"
-#include "bsp/extbsppib.h"
+#include "ecos.h"
+#include "bae.h"
+#include "extbspbab.h"
+#include "extbsppcb.h"
+#include "extbsppib.h"
 
 #ifdef ENABLE_BPACS
-#include "cteb/cteb.h"
+#include "cteb.h"
 #endif /* ENABLE_BPACS */
 
 /*	... and here.							*/

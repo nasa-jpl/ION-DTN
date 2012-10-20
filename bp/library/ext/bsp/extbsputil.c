@@ -61,7 +61,7 @@
  *****************************************************************************/
 
 #include "extbsputil.h"	/** BSP structures and enumerations */
-#include "../../bpP.h"	/** HMAC-SHA1 implementation */ 
+#include "bpP.h"	/** HMAC-SHA1 implementation */ 
 
 /*****************************************************************************
  *                            VARIABLE DEFINITIONS                           *

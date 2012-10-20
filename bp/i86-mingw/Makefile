@@ -17,7 +17,7 @@ CRYPTO = $(API)/crypto/NULL_SUITES
 
 OPT = -g -Wall -Werror -Dmingw -DENABLE_IMC
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/crypto -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/crypto -I$(API)/ext -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 

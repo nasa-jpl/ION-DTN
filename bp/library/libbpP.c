@@ -51,7 +51,7 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco);
 /*	*	*	ACS adaptation		*	*	*	*/
 
 #ifdef ENABLE_BPACS
-#include "acs/acs.h"
+#include "acs.h"
 
 static void	bpDestroyBundle_ACS(Bundle *bundle)
 {

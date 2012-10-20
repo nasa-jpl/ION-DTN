@@ -1285,7 +1285,8 @@ static int	processLine(char *line, int lineLength)
 			printUsage();
 			return 0;
 		case 'v':
-			isprintf(buffer, sizeof buffer, "%s compiled with crypto suite: %s",
+			isprintf(buffer, sizeof buffer,
+					"%s compiled with crypto suite: %s",
 					IONVERSIONNUMBER, crypto_suite_name);
 			printText(buffer);
 			return 0;

@@ -66,8 +66,8 @@
  * to any BSP block (such as the case where a bundle-wide hash must be
  * calculated.
  */
-#include "../../bpP.h"
-#include "../../bei.h"
+#include "bpP.h"
+#include "bei.h"
 #include "ionsec.h"
 
 int extensionBlockTypeToInt(char *blockType);

@@ -11,7 +11,7 @@
 	NNC07CB47C.
  											*/
 
-#include "acs/acs.h"
+#include "acs.h"
 
 static int		echo = 0;
 

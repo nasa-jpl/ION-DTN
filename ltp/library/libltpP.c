@@ -231,8 +231,13 @@ static void	deleteVImportSession(PsmPartition ltpwm, PsmAddress nodeData,
 {
 	VImportSession	*vsession = (VImportSession *) psp(ltpwm, nodeData);
 
-	oK(sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx, deleteSegmentRef,
-				NULL));
+	if (vsession->redSegmentsIdx)
+	{
+		oK(sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx,
+				deleteSegmentRef, NULL));
+	}
+
+	psm_free(ltpwm, nodeData);	/*	Delete VImportSession.	*/
 }
 
 static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
@@ -1859,32 +1864,18 @@ static void	destroyRedSegmentsIdx(ImportSession *session)
 	LtpSpan		span;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
-	VImportSession	*vsession;
-	Object		sessionObj;
 	VImportSession	arg;
 
 	sdr_read(ltpSdr, (char *) &span, session->span, sizeof(LtpSpan));
 	findSpan(span.engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
-		return;
-	}
-
-	getImportSession(vspan, session->sessionNbr, &vsession, &sessionObj);
-	if (vsession == 0)
-	{
-		return;
-	}
-
-	if (vsession->redSegmentsIdx)
-	{
-		sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx,
-				deleteSegmentRef, NULL);
+		return;		/*	No such span.			*/
 	}
 
 	arg.sessionNbr = session->sessionNbr;
 	oK(sm_rbt_delete(ltpwm, vspan->importSessions, orderImportSessions,
-				&arg, NULL, NULL));
+			&arg, deleteVImportSession, NULL));
 }
 
 static void	stopImportSession(ImportSession *session)

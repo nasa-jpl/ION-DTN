@@ -318,8 +318,8 @@ static void	testLoopback()
 	puts("Loopback test ended.");
 }
 
-int	stopDTN(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+static int	stopDTN(int a1, int a2, int a3, int a4, int a5,
+			int a6, int a7, int a8, int a9, int a10)
 {
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Stop CFDP.						*/
@@ -372,6 +372,7 @@ rtems_task	Init(rtems_task_argument ignored)
 	}
 
 	testLoopback();
+	snooze(1);
 	puts("Stopping ION.");
 	oK(stopDTN(0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	puts("ION stopped.");

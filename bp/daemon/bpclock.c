@@ -13,7 +13,7 @@
 #include "smlist.h"
 
 #ifdef ENABLE_BPACS
-#include "acs/acs.h"		/* provides sendAcs */
+#include "acs.h"		/* provides sendAcs */
 #endif /* ENABLE_ACS */
 
 extern void	manageProductionThrottle(BpVdb *vdb);
@@ -327,16 +327,30 @@ static double	defaultProductionRate(Sdr sdr)
 	bundlesInStorage = sdr_hash_count(getIonsdr(), db->bundles);
 	zco_get_heap_occupancy(sdr, &heapOccupancy);
 	heapSpaceInUse = (heapOccupancy.gigs * ONE_GIG) + heapOccupancy.units;
-	heapPayloadPerBundle = (heapSpaceInUse / bundlesInStorage)
-			- estOverheadPerBundle;
-	if (heapPayloadPerBundle < 0)
+	if (bundlesInStorage < 1)
 	{
-		heapPayloadPerBundle = 0;
+		heapPayloadPerBundle = 1;
+	}
+	else
+	{
+		heapPayloadPerBundle = (heapSpaceInUse / bundlesInStorage)
+				- estOverheadPerBundle;
+		if (heapPayloadPerBundle < 1)
+		{
+			heapPayloadPerBundle = 1;
+		}
 	}
 
 	zco_get_file_occupancy(sdr, &fileOccupancy);
 	fileSpaceInUse = (fileOccupancy.gigs * ONE_GIG) + fileOccupancy.units;
-	filePayloadPerBundle = fileSpaceInUse / bundlesInStorage;
+	if (bundlesInStorage < 1)
+	{
+		filePayloadPerBundle = 1;
+	}
+	else
+	{
+		filePayloadPerBundle = fileSpaceInUse / bundlesInStorage;
+	}
 
 	/*	Compute estimated capacity for accepting new bundles
 	 *	assuming no divergence from mean resource occupancy.	*/

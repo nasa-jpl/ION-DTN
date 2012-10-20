@@ -5,7 +5,7 @@
 extern char		gMsg[];		/*	Debug message buffer.	*/
 #endif
 
-#include "../../crypto/crypto.h"
+#include "crypto.h"
 
 
 /*****************************************************************************

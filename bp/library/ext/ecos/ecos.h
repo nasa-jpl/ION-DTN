@@ -9,7 +9,7 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "../../bei.h" 
+#include "bei.h" 
 
 #define	EXTENSION_TYPE_ECOS	19
 
