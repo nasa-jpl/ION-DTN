@@ -4,24 +4,23 @@
 # shared memory usage, even if you own it; also modified using Jim Wyllie's "kill 
 # all related processes" idea
 
+ION_OPEN_SOURCE=1
 OS_VERS=""
 NOT_KILLED=""
 PS_LIST=""
-KILLPROCESSLIST="amsbenchr lt-amsbenchr \
-	amsbenchs lt-amsbenchs \
-	amsd lt-amsd \
-	amshello lt-amshello \
-	amslog lt-amslog \
-	amslogport lt-amslogport \
-	amsshell lt-amsshell \
-	acsadmin lt-acsadmin \
+KILLPROCESSLIST="acsadmin lt-acsadmin \
+	acslist lt-acslist \
+	aoslsi lt-aoslsi \
+	aoslso lt-aoslso \
 	bpadmin lt-bpadmin \
+	bpcancel lt-bpcancel \
 	bpchat lt-bpchat \
 	bpclock lt-bpclock \
 	bpcounter lt-bpcounter \
 	bpdriver lt-bpdriver \
 	bpecho lt-bpecho \
 	bping lt-bping \
+	bplist lt-bplist \
 	bprecvfile lt-bprecvfile \
 	bpsendfile lt-bpsendfile \
 	bpsink lt-bpsink \
@@ -31,10 +30,16 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	bptrace lt-bptrace \
 	brsccla lt-brsccla \
 	brsscla lt-brsscla \
-	bputa lt-bputa \
-	cfdpadmin lt-cfdpadmin \
-	cfdpclock lt-cfdpclock \
-	cfdptest lt-cfdptest \
+	bssadmin lt-bssadmin \
+	bsscounter lt-bsscounter \
+	bssdriver lt-bssdriver \
+	bssfw lt-bssfw \
+	bssrecv lt-bssrecv \
+	bssStreamingApp lt-bssStreamingApp \
+	dccpcli lt-dccpcli \
+	dccpclo lt-dccpclo \
+	dccplsi lt-dccplsi \
+	dccplso lt-dccplso \
 	dgr2file lt-dgr2file \
 	dgrcla lt-dgrcla \
 	dtn2admin lt-dtn2admin \
@@ -45,7 +50,12 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	file2sm lt-file2sm \
 	file2tcp lt-file2tcp \
 	file2udp lt-file2udp \
+	hmackeys lt-hmackeys \
+	imcadmin lt-imcadmin \
+	imcfw lt-imcfw \
 	ionadmin lt-ionadmin \
+	ionsecadmin lt-ionsecadmin \
+	ionwarn lt-ionwarn \
 	ipnadmin lt-ipnadmin \
 	ipnadminep lt-ipnadminep \
 	ipnfw lt-ipnfw \
@@ -62,26 +72,43 @@ KILLPROCESSLIST="amsbenchr lt-amsbenchr \
 	owlttb lt-owlttb \
 	psmshell lt-psmshell \
 	psmwatch lt-psmwatch \
-	ramstest lt-ramstest \
+	ramsgate lt-ramsgate \
 	rfxclock lt-rfxclock \
 	sdr2file lt-sdr2file \
 	sdrmend lt-sdrmend \
 	sdrwatch lt-sdrwatch \
 	sm2file lt-sm2file \
 	smlistsh lt-smlistsh \
-	tcpcli lt-tcpcli \
-	tcpclo lt-tcpclo \
 	stcpcli lt-stcpcli \
 	stcpclo lt-stcpclo \
 	tcp2file lt-tcp2file \
+	tcpcli lt-tcpcli \
+	tcpclo lt-tcpclo \
+	udp2file lt-udp2file \
 	udpcli lt-udpcli \
 	udpclo lt-udpclo \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
-	udp2file lt-udp2file \
+	"
+
+if [ "$ION_OPEN_SOURCE" == "1" ];then
+KILLPROCESSLIST="${KILLPROCESSLIST} \
+	amsbenchr lt-amsbenchr \
+	amsbenchs lt-amsbenchs \
+	amsd lt-amsd \
+	amshello lt-amshello \
+	amslog lt-amslog \
+	amslogprt lt-amslogprt \
+	amsshell lt-amsshell \
+	amsstop lt-amsstop \
+	bputa lt-bputa \
+	cfdpadmin lt-cfdpadmin \
+	cfdpclock lt-cfdpclock \
+	cfdptest lt-cfdptest \
 	bpcp lt-bpcp\
 	bpcpd lt-bpcpd\
 	"
+fi
 
 sw_vers 2> /dev/null > /dev/null
 
