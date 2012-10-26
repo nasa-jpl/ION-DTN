@@ -208,6 +208,11 @@ while getopts ":i:d:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
 	esac
 done
 
+if [[ ! -z "${BSSRC}" ]] && [[ ! -z "${IPNRC}" ]] ; then
+	echo "Error: bss and ipn are mutually exclusive!"
+	exit 1
+fi
+
 # if there is an input file, we will convert INPUTFILE -> ionrc, dtn2rc, ipnrc, etc
 if [[ -n "${INPUTFILE}" ]] ; then
 	echo

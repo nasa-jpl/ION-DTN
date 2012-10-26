@@ -175,6 +175,11 @@ if [[ "${failure}" == "TRUE" ]] ; then
 	exit 1
 fi
 
+if [[ ! -z "${BSSRC}" ]] && [[ ! -z "${IPNRC}" ]] ; then
+	echo "Error: bss and ipn are mutually exclusive!"
+	exit 1
+fi
+
 if [[ ! -z "${CONFIGFILE}" ]] ; then
 	echo
 	echo "Now running startup script using ${CONFIGFILE}"

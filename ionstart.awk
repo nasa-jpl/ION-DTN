@@ -263,6 +263,11 @@ END {
 		exit 1
 	}
 
+	if(firstline["bssadmin"] > 0 && firstline["ipnadmin"]>0){
+		print "\nError: bss and ipn are mutually exclusive!"
+		exit 1
+	}
+
 	print "Sanity check of file \"" configfile "\" has been cleared."
 	# start the programs
 	# a firstline/lastline with an undefined value is = 0 = "" so you must check that the
