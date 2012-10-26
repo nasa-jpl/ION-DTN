@@ -54,6 +54,7 @@
 
 # initialize variables
 BEGIN {
+	ION_OPEN_SOURCE=1
 	# linenumber for reporting syntax errors and helping out the sed call
 	linenumber = 0
 	# programs lists the accepted packages in ion in the order they should
@@ -271,9 +272,13 @@ END {
 	# ignore sections with last line one greater than first line.
 
 	# run programs in order- but only if they have defined linenumbers
-	for (x = 1; x <= 8; x++) {
+	for (x = 1; x <= 10; x++) {
 		if (firstline[programs[x]] > 0 && 
 		    firstline[programs[x]] <= lastline[programs[x]]) {
+			if(ION_OPEN_SOURCE==0 && programs[x]=="cfdpadmin"){
+				print "\nSkipping CFDP section. CFDP is not supported."
+				continue
+			}
 			if (echo == "") {
 				# if ipnadmin/dtn2admin are run as separate sections, then bpadmin should be run again later with the "s" command
 #				if (programs[x] == "ipnadmin" || programs[x] == "dtn2admin") runlater = 1
