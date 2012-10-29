@@ -14,6 +14,7 @@ extern int	ionadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ionexit(int, int, int, int, int, int, int, int, int, int);
 extern int	rfxclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ionsecadmin(int, int, int, int, int, int, int, int, int, int);
+extern int	ionwarn(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpmeter(int, int, int, int, int, int, int, int, int, int);
@@ -29,10 +30,17 @@ extern int	ipnadminep(int, int, int, int, int, int, int, int, int, int);
 extern int	lgagent(int, int, int, int, int, int, int, int, int, int);
 extern int	bpsource(int, int, int, int, int, int, int, int, int, int);
 extern int	bpsink(int, int, int, int, int, int, int, int, int, int);
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 extern int	cfdpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	cfdpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	bputa(int, int, int, int, int, int, int, int, int, int);
-
+#endif
+#if 0
+extern int	imcadmin(int, int, int, int, int, int, int, int, int, int);
+extern int	imcfw(int, int, int, int, int, int, int, int, int, int);
+extern int	acsadmin(int, int, int, int, int, int, int, int, int, int);
+extern int	acslist(int, int, int, int, int, int, int, int, int, int);
+#endif
 typedef struct
 {
 	char	*name;
@@ -49,6 +57,7 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ionexit",	(FUNCPTR) ionexit,	ICI_PRIORITY,	32768 },
 		{ "rfxclock",	(FUNCPTR) rfxclock,	ICI_PRIORITY,	32768 },
 		{ "ionsecadmin",(FUNCPTR) ionsecadmin,	ICI_PRIORITY,	32768 },
+		{ "ionwarn",	(FUNCPTR) ionwarn,	ICI_PRIORITY,	32768 },
 		{ "ltpadmin",	(FUNCPTR) ltpadmin,	ICI_PRIORITY,	32768 },
 		{ "ltpclock",	(FUNCPTR) ltpclock,	ICI_PRIORITY,	32768 },
 		{ "ltpmeter",	(FUNCPTR) ltpmeter,	ICI_PRIORITY,	32768 },
@@ -63,10 +72,18 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ipnadminep",	(FUNCPTR) ipnadminep,	ICI_PRIORITY,	24576 },
 		{ "lgagent",	(FUNCPTR) lgagent,	ICI_PRIORITY,	24576 },
 		{ "bpsource",	(FUNCPTR) bpsource,	ICI_PRIORITY,	4096  },
-		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  },
-		{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
+		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  }
+#ifndef NASA_PROTECTED_FLIGHT_CODE
+		,{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
 		{ "cfdpclock",	(FUNCPTR) cfdpclock,	ICI_PRIORITY,	24576 },
 		{ "bputa",	(FUNCPTR) bputa,	ICI_PRIORITY,	24576 }
+#endif
+#if 0
+		,{ "imcadmin",	(FUNCPTR) imcadmin,	ICI_PRIORITY,	32768 },
+		{ "imcfw",	(FUNCPTR) imcfw,	ICI_PRIORITY,	65536 }
+		,{ "acsadmin",	(FUNCPTR) acsadmin,	ICI_PRIORITY,	32768 },
+		{ "acslist",	(FUNCPTR) acslist,	ICI_PRIORITY,	32768 }
+#endif
 	};
 
 	static int	numSymbols = sizeof symbols / sizeof(SymTabEntry);

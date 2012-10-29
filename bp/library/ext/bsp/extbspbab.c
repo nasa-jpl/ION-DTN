@@ -8,7 +8,11 @@
 #include "extbsputil.h"
 #include "extbspbab.h"
 
-#include "../../crypto/crypto.h"
+#if (BAB_DEBUGGING == 1)
+extern char		gMsg[];		/*	Debug message buffer.	*/
+#endif
+
+#include "crypto.h"
 
 
 /*****************************************************************************
@@ -144,7 +148,7 @@ int	bsp_babCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	char	*buffer;
 	int	result = 0;
 
-	BSP_DEBUG_PROC("+ bsp_babCopy(%x, %x)", (unsigned long) newBlk,
+	BAB_DEBUG_PROC("+ bsp_babCopy(%x, %x)", (unsigned long) newBlk,
 		   (unsigned long) oldBlk);
 	CHKERR(newBlk);
 	CHKERR(oldBlk);
@@ -158,7 +162,7 @@ int	bsp_babCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 		buffer = MTAKE(oldBlk->size);
 		if (buffer == NULL)
 		{
-      			BSP_DEBUG_ERR("x bsp_babCopy: Failed to allocate \
+      			BAB_DEBUG_ERR("x bsp_babCopy: Failed to allocate \
 buffer of size: %d", oldBlk->size);
 			result = -1;
 		}
@@ -168,7 +172,7 @@ buffer of size: %d", oldBlk->size);
 			newBlk->object = sdr_malloc(bpSdr, oldBlk->size);
 			if (newBlk->object == 0)
 			{
-				BSP_DEBUG_ERR("x bsp_babCopy: Failed to SDR \
+				BAB_DEBUG_ERR("x bsp_babCopy: Failed to SDR \
 allocate object of size: %d", oldBlk->size);
 				result = -1;
 			}
@@ -183,7 +187,7 @@ allocate object of size: %d", oldBlk->size);
 		}
 	}
 
-	BSP_DEBUG_PROC("- bsp_babCopy(%c)", ' ');
+	BAB_DEBUG_PROC("- bsp_babCopy(%c)", ' ');
 
 	return result;
 }
@@ -320,8 +324,9 @@ int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
    {
       BAB_DEBUG_ERR("x bspBabPostCheck:  Can't find collab blk for corr %d.",
                   asb->correlator);
-      BAB_DEBUG_PROC("- bsp_babPostCheck --> %d", -1);
-      return -1;
+      discardExtensionBlock(blk);
+      BAB_DEBUG_PROC("- bsp_babPostCheck --> %d", 0);
+      return 0;		/*	No valid pre-payload BAB: ignore.	*/
    }
    collabBlk = (BspBabCollaborationBlock *) lyst_data(collabBlkAddr);
 
@@ -507,8 +512,8 @@ Not using BAB blocks for this bundle.", NULL);
       BAB_DEBUG_ERR("x bsp_babPostProcessOnDequeue: Trying to insert post-  \
 payload block without collab struct.", NULL);
       scratchExtensionBlock(post_blk);
-      BAB_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", -1);
-      return -1;
+      BAB_DEBUG_PROC("- bsp_babPostProcessOnDequeue --> %d", 0);
+      return 0;	/*	No valid pre-payload BAB, so don't add post-.	*/
    }
 
    /* Grab the collaboration block structure to verify that we can continue */
@@ -566,7 +571,7 @@ raw_asb = %x", (unsigned long) raw_asb);
             post_blk->size);
       MRELEASE(raw_asb);
 
-      strncpy(collabBlk.cipherKeyName, secInfo.cipherKeyName, BSP_KEY_NAME_LEN);
+      istrcpy(collabBlk.cipherKeyName, secInfo.cipherKeyName, BSP_KEY_NAME_LEN);
 
       updateCollaborationBlock(collabAddr, (CollabBlockHdr *) &collabBlk);
    }
@@ -645,8 +650,8 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
     {
        BAB_DEBUG_ERR("x bsp_babPostProcessOnTransmit: No collab block found.",
                    NULL);
-        BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
-        return -1;
+        BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", 0);
+        return 0;	/*	No valid pre-payload block, so give up.	*/
     }
 
     /* Grab the collaboration block structure to verify that we can continue */
@@ -870,6 +875,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
    if (lengthToHash < 0)
    {
       BAB_DEBUG_ERR("x bsp_babPreCheck: Can't hash %d bytes", lengthToHash);
+      discardExtensionBlock(pre_blk);
       BAB_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
       return 0;
    }
@@ -898,6 +904,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
    {
       /*   No rule, or no key.               */
       BAB_DEBUG_INFO("i bsp_babPreCheck: No rule/key for BAB.", NULL);
+      discardExtensionBlock(pre_blk);
       BAB_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
       return 0;   /*   No hash computation.         */
    }
@@ -913,6 +920,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
        *   that the key was not retrieved.
        */
 
+      discardExtensionBlock(pre_blk);
       BAB_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
       return 0;
    }
@@ -936,6 +944,7 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
       }
       BAB_DEBUG_ERR("x bsp_babPreCheck: Bad hash. digest is 0x%x and length is %d.",
                     digest, digestLen);
+      discardExtensionBlock(pre_blk);
       BAB_DEBUG_PROC("- bsp_babPreCheck --> 0", NULL);
       return 0;
    }
@@ -1128,7 +1137,7 @@ ASB. blk->dataLength = %d", blk->dataLength);
          collab.hdr.size = sizeof(BspBabCollaborationBlock);
          collab.correlator = asb.correlator;
          collab.cipher = asb.cipher;
-         strncpy(collab.cipherKeyName, secInfo.cipherKeyName, BSP_KEY_NAME_LEN);
+         istrcpy(collab.cipherKeyName, secInfo.cipherKeyName, BSP_KEY_NAME_LEN);
          collab.rxFlags = 0;
          collab.hmacLen = 0;
          collab.expectedResult[0] = '\0';
@@ -1302,7 +1311,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
       MRELEASE(authContext);
       oK(sdr_end_xn(bpSdr));
       *hashLen = 0;
-      BSP_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
+      BAB_DEBUG_PROC("- bsp_babGetSecResult--> NULL", NULL);
       MRELEASE(dataBuffer);
       return NULL;
      }
@@ -1341,7 +1350,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    MRELEASE(authContext);
    if ((i = sdr_end_xn(bpSdr)) < 0)
    {
-      BSP_DEBUG_ERR("x bsp_babGetSecResult: Failed closing transaction. Result is %d.", i);
+      BAB_DEBUG_ERR("x bsp_babGetSecResult: Failed closing transaction. Result is %d.", i);
 
       MRELEASE(hashData);
       *hashLen = 0;

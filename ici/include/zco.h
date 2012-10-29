@@ -38,8 +38,12 @@
 		protected by the fact that the ZCO resides in SDR
 		and therefore cannot be modified other than in the
 		course of an SDR transaction, which serializes access.
+		Moreover, extraction of data from a ZCO may entail
+		the reading of file-based source data extents, which
+		may cause file progress to be updated in one or
+		more file reference objects in the SDR heap.
 		For this reason, all ZCO "transmit" and "receive"
-		functions should be performed within SDR transactions.
+		functions must be performed within SDR transactions.
 
 	Copyright (c) 2004, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
@@ -61,7 +65,8 @@ extern "C" {
 typedef enum
 {
 	ZcoFileSource = 1,
-	ZcoSdrSource = 2
+	ZcoSdrSource = 2,
+	ZcoZcoSource = 3
 } ZcoMedium;
 
 typedef struct
@@ -115,14 +120,6 @@ char		*zco_file_ref_path(Sdr sdr,
 			 *	truncated to buflen as necessary.
 			 *	Returns NULL on any error.		*/
 
-unsigned int	zco_file_ref_occupancy(Sdr sdr,
-				Object fileRef);
-			/*	Returns number of bytes of SDR space
-			 *	occupied by this file reference object.
-			 *	If fileRef is zero, returns the maximum
-			 *	possible SDR space occupancy of any
-			 *	single file reference object.		*/
-
 int		zco_file_ref_xmit_eof(Sdr sdr,
 				Object fileRef);
 			/*	Returns 1 if the last octet of the
@@ -139,6 +136,54 @@ void		zco_destroy_file_ref(Sdr sdr,
 			 *	it is destroyed immediately.  Otherwise
 			 *	it is flagged for destruction as soon
 			 *	as the last reference to it is removed.	*/
+
+void		zco_get_file_occupancy(Sdr sdr,
+				Scalar *occupancy);
+			/*	Returns the total number of file
+			 *	system space bytes occupied by ZCOs
+			 *	in this SDR.				*/
+
+void		zco_set_max_file_occupancy(Sdr sdr,
+				Scalar *occupancy);
+			/*	Sets the maximum number of file
+			 *	system space bytes that may be
+			 *	occupied by ZCOs in this SDR.		*/
+
+void		zco_get_max_file_occupancy(Sdr sdr,
+				Scalar *occupancy);
+			/*	Returns the maximum number of file
+			 *	system space bytes that may be
+			 *	occupied by ZCOs in this SDR.		*/
+
+int		zco_enough_file_space(Sdr sdr,
+				unsigned int length);
+			/*	Returns 1 if the total remaining file
+			 *	system space available for ZCOs is
+			 *	greater than length, 0 otherwise.	*/
+
+void		zco_get_heap_occupancy(Sdr sdr,
+				Scalar *occupancy);
+			/*	Returns the total number of SDR
+			 *	heap space bytes occupied by ZCOs
+			 *	in this SDR.				*/
+
+void		zco_set_max_heap_occupancy(Sdr sdr,
+				Scalar *occupancy);
+			/*	Sets the maximum number of SDR
+			 *	heap space bytes that may be
+			 *	occupied by ZCOs in this SDR.		*/
+
+void		zco_get_max_heap_occupancy(Sdr sdr,
+				Scalar *occupancy);
+			/*	Returns the maximum number of SDR
+			 *	heap space bytes that may be
+			 *	occupied by ZCOs in this SDR.		*/
+
+int		zco_enough_heap_space(Sdr sdr,
+				unsigned int length);
+			/*	Returns 1 if the total remaining SDR
+			 *	heap space available for ZCOs is
+			 *	greater than length, 0 otherwise.	*/
 
 Object		zco_create(	Sdr sdr,
 				ZcoMedium firstExtentSourceMedium,
@@ -218,27 +263,6 @@ unsigned int	zco_source_data_length(Sdr sdr,
 				Object zco);
 			/*	Returns current presumptive length of
 			 *	the ZCO's encapsulated source data.	*/
-
-unsigned int	zco_occupancy(	Sdr sdr,
-				Object zco);
-			/*	Returns number of bytes of SDR space
-			 *	occupied by the referenced ZCO.  This
-			 *	figure may be somewhat overstated: all
-			 *	space occupied by the SDR source data
-			 *	object referenced by each extent of
-			 *	a ZCO is included in the occupancy of
-			 *	that ZCO, even if multiple extents
-			 *	reference the same object and/or the
-			 *	extents of multiple cloned ZCOs
-			 *	reference that same object.  In ION
-			 *	the impact of this overstatement is 
-			 *	minimal because (a) we don't cite
-			 *	multiple parts of a single SDR object
-			 *	in different extents of a ZCO and
-			 *	(b) the ZCOs that are likely to be
-			 *	cloned are bundle payloads, most of
-			 *	whose extents are likely to reference
-			 *	file source data objects.		*/
 
 /*	*	Functions for copying ZCO source data.	*	*	*/
 

@@ -1,0 +1,4 @@
+1 3 bench.ionconfig
+m clocksync 0
+s
+m horizon +0

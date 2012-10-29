@@ -15,10 +15,13 @@ AM_CFLAGS = \
 	-I$(srcdir)/ltp/include \
 	-I$(srcdir)/dgr/include \
 	-I$(srcdir)/bp/include \
-	-I$(srcdir)/ams/include \
-	-I$(srcdir)/cfdp/include \
 	-I$(srcdir)/bss/include
-#	-I$(srcdir)/icix/include
+
+if !ION_NASA_B
+AM_CFLAGS+= \
+	-I$(srcdir)/ams/include \
+	-I$(srcdir)/cfdp/include
+endif
 
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
@@ -54,14 +57,18 @@ EXTRA_DIST = 	\
 	$(ltpextra) \
 	$(dgrextra) \
 	$(bpextra) \
-	$(amsextra) \
-	$(cfdpextra) \
 	$(bssextra)
 #	$(icixextra) 
 #	$(usercontribextra)
 #	$(twonodestcp_DATA) \
 #$(threenodestcpltp_DATA) \
-#$(srcdir)/makefile.tar.gz 
+#$(srcdir)/makefile.tar.gz
+
+if !ION_NASA_B
+EXTRA_DIST+= \
+	$(amsextra) \
+	$(cfdpextra)
+endif
 
 install-exec-hook: 
 	@echo
@@ -117,8 +124,11 @@ endif
 
 
 # clean-local refers to existing documents. there are no manpages for ams
+if !ION_NASA_B
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local cfdpclean-local
-#icixclean-local
+else
+clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local
+endif
 
 # ams has no man pages
 build-man-directories:
@@ -126,52 +136,66 @@ build-man-directories:
 	mkdir -p $(top_builddir)/ltp/doc
 	mkdir -p $(top_builddir)/dgr/doc
 	mkdir -p $(top_builddir)/bp/doc
-	mkdir -p $(top_builddir)/cfdp/doc
 	mkdir -p $(top_builddir)/bss/doc
-#	mkdir -p $(top_builddir)/icix/doc
+if !ION_NASA_B
+	mkdir -p $(top_builddir)/cfdp/doc
+endif
+
 
 bin_PROGRAMS = \
 	$(icibin) \
 	$(ltpbin) \
 	$(dgrbin) \
 	$(bpbin) \
-	$(amsbin) \
-	$(cfdpbin) \
 	$(bssbin)
 #	$(usercontribbin)
-#	$(icixbin)
-#	yeah, icix text programs are still excluded from makefile.
+
+if !ION_NASA_B
+bin_PROGRAMS+= \
+	$(amsbin) \
+	$(cfdpbin)
+endif
+		
 
 lib_LTLIBRARIES = \
 	$(icilib) \
 	$(ltplib) \
 	$(dgrlib) \
 	$(bplib) \
-	$(amslib) \
-	$(cfdplib) \
 	$(bsslib)
-#	$(icixlib)
+
+if !ION_NASA_B
+lib_LTLIBRARIES+= \
+	$(amslib) \
+	$(cfdplib)
+endif
 
 include_HEADERS = \
 	$(iciinclude) \
 	$(ltpinclude) \
 	$(dgrinclude) \
 	$(bpinclude) \
-	$(amsinclude) \
-	$(cfdpinclude) \
 	$(bssinclude)
-#	$(icixinclude)
+
+if !ION_NASA_B
+include_HEADERS+= \
+	$(amsinclude) \
+	$(cfdpinclude)
+endif
 
 noinst_HEADERS = \
 	$(icinoinst) \
 	$(ltpnoinst) \
 	$(dgrnoinst) \
 	$(bpnoinst) \
-	$(amsnoinst) \
-	$(cfdpnoinst) \
 	$(bssnoinst)
-#	$(icixnoinst) 
 #	$(usercontribnoinst)
+
+if !ION_NASA_B
+noinst_HEADERS+= \
+	$(amsnoinst) \
+	$(cfdpnoinst)
+endif
 
 man_MANS = \
 	build-man-directories \
@@ -179,9 +203,12 @@ man_MANS = \
 	$(ltpmans) \
 	$(dgrmans) \
 	$(bpmans) \
-	$(cfdpmans) \
 	$(bssmans)
-#	$(icixmans)
+
+if !ION_NASA_B
+man_MANS+= \
+	$(cfdpmans)
+endif
 
 #################
 #
@@ -323,6 +350,7 @@ icibin = \
 	ionadmin \
 	ionexit \
 	ionsecadmin \
+	ionwarn \
 	sdrmend \
 	file2sm \
 	sm2file \
@@ -502,6 +530,10 @@ ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
 ionsecadmin_LDADD = libici.la $(LIBOBJS) 
 ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+ionwarn_SOURCES = ici/utils/ionwarn.c
+ionwarn_LDADD = libici.la $(LIBOBJS) 
+ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
@@ -806,7 +838,7 @@ bpPODM5 = pod2man -s 5 -c "BP configuration files"
 # compile these for the website use only?
 #bpPODH = pod2html --noindex
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -DBP_EXTENDED
+bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
@@ -855,6 +887,10 @@ bpbin += acsadmin \
 	acslist
 endif
 
+if ENABLE_IMC
+bpbin += imcadmin \
+	imcfw
+endif
 
 bplib = \
 	libbp.la \
@@ -941,6 +977,8 @@ bpextra = \
 	bp/library/ext/ecos/ecos.h \
 	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
+	bp/library/ext/bae/bae.h \
+	bp/library/ext/bae/bae.c \
 	bp/library/ext/bsp/extbsputil.h \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.h \
@@ -1013,6 +1051,13 @@ bpmans += \
 	$(top_builddir)/bp/doc/acsrc.5
 endif
 
+if ENABLE_IMC
+bpmans += \
+	$(top_builddir)/bp/doc/imcadmin.1 \
+	$(top_builddir)/bp/doc/imcfw.1 \
+	$(top_builddir)/bp/doc/imcrc.5
+endif
+
 
 bpclean-local:
 	rm -f $(top_builddir)/bp/doc/*.1
@@ -1055,18 +1100,28 @@ libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libudpcla_la_LDFLAGS = $(ION_LINK_FLAGS)
 libudpcla_la_LIBADD = libbp.la libici.la
 
-#bvb (added bei.c), does bsp.c remain?
+
+
+##bvb (added bei.c), does bsp.c remain?
 libbp_la_SOURCES = \
 	bp/library/libbp.c \
 	bp/library/libbpP.c \
 	bp/library/ext/phn/phn.c \
 	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
+	bp/library/ext/bae/bae.c \
 	bp/library/ext/bsp/extbsputil.c \
 	bp/library/ext/bsp/extbspbab.c \
 	bp/library/ext/bsp/extbsppcb.c \
-	bp/library/ext/bsp/extbsppib.c \
-	bp/library/crypto/NULL_SUITES/crypto.c 
+	bp/library/ext/bsp/extbsppib.c
+
+if CRYPTO
+libbp_la_SOURCES+= \
+	bp/library/crypto/NULL_SUITES/crypto.c
+else
+libbp_la_SOURCES+= \
+	bp/library/crypto/NULL_SUITES/crypto.c
+endif
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libbp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libbp_la_LIBADD = libici.la $(PTHREAD_LIBS)
@@ -1089,6 +1144,12 @@ libbp_la_SOURCES += \
 	bp/library/acs/acsappend.c \
 	bp/library/acs/acsid.c \
 	bp/library/ext/cteb/cteb.c \
+	$(NULL)
+endif
+
+if ENABLE_IMC
+libbp_la_SOURCES += \
+	bp/imc/libimcfw.c \
 	$(NULL)
 endif
 
@@ -1119,6 +1180,16 @@ acsadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 acslist_SOURCES = bp/utils/acslist.c
 acslist_LDADD = libbp.la libici.la $(LIBOBJS)
 acslist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+endif
+
+if ENABLE_IMC
+imcadmin_SOURCES = bp/imc/imcadmin.c
+imcadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+imcadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+imcfw_SOURCES = bp/imc/imcfw.c
+imcfw_LDADD = libipnfw.la libbp.la libici.la $(LIBOBJS)
+imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif
 
 dtn2admin_SOURCES = bp/dtn2/dtn2admin.c
@@ -1304,6 +1375,8 @@ bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #
 ##########################
 
+if !ION_NASA_B
+
 amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -DUDPTS -DTCPTS -DDGRTS
 
 amsbin = \
@@ -1405,11 +1478,15 @@ ramsgate_SOURCES = \
 ramsgate_LDADD = libbp.la libams.la libdgr.la libici.la $(LIBOBJS)
 ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
+endif
+
 ##############
 #
 # CFDP SECTION
 #
 ##############
+
+if !ION_NASA_B
 
 # Define pod2man stuff
 cfdpPODM1 = pod2man -s 1 -c "CFDP executables"
@@ -1515,7 +1592,7 @@ cfdpclock_SOURCES = cfdp/daemon/cfdpclock.c
 cfdpclock_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
-
+endif
 
 ##############
 #
@@ -1526,14 +1603,14 @@ cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 # Define pod2man stuff
 bssPODM1 = pod2man -s 1 -c "BSS executables"
 bssPODM3 = pod2man -s 3 -c "BSS library functions"
-#cfdpPODM5 = pod2man -s 5 -c "CFDP configuration files"
-#cfdpPODH = pod2html --noindex
 
 bsscflags = -I$(srcdir)/bss/library -I$(srcdir)/bss/include 
 
 bssbin = \
 	bssrecv \
-	bssStreamingApp
+	bssStreamingApp \ 
+	bsscounter \
+	bssdriver
 
 bsslib = \
 	libbss.la
@@ -1583,6 +1660,14 @@ bssrecv_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 bssStreamingApp_SOURCES = bss/test/bssStreamingApp.c
 bssStreamingApp_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bssStreamingApp_CFLAGS = $(bsscflags) $(AM_CFLAGS)
+
+bsscounter_SOURCES = bss/test/bsscounter.c
+bsscounter_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
+bsscounter_CFLAGS = $(bsscflags) $(AM_CFLAGS)
+
+bssdriver_SOURCES = bss/test/bssdriver.c
+bssdriver_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
+bssdriver_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 
 ##############
@@ -1743,10 +1828,14 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/1500.loopback-brs/dotest \
 	tests/issue-188-common-cos-syntax/dotest \
 	tests/issue-260-teach-valgrind-mtake/domtake \
-	tests/issue-279-bpMemo-timeline/driver \
+	tests/issue-279-bpMemo-timeline/driver
+
+if !ION_NASA_B
+check_PROGRAMS+= \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
 	tests/issue-333-cfdp-orig-ID-type/send \
 	tests/issue-334-cfdp-transaction-id/dotest
+endif
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
@@ -1776,17 +1865,23 @@ tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline
 tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
+if !ION_NASA_B
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+endif
 
+if !ION_NASA_B
 tests_issue_333_cfdp_orig_ID_type_send_SOURCES =tests/issue-333-cfdp-orig-ID-type/send.c
 tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+endif
 
+if !ION_NASA_B
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
 tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+endif
 
 
 ##########################

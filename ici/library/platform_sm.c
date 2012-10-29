@@ -441,7 +441,7 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
     /* create a new shared memory segment, or attach to an existing one */
 	if ((*id = shmget(key, size, IPC_CREAT | 0666)) == -1)
 	{
-		putSysErrmsg("Can't get shared memory segment", itoa(key));
+		putSysErrmsg("Can't get shared memory segment", itoa(size));
 		return -1;
 	}
 
@@ -947,6 +947,35 @@ void	sm_SemUnend(sm_SemId i)
 	sem->ended = 0;
 }
 
+int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
+{
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
+	int	ticks;
+
+	CHKERR(i >= 0);
+	CHKERR(i < nSemIds);
+	sem = semTbl + i;
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	ticks = sysClkRateGet() * timeoutSeconds;
+	if (semTake(sem->id, ticks) == ERROR)
+	{
+		if (errno != S_objLib_OBJ_TIMEOUT)
+		{
+			putSysErrmsg("Can't unwedge semaphore", itoa(i));
+			return -1;
+		}
+	}
+
+	if (semGive(sem->id) == ERROR)
+	{
+		putSysErrmsg("Can't unwedge semaphore", itoa(i));
+		return -1;
+	}
+
+	return 0;
+}
+
 #endif			/*	End of #ifdef VXWORKS_SEMAPHORES	*/
 
 #ifdef MINGW_SEMAPHORES
@@ -1164,7 +1193,6 @@ int	sm_SemTake(sm_SemId i)
 	SemaphoreTable	*semTbl = _semTbl(0);
 	IciSemaphore	*sem;
 	HANDLE		semId;
-	int		result = 0;
 
 	CHKERR(i >= 0);
 	CHKERR(i < NUM_SEMAPHORES);
@@ -1178,7 +1206,7 @@ int	sm_SemTake(sm_SemId i)
 
 	oK(WaitForSingleObject(semId, INFINITE));
 	CloseHandle(semId);
-	return result;
+	return 0;
 }
 
 void	sm_SemGive(sm_SemId i)
@@ -1241,6 +1269,31 @@ void	sm_SemUnend(sm_SemId i)
 	CHKVOID(i < NUM_SEMAPHORES);
 	sem = semTbl->semaphores + i;
 	sem->ended = 0;
+}
+
+int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
+{
+	SemaphoreTable	*semTbl = _semTbl(0);
+	IciSemaphore	*sem;
+	HANDLE		semId;
+	DWORD		millisec;
+
+	CHKERR(i >= 0);
+	CHKERR(i < NUM_SEMAPHORES);
+	sem = semTbl->semaphores + i;
+	semId = getSemaphoreHandle(sem->key);
+	if (semId == NULL)
+	{
+		putSysErrmsg("Can't unwedge semaphore", itoa(i));
+		return -1;
+	}
+
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	millisec = timeoutSeconds * 1000;
+	oK(WaitForSingleObject(semId, millisec));
+	oK(SetEvent(semId));
+	CloseHandle(semId);
+	return 0;
 }
 
 #endif			/*	End of #ifdef MINGW_SEMAPHORES		*/
@@ -1417,17 +1470,21 @@ int	sm_SemTake(sm_SemId i)
 {
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem = semTbl + i;
-	int	result;
 
 	CHKERR(i >= 0);
 	CHKERR(i < SEM_NSEMS_MAX);
-	result = sem_wait(sem->id);
-	if (result < 0)
+	while (sem_wait(sem->id) < 0)
 	{
+		if (errno == EINTR)
+		{
+			continue;
+		}
+
 		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
 	}
 
-	return result;
+	return 0;
 }
 
 void	sm_SemGive(sm_SemId i)
@@ -1479,6 +1536,44 @@ void	sm_SemUnend(sm_SemId i)
 	CHKVOID(i >= 0);
 	CHKVOID(i < SEM_NSEMS_MAX);
 	sem->ended = 0;
+}
+
+int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
+{
+	SmSem		*semTbl = _semTbl();
+	SmSem		*sem = semTbl + i;
+	struct timespec	timeout;
+
+	CHKERR(i >= 0);
+	CHKERR(i < SEM_NSEMS_MAX);
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	oK(clock_gettime(CLOCK_REALTIME, &timeout));
+	timeout.tv_sec += timeoutSeconds;
+	while (sem_timedwait(sem->id, &timeout) < 0)
+	{
+		switch (errno)
+		{
+		case EINTR:
+			continue;
+			
+		case ETIMEDOUT:
+			break;	/*	Out of switch.			*/
+
+		default:
+			putSysErrmsg("Can't unwedge semaphore", itoa(i));
+			return -1;
+		}
+
+		break;		/*	Out of loop.			*/
+	}
+
+	if (sem_post(sem->id) < 0)
+	{
+		putSysErrmsg("Can't unwedge semaphore", itoa(i));
+		return -1;
+	}
+
+	return 0;
 }
 
 #endif			/*	End of #ifdef POSIX1B_SEMAPHORES	*/
@@ -1806,7 +1901,6 @@ int	sm_SemTake(sm_SemId i)
 	SemaphoreBase	*sembase = _sembase(0);
 	IciSemaphore	*sem;
 	IciSemaphoreSet	*semset;
-	int		result;
 	struct sembuf	sem_op[2] = { {0,0,0}, {0,1,0} };
 
 	CHKERR(sembase);
@@ -1821,21 +1915,16 @@ int	sm_SemTake(sm_SemId i)
 
 	semset = sembase->semSets + sem->semSetIdx;
 	sem_op[0].sem_num = sem_op[1].sem_num = sem->semNbr;
-	while (1)
+	if (semop(semset->semid, sem_op, 2) < 0)
 	{
-		result = semop(semset->semid, sem_op, 2);
-		if (result)
+		if (errno != EINTR)
 		{
-			if (errno == EINTR)
-			{
-				continue;
-			}
-
 			putSysErrmsg("Can't take semaphore", itoa(i));
+			return -1;
 		}
-
-		return result;
 	}
+
+	return 0;
 }
 
 void	sm_SemGive(sm_SemId i)
@@ -1851,7 +1940,7 @@ void	sm_SemGive(sm_SemId i)
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
 	{
-		writeMemoNote("[?] Can't give deleted semaphore", itoa(i));
+		putErrmsg("Can't give deleted semaphore.", itoa(i));
 		return;
 	}
 
@@ -1861,7 +1950,7 @@ void	sm_SemGive(sm_SemId i)
 	{
 		if (errno != EAGAIN)
 		{
-			writeMemoNote("[?] Can't give semaphore", itoa(i));
+			putSysErrmsg("Can't give semaphore", itoa(i));
 		}
 	}
 }
@@ -1908,6 +1997,56 @@ void	sm_SemUnend(sm_SemId i)
 	CHKVOID(i < sembase->semaphoresCount);
 	sem = sembase->semaphores + i;
 	sem->ended = 0;
+}
+
+static void	handleTimeout()
+{
+	return;
+}
+
+int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
+{
+	SemaphoreBase	*sembase = _sembase(0);
+	IciSemaphore	*sem;
+	IciSemaphoreSet	*semset;
+	struct sembuf	sem_op[3] = { {0,0,0}, {0,1,0}, {0,-1,IPC_NOWAIT} };
+
+	CHKERR(sembase);
+	CHKERR(i >= 0);
+	CHKERR(i < sembase->semaphoresCount);
+	sem = sembase->semaphores + i;
+	if (sem->key == -1)	/*	semaphore deleted		*/
+	{
+		putErrmsg("Can't unwedge deleted semaphore.", itoa(i));
+		return -1;
+	}
+
+	semset = sembase->semSets + sem->semSetIdx;
+	sem_op[0].sem_num = sem_op[1].sem_num = sem_op[2].sem_num = sem->semNbr;
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	isignal(SIGALRM, handleTimeout);
+	oK(alarm(timeoutSeconds));
+	if (semop(semset->semid, sem_op, 2) < 0)
+	{
+		if (errno != EINTR)
+		{
+			putSysErrmsg("Can't take semaphore", itoa(i));
+			return -1;
+		}
+	}
+
+	oK(alarm(0));
+	isignal(SIGALRM, SIG_DFL);
+	if (semop(semset->semid, sem_op + 2, 1) < 0)
+	{
+		if (errno != EAGAIN)
+		{
+			putSysErrmsg("Can't give semaphore", itoa(i));
+			return -1;
+		}
+	}
+
+	return 0;
 }
 
 #endif			/*	End of #ifdef SVR4_SEMAPHORES		*/
@@ -2938,138 +3077,6 @@ void	sm_ConfigurePthread(pthread_attr_t *attr, size_t stackSize)
 	{
 		oK(pthread_attr_setstacksize(attr, stackSize));
 	}
-}
-
-typedef struct
-{
-	sm_SemId	semid;
-	int		unwedged;
-	pthread_cond_t	*cv;
-} UnwedgeParms;
-
-static void	*checkSemaphore(void *parm)
-{
-	UnwedgeParms	*parms = (UnwedgeParms *) parm;
-
-	sm_SemTake(parms->semid);
-
-	/*	If semid is wedged, hang until parent thread times
-	 *	out and gives it.
-	 *
-	 *	When have successfully taken the semaphore (one way
-	 *	or another), give it up immediately.			*/
-
-	sm_SemGive(parms->semid);
-	parms->unwedged = 1;
-
-	/*	If semid was not wedged, then the parent thread is
-	 *	still waiting on the condition variable, in which
-	 *	case we need to signal it right away.  In any case,
-	 *	no harm in signaling it.				*/
-
-	pthread_cond_signal(parms->cv);
-	return NULL;
-}
-
-int	sm_SemUnwedge(sm_SemId semid, int interval)
-{
-	struct timeval	workTime;
-	struct timespec	deadline;
-	pthread_mutex_t	mutex;
-	pthread_cond_t	cv;
-	UnwedgeParms	parms;
-	int		result = 0;	/*	Semaphore not wedged.	*/
-	pthread_attr_t	attr;
-	pthread_t	unwedgeThread;
-
-	CHKERR(interval > 0);
-	if (sm_ipc_init())	/*	Shouldn't be needed, but okay.	*/
-	{
-		putErrmsg("Can't initialize IPC.", NULL);
-		return -1;
-	}
-
-	parms.semid = semid;
-	parms.unwedged = 0;
-	memset((char *) &mutex, 0, sizeof mutex);
-	if (pthread_mutex_init(&mutex, NULL))
-	{
-		putSysErrmsg("Can't initialize mutex", NULL);
-		return -1;
-	}
-
-	memset((char *) &cv, 0, sizeof cv);
-	if (pthread_cond_init(&cv, NULL))
-	{
-		oK(pthread_mutex_destroy(&mutex));
-		putSysErrmsg("Can't initialize condition variable", NULL);
-		return -1;
-	}
-
-	parms.cv = &cv;
-	getCurrentTime(&workTime);
-	deadline.tv_sec = workTime.tv_sec + interval;
-	deadline.tv_nsec = 0;
-
-	/*	Spawn a separate thread that hangs on the semaphore
-	 *	if it is wedged.					*/
-
-	sm_ConfigurePthread(&attr, 0);
-	errno = pthread_create(&unwedgeThread, &attr, checkSemaphore, &parms);
-	if (errno)
-	{
-		oK(pthread_mutex_destroy(&mutex));
-		oK(pthread_cond_destroy(&cv));
-		putSysErrmsg("Can't create unwedge thread", NULL);
-		return -1;
-	}
-
-	/*	At this point the child might already have taken and
-	 *	released the semaphore and terminated, in which case
-	 *	we want NOT to wait for a signal from it.		*/
-
-	if (parms.unwedged == 0)	/*	Child not ended yet.	*/
-	{
-	/*	Wait for all-OK signal from child; if none, give the
-	 *	semaphore.  Other tasks may already be hanging on this
-	 *	semaphore, so giving it may or may not enable the
-	 *	child thread to terminate immediately.  However, we
-	 *	expect that the other task(s) waiting on this semaphore
-	 *	will give it promptly after taking it, so that the
-	 *	child thread itself will eventually be able to take
-	 *	the semaphore, give it, and terminate cleanly.		*/
-
-		oK(pthread_mutex_lock(&mutex));
-		result = pthread_cond_timedwait(&cv, &mutex, &deadline);
-		oK(pthread_mutex_unlock(&mutex));
-		if (result)	/*	NOT signaled by child thread.	*/
-		{
-			if (result != ETIMEDOUT)
-			{
-				errno = result;
-				oK(pthread_mutex_destroy(&mutex));
-				oK(pthread_cond_destroy(&cv));
-				putSysErrmsg("pthread_cond_timedwait failed",
-						NULL);
-				return -1;
-			}
-
-			/*	Timeout: child stuck, semaphore wedged.	*/
-
-			sm_SemGive(semid);
-			result = 1;
-		}
-	}
-
-	/*	Giving the semaphore enables the unwedge thread to
-	 *	take it and thereupon give it back and return.  This
-	 *	enables the unwedge thread to terminate cleanly so
-	 *	that pthread_join() completes.				*/
-
-	oK(pthread_join(unwedgeThread, NULL));
-	oK(pthread_mutex_destroy(&mutex));
-	oK(pthread_cond_destroy(&cv));
-	return result;
 }
 
 int	pseudoshell(char *commandLine)

@@ -69,7 +69,8 @@ PUBINCLS = \
         $(INCL)/sdrlist.h	\
         $(INCL)/sdrtable.h	\
         $(INCL)/sdrhash.h	\
-        $(INCL)/sdr.h
+        $(INCL)/sdr.h		\
+	$(INCL)/smrbt.h
 
 ICIINCLS = \
         $(SRC)/lystP.h		\
@@ -95,6 +96,7 @@ ICISOURCES = \
 	$(SDR)/sdrtable.c	\
 	$(SDR)/sdrhash.c	\
 	$(SDR)/sdrcatlg.c	\
+	$(SDR)/smrbt.c		\
 	$(TEST)/file2sdr.c	\
 	$(TEST)/file2sm.c	\
 	$(TEST)/psmshell.c	\
@@ -129,6 +131,7 @@ ALLICIOBJS =		\
 	sdrtable.o	\
 	sdrhash.o	\
 	sdrcatlg.o	\
+	smrbt.o		\
 	file2sdr.o	\
 	file2sm.o	\
 	psmshell.	\

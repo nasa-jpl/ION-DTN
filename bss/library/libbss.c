@@ -58,9 +58,9 @@ void	bssClose()
 
 	if (_datFile(0,0) != -1)
 	{
-		close(_datFile(-1,0));
-		close(_lstFile(-1,0));
-		close(_tblFile(-1,0));
+		oK(_datFile(-1,0));
+		oK(_lstFile(-1,0));
+		oK(_tblFile(-1,0));
 	}
 	else
 	{

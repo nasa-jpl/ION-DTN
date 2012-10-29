@@ -7,6 +7,7 @@
 /*	All rights reserved.						*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 
+#include "zco.h"
 #include "rfx.h"
 
 static time_t	_referenceTime(time_t *newValue)
@@ -19,6 +20,24 @@ static time_t	_referenceTime(time_t *newValue)
 	}
 
 	return reftime;
+}
+
+static int	_forecastNeeded(int parm)
+{
+	static int	needed = 0;
+	int		result;
+
+	result = needed;
+	if (parm)	/*	Signaling that forecast is needed.	*/
+	{
+		needed = 1;
+	}
+	else		/*	Signaling intent to forecast as nec.	*/
+	{
+		needed = 0;	/*	Forecasting resets flag value.	*/
+	}
+
+	return result;
 }
 
 static int	_echo(int *newValue)
@@ -99,9 +118,11 @@ relative times (+ss) are computed.");
 	PUTS("\tm\tManage ION database: clock, space occupancy");
 	PUTS("\t   m utcdelta <local clock time minus UTC, in seconds>");
 	PUTS("\t   m clockerr <new known maximum clock error, in seconds>");
+	PUTS("\t   m clocksync [ { 0 | 1 } ]");
 	PUTS("\t   m production <new planned production rate, in bytes/sec>");
 	PUTS("\t   m consumption <new planned consumption rate, in bytes/sec>");
-	PUTS("\t   m occupancy <new occupancy limit value, in bytes>");
+	PUTS("\t   m occupancy <new ZCO heap occupancy limit, in MB; -1 means \
+\"unchanged\"> [<new ZCO file occupancy limit, in MB>]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m usage");
@@ -184,6 +205,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		xmitRate = strtol(tokens[6], NULL, 0);
 		oK(rfx_insert_contact(fromTime, toTime, fromNodeNbr,
 				toNodeNbr, xmitRate));
+		oK(_forecastNeeded(1));
 		return;
 	}
 
@@ -237,6 +259,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		oK(rfx_remove_contact(timestamp, fromNodeNbr, toNodeNbr));
+		oK(_forecastNeeded(1));
 		return;
 	}
 
@@ -370,7 +393,7 @@ static void	manageUtcDelta(int tokenCount, char **tokens)
 {
 	int	newDelta;
 
-	if (tokenCount!= 3)
+	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
 		return;
@@ -387,7 +410,7 @@ static void	manageClockError(int tokenCount, char **tokens)
 	IonDB	iondb;
 	int	newMaxClockError;
 
-	if (tokenCount!= 3)
+	if (tokenCount != 3)
 	{
 		SYNTAX_ERROR;
 		return;
@@ -410,6 +433,40 @@ static void	manageClockError(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageClockSync(int tokenCount, char **tokens)
+{
+	Sdr	sdr;
+	Object	iondbObj;
+	IonDB	iondb;
+	int	newSyncVal;
+	char	buffer[128];
+
+	if (tokenCount < 2 || tokenCount > 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (tokenCount == 3)
+	{
+		newSyncVal = atoi(tokens[2]);
+		sdr = getIonsdr();
+		iondbObj = getIonDbObject();
+		sdr_begin_xn(sdr);
+		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		iondb.clockIsSynchronized = (!(newSyncVal == 0));
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't change clock sync.", NULL);
+		}
+	}
+
+	isprintf(buffer, sizeof buffer, "clock sync = %d",
+			ionClockIsSynchronized());
+	printText(buffer);
+}
+
 static void	manageProduction(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
@@ -426,9 +483,7 @@ static void	manageProduction(int tokenCount, char **tokens)
 	newRate = atoi(tokens[2]);
 	if (newRate < 0)
 	{
-		putErrmsg("Planned bundle production rate can't be negative.",
-				itoa(newRate));
-		return;
+		newRate = -1;			/*	Not metered.	*/
 	}
 
 	sdr_begin_xn(sdr);
@@ -439,6 +494,8 @@ static void	manageProduction(int tokenCount, char **tokens)
 	{
 		putErrmsg("Can't change bundle production rate.", NULL);
 	}
+
+	oK(_forecastNeeded(1));
 }
 
 static void	manageConsumption(int tokenCount, char **tokens)
@@ -457,9 +514,7 @@ static void	manageConsumption(int tokenCount, char **tokens)
 	newRate = atoi(tokens[2]);
 	if (newRate < 0)
 	{
-		putErrmsg("Planned bundle consumption rate can't be negative.",
-				itoa(newRate));
-		return;
+		newRate = -1;			/*	Not metered.	*/
 	}
 
 	sdr_begin_xn(sdr);
@@ -470,6 +525,8 @@ static void	manageConsumption(int tokenCount, char **tokens)
 	{
 		putErrmsg("Can't change bundle consumption rate.", NULL);
 	}
+
+	oK(_forecastNeeded(1));
 }
 
 static void	manageOccupancy(int tokenCount, char **tokens)
@@ -477,31 +534,89 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
-	int	newLimit;
+	long	newFileLimit = -1;	/*	-1 = "unchanged"	*/
+	long	newHeapLimit = -1;	/*	-1 = "unchanged"	*/
+	Scalar	fileLimit;
+	long	maxHeapLimit;
+	Scalar	heapLimit;
 
-	if (tokenCount != 3)
+	switch (tokenCount)
 	{
+	case 4:
+		newFileLimit = strtol(tokens[3], NULL, 0);
+
+		/*	Intentional fall-through to next case.		*/
+
+	case 3:
+		newHeapLimit = strtol(tokens[2], NULL, 0);
+		break;
+
+	default:
 		SYNTAX_ERROR;
 		return;
 	}
 
-	newLimit = atoi(tokens[2]);
-	if (newLimit <= 0)
+	if (newFileLimit < -1)
 	{
-		putErrmsg("Bundle storage occupancy limit must be greater \
-than zero.", itoa(newLimit));
+		writeMemo("[?] ZCO file occupancy limit can't be negative.");
+		return;
+	}
+
+	if (newHeapLimit < -1)
+	{
+		writeMemo("[?] ZCO heap occupancy limit can't be negative.");
 		return;
 	}
 
 	sdr_begin_xn(sdr);
+	if (newFileLimit != -1)	/*	Overriding current value.	*/
+	{
+		fileLimit.gigs = newFileLimit / ONE_GIG;
+		fileLimit.units = newFileLimit % ONE_GIG;
+
+		/*	Convert from MB to bytes.			*/
+
+		multiplyScalar(&fileLimit, 1000000);
+		zco_set_max_file_occupancy(sdr, &fileLimit);
+		writeMemo("[i] ZCO max file space changed.");
+	}
+
+	if (newHeapLimit != -1)	/*	Overriding the default.		*/
+	{
+		maxHeapLimit = (sdr_heap_size(sdr) / 100)
+				* (100 - ION_SEQUESTERED);
+		if (newHeapLimit > (maxHeapLimit / 1000000))
+		{
+			writeMemo("[i] New ZCO heap limit invalid!");
+		}
+		else
+		{
+			heapLimit.gigs = newHeapLimit / ONE_GIG;
+			heapLimit.units = newHeapLimit % ONE_GIG;
+
+			/*	Convert from MB to bytes.		*/
+
+			multiplyScalar(&heapLimit, 1000000);
+			zco_set_max_heap_occupancy(sdr, &heapLimit);
+			writeMemo("[i] ZCO max heap changed.");
+		}
+	}
+
+	/*	Revise occupancy ceiling and reserve as needed.		*/
+
+	zco_get_max_heap_occupancy(sdr, &heapLimit);
+	zco_get_max_file_occupancy(sdr, &fileLimit);
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	iondb.occupancyCeiling = newLimit;
+	iondb.occupancyCeiling = fileLimit.gigs + heapLimit.gigs;
+	iondb.occupancyCeiling *= ONE_GIG;
+	iondb.occupancyCeiling += (fileLimit.units + heapLimit.units);
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't change bundle storage occupancy limit.",
-				NULL);
+		putErrmsg("Can't change bundle storage occupancy limit.", NULL);
 	}
+
+	oK(_forecastNeeded(1));
 }
 
 static void	manageHorizon(int tokenCount, char **tokens)
@@ -538,6 +653,8 @@ static void	manageHorizon(int tokenCount, char **tokens)
 	{
 		putErrmsg("Can't change congestion forecast horizon.", NULL);
 	}
+
+	oK(_forecastNeeded(1));
 }
 
 static void	manageAlarm(int tokenCount, char **tokens)
@@ -581,6 +698,12 @@ static void	manageUsage(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(IonDB, iondb);
 	char	buffer[128];
+	Scalar	heapOccupancy;
+	double	heapSpaceMBInUse;
+	Scalar	fileOccupancy;
+	double	fileSpaceMBInUse;
+	double	occupancyCeiling;	/*	In MBytes.		*/
+	double	maxForecastOccupancy;	/*	In MBytes.		*/
 
 	if (tokenCount != 2)
 	{
@@ -588,10 +711,21 @@ static void	manageUsage(int tokenCount, char **tokens)
 		return;
 	}
 
+	sdr_begin_xn(sdr);
+	zco_get_heap_occupancy(sdr, &heapOccupancy);
+	zco_get_file_occupancy(sdr, &fileOccupancy);
+	oK(sdr_end_xn(sdr));
+	heapSpaceMBInUse = (heapOccupancy.units
+			+ (ONE_GIG * heapOccupancy.gigs)) / 1000000;
+	fileSpaceMBInUse = (fileOccupancy.units
+			+ (ONE_GIG * fileOccupancy.gigs)) / 1000000;
 	GET_OBJ_POINTER(sdr, IonDB, iondb, getIonDbObject());
-	isprintf(buffer, sizeof buffer, "current = %ld  limit = %ld  max \
-forecast = %ld", iondb->currentOccupancy, iondb->occupancyCeiling,
-			iondb->maxForecastOccupancy);
+	occupancyCeiling = iondb->occupancyCeiling / 1000000;
+	maxForecastOccupancy = iondb->maxForecastOccupancy / 1000000;
+	isprintf(buffer, sizeof buffer, "current heap %.2f MB, \
+current file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
+			heapSpaceMBInUse, fileSpaceMBInUse, occupancyCeiling,
+			maxForecastOccupancy);
 	printText(buffer);
 }
 
@@ -612,6 +746,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "clockerr") == 0)
 	{
 		manageClockError(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "clocksync") == 0)
+	{
+		manageClockSync(tokenCount, tokens);
 		return;
 	}
 
@@ -763,7 +903,7 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case 'v':
-			isprintf(buffer, sizeof buffer, "ION version %s.",
+			isprintf(buffer, sizeof buffer, "%s",
 					IONVERSIONNUMBER);
 			printText(buffer);
 			return 0;
@@ -998,11 +1138,10 @@ static int	runIonadmin(char *cmdFileName)
 	writeErrmsgMemos();
 	if (ionAttach() == 0)
 	{
-		oK(checkForCongestion());
-	}
-	else
-	{
-		printText("Can't check for congestion.");
+		if (_forecastNeeded(0))
+		{
+			oK(pseudoshell("ionwarn"));
+		}
 	}
 
 	printText("Stopping ionadmin.");

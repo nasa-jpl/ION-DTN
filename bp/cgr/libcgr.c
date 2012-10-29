@@ -233,6 +233,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 	time_t		earliestDeliveryTime = MAX_TIME;
 	IonCXref	*nextContact;
 	time_t		earliestArrivalTime;
+	time_t		earliestEndTime;
 	PsmAddress	addr;
 
 	/*	This is an implementation of Dijkstra's Algorithm.	*/
@@ -268,17 +269,6 @@ contact->fromNode, contact->toNode, contact->fromTime);
 #if CGRDEBUG
 printf("Contact to node %lu is suppressed or visited.\n", contact->toNode);
 #endif
-				continue;
-			}
-
-			if (contact->toNode == contact->fromNode)
-			{
-#if CGRDEBUG
-printf("Contact to node %lu is loopback.\n", contact->toNode);
-#endif
-				/*	Loopback contact; can't
-				 *	consider in CGR.		*/
-
 				continue;
 			}
 
@@ -348,7 +338,6 @@ printf("Don't have range for this contact.\n");
 				continue;
 			}
 
-
 			/*	Allow for possible additional latency
 			 *	due to the movement of the receiving
 			 *	node during the propagation of signal
@@ -360,7 +349,6 @@ printf("Don't have range for this contact.\n");
 
 			/*	Compute cost of choosing this edge:
 			 *	earliest bundle arrival time.		*/
-
 #if CGRDEBUG
 printf("currentWork->arrival time %lu, contact->fromTime %lu, owlt %lu.\n",
 currentWork->arrivalTime, contact->fromTime, owlt);
@@ -465,11 +453,19 @@ printf("Found route with delivery time %lu.\n", earliestDeliveryTime);
 #endif
 		route->deliveryTime = earliestDeliveryTime;
 
-		/*	Load the entire route, backtracking to root.	*/
+		/*	Load the entire route into the "hops" list,
+		 *	backtracking to root, and compute the time
+		 *	at which the route will become unusable.	*/
 
+		earliestEndTime = MAX_TIME;
 		for (contact = finalContact; contact != rootContact;
 				contact = work->predecessor)
 		{
+			if (contact->toTime < earliestEndTime)
+			{
+				earliestEndTime = contact->toTime;
+			}
+
 			addr = psa(ionwm, contact);
 			if (sm_list_insert_first(ionwm, route->hops, addr) == 0)
 			{
@@ -489,7 +485,62 @@ printf("Found route with delivery time %lu.\n", earliestDeliveryTime);
 		contact = (IonCXref *) psp(ionwm, addr);
 		route->toNodeNbr = contact->toNode;
 		route->fromTime = contact->fromTime;
-		route->toTime = contact->toTime;
+		route->toTime = earliestEndTime;
+	}
+
+	return 0;
+}
+
+static int	findNextBestRoute(PsmPartition ionwm, IonCXref *rootContact,
+			CgrContactNote *rootWork, IonNode *stationNode,
+			PsmAddress *routeAddr)
+{
+	PsmAddress	addr;
+	CgrRoute	*route;
+
+	*routeAddr = 0;		/*	Default.			*/
+	addr = psm_zalloc(ionwm, sizeof(CgrRoute));
+	if (addr == 0)
+	{
+		putErrmsg("Can't create CGR route.", NULL);
+		return -1;
+	}
+
+	route = (CgrRoute *) psp(ionwm, addr);
+	memset((char *) route, 0, sizeof(CgrRoute));
+	route->hops = sm_list_create(ionwm);
+	if (route->hops == 0)
+	{
+		psm_free(ionwm, addr);
+		putErrmsg("Can't create CGR route hops list.", NULL);
+		return -1;
+	}
+
+	/*	Run Dijkstra search.					*/
+
+	if (computeDistanceToStation(rootContact, rootWork, stationNode, route)
+			< 0)
+	{
+		putErrmsg("Can't finish Dijstra search.", NULL);
+		return -1;
+	}
+
+	if (route->toNodeNbr == 0)
+	{
+#if CGRDEBUG
+printf("No more routes to node %lu.\n", stationNode->nodeNbr);
+#endif
+		/*	No more routes found in graph.			*/
+
+		sm_list_destroy(ionwm, route->hops, NULL, NULL);
+		psm_free(ionwm, addr);
+		*routeAddr = 0;
+	}
+	else
+	{
+		/*	Found best route, given current exclusions.	*/
+
+		*routeAddr = addr;
 	}
 
 	return 0;
@@ -554,15 +605,15 @@ static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime)
 		memset((char *) work, 0, sizeof(CgrContactNote));
 		work->arrivalTime = MAX_TIME;
 	}
+
 #if CGRDEBUG
 printf("Computing all routes from node %lu to node %lu.\n", getOwnNodeNbr(),
 stationNode->nodeNbr);
 #endif
-
-	/*	Now note all routes (transmission sequences, i.e.,
-	 *	itineraries) from the local node that can result
-	 *	in delivery at the remote node.  To do this, we
-	 *	run multiple Dijkstra searches through the contact
+	/*	Now note the best routes (transmission sequences,
+	 *	paths, itineraries) from the local node that can
+	 *	result in delivery at the remote node.  To do this,
+	 *	we run multiple Dijkstra searches through the contact
 	 *	graph, rooted at a dummy contact from the local node
 	 *	to itself and terminating in the "final contact"
 	 *	(which is the station node's contact with itself).
@@ -574,47 +625,17 @@ stationNode->nodeNbr);
 	rootWork.arrivalTime = currentTime;
 	while (1)
 	{
-		/*	Create route object.				*/
-
-		routeAddr = psm_zalloc(ionwm, sizeof(CgrRoute));
-		if (routeAddr == 0)
+		if (findNextBestRoute(ionwm, &rootContact, &rootWork,
+				stationNode, &routeAddr) < 0)
 		{
-			putErrmsg("Can't create CGR route.", NULL);
+			putErrmsg("Can't load routes list.", NULL);
 			return 0;
 		}
 
-		route = (CgrRoute *) psp(ionwm, routeAddr);
-		memset((char *) route, 0, sizeof(CgrRoute));
-		route->hops = sm_list_create(ionwm);
-		if (route->hops == 0)
+		if (routeAddr == 0)	/*	No more routes to load.	*/
 		{
-			psm_free(ionwm, routeAddr);
-			putErrmsg("Can't create CGR route hops list.", NULL);
-			return 0;
-		}
-
-		/*	Run Dijkstra search.				*/
-
-		if (computeDistanceToStation(&rootContact, &rootWork,
-				stationNode, route) < 0)
-		{
-			putErrmsg("Can't finish Dijstra search.", NULL);
-			return 0;
-		}
-
-		if (route->toNodeNbr == 0)
-		{
-#if CGRDEBUG
-printf("No more routes to node %lu.\n", stationNode->nodeNbr);
-#endif
-			/*	No more routes found in graph.		*/
-
-			sm_list_destroy(ionwm, route->hops, NULL, NULL);
-			psm_free(ionwm, routeAddr);
 			return stationNode->routingObject;
 		}
-
-		/*	Found best route, given current exclusions.	*/
 
 #if CGRDEBUG
 printf("Found route via node %lu starting at %lu, delivery at %lu.\n",
@@ -630,6 +651,7 @@ route->toNodeNbr, route->fromTime, route->deliveryTime);
 		/*	Now exclude the initial contact in the optimal
 		 *	path, re-clear, and try again.			*/
 
+		route = (CgrRoute *) psp(ionwm, routeAddr);
 		firstContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
 				sm_list_first(ionwm, route->hops)));
 		work = (CgrContactNote *)
@@ -643,12 +665,165 @@ route->toNodeNbr, route->fromTime, route->deliveryTime);
 			work = (CgrContactNote *)
 					psp(ionwm, contact->routingObject);
 			work->arrivalTime = MAX_TIME;
+			work->predecessor = NULL;
 			work->visited = 0;
 		}
 	}
 }
 
 /*		Functions for identifying viable proximate nodes.	*/
+
+static int	recomputeRouteForContact(unsigned long contactToNodeNbr,
+			time_t contactFromTime, IonNode *stationNode,
+			time_t currentTime)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*vdb = getIonVdb();
+	PsmAddress	routes;
+	IonCXref	arg;
+	PsmAddress	cxelt;
+	PsmAddress	nextElt;
+	IonCXref	*contact;
+	CgrContactNote	*work;
+	PsmAddress	elt;
+	CgrRoute	*route;
+	IonCXref	rootContact;
+	CgrContactNote	rootWork;
+	PsmAddress	routeAddr;
+	CgrRoute	*newRoute;
+
+	routes = stationNode->routingObject;
+	arg.fromNode = getOwnNodeNbr();
+	arg.toNode = contactToNodeNbr;
+	arg.fromTime = contactFromTime;
+	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
+			&arg, &nextElt);
+	if (cxelt == 0)
+	{
+		return 0;	/*	Can't find the contact.		*/
+	}
+
+	contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, cxelt));
+	if (contact->toTime <= currentTime)
+	{
+		return 0;	/*	Contact is expired.		*/
+	}
+
+	/*	Recompute route through this leading contact.  First
+	 *	clear Dijkstra work areas for all contacts in the
+	 *	contactIndex.						*/
+
+	for (cxelt = sm_rbt_first(ionwm, vdb->contactIndex); cxelt;
+			cxelt = sm_rbt_next(ionwm, cxelt))
+	{
+		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, cxelt));
+		if ((work = (CgrContactNote *) psp(ionwm,
+				contact->routingObject)) == 0)
+		{
+			contact->routingObject = psm_zalloc(ionwm,
+					sizeof(CgrContactNote));
+			work = (CgrContactNote *) psp(ionwm,
+					contact->routingObject);
+			if (work == 0)
+			{
+				putErrmsg("Can't create CGR contact note.",
+						NULL);
+				return -1;
+			}
+		}
+
+		memset((char *) work, 0, sizeof(CgrContactNote));
+		work->arrivalTime = MAX_TIME;
+	}
+
+	/*	Now suppress from consideration as lead contact
+	 *	every contact that is already the leading contact of
+	 *	any remaining route in stationNode's list of routes.	*/
+
+	for (elt = sm_list_first(ionwm, routes); elt; elt =
+			sm_list_next(ionwm, elt))
+	{
+		route = (CgrRoute *) psp(ionwm, sm_list_data(ionwm, elt));
+		arg.fromNode = getOwnNodeNbr();
+		arg.toNode = route->toNodeNbr;
+		arg.fromTime = route->fromTime;
+		cxelt = sm_rbt_search(ionwm, vdb->contactIndex,
+				rfx_order_contacts, &arg, &nextElt);
+		if (cxelt == 0)
+		{
+			/*	This is an old route, for a contact
+			 *	that is already endd, but the route
+			 *	hasn't been purged yet because it
+			 *	hasn't been used recently.  Ignore it.	*/
+
+			continue;
+		}
+
+		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, cxelt));
+		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
+		work->suppressed = 1;
+	}
+
+	/*	Next invoke findNextBestRoute to produce a new route
+	 *	starting at the subject contact.			*/
+
+	rootContact.fromNode = getOwnNodeNbr();
+	rootContact.toNode = rootContact.fromNode;
+	rootWork.arrivalTime = currentTime;
+	if (findNextBestRoute(ionwm, &rootContact, &rootWork,
+			stationNode, &routeAddr) < 0)
+	{
+		putErrmsg("Can't recompute route.", NULL);
+		return -1;
+	}
+
+	if (routeAddr == 0)		/*	No route computed.	*/
+	{
+		return 0;
+	}
+
+	/*	Finally, insert that route into the stationNode's
+	 *	list of routes in deliveryTime order.			*/
+
+	newRoute = (CgrRoute *) psp(ionwm, routeAddr);
+	for (elt = sm_list_first(ionwm, routes); elt; elt =
+			sm_list_next(ionwm, elt))
+	{
+		route = (CgrRoute *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (route->deliveryTime <= newRoute->deliveryTime)
+		{
+			continue;
+		}
+
+		break;		/*	Insert before this route.	*/
+	}
+
+	if (elt)
+	{
+		sm_list_insert_before(ionwm, elt, routeAddr);
+	}
+	else
+	{
+		sm_list_insert_last(ionwm, routes, routeAddr);
+	}
+
+	return 1;
+}
+
+static int	isExcluded(unsigned long nodeNbr, Lyst excludedNodes)
+{
+	LystElt	elt;
+
+	for (elt = lyst_first(excludedNodes); elt; elt = lyst_next(elt))
+	{
+		if ((unsigned long) lyst_data(elt) == nodeNbr)
+		{
+			return 1;	/*	Node is in the list.	*/
+		}
+	}
+
+	return 0;
+}
 
 static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 			Object plans, CgrLookupFn getDirective,
@@ -903,21 +1078,6 @@ route->toNodeNbr, hopCount, route->deliveryTime);
 	return 0;
 }
 
-static int	isExcluded(unsigned long nodeNbr, Lyst excludedNodes)
-{
-	LystElt	elt;
-
-	for (elt = lyst_first(excludedNodes); elt; elt = lyst_next(elt))
-	{
-		if ((unsigned long) lyst_data(elt) == nodeNbr)
-		{
-			return 1;	/*	Node is in the list.	*/
-		}
-	}
-
-	return 0;
-}
-
 static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 			Object bundleObj, Lyst excludedNodes, Object plans,
 			CgrLookupFn getDirective, Lyst proximateNodes)
@@ -930,6 +1090,8 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 	PsmAddress	nextElt;
 	PsmAddress	addr;
 	CgrRoute	*route;
+	unsigned long	contactToNodeNbr;
+	time_t		contactFromTime;
 	Scalar		capacity;
 	unsigned long	radiationLatency;
 	PsmAddress	elt2;
@@ -971,9 +1133,11 @@ route->toNodeNbr, route->fromTime, route->deliveryTime);
 #endif
 		if (route->toTime < currentTime)
 		{
-			/*	This route starts with a contact
+			/*	This route leads off with a contact
 			 *	that has already ended; delete it.	*/
 
+			contactToNodeNbr = route->toNodeNbr;
+			contactFromTime = route->fromTime;
 			if (route->hops)
 			{
 				sm_list_destroy(ionwm, route->hops, NULL, NULL);
@@ -981,6 +1145,26 @@ route->toNodeNbr, route->fromTime, route->deliveryTime);
 
 			psm_free(ionwm, addr);
 			sm_list_delete(ionwm, elt, NULL, NULL);
+			switch (recomputeRouteForContact(contactToNodeNbr,
+				contactFromTime, stationNode, currentTime))
+			{
+			case -1:
+				putErrmsg("Route recomputation failed.", NULL);
+				return -1;
+
+			case 0:
+				break;	/*	Lead contact defunct.	*/
+
+			default:
+				/*	Route through this lead contact
+				 *	has been recomputed and inserted
+				 *	into the list of routes.  Must
+				 *	start again from the beginning
+				 *	of the list.			*/
+
+				nextElt = sm_list_first(ionwm, routes);
+			}
+
 			continue;
 		}
 

@@ -28,8 +28,6 @@
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
 
-#define SDR_LIST_OVERHEAD	(WORD_SIZE * 4)
-#define SDR_LIST_ELT_OVERHEAD	(WORD_SIZE * 4)
 #define	BASE_BUNDLE_OVERHEAD	(sizeof(Bundle))
 
 #ifndef BUNDLES_HASH_KEY_LEN
@@ -47,13 +45,210 @@
 #endif
 
 static BpVdb	*_bpvdb(char **);
+static int	constructCtSignal(BpCtSignal *csig, Object *zco);
+static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco);
 
-static int	noteCtSignal(Bundle *bundle, AcqWorkArea *work,
-			char *dictionary, int succeeded, BpCtReason reasonCode);
+/*	*	*	ACS adaptation		*	*	*	*/
 
 #ifdef ENABLE_BPACS
-#include "acs/acs.h"
-#endif
+#include "acs.h"
+
+static void	bpDestroyBundle_ACS(Bundle *bundle)
+{
+	if (bundle->bundleProcFlags & BDL_IS_CUSTODIAL)
+	{
+		/*	Destroy the metadata that ACS is keeping for
+		 *	this bundle.					*/
+
+		destroyAcsMetadata(bundle);
+	}
+}
+
+static int	parseACS(int adminRecordType, void **otherPtr,
+			unsigned char *cursor, int unparsedBytes,
+			int bundleIsFragment)
+{
+	if (adminRecordType != BP_AGGREGATE_CUSTODY_SIGNAL)
+	{
+		return -2;
+	}
+
+	return parseAggregateCtSignal(otherPtr, cursor, unparsedBytes,
+			bundleIsFragment);
+}
+
+static int	applyACS(int adminRecType, void *other, BpDelivery *dlv,
+			CtSignalCB handleCtSignal)
+{
+	if (adminRecType != BP_AGGREGATE_CUSTODY_SIGNAL)
+	{
+		return -2;
+	}
+
+	if (handleAcs(other, dlv, handleCtSignal) == 0)
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+#else		/*	Stub functions to enable build.			*/
+
+static void	bpDestroyBundle_ACS(Bundle *bundle)
+{
+	return;
+}
+
+static int	offerNoteAcs(Bundle *b, AcqWorkArea *w, char *d, int s,
+			BpCtReason r)
+{
+	return 0;
+}
+
+static int	parseACS(int adminRecordType, void **otherPtr,
+			unsigned char *cursor, int unparsedBytes,
+			int bundleIsFragment)
+{
+	return -2;
+}
+
+static int	applyACS(int adminRecType, void *other, BpDelivery *dlv,
+			CtSignalCB handleCtSignal)
+{
+	return -2;
+}
+
+#endif	/*	ENABLE_BPACS	*/
+
+/*	*	*	IMC Multicast adaptation	*	*	*/
+
+#ifdef ENABLE_IMC
+#include "imcP.h"
+
+static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
+{
+	MetaEid		metaEid;
+	PsmAddress	elt;
+	int		result;
+
+	if (vscheme->unicast || vscheme->cbhe == 0 || eid == NULL)
+	{
+		return 0;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	/*	We know the EID parses okay, because it was already
+	 *	parsed earlier in addEndpoint.				*/
+
+	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	if (metaEid.serviceNbr != 0)
+	{
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
+		return 0;
+	}
+
+	result = imcJoin(metaEid.nodeNbr);
+	restoreEidString(&metaEid);
+	return result;
+}
+
+static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
+{
+	MetaEid		metaEid;
+	PsmAddress	elt;
+	int		result;
+
+	if (vscheme->unicast || vscheme->cbhe == 0 || eid == NULL)
+	{
+		return 0;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	/*	We know the EID parses okay, because it was already
+	 *	parsed earlier in removeEndpoint.			*/
+
+	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	if (metaEid.serviceNbr != 0)
+	{
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
+		return 0;
+	}
+
+	result = imcLeave(metaEid.nodeNbr);
+	restoreEidString(&metaEid);
+	return result;
+}
+
+static int	parseImcPetition(int adminRecordType, void **otherPtr,
+			unsigned char *cursor, int unparsedBytes)
+{
+	if (adminRecordType != BP_MULTICAST_PETITION)
+	{
+		return -2;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	return imcParsePetition(otherPtr, cursor, unparsedBytes);
+}
+
+static int	applyImcPetition(int adminRecType, void *other, BpDelivery *dlv)
+{
+	if (adminRecType != BP_MULTICAST_PETITION)
+	{
+		return -2;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	return imcHandlePetition(other, dlv);
+}
+
+#else		/*	Stub functions to enable build.			*/
+
+static int	addEndpoint_IMC(VScheme *scheme, char *eid)
+{
+	return 0;
+}
+
+static int	removeEndpoint_IMC(VScheme *scheme, char *eid)
+{
+	return 0;
+}
+
+static int	parseImcPetition(int adminRecordType, void **otherPtr,
+			unsigned char *cursor, int unparsedBytes)
+{
+	return -2;
+}
+
+static int	applyImcPetition(int adminRecType, void *other, BpDelivery *dlv)
+{
+	return -2;
+}
+
+#endif	/*	ENABLE_IMC	*/
 
 /*	*	*	Helpful utility functions	*	*	*/
 
@@ -94,20 +289,34 @@ static char	*_nullEid()
 	return "dtn:none";
 }
 
-/*	Note that ION currently supports CBHE compression only for
- *	a single DTN endpoint scheme.					*/
-
-static char	*_cbheSchemeName()
+static int	isCbhe(char *schemeName)
 {
-	return "ipn";
+	if (strcmp(schemeName, "ipn") == 0)
+	{
+		return 1;
+	}
+
+	if (strcmp(schemeName, "imc") == 0)
+	{
+		return 1;
+	}
+
+	return 0;
 }
 
-/*	This is the scheme name for the legacy endpoint naming scheme
- *	developed for the DTN2 implementation.				*/
-
-static char	*_dtn2SchemeName()
+static int	isUnicast(char *schemeName)
 {
-	return "dtn";
+	if (strcmp(schemeName, "ipn") == 0)
+	{
+		return 1;
+	}
+
+	if (strcmp(schemeName, "dtn") == 0)
+	{
+		return 1;
+	}
+
+	return 0;
 }
 
 /*	*	*	Instrumentation functions	*	*	*/
@@ -545,7 +754,9 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	memset((char *) vscheme, 0, sizeof(VScheme));
 	vscheme->schemeElt = schemeElt;
 	istrcpy(vscheme->name, scheme.name, sizeof vscheme->name);
+	vscheme->nameLength = scheme.nameLength;
 	vscheme->cbhe = scheme.cbhe;
+	vscheme->unicast = scheme.unicast;
 	vscheme->endpoints = sm_list_create(bpwm);
 	if (vscheme->endpoints == 0)
 	{
@@ -567,11 +778,6 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 		}
 	}
 
-	if (vscheme->cbhe)
-	{
-		bpvdb->cbheScheme = addr;
-	}
-
 	vscheme->semaphore = SM_SEM_NONE;
 	resetScheme(vscheme);
 	return 0;
@@ -580,7 +786,6 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
 {
 	PsmPartition	bpwm = getIonwm();
-	BpVdb		*bpvdb = _bpvdb(NULL);
 	PsmAddress	vschemeAddr;
 	PsmAddress	elt;
 	PsmAddress	nextElt;
@@ -603,11 +808,6 @@ static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
 		dropEndpoint(vpoint, elt);
 	}
 
-	if (strcmp(vscheme->name, _cbheSchemeName()) == 0)
-	{
-		bpvdb->cbheScheme = 0;
-	}
-
 	oK(sm_list_delete(bpwm, vschemeElt, NULL, NULL));
 	psm_free(bpwm, vschemeAddr);
 }
@@ -624,58 +824,54 @@ static void	startScheme(VScheme *vscheme)
 	Scheme		scheme;
 	char		cmdString[SDRSTRING_BUFSZ];
 
-	/*	Compute custodian EID for this scheme.			*/
+	/*	Compute admin EID for this scheme.			*/
 
-	if (strcmp(vscheme->name, _cbheSchemeName()) == 0)
+	if (isUnicast(vscheme->name))
 	{
-		isprintf(vscheme->custodianEidString,
-			sizeof vscheme->custodianEidString, "%.8s:%lu.0",
-			_cbheSchemeName(), getOwnNodeNbr());
-	}
-	else if (strcmp(vscheme->name, _dtn2SchemeName()) == 0)
-	{
-#ifdef ION_NO_DNS
-		istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
-#else
-		getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
-#endif
-		isprintf(vscheme->custodianEidString,
-				sizeof vscheme->custodianEidString,
-				"%.15s://%.60s.dtn", _dtn2SchemeName(),
-				hostNameBuf);
-	}
-	else	/*	Unknown scheme; no known custodian EID format.	*/
-	{
-		istrcpy(vscheme->custodianEidString, _nullEid(),
-				sizeof vscheme->custodianEidString);
-	}
-
-	if (parseEidString(vscheme->custodianEidString,
-			&metaEid, &vscheme2, &vschemeElt) == 0)
-	{
-		restoreEidString(&metaEid);
-		writeMemoNote("[?] Malformed custodian EID string",
-				vscheme->custodianEidString);
-		vscheme->custodianSchemeNameLength = 0;
-		vscheme->custodianNssLength = 0;
-	}
-	else
-	{
-		vscheme->custodianSchemeNameLength = metaEid.schemeNameLength;
-		vscheme->custodianNssLength = metaEid.nssLength;
-
-		/*	Make sure endpoint exists for custodian EID.	*/
-
-		findEndpoint(vscheme->name, metaEid.nss, vscheme, &vpoint,
-				&vpointElt);
-		restoreEidString(&metaEid);
-		if (vpointElt == 0)
+		if (isCbhe(vscheme->name))
 		{
-			if (addEndpoint(vscheme->custodianEidString,
-					EnqueueBundle, NULL) < 1)
+			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+				"%.8s:%lu.0", vscheme->name, getOwnNodeNbr());
+		}
+		else	/*	Assume it's "dtn".			*/
+		{
+#ifdef ION_NO_DNS
+			istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
+#else
+			getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
+#endif
+			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+				"%.15s://%.60s.dtn", vscheme->name,
+				hostNameBuf);
+		}
+
+		if (parseEidString(vscheme->adminEid, &metaEid, &vscheme2,
+				&vschemeElt) == 0)
+		{
+			restoreEidString(&metaEid);
+			writeMemoNote("[?] Malformed admin EID string",
+					vscheme->adminEid);
+			vscheme->adminNSSLength = 0;
+		}
+		else
+		{
+			vscheme->adminNSSLength = metaEid.nssLength;
+
+			/*	Make sure admin endpoint exists.	*/
+
+			findEndpoint(vscheme->name, metaEid.nss, vscheme,
+					&vpoint, &vpointElt);
+			restoreEidString(&metaEid);
+			if (vpointElt == 0)
 			{
-				putErrmsg("Can't add custodian endpoint.",
-						vscheme->custodianEidString);
+				if (addEndpoint(vscheme->adminEid,
+						EnqueueBundle, NULL) < 1)
+				{
+					restoreEidString(&metaEid);
+					writeMemoNote("Can't add admin \
+endpoint", vscheme->adminEid);
+					vscheme->adminNSSLength = 0;
+				}
 			}
 		}
 	}
@@ -1596,42 +1792,20 @@ int	bpAttach()
 
 /*	*	*	Database occupancy functions	*	*	*/
 
-void	manageProductionThrottle(BpVdb *bpvdb)
-{
-	IonDB		iondb;
-	Throttle	*throttle;
-	long		occupancy;
-	long		unoccupied;
-
-	sdr_read(getIonsdr(), (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	throttle = &(bpvdb->productionThrottle);
-	if (iondb.maxForecastInTransit > iondb.currentOccupancy)
-	{
-		occupancy = iondb.maxForecastInTransit;
-	}
-	else
-	{
-		occupancy = iondb.currentOccupancy;
-	}
-
-	unoccupied = iondb.occupancyCeiling - occupancy;
-	throttle->capacity = unoccupied - iondb.receptionSpikeReserve;
-	if (throttle->capacity > 0)
-	{
-		sm_SemGive(throttle->semaphore);
-	}
-}
-
 static void	noteBundleInserted(Bundle *bundle)
 {
-	ionOccupy(bundle->dbTotal);
-	manageProductionThrottle(getBpVdb());
+	Scalar	delta;
+
+	loadScalar(&delta, bundle->dbOverhead);
+	zco_increase_heap_occupancy(getIonsdr(), &delta);
 }
 
 static void	noteBundleRemoved(Bundle *bundle)
 {
-	ionVacate(bundle->dbTotal);
-	manageProductionThrottle(getBpVdb());
+	Scalar	delta;
+
+	loadScalar(&delta, bundle->dbOverhead);
+	zco_reduce_heap_occupancy(getIonsdr(), &delta);
 }
 
 /*	*	*	Useful utility functions	*	*	*/
@@ -1863,16 +2037,17 @@ void	restoreEidString(MetaEid *metaEid)
 	}
 }
 
-static int	printCbheEid(CbheEid *eid, char **result)
+static int	printCbheEid(char *schemeName, CbheEid *eid, char **result)
 {
 	char	*eidString;
 	int	eidLength = 46;
 
 	/*	Printed EID string is
 	 *
-	 *	   ipn:<elementnbr>.<servicenbr>\0
+	 *	   xxx:<elementnbr>.<servicenbr>\0
 	 *
-	 *	so max EID string length is 3 for "ipn" plus 1 for
+	 * 	where xxx is either "ipn" or "imc" (multicast).
+	 *	So max EID string length is 3 for "xxx" plus 1 for
 	 *	':' plus max length of nodeNbr (which is a 64-bit
 	 *	number, so 20 digits) plus 1 for '.' plus max lengthx
 	 *	of serviceNbr (which is a 64-bit number, so 20 digits)
@@ -1891,8 +2066,8 @@ static int	printCbheEid(CbheEid *eid, char **result)
 	}
 	else
 	{
-		isprintf(eidString, eidLength, "ipn:%lu.%lu", eid->nodeNbr,
-				eid->serviceNbr);
+		isprintf(eidString, eidLength, "%s:%lu.%lu", schemeName,
+				eid->nodeNbr, eid->serviceNbr);
 	}
 
 	*result = eidString;
@@ -1930,7 +2105,14 @@ int	printEid(EndpointId *eid, char *dictionary, char **result)
 	CHKERR(result);
 	if (eid->cbhe)
 	{
-		return printCbheEid(&eid->c, result);
+		if (eid->unicast)
+		{
+			return printCbheEid("ipn", &eid->c, result);
+		}
+		else
+		{
+			return printCbheEid("imc", &eid->c, result);
+		}
 	}
 	else
 	{
@@ -1993,6 +2175,7 @@ void	getSenderEid(char **eidBuffer, char *neighborClEid)
 		case -1:
 			putErrmsg("Failed getting sender EID.", NULL);
 			sm_Abort();
+			break;
 
 		case 0:
 			continue;	/*	No match yet.		*/
@@ -2041,6 +2224,15 @@ int	clIdMatches(char *neighborClId, FwdDirective *dir)
 		ductObj = sdr_list_data(sdr, dir->outductElt);
 		GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
 		ductClId = duct->name;
+	}
+
+	if (strcmp(ductClId, "localhost") == 0)
+	{
+		/*	Convert to dotted-string representation for
+		 *	match with canonical form of the IPv4 address
+		 *	that the neighbor CL ID must be.		*/
+
+		ductClId = "127.0.0.1";
 	}
 
 	ductIdLen = strlen(ductClId);
@@ -2119,43 +2311,44 @@ static void	lookUpEidScheme(EndpointId eid, char *dictionary,
 {
 	PsmPartition	bpwm = getIonwm();
 	BpVdb		*bpvdb = _bpvdb(NULL);
-	PsmAddress	addr;
 	char		*schemeName;
 	PsmAddress	elt;
 
 	if (dictionary == NULL)
 	{
-		*vscheme = NULL;	/*	Default.		*/
-		if (!eid.cbhe)
+		if (!eid.cbhe)		/*	Can't determine scheme.	*/
 		{
-			return;		/*	Can't determine scheme.	*/
+			*vscheme = NULL;
+			return;
 		}
 
-		addr = bpvdb->cbheScheme;
-		if (addr == 0)
+		if (eid.unicast)
 		{
-			return;		/*	Not active.		*/
+			schemeName = "ipn";
 		}
-
-		*vscheme = (VScheme *) psp(bpwm, addr);
-		return;
+		else
+		{
+			schemeName = "imc";
+		}
+	}
+	else
+	{
+		schemeName = dictionary + eid.d.schemeNameOffset;
 	}
 
-	schemeName = dictionary + eid.d.schemeNameOffset;
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
 		*vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
 		if (strcmp((*vscheme)->name, schemeName) == 0)
 		{
-			return;
+			return;		/*	Found the scheme.	*/
 		}
 	}
 
-	if (elt == 0)			/*	No match found.		*/
-	{
-		*vscheme = NULL;
-	}
+	/*	No match found.						*/
+
+	*vscheme = NULL;
 }
 
 static void	reportStateStats(int i, char *fromTimestamp, char *toTimestamp,
@@ -2373,6 +2566,7 @@ static void	purgeDuctXmitElt(Bundle *bundle, Object bundleObj)
 	if (outductObj == 0)	/*	Bundle is in Limbo queue.	*/
 	{
 		sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
+		bundle->ductXmitElt = 0;
 		return;
 	}
 
@@ -2625,14 +2819,7 @@ incomplete bundle.", NULL);
 	/*	Destroy all SDR objects managed for this bundle and
 	 *	free space occupied by the bundle itself.		*/
 
-#ifdef ENABLE_BPACS
-	/* Destroy the metadata that ACS is keeping for this bundle. */
-	if (bundle.bundleProcFlags & BDL_IS_CUSTODIAL)
-	{
-		destroyAcsMetadata(&bundle);
-	}
-#endif
-
+	bpDestroyBundle_ACS(&bundle);
 	if (bundle.clDossier.senderEid.text)
 	{
 		sdr_free(bpSdr, bundle.clDossier.senderEid.text);
@@ -2714,6 +2901,12 @@ void	findScheme(char *schemeName, VScheme **scheme, PsmAddress *schemeElt)
 	PsmPartition	bpwm = getIonwm();
 	PsmAddress	elt;
 
+	if (schemeName == NULL)
+	{
+		*schemeElt = 0;
+		return;
+	}
+
 	for (elt = sm_list_first(bpwm, (_bpvdb(NULL))->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -2729,6 +2922,7 @@ void	findScheme(char *schemeName, VScheme **scheme, PsmAddress *schemeElt)
 
 int	addScheme(char *schemeName, char *fwdCmd, char *admAppCmd)
 {
+	int		schemeNameLength;
 	Sdr		bpSdr = getIonsdr();
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
@@ -2743,7 +2937,8 @@ int	addScheme(char *schemeName, char *fwdCmd, char *admAppCmd)
 		return 0;
 	}
 
-	if (strlen(schemeName) > MAX_SCHEME_NAME_LEN)
+	schemeNameLength = istrlen(schemeName, MAX_SCHEME_NAME_LEN + 1);
+	if (schemeNameLength > MAX_SCHEME_NAME_LEN)
 	{
 		writeMemoNote("[?] Scheme name is too long", schemeName);
 		return 0;
@@ -2757,7 +2952,7 @@ int	addScheme(char *schemeName, char *fwdCmd, char *admAppCmd)
 		}
 		else
 		{
-			if (strlen(fwdCmd) > MAX_SDRSTRING)
+			if (istrlen(fwdCmd, MAX_SDRSTRING + 1) > MAX_SDRSTRING)
 			{
 				writeMemoNote("[?] forwarder command string \
 too long", fwdCmd);
@@ -2774,7 +2969,8 @@ too long", fwdCmd);
 		}
 		else
 		{
-			if (strlen(admAppCmd) > MAX_SDRSTRING)
+			if (istrlen(admAppCmd, MAX_SDRSTRING + 1)
+					> MAX_SDRSTRING)
 			{
 				writeMemoNote("[?] adminep command string \
 too long", admAppCmd);
@@ -2796,9 +2992,15 @@ too long", admAppCmd);
 
 	memset((char *) &schemeBuf, 0, sizeof(Scheme));
 	istrcpy(schemeBuf.name, schemeName, sizeof schemeBuf.name);
-	if (strcmp(schemeName, _cbheSchemeName()) == 0)
+	schemeBuf.nameLength = schemeNameLength;
+	if (isCbhe(schemeName))
 	{
 		schemeBuf.cbhe = 1;
+	}
+
+	if (isUnicast(schemeName))
+	{
+		schemeBuf.unicast = 1;
 	}
 
 	if (fwdCmd)
@@ -3119,6 +3321,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	if (elt != 0)	/*	This is a known endpoint.	*/
 	{
 		sdr_exit_xn(bpSdr);
+		restoreEidString(&metaEid);
 		writeMemoNote("[?] Duplicate endpoint", eid);
 		return 0;
 	}
@@ -3171,6 +3374,11 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	}
 
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	if (addEndpoint_IMC(vscheme, eid) < 0)
+	{
+		return -1;
+	}
+
 	return 1;
 }
 
@@ -3293,6 +3501,11 @@ int	removeEndpoint(char *eid)
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't remove endpoint.", eid);
+		return -1;
+	}
+
+	if (removeEndpoint_IMC(vscheme, eid) < 0)
+	{
 		return -1;
 	}
 
@@ -4115,6 +4328,8 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 			continue;
 		}
 
+		/*	Note: only destination can ever be multicast.	*/
+
 		if (fragment->id.source.cbhe == 1)
 		{
 			if (fragment->id.source.c.nodeNbr !=
@@ -4175,6 +4390,7 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	Sdr		bpSdr = getIonsdr();
 	BpDB		*bpConstants = _bpConstants();
 	Address		addr;
+	Object		nextElt;
 	Object		elt;
 
 	CHKZERO(ionLocked());
@@ -4196,8 +4412,8 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	sdr_write(bpSdr, addr, (char *) newEvent, sizeof(BpEvent));
 	if (successor)
 	{
-		elt = sdr_list_insert_before(bpSdr,
-				(Object) sm_rbt_data(wm, successor), addr);
+		nextElt = (Object) sm_rbt_data(wm, successor);
+		elt = sdr_list_insert_before(bpSdr, nextElt, addr);
 	}
 	else
 	{
@@ -4218,6 +4434,93 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 }
 
 /*	*	*	Bundle origination functions	*	*	*/
+
+static void	computeExpirationTime(Bundle *bundle)
+{
+	unsigned long	secConsumed;
+	unsigned long	usecConsumed;
+	struct timeval	timeRemaining;
+	struct timeval	expirationTime;
+	struct timeval	currentTime;
+
+	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
+	{
+		bundle->expirationTime = bundle->id.creationTime.seconds
+				+ bundle->timeToLive;
+	}
+	else	/*	Round remaining time to nearest second.		*/
+	{
+		/*	Default is current time (in EPOCH_2000,
+		 *	like bundle creation time).			*/
+
+		bundle->expirationTime = getUTCTime() - EPOCH_2000_SEC;
+
+		/*	Compute remaining lifetime for bundle.		*/
+
+		timeRemaining.tv_sec = bundle->timeToLive;
+		timeRemaining.tv_usec = 0;
+		secConsumed = bundle->age / 1000000;
+		if (timeRemaining.tv_sec < secConsumed)
+		{
+			return;
+		}
+
+		timeRemaining.tv_sec -= secConsumed;
+		usecConsumed = bundle->age % 1000000;
+		if (timeRemaining.tv_usec < usecConsumed)
+		{
+			if (timeRemaining.tv_sec == 0)
+			{
+				return;
+			}
+
+			timeRemaining.tv_sec -= 1;
+			timeRemaining.tv_usec += 1000000;
+		}
+
+		timeRemaining.tv_usec -= usecConsumed;
+
+		/*	Add remaining lifetime to arrival time,
+		 *	to get expiration time in local time scale.	*/
+
+		expirationTime.tv_sec = bundle->arrivalTime.tv_sec
+				+ timeRemaining.tv_sec;
+		expirationTime.tv_usec = bundle->arrivalTime.tv_usec
+				+ timeRemaining.tv_usec;
+		if (expirationTime.tv_usec > 1000000)
+		{
+			expirationTime.tv_sec += 1;
+			expirationTime.tv_usec -= 1000000;
+		}
+
+		/*	Convert from local expiration time to UTC,
+		 *	by subtracting current time from local
+		 *	expiration time, rounding to the nearest
+		 *	second, and adding the rounded difference
+		 *	to the current UTC time.			*/
+
+		getCurrentTime(&currentTime);
+		if (expirationTime.tv_usec < currentTime.tv_usec)
+		{
+			if (expirationTime.tv_sec == 0)
+			{
+				return;
+			}
+
+			expirationTime.tv_usec += 1000000;
+			expirationTime.tv_sec -= 1;
+		}
+
+		expirationTime.tv_sec -= currentTime.tv_sec;
+		expirationTime.tv_usec -= currentTime.tv_usec;
+		if (expirationTime.tv_usec >= 500000)
+		{
+			expirationTime.tv_sec += 1;
+		}
+
+		bundle->expirationTime += expirationTime.tv_sec; 
+	}
+}
 
 static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 {
@@ -4511,8 +4814,6 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 
 	/*	Adjust database occupancy, record bundle, return.	*/
 
-	newBundle->dbTotal = newBundle->dbOverhead
-			+ zco_occupancy(bpSdr, newBundle->payload.content);
 	noteBundleInserted(newBundle);
 	sdr_write(bpSdr, *newBundleObj, (char *) newBundle, sizeof(Bundle));
 	return 0;
@@ -4612,7 +4913,6 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	should be forwarded to the bit bucket, so
 		 *	we must do so.					*/
 
-		bpDbTally(BP_DB_FWD_FAILED, bundle->payload.length);
 		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return bpAbandon(bundleObj, bundle);
 	}
@@ -4664,18 +4964,29 @@ static void	loadCbheEids(Bundle *bundle, MetaEid *destMetaEid,
 	/*	Destination.						*/
 
 	bundle->destination.cbhe = 1;
+	if (bundle->bundleProcFlags & BDL_DEST_IS_SINGLETON)
+	{
+		bundle->destination.unicast = 1;
+	}
+	else
+	{
+		bundle->destination.unicast = 0;
+	}
+
 	bundle->destination.c.nodeNbr = destMetaEid->nodeNbr;
 	bundle->destination.c.serviceNbr = destMetaEid->serviceNbr;
 
 	/*	Custodian (none).					*/
 
 	bundle->custodian.cbhe = 1;
+	bundle->custodian.unicast = 1;
 	bundle->custodian.c.nodeNbr = 0;
 	bundle->custodian.c.serviceNbr = 0;
 
 	/*	Source.							*/
 
 	bundle->id.source.cbhe = 1;
+	bundle->id.source.unicast = 1;
 	if (sourceMetaEid == NULL)	/*	Anonymous.		*/
 	{
 		bundle->id.source.c.nodeNbr = 0;
@@ -4690,6 +5001,7 @@ static void	loadCbheEids(Bundle *bundle, MetaEid *destMetaEid,
 	/*	Report-to.						*/
 
 	bundle->reportTo.cbhe = 1;
+	bundle->reportTo.unicast = 1;
 	if (reportToMetaEid == NULL)
 	{
 		if (sourceMetaEid)	/*	Default to source.	*/
@@ -4756,6 +5068,7 @@ static char	*loadDtnEids(Bundle *bundle, MetaEid *destMetaEid,
 	/*	Custodian (none).					*/
 
 	bundle->custodian.cbhe = 0;
+	bundle->custodian.unicast = 1;
 	bundle->custodian.d.schemeNameOffset
 		= addStringToDictionary(strings, stringLengths, &stringCount,
 			&bundle->dictionaryLength, "dtn", 3);
@@ -4766,6 +5079,7 @@ static char	*loadDtnEids(Bundle *bundle, MetaEid *destMetaEid,
 	/*	Destination.						*/
 
 	bundle->destination.cbhe = 0;
+	bundle->destination.unicast = 1;
 	bundle->destination.d.schemeNameOffset
 		= addStringToDictionary(strings, stringLengths, &stringCount,
 			&bundle->dictionaryLength, destMetaEid->schemeName,
@@ -4778,6 +5092,7 @@ static char	*loadDtnEids(Bundle *bundle, MetaEid *destMetaEid,
 	/*	Source.							*/
 
 	bundle->id.source.cbhe = 0;
+	bundle->id.source.unicast = 1;
 	if (sourceMetaEid == NULL)	/*	Anonymous.		*/
 	{
 		/*	Custodian is known to be "none".		*/
@@ -4804,6 +5119,7 @@ static char	*loadDtnEids(Bundle *bundle, MetaEid *destMetaEid,
 	/*	Report-to.						*/
 
 	bundle->reportTo.cbhe = 0;
+	bundle->reportTo.unicast = 1;
 	if (reportToMetaEid == NULL)
 	{
 		if (sourceMetaEid)	/*	Default to source.	*/
@@ -4868,6 +5184,8 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 {
 	Sdr		bpSdr = getIonsdr();
 	BpVdb		*bpvdb = _bpvdb(NULL);
+	Object		bpDbObject = getBpDbObject();
+	BpDB		bpdb;
 	int		bundleProcFlags = 0;
 	unsigned int	srrFlags = srrFlagsByte;
 	int		aduLength;
@@ -4893,6 +5211,14 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	ExtensionBlock	blk;
 
 	*bundleObj = 0;
+	if (lifespan <= 0)
+	{
+		writeMemoNote("[?] Invalid lifespan", itoa(lifespan));
+		return 0;
+	}
+
+	/*	Accommodate destination endpoint.			*/
+
 	CHKERR(destEidString);
 	if (*destEidString == 0)
 	{
@@ -4900,10 +5226,43 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		return 0;
 	}
 
-	if (lifespan <= 0)
+	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
+			== 0)
 	{
-		writeMemoNote("[?] Invalid lifespan", itoa(lifespan));
+		restoreEidString(&destMetaEid);
+		writeMemoNote("[?] Destination EID malformed", destEidString);
 		return 0;
+	}
+
+	if (destMetaEid.nullEndpoint)	/*	Do not send bundle.	*/
+	{
+		zco_destroy(bpSdr, adu);
+		return 1;
+	}
+
+	if (destMetaEid.cbhe)
+	{
+		if (vscheme->unicast)
+		{
+			bundleProcFlags |= BDL_DEST_IS_SINGLETON;
+		}
+	}
+	else	/*	Non-IPN destination: no multicast convention.	*/
+	{
+		bundleProcFlags |= BDL_DEST_IS_SINGLETON;
+		nonCbheEidCount++;
+	}
+
+	if (vscheme->unicast)
+	{
+		if (custodySwitch != NoCustodyRequested)
+		{
+			bundleProcFlags |= BDL_IS_CUSTODIAL;
+		}
+	}
+	else	/*	Multicast: silently disable custody transfer.	*/
+	{
+		custodySwitch = NoCustodyRequested;
 	}
 
 	/*	The bundle protocol specification authorizes the
@@ -4929,6 +5288,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	{
 		if (sourceMetaEid == NULL)
 		{
+			restoreEidString(&destMetaEid);
 			writeMemo("[?] Source can't be anonymous when asking \
 for custody transfer and/or status reports.");
 			return 0;
@@ -4936,6 +5296,7 @@ for custody transfer and/or status reports.");
 
 		if (adminRecordType != 0)
 		{
+			restoreEidString(&destMetaEid);
 			writeMemo("[?] Can't ask for custody transfer and/or \
 status reports for admin records.");
 			return 0;
@@ -4945,6 +5306,7 @@ status reports for admin records.");
 		{
 			if (extendedCOS->flags & BP_MINIMUM_LATENCY)
 			{
+				restoreEidString(&destMetaEid);
 				writeMemo("[?] Can't flag bundle as 'critical' \
 when asking for custody transfer and/or status reports.");
 				return 0;
@@ -4952,8 +5314,14 @@ when asking for custody transfer and/or status reports.");
 		}
 	}
 
+	/*	Set additional bundle processing flags.			*/
+
 	if (sourceMetaEid == NULL)
 	{
+		/*	An anonymous bundle has no unique keys,
+		 *	therefore can't be reassembled from fragments,
+		 *	therefore can't be fragmented.			*/
+
 		bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
 	}
 
@@ -4962,61 +5330,24 @@ when asking for custody transfer and/or status reports.");
 		bundleProcFlags |= BDL_APP_ACK_REQUEST;
 	}
 
-	if (custodySwitch != NoCustodyRequested)
-	{
-		bundleProcFlags |= BDL_IS_CUSTODIAL;
-	}
-
-	/*	Figure out how to express all endpoint IDs.		*/
-
-	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
-			== 0)
-	{
-		restoreEidString(&destMetaEid);
-		writeMemoNote("[?] Destination EID malformed", destEidString);
-		return 0;
-	}
-
-	if (destMetaEid.nullEndpoint)	/*	Do not send bundle.	*/
-	{
-		zco_destroy(bpSdr, adu);
-		return 1;
-	}
-
-	if (destMetaEid.cbhe)
-	{
-		/*	In the IPN scheme we use node number zero
-		 *	to indicate a non-singleton destination.	*/
-
-		if (destMetaEid.nodeNbr != 0)
-		{
-			bundleProcFlags |= BDL_DEST_IS_SINGLETON;
-		}
-	}
-	else	/*	Non-IPN destination: no multicast convention.	*/
-	{
-		bundleProcFlags |= BDL_DEST_IS_SINGLETON;
-		nonCbheEidCount++;
-	}
-
 	if (adminRecordType != 0)
 	{
 		bundleProcFlags |= BDL_IS_ADMIN;
 
 		/*	Administrative bundles must not be anonymous.
 		 *	Recipient needs to know source of the status
-		 *	report or custody signal; use own custodian
-		 *	EID for the scheme cited by destination EID.	*/
+		 *	report or custody signal; use own admin EID
+		 *	for the scheme cited by destination EID.	*/
 
 		if (sourceMetaEid == NULL)
 		{
-			istrcpy(sourceEidString, vscheme->custodianEidString,
+			istrcpy(sourceEidString, vscheme->adminEid,
 					sizeof sourceEidString);
 			if (parseEidString(sourceEidString, &tempMetaEid,
 					&vscheme2, &vschemeElt2) == 0)
 			{
 				restoreEidString(&tempMetaEid);
-				writeMemoNote("[?] Custodian EID malformed",
+				writeMemoNote("[?] Admin EID malformed",
 						sourceEidString);
 				return 0;
 			}
@@ -5025,13 +5356,13 @@ when asking for custody transfer and/or status reports.");
 		}
 	}
 
+	/*	Check source and report-to endpoint IDs.		*/
+
 	if (sourceMetaEid != NULL)	/*	Not "dtn:none".		*/
 	{
 		/*	Submitted by application on open endpoint.	*/
 
-		if (!sourceMetaEid->cbhe
-		|| strcmp(sourceMetaEid->schemeName,
-				destMetaEid.schemeName) != 0)
+		if (!sourceMetaEid->cbhe)
 		{
 			nonCbheEidCount++;
 		}
@@ -5060,9 +5391,7 @@ when asking for custody transfer and/or status reports.");
 		reportToMetaEid = &reportToMetaEidBuf;
 		if (!reportToMetaEid->nullEndpoint)
 		{
-			if (!reportToMetaEid->cbhe
-			|| strcmp(reportToMetaEid->schemeName,
-					destMetaEid.schemeName) != 0)
+			if (!reportToMetaEid->cbhe)
 			{
 				nonCbheEidCount++;
 			}
@@ -5078,6 +5407,11 @@ when asking for custody transfer and/or status reports.");
 	}
 
 	bundle.dbOverhead = BASE_BUNDLE_OVERHEAD;
+	if (!zco_enough_heap_space(bpSdr, bundle.dbOverhead + 4096))
+	{
+		writeMemo("[?] Not enough heap space for outbound bundle.");
+		return 0;
+	}
 
 	/*	The bundle protocol specification authorizes the
 	 *	implementation to fragment an ADU.  In the ION
@@ -5093,6 +5427,9 @@ when asking for custody transfer and/or status reports.");
 		return -1;
 	}
 
+	bundle.bundleProcFlags = bundleProcFlags;
+	bundle.bundleProcFlags += (classOfService << 7);
+	bundle.bundleProcFlags += (srrFlags << 14);
 	if (nonCbheEidCount == 0)
 	{
 		dictionary = NULL;
@@ -5115,14 +5452,11 @@ when asking for custody transfer and/or status reports.");
 	restoreEidString(&destMetaEid);
 	restoreEidString(reportToMetaEid);
 	bundle.id.fragmentOffset = 0;
-	bundle.custodyTaken = 0;
-	bundle.bundleProcFlags = bundleProcFlags;
-	bundle.bundleProcFlags += (classOfService << 7);
-	bundle.bundleProcFlags += (srrFlags << 14);
 
 	/*	Note: bundle is not a fragment when initially created,
 	 *	so totalAduLength is left at zero.			*/
 
+	bundle.custodyTaken = 0;
 	bundle.payloadBlockProcFlags = BLK_MUST_BE_COPIED;
 	bundle.payload.length = aduLength;
 	bundle.payload.content = adu;
@@ -5130,16 +5464,34 @@ when asking for custody transfer and/or status reports.");
 	/*	Bundle is almost fully constructed at this point.	*/
 
 	sdr_begin_xn(bpSdr);
-	getCurrentDtnTime(&currentDtnTime);
-	if (currentDtnTime.seconds != bpvdb->creationTimeSec)
+	if (ionClockIsSynchronized())
 	{
-		bpvdb->creationTimeSec = currentDtnTime.seconds;
-		bpvdb->bundleCounter = 0;
+		getCurrentDtnTime(&currentDtnTime);
+		if (currentDtnTime.seconds != bpvdb->creationTimeSec)
+		{
+			bpvdb->creationTimeSec = currentDtnTime.seconds;
+			bpvdb->bundleCounter = 0;
+		}
+
+		bundle.id.creationTime.seconds = bpvdb->creationTimeSec;
+		bundle.id.creationTime.count = ++(bpvdb->bundleCounter);
+	}
+	else
+	{
+		/*	If no synchronized clock, then creationTime
+		 *	seconds is always zero and a non-volatile
+		 *	bundle counter increments monotonically.	*/
+
+		bundle.id.creationTime.seconds = 0;
+		sdr_stage(bpSdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
+		bpdb.bundleCounter++;
+		bundle.id.creationTime.count = bpdb.bundleCounter;
+		sdr_write(bpSdr, bpDbObject, (char *) &bpdb, sizeof(BpDB));
 	}
 
-	bundle.id.creationTime.seconds = bpvdb->creationTimeSec;
-	bundle.id.creationTime.count = ++(bpvdb->bundleCounter);
-	bundle.expirationTime = bundle.id.creationTime.seconds + lifespan;
+	getCurrentTime(&bundle.arrivalTime);
+	bundle.timeToLive = lifespan;
+	computeExpirationTime(&bundle);
 	if (dictionary)
 	{
 		bundle.dictionary = sdr_malloc(bpSdr, bundle.dictionaryLength);
@@ -5229,12 +5581,6 @@ when asking for custody transfer and/or status reports.");
 		}
 	}
 
-	bundle.dbTotal = bundle.dbOverhead;
-	if (bundle.payload.content)
-	{
-		bundle.dbTotal += zco_occupancy(bpSdr, bundle.payload.content);
-	}
-
 	noteBundleInserted(&bundle);
 	sdr_write(bpSdr, *bundleObj, (char *) &bundle, sizeof(Bundle));
 
@@ -5284,7 +5630,7 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 
 	if (printEid(&bundle->custodian, dictionary, &custodianEid) < 0)
 	{
-		putErrmsg("Can't print CBHE custodian EID.", NULL);
+		putErrmsg("Can't print custodian EID.", NULL);
 		return -1;
 	}
 
@@ -5296,7 +5642,7 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 			return 0;	/*	No current custodian.	*/
 		}
 	}
-	else
+	else	/*	Non-CBHE custodian endpoint ID.			*/
 	{
 		if (strcmp(custodianEid, _nullEid()) == 0)
 		{
@@ -5333,12 +5679,8 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 		}
 	}
 
-	ttl = bundle->expirationTime - bundle->id.creationTime.seconds;
-	if (ttl < 1)
-	{
-		ttl = 1;
-	}
-
+	ttl = bundle->timeToLive;
+	if (ttl < 1) ttl = 1;
 	if (printEid(&bundle->id.source, dictionary,
 			&bundle->ctSignal.sourceEid) < 0)
 	{
@@ -5347,7 +5689,7 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 		return -1;
 	}
 
-	result = bpConstructCtSignal(&(bundle->ctSignal), &payloadZco);
+	result = constructCtSignal(&(bundle->ctSignal), &payloadZco);
 	MRELEASE(bundle->ctSignal.sourceEid);
 	if (result < 0)
 	{
@@ -5376,26 +5718,18 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 	}
 }
 
-
-int noteCtSignal(Bundle *bundle, AcqWorkArea *work, char *dictionary,
-		int succeeded, BpCtReason reasonCode)
+static int	noteCtEvent(Bundle *bundle, AcqWorkArea *work, char *dictionary,
+			int succeeded, BpCtReason reasonCode)
 {
-#ifdef ENABLE_BPACS
-	/*	Try to use ACS to deliver the custody signal.		*/
-
 	if (offerNoteAcs(bundle, work, dictionary, succeeded, reasonCode) == 1)
 	{
 		return 0;
 	}
 
-#endif /* ENABLE_BPACS */
-
-	/*	Use default custody signaling call. 			*/
+	/*	Use standard custody signaling. 			*/
 
 	return sendCtSignal(bundle, dictionary, succeeded, reasonCode);
 }
-
-
 
 int	sendStatusRpt(Bundle *bundle, char *dictionary)
 {
@@ -5429,7 +5763,7 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 		}
 	}
 
-	ttl = bundle->expirationTime - bundle->id.creationTime.seconds;
+	ttl = bundle->timeToLive;
 	if (ttl < 1) ttl = 1;
 	if (printEid(&bundle->id.source, dictionary,
 			&bundle->statusRpt.sourceEid) < 0)
@@ -5438,7 +5772,7 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 		return -1;
 	}
 
-	result = bpConstructStatusRpt(&(bundle->statusRpt), &payloadZco);
+	result = constructStatusRpt(&(bundle->statusRpt), &payloadZco);
 	MRELEASE(bundle->statusRpt.sourceEid);
 	if (result < 0)
 	{
@@ -5783,13 +6117,6 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 	/*	Note effect on database occupancy of bundle's
 	 *	revised size.						*/
 
-	aggregateBundle.dbTotal = aggregateBundle.dbOverhead;
-	if (aggregateBundle.payload.content)
-	{
-		aggregateBundle.dbTotal += zco_occupancy(bpSdr,
-				aggregateBundle.payload.content);
-	}
-
 	noteBundleInserted(&aggregateBundle);
 
 	/*	Deliver the aggregate bundle to the endpoint.		*/
@@ -5886,7 +6213,7 @@ static int	deliverBundle(Object bundleObj, Bundle *bundle,
 			return -1;
 		}
 
-		result = noteCtSignal(bundle, NULL, dictionary, 1, 0);
+		result = noteCtEvent(bundle, NULL, dictionary, 1, 0);
 		releaseDictionary(dictionary);
 		if (result < 0)
 		{
@@ -6010,6 +6337,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 		else	/*	Not deliverable at this node.		*/
 		{
 			if (bundle->destination.cbhe
+			&& bundle->destination.unicast
 			&& bundle->destination.c.nodeNbr == getOwnNodeNbr())
 			{
 				/*	Destination is known to be the
@@ -6017,13 +6345,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 				 *	bundle can't be delivered, it
 				 *	must be abandoned.  (It can't
 				 *	be forwarded, as this would be
-				 *	an infinite forwarding loop,
-				 *	and the destination can't be
-				 *	multi-point because the IPN
-				 *	endpoint ID designation of a
-				 *	multi-point destination is node
-				 *	number zero, which would not
-				 *	match the local node number.)
+				 *	an infinite forwarding loop.)
 				 *	But must first accept it, to
 				 *	prevent current custodian from
 				 *	re-forwarding it endlessly back
@@ -6039,7 +6361,10 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 
 				/*	As above, must write the bundle
 				 *	to the SDR in order to destroy
-				 *	it successfully.		*/
+				 *	it successfully.  We count the
+				 *	bundle as "forwarded" because
+				 *	bpAbandon will count it as
+				 *	"forwarding failed".		*/
 
 				bpDbTally(BP_DB_QUEUED_FOR_FWD,
 						bundle->payload.length);
@@ -6050,7 +6375,8 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 		}
 	}
 
-	/*	There may be a non-local destination.			*/
+	/*	There may be a non-local destination; let the
+	 *	forwarder figure out what to do with the bundle.	*/
 
 	if (bundle->fragmentElt || bundle->dlvQueueElt)
 	{
@@ -6314,7 +6640,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		 *	file reference object anyway, even if the
 		 *	bundle were entirely acquired into a file.	*/
 
-		maxAcqInHeap = zco_file_ref_occupancy(sdr, 0);
+		maxAcqInHeap = 560;
 		sdr_read(sdr, (char *) &bpdb, getBpDbObject(), sizeof(BpDB));
 		if (bpdb.maxAcqInHeap > maxAcqInHeap)
 		{
@@ -6548,7 +6874,6 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	unsigned long	residualBlockLength;
 	int		i;
 	unsigned long	eidSdnvValues[8];
-	unsigned long	lifetime;
 	char		*eidString;
 	int		nullEidLen;
 	int		bytesParsed;
@@ -6600,18 +6925,25 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		extractSdnv(&(eidSdnvValues[i]), &cursor, &unparsedBytes);
 	}
 
-	/*	Get creation timestamp, lifetime, dictionary length.
-	 *	Expiration time is creation time plus interval.		*/
+	/*	Get creation timestamp, lifetime, dictionary length.	*/
 
 	extractSdnv(&(bundle->id.creationTime.seconds), &cursor,
 			&unparsedBytes);
-	bundle->expirationTime = bundle->id.creationTime.seconds;
 
 	extractSdnv(&(bundle->id.creationTime.count), &cursor,
 			&unparsedBytes);
 
-	extractSdnv(&(lifetime), &cursor, &unparsedBytes);
-	bundle->expirationTime += lifetime;
+	extractSdnv(&(bundle->timeToLive), &cursor, &unparsedBytes);
+	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
+	{
+		/*	Default bundle age, pending override by BAE.	*/
+
+		bundle->age = getUTCTime() - bundle->id.creationTime.seconds;
+	}
+	else
+	{
+		bundle->age = 0;
+	}
 
 	extractSdnv(&(bundle->dictionaryLength), &cursor, &unparsedBytes);
 	bundle->dbOverhead += bundle->dictionaryLength;
@@ -6627,15 +6959,27 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	if (bundle->dictionaryLength == 0)	/*	CBHE		*/
 	{
 		bundle->destination.cbhe = 1;
+		if (bundle->bundleProcFlags & BDL_DEST_IS_SINGLETON)
+		{
+			bundle->destination.unicast = 1;
+		}
+		else
+		{
+			bundle->destination.unicast = 0;
+		}
+
 		bundle->destination.c.nodeNbr = eidSdnvValues[0];
 		bundle->destination.c.serviceNbr = eidSdnvValues[1];
 		bundle->id.source.cbhe = 1;
+		bundle->id.source.unicast = 1;
 		bundle->id.source.c.nodeNbr = eidSdnvValues[2];
 		bundle->id.source.c.serviceNbr = eidSdnvValues[3];
 		bundle->reportTo.cbhe = 1;
+		bundle->reportTo.unicast = 1;
 		bundle->reportTo.c.nodeNbr = eidSdnvValues[4];
 		bundle->reportTo.c.serviceNbr = eidSdnvValues[5];
 		bundle->custodian.cbhe = 1;
+		bundle->custodian.unicast = 1;
 		bundle->custodian.c.nodeNbr = eidSdnvValues[6];
 		bundle->custodian.c.serviceNbr = eidSdnvValues[7];
 	}
@@ -6652,15 +6996,19 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		cursor += bundle->dictionaryLength;
 		unparsedBytes -= bundle->dictionaryLength;
 		bundle->destination.cbhe = 0;
+		bundle->destination.unicast = 1;
 		bundle->destination.d.schemeNameOffset = eidSdnvValues[0];
 		bundle->destination.d.nssOffset = eidSdnvValues[1];
 		bundle->id.source.cbhe = 0;
+		bundle->id.source.unicast = 1;
 		bundle->id.source.d.schemeNameOffset = eidSdnvValues[2];
 		bundle->id.source.d.nssOffset = eidSdnvValues[3];
 		bundle->reportTo.cbhe = 0;
+		bundle->reportTo.unicast = 1;
 		bundle->reportTo.d.schemeNameOffset = eidSdnvValues[4];
 		bundle->reportTo.d.nssOffset = eidSdnvValues[5];
 		bundle->custodian.cbhe = 0;
+		bundle->custodian.unicast = 1;
 		bundle->custodian.d.schemeNameOffset = eidSdnvValues[6];
 		bundle->custodian.d.nssOffset = eidSdnvValues[7];
 	}
@@ -7056,7 +7404,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 	if (bundleIsCustodial(bundle))
 	{
 		bpCtTally(ctReason, bundle->payload.length);
-		if (noteCtSignal(bundle, work, work->dictionary, 0, ctReason)
+		if (noteCtEvent(bundle, work, work->dictionary, 0, ctReason)
 				< 0)
 		{
 			putErrmsg("Can't send custody signal.", NULL);
@@ -7096,15 +7444,16 @@ static char	*getCustodialSchemeName(Bundle *bundle)
 	 *	name for a bundle -- for which purpose we use the
 	 *	bundle's destination EID scheme name -- will need
 	 *	to be made more general in the event that we end up
-	 *	supporting schemes other than "ipn" and "dtn", but
-	 *	for now it's the simplest and most efficient approach.	*/
+	 *	supporting unicast schemes other than "ipn" and "dtn",
+	 *	but for now it's the simplest, most efficient approach.	*/
 
-	if (bundle != NULL && bundle->destination.cbhe)
+	CHKNULL(bundle);
+	if (bundle->destination.cbhe)
 	{
-		return _cbheSchemeName();
+		return "ipn";
 	}
 
-	return _dtn2SchemeName();
+	return "dtn";
 }
 
 static void	initAuthenticity(AcqWorkArea *work)
@@ -7152,8 +7501,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 
 	custodialSchemeName = getCustodialSchemeName(&work->bundle);
 	findScheme(custodialSchemeName, &vscheme, &vschemeElt);
-	if (vschemeElt == 0
-	|| strcmp(vscheme->custodianEidString, _nullEid()) == 0)
+	if (vschemeElt == 0)
 	{
 		/*	Can't look for BAB rule, so can't authenticate.	*/
 
@@ -7162,8 +7510,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 
 	/*	Check the applicable BAB rule, if any.			*/
 
-	sec_findBspBabRule(work->senderEid, vscheme->custodianEidString,
-			&ruleAddr, &elt);
+	sec_findBspBabRule(work->senderEid, vscheme->adminEid, &ruleAddr, &elt);
 	if (elt)
 	{
 		GET_OBJ_POINTER(bpSdr, BspBabRule, rule, ruleAddr);
@@ -7177,8 +7524,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 {
 	Bundle		*bundle = &(work->bundle);
-	unsigned int	bundleOccupancy;
-			OBJ_POINTER(IonDB, iondb);
+	int		heapOkay;
 	char		*custodialSchemeName;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
@@ -7203,15 +7549,14 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 		bundle->payload.content = zco_clone(bpSdr, work->zco,
 				work->zcoBytesConsumed, work->bundleLength);
-		bundleOccupancy = zco_occupancy(bpSdr, bundle->payload.content);
 		work->zcoBytesConsumed += work->bundleLength;
 	}
 	else
 	{
 		bundle->payload.content = 0;
-		bundleOccupancy = 0;
 	}
 
+	heapOkay = zco_enough_heap_space(bpSdr, bundle->dbOverhead);
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't add reference work ZCO.", NULL);
@@ -7296,14 +7641,11 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 	/*	Bundle acquisition was uneventful but bundle may have
 	 *	to be refused due to insufficient resources.  Must
-	 *	guard against congestion collapse; use bundle's
-	 *	dbOverhead plus SDR occupancy of the bundle's payload
-	 *	ZCO as upper limit on the total SDR occupancy increment
-	 *	that would result from accepting this bundle.		*/
+	 *	guard against congestion collapse; the payload already
+	 *	occupies ZCO space, but we need to make sure there's
+	 *	room in the SDR for the Bundle object as well.		*/
 
-	GET_OBJ_POINTER(bpSdr, IonDB, iondb, getIonDbObject());
-	if (iondb->currentOccupancy + bundle->dbOverhead + bundleOccupancy
-			> iondb->occupancyCeiling)
+	if (!heapOkay)
 	{
 		/*	Not enough heap space for bundle.		*/
 
@@ -7340,7 +7682,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		custodialSchemeName = getCustodialSchemeName(bundle);
 		findScheme(custodialSchemeName, &vscheme, &vschemeElt);
 		if (vschemeElt != 0
-		&& strcmp(eidString, vscheme->custodianEidString) == 0)
+		&& strcmp(eidString, vscheme->adminEid) == 0)
 		{
 			/*	Bundle's current custodian is self.	*/
 
@@ -7449,6 +7791,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		bundle->dbOverhead += bundle->dictionaryLength;
 	}
 
+	computeExpirationTime(bundle);
 	if (setBundleTTL(bundle, bundleObj) < 0)
 	{
 		putErrmsg("Can't insert new bundle into timeline.", NULL);
@@ -7470,8 +7813,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		return -1;
 	}
 
-	bundle->dbTotal = bundle->dbOverhead;
-	bundle->dbTotal += zco_occupancy(bpSdr, bundle->payload.content);
 	noteBundleInserted(bundle);
 	bpInductTally(work->vduct, BP_INDUCT_RECEIVED, bundle->payload.length);
 	bpRecvTally(COS_FLAGS(bundle->bundleProcFlags) & 0x03,
@@ -7566,7 +7907,7 @@ int	bpEndAcq(AcqWorkArea *work)
 
 /*	*	*	Administrative payload functions	*	*/
 
-int	bpConstructCtSignal(BpCtSignal *csig, Object *zcoRef)
+static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned char	adminRecordFlag = (BP_CUSTODY_SIGNAL << 4);
@@ -7584,7 +7925,7 @@ int	bpConstructCtSignal(BpCtSignal *csig, Object *zcoRef)
 	Object		sourceData;
 
 	CHKERR(csig);
-	CHKERR(zcoRef);
+	CHKERR(zco);
 	if (csig->isFragment)
 	{
 		adminRecordFlag |= BP_BDL_IS_A_FRAGMENT;
@@ -7667,9 +8008,8 @@ int	bpConstructCtSignal(BpCtSignal *csig, Object *zcoRef)
 
 	sdr_write(bpSdr, sourceData, buffer, ctSignalLength);
 	MRELEASE(buffer);
-	*zcoRef = zco_create(bpSdr, ZcoSdrSource, sourceData, 0,
-			ctSignalLength);
-	if (sdr_end_xn(bpSdr) < 0 || *zcoRef == 0)
+	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, ctSignalLength);
+	if (sdr_end_xn(bpSdr) < 0 || *zco == 0)
 	{
 		putErrmsg("Can't create CT signal.", NULL);
 		return -1;
@@ -7678,7 +8018,7 @@ int	bpConstructCtSignal(BpCtSignal *csig, Object *zcoRef)
 	return 0;
 }
 
-static int	bpParseCtSignal(BpCtSignal *csig, unsigned char *cursor,
+static int	parseCtSignal(BpCtSignal *csig, unsigned char *cursor,
 			int unparsedBytes, int isFragment)
 {
 	unsigned char	head1;
@@ -7729,12 +8069,12 @@ static int	bpParseCtSignal(BpCtSignal *csig, unsigned char *cursor,
 	return 1;
 }
 
-void	bpEraseCtSignal(BpCtSignal *csig)
+static void	bpEraseCtSignal(BpCtSignal *csig)
 {
 	MRELEASE(csig->sourceEid);
 }
 
-int	bpConstructStatusRpt(BpStatusRpt *rpt, Object *zcoRef)
+static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned char	adminRecordFlag = (BP_STATUS_REPORT << 4);
@@ -7760,7 +8100,7 @@ int	bpConstructStatusRpt(BpStatusRpt *rpt, Object *zcoRef)
 	Object		sourceData;
 
 	CHKERR(rpt);
-	CHKERR(zcoRef);
+	CHKERR(zco);
 	if (rpt->isFragment)
 	{
 		adminRecordFlag |= BP_BDL_IS_A_FRAGMENT;
@@ -7939,8 +8279,8 @@ int	bpConstructStatusRpt(BpStatusRpt *rpt, Object *zcoRef)
 
 	sdr_write(bpSdr, sourceData, buffer, rptLength);
 	MRELEASE(buffer);
-	*zcoRef = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, rptLength);
-	if (sdr_end_xn(bpSdr) < 0 || *zcoRef == 0)
+	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, rptLength);
+	if (sdr_end_xn(bpSdr) < 0 || *zco == 0)
 	{
 		putErrmsg("Can't create status report.", NULL);
 		return -1;
@@ -7949,7 +8289,7 @@ int	bpConstructStatusRpt(BpStatusRpt *rpt, Object *zcoRef)
 	return 0;
 }
 
-static int	bpParseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
+static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 	       		int unparsedBytes, int isFragment)
 {
 	unsigned long	eidLength;
@@ -8037,13 +8377,13 @@ static int	bpParseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 	return 1;
 }
 
-void	bpEraseStatusRpt(BpStatusRpt *rpt)
+static void	bpEraseStatusRpt(BpStatusRpt *rpt)
 {
 	MRELEASE(rpt->sourceEid);
 }
 
-int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
-		BpCtSignal *csig, void **acsptr, Object payload)
+static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
+			BpCtSignal *csig, void **otherPtr, Object payload)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned int	buflen;
@@ -8093,23 +8433,33 @@ int	bpParseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	switch (*adminRecordType)
 	{
 	case BP_STATUS_REPORT:
-		result = bpParseStatusRpt(rpt, (unsigned char *) cursor,
+		result = parseStatusRpt(rpt, (unsigned char *) cursor,
 				unparsedBytes, bundleIsFragment);
 		break;
 
 	case BP_CUSTODY_SIGNAL:
-		result = bpParseCtSignal(csig, (unsigned char *) cursor,
+		result = parseCtSignal(csig, (unsigned char *) cursor,
 				unparsedBytes, bundleIsFragment);
 		break;
 
-#ifdef ENABLE_BPACS
-	case BP_AGGREGATE_CUSTODY_SIGNAL:
-		result = parseAggregateCtSignal(acsptr, (unsigned char *)
-				cursor, unparsedBytes, bundleIsFragment);
-		break;
-#endif /* ENABLE_BPACS */
+	default:	/*	Unknown or non-standard admin record.	*/
+		result = parseACS(*adminRecordType, otherPtr,
+				(unsigned char *) cursor, unparsedBytes,
+				bundleIsFragment);
+		if (result != -2)	/*	Parsed the record.	*/
+		{
+			break;
+		}
 
-	default:
+		result = parseImcPetition(*adminRecordType, otherPtr,
+				(unsigned char *) cursor, unparsedBytes);
+		if (result != -2)	/*	Parsed the record.	*/
+		{
+			break;
+		}
+
+		/*	Unknown admin record type.			*/
+
 		writeMemoNote("[?] Unknown admin record type",
 				itoa(*adminRecordType));
 		result = 0;
@@ -8132,7 +8482,6 @@ static int	catenateBundle(Bundle *bundle)
 	int		totalLengthOfEidSdnvs;
 	Sdnv		creationTimestampTimeSdnv;
 	Sdnv		creationTimestampCountSdnv;
-	unsigned long	lifetime;
 	Sdnv		lifetimeSdnv;
 	Sdnv		dictionaryLengthSdnv;
 	Sdnv		fragmentOffsetSdnv;
@@ -8211,8 +8560,7 @@ static int	catenateBundle(Bundle *bundle)
 
 	encodeSdnv(&creationTimestampTimeSdnv, bundle->id.creationTime.seconds);
 	encodeSdnv(&creationTimestampCountSdnv, bundle->id.creationTime.count);
-	lifetime = bundle->expirationTime - bundle->id.creationTime.seconds;
-	encodeSdnv(&lifetimeSdnv, lifetime);
+	encodeSdnv(&lifetimeSdnv, bundle->timeToLive);
 	encodeSdnv(&dictionaryLengthSdnv, bundle->dictionaryLength);
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
@@ -8421,7 +8769,7 @@ static int	signalCustodyAcceptance(Bundle *bundle)
 	}
 
 	bpCtTally(BP_CT_CUSTODY_ACCEPTED, bundle->payload.length);
-	result = noteCtSignal(bundle, NULL, dictionary, 1, 0);
+	result = noteCtEvent(bundle, NULL, dictionary, 1, 0);
 	releaseDictionary(dictionary);
 	if (result < 0)
 	{
@@ -8492,13 +8840,13 @@ static int	insertNonCbheCustodian(Bundle *bundle, VScheme *vscheme)
 			&bundle->dictionaryLength, string, stringLength);
 	bundle->custodian.d.schemeNameOffset
 		= addStringToDictionary(strings, stringLengths, &stringCount,
-		&bundle->dictionaryLength, vscheme->custodianEidString,
-			vscheme->custodianSchemeNameLength);
+		&bundle->dictionaryLength, vscheme->adminEid,
+			vscheme->nameLength);
 	bundle->custodian.d.nssOffset
 		= addStringToDictionary(strings, stringLengths, &stringCount,
-		&bundle->dictionaryLength, vscheme->custodianEidString
-			+ (vscheme->custodianSchemeNameLength + 1),
-			vscheme->custodianNssLength);
+		&bundle->dictionaryLength, vscheme->adminEid
+			+ (vscheme->nameLength + 1),
+			vscheme->adminNSSLength);
 
 	/*	Now concatenate all of these strings into the new
 	 *	dictionary.						*/
@@ -8545,8 +8893,7 @@ static int	takeCustody(Bundle *bundle)
 
 	custodialSchemeName = getCustodialSchemeName(bundle);
 	findScheme(custodialSchemeName, &vscheme, &vschemeElt);
-	if (vschemeElt == 0
-	|| strcmp(vscheme->custodianEidString, _nullEid()) == 0)
+	if (vschemeElt == 0)
 	{
 		return 0;	/*	Can't take custody; no EID.	*/
 	}
@@ -8578,6 +8925,7 @@ static int	takeCustody(Bundle *bundle)
 	}
 
 	bundle->custodian.cbhe = 1;
+	bundle->custodian.unicast = 1;
 	bundle->custodian.c.nodeNbr = getOwnNodeNbr();
 	bundle->custodian.c.serviceNbr = 0;
 	if (processExtensionBlocks(bundle, PROCESS_ON_TAKE_CUSTODY, NULL) < 0)
@@ -8748,7 +9096,7 @@ static int	isLoopback(char *eid)
 		return 0;
 	}
 
-	if (strncmp(eid, vscheme->custodianEidString, MAX_EID_LEN) == 0)
+	if (strncmp(eid, vscheme->adminEid, MAX_EID_LEN) == 0)
 	{
 		return 1;
 	}
@@ -9284,7 +9632,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 		if (bundleIsCustodial(bundle))
 		{
 			bpCtTally(CtNoKnownRoute, bundle->payload.length);
-			result2 = noteCtSignal(bundle, NULL, dictionary, 0,
+			result2 = noteCtEvent(bundle, NULL, dictionary, 0,
 					CtNoKnownRoute);
 			if (result2 < 0)
 			{
@@ -9625,9 +9973,10 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 		 *	(if possible).  Note that we can only track
 		 *	snubs that are issued by neighbors reached
 		 *	via LTP ducts and are for nodes identified by
-		 *	CBHE-conformant endpoint IDs.			*/
+		 *	CBHE-conformant unicast endpoint IDs.		*/
 
 		if (bundle->destination.cbhe
+		&& bundle->destination.unicast
 		&& strcmp(vduct->protocolName, "ltp") == 0)
 		{
 			neighborNodeNbr = strtoul(vduct->ductName, NULL, 0);
@@ -10142,6 +10491,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	{
 		*dictionary = NULL;
 		image->id.source.cbhe = 1;
+		image->id.source.unicast = 1;
 		image->id.source.c.nodeNbr = eidSdnvValues[2];
 		image->id.source.c.serviceNbr = eidSdnvValues[3];
 	}
@@ -10151,6 +10501,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		*bundleLength += image->dictionaryLength;
 		cursor += image->dictionaryLength;
 		image->id.source.cbhe = 0;
+		image->id.source.unicast = 1;
 		image->id.source.d.schemeNameOffset = eidSdnvValues[2];
 		image->id.source.d.nssOffset = eidSdnvValues[3];
 	}
@@ -10751,13 +11102,14 @@ static void	noteSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 	PsmAddress	vschemeElt;
 
 	if (bundle->destination.cbhe == 0	/*	No node nbr.	*/
+	|| bundle->destination.unicast == 0	/*	Multicast.	*/
 	|| (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
 	{
-		/*	For non-cbhe bundles we have no node number,
-		 *	so we can't manage routing snubs.  If the
-		 *	bundle is critical then it was already sent
-		 *	on all possible routes, so there's no point
-		 *	in responding to the routing snub.		*/
+		/*	For non-cbhe or multicast bundles we have no
+		 *	node number, so we can't manage routing snubs.
+		 *	If the bundle is critical then it was already
+		 *	sent on all possible routes, so there's no
+		 *	point in responding to the routing snub.	*/
 
 		return;
 	}
@@ -10799,13 +11151,14 @@ static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 	PsmAddress	vschemeElt;
 
 	if (bundle->destination.cbhe == 0	/*	No node nbr.	*/
+	|| bundle->destination.unicast == 0	/*	Multicast.	*/
 	|| (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
 	{
-		/*	For non-cbhe bundles we have no node number,
-		 *	so we can't manage routing snubs.  If the
-		 *	bundle is critical then it was already sent
-		 *	on all possible routes, so there's no point
-		 *	in responding to the routing snub.		*/
+		/*	For non-cbhe or multicast bundles we have no
+		 *	node number, so we can't manage routing snubs.
+		 *	If the bundle is critical then it was already
+		 *	sent on all possible routes, so there's no
+		 *	point in responding to the routing snub.	*/
 
 		return;
 	}
@@ -10839,7 +11192,7 @@ static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 	removeSnub(node, metaEid.nodeNbr);
 }
 
-int	handleAbstractCtSignal(BpCtSignal *cts, char *bundleSourceEid)
+int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 {
 	Sdr		bpSdr = getIonsdr();
 	BpVdb		*bpvdb = _bpvdb(NULL);
@@ -10949,7 +11302,8 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 	int		adminRecType;
 	BpStatusRpt	rpt;
 	BpCtSignal	cts;
-	void		*acs;
+	void		*other;	/*	Non-standard admin record.	*/
+	int		result;
 
 	CHKERR(adminEid);
 	if (handleStatusRpt == NULL)
@@ -10999,7 +11353,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 			continue;
 		}
 
-		switch (bpParseAdminRecord(&adminRecType, &rpt, &cts, &acs,
+		switch (parseAdminRecord(&adminRecType, &rpt, &cts, &other,
 				dlv.adu))
 		{
 		case 1: 			/*	No problem.	*/
@@ -11050,36 +11404,42 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 				break;		/*	Out of switch.	*/
 			}
 
-			if (handleAbstractCtSignal(&cts, dlv.bundleSourceEid)
-					< 0)
+			if (applyCtSignal(&cts, dlv.bundleSourceEid) < 0)
 			{
-				putErrmsg("Abstract custody signal handler \
-failed", NULL);
+				putErrmsg("Failed applying custody signal.",
+					       NULL);
 				running = 0;
 			}
 
 			bpEraseCtSignal(&cts);
 			break;			/*	Out of switch.	*/
 
-#ifdef ENABLE_BPACS
-		case BP_AGGREGATE_CUSTODY_SIGNAL:
-
-			/*	An aggregate custody signal is a
-			 *	custody signal that covers possibly
-			 *	many bundles, instead of  just one.
-			 *	Expand the ACS into a list of "logical"
-			 *	custody signals and handle each one in
-			 *	the list.				*/
-
-			if (handleAcs(acs, &dlv, handleCtSignal) != 0)
+		default:	/*	Unknown or non-standard.	*/
+			result = applyACS(adminRecType, other, &dlv,
+					handleCtSignal);
+			if (result != -2)	/*	Applied record.	*/
 			{
-				running = 0;
+				if (result < 0)
+				{
+					running = 0;
+				}
+
+				break;		/*	Out of switch.	*/
 			}
 
-			break;
-#endif /* ENABLE_BPACS */
+			result = applyImcPetition(adminRecType, other, &dlv);
+			if (result != -2)	/*	Applied record.	*/
+			{
+				if (result < 0)
+				{
+					running = 0;
+				}
 
-		default:	/*	Unknown admin payload type.	*/
+				break;		/*	Out of switch.	*/
+			}
+
+			/*	Unknown admin record type.		*/
+
 			break;			/*	Out of switch.	*/
 		}
 

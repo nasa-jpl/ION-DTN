@@ -5,6 +5,7 @@ TEST = ../test
 DAEMON = ../daemon
 CGR = ../cgr
 IPN = ../ipn
+IMC = ../imc
 BSS = ../bss
 DTN2 = ../dtn2
 LTP = ../ltp
@@ -12,10 +13,11 @@ TCP = ../tcp
 DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
+CRYPTO = $(API)/crypto/NULL_SUITES
 
-OPT = -g -Wall -Werror -Dmingw
+OPT = -g -Wall -Werror -Dmingw -DENABLE_IMC
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(API)/crypto -I$(API)/ext/ecos -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/crypto -I$(API)/ext -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -25,18 +27,20 @@ PUBINCLS = \
 BPINCLS = \
 	$(API)/bpP.h \
 	$(IPN)/ipnfw.h \
+	$(IMC)/imcfw.h \
+	$(IMC)/imcP.h \
 	$(BSS)/bssfw.h \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
 	$(TCP)/tcpcla.h \
 	$(LTP)/ltpcla.h
-# $(API)/acs/acs.h
+#	$(API)/acs/acs.h
 
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o crypto.o
+BPPOBJS = libbpP.o ecos.o bae.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o crypto.o libimcfw.o
 # acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 # phn.o
 
@@ -45,11 +49,11 @@ LFW = -lbssfw -ldtn2fw
 
 LBP = -lbp
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys 
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys imcadmin imcfw
+# acsadmin acslist 
 # bping bpstats2 bpchat
-#acsadmin acslist
 
-ALL = check $(BPLIBS) libcgr.dll libipnfw.dll libdtn2fw.dll libbssfw.dll libtcpcla.dll libudpcla.dll $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.dll libipnfw.dll libimcfw.dll libdtn2fw.dll libbssfw.dll libtcpcla.dll libudpcla.dll $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -84,6 +88,10 @@ bpadmin:	bpadmin.o $(BPLIBS)
 ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.dll
 		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
 		cp ipnadmin ./bin
+
+imcadmin:	imcadmin.o $(BPLIBS) libimcfw.dll
+		$(CC) -o imcadmin imcadmin.o -L./lib -L$(ROOT)/lib -lbssfw $(LBP) -lici -lpthread
+		cp imcadmin ./bin
 
 bssadmin:	bssadmin.o $(BPLIBS) libbssfw.dll
 		$(CC) -o bssadmin bssadmin.o -L./lib -L$(ROOT)/lib -lbssfw $(LBP) -lici -lpthread
@@ -139,6 +147,7 @@ hmackeys:	hmackeys.o $(BPLIBS)
 
 #acslist:	acslist.o $(BPLIBS)
 #		$(CC) -o acslist acslist.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+#		cp acslist ./bin
 
 #	-	-	IPN executables	-	-	-	-	-
 
@@ -149,6 +158,12 @@ ipnfw:		ipnfw.o $(BPLIBS) libipnfw.dll libcgr.dll
 ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.dll
 		$(CC) -o ipnadminep ipnadminep.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
 		cp ipnadminep ./bin
+
+#	-	-	IMC executables	-	-	-	-	-
+
+imcfw:		imcfw.o $(BPLIBS) libimcfw.dll libipnfw.dll
+		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib -limcfw -lipnfw $(LBP) -lici -lpthread
+		cp imcfw ./bin
 
 #	-	-	BSS executables	-	-	-	-	-
 
@@ -266,6 +281,10 @@ libipnfw.dll:	libipnfw.o
 		$(LD) -o libipnfw.dll libipnfw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp libipnfw.dll ./lib
 
+libimcfw.dll:	libimcfw.o
+		$(LD) -o libimcfw.dll libimcfw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp libimcfw.dll ./lib
+
 libbssfw.dll:	libbssfw.o
 		$(LD) -o libbssfw.dll libbssfw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp libbssfw.dll ./lib
@@ -287,10 +306,13 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(API)/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/crypto/NULL_SUITES/%.c
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/ecos/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/bae/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/bsp/%.c
@@ -312,6 +334,9 @@ libudpcla.dll:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(IPN)/%.c
+		$(CC) -c $<
+
+%.o:		$(IMC)/%.c
 		$(CC) -c $<
 
 %.o:		$(BSS)/%.c
@@ -336,7 +361,7 @@ libudpcla.dll:	libudpcla.o
 		$(CC) -c $<
 
 #%.o:		$(API)/acs/%.c
-		$(CC) -c $<
+#		$(CC) -c $<
 
-#%.o:		$(API)/ext/cteb/%.c
+%.o:		$(API)/ext/cteb/%.c
 		$(CC) -c $<

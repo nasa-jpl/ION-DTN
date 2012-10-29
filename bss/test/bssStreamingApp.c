@@ -15,7 +15,8 @@
  *	Authors: Sotirios-Angelos Lenas, SPICE	 
  */			
 
-#include <bp.h>
+#include "bp.h"
+#include "bsstest.h"
 
 static int 	running = 1;
 
@@ -63,9 +64,10 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 	Object		bundleZco;
 	Object		newBundle;
 	int 		i=0;
-	char		framePayload[20866];    /*  bitrate = 3Mbps
-						 *  CBR = 20866 bytes per
-						 *  55642 usec		*/    
+
+	/*	bitrate = 3Mbps, CBR = 20866 bytes per 55642 usec	*/    
+
+	char		framePayload[RCV_LENGTH];
 	char		info[100];
 
 	if (svcClass == NULL)
@@ -145,7 +147,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		isprintf(info, sizeof info, "A frame with payload: %s and \
 size: %d has been sent\n", framePayload, sizeof(framePayload));
 		PUTS(info);
-		microsnooze(55642);
+		microsnooze(SNOOZE_INTERVAL);
 	}
 
 	bp_close(sap);

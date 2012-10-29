@@ -116,8 +116,6 @@ extern void		removeSnub(IonNode *node,
 
 extern PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub);
 
-extern int		checkForCongestion();
-
 #ifdef __cplusplus
 }
 #endif

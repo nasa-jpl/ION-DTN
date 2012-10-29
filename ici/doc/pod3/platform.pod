@@ -258,6 +258,12 @@ otherwise writes 0 into I<*hostNbr>.  If port number is supplied and
 is in the range 1024 to 65535, writes it into I<*portNbr>; otherwise writes
 0 into I<*portNbr>.
 
+=item void printDottedString(unsigned int hostNbr, char *buffer)
+
+Composes a dotted-string (xxx.xxx.xxx.xxx) representation of the IPv4 address
+in I<hostNbr> and writes that string into I<buffer>.  The length of I<buffer>
+must be at least 16.
+
 =item char *getNameOfUser(char *buffer)
 
 Writes the user name of the invoking task or process
@@ -715,17 +721,15 @@ This function is used to reset an ended semaphore, so that a restarted
 subsystem can reuse that semaphore rather than delete it and allocate a
 new one.
 
-=item int sm_SemUnwedge(sm_SemId semId, int interval)
+=item int sm_SemUnwedge(sm_SemId semId, int timeoutSeconds)
 
 Used to release semaphores that have been taken but never released, possibly
 because the tasks or processes that took them crashed before releasing them.
-Spawns a "smunwedge" thread that attempts to take the semaphore
-identified by I<semId> and, if successful, releases the semaphore and
-announces that the semaphore is released.  If the smunwedge thread fails to
-announce release of the semaphore within I<interval> seconds, the semaphore
-is unilaterally released by the parent thread.  Returns 1 if the
-semaphore was wedged and had to be released, 0 if the semaphore was not
-wedged, -1 on any error.
+Attempts to take the semaphore; if this attempt does not succeed within
+I<timeoutSeconds> seconds (providing time for normal processing to be
+completed, in the event that the semaphore is legitimately and temporarily
+locked by some task), the semaphore is assumed to be wedged.  In any case,
+the semaphore is then released.  Returns 0 on success, -1 on any error.
 
 =item void sm_SemDelete(sm_SemId semId)
 

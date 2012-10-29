@@ -78,6 +78,16 @@ extern "C" {
 #define BP_MAX_BLOCK_SIZE		(2000)
 #endif
 
+/*	We hitchhike on the ZCO heap space management system to 
+ *	manage the space occupied by Bundle objects.  In effect,
+ *	the Bundle overhead objects compete with ZCOs for available
+ *	SDR heap space.  We don't want this practice to become
+ *	widespread, which is why these functions are declared
+ *	privately here rather than publicly in the zco.h header.	*/
+
+extern void	zco_increase_heap_occupancy(Sdr sdr, Scalar *delta);
+extern void	zco_reduce_heap_occupancy(Sdr sdr, Scalar *delta);
+
 /*	A BP "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR database, in a DTN-based network.
@@ -124,7 +134,7 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	nodeNbr;
+	unsigned long	nodeNbr;	/*	For "imc", group nbr.	*/
 	unsigned long	serviceNbr;
 } CbheEid;
 
@@ -133,6 +143,7 @@ typedef struct
 	DtnEid		d;
 	CbheEid		c;
 	char		cbhe;		/*	Boolean.		*/
+	char		unicast;	/*	Boolean.		*/
 } EndpointId;
 
 typedef struct
@@ -179,7 +190,6 @@ typedef struct
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
-#define	BP_AGGREGATE_CUSTODY_SIGNAL	(4)
 
 /*	Administrative record flags	*/
 #define BP_BDL_IS_A_FRAGMENT	(1)	/*	00000001		*/
@@ -278,7 +288,8 @@ typedef struct
 
 	/*	Stuff in Primary block.					*/
 
-	unsigned long	bundleProcFlags;	/*	Incl. CoS, SRR.	*/
+	unsigned long	bundleProcFlags;/*	Incl. CoS, SRR.		*/
+	unsigned long	timeToLive;	/*	In seconds.		*/
 	EndpointId	destination;	/*	...of bundle's ADU	*/
 		/*	source of bundle's ADU is in the id field.	*/
 	EndpointId	reportTo;
@@ -293,6 +304,11 @@ typedef struct
 	/*	Stuff in Extended COS extension block.			*/
 
 	BpExtendedCOS	extendedCOS;
+
+	/*	Stuff in (or for) the Bundle Age extension block.	*/
+
+	unsigned long	age;		/*	In microseconds.	*/
+	struct timeval	arrivalTime;
 
 	/*	Stuff in Payload block.					*/
 
@@ -319,7 +335,6 @@ typedef struct
 	char		corrupt;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
-	int		dbTotal;	/*	Overhead + payload len.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
@@ -427,7 +442,9 @@ typedef struct
 typedef struct
 {
 	char		name[MAX_SCHEME_NAME_LEN + 1];
+	int		nameLength;
 	int		cbhe;		/*	Boolean.		*/
+	int		unicast;	/*	Boolean;		*/
 	Object		fwdCmd; 	/*	For starting forwarder.	*/
 	Object		admAppCmd; 	/*	For starting admin app.	*/
 	Object		forwardQueue;	/*	SDR list of Bundles	*/
@@ -437,11 +454,16 @@ typedef struct
 typedef struct
 {
 	Object		schemeElt;	/*	Reference to scheme.	*/
+
+	/*	Copied from Scheme.	*/
+
 	char		name[MAX_SCHEME_NAME_LEN + 1];
-	char		custodianEidString[MAX_EID_LEN];
-	int		custodianSchemeNameLength;
-	int		custodianNssLength;
-	int		cbhe;		/*	Copied from Scheme.	*/
+	int		nameLength;
+	int		cbhe;
+	int		unicast;
+
+	char		adminEid[MAX_EID_LEN];
+	int		adminNSSLength;
 	int		fwdPid;		/*	For stopping forwarder.	*/
 	int		admAppPid;	/*	For stopping admin app.	*/
 	sm_SemId	semaphore;	/*	For dispatch notices.	*/
@@ -576,8 +598,8 @@ typedef struct
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
 	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting clock.	*/
-	BpString	custodianEidString;
 	int		maxAcqInHeap;
+	unsigned long	bundleCounter;	/*	For non-synced clock.	*/
 	time_t		resetTime;	/*	Stats reset time.	*/
 	Object		sourceStats;	/*	BpCosStats address.	*/
 	Object		recvStats;	/*	BpCosStats address.	*/
@@ -682,7 +704,6 @@ typedef struct
 	/*	For finding structures in database.			*/
 
 	PsmAddress	schemes;	/*	SM list: VScheme.	*/
-	PsmAddress	cbheScheme;	/*	A single VScheme.	*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
 	PsmAddress	timeline;	/*	SM RB tree: list xref.	*/
@@ -1209,43 +1230,6 @@ extern int		bpDestroyBundle(Object bundleToDestroy,
 			 *	retained because not all constraints
 			 *	have been removed, -1 on any error.	*/
 
-extern int		bpConstructStatusRpt(BpStatusRpt *rpt,
-					Object *payloadZco);
-			/*	Catenates (serializes) rpt as the
-			 *	source data of a new ZCO and passes
-			 *	back the address of that new ZCO.
-			 *
-			 *	Returns 0 on success, -1 on any error.	*/
-
-extern void		bpEraseStatusRpt(BpStatusRpt *rpt);
-			/*	Frees any dynamic memory used in
-			 *	expressing this status report.		*/
-
-extern int		bpConstructCtSignal(BpCtSignal *signal,
-					Object *payloadZco);
-			/*	Catenates (serializes) signal as the
-			 *	source data of a new ZCO and passes
-			 *	back the address of that new ZCO.
-			 *
-			 *	Returns 0 on success, -1 on any error.	*/
-
-extern void		bpEraseCtSignal(BpCtSignal *signal);
-			/*	Frees any dynamic memory used in
-			 *	expressing this custody transfer signal.*/
-
-extern int		bpParseAdminRecord(int *adminRecordType,
-					BpStatusRpt *rpt,
-					BpCtSignal *signal,
-					void **acsptr,
-					Object payload);
-			/*	Populates the appropriate structure
-			 *	from payload content and notes the
-			 *	corresponding admin record type (0
-			 *	if payload is not an admin record).
-			 *
-			 *	Returns 1 on success, 0 on parsing
-			 *	failure, -1 on any other error.		*/
-
 extern int		bpInit();
 extern int		bpSetCTCountdownTimer(time_t newTimeout);
 extern int		bpStart();
@@ -1358,12 +1342,11 @@ typedef struct bpsap_st
 	sm_SemId	recvSemaphore;
 } Sap;
 
-extern int		handleAbstractCtSignal(BpCtSignal *, char *);
 extern int		_handleAdminBundles(char *adminEid,
 				StatusRptCB handleStatusRpt,
 				CtSignalCB handleCtSignal);
-
-extern int eidIsLocal(EndpointId eid, char* dictionary);
+extern int		applyCtSignal(BpCtSignal *, char *);
+extern int		eidIsLocal(EndpointId eid, char* dictionary);
 
 #ifdef __cplusplus
 }

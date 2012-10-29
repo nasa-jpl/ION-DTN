@@ -823,6 +823,7 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 	long 		newEntryOffset;
 	long		lstEntryOffset;
 	int		updateStat;
+	int		res = 0;
 
 	memset(buffer, '\0', bufLength);
 	contentLength = (long) zco_source_data_length(sdr, dlv->adu);
@@ -944,28 +945,28 @@ printf("from this point on, the execution of the provided display function begin
 
 		if (dlv->bundleCreationTime.seconds > lastDis->seconds)
 		{
-			oK(display(dlv->bundleCreationTime.seconds, 
+			res = display(dlv->bundleCreationTime.seconds, 
 				dlv->bundleCreationTime.count, buffer, 
-				contentLength));
+				contentLength);
 			*lastDis = dlv->bundleCreationTime;
 		}
 		else if (dlv->bundleCreationTime.seconds == lastDis->seconds)
 		{
 			if (dlv->bundleCreationTime.count > lastDis->count)
 			{
-				oK(display(dlv->bundleCreationTime.seconds, 
+				res = display(dlv->bundleCreationTime.seconds,
 					dlv->bundleCreationTime.count, buffer, 
-					contentLength));
+					contentLength);
 				*lastDis = dlv->bundleCreationTime;
 			}
 		}
 	}
 	else
 	{
-		oK(display((time_t) 0, 0, error, sizeof(error)));
+		res = display((time_t) 0, 0, error, sizeof(error));
 	}
 
-	return 0;
+	return res;
 }
 
 void	*recvBundles(void *args)
@@ -1126,7 +1127,7 @@ int	loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 
 	isprintf(fileName, sizeof(fileName), "%s/%s.dat", path, bssName);
 	*dat = open(fileName, O_RDWR | O_CREAT | O_LARGEFILE, 0666);
-	if (dat < 0)
+	if (*dat < 0)
 	{
 		putSysErrmsg("BSS Library: can't open .dat file", fileName);
 		return -1;
@@ -1134,7 +1135,7 @@ int	loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 
 	isprintf(fileName, sizeof(fileName), "%s/%s.lst", path, bssName);
 	*lst = open(fileName, O_RDWR | O_CREAT, 0666);
-	if (lst < 0)
+	if (*lst < 0)
 	{
 		putSysErrmsg("BSS Library: can't open .lst file", fileName);
 		return -1;
@@ -1142,7 +1143,7 @@ int	loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 
 	isprintf(fileName, sizeof(fileName), "%s/%s.tbl", path, bssName);
 	*tbl = open(fileName, O_RDWR | O_CREAT, 0666);
-	if (tbl < 0)
+	if (*tbl < 0)
 	{
 		putSysErrmsg("BSS Library: can't open .tbl file", fileName);
 		return -1;
@@ -1251,9 +1252,9 @@ int	loadRDonlyDB(char* bssName, char* path)
 	if (index == NULL)
 	{
 		putErrmsg("BSS library: can't create table index image.", NULL);
-		close(_datFile(-1,0));
-		close(_lstFile(-1,0));
-		close(_tblFile(-1,0));
+		oK(_datFile(-1,0));
+		oK(_lstFile(-1,0));
+		oK(_tblFile(-1,0));
 		return -1;
 	}
 

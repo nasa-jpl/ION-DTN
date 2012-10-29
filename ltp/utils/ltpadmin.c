@@ -9,6 +9,7 @@
 
 #include "ltpP.h"
 #include "ltp.h"
+#include "ion.h"
 
 static int		_echo(int *newValue)
 {
@@ -61,8 +62,9 @@ static void	printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint version of ION.");
 	PUTS("\t1\tInitialize");
-	PUTS("\t   1 <est. number of sessions> <bytes reserved for LTP>");
+	PUTS("\t   1 <est. max number of sessions>");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a span <engine ID#> <max export sessions> \
 <max import sessions> <max segment size> <aggregation size limit> \
@@ -98,24 +100,30 @@ indication characters, e.g., df{].  See man(5) for ltprc.");
 
 static void	initializeLtp(int tokenCount, char **tokens)
 {
-	unsigned int	maxNbrOfSessions;
-	unsigned int	blockSizeLimit;
+	unsigned int	estMaxNbrOfSessions;
 
-	if (tokenCount != 3)
+	/*	For backward compatibility, if second argument is
+	 *	provided it is simply ignored.				*/
+
+	if (tokenCount == 3)
+	{
+		tokenCount = 2;
+	}
+
+	if (tokenCount != 2)
 	{
 		SYNTAX_ERROR;
 		return;
 	}
 
-	maxNbrOfSessions = strtol(tokens[1], NULL, 0);
-	blockSizeLimit = strtol(tokens[2], NULL, 0);
+	estMaxNbrOfSessions = strtol(tokens[1], NULL, 0);
 	if (ionAttach() < 0)
 	{
 		putErrmsg("ltpadmin can't attach to ION.", NULL);
 		return;
 	}
 
-	if (ltpInit(maxNbrOfSessions, blockSizeLimit) < 0)
+	if (ltpInit(estMaxNbrOfSessions) < 0)
 	{
 		putErrmsg("ltpadmin can't initialize LTP.", NULL);
 		return;
@@ -640,6 +648,7 @@ static int	processLine(char *line, int lineLength, int *checkNeeded)
 	char		*cursor;
 	int		i;
 	char		*tokens[12];
+	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
 
@@ -688,6 +697,12 @@ static int	processLine(char *line, int lineLength, int *checkNeeded)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s",
+					IONVERSIONNUMBER);
+			printText(buffer);
 			return 0;
 
 		case '1':

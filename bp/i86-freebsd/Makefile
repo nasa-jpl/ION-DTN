@@ -11,6 +11,7 @@ TCP = ../tcp
 DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
+CRYPTO = $(API)/crypto/NULL_SUITES
 
 # OPT = -O -Dfreebsd
 OPT = -g -Wall -Werror -Dfreebsd
@@ -263,7 +264,7 @@ libudpcla.so:	libudpcla.o
 %.o:		$(API)/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/crypto/NULL_SUITES/%.c
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/ecos/%.c

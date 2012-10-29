@@ -142,7 +142,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 				sizeof(Tally));
 		break;
 
-	case 7:
+	default:		/*	Can only be 7.			*/
 		sdr_read(sdr, (char *) &dbStats, bpdb.dbStats,
 				sizeof(BpDbStats));
 		memset((char *) &tallies[0], 0, sizeof(Tally));
@@ -151,13 +151,6 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 		memcpy((char *) &tallies[3], (char *)
 				&dbStats.tallies[BP_DB_EXPIRED],
 				sizeof(Tally));
-		break;
-
-	default:
-		memset((char *) &tallies[0], 0, sizeof(Tally));
-		memset((char *) &tallies[1], 0, sizeof(Tally));
-		memset((char *) &tallies[2], 0, sizeof(Tally));
-		memset((char *) &tallies[3], 0, sizeof(Tally));
 	}
 
 	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) %u %lu \

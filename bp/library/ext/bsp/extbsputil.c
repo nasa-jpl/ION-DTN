@@ -61,7 +61,7 @@
  *****************************************************************************/
 
 #include "extbsputil.h"	/** BSP structures and enumerations */
-#include "../../bpP.h"	/** HMAC-SHA1 implementation */ 
+#include "bpP.h"	/** HMAC-SHA1 implementation */ 
 
 /*****************************************************************************
  *                            VARIABLE DEFINITIONS                           *
@@ -72,41 +72,6 @@
  * This is accessed by the BSP_DEBUG macros.
  */
 char	gMsg[GMSG_BUFLEN];
-
-/* If we are only in 1 scheme, return custodian EID for that scheme. If we
-   are in  multiple schemes, return custodian EID for the peerEid given.
-*/
-
-char * getCustodianEid(char *peerEid)
-{
-  char *temp = NULL;
-
-   VScheme	*vscheme = NULL;
-   PsmAddress	vschemeElt;
-   MetaEid	metaEid;
-   int		len;
-
-   CHKNULL(peerEid);
-   len = strlen(peerEid);
-   if ((temp = MTAKE(len + 1)) == 0)
-   {
-     BSP_DEBUG_ERR("x getCustodianEid: Unable to allocate EID of size %d",
-		     len + 1);
-     return NULL;  
-   }
-
-   istrcpy(temp, peerEid, len + 1);
-   if (parseEidString(temp, &metaEid, &vscheme, &vschemeElt) == 0)
-   {
-      BSP_DEBUG_ERR("x getCustodianEid: Cannot find scheme for dest EID: %s",
-		      temp);
-      MRELEASE(temp);
-      return NULL;
-   }
-
-   MRELEASE(temp);
-   return vscheme->custodianEidString;
-}
 
 int	extensionBlockTypeToInt(char *blockType)
 {
@@ -834,56 +799,26 @@ void bsp_getSecurityInfo(Bundle *bundle,
 	BSP_DEBUG_PROC("- bsp_getSecurityInfo %c", ' ');
 }
 
-char *getLocalCustodianEid(DequeueContext *ctxt)
+char *getLocalAdminEid(DequeueContext *ctxt)
 {
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	char		*custodianEid;
-	unsigned long len;
-	unsigned long node = getOwnNodeNbr();
-	char *nodeTxt = itoa(node);
-	unsigned long nodeLen = strlen(nodeTxt);
-	int		offset;
-	char *result;
 
 	/*
-	 * Look at scheme we are delivering to, as that will be the scheme of our
-	 * local custodian EID, as we don't cross schemes in transmit
+	 * Look at scheme we are delivering to, as that will be the
+	 * scheme of our local admin EID, as we don't cross schemes
+	 * in transmit.
 	 */
 	if (parseEidString(ctxt->proxNodeEid, &metaEid, &vscheme,
 			&vschemeElt) == 0)
 	{
-		/*	Can't know which custodian EID to use.		*/
+		/*	Can't know which admin EID to use.		*/
 		return NULL;
 	}
 
 	restoreEidString(&metaEid);
-
-	len = vscheme->custodianSchemeNameLength + nodeLen + 4; // (:  .0  /0)
-	custodianEid = MTAKE(len);
-	if (custodianEid == NULL)
-	{
-		return NULL;
-	}
-
-	memcpy(custodianEid, vscheme->custodianEidString, vscheme->custodianSchemeNameLength);
-	offset = vscheme->custodianSchemeNameLength;
-	*(custodianEid + offset) = '\0';
-
-	memcpy(custodianEid + offset, ":", 1);
-	offset++;
-	memcpy(custodianEid + offset, nodeTxt, nodeLen);
-	offset += nodeLen;
-	*(custodianEid + offset) = '\0';
-
-	memcpy(custodianEid + offset, ".0", 2);
-	offset += 2;
-	*(custodianEid + offset) = '\0';
-
-	result = getCustodianEid(custodianEid);
-	MRELEASE(custodianEid);
-	return result;
+   	return vscheme->adminEid;
 }
 
 /******************************************************************************
@@ -913,8 +848,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
     VScheme      *vscheme = NULL;        
     PsmAddress   vschemeElt;
     MetaEid      metaEid;
-    char *tmp = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
-    char *tmp2 = NULL;
+    char *tmp = MTAKE(MAX_EID_LEN + 1);
 
     // SECURITY POLICY: If a security source or destination are not present,
     // then we will assume they are the bundle's source and destination.
@@ -936,6 +870,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 	// In case theres a destination too:
 	eidElt = lyst_next(eidElt);
 
+	asb->secSrc.unicast = 1;
 	asb->secSrc.cbhe = (wk->dictionary == NULL);
 	if(asb->secSrc.cbhe)
 	{
@@ -954,17 +889,17 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 	// if a bab block, try to use convergence layer sender addr
         if(blockType == BSP_BAB_TYPE && wk->senderEid != NULL)
         {
-            memset(tmp, 0, MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
-            memcpy(tmp, wk->senderEid, strlen(wk->senderEid));
+	    istrcpy(tmp, wk->senderEid, MAX_EID_LEN + 1);
 	    // parseEidString will mess up the char * given to it..
 	    // so just copy it to a temp variable
-            parseEidString(tmp, &metaEid, &vscheme, &vschemeElt);
-            if(strcmp(tmp, "") != 0 && metaEid.nodeNbr != 0)
+            if (parseEidString(tmp, &metaEid, &vscheme, &vschemeElt) != 0
+	    && metaEid.cbhe == 1)
             {
-		// It worked, use it
+		// It's CBHE, so we can use it as security source
+		asb->secSrc.unicast = 1;
 		asb->secSrc.cbhe = 1;  
 		asb->secSrc.c.nodeNbr = metaEid.nodeNbr;
-		asb->secSrc.c.serviceNbr = metaEid.serviceNbr;
+		asb->secSrc.c.serviceNbr = 0;
             }
             else
             {
@@ -974,7 +909,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
         }
 	else 
 	{
-	    // Not a BAB block
+	    // Not a BAB block, or sender EID unknown
 	    asb->secSrc = wk->bundle.id.source;
         }
     }
@@ -986,6 +921,7 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 	eidElt = lyst_next(eidElt);
 	nssOffset = (unsigned long) lyst_data(eidElt);
 
+	asb->secDest.unicast = 1;
 	asb->secDest.cbhe = (wk->dictionary == NULL);
 	if(asb->secDest.cbhe)
 	{
@@ -1001,21 +937,20 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
     else
     {
         // No given sec dest
-        // if a bab block, try to use convergence layer sender addr
+        // if a bab block, assume security destination is the local node
         if(blockType == BSP_BAB_TYPE && wk->senderEid != NULL)
         {   
-            memset(tmp, 0, MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
-            tmp2 = getCustodianEid(wk->senderEid);
-            memcpy(tmp, tmp2, strlen(tmp2));
-            // parseEidString will mess up the char * given to it..
-            // so just copy it to a temp variable
-            parseEidString(tmp, &metaEid, &vscheme, &vschemeElt);
-            if(strcmp(tmp, "") != 0 && metaEid.nodeNbr != 0)
+	    istrcpy(tmp, wk->senderEid, MAX_EID_LEN + 1);
+	    // parseEidString will mess up the char * given to it..
+	    // so just copy it to a temp variable
+            if (parseEidString(tmp, &metaEid, &vscheme, &vschemeElt) != 0
+	    && metaEid.cbhe == 1)
             {
-                // It worked, use it
+                // It's CBHE, so we can use local node as security destination
+		asb->secDest.unicast = 1;
                 asb->secDest.cbhe = 1;
-                asb->secDest.c.nodeNbr = metaEid.nodeNbr;
-                asb->secDest.c.serviceNbr = metaEid.serviceNbr;
+                asb->secDest.c.nodeNbr = getOwnNodeNbr();
+                asb->secDest.c.serviceNbr = 0;
             }
             else
             {
@@ -1079,7 +1014,7 @@ int setSecPointsTrans(ExtensionBlock *blk, Bundle *bundle, BspAbstractSecurityBl
     if(blockType == BSP_BAB_TYPE || blockType == 0)
     {
         // BAB is hop to hop, so the security source is our current node.
-        tmp2 = getLocalCustodianEid(ctxt);
+        tmp2 = getLocalAdminEid(ctxt);
         memcpy(srcNode, tmp2, strlen(tmp2));
 
         // For pre bab blocks or blocks without defined type (likely post bab), 
@@ -1092,21 +1027,33 @@ int setSecPointsTrans(ExtensionBlock *blk, Bundle *bundle, BspAbstractSecurityBl
 
 	// By policy, PIB/PCB security src/destination is currently just the
         // bundle src/destination. So, if we have a bundle src, use it, else
-        // use the local custodian for this node.
+        // use the local admin endpoint for this node.
 	if(bsp_eidNil(&(bundle->id.source)))
 	{
-	  tmp2 = getLocalCustodianEid(ctxt);
+	  tmp2 = getLocalAdminEid(ctxt);
 	  memcpy(srcNode, tmp2, strlen(tmp2));
 	}
         else
         {
-	  printEid(&(bundle->id.source), dictionary, &tmp2);
+	  if (printEid(&(bundle->id.source), dictionary, &tmp2) < 0)
+	  {
+		  putErrmsg("Can't print source EID.", NULL);
+		  releaseDictionary(dictionary);
+		  return -1;
+	  }
+
           memcpy(srcNode, tmp2, strlen(tmp2));
           MRELEASE(tmp2);
 	}
 
         // For pib/pcb destination will be the bundle destination
-        printEid(&(bundle->destination), dictionary, &tmp2);
+	if (printEid(&(bundle->destination), dictionary, &tmp2) < 0)
+	{
+		putErrmsg("Can't print destination EID.", NULL);
+		releaseDictionary(dictionary);
+		return -1;
+	}
+
         memcpy(destNode, tmp2, strlen(tmp2));
         MRELEASE(tmp2);
 

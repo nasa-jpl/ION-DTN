@@ -10,7 +10,7 @@
  */
 
 #include "bpP.h"
-#include "acs/acsP.h"
+#include "acsP.h"
 #include "cteb.h"
 
 
@@ -66,7 +66,8 @@ int cteb_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
 	sdrBlk->object = sdr_insert(bpSdr, ramBlk->object, ramBlk->size);
 	if(sdrBlk->object == 0)
 	{
-		putErrmsg("Can't store CTEB scratchpad in SDR", itoa(ramBlk->size));
+		putErrmsg("Can't store CTEB scratchpad in SDR",
+				itoa(ramBlk->size));
 		return -1;
 	}
 	sdrBlk->size = ramBlk->size;
@@ -116,7 +117,8 @@ int cteb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	{
 		/* Bundle is custodial, but we're not the custodian.
 		 * We should copy the old CTEB. */
-		putErrmsg("FIXME: Bundle is custodial but we're not custodian", NULL);
+		putErrmsg("FIXME: Bundle is custodial but we're not custodian",
+				NULL);
 		return 0;
 	}
 
@@ -161,14 +163,13 @@ int cteb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 	/* Get a custody identifier for this bundle. */
 	if(get_or_make_custody_id(sourceEid, &bundle->id.creationTime,
-				bundle->id.fragmentOffset,
-				bundle->totalAduLength == 0 ? 0 : bundle->payload.length,
-				&cid) < 0)
+			bundle->id.fragmentOffset, bundle->totalAduLength == 0 ?
+			0 : bundle->payload.length, &cid) < 0)
 	{
 		ACSLOG_INFO("Can't get a custody ID for the CTEB, is ACS initialized?");
 
         /* Destroy this extension block */
-        suppressExtensionBlock(blk);
+        	suppressExtensionBlock(blk);
 		MRELEASE(custodianEid);
 		MRELEASE(sourceEid);
 		return 0;
@@ -178,8 +179,7 @@ int cteb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	encodeSdnv(&custodyIdSdnv, cid.id);
 
 	/* Allocate memory for our own CTEB. */
-	blk->dataLength = custodyIdSdnv.length
-						 + custodianEidLen;
+	blk->dataLength = custodyIdSdnv.length + custodianEidLen;
 	ctebBytes = MTAKE(blk->dataLength);
 	if (ctebBytes == NULL)
 	{
@@ -230,7 +230,8 @@ int cteb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	custodianEid = MTAKE(bytesRemaining + 1);
 	if(custodianEid == NULL)
 	{
-		putErrmsg("Can't acquire CTEB custodian EID.", itoa(bytesRemaining));
+		putErrmsg("Can't acquire CTEB custodian EID.",
+				itoa(bytesRemaining));
 		return -1;		/* Error acquiring. */
 	}
 	memcpy(custodianEid, cursor, bytesRemaining);
@@ -240,7 +241,8 @@ int cteb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 
 	/* Verify the CTEB is still valid. */
-	if (printEid(&bundle->custodian, wk->dictionary, &bundleCustodianEid) < 0)
+	if (printEid(&bundle->custodian, wk->dictionary, &bundleCustodianEid)
+			< 0)
 	{
 		putErrmsg("Can't print custodian EID string.", NULL);
 		MRELEASE(custodianEid);
@@ -261,7 +263,8 @@ int cteb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	blk->object = MTAKE(sizeof(CtebScratchpad));
 	if(blk->object == NULL)
 	{
-		putErrmsg("Can't MTAKE for storing CTEB.", itoa(sizeof(CtebScratchpad)));
+		putErrmsg("Can't MTAKE for storing CTEB.",
+				itoa(sizeof(CtebScratchpad)));
 		return -1;		/* Error acquiring. */
 	}
 	memcpy(blk->object, &cteb, sizeof(CtebScratchpad));
@@ -295,7 +298,8 @@ static int loadCtebScratchpadFromWm(Bundle *bundle, AcqWorkArea *work,
 			if(acqExtBlk->type == EXTENSION_TYPE_CTEB)
 			{
 				/* Store CTEB scratchpad to cteb */
-				memcpy(cteb, acqExtBlk->object, sizeof(CtebScratchpad));
+				memcpy(cteb, acqExtBlk->object,
+						sizeof(CtebScratchpad));
 				return 0;
 			}
 		}
@@ -314,11 +318,15 @@ static int loadCtebScratchpadFromSdr(Sdr sdr, Bundle *bundle, AcqWorkArea *work,
 	assert(sdr_in_xn(sdr) != 0);
 
 	/* Find the first CTEB in the bundle. */
-	for (beforeOrAfter = 0; beforeOrAfter < 2 && extElt == 0; beforeOrAfter++)
+	for (beforeOrAfter = 0; beforeOrAfter < 2 && extElt == 0;
+			beforeOrAfter++)
 	{
-		extElt = findExtensionBlock(bundle, EXTENSION_TYPE_CTEB, beforeOrAfter);
+		extElt = findExtensionBlock(bundle, EXTENSION_TYPE_CTEB,
+				beforeOrAfter);
 	}
-	if(extElt == 0) {
+
+	if (extElt == 0)
+	{
 		/* Didn't find any CTEBs in this bundle. */
 		return -1;
 	}
@@ -331,7 +339,8 @@ static int loadCtebScratchpadFromSdr(Sdr sdr, Bundle *bundle, AcqWorkArea *work,
 	 * isn't valid:  Any bundle agent properly implementing CTEB would
 	 * ensure there's only one CTEB, so there is no valid CTEB on this
 	 * bundle.  Don't bother looking further. */
-	if(blk.object == 0) {
+	if (blk.object == 0)
+	{
 		return -1;
 	}
 
@@ -343,18 +352,21 @@ int loadCtebScratchpad(Sdr sdr, Bundle *bundle, AcqWorkArea *work,
 			CtebScratchpad *cteb)
 {
 	int rc = 0;
-    sdr_begin_xn(sdr);
+
+	sdr_begin_xn(sdr);
 
 	/* If the bundle hasn't been recorded, the CTEB is in the acquisition 
 	 * working memory. */
-	if(work != NULL)
+	if (work != NULL)
 	{
-		if(loadCtebScratchpadFromWm(bundle, work, cteb) < 0)
+		if (loadCtebScratchpadFromWm(bundle, work, cteb) < 0)
 		{
 			rc = -1;
 		}
-	} else {
-		if(loadCtebScratchpadFromSdr(sdr, bundle, work, cteb) < 0)
+	}
+	else
+	{
+		if (loadCtebScratchpadFromSdr(sdr, bundle, work, cteb) < 0)
 		{
 			rc = -1;
 		}

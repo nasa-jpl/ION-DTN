@@ -68,6 +68,7 @@ static sm_SemId	_sdrlock(int delete)
 	 *	global to all SDR operations on any single computer.	*/
 
 	static sm_SemId	lock = SM_SEM_NONE;
+	int		n;
 
 	if (delete)
 	{
@@ -82,6 +83,29 @@ static sm_SemId	_sdrlock(int delete)
 		if (lock == SM_SEM_NONE)
 		{
 			lock = sm_SemCreate(SDR_SEMKEY, SM_SEM_FIFO);
+			if (lock != SM_SEM_NONE)
+			{
+				/*	Try unwedge twice, in case
+				 *	there's a conflict with another
+				 *	initializing node.		*/
+
+				for (n = 2; n > 0; n--)
+				{
+					if (sm_SemUnwedge(lock, 3) < 0)
+					{
+						microsnooze(100000);
+					}
+					else
+					{
+						break;
+					}
+				}
+
+				if (n == 0)
+				{
+					lock = SM_SEM_NONE;
+				}
+			}
 		}
 	}
 
@@ -440,8 +464,7 @@ int	Sdr_initialize(long wmSize, char *wmPtr, int wmKey, char *wmName)
 	}
 
 	lock = _sdrlock(0);
-	if (lock == SM_SEM_NONE
-	|| sm_SemUnwedge(lock, 3) < 0 || sm_SemTake(lock) < 0)
+	if (lock == SM_SEM_NONE || sm_SemTake(lock) < 0)
 	{
 		putErrmsg("Can't initialize SDR system.", NULL);
 		return -1;	/*	Crash if can't lock sdr.	*/

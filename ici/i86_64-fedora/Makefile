@@ -19,6 +19,7 @@ LIBICIOBJS = \
 	lyst.o \
 	psm.o \
 	smlist.o \
+	smrbt.o \
 	sptrace.o \
 	ion.o \
 	rfx.o \
@@ -30,7 +31,8 @@ LIBICIOBJS = \
 	sdrlist.o \
 	sdrtable.o \
 	sdrhash.o \
-	sdrcatlg.o
+	sdrcatlg.o \
+	smrbt.o
 
 PUBINCLS = \
 	$(INCL)/llcv.h \
@@ -40,6 +42,7 @@ PUBINCLS = \
 	$(INCL)/lyst.h \
 	$(INCL)/psm.h \
 	$(INCL)/smlist.h \
+	$(INCL)/smrbt.h \
 	$(INCL)/sptrace.h \
 	$(INCL)/ion.h \
 	$(INCL)/zco.h \
@@ -51,7 +54,8 @@ PUBINCLS = \
 	$(INCL)/sdrlist.h \
 	$(INCL)/sdrtable.h \
 	$(INCL)/sdrhash.h \
-	$(INCL)/sdr.h
+	$(INCL)/sdr.h \
+	$(INCL)/smrbt.h
 
 ICIINCLS = \
 	$(SRC)/lystP.h \
@@ -59,9 +63,9 @@ ICIINCLS = \
 
 UTILITIES = sdrwatch sdrmend psmwatch ionadmin ionsecadmin
 
-TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh owltsim owlttb
+TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
 
-ALL = check libici.so rfxclock $(UTILITIES) $(TESTPGMS)
+ALL = check libici.so libicinm.so rfxclock $(UTILITIES) $(TESTPGMS)
 
 all:		$(ALL)
 
@@ -112,6 +116,10 @@ smlistsh:	smlistsh.o libici.so
 		$(CC) -o smlistsh smlistsh.o -L./lib -lici -lpthread
 		cp smlistsh ./bin
 
+smrbtsh:	smrbtsh.o libici.so
+		$(CC) -o smrbtsh smrbtsh.o -L./lib -lici -lpthread
+		cp smrbtsh ./bin
+
 file2sm:	file2sm.o libici.so
 		$(CC) -I. -o file2sm file2sm.o -L./lib -lici -lpthread
 		cp file2sm ./bin
@@ -147,6 +155,10 @@ rfxclock:	rfxclock.o libici.so
 libici.so:	$(LIBICIOBJS)
 		$(LD) -o libici.so $(LIBICIOBJS)
 		cp libici.so ./lib
+
+libicinm.so:	libicinm.o $(INCL)/icinm.h
+		$(LD) -o libicinm.so libicinm.o
+		cp libicinm.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 

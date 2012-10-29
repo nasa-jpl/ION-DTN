@@ -8,6 +8,7 @@
  *
  */
 
+#include "zco.h"
 #include "ion.h"
 #include "rfx.h"
 #include "time.h"
@@ -19,14 +20,6 @@
 #define	ION_DEFAULT_SM_KEY	((255 * 256) + 1)
 #define	ION_SM_NAME		"ionwm"
 #define	ION_DEFAULT_SDR_NAME	"ion"
-#ifndef ION_SDR_MARGIN
-#define	ION_SDR_MARGIN		(20)	/*	Percent.		*/
-#endif
-#ifndef ION_OPS_ALLOC
-#define	ION_OPS_ALLOC		(20)	/*	Percent.		*/
-#endif
-#define	ION_SEQUESTERED		(ION_SDR_MARGIN + ION_OPS_ALLOC)
-#define	MIN_SPIKE_RSRV		(100000)
 
 #define timestampInFormat	"%4d/%2d/%2d-%2d:%2d:%2d"
 #define timestampOutFormat	"%.4d/%.2d/%.2d-%.2d:%.2d:%.2d"
@@ -592,6 +585,8 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 	Sdr		ionsdr;
 	Object		iondbObject;
 	IonDB		iondbBuf;
+	long		heapLimit;
+	Scalar		limit;
 	sm_WmParms	ionwmParms;
 	char		*ionvdbName = _ionvdbName();
 
@@ -659,20 +654,23 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
-		iondbBuf.occupancyCeiling = ((sdr_heap_size(ionsdr) / 100)
-			 	* (100 - ION_SEQUESTERED));
-		iondbBuf.receptionSpikeReserve = iondbBuf.occupancyCeiling / 16;
-		if (iondbBuf.receptionSpikeReserve < MIN_SPIKE_RSRV)
-		{
-			iondbBuf.receptionSpikeReserve = MIN_SPIKE_RSRV;
-		}
-
+		iondbBuf.productionRate = -1;	/*	Not metered.	*/
+		iondbBuf.consumptionRate = -1;	/*	Not metered.	*/
+		heapLimit = (sdr_heap_size(ionsdr) / 100)
+			 	* (100 - ION_SEQUESTERED);
+		limit.units = heapLimit % ONE_GIG;
+		limit.gigs = heapLimit / ONE_GIG;
+		zco_set_max_heap_occupancy(ionsdr, &limit);
+		zco_get_max_file_occupancy(ionsdr, &limit);
+		iondbBuf.occupancyCeiling = limit.gigs;
+		iondbBuf.occupancyCeiling *= ONE_GIG;
+		iondbBuf.occupancyCeiling += limit.units;
+		iondbBuf.occupancyCeiling += heapLimit;
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
-
+		iondbBuf.clockIsSynchronized = 1;
                 memcpy( &iondbBuf.parmcopy, parms, sizeof(IonParms));
-
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
 		{
@@ -993,6 +991,16 @@ unsigned long	getOwnNodeNbr()
 	return snapshot->ownNodeNbr;
 }
 
+int	ionClockIsSynchronized()
+{
+	Sdr	ionsdr = _ionsdr(NULL);
+	Object	iondbObject = _iondbObject(NULL);
+	IonDB	iondbBuf;
+
+	sdr_read(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
+	return iondbBuf.clockIsSynchronized;
+}
+
 /*	*	*	Shared-memory tracing 	*	*	*	*/
 
 int	startIonMemTrace(int size)
@@ -1013,50 +1021,6 @@ void	clearIonMemTrace(int verbose)
 void	stopIonMemTrace(int verbose)
 {
 	psm_stop_trace(_ionwm(NULL));
-}
-
-/*	*	*	Space management 	*	*	*	*/
-
-void	ionOccupy(int size)
-{
-	Sdr	ionsdr = _ionsdr(NULL);
-	Object	iondbObject = _iondbObject(NULL);
-	IonDB	iondbBuf;
-
-	CHKVOID(ionLocked());
-	CHKVOID(size >= 0);
-	sdr_stage(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
-	if (iondbBuf.currentOccupancy + size < 0)/*	Overflow.	*/
-	{
-		iondbBuf.currentOccupancy = iondbBuf.occupancyCeiling;
-	}
-	else
-	{
-		iondbBuf.currentOccupancy += size;
-	}
-
-	sdr_write(ionsdr, iondbObject, (char *) &iondbBuf, sizeof(IonDB));
-}
-
-void	ionVacate(int size)
-{
-	Sdr	ionsdr = _ionsdr(NULL);
-	Object	iondbObject = _iondbObject(NULL);
-	IonDB	iondbBuf;
-
-	CHKVOID(ionLocked());
-	CHKVOID(size >= 0);
-	sdr_stage(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
-	if (size > iondbBuf.currentOccupancy)	/*	Underflow.	*/
-	{
-		iondbBuf.currentOccupancy = 0;
-	}
-	else
-	{
-		iondbBuf.currentOccupancy -= size;
-	}
-
-	sdr_write(ionsdr, iondbObject, (char *) &iondbBuf, sizeof(IonDB));
 }
 
 /*	*	*	Timestamp handling 	*	*	*	*/
@@ -1245,7 +1209,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	parms->configFlags = SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED;
 	parms->heapWords = 250000;
 	parms->heapKey = SM_NO_KEY;
-	istrcpy(parms->pathName, "/usr/ion", sizeof parms->pathName);
+	istrcpy(parms->pathName, "/tmp", sizeof parms->pathName);
 
 	/*	Determine name of config file.				*/
 
@@ -1474,7 +1438,7 @@ static void	*alarmMain(void *parm)
 		getCurrentTime(&workTime);
 		deadline.tv_sec = workTime.tv_sec + alarm->term;
 		deadline.tv_nsec = workTime.tv_usec * 1000;
-		pthread_mutex_lock(&mutex);
+		oK(pthread_mutex_lock(&mutex));
 		result = pthread_cond_timedwait(&cv, &mutex, &deadline);
 		pthread_mutex_unlock(&mutex);
 		if (result != ETIMEDOUT)

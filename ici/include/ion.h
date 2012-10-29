@@ -22,8 +22,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2012-07-13 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "3.0.2"
+/* As of 2012-09-21 the sourceforge version number is this: */
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.1.0"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -35,6 +35,14 @@ extern "C" {
 
 #define	MAX_SPEED_MPH	(150000)
 #define	MAX_SPEED_MPS	(MAX_SPEED_MPH / 3600)
+
+#ifndef ION_SDR_MARGIN
+#define	ION_SDR_MARGIN		(20)	/*	Percent.		*/
+#endif
+#ifndef ION_OPS_ALLOC
+#define	ION_OPS_ALLOC		(20)	/*	Percent.		*/
+#endif
+#define	ION_SEQUESTERED		(ION_SDR_MARGIN + ION_OPS_ALLOC)
 
 typedef struct
 {
@@ -93,19 +101,17 @@ typedef struct
 	unsigned long	ownNodeNbr;
 	long		productionRate;	/*	Bundles sent by apps.	*/
 	long		consumptionRate;/*	Bundles rec'd by apps.	*/
-	long		occupancyCeiling;
-	long		receptionSpikeReserve;
-	long		maxForecastOccupancy;
-	long		maxForecastInTransit;
-	long		currentOccupancy;
+	double		occupancyCeiling;
+	double		maxForecastOccupancy;
 	Object		alarmScript;	/*	Congestion alarm.	*/
 	time_t		horizon;	/*	On congestion forecast.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
 	int		maxClockError;	/*	In seconds.		*/
+	char		clockIsSynchronized;	/*	Boolean.	*/
 	char		workingDirectoryName[256];
-
-        IonParms        parmcopy;       /* copy of the ion startup parms as known to ionadmin at startup */
-
+        IonParms        parmcopy;       /*	Copy of the ion config
+						parms as asserted to
+						ionadmin at startup.	*/
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,
@@ -286,13 +292,11 @@ extern void		printIonMemTrace(int verbose);
 extern void		clearIonMemTrace();
 extern void		stopIonMemTrace();
 
-extern void		ionOccupy(	int size);
-extern void		ionVacate(	int size);
-
 #define	TIMESTAMPBUFSZ	20
 
 extern int		setDeltaFromUTC(int newDelta);
 extern time_t		getUTCTime();	/*	UTC scale, 1970 epoch.	*/
+extern int		ionClockIsSynchronized();
 
 extern time_t		readTimestampLocal(char *timestampBuffer,
 					time_t referenceTime);

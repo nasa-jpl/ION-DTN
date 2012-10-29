@@ -275,7 +275,7 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 	Sdr		sdr = getIonsdr();
 	BpVdb		*vdb = getBpVdb();
 	BpExtendedCOS	defaultECOS = { 0, 0, 0 };
-	int		aduOccupancy;
+	int		aduLength;
 	MetaEid		*sourceMetaEid;
 	Throttle	*throttle;
 
@@ -308,8 +308,8 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 
 	throttle = &(vdb->productionThrottle);
 	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
-	aduOccupancy = zco_occupancy(sdr, adu);
-	while (aduOccupancy > throttle->capacity)
+	aduLength = zco_length(sdr, adu);
+	while (aduLength > throttle->capacity)
 	{
 		sdr_exit_xn(sdr);
 		if (mode == BP_NONBLOCKING)
@@ -333,6 +333,7 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 		sdr_begin_xn(sdr);
 	}
 
+	throttle->capacity -= aduLength;
 	sdr_exit_xn(sdr);	/*	Release memory.			*/
 
 	/*	Now go ahead and send the bundle.			*/

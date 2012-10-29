@@ -167,7 +167,23 @@ declared when ION was initialized by I<ionadmin>.
 
 Returns the current UTC time, as computed from local clock time and the
 computer's current offset from UTC (due to clock drift, B<not> due
-to time zone difference) as managed from I<ionadmin>.
+to time zone difference; the B<utcdelta>) as managed from I<ionadmin>.
+
+=item int ionClockIsSynchronized()
+
+Returns 1 if the computer on which the local ION node is running has a
+synchronized clock , i.e., a clock that reports the current UTC time as a
+value that differs from the correct time by an interval approximately equal
+to the currently asserted offset from UTC due to clock drift; returns zero
+otherwise.
+
+If the machine's clock is synchronized then its reported values (as returned
+by getUTCTime()) can safely be used as the creation times of new bundles and
+the expiration time of such a bundle can accurately be computed as the sum
+of the bundle's creation time and time to live.  If not, then the creation
+timestamp time of new bundles sourced at the local ION node must be zero
+and the creation timestamp sequence numbers must increase monotonically
+forever, never rolling over to zero.
 
 =item void writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 

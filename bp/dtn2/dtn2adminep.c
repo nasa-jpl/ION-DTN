@@ -82,7 +82,7 @@ int	main(int argc, char *argv[])
 	}
 
 	writeMemo("[i] dtn2adminep is running.");
-	if (_handleAdminBundles(vscheme->custodianEidString, handleStatusRpt,
+	if (_handleAdminBundles(vscheme->adminEid, handleStatusRpt,
 			handleCtSignal) < 0)
 	{
 		putErrmsg("dtn2adminep crashed.", NULL);

@@ -17,17 +17,22 @@
 #define _BSS_H_
 
 #define _GNU_SOURCE
-#define _FILE_OFFSET_BITS 64
-#define _LARGEFILE_SOURCE 
+
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS	64
+#endif
+
+#ifndef _LARGEFILE_SOURCE
+#define _LARGEFILE_SOURCE
+#endif
+
+#ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
+#endif
 
 #include <ion.h>
 
-#define EPOCH_2000_SEC	946684800
-#define RCV_LENGTH 	20866
-#define SNOOZE_INTERVAL 55642
-#define BSSRECV_EXIT_SUCCESS              (0)
-#define BSSRECV_EXIT_ERROR                (1)
+#define EPOCH_2000_SEC		946684800
 
 #ifdef __cplusplus
 extern "C" {

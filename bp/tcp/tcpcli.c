@@ -403,16 +403,9 @@ thread", NULL);
 		memcpy((char *) &hostNbr,
 				(char *) &(fromAddr->sin_addr.s_addr), 4);
 		hostNbr = ntohl(hostNbr);
-		if (getInternetHostName(hostNbr, hostName))
-		{
-			parms->senderEid = parms->senderEidBuffer;
-			getSenderEid(&(parms->senderEid), hostName);
-		}
-		else
-		{
-			parms->senderEid = NULL;
-		}
-
+		printDottedString(hostNbr, hostName);
+		parms->senderEid = parms->senderEidBuffer;
+		getSenderEid(&(parms->senderEid), hostName);
 		parms->cloSocketName = cloSocketName;
 		parms->cliRunning = &(atp->running);
                 parms->receiveRunning = 1;

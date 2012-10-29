@@ -43,7 +43,7 @@ extern int		sm_GetUniqueKey();
 extern sm_SemId		sm_SemCreate(int key, int semType);
 extern int		sm_SemTake(sm_SemId semId);
 extern void		sm_SemGive(sm_SemId semId);
-extern int		sm_SemUnwedge(sm_SemId semId, int interval);
+extern int		sm_SemUnwedge(sm_SemId semId, int timeoutSeconds);
 extern void		sm_SemDelete(sm_SemId semId);
 extern void		sm_SemEnd(sm_SemId semId);
 extern int		sm_SemEnded(sm_SemId semId);

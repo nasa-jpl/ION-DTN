@@ -98,7 +98,7 @@ int	main(int argc, char *argv[])
 	 *	invocation of ltplso, to initialize the LTP database
 	 *	(as necessary) and dynamic database.			*/
 
-	if (ltpInit(0, 0) < 0)
+	if (ltpInit(0) < 0)
 	{
 		putErrmsg("aoslso can't initialize LTP.", NULL);
 		return 1;

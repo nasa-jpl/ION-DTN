@@ -1,6 +1,6 @@
-= Release Notes for ION 3.0.2 =
+= Release Notes for ION 3.1.0 =
 
-July 13, 2012
+October 15, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -41,6 +41,12 @@ distribution are the following packages:
 - cfdp - a class-1 (Unacknowledged) implementation of the CCSDS File
   Delivery Protocol.
 
+- bss - a Bundle Streaming Service (BSS) for disruption-tolerant reliable
+  data streaming.  BSS supports real-time streaming applications by
+  passing the bundle payloads to the associated application for immediate
+  display of the most recent data while storing all bundle payloads
+  received into a database for user-directed playback.
+
 
 Features included:
 
@@ -52,6 +58,63 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.1.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Began transitioning to the SourceForge issue tracker for code management.
+  SourceForge-originated issues are designated as "Bugs" or "Feature Requests".
+
+- Bug #1: Fixed bug where the contact graph routing engine would prefer a
+  multi-hop route to the source over the "no-hop" loopback connection.
+
+- Bug #2: Fixed bug in contact graph routing engine where erroneous routes
+  could be selected if route caching was enabled and any "downstream" contact on
+  a route had an end time earlier than the end time of the first contact on the
+  route.
+
+- Bug #3: Updated code and configurations to always use the dotted-string
+  representation of the sender's IP address rather than hostname.  This was done
+  to mitigate problems that can arise due to aliasing and multihoming.
+
+- Bug #7: Fixed bug where ionadmin would duplicate all currently-added contacts
+  and ranges that were added in the ION configuration files before starting
+  ION with the 's' command.
+
+- Bug #8: Fixed bug where bundles that expired while in the limbo queue were not
+  properly deallocated.
+
+- Feature Request #2: Added support for bundle age extension blocks to help
+  accomodate platforms that may not be able to provide a stable clock. 
+  For more information on the bundle age extension, refer to internet draft
+      draft-irtf-dtnrg-bundle-age-block-01
+
+- Feature Request #3: Added support for bundle multicast.
+
+- Issue #195: Finished replacement of pthreads-based semaphore "unwedge"
+  function with simpler platform-specific equivalents, begun in ION 2.4.0.
+
+- Issue #306: Implemented several improvements to congestion forecasting.
+    - Improved the accuracy of the forecast of maximum storage occupancy
+      by incorporating estimations based on the rate of data being
+      transmitted in and out of the internal data heaps.
+
+    - ION now raises an alarm if expected peak volume of data is larger than
+      ION's allocated file storage size.
+
+    - Added new utility called "ionwarn" that is used for computing congestion
+      forecast at an ION node based on contact plan.
+
+- Issue #311: Added a Bundle Streaming Service (BSS) regression test that
+  does not require the use of "xterm".
+
+- Issue #339: Fixed bug in aggregate custody signals implementation that
+  prevented successful completion of regression tests on some platforms.
+
+- Issue #349: Optimized the LTP engine to achieve faster data rates by by
+  substituting red-black trees and hash tables for linked lists where
+  appropriate.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.0.2 =

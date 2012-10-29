@@ -1,5 +1,7 @@
 # shell script to populate RTEMS build directory with sym links to source files.
 #!/bin/bash
+ION_OPEN_SOURCE=1
+CRYPTO=NULL_SUITES
 ln -s ../ici/library/platform.c
 ln -s ../ici/library/platform_sm.c
 ln -s ../ici/library/memmgr.c
@@ -26,14 +28,18 @@ ln -s ../ici/utils/ionadmin.c
 ln -s ../ici/utils/ionsecadmin.c
 ln -s ../ici/utils/sdrmend.c
 ln -s ../ici/utils/ionexit.c
+ln -s ../ici/utils/ionwarn.c
 ln -s ../bp/library/libbp.c
 ln -s ../bp/library/libbpP.c
 ln -s ../bp/library/bpP.h
+ln -s ../bp/library/cgr.h
 ln -s ../bp/library/bei.c
 ln -s ../bp/library/bei.h
 ln -s ../bp/library/ext/bpextensions.c
 ln -s ../bp/library/ext/ecos/ecos.c
 ln -s ../bp/library/ext/ecos/ecos.h
+ln -s ../bp/library/ext/bae/bae.c
+ln -s ../bp/library/ext/bae/bae.h
 ln -s ../bp/library/ext/bsp/extbspbab.c
 ln -s ../bp/library/ext/bsp/extbspbab.h
 ln -s ../bp/library/ext/bsp/extbsppib.c
@@ -44,7 +50,7 @@ ln -s ../bp/library/ext/bsp/extbsputil.c
 ln -s ../bp/library/ext/bsp/extbsputil.h
 ln -s ../bp/library/crypto/crypto.h
 ln -s ../bp/library/crypto/sample_crypto.h
-ln -s ../bp/library/crypto/NULL_SUITES/crypto.c
+ln -s ../bp/library/crypto/$CRYPTO/crypto.c
 ln -s ../bp/daemon/bpclock.c
 ln -s ../bp/utils/bpadmin.c
 ln -s ../bp/utils/bpstats.c
@@ -70,6 +76,7 @@ ln -s ../ltp/library/ltpP.h
 ln -s ../ltp/daemon/ltpclock.c
 ln -s ../ltp/daemon/ltpmeter.c
 ln -s ../ltp/utils/ltpadmin.c
+if [ "$ION_OPEN_SOURCE" == "1" ];then
 ln -s ../cfdp/library/libcfdp.c
 ln -s ../cfdp/library/libcfdpops.c
 ln -s ../cfdp/library/libcfdpP.c
@@ -77,9 +84,33 @@ ln -s ../cfdp/library/cfdpP.h
 ln -s ../cfdp/bp/bputa.c
 ln -s ../cfdp/daemon/cfdpclock.c
 ln -s ../cfdp/utils/cfdpadmin.c
+fi
+
+# Optional features: multicast, aggregate custody signaling, previous-hop node
+#
+# ln -s ../bp/imc/imcadmin.c
+# ln -s ../bp/imc/libimcfw.c
+# ln -s ../bp/imc/imcfw.c
+# ln -s ../bp/imc/imcfw.h
+# ln -s ../bp/imc/imcP.h
+#
+# ln -s ../bp/library/acs/acsappend.c
+# ln -s ../bp/library/acs/acsid.c
+# ln -s ../bp/library/acs/acstx.c
+# ln -s ../bp/library/acs/acsrx.c
+# ln -s ../bp/library/acs/acsserialize.c
+# ln -s ../bp/library/acs/acs.h
+# ln -s ../bp/library/acs/acsP.h
+# ln -s ../bp/utils/acsadmin.c
+# ln -s ../bp/utils/acslist.c
+# ln -s ../bp/library/ext/cteb/cteb.c
+# ln -s ../bp/library/ext/cteb/cteb.h
+#
+# ln -s ../bp/library/ext/phn/phn.c
+# ln -s ../bp/library/ext/phn/phn.h
 
 # Optional extra stuff for testing.
-
+#
 # ln -s ../ici/library/sptrace.c
 # ln -s ../bp/utils/bpstats2.c
 # ln -s ../bp/utils/bping.c

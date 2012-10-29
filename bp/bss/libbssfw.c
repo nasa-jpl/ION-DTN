@@ -955,16 +955,17 @@ int bss_copyDirective(Bundle *bundle, FwdDirective *directive,
 	if(locateBssEntry(bundle->destination.c, NULL)!=0)
 	{
 		streamElt = locateStream(loggedStreams, bundle, NULL);
-	
 		if (streamElt == NULL)
 		{
+			#if LIBBSSFWDEBUG
+			writeMemo("No entry detected in loggedStreams");
+			#endif
 			if(rtDirective->outductElt!=0)
 			{						
 				memcpy((char *) directive, (char *) rtDirective,
 					sizeof(FwdDirective));
 				#if LIBBSSFWDEBUG
-				printf("No entry detected in loggedStreams list\n");
-				printf("Real-time mode directive was returned\n");
+				writeMemo("Real-time directive used.");
 				#endif
 			}
 			else
@@ -973,29 +974,33 @@ int bss_copyDirective(Bundle *bundle, FwdDirective *directive,
 					(char *) defaultDirective,
 					sizeof(FwdDirective));
 				#if LIBBSSFWDEBUG
-				printf("No entry detected in loggedStreams list\n");
-				printf("The default directive was returned\n");
+				writeMemo("Default directive used.");
 				#endif
 			}
 		}
 		else
 		{			
+			#if LIBBSSFWDEBUG
+			writeMemo("Found entry in loggedStreams");
+			#endif
 			strm = (stream *) lyst_data(streamElt);
-				
 			if (bundle->id.creationTime.seconds > 
 			    strm->latestTimeLogged.seconds || 
 			    (bundle->id.creationTime.seconds == 
 			    strm->latestTimeLogged.seconds && 
 		    	    bundle->id.creationTime.count > 
 			    strm->latestTimeLogged.count))
-			{											
+			{
+				#if LIBBSSFWDEBUG
+				writeMemo("Record is in sequence.");
+				#endif
 				if(rtDirective->outductElt!=0)
 				{					
 					memcpy((char *) directive, 
 						(char *) rtDirective,
 						sizeof(FwdDirective));
 					#if LIBBSSFWDEBUG
-					printf("Real-time mode directive was returned\n");
+					writeMemo("Real-time directive used.");
 					#endif
 				}
 				else
@@ -1004,19 +1009,22 @@ int bss_copyDirective(Bundle *bundle, FwdDirective *directive,
 						(char *) defaultDirective,
 						sizeof(FwdDirective));
 					#if LIBBSSFWDEBUG
-					printf("The default directive was returned\n");
+					writeMemo("Default directive used.");
 					#endif
 				}	
 			}
 			else
 			{
+				#if LIBBSSFWDEBUG
+				writeMemo("Record out of sequence.");
+				#endif
 				if(pbDirective->outductElt!=0)
 				{						
 					memcpy((char *) directive, 
 						(char *) pbDirective,
 						sizeof(FwdDirective));
 					#if LIBBSSFWDEBUG
-					printf("Playback mode directive was returned\n");
+					writeMemo("Playback directive used.");
 					#endif
 				}
 				else
@@ -1025,7 +1033,7 @@ int bss_copyDirective(Bundle *bundle, FwdDirective *directive,
 						(char *) defaultDirective,
 						sizeof(FwdDirective));
 					#if LIBBSSFWDEBUG
-					printf("The default directive was returned\n");
+					writeMemo("Default directive used.");
 					#endif
 				}
 			}
@@ -1036,8 +1044,8 @@ int bss_copyDirective(Bundle *bundle, FwdDirective *directive,
 		memcpy((char *) directive, (char *) defaultDirective,
 			sizeof(FwdDirective));
 		#if LIBBSSFWDEBUG
-		printf("Not a BSS traffic bundle\n");
-		printf("The default directive was returned\n");
+		writeMemo("Not a BSS traffic bundle.");
+		writeMemo("Default directive used.");
 		#endif
 	}
 

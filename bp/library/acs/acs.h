@@ -19,6 +19,9 @@
 extern "C" {
 #endif
 
+/*	Administrative record type.					*/
+#define	BP_AGGREGATE_CUSTODY_SIGNAL	(4)
+
 extern int	acsInitialize(long heapWordsRequested, int loglevel);
 	/* This function initializes the ACS structures stored in SDR. */
 

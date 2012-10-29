@@ -10,6 +10,7 @@
 /*									*/
 
 #include "bpP.h"
+#include "crypto.h"
 
 static int	_echo(int *newValue)
 {
@@ -62,6 +63,7 @@ static void	printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint version of ION and crypto suite.");
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
@@ -1234,6 +1236,7 @@ static int	processLine(char *line, int lineLength)
 	char		*tokens[9];
 	struct timeval	done_time;
 	struct timeval	cur_time;
+	char		buffer[80];
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -1280,6 +1283,12 @@ static int	processLine(char *line, int lineLength)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+		case 'v':
+			isprintf(buffer, sizeof buffer,
+					"%s compiled with crypto suite: %s",
+					IONVERSIONNUMBER, crypto_suite_name);
+			printText(buffer);
 			return 0;
 
 		case '1':

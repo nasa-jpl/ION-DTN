@@ -15,6 +15,14 @@
 
 typedef struct
 {
+	Scalar		heapOccupancy;
+	Scalar		maxHeapOccupancy;
+	Scalar		fileOccupancy;
+	Scalar		maxFileOccupancy;
+} ZcoDB;
+
+typedef struct
+{
 	Object		text;		/*	header or trailer	*/
 	unsigned int	length;
 	Object		prevCapsule;
@@ -29,6 +37,7 @@ typedef struct
 	unsigned long	inode;		/*	to detect change	*/
 	unsigned long	fileLength;
 	unsigned long	xmitProgress;
+	Scalar		occupancy;
 	char		pathName[256];
 	char		cleanupScript[256];
 } FileRef;
@@ -36,8 +45,8 @@ typedef struct
 typedef struct
 {
 	int		refCount;
+	unsigned int	objLength;
 	Object		location;
-	int		objLength;
 } SdrRef;
 
 typedef struct
@@ -81,12 +90,254 @@ typedef struct
 
 	unsigned int	aggregateCapsuleLength;
 	unsigned int	totalLength;		/*	incl. capsules	*/
-	unsigned int	occupancy;		/*	incl. source	*/
 } Zco;
 
 static char	*_badArgsMemo()
 {
 	return "Missing/invalid argument(s).";
+}
+
+static Object	getZcoDB(Sdr sdr)
+{
+	static Object	obj = 0;
+	char		*dbName = "zcodb";
+	int		objType;
+	ZcoDB		db;
+
+	if (obj == 0)		/*	Not located yet.		*/
+	{
+		obj = sdr_find(sdr, dbName, &objType);
+		if (obj == 0)	/*	Doesn't exist yet.		*/
+		{
+			obj = sdr_malloc(sdr, sizeof(ZcoDB));
+			if (obj)	/*	Must initialize.	*/
+			{
+				loadScalar(&db.heapOccupancy, 0);
+				loadScalar(&db.maxHeapOccupancy, 1000000000);
+				multiplyScalar(&db.maxHeapOccupancy,1000000000);
+				loadScalar(&db.fileOccupancy, 0);
+				loadScalar(&db.maxFileOccupancy, 1000000000);
+				multiplyScalar(&db.maxFileOccupancy,1000000000);
+				sdr_write(sdr, obj, (char*) &db, sizeof(ZcoDB));
+				sdr_catlg(sdr, dbName, 0, obj);
+			}
+		}
+	}
+
+	return obj;
+}
+
+void	zco_increase_heap_occupancy(Sdr sdr, Scalar *delta)
+{
+	Object	obj;
+	ZcoDB	db;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		addToScalar(&db.heapOccupancy, delta);
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+	}
+}
+
+void	zco_reduce_heap_occupancy(Sdr sdr, Scalar *delta)
+{
+	Object	obj;
+	ZcoDB	db;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		subtractFromScalar(&db.heapOccupancy, delta);
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+	}
+}
+
+void	zco_get_heap_occupancy(Sdr sdr, Scalar *occupancy)
+{
+	Object	obj;
+	ZcoDB	db;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		copyScalar(occupancy, &db.heapOccupancy);
+	}
+	else
+	{
+		loadScalar(occupancy, 0);
+	}
+}
+
+void	zco_set_max_heap_occupancy(Sdr sdr, Scalar *limit)
+{
+	Object	obj;
+	ZcoDB	db;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		copyScalar(&db.maxHeapOccupancy, limit);
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+	}
+}
+
+void	zco_get_max_heap_occupancy(Sdr sdr, Scalar *limit)
+{
+	Object	obj;
+	ZcoDB	db;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		copyScalar(limit, &db.maxHeapOccupancy);
+	}
+	else
+	{
+		loadScalar(limit, 0);
+	}
+}
+
+static void	uintToScalar(Scalar *scalar, unsigned int length)
+{
+	int	slength;
+	int	overflow;
+
+	slength = length;	/*	Might overflow.			*/
+	if (slength < 0)	/*	Length too big for signed int.	*/
+	{
+		overflow = 0 - slength;
+		slength = length - overflow;
+		loadScalar(scalar, slength);
+		increaseScalar(scalar, overflow);
+	}
+	else
+	{
+		loadScalar(scalar, slength);
+	}
+}
+
+int	zco_enough_heap_space(Sdr sdr, unsigned int length)
+{
+	Object	obj;
+	ZcoDB	db;
+	Scalar	avbl;
+	Scalar	delta;
+
+	obj = getZcoDB(sdr);
+	if (obj == 0)
+	{
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+	copyScalar(&avbl, &db.maxHeapOccupancy);
+	subtractFromScalar(&avbl, &db.heapOccupancy);
+	uintToScalar(&delta, length);
+	subtractFromScalar(&avbl, &delta);
+	return scalarIsValid(&avbl);
+}
+
+int	zco_enough_file_space(Sdr sdr, unsigned int length)
+{
+	Object	obj;
+	ZcoDB	db;
+	Scalar	avbl;
+	Scalar	delta;
+
+	obj = getZcoDB(sdr);
+	if (obj == 0)
+	{
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+	copyScalar(&avbl, &db.maxFileOccupancy);
+	subtractFromScalar(&avbl, &db.fileOccupancy);
+	uintToScalar(&delta, length);
+	subtractFromScalar(&avbl, &delta);
+	return scalarIsValid(&avbl);
+}
+
+static void	zco_increase_file_occupancy(Sdr sdr, Scalar *delta)
+{
+	Object	obj;
+	ZcoDB	db;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		addToScalar(&db.fileOccupancy, delta);
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+	}
+}
+
+static void	zco_reduce_file_occupancy(Sdr sdr, Scalar *delta)
+{
+	Object	obj;
+	ZcoDB	db;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		subtractFromScalar(&db.fileOccupancy, delta);
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+	}
+}
+
+void	zco_get_file_occupancy(Sdr sdr, Scalar *occupancy)
+{
+	Object	obj;
+	ZcoDB	db;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		copyScalar(occupancy, &db.fileOccupancy);
+	}
+	else
+	{
+		loadScalar(occupancy, 0);
+	}
+}
+
+void	zco_set_max_file_occupancy(Sdr sdr, Scalar *limit)
+{
+	Object	obj;
+	ZcoDB	db;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		copyScalar(&db.maxFileOccupancy, limit);
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+	}
+}
+
+void	zco_get_max_file_occupancy(Sdr sdr, Scalar *limit)
+{
+	Object	obj;
+	ZcoDB	db;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		copyScalar(limit, &db.maxFileOccupancy);
+	}
+	else
+	{
+		loadScalar(limit, 0);
+	}
 }
 
 Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
@@ -99,6 +350,7 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 	struct stat	statbuf;
 	Object		fileRefObj;
 	FileRef		fileRef;
+	Scalar		occupancy;
 
 	CHKZERO(sdr);
 	CHKZERO(pathName);
@@ -167,12 +419,14 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 	/*	Parameters verified.  Proceed with FileRef creation.	*/
 
 	close(sourceFd);
+	memset((char *) &fileRef, 0, sizeof(FileRef));
 	fileRef.refCount = 0;
 	fileRef.okayToDestroy = 0;
 	fileRef.unlinkOnDestroy = 0;
 	fileRef.inode = statbuf.st_ino;
 	fileRef.fileLength = statbuf.st_size;
 	fileRef.xmitProgress = 0;
+	loadScalar(&fileRef.occupancy, 0);
 	memcpy(fileRef.pathName, pathName, pathLen);
 	fileRef.pathName[pathLen] = '\0';
 	if (cleanupScript)
@@ -195,6 +449,8 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 		return 0;
 	}
 
+	loadScalar(&occupancy, sizeof(FileRef));
+	zco_increase_heap_occupancy(sdr, &occupancy);
 	sdr_write(sdr, fileRefObj, (char *) &fileRef, sizeof(FileRef));
 	return fileRefObj;
 }
@@ -315,13 +571,6 @@ char	*zco_file_ref_path(Sdr sdr, Object fileRefObj, char *buffer, int buflen)
 	return istrcpy(buffer, fileRef->pathName, buflen);
 }
 
-unsigned int	zco_file_ref_occupancy(Sdr sdr, Object fileRefObj)
-{
-	/*	For now, all file reference objects are the same size.	*/
-
-	return sizeof(FileRef);
-}
-
 int	zco_file_ref_xmit_eof(Sdr sdr, Object fileRefObj)
 {
 	OBJ_POINTER(FileRef, fileRef);
@@ -335,10 +584,15 @@ int	zco_file_ref_xmit_eof(Sdr sdr, Object fileRefObj)
 static void	destroyFileReference(Sdr sdr, FileRef *fileRef,
 			Object fileRefObj)
 {
+	Scalar	occupancy;
+
 	/*	Destroy the file reference.  Invoke file cleanup
 	 *	script if provided.					*/
 
+	zco_reduce_file_occupancy(sdr, &(fileRef->occupancy));
 	sdr_free(sdr, fileRefObj);
+	loadScalar(&occupancy, sizeof(FileRef));
+	zco_reduce_heap_occupancy(sdr, &occupancy);
 	if (fileRef->unlinkOnDestroy)
 	{
 		oK(unlink(fileRef->pathName));
@@ -379,13 +633,12 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 		unsigned int firstExtentLength)
 {
 	Zco	zco;
+	Scalar	occupancy;
 	Object	zcoObj;
 
 	CHKZERO(sdr);
 	CHKZERO(!(firstExtentLocation == 0 && firstExtentLength != 0));
 	CHKZERO(!(firstExtentLength == 0 && firstExtentLocation != 0));
-	memset((char *) &zco, 0, sizeof(Zco));
-	zco.occupancy = sizeof(Zco);
 	zcoObj = sdr_malloc(sdr, sizeof(Zco));
 	if (zcoObj == 0)
 	{
@@ -393,6 +646,9 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 		return 0;
 	}
 
+	loadScalar(&occupancy, sizeof(Zco));
+	zco_increase_heap_occupancy(sdr, &occupancy);
+	memset((char *) &zco, 0, sizeof(Zco));
 	sdr_write(sdr, zcoObj, (char *) &zco, sizeof(Zco));
 	if (firstExtentLength)
 	{
@@ -412,12 +668,15 @@ static int	appendExtent(Sdr sdr, Object zco, ZcoMedium sourceMedium,
 			int cloning, Object location, unsigned int offset,
 			unsigned int length)
 {
-	Zco		zcoBuf;
+	Object		extentObj;
+	Scalar		increment;
+	Zco		sourceZco;
+	Object		obj;
 	SourceExtent	extent;
+	Zco		zcoBuf;
 	FileRef		fileRef;
 	Object		sdrRefObj;
 	SdrRef		sdrRef;
-	Object		extentObj;
 	SourceExtent	prevExtent;
 
 	extentObj = sdr_malloc(sdr, sizeof(SourceExtent));
@@ -427,12 +686,65 @@ static int	appendExtent(Sdr sdr, Object zco, ZcoMedium sourceMedium,
 		return -1;
 	}
 
+	loadScalar(&increment, sizeof(SourceExtent));
+	zco_increase_heap_occupancy(sdr, &increment);
+
+	/*	Now we re-use the "increment" variable for the size
+	 *	of the content of the new extent.			*/
+
+	uintToScalar(&increment, length);
+
+	/*	Adjust parameters if extent clone is requested.		*/
+
+	if (sourceMedium == ZcoZcoSource)
+	{
+		/*	The new extent is to be a clone of some extent
+			of the ZCO at "location".			*/
+
+		sdr_read(sdr, (char *) &sourceZco, location, sizeof(Zco));
+		for (obj = sourceZco.firstExtent; obj; obj = extent.nextExtent)
+		{
+			sdr_read(sdr, (char *) &extent, obj,
+					sizeof(SourceExtent));
+			if (extent.offset < offset)
+			{
+				continue;
+			}
+
+			/*	Offset and length must match exactly.	*/
+
+			if (extent.offset > offset || extent.length != length)
+			{
+				putErrmsg("No extent to clone.", NULL);
+				return -1;
+			}
+
+			break;
+		}
+
+		/*	Found existing extent to clone.			*/
+
+		cloning = 1;
+		sourceMedium = extent.sourceMedium;
+		location = extent.location;
+		offset = extent.offset;
+	}
+
 	sdr_stage(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
 	extent.sourceMedium = sourceMedium;
 	if (sourceMedium == ZcoFileSource)
 	{
+		/*	FileRef object already exists, so its size
+		 *	is already counted in ZCO heap occupancy.	*/
+
 		sdr_stage(sdr, (char *) &fileRef, location, sizeof(FileRef));
 		fileRef.refCount++;
+		if (!cloning)
+		{
+			addToScalar(&fileRef.occupancy, &increment);
+			zco_increase_file_occupancy(sdr, &increment);
+		}
+
 		sdr_write(sdr, location, (char *) &fileRef, sizeof(FileRef));
 		extent.location = location;
 	}
@@ -441,14 +753,6 @@ static int	appendExtent(Sdr sdr, Object zco, ZcoMedium sourceMedium,
 		sdr_stage(sdr, (char *) &sdrRef, location, sizeof(SdrRef));
 		sdrRef.refCount++;
 		sdr_write(sdr, location, (char *) &sdrRef, sizeof(SdrRef));
-
-		/*	Occupancy is intentionally overstated here,
-		 *	because there's no obvious way to make sure
-		 *	it's not understated without exposing SdrRefs
-		 *	to application code.				*/
-
-		zcoBuf.occupancy += sizeof(SdrRef);
-		zcoBuf.occupancy += length;
 		extent.location = location;
 	}
 	else	/*	Initial reference to some object in SDR heap.	*/
@@ -460,12 +764,12 @@ static int	appendExtent(Sdr sdr, Object zco, ZcoMedium sourceMedium,
 			return -1;
 		}
 
+		increaseScalar(&increment, sizeof(SdrRef));
+		zco_increase_heap_occupancy(sdr, &increment);
 		sdrRef.refCount = 1;
-		sdrRef.location = location;
 		sdrRef.objLength = length;
+		sdrRef.location = location;
 		sdr_write(sdr, sdrRefObj, (char *) &sdrRef, sizeof(SdrRef));
-		zcoBuf.occupancy += sizeof(SdrRef);
-		zcoBuf.occupancy += length;
 		extent.location = sdrRefObj;
 	}
 
@@ -486,7 +790,6 @@ static int	appendExtent(Sdr sdr, Object zco, ZcoMedium sourceMedium,
 				sizeof(SourceExtent));
 	}
 
-	zcoBuf.occupancy += sizeof(SourceExtent);
 	zcoBuf.lastExtent = extentObj;
 	zcoBuf.sourceLength += length;
 	zcoBuf.totalLength += length;
@@ -507,6 +810,7 @@ int	zco_append_extent(Sdr sdr, Object zco, ZcoMedium source,
 int	zco_prepend_header(Sdr sdr, Object zco, char *text,
 		unsigned int length)
 {
+	Scalar	occupancy;
 	Capsule	header;
 	Object	capsuleObj;
 	Zco	zcoBuf;
@@ -515,6 +819,7 @@ int	zco_prepend_header(Sdr sdr, Object zco, char *text,
 	CHKERR(zco);
 	CHKERR(text);
 	CHKERR(length);
+	uintToScalar(&occupancy, length);
 	header.length = length;
 	header.text = sdr_malloc(sdr, length);
 	if (header.text == 0)
@@ -526,7 +831,6 @@ int	zco_prepend_header(Sdr sdr, Object zco, char *text,
 	sdr_write(sdr, header.text, text, length);
 	header.prevCapsule = 0;
 	sdr_stage(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
-	zcoBuf.occupancy += length;
 	header.nextCapsule = zcoBuf.firstHeader;
 	capsuleObj = sdr_malloc(sdr, sizeof(Capsule));
 	if (capsuleObj == 0)
@@ -535,8 +839,9 @@ int	zco_prepend_header(Sdr sdr, Object zco, char *text,
 		return -1;
 	}
 
+	increaseScalar(&occupancy, sizeof(Capsule));
+	zco_increase_heap_occupancy(sdr, &occupancy);
 	sdr_write(sdr, capsuleObj, (char *) &header, sizeof(Capsule));
-	zcoBuf.occupancy += sizeof(Capsule);
 	if (zcoBuf.firstHeader == 0)
 	{
 		zcoBuf.lastHeader = capsuleObj;
@@ -562,6 +867,7 @@ void	zco_discard_first_header(Sdr sdr, Object zco)
 	Zco	zcoBuf;
 	Object	obj;
 	Capsule	capsule;
+	Scalar	occupancy;
 
 	CHKVOID(sdr);
 	CHKVOID(zco);
@@ -573,10 +879,11 @@ void	zco_discard_first_header(Sdr sdr, Object zco)
 	}
 
 	sdr_read(sdr, (char *) &capsule, zcoBuf.firstHeader, sizeof(Capsule));
-	sdr_free(sdr, zcoBuf.firstHeader);	/*	Lose capsule.	*/
-	zcoBuf.occupancy -= sizeof(Capsule);
 	sdr_free(sdr, capsule.text);		/*	Lose header.	*/
-	zcoBuf.occupancy -= capsule.length;
+	uintToScalar(&occupancy, capsule.length);
+	sdr_free(sdr, zcoBuf.firstHeader);	/*	Lose capsule.	*/
+	increaseScalar(&occupancy, sizeof(Capsule));
+	zco_reduce_heap_occupancy(sdr, &occupancy);
 	zcoBuf.aggregateCapsuleLength -= capsule.length;
 	zcoBuf.totalLength -= capsule.length;
 	zcoBuf.firstHeader = capsule.nextCapsule;
@@ -599,6 +906,7 @@ int	zco_append_trailer(Sdr sdr, Object zco, char *text,
 		unsigned int length)
 {
 	Capsule	trailer;
+	Scalar	occupancy;
 	Object	capsuleObj;
 	Zco	zcoBuf;
 
@@ -606,6 +914,7 @@ int	zco_append_trailer(Sdr sdr, Object zco, char *text,
 	CHKERR(zco);
 	CHKERR(text);
 	CHKERR(length);
+	uintToScalar(&occupancy, length);
 	trailer.length = length;
 	trailer.text = sdr_malloc(sdr, length);
 	if (trailer.text == 0)
@@ -617,7 +926,6 @@ int	zco_append_trailer(Sdr sdr, Object zco, char *text,
 	sdr_write(sdr, trailer.text, text, length);
 	trailer.nextCapsule = 0;
 	sdr_stage(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
-	zcoBuf.occupancy += length;
 	trailer.prevCapsule = zcoBuf.lastTrailer;
 	capsuleObj = sdr_malloc(sdr, sizeof(Capsule));
 	if (capsuleObj == 0)
@@ -626,8 +934,9 @@ int	zco_append_trailer(Sdr sdr, Object zco, char *text,
 		return -1;
 	}
 
+	increaseScalar(&occupancy, sizeof(Capsule));
+	zco_increase_heap_occupancy(sdr, &occupancy);
 	sdr_write(sdr, capsuleObj, (char *) &trailer, sizeof(Capsule));
-	zcoBuf.occupancy += sizeof(Capsule);
 	if (zcoBuf.lastTrailer == 0)
 	{
 		zcoBuf.firstTrailer = capsuleObj;
@@ -651,6 +960,7 @@ int	zco_append_trailer(Sdr sdr, Object zco, char *text,
 void	zco_discard_last_trailer(Sdr sdr, Object zco)
 {
 	Zco	zcoBuf;
+	Scalar	occupancy;
 	Object	obj;
 	Capsule	capsule;
 
@@ -664,10 +974,11 @@ void	zco_discard_last_trailer(Sdr sdr, Object zco)
 	}
 
 	sdr_read(sdr, (char *) &capsule, zcoBuf.lastTrailer, sizeof(Capsule));
-	sdr_free(sdr, zcoBuf.lastTrailer);	/*	Lose capsule.	*/
-	zcoBuf.occupancy -= sizeof(Capsule);
 	sdr_free(sdr, capsule.text);		/*	Lose header.	*/
-	zcoBuf.occupancy -= capsule.length;
+	uintToScalar(&occupancy, capsule.length);
+	sdr_free(sdr, zcoBuf.lastTrailer);	/*	Lose capsule.	*/
+	increaseScalar(&occupancy, sizeof(Capsule));
+	zco_reduce_heap_occupancy(sdr, &occupancy);
 	zcoBuf.aggregateCapsuleLength -= capsule.length;
 	zcoBuf.totalLength -= capsule.length;
 	zcoBuf.lastTrailer = capsule.prevCapsule;
@@ -768,9 +1079,10 @@ Object	zco_clone(Sdr sdr, Object zco, unsigned int offset,
 }
 
 static void	destroyExtentText(Sdr sdr, SourceExtent *extent,
-			ZcoMedium medium, Zco *zco)
+			ZcoMedium medium, Zco *zco, Scalar *occupancy)
 {
 	SdrRef	sdrRef;
+	Scalar	length;
 	FileRef	fileRef;
 
 	if (medium == ZcoSdrSource)
@@ -780,20 +1092,17 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent,
 		sdrRef.refCount--;
 		if (sdrRef.refCount == 0)
 		{
+			increaseScalar(occupancy, sizeof(SdrRef));
 			sdr_free(sdr, sdrRef.location);
 			sdr_free(sdr, extent->location);
+			uintToScalar(&length, sdrRef.objLength);
+			addToScalar(occupancy, &length);
 		}
 		else	/*	Just update the SDR reference count.	*/
 		{
 			sdr_write(sdr, extent->location, (char *) &sdrRef,
 					sizeof(SdrRef));
 		}
-
-		/*	Redress overstatement of SDR heap occupancy
-		 *	here.						*/
-
-		zco->occupancy -= sizeof(SdrRef);
-		zco->occupancy -= extent->length;
 	}
 	else
 	{
@@ -815,20 +1124,22 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent,
 static void	destroyFirstExtent(Sdr sdr, Object zcoObj, Zco *zco)
 {
 	SourceExtent	extent;
+	Scalar		occupancy;
 
 	sdr_read(sdr, (char *) &extent, zco->firstExtent, sizeof(SourceExtent));
 
 	/*	Release the extent's content text.			*/
 
-	destroyExtentText(sdr, &extent, extent.sourceMedium, zco);
+	loadScalar(&occupancy, sizeof(SourceExtent));
+	destroyExtentText(sdr, &extent, extent.sourceMedium, zco, &occupancy);
 
 	/*	Destroy the extent itself.				*/
 
 	sdr_free(sdr, zco->firstExtent);
+	zco_reduce_heap_occupancy(sdr, &occupancy);
 
 	/*	Erase the extent from the ZCO.				*/
 
-	zco->occupancy -= sizeof(SourceExtent);
 	zco->firstExtent = extent.nextExtent;
 	zco->totalLength -= extent.length;
 	if (extent.length > zco->headersLength)
@@ -870,6 +1181,7 @@ static void	destroyZco(Sdr sdr, Object zcoObj)
 	Zco	zco;
 	Object	obj;
 	Capsule	capsule;
+	Scalar	occupancy;
 
 	sdr_read(sdr, (char *) &zco, zcoObj, sizeof(Zco));
 
@@ -886,7 +1198,10 @@ static void	destroyZco(Sdr sdr, Object zcoObj)
 	{
 		sdr_read(sdr, (char *) &capsule, obj, sizeof(Capsule));
 		sdr_free(sdr, capsule.text);
+		uintToScalar(&occupancy, capsule.length);
 		sdr_free(sdr, obj);
+		increaseScalar(&occupancy, sizeof(Capsule));
+		zco_reduce_heap_occupancy(sdr, &occupancy);
 	}
 
 	/*	Destroy all trailers.					*/
@@ -895,12 +1210,17 @@ static void	destroyZco(Sdr sdr, Object zcoObj)
 	{
 		sdr_read(sdr, (char *) &capsule, obj, sizeof(Capsule));
 		sdr_free(sdr, capsule.text);
+		uintToScalar(&occupancy, capsule.length);
 		sdr_free(sdr, obj);
+		increaseScalar(&occupancy, sizeof(Capsule));
+		zco_reduce_heap_occupancy(sdr, &occupancy);
 	}
 
 	/*	Finally destroy the ZCO object.				*/
 
 	sdr_free(sdr, zcoObj);
+	loadScalar(&occupancy, sizeof(Zco));
+	zco_reduce_heap_occupancy(sdr, &occupancy);
 }
 
 void	zco_destroy(Sdr sdr, Object zco)
@@ -923,25 +1243,21 @@ unsigned int	zco_length(Sdr sdr, Object zco)
 unsigned int	zco_source_data_length(Sdr sdr, Object zco)
 {
 	Zco	zcoBuf;
+	double	totalLength;
 
 	CHKZERO(sdr);
 	CHKZERO(zco);
 	sdr_read(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
+	totalLength = zcoBuf.sourceLength + zcoBuf.headersLength
+			+ zcoBuf.trailersLength;
+	if (totalLength > ((unsigned int) -1))
+	{
+		return 0;		/*	Signal overflow.	*/
+	}
+
 	return zcoBuf.sourceLength + zcoBuf.headersLength
 			+ zcoBuf.trailersLength;
 }
-
-unsigned int	zco_occupancy(Sdr sdr, Object zco)
-{
-	Zco	zcoBuf;
-
-	CHKZERO(sdr);
-	CHKZERO(zco);
-	CHKZERO(sdr_in_xn(sdr));
-	sdr_read(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
-	return zcoBuf.occupancy;
-}
-
 #if 0
 void	zco_concatenate(Sdr sdr, Object aggregateZco, Object atomicZco)
 {
@@ -1486,6 +1802,7 @@ void	zco_strip(Sdr sdr, Object zco)
 	int		extentModified;
 	unsigned int	headerTextLength;
 	unsigned int	trailerTextLength;
+	Scalar		occupancy;
 
 	CHKVOID(sdr);
 	CHKVOID(zco);
@@ -1569,9 +1886,11 @@ void	zco_strip(Sdr sdr, Object zco)
 		{
 			/*	Delete the extent.			*/
 
+			loadScalar(&occupancy, sizeof(SourceExtent));
 			destroyExtentText(sdr, &extent, extent.sourceMedium,
-					&zcoBuf);
+					&zcoBuf, &occupancy);
 			sdr_free(sdr, obj);
+			zco_reduce_heap_occupancy(sdr, &occupancy);
 			if (obj == zcoBuf.firstExtent)
 			{
 				zcoBuf.firstExtent = extent.nextExtent;

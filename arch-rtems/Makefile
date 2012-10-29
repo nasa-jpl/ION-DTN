@@ -1,7 +1,11 @@
-IONFLAGS = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER -DUSING_SDR_POINTERS \
--DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE -DNO_PROXY -DNO_DIRLIST
+IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
+-DUSING_SDR_POINTERS  -DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE \
+-DNO_PROXY -DNO_DIRLIST
+# -DENABLE_IMC -DENABLE_BPACS
 
 PGM=${ARCH}/ion.exe
+
+ION_OPEN_SOURCE = 1
 
 # optional managers required
 MANAGERS = io semaphore
@@ -30,7 +34,17 @@ ICISOURCES =     \
    sdrmend.c     \
    ionsec.c      \
    ionsecadmin.c \
+   ionwarn.c \
    ionexit.c
+
+LTPSOURCES =     \
+	libltp.c     \
+	libltpP.c    \
+	ltpclock.c   \
+	ltpmeter.c   \
+	pmqlsi.c     \
+	pmqlso.c     \
+	ltpadmin.c
 
 BPSOURCES =      \
 	libbp.c      \
@@ -49,18 +63,21 @@ BPSOURCES =      \
 	ltpcli.c     \
 	ltpclo.c     \
 	bei.c        \
-	ecos.c
+	ecos.c       \
+	bae.c
 
+#	imcadmin.c   \
+#	imcfw.c      \
+#	libimcfw.c   \
+#	cteb.c       \
+#       acsappend.c  \
+#	acsid.c      \
+#	acstx.c      \
+#	acsrx.c      \
+#	acsserialize.c \
+#	acsadmin.c   \
+#	acslist.c    \
 #	phn.c        \
-
-LTPSOURCES =     \
-	libltp.c     \
-	libltpP.c    \
-	ltpclock.c   \
-	ltpmeter.c   \
-	pmqlsi.c     \
-	pmqlso.c     \
-	ltpadmin.c
 
 BSPSOURCES =     \
 	extbsputil.c \
@@ -94,7 +111,16 @@ TESTSOURCES =      \
 #	bpsendfile.c \
 #	bprecvfile.c 
 
-CSRCS = ionrtems.c $(ICISOURCES) $(BPSOURCES) $(LTPSOURCES) $(PXSOURCES) $(DTN2SOURCES) $(BSPSOURCES) $(CFDPSOURCES) $(TESTSOURCES)
+CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(BSPSOURCES) $(DTN2SOURCES) $(PXSOURCES) $(TESTSOURCES)
+
+ifeq "$(ION_OPEN_SOURCE)" "1"
+CSRCS = $(CSRCS_I) $(CFDPSOURCES)
+IONFLAGS = $(IONFLAGS_T)
+else
+CSRCS = $(CSRCS_I)
+IONFLAGS = $(IONFLAGS_T) -DNASA_PROTECTED_FLIGHT_CODE
+endif
+
 COBJS = $(CSRCS:%.c=${ARCH}/%.o)
 
 include $(RTEMS_MAKEFILE_PATH)/Makefile.inc
@@ -103,7 +129,16 @@ include $(PROJECT_ROOT)/make/leaf.cfg
 
 OBJS = $(COBJS) $(CXXOBJS) $(ASOBJS)
 
-CFLAGS = -g -Wall -Werror $(IONFLAGS) -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include -I../bp/library -I../bp/library/crypto -I../bp/library/ext/ecos -I../cfdp/include -I../ams/include -I. -O2
+INCLUDES_T= -I. -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include
+
+ifeq "$(ION_OPEN_SOURCE)" "1"
+INCLUDES = $(INCLUDES_T) -I../cfdp/include -I../ams/include
+else
+INCLUDES = $(INCLUDES_T)
+endif
+
+#CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES) -O2
+CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES)
 
 all:    ${ARCH} $(PGM)
 

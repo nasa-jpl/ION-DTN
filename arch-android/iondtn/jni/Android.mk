@@ -79,6 +79,9 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/ipn/ipnfw.c          \
 	$(MY_BP)/ipn/ipnadminep.c     \
 	$(MY_BP)/ipn/libipnfw.c       \
+	$(MY_BP)/imc/imcadmin.c       \
+	$(MY_BP)/imc/imcfw.c          \
+	$(MY_BP)/imc/libimcfw.c       \
 	$(MY_BP)/udp/udpcli.c         \
 	$(MY_BP)/udp/udpclo.c         \
 	$(MY_BP)/udp/libudpcla.c      \
@@ -87,7 +90,8 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/tcp/libtcpcla.c      \
 	$(MY_BP)/dgr/dgrcla.c         \
 	$(MY_BP)/library/bei.c        \
-	$(MY_BP)/library/ext/ecos/ecos.c
+	$(MY_BP)/library/ext/ecos/ecos.c \
+	$(MY_BP)/library/ext/bae/bae.c
 
 #		$(MY_BP)/ltp/ltpcli.c         \
 #		$(MY_BP)/ltp/ltpclo.c         \
@@ -125,13 +129,13 @@ MY_DTN2SOURCES :=    \
 #		$(MY_CFDP)/daemon/cfdpclock.c   \
 #		$(MY_CFDP)/utils/cfdpadmin.c    \
 
-LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/dtn2 $(MY_BP)/library/crypto $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/ecos
+LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/library/crypto $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/bae
 
 #	$(MY_LTP)/include $(MY_LTP)/library $(MY_LTP)/udp 
 #	$(MY_CFDP)/include $(MY_CFDP)/library
 
-LOCAL_CFLAGS = -g -Wall -Werror -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE
-#	-DNO_PROXY -DNO_DIRLIST
+LOCAL_CFLAGS = -g -Wall -Werror -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE -DENABLE_IMC
+#	-DENABLE_ACS -DNO_PROXY -DNO_DIRLIST
 
 LOCAL_SRC_FILES := iondtn.c $(MY_ICISOURCES) $(MY_DGRSOURCES) $(MY_BPSOURCES) $(MY_BSPSOURCES) $(MY_DTN2SOURCES)
 

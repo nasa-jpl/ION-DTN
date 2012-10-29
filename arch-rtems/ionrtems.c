@@ -12,7 +12,10 @@
 #include "rfx.h"
 #include "ltp.h"
 #include "bp.h"
+
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
+#endif
 
 #define	ION_NODE_NBR	19
 
@@ -202,6 +205,7 @@ static void	createIonConfigFiles()
 	oK(iputs(fd, linebuf));
 	close(fd);
 
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Create cfdprc file.					*/
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.cfdprc",
@@ -215,6 +219,7 @@ static void	createIonConfigFiles()
 
 	oK(iputs(fd, "1\ns bputa\n"));
 	close(fd);
+#endif
 }
 
 static int	startDTN()
@@ -278,6 +283,7 @@ static int	startDTN()
 	pseudoshell(cmd);
 	snooze(1);
 
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Now start CFDP.						*/
 
 	isprintf(cmd, sizeof cmd, "cfdpadmin /ion/node%d.cfdprc", nodenbr);
@@ -293,7 +299,7 @@ static int	startDTN()
 			return -1;
 		}
 	}
-
+#endif
 	return 0;
 }
 
@@ -312,9 +318,10 @@ static void	testLoopback()
 	puts("Loopback test ended.");
 }
 
-int	stopDTN(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+static int	stopDTN(int a1, int a2, int a3, int a4, int a5,
+			int a6, int a7, int a8, int a9, int a10)
 {
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Stop CFDP.						*/
 
 	pseudoshell("cfdpadmin .");
@@ -322,6 +329,7 @@ int	stopDTN(int a1, int a2, int a3, int a4, int a5,
 	{
 		snooze(1);
 	}
+#endif
 
 	/*	Stop BP.						*/
 
@@ -364,6 +372,7 @@ rtems_task	Init(rtems_task_argument ignored)
 	}
 
 	testLoopback();
+	snooze(1);
 	puts("Stopping ION.");
 	oK(stopDTN(0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	puts("ION stopped.");

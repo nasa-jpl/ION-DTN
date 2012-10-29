@@ -8,7 +8,11 @@
 #include "extbsputil.h"
 #include "extbsppcb.h"
 
-#include "../../crypto/crypto.h"
+#if (PCB_DEBUGGING == 1)
+extern char		gMsg[];		/*	Debug message buffer.	*/
+#endif
+
+#include "crypto.h"
 
 
 /*****************************************************************************
@@ -153,7 +157,7 @@ int  bsp_pcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
    int result = -1;
 
    PCB_DEBUG_PROC("+ bsp_pcbCopy(%x, %x)",
-                  (unsigned long) blk, (unsigned long) bundle);
+                  (unsigned long) newBlk, (unsigned long) oldBlk);
 
    CHKERR(newBlk);
    CHKERR(oldBlk);
@@ -412,8 +416,12 @@ int bsp_pcbCheck(AcqExtBlock *blk, AcqWorkArea *wk)
     // Finally, replace the old bundle zco object, with our new one with decrypted payload
     sdr_begin_xn(bpSdr);
     zco_destroy(bpSdr, bundle->payload.content);
+    if (sdr_end_xn(bpSdr) < 0)
+    {
+	    putErrmsg("Transaction failed.", NULL);
+    }
+
     bundle->payload.content = bprk->newBundle;
-    sdr_end_xn(bpSdr);
     MRELEASE(bprk);
 
     // success, remove the block
@@ -625,8 +633,12 @@ as expected.", NULL);
     // Replace payload data with encrypted data in place, after destroying original payload data
     sdr_begin_xn(bpSdr);
     zco_destroy(bpSdr, bundle->payload.content);
+    if (sdr_end_xn(bpSdr) < 0)
+    {
+	    putErrmsg("Transaction failed.", NULL);
+    }
+
     bundle->payload.content = encryptedPayloadZco;
-    sdr_end_xn(bpSdr);
 
     /* Serialize the Abstract Security Block. */
     sdr_begin_xn(bpSdr);
@@ -645,7 +657,11 @@ as expected.", NULL);
 
     // Store the updated ASB for this block
     sdr_write(bpSdr, blk->object, (char *)&(bundle->payload.content), sizeof(unsigned long));
-    sdr_end_xn(bpSdr);
+    if (sdr_end_xn(bpSdr) < 0)
+    {
+	    putErrmsg("Transaction failed.", NULL);
+    }
+
     MRELEASE(raw_asb);
 
     // store this block in its bytes array. This is necessary as the
@@ -772,7 +788,7 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
             // Error, cleanup
             BSP_DEBUG_ERR("bsp_pcbConstructDecryptedPayload: unable to allocate more\
                            sdr memory for header, len %d", bprk->headerLen);
-            sdr_end_xn(bpSdr);
+            sdr_cancel_xn(bpSdr);
             return -1;
         }
         sdr_write(bpSdr, newSdrAddr, (char *)bprk->headerBuff, bprk->headerLen);
@@ -783,7 +799,11 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
     {
         bprk->newBundle = zco_create(bpSdr, ZcoSdrSource, 0, 0, 0);
     }
-    sdr_end_xn(bpSdr);
+
+    if (sdr_end_xn(bpSdr) < 0)
+    {
+	    putErrmsg("Transaction failed.", NULL);
+    }
 
     // Decrypt payload and append the references to resulting file onto our new object
     if((bsp_pcbCryptPayload(&bprk->newBundle, bprk->oldBundle,
@@ -791,9 +811,10 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
                             bprk->payloadLen, sessionKeyValue,
                             sessionKeyLen)) < 0)
     {
-        zco_destroy(bpSdr, bprk->newBundle);
-        PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: Unable to decrypt the payload.", NULL);
         sdr_begin_xn(bpSdr);
+        zco_destroy(bpSdr, bprk->newBundle);
+	oK(sdr_end_xn(bpSdr));
+        PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: Unable to decrypt the payload.", NULL);
         return -1;
     }
 
@@ -807,7 +828,7 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
             zco_destroy(bpSdr, bprk->newBundle);
             PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: unable to allocate more\
                           sdr memory for trailer, len %d", bprk->trailerLen);
-            sdr_end_xn(bpSdr);
+            oK(sdr_end_xn(bpSdr));
             return -1;
         }
         sdr_write(bpSdr, newSdrAddr, (char *)bprk->trailerBuff, bprk->trailerLen);
@@ -823,10 +844,16 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
         zco_destroy(bpSdr, bprk->newBundle);
         PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: Length of rebuilt bundle with decrypted data != \
              length of original bundle. It is %d should be %d", temp, bundleLen);
-        sdr_end_xn(bpSdr);
+        oK(sdr_end_xn(bpSdr));
         return -1;
     }
-    sdr_end_xn(bpSdr);
+
+    if (sdr_end_xn(bpSdr) < 0)
+    {
+	    putErrmsg("Transaction failed.", NULL);
+	    return -1;
+    }
+
     PCB_DEBUG_PROC("- bsp_pcbConstructDecryptedPayload--> %d", 0);
     return 0;
 }
@@ -870,7 +897,7 @@ int bsp_pcbIsolatePayload(Sdr bpSdr, BspPayloadReplaceKit *bprk)
         {
             PCB_DEBUG_ERR("x bsp_pcbIsolatePayload: Failed to assign memory to buffer and grab full header\nreceived %d bytes instead of needed %d",
 		bytesTransmitted, bprk->headerLen);
-            sdr_end_xn(bpSdr);
+            oK(sdr_end_xn(bpSdr));
             return -1;
         }
         zco_delimit_source(bpSdr, bprk->oldBundle, bprk->headerLen,
@@ -884,7 +911,7 @@ int bsp_pcbIsolatePayload(Sdr bpSdr, BspPayloadReplaceKit *bprk)
         {
             PCB_DEBUG_ERR("x bsp_pcbIsolatePayload: Failed to assign memory to buffer and grab full trailer\nreceived %d bytes instead of needed %d",
 		bytesTransmitted, bprk->trailerLen);
-            sdr_end_xn(bpSdr);
+            oK(sdr_end_xn(bpSdr));
             return -1;
         }
     }
@@ -898,10 +925,16 @@ int bsp_pcbIsolatePayload(Sdr bpSdr, BspPayloadReplaceKit *bprk)
         // Something went wrong, bail
         PCB_DEBUG_ERR("x bsp_pcbIsolatePayload: Failed to isolate payload data \
              length of zco %d, should be payload length of %d", temp, bprk->payloadLen);
-        sdr_end_xn(bpSdr);
+        oK(sdr_end_xn(bpSdr));
         return -1;
     }
-    sdr_end_xn(bpSdr);
+
+    if (sdr_end_xn(bpSdr) < 0)
+    {
+	    putErrmsg("Transaction failed.", NULL);
+	    return -1;
+    }
+
     PCB_DEBUG_PROC("- bsp_pcbIsolatePayload:--> %d", 0);
     return 0;
 }
@@ -993,7 +1026,7 @@ int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,
         PCB_DEBUG_ERR("x bsp_pcbCryptPayload: Read %d bytes, but expected %d.",
            bytesRetrieved, chunkSize);
 
-        sdr_end_xn(bpSdr);
+        oK(sdr_end_xn(bpSdr));
 
         PCB_DEBUG_PROC("- bsp_pcbCryptPayload--> %d", -1);
         MRELEASE(dataBuffer);
@@ -1005,7 +1038,13 @@ int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,
      arc4_crypt(&arcContext, bytesRetrieved, dataBuffer, dataBuffer);
      #endif
 
-     sdr_end_xn(bpSdr);
+     if (sdr_end_xn(bpSdr) < 0)
+     {
+	     putErrmsg("Transaction failed.", NULL);
+             MRELEASE(dataBuffer);
+	     return -1;
+     }
+
      // Transfer chunk into file and to our resultObject        
      if(transferToZcoFileSource(bpSdr, resultZco, &fileRef, fname, 
                                 (char *)dataBuffer, (int) bytesRetrieved) < 0)
@@ -1019,7 +1058,7 @@ int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,
      bytesRemaining -= bytesRetrieved;
    }
 
-   sdr_end_xn(bpSdr);
+   oK(sdr_end_xn(bpSdr));
    MRELEASE(dataBuffer);
   
    return 0;

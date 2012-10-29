@@ -78,6 +78,11 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by dtn2admin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
 =item B<h>
 
 The B<help> command.  This will display a listing of the commands and their

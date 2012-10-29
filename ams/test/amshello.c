@@ -17,7 +17,7 @@ static int	runCatcher()
 	AmsMsgType	mt;
 	char		*txt;
 
-	ams_register(NULL, NULL, "amsdemo", "test", "", "catch", &me);
+	oK(ams_register(NULL, NULL, "amsdemo", "test", "", "catch", &me));
 	ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
 	while (1)
 	{
@@ -45,7 +45,7 @@ static int	runPitcher()
 
 	isprintf(buffer, sizeof buffer, "Hello from %d.", (int) getpid());
 	textlen = strlen(buffer) + 1;
-	ams_register(NULL, NULL, "amsdemo", "test", "", "pitch", &me);
+	oK(ams_register(NULL, NULL, "amsdemo", "test", "", "pitch", &me));
 	while (1)
 	{
 		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;

@@ -36,6 +36,11 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by ionsecadmin to
 be logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
 =item B<1>
 
 The B<initialize> command.  Until this command is executed, the local ION
@@ -161,6 +166,16 @@ PIB rule pertaining to I<sender_eid_expr> and I<receiver_eid_expr>.
 =item B<l bsppibrule>
 
 This command lists all PIB rules in the security policy database.
+
+=item B<x> I<[ { ~ | sender_eid_expr } [ { ~ | receiver_eid_expr} [ { ~ | bab | pib | pcb | esb } ] ] ]>
+
+This command will clear all rules for the indicated type of security block
+between the indicated security source and security destination.  If block
+type is omitted it defaults to B<~> signifying "all security blocks".  If
+both block type and security destination are omitted, security destination
+defaults to B<~> signifying "all security destinations".  If all three
+command-line parameters are omitted, then security source defaults to B<~>
+signifying "all security sources".
 
 =item B<h>
 

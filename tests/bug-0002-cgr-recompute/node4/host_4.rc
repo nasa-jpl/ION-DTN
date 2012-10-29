@@ -1,0 +1,48 @@
+## begin ionadmin
+1 4 host.sdrconfig
+s
+m production 1000000
+m consumption 1000000
+## end ionadmin
+
+## begin bpadmin 
+1
+
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:4.0 x
+a endpoint ipn:4.1 x
+a endpoint ipn:4.2 x
+a endpoint ipn:4.3 x
+a endpoint ipn:4.4 x
+a endpoint ipn:4.5 x
+
+a protocol ltp 1400 100
+a protocol tcp 1400 100
+
+a induct tcp 0.0.0.0:3604 tcpcli
+a induct ltp 4 ltpcli
+
+a outduct ltp 3 ltpclo
+a outduct ltp 2 ltpclo
+a outduct tcp 127.0.0.1:3604 tcpclo
+
+s
+## end bpadmin 
+
+## begin ipnadmin 
+a plan 3 ltp/3
+a plan 2 ltp/2
+a plan 4 tcp/127.0.0.1:3604
+## end ipnadmin 
+
+## begin ltpadmin
+1 20 200000
+m screening n
+a span 3 10 10 1400 1400 1 'udplso 127.0.0.1:3703'
+a span 2 10 10 1400 1400 1 'udplso 127.0.0.1:3702'
+s 'udplsi 0.0.0.0:3704'
+## end ltpadmin
+
+## begin ionsecadmin
+1
+## end ionsecadmin

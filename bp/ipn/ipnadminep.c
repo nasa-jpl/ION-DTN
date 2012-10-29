@@ -166,8 +166,8 @@ int	main(int argc, char *argv[])
 	}
 
 	writeMemo("[i] ipnadminep is running.");
-	if (_handleAdminBundles(vscheme->custodianEidString, handleStatusRpt,
-				handleCtSignal) < 0)
+	if (_handleAdminBundles(vscheme->adminEid, handleStatusRpt,
+			handleCtSignal) < 0)
 	{
 		putErrmsg("ipnadminep crashed.", NULL);
 	}

@@ -326,8 +326,8 @@ static void	addMsgToUser(int tokenCount, char **tokens,
 		*msgsToUser = cfdp_create_usrmsg_list();
 	}
 
-	cfdp_add_usrmsg(*msgsToUser, (unsigned char *) tokens[1],
-			strlen(tokens[1]) + 1);
+	oK(cfdp_add_usrmsg(*msgsToUser, (unsigned char *) tokens[1],
+			strlen(tokens[1]) + 1));
 }
 
 static void	addFilestoreRequest(int tokenCount, char **tokens,
@@ -359,7 +359,7 @@ static void	addFilestoreRequest(int tokenCount, char **tokens,
 		*fsRequests = cfdp_create_fsreq_list();
 	}
 
-	cfdp_add_fsreq(*fsRequests, action, firstPathName, secondPathName);
+	oK(cfdp_add_fsreq(*fsRequests, action, firstPathName, secondPathName));
 }
 
 static int	processLine(char *line, int lineLength, CfdpReqParms *parms)

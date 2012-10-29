@@ -1941,11 +1941,6 @@ recvfrom");
 		{
 			/*	Get report serial number.		*/
 
-			if (bytesRemaining < 1)
-			{
-				continue;	/*	Invalid segment.*/
-			}
-
 			sdnvLength = decodeSdnv(&rptSerialNbr, cursor);
 			if (sdnvLength < 1)
 			{
