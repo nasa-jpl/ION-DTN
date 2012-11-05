@@ -17,6 +17,12 @@
 extern "C" {
 #endif
 
+#ifdef uClibc
+#ifndef linux
+#define linux
+#endif
+#endif
+
 #define	MAX_POSIX_TIME	2147483644
 
 /*	SPACE_ORDER is log2 of the number of bytes in an address, i.e.:
@@ -387,9 +393,14 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define PRIVATE_SYMTAB
 
+#else				/****	Not bionic		     ****/
+#ifdef uClibc
+#include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
+#include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
 #else
 #include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
-#endif
+#endif				/*	End of #ifdef uClibc	     ****/
+#endif				/****	End of #ifdef bionic	     ****/
 
 #define	_MULTITHREADED
 
