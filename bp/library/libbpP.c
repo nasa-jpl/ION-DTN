@@ -1320,7 +1320,6 @@ static BpVdb	*_bpvdb(char **name)
 		}
 
 		/*	BP volatile database doesn't exist yet.		*/
-
 		sdr = getIonsdr();
 		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
 		vdbAddress = psm_zalloc(wm, sizeof(BpVdb));
@@ -1544,6 +1543,37 @@ int	bpInit()
 	}
 
 	return 0;		/*	BP service is now available.	*/
+}
+
+void bpDestroy()
+{
+	PsmPartition	wm;
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*bpvdbName = _bpvdbName();
+	char		*stop=NULL;
+
+	/*Free volatile database*/
+	wm = getIonwm();
+	if (psm_locate(wm, bpvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if(elt){
+		if(psm_uncatlg(wm,bpvdbName)<0){
+			putErrmsg("Failed Uncataloging vdb.",NULL);
+		}else{
+			psm_free(wm,vdbAddress);
+		}
+	}else{
+		putErrmsg("vdb doesn't exist.", NULL);
+	}
+
+	/*Make sure the cached ptr is set to NULL*/
+	oK(_bpvdb(&stop));
+	return;
 }
 
 Object	getBpDbObject()
@@ -1788,6 +1818,12 @@ int	bpAttach()
 
 	oK(secAttach());
 	return 0;		/*	BP service is now available.	*/
+}
+
+void bpDetach(){
+	char *stop=NULL;
+	oK(_bpvdb(&stop));
+	return;
 }
 
 /*	*	*	Database occupancy functions	*	*	*/

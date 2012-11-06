@@ -1231,10 +1231,12 @@ extern int		bpDestroyBundle(Object bundleToDestroy,
 			 *	have been removed, -1 on any error.	*/
 
 extern int		bpInit();
+extern void		bpDestroy();
 extern int		bpSetCTCountdownTimer(time_t newTimeout);
 extern int		bpStart();
 extern void		bpStop();
 extern int		bpAttach();
+extern void		bpDetach();
 
 extern Object		getBpDbObject();
 extern BpDB		*getBpConstants();

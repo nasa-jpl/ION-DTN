@@ -44,6 +44,7 @@ Sdr	bp_get_sdr()
 
 void	bp_detach()
 {
+	bpDetach();
 	ionDetach();
 }
 
