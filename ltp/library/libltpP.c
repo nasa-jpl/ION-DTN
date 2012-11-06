@@ -535,6 +535,37 @@ int	ltpInit(int estMaxExportSessions)
 	return 0;		/*	LTP service is available.	*/
 }
 
+void ltpDestroy()
+{
+	PsmPartition	wm;
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*ltpvdbName = _ltpvdbName();
+	char		*stop=NULL;
+
+	/*Free volatile database*/
+	wm = getIonwm();
+	if (psm_locate(wm, ltpvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if(elt){
+		if(psm_uncatlg(wm,ltpvdbName)<0){
+			putErrmsg("Failed Uncataloging vdb.",NULL);
+		}else{
+			psm_free(wm,vdbAddress);
+		}
+	}else{
+		putErrmsg("vdb doesn't exist.", NULL);
+	}
+
+	/*Make sure the cached ptr is set to NULL*/
+	oK(_ltpvdb(&stop));
+	return;
+}
+
 Object	getLtpDbObject()
 {
 	return _ltpdbObject(NULL);
@@ -729,6 +760,12 @@ int	ltpAttach()
 	}
 
 	return 0;		/*	LTP service is available.	*/
+}
+
+void ltpDetach(){
+	char *stop=NULL;
+	oK(_ltpvdb(&stop));
+	return;
 }
 
 /*	*	*	LTP span mgt and access functions	*	*/

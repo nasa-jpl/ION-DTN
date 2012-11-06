@@ -18,6 +18,7 @@ int	ltp_attach()
 
 void	ltp_detach()
 {
+	ltpDetach();
 	ionDetach();
 }
 
