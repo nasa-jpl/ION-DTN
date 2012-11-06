@@ -458,6 +458,37 @@ int	cfdpInit()
 	return 0;		/*	CFDP service is available.	*/
 }
 
+void cfdpDestroy()
+{
+	PsmPartition	wm;
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*cfdpvdbName = _cfdpvdbName();
+	char		*stop=NULL;
+
+	/*Free volatile database*/
+	wm = getIonwm();
+	if (psm_locate(wm,cfdpvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if(elt){
+		if(psm_uncatlg(wm,cfdpvdbName)<0){
+			putErrmsg("Failed Uncataloging vdb.",NULL);
+		}else{
+			psm_free(wm,vdbAddress);
+		}
+	}else{
+		putErrmsg("vdb doesn't exist.", NULL);
+	}
+
+	/*Make sure the cached ptr is set to NULL*/
+	oK(_cfdpvdb(&stop));
+	return;
+}
+
 Object	getCfdpDbObject()
 {
 	return _cfdpdbObject(NULL);
@@ -632,6 +663,12 @@ int	cfdpAttach()
 	}
 
 	return 0;		/*	CFDP service is available.	*/
+}
+
+void cfdpDetach(){
+	char *stop=NULL;
+	oK(_cfdpvdb(&stop));
+	return;
 }
 
 MetadataList	createMetadataList(Object log)

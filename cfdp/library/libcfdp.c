@@ -55,6 +55,11 @@ int	cfdp_init()
 	return cfdpAttach();
 }
 
+void cfdp_cleanup(){
+	cfdpDestroy();
+	return;
+}
+
 int	cfdp_entity_is_started()
 {
 	CfdpVdb	*vdb = getCfdpVdb();

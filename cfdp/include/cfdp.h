@@ -185,6 +185,7 @@ typedef struct
 /*	*	*	CFDP initialization	*	*	*	*/
 
 extern int	cfdp_init();
+extern void cfdp_cleanup();
 
 extern int	cfdp_entity_is_started();
 		/*	Returns 1 if the local CFDP entity has been
