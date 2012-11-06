@@ -1616,7 +1616,33 @@ void	cgr_start()
 
 void	cgr_stop()
 {
-	char	*name = NULL;
+	PsmPartition	wm;
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*name = "cgrvdb";
+	char		*stop=NULL;
 
-	oK(_cgrvdb(&name));
+	/*Clear Route Caches*/
+	wm = getIonwm();
+	clearRoutingObjects(wm);
+
+	/*Free volatile database*/
+	if (psm_locate(wm, name, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if(elt){
+		if(psm_uncatlg(wm,name)<0){
+			putErrmsg("Failed Uncataloging vdb.",NULL);
+		}else{
+			psm_free(wm,vdbAddress);
+		}
+	}else{
+		putErrmsg("vdb doesn't exist.", NULL);
+	}
+
+	/*Reset pointer*/
+	oK(_cgrvdb(&stop));
 }
