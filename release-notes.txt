@@ -1,6 +1,6 @@
 = Release Notes for ION 3.1.0 =
 
-October 15, 2012
+October 29, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -84,6 +84,12 @@ Features included:
 
 - Bug #8: Fixed bug where bundles that expired while in the limbo queue were not
   properly deallocated.
+
+- Bug #10: Updated the ionstart/ionscript/killm scripts with support for the
+  following ION administrative modules:
+    - Bundle streaming service (BSS)
+    - Interplanetary multicast (IMC)
+    - Aggregate custody signals (ACS)
 
 - Feature Request #2: Added support for bundle age extension blocks to help
   accomodate platforms that may not be able to provide a stable clock. 
