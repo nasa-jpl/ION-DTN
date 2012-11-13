@@ -185,7 +185,7 @@ static void	*receiveBundles(void *parm)
 		snooze(1);
 		if(*(parms->bundleSocket) < 0)
 		{
-			threadRunning = 0;
+			/*Retry later*/
 			continue;
 		}
 
@@ -201,7 +201,11 @@ static void	*receiveBundles(void *parm)
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
-			/*	Intentional fall-through to next case.	*/
+			pthread_mutex_lock(parms->mutex);
+			closesocket(*(parms->bundleSocket));
+			*(parms->bundleSocket) = -1;
+			pthread_mutex_unlock(parms->mutex);
+			continue;
 
 		case 0:			/*	Shutdown message	*/	
 			/*	Go back to the start of the while loop	*/
@@ -271,7 +275,7 @@ int	main(int argc, char *argv[])
 	unsigned int		bundleLength;
 	int			ductSocket = -1;
 	int			bytesSent;
-	int 			keepalivePeriod = 0;
+	int 			keepalivePeriod = KEEPALIVE_PERIOD;
 	VInduct			*viduct;
 
 	if (ductName == NULL)
