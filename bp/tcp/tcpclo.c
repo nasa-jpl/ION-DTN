@@ -275,7 +275,7 @@ int	main(int argc, char *argv[])
 	unsigned int		bundleLength;
 	int			ductSocket = -1;
 	int			bytesSent;
-	int 			keepalivePeriod = KEEPALIVE_PERIOD;
+	int 			keepalivePeriod = 0;
 	VInduct			*viduct;
 
 	if (ductName == NULL)
@@ -473,7 +473,7 @@ int	main(int argc, char *argv[])
 	pthread_join(keepaliveThread, NULL);
 	writeMemo("tcpclo keep alive thread killed");
 	running = 0;
-	
+
 	pthread_join(receiverThread, NULL);
 	writeMemo("tcpclo receiver thread killed");
 
