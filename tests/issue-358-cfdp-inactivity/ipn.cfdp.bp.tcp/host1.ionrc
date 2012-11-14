@@ -1,0 +1,9 @@
+#Issue 358-CFDP-inactivity
+#Samuel Jero
+#June 26,2012
+1 1 host1.ionconfig
+a contact +1 +36000 1 1 100000
+a range +1 +36000 1 1 1
+m production 1000000
+m consumption 1000000
+s

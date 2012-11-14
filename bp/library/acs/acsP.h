@@ -15,7 +15,7 @@
 
 #include "bpP.h"
 #include "acs.h"
-#include "ext/cteb/cteb.h"
+#include "cteb.h"
 
 #ifdef __cplusplus
 extern "C" {

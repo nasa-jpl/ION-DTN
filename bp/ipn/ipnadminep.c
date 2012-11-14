@@ -135,7 +135,7 @@ on %s for reason %d, '%s'.", cts->signalTime.seconds, dlv->bundleSourceEid,
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	ipnadminep(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -166,8 +166,8 @@ int	main(int argc, char *argv[])
 	}
 
 	writeMemo("[i] ipnadminep is running.");
-	if (_handleAdminBundles(vscheme->custodianEidString, handleStatusRpt,
-				handleCtSignal) < 0)
+	if (_handleAdminBundles(vscheme->adminEid, handleStatusRpt,
+			handleCtSignal) < 0)
 	{
 		putErrmsg("ipnadminep crashed.", NULL);
 	}

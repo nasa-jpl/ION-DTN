@@ -1,0 +1,33 @@
+This directory is the first step toward porting ION to the Android operating
+system.  It's a two-stage process:
+
+1.	First, the ION source code has to be ported to compile successfully
+in the "bionic" environment that is provided to Java native code that runs
+in Android.  Bionic is a restricted libc that provides all of the functionality
+that ION needs, though not always in exactly the same ways that these
+capabilities are provided in Solaris or in a more full-featured Linux.
+
+2.	Compilation in bionic enables Java native method interface classes
+to be written that invoke the native C functions of ION to operate a complete,
+fully functional standard ION node on an Android device.
+
+So far, we've only completed step 1.  The second step of the Android "port"
+will take a little longer, as it's actually the development of an entire
+new ION API in Java; we're aiming for the end of summer 2012.
+
+Here is the procedure for building ION in bionic:
+
+1.	Download and install the Android software development kit.  For
+details, see http://developer.android.com/sdk/index.html.
+
+2.	Download and install the Android NDK (native development kit).  For
+details, see http://developer.android.com/sdk/ndk/index.html.
+
+3.	Navigate to the arch-android/iondtn subdirectory of the ION
+distribution; this is the project directory for the ION DTN Android project.
+
+4.	Run "ndk-build".  This will build ION for bionic, placing a file
+named "libiondtn.so" in arch-android/iondtn/libs/armeabi.
+
+The NodeAdministrator class definition in arch-android/iondtn/src is the
+start of an ION Android application.

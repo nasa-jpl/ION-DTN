@@ -89,7 +89,7 @@ static void	*handleDatagrams(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	udplsi(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -114,7 +114,7 @@ int	main(int argc, char *argv[])
 	 *	invocation of ltplsi, to initialize the LTP database
 	 *	(as necessary) and dynamic database.			*/ 
 
-	if (ltpInit(0, 0) < 0)
+	if (ltpInit(0) < 0)
 	{
 		putErrmsg("udplsi can't initialize LTP.", NULL);
 		return 1;
@@ -133,7 +133,8 @@ int	main(int argc, char *argv[])
 	{
 		if(parseSocketSpec(endpointSpec, &portNbr, &ipAddress) != 0)
 		{
-			putErrmsg("Can't get IP/port for endpointSpec.", endpointSpec);
+			putErrmsg("Can't get IP/port for endpointSpec.",
+					endpointSpec);
 			return -1;
 		}
 	}

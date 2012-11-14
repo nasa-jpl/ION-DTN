@@ -55,7 +55,7 @@ int	main(int argc, char **argv)
 				bufferLength = 0;
 			}
 
-			buffer = (unsigned char *) malloc(contentLength);
+			buffer = (unsigned char *) calloc(1, contentLength);
 			if (buffer == NULL)
 			{
 				printf("requested buffer too large: %d\n",

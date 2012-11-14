@@ -88,7 +88,7 @@ static void	*sendBundles(void *parm)
 		}
 
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName, 0, -1) < 0)
+			&extendedCOS, destDuctName, DGRCLA_BUFSZ, -1) < 0)
 		{
 			threadRunning = 0;
 			writeMemo("[?] dgrcla failed de-queueing bundle.");
@@ -123,7 +123,7 @@ static void	*sendBundles(void *parm)
 		zco_start_transmitting(bundleZco, &reader);
 		zco_track_file_offset(&reader);
 		bytesToSend = zco_transmit(sdr, &reader, DGRCLA_BUFSZ, buffer);
-		sdr_exit_xn(sdr);
+		oK(sdr_end_xn(sdr));
 		if (bytesToSend < 0)
 		{
 			threadRunning = 0;
@@ -352,16 +352,9 @@ bundle ZCO.", NULL);
 
 		/*	Must have received a datagram.			*/
 
-		if (getInternetHostName(fromHostNbr, hostName))
-		{
-			senderEid = senderEidBuffer;
-			getSenderEid(&senderEid, hostName);
-		}
-		else
-		{
-			senderEid = NULL;
-		}
-
+		printDottedString(fromHostNbr, hostName);
+		senderEid = senderEidBuffer;
+		getSenderEid(&senderEid, hostName);
 		if (bpBeginAcq(work, 0, senderEid) < 0
 		|| bpContinueAcq(work, buffer, length) < 0
 		|| bpEndAcq(work) < 0)
@@ -390,7 +383,7 @@ bundle ZCO.", NULL);
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	dgrcla(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

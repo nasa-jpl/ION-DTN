@@ -33,7 +33,7 @@ static unsigned int	sdrwatch_count(int *newValue)
 
 static void	handleQuit()
 {
-	int	newCount = 1;	/*	Advanc to end of last cycle.	*/
+	int	newCount = 1;	/*	Advance to end of last cycle.	*/
 
 	PUTS("[Terminated by user.]");
 	oK(sdrwatch_count(&newCount));
@@ -97,7 +97,7 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	sdrwatch(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

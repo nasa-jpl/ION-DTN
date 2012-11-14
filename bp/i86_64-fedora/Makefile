@@ -5,6 +5,8 @@ TEST = ../test
 DAEMON = ../daemon
 CGR = ../cgr
 IPN = ../ipn
+IMC = ../imc
+BSS = ../bss
 DTN2 = ../dtn2
 LTP = ../ltp
 TCP = ../tcp
@@ -12,10 +14,11 @@ DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
 DCCP = ../dccp
+CRYPTO = $(API)/crypto/NULL_SUITES
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -fPIC
-CC = gcc $(OPT) -I$(IPN) -I$(DTN2) -I$(API) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+OPT = -g -Wall -Werror -Dlinux -fPIC -DENABLE_BPACS -DENABLE_IMC
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/crypto -I$(API)/acs -I$(API)/ext -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/cteb -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -25,28 +28,32 @@ PUBINCLS = \
 BPINCLS = \
 	$(API)/bpP.h \
 	$(IPN)/ipnfw.h \
+	$(IPN)/imcfw.h \
+	$(IPN)/imcP.h \
+	$(BSS)/bssfw.h \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
 	$(TCP)/tcpcla.h \
 	$(LTP)/ltpcla.h \
-	$(DCCP)/dccpcla.h
+	$(DCCP)/dccpcla.h \
+	$(API)/acs/acs.h
 
 BPLIBS = \
-	libbp.so \
-	libbpP.so
+	libbp.so
 
-BPPOBJS = libbpP.o ecos.o bei.o extbsputil.o extbspbab.o crypto.o
+BPPOBJS = libbpP.o ecos.o bae.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o crypto.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o libimcfw.o
 # phn.o
 
-LFW = -lipnfw -ldtn2fw
+LFW = -lbssfw -ldtn2fw
+# -lipnfw
 
-LBP = -lbp -lbpP
+LBP = -lbp
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep bssadmin bssfw dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw
 #dccpcli dccpclo
 
-ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libbssfw.so libtcpcla.so libudpcla.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -80,6 +87,14 @@ bpadmin:	bpadmin.o $(BPLIBS)
 ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.so
 		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
 		cp ipnadmin ./bin
+
+imcadmin:	imcadmin.o $(BPLIBS) libimcfw.so
+		$(CC) -o imcadmin imcadmin.o -L./lib -L$(ROOT)/lib -limcfw $(LBP) -lici -lpthread
+		cp imcadmin ./bin
+
+bssadmin:	bssadmin.o $(BPLIBS) libbssfw.so
+		$(CC) -o bssadmin bssadmin.o -L./lib -L$(ROOT)/lib -lbssfw $(LBP) -lici -lpthread
+		cp bssadmin ./bin
 
 dtn2admin:	dtn2admin.o $(BPLIBS) libdtn2fw.so
 		$(CC) -o dtn2admin dtn2admin.o -L./lib -L$(ROOT)/lib -ldtn2fw $(LBP) -lici -lpthread
@@ -125,6 +140,14 @@ hmackeys:	hmackeys.o $(BPLIBS)
 		$(CC) -o hmackeys hmackeys.o -L$(ROOT)/lib -lici -lpthread
 		cp hmackeys ./bin
 
+acsadmin:	acsadmin.o $(BPLIBS)
+		$(CC) -o acsadmin acsadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp acsadmin ./bin
+
+acslist:	acslist.o $(BPLIBS)
+		$(CC) -o acslist acslist.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp acslist ./bin
+
 #	-	-	IPN executables	-	-	-	-	-
 
 ipnfw:		ipnfw.o $(BPLIBS) libipnfw.so libcgr.so
@@ -134,6 +157,18 @@ ipnfw:		ipnfw.o $(BPLIBS) libipnfw.so libcgr.so
 ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.so
 		$(CC) -o ipnadminep ipnadminep.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
 		cp ipnadminep ./bin
+
+#	-	-	IMC executables	-	-	-	-	-
+
+imcfw:		imcfw.o $(BPLIBS) libimcfw.so libipnfw.so
+		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib -limcfw -lipnfw $(LBP) -lici -lpthread
+		cp imcfw ./bin
+
+#	-	-	BSS executables	-	-	-	-	-
+
+bssfw:		bssfw.o $(BPLIBS) libbssfw.so libcgr.so
+		$(CC) -o bssfw bssfw.o -L./lib -L$(ROOT)/lib -lbssfw -lcgr $(LBP) -lici -lpthread
+		cp bssfw ./bin
 
 #	-	-	DTN2 executables	-	-	-	-
 
@@ -185,7 +220,7 @@ udpclo:		udpclo.o $(BPLIBS) libudpcla.so
 		$(CC) -o udpclo udpclo.o -L./lib -L$(ROOT)/lib -ludpcla $(LBP) -lici -lpthread
 		cp udpclo ./bin
 
-#	-	-	DCCP executables	-	-	-	-	-
+#	-	-	DCCP executables	-	-	-	-
 
 dccpcli:	dccpcli.o $(BPLIBS)
 		$(CC) -o dccpcli dccpcli.o -L./lib -L$(ROOT)/lib $(LFW) $(LBP) -lici -lpthread
@@ -243,12 +278,8 @@ bprecvfile:	bprecvfile.o libbp.so $(BPLIBS)
 
 #	-	-	Libraries	-	-	-	-	-
 
-libbpP.so:	$(BPPOBJS)
-		$(LD) -o libbpP.so $(BPPOBJS)
-		cp libbpP.so ./lib
-
-libbp.so:	libbp.o
-		$(LD) -o libbp.so libbp.o
+libbp.so:	libbp.o $(BPPOBJS) libbpnm.o
+		$(LD) -o libbp.so libbp.o $(BPPOBJS) libbpnm.o
 		cp libbp.so ./lib
 
 libcgr.so:	libcgr.o
@@ -258,6 +289,14 @@ libcgr.so:	libcgr.o
 libipnfw.so:	libipnfw.o
 		$(LD) -o libipnfw.so libipnfw.o
 		cp libipnfw.so ./lib
+
+libimcfw.so:	libimcfw.o
+		$(LD) -o libimcfw.so libimcfw.o
+		cp libimcfw.so ./lib
+
+libbssfw.so:	libbssfw.o
+		$(LD) -o libbssfw.so libbssfw.o
+		cp libbssfw.so ./lib
 
 libdtn2fw.so:	libdtn2fw.o
 		$(LD) -o libdtn2fw.so libdtn2fw.o
@@ -276,22 +315,13 @@ libudpcla.so:	libudpcla.o
 %.o:		$(API)/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/crypto/NULL_SUITES/%.c
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/ecos/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/ext/bsp/%.c
-		$(CC) -c $<
-
-#%.o:		$(API)/ext/phn/%.c
-#		$(CC) -c $<
-
-%.o:		$(API)/crypto/NULL_SUITES/%.c
-		$(CC) -c $<
-
-%.o:		$(API)/ext/ecos/%.c
+%.o:		$(API)/ext/bae/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/bsp/%.c
@@ -315,6 +345,12 @@ libudpcla.so:	libudpcla.o
 %.o:		$(IPN)/%.c
 		$(CC) -c $<
 
+%.o:		$(IMC)/%.c
+		$(CC) -c $<
+
+%.o:		$(BSS)/%.c
+		$(CC) -c $<
+
 %.o:		$(DTN2)/%.c
 		$(CC) -c $<
 
@@ -334,4 +370,10 @@ libudpcla.so:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(DGR)/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/acs/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/cteb/%.c
 		$(CC) -c $<

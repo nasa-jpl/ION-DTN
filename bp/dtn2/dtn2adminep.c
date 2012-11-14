@@ -51,7 +51,7 @@ failure at %s: %d", cts->sourceEid, cts->reasonCode);
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	dtn2adminep(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -82,7 +82,7 @@ int	main(int argc, char *argv[])
 	}
 
 	writeMemo("[i] dtn2adminep is running.");
-	if (_handleAdminBundles(vscheme->custodianEidString, handleStatusRpt,
+	if (_handleAdminBundles(vscheme->adminEid, handleStatusRpt,
 			handleCtSignal) < 0)
 	{
 		putErrmsg("dtn2adminep crashed.", NULL);

@@ -13,7 +13,7 @@
  *	Author: Sotirios-Angelos Lenas, Space Internetworking Center (SPICE)
  */
 
-#include "bss.h"
+#include "bsstest.h"
 
 static char*	_threadBuf(char *newValue)
 {

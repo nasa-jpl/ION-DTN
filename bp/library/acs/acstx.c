@@ -322,8 +322,9 @@ static void releaseSdrAcsSignal(Object signalLElt)
 	sdr_list_destroy(acsSdr, signal.acsFills, releaseSdrAcsFill, NULL);
 
 	if(signal.acsDue != 0) {
-		sdr_free(bpSdr, sdr_list_data(bpSdr, signal.acsDue));
-		sdr_list_delete(bpSdr, signal.acsDue, NULL, NULL);
+		destroyBpTimelineEvent(signal.acsDue);
+//		sdr_free(bpSdr, sdr_list_data(bpSdr, signal.acsDue));
+//		sdr_list_delete(bpSdr, signal.acsDue, NULL, NULL);
 	}
 
 	if(signal.serializedZco != 0) {
@@ -338,12 +339,12 @@ static void releaseSdrAcsSignal(Object signalLElt)
 int sendAcs(Object signalLElt)
 {
 	BpExtendedCOS		ecos = { 0, 0, 255 };
-	Object              signalAddr;
-	Object				acsBundleObj;			/* Unused write-out of bpSend */
-	SdrAcsSignal        signal;
+	Object			signalAddr;
+	Object			acsBundleObj;	/* Unused write-out of bpSend */
+	SdrAcsSignal        	signal;
 	SdrAcsPendingCust	pendingCust;
-	int					result;
-	Sdr					bpSdr = getIonsdr();
+	int			result;
+	Sdr			bpSdr = getIonsdr();
 
 	assert(signalLElt != 0);
 
@@ -370,9 +371,9 @@ int sendAcs(Object signalLElt)
 
 	/* Remove ref to this serialized ZCO from signal; also remove the bundle
 	 * IDs covered by this serialized ZCO. */
-	result = bpSend(NULL, pendingCust.eid, NULL, ACS_TTL, BP_EXPEDITED_PRIORITY,
-			NoCustodyRequested, 0, 0, &ecos, signal.serializedZco,
-			&acsBundleObj, BP_CUSTODY_SIGNAL);
+	result = bpSend(NULL, pendingCust.eid, NULL, ACS_TTL,
+			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0, &ecos,
+			signal.serializedZco, &acsBundleObj, BP_CUSTODY_SIGNAL);
 	switch (result)
 	{
 	/* All return codes from bpSend() still cause us to continue processing
@@ -395,11 +396,13 @@ int sendAcs(Object signalLElt)
 		break;
 	}
 
-	if(signal.acsDue != 0)
+	if (signal.acsDue != 0)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, signal.acsDue));
-		sdr_list_delete(bpSdr, signal.acsDue, NULL, NULL);
+		destroyBpTimelineEvent(signal.acsDue);
+//		sdr_free(bpSdr, sdr_list_data(bpSdr, signal.acsDue));
+//		sdr_list_delete(bpSdr, signal.acsDue, NULL, NULL);
 	}
+
 	signal.acsDue = 0;
 	signal.serializedZco = 0;
 	sdr_poke(acsSdr, signalAddr, signal);
@@ -719,5 +722,5 @@ void listCustodianInfo(void (*printer)(const char *))
 			custodian.acsSize);
 		printer(buffer);
 	}
-	sdr_end_xn(acsSdr);
+	oK(sdr_end_xn(acsSdr));
 }

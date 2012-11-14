@@ -12,14 +12,19 @@
 
 #define	BPRECVBUFSZ	(65536)
 
-static BpSAP	_bpsap(BpSAP *newSAP)
+static BpSAP	_bpsap(BpSAP *newSap)
 {
-	static BpSAP	sap = NULL;
+	void	*value;
+	BpSAP	sap;
 
-	if (newSAP)
+	if (newSap)			/*	Add task variable.	*/
 	{
-		sap = *newSAP;
-		sm_TaskVarAdd((int *) &sap);
+		value = (void *) (*newSap);
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
 	}
 
 	return sap;
@@ -27,14 +32,19 @@ static BpSAP	_bpsap(BpSAP *newSAP)
 
 static int	_running(int *newState)
 {
-	static int	state = 1;
+	void	*value = NULL;
+	BpSAP	sap;
 
-	if (newState)
+	if (newState)			/*	Only used for Stop.	*/
 	{
-		state = *newState;
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
 	}
 
-	return state;
+	return (sap == NULL ? 0 : 1);
 }
 
 static void	handleQuit()
@@ -42,8 +52,8 @@ static void	handleQuit()
 	int	stop = 0;
 
 	writeMemo("[i] bprecvfile interrupted.");
-	oK(_running(&stop));
 	bp_interrupt(_bpsap(NULL));
+	oK(_running(&stop));
 }
 
 static int	receiveFile(Sdr sdr, BpDelivery *dlv)
@@ -117,19 +127,22 @@ int	bprecvfile(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char		*ownEid = (char *) a1;
+	int		maxFiles = strtol((char *) a1, NULL, 0);
 #else
 int	main(int argc, char **argv)
 {
 	char		*ownEid = (argc > 1 ? argv[1] : NULL);
+	int		maxFiles = (argc > 2 ? strtol(argv[2], NULL, 0) : 0);
 #endif
 	BpSAP		sap;
 	Sdr		sdr;
 	BpDelivery	dlv;
 	int		stop = 0;
+	int		filesReceived = 0;
 
 	if (ownEid == NULL)
 	{
-		PUTS("Usage: bprecvfile <own endpoint ID>");
+		PUTS("Usage: bprecvfile <own endpoint ID> [<max # files>]");
 		return 0;
 	}
 
@@ -165,6 +178,7 @@ int	main(int argc, char **argv)
 			break;		/*	Out of switch.		*/
 
 		case BpPayloadPresent:
+			filesReceived++;
 			if (receiveFile(sdr, &dlv) < 0)
 			{
 				putErrmsg("bprecvfile cannot continue.", NULL);
@@ -175,6 +189,15 @@ int	main(int argc, char **argv)
 
 		default:
 			break;		/*	Out of switch.		*/
+		}
+
+		if (maxFiles > 0)
+		{
+			if (filesReceived == maxFiles)
+			{
+				writeMemo("[i] bprecvfile has reached limit.");
+				oK(_running(&stop));
+			}
 		}
 
 		bp_release_delivery(&dlv, 1);

@@ -346,6 +346,7 @@ static void printAcsInformation(int loglevel, const char *note, Bundle *bundle,
 	if (printEid(&bundle->custodian, dictionary, &currentCustodianEid) < 0)
 	{
 		putErrmsg("Couldn't print source of bundle.", NULL);
+		MRELEASE(sourceEid);
 		return;
 	}
 
@@ -395,7 +396,6 @@ int	offerNoteAcs(Bundle *bundle, AcqWorkArea *work, char *dictionary,
 		return 0;		/* Couldn't note, so caller should send normal CT */
 	}
 
-
 	/* To prevent deadlock, take bpSdr before acsSdr. */
 	sdr_begin_xn(bpSdr);
 	sdr_begin_xn(acsSdr);
@@ -421,17 +421,17 @@ int	offerNoteAcs(Bundle *bundle, AcqWorkArea *work, char *dictionary,
 		ACSLOG_INFO("Duplicate ACS signalled for %s, ignored.", pendingCust.eid);
 		printSdrAcsSignal(ACSLOGLEVEL_INFO, pendingCust.signals, reasonCode, 
 				succeeded, pendingCust.eid);
+		MRELEASE(currentCustodianEid);
 		sdr_exit_xn(acsSdr);
 		sdr_exit_xn(bpSdr);
-		MRELEASE(currentCustodianEid);
 		return 1;		/* A dup is successfully noted */
 	}
 	if (rc == -1) {
 		ACSLOG_ERROR("Problem signalling ACS for %s (%s)", pendingCust.eid,
 				strerror(errno));
+		MRELEASE(currentCustodianEid);
 		sdr_cancel_xn(acsSdr);
 		sdr_exit_xn(bpSdr);
-		MRELEASE(currentCustodianEid);
 		return 0;		/* Couldn't note, so caller should send normal CT */
 	}
 	printSdrAcsSignal(ACSLOGLEVEL_DEBUG, pendingCust.signals, reasonCode,
@@ -443,6 +443,7 @@ int	offerNoteAcs(Bundle *bundle, AcqWorkArea *work, char *dictionary,
 		 * (either itself containing the signal, or carrying over this signal
 		 * to a new, empty ACS).  We should revert the SDR changes we made
 		 * and return 0 so that the caller will send a normal custody signal. */
+		MRELEASE(currentCustodianEid);
 		sdr_cancel_xn(acsSdr);
 		sdr_cancel_xn(bpSdr);
 		return 0;

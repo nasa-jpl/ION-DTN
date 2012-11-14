@@ -23,7 +23,7 @@ typedef struct
 	char		*wmName;
 } sm_WmParms;
 
-typedef int             sm_SemId;
+typedef long             sm_SemId;
 #define SM_SEM_NONE	(-1)
 
 #define SM_SEM_FIFO	0
@@ -43,7 +43,7 @@ extern int		sm_GetUniqueKey();
 extern sm_SemId		sm_SemCreate(int key, int semType);
 extern int		sm_SemTake(sm_SemId semId);
 extern void		sm_SemGive(sm_SemId semId);
-extern int		sm_SemUnwedge(sm_SemId semId, int interval);
+extern int		sm_SemUnwedge(sm_SemId semId, int timeoutSeconds);
 extern void		sm_SemDelete(sm_SemId semId);
 extern void		sm_SemEnd(sm_SemId semId);
 extern int		sm_SemEnded(sm_SemId semId);
@@ -60,7 +60,7 @@ extern void		sm_ShmDestroy(int id);
 
 extern int		sm_TaskIdSelf();
 extern int		sm_TaskExists(int taskId);
-extern void		sm_TaskVarAdd(int *var);
+extern void		*sm_TaskVar(void **arg);
 extern void		sm_TaskSuspend();
 extern void		sm_TaskDelay(int seconds);
 extern void		sm_TaskYield();

@@ -65,6 +65,7 @@ induct name] }");
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a plan <node name> <default directive>");
 	PUTS("\t   a rule <node name> <demux name> <directive>");
@@ -598,6 +599,7 @@ static int	processLine(char *line, int lineLength)
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
+	char	buffer[80];
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -644,6 +646,12 @@ static int	processLine(char *line, int lineLength)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s",
+					IONVERSIONNUMBER);
+			printText(buffer);
 			return 0;
 
 		case 'a':
@@ -775,7 +783,7 @@ static int	run_dtn2admin(char *cmdFileName)
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	dtn2admin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

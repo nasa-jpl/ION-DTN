@@ -55,13 +55,6 @@ bpadmin amroc.bprc
 cd ../4.ipn.ltp
 bpadmin amroc.bprc
 
-cd ../2.ipn.ltp
-cfdpadmin amroc.cfdprc
-cd ../3.ipn.ltp
-cfdpadmin amroc.cfdprc
-cd ../4.ipn.ltp
-cfdpadmin amroc.cfdprc
-
 cd ..
 
 rm -f 3.ipn.ltp/3_receive_file.txt
@@ -88,14 +81,14 @@ sleep ${TIMETODISPLAYTEXT}
 # Send first bundle from node 2 to node 3 requesting all status reports.
 # Bundle is sent to endpoint ipn:3.1, on which bpsink is listening, so
 # it should be delivered.
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test_trace" rcv,ct,fwd,dlv,del
 cd ..
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
 grep "test_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 
@@ -135,14 +128,14 @@ a bsppcbrule ipn:2.* ipn:3.* 1 'ARC4' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 3600 1.1 "test2_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test2_trace" rcv,ct,fwd,dlv,del
 cd ..
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
 grep "test2_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 echo "'test2_trace'" >> expected.txt
@@ -180,23 +173,23 @@ a bsppcbrule ipn:2.* ipn:3.* 1 'ARC4' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test3_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test3_trace" rcv,ct,fwd,dlv,del
 cd ..
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
 grep "test3_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 echo "'test3_trace'" >> expected.txt
 
 if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
 then
-	echo "SUCCESS (test3)" #"FAIL (test2)"
+	echo "SUCCESS (test3)"
 else 
-	echo "FAIL (test3)" #"SUCCESS (test2)"
+	echo "FAIL (test3)"
 	PASS=0
 fi
 
@@ -217,21 +210,21 @@ x
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test4_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test4_trace" rcv,ct,fwd,dlv,del
 cd ..
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
 grep "test4_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 echo "'test4_trace'" >> expected.txt
 
 if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
 then
-	echo "FAIL (test4)" #"FAIL (test2)"
+	echo "FAIL (test4)"
 	PASS=0
 else
 	echo "SUCCESS (test4)"
@@ -297,7 +290,7 @@ else
 fi
 
 echo "Receive size: $RECV_SIZE; Send size: $SEND_SIZE"
-if [ $RECV_SIZE = $SEND_SIZE ] 
+if [ "$RECV_SIZE" = "$SEND_SIZE" ] 
 then
 	echo "SUCCESS (test5)" 
 else
@@ -356,7 +349,7 @@ a bsppcbrule ipn:2.* ipn:4.* 1 'ARC4' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:4.1 ipn:2.0 3600 1.1 "test_trace6" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:4.1 ipn:2.0 5 0.1 "test_trace6" rcv,ct,fwd,dlv,del
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -364,7 +357,7 @@ cd ..
 
 grep "test_trace6" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 
@@ -418,7 +411,7 @@ cd ..
 
 grep "test_trace7" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 

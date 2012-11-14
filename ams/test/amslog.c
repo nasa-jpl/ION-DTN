@@ -218,7 +218,7 @@ int	main(int argc, char **argv)
 	int		roleNbr;
 	int		continNbr;			// CW, 5/1/06
 
-	if (unitName == NULL || roleName == NULL
+	if (ownUnitName == NULL || ownRoleName == NULL
 	|| applicationName == NULL || authorityName == NULL
 	|| (strcmp(mode, "s") && strcmp(mode, "i")))
 	{

@@ -141,8 +141,7 @@ typedef enum
 
 typedef struct
 {
-	unsigned long	fileOffset;	/*	In file; 0 if in heap.	*/
-	Object		heapAddress;	/*	In heap; 0 if in file.	*/
+	unsigned long	acqOffset;	/*	Within acquisition ZCO.	*/
 	Object		sessionObj;
 	Object		sessionListElt;
 	LtpSegmentClass	segmentClass;
@@ -169,6 +168,7 @@ typedef struct
 	unsigned long	remoteEngineId;
 	short		ohdLength;
 	Object		queueListElt;
+	Object		ckptListElt;	/*	For checkpoints only.	*/
 	Object		sessionObj;	/*	For codes 1-3, 14 only.	*/
 	Object		sessionListElt;	/*	For data segments only.	*/
 	LtpSegmentClass	segmentClass;
@@ -176,6 +176,13 @@ typedef struct
 } LtpXmitSeg;
 
 /* Session structures */
+
+typedef struct
+{
+	unsigned long	offset;
+	unsigned long	length;
+	Object		sessionListElt;
+} LtpSegmentRef;
 
 typedef struct
 {
@@ -192,11 +199,38 @@ typedef struct
 	unsigned long	lastRptSerialNbr;
 	int		reportsCount;
 	Object		blockFileRef;	/*	A ZCO File Ref object.	*/
+	Object		svcData;	/*	The acquisition ZCO.	*/
 
 	/*	Backward reference.					*/
 
 	Object		span;		/*	Reception span.		*/
 } ImportSession;
+
+/*	The volatile import session object encapsulates the current
+ *	volatile state of the corresponding ImportSession.  The main
+ *	purpose of this structure is to accelerate the insertion of
+ *	red-data segments into the very long redSgments list of an
+ *	extremely large block; for a block comprising a small number
+ *	of red-data segments, there is no performance advantage.	*/
+
+typedef struct
+{
+	unsigned long	sessionNbr;	/*	ID of ImportSession.	*/
+	Object		sessionElt;	/*	Ref. to ImportSession.	*/
+	PsmAddress	redSegmentsIdx;	/*	RBT of LtpSegmentRefs	*/
+} VImportSession;
+
+/*	An LtpCkpt is a reference to an export session redSegment that
+ *	is a transmission checkpoint.  The list of LtpCheckpoints
+ *	provides a quick way to locate the specific LtpXmitSeg, out of
+ *	a possibly very long list of redSegments, that is a checkpoint
+ *	tagged with a given serial number.				*/
+
+typedef struct
+{
+	unsigned long	serialNbr;
+	Object		sessionListElt;
+} LtpCkpt;
 
 typedef struct
 {
@@ -209,11 +243,17 @@ typedef struct
 	int		redPartLength;
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
-	Object		svcDataObjects;	/*	SDR list of ZCO refs.	*/
+	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
+	Object		claims;		/*	reception claims list	*/
+	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
+
+	/*	Segments are retained in these lists only up to the
+	 *	time of initial transmission, and only to support
+	 *	ExportSession cancellation prior to transmission of
+	 *	the segments.						*/
+
 	Object		redSegments;	/*	SDR list of LtpXmitSegs	*/
 	Object		greenSegments;	/*	SDR list of LtpXmitSegs	*/
-	Object		claims;		/*	reception claims list	*/
-	int		checkpointsCount;
 } ExportSession;
 
 typedef struct
@@ -328,6 +368,7 @@ typedef struct
 	unsigned int	owltOutbound;	/*	In seconds.		*/
 	int		meterPid;	/*	For stopping ltpmeter.	*/
 	int		lsoPid;		/*	For stopping the LSO.	*/
+	PsmAddress	importSessions;	/*	RBT of VImportSessions	*/
 
 	/*	For detecting miscolored segments.			*/
 
@@ -429,17 +470,9 @@ typedef struct
 	 *	of rows in the export sessions hash table in the LTP
 	 *	database.  If the summation of maxExportSessions over
 	 *	all spans exceeds estMaxExportSessions, LTP export
-	 *	session lookup performance may be compromised.
-	 *
-	 *	heapSpaceBytesReserved is used to reserve SDR heap
-	 *	space for LTP activity.  This reservation may be
-	 *	allocated among the import and export spans in any
-	 *	way, and may be reallocated as necessary, so
-	 *	long as the reserved limit is not exceeded.		*/
+	 *	session lookup performance may be compromised.		*/
 
 	int		estMaxExportSessions;
-	int		heapSpaceBytesReserved;
-	int		heapSpaceBytesOccupied;
 	unsigned int	ownQtime;
 	unsigned int	enforceSchedule;/*	Boolean.		*/
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
@@ -471,6 +504,7 @@ typedef struct
 
 typedef struct
 {
+	unsigned long	ownEngineId;
 	int		lsiPid;		/*	For stopping the LSI.	*/
 	int		clockPid;	/*	For stopping ltpclock.	*/
 	int		watching;	/*	Boolean activity watch.	*/
@@ -478,7 +512,7 @@ typedef struct
 	LtpVclient	clients[LTP_MAX_NBR_OF_CLIENTS];
 } LtpVdb;
 
-extern int		ltpInit(int estMaxExportSessions, int bytesReserved);
+extern int		ltpInit(int estMaxExportSessions);
 extern int		ltpStart();
 extern void		ltpStop();
 extern int		ltpAttach();

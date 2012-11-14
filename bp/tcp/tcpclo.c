@@ -21,11 +21,32 @@
 									*/
 #include "tcpcla.h"
 
-static sm_SemId		tcpcloSemaphore;
+static sm_SemId		tcpcloSemaphore(sm_SemId *semid)
+{
+	long		temp;
+	void		*value;
+	sm_SemId	semaphore;
+
+	if (semid)			/*	Add task variable.	*/
+	{
+		temp = *semid;
+		value = (void *) temp;
+		semaphore = (sm_SemId) sm_TaskVar(&value);
+	}
+	else				/*	Retreive task variable.	*/
+	{
+		semaphore = (sm_SemId) sm_TaskVar(NULL);
+	}
+
+	return semaphore;
+}
 
 static void	shutDownClo()	/*	Commands CLO termination.	*/
 {
-	sm_SemEnd(tcpcloSemaphore);
+	void	*erase = NULL;
+
+	sm_SemEnd(tcpcloSemaphore(NULL));
+	oK(sm_TaskVar(&erase));
 }
 
 /*	*	*	Keepalive thread functions	*	*	*/
@@ -215,7 +236,7 @@ static void	*receiveBundles(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	tcpclo(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -342,8 +363,7 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
-	tcpcloSemaphore = vduct->semaphore;
-	sm_TaskVarAdd(&tcpcloSemaphore);
+	oK(tcpcloSemaphore(&(vduct->semaphore)));
 	isignal(SIGTERM, shutDownClo);
 #ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
@@ -407,7 +427,7 @@ int	main(int argc, char *argv[])
 		writeMemo(txt);
 	}
 
-	while (running && !(sm_SemEnded(tcpcloSemaphore)))
+	while (running && !(sm_SemEnded(tcpcloSemaphore(NULL))))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName, 0, -1) < 0)

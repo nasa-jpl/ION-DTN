@@ -12,7 +12,9 @@
 #include "cfdpP.h"
 #include "lyst.h"
 
+#ifndef CFDPDEBUG
 #define	CFDPDEBUG	0
+#endif
 
 /*	*	*	Helpful utility functions	*	*	*/
 
@@ -1331,11 +1333,30 @@ static int	abandonInFdu(CfdpTransactionId *transactionId,
 	return event.reqNbr;
 }
 
+static int	missingFileName(char *fileName, int parmNbr,
+			FilestoreResponse *resp, char *msgBuf, int bufLen)
+{
+	if (fileName)
+	{
+		return 0;
+	}
+	
+	resp->status = 1;
+	isprintf(msgBuf, bufLen, "file name %d not provided", parmNbr);
+	return 1;
+}
+			
 static void	frCreateFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
-	int	fd = iopen(firstFileName, O_CREAT, 0777);
+	int	fd;
 
+	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
+	{
+		return;
+	}
+
+	fd = iopen(firstFileName, O_CREAT, 0777);
 	if (fd < 0)
 	{
 		resp->status = 1;
@@ -1350,6 +1371,11 @@ static void	frCreateFile(char *firstFileName, char *secondFileName,
 static void	frDeleteFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
+	{
+		return;
+	}
+
 	if (unlink(firstFileName) < 0)
 	{
 		resp->status = 1;
@@ -1360,6 +1386,12 @@ static void	frDeleteFile(char *firstFileName, char *secondFileName,
 static void	frRenameFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen)
+	|| missingFileName(secondFileName, 2, resp, msgBuf, bufLen))
+	{
+		return;
+	}
+
 	if (checkFile(firstFileName) != 1)
 	{
 		resp->status = 1;
@@ -1390,6 +1422,12 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 	int	length;
 	int	bytesWritten;
 	int	writing = 1;
+
+	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen)
+	|| missingFileName(secondFileName, 2, resp, msgBuf, bufLen))
+	{
+		return;
+	}
 
 	if ((buf = MTAKE(10000)) == NULL)
 	{
@@ -1458,6 +1496,12 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 static void	frAppendFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen)
+	|| missingFileName(secondFileName, 2, resp, msgBuf, bufLen))
+	{
+		return;
+	}
+
 	if (checkFile(firstFileName) != 1)
 	{
 		resp->status = 1;
@@ -1479,6 +1523,12 @@ static void	frAppendFile(char *firstFileName, char *secondFileName,
 static void	frReplaceFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen)
+	|| missingFileName(secondFileName, 2, resp, msgBuf, bufLen))
+	{
+		return;
+	}
+
 	if (checkFile(firstFileName) != 1)
 	{
 		resp->status = 1;
@@ -1500,6 +1550,11 @@ static void	frReplaceFile(char *firstFileName, char *secondFileName,
 static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
+	{
+		return;
+	}
+
 #if (defined(VXWORKS) || defined(mingw))
 	if (mkdir(firstFileName) < 0)
 #else
@@ -1514,6 +1569,11 @@ static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 static void	frRemoveDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
+	{
+		return;
+	}
+
 	if (rmdir(firstFileName) < 0)
 	{
 		resp->status = 1;
@@ -1524,6 +1584,11 @@ static void	frRemoveDirectory(char *firstFileName, char *secondFileName,
 static void	frDenyFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
+	{
+		return;
+	}
+
 	if (checkFile(firstFileName) != 1)
 	{
 		return;		/*	Nothing to delete.		*/
@@ -1539,6 +1604,11 @@ static void	frDenyFile(char *firstFileName, char *secondFileName,
 static void	frDenyDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
+	{
+		return;
+	}
+
 	if (checkFile(firstFileName) != 1)
 	{
 		return;		/*	Nothing to delete.		*/
@@ -2535,7 +2605,8 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
+	fdu->inactivityDeadline = getUTCTime()
+					+ cfdpdb.transactionInactivityLimit;
 
 	/*	Prepare to issue indication.				*/
 
@@ -3123,7 +3194,8 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 
 	if (bytesRemaining < 9) return 0;	/*	Malformed.	*/
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
+	fdu->inactivityDeadline = getUTCTime()
+					+ cfdpdb.transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = (*cursor >> 4) & 0x0f;
 	cursor++;
@@ -3221,7 +3293,8 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 
 	if (bytesRemaining < 5) return 0;	/*	Malformed.	*/
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline += cfdpdb.transactionInactivityLimit;
+	fdu->inactivityDeadline = getUTCTime()
+					+ cfdpdb.transactionInactivityLimit;
 	fdu->metadataReceived = 1;
 	fdu->recordBoundsRespected = (*cursor >> 7) & 0x01;
 	cursor++;

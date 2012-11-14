@@ -19,7 +19,7 @@
 #include "bp.h"
 
 #ifndef WINDOW
-#define	WINDOW	86400	/*	Default window size is one day.		*/
+#define	WINDOW	28800	/*	Default window size is eight hours.	*/
 #endif
 
 #ifdef __cplusplus
@@ -166,7 +166,7 @@ typedef struct
 } dataRecord;
 
 extern int		_running(int *newValue);
-extern pthread_t	_recvThreadId(pthread_t *newValue);
+extern int		_recvThreadId(pthread_t *id, int control);
 extern int		_datFile(int control, int fileDescriptor);
 extern int		_lstFile(int control, int fileDescriptor);
 extern int		_tblFile(int control, int fileDescriptor);

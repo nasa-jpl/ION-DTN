@@ -10,21 +10,19 @@
 									*/
 #include "rfx.h"
 
-static int	_running(int *newValue)
+static long	_running(long *newValue)
 {
-	static int	state;
+	void	*value;
+	long	state;
 	
-	if (newValue)
+	if (newValue)			/*	Changing state.		*/
 	{
-		if (*newValue == 1)
-		{
-			state = 1;
-			sm_TaskVarAdd(&state);
-		}
-		else
-		{
-			state = 0;
-		}
+		value = (void *) (*newValue);
+		state = (long) sm_TaskVar(&value);
+	}
+	else				/*	Just check.		*/
+	{
+		state = (long) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -32,7 +30,7 @@ static int	_running(int *newValue)
 
 static void	shutDown()	/*	Commands rfxclock termination.	*/
 {
-	int	stop = 0;
+	long	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates rfxclock.		*/
 }
@@ -88,7 +86,7 @@ static IonNeighbor	*getNeighbor(IonVdb *vdb, unsigned long nodeNbr)
 	return neighbor;
 }
 
-static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
+static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	addr;
@@ -115,6 +113,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 			if (neighbor)
 			{
 				neighbor->xmitRate = 0;
+				*forecastNeeded = 1;
 			}
 		}
 
@@ -141,6 +140,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 			if (neighbor)
 			{
 				neighbor->recvRate = 0;
+				*forecastNeeded = 1;
 			}
 		}
 
@@ -177,6 +177,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 			if (neighbor)
 			{
 				neighbor->xmitRate = cxref->xmitRate;
+				*forecastNeeded = 1;
 			}
 		}
 
@@ -281,6 +282,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 			if (neighbor)
 			{
 				neighbor->recvRate = cxref->xmitRate;
+				*forecastNeeded = 1;
 			}
 		}
 
@@ -298,7 +300,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event)
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	rfxclock(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -309,13 +311,14 @@ int	main(int argc, char *argv[])
 	Sdr		sdr;
 	PsmPartition	ionwm;
 	IonVdb		*vdb;
-	int		start = 1;
+	long		start = 1;
 	time_t		currentTime;
 	PsmAddress	elt;
 	PsmAddress	addr;
 	IonProbe	*probe;
 	int		destNodeNbr;
 	int		neighborNodeNbr;
+	int		forecastNeeded;
 	IonEvent	*event;
 
 	if (ionAttach() < 0)
@@ -375,6 +378,7 @@ int	main(int argc, char *argv[])
 		 *	so doing, adjust the volatile contact and
 		 *	range state of the local node.			*/
 
+		forecastNeeded = 0;
 		while (1)
 		{
 			elt = sm_rbt_first(ionwm, vdb->timeline);
@@ -390,7 +394,7 @@ int	main(int argc, char *argv[])
 				break;
 			}
 
-			if (dispatchEvent(vdb, event) < 0)
+			if (dispatchEvent(vdb, event, &forecastNeeded) < 0)
 			{
 				putErrmsg("Failed handling event.", NULL);
 				break;
@@ -404,6 +408,11 @@ int	main(int argc, char *argv[])
 		{
 			putErrmsg("Can't set current topology.", NULL);
 			return -1;
+		}
+
+		if (forecastNeeded)
+		{
+			oK(pseudoshell("ionwarn"));
 		}
 	}
 

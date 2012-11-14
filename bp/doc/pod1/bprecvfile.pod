@@ -4,7 +4,7 @@ bprecvfile - Bundle Protocol (BP) file reception utility
 
 =head1 SYNOPSIS
 
-B<bprecvfile> I<own_endpoint_ID>
+B<bprecvfile> I<own_endpoint_ID> [I<max_files>]
 
 =head1 DESCRIPTION
 
@@ -13,7 +13,9 @@ uses bp_receive() to receive bundles containing file content.  The content
 of each bundle is simply written to a file named "testfileN" where N is
 the total number of bundles received since the program began running.
 
-Use ^C to terminate the program.
+If a I<max_files> value of N (where N > 0) is provided, the program will
+terminate automatically upon completing its Nth file reception.  Otherwise
+it will run indefinitely; use ^C to terminate the program.
 
 =head1 EXIT STATUS
 

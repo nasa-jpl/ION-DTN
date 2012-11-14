@@ -11,7 +11,7 @@
 	NNC07CB47C.
  											*/
 
-#include "acs/acs.h"
+#include "acs.h"
 
 static int		echo = 0;
 
@@ -36,7 +36,7 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	sprintf(buffer, "Syntax error at line %d of bpadmin.c", lineNbr);
+	isprintf(buffer, sizeof buffer, "Syntax error at line %d of bpadmin.c", lineNbr);
 	printText(buffer);
 }
 
@@ -48,6 +48,7 @@ static void	printUsage()
 	puts("\tq\tQuit");
 	puts("\th\tHelp");
 	puts("\t?\tHelp");
+	puts("\tv\tPrint version of ION.");
 	puts("\t1\tInitialize");
 	puts("\t   1 <logLevel> [<heapWords>]");
 	puts("\ta\tAdd custodian information");
@@ -128,10 +129,10 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		updateCustodianAcsDelay(tokens[1], (unsigned long)(acsDelay));
 
-                sprintf( text, "added acs rule; %s %ld %ld", tokens[1], acsSize, acsDelay );
+                isprintf( text, sizeof text, "added acs rule; %s %ld %ld", tokens[1], acsSize, acsDelay );
 	}
         else
-                sprintf( text, "added acs rule; %s %ld (no delay)", tokens[1], acsSize );
+                isprintf( text, sizeof text, "added acs rule; %s %ld (no delay)", tokens[1], acsSize );
 
         writeMemo( text );
 }
@@ -188,6 +189,7 @@ static int	acsadmin_processLine(char *line)
 	char	        *cursor;
 	int		i;
 	char		*tokens[9];
+	char	buffer[80];
 
 	if (line == NULL) return 0;
 
@@ -253,6 +255,12 @@ static int	acsadmin_processLine(char *line)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s",
+					IONVERSIONNUMBER);
+			printText(buffer);
 			return 0;
 
 		case '1':

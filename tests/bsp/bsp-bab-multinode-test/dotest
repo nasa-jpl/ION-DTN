@@ -56,13 +56,6 @@ bpadmin amroc.bprc
 cd ../4.ipn.ltp
 bpadmin amroc.bprc
 
-cd ../2.ipn.ltp
-cfdpadmin amroc.cfdprc
-cd ../3.ipn.ltp
-cfdpadmin amroc.cfdprc
-cd ../4.ipn.ltp
-cfdpadmin amroc.cfdprc
-
 cd ..
 
 rm -f 3.ipn.ltp/3_receive_file.txt
@@ -102,7 +95,7 @@ cd ..
 
 grep "test_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 
@@ -145,7 +138,7 @@ sleep 1
 
 grep "test2_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 echo "'test2_trace'" >> expected.txt
@@ -175,12 +168,11 @@ ENDOFIONSECADMINCOMMANDS
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 3600 1.1 "test2_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 3600 1.1 "test3_trace" rcv,ct,fwd,dlv,del
 
 sleep ${TIMETOWAITFORTESTFINISH}
  
@@ -191,7 +183,7 @@ sleep 1
 grep "test3_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 echo "'test3_trace'" >> expected.txt
@@ -228,11 +220,9 @@ sleep ${TIMETOWAITFORTESTFINISH}
 
 cd ..
 
-sleep 1
-
 grep "test4_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 echo "'test4_trace'" >> expected.txt
@@ -251,8 +241,9 @@ fi
 #
 # This test consists of passing a huge file protected by bab.
 # In this case we will use a script to generate a ~4MB file.
+
 echo -e "\n\n\n\n\n*****TEST 5*****"
-echo -e "Add same key, deliver BIG payload with BAB (should deliver)"
+echo -e "Restore consistent rules, deliver BIG payload with BAB (should deliver)"
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
@@ -337,14 +328,12 @@ sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk 
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk 
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 a bspbabrule ipn:3.* ipn:4.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
@@ -365,7 +354,7 @@ cd ..
 
 grep "test_trace6" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 
@@ -390,14 +379,12 @@ sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk 
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk 
 a bspbabrule ipn:2.* ipn:3.* 'HMAC-SHA1' key1
 a bspbabrule ipn:3.* ipn:4.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
@@ -405,7 +392,6 @@ ENDOFIONSECADMINCOMMANDS
 cd ../4.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
-a key key1 key1.hmk
 a bspbabrule ipn:3.* ipn:4.* 'HMAC-SHA1' key1
 ENDOFIONSECADMINCOMMANDS
 
@@ -418,7 +404,7 @@ cd ..
 
 grep "test_trace7" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
 
-echo `pwd`
+echo ""
 rm -f expected.txt
 touch expected.txt
 

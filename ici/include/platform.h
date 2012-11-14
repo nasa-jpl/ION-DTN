@@ -55,6 +55,10 @@ extern "C" {
 #define CORE_FILE_NEEDED	(0)
 #endif
 
+#ifdef RTEMS			/****	RTEMS			*********/
+typedef unsigned long		n_long;	/*	long as rec'd from net	*/
+#endif
+
 /*
 ** Standard Headers: Common to All Supported Platforms (incl. RTOS & Windows)
 */
@@ -88,6 +92,7 @@ extern "C" {
 #define	ECONNREFUSED		WSAECONNREFUSED
 #define ECONNRESET		WSAECONNRESET
 #define EWOULDBLOCK		WSAEWOULDBLOCK
+#define	O_LARGEFILE		0
 #else				/****	not Windows		*********/
 #include <sys/times.h>
 #include <limits.h>
@@ -275,6 +280,20 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #include <pthread.h>
 
+#ifndef gmtime_r
+#define gmtime_r(_clock, _result) \
+	(*(_result) = *gmtime(_clock), (_result))
+#endif
+
+#ifndef localtime_r
+#define localtime_r(_clock, _result) \
+	(*(_result) = *localtime(_clock), (_result))
+#endif
+
+#ifndef rand_r
+#define rand_r(_seed) (rand())
+#endif
+
 #define	_MULTITHREADED
 #define	MAXPATHLEN		(MAX_PATH)
 
@@ -331,8 +350,8 @@ extern int			strncasecmp(const char*, const char*, size_t);
 
 #ifdef sparc			/****	Solaris (SunOS 5+)	     ****/
 #ifdef sol5			/****	Solaris 5.5.x		     ****/
-int gettimeofday(struct timeval*, void*);
-int getpriority(int, id_t);
+extern int gettimeofday(struct timeval*, void*);
+extern int getpriority(int, id_t);
 #endif				/****	End of #ifdef (sol5)         ****/
 #endif				/****	End of #ifdef (sparc)        ****/
 
@@ -345,8 +364,32 @@ int getpriority(int, id_t);
 #ifdef linux			/****	Linux			     ****/
 
 #include <malloc.h>
-#include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
+
 #include <pthread.h>
+
+#ifdef bionic			/****	Bionic subset of Linux      ****/
+
+#undef	SVR4_SHM
+#define RTOS_SHM
+
+#undef	SVR4_SEMAPHORES
+#define POSIX1B_SEMAPHORES
+
+#include <sys/param.h>		/****	...to get MAXPATHLEN         ****/
+
+#ifndef SEM_NSEMS_MAX
+#define	SEM_NSEMS_MAX		256
+#endif
+
+extern void pthread_cancel(pthread_t);
+
+typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
+
+#define PRIVATE_SYMTAB
+
+#else
+#include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
+#endif
 
 #define	_MULTITHREADED
 
@@ -434,10 +477,6 @@ int getpriority(int, id_t);
 #endif
 
 /*	Prototypes for standard ION platform functions.			*/
-
-#ifdef HAVE_VALGRIND_VALGRIND_H
-#include "valgrind/valgrind.h"
-#endif
 
 typedef void			(* Logger)(char *);
 
@@ -539,6 +578,8 @@ extern void			findToken(char **cursorPtr, char **token);
 extern int			parseSocketSpec(char *socketSpec,
 					unsigned short *portNbr,
 					unsigned int *ipAddress);
+extern void			printDottedString(unsigned int hostNbr,
+					char *buffer);
 #include "platform_sm.h"
 
 #ifdef __cplusplus

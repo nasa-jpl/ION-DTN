@@ -1,0 +1,4 @@
+# Node 2 has parent (1) and two children (3, 4).
+a 1 1
+a 3 0
+a 4 0

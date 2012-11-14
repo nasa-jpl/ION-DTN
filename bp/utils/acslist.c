@@ -9,7 +9,7 @@
 	This work was supported by NASA contracts NNJ05HE10G, NNC06CB40C, and
 	NNC07CB47C.													*/
 
-#include <acs/acsP.h>
+#include <acsP.h>
 #include <sdrhash.h>
 
 static int printToStdout = 0;

@@ -97,14 +97,14 @@ int	main(int argc, char *argv[])
 	 *	invocation of ltplsi, to initialize the LTP database
 	 *	(as necessary) and dynamic database.			*/ 
 
-	if (ltpInit(0, 0) < 0)
+	if (ltpInit(0) < 0)
 	{
 		putErrmsg("pmqlsi can't initialize LTP.", NULL);
 		return 1;
 	}
 
 	vdb = getLtpVdb();
-	if ( VALIDPID(vdb->lsiPid ) && vdb->lsiPid != sm_TaskIdSelf())
+	if (vdb->lsiPid > 0 && vdb->lsiPid != sm_TaskIdSelf())
 	{
 		putErrmsg("LSI task is already started.", itoa(vdb->lsiPid));
 		return 1;

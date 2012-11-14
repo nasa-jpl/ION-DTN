@@ -12,12 +12,19 @@
 
 static sm_SemId	_dtn2fwSemaphore(sm_SemId *newValue)
 {
-	static sm_SemId	sem;
+	long		temp;
+	void		*value;
+	sm_SemId	sem;
 
-	if (newValue)
+	if (newValue)			/*	Add task variable.	*/
 	{
-		sem = *newValue;
-		sm_TaskVarAdd(&sem);
+		temp = *newValue;
+		value = (void *) temp;
+		sem = (sm_SemId) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sem = (sm_SemId) sm_TaskVar(NULL);
 	}
 
 	return sem;
@@ -25,7 +32,10 @@ static sm_SemId	_dtn2fwSemaphore(sm_SemId *newValue)
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
+	void	*erase = NULL;
+
 	sm_SemEnd(_dtn2fwSemaphore(NULL));
+	oK(sm_TaskVar(&erase));
 }
 
 static int	parseDtn2Nss(char *nss, char *nodeName, char *demux)
@@ -151,7 +161,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	return forwardBundle(bundleObj, bundle, eidString);
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	dtn2fw(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

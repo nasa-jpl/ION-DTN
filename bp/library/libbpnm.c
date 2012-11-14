@@ -12,21 +12,38 @@
 #include "bpP.h"
 #include "bpnm.h"
 
-void    bpnm_resources(unsigned long * heapOccupancyLimit,
-		unsigned long * heapMaxOccupancyForecast,
-		unsigned long * heapOccupancy)
+void    bpnm_resources(double * occupancyCeiling,
+		double * maxForecastOccupancy,
+		double * currentOccupancy,
+		double * maxHeapOccupancy,
+		double * currentHeapOccupancy,
+		double * maxFileOccupancy,
+		double * currentFileOccupancy)
 {
     Sdr     sdr = getIonsdr();
     IonDB   db;
+    Scalar  occupancy;
 
-    CHKVOID(heapOccupancyLimit);
-    CHKVOID(heapMaxOccupancyForecast);
-    CHKVOID(heapOccupancy);
+    CHKVOID(occupancyCeiling);
+    CHKVOID(maxForecastOccupancy);
+    CHKVOID(currentOccupancy);
+    CHKVOID(maxHeapOccupancy);
+    CHKVOID(currentHeapOccupancy);
+    CHKVOID(maxFileOccupancy);
+    CHKVOID(currentFileOccupancy);
     sdr_begin_xn(sdr);
     sdr_read(sdr, (char *) &db, getIonDbObject(), sizeof(IonDB));
-    *heapOccupancyLimit = db.occupancyCeiling;
-    *heapMaxOccupancyForecast = db.maxForecastOccupancy;
-    *heapOccupancy = db.currentOccupancy;
+    *occupancyCeiling = db.occupancyCeiling;
+    *maxForecastOccupancy = db.maxForecastOccupancy;
+    zco_get_max_heap_occupancy(sdr, &occupancy);
+    *maxHeapOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
+    zco_get_heap_occupancy(sdr, &occupancy);
+    *currentHeapOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
+    zco_get_max_file_occupancy(sdr, &occupancy);
+    *maxFileOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
+    zco_get_file_occupancy(sdr, &occupancy);
+    *currentFileOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
+    *currentOccupancy = *currentHeapOccupancy + *currentFileOccupancy;
     sdr_exit_xn(sdr);
 }
 
@@ -170,7 +187,7 @@ static void getBpEndpoint(char * targetName, VEndpoint **vpoint, int  * success)
 void bpnm_endpoint_get (char * targetName, NmbpEndpoint * results, int * success)
 {
     Sdr             sdr = getIonsdr();
-    VEndpoint     * vpoint;
+    VEndpoint     * vpoint = NULL;
     Endpoint        endpoint;
     Object          elt;
     Bundle          bundle;
@@ -274,7 +291,7 @@ void  bpnm_endpoint_reset (char * targetName, int * success)
                 }
 
                 sdr_write(sdr, vpoint->stats, (char *) & stats, sizeof(EndpointStats));
-                sdr_end_xn(sdr);
+                oK(sdr_end_xn(sdr));
           
                 * success = 1;
                 return;
@@ -404,7 +421,7 @@ static void getBpInductStats (char * targetName, VInduct ** vduct, int  * succes
 void bpnm_induct_get (char * targetName, NmbpInduct * results, int * success)
 {
     Sdr             sdr = getIonsdr();
-    VInduct       * vduct;
+    VInduct       * vduct = NULL;
     Induct          duct;
     InductStats     stats;
 
@@ -501,7 +518,7 @@ void bpnm_induct_reset (char * targetName, int * success)
                     }
     
                     sdr_write(sdr, vduct->stats, (char *) & stats, sizeof(InductStats));
-                    sdr_end_xn(sdr);
+                    oK(sdr_end_xn(sdr));
               
                     * success = 1;
                     return;
@@ -630,7 +647,7 @@ static void getBpOutductStats (char * targetName, VOutduct ** vduct, int  * succ
 void bpnm_outduct_get (char * targetName, NmbpOutduct * results, int * success)
 {
     Sdr             sdr = getIonsdr();
-    VOutduct      * vduct;
+    VOutduct      * vduct = NULL;
     Outduct         duct;
     OutductStats    stats;
     
@@ -730,7 +747,7 @@ void bpnm_outduct_reset (char * targetName, int * success)
                     }
     
                     sdr_write(sdr, vduct->stats, (char *) & stats, sizeof(OutductStats));
-                    sdr_end_xn(sdr);
+                    oK(sdr_end_xn(sdr));
               
                     * success = 1;
                     return;
@@ -1141,6 +1158,6 @@ void    bpnm_disposition_reset()
     resetCtStats(&db);
     resetDbStats(&db);
     sdr_write(sdr, dbobj, (char *) &db, sizeof(BpDB));
-    sdr_end_xn(sdr);
+    oK(sdr_end_xn(sdr));
     
 }   /* end of bpnm_disposition_reset */

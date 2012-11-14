@@ -113,7 +113,7 @@ int	main(int argc, char *argv[])
 	 *	invocation of ltplsi, to initialize the LTP database
 	 *	(as necessary) and dynamic database.			*/ 
 
-	if (ltpInit(0, 0) < 0)
+	if (ltpInit(0) < 0)
 	{
 		putErrmsg("aoslsi can't initialize LTP.", NULL);
 		return 1;

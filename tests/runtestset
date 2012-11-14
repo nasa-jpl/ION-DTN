@@ -19,11 +19,19 @@ if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 fi
 
 while [ $# -gt 0 ]; do
-    # If the user passed a bad file name, error.
+    # If the user passed a bad file name, check filename.
     if ! [ -e $1 ]; then
-        echo "Testset file $1 doesn't exist"
-        usage
-        exit 1
+        # We only error if filename is not "retest"
+        if ! [ $1 = "retest" ]; then
+            echo "Testset file $1 doesn't exist"
+            usage
+            exit 1  
+        fi
+        
+        # We looked for, but did not find retest. We should do all tests
+        echo "No retests file found. Running full test suite."
+        TESTS="."
+        break
     fi
 
     # Iterate over non-comment lines, adding them to the TESTS string
@@ -33,6 +41,12 @@ while [ $# -gt 0 ]; do
     done <<< $(grep -v "^#" $1)
     shift 1
 done
+
+# This restricts an emptry string from being passed to runtests
+if [ -z ${TESTS} ]; then
+    echo "$0 has an empty test set. No tests run."
+    exit 0;
+fi
 
 # Run all the tests specified in all of the testset files.
 exec $(dirname $0)/runtests $TESTS

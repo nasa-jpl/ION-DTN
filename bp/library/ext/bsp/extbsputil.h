@@ -66,8 +66,8 @@
  * to any BSP block (such as the case where a bundle-wide hash must be
  * calculated.
  */
-#include "../../bpP.h"
-#include "../../bei.h"
+#include "bpP.h"
+#include "bei.h"
 #include "ionsec.h"
 
 int extensionBlockTypeToInt(char *blockType);
@@ -91,7 +91,6 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
 
 #define	GMSG_BUFLEN	256
 #if BSP_DEBUGGING == 1
-extern char		gMsg[];		/*	Debug message buffer.	*/
 
 /**
  * \def BSP_DEBUG

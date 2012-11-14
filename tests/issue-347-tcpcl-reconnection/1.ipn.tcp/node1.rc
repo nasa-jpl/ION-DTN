@@ -1,0 +1,20 @@
+## begin ionadmin 
+1 1 ""
+s
+## end ionadmin 
+
+## begin bpadmin 
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 q
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+a protocol tcp 1400 100
+a induct tcp 127.0.0.1:4556 tcpcli
+a outduct tcp 127.0.0.2:4556 tcpclo
+s
+## end bpadmin 
+
+## begin ipnadmin 
+a plan 2 tcp/dozer.dtnbone.ocp.ohiou.edu:4556
+## end ipnadmin 

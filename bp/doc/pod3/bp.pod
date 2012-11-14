@@ -50,6 +50,10 @@ on any error.
 
 Sends a bundle to the endpoint identified by I<destEid>, from the
 source endpoint as provided to the bp_open() call that returned I<sap>.
+When I<sap> is NULL, the transmitted bundle is anonymous, i.e., the source
+of the bundle is not identified.  This is legal, but anonymous bundles cannot
+be uniquely identified; custody transfer and status reporting therefore cannot
+be requested for an anonymous bundle.
 
 I<mode> must be either BP_BLOCKING or BP_NONBLOCKING, as bp_send() does
 not support timeout intervals.
@@ -69,7 +73,16 @@ OR'd with priority.
 I<custodySwitch> indicates whether or not custody transfer is requested for
 this bundle and, if so, whether or not the source node itself is required
 to be the initial custodian.  The valid values are SourceCustodyRequired,
-SourceCustodyOptional, NoCustodyRequired.
+SourceCustodyOptional, NoCustodyRequired.  Note that custody transfer is
+possible only for bundles that are uniquely identified, so it cannot be
+requested for bundles for which BP_MINIMUM_LATENCY is requested, since
+BP_MINIMUM_LATENCY may result in the production of multiple identical
+copies of the same bundle.  Similarly, custody transfer should never be
+requested for a "loopback" bundle, i.e., one whose destination node is
+the same as the source node: the received bundle will be identical to the
+source bundle, both residing in the same node, so no custody acceptance
+signal can be applied to the source bundle and the source bundle will
+remain in storage until its TTL expires.
 
 I<srrFlags>, if non-zero, is the logical OR of the status reporting behaviors
 requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT,

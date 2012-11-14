@@ -64,6 +64,8 @@ BPDRIVERPID=$!
 # sleep and kill bpdriver
 sleep 20
 echo "Killing bpdriver if it is still running..."
+kill -2 $BPDRIVERPID > /dev/null 2>&1
+sleep 1
 kill -9 $BPDRIVERPID > /dev/null 2>&1
 
 # kill bpecho
@@ -78,11 +80,19 @@ ionstop
 
 
 # compare the bpdriver message to see if all 10 bundles were sent
+echo ""
+echo "bpdriver output:"
+cat $BPDRIVERFILE
+echo ""
+echo "bpecho output:"
+cat $BPECHOFILE
+echo ""
+echo ""
+echo "result:"
 if ! grep -q "$BUNDLEMESSAGE" $BPDRIVERFILE; then
     echo "ERROR: bpdriver didn't transfer all 10 bundles!"
     RETVAL=1
 else 
-    cat $BPDRIVERFILE
     echo "OK: bpdriver-bpecho successful!!"
     RETVAL=0
 fi

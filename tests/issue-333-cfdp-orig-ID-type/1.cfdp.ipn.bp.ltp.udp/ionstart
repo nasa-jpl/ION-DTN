@@ -2,6 +2,8 @@
 #!/bin/bash
 ionadmin	config.ionrc
 sleep 1
+ionsecadmin	config.ionsecrc
+sleep 1
 ltpadmin	config.ltprc
 sleep 1
 bpadmin		config.bprc

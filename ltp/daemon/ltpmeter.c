@@ -10,7 +10,7 @@
 									*/
 #include "ltpP.h"
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	ltpmeter(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -41,7 +41,7 @@ int	main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (ltpInit(0, 0) < 0)
+	if (ltpInit(0) < 0)
 	{
 		putErrmsg("ltpmeter can't initialize LTP.",
 				utoa(remoteEngineId));
