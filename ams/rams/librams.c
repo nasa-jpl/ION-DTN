@@ -619,7 +619,7 @@ printf("continuum lyst:");
 	msgspaces = ams_list_msgspaces(gWay->amsModule);
 	for (elt = lyst_first(msgspaces); elt; elt = lyst_next(elt))
 	{
-		cId = (long) lyst_data(elt);
+		cId = (int) lyst_data(elt);
 #if RAMSDEBUG
 printf(" %d", cId);		
 #endif

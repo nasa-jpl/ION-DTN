@@ -924,14 +924,14 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 		Object *fduElt, int createIfNotFound)
 {
-	unsigned long	sourceEntityId;
-	Sdr		sdr = getIonsdr();
-	CfdpDB		*cfdpConstants = _cfdpConstants();
-	Object		elt;
-	Object		entityObj;
-	Entity		entity;
-	int		foundIt = 0;
-	Object		fduObj;
+	uvast	sourceEntityId;
+	Sdr	sdr = getIonsdr();
+	CfdpDB	*cfdpConstants = _cfdpConstants();
+	Object	elt;
+	Object	entityObj;
+	Entity	entity;
+	int	foundIt = 0;
+	Object	fduObj;
 
 	CHKZERO(transactionId);
 	CHKZERO(fduBuf);
@@ -2486,9 +2486,9 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 
 static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 {
-	Sdr		sdr = getIonsdr();
-	unsigned long	sourceEntityId;
-	unsigned long	transactionNbr;
+	Sdr	sdr = getIonsdr();
+	uvast	sourceEntityId;
+	uvast	transactionNbr;
 
 	if (fdu->workingFileName == 0)
 	{
@@ -2496,7 +2496,7 @@ static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 				&fdu->transactionId.sourceEntityNbr);
 		cfdp_decompress_number(&transactionNbr,
 				&fdu->transactionId.transactionNbr);
-		isprintf(stringBuf, bufLen, "%s%ccfdp.%lu.%lu",
+		isprintf(stringBuf, bufLen, "%s%ccfdp.%llu.%llu",
 				getIonWorkingDirectory(), ION_PATH_DELIMITER,
 				sourceEntityId, transactionNbr);
 		fdu->workingFileName = sdr_string_create(sdr, stringBuf);

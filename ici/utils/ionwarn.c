@@ -21,8 +21,8 @@
 typedef struct
 {
 	time_t	time;
-	long	prevXmitRate;
-	long	xmitRate;
+	int	prevXmitRate;
+	int	xmitRate;
 	int	fromNeighbor;		/*	Boolean.		*/
 } RateChange;
 
@@ -31,7 +31,7 @@ static char	*_cannotForecast()
 	return "Can't complete congestion forecast.";
 }
 
-static IonNeighbor	*retrieveNeighbor(unsigned long nodeNbr, Lyst neighbors)
+static IonNeighbor	*retrieveNeighbor(uvast nodeNbr, Lyst neighbors)
 {
 	LystElt		elt3;
 	IonNeighbor	*np = NULL;
@@ -66,8 +66,8 @@ static IonNeighbor	*retrieveNeighbor(unsigned long nodeNbr, Lyst neighbors)
 	return np;
 }
 
-static int	insertRateChange(time_t time, unsigned long xmitRate,
-			int fromNeighbor, unsigned long prevXmitRate,
+static int	insertRateChange(time_t time, unsigned int xmitRate,
+			int fromNeighbor, unsigned int prevXmitRate,
 			Lyst changes)
 {
 	RateChange	*newChange;
@@ -141,10 +141,10 @@ int	checkForCongestion()
 	IonNeighbor	*np = NULL;
 	LystElt		elt4;
 	RateChange	*change;
-	unsigned long	secInEpoch;
+	unsigned int	secInEpoch;
 	double		spaceRemaining;
 	double		secUntilOutOfSpace;
-	unsigned long	secAdvanced;
+	unsigned int	secAdvanced;
 	double		increment;
 	time_t		alarmTime = 0;
 	double		delta;

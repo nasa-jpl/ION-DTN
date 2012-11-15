@@ -110,7 +110,7 @@ void	Sdr_list_destroy(char *file, int line, Sdr sdrv, Object list,
 		next = eltBuffer.next;
 		if (deleteFn)
 		{
-			deleteFn(sdrv, eltBuffer.data, arg);
+			deleteFn(sdrv, elt, arg);
 		}
 
 		/* just in case user mistakenly accesses later... */
@@ -501,7 +501,7 @@ void	Sdr_list_delete(char *file, int line, Sdr sdrv, Object elt,
 	prev = eltBuffer.prev;
 	if (deleteFn)
 	{
-		deleteFn(sdrv, eltBuffer.data, arg);
+		deleteFn(sdrv, elt, arg);
 	}
 
 	/* just in case user accesses later... */

@@ -83,7 +83,7 @@ extern int	receiveBytesByTCP(int bundleSocket, char *into, int length);
 extern int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work,
 			char *buffer);
 extern int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer);
-extern int 	receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,unsigned long *segmentLength,int *flags);
+extern int 	receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer, uvast *segmentLength,int *flags);
 extern int 	sendContactHeader(int *bundleSocket, unsigned char *buffer,
 			struct sockaddr *socketName);
 extern int	receiveContactHeader(int *bundleSocket, unsigned char *buffer,

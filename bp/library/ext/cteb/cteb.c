@@ -223,7 +223,7 @@ int cteb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/* Parse into a scratchpad on the stack. */
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	extractSdnv(&cteb.id, &cursor, &bytesRemaining);
+	extractSmallSdnv(&cteb.id, &cursor, &bytesRemaining);
 
 	/* FIXME: Handle fragments by continuing to acquire here. */
 

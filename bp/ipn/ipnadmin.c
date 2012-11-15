@@ -171,7 +171,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_addPlan(atoi(tokens[2]), &expression);
+		ipn_addPlan(strtoull(tokens[2], NULL, 0), &expression);
 		return;
 	}
 
@@ -189,7 +189,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[3]);
+			sourceServiceNbr = strtoul(tokens[3], NULL, 0);
 		}
 
 		if (strcmp(tokens[4], "*") == 0)
@@ -198,7 +198,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[4]);
+			sourceNodeNbr = strtoull(tokens[4], NULL, 0);
 		}
 
 		if (parseDuctExpression(tokens[5], &expression) == 0)
@@ -206,7 +206,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_addPlanRule(atoi(tokens[2]), sourceServiceNbr,
+		ipn_addPlanRule(strtoull(tokens[2], NULL, 0), sourceServiceNbr,
 				sourceNodeNbr, &expression);
 		return;
 	}
@@ -219,7 +219,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_addGroup(atoi(tokens[2]), atoi(tokens[3]), tokens[4]);
+		ipn_addGroup(strtoull(tokens[2], NULL, 0),
+				strtoull(tokens[3], NULL, 0), tokens[4]);
 		return;
 	}
 
@@ -237,7 +238,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[4]);
+			sourceServiceNbr = strtoul(tokens[4], NULL, 0);
 		}
 
 		if (strcmp(tokens[5], "*") == 0)
@@ -246,11 +247,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[5]);
+			sourceNodeNbr = strtoull(tokens[5], NULL, 0);
 		}
 
-		ipn_addGroupRule(atoi(tokens[2]), atoi(tokens[3]),
-				sourceServiceNbr, sourceNodeNbr, tokens[6]);
+		ipn_addGroupRule(strtoull(tokens[2], NULL, 0),
+				strtoull(tokens[3], NULL, 0), sourceServiceNbr,
+				sourceNodeNbr, tokens[6]);
 		return;
 	}
 
@@ -282,7 +284,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_updatePlan(atoi(tokens[2]), &expression);
+		ipn_updatePlan(strtoull(tokens[2], NULL, 0), &expression);
 		return;
 	}
 
@@ -300,7 +302,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[3]);
+			sourceServiceNbr = strtoul(tokens[3], NULL, 0);
 		}
 
 		if (strcmp(tokens[4], "*") == 0)
@@ -309,7 +311,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[4]);
+			sourceNodeNbr = strtoull(tokens[4], NULL, 0);
 		}
 
 		if (parseDuctExpression(tokens[5], &expression) == 0)
@@ -317,8 +319,8 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_updatePlanRule(atoi(tokens[2]), sourceServiceNbr,
-				sourceNodeNbr, &expression);
+		ipn_updatePlanRule(strtoull(tokens[2], NULL, 0),
+				sourceServiceNbr, sourceNodeNbr, &expression);
 		return;
 	}
 
@@ -330,7 +332,8 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_updateGroup(atoi(tokens[2]), atoi(tokens[3]), tokens[4]);
+		ipn_updateGroup(strtoull(tokens[2], NULL, 0),
+				strtoull(tokens[3], NULL, 0), tokens[4]);
 		return;
 	}
 
@@ -348,7 +351,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[4]);
+			sourceServiceNbr = strtoul(tokens[4], NULL, 0);
 		}
 
 		if (strcmp(tokens[5], "*") == 0)
@@ -357,11 +360,12 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[5]);
+			sourceNodeNbr = strtoull(tokens[5], NULL, 0);
 		}
 
-		ipn_updateGroupRule(atoi(tokens[2]), atoi(tokens[3]),
-				sourceServiceNbr, sourceNodeNbr, tokens[6]);
+		ipn_updateGroupRule(strtoull(tokens[2], NULL, 0),
+				strtoull(tokens[3], NULL, 0), sourceServiceNbr,
+				sourceNodeNbr, tokens[6]);
 		return;
 	}
 
@@ -387,7 +391,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_removePlan(atoi(tokens[2]));
+		ipn_removePlan(strtoull(tokens[2], NULL, 0));
 		return;
 	}
 
@@ -405,7 +409,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[3]);
+			sourceServiceNbr = strtoul(tokens[3], NULL, 0);
 		}
 
 		if (strcmp(tokens[4], "*") == 0)
@@ -414,11 +418,11 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[4]);
+			sourceNodeNbr = strtoull(tokens[4], NULL, 0);
 		}
 
-		ipn_removePlanRule(atoi(tokens[2]), sourceServiceNbr,
-				sourceNodeNbr);
+		ipn_removePlanRule(strtoull(tokens[2], NULL, 0),
+				sourceServiceNbr, sourceNodeNbr);
 		return;
 	}
 
@@ -430,7 +434,8 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_removeGroup(atoi(tokens[2]), atoi(tokens[3]));
+		ipn_removeGroup(strtoull(tokens[2], NULL, 0),
+				strtoull(tokens[3], NULL, 0));
 		return;
 	}
 
@@ -448,7 +453,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[4]);
+			sourceServiceNbr = strtoul(tokens[4], NULL, 0);
 		}
 
 		if (strcmp(tokens[5], "*") == 0)
@@ -457,11 +462,12 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[5]);
+			sourceNodeNbr = strtoull(tokens[5], NULL, 0);
 		}
 
-		ipn_removeGroupRule(atoi(tokens[2]), atoi(tokens[3]),
-				sourceServiceNbr, sourceNodeNbr);
+		ipn_removeGroupRule(strtoull(tokens[2], NULL, 0),
+				strtoull(tokens[3], NULL, 0), sourceServiceNbr,
+				sourceNodeNbr);
 		return;
 	}
 
@@ -523,7 +529,7 @@ static void	printPlan(IpnPlan *plan)
 {
 	char	context[32];
 
-	isprintf(context, sizeof context, "%lu", plan->nodeNbr);
+	isprintf(context, sizeof context, "%llu", plan->nodeNbr);
 	printDirective(context, &plan->defaultDirective);
 }
 
@@ -541,7 +547,7 @@ static void	infoPlan(int tokenCount, char **tokens)
 		return;
 	}
 
-	nodeNbr = atoi(tokens[2]);
+	nodeNbr = strtoull(tokens[2], NULL, 0);
 	sdr_begin_xn(sdr);
 	ipn_findPlan(nodeNbr, &planAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -588,15 +594,15 @@ static void	printRule(IpnRule *rule)
 
 static void	infoPlanRule(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	unsigned long	nodeNbr;
-	Object		planAddr;
-	Object		elt;
-			OBJ_POINTER(IpnPlan, plan);
-	long		sourceServiceNbr;
-	long		sourceNodeNbr;
-	Object		ruleAddr;
-			OBJ_POINTER(IpnRule, rule);
+	Sdr	sdr = getIonsdr();
+	uvast	nodeNbr;
+	Object	planAddr;
+	Object	elt;
+		OBJ_POINTER(IpnPlan, plan);
+	int	sourceServiceNbr;
+	uvast	sourceNodeNbr;
+	Object	ruleAddr;
+		OBJ_POINTER(IpnRule, rule);
 
 	if (tokenCount != 5)
 	{
@@ -604,7 +610,7 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 		return;
 	}
 
-	nodeNbr = atoi(tokens[2]);
+	nodeNbr = strtoull(tokens[2], NULL, 0);
 	sdr_begin_xn(sdr);
 	ipn_findPlan(nodeNbr, &planAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -622,7 +628,7 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 	}
 	else
 	{
-		sourceServiceNbr = atoi(tokens[3]);
+		sourceServiceNbr = strtoul(tokens[3], NULL, 0);
 	}
 
 	if (strcmp(tokens[4], "*") == 0)
@@ -631,7 +637,7 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 	}
 	else
 	{
-		sourceNodeNbr = atoi(tokens[4]);
+		sourceNodeNbr = strtoull(tokens[4], NULL, 0);
 	}
 
 	sdr_begin_xn(sdr);
@@ -654,18 +660,18 @@ static void	printGroup(IpnGroup *group)
 	char	buffer[384];
 
 	sdr_string_read(getIonsdr(), eidString, group->defaultDirective.eid);
-	isprintf(buffer, sizeof buffer, "From %lu through %lu, forward via \
+	isprintf(buffer, sizeof buffer, "From %llu through %llu, forward via \
 %.256s.", group->firstNodeNbr, group->lastNodeNbr, eidString);
 	printText(buffer);
 }
 
 static void	infoGroup(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	unsigned long	firstNodeNbr;
-	unsigned long	lastNodeNbr;
-	Object		elt;
-			OBJ_POINTER(IpnGroup, group);
+	Sdr	sdr = getIonsdr();
+	uvast	firstNodeNbr;
+	uvast	lastNodeNbr;
+	Object	elt;
+		OBJ_POINTER(IpnGroup, group);
 
 	if (tokenCount != 4)
 	{
@@ -673,8 +679,8 @@ static void	infoGroup(int tokenCount, char **tokens)
 		return;
 	}
 
-	firstNodeNbr = atoi(tokens[2]);
-	lastNodeNbr = atoi(tokens[3]);
+	firstNodeNbr = strtoull(tokens[2], NULL, 0);
+	lastNodeNbr = strtoull(tokens[3], NULL, 0);
 	if (lastNodeNbr < firstNodeNbr)
 	{
 		printText("Unknown group.");
@@ -699,13 +705,13 @@ static void	infoGroup(int tokenCount, char **tokens)
 static void	infoGroupRule(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	firstNodeNbr;
-	unsigned long	lastNodeNbr;
+	uvast		firstNodeNbr;
+	uvast		lastNodeNbr;
 	Object		groupAddr;
 	Object		elt;
 			OBJ_POINTER(IpnGroup, group);
-	long		sourceServiceNbr;
-	long		sourceNodeNbr;
+	unsigned int	sourceServiceNbr;
+	uvast		sourceNodeNbr;
 	Object		ruleAddr;
 			OBJ_POINTER(IpnRule, rule);
 
@@ -715,8 +721,8 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 		return;
 	}
 
-	firstNodeNbr = atoi(tokens[2]);
-	lastNodeNbr = atoi(tokens[3]);
+	firstNodeNbr = strtoull(tokens[2], NULL, 0);
+	lastNodeNbr = strtoull(tokens[3], NULL, 0);
 	sdr_begin_xn(sdr);
 	ipn_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -734,7 +740,7 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 	}
 	else
 	{
-		sourceServiceNbr = atoi(tokens[4]);
+		sourceServiceNbr = strtoul(tokens[4], NULL, 0);
 	}
 
 	if (strcmp(tokens[5], "*") == 0)
@@ -743,7 +749,7 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 	}
 	else
 	{
-		sourceNodeNbr = atoi(tokens[5]);
+		sourceNodeNbr = strtoull(tokens[5], NULL, 0);
 	}
 
 	sdr_begin_xn(sdr);
@@ -839,11 +845,11 @@ static void	listGroups()
 
 static void	executeList(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	unsigned long	nodeNbr;
-	Object		planAddr;
-	Object		elt;
-			OBJ_POINTER(IpnPlan, plan);
+	Sdr	sdr = getIonsdr();
+	uvast	nodeNbr;
+	Object	planAddr;
+	Object	elt;
+		OBJ_POINTER(IpnPlan, plan);
 
 	if (tokenCount < 2)
 	{
@@ -865,7 +871,7 @@ static void	executeList(int tokenCount, char **tokens)
 			return;
 		}
 
-		nodeNbr = atoi(tokens[2]);
+		nodeNbr = strtoull(tokens[2], NULL, 0);
 		sdr_begin_xn(sdr);
 		ipn_findPlan(nodeNbr, &planAddr, &elt);
 		sdr_exit_xn(sdr);

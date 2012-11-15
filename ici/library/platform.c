@@ -1573,13 +1573,13 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 	return 1;
 }
 
-void	encodeSdnv(Sdnv *sdnv, unsigned long val)
+void	encodeSdnv(Sdnv *sdnv, uvast val)
 {
-	static unsigned long	sdnvMask = ((unsigned long) -1) / 128;
-	unsigned long		remnant;
-	int			i;
-	unsigned char		flag = 0;
-	unsigned char		*text;
+	static uvast	sdnvMask = ((uvast) -1) / 128;
+	uvast		remnant;
+	int		i;
+	unsigned char	flag = 0;
+	unsigned char	*text;
 
 	/*	Get length of SDNV text: one byte for each 7 bits of
 	 *	significant numeric value.  On each iteration of the
@@ -1619,7 +1619,7 @@ void	encodeSdnv(Sdnv *sdnv, unsigned long val)
 	}
 }
 
-int	decodeSdnv(unsigned long *val, unsigned char *sdnvTxt)
+int	decodeSdnv(uvast *val, unsigned char *sdnvTxt)
 {
 	int		sdnvLength = 0;
 	unsigned char	*cursor;
@@ -2348,22 +2348,24 @@ static void	snGetNumber(char **cursor, char *fmt, int *fmtLen, int *number)
 
 int	_isprintf(char *buffer, int bufSize, char *format, ...)
 {
-	va_list	args;
-	char	*cursor;
-	int	stringLength = 0;
-	int	printLength = 0;
-	char	fmt[SN_FMT_SIZE];
-	int	fmtLen;
-	int	minFieldLength;
-	int	precision;
-	char	scratchpad[64];
-	int	numLen;
-	int	fieldLength;
-	int	*ipval;
-	char	*sval;
-	int	ival;
-	double	dval;
-	void	*vpval;
+	va_list		args;
+	char		*cursor;
+	int		stringLength = 0;
+	int		printLength = 0;
+	char		fmt[SN_FMT_SIZE];
+	int		fmtLen;
+	int		minFieldLength;
+	int		precision;
+	char		scratchpad[64];
+	int		numLen;
+	int		fieldLength;
+	int		isLongLong;		/*	Boolean		*/
+	int		*ipval;
+	char		*sval;
+	int		ival;
+	long long	llval;
+	double		dval;
+	void		*vpval;
 
 	if (buffer == NULL || bufSize < 1)
 	{
@@ -2476,13 +2478,29 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 
 		/*	Copy the field's length modifier, if any.	*/
 
-		if ((*cursor) == 'h'
-		|| (*cursor) == 'l'
-		|| (*cursor) == 'L')
+		isLongLong = 0;
+		if ((*cursor) == 'h'		/*	Short.		*/
+		|| (*cursor) == 'L')		/*	Long double.	*/
 		{
 			fmt[fmtLen] = *cursor;
 			fmtLen++;
 			cursor++;
+		}
+		else
+		{
+			if ((*cursor) == 'l')	/*	Long...		*/
+			{
+				fmt[fmtLen] = *cursor;
+				fmtLen++;
+				cursor++;
+				if ((*cursor) == 'l')	/*	Vast.	*/
+				{
+					isLongLong = 1;
+					fmt[fmtLen] = *cursor;
+					fmtLen++;
+					cursor++;
+				}
+			}
 		}
 
 		/*	Handle a couple of weird conversion characters
@@ -2559,14 +2577,23 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 		switch (*cursor)
 		{
 		case 'd':
+		case 'u':
 		case 'i':
 		case 'o':
 		case 'x':
 		case 'X':
-		case 'u':
 		case 'c':
-			ival = va_arg(args, int);
-			sprintf(scratchpad, fmt, ival);
+			if (isLongLong)
+			{
+				llval = va_arg(args, long long);
+				sprintf(scratchpad, fmt, llval);
+			}
+			else
+			{
+				ival = va_arg(args, int);
+				sprintf(scratchpad, fmt, ival);
+			}
+
 			break;
 
 		case 'f':

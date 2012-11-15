@@ -16,7 +16,7 @@ static Sdr      acsSdr = NULL;
 
 static void consume_cid(AcsCustodyId *cid)
 {
-	unsigned long newid = 0;
+	unsigned int newid = 0;
 
 	sdr_peek(acsSdr, cid->id, acsConstants->id);
 	newid = cid->id + 1;
@@ -25,8 +25,8 @@ static void consume_cid(AcsCustodyId *cid)
 
 
 int get_or_make_custody_id(const char *sourceEid,
-		const BpTimestamp *creationTime, unsigned long fragmentOffset,
-		unsigned long fragmentLength, AcsCustodyId *cid)
+		const BpTimestamp *creationTime, unsigned int fragmentOffset,
+		unsigned int fragmentLength, AcsCustodyId *cid)
 {
 	AcsBundleId	bid;
 	Address		cbidAddr;
@@ -61,7 +61,7 @@ int get_or_make_custody_id(const char *sourceEid,
 			(char *)(&bid), &cbidAddr, &hashEntry);
 	if (rc == -1)
 	{
-		ACSLOG_ERROR("Couldn't search for (%s,%lu,%lu,%lu,%lu) in bidHash",
+		ACSLOG_ERROR("Couldn't search for (%s,%u,%u,%u,%u) in bidHash",
 				bid.sourceEid, bid.creationTime.seconds,
 				bid.creationTime.count,
 				bid.fragmentOffset, bid.fragmentLength);
@@ -144,14 +144,14 @@ int get_bundle_id(AcsCustodyId *custodyId, AcsBundleId *id)
 	/* Error searching hash table. */
 	if (rc == -1)
 	{
-		ACSLOG_ERROR("Couldn't search for (%lu) in cidHash", custodyId->id);
+		ACSLOG_ERROR("Couldn't search for (%u) in cidHash", custodyId->id);
 		return -1;
 	}
 
 	/* Hash table searched, but no matching custody ID found. */
 	if (rc == 0)
 	{
-		ACSLOG_WARN("Couldn't find cid (%lu) in cidHash", custodyId->id);
+		ACSLOG_WARN("Couldn't find cid (%u) in cidHash", custodyId->id);
 		return 1;
 	}
 
@@ -189,7 +189,7 @@ int destroy_custody_id(AcsBundleId *bundleId)
 			(char *)(bundleId), &cbidAddr, &hashEntry);
 	if (rc == -1)
 	{
-		ACSLOG_ERROR("Couldn't search for (%s,%lu,%lu,%lu,%lu) in bidHash"
+		ACSLOG_ERROR("Couldn't search for (%s,%u,%u,%u,%u) in bidHash"
 				" to destroy",
 				bundleId->sourceEid, bundleId->creationTime.seconds,
 				bundleId->creationTime.count, bundleId->fragmentOffset,
@@ -199,7 +199,7 @@ int destroy_custody_id(AcsBundleId *bundleId)
 	}
 	if (rc == 0)
 	{
-		ACSLOG_WARN("Couldn't find (%s,%lu,%lu,%lu,%lu) in bidHash to destroy",
+		ACSLOG_WARN("Couldn't find (%s,%u,%u,%u,%u) in bidHash to destroy",
 				bundleId->sourceEid, bundleId->creationTime.seconds,
 				bundleId->creationTime.count, bundleId->fragmentOffset,
 				bundleId->fragmentLength);
@@ -213,7 +213,7 @@ int destroy_custody_id(AcsBundleId *bundleId)
 				(char *)(&cbid.custodyId), NULL);
 	if (rc != 1)
 	{
-		ACSLOG_ERROR("Couldn't delete (%lu) from cidHash", cbid.custodyId.id);
+		ACSLOG_ERROR("Couldn't delete (%u) from cidHash", cbid.custodyId.id);
 		sdr_cancel_xn(acsSdr);
 		return -1;
 	}
@@ -221,7 +221,7 @@ int destroy_custody_id(AcsBundleId *bundleId)
 				(char *)(&cbid.bundleId), NULL);
 	if (rc != 1)
 	{
-		ACSLOG_ERROR("Couldn't delete (%s,%lu,%lu,%lu,%lu) from bidHash",
+		ACSLOG_ERROR("Couldn't delete (%s,%u,%u,%u,%u) from bidHash",
 				cbid.bundleId.sourceEid, cbid.bundleId.creationTime.seconds,
 				cbid.bundleId.creationTime.count, cbid.bundleId.fragmentOffset,
 				cbid.bundleId.fragmentLength);

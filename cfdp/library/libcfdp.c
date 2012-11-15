@@ -62,7 +62,7 @@ int	cfdp_entity_is_started()
 	return (vdb && vdb->clockPid != ERROR);
 }
 
-void	cfdp_compress_number(CfdpNumber *nbr, unsigned long val)
+void	cfdp_compress_number(CfdpNumber *nbr, uvast val)
 {
 	unsigned char	*octet;
 	unsigned char	text[8];	/*	Reverse-ordered bytes.	*/
@@ -113,7 +113,7 @@ void	cfdp_compress_number(CfdpNumber *nbr, unsigned long val)
 	}
 }
 
-void	cfdp_decompress_number(unsigned long *val, CfdpNumber *nbr)
+void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 {
 	int		i;
 	unsigned char	*octet;

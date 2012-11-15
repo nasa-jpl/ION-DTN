@@ -138,7 +138,7 @@ static int	adjustThrottles()
 	BpVdb		*bpvdb = getBpVdb();
 	PsmAddress	elt;
 	VOutduct	*outduct;
-	unsigned long	nodeNbr;
+	uvast		nodeNbr;
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
 	int		mustPrintStats = 0;
@@ -185,7 +185,7 @@ static int	adjustThrottles()
 			continue;
 		}
 
-		nodeNbr = atol(outduct->ductName);
+		nodeNbr = strtoull(outduct->ductName, NULL, 0);
 		neighbor = findNeighbor(ionvdb, nodeNbr, &nextElt);
 		if (neighbor == NULL)
 		{
@@ -325,38 +325,33 @@ static double	defaultProductionRate(Sdr sdr)
 	/*	Get current mean resource occupancy figures.		*/
 
 	bundlesInStorage = sdr_hash_count(getIonsdr(), db->bundles);
-	zco_get_heap_occupancy(sdr, &heapOccupancy);
-	heapSpaceInUse = (heapOccupancy.gigs * ONE_GIG) + heapOccupancy.units;
 	if (bundlesInStorage < 1)
 	{
-		heapPayloadPerBundle = 1;
+		/*	No way to estimate anything, so can't use
+		 *	mean payload size for rate control.  Limit
+		 *	is available heap space.			*/
+
+		return -1;
 	}
-	else
+
+	zco_get_heap_occupancy(sdr, &heapOccupancy);
+	heapSpaceInUse = (heapOccupancy.gigs * ONE_GIG) + heapOccupancy.units;
+	heapPayloadPerBundle = (heapSpaceInUse / bundlesInStorage)
+			- estOverheadPerBundle;
+	if (heapPayloadPerBundle < 1)
 	{
-		heapPayloadPerBundle = (heapSpaceInUse / bundlesInStorage)
-				- estOverheadPerBundle;
-		if (heapPayloadPerBundle < 1)
-		{
-			heapPayloadPerBundle = 1;
-		}
+		heapPayloadPerBundle = 1;
 	}
 
 	zco_get_file_occupancy(sdr, &fileOccupancy);
 	fileSpaceInUse = (fileOccupancy.gigs * ONE_GIG) + fileOccupancy.units;
-	if (bundlesInStorage < 1)
-	{
-		filePayloadPerBundle = 1;
-	}
-	else
-	{
-		filePayloadPerBundle = fileSpaceInUse / bundlesInStorage;
-	}
+	filePayloadPerBundle = fileSpaceInUse / bundlesInStorage;
 
 	/*	Compute estimated capacity for accepting new bundles
 	 *	assuming no divergence from mean resource occupancy.	*/
 
 	sdr_usage(sdr, &usage);
-	avblHeap = usage.smallPoolFree + usage.largePoolFree + usage.unusedSize;
+	avblHeap = usage.largePoolFree + usage.unusedSize;
 	estNewBundles = avblHeap / heapPayloadPerBundle;
 	return estNewBundles * (heapPayloadPerBundle + filePayloadPerBundle);
 }
@@ -370,7 +365,7 @@ static void	applyRateControl(Sdr sdr)
 	double		backoff;
 	IonDB		iondb;
 	double		nominalRate;
-	long		increment;
+	int		increment;
 	PsmAddress	elt;
 	VInduct		*induct;
 	VOutduct	*outduct;
@@ -388,6 +383,10 @@ static void	applyRateControl(Sdr sdr)
 	{
 		throttle->capacity = 0;	/*	Reset every second.	*/
 		nominalRate = defaultProductionRate(sdr);
+		if (nominalRate < 0)
+		{
+			nominalRate = LONG_MAX;
+		}
 	}
 	else
 	{

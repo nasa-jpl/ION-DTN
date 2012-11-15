@@ -42,7 +42,7 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 }
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
-			unsigned long nodeNbr)
+			uvast nodeNbr)
 {
 	FwdDirective	directive;
 	char		stationEid[64];
@@ -59,7 +59,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 
 	/*	The station node is a neighbor.				*/
 
-	isprintf(stationEid, sizeof stationEid, "ipn:%lu.0", nodeNbr);
+	isprintf(stationEid, sizeof stationEid, "ipn:%llu.0", nodeNbr);
 
 	/*	Is neighbor refusing to be a station for bundles?	*/
 
@@ -99,8 +99,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	return 0;
 }
 
-static int	enqueueBundle(Bundle *bundle, Object bundleObj,
-			unsigned long nodeNbr)
+static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
 {
 	/*	Note that the only way we can prevent multicast
 	 *	forwarding loops is by knowing exactly which
@@ -142,7 +141,7 @@ int	main(int argc, char *argv[])
 #endif
 	int		running = 1;
 	Sdr		sdr;
-	unsigned long	ownNodeNbr;
+	uvast		ownNodeNbr;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
@@ -154,7 +153,7 @@ int	main(int argc, char *argv[])
 	Object		elt3;
 	Object		groupAddr;
 	ImcGroup	group;
-	unsigned long	member;
+			OBJ_POINTER(NodeId, member);
 	Bundle		newBundle;
 	Object		newBundleObj;
 
@@ -252,9 +251,9 @@ int	main(int argc, char *argv[])
 				for (elt3 = sdr_list_first(sdr, group.members);
 					elt3; elt3 = sdr_list_next(sdr, elt3))
 				{
-					member = (unsigned long)
-						sdr_list_data(sdr, elt3);
-					if (member ==
+					GET_OBJ_POINTER(sdr, NodeId, member,
+						sdr_list_data(sdr, elt3));
+					if (member->nbr ==
 						bundle.clDossier.senderNodeNbr)
 					{
 						continue;
@@ -270,7 +269,7 @@ int	main(int argc, char *argv[])
 					}
 
 					if (enqueueBundle(&newBundle,
-						newBundleObj, member) < 0)
+						newBundleObj, member->nbr) < 0)
 					{
 						sdr_cancel_xn(sdr);
 						putErrmsg("Failed on enqueue.",

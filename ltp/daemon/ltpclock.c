@@ -10,19 +10,19 @@
 									*/
 #include "ltpP.h"
 
-static long	_running(long *newValue)
+static int	_running(int *newValue)
 {
 	void	*value;
-	long	state;
+	int	state;
 
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);
-		state = (long) sm_TaskVar(&value);
+		state = (int) sm_TaskVar(&value);
 	}
 	else				/*	Just check.		*/
 	{
-		state = (long) sm_TaskVar(NULL);
+		state = (int) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -30,7 +30,7 @@ static long	_running(long *newValue)
 
 static void	shutDown()	/*	Commands ltpclock termination.	*/
 {
-	long	stop = 0;
+	int	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates ltpclock.		*/
 }
@@ -120,7 +120,7 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 	LtpSpan		span;
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
-	unsigned long	priorXmitRate;
+	unsigned int	priorXmitRate;
 
 	sdr_begin_xn(sdr);
 	for (elt = sm_list_first(ionwm, ltpvdb->spans); elt;
@@ -225,7 +225,7 @@ int	main(int argc, char *argv[])
 #endif
 	Sdr	sdr;
 	LtpDB	*ltpConstants;
-	long	state = 1;
+	int	state = 1;
 	time_t	currentTime;
 
 	if (ltpInit(0) < 0)

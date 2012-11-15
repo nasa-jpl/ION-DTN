@@ -54,7 +54,7 @@ static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidA
 
 	/* Load the value and print the mapping. */
 	sdr_peek(acsSdr, cbid, cbidAddr);
-	writeMemoOrStdout("(%s,%lu,%lu,%lu,%lu)->(%lu)",
+	writeMemoOrStdout("(%s,%u,%u,%u,%u)->(%u)",
 			cbid.bundleId.sourceEid,
 			cbid.bundleId.creationTime.seconds,
 			cbid.bundleId.creationTime.count,
@@ -67,8 +67,8 @@ static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidA
 	 * the hash table. */
 	if (cid->id != cbid.custodyId.id)
 	{
-		writeMemoOrStdout("Mismatch: custody ID in key (%lu) "
-				"!= in database (%lu)",
+		writeMemoOrStdout("Mismatch: custody ID in key (%u) "
+				"!= in database (%u)",
 				cid->id,
 				cbid.custodyId.id);
 		hasMismatch = 1;
@@ -80,7 +80,7 @@ static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidA
 			(char *)(&cbid.bundleId), &bidCbidAddr, &hashEntry);
 	if (rc == -1)
 	{
-		writeMemoOrStdout("Mismatch: can't find (%s,%lu,%lu,%lu,%lu) "
+		writeMemoOrStdout("Mismatch: can't find (%s,%u,%u,%u,%u) "
 				"in bundle ID database.",
 				cbid.bundleId.sourceEid,
 				cbid.bundleId.creationTime.seconds,
@@ -93,9 +93,9 @@ static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidA
 	{
 		sdr_peek(acsSdr, bidCbid, bidCbidAddr);
 		writeMemoOrStdout("Mismatch: "
-        		"lookup (%lu) in cid: @%lu (%s,%lu,%lu,%lu,%lu)->(%lu) != "
-				"lookup (%s, %lu, %lu, %lu, %lu) in bid: @%lu "
-				"(%s,%lu,%lu,%lu,%lu)->(%lu)",
+        		"lookup (%u) in cid: @%lu (%s,%u,%u,%u,%u)->(%u) != "
+				"lookup (%s, %u, %u, %u, %u) in bid: @%lu "
+				"(%s,%u,%u,%u,%u)->(%u)",
 				cid->id,
 				cbidAddr,
 				cbid.bundleId.sourceEid,
@@ -172,8 +172,8 @@ static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
 	if (cbid.bundleId.creationTime.seconds != bid->creationTime.seconds  ||
 		cbid.bundleId.creationTime.count   != bid->creationTime.count)
 	{
-		writeMemoOrStdout("Mismatch: creation time in database (%lu,%lu) "
-				"!= in key (%lu,%lu)", 
+		writeMemoOrStdout("Mismatch: creation time in database (%u,%u) "
+				"!= in key (%u,%u)", 
 				cbid.bundleId.creationTime.seconds,
 				cbid.bundleId.creationTime.count,
 				bid->creationTime.seconds,
@@ -183,8 +183,8 @@ static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
 	if (cbid.bundleId.fragmentOffset != bid->fragmentOffset ||
 		cbid.bundleId.fragmentLength != bid->fragmentLength)
 	{
-		writeMemoOrStdout("Mismatch: fragment in database (%lu,%lu) "
-				"!= in key (%lu,%lu)",
+		writeMemoOrStdout("Mismatch: fragment in database (%u,%u) "
+				"!= in key (%u,%u)",
 				cbid.bundleId.fragmentOffset, bid->fragmentLength,
 				cbid.bundleId.fragmentOffset, bid->fragmentLength);
 		hasMismatch = 1;
@@ -196,7 +196,7 @@ static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
 			(char *)(&cbid.custodyId), &cidCbidAddr, &hashEntry);
 	if (rc == -1)
 	{
-		writeMemoOrStdout("Mismatch: can't find (%lu) "
+		writeMemoOrStdout("Mismatch: can't find (%u) "
 				"in custody ID database.",
 				cbid.custodyId.id);
 				hasMismatch = 1;
@@ -205,8 +205,8 @@ static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
 	{
 		sdr_peek(acsSdr, cidCbid, cidCbidAddr);
 		writeMemoOrStdout("Mismatch: "
-        		"lookup (%s, %lu, %lu, %lu, %lu) in bid: @%lu (%s,%lu,%lu,%lu,%lu)->(%lu) != "
-				"lookup (%lu) in cid: @%lu (%s,%lu,%lu,%lu,%lu)->(%lu)",
+        		"lookup (%s, %u, %u, %u, %u) in bid: @%lu (%s,%u,%u,%u,%u)->(%u) != "
+				"lookup (%u) in cid: @%lu (%s,%u,%u,%u,%u)->(%u)",
 				bid->sourceEid,
 				bid->creationTime.seconds,
 				bid->creationTime.count,

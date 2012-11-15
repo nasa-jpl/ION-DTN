@@ -75,7 +75,7 @@ static int	lookupIpnEid(char *uriBuffer, char *neighborClId)
 			 *	neighbor's EID.				*/
 
 			isprintf(uriBuffer, SDRSTRING_BUFSZ,
-					"ipn:%lu.0", plan->nodeNbr);
+					"ipn:%llu.0", plan->nodeNbr);
 			return 1;
 		}
 	}
@@ -142,7 +142,7 @@ IpnDB	*getIpnConstants()
 	return _ipnConstants();
 }
 
-static Object	locatePlan(unsigned long nodeNbr, Object *nextPlan)
+static Object	locatePlan(uvast nodeNbr, Object *nextPlan)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -175,7 +175,7 @@ static Object	locatePlan(unsigned long nodeNbr, Object *nextPlan)
 	return 0;
 }
 
-void	ipn_findPlan(unsigned long nodeNbr, Object *planAddr, Object *eltp)
+void	ipn_findPlan(uvast nodeNbr, Object *planAddr, Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -212,7 +212,7 @@ static void	createXmitDirective(FwdDirective *directive,
 	}
 }
 
-int	ipn_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct)
+int	ipn_addPlan(uvast nodeNbr, DuctExpression *defaultDuct)
 {
 	Sdr	sdr = getIonsdr();
 	Object	nextPlan;
@@ -266,7 +266,7 @@ static void	destroyXmitDirective(FwdDirective *directive)
 	}
 }
 
-int	ipn_updatePlan(unsigned long nodeNbr, DuctExpression *defaultDuct)
+int	ipn_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -299,7 +299,7 @@ int	ipn_updatePlan(unsigned long nodeNbr, DuctExpression *defaultDuct)
 	return 1;
 }
 
-int	ipn_removePlan(unsigned long nodeNbr)
+int	ipn_removePlan(uvast nodeNbr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -341,8 +341,8 @@ int	ipn_removePlan(unsigned long nodeNbr)
 	return 1;
 }
 
-static Object	locateRule(Object rules, unsigned long srcServiceNbr,
-			unsigned long srcNodeNbr, Object *nextRule)
+static Object	locateRule(Object rules, unsigned int srcServiceNbr,
+			uvast srcNodeNbr, Object *nextRule)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -391,13 +391,13 @@ static Object	locateRule(Object rules, unsigned long srcServiceNbr,
 	return 0;
 }
 
-void	ipn_findPlanRule(unsigned long nodeNbr, long argServiceNbr,
-		long argNodeNbr, IpnPlan *plan, Object *ruleAddr, Object *eltp)
+void	ipn_findPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
+		IpnPlan *plan, Object *ruleAddr, Object *eltp)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? IPN_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				IPN_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnPlan, planPtr);
@@ -437,13 +437,13 @@ void	ipn_findPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	*eltp = elt;
 }
 
-int	ipn_addPlanRule(unsigned long nodeNbr, long argServiceNbr,
-		long argNodeNbr, DuctExpression *directive)
+int	ipn_addPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
+		DuctExpression *directive)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? IPN_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				IPN_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnPlan, plan);
@@ -500,13 +500,13 @@ int	ipn_addPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	return 1;
 }
 
-int	ipn_updatePlanRule(unsigned long nodeNbr, long argServiceNbr,
-		long argNodeNbr, DuctExpression *directive)
+int	ipn_updatePlanRule(uvast nodeNbr, int argServiceNbr,
+		vast argNodeNbr, DuctExpression *directive)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? IPN_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				IPN_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnPlan, plan);
@@ -549,13 +549,12 @@ int	ipn_updatePlanRule(unsigned long nodeNbr, long argServiceNbr,
 	return 1;
 }
 
-int	ipn_removePlanRule(unsigned long nodeNbr, long argServiceNbr,
-		long argNodeNbr)
+int	ipn_removePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? IPN_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				IPN_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnPlan, plan);
@@ -598,15 +597,15 @@ int	ipn_removePlanRule(unsigned long nodeNbr, long argServiceNbr,
 	return 1;
 }
 
-static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
-			unsigned long sourceNodeNbr, FwdDirective *dirbuf)
+static int	lookupRule(Object rules, unsigned int sourceServiceNbr,
+			uvast sourceNodeNbr, FwdDirective *dirbuf)
 {
 	Sdr	sdr = getIonsdr();
 	Object	addr;
 	Object	elt;
 		OBJ_POINTER(IpnRule, rule);
 
-	/*	Universal wild-card match (IPN_ALL_OTHERS), if any,
+	/*	Universal wild-card match (IPN_ALL_OTHER_xxx), if any,
 	 *	is at the end of the list, so there's no way to
 	 *	terminate the search early.				*/
 
@@ -621,7 +620,7 @@ static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
 		}
 
 		if (rule->srcServiceNbr > sourceServiceNbr
-			&& rule->srcServiceNbr != IPN_ALL_OTHERS)
+			&& rule->srcServiceNbr != IPN_ALL_OTHER_SERVICES)
 		{
 			continue;
 		}
@@ -634,7 +633,7 @@ static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
 		}
 
 		if (rule->srcNodeNbr > sourceNodeNbr
-			&& rule->srcNodeNbr != IPN_ALL_OTHERS)
+			&& rule->srcNodeNbr != IPN_ALL_OTHER_NODES)
 		{
 			continue;
 		}
@@ -652,9 +651,8 @@ static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
 	return 0;
 }
 
-int	ipn_lookupPlanDirective(unsigned long nodeNbr,
-		unsigned long sourceServiceNbr, unsigned long sourceNodeNbr,
-		FwdDirective *dirbuf)
+int	ipn_lookupPlanDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
+		uvast sourceNodeNbr, FwdDirective *dirbuf)
 {
 	Sdr	sdr = getIonsdr();
 	Object	addr;
@@ -689,8 +687,8 @@ int	ipn_lookupPlanDirective(unsigned long nodeNbr,
 	return 1;
 }
 
-static Object	locateGroup(unsigned long firstNodeNbr,
-			unsigned long lastNodeNbr, Object *nextGroup)
+static Object	locateGroup(uvast firstNodeNbr, uvast lastNodeNbr,
+			Object *nextGroup)
 {
 	Sdr	sdr = getIonsdr();
 	int	targetSize;
@@ -740,8 +738,8 @@ static Object	locateGroup(unsigned long firstNodeNbr,
 	return 0;
 }
 
-void	ipn_findGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
-		Object *groupAddr, Object *eltp)
+void	ipn_findGroup(uvast firstNodeNbr, uvast lastNodeNbr, Object *groupAddr,
+		Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -763,8 +761,7 @@ void	ipn_findGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	*eltp = elt;
 }
 
-int	ipn_addGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
-		char *viaEid)
+int	ipn_addGroup(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
 	Object		nextGroup;
@@ -815,8 +812,7 @@ int	ipn_addGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	return 1;
 }
 
-int	ipn_updateGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
-		char *viaEid)
+int	ipn_updateGroup(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
@@ -851,7 +847,7 @@ int	ipn_updateGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	return 1;
 }
 
-int	ipn_removeGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr)
+int	ipn_removeGroup(uvast firstNodeNbr, uvast lastNodeNbr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -893,14 +889,14 @@ int	ipn_removeGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr)
 	return 1;
 }
 
-void	ipn_findGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
-		long argServiceNbr, long argNodeNbr, IpnGroup *group,
+void	ipn_findGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+		int argServiceNbr, vast argNodeNbr, IpnGroup *group,
 		Object *ruleAddr, Object *eltp)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? IPN_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				IPN_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnGroup, groupPtr);
@@ -941,13 +937,13 @@ void	ipn_findGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	*eltp = elt;
 }
 
-int	ipn_addGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
-		long argServiceNbr, long argNodeNbr, char *viaEid)
+int	ipn_addGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+		int argServiceNbr, vast argNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? IPN_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				IPN_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnGroup, group);
@@ -1004,14 +1000,13 @@ int	ipn_addGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	return 1;
 }
 
-int	ipn_updateGroupRule(unsigned long firstNodeNbr,
-		unsigned long lastNodeNbr, long argServiceNbr, long argNodeNbr,
-		char *viaEid)
+int	ipn_updateGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+		int argServiceNbr, vast argNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? IPN_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				IPN_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnGroup, group);
@@ -1054,13 +1049,13 @@ int	ipn_updateGroupRule(unsigned long firstNodeNbr,
 	return 1;
 }
 
-int	ipn_removeGroupRule(unsigned long firstNodeNbr,
-		unsigned long lastNodeNbr, long argServiceNbr, long argNodeNbr)
+int	ipn_removeGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+		int argServiceNbr, vast argNodeNbr)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? IPN_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				IPN_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnGroup, group);
@@ -1103,9 +1098,8 @@ int	ipn_removeGroupRule(unsigned long firstNodeNbr,
 	return 1;
 }
 
-int	ipn_lookupGroupDirective(unsigned long nodeNbr,
-		unsigned long sourceServiceNbr, unsigned long sourceNodeNbr,
-		FwdDirective *dirbuf)
+int	ipn_lookupGroupDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
+		uvast sourceNodeNbr, FwdDirective *dirbuf)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;

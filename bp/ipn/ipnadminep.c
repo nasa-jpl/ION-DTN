@@ -13,7 +13,7 @@
 static int	handleStatusRpt(BpDelivery *dlv, BpStatusRpt *rpt)
 {
 	char		memobuf[1024];
-	unsigned long	statusTime = 0;
+	unsigned int	statusTime = 0;
 	char		*reasonString;
 
 	if (rpt->flags & BP_DELETED_RPT)
@@ -81,8 +81,8 @@ static int	handleStatusRpt(BpDelivery *dlv, BpStatusRpt *rpt)
 		}
 	}
 
-	isprintf(memobuf, sizeof memobuf, "[s] (%s)/%lu:%lu/%lu status %d at \
-%lu on %s, '%s'.", rpt->sourceEid, rpt->creationTime.seconds,
+	isprintf(memobuf, sizeof memobuf, "[s] (%s)/%u:%u/%u status %d at \
+%u on %s, '%s'.", rpt->sourceEid, rpt->creationTime.seconds,
 		rpt->creationTime.count, rpt->fragmentOffset, rpt->flags,
 		statusTime, dlv->bundleSourceEid, reasonString);
 	writeMemo(memobuf);
@@ -126,7 +126,7 @@ static int	handleCtSignal(BpDelivery *dlv, BpCtSignal *cts)
 			reasonString = "(unknown)";
 		}
 
-		isprintf(memobuf, sizeof memobuf, "[i] Custody refused at %lu \
+		isprintf(memobuf, sizeof memobuf, "[i] Custody refused at %u \
 on %s for reason %d, '%s'.", cts->signalTime.seconds, dlv->bundleSourceEid,
 				cts->reasonCode, reasonString);
 		writeMemo(memobuf);

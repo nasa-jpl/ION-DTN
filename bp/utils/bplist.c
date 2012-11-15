@@ -283,7 +283,7 @@ int	main(int argc, char **argv)
 	Object		addr;
 			OBJ_POINTER(BpEvent, event);
 			OBJ_POINTER(Bundle, bundle);
-	long		bundlesCount = 0;
+	int		bundlesCount = 0;
 			OBJ_POINTER(Outduct, duct);
 
 	if (bp_attach() < 0)

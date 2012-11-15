@@ -287,7 +287,7 @@ int bsp_pibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
    BspAbstractSecurityBlock *asb = NULL;
    int temp = 0, retval = 0;
    unsigned char   *digest;
-   unsigned long   digestLen;
+   unsigned int   digestLen;
 
    PIB_DEBUG_PROC("+ bsp_pibCheck(%x, %x)",
                   (unsigned long) blk, (unsigned long) wk);
@@ -369,7 +369,7 @@ int bsp_pibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
    {
       /* Compare expected result to the computed digest. */
 	  unsigned char   *tmpDigest;
-	  unsigned long   tmpDigestLen;
+	  unsigned int   tmpDigestLen;
 	  char *keyValueBuffer;
 	  int keyLen;
 	  BspSecurityInfo secInfo;
@@ -504,12 +504,12 @@ int bsp_pibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
    char *keyValueBuffer = NULL;
    int keyLen = 0;
    unsigned char *digest;
-   unsigned long digestLen = 0;
+   unsigned int digestLen = 0;
    char *srcNode = NULL, *destNode = NULL;
    Lyst eidRefs = NULL;
    unsigned char *raw_asb;
    Sdnv digestSdnv;
-   unsigned long digestOffset = 0;
+   unsigned int digestOffset = 0;
 
    PIB_DEBUG_PROC("+ bsp_pibProcessOnDequeue(%x, %x, %x)",
                   (unsigned long) blk,
@@ -731,10 +731,10 @@ void    bsp_pibRelease(ExtensionBlock *blk)
  *****************************************************************************/
 
 unsigned char *bsp_pibGetSecResult(Object dataObj,
-                                   unsigned long dataLen,
+                                   unsigned int dataLen,
                                    char *keyValue,
-                                   unsigned long keyLen,
-                                   unsigned long *hashLen)
+                                   unsigned int keyLen,
+                                   unsigned int *hashLen)
 {
    Sdr bpSdr = getIonsdr();
    unsigned char *hashData = NULL;
@@ -743,9 +743,9 @@ unsigned char *bsp_pibGetSecResult(Object dataObj,
    ZcoReader dataReader;
    char *authContext;
    int authCtxLen = 0;
-   unsigned long bytesRemaining = 0;
-   unsigned long chunkSize = BSP_PIB_BLOCKING_SIZE;
-   unsigned long bytesRetrieved = 0;
+   unsigned int bytesRemaining = 0;
+   unsigned int chunkSize = BSP_PIB_BLOCKING_SIZE;
+   unsigned int bytesRetrieved = 0;
 
    PIB_DEBUG_INFO("+ bsp_pibGetSecResult(0x%x, %ld, %s %d, 0x%x)",
                   (unsigned long) dataObj,

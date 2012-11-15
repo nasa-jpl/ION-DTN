@@ -726,15 +726,15 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 		char *blockData)
 {
 	Sdr		bpSdr = getIonsdr();
-	unsigned long	blkProcFlags;
+	unsigned int	blkProcFlags;
 	Sdnv		blkProcFlagsSdnv;
-	unsigned long	dataLength;
+	unsigned int	dataLength;
 	Sdnv		dataLengthSdnv;
 	int		listLength;
 	LystElt		elt;
-	unsigned long	offset;
+	unsigned int	offset;
 	Sdnv		offsetSdnv;
-	unsigned long	referenceCount;
+	unsigned int	referenceCount;
 	Sdnv		referenceCountSdnv;
 	char		*blkBuffer;
 	char		*cursor;
@@ -779,7 +779,7 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 		CHKERR(blk->eidReferences);
 		for (elt = lyst_first(eidReferences); elt; elt = lyst_next(elt))
 		{
-			offset = (unsigned long) lyst_data(elt);
+			offset = (unsigned int) lyst_data(elt);
 			encodeSdnv(&offsetSdnv, offset);
 			blk->length += offsetSdnv.length;
 			oK(sdr_list_insert_last(bpSdr,
@@ -812,7 +812,7 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 		cursor += referenceCountSdnv.length;
 		for (elt = lyst_first(eidReferences); elt; elt = lyst_next(elt))
 		{
-			offset = (unsigned long) lyst_data(elt);
+			offset = (unsigned int) lyst_data(elt);
 			encodeSdnv(&offsetSdnv, offset);
 			memcpy(cursor, offsetSdnv.text, offsetSdnv.length);
 			cursor += offsetSdnv.length;
@@ -854,9 +854,9 @@ int 	updateCollaborationBlock(Object collabAddr, CollabBlockHdr *blkHdr)
  ******************************************************************************/
 
 int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
-		unsigned char *startOfBlock, unsigned long blockLength,
-		unsigned char blkType, unsigned long blkProcFlags,
-		Lyst *eidReferences, unsigned long dataLength)
+		unsigned char *startOfBlock, unsigned int blockLength,
+		unsigned char blkType, unsigned int blkProcFlags,
+		Lyst *eidReferences, unsigned int dataLength)
 {
 	Bundle		*bundle = &(work->bundle);
 	int		blkSize;
@@ -996,7 +996,7 @@ int	checkExtensionBlocks(AcqWorkArea *work)
 	LystElt		nextElt;
 	AcqExtBlock	*blk;
 	ExtensionDef	*def;
-	unsigned long	oldLength;
+	unsigned int	oldLength;
 
 	CHKERR(work);
 	bundle->clDossier.authentic = work->authentic;

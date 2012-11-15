@@ -39,7 +39,7 @@ static void	*receivePdus(void *parm)
 		return NULL;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:%lu.%d", getOwnNodeNbr(),
+	isprintf(ownEid, sizeof ownEid, "ipn:%llu.%u", getOwnNodeNbr(),
 			CFDP_RECV_SVC_NBR);
 	if (bp_open(ownEid, &(parms->rxSap)) < 0)
 	{
@@ -133,7 +133,7 @@ int	main(int argc, char **argv)
 	Object		pduZco;
 	OutFdu		fduBuffer;
 	BpUtParms	utParms;
-	unsigned long	destinationNodeNbr;
+	uvast		destinationNodeNbr;
 	char		destEid[64];
 	char		reportToEidBuf[64];
 	char		*reportToEid;
@@ -146,7 +146,7 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:%lu.%d", getOwnNodeNbr(),
+	isprintf(ownEid, sizeof ownEid, "ipn:%llu.%u", getOwnNodeNbr(),
 			CFDP_SEND_SVC_NBR);
 	if (bp_open(ownEid, &txSap) < 0)
 	{
@@ -220,7 +220,7 @@ terminating.");
 			continue;
 		}
 
-		isprintf(destEid, sizeof destEid, "ipn:%lu.%d",
+		isprintf(destEid, sizeof destEid, "ipn:%llu.%u",
 				destinationNodeNbr, CFDP_RECV_SVC_NBR);
 		if (utParms.reportToNodeNbr == 0)
 		{
@@ -229,7 +229,7 @@ terminating.");
 		else
 		{
 			isprintf(reportToEidBuf, sizeof reportToEidBuf,
-					"ipn:%lu.%d", utParms.reportToNodeNbr,
+					"ipn:%llu.%u", utParms.reportToNodeNbr,
 					CFDP_RECV_SVC_NBR);
 			reportToEid = reportToEidBuf;
 		}

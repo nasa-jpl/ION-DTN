@@ -40,8 +40,8 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 	oK(sm_TaskVar(&erase));
 }
 
-static int	getDirective(unsigned long nodeNbr, Object plans,
-			Bundle *bundle, FwdDirective *directive)
+static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
+			FwdDirective *directive)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -72,7 +72,7 @@ static int	getDirective(unsigned long nodeNbr, Object plans,
 }
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
-			unsigned long nodeNbr, unsigned long serviceNbr)
+			uvast nodeNbr, unsigned int serviceNbr)
 {
 	FwdDirective	directive;
 	char		stationEid[64];
@@ -90,7 +90,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 
 	/*	The station node is a neighbor.				*/
 
-	isprintf(stationEid, sizeof stationEid, "ipn:%lu.%lu", nodeNbr,
+	isprintf(stationEid, sizeof stationEid, "ipn:%llu.%u", nodeNbr,
 			serviceNbr);
 
 	/*	Is neighbor refusing to be a station for bundles?	*/

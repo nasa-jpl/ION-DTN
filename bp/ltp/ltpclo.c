@@ -56,7 +56,7 @@ int	main(int argc, char *argv[])
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 	int		allGreen = 0;		/*	Boolean		*/
-	long		destEngineNbr;
+	vast		destEngineNbr;
 	Outduct		outduct;
 	Outflow		outflows[3];
 	int		i;
@@ -98,7 +98,7 @@ int	main(int argc, char *argv[])
 
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
-	destEngineNbr = atol(ductName);
+	destEngineNbr = strtoll(ductName, NULL, 0);
 	if (destEngineNbr < 0)
 	{
 		allGreen = 1;

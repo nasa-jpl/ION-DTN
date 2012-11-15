@@ -23,12 +23,13 @@
 extern "C" {
 #endif
 
-#define IPN_ALL_OTHERS	((unsigned long) -1)
+#define IPN_ALL_OTHER_NODES	((uvast) -1)
+#define IPN_ALL_OTHER_SERVICES	((unsigned int) -1)
 
 typedef struct
 {
-	unsigned long	srcServiceNbr;
-	unsigned long	srcNodeNbr;
+	unsigned int	srcServiceNbr;
+	uvast		srcNodeNbr;
 	FwdDirective	directive;
 } IpnRule;
 
@@ -68,15 +69,15 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	nodeNbr;
+	uvast		nodeNbr;
 	FwdDirective	defaultDirective;
 	Object		rules;			/*	SDR list	*/
 } IpnPlan;
 
 typedef struct
 {
-	unsigned long	firstNodeNbr;		/*	in range	*/
-	unsigned long	lastNodeNbr;		/*	in range	*/
+	uvast		firstNodeNbr;		/*	in range	*/
+	uvast		lastNodeNbr;		/*	in range	*/
 	FwdDirective	defaultDirective;
 	Object		rules;			/*	SDR list	*/
 } IpnGroup;
@@ -97,68 +98,68 @@ extern int		ipnInit();
 extern Object		getIpnDbObject();
 extern IpnDB		*getIpnConstants();
 
-extern void		ipn_findPlan(unsigned long nodeNbr, Object *planAddr,
+extern void		ipn_findPlan(uvast nodeNbr, Object *planAddr,
 				Object *elt);
 
-extern int		ipn_addPlan(unsigned long nodeNbr,
+extern int		ipn_addPlan(uvast nodeNbr,
 				DuctExpression *ductExpression);
-extern int		ipn_updatePlan(unsigned long nodeNbr, 
+extern int		ipn_updatePlan(uvast nodeNbr, 
 				DuctExpression *ductExpression);
-extern int		ipn_removePlan(unsigned long nodeNbr);
+extern int		ipn_removePlan(uvast nodeNbr);
 
-extern void		ipn_findPlanRule(unsigned long nodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr, IpnPlan *plan,
+extern void		ipn_findPlanRule(uvast nodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr, IpnPlan *plan,
 				Object *ruleAddr, Object *elt);
 
-extern int		ipn_addPlanRule(unsigned long nodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr,
+extern int		ipn_addPlanRule(uvast nodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr,
 				DuctExpression *ductExpression);
-extern int		ipn_updatePlanRule(unsigned long nodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr,
+extern int		ipn_updatePlanRule(uvast nodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr,
 				DuctExpression *ductExpression);
-extern int		ipn_removePlanRule(unsigned long nodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr);
+extern int		ipn_removePlanRule(uvast nodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr);
 
-extern int		ipn_lookupPlanDirective(unsigned long nodeNbr, 
-				unsigned long sourceServiceNbr,
-				unsigned long sourceNodeNbr,
+extern int		ipn_lookupPlanDirective(uvast nodeNbr, 
+				unsigned int sourceServiceNbr,
+				uvast sourceNodeNbr,
 				FwdDirective *directive);
 
-extern void		ipn_findGroup(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr,
+extern void		ipn_findGroup(uvast firstNodeNbr,
+				uvast lastNodeNbr,
 				Object *groupAddr, Object *elt);
-extern int		ipn_addGroup(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr, char *viaEid);
-extern int		ipn_updateGroup(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr, char *viaEid);
-extern int		ipn_removeGroup(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr);
+extern int		ipn_addGroup(uvast firstNodeNbr,
+				uvast lastNodeNbr, char *viaEid);
+extern int		ipn_updateGroup(uvast firstNodeNbr,
+				uvast lastNodeNbr, char *viaEid);
+extern int		ipn_removeGroup(uvast firstNodeNbr,
+				uvast lastNodeNbr);
 
-extern void		ipn_findGroupRule(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr, IpnGroup *group,
+extern void		ipn_findGroupRule(uvast firstNodeNbr,
+				uvast lastNodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr, IpnGroup *group,
 				Object *ruleAddr, Object *elt);
-extern int		ipn_addGroupRule(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr, char *viaEid);
-extern int		ipn_updateGroupRule(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr, char *viaEid);
-extern int		ipn_removeGroupRule(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr);
+extern int		ipn_addGroupRule(uvast firstNodeNbr,
+				uvast lastNodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr, char *viaEid);
+extern int		ipn_updateGroupRule(uvast firstNodeNbr,
+				uvast lastNodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr, char *viaEid);
+extern int		ipn_removeGroupRule(uvast firstNodeNbr,
+				uvast lastNodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr);
 
-extern int		ipn_lookupGroupDirective(unsigned long nodeNbr, 
-				unsigned long sourceServiceNbr,
-				unsigned long sourceNodeNbr,
+extern int		ipn_lookupGroupDirective(uvast nodeNbr, 
+				unsigned int sourceServiceNbr,
+				uvast sourceNodeNbr,
 				FwdDirective *directive);
 #ifdef __cplusplus
 }

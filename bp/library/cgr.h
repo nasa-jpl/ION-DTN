@@ -19,11 +19,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef int		(*CgrLookupFn)(unsigned long nodeNbr, Object plans,
+typedef int		(*CgrLookupFn)(uvast nodeNbr, Object plans,
 				Bundle *bundle, FwdDirective *directive);
 extern void		cgr_start();
 extern int		cgr_forward(Bundle *bundle, Object bundleObj,
-				unsigned long stationNodeNbr, Object plans,
+				uvast stationNodeNbr, Object plans,
 				CgrLookupFn callback);
 extern void		cgr_stop();
 #ifdef __cplusplus

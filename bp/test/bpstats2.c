@@ -153,8 +153,8 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 				sizeof(Tally));
 	}
 
-	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) %u %lu \
-(1) %u %lu (2) %u %lu (+) %u %lu\n", classnames[stateIdx],
+	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) %u %llu \
+(1) %u %llu (2) %u %llu (+) %u %llu\n", classnames[stateIdx],
 			(unsigned int) startTime,
 			(unsigned int) currentTime,
 			tallies[0].currentCount, tallies[0].currentBytes,

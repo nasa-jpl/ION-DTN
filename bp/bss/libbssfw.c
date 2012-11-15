@@ -84,7 +84,7 @@ static int	lookupBssEid(char *uriBuffer, char *neighborClId)
 			 *	neighbor's EID.				*/
 
 			isprintf(uriBuffer, SDRSTRING_BUFSZ,
-					"ipn:%lu.0", plan->nodeNbr);
+					"ipn:%llu.0", plan->nodeNbr);
 			return 1;
 		}
 	}
@@ -167,8 +167,8 @@ Object locateBssEntry (CbheEid dst, Object *nextEntry)
 	Object	elt;
 		OBJ_POINTER(bssEntry, entry);
 
-	unsigned long serviceNbr = dst.serviceNbr; 
-	unsigned long nodeNbr = dst.nodeNbr;
+	unsigned int serviceNbr = dst.serviceNbr; 
+	uvast nodeNbr = dst.nodeNbr;
 
 	/*  
 	 *  This function locates the bssEntry identified by the
@@ -192,7 +192,7 @@ Object locateBssEntry (CbheEid dst, Object *nextEntry)
 
 		if (entry->dstServiceNbr > serviceNbr)
 		{
-			if (entry->dstServiceNbr != BSS_ALL_OTHERS)
+			if (entry->dstServiceNbr != BSS_ALL_OTHER_SERVICES)
 			{						
 				if (nextEntry) *nextEntry = elt;
 				break;	/*	Same as end of list.	*/
@@ -208,7 +208,7 @@ Object locateBssEntry (CbheEid dst, Object *nextEntry)
 
 		if (entry->dstNodeNbr > nodeNbr)
 		{
-			if (entry->dstNodeNbr != BSS_ALL_OTHERS)
+			if (entry->dstNodeNbr != BSS_ALL_OTHER_NODES)
 			{					
 				if (nextEntry) *nextEntry = elt;
 				break;	/*	Same as end of list.	*/
@@ -222,13 +222,13 @@ Object locateBssEntry (CbheEid dst, Object *nextEntry)
 	return 0;
 }
 
-int bss_addBssEntry(long argServiceNbr, long argNodeNbr)
+int bss_addBssEntry(int argServiceNbr, vast argNodeNbr)
 
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	dstServiceNbr = (argServiceNbr == -1 ? BSS_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	dstNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHERS
+	unsigned int	dstServiceNbr = (argServiceNbr == -1 ?
+				BSS_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		dstNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHER_NODES
 				: argNodeNbr);
 	
 	bssEntry	entry;
@@ -245,7 +245,7 @@ int bss_addBssEntry(long argServiceNbr, long argNodeNbr)
 	if (locateBssEntry(eid, &nextEntry) !=0)
 	{
 		sdr_exit_xn(sdr);
-		isprintf(memo, sizeof memo, "[?] BSS duplicate entry: %lu-%lu", 
+		isprintf(memo, sizeof memo, "[?] BSS duplicate entry: %u-%llu", 
 				 dstServiceNbr,dstNodeNbr);
 		writeMemo(memo);
 		return 0;
@@ -279,12 +279,12 @@ int bss_addBssEntry(long argServiceNbr, long argNodeNbr)
 	return 1;
 }
 
-int bss_removeBssEntry(long argServiceNbr, long argNodeNbr)
+int bss_removeBssEntry(int argServiceNbr, vast argNodeNbr)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	dstServiceNbr = (argServiceNbr == -1 ? BSS_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	dstNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHERS
+	unsigned int	dstServiceNbr = (argServiceNbr == -1 ?
+				BSS_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		dstNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object	elt;
 	Object	entryObj;
@@ -323,10 +323,10 @@ static LystElt locateStream (Lyst loggedStreams, Bundle *bundle,
 {	
 	LystElt elt;
 	stream *strm = NULL;
-	unsigned long srcNodeNbr = bundle->id.source.c.nodeNbr;
-	unsigned long srcServiceNbr = bundle->id.source.c.serviceNbr;
-	unsigned long dstNodeNbr = bundle->destination.c.nodeNbr;
-	unsigned long dstServiceNbr = bundle->destination.c.serviceNbr;
+	uvast srcNodeNbr = bundle->id.source.c.nodeNbr;
+	unsigned int srcServiceNbr = bundle->id.source.c.serviceNbr;
+	uvast dstNodeNbr = bundle->destination.c.nodeNbr;
+	unsigned int dstServiceNbr = bundle->destination.c.serviceNbr;
 
 	/*	
 	 *  This function locates the BSS stream identified by the 
@@ -461,7 +461,7 @@ void bss_monitorStream(Lyst loggedStreams, Bundle bundle)
 	}
 }
 
-static Object	locatePlan(unsigned long nodeNbr, Object *nextPlan)
+static Object	locatePlan(uvast nodeNbr, Object *nextPlan)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -492,7 +492,7 @@ static Object	locatePlan(unsigned long nodeNbr, Object *nextPlan)
 	return 0;
 }
 
-void	bss_findPlan(unsigned long nodeNbr, Object *planAddr, Object *eltp)
+void	bss_findPlan(uvast nodeNbr, Object *planAddr, Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -529,9 +529,9 @@ static void	createXmitDirective(FwdDirective *directive,
 	}
 }
 
-int	bss_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct,
+int	bss_addPlan(uvast nodeNbr, DuctExpression *defaultDuct,
 		    DuctExpression *rtDuct, DuctExpression *pbDuct,
-		    unsigned long expectedRTT)
+		    unsigned int expectedRTT)
 {
 	Sdr	sdr = getIonsdr();
 	Object	nextPlan;
@@ -588,7 +588,7 @@ static void	destroyXmitDirective(FwdDirective *directive)
 	}
 }
 
-int	bss_updatePlan(unsigned long nodeNbr, DuctExpression *defaultDuct,
+int	bss_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct,
 		    DuctExpression *rtDuct, DuctExpression *pbDuct,
 		    int expectedRTT)
 {
@@ -629,7 +629,7 @@ int	bss_updatePlan(unsigned long nodeNbr, DuctExpression *defaultDuct,
 	return 1;
 }
 
-int	bss_removePlan(unsigned long nodeNbr)
+int	bss_removePlan(uvast nodeNbr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -673,8 +673,8 @@ int	bss_removePlan(unsigned long nodeNbr)
 	return 1;
 }
 
-static Object	locateRule(Object rules, unsigned long srcServiceNbr,
-			unsigned long srcNodeNbr, Object *nextRule)
+static Object	locateRule(Object rules, unsigned int srcServiceNbr,
+			uvast srcNodeNbr, Object *nextRule)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -723,13 +723,13 @@ static Object	locateRule(Object rules, unsigned long srcServiceNbr,
 	return 0;
 }
 
-void	bss_findPlanRule(unsigned long nodeNbr, long argServiceNbr,
-		long argNodeNbr, BssPlan *plan, Object *ruleAddr, Object *eltp)
+void	bss_findPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
+		BssPlan *plan, Object *ruleAddr, Object *eltp)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? BSS_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				BSS_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(BssPlan, planPtr);
@@ -769,14 +769,14 @@ void	bss_findPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	*eltp = elt;
 }
 
-int	bss_addPlanRule(unsigned long nodeNbr, long argServiceNbr,
-		long argNodeNbr, DuctExpression *directive, 
-		DuctExpression *rtDuct, DuctExpression *pbDuct)
+int	bss_addPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
+		DuctExpression *directive, DuctExpression *rtDuct,
+		DuctExpression *pbDuct)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? BSS_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				BSS_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(BssPlan, plan);
@@ -838,14 +838,14 @@ int	bss_addPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	return 1;
 }
 
-int	bss_updatePlanRule(unsigned long nodeNbr, long argServiceNbr,
-		long argNodeNbr, DuctExpression *directive, 
-		DuctExpression *rtDuct, DuctExpression *pbDuct)
+int	bss_updatePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
+		DuctExpression *directive, DuctExpression *rtDuct,
+		DuctExpression *pbDuct)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? BSS_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				BSS_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(BssPlan, plan);
@@ -892,13 +892,12 @@ int	bss_updatePlanRule(unsigned long nodeNbr, long argServiceNbr,
 	return 1;
 }
 
-int	bss_removePlanRule(unsigned long nodeNbr, long argServiceNbr,
-		long argNodeNbr)
+int	bss_removePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? BSS_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				BSS_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(BssPlan, plan);
@@ -1052,8 +1051,8 @@ int bss_copyDirective(Bundle *bundle, FwdDirective *directive,
 	return 1;		
 }
 
-static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
-			unsigned long sourceNodeNbr, Bundle *bundle,
+static int	lookupRule(Object rules, unsigned int sourceServiceNbr,
+			uvast sourceNodeNbr, Bundle *bundle,
 			FwdDirective *dirbuf, Lyst loggedStreams)
 {
 	Sdr	sdr = getIonsdr();
@@ -1061,7 +1060,7 @@ static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
 	Object	elt;
 		OBJ_POINTER(BssRule, rule);
 
-	/*	Universal wild-card match (BSS_ALL_OTHERS), if any,
+	/*	Universal wild-card match (BSS_ALL_OTHER_xxx), if any,
 	 *	is at the end of the list, so there's no way to
 	 *	terminate the search early.				*/
 
@@ -1076,7 +1075,7 @@ static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
 		}
 
 		if (rule->srcServiceNbr > sourceServiceNbr
-			&& rule->srcServiceNbr != BSS_ALL_OTHERS)
+			&& rule->srcServiceNbr != BSS_ALL_OTHER_SERVICES)
 		{
 			continue;
 		}
@@ -1089,7 +1088,7 @@ static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
 		}
 
 		if (rule->srcNodeNbr > sourceNodeNbr
-			&& rule->srcNodeNbr != BSS_ALL_OTHERS)
+			&& rule->srcNodeNbr != BSS_ALL_OTHER_NODES)
 		{
 			continue;
 		}
@@ -1107,9 +1106,9 @@ static int	lookupRule(Object rules, unsigned long sourceServiceNbr,
 	return 0;
 }
 
-int	bss_lookupPlanDirective(unsigned long nodeNbr,
-		unsigned long sourceServiceNbr, unsigned long sourceNodeNbr,
-		Bundle *bundle, FwdDirective *dirbuf, Lyst loggedStreams)
+int	bss_lookupPlanDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
+		uvast sourceNodeNbr, Bundle *bundle, FwdDirective *dirbuf,
+		Lyst loggedStreams)
 {
 	Sdr	sdr = getIonsdr();
 	Object	addr;
@@ -1144,7 +1143,7 @@ int	bss_lookupPlanDirective(unsigned long nodeNbr,
 	return 1;
 }
 
-static int getRTT(unsigned long pxNodeNbr)
+static int getRTT(uvast pxNodeNbr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	addr;
@@ -1218,8 +1217,8 @@ int 	bss_setCtDueTimer(Bundle bundle, Object bundleAddr)
 	return -1;
 }
 
-static Object	locateGroup(unsigned long firstNodeNbr,
-			unsigned long lastNodeNbr, Object *nextGroup)
+static Object	locateGroup(uvast firstNodeNbr, uvast lastNodeNbr,
+			Object *nextGroup)
 {
 	Sdr	sdr = getIonsdr();
 	int	targetSize;
@@ -1269,8 +1268,8 @@ static Object	locateGroup(unsigned long firstNodeNbr,
 	return 0;
 }
 
-void	bss_findGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
-		Object *groupAddr, Object *eltp)
+void	bss_findGroup(uvast firstNodeNbr, uvast lastNodeNbr, Object *groupAddr,
+		Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -1292,8 +1291,7 @@ void	bss_findGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	*eltp = elt;
 }
 
-int	bss_addGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
-		char *viaEid)
+int	bss_addGroup(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
 	Object		nextGroup;
@@ -1344,8 +1342,7 @@ int	bss_addGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	return 1;
 }
 
-int	bss_updateGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
-		char *viaEid)
+int	bss_updateGroup(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
@@ -1380,7 +1377,7 @@ int	bss_updateGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	return 1;
 }
 
-int	bss_removeGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr)
+int	bss_removeGroup(uvast firstNodeNbr, uvast lastNodeNbr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -1422,14 +1419,14 @@ int	bss_removeGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr)
 	return 1;
 }
 
-void	bss_findGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
-		long argServiceNbr, long argNodeNbr, IpnGroup *group,
+void	bss_findGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+		int argServiceNbr, vast argNodeNbr, IpnGroup *group,
 		Object *ruleAddr, Object *eltp)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? BSS_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				BSS_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnGroup, groupPtr);
@@ -1470,13 +1467,13 @@ void	bss_findGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	*eltp = elt;
 }
 
-int	bss_addGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
-		long argServiceNbr, long argNodeNbr, char *viaEid)
+int	bss_addGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+		int argServiceNbr, vast argNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? BSS_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				BSS_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnGroup, group);
@@ -1533,14 +1530,13 @@ int	bss_addGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	return 1;
 }
 
-int	bss_updateGroupRule(unsigned long firstNodeNbr,
-		unsigned long lastNodeNbr, long argServiceNbr, long argNodeNbr,
-		char *viaEid)
+int	bss_updateGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+		int argServiceNbr, vast argNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? BSS_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				BSS_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnGroup, group);
@@ -1583,13 +1579,13 @@ int	bss_updateGroupRule(unsigned long firstNodeNbr,
 	return 1;
 }
 
-int	bss_removeGroupRule(unsigned long firstNodeNbr,
-		unsigned long lastNodeNbr, long argServiceNbr, long argNodeNbr)
+int	bss_removeGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+		int argServiceNbr, vast argNodeNbr)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	srcServiceNbr = (argServiceNbr == -1 ? BSS_ALL_OTHERS
-				: argServiceNbr);
-	unsigned long	srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHERS
+	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
+				BSS_ALL_OTHER_SERVICES : argServiceNbr);
+	uvast		srcNodeNbr = (argNodeNbr == -1 ? BSS_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
 			OBJ_POINTER(IpnGroup, group);
@@ -1632,9 +1628,9 @@ int	bss_removeGroupRule(unsigned long firstNodeNbr,
 	return 1;
 }
 
-int	bss_lookupGroupDirective(unsigned long nodeNbr,
-		unsigned long sourceServiceNbr, unsigned long sourceNodeNbr,
-		Bundle *bundle, FwdDirective *dirbuf, Lyst loggedStreams)
+int	bss_lookupGroupDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
+		uvast sourceNodeNbr, Bundle *bundle, FwdDirective *dirbuf,
+		Lyst loggedStreams)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
