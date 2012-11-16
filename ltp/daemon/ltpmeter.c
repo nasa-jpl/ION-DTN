@@ -50,7 +50,7 @@ int	main(int argc, char *argv[])
 
 	sdr = getIonsdr();
 	vdb = getLtpVdb();
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	findSpan(remoteEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -83,7 +83,7 @@ int	main(int argc, char *argv[])
 			return 1;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	}
 
@@ -112,7 +112,7 @@ engine %lu is stopped.", remoteEngineId);
 				break;		/*	Outer loop.	*/
 			}
 
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			sdr_stage(sdr, (char *) &span, spanObj,
 					sizeof(LtpSpan));
 		}
@@ -163,7 +163,7 @@ engine %lu is stopped.", remoteEngineId);
 			/*	Wait one second and try again.		*/
 
 			snooze(1);
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			sdr_stage(sdr, (char *) &span, spanObj,
 					sizeof(LtpSpan));
 			continue;
@@ -215,7 +215,7 @@ engine %lu is stopped.", remoteEngineId);
 		/*	Now start next cycle of main loop, waiting
 		 *	for the new session's buffer to be closed.	*/
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	}
 

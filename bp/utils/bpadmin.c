@@ -1061,7 +1061,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
 	bpdb.maxAcqInHeap = heapmax;
 	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));

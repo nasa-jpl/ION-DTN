@@ -232,7 +232,7 @@ static IonVdb	*_ionvdb(char **name)
 		/*	ION volatile database doesn't exist yet.	*/
 
 		sdr = _ionsdr(NULL);
-		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
 		vdbAddress = psm_zalloc(ionwm, sizeof(IonVdb));
 		if (vdbAddress == 0)
 		{
@@ -617,7 +617,8 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 	}
 
 	if (sdr_load_profile(parms->sdrName, parms->configFlags,
-			parms->heapWords, parms->heapKey, parms->pathName) < 0)
+			parms->heapWords, parms->heapKey, parms->pathName,
+			"ionrestart", 15) < 0)
 	{
 		putErrmsg("Unable to load SDR profile for ION.", NULL);
 		return -1;
@@ -634,7 +635,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 
 	/*	Recover the ION database, creating it if necessary.	*/
 
-	sdr_begin_xn(ionsdr);
+	CHKERR(sdr_begin_xn(ionsdr));
 	iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
 	switch (iondbObject)
 	{
@@ -732,6 +733,76 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 	return 0;
 }
 
+static void	destroyIonNode(PsmPartition partition, PsmAddress eltData,
+			void *argument)
+{
+	IonNode	*node = (IonNode *) psp(partition, eltData);
+
+	sm_list_destroy(partition, node->snubs, rfx_erase_data, NULL);
+	psm_free(partition, eltData);
+}
+
+static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
+{
+	IonVdb		*vdb;
+
+	vdb = (IonVdb *) psp(wm, vdbAddress);
+
+	/*	Time-ordered list of probes can simply be destroyed.	*/
+
+	sm_list_destroy(wm, vdb->probes, rfx_erase_data, NULL);
+
+	/*	Three of the red-black tables in the Vdb are
+	 *	emptied and recreated by rfx_stop().  Destroy them.	*/
+
+	sm_rbt_destroy(wm, vdb->contactIndex, NULL, NULL);
+	sm_rbt_destroy(wm, vdb->rangeIndex, NULL, NULL);
+	sm_rbt_destroy(wm, vdb->timeline, NULL, NULL);
+
+	/*	cgr_stop clears all routing objects, so nodes and
+	 *	neighbors themselves can now be deleted.		*/
+
+	sm_rbt_destroy(wm, vdb->nodes, destroyIonNode, NULL);
+	sm_rbt_destroy(wm, vdb->neighbors, rfx_erase_data, NULL);
+}
+
+void	ionDropVdb()
+{
+	PsmPartition	wm = getIonwm();
+	char		*ionvdbName = _ionvdbName();
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*stop = NULL;
+
+	if (psm_locate(wm, ionvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if (elt)
+	{
+		dropVdb(wm, vdbAddress);	/*	Destroy Vdb.	*/
+		psm_free(wm, vdbAddress);
+		if (psm_uncatlg(wm, ionvdbName) < 0)
+		{
+			putErrmsg("Failed uncataloging vdb.", NULL);
+		}
+	}
+
+	oK(_ionvdb(&stop));			/*	Forget old Vdb.	*/
+}
+
+void	ionRaiseVdb()
+{
+	char	*ionvdbName = _ionvdbName();
+
+	if(_ionvdb(&ionvdbName) == NULL);	/*	Create new Vdb.	*/	
+	{
+		putErrmsg("ION can't reinitialize vdb.", NULL);
+	}
+}
+
 int	ionAttach()
 {
 	Sdr		ionsdr = _ionsdr(NULL);
@@ -796,7 +867,7 @@ int	ionAttach()
 
 	if (iondbObject == 0)
 	{
-		sdr_begin_xn(ionsdr);	/*	Lock database.		*/
+		CHKERR(sdr_begin_xn(ionsdr));	/*	Lock database.	*/
 		iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
 		sdr_exit_xn(ionsdr);	/*	Unlock database.	*/
 		if (iondbObject == 0)
@@ -1032,7 +1103,7 @@ int	setDeltaFromUTC(int newDelta)
 	IonVdb	*ionvdb = _ionvdb(NULL);
 	IonDB	iondb;
 
-	sdr_begin_xn(ionsdr);
+	CHKERR(sdr_begin_xn(ionsdr));
 	sdr_stage(ionsdr, (char *) &iondb, iondbObject, sizeof(IonDB));
 	iondb.deltaFromUTC = newDelta;
 	sdr_write(ionsdr, iondbObject, (char *) &iondb, sizeof(IonDB));

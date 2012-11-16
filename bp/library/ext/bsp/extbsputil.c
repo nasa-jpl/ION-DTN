@@ -1159,7 +1159,7 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
         CHKERR(bytes);
         CHKERR(length >= 0);
 
-        sdr_begin_xn(sdr);
+        CHKERR(sdr_begin_xn(sdr));
         if (*resultZco == 0)     /*      First extent of acquisition.    */
         {
                 *resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);

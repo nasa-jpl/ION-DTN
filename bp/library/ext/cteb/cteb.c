@@ -353,7 +353,7 @@ int loadCtebScratchpad(Sdr sdr, Bundle *bundle, AcqWorkArea *work,
 {
 	int rc = 0;
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	/* If the bundle hasn't been recorded, the CTEB is in the acquisition 
 	 * working memory. */

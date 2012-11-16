@@ -66,7 +66,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	fileRef = zco_create_file_ref(sdr, fileName, NULL);
 	if (fileRef == 0)
 	{
@@ -115,7 +115,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	bp_close(sap);
 	writeErrmsgMemos();
 	PUTS("Stopping bpsendfile.");
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	zco_destroy_file_ref(sdr, fileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{

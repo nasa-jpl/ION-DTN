@@ -55,7 +55,7 @@ int get_or_make_custody_id(const char *sourceEid,
 	bid.fragmentOffset = fragmentOffset;
 	bid.fragmentLength = fragmentLength;
 
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 
 	rc = sdr_hash_retrieve(acsSdr, acsConstants->bidHash,
 			(char *)(&bid), &cbidAddr, &hashEntry);
@@ -132,7 +132,7 @@ int get_bundle_id(AcsCustodyId *custodyId, AcsBundleId *id)
 		return -1;
 	}
 
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	rc = sdr_hash_retrieve(acsSdr, acsConstants->cidHash,
 			(char *)(custodyId), &cbidAddr, &hashEntry);
 	if (rc == 1)
@@ -184,7 +184,7 @@ int destroy_custody_id(AcsBundleId *bundleId)
 	}
 
 	/* Lookup the cbid. */
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	rc = sdr_hash_retrieve(acsSdr, acsConstants->bidHash,
 			(char *)(bundleId), &cbidAddr, &hashEntry);
 	if (rc == -1)

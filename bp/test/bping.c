@@ -161,7 +161,7 @@ void *receiveResponses(void *x)
 		contentLength = zco_source_data_length(sdr, dlv.adu);
 		bytesToRead = MIN(contentLength, sizeof(buffer)-1); 
 		zco_start_receiving(dlv.adu, &reader);
-		sdr_begin_xn(sdr);
+		CHKNULL(sdr_begin_xn(sdr));
 		result = zco_receive_source(sdr, &reader, bytesToRead, buffer);
 		if (sdr_end_xn(sdr) < 0 || result < 0)
 		{
@@ -288,7 +288,7 @@ static Object bping_new_ping(void)
         pingPayloadLen = sizeof(pingPayload) - 1;
     }
 
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	bundleMessage = sdr_malloc(sdr, pingPayloadLen);
 	if(bundleMessage == 0) {
 		sdr_cancel_xn(sdr);

@@ -344,7 +344,7 @@ int	main(int argc, char *argv[])
 
 		snooze(1);
 		currentTime = getUTCTime();
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 
 		/*	First enable probes.				*/
 

@@ -182,7 +182,7 @@ static CgrVdb	*_cgrvdb(char **name)
 		/*	CGR volatile database doesn't exist yet.	*/
 
 		sdr = getIonsdr();
-		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
 		vdbAddress = psm_zalloc(ionwm, sizeof(CgrVdb));
 		if (vdbAddress == 0)
 		{
@@ -1616,14 +1616,14 @@ void	cgr_start()
 
 void	cgr_stop()
 {
-	PsmPartition	wm;
+	PsmPartition	wm = getIonwm();
+	char		*name = "cgrvdb";
 	PsmAddress	vdbAddress;
 	PsmAddress	elt;
-	char		*name = "cgrvdb";
-	char		*stop=NULL;
+	CgrVdb		*vdb;
+	char		*stop = NULL;
 
 	/*Clear Route Caches*/
-	wm = getIonwm();
 	clearRoutingObjects(wm);
 
 	/*Free volatile database*/
@@ -1633,14 +1633,15 @@ void	cgr_stop()
 		return;
 	}
 
-	if(elt){
-		if(psm_uncatlg(wm,name)<0){
+	if (elt)
+	{
+		vdb = (CgrVdb *) psp(wm, vdbAddress);
+		sm_list_destroy(wm, vdb->routeLists, NULL, NULL);
+		psm_free(wm, vdbAddress);
+		if (psm_uncatlg(wm, name) < 0)
+		{
 			putErrmsg("Failed Uncataloging vdb.",NULL);
-		}else{
-			psm_free(wm,vdbAddress);
 		}
-	}else{
-		putErrmsg("vdb doesn't exist.", NULL);
 	}
 
 	/*Reset pointer*/

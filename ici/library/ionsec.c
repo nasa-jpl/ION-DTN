@@ -60,7 +60,7 @@ int	secInitialize()
 	}
 
 	ionsdr = getIonsdr();
-	sdr_begin_xn(ionsdr);
+	CHKERR(sdr_begin_xn(ionsdr));
 	secdbObject = sdr_find(ionsdr, _secDbName(), NULL);
 	switch (secdbObject)
 	{
@@ -119,7 +119,7 @@ int	secAttach()
 	secdbObject = _secdbObject(NULL);
 	if (secdbObject == 0)
 	{
-		sdr_begin_xn(ionsdr);
+		CHKERR(sdr_begin_xn(ionsdr));
 		secdbObject = sdr_find(ionsdr, _secDbName(), NULL);
 		sdr_exit_xn(ionsdr);
 		if (secdbObject == 0)
@@ -239,7 +239,7 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
        	{
         	// For each bab rule, if src/dest match, delete it.  
          	OBJ_POINTER(BspBabRule, rule);
-		sdr_begin_xn(sdr);
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 			elt = temp)
 		{
@@ -281,7 +281,7 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
         {
                 // For each pib rule, if src/dest match, delete it.  
                 OBJ_POINTER(BspPibRule, rule);
-                sdr_begin_xn(sdr);
+                CHKVOID(sdr_begin_xn(sdr));
                 for (elt = sdr_list_first(sdr, secdb->bspPibRules); elt;
                         elt = temp)
                 {
@@ -322,7 +322,7 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
         {
                 // For each pib rule, if src/dest match, delete it.  
                 OBJ_POINTER(BspPcbRule, rule);
-                sdr_begin_xn(sdr);
+                CHKVOID(sdr_begin_xn(sdr));
                 for (elt = sdr_list_first(sdr, secdb->bspPcbRules); elt;
                         elt = temp)
                 {
@@ -422,7 +422,7 @@ void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	elt = locateKey(keyName, NULL);
 	if (elt == 0)
 	{
@@ -520,7 +520,7 @@ int	sec_addKey(char *keyName, char *fileName)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (locateKey(keyName, &nextKey) != 0)
 	{
 		sdr_exit_xn(sdr);
@@ -600,7 +600,7 @@ int	sec_updateKey(char *keyName, char *fileName)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateKey(keyName, NULL);
 	if (elt == 0)
 	{
@@ -654,7 +654,7 @@ int	sec_removeKey(char *keyName)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateKey(keyName, NULL);
 	if (elt == 0)
 	{
@@ -696,7 +696,7 @@ int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sec_findKey(keyName, &keyAddr, &elt);
 	if (elt == 0)
 	{
@@ -849,7 +849,7 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -965,7 +965,7 @@ single sender endpoint, not all endpoints on the sending node", srcEid);
 single receiver endpoint, not all endpoints on the receiving node", destEid);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	rule.securitySrcEid = sdr_string_create(sdr, srcEid);
 	rule.securityDestEid = sdr_string_create(sdr, destEid);
 	istrcpy(rule.ciphersuiteName, ciphersuiteName,
@@ -1040,7 +1040,7 @@ int	sec_updateBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &rule, ruleObj, sizeof(BspBabRule));
 	istrcpy(rule.ciphersuiteName, ciphersuiteName,
 			sizeof rule.ciphersuiteName);
@@ -1084,7 +1084,7 @@ int	sec_removeBspBabRule(char *srcEid, char *destEid)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_list_delete(sdr, elt, NULL, NULL);
 	GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleObj);
 	sdr_free(sdr, rule->securitySrcEid);
@@ -1140,7 +1140,7 @@ int	sec_get_bspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, secdb->bspPibRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -1248,7 +1248,7 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 
 	/*	Okay to add this rule to the database.			*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	rule.securitySrcEid = sdr_string_create(sdr, secSrcEid);
 	rule.securityDestEid = sdr_string_create(sdr, secDestEid);
 	rule.blockTypeNbr = blockTypeNbr;
@@ -1320,7 +1320,7 @@ int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &rule, ruleObj, sizeof(BspPibRule));
 	istrcpy(rule.ciphersuiteName, ciphersuiteName,
 			sizeof rule.ciphersuiteName);
@@ -1366,7 +1366,7 @@ int	sec_removeBspPibRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_list_delete(sdr, elt, NULL, NULL);
 	GET_OBJ_POINTER(sdr, BspPibRule, rule, ruleObj);
 	sdr_free(sdr, rule->securitySrcEid);
@@ -1407,7 +1407,7 @@ int    sec_get_bspPcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
                 return 0;
         }
 
-        sdr_begin_xn(sdr);
+        CHKERR(sdr_begin_xn(sdr));
         for (elt = sdr_list_first(sdr, secdb->bspPcbRules); elt;
                         elt = sdr_list_next(sdr, elt))
         {
@@ -1515,7 +1515,7 @@ int     sec_addBspPcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 
         /*      Okay to add this rule to the database.                  */
 
-        sdr_begin_xn(sdr);
+        CHKERR(sdr_begin_xn(sdr));
         rule.securitySrcEid = sdr_string_create(sdr, secSrcEid);
         rule.securityDestEid = sdr_string_create(sdr, secDestEid);
         rule.blockTypeNbr = blockTypeNbr;
@@ -1587,7 +1587,7 @@ int     sec_updateBspPcbRule(char *secSrcEid, char *secDestEid,
                 return 0;
         }
 
-        sdr_begin_xn(sdr);
+        CHKERR(sdr_begin_xn(sdr));
         sdr_stage(sdr, (char *) &rule, ruleObj, sizeof(BspPcbRule));
         istrcpy(rule.ciphersuiteName, ciphersuiteName,
                         sizeof rule.ciphersuiteName);
@@ -1633,7 +1633,7 @@ int     sec_removeBspPcbRule(char *secSrcEid, char *secDestEid,
                 return 0;
         }
 
-        sdr_begin_xn(sdr);
+        CHKERR(sdr_begin_xn(sdr));
         sdr_list_delete(sdr, elt, NULL, NULL);
         GET_OBJ_POINTER(sdr, BspPcbRule, rule, ruleObj);
         sdr_free(sdr, rule->securitySrcEid);

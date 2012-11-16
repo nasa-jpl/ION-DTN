@@ -250,7 +250,8 @@ typedef struct
 } CfdpVdb;
 
 extern int		cfdpInit();
-extern void		cfdpDestroy();
+extern void		cfdpDropVdb();
+extern void		cfdpRaiseVdb();
 #define cfdpStart(cmd)	_cfdpStart(cmd)
 extern int		_cfdpStart(char *utiCmd);
 #define cfdpStop()	_cfdpStop()

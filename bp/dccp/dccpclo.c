@@ -205,7 +205,7 @@ int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 		return -1;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, *bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -247,7 +247,7 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedC
 
 			/*Get Data to Send from ZCO			*/
 			zco_start_transmitting(*bundleZco, &reader);
-			sdr_begin_xn(sdr);
+			CHKERR(sdr_begin_xn(sdr));
 			bytesToSend = zco_transmit(sdr, &reader, DCCPCLA_BUFSZ, buffer);
 			if (sdr_end_xn(sdr) < 0 || bytesToSend < 0)
 			{
@@ -294,7 +294,7 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedC
 			}
 
 			/* Cleanup ZCO					*/
-			sdr_begin_xn(sdr);
+			CHKERR(sdr_begin_xn(sdr));
 			zco_destroy(sdr, *bundleZco);
 			if (sdr_end_xn(sdr) < 0)
 			{

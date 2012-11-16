@@ -48,7 +48,7 @@ static void *       sendLines(void *args)
 			putErrmsg("Couldn't take sdr mutex.", NULL);
 			break;
 		}
-		sdr_begin_xn(sdr);
+		CHKNULL(sdr_begin_xn(sdr));
 		bundlePayload = sdr_malloc(sdr, lineLength);
 		if(bundlePayload == 0) {
 			sdr_cancel_xn(sdr);
@@ -110,7 +110,7 @@ static void *       recvBundles(void *args)
 
 		bundleLenRemaining = zco_source_data_length(sdr, dlv.adu);
 		zco_start_receiving(dlv.adu, &reader);
-		sdr_begin_xn(sdr);
+		CHKNULL(sdr_begin_xn(sdr));
 		while(bundleLenRemaining > 0) {
 			bytesToRead = MIN(bundleLenRemaining, sizeof(buffer)-1);
 			rc = zco_receive_source(sdr, &reader, bytesToRead, buffer);

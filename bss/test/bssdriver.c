@@ -84,7 +84,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 		i++;
 		dataValue = htonl(i);
 		memcpy(framePayload, (char *) &dataValue, sizeof(unsigned int));
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		bundlePayload = sdr_malloc(sdr, sizeof(framePayload));
 		if (bundlePayload == 0)
 		{

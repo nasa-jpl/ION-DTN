@@ -61,7 +61,7 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 	CHKERR(eidString && *eidString && bpsapPtr);
 	*bpsapPtr = NULL;	/*	Default, in case of failure.	*/
 	sdr = getIonsdr();
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 
 	/*	First validate the endpoint ID.				*/
 
@@ -308,7 +308,7 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 	 *	happens here.						*/
 
 	throttle = &(vdb->productionThrottle);
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	aduLength = zco_length(sdr, adu);
 	while (aduLength > throttle->capacity)
 	{
@@ -331,7 +331,7 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 			return -1;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 	}
 
 	throttle->capacity -= aduLength;
@@ -350,7 +350,7 @@ int	bp_track(Object bundleObj, Object trackingElt)
 		OBJ_POINTER(Bundle, bundle);
 
 	CHKERR(bundleObj && trackingElt);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, Bundle, bundle, bundleObj);
 	if (bundle->trackingElts == 0)
 	{
@@ -376,7 +376,7 @@ void	bp_untrack(Object bundleObj, Object trackingElt)
 	Object	elt;
 
 	CHKVOID(bundleObj && trackingElt);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, Bundle, bundle, bundleObj);
 	if (bundle->trackingElts == 0)
 	{
@@ -416,7 +416,7 @@ int	bp_suspend(Object bundleObj)
 	ClProtocol	protocol;
 
 	CHKERR(bundleObj);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
@@ -473,7 +473,7 @@ int	bp_resume(Object bundleObj)
 	Bundle	bundle;
 
 	CHKERR(bundleObj);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	if (bundle.suspended == 0)
 	{
@@ -489,7 +489,7 @@ int	bp_cancel(Object bundleObj)
 	Sdr	sdr = getIonsdr();
 
 	CHKERR(bundleObj);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (bpDestroyBundle(bundleObj, 1) < 0)
 	{
 		sdr_cancel_xn(sdr);
@@ -578,7 +578,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	}
 
 	vpoint = sap->vpoint;
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (vpoint->appPid != sm_TaskIdSelf())
 	{
 		sdr_exit_xn(sdr);
@@ -653,7 +653,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 
 		/*	Have taken the semaphore, one way or another.	*/
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		dlvElt = sdr_list_first(sdr, endpoint->deliveryQueue);
 		if (dlvElt == 0)	/*	Still nothing.		*/
 		{
@@ -797,7 +797,7 @@ void	bp_release_delivery(BpDelivery *dlvBuffer, int releasePayload)
 		{
 			if (dlvBuffer->adu)
 			{
-				sdr_begin_xn(sdr);
+				CHKVOID(sdr_begin_xn(sdr));
 				zco_destroy(sdr, dlvBuffer->adu);
 				if (sdr_end_xn(sdr) < 0)
 				{

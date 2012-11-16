@@ -74,7 +74,8 @@ extern void		sdr_shutdown();
 /*		SDR database administration functions.			*/
 
 extern int		sdr_load_profile(char *name, int configFlags,
-				long heapWords, int memKey, char *pathName);
+				long heapWords, int memKey, char *pathName,
+				char *restartCmd, unsigned int restartLatency);
 			/*	Loads the profile for an SDR into the
 				sdrs list.  The profile of an SDR must
 				be reloaded (into shared memory) on a
@@ -129,10 +130,22 @@ extern int		sdr_load_profile(char *name, int configFlags,
 				option is selected, a file of the
 				indicated name and of the size given
 				by total SDR size will be created and
-				filled with zeros.			*/
+				filled with zeros.
+
+				If a cleanup task must be run whenever
+				a transaction is reversed, the command
+				to execute this task must be provided
+				in "restartCmd" and the number of
+				seconds to wait for this task to
+				finish before resuming operations must
+				be provided in "restartLatency".  If
+				restartCmd is NULL or restartLatency
+				is zero then no cleanup task will be
+				run upon transaction reversal.		*/
 
 extern int		sdr_reload_profile(char *name, int configFlags,
-				long heapWords, int memKey, char *pathName);
+				long heapWords, int memKey, char *pathName,
+				char *restartCmd, unsigned int restartLatency);
 			/*	For use when the state of an SDR is
 			 *	thought to be inconsistent, perhaps
 			 *	due to crash of a program that had
@@ -175,7 +188,7 @@ extern void		sdr_destroy(Sdr sdr);
 
 /*		Basic, low-level SDR transaction functions.		*/
 
-extern void		sdr_begin_xn(Sdr sdr);
+extern int		sdr_begin_xn(Sdr sdr);
 extern int		sdr_in_xn(Sdr sdr);		/*	Boolean	*/
 extern void		sdr_exit_xn(Sdr sdr);
 extern void		sdr_cancel_xn(Sdr sdr);

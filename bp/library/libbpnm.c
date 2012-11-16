@@ -31,7 +31,7 @@ void    bpnm_resources(double * occupancyCeiling,
     CHKVOID(currentHeapOccupancy);
     CHKVOID(maxFileOccupancy);
     CHKVOID(currentFileOccupancy);
-    sdr_begin_xn(sdr);
+    CHKVOID(sdr_begin_xn(sdr));
     sdr_read(sdr, (char *) &db, getIonDbObject(), sizeof(IonDB));
     *occupancyCeiling = db.occupancyCeiling;
     *maxForecastOccupancy = db.maxForecastOccupancy;
@@ -206,7 +206,7 @@ void bpnm_endpoint_get (char * targetName, NmbpEndpoint * results, int * success
         /* Copy extra byte to ensure that the NULL byte gets copied. */
         memcpy (results->eid, targetName, strlen (targetName)+1 );
     
-        sdr_begin_xn(sdr);
+        CHKVOID(sdr_begin_xn(sdr));
         sdr_read(sdr, (char *) & endpoint, sdr_list_data(sdr, vpoint->endpointElt), sizeof(Endpoint));
 	results->currentQueuedBundlesCount = sdr_list_length(sdr, endpoint.deliveryQueue);
 	results->currentQueuedBundlesBytes = 0;
@@ -279,7 +279,7 @@ void  bpnm_endpoint_reset (char * targetName, int * success)
                      
             if (strcmp (targetName, computedName) == 0)
             {
-                sdr_begin_xn(sdr);
+                CHKVOID(sdr_begin_xn(sdr));
                 sdr_stage(sdr, (char *) & stats, vpoint->stats, sizeof(EndpointStats));
 
                 stats.resetTime = getUTCTime();
@@ -438,7 +438,7 @@ void bpnm_induct_get (char * targetName, NmbpInduct * results, int * success)
         /* Copy extra byte to ensure that the NULL byte gets copied. */
         memcpy (results->inductName, targetName, strlen (targetName)+1 );
     
-        sdr_begin_xn(sdr);
+        CHKVOID(sdr_begin_xn(sdr));
         sdr_read(sdr, (char *) & duct, sdr_list_data(sdr, vduct->inductElt), sizeof(Induct));
         sdr_read(sdr, (char *) & stats, duct.stats, sizeof(InductStats));
         sdr_exit_xn(sdr);
@@ -506,7 +506,7 @@ void bpnm_induct_reset (char * targetName, int * success)
 
                 if (strcmp (targetName, computedName) == 0)
                 {
-                    sdr_begin_xn(sdr);
+                    CHKVOID(sdr_begin_xn(sdr));
                     sdr_stage(sdr, (char *) & stats, vduct->stats, sizeof(InductStats));
 
                     stats.resetTime = getUTCTime();
@@ -664,7 +664,7 @@ void bpnm_outduct_get (char * targetName, NmbpOutduct * results, int * success)
         /* Copy extra byte to ensure that the NULL byte gets copied. */
         memcpy (results->outductName, targetName, strlen (targetName)+1 );
 
-        sdr_begin_xn(sdr);
+        CHKVOID(sdr_begin_xn(sdr));
         sdr_read(sdr, (char *) & duct, sdr_list_data(sdr, vduct->outductElt), sizeof(Outduct));
         results->currentQueuedBundlesCount =
                 sdr_list_length(sdr, duct.urgentQueue)
@@ -735,7 +735,7 @@ void bpnm_outduct_reset (char * targetName, int * success)
 
                 if (strcmp (targetName, computedName) == 0)
                 {
-                    sdr_begin_xn(sdr);
+                    CHKVOID(sdr_begin_xn(sdr));
                     sdr_stage(sdr, (char *) & stats, vduct->stats, sizeof(OutductStats));
 
                     stats.resetTime = getUTCTime();
@@ -771,7 +771,7 @@ void    bpnm_limbo_get(NmbpOutduct * results)
 
     CHKVOID(results);
     istrcpy(results->outductName, "limbo", BPNM_OUTDUCT_NAME_LEN);
-    sdr_begin_xn(sdr);
+    CHKVOID(sdr_begin_xn(sdr));
     sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
     results->currentQueuedBundlesCount = sdr_list_length(sdr, bpdb.limboQueue);
     results->currentQueuedBundlesBytes = 0;
@@ -818,7 +818,7 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     BpDbStats       dbStats;
 
     CHKVOID(results);
-    sdr_begin_xn(sdr);
+    CHKVOID(sdr_begin_xn(sdr));
     sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
     results->lastResetTime = bpdb.resetTime;
 
@@ -1147,7 +1147,7 @@ void    bpnm_disposition_reset()
     BpDB            db;
 
     dbobj = getBpDbObject();
-    sdr_begin_xn(sdr);
+    CHKVOID(sdr_begin_xn(sdr));
     sdr_stage(sdr, (char *) &db, dbobj, sizeof(BpDB));
     db.resetTime = getUTCTime();
     resetSourceStats(&db);

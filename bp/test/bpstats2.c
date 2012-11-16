@@ -187,7 +187,7 @@ int sendStats(char *destEid, char *buffer, size_t len)
 	}
 
 	/* Wrap bundleZco around the stats buffer. */
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	extent = sdr_malloc(sdr, bytesWritten);
 	if(extent == 0) {
 		sdr_cancel_xn(sdr);

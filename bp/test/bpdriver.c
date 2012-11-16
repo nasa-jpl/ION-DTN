@@ -180,7 +180,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	}
 
 	close(aduFile);
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	fileRef = zco_create_file_ref(sdr, "bpdriverAduFile", NULL);
 	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
 	{
@@ -191,7 +191,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 
 	/*	Send pilot bundle to start bpcounter's timer.		*/
 
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	pilotAdu = sdr_string_create(sdr, "Go.");
 	bundleZco = zco_create(sdr, ZcoSdrSource, pilotAdu, 0,
 			sdr_string_length(sdr, pilotAdu));
@@ -256,7 +256,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 			aduLength = ((rand() % 60) + 1) * 1024;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		bundleZco = zco_create(sdr, ZcoFileSource, fileRef, 0,
 				aduLength);
 		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
@@ -327,7 +327,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	getCurrentTime(&endTime);
 	writeErrmsgMemos();
 	PUTS("Stopping bpdriver.");
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	zco_destroy_file_ref(sdr, fileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{

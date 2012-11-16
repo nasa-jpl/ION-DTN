@@ -1231,7 +1231,8 @@ extern int		bpDestroyBundle(Object bundleToDestroy,
 			 *	have been removed, -1 on any error.	*/
 
 extern int		bpInit();
-extern void		bpDestroy();
+extern void		bpDropVdb();
+extern void		bpRaiseVdb();
 extern int		bpSetCTCountdownTimer(time_t newTimeout);
 extern int		bpStart();
 extern void		bpStop();

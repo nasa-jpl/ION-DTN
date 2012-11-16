@@ -399,8 +399,7 @@ SdrMap	*_mapImage(Sdr sdrv)
 
 static int	lockSdr(SdrState *sdr)
 {
-	if (sdr->sdrSemaphore == -1
-	|| sm_SemTake(sdr->sdrSemaphore) < 0)
+	if (sm_SemTake(sdr->sdrSemaphore) < 0)
 	{
 		return -1;
 	}
@@ -414,11 +413,16 @@ static int	lockSdr(SdrState *sdr)
 int	takeSdr(SdrState *sdr)
 {
 	CHKERR(sdr);
+	if (sdr->sdrSemaphore == -1 || sm_SemEnded(sdr->sdrSemaphore))
+	{
+		return -1;		/*	Can't be taken.		*/
+	}
+
 	if (sdr->sdrOwnerTask == sm_TaskIdSelf()
 	&& pthread_equal(sdr->sdrOwnerThread, pthread_self()))
 	{
 		sdr->xnDepth++;
-		return 0;
+		return 0;		/*	Already taken.		*/
 	}
 
 	return lockSdr(sdr);
@@ -572,7 +576,7 @@ int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv)
 	address.							*/
 
 static int	reverseTransaction(Lyst logEntries, int logfile, int dbfile,
-			char *dbsm)
+			char *dbsm, SdrState *sdr)
 {
 	LystElt		elt;
 	unsigned long	logEntryOffset;
@@ -660,6 +664,19 @@ static int	reverseTransaction(Lyst logEntries, int logfile, int dbfile,
 		}
 	}
 
+	if (sdr->restartLatency > 0)
+	{
+		if (pseudoshell(sdr->restartCmd) < 0)
+		{
+			putErrmsg("Can't execute restart command.",
+					sdr->restartCmd);
+			return -1;
+		}
+
+		snooze(sdr->restartLatency);
+	}
+
+	writeMemo("[!] Tasks and volatile databases restarted...");
 	return 0;
 }
 
@@ -717,7 +734,7 @@ static void	terminateXn(Sdr sdrv)
 		if (sdr->configFlags & SDR_REVERSIBLE)
 		{
 			if (reverseTransaction(sdrv->logEntries, sdrv->logfile,
-					sdrv->dbfile, sdrv->dbsm) < 0)
+					sdrv->dbfile, sdrv->dbsm, sdr) < 0)
 			{
 				handleUnrecoverableError(sdrv);
 			}
@@ -925,7 +942,8 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 }
 
 int	sdr_load_profile(char *name, int configFlags, long heapWords,
-		int memKey, char *pathName)
+		int memKey, char *pathName, char *restartCmd,
+		unsigned int restartLatency)
 {
 	sm_SemId		lock = _sdrlock(0);
 	PsmPartition		sdrwm = _sdrwm(NULL);
@@ -1029,6 +1047,13 @@ in file and transaction reversibility", sdr->pathName);
 		sdr->configFlags &= (~SDR_REVERSIBLE); 
 	}
 
+	if (restartLatency > 0 && restartCmd != NULL)
+	{
+		limit = sizeof(sdr->restartCmd) - 1;
+		istrcpy(sdr->restartCmd, restartCmd, limit);
+		sdr->restartLatency = restartLatency;
+	}
+
 	/*	Add SDR to linked list of defined SDRs.			*/
 
 	sdr->sdrsElt = sm_list_insert_last(sdrwm, sch->sdrs, newSdrAddress);
@@ -1099,7 +1124,7 @@ in file and transaction reversibility", sdr->pathName);
 		else	/*	Database file exists.			*/
 		{
 			if (reverseTransaction(logEntries, logfile, dbfile,
-					NULL) < 0)
+					NULL, sdr) < 0)
 			{
 				close(dbfile);
 				if (logfile != -1) close(logfile);
@@ -1150,8 +1175,8 @@ in file and transaction reversibility", sdr->pathName);
 	
 			/*	Back transaction out of memory if nec.	*/
 	
-			if (reverseTransaction(logEntries, logfile, -1, dbsm)
-					< 0)
+			if (reverseTransaction(logEntries, logfile, -1,
+					dbsm, sdr) < 0)
 			{
 				if (logfile != -1) close(logfile);
 				if (logEntries) lyst_destroy(logEntries);
@@ -1211,7 +1236,8 @@ in file and transaction reversibility", sdr->pathName);
 }
 
 int	sdr_reload_profile(char *name, int configFlags, long heapWords,
-		int memKey, char *pathName)
+		int memKey, char *pathName, char *restartCmd,
+		unsigned int restartLatency)
 {
 	sm_SemId		lock = _sdrlock(0);
 	PsmPartition		sdrwm = _sdrwm(NULL);
@@ -1267,7 +1293,8 @@ int	sdr_reload_profile(char *name, int configFlags, long heapWords,
 	/*	Profile for this SDR is now known to be unloaded.	*/
 
 	sm_SemGive(lock);
-	return sdr_load_profile(name, configFlags, heapWords, memKey, pathName);
+	return sdr_load_profile(name, configFlags, heapWords, memKey, pathName,
+			restartCmd, restartLatency);
 }
 
 static void	deleteObjectExtent(LystElt elt, void *userData)
@@ -1550,11 +1577,16 @@ void	sdr_destroy(Sdr sdrv)
 
 /*	*	Low-level transaction functions		*	*	*/
 
-void	sdr_begin_xn(Sdr sdrv)
+int	sdr_begin_xn(Sdr sdrv)
 {
-	CHKVOID(sdrv);
-	oK(takeSdr(sdrv->sdr));
+	CHKZERO(sdrv);
+	if (takeSdr(sdrv->sdr) < 0)
+	{
+		return 0;	/*	Failed to begin transaction.	*/
+	}
+
 	sdrv->modified = 0;
+	return 1;		/*	Began transaction.		*/
 }
 
 int	sdr_in_xn(Sdr sdrv)

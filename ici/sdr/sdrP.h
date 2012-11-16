@@ -94,6 +94,11 @@ typedef struct sdr_str
 		/*	Path to directory for files (log, db).	*/
 
 	char		pathName[MAXPATHLEN];
+
+		/*	Parameters for restart.				*/
+
+	char		restartCmd[32];
+	unsigned int	restartLatency;
 } SdrState;
 
 /*	SdrMap is an object that encapsulates the potentially non-

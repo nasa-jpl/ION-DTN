@@ -47,7 +47,7 @@ static int	scanInFdus(Sdr sdr, time_t currentTime)
 	CfdpHandler	handler;
 
 	cfdpConstants = getCfdpConstants();
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	for (entityElt = sdr_list_first(sdr, cfdpConstants->entities);
 			entityElt; entityElt = sdr_list_next(sdr, entityElt))
 	{
@@ -187,7 +187,7 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 	Object	elt2;
 
 	cfdpConstants = getCfdpConstants();
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, cfdpConstants->outboundFdus); elt;
 			elt = nextElt)
 	{
