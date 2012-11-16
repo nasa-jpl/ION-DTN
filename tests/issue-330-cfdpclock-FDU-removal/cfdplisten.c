@@ -63,8 +63,8 @@ void poll_cfdp_messages()
 	char				statusReportBuf[256];
 	unsigned char		usrmsgBuf[256];
 	MetadataList		filestoreResponses;
-	unsigned long 		TID11;
-	unsigned long		TID12;
+	uvast 			TID11;
+	uvast			TID12;
 
 	/*Main Event loop*/
 	while (1) {
@@ -89,7 +89,7 @@ void poll_cfdp_messages()
 		cfdp_decompress_number(&TID12,&transactionId.transactionNbr);
 
 		/*Print Event type if debugging*/
-		printf("\nEvent: type %d, '%s', From Node: %ld, Transaction ID: %ld.%ld.\n", type,
+		printf("\nEvent: type %d, '%s', From Node: %llu, Transaction ID: %llu.%llu.\n", type,
 				(type > 0 && type < 12) ? eventTypes[type]
 				: "(unknown)",TID11, TID11, TID12);
 

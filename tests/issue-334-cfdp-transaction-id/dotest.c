@@ -29,8 +29,8 @@ typedef struct
 int main(int argc, char **argv)
 {
 	CfdpReqParms parms;
-	unsigned long src;
-	unsigned long tid;
+	uvast src;
+	uvast tid;
 	int ret;
 
 	/* Start ION */
