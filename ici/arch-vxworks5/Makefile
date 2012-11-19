@@ -33,6 +33,7 @@ TEST   = ../test
 UTILS  = ../utils
 DAEMON = ../daemon
 SDR    = ../sdr
+RESTART = ../restart
 
 CPU       = PPC604
 TOOL      = gnu
@@ -108,7 +109,8 @@ ICISOURCES = \
 	$(UTILS)/psmwatch.c	\
 	$(UTILS)/sdrmend.c	\
 	$(UTILS)/sdrwatch.c	\
-	$(DAEMON)/rfxclock.c
+	$(DAEMON)/rfxclock.c	\
+	$(RESTART)/ionrestart.c
 
 
 ALLICIOBJS =		\
@@ -143,7 +145,8 @@ ALLICIOBJS =		\
 	psmwatch.o	\
 	sdrmend.o	\
 	sdrwatch.o	\
-	rfxclock.o
+	rfxclock.o	\
+	ionrestart.o
 
 
 SOURCES = $(ICISOURCES)
