@@ -20,7 +20,9 @@
 #include "ltpP.h"
 #include "bpP.h"
 #include "cgr.h"
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdpP.h"
+#endif
 
 extern void	ionDropVdb();
 extern void	ionRaiseVdb();
@@ -30,7 +32,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	int	i;
 
 	/*	Stop all tasks.						*/
-
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	if (cfdpAttach() < 0)
 	{
 		putErrmsg("ionrestart can't attach to CFDP.", NULL);
@@ -54,6 +56,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 			putErrmsg("CFDP not stopped.", NULL);
 		}
 	}
+#endif
 
 	if (bpAttach() < 0)
 	{
@@ -178,7 +181,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 	if (i == 5)
 	{
-		putErrmsg("CFDP not started.", NULL);
+		putErrmsg("LTP not started.", NULL);
 	}
 
 	bpStart();
@@ -198,6 +201,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 		putErrmsg("BP not started.", NULL);
 	}
 
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	cfdpStart(utaCmd);
 	for (i = 0; i < 5; i++)
 	{
@@ -214,6 +218,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	{
 		putErrmsg("CFDP not started.", NULL);
 	}
+#endif
 }
 
 #if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
