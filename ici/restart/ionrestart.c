@@ -30,11 +30,15 @@ extern void	ionRaiseVdb();
 static void	restartION(Sdr sdrv, char *utaCmd)
 {
 	int	i;
+	int restart_bp=1;
+	int restart_ltp=1;
+	int restart_cfdp=1;
 
 	/*	Stop all tasks.						*/
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 	if (cfdpAttach() < 0)
 	{
+		restart_cfdp=0;
 		putErrmsg("ionrestart can't attach to CFDP.", NULL);
 	}
 	else
@@ -60,6 +64,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 	if (bpAttach() < 0)
 	{
+		restart_bp=0;
 		putErrmsg("ionrestart can't attach to BP.", NULL);
 	}
 	else
@@ -84,6 +89,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 	if (ltpAttach() < 0)
 	{
+		restart_ltp=0;
 		putErrmsg("ionrestart can't attach to LTP.", NULL);
 	}
 	else
@@ -136,6 +142,10 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	ltpDropVdb();
 	ionDropVdb();
 
+	/*	Un-end the transaction semaphore.	*/
+
+	sm_SemUnend(sdrv->sdr->sdrSemaphore);
+
 	/*	Now re-create all of the volatile databases.		*/
 
 	ionRaiseVdb();
@@ -143,10 +153,6 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	bpRaiseVdb();
 	cgr_start();
 	cfdpRaiseVdb();
-
-	/*	Un-end the transaction semaphore so tasks can restart.	*/
-
-	sm_SemUnend(sdrv->sdr->sdrSemaphore);
 
 	/*	Restart all ION tasks.					*/
 
@@ -167,56 +173,62 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 		putErrmsg("rfxclock not restarted.", NULL);
 	}
 
-	ltpStart();
-	for (i = 0; i < 5; i++)
-	{
-		if (!ltp_engine_is_started())
+	if(restart_ltp){
+		ltpStart();
+		for (i = 0; i < 5; i++)
 		{
-			snooze(1);
-			continue;		/*	Not started.	*/
+			if (!ltp_engine_is_started())
+			{
+				snooze(1);
+				continue;		/*	Not started.	*/
+			}
+
+			break;
 		}
 
-		break;
-	}
-
-	if (i == 5)
-	{
-		putErrmsg("LTP not started.", NULL);
-	}
-
-	bpStart();
-	for (i = 0; i < 5; i++)
-	{
-		if (!bp_agent_is_started())
+		if (i == 5)
 		{
-			snooze(1);
-			continue;		/*	Not started.	*/
+			putErrmsg("LTP not started.", NULL);
+		}
+	}
+
+	if(restart_bp){
+		bpStart();
+		for (i = 0; i < 5; i++)
+		{
+			if (!bp_agent_is_started())
+			{
+				snooze(1);
+				continue;		/*	Not started.	*/
+			}
+
+			break;
 		}
 
-		break;
-	}
-
-	if (i == 5)
-	{
-		putErrmsg("BP not started.", NULL);
+		if (i == 5)
+		{
+			putErrmsg("BP not started.", NULL);
+		}
 	}
 
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-	cfdpStart(utaCmd);
-	for (i = 0; i < 5; i++)
-	{
-		if (!cfdp_entity_is_started())
+	if(restart_cfdp){
+		cfdpStart(utaCmd);
+		for (i = 0; i < 5; i++)
 		{
-			snooze(1);
-			continue;		/*	Not started.	*/
+			if (!cfdp_entity_is_started())
+			{
+				snooze(1);
+				continue;		/*	Not started.	*/
+			}
+
+			break;
 		}
 
-		break;
-	}
-
-	if (i == 5)
-	{
-		putErrmsg("CFDP not started.", NULL);
+		if (i == 5)
+		{
+			putErrmsg("CFDP not started.", NULL);
+		}
 	}
 #endif
 }
