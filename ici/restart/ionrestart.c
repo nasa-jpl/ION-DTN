@@ -136,7 +136,9 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 	/*	Drop all volatile databases.				*/
 
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	cfdpDropVdb();
+#endif
 	cgr_stop();
 	bpDropVdb();
 	ltpDropVdb();
@@ -152,7 +154,9 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	ltpRaiseVdb();
 	bpRaiseVdb();
 	cgr_start();
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	cfdpRaiseVdb();
+#endif
 
 	/*	Restart all ION tasks.					*/
 

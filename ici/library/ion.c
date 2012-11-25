@@ -797,7 +797,7 @@ void	ionRaiseVdb()
 {
 	char	*ionvdbName = _ionvdbName();
 
-	if(_ionvdb(&ionvdbName) == NULL);	/*	Create new Vdb.	*/	
+	if(_ionvdb(&ionvdbName) == NULL)	/*	Create new Vdb.	*/
 	{
 		putErrmsg("ION can't reinitialize vdb.", NULL);
 	}
