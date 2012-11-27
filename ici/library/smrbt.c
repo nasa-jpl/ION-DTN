@@ -46,6 +46,7 @@ static void	eraseTree(SmRbt *rbt)
 	rbt->userData = 0;
 	rbt->root = 0;
 	rbt->length = 0;
+	rbt->lock = 0;
 }
 
 static void	eraseTreeNode(SmRbtNode *node)
@@ -138,8 +139,12 @@ void	Sm_rbt_destroy(char *file, int line, PsmPartition partition,
 	CHKVOID(partition);
 	CHKVOID(rbt);
 	rbtPtr = (SmRbt *) psp(partition, rbt);
+	oK(lockSmrbt(rbtPtr));
 	node = rbtPtr->root;
 	nodePtr = (SmRbtNode *) psp(partition, node);
+
+	/*	Destroy all nodes of the tree.				*/
+
 	while (node)
 	{
 		/*	If node has a left subtree, descend into it.	*/
@@ -196,6 +201,10 @@ void	Sm_rbt_destroy(char *file, int line, PsmPartition partition,
 
 		node = parentNode;
 	}
+
+	/*	Now destroy the tree itself.				*/
+
+	sm_SemDelete(rbtPtr->lock);
 
 	/*	just in case user mistakenly accesses later...		*/
 	eraseTree(rbtPtr);

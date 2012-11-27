@@ -854,7 +854,7 @@ int	ionAttach()
 
 void	ionDetach()
 {
-#if defined (VXWORKS)
+#if defined (VXWORKS) || defined (bionic)
 	return;
 #elif defined (RTEMS)
 	sm_TaskForget(sm_TaskIdSelf());
