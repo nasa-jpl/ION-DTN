@@ -1,0 +1,48 @@
+#!/bin/sh
+# Samuel Jero <sj323707@ohio.edu>
+# Transaction reversibility tests
+# October 7, 2012
+
+echo "################################"
+echo "Transaction Reversibility tests"
+echo "################################"
+./cleanup
+
+#test reversibility itself
+echo ""
+echo ""
+echo "1)Test that transaction reversibility functions correctly (local cause)"
+cd reversibilityCheck1
+./dotest
+RET1=$?
+cd ..
+
+#test reversibility itself
+echo ""
+echo ""
+echo "2)Test that transaction reversibility functions correctly (remote cause)"
+cd reversibilityCheck2
+./dotest
+RET2=$?
+cd ..
+
+#simple loopback using with transaction reversibility enabled
+echo ""
+echo ""
+echo "3)Do a simple LTP loopback test"
+cd loopback
+./dotest
+RET3=$?
+cd ..
+
+echo "################################"
+if [ $RET1 -eq 0 ] && [ $RET2 -eq 0 ] && [ $RET3 -eq 0 ] ; then
+	echo "Transaction Reversibility is functional. SUCCESS"
+	RET=0
+else
+	echo "Transaction Reversibility is NOT functioning. FAILURE"
+	RET=1
+fi
+echo "################################"
+
+exit ${RET}
