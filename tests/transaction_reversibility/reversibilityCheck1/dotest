@@ -14,8 +14,7 @@
 # will crash because it can't undo the current transaction.
 # This test is extremely sensitive to changes in congestion forecasting. Ideally,
 # we'd like to turn off congestion forecasting completely in order to prevent it
-# from interfering. In the mean time, this configuration seems to work pretty well
-# with the congestion forecasting as seen in branch 306-congestion-forecastingV3.
+# from interfering.
 
 
 function end(){
@@ -78,11 +77,12 @@ sleep 1
 echo ""
 echo "Start sending bundles..."
 bpdriver 100000 ipn:1.1 ipn:2.1 -1000 t30
+sleep 10
 
 #Check that bpdriver terminated after aborting an SDR transaction
 text=`grep "Transaction aborted" ion.log | wc -l`
 echo $text
-if ! [ "$text" == "1" ];then
+if [ $text -lt 1 ];then
 	echo "Didn't cause SDR exhaustion... Please update test to send more bundles and try again"
 	echo ""
 	RETVAL=2
@@ -114,7 +114,7 @@ bpdriver 10 ipn:1.1 ipn:2.1 -100 t30
 #Check if we caused a transaction to abort or an unrecoverable SDR error
 text=`grep "Transaction aborted" ion.log | wc -l`
 echo $text
-if [ $text -eq 2 ];then
+if [ $text -gt 1 ];then
 	echo "Error: Transaction aborted! Transaction reversibility didn't reset something correctly!"
 	echo ""
 	RETVAL=1
