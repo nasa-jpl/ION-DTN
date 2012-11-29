@@ -137,11 +137,17 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	/*	Drop all volatile databases.				*/
 
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-	cfdpDropVdb();
+	if(restart_cfdp){
+		cfdpDropVdb();
+	}
 #endif
 	cgr_stop();
-	bpDropVdb();
-	ltpDropVdb();
+	if(restart_bp){
+		bpDropVdb();
+	}
+	if(restart_ltp){
+		ltpDropVdb();
+	}
 	ionDropVdb();
 
 	/*	Un-end the transaction semaphore.	*/
@@ -151,11 +157,17 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	/*	Now re-create all of the volatile databases.		*/
 
 	ionRaiseVdb();
-	ltpRaiseVdb();
-	bpRaiseVdb();
+	if(restart_ltp){
+		ltpRaiseVdb();
+	}
+	if(restart_bp){
+		bpRaiseVdb();
+	}
 	cgr_start();
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-	cfdpRaiseVdb();
+	if(restart_cfdp){
+		cfdpRaiseVdb();
+	}
 #endif
 
 	/*	Restart all ION tasks.					*/
