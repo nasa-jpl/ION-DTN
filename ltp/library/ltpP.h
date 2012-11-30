@@ -369,6 +369,7 @@ typedef struct
 	int		meterPid;	/*	For stopping ltpmeter.	*/
 	int		lsoPid;		/*	For stopping the LSO.	*/
 	PsmAddress	importSessions;	/*	RBT of VImportSessions	*/
+	PsmAddress	avblIdxRbts;	/*	SmList of empty RBTs	*/
 
 	/*	For detecting miscolored segments.			*/
 
