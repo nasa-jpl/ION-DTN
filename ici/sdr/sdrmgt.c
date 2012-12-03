@@ -996,14 +996,12 @@ long	sdr_object_length(Sdr sdrv, Object object)
 
 long	sdr_unused(Sdr sdrv)
 {
-	SdrState	*sdr;
 	SdrMap		*map;
 	long		smallPoolSize;
 	long		largePoolSize;
 	long		unused;
 
 	CHKZERO(sdrFetchSafe(sdrv));
-	sdr = sdrv->sdr;
 	map = _mapImage(sdrv);
 	unused = map->sdrSize - sizeof(SdrMap);
 	smallPoolSize = map->endOfSmallPool - map->startOfSmallPool;

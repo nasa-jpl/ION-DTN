@@ -280,7 +280,6 @@ Address	sdr_hash_entry_value(Sdr sdrv, Object hash, Object entry)
 int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value,
 		Object *entry)
 {
-	SdrState	*sdr;
 	int		keyLength;
 	int		kvpairLength;
 	int		rowSize;
@@ -302,7 +301,6 @@ int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value,
 	CHKERR(hash);
 	CHKERR(key);
 	CHKERR(value);
-	sdr = sdrv->sdr;
 	keyLength = sdr_table_user_data(sdrv, hash);
 	kvpairLength = sizeof(Address) + keyLength;
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
@@ -362,7 +360,6 @@ int	sdr_hash_count(Sdr sdrv, Object hash)
 int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
 		void *args)
 {
-	SdrState	*sdr;
 	int		keyLength;
 	int		kvpairLength;
 	int		rowSize;
@@ -378,7 +375,6 @@ int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
 	CHKERR(hash);
 	CHKERR(callback);
 	//Passing NULL args is OK (passed through to callback)
-	sdr = sdrv->sdr;
 	keyLength = sdr_table_user_data(sdrv, hash);
 	kvpairLength = sizeof(Address) + keyLength;
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
