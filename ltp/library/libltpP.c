@@ -231,6 +231,16 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 		return -1;
 	}
 
+	vspan->avblIdxRbts = sm_list_create(ltpwm);
+	if (vspan->avblIdxRbts == 0)
+	{
+		sm_rbt_destroy(ltpwm, vspan->importSessions, NULL, NULL);
+		psm_free(ltpwm, vspan->segmentBuffer);
+		oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
+		psm_free(ltpwm, addr);
+		return -1;
+	}
+
 	vspan->bufOpenRedSemaphore = SM_SEM_NONE;
 	vspan->bufOpenGreenSemaphore = SM_SEM_NONE;
 	vspan->bufClosedSemaphore = SM_SEM_NONE;
@@ -245,18 +255,30 @@ static void	deleteSegmentRef(PsmPartition ltpwm, PsmAddress nodeData,
 	psm_free(ltpwm, nodeData);	/*	Delete LtpSegmentRef.	*/
 }
 
+static PsmAddress	releaseIdxRbt(PsmPartition ltpwm, LtpVspan *vspan,
+				PsmAddress rbt)
+{
+	sm_rbt_clear(ltpwm, rbt, deleteSegmentRef, NULL);
+	return sm_list_insert_first(ltpwm, vspan->avblIdxRbts, rbt);
+}
+
 static void	deleteVImportSession(PsmPartition ltpwm, PsmAddress nodeData,
 			void *arg)
 {
 	VImportSession	*vsession = (VImportSession *) psp(ltpwm, nodeData);
+	LtpVspan	*vspan = (LtpVspan *) arg;
 
 	if (vsession->redSegmentsIdx)
 	{
-		oK(sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx,
-				deleteSegmentRef, NULL));
+		oK(releaseIdxRbt(ltpwm, vspan, vsession->redSegmentsIdx));
 	}
 
 	psm_free(ltpwm, nodeData);	/*	Delete VImportSession.	*/
+}
+
+static void	deleteIdxRbt(PsmPartition ltpwm, PsmAddress nodeData, void *arg)
+{
+	oK(sm_rbt_destroy(ltpwm, nodeData, NULL, NULL));
 }
 
 static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
@@ -286,7 +308,9 @@ static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
 	}
 
 	oK(sm_rbt_destroy(ltpwm, vspan->importSessions,
-			deleteVImportSession, NULL));
+			deleteVImportSession, vspan));
+	oK(sm_list_destroy(ltpwm, vspan->avblIdxRbts,
+			deleteIdxRbt, NULL));
 	psm_free(ltpwm, vspan->segmentBuffer);
 	oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
 	psm_free(ltpwm, vspanAddr);
@@ -1702,6 +1726,22 @@ static int	orderImportSessions(PsmPartition wm, PsmAddress nodeData,
 	return 0;
 }
 
+static PsmAddress	getIdxRbt(PsmPartition ltpwm, LtpVspan *vspan)
+{
+	PsmAddress	elt;
+	PsmAddress	rbt;
+
+	elt = sm_list_first(ltpwm, vspan->avblIdxRbts);
+	if (elt)	/*	Recycle previously created RBT.		*/
+	{
+		rbt = sm_list_data(ltpwm, elt);
+		sm_list_delete(ltpwm, elt, NULL, NULL);
+		return rbt;
+	}
+
+	return sm_rbt_create(ltpwm);
+}
+
 static void	addVImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 			Object sessionElt, VImportSession **vsessionPtr)
 {
@@ -1719,7 +1759,7 @@ static void	addVImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 	vsession = (VImportSession *) psp(ltpwm, addr);
 	vsession->sessionNbr = sessionNbr;
 	vsession->sessionElt = sessionElt;
-	vsession->redSegmentsIdx = sm_rbt_create(ltpwm);
+	vsession->redSegmentsIdx = getIdxRbt(ltpwm, vspan);
 	if (vsession->redSegmentsIdx == 0)
 	{
 		psm_free(ltpwm, addr);
@@ -1729,8 +1769,7 @@ static void	addVImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 	if (sm_rbt_insert(ltpwm, vspan->importSessions, addr,
 			orderImportSessions, vsession) == 0)
 	{
-		sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx,
-				deleteSegmentRef, NULL);
+		sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx, NULL, NULL);
 		psm_free(ltpwm, addr);
 		return;
 	}
@@ -1948,7 +1987,7 @@ static void	destroyRsXmitSeg(Object rsElt, Object rsObj, LtpXmitSeg *rs)
 	sdr_list_delete(ltpSdr, rsElt, NULL, NULL);
 }
 
-static void	destroyRedSegmentsIdx(ImportSession *session)
+static void	stopVImportSession(ImportSession *session)
 {
 	Sdr		ltpSdr = getIonsdr();
 	PsmPartition	ltpwm = getIonwm();
@@ -1966,7 +2005,7 @@ static void	destroyRedSegmentsIdx(ImportSession *session)
 
 	arg.sessionNbr = session->sessionNbr;
 	oK(sm_rbt_delete(ltpwm, vspan->importSessions, orderImportSessions,
-			&arg, deleteVImportSession, NULL));
+			&arg, deleteVImportSession, vspan));
 }
 
 static void	stopImportSession(ImportSession *session)
@@ -2009,7 +2048,7 @@ static void	stopImportSession(ImportSession *session)
 		session->svcData = 0;
 	}
 
-	destroyRedSegmentsIdx(session);
+	stopVImportSession(session);
 	if (session->blockFileRef)
 	{
 		zco_destroy_file_ref(ltpSdr, session->blockFileRef);
