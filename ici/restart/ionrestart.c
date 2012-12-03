@@ -30,16 +30,17 @@ extern void	ionRaiseVdb();
 static void	restartION(Sdr sdrv, char *utaCmd)
 {
 	int	i;
-	int restart_bp=1;
-	int restart_ltp=1;
-	int restart_cfdp=1;
+	int	restart_bp = 1;
+	int	restart_ltp = 1;
+	int	restart_cfdp = 1;
+	time_t	prevRestartTime;
 
 	/*	Stop all tasks.						*/
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 	if (cfdpAttach() < 0)
 	{
-		restart_cfdp=0;
-		putErrmsg("ionrestart can't attach to CFDP.", NULL);
+		restart_cfdp = 0;
+		writeMemo("[!] ionrestart can't attach to CFDP.");
 	}
 	else
 	{
@@ -57,15 +58,18 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 		if (i == 5)
 		{
-			putErrmsg("CFDP not stopped.", NULL);
+			writeMemo("[!] ionrestart: CFDP not stopped.");
+		}
+		else
+		{
+			writeMemo("[i] ionrestart: CFDP stopped.");
 		}
 	}
 #endif
-
 	if (bpAttach() < 0)
 	{
-		restart_bp=0;
-		putErrmsg("ionrestart can't attach to BP.", NULL);
+		restart_bp = 0;
+		writeMemo("[!] ionrestart can't attach to BP.");
 	}
 	else
 	{
@@ -83,14 +87,18 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 		if (i == 5)
 		{
-			putErrmsg("BP not stopped.", NULL);
+			writeMemo("[!] ionrestart: BP not stopped.");
+		}
+		else
+		{
+			writeMemo("[i] ionrestart: BP stopped.");
 		}
 	}
 
 	if (ltpAttach() < 0)
 	{
-		restart_ltp=0;
-		putErrmsg("ionrestart can't attach to LTP.", NULL);
+		restart_ltp = 0;
+		writeMemo("[!] ionrestart can't attach to LTP.");
 	}
 	else
 	{
@@ -108,7 +116,11 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 		if (i == 5)
 		{
-			putErrmsg("LTP not stopped.", NULL);
+			writeMemo("[!] ionrestart: LTP not stopped.");
+		}
+		else
+		{
+			writeMemo("[i] ionrestart: LTP stopped.");
 		}
 	}
 
@@ -126,7 +138,11 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 	if (i == 5)
 	{
-		putErrmsg("rfxclock not stopped.", NULL);
+		writeMemo("[!] ionrestart: rfxclock not stopped.");
+	}
+	else
+	{
+		writeMemo("[i] ionrestart: rfxclock stopped.");
 	}
 
 	/*	Terminate all remaining tasks by ending the
@@ -137,38 +153,63 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	/*	Drop all volatile databases.				*/
 
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-	if(restart_cfdp){
+	if (restart_cfdp)
+	{
 		cfdpDropVdb();
+		writeMemo("[i] ionrestart: CFDP volatile database dropped.");
 	}
 #endif
 	cgr_stop();
-	if(restart_bp){
+	if (restart_bp)
+	{
 		bpDropVdb();
+		writeMemo("[i] ionrestart: BP volatile database dropped.");
 	}
-	if(restart_ltp){
-		ltpDropVdb();
-	}
-	ionDropVdb();
 
-	/*	Un-end the transaction semaphore.	*/
+	if (restart_ltp)
+	{
+		ltpDropVdb();
+		writeMemo("[i] ionrestart: LTP volatile database dropped.");
+	}
+
+	ionDropVdb();
+	writeMemo("[i] ionrestart: ION volatile database dropped.");
+
+	/*	Un-end the transaction semaphore.			*/
 
 	sm_SemUnend(sdrv->sdr->sdrSemaphore);
 
 	/*	Now re-create all of the volatile databases.		*/
 
 	ionRaiseVdb();
-	if(restart_ltp){
+	writeMemo("[i] ionrestart: ION volatile database raised.");
+	if (restart_ltp)
+	{
 		ltpRaiseVdb();
+		writeMemo("[i] ionrestart: LTP volatile database raised.");
 	}
-	if(restart_bp){
+
+	if (restart_bp)
+	{
 		bpRaiseVdb();
+		writeMemo("[i] ionrestart: BP volatile database raised.");
 	}
+
 	cgr_start();
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-	if(restart_cfdp){
+	if (restart_cfdp)
+	{
 		cfdpRaiseVdb();
+		writeMemo("[i] ionrestart: CFDP volatile database raised.");
 	}
 #endif
+	prevRestartTime = sdrv->sdr->restartTime;
+	sdrv->sdr->restartTime = getUTCTime();
+	if ((sdrv->sdr->restartTime - prevRestartTime) < 5)
+	{
+		writeMemo("[!] Inferred restart loop.  Tasks not restarted.");
+		return;
+	}
 
 	/*	Restart all ION tasks.					*/
 
@@ -186,17 +227,22 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 	if (i == 5)
 	{
-		putErrmsg("rfxclock not restarted.", NULL);
+		writeMemo("[!] ionrestart: rfxclock not restarted.");
+	}
+	else
+	{
+		writeMemo("[i] ionrestart: rfxclock restarted.");
 	}
 
-	if(restart_ltp){
+	if (restart_ltp)
+	{
 		ltpStart();
 		for (i = 0; i < 5; i++)
 		{
 			if (!ltp_engine_is_started())
 			{
 				snooze(1);
-				continue;		/*	Not started.	*/
+				continue;	/*	Not started.	*/
 			}
 
 			break;
@@ -204,18 +250,23 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 		if (i == 5)
 		{
-			putErrmsg("LTP not started.", NULL);
+			writeMemo("[!] ionrestart: LTP not restarted.");
+		}
+		else
+		{
+			writeMemo("[i] ionrestart: LTP restarted.");
 		}
 	}
 
-	if(restart_bp){
+	if (restart_bp)
+	{
 		bpStart();
 		for (i = 0; i < 5; i++)
 		{
 			if (!bp_agent_is_started())
 			{
 				snooze(1);
-				continue;		/*	Not started.	*/
+				continue;	/*	Not started.	*/
 			}
 
 			break;
@@ -223,19 +274,24 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 		if (i == 5)
 		{
-			putErrmsg("BP not started.", NULL);
+			writeMemo("[!] ionrestart: BP not restarted.");
+		}
+		else
+		{
+			writeMemo("[i] ionrestart: BP restarted.");
 		}
 	}
 
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-	if(restart_cfdp){
+	if (restart_cfdp)
+	{
 		cfdpStart(utaCmd);
 		for (i = 0; i < 5; i++)
 		{
 			if (!cfdp_entity_is_started())
 			{
 				snooze(1);
-				continue;		/*	Not started.	*/
+				continue;	/*	Not started.	*/
 			}
 
 			break;
@@ -243,7 +299,11 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 		if (i == 5)
 		{
-			putErrmsg("CFDP not started.", NULL);
+			writeMemo("[!] ionrestart: CFDP not restarted.");
+		}
+		else
+		{
+			writeMemo("[i] ionrestart: CFDP restarted.");
 		}
 	}
 #endif
@@ -260,8 +320,7 @@ int	main(int argc, char **argv)
 	char		*utaCmd = argc > 1 ? argv[1] : "bputa";
 #endif
 	Sdr		sdrv;
-	int		sdrOwnerTask;
-	pthread_t	sdrOwnerThread;
+	sm_SemId	sdrSemaphore;
 
 	if (ionAttach() < 0)
 	{
@@ -269,26 +328,32 @@ int	main(int argc, char **argv)
 		return 1;
 	}
 
-	/*	Impersonate the current owner of the ION mutex.		*/
+	/*	Hijack the current transaction, i.e., impersonate
+	 *	the current owner of the ION mutex.  Also make it
+	 *	un-takeable by any other thread.			*/
 
 	sdrv = getIonsdr();
-	sdrOwnerTask = sdrv->sdr->sdrOwnerTask;
-	sdrOwnerThread = sdrv->sdr->sdrOwnerThread;
 	sdrv->sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdrv->sdr->sdrOwnerThread = pthread_self();
+	sdrSemaphore = sdrv->sdr->sdrSemaphore;
+	sdrv->sdr->sdrSemaphore = -1;
 
-	/*	Perform the restart.					*/
+	/*	Wait for the failing task to terminate, then perform
+	 *	the restart.						*/
 
+	snooze(2);
+       	sdrv->sdr->sdrSemaphore = sdrSemaphore;
 	restartION(sdrv, utaCmd);
 
-	/*	Restore current owner of the ION mutex.			*/
+	/*	Close out the hijacked transaction.			*/
 
-	sdrv->sdr->sdrOwnerTask = sdrOwnerTask;
-	sdrv->sdr->sdrOwnerThread = sdrOwnerThread;
+	sdrv->sdr->xnDepth = 1;
+	sdrv->modified = 0;
+	sdr_exit_xn(sdrv);
 
 	/*	Terminate.						*/
 
 	ionDetach();
-	writeMemo("[i] ION volatile databases reinitialized.");
+	writeMemo("[i] ionrestart: finished restarting ION.");
 	return 0;
 }

@@ -130,12 +130,10 @@ Address	sdr_list_user_data(Sdr sdrv, Object list)
 	SdrState	*sdr;
 	SdrList		listBuffer;
 
-	CHKZERO(sdrv);
+	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(list);
 	sdr = sdrv->sdr;
-	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(listBuffer, list);
-	releaseSdr(sdr);
 	return listBuffer.userData;
 }
 
@@ -167,12 +165,10 @@ long	sdr_list_length(Sdr sdrv, Object list)
 	SdrState	*sdr;
 	SdrList		listBuffer;
 
-	CHKERR(sdrv);
+	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(list);
 	sdr = sdrv->sdr;
-	CHKERR(takeSdr(sdr) == 0);
 	sdrFetch(listBuffer, list);
-	releaseSdr(sdr);
 	return listBuffer.length;
 }
 
@@ -539,12 +535,10 @@ Object	sdr_list_first(Sdr sdrv, Object list)
 	SdrState	*sdr;
 	SdrList		listBuffer;
 
-	CHKZERO(sdrv);
+	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(list);
 	sdr = sdrv->sdr;
-	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(listBuffer, (Address) list);
-	releaseSdr(sdr);
 	return listBuffer.first;
 }
 
@@ -553,12 +547,10 @@ Object	sdr_list_last(Sdr sdrv, Object list)
 	SdrState	*sdr;
 	SdrList		listBuffer;
 
-	CHKZERO(sdrv);
+	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(list);
 	sdr = sdrv->sdr;
-	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(listBuffer, (Address) list);
-	releaseSdr(sdr);
 	return listBuffer.last;
 }
 
@@ -567,12 +559,10 @@ Object	sdr_list_next(Sdr sdrv, Object elt)
 	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
-	CHKZERO(sdrv);
+	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
 	sdr = sdrv->sdr;
-	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(eltBuffer, (Address) elt);
-	releaseSdr(sdr);
 	return eltBuffer.next;
 }
 
@@ -581,12 +571,10 @@ Object	sdr_list_prev(Sdr sdrv, Object elt)
 	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
-	CHKZERO(sdrv);
+	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
 	sdr = sdrv->sdr;
-	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(eltBuffer, (Address) elt);
-	releaseSdr(sdr);
 	return eltBuffer.prev;
 }
 
@@ -597,7 +585,7 @@ Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
 	SdrListElt	elt;
 	int		result;
 
-	CHKZERO(sdrv);
+	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(fromElt);
 	if (compare)	/* list assumed sorted; bail early if possible	*/
 	{
@@ -672,12 +660,10 @@ Object	sdr_list_list(Sdr sdrv, Object elt)
 	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
-	CHKZERO(sdrv);
+	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
 	sdr = sdrv->sdr;
-	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(eltBuffer, (Address) elt);
-	releaseSdr(sdr);
 	return eltBuffer.list;
 }
 
@@ -686,12 +672,10 @@ Address	sdr_list_data(Sdr sdrv, Object elt)
 	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
-	CHKZERO(sdrv);
+	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
 	sdr = sdrv->sdr;
-	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(eltBuffer, (Address) elt);
-	releaseSdr(sdr);
 	return eltBuffer.data;
 }
 

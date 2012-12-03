@@ -346,8 +346,10 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 			vscheme->schemeElt), sizeof(Scheme));
+	sdr_exit_xn(sdr);
 	oK(_bssfwSemaphore(&vscheme->semaphore));
 	if (_loggedStreamsList(1) == NULL)
 	{

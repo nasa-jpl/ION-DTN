@@ -34,6 +34,8 @@ static CfdpDB	*_cfdpConstants()
 {
 	static CfdpDB	buf;
 	static CfdpDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
@@ -42,9 +44,26 @@ static CfdpDB	*_cfdpConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(getIonsdr(), (char *) &buf, _cfdpdbObject(NULL),
-				sizeof(CfdpDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _cfdpdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(CfdpDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(CfdpDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;

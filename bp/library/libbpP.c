@@ -268,6 +268,8 @@ static BpDB	*_bpConstants()
 {
 	static BpDB	buf;
 	static BpDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 	
 	if (db == NULL)
 	{
@@ -276,9 +278,26 @@ static BpDB	*_bpConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(getIonsdr(), (char *) &buf, _bpdbObject(NULL),
-				sizeof(BpDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _bpdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(BpDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(BpDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 	
 	return db;
@@ -2237,6 +2256,8 @@ void	getSenderEid(char **eidBuffer, char *neighborClEid)
 	BpEidLookupFn	*lookupFns;
 	int		i;
 	BpEidLookupFn	lookupEid;
+	Sdr		sdr = getIonsdr();
+	int		result;
 
 	CHKVOID(eidBuffer);
 	CHKVOID(*eidBuffer);
@@ -2250,7 +2271,10 @@ void	getSenderEid(char **eidBuffer, char *neighborClEid)
 			break;		/*	Reached end of table.	*/
 		}
 
-		switch (lookupEid(*eidBuffer, neighborClEid))
+		CHKVOID(sdr_begin_xn(sdr));
+		result = lookupEid(*eidBuffer, neighborClEid);
+		sdr_exit_xn(sdr);
+		switch (result)
 		{
 		case -1:
 			putErrmsg("Failed getting sender EID.", NULL);

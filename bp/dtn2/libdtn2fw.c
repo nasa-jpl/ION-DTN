@@ -36,12 +36,31 @@ static DtnDB	*_dtn2Constants()
 {
 	static DtnDB	buf;
 	static DtnDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 	
 	if (db == NULL)
 	{
-		sdr_read(getIonsdr(), (char *) &buf, _dtn2dbObject(NULL),
-				sizeof(DtnDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _dtn2dbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(DtnDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(DtnDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 	
 	return db;

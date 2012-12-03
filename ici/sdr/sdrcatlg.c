@@ -154,14 +154,12 @@ Object	sdr_find(Sdr sdrv, char *name, int *type)
 	Object		elt;
 	CatalogueEntry	entry;
 
-	CHKZERO(sdrv);
+	CHKZERO(sdrFetchSafe(sdrv));
 	sdr = sdrv->sdr;
-	CHKZERO(takeSdr(sdr) == 0);
 	elt = catlgLookup(sdrv, name);
 	if (elt)
 	{
 		sdrFetch(entry, sdr_list_data(sdrv, elt));
-		releaseSdr(sdr);
 		if (type)
 		{
 			*type = entry.type;
@@ -170,7 +168,6 @@ Object	sdr_find(Sdr sdrv, char *name, int *type)
 		return entry.object;
 	}
 
-	releaseSdr(sdr);
 	return 0;
 }
 
@@ -200,7 +197,7 @@ Object	sdr_read_catlg(Sdr sdrv, char *name, int *type, Object *object,
 	Object		elt;
 	CatalogueEntry	entry;
 
-	CHKZERO(sdr_in_xn(sdrv));
+	CHKZERO(sdrFetchSafe(sdrv));
 	if (prev_elt == 0)
 	{
 		sdrFetch(catalogue, ADDRESS_OF(catalogue));

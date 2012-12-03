@@ -76,6 +76,8 @@ static IonDB	*_ionConstants()
 {
 	static IonDB	buf;
 	static IonDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
@@ -84,9 +86,26 @@ static IonDB	*_ionConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(_ionsdr(NULL), (char *) &buf, _iondbObject(NULL),
-				sizeof(IonDB));
-		db = &buf;
+		sdr = _ionsdr(NULL);
+		CHKNULL(sdr);
+		dbObject = _iondbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(IonDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(IonDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -618,7 +637,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 
 	if (sdr_load_profile(parms->sdrName, parms->configFlags,
 			parms->heapWords, parms->heapKey, parms->pathName,
-			"ionrestart", 15) < 0)
+			"ionrestart") < 0)
 	{
 		putErrmsg("Unable to load SDR profile for ION.", NULL);
 		return -1;
@@ -828,6 +847,7 @@ int	ionAttach()
 
 	signal(SIGINT, SIG_IGN);
 #endif
+
 	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
@@ -867,9 +887,17 @@ int	ionAttach()
 
 	if (iondbObject == 0)
 	{
-		CHKERR(sdr_begin_xn(ionsdr));	/*	Lock database.	*/
-		iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
-		sdr_exit_xn(ionsdr);	/*	Unlock database.	*/
+		if (sdr_heap_is_halted(ionsdr))
+		{
+			iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
+		}
+		else
+		{
+			CHKERR(sdr_begin_xn(ionsdr));
+			iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
+			sdr_exit_xn(ionsdr);
+		}
+
 		if (iondbObject == 0)
 		{
 			putErrmsg("ION database not found.", NULL);

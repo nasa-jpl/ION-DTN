@@ -548,11 +548,10 @@ int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv)
 
 	The log file is truncated to length zero at the termination of
 	each transaction.  Therefore, if it is of non-zero length at
-	startup and the SDR database is configured for SDR_IN_FILE then
-	all complete log entries in the log file must be backed out of
-	the db file before the database is restored to shared memory
-	(assuming the database is also configured for SDR_IN_DRAM) and
-	before it is accessed for any purpose: since this transaction
+	startup then all complete log entries in the log file must be
+	backed out of the SDR heap in shared memory (if applicable) and
+	the SDR heap in the databse file (if applicable) before the
+	database is accessed for any purpose: since this transaction
 	was not ended, the database may be in an inconsistent state.
 
 	An entry in the write-ahead log is an array of unsigned bytes.
@@ -562,7 +561,7 @@ int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv)
 
 	From offet	Until offset	Content is:
 
-	0		W		start address within SDR
+	0		W		start address within SDR heap
 	W		(2*W)		value of L
 	2*W		(2*W) + L	original data at this address
 
@@ -664,19 +663,6 @@ static int	reverseTransaction(Lyst logEntries, int logfile, int dbfile,
 		}
 	}
 
-	if (sdr->restartLatency > 0)
-	{
-		if (pseudoshell(sdr->restartCmd) < 0)
-		{
-			putErrmsg("Can't execute restart command.",
-					sdr->restartCmd);
-			return -1;
-		}
-
-		snooze(sdr->restartLatency);
-	}
-
-	writeMemo("[!] Tasks and volatile databases restarted...");
 	return 0;
 }
 
@@ -728,30 +714,79 @@ static void	terminateXn(Sdr sdrv)
 {
 	SdrState	*sdr = sdrv->sdr;
 
-	if (sdr->xnCanceled)
+	if (sdr->xnCanceled == 0)
 	{
-		sdr->xnCanceled = 0;
-		if (sdr->configFlags & SDR_REVERSIBLE)
-		{
-			if (reverseTransaction(sdrv->logEntries, sdrv->logfile,
-					sdrv->dbfile, sdrv->dbsm, sdr) < 0)
-			{
-				handleUnrecoverableError(sdrv);
-			}
-		}
-		else	/*	Can't back out; if data modified, bail.	*/
-		{
-			if (sdrv->modified)
-			{
-				handleUnrecoverableError(sdrv);
-			}
-		}
+		clearTransaction(sdrv);
+		unlockSdr(sdr);
+		return;
 	}
 
-	/*	Database is in a consistent state, one way or another.	*/
+	/*	Transaction was canceled.				*/
 
-	clearTransaction(sdrv);
-	unlockSdr(sdr);
+	sdr->xnCanceled = 0;
+	if (!(sdr->configFlags & SDR_REVERSIBLE))
+	{
+		/*	Can't back out; if data modified, bail.	*/
+
+		if (sdrv->modified)
+		{
+			handleUnrecoverableError(sdrv);
+		}
+
+		clearTransaction(sdrv);
+		unlockSdr(sdr);
+		return;
+	}
+
+	/*	Transaction must be reversed as necessary.		*/
+
+	if (reverseTransaction(sdrv->logEntries, sdrv->logfile, sdrv->dbfile,
+			sdrv->dbsm, sdr) < 0)
+	{
+		handleUnrecoverableError(sdrv);
+
+		/*	In case not aborted....				*/
+
+		clearTransaction(sdrv);
+		unlockSdr(sdr);
+		return;
+	}
+
+	/*	Reversal succeeded, so try to reboot volatiles.		*/
+
+	if (sdr->restartCmd[0] == '\0')
+	{
+		/*	No restart utility, so can't do any more.	*/
+
+		clearTransaction(sdrv);
+		unlockSdr(sdr);
+		return;
+	}
+
+	/*	Restart utility provided.				*/
+
+	sdr->halted = 1;	/*	Enable restart to ionAttach.	*/
+	if (pseudoshell(sdr->restartCmd) < 0)
+	{
+		writeMemoNote("[!] Can't execute restart command",
+				sdr->restartCmd);
+		clearTransaction(sdrv);
+		unlockSdr(sdr);
+		return;
+	}
+
+	/*	Restart utility is running; give it time to hijack the
+	 *	transaction.						*/
+
+	snooze(2);
+	sdr->halted = 0;
+
+	/*	Transaction still exists, but restart utility is now
+	 *	its owner.  From the perspective of the current task,
+	 *	the transaction is finished; nothing more to do.  The
+	 *	restart utility will clear the hijacked transaction.	*/
+
+	return;
 }
 
 void	crashXn(Sdr sdrv)
@@ -942,8 +977,7 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 }
 
 int	sdr_load_profile(char *name, int configFlags, long heapWords,
-		int memKey, char *pathName, char *restartCmd,
-		unsigned int restartLatency)
+		int memKey, char *pathName, char *restartCmd)
 {
 	sm_SemId		lock = _sdrlock(0);
 	PsmPartition		sdrwm = _sdrwm(NULL);
@@ -1047,11 +1081,14 @@ in file and transaction reversibility", sdr->pathName);
 		sdr->configFlags &= (~SDR_REVERSIBLE); 
 	}
 
-	if (restartLatency > 0 && restartCmd != NULL)
+	if (restartCmd == NULL)
+	{
+		sdr->restartCmd[0] = '\0';
+	}
+	else
 	{
 		limit = sizeof(sdr->restartCmd) - 1;
 		istrcpy(sdr->restartCmd, restartCmd, limit);
-		sdr->restartLatency = restartLatency;
 	}
 
 	/*	Add SDR to linked list of defined SDRs.			*/
@@ -1236,8 +1273,7 @@ in file and transaction reversibility", sdr->pathName);
 }
 
 int	sdr_reload_profile(char *name, int configFlags, long heapWords,
-		int memKey, char *pathName, char *restartCmd,
-		unsigned int restartLatency)
+		int memKey, char *pathName, char *restartCmd)
 {
 	sm_SemId		lock = _sdrlock(0);
 	PsmPartition		sdrwm = _sdrwm(NULL);
@@ -1294,7 +1330,7 @@ int	sdr_reload_profile(char *name, int configFlags, long heapWords,
 
 	sm_SemGive(lock);
 	return sdr_load_profile(name, configFlags, heapWords, memKey, pathName,
-			restartCmd, restartLatency);
+			restartCmd);
 }
 
 static void	deleteObjectExtent(LystElt elt, void *userData)
@@ -1597,6 +1633,22 @@ int	sdr_in_xn(Sdr sdrv)
 		&& pthread_equal(sdrv->sdr->sdrOwnerThread, pthread_self()));
 }
 
+int	sdr_heap_is_halted(Sdr sdrv)
+{
+	CHKZERO(sdrv);
+	return (sdrv->sdr != NULL && sdrv->sdr->halted);
+}
+
+int	sdrFetchSafe(Sdr sdrv)
+{
+	if (sdr_in_xn(sdrv))
+	{
+		return 1;
+	}
+
+	return sdr_heap_is_halted(sdrv);
+}
+
 void	sdr_exit_xn(Sdr sdrv)
 {
 	SdrState	*sdr;
@@ -1891,6 +1943,7 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
 	CHKVOID(from >= 0);
 	memset(into, 0, length);		/*	Default value.	*/
 	sdr = sdrv->sdr;
+	CHKVOID(sdr);
 	to = from + length;
 	if (to > sdr->sdrSize)
 	{
@@ -1921,13 +1974,13 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
 
 void	sdr_read(Sdr sdrv, char *into, Address from, long length)
 {
-	SdrState	*sdr;
+	CHKVOID(sdrFetchSafe(sdrv));
+	_sdrfetch(sdrv, into, from, length);
+}
 
-	CHKVOID(sdrv);
-	sdr = sdrv->sdr;
-	if (takeSdr(sdr) == 0)
-	{
-		_sdrfetch(sdrv, into, from, length);
-		releaseSdr(sdr);
-	}
+void	sdr_snap(Sdr sdrv, char *into, Address from, long length)
+{
+	/*	This is an unsafe, lower-overhead alternate sdr_read.	*/
+
+	_sdrfetch(sdrv, into, from, length);
 }

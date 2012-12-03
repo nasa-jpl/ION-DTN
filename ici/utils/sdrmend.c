@@ -22,7 +22,6 @@ int	sdrmend(int a1, int a2, int a3, int a4, int a5,
 	int		heapKey = a4;
 	char		*pathName = (char *) a5;
 	char		*restartCmd = (char *) a6;
-	unsigned int	restartLatency = a7;
 
 #else
 int	main(int argc, char **argv)
@@ -33,12 +32,11 @@ int	main(int argc, char **argv)
 	int		heapKey;
 	char		*pathName;
 	char		*restartCmd = NULL;
-	unsigned int	restartLatency = 0;
 
 	if (argc < 6)
 	{
 		PUTS("Usage: sdrmend <sdr name> <config flags> <heap words> \
-<heap key, e.g. -1> <pathName> [<restartCmd> <restartLatency>");
+<heap key, e.g. -1> <pathName> [<restartCmd>]");
 		return 0;
 	}
 
@@ -47,10 +45,9 @@ int	main(int argc, char **argv)
 	heapWords = strtol(argv[3], NULL, 0);
 	heapKey = strtol(argv[4], NULL, 0);
 	pathName = argv[5];
-	if (argc == 8)
+	if (argc == 7)
 	{
 		restartCmd = argv[6];
-		restartLatency = strtoul(argv[7], NULL, 0);
 	}
 #endif
 
@@ -61,7 +58,7 @@ int	main(int argc, char **argv)
 	}
 
 	if (sdr_reload_profile(sdrName, configFlags, heapWords, heapKey,
-			pathName, restartCmd, restartLatency) < 0)
+			pathName, restartCmd) < 0)
 	{
 		putErrmsg("Can't reload profile for SDR.", sdrName);
 		return 1;

@@ -36,12 +36,31 @@ static SecDB	*_secConstants()
 {
 	static SecDB	buf;
 	static SecDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
-		sdr_read(getIonsdr(), (char *) &buf, _secdbObject(0),
-				sizeof(SecDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _secdbObject(0);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(SecDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(SecDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -227,12 +246,7 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
         CHKVOID(srcEid);
         CHKVOID(destEid);
         CHKVOID(blockType);
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] ionClear can't find ION security.");
-		return;
-	}
-
+	CHKVOID(secdb);
 	srcEidLen = istrlen(srcEid, SDRSTRING_BUFSZ);
 	destEidLen = istrlen(destEid, SDRSTRING_BUFSZ);
        	if ((blockType[0] == '~') || (bspTypeToInt(blockType) == BSP_BAB_TYPE))
@@ -381,6 +395,7 @@ static Object	locateKey(char *keyName, Object *nextKey)
 	 *	should be inserted.					*/
 
 	CHKZERO(ionLocked());
+	CHKZERO(secdb);
 	if (nextKey) *nextKey = 0;	/*	Default.		*/
 	for (elt = sdr_list_first(sdr, secdb->keys); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -416,12 +431,6 @@ void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp)
 	CHKVOID(keyAddr);
 	CHKVOID(eltp);
 	*eltp = 0;
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_findKey can't find ION security.");
-		return;
-	}
-
 	CHKVOID(sdr_begin_xn(sdr));
 	elt = locateKey(keyName, NULL);
 	if (elt == 0)
@@ -502,6 +511,7 @@ int	sec_addKey(char *keyName, char *fileName)
 
 	CHKERR(keyName);
 	CHKERR(fileName);
+	CHKERR(secdb);
 	if (*keyName == '\0' || istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid key name", keyName);
@@ -511,12 +521,6 @@ int	sec_addKey(char *keyName, char *fileName)
 	if (stat(fileName, &statbuf) < 0)
 	{
 		writeMemoNote("[?] Can't stat the key value file", fileName);
-		return 0;
-	}
-
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_addKey can't find ION security.");
 		return 0;
 	}
 
@@ -594,12 +598,6 @@ int	sec_updateKey(char *keyName, char *fileName)
 		return 0;
 	}
 
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_updateKey can't find ION security.");
-		return 0;
-	}
-
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateKey(keyName, NULL);
 	if (elt == 0)
@@ -648,12 +646,6 @@ int	sec_removeKey(char *keyName)
 		OBJ_POINTER(SecKey, key);
 
 	CHKERR(keyName);
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_removeKey can't find ION security.");
-		return 0;
-	}
-
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateKey(keyName, NULL);
 	if (elt == 0)
@@ -690,12 +682,6 @@ int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 	CHKERR(keyName);
 	CHKERR(keyBufferLength);
 	CHKERR(keyValueBuffer);
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_get_key can't find ION security.");
-		return 0;
-	}
-
 	CHKERR(sdr_begin_xn(sdr));
 	sec_findKey(keyName, &keyAddr, &elt);
 	if (elt == 0)
@@ -842,13 +828,8 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 	CHKERR(destEid);
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
+	CHKERR(secdb);
 	*eltp = 0;
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_get_bspBabRule can't find ION security.");
-		return 0;
-	}
-
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -887,12 +868,6 @@ int	sec_findBspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_findBspBabRule can't find ION security.");
-		return -1;
-	}
-
 	if ((filterEid(srcEid, srcEid) == 0)
 	|| (filterEid(destEid, destEid) == 0))
 	{
@@ -917,13 +892,7 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 	CHKERR(destEid);
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
-
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_addBspBabRule can't find ION security.");
-		return 0;
-	}
-
+	CHKERR(secdb);
 	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
@@ -1008,12 +977,6 @@ int	sec_updateBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 	CHKERR(destEid);
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_updateBabRule can't find ION security.");
-		return 0;
-	}
-
 	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
@@ -1064,12 +1027,6 @@ int	sec_removeBspBabRule(char *srcEid, char *destEid)
 
 	CHKERR(srcEid);
 	CHKERR(destEid);
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_removeBspBabRule can't find ION security.");
-		return 0;
-	}
-
 	if ((filterEid(srcEid, srcEid) == 0)
 	|| (filterEid(destEid, destEid) == 0))
 	{
@@ -1134,12 +1091,7 @@ int	sec_get_bspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_get_bspPibRule can't find ION security.");
-		return 0;
-	}
-
+	CHKERR(secdb);
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, secdb->bspPibRules); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -1184,12 +1136,6 @@ int	sec_findBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr,
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_findBspPibRule can't find ION security.");
-		return -1;
-	}
-
 	if ((filterEid(secSrcEid, secSrcEid) == 0)
 	|| (filterEid(secDestEid, secDestEid) == 0))
 	{
@@ -1213,12 +1159,7 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	CHKERR(secDestEid);
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_addBspPibRule can't find ION security.");
-		return 0;
-	}
-
+	CHKERR(secdb);
 	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
@@ -1287,12 +1228,6 @@ int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid,
 	CHKERR(secDestEid);
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_updatePibRule can't find ION security.");
-		return 0;
-	}
-
 	if (istrlen(ciphersuiteName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
@@ -1345,12 +1280,6 @@ int	sec_removeBspPibRule(char *secSrcEid, char *secDestEid,
 
 	CHKERR(secSrcEid);
 	CHKERR(secDestEid);
-	if (secAttach() < 0)
-	{
-		writeMemo("[?] sec_removeBspPibRule can't find ION security.");
-		return 0;
-	}
-
 	if ((filterEid(secSrcEid, secSrcEid) == 0)
 	|| (filterEid(secDestEid, secDestEid) == 0))
 	{
@@ -1401,12 +1330,7 @@ int    sec_get_bspPcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
         CHKERR(ruleAddr);
         CHKERR(eltp);
         *eltp = 0;
-        if (secAttach() < 0)
-        {
-                writeMemo("[?] sec_get_bspPcbRule can't find ION security.");
-                return 0;
-        }
-
+        CHKERR(secdb);
         CHKERR(sdr_begin_xn(sdr));
         for (elt = sdr_list_first(sdr, secdb->bspPcbRules); elt;
                         elt = sdr_list_next(sdr, elt))
@@ -1451,12 +1375,6 @@ int     sec_findBspPcbRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr,
         CHKERR(ruleAddr);
         CHKERR(eltp);
         *eltp = 0;
-        if (secAttach() < 0)
-        {
-                writeMemo("[?] sec_findBspPcbRule can't find ION security.");
-                return -1;
-        }
-
         if ((filterEid(secSrcEid, secSrcEid) == 0)
         || (filterEid(secDestEid, secDestEid) == 0))
         {
@@ -1480,12 +1398,7 @@ int     sec_addBspPcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
         CHKERR(secDestEid);
         CHKERR(ciphersuiteName);
         CHKERR(keyName);
-        if (secAttach() < 0)
-        {
-                writeMemo("[?] sec_addBspPcbRule can't find ION security.");
-                return 0;
-        }
-        
+        CHKERR(secdb);
         if (strlen(ciphersuiteName) > 31)
         {
                 writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
@@ -1554,12 +1467,6 @@ int     sec_updateBspPcbRule(char *secSrcEid, char *secDestEid,
         CHKERR(secDestEid);
         CHKERR(ciphersuiteName);
         CHKERR(keyName);
-        if (secAttach() < 0)
-        {
-                writeMemo("[?] sec_updatePcbRule can't find ION security.");
-                return 0;
-        }
-
         if (strlen(ciphersuiteName) > 31)
         {
                 writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
@@ -1612,12 +1519,6 @@ int     sec_removeBspPcbRule(char *secSrcEid, char *secDestEid,
 
         CHKERR(secSrcEid);
         CHKERR(secDestEid);
-        if (secAttach() < 0)
-        {
-                writeMemo("[?] sec_removeBspPcbRule can't find ION security.");
-                return 0;
-        }
-
         if ((filterEid(secSrcEid, secSrcEid) == 0)
         || (filterEid(secDestEid, secDestEid) == 0))
         {

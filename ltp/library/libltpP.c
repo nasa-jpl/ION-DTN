@@ -37,6 +37,8 @@ static LtpDB	*_ltpConstants()
 {
 	static LtpDB	buf;
 	static LtpDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
@@ -45,9 +47,26 @@ static LtpDB	*_ltpConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(getIonsdr(), (char *) &buf, _ltpdbObject(NULL),
-				sizeof(LtpDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _ltpdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(LtpDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(LtpDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;

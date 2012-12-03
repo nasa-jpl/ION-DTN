@@ -110,12 +110,10 @@ int	sdr_string_length(Sdr sdrv, Object string)
 	SdrState	*sdr;
 	unsigned char	length;
 
-	CHKERR(sdrv);
+	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(string);
 	sdr = sdrv->sdr;
-	CHKERR(takeSdr(sdr) == 0);
 	sdrFetch(length, (Address) string);
-	releaseSdr(sdr);
 	return length;
 }
 
@@ -125,14 +123,12 @@ int	sdr_string_read(Sdr sdrv, char *into, Object string)
 	Address		addr = (Address) string;
 	unsigned char	length;
 
-	CHKERR(sdrv);
+	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(into);
 	CHKERR(string);
 	sdr = sdrv->sdr;
-	CHKERR(takeSdr(sdr) == 0);
 	sdrFetch(length, addr);
 	_sdrfetch(sdrv, into, addr + 1, length);
 	*(into + length) = '\0';
-	releaseSdr(sdr);
 	return length;
 }
