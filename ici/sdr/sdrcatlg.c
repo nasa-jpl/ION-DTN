@@ -150,12 +150,10 @@ static Object	catlgLookup(Sdr sdrv, char *name)
 
 Object	sdr_find(Sdr sdrv, char *name, int *type)
 {
-	SdrState	*sdr;
 	Object		elt;
 	CatalogueEntry	entry;
 
 	CHKZERO(sdrFetchSafe(sdrv));
-	sdr = sdrv->sdr;
 	elt = catlgLookup(sdrv, name);
 	if (elt)
 	{

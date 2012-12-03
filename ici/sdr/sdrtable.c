@@ -76,12 +76,10 @@ Object	Sdr_table_create(char *file, int line, Sdr sdrv, int rowSize,
 
 Address	sdr_table_user_data(Sdr sdrv, Object table)
 {
-	SdrState	*sdr;
 	SdrTable	tableBuffer;
 
 	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(table);
-	sdr = sdrv->sdr;
 	sdrFetch(tableBuffer, (Address) table);
 	return tableBuffer.userData;
 }
@@ -112,14 +110,12 @@ void	Sdr_table_user_data_set(char *file, int line, Sdr sdrv, Object table,
 void	sdr_table_dimensions(Sdr sdrv, Object table, int *rowSize,
 		int *rowCount)
 {
-	SdrState	*sdr;
 	SdrTable	tableBuffer;
 
 	CHKVOID(sdrFetchSafe(sdrv));
 	CHKVOID(table);
 	CHKVOID(rowSize);
 	CHKVOID(rowCount);
-	sdr = sdrv->sdr;
 	sdrFetch(tableBuffer, (Address) table);
 	*rowSize = tableBuffer.rowSize;
 	*rowCount = tableBuffer.rowCount;
@@ -127,25 +123,21 @@ void	sdr_table_dimensions(Sdr sdrv, Object table, int *rowSize,
 
 void	sdr_table_stage(Sdr sdrv, Object table)
 {
-	SdrState	*sdr;
 	SdrTable	tableBuffer;
 
 	CHKVOID(sdrFetchSafe(sdrv));
 	CHKVOID(table);
-	sdr = sdrv->sdr;
 	sdrFetch(tableBuffer, (Address) table);
 	sdr_stage(sdrv, NULL, tableBuffer.rows, 0);
 }
 
 Address	sdr_table_row(Sdr sdrv, Object table, unsigned int rowNbr)
 {
-	SdrState	*sdr;
 	SdrTable	tableBuffer;
 	Address		addr;
 
 	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(table);
-	sdr = sdrv->sdr;
 	sdrFetch(tableBuffer, (Address) table);
 	CHKERR(rowNbr < tableBuffer.rowCount);
 	addr = ((Address) (tableBuffer.rows)) + (rowNbr * tableBuffer.rowSize);
