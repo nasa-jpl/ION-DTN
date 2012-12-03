@@ -426,7 +426,9 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 		if (connectToCLI(socketName, &tempBundleSocket) < 0)
 		{
 			/*	Treat I/O error as a transient anomaly.	*/
-
+			if(*keepalivePeriod==0){
+				*keepalivePeriod=KEEPALIVE_PERIOD;
+			}
 			return handleTcpFailure(socketName, bundleZco);
 		}
 		else
