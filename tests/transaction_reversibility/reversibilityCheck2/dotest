@@ -84,13 +84,14 @@ sleep 5
 cd ../1.ipn.udp/
 echo ""
 echo "Start sending bundles..."
-bpdriver 5000 ipn:1.1 ipn:2.1 -1000 t30
+bpdriver 1000 ipn:1.1 ipn:2.1 -1000 t30
 sleep 15
 
 #Check that bpdriver terminated after aborting an SDR transaction
 cd ../2.ipn.udp/
 firstAbort=`grep "Transaction aborted" ion.log | wc -l`
-echo $firstAbort
+echo -n $firstAbort
+echo " transactions failed."
 if ! [ $firstAbort -ge 1 ];then
 	echo "Didn't cause SDR exhaustion... Please update test to send more bundles and try again"
 	echo ""
@@ -98,7 +99,7 @@ if ! [ $firstAbort -ge 1 ];then
 	cd ..
 	end
 else
-	echo "SDR exhaustion caused a transaction to abort"
+	echo "SDR exhaustion caused a transaction to abort."
 fi
 
 #Transaction reversibility should recover without an unrecoverable SDR error
@@ -113,11 +114,8 @@ if ! [ -z "$text" ];then
 	end
 fi
 
-
-echo ""
 echo "Wait for currently queued bundles to expire..."
 sleep 40
-
 
 #Try to send more bundles to ensure that transaction reversibility healed the system properly
 echo ""
@@ -128,7 +126,8 @@ bpdriver 10 ipn:1.1 ipn:2.1 -100 t30
 #Check if we caused a transaction to abort or an unrecoverable SDR error
 cd ../2.ipn.udp/
 secondAbort=`grep "Transaction aborted" ion.log | wc -l`
-echo $secondAbort
+echo -n $secondAbort
+echo " transactions have failed in total."
 if [ $secondAbort -gt $firstAbort ];then
 	echo "Error: Transaction aborted! Transaction reversibility didn't reset something correctly!"
 	echo ""
@@ -148,8 +147,6 @@ if ! [ -z "$text" ];then
 fi
 
 #Start bpcounter
-echo
-echo
 echo "Receiving data with bpcounter..."
 cd ../2.ipn.udp/
 bpcounter ipn:2.1 10  > output &

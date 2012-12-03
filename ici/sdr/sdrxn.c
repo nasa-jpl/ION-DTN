@@ -779,13 +779,13 @@ static void	terminateXn(Sdr sdrv)
 	 *	transaction.						*/
 
 	snooze(2);
-	sdr->halted = 0;
 
 	/*	Transaction still exists, but restart utility is now
 	 *	its owner.  From the perspective of the current task,
 	 *	the transaction is finished; nothing more to do.  The
 	 *	restart utility will clear the hijacked transaction.	*/
 
+	sdr->halted = 0;
 	return;
 }
 
