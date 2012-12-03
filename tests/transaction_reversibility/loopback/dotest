@@ -1,0 +1,99 @@
+#!/bin/sh
+# Samuel Jero <sj323707@ohio.edu>
+# LTP Loopback test with transaction reversibility turned on
+# based on loopbacktest.sh by David Young
+
+# message sent over ion
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+
+CONFIGFILES=" \
+./configs/loopback.ionrc \
+./configs/config.ionconfig \
+./configs/loopback.ltprc \
+./configs/loopback.bprc \
+./configs/loopback.ipnrc"
+
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Basic LTP loopback test with transaction reversibility enabled."
+echo "         Ensures that ION continues to function with transaction reversibility"
+echo "         turned on."
+echo
+echo "CONFIG: 1 node standard:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+
+echo "Starting ION..."
+cd ./configs
+./ionstart
+cd ..
+sleep 10
+
+# create the test message in a sent file
+echo "${IONMESSAGE}" > "${IONSENDFILE}"
+echo "!" >> "${IONSENDFILE}"
+
+
+# receive the message and store it in a file via test bundle sink
+echo
+echo "Starting Message Listener..."
+bpsink ipn:1.1 > "${IONRECEIVEFILE}" &
+BPSINKPID=${!}
+
+# send the message in the file via test bundle source
+sleep 5
+echo
+echo "Sending message..."
+bpsource ipn:1.1 < "${IONSENDFILE}" &
+BPSOURCEPID=${!}
+
+# sleep and kill process in case it didn't end properly
+sleep 5
+echo
+echo "Killing bpsource if it is still running..."
+kill -9 ${BPSOURCEPID} >/dev/null 2>&1
+
+# bpsink does not self-terminate, so send it SIGINT
+sleep 5
+echo
+echo "Stopping bpsink..."
+kill -2 ${BPSINKPID} >/dev/null 2>&1
+sleep 5
+kill -9 ${BPSINKPID} >/dev/null 2>&1
+
+# compare the sent message to the received one
+echo
+echo "Comparing ${IONSENDFILE} to ${IONRECEIVEFILE}..."
+grep "${IONMESSAGE}" "${IONRECEIVEFILE}"  >/dev/null 2>/dev/null
+RETVAL=${?}
+
+if test "${RETVAL}" -ne 0 ; then
+	echo "Files do not match. FAILURE!"
+else
+	echo "Files match. SUCESS!"
+fi
+
+# shut down ion processes
+echo
+echo "Stopping ion..."
+cd ./configs
+./ionstop
+cd ..
+
+exit ${RETVAL}

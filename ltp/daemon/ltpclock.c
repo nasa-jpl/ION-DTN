@@ -44,7 +44,7 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 
 	while (1)
 	{
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, events);
 		if (elt == 0)	/*	No more events to dispatch.	*/
 		{
@@ -122,7 +122,7 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 	PsmAddress	nextElt;
 	unsigned long	priorXmitRate;
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sm_list_first(ionwm, ltpvdb->spans); elt;
 			elt = sm_list_next(ionwm, elt))
 	{

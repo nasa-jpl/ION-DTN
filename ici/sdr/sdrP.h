@@ -94,6 +94,12 @@ typedef struct sdr_str
 		/*	Path to directory for files (log, db).	*/
 
 	char		pathName[MAXPATHLEN];
+
+		/*	Parameters for restart.				*/
+
+	int		halted;			/*	boolean		*/
+	char		restartCmd[32];
+	time_t		restartTime;
 } SdrState;
 
 /*	SdrMap is an object that encapsulates the potentially non-
@@ -185,6 +191,7 @@ extern void		_sdrfree(Sdr, Object, PutSrc);
 #define sdrFree(Obj)	_sdrfree(sdrv, Obj, SystemPut)
 
 extern int		sdrBoundaryViolated(Sdr, Address, long);
+extern int		sdrFetchSafe(Sdr);
 
 extern void		crashXn(Sdr);
 

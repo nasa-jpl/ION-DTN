@@ -199,7 +199,7 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	 *	appended to the bundle acquisition ZCO.			*/
 
 	zco_start_receiving(zco, &reader);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	result = zco_receive_source(sdr, &reader, length, *buffer);
 	if (sdr_end_xn(sdr) < 0 || result < 0)
 	{
@@ -299,7 +299,7 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			sdr_begin_xn(sdr);
+			CHKNULL(sdr_begin_xn(sdr));
 			zco_destroy(sdr, data);
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -324,7 +324,7 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			sdr_begin_xn(sdr);
+			CHKNULL(sdr_begin_xn(sdr));
 			zco_destroy(sdr, data);
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -364,7 +364,7 @@ static void	*handleNotices(void *parm)
 				 *	clearing the work area, so
 				 *	just discard the data.		*/
 
-				sdr_begin_xn(sdr);
+				CHKNULL(sdr_begin_xn(sdr));
 				zco_destroy(sdr, data);
 				if (sdr_end_xn(sdr) < 0)
 				{
@@ -399,7 +399,7 @@ static void	*handleNotices(void *parm)
 
 			/*	Discard the ZCO in any case.		*/
 
-			sdr_begin_xn(sdr);
+			CHKNULL(sdr_begin_xn(sdr));
 			zco_destroy(sdr, data);
 			if (sdr_end_xn(sdr) < 0)
 			{

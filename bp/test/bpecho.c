@@ -140,7 +140,7 @@ fflush(stdout);
 				bytesToEcho = MIN(zco_source_data_length(sdr,
 						dlv.adu), ADU_LEN);
 				zco_start_receiving(dlv.adu, &reader);
-				sdr_begin_xn(sdr);
+				CHKZERO(sdr_begin_xn(sdr));
 				result = zco_receive_source(sdr, &reader,
 						bytesToEcho, dataToSend);
 				if (sdr_end_xn(sdr) < 0 || result < 0)
@@ -167,7 +167,7 @@ fflush(stdout);
 
 		/*	Now send acknowledgment bundle.			*/
 		if(strcmp(sourceEid, "dtn:none") == 0) continue;
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		extent = sdr_malloc(sdr, bytesToEcho);
 		if (extent == 0)
 		{

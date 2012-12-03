@@ -47,7 +47,7 @@ int	main(int argc, char **argv)
 	}
 
 	sdr = bp_get_sdr();
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	if (findBundle(sourceEid, &creationTime, fragmentOffset, fragmentLength,
 			&bundleObj) < 0)
 	{

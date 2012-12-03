@@ -116,7 +116,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		i++;
 		istrcpy(framePayload, itoa(i), sizeof(framePayload));
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		bundlePayload = sdr_malloc(sdr, sizeof(framePayload));
 		if(bundlePayload == 0) {
 			sdr_cancel_xn(sdr);

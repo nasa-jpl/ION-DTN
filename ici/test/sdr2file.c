@@ -60,7 +60,7 @@ SdrUsageSummary	sdrsummary;
 	isprintf(sdrName, sizeof sdrName, "%s%d", TEST_SDR_NAME, configFlags);
 	sdr_initialize(TEST_WM_SIZE, NULL, SM_NO_KEY, NULL);
 	sdr_load_profile(sdrName, configFlags, TEST_HEAP_WORDS, SM_NO_KEY,
-			TEST_PATH_NAME);
+			TEST_PATH_NAME, NULL);
 	sdr = sdr_start_using(sdrName);
 	if (sdr == NULL)
 	{
@@ -86,7 +86,7 @@ psm_start_trace(sdrwm, 5000000, NULL);
 	cycleList = sdr_find(sdr, CYCLE_LIST_NAME, 0);
 	if (cycleList == 0)
 	{
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		cycleList = sdr_list_create(sdr);
 		sdr_catlg(sdr, CYCLE_LIST_NAME, 0, cycleList);
 		if (sdr_end_xn(sdr))
@@ -152,7 +152,7 @@ sdr_clear_trace(sdr);
 
 		/*	Delete line from SDR.				*/
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		sdr_free(sdr, lineObj);
 		sdr_list_delete(sdr, lineListElt, (SdrListDeleteFn) NULL, NULL);
 		if (sdr_end_xn(sdr))
@@ -193,7 +193,7 @@ if (lineCount > 100)
 
 			close(outputFile);
 			outputFile = -1;
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			sdr_list_destroy(sdr, currentCycle.lines,
 					(SdrListDeleteFn) NULL, NULL);
 			sdr_free(sdr, cycleObj);

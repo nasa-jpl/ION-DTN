@@ -38,12 +38,31 @@ static ImcDB	*_imcConstants()
 {
 	static ImcDB	buf;
 	static ImcDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
-		sdr_read(getIonsdr(), (char *) &buf, _imcdbObject(NULL),
-				sizeof(ImcDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _imcdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(ImcDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(ImcDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -67,13 +86,13 @@ static int	sendPetition(unsigned long nodeNbr, char *buffer, int length)
 
 	isprintf(sourceEid, sizeof sourceEid, "ipn:%u.0", getOwnNodeNbr());
 	oK(parseEidString(sourceEid, &sourceMetaEid, &vscheme, &vschemeElt));
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sourceData = sdr_malloc(sdr, length);
 	if (sourceData == 0)
 	{
 		putErrmsg("No space for source data.", NULL);
 		sdr_exit_xn(sdr);
-		return-1;
+		return -1;
 	}
 
 	sdr_write(sdr, sourceData, buffer, length);
@@ -191,7 +210,7 @@ int	imcInit()
 
 	/*	Recover the IMC database, creating it if necessary.	*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	imcdbObject = sdr_find(sdr, IMC_DBNAME, NULL);
 	switch (imcdbObject)
 	{
@@ -286,7 +305,7 @@ int	imc_addKin(unsigned long nodeNbr, int isParent)
 	char		*cursor;
 
 	CHKERR(nodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(ImcDB));
 	if (locateRelative(nodeNbr, &nextRelative) != 0)
 	{
@@ -371,7 +390,7 @@ int	imc_updateKin(unsigned long nodeNbr, int isParent)
 	ImcDB	db;
 
 	CHKERR(nodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(ImcDB));
 	if (locateRelative(nodeNbr, NULL) == 0)
 	{
@@ -418,7 +437,7 @@ void	imc_removeKin(unsigned long nodeNbr)
 	Object		elt3;
 
 	CHKVOID(nodeNbr);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(ImcDB));
 	elt = locateRelative(nodeNbr, NULL);
 	if (elt == 0)
@@ -606,7 +625,7 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 printf("Handling type-%d petition from %lu at node %lu.\n", isMember,
 metaEid.nodeNbr, getOwnNodeNbr());
 #endif
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (locateRelative(metaEid.nodeNbr, &nextRelative) == 0)
 	{
 		sdr_exit_xn(sdr);
@@ -773,7 +792,7 @@ int	imcJoin(unsigned long groupNbr)
 	Object		groupAddr;
 	ImcGroup	group;
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	groupElt = locateGroup(groupNbr, &nextGroup);
 	if (groupElt == 0)
 	{
@@ -822,7 +841,7 @@ int	imcLeave(unsigned long groupNbr)
 	Object		groupAddr;
 	ImcGroup	group;
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	groupElt = locateGroup(groupNbr, &nextGroup);
 	if (groupElt == 0)
 	{

@@ -185,8 +185,10 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 			vscheme->schemeElt), sizeof(Scheme));
+	sdr_exit_xn(sdr);
 	oK(_imcfwSemaphore(&vscheme->semaphore));
 	isignal(SIGTERM, shutDown);
 
@@ -200,7 +202,7 @@ int	main(int argc, char *argv[])
 		 *	prevents race condition with bpclock (which
 		 *	is destroying bundles as their TTLs expire).	*/
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, scheme.forwardQueue);
 		if (elt == 0)	/*	Wait for forwarding notice.	*/
 		{

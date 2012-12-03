@@ -715,7 +715,7 @@ int	main(int argc, char **argv)
 	char		line[256];
 	int		len;
 
-	if (cfdp_init() < 0)
+	if (cfdp_attach() < 0)
 	{
 		putErrmsg("cfdptest can't initialize CFDP.", NULL);
 		return 1;

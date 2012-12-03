@@ -4,7 +4,7 @@ sdrmend - SDR corruption repair utility
 
 =head1 SYNOPSIS
 
-B<sdrmend> I<sdr_name> I<config_flags> I<heap_words> I<heap_key> I<path_name>
+B<sdrmend> I<sdr_name> I<config_flags> I<heap_words> I<heap_key> I<path_name> [I<restartCmd> I<restartLatency>]
 
 =head1 DESCRIPTION
 

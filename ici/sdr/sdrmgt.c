@@ -996,21 +996,17 @@ long	sdr_object_length(Sdr sdrv, Object object)
 
 long	sdr_unused(Sdr sdrv)
 {
-	SdrState	*sdr;
 	SdrMap		*map;
 	long		smallPoolSize;
 	long		largePoolSize;
 	long		unused;
 
-	CHKZERO(sdrv);
-	sdr = sdrv->sdr;
-	CHKZERO(takeSdr(sdr) == 0);
+	CHKZERO(sdrFetchSafe(sdrv));
 	map = _mapImage(sdrv);
 	unused = map->sdrSize - sizeof(SdrMap);
 	smallPoolSize = map->endOfSmallPool - map->startOfSmallPool;
 	largePoolSize = map->endOfLargePool - map->startOfLargePool;
        	unused -= (smallPoolSize + largePoolSize);
-	releaseSdr(sdr);
 	return unused;
 }
 
@@ -1029,10 +1025,9 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 	u_long		freeTotal;
 	int		count;
 
+	CHKVOID(sdrFetchSafe(sdrv));
 	CHKVOID(usage);
-	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
-	CHKVOID(takeSdr(sdr) == 0);
 	istrcpy(usage->sdrName, sdr->name, sizeof usage->sdrName);
 	usage->sdrSize = sdr->sdrSize;
 	map = _mapImage(sdrv);
@@ -1079,7 +1074,6 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 	usage->largePoolAllocated = usage->largePoolSize - freeTotal;
 	usage->unusedSize = usage->sdrSize - (sizeof(SdrMap) +
 			 usage->smallPoolSize + usage->largePoolSize);
-	releaseSdr(sdr);
 	return;
 }
 

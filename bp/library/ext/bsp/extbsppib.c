@@ -417,7 +417,7 @@ int bsp_pibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
           // The entire bundle currently sits in payload.content,
           // extract just the real payload content
-          sdr_begin_xn(bpSdr);
+          CHKERR(sdr_begin_xn(bpSdr));
           payloadData = zco_clone(bpSdr, wk->bundle.payload.content, wk->headerLength,
                                   wk->bundle.payload.length);
           // The length should be == to the payload length now
@@ -443,7 +443,7 @@ int bsp_pibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 			                  keyValueBuffer, keyLen, &tmpDigestLen);
 
           // Destroy the payload object as we don't need it any longer
-          sdr_begin_xn(bpSdr);
+          CHKERR(sdr_begin_xn(bpSdr));
           zco_destroy(bpSdr, payloadData);
           if (sdr_end_xn(bpSdr) < 0)
 	  {
@@ -786,7 +786,7 @@ unsigned char *bsp_pibGetSecResult(Object dataObj,
    }
 
    /*   Prepare the data for processing. */
-   sdr_begin_xn(bpSdr);
+   CHKNULL(sdr_begin_xn(bpSdr));
    zco_start_transmitting(dataObj, &dataReader);
    
    hmac_sha256_init(authContext,(unsigned char *)keyValue, keyLen);

@@ -360,7 +360,8 @@ icibin = \
 	smlistsh \
 	rfxclock \
 	owlttb \
-	owltsim
+	owltsim \
+	ionrestart
 
 icilib = \
 	libici.la 
@@ -534,6 +535,16 @@ ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionwarn_SOURCES = ici/utils/ionwarn.c
 ionwarn_LDADD = libici.la $(LIBOBJS) 
 ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+if ION_NASA_B
+ionrestart_SOURCES =  ici/restart/ionrestart.c
+ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la $(LIBOBJS)
+ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library $(AM_CFLAGS)
+else
+ionrestart_SOURCES =  ici/restart/ionrestart.c	
+ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
+ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
+endif
 
 # --- Test Executables --- #
 

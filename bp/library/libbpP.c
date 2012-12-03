@@ -268,6 +268,8 @@ static BpDB	*_bpConstants()
 {
 	static BpDB	buf;
 	static BpDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 	
 	if (db == NULL)
 	{
@@ -276,9 +278,26 @@ static BpDB	*_bpConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(getIonsdr(), (char *) &buf, _bpdbObject(NULL),
-				sizeof(BpDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _bpdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(BpDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(BpDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 	
 	return db;
@@ -1320,9 +1339,8 @@ static BpVdb	*_bpvdb(char **name)
 		}
 
 		/*	BP volatile database doesn't exist yet.		*/
-
 		sdr = getIonsdr();
-		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
 		vdbAddress = psm_zalloc(wm, sizeof(BpVdb));
 		if (vdbAddress == 0)
 		{
@@ -1435,7 +1453,7 @@ int	bpInit()
 
 	/*	Recover the BP database, creating it if necessary.	*/
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	bpdbObject = sdr_find(bpSdr, _bpdbName(), NULL);
 	switch (bpdbObject)
 	{
@@ -1546,6 +1564,81 @@ int	bpInit()
 	return 0;		/*	BP service is now available.	*/
 }
 
+static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
+{
+	BpVdb		*vdb;
+	PsmAddress	elt;
+	VScheme		*vscheme;
+	VInduct		*vinduct;
+	VOutduct	*voutduct;
+
+	vdb = (BpVdb *) psp(wm, vdbAddress);
+	if (vdb->productionThrottle.semaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vdb->productionThrottle.semaphore);
+	}
+
+	while ((elt = sm_list_first(wm, vdb->schemes)) != 0)
+	{
+		vscheme = (VScheme *) psp(wm, sm_list_data(wm, elt));
+		dropScheme(vscheme, elt);
+	}
+
+	sm_list_destroy(wm, vdb->schemes, NULL, NULL);
+	while ((elt = sm_list_first(wm, vdb->inducts)) != 0)
+	{
+		vinduct = (VInduct *) psp(wm, sm_list_data(wm, elt));
+		dropInduct(vinduct, elt);
+	}
+
+	sm_list_destroy(wm, vdb->inducts, NULL, NULL);
+	while ((elt = sm_list_first(wm, vdb->outducts)) != 0)
+	{
+		voutduct = (VOutduct *) psp(wm, sm_list_data(wm, elt));
+		dropOutduct(voutduct, elt);
+	}
+
+	sm_list_destroy(wm, vdb->outducts, NULL, NULL);
+	sm_rbt_destroy(wm, vdb->timeline, NULL, NULL);
+}
+
+void	bpDropVdb()
+{
+	PsmPartition	wm = getIonwm();
+	char		*bpvdbName = _bpvdbName();
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*stop = NULL;
+
+	if (psm_locate(wm, bpvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if (elt)
+	{
+		dropVdb(wm, vdbAddress);	/*	Destroy Vdb.	*/
+		psm_free(wm, vdbAddress);
+		if (psm_uncatlg(wm, bpvdbName) < 0)
+		{
+			putErrmsg("Failed uncataloging vdb.", NULL);
+		}
+	}
+
+	oK(_bpvdb(&stop));			/*	Forget old Vdb.	*/
+}
+
+void	bpRaiseVdb()
+{
+	char	*bpvdbName = _bpvdbName();
+
+	if (_bpvdb(&bpvdbName) == NULL)		/*	Create new Vdb.	*/
+	{
+		putErrmsg("BP can't reinitialize vdb.", NULL);
+	}
+}
+
 Object	getBpDbObject()
 {
 	return _bpdbObject(NULL);
@@ -1569,7 +1662,7 @@ int	bpStart()
 	char		cmdString[SDRSTRING_BUFSZ];
 	PsmAddress	elt;
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 
 	/*	Start the bundle expiration clock if necessary.		*/
 
@@ -1620,7 +1713,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 
 	/*	Tell all BP processes to stop.				*/
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	if (bpvdb->productionThrottle.semaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(bpvdb->productionThrottle.semaphore);
@@ -1687,7 +1780,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
-	sdr_begin_xn(bpSdr);
+	CHKVOID(sdr_begin_xn(bpSdr));
 	bpvdb->clockPid = ERROR;
 	if (bpvdb->productionThrottle.semaphore == SM_SEM_NONE)
 	{
@@ -1759,7 +1852,7 @@ int	bpAttach()
 
 	if (bpdbObject == 0)
 	{
-		sdr_begin_xn(bpSdr);
+		CHKERR(sdr_begin_xn(bpSdr));
 		bpdbObject = sdr_find(bpSdr, _bpdbName(), NULL);
 		sdr_exit_xn(bpSdr);
 		if (bpdbObject == 0)
@@ -1788,6 +1881,12 @@ int	bpAttach()
 
 	oK(secAttach());
 	return 0;		/*	BP service is now available.	*/
+}
+
+void bpDetach(){
+	char *stop=NULL;
+	oK(_bpvdb(&stop));
+	return;
 }
 
 /*	*	*	Database occupancy functions	*	*	*/
@@ -2157,6 +2256,8 @@ void	getSenderEid(char **eidBuffer, char *neighborClEid)
 	BpEidLookupFn	*lookupFns;
 	int		i;
 	BpEidLookupFn	lookupEid;
+	Sdr		sdr = getIonsdr();
+	int		result;
 
 	CHKVOID(eidBuffer);
 	CHKVOID(*eidBuffer);
@@ -2170,7 +2271,10 @@ void	getSenderEid(char **eidBuffer, char *neighborClEid)
 			break;		/*	Reached end of table.	*/
 		}
 
-		switch (lookupEid(*eidBuffer, neighborClEid))
+		CHKVOID(sdr_begin_xn(sdr));
+		result = lookupEid(*eidBuffer, neighborClEid);
+		sdr_exit_xn(sdr);
+		switch (result)
 		{
 		case -1:
 			putErrmsg("Failed getting sender EID.", NULL);
@@ -2384,7 +2488,7 @@ void	reportAllStateStats()
 
 	currentTime = getUTCTime();
 	writeTimestampLocal(currentTime, toTimestamp);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 	startTime = bpdb.resetTime;
 	writeTimestampLocal(startTime, fromTimestamp);
@@ -2979,7 +3083,7 @@ too long", admAppCmd);
 		}
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	findScheme(schemeName, &vscheme, &vschemeElt);
 	if (vschemeElt != 0)	/*	This is a known scheme.		*/
 	{
@@ -3029,7 +3133,7 @@ too long", admAppCmd);
 		return -1;
 	}
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	if (raiseScheme(schemeElt, _bpvdb(NULL)) < 0)
 	{
 		sdr_cancel_xn(bpSdr);
@@ -3038,10 +3142,6 @@ too long", admAppCmd);
 	}
 
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
-
-	/*	Note: we don't call raiseScheme here because the
-	 *	scheme has no endpoints yet.				*/
-
 	return 1;
 }
 
@@ -3094,7 +3194,7 @@ too long", admAppCmd);
 		}
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	findScheme(schemeName, &vscheme, &vschemeElt);
 	if (vschemeElt == 0)	/*	This is an unknown scheme.	*/
 	{
@@ -3153,7 +3253,7 @@ int	removeScheme(char *schemeName)
 
 	/*	Must stop the scheme before trying to remove it.	*/
 
-	sdr_begin_xn(bpSdr);		/*	Lock memory.		*/
+	CHKERR(sdr_begin_xn(bpSdr));	/*	Lock memory.		*/
 	findScheme(schemeName, &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -3167,7 +3267,7 @@ int	removeScheme(char *schemeName)
 	stopScheme(vscheme);
 	sdr_exit_xn(bpSdr);
 	waitForScheme(vscheme);
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	resetScheme(vscheme);
 	schemeElt = vscheme->schemeElt;
 	addr = sdr_list_data(bpSdr, schemeElt);
@@ -3221,7 +3321,7 @@ int	bpStartScheme(char *name)
 	PsmAddress	vschemeElt;
 	int		result = 1;
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKZERO(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findScheme(name, &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -3243,7 +3343,7 @@ void	bpStopScheme(char *name)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findScheme(name, &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -3255,7 +3355,7 @@ void	bpStopScheme(char *name)
 	stopScheme(vscheme);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForScheme(vscheme);
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	resetScheme(vscheme);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -3316,7 +3416,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 		return 0;
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &elt);
 	if (elt != 0)	/*	This is a known endpoint.	*/
 	{
@@ -3365,7 +3465,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 		return -1;
 	}
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	if (raiseEndpoint(vscheme, endpointElt) < 0)
 	{
 		sdr_exit_xn(bpSdr);
@@ -3400,7 +3500,7 @@ int	updateEndpoint(char *eid, BpRecvRule recvRule, char *script)
 		return 0;
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &elt);
 	restoreEidString(&metaEid);
 	if (elt == 0)		/*	This is an unknown endpoint.	*/
@@ -3456,7 +3556,7 @@ int	removeEndpoint(char *eid)
 		return 0;
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &elt);
 	restoreEidString(&metaEid);
 	if (elt == 0)			/*	Not found.		*/
@@ -3554,7 +3654,7 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 		return 0;
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	fetchProtocol(protocolName, &clpbuf, &elt);
 	if (elt != 0)		/*	This is a known protocol.	*/
 	{
@@ -3604,7 +3704,7 @@ int	removeProtocol(char *protocolName)
 	Object		addr;
 
 	CHKERR(protocolName);
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	fetchProtocol(protocolName, &clpbuf, &elt);
 	if (elt == 0)				/*	Not found.	*/
 	{
@@ -3647,7 +3747,7 @@ int	bpStartProtocol(char *name)
 	VInduct		*vinduct;
 	VOutduct	*voutduct;
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKZERO(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -3681,7 +3781,7 @@ void	bpStopProtocol(char *name)
 	VInduct		*vinduct;
 	VOutduct	*voutduct;
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -3691,7 +3791,7 @@ void	bpStopProtocol(char *name)
 			stopInduct(vinduct);
 			sdr_exit_xn(bpSdr);
 			waitForInduct(vinduct);
-			sdr_begin_xn(bpSdr);
+			CHKVOID(sdr_begin_xn(bpSdr));
 			resetInduct(vinduct);
 		}
 	}
@@ -3705,7 +3805,7 @@ void	bpStopProtocol(char *name)
 			stopOutduct(voutduct);
 			sdr_exit_xn(bpSdr);
 			waitForOutduct(voutduct);
-			sdr_begin_xn(bpSdr);
+			CHKVOID(sdr_begin_xn(bpSdr));
 			resetOutduct(voutduct);
 		}
 	}
@@ -3764,7 +3864,7 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 		return 0;
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	fetchProtocol(protocolName, &clpbuf, &clpElt);
 	if (clpElt == 0)
 	{
@@ -3809,7 +3909,7 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 		return -1;
 	}
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	if (raiseInduct(elt, _bpvdb(NULL)) < 0)
 	{
 		sdr_cancel_xn(bpSdr);
@@ -3842,7 +3942,7 @@ int	updateInduct(char *protocolName, char *ductName, char *cliCmd)
 		return 0;
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	findInduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)	/*	This is an unknown duct.	*/
 	{
@@ -3886,7 +3986,7 @@ int	removeInduct(char *protocolName, char *ductName)
 
 	/*	Must stop the induct before trying to remove it.	*/
 
-	sdr_begin_xn(bpSdr);	/*	Lock memory.			*/
+	CHKERR(sdr_begin_xn(bpSdr));	/*	Lock memory.		*/
 	findInduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)		/*	Not found.		*/
 	{
@@ -3900,7 +4000,7 @@ int	removeInduct(char *protocolName, char *ductName)
 	stopInduct(vduct);
 	sdr_exit_xn(bpSdr);
 	waitForInduct(vduct);
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	resetInduct(vduct);
 	ductElt = vduct->inductElt;
 	addr = sdr_list_data(bpSdr, ductElt);
@@ -3932,7 +4032,7 @@ int	bpStartInduct(char *protocolName, char *ductName)
 	PsmAddress	vductElt;
 	int		result = 1;
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKZERO(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findInduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)	/*	This is an unknown duct.	*/
 	{
@@ -3954,7 +4054,7 @@ void	bpStopInduct(char *protocolName, char *ductName)
 	VInduct		*vduct;
 	PsmAddress	vductElt;
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findInduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)	/*	This is an unknown duct.	*/
 	{
@@ -3966,7 +4066,7 @@ void	bpStopInduct(char *protocolName, char *ductName)
 	stopInduct(vduct);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForInduct(vduct);
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	resetInduct(vduct);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -4034,7 +4134,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 		}
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	fetchProtocol(protocolName, &clpbuf, &clpElt);
 	if (clpElt == 0)
 	{
@@ -4096,7 +4196,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 		return -1;
 	}
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	if (raiseOutduct(elt, _bpvdb(NULL)) < 0)
 	{
 		putErrmsg("Can't raise outduct.", NULL);
@@ -4141,7 +4241,7 @@ int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
 		}
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	findOutduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)	/*	This is an unknown duct.	*/
 	{
@@ -4190,7 +4290,7 @@ int	removeOutduct(char *protocolName, char *ductName)
 
 	/*	Must stop the outduct before trying to remove it.	*/
 
-	sdr_begin_xn(bpSdr);	/*	Lock memory.			*/
+	CHKERR(sdr_begin_xn(bpSdr));	/*	Lock memory.		*/
 	findOutduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)		/*	Not found.		*/
 	{
@@ -4204,7 +4304,7 @@ int	removeOutduct(char *protocolName, char *ductName)
 	stopOutduct(vduct);
 	sdr_exit_xn(bpSdr);
 	waitForOutduct(vduct);
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	resetOutduct(vduct);
 	ductElt = vduct->outductElt;
 	addr = sdr_list_data(bpSdr, ductElt);
@@ -4247,7 +4347,7 @@ int	bpStartOutduct(char *protocolName, char *ductName)
 	PsmAddress	vductElt;
 	int		result = 1;
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKZERO(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findOutduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)	/*	This is an unknown duct.	*/
 	{
@@ -4269,7 +4369,7 @@ void	bpStopOutduct(char *protocolName, char *ductName)
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findOutduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)	/*	This is an unknown duct.	*/
 	{
@@ -4281,7 +4381,7 @@ void	bpStopOutduct(char *protocolName, char *ductName)
 	stopOutduct(vduct);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForOutduct(vduct);
-	sdr_begin_xn(bpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	resetOutduct(vduct);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -5463,7 +5563,7 @@ when asking for custody transfer and/or status reports.");
 
 	/*	Bundle is almost fully constructed at this point.	*/
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	if (ionClockIsSynchronized())
 	{
 		getCurrentDtnTime(&currentDtnTime);
@@ -6514,7 +6614,7 @@ static int	eraseWorkZco(AcqWorkArea *work)
 	if (work->zco)
 	{
 		bpSdr = getIonsdr();
-		sdr_begin_xn(bpSdr);
+		CHKERR(sdr_begin_xn(bpSdr));
 		sdr_list_delete(bpSdr, work->zcoElt, NULL, NULL);
 
 		/*	Destroying the ZCO will cause the acquisition
@@ -6602,7 +6702,7 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 		return -1;
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	work->zcoElt = sdr_list_insert_last(bpSdr, bpConstants->inboundBundles,
 			zco);
 	if (sdr_end_xn(bpSdr) < 0)
@@ -6630,7 +6730,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	CHKERR(work);
 	CHKERR(bytes);
 	CHKERR(length >= 0);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (maxAcqInHeap == 0)
 	{
 		/*	Initialize threshold for acquiring bundle
@@ -6776,7 +6876,7 @@ static int	applyRecvRateControl(AcqWorkArea *work)
 	Throttle	*throttle;
 	int		recvLength;
 
-	sdr_begin_xn(bpSdr);		/*	Just to lock memory.	*/
+	CHKERR(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(bpSdr, Induct, induct, sdr_list_data(bpSdr,
 			work->vduct->inductElt));
 	throttle = &(work->vduct->acqThrottle);
@@ -6804,7 +6904,7 @@ static int	applyRecvRateControl(AcqWorkArea *work)
 			return -1;
 		}
 
-		sdr_begin_xn(bpSdr);
+		CHKERR(sdr_begin_xn(bpSdr));
 	}
 
 	throttle->capacity -= recvLength;
@@ -7366,7 +7466,7 @@ static int	abortBundleAcq(AcqWorkArea *work)
 
 	if (work->bundle.payload.content)
 	{
-		sdr_begin_xn(bpSdr);
+		CHKERR(sdr_begin_xn(bpSdr));
 		zco_destroy(bpSdr, work->bundle.payload.content);
 		if (sdr_end_xn(bpSdr) < 0)
 		{
@@ -7534,7 +7634,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	MetaEid		senderMetaEid;
 	Object		bundleObj;
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	if (acqFromWork(work) < 0)
 	{
 		putErrmsg("Acquisition from work area failed.", NULL);
@@ -7570,7 +7670,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 	/*	Check bundle for problems.				*/
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	if (work->malformed || work->lastBlockParsed == 0)
 	{
 		writeMemo("[?] Malformed bundle.");
@@ -7702,7 +7802,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 				return -1;
 			}
 
-			sdr_begin_xn(bpSdr);
+			CHKERR(sdr_begin_xn(bpSdr));
 			count = findBundle(eidString,
 				&(bundle->id.creationTime),
 				bundle->id.fragmentOffset,
@@ -7736,7 +7836,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	 *	extension block acquisition.				*/
 
 	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 
 	/*	Reduce payload ZCO to just its source data, discarding
 	 *	BP header and trailer.					*/
@@ -7867,7 +7967,7 @@ int	bpEndAcq(AcqWorkArea *work)
 	CHKERR(work);
 	CHKERR(work->zco);
 	work->zcoLength = zco_length(bpSdr, work->zco);
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	zco_start_receiving(work->zco, &(work->reader));
 	result = advanceWorkBuffer(work, 0);
 	if (sdr_end_xn(bpSdr) < 0 || result < 0)
@@ -7996,7 +8096,7 @@ static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 	memcpy(cursor, csig->sourceEid, eidLength);
 	cursor += eidLength;
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	sourceData = sdr_malloc(bpSdr, ctSignalLength);
 	if (sourceData == 0)
 	{
@@ -8267,7 +8367,7 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 	memcpy(cursor, rpt->sourceEid, eidLength);
 	cursor += eidLength;
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	sourceData = sdr_malloc(bpSdr, rptLength);
 	if (sourceData == 0)
 	{
@@ -8396,7 +8496,7 @@ static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	int		result;
 
 	CHKERR(adminRecordType && rpt && csig && payload);
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	buflen = zco_source_data_length(bpSdr, payload);
 	if ((buffer = MTAKE(buflen)) == NULL)
 	{
@@ -9407,7 +9507,7 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 	}
 
 	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 	if (outduct.blocked)
 	{
@@ -9538,7 +9638,7 @@ int	bpUnblockOutduct(char *protocolName, char *ductName)
 	}
 
 	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 	if (outduct.blocked == 0)
 	{
@@ -9852,7 +9952,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 				return 0;
 			}
 
-			sdr_begin_xn(bpSdr);
+			CHKERR(sdr_begin_xn(bpSdr));
 			sdr_stage(bpSdr, (char *) outduct, outductObj,
 					sizeof(Outduct));
 			continue;	/*	Should succeed now.	*/
@@ -9901,7 +10001,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 					return -1;
 				}
 
-				sdr_begin_xn(bpSdr);
+				CHKERR(sdr_begin_xn(bpSdr));
 				sdr_stage(bpSdr, (char *) outduct, outductObj,
 						sizeof(Outduct));
 				continue;
@@ -10031,7 +10131,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 						return -1;
 					}
 
-					sdr_begin_xn(bpSdr);
+					CHKERR(sdr_begin_xn(bpSdr));
 					sdr_stage(bpSdr, (char *) outduct,
 						outductObj, sizeof(Outduct));
 					continue;
@@ -10078,7 +10178,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		stewardshipAccepted = 0;
 	}
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 
 	/*	Transmission rate control: wait for capacity.  But
 	 *	no rate control if throttle nominal rate < 0.		*/
@@ -10104,7 +10204,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 				return -1;
 			}
 
-			sdr_begin_xn(bpSdr);
+			CHKERR(sdr_begin_xn(bpSdr));
 		}
 	}
 
@@ -10640,7 +10740,7 @@ static int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer,
 	 *	are in capsules and we use zco_transmit to re-read it.	*/
 
 	zco_start_transmitting(zco, &reader);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	bytesBuffered = zco_transmit(sdr, &reader, BP_MAX_BLOCK_SIZE,
 			(char *) buffer);
 	if (bytesBuffered < 0)
@@ -10706,7 +10806,7 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 
 	/*	Now use this bundle ID to find the bundle.		*/
 
-	sdr_begin_xn(bpSdr);		/*	Just to lock memory.	*/
+	CHKERR(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	result = findBundle(sourceEid, &image.id.creationTime,
 			image.id.fragmentOffset, image.totalAduLength == 0 ? 0
 			: image.payload.length, bundleObj);
@@ -10732,7 +10832,7 @@ int	bpMemo(Object bundleObj, unsigned int interval)
 	event.type = ctDue;
 	event.time = getUTCTime() + interval;
 	event.ref = bundleObj;
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	if (bundle.ctDueElt)
 	{
@@ -10813,7 +10913,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 	char	*dictionary;
 	int	result;
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
 	{
 		putErrmsg("Can't locate bundle for okay transmission.", NULL);
@@ -10899,7 +10999,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 	Object	bundleAddr;
 	Bundle	bundle;
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
 	{
 		sdr_cancel_xn(bpSdr);
@@ -11203,7 +11303,7 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 	char		*eidString;
 	int		result;
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 	if (findBundle(cts->sourceEid, &cts->creationTime, cts->fragmentOffset,
 			cts->fragmentLength, &bundleAddr) < 0)
 	{

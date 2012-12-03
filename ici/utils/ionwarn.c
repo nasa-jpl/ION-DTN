@@ -154,7 +154,7 @@ int	checkForCongestion()
 
 	forecastTime = getUTCTime();
 	sdr = getIonsdr();
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	iondbObj = getIonDbObject();
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (iondb.horizon != 0 && iondb.horizon <= forecastTime)

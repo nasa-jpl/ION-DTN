@@ -274,7 +274,7 @@ int	main(int argc, char **argv)
 
 
 	/* Lock SDR and check the database. */
-	sdr_begin_xn(acsSdr);
+	CHKZERO(sdr_begin_xn(acsSdr));
 	printAndCheckByCids(acsSdr);
 	checkByBids(acsSdr);
 	sdr_exit_xn(acsSdr);

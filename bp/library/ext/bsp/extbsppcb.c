@@ -414,7 +414,7 @@ int bsp_pcbCheck(AcqExtBlock *blk, AcqWorkArea *wk)
     }
 
     // Finally, replace the old bundle zco object, with our new one with decrypted payload
-    sdr_begin_xn(bpSdr);
+    CHKERR(sdr_begin_xn(bpSdr));
     zco_destroy(bpSdr, bundle->payload.content);
     if (sdr_end_xn(bpSdr) < 0)
     {
@@ -631,7 +631,7 @@ as expected.", NULL);
     }
 
     // Replace payload data with encrypted data in place, after destroying original payload data
-    sdr_begin_xn(bpSdr);
+    CHKERR(sdr_begin_xn(bpSdr));
     zco_destroy(bpSdr, bundle->payload.content);
     if (sdr_end_xn(bpSdr) < 0)
     {
@@ -641,7 +641,7 @@ as expected.", NULL);
     bundle->payload.content = encryptedPayloadZco;
 
     /* Serialize the Abstract Security Block. */
-    sdr_begin_xn(bpSdr);
+    CHKERR(sdr_begin_xn(bpSdr));
     raw_asb = bsp_serializeASB(&(blk->dataLength), &(asb));
 
     if((raw_asb == NULL) || (blk->dataLength == 0))
@@ -779,7 +779,7 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
     int temp = 0;
     unsigned long bundleLen = bprk->payloadLen +  
                               bprk->headerLen + bprk->trailerLen;
-    sdr_begin_xn(bpSdr);
+    CHKERR(sdr_begin_xn(bpSdr));
     // Put the header onto a new payload object, though it is actually
     // going to be in the "source" portion
     if(bprk->headerLen > 0) {
@@ -811,14 +811,14 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
                             bprk->payloadLen, sessionKeyValue,
                             sessionKeyLen)) < 0)
     {
-        sdr_begin_xn(bpSdr);
+        CHKERR(sdr_begin_xn(bpSdr));
         zco_destroy(bpSdr, bprk->newBundle);
 	oK(sdr_end_xn(bpSdr));
         PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: Unable to decrypt the payload.", NULL);
         return -1;
     }
 
-    sdr_begin_xn(bpSdr);
+    CHKERR(sdr_begin_xn(bpSdr));
     // Finally, append the trailer on our now decrypted bundle zco blob
     // going to be in the "source" portion
     if(bprk->trailerLen > 0) 
@@ -885,7 +885,7 @@ int bsp_pcbIsolatePayload(Sdr bpSdr, BspPayloadReplaceKit *bprk)
     // bundle in it.. we separate it into the various parts, grab the header, trailer
     // then isolate the payload.  We do this to put it back together
     // with decrypted payload later
-    sdr_begin_xn(bpSdr);
+    CHKERR(sdr_begin_xn(bpSdr));
 
     // grab the header & trailer
     zco_start_receiving(bprk->oldBundle, &reader);
@@ -997,7 +997,7 @@ int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,
    CHKERR(dataBuffer);
 
    /*   Prepare the data for processing. */
-   sdr_begin_xn(bpSdr);
+   CHKERR(sdr_begin_xn(bpSdr));
    zco_start_transmitting(payloadData, &dataReader);
 
    /* Setup the context for arc4. */
@@ -1053,7 +1053,7 @@ int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,
         MRELEASE(dataBuffer); 
         return -1;
      }
-     sdr_begin_xn(bpSdr);
+     CHKERR(sdr_begin_xn(bpSdr));
 
      bytesRemaining -= bytesRetrieved;
    }

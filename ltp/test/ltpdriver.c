@@ -100,7 +100,7 @@ static int	run_ltpdriver(unsigned long destEngineId, int clientId,
 
 //sdr_start_trace(sdr, 10000000, NULL);
 	close(aduFile);
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	fileRef = zco_create_file_ref(sdr, "ltpdriverSduFile", NULL);
 	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
 	{
@@ -122,7 +122,7 @@ static int	run_ltpdriver(unsigned long destEngineId, int clientId,
 			redLength = 0;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		zcoRef = zco_create(sdr, ZcoFileSource, fileRef, 0,
 				sduLength);
 		if (sdr_end_xn(sdr) < 0 || zcoRef == 0)
@@ -183,7 +183,7 @@ static int	run_ltpdriver(unsigned long destEngineId, int clientId,
 	}
 
 //sdr_stop_trace(sdr);
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	zco_destroy_file_ref(sdr, fileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{

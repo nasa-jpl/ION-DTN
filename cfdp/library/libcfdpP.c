@@ -34,6 +34,8 @@ static CfdpDB	*_cfdpConstants()
 {
 	static CfdpDB	buf;
 	static CfdpDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
@@ -42,9 +44,26 @@ static CfdpDB	*_cfdpConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(getIonsdr(), (char *) &buf, _cfdpdbObject(NULL),
-				sizeof(CfdpDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _cfdpdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(CfdpDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(CfdpDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -310,7 +329,7 @@ static CfdpVdb	*_cfdpvdb(char **name)
 		/*	CFDP volatile database doesn't exist yet.	*/
 
 		sdr = getIonsdr();
-		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
 		vdbAddress = psm_zalloc(wm, sizeof(CfdpVdb));
 		if (vdbAddress == 0)
 		{
@@ -376,7 +395,7 @@ int	cfdpInit()
 
 	/*	Recover the CFDP database, creating it if necessary.	*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	cfdpdbObject = sdr_find(sdr, _cfdpdbName(), NULL);
 	switch (cfdpdbObject)
 	{
@@ -458,6 +477,64 @@ int	cfdpInit()
 	return 0;		/*	CFDP service is available.	*/
 }
 
+static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
+{
+	CfdpVdb		*vdb;
+
+	vdb = (CfdpVdb *) psp(wm, vdbAddress);
+	if (vdb->eventSemaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vdb->eventSemaphore);
+	}
+
+	if (vdb->fduSemaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vdb->fduSemaphore);
+	}
+
+	if (vdb->currentFile != -1)
+	{
+		close(vdb->currentFile);
+	}
+}
+
+void	cfdpDropVdb()
+{
+	PsmPartition	wm = getIonwm();
+	char		*cfdpvdbName = _cfdpvdbName();
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*stop = NULL;
+
+	if (psm_locate(wm, cfdpvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if (elt)
+	{
+		dropVdb(wm, vdbAddress);	/*	Destroy Vdb.	*/
+		psm_free(wm,vdbAddress);
+		if(psm_uncatlg(wm, cfdpvdbName) < 0)
+		{
+			putErrmsg("Failed uncataloging vdb.",NULL);
+		}
+	}
+
+	oK(_cfdpvdb(&stop));			/*	Forget old Vdb.	*/
+}
+
+void	cfdpRaiseVdb()
+{
+	char	*cfdpvdbName = _cfdpvdbName();
+
+	if (_cfdpvdb(&cfdpvdbName) == NULL)	/*	Create new Vdb.	*/
+	{
+		putErrmsg("CFDP can't reinitialize vdb.", NULL);
+	}
+}
+
 Object	getCfdpDbObject()
 {
 	return _cfdpdbObject(NULL);
@@ -484,7 +561,7 @@ int	_cfdpStart(char *utaCmd)
 		return -1;
 	}
 
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 
 	/*	Start the CFDP events clock if necessary.		*/
 
@@ -511,7 +588,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Tell all CFDP processes to stop.			*/
 
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 
 	/*	Stop user application input thread.			*/
 
@@ -556,7 +633,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	cfdpvdb->utaPid = ERROR;
 	cfdpvdb->clockPid = ERROR;
 	if (cfdpvdb->eventSemaphore == SM_SEM_NONE)
@@ -606,7 +683,7 @@ int	cfdpAttach()
 
 	if (cfdpdbObject == 0)
 	{
-		sdr_begin_xn(sdr);	/*	Lock database.		*/
+		CHKERR(sdr_begin_xn(sdr));	/*	Lock database.	*/
 		cfdpdbObject = sdr_find(sdr, _cfdpdbName(), NULL);
 		sdr_exit_xn(sdr);	/*	Unlock database.	*/
 		if (cfdpdbObject == 0)
@@ -634,6 +711,12 @@ int	cfdpAttach()
 	return 0;		/*	CFDP service is available.	*/
 }
 
+void cfdpDetach(){
+	char *stop=NULL;
+	oK(_cfdpvdb(&stop));
+	return;
+}
+
 MetadataList	createMetadataList(Object log)
 {
 	Sdr	sdr = getIonsdr();
@@ -644,7 +727,7 @@ MetadataList	createMetadataList(Object log)
 	 *	in the new list's user data.				*/
 
 	CHKZERO(log);
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	list = sdr_list_create(sdr);
 	if (list)
 	{
@@ -824,7 +907,7 @@ int	addFsResp(Object list, CfdpAction action, int status,
 	CHKERR(message == NULL || strlen(secondFileName) < 256);
 	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
 			== cfdpConstants->fsreqLists);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fsresp.action = action;
 	fsresp.status = status;
 	if (firstFileName)
@@ -2308,7 +2391,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 	CHKERR(pdu);
 	CHKERR(fduBuffer);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fduObj = selectOutFdu(fduBuffer);
 	while (fduObj == 0)
 	{
@@ -2329,7 +2412,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 			return -1;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		fduObj = selectOutFdu(fduBuffer);
 	}
 
@@ -3589,7 +3672,7 @@ printf("...wrong CFDP transmission mode...\n");
 
 	/*	Get FDU, creating as necessary.				*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fduObj = findInFdu(&transactionId, &fduBuf, &fduElt, 1);
 	if (fduObj == 0)
 	{

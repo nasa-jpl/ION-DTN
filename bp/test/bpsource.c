@@ -111,7 +111,7 @@ int	main(int argc, char **argv)
 			return 0;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		extent = sdr_malloc(sdr, lineLength);
 		if (extent == 0)
 		{
@@ -169,7 +169,7 @@ int	main(int argc, char **argv)
 			continue;
 
 		default:
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			extent = sdr_malloc(sdr, lineLength);
 			if (extent == 0)
 			{

@@ -76,15 +76,11 @@ Object	Sdr_table_create(char *file, int line, Sdr sdrv, int rowSize,
 
 Address	sdr_table_user_data(Sdr sdrv, Object table)
 {
-	SdrState	*sdr;
 	SdrTable	tableBuffer;
 
-	CHKZERO(sdrv);
+	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(table);
-	sdr = sdrv->sdr;
-	CHKZERO(takeSdr(sdr) == 0);
 	sdrFetch(tableBuffer, (Address) table);
-	releaseSdr(sdr);
 	return tableBuffer.userData;
 }
 
@@ -114,47 +110,35 @@ void	Sdr_table_user_data_set(char *file, int line, Sdr sdrv, Object table,
 void	sdr_table_dimensions(Sdr sdrv, Object table, int *rowSize,
 		int *rowCount)
 {
-	SdrState	*sdr;
 	SdrTable	tableBuffer;
 
-	CHKVOID(sdrv);
+	CHKVOID(sdrFetchSafe(sdrv));
 	CHKVOID(table);
 	CHKVOID(rowSize);
 	CHKVOID(rowCount);
-	sdr = sdrv->sdr;
-	CHKVOID(takeSdr(sdr) == 0);
 	sdrFetch(tableBuffer, (Address) table);
-	releaseSdr(sdr);
 	*rowSize = tableBuffer.rowSize;
 	*rowCount = tableBuffer.rowCount;
 }
 
 void	sdr_table_stage(Sdr sdrv, Object table)
 {
-	SdrState	*sdr;
 	SdrTable	tableBuffer;
 
-	CHKVOID(sdrv);
+	CHKVOID(sdrFetchSafe(sdrv));
 	CHKVOID(table);
-	sdr = sdrv->sdr;
-	CHKVOID(takeSdr(sdr) == 0);
 	sdrFetch(tableBuffer, (Address) table);
 	sdr_stage(sdrv, NULL, tableBuffer.rows, 0);
-	releaseSdr(sdr);
 }
 
 Address	sdr_table_row(Sdr sdrv, Object table, unsigned int rowNbr)
 {
-	SdrState	*sdr;
 	SdrTable	tableBuffer;
 	Address		addr;
 
-	CHKERR(sdrv);
+	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(table);
-	sdr = sdrv->sdr;
-	CHKERR(takeSdr(sdr) == 0);
 	sdrFetch(tableBuffer, (Address) table);
-	releaseSdr(sdr);
 	CHKERR(rowNbr < tableBuffer.rowCount);
 	addr = ((Address) (tableBuffer.rows)) + (rowNbr * tableBuffer.rowSize);
 	return addr;

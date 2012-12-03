@@ -52,8 +52,7 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 
 	while (1)
 	{
-		sdr_begin_xn(sdr);
-		CHKERR(ionLocked());	/*	In case of killm.	*/
+		CHKERR(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, events);
 		if (elt == 0)	/*	No more events to dispatch.	*/
 		{
@@ -375,7 +374,7 @@ static void	applyRateControl(Sdr sdr)
 	VInduct		*induct;
 	VOutduct	*outduct;
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 	/*	Recalculate limit on local bundle generation.		*/
 

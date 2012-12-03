@@ -81,7 +81,7 @@ int acsInitialize(long heapWords, int logLevel)
 #endif
            
            if (sdr_load_profile(acssdrName, SDR_IN_DRAM, heapWords,
-                                SM_NO_KEY,  pathname ) < 0)
+                                SM_NO_KEY, pathname, NULL) < 0)
            {
               putErrmsg("Unable to load SDR profile for ACS.", NULL);
               return -1;
@@ -104,11 +104,11 @@ int acsInitialize(long heapWords, int logLevel)
 		return -1;
 	}
 
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	acsdbObject = sdr_find(acsSdr, acsDbName, NULL);
 	switch (acsdbObject)
 	{
-	case -1:		/*	SDR error.				*/
+	case -1:		/*	SDR error.			*/
 		sdr_cancel_xn(acsSdr);
 		putErrmsg("Can't seek ACS database in SDR.", NULL);
 		return -1;
@@ -162,7 +162,7 @@ int acsAttach()
 		return -1;
 	}
 
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	if (acsdbObject == 0)
 	{
 		acsdbObject = sdr_find(acsSdr, acsDbName, NULL);
@@ -355,8 +355,8 @@ int sendAcs(Object signalLElt)
 	}
 
 	/* To prevent deadlock, we take the BP SDR before the ACS SDR. */
-	sdr_begin_xn(bpSdr);
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
+	CHKERR(sdr_begin_xn(acsSdr));
 
 	signalAddr = sdr_list_data(acsSdr, signalLElt);
 	if (signalAddr == 0) {
@@ -438,8 +438,8 @@ int trySendAcs(SdrAcsPendingCust *custodian,
 	Sdr					bpSdr = getIonsdr();
 
 	/* To prevent deadlock, take bpSdr before acsSdr. */
-	sdr_begin_xn(bpSdr);
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
+	CHKERR(sdr_begin_xn(acsSdr));
 
 	signalLElt = findSdrAcsSignal(custodian->signals, reasonCode, succeeded,
 			&signalAddr);
@@ -602,7 +602,7 @@ static Object newSdrAcsCustodian(Object custodians, const char *eid)
 	newCustodian.acsDelay = 2;
 	newCustodian.acsSize = 300;
 
-	sdr_begin_xn(acsSdr);
+	CHKZERO(sdr_begin_xn(acsSdr));
 	newCustodianAddr = sdr_malloc(acsSdr, sizeof(newCustodian));
 	newCustodian.signals = sdr_list_create(acsSdr);
 	sdr_poke(acsSdr, newCustodianAddr, newCustodian);
@@ -620,7 +620,7 @@ Object getOrMakeCustodianByEid(Object custodians, const char *eid)
 	Object custodianAddr;
 
 	/* Try to find custodian info if it exists. */
-	sdr_begin_xn(acsSdr);
+	CHKZERO(sdr_begin_xn(acsSdr));
 	custodianAddr = findCustodianByEid(custodians, eid);
 	if(sdr_end_xn(acsSdr) < 0)
 	{
@@ -653,7 +653,7 @@ int updateCustodianAcsDelay(const char *custodianEid,
 		return -1;
 	}
 
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	sdr_peek(acsSdr, custodian, custodianAddr);
 	custodian.acsDelay = acsDelay;
 	sdr_poke(acsSdr, custodianAddr, custodian);
@@ -677,7 +677,7 @@ int updateCustodianAcsSize(const char *custodianEid,
 		return -1;
 	}
 
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	sdr_peek(acsSdr, custodian, custodianAddr);
 	custodian.acsSize = acsSize;
 	sdr_poke(acsSdr, custodianAddr, custodian);
@@ -691,7 +691,7 @@ int updateCustodianAcsSize(const char *custodianEid,
 
 int updateMinimumCustodyId(unsigned long minimumCustodyId)
 {
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	sdr_poke(acsSdr, acsConstants->id, minimumCustodyId);
 	if(sdr_end_xn(acsSdr) < 0)
 	{
@@ -708,7 +708,7 @@ void listCustodianInfo(void (*printer)(const char *))
 	SdrAcsPendingCust	custodian;
 	char buffer[1024];
 
-	sdr_begin_xn(acsSdr);
+	CHKVOID(sdr_begin_xn(acsSdr));
 	for(custodianLElt = sdr_list_first(acsSdr, acsConstants->pendingCusts);
 		custodianLElt;
 		custodianLElt = sdr_list_next(acsSdr, custodianLElt))

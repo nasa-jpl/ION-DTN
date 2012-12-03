@@ -866,7 +866,7 @@ printf("Before bp_receive...\n");
 				break;
 
 			case BpPayloadPresent:
-				sdr_begin_xn(sdr);
+				CHKERR(sdr_begin_xn(sdr));
 				if (HandleBundle(&dlv, buffer) < 0)
 				{
 					sdr_cancel_xn(sdr);

@@ -646,7 +646,7 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 		CHKERR(task->flowLabelLength == 0);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Append proxy messages to messagesToUser if provided,
 	 *	else create new sdrlist for messages to user.		*/
@@ -932,7 +932,7 @@ int	cfdp_rput_cancel(CfdpNumber *respondentEntityNbr,
 	CHKERR(respondentEntityNbr);
 	CHKERR(rputTransactionId);
 	CHKERR(transactionId);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Append cancel messages to messagesToUser if provided,
 	 *	else create new sdrlist for messages to user.		*/
@@ -1225,7 +1225,7 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	destFileNameLen = strlen(task->destFileName);
 	CHKERR(destFileNameLen > 0 && destFileNameLen < 256);
 	CHKERR(transactionId);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Append proxy messages to messagesToUser if provided,
 	 *	else create new sdrlist for messages to user.		*/
