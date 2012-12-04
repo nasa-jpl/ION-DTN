@@ -127,12 +127,10 @@ void	Sdr_list_destroy(char *file, int line, Sdr sdrv, Object list,
 
 Address	sdr_list_user_data(Sdr sdrv, Object list)
 {
-	SdrState	*sdr;
 	SdrList		listBuffer;
 
 	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(list);
-	sdr = sdrv->sdr;
 	sdrFetch(listBuffer, list);
 	return listBuffer.userData;
 }
@@ -162,12 +160,10 @@ void	Sdr_list_user_data_set(char *file, int line, Sdr sdrv, Object list,
 
 long	sdr_list_length(Sdr sdrv, Object list)
 {
-	SdrState	*sdr;
 	SdrList		listBuffer;
 
 	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(list);
-	sdr = sdrv->sdr;
 	sdrFetch(listBuffer, list);
 	return listBuffer.length;
 }
@@ -532,48 +528,40 @@ void	Sdr_list_delete(char *file, int line, Sdr sdrv, Object elt,
 
 Object	sdr_list_first(Sdr sdrv, Object list)
 {
-	SdrState	*sdr;
 	SdrList		listBuffer;
 
 	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(list);
-	sdr = sdrv->sdr;
 	sdrFetch(listBuffer, (Address) list);
 	return listBuffer.first;
 }
 
 Object	sdr_list_last(Sdr sdrv, Object list)
 {
-	SdrState	*sdr;
 	SdrList		listBuffer;
 
 	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(list);
-	sdr = sdrv->sdr;
 	sdrFetch(listBuffer, (Address) list);
 	return listBuffer.last;
 }
 
 Object	sdr_list_next(Sdr sdrv, Object elt)
 {
-	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
 	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
-	sdr = sdrv->sdr;
 	sdrFetch(eltBuffer, (Address) elt);
 	return eltBuffer.next;
 }
 
 Object	sdr_list_prev(Sdr sdrv, Object elt)
 {
-	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
 	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
-	sdr = sdrv->sdr;
 	sdrFetch(eltBuffer, (Address) elt);
 	return eltBuffer.prev;
 }
@@ -657,24 +645,20 @@ Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
 
 Object	sdr_list_list(Sdr sdrv, Object elt)
 {
-	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
 	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
-	sdr = sdrv->sdr;
 	sdrFetch(eltBuffer, (Address) elt);
 	return eltBuffer.list;
 }
 
 Address	sdr_list_data(Sdr sdrv, Object elt)
 {
-	SdrState	*sdr;
 	SdrListElt	eltBuffer;
 
 	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
-	sdr = sdrv->sdr;
 	sdrFetch(eltBuffer, (Address) elt);
 	return eltBuffer.data;
 }

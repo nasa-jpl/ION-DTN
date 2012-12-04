@@ -107,26 +107,22 @@ Object	Sdr_string_dup(char *file, int line, Sdr sdrv, Object from)
 
 int	sdr_string_length(Sdr sdrv, Object string)
 {
-	SdrState	*sdr;
 	unsigned char	length;
 
 	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(string);
-	sdr = sdrv->sdr;
 	sdrFetch(length, (Address) string);
 	return length;
 }
 
 int	sdr_string_read(Sdr sdrv, char *into, Object string)
 {
-	SdrState	*sdr;
 	Address		addr = (Address) string;
 	unsigned char	length;
 
 	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(into);
 	CHKERR(string);
-	sdr = sdrv->sdr;
 	sdrFetch(length, addr);
 	_sdrfetch(sdrv, into, addr + 1, length);
 	*(into + length) = '\0';
