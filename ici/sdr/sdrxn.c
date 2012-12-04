@@ -1646,7 +1646,9 @@ int	sdrFetchSafe(Sdr sdrv)
 		return 1;
 	}
 
-	return sdr_heap_is_halted(sdrv);
+//	return sdr_heap_is_halted(sdrv);
+if (sdr_heap_is_halted(sdrv)) return 1;
+abort();
 }
 
 void	sdr_exit_xn(Sdr sdrv)
