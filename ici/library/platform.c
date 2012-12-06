@@ -1581,6 +1581,35 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 	return 1;
 }
 
+void	printStackTrace()
+{
+#ifdef linux
+#define	MAX_TRACE_DEPTH	100
+	void	*returnAddresses[MAX_TRACE_DEPTH];
+	size_t	stackFrameCount;
+	char	**functionNames;
+	int	i;
+
+	stackFrameCount = backtrace(returnAddresses, MAX_TRACE_DEPTH);
+	functionNames = backtrace_symbols(returnAddresses, stackFrameCount);
+	if (functionNames == NULL)
+	{
+		writeMemo("[!] Can't print backtrace function names.");
+		return;
+	}
+
+	writeMemo("[i] Current stack trace:");
+	for (i = 0; i < stackFrameCount; i++)
+	{
+		writeMemoNote("[i] ", functionNames[i]);
+	}
+
+	free(functionNames);
+#else
+	writeMemo("[?] No stack trace available on this platform.");
+#endif
+}
+
 void	encodeSdnv(Sdnv *sdnv, unsigned long val)
 {
 	static unsigned long	sdnvMask = ((unsigned long) -1) / 128;

@@ -1641,14 +1641,10 @@ int	sdr_heap_is_halted(Sdr sdrv)
 
 int	sdrFetchSafe(Sdr sdrv)
 {
-	if (sdr_in_xn(sdrv))
-	{
-		return 1;
-	}
-
-//	return sdr_heap_is_halted(sdrv);
-if (sdr_heap_is_halted(sdrv)) return 1;
-abort();
+	if (sdr_in_xn(sdrv)) return 1;
+	if (sdr_heap_is_halted(sdrv)) return 1;
+	printStackTrace();
+	return 0;
 }
 
 void	sdr_exit_xn(Sdr sdrv)
