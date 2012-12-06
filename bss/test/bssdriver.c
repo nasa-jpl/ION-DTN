@@ -71,13 +71,16 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 	}
 
 	sdr = bp_get_sdr();
+	CHKZERO(sdr_begin_xn(sdr));
 	if (sdr_heap_depleted(sdr))
 	{
+		sdr_exit_xn(sdr);
 		bp_close(sap);
 		putErrmsg("Low on heap space, can't initiate streaming.", NULL);
 		return 0;
 	}
 
+	sdr_exit_xn(sdr);
 	writeMemo("[i] bssdriver is running.");
 	while (bundlesToSend > 0)
 	{
