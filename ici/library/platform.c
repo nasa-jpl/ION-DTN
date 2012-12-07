@@ -1573,6 +1573,7 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 {
 	_postErrmsg(fileName, lineNbr, "Assertion failed.", arg);
 	writeErrmsgMemos();
+	printStackTrace();
 	if (_coreFileNeeded(NULL))
 	{
 		sm_Abort();
