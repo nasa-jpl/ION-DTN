@@ -3,4 +3,4 @@ sdrName ion1
 wmSize 10000000
 configFlags 13
 heapWords 100000
-pathName '/tmp/ion1/'
+pathName '/tmp/'

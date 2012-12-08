@@ -18,9 +18,8 @@ cd 1.ipn.udp
 ./ionstop &
 cd ../2.ipn.udp
 ./ionstop &
-sleep 10
-rm -rf /tmp/ion1
-rm -rf /tmp/ion2
+sleep 15
+rm -f /tmp/ion*.sdrlong
 exit $RETVAL
 }
 
@@ -64,16 +63,16 @@ echo "########################################"
 export ION_NODE_LIST_DIR=$PWD
 RETVAL=0
 ./cleanup
+rm -f /tmp/ion1.sdrlog
+rm -f /tmp/ion2.sdrlog
 
 #Start node 1
-mkdir /tmp/ion1/
 echo
 echo "Starting node 1..."
 cd 1.ipn.udp/
 ./ionstart
 
 #Start node 2
-mkdir /tmp/ion2/
 echo
 echo "Starting node 2..."
 cd ../2.ipn.udp/
