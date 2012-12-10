@@ -125,10 +125,12 @@ sleep 1
 kill -9 $BPCOUNTER_PID >/dev/null 2>&1
 
 #Now restart the daemons.
-sleep 1
-echo "Restarting all ION daemons on receiver..."
-ionadmin restart.ionrc
-bpadmin restart.bprc
+if [ $firstAbort -gt 1 ];then
+	sleep 1
+	echo "Restarting all ION daemons on receiver..."
+	ionadmin restart.ionrc
+	bpadmin restart.bprc
+fi
 
 echo "Waiting for all previously received bundles to expire..."
 sleep 30
