@@ -1117,6 +1117,23 @@ static void	executeRun(int tokenCount, char **tokens)
 	}
 }
 
+static void	noteWatchValue()
+{
+	BpVdb	*vdb = getBpVdb();
+	Sdr	sdr = getIonsdr();
+	Object	dbObj = getBpDbObject();
+	BpDB	db;
+
+	if (vdb != NULL && dbObj != 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &db, dbObj, sizeof(BpDB));
+		db.watching = vdb->watching;
+		sdr_write(sdr, dbObj, (char *) &db, sizeof(BpDB));
+		oK(sdr_end_xn(sdr));
+	}
+}
+
 static void	switchWatch(int tokenCount, char **tokens)
 {
 	BpVdb	*vdb = getBpVdb();
@@ -1432,6 +1449,7 @@ static int	processLine(char *line, int lineLength)
 			if (attachToBp() == 0)
 			{
 				switchWatch(tokenCount, tokens);
+				noteWatchValue();
 			}
 
 			return 0;

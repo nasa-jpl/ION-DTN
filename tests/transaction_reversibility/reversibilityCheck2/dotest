@@ -114,18 +114,16 @@ if ! [ -z "$text" ];then
 	end
 fi
 
-#Failed twice, so no daemons are running.  Use delivery to clear out some space.
-echo "Delivering queued data to bpcounter to free some heap space..."
-bpcounter ipn:2.1 > output2 &
-BPCOUNTER_PID=$!
-
-sleep 5
-kill -2 $BPCOUNTER_PID >/dev/null 2>&1
-sleep 1
-kill -9 $BPCOUNTER_PID >/dev/null 2>&1
-
-#Now restart the daemons.
 if [ $firstAbort -gt 1 ];then
+#Failed twice, so no daemons are running.  Use delivery to clear out some space.
+	echo "Delivering queued data to bpcounter to free some heap space..."
+	bpcounter ipn:2.1 > output2 &
+	BPCOUNTER_PID=$!
+	sleep 5
+	kill -2 $BPCOUNTER_PID >/dev/null 2>&1
+	sleep 1
+	kill -9 $BPCOUNTER_PID >/dev/null 2>&1
+#Now restart the daemons.
 	sleep 1
 	echo "Restarting all ION daemons on receiver..."
 	ionadmin restart.ionrc
