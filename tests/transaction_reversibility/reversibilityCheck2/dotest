@@ -85,6 +85,7 @@ cd ../1.ipn.udp/
 echo ""
 echo "Start sending bundles..."
 bpdriver 1000 ipn:1.1 ipn:2.1 -1000 t30 >& output1
+sleep 10
 
 #Check that bpdriver terminated after aborting an SDR transaction
 cd ../2.ipn.udp/

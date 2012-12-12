@@ -3009,6 +3009,18 @@ void	sm_TaskYield()
 	sched_yield();
 }
 
+static void	closeAllFileDescriptors()
+{
+	struct rlimit	limit;
+	int		i;
+
+	oK(getrlimit(RLIMIT_NOFILE, &limit));
+	for (i = 3; i < limit.rlim_cur; i++)
+	{
+		oK(close(i));
+	}
+}
+
 int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		char *arg4, char *arg5, char *arg6, char *arg7, char *arg8,
 		char *arg9, char *arg10, int priority, int stackSize)
@@ -3023,6 +3035,7 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		return -1;
 
 	case 0:			/*	This is the child process.	*/
+		closeAllFileDescriptors();
 		execlp(name, name, arg1, arg2, arg3, arg4, arg5, arg6,
 				arg7, arg8, arg9, arg10, NULL);
 

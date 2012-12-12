@@ -654,6 +654,10 @@ int	reUseAddress(int fd)
 
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &i,
 			sizeof i);
+#if (defined (SO_REUSEPORT))
+	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &i,
+			sizeof i);
+#endif
 	if (result < 0)
 	{
 		putSysErrmsg("can't make socket address reusable", NULL);
@@ -734,6 +738,9 @@ int	reUseAddress(int fd)
 	int	i = 1;
 
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &i, sizeof i);
+#if (defined (SO_REUSEPORT))
+	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &i, sizeof i);
+#endif
 	if (result < 0)
 	{
 		putSysErrmsg("can't make socket address reusable", NULL);
@@ -1051,16 +1058,12 @@ int	reUseAddress(int fd)
 	int	result;
 	int	i = 1;
 
-#if (defined (darwin))
-	// SO_REUSEPORT needed instead of SO_REUSEADDR on OSX
-	result = setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &i,
-                      sizeof i);
-#else
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &i,
 			sizeof i);
-#endif			/*	end of #if defined (darwin)		*/
-
-
+#if (defined (SO_REUSEPORT))
+	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &i,
+			sizeof i);
+#endif
 	if (result < 0)
 	{
 		putSysErrmsg("can't make socket address reusable", NULL);
