@@ -2568,8 +2568,8 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	CHKERR(vspan);
 	CHKERR(buf);
 	*buf = (char *) psp(getIonwm(), vspan->segmentBuffer);
-	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
 	CHKERR(sdr_begin_xn(ltpSdr));
+	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
 	sdr_stage(ltpSdr, (char *) &spanBuf, spanObj, sizeof(LtpSpan));
 	elt = sdr_list_first(ltpSdr, spanBuf.segments);
 	while (elt == 0 || vspan->localXmitRate == 0)
@@ -5884,6 +5884,7 @@ int	ltpHandleInboundSegment(char *buf, int length)
 	unsigned long	sourceEngineId;
 	unsigned long	sessionNbr;
 	unsigned long	extensionLengths;
+	Sdr		sdr;
 			OBJ_POINTER(LtpDB, ltpdb);
 
 	CHKERR(buf);
@@ -5934,7 +5935,10 @@ segment discarded", itoa(extensionLengths));
 		fflush(stdout);
 	}
 
+	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(getIonsdr(), LtpDB, ltpdb, _ltpdbObject(NULL));
+	sdr_exit_xn(sdr);
 	if ((pdu->segTypeCode & LTP_CTRL_FLAG) == 0)	/*	Data.	*/
 	{
 		return handleDataSegment(sourceEngineId, ltpdb, sessionNbr,

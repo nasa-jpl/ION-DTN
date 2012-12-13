@@ -2,4 +2,4 @@
 # Samuel Jero <sj323707@ohio.edu>
 # udpclo test cleanup script
 killm
-rm -f ./ion_nodes ./1.ipn.udp/ion.log ./2.ipn.udp/ion.log ./1.ipn.udp/bpdriverAduFile ./2.ipn.udp/output ./2.ipn.udp/bpacq.*
+rm -f ./ion_nodes ./1.ipn.udp/ion.log ./2.ipn.udp/ion.log ./1.ipn.udp/bpdriverAduFile ./1.ipn.udp/output1 ./1.ipn.udp/output2 ./2.ipn.udp/output1 ./2.ipn.udp/output2 ./2.ipn.udp/output3 ./2.ipn.udp/bpacq.*

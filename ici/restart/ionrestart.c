@@ -24,6 +24,12 @@
 #include "cfdpP.h"
 #endif
 
+#ifndef RESTART_GRACE_PERIOD
+#define	RESTART_GRACE_PERIOD	3
+#endif
+
+#define	RESTART_LOOP_INTERVAL	(RESTART_GRACE_PERIOD * 5)
+
 extern void	ionDropVdb();
 extern void	ionRaiseVdb();
 
@@ -203,15 +209,15 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 		writeMemo("[i] ionrestart: CFDP volatile database raised.");
 	}
 #endif
+	/*	If it's safe, restart all ION tasks.			*/
+
 	prevRestartTime = sdrv->sdr->restartTime;
 	sdrv->sdr->restartTime = getUTCTime();
-	if ((sdrv->sdr->restartTime - prevRestartTime) < 5)
+	if ((sdrv->sdr->restartTime - prevRestartTime) < RESTART_LOOP_INTERVAL)
 	{
 		writeMemo("[!] Inferred restart loop.  Tasks not restarted.");
 		return;
 	}
-
-	/*	Restart all ION tasks.					*/
 
 	rfx_start();
 	for (i = 0; i < 5; i++)
@@ -329,8 +335,16 @@ int	main(int argc, char **argv)
 	}
 
 	/*	Hijack the current transaction, i.e., impersonate
-	 *	the current owner of the ION mutex.  Also make it
-	 *	un-takeable by any other thread.			*/
+	 *	the current owner of the ION mutex.
+	 *
+	 *	ionAttach() entails calling sdr_start_using, which
+	 *	gives the SDR semaphore and thereby would enable the
+	 *	failing task to begin new transactions before exiting.
+	 *	These new transactions would interfere with recovery
+	 *	from the current failed transaction, so they must be
+	 *	prevented.  For this purpose, we must temporarily set
+	 *	the SDR semaphore to -1, restoring it when we are
+	 *	confident that the failing task has terminated.		*/
 
 	sdrv = getIonsdr();
 	sdrv->sdr->sdrOwnerTask = sm_TaskIdSelf();
@@ -338,11 +352,11 @@ int	main(int argc, char **argv)
 	sdrSemaphore = sdrv->sdr->sdrSemaphore;
 	sdrv->sdr->sdrSemaphore = -1;
 
-	/*	Wait for the failing task to terminate, then perform
-	 *	the restart.						*/
+	/*	Wait for the failing task to terminate, then re-enable
+	 *	transactions and perform the restart.			*/
 
-	snooze(2);
-       	sdrv->sdr->sdrSemaphore = sdrSemaphore;
+	snooze(RESTART_GRACE_PERIOD);
+     	sdrv->sdr->sdrSemaphore = sdrSemaphore;
 	restartION(sdrv, utaCmd);
 
 	/*	Close out the hijacked transaction.			*/

@@ -9,7 +9,7 @@ RESTART = ../restart
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
-LDFLAGS = -fPIC -shared
+LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
 
 LIBICIOBJS = \

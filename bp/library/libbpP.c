@@ -1363,6 +1363,7 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->creationTimeSec = 0;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
+		vdb->watching = db->watching;
 		vdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
 				SM_SEM_FIFO);
 		sm_SemTake(vdb->productionThrottle.semaphore);
@@ -9506,8 +9507,8 @@ int	bpBlockOutduct(char *protocolName, char *ductName)
 		return 0;
 	}
 
-	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
 	CHKERR(sdr_begin_xn(bpSdr));
+	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
 	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 	if (outduct.blocked)
 	{
@@ -9637,8 +9638,8 @@ int	bpUnblockOutduct(char *protocolName, char *ductName)
 		return 0;
 	}
 
-	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
 	CHKERR(sdr_begin_xn(bpSdr));
+	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
 	sdr_stage(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 	if (outduct.blocked == 0)
 	{

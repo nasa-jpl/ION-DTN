@@ -600,6 +600,7 @@ typedef struct
 	Object		clockCmd; 	/*	For starting clock.	*/
 	int		maxAcqInHeap;
 	unsigned long	bundleCounter;	/*	For non-synced clock.	*/
+	int		watching;	/*	Activity watch switch.	*/
 	time_t		resetTime;	/*	Stats reset time.	*/
 	Object		sourceStats;	/*	BpCosStats address.	*/
 	Object		recvStats;	/*	BpCosStats address.	*/

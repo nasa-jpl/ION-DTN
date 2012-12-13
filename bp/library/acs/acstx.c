@@ -65,10 +65,13 @@ int acsInitialize(long heapWords, int logLevel)
 	}
 
         {
+	   Sdr		sdr = getIonsdr();
            IonDB        iondb;
            char         *pathname = iondb.parmcopy.pathName;
 
-           sdr_read( getIonsdr(), (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	   CHKERR(sdr_begin_xn(sdr));
+           sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	   sdr_exit_xn(sdr);
 
 #if 0
            {
@@ -145,7 +148,9 @@ int acsInitialize(long heapWords, int logLevel)
 	}
 
 	acsConstants = &acsConstantsBuf;
+	CHKERR(sdr_begin_xn(acsSdr));
 	sdr_read(acsSdr, (char *) acsConstants, acsdbObject, sizeof(AcsDB));
+	sdr_exit_xn(acsSdr);
 	return 0;
 }
 

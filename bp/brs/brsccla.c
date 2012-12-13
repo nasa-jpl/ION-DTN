@@ -303,11 +303,13 @@ number>");
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr,
 			vinduct->inductElt), sizeof(Induct));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			voutduct->outductElt), sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_BRS_RATE;

@@ -654,6 +654,10 @@ int	reUseAddress(int fd)
 
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &i,
 			sizeof i);
+#if (defined (SO_REUSEPORT))
+	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &i,
+			sizeof i);
+#endif
 	if (result < 0)
 	{
 		putSysErrmsg("can't make socket address reusable", NULL);
@@ -734,6 +738,9 @@ int	reUseAddress(int fd)
 	int	i = 1;
 
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &i, sizeof i);
+#if (defined (SO_REUSEPORT))
+	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &i, sizeof i);
+#endif
 	if (result < 0)
 	{
 		putSysErrmsg("can't make socket address reusable", NULL);
@@ -1051,16 +1058,12 @@ int	reUseAddress(int fd)
 	int	result;
 	int	i = 1;
 
-#if (defined (darwin))
-	// SO_REUSEPORT needed instead of SO_REUSEADDR on OSX
-	result = setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &i,
-                      sizeof i);
-#else
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &i,
 			sizeof i);
-#endif			/*	end of #if defined (darwin)		*/
-
-
+#if (defined (SO_REUSEPORT))
+	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &i,
+			sizeof i);
+#endif
 	if (result < 0)
 	{
 		putSysErrmsg("can't make socket address reusable", NULL);
@@ -1573,12 +1576,42 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 {
 	_postErrmsg(fileName, lineNbr, "Assertion failed.", arg);
 	writeErrmsgMemos();
+	printStackTrace();
 	if (_coreFileNeeded(NULL))
 	{
 		sm_Abort();
 	}
 
 	return 1;
+}
+
+void	printStackTrace()
+{
+#ifdef linux
+#define	MAX_TRACE_DEPTH	100
+	void	*returnAddresses[MAX_TRACE_DEPTH];
+	size_t	stackFrameCount;
+	char	**functionNames;
+	int	i;
+
+	stackFrameCount = backtrace(returnAddresses, MAX_TRACE_DEPTH);
+	functionNames = backtrace_symbols(returnAddresses, stackFrameCount);
+	if (functionNames == NULL)
+	{
+		writeMemo("[!] Can't print backtrace function names.");
+		return;
+	}
+
+	writeMemo("[i] Current stack trace:");
+	for (i = 0; i < stackFrameCount; i++)
+	{
+		writeMemoNote("[i] ", functionNames[i]);
+	}
+
+	free(functionNames);
+#else
+	writeMemo("[?] No stack trace available on this platform.");
+#endif
 }
 
 void	encodeSdnv(Sdnv *sdnv, unsigned long val)

@@ -779,13 +779,13 @@ static void	terminateXn(Sdr sdrv)
 	 *	transaction.						*/
 
 	snooze(2);
-	sdr->halted = 0;
 
 	/*	Transaction still exists, but restart utility is now
 	 *	its owner.  From the perspective of the current task,
 	 *	the transaction is finished; nothing more to do.  The
 	 *	restart utility will clear the hijacked transaction.	*/
 
+	sdr->halted = 0;
 	return;
 }
 
@@ -1641,12 +1641,7 @@ int	sdr_heap_is_halted(Sdr sdrv)
 
 int	sdrFetchSafe(Sdr sdrv)
 {
-	if (sdr_in_xn(sdrv))
-	{
-		return 1;
-	}
-
-	return sdr_heap_is_halted(sdrv);
+	return (sdr_in_xn(sdrv) || sdr_heap_is_halted(sdrv));
 }
 
 void	sdr_exit_xn(Sdr sdrv)

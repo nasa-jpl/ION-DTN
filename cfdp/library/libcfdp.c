@@ -344,16 +344,23 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 	CHKERR(list);
 	CHKERR(text);
 	CHKERR(length > 0);
-	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
-			== cfdpConstants->usrmsgLists);
+	CHKERR(sdr_begin_xn(sdr));
+	if (sdr_list_list(sdr, sdr_list_user_data(sdr, list))
+			!= cfdpConstants->usrmsgLists)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("CFDP: error in list user data.", NULL);
+		return -1;
+	}
+
 	if (length > 255)
 	{
+		sdr_exit_xn(sdr);
 		putErrmsg("CFDP: User Message too long.", itoa(length));
 		return -1;
 	}
 
 	memset((char *) &usrmsg, 0, sizeof(MsgToUser));
-	CHKERR(sdr_begin_xn(sdr));
 	usrmsg.length = length;
 	usrmsg.text = sdr_malloc(sdr, length);
 	if (usrmsg.text)
@@ -457,10 +464,16 @@ int	cfdp_add_fsreq(MetadataList list, CfdpAction action,
 	CHKERR(list);
 	CHKERR(firstFileName == NULL || strlen(firstFileName) < 256);
 	CHKERR(secondFileName == NULL || strlen(secondFileName) < 256);
-	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
-			== cfdpConstants->fsreqLists);
-	memset((char *) &fsreq, 0, sizeof(FilestoreRequest));
 	CHKERR(sdr_begin_xn(sdr));
+	if (sdr_list_list(sdr, sdr_list_user_data(sdr, list))
+			!= cfdpConstants->fsreqLists)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("CFDP: error in list user data.", NULL);
+		return -1;
+	}
+
+	memset((char *) &fsreq, 0, sizeof(FilestoreRequest));
 	fsreq.action = action;
 	if (firstFileName)
 	{
@@ -1101,15 +1114,22 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		fdu.utParmsLength = 0;
 	}
 
+	CHKZERO(sdr_begin_xn(sdr));
 	if (sdr_heap_depleted(sdr))
 	{
+		sdr_exit_xn(sdr);
 		putErrmsg("Low on heap space, can't send FDU.", sourceFileName);
+		return 0;
 	}
 
 	if (sourceFileName == NULL)
 	{
-		CHKZERO(destFileName == NULL);
-		CHKZERO(sdr_begin_xn(sdr));
+		if (destFileName != NULL)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("CFDP: dest file name should be NULL.", NULL);
+			return 0;
+		}
 	}
 	else	/*	Construct contents of file data PDUs.		*/
 	{
@@ -1118,9 +1138,22 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			destFileName = sourceFileName;
 		}
 
-		CHKZERO(strlen(sourceFileName) < 256);
-		CHKZERO(strlen(destFileName) < 256);
-		CHKZERO(sdr_begin_xn(sdr));
+		if (strlen(sourceFileName) >= 256)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("CFDP: source file name too long.",
+					sourceFileName);
+			return 0;
+		}
+
+		if (strlen(destFileName) >= 256)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("CFDP: destination file name too long.",
+					destFileName);
+			return 0;
+		}
+
 		if (checkFile(sourceFileName) != 1)
 		{
 			sdr_exit_xn(sdr);

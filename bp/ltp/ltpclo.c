@@ -96,8 +96,10 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
+	sdr_exit_xn(sdr);
 	destEngineNbr = atol(ductName);
 	if (destEngineNbr < 0)
 	{

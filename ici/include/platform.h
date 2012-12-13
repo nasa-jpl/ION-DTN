@@ -387,9 +387,10 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define PRIVATE_SYMTAB
 
-#else
+#else				/****	Not bionic		     ****/
 #include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
-#endif
+#include <execinfo.h>		/****	...to get backtrace	     ****/
+#endif				/****	End of #ifdef bionic	     ****/
 
 #define	_MULTITHREADED
 
@@ -533,6 +534,8 @@ extern int			_coreFileNeeded(int *);
 #define CHKZERO(e)    		if (!(e) && iEnd(#e)) return 0
 #define CHKNULL(e)    		if (!(e) && iEnd(#e)) return NULL
 #define CHKVOID(e)    		if (!(e) && iEnd(#e)) return
+
+extern void			printStackTrace();
 
 /*	The following macro deals with irrelevant return codes.		*/
 #define oK(x)			(void)(x)
