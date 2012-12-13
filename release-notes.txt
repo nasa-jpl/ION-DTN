@@ -1,6 +1,6 @@
-= Release Notes for ION 3.1.0 =
+= Release Notes for ION 3.1.1 =
 
-October 29, 2012
+December 13, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -58,6 +58,30 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.1.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Bug #9:  Fixed several bugs in the TCP convergence layer.
+    - TCPCLO would not reconnect to its neighbor if the neighbor was unreachable
+      on startup.
+      Fixed by instituting a default keepalive (currently 15 seconds).
+    - Fixed a TCPCL interoperability bug when an external implementation uses
+      full-duplex TCP connections where the tcpclo would fail to receive bundles
+      from this implementation if the TCP connection had ever been previously
+      lost.
+    - Capped the maximum TCP reconnection timeout to 1 hour down from 24 hours.
+
+- Bug #11: Fixed bug with transaction reversibility enabled where unpredictable
+  behavior could occur when a transaction reversal was forced and the state of
+  the SDR and working memory were out of sync.
+  ION now reinitializes working memory from the SDR to ensure data consistency.
+
+- Bug #12: Fixed a bug in the red-black tree data structure used in LTP by which
+  sm_rbt_destroy() didn't release the tree's mutex to the OS which could
+  ultimately lead to consumption of all semaphores on the system and crash the
+  node.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.1.0 =
