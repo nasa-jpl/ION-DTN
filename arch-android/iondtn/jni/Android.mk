@@ -43,8 +43,10 @@ MY_ICISOURCES := \
 	$(MY_ICI)/utils/ionadmin.c      \
 	$(MY_ICI)/utils/sdrmend.c       \
 	$(MY_ICI)/library/ionsec.c      \
-	$(MY_ICI)/utils/ionsecadmin.c 
+	$(MY_ICI)/utils/ionsecadmin.c 	\
+	$(MY_ICI)/utils/ionwarn.c 
 
+#	$(MY_ICI)/restart/ionrestart.c 
 #	$(MY_ICI)/utils/ionexit.c      \
 
 MY_DGR		:= ../../../dgr

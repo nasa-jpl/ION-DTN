@@ -1587,7 +1587,9 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 
 void	printStackTrace()
 {
-#ifdef linux
+#if (!(defined(linux)) || defined(bionic))
+	writeMemo("[?] No stack trace available on this platform.");
+#else
 #define	MAX_TRACE_DEPTH	100
 	void	*returnAddresses[MAX_TRACE_DEPTH];
 	size_t	stackFrameCount;
@@ -1609,8 +1611,6 @@ void	printStackTrace()
 	}
 
 	free(functionNames);
-#else
-	writeMemo("[?] No stack trace available on this platform.");
 #endif
 }
 

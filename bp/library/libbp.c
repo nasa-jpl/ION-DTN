@@ -44,7 +44,9 @@ Sdr	bp_get_sdr()
 
 void	bp_detach()
 {
+#if (!(defined (VXWORKS) || defined (RTEMS) || defined (bionic)))
 	bpDetach();
+#endif
 	ionDetach();
 }
 

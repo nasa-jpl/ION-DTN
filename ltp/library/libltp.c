@@ -18,7 +18,9 @@ int	ltp_attach()
 
 void	ltp_detach()
 {
+#if (!(defined (VXWORKS) || defined (RTEMS) || defined (bionic)))
 	ltpDetach();
+#endif
 	ionDetach();
 }
 
