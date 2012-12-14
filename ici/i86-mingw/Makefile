@@ -119,8 +119,8 @@ killm:		killm.o libici.dll
 ionrestart.o:	$(RESTART)/ionrestart.c
 		$(CC) -I../../ltp/include -I../../bp/include -I../../cfdp/include -I../../ltp/library -I../../bp/library -I../../cfdp/library -c $(RESTART)/ionrestart.c
 
-ionrestart:	ionrestart.o libici.so
-		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ltp/i86-redhat/lib -L../../bp/i86-redhat/lib -L../../cfdp/i86-redhat/lib -lcfdp -lcgr -lbp -lltp -lltpP -lici -lpthread
+ionrestart:	ionrestart.o libici.dll
+		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ltp/i86-mingw/lib -L../../bp/i86-mingw/lib -L../../cfdp/i86-mingw/lib -lcfdp -lcgr -lbp -lltp -lici -lpthread
 		cp ionrestart ./bin
 
 #	-	-	Test executables	-	-	-	-
