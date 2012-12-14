@@ -673,6 +673,7 @@ static int	appendExtent(Sdr sdr, Object zco, ZcoMedium sourceMedium,
 	Zco		sourceZco;
 	Object		obj;
 	SourceExtent	extent;
+	unsigned int	cumulativeOffset;
 	Zco		zcoBuf;
 	FileRef		fileRef;
 	Object		sdrRefObj;
@@ -702,24 +703,27 @@ static int	appendExtent(Sdr sdr, Object zco, ZcoMedium sourceMedium,
 			of the ZCO at "location".			*/
 
 		sdr_read(sdr, (char *) &sourceZco, location, sizeof(Zco));
+		cumulativeOffset = 0;
+		extent.length = 0;
 		for (obj = sourceZco.firstExtent; obj; obj = extent.nextExtent)
 		{
 			sdr_read(sdr, (char *) &extent, obj,
 					sizeof(SourceExtent));
-			if (extent.offset < offset)
+			if (cumulativeOffset < offset)
 			{
+				cumulativeOffset += extent.length;
 				continue;
 			}
 
-			/*	Offset and length must match exactly.	*/
-
-			if (extent.offset > offset || extent.length != length)
-			{
-				putErrmsg("No extent to clone.", NULL);
-				return -1;
-			}
-
 			break;
+		}
+
+		/*	Offset and length must match exactly.		*/
+
+		if (cumulativeOffset != offset || extent.length != length)
+		{
+			putErrmsg("No extent to clone.", NULL);
+			return -1;
 		}
 
 		/*	Found existing extent to clone.			*/
