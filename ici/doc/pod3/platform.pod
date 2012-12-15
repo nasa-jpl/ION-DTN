@@ -502,6 +502,32 @@ writeErrmsgMemos().
 Calls getErrmsg() repeatedly until the message pool is empty, discarding all
 of the messages.
 
+=item void printStackTrace( )
+
+On Linux machines only, uses writeMemo() to print a trace of the process's
+current execution stack, starting with the lowest level of the stack and
+proceeding to the main() function of the executable.
+
+Note that (a) printStackTrace() is B<only> implemented for Linux platforms
+at this time; (b) symbolic names of functions can only be printed if the
+I<-rdynamic> flag was enabled when the executable was linked; (c) only the
+names of non-static functions will appear in the stack trace.
+
+For more complete information about the state of the executable at the time
+the stack trace snapshot was taken, use the Linux I<addr2line> tool. To do
+this, cd into a directory in which the executable file resides (such as
+/opt/bin) and submit an addr2line command as follows:
+
+=over 4
+
+addr2line -e I<name_of_executable> I<stack_frame_address>
+
+=back
+
+where both I<name_of_executable> and I<stack_frame_address> are taken from
+one of the lines of the printed stack trace.  addr2line will print the source
+file name and line number for that stack frame.
+
 =back
 
 =head2 SELF-DELIMITING NUMERIC VALUES (SDNV)

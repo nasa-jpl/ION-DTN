@@ -829,7 +829,7 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 	contentLength = (long) zco_source_data_length(sdr, dlv->adu);
 	if (contentLength <= bufLength)
 	{
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		zco_start_receiving(dlv->adu, &reader);
 		if (zco_receive_source(sdr, &reader, bufLength, buffer) < 0)
 		{

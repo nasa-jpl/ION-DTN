@@ -18,6 +18,9 @@ int	ltp_attach()
 
 void	ltp_detach()
 {
+#if (!(defined (VXWORKS) || defined (RTEMS) || defined (bionic)))
+	ltpDetach();
+#endif
 	ionDetach();
 }
 
@@ -149,7 +152,7 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 
 	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
 	CHKERR(clientServiceData);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	findSpan(destinationEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -235,7 +238,7 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 			}
 		}
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	}
 
@@ -301,7 +304,7 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 	CHKERR(dataLength);
 	CHKERR(data);
 	*type = LtpNoNotice;	/*	Default.			*/
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	client = vdb->clients + clientSvcId;
 	if (client->pid != sm_TaskIdSelf())
 	{
@@ -334,7 +337,7 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 			return -1;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, client->notices);
 		if (elt == 0)	/*	Function was interrupted.	*/
 		{
@@ -400,7 +403,7 @@ void	ltp_release_data(Object data)
 
 	if (data)
 	{
-		sdr_begin_xn(ltpSdr);
+		CHKVOID(sdr_begin_xn(ltpSdr));
 		zco_destroy(ltpSdr, data);
 		if (sdr_end_xn(ltpSdr) < 0)
 		{

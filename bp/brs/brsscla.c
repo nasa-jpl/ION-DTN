@@ -66,8 +66,10 @@ static void	*sendBundles(void *parm)
 	}
 
 	sdr = getIonsdr();
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			parms->vduct->outductElt), sizeof(Outduct));
+	sdr_end_xn(sdr);
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = outduct.bulkQueue;
 	outflows[1].outboundBundles = outduct.stdQueue;
@@ -126,7 +128,7 @@ static void	*sendBundles(void *parm)
 			 *	-- except that if bundle has already
 			 *	been destroyed then just lose the ADU.	*/
 
-			sdr_begin_xn(sdr);
+			CHKNULL(sdr_begin_xn(sdr));
 			if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
 			{
 				putErrmsg("Can't locate unsent bundle.", NULL);
@@ -194,7 +196,7 @@ static int	reforwardStrandedBundles()
 	Object	elt;
 	Object	nextElt;
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, bpConstants->limboQueue); elt;
 			elt = nextElt)
 	{
@@ -699,9 +701,11 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr, vinduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
+	sdr_end_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_BRS_RATE;

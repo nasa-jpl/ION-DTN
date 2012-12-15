@@ -310,6 +310,7 @@ static void	printSpan(LtpVspan *vspan)
 	char	cmd[SDRSTRING_BUFSZ];
 	char	buffer[256];
 
+	CHKVOID(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr, vspan->spanElt));
 	sdr_string_read(sdr, cmd, span->lsoCmd);
 	isprintf(buffer, sizeof buffer, "%lu  pid: %d  cmd: %.128s",
@@ -330,6 +331,7 @@ latency: %u  purge: %d", span->maxSegmentSize, span->remoteQtime, span->purge);
 	isprintf(buffer, sizeof buffer, "\towltOutbound: %u  localXmit: %lu  \
 owltInbound: %u  remoteXmit: %lu", vspan->owltOutbound, vspan->localXmitRate,
 			vspan->owltInbound, vspan->remoteXmitRate);
+	sdr_exit_xn(sdr);
 	printText(buffer);
 }
 
@@ -347,7 +349,7 @@ static void	infoSpan(int tokenCount, char **tokens)
 	}
 
 	engineId = strtoul(tokens[2], NULL, 0);
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	findSpan(engineId, &vspan, &vspanElt);
 	sdr_exit_xn(sdr);
 	if (vspanElt == 0)
@@ -393,11 +395,11 @@ static void	listSpans(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, ltpdbObj);
 	isprintf(buffer, sizeof buffer, "(Engine %lu  Queuing latency: %u \
 LSI pid: %d)", ltpdb->ownEngineId, ltpdb->ownQtime, vdb->lsiPid);
 	printText(buffer);
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 	for (elt = sm_list_first(ionwm, vdb->spans); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
@@ -457,7 +459,7 @@ static void	manageScreening(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
 	ltpdb.enforceSchedule = newEnforceSchedule;
 	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
@@ -487,7 +489,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
 	ltpdb.ownQtime = newOwnQtime;
 	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));

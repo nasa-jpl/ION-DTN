@@ -423,7 +423,7 @@ static void	manageClockError(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	iondb.maxClockError = newMaxClockError;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -452,7 +452,7 @@ static void	manageClockSync(int tokenCount, char **tokens)
 		newSyncVal = atoi(tokens[2]);
 		sdr = getIonsdr();
 		iondbObj = getIonDbObject();
-		sdr_begin_xn(sdr);
+		CHKVOID(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 		iondb.clockIsSynchronized = (!(newSyncVal == 0));
 		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -486,7 +486,7 @@ static void	manageProduction(int tokenCount, char **tokens)
 		newRate = -1;			/*	Not metered.	*/
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	iondb.productionRate = newRate;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -517,7 +517,7 @@ static void	manageConsumption(int tokenCount, char **tokens)
 		newRate = -1;			/*	Not metered.	*/
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	iondb.consumptionRate = newRate;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -568,7 +568,7 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	if (newFileLimit != -1)	/*	Overriding current value.	*/
 	{
 		fileLimit.gigs = newFileLimit / ONE_GIG;
@@ -645,7 +645,7 @@ static void	manageHorizon(int tokenCount, char **tokens)
 		horizon = readTimestampUTC(horizonString, refTime);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	iondb.horizon = horizon;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -678,7 +678,7 @@ static void	manageAlarm(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (iondb.alarmScript != 0)
 	{
@@ -711,10 +711,9 @@ static void	manageUsage(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	zco_get_heap_occupancy(sdr, &heapOccupancy);
 	zco_get_file_occupancy(sdr, &fileOccupancy);
-	oK(sdr_end_xn(sdr));
 	heapSpaceMBInUse = (heapOccupancy.units
 			+ (ONE_GIG * heapOccupancy.gigs)) / 1000000;
 	fileSpaceMBInUse = (fileOccupancy.units
@@ -722,6 +721,7 @@ static void	manageUsage(int tokenCount, char **tokens)
 	GET_OBJ_POINTER(sdr, IonDB, iondb, getIonDbObject());
 	occupancyCeiling = iondb->occupancyCeiling / 1000000;
 	maxForecastOccupancy = iondb->maxForecastOccupancy / 1000000;
+	sdr_exit_xn(sdr);
 	isprintf(buffer, sizeof buffer, "current heap %.2f MB, \
 current file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
 			heapSpaceMBInUse, fileSpaceMBInUse, occupancyCeiling,

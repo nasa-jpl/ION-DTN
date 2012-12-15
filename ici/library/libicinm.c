@@ -18,7 +18,7 @@ void    sdrnm_state_get(SdrnmState *state)
 	SdrUsageSummary	usage;
 
 	CHKVOID(state);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_usage(sdr, &usage);
 	state->smallPoolSize = usage.smallPoolSize;
 	state->smallPoolFree = usage.smallPoolFree;

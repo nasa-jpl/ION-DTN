@@ -146,7 +146,7 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(getIonsdr(), (char *) &imcdb, getImcDbObject(), sizeof(ImcDB));
 	for (elt = sdr_list_first(sdr, imcdb.kin); elt;
 			elt = sdr_list_next(sdr, elt))

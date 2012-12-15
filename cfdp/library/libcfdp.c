@@ -50,7 +50,7 @@ extern int	handleDirectoryListingRequest(CfdpUserOpsData *opsData);
 
 #endif
 
-int	cfdp_init()
+int	cfdp_attach()
 {
 	return cfdpAttach();
 }
@@ -60,6 +60,14 @@ int	cfdp_entity_is_started()
 	CfdpVdb	*vdb = getCfdpVdb();
 
 	return (vdb && vdb->clockPid != ERROR);
+}
+
+void	 cfdp_detach()
+{
+#if (!(defined (VXWORKS) || defined (RTEMS) || defined (bionic)))
+	cfdpDetach();
+#endif
+	ionDetach();
 }
 
 void	cfdp_compress_number(CfdpNumber *nbr, unsigned long val)
@@ -338,16 +346,23 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 	CHKERR(list);
 	CHKERR(text);
 	CHKERR(length > 0);
-	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
-			== cfdpConstants->usrmsgLists);
+	CHKERR(sdr_begin_xn(sdr));
+	if (sdr_list_list(sdr, sdr_list_user_data(sdr, list))
+			!= cfdpConstants->usrmsgLists)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("CFDP: error in list user data.", NULL);
+		return -1;
+	}
+
 	if (length > 255)
 	{
+		sdr_exit_xn(sdr);
 		putErrmsg("CFDP: User Message too long.", itoa(length));
 		return -1;
 	}
 
 	memset((char *) &usrmsg, 0, sizeof(MsgToUser));
-	sdr_begin_xn(sdr);
 	usrmsg.length = length;
 	usrmsg.text = sdr_malloc(sdr, length);
 	if (usrmsg.text)
@@ -388,7 +403,7 @@ int	cfdp_get_usrmsg(MetadataList *list, unsigned char *textBuf, int *length)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = sdr_list_first(sdr, *list);
 	if (elt == 0)
 	{
@@ -427,7 +442,7 @@ void	cfdp_destroy_usrmsg_list(Object *list)
 	Sdr	sdr = getIonsdr();
 
 	CHKVOID(list && *list);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	destroyUsrmsgList(list);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -451,10 +466,16 @@ int	cfdp_add_fsreq(MetadataList list, CfdpAction action,
 	CHKERR(list);
 	CHKERR(firstFileName == NULL || strlen(firstFileName) < 256);
 	CHKERR(secondFileName == NULL || strlen(secondFileName) < 256);
-	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
-			== cfdpConstants->fsreqLists);
+	CHKERR(sdr_begin_xn(sdr));
+	if (sdr_list_list(sdr, sdr_list_user_data(sdr, list))
+			!= cfdpConstants->fsreqLists)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("CFDP: error in list user data.", NULL);
+		return -1;
+	}
+
 	memset((char *) &fsreq, 0, sizeof(FilestoreRequest));
-	sdr_begin_xn(sdr);
 	fsreq.action = action;
 	if (firstFileName)
 	{
@@ -504,7 +525,7 @@ int	cfdp_get_fsreq(MetadataList *list, CfdpAction *action,
 		return 0;		/*	Got end of list.	*/
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = sdr_list_first(sdr, *list);
 	if (elt == 0)
 	{
@@ -549,7 +570,7 @@ void	cfdp_destroy_fsreq_list(Object *list)
 	Sdr	sdr = getIonsdr();
 
 	CHKVOID(list && *list);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	destroyFsreqList(list);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -582,7 +603,7 @@ int	cfdp_get_fsresp(MetadataList *list, CfdpAction *action,
 		return 0;		/*	Got end of list.	*/
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = sdr_list_first(sdr, *list);
 	if (elt == 0)
 	{
@@ -633,7 +654,7 @@ void	cfdp_destroy_fsresp_list(Object *list)
 	Sdr	sdr = getIonsdr();
 
 	CHKVOID(list && *list);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	destroyFsrespList(list);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -1095,15 +1116,22 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		fdu.utParmsLength = 0;
 	}
 
+	CHKZERO(sdr_begin_xn(sdr));
 	if (sdr_heap_depleted(sdr))
 	{
+		sdr_exit_xn(sdr);
 		putErrmsg("Low on heap space, can't send FDU.", sourceFileName);
+		return 0;
 	}
 
 	if (sourceFileName == NULL)
 	{
-		CHKZERO(destFileName == NULL);
-		sdr_begin_xn(sdr);
+		if (destFileName != NULL)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("CFDP: dest file name should be NULL.", NULL);
+			return 0;
+		}
 	}
 	else	/*	Construct contents of file data PDUs.		*/
 	{
@@ -1112,9 +1140,22 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			destFileName = sourceFileName;
 		}
 
-		CHKZERO(strlen(sourceFileName) < 256);
-		CHKZERO(strlen(destFileName) < 256);
-		sdr_begin_xn(sdr);
+		if (strlen(sourceFileName) >= 256)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("CFDP: source file name too long.",
+					sourceFileName);
+			return 0;
+		}
+
+		if (strlen(destFileName) >= 256)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("CFDP: destination file name too long.",
+					destFileName);
+			return 0;
+		}
+
 		if (checkFile(sourceFileName) != 1)
 		{
 			sdr_exit_xn(sdr);
@@ -1368,7 +1409,7 @@ int	cfdp_cancel(CfdpTransactionId *transactionId)
 	CHKERR(transactionId);
 	CHKERR(transactionId->sourceEntityNbr.length);
 	CHKERR(transactionId->transactionNbr.length);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (memcmp((char *) &transactionId->sourceEntityNbr,
 			(char *) &db->ownEntityNbr, sizeof(CfdpNumber)) == 0)
 	{
@@ -1424,7 +1465,7 @@ int	cfdp_suspend(CfdpTransactionId *transactionId)
 	if (memcmp((char *) &transactionId->sourceEntityNbr,
 			(char *) &db->ownEntityNbr, sizeof(CfdpNumber)) == 0)
 	{
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		reqNbr = getReqNbr();
 		if (suspendOutFdu(transactionId, CfdpSuspendRequested, reqNbr)
 				< 0)
@@ -1458,7 +1499,7 @@ static int	resumeOutFdu(CfdpTransactionId *transactionId)
 	Object		fduElt;
 	CfdpEvent	event;
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fduObj = findOutFdu(transactionId, &fduBuf, &fduElt);
 	if (fduObj == 0 || fduBuf.state != FduSuspended)
 	{
@@ -1519,7 +1560,7 @@ static int	reportOnOutFdu(CfdpTransactionId *transactionId)
 	CfdpEvent	event;
 	char		reportBuffer[256];
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fduObj = findOutFdu(transactionId, &fduBuf, &fduElt);
 	if (fduObj == 0 || fduBuf.state == FduCanceled)
 	{
@@ -1560,7 +1601,7 @@ static int	reportOnInFdu(CfdpTransactionId *transactionId)
 	CfdpEvent	event;
 	char		reportBuffer[256];
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fduObj = findInFdu(transactionId, &fduBuf, &fduElt, 0);
 	if (fduObj == 0 || fduBuf.state == FduCanceled)
 	{
@@ -1645,7 +1686,7 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 
 	CHKERR(type && time && reqNbr && transactionId && sourceFileNameBuf && destFileNameBuf && fileSize && messagesToUser && offset && length && condition && progress && fileStatus && deliveryCode && originatingTransactionId && statusReportBuf && filestoreResponses);
 	*type = CfdpNoEvent;		/*	Default.		*/
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = sdr_list_first(sdr, db->events);
 	if (elt == 0)
 	{
@@ -1666,7 +1707,7 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 			return -1;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, db->events);
 		if (elt == 0)	/*	Function was interrupted.	*/
 		{
@@ -1922,7 +1963,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset,
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fduObj = findInFdu(transactionId, &fduBuf, &fduElt, 0);
 	if (fduObj == 0 || fduBuf.workingFileName == 0)
 	{
@@ -1986,7 +2027,7 @@ int	cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount,
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fduObj = findInFdu(transactionId, &fduBuf, &fduElt, 0);
 	if (fduObj == 0)
 	{

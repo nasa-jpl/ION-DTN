@@ -94,7 +94,7 @@ int	sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
 	sdr = getIonsdr();
 	zco_start_transmitting(bundleZco, &reader);
 	zco_track_file_offset(&reader);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	bytesToSend = zco_transmit(sdr, &reader, UDPCLA_BUFSZ, (char *) buffer);
 	if (sdr_end_xn(sdr) < 0 || bytesToSend < 0)
 	{
@@ -131,7 +131,7 @@ when connectivity is restored.");
 		}
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{

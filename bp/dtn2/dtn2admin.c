@@ -106,7 +106,7 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		}
 
 		dir->action = fwd;
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		dir->eid = sdr_string_create(sdr, parmToken);
 		if (sdr_end_xn(sdr))
 		{
@@ -160,7 +160,7 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		dir->outductElt = vduct->outductElt;
 		if (destDuctName)
 		{
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			dir->destDuctName = sdr_string_create(sdr,
 					destDuctName);
 			if (sdr_end_xn(sdr))

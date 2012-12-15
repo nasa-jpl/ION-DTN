@@ -488,6 +488,7 @@ static void	printScheme(VScheme *vscheme)
 	char	*admAppCmd;
 	char	buffer[1024];
 
+	CHKVOID(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, Scheme, scheme, sdr_list_data(sdr,
 			vscheme->schemeElt));
 	if (sdr_string_read(sdr, fwdCmdBuffer, scheme->fwdCmd) < 0)
@@ -508,6 +509,7 @@ static void	printScheme(VScheme *vscheme)
 		admAppCmd = admAppCmdBuffer;
 	}
 
+	sdr_exit_xn(sdr);
 	isprintf(buffer, sizeof buffer, "%.8s\tfwdpid: %d cmd: %.256s  \
 admpid: %d cmd %.256s", scheme->name, vscheme->fwdPid, fwdCmd,
 			vscheme->admAppPid, admAppCmd);
@@ -545,6 +547,7 @@ static void	printEndpoint(VEndpoint *vpoint)
 	char	recvScriptBuffer[SDRSTRING_BUFSZ];
 	char	*recvScript = recvScriptBuffer;
 
+	CHKVOID(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, Endpoint, endpoint, sdr_list_data(sdr,
 			vpoint->endpointElt));
 	GET_OBJ_POINTER(sdr, Scheme, scheme, endpoint->scheme);
@@ -570,6 +573,7 @@ static void	printEndpoint(VEndpoint *vpoint)
 		}
 	}
 
+	sdr_exit_xn(sdr);
 	isprintf(buffer, sizeof buffer, "%.8s:%.128s  %d\trule: %c  script: \
 %.256s", scheme->name, endpoint->nss, vpoint->appPid, recvRule, recvScript);
 	printText(buffer);
@@ -631,6 +635,7 @@ static void	printInduct(VInduct *vduct)
 	char	*cliCmd;
 	char	buffer[1024];
 
+	CHKVOID(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, Induct, duct, sdr_list_data(sdr,
 			vduct->inductElt));
 	GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
@@ -643,6 +648,7 @@ static void	printInduct(VInduct *vduct)
 		cliCmd = cliCmdBuffer;
 	}
 
+	sdr_exit_xn(sdr);
 	isprintf(buffer, sizeof buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s",
 			clp->name, duct->name, vduct->cliPid, cliCmd);
 	printText(buffer);
@@ -678,9 +684,11 @@ static void	printOutduct(VOutduct *vduct)
 	char	*cloCmd;
 	char	buffer[1024];
 
+	CHKVOID(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, Outduct, duct, sdr_list_data(sdr,
 			vduct->outductElt));
 	GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
+
 	if (duct->cloCmd == 0)
 	{
 		cloCmd = "?";
@@ -694,6 +702,7 @@ static void	printOutduct(VOutduct *vduct)
 		cloCmd = cloCmdBuffer;
 	}
 
+	sdr_exit_xn(sdr);
 	isprintf(buffer, sizeof buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s \
 max: %lu", clp->name, duct->name, vduct->cloPid, cloCmd, duct->maxPayloadLen);
 	printText(buffer);
@@ -845,8 +854,10 @@ static void	listProtocols(int tokenCount, char **tokens)
 	for (elt = sdr_list_first(sdr, (getBpConstants())->protocols); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		GET_OBJ_POINTER(sdr, ClProtocol, clp, sdr_list_data(sdr, elt));
 		printProtocol(clp);
+		sdr_exit_xn(sdr);
 	}
 }
 
@@ -1061,7 +1072,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
 	bpdb.maxAcqInHeap = heapmax;
 	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
@@ -1103,6 +1114,23 @@ static void	executeRun(int tokenCount, char **tokens)
 	else
 	{
 		snooze(1);	/*	Give script time to finish.	*/
+	}
+}
+
+static void	noteWatchValue()
+{
+	BpVdb	*vdb = getBpVdb();
+	Sdr	sdr = getIonsdr();
+	Object	dbObj = getBpDbObject();
+	BpDB	db;
+
+	if (vdb != NULL && dbObj != 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &db, dbObj, sizeof(BpDB));
+		db.watching = vdb->watching;
+		sdr_write(sdr, dbObj, (char *) &db, sizeof(BpDB));
+		oK(sdr_end_xn(sdr));
 	}
 }
 
@@ -1421,6 +1449,7 @@ static int	processLine(char *line, int lineLength)
 			if (attachToBp() == 0)
 			{
 				switchWatch(tokenCount, tokens);
+				noteWatchValue();
 			}
 
 			return 0;

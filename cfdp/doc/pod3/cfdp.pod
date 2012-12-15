@@ -91,7 +91,7 @@ autonomous CFDP activity, e.g., the reception of a file data segment.
 
 =over 4
 
-=item int cfdp_init()
+=item int cfdp_attach()
 
 Attaches the application to CFDP functionality on the local computer.  Returns
 0 on success, -1 on any error.
@@ -100,6 +100,10 @@ Attaches the application to CFDP functionality on the local computer.  Returns
 
 Returns 1 if the local CFDP entity has been started and not yet stopped,
 0 otherwise.
+
+=item void cfdp_detach()
+
+Terminates all access to CFDP functionality on the local computer.
 
 =item void cfdp_compress_number(CfdpNumber *toNbr, unsigned long from)
 

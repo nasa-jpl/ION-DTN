@@ -29,6 +29,7 @@ ln -s ../ici/utils/ionsecadmin.c
 ln -s ../ici/utils/sdrmend.c
 ln -s ../ici/utils/ionexit.c
 ln -s ../ici/utils/ionwarn.c
+ln -s ../ici/restart/ionrestart.c
 ln -s ../bp/library/libbp.c
 ln -s ../bp/library/libbpP.c
 ln -s ../bp/library/bpP.h

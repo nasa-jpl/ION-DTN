@@ -756,7 +756,7 @@ static void	infoPlan(int tokenCount, char **tokens)
 		return;
 	}
 	
-	sdr_begin_xn(sdr);		
+	CHKVOID(sdr_begin_xn(sdr));		
 	nodeNbr = strtol(tokens[2], NULL, 0);
 	bss_findPlan(nodeNbr, &planAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -821,7 +821,7 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 	}
 
 	nodeNbr = atoi(tokens[2]);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findPlan(nodeNbr, &planAddr, &elt);
 	sdr_exit_xn(sdr);
 	if (elt == 0)
@@ -850,7 +850,7 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 		sourceNodeNbr = atoi(tokens[4]);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
 			&ruleAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -933,7 +933,7 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 
 	firstNodeNbr = atoi(tokens[2]);
 	lastNodeNbr = atoi(tokens[3]);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
 	sdr_exit_xn(sdr);
 	if (elt == 0)
@@ -962,7 +962,7 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 		sourceNodeNbr = atoi(tokens[5]);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
 			sourceNodeNbr, group, &ruleAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -1108,7 +1108,7 @@ static void	executeList(int tokenCount, char **tokens)
 		}
 
 		nodeNbr = atoi(tokens[2]);
-		sdr_begin_xn(sdr);
+		CHKVOID(sdr_begin_xn(sdr));
 		bss_findPlan(nodeNbr, &planAddr, &elt);
 		sdr_exit_xn(sdr);
 		if (elt == 0)

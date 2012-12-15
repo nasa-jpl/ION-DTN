@@ -57,8 +57,10 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 
 	/*	Initial state.						*/
 
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_usage(sdr, &sdrsummary);
 	sdr_report(&sdrsummary);
+	sdr_exit_xn(sdr);
 	if (interval == 0)	/*	One-time poll.			*/
 	{
 		return 0;

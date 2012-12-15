@@ -45,12 +45,31 @@ static BssDB	*_bssConstants()
 {
 	static BssDB	buf;
 	static BssDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
-		sdr_read(getIonsdr(), (char *) &buf, _bssdbObject(NULL),
-				sizeof(BssDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _bssdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(BssDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(BssDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -109,7 +128,7 @@ int	ipnInit()
 
 	/*	Recover the BSS database, creating it if necessary.	*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	oK(senderEidLookupFunctions(lookupBssEid));
 	bssdbObject = sdr_find(sdr, BSS_DBNAME, NULL);
 	switch (bssdbObject)
@@ -238,7 +257,7 @@ int bss_addBssEntry(long argServiceNbr, long argNodeNbr)
 	char 		memo[256];
 
 	CHKERR(argServiceNbr && argNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	eid.serviceNbr = dstServiceNbr;
 	eid.nodeNbr = dstNodeNbr;
 
@@ -293,7 +312,7 @@ int bss_removeBssEntry(long argServiceNbr, long argNodeNbr)
 	eid.nodeNbr = dstNodeNbr;
 
 	CHKERR(argServiceNbr && argNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateBssEntry(eid, NULL);
 	if (elt == 0)
 	{
@@ -539,7 +558,7 @@ int	bss_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct,
 	Object	planObj;
 
 	CHKERR(nodeNbr && defaultDuct);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (locatePlan(nodeNbr, &nextPlan) != 0)
 	{
 		sdr_exit_xn(sdr);
@@ -598,7 +617,7 @@ int	bss_updatePlan(unsigned long nodeNbr, DuctExpression *defaultDuct,
 	BssPlan	plan;
 
 	CHKERR(nodeNbr && defaultDuct);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -637,7 +656,7 @@ int	bss_removePlan(unsigned long nodeNbr)
 		OBJ_POINTER(BssPlan, plan);
 
 	CHKERR(nodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -785,7 +804,7 @@ int	bss_addPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	Object		addr;
 
 	CHKERR(nodeNbr && srcNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -853,7 +872,7 @@ int	bss_updatePlanRule(unsigned long nodeNbr, long argServiceNbr,
 	BssRule		ruleBuf;
 
 	CHKERR(nodeNbr && srcNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -906,7 +925,7 @@ int	bss_removePlanRule(unsigned long nodeNbr, long argServiceNbr,
 			OBJ_POINTER(BssRule, rule);
 
 	CHKERR(nodeNbr && srcNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -1303,7 +1322,7 @@ int	bss_addGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (locateGroup(firstNodeNbr, lastNodeNbr, &nextGroup) != 0)
 	{
 		sdr_exit_xn(sdr);
@@ -1355,7 +1374,7 @@ int	bss_updateGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -1389,7 +1408,7 @@ int	bss_removeGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr)
 
 	CHKERR(firstNodeNbr && lastNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -1486,7 +1505,7 @@ int	bss_addGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -1549,7 +1568,7 @@ int	bss_updateGroupRule(unsigned long firstNodeNbr,
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -1598,7 +1617,7 @@ int	bss_removeGroupRule(unsigned long firstNodeNbr,
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{

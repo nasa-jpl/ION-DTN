@@ -37,6 +37,8 @@ static LtpDB	*_ltpConstants()
 {
 	static LtpDB	buf;
 	static LtpDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
@@ -45,9 +47,26 @@ static LtpDB	*_ltpConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(getIonsdr(), (char *) &buf, _ltpdbObject(NULL),
-				sizeof(LtpDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _ltpdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(LtpDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(LtpDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -212,6 +231,16 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 		return -1;
 	}
 
+	vspan->avblIdxRbts = sm_list_create(ltpwm);
+	if (vspan->avblIdxRbts == 0)
+	{
+		sm_rbt_destroy(ltpwm, vspan->importSessions, NULL, NULL);
+		psm_free(ltpwm, vspan->segmentBuffer);
+		oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
+		psm_free(ltpwm, addr);
+		return -1;
+	}
+
 	vspan->bufOpenRedSemaphore = SM_SEM_NONE;
 	vspan->bufOpenGreenSemaphore = SM_SEM_NONE;
 	vspan->bufClosedSemaphore = SM_SEM_NONE;
@@ -226,18 +255,30 @@ static void	deleteSegmentRef(PsmPartition ltpwm, PsmAddress nodeData,
 	psm_free(ltpwm, nodeData);	/*	Delete LtpSegmentRef.	*/
 }
 
+static PsmAddress	releaseIdxRbt(PsmPartition ltpwm, LtpVspan *vspan,
+				PsmAddress rbt)
+{
+	sm_rbt_clear(ltpwm, rbt, deleteSegmentRef, NULL);
+	return sm_list_insert_first(ltpwm, vspan->avblIdxRbts, rbt);
+}
+
 static void	deleteVImportSession(PsmPartition ltpwm, PsmAddress nodeData,
 			void *arg)
 {
 	VImportSession	*vsession = (VImportSession *) psp(ltpwm, nodeData);
+	LtpVspan	*vspan = (LtpVspan *) arg;
 
 	if (vsession->redSegmentsIdx)
 	{
-		oK(sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx,
-				deleteSegmentRef, NULL));
+		oK(releaseIdxRbt(ltpwm, vspan, vsession->redSegmentsIdx));
 	}
 
 	psm_free(ltpwm, nodeData);	/*	Delete VImportSession.	*/
+}
+
+static void	deleteIdxRbt(PsmPartition ltpwm, PsmAddress nodeData, void *arg)
+{
+	oK(sm_rbt_destroy(ltpwm, nodeData, NULL, NULL));
 }
 
 static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
@@ -267,7 +308,9 @@ static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
 	}
 
 	oK(sm_rbt_destroy(ltpwm, vspan->importSessions,
-			deleteVImportSession, NULL));
+			deleteVImportSession, vspan));
+	oK(sm_list_destroy(ltpwm, vspan->avblIdxRbts,
+			deleteIdxRbt, NULL));
 	psm_free(ltpwm, vspan->segmentBuffer);
 	oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
 	psm_free(ltpwm, vspanAddr);
@@ -381,7 +424,7 @@ static LtpVdb		*_ltpvdb(char **name)
 		LtpVclient	*client;
 
 		sdr = getIonsdr();
-		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
 
 		/*	Create and catalogue the LtpVdb object.		*/
 
@@ -460,7 +503,7 @@ int	ltpInit(int estMaxExportSessions)
 
 	/*	Recover the LTP database, creating it if necessary.	*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	ltpdbObject = sdr_find(ltpSdr, _ltpdbName(), NULL);
 	switch (ltpdbObject)
 	{
@@ -535,6 +578,72 @@ int	ltpInit(int estMaxExportSessions)
 	return 0;		/*	LTP service is available.	*/
 }
 
+static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
+{
+	LtpVdb		*vdb;
+	int		i;
+	LtpVclient	*client;
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+
+	vdb = (LtpVdb *) psp(wm, vdbAddress);
+	for (i = 0, client = vdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
+			i++, client++)
+	{
+		if (client->semaphore != SM_SEM_NONE)
+		{
+			sm_SemDelete(client->semaphore);
+		}
+	}
+
+	while ((elt = sm_list_first(wm, vdb->spans)) != 0)
+	{
+		vspan = (LtpVspan *) psp(wm, sm_list_data(wm, elt));
+		dropSpan(vspan, elt);
+	}
+
+	sm_list_destroy(wm, vdb->spans, NULL, NULL);
+}
+
+void	ltpDropVdb()
+{
+	PsmPartition	wm = getIonwm();
+	char		*ltpvdbName = _ltpvdbName();
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*stop = NULL;
+
+	/*	Destroy volatile database.				*/
+
+	if (psm_locate(wm, ltpvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if (elt)
+	{
+		dropVdb(wm, vdbAddress);	/*	Destroy Vdb.	*/
+		psm_free(wm,vdbAddress);
+		if (psm_uncatlg(wm, ltpvdbName) < 0)
+		{
+			putErrmsg("Failed uncataloging vdb.",NULL);
+		}
+	}
+
+	oK(_ltpvdb(&stop));			/*	Forget old Vdb.	*/
+}
+
+void	ltpRaiseVdb()
+{
+	char	*ltpvdbName = _ltpvdbName();
+
+	if (_ltpvdb(&ltpvdbName) == NULL)	/*	Create new Vdb.	*/
+	{
+		putErrmsg("LTP can't reinitialize vdb.", NULL);
+	}
+}
+
 Object	getLtpDbObject()
 {
 	return _ltpdbObject(NULL);
@@ -563,7 +672,7 @@ int	ltpStart(char *lsiCmd)
 		return -1;
 	}
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 
 	/*	Start the LTP events clock if necessary.		*/
 
@@ -603,7 +712,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 
 	/*	Tell all LTP processes to stop.				*/
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	for (i = 0, client = ltpvdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
 			i++, client++)
 	{
@@ -659,7 +768,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	ltpvdb->clockPid = ERROR;
 	for (i = 0, client = ltpvdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
 			i++, client++)
@@ -703,7 +812,7 @@ int	ltpAttach()
 
 	if (ltpdbObject == 0)
 	{
-		sdr_begin_xn(ltpSdr);
+		CHKERR(sdr_begin_xn(ltpSdr));
 		ltpdbObject = sdr_find(ltpSdr, _ltpdbName(), NULL);
 		sdr_exit_xn(ltpSdr);
 		if (ltpdbObject == 0)
@@ -729,6 +838,12 @@ int	ltpAttach()
 	}
 
 	return 0;		/*	LTP service is available.	*/
+}
+
+void ltpDetach(){
+	char *stop=NULL;
+	oK(_ltpvdb(&stop));
+	return;
 }
 
 /*	*	*	LTP span mgt and access functions	*	*/
@@ -764,7 +879,7 @@ void	checkReservationLimit()
 	Object	elt;
 		OBJ_POINTER(LtpSpan, span);
 
-	sdr_begin_xn(ltpSdr);
+	CHKVOID(sdr_begin_xn(ltpSdr));
 	sdr_read(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 	totalSessionsAvbl = db.estMaxExportSessions;
 	for (elt = sdr_list_first(ltpSdr, db.spans); elt;
@@ -837,7 +952,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 				utoa(maxSegmentSize));
 	}
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt)		/*	This is a known span.		*/
 	{
@@ -890,7 +1005,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 		return -1;
 	}
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	if (raiseSpan(spanElt, _ltpvdb(NULL)) < 0)
 	{
 		sdr_exit_xn(ltpSdr);
@@ -941,7 +1056,7 @@ string too long.", lsoCmd);
 		}
 	}
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	This is an unknown span.	*/
 	{
@@ -1020,7 +1135,7 @@ int	removeSpan(unsigned long engineId)
 
 	/*	Must stop the span before trying to remove it.		*/
 
-	sdr_begin_xn(ltpSdr);	/*	Lock memory.			*/
+	CHKERR(sdr_begin_xn(ltpSdr));	/*	Lock memory.		*/
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	This is an unknown span.	*/
 	{
@@ -1034,7 +1149,7 @@ int	removeSpan(unsigned long engineId)
 	stopSpan(vspan);
 	sdr_exit_xn(ltpSdr);
 	waitForSpan(vspan);
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	resetSpan(vspan);
 	spanElt = vspan->spanElt;
 	spanObj = (Object) sdr_list_data(ltpSdr, spanElt);
@@ -1096,7 +1211,7 @@ int	ltpStartSpan(unsigned long engineId)
 	PsmAddress	vspanElt;
 	int		result = 1;
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -1116,7 +1231,7 @@ void	ltpStopSpan(unsigned long engineId)
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	This is an unknown span.	*/
 	{
@@ -1128,7 +1243,7 @@ void	ltpStopSpan(unsigned long engineId)
 	stopSpan(vspan);
 	sdr_exit_xn(ltpSdr);	/*	Unlock memory.			*/
 	waitForSpan(vspan);
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	resetSpan(vspan);
 	sdr_exit_xn(ltpSdr);	/*	Unlock memory.			*/
 }
@@ -1144,7 +1259,7 @@ int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
 	ExportSession	session;
 
 	CHKERR(vspan);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 
 	/*	Get next session number.				*/
@@ -1281,7 +1396,7 @@ int	ltpAttachClient(unsigned long clientSvcId)
 		return -1;
 	}
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	client = (_ltpvdb(NULL))->clients + clientSvcId;
 	if (client->pid != ERROR)
 	{
@@ -1319,7 +1434,7 @@ void	ltpDetachClient(unsigned long clientSvcId)
 		return;
 	}
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	client = (_ltpvdb(NULL))->clients + clientSvcId;
 	if (client->pid != sm_TaskIdSelf())
 	{
@@ -1611,6 +1726,22 @@ static int	orderImportSessions(PsmPartition wm, PsmAddress nodeData,
 	return 0;
 }
 
+static PsmAddress	getIdxRbt(PsmPartition ltpwm, LtpVspan *vspan)
+{
+	PsmAddress	elt;
+	PsmAddress	rbt;
+
+	elt = sm_list_first(ltpwm, vspan->avblIdxRbts);
+	if (elt)	/*	Recycle previously created RBT.		*/
+	{
+		rbt = sm_list_data(ltpwm, elt);
+		sm_list_delete(ltpwm, elt, NULL, NULL);
+		return rbt;
+	}
+
+	return sm_rbt_create(ltpwm);
+}
+
 static void	addVImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 			Object sessionElt, VImportSession **vsessionPtr)
 {
@@ -1628,7 +1759,7 @@ static void	addVImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 	vsession = (VImportSession *) psp(ltpwm, addr);
 	vsession->sessionNbr = sessionNbr;
 	vsession->sessionElt = sessionElt;
-	vsession->redSegmentsIdx = sm_rbt_create(ltpwm);
+	vsession->redSegmentsIdx = getIdxRbt(ltpwm, vspan);
 	if (vsession->redSegmentsIdx == 0)
 	{
 		psm_free(ltpwm, addr);
@@ -1638,8 +1769,7 @@ static void	addVImportSession(LtpVspan *vspan, unsigned long sessionNbr,
 	if (sm_rbt_insert(ltpwm, vspan->importSessions, addr,
 			orderImportSessions, vsession) == 0)
 	{
-		sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx,
-				deleteSegmentRef, NULL);
+		sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx, NULL, NULL);
 		psm_free(ltpwm, addr);
 		return;
 	}
@@ -1857,7 +1987,7 @@ static void	destroyRsXmitSeg(Object rsElt, Object rsObj, LtpXmitSeg *rs)
 	sdr_list_delete(ltpSdr, rsElt, NULL, NULL);
 }
 
-static void	destroyRedSegmentsIdx(ImportSession *session)
+static void	stopVImportSession(ImportSession *session)
 {
 	Sdr		ltpSdr = getIonsdr();
 	PsmPartition	ltpwm = getIonwm();
@@ -1875,7 +2005,7 @@ static void	destroyRedSegmentsIdx(ImportSession *session)
 
 	arg.sessionNbr = session->sessionNbr;
 	oK(sm_rbt_delete(ltpwm, vspan->importSessions, orderImportSessions,
-			&arg, deleteVImportSession, NULL));
+			&arg, deleteVImportSession, vspan));
 }
 
 static void	stopImportSession(ImportSession *session)
@@ -1918,7 +2048,7 @@ static void	stopImportSession(ImportSession *session)
 		session->svcData = 0;
 	}
 
-	destroyRedSegmentsIdx(session);
+	stopVImportSession(session);
 	if (session->blockFileRef)
 	{
 		zco_destroy_file_ref(ltpSdr, session->blockFileRef);
@@ -2438,8 +2568,8 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	CHKERR(vspan);
 	CHKERR(buf);
 	*buf = (char *) psp(getIonwm(), vspan->segmentBuffer);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
-	sdr_begin_xn(ltpSdr);
 	sdr_stage(ltpSdr, (char *) &spanBuf, spanObj, sizeof(LtpSpan));
 	elt = sdr_list_first(ltpSdr, spanBuf.segments);
 	while (elt == 0 || vspan->localXmitRate == 0)
@@ -2465,7 +2595,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			return 0;
 		}
 
-		sdr_begin_xn(ltpSdr);
+		CHKERR(sdr_begin_xn(ltpSdr));
 		sdr_stage(ltpSdr, (char *) &spanBuf, spanObj, sizeof(LtpSpan));
 		elt = sdr_list_first(ltpSdr, spanBuf.segments);
 	}
@@ -3987,7 +4117,7 @@ static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 	/*	At this point, the remaining bytes should all be
 	 *	client service data.					*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -4908,7 +5038,7 @@ putErrmsg("Discarding report.", NULL);
 
 	/*	Acknowledge the report if possible.			*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	getSessionContext(ltpdb, sessionNbr, &sessionObj,
 			&sessionBuf, &spanObj, &spanBuf, &vspan, &vspanElt);
 	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
@@ -5342,7 +5472,7 @@ putErrmsg("Handling report ack.", utoa(sessionNbr));
 
 	/*	Report is being acknowledged.				*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	Random segment.			*/
 	{
@@ -5431,7 +5561,7 @@ putErrmsg("Handling cancel by sender.", utoa(sessionNbr));
 #endif
 	/*	Source of block is requesting cancellation of session.	*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -5518,7 +5648,7 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 	/*	Destination of block is acknowledging source's
 	 *	cancellation of session.				*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	getCanceledExport(sessionNbr, &sessionObj, &sessionElt);
 	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
 	{
@@ -5565,7 +5695,7 @@ putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 	/*	Destination of block is requesting cancellation of
 	 *	session.						*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	getSessionContext(ltpdb, sessionNbr, &sessionObj, &sessionBuf,
 			&spanObj, &spanBuf, &vspan, &vspanElt);
 	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
@@ -5659,7 +5789,7 @@ putErrmsg("Handling ack of cancel by receiver.", utoa(sessionNbr));
 	/*	Source of block is acknowledging destination's
 	 *	cancellation of session.				*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	Stray segment.			*/
 	{
@@ -5754,6 +5884,7 @@ int	ltpHandleInboundSegment(char *buf, int length)
 	unsigned long	sourceEngineId;
 	unsigned long	sessionNbr;
 	unsigned long	extensionLengths;
+	Sdr		sdr;
 			OBJ_POINTER(LtpDB, ltpdb);
 
 	CHKERR(buf);
@@ -5804,7 +5935,10 @@ segment discarded", itoa(extensionLengths));
 		fflush(stdout);
 	}
 
+	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(getIonsdr(), LtpDB, ltpdb, _ltpdbObject(NULL));
+	sdr_exit_xn(sdr);
 	if ((pdu->segTypeCode & LTP_CTRL_FLAG) == 0)	/*	Data.	*/
 	{
 		return handleDataSegment(sourceEngineId, ltpdb, sessionNbr,
@@ -6302,7 +6436,7 @@ int	ltpResendCheckpoint(unsigned long sessionNbr,
 #if LTPDEBUG
 putErrmsg("Resending checkpoint.", itoa(sessionNbr));
 #endif
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	getExportSession(sessionNbr, &sessionObj);
 	if (sessionObj == 0)	/*	Session is gone.		*/
 	{
@@ -6375,7 +6509,7 @@ int	ltpResendXmitCancel(unsigned long sessionNbr)
 #if LTPDEBUG
 putErrmsg("Resending cancel by sender.", itoa(sessionNbr));
 #endif
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	getCanceledExport(sessionNbr, &sessionObj, &sessionElt);
 	if (sessionObj == 0)	/*	Session is gone.		*/
 	{
@@ -6437,7 +6571,7 @@ int	ltpResendReport(unsigned long engineId, unsigned long sessionNbr,
 #if LTPDEBUG
 putErrmsg("Resending report.", itoa(sessionNbr));
 #endif
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	Can't search for session.	*/
 	{
@@ -6511,7 +6645,7 @@ int	ltpResendRecvCancel(unsigned long engineId, unsigned long sessionNbr)
 #if LTPDEBUG
 putErrmsg("Resending cancel by receiver.", itoa(sessionNbr));
 #endif
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	Can't search for session.	*/
 	{

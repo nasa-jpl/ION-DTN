@@ -369,6 +369,7 @@ typedef struct
 	int		meterPid;	/*	For stopping ltpmeter.	*/
 	int		lsoPid;		/*	For stopping the LSO.	*/
 	PsmAddress	importSessions;	/*	RBT of VImportSessions	*/
+	PsmAddress	avblIdxRbts;	/*	SmList of empty RBTs	*/
 
 	/*	For detecting miscolored segments.			*/
 
@@ -513,9 +514,12 @@ typedef struct
 } LtpVdb;
 
 extern int		ltpInit(int estMaxExportSessions);
+extern void		ltpDropVdb();
+extern void		ltpRaiseVdb();
 extern int		ltpStart();
 extern void		ltpStop();
 extern int		ltpAttach();
+extern void		ltpDetach();
 
 extern Object		getLtpDbObject();
 extern LtpDB		*getLtpConstants();

@@ -219,7 +219,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 			bytesToLoad = bytesRemaining;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		bytesLoaded = zco_transmit(sdr, &reader, bytesToLoad,
 				(char *) buffer + bytesBuffered);
 		if (sdr_end_xn(sdr) < 0 || bytesLoaded != bytesToLoad)
@@ -300,7 +300,7 @@ static int	handleTcpFailure(struct sockaddr *sn, Object bundleZco)
 		return -1;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -395,7 +395,7 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 		result = -1;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -426,7 +426,9 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 		if (connectToCLI(socketName, &tempBundleSocket) < 0)
 		{
 			/*	Treat I/O error as a transient anomaly.	*/
-
+			if(*keepalivePeriod==0){
+				*keepalivePeriod=KEEPALIVE_PERIOD;
+			}
 			return handleTcpFailure(socketName, bundleZco);
 		}
 		else
@@ -516,7 +518,7 @@ not sent.");
 		result = -1;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{

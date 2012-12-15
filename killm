@@ -89,6 +89,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	udpclo lt-udpclo \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
+	ionrestart lt-ionrestart \
 	"
 
 if [ "$ION_OPEN_SOURCE" == "1" ];then

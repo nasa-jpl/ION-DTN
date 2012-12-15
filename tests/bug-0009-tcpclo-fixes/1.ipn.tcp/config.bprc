@@ -1,0 +1,14 @@
+# Samuel Jero <sj323707@ohio.edu>
+# bug-0009-tcpclo-fixes configuration
+1
+w 1
+e 1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 q
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+a protocol tcp 1400 100
+a induct tcp 127.0.0.1:4555 tcpcli
+a outduct tcp 127.0.0.1:4556 tcpclo
+r 'ipnadmin config.ipnrc'
+s

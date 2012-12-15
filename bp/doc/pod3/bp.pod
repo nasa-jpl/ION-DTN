@@ -35,7 +35,7 @@ interrogation of bundle payloads (application data units).
 
 =item void bp_detach( )
 
-Terminates access to BP functionality on the local computer.  Detaching is required to avoid memory leaks.
+Terminates all access to BP functionality on the local computer.
 
 =item int bp_open(char *eid, BpSAP *ionsapPtr)
 

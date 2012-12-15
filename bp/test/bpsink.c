@@ -133,7 +133,7 @@ int	main(int argc, char **argv)
 			if (contentLength < sizeof content)
 			{
 				zco_start_receiving(dlv.adu, &reader);
-				sdr_begin_xn(sdr);
+				CHKZERO(sdr_begin_xn(sdr));
 				len = zco_receive_source(sdr, &reader,
 						contentLength, content);
 				if (sdr_end_xn(sdr) < 0 || len < 0)

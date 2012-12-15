@@ -344,7 +344,12 @@ int	main(int argc, char *argv[])
 
 		snooze(1);
 		currentTime = getUTCTime();
-		sdr_begin_xn(sdr);
+		if (!sdr_begin_xn(sdr))
+		{
+			putErrmsg("rfxclock failed to begin new transaction.",
+					NULL);
+			break;
+		}
 
 		/*	First enable probes.				*/
 
@@ -353,9 +358,16 @@ int	main(int argc, char *argv[])
 		{
 			addr = sm_list_data(ionwm, elt);
 			probe = (IonProbe *) psp(ionwm, addr);
-			CHKZERO(probe);
+			if (probe == NULL)
+			{
+				putErrmsg("List of probes is corrupt.", NULL);
+				sdr_exit_xn(sdr);
+				break;
+			}
+
 			if (probe->time > currentTime)
 			{
+				sdr_exit_xn(sdr);
 				break;	/*	No more for now.	*/
 			}
 

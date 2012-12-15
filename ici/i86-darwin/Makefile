@@ -4,6 +4,7 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
+RESTART = ../restart
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dunix -Ddarwin
@@ -59,8 +60,8 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend
-
+UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionrestart
+ 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh owltsim owlttb
 
 ALL = check libici.so rfxclock $(UTILITIES) $(TESTPGMS)
@@ -103,6 +104,15 @@ ionadmin:	ionadmin.o libici.so
 ionsecadmin:	ionsecadmin.o libici.so
 		$(CC) -o ionsecadmin ionsecadmin.o -L./lib -lici -lpthread
 		cp ionsecadmin ./bin
+
+#	-	-	Restart executable	-	-	-	-
+
+ionrestart.o:	$(RESTART)/ionrestart.c
+		$(CC) -I../../ltp/include -I../../bp/include -I../../cfdp/include -I../../ltp/library -I../../bp/library -I../../cfdp/library -c $(RESTART)/ionrestart.c
+
+ionrestart:	ionrestart.o libici.so
+		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ltp/i86-redhat/lib -L../../bp/i86-redhat/lib -L../../cfdp/i86-redhat/lib -lcfdp -lcgr -lbp -lltp -lltpP -lici -lpthread
+		cp ionrestart ./bin
 
 #	-	-	Test executables	-	-	-	-
 

@@ -91,7 +91,7 @@ static int	processCmdFile(Sdr sdr, BpDelivery *dlv)
 	}
 
 	zco_start_receiving(dlv->adu, &reader);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	len = zco_receive_source(sdr, &reader, contentLength, content);
 	if (sdr_end_xn(sdr) < 0)
 	{

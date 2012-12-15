@@ -80,7 +80,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 
 	zco_start_receiving(dlv->adu, &reader);
 	remainingLength = contentLength;
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	while (remainingLength > 0)
 	{
 		recvLength = BPRECVBUFSZ;

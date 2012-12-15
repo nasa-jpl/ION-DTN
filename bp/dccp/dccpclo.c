@@ -205,7 +205,7 @@ int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 		return -1;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, *bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -247,7 +247,7 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedC
 
 			/*Get Data to Send from ZCO			*/
 			zco_start_transmitting(*bundleZco, &reader);
-			sdr_begin_xn(sdr);
+			CHKERR(sdr_begin_xn(sdr));
 			bytesToSend = zco_transmit(sdr, &reader, DCCPCLA_BUFSZ, buffer);
 			if (sdr_end_xn(sdr) < 0 || bytesToSend < 0)
 			{
@@ -294,7 +294,7 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedC
 			}
 
 			/* Cleanup ZCO					*/
-			sdr_begin_xn(sdr);
+			CHKERR(sdr_begin_xn(sdr));
 			zco_destroy(sdr, *bundleZco);
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -376,9 +376,11 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.
 	 * 	Get Data outduct data structures from SDR 		*/
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate <= 0)
 	{
 		vduct->xmitThrottle.nominalRate = DEFAULT_DCCP_RATE;

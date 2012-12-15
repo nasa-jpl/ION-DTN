@@ -600,6 +600,7 @@ typedef struct
 	Object		clockCmd; 	/*	For starting clock.	*/
 	int		maxAcqInHeap;
 	unsigned long	bundleCounter;	/*	For non-synced clock.	*/
+	int		watching;	/*	Activity watch switch.	*/
 	time_t		resetTime;	/*	Stats reset time.	*/
 	Object		sourceStats;	/*	BpCosStats address.	*/
 	Object		recvStats;	/*	BpCosStats address.	*/
@@ -1231,10 +1232,13 @@ extern int		bpDestroyBundle(Object bundleToDestroy,
 			 *	have been removed, -1 on any error.	*/
 
 extern int		bpInit();
+extern void		bpDropVdb();
+extern void		bpRaiseVdb();
 extern int		bpSetCTCountdownTimer(time_t newTimeout);
 extern int		bpStart();
 extern void		bpStop();
 extern int		bpAttach();
+extern void		bpDetach();
 
 extern Object		getBpDbObject();
 extern BpDB		*getBpConstants();

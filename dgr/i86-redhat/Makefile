@@ -6,7 +6,7 @@ TEST = ../test
 # OPT = -g -Wall -Dlinux -DINITIAL_RETARD=2
 OPT = -g -Wall -Werror -Dlinux
 CC = gcc $(OPT) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include
-LDFLAGS = -fPIC -shared
+LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
 
 LIBDGROBJS = \
