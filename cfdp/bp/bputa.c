@@ -39,8 +39,8 @@ static void	*receivePdus(void *parm)
 		return NULL;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:%llu.%u", getOwnNodeNbr(),
-			CFDP_RECV_SVC_NBR);
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
+			getOwnNodeNbr(), CFDP_RECV_SVC_NBR);
 	if (bp_open(ownEid, &(parms->rxSap)) < 0)
 	{
 		MRELEASE(buffer);
@@ -68,7 +68,7 @@ static void	*receivePdus(void *parm)
 
 		case BpPayloadPresent:
 			contentLength = zco_source_data_length(sdr, dlv.adu);
-			sdr_begin_xn(sdr);
+			CHKNULL(sdr_begin_xn(sdr));
 			zco_start_receiving(dlv.adu, &reader);
 			if (zco_receive_source(sdr, &reader, contentLength,
 					(char *) buffer) < 0)
@@ -146,8 +146,8 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:%llu.%u", getOwnNodeNbr(),
-			CFDP_SEND_SVC_NBR);
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
+			getOwnNodeNbr(), CFDP_SEND_SVC_NBR);
 	if (bp_open(ownEid, &txSap) < 0)
 	{
 		putErrmsg("CFDP can't open own 'send' endpoint.", ownEid);
@@ -220,7 +220,7 @@ terminating.");
 			continue;
 		}
 
-		isprintf(destEid, sizeof destEid, "ipn:%llu.%u",
+		isprintf(destEid, sizeof destEid, "ipn:" UVAST_FIELDSPEC ".%u",
 				destinationNodeNbr, CFDP_RECV_SVC_NBR);
 		if (utParms.reportToNodeNbr == 0)
 		{
@@ -229,7 +229,8 @@ terminating.");
 		else
 		{
 			isprintf(reportToEidBuf, sizeof reportToEidBuf,
-					"ipn:%llu.%u", utParms.reportToNodeNbr,
+					"ipn:" UVAST_FIELDSPEC ".%u",
+					utParms.reportToNodeNbr,
 					CFDP_RECV_SVC_NBR);
 			reportToEid = reportToEidBuf;
 		}
@@ -237,7 +238,7 @@ terminating.");
 		/*	Send PDU in a bundle when flow control allows.	*/
 
 		newBundle = 0;
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		while (parms.running && newBundle == 0)
 		{
 			switch (bp_send(txSap, BP_NONBLOCKING, destEid,
@@ -257,7 +258,7 @@ terminating.");
 					}
 
 					microsnooze(250000);
-					sdr_begin_xn(sdr);
+					CHKZERO(sdr_begin_xn(sdr));
 					continue;
 				}
 

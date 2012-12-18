@@ -100,7 +100,7 @@ int	main(int argc, char *argv[])
 	}
 
 	sdr = getIonsdr();
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	findSpan(remoteEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{

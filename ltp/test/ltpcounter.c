@@ -164,7 +164,7 @@ int	main(int argc, char **argv)
 		{
 		case LtpExportSessionCanceled:
 			isprintf(buffer, sizeof buffer, "Transmission \
-canceled: source engine %llu, session %u, reason code %d.",
+canceled: source engine " UVAST_FIELDSPEC ", session %u, reason code %d.",
 					sessionId.sourceEngineId,
 					sessionId.sessionNbr, reasonCode);
 			writeMemo(buffer);
@@ -178,16 +178,17 @@ canceled: source engine %llu, session %u, reason code %d.",
 		case LtpImportSessionCanceled:
 			oK(_sessionsCanceled(1));
 			isprintf(buffer, sizeof buffer, "Reception canceled: \
-source engine %llu, session %u, reason code %d.", sessionId.sourceEngineId,
+source engine " UVAST_FIELDSPEC ", session %u, reason code %d.",
+					sessionId.sourceEngineId,
 					sessionId.sessionNbr, reasonCode);
 			writeMemo(buffer);
 			break;
 
 		case LtpRecvGreenSegment:
 			isprintf(buffer, sizeof buffer, "Green segment \
-received, discarded: source engine %llu, session %u, offset %u, length %u, \
-eob=%d.", sessionId.sourceEngineId, sessionId.sessionNbr, dataOffset,
-					dataLength, endOfBlock);
+received, discarded: source engine " UVAST_FIELDSPEC ", session %u, \
+offset %u, length %u, eob=%d.", sessionId.sourceEngineId, sessionId.sessionNbr,
+					dataOffset, dataLength, endOfBlock);
 			writeMemo(buffer);
 			ltp_release_data(data);
 			break;

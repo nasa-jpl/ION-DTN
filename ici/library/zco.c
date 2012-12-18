@@ -163,7 +163,7 @@ void	zco_get_heap_occupancy(Sdr sdr, Scalar *occupancy)
 	obj = getZcoDB(sdr);
 	if (obj)
 	{
-		sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		sdr_snap(sdr, (char *) &db, obj, sizeof(ZcoDB));
 		copyScalar(occupancy, &db.heapOccupancy);
 	}
 	else
@@ -194,7 +194,7 @@ void	zco_get_max_heap_occupancy(Sdr sdr, Scalar *limit)
 	obj = getZcoDB(sdr);
 	if (obj)
 	{
-		sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		sdr_snap(sdr, (char *) &db, obj, sizeof(ZcoDB));
 		copyScalar(limit, &db.maxHeapOccupancy);
 	}
 	else
@@ -235,7 +235,7 @@ int	zco_enough_heap_space(Sdr sdr, unsigned int length)
 		return 0;
 	}
 
-	sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+	sdr_snap(sdr, (char *) &db, obj, sizeof(ZcoDB));
 	copyScalar(&avbl, &db.maxHeapOccupancy);
 	subtractFromScalar(&avbl, &db.heapOccupancy);
 	uintToScalar(&delta, length);
@@ -256,7 +256,7 @@ int	zco_enough_file_space(Sdr sdr, unsigned int length)
 		return 0;
 	}
 
-	sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+	sdr_snap(sdr, (char *) &db, obj, sizeof(ZcoDB));
 	copyScalar(&avbl, &db.maxFileOccupancy);
 	subtractFromScalar(&avbl, &db.fileOccupancy);
 	uintToScalar(&delta, length);
@@ -300,7 +300,7 @@ void	zco_get_file_occupancy(Sdr sdr, Scalar *occupancy)
 	obj = getZcoDB(sdr);
 	if (obj)
 	{
-		sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		sdr_snap(sdr, (char *) &db, obj, sizeof(ZcoDB));
 		copyScalar(occupancy, &db.fileOccupancy);
 	}
 	else
@@ -331,7 +331,7 @@ void	zco_get_max_file_occupancy(Sdr sdr, Scalar *limit)
 	obj = getZcoDB(sdr);
 	if (obj)
 	{
-		sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		sdr_snap(sdr, (char *) &db, obj, sizeof(ZcoDB));
 		copyScalar(limit, &db.maxFileOccupancy);
 	}
 	else
@@ -673,6 +673,7 @@ static int	appendExtent(Sdr sdr, Object zco, ZcoMedium sourceMedium,
 	Zco		sourceZco;
 	Object		obj;
 	SourceExtent	extent;
+	unsigned int	cumulativeOffset;
 	Zco		zcoBuf;
 	FileRef		fileRef;
 	Object		sdrRefObj;
@@ -702,24 +703,27 @@ static int	appendExtent(Sdr sdr, Object zco, ZcoMedium sourceMedium,
 			of the ZCO at "location".			*/
 
 		sdr_read(sdr, (char *) &sourceZco, location, sizeof(Zco));
+		cumulativeOffset = 0;
+		extent.length = 0;
 		for (obj = sourceZco.firstExtent; obj; obj = extent.nextExtent)
 		{
 			sdr_read(sdr, (char *) &extent, obj,
 					sizeof(SourceExtent));
-			if (extent.offset < offset)
+			if (cumulativeOffset < offset)
 			{
+				cumulativeOffset += extent.length;
 				continue;
 			}
 
-			/*	Offset and length must match exactly.	*/
-
-			if (extent.offset > offset || extent.length != length)
-			{
-				putErrmsg("No extent to clone.", NULL);
-				return -1;
-			}
-
 			break;
+		}
+
+		/*	Offset and length must match exactly.		*/
+
+		if (cumulativeOffset != offset || extent.length != length)
+		{
+			putErrmsg("No extent to clone.", NULL);
+			return -1;
 		}
 
 		/*	Found existing extent to clone.			*/
@@ -1236,7 +1240,7 @@ unsigned int	zco_length(Sdr sdr, Object zco)
 
 	CHKZERO(sdr);
 	CHKZERO(zco);
-	sdr_read(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
+	sdr_snap(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
 	return zcoBuf.totalLength;
 }
 
@@ -1247,7 +1251,7 @@ unsigned int	zco_source_data_length(Sdr sdr, Object zco)
 
 	CHKZERO(sdr);
 	CHKZERO(zco);
-	sdr_read(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
+	sdr_snap(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
 	totalLength = zcoBuf.sourceLength + zcoBuf.headersLength
 			+ zcoBuf.trailersLength;
 	if (totalLength > ((unsigned int) -1))

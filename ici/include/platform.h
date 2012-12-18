@@ -34,9 +34,17 @@ extern "C" {
 #if (SPACE_ORDER < 3)	/*	32-bit machines.			*/
 typedef long long		vast;
 typedef unsigned long long	uvast;
+#define	VAST_FIELDSPEC	"%ll"
+#define	UVAST_FIELDSPEC	"%llu"
+#define	strtovast(x)	strtoll(x, NULL, 0)
+#define	strtouvast(x)	strtoull(x, NULL, 0)
 #else			/*	64-bit machines.			*/
 typedef long			vast;
 typedef unsigned long		uvast;
+#define	VAST_FIELDSPEC	"%l"
+#define	UVAST_FIELDSPEC	"%lu"
+#define	strtovast(x)	strtol(x, NULL, 0)
+#define	strtouvast(x)	strtoul(x, NULL, 0)
 #endif
 
 #define WORD_SIZE	(1 << SPACE_ORDER)
@@ -395,9 +403,10 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define PRIVATE_SYMTAB
 
-#else
+#else				/****	Not bionic		     ****/
 #include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
-#endif
+#include <execinfo.h>		/****	...to get backtrace	     ****/
+#endif				/****	End of #ifdef bionic	     ****/
 
 #define	_MULTITHREADED
 
@@ -541,6 +550,8 @@ extern int			_coreFileNeeded(int *);
 #define CHKZERO(e)    		if (!(e) && iEnd(#e)) return 0
 #define CHKNULL(e)    		if (!(e) && iEnd(#e)) return NULL
 #define CHKVOID(e)    		if (!(e) && iEnd(#e)) return
+
+extern void			printStackTrace();
 
 /*	The following macro deals with irrelevant return codes.		*/
 #define oK(x)			(void)(x)

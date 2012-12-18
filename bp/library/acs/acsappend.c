@@ -318,7 +318,7 @@ static void printSdrAcsSignal(int loglevel, Object acsSignals, BpCtReason reason
 	Object signalAddr;
 	char *reprAcsSignal;
 
-	sdr_begin_xn(acsSdr);
+	CHKVOID(sdr_begin_xn(acsSdr));
 	if (findSdrAcsSignal(acsSignals, reasonCode, succeeded,
 				&signalAddr) == 0)
 	{
@@ -397,8 +397,8 @@ int	offerNoteAcs(Bundle *bundle, AcqWorkArea *work, char *dictionary,
 	}
 
 	/* To prevent deadlock, take bpSdr before acsSdr. */
-	sdr_begin_xn(bpSdr);
-	sdr_begin_xn(acsSdr);
+	CHKZERO(sdr_begin_xn(bpSdr));
+	CHKZERO(sdr_begin_xn(acsSdr));
 
 	/* Find the valid CTEB for this bundle; else, we can't ACS. */
 	if(loadCtebScratchpad(bpSdr, bundle, work, &cteb) < 0)

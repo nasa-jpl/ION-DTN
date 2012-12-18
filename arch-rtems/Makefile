@@ -34,7 +34,8 @@ ICISOURCES =     \
    sdrmend.c     \
    ionsec.c      \
    ionsecadmin.c \
-   ionwarn.c \
+   ionwarn.c     \
+   ionrestart.c  \
    ionexit.c
 
 LTPSOURCES =     \

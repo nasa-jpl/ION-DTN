@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 	_xadmin("cfdpadmin", "", "cfdp.ipn.bp.ltp.udp/config.cfdprc");
 
 	/* Attach to CFDP */
-	fail_unless(cfdp_init() >= 0);
+	fail_unless(cfdp_attach() >= 0);
 
 	/*Send test file*/
 	memset((char *) &parms, 0, sizeof(CfdpReqParms));

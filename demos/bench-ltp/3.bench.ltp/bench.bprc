@@ -9,4 +9,5 @@ a protocol ltp 1400 100
 a induct ltp 3 ltpcli
 a outduct ltp 2 ltpclo
 r 'ipnadmin bench.ipnrc'
+w 1
 s

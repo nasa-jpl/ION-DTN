@@ -14,11 +14,11 @@
 int	ltpmeter(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	uvast	remoteEngineId = a1 == 0 ? 0 : strtoull((char *) a1, NULL, 0);
+	uvast	remoteEngineId = a1 == 0 ? 0 : strtouvast((char *) a1);
 #else
 int	main(int argc, char *argv[])
 {
-	uvast	remoteEngineId = argc > 1 ? strtoull(argv[1], NULL, 0) : 0;
+	uvast	remoteEngineId = argc > 1 ? strtouvast(argv[1]) : 0;
 #endif
 	Sdr		sdr;
 	LtpVdb		*vdb;
@@ -48,7 +48,7 @@ int	main(int argc, char *argv[])
 
 	sdr = getIonsdr();
 	vdb = getLtpVdb();
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	findSpan(remoteEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -81,7 +81,7 @@ int	main(int argc, char *argv[])
 			return 1;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	}
 
@@ -105,12 +105,12 @@ int	main(int argc, char *argv[])
 			if (sm_SemEnded(vspan->bufClosedSemaphore))
 			{
 				isprintf(memo, sizeof memo, "[i] LTP meter to \
-engine %llu is stopped.", remoteEngineId);
+engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 				writeMemo(memo);
 				break;		/*	Outer loop.	*/
 			}
 
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			sdr_stage(sdr, (char *) &span, spanObj,
 					sizeof(LtpSpan));
 		}
@@ -161,7 +161,7 @@ engine %llu is stopped.", remoteEngineId);
 			/*	Wait one second and try again.		*/
 
 			snooze(1);
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			sdr_stage(sdr, (char *) &span, spanObj,
 					sizeof(LtpSpan));
 			continue;
@@ -213,7 +213,7 @@ engine %llu is stopped.", remoteEngineId);
 		/*	Now start next cycle of main loop, waiting
 		 *	for the new session's buffer to be closed.	*/
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	}
 

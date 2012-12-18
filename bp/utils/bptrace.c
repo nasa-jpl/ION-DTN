@@ -95,7 +95,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 		return 0;
 	}
 
-        if(strncmp("@", trace, strlen("@"))==0)
+        if (strncmp("@", trace, strlen("@")) == 0)
         {
             Object      fileRef;
             struct stat	statbuf;
@@ -114,14 +114,15 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 
             aduLength = statbuf.st_size;
             sdr = bp_get_sdr();
+            CHKZERO(sdr_begin_xn(sdr));
             if (sdr_heap_depleted(sdr))
             {
+		    sdr_exit_xn(sdr);
                     bp_close(sap);
                     putErrmsg("Low on heap space, can't send file.", fileName);
                     return 0;
             }
             
-            sdr_begin_xn(sdr);
             fileRef = zco_create_file_ref(sdr, fileName, NULL);
             if (fileRef == 0)
             {
@@ -141,11 +142,11 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 
             while (1)
             {
-                    switch (bp_send(sap, BP_NONBLOCKING, destEid, reportToEid, ttl,
-                                    priority, custodySwitch, srrFlags, 0,
-                                    &extendedCOS, bundleZco, &newBundle))
+		switch (bp_send(sap, BP_NONBLOCKING, destEid, reportToEid,
+				ttl, priority, custodySwitch, srrFlags, 0,
+                                &extendedCOS, bundleZco, &newBundle))
                     {
-                    case 0:		/*	No space for bundle.		*/
+                    case 0:	/*	No space for bundle.		*/
                             if (errno == EWOULDBLOCK)
                             {
                                     microsnooze(250000);
@@ -161,14 +162,14 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
                             /*	Intentional fall-through to next case.	*/
 
                     default:
-                            break;	/*	Out of switch.			*/
+                            break;	/*	Out of switch.		*/
                     }
 
-                    break;		/*	Out of loop.			*/
+                    break;		/*	Out of loop.		*/
             }
 
             bp_close(sap);
-            sdr_begin_xn(sdr);
+            CHKZERO(sdr_begin_xn(sdr));
             zco_destroy_file_ref(sdr, fileRef);
             if (sdr_end_xn(sdr) < 0)
             {
@@ -183,7 +184,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
             Object		traceZco;
             
             sdr = bp_get_sdr();
-            sdr_begin_xn(sdr);
+            CHKZERO(sdr_begin_xn(sdr));
             msg = sdr_malloc(sdr, msgLength);
             if (msg == 0)
             {

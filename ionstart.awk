@@ -26,7 +26,7 @@
 # information to both nodes with the same file.
 #
 # program names accepted are:
-# ionadmin bpadmin ltpadmin ipnadmin dtn2admin acsadmin
+# ionadmin ionsecadmin ltpadmin bpadmin cfdpadmin ipnadmin dtn2admin acsadmin imcadmin bssadmin
 #
 # Program sections may not overlap.
 # Lines with unsupported program names will be ignored.
@@ -37,10 +37,15 @@
 # Optional variable "echo" will, if set, create files for each
 # section matching the current tag. It will create the following:
 # configfile.tag.ionrc
+# configfile.tag.ionsecrc
+# configfile.tag.ltprc
 # configfile.tag.bprc
+# configfile.tag.cfdprc
 # configfile.tag.ipnrc
 # configfile.tag.dtn2rc
-# configfile.tag.ltprc
+# configfile.tag.acsrc
+# configfile.tag.imcrc
+# configfile.tag.bssrc
 # it will NOT check for the file existence beforehand.
 # it will NOT run the program.
 #
@@ -49,28 +54,34 @@
 
 # initialize variables
 BEGIN {
+	ION_OPEN_SOURCE=1
 	# linenumber for reporting syntax errors and helping out the sed call
 	linenumber = 0
 	# programs lists the accepted packages in ion in the order they should
 	# be executed
-	programs[1] = "ionadmin"
-	programs[2] = "ionsecadmin"
-	programs[3] = "ltpadmin"
-	programs[4] = "bpadmin"
-	programs[5] = "cfdpadmin"
-	programs[6] = "ipnadmin"
-	programs[7] = "dtn2admin"
-	programs[8] = "acsadmin"
+	programs[1]  = "ionadmin"
+	programs[2]  = "ionsecadmin"
+	programs[3]  = "ltpadmin"
+	programs[4]  = "bpadmin"
+	programs[5]  = "cfdpadmin"
+	programs[6]  = "ipnadmin"
+	programs[7]  = "dtn2admin"
+	programs[8]  = "acsadmin"
+	programs[9]  = "imcadmin"
+	programs[10] = "bssadmin"
 	# programoptions are special options for certain programs that take them
 	# rcname is the name of an rc file associated with the program
-	rcname["ionadmin"] = ionrc
+	rcname["ionadmin"]    = ionrc
 	rcname["ionsecadmin"] = ionsecrc
-	rcname["bpadmin"] = bprc
-	rcname["cfdpadmin"] = cfdprc
-	rcname["ipnadmin"] = ipnrc
-	rcname["dtn2admin"] = dtn2rc
-	rcname["ltpadmin"] = ltprc
-	rcname["acsadmin"] = acsrc
+	rcname["bpadmin"]     = bprc
+	rcname["cfdpadmin"]   = cfdprc
+	rcname["ipnadmin"]    = ipnrc
+	rcname["dtn2admin"]   = dtn2rc
+	rcname["ltpadmin"]    = ltprc
+	rcname["acsadmin"]    = acsrc
+	rcname["imcadmin"]    = imcrc
+	rcname["bssadmin"]    = bssrc
+
 	# firstline is associative array of the "first line" for a program
 	# lastline is associative array of the "last line" for a program
 	# currentsection is the state of the program section we are in
@@ -252,6 +263,11 @@ END {
 		exit 1
 	}
 
+	if(firstline["bssadmin"] > 0 && firstline["ipnadmin"]>0){
+		print "\nError: bss and ipn are mutually exclusive!"
+		exit 1
+	}
+
 	print "Sanity check of file \"" configfile "\" has been cleared."
 	# start the programs
 	# a firstline/lastline with an undefined value is = 0 = "" so you must check that the
@@ -261,9 +277,13 @@ END {
 	# ignore sections with last line one greater than first line.
 
 	# run programs in order- but only if they have defined linenumbers
-	for (x = 1; x <= 8; x++) {
+	for (x = 1; x <= 10; x++) {
 		if (firstline[programs[x]] > 0 && 
 		    firstline[programs[x]] <= lastline[programs[x]]) {
+			if(ION_OPEN_SOURCE==0 && programs[x]=="cfdpadmin"){
+				print "\nSkipping CFDP section. CFDP is not supported."
+				continue
+			}
 			if (echo == "") {
 				# if ipnadmin/dtn2admin are run as separate sections, then bpadmin should be run again later with the "s" command
 #				if (programs[x] == "ipnadmin" || programs[x] == "dtn2admin") runlater = 1

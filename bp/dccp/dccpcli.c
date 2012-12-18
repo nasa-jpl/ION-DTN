@@ -383,9 +383,11 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.
 	 * 	Get Data induct data structures from SDR 		*/
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate <= 0)
 	{
 		vduct->acqThrottle.nominalRate = DEFAULT_DCCP_RATE;

@@ -182,7 +182,7 @@ static CgrVdb	*_cgrvdb(char **name)
 		/*	CGR volatile database doesn't exist yet.	*/
 
 		sdr = getIonsdr();
-		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
 		vdbAddress = psm_zalloc(ionwm, sizeof(CgrVdb));
 		if (vdbAddress == 0)
 		{
@@ -239,8 +239,8 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 	/*	This is an implementation of Dijkstra's Algorithm.	*/
 
 #if CGRDEBUG
-printf("Computing distance via contact to node %llu arrival time %u.\n",
-rootContact->toNode, rootWork->arrivalTime);
+printf("Computing distance via contact to node " UVAST_FIELDSPED " arrival \
+time %u.\n", rootContact->toNode, rootWork->arrivalTime);
 #endif
 	current = rootContact;
 	currentWork = rootWork;
@@ -259,15 +259,17 @@ rootContact->toNode, rootWork->arrivalTime);
 			contact = (IonCXref *) psp(ionwm,
 					sm_rbt_data(ionwm, elt));
 #if CGRDEBUG
-printf("Examining contact from node %llu to node %llu starting at %u.\n",
-contact->fromNode, contact->toNode, contact->fromTime);
+printf("Examining contact from node " UVAST_FIELDSPEC " to \
+node " UVAST_FIELDSPEC " starting at %u.\n", contact->fromNode,
+contact->toNode, contact->fromTime);
 #endif
 			work = (CgrContactNote *) psp(ionwm,
 					contact->routingObject);
 			if (work->suppressed || work->visited)
 			{
 #if CGRDEBUG
-printf("Contact to node %llu is suppressed or visited.\n", contact->toNode);
+printf("Contact to node " UVAST_FIELDSPEC " is suppressed or visited.\n",
+contact->toNode);
 #endif
 				continue;
 			}
@@ -275,7 +277,7 @@ printf("Contact to node %llu is suppressed or visited.\n", contact->toNode);
 			if (contact->fromNode > arg.fromNode)
 			{
 #if CGRDEBUG
-printf("Contact is from next node (%llu).\n", contact->fromNode);
+printf("Contact is from next node (" UVAST_FIELDSPEC ").\n", contact->fromNode);
 #endif
 				/*	No more relevant contacts.	*/
 
@@ -528,7 +530,7 @@ static int	findNextBestRoute(PsmPartition ionwm, IonCXref *rootContact,
 	if (route->toNodeNbr == 0)
 	{
 #if CGRDEBUG
-printf("No more routes to node %llu.\n", stationNode->nodeNbr);
+printf("No more routes to node " UVAST_FIELDSPEC ".\n", stationNode->nodeNbr);
 #endif
 		/*	No more routes found in graph.			*/
 
@@ -607,8 +609,8 @@ static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime)
 	}
 
 #if CGRDEBUG
-printf("Computing all routes from node %llu to node %llu.\n", getOwnNodeNbr(),
-stationNode->nodeNbr);
+printf("Computing all routes from node " UVAST_FIELDSPEC " to \
+node " UVAST_FIELDSPEC ".\n", getOwnNodeNbr(), stationNode->nodeNbr);
 #endif
 	/*	Now note the best routes (transmission sequences,
 	 *	paths, itineraries) from the local node that can
@@ -638,8 +640,8 @@ stationNode->nodeNbr);
 		}
 
 #if CGRDEBUG
-printf("Found route via node %llu starting at %u, delivery at %u.\n",
-route->toNodeNbr, route->fromTime, route->deliveryTime);
+printf("Found route via node " UVAST_FIELDSPEC " starting at %u, delivery \
+at %u.\n", route->toNodeNbr, route->fromTime, route->deliveryTime);
 #endif
 		if (sm_list_insert_last(ionwm, stationNode->routingObject,
 				routeAddr) == 0)
@@ -853,8 +855,8 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	ProximateNode	*proxNode;
 
 #if CGRDEBUG
-printf("Trying route via node %llu starting at %u, delivery at %u.\n",
-route->toNodeNbr, route->fromTime, route->deliveryTime);
+printf("Trying route via node " UVAST_FIELDSPEC " starting at %u, delivery \
+at %u.\n", route->toNodeNbr, route->fromTime, route->deliveryTime);
 #endif
 	if (getDirective(route->toNodeNbr, plans, bundle, &directive) == 0)
 	{
@@ -1048,8 +1050,8 @@ puts("Too little residual aggregate capacity for this bundle.");
 			}
 
 #if CGRDEBUG
-printf("Additional opportunity via node %llu: %d hops, delivery at %u.\n",
-route->toNodeNbr, hopCount, route->deliveryTime);
+printf("Additional opportunity via node " UVAST_FIELDSPEC ": %d hops, \
+delivery at %u.\n", route->toNodeNbr, hopCount, route->deliveryTime);
 #endif
 			return 0;
 		}
@@ -1072,7 +1074,7 @@ route->toNodeNbr, hopCount, route->deliveryTime);
 	proxNode->hopCount = hopCount;
 	proxNode->forfeitTime = route->toTime;
 #if CGRDEBUG
-printf("New proximate node %llu: %d hops, delivery at %u.\n",
+printf("New proximate node " UVAST_FIELDSPEC ": %d hops, delivery at %u.\n",
 route->toNodeNbr, hopCount, route->deliveryTime);
 #endif
 	return 0;
@@ -1107,7 +1109,7 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 	 *	the bundle's expiration time (deadline).		*/
 
 #if CGRDEBUG
-printf("In identifyProximateNodes for node %llu, deadline %u.\n",
+printf("In identifyProximateNodes for node " UVAST_FIELDSPEC ", deadline %u.\n",
 stationNode->nodeNbr, deadline);
 #endif
 	currentTime = getUTCTime();
@@ -1128,8 +1130,8 @@ stationNode->nodeNbr, deadline);
 		addr = sm_list_data(ionwm, elt);
 		route = (CgrRoute *) psp(ionwm, addr);
 #if CGRDEBUG
-printf("Checking route via node %llu starting at %u, delivery at %u.\n",
-route->toNodeNbr, route->fromTime, route->deliveryTime);
+printf("Checking route via node " UVAST_FIELDSPEC " starting at %u, delivery \
+at %u.\n", route->toNodeNbr, route->fromTime, route->deliveryTime);
 #endif
 		if (route->toTime < currentTime)
 		{
@@ -1224,8 +1226,8 @@ puts("Route is via self; ignored.");
 			if (!scalarIsValid(&capacity))
 			{
 #if CGRDEBUG
-printf("Contact from %llu to %llu at %u is too small for bundle.\n",
-contact->fromNode, contact->toNode, contact->fromTime);
+printf("Contact from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC " at %u is too \
+small for bundle.\n", contact->fromNode, contact->toNode, contact->fromTime);
 #endif
 				radiationLatency = MAX_TIME
 						- route->deliveryTime;
@@ -1309,7 +1311,7 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 		serviceNbr = 0;
 	}
 
-	isprintf(stationEid, sizeof stationEid, "ipn:%llu.%u",
+	isprintf(stationEid, sizeof stationEid, "ipn:" UVAST_FIELDSPEC ".%u",
 			proxNode->neighborNodeNbr, serviceNbr);
 
 	/*	If this neighbor is a currently snubbing neighbor
@@ -1434,7 +1436,8 @@ int	cgr_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	if (stationNode == NULL)
 	{
 #if CGRDEBUG
-printf("No routing information for node %llu.\n", stationNodeNbr);
+printf("No routing information for node " UVAST_FIELDSPEC ".\n",
+stationNodeNbr);
 #endif
 		return 0;	/*	Can't apply CGR.		*/
 	}
@@ -1615,7 +1618,7 @@ printf("No routing information for node %llu.\n", stationNodeNbr);
 	if (selectedNeighbor)
 	{
 #if CGRDEBUG
-printf("CGR selected node %llu for next hop.\n",
+printf("CGR selected node " UVAST_FIELDSPEC " for next hop.\n",
 selectedNeighbor->neighborNodeNbr);
 #endif
 		if (enqueueToNeighbor(selectedNeighbor, bundle, bundleObj,
@@ -1643,7 +1646,34 @@ void	cgr_start()
 
 void	cgr_stop()
 {
-	char	*name = NULL;
+	PsmPartition	wm = getIonwm();
+	char		*name = "cgrvdb";
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	CgrVdb		*vdb;
+	char		*stop = NULL;
 
-	oK(_cgrvdb(&name));
+	/*Clear Route Caches*/
+	clearRoutingObjects(wm);
+
+	/*Free volatile database*/
+	if (psm_locate(wm, name, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if (elt)
+	{
+		vdb = (CgrVdb *) psp(wm, vdbAddress);
+		sm_list_destroy(wm, vdb->routeLists, NULL, NULL);
+		psm_free(wm, vdbAddress);
+		if (psm_uncatlg(wm, name) < 0)
+		{
+			putErrmsg("Failed Uncataloging vdb.",NULL);
+		}
+	}
+
+	/*Reset pointer*/
+	oK(_cgrvdb(&stop));
 }

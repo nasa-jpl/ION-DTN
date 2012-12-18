@@ -36,12 +36,31 @@ static IpnDB	*_ipnConstants()
 {
 	static IpnDB	buf;
 	static IpnDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
-		sdr_read(getIonsdr(), (char *) &buf, _ipndbObject(NULL),
-				sizeof(IpnDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _ipndbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(IpnDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(IpnDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -75,7 +94,7 @@ static int	lookupIpnEid(char *uriBuffer, char *neighborClId)
 			 *	neighbor's EID.				*/
 
 			isprintf(uriBuffer, SDRSTRING_BUFSZ,
-					"ipn:%llu.0", plan->nodeNbr);
+				"ipn:" UVAST_FIELDSPEC ".0", plan->nodeNbr);
 			return 1;
 		}
 	}
@@ -91,7 +110,7 @@ int	ipnInit()
 
 	/*	Recover the IPN database, creating it if necessary.	*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	oK(senderEidLookupFunctions(lookupIpnEid));
 	ipndbObject = sdr_find(sdr, IPN_DBNAME, NULL);
 	switch (ipndbObject)
@@ -220,7 +239,7 @@ int	ipn_addPlan(uvast nodeNbr, DuctExpression *defaultDuct)
 	Object	planObj;
 
 	CHKERR(nodeNbr && defaultDuct);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (locatePlan(nodeNbr, &nextPlan) != 0)
 	{
 		sdr_exit_xn(sdr);
@@ -274,7 +293,7 @@ int	ipn_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct)
 	IpnPlan	plan;
 
 	CHKERR(nodeNbr && defaultDuct);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -307,7 +326,7 @@ int	ipn_removePlan(uvast nodeNbr)
 		OBJ_POINTER(IpnPlan, plan);
 
 	CHKERR(nodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -452,7 +471,7 @@ int	ipn_addPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
 	Object		addr;
 
 	CHKERR(nodeNbr && srcNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -514,7 +533,7 @@ int	ipn_updatePlanRule(uvast nodeNbr, int argServiceNbr,
 	IpnRule		ruleBuf;
 
 	CHKERR(nodeNbr && srcNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -562,7 +581,7 @@ int	ipn_removePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr)
 			OBJ_POINTER(IpnRule, rule);
 
 	CHKERR(nodeNbr && srcNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -771,7 +790,7 @@ int	ipn_addGroup(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (locateGroup(firstNodeNbr, lastNodeNbr, &nextGroup) != 0)
 	{
 		sdr_exit_xn(sdr);
@@ -822,7 +841,7 @@ int	ipn_updateGroup(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -856,7 +875,7 @@ int	ipn_removeGroup(uvast firstNodeNbr, uvast lastNodeNbr)
 
 	CHKERR(firstNodeNbr && lastNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -953,7 +972,7 @@ int	ipn_addGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -1015,7 +1034,7 @@ int	ipn_updateGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -1064,7 +1083,7 @@ int	ipn_removeGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{

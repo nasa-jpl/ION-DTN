@@ -238,7 +238,7 @@ before any call to any other SDR library function.
 
 =over 4
 
-=item int sdr_load_profile(char *name, int configFlags, long heapWords, int memKey, char *pathName)
+=item int sdr_load_profile(char *name, int configFlags, long heapWords, int memKey, char *pathName, char *restartCmd, unsigned int restartLatency)
 
 Loads the profile for an SDR into the system's private list of SDR profiles.
 Although SDRs themselves are persistent, SDR profiles are not: in order
@@ -293,9 +293,15 @@ file (if any) will be "<sdrname>.sdrlog".  The name of the database file
 and filled with zeros if it does not exist at the time the SDR's profile
 is loaded.
 
+If a cleanup task must be run whenever a transaction is reversed, the command
+to execute this task must be provided in I<restartCmd> and the number of
+seconds to wait for this task to finish before resuming operations must be
+provided in I<restartLatency>.  If I<restartCmd> is NULL or I<restartLatency>
+is zero then no cleanup task will be run upon transaction reversal.
+
 Returns 0 on success, -1 on any error.
 
-=item int sdr_reload_profile(char *name, int configFlags, long heapWords, int memKey, char *pathName)
+=item int sdr_reload_profile(char *name, int configFlags, long heapWords, int memKey, char *pathName, char *restartCmd, unsigned int restartLatency)
 
 For use when the state of an SDR is thought to be inconsistent, perhaps
 due to crash of a program that had a transaction open.  Unloads the

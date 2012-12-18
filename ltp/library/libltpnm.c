@@ -35,7 +35,7 @@ void ltpnm_spanEngineIds_get (unsigned int IdArray [], int * numIds)
     CHKVOID(maxEngines > 0);
     CHKVOID(IdArray);
     * numIds = 0;
-    sdr_begin_xn(sdr);
+    CHKVOID(sdr_begin_xn(sdr));
     for (sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
          sdrElt = sdr_list_next(sdr, sdrElt))
@@ -100,7 +100,7 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
     CHKVOID(results);
     CHKVOID(success);
     * success = 0;
-    sdr_begin_xn(sdr);
+    CHKVOID(sdr_begin_xn(sdr));
     for (eltLoop = 0, sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
          eltLoop++, sdrElt = sdr_list_next(sdr, sdrElt))
@@ -193,7 +193,7 @@ void ltpnm_span_reset (unsigned int engineIdWanted, int * success)
     CHKVOID(engineIdWanted > 0);
     CHKVOID(success);
     * success = 0;
-    sdr_begin_xn(sdr);
+    CHKVOID(sdr_begin_xn(sdr));
     for (eltLoop = 0, sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
          eltLoop++, sdrElt = sdr_list_next(sdr, sdrElt))

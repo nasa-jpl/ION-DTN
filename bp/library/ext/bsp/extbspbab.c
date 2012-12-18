@@ -1282,7 +1282,7 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    }
 
    /*   Prepare the data for processing. */
-   sdr_begin_xn(bpSdr);
+   CHKNULL(sdr_begin_xn(bpSdr));
    zco_start_transmitting(dataObj, &dataReader);
    
    hmac_sha1_init(authContext, (unsigned char *)keyValue, keyLen);

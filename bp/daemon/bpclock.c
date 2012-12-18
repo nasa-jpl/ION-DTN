@@ -52,8 +52,7 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 
 	while (1)
 	{
-		sdr_begin_xn(sdr);
-		CHKERR(ionLocked());	/*	In case of killm.	*/
+		CHKERR(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, events);
 		if (elt == 0)	/*	No more events to dispatch.	*/
 		{
@@ -185,7 +184,7 @@ static int	adjustThrottles()
 			continue;
 		}
 
-		nodeNbr = strtoull(outduct->ductName, NULL, 0);
+		nodeNbr = strtouvast(outduct->ductName);
 		neighbor = findNeighbor(ionvdb, nodeNbr, &nextElt);
 		if (neighbor == NULL)
 		{
@@ -276,12 +275,14 @@ static int	adjustThrottles()
 	return 0;
 }
 
-static double	defaultProductionRate(Sdr sdr)
+#define	DEFAULT_PRODUCTION_RATE	12500000
+
+static double	dynamicProductionRate(Sdr sdr)
 {
-	/*	To compute the default production rate, we reason
+	/*	To compute the dynamic production rate, we reason
 	 *	as follows:
 	 *
-	 *	The defaultProductionRate function is called once
+	 *	The dynamicProductionRate function is called once
 	 *	per second, so the "rate" is simply the maximum total
 	 *	volume of bundle payload data we are prepared to
 	 *	accept in the next second.  This volume is the sum
@@ -314,6 +315,7 @@ static double	defaultProductionRate(Sdr sdr)
 	int		bundlesInStorage;
 	Scalar		heapOccupancy;
 	double		heapSpaceInUse;
+	double		heapSpacePerBundle;
 	double		heapPayloadPerBundle;
 	Scalar		fileOccupancy;
 	double		fileSpaceInUse;
@@ -328,19 +330,19 @@ static double	defaultProductionRate(Sdr sdr)
 	if (bundlesInStorage < 1)
 	{
 		/*	No way to estimate anything, so can't use
-		 *	mean payload size for rate control.  Limit
-		 *	is available heap space.			*/
+		 *	mean payload size for admission control.
+		 *	Use artificial default for now.			*/
 
-		return -1;
+		return DEFAULT_PRODUCTION_RATE;
 	}
 
 	zco_get_heap_occupancy(sdr, &heapOccupancy);
 	heapSpaceInUse = (heapOccupancy.gigs * ONE_GIG) + heapOccupancy.units;
-	heapPayloadPerBundle = (heapSpaceInUse / bundlesInStorage)
-			- estOverheadPerBundle;
-	if (heapPayloadPerBundle < 1)
+	heapSpacePerBundle = (heapSpaceInUse / bundlesInStorage);
+	heapPayloadPerBundle = heapSpacePerBundle - estOverheadPerBundle;
+	if (heapPayloadPerBundle < 0.0)
 	{
-		heapPayloadPerBundle = 1;
+		heapPayloadPerBundle = 0.0;
 	}
 
 	zco_get_file_occupancy(sdr, &fileOccupancy);
@@ -352,7 +354,7 @@ static double	defaultProductionRate(Sdr sdr)
 
 	sdr_usage(sdr, &usage);
 	avblHeap = usage.largePoolFree + usage.unusedSize;
-	estNewBundles = avblHeap / heapPayloadPerBundle;
+	estNewBundles = avblHeap / heapSpacePerBundle;
 	return estNewBundles * (heapPayloadPerBundle + filePayloadPerBundle);
 }
 
@@ -365,12 +367,12 @@ static void	applyRateControl(Sdr sdr)
 	double		backoff;
 	IonDB		iondb;
 	double		nominalRate;
-	int		increment;
+	vast		increment;
 	PsmAddress	elt;
 	VInduct		*induct;
 	VOutduct	*outduct;
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 	/*	Recalculate limit on local bundle generation.		*/
 
@@ -381,12 +383,7 @@ static void	applyRateControl(Sdr sdr)
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
 	if (iondb.productionRate < 0)	/*	No metering.		*/
 	{
-		throttle->capacity = 0;	/*	Reset every second.	*/
-		nominalRate = defaultProductionRate(sdr);
-		if (nominalRate < 0)
-		{
-			nominalRate = LONG_MAX;
-		}
+		nominalRate = dynamicProductionRate(sdr);
 	}
 	else
 	{
@@ -396,20 +393,7 @@ static void	applyRateControl(Sdr sdr)
 	/*	Reduce rate when free heap space is low.		*/
 
 	increment = nominalRate * backoff * backoff * backoff;
-	if (increment < 0)
-	{
-		increment = LONG_MAX;
-	}
-
-	if (throttle->capacity > 0)
-	{
-		throttle->capacity += increment;
-		if (throttle->capacity < 0)	/*	Overflow.	*/
-		{
-			throttle->capacity = LONG_MAX;
-		}
-	}
-	else
+	if (throttle->capacity <= nominalRate)
 	{
 		throttle->capacity += increment;
 	}
@@ -431,7 +415,7 @@ static void	applyRateControl(Sdr sdr)
 			continue;	/*	Not rate-controlled.	*/
 		}
 
-		if (throttle->capacity <= 0)
+		if (throttle->capacity <= throttle->nominalRate)
 		{
 			throttle->capacity += throttle->nominalRate;
 		}
@@ -454,7 +438,7 @@ static void	applyRateControl(Sdr sdr)
 			continue;	/*	Not rate-controlled.	*/
 		}
 
-		if (throttle->capacity <= 0)
+		if (throttle->capacity <= throttle->nominalRate)
 		{
 			throttle->capacity += throttle->nominalRate;
 		}

@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 	}
 
 	/*Connect to CFDP*/
-	if (cfdp_init() < 0)
+	if (cfdp_attach() < 0)
 	{
 		dbgprintf(0, "Error: Can't initialize CFDP. Is ION running?\n");
 		exit(1);
@@ -398,7 +398,7 @@ int open_remote_dir(char *host, char *dir)
 	}
 
 	/*Setup parameters*/
-	entityId=strtoull(host, NULL, 0);
+	entityId=strtouvast(host);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 
 	/*Pick a temp file name*/
@@ -828,7 +828,7 @@ int ion_cfdp_get(struct transfer* t)
 	}
 
 	/*Setup parameters*/
-	entityId=strtoull(t->shost, NULL, 0);
+	entityId=strtouvast(t->shost);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
 	snprintf(parms.sourceFileNameBuf, 255, "%.255s", t->sfile);
@@ -925,7 +925,7 @@ int ion_cfdp_rput(struct transfer* t)
 	}
 
 	/*Setup parameters*/
-	entityId=strtoull(t->dhost, NULL, 0);
+	entityId=strtouvast(t->dhost);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
 	entityId=strtol(t->shost, NULL, 0);
@@ -1386,7 +1386,7 @@ void* rcv_msg_thread(void* param)
 		cfdp_decompress_number(&TID12,&transactionId.transactionNbr);
 
 		/*Print Event type if debugging*/
-		dbgprintf(4,"\nEvent: type %d, '%s', From Node: %llu, Transaction ID: %llu.%llu.\n", type,
+		dbgprintf(4,"\nEvent: type %d, '%s', From Node: " UVAST_FIELDSPEC ", Transaction ID: " UVAST_FIELDSPEC "." UVAST_FIELDSPEC ".\n", type,
 				(type > 0 && type < 12) ? eventTypes[type]
 				: "(unknown)",TID11, TID11, TID12);
 
@@ -1451,7 +1451,7 @@ void* rcv_msg_thread(void* param)
 					{
 						/*Success!*/
 						dbgprintf(1, "Directory Exists: %s\n", dir_list_rsp.directoryName);
-						dbgprintf(3, "Transaction ID: %llu\n", TID22);
+						dbgprintf(3, "Transaction ID: " UVAST_FIELDSPEC "\n", TID22);
 						current_wait_status=dir_exists;
 						break;
 					}
@@ -1459,7 +1459,7 @@ void* rcv_msg_thread(void* param)
 					{
 						/*Failure*/
 						dbgprintf(1, "No Directory: %s\n", dir_list_rsp.directoryName);
-						dbgprintf(3, "Transaction ID: %llu\n", TID22);
+						dbgprintf(3, "Transaction ID: " UVAST_FIELDSPEC "\n", TID22);
 						current_wait_status=nodir;
 						break;
 					}

@@ -1,0 +1,6 @@
+#!/bin/bash
+bpadmin		.
+sleep 1
+ionadmin	.
+sleep 1
+

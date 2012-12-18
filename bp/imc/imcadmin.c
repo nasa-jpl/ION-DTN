@@ -85,7 +85,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	imc_addKin(strtoull(tokens[1], NULL, 0), atoi(tokens[2]));
+	imc_addKin(strtouvast(tokens[1]), atoi(tokens[2]));
 }
 
 static void	executeChange(int tokenCount, char **tokens)
@@ -96,7 +96,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
-	imc_updateKin(strtoull(tokens[1], NULL, 0), atoi(tokens[2]));
+	imc_updateKin(strtouvast(tokens[1]), atoi(tokens[2]));
 }
 
 static void	executeDelete(int tokenCount, char **tokens)
@@ -107,14 +107,14 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	imc_removeKin(strtoull(tokens[1], NULL, 0));
+	imc_removeKin(strtouvast(tokens[1]));
 }
 
 static void	printKin(uvast kin, uvast parent)
 {
 	char	buffer[32];
 
-	isprintf(buffer, sizeof buffer, "%llu %s", kin,
+	isprintf(buffer, sizeof buffer, UVAST_FIELDSPEC " %s", kin,
 			kin == parent ? "parent" : "");
 	printText(buffer);
 }
@@ -130,7 +130,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 	}
 
 	sdr_read(getIonsdr(), (char *) &imcdb, getImcDbObject(), sizeof(ImcDB));
-	printKin(strtoull(tokens[1], NULL, 0), imcdb.parent);
+	printKin(strtouvast(tokens[1]), imcdb.parent);
 }
 
 static void	executeList(int tokenCount, char **tokens)
@@ -146,7 +146,7 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(getIonsdr(), (char *) &imcdb, getImcDbObject(), sizeof(ImcDB));
 	for (elt = sdr_list_first(sdr, imcdb.kin); elt;
 			elt = sdr_list_next(sdr, elt))

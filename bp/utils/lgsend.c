@@ -83,7 +83,7 @@ int	main(int argc, char **argv)
 		return -1;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	adu = sdr_malloc(sdr, fileSize);
 	if (adu == 0)
 	{

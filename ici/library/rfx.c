@@ -724,7 +724,7 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	CHKZERO(toTime > fromTime);
 	CHKZERO(fromNode);
 	CHKZERO(toNode);
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 
 	/*	Make sure contact doesn't overlap with any pre-existing
 	 *	contacts.						*/
@@ -983,7 +983,7 @@ int	rfx_remove_contact(time_t fromTime, uvast fromNode, uvast toNode)
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (fromTime)		/*	Not a wild-card deletion.	*/
 	{
 		arg.fromTime = fromTime;
@@ -1259,7 +1259,7 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 	CHKZERO(toTime > fromTime);
 	CHKZERO(fromNode);
 	CHKZERO(toNode);
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 
 	/*	Make sure range doesn't overlap with any pre-existing
 	 *	ranges.							*/
@@ -1522,7 +1522,7 @@ int	rfx_remove_range(time_t fromTime, uvast fromNode, uvast toNode)
 	memset((char *) &arg, 0, sizeof(IonRXref));
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (fromTime)		/*	Not a wild-card deletion.	*/
 	{
 		arg.fromTime = fromTime;
@@ -1693,7 +1693,7 @@ int	rfx_start()
 	Object		elt;
 
 	iondbObj = getIonDbObject();
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 
 	/* Destroy and re-create volatile contact and range databases.

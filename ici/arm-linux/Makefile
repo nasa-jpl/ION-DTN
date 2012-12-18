@@ -1,6 +1,7 @@
 SRC = ../library
 INCL = ../include
 TEST = ../test
+RESTART = ../restart
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
@@ -47,7 +48,7 @@ ICIINCLS = \
 	$(SRC)/listP.h \
 	$(SRC)/sdrP.h
 
-TESTPGMS = psmshell smlistsh file2sdr sdr2file file2sm sm2file sdrwatch
+TESTPGMS = psmshell smlistsh file2sdr sdr2file file2sm sm2file sdrwatch ionrestart
 
 ALL = check libici.so sdrd smunwedge $(TESTPGMS)
 
@@ -77,6 +78,15 @@ sdrd:		sdrd.o libici.so
 smunwedge:	smunwedge.o libici.so
 		$(CC) -o smunwedge smunwedge.o -L./lib -L$(ARMDIR)/lib -L$(ARMROOT)/lib -lici -lpthread
 		cp smunwedge ./bin
+
+#	-	-	Restart executable	-	-	-	-
+
+ionrestart.o:	$(RESTART)/ionrestart.c
+		$(CC) -I../../ltp/include -I../../bp/include -I../../cfdp/include -I../../ltp/library -I../../bp/library -I../../cfdp/library -c $(RESTART)/ionrestart.c
+
+ionrestart:	ionrestart.o libici.so
+		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ltp/i86-redhat/lib -L../../bp/i86-redhat/lib -L../../cfdp/i86-redhat/lib -lcfdp -lcgr -lbp -lltp -lltpP -lici -lpthread
+		cp ionrestart ./bin
 
 #	-	-	Test executables	-	-	-	-
 

@@ -5,7 +5,7 @@ TEST = ../test
 OPT = -g -Wall -Werror -Dlinux
 CC = gcc $(OPT) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
-LD = gcc $(LDFLAGS)
+LD = gcc $(LDFLAGS) -rdynamic
 
 LIBBSSOBJS = \
 	libbss.o \

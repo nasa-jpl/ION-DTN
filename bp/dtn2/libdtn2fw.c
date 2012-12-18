@@ -36,12 +36,31 @@ static DtnDB	*_dtn2Constants()
 {
 	static DtnDB	buf;
 	static DtnDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 	
 	if (db == NULL)
 	{
-		sdr_read(getIonsdr(), (char *) &buf, _dtn2dbObject(NULL),
-				sizeof(DtnDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _dtn2dbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(DtnDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(DtnDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 	
 	return db;
@@ -102,7 +121,7 @@ int	dtn2Init()
 
 	/*	Recover the DTN database, creating it if necessary.	*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	oK(senderEidLookupFunctions(lookupDtn2Eid));
 	dtn2dbObject = sdr_find(sdr, DTN_DBNAME, NULL);
 	switch (dtn2dbObject)
@@ -187,7 +206,7 @@ void	dtn2_destroyDirective(FwdDirective *directive)
 	CHKVOID(directive);
 	if (directive->action == fwd)
 	{
-		sdr_begin_xn(sdr);
+		CHKVOID(sdr_begin_xn(sdr));
 		sdr_free(sdr, directive->eid);
 		if (sdr_end_xn(sdr) < 0)
 		{
@@ -201,7 +220,7 @@ void	dtn2_destroyDirective(FwdDirective *directive)
 	{
 		if (directive->destDuctName)
 		{
-			sdr_begin_xn(sdr);
+			CHKVOID(sdr_begin_xn(sdr));
 			sdr_free(sdr, directive->destDuctName);
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -389,7 +408,7 @@ int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (locatePlan(nodeName, &nextPlan) != 0)
 	{
 		sdr_exit_xn(sdr);
@@ -442,7 +461,7 @@ int	dtn2_updatePlan(char *nodeNm, FwdDirective *defaultDir)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeName, NULL);
 	if (elt == 0)
 	{
@@ -482,7 +501,7 @@ int	dtn2_removePlan(char *nodeNm)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeName, NULL);
 	if (elt == 0)
 	{
@@ -625,7 +644,7 @@ int	dtn2_addRule(char *nodeNm, char *demux, FwdDirective *directive)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeName, NULL);
 	if (elt == 0)
 	{
@@ -693,7 +712,7 @@ int	dtn2_updateRule(char *nodeNm, char *demux, FwdDirective *directive)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeName, NULL);
 	if (elt == 0)
 	{
@@ -748,7 +767,7 @@ int	dtn2_removeRule(char *nodeNm, char *demux)
 		return 0;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeName, NULL);
 	if (elt == 0)
 	{

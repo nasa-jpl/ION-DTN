@@ -270,7 +270,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			rtt = 63072000; 	/*	2 years		*/
 		}
 
-		bss_addPlan(strtoull(tokens[2], NULL, 0), &defaultExpression,
+		bss_addPlan(strtouvast(tokens[2]), &defaultExpression,
 			&rtExpression, &pbExpression, rtt);
 		return;
 	}
@@ -298,7 +298,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = strtoll(tokens[4], NULL, 0);
+			sourceNodeNbr = strtovast(tokens[4]);
 		}
 
 		if (parseDuctExpressions(tokens[5], tokens[6], tokens[7], 
@@ -307,7 +307,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
  
-		bss_addPlanRule(strtoull(tokens[2], NULL, 0), sourceServiceNbr,
+		bss_addPlanRule(strtouvast(tokens[2]), sourceServiceNbr,
 			sourceNodeNbr, &defaultExpression, &rtExpression,
 			&pbExpression);
 		return;
@@ -321,8 +321,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		bss_addGroup(strtoull(tokens[2], NULL, 0), strtoull(tokens[3],
-			NULL, 0), tokens[4]);
+		bss_addGroup(strtouvast(tokens[2]), strtouvast(tokens[3]),
+				tokens[4]);
 		return;
 	}
 
@@ -349,12 +349,11 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = strtoll(tokens[5], NULL, 0);
+			sourceNodeNbr = strtovast(tokens[5]);
 		}
 
-		bss_addGroupRule(strtoull(tokens[2], NULL, 0),
-			strtoull(tokens[3], NULL, 0), sourceServiceNbr,
-			sourceNodeNbr, tokens[6]);
+		bss_addGroupRule(strtouvast(tokens[2]), strtouvast(tokens[3]),
+				sourceServiceNbr, sourceNodeNbr, tokens[6]);
 		return;
 	}
 
@@ -381,7 +380,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			dstNodeNbr = strtoll(tokens[3], NULL, 0);
+			dstNodeNbr = strtovast(tokens[3]);
 		}
 
 		bss_addBssEntry(dstServiceNbr,dstNodeNbr);				
@@ -397,7 +396,7 @@ static void	executeChange(int tokenCount, char **tokens)
 	DuctExpression	rtExpression;
 	DuctExpression	pbExpression;
 	int		sourceServiceNbr;
-	int		sourceNodeNbr;
+	vast		sourceNodeNbr;
 	int		rtt; 		/* BSS - Custody expiration interval */
 
 	if (tokenCount < 2)
@@ -426,8 +425,8 @@ static void	executeChange(int tokenCount, char **tokens)
 			rtt = 63072000; 	/*	2 years		*/
 		}
 
-		bss_updatePlan(strtoull(tokens[2], NULL, 0),
-			&defaultExpression, &rtExpression, &pbExpression, rtt);
+		bss_updatePlan(strtouvast(tokens[2]), &defaultExpression,
+				&rtExpression, &pbExpression, rtt);
 		return;
 	}
 
@@ -454,7 +453,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = strtoll(tokens[4], NULL, 0);
+			sourceNodeNbr = strtovast(tokens[4]);
 		}
 
 		if (parseDuctExpressions(tokens[5], tokens[6], tokens[7], 
@@ -463,9 +462,9 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		bss_updatePlanRule(strtoull(tokens[2], NULL, 0),
-			sourceServiceNbr, sourceNodeNbr, &defaultExpression,
-			&rtExpression, &pbExpression);
+		bss_updatePlanRule(strtouvast(tokens[2]), sourceServiceNbr,
+				sourceNodeNbr, &defaultExpression,
+				&rtExpression, &pbExpression);
 		return;
 	}
 
@@ -477,8 +476,8 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		bss_updateGroup(strtoull(tokens[2], NULL, 0),
-			strtoull(tokens[3], NULL, 0), tokens[4]);
+		bss_updateGroup(strtouvast(tokens[2]), strtouvast(tokens[3]),
+				tokens[4]);
 		return;
 	}
 
@@ -505,12 +504,12 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = strtoll(tokens[5], NULL, 0);
+			sourceNodeNbr = strtovast(tokens[5]);
 		}
 
-		bss_updateGroupRule(strtoull(tokens[2], NULL, 0),
-			strtoull(tokens[3], NULL, 0), sourceServiceNbr,
-			sourceNodeNbr, tokens[6]);
+		bss_updateGroupRule(strtouvast(tokens[2]),
+				strtouvast(tokens[3]), sourceServiceNbr,
+				sourceNodeNbr, tokens[6]);
 		return;
 	}
 
@@ -520,9 +519,9 @@ static void	executeChange(int tokenCount, char **tokens)
 static void	executeDelete(int tokenCount, char **tokens)
 {
 	int	sourceServiceNbr;
-	int	sourceNodeNbr;
+	vast	sourceNodeNbr;
 	int	dstServiceNbr;
-	int	dstNodeNbr;
+	vast	dstNodeNbr;
 
 	if (tokenCount < 2)
 	{
@@ -538,7 +537,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		bss_removePlan(strtoull(tokens[2], NULL, 0));
+		bss_removePlan(strtouvast(tokens[2]));
 		return;
 	}
 
@@ -565,11 +564,11 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = strtoll(tokens[4], NULL, 0);
+			sourceNodeNbr = strtovast(tokens[4]);
 		}
 
-		bss_removePlanRule(strtoull(tokens[2], NULL, 0),
-			sourceServiceNbr, sourceNodeNbr);
+		bss_removePlanRule(strtouvast(tokens[2]), sourceServiceNbr,
+				sourceNodeNbr);
 		return;
 	}
 
@@ -581,8 +580,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		bss_removeGroup(strtoull(tokens[2], NULL, 0),
-			strtoull(tokens[3], NULL, 0));
+		bss_removeGroup(strtouvast(tokens[2]), strtouvast(tokens[3]));
 		return;
 	}
 
@@ -609,11 +607,11 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = strtoull(tokens[5], NULL, 0);
+			sourceNodeNbr = strtouvast(tokens[5]);
 		}
 
-		bss_removeGroupRule(strtoull(tokens[2], NULL, 0),
-			strtoull(tokens[3], NULL, 0), sourceServiceNbr,
+		bss_removeGroupRule(strtouvast(tokens[2]),
+			strtouvast(tokens[3]), sourceServiceNbr,
 			sourceNodeNbr);
 		return;
 	}
@@ -641,7 +639,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			dstNodeNbr = strtoll(tokens[3], NULL, 0);
+			dstNodeNbr = strtovast(tokens[3]);
 		}
 
 		bss_removeBssEntry(dstServiceNbr, dstNodeNbr);
@@ -743,7 +741,7 @@ static void	printPlan(BssPlan *plan)
 {
 	char	context[32];
 
-	isprintf(context, sizeof context, "%llu", plan->nodeNbr);
+	isprintf(context, sizeof context, UVAST_FIELDSPEC, plan->nodeNbr);
 	printDirectives(context, &plan->defaultDirective, &plan->rtDirective, 
 		&plan->pbDirective, plan->expectedRTT);
 }
@@ -762,7 +760,7 @@ static void	infoPlan(int tokenCount, char **tokens)
 		return;
 	}
 	
-	sdr_begin_xn(sdr);		
+	CHKVOID(sdr_begin_xn(sdr));		
 	nodeNbr = strtol(tokens[2], NULL, 0);
 	bss_findPlan(nodeNbr, &planAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -826,8 +824,8 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 		return;
 	}
 
-	nodeNbr = strtoull(tokens[2], NULL, 0);
-	sdr_begin_xn(sdr);
+	nodeNbr = strtouvast(tokens[2]);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findPlan(nodeNbr, &planAddr, &elt);
 	sdr_exit_xn(sdr);
 	if (elt == 0)
@@ -853,10 +851,10 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 	}
 	else
 	{
-		sourceNodeNbr = strtoll(tokens[4], NULL, 0);
+		sourceNodeNbr = strtovast(tokens[4]);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
 			&ruleAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -876,8 +874,9 @@ static void	printGroup(IpnGroup *group)
 	char	buffer[384];
 
 	sdr_string_read(getIonsdr(), eidString, group->defaultDirective.eid);
-	isprintf(buffer, sizeof buffer, "From %llu through %llu, forward via \
-%.256s.", group->firstNodeNbr, group->lastNodeNbr, eidString);
+	isprintf(buffer, sizeof buffer, "From " UVAST_FIELDSPEC " \
+through " UVAST_FIELDSPEC ", forward via %.256s.",
+			group->firstNodeNbr, group->lastNodeNbr, eidString);
 	printText(buffer);
 }
 
@@ -895,8 +894,8 @@ static void	infoGroup(int tokenCount, char **tokens)
 		return;
 	}
 
-	firstNodeNbr = strtoull(tokens[2], NULL, 0);
-	lastNodeNbr = strtoull(tokens[3], NULL, 0);
+	firstNodeNbr = strtouvast(tokens[2]);
+	lastNodeNbr = strtouvast(tokens[3]);
 	if (lastNodeNbr < firstNodeNbr)
 	{
 		printText("Unknown group.");
@@ -937,9 +936,9 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 		return;
 	}
 
-	firstNodeNbr = strtoull(tokens[2], NULL, 0);
-	lastNodeNbr = strtoull(tokens[3], NULL, 0);
-	sdr_begin_xn(sdr);
+	firstNodeNbr = strtouvast(tokens[2]);
+	lastNodeNbr = strtouvast(tokens[3]);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
 	sdr_exit_xn(sdr);
 	if (elt == 0)
@@ -965,10 +964,10 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 	}
 	else
 	{
-		sourceNodeNbr = strtoll(tokens[5], NULL, 0);
+		sourceNodeNbr = strtovast(tokens[5]);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
 			sourceNodeNbr, group, &ruleAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -986,8 +985,9 @@ static void	printEntry(int count, bssEntry *entry)
 {
 	char	context[64];
 
-	isprintf(context, sizeof context, "   %d:     %u	  -    	 %llu", 
-		count, entry->dstServiceNbr, entry->dstNodeNbr);
+	isprintf(context, sizeof context,
+			"   %d:     %u	  -    	 " UVAST_FIELDSPEC, 
+			count, entry->dstServiceNbr, entry->dstNodeNbr);
 	printText(context);
 }
 
@@ -1113,8 +1113,8 @@ static void	executeList(int tokenCount, char **tokens)
 			return;
 		}
 
-		nodeNbr = strtoull(tokens[2], NULL, 0);
-		sdr_begin_xn(sdr);
+		nodeNbr = strtouvast(tokens[2]);
+		CHKVOID(sdr_begin_xn(sdr));
 		bss_findPlan(nodeNbr, &planAddr, &elt);
 		sdr_exit_xn(sdr);
 		if (elt == 0)

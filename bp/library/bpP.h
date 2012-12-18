@@ -120,9 +120,9 @@ typedef struct
 
 typedef struct
 {
-	int		nominalRate;	/*	In bytes per second.	*/
-	int		capacity;	/*	Bytes, current second.	*/
 	sm_SemId	semaphore;
+	int		nominalRate;	/*	In bytes per second.	*/
+	vast		capacity;	/*	Bytes, current second.	*/
 } Throttle;
 
 typedef struct
@@ -605,6 +605,7 @@ typedef struct
 	Object		clockCmd; 	/*	For starting clock.	*/
 	int		maxAcqInHeap;
 	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
+	int		watching;	/*	Activity watch switch.	*/
 	time_t		resetTime;	/*	Stats reset time.	*/
 	Object		sourceStats;	/*	BpCosStats address.	*/
 	Object		recvStats;	/*	BpCosStats address.	*/
@@ -1236,10 +1237,13 @@ extern int		bpDestroyBundle(Object bundleToDestroy,
 			 *	have been removed, -1 on any error.	*/
 
 extern int		bpInit();
+extern void		bpDropVdb();
+extern void		bpRaiseVdb();
 extern int		bpSetCTCountdownTimer(time_t newTimeout);
 extern int		bpStart();
 extern void		bpStop();
 extern int		bpAttach();
+extern void		bpDetach();
 
 extern Object		getBpDbObject();
 extern BpDB		*getBpConstants();

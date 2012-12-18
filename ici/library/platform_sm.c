@@ -1592,7 +1592,6 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 typedef struct
 {
 	int		semid;
-	int		setSize;
 	int		createCount;
 	int		destroyCount;
 } IciSemaphoreSet;
@@ -1625,6 +1624,7 @@ static SemaphoreBase	*_sembase(int stop)
 	static int		sembaseId = 0;
 	int			semSetIdx;
 	IciSemaphoreSet		*semset;
+	int			i;
 
 	if (stop)
 	{
@@ -1635,7 +1635,7 @@ static SemaphoreBase	*_sembase(int stop)
 			{
 				semset = semaphoreBase->semSets + semSetIdx;
 				oK(semctl(semset->semid, 0, IPC_RMID, NULL));
-            semSetIdx++;
+            			semSetIdx++;
 			}
 
 			sm_ShmDestroy(sembaseId);
@@ -1660,6 +1660,10 @@ static SemaphoreBase	*_sembase(int stop)
 		default:		/*	New SemaphoreBase.	*/
 			semaphoreBase->semaphoresCount = 0;
 			semaphoreBase->currSemSet = 0;
+			for (i = 0; i < SEMMNI; i++)
+			{
+				semaphoreBase->semSets[i].semid = -1;
+			}
 
 			/*	Acquire initial semaphore set.		*/
 
@@ -1676,7 +1680,6 @@ static SemaphoreBase	*_sembase(int stop)
 				break;
 			}
 
-			semset->setSize = SEMMSL;
 			semset->createCount = 0;
 			semset->destroyCount = 0;
 		}
@@ -1798,6 +1801,13 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	/*	No existing semaphore for this key; allocate new one
 	 *	from next semaphore in current semaphore set.		*/
 
+	if (!(i < SEMMNS))
+	{
+		giveIpcLock();
+		putErrmsg("Can't add any more semaphores; table full.", NULL);
+		return SM_SEM_NONE;
+	}
+
 	sembase->semaphores[i].key = key;
 	sembase->semaphores[i].ended = 0;
 	sembase->semaphores[i].semSetIdx = sembase->currSemSet;
@@ -1808,7 +1818,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	/*	Now roll over to next semaphore set if necessary.	*/
 
 	semset->createCount++;
-	if (semset->createCount == semset->setSize)
+	if (semset->createCount == SEMMSL)
 	{
 		/*	Must acquire another semaphore set.		*/
 
@@ -1824,12 +1834,12 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		 *	managing this semaphore set.			*/
 
 		semSetIdx = sembase->currSemSet;
-		while (semset->setSize != 0)
+		while (1)
 		{
 			semSetIdx++;
 			if (semSetIdx == SEMMNI)
 			{
-				semSetIdx = 0;
+				semSetIdx = 0;	/*	Roll over.	*/
 			}
 
 			if (semSetIdx == sembase->currSemSet)
@@ -1841,11 +1851,14 @@ manage the new one.", NULL);
 			}
 
 			semset = sembase->semSets + semSetIdx;
+			if (semset->semid == -1)
+			{
+				break;	/*	Found unused row.	*/
+			}
 		}
 
 		sembase->currSemSet = semSetIdx;
 		semset->semid = semid;
-		semset->setSize = SEMMSL;
 		semset->createCount = 0;
 		semset->destroyCount = 0;
 	}
@@ -1875,7 +1888,7 @@ void	sm_SemDelete(sm_SemId i)
 
 	semset = sembase->semSets + sem->semSetIdx;
 	semset->destroyCount++;
-	if (semset->destroyCount == semset->setSize)
+	if (semset->destroyCount == SEMMSL)
 	{
 		/*	All semaphores in this set have been deleted,
 		 *	so we can release the entire semaphore set
@@ -1887,8 +1900,7 @@ void	sm_SemDelete(sm_SemId i)
 					itoa(semset->semid));
 		}
 
-		semset->semid = 0;
-		semset->setSize = 0;
+		semset->semid = -1;
 		semset->createCount = 0;
 		semset->destroyCount = 0;
 	}
@@ -3009,6 +3021,18 @@ void	sm_TaskYield()
 	sched_yield();
 }
 
+static void	closeAllFileDescriptors()
+{
+	struct rlimit	limit;
+	int		i;
+
+	oK(getrlimit(RLIMIT_NOFILE, &limit));
+	for (i = 3; i < limit.rlim_cur; i++)
+	{
+		oK(close(i));
+	}
+}
+
 int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		char *arg4, char *arg5, char *arg6, char *arg7, char *arg8,
 		char *arg9, char *arg10, int priority, int stackSize)
@@ -3023,6 +3047,7 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		return -1;
 
 	case 0:			/*	This is the child process.	*/
+		closeAllFileDescriptors();
 		execlp(name, name, arg1, arg2, arg3, arg4, arg5, arg6,
 				arg7, arg8, arg9, arg10, NULL);
 

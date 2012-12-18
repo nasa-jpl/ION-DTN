@@ -56,6 +56,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 
 	if (stateIdx < 0 || stateIdx > 7) { return -1; }
 
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 	startTime = bpdb.resetTime;
 	currentTime = getUTCTime();
@@ -153,8 +154,10 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 				sizeof(Tally));
 	}
 
-	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) %u %llu \
-(1) %u %llu (2) %u %llu (+) %u %llu\n", classnames[stateIdx],
+	sdr_exit_xn(sdr);
+	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) \
+%u " UVAST_FIELDSPEC " (1) %u " UVAST_FIELDSPEC " (2) \
+%u " UVAST_FIELDSPEC " (+) %u " UVAST_FIELDSPEC "\n", classnames[stateIdx],
 			(unsigned int) startTime,
 			(unsigned int) currentTime,
 			tallies[0].currentCount, tallies[0].currentBytes,
@@ -187,7 +190,7 @@ int sendStats(char *destEid, char *buffer, size_t len)
 	}
 
 	/* Wrap bundleZco around the stats buffer. */
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	extent = sdr_malloc(sdr, bytesWritten);
 	if(extent == 0) {
 		sdr_cancel_xn(sdr);

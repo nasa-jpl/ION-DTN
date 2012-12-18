@@ -339,7 +339,7 @@ in outduct '%.64s' of protocol '%.16s', priority %d.", ductName, protocolName,
 	}
 
 	sdr = bp_get_sdr();
-	sdr_begin_xn(sdr);	/*	Lock database for duration.	*/
+	CHKZERO(sdr_begin_xn(sdr));	/*	Lock db for duration.	*/
 	isignal(SIGINT, handleQuit);
 	if (protocolName == NULL)	/*	All bundles.		*/
 	{

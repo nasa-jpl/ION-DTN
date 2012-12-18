@@ -1,6 +1,6 @@
-= Release Notes for ION 3.1.0 =
+= Release Notes for ION 3.1.1 =
 
-October 15, 2012
+December 13, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -60,6 +60,30 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.1.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Bug #9:  Fixed several bugs in the TCP convergence layer.
+    - TCPCLO would not reconnect to its neighbor if the neighbor was unreachable
+      on startup.
+      Fixed by instituting a default keepalive (currently 15 seconds).
+    - Fixed a TCPCL interoperability bug when an external implementation uses
+      full-duplex TCP connections where the tcpclo would fail to receive bundles
+      from this implementation if the TCP connection had ever been previously
+      lost.
+    - Capped the maximum TCP reconnection timeout to 1 hour down from 24 hours.
+
+- Bug #11: Fixed bug with transaction reversibility enabled where unpredictable
+  behavior could occur when a transaction reversal was forced and the state of
+  the SDR and working memory were out of sync.
+  ION now reinitializes working memory from the SDR to ensure data consistency.
+
+- Bug #12: Fixed a bug in the red-black tree data structure used in LTP by which
+  sm_rbt_destroy() didn't release the tree's mutex to the OS which could
+  ultimately lead to consumption of all semaphores on the system and crash the
+  node.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.1.0 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -84,6 +108,12 @@ Features included:
 
 - Bug #8: Fixed bug where bundles that expired while in the limbo queue were not
   properly deallocated.
+
+- Bug #10: Updated the ionstart/ionscript/killm scripts with support for the
+  following ION administrative modules:
+    - Bundle streaming service (BSS)
+    - Interplanetary multicast (IMC)
+    - Aggregate custody signals (ACS)
 
 - Feature Request #2: Added support for bundle age extension blocks to help
   accomodate platforms that may not be able to provide a stable clock. 

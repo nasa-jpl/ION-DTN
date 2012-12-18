@@ -992,7 +992,7 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 
 	classOfService = flowLabel & 0x03;
 	ecos.flags = (flowLabel >> 2) & 0x03;
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	extent = sdr_insert(sdr, envelope, envelopeLength);
 	if (extent == 0)
 	{
