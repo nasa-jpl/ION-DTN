@@ -167,7 +167,9 @@ int	main(int argc, char *argv[])
 		inetName->sin_port = portNbr;
 		memcpy((char *) &(inetName->sin_addr.s_addr),
 				(char *) &hostNbr, 4);
+		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 		bytesSent = sendBundleByUDP(&socketName, &ductSocket,
 				bundleLength, bundleZco, buffer);
 		if (bytesSent < bundleLength)

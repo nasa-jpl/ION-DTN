@@ -126,7 +126,9 @@ int	main(int argc, char **argv)
 
 		if (dlv.result == BpPayloadPresent)
 		{
+			CHKZERO(sdr_begin_xn(sdr));
 			contentLength = zco_source_data_length(sdr, dlv.adu);
+			sdr_exit_xn(sdr);
 			isprintf(line, sizeof line, "\tpayload length is %d.",
 					contentLength);
 			PUTS(line);
