@@ -62,7 +62,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	int		randomAduLength = 0;
 	int		bytesRemaining;
 	int		bytesToWrite;
-	Object		pilotAdu;
+	Object		pilotAduString;
 	Object		fileRef;
 	Object		bundleZco;
 	Object		newBundle;
@@ -192,15 +192,17 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	/*	Send pilot bundle to start bpcounter's timer.		*/
 
 	CHKZERO(sdr_begin_xn(sdr));
-	pilotAdu = sdr_string_create(sdr, "Go.");
-	bundleZco = zco_create(sdr, ZcoSdrSource, pilotAdu, 0,
-			sdr_string_length(sdr, pilotAdu));
-	if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	pilotAduString = sdr_string_create(sdr, "Go.");
+	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0, 
+			sdr_string_length(sdr, pilotAduString));
+	if (bundleZco == 0)
 	{
-		putErrmsg("bpdriver can't create ZCO.", NULL);
+		putErrmsg("bpdriver can't create pilot ADU.", NULL);
 		bp_close(sap);
 		return 0;
 	}
+
+	/*	Note that ionCreateZco() ends transaction.		*/
 
 	if (bp_send(sap, BP_BLOCKING, destEid, NULL, ttl,
 			BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
@@ -257,14 +259,15 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		}
 
 		CHKZERO(sdr_begin_xn(sdr));
-		bundleZco = zco_create(sdr, ZcoFileSource, fileRef, 0,
-				aduLength);
-		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+		bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength);
+		if (bundleZco == 0)
 		{
 			putErrmsg("bpdriver can't create ZCO.", NULL);
 			running = 0;
-			continue;
+			return 0;
 		}
+
+		/*	Note that ionCreateZco() ends transaction.	*/
 
 		if (bp_send(sap, BP_BLOCKING, destEid, NULL, ttl,
 				BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,

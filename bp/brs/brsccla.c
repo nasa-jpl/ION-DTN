@@ -495,7 +495,9 @@ number>");
 			continue;
 		}
 
+		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
 		bytesSent = sendBundleByTCP(&socketName, &ductSocket,
 				bundleLength, bundleZco, buffer);

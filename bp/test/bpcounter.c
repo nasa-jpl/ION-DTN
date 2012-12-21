@@ -154,7 +154,9 @@ int	main(int argc, char **argv)
 			else
 			{
 				bundlesReceived = _bundleCount(1);
+				CHKZERO(sdr_begin_xn(sdr));
 				bytesReceived += zco_length(sdr, dlv.adu);
+				sdr_exit_xn(sdr);
 			}
 
 			break;

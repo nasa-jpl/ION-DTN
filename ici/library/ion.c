@@ -262,6 +262,15 @@ static IonVdb	*_ionvdb(char **name)
 
 		vdb = (IonVdb *) psp(ionwm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(IonVdb));
+		vdb->zcoSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+		if (vdb->zcoSemaphore == SM_SEM_NONE)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("Can't initialize volatile database.", *name);
+			return NULL;
+		}
+
+		sm_SemTake(vdb->zcoSemaphore);	/*	Lock it.	*/
 		if ((vdb->nodes = sm_rbt_create(ionwm)) == 0
 		|| (vdb->neighbors = sm_rbt_create(ionwm)) == 0
 		|| (vdb->contactIndex = sm_rbt_create(ionwm)) == 0
@@ -598,16 +607,142 @@ static DWORD WINAPI	waitForSigterm(LPVOID parm)
 }
 #endif
 
+int	ionWaitForZcoSpace()
+{
+	IonVdb	*vdb = _ionvdb(NULL);
+	int	result;
+
+	CHKERR(vdb);
+	vdb->zcoClaimants += 1;
+	result = sm_SemTake(vdb->zcoSemaphore);
+	if (result == 0)
+	{
+		if (sm_SemEnded(vdb->zcoSemaphore))
+		{
+			writeMemo("[i] ZCO space semaphore ended.");
+		}
+		else
+		{
+			vdb->zcoClaimants -= 1;
+			vdb->zcoClaims -= 1;
+			result = 1;
+		}
+	}
+
+	return result;
+}
+
+void	ionClaimZcoSpace()
+{
+	IonVdb	*vdb = _ionvdb(NULL);
+
+	CHKVOID(vdb);
+
+	/*	This claimant is no longer in need of ZCO space.  If
+	 *	there are other claimants who have yet to try their
+	 *	luck, let them go ahead.  Otherwise, forget all claims.	*/
+
+	if (vdb->zcoClaimants == 0)
+	{
+		vdb->zcoClaims = 0;
+	}
+
+	if (vdb->zcoClaims > 0)
+	{
+		oK(sm_SemGive(vdb->zcoSemaphore));
+	}
+}
+
+void	ionReleaseZcoSpace()
+{
+	IonVdb	*vdb = _ionvdb(NULL);
+
+	CHKVOID(vdb);
+
+	/*	This claimant will be waiting for ZCO space again.
+	 *	It was unable to use the newly available ZCO space,
+	 *	so if there are any remaining claims then let the
+	 *	next claimant in the queue (possibly this claimant)
+	 *	take a shot.						*/
+
+	if (vdb->zcoClaims > 0)
+	{
+		oK(sm_SemGive(vdb->zcoSemaphore));
+	}
+}
+
+Object	ionCreateZco(ZcoMedium source, Object location, vast offset, vast size)
+{
+	Sdr	sdr = getIonsdr();
+	Object	zco;
+	int	admissionDelayed = 0;
+
+	CHKZERO(sdr_in_xn(sdr));
+	while (1)
+	{
+		zco = zco_create(sdr, source, location, offset, size);
+		if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR)
+		{
+			putErrmsg("Can't create ZCO.", NULL);
+			return 0;
+		}
+
+		if (zco == 0)	/*	Not enough ZCO space.		*/
+		{
+			if (admissionDelayed)
+			{
+				ionReleaseZcoSpace();
+			}
+
+			admissionDelayed = 1;
+			if (ionWaitForZcoSpace() == 1)
+			{
+				CHKZERO(sdr_begin_xn(sdr));
+				continue;
+			}
+
+			return 0;
+		}
+
+		/*	ZCO was created.				*/
+
+		if (admissionDelayed)
+		{
+			ionClaimZcoSpace();
+		}
+
+		return zco;
+	}
+}
+
+static void	offerZcoSpace()
+{
+	IonVdb	*vdb = _ionvdb(NULL);
+
+	if (vdb)
+	{
+		/*	Give all tasks currently waiting for ZCO
+		 *	space a shot at claiming the space that
+		 *	has now been made available.			*/
+
+		vdb->zcoClaims += vdb->zcoClaimants;
+		if (vdb->zcoClaims > 0)
+		{
+			sm_SemGive(vdb->zcoSemaphore);
+		}
+	}
+}
+
 int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 {
 	char		wdname[256];
 	Sdr		ionsdr;
 	Object		iondbObject;
 	IonDB		iondbBuf;
-	long		heapLimit;
-	Scalar		limit;
+	vast		limit;
 	sm_WmParms	ionwmParms;
 	char		*ionvdbName = _ionvdbName();
+	ZcoCallback	notify = offerZcoSpace;
 
 	CHKERR(parms);
 	CHKERR(ownNodeNbr);
@@ -676,16 +811,10 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		iondbBuf.ownNodeNbr = ownNodeNbr;
 		iondbBuf.productionRate = -1;	/*	Not metered.	*/
 		iondbBuf.consumptionRate = -1;	/*	Not metered.	*/
-		heapLimit = (sdr_heap_size(ionsdr) / 100)
-			 	* (100 - ION_SEQUESTERED);
-		limit.units = heapLimit % ONE_GIG;
-		limit.gigs = heapLimit / ONE_GIG;
-		zco_set_max_heap_occupancy(ionsdr, &limit);
-		zco_get_max_file_occupancy(ionsdr, &limit);
-		iondbBuf.occupancyCeiling = limit.gigs;
-		iondbBuf.occupancyCeiling *= ONE_GIG;
-		iondbBuf.occupancyCeiling += limit.units;
-		iondbBuf.occupancyCeiling += heapLimit;
+		limit = (sdr_heap_size(ionsdr) / 100) * (100 - ION_SEQUESTERED);
+		zco_set_max_heap_occupancy(ionsdr, limit);
+		iondbBuf.occupancyCeiling = zco_get_max_file_occupancy(ionsdr);
+		iondbBuf.occupancyCeiling += limit;
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
@@ -735,6 +864,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		return -1;
 	}
 
+	zco_register_callback(notify);
 	ionRedirectMemos();
 #ifdef mingw
 	DWORD	threadId;
@@ -783,6 +913,15 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 
 	sm_rbt_destroy(wm, vdb->nodes, destroyIonNode, NULL);
 	sm_rbt_destroy(wm, vdb->neighbors, rfx_erase_data, NULL);
+
+	/*	Safely delete the ZCO availability semaphore.		*/
+
+	sm_SemEnd(vdb->zcoSemaphore);
+	sm_SemDelete(vdb->zcoSemaphore);
+	vdb->zcoSemaphore = SM_SEM_NONE;
+	vdb->zcoClaimants = 0;
+	vdb->zcoClaims = 0;
+	zco_unregister_callback();
 }
 
 void	ionDropVdb()
@@ -833,6 +972,7 @@ int	ionAttach()
 	IonParms	parms;
 	sm_WmParms	ionwmParms;
 	char		*ionvdbName = _ionvdbName();
+	ZcoCallback	notify = offerZcoSpace;
 
 	if (ionsdr && iondbObject && ionwm && ionvdb)
 	{
@@ -934,6 +1074,7 @@ int	ionAttach()
 		}
 	}
 
+	zco_register_callback(notify);
 	ionRedirectMemos();
 #ifdef mingw
 	DWORD	threadId;

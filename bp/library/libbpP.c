@@ -1364,10 +1364,6 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
 		vdb->watching = db->watching;
-		vdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
-				SM_SEM_FIFO);
-		sm_SemTake(vdb->productionThrottle.semaphore);
-		vdb->productionThrottle.nominalRate = 0;
 		if ((vdb->schemes = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
@@ -1574,11 +1570,6 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	VOutduct	*voutduct;
 
 	vdb = (BpVdb *) psp(wm, vdbAddress);
-	if (vdb->productionThrottle.semaphore != SM_SEM_NONE)
-	{
-		sm_SemDelete(vdb->productionThrottle.semaphore);
-	}
-
 	while ((elt = sm_list_first(wm, vdb->schemes)) != 0)
 	{
 		vscheme = (VScheme *) psp(wm, sm_list_data(wm, elt));
@@ -1715,11 +1706,6 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	/*	Tell all BP processes to stop.				*/
 
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
-	if (bpvdb->productionThrottle.semaphore != SM_SEM_NONE)
-	{
-		sm_SemEnd(bpvdb->productionThrottle.semaphore);
-	}
-
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -1783,17 +1769,6 @@ void	bpStop()		/*	Reverses bpStart.		*/
 
 	CHKVOID(sdr_begin_xn(bpSdr));
 	bpvdb->clockPid = ERROR;
-	if (bpvdb->productionThrottle.semaphore == SM_SEM_NONE)
-	{
-		bpvdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
-				SM_SEM_FIFO);
-	}
-	else
-	{
-		sm_SemUnend(bpvdb->productionThrottle.semaphore);
-	}
-
-	sm_SemTake(bpvdb->productionThrottle.semaphore);/*	Lock.	*/
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -1894,18 +1869,12 @@ void bpDetach(){
 
 static void	noteBundleInserted(Bundle *bundle)
 {
-	Scalar	delta;
-
-	loadScalar(&delta, bundle->dbOverhead);
-	zco_increase_heap_occupancy(getIonsdr(), &delta);
+	zco_increase_heap_occupancy(getIonsdr(), bundle->dbOverhead);
 }
 
 static void	noteBundleRemoved(Bundle *bundle)
 {
-	Scalar	delta;
-
-	loadScalar(&delta, bundle->dbOverhead);
-	zco_reduce_heap_occupancy(getIonsdr(), &delta);
+	zco_reduce_heap_occupancy(getIonsdr(), bundle->dbOverhead);
 }
 
 /*	*	*	Useful utility functions	*	*	*/
@@ -5508,20 +5477,17 @@ when asking for custody transfer and/or status reports.");
 	}
 
 	bundle.dbOverhead = BASE_BUNDLE_OVERHEAD;
-	if (!zco_enough_heap_space(bpSdr, bundle.dbOverhead + 4096))
-	{
-		writeMemo("[?] Not enough heap space for outbound bundle.");
-		return 0;
-	}
 
 	/*	The bundle protocol specification authorizes the
 	 *	implementation to fragment an ADU.  In the ION
 	 *	implementation we fragment only when necessary,
 	 *	at the moment a bundle is dequeued for transmission.	*/
 
+	CHKERR(sdr_begin_xn(bpSdr));
 	aduLength = zco_length(bpSdr, adu);
 	if (aduLength < 0)
 	{
+		sdr_exit_xn(bpSdr);
 		restoreEidString(&destMetaEid);
 		restoreEidString(reportToMetaEid);
 		putErrmsg("Can't get length of ADU.", NULL);
@@ -5543,6 +5509,7 @@ when asking for custody transfer and/or status reports.");
 				reportToMetaEid);
 		if (dictionary == NULL)
 		{
+			sdr_exit_xn(bpSdr);
 			restoreEidString(&destMetaEid);
 			restoreEidString(reportToMetaEid);
 			putErrmsg("Can't load dictionary.", NULL);
@@ -5564,7 +5531,6 @@ when asking for custody transfer and/or status reports.");
 
 	/*	Bundle is almost fully constructed at this point.	*/
 
-	CHKERR(sdr_begin_xn(bpSdr));
 	if (ionClockIsSynchronized())
 	{
 		getCurrentDtnTime(&currentDtnTime);
@@ -7625,7 +7591,6 @@ static void	initAuthenticity(AcqWorkArea *work)
 static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 {
 	Bundle		*bundle = &(work->bundle);
-	int		heapOkay;
 	char		*custodialSchemeName;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
@@ -7657,7 +7622,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		bundle->payload.content = 0;
 	}
 
-	heapOkay = zco_enough_heap_space(bpSdr, bundle->dbOverhead);
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't add reference work ZCO.", NULL);
@@ -7738,28 +7702,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 		return discardReceivedBundle(work, CtBlockUnintelligible,
 				SrBlockUnintelligible, work->dictionary);
-	}
-
-	/*	Bundle acquisition was uneventful but bundle may have
-	 *	to be refused due to insufficient resources.  Must
-	 *	guard against congestion collapse; the payload already
-	 *	occupies ZCO space, but we need to make sure there's
-	 *	room in the SDR for the Bundle object as well.		*/
-
-	if (!heapOkay)
-	{
-		/*	Not enough heap space for bundle.		*/
-
-		bpInductTally(work->vduct, BP_INDUCT_CONGESTIVE,
-				bundle->payload.length);
-		if (sdr_end_xn(bpSdr) < 0)
-		{
-			putErrmsg("Can't update tally.", NULL);
-			return -1;
-		}
-
-		return discardReceivedBundle(work, CtDepletedStorage,
-				SrDepletedStorage, work->dictionary);
 	}
 
 	oK(sdr_end_xn(bpSdr));
@@ -7967,8 +7909,8 @@ int	bpEndAcq(AcqWorkArea *work)
 
 	CHKERR(work);
 	CHKERR(work->zco);
-	work->zcoLength = zco_length(bpSdr, work->zco);
 	CHKERR(sdr_begin_xn(bpSdr));
+	work->zcoLength = zco_length(bpSdr, work->zco);
 	zco_start_receiving(work->zco, &(work->reader));
 	result = advanceWorkBuffer(work, 0);
 	if (sdr_end_xn(bpSdr) < 0 || result < 0)

@@ -238,16 +238,17 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedC
 
 			/*check if we can send this size of bundle	*/
 			sdr = getIonsdr();
+			CHKERR(sdr_begin_xn(sdr));
 			bundleLength = zco_length(sdr, *bundleZco);
 			if(bundleLength > itp->MPS)
 			{
+				sdr_exit_xn(sdr);
 				putErrmsg("Bundle is too big for DCCP CLO.", itoa(bundleLength));
 				return -1;
 			}
 
 			/*Get Data to Send from ZCO			*/
 			zco_start_transmitting(*bundleZco, &reader);
-			CHKERR(sdr_begin_xn(sdr));
 			bytesToSend = zco_transmit(sdr, &reader, DCCPCLA_BUFSZ, buffer);
 			if (sdr_end_xn(sdr) < 0 || bytesToSend < 0)
 			{
@@ -458,7 +459,9 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
+		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 
 		if (bundleLength > DCCPCLA_BUFSZ)
 		{

@@ -275,12 +275,8 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 		unsigned char srrFlags, int ackRequested, BpExtendedCOS *ecos,
 		Object adu, Object *bundleObj)
 {
-	Sdr		sdr = getIonsdr();
-	BpVdb		*vdb = getBpVdb();
 	BpExtendedCOS	defaultECOS = { 0, 0, 0 };
-	int		aduLength;
 	MetaEid		*sourceMetaEid;
-	Throttle	*throttle;
 
 	CHKERR(bundleObj);
 	*bundleObj = 0;
@@ -305,39 +301,6 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 	{
 		sourceMetaEid = NULL;
 	}
-
-	/*	Admission control (bundle production throttling)
-	 *	happens here.						*/
-
-	throttle = &(vdb->productionThrottle);
-	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	aduLength = zco_length(sdr, adu);
-	while (aduLength > throttle->capacity)
-	{
-		sdr_exit_xn(sdr);
-		if (mode == BP_NONBLOCKING)
-		{
-			errno = EWOULDBLOCK;
-			return 0;
-		}
-
-		if (sm_SemTake(throttle->semaphore) < 0)
-		{
-			putErrmsg("Can't take throttle semaphore.", NULL);
-			return -1;
-		}
-
-		if (sm_SemEnded(throttle->semaphore))
-		{
-			putErrmsg("Bundle agent has been stopped.", NULL);
-			return -1;
-		}
-
-		CHKERR(sdr_begin_xn(sdr));
-	}
-
-	throttle->capacity -= aduLength;
-	sdr_exit_xn(sdr);	/*	Release memory.			*/
 
 	/*	Now go ahead and send the bundle.			*/
 

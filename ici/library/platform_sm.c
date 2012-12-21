@@ -34,7 +34,7 @@ int	sm_GetUniqueKey()
 
 	takeIpcLock();
 	ipcUniqueKey++;
-	result = (int) ipcUniqueKey;
+	result = ipcUniqueKey;		/*	Truncates as necessary.	*/
 	giveIpcLock();
 	return result;
 }
@@ -459,7 +459,7 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 	 *	calling sm_ShmAttach, to let shmat determine the
 	 *	attachment point for the memory segment.		*/
 
-	if ((long) (mem = shmat(*id, *shmPtr, 0)) == -1)
+	if ((mem = (char *) shmat(*id, *shmPtr, 0)) == ((char *) -1))
 	{
 		putSysErrmsg("Can't attach shared memory segment", itoa(key));
 		return -1;
