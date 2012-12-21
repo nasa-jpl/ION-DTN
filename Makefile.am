@@ -360,8 +360,7 @@ icibin = \
 	smlistsh \
 	rfxclock \
 	owlttb \
-	owltsim \
-	ionrestart
+	owltsim
 
 icilib = \
 	libici.la 
@@ -534,17 +533,7 @@ ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionwarn_SOURCES = ici/utils/ionwarn.c
 ionwarn_LDADD = libici.la $(LIBOBJS) 
-ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
-
-if ION_NASA_B
-ionrestart_SOURCES =  ici/restart/ionrestart.c
-ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la $(LIBOBJS)
-ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library $(AM_CFLAGS)
-else
-ionrestart_SOURCES =  ici/restart/ionrestart.c	
-ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
-ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
-endif
+ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)	
 
 # --- Test Executables --- #
 
@@ -1679,6 +1668,26 @@ bsscounter_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 bssdriver_SOURCES = bss/test/bssdriver.c
 bssdriver_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bssdriver_CFLAGS = $(bsscflags) $(AM_CFLAGS)
+
+
+##########################
+#
+# RESTART SECTION
+#
+##########################
+
+restartbin = ionrestart
+
+# --- Utility Programs --- #
+if ION_NASA_B
+ionrestart_SOURCES = restart/utils/ionrestart.c
+ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la $(LIBOBJS)
+ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library $(AM_CFLAGS)
+else
+ionrestart_SOURCES = restart/utils/ionrestart.c
+ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
+ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
+endif
 
 
 ##############
