@@ -326,7 +326,7 @@ static double	dynamicProductionRate(Sdr sdr)
 
 	/*	Get current mean resource occupancy figures.		*/
 
-	bundlesInStorage = sdr_hash_count(getIonsdr(), db->bundles);
+	bundlesInStorage = sdr_hash_count(sdr, db->bundles);
 	if (bundlesInStorage < 1)
 	{
 		/*	No way to estimate anything, so can't use

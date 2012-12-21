@@ -239,7 +239,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 	/*	This is an implementation of Dijkstra's Algorithm.	*/
 
 #if CGRDEBUG
-printf("Computing distance via contact to node " UVAST_FIELDSPED " arrival \
+printf("Computing distance via contact to node " UVAST_FIELDSPEC " arrival \
 time %u.\n", rootContact->toNode, rootWork->arrivalTime);
 #endif
 	current = rootContact;
