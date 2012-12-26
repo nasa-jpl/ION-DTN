@@ -97,7 +97,8 @@ static int	sendPetition(unsigned long nodeNbr, char *buffer, int length)
 
 	sdr_write(sdr, sourceData, buffer, length);
 	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, length);
-	if (sdr_end_xn(sdr) < 0 || payloadZco == 0)
+	if (sdr_end_xn(sdr) < 0 || payloadZco == (Object) ERROR
+	|| payloadZco == 0)
 	{
 		putErrmsg("Can't create IMC petition.", NULL);
 		return -1;

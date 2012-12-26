@@ -52,12 +52,27 @@ static int	_running(int *newState)
 	return (sap == NULL ? 0 : 1);
 }
 
+static void	_zcoControl(int *controlPtr)
+{
+	static int	*ptr = NULL;
+
+	if (controlPtr)	/*	Initializing ZCO request cancellation.	*/
+	{
+		ptr = controlPtr;
+	}
+	else		/*	Canceling ZCO request.			*/
+	{
+		ionCancelZcoSpaceRequest(ptr);
+	}
+}
+
 static void	handleQuit()
 {
 	int	stop = 0;
 
 	bp_interrupt(_bpsap(NULL));
 	oK(_running(&stop));
+	_zcoControl(NULL);
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -79,6 +94,7 @@ int	main(int argc, char **argv)
 	Sdr		sdr;
 	char		dataToSend[ADU_LEN];
 	Object		bundleZco;
+	int		controlZco;
 	Object		newBundle;
 	Object		extent;
 	BpDelivery	dlv;
@@ -108,6 +124,7 @@ int	main(int argc, char **argv)
 
 	oK(_bpsap(&sap));
 	sdr = bp_get_sdr();
+	_zcoControl(&controlZco);
 	isignal(SIGINT, handleQuit);
 	while (1)
 	{
@@ -177,9 +194,12 @@ fflush(stdout);
 		}
 
 		sdr_write(sdr, extent, dataToSend, bytesToEcho);
-		bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0,
-				bytesToEcho);
-		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0,
+				bytesToEcho, &controlZco);
+
+		/*	Note that ionCreateZco() ends transaction.	*/
+
+		if (bundleZco == 0)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
 			break;		/*	Out of main loop.	*/

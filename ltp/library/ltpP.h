@@ -200,6 +200,7 @@ typedef struct
 	int		reportsCount;
 	Object		blockFileRef;	/*	A ZCO File Ref object.	*/
 	Object		svcData;	/*	The acquisition ZCO.	*/
+	int		congestive;	/*	Boolean: no ZCO space.	*/
 
 	/*	Backward reference.					*/
 

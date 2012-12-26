@@ -100,7 +100,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
             Object      fileRef;
             struct stat	statbuf;
             int		aduLength;
-            Object	bundleZco;
+            Object	traceZco;
             char        *fileName;
 
             fileName = strdup(trace+1);
@@ -115,14 +115,6 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
             aduLength = statbuf.st_size;
             sdr = bp_get_sdr();
             CHKZERO(sdr_begin_xn(sdr));
-            if (sdr_heap_depleted(sdr))
-            {
-		    sdr_exit_xn(sdr);
-                    bp_close(sap);
-                    putErrmsg("Low on heap space, can't send file.", fileName);
-                    return 0;
-            }
-            
             fileRef = zco_create_file_ref(sdr, fileName, NULL);
             if (fileRef == 0)
             {
@@ -132,43 +124,25 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
                     return 0;
             }
 
-            bundleZco = zco_create(sdr, ZcoFileSource, fileRef, 0, aduLength);
-            if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+            traceZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength, NULL);
+
+	    /*		Note that ionCreateZco ends transaction.	*/
+
+            if (traceZco == 0)
             {
-                    bp_close(sap);
                     putErrmsg("bptrace can't create ZCO.", NULL);
-                    return 0;
+            }
+	    else
+	    {
+		if (bp_send(sap, BP_NONBLOCKING, destEid, reportToEid,
+			ttl, priority, custodySwitch, srrFlags, 0,
+			&extendedCOS, traceZco, &newBundle) <= 0)
+		{
+			putErrmsg("bptrace can't send file in bundle.",
+					itoa(aduLength));
+		}
             }
 
-            while (1)
-            {
-		switch (bp_send(sap, BP_NONBLOCKING, destEid, reportToEid,
-				ttl, priority, custodySwitch, srrFlags, 0,
-                                &extendedCOS, bundleZco, &newBundle))
-                    {
-                    case 0:	/*	No space for bundle.		*/
-                            if (errno == EWOULDBLOCK)
-                            {
-                                    microsnooze(250000);
-                                    continue;
-                            }
-
-                            /*	Intentional fall-through to next case.	*/
-
-                    case -1:
-                            putErrmsg("bptrace can't send file in bundle.",
-                                            itoa(aduLength));
-
-                            /*	Intentional fall-through to next case.	*/
-
-                    default:
-                            break;	/*	Out of switch.		*/
-                    }
-
-                    break;		/*	Out of loop.		*/
-            }
-
-            bp_close(sap);
             CHKZERO(sdr_begin_xn(sdr));
             zco_destroy_file_ref(sdr, fileRef);
             if (sdr_end_xn(sdr) < 0)
@@ -178,10 +152,9 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
         }
         else
         {
-
-            int                 msgLength = strlen(trace) + 1;
-            Object		msg;
-            Object		traceZco;
+            int		msgLength = strlen(trace) + 1;
+            Object	msg;
+            Object	traceZco;
             
             sdr = bp_get_sdr();
             CHKZERO(sdr_begin_xn(sdr));
@@ -195,24 +168,26 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
             }
 
             sdr_write(sdr, msg, trace, msgLength);
-            traceZco = zco_create(sdr, ZcoSdrSource, msg, 0, msgLength);
-            if (sdr_end_xn(sdr) < 0 || traceZco == 0)
-            {
-                    bp_close(sap);
-                    putSysErrmsg("bptrace can't create ZCO", NULL);
-                    return 0;
-            }
+            traceZco = ionCreateZco(ZcoSdrSource, msg, 0, msgLength, NULL);
 
-            if (bp_send(sap, BP_BLOCKING, destEid, reportToEid, ttl, priority,
-                            custodySwitch, srrFlags, 0, &extendedCOS,
-                            traceZco, &newBundle) < 1)
+	    /*		Note that ionCreateZco ends transaction.	*/
+
+            if (traceZco == 0)
             {
+                    putErrmsg("bptrace can't create ZCO", NULL);
+            }
+	    else
+	    {
+            	if (bp_send(sap, BP_BLOCKING, destEid, reportToEid, ttl,
+			priority, custodySwitch, srrFlags, 0, &extendedCOS,
+			traceZco, &newBundle) <= 0)
+            	{
                     putErrmsg("bptrace can't send message.", NULL);
+		}
             }
-
-            bp_close(sap);
         }
 
+	bp_close(sap);
 	bp_detach();
 	return 0;
 }

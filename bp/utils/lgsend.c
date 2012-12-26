@@ -136,23 +136,22 @@ int	main(int argc, char **argv)
 	}
 
 	close(cmdFile);
-	bundleZco = zco_create(sdr, ZcoSdrSource, adu, 0, fileSize);
-	if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	bundleZco = ionCreateZco(ZcoSdrSource, adu, 0, fileSize, NULL);
+
+	/*	Note that ionCreateZco ends transaction.		*/
+
+	if (bundleZco == 0)
 	{
-		bp_close(sap);
 		putErrmsg("lgsend: can't create application data unit.", NULL);
-		return 1;
 	}
-
-	/*	Now send the bundle to the destination DTN node.	*/
-
-	if (bp_send(sap, BP_BLOCKING, destEid, NULL, 86400,
-			BP_EXPEDITED_PRIORITY, SourceCustodyRequired,
-			0, 0, NULL, bundleZco, &newBundle) < 1)
+	else
 	{
-		bp_close(sap);
-		putErrmsg("lgsend: can't send bundle.", NULL);
-		return 1;
+		if (bp_send(sap, BP_BLOCKING, destEid, NULL, 86400,
+				BP_EXPEDITED_PRIORITY, SourceCustodyRequired,
+				0, 0, NULL, bundleZco, &newBundle) < 1)
+		{
+			putErrmsg("lgsend: can't send bundle.", NULL);
+		}
 	}
 
 	bp_close(sap);

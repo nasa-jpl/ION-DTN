@@ -732,6 +732,7 @@ typedef struct
 	AcqDecision	decision;
 	int		lastBlockParsed;
 	int		malformed;
+	int		congestive;	/*	Not enough ZCO space.	*/
 	int		mustAbort;	/*	Unreadable block(s).	*/
 
 	/*	Per-acquisition state variables.			*/

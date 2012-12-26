@@ -125,13 +125,21 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 			break;
 		}
 		
-		sdr_write(sdr, bundlePayload, framePayload, sizeof(framePayload));
+		sdr_write(sdr, bundlePayload, framePayload,
+				sizeof(framePayload));
+
+		/*	Note: we don't use ionCreateZco here because
+		 *	we don't want to block in admission control.
+		 *	The transmission loop is metered by time.	*/
+
 		bundleZco = zco_create(sdr, ZcoSdrSource, bundlePayload, 0, 
 				sizeof(framePayload));
-		if(sdr_end_xn(sdr) < 0 || bundleZco == 0)
+		if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
+		|| bundleZco == 0)
 		{
 			bp_close(sap);
-			putErrmsg("bssStreamingApp can't create bundle ZCO.", NULL);
+			putErrmsg("bssStreamingApp can't create bundle ZCO.",
+					NULL);
 			break;
 		}
 

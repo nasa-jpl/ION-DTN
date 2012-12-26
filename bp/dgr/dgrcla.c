@@ -251,12 +251,22 @@ static void	*receiveBundles(void *parm)
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, length);
-					if (sdr_end_xn(sdr) < 0)
+					if (sdr_end_xn(sdr) < 0
+					|| bundleZco == (Object) ERROR)
 					{
 						putErrmsg("Failed creating \
 temporary ZCO.", NULL);
 						threadRunning = 0;
 						break;	/*	Switch.	*/
+					}
+
+					if (bundleZco == 0)
+					{
+						/*	No ZCO space;
+						 *	in effect,
+						 *	datagram lost.	*/
+
+						continue;
 					}
 
 					if (bpHandleXmitSuccess(bundleZco, 0))
@@ -287,12 +297,22 @@ bundle ZCO.", NULL);
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, length);
-					if (sdr_end_xn(sdr) < 0)
+					if (sdr_end_xn(sdr) < 0
+					|| bundleZco == (Object) ERROR)
 					{
 						putErrmsg("Failed creating \
 temporary ZCO.", NULL);
 						threadRunning = 0;
 						break;	/*	Switch.	*/
+					}
+
+					if (bundleZco == 0)
+					{
+						/*	No ZCO space;
+						 *	in effect,
+						 *	datagram lost.	*/
+
+						continue;
 					}
 
 					if (bpHandleXmitFailure(bundleZco))

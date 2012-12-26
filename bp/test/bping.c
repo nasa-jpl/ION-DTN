@@ -46,6 +46,7 @@ static pthread_mutex_t sdrmutex;
 static pthread_t receiveResponsesThread = 0;
 static pthread_t sendRequestsThread = 0;
 static BpCustodySwitch custodySwitch = NoCustodyRequested;
+static int controlZco;
 
 static Sdr      sdr;
 static BpSAP    sap;
@@ -90,6 +91,8 @@ static void handleQuit()
 	{
 		pthread_kill(sendRequestsThread, SIGINT);
 	}
+
+	ionCancelZcoSpaceRequest(&controlZco);
 }
 
 /* Subtract the `struct timeval' values X and Y, storing the result in RESULT.
@@ -300,9 +303,12 @@ static Object bping_new_ping(void)
 	sdr_write(sdr, bundleMessage, pingPayload, pingPayloadLen);
 
 	/* Craft the bundle object */
-	bundleZco = zco_create(sdr, ZcoSdrSource, bundleMessage, 0, 
-			pingPayloadLen);
-	if(sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	bundleZco = ionCreateZco(ZcoSdrSource, bundleMessage, 0, 
+			pingPayloadLen, &controlZco);
+
+	/*	Note that ionCreateZco() ends transaction.		*/
+
+	if(bundleZco == 0)
 	{
 		bp_close(sap);
 		putErrmsg("bping can't create bundle ZCO", NULL);

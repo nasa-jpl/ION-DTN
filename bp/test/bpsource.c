@@ -24,11 +24,26 @@ static int	_running(int *newState)
 	return state;
 }
 
+static void	_zcoControl(int *controlPtr)
+{
+	static int	*ptr = NULL;
+
+	if (controlPtr)	/*	Initializing ZCO request cancellation.	*/
+	{
+		ptr = controlPtr;
+	}
+	else		/*	Canceling ZCO request.			*/
+	{
+		ionCancelZcoSpaceRequest(ptr);
+	}
+}
+
 static void	handleQuit()
 {
 	int	stop = 0;
 
 	oK(_running(&stop));
+	_zcoControl(NULL);
 }
 
 #if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
@@ -79,6 +94,7 @@ int	main(int argc, char **argv)
 	int	lineLength;
 	Object	extent;
 	Object	bundleZco;
+	int	controlZco = 0;
 	Object	newBundle;
 	int	fd;
 
@@ -88,9 +104,10 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	if(ttl <= 0)
+	if (ttl <= 0)
 	{
-		PUTS("Usage: bpsource <destination endpoint ID> ['<text>'] [-t<Bundle TTL>]");
+		PUTS("Usage: bpsource <destination endpoint ID> ['<text>'] \
+[-t<Bundle TTL>]");
 		return 0;
 	}
 
@@ -122,9 +139,12 @@ int	main(int argc, char **argv)
 		}
 
 		sdr_write(sdr, extent, text, lineLength);
-		bundleZco = zco_create(sdr, ZcoSdrSource, extent,
-				0, lineLength);
-		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, lineLength,
+				&controlZco);
+
+		/*	Note that ionCreateZco ends transaction.	*/
+
+		if (bundleZco == 0)
 		{
 			putErrmsg("Can't create ZCO extent.", NULL);
 			bp_detach();
@@ -144,6 +164,7 @@ int	main(int argc, char **argv)
 
 #ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
 	fd = fileno(stdin);
+	_zcoControl(&controlZco);
 	isignal(SIGINT, handleQuit);
 	while (_running(NULL))
 	{
@@ -179,9 +200,12 @@ int	main(int argc, char **argv)
 			}
 
 			sdr_write(sdr, extent, line, lineLength);
-			bundleZco = zco_create(sdr, ZcoSdrSource, extent,
-					0, lineLength);
-			if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+			bundleZco = ionCreateZco(ZcoSdrSource, extent,
+					0, lineLength, &controlZco);
+
+			/*	Note that ionCreateZco ends transaction.*/
+
+			if (bundleZco == 0)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				break;

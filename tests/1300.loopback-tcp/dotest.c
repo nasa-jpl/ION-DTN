@@ -50,9 +50,9 @@ int main(int argc, char **argv)
 	fail_unless(bp_open(testEid, &rxSap) >= 0);
 	fail_unless(bp_receive(rxSap, &rxDlv, IONTEST_DEFAULT_RECEIVE_WAIT) >= 0);
 	fail_unless(rxDlv.result == BpPayloadPresent);
+	sdr_begin_xn(sdr);
 	rxContentLength = zco_source_data_length(sdr, rxDlv.adu);
 	fail_unless(rxContentLength == sizeof(testLine) - 1);
-	sdr_begin_xn(sdr);
 	zco_start_receiving(rxDlv.adu, &rxReader);
 	rxLen = zco_receive_source(sdr, &rxReader, rxContentLength, 
 		rxContent);

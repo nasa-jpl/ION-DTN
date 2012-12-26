@@ -11,11 +11,7 @@
 #include <bp.h>
 
 #define	DEFAULT_ADU_LENGTH	(60000)
-#define	DEFAULT_TTL 300
-
-#if 0
-#define	CYCLE_TRACE
-#endif
+#define	DEFAULT_TTL		300
 
 /*	Indication marks:	"." for BpPayloadPresent (1),
 				"*" for BpReceptionTimedOut (2).
@@ -41,12 +37,27 @@ static BpSAP	_bpsap(BpSAP *newSap)
 	return sap;
 }
 
+static void	_zcoControl(int *controlPtr)
+{
+	static int	*ptr = NULL;
+
+	if (controlPtr)	/*	Initializing ZCO request cancellation.	*/
+	{
+		ptr = controlPtr;
+	}
+	else		/*	Canceling ZCO request.			*/
+	{
+		ionCancelZcoSpaceRequest(ptr);
+	}
+}
+
 static void	handleQuit()
 {
 	void	*erase = NULL;
 
 	bp_interrupt(_bpsap(NULL));
 	oK(sm_TaskVar(&erase));
+	_zcoControl(NULL);
 }
 
 static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
@@ -65,6 +76,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	Object		pilotAduString;
 	Object		fileRef;
 	Object		bundleZco;
+	int		controlZco;
 	Object		newBundle;
 	double		bytesSent = 0.0;
 	struct timeval	startTime;
@@ -191,18 +203,20 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 
 	/*	Send pilot bundle to start bpcounter's timer.		*/
 
+	_zcoControl(&controlZco);
 	CHKZERO(sdr_begin_xn(sdr));
 	pilotAduString = sdr_string_create(sdr, "Go.");
 	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0, 
-			sdr_string_length(sdr, pilotAduString));
+			sdr_string_length(sdr, pilotAduString), &controlZco);
+
+	/*	Note that ionCreateZco() ends transaction.		*/
+
 	if (bundleZco == 0)
 	{
 		putErrmsg("bpdriver can't create pilot ADU.", NULL);
 		bp_close(sap);
 		return 0;
 	}
-
-	/*	Note that ionCreateZco() ends transaction.		*/
 
 	if (bp_send(sap, BP_BLOCKING, destEid, NULL, ttl,
 			BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
@@ -259,12 +273,13 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		}
 
 		CHKZERO(sdr_begin_xn(sdr));
-		bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength);
+		bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
+				&controlZco);
 		if (bundleZco == 0)
 		{
 			putErrmsg("bpdriver can't create ZCO.", NULL);
 			running = 0;
-			return 0;
+			continue;
 		}
 
 		/*	Note that ionCreateZco() ends transaction.	*/

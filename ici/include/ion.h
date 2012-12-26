@@ -283,13 +283,18 @@ extern void		ionProd(	unsigned long fromNode,
 					unsigned int owlt);
 extern void		ionTerminate();
 
-extern int		ionWaitForZcoSpace();
-extern void		ionClaimZcoSpace();
-extern void		ionReleaseZcoSpace();
 extern Object		ionCreateZco(	ZcoMedium source,
 					Object location,
 					vast offset,
-					vast length);
+					vast length,
+					int *control);
+extern vast		ionAppendZcoExtent(Object zco,
+					ZcoMedium source,
+					Object location,
+					vast offset,
+					vast length,
+					int *control);
+extern void		ionCancelZcoSpaceRequest(int *control);
 
 extern Sdr		getIonsdr();
 extern Object		getIonDbObject();

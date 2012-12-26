@@ -109,7 +109,6 @@ int	sdr_string_length(Sdr sdrv, Object string)
 {
 	unsigned char	length;
 
-	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(string);
 	sdrFetch(length, (Address) string);
 	return length;

@@ -208,7 +208,7 @@ extern Object	zco_create(	Sdr sdr,
 			 *	object on success, 0 if there is
 			 *	currently too little available ZCO
 			 *	space to accommodate the proposed
-			 *	first extent, ((Object) ERROR on any
+			 *	first extent, ((Object) -1) on any
 			 *	error.					*/
 
 extern vast	zco_append_extent(Sdr sdr,
@@ -220,9 +220,9 @@ extern vast	zco_append_extent(Sdr sdr,
 			/*	Both location and length must be non-
 			 *	zero.  Returns length on success, 0
 			 *	if there is currently too little
-			 *	available ZCO space to accommodatex
-			 *	the proposed first extent, ERROR on
-			 *	any error.				*/
+			 *	available ZCO space to accommodate
+			 *	the proposed first extent, -1 on any
+			 *	error.					*/
 
 extern int	zco_prepend_header(Sdr sdr,
 				Object zco,
@@ -267,7 +267,18 @@ extern Object	zco_clone(	Sdr sdr,
 			 *	file and SDR source data objects
 			 *	referenced by those extents.  Returns
 			 *	the SDR location of the new ZCO on
-			 *	success, 0 on any error.		*/
+			 *	success, ((Object) -1) on any error.	*/
+
+extern vast	zco_clone_source_data(Sdr sdr,
+				Object toZco,
+				Object fromZco,
+				vast offset,
+				vast length);
+			/*	Same as zco_clone except that the
+			 *	cloned source data extents are appended
+			 *	to an existing ZCO ("toZco") rather
+			 *	than to a newly created ZCO.  Returns
+			 *	length on success, -1 on any error.	*/
 
 extern vast	zco_length(	Sdr sdr,
 				Object zco);

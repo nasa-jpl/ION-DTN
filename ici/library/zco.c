@@ -651,9 +651,18 @@ void	zco_destroy_file_ref(Sdr sdr, Object fileRefObj)
 
 static int	extentTooLarge(Sdr sdr, ZcoMedium source, vast length)
 {
-	vast	heapNeeded = sizeof(SourceExtent);
+	vast	heapNeeded;
 	Object	obj;
 	ZcoDB	db;
+
+	if (source == ZcoZcoSource)
+	{
+		/*	We don't regulate the cloning of existing
+		 *	ZCOs, only the creation of new ZCO extents
+		 *	in heap or file space.				*/
+
+		return 0;
+	}
 
 	obj = getZcoDB(sdr);
 	if (obj == 0)
@@ -661,23 +670,18 @@ static int	extentTooLarge(Sdr sdr, ZcoMedium source, vast length)
 		return 1;
 	}
 
+	heapNeeded = sizeof(SourceExtent);
 	sdr_read(sdr, (char *) &db, obj, sizeof(ZcoDB));
-	switch (source)
+	if (source == ZcoFileSource)
 	{
-	case ZcoFileSource:
 		if (db.fileOccupancy + length > db.maxFileOccupancy)
 		{
 			return 1;
 		}
-
-		break;
-
-	case ZcoSdrSource:
+	}
+	else
+	{
 		heapNeeded += length;
-		break;
-
-	default:
-		break;
 	}
 
 	if (db.heapOccupancy + heapNeeded > db.maxHeapOccupancy)
@@ -1081,34 +1085,24 @@ void	zco_discard_last_trailer(Sdr sdr, Object zco)
 	sdr_write(sdr, zco, (char *) &zcoBuf, sizeof(Zco));
 }
 
-Object	zco_clone(Sdr sdr, Object zco, vast offset, vast length)
+static int	cloneExtents(Sdr sdr, Object toZco, Object fromZco, vast offset,
+			vast length)
 {
-	Object		newZco;		/*	Cloned ZCO object.	*/
 	Zco		zcoBuf;
 	Object		obj;
 	SourceExtent	extent;
 	vast		bytesToSkip;
 	vast		bytesToCopy;
 
-	CHKZERO(sdr);
-	CHKZERO(zco);
-	CHKZERO(length > 0);
-	newZco = zco_create(sdr, 0, 0, 0, 0);
-	if (newZco == 0)
-	{
-		putErrmsg("Can't create clone ZCO.", NULL);
-		return 0;
-	}
-
 	/*	Set up reading of old ZCO.				*/
 
-	sdr_read(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
+	sdr_read(sdr, (char *) &zcoBuf, fromZco, sizeof(Zco));
 	if ((offset + length) >
 			(zcoBuf.totalLength - zcoBuf.aggregateCapsuleLength))
 	{
 		putErrmsg("Offset + length exceeds zco source data length",
 				utoa(offset + length));
-		return 0;
+		return -1;
 	}
 
 	/*	Copy subset of old ZCO's extents to new ZCO.		*/
@@ -1143,12 +1137,12 @@ Object	zco_clone(Sdr sdr, Object zco, vast offset, vast length)
 		 *	(either file references or SDR heap references)
 		 *	no actual copying of data is required at all.	*/
 
-		if (appendExtent(sdr, newZco, extent.sourceMedium, 1,
+		if (appendExtent(sdr, toZco, extent.sourceMedium, 1,
 				extent.location, extent.offset + bytesToSkip,
 				bytesToCopy) < 0)
 		{
-			putErrmsg("Can't add extent to cloned ZCO.", NULL);
-			return 0;
+			putErrmsg("Can't append cloned extent to ZCO.", NULL);
+			return -1;
 		}
 
 		/*	Note consumption of all applicable content
@@ -1158,7 +1152,41 @@ Object	zco_clone(Sdr sdr, Object zco, vast offset, vast length)
 		length -= bytesToCopy;
 	}
 
+	return 0;
+}
+
+Object	zco_clone(Sdr sdr, Object zco, vast offset, vast length)
+{
+	Object	newZco;			/*	Cloned ZCO object.	*/
+
+	CHKZERO(sdr);
+	CHKZERO(zco);
+	CHKZERO(length > 0);
+	newZco = zco_create(sdr, 0, 0, 0, 0);
+	if (newZco == (Object) ERROR
+	|| cloneExtents(sdr, newZco, zco, offset, length) < 0)
+	{
+		putErrmsg("Can't create clone ZCO.", NULL);
+		return (Object) ERROR;
+	}
+
 	return newZco;
+}
+
+vast	zco_clone_source_data(Sdr sdr, Object toZco, Object fromZco,
+		vast offset, vast length)
+{
+	CHKZERO(sdr);
+	CHKZERO(toZco);
+	CHKZERO(fromZco);
+	CHKZERO(length > 0);
+	if (cloneExtents(sdr, toZco, fromZco, offset, length) < 0)
+	{
+		putErrmsg("Can't create clone ZCO extents.", NULL);
+		return ERROR;
+	}
+
+	return length;
 }
 
 static void	destroyExtentText(Sdr sdr, SourceExtent *extent,

@@ -19,6 +19,7 @@ static BpCustodySwitch custodySwitch = NoCustodyRequested;
 char   theBuffer[2048];
 static int needSendDefault = 0;
 static int needShutdown = 0;
+static int controlZco;
 
 const char usage[] = 
 "Usage: bpstats2 <source EID> [<default dest EID>] [ct]\n\n"
@@ -38,6 +39,7 @@ void sendDefault(int sig)
 {
 	needSendDefault = 1;
 	bp_interrupt(sap);
+	ionCancelZcoSpaceRequest(&controlZco);
 }
 
 /* This is basically libbpP.c's "reportStateStats()" except to a buffer. */
@@ -198,8 +200,12 @@ int sendStats(char *destEid, char *buffer, size_t len)
 	}
 
 	sdr_write(sdr, extent, buffer, bytesWritten);
-	bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0, bytesWritten);
-	if(sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, bytesWritten,
+			&controlZco);
+
+	/*	Note that ionCreateZco() ends transaction.		*/
+
+	if(bundleZco == 0)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
 		return -1;
@@ -207,7 +213,7 @@ int sendStats(char *destEid, char *buffer, size_t len)
 
 	/* Send bundleZco, the stats bundle. */
 	if(bp_send(sap, BP_BLOCKING, destEid, NULL, 86400, BP_STD_PRIORITY,
-				custodySwitch, 0, 0, NULL, bundleZco, &newBundle) < 0)
+			custodySwitch, 0, 0, NULL, bundleZco, &newBundle) <= 0)
 	{
 		putSysErrmsg("bpstats2 can't send stats bundle.", NULL);
 		return -1;

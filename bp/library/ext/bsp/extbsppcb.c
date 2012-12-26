@@ -800,7 +800,8 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
         bprk->newBundle = zco_create(bpSdr, ZcoSdrSource, 0, 0, 0);
     }
 
-    if (sdr_end_xn(bpSdr) < 0)
+    if (sdr_end_xn(bpSdr) < 0 || bprk->newBundle == (Object) ERROR
+    || bprk->newBundle == 0)
     {
 	    putErrmsg("Transaction failed.", NULL);
     }
@@ -826,14 +827,23 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
         if((newSdrAddr = sdr_malloc(bpSdr, bprk->trailerLen)) == 0)
         {
             zco_destroy(bpSdr, bprk->newBundle);
-            PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: unable to allocate more\
-                          sdr memory for trailer, len %d", bprk->trailerLen);
+            PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: unable to \
+allocate more sdr memory for trailer, len %d", bprk->trailerLen);
             oK(sdr_end_xn(bpSdr));
             return -1;
         }
-        sdr_write(bpSdr, newSdrAddr, (char *)bprk->trailerBuff, bprk->trailerLen);
-        zco_append_extent(bpSdr, bprk->newBundle, ZcoSdrSource,
-                          newSdrAddr, 0, bprk->trailerLen);
+
+        sdr_write(bpSdr, newSdrAddr, (char *) bprk->trailerBuff,
+			bprk->trailerLen);
+        if (zco_append_extent(bpSdr, bprk->newBundle, ZcoSdrSource,
+                          newSdrAddr, 0, bprk->trailerLen) <= 0)
+	{
+            zco_destroy(bpSdr, bprk->newBundle);
+            PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: unable to \
+append extent to trailer ZCO, len %d", bprk->trailerLen);
+            oK(sdr_end_xn(bpSdr));
+            return -1;
+	}
     }
 
     // Now our new object should have the whole bundle in the source portion

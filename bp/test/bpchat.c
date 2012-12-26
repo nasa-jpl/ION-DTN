@@ -16,6 +16,7 @@ static char                 *destEid = NULL;
 static char                 *ownEid = NULL;
 static BpCustodySwitch      custodySwitch = NoCustodyRequested;
 static int                  running = 1;
+static int		    controlZco;
 
 const char usage[] =
 "Usage: bpchat.c <source EID> <dest EID> [ct]\n\n"
@@ -58,9 +59,12 @@ static void *       sendLines(void *args)
 			break;
 		}
 		sdr_write(sdr, bundlePayload, lineBuffer, lineLength);
-		bundleZco = zco_create(sdr, ZcoSdrSource, bundlePayload, 0, 
-				lineLength);
-		if(sdr_end_xn(sdr) < 0 || bundleZco == 0)
+		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0, 
+				lineLength, &controlZco);
+
+		/*	Note that ionCreateZco() ends transaction.	*/
+
+		if(bundleZco == 0)
 		{
 			pthread_mutex_unlock(&sdrmutex);
 			bp_close(sap);
@@ -71,7 +75,8 @@ static void *       sendLines(void *args)
 
 		/* Send the bundle payload. */
 		if(bp_send(sap, BP_BLOCKING, destEid, NULL, 86400,
-					BP_STD_PRIORITY, custodySwitch, 0, 0, NULL, bundleZco, &newBundle) <= 0)
+				BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
+				bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bpchat can't send bundle.", NULL);
 			break;
@@ -108,9 +113,9 @@ static void *       recvBundles(void *args)
 			break;
 		}
 
+		CHKNULL(sdr_begin_xn(sdr));
 		bundleLenRemaining = zco_source_data_length(sdr, dlv.adu);
 		zco_start_receiving(dlv.adu, &reader);
-		CHKNULL(sdr_begin_xn(sdr));
 		while(bundleLenRemaining > 0) {
 			bytesToRead = MIN(bundleLenRemaining, sizeof(buffer)-1);
 			rc = zco_receive_source(sdr, &reader, bytesToRead, buffer);
@@ -136,6 +141,7 @@ void handleQuit(int sig)
 	running = 0;
 	pthread_cancel(sendLinesThread);
 	bp_interrupt(sap);
+	ionCancelZcoSpaceRequest(&controlZco);
 }
 
 int main(int argc, char **argv)

@@ -1002,7 +1002,8 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 	}
 
 	bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0, envelopeLength);
-	if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
+	|| bundleZco == 0)
 	{
 		ErrMsg("Failed creating message.");
 		return -1;

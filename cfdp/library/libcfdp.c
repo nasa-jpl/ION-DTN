@@ -1021,7 +1021,8 @@ static int	constructMetadataPdu(OutFdu *fdu,
 	obj = sdr_malloc(sdr, mpduLength);
 	if (obj == 0
 	|| (fdu->metadataPdu = zco_create(sdr, ZcoSdrSource, obj, 0,
-			mpduLength)) == 0)
+			mpduLength)) == (Object) ERROR
+	|| fdu->metadataPdu == 0)
 	{
 		putErrmsg("Can't construct EOF PDU.", NULL);
 		return -1;
@@ -1047,7 +1048,8 @@ static int	constructEofPdu(OutFdu *fdu, unsigned int checksum)
 	obj = sdr_malloc(sdr, sizeof eofBuf);
 	if (obj == 0
 	|| (fdu->eofPdu = zco_create(sdr, ZcoSdrSource, obj, 0,
-			sizeof eofBuf)) == 0)
+			sizeof eofBuf)) == (Object) ERROR
+	|| fdu->eofPdu == 0)
 	{
 		putErrmsg("Can't construct EOF PDU.", NULL);
 		return -1;

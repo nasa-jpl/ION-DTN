@@ -5994,17 +5994,11 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 	unsigned int	endOfFragment;
 	Bundle		aggregateBundle;
 	Object		aggregateBundleObj;
-	int		buflen = 65536;
-	char		*buffer;
 	unsigned int	aggregateAduLength;
 	Object		fragmentObj;
 	Bundle		fragBuf;
-	ZcoReader	reader;
 	unsigned int	bytesToSkip;
-	unsigned int	bytesToExtract;
-	int		bytesExtracted;
 	unsigned int	bytesToCopy;
-	Object		extent;
 
 	/*	First look for fragment insertion point and insert
 	 *	the new bundle at this point.				*/
@@ -6073,13 +6067,6 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 	 *	First retrieve that first fragment and make it no
 	 *	longer fragmentary.					*/
 
-	buffer = MTAKE(buflen);
-	if (buffer == NULL)
-	{
-		putErrmsg("Can't create buffer for ADU reassembly.", NULL);
-		return -1;
-	}
-
 	elt = sdr_list_first(bpSdr, incomplete->fragments);
 	aggregateBundleObj = sdr_list_data(bpSdr, elt);
 	sdr_stage(bpSdr, (char *) &aggregateBundle, aggregateBundleObj,
@@ -6120,51 +6107,17 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 
 		bytesToCopy = fragBuf.payload.length - bytesToSkip;
 		aggregateAduLength += bytesToCopy;
-		zco_start_receiving(fragBuf.payload.content, &reader);
-		if (zco_receive_source(bpSdr, &reader, bytesToSkip, NULL) < 0)
+		if (bytesToCopy > 0)
 		{
-			MRELEASE(buffer);
-			putErrmsg("Can't skip within ADU fragment.", NULL);
-			return -1;
-		}
-
-		while (bytesToCopy > 0)
-		{
-			bytesToExtract = buflen;
-			if (bytesToExtract > bytesToCopy)
+			if (zco_clone_source_data(bpSdr,
+					aggregateBundle.payload.content, 
+					fragBuf.payload.content,
+					bytesToSkip, bytesToCopy) < 0)
 			{
-				bytesToExtract = bytesToCopy;
-			}
-
-			bytesExtracted = zco_receive_source(bpSdr, &reader,
-					bytesToExtract, buffer);
-			if (bytesExtracted < 0)
-			{
-				MRELEASE(buffer);
-				putErrmsg("Can't extract from ADU fragment.",
-						NULL);
+				putErrmsg("Can't clone extents of fragment.",
+					       NULL);
 				return -1;
 			}
-
-			extent = sdr_insert(bpSdr, buffer, bytesExtracted);
-			if (extent == 0)
-			{
-				MRELEASE(buffer);
-				putErrmsg("Can't copy fragment content.",
-						NULL);
-				return -1;
-			}
-
-			if (zco_append_extent(bpSdr,
-				aggregateBundle.payload.content,
-				ZcoSdrSource, extent, 0, bytesExtracted) < 0)
-			{
-				MRELEASE(buffer);
-				putErrmsg("Can't append extent.", NULL);
-				return -1;
-			}
-
-			bytesToCopy -= bytesExtracted;
 		}
 
 		sdr_list_delete(bpSdr, fragBuf.fragmentElt, NULL, NULL);
@@ -6173,13 +6126,10 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 				sizeof(Bundle));
 		if (bpDestroyBundle(fragmentObj, 0) < 0)
 		{
-			MRELEASE(buffer);
 			putErrmsg("Can't destroy fragment.", NULL);
 			return -1;
 		}
 	}
-
-	MRELEASE(buffer);
 
 	/*	Note effect on database occupancy of bundle's
 	 *	revised size.						*/
@@ -6568,6 +6518,7 @@ static void	clearAcqArea(AcqWorkArea *work)
 	work->decision = AcqTBD;
 	work->lastBlockParsed = 0;
 	work->malformed = 0;
+	work->congestive = 0;
 	work->mustAbort = 0;
 	work->headerLength = 0;
 	work->trailerLength = 0;
@@ -6689,6 +6640,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	Sdr			sdr = getIonsdr();
 	BpDB			*bpConstants = _bpConstants();
 	BpDB			bpdb;
+	Object			extentObj;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
 	int			fd;
@@ -6697,6 +6649,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	CHKERR(work);
 	CHKERR(bytes);
 	CHKERR(length >= 0);
+	if (work->congestive)
+	{
+		return 0;	/*	No ZCO space; append no more.	*/
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	if (maxAcqInHeap == 0)
 	{
@@ -6718,9 +6675,21 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
 		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
+		switch (work->zco)
+		{
+		case (Object) ERROR:
+			putErrmsg("Can't start inbound bundle ZCO.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+
+		case 0:
+			work->congestive = 1;
+			return 0;	/*	Out of ZCO space.	*/
+		}
+
 		work->zcoElt = sdr_list_insert_last(sdr,
 				bpConstants->inboundBundles, work->zco);
-		if (work->zco == 0 || work->zcoElt == 0)
+		if (work->zcoElt == 0)
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
@@ -6734,8 +6703,23 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 	if ((length + zco_length(sdr, work->zco)) <= maxAcqInHeap)
 	{
-		oK(zco_append_extent(sdr, work->zco, ZcoSdrSource,
-				sdr_insert(sdr, bytes, length), 0, length));
+		extentObj = sdr_insert(sdr, bytes, length);
+		if (extentObj)
+		{
+			switch (zco_append_extent(sdr, work->zco, ZcoSdrSource,
+					extentObj, 0, length))
+			{
+			case ERROR:
+				putErrmsg("Can't append heap extent.", NULL);
+				sdr_cancel_xn(sdr);
+				return -1;
+
+			case 0:
+				sdr_free(sdr, extentObj);
+				work->congestive = 1;
+			}
+		}
+
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't acquire extent into heap.", NULL);
@@ -6770,6 +6754,12 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 		fileLength = 0;
 		work->acqFileRef = zco_create_file_ref(sdr, fileName, "");
+		if (work->acqFileRef == 0)
+		{
+			putErrmsg("Can't create file ref.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
 	}
 	else				/*	Writing more to file.	*/
 	{
@@ -6792,13 +6782,26 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	}
 
 	close(fd);
-	oK(zco_append_extent(sdr, work->zco, ZcoFileSource, work->acqFileRef,
-			fileLength, length));
+	switch (zco_append_extent(sdr, work->zco, ZcoFileSource,
+				work->acqFileRef, fileLength, length))
+	{
+	case ERROR:
+		putErrmsg("Can't append file reference extent.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
 
-	/*	Flag file reference for deletion as soon as the last
-	 *	ZCO extent that references it is deleted.		*/
+	case 0:
+		work->congestive = 1;
+		break;
 
-	zco_destroy_file_ref(sdr, work->acqFileRef);
+	default:
+		/*	Flag file reference for deletion as soon as
+		 *	the last ZCO extent that references it is
+		 *	deleted.					*/
+
+		zco_destroy_file_ref(sdr, work->acqFileRef);
+	}
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't acquire extent into file.", NULL);
@@ -7449,6 +7452,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 			BpSrReason srReason, char *dictionary)
 {
 	Bundle	*bundle = &(work->bundle);
+	Sdr	bpSdr;
 
 	/*	If we must discard the bundle, we send any reception
 	 *	status report(s) previously noted and we discard the
@@ -7470,9 +7474,11 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 
 	if (bundleIsCustodial(bundle))
 	{
+		bpSdr = getIonsdr();
+		CHKERR(sdr_begin_xn(bpSdr));
 		bpCtTally(ctReason, bundle->payload.length);
-		if (noteCtEvent(bundle, work, work->dictionary, 0, ctReason)
-				< 0)
+		if (sdr_end_xn(bpSdr) < 0
+		|| noteCtEvent(bundle, work, work->dictionary, 0, ctReason) < 0)
 		{
 			putErrmsg("Can't send custody signal.", NULL);
 			return -1;
@@ -7640,6 +7646,20 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	{
 		writeMemo("[?] Malformed bundle.");
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		if (sdr_end_xn(bpSdr) < 0)
+		{
+			putErrmsg("Can't update tally.", NULL);
+			return -1;
+		}
+
+		return abortBundleAcq(work);
+	}
+
+	if (work->congestive)
+	{
+		writeMemo("[?] ZCO space is congested; discarding bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_CONGESTIVE,
 				bundle->payload.length);
 		if (sdr_end_xn(bpSdr) < 0)
 		{
@@ -8052,7 +8072,7 @@ static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 	sdr_write(bpSdr, sourceData, buffer, ctSignalLength);
 	MRELEASE(buffer);
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, ctSignalLength);
-	if (sdr_end_xn(bpSdr) < 0 || *zco == 0)
+	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create CT signal.", NULL);
 		return -1;
@@ -8323,7 +8343,7 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 	sdr_write(bpSdr, sourceData, buffer, rptLength);
 	MRELEASE(buffer);
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, rptLength);
-	if (sdr_end_xn(bpSdr) < 0 || *zco == 0)
+	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create status report.", NULL);
 		return -1;

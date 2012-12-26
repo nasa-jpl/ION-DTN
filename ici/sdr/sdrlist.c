@@ -129,7 +129,6 @@ Address	sdr_list_user_data(Sdr sdrv, Object list)
 {
 	SdrList		listBuffer;
 
-	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(list);
 	sdrFetch(listBuffer, list);
 	return listBuffer.userData;
@@ -162,7 +161,6 @@ long	sdr_list_length(Sdr sdrv, Object list)
 {
 	SdrList		listBuffer;
 
-	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(list);
 	sdrFetch(listBuffer, list);
 	return listBuffer.length;
@@ -647,7 +645,6 @@ Object	sdr_list_list(Sdr sdrv, Object elt)
 {
 	SdrListElt	eltBuffer;
 
-	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
 	sdrFetch(eltBuffer, (Address) elt);
 	return eltBuffer.list;
@@ -657,7 +654,6 @@ Address	sdr_list_data(Sdr sdrv, Object elt)
 {
 	SdrListElt	eltBuffer;
 
-	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
 	sdrFetch(eltBuffer, (Address) elt);
 	return eltBuffer.data;
