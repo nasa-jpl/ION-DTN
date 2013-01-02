@@ -2111,7 +2111,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 
 	/*	A CBHE-conformant endpoint URI.				*/
 
-	if (sscanf(metaEid->nss, "%20llu.%20u", &(metaEid->nodeNbr),
+	if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%u", &(metaEid->nodeNbr),
 			&(metaEid->serviceNbr)) < 2
 	|| metaEid->nodeNbr > MAX_CBHE_NODE_NBR
 	|| metaEid->serviceNbr > MAX_CBHE_SERVICE_NBR
@@ -7176,6 +7176,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	unsigned int	nssOffset;
 	unsigned int	dataLength;
 	unsigned int	lengthOfBlock;
+	unsigned long	temp;
 	ExtensionDef	*def;
 
 	if (work->malformed || work->mustAbort || work->lastBlockParsed)
@@ -7218,15 +7219,17 @@ static int	acquireBlock(AcqWorkArea *work)
 		{
 			extractSmallSdnv(&schemeOffset, &cursor,
 					&unparsedBytes);
-			if (lyst_insert_last(eidReferences,
-					(void *) schemeOffset) == NULL)
+			temp = schemeOffset;
+			if (lyst_insert_last(eidReferences, (void *) temp)
+					== NULL)
 			{
 				return -1;
 			}
 
 			extractSmallSdnv(&nssOffset, &cursor, &unparsedBytes);
-			if (lyst_insert_last(eidReferences,
-					(void *) nssOffset) == NULL)
+			temp = schemeOffset;
+			if (lyst_insert_last(eidReferences, (void *) temp)
+					== NULL)
 			{
 				return -1;
 			}
