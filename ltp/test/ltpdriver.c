@@ -122,11 +122,7 @@ static int	run_ltpdriver(unsigned long destEngineId, int clientId,
 			redLength = 0;
 		}
 
-		CHKZERO(sdr_begin_xn(sdr));
 		zco = ionCreateZco(ZcoFileSource, fileRef, 0, sduLength, NULL);
-
-		/*	Notes that ionCreateZco ends transaction.	*/
-
 		if (zco == 0)
 		{
 			putErrmsg("ltpdriver can't create ZCO.", NULL);

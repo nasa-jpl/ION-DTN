@@ -144,9 +144,8 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		}
 
 		/* Send the bundle payload. */
-		if(bp_send(sap, BP_BLOCKING, destEid, NULL, 86400,
-		   priority, custodySwitch, 0, 0, &extendedCOS, bundleZco, 
-		   &newBundle) <= 0)
+		if (bp_send(sap, destEid, NULL, 86400, priority, custodySwitch,
+				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bssStreamingApp can't send frame.", NULL);
 			break;

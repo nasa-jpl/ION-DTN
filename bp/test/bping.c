@@ -293,21 +293,20 @@ static Object bping_new_ping(void)
 
 	CHKZERO(sdr_begin_xn(sdr));
 	bundleMessage = sdr_malloc(sdr, pingPayloadLen);
-	if(bundleMessage == 0) {
-		sdr_cancel_xn(sdr);
+	if(bundleMessage) {
+		sdr_write(sdr, bundleMessage, pingPayload, pingPayloadLen);
+	}
+
+	if(sdr_end_xn(sdr)) {
 		bp_close(sap);
 		putErrmsg("No space for bping text.", NULL);
 		fprintf(stderr, "No space for bping text.\n");
 		return 0;
 	}
-	sdr_write(sdr, bundleMessage, pingPayload, pingPayloadLen);
 
 	/* Craft the bundle object */
 	bundleZco = ionCreateZco(ZcoSdrSource, bundleMessage, 0, 
 			pingPayloadLen, &controlZco);
-
-	/*	Note that ionCreateZco() ends transaction.		*/
-
 	if(bundleZco == 0)
 	{
 		bp_close(sap);
@@ -338,8 +337,8 @@ static void *sendRequests(void *x)
 			pthread_exit(NULL);
 		}
 
-		if(bp_send(sap, BP_BLOCKING, dstEid, rptEid, ttl, priority,
-					custodySwitch, rrFlags, 0, NULL, bundleZco, &newBundle) <= 0)
+		if(bp_send(sap, dstEid, rptEid, ttl, priority, custodySwitch,
+				rrFlags, 0, NULL, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bping can't send ping bundle.", NULL);
 			fprintf(stderr, "bping can't send ping bundle.\n");

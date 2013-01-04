@@ -234,54 +234,31 @@ terminating.");
 			reportToEid = reportToEidBuf;
 		}
 
-		/*	Send PDU in a bundle when flow control allows.	*/
+		/*	Send PDU in a bundle.				*/
 
 		newBundle = 0;
-		CHKZERO(sdr_begin_xn(sdr));
-		while (parms.running && newBundle == 0)
-		{
-			switch (bp_send(txSap, BP_NONBLOCKING, destEid,
-				reportToEid, utParms.lifespan,
+		if (bp_send(txSap, destEid, reportToEid, utParms.lifespan,
 				utParms.classOfService, utParms.custodySwitch,
 				utParms.srrFlags, utParms.ackRequested,
-				&utParms.extendedCOS, pduZco, &newBundle))
-			{
-			case 0:		/*	No space for bundle.	*/
-				if (errno == EWOULDBLOCK)
-				{
-					if (sdr_end_xn(sdr) < 0)
-					{
-						putErrmsg("bputa xn failed.",
-								NULL);
-						parms.running = 0;
-					}
-
-					microsnooze(250000);
-					CHKZERO(sdr_begin_xn(sdr));
-					continue;
-				}
-
-				/*	Intentional fall-through.	*/
-
-			case -1:
-				putErrmsg("bputa can't send PDU in bundle; \
-terminating.", NULL);
-				parms.running = 0;
-			}
+				&utParms.extendedCOS, pduZco, &newBundle) <= 0)
+		{
+			putErrmsg("bputa can't send PDU in bundle; terminated.",
+					NULL);
+			parms.running = 0;
 		}
 
 		if (newBundle == 0)
 		{
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("bputa transaction failed.", NULL);
-				parms.running = 0;
-			}
-
 			continue;	/*	Must have stopped.	*/
 		}
 
 		/*	Enable cancellation of this PDU.		*/
+
+		if (sdr_begin_xn(sdr) == 0)
+		{
+			parms.running = 0;
+			continue;
+		}
 
 		pduElt = sdr_list_insert_last(sdr, fduBuffer.extantPdus,
 				newBundle);
@@ -292,7 +269,7 @@ terminating.", NULL);
 
 		if (sdr_end_xn(sdr) < 0)
 		{
-			putErrmsg("bputa can't track PDU; terminating.", NULL);
+			putErrmsg("bputa can't track PDU; terminated.", NULL);
 			parms.running = 0;
 		}
 

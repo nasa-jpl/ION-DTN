@@ -183,14 +183,15 @@ int	checkForCongestion()
 
 	/*	Get net domestic contribution to congestion.		*/
 
-	if (iondb.productionRate < 0)	/*	Unlimited.		*/
+	netDomesticGrowth = 0;		/*	Default: no activity.	*/
+	if (iondb.productionRate > 0)
 	{
-		netDomesticGrowth = 0;	/*	Ignore local activity.	*/
+		netDomesticGrowth += iondb.productionRate;
 	}
-	else
+
+	if (iondb.consumptionRate > 0)
 	{
-		netDomesticGrowth = iondb.productionRate
-				- iondb.consumptionRate;
+		netDomesticGrowth -= iondb.consumptionRate;
 	}
 
 	/*	Get current net in-transit contribution to congestion.	*/

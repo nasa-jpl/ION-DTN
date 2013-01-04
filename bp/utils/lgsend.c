@@ -120,9 +120,17 @@ int	main(int argc, char **argv)
 
 		line[lineLength] = '\n';
 		lineLength += 1;		/*	For newline.	*/
+		if (offset + lineLength > fileSize)
+		{
+			sdr_cancel_xn(sdr);
+			close(cmdFile);
+			bp_close(sap);
+			putErrmsg("File size error.", NULL);
+			return -1;
+		}
+
 		sdr_write(sdr, adu + offset, line, lineLength);
 		offset += lineLength;
-		CHKERR(offset <= fileSize);
 	}
 
 	/*	May have to fill with newlines to replace stripped-
@@ -136,19 +144,23 @@ int	main(int argc, char **argv)
 	}
 
 	close(cmdFile);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		bp_close(sap);
+		putErrmsg("Failed creating command object.", NULL);
+		return -1;
+	}
+
 	bundleZco = ionCreateZco(ZcoSdrSource, adu, 0, fileSize, NULL);
-
-	/*	Note that ionCreateZco ends transaction.		*/
-
 	if (bundleZco == 0)
 	{
 		putErrmsg("lgsend: can't create application data unit.", NULL);
 	}
 	else
 	{
-		if (bp_send(sap, BP_BLOCKING, destEid, NULL, 86400,
-				BP_EXPEDITED_PRIORITY, SourceCustodyRequired,
-				0, 0, NULL, bundleZco, &newBundle) < 1)
+		if (bp_send(sap, destEid, NULL, 86400, BP_EXPEDITED_PRIORITY,
+				SourceCustodyRequired, 0, 0, NULL, bundleZco,
+				&newBundle) < 1)
 		{
 			putErrmsg("lgsend: can't send bundle.", NULL);
 		}

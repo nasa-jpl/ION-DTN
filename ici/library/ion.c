@@ -649,13 +649,13 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset, vast size,
 	Object	zco;
 	int	admissionDelayed = 0;
 
-	CHKZERO(sdr_in_xn(sdr));
 	CHKZERO(vdb);
 	if (cancel)
 	{
 		*cancel = 0;		/*	Initialize.		*/
 	}
 
+	CHKZERO(sdr_begin_xn(sdr));
 	while (1)
 	{
 		zco = zco_create(sdr, source, location, offset, size);
@@ -706,13 +706,13 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 	Object	length;
 	int	admissionDelayed = 0;
 
-	CHKZERO(sdr_in_xn(sdr));
 	CHKZERO(vdb);
 	if (cancel)
 	{
 		*cancel = 0;		/*	Initialize.		*/
 	}
 
+	CHKZERO(sdr_begin_xn(sdr));
 	while (1)
 	{
 		length = zco_append_extent(sdr, zco, source, location, offset,
@@ -860,8 +860,8 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
-		iondbBuf.productionRate = -1;	/*	Not metered.	*/
-		iondbBuf.consumptionRate = -1;	/*	Not metered.	*/
+		iondbBuf.productionRate = -1;	/*	Unknown.	*/
+		iondbBuf.consumptionRate = -1;	/*	Unknown.	*/
 		limit = (sdr_heap_size(ionsdr) / 100) * (100 - ION_SEQUESTERED);
 		zco_set_max_heap_occupancy(ionsdr, limit);
 		iondbBuf.occupancyCeiling = zco_get_max_file_occupancy(ionsdr);
@@ -870,7 +870,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
 		iondbBuf.clockIsSynchronized = 1;
-                memcpy( &iondbBuf.parmcopy, parms, sizeof(IonParms));
+                memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
 		{

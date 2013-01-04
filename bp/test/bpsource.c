@@ -130,20 +130,20 @@ int	main(int argc, char **argv)
 
 		CHKZERO(sdr_begin_xn(sdr));
 		extent = sdr_malloc(sdr, lineLength);
-		if (extent == 0)
+		if (extent)
 		{
-			sdr_cancel_xn(sdr);
+			sdr_write(sdr, extent, text, lineLength);
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
 			putErrmsg("No space for ZCO extent.", NULL);
 			bp_detach();
 			return 0;
 		}
 
-		sdr_write(sdr, extent, text, lineLength);
 		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, lineLength,
 				&controlZco);
-
-		/*	Note that ionCreateZco ends transaction.	*/
-
 		if (bundleZco == 0)
 		{
 			putErrmsg("Can't create ZCO extent.", NULL);
@@ -151,9 +151,9 @@ int	main(int argc, char **argv)
 			return 0;
 		}
 
-		if (bp_send(NULL, BP_BLOCKING, destEid, NULL, ttl,
-				BP_STD_PRIORITY, NoCustodyRequested,
-				0, 0, NULL, bundleZco, &newBundle) < 1)
+		if (bp_send(NULL, destEid, NULL, ttl, BP_STD_PRIORITY,
+				NoCustodyRequested, 0, 0, NULL, bundleZco,
+				&newBundle) < 1)
 		{
 			putErrmsg("bpsource can't send ADU.", NULL);
 		}
@@ -192,28 +192,28 @@ int	main(int argc, char **argv)
 		default:
 			CHKZERO(sdr_begin_xn(sdr));
 			extent = sdr_malloc(sdr, lineLength);
-			if (extent == 0)
+			if (extent)
 			{
-				sdr_cancel_xn(sdr);
+				sdr_write(sdr, extent, line, lineLength);
+			}
+
+			if (sdr_end_xn < 0)
+			{
 				putErrmsg("No space for ZCO extent.", NULL);
 				break;
 			}
 
-			sdr_write(sdr, extent, line, lineLength);
 			bundleZco = ionCreateZco(ZcoSdrSource, extent,
 					0, lineLength, &controlZco);
-
-			/*	Note that ionCreateZco ends transaction.*/
-
 			if (bundleZco == 0)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				break;
 			}
 
-			if (bp_send(NULL, BP_BLOCKING, destEid, NULL, ttl,
-					BP_STD_PRIORITY, NoCustodyRequested,
-					0, 0, NULL, bundleZco, &newBundle) < 1)
+			if (bp_send(NULL, destEid, NULL, ttl, BP_STD_PRIORITY,
+					NoCustodyRequested, 0, 0, NULL,
+					bundleZco, &newBundle) < 1)
 			{
 				putErrmsg("bpsource can't send ADU.", NULL);
 				break;

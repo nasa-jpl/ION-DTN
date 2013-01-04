@@ -206,11 +206,15 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	_zcoControl(&controlZco);
 	CHKZERO(sdr_begin_xn(sdr));
 	pilotAduString = sdr_string_create(sdr, "Go.");
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("bpdriver can't create pilot ADU string.", NULL);
+		bp_close(sap);
+		return 0;
+	}
+
 	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0, 
 			sdr_string_length(sdr, pilotAduString), &controlZco);
-
-	/*	Note that ionCreateZco() ends transaction.		*/
-
 	if (bundleZco == 0)
 	{
 		putErrmsg("bpdriver can't create pilot ADU.", NULL);
@@ -218,9 +222,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		return 0;
 	}
 
-	if (bp_send(sap, BP_BLOCKING, destEid, NULL, ttl,
-			BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
-			bundleZco, &newBundle) < 1)
+	if (bp_send(sap, destEid, NULL, ttl, BP_STD_PRIORITY, custodySwitch, 0,
+			0, NULL, bundleZco, &newBundle) < 1)
 	{
 		putErrmsg("bpdriver can't send pilot bundle.",
 				itoa(aduLength));
@@ -272,7 +275,6 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 			aduLength = ((rand() % 60) + 1) * 1024;
 		}
 
-		CHKZERO(sdr_begin_xn(sdr));
 		bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
 				&controlZco);
 		if (bundleZco == 0)
@@ -282,11 +284,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 			continue;
 		}
 
-		/*	Note that ionCreateZco() ends transaction.	*/
-
-		if (bp_send(sap, BP_BLOCKING, destEid, NULL, ttl,
-				BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
-				bundleZco, &newBundle) < 1)
+		if (bp_send(sap, destEid, NULL, ttl, BP_STD_PRIORITY,
+			custodySwitch, 0, 0, NULL, bundleZco, &newBundle) < 1)
 		{
 			putErrmsg("bpdriver can't send message.",
 					itoa(aduLength));

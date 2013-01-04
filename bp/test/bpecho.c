@@ -183,31 +183,31 @@ fflush(stdout);
 		}
 
 		/*	Now send acknowledgment bundle.			*/
-		if(strcmp(sourceEid, "dtn:none") == 0) continue;
+		if (strcmp(sourceEid, "dtn:none") == 0) continue;
 		CHKZERO(sdr_begin_xn(sdr));
 		extent = sdr_malloc(sdr, bytesToEcho);
-		if (extent == 0)
+		if (extent)
 		{
-			sdr_cancel_xn(sdr);
+			sdr_write(sdr, extent, dataToSend, bytesToEcho);
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
 			putErrmsg("No space for ZCO extent.", NULL);
 			break;		/*	Out of main loop.	*/
 		}
 
-		sdr_write(sdr, extent, dataToSend, bytesToEcho);
 		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0,
 				bytesToEcho, &controlZco);
-
-		/*	Note that ionCreateZco() ends transaction.	*/
-
 		if (bundleZco == 0)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
 			break;		/*	Out of main loop.	*/
 		}
 
-		if (bp_send(sap, BP_BLOCKING, sourceEid, NULL, 300,
-				BP_STD_PRIORITY, NoCustodyRequested,
-				0, 0, NULL, bundleZco, &newBundle) < 1)
+		if (bp_send(sap, sourceEid, NULL, 300, BP_STD_PRIORITY,
+				NoCustodyRequested, 0, 0, NULL, bundleZco,
+				&newBundle) < 1)
 		{
 			putErrmsg("bpecho can't send echo bundle.", NULL);
 			break;		/*	Out of main loop.	*/

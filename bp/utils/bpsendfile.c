@@ -69,27 +69,22 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 
 	fileRef = zco_create_file_ref(sdr, fileName, NULL);
-	if (fileRef == 0)
+	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
 	{
-		sdr_cancel_xn(sdr);
 		bp_close(sap);
 		putErrmsg("bpsendfile can't create file ref.", NULL);
 		return 0;
 	}
 	
 	bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength, NULL);
-
-	/*	Note that ionCreateZco ends transaction.		*/
-
 	if (bundleZco == 0)
 	{
 		putErrmsg("bpsendfile can't create ZCO.", NULL);
 	}
 	else
 	{
-		if (bp_send(sap, BP_NONBLOCKING, destEid, NULL, 300,
-				priority, custodySwitch, 0, 0,
-				&extendedCOS, bundleZco, &newBundle) <= 0)
+		if (bp_send(sap, destEid, NULL, 300, priority, custodySwitch,
+				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bpsendfile can't send file in bundle.",
 					itoa(aduLength));

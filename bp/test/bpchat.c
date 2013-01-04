@@ -49,23 +49,23 @@ static void *       sendLines(void *args)
 			putErrmsg("Couldn't take sdr mutex.", NULL);
 			break;
 		}
+
 		CHKNULL(sdr_begin_xn(sdr));
 		bundlePayload = sdr_malloc(sdr, lineLength);
-		if(bundlePayload == 0) {
-			sdr_cancel_xn(sdr);
+		if(bundlePayload) {
+			sdr_write(sdr, bundlePayload, lineBuffer, lineLength);
+		}
+
+		if(sdr_end_xn(sdr) < 0) {
 			pthread_mutex_unlock(&sdrmutex);
 			bp_close(sap);
 			putErrmsg("No space for bpchat payload.", NULL);
 			break;
 		}
-		sdr_write(sdr, bundlePayload, lineBuffer, lineLength);
+
 		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0, 
 				lineLength, &controlZco);
-
-		/*	Note that ionCreateZco() ends transaction.	*/
-
-		if(bundleZco == 0)
-		{
+		if(bundleZco == 0) {
 			pthread_mutex_unlock(&sdrmutex);
 			bp_close(sap);
 			putErrmsg("bpchat can't create bundle ZCO.", NULL);
@@ -74,9 +74,9 @@ static void *       sendLines(void *args)
 		pthread_mutex_unlock(&sdrmutex);
 
 		/* Send the bundle payload. */
-		if(bp_send(sap, BP_BLOCKING, destEid, NULL, 86400,
-				BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
-				bundleZco, &newBundle) <= 0)
+		if(bp_send(sap, destEid, NULL, 86400, BP_STD_PRIORITY,
+				custodySwitch, 0, 0, NULL, bundleZco,
+				&newBundle) <= 0)
 		{
 			putErrmsg("bpchat can't send bundle.", NULL);
 			break;

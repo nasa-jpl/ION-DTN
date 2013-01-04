@@ -6699,7 +6699,18 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 	/*	Now add extent.  Acquire extents of bundle into
 	 *	database heap up to the stated limit; after that,
-	 *	acquire all remaining extents into a file.		*/
+	 *	acquire all remaining extents into a file.
+	 *
+	 *	Note that this procedure assumes that bundle extents
+	 *	are acquired in increasing offset order, without gaps;
+	 *	out-of-order extent acquisition would mandate an
+	 *	extent reordering mechanism similar to the one that
+	 *	is implemented in LTP.  This is not a problem in BP
+	 *	because, for all convergence-layer protocols, either
+	 *	the CL delivers a complete bundle (as in LTP and UDP)
+	 *	or else the bundle increments are acquired in order
+	 *	of increasing offset because the CL itself enforces
+	 *	data ordering (as in TCP).				*/
 
 	if ((length + zco_length(sdr, work->zco)) <= maxAcqInHeap)
 	{

@@ -193,18 +193,17 @@ int sendStats(char *destEid, char *buffer, size_t len)
 	/* Wrap bundleZco around the stats buffer. */
 	CHKERR(sdr_begin_xn(sdr));
 	extent = sdr_malloc(sdr, bytesWritten);
-	if(extent == 0) {
-		sdr_cancel_xn(sdr);
+	if(extent) {
+		sdr_write(sdr, extent, buffer, bytesWritten);
+	}
+
+	if(sdr_end_xn(sdr) < 0) {
 		putSysErrmsg("No space for ZCO extent", NULL);
 		return -1;
 	}
 
-	sdr_write(sdr, extent, buffer, bytesWritten);
 	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, bytesWritten,
 			&controlZco);
-
-	/*	Note that ionCreateZco() ends transaction.		*/
-
 	if(bundleZco == 0)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
@@ -212,8 +211,8 @@ int sendStats(char *destEid, char *buffer, size_t len)
 	}
 
 	/* Send bundleZco, the stats bundle. */
-	if(bp_send(sap, BP_BLOCKING, destEid, NULL, 86400, BP_STD_PRIORITY,
-			custodySwitch, 0, 0, NULL, bundleZco, &newBundle) <= 0)
+	if(bp_send(sap, destEid, NULL, 86400, BP_STD_PRIORITY, custodySwitch,
+			0, 0, NULL, bundleZco, &newBundle) <= 0)
 	{
 		putSysErrmsg("bpstats2 can't send stats bundle.", NULL);
 		return -1;

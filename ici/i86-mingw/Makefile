@@ -4,7 +4,6 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
-RESTART = ../restart
 
 OPT = -g -Wall -Dmingw
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
@@ -59,7 +58,7 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionrestart
+UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim
 # owlttb
@@ -113,15 +112,6 @@ ionsecadmin:	ionsecadmin.o libici.dll
 killm:		killm.o libici.dll
 		$(CC) -o killm killm.o -L./lib -lici -lpthread
 		cp killm ./bin
-
-#	-	-	Restart executable	-	-	-	-
-
-ionrestart.o:	$(RESTART)/ionrestart.c
-		$(CC) -I../../ltp/include -I../../bp/include -I../../cfdp/include -I../../ltp/library -I../../bp/library -I../../cfdp/library -c $(RESTART)/ionrestart.c
-
-ionrestart:	ionrestart.o libici.dll
-		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ltp/i86-mingw/lib -L../../bp/i86-mingw/lib -L../../cfdp/i86-mingw/lib -lcfdp -lcgr -lbp -lltp -lici -lpthread
-		cp ionrestart ./bin
 
 #	-	-	Test executables	-	-	-	-
 

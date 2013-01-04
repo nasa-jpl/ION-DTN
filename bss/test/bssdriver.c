@@ -116,9 +116,8 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 
 		/*	Send the bundle payload.	*/
 
-		if (bp_send(sap, BP_BLOCKING, destEid, NULL, 86400, priority,
-				custodySwitch, 0, 0, &extendedCOS, bundleZco, 
-				&newBundle) <= 0)
+		if (bp_send(sap, destEid, NULL, 86400, priority, custodySwitch,
+				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bssdriver can't send frame.", NULL);
 			break;

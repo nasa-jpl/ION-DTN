@@ -270,8 +270,8 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 	return 1;
 }
 
-int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
-		int lifespan, int classOfService, BpCustodySwitch custodySwitch,
+int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
+		int classOfService, BpCustodySwitch custodySwitch,
 		unsigned char srrFlags, int ackRequested, BpExtendedCOS *ecos,
 		Object adu, Object *bundleObj)
 {
