@@ -219,7 +219,7 @@ static void	*receiveUdp(void *parm)
 
 	/*	Spawn timer/transmitter thread.				*/
 
-	if (pthread_create(&(stp->timerThread), NULL, sendUdp, stp))
+	if (pthread_begin(&(stp->timerThread), NULL, sendUdp, stp))
 	{
 		perror("owltsim can't spawn timer thread");
 		owltsimExit(1);
@@ -295,7 +295,7 @@ destined for %s.\n", timebuf, datagramLen, stp->fromNode, stp->toNode);
 	/*	Free resources.						*/
 
 	free(buffer);
-	pthread_cancel(stp->timerThread);
+	pthread_end(stp->timerThread);
 	pthread_join(stp->timerThread, NULL);
 	lyst_destroy(stp->transmission);
 	sm_SemDelete(stp->mutex);
@@ -406,7 +406,7 @@ int	main(int argc, char *argv[])
 
 			memcpy((char *) stp, (char *) &stpBuf,
 					sizeof(SimThreadParms));
-			if (pthread_create(&simThread, NULL, receiveUdp, stp))
+			if (pthread_begin(&simThread, NULL, receiveUdp, stp))
 			{
 				perror("owltsim can't spawn receiver thread");
 				owltsimExit(1);

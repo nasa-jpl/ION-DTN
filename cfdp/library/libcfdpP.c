@@ -129,7 +129,7 @@ int	checkFile(char *fileName)
 	/*	Spawn a separate thread that hangs on opening the file
 	 *	if there's an error in the file system.			*/
 
-	if (pthread_create(&statThread, &attr, checkFileExists, &parms))
+	if (pthread_begin(&statThread, &attr, checkFileExists, &parms))
 	{
 		oK(pthread_mutex_destroy(&mutex));
 		oK(pthread_cond_destroy(&cv));
@@ -164,7 +164,7 @@ int	checkFile(char *fileName)
 
 			/*	Timeout: child stuck, file undefined.	*/
 
-			pthread_cancel(statThread);
+			pthread_end(statThread);
 			parms.fileExists = 0;
 		}
 	}

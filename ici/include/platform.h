@@ -148,9 +148,9 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 
 #ifndef LONG_MAX
 
-#if defined(_ILP32)
+#if defined (_ILP32)
 #define LONG_MAX 0x7fffffffL
-#elif defined(_LP64)
+#elif defined (_LP64)
 #define LONG_MAX 0x7fffffffffffffffL
 #elif (SIZEOF_LONG == 4)
 #define LONG_MAX 0x7fffffffL
@@ -387,8 +387,6 @@ extern int getpriority(int, id_t);
 #define	SEM_NSEMS_MAX		256
 #endif
 
-extern void pthread_cancel(pthread_t);
-
 typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define PRIVATE_SYMTAB
@@ -435,7 +433,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #endif				/****	End of #ifdef (unix)         ****/
 
-#if defined(SVR4_SHM)		/****	SVR4_SHM		     ****/
+#if defined (SVR4_SHM)		/****	SVR4_SHM		     ****/
 #include <sys/shm.h>
 #elif defined (POSIX1B_SHM)
 #include <sys/mman.h>

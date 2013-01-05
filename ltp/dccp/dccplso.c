@@ -298,7 +298,7 @@ int	main(int argc, char *argv[])
 	itp.done=0;
 	itp.data=0;
 	pthread_mutex_init(&itp.mutex, NULL);
-	if (pthread_create(&idle_thread, NULL, idle_wait, (void*)&itp))
+	if (pthread_begin(&idle_thread, NULL, idle_wait, (void*)&itp))
 	{
 		putSysErrmsg("LSO can't create idle thread.", NULL);
 		pthread_mutex_destroy(&itp.mutex);
@@ -362,7 +362,7 @@ int	main(int argc, char *argv[])
 
 
 #include "ltpP.h"
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	dccplso(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

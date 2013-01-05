@@ -234,7 +234,7 @@ int	main(int argc, char *argv[])
 	parms.mutex = &mutex;
 	parms.socketName = &socketName;
 	parms.ductSocket = &ductSocket;
-	if (pthread_create(&keepaliveThread, NULL, sendKeepalives, &parms))
+	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms))
 	{
 		putSysErrmsg("stcpclo can't create keepalive thread", NULL);
 		MRELEASE(buffer);

@@ -134,7 +134,7 @@ static void *       recvBundles(void *args)
 void handleQuit(int sig)
 {
 	running = 0;
-	pthread_cancel(sendLinesThread);
+	pthread_end(sendLinesThread);
 	bp_interrupt(sap);
 }
 
@@ -169,13 +169,13 @@ int main(int argc, char **argv)
 	signal(SIGINT, handleQuit);
 
 	/* Start receiver thread and sender thread. */
-	if(pthread_create(&sendLinesThread, NULL, sendLines, NULL) < 0) {
+	if(pthread_begin(&sendLinesThread, NULL, sendLines, NULL) < 0) {
 		putErrmsg("Can't make sendLines thread.", NULL);
 		bp_interrupt(sap);
 		exit(1);
 	}
 
-	if(pthread_create(&recvBundlesThread, NULL, recvBundles, NULL) < 0) {
+	if(pthread_begin(&recvBundlesThread, NULL, recvBundles, NULL) < 0) {
 		putErrmsg("Can't make recvBundles thread.", NULL);
 		bp_interrupt(sap);
 		exit(1);

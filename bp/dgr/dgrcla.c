@@ -494,7 +494,7 @@ int	main(int argc, char *argv[])
 	senderParms.vduct = voutduct;
 	senderParms.running = &running;
 	senderParms.dgrSap = dgrSap;
-	if (pthread_create(&senderThread, NULL, sendBundles, &senderParms))
+	if (pthread_begin(&senderThread, NULL, sendBundles, &senderParms))
 	{
 		dgr_close(dgrSap);
 		putSysErrmsg("dgrcla can't create sender thread", NULL);
@@ -506,7 +506,7 @@ int	main(int argc, char *argv[])
 	rtp.vduct = vinduct;
 	rtp.running = &running;
 	rtp.dgrSap = dgrSap;
-	if (pthread_create(&receiverThread, NULL, receiveBundles, &rtp))
+	if (pthread_begin(&receiverThread, NULL, receiveBundles, &rtp))
 	{
 		sm_SemEnd(voutduct->semaphore);
 		pthread_join(senderThread, NULL);

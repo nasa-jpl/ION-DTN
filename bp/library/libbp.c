@@ -623,7 +623,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		{
 			timerParms.interval = timeoutSeconds;
 			timerParms.semaphore = vpoint->semaphore;
-			if (pthread_create(&timerThread, NULL, timerMain,
+			if (pthread_begin(&timerThread, NULL, timerMain,
 					&timerParms) < 0)
 			{
 				putSysErrmsg("Can't enable interval timer",
@@ -672,7 +672,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 				dlvBuffer->result = BpReceptionInterrupted;
 				if (timerParms.interval != -1)
 				{
-					pthread_cancel(timerThread);
+					pthread_end(timerThread);
 					pthread_join(timerThread, NULL);
 				}
 			}
@@ -683,7 +683,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		{
 			if (timerParms.interval != -1)
 			{
-				pthread_cancel(timerThread);
+				pthread_end(timerThread);
 				pthread_join(timerThread, NULL);
 			}
 		}

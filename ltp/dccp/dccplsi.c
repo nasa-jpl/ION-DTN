@@ -217,7 +217,7 @@ static void	*Listen_for_connections(void *parm)
 		rp->running=1;
 		rp->elk=&elk;
 		rp->list=&list;
-		if (pthread_create(&rp->me, NULL, Recieve_DCCP, rp))
+		if (pthread_begin(&rp->me, NULL, Recieve_DCCP, rp))
 		{
 			putSysErrmsg("LSI can't create receiver thread.", NULL);
 			close(consock);
@@ -289,7 +289,7 @@ int bindDCCPsock(int* sock, struct sockaddr* socketName)
 return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	dccplsi(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -358,7 +358,7 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 	rtp.running = 1;
 	rtp.mainThread = pthread_self();
-	if (pthread_create(&listenerThread, NULL, Listen_for_connections, &rtp))
+	if (pthread_begin(&listenerThread, NULL, Listen_for_connections, &rtp))
 	{
 		close(rtp.linkSocket);
 		putSysErrmsg("LSI can't create listener thread.", NULL);

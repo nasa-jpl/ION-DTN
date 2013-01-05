@@ -378,7 +378,7 @@ int	main(int argc, char *argv[])
 	parms.socketName = &socketName;
 	parms.ductSocket = &ductSocket;
 	parms.keepalivePeriod = &keepalivePeriod;
-	if (pthread_create(&keepaliveThread, NULL, sendKeepalives, &parms))
+	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms))
 	{
 		putSysErrmsg("tcpclo can't create keepalive thread", NULL);
 		MRELEASE(buffer);
@@ -407,7 +407,7 @@ int	main(int argc, char *argv[])
 	rparms.bundleSocket = &ductSocket;
 	rparms.mutex = &mutex;
 	rparms.cloRunning = &running;
-	if (pthread_create(&receiverThread, NULL, receiveBundles, &rparms))
+	if (pthread_begin(&receiverThread, NULL, receiveBundles, &rparms))
 	{
 		putSysErrmsg("tcpclo can't create receive thread", NULL);
 		MRELEASE(buffer);
