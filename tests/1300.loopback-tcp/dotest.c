@@ -42,9 +42,9 @@ int main(int argc, char **argv)
 	fail_unless(txExtent != 0);
 	sdr_write(sdr, txExtent, testLine, sizeof(testLine) - 1);
 	txBundleZco = zco_create(sdr, ZcoSdrSource, txExtent, 0, sizeof(testLine) - 1);
-	fail_unless(sdr_end_xn(sdr) >= 0 || txBundleZco != 0);
-	fail_unless(bp_send(NULL, BP_BLOCKING, testEid, NULL, 300, BP_STD_PRIORITY,
-		NoCustodyRequested, 0, 0, NULL, txBundleZco, &txNewBundle) >= 1);
+	fail_unless(sdr_end_xn(sdr) >= 0 && txBundleZco != 0);
+	fail_unless(bp_send(NULL, testEid, NULL, 300, BP_STD_PRIORITY,
+		NoCustodyRequested, 0, 0, NULL, txBundleZco, &txNewBundle) > 0);
 
 	/* Receive the loopback bundle */
 	fail_unless(bp_open(testEid, &rxSap) >= 0);
