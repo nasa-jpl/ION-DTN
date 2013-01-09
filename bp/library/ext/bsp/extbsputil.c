@@ -844,8 +844,8 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 {
     BspAbstractSecurityBlock *asb = (BspAbstractSecurityBlock *) blk->object;
     LystElt eidElt = NULL;
-    unsigned int   schemeOffset;
-    unsigned int   nssOffset;
+    unsigned long   schemeOffset;
+    unsigned long   nssOffset;
     VScheme      *vscheme = NULL;        
     PsmAddress   vschemeElt;
     MetaEid      metaEid;
@@ -865,9 +865,9 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
     if(asb->cipherFlags & BSP_ASB_SEC_SRC)
     {
 	// Grab the security source and stuff it in the sec src EID 
-	schemeOffset = (unsigned int) lyst_data(eidElt);
+	schemeOffset = (unsigned long) lyst_data(eidElt);
 	eidElt = lyst_next(eidElt);
-	nssOffset = (unsigned int) lyst_data(eidElt);
+	nssOffset = (unsigned long) lyst_data(eidElt);
 	// In case theres a destination too:
 	eidElt = lyst_next(eidElt);
 
@@ -918,9 +918,9 @@ int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
     if(asb->cipherFlags & BSP_ASB_SEC_DEST)
     {
 	// Grab the security destination and stuff it in the sec dest EID 
-	schemeOffset = (unsigned int) lyst_data(eidElt);
+	schemeOffset = (unsigned long) lyst_data(eidElt);
 	eidElt = lyst_next(eidElt);
-	nssOffset = (unsigned int) lyst_data(eidElt);
+	nssOffset = (unsigned long) lyst_data(eidElt);
 
 	asb->secDest.unicast = 1;
 	asb->secDest.cbhe = (wk->dictionary == NULL);
@@ -1001,7 +1001,7 @@ int setSecPointsTrans(ExtensionBlock *blk, Bundle *bundle, BspAbstractSecurityBl
     PsmAddress   vschemeElt;
     MetaEid      srcEid, destEid;
     char *dictionary = NULL;
-    unsigned int tmp = 0;
+    unsigned long tmp = 0;
     char *tmp2 = NULL;
     if(blockType != 0)
     {
