@@ -197,7 +197,7 @@ int	main(int argc, char **argv)
 				sdr_write(sdr, extent, line, lineLength);
 			}
 
-			if (sdr_end_xn < 0)
+			if (sdr_end_xn(sdr) < 0)
 			{
 				putErrmsg("No space for ZCO extent.", NULL);
 				break;
