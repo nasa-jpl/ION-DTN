@@ -17,7 +17,7 @@ DCCP = ../dccp
 CRYPTO = $(API)/crypto/NULL_SUITES
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -fPIC -DENABLE_BPACS -DENABLE_IMC
+OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_BPACS -DENABLE_IMC
 CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/crypto -I$(API)/acs -I$(API)/ext -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/cteb -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -28,8 +28,8 @@ PUBINCLS = \
 BPINCLS = \
 	$(API)/bpP.h \
 	$(IPN)/ipnfw.h \
-	$(IPN)/imcfw.h \
-	$(IPN)/imcP.h \
+	$(IMC)/imcfw.h \
+	$(IMC)/imcP.h \
 	$(BSS)/bssfw.h \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \

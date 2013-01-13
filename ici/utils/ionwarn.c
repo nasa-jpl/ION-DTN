@@ -141,10 +141,10 @@ int	checkForCongestion()
 	IonNeighbor	*np = NULL;
 	LystElt		elt4;
 	RateChange	*change;
-	unsigned int	secInEpoch;
+	unsigned long	secInEpoch;
 	double		spaceRemaining;
 	double		secUntilOutOfSpace;
-	unsigned int	secAdvanced;
+	unsigned long	secAdvanced;
 	double		increment;
 	time_t		alarmTime = 0;
 	double		delta;
