@@ -89,9 +89,10 @@ void poll_cfdp_messages()
 		cfdp_decompress_number(&TID12,&transactionId.transactionNbr);
 
 		/*Print Event type if debugging*/
-		printf("\nEvent: type %d, '%s', From Node: %llu, Transaction ID: %llu.%llu.\n", type,
+		printf("\nEvent: type %d, '%s', From Node: " UVAST_FIELDSPEC
+", Transaction ID: " UVAST_FIELDSPEC "." UVAST_FIELDSPEC ".\n", type,
 				(type > 0 && type < 12) ? eventTypes[type]
-				: "(unknown)",TID11, TID11, TID12);
+				: "(unknown)", TID11, TID11, TID12);
 
 		/*Parse Messages to User to get directory information*/
 		while (messagesToUser) {
