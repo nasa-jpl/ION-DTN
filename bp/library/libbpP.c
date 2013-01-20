@@ -5306,7 +5306,14 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 
 	if (destMetaEid.nullEndpoint)	/*	Do not send bundle.	*/
 	{
+		CHKERR(sdr_begin_xn(bpSdr));
 		zco_destroy(bpSdr, adu);
+		if (sdr_end_xn(bpSdr) < 0)
+		{
+			putErrmsg("Can't send bundle to null endpoint.", NULL);
+			return -1;
+		}
+
 		return 1;
 	}
 

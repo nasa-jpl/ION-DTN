@@ -395,8 +395,12 @@ static Object	locateKey(char *keyName, Object *nextKey)
 	 *	should be inserted.					*/
 
 	CHKZERO(ionLocked());
-	CHKZERO(secdb);
 	if (nextKey) *nextKey = 0;	/*	Default.		*/
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
 	for (elt = sdr_list_first(sdr, secdb->keys); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -828,8 +832,12 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 	CHKERR(destEid);
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
-	CHKERR(secdb);
 	*eltp = 0;
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -1091,7 +1099,11 @@ int	sec_get_bspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
-	CHKERR(secdb);
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, secdb->bspPibRules); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -1330,7 +1342,11 @@ int    sec_get_bspPcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
         CHKERR(ruleAddr);
         CHKERR(eltp);
         *eltp = 0;
-        CHKERR(secdb);
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
         CHKERR(sdr_begin_xn(sdr));
         for (elt = sdr_list_first(sdr, secdb->bspPcbRules); elt;
                         elt = sdr_list_next(sdr, elt))
