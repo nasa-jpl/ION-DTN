@@ -721,7 +721,15 @@ static void	terminateXn(Sdr sdrv)
 		return;
 	}
 
-	/*	Transaction was canceled.				*/
+	/*	Transaction was canceled.  If cancellation has already
+	 *	triggered restart, nothing more to do; just get out.	*/
+
+	if (!(sdr_in_xn(sdrv)))
+	{
+		return;
+	}
+
+	/*	Initiate cancellation procedure.			*/
 
 	sdr->xnCanceled = 0;
 	if (!(sdr->configFlags & SDR_REVERSIBLE))
@@ -770,6 +778,7 @@ static void	terminateXn(Sdr sdrv)
 	{
 		writeMemoNote("[!] Can't execute restart command",
 				sdr->restartCmd);
+		sdr->halted = 0;
 		clearTransaction(sdrv);
 		unlockSdr(sdr);
 		return;
