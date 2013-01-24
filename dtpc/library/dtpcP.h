@@ -1,13 +1,14 @@
 /*
 	dtpcP.h:	Private definitions supporting the implementation
-			of DTPC nodes in the ION (Interplanetary Overlay Network) stack.
+			of DTPC nodes in the ION (Interplanetary Overlay
+			Network) stack.
 
 	Authors: Giorgos Papastergiou, SPICE
 		 Ioannis Alexiadis, SPICE
 
 	Copyright (c) 2011, Space Internetworking Center,
 	Democritus University of Thrace. ALL RIGHTS RESERVED.
-										*/
+*/
 
 #include "lyst.h"
 #include "zco.h"
@@ -50,12 +51,13 @@ typedef struct
 
 typedef struct
 {
-	Object		dstEid;		/*	SDR string	*/
+	Object		dstEid;		/*	SDR string		*/
 	unsigned int	profileID;	
 	Scalar		aduCounter;
 	Object		outAdus;	/*	SDR list of outAdus	*/
 	Object		queuedAdus;	/* SDR list of queued bundles	*/
-	Object		inProgressAduElt;	/*	0 if no outADU aggregation
+	Object		inProgressAduElt;	/*	0 if no outADU
+						 *	aggregation
 						 *	in progress	*/
 } OutAggregator;
 
@@ -68,19 +70,19 @@ typedef struct
 
 	/*	Database navigation stuff	*/
 
-	Object		aggregatedZCO;	/*	ZCO Ref.			*/
-	Object		bundleObj;	/*	Bundle object			*/
-	Object		outAggrElt;	/* 	Ref. to OutboundAggregator	*/
-	Object		topics;		/*	SDR list of Topics		*/ 
-	Object		rtxEventElt;	/* 	Ref. to retransmission event	*/
-	Object		delEventElt;	/*	Ref. to deletion event	*/
+	Object		aggregatedZCO;	/* ZCO Ref.			*/
+	Object		bundleObj;	/* Bundle object		*/
+	Object		outAggrElt;	/* Ref. to OutboundAggregator	*/
+	Object		topics;		/* SDR list of Topics		*/ 
+	Object		rtxEventElt;	/* Ref. to retransmission event	*/
+	Object		delEventElt;	/* Ref. to deletion event	*/
 } OutAdu;
 
 typedef struct
 {
 	unsigned int	topicID;
-	Object		payloadRecords;		/* SDR list of PayloadRecords	*/
-	Object		outAduElt;		/* Ref. to OutAdu - not used	*/
+	Object		payloadRecords;	/* SDR list of PayloadRecords	*/
+	Object		outAduElt;	/* Ref. to OutAdu - not used	*/
 } Topic;
 
 typedef struct
@@ -128,13 +130,13 @@ typedef struct dtpcsap_st
 
 typedef struct
 {
-	Object		outAggregators;		/* SDR list of OutboundAggregators	*/
-	Object		inAggregators;		/* SDR list of InboundAggregators	*/
-	Object		events;			/* SDR list of dtpcEvents		*/
-	Object		profiles;		/* SDR list of Profiles			*/
-	Object		queues;			/* SDR list of topic delivery queues 
-						 * identified by list USER DATA		*/
-	Object		outboundAdus;		/* SDR list: OutAdus		*/
+	Object		outAggregators;	/* SDR list OutboundAggregators	*/
+	Object		inAggregators;	/* SDR list InboundAggregators	*/
+	Object		events;		/* SDR list dtpcEvents		*/
+	Object		profiles;	/* SDR list Profiles		*/
+	Object		queues;		/* SDR list topic delivery queues 
+					 * identified by list USER DATA	*/
+	Object		outboundAdus;	/* SDR list: OutAdus		*/
 } DtpcDB; 
 
 typedef struct
@@ -147,65 +149,77 @@ typedef struct
         BpExtendedCOS	extendedCOS;
         int		srrFlags;
 	BpCustodySwitch custodySwitch;
-	Object		reportToEid;		/* SDR String */
+	Object		reportToEid;	/*	SDR String		*/
         int             classOfService;
 } Profile;
 
 typedef struct
 {
-	int		dtpcdPid;	/*	For stopping dtpc daemon.	*/
-	int		clockPid;	/*	For stopping dtpcclock. 	*/
-	int		watching;	/*	Activity watch.			*/
+	int		dtpcdPid;	/* For stopping dtpc daemon.	*/
+	int		clockPid;	/* For stopping dtpcclock. 	*/
+	int		watching;	/* Activity watch.		*/
 
-	/* The aduSemaphore of the DTPC protocol is given whenever a new
-	 * outAdu is inserted in the outbounAdus list.			*/ 
+	/* The aduSemaphore of the DTPC protocol is given whenever
+	 * a new outAdu is inserted in the outbounAdus list.		*/ 
 
 	sm_SemId	aduSemaphore;
-	PsmAddress	vsaps;		/* 	SM list: VSaps			*/
-	PsmAddress	profiles;	/*	SM List: Profiles	*/
+	PsmAddress	vsaps;		/* SM list: VSaps		*/
+	PsmAddress	profiles;	/* SM List: Profiles		*/
 } DtpcVdb;
 
 typedef struct
 {
-	Object		srcEid;		/*	SDR string	*/
+	Object		srcEid;		/*	SDR string		*/
 	unsigned int	length;
 	Object		content;
 } DlvPayload;
 
 extern int		dtpcInit();
-#define dtpcStart()  _dtpcStart()
+#define dtpcStart()	_dtpcStart()
 extern int		_dtpcStart();
 #define dtpcStop()	_dtpcStop();
 extern void		dtpcStop();
 extern int		dtpcAttach();
-extern unsigned int 	getProfile(unsigned int maxRtx, unsigned int aggrSizeLimit,
-				unsigned int aggrTimeLimit, unsigned int lifespan,
-				BpExtendedCOS *extendedCOS, unsigned char srrFlags,
-				BpCustodySwitch custodySwitch, char *reportToEid,
+extern unsigned int 	getProfile(unsigned int maxRtx,
+				unsigned int aggrSizeLimit,
+				unsigned int aggrTimeLimit,
+				unsigned int lifespan,
+				BpExtendedCOS *extendedCOS,
+				unsigned char srrFlags,
+				BpCustodySwitch custodySwitch,
+				char *reportToEid,
 				int classOfService);
 extern int		raiseProfile(Sdr sdr, Object sdrElt, DtpcVdb *vdb);
-extern int		raiseVSap(Sdr sdr, Object elt, DtpcVdb *vdb, unsigned int topicID);
-extern int		initOutAdu(Object outAggrAddr, Object outAggrElt, Object *outAduObj,
-					Object *outAduElt);
-extern int		insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
-					unsigned int topicID, Object adu, int length);
-extern int		createAdu(Profile *profile, Object outAduObj, Object outAduElt);
+extern int		raiseVSap(Sdr sdr, Object elt, DtpcVdb *vdb,
+				unsigned int topicID);
+extern int		initOutAdu(Object outAggrAddr, Object outAggrElt,
+				Object *outAduObj, Object *outAduElt);
+extern int		insertRecord (DtpcSAP sap, char *dstEid,
+				unsigned int profileID, unsigned int topicID,
+				Object adu, int length);
+extern int		createAdu(Profile *profile, Object outAduObj,
+				Object outAduElt);
 extern int		sendAdu(BpSAP sap);
 extern void		deleteAdu(Sdr sdr, Object aduElt);
 extern int		resendAdu(Sdr sdr, Object aduElt, time_t currentTime);
 extern int		addProfile(unsigned int profileID, unsigned int maxRtx,
-				unsigned int lifespan, unsigned int aggrSizeLimit,
-				unsigned int aggrTimeLimit, char *svcClass, char *flags,
+				unsigned int lifespan,
+				unsigned int aggrSizeLimit,
+				unsigned int aggrTimeLimit,
+				char *svcClass, char *flags,
 				char* reportToEid);
 extern int		removeProfile(unsigned int profileID);
 extern Object		getDtpcDbObject();
 extern DtpcDB		*getDtpcConstants();
 extern DtpcVdb		*getDtpcVdb();
-extern int		handleInAdu(Sdr sdr, BpDelivery *dlv, unsigned long profNum, Scalar seqNum);
-extern int		handleAck(Sdr sdr, BpDelivery *dlv, unsigned long profNum, Scalar seqNum);
+extern int		handleInAdu(Sdr sdr, BpDelivery *dlv,
+				unsigned long profNum, Scalar seqNum);
+extern int		handleAck(Sdr sdr, BpDelivery *dlv,
+				unsigned long profNum, Scalar seqNum);
 extern void		deleteGap(Sdr sdr, Object aduElt);
 extern int		parseInAdus(Sdr sdr);
-extern int		sendAck(BpSAP sap, unsigned long profileID, Scalar seqNum, BpDelivery *dlv);
+extern int		sendAck(BpSAP sap, unsigned long profileID,
+				Scalar seqNum, BpDelivery *dlv);
 extern void		scalarToSdnv(Sdnv *sdnv, Scalar *scalar);
 extern int		sdnvToScalar(Scalar *scalar, unsigned char *sdnvText);
 extern int		compareScalars(Scalar *scalar1, Scalar *scalar2);

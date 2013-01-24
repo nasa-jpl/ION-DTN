@@ -27,7 +27,7 @@ default egress B<duct expressions> with that node: one for BSS traffic that
 must be forwarded as real-time streaming data (using a convergence-layer
 protocol that does not perform retransmission), one for BSS traffic that
 must be forwarded as playback data (using a reliable convergence-layer
-protocol), and on for non-BSS traffic.  These default duct expressions may
+protocol), and one for non-BSS traffic.  These default duct expressions may
 be overridden by more narrowly scoped B<planrule>s in specific circumstances:
 different egress duct expressions may apply when the source endpoint for
 the subject bundle identifies a specific node, a specific service, or both.
@@ -87,6 +87,11 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 
 Echo control.  Setting echo to 1 causes all output printed by bssadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
 
 =item B<h>
 
@@ -260,7 +265,7 @@ using udp if the bundle is real-time BSS traffic and tcp otherwise; for BSS
 traffic, custodial retransmission will be initiated after 3 seconds if no
 custody acknowledgment is received.
 
-=item a rule 18 * 9 tcp/saturn.nasa.gov:5011 udp/*,saturn.nasa.gov:5012 tcp/neptune.nasa.gov:5011
+=item a planrule 18 * 9 tcp/saturn.nasa.gov:5011 udp/*,saturn.nasa.gov:5012 tcp/neptune.nasa.gov:5011
 
 Declares an egress plan override that applies to transmission to node 18
 of any bundle whose source is node 9, regardless of the service that was

@@ -68,7 +68,7 @@ static void	*receivePdus(void *parm)
 
 		case BpPayloadPresent:
 			contentLength = zco_source_data_length(sdr, dlv.adu);
-			sdr_begin_xn(sdr);
+			CHKNULL(sdr_begin_xn(sdr));
 			zco_start_receiving(dlv.adu, &reader);
 			if (zco_receive_source(sdr, &reader, contentLength,
 					(char *) buffer) < 0)
@@ -237,7 +237,7 @@ terminating.");
 		/*	Send PDU in a bundle when flow control allows.	*/
 
 		newBundle = 0;
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		while (parms.running && newBundle == 0)
 		{
 			switch (bp_send(txSap, BP_NONBLOCKING, destEid,
@@ -257,7 +257,7 @@ terminating.");
 					}
 
 					microsnooze(250000);
-					sdr_begin_xn(sdr);
+					CHKZERO(sdr_begin_xn(sdr));
 					continue;
 				}
 

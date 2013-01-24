@@ -60,6 +60,7 @@ static void	printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint version of ION.");
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1");
 	PUTS("\tm\tManage");
@@ -132,7 +133,7 @@ static void	manageDiscard(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
 	cfdpdb.discardIncompleteFile = newDiscard;
 	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
@@ -162,7 +163,7 @@ static void	manageRequirecrc(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
 	cfdpdb.crcRequired = newRequirecrc;
 	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
@@ -193,7 +194,7 @@ static void	manageFillchar(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
 	cfdpdb.fillCharacter = newFillchar;
 	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
@@ -223,7 +224,7 @@ static void	manageCkperiod(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
 	cfdpdb.checkTimerPeriod = newCkperiod;
 	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
@@ -253,7 +254,7 @@ static void	manageMaxtimeouts(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
 	cfdpdb.checkTimeoutLimit = newMaxtimeouts;
 	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
@@ -283,7 +284,7 @@ static void	manageMaxtrnbr(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
 	cfdpdb.maxTransactionNbr = newMaxtrnbr;
 	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
@@ -313,7 +314,7 @@ static void	manageSegsize(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
 	cfdpdb.maxFileDataLength = newSegsize;
 	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
@@ -343,7 +344,7 @@ static void	manageInactivity(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
 	cfdpdb.transactionInactivityLimit = newLimit;
 	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
@@ -418,7 +419,7 @@ static void	executeInfo()
 		OBJ_POINTER(CfdpDB, db);
 	char	buffer[256];
 
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, CfdpDB, db, getCfdpDbObject());
 	isprintf(buffer, sizeof buffer, "xncount=%lu, maxtrnbr=%lu, \
 fillchar=0x%x, discard=%hu, requirecrc=%hu, segsize=%hu, inactivity=%u, \
@@ -512,6 +513,7 @@ static int	processLine(char *line, int lineLength)
 	char		*cursor;
 	int		i;
 	char		*tokens[9];
+	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
 
@@ -560,6 +562,11 @@ static int	processLine(char *line, int lineLength)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s", IONVERSIONNUMBER);
+			printText(buffer);
 			return 0;
 
 		case '1':

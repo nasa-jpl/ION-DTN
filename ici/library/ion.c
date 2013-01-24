@@ -8,21 +8,18 @@
  *
  */
 
+#include "zco.h"
 #include "ion.h"
 #include "rfx.h"
 #include "time.h"
 
+#ifndef NODE_LIST_SEMKEY
+#define NODE_LIST_SEMKEY	(0xeeee1)
+#endif
+
 #define	ION_DEFAULT_SM_KEY	((255 * 256) + 1)
 #define	ION_SM_NAME		"ionwm"
 #define	ION_DEFAULT_SDR_NAME	"ion"
-#ifndef ION_SDR_MARGIN
-#define	ION_SDR_MARGIN		(20)	/*	Percent.		*/
-#endif
-#ifndef ION_OPS_ALLOC
-#define	ION_OPS_ALLOC		(20)	/*	Percent.		*/
-#endif
-#define	ION_SEQUESTERED		(ION_SDR_MARGIN + ION_OPS_ALLOC)
-#define	MIN_SPIKE_RSRV		(100000)
 
 #define timestampInFormat	"%4d/%2d/%2d-%2d:%2d:%2d"
 #define timestampOutFormat	"%.4d/%.2d/%.2d-%.2d:%.2d:%.2d"
@@ -79,6 +76,8 @@ static IonDB	*_ionConstants()
 {
 	static IonDB	buf;
 	static IonDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
@@ -87,9 +86,26 @@ static IonDB	*_ionConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(_ionsdr(NULL), (char *) &buf, _iondbObject(NULL),
-				sizeof(IonDB));
-		db = &buf;
+		sdr = _ionsdr(NULL);
+		CHKNULL(sdr);
+		dbObject = _iondbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(IonDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(IonDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -235,7 +251,7 @@ static IonVdb	*_ionvdb(char **name)
 		/*	ION volatile database doesn't exist yet.	*/
 
 		sdr = _ionsdr(NULL);
-		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
 		vdbAddress = psm_zalloc(ionwm, sizeof(IonVdb));
 		if (vdbAddress == 0)
 		{
@@ -342,6 +358,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 			unsigned long nodeNbr)
 {
 	char		*nodeListDir;
+	sm_SemId	nodeListMutex;
 	char		nodeListFileName[265];
 	int		nodeListFile;
 	int		lineNbr = 0;
@@ -386,6 +403,14 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 
 	/*	Configured for multi-node operation.			*/
 
+	nodeListMutex = sm_SemCreate(NODE_LIST_SEMKEY, SM_SEM_FIFO);
+	if (nodeListMutex == SM_SEM_NONE
+	|| sm_SemUnwedge(nodeListMutex, 3) < 0 || sm_SemTake(nodeListMutex) < 0)
+	{
+		putErrmsg("Can't lock node list file.", NULL);
+		return -1;
+	}
+
 	isprintf(nodeListFileName, sizeof nodeListFileName, "%.255s%cion_nodes",
 			nodeListDir, ION_PATH_DELIMITER);
 	if (nodeNbr == 0)	/*	Just attaching.			*/
@@ -399,6 +424,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 
 	if (nodeListFile < 0)
 	{
+		sm_SemGive(nodeListMutex);
 		putSysErrmsg("Can't open ion_nodes file", nodeListFileName);
 		writeMemo("[?] Remove ION_NODE_LIST_DIR from env?");
 		return -1;
@@ -412,6 +438,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 			if (lineLen < 0)
 			{
 				close(nodeListFile);
+				sm_SemGive(nodeListMutex);
 				putErrmsg("Failed reading ion_nodes file.",
 						nodeListFileName);
 				return -1;
@@ -425,6 +452,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 				&lineWmKey, lineSdrName, lineWdName) < 4)
 		{
 			close(nodeListFile);
+			sm_SemGive(nodeListMutex);
 			putErrmsg("Syntax error at line#", itoa(lineNbr));
 			writeMemoNote("[?] Repair ion_nodes file.",
 					nodeListFileName);
@@ -441,6 +469,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 			close(nodeListFile);
 			if (strcmp(lineWdName, wdName) != 0)
 			{
+				sm_SemGive(nodeListMutex);
 				putErrmsg("CWD conflict at line#",
 						itoa(lineNbr));
 				writeMemoNote("[?] Repair ion_nodes file.",
@@ -455,6 +484,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 
 			if (parms->wmKey != lineWmKey)
 			{
+				sm_SemGive(nodeListMutex);
 				putErrmsg("WmKey conflict at line#",
 						itoa(lineNbr));
 				writeMemoNote("[?] Repair ion_nodes file.",
@@ -470,6 +500,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 
 			if (strcmp(parms->sdrName, lineSdrName) != 0)
 			{
+				sm_SemGive(nodeListMutex);
 				putErrmsg("SdrName conflict at line#",
 						itoa(lineNbr));
 				writeMemoNote("[?] Repair ion_nodes file.",
@@ -486,6 +517,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 		if (strcmp(lineWdName, wdName) == 0)	/*	Match.	*/
 		{
 			close(nodeListFile);
+			sm_SemGive(nodeListMutex);
 			if (nodeNbr == 0)	/*	Attaching.	*/
 			{
 				parms->wmKey = lineWmKey;
@@ -510,6 +542,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 	if (nodeNbr == 0)	/*	Attaching to existing node.	*/
 	{
 		close(nodeListFile);
+		sm_SemGive(nodeListMutex);
 		putErrmsg("No node has been initialized in this directory.",
 				wdName);
 		return -1;
@@ -532,6 +565,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 			nodeNbr, parms->wmKey, parms->sdrName, wdName);
 	result = iputs(nodeListFile, lineBuf);
 	close(nodeListFile);
+	sm_SemGive(nodeListMutex);
 	if (result < 0)
 	{
 		putErrmsg("Failed writing to ion_nodes file.", NULL);
@@ -570,6 +604,8 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 	Sdr		ionsdr;
 	Object		iondbObject;
 	IonDB		iondbBuf;
+	long		heapLimit;
+	Scalar		limit;
 	sm_WmParms	ionwmParms;
 	char		*ionvdbName = _ionvdbName();
 
@@ -600,7 +636,8 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 	}
 
 	if (sdr_load_profile(parms->sdrName, parms->configFlags,
-			parms->heapWords, parms->heapKey, parms->pathName) < 0)
+			parms->heapWords, parms->heapKey, parms->pathName,
+			"ionrestart") < 0)
 	{
 		putErrmsg("Unable to load SDR profile for ION.", NULL);
 		return -1;
@@ -617,7 +654,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 
 	/*	Recover the ION database, creating it if necessary.	*/
 
-	sdr_begin_xn(ionsdr);
+	CHKERR(sdr_begin_xn(ionsdr));
 	iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
 	switch (iondbObject)
 	{
@@ -637,20 +674,23 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
-		iondbBuf.occupancyCeiling = ((sdr_heap_size(ionsdr) / 100)
-			 	* (100 - ION_SEQUESTERED));
-		iondbBuf.receptionSpikeReserve = iondbBuf.occupancyCeiling / 16;
-		if (iondbBuf.receptionSpikeReserve < MIN_SPIKE_RSRV)
-		{
-			iondbBuf.receptionSpikeReserve = MIN_SPIKE_RSRV;
-		}
-
+		iondbBuf.productionRate = -1;	/*	Not metered.	*/
+		iondbBuf.consumptionRate = -1;	/*	Not metered.	*/
+		heapLimit = (sdr_heap_size(ionsdr) / 100)
+			 	* (100 - ION_SEQUESTERED);
+		limit.units = heapLimit % ONE_GIG;
+		limit.gigs = heapLimit / ONE_GIG;
+		zco_set_max_heap_occupancy(ionsdr, &limit);
+		zco_get_max_file_occupancy(ionsdr, &limit);
+		iondbBuf.occupancyCeiling = limit.gigs;
+		iondbBuf.occupancyCeiling *= ONE_GIG;
+		iondbBuf.occupancyCeiling += limit.units;
+		iondbBuf.occupancyCeiling += heapLimit;
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
-
+		iondbBuf.clockIsSynchronized = 1;
                 memcpy( &iondbBuf.parmcopy, parms, sizeof(IonParms));
-
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
 		{
@@ -712,6 +752,76 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 	return 0;
 }
 
+static void	destroyIonNode(PsmPartition partition, PsmAddress eltData,
+			void *argument)
+{
+	IonNode	*node = (IonNode *) psp(partition, eltData);
+
+	sm_list_destroy(partition, node->snubs, rfx_erase_data, NULL);
+	psm_free(partition, eltData);
+}
+
+static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
+{
+	IonVdb		*vdb;
+
+	vdb = (IonVdb *) psp(wm, vdbAddress);
+
+	/*	Time-ordered list of probes can simply be destroyed.	*/
+
+	sm_list_destroy(wm, vdb->probes, rfx_erase_data, NULL);
+
+	/*	Three of the red-black tables in the Vdb are
+	 *	emptied and recreated by rfx_stop().  Destroy them.	*/
+
+	sm_rbt_destroy(wm, vdb->contactIndex, NULL, NULL);
+	sm_rbt_destroy(wm, vdb->rangeIndex, NULL, NULL);
+	sm_rbt_destroy(wm, vdb->timeline, NULL, NULL);
+
+	/*	cgr_stop clears all routing objects, so nodes and
+	 *	neighbors themselves can now be deleted.		*/
+
+	sm_rbt_destroy(wm, vdb->nodes, destroyIonNode, NULL);
+	sm_rbt_destroy(wm, vdb->neighbors, rfx_erase_data, NULL);
+}
+
+void	ionDropVdb()
+{
+	PsmPartition	wm = getIonwm();
+	char		*ionvdbName = _ionvdbName();
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*stop = NULL;
+
+	if (psm_locate(wm, ionvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if (elt)
+	{
+		dropVdb(wm, vdbAddress);	/*	Destroy Vdb.	*/
+		psm_free(wm, vdbAddress);
+		if (psm_uncatlg(wm, ionvdbName) < 0)
+		{
+			putErrmsg("Failed uncataloging vdb.", NULL);
+		}
+	}
+
+	oK(_ionvdb(&stop));			/*	Forget old Vdb.	*/
+}
+
+void	ionRaiseVdb()
+{
+	char	*ionvdbName = _ionvdbName();
+
+	if(_ionvdb(&ionvdbName) == NULL)	/*	Create new Vdb.	*/
+	{
+		putErrmsg("ION can't reinitialize vdb.", NULL);
+	}
+}
+
 int	ionAttach()
 {
 	Sdr		ionsdr = _ionsdr(NULL);
@@ -737,6 +847,7 @@ int	ionAttach()
 
 	signal(SIGINT, SIG_IGN);
 #endif
+
 	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
@@ -776,9 +887,17 @@ int	ionAttach()
 
 	if (iondbObject == 0)
 	{
-		sdr_begin_xn(ionsdr);	/*	Lock database.		*/
-		iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
-		sdr_exit_xn(ionsdr);	/*	Unlock database.	*/
+		if (sdr_heap_is_halted(ionsdr))
+		{
+			iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
+		}
+		else
+		{
+			CHKERR(sdr_begin_xn(ionsdr));
+			iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
+			sdr_exit_xn(ionsdr);
+		}
+
 		if (iondbObject == 0)
 		{
 			putErrmsg("ION database not found.", NULL);
@@ -834,7 +953,7 @@ int	ionAttach()
 
 void	ionDetach()
 {
-#if defined (VXWORKS)
+#if defined (VXWORKS) || defined (bionic)
 	return;
 #elif defined (RTEMS)
 	sm_TaskForget(sm_TaskIdSelf());
@@ -971,6 +1090,16 @@ unsigned long	getOwnNodeNbr()
 	return snapshot->ownNodeNbr;
 }
 
+int	ionClockIsSynchronized()
+{
+	Sdr	ionsdr = _ionsdr(NULL);
+	Object	iondbObject = _iondbObject(NULL);
+	IonDB	iondbBuf;
+
+	sdr_read(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
+	return iondbBuf.clockIsSynchronized;
+}
+
 /*	*	*	Shared-memory tracing 	*	*	*	*/
 
 int	startIonMemTrace(int size)
@@ -993,50 +1122,6 @@ void	stopIonMemTrace(int verbose)
 	psm_stop_trace(_ionwm(NULL));
 }
 
-/*	*	*	Space management 	*	*	*	*/
-
-void	ionOccupy(int size)
-{
-	Sdr	ionsdr = _ionsdr(NULL);
-	Object	iondbObject = _iondbObject(NULL);
-	IonDB	iondbBuf;
-
-	CHKVOID(ionLocked());
-	CHKVOID(size >= 0);
-	sdr_stage(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
-	if (iondbBuf.currentOccupancy + size < 0)/*	Overflow.	*/
-	{
-		iondbBuf.currentOccupancy = iondbBuf.occupancyCeiling;
-	}
-	else
-	{
-		iondbBuf.currentOccupancy += size;
-	}
-
-	sdr_write(ionsdr, iondbObject, (char *) &iondbBuf, sizeof(IonDB));
-}
-
-void	ionVacate(int size)
-{
-	Sdr	ionsdr = _ionsdr(NULL);
-	Object	iondbObject = _iondbObject(NULL);
-	IonDB	iondbBuf;
-
-	CHKVOID(ionLocked());
-	CHKVOID(size >= 0);
-	sdr_stage(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
-	if (size > iondbBuf.currentOccupancy)	/*	Underflow.	*/
-	{
-		iondbBuf.currentOccupancy = 0;
-	}
-	else
-	{
-		iondbBuf.currentOccupancy -= size;
-	}
-
-	sdr_write(ionsdr, iondbObject, (char *) &iondbBuf, sizeof(IonDB));
-}
-
 /*	*	*	Timestamp handling 	*	*	*	*/
 
 int	setDeltaFromUTC(int newDelta)
@@ -1046,7 +1131,7 @@ int	setDeltaFromUTC(int newDelta)
 	IonVdb	*ionvdb = _ionvdb(NULL);
 	IonDB	iondb;
 
-	sdr_begin_xn(ionsdr);
+	CHKERR(sdr_begin_xn(ionsdr));
 	sdr_stage(ionsdr, (char *) &iondb, iondbObject, sizeof(IonDB));
 	iondb.deltaFromUTC = newDelta;
 	sdr_write(ionsdr, iondbObject, (char *) &iondb, sizeof(IonDB));
@@ -1223,7 +1308,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	parms->configFlags = SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED;
 	parms->heapWords = 250000;
 	parms->heapKey = SM_NO_KEY;
-	istrcpy(parms->pathName, "/usr/ion", sizeof parms->pathName);
+	istrcpy(parms->pathName, "/tmp", sizeof parms->pathName);
 
 	/*	Determine name of config file.				*/
 
@@ -1452,7 +1537,7 @@ static void	*alarmMain(void *parm)
 		getCurrentTime(&workTime);
 		deadline.tv_sec = workTime.tv_sec + alarm->term;
 		deadline.tv_nsec = workTime.tv_usec * 1000;
-		pthread_mutex_lock(&mutex);
+		oK(pthread_mutex_lock(&mutex));
 		result = pthread_cond_timedwait(&cv, &mutex, &deadline);
 		pthread_mutex_unlock(&mutex);
 		if (result != ETIMEDOUT)

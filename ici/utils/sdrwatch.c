@@ -33,7 +33,7 @@ static unsigned int	sdrwatch_count(int *newValue)
 
 static void	handleQuit()
 {
-	int	newCount = 1;	/*	Advanc to end of last cycle.	*/
+	int	newCount = 1;	/*	Advance to end of last cycle.	*/
 
 	PUTS("[Terminated by user.]");
 	oK(sdrwatch_count(&newCount));
@@ -57,8 +57,10 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 
 	/*	Initial state.						*/
 
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_usage(sdr, &sdrsummary);
 	sdr_report(&sdrsummary);
+	sdr_exit_xn(sdr);
 	if (interval == 0)	/*	One-time poll.			*/
 	{
 		return 0;

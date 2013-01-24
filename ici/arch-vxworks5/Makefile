@@ -33,6 +33,7 @@ TEST   = ../test
 UTILS  = ../utils
 DAEMON = ../daemon
 SDR    = ../sdr
+RESTART = ../restart
 
 CPU       = PPC604
 TOOL      = gnu
@@ -69,7 +70,8 @@ PUBINCLS = \
         $(INCL)/sdrlist.h	\
         $(INCL)/sdrtable.h	\
         $(INCL)/sdrhash.h	\
-        $(INCL)/sdr.h
+        $(INCL)/sdr.h		\
+	$(INCL)/smrbt.h
 
 ICIINCLS = \
         $(SRC)/lystP.h		\
@@ -95,6 +97,7 @@ ICISOURCES = \
 	$(SDR)/sdrtable.c	\
 	$(SDR)/sdrhash.c	\
 	$(SDR)/sdrcatlg.c	\
+	$(SDR)/smrbt.c		\
 	$(TEST)/file2sdr.c	\
 	$(TEST)/file2sm.c	\
 	$(TEST)/psmshell.c	\
@@ -106,7 +109,8 @@ ICISOURCES = \
 	$(UTILS)/psmwatch.c	\
 	$(UTILS)/sdrmend.c	\
 	$(UTILS)/sdrwatch.c	\
-	$(DAEMON)/rfxclock.c
+	$(DAEMON)/rfxclock.c	\
+	$(RESTART)/ionrestart.c
 
 
 ALLICIOBJS =		\
@@ -129,6 +133,7 @@ ALLICIOBJS =		\
 	sdrtable.o	\
 	sdrhash.o	\
 	sdrcatlg.o	\
+	smrbt.o		\
 	file2sdr.o	\
 	file2sm.o	\
 	psmshell.	\
@@ -140,7 +145,8 @@ ALLICIOBJS =		\
 	psmwatch.o	\
 	sdrmend.o	\
 	sdrwatch.o	\
-	rfxclock.o
+	rfxclock.o	\
+	ionrestart.o
 
 
 SOURCES = $(ICISOURCES)

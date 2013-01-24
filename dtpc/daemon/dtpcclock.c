@@ -47,8 +47,7 @@ static int	updateAdus(Sdr sdr)
 			OBJ_POINTER(OutAggregator, outAggr);
 			OBJ_POINTER(Profile, profile);
 
-	sdr_begin_xn(sdr);
-
+	CHKERR(sdr_begin_xn(sdr));
 	for (aggrElt = sdr_list_first(sdr, dtpcConstants->outAggregators);
 		aggrElt; aggrElt = sdr_list_next(sdr, aggrElt))
 	{
@@ -91,7 +90,8 @@ static int	updateAdus(Sdr sdr)
 
 			if (initOutAdu(aggrObj, aggrElt, &aduObj, &aduElt) < 0)
 			{
-				putErrmsg("Can't stop aggregation for adu.",NULL);
+				putErrmsg("Can't stop aggregation for adu.",
+						NULL);
 				sdr_cancel_xn(sdr);
 				return -1;
 			}
@@ -100,7 +100,7 @@ static int	updateAdus(Sdr sdr)
 
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Could not scan outbound Adus", NULL);
+		putErrmsg("Could not scan outbound Adus.", NULL);
 		return -1;
 	}
 	return 0;
@@ -116,7 +116,7 @@ static int	handleEvents(Sdr sdr, time_t currentTime)
 
 	while (1)
 	{
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, dtpcConstants->events);
 		if (elt == 0)	/* 	Event list is empty.		*/
 		{

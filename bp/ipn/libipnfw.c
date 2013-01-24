@@ -36,12 +36,31 @@ static IpnDB	*_ipnConstants()
 {
 	static IpnDB	buf;
 	static IpnDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
-		sdr_read(getIonsdr(), (char *) &buf, _ipndbObject(NULL),
-				sizeof(IpnDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _ipndbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(IpnDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(IpnDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -91,7 +110,7 @@ int	ipnInit()
 
 	/*	Recover the IPN database, creating it if necessary.	*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	oK(senderEidLookupFunctions(lookupIpnEid));
 	ipndbObject = sdr_find(sdr, IPN_DBNAME, NULL);
 	switch (ipndbObject)
@@ -220,7 +239,7 @@ int	ipn_addPlan(unsigned long nodeNbr, DuctExpression *defaultDuct)
 	Object	planObj;
 
 	CHKERR(nodeNbr && defaultDuct);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (locatePlan(nodeNbr, &nextPlan) != 0)
 	{
 		sdr_exit_xn(sdr);
@@ -274,7 +293,7 @@ int	ipn_updatePlan(unsigned long nodeNbr, DuctExpression *defaultDuct)
 	IpnPlan	plan;
 
 	CHKERR(nodeNbr && defaultDuct);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -307,7 +326,7 @@ int	ipn_removePlan(unsigned long nodeNbr)
 		OBJ_POINTER(IpnPlan, plan);
 
 	CHKERR(nodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -452,7 +471,7 @@ int	ipn_addPlanRule(unsigned long nodeNbr, long argServiceNbr,
 	Object		addr;
 
 	CHKERR(nodeNbr && srcNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -514,7 +533,7 @@ int	ipn_updatePlanRule(unsigned long nodeNbr, long argServiceNbr,
 	IpnRule		ruleBuf;
 
 	CHKERR(nodeNbr && srcNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -563,7 +582,7 @@ int	ipn_removePlanRule(unsigned long nodeNbr, long argServiceNbr,
 			OBJ_POINTER(IpnRule, rule);
 
 	CHKERR(nodeNbr && srcNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -774,7 +793,7 @@ int	ipn_addGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (locateGroup(firstNodeNbr, lastNodeNbr, &nextGroup) != 0)
 	{
 		sdr_exit_xn(sdr);
@@ -826,7 +845,7 @@ int	ipn_updateGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -860,7 +879,7 @@ int	ipn_removeGroup(unsigned long firstNodeNbr, unsigned long lastNodeNbr)
 
 	CHKERR(firstNodeNbr && lastNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -957,7 +976,7 @@ int	ipn_addGroupRule(unsigned long firstNodeNbr, unsigned long lastNodeNbr,
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -1020,7 +1039,7 @@ int	ipn_updateGroupRule(unsigned long firstNodeNbr,
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
@@ -1069,7 +1088,7 @@ int	ipn_removeGroupRule(unsigned long firstNodeNbr,
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{

@@ -106,7 +106,7 @@ static void	*sendBundles(void *parm)
 			portNbr = DGRCLA_PORT_NBR;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKNULL(sdr_begin_xn(sdr));
 		if (hostNbr == 0)		/*	Can't send it.	*/
 		{
 			failedTransmissions++;
@@ -156,7 +156,7 @@ failure.", NULL);
 			}
 		}
 
-		sdr_begin_xn(sdr);
+		CHKNULL(sdr_begin_xn(sdr));
 		zco_destroy(sdr, bundleZco);
 		if (sdr_end_xn(sdr) < 0)
 		{
@@ -247,7 +247,7 @@ static void	*receiveBundles(void *parm)
 			switch (rc)
 			{
 				case DgrDatagramAcknowledged:
-					sdr_begin_xn(sdr);
+					CHKNULL(sdr_begin_xn(sdr));
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, length);
@@ -266,7 +266,7 @@ temporary ZCO.", NULL);
 success.", NULL);
 					}
 
-					sdr_begin_xn(sdr);
+					CHKNULL(sdr_begin_xn(sdr));
 					zco_destroy(sdr, bundleZco);
 					if (sdr_end_xn(sdr) < 0)
 					{
@@ -283,7 +283,7 @@ bundle ZCO.", NULL);
 					continue;
 
 				case DgrDatagramNotAcknowledged:
-					sdr_begin_xn(sdr);
+					CHKNULL(sdr_begin_xn(sdr));
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, length);
@@ -302,7 +302,7 @@ temporary ZCO.", NULL);
 failure.", NULL);
 					}
 
-					sdr_begin_xn(sdr);
+					CHKNULL(sdr_begin_xn(sdr));
 					zco_destroy(sdr, bundleZco);
 					if (sdr_end_xn(sdr) < 0)
 					{
@@ -352,16 +352,9 @@ bundle ZCO.", NULL);
 
 		/*	Must have received a datagram.			*/
 
-		if (getInternetHostName(fromHostNbr, hostName))
-		{
-			senderEid = senderEidBuffer;
-			getSenderEid(&senderEid, hostName);
-		}
-		else
-		{
-			senderEid = NULL;
-		}
-
+		printDottedString(fromHostNbr, hostName);
+		senderEid = senderEidBuffer;
+		getSenderEid(&senderEid, hostName);
 		if (bpBeginAcq(work, 0, senderEid) < 0
 		|| bpContinueAcq(work, buffer, length) < 0
 		|| bpEndAcq(work) < 0)

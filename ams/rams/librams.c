@@ -866,7 +866,7 @@ printf("Before bp_receive...\n");
 				break;
 
 			case BpPayloadPresent:
-				sdr_begin_xn(sdr);
+				CHKERR(sdr_begin_xn(sdr));
 				if (HandleBundle(&dlv, buffer) < 0)
 				{
 					sdr_cancel_xn(sdr);
@@ -1246,8 +1246,14 @@ static void	HandleUnregistration(AmsModule module, void *userData,
 #if RAMSDEBUG
 PUTS("in HandleUnregistration");
 #endif
-	sourceModule = LookupModule(ams_get_unit_nbr(module),
-			ams_get_module_nbr(module), gWay);
+	unitNbr = ams_get_unit_nbr(module);
+	moduleNbr = ams_get_module_nbr(module);
+	if (unitNbr < 0 || moduleNbr < 0)
+	{
+		return;
+	}
+
+	sourceModule = LookupModule(unitNbr, moduleNbr, gWay);
 	if ((elt = ModuleSetMember(sourceModule, gWay->registerSet)) != NULL)
 	{
 		lyst_delete(elt);

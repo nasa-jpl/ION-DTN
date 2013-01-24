@@ -75,6 +75,7 @@ static void	printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a plan <node nbr> <default duct expression> \
 <RT mode duct expression> <PB mode duct expression> \
@@ -755,7 +756,7 @@ static void	infoPlan(int tokenCount, char **tokens)
 		return;
 	}
 	
-	sdr_begin_xn(sdr);		
+	CHKVOID(sdr_begin_xn(sdr));		
 	nodeNbr = strtol(tokens[2], NULL, 0);
 	bss_findPlan(nodeNbr, &planAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -820,7 +821,7 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 	}
 
 	nodeNbr = atoi(tokens[2]);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findPlan(nodeNbr, &planAddr, &elt);
 	sdr_exit_xn(sdr);
 	if (elt == 0)
@@ -849,7 +850,7 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 		sourceNodeNbr = atoi(tokens[4]);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
 			&ruleAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -932,7 +933,7 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 
 	firstNodeNbr = atoi(tokens[2]);
 	lastNodeNbr = atoi(tokens[3]);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
 	sdr_exit_xn(sdr);
 	if (elt == 0)
@@ -961,7 +962,7 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 		sourceNodeNbr = atoi(tokens[5]);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
 			sourceNodeNbr, group, &ruleAddr, &elt);
 	sdr_exit_xn(sdr);
@@ -1107,7 +1108,7 @@ static void	executeList(int tokenCount, char **tokens)
 		}
 
 		nodeNbr = atoi(tokens[2]);
-		sdr_begin_xn(sdr);
+		CHKVOID(sdr_begin_xn(sdr));
 		bss_findPlan(nodeNbr, &planAddr, &elt);
 		sdr_exit_xn(sdr);
 		if (elt == 0)
@@ -1170,6 +1171,7 @@ static int	processLine(char *line, int lineLength)
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
+	char		buffer[80];
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -1216,6 +1218,12 @@ static int	processLine(char *line, int lineLength)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s",
+					IONVERSIONNUMBER);
+			printText(buffer);
 			return 0;
 
 		case 'a':

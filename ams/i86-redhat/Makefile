@@ -7,7 +7,7 @@ RAMS = ../rams
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include
-LDFLAGS = -fPIC -shared
+LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
 
 LIBAMSOBJS = \
@@ -37,7 +37,7 @@ RAMSTESTOBJS = \
 PUBINCLS = \
 	$(INCL)/ams.h
 
-LBP = -lbp -lbpP
+LBP = -lbp
 
 RUNTIMES = amsd amshello amsshell amslog amslogprt amsbenchs amsbenchr ramsgate amsstop amsmib
 

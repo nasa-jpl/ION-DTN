@@ -9,6 +9,7 @@
 
 #include "ltpP.h"
 #include "ltp.h"
+#include "ion.h"
 
 static int		_echo(int *newValue)
 {
@@ -61,8 +62,9 @@ static void	printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint version of ION.");
 	PUTS("\t1\tInitialize");
-	PUTS("\t   1 <est. number of sessions> <bytes reserved for LTP>");
+	PUTS("\t   1 <est. max number of sessions>");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a span <engine ID#> <max export sessions> \
 <max import sessions> <max segment size> <aggregation size limit> \
@@ -98,24 +100,30 @@ indication characters, e.g., df{].  See man(5) for ltprc.");
 
 static void	initializeLtp(int tokenCount, char **tokens)
 {
-	unsigned int	maxNbrOfSessions;
-	unsigned int	blockSizeLimit;
+	unsigned int	estMaxNbrOfSessions;
 
-	if (tokenCount != 3)
+	/*	For backward compatibility, if second argument is
+	 *	provided it is simply ignored.				*/
+
+	if (tokenCount == 3)
+	{
+		tokenCount = 2;
+	}
+
+	if (tokenCount != 2)
 	{
 		SYNTAX_ERROR;
 		return;
 	}
 
-	maxNbrOfSessions = strtol(tokens[1], NULL, 0);
-	blockSizeLimit = strtol(tokens[2], NULL, 0);
+	estMaxNbrOfSessions = strtol(tokens[1], NULL, 0);
 	if (ionAttach() < 0)
 	{
 		putErrmsg("ltpadmin can't attach to ION.", NULL);
 		return;
 	}
 
-	if (ltpInit(maxNbrOfSessions, blockSizeLimit) < 0)
+	if (ltpInit(estMaxNbrOfSessions) < 0)
 	{
 		putErrmsg("ltpadmin can't initialize LTP.", NULL);
 		return;
@@ -302,6 +310,7 @@ static void	printSpan(LtpVspan *vspan)
 	char	cmd[SDRSTRING_BUFSZ];
 	char	buffer[256];
 
+	CHKVOID(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr, vspan->spanElt));
 	sdr_string_read(sdr, cmd, span->lsoCmd);
 	isprintf(buffer, sizeof buffer, "%lu  pid: %d  cmd: %.128s",
@@ -322,6 +331,7 @@ latency: %u  purge: %d", span->maxSegmentSize, span->remoteQtime, span->purge);
 	isprintf(buffer, sizeof buffer, "\towltOutbound: %u  localXmit: %lu  \
 owltInbound: %u  remoteXmit: %lu", vspan->owltOutbound, vspan->localXmitRate,
 			vspan->owltInbound, vspan->remoteXmitRate);
+	sdr_exit_xn(sdr);
 	printText(buffer);
 }
 
@@ -339,7 +349,7 @@ static void	infoSpan(int tokenCount, char **tokens)
 	}
 
 	engineId = strtoul(tokens[2], NULL, 0);
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	findSpan(engineId, &vspan, &vspanElt);
 	sdr_exit_xn(sdr);
 	if (vspanElt == 0)
@@ -385,11 +395,11 @@ static void	listSpans(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, ltpdbObj);
 	isprintf(buffer, sizeof buffer, "(Engine %lu  Queuing latency: %u \
 LSI pid: %d)", ltpdb->ownEngineId, ltpdb->ownQtime, vdb->lsiPid);
 	printText(buffer);
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
 	for (elt = sm_list_first(ionwm, vdb->spans); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
@@ -449,7 +459,7 @@ static void	manageScreening(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
 	ltpdb.enforceSchedule = newEnforceSchedule;
 	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
@@ -479,7 +489,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
 	ltpdb.ownQtime = newOwnQtime;
 	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
@@ -640,6 +650,7 @@ static int	processLine(char *line, int lineLength, int *checkNeeded)
 	char		*cursor;
 	int		i;
 	char		*tokens[12];
+	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
 
@@ -688,6 +699,12 @@ static int	processLine(char *line, int lineLength, int *checkNeeded)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s",
+					IONVERSIONNUMBER);
+			printText(buffer);
 			return 0;
 
 		case '1':

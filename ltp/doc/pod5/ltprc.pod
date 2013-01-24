@@ -27,22 +27,23 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by ltpadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
-=item B<1> I<est_max_export_sessions> I<database_bytes_needed>
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
+=item B<1> I<est_max_export_sessions>
 
 The B<initialize> command.  Until this command is executed, LTP is not
 in operation on the local ION node and most I<ltpadmin> commands will fail.
 
-The command reserves I<database_bytes_needed> bytes of storage in ION's
-SDR database for LTP's queuing and retransmission buffers.  It uses
-I<est_max_export_sessions> to configure the hashtable it will use to manage
-access to export transmission sessions that are currently in progress.  (Note
-that I<database_bytes_needed> must equal or exceed the sum of the sizes of
-the local and remote LTP retransmission "windows" for all "spans" as discussed
-below.  For optimum performance, I<est_max_export_sessions> should normally
-equal or exceed the summation of I<max_export_sessions> over all spans
-as discussed below.)
+The command uses I<est_max_export_sessions> to configure the hashtable it
+will use to manage access to export transmission sessions that are currently
+in progress.  For optimum performance, I<est_max_export_sessions> should
+normally equal or exceed the summation of I<max_export_sessions> over all
+spans as discussed below.
 
-Appropriate values for these parameters and for the parameters configuring
+Appropriate values for the parameters configuring
 each "span" of potential LTP data exchange between the local LTP and
 neighboring engines are non-trivial to determine.  See the ION LTP
 configuration spreadsheet and accompanying documentation for details.

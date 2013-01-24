@@ -47,8 +47,7 @@ Attaches the application to LTP functionality on the lcoal computer.  Returns
 
 =item void ltp_detach()
 
-Detaches the application from LTP functionality.  Detaching is required to
-avoid memory leaks.
+Terminates all access to LTP functionality on the local computer.
 
 =item int ltp_send(unsigned long destinationEngineId, unsigned long clientId, Object clientServiceData, unsigned int redLength, LtpSessionId *sessionId)
 

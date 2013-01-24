@@ -9,5 +9,3 @@ sleep 1
 ltpadmin	amroc.ltprc
 sleep 1
 bpadmin		amroc.bprc
-sleep 1
-cfdpadmin	amroc.cfdprc

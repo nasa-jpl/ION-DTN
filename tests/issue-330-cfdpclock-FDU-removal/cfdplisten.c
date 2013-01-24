@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 {
 
 	/*Initialize CFDP*/
-	if (cfdp_init() < 0) {
+	if (cfdp_attach() < 0) {
 		fprintf(stderr, "Error: Can't initialize CFDP. Is ION running?\n");
 		exit(1);
 	}

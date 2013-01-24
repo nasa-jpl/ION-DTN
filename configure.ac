@@ -8,7 +8,8 @@
 #is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
 # fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, 3.0.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.1.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -36,6 +37,18 @@ AC_ARG_ENABLE(
     [CFLAGS="-DENABLE_BPACS $CFLAGS"
      ENABLE_BPACS=yes])
 AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
+
+#
+# allow the user running configure to disable IMC
+#
+AC_ARG_ENABLE(
+    imc,
+    AC_HELP_STRING([--disable-imc], [disable Interplanetary Multicast]),
+    [],
+    [CFLAGS="-DENABLE_IMC $CFLAGS"
+     ENABLE_IMC=yes])
+AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
+
 
 
 # Checks for programs.
@@ -115,12 +128,33 @@ if test "x$enable_valgrind" != xno; then
   fi
 fi
 
-# Control whether AMS debugging info is printed.
-# Default is that the AMS debugging info is not printed.
-# To enable AMS debugging info, use "./configure --enable-ams-debug"
-AC_ARG_ENABLE([ams-debug],
-	[  --enable-ams-debug    Enable AMS debugging info],
-	[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
+if test "$IS_NASA_B" = "0"; then
+	# Control whether AMS debugging info is printed.
+	# Default is that the AMS debugging info is not printed.
+	# To enable AMS debugging info, use "./configure --enable-ams-debug"
+	AC_ARG_ENABLE([ams-debug],
+		[  --enable-ams-debug    Enable AMS debugging info],
+		[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
+fi
+
+if test "$IS_NASA_B" = "1"; then
+	# To Disable crypto, use "./configure --disable-crypto"
+	AC_ARG_ENABLE([crypto],
+		[  --disable-crypto    Turn off cryptography],
+		[case "${enableval}" in
+			yes) crypto=true ;;
+			no)  crypto=false ;;
+		*) AC_MSG_ERROR([bad value ${enableval} for --disable-crypto]) ;;
+		esac],[crypto=true])
+	
+	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
+
+	AC_DEFINE([NASA_PROTECTED_FLIGHT_CODE],[1],[Build ION NASA protected flight code])
+else
+	AM_CONDITIONAL([CRYPTO], [false])
+fi
+
+AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 
 # Dynamically choose whether or not to instrument code for gcov code coverage
 # Default is not to instrument the code for gcov code coverage.
@@ -161,8 +195,19 @@ else
 fi
 AC_SUBST([GROFFMS], $GROFFMS)
 
+AC_PATH_PROG([MANOPTS], [man])
+AC_MSG_CHECKING([if man supports -l])
+if test "$MANOPTS" && echo | $MANOPTS -l - >/dev/null 2>/dev/null; then
+    AC_MSG_RESULT($MANOPTS)
+else
+    MANOPTS=""
+    AC_MSG_RESULT([not found])
+    AC_MSG_NOTICE([try installing a version of man that supports -l])
+fi
+AC_SUBST([MANOPTS], $MANOPTS)
+
 AC_MSG_CHECKING([for tools to build autodoc])
-if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS"; then
+if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS" && test -n "$MANOPTS"; then
     AC_MSG_RESULT([found])
     buildautodoc="yes"
 else
@@ -210,6 +255,17 @@ case $host_os in
 
 	cygwin*)  AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.]) ;;
 	interix*) AC_DEFINE([interix],[1],[Build Interix specific platform code.]) ;;
+  *bsd*)    
+    AC_DEFINE([freebsd],[1],[Build Freebsd specific platform code.])
+    if test $host_cpu = "x86_64" ; then
+      AC_SUBST([ION_CFLAGS]," -Dfreebsd -DSPACE_ORDER=3 -m64 ")
+      echo "Build 64-bit Freebsd specific platform code."
+    else
+      AC_SUBST([ION_CFLAGS]," -Dfreebsd -DSPACE_ORDER=2 -m32 ")
+      echo "Build 32-bit Freebsd specific platform code."
+    fi
+
+    ;;
 	solaris*) 
 		if test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])

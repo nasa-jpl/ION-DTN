@@ -58,14 +58,15 @@ static void	handleQuit()
 static int	run_dtpcsend(int cycles, int rate, int recordLength,
 			int topicID, int profileID, char *dstEid)
 {
-	static char	buffer[BUF_SIZE] = "this is a testfile created by dtpcsend";
+	static char	buffer[BUF_SIZE] = "this is a testfile created by \
+dtpcsend";
 	int		stop = 0;
 	int		cyclesRemaining;
 	char		randomLength = 0;	/*	Boolean		*/
 	int		bytesRemaining;
 	int		bytesToWrite;
 	unsigned int	usecs;
-	float		sleep_secs;
+	float		sleepSecs;
 	time_t		startTime;
 	time_t		endTime;
 	long		interval;
@@ -78,8 +79,6 @@ static int	run_dtpcsend(int cycles, int rate, int recordLength,
 	DtpcElisionFn	elisionFn;
 
 	elisionFn = checkElision;
-
-
 	if (cycles < 1 || rate < MIN_RATE || rate > MAX_RATE ||
 		(recordLength < MIN_PAYLOADSIZE && recordLength != 1) ||
 		recordLength > MAX_PAYLOADSIZE || topicID < 1 ||
@@ -110,7 +109,6 @@ static int	run_dtpcsend(int cycles, int rate, int recordLength,
 
 	oK(_dtpcsap(&sap));
 	sdr = getIonsdr();
-
 	if (recordLength == 1)
 	{
 		randomLength = 1;
@@ -128,7 +126,13 @@ static int	run_dtpcsend(int cycles, int rate, int recordLength,
 		}
 
 		bytesRemaining = recordLength;
-		sdr_begin_xn(sdr);
+		if (sdr_begin_xn(sdr) == 0)
+		{
+			putErrmsg("Can't begin ION transaction.", NULL);
+			oK(_running(&stop));
+			continue;
+		}
+
 		aduObj = sdr_malloc(sdr, recordLength);
 		if (aduObj == 0)
 		{
@@ -162,8 +166,8 @@ static int	run_dtpcsend(int cycles, int rate, int recordLength,
 			continue;
 		}
 
-		switch(dtpc_send(profileID, sap, dstEid, 0, 0, 0, 0, NULL, 0, 0, NULL,
-				0, aduObj, recordLength))
+		switch (dtpc_send(profileID, sap, dstEid, 0, 0, 0, 0, NULL, 0,
+				0, NULL, 0, aduObj, recordLength))
 		{
 		case -1:
 			putErrmsg("Can't send adu.", NULL);
@@ -171,7 +175,13 @@ static int	run_dtpcsend(int cycles, int rate, int recordLength,
 			continue;
 
 		case 0:		/* This payload does not fit in an adu	*/
-			sdr_begin_xn(sdr);
+			if (sdr_begin_xn(sdr) == 0)
+			{
+				putErrmsg("Can't discard payload.", NULL);
+				oK(_running(&stop));
+				continue;
+			}
+
 			sdr_free(sdr, aduObj);
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -189,8 +199,8 @@ static int	run_dtpcsend(int cycles, int rate, int recordLength,
 			break;
 		}
 
-		sleep_secs = (1.0 / ((float) rate)) * ((float) recordLength) * 8;
-		usecs = (unsigned int)( sleep_secs * 1000000 );
+		sleepSecs = (1.0 / ((float) rate)) * ((float) recordLength) * 8;
+		usecs = (unsigned int)( sleepSecs * 1000000 );
 		microsnooze(usecs);
 		cyclesRemaining--;
 		if ((cyclesRemaining % 1000) == 0 && cyclesRemaining != 0)
@@ -261,6 +271,6 @@ int	main(int argc, char **argv)
 		break;
 	}
 #endif
-
-	return run_dtpcsend(cycles, rate, recordLength, topicID, profileID, dstEid);
+	return run_dtpcsend(cycles, rate, recordLength, topicID, profileID,
+			dstEid);
 }

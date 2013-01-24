@@ -62,7 +62,7 @@ static void	*getBundles(void *parm)
 			break;
 
 		case BpPayloadPresent:
-			sdr_begin_xn(sdr);
+			CHKNULL(sdr_begin_xn(sdr));
 
 			/* Since the max length of a Sdnv is 10 bytes,
 			 * read 21 bytes to be sure that the Profile

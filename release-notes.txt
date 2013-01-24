@@ -1,6 +1,6 @@
-= Release Notes for ION 3.0.1 =
+= Release Notes for ION 3.1.1 =
 
-May 23, 2012
+December 13, 2012
 
 %%%%%%%%%%%
 = GENERAL =
@@ -41,6 +41,12 @@ distribution are the following packages:
 - cfdp - a class-1 (Unacknowledged) implementation of the CCSDS File
   Delivery Protocol.
 
+- bss - a Bundle Streaming Service (BSS) for disruption-tolerant reliable
+  data streaming.  BSS supports real-time streaming applications by
+  passing the bundle payloads to the associated application for immediate
+  display of the most recent data while storing all bundle payloads
+  received into a database for user-directed playback.
+
 
 Features included:
 
@@ -52,6 +58,124 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.1.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Bug #9:  Fixed several bugs in the TCP convergence layer.
+    - TCPCLO would not reconnect to its neighbor if the neighbor was unreachable
+      on startup.
+      Fixed by instituting a default keepalive (currently 15 seconds).
+    - Fixed a TCPCL interoperability bug when an external implementation uses
+      full-duplex TCP connections where the tcpclo would fail to receive bundles
+      from this implementation if the TCP connection had ever been previously
+      lost.
+    - Capped the maximum TCP reconnection timeout to 1 hour down from 24 hours.
+
+- Bug #11: Fixed bug with transaction reversibility enabled where unpredictable
+  behavior could occur when a transaction reversal was forced and the state of
+  the SDR and working memory were out of sync.
+  ION now reinitializes working memory from the SDR to ensure data consistency.
+
+- Bug #12: Fixed a bug in the red-black tree data structure used in LTP by which
+  sm_rbt_destroy() didn't release the tree's mutex to the OS which could
+  ultimately lead to consumption of all semaphores on the system and crash the
+  node.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.1.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Began transitioning to the SourceForge issue tracker for code management.
+  SourceForge-originated issues are designated as "Bugs" or "Feature Requests".
+
+- Bug #1: Fixed bug where the contact graph routing engine would prefer a
+  multi-hop route to the source over the "no-hop" loopback connection.
+
+- Bug #2: Fixed bug in contact graph routing engine where erroneous routes
+  could be selected if route caching was enabled and any "downstream" contact on
+  a route had an end time earlier than the end time of the first contact on the
+  route.
+
+- Bug #3: Updated code and configurations to always use the dotted-string
+  representation of the sender's IP address rather than hostname.  This was done
+  to mitigate problems that can arise due to aliasing and multihoming.
+
+- Bug #7: Fixed bug where ionadmin would duplicate all currently-added contacts
+  and ranges that were added in the ION configuration files before starting
+  ION with the 's' command.
+
+- Bug #8: Fixed bug where bundles that expired while in the limbo queue were not
+  properly deallocated.
+
+- Bug #10: Updated the ionstart/ionscript/killm scripts with support for the
+  following ION administrative modules:
+    - Bundle streaming service (BSS)
+    - Interplanetary multicast (IMC)
+    - Aggregate custody signals (ACS)
+
+- Feature Request #2: Added support for bundle age extension blocks to help
+  accomodate platforms that may not be able to provide a stable clock. 
+  For more information on the bundle age extension, refer to internet draft
+      draft-irtf-dtnrg-bundle-age-block-01
+
+- Feature Request #3: Added support for bundle multicast.
+
+- Issue #195: Finished replacement of pthreads-based semaphore "unwedge"
+  function with simpler platform-specific equivalents, begun in ION 2.4.0.
+
+- Issue #306: Implemented several improvements to congestion forecasting.
+    - Improved the accuracy of the forecast of maximum storage occupancy
+      by incorporating estimations based on the rate of data being
+      transmitted in and out of the internal data heaps.
+
+    - ION now raises an alarm if expected peak volume of data is larger than
+      ION's allocated file storage size.
+
+    - Added new utility called "ionwarn" that is used for computing congestion
+      forecast at an ION node based on contact plan.
+
+- Issue #311: Added a Bundle Streaming Service (BSS) regression test that
+  does not require the use of "xterm".
+
+- Issue #339: Fixed bug in aggregate custody signals implementation that
+  prevented successful completion of regression tests on some platforms.
+
+- Issue #349: Optimized the LTP engine to achieve faster data rates by by
+  substituting red-black trees and hash tables for linked lists where
+  appropriate.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.0.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #280: Fixed a deadlock scenario when using "ionstart" to start two nodes
+  nodes in parallel.
+
+- Issue #349: Applied some optimizations to the LTP engine to help it operate
+  at data rates that can exceed 80Mbps.
+
+- Issue #357: Fixed compilation issues that prevented ION from building properly
+  on some kfreebsd systems.
+
+- Issue #358: Fixed a bug in computing the CFDP inactivity deadline.
+  Updated the "cfdprc" man page to expose the parameters for configuring the
+  CFDP inactivity timeout interval. 
+
+- Issue #360: Updated the MinGW port of ION to supply definitions for various
+  required macros that are no longer supplied by newer versions of MinGW.
+
+- Issue #361: Fixed compilation issues that prevented ION from building properly
+  on some debian-unstable systems.
+
+- Issue #362: Fixed a bug where transplantation of man pages into ION.pdf could
+  fail if an obsolete version of man was used, causing compilation to fail.  ION
+  now detects if the required "-l" option for man is supported, and does not
+  attempt to transplant the man pages if the option is not found.
+
+- Issue #363: Fixed several memory leaks where SDR heap space was allocated but
+  not freed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.0.1 =

@@ -197,6 +197,7 @@ static void	createIonConfigFiles()
 	oK(iputs(fd, linebuf));
 	close(fd);
 
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Create cfdprc file.					*/
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.cfdprc",
@@ -210,6 +211,7 @@ static void	createIonConfigFiles()
 
 	oK(iputs(fd, "1\ns bputa\n"));
 	close(fd);
+#endif
 }
 
 JNIEXPORT jstring JNICALL Java_gov_nasa_jpl_iondtn_NodeAdministrator_init(JNIEnv *env, jobject this)

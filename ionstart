@@ -9,6 +9,8 @@
 # which sections of the file are configuration commands for the various ion
 # administration interfaces.
 
+ION_OPEN_SOURCE=1
+
 # the location of the awkscript.
 # defining the environment variable AWKSCRIPT before running this script
 # will work (for things like make test) before installation
@@ -33,13 +35,24 @@ fi
 
 function USAGE {
 	echo
-	echo "IONSTART: Interplanetary Overlay Network startup script"
-	echo "USAGE:"
-	echo "	ionstart [-I config] [-t tag] [-b bprc] [-c cfdprc] [-d dtn2rc]"
-	echo "	         [-i ionrc] [-l ltprc] [-p ipnrc] [-s ionsecrc] [-a acsrc]"
-	echo
-	echo "	Defined configurations will be run in the following order:"
-	echo "	config, ionrc, ionsecrc, ltprc, bprc, ipnrc, dtn2rc, acsrc"
+	echo    "IONSTART: Interplanetary Overlay Network startup script"
+	echo    "USAGE:"
+	echo    "	ionstart [-I config]   [-t tag]   [-a acsrc] [-b bprc]  [-B bssrc]"
+	echo    "	         [-d dtn2rc]   [-i ionrc] [-l ltprc] [-m imcrc] [-p ipnrc]"
+	echo -n "	         [-s ionsecrc]"
+if [ "$ION_OPEN_SOURCE" == "1" ]; then
+	echo    " [-c cfdprc]"
+else
+	echo    ""
+fi
+	echo    ""
+	echo    "	Defined configurations will be run in the following order:"
+	echo -n "	config, ionrc, ionsecrc, ltprc, bprc, ipnrc, dtn2rc, acsrc, imcrc, bssrc"
+if [ "$ION_OPEN_SOURCE" == "1" ]; then
+	echo ", cfdprc"
+else
+	echo ""
+fi
 	echo
 	echo "	-I config	Specifies file containing the configuration for each"
 	echo "			ion administration program. Each section must be"
@@ -50,19 +63,23 @@ function USAGE {
 	echo "			in config file.  If unspecified, sections with no tag"
 	echo "			are used."
 	echo
+        echo "  -a acsrc        Specifies file acsrc to be used to configure acsadmin."
 	echo "	-b bprc		Specifies file bprc to be used to configure bpadmin."
-	echo "	-c cfdprc	Specifies file cfdprc to be used to configure cfdpadmin."
+	echo "	-B bssrc	Specifies file bssrc to be used to configure bssadmin."
 	echo "	-d dtn2rc	Specifies file dtn2rc to be used to configure dtn2admin."
 	echo "	-i ionrc	Specifies file ionrc to be used to configure ionadmin."
 	echo "	-l ltprc	Specifies file ltprc to be used to configure ltpadmin."
+	echo "	-m imcrc	Specifies file imcrc to be used to configure imcdmin."
 	echo "	-p ipnrc	Specifies file ipnrc to be used to configure ipnadmin."
 	echo "	-s ionsecrc	Specifies file ionsecrc to be used to configure ionsecadmin."
-        echo "  -a acsrc        Specifies file acsrc to be used to configure acsadmin."
+if [ "$ION_OPEN_SOURCE" == "1" ]; then
+	echo "	-c cfdprc	Specifies file cfdprc to be used to configure cfdpadmin."
+fi
 }
 
 # check for all the options
 
-while getopts ":t:i:c:I:d:p:b:l:s:a:h" options; do
+while getopts ":t:i:c:I:d:p:b:l:s:a:B:m:h" options; do
 	case $options in
 		t ) TAG="${OPTARG}";;
 		i ) IONRC="${OPTARG}"
@@ -72,11 +89,17 @@ while getopts ":t:i:c:I:d:p:b:l:s:a:h" options; do
 				failure="TRUE"
 			fi;;
 		c ) CFDPRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
+			if [[ ! -r "${OPTARG}" ]]; then
 				echo
 				echo "The cfdprc file ${OPTARG} can't be read."
 				failure="TRUE"
-			fi;;
+			fi
+			if [ "$ION_OPEN_SOURCE" == "0" ]; then
+				echo
+				echo "CFDP is not available"
+				failure="TRUE"
+			fi
+			;;
 		d ) DTN2RC="${OPTARG}"
 			if [[ ! -r "${OPTARG}" ]] ; then
 				echo
@@ -107,6 +130,18 @@ while getopts ":t:i:c:I:d:p:b:l:s:a:h" options; do
 				echo "The bprc file ${OPTARG} can't be read."
 				failure="TRUE"
 			fi;;
+		B ) BSSRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The bssrc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		m ) IMCRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The imcrc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
 		l ) LTPRC="${OPTARG}"
 			if [[ ! -r "${OPTARG}" ]] ; then
 				echo
@@ -128,15 +163,20 @@ while getopts ":t:i:c:I:d:p:b:l:s:a:h" options; do
 	esac
 done
 
-if [[ -z "${CONFIGFILE}" && -z "${IONRC}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${DTN2RC}" && -z "${ACSRC}" ]] ; then
+if [[ -z "${CONFIGFILE}" && -z "${IONRC}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${DTN2RC}" && -z "${ACSRC}" && -z "${BSSRC}" && -z "${IMCRC}" ]] ; then
 	echo
 	echo "You must define some configuration files for input, use any combination of the"
-	echo "-b -c -d -i -I -l -p -s -a options to define them."
+	echo "-b -B -c -d -i -I -l -m -p -s -a options to define them."
 	USAGE
 	exit 1
 fi
 
 if [[ "${failure}" == "TRUE" ]] ; then
+	exit 1
+fi
+
+if [[ ! -z "${BSSRC}" ]] && [[ ! -z "${IPNRC}" ]] ; then
+	echo "Error: bss and ipn are mutually exclusive!"
 	exit 1
 fi
 
@@ -152,7 +192,7 @@ if [[ ! -z "${IONRC}" ]] ; then
 	ionadmin "${IONRC}"
 fi
 
-if [[ ! -z "${IONSECRC}" ]] ; then
+if [[ ! -z "${IONSECRC}" ]]; then
 	echo
 	echo "Now running ionsecadmin using ${IONSECRC}"
 	ionsecadmin "${IONSECRC}"
@@ -170,24 +210,16 @@ if [[ ! -z "${BPRC}" ]] ; then
 	bpadmin "${BPRC}"
 fi
 
-if [[ ! -z "${CFDPRC}" ]] ; then
-	echo
-	echo "Now running cfdpadmin using ${CFDPRC}"
-	cfdpadmin "${CFDPRC}"
-fi
-
 if [[ ! -z "${IPNRC}" ]] ; then
 	echo
 	echo "Now running ipnadmin using ${IPNRC}"
 	ipnadmin "${IPNRC}"
-	ROUTINGCOMMAND="true"
 fi
 
 if [[ ! -z "${DTN2RC}" ]] ; then
 	echo
 	echo "Now running dtn2admin using ${DTN2RC}"
 	dtn2admin ${DTN2NODE} "${DTN2RC}"
-	ROUTINGCOMMAND="true"
 fi
 
 if [[ ! -z "${ACSRC}" ]] ; then
@@ -196,14 +228,23 @@ if [[ ! -z "${ACSRC}" ]] ; then
         acsadmin "${ACSRC}"
 fi
 
-# if dtn2admin or ipnadmin were run as separate programs, bpadmin should be started
-# afterwards as per the bug discovered by Andrew.Jenkins@colorado.edu
-# this has since been fixed
-#if [[ ! -z "${ROUTINGCOMMAND}" ]] ; then
-#	echo
-#	echo "Now running bpadmin again to start the node."
-#	echo "s" | bpadmin
-#fi
+if [[ ! -z "${IMCRC}" ]] ; then
+        echo
+        echo "Now running imcadmin using ${IMCRC}"
+        imcadmin "${IMCRC}"
+fi
+
+if [[ ! -z "${BSSRC}" ]] ; then
+        echo
+        echo "Now running bssadmin using ${BSSRC}"
+        bssadmin "${BSSRC}"
+fi
+
+if [[ ! -z "${CFDPRC}" ]]  && [ "$ION_OPEN_SOURCE" == "1" ]; then
+	echo
+	echo "Now running cfdpadmin using ${CFDPRC}"
+	cfdpadmin "${CFDPRC}"
+fi
 
 echo
 echo Allowing admin programs to complete...
@@ -214,4 +255,4 @@ echo
 echo "ION startup script completed."
 echo "You may find that the ION node has not started. If this is the case,"
 echo "some errors may have been reported to the console."
-echo "Further erros may be found in the file ion.log"
+echo "Further errors may be found in the file ion.log"

@@ -75,6 +75,11 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by ipnadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
 =item B<h>
 
 The B<help> command.  This will display a listing of the commands and their
@@ -219,7 +224,7 @@ Declares the egress plan to use for transmission from the local node to
 neighboring node 18.  Any bundle for which the computed "next hop" node
 is node 18 will be queued for transmission on LTP outduct 18.
 
-=item a rule 18 * 9 ltp/-18
+=item a planrule 18 * 9 ltp/-18
 
 Declares an egress plan override that applies to transmission to node 18
 of any bundle whose source is node 9, regardless of the service that was

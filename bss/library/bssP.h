@@ -19,7 +19,7 @@
 #include "bp.h"
 
 #ifndef WINDOW
-#define	WINDOW	86400	/*	Default window size is one day.		*/
+#define	WINDOW	28800	/*	Default window size is eight hours.	*/
 #endif
 
 #ifdef __cplusplus

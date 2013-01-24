@@ -214,7 +214,7 @@ int	main(int argc, char *argv[])
 	ClProtocol		protocol;
 	Outflow			outflows[3];
 	int			i;
-	char			*hostName;
+	char			hostName[16];
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
 	struct sockaddr		socketName;
@@ -303,11 +303,13 @@ number>");
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr,
 			vinduct->inductElt), sizeof(Induct));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			voutduct->outductElt), sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_BRS_RATE;
@@ -331,8 +333,7 @@ number>");
 	/*	Connect to BRS server.					*/
 
 	*underscore = '\0';
-	hostName = ductName;
-	parseSocketSpec(hostName, &portNbr, &hostNbr);
+	parseSocketSpec(ductName, &portNbr, &hostNbr);
 	if (portNbr == 0)
 	{
 		portNbr = 80;
@@ -341,12 +342,13 @@ number>");
 	portNbr = htons(portNbr);
 	if (hostNbr == 0)
 	{
-		putErrmsg("Can't get IP address for server.", hostName);
+		putErrmsg("Can't get IP address for server.", ductName);
 		MRELEASE(buffer);
 		return 1;
 	}
 
 	hostNbr = htonl(hostNbr);
+	printDottedString(hostNbr, hostName);
 	memset((char *) &socketName, 0, sizeof socketName);
 	inetName = (struct sockaddr_in *) &socketName;
 	inetName->sin_family = AF_INET;
@@ -359,9 +361,9 @@ number>");
 		return -1;
 	}
 
-	if (connectToCLI(&socketName, &ductSocket) < 0)
+	if (connectToCLI(&socketName, &ductSocket) < 0 || ductSocket < 0)
 	{
-		putErrmsg("Can't connect to server.", hostName);
+		putErrmsg("Can't connect to server.", ductName);
 		MRELEASE(buffer);
 		return 1;
 	}

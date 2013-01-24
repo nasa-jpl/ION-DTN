@@ -65,6 +65,7 @@ induct name] }");
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a plan <node name> <default directive>");
 	PUTS("\t   a rule <node name> <demux name> <directive>");
@@ -105,7 +106,7 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		}
 
 		dir->action = fwd;
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		dir->eid = sdr_string_create(sdr, parmToken);
 		if (sdr_end_xn(sdr))
 		{
@@ -159,7 +160,7 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		dir->outductElt = vduct->outductElt;
 		if (destDuctName)
 		{
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			dir->destDuctName = sdr_string_create(sdr,
 					destDuctName);
 			if (sdr_end_xn(sdr))
@@ -598,6 +599,7 @@ static int	processLine(char *line, int lineLength)
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
+	char	buffer[80];
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -644,6 +646,12 @@ static int	processLine(char *line, int lineLength)
 		case '?':
 		case 'h':
 			printUsage();
+			return 0;
+
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s",
+					IONVERSIONNUMBER);
+			printText(buffer);
 			return 0;
 
 		case 'a':

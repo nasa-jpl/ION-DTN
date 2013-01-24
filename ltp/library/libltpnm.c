@@ -13,28 +13,6 @@
 #include "ltpnm.h"
 
 /****************************************************************************/
-/* This routine will report current LTP heapBytesReserved and heapBytesOccupied
-   at the local ION node.
-   The calling routine should provide:
-     1) a long integer to hold heapBytesReserved
-     1) a long integer to hold heapBytesOccupied
-     
-   The routine below will modify each of these 2 parameters.
-*/
-void ltpnm_resources (unsigned long *heapBytesReserved,
-		unsigned long *heapBytesOccupied)
-{
-    Sdr             sdr = getIonsdr();
-    LtpDB           db;
-
-    CHKVOID(heapBytesReserved);
-    CHKVOID(heapBytesOccupied);
-    sdr_read(sdr, (char *) &db, getLtpDbObject(), sizeof(LtpDB));
-    *heapBytesReserved = db.heapSpaceBytesReserved;
-    *heapBytesOccupied = db.heapSpaceBytesOccupied;
-}
-
-/****************************************************************************/
 /* This routine will examine the current ION node and return the names of all 
    of the Span Neighboring Engine IDs currently defined.  
    The calling routine should provide:
@@ -57,7 +35,7 @@ void ltpnm_spanEngineIds_get (unsigned int IdArray [], int * numIds)
     CHKVOID(maxEngines > 0);
     CHKVOID(IdArray);
     * numIds = 0;
-    sdr_begin_xn(sdr);
+    CHKVOID(sdr_begin_xn(sdr));
     for (sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
          sdrElt = sdr_list_next(sdr, sdrElt))
@@ -122,7 +100,7 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
     CHKVOID(results);
     CHKVOID(success);
     * success = 0;
-    sdr_begin_xn(sdr);
+    CHKVOID(sdr_begin_xn(sdr));
     for (eltLoop = 0, sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
          eltLoop++, sdrElt = sdr_list_next(sdr, sdrElt))
@@ -215,7 +193,7 @@ void ltpnm_span_reset (unsigned int engineIdWanted, int * success)
     CHKVOID(engineIdWanted > 0);
     CHKVOID(success);
     * success = 0;
-    sdr_begin_xn(sdr);
+    CHKVOID(sdr_begin_xn(sdr));
     for (eltLoop = 0, sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
          eltLoop++, sdrElt = sdr_list_next(sdr, sdrElt))

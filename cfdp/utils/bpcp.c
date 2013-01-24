@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 	}
 
 	/*Connect to CFDP*/
-	if (cfdp_init() < 0)
+	if (cfdp_attach() < 0)
 	{
 		dbgprintf(0, "Error: Can't initialize CFDP. Is ION running?\n");
 		exit(1);
@@ -719,6 +719,8 @@ void ion_cfdp_init()
 	parms.faultHandlers[CfdpFilestoreRejection] = CfdpIgnore;
 	parms.faultHandlers[CfdpCheckLimitReached] = CfdpCancel;
 	parms.faultHandlers[CfdpChecksumFailure] = CfdpCancel;
+	parms.faultHandlers[CfdpInactivityDetected] = CfdpCancel;
+	parms.faultHandlers[CfdpFileSizeError] = CfdpCancel;
 }
 
 /*Copy a local file to a remote file. Takes a local file,
@@ -730,7 +732,7 @@ int ion_cfdp_put(struct transfer* t)
 	unsigned long long entityId;
 
 	/*Sanity checks*/
-	if (t==NULL || t->dfile==NULL || t->dhost==NULL || t->sfile==NULL)
+	if (t==NULL || t->dfile[0] == 0 || t->dhost[0] == 0 || t->sfile[0] == 0)
 	{
 		dbgprintf(0, "Warning: Can't copy file: %s\n", t->dfile);
 		return -1;
@@ -811,7 +813,7 @@ int ion_cfdp_get(struct transfer* t)
 	unsigned long long entityId;
 
 	/*Sanity checks*/
-	if (t==NULL || t->dfile==NULL || t->shost==NULL || t->sfile==NULL)
+	if (t==NULL || t->dfile[0] == 0 || t->shost[0] == 0 || t->sfile[0] == 0)
 	{
 		dbgprintf(0, "Warning: Can't copy file: %s\n", t->dfile);
 		return -1;
@@ -907,8 +909,8 @@ int ion_cfdp_rput(struct transfer* t)
 	CfdpNumber src;
 
 	/*Sanity checks*/
-	if (t==NULL || t->shost==NULL || t->sfile==NULL ||
-							t->dhost==NULL || t->dfile==NULL)
+	if (t==NULL || t->shost[0] == 0 || t->sfile[0] == 0
+	|| t->dhost[0] == 0 || t->dfile[0] == 0)
 	{
 		dbgprintf(0, "Warning: Can't copy file: %s\n", t->sfile);
 		return -1;
@@ -1003,7 +1005,7 @@ int local_cp(struct transfer* t)
 	char *r;
 
 	/*Sanity checks*/
-	if (t==NULL  || t->sfile==NULL || t->dfile==NULL)
+	if (t==NULL  || t->sfile[0] == 0 || t->dfile[0] == 0)
 	{
 		dbgprintf(0, "Warning: Can't copy file: %s\n", t->sfile);
 		return -1;
@@ -1622,7 +1624,7 @@ void exit_nicely(int val)
 	/*Delete any and all temporary files*/
 	for (i=0; i < NUM_TMP_FILES; i++)
 	{
-		if (tmp_files[i]!=NULL)
+		if (tmp_files[i][0] != 0)
 		{
 			unlink(tmp_files[i]);
 		}
@@ -1756,7 +1758,7 @@ static void handle_sigterm()
 	/*Delete any and all temporary files*/
 	for (i=0; i < NUM_TMP_FILES; i++)
 	{
-		if (tmp_files[i]!=NULL)
+		if (tmp_files[i][0] != 0)
 		{
 			unlink(tmp_files[i]);
 		}

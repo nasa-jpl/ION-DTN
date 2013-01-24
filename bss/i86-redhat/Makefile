@@ -5,7 +5,7 @@ TEST = ../test
 OPT = -g -Wall -Werror -Dlinux
 CC = gcc $(OPT) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
-LD = gcc $(LDFLAGS)
+LD = gcc $(LDFLAGS) -rdynamic
 
 LIBBSSOBJS = \
 	libbss.o \
@@ -14,7 +14,7 @@ LIBBSSOBJS = \
 PUBINCLS = \
 	$(INCL)/bss.h
 
-RUNTIMES = bssrecv bssStreamingApp
+RUNTIMES = bssrecv bssStreamingApp bsscounter bssdriver
 
 ALL = check libbss.so $(RUNTIMES)
 
@@ -38,12 +38,20 @@ install:
 #	-	-	Test executables	-	-	-	-
 
 bssrecv:	bssrecv.o libbss.so
-		$(CC) -o bssrecv bssrecv.o -L./lib -L$(ROOT)/lib -lbss -lbp -lbpP -lici -lpthread
+		$(CC) -o bssrecv bssrecv.o -L./lib -L$(ROOT)/lib -lbss -lbp -lici -lpthread
 		cp bssrecv ./bin
 
 bssStreamingApp:	bssStreamingApp.o libbss.so
-		$(CC) -o bssStreamingApp bssStreamingApp.o -L./lib -L$(ROOT)/lib -lbss -lbp -lbpP -lici -lpthread
+		$(CC) -o bssStreamingApp bssStreamingApp.o -L./lib -L$(ROOT)/lib -lbss -lbp -lici -lpthread
 		cp bssStreamingApp ./bin
+
+bsscounter:	bsscounter.o libbss.so
+		$(CC) -o bsscounter bsscounter.o -L./lib -L$(ROOT)/lib -lbss -lbp -lici -lpthread
+		cp bsscounter ./bin
+
+bssdriver:	bssdriver.o libbss.so
+		$(CC) -o bssdriver bssdriver.o -L./lib -L$(ROOT)/lib -lbss -lbp -lici -lpthread
+		cp bssdriver ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 

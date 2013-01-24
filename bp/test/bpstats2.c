@@ -56,6 +56,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 
 	if (stateIdx < 0 || stateIdx > 7) { return -1; }
 
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 	startTime = bpdb.resetTime;
 	currentTime = getUTCTime();
@@ -142,7 +143,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 				sizeof(Tally));
 		break;
 
-	case 7:
+	default:		/*	Can only be 7.			*/
 		sdr_read(sdr, (char *) &dbStats, bpdb.dbStats,
 				sizeof(BpDbStats));
 		memset((char *) &tallies[0], 0, sizeof(Tally));
@@ -151,15 +152,9 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 		memcpy((char *) &tallies[3], (char *)
 				&dbStats.tallies[BP_DB_EXPIRED],
 				sizeof(Tally));
-		break;
-
-	default:
-		memset((char *) &tallies[0], 0, sizeof(Tally));
-		memset((char *) &tallies[1], 0, sizeof(Tally));
-		memset((char *) &tallies[2], 0, sizeof(Tally));
-		memset((char *) &tallies[3], 0, sizeof(Tally));
 	}
 
+	sdr_exit_xn(sdr);
 	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) %u %lu \
 (1) %u %lu (2) %u %lu (+) %u %lu\n", classnames[stateIdx],
 			(unsigned int) startTime,
@@ -194,7 +189,7 @@ int sendStats(char *destEid, char *buffer, size_t len)
 	}
 
 	/* Wrap bundleZco around the stats buffer. */
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	extent = sdr_malloc(sdr, bytesWritten);
 	if(extent == 0) {
 		sdr_cancel_xn(sdr);

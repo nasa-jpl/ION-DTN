@@ -4,6 +4,7 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
+RESTART = ../restart
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
@@ -19,6 +20,7 @@ LIBICIOBJS = \
 	lyst.o \
 	psm.o \
 	smlist.o \
+	smrbt.o \
 	sptrace.o \
 	ion.o \
 	rfx.o \
@@ -30,7 +32,8 @@ LIBICIOBJS = \
 	sdrlist.o \
 	sdrtable.o \
 	sdrhash.o \
-	sdrcatlg.o
+	sdrcatlg.o \
+	smrbt.o
 
 PUBINCLS = \
 	$(INCL)/llcv.h \
@@ -40,6 +43,7 @@ PUBINCLS = \
 	$(INCL)/lyst.h \
 	$(INCL)/psm.h \
 	$(INCL)/smlist.h \
+	$(INCL)/smrbt.h \
 	$(INCL)/sptrace.h \
 	$(INCL)/ion.h \
 	$(INCL)/zco.h \
@@ -51,17 +55,18 @@ PUBINCLS = \
 	$(INCL)/sdrlist.h \
 	$(INCL)/sdrtable.h \
 	$(INCL)/sdrhash.h \
-	$(INCL)/sdr.h
+	$(INCL)/sdr.h \
+	$(INCL)/smrbt.h
 
 ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch sdrmend psmwatch ionadmin ionsecadmin
+UTILITIES = sdrwatch sdrmend psmwatch ionadmin ionsecadmin ionrestart
 
-TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh owltsim owlttb
+TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
 
-ALL = check libici.so rfxclock $(UTILITIES) $(TESTPGMS)
+ALL = check libici.so libicinm.so rfxclock $(UTILITIES) $(TESTPGMS)
 
 all:		$(ALL)
 
@@ -102,6 +107,15 @@ ionsecadmin:	ionsecadmin.o libici.so
 		$(CC) -o ionsecadmin ionsecadmin.o -L./lib -lici -lpthread
 		cp ionsecadmin ./bin
 
+#	-	-	Restart executable	-	-	-	-
+
+ionrestart.o:	$(RESTART)/ionrestart.c
+		$(CC) -I../../ltp/include -I../../bp/include -I../../cfdp/include -I../../ltp/library -I../../bp/library -I../../cfdp/library -c $(RESTART)/ionrestart.c
+
+ionrestart:	ionrestart.o libici.so
+		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ltp/i86-redhat/lib -L../../bp/i86-redhat/lib -L../../cfdp/i86-redhat/lib -lcfdp -lcgr -lbp -lltp -lltpP -lici -lpthread
+		cp ionrestart ./bin
+
 #	-	-	Test executables	-	-	-	-
 
 psmshell:	psmshell.o libici.so
@@ -111,6 +125,10 @@ psmshell:	psmshell.o libici.so
 smlistsh:	smlistsh.o libici.so
 		$(CC) -o smlistsh smlistsh.o -L./lib -lici -lpthread
 		cp smlistsh ./bin
+
+smrbtsh:	smrbtsh.o libici.so
+		$(CC) -o smrbtsh smrbtsh.o -L./lib -lici -lpthread
+		cp smrbtsh ./bin
 
 file2sm:	file2sm.o libici.so
 		$(CC) -I. -o file2sm file2sm.o -L./lib -lici -lpthread
@@ -147,6 +165,10 @@ rfxclock:	rfxclock.o libici.so
 libici.so:	$(LIBICIOBJS)
 		$(LD) -o libici.so $(LIBICIOBJS)
 		cp libici.so ./lib
+
+libicinm.so:	libicinm.o $(INCL)/icinm.h
+		$(LD) -o libicinm.so libicinm.o
+		cp libicinm.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 

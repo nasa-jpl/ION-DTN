@@ -9,9 +9,11 @@ all:
 		mkdir -p man; \
 		mkdir -p man/man1; \
 		mkdir -p man/man3; \
+		mkdir -p man/man5; \
 		mkdir -p html; \
 		mkdir -p html/man1; \
 		mkdir -p html/man3; \
+		mkdir -p html/man5; \
 		gmake all ROOT=$(OPT); \
 		cd ..; \
 		for PF in $(PLATFORMS); \

@@ -9,7 +9,7 @@
 	This work was supported by NASA contracts NNJ05HE10G, NNC06CB40C, and
 	NNC07CB47C.													*/
 
-#include <acs/acsP.h>
+#include <acsP.h>
 #include <sdrhash.h>
 
 static int printToStdout = 0;
@@ -274,7 +274,7 @@ int	main(int argc, char **argv)
 
 
 	/* Lock SDR and check the database. */
-	sdr_begin_xn(acsSdr);
+	CHKZERO(sdr_begin_xn(acsSdr));
 	printAndCheckByCids(acsSdr);
 	checkByBids(acsSdr);
 	sdr_exit_xn(acsSdr);

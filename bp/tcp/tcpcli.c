@@ -403,16 +403,9 @@ thread", NULL);
 		memcpy((char *) &hostNbr,
 				(char *) &(fromAddr->sin_addr.s_addr), 4);
 		hostNbr = ntohl(hostNbr);
-		if (getInternetHostName(hostNbr, hostName))
-		{
-			parms->senderEid = parms->senderEidBuffer;
-			getSenderEid(&(parms->senderEid), hostName);
-		}
-		else
-		{
-			parms->senderEid = NULL;
-		}
-
+		printDottedString(hostNbr, hostName);
+		parms->senderEid = parms->senderEidBuffer;
+		getSenderEid(&(parms->senderEid), hostName);
 		parms->cloSocketName = cloSocketName;
 		parms->cliRunning = &(atp->running);
                 parms->receiveRunning = 1;
@@ -526,9 +519,11 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
+	sdr_end_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vduct->acqThrottle.nominalRate = DEFAULT_TCP_RATE;

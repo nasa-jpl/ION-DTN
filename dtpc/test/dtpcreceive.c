@@ -148,7 +148,8 @@ int	main(int argc, char **argv)
 	{
 		if (dtpc_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
-			putErrmsg("dtpcreceive payload reception failed.", NULL);
+			putErrmsg("dtpcreceive payload reception failed.",
+					NULL);
 			oK(_running(&stop));
 			continue;
 		}

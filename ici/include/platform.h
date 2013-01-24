@@ -280,6 +280,20 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #include <pthread.h>
 
+#ifndef gmtime_r
+#define gmtime_r(_clock, _result) \
+	(*(_result) = *gmtime(_clock), (_result))
+#endif
+
+#ifndef localtime_r
+#define localtime_r(_clock, _result) \
+	(*(_result) = *localtime(_clock), (_result))
+#endif
+
+#ifndef rand_r
+#define rand_r(_seed) (rand())
+#endif
+
 #define	_MULTITHREADED
 #define	MAXPATHLEN		(MAX_PATH)
 
@@ -373,9 +387,10 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define PRIVATE_SYMTAB
 
-#else
+#else				/****	Not bionic		     ****/
 #include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
-#endif
+#include <execinfo.h>		/****	...to get backtrace	     ****/
+#endif				/****	End of #ifdef bionic	     ****/
 
 #define	_MULTITHREADED
 
@@ -520,6 +535,8 @@ extern int			_coreFileNeeded(int *);
 #define CHKNULL(e)    		if (!(e) && iEnd(#e)) return NULL
 #define CHKVOID(e)    		if (!(e) && iEnd(#e)) return
 
+extern void			printStackTrace();
+
 /*	The following macro deals with irrelevant return codes.		*/
 #define oK(x)			(void)(x)
 
@@ -564,6 +581,8 @@ extern void			findToken(char **cursorPtr, char **token);
 extern int			parseSocketSpec(char *socketSpec,
 					unsigned short *portNbr,
 					unsigned int *ipAddress);
+extern void			printDottedString(unsigned int hostNbr,
+					char *buffer);
 #include "platform_sm.h"
 
 #ifdef __cplusplus

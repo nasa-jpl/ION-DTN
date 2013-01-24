@@ -185,7 +185,7 @@ static void	*receiveBundles(void *parm)
 		snooze(1);
 		if(*(parms->bundleSocket) < 0)
 		{
-			threadRunning = 0;
+			/*Retry later*/
 			continue;
 		}
 
@@ -201,7 +201,11 @@ static void	*receiveBundles(void *parm)
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
-			/*	Intentional fall-through to next case.	*/
+			pthread_mutex_lock(parms->mutex);
+			closesocket(*(parms->bundleSocket));
+			*(parms->bundleSocket) = -1;
+			pthread_mutex_unlock(parms->mutex);
+			continue;
 
 		case 0:			/*	Shutdown message	*/	
 			/*	Go back to the start of the while loop	*/
@@ -312,9 +316,11 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vduct->xmitThrottle.nominalRate = DEFAULT_TCP_RATE;
@@ -469,7 +475,7 @@ int	main(int argc, char *argv[])
 	pthread_join(keepaliveThread, NULL);
 	writeMemo("tcpclo keep alive thread killed");
 	running = 0;
-	
+
 	pthread_join(receiverThread, NULL);
 	writeMemo("tcpclo receiver thread killed");
 

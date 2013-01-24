@@ -51,7 +51,8 @@ static void     printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	isprintf(buffer, sizeof buffer, "Syntax error at line %d of dtpcadmin.c", lineNbr);
+	isprintf(buffer, sizeof buffer,
+			"Syntax error at line %d of dtpcadmin.c", lineNbr);
 	printText(buffer);
 }
 
@@ -63,18 +64,20 @@ static void     printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tPrint ION version number.");
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
-        PUTS("\t   a profile <profileID> <maxRtx> \
-<aggrSizeLimit> <aggrSizeTime> <ttl> <cutody.<.priority<.ordinal\
-<.unreliable<.critical>>>>> <report-to-endpoint> <status_report_flags>");
+        PUTS("\t   a profile <profileID> <maxRtx> <aggrSizeLimit> \
+<aggrTimeLimit> <ttl> <custody>.<priority>[.<ordinal>\
+[.<unreliable>.<critical>[.<flow_label>]]] <report-to-endpoint> \
+[<status_report_flags>]");
 	
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} profile <profileID>");
 	PUTS("\tl\tList");
-	PUTS("\t   l scheme");
+	PUTS("\t   l profile");
 	PUTS("\ts\tStart");
         PUTS("\tx\tStop");
 	PUTS("\t   w { 0 | 1 | <activity spec> }");
@@ -91,7 +94,7 @@ static void	initializeDtpc(int tokenCount, char **tokens)
 	if (tokenCount != 1)
 	{
 		SYNTAX_ERROR;
-	return;
+		return;
 	}
 
 	if (dtpcInit() < 0)
@@ -119,22 +122,24 @@ static void	printProfile(Profile *vprofile)
 	
 	sdr_string_read(sdr, sdrBuf, vprofile->reportToEid);
 	
-	isprintf(buffer, sizeof buffer, "profileID: %u maxRtx: %u lifespan: %u",vprofile->profileID,
-		vprofile->maxRtx, vprofile->lifespan);
+	isprintf(buffer, sizeof buffer, "profileID: %u maxRtx: %u lifespan: %u",
+			vprofile->profileID, vprofile->maxRtx,
+			vprofile->lifespan);
 	printText(buffer);
-	isprintf(buffer, sizeof buffer, "aggrSizeLimit: %u, aggTimeLimit: %u Priority: %d Custody: %d",
-		vprofile->aggrSizeLimit, vprofile->aggrTimeLimit, vprofile->classOfService,
-		 vprofile->custodySwitch);
+	isprintf(buffer, sizeof buffer, "aggrSizeLimit: %u, aggTimeLimit: \
+%u Priority: %d Custody: %d", vprofile->aggrSizeLimit, vprofile->aggrTimeLimit,k
+			vprofile->classOfService,
+		 	vprofile->custodySwitch);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "reportToEid: %s", sdrBuf);
 	printText(buffer);
-	isprintf(buffer, sizeof buffer, "Ordinal: %d Unreliable: %d  Critical: %d", 
-		vprofile->extendedCOS.ordinal, 
+	isprintf(buffer, sizeof buffer, "Ordinal: %d Unreliable: %d  Critical: \
+%d", vprofile->extendedCOS.ordinal, 
 		vprofile->extendedCOS.flags & BP_BEST_EFFORT ? 1 : 0,
 		vprofile->extendedCOS.flags & BP_MINIMUM_LATENCY ? 1 : 0);
 	printText(buffer);
-	isprintf(buffer, sizeof buffer, "rcvReport: %d ctReport: %d fwdReport: %d dlvReport: %d delReport: %d",
-		vprofile->srrFlags & BP_RECEIVED_RPT ? 1 : 0,
+	isprintf(buffer, sizeof buffer, "rcvReport: %d ctReport: %d fwdReport: \
+%d dlvReport: %d delReport: %d", vprofile->srrFlags & BP_RECEIVED_RPT ? 1 : 0,
 		vprofile->srrFlags & BP_CUSTODY_RPT? 1 : 0,
 		vprofile->srrFlags & BP_FORWARDED_RPT? 1 : 0,
 		vprofile->srrFlags & BP_DELIVERED_RPT? 1 : 0,
@@ -166,7 +171,6 @@ static void	infoProfile(int tokenCount, char **tokens)
 		{
 			break;
 		}
-
 	}
 
 	if (elt == 0)
@@ -185,20 +189,21 @@ static void	executeAdd(int tokenCount, char **tokens)
 		printText("Add what?");
 		return;
 	}
+
 	if (strcmp(tokens[1], "profile") == 0)
 	{
-		if (tokenCount !=10 && tokenCount != 9)
+		if (tokenCount != 10 && tokenCount != 9)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
+
 		oK(addProfile(strtol(tokens[2], NULL, 0),
-			strtol(tokens[3], NULL, 0),
-			strtol(tokens[4], NULL, 0),
-			strtol(tokens[5], NULL, 0),
-			strtol(tokens[6], NULL, 0),
-			tokens[7], tokens[8], tokens[9]));
-			
+				strtol(tokens[3], NULL, 0),
+				strtol(tokens[4], NULL, 0),
+				strtol(tokens[5], NULL, 0),
+				strtol(tokens[6], NULL, 0),
+				tokens[7], tokens[8], tokens[9]));
 		return; 
 	}
 	
@@ -230,7 +235,6 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
-
 	if (tokenCount < 2)
 	{
 		printText("Information on what?");
@@ -268,7 +272,6 @@ static void	listProfiles(int tokenCount, char **tokens)
 
 static void	executeList(int tokenCount, char **tokens)
 {
-
 	if (tokenCount < 2)
 	{
 		printText("List what?");
@@ -412,6 +415,7 @@ static int	processLine(char *line, int lineLength)
 	char		*cursor;
 	int		i;
 	char		*tokens[10];
+	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
 
@@ -462,6 +466,11 @@ static int	processLine(char *line, int lineLength)
 			printUsage();
 			return 0;
 
+		case 'v':
+			isprintf(buffer, sizeof buffer, "%s", IONVERSIONNBR);
+			printText(buffer);
+			return 0;
+
 		case '1':
 			initializeDtpc(tokenCount, tokens);
 			return 0;
@@ -471,34 +480,36 @@ static int	processLine(char *line, int lineLength)
 			{
 				if (tokenCount > 1)
 				{
-					printText("Too many tokens for start command.");
+					printText("Too many tokens for start \
+command.");
 				}
 				else
 				{
 					if (dtpcStart() < 0)
 					{
-						putErrmsg("Can't start DTPC.",NULL);
+						putErrmsg("Can't start DTPC.",
+								NULL);
 						return 0;
 					}
 				}
 
-				/* Wait for dtpc to start up. */
+				/*	Wait for dtpc to start up.	*/
+
 				getCurrentTime(&done_time);
 				done_time.tv_sec += STARTUP_TIMEOUT;
 				while (dtpc_entity_is_started() == 0)
 				{
 					snooze(1);
 					getCurrentTime(&cur_time);
-					if (cur_time.tv_sec >=
-					    done_time.tv_sec 
-					    && cur_time.tv_usec >=
-					    done_time.tv_usec)
+					if (cur_time.tv_sec >= done_time.tv_sec 
+					&& cur_time.tv_usec >=
+							done_time.tv_usec)
 					{
-						printText("[?] DTPC start hung up, abandoned.");
+						printText("[?] DTPC start hung \
+up, abandoned.");
 						break;
 					}
 				}
-
 			}
 
 			return 0;
@@ -508,7 +519,8 @@ static int	processLine(char *line, int lineLength)
 			{
 				if (tokenCount > 1)
 				{
-					printText("Too many tokens for stop ccommand.");
+					printText("Too many tokens for stop \
+command.");
 				}
 				else
 				{
@@ -571,7 +583,7 @@ static int	processLine(char *line, int lineLength)
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	dtpcadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -668,6 +680,5 @@ int	main(int argc, char **argv)
 	writeErrmsgMemos();
 	printText("Stopping dtpcadmin.");
 	ionDetach();
-
 	return 0;
 }

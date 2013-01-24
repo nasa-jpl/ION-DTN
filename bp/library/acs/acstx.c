@@ -65,10 +65,13 @@ int acsInitialize(long heapWords, int logLevel)
 	}
 
         {
+	   Sdr		sdr = getIonsdr();
            IonDB        iondb;
            char         *pathname = iondb.parmcopy.pathName;
 
-           sdr_read( getIonsdr(), (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	   CHKERR(sdr_begin_xn(sdr));
+           sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	   sdr_exit_xn(sdr);
 
 #if 0
            {
@@ -81,7 +84,7 @@ int acsInitialize(long heapWords, int logLevel)
 #endif
            
            if (sdr_load_profile(acssdrName, SDR_IN_DRAM, heapWords,
-                                SM_NO_KEY,  pathname ) < 0)
+                                SM_NO_KEY, pathname, NULL) < 0)
            {
               putErrmsg("Unable to load SDR profile for ACS.", NULL);
               return -1;
@@ -104,11 +107,11 @@ int acsInitialize(long heapWords, int logLevel)
 		return -1;
 	}
 
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	acsdbObject = sdr_find(acsSdr, acsDbName, NULL);
 	switch (acsdbObject)
 	{
-	case -1:		/*	SDR error.				*/
+	case -1:		/*	SDR error.			*/
 		sdr_cancel_xn(acsSdr);
 		putErrmsg("Can't seek ACS database in SDR.", NULL);
 		return -1;
@@ -145,7 +148,9 @@ int acsInitialize(long heapWords, int logLevel)
 	}
 
 	acsConstants = &acsConstantsBuf;
+	CHKERR(sdr_begin_xn(acsSdr));
 	sdr_read(acsSdr, (char *) acsConstants, acsdbObject, sizeof(AcsDB));
+	sdr_exit_xn(acsSdr);
 	return 0;
 }
 
@@ -162,7 +167,7 @@ int acsAttach()
 		return -1;
 	}
 
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	if (acsdbObject == 0)
 	{
 		acsdbObject = sdr_find(acsSdr, acsDbName, NULL);
@@ -322,8 +327,9 @@ static void releaseSdrAcsSignal(Object signalLElt)
 	sdr_list_destroy(acsSdr, signal.acsFills, releaseSdrAcsFill, NULL);
 
 	if(signal.acsDue != 0) {
-		sdr_free(bpSdr, sdr_list_data(bpSdr, signal.acsDue));
-		sdr_list_delete(bpSdr, signal.acsDue, NULL, NULL);
+		destroyBpTimelineEvent(signal.acsDue);
+//		sdr_free(bpSdr, sdr_list_data(bpSdr, signal.acsDue));
+//		sdr_list_delete(bpSdr, signal.acsDue, NULL, NULL);
 	}
 
 	if(signal.serializedZco != 0) {
@@ -338,12 +344,12 @@ static void releaseSdrAcsSignal(Object signalLElt)
 int sendAcs(Object signalLElt)
 {
 	BpExtendedCOS		ecos = { 0, 0, 255 };
-	Object              signalAddr;
-	Object				acsBundleObj;			/* Unused write-out of bpSend */
-	SdrAcsSignal        signal;
+	Object			signalAddr;
+	Object			acsBundleObj;	/* Unused write-out of bpSend */
+	SdrAcsSignal        	signal;
 	SdrAcsPendingCust	pendingCust;
-	int					result;
-	Sdr					bpSdr = getIonsdr();
+	int			result;
+	Sdr			bpSdr = getIonsdr();
 
 	assert(signalLElt != 0);
 
@@ -354,8 +360,8 @@ int sendAcs(Object signalLElt)
 	}
 
 	/* To prevent deadlock, we take the BP SDR before the ACS SDR. */
-	sdr_begin_xn(bpSdr);
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
+	CHKERR(sdr_begin_xn(acsSdr));
 
 	signalAddr = sdr_list_data(acsSdr, signalLElt);
 	if (signalAddr == 0) {
@@ -370,9 +376,9 @@ int sendAcs(Object signalLElt)
 
 	/* Remove ref to this serialized ZCO from signal; also remove the bundle
 	 * IDs covered by this serialized ZCO. */
-	result = bpSend(NULL, pendingCust.eid, NULL, ACS_TTL, BP_EXPEDITED_PRIORITY,
-			NoCustodyRequested, 0, 0, &ecos, signal.serializedZco,
-			&acsBundleObj, BP_CUSTODY_SIGNAL);
+	result = bpSend(NULL, pendingCust.eid, NULL, ACS_TTL,
+			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0, &ecos,
+			signal.serializedZco, &acsBundleObj, BP_CUSTODY_SIGNAL);
 	switch (result)
 	{
 	/* All return codes from bpSend() still cause us to continue processing
@@ -395,11 +401,13 @@ int sendAcs(Object signalLElt)
 		break;
 	}
 
-	if(signal.acsDue != 0)
+	if (signal.acsDue != 0)
 	{
-		sdr_free(bpSdr, sdr_list_data(bpSdr, signal.acsDue));
-		sdr_list_delete(bpSdr, signal.acsDue, NULL, NULL);
+		destroyBpTimelineEvent(signal.acsDue);
+//		sdr_free(bpSdr, sdr_list_data(bpSdr, signal.acsDue));
+//		sdr_list_delete(bpSdr, signal.acsDue, NULL, NULL);
 	}
+
 	signal.acsDue = 0;
 	signal.serializedZco = 0;
 	sdr_poke(acsSdr, signalAddr, signal);
@@ -435,8 +443,8 @@ int trySendAcs(SdrAcsPendingCust *custodian,
 	Sdr					bpSdr = getIonsdr();
 
 	/* To prevent deadlock, take bpSdr before acsSdr. */
-	sdr_begin_xn(bpSdr);
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
+	CHKERR(sdr_begin_xn(acsSdr));
 
 	signalLElt = findSdrAcsSignal(custodian->signals, reasonCode, succeeded,
 			&signalAddr);
@@ -599,7 +607,7 @@ static Object newSdrAcsCustodian(Object custodians, const char *eid)
 	newCustodian.acsDelay = 2;
 	newCustodian.acsSize = 300;
 
-	sdr_begin_xn(acsSdr);
+	CHKZERO(sdr_begin_xn(acsSdr));
 	newCustodianAddr = sdr_malloc(acsSdr, sizeof(newCustodian));
 	newCustodian.signals = sdr_list_create(acsSdr);
 	sdr_poke(acsSdr, newCustodianAddr, newCustodian);
@@ -617,7 +625,7 @@ Object getOrMakeCustodianByEid(Object custodians, const char *eid)
 	Object custodianAddr;
 
 	/* Try to find custodian info if it exists. */
-	sdr_begin_xn(acsSdr);
+	CHKZERO(sdr_begin_xn(acsSdr));
 	custodianAddr = findCustodianByEid(custodians, eid);
 	if(sdr_end_xn(acsSdr) < 0)
 	{
@@ -650,7 +658,7 @@ int updateCustodianAcsDelay(const char *custodianEid,
 		return -1;
 	}
 
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	sdr_peek(acsSdr, custodian, custodianAddr);
 	custodian.acsDelay = acsDelay;
 	sdr_poke(acsSdr, custodianAddr, custodian);
@@ -674,7 +682,7 @@ int updateCustodianAcsSize(const char *custodianEid,
 		return -1;
 	}
 
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	sdr_peek(acsSdr, custodian, custodianAddr);
 	custodian.acsSize = acsSize;
 	sdr_poke(acsSdr, custodianAddr, custodian);
@@ -688,7 +696,7 @@ int updateCustodianAcsSize(const char *custodianEid,
 
 int updateMinimumCustodyId(unsigned long minimumCustodyId)
 {
-	sdr_begin_xn(acsSdr);
+	CHKERR(sdr_begin_xn(acsSdr));
 	sdr_poke(acsSdr, acsConstants->id, minimumCustodyId);
 	if(sdr_end_xn(acsSdr) < 0)
 	{
@@ -705,7 +713,7 @@ void listCustodianInfo(void (*printer)(const char *))
 	SdrAcsPendingCust	custodian;
 	char buffer[1024];
 
-	sdr_begin_xn(acsSdr);
+	CHKVOID(sdr_begin_xn(acsSdr));
 	for(custodianLElt = sdr_list_first(acsSdr, acsConstants->pendingCusts);
 		custodianLElt;
 		custodianLElt = sdr_list_next(acsSdr, custodianLElt))
@@ -719,5 +727,5 @@ void listCustodianInfo(void (*printer)(const char *))
 			custodian.acsSize);
 		printer(buffer);
 	}
-	sdr_end_xn(acsSdr);
+	oK(sdr_end_xn(acsSdr));
 }

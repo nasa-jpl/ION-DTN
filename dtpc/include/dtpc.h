@@ -8,7 +8,7 @@
 
 	Copyright (c) 2011, Space Internetworking Center,
 	Democritus University of Thrace. ALL RIGHTS RESERVED.
-										*/
+*/
 
 #include "bp.h"
 
@@ -45,37 +45,39 @@ typedef struct
 
 /*      *       *       DTPC initilization       *       *       *	*/
 
-extern int      dtpc_init();
+extern int      dtpc_attach();
 
 extern int      dtpc_entity_is_started();
 
+extern void      dtpc_detach();
+
 /*      *       *       DTPC local services      *       *       *	*/
 
-extern int      dtpc_send(	unsigned int profileID,
-				DtpcSAP sap,
-				char *dstEid,
-				unsigned int maxRtx,
-				unsigned int aggrSizeLimit,
-				unsigned int aggrTimeLimit,
-                                int lifespan,
-				BpExtendedCOS *extendedCOS,
-				unsigned char srrFlags,
-				BpCustodySwitch custodySwitch,
-				char *reportToEid,
-                                int classOfService,
-                                Object adu,
-				unsigned int length);
-
-extern void     dtpc_interrupt(DtpcSAP sap);
-
-extern int      dtpc_open (unsigned int topicID, DtpcElisionFn elisionFn,
+extern int      dtpc_open(unsigned int topicID,
+			DtpcElisionFn elisionFn,
 			DtpcSAP *dtpcsapPtr);
 
-extern void     dtpc_close(DtpcSAP sap);
+extern int      dtpc_send(unsigned int profileID,
+			DtpcSAP sap,
+			char *dstEid,
+			unsigned int maxRtx,
+			unsigned int aggrSizeLimit,
+			unsigned int aggrTimeLimit,
+			int lifespan,
+			BpExtendedCOS *extendedCOS,
+			unsigned char srrFlags,
+			BpCustodySwitch custodySwitch,
+			char *reportToEid,
+			int classOfService,
+			Object item,
+			unsigned int length);
 
-extern int      dtpc_receive(DtpcSAP sap, DtpcDelivery *dlv,
+extern int      dtpc_receive(DtpcSAP sap,
+			DtpcDelivery *dlv,
 			int timeoutSeconds);
 
 extern void	dtpc_interrupt(DtpcSAP sap);
 
 extern void	dtpc_release_delivery(DtpcDelivery *dlvBuffer);
+
+extern void     dtpc_close(DtpcSAP sap);

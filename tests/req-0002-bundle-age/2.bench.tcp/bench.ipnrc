@@ -1,0 +1,4 @@
+a plan 1 tcp/localhost:1113
+a plan 2 tcp/localhost:2113
+a plan 3 tcp/localhost:3113
+a group 4 4 ipn:3.0

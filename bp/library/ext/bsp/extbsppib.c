@@ -1,7 +1,11 @@
 #include "extbsputil.h"
 #include "extbsppib.h"
 
-#include "../../crypto/crypto.h"
+#if (PIB_DEBUGGING == 1)
+extern char		gMsg[];		/*	Debug message buffer.	*/
+#endif
+
+#include "crypto.h"
 
 
 /*****************************************************************************
@@ -151,8 +155,8 @@ int bsp_pibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
    BspAbstractSecurityBlock asb;
    int result = -1;
 
-   PIB_DEBUG_PROC("+ bsp_pibOffer(%x, %x)",
-                  (unsigned long) blk, (unsigned long) bundle);
+   PIB_DEBUG_PROC("+ bsp_pibCopy(%x, %x)",
+                  (unsigned long) newBlk, (unsigned long) oldBlk);
 
    CHKERR(newBlk);
    CHKERR(oldBlk);
@@ -372,14 +376,16 @@ int bsp_pibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	  int cmpResult;
           Object payloadData;
           Sdr bpSdr = getIonsdr();
-          char *srcNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN);
-          char *destNode = MTAKE(MAX_SCHEME_NAME_LEN + 1 + MAX_EID_LEN); 
+          char *srcNode = NULL;
+          char *destNode = NULL;
 
           // Get the src and dest needed to get key
-          if((printEid(&asb->secSrc, wk->dictionary, &srcNode) != 0) ||
-             (printEid(&asb->secDest, wk->dictionary, &destNode) != 0))
+          oK(printEid(&asb->secSrc, wk->dictionary, &srcNode));
+          oK(printEid(&asb->secDest, wk->dictionary, &destNode));
+	  if (srcNode == NULL || destNode == NULL)
           {
-	      MRELEASE(srcNode); MRELEASE(destNode);
+	      if (srcNode) MRELEASE(srcNode);
+	      if (destNode) MRELEASE(destNode);
 	      PIB_DEBUG_ERR("x bsp_pibCheck: Error retrieving src and dest nodes to find key.", NULL);
 	      PIB_DEBUG_PROC("- bsp_pibCheck --> %d", -1);
 	      return -1;
@@ -411,7 +417,7 @@ int bsp_pibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
           // The entire bundle currently sits in payload.content,
           // extract just the real payload content
-          sdr_begin_xn(bpSdr);
+          CHKERR(sdr_begin_xn(bpSdr));
           payloadData = zco_clone(bpSdr, wk->bundle.payload.content, wk->headerLength,
                                   wk->bundle.payload.length);
           // The length should be == to the payload length now
@@ -421,21 +427,28 @@ int bsp_pibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
               PIB_DEBUG_ERR("x bsp_pibCheck: Failed to isolate payload data \
                              length of zco %d, should be payload length of %d", temp, wk->bundle.payload.length);
               zco_destroy(bpSdr, payloadData);
-              sdr_end_xn(bpSdr);
+              oK(sdr_end_xn(bpSdr));
               PIB_DEBUG_PROC("- bsp_pibCheck(%d)", -1);
               return -1;
           }
 
-          sdr_end_xn(bpSdr);
+          if (sdr_end_xn(bpSdr) < 0)
+	  {
+		  putErrmsg("Transaction failed.", NULL);
+		  return -1;
+	  }
 
 	  /* Grab the digest of the received payload */
 	  tmpDigest = bsp_pibGetSecResult(payloadData, wk->bundle.payload.length,
 			                  keyValueBuffer, keyLen, &tmpDigestLen);
 
           // Destroy the payload object as we don't need it any longer
-          sdr_begin_xn(bpSdr);
+          CHKERR(sdr_begin_xn(bpSdr));
           zco_destroy(bpSdr, payloadData);
-          sdr_end_xn(bpSdr);
+          if (sdr_end_xn(bpSdr) < 0)
+	  {
+		  putErrmsg("Transaction failed.", NULL);
+	  }
 
       cmpResult = memcmp(digest, tmpDigest, digestLen);
 
@@ -773,7 +786,7 @@ unsigned char *bsp_pibGetSecResult(Object dataObj,
    }
 
    /*   Prepare the data for processing. */
-   sdr_begin_xn(bpSdr);
+   CHKNULL(sdr_begin_xn(bpSdr));
    zco_start_transmitting(dataObj, &dataReader);
    
    hmac_sha256_init(authContext,(unsigned char *)keyValue, keyLen);
@@ -801,7 +814,7 @@ unsigned char *bsp_pibGetSecResult(Object dataObj,
 					   bytesRetrieved, chunkSize);
 
     	 MRELEASE(authContext);
-         sdr_end_xn(bpSdr);
+         oK(sdr_end_xn(bpSdr));
 
          *hashLen = 0;
          PIB_DEBUG_PROC("- bsp_pibGetSecResult--> NULL", NULL);
@@ -827,7 +840,7 @@ unsigned char *bsp_pibGetSecResult(Object dataObj,
                      BSP_PIB_HMAC_SHA256_RESULT_LEN);
 
       MRELEASE(authContext);
-      sdr_end_xn(bpSdr);
+      oK(sdr_end_xn(bpSdr));
 
       *hashLen = 0;
       PIB_DEBUG_PROC("- bsp_pibGetSecResult--> NULL", NULL);
@@ -846,8 +859,7 @@ unsigned char *bsp_pibGetSecResult(Object dataObj,
    MRELEASE(authContext);
    if ((i = sdr_end_xn(bpSdr)) < 0)
    {
-      PIB_DEBUG_ERR("x bsp_pibGetSecResult: Failed closing transaction. Result is %d.",
-                     i);
+      PIB_DEBUG_ERR("x bsp_pibGetSecResult: Failed closing transaction. Result is %d.", i);
 
       MRELEASE(hashData);
       *hashLen = 0;

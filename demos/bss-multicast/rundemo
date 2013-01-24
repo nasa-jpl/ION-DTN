@@ -1,0 +1,156 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# September 11, 2012
+#
+# documentation boilerplate
+CONFIGFILES=" \
+./global.ionrc \
+./1.ipn.bss/node.ionconfig \
+./1.ipn.bss/node.ionrc \
+./1.ipn.bss/node.ionsecrc \
+./1.ipn.bss/node.ltprc \
+./1.ipn.bss/node.bprc.1 \
+./1.ipn.bss/node.ipnrc \
+./1.ipn.bss/node.imcrc \
+./1.ipn.bss/node.bprc.2 \
+./1.ipn.bss/node.owltsim \
+./2.ipn.bss/node.ionconfig \
+./2.ipn.bss/node.ionrc \
+./2.ipn.bss/node.ionsecrc \
+./2.ipn.bss/node.ltprc \
+./2.ipn.bss/node.bprc.1 \
+./2.ipn.bss/node.ipnrc \
+./2.ipn.bss/node.imcrc \
+./2.ipn.bss/node.bprc.2 \
+./3.ipn.bss/node.ionconfig \
+./3.ipn.bss/node.ionrc \
+./3.ipn.bss/node.ionsecrc \
+./3.ipn.bss/node.ltprc \
+./3.ipn.bss/node.bprc.1 \
+./3.ipn.bss/node.ipnrc \
+./3.ipn.bss/node.imcrc \
+./3.ipn.bss/node.bprc.2 \
+./4.ipn.bss/node.ionconfig \
+./4.ipn.bss/node.ionrc \
+./4.ipn.bss/node.ionsecrc \
+./4.ipn.bss/node.ltprc \
+./4.ipn.bss/node.bprc.1 \
+./4.ipn.bss/node.ipnrc \
+./4.ipn.bss/node.imcrc \
+./4.ipn.bss/node.bprc.2 \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Demonstrate the functionality of Bundle Streaming Service.
+Demonstrates BSS multicast:
+
+This demo simulates the multicast streaming of a HD video by sending a stream 
+of bundles from node 1 to multicast group 19 for 30 seconds. The network
+comprises four nodes in a diamond topology (1 is in continuous LTP contact
+with 2 and 3, both of which are in continuous LTP contact with node 4; in
+addition, nodes 2 and 3 are in continuous LTP contact) but a multicast tree
+is overlaid on this topology: node 1 is the root, with node 2 as its sole
+child and nodes 3 and 4 as the children of node 2.  Nodes 1, 3, and 4 (but
+not 2) are members of multicast group 19.
+
+The communication channel between node 1 and node 2 presents packet losses
+(on the order of 10%); LTP retransmission enables these losses to be recovered.
+At the receiver's end, only the frames that arrive in-order get immediately
+displayed while the out-of-order frames are stored in database for later
+processing. After 30 seconds the stream can be replayed in its entirety by
+using the playback-mode functionality of the BSS receiving application."
+
+echo
+echo "CONFIG: 4 node custom BSS:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+sleep 1
+# Start nodes.
+cd 1.ipn.bss
+echo "Starting node 1..."
+./ionstart >& node1.stdout &
+sleep 5
+cd ../2.ipn.bss
+echo "Starting node 2..."
+./ionstart >& node2.stdout &
+sleep 1
+cd ../3.ipn.bss
+echo "Starting node 3..."
+./ionstart >& node3.stdout &
+sleep 1
+cd ../4.ipn.bss
+echo "Starting node 4..."
+./ionstart >& node4.stdout &
+
+# Wait for all nodes to be configured.
+sleep 25
+
+# Start BSS receiver on nodes 3 and 4.
+echo
+echo "Starting bssrecv application..."
+cd ../3.ipn.bss
+xterm -geom 160x40 -e bssrecv 3 bssDB ./ imc:19.0 &
+cd ../4.ipn.bss
+xterm -geom 160x40 -e bssrecv 3 bssDB ./ imc:19.0 &
+sleep 2
+
+cd ../1.ipn.bss
+echo
+echo "Sending a stream of bundles from node 1 to group 19 for 30 seconds..."
+echo "bssStreamingApp started at $(date +"%Y/%m/%d-%T")"
+xterm -e bssStreamingApp ipn:1.2 imc:19.0 &
+sleep 30
+pkill -SIGINT bssStreamingApp
+TOTIME=$(date +"%Y/%m/%d-%T")
+echo
+
+# Give nodes enough time to receive all the reforwarded frames from node 1.
+echo "Wait 15 seconds to ensure the complete reception of the stream from node 2..."
+sleep 15
+pkill bssrecv
+
+echo
+echo "Replaying the received stream."
+cd ../3.ipn.bss
+xterm -geom 160x40 -e bssrecv 1 bssDB ./ imc:19.0 0 $TOTIME &
+cd ../4.ipn.bss
+xterm -geom 160x40 -e bssrecv 1 bssDB ./ imc:19.0 0 $TOTIME &
+echo
+sleep 70
+pkill bssrecv
+
+# Shut down ION processes.
+echo
+echo "Stopping ION..."
+cd ../1.ipn.bss
+./ionstop &
+cd ../2.ipn.bss
+./ionstop &
+cd ../3.ipn.bss
+./ionstop &
+cd ../4.ipn.bss
+./ionstop &
+
+# Give all nodes time to shut down, then clean up.
+sleep 15
+killm
+echo "BSS demo completed."
+exit $RETVAL

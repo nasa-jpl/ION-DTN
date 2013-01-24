@@ -41,13 +41,18 @@ Unwedge, as necessary, the mutex semaphore protecting shared access to the
 indicated rbt.  For details, see the explanation of the sm_SemUnwedge()
 function in platform(3).
 
-=item int sm_rbt_destroy(PsmPartition partition, PsmAddress rbt, SmRbtDeleteFn delete, void *argument);
+=item int sm_rbt_clear(PsmPartition partition, PsmAddress rbt, SmRbtDeleteFn delete, void *argument);
 
-Destroy an rbt.  Frees each node of the rbt.  If the I<delete> function 
+Frees every node of the rbt, leaving the rbt empty.  If the I<delete> function 
 is non-NULL, that function is called once for each freed node; when
 called, that function is passed the PsmAddress that is the node's data
-and the I<argument> pointer passed to sm_rbt_destroy().  Also frees the rbt
-structure itself.  Returns 0 on success, -1 on any error.
+and the I<argument> pointer passed to sm_rbt_clear().  Returns 0 on success,
+-1 on any error.
+
+=item int sm_rbt_destroy(PsmPartition partition, PsmAddress rbt, SmRbtDeleteFn delete, void *argument);
+
+Destroy an rbt.  Frees all nodes of the rbt as in sm_rbt_clear(), then
+frees the rbt structure itself.  Returns 0 on success, -1 on any error.
 
 =item int sm_rbt_user_data_set(PsmPartition partition, PsmAddress rbt, PsmAddress userData);
 

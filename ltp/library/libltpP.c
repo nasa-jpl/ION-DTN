@@ -37,6 +37,8 @@ static LtpDB	*_ltpConstants()
 {
 	static LtpDB	buf;
 	static LtpDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
@@ -45,9 +47,26 @@ static LtpDB	*_ltpConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(getIonsdr(), (char *) &buf, _ltpdbObject(NULL),
-				sizeof(LtpDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _ltpdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(LtpDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(LtpDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -203,12 +222,63 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 		return -1;
 	}
 
+	vspan->importSessions = sm_rbt_create(ltpwm);
+	if (vspan->importSessions == 0)
+	{
+		psm_free(ltpwm, vspan->segmentBuffer);
+		oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
+		psm_free(ltpwm, addr);
+		return -1;
+	}
+
+	vspan->avblIdxRbts = sm_list_create(ltpwm);
+	if (vspan->avblIdxRbts == 0)
+	{
+		sm_rbt_destroy(ltpwm, vspan->importSessions, NULL, NULL);
+		psm_free(ltpwm, vspan->segmentBuffer);
+		oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
+		psm_free(ltpwm, addr);
+		return -1;
+	}
+
 	vspan->bufOpenRedSemaphore = SM_SEM_NONE;
 	vspan->bufOpenGreenSemaphore = SM_SEM_NONE;
 	vspan->bufClosedSemaphore = SM_SEM_NONE;
 	vspan->segSemaphore = SM_SEM_NONE;
 	resetSpan(vspan);
 	return 0;
+}
+
+static void	deleteSegmentRef(PsmPartition ltpwm, PsmAddress nodeData,
+			void *arg)
+{
+	psm_free(ltpwm, nodeData);	/*	Delete LtpSegmentRef.	*/
+}
+
+static PsmAddress	releaseIdxRbt(PsmPartition ltpwm, LtpVspan *vspan,
+				PsmAddress rbt)
+{
+	sm_rbt_clear(ltpwm, rbt, deleteSegmentRef, NULL);
+	return sm_list_insert_first(ltpwm, vspan->avblIdxRbts, rbt);
+}
+
+static void	deleteVImportSession(PsmPartition ltpwm, PsmAddress nodeData,
+			void *arg)
+{
+	VImportSession	*vsession = (VImportSession *) psp(ltpwm, nodeData);
+	LtpVspan	*vspan = (LtpVspan *) arg;
+
+	if (vsession->redSegmentsIdx)
+	{
+		oK(releaseIdxRbt(ltpwm, vspan, vsession->redSegmentsIdx));
+	}
+
+	psm_free(ltpwm, nodeData);	/*	Delete VImportSession.	*/
+}
+
+static void	deleteIdxRbt(PsmPartition ltpwm, PsmAddress nodeData, void *arg)
+{
+	oK(sm_rbt_destroy(ltpwm, nodeData, NULL, NULL));
 }
 
 static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
@@ -237,6 +307,10 @@ static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
 		sm_SemDelete(vspan->segSemaphore);
 	}
 
+	oK(sm_rbt_destroy(ltpwm, vspan->importSessions,
+			deleteVImportSession, vspan));
+	oK(sm_list_destroy(ltpwm, vspan->avblIdxRbts,
+			deleteIdxRbt, NULL));
 	psm_free(ltpwm, vspan->segmentBuffer);
 	oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
 	psm_free(ltpwm, vspanAddr);
@@ -313,13 +387,6 @@ static char 	*_ltpvdbName()
 static LtpVdb		*_ltpvdb(char **name)
 {
 	static LtpVdb	*vdb = NULL;
-	PsmPartition	wm;
-	PsmAddress	vdbAddress;
-	PsmAddress	elt;
-	Sdr		sdr;
-	Object		sdrElt;
-	int		i;
-	LtpVclient	*client;
 
 	if (name)
 	{
@@ -330,6 +397,10 @@ static LtpVdb		*_ltpvdb(char **name)
 		}
 
 		/*	Attaching to volatile database.			*/
+
+		PsmPartition	wm;
+		PsmAddress	vdbAddress;
+		PsmAddress	elt;
 
 		wm = getIonwm();
 		if (psm_locate(wm, *name, &vdbAddress, &elt) < 0)
@@ -346,8 +417,14 @@ static LtpVdb		*_ltpvdb(char **name)
 
 		/*	LTP volatile database doesn't exist yet.	*/
 
+		Sdr		sdr;
+		LtpDB		*db;
+		Object		sdrElt;
+		int		i;
+		LtpVclient	*client;
+
 		sdr = getIonsdr();
-		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
 
 		/*	Create and catalogue the LtpVdb object.		*/
 
@@ -359,8 +436,10 @@ static LtpVdb		*_ltpvdb(char **name)
 			return NULL;
 		}
 
+		db = _ltpConstants();
 		vdb = (LtpVdb *) psp(wm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(LtpVdb));
+		vdb->ownEngineId = db->ownEngineId;
 		vdb->lsiPid = ERROR;		/*	None yet.	*/
 		vdb->clockPid = ERROR;		/*	None yet.	*/
 		if ((vdb->spans = sm_list_create(wm)) == 0
@@ -376,13 +455,13 @@ static LtpVdb		*_ltpvdb(char **name)
 		for (i = 0, client = vdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
 				i++, client++)
 		{
-			client->notices = (_ltpConstants())->clients[i].notices;
+			client->notices = db->clients[i].notices;
 			raiseClient(client);
 		}
 
 		/*	Raise all spans.				*/
 
-		for (sdrElt = sdr_list_first(sdr, (_ltpConstants())->spans);
+		for (sdrElt = sdr_list_first(sdr, db->spans);
 				sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
 		{
 			if (raiseSpan(sdrElt, vdb) < 0)
@@ -404,16 +483,14 @@ static char	*_ltpdbName()
 	return "ltpdb";
 }
 
-int	ltpInit(int estMaxExportSessions, int bytesReserved)
+int	ltpInit(int estMaxExportSessions)
 {
-	Sdr		ltpSdr;
-	Object		ltpdbObject;
-	IonDB		iondb;
-	long		avblForBP;
-	char		avbltyMsg[160];
-	LtpDB		ltpdbBuf;
-	int		i;
-	char		*ltpvdbName = _ltpvdbName();
+	Sdr	ltpSdr;
+	Object	ltpdbObject;
+	IonDB	iondb;
+	LtpDB	ltpdbBuf;
+	int	i;
+	char	*ltpvdbName = _ltpvdbName();
 
 	if (ionAttach() < 0)
 	{
@@ -426,7 +503,7 @@ int	ltpInit(int estMaxExportSessions, int bytesReserved)
 
 	/*	Recover the LTP database, creating it if necessary.	*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	ltpdbObject = sdr_find(ltpSdr, _ltpdbName(), NULL);
 	switch (ltpdbObject)
 	{
@@ -436,26 +513,15 @@ int	ltpInit(int estMaxExportSessions, int bytesReserved)
 		return -1;
 
 	case 0:			/*	Not found; must create new DB.	*/
-		if (estMaxExportSessions <= 0 || bytesReserved <= 0)
+		if (estMaxExportSessions <= 0)
 		{
 			sdr_exit_xn(ltpSdr);
-			putErrmsg("Must supply estMaxExportSessions and \
-bytesReserved.", NULL);
+			putErrmsg("Must supply estMaxExportSessions.", NULL);
 			return -1;
 		}
 
 		sdr_read(ltpSdr, (char *) &iondb, getIonDbObject(),
 				sizeof(IonDB));
-		avblForBP = iondb.occupancyCeiling
-				- (iondb.receptionSpikeReserve + bytesReserved);
-		if (avblForBP < 1000000)
-		{
-			isprintf(avbltyMsg, sizeof avbltyMsg, "[?] LTP \
-reservation size %d limits space available for bundles to %ld bytes.",
-					bytesReserved, avblForBP);
-			writeMemo(avbltyMsg);
-		}
-
 		ltpdbObject = sdr_malloc(ltpSdr, sizeof(LtpDB));
 		if (ltpdbObject == 0)
 		{
@@ -470,7 +536,6 @@ reservation size %d limits space available for bundles to %ld bytes.",
 		ltpdbBuf.ownEngineId = iondb.ownNodeNbr;
 		encodeSdnv(&(ltpdbBuf.ownEngineIdSdnv), ltpdbBuf.ownEngineId);
 		ltpdbBuf.estMaxExportSessions = estMaxExportSessions;
-		ltpdbBuf.heapSpaceBytesReserved = bytesReserved;
 		ltpdbBuf.ownQtime = 1;		/*	Default.	*/
 		ltpdbBuf.enforceSchedule = 1;	/*	Default.	*/
 		for (i = 0; i < LTP_MAX_NBR_OF_CLIENTS; i++)
@@ -487,7 +552,6 @@ reservation size %d limits space available for bundles to %ld bytes.",
 		sdr_write(ltpSdr, ltpdbObject, (char *) &ltpdbBuf,
 				sizeof(LtpDB));
 		sdr_catlg(ltpSdr, _ltpdbName(), 0, ltpdbObject);
-		ionOccupy(bytesReserved);	/*	Reserve space.	*/
 		if (sdr_end_xn(ltpSdr))
 		{
 			putErrmsg("Can't create LTP database.", NULL);
@@ -512,6 +576,72 @@ reservation size %d limits space available for bundles to %ld bytes.",
 	}
 
 	return 0;		/*	LTP service is available.	*/
+}
+
+static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
+{
+	LtpVdb		*vdb;
+	int		i;
+	LtpVclient	*client;
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+
+	vdb = (LtpVdb *) psp(wm, vdbAddress);
+	for (i = 0, client = vdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
+			i++, client++)
+	{
+		if (client->semaphore != SM_SEM_NONE)
+		{
+			sm_SemDelete(client->semaphore);
+		}
+	}
+
+	while ((elt = sm_list_first(wm, vdb->spans)) != 0)
+	{
+		vspan = (LtpVspan *) psp(wm, sm_list_data(wm, elt));
+		dropSpan(vspan, elt);
+	}
+
+	sm_list_destroy(wm, vdb->spans, NULL, NULL);
+}
+
+void	ltpDropVdb()
+{
+	PsmPartition	wm = getIonwm();
+	char		*ltpvdbName = _ltpvdbName();
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*stop = NULL;
+
+	/*	Destroy volatile database.				*/
+
+	if (psm_locate(wm, ltpvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if (elt)
+	{
+		dropVdb(wm, vdbAddress);	/*	Destroy Vdb.	*/
+		psm_free(wm,vdbAddress);
+		if (psm_uncatlg(wm, ltpvdbName) < 0)
+		{
+			putErrmsg("Failed uncataloging vdb.",NULL);
+		}
+	}
+
+	oK(_ltpvdb(&stop));			/*	Forget old Vdb.	*/
+}
+
+void	ltpRaiseVdb()
+{
+	char	*ltpvdbName = _ltpvdbName();
+
+	if (_ltpvdb(&ltpvdbName) == NULL)	/*	Create new Vdb.	*/
+	{
+		putErrmsg("LTP can't reinitialize vdb.", NULL);
+	}
 }
 
 Object	getLtpDbObject()
@@ -542,7 +672,7 @@ int	ltpStart(char *lsiCmd)
 		return -1;
 	}
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 
 	/*	Start the LTP events clock if necessary.		*/
 
@@ -582,7 +712,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 
 	/*	Tell all LTP processes to stop.				*/
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	for (i = 0, client = ltpvdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
 			i++, client++)
 	{
@@ -638,7 +768,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	ltpvdb->clockPid = ERROR;
 	for (i = 0, client = ltpvdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
 			i++, client++)
@@ -682,7 +812,7 @@ int	ltpAttach()
 
 	if (ltpdbObject == 0)
 	{
-		sdr_begin_xn(ltpSdr);
+		CHKERR(sdr_begin_xn(ltpSdr));
 		ltpdbObject = sdr_find(ltpSdr, _ltpdbName(), NULL);
 		sdr_exit_xn(ltpSdr);
 		if (ltpdbObject == 0)
@@ -708,6 +838,12 @@ int	ltpAttach()
 	}
 
 	return 0;		/*	LTP service is available.	*/
+}
+
+void ltpDetach(){
+	char *stop=NULL;
+	oK(_ltpvdb(&stop));
+	return;
 }
 
 /*	*	*	LTP span mgt and access functions	*	*/
@@ -743,7 +879,7 @@ void	checkReservationLimit()
 	Object	elt;
 		OBJ_POINTER(LtpSpan, span);
 
-	sdr_begin_xn(ltpSdr);
+	CHKVOID(sdr_begin_xn(ltpSdr));
 	sdr_read(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 	totalSessionsAvbl = db.estMaxExportSessions;
 	for (elt = sdr_list_first(ltpSdr, db.spans); elt;
@@ -816,7 +952,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 				utoa(maxSegmentSize));
 	}
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt)		/*	This is a known span.		*/
 	{
@@ -869,7 +1005,7 @@ int	addSpan(unsigned long engineId, unsigned int maxExportSessions,
 		return -1;
 	}
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	if (raiseSpan(spanElt, _ltpvdb(NULL)) < 0)
 	{
 		sdr_exit_xn(ltpSdr);
@@ -920,7 +1056,7 @@ string too long.", lsoCmd);
 		}
 	}
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	This is an unknown span.	*/
 	{
@@ -999,7 +1135,7 @@ int	removeSpan(unsigned long engineId)
 
 	/*	Must stop the span before trying to remove it.		*/
 
-	sdr_begin_xn(ltpSdr);	/*	Lock memory.			*/
+	CHKERR(sdr_begin_xn(ltpSdr));	/*	Lock memory.		*/
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	This is an unknown span.	*/
 	{
@@ -1013,7 +1149,7 @@ int	removeSpan(unsigned long engineId)
 	stopSpan(vspan);
 	sdr_exit_xn(ltpSdr);
 	waitForSpan(vspan);
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	resetSpan(vspan);
 	spanElt = vspan->spanElt;
 	spanObj = (Object) sdr_list_data(ltpSdr, spanElt);
@@ -1075,7 +1211,7 @@ int	ltpStartSpan(unsigned long engineId)
 	PsmAddress	vspanElt;
 	int		result = 1;
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -1095,7 +1231,7 @@ void	ltpStopSpan(unsigned long engineId)
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	This is an unknown span.	*/
 	{
@@ -1107,7 +1243,7 @@ void	ltpStopSpan(unsigned long engineId)
 	stopSpan(vspan);
 	sdr_exit_xn(ltpSdr);	/*	Unlock memory.			*/
 	waitForSpan(vspan);
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	resetSpan(vspan);
 	sdr_exit_xn(ltpSdr);	/*	Unlock memory.			*/
 }
@@ -1123,7 +1259,7 @@ int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
 	ExportSession	session;
 
 	CHKERR(vspan);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 
 	/*	Get next session number.				*/
@@ -1161,6 +1297,7 @@ int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
 	session.redSegments = sdr_list_create(sdr);
 	session.greenSegments = sdr_list_create(sdr);
 	session.claims = sdr_list_create(sdr);
+	session.checkpoints = sdr_list_create(sdr);
 	sdr_write(sdr, sessionObj, (char *) &session, sizeof(ExportSession));
 
 	/*	Note session address in span, then finish: unless span
@@ -1259,7 +1396,7 @@ int	ltpAttachClient(unsigned long clientSvcId)
 		return -1;
 	}
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	client = (_ltpvdb(NULL))->clients + clientSvcId;
 	if (client->pid != ERROR)
 	{
@@ -1297,7 +1434,7 @@ void	ltpDetachClient(unsigned long clientSvcId)
 		return;
 	}
 
-	sdr_begin_xn(ltpSdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(ltpSdr));	/*	Just to lock memory.	*/
 	client = (_ltpvdb(NULL))->clients + clientSvcId;
 	if (client->pid != sm_TaskIdSelf())
 	{
@@ -1409,10 +1546,18 @@ static void	destroyDataXmitSeg(Object dsElt, Object dsObj, LtpXmitSeg *ds)
 	Sdr	ltpSdr = getIonsdr();
 
 	CHKVOID(ionLocked());
-	if (ds->pdu.ckptSerialNbr != 0)
+	if (ds->pdu.ckptSerialNbr != 0)	/*	A checkpoint segment.	*/
 	{
 		cancelEvent(LtpResendCheckpoint, 0, ds->sessionNbr,
 				ds->pdu.ckptSerialNbr);
+	}
+
+	if (ds->ckptListElt)		/*	A checkpoint segment.	*/
+	{
+		/*	Destroy the LtpCkpt object and its ListElt.	*/
+
+		sdr_free(ltpSdr, sdr_list_data(ltpSdr, ds->ckptListElt));
+		sdr_list_delete(ltpSdr, ds->ckptListElt, NULL, NULL);
 	}
 
 	if (ds->queueListElt)	/*	Queued for retransmission.	*/
@@ -1452,6 +1597,8 @@ static void	clearExportSession(ExportSession *session)
 	Sdr	ltpSdr = getIonsdr();
 	Object	elt;
 
+	sdr_list_destroy(ltpSdr, session->checkpoints, NULL, NULL);
+	session->checkpoints = 0;
 	sdr_list_destroy(ltpSdr, session->redSegments, NULL, NULL);
 	session->redSegments = 0;
 	sdr_list_destroy(ltpSdr, session->greenSegments, NULL, NULL);
@@ -1511,14 +1658,11 @@ static void	closeExportSession(Object sessionObj)
 		{
 			sdu = sdr_list_data(ltpSdr, elt);
 
-			/*	All service data units are received
-			 *	by the client, in either Complete or
+			/*	All service data units are passed back
+			 *	up to the client, in either Complete or
 			 *	Canceled notices, and the client is
 			 *	responsible for destroying them, so
-			 *	we don't zco_destroy them here.
-			 *	And since ltp_get_notice will reduce
-			 *	db.heapSpaceBytesOccupied, we don't
-			 *	do that either.				*/
+			 *	we don't zco_destroy them here.		*/
 
 			if (enqueueNotice(ltpvdb->clients
 					+ session->clientSvcId, db.ownEngineId,
@@ -1561,26 +1705,190 @@ putErrmsg("Closed export session.", itoa(session->sessionNbr));
 	}
 }
 
-static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
-			Object *sessionObj)
+static int	orderImportSessions(PsmPartition wm, PsmAddress nodeData,
+			void *dataBuffer)
 {
-	Sdr	ltpSdr = getIonsdr();
-		OBJ_POINTER(LtpSpan, span);
-	Object	elt;
+	VImportSession	*argSession;
+	VImportSession	*nodeSession;
 
-	CHKVOID(ionLocked());
-	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
-			vspan->spanElt));
-	if (sdr_hash_retrieve(ltpSdr, span->importSessionsHash,
-			(char *) &sessionNbr, (Address *) &elt, NULL) == 1)
+	argSession = (VImportSession *) dataBuffer;
+	nodeSession = (VImportSession *) psp(wm, nodeData);
+	if (nodeSession->sessionNbr < argSession->sessionNbr)
 	{
-		*sessionObj = sdr_list_data(ltpSdr, elt);
-		return; 
+		return -1;
 	}
 
-	/*	Unknown session.					*/
+	if (nodeSession->sessionNbr > argSession->sessionNbr)
+	{
+		return 1;
+	}
 
-	*sessionObj = 0;
+	return 0;
+}
+
+static PsmAddress	getIdxRbt(PsmPartition ltpwm, LtpVspan *vspan)
+{
+	PsmAddress	elt;
+	PsmAddress	rbt;
+
+	elt = sm_list_first(ltpwm, vspan->avblIdxRbts);
+	if (elt)	/*	Recycle previously created RBT.		*/
+	{
+		rbt = sm_list_data(ltpwm, elt);
+		sm_list_delete(ltpwm, elt, NULL, NULL);
+		return rbt;
+	}
+
+	return sm_rbt_create(ltpwm);
+}
+
+static void	addVImportSession(LtpVspan *vspan, unsigned long sessionNbr,
+			Object sessionElt, VImportSession **vsessionPtr)
+{
+	PsmPartition	ltpwm = getIonwm();
+	PsmAddress	addr;
+	VImportSession	*vsession;
+
+	*vsessionPtr = NULL;		/*	Default.		*/
+	addr = psm_zalloc(ltpwm, sizeof(VImportSession));
+	if (addr == 0)
+	{
+		return;
+	}
+
+	vsession = (VImportSession *) psp(ltpwm, addr);
+	vsession->sessionNbr = sessionNbr;
+	vsession->sessionElt = sessionElt;
+	vsession->redSegmentsIdx = getIdxRbt(ltpwm, vspan);
+	if (vsession->redSegmentsIdx == 0)
+	{
+		psm_free(ltpwm, addr);
+		return;
+	}
+
+	if (sm_rbt_insert(ltpwm, vspan->importSessions, addr,
+			orderImportSessions, vsession) == 0)
+	{
+		sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx, NULL, NULL);
+		psm_free(ltpwm, addr);
+		return;
+	}
+
+	*vsessionPtr = vsession;
+}
+
+static int	orderRedSegments(PsmPartition wm, PsmAddress nodeData,
+			void *dataBuffer)
+{
+	LtpSegmentRef	*argRef;
+	LtpSegmentRef	*nodeRef;
+
+	argRef = (LtpSegmentRef *) dataBuffer;
+	nodeRef = (LtpSegmentRef *) psp(wm, nodeData);
+	if (nodeRef->offset < argRef->offset)
+	{
+		return -1;
+	}
+
+	if (nodeRef->offset > argRef->offset)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+static void	getImportSession(LtpVspan *vspan, unsigned long sessionNbr,
+			VImportSession **vsessionPtr, Object *sessionObj)
+{
+	Sdr		ltpSdr = getIonsdr();
+	PsmPartition	ltpwm = getIonwm();
+	VImportSession	arg;
+	PsmAddress	rbtNode;
+	PsmAddress	nextRbtNode;
+	VImportSession	*vsession;
+			OBJ_POINTER(LtpSpan, span);
+	Object		elt;
+	ImportSession	session;
+	Object		elt2;
+	Object		segObj;
+			OBJ_POINTER(LtpRecvSeg, segment);
+	LtpSegmentRef	refbuf;
+	Object		addr;
+
+	*sessionObj = 0;		/*	Default.		*/
+	if (vsessionPtr)
+	{
+		*vsessionPtr = NULL;	/*	Default.		*/
+	}
+
+	CHKVOID(ionLocked());
+	arg.sessionNbr = sessionNbr;
+	rbtNode = sm_rbt_search(ltpwm, vspan->importSessions,
+			orderImportSessions, &arg, &nextRbtNode);
+	if (rbtNode)
+	{
+		vsession = (VImportSession *) psp(ltpwm,
+				sm_rbt_data(ltpwm, rbtNode));
+		*sessionObj = sdr_list_data(ltpSdr, vsession->sessionElt);
+	}
+	else	/*	Must resurrect VImportSession.			*/
+	{
+		GET_OBJ_POINTER(ltpSdr, LtpSpan, span, sdr_list_data(ltpSdr,
+				vspan->spanElt));
+		if (sdr_hash_retrieve(ltpSdr, span->importSessionsHash, (char *)
+				&sessionNbr, (Address *) &elt, NULL) != 1)
+		{
+			return;		/*	No such session.	*/
+		}
+
+		*sessionObj = sdr_list_data(ltpSdr, elt);
+
+		/*	Need to add this VImportSession and load it
+		 *	with all previously acquired red segments.	*/
+
+		addVImportSession(vspan, sessionNbr, elt, &vsession);
+		if (vsession == NULL)
+		{
+			return;
+		}
+
+		sdr_read(ltpSdr, (char *) &session, *sessionObj,
+				sizeof(ImportSession));
+		for (elt2 = sdr_list_first(ltpSdr, session.redSegments); elt2;
+				elt2 = sdr_list_next(ltpSdr, elt2))
+		{
+			segObj = sdr_list_data(ltpSdr, elt2);
+			GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, segment, segObj);
+			refbuf.offset = segment->pdu.offset;
+			refbuf.length = segment->pdu.length;
+			refbuf.sessionListElt = segment->sessionListElt;
+			addr = psm_zalloc(ltpwm, sizeof(LtpSegmentRef));
+			if (addr == 0)
+			{
+				putErrmsg("Failed resurrecting VImportSession.",
+						NULL);
+				*sessionObj = 0;
+				return;
+			}
+
+			memcpy((char *) psp(ltpwm, addr), (char *) &refbuf,
+					sizeof(LtpSegmentRef));
+			if (sm_rbt_insert(ltpwm, vsession->redSegmentsIdx,
+					addr, orderRedSegments, &refbuf) == 0)
+			{
+				putErrmsg("Failed resurrecting VImportSession.",
+						NULL);
+				*sessionObj = 0;
+				return;
+			}
+		}
+	}
+
+	if (vsessionPtr)
+	{
+		*vsessionPtr = vsession;
+	}
 }
 
 static int	sessionIsClosed(LtpVspan *vspan, unsigned long sessionNbr)
@@ -1679,24 +1987,33 @@ static void	destroyRsXmitSeg(Object rsElt, Object rsObj, LtpXmitSeg *rs)
 	sdr_list_delete(ltpSdr, rsElt, NULL, NULL);
 }
 
-static void	destroyDataRecvSeg(Object dsElt, Object dsObj, LtpRecvSeg *ds)
+static void	stopVImportSession(ImportSession *session)
 {
-	Sdr	ltpSdr = getIonsdr();
+	Sdr		ltpSdr = getIonsdr();
+	PsmPartition	ltpwm = getIonwm();
+	LtpSpan		span;
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
+	VImportSession	arg;
 
-	CHKVOID(ionLocked());
-	sdr_free(ltpSdr, dsObj);
-	sdr_list_delete(ltpSdr, dsElt, NULL, NULL);
+	sdr_read(ltpSdr, (char *) &span, session->span, sizeof(LtpSpan));
+	findSpan(span.engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		return;		/*	No such span.			*/
+	}
+
+	arg.sessionNbr = session->sessionNbr;
+	oK(sm_rbt_delete(ltpwm, vspan->importSessions, orderImportSessions,
+			&arg, deleteVImportSession, vspan));
 }
 
 static void	stopImportSession(ImportSession *session)
 {
 	Sdr	ltpSdr = getIonsdr();
-	Object	dbobj = getLtpDbObject();
 	Object	elt;
 	Object	segObj;
-	LtpDB	db;
 		OBJ_POINTER(LtpXmitSeg, rs);
-		OBJ_POINTER(LtpRecvSeg, ds);
 
 	CHKVOID(ionLocked());
 	while ((elt = sdr_list_first(ltpSdr, session->rsSegments)) != 0)
@@ -1714,26 +2031,24 @@ static void	stopImportSession(ImportSession *session)
 
 	if (session->redSegments)
 	{
-		sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 		while ((elt = sdr_list_first(ltpSdr, session->redSegments)))
 		{
 			segObj = sdr_list_data(ltpSdr, elt);
-			GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, ds, segObj);
-			db.heapSpaceBytesOccupied -= sizeof(LtpRecvSeg);
-			if (ds->heapAddress)	/*	Stored in heap.	*/
-			{
-				sdr_free(ltpSdr, ds->heapAddress);
-				db.heapSpaceBytesOccupied -= ds->pdu.length;
-			}
-
-			destroyDataRecvSeg(elt, segObj, ds);
+			sdr_free(ltpSdr, segObj);
+			sdr_list_delete(ltpSdr, elt, NULL, NULL);
 		}
 
-		sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
 		sdr_list_destroy(ltpSdr, session->redSegments, NULL, NULL);
 		session->redSegments = 0;
 	}
 
+	if (session->svcData)
+	{
+		zco_destroy(ltpSdr, session->svcData);
+		session->svcData = 0;
+	}
+
+	stopVImportSession(session);
 	if (session->blockFileRef)
 	{
 		zco_destroy_file_ref(ltpSdr, session->blockFileRef);
@@ -1869,23 +2184,31 @@ static void	findCheckpoint(ExportSession *session,
 	Sdr	ltpSdr = getIonsdr();
 	Object	elt;
 	Object	obj;
-		OBJ_POINTER(LtpXmitSeg, ds);
+		OBJ_POINTER(LtpCkpt, cp);
 
-	for (elt = sdr_list_first(ltpSdr, session->redSegments); elt;
+	for (elt = sdr_list_first(ltpSdr, session->checkpoints); elt;
 			elt = sdr_list_next(ltpSdr, elt))
 	{
 		obj = sdr_list_data(ltpSdr, elt);
-		GET_OBJ_POINTER(ltpSdr, LtpXmitSeg, ds, obj);
-		if (ds->pdu.ckptSerialNbr == ckptSerialNbr)
+		GET_OBJ_POINTER(ltpSdr, LtpCkpt, cp, obj);
+		if (cp->serialNbr < ckptSerialNbr)
 		{
-			*dsElt = elt;
-			*dsObj = obj;
-			return;
+			continue;
 		}
+
+		break;		/*	Equal, or not in list.		*/
 	}
 
-	*dsElt = 0;
-	*dsObj = 0;
+	if (elt)		/*	Found the checkpoint.		*/
+	{
+		*dsElt = cp->sessionListElt;
+		*dsObj = sdr_list_data(ltpSdr, cp->sessionListElt);
+	}
+	else
+	{
+		*dsElt = 0;
+		*dsObj = 0;
+	}
 }
 
 /*	*	*	Segment issuance functions	*	*	*/
@@ -2245,8 +2568,8 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	CHKERR(vspan);
 	CHKERR(buf);
 	*buf = (char *) psp(getIonwm(), vspan->segmentBuffer);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
-	sdr_begin_xn(ltpSdr);
 	sdr_stage(ltpSdr, (char *) &spanBuf, spanObj, sizeof(LtpSpan));
 	elt = sdr_list_first(ltpSdr, spanBuf.segments);
 	while (elt == 0 || vspan->localXmitRate == 0)
@@ -2272,7 +2595,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			return 0;
 		}
 
-		sdr_begin_xn(ltpSdr);
+		CHKERR(sdr_begin_xn(ltpSdr));
 		sdr_stage(ltpSdr, (char *) &spanBuf, spanObj, sizeof(LtpSpan));
 		elt = sdr_list_first(ltpSdr, spanBuf.segments);
 	}
@@ -3283,7 +3606,8 @@ static int	constructReportAckSegment(LtpSpan *span, Object spanObj,
 
 static int	startImportSession(Object spanObj, unsigned long sessionNbr,
 			ImportSession *sessionBuf, Object *sessionObj,
-			unsigned long clientSvcId, LtpDB *db)
+			unsigned long clientSvcId, LtpDB *db, LtpVspan *vspan,
+			VImportSession **vsessionPtr)
 {
 	Sdr	ltpSdr = getIonsdr();
 	Object	elt;
@@ -3331,9 +3655,11 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	sessionBuf->clientSvcId = clientSvcId;
 	sessionBuf->redSegments = sdr_list_create(ltpSdr);
 	sessionBuf->rsSegments = sdr_list_create(ltpSdr);
+	sessionBuf->svcData = zco_create(ltpSdr, 0, 0, 0, 0);
 	sessionBuf->span = spanObj;
 	if (sessionBuf->redSegments == 0
-	|| sessionBuf->rsSegments == 0)
+	|| sessionBuf->rsSegments == 0
+	|| sessionBuf->svcData == 0)
 	{
 		putErrmsg("Can't create import session.", NULL);
 		return -1;
@@ -3344,6 +3670,16 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 
 	sdr_write(ltpSdr, *sessionObj, (char *) sessionBuf,
 			sizeof(ImportSession));
+
+	/*	Also add volatile reference to this session.		*/
+
+	addVImportSession(vspan, sessionNbr, elt, vsessionPtr);
+	if (*vsessionPtr == NULL)
+	{
+		putErrmsg("Can't create volatile import session.", NULL);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -3380,14 +3716,21 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 	return 0;
 }
 
-static long	insertDataSegment(ImportSession *session, LtpRecvSeg *segment,
+static long	insertDataSegment(ImportSession *session,
+			VImportSession *vsession, LtpRecvSeg *segment,
 			LtpPdu *pdu, Object *segmentObj)
 {
 	Sdr		ltpSdr = getIonsdr();
+	PsmPartition	wm = getIonwm();
 	long		segUpperBound;
-	Object		elt;
-			OBJ_POINTER(LtpRecvSeg, ds);
-	unsigned long	redPartUpperBound;
+	LtpSegmentRef	arg;
+	PsmAddress	rbtNode;
+	PsmAddress	nextRbtNode;
+	LtpSegmentRef	*nextRef = NULL;
+	PsmAddress	prevRbtNode;
+	LtpSegmentRef	*prevRef = NULL;
+	LtpSegmentRef	refbuf;
+	PsmAddress	addr;
 
 	CHKERR(ionLocked());
 	segUpperBound = segment->pdu.offset + segment->pdu.length;
@@ -3402,41 +3745,56 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 		}
 	}
 
-	for (elt = sdr_list_first(ltpSdr, session->redSegments); elt;
-			elt = sdr_list_next(ltpSdr, elt))
+	arg.offset = segment->pdu.offset;
+	rbtNode = sm_rbt_search(wm, vsession->redSegmentsIdx,
+			orderRedSegments, &arg, &nextRbtNode);
+	if (rbtNode)	/*	Segment has already been received.	*/
 	{
-		GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, ds,
-				sdr_list_data(ltpSdr, elt));
-		if (ds->pdu.offset < segment->pdu.offset)
-		{
-			redPartUpperBound = ds->pdu.offset + ds->pdu.length;
-			if (redPartUpperBound > segment->pdu.offset)
-			{
 #if LTPDEBUG
 putErrmsg("discarded segment", itoa(segment->pdu.offset));
 #endif
-				return 0;	/*	Overlapping.	*/
-			}
-
-			continue;
-		}
-
-		/*	Previously received red segment does not start
-		 *	before start of this one.			*/
-
-		if (ds->pdu.offset < segUpperBound)
-		{
-#if LTPDEBUG
-putErrmsg("discarded segment", itoa(segment->pdu.offset));
-#endif
-			return 0;		/*	Overlapping.	*/
-		}
-
-		/*	Previously received red segment does not start
-		 *	before end of this one.				*/
-
-		break;
+		return 0;			/*	Overlap.	*/
 	}
+
+	if (nextRbtNode)
+	{
+		nextRef = (LtpSegmentRef *)
+				psp(wm, sm_rbt_data(wm, nextRbtNode));
+		prevRbtNode = sm_rbt_prev(wm, nextRbtNode);
+		if (prevRbtNode)
+		{
+			prevRef = (LtpSegmentRef *)
+					psp(wm, sm_rbt_data(wm, prevRbtNode));
+		}
+	}
+	else	/*	No segment with greater offset received so far.	*/
+	{
+		prevRbtNode = sm_rbt_last(wm, vsession->redSegmentsIdx);
+		if (prevRbtNode)
+		{
+			prevRef = (LtpSegmentRef *)
+					psp(wm, sm_rbt_data(wm, prevRbtNode));
+		}
+	}
+
+	if (prevRbtNode
+	&& (prevRef->offset + prevRef->length) > segment->pdu.offset)
+	{
+#if LTPDEBUG
+putErrmsg("discarded segment", itoa(segment->pdu.offset));
+#endif
+		return 0;			/*	Overlap.	*/
+	}
+
+	if (nextRbtNode && nextRef->offset < segUpperBound)
+	{
+#if LTPDEBUG
+putErrmsg("discarded segment", itoa(segment->pdu.offset));
+#endif
+		return 0;			/*	Overlap.	*/
+	}
+
+	/*	Okay to insert this segment into the list.		*/
 
 	session->redPartReceived += segment->pdu.length;
 	*segmentObj = sdr_malloc(ltpSdr, sizeof(LtpRecvSeg));
@@ -3445,10 +3803,10 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 		return -1;
 	}
 
-	if (elt)
+	if (nextRef)
 	{
-		segment->sessionListElt = sdr_list_insert_before(ltpSdr, elt,
-				*segmentObj);
+		segment->sessionListElt = sdr_list_insert_before(ltpSdr,
+				nextRef->sessionListElt, *segmentObj);
 	}
 	else
 	{
@@ -3456,7 +3814,65 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 				session->redSegments, *segmentObj);
 	}
 
+	if (segment->sessionListElt == 0)
+	{
+		return -1;
+	}
+
+	refbuf.offset = segment->pdu.offset;
+	refbuf.length = segment->pdu.length;
+	refbuf.sessionListElt = segment->sessionListElt;
+	addr = psm_zalloc(wm, sizeof(LtpSegmentRef));
+	if (addr == 0)
+	{
+		return -1;
+	}
+
+	memcpy((char *) psp(wm, addr), (char *) &refbuf, sizeof(LtpSegmentRef));
+	rbtNode = sm_rbt_insert(wm, vsession->redSegmentsIdx, addr,
+			orderRedSegments, &refbuf);
+	if (rbtNode == 0)
+	{
+		return -1;
+	}
+
 	return segUpperBound;
+}
+
+static int	writeBlockExtentToHeap(ImportSession *session,
+			LtpRecvSeg *segment, char *from, unsigned long length)
+{
+	Sdr	ltpSdr = getIonsdr();
+	Object	heapAddress;
+
+	if (!zco_enough_heap_space(ltpSdr, length))
+	{
+		/*	To avert possible DOS attack, silently discard 
+		 *	this segment.					*/
+#if LTPDEBUG
+putErrmsg("Can't handle red data, would exceed available heap space.",
+utoa(length));
+#endif
+		segment->sessionObj = 0;	/*	"discard"	*/
+		return 0;
+	}
+
+	segment->acqOffset = zco_length(ltpSdr, session->svcData);
+	heapAddress = sdr_insert(ltpSdr, from, length);
+	if (heapAddress == 0)
+	{
+		putErrmsg("Can't record block extent.", NULL);
+		return -1;
+	}
+
+	if (zco_append_extent(ltpSdr, session->svcData, ZcoSdrSource,
+			heapAddress, 0, length) < 0)
+	{
+		putErrmsg("Can't append to acquisition ZCO.", NULL);
+		return -1;
+	}
+
+	return 0;
 }
 
 static int	writeBlockExtentToFile(ImportSession *session,
@@ -3467,10 +3883,20 @@ static int	writeBlockExtentToFile(ImportSession *session,
 	int	fd;
 	long	fileLength;
 
-	segment->heapAddress = 0;
+	if (!zco_enough_file_space(ltpSdr, length))
+	{
+		/*	To avert possible DOS attack, silently discard
+		 *	this segment.					*/
+#if LTPDEBUG
+putErrmsg("Can't handle red data, would exceed available file space.",
+utoa(length));
+#endif
+		segment->sessionObj = 0;	/*	"discard"	*/
+		return 0;
+	}
+
 	oK(zco_file_ref_path(ltpSdr, session->blockFileRef, fileName,
 				sizeof fileName));
-
 	fd = iopen(fileName, O_WRONLY, 0666);
 	if (fd < 0)
 	{
@@ -3495,6 +3921,7 @@ static int	writeBlockExtentToFile(ImportSession *session,
 		 *	necessary (block has already been delivered),
 		 *	we simply ignore this retransmitted segment.	*/
 
+			segment->sessionObj = 0;/*	"discard"	*/
 			return 0;
 		}
 
@@ -3502,21 +3929,30 @@ static int	writeBlockExtentToFile(ImportSession *session,
 		return -1;
 	}
 
+	segment->acqOffset = zco_length(ltpSdr, session->svcData);
 	fileLength = (long) lseek(fd, 0, SEEK_END);
 	if (fileLength < 0)
 	{
 		putSysErrmsg("Can't seek to end of block file", fileName);
+		close(fd);
 		return -1;
 	}
 
-	segment->fileOffset = fileLength;
 	if (write(fd, from, length) < 0)
 	{
 		putSysErrmsg("Can't append to block file", fileName);
+		close(fd);
 		return -1;
 	}
 
 	close(fd);
+	if (zco_append_extent(ltpSdr, session->svcData, ZcoFileSource,
+			session->blockFileRef, fileLength, length) < 0)
+	{
+		putErrmsg("Can't append to acquisition ZCO.", NULL);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -3525,9 +3961,7 @@ static int	deliverSvcData(LtpVclient *client, unsigned long sourceEngineId,
 {
 	Sdr	ltpSdr = getIonsdr();
 	LtpVdb	*ltpvdb = _ltpvdb(NULL);
-	Object	dbobj = getLtpDbObject();
 	Object	svcDataObject;
-	LtpDB	db;
 	Object	elt;
 	Object	segObj;
 		OBJ_POINTER(LtpRecvSeg, segment);
@@ -3537,9 +3971,10 @@ static int	deliverSvcData(LtpVclient *client, unsigned long sourceEngineId,
 	 *	segments in the block in *transmission* order.
 	 *
 	 *	In the process, terminate reception of red-part data
-	 *	for this session and adjust heap reservation occupancy:
-	 *	back out the individual data segments' lengths and
-	 *	replace with the size of the concatenated ZCO.		*/
+	 *	for this session and adjust heap reservation occupancy.
+	 *	ZCO space occupancy is unchanged: in effect, we're
+	 *	just using the redSegments list to re-sort the extents
+	 *	of the acquisition ZCO.					*/
 
 	svcDataObject = zco_create(ltpSdr, 0, 0, 0, 0);
 	if (svcDataObject == 0)
@@ -3548,43 +3983,26 @@ static int	deliverSvcData(LtpVclient *client, unsigned long sourceEngineId,
 		return -1;
 	}
 
-	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
 	while ((elt = sdr_list_first(ltpSdr, session->redSegments)))
 	{
 		segObj = sdr_list_data(ltpSdr, elt);
 		GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, segment, segObj);
-		db.heapSpaceBytesOccupied -= sizeof(LtpRecvSeg);
-		if (segment->heapAddress)	/*	Data in heap.	*/
+		if (zco_append_extent(ltpSdr, svcDataObject, ZcoZcoSource,
+				session->svcData, segment->acqOffset,
+				segment->pdu.length) < 0)
 		{
-			if (zco_append_extent(ltpSdr, svcDataObject,
-					ZcoSdrSource, segment->heapAddress, 0,
-					segment->pdu.length) < 0)
-			{
-				putErrmsg("Can't add heap ZCO extent.", NULL);
-				return -1;
-			}
-
-			db.heapSpaceBytesOccupied -= segment->pdu.length;
-		}
-		else			/*	Data written to file.	*/
-		{
-			if (zco_append_extent(ltpSdr, svcDataObject,
-					ZcoFileSource, session->blockFileRef,
-					segment->fileOffset,
-					segment->pdu.length) < 0)
-			{
-				putErrmsg("Can't add file ZCO extent.", NULL);
-				return -1;
-			}
+			putErrmsg("Can't deliver ZCO extent.", NULL);
+			return -1;
 		}
 
-		destroyDataRecvSeg(elt, segObj, segment);
+		sdr_list_delete(ltpSdr, elt, NULL, NULL);
+		sdr_free(ltpSdr, segObj);
 	}
 
-	db.heapSpaceBytesOccupied += zco_occupancy(ltpSdr, svcDataObject);
-	sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
 	sdr_list_destroy(ltpSdr, session->redSegments, NULL, NULL);
 	session->redSegments = 0;
+	zco_destroy(ltpSdr, session->svcData);
+	session->svcData = 0;
 
 	/*	Pass the block content ZCO to the client service.	*/
 
@@ -3611,19 +4029,17 @@ static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 			Object sessionObj, Object *clientSvcData)
 {
 	Sdr		ltpSdr = getIonsdr();
-	Object		dbobj = _ltpdbObject(NULL);
 	ImportSession	sessionBuf;
 	Object		segmentElt;
 	Object		segmentObj;
 			OBJ_POINTER(LtpRecvSeg, seg);
-	LtpDB		db;
 
 	if (sessionObj)
 	{
 		sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
 				sizeof(ImportSession));
-		segmentElt = sdr_list_last(ltpSdr, sessionBuf.redSegments);
-		if (segmentElt)
+		if (sessionBuf.redSegments != 0 && (segmentElt =
+			sdr_list_last(ltpSdr, sessionBuf.redSegments)) != 0)
 		{
 			segmentObj = sdr_list_data(ltpSdr, segmentElt);
 			GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, seg, segmentObj);
@@ -3631,25 +4047,22 @@ static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 			{
 				/*	Miscolored segment: green data
 				 *	before end of red.		*/
-
 #if LTPDEBUG
 putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 #endif
 				cancelSessionByReceiver(&sessionBuf, sessionObj,
 						LtpMiscoloredSegment);
-				return 1;
+				return 0;
 			}
 		}
 	}
 
-	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
-	if (db.heapSpaceBytesOccupied + pdu->length
-			> db.heapSpaceBytesReserved)
+	if (!zco_enough_heap_space(ltpSdr, pdu->length))
 	{
 		/*	To avert possible DOS attack, silently discard
 		 *	this segment.					*/
 #if LTPDEBUG
-putErrmsg("Can't handle green data, would exceed LTP heap space reservation.",
+putErrmsg("Can't handle green data, would exceed available heap space.",
 utoa(pdu->length));
 #endif
 		return 0;
@@ -3663,9 +4076,7 @@ utoa(pdu->length));
 		return -1;
 	}
 
-	db.heapSpaceBytesOccupied += zco_occupancy(ltpSdr, *clientSvcData);
-	sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
-	return 1;
+	return 0;
 }
 
 static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
@@ -3674,12 +4085,11 @@ static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 {
 	Sdr		ltpSdr = getIonsdr();
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
-	Object		dbobj = _ltpdbObject(NULL);
-	LtpDB		db;
 	unsigned long	ckptSerialNbr;
 	unsigned long	rptSerialNbr;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
+	VImportSession	*vsession;
 	Object		sessionObj = 0;
 	Object		sessionElt;
 	ImportSession	sessionBuf;
@@ -3707,7 +4117,19 @@ static int	handleDataSegment(unsigned long sourceEngineId, LtpDB *ltpdb,
 	/*	At this point, the remaining bytes should all be
 	 *	client service data.					*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
+	findSpan(sourceEngineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+#if LTPDEBUG
+putErrmsg("Discarded data segment.", itoa(sessionNbr));
+#endif
+		/*	Segment is from an unknown engine, so we
+		 *	can't process it.				*/
+
+		return sdr_end_xn(ltpSdr);
+	}
+
 	if (pdu->length > *bytesRemaining)
 	{
 #if LTPDEBUG
@@ -3721,19 +4143,6 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	}
 
 	/*	Now process the data.					*/
-
-	findSpan(sourceEngineId, &vspan, &vspanElt);
-	if (vspanElt == 0)
-	{
-#if LTPDEBUG
-putErrmsg("Discarded data segment.", itoa(sessionNbr));
-#endif
-		/*	Segment is from an unknown engine, so we
-		 *	can't process it.				*/
-
-		ltpSpanTally(vspan, IN_SEG_UNK_SENDER, pdu->length);
-		return sdr_end_xn(ltpSdr);
-	}
 
 	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
@@ -3762,7 +4171,7 @@ putErrmsg("Discarding late segment.", itoa(sessionNbr));
 
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
-	getImportSession(vspan, sessionNbr, &sessionObj);
+	getImportSession(vspan, sessionNbr, &vsession, &sessionObj);
 	segment->segmentClass = LtpDataSeg;
 	if (pdu->clientSvcId > MAX_LTP_CLIENT_NBR
 	|| (client = ltpvdb->clients + pdu->clientSvcId)->pid == ERROR)
@@ -3826,7 +4235,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 
 		result = handleGreenDataSegment(pdu, *cursor, sessionObj,
 				&clientSvcData);
-		if (result < 1)
+		if (result < 0)
 		{
 			sdr_cancel_xn(ltpSdr);
 			return result;
@@ -3892,8 +4301,6 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		return 0;
 	}
 
-	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
-
 	/*	Data segment must be accepted into an import session,
 	 *	unless that session is already canceled.		*/
 
@@ -3906,16 +4313,16 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 			/*	Reception already completed, just
 			 *	waiting for report acknowledgment.
 			 *	Discard the segment.			*/
-
+#if LTPDEBUG
+putErrmsg("Discarded redundant data segment.", itoa(sessionNbr));
+#endif
 			ltpSpanTally(vspan, IN_SEG_REDUNDANT, pdu->length);
 			if (sdr_end_xn(ltpSdr) < 0)
 			{
 				putErrmsg("Can't handle data segment.", NULL);
 				return -1;
 			}
-#if LTPDEBUG
-putErrmsg("Discarded data segment.", itoa(sessionNbr));
-#endif
+
 			return 0;
 		}
 	}
@@ -3926,31 +4333,30 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		{
 			/*	Session exists but has already been
 			 *	canceled.  Discard the segment.		*/
-
+#if LTPDEBUG
+putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
+#endif
 			ltpSpanTally(vspan, IN_SEG_SES_CLOSED, pdu->length);
 			if (sdr_end_xn(ltpSdr) < 0)
 			{
 				putErrmsg("Can't handle data segment.", NULL);
 				return -1;
 			}
-#if LTPDEBUG
-putErrmsg("Discarded data segment.", itoa(sessionNbr));
-#endif
 			return 0;
 		}
 
 		/*	Must start a new import session.		*/
 
 		if (startImportSession(spanObj, sessionNbr, &sessionBuf,
-				&sessionObj, pdu->clientSvcId, &db) < 0)
+				&sessionObj, pdu->clientSvcId, ltpdb, vspan,
+				&vsession) < 0)
 		{
 			putErrmsg("Can't create reception session.", NULL);
 			sdr_cancel_xn(ltpSdr);
 			return -1;
 		}
 
-		sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
-		if (pdu->offset != 0	/*	Not segment #1.	*/
+		if (pdu->offset != 0	/*	Not segment #1.		*/
 		|| (pdu->segTypeCode != LtpDsRedEORP
 				&& pdu->segTypeCode != LtpDsRedEOB))
 		{
@@ -3967,7 +4373,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	}
 
 	segment->sessionObj = sessionObj;
-	segUpperBound = insertDataSegment(&sessionBuf, segment, pdu,
+	segUpperBound = insertDataSegment(&sessionBuf, vsession, segment, pdu,
 			&segmentObj);
 	switch (segUpperBound)
 	{
@@ -3988,47 +4394,33 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	ltpSpanTally(vspan, IN_SEG_RECV_RED, pdu->length);
 	if (sessionBuf.blockFileRef == 0)	/*	Store in heap.	*/
 	{
-		if (db.heapSpaceBytesOccupied + pdu->length
-				> db.heapSpaceBytesReserved)
+		if (writeBlockExtentToHeap(&sessionBuf, segment, *cursor,
+				pdu->length) < 0)
 		{
-			/*	To avert possible DOS attack, silently
-			 *	discard this segment.			*/
-#if LTPDEBUG
-putErrmsg("Can't handle red data, would exceed LTP heap space reservation.",
-utoa(pdu->length));
-#endif
-			sdr_cancel_xn(ltpSdr);
-			return 0;
-		}
-
-		segment->fileOffset = 0;
-		segment->heapAddress = sdr_insert(ltpSdr, *cursor, pdu->length);
-		if (segment->heapAddress == 0)
-		{
-			putErrmsg("Can't record block extent.", NULL);
+			putErrmsg("Can't write block extent to heap.", NULL);
 			sdr_cancel_xn(ltpSdr);
 			return -1;
 		}
-
-		db.heapSpaceBytesOccupied += pdu->length;
 	}
 	else					/*	Store in file.	*/
 	{
 		if (writeBlockExtentToFile(&sessionBuf, segment, *cursor,
 				pdu->length) < 0)
 		{
-			putErrmsg("Can't record block extent.", NULL);
+			putErrmsg("Can't write block extent to heap.", NULL);
 			sdr_cancel_xn(ltpSdr);
 			return -1;
 		}
 	}
 
+	if (segment->sessionObj == 0)		/*	Must discard.	*/
+	{
+		sdr_list_delete(ltpSdr, segment->sessionListElt, NULL, NULL);
+		sdr_free(ltpSdr, segmentObj);
+		return sdr_end_xn(ltpSdr);
+	}
+
 	sdr_write(ltpSdr, segmentObj, (char *) segment, sizeof(LtpRecvSeg));
-
-	/*	Adjust heap space occupancy per insertion of extent.	*/
-
-	db.heapSpaceBytesOccupied += sizeof(LtpRecvSeg);
-	sdr_write(ltpSdr, dbobj, (char *) &db, sizeof(LtpDB));
 
 	/*	Based on the segment type code, infer additional
 	 *	information and do additional processing.		*/
@@ -4094,7 +4486,7 @@ utoa(pdu->length));
 		return -1;
 	}
 
-	return 1;	/*	Red-part data handled okay.		*/
+	return 0;	/*	Red-part data handled okay.		*/
 }
 
 static int	loadClaimsArray(char **cursor, int *bytesRemaining,
@@ -4149,6 +4541,56 @@ static int	insertClaim(ExportSession *session, LtpReceptionClaim *claim)
 	sdr_write(ltpSdr, claimObj, (char *) claim,
 			sizeof(LtpReceptionClaim));
 	return 0;
+}
+
+static Object	insertCheckpoint(ExportSession *session, LtpXmitSeg *segment)
+{
+	Sdr	ltpSdr = getIonsdr();
+	Object	elt;
+	Object	obj;
+		OBJ_POINTER(LtpCkpt, cp);
+	LtpCkpt	checkpoint;
+
+	for (elt = sdr_list_first(ltpSdr, session->checkpoints); elt;
+			elt = sdr_list_next(ltpSdr, elt))
+	{
+		obj = sdr_list_data(ltpSdr, elt);
+		GET_OBJ_POINTER(ltpSdr, LtpCkpt, cp, obj);
+		if (cp->serialNbr < segment->pdu.ckptSerialNbr)
+		{
+			continue;
+		}
+
+		if (cp->serialNbr == segment->pdu.ckptSerialNbr)
+		{
+			putErrmsg("Duplicate checkpoint serial numbers.",
+					utoa(segment->pdu.ckptSerialNbr));
+			return 0;
+		}
+
+		/*	Insert before this checkpoint.			*/
+
+		break;
+	}
+
+	checkpoint.serialNbr = segment->pdu.ckptSerialNbr;
+	checkpoint.sessionListElt = segment->sessionListElt;
+	obj = sdr_malloc(ltpSdr, sizeof(LtpCkpt));
+	if (obj == 0)
+	{
+		putErrmsg("Can't create checkpoint reference.", NULL);
+		return 0;
+	}
+
+	sdr_write(ltpSdr, obj, (char *) &checkpoint, sizeof(LtpCkpt));
+	if (elt)
+	{
+		return sdr_list_insert_before(ltpSdr, elt, obj);
+	}
+	else
+	{
+		return sdr_list_insert_last(ltpSdr, session->checkpoints, obj);
+	}
 }
 
 static int	constructDataSegment(Sdr sdr, ExportSession *session,
@@ -4404,7 +4846,11 @@ char		buf[256];
 		segment.ohdLength += cpsnSdnv.length;
 		segment.pdu.rptSerialNbr = reportSerialNbr;
 		segment.ohdLength += rsnSdnv.length;
-		session->checkpointsCount++;
+		segment.ckptListElt = insertCheckpoint(session, &segment);
+		if (segment.ckptListElt == 0)
+		{
+			return -1;
+		}
 	}
 
 	segment.pdu.clientSvcId = session->clientSvcId;
@@ -4592,7 +5038,7 @@ putErrmsg("Discarding report.", NULL);
 
 	/*	Acknowledge the report if possible.			*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	getSessionContext(ltpdb, sessionNbr, &sessionObj,
 			&sessionBuf, &spanObj, &spanBuf, &vspan, &vspanElt);
 	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
@@ -4855,7 +5301,8 @@ putErrmsg("Discarding report.", NULL);
 	/*	Not all data in the block has yet been received.	*/
 
 	ltpSpanTally(vspan, NEG_RPT_RECV, 0);
-	if (sessionBuf.checkpointsCount == MAX_NBR_OF_CHECKPOINTS)
+	if (sdr_list_length(ltpSdr, sessionBuf.checkpoints)
+			== MAX_NBR_OF_CHECKPOINTS)
 	{
 		/*	Limit reached, can't retransmit any more.
 		 *	Just destroy the claims list and cancel. 	*/
@@ -5025,7 +5472,7 @@ putErrmsg("Handling report ack.", utoa(sessionNbr));
 
 	/*	Report is being acknowledged.				*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	Random segment.			*/
 	{
@@ -5046,7 +5493,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		return 0;
 	}
 
-	getImportSession(vspan, sessionNbr, &sessionObj);
+	getImportSession(vspan, sessionNbr, NULL, &sessionObj);
 	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
 	{
 		return sdr_end_xn(ltpSdr);
@@ -5071,10 +5518,8 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 
 		GET_OBJ_POINTER(ltpSdr, LtpXmitSeg, rs, rsObj);
 		destroyRsXmitSeg(elt, rsObj, rs);
-		if (session.redPartLength > 0
-			/*	EORP has been received.			*/
-		&& session.redPartReceived == session.redPartLength
-		&& sdr_list_length(ltpSdr, session.rsSegments) == 0)
+		if (session.redPartLength > 0	/*	EORP received.	*/
+		&& session.redPartReceived == session.redPartLength)
 		{
 			stopImportSession(&session);
 			sdr_write(ltpSdr, sessionObj, (char *) &session,
@@ -5116,7 +5561,7 @@ putErrmsg("Handling cancel by sender.", utoa(sessionNbr));
 #endif
 	/*	Source of block is requesting cancellation of session.	*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -5154,7 +5599,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	}
 
 	ltpSpanTally(vspan, EXPORT_CANCEL_RECV, 0);
-	getImportSession(vspan, sessionNbr, &sessionObj);
+	getImportSession(vspan, sessionNbr, NULL, &sessionObj);
 	if (sessionObj)	/*	Can cancel session as requested.	*/
 	{
 		GET_OBJ_POINTER(ltpSdr, ImportSession, session, sessionObj);
@@ -5203,7 +5648,7 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 	/*	Destination of block is acknowledging source's
 	 *	cancellation of session.				*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	getCanceledExport(sessionNbr, &sessionObj, &sessionElt);
 	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
 	{
@@ -5250,7 +5695,7 @@ putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 	/*	Destination of block is requesting cancellation of
 	 *	session.						*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	getSessionContext(ltpdb, sessionNbr, &sessionObj, &sessionBuf,
 			&spanObj, &spanBuf, &vspan, &vspanElt);
 	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
@@ -5344,7 +5789,7 @@ putErrmsg("Handling ack of cancel by receiver.", utoa(sessionNbr));
 	/*	Source of block is acknowledging destination's
 	 *	cancellation of session.				*/
 
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	Stray segment.			*/
 	{
@@ -5439,6 +5884,7 @@ int	ltpHandleInboundSegment(char *buf, int length)
 	unsigned long	sourceEngineId;
 	unsigned long	sessionNbr;
 	unsigned long	extensionLengths;
+	Sdr		sdr;
 			OBJ_POINTER(LtpDB, ltpdb);
 
 	CHKERR(buf);
@@ -5489,7 +5935,10 @@ segment discarded", itoa(extensionLengths));
 		fflush(stdout);
 	}
 
+	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(getIonsdr(), LtpDB, ltpdb, _ltpdbObject(NULL));
+	sdr_exit_xn(sdr);
 	if ((pdu->segTypeCode & LTP_CTRL_FLAG) == 0)	/*	Data.	*/
 	{
 		return handleDataSegment(sourceEngineId, ltpdb, sessionNbr,
@@ -5637,6 +6086,8 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 	ImportSession	rsessionBuf;
 	LtpTimer	*timer;
 	Object		elt2;
+	Object		ckptObj;
+			OBJ_POINTER(LtpCkpt, cp);
 	Object		segmentObj;
 	LtpXmitSeg	rsBuf;
 	ExportSession	xsessionBuf;
@@ -5726,14 +6177,15 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 
 		/*	Suspend chkpt retransmission timers.		*/
 
-		for (elt2 = sdr_list_first(ltpSdr, xsessionBuf.redSegments);
+		for (elt2 = sdr_list_first(ltpSdr, xsessionBuf.checkpoints);
 				elt2; elt2 = sdr_list_next(ltpSdr, elt2))
 		{
-			segmentObj = sdr_list_data(ltpSdr, elt2);
+			ckptObj = sdr_list_data(ltpSdr, elt2);
+			GET_OBJ_POINTER(ltpSdr, LtpCkpt, cp, ckptObj);
+			segmentObj = sdr_list_data(ltpSdr, cp->sessionListElt);
 			sdr_stage(ltpSdr, (char *) &dsBuf, segmentObj,
 					sizeof(LtpXmitSeg));
-			if (dsBuf.pdu.ckptSerialNbr == 0
-			|| dsBuf.pdu.timer.segArrivalTime == 0)
+			if (dsBuf.pdu.timer.segArrivalTime == 0)
 			{
 				continue;	/*	Not active.	*/
 			}
@@ -5803,6 +6255,8 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 	ImportSession	rsessionBuf;
 	LtpTimer	*timer;
 	Object		elt2;
+	Object		ckptObj;
+			OBJ_POINTER(LtpCkpt, cp);
 	Object		segmentObj;
 	LtpXmitSeg	rsBuf;
 	ExportSession	xsessionBuf;
@@ -5929,14 +6383,15 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 
 		/*	Resume chkpt retransmission timers.		*/
 
-		for (elt2 = sdr_list_first(ltpSdr, xsessionBuf.redSegments);
+		for (elt2 = sdr_list_first(ltpSdr, xsessionBuf.checkpoints);
 				elt2; elt2 = sdr_list_next(ltpSdr, elt2))
 		{
-			segmentObj = sdr_list_data(ltpSdr, elt2);
+			ckptObj = sdr_list_data(ltpSdr, elt2);
+			GET_OBJ_POINTER(ltpSdr, LtpCkpt, cp, ckptObj);
+			segmentObj = sdr_list_data(ltpSdr, cp->sessionListElt);
 			sdr_stage(ltpSdr, (char *) &dsBuf, segmentObj,
 					sizeof(LtpXmitSeg));
-			if (dsBuf.pdu.ckptSerialNbr == 0
-			|| dsBuf.pdu.timer.segArrivalTime == 0)
+			if (dsBuf.pdu.timer.segArrivalTime == 0)
 			{
 				continue;	/*	Not active.	*/
 			}
@@ -5981,7 +6436,7 @@ int	ltpResendCheckpoint(unsigned long sessionNbr,
 #if LTPDEBUG
 putErrmsg("Resending checkpoint.", itoa(sessionNbr));
 #endif
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	getExportSession(sessionNbr, &sessionObj);
 	if (sessionObj == 0)	/*	Session is gone.		*/
 	{
@@ -6054,7 +6509,7 @@ int	ltpResendXmitCancel(unsigned long sessionNbr)
 #if LTPDEBUG
 putErrmsg("Resending cancel by sender.", itoa(sessionNbr));
 #endif
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	getCanceledExport(sessionNbr, &sessionObj, &sessionElt);
 	if (sessionObj == 0)	/*	Session is gone.		*/
 	{
@@ -6116,14 +6571,14 @@ int	ltpResendReport(unsigned long engineId, unsigned long sessionNbr,
 #if LTPDEBUG
 putErrmsg("Resending report.", itoa(sessionNbr));
 #endif
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	Can't search for session.	*/
 	{
 		return sdr_end_xn(ltpSdr);
 	}
 
-	getImportSession(vspan, sessionNbr, &sessionObj);
+	getImportSession(vspan, sessionNbr, NULL, &sessionObj);
 	if (sessionObj == 0)	/*	Session is gone.		*/
 	{
 #if LTPDEBUG
@@ -6190,7 +6645,7 @@ int	ltpResendRecvCancel(unsigned long engineId, unsigned long sessionNbr)
 #if LTPDEBUG
 putErrmsg("Resending cancel by receiver.", itoa(sessionNbr));
 #endif
-	sdr_begin_xn(ltpSdr);
+	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	Can't search for session.	*/
 	{

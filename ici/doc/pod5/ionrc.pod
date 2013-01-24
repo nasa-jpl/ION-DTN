@@ -150,25 +150,40 @@ interval to be sure not to send bundles that arrive before the neighbor
 expects data arrival or to discard bundles that arrive slightly before
 they were expected.
 
-=item B<m production> I<planned_data_production_rate>
+=item B<m clocksync> [ { 1 | 0 } ]
 
-This management command sets ION's expectation of the mean rate of continuous
-data origination by local BP applications throughout the period of time
-over which congestion forecasts are computed.  For nodes that function only
-as routers this variable will normally be zero, which is the default.
+This management command reports whether or not the computer on which
+the local ION node is running has a synchronized clock, as discussed in
+the description of the ionClockIsSynchronized() function (ion(3)).
+
+If a Boolean argument is provided when the command is executed, the
+characterization of the machine's clock is revised to conform with
+the asserted value.  The default value is 1.
+
+=item B<m production> I<asserted_data_production_rate>
+
+This management command sets ION's limit on the mean rate of continuous
+data origination by local BP applications.  For nodes that function only
+as routers this variable will normally be zero.  A value of -1, which is the
+default, indicates that production is limited only by resource availability;
+in that case local data production and consumption are not considered in
+the computation of congestion forecasts.
 
 =item B<m consumption> I<planned_data_consumption_rate>
 
 This management command sets ION's expectation of the mean rate of continuous
 data delivery to local BP applications throughout the period of time
 over which congestion forecasts are computed.  For nodes that function only
-as routers this variable will normally be zero, which is the default.
+as routers this variable will normally be zero.  A value of -1, which is the
+default, indicates that the rate of local data consumption is unknown.
 
-=item B<m occupancy> I<data_store_occupancy_limit>
+=item B<m occupancy> I<heap_occupancy_limit> [I<file_system_occupancy_limit>]
 
-This management command sets the maximum number of bytes of storage space
-in ION's SDR non-volatile data store that can be used for the storage of
-bundles.  The default value is 60% of the SDR data store's total heap size.
+This management command sets the maximum number of megabytes of storage space
+in ION's SDR non-volatile heap, and/or in the local file system, that can be
+used for the storage of zero-copy objects.  A value of -1 for either limit
+signifies "leave unchanged".  The default heap limit is 60% of the SDR data
+store's total heap size.  The default file system limit is 1 Terabyte.
 
 =item B<m horizon> { 0 | I<end_time_for_congestion_forecasts> }
 
@@ -188,9 +203,9 @@ at some future time.  By default, there is no alarm command.
 =item B<m usage>
 
 This management command simply prints ION's current data store occupancy
-(the number of bytes of space in the SDR non-volatile data store that are
-occupied by bundles), the limit on occupancy, and the maximum level of
-occupancy predicted by the most recent I<ionadmin> congestion forecast
+(the number of megabytes of space in the SDR non-volatile heap and file system
+that are occupied by bundles), the limit on occupancy, and the maximum level
+of occupancy predicted by the most recent I<ionadmin> congestion forecast
 computation.
 
 =item B<r> 'I<command_text>'
@@ -241,4 +256,4 @@ two hours (7200 seconds) after it starts.
 
 =head1 SEE ALSO
 
-ionadmin(1), rfxclock(1)
+ionadmin(1), rfxclock(1), ion(3)

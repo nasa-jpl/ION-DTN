@@ -13,7 +13,6 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ionrc \
 ./2.ipn.ltp/amroc.ionsecrc \
 ./2.ipn.ltp/amroc.ipnrc \
-./2.ipn.ltp/amroc.cfdprc \
 ./5.ipn.ltp/amroc.ltprc \
 ./5.ipn.ltp/amroc.bprc \
 ./5.ipn.ltp/amroc.ionconfig \
@@ -21,7 +20,6 @@ CONFIGFILES=" \
 ./5.ipn.ltp/amroc.ionrc \
 ./5.ipn.ltp/amroc.ionsecrc \
 ./5.ipn.ltp/amroc.ipnrc \
-./5.ipn.ltp/amroc.cfdprc \
 ./3.ipn.ltp/amroc.ltprc \
 ./3.ipn.ltp/amroc.bprc \
 ./3.ipn.ltp/amroc.ionconfig \
@@ -29,7 +27,6 @@ CONFIGFILES=" \
 ./3.ipn.ltp/amroc.ionrc \
 ./3.ipn.ltp/amroc.ionsecrc \
 ./3.ipn.ltp/amroc.ipnrc \
-./3.ipn.ltp/amroc.cfdprc \
 "
 
 echo "########################################"
@@ -101,13 +98,6 @@ cd ../3.ipn.ltp
 bpadmin amroc.bprc
 cd ../5.ipn.ltp
 bpadmin amroc.bprc
-
-cd ../2.ipn.ltp
-cfdpadmin amroc.cfdprc
-cd ../3.ipn.ltp
-cfdpadmin amroc.cfdprc
-cd ../5.ipn.ltp
-cfdpadmin amroc.cfdprc
 
 echo "Starting bpsink on ipn:5.1 ..."
 sleep 1

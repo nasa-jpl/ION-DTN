@@ -18,7 +18,10 @@ as described in sdr(3).
 If I<interval> is zero, B<sdrwatch> merely prints a current usage summary
 for the indicated data store and terminates.
 
-B<sdrwatch> is helpful for detecting and diagnosing storage space leaks.
+B<sdrwatch> is helpful for detecting and diagnosing storage space leaks.  For
+debugging the ION protocol stack, I<sdr_name> is normally "ion" but might be
+overridden by the value of sdrName in the .ionconfig file used to configure
+the node under study.
 
 =head1 EXIT STATUS
 

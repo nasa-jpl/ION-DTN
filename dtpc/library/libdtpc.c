@@ -17,9 +17,14 @@ typedef struct
 	sm_SemId	semaphore;
 } TimerParms;
 
-int     dtpc_init()
+int     dtpc_attach()
 {
         return dtpcAttach();
+}
+
+void     dtpc_detach()
+{
+        ionDetach();
 }
 
 int     dtpc_entity_is_started()
@@ -34,19 +39,16 @@ char    *dtpc_working_directory()
         return getIonWorkingDirectory();
 }
 
-
 int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
 			unsigned int maxRtx, unsigned int aggrSizeLimit,
 			unsigned int aggrTimeLimit, int lifespan,
 			BpExtendedCOS *extendedCOS, unsigned char srrFlags,
 			BpCustodySwitch custodySwitch, char *reportToEid,
-			int classOfService, Object adu, unsigned int length)
+			int classOfService, Object item, unsigned int length)
 {
-
 	unsigned int	topicID;
 	
-	CHKERR(adu);
-
+	CHKERR(item);
 	if (sap)
 	{
 		 topicID = sap->vsap->topicID;
@@ -60,20 +62,21 @@ int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
 	if (profileID == 0)	
 	{
 		profileID = getProfile(maxRtx, aggrSizeLimit, aggrTimeLimit,
-		lifespan, extendedCOS, srrFlags, custodySwitch, reportToEid,
-		classOfService);
+				lifespan, extendedCOS, srrFlags, custodySwitch,
+				reportToEid, classOfService);
 	}
 
-	if(profileID < 0)
+	if (profileID < 0)
 	{
-		writeMemo(" [?] No profile found.");
+		writeMemo("[?] No profile found.");
 		return 0;
 	}
 	
-	return insertRecord(sap, dstEid, profileID, topicID, adu, length);
+	return insertRecord(sap, dstEid, profileID, topicID, item, length);
 }
 
-int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn, DtpcSAP *dtpcsapPtr)
+int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn,
+		DtpcSAP *dtpcsapPtr)
 {
 	PsmPartition	wm = getIonwm();
 	DtpcVdb		*vdb;
@@ -87,7 +90,7 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn, DtpcSAP *dtpcsapPtr
 	vdb = getDtpcVdb();
 	*dtpcsapPtr = NULL;	/*	Default, in case of failure.	*/
 	sdr = getIonsdr();
-	sdr_begin_xn(sdr);	/* 	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(sdr));	/* 	Just to lock memory.	*/
 
 	/*	Searching for an existing VSap for this topicID	 */
 
@@ -131,13 +134,13 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn, DtpcSAP *dtpcsapPtr
 			return -1;
 		}
 
-		sdr_list_insert_last(sdr, (getDtpcConstants())->queues, vsap->dlvQueue);
+		sdr_list_insert_last(sdr, (getDtpcConstants())->queues,
+				vsap->dlvQueue);
 		sdr_list_user_data_set(sdr, vsap->dlvQueue, topicID);
 		sm_SemTake(vsap->semaphore);     /*      Lock.   */
 	}
 	else 
 	{
-		
 		/*	VSap exists; make sure it's not already opened
 		 *	by some application.				*/
 	
@@ -185,11 +188,11 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn, DtpcSAP *dtpcsapPtr
 
 	vsap->appPid = sm_TaskIdSelf();
 	memcpy((char *) *dtpcsapPtr, (char *) &sap, sizeof(Sap));
-	
 	if (sdr_end_xn(sdr) < 0)
 	{
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -282,7 +285,7 @@ int	dtpc_receive(DtpcSAP sap, DtpcDelivery *dlvBuffer, int timeoutSeconds)
 	}
 
 	vsap = sap->vsap;
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (vsap->appPid != sm_TaskIdSelf())
 	{
 		sdr_exit_xn(sdr);
@@ -346,7 +349,8 @@ int	dtpc_receive(DtpcSAP sap, DtpcDelivery *dlvBuffer, int timeoutSeconds)
 
 		if (sm_SemEnded(vsap->semaphore))
 		{
-			writeMemo("[i] DTPC service for this topic  has been stopped.");
+			writeMemo("[i] DTPC service for this topic has been \
+stopped.");
 			dlvBuffer->result = DtpcServiceStopped;
 
 			/*	End task, but without error.		*/
@@ -356,7 +360,7 @@ int	dtpc_receive(DtpcSAP sap, DtpcDelivery *dlvBuffer, int timeoutSeconds)
 
 		/*	Have taken the semaphore, one way or another.	*/
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		dlvElt = sdr_list_first(sdr, vsap->dlvQueue);
 		if (dlvElt == 0)	/*	Still nothing.		*/
 		{
@@ -454,7 +458,7 @@ void dtpc_release_delivery(DtpcDelivery *dlvBuffer)
 			dlvBuffer->srcEid = NULL;
 		}	
 
-		sdr_begin_xn(sdr);
+		CHKVOID(sdr_begin_xn(sdr));
 		sdr_free(sdr, dlvBuffer->adu);
 		if (sdr_end_xn(sdr) < 0)
 		{

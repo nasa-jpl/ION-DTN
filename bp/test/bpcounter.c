@@ -201,6 +201,7 @@ int	main(int argc, char **argv)
 		}
 	}
 
+	writeMemo("[i] bpcounter has ended.");
 	bp_detach();
 	return 0;
 }
