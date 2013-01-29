@@ -126,7 +126,6 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn,
 		vsap->topicID = topicID;
 		vsap->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		vsap->dlvQueue = sdr_list_create(sdr);
-		
 		if (vsap->dlvQueue == 0)
 		{
 			putErrmsg("No space for delivery queue.", NULL);
@@ -146,7 +145,6 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn,
 	
 		addr = sm_list_data(wm, vsapElt);
 		vsap = (VSap *) psp(wm, addr);
-
 		if (vsap->appPid > 0)  /*	VSap not closed.	*/
 		{
 			if (sm_TaskExists(vsap->appPid))
@@ -175,7 +173,6 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn,
 	sap.vsap = vsap;
 	sap.elisionFn = elisionFn;
 	sap.semaphore = vsap->semaphore;
-
 	*dtpcsapPtr = MTAKE(sizeof(Sap));
 	if (*dtpcsapPtr == NULL)
 	{
@@ -206,7 +203,6 @@ void	dtpc_close(DtpcSAP sap)
         }
 	
 	vsap = sap->vsap;
-
         if (vsap->appPid == sm_TaskIdSelf())
         {
                 vsap->appPid = -1;
@@ -349,8 +345,8 @@ int	dtpc_receive(DtpcSAP sap, DtpcDelivery *dlvBuffer, int timeoutSeconds)
 
 		if (sm_SemEnded(vsap->semaphore))
 		{
-			writeMemo("[i] DTPC service for this topic has been \
-stopped.");
+			writeMemoNote("[i] DTPC service for this topic has \
+been stopped", itoa(vsap->topicID));
 			dlvBuffer->result = DtpcServiceStopped;
 
 			/*	End task, but without error.		*/
@@ -435,7 +431,7 @@ stopped.");
 	return 0;
 }
 
-void dtpc_interrupt(DtpcSAP sap)
+void	dtpc_interrupt(DtpcSAP sap)
 {
 	/*	Give semaphore, simulating reception notice.		*/
 
@@ -445,7 +441,7 @@ void dtpc_interrupt(DtpcSAP sap)
 	}
 }
 
-void dtpc_release_delivery(DtpcDelivery *dlvBuffer)
+void	dtpc_release_delivery(DtpcDelivery *dlvBuffer)
 {
 	Sdr	sdr = getIonsdr();
 

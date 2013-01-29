@@ -24,16 +24,44 @@ static DtpcSAP	_dtpcsap(DtpcSAP *newSAP)
 	if (newSAP)
 	{
 		sap = *newSAP;
-		sm_TaskVarAdd((int *) &sap);
+		sm_TaskVar((void **) &sap);
 	}
 
 	return sap;
 }
 
-static int	checkElision(Object recordsList, PayloadRecord *newRecord)
+static int	checkElision(Object recordsList)
 {
-//	puts("ELISION APPLIED");
-	return 0;
+	Sdr		sdr = getIonsdr();
+	Object		elt;
+	Object		nextElt;
+	Object		obj;
+	PayloadRecord	item;
+	unsigned long	firstLength;
+	unsigned long	length;
+
+	CHKZERO(sdr_begin_xn(sdr));
+	firstLength = 0;
+	for (elt = sdr_list_first(sdr, recordsList); elt; elt = nextElt)
+	{
+		nextElt = sdr_list_next(sdr, elt);
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &item, obj, sizeof(PayloadRecord));
+		oK(decodeSdnv(&length, item.length.text));
+		if (firstLength == 0)
+		{
+			firstLength = length;
+			continue;
+		}
+
+		if (length == firstLength)	/*	Duplicate.	*/
+		{
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			sdr_free(sdr, obj);
+		}
+	}
+
+	return sdr_end_xn(sdr);
 }
 
 static int	_running(int *newState)
@@ -95,7 +123,7 @@ dtpcsend";
 		return 0;
 	}
 
-	if (dtpc_init() < 0)
+	if (dtpc_attach() < 0)
 	{
 		putErrmsg("Can't attach to DTPC.", NULL);
 		return 0;

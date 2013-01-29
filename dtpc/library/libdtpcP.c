@@ -10,9 +10,6 @@
 										*/
 
 #include "dtpcP.h"
-#include "lyst.h"
-#include "ion.h"
-#include "zco.h"
 
 /*      *       *       Helpful utility functions       *       *       */
 
@@ -89,7 +86,7 @@ int	raiseProfile(Sdr sdr, Object sdrElt, DtpcVdb *vdb)
 
 }
 
-int raiseVSap(Sdr sdr, Object elt, DtpcVdb *vdb, unsigned int topicID)
+int	raiseVSap(Sdr sdr, Object elt, DtpcVdb *vdb, unsigned int topicID)
 {
 	PsmPartition	wm = getIonwm();
 	VSap		*vsap;
@@ -170,7 +167,6 @@ static DtpcVdb  *_dtpcvdb(char **name)
 		vdb->dtpcdPid = -1;
 		vdb->watching = 0;
 		vdb->aduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-
 		if ((vdb->vsaps = sm_list_create(wm)) == 0)
 		{
 			sdr_exit_xn(sdr);
@@ -374,14 +370,13 @@ void	_dtpcStop()		/*	Reverses dtpcStart.		*/
 			sm_list_next(wm, elt))
 	{
 		vsap = (VSap *) psp(wm, sm_list_data(wm, elt));
-		
 		if (vsap->semaphore != SM_SEM_NONE)
 		{
-			sm_SemEnd(vsap->semaphore);	/* Stop app */
+			sm_SemEnd(vsap->semaphore);
 		}
 	}
 
-	/*	Stop DTPCD task						*/
+	/*	Stop dtpcd task						*/
 
 	if (dtpcvdb->aduSemaphore != SM_SEM_NONE)
 	{
@@ -390,33 +385,44 @@ void	_dtpcStop()		/*	Reverses dtpcStart.		*/
 
 	/*	Stop clock task						*/
 
-	if(dtpcvdb->clockPid > 0)
+	if (dtpcvdb->clockPid != ERROR)
 	{
 		sm_TaskKill(dtpcvdb->clockPid, SIGTERM);
 	}
 
 	sdr_exit_xn(sdr);
-	if (dtpcvdb->dtpcdPid > 0)
+
+	/*	Wait for all tasks to finish				*/
+
+	while (dtpcvdb->dtpcdPid != ERROR && sm_TaskExists(dtpcvdb->dtpcdPid))
 	{
-		while (sm_TaskExists(dtpcvdb->dtpcdPid))
-		{
-			microsnooze(100000);
-		}
+		microsnooze(100000);
 	}
 
-	if (dtpcvdb->clockPid > 0)
+	while (dtpcvdb->clockPid != ERROR && sm_TaskExists(dtpcvdb->clockPid))
 	{
-		while (sm_TaskExists(dtpcvdb->clockPid))
+		microsnooze(100000);
+	}
+
+	for (elt = sm_list_first(wm, dtpcvdb->vsaps); elt; elt =
+			sm_list_next(wm, elt))
+	{
+		vsap = (VSap *) psp(wm, sm_list_data(wm, elt));
+		if (vsap->semaphore != SM_SEM_NONE)
 		{
-			microsnooze(100000);
+			while (vsap->appPid != ERROR
+			&& sm_TaskExists(vsap->appPid))
+			{
+				microsnooze(100000);
+			}
 		}
 	}
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	CHKVOID(sdr_begin_xn(sdr));
-	dtpcvdb->dtpcdPid = -1;
-	dtpcvdb->clockPid = -1;
+	dtpcvdb->dtpcdPid = ERROR;
+	dtpcvdb->clockPid = ERROR;
 	if (dtpcvdb->aduSemaphore == SM_SEM_NONE)
 	{
 		dtpcvdb->aduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -428,7 +434,7 @@ void	_dtpcStop()		/*	Reverses dtpcStart.		*/
 
 	sm_SemTake(dtpcvdb->aduSemaphore);		/*	Lock.	*/
 	for (elt = sm_list_first(wm, dtpcvdb->vsaps); elt;
-		 elt = sm_list_next(wm, elt))
+			elt = sm_list_next(wm, elt))
 	{
 		vsap = (VSap *) psp(wm, sm_list_data(wm, elt));
 		if (vsap->semaphore == SM_SEM_NONE)
@@ -441,7 +447,7 @@ void	_dtpcStop()		/*	Reverses dtpcStart.		*/
 		}
 
 		sm_SemTake(vsap->semaphore);		/*	Lock	*/
-		vsap->appPid = -1;
+		vsap->appPid = ERROR;
         }
 
 	sdr_exit_xn(sdr);
@@ -552,8 +558,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 		elt = sdr_list_next(sdr, elt))
         {
 		topicAddr = (Object) sdr_list_data(sdr, elt);
-		sdr_stage(sdr, (char *) &topicBuf, topicAddr,
-			sizeof(Topic));
+		sdr_stage(sdr, (char *) &topicBuf, topicAddr, sizeof(Topic));
 		if (topicBuf.topicID == topicID)
 		{
 			break;
@@ -566,17 +571,14 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 		topicBuf.topicID = topicID;
 		topicBuf.payloadRecords = sdr_list_create(sdr);
 		topicBuf.outAduElt = outAduElt;
-
 		topicAddr = sdr_malloc(sdr, sizeof(Topic));
-
 		if (topicAddr == 0)
 		{
 			putErrmsg("No space for Topic.", NULL);
 			return 0;
 		}
 
-		sdr_write(sdr, topicAddr, (char *) &topicBuf,
-				sizeof(Topic)); 
+		sdr_write(sdr, topicAddr, (char *) &topicBuf, sizeof(Topic)); 
 		elt = sdr_list_insert_last(sdr, outAdu.topics, topicAddr);
 	}
 
@@ -588,11 +590,17 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 	}
 
 	sdr_write(sdr, outAduObj, (char *) &outAdu, sizeof(OutAdu));
-	(sap->elisionFn)(topicBuf.payloadRecords, newRecord);
 	if (sdr_list_insert_last(sdr, topicBuf.payloadRecords, recordObj) == 0)
 	{
 		putErrmsg("No space for list element for payload record.",
 				NULL);
+		return 0;
+	}
+
+	if (sap->elisionFn != NULL
+	&& (sap->elisionFn)(topicBuf.payloadRecords) < 0)
+	{
+		putErrmsg("Elision function failed.", NULL);
 		return 0;
 	}
 
@@ -605,8 +613,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 	return elt;
 }
 
-static int	estimateLength(OutAdu *outAdu, unsigned int topicID,
-				unsigned int profileID, int length)
+static int	estimateLength(OutAdu *outAdu)
 {
 	Sdr			sdr = getIonsdr();
 	Object			elt1;
@@ -615,66 +622,21 @@ static int	estimateLength(OutAdu *outAdu, unsigned int topicID,
 				OBJ_POINTER(PayloadRecord, record);
 	unsigned long		recordLength;
 	int			totalLength = 0;
-	unsigned int		recordsCounter;
-	Sdnv			topicIDSdnv;
-	Sdnv			profileIDSdnv;
-	Sdnv			recordsCounterSdnv;
-	Sdnv			seqNumSdnv;
-	Sdnv			lengthSdnv;
-	char			topicExists = 0;	/*	Boolean	*/
 	
 	for (elt1 = sdr_list_first(sdr, outAdu->topics); elt1;
-		elt1 = sdr_list_next(sdr, elt1))
+			elt1 = sdr_list_next(sdr, elt1))
 	{
 		GET_OBJ_POINTER(sdr, Topic, topic, sdr_list_data(sdr, elt1));
-		encodeSdnv(&topicIDSdnv, topic->topicID);
-		totalLength += topicIDSdnv.length;
-		recordsCounter = 0;
-		if (topic->topicID == topicID)
-		{
-			recordsCounter += 1;	/* A record for this topic
-						 * will be inserted	*/
-			topicExists = 1;
-		}
-
 		for (elt2 = sdr_list_first(sdr, topic->payloadRecords); elt2;
 				elt2 = sdr_list_next(sdr, elt2))
 		{
 			GET_OBJ_POINTER(sdr, PayloadRecord, record, 
 					sdr_list_data(sdr, elt2));
-			totalLength +=  record->length.length;
 			oK(decodeSdnv(&recordLength, record->length.text));
 			totalLength += (int) recordLength;
-			recordsCounter++;
 		}
-		
-		encodeSdnv(&recordsCounterSdnv, recordsCounter);
-                totalLength += recordsCounterSdnv.length;
 	}
 
-	if (topicExists == 0)
-	{
-		/* 	No topic for this payload record exists. 
-		 * 	Include in the calculations the "TopicID"
-		 * 	and "RecordsCounter" fields that will be 
-		 * 	created later.				*/
-
-		/*	Since the counter has a value of 1, the
-		 *	Sdnv length will be 1			*/
-		
-		totalLength++;
-		encodeSdnv(&topicIDSdnv, topicID);
-		totalLength += topicIDSdnv.length;
-	}
-
-	totalLength += length;
-	encodeSdnv(&lengthSdnv, length);
-	totalLength += lengthSdnv.length;
-	encodeSdnv(&profileIDSdnv, profileID);
-	totalLength += profileIDSdnv.length;
-	scalarToSdnv(&seqNumSdnv, &outAdu->seqNum);
-	totalLength += seqNumSdnv.length;
-	totalLength++;	/*	For the "Type" field - 1 Byte	*/
 	return totalLength;
 }
 
@@ -811,37 +773,36 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 		outAduElt = outAggr.inProgressAduElt;
 	}
 
-	sdr_stage(sdr, (char *) &outAdu, outAduObj, sizeof(OutAdu));
+	/*	Append the new application data item to the outAdu.	*/
+
+	recordObj = sdr_malloc(sdr, sizeof(PayloadRecord));
+	if (recordObj == 0)
+	{
+		putErrmsg("No space for payload record.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	sdr_write(sdr, recordObj, (char *) &record, sizeof(PayloadRecord));
+	record.topicElt = insertToTopic(topicID, outAduObj, outAduElt,
+			recordObj, vprofile->lifespan, &record, sap);
+	if (record.topicElt == 0)
+	{
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
 
 	/* Estimate the resulting total length of the aggregated outAdu */
 
-	totalLength = estimateLength(&outAdu, topicID, profileID, length);
+	sdr_stage(sdr, (char *) &outAdu, outAduObj, sizeof(OutAdu));
+	totalLength = estimateLength(&outAdu);
 
-	/*	If the outAdu is an empty one and the estimated total length
-	 *	is greater than the aggregation size limit then this 
-	 * 	payload record can not be transmitted.			*/
+	/*	If the estimated length equals or exceeds the
+	 *	aggregation size limit then finish aggregation and
+	 *	create an empty outbound ADU.				*/
 
-	if (totalLength > vprofile->aggrSizeLimit && sdr_list_first(sdr,
-			outAdu.topics) == 0)
+	if (totalLength >= vprofile->aggrSizeLimit)
 	{
-		writeMemo("[?] The estimated total length exceeds aggregation \
-size limit.");
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("SDR transaction error.", NULL);
-			return -1;
-		}
-
-		return 0;
-	}
-	
-	if (totalLength > vprofile->aggrSizeLimit)
-	{
-		/* Current payload record does not fit into the 
-		 * outAdu that is in progress, so we must stop
-		 * the aggregation of this outAdu and create
-		 * a new one					*/
-
 		if (createAdu(vprofile, outAduObj, outAduElt) < 0)
 		{
 			putErrmsg("Can't send outbound adu.", NULL);
@@ -855,114 +816,8 @@ size limit.");
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
-
-		sdr_stage(sdr, (char *) &outAdu, outAduObj, sizeof(OutAdu));
-
-		/* Check if this payload record can fit into the
-		 * empty outAdu.				 */
-
-		totalLength = estimateLength(&outAdu, topicID, profileID,
-				length);
-		if (totalLength > vprofile->aggrSizeLimit)
-		{
-			writeMemo("[?] The estimated total length exceeds \
-aggregation size limit.");
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("SDR transaction error.", NULL);
-				return -1;
-			}
-
-			return 0;
-		}
-
-		recordObj = sdr_malloc(sdr, sizeof(PayloadRecord));
-		if (recordObj == 0)
-		{
-			putErrmsg("No space for payload record.", NULL);
-			sdr_cancel_xn(sdr);
-			return -1;
-		}
-		
-		record.topicElt = insertToTopic(topicID, outAduObj, outAduElt,
-				recordObj, vprofile->lifespan, &record, sap);	
-		if (record.topicElt == 0)
-		{
-			sdr_cancel_xn(sdr);
-			return -1;
-		}
-
-		sdr_write(sdr, recordObj, (char *) &record,
-				sizeof(PayloadRecord));
-
-		/*  If the estimated length is equal to the aggregation
-		 *  size limit then finish aggregation and create 
-		 *  an empty outbound ADU.				*/
-
-		if (totalLength == vprofile->aggrSizeLimit)
-		{
-			if (createAdu(vprofile, outAduObj,
-				outAduElt) < 0)
-			{
-				putErrmsg("Can't send outbound adu.", NULL);
-				sdr_cancel_xn(sdr);
-				return -1;
-			}
-
-			if (initOutAdu(outAggrAddr, sdrElt, &outAduObj,
-					&outAduElt) < 0)
-			{
-				putErrmsg("Can't create new outAdu", NULL);
-				sdr_cancel_xn(sdr);
-				return -1;
-			}
-		}
 	}
-	else
-	{
-		recordObj = sdr_malloc(sdr, sizeof(PayloadRecord));
-		if (recordObj == 0)
-		{
-			putErrmsg("No space for payload record.",NULL);
-			sdr_cancel_xn(sdr);
-			return -1;
-		}
 
-		record.topicElt = insertToTopic(topicID, outAduObj, outAduElt,
-				recordObj, vprofile->lifespan, &record, sap);
-		if (record.topicElt == 0)
-		{
-			sdr_cancel_xn(sdr);
-			return -1;
-		}
-
-		sdr_write(sdr, recordObj, (char *) &record,
-				sizeof(PayloadRecord));
-
-		/*  If the estimated length is equal to the aggregation
-		 *  size limit then finish aggregation and create 
-		 *  an empty outbound ADU.				*/
-
-		if (totalLength == vprofile->aggrSizeLimit)
-		{
-			if (createAdu(vprofile, outAduObj,
-				outAduElt) < 0)
-			{
-				putErrmsg("Can't send outbound adu.", NULL);
-				sdr_cancel_xn(sdr);
-				return -1;
-			}
-
-			if (initOutAdu(outAggrAddr, sdrElt, &outAduObj,
-					&outAduElt) < 0)
-			{
-				putErrmsg("Can't create new outAdu", NULL);
-				sdr_cancel_xn(sdr);
-				return -1;
-			}
-		}
-	}
-                
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't insert record", NULL);
@@ -1257,13 +1112,13 @@ int	sendAdu(BpSAP sap)
 
 		if (sm_SemTake(vdb->aduSemaphore) < 0)
 		{
-			putErrmsg("DTPCD can't take ADU semaphore.", NULL);
+			putErrmsg("dtpcd can't take ADU semaphore.", NULL);
 			return -1;
 		}	
 
 		if (sm_SemEnded(vdb->aduSemaphore))
 		{
-			writeMemo("[i] DTPCD has been stopped.");
+			writeMemo("[i] dtpcd stop has been signaled.");
 			return -1;
 		}
 
@@ -2497,7 +2352,7 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 	Address		addr = 0;		/*	To hush gcc	*/
 	DlvPayload	dlvPayload;
 
-	buffer = *cursor + *bytesUnparsed - buflen;
+	buffer = (*cursor + *bytesUnparsed) - buflen;
 
 	/* Since an Sdnv occupies at most 10 bytes, make sure there are
 	 * at least 20 unparsed bytes in buffer to get the first 2
@@ -2555,7 +2410,7 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 
 	/* 		Parse all payload records.			*/
 
-	for ( ; recordsCounter; recordsCounter--)
+	for (; recordsCounter; recordsCounter--)
 	{
 		/*	Make sure the length sdnv is in the buffer	*/
 
@@ -2595,15 +2450,17 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 		}
 
 		remainingLength = payloadLength;
-		while (1)	/*	Copy a payload record		*/
+		while (remainingLength > 0)
 		{
 			if (remainingLength <= *bytesUnparsed)
 			{
+				/*	Remainder of payload is in
+				 *	the buffer.			*/
+
 				if (skipTopic == 0)
 				{
 					sdr_write(sdr, addr, (char *) *cursor,
 							remainingLength);
-
 					dlvPayloadObj = sdr_malloc(sdr,
 							sizeof(DlvPayload));
 					if (dlvPayloadObj == 0)
@@ -2622,15 +2479,19 @@ for DlvPayload.", NULL);
 						sizeof(DlvPayload));
 					oK(sdr_list_insert_last(sdr,
 						vsap->dlvQueue, dlvPayloadObj));
-							
 				}
 
+				parsedBytes += remainingLength;
 				*bytesUnparsed -= remainingLength;
 				*cursor += remainingLength;
-				break; /*	Wrote payload		*/
+				remainingLength = 0;
 			}
 			else
 			{
+				/*	Copy everything remaining in
+				 *	buffer to the payload object,
+				 *	then add more.			*/
+
 				if (skipTopic == 0)
 				{
 					sdr_write(sdr, addr, (char *) *cursor,
@@ -2638,6 +2499,7 @@ for DlvPayload.", NULL);
 					addr += *bytesUnparsed;
 				}
 
+				parsedBytes += *bytesUnparsed;
 				remainingLength -= *bytesUnparsed;
 
 				/*		Refill buffer		*/
@@ -2646,10 +2508,14 @@ for DlvPayload.", NULL);
 				bytesReceived = zco_receive_source(sdr, reader,
 						buflen, (char *) *cursor);
 				*bytesUnparsed = bytesReceived;
+				if (*bytesUnparsed < remainingLength)
+				{
+					writeMemoNote("[?] DTPC user data \
+item truncated", itoa((*bytesUnparsed) - remainingLength));
+					break;
+				}
 			}
 		}
-
-		parsedBytes += payloadLength;
 	}
 
 	if (skipTopic == 0)
@@ -2695,8 +2561,9 @@ int	parseInAdus(Sdr sdr)
 			return -1;
 		}
 
-		while (1)	/*	Parse all non-empty adus of
-					aggregator			*/
+		/*	Parse all non-empty adus of aggregator.		*/
+
+		while (1)
 		{
 			aduElt = sdr_list_first(sdr, inAggr.inAdus);
 			if (aduElt == 0)
@@ -2735,15 +2602,15 @@ int	parseInAdus(Sdr sdr)
 			bytesReceived = zco_receive_source(sdr, &reader, buflen,
 					(char *) cursor);
 			bytesUnparsed = bytesReceived;
-			while(remainingBytes)
+			while (remainingBytes)
 			{
 				parsedBytes = parseTopic(sdr, srcEid, &reader,
 					&cursor, buflen, &bytesUnparsed);
 				if (parsedBytes < 0)
 				{
-					sdr_cancel_xn(sdr);
 					putErrmsg("Can't parse adu topic.",
 							NULL);
+					sdr_cancel_xn(sdr);
 					return -1;
 				}
 
@@ -2880,7 +2747,8 @@ process ACK.");
 	return 0;
 }
 
-int sendAck (BpSAP sap, unsigned long profileID, Scalar seqNum, BpDelivery *dlv)
+int	sendAck (BpSAP sap, unsigned long profileID, Scalar seqNum,
+		BpDelivery *dlv)
 {
 	Sdr		sdr = getIonsdr();
 	DtpcVdb		*vdb = getDtpcVdb();
@@ -3035,209 +2903,6 @@ send ACK.");
 
 	return 0;
 }
-
-#if 0
-
-/* * * These functions are included in ion-2.5.2 * * */
-
-void	scalarToSdnv(Sdnv *sdnv, Scalar *scalar)
-{
-	int		gigs;
-	int		units;
-	int		i;
-	unsigned char	flag = 0;
-	unsigned char	*cursor;
-
-	CHKVOID(scalar);
-	CHKVOID(sdnv);
-	sdnv->length = 0;
-
-	/*		Calculate sdnv length				*/
-
-	gigs = scalar->gigs;
-	units = scalar->units;
-	if (gigs) 
-	{
-		/*	The scalar is greater than 2^30 - 1, so first
-			add all 30 unit bits. This will occupy 5 bytes
-			in the sdnv, leaving room for 5 more bits which
-			are shifted out from gigs. If there are more
-			non-zero bits left in gigs, increase sdnv
-			length accordingly.				*/
-
-		sdnv->length += 5;			
-		gigs >>= 5;
-		while (gigs)
-		{
-			gigs >>= 7;
-			sdnv->length++;
-		}
-	}
-	else
-	{
-		/*	gigs = 0, so calculate the sdnv length from
-			units only.					*/
-
-		do
-		{
-			units >>= 7;
-			sdnv->length++;
-		} while (units);
-	}
-
-	/*		Fill the sdnv text.				*/
-
-	cursor = sdnv->text + sdnv->length;
-	i = sdnv->length;
-	gigs = scalar->gigs;
-	units = scalar->units;
-	do
-	{
-		cursor--;
-
-		/*	Start filling the sdnv text from the last byte.
-			Get 7 low-order bits from units and add the
-			flag to the high-order bit. Flag is 0 for the
-			last byte and 1 for all the previous bytes.	*/
-
-		*cursor = (units & 0x7f) | flag;
-		units >>= 7;
-		flag = 0x80;		/*	Flag is now 1.		*/
-		i--;
-	} while (units);
-
-	if (gigs)
-	{
-		while (sdnv->length - i < 5)
-		{
-			cursor--;
-
-			/* Fill remaining sdnv bytes corresponding to
-			   units with zeroes.				*/
-
-			*cursor = 0x00 | flag;
-			i--;
-		}
-
-		/*	Place the 5 low-order bits of gigs in the
-			current	sdnv byte.				*/
-
-		*cursor |= ((gigs & 0x1f) << 2);
-		gigs >>= 5;
-		while (i)
-		{
-			cursor--;
-
-			/*	Now fill the remaining sdnv bytes
-				from gigs.				*/
-
-			*cursor = (gigs & 0x7f) | flag;
-			gigs >>= 7;
-			i--;
-		}
-	}
-}
-
-int	sdnvToScalar(Scalar *scalar, unsigned char *sdnvText)
-{
-	int		sdnvLength;
-	int		i;
-	int		numSize = 0; /* Size of stored number in bits.	*/
-	unsigned char	*cursor;
-	unsigned char	flag;
-	unsigned char	k;
-
-	CHKZERO(scalar);
-	CHKZERO(sdnvText);
-	cursor = sdnvText;
-
-	/*	Find out the sdnv length and size of stored number.	*/
-
-	flag = (*cursor & 0x80);/*	Get flag of 1st byte.		*/
-	k = *cursor << 1;	/*	Discard the flag bit.		*/
-	i = 7;
-	while (i)
-	{
-		if (k & 0x80)
-		{
-			break; /*	Loop until a '1' is found.	*/
-		}
-
-		i--;
-		k <<= 1;
-	}
-
-	numSize += i; /*	Add used bits from the first byte.	*/
-	if (flag)
-	{
-		/* Sdnv has more than one bytes, add 7 bits from
-		   the last byte and advance cursor to check for
-		   intermediate bytes.					*/
-
-		numSize += 7;
-		cursor++;
-		while (*cursor & 0x80)
-		{
-			numSize += 7;
-			cursor++;
-		}
-	}
-
-	if (numSize > 61)
-	{
-		return 0; /*	More than 61 bits, can't be a scalar.	*/
-	}
-
-	sdnvLength = cursor - sdnvText + 1;
-
-	/*		Now start filling gigs and units.		*/
-
-	scalar->gigs = 0;
-	scalar->units = 0;
-	cursor = sdnvText;
-	i = sdnvLength;
-
-	while (i > 5)
-	{	/*	Sdnv bytes containing gigs only.		*/
-
-		scalar->gigs <<= 7;
-		scalar->gigs |= (*cursor & 0x7f);
-		cursor++;
-		i--;
-	}
-
-	if (i == 5)
-	{	/* Sdnv byte containing units and possibly gigs too.	*/
-
-		if (numSize > 30)
-		{
-			/* Fill the gigs bits after shifting out
-			   the 2 bits that belong to units.		*/
-
-			scalar->gigs <<= 5;
-			scalar->gigs |= ((*cursor >> 2) & 0x1f);
-		}
-
-		/*		Fill the units bits.			*/
-
-		scalar->units = (*cursor & 0x03);
-		cursor++;
-		i--;
-	}
-
-	while (i)
-	{	/*	Sdnv bytes containing units only.		*/
-
-		scalar->units <<= 7;
-		scalar->units |= (*cursor & 0x7f);
-		cursor++;
-		i--;
-	}
-
-	return sdnvLength;
-}
-
-#endif
 
 int	compareScalars(Scalar *scalar1, Scalar *scalar2)
 {

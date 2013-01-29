@@ -499,7 +499,7 @@ int	ltpInit(int estMaxExportSessions)
 	}
 
 	ltpSdr = getIonsdr();
-	srand(time(NULL));
+	srand(time(NULL) * sm_TaskIdSelf());
 
 	/*	Recover the LTP database, creating it if necessary.	*/
 
@@ -784,7 +784,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		resetSpan(vspan);
 	}
 
-	sdr_exit_xn(ltpSdr);	/*	Unlock memory.			*/
+	sdr_exit_xn(ltpSdr);		/*	Unlock memory.		*/
 }
 
 int	ltpAttach()
@@ -806,7 +806,7 @@ int	ltpAttach()
 	}
 
 	ltpSdr = getIonsdr();
-	srand(time(NULL));
+	srand(time(NULL) * sm_TaskIdSelf());
 
 	/*	Locate the LTP database.				*/
 

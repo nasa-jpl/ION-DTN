@@ -30,10 +30,11 @@ static void	*getBundles(void *parm)
 	Scalar			seqNum;
 	char			type;
 	unsigned int		aduLength;
-	int			sdnvLength;
 	int			bytesRemaining;
 	ZcoReader		reader;
 	unsigned char		*buffer;
+	int			bytesToRead;
+	int			sdnvLength;
 	unsigned char		*cursor;
 
 	isprintf(ownEid, sizeof ownEid, "ipn:%lu.%d", getOwnNodeNbr(),
@@ -70,17 +71,18 @@ static void	*getBundles(void *parm)
 			 * were read.					*/
 
 			aduLength = zco_source_data_length(sdr, dlv.adu);
+			bytesRemaining = aduLength;
 			if (aduLength < 21)	/* Just in case we receive
 						 * a very small adu.	*/
 			{			
-				bytesRemaining = aduLength;
+				bytesToRead = aduLength;
 			}
 			else
 			{
-				bytesRemaining = 21;
+				bytesToRead = 21;
 			}
 
-			buffer = MTAKE(bytesRemaining);
+			buffer = MTAKE(bytesToRead);
 			if (buffer == NULL)
 			{
 				putErrmsg("Out of memory.",NULL);
@@ -89,13 +91,13 @@ static void	*getBundles(void *parm)
 
 			cursor = buffer;
 			zco_start_receiving(dlv.adu, &reader);
-			if (zco_receive_headers(sdr, &reader, bytesRemaining,
+			if (zco_receive_headers(sdr, &reader, bytesToRead,
 					(char *) buffer) < 0)
 			{
-				MRELEASE(buffer);
+				putErrmsg("dtpcd can't receive ADU header.",
+						itoa(bytesToRead));
 				sdr_cancel_xn(sdr);
-				putErrmsg("dtpcd can't receive bundle ADU.",
-						itoa(bytesRemaining));
+				MRELEASE(buffer);
 				parms->running = 0;
 				continue;
 			}
@@ -103,11 +105,9 @@ static void	*getBundles(void *parm)
 			sdnvLength = decodeSdnv(&profNum, cursor);
 			cursor += sdnvLength;
 			bytesRemaining -= sdnvLength;
-
 			sdnvLength = sdnvToScalar(&seqNum, cursor);
 			cursor += sdnvLength;
 			bytesRemaining -= sdnvLength;
-
 			type = *cursor;		/* Get the type byte.	*/
 			cursor++;
 			bytesRemaining--;
@@ -116,6 +116,7 @@ static void	*getBundles(void *parm)
 
 			zco_delimit_source(sdr, dlv.adu, cursor - buffer,
 					bytesRemaining);
+			zco_strip(sdr, dlv.adu);
 			MRELEASE(buffer);
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -245,7 +246,6 @@ int	main(int argc, char **argv)
 	parms.mainThread = pthread_self();
 	parms.running = 1;
 	parms.txSap = txSap;
-	
 	if (pthread_create(&rxThread, NULL, getBundles, &parms))
 	{
 		bp_close(txSap);
@@ -276,11 +276,10 @@ terminating.");
 		bp_interrupt(parms.rxSap);
 		pthread_join(rxThread, NULL);
 	}
-	
 
 	bp_close(txSap);
 	writeErrmsgMemos();
-	writeMemo("[i] Stopping dtpcd.");
+	writeMemo("[i] dtpcd has ended.");
 	ionDetach();
 	return 0;
 }

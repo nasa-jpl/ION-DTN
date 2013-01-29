@@ -12,20 +12,20 @@
 
 #include "bp.h"
 
-#define DTPC_POLL                 (0)	/*      Return immediately.	*/
-#define DTPC_NONBLOCKING          (0)	/*      Return immediately.	*/
-#define DTPC_BLOCKING             (-1)	/*      Wait forever.		*/
+#define DTPC_POLL		(0)	/*      Return immediately.	*/
+#define DTPC_NONBLOCKING	(0)	/*      Return immediately.	*/
+#define DTPC_BLOCKING		(-1)	/*      Wait forever.		*/
 
 typedef struct
 {
-        Object          payload;
-        Sdnv            length;
+        Object          	payload;
+        Sdnv            	length;
 	Object          topicElt;	/*	Ref. to Topic, not used	*/
 } PayloadRecord;
 
-typedef int     (*DtpcElisionFn) (Object recordsList, PayloadRecord *newRecord);
+typedef int			(*DtpcElisionFn) (Object recordsList);
 
-typedef struct dtpcsap_st        *DtpcSAP;
+typedef struct dtpcsap_st	*DtpcSAP;
 
 typedef enum
 {

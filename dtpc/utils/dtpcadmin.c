@@ -127,9 +127,8 @@ static void	printProfile(Profile *vprofile)
 			vprofile->lifespan);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "aggrSizeLimit: %u, aggTimeLimit: \
-%u Priority: %d Custody: %d", vprofile->aggrSizeLimit, vprofile->aggrTimeLimit,k
-			vprofile->classOfService,
-		 	vprofile->custodySwitch);
+%u Priority: %d Custody: %d", vprofile->aggrSizeLimit, vprofile->aggrTimeLimit,
+			vprofile->classOfService, vprofile->custodySwitch);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "reportToEid: %s", sdrBuf);
 	printText(buffer);
@@ -467,7 +466,7 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case 'v':
-			isprintf(buffer, sizeof buffer, "%s", IONVERSIONNBR);
+			isprintf(buffer, sizeof buffer, "%s", IONVERSIONNUMBER);
 			printText(buffer);
 			return 0;
 

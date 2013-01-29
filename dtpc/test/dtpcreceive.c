@@ -17,7 +17,7 @@ static DtpcSAP	_dtpcsap(DtpcSAP *newSAP)
 	if (newSAP)
 	{
 		sap = *newSAP;
-		sm_TaskVarAdd((int *) &sap);
+		sm_TaskVar((void **) &sap);
 	}
 
 	return sap;
@@ -80,32 +80,11 @@ static int	_startTime(time_t newStartTime)
 	return start;
 }
 
-static int	_endTime(time_t newEndTime)
+static int	printCount(void *userData)
 {
-	static time_t end = 0;
-	
-	if (newEndTime)
-	{
-		end = newEndTime;
-	}
-	
-	return end;
-}
-
-static void	printCount()
-{
-	long interval;
-	interval = _endTime(time(NULL)) - _startTime(0);
-	signal(SIGALRM, printCount);
-	PUTMEMO("Time (seconds)", itoa(interval));
-	if (interval > 0)
-	{
-		PUTMEMO("Throughput (bytes per second)",
-			itoa(_bytesReceived(0) / interval));
-	}
 	PUTMEMO("Payloads received", itoa(_payloadCount(0)));
 	fflush(stdout);
-	alarm(10);
+	return 0;
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -121,6 +100,11 @@ int	main(int argc, char **argv)
 	DtpcSAP		sap;
 	DtpcDelivery	dlv;
 	int		stop = 0;
+	IonAlarm	alarm = { 5, 0, printCount, NULL };
+	pthread_t	alarmThread;
+	time_t		startTime = 0;
+	time_t		endTime;
+	long 		interval;
 
 	if (topicID == 0)
 	{
@@ -128,7 +112,7 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	if (dtpc_init() < 0)
+	if (dtpc_attach() < 0)
 	{
 		putErrmsg("Can't attach to DTPC.", NULL);
 		return 0;
@@ -141,12 +125,11 @@ int	main(int argc, char **argv)
 	}
 
 	oK(_dtpcsap(&sap));
-	isignal(SIGALRM, printCount);
-	alarm(10);
+	ionSetAlarm(&alarm, &alarmThread);
 	isignal(SIGINT, handleQuit);
 	while (_running(NULL))
 	{
-		if (dtpc_receive(sap, &dlv, BP_BLOCKING) < 0)
+		if (dtpc_receive(sap, &dlv, DTPC_BLOCKING) < 0)
 		{
 			putErrmsg("dtpcreceive payload reception failed.",
 					NULL);
@@ -180,8 +163,21 @@ int	main(int argc, char **argv)
 	}
 
 	dtpc_close(sap);
-	PUTMEMO("Stopping dtpcreceive; payloads received", 
-			itoa(_payloadCount(0)));
+	startTime = _startTime(0);
+	if (startTime)
+	{
+		endTime = time(NULL);
+		interval = endTime - startTime;
+		PUTMEMO("Time (seconds)", itoa(interval));
+		if (interval > 0)
+		{
+			PUTMEMO("Throughput (bytes per second)",
+					itoa(_bytesReceived(0) / interval));
+		}
+	}
+
+	PUTMEMO("Stopping dtpcreceive on topic", itoa(topicID));
+	PUTMEMO("Final tally of payloads received", itoa(_payloadCount(0)));
 	ionDetach();
 	return 0;
 }

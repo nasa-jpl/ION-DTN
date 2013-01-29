@@ -1969,7 +1969,6 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
 
 void	sdr_read(Sdr sdrv, char *into, Address from, long length)
 {
-	CHKVOID(sdrFetchSafe(sdrv));
 	_sdrfetch(sdrv, into, from, length);
 }
 

@@ -16,7 +16,7 @@ LIBDTPCOBJS = \
 PUBINCLS = \
 	$(INCL)/dtpc.h
 
-RUNTIMES = dtpcd dtpcclock
+RUNTIMES = dtpcd dtpcclock dtpcsend dtpcreceive dtpcadmin
 
 ALL = check libdtpc.so $(RUNTIMES)
 

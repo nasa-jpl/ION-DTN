@@ -46,16 +46,15 @@ static int	updateAdus(Sdr sdr)
 	OutAdu		adu;
 			OBJ_POINTER(OutAggregator, outAggr);
 			OBJ_POINTER(Profile, profile);
-
 	CHKERR(sdr_begin_xn(sdr));
 	for (aggrElt = sdr_list_first(sdr, dtpcConstants->outAggregators);
-		aggrElt; aggrElt = sdr_list_next(sdr, aggrElt))
+			aggrElt; aggrElt = sdr_list_next(sdr, aggrElt))
 	{
 		aggrObj = sdr_list_data(sdr, aggrElt);
 		GET_OBJ_POINTER(sdr, OutAggregator, outAggr, aggrObj);
 		if (outAggr->inProgressAduElt == 0)
 		{
-			continue;	/*	No adu in use.		*/
+			continue;	/*	No ADU in progress.	*/
 		}
 
 		aduElt = outAggr->inProgressAduElt;
@@ -63,7 +62,7 @@ static int	updateAdus(Sdr sdr)
 		sdr_stage(sdr, (char *) &adu, aduObj, sizeof(OutAdu));
 		if (adu.ageOfAdu < 0)
 		{
-			continue;	/*	Don't touch this adu.	*/
+			continue;	/*	No items added to ADU.	*/
 		}
 
 		adu.ageOfAdu++;
@@ -79,7 +78,7 @@ static int	updateAdus(Sdr sdr)
 		}
 
 		sdr_write(sdr, aduObj, (char *) &adu, sizeof(OutAdu));
-		if(adu.ageOfAdu >= profile->aggrTimeLimit)
+		if (adu.ageOfAdu >= profile->aggrTimeLimit)
 		{
 			if (createAdu(profile, aduObj, aduElt) < 0)
 			{

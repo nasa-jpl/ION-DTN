@@ -10,8 +10,6 @@
 	Democritus University of Thrace. ALL RIGHTS RESERVED.
 */
 
-#include "lyst.h"
-#include "zco.h"
 #include "dtpc.h"
 
 #define DTPC_SEND_SVC_NBR	(128)
