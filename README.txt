@@ -19,7 +19,7 @@ POSSIBILITY.
 USER BEARS ALL RISK RELATING TO QUALITY AND PERFORMANCE OF THE
 SOFTWARE AND/OR RELATED MATERIALS.
 *******************************************************************
-Copyright 2002-2011, by the California Institute of Technology. ALL
+Copyright 2002-2013, by the California Institute of Technology. ALL
 RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.
 
 This software and/or related materials may be subject to U.S. export
@@ -31,22 +31,43 @@ software or related materials to foreign countries or providing
 access to foreign persons.
 *******************************************************************
 
-To build the ION system, build the subsystems in the following order:
+To build the entire ION system on a Linux, OS/X, or Solaris platform,
+just cd into ion-open-source and enter two commands:
 
-1.	ici
-2.	dgr
-3.	ltp
-4.	bp
-5.	cfdp
-6.	ams
+	./configure
+	./make
+
+To build ION for Android, cd into ion-open-source/arch-android and
+see the instructions in the README.bionic text file.
+
+To build ION for RTEMS, cd into ion-open-source/arch-rtems and
+see the instructions in the README text file.
+
+To build ION for Windows, see the instructions in the winion.pdf document.
+
+It's also possible to build the individual packages of ION, using
+platform-specific Makefiles in the package subdirectories.  If you choose
+this option, be aware of the dependencies among the packages:
+
+	The "ici" package must be built ("make" and "make install")
+	before any other package.
+
+	The "bp" package is dependent on "dgr" and "ltp" as well as
+	"ici".
+
+	The "cfdp", "ams", and "bss" packages are dependent on "bp".
+
+	The "restart" package is dependent on "cfdp", "bp", "ltp",
+	and "ici".
 
 Additional details are provided in the README.txt files in the root
 directories of some of the subsystems.
 
-Note that the default build of the ams subsystem requires that the "expat"
-library be installed; this can be overridden at compile time.  Also note
-that all Makefiles are for gmake; on a freebsd platform, be sure to install
-gmake before trying to build ION.
+Note that the default individual build of the ams package requires that
+the "expat" library be installed; this can be overridden at compile time.
+
+Also note that all Makefiles are for gmake; on a freebsd platform, be sure
+to install gmake before trying to build ION.
 
 Scott Burleigh, JPL
 scott.c.burleigh@jpl.nasa.gov 

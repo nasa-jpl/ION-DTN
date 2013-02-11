@@ -5565,6 +5565,19 @@ when asking for custody transfer and/or status reports.");
 	/*	Bundle is almost fully constructed at this point.	*/
 
 	CHKERR(sdr_begin_xn(bpSdr));
+
+	/*	Convert all payload header and trailer capsules
+	 *	into source data extents.  From the BP perspective,
+	 *	everything in the ADU is source data.			*/
+
+	if (zco_bond(bpSdr, bundle.payload.content) < 0)
+	{
+		putErrmsg("Can't convert payload capsules to extents.", NULL);
+		return -1;
+	}
+
+	/*	Set creationTime of bundle.				*/
+
 	if (ionClockIsSynchronized())
 	{
 		getCurrentDtnTime(&currentDtnTime);
