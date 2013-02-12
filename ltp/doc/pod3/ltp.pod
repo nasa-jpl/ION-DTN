@@ -49,7 +49,7 @@ Attaches the application to LTP functionality on the lcoal computer.  Returns
 
 Terminates all access to LTP functionality on the local computer.
 
-=item int ltp_send(unsigned long destinationEngineId, unsigned long clientId, Object clientServiceData, unsigned int redLength, LtpSessionId *sessionId)
+=item int ltp_send(uvast destinationEngineId, unsigned int clientId, Object clientServiceData, unsigned int redLength, LtpSessionId *sessionId)
 
 Sends a client service data unit to the application that is waiting for
 data tagged with the indicated I<clientId> as received at the remote LTP
@@ -75,7 +75,7 @@ data unit and returns zero.  The session number may be used to link future
 LTP processing events, such as transmission cancellation, to the affected
 client service data.  ltp_send() returns -1 on any error.
 
-=item int ltp_open(unsigned long clientId)
+=item int ltp_open(unsigned int clientId)
 
 Establishes the application's exclusive access to received service data
 units tagged with the indicated client service data ID.  At any time, only
@@ -85,7 +85,7 @@ any single client service data ID.
 Returns 0 on success, -1 on any error (e.g., the indicated client service
 is already being held open by some other application task).
 
-=item int ltp_get_notice(unsigned long clientId, LtpNoticeType *type, LtpSessionId *sessionId, unsigned char *reasonCode, unsigned char *endOfBlock, unsigned long *dataOffset, unsigned long *dataLength, Object *data)
+=item int ltp_get_notice(unsigned int clientId, LtpNoticeType *type, LtpSessionId *sessionId, unsigned char *reasonCode, unsigned char *endOfBlock, unsigned int *dataOffset, unsigned int *dataLength, Object *data)
 
 Receives notices of LTP processing events pertaining to the flow of service
 data units tagged with the indicated client service ID.  The nature of each
@@ -122,7 +122,7 @@ is delivered.
 
 Returns zero on success, -1 on any error.
 
-=item void ltp_interrupt(unsigned long clientId)
+=item void ltp_interrupt(unsigned int clientId)
 
 Interrupts an ltp_get_notice() invocation.  This function is designed to be
 called from a signal handler; for this purpose, I<clientId> may need to be
@@ -132,7 +132,7 @@ obtained from a static variable.
 
 Releases the resources allocated to hold I<data>, a client service data ZCO.
 
-=item void ltp_close(unsigned long clientId)
+=item void ltp_close(unsigned int clientId)
 
 Terminates the application's exclusive access to received service data
 units tagged with the indicated client service data ID.

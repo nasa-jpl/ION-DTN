@@ -37,11 +37,13 @@ dynamic routing.  The Bundle Protocol (BP) specification is defined
 in Internet RFC 5050.
 
 I<dgr> (Datagram Retransmission), a library that enables data to be
-transmitted via UDP with reliability comparable to that provided by TCP.
+transmitted via UDP with reliability comparable to that provided by TCP.  DGR
+is an alternative implementation of LTP, designed for use within an internet.
 
-I<ams> (Asynchronous Message Service) and I<cfdp> (CCSDS File Delivery
-Protocol), application-layer services that are not part of the DTN
-architecture but utilize underlying DTN protocols.
+I<ams> (Asynchronous Message Service), I<cfdp> (CCSDS File Delivery
+Protocol), and I<bss> (Bundle Streaming Service), application-layer
+services that are not part of the DTN architecture but utilize
+underlying DTN protocols.
 
 =back
 
@@ -106,7 +108,7 @@ non-memory-protected environment, such as VxWorks, where all ION resource
 access variables are shared by all tasks: no single task could detach
 without crashing all other ION tasks.
 
-=item void ionProd(unsigned long fromNode, unsigned long toNode, unsigned long xmitRate, unsigned int owlt)
+=item void ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate, unsigned int owlt)
 
 This function is designed to be called from an operating environment command
 or a fault protection routine, to enable operation of a node to resume when
@@ -158,7 +160,7 @@ Returns 1 if the calling task is the owner of the current SDR transaction.
 Assuring that ION is locked while related critical operations are performed
 is essential to the avoidance of race conditions.
 
-=item unsigned long getOwnNodeNbr()
+=item uvast getOwnNodeNbr()
 
 Returns the Bundle Protocol node number identifying this computer, as
 declared when ION was initialized by I<ionadmin>.
@@ -300,7 +302,7 @@ Statistics messages have the following format:
 
 =over 4
 
-{I<yyyy/mm/dd hh:mm:ss>} [x] I<xxx> from I<tttttttt> to I<TTTTTTTT>: (0) I<aaaa> I<bbbbbbbbbb> (1) I<cccc> I<dddddddddd> (2) I<eeee> I<ffffffffff> (@) I<gggg> I<hhhhhhhhhh>
+{I<yyyy/mm/dd hh:mm:ss>} [x] I<xxx> from I<tttttttt> to I<TTTTTTTT>: (0) I<aaaa> I<bbbbbbbbbb> (1) I<cccc> I<dddddddddd> (2) I<eeee> I<ffffffffff> (+) I<gggg> I<hhhhhhhhhh>
 
 =back
 
@@ -364,8 +366,7 @@ indicated traffic flow, followed by the sum of the sizes of the payloads
 of all those bundles.  The four traffic flows for which statistics are
 reported are "(0)" the priority-0 or "bulk" non-administrative traffic,
 "(1)" the priority-1 non-administrative traffic, "(2)" the priority-2
-"expedited" non-administrative traffic, and "(@)" all administrative traffic
-regardless of priority.
+"expedited" non-administrative traffic, and "(+)" all traffic in total.
 
 =item Free-form messages
 
@@ -376,4 +377,4 @@ just as for the documented status message types.
 
 =head1 SEE ALSO
 
-ionadmin(1), rfxclock(1), bpstats(1), llcv(3), lyst(3), memmgr(3), platform(3), psm(3), sdr(3), zco(3), ltp(3), bp(3), I<AMS Programmer's Guide>
+ionadmin(1), rfxclock(1), bpstats(1), llcv(3), lyst(3), memmgr(3), platform(3), psm(3), sdr(3), zco(3), ltp(3), bp(3), cfdp(3), ams(3), bss(3)
