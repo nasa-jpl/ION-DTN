@@ -67,8 +67,10 @@ static void	*sendBundles(void *parm)
 	}
 
 	sdr = getIonsdr();
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			parms->vduct->outductElt), sizeof(Outduct));
+	sdr_exit_xn(sdr);
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = outduct.bulkQueue;
 	outflows[1].outboundBundles = outduct.stdQueue;
@@ -88,7 +90,7 @@ static void	*sendBundles(void *parm)
 		}
 
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-			&extendedCOS, destDuctName, DGRCLA_BUFSZ, -1) < 0)
+				&extendedCOS, destDuctName, 64000, -1) < 0)
 		{
 			threadRunning = 0;
 			writeMemo("[?] dgrcla failed de-queueing bundle.");
@@ -456,7 +458,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	findOutduct("dgr", ductName, &voutduct, &vductElt);
+	findOutduct("dgr", "*", &voutduct, &vductElt);
 	if (vductElt == 0)
 	{
 		putErrmsg("No such dgr outduct.", ductName);
@@ -466,9 +468,11 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr, vinduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_DGR_RATE;
