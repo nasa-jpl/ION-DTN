@@ -790,7 +790,7 @@ int ion_cfdp_put(struct transfer* t)
 	else
 	{
 		/*Error*/
-		dbgprintf(0, "Error: EOF semaphore\n");
+		dbgprintf(0, "Terminated\n");
 		exit_nicely(1);
 	}
 #endif
@@ -887,7 +887,7 @@ int ion_cfdp_get(struct transfer* t)
 	else
 	{
 		/*Error*/
-		dbgprintf(0, "Error: EOF semaphore\n");
+		dbgprintf(0, "Terminated\n");
 		exit_nicely(1);
 	}
 #endif
@@ -985,7 +985,7 @@ int ion_cfdp_rput(struct transfer* t)
 	else
 	{
 		/*Error*/
-		dbgprintf(0, "Error: EOF semaphore\n");
+		dbgprintf(0, "Terminated\n");
 		exit_nicely(1);
 	}
 #endif
@@ -1057,13 +1057,19 @@ static int do_local_cmd(char *cmdln)
 	}
 
 	/*Parent waits for child to exit*/
-	while (waitpid(pid, &status, 0) == -1)
+	while (waitpid(pid, &status, 0) == -1 && recv_running==1)
 	{
 		if (errno != EINTR)
 		{
 			dbgprintf(0,"do_local_cmd: waitpid: %s\n", system_error_msg());
 			exit_nicely(1);
 		}
+	}
+
+	if(recv_running==0){
+		kill(pid, SIGTERM);
+		dbgprintf(0,"Terminated\n");
+		exit_nicely(1);
 	}
 
 //#if defined (VXWORKS) || defined (RTEMS)
@@ -1749,30 +1755,17 @@ int setscreensize(void)
 /*Perform some simple cleanup on SIGTERM*/
 static void handle_sigterm()
 {
-	int i=0;
-
 	/*Reset signal handlers for portability*/
 	isignal(SIGTERM, handle_sigterm);
 	isignal(SIGINT, handle_sigterm);
 
-	/*Delete any and all temporary files*/
-	for (i=0; i < NUM_TMP_FILES; i++)
-	{
-		if (tmp_files[i][0] != 0)
-		{
-			unlink(tmp_files[i]);
-		}
-	}
-
-	/*Delete remote directory listing semaphore*/
-	sm_SemDelete(events_sem);
-
 	/*Tell receiver thread to exit*/
 	recv_running=0;
 
-	/*Drop to new line*/
-	printf("\n");
+	/*Give remote directory listing semaphore to allow main thread to exit*/
+	sm_SemGive(events_sem);
 
-	exit(1);
+	/*Interrupt the CFDP processing to allow receiver thread to exit*/
+	cfdp_interrupt();
 }
 #endif

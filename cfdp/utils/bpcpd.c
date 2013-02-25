@@ -9,6 +9,7 @@
 
 
 int debug = 0;	/*Set to non-zero to enable debug output. */
+int running=1;
 
 
 
@@ -17,7 +18,7 @@ void dbgprintf(int level, const char *fmt, ...);
 void usage(void);
 void version();
 #ifdef CLEAN_ON_EXIT
-void exit_cleanup();
+void sig_handler();
 #endif
 
 /*Start Here*/
@@ -65,9 +66,28 @@ int main(int argc, char **argv)
 		dbgprintf(0, "Error: Can't initialize CFDP. Is ION running?\n");
 		exit(1);
 	}
+	running=1;
+
+#ifdef SIG_HANDLER
+	/*Set SIGTERM and SIGINT handlers*/
+	isignal(SIGTERM, sig_handler);
+	isignal(SIGINT, sig_handler);
+#endif
 
 	poll_cfdp_messages();
 
+#ifdef CLEAN_ON_EXIT
+#if defined (VXWORKS) || defined (RTEMS)
+	/*DO NOTHING. VXWORKS doesn't implement system()!*/
+#else
+
+	/*Cleanup all directory listing files*/
+	if (system("rm dirlist_* >/dev/null 2>/dev/null")<0)
+	{
+		dbgprintf(0, "Error running cleanup\n");
+	}
+#endif
+#endif
 	exit(0);
 }
 
@@ -109,14 +129,8 @@ void poll_cfdp_messages()
 	unsigned long 		TID11;
 	unsigned long		TID12;
 
-#ifdef CLEAN_ON_EXIT
-	/*Set SIGTERM and SIGINT handlers*/
-	isignal(SIGTERM, exit_cleanup);
-	isignal(SIGINT, exit_cleanup);
-#endif
-
 	/*Main Event loop*/
-	while (1) {
+	while (running) {
 
 		/*Grab a CFDP event*/
 		if (cfdp_get_event(&type, &time, &reqNbr, &transactionId,
@@ -194,27 +208,15 @@ void version()
 	exit(1);
 }
 
-#ifdef CLEAN_ON_EXIT
-void exit_cleanup()
+void sig_handler()
 {
 	/*Reset signal handlers for portability*/
-	isignal(SIGTERM, exit_cleanup);
-	isignal(SIGINT, exit_cleanup);
+	isignal(SIGTERM, sig_handler);
+	isignal(SIGINT, sig_handler);
 
-#if defined (VXWORKS) || defined (RTEMS)
-	/*DO NOTHING. VXWORKS doesn't implement system()!*/
-#else
+	/*Shutdown event polling loop*/
+	running=0;
 
-	/*Cleanup all directory listing files*/
-	if (system("rm dirlist_* >/dev/null 2>/dev/null")<0)
-	{
-		dbgprintf(0, "Error running cleanup\n");
-	}
-#endif
-
-	/*Drop to new line*/
-	printf("\n");
-
-	exit(0);
+	/*Interrupt cfdp_get_event()*/
+	cfdp_interrupt();
 }
-#endif
