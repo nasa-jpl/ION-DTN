@@ -35,10 +35,8 @@ static sm_SemId		_imcfwSemaphore(sm_SemId *newValue)
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_imcfwSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,

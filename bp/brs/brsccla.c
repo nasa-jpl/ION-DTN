@@ -22,26 +22,26 @@ static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 	{
 		temp = *semid;
 		value = (void *) temp;
-		semaphore = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		semaphore = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	semaphore = temp;
 	return semaphore;
 }
 
 static void	killMainThread()
 {
-	void	*erase = NULL;
-
 	sm_SemEnd(brscclaSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 static void	interruptThread()	/*	Commands termination.	*/
 {
+	isignal(SIGTERM, killMainThread);
 	killMainThread();
 }
 

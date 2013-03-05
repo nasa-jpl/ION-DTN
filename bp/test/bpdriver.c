@@ -43,10 +43,8 @@ static BpSAP	_bpsap(BpSAP *newSap)
 
 static void	handleQuit()
 {
-	void	*erase = NULL;
-
+	isignal(SIGINT, handleQuit);
 	bp_interrupt(_bpsap(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,

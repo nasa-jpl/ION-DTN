@@ -31,13 +31,15 @@ static sm_SemId		tcpcloSemaphore(sm_SemId *semid)
 	{
 		temp = *semid;
 		value = (void *) temp;
-		semaphore = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retreive task variable.	*/
 	{
-		semaphore = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	semaphore = temp;
 	return semaphore;
 }
 
@@ -484,8 +486,6 @@ int	main(int argc, char *argv[])
 	oK(_tcpOutductId(&socketName, NULL, NULL));
 	MRELEASE(buffer);
 	pthread_mutex_destroy(&mutex);
-	void *erase=NULL;
-	oK(sm_TaskVar(&erase));
 	bp_detach();
 	return 0;
 }
