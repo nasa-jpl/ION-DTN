@@ -16,8 +16,6 @@
 #include "acs.h"		/* provides sendAcs */
 #endif /* ENABLE_ACS */
 
-extern void	manageProductionThrottle(BpVdb *vdb);
-
 static long	_running(long *newValue)
 {
 	void	*value;
@@ -275,133 +273,16 @@ static int	adjustThrottles()
 	return 0;
 }
 
-#define	DEFAULT_PRODUCTION_RATE	12500000
-
-static double	dynamicProductionRate(Sdr sdr)
-{
-	/*	To compute the dynamic production rate, we reason
-	 *	as follows:
-	 *
-	 *	The dynamicProductionRate function is called once
-	 *	per second, so the "rate" is simply the maximum total
-	 *	volume of bundle payload data we are prepared to
-	 *	accept in the next second.  This volume is the sum
-	 *	of the sizes of the payloads of all bundles we can
-	 *	reasonably accept in the next second.
-	 *
-	 *	The size of a payload is the sum of the amount of
-	 *	heap space occupied by the payload and the amount
-	 *	of file space occupied by the payload.  We can
-	 *	compute these figures for the "average" bundle,
-	 *	by retrieving the current number of bundles stored
-	 *	and the total amount of heap space and file space
-	 *	occupied by zero-copy objects, noting that the
-	 *	total heap space occupied by a bundle includes not
-	 *	only the payload space occupied by the bundle but
-	 *	also all bundle storage overhead (mainly the Bundle
-	 *	object itself).
-	 *
-	 *	Given the mean number of payload bytes in heap
-	 *	per bundle and the remaining available heap space,
-	 *	we can estimate the maximum number of "average" new
-	 *	bundles that could be accepted.  Multiplying this
-	 *	number by the total mean payload size per bundle
-	 *	(both in heap and in storage) gives us an estimate
-	 *	of the maximum total payload volume that we can
-	 *	accept.							*/
-
-	static int	estOverheadPerBundle = sizeof(Bundle); 
-	BpDB		*db = getBpConstants();
-	int		bundlesInStorage;
-	Scalar		heapOccupancy;
-	double		heapSpaceInUse;
-	double		heapSpacePerBundle;
-	double		heapPayloadPerBundle;
-	Scalar		fileOccupancy;
-	double		fileSpaceInUse;
-	double		filePayloadPerBundle;
-	SdrUsageSummary	usage;
-	double		avblHeap;
-	double		estNewBundles;
-
-	/*	Get current mean resource occupancy figures.		*/
-
-	bundlesInStorage = sdr_hash_count(sdr, db->bundles);
-	if (bundlesInStorage < 1)
-	{
-		/*	No way to estimate anything, so can't use
-		 *	mean payload size for admission control.
-		 *	Use artificial default for now.			*/
-
-		return DEFAULT_PRODUCTION_RATE;
-	}
-
-	zco_get_heap_occupancy(sdr, &heapOccupancy);
-	heapSpaceInUse = (heapOccupancy.gigs * ONE_GIG) + heapOccupancy.units;
-	heapSpacePerBundle = (heapSpaceInUse / bundlesInStorage);
-	heapPayloadPerBundle = heapSpacePerBundle - estOverheadPerBundle;
-	if (heapPayloadPerBundle < 0.0)
-	{
-		heapPayloadPerBundle = 0.0;
-	}
-
-	zco_get_file_occupancy(sdr, &fileOccupancy);
-	fileSpaceInUse = (fileOccupancy.gigs * ONE_GIG) + fileOccupancy.units;
-	filePayloadPerBundle = fileSpaceInUse / bundlesInStorage;
-
-	/*	Compute estimated capacity for accepting new bundles
-	 *	assuming no divergence from mean resource occupancy.	*/
-
-	sdr_usage(sdr, &usage);
-	avblHeap = usage.largePoolFree + usage.unusedSize;
-	estNewBundles = avblHeap / heapSpacePerBundle;
-	return estNewBundles * (heapPayloadPerBundle + filePayloadPerBundle);
-}
-
 static void	applyRateControl(Sdr sdr)
 {
 	PsmPartition	ionwm = getIonwm();
 	BpVdb		*vdb = getBpVdb();
 	Throttle	*throttle;
-	SdrUsageSummary	usage;
-	double		backoff;
-	IonDB		iondb;
-	double		nominalRate;
-	vast		increment;
 	PsmAddress	elt;
 	VInduct		*induct;
 	VOutduct	*outduct;
 
 	CHKVOID(sdr_begin_xn(sdr));
-
-	/*	Recalculate limit on local bundle generation.		*/
-
-	throttle = &(vdb->productionThrottle);
-	sdr_usage(sdr, &usage);
-	backoff = usage.smallPoolFree + usage.largePoolFree + usage.unusedSize;
-	backoff /= usage.sdrSize;
-	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	if (iondb.productionRate < 0)	/*	No metering.		*/
-	{
-		nominalRate = dynamicProductionRate(sdr);
-	}
-	else
-	{
-		nominalRate = iondb.productionRate;
-	}
-
-	/*	Reduce rate when free heap space is low.		*/
-
-	increment = nominalRate * backoff * backoff * backoff;
-	if (throttle->capacity <= nominalRate)
-	{
-		throttle->capacity += increment;
-	}
-
-	if (throttle->capacity > 0)
-	{
-		sm_SemGive(throttle->semaphore);
-	}
 
 	/*	Enable some bundle acquisition.				*/
 

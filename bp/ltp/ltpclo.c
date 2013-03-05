@@ -22,13 +22,15 @@ static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
 	{
 		temp = *semid;
 		value = (void *) temp;
-		semaphore = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		semaphore = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	semaphore = temp;
 	return semaphore;
 }
 

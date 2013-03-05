@@ -23,7 +23,7 @@ typedef struct
 	char		*wmName;
 } sm_WmParms;
 
-typedef long             sm_SemId;
+typedef int		sm_SemId;
 #define SM_SEM_NONE	(-1)
 
 #define SM_SEM_FIFO	0

@@ -1365,10 +1365,6 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
 		vdb->watching = db->watching;
-		vdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
-				SM_SEM_FIFO);
-		sm_SemTake(vdb->productionThrottle.semaphore);
-		vdb->productionThrottle.nominalRate = 0;
 		if ((vdb->schemes = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
@@ -1575,11 +1571,6 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	VOutduct	*voutduct;
 
 	vdb = (BpVdb *) psp(wm, vdbAddress);
-	if (vdb->productionThrottle.semaphore != SM_SEM_NONE)
-	{
-		sm_SemDelete(vdb->productionThrottle.semaphore);
-	}
-
 	while ((elt = sm_list_first(wm, vdb->schemes)) != 0)
 	{
 		vscheme = (VScheme *) psp(wm, sm_list_data(wm, elt));
@@ -1716,11 +1707,6 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	/*	Tell all BP processes to stop.				*/
 
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
-	if (bpvdb->productionThrottle.semaphore != SM_SEM_NONE)
-	{
-		sm_SemEnd(bpvdb->productionThrottle.semaphore);
-	}
-
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -1784,17 +1770,6 @@ void	bpStop()		/*	Reverses bpStart.		*/
 
 	CHKVOID(sdr_begin_xn(bpSdr));
 	bpvdb->clockPid = ERROR;
-	if (bpvdb->productionThrottle.semaphore == SM_SEM_NONE)
-	{
-		bpvdb->productionThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
-				SM_SEM_FIFO);
-	}
-	else
-	{
-		sm_SemUnend(bpvdb->productionThrottle.semaphore);
-	}
-
-	sm_SemTake(bpvdb->productionThrottle.semaphore);/*	Lock.	*/
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -1895,18 +1870,12 @@ void bpDetach(){
 
 static void	noteBundleInserted(Bundle *bundle)
 {
-	Scalar	delta;
-
-	loadScalar(&delta, bundle->dbOverhead);
-	zco_increase_heap_occupancy(getIonsdr(), &delta);
+	zco_increase_heap_occupancy(getIonsdr(), bundle->dbOverhead);
 }
 
 static void	noteBundleRemoved(Bundle *bundle)
 {
-	Scalar	delta;
-
-	loadScalar(&delta, bundle->dbOverhead);
-	zco_reduce_heap_occupancy(getIonsdr(), &delta);
+	zco_reduce_heap_occupancy(getIonsdr(), bundle->dbOverhead);
 }
 
 /*	*	*	Useful utility functions	*	*	*/
@@ -2618,6 +2587,7 @@ static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
 		sdr_list_delete(bpSdr, elt, NULL, NULL);
 	}
 
+	sdr_list_destroy(bpSdr, incomplete->fragments, NULL, NULL);
 	sdr_free(bpSdr, sdr_list_data(bpSdr, incElt));
 	sdr_list_delete(bpSdr, incElt, NULL, NULL);
 	return 0;
@@ -4393,14 +4363,14 @@ void	bpStopOutduct(char *protocolName, char *ductName)
 static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 			Object *incompleteAddr, Object *incompleteElt)
 {
-	Sdr		bpSdr = getIonsdr();
-	char		*argDictionary;
-			OBJ_POINTER(Endpoint, endpoint);
-	Object		elt;
-			OBJ_POINTER(IncompleteBundle, incomplete);
-			OBJ_POINTER(Bundle, fragment);
-	char		*fragDictionary;
-	int		result;
+	Sdr	bpSdr = getIonsdr();
+	char	*argDictionary;
+		OBJ_POINTER(Endpoint, endpoint);
+	Object	elt;
+		OBJ_POINTER(IncompleteBundle, incomplete);
+		OBJ_POINTER(Bundle, fragment);
+	char	*fragDictionary;
+	int	result;
 
 	CHKERR(ionLocked());
 	if ((argDictionary = retrieveDictionary(bundle)) == (char *) bundle)
@@ -5340,7 +5310,14 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 
 	if (destMetaEid.nullEndpoint)	/*	Do not send bundle.	*/
 	{
+		CHKERR(sdr_begin_xn(bpSdr));
 		zco_destroy(bpSdr, adu);
+		if (sdr_end_xn(bpSdr) < 0)
+		{
+			putErrmsg("Can't send bundle to null endpoint.", NULL);
+			return -1;
+		}
+
 		return 1;
 	}
 
@@ -5511,20 +5488,17 @@ when asking for custody transfer and/or status reports.");
 	}
 
 	bundle.dbOverhead = BASE_BUNDLE_OVERHEAD;
-	if (!zco_enough_heap_space(bpSdr, bundle.dbOverhead + 4096))
-	{
-		writeMemo("[?] Not enough heap space for outbound bundle.");
-		return 0;
-	}
 
 	/*	The bundle protocol specification authorizes the
 	 *	implementation to fragment an ADU.  In the ION
 	 *	implementation we fragment only when necessary,
 	 *	at the moment a bundle is dequeued for transmission.	*/
 
+	CHKERR(sdr_begin_xn(bpSdr));
 	aduLength = zco_length(bpSdr, adu);
 	if (aduLength < 0)
 	{
+		sdr_exit_xn(bpSdr);
 		restoreEidString(&destMetaEid);
 		restoreEidString(reportToMetaEid);
 		putErrmsg("Can't get length of ADU.", NULL);
@@ -5546,6 +5520,7 @@ when asking for custody transfer and/or status reports.");
 				reportToMetaEid);
 		if (dictionary == NULL)
 		{
+			sdr_exit_xn(bpSdr);
 			restoreEidString(&destMetaEid);
 			restoreEidString(reportToMetaEid);
 			putErrmsg("Can't load dictionary.", NULL);
@@ -5565,9 +5540,9 @@ when asking for custody transfer and/or status reports.");
 	bundle.payload.length = aduLength;
 	bundle.payload.content = adu;
 
-	/*	Bundle is almost fully constructed at this point.	*/
+	/*	Bundle is almost fully constructed at this point.
+	 *	Set creationTime of bundle.				*/
 
-	CHKERR(sdr_begin_xn(bpSdr));
 	if (ionClockIsSynchronized())
 	{
 		getCurrentDtnTime(&currentDtnTime);
@@ -6021,26 +5996,11 @@ static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
 }
 
 static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
-			Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
+			Object bundleObj, Bundle *bundle)
 {
 	Sdr		bpSdr = getIonsdr();
 	Object		elt;
 			OBJ_POINTER(Bundle, fragment);
-	unsigned int	endOfFurthestFragment;
-	unsigned int	endOfFragment;
-	Bundle		aggregateBundle;
-	Object		aggregateBundleObj;
-	int		buflen = 65536;
-	char		*buffer;
-	unsigned int	aggregateAduLength;
-	Object		fragmentObj;
-	Bundle		fragBuf;
-	ZcoReader	reader;
-	unsigned int	bytesToSkip;
-	unsigned int	bytesToExtract;
-	int		bytesExtracted;
-	unsigned int	bytesToCopy;
-	Object		extent;
 
 	/*	First look for fragment insertion point and insert
 	 *	the new bundle at this point.				*/
@@ -6085,169 +6045,6 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 
 	bundle->delivered = 1;
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-
-	/*	Now see if entire ADU has been received.		*/
-
-	endOfFurthestFragment = 0;
-	for (elt = sdr_list_first(bpSdr, incomplete->fragments); elt;
-			elt = sdr_list_next(bpSdr, elt))
-	{
-		GET_OBJ_POINTER(bpSdr, Bundle, fragment,
-				sdr_list_data(bpSdr, elt));
-		if (fragment->id.fragmentOffset > endOfFurthestFragment)
-		{
-			break;	/*	Found a gap.			*/
-		}
-
-		endOfFragment = fragment->id.fragmentOffset
-				+ fragment->payload.length;
-		if (endOfFragment > endOfFurthestFragment)
-		{
-			endOfFurthestFragment = endOfFragment;
-		}
-	}
-
-	if (elt || endOfFurthestFragment < incomplete->totalAduLength)
-	{
-		return 0;	/*	Nothing more to do for now.	*/
-	}
-
-	/*	Have now received all bytes of the original ADU, so
-	 *	reconstruct the original ADU as the payload of the
-	 *	first fragment for the bundle.
-	 *
-	 *	First retrieve that first fragment and make it no
-	 *	longer fragmentary.					*/
-
-	buffer = MTAKE(buflen);
-	if (buffer == NULL)
-	{
-		putErrmsg("Can't create buffer for ADU reassembly.", NULL);
-		return -1;
-	}
-
-	elt = sdr_list_first(bpSdr, incomplete->fragments);
-	aggregateBundleObj = sdr_list_data(bpSdr, elt);
-	sdr_stage(bpSdr, (char *) &aggregateBundle, aggregateBundleObj,
-			sizeof(Bundle));
-	sdr_list_delete(bpSdr, aggregateBundle.fragmentElt, NULL, NULL);
-	aggregateBundle.fragmentElt = 0;
-	aggregateBundle.incompleteElt = 0;
-	aggregateBundle.totalAduLength = 0;
-	aggregateBundle.bundleProcFlags &= ~BDL_IS_FRAGMENT;
-
-	/*	Back out of database occupancy this bundle's
-	 *	original size, then change its size to reflect the
-	 *	size of the reassembled ADU.				*/
-
-	noteBundleRemoved(&aggregateBundle);
-	aggregateAduLength = aggregateBundle.payload.length;
-	aggregateBundle.payload.length = incomplete->totalAduLength;
-
-	/*	Now collect payload data from all remaining fragments,
-	 *	discarding overlaps, and destroy the fragments.		*/
-
-	while (1)
-	{
-		elt = sdr_list_first(bpSdr, incomplete->fragments);
-		if (elt == 0)
-		{
-			break;
-		}
-
-		fragmentObj = sdr_list_data(bpSdr, elt);
-		sdr_stage(bpSdr, (char *) &fragBuf, fragmentObj,
-				sizeof(Bundle));
-		bytesToSkip = aggregateAduLength - fragBuf.id.fragmentOffset;
-		if (bytesToSkip > fragBuf.payload.length)
-		{
-			bytesToSkip = fragBuf.payload.length;
-		}
-
-		bytesToCopy = fragBuf.payload.length - bytesToSkip;
-		aggregateAduLength += bytesToCopy;
-		zco_start_receiving(fragBuf.payload.content, &reader);
-		if (zco_receive_source(bpSdr, &reader, bytesToSkip, NULL) < 0)
-		{
-			MRELEASE(buffer);
-			putErrmsg("Can't skip within ADU fragment.", NULL);
-			return -1;
-		}
-
-		while (bytesToCopy > 0)
-		{
-			bytesToExtract = buflen;
-			if (bytesToExtract > bytesToCopy)
-			{
-				bytesToExtract = bytesToCopy;
-			}
-
-			bytesExtracted = zco_receive_source(bpSdr, &reader,
-					bytesToExtract, buffer);
-			if (bytesExtracted < 0)
-			{
-				MRELEASE(buffer);
-				putErrmsg("Can't extract from ADU fragment.",
-						NULL);
-				return -1;
-			}
-
-			extent = sdr_insert(bpSdr, buffer, bytesExtracted);
-			if (extent == 0)
-			{
-				MRELEASE(buffer);
-				putErrmsg("Can't copy fragment content.",
-						NULL);
-				return -1;
-			}
-
-			if (zco_append_extent(bpSdr,
-				aggregateBundle.payload.content,
-				ZcoSdrSource, extent, 0, bytesExtracted) < 0)
-			{
-				MRELEASE(buffer);
-				putErrmsg("Can't append extent.", NULL);
-				return -1;
-			}
-
-			bytesToCopy -= bytesExtracted;
-		}
-
-		sdr_list_delete(bpSdr, fragBuf.fragmentElt, NULL, NULL);
-		fragBuf.fragmentElt = 0;
-		sdr_write(bpSdr, fragmentObj, (char *) &fragBuf,
-				sizeof(Bundle));
-		if (bpDestroyBundle(fragmentObj, 0) < 0)
-		{
-			MRELEASE(buffer);
-			putErrmsg("Can't destroy fragment.", NULL);
-			return -1;
-		}
-	}
-
-	MRELEASE(buffer);
-
-	/*	Note effect on database occupancy of bundle's
-	 *	revised size.						*/
-
-	noteBundleInserted(&aggregateBundle);
-
-	/*	Deliver the aggregate bundle to the endpoint.		*/
-
-	if (enqueueForDelivery(aggregateBundleObj, &aggregateBundle, vpoint))
-	{
-		putErrmsg("Reassembled bundle delivery failed.", NULL);
-		return -1;
-	}
-
-	/*	Finally, destroy the IncompleteBundle and return.	*/
-
-	if (destroyIncomplete(incomplete, incElt) < 0)
-	{
-		putErrmsg("Can't destroy incomplete bundle.", NULL);
-		return -1;
-	}
-
 	return 0;
 }
 
@@ -6270,7 +6067,7 @@ static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
 	incObj = sdr_malloc(bpSdr, sizeof(IncompleteBundle));
 	if (incObj == 0)
 	{
-		putErrmsg("No space for incomplete object.", NULL);
+		putErrmsg("No space for Incomplete object.", NULL);
 		return -1;
 	}
 
@@ -6278,13 +6075,18 @@ static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
 			sizeof(IncompleteBundle));
 	GET_OBJ_POINTER(bpSdr, Endpoint, endpoint, sdr_list_data(bpSdr,
 			vpoint->endpointElt));
-	bundle->incompleteElt =
-		sdr_list_insert_last(bpSdr, endpoint->incompletes, incObj);
+	bundle->incompleteElt = sdr_list_insert_last(bpSdr,
+			endpoint->incompletes, incObj);
 	if (bundle->incompleteElt == 0)
 	{
-		putErrmsg("No space for list element for incomplete.", NULL);
+		putErrmsg("No space for Incomplete list element.", NULL);
 		return -1;
 	}
+
+	/*	Enable navigation from fragment back to Incomplete.	*/
+
+	sdr_list_user_data_set(bpSdr, incomplete.fragments,
+			bundle->incompleteElt);
 
 	/*	Bundle becomes first element in the fragments list.	*/
 
@@ -6350,8 +6152,7 @@ static int	deliverBundle(Object bundleObj, Bundle *bundle,
 	{
 		GET_OBJ_POINTER(getIonsdr(), IncompleteBundle, incomplete,
 				incompleteAddr);
-		return extendIncomplete(incomplete, elt, bundleObj, bundle,
-				vpoint);
+		return extendIncomplete(incomplete, elt, bundleObj, bundle);
 	}
 
 	/*	No existing incomplete bundle to extend, so if the
@@ -6369,12 +6170,12 @@ static int	deliverBundle(Object bundleObj, Bundle *bundle,
 	return enqueueForDelivery(bundleObj, bundle, vpoint);
 }
 
-static int	dispatchBundle(Object bundleObj, Bundle *bundle)
+static int	dispatchBundle(Object bundleObj, Bundle *bundle,
+			VEndpoint **vpoint)
 {
 	Sdr		bpSdr = getIonsdr();
 	char		*dictionary;
 	VScheme		*vscheme;
-	VEndpoint	*vpoint;
 	Bundle		newBundle;
 	Object		newBundleObj;
 	char		*eidString;
@@ -6391,10 +6192,10 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle)
 	if (vscheme != NULL)	/*	Destination might be local.	*/
 	{
 		lookUpEndpoint(bundle->destination, dictionary, vscheme,
-				&vpoint);
-		if (vpoint != NULL)	/*	Destination is here.	*/
+				vpoint);
+		if (*vpoint != NULL)	/*	Destination is here.	*/
 		{
-			if (deliverBundle(bundleObj, bundle, vpoint) < 0)
+			if (deliverBundle(bundleObj, bundle, *vpoint) < 0)
 			{
 				releaseDictionary(dictionary);
 				putErrmsg("Bundle delivery failed.", NULL);
@@ -6614,6 +6415,7 @@ static void	clearAcqArea(AcqWorkArea *work)
 	work->decision = AcqTBD;
 	work->lastBlockParsed = 0;
 	work->malformed = 0;
+	work->congestive = 0;
 	work->mustAbort = 0;
 	work->headerLength = 0;
 	work->trailerLength = 0;
@@ -6735,6 +6537,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	Sdr			sdr = getIonsdr();
 	BpDB			*bpConstants = _bpConstants();
 	BpDB			bpdb;
+	Object			extentObj;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
 	int			fd;
@@ -6743,6 +6546,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	CHKERR(work);
 	CHKERR(bytes);
 	CHKERR(length >= 0);
+	if (work->congestive)
+	{
+		return 0;	/*	No ZCO space; append no more.	*/
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	if (maxAcqInHeap == 0)
 	{
@@ -6764,9 +6572,21 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
 		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
+		switch (work->zco)
+		{
+		case (Object) ERROR:
+			putErrmsg("Can't start inbound bundle ZCO.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+
+		case 0:
+			work->congestive = 1;
+			return 0;	/*	Out of ZCO space.	*/
+		}
+
 		work->zcoElt = sdr_list_insert_last(sdr,
 				bpConstants->inboundBundles, work->zco);
-		if (work->zco == 0 || work->zcoElt == 0)
+		if (work->zcoElt == 0)
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
@@ -6776,12 +6596,38 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 	/*	Now add extent.  Acquire extents of bundle into
 	 *	database heap up to the stated limit; after that,
-	 *	acquire all remaining extents into a file.		*/
+	 *	acquire all remaining extents into a file.
+	 *
+	 *	Note that this procedure assumes that bundle extents
+	 *	are acquired in increasing offset order, without gaps;
+	 *	out-of-order extent acquisition would mandate an
+	 *	extent reordering mechanism similar to the one that
+	 *	is implemented in LTP.  This is not a problem in BP
+	 *	because, for all convergence-layer protocols, either
+	 *	the CL delivers a complete bundle (as in LTP and UDP)
+	 *	or else the bundle increments are acquired in order
+	 *	of increasing offset because the CL itself enforces
+	 *	data ordering (as in TCP).				*/
 
 	if ((length + zco_length(sdr, work->zco)) <= maxAcqInHeap)
 	{
-		oK(zco_append_extent(sdr, work->zco, ZcoSdrSource,
-				sdr_insert(sdr, bytes, length), 0, length));
+		extentObj = sdr_insert(sdr, bytes, length);
+		if (extentObj)
+		{
+			switch (zco_append_extent(sdr, work->zco, ZcoSdrSource,
+					extentObj, 0, length))
+			{
+			case ERROR:
+				putErrmsg("Can't append heap extent.", NULL);
+				sdr_cancel_xn(sdr);
+				return -1;
+
+			case 0:
+				sdr_free(sdr, extentObj);
+				work->congestive = 1;
+			}
+		}
+
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't acquire extent into heap.", NULL);
@@ -6816,6 +6662,12 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 		fileLength = 0;
 		work->acqFileRef = zco_create_file_ref(sdr, fileName, "");
+		if (work->acqFileRef == 0)
+		{
+			putErrmsg("Can't create file ref.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
 	}
 	else				/*	Writing more to file.	*/
 	{
@@ -6838,13 +6690,26 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	}
 
 	close(fd);
-	oK(zco_append_extent(sdr, work->zco, ZcoFileSource, work->acqFileRef,
-			fileLength, length));
+	switch (zco_append_extent(sdr, work->zco, ZcoFileSource,
+				work->acqFileRef, fileLength, length))
+	{
+	case ERROR:
+		putErrmsg("Can't append file reference extent.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
 
-	/*	Flag file reference for deletion as soon as the last
-	 *	ZCO extent that references it is deleted.		*/
+	case 0:
+		work->congestive = 1;
+		break;
 
-	zco_destroy_file_ref(sdr, work->acqFileRef);
+	default:
+		/*	Flag file reference for deletion as soon as
+		 *	the last ZCO extent that references it is
+		 *	deleted.					*/
+
+		zco_destroy_file_ref(sdr, work->acqFileRef);
+	}
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't acquire extent into file.", NULL);
@@ -7499,6 +7364,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 			BpSrReason srReason, char *dictionary)
 {
 	Bundle	*bundle = &(work->bundle);
+	Sdr	bpSdr;
 
 	/*	If we must discard the bundle, we send any reception
 	 *	status report(s) previously noted and we discard the
@@ -7520,9 +7386,11 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 
 	if (bundleIsCustodial(bundle))
 	{
+		bpSdr = getIonsdr();
+		CHKERR(sdr_begin_xn(bpSdr));
 		bpCtTally(ctReason, bundle->payload.length);
-		if (noteCtEvent(bundle, work, work->dictionary, 0, ctReason)
-				< 0)
+		if (sdr_end_xn(bpSdr) < 0
+		|| noteCtEvent(bundle, work, work->dictionary, 0, ctReason) < 0)
 		{
 			putErrmsg("Can't send custody signal.", NULL);
 			return -1;
@@ -7638,10 +7506,9 @@ static void	initAuthenticity(AcqWorkArea *work)
 	}
 }
 
-static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
+static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 {
 	Bundle		*bundle = &(work->bundle);
-	int		heapOkay;
 	char		*custodialSchemeName;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
@@ -7651,11 +7518,9 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	MetaEid		senderMetaEid;
 	Object		bundleObj;
 
-	CHKERR(sdr_begin_xn(bpSdr));
 	if (acqFromWork(work) < 0)
 	{
 		putErrmsg("Acquisition from work area failed.", NULL);
-		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -7673,13 +7538,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		bundle->payload.content = 0;
 	}
 
-	heapOkay = zco_enough_heap_space(bpSdr, bundle->dbOverhead);
-	if (sdr_end_xn(bpSdr) < 0)
-	{
-		putErrmsg("Can't add reference work ZCO.", NULL);
-		return -1;
-	}
-
 	if (bundle->payload.content == 0)
 	{
 		return 0;	/*	No bundle at front of work ZCO.	*/
@@ -7687,18 +7545,19 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 	/*	Check bundle for problems.				*/
 
-	CHKERR(sdr_begin_xn(bpSdr));
 	if (work->malformed || work->lastBlockParsed == 0)
 	{
 		writeMemo("[?] Malformed bundle.");
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 				bundle->payload.length);
-		if (sdr_end_xn(bpSdr) < 0)
-		{
-			putErrmsg("Can't update tally.", NULL);
-			return -1;
-		}
+		return abortBundleAcq(work);
+	}
 
+	if (work->congestive)
+	{
+		writeMemo("[?] ZCO space is congested; discarding bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_CONGESTIVE,
+				bundle->payload.length);
 		return abortBundleAcq(work);
 	}
 
@@ -7706,7 +7565,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	if (checkExtensionBlocks(work) < 0)
 	{
 		putErrmsg("Can't check bundle authenticity.", NULL);
-		oK(sdr_cancel_xn(bpSdr));
+		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -7715,12 +7574,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		writeMemo("[?] Bundle judged inauthentic.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 				bundle->payload.length);
-		if (sdr_end_xn(bpSdr) < 0)
-		{
-			putErrmsg("Can't update tally.", NULL);
-			return -1;
-		}
-
 		return abortBundleAcq(work);
 	}
 
@@ -7729,12 +7582,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		writeMemo("[?] Corrupt bundle.");
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 				bundle->payload.length);
-		if (sdr_end_xn(bpSdr) < 0)
-		{
-			putErrmsg("Can't update tally.", NULL);
-			return -1;
-		}
-
 		return abortBundleAcq(work);
 	}
 
@@ -7746,39 +7593,9 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	{
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 				bundle->payload.length);
-		if (sdr_end_xn(bpSdr) < 0)
-		{
-			putErrmsg("Can't update tally.", NULL);
-			return -1;
-		}
-
 		return discardReceivedBundle(work, CtBlockUnintelligible,
 				SrBlockUnintelligible, work->dictionary);
 	}
-
-	/*	Bundle acquisition was uneventful but bundle may have
-	 *	to be refused due to insufficient resources.  Must
-	 *	guard against congestion collapse; the payload already
-	 *	occupies ZCO space, but we need to make sure there's
-	 *	room in the SDR for the Bundle object as well.		*/
-
-	if (!heapOkay)
-	{
-		/*	Not enough heap space for bundle.		*/
-
-		bpInductTally(work->vduct, BP_INDUCT_CONGESTIVE,
-				bundle->payload.length);
-		if (sdr_end_xn(bpSdr) < 0)
-		{
-			putErrmsg("Can't update tally.", NULL);
-			return -1;
-		}
-
-		return discardReceivedBundle(work, CtDepletedStorage,
-				SrDepletedStorage, work->dictionary);
-	}
-
-	oK(sdr_end_xn(bpSdr));
 
 	/*	Redundant reception of a custodial bundle after
 	 *	we have already taken custody forces us to discard
@@ -7793,6 +7610,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 				&eidString) < 0)
 		{
 			putErrmsg("Can't print custodian EID string.", NULL);
+			sdr_cancel_xn(bpSdr);
 			return -1;
 		}
 
@@ -7816,10 +7634,10 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 			{
 				putErrmsg("Can't print source EID string.",
 						NULL);
+				sdr_cancel_xn(bpSdr);
 				return -1;
 			}
 
-			CHKERR(sdr_begin_xn(bpSdr));
 			count = findBundle(eidString,
 				&(bundle->id.creationTime),
 				bundle->id.fragmentOffset,
@@ -7827,11 +7645,11 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 					bundle->payload.length : 0),
 				&bundleAddr);
 			MRELEASE(eidString);
-			sdr_exit_xn(bpSdr);
 			switch (count)
 			{
 			case -1:
 				putErrmsg("Failed seeking bundle.", NULL);
+				sdr_cancel_xn(bpSdr);
 				return -1;
 
 			case 0:		/*	No entry in table.	*/
@@ -7853,7 +7671,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	 *	extension block acquisition.				*/
 
 	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
-	CHKERR(sdr_begin_xn(bpSdr));
 
 	/*	Reduce payload ZCO to just its source data, discarding
 	 *	BP header and trailer.					*/
@@ -7869,7 +7686,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 		if (parseEidString(work->senderEid, &senderMetaEid, &vscheme,
 				&vschemeElt) == 0)
 		{
-			sdr_exit_xn(bpSdr);
 			restoreEidString(&senderMetaEid);
 			writeMemoNote("[?] Sender EID malformed",
 					work->senderEid);
@@ -7948,27 +7764,149 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 	 *	have allocated for it (bundleObj), because it may
 	 *	still change in the course of dispatching.		*/
 
-	if (dispatchBundle(bundleObj, bundle) < 0)
+	if (dispatchBundle(bundleObj, bundle, vpoint) < 0)
 	{
 		putErrmsg("Can't dispatch bundle.", NULL);
 		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
-	if (sdr_end_xn(bpSdr) < 0)
+	return 0;
+}
+
+static int	checkIncompleteBundle(Bundle *newFragment, VEndpoint *vpoint)
+{
+	Sdr		bpSdr = getIonsdr();
+	Object		fragmentsList;
+	Object		incElt;
+	Object		incObj;
+			OBJ_POINTER(IncompleteBundle, incomplete);
+	Object		elt;
+			OBJ_POINTER(Bundle, fragment);
+	unsigned int	endOfFurthestFragment;
+	unsigned int	endOfFragment;
+	Bundle		aggregateBundle;
+	Object		aggregateBundleObj;
+	unsigned int	aggregateAduLength;
+	Object		fragmentObj;
+	Bundle		fragBuf;
+	unsigned int	bytesToSkip;
+	unsigned int	bytesToCopy;
+
+	/*	Check to see if entire ADU has been received.		*/
+
+	fragmentsList = sdr_list_list(bpSdr, newFragment->fragmentElt);
+	incElt = sdr_list_user_data(bpSdr, fragmentsList);
+	incObj = sdr_list_data(bpSdr, incElt);
+	GET_OBJ_POINTER(bpSdr, IncompleteBundle, incomplete, incObj);
+	endOfFurthestFragment = 0;
+	for (elt = sdr_list_first(bpSdr, incomplete->fragments); elt;
+			elt = sdr_list_next(bpSdr, elt))
 	{
-		putErrmsg("Can't acquire bundle.", NULL);
+		GET_OBJ_POINTER(bpSdr, Bundle, fragment,
+				sdr_list_data(bpSdr, elt));
+		if (fragment->id.fragmentOffset > endOfFurthestFragment)
+		{
+			break;	/*	Found a gap.			*/
+		}
+
+		endOfFragment = fragment->id.fragmentOffset
+				+ fragment->payload.length;
+		if (endOfFragment > endOfFurthestFragment)
+		{
+			endOfFurthestFragment = endOfFragment;
+		}
+	}
+
+	if (elt || endOfFurthestFragment < incomplete->totalAduLength)
+	{
+		return 0;	/*	Nothing more to do for now.	*/
+	}
+
+	/*	Have now received all bytes of the original ADU, so
+	 *	reconstruct the original ADU as the payload of the
+	 *	first fragment for the bundle.
+	 *
+	 *	First retrieve that first fragment and make it no
+	 *	longer fragmentary.					*/
+
+	elt = sdr_list_first(bpSdr, incomplete->fragments);
+	aggregateBundleObj = sdr_list_data(bpSdr, elt);
+	sdr_stage(bpSdr, (char *) &aggregateBundle, aggregateBundleObj,
+			sizeof(Bundle));
+	sdr_list_delete(bpSdr, aggregateBundle.fragmentElt, NULL, NULL);
+	aggregateBundle.fragmentElt = 0;
+	aggregateBundle.incompleteElt = 0;
+	aggregateBundle.totalAduLength = 0;
+	aggregateBundle.bundleProcFlags &= ~BDL_IS_FRAGMENT;
+
+	/*	Back out of database occupancy this bundle's
+	 *	original size, then change its size to reflect the
+	 *	size of the reassembled ADU.				*/
+
+	noteBundleRemoved(&aggregateBundle);
+	aggregateAduLength = aggregateBundle.payload.length;
+	aggregateBundle.payload.length = incomplete->totalAduLength;
+
+	/*	Now collect payload data from all remaining fragments,
+	 *	discarding overlaps, and destroy the fragments.		*/
+
+	while (1)
+	{
+		elt = sdr_list_first(bpSdr, incomplete->fragments);
+		if (elt == 0)
+		{
+			break;
+		}
+
+		fragmentObj = sdr_list_data(bpSdr, elt);
+		sdr_stage(bpSdr, (char *) &fragBuf, fragmentObj,
+				sizeof(Bundle));
+		bytesToSkip = aggregateAduLength - fragBuf.id.fragmentOffset;
+		if (bytesToSkip < fragBuf.payload.length)
+		{
+			bytesToCopy = fragBuf.payload.length - bytesToSkip;
+			if (zco_append_extent(bpSdr,
+					aggregateBundle.payload.content,
+					ZcoZcoSource, fragBuf.payload.content,
+					bytesToSkip, bytesToCopy) < 0)
+			{
+				putErrmsg("Can't append extent.", NULL);
+				return -1;
+			}
+
+			aggregateAduLength += bytesToCopy;
+		}
+
+		sdr_list_delete(bpSdr, fragBuf.fragmentElt, NULL, NULL);
+		fragBuf.fragmentElt = 0;
+		sdr_write(bpSdr, fragmentObj, (char *) &fragBuf,
+				sizeof(Bundle));
+		if (bpDestroyBundle(fragmentObj, 0) < 0)
+		{
+			putErrmsg("Can't destroy fragment.", NULL);
+			return -1;
+		}
+	}
+
+	/*	Note effect on database occupancy of bundle's
+	 *	revised size.						*/
+
+	noteBundleInserted(&aggregateBundle);
+
+	/*	Deliver the aggregate bundle to the endpoint.		*/
+
+	if (enqueueForDelivery(aggregateBundleObj, &aggregateBundle, vpoint))
+	{
+		putErrmsg("Reassembled bundle delivery failed.", NULL);
 		return -1;
 	}
 
-	/*	Finally, apply reception rate control: delay
-	 *	acquisition of the next bundle until we have
-	 *	consumed as much time in receiving and acquiring
-	 *	this one as we had said we would.			*/
+	/*	Finally, destroy the IncompleteBundle and return.	*/
 
-	if (applyRecvRateControl(work) < 0)
+	if (destroyIncomplete(incomplete, incElt) < 0)
 	{
-		putErrmsg("Can't apply reception rate control.", NULL);
+		putErrmsg("Can't destroy incomplete bundle.", NULL);
 		return -1;
 	}
 
@@ -7977,14 +7915,15 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work)
 
 int	bpEndAcq(AcqWorkArea *work)
 {
-	Sdr	bpSdr = getIonsdr();
-	int	result;
-	int	acqLength;
+	Sdr		bpSdr = getIonsdr();
+	int		result;
+	VEndpoint	*vpoint;
+	int		acqLength;
 
 	CHKERR(work);
 	CHKERR(work->zco);
-	work->zcoLength = zco_length(bpSdr, work->zco);
 	CHKERR(sdr_begin_xn(bpSdr));
+	work->zcoLength = zco_length(bpSdr, work->zco);
 	zco_start_receiving(work->zco, &(work->reader));
 	result = advanceWorkBuffer(work, 0);
 	if (sdr_end_xn(bpSdr) < 0 || result < 0)
@@ -7998,11 +7937,43 @@ int	bpEndAcq(AcqWorkArea *work)
 	acqLength = work->zcoLength;
 	while (acqLength > 0)
 	{
-		if (acquireBundle(bpSdr, work) < 0)
+		/*	Acquire next bundle in acquisition ZCO.		*/
+
+		vpoint = NULL;
+		CHKERR(sdr_begin_xn(bpSdr));
+		result = acquireBundle(bpSdr, work, &vpoint);
+		if (sdr_end_xn(bpSdr) < 0 || result < 0)
 		{
 			putErrmsg("Bundle acquisition failed.", NULL);
 			return -1;
 		}
+
+		/*	Has acquisition of this bundle enabled
+		 *	reassembly of an original bundle?		*/
+
+		if (vpoint != NULL && work->bundle.fragmentElt != 0)
+		{
+			CHKERR(sdr_begin_xn(bpSdr));
+			result = checkIncompleteBundle(&work->bundle, vpoint);
+			if (sdr_end_xn(bpSdr) < 0 || result < 0)
+			{
+				putErrmsg("Bundle acquisition failed.", NULL);
+				return -1;
+			}
+		}
+
+		/*	Now apply reception rate control: delay
+	 	*	acquisition of the next bundle until we
+		*	have consumed as much time in receiving and
+		*	acquiring this one as we had said we would.	*/
+
+		if (applyRecvRateControl(work) < 0)
+		{
+			putErrmsg("Can't apply reception rate control.", NULL);
+			return -1;
+		}
+
+		/*	Finally, prepare to acquire next bundle.	*/
 
 		if (work->bundleLength == 0)
 		{
@@ -8126,7 +8097,7 @@ static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 	sdr_write(bpSdr, sourceData, buffer, ctSignalLength);
 	MRELEASE(buffer);
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, ctSignalLength);
-	if (sdr_end_xn(bpSdr) < 0 || *zco == 0)
+	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create CT signal.", NULL);
 		return -1;
@@ -8400,7 +8371,7 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 	sdr_write(bpSdr, sourceData, buffer, rptLength);
 	MRELEASE(buffer);
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, rptLength);
-	if (sdr_end_xn(bpSdr) < 0 || *zco == 0)
+	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create status report.", NULL);
 		return -1;

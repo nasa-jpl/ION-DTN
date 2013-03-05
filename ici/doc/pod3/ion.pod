@@ -139,6 +139,45 @@ any) is equal to the corresponding character of the rule EID B<and> either the
 first '~' character in the clearing EID is the clearing EID's last character
 or else the rule EID and clearing EID are of equal length.
 
+=item Object ionCreateZco(ZcoMedium source, Object location, vast offset, vast length, int *control)
+
+This function provides a "blocking" implementation of admission control in
+ION.  Like zco_create(), it constructs a zero-copy object (see zco(3)) that
+contains a single extent of source data residing at I<location> in I<source>,
+of which the first I<offset> bytes are omitted and the next I<length> bytes
+are included.  But unlike zco_create(), ionCreateZco() will block (rather
+than return an immediate error indication) so long as the total amount of
+space in I<source> that is available for new ZCO formation is less than
+I<length>.  ionCreateZco() returns when either (a) space has become
+available and the ZCO has been created, in which case the location of
+the ZCO is returned, or (b) the function has failed (in which case
+((Object) -1) is returned), or (c) the function was interrupted by
+ionCancelZcoSpaceRequest() before space for the ZCO became available
+(in which case 0 is returned).
+
+ionCreateZco() is interruptible if and only if a non-NULL value of I<control>
+is passed to it; in that case, passing the B<same> value of I<control> to
+the ionCancelZcoSpaceRequest() function will interrupt ionCreateZco().  Note
+that the integer variable referenced by I<control> functions as a private ION
+work area; its content need not be initialized -- and must not be altered -- by
+the application.  Be careful when referencing a dynamic variable in I<control>;
+static variables are safer.  If I<control> is NULL then ionCreateZco() is not
+interruptible by the application.
+
+=item vast ionAppendZcoExtent(Object zco, ZcoMedium source, Object location, vast offset, vast length, int *control)
+
+Similar to ionCreateZco() except that instead of creating a new ZCO it appends
+an additional extent to an existing ZCO. Returns -1 on failure, 0 on
+interruption by ionCancelZcoSpaceRequest(), I<length> on success.
+
+=item void ionCancelZcoSpaceRequest(int *control)
+
+This function simply interrupts the currently blocked invocation of
+ionCreateZco() or ionAppendZcoExtent() that cites the same I<control>
+value.  ionCancelZcoSpaceRequest() is intended to be called from a signal
+handler, so that a signal can be used to cleanly terminate a thread that
+is waiting for an opportunity to create a new ZCO source data extent.
+
 =item Sdr getIonsdr()
 
 Returns a pointer to the SDR management object, previously acquired by calling
@@ -342,11 +381,10 @@ on the local node.
 
 This message reports on the custody refusal signals received at the local node.
 
-=item B<ctt>
+=item B<rfw>
 
-This message reports on the custodial bundles for which convergence-layer
-transmission failed at this node, nominally causing the bundles to be
-re-forwarded.
+This message reports on bundles for which convergence-layer transmission
+failed at this node, causing the bundles to be re-forwarded.
 
 =item B<exp>
 
@@ -356,17 +394,17 @@ expiration.
 =back
 
 I<tttttttt> and I<TTTTTTTT> indicate the start and end times of the interval
-for which statistics are being reported, expressed as a number of seconds
-since the start of the DTN epoch.  I<TTTTTTTT> is the current time and
-I<tttttttt> is the time of the prior report.
+for which statistics are being reported, expressed in I<yyyy/mm/dd-hh:mm:ss>
+format.  I<TTTTTTTT> is the current time and I<tttttttt> is the time of the
+prior report.
 
 Each of the four value pairs following the colon (:) reports on the number
 of bundles counted for the indicated type of network activity, for the
 indicated traffic flow, followed by the sum of the sizes of the payloads
 of all those bundles.  The four traffic flows for which statistics are
-reported are "(0)" the priority-0 or "bulk" non-administrative traffic,
-"(1)" the priority-1 non-administrative traffic, "(2)" the priority-2
-"expedited" non-administrative traffic, and "(+)" all traffic in total.
+reported are "(0)" the priority-0 or "bulk" traffic, "(1)" the priority-1
+"standard" traffic, "(2)" the priority-2 "expedited" traffic, and "(+)"
+the total for all classes of service.
 
 =item Free-form messages
 

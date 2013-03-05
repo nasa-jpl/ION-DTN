@@ -320,16 +320,14 @@ static void printSdrAcsSignal(int loglevel, Object acsSignals, BpCtReason reason
 
 	CHKVOID(sdr_begin_xn(acsSdr));
 	if (findSdrAcsSignal(acsSignals, reasonCode, succeeded,
-				&signalAddr) == 0)
+				&signalAddr))
 	{
-		return;
+		reprAcsSignal = printSdrAcs(signalAddr, custodianEid);
+		ACSLOG(loglevel, reprAcsSignal, NULL);
+		MRELEASE(reprAcsSignal);
 	}
 
-	reprAcsSignal = printSdrAcs(signalAddr, custodianEid);
 	sdr_exit_xn(acsSdr);
-
-	ACSLOG(loglevel, reprAcsSignal, NULL);
-	MRELEASE(reprAcsSignal);
 }
 
 static void printAcsInformation(int loglevel, const char *note, Bundle *bundle,

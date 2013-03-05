@@ -1149,6 +1149,7 @@ int	sdr_heap_depleted(Sdr sdrv)
 	SdrUsageSummary	summary;
 
 	CHKERR(sdrv);
+	CHKERR(sdrFetchSafe(sdrv));
 	sdr_usage(sdrv, &summary);
 	return ((summary.smallPoolFree + summary.largePoolFree
 			+ summary.unusedSize) < (summary.sdrSize / 16));

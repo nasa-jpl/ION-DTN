@@ -127,7 +127,7 @@ unsigned long serializeAcs(Object signalAddr, Object *serializedZco,
 	MRELEASE(args.buf);
 	serializedZcoAddr = zco_create(bpSdr, ZcoSdrSource,
 				serializedSdrAddr, 0, args.iBuf);
-	if (serializedZcoAddr == 0)
+	if (serializedZcoAddr == (Object) ERROR || serializedZcoAddr == 0)
 	{
 		putErrmsg("Can't put ACS payload into a ZCO", itoa(serializedZcoAddr));
 		return 0;

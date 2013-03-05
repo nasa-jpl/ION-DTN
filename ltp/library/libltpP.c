@@ -3659,7 +3659,7 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	sessionBuf->span = spanObj;
 	if (sessionBuf->redSegments == 0
 	|| sessionBuf->rsSegments == 0
-	|| sessionBuf->svcData == 0)
+	|| sessionBuf->svcData == (Object) ERROR)
 	{
 		putErrmsg("Can't create import session.", NULL);
 		return -1;
@@ -3845,16 +3845,10 @@ static int	writeBlockExtentToHeap(ImportSession *session,
 	Sdr	ltpSdr = getIonsdr();
 	Object	heapAddress;
 
-	if (!zco_enough_heap_space(ltpSdr, length))
+	if (session->congestive)
 	{
-		/*	To avert possible DOS attack, silently discard 
-		 *	this segment.					*/
-#if LTPDEBUG
-putErrmsg("Can't handle red data, would exceed available heap space.",
-utoa(length));
-#endif
 		segment->sessionObj = 0;	/*	"discard"	*/
-		return 0;
+		return 0;	/*	Don't try to record segment.	*/
 	}
 
 	segment->acqOffset = zco_length(ltpSdr, session->svcData);
@@ -3865,11 +3859,20 @@ utoa(length));
 		return -1;
 	}
 
-	if (zco_append_extent(ltpSdr, session->svcData, ZcoSdrSource,
-			heapAddress, 0, length) < 0)
+	switch (zco_append_extent(ltpSdr, session->svcData, ZcoSdrSource,
+			heapAddress, 0, length))
 	{
-		putErrmsg("Can't append to acquisition ZCO.", NULL);
+	case ERROR:
+		putErrmsg("Can't append block extent.", NULL);
 		return -1;
+
+	case 0:
+#if LTPDEBUG
+putErrmsg("Can't handle red data, would exceed ZCO heap limit.", NULL);
+#endif
+		segment->sessionObj = 0;	/*	"discard"	*/
+		sdr_free(ltpSdr, heapAddress);
+		session->congestive = 1;
 	}
 
 	return 0;
@@ -3883,16 +3886,10 @@ static int	writeBlockExtentToFile(ImportSession *session,
 	int	fd;
 	int	fileLength;
 
-	if (!zco_enough_file_space(ltpSdr, length))
+	if (session->congestive)
 	{
-		/*	To avert possible DOS attack, silently discard
-		 *	this segment.					*/
-#if LTPDEBUG
-putErrmsg("Can't handle red data, would exceed available file space.",
-utoa(length));
-#endif
 		segment->sessionObj = 0;	/*	"discard"	*/
-		return 0;
+		return 0;	/*	Don't try to record segment.	*/
 	}
 
 	oK(zco_file_ref_path(ltpSdr, session->blockFileRef, fileName,
@@ -3946,11 +3943,19 @@ utoa(length));
 	}
 
 	close(fd);
-	if (zco_append_extent(ltpSdr, session->svcData, ZcoFileSource,
-			session->blockFileRef, fileLength, length) < 0)
+	switch (zco_append_extent(ltpSdr, session->svcData, ZcoFileSource,
+			session->blockFileRef, fileLength, length))
 	{
-		putErrmsg("Can't append to acquisition ZCO.", NULL);
+	case ERROR:
+		putErrmsg("Can't append block extent.", NULL);
 		return -1;
+
+	case 0:
+#if LTPDEBUG
+putErrmsg("Can't handle red data, would exceed ZCO file limit.", NULL);
+#endif
+		segment->sessionObj = 0;	/*	"discard"	*/
+		session->congestive = 1;
 	}
 
 	return 0;
@@ -3971,13 +3976,13 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 	 *	segments in the block in *transmission* order.
 	 *
 	 *	In the process, terminate reception of red-part data
-	 *	for this session and adjust heap reservation occupancy.
-	 *	ZCO space occupancy is unchanged: in effect, we're
-	 *	just using the redSegments list to re-sort the extents
-	 *	of the acquisition ZCO.					*/
+	 *	for this session.  Note that net ZCO space occupancy
+	 *	is unchanged: in effect, we're just using the
+	 *	redSegments list to re-sort the extents of the
+	 *	acquisition ZCO.					*/
 
 	svcDataObject = zco_create(ltpSdr, 0, 0, 0, 0);
-	if (svcDataObject == 0)
+	if (svcDataObject == (Object) ERROR)
 	{
 		putErrmsg("Can't create service data object.", NULL);
 		return -1;
@@ -3989,7 +3994,7 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 		GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, segment, segObj);
 		if (zco_append_extent(ltpSdr, svcDataObject, ZcoZcoSource,
 				session->svcData, segment->acqOffset,
-				segment->pdu.length) < 0)
+				segment->pdu.length) < 1)
 		{
 			putErrmsg("Can't deliver ZCO extent.", NULL);
 			return -1;
@@ -4033,6 +4038,7 @@ static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 	Object		segmentElt;
 	Object		segmentObj;
 			OBJ_POINTER(LtpRecvSeg, seg);
+	Object		pduObj;
 
 	if (sessionObj)
 	{
@@ -4057,23 +4063,27 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 		}
 	}
 
-	if (!zco_enough_heap_space(ltpSdr, pdu->length))
+	pduObj = sdr_insert(ltpSdr, cursor, pdu->length);
+	if (pduObj == 0)
 	{
-		/*	To avert possible DOS attack, silently discard
-		 *	this segment.					*/
+		putErrmsg("Can't record green segment data.", NULL);
+		return -1;
+	}
+
+	*clientSvcData = zco_create(ltpSdr, ZcoSdrSource, pduObj, 0,
+			pdu->length);
+	switch (*clientSvcData)
+	{
+	case (Object) ERROR:
+		putErrmsg("Can't record green segment data.", NULL);
+		return -1;
+
+	case 0:	/*	No ZCO space.  Silently discard segment.	*/
 #if LTPDEBUG
 putErrmsg("Can't handle green data, would exceed available heap space.",
 utoa(pdu->length));
 #endif
-		return 0;
-	}
-
-	if ((*clientSvcData = zco_create(ltpSdr, ZcoSdrSource,
-			sdr_insert(ltpSdr, cursor, pdu->length),
-			0, pdu->length)) == 0)
-	{
-		putErrmsg("Can't record green segment data.", NULL);
-		return -1;
+		break;
 	}
 
 	return 0;
@@ -4417,6 +4427,11 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 	{
 		sdr_list_delete(ltpSdr, segment->sessionListElt, NULL, NULL);
 		sdr_free(ltpSdr, segmentObj);
+
+		/*	Rewrite session to preserve any changes made.	*/
+
+		sdr_write(ltpSdr, sessionObj, (char *) &sessionBuf,
+				sizeof(ImportSession));
 		return sdr_end_xn(ltpSdr);
 	}
 

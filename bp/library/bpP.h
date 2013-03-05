@@ -85,8 +85,8 @@ extern "C" {
  *	widespread, which is why these functions are declared
  *	privately here rather than publicly in the zco.h header.	*/
 
-extern void	zco_increase_heap_occupancy(Sdr sdr, Scalar *delta);
-extern void	zco_reduce_heap_occupancy(Sdr sdr, Scalar *delta);
+extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta);
+extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta);
 
 /*	A BP "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
@@ -703,10 +703,6 @@ typedef struct
 	int		clockPid;	/*	For stopping clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
 
-	/*	For congestion control.					*/
-
-	Throttle	productionThrottle;
-
 	/*	For finding structures in database.			*/
 
 	PsmAddress	schemes;	/*	SM list: VScheme.	*/
@@ -741,6 +737,7 @@ typedef struct
 	AcqDecision	decision;
 	int		lastBlockParsed;
 	int		malformed;
+	int		congestive;	/*	Not enough ZCO space.	*/
 	int		mustAbort;	/*	Unreadable block(s).	*/
 
 	/*	Per-acquisition state variables.			*/

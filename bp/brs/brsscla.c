@@ -94,7 +94,9 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
+		CHKNULL(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 		ductNbr = atoi(destDuctName);
 		if (ductNbr >= parms->baseDuctNbr
 		&& ductNbr <= parms->lastDuctNbr

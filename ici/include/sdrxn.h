@@ -243,7 +243,6 @@ Sdr_write(__FILE__, __LINE__, sdr, sdr_address(sdr, pointer), \
 (char *) &variable, sizeof variable)
 
 extern void		sdr_read(Sdr sdr, char *into, Address from, long size);
-extern void		sdr_snap(Sdr sdr, char *into, Address from, long size);
 
 #define sdr_peek(sdr, variable, address) \
 sdr_read(sdr, (char *) &variable, address, sizeof variable)

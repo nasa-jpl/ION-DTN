@@ -112,7 +112,6 @@ void	sdr_table_dimensions(Sdr sdrv, Object table, int *rowSize,
 {
 	SdrTable	tableBuffer;
 
-	CHKVOID(sdrFetchSafe(sdrv));
 	CHKVOID(table);
 	CHKVOID(rowSize);
 	CHKVOID(rowCount);
@@ -125,7 +124,6 @@ void	sdr_table_stage(Sdr sdrv, Object table)
 {
 	SdrTable	tableBuffer;
 
-	CHKVOID(sdrFetchSafe(sdrv));
 	CHKVOID(table);
 	sdrFetch(tableBuffer, (Address) table);
 	sdr_stage(sdrv, NULL, tableBuffer.rows, 0);
@@ -136,7 +134,6 @@ Address	sdr_table_row(Sdr sdrv, Object table, unsigned int rowNbr)
 	SdrTable	tableBuffer;
 	Address		addr;
 
-	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(table);
 	sdrFetch(tableBuffer, (Address) table);
 	CHKERR(rowNbr < tableBuffer.rowCount);

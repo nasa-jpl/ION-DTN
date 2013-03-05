@@ -4,7 +4,6 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
-RESTART = ../restart
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
@@ -60,7 +59,7 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch sdrmend psmwatch ionadmin ionsecadmin ionwarn ionrestart
+UTILITIES = sdrwatch sdrmend psmwatch ionadmin ionsecadmin ionwarn
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
 
@@ -109,6 +108,7 @@ ionsecadmin:	ionsecadmin.o libici.so
 		$(CC) -o ionsecadmin ionsecadmin.o -L./lib -lici -lpthread
 		cp ionsecadmin ./bin
 
+<<<<<<< local
 #	-	-	Restart executable	-	-	-	-
 
 ionrestart.o:	$(RESTART)/ionrestart.c
@@ -118,6 +118,8 @@ ionrestart:	ionrestart.o libici.so
 		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ltp/i86_64-fedora/lib -L../../bp/i86_64-fedora/lib -L../../cfdp/i86_64-fedora/lib -lcfdp -lcgr -lbp -lltp -lltpP -lici -lpthread
 		cp ionrestart ./bin
 
+=======
+>>>>>>> other
 #	-	-	Test executables	-	-	-	-
 
 psmshell:	psmshell.o libici.so

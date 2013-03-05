@@ -22,13 +22,15 @@ static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 	{
 		temp = *semid;
 		value = (void *) temp;
-		semaphore = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		semaphore = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	semaphore = temp;
 	return semaphore;
 }
 
@@ -495,7 +497,9 @@ number>");
 			continue;
 		}
 
+		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
 		bytesSent = sendBundleByTCP(&socketName, &ductSocket,
 				bundleLength, bundleZco, buffer);

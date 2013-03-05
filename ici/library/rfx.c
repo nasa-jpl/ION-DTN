@@ -1753,6 +1753,12 @@ void	rfx_stop()
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 
+	/*	Clear ZCO availability information.			*/
+
+	sm_SemEnd(vdb->zcoSemaphore);
+	vdb->zcoClaimants = 0;
+	vdb->zcoClaims = 0;
+
 	/*	Stop the rfx clock if necessary.			*/
 
 	if (vdb->clockPid != ERROR)

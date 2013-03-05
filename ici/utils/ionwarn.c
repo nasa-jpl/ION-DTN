@@ -122,8 +122,8 @@ int	checkForCongestion()
 	int		ionMemIdx;
 	Lyst		neighbors;
 	Lyst		changes;
-	Scalar		fileOccupancy;
-	Scalar		heapOccupancy;
+	vast		fileOccupancy;
+	vast		heapOccupancy;
 	double		currentOccupancy;
 	double		maxOccupancy;
 	double		forecastOccupancy;
@@ -176,23 +176,22 @@ int	checkForCongestion()
 
 	/*	First get current occupancy (both file space and heap).	*/
 
-	zco_get_file_occupancy(sdr, &fileOccupancy);
-	zco_get_heap_occupancy(sdr, &heapOccupancy);
-	currentOccupancy = fileOccupancy.gigs + heapOccupancy.gigs;
-	currentOccupancy *= ONE_GIG;
-	currentOccupancy += (fileOccupancy.units + heapOccupancy.units);
+	fileOccupancy = zco_get_file_occupancy(sdr);
+	heapOccupancy = zco_get_heap_occupancy(sdr);
+	currentOccupancy = fileOccupancy + heapOccupancy;
  	forecastOccupancy = maxOccupancy = currentOccupancy;
 
 	/*	Get net domestic contribution to congestion.		*/
 
-	if (iondb.productionRate < 0)	/*	Unlimited.		*/
+	netDomesticGrowth = 0;		/*	Default: no activity.	*/
+	if (iondb.productionRate > 0)
 	{
-		netDomesticGrowth = 0;	/*	Ignore local activity.	*/
+		netDomesticGrowth += iondb.productionRate;
 	}
-	else
+
+	if (iondb.consumptionRate > 0)
 	{
-		netDomesticGrowth = iondb.productionRate
-				- iondb.consumptionRate;
+		netDomesticGrowth -= iondb.consumptionRate;
 	}
 
 	/*	Get current net in-transit contribution to congestion.	*/

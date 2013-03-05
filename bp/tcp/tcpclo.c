@@ -31,13 +31,15 @@ static sm_SemId		tcpcloSemaphore(sm_SemId *semid)
 	{
 		temp = *semid;
 		value = (void *) temp;
-		semaphore = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retreive task variable.	*/
 	{
-		semaphore = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	semaphore = temp;
 	return semaphore;
 }
 
@@ -447,7 +449,9 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
+		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
 		bytesSent = sendBundleByTCPCL(&socketName, &ductSocket,
 			bundleLength, bundleZco, buffer, &keepalivePeriod);

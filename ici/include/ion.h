@@ -15,6 +15,7 @@
 #include "sdr.h"
 #include "smlist.h"
 #include "smrbt.h"
+#include "zco.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -242,6 +243,9 @@ typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
+	sm_SemId	zcoSemaphore;	/*	Signals availability.	*/
+	int		zcoClaimants;	/*	# of waiting tasks.	*/
+	int		zcoClaims;	/*	# of demands on ZCO.	*/
 	time_t		lastEditTime;	/*	Add/del contacts/ranges	*/
 	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
 	PsmAddress	neighbors;	/*	SM RB tree: IonNeighbor	*/
@@ -278,6 +282,19 @@ extern void		ionProd(	uvast fromNode,
 					unsigned int xmitRate,
 					unsigned int owlt);
 extern void		ionTerminate();
+
+extern Object		ionCreateZco(	ZcoMedium source,
+					Object location,
+					vast offset,
+					vast length,
+					int *control);
+extern vast		ionAppendZcoExtent(Object zco,
+					ZcoMedium source,
+					Object location,
+					vast offset,
+					vast length,
+					int *control);
+extern void		ionCancelZcoSpaceRequest(int *control);
 
 extern Sdr		getIonsdr();
 extern Object		getIonDbObject();

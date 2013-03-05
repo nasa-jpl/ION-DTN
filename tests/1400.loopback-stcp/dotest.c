@@ -42,17 +42,17 @@ int main(int argc, char **argv)
 	fail_unless(txExtent != 0);
 	sdr_write(sdr, txExtent, testLine, sizeof(testLine) - 1);
 	txBundleZco = zco_create(sdr, ZcoSdrSource, txExtent, 0, sizeof(testLine) - 1);
-	fail_unless(sdr_end_xn(sdr) >= 0 || txBundleZco != 0);
-	fail_unless(bp_send(NULL, BP_BLOCKING, testEid, NULL, 300, BP_STD_PRIORITY,
-		NoCustodyRequested, 0, 0, NULL, txBundleZco, &txNewBundle) >= 1);
+	fail_unless(sdr_end_xn(sdr) >= 0 && txBundleZco != 0);
+	fail_unless(bp_send(NULL, testEid, NULL, 300, BP_STD_PRIORITY,
+		NoCustodyRequested, 0, 0, NULL, txBundleZco, &txNewBundle) > 0);
 
 	/* Receive the loopback bundle */
 	fail_unless(bp_open(testEid, &rxSap) >= 0);
 	fail_unless(bp_receive(rxSap, &rxDlv, IONTEST_DEFAULT_RECEIVE_WAIT) >= 0);
 	fail_unless(rxDlv.result == BpPayloadPresent);
+	sdr_begin_xn(sdr);
 	rxContentLength = zco_source_data_length(sdr, rxDlv.adu);
 	fail_unless(rxContentLength == sizeof(testLine) - 1);
-	sdr_begin_xn(sdr);
 	zco_start_receiving(rxDlv.adu, &rxReader);
 	rxLen = zco_receive_source(sdr, &rxReader, rxContentLength, 
 		rxContent);

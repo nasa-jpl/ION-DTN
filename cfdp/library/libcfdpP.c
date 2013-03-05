@@ -2345,14 +2345,14 @@ static Object	selectOutPdu(OutFdu *fdu, int *pduIsFileData)
 
 			sdr_write(sdr, header, (char *) &offset, 4);
 			pdu = zco_create(sdr, ZcoSdrSource, header, 0, 4);
-			if (pdu == 0)
+			if (pdu == (Object) ERROR || pdu == 0)
 			{
 				putErrmsg("No space for file PDU.", NULL);
 				return 0;
 			}
 
 			if (zco_append_extent(sdr, pdu, ZcoFileSource,
-				fdu->fileRef, fdu->progress, length) < 0)
+				fdu->fileRef, fdu->progress, length) <= 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
 				return 0;

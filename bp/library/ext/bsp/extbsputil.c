@@ -1164,7 +1164,7 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
         if (*resultZco == 0)     /*      First extent of acquisition.    */
         {
                 *resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
-                if (*resultZco == 0)
+                if (*resultZco == (Object) ERROR)
                 {
                         putErrmsg("extbsputil: Can't start file source ZCO.", NULL);
                         sdr_cancel_xn(sdr);
@@ -1220,8 +1220,13 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
         }
 
         close(fd);
-        oK(zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
-                        fileLength, length));
+        if (zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
+                        fileLength, length) <= 0)
+	{
+		putErrmsg("extbsputil: Can't append extent to ZCO.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
 
         /*      Flag file reference for deletion as soon as the last
          *      ZCO extent that references it is deleted.               */
