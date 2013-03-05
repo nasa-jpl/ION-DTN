@@ -354,8 +354,7 @@ static void	ionRedirectMemos()
 }
 #endif
 
-static int	checkNodeListParms(IonParms *parms, char *wdName,
-			unsigned long nodeNbr)
+static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 {
 	char		*nodeListDir;
 	sm_SemId	nodeListMutex;
@@ -364,7 +363,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 	int		lineNbr = 0;
 	int		lineLen;
 	char		lineBuf[256];
-	unsigned long	lineNodeNbr;
+	uvast		lineNodeNbr;
 	int		lineWmKey;
 	char		lineSdrName[MAX_SDR_NAME + 1];
 	char		lineWdName[256];
@@ -448,8 +447,8 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 		}
 
 		lineNbr++;
-		if (sscanf(lineBuf, "%lu %d %31s %255s", &lineNodeNbr,
-				&lineWmKey, lineSdrName, lineWdName) < 4)
+		if (sscanf(lineBuf, UVAST_FIELDSPEC " %d %31s %255s",
+			&lineNodeNbr, &lineWmKey, lineSdrName, lineWdName) < 4)
 		{
 			close(nodeListFile);
 			sm_SemGive(nodeListMutex);
@@ -561,7 +560,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 				sizeof parms->sdrName);
 	}
 
-	isprintf(lineBuf, sizeof lineBuf, "%lu %d %.31s %.255s\n",
+	isprintf(lineBuf, sizeof lineBuf, UVAST_FIELDSPEC " %d %.31s %.255s\n",
 			nodeNbr, parms->wmKey, parms->sdrName, wdName);
 	result = iputs(nodeListFile, lineBuf);
 	close(nodeListFile);
@@ -598,7 +597,7 @@ static DWORD WINAPI	waitForSigterm(LPVOID parm)
 }
 #endif
 
-int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
+int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 {
 	char		wdname[256];
 	Sdr		ionsdr;
@@ -972,8 +971,8 @@ void	ionDetach()
 #endif
 }
 
-void	ionProd(unsigned long fromNode, unsigned long toNode,
-		unsigned long xmitRate, unsigned int owlt)
+void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
+		unsigned int owlt)
 {
 	Sdr	ionsdr = _ionsdr(NULL);
 	time_t	fromTime;
@@ -1078,7 +1077,7 @@ char	*getIonWorkingDirectory()
 	return snapshot->workingDirectoryName;
 }
 
-unsigned long	getOwnNodeNbr()
+uvast	getOwnNodeNbr()
 {
 	IonDB	*snapshot = _ionConstants();
 
@@ -1250,7 +1249,7 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 
 /*	*	*	Parsing 	*	*	*	*	*/
 
-int	_extractSdnv(unsigned long *into, unsigned char **from, int *remnant,
+int	_extractSdnv(uvast *into, unsigned char **from, int *remnant,
 		int lineNbr)
 {
 	int	sdnvLength;
@@ -1269,6 +1268,32 @@ int	_extractSdnv(unsigned long *into, unsigned char **from, int *remnant,
 		return 0;
 	}
 
+	(*from) += sdnvLength;
+	(*remnant) -= sdnvLength;
+	return sdnvLength;
+}
+
+int	_extractSmallSdnv(unsigned int *into, unsigned char **from,
+		int *remnant, int lineNbr)
+{
+	int	sdnvLength;
+	uvast	val;
+
+	CHKZERO(into && from && remnant);
+	if (*remnant < 1)
+	{
+		writeMemoNote("[?] Missing SDNV at line...", itoa(lineNbr));
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(&val, *from);
+	if (sdnvLength < 1)
+	{
+		writeMemoNote("[?] Invalid SDNV at line...", itoa(lineNbr));
+		return 0;
+	}
+
+	*into = val;				/*	Truncate.	*/
 	(*from) += sdnvLength;
 	(*remnant) -= sdnvLength;
 	return sdnvLength;

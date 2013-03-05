@@ -20,13 +20,15 @@ static sm_SemId	_dtn2fwSemaphore(sm_SemId *newValue)
 	{
 		temp = *newValue;
 		value = (void *) temp;
-		sem = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		sem = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	sem = temp;
 	return sem;
 }
 

@@ -371,7 +371,7 @@ int	bpdriver(int a1, int a2, int a3, int a4, int a5,
 	char	*destEid = (char *) a3;
 	int	aduLength = (a4 == 0 ? DEFAULT_ADU_LENGTH : atoi((char *) a4));
 	int	streaming = 0;
-	int ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
+	int 	ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
 #else
 int	main(int argc, char **argv)
 {

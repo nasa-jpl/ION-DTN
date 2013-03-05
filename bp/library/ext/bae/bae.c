@@ -66,8 +66,7 @@ int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
 	{
-		bundle->age = 1000000 *
-			((((unsigned long) getUTCTime()) - EPOCH_2000_SEC)
+		bundle->age = 1000000 * ((getUTCTime() - EPOCH_2000_SEC)
 				- bundle->id.creationTime.seconds);
 	}
 	else
@@ -109,7 +108,7 @@ int	bae_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	blk->size = 0;
 	blk->object = NULL;
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	extractSdnv(&(bundle->age), &cursor, &bytesRemaining);
+	extractSmallSdnv(&(bundle->age), &cursor, &bytesRemaining);
 	if (bytesRemaining != 0)
 	{
 		return 0;		/*	Malformed.		*/

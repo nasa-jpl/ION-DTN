@@ -172,9 +172,9 @@ static void	executeAdd(int tokenCount, char **tokens)
 	time_t		refTime;
 	time_t		fromTime;
 	time_t		toTime;
-	unsigned long	fromNodeNbr;
-	unsigned long	toNodeNbr;
-	unsigned long	xmitRate;
+	uvast		fromNodeNbr;
+	uvast		toNodeNbr;
+	unsigned int	xmitRate;
 	unsigned int	owlt;
 
 	if (tokenCount < 2)
@@ -222,10 +222,10 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
-	time_t		refTime;
-	time_t		timestamp;
-	unsigned long	fromNodeNbr;
-	unsigned long	toNodeNbr;
+	time_t	refTime;
+	time_t	timestamp;
+	uvast	fromNodeNbr;
+	uvast	toNodeNbr;
 
 	if (tokenCount < 2)
 	{
@@ -278,8 +278,8 @@ static void	executeInfo(int tokenCount, char **tokens)
 	IonVdb		*vdb = getIonVdb();
 	time_t		refTime;
 	time_t		timestamp;
-	unsigned long	fromNode;
-	unsigned long	toNode;
+	uvast		fromNode;
+	uvast		toNode;
 	IonCXref	arg1;
 	PsmAddress	elt;
 	PsmAddress	addr;

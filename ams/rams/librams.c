@@ -542,7 +542,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	socklen_t		nameLength;
 	int			datagramLength;
 	Lyst			msgspaces;
-	int			cId;
+	long			cId;
 	Petition		*pet;
 	AmsEventMgt		rules;
 	int			ownPseudoSubject;
@@ -621,7 +621,7 @@ printf("continuum lyst:");
 	{
 		cId = (long) lyst_data(elt);
 #if RAMSDEBUG
-printf(" %d", cId);		
+printf(" %ld", cId);		
 #endif
 		if (cId == gWay->amsMib->localContinuumNbr)
 		{

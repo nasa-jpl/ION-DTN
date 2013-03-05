@@ -31,6 +31,22 @@ extern "C" {
 #define SPACE_ORDER	2
 #endif
 
+#if (SPACE_ORDER < 3)	/*	32-bit machines.			*/
+typedef long long		vast;
+typedef unsigned long long	uvast;
+#define	VAST_FIELDSPEC	"%ll"
+#define	UVAST_FIELDSPEC	"%llu"
+#define	strtovast(x)	strtoll(x, NULL, 0)
+#define	strtouvast(x)	strtoull(x, NULL, 0)
+#else			/*	64-bit machines.			*/
+typedef long			vast;
+typedef unsigned long		uvast;
+#define	VAST_FIELDSPEC	"%l"
+#define	UVAST_FIELDSPEC	"%lu"
+#define	strtovast(x)	strtol(x, NULL, 0)
+#define	strtouvast(x)	strtoul(x, NULL, 0)
+#endif
+
 #define WORD_SIZE	(1 << SPACE_ORDER)
 #define SMALL_SIZES	(64)
 
@@ -548,8 +564,8 @@ typedef struct
 	unsigned char	text[10];
 } Sdnv;
 
-extern void			encodeSdnv(Sdnv *, unsigned long);
-extern int			decodeSdnv(unsigned long *, unsigned char *);
+extern void			encodeSdnv(Sdnv *, uvast);
+extern int			decodeSdnv(uvast *, unsigned char *);
 
 typedef struct
 {

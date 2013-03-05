@@ -104,7 +104,7 @@ int	ecos_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	bytesRemaining -= 2;
 	if (bundle->extendedCOS.flags & BP_FLOW_LABEL_PRESENT)
 	{
-		extractSdnv(&(bundle->extendedCOS.flowLabel), &cursor,
+		extractSmallSdnv(&(bundle->extendedCOS.flowLabel), &cursor,
 				&bytesRemaining);
 	}
 	else

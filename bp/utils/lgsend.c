@@ -26,7 +26,7 @@ int	main(int argc, char **argv)
 	BpSAP	sap;
 	Sdr	sdr;
 	int	cmdFile;
-	long	fileSize;
+	int	fileSize;
 	Object	adu;
 	int	offset;
 	char	line[256];

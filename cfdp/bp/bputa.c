@@ -39,8 +39,8 @@ static void	*receivePdus(void *parm)
 		return NULL;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:%lu.%d", getOwnNodeNbr(),
-			CFDP_RECV_SVC_NBR);
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
+			getOwnNodeNbr(), CFDP_RECV_SVC_NBR);
 	if (bp_open(ownEid, &(parms->rxSap)) < 0)
 	{
 		MRELEASE(buffer);
@@ -133,7 +133,7 @@ int	main(int argc, char **argv)
 	Object		pduZco;
 	OutFdu		fduBuffer;
 	BpUtParms	utParms;
-	unsigned long	destinationNodeNbr;
+	uvast		destinationNodeNbr;
 	char		destEid[64];
 	char		reportToEidBuf[64];
 	char		*reportToEid;
@@ -146,8 +146,8 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:%lu.%d", getOwnNodeNbr(),
-			CFDP_SEND_SVC_NBR);
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
+			getOwnNodeNbr(), CFDP_SEND_SVC_NBR);
 	if (bp_open(ownEid, &txSap) < 0)
 	{
 		putErrmsg("CFDP can't open own 'send' endpoint.", ownEid);
@@ -220,7 +220,7 @@ terminating.");
 			continue;
 		}
 
-		isprintf(destEid, sizeof destEid, "ipn:%lu.%d",
+		isprintf(destEid, sizeof destEid, "ipn:" UVAST_FIELDSPEC ".%u",
 				destinationNodeNbr, CFDP_RECV_SVC_NBR);
 		if (utParms.reportToNodeNbr == 0)
 		{
@@ -229,7 +229,8 @@ terminating.");
 		else
 		{
 			isprintf(reportToEidBuf, sizeof reportToEidBuf,
-					"ipn:%lu.%d", utParms.reportToNodeNbr,
+					"ipn:" UVAST_FIELDSPEC ".%u",
+					utParms.reportToNodeNbr,
 					CFDP_RECV_SVC_NBR);
 			reportToEid = reportToEidBuf;
 		}

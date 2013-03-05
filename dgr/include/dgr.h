@@ -47,8 +47,8 @@ typedef enum
 
 typedef struct dgrsapst	*Dgr;
 
-extern int		dgr_open(	unsigned long ownEngineId,
-					unsigned long clientSvcId,
+extern int		dgr_open(	uvast ownEngineId,
+					unsigned int clientSvcId,
 					unsigned short ownPortNbr,
 					unsigned int ownIpAddress,
 					char *memmgrName,

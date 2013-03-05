@@ -228,7 +228,7 @@ typedef struct
 	int		bundleSocket;
 	pthread_t	thread;
 	int		*running;
-	unsigned long	ductNbr;
+	unsigned int	ductNbr;
 	int		*authenticated;
 	int		baseDuctNbr;
 	int		lastDuctNbr;
@@ -245,7 +245,7 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 	if (parms->bundleSocket != -1)
 	{
 		closesocket(parms->bundleSocket);
-		if (parms->ductNbr != (unsigned long) -1)
+		if (parms->ductNbr != (unsigned int) -1)
 		{
 			senderSocket = parms->ductNbr - parms->baseDuctNbr;
 			if (parms->brsSockets[senderSocket] ==
@@ -277,7 +277,8 @@ static void	*receiveBundles(void *parm)
 	time_t			currentTime;
 	unsigned char		sdnvText[10];
 	int			sdnvLength = 0;
-	unsigned long		ductNbr;
+	unsigned int		ductNbr;
+	uvast			val;
 	int			senderSocket;
 	char			registration[24];
 	time_t			timeTag;
@@ -332,7 +333,8 @@ static void	*receiveBundles(void *parm)
 		return NULL;
 	}
 
-	oK(decodeSdnv(&ductNbr, sdnvText));
+	oK(decodeSdnv(&val, sdnvText));
+	ductNbr = val;
 	if (ductNbr < parms->baseDuctNbr || ductNbr > parms->lastDuctNbr)
 	{
 		putErrmsg("Duct number is too large.", utoa(ductNbr));
@@ -453,7 +455,7 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 
 	parms->senderEid = parms->senderEidBuffer;
 	isprintf(parms->senderEidBuffer, sizeof parms->senderEidBuffer,
-			"ipn:%lu.0", ductNbr);
+			"ipn:%u.0", ductNbr);
 
 	/*	Now start receiving bundles.				*/
 
@@ -594,7 +596,7 @@ static void	*spawnReceivers(void *parm)
 		receiverParms->bundleSocket = newSocket;
 		authenticated = 0;		/*	Unknown.	*/
 		receiverParms->authenticated = &authenticated;
-		receiverParms->ductNbr = (unsigned long) -1;
+		receiverParms->ductNbr = (unsigned int) -1;
 		receiverParms->baseDuctNbr = atp->baseDuctNbr;
 		receiverParms->lastDuctNbr = atp->lastDuctNbr;
 		receiverParms->brsSockets = atp->brsSockets;

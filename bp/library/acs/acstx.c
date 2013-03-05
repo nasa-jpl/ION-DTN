@@ -291,9 +291,9 @@ Object findCustodianByEid(Object custodians, const char *eid)
 	return sdr_list_data(acsSdr, pendingCustLElt);
 }
 
-static void releaseSdrAcsFill(Sdr sdr, Object fillAddr, void *arg)
+static void releaseSdrAcsFill(Sdr sdr, Object elt, void *arg)
 {
-	sdr_free(sdr, fillAddr);
+	sdr_free(sdr, sdr_list_data(sdr, elt));
 }
 
 static void releaseSdrAcsSignal(Object signalLElt)
@@ -328,8 +328,6 @@ static void releaseSdrAcsSignal(Object signalLElt)
 
 	if(signal.acsDue != 0) {
 		destroyBpTimelineEvent(signal.acsDue);
-//		sdr_free(bpSdr, sdr_list_data(bpSdr, signal.acsDue));
-//		sdr_list_delete(bpSdr, signal.acsDue, NULL, NULL);
 	}
 
 	if(signal.serializedZco != 0) {
@@ -404,8 +402,6 @@ int sendAcs(Object signalLElt)
 	if (signal.acsDue != 0)
 	{
 		destroyBpTimelineEvent(signal.acsDue);
-//		sdr_free(bpSdr, sdr_list_data(bpSdr, signal.acsDue));
-//		sdr_list_delete(bpSdr, signal.acsDue, NULL, NULL);
 	}
 
 	signal.acsDue = 0;
@@ -694,13 +690,13 @@ int updateCustodianAcsSize(const char *custodianEid,
 	return 0;
 }
 
-int updateMinimumCustodyId(unsigned long minimumCustodyId)
+int updateMinimumCustodyId(unsigned int minimumCustodyId)
 {
 	CHKERR(sdr_begin_xn(acsSdr));
 	sdr_poke(acsSdr, acsConstants->id, minimumCustodyId);
 	if(sdr_end_xn(acsSdr) < 0)
 	{
-		ACSLOG_ERROR("Couldn't update minimum custody ID to %lu", minimumCustodyId);
+		ACSLOG_ERROR("Couldn't update minimum custody ID to %u", minimumCustodyId);
 		return -1;
 	}
 	return 0;

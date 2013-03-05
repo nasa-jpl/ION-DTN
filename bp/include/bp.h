@@ -53,7 +53,7 @@ typedef enum
 
 typedef struct
 {
-	unsigned long	flowLabel;	/*	Optional.		*/
+	unsigned int	flowLabel;	/*	Optional.		*/
 	unsigned char	flags;		/*	See below.		*/
 	unsigned char	ordinal;	/*	0 to 254 (most urgent).	*/
 } BpExtendedCOS;
@@ -67,8 +67,8 @@ typedef struct bpsap_st		*BpSAP;
 
 typedef struct
 {
-	unsigned long	seconds;
-	unsigned long	count;
+	unsigned int	seconds;
+	unsigned int	count;
 } BpTimestamp;
 
 typedef enum

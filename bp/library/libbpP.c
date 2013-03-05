@@ -850,7 +850,8 @@ static void	startScheme(VScheme *vscheme)
 		if (isCbhe(vscheme->name))
 		{
 			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-				"%.8s:%lu.0", vscheme->name, getOwnNodeNbr());
+				"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
+				getOwnNodeNbr());
 		}
 		else	/*	Assume it's "dtn".			*/
 		{
@@ -2110,7 +2111,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 
 	/*	A CBHE-conformant endpoint URI.				*/
 
-	if (sscanf(metaEid->nss, "%20lu.%20lu", &(metaEid->nodeNbr),
+	if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%u", &(metaEid->nodeNbr),
 			&(metaEid->serviceNbr)) < 2
 	|| metaEid->nodeNbr > MAX_CBHE_NODE_NBR
 	|| metaEid->serviceNbr > MAX_CBHE_SERVICE_NBR
@@ -2166,8 +2167,8 @@ static int	printCbheEid(char *schemeName, CbheEid *eid, char **result)
 	}
 	else
 	{
-		isprintf(eidString, eidLength, "%s:%lu.%lu", schemeName,
-				eid->nodeNbr, eid->serviceNbr);
+		isprintf(eidString, eidLength, "%s:" UVAST_FIELDSPEC ".%u",
+				schemeName, eid->nodeNbr, eid->serviceNbr);
 	}
 
 	*result = eidString;
@@ -2457,17 +2458,19 @@ static void	lookUpEidScheme(EndpointId eid, char *dictionary,
 }
 
 static void	reportStateStats(int i, char *fromTimestamp, char *toTimestamp,
-			unsigned int count_0, unsigned long bytes_0,
-			unsigned int count_1, unsigned long bytes_1,
-			unsigned int count_2, unsigned long bytes_2,
-			unsigned int count_total, unsigned long bytes_total)
+			unsigned int count_0, uvast bytes_0,
+			unsigned int count_1, uvast bytes_1,
+			unsigned int count_2, uvast bytes_2,
+			unsigned int count_total, uvast bytes_total)
 {
 	char		buffer[256];
 	static char	*classnames[] =
 		{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "rfw", "exp" };
 
-	isprintf(buffer, sizeof buffer, "[x] %s from %s to %s: (0) %u %lu (1) \
-%u %lu (2) %u %lu (+) %u %lu", classnames[i], fromTimestamp, toTimestamp,
+	isprintf(buffer, sizeof buffer, "[x] %s from %s to %s: (0) \
+%u " UVAST_FIELDSPEC " (1) %u " UVAST_FIELDSPEC " (2) \
+%u " UVAST_FIELDSPEC " (+) %u " UVAST_FIELDSPEC, classnames[i],
+			fromTimestamp, toTimestamp,
 			count_0, bytes_0, count_1, bytes_1,
 			count_2, bytes_2, count_total, bytes_total);
 	writeMemo(buffer);
@@ -2953,17 +2956,17 @@ incomplete bundle.", NULL);
 /*	*	*	BP database mgt and access functions	*	*/
 
 static int	constructBundleHashKey(char *buffer, char *sourceEid,
-			unsigned long seconds, unsigned long count,
-			unsigned long offset, unsigned long length)
+			unsigned int seconds, unsigned int count,
+			unsigned int offset, unsigned int length)
 {
 	memset(buffer, 0, BUNDLES_HASH_KEY_BUFLEN);
-	isprintf(buffer, BUNDLES_HASH_KEY_BUFLEN, "%s:%lu:%lu:%lu:%lu",
+	isprintf(buffer, BUNDLES_HASH_KEY_BUFLEN, "%s:%u:%u:%u:%u",
 			sourceEid, seconds, count, offset, length);
 	return strlen(buffer);
 }
 
 int	findBundle(char *sourceEid, BpTimestamp *creationTime,
-		unsigned long fragmentOffset, unsigned long fragmentLength,
+		unsigned int fragmentOffset, unsigned int fragmentLength,
 		Object *bundleAddr)
 {
 	Sdr		bpSdr = getIonsdr();
@@ -3633,7 +3636,7 @@ void	fetchProtocol(char *protocolName, ClProtocol *clp, Object *clpElt)
 }
 
 int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
-		long nominalRate)
+		int nominalRate)
 {
 	Sdr		bpSdr = getIonsdr();
 	ClProtocol	clpbuf;
@@ -4093,7 +4096,7 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 }
 
 int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
-		unsigned long maxPayloadLength)
+		unsigned int maxPayloadLength)
 {
 	Sdr		bpSdr = getIonsdr();
 	ClProtocol	clpbuf;
@@ -4210,7 +4213,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 }
 
 int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
-		unsigned long maxPayloadLength)
+		unsigned int maxPayloadLength)
 {
 	Sdr		bpSdr = getIonsdr();
 	VOutduct	*vduct;
@@ -4538,8 +4541,8 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 
 static void	computeExpirationTime(Bundle *bundle)
 {
-	unsigned long	secConsumed;
-	unsigned long	usecConsumed;
+	unsigned int	secConsumed;
+	unsigned int	usecConsumed;
 	struct timeval	timeRemaining;
 	struct timeval	expirationTime;
 	struct timeval	currentTime;
@@ -5125,7 +5128,7 @@ static void	loadCbheEids(Bundle *bundle, MetaEid *destMetaEid,
 }
 
 static int	addStringToDictionary(char **strings, int *stringLengths,
-			int *stringCount, unsigned long *dictionaryLength,
+			int *stringCount, unsigned int *dictionaryLength,
 			char *string, int stringLength)
 {
 	int	offset = 0;
@@ -5931,9 +5934,8 @@ static void	lookUpEndpoint(EndpointId eid, char *dictionary,
 
 	if (dictionary == NULL)
 	{
-		isprintf(nssBuf, sizeof nssBuf, "%lu.%lu",
-				eid.c.nodeNbr,
-				eid.c.serviceNbr);
+		isprintf(nssBuf, sizeof nssBuf, UVAST_FIELDSPEC ".%u",
+				eid.c.nodeNbr, eid.c.serviceNbr);
 		nss = nssBuf;
 	}
 	else
@@ -6048,10 +6050,20 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 	{
 		GET_OBJ_POINTER(bpSdr, Bundle, fragment,
 				sdr_list_data(bpSdr, elt));
-		if (fragment->id.fragmentOffset > bundle->id.fragmentOffset)
+		if (fragment->id.fragmentOffset < bundle->id.fragmentOffset)
 		{
-			break;	/*	Insert before this one.		*/
+			continue;
 		}
+
+		if (fragment->id.fragmentOffset == bundle->id.fragmentOffset)
+		{
+			bundle->delivered = 1;
+			sdr_write(bpSdr, bundleObj, (char *) bundle,
+					sizeof(Bundle));
+			return 0;	/*	Duplicate fragment.	*/
+		}
+
+		break;	/*	Insert before this fragment.		*/
 	}
 
 	if (elt)
@@ -6718,7 +6730,7 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 
 int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 {
-	static unsigned long	acqCount = 0;
+	static unsigned int	acqCount = 0;
 	static int		maxAcqInHeap = 0;
 	Sdr			sdr = getIonsdr();
 	BpDB			*bpConstants = _bpConstants();
@@ -6726,7 +6738,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
 	int			fd;
-	long			fileLength;
+	int			fileLength;
 
 	CHKERR(work);
 	CHKERR(bytes);
@@ -6792,7 +6804,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		}
 
 		acqCount++;
-		isprintf(fileName, sizeof fileName, "%s%cbpacq.%lu", cwd,
+		isprintf(fileName, sizeof fileName, "%s%cbpacq.%u", cwd,
 				ION_PATH_DELIMITER, acqCount);
 		fd = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0)
@@ -6972,9 +6984,9 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	int		unparsedBytes;
 	unsigned char	*cursor;
 	int		version;
-	unsigned long	residualBlockLength;
+	unsigned int	residualBlockLength;
 	int		i;
-	unsigned long	eidSdnvValues[8];
+	uvast		eidSdnvValues[8];
 	char		*eidString;
 	int		nullEidLen;
 	int		bytesParsed;
@@ -7005,7 +7017,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		return 0;
 	}
 
-	extractSdnv(&(bundle->bundleProcFlags), &cursor, &unparsedBytes);
+	extractSmallSdnv(&(bundle->bundleProcFlags), &cursor, &unparsedBytes);
 
 	/*	Note status report information as necessary.		*/
 
@@ -7017,7 +7029,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	/*	Get length of rest of primary block.			*/
 
-	extractSdnv(&residualBlockLength, &cursor, &unparsedBytes);
+	extractSmallSdnv(&residualBlockLength, &cursor, &unparsedBytes);
 
 	/*	Get all EID SDNV values.				*/
 
@@ -7028,13 +7040,13 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	/*	Get creation timestamp, lifetime, dictionary length.	*/
 
-	extractSdnv(&(bundle->id.creationTime.seconds), &cursor,
+	extractSmallSdnv(&(bundle->id.creationTime.seconds), &cursor,
 			&unparsedBytes);
 
-	extractSdnv(&(bundle->id.creationTime.count), &cursor,
+	extractSmallSdnv(&(bundle->id.creationTime.count), &cursor,
 			&unparsedBytes);
 
-	extractSdnv(&(bundle->timeToLive), &cursor, &unparsedBytes);
+	extractSmallSdnv(&(bundle->timeToLive), &cursor, &unparsedBytes);
 	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
 	{
 		/*	Default bundle age, pending override by BAE.	*/
@@ -7046,7 +7058,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		bundle->age = 0;
 	}
 
-	extractSdnv(&(bundle->dictionaryLength), &cursor, &unparsedBytes);
+	extractSmallSdnv(&(bundle->dictionaryLength), &cursor, &unparsedBytes);
 	bundle->dbOverhead += bundle->dictionaryLength;
 
 	/*	Get the dictionary, if present.				*/
@@ -7130,9 +7142,9 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	MRELEASE(eidString);
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
-		extractSdnv(&(bundle->id.fragmentOffset), &cursor,
+		extractSmallSdnv(&(bundle->id.fragmentOffset), &cursor,
 				&unparsedBytes);
-		extractSdnv(&(bundle->totalAduLength), &cursor,
+		extractSmallSdnv(&(bundle->totalAduLength), &cursor,
 				&unparsedBytes);
 	}
 	else
@@ -7157,13 +7169,14 @@ static int	acquireBlock(AcqWorkArea *work)
 	unsigned char	*cursor;
 	unsigned char	*startOfBlock;
 	unsigned char	blkType;
-	unsigned long	blkProcFlags;
+	unsigned int	blkProcFlags;
 	Lyst		eidReferences = NULL;
-	unsigned long	eidReferencesCount;
-	unsigned long	schemeOffset;
-	unsigned long	nssOffset;
-	unsigned long	dataLength;
-	unsigned long	lengthOfBlock;
+	unsigned int	eidReferencesCount;
+	unsigned int	schemeOffset;
+	unsigned int	nssOffset;
+	unsigned int	dataLength;
+	unsigned int	lengthOfBlock;
+	unsigned long	temp;
 	ExtensionDef	*def;
 
 	if (work->malformed || work->mustAbort || work->lastBlockParsed)
@@ -7187,7 +7200,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	/*	Get block processing flags.  If flags indicate that
 	 *	EID references are present, get them.			*/
 
-	extractSdnv(&blkProcFlags, &cursor, &unparsedBytes);
+	extractSmallSdnv(&blkProcFlags, &cursor, &unparsedBytes);
 	if (blkProcFlags & BLK_IS_LAST)
 	{
 		work->lastBlockParsed = 1;
@@ -7201,19 +7214,22 @@ static int	acquireBlock(AcqWorkArea *work)
 			return -1;
 		}
 
-		extractSdnv(&eidReferencesCount, &cursor, &unparsedBytes);
+		extractSmallSdnv(&eidReferencesCount, &cursor, &unparsedBytes);
 		while (eidReferencesCount > 0)
 		{
-			extractSdnv(&schemeOffset, &cursor, &unparsedBytes);
-			if (lyst_insert_last(eidReferences,
-					(void *) schemeOffset) == NULL)
+			extractSmallSdnv(&schemeOffset, &cursor,
+					&unparsedBytes);
+			temp = schemeOffset;
+			if (lyst_insert_last(eidReferences, (void *) temp)
+					== NULL)
 			{
 				return -1;
 			}
 
-			extractSdnv(&nssOffset, &cursor, &unparsedBytes);
-			if (lyst_insert_last(eidReferences,
-					(void *) nssOffset) == NULL)
+			extractSmallSdnv(&nssOffset, &cursor, &unparsedBytes);
+			temp = schemeOffset;
+			if (lyst_insert_last(eidReferences, (void *) temp)
+					== NULL)
 			{
 				return -1;
 			}
@@ -7222,7 +7238,7 @@ static int	acquireBlock(AcqWorkArea *work)
 		}
 	}
 
-	extractSdnv(&dataLength, &cursor, &unparsedBytes);
+	extractSmallSdnv(&dataLength, &cursor, &unparsedBytes);
 
 	/*	Check first to see if this is the payload block.	*/
 
@@ -8123,7 +8139,7 @@ static int	parseCtSignal(BpCtSignal *csig, unsigned char *cursor,
 			int unparsedBytes, int isFragment)
 {
 	unsigned char	head1;
-	unsigned long	eidLength;
+	unsigned int	eidLength;
 
 	memset((char *) csig, 0, sizeof(BpCtSignal));
 	csig->isFragment = isFragment;
@@ -8142,15 +8158,18 @@ static int	parseCtSignal(BpCtSignal *csig, unsigned char *cursor,
 
 	if (isFragment)
 	{
-		extractSdnv(&(csig->fragmentOffset), &cursor, &unparsedBytes);
-		extractSdnv(&(csig->fragmentLength), &cursor, &unparsedBytes);
+		extractSmallSdnv(&(csig->fragmentOffset), &cursor,
+				&unparsedBytes);
+		extractSmallSdnv(&(csig->fragmentLength), &cursor,
+				&unparsedBytes);
 	}
 
-	extractSdnv(&(csig->signalTime.seconds), &cursor, &unparsedBytes);
-	extractSdnv(&(csig->signalTime.nanosec), &cursor, &unparsedBytes);
-	extractSdnv(&(csig->creationTime.seconds), &cursor, &unparsedBytes);
-	extractSdnv(&(csig->creationTime.count), &cursor, &unparsedBytes);
-	extractSdnv(&eidLength, &cursor, &unparsedBytes);
+	extractSmallSdnv(&(csig->signalTime.seconds), &cursor, &unparsedBytes);
+	extractSmallSdnv(&(csig->signalTime.nanosec), &cursor, &unparsedBytes);
+	extractSmallSdnv(&(csig->creationTime.seconds), &cursor,
+			&unparsedBytes);
+	extractSmallSdnv(&(csig->creationTime.count), &cursor, &unparsedBytes);
+	extractSmallSdnv(&eidLength, &cursor, &unparsedBytes);
 	if (unparsedBytes != eidLength)
 	{
 		writeMemoNote("[?] CT signal EID bytes missing...",
@@ -8393,7 +8412,7 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 	       		int unparsedBytes, int isFragment)
 {
-	unsigned long	eidLength;
+	unsigned int	eidLength;
 
 	memset((char *) rpt, 0, sizeof(BpStatusRpt));
 	rpt->isFragment = isFragment;
@@ -8412,53 +8431,55 @@ static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 
 	if (isFragment)
 	{
-		extractSdnv(&(rpt->fragmentOffset), &cursor, &unparsedBytes);
-		extractSdnv(&(rpt->fragmentLength), &cursor, &unparsedBytes);
+		extractSmallSdnv(&(rpt->fragmentOffset), &cursor,
+				&unparsedBytes);
+		extractSmallSdnv(&(rpt->fragmentLength), &cursor,
+				&unparsedBytes);
 	}
 
 	if (rpt->flags & BP_RECEIVED_RPT)
 	{
-		extractSdnv(&(rpt->receiptTime.seconds), &cursor,
+		extractSmallSdnv(&(rpt->receiptTime.seconds), &cursor,
 				&unparsedBytes);
-		extractSdnv(&(rpt->receiptTime.nanosec), &cursor,
+		extractSmallSdnv(&(rpt->receiptTime.nanosec), &cursor,
 				&unparsedBytes);
 	}
 
 	if (rpt->flags & BP_CUSTODY_RPT)
 	{
-		extractSdnv(&(rpt->acceptanceTime.seconds), &cursor,
+		extractSmallSdnv(&(rpt->acceptanceTime.seconds), &cursor,
 				&unparsedBytes);
-		extractSdnv(&(rpt->acceptanceTime.nanosec), &cursor,
+		extractSmallSdnv(&(rpt->acceptanceTime.nanosec), &cursor,
 				&unparsedBytes);
 	}
 
 	if (rpt->flags & BP_FORWARDED_RPT)
 	{
-		extractSdnv(&(rpt->forwardTime.seconds), &cursor,
+		extractSmallSdnv(&(rpt->forwardTime.seconds), &cursor,
 				&unparsedBytes);
-		extractSdnv(&(rpt->forwardTime.nanosec), &cursor,
+		extractSmallSdnv(&(rpt->forwardTime.nanosec), &cursor,
 				&unparsedBytes);
 	}
 
 	if (rpt->flags & BP_DELIVERED_RPT)
 	{
-		extractSdnv(&(rpt->deliveryTime.seconds), &cursor,
+		extractSmallSdnv(&(rpt->deliveryTime.seconds), &cursor,
 				&unparsedBytes);
-		extractSdnv(&(rpt->deliveryTime.nanosec), &cursor,
+		extractSmallSdnv(&(rpt->deliveryTime.nanosec), &cursor,
 				&unparsedBytes);
 	}
 
 	if (rpt->flags & BP_DELETED_RPT)
 	{
-		extractSdnv(&(rpt->deletionTime.seconds), &cursor,
+		extractSmallSdnv(&(rpt->deletionTime.seconds), &cursor,
 				&unparsedBytes);
-		extractSdnv(&(rpt->deletionTime.nanosec), &cursor,
+		extractSmallSdnv(&(rpt->deletionTime.nanosec), &cursor,
 				&unparsedBytes);
 	}
 
-	extractSdnv(&(rpt->creationTime.seconds), &cursor, &unparsedBytes);
-	extractSdnv(&(rpt->creationTime.count), &cursor, &unparsedBytes);
-	extractSdnv(&eidLength, &cursor, &unparsedBytes);
+	extractSmallSdnv(&(rpt->creationTime.seconds), &cursor, &unparsedBytes);
+	extractSmallSdnv(&(rpt->creationTime.count), &cursor, &unparsedBytes);
+	extractSmallSdnv(&eidLength, &cursor, &unparsedBytes);
 	if (unparsedBytes != eidLength)
 	{
 		writeMemoNote("[?] Status report EID bytes missing...",
@@ -9904,7 +9925,7 @@ static void	selectNextBundleForTransmission(Outflow *flows,
 
 static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 			Outduct *outduct, Object outductObj,
-			ClProtocol *protocol, unsigned long maxPayloadLength,
+			ClProtocol *protocol, unsigned int maxPayloadLength,
 			Object *bundleObj, Bundle *bundle)
 {
 	Sdr		bpSdr = getIonsdr();
@@ -9916,7 +9937,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 	Object		firstBundleObj;
 	Bundle		secondBundle;
 	Object		secondBundleObj;
-	unsigned long	neighborNodeNbr;
+	unsigned int	neighborNodeNbr;
 	IonNode		*destNode;
 	PsmAddress	nextNode;
 	PsmAddress	snubElt;
@@ -10148,7 +10169,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 
 int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		BpExtendedCOS *extendedCOS, char *destDuctName,
-		unsigned long maxPayloadLength, int timeoutInterval)
+		unsigned int maxPayloadLength, int timeoutInterval)
 {
 	Sdr		bpSdr = getIonsdr();
 	int		stewardshipAccepted;
@@ -10501,13 +10522,13 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	unsigned char	*endOfBuffer;
 	unsigned char	*cursor;
 	int		sdnvLength;
-	unsigned long	longNumber;
+	uvast		longNumber;
 	int		i;
-	unsigned long	eidSdnvValues[8];
+	uvast		eidSdnvValues[8];
 	unsigned char	blkType;
-	unsigned long	blkProcFlags;
-	unsigned long	eidReferencesCount;
-	unsigned long	blockDataLength;
+	unsigned int	blkProcFlags;
+	unsigned int	eidReferencesCount;
+	unsigned int	blockDataLength;
 
 	cursor = buffer;
 	endOfBuffer = buffer + bytesBuffered;
@@ -10521,7 +10542,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Parse out the bundle processing flags.			*/
 
-	sdnvLength = decodeSdnv(&(image->bundleProcFlags), cursor);
+	sdnvLength = decodeSdnv(&longNumber, cursor);
+	image->bundleProcFlags = longNumber;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -10549,13 +10571,15 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Get creation time.					*/
 
-	sdnvLength = decodeSdnv(&(image->id.creationTime.seconds), cursor);
+	sdnvLength = decodeSdnv(&longNumber, cursor);
+	image->id.creationTime.seconds = longNumber;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
 	}
 
-	sdnvLength = decodeSdnv(&(image->id.creationTime.count), cursor);
+	sdnvLength = decodeSdnv(&longNumber, cursor);
+	image->id.creationTime.count = longNumber;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -10571,7 +10595,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Get dictionary length.					*/
 
-	sdnvLength = decodeSdnv(&(image->dictionaryLength), cursor);
+	sdnvLength = decodeSdnv(&longNumber, cursor);
+	image->dictionaryLength = longNumber;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -10619,13 +10644,15 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	/*	Bundle is a fragment, so fragment offset and length
 	 *	(which is payload length) must be determined.		*/
 
-	sdnvLength = decodeSdnv(&(image->id.fragmentOffset), cursor);
+	sdnvLength = decodeSdnv(&longNumber, cursor);
+	image->id.fragmentOffset = longNumber;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
 	}
 
-	sdnvLength = decodeSdnv(&(image->totalAduLength), cursor);
+	sdnvLength = decodeSdnv(&longNumber, cursor);
+	image->totalAduLength = longNumber;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -10660,7 +10687,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 		/*	Get block processing flags.			*/
 
-		sdnvLength = decodeSdnv(&blkProcFlags, cursor);
+		sdnvLength = decodeSdnv(&longNumber, cursor);
+		blkProcFlags = longNumber;
 		if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer)
 				== 0)
 		{
@@ -10671,7 +10699,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		{
 			/*	Skip over EID references.		*/
 
-			sdnvLength = decodeSdnv(&eidReferencesCount, cursor);
+			sdnvLength = decodeSdnv(&longNumber, cursor);
+			eidReferencesCount = longNumber;
 			if (bufAdvance(sdnvLength, bundleLength, &cursor,
 					endOfBuffer) == 0)
 			{
@@ -10704,7 +10733,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 		/*	Get length of data in block.			*/
 
-		sdnvLength = decodeSdnv(&blockDataLength, cursor);
+		sdnvLength = decodeSdnv(&longNumber, cursor);
+		blockDataLength = longNumber;
 		if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer)
 				== 0)
 		{

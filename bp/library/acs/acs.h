@@ -78,7 +78,7 @@ extern int	updateCustodianAcsSize(const char *custodianEid,
 	 * in particular, at what size of pending ACS the local bundle agent
 	 * should stop appending, serialize and send to custodianEid. */
 
-extern int	updateMinimumCustodyId(unsigned long minimumCustodyId);
+extern int	updateMinimumCustodyId(unsigned int minimumCustodyId);
 	/* This function updates the ACS database to use the new minimumCustodyId
 	 * as the next available custody ID. */
 

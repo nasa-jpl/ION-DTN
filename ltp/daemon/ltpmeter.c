@@ -14,13 +14,11 @@
 int	ltpmeter(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	unsigned long	remoteEngineId =
-				a1 == 0 ? 0 : strtoul((char *) a1, NULL, 0);
+	uvast	remoteEngineId = a1 == 0 ? 0 : strtouvast((char *) a1);
 #else
 int	main(int argc, char *argv[])
 {
-	unsigned long	remoteEngineId =
-				argc > 1 ? strtoul(argv[1], NULL, 0) : 0;
+	uvast	remoteEngineId = argc > 1 ? strtouvast(argv[1]) : 0;
 #endif
 	Sdr		sdr;
 	LtpVdb		*vdb;
@@ -107,7 +105,7 @@ int	main(int argc, char *argv[])
 			if (sm_SemEnded(vspan->bufClosedSemaphore))
 			{
 				isprintf(memo, sizeof memo, "[i] LTP meter to \
-engine %lu is stopped.", remoteEngineId);
+engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 				writeMemo(memo);
 				break;		/*	Outer loop.	*/
 			}

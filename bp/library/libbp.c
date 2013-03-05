@@ -312,7 +312,7 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 	throttle = &(vdb->productionThrottle);
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	aduLength = zco_length(sdr, adu);
-	while (aduLength > throttle->capacity)
+	while (throttle->capacity <= 0)
 	{
 		sdr_exit_xn(sdr);
 		if (mode == BP_NONBLOCKING)

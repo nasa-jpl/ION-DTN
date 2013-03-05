@@ -414,6 +414,7 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 {
 	int		bytesToSend;
 	int		bytesSent;
+	uvast		val = bundleLength;
 	Sdnv 		lengthField;
 	int		tempBundleSocket;
 	Sdr		sdr = getIonsdr();
@@ -492,7 +493,7 @@ not sent.");
 	 *      there is only one segment (assuming
 	 *	all the data is sent in one segment).	*/
 
-	encodeSdnv(&lengthField,bundleLength);
+	encodeSdnv(&lengthField,val);
 	memcpy(buffer + 1,lengthField.text,lengthField.length);
 	bytesToSend = 1 + lengthField.length ;
 	
@@ -638,11 +639,11 @@ int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer)
 
 int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer)
 {
-	int		flags;
-	unsigned long	segmentLength;
-	long		totalSegmentLength = 0;
-	int 		segmentType;
-	int 		startSegment = 0;
+	int	flags;
+	uvast	segmentLength;
+	long	totalSegmentLength = 0;
+	int 	segmentType;
+	int 	startSegment = 0;
 
 	
 	while(1)
@@ -695,7 +696,7 @@ int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer)
 }
 
 
-int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,unsigned long *segmentLength,int *flags)
+int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,uvast *segmentLength,int *flags)
 {
 	int 		segmentType;
 	int 		length = 0;
@@ -737,7 +738,7 @@ int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,unsign
 		}
 		if(decodeSdnv(segmentLength,(unsigned char*)buffer) == 0)
 		{
-			putErrmsg("The Sdnv doesn't fit into a long variable.",NULL);
+			putErrmsg("The Sdnv doesn't fit into a 64-bit variable.",NULL);
 			return -1;
 		}
 		totalBytesToReceive = *segmentLength;
@@ -786,6 +787,7 @@ int	sendContactHeader(int *bundleSocket, unsigned char *buffer,
 	int bytesToSend = 0;
 	int bytesSent;
 	uint16_t keepaliveIntervalNBO = htons(tcpDesiredKeepAlivePeriod);
+	uvast	val;
 	Sdnv eidLength;
 	int	adminEidStringLen;
 	char    *adminEidString;
@@ -816,7 +818,8 @@ int	sendContactHeader(int *bundleSocket, unsigned char *buffer,
 	bytesToSend +=2;
 	//encode local EID length into Sdnv
 
-	encodeSdnv(&eidLength,adminEidLength);
+	val = adminEidLength;
+	encodeSdnv(&eidLength,val);
 	memcpy(buffer + bytesToSend, eidLength.text, eidLength.length);
 	bytesToSend += eidLength.length;
 
@@ -856,7 +859,7 @@ connectivity is restored.", NULL);
 int receiveContactHeader(int *bundleSocket, unsigned char *buffer, int *keepalivePeriod)
 {
 	uint16_t requestedKeepAlive;
-	unsigned long remoteEidLength;
+	uvast remoteEidLength;
 	int remoteEidLengthLength = 0; /* Length of SDNV */
 	unsigned char * cursor = buffer;
 	

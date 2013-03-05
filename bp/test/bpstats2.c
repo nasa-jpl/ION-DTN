@@ -155,8 +155,9 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 	}
 
 	sdr_exit_xn(sdr);
-	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) %u %lu \
-(1) %u %lu (2) %u %lu (+) %u %lu\n", classnames[stateIdx],
+	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) \
+%u " UVAST_FIELDSPEC " (1) %u " UVAST_FIELDSPEC " (2) \
+%u " UVAST_FIELDSPEC " (+) %u " UVAST_FIELDSPEC "\n", classnames[stateIdx],
 			(unsigned int) startTime,
 			(unsigned int) currentTime,
 			tallies[0].currentCount, tallies[0].currentBytes,
