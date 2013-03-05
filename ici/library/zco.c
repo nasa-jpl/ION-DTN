@@ -1085,6 +1085,144 @@ void	zco_discard_last_trailer(Sdr sdr, Object zco)
 	sdr_write(sdr, zco, (char *) &zcoBuf, sizeof(Zco));
 }
 
+int	zco_bond(Sdr sdr, Object zco)
+{
+	Zco		zcoBuf;
+	Object		extentObj;
+	SourceExtent	extent;
+	Object		sdrRefObj;
+	SdrRef		sdrRef;
+	Object		capsuleObj;
+	Capsule		capsule;
+
+	CHKERR(sdr);
+	CHKERR(zco);
+	sdr_stage(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
+
+	/*	Convert all headers to source data extents.		*/
+
+	while (zcoBuf.lastHeader)
+	{
+		extentObj = sdr_malloc(sdr, sizeof(SourceExtent));
+		if (extentObj == 0)
+		{
+			putErrmsg("Can't convert header to extent.", NULL);
+			return -1;
+		}
+
+		extent.sourceMedium = ZcoSdrSource;
+		sdrRefObj = sdr_malloc(sdr, sizeof(SdrRef));
+		if (sdrRefObj == 0)
+		{
+			putErrmsg("Can't create SdrRef for header.", NULL);
+			return -1;
+		}
+
+		capsuleObj = zcoBuf.lastHeader;
+		sdr_read(sdr, (char *) &capsule, capsuleObj, sizeof(Capsule));
+		zcoBuf.lastHeader = capsule.prevCapsule;
+
+		/*	Create SdrRef object for capsule content.	*/
+
+		sdrRef.refCount = 1;
+		sdrRef.objLength = capsule.length;
+		sdrRef.location = capsule.text;
+		sdr_write(sdr, sdrRefObj, (char *) &sdrRef, sizeof(SdrRef));
+
+		/*	Content of extent is the SdrRef object.		*/
+
+		extent.location = sdrRefObj;
+		extent.offset = 0;
+		extent.length = sdrRef.objLength;
+		extent.nextExtent = zcoBuf.firstExtent;
+		sdr_write(sdr, extentObj, (char *) &extent,
+				sizeof(SourceExtent));
+		zcoBuf.firstExtent = extentObj;
+		if (zcoBuf.lastExtent == 0)
+		{
+			zcoBuf.lastExtent = zcoBuf.firstExtent;
+		}
+
+		sdr_free(sdr, capsuleObj);
+		zco_increase_heap_occupancy(sdr, (sizeof(SourceExtent)
+				+ sizeof(SdrRef)) - sizeof(Capsule));
+	}
+
+	zcoBuf.firstHeader = 0;
+
+	/*	Convert all trailers to source data extents.		*/
+
+	if (zcoBuf.lastExtent)
+	{
+		sdr_stage(sdr, (char *) &extent, zcoBuf.lastExtent,
+				sizeof(SourceExtent));
+	}
+
+	while (zcoBuf.firstTrailer)
+	{
+		extentObj = sdr_malloc(sdr, sizeof(SourceExtent));
+		if (extentObj == 0)
+		{
+			putErrmsg("Can't convert trailer to extent.", NULL);
+			return -1;
+		}
+
+		if (zcoBuf.lastExtent)
+		{
+			extent.nextExtent = extentObj;
+			sdr_write(sdr, zcoBuf.lastExtent, (char *) &extent,
+					sizeof(SourceExtent));
+		}
+
+		extent.sourceMedium = ZcoSdrSource;
+		sdrRefObj = sdr_malloc(sdr, sizeof(SdrRef));
+		if (sdrRefObj == 0)
+		{
+			putErrmsg("Can't create SdrRef for trailer.", NULL);
+			return -1;
+		}
+
+		capsuleObj = zcoBuf.firstTrailer;
+		sdr_read(sdr, (char *) &capsule, capsuleObj, sizeof(Capsule));
+		zcoBuf.firstTrailer = capsule.nextCapsule;
+
+		/*	Create SdrRef object for capsule content.	*/
+
+		sdrRef.refCount = 1;
+		sdrRef.objLength = capsule.length;
+		sdrRef.location = capsule.text;
+		sdr_write(sdr, sdrRefObj, (char *) &sdrRef, sizeof(SdrRef));
+
+		/*	Content of extent is the SdrRef object.		*/
+
+		extent.location = sdrRefObj;
+		extent.offset = 0;
+		extent.length = sdrRef.objLength;
+		zcoBuf.lastExtent = extentObj;
+		if (zcoBuf.firstExtent == 0)
+		{
+			zcoBuf.firstExtent = zcoBuf.lastExtent;
+		}
+
+		sdr_free(sdr, capsuleObj);
+		zco_increase_heap_occupancy(sdr, (sizeof(SourceExtent)
+				+ sizeof(SdrRef)) - sizeof(Capsule));
+	}
+
+	if (zcoBuf.lastExtent)
+	{
+		extent.nextExtent = 0;
+		sdr_write(sdr, zcoBuf.lastExtent, (char *) &extent,
+				sizeof(SourceExtent));
+	}
+
+	zcoBuf.lastTrailer = 0;
+	zcoBuf.sourceLength += zcoBuf.aggregateCapsuleLength;
+	zcoBuf.aggregateCapsuleLength = 0;
+	sdr_write(sdr, zco, (char *) &zcoBuf, sizeof(Zco));
+	return 0;
+}
+
 static int	cloneExtents(Sdr sdr, Object toZco, Object fromZco, vast offset,
 			vast length)
 {

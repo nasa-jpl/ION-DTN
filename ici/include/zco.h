@@ -250,6 +250,14 @@ extern void	zco_destroy(	Sdr sdr,
 			 *	the deletion of files as those
 			 *	reference counts drop to zero.		*/
 
+extern int	zco_bond(	Sdr sdr,
+				Object zco);
+			/*	Converts all headers and trailers to
+			 *	source data extents.  Use this function
+			 *	to prevent header and trailer data
+			 *	from being omitted when the ZCO is
+			 *	cloned.					*/
+
 extern Object	zco_clone(	Sdr sdr,
 				Object zco,
 				vast offset,
@@ -393,7 +401,7 @@ extern vast	zco_receive_trailers(Sdr sdr,
 			 *	copied, or -1 on any error.		*/
 
 extern void	zco_strip(	Sdr sdr,
-				Object zcoRef);
+				Object zco);
 			/*	Deletes all source data extents that
 			 *	contain only header or trailer data,
 			 *	adjusts offsets and/or lengths of

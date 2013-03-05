@@ -96,17 +96,28 @@ int 	addCollaborationBlock(Bundle *bundle, CollabBlockHdr *blkHdr)
 	 *	with this identifier in the bundle...
 	 */
 
-	Sdr	bpSdr = getIonsdr();
-	Object	addr;
-	Object	newBlkAddr;
+	Sdr		bpSdr = getIonsdr();
+	Object		addr;
+	CollabBlockHdr	oldHdr;
+	Object		newBlkAddr;
 
 	CHKERR(bundle);
 	CHKERR(blkHdr);
 	addr = findCollaborationBlock(bundle, blkHdr->type, blkHdr->id);
 	if (addr != 0)
 	{
-		putErrmsg("Collab block already exists in bundle.", NULL);
-		return -1;
+		sdr_read(bpSdr, (char *) &oldHdr, addr, sizeof(CollabBlockHdr));
+		if (oldHdr.size != blkHdr->size)
+		{
+			putErrmsg("Collab block size mismatch.",
+					itoa(oldHdr.size));
+			return -1;
+		}
+
+		/*	Re-use existing collaboration block.		*/
+
+		sdr_write(bpSdr, addr, (char *) blkHdr, blkHdr->size);
+		return 0;
 	}
 
 	/*

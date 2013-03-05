@@ -1142,8 +1142,12 @@ ASB. blk->dataLength = %d", blk->dataLength);
          collab.hmacLen = 0;
          collab.expectedResult[0] = '\0';
 
-         addCollaborationBlock(bundle, (CollabBlockHdr *) &collab);
-
+         if (addCollaborationBlock(bundle, (CollabBlockHdr *) &collab) < 0)
+	 {
+         	BAB_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Can't add \
+collaboration block.");
+         	result = -1;
+	 }
      }
    }
 
