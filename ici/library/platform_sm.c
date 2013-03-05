@@ -1927,10 +1927,13 @@ int	sm_SemTake(sm_SemId i)
 
 	semset = sembase->semSets + sem->semSetIdx;
 	sem_op[0].sem_num = sem_op[1].sem_num = sem->semNbr;
-	if (semop(semset->semid, sem_op, 2) < 0)
+	while (semop(semset->semid, sem_op, 2) < 0)
 	{
-		if (errno != EINTR)
+		if (errno == EINTR)
 		{
+			/*Retry on Interruption by signal*/
+			continue;
+		} else {
 			putSysErrmsg("Can't take semaphore", itoa(i));
 			return -1;
 		}
@@ -2038,10 +2041,13 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 	if (timeoutSeconds < 1) timeoutSeconds = 1;
 	isignal(SIGALRM, handleTimeout);
 	oK(alarm(timeoutSeconds));
-	if (semop(semset->semid, sem_op, 2) < 0)
+	while (semop(semset->semid, sem_op, 2) < 0)
 	{
-		if (errno != EINTR)
+		if (errno == EINTR)
 		{
+			/*Retry on Interruption by signal*/
+			continue;
+		} else {
 			putSysErrmsg("Can't take semaphore", itoa(i));
 			return -1;
 		}
