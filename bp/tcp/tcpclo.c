@@ -476,10 +476,10 @@ int	main(int argc, char *argv[])
 
 	running = 0;
 	pthread_join(keepaliveThread, NULL);
-	writeMemo("tcpclo keep alive thread killed");
+	writeMemo("[i] tcpclo keepalive thread killed");
 
 	pthread_join(receiverThread, NULL);
-	writeMemo("tcpclo receiver thread killed");
+	writeMemo("[i] tcpclo receiver thread killed");
 
 	writeErrmsgMemos();
 	writeMemo("[i] tcpclo duct has ended.");
