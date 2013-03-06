@@ -291,7 +291,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	recv_running=1;
-	if (pthread_create(&rcv_thread, NULL, &rcv_msg_thread, (void*)&recv_running))
+	if (pthread_begin(&rcv_thread, NULL, &rcv_msg_thread, (void*)&recv_running))
 	{
 		dbgprintf(0, "Error: Can't start message thread\n");
 		sm_SemDelete(events_sem);

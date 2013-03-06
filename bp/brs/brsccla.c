@@ -446,7 +446,7 @@ number>");
 	receiverParms.running = &running;
 	receiverParms.senderEid = receiverParms.senderEidBuffer;
 	getSenderEid(&(receiverParms.senderEid), hostName);
-        if (pthread_create(&receiverThread, NULL, receiveBundles,
+        if (pthread_begin(&receiverThread, NULL, receiveBundles,
 			&receiverParms))
 	{
 		putSysErrmsg("brsccla can't create receiver thread", NULL);
@@ -464,7 +464,7 @@ number>");
 	ktparms.socketName = &socketName;
 	ktparms.ductSocket = &ductSocket;
 	ktparms.running = &running;
-	if (pthread_create(&keepaliveThread, NULL, sendKeepalives, &ktparms))
+	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &ktparms))
 	{
 		putSysErrmsg("brsccla can't create keepalive thread", NULL);
 		MRELEASE(buffer);

@@ -17,6 +17,12 @@
 extern "C" {
 #endif
 
+#ifdef uClibc
+#ifndef linux
+#define linux
+#endif
+#endif
+
 #define	MAX_POSIX_TIME	2147483644
 
 /*	SPACE_ORDER is log2 of the number of bytes in an address, i.e.:
@@ -158,9 +164,9 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 
 #ifndef LONG_MAX
 
-#if defined(_ILP32)
+#if defined (_ILP32)
 #define LONG_MAX 0x7fffffffL
-#elif defined(_LP64)
+#elif defined (_LP64)
 #define LONG_MAX 0x7fffffffffffffffL
 #elif (SIZEOF_LONG == 4)
 #define LONG_MAX 0x7fffffffL
@@ -397,15 +403,18 @@ extern int getpriority(int, id_t);
 #define	SEM_NSEMS_MAX		256
 #endif
 
-extern void pthread_cancel(pthread_t);
-
 typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define PRIVATE_SYMTAB
 
 #else				/****	Not bionic		     ****/
+#ifdef uClibc
+#include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
+#include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
+#else				/****	Not bionic and not uClibc    ****/
 #include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <execinfo.h>		/****	...to get backtrace	     ****/
+#endif				/*	End of #ifdef uClibc	     ****/
 #endif				/****	End of #ifdef bionic	     ****/
 
 #define	_MULTITHREADED
@@ -441,7 +450,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #endif				/****	End of #ifdef (unix)         ****/
 
-#if defined(SVR4_SHM)		/****	SVR4_SHM		     ****/
+#if defined (SVR4_SHM)		/****	SVR4_SHM		     ****/
 #include <sys/shm.h>
 #elif defined (POSIX1B_SHM)
 #include <sys/mman.h>

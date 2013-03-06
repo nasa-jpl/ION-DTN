@@ -5,11 +5,11 @@ UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
 
-# OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
+# OPT = -O -DuClibc
+OPT = -g -fPIC -Wall -Werror -DuClibc
+CC = $(TCC) $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -fPIC -shared
-LD = gcc $(LDFLAGS)
+LD = $(TLD) $(LDFLAGS)
 
 LIBICIOBJS = \
 	llcv.o \
@@ -44,9 +44,9 @@ PUBINCLS = \
 	$(INCL)/smrbt.h \
 	$(INCL)/sptrace.h \
 	$(INCL)/ion.h \
-	$(INCL)/zco.h \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
+	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \
 	$(INCL)/sdrmgt.h \
 	$(INCL)/sdrstring.h \
@@ -70,6 +70,8 @@ all:		$(ALL)
 check:		$(ICIINCLS) $(PUBINCLS)
 		rm -f *.o
 		touch check
+		mkdir -p lib
+		mkdir -p bin
 
 clean:
 		rm -f *.o
@@ -152,7 +154,7 @@ rfxclock:	rfxclock.o libici.so
 		$(CC) -I. -o rfxclock rfxclock.o -L./lib -lici -lpthread
 		cp rfxclock ./bin
 
-#	-	-	Library		-	-	-	-	-
+#	-	-	Libraries	-	-	-	-	-
 
 libici.so:	$(LIBICIOBJS)
 		$(LD) -o libici.so $(LIBICIOBJS)

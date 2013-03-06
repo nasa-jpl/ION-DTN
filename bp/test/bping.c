@@ -477,7 +477,7 @@ int main(int argc, char **argv)
 	sdr = bp_get_sdr();
 
 
-	if(pthread_create(&receiveResponsesThread, NULL, receiveResponses, 
+	if(pthread_begin(&receiveResponsesThread, NULL, receiveResponses, 
 				NULL) < 0) {
 		putErrmsg("Can't make recvResponsesThread.", NULL);
 		fprintf(stderr, "Can't make recvResponsesThread.\n");
@@ -485,7 +485,7 @@ int main(int argc, char **argv)
 		exit(BPING_EXIT_ERROR);
 	}
 
-	if(pthread_create(&sendRequestsThread, NULL, sendRequests, NULL) < 0) {
+	if(pthread_begin(&sendRequestsThread, NULL, sendRequests, NULL) < 0) {
 		putErrmsg("Can't make sendRequestsThread.", NULL);
 		fprintf(stderr, "Can't make sendRequestsThread.\n");
 		bp_interrupt(sap);

@@ -240,7 +240,7 @@ static void	*receiveBundles(void *parm)
 		 * Creating a thread to send out keep alives, which
 		 * makes the TCPCL bi directional
 		 */
-		if (pthread_create(&kthread, NULL, sendKeepalives, kparms))
+		if (pthread_begin(&kthread, NULL, sendKeepalives, kparms))
 		{
 			putSysErrmsg("tcpcli can't create new thread for \
 keepalives", NULL);
@@ -409,7 +409,7 @@ thread", NULL);
 		parms->cloSocketName = cloSocketName;
 		parms->cliRunning = &(atp->running);
                 parms->receiveRunning = 1;
-		if (pthread_create(&(parms->thread), NULL, receiveBundles,
+		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{
 			putSysErrmsg("tcpcli can't create new thread", NULL);
@@ -609,7 +609,7 @@ int	main(int argc, char *argv[])
 	/*	Start the access thread.				*/
 
 	atp.running = 1;
-	if (pthread_create(&accessThread, NULL, spawnReceivers, &atp))
+	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
 	{
 		closesocket(atp.ductSocket);
 		putSysErrmsg("tcpcli can't create access thread", NULL);

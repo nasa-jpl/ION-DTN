@@ -2352,9 +2352,9 @@ int	dgr_open(uvast ownEngineId, unsigned int clientSvcId,
 
 	/*	Spawn all threads.					*/
 
-	if (pthread_create(&(sap->sender), NULL, sender, sap)
-	|| pthread_create(&(sap->resender), NULL, resender, sap)
-	|| pthread_create(&(sap->receiver), NULL, receiver, sap))
+	if (pthread_begin(&(sap->sender), NULL, sender, sap)
+	|| pthread_begin(&(sap->resender), NULL, resender, sap)
+	|| pthread_begin(&(sap->receiver), NULL, receiver, sap))
 	{
 		putSysErrmsg("DGR can't spawn thread(s)", NULL);
 		cleanUpSAP(sap);

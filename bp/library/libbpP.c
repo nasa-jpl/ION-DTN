@@ -5540,10 +5540,6 @@ when asking for custody transfer and/or status reports.");
 	bundle.payload.length = aduLength;
 	bundle.payload.content = adu;
 
-	/*	Bundle is almost fully constructed at this point.	*/
-
-	CHKERR(sdr_begin_xn(bpSdr));
-
 	/*	Convert all payload header and trailer capsules
 	 *	into source data extents.  From the BP perspective,
 	 *	everything in the ADU is source data.			*/
@@ -5551,6 +5547,12 @@ when asking for custody transfer and/or status reports.");
 	if (zco_bond(bpSdr, bundle.payload.content) < 0)
 	{
 		putErrmsg("Can't convert payload capsules to extents.", NULL);
+		sdr_cancel_xn(bpSdr);
+		if (dictionary)
+		{
+			MRELEASE(dictionary);
+		}
+
 		return -1;
 	}
 
@@ -5674,6 +5676,9 @@ when asking for custody transfer and/or status reports.");
 	}
 
 	noteBundleInserted(&bundle);
+
+	/*	Here's where we finally write bundle to the database.	*/
+
 	sdr_write(bpSdr, *bundleObj, (char *) &bundle, sizeof(Bundle));
 
 	/*	Note: custodial reporting, as requested, is perfomed

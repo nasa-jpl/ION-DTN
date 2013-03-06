@@ -584,7 +584,7 @@ static void	*csMain(void *parm)
 	/*	Operation of the configuration server is terminated.	*/
 
 	writeErrmsgMemos();
-	pthread_cancel(csState->csHeartbeatThread);
+	pthread_end(csState->csHeartbeatThread);
 	pthread_join(csState->csHeartbeatThread, NULL);
 	cleanUpCsState(csState);
 	return NULL;
@@ -644,7 +644,7 @@ CS endpoint.", csState->csEndpointSpec);
 
 	/*	Start the MAMS transport service receiver thread.	*/
 
-	if (pthread_create(&(tsif->receiver), NULL, mib->pts->mamsReceiverFn,
+	if (pthread_begin(&(tsif->receiver), NULL, mib->pts->mamsReceiverFn,
 				tsif))
 	{
 		putSysErrmsg("Can't spawn CS tsif thread", NULL);
@@ -658,7 +658,7 @@ CS endpoint.", csState->csEndpointSpec);
 
 	/*	Start the configuration server heartbeat thread.	*/
 
-	if (pthread_create(&csState->csHeartbeatThread, NULL, csHeartbeat,
+	if (pthread_begin(&csState->csHeartbeatThread, NULL, csHeartbeat,
 				csState))
 	{
 		putSysErrmsg("Can't spawn CS heartbeat thread", NULL);
@@ -667,7 +667,7 @@ CS endpoint.", csState->csEndpointSpec);
 
 	/*	Start the configuration server main thread.		*/
 
-	if (pthread_create(&(csState->csThread), NULL, csMain, csState))
+	if (pthread_begin(&(csState->csThread), NULL, csMain, csState))
 	{
 		putSysErrmsg("Can't spawn configuration server thread", NULL);
 		return -1;
@@ -1775,7 +1775,7 @@ static void	*rsMain(void *parm)
 	/*	Operation of the registrar is terminated.		*/
 
 	writeErrmsgMemos();
-	pthread_cancel(rsState->rsHeartbeatThread);
+	pthread_end(rsState->rsHeartbeatThread);
 	pthread_join(rsState->rsHeartbeatThread, NULL);
 	cleanUpRsState(rsState);
 	return NULL;
@@ -1840,7 +1840,7 @@ static int	startRegistrar(RsState *rsState)
 
 	/*	Start the MAMS transport service receiver thread.	*/
 
-	if (pthread_create(&(tsif->receiver), NULL, mib->pts->mamsReceiverFn,
+	if (pthread_begin(&(tsif->receiver), NULL, mib->pts->mamsReceiverFn,
 				tsif))
 	{
 		putSysErrmsg("amsd can't spawn RS tsif thread", NULL);
@@ -1849,7 +1849,7 @@ static int	startRegistrar(RsState *rsState)
 
 	/*	Start the registrar heartbeat thread.			*/
 
-	if (pthread_create(&rsState->rsHeartbeatThread, NULL, rsHeartbeat,
+	if (pthread_begin(&rsState->rsHeartbeatThread, NULL, rsHeartbeat,
 				rsState))
 	{
 		putSysErrmsg("Can't spawn RS heartbeat thread", NULL);
@@ -1858,7 +1858,7 @@ static int	startRegistrar(RsState *rsState)
 
 	/*	Start the registrar main thread.			*/
 
-	if (pthread_create(&(rsState->rsThread), NULL, rsMain, rsState))
+	if (pthread_begin(&(rsState->rsThread), NULL, rsMain, rsState))
 	{
 		putSysErrmsg("Can't spawn registrar thread", NULL);
 		return -1;
@@ -2003,7 +2003,7 @@ static int	startModule(DmState *dmState)
 
 	/*	Start the AAMS module main thread.			*/
 
-	if (pthread_create(&(dmState->dmThread), NULL, dmMain, dmState))
+	if (pthread_begin(&(dmState->dmThread), NULL, dmMain, dmState))
 	{
 		putSysErrmsg("Can't spawn AAMS module thread", NULL);
 		return -1;

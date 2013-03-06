@@ -238,7 +238,7 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 
 	rtp.running = 1;
-	if (pthread_create(&receiverThread, NULL, handleDatagrams, &rtp))
+	if (pthread_begin(&receiverThread, NULL, handleDatagrams, &rtp))
 	{
 		closesocket(rtp.ductSocket);
 		putSysErrmsg("udpcli can't create receiver thread", NULL);

@@ -1721,6 +1721,7 @@ void	printIonParms(IonParms *parms)
 
 /*	*	*	Portable alarm functions	*	*	*/
 
+#ifndef uClibc
 static void	*alarmMain(void *parm)
 {
 	IonAlarm	*alarm = (IonAlarm *) parm;
@@ -1775,19 +1776,24 @@ static void	*alarmMain(void *parm)
 	pthread_cond_destroy(&cv);
 	return NULL;
 }
+#endif
 
 void	ionSetAlarm(IonAlarm *alarm, pthread_t *alarmThread)
 {
-	if (pthread_create(alarmThread, NULL, alarmMain, alarm) < 0)
+#ifndef uClibc
+	if (pthread_begin(alarmThread, NULL, alarmMain, alarm) < 0)
 	{
 		putSysErrmsg("Can't set alarm", NULL);
 	}
+#endif
 }
 
 void	ionCancelAlarm(pthread_t alarmThread)
 {
-	pthread_cancel(alarmThread);
+#ifndef uClibc
+	pthread_end(alarmThread);
 	pthread_join(alarmThread, NULL);
+#endif
 }
 
 #ifdef mingw

@@ -743,7 +743,7 @@ printf("bp_open succeeds.\n");
 		CHKERR(gWay->udpRpdus);
 		lyst_compare_set(gWay->udpRpdus, compareCheckTimes);
 		lyst_delete_set(gWay->udpRpdus, deleteDeclaration, NULL);
-		if (pthread_create(&checkThread, NULL, CheckUdpRpdus, NULL))
+		if (pthread_begin(&checkThread, NULL, CheckUdpRpdus, NULL))
 		{
 			putSysErrmsg("Can't create check thread", NULL);
 			return -1;
@@ -931,7 +931,7 @@ printf("Before bp_receive...\n");
 	MRELEASE(buffer);		/*	Release RPDU buffer.	*/
 	if (gWay->netProtocol == RamsUdp)
 	{
-		pthread_cancel(checkThread);
+		pthread_end(checkThread);
 		pthread_join(checkThread, NULL);
 	}
 

@@ -1,0 +1,12 @@
+config BR2_PACKAGE_ION
+	bool "ion"
+	help
+	  ION is an implementation of DTN that is designed to run
+	  efficiently in embedded systems, including robotic spacecraft.
+	  It includes full implementations of Contact Graph Routing,
+	  Bundle Streaming Service, and the Licklider Transmission
+	  Protocol.  It also includes implementations of the CCSDS
+	  standard protocols for file transfer (CFDP) and messaging
+	  middleware (AMS).
+
+	  https://ion.ocp.ohiou.edu/

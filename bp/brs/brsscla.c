@@ -603,7 +603,7 @@ static void	*spawnReceivers(void *parm)
 		receiverParms->lastDuctNbr = atp->lastDuctNbr;
 		receiverParms->brsSockets = atp->brsSockets;
 		receiverParms->running = &(atp->running);
-		if (pthread_create(&(receiverParms->thread), NULL,
+		if (pthread_begin(&(receiverParms->thread), NULL,
 				receiveBundles, receiverParms))
 		{
 			putSysErrmsg("brsscla can't create new thread", NULL);
@@ -619,7 +619,7 @@ static void	*spawnReceivers(void *parm)
 			/*	Assume hung on DOS attack.  Bail out.	*/
 
 			thread = receiverParms->thread;
-			pthread_cancel(thread);
+			pthread_end(thread);
 			pthread_join(thread, NULL);
 			terminateReceiverThread(receiverParms);
 		}
@@ -782,7 +782,7 @@ port 80)", NULL);
 	senderParms.baseDuctNbr = baseDuctNbr;
 	senderParms.lastDuctNbr = lastDuctNbr;
 	senderParms.brsSockets = brsSockets;
-	if (pthread_create(&senderThread, NULL, sendBundles, &senderParms))
+	if (pthread_begin(&senderThread, NULL, sendBundles, &senderParms))
 	{
 		closesocket(atp.ductSocket);
 		putSysErrmsg("brsscla can't create sender thread", NULL);
@@ -795,7 +795,7 @@ port 80)", NULL);
 	atp.baseDuctNbr = baseDuctNbr;
 	atp.lastDuctNbr = lastDuctNbr;
 	atp.brsSockets = brsSockets;
-	if (pthread_create(&accessThread, NULL, spawnReceivers, &atp))
+	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
 	{
 		sm_SemEnd(voutduct->semaphore);
 		pthread_join(senderThread, NULL);
