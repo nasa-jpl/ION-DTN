@@ -2041,16 +2041,15 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 	if (timeoutSeconds < 1) timeoutSeconds = 1;
 	isignal(SIGALRM, handleTimeout);
 	oK(alarm(timeoutSeconds));
-	while (semop(semset->semid, sem_op, 2) < 0)
+	if (semop(semset->semid, sem_op, 2) < 0)
 	{
-		if (errno == EINTR)
+		if (errno != EINTR)
 		{
-			/*Retry on Interruption by signal*/
-			continue;
-		} else {
 			putSysErrmsg("Can't take semaphore", itoa(i));
 			return -1;
 		}
+		/*Intentionally don't retry if EINTR... That means the
+		 *alarm we just set went off... We're going to proceed anyway.*/
 	}
 
 	oK(alarm(0));
