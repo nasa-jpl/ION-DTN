@@ -13,10 +13,11 @@
 
 # documentation boilerplate
 CONFIGFILES=" \
-${CONFIGSROOT}/loopback-tcp/loopback.ionrc \
-${CONFIGSROOT}/loopback-tcp/loopback.bprc  \
-${CONFIGSROOT}/loopback-tcp/loopback.ionsecrc \
-${CONFIGSROOT}/loopback-tcp/loopback.ipnrc \
+./loopback.ionrc \
+./loopback.ionconfig \
+./loopback.bprc  \
+./loopback.ionsecrc \
+./loopback.ipnrc \
 "
 
 echo "########################################"
@@ -47,15 +48,21 @@ echo "Starting ION..."
 
 ./cleanup
 
-# Start node
-CONFIGDIR="${CONFIGSROOT}/loopback-tcp"
-ionstart                           \
-    -i ${CONFIGDIR}/loopback.ionrc \
-    -b ${CONFIGDIR}/loopback.bprc  \
-    -s ${CONFIGDIR}/loopback.ionsecrc \
-    -p ${CONFIGDIR}/loopback.ipnrc
+#Check for test program
+if ! [ -e ./test ]; then
+	echo ""
+	echo "Test program not available! Make sure to run make test to build it."
+	echo "Skipping this test"
+	echo ""
+	exit 2
+fi
 
-#Create file
+# Start node
+ionstart                \
+    -i ./loopback.ionrc \
+    -b ./loopback.bprc  \
+    -s ./loopback.ionsecrc \
+    -p ./loopback.ipnrc
 
 #Starting bprecvfile
 echo "Starting bpcounter..."
