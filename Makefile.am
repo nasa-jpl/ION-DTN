@@ -147,7 +147,8 @@ bin_PROGRAMS = \
 	$(ltpbin) \
 	$(dgrbin) \
 	$(bpbin) \
-	$(bssbin)
+	$(bssbin) \
+	$(restartbin)
 #	$(usercontribbin)
 
 if !ION_NASA_B
