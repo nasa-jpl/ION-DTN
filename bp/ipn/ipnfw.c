@@ -34,10 +34,8 @@ static sm_SemId		_ipnfwSemaphore(sm_SemId *newValue)
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_ipnfwSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,

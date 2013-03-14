@@ -36,10 +36,8 @@ static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
 
 static void	shutDownClo()	/*	Commands CLO termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(ltpcloSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 /*	*	*	Main thread functions	*	*	*	*/

@@ -45,10 +45,8 @@ static sm_SemId		tcpcloSemaphore(sm_SemId *semid)
 
 static void	shutDownClo()	/*	Commands CLO termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(tcpcloSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 /*	*	*	Keepalive thread functions	*	*	*/
@@ -465,6 +463,7 @@ int	main(int argc, char *argv[])
 
 		sm_TaskYield();
 	}
+	writeMemo("[i] tcpclo done sending");
 
 	if (sendShutDownMessage(&ductSocket, SHUT_DN_NO, -1, &socketName) < 0)
 	{
@@ -474,14 +473,15 @@ int	main(int argc, char *argv[])
 	if (ductSocket != -1)
 	{
 		closesocket(ductSocket);
+		ductSocket=-1;
 	}
 
-	pthread_join(keepaliveThread, NULL);
-	writeMemo("tcpclo keep alive thread killed");
 	running = 0;
+	pthread_join(keepaliveThread, NULL);
+	writeMemo("[i] tcpclo keepalive thread killed");
 
 	pthread_join(receiverThread, NULL);
-	writeMemo("tcpclo receiver thread killed");
+	writeMemo("[i] tcpclo receiver thread killed");
 
 	writeErrmsgMemos();
 	writeMemo("[i] tcpclo duct has ended.");

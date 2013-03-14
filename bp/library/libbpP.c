@@ -11196,10 +11196,8 @@ static BpSAP	_bpadminSap(BpSAP *newSap)
 
 static void	shutDownAdminApp()
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDownAdminApp);
 	sm_SemEnd((_bpadminSap(NULL))->recvSemaphore);
-	oK(sm_TaskVar(&erase));
 }
 
 static int	defaultSrh(BpDelivery *dlv, BpStatusRpt *rpt)

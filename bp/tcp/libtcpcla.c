@@ -549,7 +549,7 @@ int	receiveBytesByTCP(int bundleSocket, char *into, int length)
 			return 0;
 		}
 
-		putSysErrmsg("CLI read() error on socket", NULL);
+		putSysErrmsg("TCPCL read() error on socket", NULL);
 		return -1;
 
 	case 0:				/*	Connection closed.	*/
@@ -687,7 +687,7 @@ int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer)
 			case 4:		/*Keep Alive */
 				break;
 			case 5:
-				putErrmsg("Received Shutdown message.",NULL);
+				writeMemo("[i] TCPCL Received Shutdown message.");
 				return 0;
 			default:
 				return -1;
@@ -709,7 +709,7 @@ int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,uvast 
 	/* Read first byte from received segment */
 	if(receiveBytesByTCP(bundleSocket,buffer,1) < 1)
 	{
-		putErrmsg("Couldnt receive segment header.",NULL);
+		putErrmsg("Couldn't receive segment header.",NULL);
 		return -1;
 	}
 	segmentType = (buffer[0] & 0xF0) >> 4;

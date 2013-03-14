@@ -36,14 +36,12 @@ static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 
 static void	killMainThread()
 {
-	void	*erase = NULL;
-
 	sm_SemEnd(brscclaSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 static void	interruptThread()	/*	Commands termination.	*/
 {
+	isignal(SIGTERM, killMainThread);
 	killMainThread();
 }
 

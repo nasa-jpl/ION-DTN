@@ -53,10 +53,8 @@ static void	_zcoControl(int *controlPtr)
 
 static void	handleQuit()
 {
-	void	*erase = NULL;
-
+	isignal(SIGINT, handleQuit);
 	bp_interrupt(_bpsap(NULL));
-	oK(sm_TaskVar(&erase));
 	_zcoControl(NULL);
 }
 

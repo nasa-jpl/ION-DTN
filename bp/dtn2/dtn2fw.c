@@ -34,10 +34,8 @@ static sm_SemId	_dtn2fwSemaphore(sm_SemId *newValue)
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_dtn2fwSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 static int	parseDtn2Nss(char *nss, char *nodeName, char *demux)
