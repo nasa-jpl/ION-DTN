@@ -1,6 +1,6 @@
-= Release Notes for ION 3.1.1 =
+= Release Notes for ION 3.1.2 =
 
-December 13, 2012
+March 13, 2013
 
 %%%%%%%%%%%
 = GENERAL =
@@ -58,6 +58,39 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.1.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Bug #13: Migrated admission control facilities into the ZCO subsystem so that
+  they can be used outside of the BP subsystem.
+
+- Bug #14: Fixed bug where CFDP headers could be stripped by the ZCO subsystem.
+
+- Bug #15: Fixed various bugs that could affect ION's stability.
+    - Fixed possible deadlock if the bpcp/bpcpd were terminated via a signal
+      while in the middle of an SDR transaction.
+    - Fixed bug in the outducts of several convergence layers and forwarder
+      daemons that could cause them to not shut down properly due to an
+      unintended interaction between the erasure of a taskVar semaphore with
+      their internal looping constructs.
+
+- Feature Request #1: Implemented "payload classes" to enable more
+  sophisticated contact graph routing functionality.
+  Extended CGR to compute routes on a per-payload-class basis that respects
+  the maximum bundle size that can be sent along each route.
+  The current payload classes are as follows:
+    - Payloads up to 1024 bytes (1 KB)
+    - Payloads between 1024 bytes (1 KB) and 1048576 bytes (1 MB)
+    - Payloads between 1048576 bytes (1 MB) and 1073741824 bytes (1 GB)
+    - Payloads larger than 1073741824 bytes (1 GB)
+
+- Feature Request #4: Updated SDNV decoder and corresponding APIs to support
+  up to 64-bit SDNV's on 32-bit systems, allowing for a wider space of possible
+  IPN values.
+
+- Added uClibc support for ION.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.1.1 =
