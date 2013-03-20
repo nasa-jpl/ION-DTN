@@ -602,9 +602,6 @@ int	main(int argc, char *argv[])
 
 	ionNoteMainThread("tcpcli");
 	isignal(SIGTERM, interruptThread);
-#ifndef mingw
-        isignal(SIGPIPE, SIG_IGN); //Ignore pipe break and handle it gracefully
-#endif
 
 	/*	Start the access thread.				*/
 

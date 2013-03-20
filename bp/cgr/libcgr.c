@@ -287,6 +287,13 @@ printf("Examining contact from node " UVAST_FIELDSPEC " to node "
 UVAST_FIELDSPEC " starting at %u.\n", contact->fromNode, contact->toNode,
 (unsigned int) (contact->fromTime));
 #endif
+			if (contact->toNode == contact->fromNode)
+			{
+				/*	Ignore loopback contacts.	*/
+
+				continue;
+			}
+
 			if (contact->fromNode > arg.fromNode)
 			{
 #if CGRDEBUG
