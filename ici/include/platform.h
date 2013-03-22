@@ -192,7 +192,7 @@ typedef void			(*SignalHandler)(int);
 
 typedef struct
 {
-	char			opaque[64];
+	uvast			opaque[8];
 } ResourceLock;
 
 #ifdef TORNADO_2_0_2

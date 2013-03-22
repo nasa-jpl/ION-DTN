@@ -313,6 +313,7 @@ printf("Contact ends before current contact arrival time.\n");
 
 			work = (CgrContactNote *) psp(ionwm,
 					contact->routingObject);
+			CHKERR(work);
 			if (work->suppressed || work->visited)
 			{
 #if CGRDEBUG
@@ -352,6 +353,7 @@ work->capacity);
 			{
 				range = (IonRXref *)
 					psp(ionwm, sm_rbt_data(ionwm, elt2));
+				CHKERR(range);
 				if (range->fromNode > arg2.fromNode
 				|| range->toNode > arg2.toNode)
 				{
@@ -448,8 +450,10 @@ printf("Updated earliest delivery time.\n");
 		{
 			contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm,
 					elt));
+			CHKERR(contact);
 			work = (CgrContactNote *) psp(ionwm,
 					contact->routingObject);
+			CHKERR(work);
 			if (work->suppressed || work->visited)
 			{
 				continue;	/*	Ineligible.	*/

@@ -476,9 +476,15 @@ void	unlockResource(ResourceLock *rl)
 
 #endif				/*	end #ifdef _MULTITHREADED	*/
 
-#if (!defined (linux) && !defined (freebsd) && !defined (darwin) && !defined (RTEMS)) && !defined (mingw)
+#if (!defined (linux) && !defined (freebsd) && !defined (darwin) && !defined (RTEMS) && !defined (mingw))
 /*	These things are defined elsewhere for Linux-like op systems.	*/
 
+#ifdef solaris
+char	*system_error_msg()
+{
+	return strerror(errno);
+}
+#else
 extern int	sys_nerr;
 extern char	*sys_errlist[];
 
@@ -491,6 +497,7 @@ char	*system_error_msg()
 
 	return sys_errlist[errno];
 }
+#endif				/*	end #ifdef solaris		*/
 
 char	*getNameOfUser(char *buffer)
 {
