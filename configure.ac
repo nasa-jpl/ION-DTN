@@ -270,12 +270,12 @@ case $host_os in
 		if test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AC_SUBST([ION_LINK_FLAGS],"-lrt -lsocket -lnsl")
-			AC_SUBST([ION_CFLAGS]," -Dsol -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin")
+			AC_SUBST([ION_CFLAGS]," -Dsol -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3 -m64")
 			echo "Build Solaris/SPARC specific platform code."
 		else
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AC_SUBST([ION_LINK_FLAGS],"-lrt -lsocket -lnsl")
-			AC_SUBST([ION_CFLAGS]," -Dsol -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing")
+			AC_SUBST([ION_CFLAGS]," -Dsol -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -DSPACE_ORDER=3 -m64")
 			echo "Build Solaris specific platform code."
 		fi
 		;;
