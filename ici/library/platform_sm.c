@@ -2238,7 +2238,7 @@ static void	posixTaskExit(int sig)
 	pthread_exit(0);
 }
 
-void	sm_ArmPthread()
+static void	sm_ArmPthread()
 {
 	struct sigaction	actions;
 
@@ -2581,7 +2581,7 @@ static void	*posixDriverThread(void *parm)
 
 	memset((char *) parm, 0, sizeof(SpawnParms));
 
-#if defined (bionic) || defined (uClibc)
+#if defined (bionic)
 	/*	Set up SIGUSR2 handler to enable clean task shutdown.	*/
 
 	sm_ArmPthread();

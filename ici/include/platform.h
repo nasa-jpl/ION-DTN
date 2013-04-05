@@ -37,11 +37,40 @@ extern "C" {
 #define SPACE_ORDER	2
 #endif
 
-#if (SPACE_ORDER < 3)	/*	32-bit machines.			*/
+#if (defined(RTEMS) || defined(uClibc))
+/*	In RTEMS 4.9, defining the first field of a struct as
+ *	"long long" apparently doesn't cause the struct (nor that
+ *	first field) to be aligned on a "long long" boundary, so
+ *	we get alignment errors.  For now, we get around this by
+ *	simply defining "vast" as "long"; node numbers larger than
+ *	4G won't be processed properly on an RTEMS platform.  At
+ *	some point somebody may figure out a workaround in the
+ *	compiler so that we can fix this.
+ *
+ *	In uClibc, support for "long long" integers apparently
+ *	requires that libgcc_s.so.1 be installed.  Because our
+ *	test environment doesn't include this library, we have
+ *	to define "vast" as "long"; node numbers larger than 4G
+ *	won't be processed properly on a uClibc platform.  System
+ *	integrators who can provide libgcc_s.so.1 should be able
+ *	to restore this functionality by revising this conditional
+ *	compilation.							*/
+typedef long			vast;
+typedef unsigned long		uvast;
+#define	VAST_FIELDSPEC		"%l"
+#define	UVAST_FIELDSPEC		"%lu"
+#define	strtovast(x)		strtol(x, NULL, 0)
+#define	strtouvast(x)		strtoul(x, NULL, 0)
+#elif (SPACE_ORDER < 3)	/*	32-bit machines.			*/
 typedef long long		vast;
 typedef unsigned long long	uvast;
+#ifdef mingw
+#define	VAST_FIELDSPEC		"%I64d"
+#define	UVAST_FIELDSPEC		"%I64u"
+#else
 #define	VAST_FIELDSPEC		"%ll"
 #define	UVAST_FIELDSPEC		"%llu"
+#endif
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
 #else			/*	64-bit machines.			*/

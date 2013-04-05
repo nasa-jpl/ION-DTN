@@ -161,7 +161,7 @@ static void	initializeNode(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (ionInitialize(&parms, strtol(ownNodeNbrString, NULL, 0)) < 0)
+	if (ionInitialize(&parms, strtouvast(ownNodeNbrString)) < 0)
 	{
 		putErrmsg("ionadmin can't initialize ION.", NULL);
 	}
@@ -198,8 +198,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	fromNodeNbr = strtol(tokens[4], NULL, 0);
-	toNodeNbr = strtol(tokens[5], NULL, 0);
+	fromNodeNbr = strtouvast(tokens[4]);
+	toNodeNbr = strtouvast(tokens[5]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		xmitRate = strtol(tokens[6], NULL, 0);
@@ -254,8 +254,8 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 	}
 
-	fromNodeNbr = strtol(tokens[3], NULL, 0);
-	toNodeNbr = strtol(tokens[4], NULL, 0);
+	fromNodeNbr = strtouvast(tokens[3]);
+	toNodeNbr = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		oK(rfx_remove_contact(timestamp, fromNodeNbr, toNodeNbr));
@@ -301,8 +301,8 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 	refTime = _referenceTime(NULL);
 	timestamp = readTimestampUTC(tokens[2], refTime);
-	fromNode = strtol(tokens[3], NULL, 0);
-	toNode = strtol(tokens[4], NULL, 0);
+	fromNode = strtouvast(tokens[3]);
+	toNode = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		memset((char *) &arg1, 0, sizeof(IonCXref));

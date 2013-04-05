@@ -46,8 +46,12 @@ MY_ICISOURCES := \
 	$(MY_ICI)/utils/ionsecadmin.c 	\
 	$(MY_ICI)/utils/ionwarn.c 
 
-#	$(MY_ICI)/restart/ionrestart.c 
 #	$(MY_ICI)/utils/ionexit.c      \
+
+#	MY_RESTART	:= ../../../restart
+
+#	MY_RESTARTSOURCE :=     \
+#		$(MY_RESTART)/utils/ionrestart.c
 
 MY_DGR		:= ../../../dgr
 
@@ -141,6 +145,6 @@ LOCAL_CFLAGS = -g -Wall -Werror -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER -
 
 LOCAL_SRC_FILES := iondtn.c $(MY_ICISOURCES) $(MY_DGRSOURCES) $(MY_BPSOURCES) $(MY_BSPSOURCES) $(MY_DTN2SOURCES)
 
-#	$(MY_LTPSOURCES) $(MY_TESTSOURCES) $(MY_CFDPSOURCES)
+#	$(MY_RESTARTSOURCE) $(MY_LTPSOURCES) $(MY_TESTSOURCES) $(MY_CFDPSOURCES)
 
 include $(BUILD_SHARED_LIBRARY)

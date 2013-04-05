@@ -1594,7 +1594,7 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 
 void	printStackTrace()
 {
-#if (!(defined(linux)) || defined(bionic))
+#if (defined(bionic) || defined(uClibc) || !(defined(linux)))
 	writeMemo("[?] No stack trace available on this platform.");
 #else
 #define	MAX_TRACE_DEPTH	100
@@ -2547,6 +2547,26 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 					fmt[fmtLen] = *cursor;
 					fmtLen++;
 					cursor++;
+				}
+			}
+			else
+			{
+				if ((*cursor) == 'I'
+				&& (*(cursor + 1)) == '6'
+				&& (*(cursor + 2)) == '4')
+				{
+#ifdef mingw
+					isLongLong = 1;
+					fmt[fmtLen] = *cursor;
+					fmtLen++;
+					cursor++;
+					fmt[fmtLen] = *cursor;
+					fmtLen++;
+					cursor++;
+					fmt[fmtLen] = *cursor;
+					fmtLen++;
+					cursor++;
+#endif
 				}
 			}
 		}
