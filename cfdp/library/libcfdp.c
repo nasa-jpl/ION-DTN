@@ -1663,7 +1663,6 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		CfdpTransactionId *originatingTransactionId,
 		char *statusReportBuf, MetadataList *filestoreResponses)
 {
-	CfdpDB		*cfdpConstants = getCfdpConstants();
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*vdb = getCfdpVdb();
 	CfdpDB		*db = getCfdpConstants();
@@ -1749,18 +1748,7 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		*destFileNameBuf = '\0';
 	}
 
-	if (event.messagesToUser)
-	{
-		elt = sdr_list_insert_last(sdr, cfdpConstants->usrmsgLists,
-				event.messagesToUser);
-		sdr_list_user_data_set(sdr, event.messagesToUser, elt);
-		*messagesToUser = event.messagesToUser;
-	}
-	else
-	{
-		*messagesToUser = 0;
-	}
-
+	*messagesToUser = event.messagesToUser;
 	*fileSize = event.fileSize;
 	*offset = event.offset;
 	*length = event.length;
@@ -1781,18 +1769,7 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		*statusReportBuf = '\0';
 	}
 
-	if (event.filestoreResponses)
-	{
-		elt = sdr_list_insert_last(sdr, cfdpConstants->fsrespLists,
-				event.filestoreResponses);
-		sdr_list_user_data_set(sdr, event.filestoreResponses, elt);
-		*filestoreResponses = event.filestoreResponses;
-	}
-	else
-	{
-		*filestoreResponses = 0;
-	}
-
+	*filestoreResponses = event.filestoreResponses;
 	if (event.messagesToUser == 0)	/*	Can't be std User Ops.	*/
 	{
 		return sdr_end_xn(sdr);

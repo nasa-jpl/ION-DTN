@@ -3484,6 +3484,17 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 
 	event.fileSize = fileSize;	/*	Projected, not actual.	*/
 	event.messagesToUser = fdu->messagesToUser;
+
+	/*	Must transform the messagesToUser list into a
+	 *	MetadataList for delivery to application.		*/
+
+	sdr_list_user_data_set(sdr, event.messagesToUser,
+		sdr_list_insert_last(sdr, (getCfdpConstants())->usrmsgLists,
+		event.messagesToUser));
+
+	/*	Detach messagesToUser list from FDU so it won't be
+	 *	deleted twice.						*/
+
 	fdu->messagesToUser = 0;
 	if (enqueueCfdpEvent(&event) < 0)
 	{

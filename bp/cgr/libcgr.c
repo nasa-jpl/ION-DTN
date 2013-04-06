@@ -1350,7 +1350,12 @@ puts("Route is too slow; radiation latency delays delivery time too much.");
 
 static void	deleteObject(LystElt elt, void *userdata)
 {
-	MRELEASE(lyst_data(elt));
+	void	*object = lyst_data(elt);
+
+	if (object)
+	{
+		MRELEASE(lyst_data(elt));
+	}
 }
 
 static int	excludeNode(Lyst excludedNodes, uvast nodeNbr)
@@ -1650,7 +1655,7 @@ stationNodeNbr);
 	for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
 	{
 		nextElt = lyst_next(elt);
-		proxNode = (ProximateNode *) lyst_data(elt);
+		proxNode = (ProximateNode *) lyst_data_set(elt, NULL);
 		lyst_delete(elt);
 		if (selectedNeighbor == NULL)
 		{
