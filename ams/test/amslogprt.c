@@ -71,6 +71,7 @@ stdin, e.g. ASCII text ['%s']?\n", text);
 			bufferLength = contentLength;
 		}
 
+		memset(buffer, 0, bufferLength);
 		if (fread(buffer, contentLength, 1, stdin) == 0)
 		{
 			break;

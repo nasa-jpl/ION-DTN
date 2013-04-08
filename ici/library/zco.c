@@ -1491,12 +1491,20 @@ vast	zco_length(Sdr sdr, Object zco)
 vast	zco_source_data_length(Sdr sdr, Object zco)
 {
 	Zco	zcoBuf;
+	int	headersLength;
+	int	trailersLength;
 
 	CHKZERO(sdr);
 	CHKZERO(zco);
 	sdr_read(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
-	return zcoBuf.sourceLength + zcoBuf.headersLength
-			+ zcoBuf.trailersLength;
+	headersLength = zcoBuf.headersLength;
+	trailersLength = zcoBuf.trailersLength;
+
+	/*	Check for truncation.					*/
+
+	CHKZERO(headersLength == zcoBuf.headersLength);
+	CHKZERO(trailersLength == zcoBuf.trailersLength);
+	return zcoBuf.sourceLength + headersLength + trailersLength;
 }
 
 static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,

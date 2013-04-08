@@ -1095,6 +1095,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	else
 	{
 		CHKZERO(utParms);
+		CHKZERO(utParmsLength <= sizeof(BpUtParms));
 	}
 
 	CHKZERO(flowLabelLength >= 0 && flowLabelLength < 256);

@@ -615,6 +615,7 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	CHKERR(respondentEntityNbr);
 	CHKERR(beneficiaryEntityNbr);
 	CHKERR(transactionId);
+	CHKERR(task);
 	if (task->sourceFileName == NULL)
 	{
 		CHKERR(task->destFileName == NULL);
