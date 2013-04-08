@@ -1,11 +1,11 @@
-PODM1 = pod2man -s 1 -c "ICI executables"
+PODM1 = pod2man -s 1 -c "Restart executables"
 PODH = pod2html --noindex
 
 MANFILES = \
-	./man/man1/restart.1
+	./man/man1/ionrestart.1
 
 HTMLFILES = \
-	./html/man1/restart.html
+	./html/man1/ionrestart.html
 
 ALL = $(MANFILES) $(HTMLFILES)
 

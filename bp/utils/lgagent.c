@@ -191,6 +191,7 @@ operations file name, no further activity", fileName);
 				}
 			}
 #endif
+			lineLength -= 1;	/*	Strip off NULL.	*/
 			if (write(opsFile, line, lineLength) < 0
 			|| write(opsFile, "\n", 1) < 0)
 			{
