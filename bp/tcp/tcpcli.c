@@ -603,7 +603,7 @@ int	main(int argc, char *argv[])
 	ionNoteMainThread("tcpcli");
 	isignal(SIGTERM, interruptThread);
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);
+	isignal(SIGPIPE, SIG_IGN);
 #endif
 
 	/*	Start the access thread.				*/
