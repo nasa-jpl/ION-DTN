@@ -212,8 +212,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	char		*script;
 	BpRecvRule	rule;
-	long		nominalRate = 0;
-	unsigned long	maxPayloadLength;
+	int		nominalRate = 0;
+	unsigned int	maxPayloadLength;
 
 	if (tokenCount < 2)
 	{
@@ -321,7 +321,7 @@ static void	executeChange(int tokenCount, char **tokens)
 {
 	char		*script;
 	BpRecvRule	rule;
-	unsigned long	maxPayloadLen;
+	unsigned int	maxPayloadLen;
 
 	if (tokenCount < 2)
 	{

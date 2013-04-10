@@ -23,7 +23,7 @@ typedef struct
 	char		*wmName;
 } sm_WmParms;
 
-typedef long             sm_SemId;
+typedef int		sm_SemId;
 #define SM_SEM_NONE	(-1)
 
 #define SM_SEM_FIFO	0
@@ -32,6 +32,18 @@ typedef long             sm_SemId;
 #define SM_NO_KEY	(-1)
 
 #define	ICI_PRIORITY	250
+
+#if defined (bionic) || defined (uClibc)
+extern int		sm_BeginPthread(pthread_t *threadId,
+				const pthread_attr_t *attr,
+				void *(*function)(void *), void *arg);
+#define pthread_begin(w,x,y,z) sm_BeginPthread(w, x, y, z)
+extern void		sm_EndPthread(pthread_t threadId);
+#define pthread_end(x)	sm_EndPthread(x)
+#else
+#define pthread_begin(w,x,y,z)	pthread_create(w, x, y, z)
+#define pthread_end(x)		pthread_cancel(x)
+#endif
 
 /*      IPC services access control */
 extern int		sm_ipc_init();

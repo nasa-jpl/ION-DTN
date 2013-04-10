@@ -291,7 +291,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	recv_running=1;
-	if (pthread_create(&rcv_thread, NULL, &rcv_msg_thread, (void*)&recv_running))
+	if (pthread_begin(&rcv_thread, NULL, &rcv_msg_thread, (void*)&recv_running))
 	{
 		dbgprintf(0, "Error: Can't start message thread\n");
 		sm_SemDelete(events_sem);
@@ -384,7 +384,7 @@ int is_dir(char *cp)
 int open_remote_dir(char *host, char *dir)
 {
 	int res;
-	unsigned long long entityId;
+	uvast entityId;
 	char	template[] = "dldfnXXXXXX";
 	int	tempfd;
 	char* tmp;
@@ -398,7 +398,7 @@ int open_remote_dir(char *host, char *dir)
 	}
 
 	/*Setup parameters*/
-	entityId=strtol(host, NULL, 0);
+	entityId=strtouvast(host);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 
 	/*Pick a temp file name*/
@@ -729,7 +729,7 @@ void ion_cfdp_init()
 int ion_cfdp_put(struct transfer* t)
 {
 	int res;
-	unsigned long long entityId;
+	uvast entityId;
 
 	/*Sanity checks*/
 	if (t==NULL || t->dfile[0] == 0 || t->dhost[0] == 0 || t->sfile[0] == 0)
@@ -740,7 +740,7 @@ int ion_cfdp_put(struct transfer* t)
 	print_parsed(t);
 
 	/*Setup parameters*/
-	entityId=strtol(t->dhost, NULL, 0);
+	entityId=strtoul(t->dhost, NULL, 0);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
 	snprintf(parms.sourceFileNameBuf, 255, "%.255s", t->sfile);
@@ -790,7 +790,7 @@ int ion_cfdp_put(struct transfer* t)
 	else
 	{
 		/*Error*/
-		dbgprintf(0, "Error: EOF semaphore\n");
+		dbgprintf(0, "Terminated\n");
 		exit_nicely(1);
 	}
 #endif
@@ -810,7 +810,7 @@ return 0;
 int ion_cfdp_get(struct transfer* t)
 {
 	int res;
-	unsigned long long entityId;
+	uvast entityId;
 
 	/*Sanity checks*/
 	if (t==NULL || t->dfile[0] == 0 || t->shost[0] == 0 || t->sfile[0] == 0)
@@ -828,7 +828,7 @@ int ion_cfdp_get(struct transfer* t)
 	}
 
 	/*Setup parameters*/
-	entityId=strtol(t->shost, NULL, 0);
+	entityId=strtouvast(t->shost);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
 	snprintf(parms.sourceFileNameBuf, 255, "%.255s", t->sfile);
@@ -887,7 +887,7 @@ int ion_cfdp_get(struct transfer* t)
 	else
 	{
 		/*Error*/
-		dbgprintf(0, "Error: EOF semaphore\n");
+		dbgprintf(0, "Terminated\n");
 		exit_nicely(1);
 	}
 #endif
@@ -905,7 +905,7 @@ return 0;
 int ion_cfdp_rput(struct transfer* t)
 {
 	int res;
-	unsigned long long entityId;
+	uvast entityId;
 	CfdpNumber src;
 
 	/*Sanity checks*/
@@ -925,7 +925,7 @@ int ion_cfdp_rput(struct transfer* t)
 	}
 
 	/*Setup parameters*/
-	entityId=strtol(t->dhost, NULL, 0);
+	entityId=strtouvast(t->dhost);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
 	entityId=strtol(t->shost, NULL, 0);
@@ -985,7 +985,7 @@ int ion_cfdp_rput(struct transfer* t)
 	else
 	{
 		/*Error*/
-		dbgprintf(0, "Error: EOF semaphore\n");
+		dbgprintf(0, "Terminated\n");
 		exit_nicely(1);
 	}
 #endif
@@ -1057,13 +1057,19 @@ static int do_local_cmd(char *cmdln)
 	}
 
 	/*Parent waits for child to exit*/
-	while (waitpid(pid, &status, 0) == -1)
+	while (waitpid(pid, &status, 0) == -1 && recv_running==1)
 	{
 		if (errno != EINTR)
 		{
 			dbgprintf(0,"do_local_cmd: waitpid: %s\n", system_error_msg());
 			exit_nicely(1);
 		}
+	}
+
+	if(recv_running==0){
+		kill(pid, SIGTERM);
+		dbgprintf(0,"Terminated\n");
+		exit_nicely(1);
 	}
 
 //#if defined (VXWORKS) || defined (RTEMS)
@@ -1356,10 +1362,10 @@ void* rcv_msg_thread(void* param)
 	MetadataList		filestoreResponses;
 	unsigned char		usrmsgBuf[256];
 	CfdpDirListingResponse	dir_list_rsp;
-	unsigned long 		TID11;
-	unsigned long		TID12;
-	unsigned long		TID21=0;
-	unsigned long		TID22=0;
+	uvast 		TID11;
+	uvast		TID12;
+	uvast		TID21=0;
+	uvast		TID22=0;
 
 	/*Main Event loop*/
 	while (*running)
@@ -1386,7 +1392,7 @@ void* rcv_msg_thread(void* param)
 		cfdp_decompress_number(&TID12,&transactionId.transactionNbr);
 
 		/*Print Event type if debugging*/
-		dbgprintf(4,"\nEvent: type %d, '%s', From Node: %d, Transaction ID: %d.%d.\n", type,
+		dbgprintf(4,"\nEvent: type %d, '%s', From Node: " UVAST_FIELDSPEC ", Transaction ID: " UVAST_FIELDSPEC "." UVAST_FIELDSPEC ".\n", type,
 				(type > 0 && type < 12) ? eventTypes[type]
 				: "(unknown)",TID11, TID11, TID12);
 
@@ -1451,7 +1457,7 @@ void* rcv_msg_thread(void* param)
 					{
 						/*Success!*/
 						dbgprintf(1, "Directory Exists: %s\n", dir_list_rsp.directoryName);
-						dbgprintf(3, "Transaction ID: %i\n", TID22);
+						dbgprintf(3, "Transaction ID: " UVAST_FIELDSPEC "\n", TID22);
 						current_wait_status=dir_exists;
 						break;
 					}
@@ -1459,7 +1465,7 @@ void* rcv_msg_thread(void* param)
 					{
 						/*Failure*/
 						dbgprintf(1, "No Directory: %s\n", dir_list_rsp.directoryName);
-						dbgprintf(3, "Transaction ID: %i\n", TID22);
+						dbgprintf(3, "Transaction ID: " UVAST_FIELDSPEC "\n", TID22);
 						current_wait_status=nodir;
 						break;
 					}
@@ -1749,30 +1755,17 @@ int setscreensize(void)
 /*Perform some simple cleanup on SIGTERM*/
 static void handle_sigterm()
 {
-	int i=0;
-
 	/*Reset signal handlers for portability*/
 	isignal(SIGTERM, handle_sigterm);
 	isignal(SIGINT, handle_sigterm);
 
-	/*Delete any and all temporary files*/
-	for (i=0; i < NUM_TMP_FILES; i++)
-	{
-		if (tmp_files[i][0] != 0)
-		{
-			unlink(tmp_files[i]);
-		}
-	}
-
-	/*Delete remote directory listing semaphore*/
-	sm_SemDelete(events_sem);
-
 	/*Tell receiver thread to exit*/
 	recv_running=0;
 
-	/*Drop to new line*/
-	printf("\n");
+	/*Give remote directory listing semaphore to allow main thread to exit*/
+	sm_SemGive(events_sem);
 
-	exit(1);
+	/*Interrupt the CFDP processing to allow receiver thread to exit*/
+	cfdp_interrupt();
 }
 #endif

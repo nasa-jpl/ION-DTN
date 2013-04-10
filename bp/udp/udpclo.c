@@ -97,7 +97,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
-	sdr_end_xn(sdr);
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vduct->xmitThrottle.nominalRate = DEFAULT_UDP_RATE;
@@ -167,7 +167,9 @@ int	main(int argc, char *argv[])
 		inetName->sin_port = portNbr;
 		memcpy((char *) &(inetName->sin_addr.s_addr),
 				(char *) &hostNbr, 4);
+		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 		bytesSent = sendBundleByUDP(&socketName, &ductSocket,
 				bundleLength, bundleZco, buffer);
 		if (bytesSent < bundleLength)

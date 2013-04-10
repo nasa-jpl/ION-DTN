@@ -85,8 +85,8 @@ extern "C" {
  *	widespread, which is why these functions are declared
  *	privately here rather than publicly in the zco.h header.	*/
 
-extern void	zco_increase_heap_occupancy(Sdr sdr, Scalar *delta);
-extern void	zco_reduce_heap_occupancy(Sdr sdr, Scalar *delta);
+extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta);
+extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta);
 
 /*	A BP "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
@@ -115,9 +115,14 @@ extern void	zco_reduce_heap_occupancy(Sdr sdr, Scalar *delta);
 
 typedef struct
 {
-	long		nominalRate;	/*	In bytes per second.	*/
-	long		capacity;	/*	Bytes, current second.	*/
+	uvast		nbr;
+} NodeId;
+
+typedef struct
+{
 	sm_SemId	semaphore;
+	int		nominalRate;	/*	In bytes per second.	*/
+	vast		capacity;	/*	Bytes, current second.	*/
 } Throttle;
 
 typedef struct
@@ -134,8 +139,8 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	nodeNbr;	/*	For "imc", group nbr.	*/
-	unsigned long	serviceNbr;
+	uvast		nodeNbr;	/*	For "imc", group nbr.	*/
+	unsigned int	serviceNbr;
 } CbheEid;
 
 typedef struct
@@ -148,8 +153,8 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	nodeNbr;
-	unsigned long	serviceNbr;
+	uvast		nodeNbr;
+	unsigned int	serviceNbr;
 	char		*schemeName;
 	int		schemeNameLength;
 	char		*colon;
@@ -178,12 +183,12 @@ typedef struct
 {
 	EndpointId	source;		/*	Original sender.	*/
 	BpTimestamp	creationTime;
-	unsigned long	fragmentOffset;
+	unsigned int	fragmentOffset;
 } BundleId;
 
 typedef struct
 {
-	unsigned long	length;		/*	initial length of ZCO	*/
+	unsigned int	length;		/*	initial length of ZCO	*/
 	Object		content;	/*	a ZCO reference in SDR	*/
 } Payload;
 
@@ -208,15 +213,15 @@ typedef enum
 
 typedef struct
 {
-	unsigned long	seconds;
-	unsigned long	nanosec;
+	unsigned int	seconds;
+	unsigned int	nanosec;
 } DtnTime;
 
 typedef struct
 {
 	BpTimestamp	creationTime;	/*	From bundle's ID.	*/
-	unsigned long	fragmentOffset;	/*	From bundle's ID.	*/
-	unsigned long	fragmentLength;
+	unsigned int	fragmentOffset;	/*	From bundle's ID.	*/
+	unsigned int	fragmentLength;
 	char		*sourceEid;	/*	From bundle's ID.	*/
 	unsigned char	isFragment;	/*	Boolean.		*/
 	unsigned char	flags;
@@ -241,8 +246,8 @@ typedef enum
 typedef struct
 {
 	BpTimestamp	creationTime;	/*	From bundle's ID.	*/
-	unsigned long	fragmentOffset;	/*	From bundle's ID.	*/
-	unsigned long	fragmentLength;
+	unsigned int	fragmentOffset;	/*	From bundle's ID.	*/
+	unsigned int	fragmentLength;
 	char		*sourceEid;	/*	From bundle's ID.	*/
 	unsigned char	isFragment;	/*	Boolean.		*/
 	unsigned char	succeeded;	/*	Boolean.		*/
@@ -258,7 +263,7 @@ typedef struct
 {
 	int		authentic;	/*	Boolean.		*/
 	BpString	senderEid;
-	unsigned long	senderNodeNbr;	/*	If CBHE.		*/
+	uvast		senderNodeNbr;	/*	If CBHE.		*/
 } ClDossier;
 
 /*	Bundle processing flags						*/
@@ -288,18 +293,18 @@ typedef struct
 
 	/*	Stuff in Primary block.					*/
 
-	unsigned long	bundleProcFlags;/*	Incl. CoS, SRR.		*/
-	unsigned long	timeToLive;	/*	In seconds.		*/
+	unsigned int	bundleProcFlags;/*	Incl. CoS, SRR.		*/
+	unsigned int	timeToLive;	/*	In seconds.		*/
 	EndpointId	destination;	/*	...of bundle's ADU	*/
 		/*	source of bundle's ADU is in the id field.	*/
 	EndpointId	reportTo;
 	EndpointId	custodian;
 		/*	creation time is in the id field.		*/
-	unsigned long	expirationTime;	/*	Time tag in seconds.	*/
-	unsigned long	dictionaryLength;
+	unsigned int	expirationTime;	/*	Time tag in seconds.	*/
+	unsigned int	dictionaryLength;
 	Object		dictionary;
 		/*	fragment offset is in the id field.		*/
-	unsigned long	totalAduLength;
+	unsigned int	totalAduLength;
 
 	/*	Stuff in Extended COS extension block.			*/
 
@@ -307,12 +312,12 @@ typedef struct
 
 	/*	Stuff in (or for) the Bundle Age extension block.	*/
 
-	unsigned long	age;		/*	In microseconds.	*/
+	unsigned int	age;		/*	In microseconds.	*/
 	struct timeval	arrivalTime;
 
 	/*	Stuff in Payload block.					*/
 
-	unsigned long	payloadBlockProcFlags;
+	unsigned int	payloadBlockProcFlags;
 	Payload		payload;
 
 	/*	Stuff in extension blocks, preceding and following the
@@ -383,7 +388,7 @@ typedef struct
 	 *	the application, and all fragments (including the
 	 *	final one) are destroyed.				*/
 
-	unsigned long	totalAduLength;
+	unsigned int	totalAduLength;
 } IncompleteBundle;
 
 /*	*	*	Endpoint structures	*	*	*	*/
@@ -523,7 +528,7 @@ typedef struct
 	Object		urgentQueue;	/*	SDR list of Bundles	*/
 	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
-	unsigned long	maxPayloadLen;	/*	0 = no limit.		*/
+	unsigned int	maxPayloadLen;	/*	0 = no limit.		*/
 	int		blocked;	/*	Boolean			*/
 	Object		protocol;	/*	back-reference		*/
 	Object		stats;		/*	OutductStats address.	*/
@@ -559,7 +564,7 @@ typedef struct
 	char		name[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	int		payloadBytesPerFrame;
 	int		overheadPerFrame;
-	long		nominalRate;	/*	Bytes per second.	*/
+	int		nominalRate;	/*	Bytes per second.	*/
 	Object		inducts;	/*	SDR list of Inducts	*/
 	Object		outducts;	/*	SDR list of Outducts	*/
 } ClProtocol;
@@ -599,7 +604,7 @@ typedef struct
 	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting clock.	*/
 	int		maxAcqInHeap;
-	unsigned long	bundleCounter;	/*	For non-synced clock.	*/
+	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
 	time_t		resetTime;	/*	Stats reset time.	*/
 	Object		sourceStats;	/*	BpCosStats address.	*/
@@ -616,7 +621,7 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	ctExpiredTimeout;
+	unsigned int	ctExpiredTimeout;
 } BpctDB;
 
 #define BP_STATUS_RECEIVE	0
@@ -693,14 +698,10 @@ typedef struct
 	Object		ctStats;	/*	BpCtStats address.	*/
 	Object		dbStats;	/*	BpDbStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
-	unsigned long	creationTimeSec;
+	unsigned int	creationTimeSec;
 	int		bundleCounter;
 	int		clockPid;	/*	For stopping clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
-
-	/*	For congestion control.					*/
-
-	Throttle	productionThrottle;
 
 	/*	For finding structures in database.			*/
 
@@ -736,6 +737,7 @@ typedef struct
 	AcqDecision	decision;
 	int		lastBlockParsed;
 	int		malformed;
+	int		congestive;	/*	Not enough ZCO space.	*/
 	int		mustAbort;	/*	Unreadable block(s).	*/
 
 	/*	Per-acquisition state variables.			*/
@@ -927,7 +929,7 @@ extern int		bpDequeue(	VOutduct *vduct,
 					Object *outboundZco,
 					BpExtendedCOS *extendedCOS,
 					char *destDuctName,
-					unsigned long maxPayloadLength,
+					unsigned int maxPayloadLength,
 					int timeoutInterval);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
@@ -1288,7 +1290,7 @@ extern int		removeEndpoint(char *endpointName);
 
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
 extern int		addProtocol(char *name, int payloadBytesPerFrame,
-				int overheadPerFrame, long nominalRate);
+				int overheadPerFrame, int nominalRate);
 extern int		removeProtocol(char *name);
 extern int		bpStartProtocol(char *name);
 extern void		bpStopProtocol(char *name);
@@ -1306,9 +1308,9 @@ extern void		bpStopInduct(char *protocolName, char *ductName);
 extern void		findOutduct(char *protocolName, char *name,
 				VOutduct **vduct, PsmAddress *elt);
 extern int		addOutduct(char *protocolName, char *name,
-				char *cloCmd, unsigned long maxPayloadLength);
+				char *cloCmd, unsigned int maxPayloadLength);
 extern int		updateOutduct(char *protocolName, char *name,
-				char *cloCmd, unsigned long maxPayloadLength);
+				char *cloCmd, unsigned int maxPayloadLength);
 extern int		removeOutduct(char *protocolName, char *name);
 extern int		bpStartOutduct(char *protocolName, char *ductName);
 extern void		bpStopOutduct(char *protocolName, char *ductName);
@@ -1319,8 +1321,8 @@ extern Object		insertBpTimelineEvent(BpEvent *newEvent);
 extern void		destroyBpTimelineEvent(Object timelineElt);
 
 extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
-				unsigned long fragmentOffset,
-				unsigned long fragmentLength,
+				unsigned int fragmentOffset,
+				unsigned int fragmentLength,
 				Object *bundleAddr);
 extern int		retrieveInTransitBundle(Object bundleZco, Object *obj);
 

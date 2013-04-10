@@ -237,7 +237,8 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 		return 0;		/*	Invalid format.		*/
 	}
 
-	/* Syntax and bounds-checking passed; assign to outputs */
+	/*	Syntax and bounds-checking passed; assign to outputs.	*/
+
 	extendedCOS->flags = 0;
 	if (count >= 6)
 	{
@@ -270,17 +271,13 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 	return 1;
 }
 
-int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
-		int lifespan, int classOfService, BpCustodySwitch custodySwitch,
+int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
+		int classOfService, BpCustodySwitch custodySwitch,
 		unsigned char srrFlags, int ackRequested, BpExtendedCOS *ecos,
 		Object adu, Object *bundleObj)
 {
-	Sdr		sdr = getIonsdr();
-	BpVdb		*vdb = getBpVdb();
 	BpExtendedCOS	defaultECOS = { 0, 0, 0 };
-	int		aduLength;
 	MetaEid		*sourceMetaEid;
-	Throttle	*throttle;
 
 	CHKERR(bundleObj);
 	*bundleObj = 0;
@@ -305,41 +302,6 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 	{
 		sourceMetaEid = NULL;
 	}
-
-	/*	Admission control (bundle production throttling)
-	 *	happens here.						*/
-
-	throttle = &(vdb->productionThrottle);
-	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	aduLength = zco_length(sdr, adu);
-	while (aduLength > throttle->capacity)
-	{
-		sdr_exit_xn(sdr);
-		if (mode == BP_NONBLOCKING)
-		{
-			errno = EWOULDBLOCK;
-			return 0;
-		}
-
-		if (sm_SemTake(throttle->semaphore) < 0)
-		{
-			putErrmsg("Can't take throttle semaphore.", NULL);
-			return -1;
-		}
-
-		if (sm_SemEnded(throttle->semaphore))
-		{
-			putErrmsg("Bundle agent has been stopped.", NULL);
-			return -1;
-		}
-
-		CHKERR(sdr_begin_xn(sdr));
-	}
-
-	throttle->capacity -= aduLength;
-	sdr_exit_xn(sdr);	/*	Release memory.			*/
-
-	/*	Now go ahead and send the bundle.			*/
 
 	return bpSend(sourceMetaEid, destEid, reportToEid, lifespan,
 			classOfService, custodySwitch, srrFlags, ackRequested,
@@ -626,7 +588,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		{
 			timerParms.interval = timeoutSeconds;
 			timerParms.semaphore = vpoint->semaphore;
-			if (pthread_create(&timerThread, NULL, timerMain,
+			if (pthread_begin(&timerThread, NULL, timerMain,
 					&timerParms) < 0)
 			{
 				putSysErrmsg("Can't enable interval timer",
@@ -675,7 +637,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 				dlvBuffer->result = BpReceptionInterrupted;
 				if (timerParms.interval != -1)
 				{
-					pthread_cancel(timerThread);
+					pthread_end(timerThread);
 					pthread_join(timerThread, NULL);
 				}
 			}
@@ -686,7 +648,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		{
 			if (timerParms.interval != -1)
 			{
-				pthread_cancel(timerThread);
+				pthread_end(timerThread);
 				pthread_join(timerThread, NULL);
 			}
 		}

@@ -1,6 +1,6 @@
 wmKey 65281
 sdrName ion
-wmSize 2500000
+wmSize 3500000
 configFlags 1
-heapWords  5000000
+heapWords  7000000
 pathName /usr/ion

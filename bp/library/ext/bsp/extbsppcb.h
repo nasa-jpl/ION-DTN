@@ -110,9 +110,9 @@ typedef struct BspPayloadReplaceKit {
     char *headerBuff;
     char *payloadBuff;
     char *trailerBuff;
-    unsigned long headerLen;
-    unsigned long payloadLen;
-    unsigned long trailerLen;
+    unsigned int headerLen;
+    unsigned int payloadLen;
+    unsigned int trailerLen;
     Object oldBundle;
     Object newBundle;
 } BspPayloadReplaceKit;
@@ -345,8 +345,8 @@ void bsp_pcbRelease(ExtensionBlock *blk);
  *  09/13/11  R. Brown        Initial Implementation. 
  *****************************************************************************/
 
-BspPayloadReplaceKit *bsp_pcbPrepReplaceKit(Object bundle, unsigned long payloadLen,
-                                            unsigned long headerLen, unsigned long trailerLen);
+BspPayloadReplaceKit *bsp_pcbPrepReplaceKit(Object bundle, unsigned int payloadLen,
+                                            unsigned int headerLen, unsigned int trailerLen);
 
 /******************************************************************************
  *
@@ -400,7 +400,7 @@ int bsp_pcbIsolatePayload(Sdr bpSdr, BspPayloadReplaceKit *bprk);
  *  09/13/11  R. Brown        Initial Implementation. 
  *****************************************************************************/
 int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk, 
-                                     unsigned char *sessionKeyValue, unsigned long sessionKeyLen);
+                                     unsigned char *sessionKeyValue, unsigned int sessionKeyLen);
 
 /******************************************************************************
  *
@@ -433,9 +433,9 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
  *****************************************************************************/
 
 int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,
-                                   unsigned long payloadLen,
+                                   unsigned int payloadLen,
                                    unsigned char *keyValue,
-                                   unsigned long keyLen);
+                                   unsigned int keyLen);
 
 /******************************************************************************
  *
@@ -463,9 +463,9 @@ int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,
  *****************************************************************************/
 
 unsigned char *bsp_pcbCryptSessionKey(unsigned char *sessionKey,
-                                      unsigned long sessionKeyLen,  
+                                      unsigned int sessionKeyLen,  
                                       unsigned char *ltKeyValue,
-                                      unsigned long ltKeyLen); 
+                                      unsigned int ltKeyLen); 
 
 /******************************************************************************
  *
@@ -485,6 +485,6 @@ unsigned char *bsp_pcbCryptSessionKey(unsigned char *sessionKey,
  *  08/1/11  R. Brown        Initial Implementation.
  *****************************************************************************/
                                       
-unsigned char *bsp_pcbGenSessionKey(unsigned long *sessionKeyLen);
+unsigned char *bsp_pcbGenSessionKey(unsigned int *sessionKeyLen);
 
 #endif /* EXTBSPPCB_H_ */

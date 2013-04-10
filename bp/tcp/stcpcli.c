@@ -220,7 +220,7 @@ static void	*spawnReceivers(void *parm)
 		parms->senderEid = parms->senderEidBuffer;
 		getSenderEid(&(parms->senderEid), hostName);
 		parms->running = &(atp->running);
-		if (pthread_create(&(parms->thread), NULL, receiveBundles,
+		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{
 			putSysErrmsg("stcpcli can't create new thread", NULL);
@@ -406,7 +406,7 @@ int	main(int argc, char *argv[])
 	/*	Start the access thread.				*/
 
 	atp.running = 1;
-	if (pthread_create(&accessThread, NULL, spawnReceivers, &atp))
+	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
 	{
 		closesocket(atp.ductSocket);
 		putSysErrmsg("stcpcli can't create access thread", NULL);

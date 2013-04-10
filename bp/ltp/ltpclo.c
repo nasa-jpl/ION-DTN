@@ -22,22 +22,22 @@ static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
 	{
 		temp = *semid;
 		value = (void *) temp;
-		semaphore = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		semaphore = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	semaphore = temp;
 	return semaphore;
 }
 
 static void	shutDownClo()	/*	Commands CLO termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(ltpcloSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 /*	*	*	Main thread functions	*	*	*	*/
@@ -56,7 +56,7 @@ int	main(int argc, char *argv[])
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 	int		allGreen = 0;		/*	Boolean		*/
-	long		destEngineNbr;
+	vast		destEngineNbr;
 	Outduct		outduct;
 	Outflow		outflows[3];
 	int		i;
@@ -100,7 +100,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_exit_xn(sdr);
-	destEngineNbr = atol(ductName);
+	destEngineNbr = strtovast(ductName);
 	if (destEngineNbr < 0)
 	{
 		allGreen = 1;

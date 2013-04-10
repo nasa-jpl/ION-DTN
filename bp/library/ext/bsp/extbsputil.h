@@ -248,12 +248,12 @@ typedef struct {
 typedef struct {
 	EndpointId    secSrc;         /** Optional security source            */
 	EndpointId    secDest;        /** Optional security destination       */
-	unsigned long cipher;         /** Ciphersuite Type Field              */
-	unsigned long cipherFlags;    /** Ciphersuite Flags Field             */
-	unsigned long correlator;     /** IFF cipherFlags & BSP_ASB_CORR      */
-	unsigned long cipherParmsLen; /** IFF cipherFlags & BSP_ASB_HAVE_PARM */
+	unsigned int cipher;         /** Ciphersuite Type Field              */
+	unsigned int cipherFlags;    /** Ciphersuite Flags Field             */
+	unsigned int correlator;     /** IFF cipherFlags & BSP_ASB_CORR      */
+	unsigned int cipherParmsLen; /** IFF cipherFlags & BSP_ASB_HAVE_PARM */
 	char *cipherParmsData;        /** IFF cipherFlags & BSP_ASB_HAVE_PARM */
-	unsigned long resultLen;      /** IFF cipherFlags & BSP_ASB_RES       */
+	unsigned int resultLen;      /** IFF cipherFlags & BSP_ASB_RES       */
 	unsigned char *resultData;    /** IFF cipherFlags & BSP_ASB_RES       */
 } BspAbstractSecurityBlock;
 
@@ -567,8 +567,8 @@ void bsp_getSecurityInfo(Bundle * bundle,
  *****************************************************************************/
 
 void getBspItem(int itemNeeded, unsigned char *bspBuf,
-		unsigned long bspLen, unsigned char **val,
-		unsigned long *len);
+		unsigned int bspLen, unsigned char **val,
+		unsigned int *len);
 
 char *getLocalCustodianEid(DequeueContext *ctxt);
 

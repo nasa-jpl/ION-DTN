@@ -22,7 +22,6 @@ void    bpnm_resources(double * occupancyCeiling,
 {
     Sdr     sdr = getIonsdr();
     IonDB   db;
-    Scalar  occupancy;
 
     CHKVOID(occupancyCeiling);
     CHKVOID(maxForecastOccupancy);
@@ -35,14 +34,10 @@ void    bpnm_resources(double * occupancyCeiling,
     sdr_read(sdr, (char *) &db, getIonDbObject(), sizeof(IonDB));
     *occupancyCeiling = db.occupancyCeiling;
     *maxForecastOccupancy = db.maxForecastOccupancy;
-    zco_get_max_heap_occupancy(sdr, &occupancy);
-    *maxHeapOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
-    zco_get_heap_occupancy(sdr, &occupancy);
-    *currentHeapOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
-    zco_get_max_file_occupancy(sdr, &occupancy);
-    *maxFileOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
-    zco_get_file_occupancy(sdr, &occupancy);
-    *currentFileOccupancy = (occupancy.gigs * ONE_GIG) + occupancy.units;
+    *maxHeapOccupancy = zco_get_max_heap_occupancy(sdr);
+    *currentHeapOccupancy = zco_get_heap_occupancy(sdr);
+    *maxFileOccupancy = zco_get_max_file_occupancy(sdr);
+    *currentFileOccupancy = zco_get_file_occupancy(sdr);
     *currentOccupancy = *currentHeapOccupancy + *currentFileOccupancy;
     sdr_exit_xn(sdr);
 }

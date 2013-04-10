@@ -8,7 +8,6 @@
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 
 #include "ltpP.h"
-#include "ltp.h"
 #include "ion.h"
 
 static int		_echo(int *newValue)
@@ -143,9 +142,9 @@ static int	attachToLtp()
 
 static void	executeAdd(int tokenCount, char **tokens)
 {
-	unsigned long	engineId;
-	int		qTime = 1;		/*	Default.	*/
-	int		purge = 0;		/*	Default.	*/
+	uvast	engineId;
+	int	qTime = 1;			/*	Default.	*/
+	int	purge = 0;			/*	Default.	*/
 
 	if (tokenCount < 2)
 	{
@@ -196,7 +195,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		engineId = strtoul(tokens[2], NULL, 0);
+		engineId = strtouvast(tokens[2]);
 		oK(addSpan(engineId, strtol(tokens[3], NULL, 0),
 				strtol(tokens[4], NULL, 0),
 				strtol(tokens[5], NULL, 0),
@@ -211,9 +210,9 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 static void	executeChange(int tokenCount, char **tokens)
 {
-	unsigned long	engineId;
-	int		qTime = 1;		/*	Default.	*/
-	int		purge = 0;		/*	Default.	*/
+	uvast	engineId;
+	int	qTime = 1;			/*	Default.	*/
+	int	purge = 0;			/*	Default.	*/
 
 	if (tokenCount < 2)
 	{
@@ -264,7 +263,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		engineId = strtoul(tokens[2], NULL, 0);
+		engineId = strtouvast(tokens[2]);
 		oK(updateSpan(engineId, strtol(tokens[3], NULL, 0),
 				strtol(tokens[4], NULL, 0),
 				strtol(tokens[5], NULL, 0),
@@ -279,7 +278,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
-	unsigned long	engineId;
+	uvast	engineId;
 
 	if (tokenCount < 2)
 	{
@@ -295,7 +294,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		engineId = strtoul(tokens[2], NULL, 0);
+		engineId = strtouvast(tokens[2]);
 		removeSpan(engineId);
 		return;
 	}
@@ -313,7 +312,8 @@ static void	printSpan(LtpVspan *vspan)
 	CHKVOID(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr, vspan->spanElt));
 	sdr_string_read(sdr, cmd, span->lsoCmd);
-	isprintf(buffer, sizeof buffer, "%lu  pid: %d  cmd: %.128s",
+	isprintf(buffer, sizeof buffer,
+			UVAST_FIELDSPEC "  pid: %d  cmd: %.128s",
 			vspan->engineId, vspan->lsoPid, cmd);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "\tmax export sessions: %u",
@@ -328,8 +328,8 @@ aggregation time limit: %u", span->aggrSizeLimit, span->aggrTimeLimit);
 	isprintf(buffer, sizeof buffer, "\tmax segment size: %u  queuing \
 latency: %u  purge: %d", span->maxSegmentSize, span->remoteQtime, span->purge);
 	printText(buffer);
-	isprintf(buffer, sizeof buffer, "\towltOutbound: %u  localXmit: %lu  \
-owltInbound: %u  remoteXmit: %lu", vspan->owltOutbound, vspan->localXmitRate,
+	isprintf(buffer, sizeof buffer, "\towltOutbound: %u  localXmit: %u  \
+owltInbound: %u  remoteXmit: %u", vspan->owltOutbound, vspan->localXmitRate,
 			vspan->owltInbound, vspan->remoteXmitRate);
 	sdr_exit_xn(sdr);
 	printText(buffer);
@@ -338,7 +338,7 @@ owltInbound: %u  remoteXmit: %lu", vspan->owltOutbound, vspan->localXmitRate,
 static void	infoSpan(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	engineId;
+	uvast		engineId;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 
@@ -348,7 +348,7 @@ static void	infoSpan(int tokenCount, char **tokens)
 		return;
 	}
 
-	engineId = strtoul(tokens[2], NULL, 0);
+	engineId = strtouvast(tokens[2]);
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	findSpan(engineId, &vspan, &vspanElt);
 	sdr_exit_xn(sdr);
@@ -397,8 +397,8 @@ static void	listSpans(int tokenCount, char **tokens)
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, ltpdbObj);
-	isprintf(buffer, sizeof buffer, "(Engine %lu  Queuing latency: %u \
-LSI pid: %d)", ltpdb->ownEngineId, ltpdb->ownQtime, vdb->lsiPid);
+	isprintf(buffer, sizeof buffer,"(Engine " UVAST_FIELDSPEC "  Queuing \
+latency: %u  LSI pid: %d)", ltpdb->ownEngineId, ltpdb->ownQtime, vdb->lsiPid);
 	printText(buffer);
 	for (elt = sm_list_first(ionwm, vdb->spans); elt;
 			elt = sm_list_next(ionwm, elt))

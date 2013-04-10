@@ -1,0 +1,8 @@
+#!/bin/bash
+# Samuel Jero
+# Ohio University
+# March 5, 2013
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion.log ./data ./bpdriverAduFile ./testfile* ./bpacq.*

@@ -70,7 +70,7 @@ checkacslist(expectedCount = 0)
 ##
 import random
 random.seed(123456)
-x = range(0, 100)
+x = range(0, 50)
 random.shuffle(x)
 print "Sending in this order: %s" % (x)
 for i in x:
@@ -79,7 +79,7 @@ for i in x:
 receiveall(10.0)
 
 checkcustody()
-checkacslist(expectedCount = 100)
+checkacslist(expectedCount = 50)
 clearcustody("ipn:1.0")
 checkcustody()
 checkacslist(expectedCount = 0)
@@ -99,13 +99,13 @@ for k in range(1, 2):
     for j in range(0,10):
         x = range(0, 100)
         random.shuffle(x)
-        x = x[:80]
+        x = x[:50]
         print "Sending at time %s from ipn:13.%d: %s" % (reference_time % j, k, x)
         for i in x:
             sendexpectacsandcustody("ipn:2.0", "ipn:13.%d" % k, reference_time % j, i, k*10000*10000 + j*10000 + i)
         receiveall(10.0)
         checkcustody()
-        checkacslist(expectedCount = 80)
+        checkacslist(expectedCount = 50)
         clearcustody("ipn:1.0")
         checkacslist(expectedCount = 0)
 

@@ -69,48 +69,26 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 
 	fileRef = zco_create_file_ref(sdr, fileName, NULL);
-	if (fileRef == 0)
+	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
 	{
-		sdr_cancel_xn(sdr);
 		bp_close(sap);
 		putErrmsg("bpsendfile can't create file ref.", NULL);
 		return 0;
 	}
 	
-	bundleZco = zco_create(sdr, ZcoFileSource, fileRef, 0, aduLength);
-	if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength, NULL);
+	if (bundleZco == 0)
 	{
-		bp_close(sap);
 		putErrmsg("bpsendfile can't create ZCO.", NULL);
-		return 0;
 	}
-
-	while (1)
+	else
 	{
-		switch (bp_send(sap, BP_NONBLOCKING, destEid, NULL, 300,
-				priority, custodySwitch, 0, 0,
-				&extendedCOS, bundleZco, &newBundle))
+		if (bp_send(sap, destEid, NULL, 300, priority, custodySwitch,
+				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
 		{
-		case 0:		/*	No space for bundle.		*/
-			if (errno == EWOULDBLOCK)
-			{
-				microsnooze(250000);
-				continue;
-			}
-
-			/*	Intentional fall-through to next case.	*/
-
-		case -1:
 			putErrmsg("bpsendfile can't send file in bundle.",
 					itoa(aduLength));
-
-			/*	Intentional fall-through to next case.	*/
-
-		default:
-			break;	/*	Out of switch.			*/
 		}
-
-		break;		/*	Out of loop.			*/
 	}
 
 	bp_close(sap);

@@ -37,11 +37,13 @@ dynamic routing.  The Bundle Protocol (BP) specification is defined
 in Internet RFC 5050.
 
 I<dgr> (Datagram Retransmission), a library that enables data to be
-transmitted via UDP with reliability comparable to that provided by TCP.
+transmitted via UDP with reliability comparable to that provided by TCP.  DGR
+is an alternative implementation of LTP, designed for use within an internet.
 
-I<ams> (Asynchronous Message Service) and I<cfdp> (CCSDS File Delivery
-Protocol), application-layer services that are not part of the DTN
-architecture but utilize underlying DTN protocols.
+I<ams> (Asynchronous Message Service), I<cfdp> (CCSDS File Delivery
+Protocol), and I<bss> (Bundle Streaming Service), application-layer
+services that are not part of the DTN architecture but utilize
+underlying DTN protocols.
 
 =back
 
@@ -106,7 +108,7 @@ non-memory-protected environment, such as VxWorks, where all ION resource
 access variables are shared by all tasks: no single task could detach
 without crashing all other ION tasks.
 
-=item void ionProd(unsigned long fromNode, unsigned long toNode, unsigned long xmitRate, unsigned int owlt)
+=item void ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate, unsigned int owlt)
 
 This function is designed to be called from an operating environment command
 or a fault protection routine, to enable operation of a node to resume when
@@ -137,6 +139,45 @@ any) is equal to the corresponding character of the rule EID B<and> either the
 first '~' character in the clearing EID is the clearing EID's last character
 or else the rule EID and clearing EID are of equal length.
 
+=item Object ionCreateZco(ZcoMedium source, Object location, vast offset, vast length, int *control)
+
+This function provides a "blocking" implementation of admission control in
+ION.  Like zco_create(), it constructs a zero-copy object (see zco(3)) that
+contains a single extent of source data residing at I<location> in I<source>,
+of which the first I<offset> bytes are omitted and the next I<length> bytes
+are included.  But unlike zco_create(), ionCreateZco() will block (rather
+than return an immediate error indication) so long as the total amount of
+space in I<source> that is available for new ZCO formation is less than
+I<length>.  ionCreateZco() returns when either (a) space has become
+available and the ZCO has been created, in which case the location of
+the ZCO is returned, or (b) the function has failed (in which case
+((Object) -1) is returned), or (c) the function was interrupted by
+ionCancelZcoSpaceRequest() before space for the ZCO became available
+(in which case 0 is returned).
+
+ionCreateZco() is interruptible if and only if a non-NULL value of I<control>
+is passed to it; in that case, passing the B<same> value of I<control> to
+the ionCancelZcoSpaceRequest() function will interrupt ionCreateZco().  Note
+that the integer variable referenced by I<control> functions as a private ION
+work area; its content need not be initialized -- and must not be altered -- by
+the application.  Be careful when referencing a dynamic variable in I<control>;
+static variables are safer.  If I<control> is NULL then ionCreateZco() is not
+interruptible by the application.
+
+=item vast ionAppendZcoExtent(Object zco, ZcoMedium source, Object location, vast offset, vast length, int *control)
+
+Similar to ionCreateZco() except that instead of creating a new ZCO it appends
+an additional extent to an existing ZCO. Returns -1 on failure, 0 on
+interruption by ionCancelZcoSpaceRequest(), I<length> on success.
+
+=item void ionCancelZcoSpaceRequest(int *control)
+
+This function simply interrupts the currently blocked invocation of
+ionCreateZco() or ionAppendZcoExtent() that cites the same I<control>
+value.  ionCancelZcoSpaceRequest() is intended to be called from a signal
+handler, so that a signal can be used to cleanly terminate a thread that
+is waiting for an opportunity to create a new ZCO source data extent.
+
 =item Sdr getIonsdr()
 
 Returns a pointer to the SDR management object, previously acquired by calling
@@ -158,7 +199,7 @@ Returns 1 if the calling task is the owner of the current SDR transaction.
 Assuring that ION is locked while related critical operations are performed
 is essential to the avoidance of race conditions.
 
-=item unsigned long getOwnNodeNbr()
+=item uvast getOwnNodeNbr()
 
 Returns the Bundle Protocol node number identifying this computer, as
 declared when ION was initialized by I<ionadmin>.
@@ -300,7 +341,7 @@ Statistics messages have the following format:
 
 =over 4
 
-{I<yyyy/mm/dd hh:mm:ss>} [x] I<xxx> from I<tttttttt> to I<TTTTTTTT>: (0) I<aaaa> I<bbbbbbbbbb> (1) I<cccc> I<dddddddddd> (2) I<eeee> I<ffffffffff> (@) I<gggg> I<hhhhhhhhhh>
+{I<yyyy/mm/dd hh:mm:ss>} [x] I<xxx> from I<tttttttt> to I<TTTTTTTT>: (0) I<aaaa> I<bbbbbbbbbb> (1) I<cccc> I<dddddddddd> (2) I<eeee> I<ffffffffff> (+) I<gggg> I<hhhhhhhhhh>
 
 =back
 
@@ -340,11 +381,10 @@ on the local node.
 
 This message reports on the custody refusal signals received at the local node.
 
-=item B<ctt>
+=item B<rfw>
 
-This message reports on the custodial bundles for which convergence-layer
-transmission failed at this node, nominally causing the bundles to be
-re-forwarded.
+This message reports on bundles for which convergence-layer transmission
+failed at this node, causing the bundles to be re-forwarded.
 
 =item B<exp>
 
@@ -354,18 +394,17 @@ expiration.
 =back
 
 I<tttttttt> and I<TTTTTTTT> indicate the start and end times of the interval
-for which statistics are being reported, expressed as a number of seconds
-since the start of the DTN epoch.  I<TTTTTTTT> is the current time and
-I<tttttttt> is the time of the prior report.
+for which statistics are being reported, expressed in I<yyyy/mm/dd-hh:mm:ss>
+format.  I<TTTTTTTT> is the current time and I<tttttttt> is the time of the
+prior report.
 
 Each of the four value pairs following the colon (:) reports on the number
 of bundles counted for the indicated type of network activity, for the
 indicated traffic flow, followed by the sum of the sizes of the payloads
 of all those bundles.  The four traffic flows for which statistics are
-reported are "(0)" the priority-0 or "bulk" non-administrative traffic,
-"(1)" the priority-1 non-administrative traffic, "(2)" the priority-2
-"expedited" non-administrative traffic, and "(@)" all administrative traffic
-regardless of priority.
+reported are "(0)" the priority-0 or "bulk" traffic, "(1)" the priority-1
+"standard" traffic, "(2)" the priority-2 "expedited" traffic, and "(+)"
+the total for all classes of service.
 
 =item Free-form messages
 
@@ -376,4 +415,4 @@ just as for the documented status message types.
 
 =head1 SEE ALSO
 
-ionadmin(1), rfxclock(1), bpstats(1), llcv(3), lyst(3), memmgr(3), platform(3), psm(3), sdr(3), zco(3), ltp(3), bp(3), I<AMS Programmer's Guide>
+ionadmin(1), rfxclock(1), bpstats(1), llcv(3), lyst(3), memmgr(3), platform(3), psm(3), sdr(3), zco(3), ltp(3), bp(3), cfdp(3), ams(3), bss(3)

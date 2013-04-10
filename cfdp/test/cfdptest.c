@@ -112,7 +112,7 @@ static void     printText(char *text)
 static void	setDestinationEntityNbr(int tokenCount, char **tokens,
 			CfdpNumber *destinationEntityNbr)
 {
-	unsigned long	entityId;
+	uvast	entityId;
 
 	if (tokenCount != 2)
 	{
@@ -161,7 +161,7 @@ static void	setClassOfService(int tokenCount, char **tokens,
 		return;
 	}
 
-	priority = strtol(tokens[1], NULL, 0);
+	priority = strtoul(tokens[1], NULL, 0);
 	utParms->classOfService = priority;
 }
 
@@ -175,7 +175,7 @@ static void	setOrdinal(int tokenCount, char **tokens, BpUtParms *utParms)
 		return;
 	}
 
-	ordinal = strtol(tokens[1], NULL, 0);
+	ordinal = strtoul(tokens[1], NULL, 0);
 	utParms->extendedCOS.ordinal = ordinal;
 }
 
@@ -189,7 +189,7 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 		return;
 	}
 
-	mode = strtol(tokens[1], NULL, 0);
+	mode = strtoul(tokens[1], NULL, 0);
 	if (mode & 0x01)	/*	Unreliable.			*/
 	{
 		utParms->extendedCOS.flags |= BP_BEST_EFFORT;
@@ -287,7 +287,7 @@ static void	setCriticality(int tokenCount, char **tokens,
 		return;
 	}
 
-	criticality = (strtol(tokens[1], NULL, 0) == 0 ? 0 : 1);
+	criticality = (strtoul(tokens[1], NULL, 0) == 0 ? 0 : 1);
 	if (criticality == 1)
 	{
 		utParms->extendedCOS.flags |= BP_MINIMUM_LATENCY;
@@ -308,7 +308,7 @@ static void	setTTL(int tokenCount, char **tokens, BpUtParms *utParms)
 		return;
 	}
 
-	TTL = strtol(tokens[1], NULL, 0);
+	TTL = strtoul(tokens[1], NULL, 0);
 	utParms->lifespan = TTL;
 }
 
@@ -649,7 +649,7 @@ static int	runCfdptestInteractive()
 
 	/*	Start the receiver thread.				*/
 
-	if (pthread_create(&receiverThread, NULL, handleEvents, &running))
+	if (pthread_begin(&receiverThread, NULL, handleEvents, &running))
 	{
 		putSysErrmsg("cfdptest can't create receiver thread", NULL);
 		return 1;

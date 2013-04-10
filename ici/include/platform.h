@@ -17,6 +17,12 @@
 extern "C" {
 #endif
 
+#ifdef uClibc
+#ifndef linux
+#define linux
+#endif
+#endif
+
 #define	MAX_POSIX_TIME	2147483644
 
 /*	SPACE_ORDER is log2 of the number of bytes in an address, i.e.:
@@ -29,6 +35,51 @@ extern "C" {
 
 #ifndef SPACE_ORDER
 #define SPACE_ORDER	2
+#endif
+
+#if (defined(RTEMS) || defined(uClibc))
+/*	In RTEMS 4.9, defining the first field of a struct as
+ *	"long long" apparently doesn't cause the struct (nor that
+ *	first field) to be aligned on a "long long" boundary, so
+ *	we get alignment errors.  For now, we get around this by
+ *	simply defining "vast" as "long"; node numbers larger than
+ *	4G won't be processed properly on an RTEMS platform.  At
+ *	some point somebody may figure out a workaround in the
+ *	compiler so that we can fix this.
+ *
+ *	In uClibc, support for "long long" integers apparently
+ *	requires that libgcc_s.so.1 be installed.  Because our
+ *	test environment doesn't include this library, we have
+ *	to define "vast" as "long"; node numbers larger than 4G
+ *	won't be processed properly on a uClibc platform.  System
+ *	integrators who can provide libgcc_s.so.1 should be able
+ *	to restore this functionality by revising this conditional
+ *	compilation.							*/
+typedef long			vast;
+typedef unsigned long		uvast;
+#define	VAST_FIELDSPEC		"%l"
+#define	UVAST_FIELDSPEC		"%lu"
+#define	strtovast(x)		strtol(x, NULL, 0)
+#define	strtouvast(x)		strtoul(x, NULL, 0)
+#elif (SPACE_ORDER < 3)	/*	32-bit machines.			*/
+typedef long long		vast;
+typedef unsigned long long	uvast;
+#ifdef mingw
+#define	VAST_FIELDSPEC		"%I64d"
+#define	UVAST_FIELDSPEC		"%I64u"
+#else
+#define	VAST_FIELDSPEC		"%ll"
+#define	UVAST_FIELDSPEC		"%llu"
+#endif
+#define	strtovast(x)		strtoll(x, NULL, 0)
+#define	strtouvast(x)		strtoull(x, NULL, 0)
+#else			/*	64-bit machines.			*/
+typedef long			vast;
+typedef unsigned long		uvast;
+#define	VAST_FIELDSPEC		"%l"
+#define	UVAST_FIELDSPEC		"%lu"
+#define	strtovast(x)		strtol(x, NULL, 0)
+#define	strtouvast(x)		strtoul(x, NULL, 0)
 #endif
 
 #define WORD_SIZE	(1 << SPACE_ORDER)
@@ -142,9 +193,9 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 
 #ifndef LONG_MAX
 
-#if defined(_ILP32)
+#if defined (_ILP32)
 #define LONG_MAX 0x7fffffffL
-#elif defined(_LP64)
+#elif defined (_LP64)
 #define LONG_MAX 0x7fffffffffffffffL
 #elif (SIZEOF_LONG == 4)
 #define LONG_MAX 0x7fffffffL
@@ -170,7 +221,7 @@ typedef void			(*SignalHandler)(int);
 
 typedef struct
 {
-	char			opaque[64];
+	uvast			opaque[8];
 } ResourceLock;
 
 #ifdef TORNADO_2_0_2
@@ -381,15 +432,18 @@ extern int getpriority(int, id_t);
 #define	SEM_NSEMS_MAX		256
 #endif
 
-extern void pthread_cancel(pthread_t);
-
 typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define PRIVATE_SYMTAB
 
 #else				/****	Not bionic		     ****/
+#ifdef uClibc
+#include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
+#include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
+#else				/****	Not bionic and not uClibc    ****/
 #include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <execinfo.h>		/****	...to get backtrace	     ****/
+#endif				/*	End of #ifdef uClibc	     ****/
 #endif				/****	End of #ifdef bionic	     ****/
 
 #define	_MULTITHREADED
@@ -425,7 +479,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #endif				/****	End of #ifdef (unix)         ****/
 
-#if defined(SVR4_SHM)		/****	SVR4_SHM		     ****/
+#if defined (SVR4_SHM)		/****	SVR4_SHM		     ****/
 #include <sys/shm.h>
 #elif defined (POSIX1B_SHM)
 #include <sys/mman.h>
@@ -548,8 +602,8 @@ typedef struct
 	unsigned char	text[10];
 } Sdnv;
 
-extern void			encodeSdnv(Sdnv *, unsigned long);
-extern int			decodeSdnv(unsigned long *, unsigned char *);
+extern void			encodeSdnv(Sdnv *, uvast);
+extern int			decodeSdnv(uvast *, unsigned char *);
 
 typedef struct
 {

@@ -13,7 +13,7 @@
 
 #define	DEFAULT_ADU_LENGTH	(60000)
 
-static int	run_ltpdriver(unsigned long destEngineId, int clientId,
+static int	run_ltpdriver(uvast destEngineId, int clientId,
 			int cyclesRemaining, int greenLength, int sduLength)
 {
 	static char	buffer[DEFAULT_ADU_LENGTH] = "test...";
@@ -24,7 +24,7 @@ static int	run_ltpdriver(unsigned long destEngineId, int clientId,
 	int		bytesRemaining;
 	int		bytesToWrite;
 	Object		fileRef;
-	Object		zcoRef;
+	Object		zco;
 	LtpSessionId	sessionId;
 	int		bytesSent = 0;
 	time_t		startTime;
@@ -122,16 +122,15 @@ static int	run_ltpdriver(unsigned long destEngineId, int clientId,
 			redLength = 0;
 		}
 
-		CHKZERO(sdr_begin_xn(sdr));
-		zcoRef = zco_create(sdr, ZcoFileSource, fileRef, 0,
-				sduLength);
-		if (sdr_end_xn(sdr) < 0 || zcoRef == 0)
+		zco = ionCreateZco(ZcoFileSource, fileRef, 0, sduLength, NULL);
+		if (zco == 0)
 		{
 			putErrmsg("ltpdriver can't create ZCO.", NULL);
-			return 0;
+			running = 0;
+			continue;
 		}
 
-		switch (ltp_send(destEngineId, clientId, zcoRef, redLength,
+		switch (ltp_send(destEngineId, clientId, zco, redLength,
 				&sessionId))
 		{
 		case 0:
@@ -198,7 +197,7 @@ static int	run_ltpdriver(unsigned long destEngineId, int clientId,
 int	ltpdriver(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	unsigned long	destEngineId = (unsigned long) a1;
+	uvast		destEngineId = (uvast) a1;
 	int		clientId = a2;
 	int		cycles = a3;
 	int		greenLen = a4;
@@ -206,7 +205,7 @@ int	ltpdriver(int a1, int a2, int a3, int a4, int a5,
 #else
 int	main(int argc, char **argv)
 {
-	unsigned long	destEngineId = 0;
+	uvast		destEngineId = 0;
 	int		clientId = 0;
 	int		cycles = 0;
 	int		greenLen = 0;
@@ -228,7 +227,7 @@ int	main(int argc, char **argv)
 		clientId = strtol(argv[2], NULL, 0);
 
 	case 2:
-		destEngineId = strtoul(argv[1], NULL, 0);
+		destEngineId = strtouvast(argv[1]);
 
 	default:
 		break;

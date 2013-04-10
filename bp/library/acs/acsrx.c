@@ -64,7 +64,7 @@ static char *printAcs(const Acs *acs)
 		fillLElt = lyst_next(fillLElt))
 	{
 		fillElt = lyst_data(fillLElt);
-		rc = snprintf(cursor, reprAcsLeft, "%lu(%lu),", fillElt->start, fillElt->length);
+		rc = snprintf(cursor, reprAcsLeft, "%u(%u),", fillElt->start, fillElt->length);
 		if (rc < 0 || rc >= reprAcsLeft) {
 			sprintf(cursor, "...");
 			return reprAcs;
@@ -137,13 +137,13 @@ int	parseAggregateCtSignal(void **acsptr, unsigned char *cursor,
 			eraseAggregateCtSignal(acs);
 			return -1;
 		}
-		extractSdnv(&fillElt->start, &cursor, &unparsedBytes);
+		extractSmallSdnv(&fillElt->start, &cursor, &unparsedBytes);
 		if (isLastFill)
 		{
 			fillElt->start += lastFill;
 		}
 
-		extractSdnv(&fillElt->length, &cursor, &unparsedBytes);
+		extractSmallSdnv(&fillElt->length, &cursor, &unparsedBytes);
 
 		lastFill = fillElt->start + fillElt->length - 1;
 		isLastFill = 1;
@@ -197,7 +197,7 @@ static void acsForeach(const Acs *acs,
 				return;
 			}
 			if (rc == 1) {
-				ACSLOG_WARN("Received an unknown custody ID (%lu)", cid.id);
+				ACSLOG_WARN("Received an unknown custody ID (%u)", cid.id);
 				continue;
 			}
 
@@ -225,7 +225,7 @@ static void handleAcss(BpCtSignal *ctSignal, void *userdata)
 {
 	handleAcssArgs_t *args = (handleAcssArgs_t *)(userdata);
 
-	ACSLOG_DEBUG("Handling an ACS for %s, %lu.%lu, %lu, %lu", ctSignal->sourceEid,
+	ACSLOG_DEBUG("Handling an ACS for %s, %u.%u, %u, %u", ctSignal->sourceEid,
 		ctSignal->creationTime.seconds, ctSignal->creationTime.count, 
 		ctSignal->fragmentOffset, ctSignal->fragmentLength);
 

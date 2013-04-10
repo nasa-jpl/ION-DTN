@@ -406,7 +406,7 @@ cd ../2.bench.ltp
 ./ionstop &
 cd ../3.bench.ltp
 ./ionstop &
-sleep 5
+sleep 8
 killm
 echo "...benchmarking terminated."
 exit $RETVAL

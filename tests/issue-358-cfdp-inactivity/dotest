@@ -60,41 +60,40 @@ BPCP_PID=$!
 
 #End CLO
 sleep 5
+echo
 echo "Killing bpcp..."
 kill -2 $BPCP_PID >/dev/null 2>&1
 echo "Killing CLO..."
-pkill -2 tcpclo >/dev/null 2>&1
+pkill -15 tcpclo >/dev/null 2>&1
 
 
 #Waiting
 echo "Waiting 5 seconds for inactivity deadline trigger..."
 sleep 5
-#  cd ..
 
-#Killing cfdptest
+#Killing bpcpd
 echo "Killing bpcpd..."
 kill -2 $CT_PID >/dev/null 2>&1
 sleep 3
 kill -9 $CT_PID >/dev/null 2>&1
-
 
 #Test
 test=`grep "type 10, 'fault'" output`
 echo $test
 if  [ -e ./output ] && [ -n "$test" ]; then
 	echo "OK: Inactivity deadline trigger fired. SUCCESS!!"
-	./cleanup
+	cd ..
+	#./cleanup
+	cd ipn.cfdp.bp.tcp
 	RETVAL=0
 else
 	echo "ERROR: Inactivity deadline trigger didn't fire. FAILED!!"
-	killm
 	RETVAL=1
 fi
 
+sleep 10 
 #End ION
 echo "Killing ION..."
-#  cd ipn.cfdp.bp.tcp
 ./ionstop
-#  cd ..
 killm
 exit $RETVAL

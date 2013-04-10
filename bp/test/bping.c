@@ -46,6 +46,7 @@ static pthread_mutex_t sdrmutex;
 static pthread_t receiveResponsesThread = 0;
 static pthread_t sendRequestsThread = 0;
 static BpCustodySwitch custodySwitch = NoCustodyRequested;
+static int controlZco;
 
 static Sdr      sdr;
 static BpSAP    sap;
@@ -90,6 +91,8 @@ static void handleQuit()
 	{
 		pthread_kill(sendRequestsThread, SIGINT);
 	}
+
+	ionCancelZcoSpaceRequest(&controlZco);
 }
 
 /* Subtract the `struct timeval' values X and Y, storing the result in RESULT.
@@ -290,19 +293,21 @@ static Object bping_new_ping(void)
 
 	CHKZERO(sdr_begin_xn(sdr));
 	bundleMessage = sdr_malloc(sdr, pingPayloadLen);
-	if(bundleMessage == 0) {
-		sdr_cancel_xn(sdr);
+	if(bundleMessage) {
+		sdr_write(sdr, bundleMessage, pingPayload, pingPayloadLen);
+	}
+
+	if(sdr_end_xn(sdr)) {
 		bp_close(sap);
 		putErrmsg("No space for bping text.", NULL);
 		fprintf(stderr, "No space for bping text.\n");
 		return 0;
 	}
-	sdr_write(sdr, bundleMessage, pingPayload, pingPayloadLen);
 
 	/* Craft the bundle object */
-	bundleZco = zco_create(sdr, ZcoSdrSource, bundleMessage, 0, 
-			pingPayloadLen);
-	if(sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	bundleZco = ionCreateZco(ZcoSdrSource, bundleMessage, 0, 
+			pingPayloadLen, &controlZco);
+	if(bundleZco == 0)
 	{
 		bp_close(sap);
 		putErrmsg("bping can't create bundle ZCO", NULL);
@@ -332,8 +337,8 @@ static void *sendRequests(void *x)
 			pthread_exit(NULL);
 		}
 
-		if(bp_send(sap, BP_BLOCKING, dstEid, rptEid, ttl, priority,
-					custodySwitch, rrFlags, 0, NULL, bundleZco, &newBundle) <= 0)
+		if(bp_send(sap, dstEid, rptEid, ttl, priority, custodySwitch,
+				rrFlags, 0, NULL, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bping can't send ping bundle.", NULL);
 			fprintf(stderr, "bping can't send ping bundle.\n");
@@ -472,7 +477,7 @@ int main(int argc, char **argv)
 	sdr = bp_get_sdr();
 
 
-	if(pthread_create(&receiveResponsesThread, NULL, receiveResponses, 
+	if(pthread_begin(&receiveResponsesThread, NULL, receiveResponses, 
 				NULL) < 0) {
 		putErrmsg("Can't make recvResponsesThread.", NULL);
 		fprintf(stderr, "Can't make recvResponsesThread.\n");
@@ -480,7 +485,7 @@ int main(int argc, char **argv)
 		exit(BPING_EXIT_ERROR);
 	}
 
-	if(pthread_create(&sendRequestsThread, NULL, sendRequests, NULL) < 0) {
+	if(pthread_begin(&sendRequestsThread, NULL, sendRequests, NULL) < 0) {
 		putErrmsg("Can't make sendRequestsThread.", NULL);
 		fprintf(stderr, "Can't make sendRequestsThread.\n");
 		bp_interrupt(sap);

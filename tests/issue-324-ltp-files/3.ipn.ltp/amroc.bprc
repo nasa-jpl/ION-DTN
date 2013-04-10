@@ -10,5 +10,6 @@ a induct ltp 3 ltpcli
 a outduct ltp 2 ltpclo
 a outduct ltp 3 ltpclo
 r 'ipnadmin amroc.ipnrc'
+e 1
 w 1
 s

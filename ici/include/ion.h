@@ -15,6 +15,7 @@
 #include "sdr.h"
 #include "smlist.h"
 #include "smrbt.h"
+#include "zco.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,8 +23,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2012-12-13 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.1.1"
+/* As of 2013-03-13 the sourceforge version number is this: */
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.1.2"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -37,12 +38,12 @@ extern "C" {
 #define	MAX_SPEED_MPS	(MAX_SPEED_MPH / 3600)
 
 #ifndef ION_SDR_MARGIN
-#define	ION_SDR_MARGIN		(20)	/*	Percent.		*/
+#define	ION_SDR_MARGIN	(20)		/*	Percent.		*/
 #endif
 #ifndef ION_OPS_ALLOC
-#define	ION_OPS_ALLOC		(20)	/*	Percent.		*/
+#define	ION_OPS_ALLOC	(20)		/*	Percent.		*/
 #endif
-#define	ION_SEQUESTERED		(ION_SDR_MARGIN + ION_OPS_ALLOC)
+#define	ION_SEQUESTERED	(ION_SDR_MARGIN + ION_OPS_ALLOC)
 
 typedef struct
 {
@@ -78,18 +79,18 @@ typedef struct
 {
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
-	unsigned long	fromNode;	/*	LTP engineID, a.k.a.	*/
-	unsigned long	toNode;		/*	... BP CBHE nodeNbr.	*/
-	unsigned long	xmitRate;	/*	In bytes per second.	*/
+	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
+	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
+	unsigned int	xmitRate;	/*	In bytes per second.	*/
 } IonContact;
 
 typedef struct
 {
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
-	unsigned long	fromNode;	/*	LTP engineID, a.k.a.	*/
-	unsigned long	toNode;		/*	... BP CBHE nodeNbr.	*/
-	unsigned long	owlt;		/*	In seconds.		*/
+	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
+	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
+	unsigned int	owlt;		/*	In seconds.		*/
 } IonRange;
 
 /*	The ION database is shared by BP, LTP, and RFX.			*/
@@ -98,7 +99,7 @@ typedef struct
 {
 	Object		contacts;	/*	SDR list: IonContact	*/
 	Object		ranges;		/*	SDR list: IonRange	*/
-	unsigned long	ownNodeNbr;
+	uvast		ownNodeNbr;
 	long		productionRate;	/*	Bundles sent by apps.	*/
 	long		consumptionRate;/*	Bundles rec'd by apps.	*/
 	double		occupancyCeiling;
@@ -148,21 +149,21 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	nodeNbr;	/*	Of the snubbing node.	*/
+	uvast		nodeNbr;	/*	Of the snubbing node.	*/
 	int		probeIsDue;	/*	Boolean.		*/
 } IonSnub;		/*	An uncooperative neighboring node.	*/
 
 typedef struct
 {
-	unsigned long	nodeNbr;	/*	As from IonContact.	*/
+	uvast		nodeNbr;	/*	As from IonContact.	*/
 	PsmAddress	snubs;		/*	SM list: IonSnub	*/
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
 } IonNode;		/*	A potential bundle destination node.	*/
 
 typedef struct
 {
-	unsigned long	destNodeNbr;
-	unsigned long	neighborNodeNbr;
+	uvast		destNodeNbr;
+	uvast		neighborNodeNbr;
 	time_t		time;
 } IonProbe;
 
@@ -174,12 +175,12 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	nodeNbr;	/*	As from IonContact.	*/
-	unsigned long	xmitRate;	/*	Xmit *to* neighbor.	*/
-	unsigned long	fireRate;	/*	Xmit *from* neighbor.	*/
-	unsigned long	recvRate;	/*	Recv from neighbor.	*/
-	unsigned long	prevXmitRate;	/*	Xmit *to* neighbor.	*/
-	unsigned long	prevRecvRate;	/*	Recv from neighbor.	*/
+	uvast		nodeNbr;	/*	As from IonContact.	*/
+	unsigned int	xmitRate;	/*	Xmit *to* neighbor.	*/
+	unsigned int	fireRate;	/*	Xmit *from* neighbor.	*/
+	unsigned int	recvRate;	/*	Recv from neighbor.	*/
+	unsigned int	prevXmitRate;	/*	Xmit *to* neighbor.	*/
+	unsigned int	prevRecvRate;	/*	Recv from neighbor.	*/
 	PsmAddress	node;		/*	Points to IonNode.	*/
 	unsigned int	owltInbound;	/*	In seconds.		*/
 	unsigned int	owltOutbound;	/*	In seconds.		*/
@@ -187,21 +188,21 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	fromNode;	/*	LTP engineID, a.k.a.	*/
-	unsigned long	toNode;		/*	... BP CBHE nodeNbr.	*/
+	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
+	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
-	unsigned long	owlt;		/*	Current, in seconds.	*/
+	unsigned int	owlt;		/*	Current, in seconds.	*/
 	Object		rangeElt;	/*	In iondb->ranges.	*/
 } IonRXref;
 
 typedef struct
 {
-	unsigned long	fromNode;	/*	LTP engineID, a.k.a.	*/
-	unsigned long	toNode;		/*	... BP CBHE nodeNbr.	*/
+	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
+	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
-	unsigned long	xmitRate;	/*	In bytes per second.	*/
+	unsigned int	xmitRate;	/*	In bytes per second.	*/
 	time_t		startXmit;	/*	Computed when inserted.	*/
 	time_t		stopXmit;	/*	Computed when inserted.	*/
 	time_t		startFire;	/*	Computed when inserted.	*/
@@ -242,6 +243,9 @@ typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
+	sm_SemId	zcoSemaphore;	/*	Signals availability.	*/
+	int		zcoClaimants;	/*	# of waiting tasks.	*/
+	int		zcoClaims;	/*	# of demands on ZCO.	*/
 	time_t		lastEditTime;	/*	Add/del contacts/ranges	*/
 	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
 	PsmAddress	neighbors;	/*	SM RB tree: IonNeighbor	*/
@@ -254,9 +258,9 @@ typedef struct
 typedef struct
 {
 	unsigned int	totalCount;
-	unsigned long	totalBytes;
+	uvast		totalBytes;
 	unsigned int	currentCount;
-	unsigned long	currentBytes;
+	uvast		currentBytes;
 } Tally;
 
 #ifndef MTAKE
@@ -270,14 +274,27 @@ extern void		*ionMemAtoP(unsigned long);
 extern unsigned long	ionMemPtoA(void *);
 
 extern int		ionInitialize(	IonParms *parms,
-					unsigned long ownNodeNbr);
+					uvast ownNodeNbr);
 extern int		ionAttach();
 extern void		ionDetach();
-extern void		ionProd(	unsigned long fromNode,
-					unsigned long toNode,
-					unsigned long xmitRate,
+extern void		ionProd(	uvast fromNode,
+					uvast toNode,
+					unsigned int xmitRate,
 					unsigned int owlt);
 extern void		ionTerminate();
+
+extern Object		ionCreateZco(	ZcoMedium source,
+					Object location,
+					vast offset,
+					vast length,
+					int *control);
+extern vast		ionAppendZcoExtent(Object zco,
+					ZcoMedium source,
+					Object location,
+					vast offset,
+					vast length,
+					int *control);
+extern void		ionCancelZcoSpaceRequest(int *control);
 
 extern Sdr		getIonsdr();
 extern Object		getIonDbObject();
@@ -285,7 +302,7 @@ extern PsmPartition	getIonwm();
 extern int		getIonMemoryMgr();
 extern IonVdb		*getIonVdb();
 extern char		*getIonWorkingDirectory();
-extern unsigned long	getOwnNodeNbr();
+extern uvast		getOwnNodeNbr();
 
 extern int		startIonMemTrace(int size);
 extern void		printIonMemTrace(int verbose);
@@ -308,8 +325,16 @@ extern void		writeTimestampUTC(time_t timestamp,
 					char *timestampBuffer);
 
 #define extractSdnv(into, from, remnant) \
-if (_extractSdnv(into, (unsigned char **) from, remnant, __LINE__) < 1) return 0
-extern int		_extractSdnv(	unsigned long *into,
+if (_extractSdnv(into, (unsigned char **) from, remnant, __LINE__) < 1) \
+return 0
+extern int		_extractSdnv(	uvast *into,
+					unsigned char **from,
+					int *nbrOfBytesRemaining,
+					int lineNbr);
+#define extractSmallSdnv(into, from, remnant) \
+if (_extractSmallSdnv(into, (unsigned char **) from, remnant, __LINE__) < 1) \
+return 0
+extern int		_extractSmallSdnv(unsigned int *into,
 					unsigned char **from,
 					int *nbrOfBytesRemaining,
 					int lineNbr);

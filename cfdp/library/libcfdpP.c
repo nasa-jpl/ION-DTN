@@ -148,7 +148,7 @@ int	checkFile(char *fileName)
 	/*	Spawn a separate thread that hangs on opening the file
 	 *	if there's an error in the file system.			*/
 
-	if (pthread_create(&statThread, &attr, checkFileExists, &parms))
+	if (pthread_begin(&statThread, &attr, checkFileExists, &parms))
 	{
 		oK(pthread_mutex_destroy(&mutex));
 		oK(pthread_cond_destroy(&cv));
@@ -183,7 +183,7 @@ int	checkFile(char *fileName)
 
 			/*	Timeout: child stuck, file undefined.	*/
 
-			pthread_cancel(statThread);
+			pthread_end(statThread);
 			parms.fileExists = 0;
 		}
 	}
@@ -1007,14 +1007,14 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 		Object *fduElt, int createIfNotFound)
 {
-	unsigned long	sourceEntityId;
-	Sdr		sdr = getIonsdr();
-	CfdpDB		*cfdpConstants = _cfdpConstants();
-	Object		elt;
-	Object		entityObj;
-	Entity		entity;
-	int		foundIt = 0;
-	Object		fduObj;
+	uvast	sourceEntityId;
+	Sdr	sdr = getIonsdr();
+	CfdpDB	*cfdpConstants = _cfdpConstants();
+	Object	elt;
+	Object	entityObj;
+	Entity	entity;
+	int	foundIt = 0;
+	Object	fduObj;
 
 	CHKZERO(transactionId);
 	CHKZERO(fduBuf);
@@ -2345,14 +2345,14 @@ static Object	selectOutPdu(OutFdu *fdu, int *pduIsFileData)
 
 			sdr_write(sdr, header, (char *) &offset, 4);
 			pdu = zco_create(sdr, ZcoSdrSource, header, 0, 4);
-			if (pdu == 0)
+			if (pdu == (Object) ERROR || pdu == 0)
 			{
 				putErrmsg("No space for file PDU.", NULL);
 				return 0;
 			}
 
 			if (zco_append_extent(sdr, pdu, ZcoFileSource,
-				fdu->fileRef, fdu->progress, length) < 0)
+				fdu->fileRef, fdu->progress, length) <= 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
 				return 0;
@@ -2569,9 +2569,9 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 
 static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 {
-	Sdr		sdr = getIonsdr();
-	unsigned long	sourceEntityId;
-	unsigned long	transactionNbr;
+	Sdr	sdr = getIonsdr();
+	uvast	sourceEntityId;
+	uvast	transactionNbr;
 
 	if (fdu->workingFileName == 0)
 	{
@@ -2579,7 +2579,8 @@ static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 				&fdu->transactionId.sourceEntityNbr);
 		cfdp_decompress_number(&transactionNbr,
 				&fdu->transactionId.transactionNbr);
-		isprintf(stringBuf, bufLen, "%s%ccfdp.%lu.%lu",
+		isprintf(stringBuf, bufLen,
+				"%s%ccfdp." UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
 				getIonWorkingDirectory(), ION_PATH_DELIMITER,
 				sourceEntityId, transactionNbr);
 		fdu->workingFileName = sdr_string_create(sdr, stringBuf);
@@ -3483,6 +3484,17 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 
 	event.fileSize = fileSize;	/*	Projected, not actual.	*/
 	event.messagesToUser = fdu->messagesToUser;
+
+	/*	Must transform the messagesToUser list into a
+	 *	MetadataList for delivery to application.		*/
+
+	sdr_list_user_data_set(sdr, event.messagesToUser,
+		sdr_list_insert_last(sdr, (getCfdpConstants())->usrmsgLists,
+		event.messagesToUser));
+
+	/*	Detach messagesToUser list from FDU so it won't be
+	 *	deleted twice.						*/
+
 	fdu->messagesToUser = 0;
 	if (enqueueCfdpEvent(&event) < 0)
 	{

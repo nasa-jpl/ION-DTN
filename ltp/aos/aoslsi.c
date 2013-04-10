@@ -88,7 +88,7 @@ static void	*handleDatagrams(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	aoslsi(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -173,7 +173,7 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 
 	rtp.running = 1;
-	if (pthread_create(&receiverThread, NULL, handleDatagrams, &rtp))
+	if (pthread_begin(&receiverThread, NULL, handleDatagrams, &rtp))
 	{
 		closesocket(rtp.linkSocket);
 		putSysErrmsg("aoslsi can't create receiver thread", NULL);

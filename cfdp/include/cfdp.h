@@ -167,19 +167,19 @@ typedef enum
 
 typedef struct
 {
-	unsigned int		offset;
-	unsigned int		length;
+	unsigned int	offset;
+	unsigned int	length;
 } CfdpExtent;
 
 typedef struct
 {
-	unsigned long		reportToNodeNbr;
-	int			lifespan;
-	int			classOfService;
-	BpCustodySwitch		custodySwitch;
-	unsigned char		srrFlags;
-	int			ackRequested;
-	BpExtendedCOS		extendedCOS;
+	uvast		reportToNodeNbr;
+	int		lifespan;
+	int		classOfService;
+	BpCustodySwitch	custodySwitch;
+	unsigned char	srrFlags;
+	int		ackRequested;
+	BpExtendedCOS	extendedCOS;
 } BpUtParms;
 
 /*	*	*	CFDP initialization	*	*	*	*/
@@ -193,8 +193,8 @@ extern int	cfdp_entity_is_started();
 
 /*	*	*	CFDP utility functions	*	*	*	*/
 
-extern void	cfdp_compress_number(CfdpNumber *toNbr, unsigned long from);
-extern void	cfdp_decompress_number(unsigned long *toNbr, CfdpNumber *from);
+extern void	cfdp_compress_number(CfdpNumber *toNbr, uvast from);
+extern void	cfdp_decompress_number(uvast *toNbr, CfdpNumber *from);
 
 extern void	cfdp_update_checksum(unsigned char octet,
 			unsigned int	*offset,

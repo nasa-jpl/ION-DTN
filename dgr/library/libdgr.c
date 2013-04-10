@@ -106,8 +106,8 @@ typedef struct
 {
 	/*	Segment ID is an LTP session (block) ID.		*/
 
-	unsigned long	engineId;
-	unsigned long	sessionNbr;
+	uvast		engineId;
+	unsigned int	sessionNbr;
 } SegmentId;
 
 typedef struct
@@ -227,8 +227,8 @@ typedef struct dgrsapst
 	 *	in ION's LTP implementation, but entirely volatile
 	 *	and allocated only to a single client service.		*/
 
-	unsigned long	engineId;
-	unsigned long	clientSvcId;
+	uvast		engineId;
+	unsigned int	clientSvcId;
 	DgrSapState	state;
 	MemAllocator	mtake;
 	MemDeallocator	mrelease;
@@ -236,7 +236,7 @@ typedef struct dgrsapst
 
 	pthread_mutex_t	sapMutex;
 	pthread_cond_t	sapCV;
-	unsigned long	sessionNbr;
+	unsigned int	sessionNbr;
 	int		backlog;	/*	Total, for all dests.	*/
 
 	Lyst		outboundMsgs;	/*	(SendReq *)		*/
@@ -364,15 +364,15 @@ static int	hashDestId(unsigned short portNbr, unsigned int ipAddress)
 static DgrDest	*findDest(DgrSAP *sap, unsigned short portNbr,
 			unsigned int ipAddress, int *idx)
 {
-	int	bin;
-	LystElt	elt;
-	long	i;
-	DgrDest	*dest;
+	int		bin;
+	LystElt		elt;
+	unsigned long	i;
+	DgrDest		*dest;
 
 	bin = hashDestId(portNbr, ipAddress);
 	for (elt = lyst_first(sap->destLysts[bin]); elt; elt = lyst_next(elt))
 	{
-		dest = sap->dests + (i = (long) lyst_data(elt));
+		dest = sap->dests + (i = (unsigned long) lyst_data(elt));
 		if (dest->ipAddress == ipAddress && dest->portNbr == portNbr)
 		{
 			*idx = i;
@@ -439,10 +439,10 @@ traceBytesToTransmit = dest->bytesToTransmit;
 static DgrDest	*addNewDest(DgrSAP *sap, unsigned short portNbr,
 			unsigned int ipAddress, int *destIdx)
 {
-	long	newDest;
-	DgrDest	*dest;
-	int	nextDest;
-	int	bin;
+	unsigned long	newDest;
+	DgrDest		*dest;
+	int		nextDest;
+	int		bin;
 
 	if (sap->destsCount < DGR_MAX_DESTS)	/*	Empty slot.	*/
 	{
@@ -739,7 +739,7 @@ static int	sendMessage(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 	unsigned char		*cursor;
 	int			length;
 	Sdnv			sdnv;
-	unsigned long		ckptSerialNbr = rand();
+	unsigned int		ckptSerialNbr = rand();
 	struct sockaddr_in	socketAddress;
 	struct sockaddr		*sockName = (struct sockaddr *) &socketAddress;
 
@@ -1167,8 +1167,8 @@ tracePredictedResends = dest->predictedResends;
 	return insertSendReq(sap, rec);
 }
 
-static int	arq(DgrSAP *sap, unsigned long engineId,
-			unsigned long sessionNbr, RecordOperation op)
+static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
+			RecordOperation op)
 {
 	DgrArqBucket	*bucket;
 	LystElt		elt;
@@ -1557,8 +1557,8 @@ static void	*sender(void *parm)
 	DgrSAP		*sap = (DgrSAP *) parm;
 	LystElt		elt;
 	SendReq		*req;
-	unsigned long	engineId;
-	unsigned long	sessionNbr;
+	uvast		engineId;
+	unsigned int	sessionNbr;
 #ifndef mingw
 	sigset_t	signals;
 
@@ -1611,8 +1611,8 @@ static void	*resender(void *parm)
 	struct timeval	currentTime;
 	LystElt		elt;
 	ResendReq	*req;
-	unsigned long	engineId;
-	unsigned long	sessionNbr;
+	uvast		engineId;
+	unsigned int	sessionNbr;
 #ifndef mingw
 	sigset_t	signals;
 
@@ -1678,7 +1678,7 @@ static void	*resender(void *parm)
 }
 
 static int	sendAck(DgrSAP *sap, char *reportBuffer, int headerLength,
-			unsigned long rptSerialNbr, struct sockaddr *sockName,
+			unsigned int rptSerialNbr, struct sockaddr *sockName,
 			socklen_t sockaddrlen)
 {
 	char	*cursor;
@@ -1715,13 +1715,13 @@ acknowledgement");
 }
 
 static int	sendReport(DgrSAP *sap, char *reportBuffer, int headerLength,
-			unsigned long ckptSerialNbr, unsigned long dataLength,
+			unsigned int ckptSerialNbr, unsigned int dataLength,
 			struct sockaddr *sockName, socklen_t sockaddrlen)
 {
 	char		*cursor;
 	int		length;
 	Sdnv		sdnv;
-	unsigned long	rptSerialNbr = rand();
+	unsigned int	rptSerialNbr = rand();
 
 	memcpy(reportBuffer, sap->inputBuffer, headerLength);
 	*reportBuffer = 8;	/*	00001000; report.		*/
@@ -1807,15 +1807,15 @@ static void	*receiver(void *parm)
 	unsigned int		versionNbr;
 	unsigned int		segmentType;
 	int			sdnvLength;
-	unsigned long		engineId;
-	unsigned long		sessionNbr;
+	uvast			engineId;
+	uvast			sessionNbr;
 	unsigned int		extensionCounts;
 	int			headerLength;
-	unsigned long		clientSvcId;
-	unsigned long		svcDataOffset;
-	unsigned long		svcDataLength;
-	unsigned long		ckptSerialNbr;
-	unsigned long		rptSerialNbr;
+	uvast			clientSvcId;
+	uvast			svcDataOffset;
+	uvast			svcDataLength;
+	uvast			ckptSerialNbr;
+	uvast			rptSerialNbr;
 	char			reportBuffer[64];
 	int			reclength;
 	DgrRecord		rec;
@@ -2193,7 +2193,7 @@ static void	cleanUpSAP(DgrSAP *sap)
 	MRELEASE(sap);
 }
 
-int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
+int	dgr_open(uvast ownEngineId, unsigned int clientSvcId,
 		unsigned short ownPortNbr, unsigned int ownIpAddress,
 		char *memmgrName, DgrSAP **sapp, DgrRC *rc)
 {
@@ -2352,9 +2352,9 @@ int	dgr_open(unsigned long ownEngineId, unsigned long clientSvcId,
 
 	/*	Spawn all threads.					*/
 
-	if (pthread_create(&(sap->sender), NULL, sender, sap)
-	|| pthread_create(&(sap->resender), NULL, resender, sap)
-	|| pthread_create(&(sap->receiver), NULL, receiver, sap))
+	if (pthread_begin(&(sap->sender), NULL, sender, sap)
+	|| pthread_begin(&(sap->resender), NULL, resender, sap)
+	|| pthread_begin(&(sap->receiver), NULL, receiver, sap))
 	{
 		putSysErrmsg("DGR can't spawn thread(s)", NULL);
 		cleanUpSAP(sap);

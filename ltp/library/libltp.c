@@ -32,7 +32,7 @@ int	ltp_engine_is_started()
 }
 
 static int	sduCanBeAppendedToBlock(LtpSpan *span,
-			unsigned long clientSvcId,
+			unsigned int clientSvcId,
 			unsigned int redPartLength)
 {
 	Sdr	sdr = getIonsdr();
@@ -137,7 +137,7 @@ static int	sduCanBeAppendedToBlock(LtpSpan *span,
 	return 1;
 }
 
-int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
+int	ltp_send(uvast destinationEngineId, unsigned int clientSvcId,
 		Object clientServiceData, unsigned int redPartLength,
 		LtpSessionId *sessionId)
 {
@@ -278,15 +278,15 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	return 1;
 }
 
-int	ltp_open(unsigned long clientSvcId)
+int	ltp_open(unsigned int clientSvcId)
 {
 	return ltpAttachClient(clientSvcId);
 }
 
-int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
+int	ltp_get_notice(unsigned int clientSvcId, LtpNoticeType *type,
 		LtpSessionId *sessionId, unsigned char *reasonCode,
-		unsigned char *endOfBlock, unsigned long *dataOffset,
-		unsigned long *dataLength, Object *data)
+		unsigned char *endOfBlock, unsigned int *dataOffset,
+		unsigned int *dataLength, Object *data)
 {
 	Sdr		sdr = getIonsdr();
 	LtpVdb		*vdb = getLtpVdb();
@@ -381,7 +381,7 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 	return 0;
 }
 
-void	ltp_interrupt(unsigned long clientSvcId)
+void	ltp_interrupt(unsigned int clientSvcId)
 {
 	LtpVdb		*vdb;
 	LtpVclient	*client;
@@ -412,7 +412,7 @@ void	ltp_release_data(Object data)
 	}
 }
 
-void	ltp_close(unsigned long clientSvcId)
+void	ltp_close(unsigned int clientSvcId)
 {
 	ltpDetachClient(clientSvcId);
 }

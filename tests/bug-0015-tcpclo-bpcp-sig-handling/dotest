@@ -1,0 +1,111 @@
+#!/bin/bash
+# Bug 0015 tcpclo and bpcp signal handling and semaphore signal interruptions
+# Samuel Jero
+# March 5, 2013
+# The issue-358-cfdp-inactivity and issue-352-bpcp tests are sufficient
+# to validate that the tcpclo and bpcp/bpcpd signal handlers work correctly.
+# This test ensures that ION correctly handles semaphore operations that
+# get interrupted by a signal. We do a simple loopback tcp transfer and
+# run a simple program that constantly attempts to perform a transaction.
+# We then fire a bunch of signals at this simple program. We then check
+# ion.log for failed assertions which would indicate a hijacked transaction.
+
+
+# documentation boilerplate
+CONFIGFILES=" \
+./loopback.ionrc \
+./loopback.ionconfig \
+./loopback.bprc  \
+./loopback.ionsecrc \
+./loopback.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To ensure that ION correctly handles semaphore operations that"
+echo "         get interrupted by a signal. We do a simple loopback tcp transfer"
+echo "         and run a simple program that constantly attempts to perform a"
+echo "         transaction. We then fire a bunch of signals at this simple"
+echo "         program. We then check ion.log for failed assertions which would"
+echo "         indicate a hijacked transaction."
+echo
+echo "CONFIG: The standard configuration loopback-tcp:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+echo "Starting ION..."
+
+./cleanup
+
+#Check for test program
+if ! [ -e ./test ]; then
+	echo ""
+	echo "Test program not available! Make sure to run make test to build it."
+	echo "Skipping this test"
+	echo ""
+	exit 2
+fi
+
+# Start node
+ionstart                \
+    -i ./loopback.ionrc \
+    -b ./loopback.bprc  \
+    -s ./loopback.ionsecrc \
+    -p ./loopback.ipnrc
+
+#Starting bprecvfile
+echo "Starting bpcounter..."
+bpcounter ipn:1.2 &
+BPRCV=$!
+sleep 5
+
+#Starting bpsendfile
+echo "Starting bpdriver..."
+bpdriver 100000 ipn:1.1 ipn:1.2 -1000 &
+BPSND=$!
+
+#Starting test program
+echo "Starting test program..."
+./test &
+TST=$!
+
+#Fire signals
+echo "Fire signals at test program..."
+for i in {1..20}
+do
+	kill -SIGINT $TST
+	kill -SIGINT $TST
+	kill -SIGINT $TST
+	kill -SIGINT $TST
+	sleep 1
+done
+
+#Test
+test=`grep "Assertion failed" ion.log`
+echo $test
+if [ -z "$test" ]; then
+	echo "OK: ION worked correctly when bombarded by signals. SUCCESS!!"
+	RETVAL=0
+else
+	echo "ERROR: ION crashed as a result of a signal. FAILED!!"
+	RETVAL=1
+fi
+
+sleep 2
+
+#End ION
+echo "Killing ION..."
+kill -SIGTERM $TST
+killm
+exit $RETVAL

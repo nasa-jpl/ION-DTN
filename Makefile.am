@@ -147,7 +147,8 @@ bin_PROGRAMS = \
 	$(ltpbin) \
 	$(dgrbin) \
 	$(bpbin) \
-	$(bssbin)
+	$(bssbin) \
+	$(restartbin)
 #	$(usercontribbin)
 
 if !ION_NASA_B
@@ -360,8 +361,7 @@ icibin = \
 	smlistsh \
 	rfxclock \
 	owlttb \
-	owltsim \
-	ionrestart
+	owltsim
 
 icilib = \
 	libici.la 
@@ -534,17 +534,7 @@ ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionwarn_SOURCES = ici/utils/ionwarn.c
 ionwarn_LDADD = libici.la $(LIBOBJS) 
-ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
-
-if ION_NASA_B
-ionrestart_SOURCES =  ici/restart/ionrestart.c
-ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la $(LIBOBJS)
-ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library $(AM_CFLAGS)
-else
-ionrestart_SOURCES =  ici/restart/ionrestart.c	
-ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
-ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
-endif
+ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)	
 
 # --- Test Executables --- #
 
@@ -1619,7 +1609,7 @@ bsscflags = -I$(srcdir)/bss/library -I$(srcdir)/bss/include
 
 bssbin = \
 	bssrecv \
-	bssStreamingApp \ 
+	bssStreamingApp \
 	bsscounter \
 	bssdriver
 
@@ -1679,6 +1669,26 @@ bsscounter_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 bssdriver_SOURCES = bss/test/bssdriver.c
 bssdriver_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bssdriver_CFLAGS = $(bsscflags) $(AM_CFLAGS)
+
+
+##########################
+#
+# RESTART SECTION
+#
+##########################
+
+restartbin = ionrestart
+
+# --- Utility Programs --- #
+if ION_NASA_B
+ionrestart_SOURCES = restart/utils/ionrestart.c
+ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la $(LIBOBJS)
+ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library $(AM_CFLAGS)
+else
+ionrestart_SOURCES = restart/utils/ionrestart.c
+ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
+ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
+endif
 
 
 ##############
@@ -1839,7 +1849,8 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/1500.loopback-brs/dotest \
 	tests/issue-188-common-cos-syntax/dotest \
 	tests/issue-260-teach-valgrind-mtake/domtake \
-	tests/issue-279-bpMemo-timeline/driver
+	tests/issue-279-bpMemo-timeline/driver \
+	tests/bug-0015-tcpclo-bpcp-sig-handling/test
 
 if !ION_NASA_B
 check_PROGRAMS+= \
@@ -1875,6 +1886,10 @@ tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) 
 tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline/driver.c
 tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_bug_0015_tcpclo_bpcp_sig_handling_test_SOURCES=tests/bug-0015-tcpclo-bpcp-sig-handling/test.c
+tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD=libbp.la libici.la $(LIBOBJS)
+tests_bug_0015_tcpclo_bpcp_sig_handling_test_CFLAGS=$(bpcflags) $(icicflags) $(AM_CFLAGS)
 
 if !ION_NASA_B
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c

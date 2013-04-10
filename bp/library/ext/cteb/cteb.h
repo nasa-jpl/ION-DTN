@@ -17,7 +17,7 @@
 #define	EXTENSION_TYPE_CTEB	10
 
 typedef struct {
-    unsigned long id;
+    unsigned int id;
 } CtebScratchpad;
 
 extern int	cteb_offer(ExtensionBlock *, Bundle *);

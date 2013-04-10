@@ -311,10 +311,10 @@ void bsp_pibRelease(ExtensionBlock *blk);
 
 
 unsigned char *bsp_pibGetSecResult(Object dataObj,
-                                   unsigned long dataLen,
+                                   unsigned int dataLen,
                                    char *cipherKeyName,
-					               unsigned long keyLen,
-                                   unsigned long *hashLen);
+					               unsigned int keyLen,
+                                   unsigned int *hashLen);
 
 
 

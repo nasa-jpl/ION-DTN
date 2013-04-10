@@ -261,7 +261,7 @@ static void	eraseSAP(AmsSAP *sap)
 
 	if (sap->haveHeartbeatThread)
 	{
-		pthread_cancel(sap->heartbeatThread);
+		pthread_end(sap->heartbeatThread);
 		pthread_join(sap->heartbeatThread, NULL);
 	}
 
@@ -3848,7 +3848,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 		return -1;
 	}
 
-	if (pthread_create(&(mtsif->receiver), NULL,
+	if (pthread_begin(&(mtsif->receiver), NULL,
 			mib->pts->mamsReceiverFn, mtsif))
 	{
 		putSysErrmsg("Can't spawn MAMS tsif thread", NULL);
@@ -3899,7 +3899,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 			return -1;
 		}
 
-		if (pthread_create(&(tsif->receiver), NULL,
+		if (pthread_begin(&(tsif->receiver), NULL,
 				tsif->ts->amsReceiverFn, tsif))
 		{
 			putSysErrmsg("Can't spawn tsif thread", NULL);
@@ -3976,14 +3976,14 @@ static int	ams_register2(char *applicationName, char *authorityName,
 
 	/*	Create the auxiliary module threads: heartbeat, MAMS.	*/
 
-	if (pthread_create(&(sap->heartbeatThread), NULL, heartbeatMain, sap))
+	if (pthread_begin(&(sap->heartbeatThread), NULL, heartbeatMain, sap))
 	{
 		putSysErrmsg("Can't spawn sap heartbeat thread", NULL);
 		return -1;
 	}
 
 	sap->haveHeartbeatThread = 1;
-	if (pthread_create(&(sap->mamsThread), NULL, mamsMain, sap))
+	if (pthread_begin(&(sap->mamsThread), NULL, mamsMain, sap))
 	{
 		putSysErrmsg("Can't spawn sap MAMS thread", NULL);
 		return -1;
@@ -5698,7 +5698,7 @@ static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
 
 	if (eventMgrNeeded)
 	{
-		if (pthread_create(&mgrThread, NULL, eventMgrMain, sap) < 0)
+		if (pthread_begin(&mgrThread, NULL, eventMgrMain, sap) < 0)
 		{
 			sap->authorizedEventMgr = sap->primeThread;
 			sap->eventMgr = sap->primeThread;
@@ -6421,7 +6421,7 @@ static int	ams_set_event_mgr2(AmsSAP *sap, AmsEventMgt *rules)
 	}
 
 	memcpy((char *) &(sap->eventMgtRules), rules, sizeof(AmsEventMgt));
-	if (pthread_create(&mgrThread, NULL, eventMgrMain, sap))
+	if (pthread_begin(&mgrThread, NULL, eventMgrMain, sap))
 	{
 		sap->authorizedEventMgr = sap->primeThread;
 		sap->eventMgr = sap->primeThread;
