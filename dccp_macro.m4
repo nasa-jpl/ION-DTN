@@ -72,7 +72,8 @@ AC_DEFUN([CHECK_DCCP],
 					}],
 			[ AC_MSG_RESULT(yes) 
 			  AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >=3.2.0])],
-			[AC_MSG_RESULT(no)] )
+			[AC_MSG_RESULT(no)],
+			[AC_MSG_RESULT(cross-compiling... disabled)] )
 		]
 	)
 		
