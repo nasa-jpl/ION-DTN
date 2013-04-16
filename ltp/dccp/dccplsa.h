@@ -52,6 +52,15 @@ extern "C" {
 #ifndef SOL_DCCP
 #define SOL_DCCP 269
 #endif
+#ifndef DCCP_SOCKOPT_QPOLICY_TXQLEN
+#define DCCP_SOCKOPT_QPOLICY_TXQLEN     17
+#endif
+#ifndef DCCP_SOCKOPT_CCID
+#define DCCP_SOCKOPT_CCID  13
+#endif
+#ifndef DCCP_SOCKOPT_GET_CUR_MPS
+#define DCCP_SOCKOPT_GET_CUR_MPS 5
+#endif
 
 
 #define DCCPLSA_BUFSZ		((256 * 256) - 1)
