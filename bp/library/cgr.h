@@ -21,10 +21,15 @@ extern "C" {
 #endif
 typedef int		(*CgrLookupFn)(uvast nodeNbr, Object plans,
 				Bundle *bundle, FwdDirective *directive);
+typedef void		(*CgrTraceFn)(unsigned int lineNbr,
+				unsigned int tracepointNbr, uvast argA,
+				uvast argB, uvast argC, uvast argD);
+
 extern void		cgr_start();
 extern int		cgr_forward(Bundle *bundle, Object bundleObj,
 				uvast stationNodeNbr, Object plans,
-				CgrLookupFn callback);
+				CgrLookupFn getDirective, CgrTraceFn trace);
+extern char		*cgr_tracepoint_text(unsigned int tracepointNbr);
 extern void		cgr_stop();
 #ifdef __cplusplus
 }

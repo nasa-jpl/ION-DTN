@@ -10,6 +10,55 @@
 									*/
 #include "ipnfw.h"
 
+#ifndef CGR_DEBUG
+#define CGR_DEBUG	0
+#endif
+
+#if CGR_DEBUG == 1
+static void	printCgrTraceLine(unsigned int lineNbr,
+			unsigned int tracepointNbr,
+			uvast argA, uvast argB, uvast argC, uvast argD)
+{
+	char	*spec = UVAST_FIELDSPEC;
+	int	specLen = istrlen(spec, 5);
+	char	*text;
+	char	*reader;
+	char	buffer[512];
+	char	*writer = buffer;
+	int	bufferAvbl = sizeof buffer - (specLen + 2);
+
+	text = cgr_tracepoint_text(tracepointNbr);
+	CHKVOID(text);
+	reader = text;
+	while (*reader)
+	{
+		if (bufferAvbl <= 0)
+		{
+			break;
+		}
+
+		if (*reader == '$')
+		{
+			memcpy(writer, spec, specLen);
+			reader += 2;
+			writer += specLen;
+			bufferAvbl -= specLen;
+			continue;
+		}
+
+		*writer = *reader;
+		reader++;
+		writer++;
+		bufferAvbl--;
+	}
+
+	*writer = '\n';
+	writer++;
+	*writer = '\0';
+	printf(buffer, argA, argB, argC, argD);
+}
+#endif
+
 static sm_SemId		_ipnfwSemaphore(sm_SemId *newValue)
 {
 	long		temp;
@@ -168,6 +217,11 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	FwdDirective	directive;
+#if CGR_DEBUG == 1
+	CgrTraceFn	trace = printCgrTraceLine;
+#else
+	CgrTraceFn	trace = NULL;
+#endif
 
 	elt = sdr_list_first(sdr, bundle->stations);
 	if (elt == 0)
@@ -191,7 +245,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	}
 
 	if (cgr_forward(bundle, bundleObj, metaEid.nodeNbr,
-			(getIpnConstants())->plans, getDirective) < 0)
+			(getIpnConstants())->plans, getDirective, trace) < 0)
 	{
 		putErrmsg("CGR failed.", NULL);
 		return -1;
