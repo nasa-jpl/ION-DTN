@@ -548,15 +548,17 @@ static void	infoPlan(int tokenCount, char **tokens)
 	nodeNbr = strtouvast(tokens[2]);
 	CHKVOID(sdr_begin_xn(sdr));
 	ipn_findPlan(nodeNbr, &planAddr, &elt);
-	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
-		return;
+	}
+	else
+	{
+		GET_OBJ_POINTER(getIonsdr(), IpnPlan, plan, planAddr);
+		printPlan(plan);
 	}
 
-	GET_OBJ_POINTER(getIonsdr(), IpnPlan, plan, planAddr);
-	printPlan(plan);
+	sdr_exit_xn(sdr);
 }
 
 static void	printRule(IpnRule *rule)
@@ -611,45 +613,46 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 	nodeNbr = strtouvast(tokens[2]);
 	CHKVOID(sdr_begin_xn(sdr));
 	ipn_findPlan(nodeNbr, &planAddr, &elt);
-	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
-	printPlan(plan);
-	if (strcmp(tokens[3], "*") == 0)
-	{
-		sourceServiceNbr = -1;
 	}
 	else
 	{
-		sourceServiceNbr = strtoul(tokens[3], NULL, 0);
+		GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
+		printPlan(plan);
+		if (strcmp(tokens[3], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = strtoul(tokens[3], NULL, 0);
+		}
+
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = strtouvast(tokens[4]);
+		}
+
+		ipn_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
+				&ruleAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown rule.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, IpnRule, rule, ruleAddr);
+			printRule(rule);
+		}
 	}
 
-	if (strcmp(tokens[4], "*") == 0)
-	{
-		sourceNodeNbr = -1;
-	}
-	else
-	{
-		sourceNodeNbr = strtouvast(tokens[4]);
-	}
-
-	CHKVOID(sdr_begin_xn(sdr));
-	ipn_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
-			&ruleAddr, &elt);
 	sdr_exit_xn(sdr);
-	if (elt == 0)
-	{
-		printText("Unknown rule.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, IpnRule, rule, ruleAddr);
-	printRule(rule);
 }
 
 static void	printGroup(IpnGroup *group)
@@ -686,6 +689,7 @@ static void	infoGroup(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getIpnConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -694,11 +698,16 @@ static void	infoGroup(int tokenCount, char **tokens)
 		&& group->lastNodeNbr == lastNodeNbr)
 		{
 			printGroup(group);
-			return;
+			break;
 		}
 	}
 
-	printText("Unknown group.");
+	if (elt == 0)
+	{
+		printText("Unknown group.");
+	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	infoGroupRule(int tokenCount, char **tokens)
@@ -724,45 +733,46 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 	lastNodeNbr = strtouvast(tokens[3]);
 	CHKVOID(sdr_begin_xn(sdr));
 	ipn_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
-	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, IpnGroup, group, groupAddr);
-	printGroup(group);
-	if (strcmp(tokens[4], "*") == 0)
-	{
-		sourceServiceNbr = -1;
 	}
 	else
 	{
-		sourceServiceNbr = strtoul(tokens[4], NULL, 0);
+		GET_OBJ_POINTER(sdr, IpnGroup, group, groupAddr);
+		printGroup(group);
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = strtoul(tokens[4], NULL, 0);
+		}
+
+		if (strcmp(tokens[5], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = strtouvast(tokens[5]);
+		}
+
+		ipn_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
+				sourceNodeNbr, group, &ruleAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown rule.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, IpnRule, rule, ruleAddr);
+			printRule(rule);
+		}
 	}
 
-	if (strcmp(tokens[5], "*") == 0)
-	{
-		sourceNodeNbr = -1;
-	}
-	else
-	{
-		sourceNodeNbr = strtouvast(tokens[5]);
-	}
-
-	CHKVOID(sdr_begin_xn(sdr));
-	ipn_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
-			sourceNodeNbr, group, &ruleAddr, &elt);
 	sdr_exit_xn(sdr);
-	if (elt == 0)
-	{
-		printText("Unknown rule.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, IpnRule, rule, ruleAddr);
-	printRule(rule);
 }
 
 static void	executeInfo(int tokenCount, char **tokens)
@@ -806,12 +816,15 @@ static void	listPlans()
 	Object	elt;
 		OBJ_POINTER(IpnPlan, plan);
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getIpnConstants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnPlan, plan, sdr_list_data(sdr, elt));
 		printPlan(plan);
 	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	listRules(Object rules)
@@ -834,12 +847,15 @@ static void	listGroups()
 	Object	elt;
 		OBJ_POINTER(IpnGroup, group);
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getIpnConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
 		printGroup(group);
 	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	executeList(int tokenCount, char **tokens)
@@ -849,6 +865,10 @@ static void	executeList(int tokenCount, char **tokens)
 	Object	planAddr;
 	Object	elt;
 		OBJ_POINTER(IpnPlan, plan);
+	uvast	firstNodeNbr;
+	uvast	lastNodeNbr;
+	Object	groupAddr;
+		OBJ_POINTER(IpnGroup, group);
 
 	if (tokenCount < 2)
 	{
@@ -866,29 +886,58 @@ static void	executeList(int tokenCount, char **tokens)
 	{
 		if (tokenCount < 3)
 		{
-			printText("Must specify node nbr for rules list.");
+			printText("Must specify plan node nbr.");
 			return;
 		}
 
 		nodeNbr = strtouvast(tokens[2]);
 		CHKVOID(sdr_begin_xn(sdr));
 		ipn_findPlan(nodeNbr, &planAddr, &elt);
-		sdr_exit_xn(sdr);
 		if (elt == 0)
 		{
-			printText("Unknown node.");
-			return;
+			printText("Unknown plan.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
+			printPlan(plan);
+			listRules(plan->rules);
 		}
 
-		GET_OBJ_POINTER(getIonsdr(), IpnPlan, plan, planAddr);
-		printPlan(plan);
-		listRules(plan->rules);
+		sdr_exit_xn(sdr);
 		return;
 	}
 
 	if (strcmp(tokens[1], "group") == 0)
 	{
 		listGroups();
+		return;
+	}
+
+	if (strcmp(tokens[1], "grouprule") == 0)
+	{
+		if (tokenCount < 4)
+		{
+			printText("Must specify group first & last node nbrs.");
+			return;
+		}
+
+		firstNodeNbr = strtouvast(tokens[2]);
+		lastNodeNbr = strtouvast(tokens[3]);
+		CHKVOID(sdr_begin_xn(sdr));
+		ipn_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown group.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, IpnGroup, group, groupAddr);
+			printGroup(group);
+			listRules(group->rules);
+		}
+
+		sdr_exit_xn(sdr);
 		return;
 	}
 

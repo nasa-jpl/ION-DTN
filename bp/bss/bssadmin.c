@@ -763,15 +763,17 @@ static void	infoPlan(int tokenCount, char **tokens)
 	CHKVOID(sdr_begin_xn(sdr));		
 	nodeNbr = strtol(tokens[2], NULL, 0);
 	bss_findPlan(nodeNbr, &planAddr, &elt);
-	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
-		return;
+	}
+	else
+	{
+		GET_OBJ_POINTER(getIonsdr(), BssPlan, plan, planAddr);
+		printPlan(plan);
 	}
 	
-	GET_OBJ_POINTER(getIonsdr(), BssPlan, plan, planAddr);
-	printPlan(plan);
+	sdr_exit_xn(sdr);
 }
 
 static void	printRule(BssRule *rule)
@@ -827,45 +829,46 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 	nodeNbr = strtouvast(tokens[2]);
 	CHKVOID(sdr_begin_xn(sdr));
 	bss_findPlan(nodeNbr, &planAddr, &elt);
-	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, BssPlan, plan, planAddr);
-	printPlan(plan);
-	if (strcmp(tokens[3], "*") == 0)
-	{
-		sourceServiceNbr = -1;
 	}
 	else
 	{
-		sourceServiceNbr = strtol(tokens[3], NULL, 0);
+		GET_OBJ_POINTER(sdr, BssPlan, plan, planAddr);
+		printPlan(plan);
+		if (strcmp(tokens[3], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = strtol(tokens[3], NULL, 0);
+		}
+
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = strtovast(tokens[4]);
+		}
+
+		bss_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
+				&ruleAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown rule.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, BssRule, rule, ruleAddr);
+			printRule(rule);
+		}
 	}
 
-	if (strcmp(tokens[4], "*") == 0)
-	{
-		sourceNodeNbr = -1;
-	}
-	else
-	{
-		sourceNodeNbr = strtovast(tokens[4]);
-	}
-
-	CHKVOID(sdr_begin_xn(sdr));
-	bss_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
-			&ruleAddr, &elt);
 	sdr_exit_xn(sdr);
-	if (elt == 0)
-	{
-		printText("Unknown rule.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, BssRule, rule, ruleAddr);
-	printRule(rule);
 }
 
 static void	printGroup(IpnGroup *group)
@@ -902,6 +905,7 @@ static void	infoGroup(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getBssConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -910,11 +914,16 @@ static void	infoGroup(int tokenCount, char **tokens)
 		&& group->lastNodeNbr == lastNodeNbr)
 		{
 			printGroup(group);
-			return;
+			break;
 		}
 	}
 
-	printText("Unknown group.");
+	if (elt == 0)
+	{
+		printText("Unknown group.");
+	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	infoGroupRule(int tokenCount, char **tokens)
@@ -940,55 +949,46 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 	lastNodeNbr = strtouvast(tokens[3]);
 	CHKVOID(sdr_begin_xn(sdr));
 	bss_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
-	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, IpnGroup, group, groupAddr);
-	printGroup(group);
-	if (strcmp(tokens[4], "*") == 0)
-	{
-		sourceServiceNbr = -1;
 	}
 	else
 	{
-		sourceServiceNbr = strtol(tokens[4], NULL, 0);
+		GET_OBJ_POINTER(sdr, IpnGroup, group, groupAddr);
+		printGroup(group);
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = strtol(tokens[4], NULL, 0);
+		}
+
+		if (strcmp(tokens[5], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = strtovast(tokens[5]);
+		}
+
+		bss_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
+				sourceNodeNbr, group, &ruleAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown rule.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, BssRule, rule, ruleAddr);
+			printRule(rule);
+		}
 	}
 
-	if (strcmp(tokens[5], "*") == 0)
-	{
-		sourceNodeNbr = -1;
-	}
-	else
-	{
-		sourceNodeNbr = strtovast(tokens[5]);
-	}
-
-	CHKVOID(sdr_begin_xn(sdr));
-	bss_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
-			sourceNodeNbr, group, &ruleAddr, &elt);
 	sdr_exit_xn(sdr);
-	if (elt == 0)
-	{
-		printText("Unknown rule.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, BssRule, rule, ruleAddr);
-	printRule(rule);
-}
-
-static void	printEntry(int count, bssEntry *entry)
-{
-	char	context[64];
-
-	isprintf(context, sizeof context,
-			"   %d:     %u	  -    	 " UVAST_FIELDSPEC, 
-			count, entry->dstServiceNbr, entry->dstNodeNbr);
-	printText(context);
 }
 
 static void	executeInfo(int tokenCount, char **tokens)
@@ -1032,12 +1032,15 @@ static void	listPlans()
 	Object	elt;
 		OBJ_POINTER(BssPlan, plan);
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getBssConstants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, BssPlan, plan, sdr_list_data(sdr, elt));
 		printPlan(plan);
 	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	listRules(Object rules)
@@ -1060,12 +1063,25 @@ static void	listGroups()
 	Object	elt;
 		OBJ_POINTER(IpnGroup, group);
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getBssConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
 		printGroup(group);
 	}
+
+	sdr_exit_xn(sdr);
+}
+
+static void	printEntry(int count, bssEntry *entry)
+{
+	char	context[64];
+
+	isprintf(context, sizeof context,
+			"   %d:     %u	  -    	 " UVAST_FIELDSPEC, 
+			count, entry->dstServiceNbr, entry->dstNodeNbr);
+	printText(context);
 }
 
 void	listBssEntries()
@@ -1076,6 +1092,7 @@ void	listBssEntries()
 	int	i = 1;
 
 	printText("Entry: <destination Service nbr> - <destination Node nbr>");
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getBssConstants())->bssList); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -1083,6 +1100,8 @@ void	listBssEntries()
 		printEntry(i, entry);
 		i++;
 	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	executeList(int tokenCount, char **tokens)
@@ -1092,6 +1111,10 @@ static void	executeList(int tokenCount, char **tokens)
 	Object	planAddr;
 	Object	elt;
 		OBJ_POINTER(BssPlan, plan);
+	uvast	firstNodeNbr;
+	uvast	lastNodeNbr;
+	Object	groupAddr;
+		OBJ_POINTER(IpnGroup, group);
 
 	if (tokenCount < 2)
 	{
@@ -1109,29 +1132,58 @@ static void	executeList(int tokenCount, char **tokens)
 	{
 		if (tokenCount < 3)
 		{
-			printText("Must specify node nbr for rules list.");
+			printText("Must specify plan node nbr.");
 			return;
 		}
 
 		nodeNbr = strtouvast(tokens[2]);
 		CHKVOID(sdr_begin_xn(sdr));
 		bss_findPlan(nodeNbr, &planAddr, &elt);
-		sdr_exit_xn(sdr);
 		if (elt == 0)
 		{
-			printText("Unknown node.");
-			return;
+			printText("Unknown plan.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, BssPlan, plan, planAddr);
+			printPlan(plan);
+			listRules(plan->rules);
 		}
 
-		GET_OBJ_POINTER(getIonsdr(), BssPlan, plan, planAddr);
-		printPlan(plan);
-		listRules(plan->rules);
+		sdr_exit_xn(sdr);
 		return;
 	}
 
 	if (strcmp(tokens[1], "group") == 0)
 	{
 		listGroups();
+		return;
+	}
+
+	if (strcmp(tokens[1], "grouprule") == 0)
+	{
+		if (tokenCount < 4)
+		{
+			printText("Must specify group first & last node nbrs.");
+			return;
+		}
+
+		firstNodeNbr = strtouvast(tokens[2]);
+		lastNodeNbr = strtouvast(tokens[3]);
+		CHKVOID(sdr_begin_xn(sdr));
+		bss_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown group.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, BssPlan, group, groupAddr);
+			printGroup(group);
+			listRules(group->rules);
+		}
+
+		sdr_exit_xn(sdr);
 		return;
 	}
 
