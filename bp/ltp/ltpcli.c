@@ -29,13 +29,13 @@ typedef struct
 } ReceiverThreadParms;
 
 static int	acquireRedBundles(AcqWorkArea *work, Object zco,
-			unsigned long senderEngineNbr)
+			uvast senderEngineNbr)
 {
 	char	engineNbrString[21];
 	char	senderEidBuffer[SDRSTRING_BUFSZ];
 	char	*senderEid;
 
-	isprintf(engineNbrString, sizeof engineNbrString, "%lu",
+	isprintf(engineNbrString, sizeof engineNbrString, UVAST_FIELDSPEC,
 			senderEngineNbr);
 	senderEid = senderEidBuffer;
 	getSenderEid(&senderEid, engineNbrString);
@@ -61,13 +61,13 @@ static int	acquireRedBundles(AcqWorkArea *work, Object zco,
 }
 
 static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
-			unsigned char endOfBlock, unsigned long offset,
-			unsigned long length, Object zco, unsigned long *buflen,			char **buffer)
+			unsigned char endOfBlock, unsigned int offset,
+			unsigned int length, Object zco, unsigned int *buflen,				char **buffer)
 {
 	Sdr			sdr = getIonsdr();
 	static LtpSessionId	currentSessionId = { 0, 0 };
-	static unsigned long	currentOffset = 0;
-	unsigned long		fillLength;
+	static unsigned int	currentOffset = 0;
+	unsigned int		fillLength;
 	char			engineNbrString[21];
 	char			senderEidBuffer[SDRSTRING_BUFSZ];
 	char			*senderEid;
@@ -106,8 +106,8 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	{
 		/*	Start new green bundle acquisition.		*/
 
-		isprintf(engineNbrString, sizeof engineNbrString, "%lu",
-				sessionId->sourceEngineId);
+		isprintf(engineNbrString, sizeof engineNbrString,
+				UVAST_FIELDSPEC, sessionId->sourceEngineId);
 		senderEid = senderEidBuffer;
 		getSenderEid(&senderEid, engineNbrString);
 		if (bpBeginAcq(work, 0, senderEid) < 0)
@@ -243,10 +243,10 @@ static void	*handleNotices(void *parm)
 	LtpSessionId		sessionId;
 	unsigned char		reasonCode;
 	unsigned char		endOfBlock;
-	unsigned long		dataOffset;
-	unsigned long		dataLength;
+	unsigned int		dataOffset;
+	unsigned int		dataLength;
 	Object			data;		/*	ZCO reference.	*/
-	unsigned long		greenBuflen = 0;
+	unsigned int		greenBuflen = 0;
 	char			*greenBuffer = NULL;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -500,7 +500,7 @@ int	main(int argc, char *argv[])
 
 	rtp.vduct = vduct;
 	rtp.running = 1;
-	if (pthread_create(&receiverThread, NULL, handleNotices, &rtp))
+	if (pthread_begin(&receiverThread, NULL, handleNotices, &rtp))
 	{
 		putSysErrmsg("ltpcli can't create receiver thread", NULL);
 		return 1;

@@ -28,7 +28,8 @@
 extern "C" {
 #endif
 
-#define BSS_ALL_OTHERS	((unsigned long) -1)
+#define BSS_ALL_OTHER_NODES	((uvast) -1)
+#define BSS_ALL_OTHER_SERVICES	((unsigned int) -1)
 
 /*  
  *  Each BSS stream is recorded in loggedStreams lyst. Stream structure    
@@ -43,10 +44,10 @@ extern "C" {
 
 typedef struct
 {
-	unsigned long	srcNodeNbr;
-	unsigned long	srcServiceNbr;
-	unsigned long	dstNodeNbr;
-	unsigned long	dstServiceNbr;
+	uvast		srcNodeNbr;
+	unsigned int	srcServiceNbr;
+	uvast		dstNodeNbr;
+	unsigned int	dstServiceNbr;
 	BpTimestamp	latestTimeLogged;
 } stream;
 
@@ -60,17 +61,17 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	dstServiceNbr;
-	unsigned long	dstNodeNbr;
+	unsigned int	dstServiceNbr;
+	uvast		dstNodeNbr;
 } bssEntry;
 
 typedef struct
 {
-	unsigned long	srcServiceNbr;
-	unsigned long	srcNodeNbr;
-	FwdDirective	directive;	/*	    default directive		*/
-	FwdDirective	rtDirective;	/*	real-time mode directive	*/
-	FwdDirective	pbDirective;	/*	playback mode directive		*/
+	unsigned int	srcServiceNbr;
+	uvast		srcNodeNbr;
+	FwdDirective	directive;	/*	    default directive	*/
+	FwdDirective	rtDirective;	/*	real-time mode directive*/
+	FwdDirective	pbDirective;	/*	playback mode directive	*/
 } BssRule;
 
 /*	Cbhe-style egress rules are managed in the database's lists
@@ -109,18 +110,18 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	nodeNbr;
+	uvast		nodeNbr;
 	FwdDirective	defaultDirective;
 	FwdDirective	rtDirective;	
 	FwdDirective	pbDirective;
-	unsigned long	expectedRTT;
+	unsigned int	expectedRTT;
 	Object		rules;			/*	SDR list	*/
 } BssPlan;
 
 typedef struct
 {
-	unsigned long	firstNodeNbr;		/*	in range	*/
-	unsigned long	lastNodeNbr;		/*	in range	*/
+	uvast		firstNodeNbr;		/*	in range	*/
+	uvast		lastNodeNbr;		/*	in range	*/
 	FwdDirective	defaultDirective;
 	Object		rules;			/*	SDR list	*/
 } IpnGroup;
@@ -149,48 +150,48 @@ extern BssDB		*getBssConstants();
 
 extern 	Object 		locateBssEntry(CbheEid dst, Object *nextEntry);
 	
-extern 	int 		bss_addBssEntry(long serviceNbr, long nodeNbr);	 		
-extern 	int 		bss_removeBssEntry(long serviceNbr, long nodeNbr);
+extern 	int 		bss_addBssEntry(int serviceNbr, vast nodeNbr);	 		
+extern 	int 		bss_removeBssEntry(int serviceNbr, vast nodeNbr);
 
 extern	void 		bss_monitorStream(Lyst loggedStreams, 
 				Bundle bundle);
 
-extern void		bss_findPlan(unsigned long nodeNbr, 
+extern void		bss_findPlan(uvast nodeNbr, 
 				Object *planAddr,
 				Object *elt);
 
-extern int		bss_addPlan(unsigned long nodeNbr,	
+extern int		bss_addPlan(uvast nodeNbr,	
 				DuctExpression *ductExpression,
 				DuctExpression *udpExpression,
 				DuctExpression *tcpExpression,
-				unsigned long estimatedRTT);
-extern int		bss_updatePlan(unsigned long nodeNbr,	
+				unsigned int estimatedRTT);
+extern int		bss_updatePlan(uvast nodeNbr,	
 				DuctExpression *ductExpression,
 				DuctExpression *udpExpression,
 				DuctExpression *tcpExpression,
 				int estimatedRTT);
-extern int		bss_removePlan(unsigned long nodeNbr);
+extern int		bss_removePlan(uvast nodeNbr);
 
-extern void		bss_findPlanRule(unsigned long nodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr, BssPlan *plan,
+extern void		bss_findPlanRule(uvast nodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr, BssPlan *plan,
 				Object *ruleAddr, Object *elt);
 
-extern int		bss_addPlanRule(unsigned long nodeNbr,	
-				long sourceServiceNbr,
-				long sourceNodeNbr,
+extern int		bss_addPlanRule(uvast nodeNbr,	
+				int sourceServiceNbr,
+				vast sourceNodeNbr,
 				DuctExpression *ductExpression,
 				DuctExpression *udpExpression,
 				DuctExpression *tcpExpression);
-extern int		bss_updatePlanRule(unsigned long nodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr,
+extern int		bss_updatePlanRule(uvast nodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr,
 				DuctExpression *ductExpression,
 				DuctExpression *udpExpression,
 				DuctExpression *tcpExpression);
-extern int		bss_removePlanRule(unsigned long nodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr);
+extern int		bss_removePlanRule(uvast nodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr);
 
 extern int		bss_copyDirective(Bundle *bundle, 
 				FwdDirective *directive,
@@ -199,48 +200,48 @@ extern int		bss_copyDirective(Bundle *bundle,
 			  	FwdDirective *pbDirective,
 			   	Lyst loggedStreams);
 	
-extern int		bss_lookupPlanDirective(unsigned long nodeNbr,
-				unsigned long sourceServiceNbr,
-				unsigned long sourceNodeNbr,
+extern int		bss_lookupPlanDirective(uvast nodeNbr,
+				unsigned int sourceServiceNbr,
+				uvast sourceNodeNbr,
 				Bundle *bundle,	FwdDirective *directive, 
 				Lyst loggedStreams);
 
 extern int 		bss_setCtDueTimer(Bundle bundle, 
 				Object bundleAddr);
 
-extern void		bss_findGroup(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr,
+extern void		bss_findGroup(uvast firstNodeNbr,
+				uvast lastNodeNbr,
 				Object *groupAddr, Object *elt);
 
-extern int		bss_addGroup(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr, char *viaEid);
-extern int		bss_updateGroup(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr, char *viaEid);
-extern int		bss_removeGroup(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr);
+extern int		bss_addGroup(uvast firstNodeNbr,
+				uvast lastNodeNbr, char *viaEid);
+extern int		bss_updateGroup(uvast firstNodeNbr,
+				uvast lastNodeNbr, char *viaEid);
+extern int		bss_removeGroup(uvast firstNodeNbr,
+				uvast lastNodeNbr);
 
-extern void		bss_findGroupRule(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr, IpnGroup *group,
+extern void		bss_findGroupRule(uvast firstNodeNbr,
+				uvast lastNodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr, IpnGroup *group,
 				Object *ruleAddr, Object *elt);
 
-extern int		bss_addGroupRule(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr, char *viaEid);
-extern int		bss_updateGroupRule(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr, char *viaEid);
-extern int		bss_removeGroupRule(unsigned long firstNodeNbr,
-				unsigned long lastNodeNbr,
-				long sourceServiceNbr,
-				long sourceNodeNbr);
+extern int		bss_addGroupRule(uvast firstNodeNbr,
+				uvast lastNodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr, char *viaEid);
+extern int		bss_updateGroupRule(uvast firstNodeNbr,
+				uvast lastNodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr, char *viaEid);
+extern int		bss_removeGroupRule(uvast firstNodeNbr,
+				uvast lastNodeNbr,
+				int sourceServiceNbr,
+				vast sourceNodeNbr);
 
-extern int		bss_lookupGroupDirective(unsigned long nodeNbr,
-				unsigned long sourceServiceNbr,
-				unsigned long sourceNodeNbr,
+extern int		bss_lookupGroupDirective(uvast nodeNbr,
+				unsigned int sourceServiceNbr,
+				uvast sourceNodeNbr,
 				Bundle *bundle,
 				FwdDirective *directive,
 				Lyst loggedStreams);

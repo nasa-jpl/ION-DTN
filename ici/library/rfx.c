@@ -235,7 +235,7 @@ int	rfx_system_is_started()
 	return (vdb && vdb->clockPid != ERROR);
 }
 
-IonNeighbor	*findNeighbor(IonVdb *ionvdb, unsigned long nodeNbr,
+IonNeighbor	*findNeighbor(IonVdb *ionvdb, uvast nodeNbr,
 			PsmAddress *nextElt)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -256,7 +256,7 @@ IonNeighbor	*findNeighbor(IonVdb *ionvdb, unsigned long nodeNbr,
 	return NULL;
 }
 
-IonNeighbor	*addNeighbor(IonVdb *ionvdb, unsigned long nodeNbr)
+IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast nodeNbr)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonNode		*node;
@@ -300,7 +300,7 @@ IonNeighbor	*addNeighbor(IonVdb *ionvdb, unsigned long nodeNbr)
 	return neighbor;
 }
 
-IonNode	*findNode(IonVdb *ionvdb, unsigned long nodeNbr, PsmAddress *nextElt)
+IonNode	*findNode(IonVdb *ionvdb, uvast nodeNbr, PsmAddress *nextElt)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonNode		arg;
@@ -320,7 +320,7 @@ IonNode	*findNode(IonVdb *ionvdb, unsigned long nodeNbr, PsmAddress *nextElt)
 	return NULL;
 }
 
-IonNode	*addNode(IonVdb *ionvdb, unsigned long nodeNbr)
+IonNode	*addNode(IonVdb *ionvdb, uvast nodeNbr)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	addr;
@@ -350,7 +350,7 @@ IonNode	*addNode(IonVdb *ionvdb, unsigned long nodeNbr)
 	return node;
 }
 
-int	addSnub(IonNode *node, unsigned long neighborNodeNbr)
+int	addSnub(IonNode *node, uvast neighborNodeNbr)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	nextElt;
@@ -412,7 +412,7 @@ int	addSnub(IonNode *node, unsigned long neighborNodeNbr)
 	return 0;
 }
 
-void	removeSnub(IonNode *node, unsigned long neighborNodeNbr)
+void	removeSnub(IonNode *node, uvast neighborNodeNbr)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
@@ -702,8 +702,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 }
 
 PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
-			unsigned long fromNode, unsigned long toNode,
-			unsigned long xmitRate)
+			uvast fromNode, uvast toNode, unsigned int xmitRate)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -965,8 +964,7 @@ static void	deleteContact(PsmAddress cxaddr)
 			rfx_erase_data, NULL);
 }
 
-int	rfx_remove_contact(time_t fromTime, unsigned long fromNode,
-		unsigned long toNode)
+int	rfx_remove_contact(time_t fromTime, uvast fromNode, uvast toNode)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1217,8 +1215,8 @@ static int	insertRXref(IonRXref *rxref)
 	return rxaddr;
 }
 
-Object	rfx_insert_range(time_t fromTime, time_t toTime, unsigned long fromNode,
-		unsigned long toNode, unsigned int owlt)
+Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
+		uvast toNode, unsigned int owlt)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1505,8 +1503,7 @@ static void	deleteRange(PsmAddress rxaddr, int conditional)
 			rfx_erase_data, NULL);
 }
 
-int	rfx_remove_range(time_t fromTime, unsigned long fromNode,
-		unsigned long toNode)
+int	rfx_remove_range(time_t fromTime, uvast fromNode, uvast toNode)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1755,6 +1752,12 @@ void	rfx_stop()
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
+
+	/*	Clear ZCO availability information.			*/
+
+	sm_SemEnd(vdb->zcoSemaphore);
+	vdb->zcoClaimants = 0;
+	vdb->zcoClaims = 0;
 
 	/*	Stop the rfx clock if necessary.			*/
 

@@ -20,8 +20,8 @@ extern "C" {
 
 typedef struct
 {
-	unsigned long	sourceEngineId;
-	unsigned long	sessionNbr;	/*	Assigned by source.	*/
+	uvast		sourceEngineId;
+	unsigned int	sessionNbr;	/*	Assigned by source.	*/
 } LtpSessionId;
 
 /*	*	*	LTP initialization	*	*	*	*/
@@ -38,8 +38,8 @@ extern int	ltp_engine_is_started();
 
 #define	LTP_ALL_RED	((unsigned int) -1)
 
-extern int	ltp_send(unsigned long destinationEngineId,
-			unsigned long clientId,
+extern int	ltp_send(uvast destinationEngineId,
+			unsigned int clientId,
 			Object clientServiceData,
 			unsigned int redLength,
 			LtpSessionId *sessionId);
@@ -66,15 +66,15 @@ typedef enum
 	LtpImportSessionCanceled
 } LtpNoticeType;
 
-extern int	ltp_open(unsigned long clientId);
+extern int	ltp_open(unsigned int clientId);
 
-extern int	ltp_get_notice(unsigned long clientId,
+extern int	ltp_get_notice(unsigned int clientId,
 			LtpNoticeType *type,
 			LtpSessionId *sessionId,
 			unsigned char *reasonCode,
 			unsigned char *endOfBlock,
-			unsigned long *dataOffset,
-			unsigned long *dataLength,
+			unsigned int *dataOffset,
+			unsigned int *dataLength,
 			Object *data);
 		/*	The value returned in *data is always a zero-
 		 *	copy object; use the zco_* functions defined
@@ -109,11 +109,11 @@ extern int	ltp_get_notice(unsigned long clientId,
 		 *	is a service data unit ZCO that had previously
 		 *	been passed to the ltp_send function.		*/
 
-extern void	ltp_interrupt(unsigned long clientId);
+extern void	ltp_interrupt(unsigned int clientId);
 
 extern void	ltp_release_data(Object data);
 
-extern void	ltp_close(unsigned long clientId);
+extern void	ltp_close(unsigned int clientId);
 
 #ifdef __cplusplus
 }

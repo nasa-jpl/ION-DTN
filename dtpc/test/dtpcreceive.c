@@ -56,9 +56,9 @@ static int	_payloadCount(int increment)
 	return count;
 }
 
-static long	_bytesReceived(int increment)
+static int	_bytesReceived(int increment)
 {
-	static long	bytes = 0;
+	static int	bytes = 0;
 
 	if (increment)
 	{
@@ -104,7 +104,7 @@ int	main(int argc, char **argv)
 	pthread_t	alarmThread;
 	time_t		startTime = 0;
 	time_t		endTime;
-	long 		interval;
+	int 		interval;
 
 	if (topicID == 0)
 	{

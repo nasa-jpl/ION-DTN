@@ -5,7 +5,7 @@ UTILS = ../utils
 RAMS = ../rams
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -fPIC
+OPT = -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(RAMS) -I${ROOT}/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

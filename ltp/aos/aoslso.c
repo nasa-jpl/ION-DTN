@@ -51,21 +51,19 @@ int	sendSegmentByAOS(int linkSocket, char *from, int length)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	aoslso(int a1, int a2, int a3, int a4, int a5,
 	       int a6, int a7, int a8, int a9, int a10)
 {
 	char		*endpointSpec = (char *) a1;
 	unsigned int	txbps = (a2 != 0 ? strtoul((char *) a2, NULL, 0) : 0);
-	unsigned long	remoteEngineId = a3 != 0 ? 
-			strtoul((char *) a3, NULL, 0) : 0;
+	uvast		remoteEngineId = a3 != 0 ?  strtouvast((char *) a3) : 0;
 #else
 int	main(int argc, char *argv[])
 {
 	char		*endpointSpec = argc > 1 ? argv[1] : NULL;
 	unsigned int	txbps = (argc > 2 ? strtoul(argv[2], NULL, 0) : 0);
-	unsigned long	remoteEngineId = argc > 3 ?
-			strtoul(argv[3], NULL, 0) : 0;
+	uvast		remoteEngineId = argc > 3 ?  strtouvast(argv[3]) : 0;
 #endif
 	Sdr			sdr;
 	LtpVspan		*vspan;
@@ -169,7 +167,8 @@ int	main(int argc, char *argv[])
 
 		isprintf(txt, sizeof(txt),
 			"[i] aolslso is running, spec=[%s:%d], txbps=%d \
-(0=unlimited), rengine=%lu.", (char *) inet_ntoa(inetName->sin_addr), 
+(0=unlimited), rengine=" UVAST_FIELDSPEC ".",
+			(char *) inet_ntoa(inetName->sin_addr), 
 			ntohs(portNbr), txbps, remoteEngineId);
 		writeMemo(txt);
 	}

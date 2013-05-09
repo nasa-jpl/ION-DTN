@@ -160,14 +160,15 @@ If a Boolean argument is provided when the command is executed, the
 characterization of the machine's clock is revised to conform with
 the asserted value.  The default value is 1.
 
-=item B<m production> I<asserted_data_production_rate>
+=item B<m production> I<planned_data_production_rate>
 
-This management command sets ION's limit on the mean rate of continuous
-data origination by local BP applications.  For nodes that function only
+This management command sets ION's expectation of the mean rate of continuous
+data origination by local BP applications throughout the period of time
+over which congestion forecasts are computed.  For nodes that function only
 as routers this variable will normally be zero.  A value of -1, which is the
-default, indicates that production is limited only by resource availability;
-in that case local data production and consumption are not considered in
-the computation of congestion forecasts.
+default, indicates that the rate of local data production is unknown; in that
+case local data production is not considered in the computation of congestion
+forecasts.
 
 =item B<m consumption> I<planned_data_consumption_rate>
 
@@ -175,7 +176,9 @@ This management command sets ION's expectation of the mean rate of continuous
 data delivery to local BP applications throughout the period of time
 over which congestion forecasts are computed.  For nodes that function only
 as routers this variable will normally be zero.  A value of -1, which is the
-default, indicates that the rate of local data consumption is unknown.
+default, indicates that the rate of local data consumption is unknown; in
+that case local data consumption is not considered in the computation of
+congestion forecasts.
 
 =item B<m occupancy> I<heap_occupancy_limit> [I<file_system_occupancy_limit>]
 

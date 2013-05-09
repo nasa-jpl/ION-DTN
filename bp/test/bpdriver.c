@@ -11,11 +11,7 @@
 #include <bp.h>
 
 #define	DEFAULT_ADU_LENGTH	(60000)
-#define	DEFAULT_TTL 300
-
-#if 0
-#define	CYCLE_TRACE
-#endif
+#define	DEFAULT_TTL		300
 
 /*	Indication marks:	"." for BpPayloadPresent (1),
 				"*" for BpReceptionTimedOut (2).
@@ -41,12 +37,25 @@ static BpSAP	_bpsap(BpSAP *newSap)
 	return sap;
 }
 
+static void	_zcoControl(int *controlPtr)
+{
+	static int	*ptr = NULL;
+
+	if (controlPtr)	/*	Initializing ZCO request cancellation.	*/
+	{
+		ptr = controlPtr;
+	}
+	else		/*	Canceling ZCO request.			*/
+	{
+		ionCancelZcoSpaceRequest(ptr);
+	}
+}
+
 static void	handleQuit()
 {
-	void	*erase = NULL;
-
+	isignal(SIGINT, handleQuit);
 	bp_interrupt(_bpsap(NULL));
-	oK(sm_TaskVar(&erase));
+	_zcoControl(NULL);
 }
 
 static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
@@ -62,9 +71,10 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	int		randomAduLength = 0;
 	int		bytesRemaining;
 	int		bytesToWrite;
-	Object		pilotAdu;
+	Object		pilotAduString;
 	Object		fileRef;
 	Object		bundleZco;
+	int		controlZco;
 	Object		newBundle;
 	double		bytesSent = 0.0;
 	struct timeval	startTime;
@@ -191,20 +201,27 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 
 	/*	Send pilot bundle to start bpcounter's timer.		*/
 
+	_zcoControl(&controlZco);
 	CHKZERO(sdr_begin_xn(sdr));
-	pilotAdu = sdr_string_create(sdr, "Go.");
-	bundleZco = zco_create(sdr, ZcoSdrSource, pilotAdu, 0,
-			sdr_string_length(sdr, pilotAdu));
-	if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	pilotAduString = sdr_string_create(sdr, "Go.");
+	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("bpdriver can't create ZCO.", NULL);
+		putErrmsg("bpdriver can't create pilot ADU string.", NULL);
 		bp_close(sap);
 		return 0;
 	}
 
-	if (bp_send(sap, BP_BLOCKING, destEid, NULL, ttl,
-			BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
-			bundleZco, &newBundle) < 1)
+	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0, 
+			sdr_string_length(sdr, pilotAduString), &controlZco);
+	if (bundleZco == 0)
+	{
+		putErrmsg("bpdriver can't create pilot ADU.", NULL);
+		bp_close(sap);
+		return 0;
+	}
+
+	if (bp_send(sap, destEid, NULL, ttl, BP_STD_PRIORITY, custodySwitch, 0,
+			0, NULL, bundleZco, &newBundle) < 1)
 	{
 		putErrmsg("bpdriver can't send pilot bundle.",
 				itoa(aduLength));
@@ -256,19 +273,17 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 			aduLength = ((rand() % 60) + 1) * 1024;
 		}
 
-		CHKZERO(sdr_begin_xn(sdr));
-		bundleZco = zco_create(sdr, ZcoFileSource, fileRef, 0,
-				aduLength);
-		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+		bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
+				&controlZco);
+		if (bundleZco == 0)
 		{
 			putErrmsg("bpdriver can't create ZCO.", NULL);
 			running = 0;
 			continue;
 		}
 
-		if (bp_send(sap, BP_BLOCKING, destEid, NULL, ttl,
-				BP_STD_PRIORITY, custodySwitch, 0, 0, NULL,
-				bundleZco, &newBundle) < 1)
+		if (bp_send(sap, destEid, NULL, ttl, BP_STD_PRIORITY,
+			custodySwitch, 0, 0, NULL, bundleZco, &newBundle) < 1)
 		{
 			putErrmsg("bpdriver can't send message.",
 					itoa(aduLength));
@@ -371,7 +386,7 @@ int	bpdriver(int a1, int a2, int a3, int a4, int a5,
 	char	*destEid = (char *) a3;
 	int	aduLength = (a4 == 0 ? DEFAULT_ADU_LENGTH : atoi((char *) a4));
 	int	streaming = 0;
-	int ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
+	int 	ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
 #else
 int	main(int argc, char **argv)
 {

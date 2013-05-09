@@ -25,22 +25,22 @@ extern "C" {
 
 typedef struct
 {
-	unsigned long	groupNbr;
+	uvast		groupNbr;
 	int		isMember;	/*	Boolean: local node	*/
-	Object		members;	/*	SDR list of node nbrs	*/
+	Object		members;	/*	SDR list of NodeIds	*/
 	BpTimestamp	timestamp;
 } ImcGroup;
 
 typedef struct
 {
-	unsigned long	groupNbr;
+	uvast		groupNbr;
 	int		isMember;	/*	Boolean			*/
 } ImcPetition;
 
-extern int		imcJoin(unsigned long groupNbr);
-extern int		imcLeave(unsigned long groupNbr);
+extern int		imcJoin(uvast groupNbr);
+extern int		imcLeave(uvast groupNbr);
 
-extern void		imcFindGroup(unsigned long groupNbr, Object *addr,
+extern void		imcFindGroup(uvast groupNbr, Object *addr,
 				Object *eltp);
 
 extern int		imcParsePetition(void **petition, unsigned char *cursor,

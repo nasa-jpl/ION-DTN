@@ -29,7 +29,6 @@ ln -s ../ici/utils/ionsecadmin.c
 ln -s ../ici/utils/sdrmend.c
 ln -s ../ici/utils/ionexit.c
 ln -s ../ici/utils/ionwarn.c
-ln -s ../ici/restart/ionrestart.c
 ln -s ../bp/library/libbp.c
 ln -s ../bp/library/libbpP.c
 ln -s ../bp/library/bpP.h
@@ -77,6 +76,7 @@ ln -s ../ltp/library/ltpP.h
 ln -s ../ltp/daemon/ltpclock.c
 ln -s ../ltp/daemon/ltpmeter.c
 ln -s ../ltp/utils/ltpadmin.c
+ln -s ../restart/utils/ionrestart.c
 if [ "$ION_OPEN_SOURCE" == "1" ];then
 ln -s ../cfdp/library/libcfdp.c
 ln -s ../cfdp/library/libcfdpops.c

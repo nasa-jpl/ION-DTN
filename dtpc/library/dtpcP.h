@@ -211,12 +211,12 @@ extern Object		getDtpcDbObject();
 extern DtpcDB		*getDtpcConstants();
 extern DtpcVdb		*getDtpcVdb();
 extern int		handleInAdu(Sdr sdr, BpDelivery *dlv,
-				unsigned long profNum, Scalar seqNum);
+				unsigned int profNum, Scalar seqNum);
 extern int		handleAck(Sdr sdr, BpDelivery *dlv,
-				unsigned long profNum, Scalar seqNum);
+				unsigned int profNum, Scalar seqNum);
 extern void		deleteGap(Sdr sdr, Object aduElt);
 extern int		parseInAdus(Sdr sdr);
-extern int		sendAck(BpSAP sap, unsigned long profileID,
+extern int		sendAck(BpSAP sap, unsigned int profileID,
 				Scalar seqNum, BpDelivery *dlv);
 extern void		scalarToSdnv(Sdnv *sdnv, Scalar *scalar);
 extern int		sdnvToScalar(Scalar *scalar, unsigned char *sdnvText);

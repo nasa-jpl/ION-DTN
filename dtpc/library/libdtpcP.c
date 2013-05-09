@@ -615,13 +615,13 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 
 static int	estimateLength(OutAdu *outAdu)
 {
-	Sdr			sdr = getIonsdr();
-	Object			elt1;
-	Object			elt2;
-				OBJ_POINTER(Topic, topic);
-				OBJ_POINTER(PayloadRecord, record);
-	unsigned long		recordLength;
-	int			totalLength = 0;
+	Sdr	sdr = getIonsdr();
+	Object	elt1;
+	Object	elt2;
+		OBJ_POINTER(Topic, topic);
+		OBJ_POINTER(PayloadRecord, record);
+	uvast	recordLength;
+	int	totalLength = 0;
 	
 	for (elt1 = sdr_list_first(sdr, outAdu->topics); elt1;
 			elt1 = sdr_list_next(sdr, elt1))
@@ -868,8 +868,8 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 	Sdnv			topicID;
 	Sdnv			recordsCounter;
 	char			type;
-	unsigned int		extentLength;
-	unsigned long		payloadDataLength;
+	int			extentLength;
+	uvast			payloadDataLength;
 	unsigned char		*buffer;
 	unsigned char		*cursor;
 	Object			topicElt;
@@ -1173,10 +1173,11 @@ int	sendAdu(BpSAP sap)
 	currentTime = getUTCTime();
 	while(1)
 	{
-		switch (bp_send(sap, BP_NONBLOCKING, dstEid, reportToEid,
-		(outAdu.expirationTime - currentTime), profile->classOfService, 
-		profile->custodySwitch, profile->srrFlags, 1, 
-		&(profile->extendedCOS), zco, &outAdu.bundleObj))
+		switch (bp_send(sap, dstEid, reportToEid,
+			(outAdu.expirationTime - currentTime),
+			profile->classOfService, profile->custodySwitch,
+			profile->srrFlags, 1, &(profile->extendedCOS),
+			zco, &outAdu.bundleObj))
 		{
 		case 0:		/*	No space for bundle.	*/
 			if (errno == EWOULDBLOCK)
@@ -1307,9 +1308,9 @@ queued outAdu.", NULL);
 	return 0;
 }
 
-static void	deleteEltObjContent(Sdr sdr, Object eltData, void *arg)
+static void	deleteEltObjContent(Sdr sdr, Object elt, void *arg)
 {
-	sdr_free(sdr, eltData);
+	sdr_free(sdr, sdr_list_data(sdr, elt));
 }
 
 void	deleteAdu(Sdr sdr, Object aduElt)
@@ -1779,7 +1780,7 @@ static int	resetInAggregator(Sdr sdr, Object aggrElt)
 	return 0;
 }
 
-int	handleInAdu(Sdr sdr, BpDelivery *dlv, unsigned long profNum,
+int	handleInAdu(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 		Scalar seqNum)
 {
 	DtpcDB		*dtpcConstants = _dtpcConstants();
@@ -2338,9 +2339,9 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 	int		parsedBytes = 0;
 	int		bytesToRead;
 	int		bytesReceived;
-	unsigned long	topicNum;
-	unsigned long	recordsCounter;
-	unsigned long	payloadLength;
+	uvast		topicNum;
+	uvast		recordsCounter;
+	uvast		payloadLength;
 	int		remainingLength;
 	int		sdnvLength;
 	char		skipTopic = 0;		/*	Boolean		*/
@@ -2655,21 +2656,22 @@ int	parseInAdus(Sdr sdr)
 	return 0;
 }
 
-int	handleAck(Sdr sdr, BpDelivery *dlv, unsigned long profNum,
+int	handleAck(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 		Scalar seqNum)
 {
-	DtpcDB		*dtpcConstants = _dtpcConstants();
-	Object		aggrElt;
-	Object		aduElt;
-	char		dstEid[SDRSTRING_BUFSZ];
-	char		srcEid[64];
-	unsigned long	nodeNbr;
-			OBJ_POINTER(OutAggregator, outAggr);
-			OBJ_POINTER(OutAdu, outAdu);
+	DtpcDB	*dtpcConstants = _dtpcConstants();
+	Object	aggrElt;
+	Object	aduElt;
+	char	dstEid[SDRSTRING_BUFSZ];
+	char	srcEid[64];
+	uvast	nodeNbr;
+		OBJ_POINTER(OutAggregator, outAggr);
+		OBJ_POINTER(OutAdu, outAdu);
 
 	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, dlv->adu);	/* The ZCO is not needed.	*/
-	if (sscanf(dlv->bundleSourceEid, "%*[^:]:%20lu.", &nodeNbr) < 1)
+	if (sscanf(dlv->bundleSourceEid, "%*[^:]:" UVAST_FIELDSPEC ".",
+			&nodeNbr) < 1)
 	{
 		writeMemo("[?] Can't scan srcEid node number. Will not \
 process ACK.");
@@ -2682,7 +2684,7 @@ process ACK.");
 		return 0;
 	}
 
-	isprintf(srcEid, sizeof srcEid, "ipn:%lu.%d", nodeNbr,
+	isprintf(srcEid, sizeof srcEid, "ipn:" UVAST_FIELDSPEC ".%d", nodeNbr,
 			DTPC_RECV_SVC_NBR);
 
 	/* Look for OutAggregator with the same ProfileID and dstEid
@@ -2747,7 +2749,7 @@ process ACK.");
 	return 0;
 }
 
-int	sendAck (BpSAP sap, unsigned long profileID, Scalar seqNum,
+int	sendAck (BpSAP sap, unsigned int profileID, Scalar seqNum,
 		BpDelivery *dlv)
 {
 	Sdr		sdr = getIonsdr();
@@ -2756,7 +2758,7 @@ int	sendAck (BpSAP sap, unsigned long profileID, Scalar seqNum,
 	Sdnv		profileIdSdnv;
 	Sdnv		seqNumSdnv;
 	char		type;
-	unsigned long	extentLength;
+	int		extentLength;
 	unsigned char	*buffer;
 	unsigned char	*cursor;
 	Object		addr;
@@ -2770,16 +2772,17 @@ int	sendAck (BpSAP sap, unsigned long profileID, Scalar seqNum,
 	unsigned int	lifetime;
 	int		priority = 0;
 	char		dstEid[64];
-	unsigned long	nodeNbr;
+	uvast		nodeNbr;
 
-	if (sscanf(dlv->bundleSourceEid, "%*[^:]:%20lu.", &nodeNbr) < 1)
+	if (sscanf(dlv->bundleSourceEid, "%*[^:]:" UVAST_FIELDSPEC ".",
+			&nodeNbr) < 1)
 	{
 		writeMemo("[?] Can't scan srcEid node number. Will not \
 send ACK.");
 		return 0;
 	}
 
-	isprintf(dstEid, sizeof dstEid, "ipn:%lu.%d", nodeNbr,
+	isprintf(dstEid, sizeof dstEid, "ipn:" UVAST_FIELDSPEC ".%d", nodeNbr,
 			DTPC_RECV_SVC_NBR);
 	CHKERR(sdr_begin_xn(sdr));
 
@@ -2859,9 +2862,8 @@ send ACK.");
 
 	while(1)
 	{
-		switch (bp_send(sap, BP_NONBLOCKING, dstEid, NULL, lifetime,
-				priority, custodySwitch, 0, 0, &extendedCOS,
-				ackZco, &newBundle)) 
+		switch (bp_send(sap, dstEid, NULL, lifetime, priority,
+			custodySwitch, 0, 0, &extendedCOS, ackZco, &newBundle)) 
 		{
 		case 0:		/*	No space for bundle.		*/
 			if (errno == EWOULDBLOCK)

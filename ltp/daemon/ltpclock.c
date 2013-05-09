@@ -10,7 +10,7 @@
 									*/
 #include "ltpP.h"
 
-static long	_running(long *newValue)
+static int	_running(long *newValue)
 {
 	void	*value;
 	long	state;
@@ -120,7 +120,7 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 	LtpSpan		span;
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
-	unsigned long	priorXmitRate;
+	unsigned int	priorXmitRate;
 
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sm_list_first(ionwm, ltpvdb->spans); elt;

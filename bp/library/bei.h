@@ -254,9 +254,9 @@ extern int 	updateCollaborationBlock(Object collabAddr,
 /* Functions that operate on Acquisition Work Area objects */
 
 extern int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
-			unsigned char *startOfBlock, unsigned long blockLength,
-			unsigned char blkType, unsigned long blkProcFlags,
-			Lyst *eidReferences, unsigned long dataLength);
+			unsigned char *startOfBlock, unsigned int blockLength,
+			unsigned char blkType, unsigned int blkProcFlags,
+			Lyst *eidReferences, unsigned int dataLength);
 extern int 	addAcqCollabBlock(AcqWorkArea *work, CollabBlockHdr *blkHdr);
 extern int	checkExtensionBlocks(AcqWorkArea *work);
 extern void	deleteAcqExtBlock(LystElt elt, unsigned int listIdx);

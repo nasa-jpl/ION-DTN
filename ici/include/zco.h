@@ -71,18 +71,30 @@ typedef enum
 
 typedef struct
 {
-	Object		zco;
-	int		trackFileOffset;	/*	Boolean control	*/
-	unsigned int	headersLengthCopied;	/*	within extents	*/
-	unsigned int	sourceLengthCopied;	/*	within extents	*/
-	unsigned int	trailersLengthCopied;	/*	within extents	*/
-	unsigned int	lengthCopied;		/*	incl. capsules	*/
+	Object	zco;
+	int	trackFileOffset;		/*	Boolean control	*/
+	vast	headersLengthCopied;		/*	within extents	*/
+	vast	sourceLengthCopied;		/*	within extents	*/
+	vast	trailersLengthCopied;		/*	within extents	*/
+	vast	lengthCopied;			/*	incl. capsules	*/
 } ZcoReader;
 
 /*	Commonly used functions for building, accessing, managing,
  	and destroying a ZCO.						*/
 
-Object		zco_create_file_ref(Sdr sdr,
+typedef void	(*ZcoCallback)();
+
+extern void	zco_register_callback(ZcoCallback notify);
+			/*	Provides the callback function that
+			 *	the ZCO system will invoke every time
+			 *	a ZCO is destroyed, making ZCO space
+			 *	available for new ZCO creation.		*/
+
+extern void	zco_unregister_callback();
+			/*	Removes the currently registered
+			 *	ZCO-space-available callback.		*/
+
+extern Object	zco_create_file_ref(Sdr sdr,
 				char *pathName,
 				char *cleanupScript);
 			/*	cleanupScript, if not NULL, is invoked
@@ -100,7 +112,7 @@ Object		zco_create_file_ref(Sdr sdr,
 			 *	reference object on success, 0 on any
 			 *	error.					*/
 
-int		zco_revise_file_ref(Sdr sdr,
+extern int	zco_revise_file_ref(Sdr sdr,
 				Object fileRef,
 				char *pathName,
 				char *cleanupScript);
@@ -110,7 +122,7 @@ int		zco_revise_file_ref(Sdr sdr,
 			 *	as for zco_create_file_ref.  Returns 0
 			 *	on success, -1 on any error.		*/
 
-char		*zco_file_ref_path(Sdr sdr,
+extern char	*zco_file_ref_path(Sdr sdr,
 				Object fileRef,
 				char *buffer,
 				int buflen);
@@ -120,7 +132,7 @@ char		*zco_file_ref_path(Sdr sdr,
 			 *	truncated to buflen as necessary.
 			 *	Returns NULL on any error.		*/
 
-int		zco_file_ref_xmit_eof(Sdr sdr,
+extern int	zco_file_ref_xmit_eof(Sdr sdr,
 				Object fileRef);
 			/*	Returns 1 if the last octet of the
 			 *	referenced file (as determined at the
@@ -129,7 +141,7 @@ int		zco_file_ref_xmit_eof(Sdr sdr,
 			 *	reader with file offset tracking
 			 *	turned on.  Otherwise returns zero.	*/
 
-void		zco_destroy_file_ref(Sdr sdr,
+extern void	zco_destroy_file_ref(Sdr sdr,
 				Object fileRef);
 			/*	If file reference is no longer in use
 			 *	(no longer referenced by any ZCO) then
@@ -137,59 +149,55 @@ void		zco_destroy_file_ref(Sdr sdr,
 			 *	it is flagged for destruction as soon
 			 *	as the last reference to it is removed.	*/
 
-void		zco_get_file_occupancy(Sdr sdr,
-				Scalar *occupancy);
+extern vast	zco_get_file_occupancy(Sdr sdr);
 			/*	Returns the total number of file
 			 *	system space bytes occupied by ZCOs
 			 *	in this SDR.				*/
 
-void		zco_set_max_file_occupancy(Sdr sdr,
-				Scalar *occupancy);
+extern void	zco_set_max_file_occupancy(Sdr sdr,
+				vast occupancy);
 			/*	Sets the maximum number of file
 			 *	system space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-void		zco_get_max_file_occupancy(Sdr sdr,
-				Scalar *occupancy);
+extern vast	zco_get_max_file_occupancy(Sdr sdr);
 			/*	Returns the maximum number of file
 			 *	system space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-int		zco_enough_file_space(Sdr sdr,
-				unsigned int length);
+extern int	zco_enough_file_space(Sdr sdr,
+				vast length);
 			/*	Returns 1 if the total remaining file
 			 *	system space available for ZCOs is
 			 *	greater than length, 0 otherwise.	*/
 
-void		zco_get_heap_occupancy(Sdr sdr,
-				Scalar *occupancy);
+extern vast	zco_get_heap_occupancy(Sdr sdr);
 			/*	Returns the total number of SDR
 			 *	heap space bytes occupied by ZCOs
 			 *	in this SDR.				*/
 
-void		zco_set_max_heap_occupancy(Sdr sdr,
-				Scalar *occupancy);
+extern void	zco_set_max_heap_occupancy(Sdr sdr,
+				vast occupancy);
 			/*	Sets the maximum number of SDR
 			 *	heap space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-void		zco_get_max_heap_occupancy(Sdr sdr,
-				Scalar *occupancy);
+extern vast	zco_get_max_heap_occupancy(Sdr sdr);
 			/*	Returns the maximum number of SDR
 			 *	heap space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-int		zco_enough_heap_space(Sdr sdr,
-				unsigned int length);
+extern int	zco_enough_heap_space(Sdr sdr,
+				vast length);
 			/*	Returns 1 if the total remaining SDR
 			 *	heap space available for ZCOs is
 			 *	greater than length, 0 otherwise.	*/
 
-Object		zco_create(	Sdr sdr,
+extern Object	zco_create(	Sdr sdr,
 				ZcoMedium firstExtentSourceMedium,
 				Object firstExtentLocation,
-				unsigned int firstExtentOffset,
-				unsigned int firstExtentLength);
+				vast firstExtentOffset,
+				vast firstExtentLength);
 			/*	The parameters "firstExtentLocation"
 			 *	and "firstExtentLength" must either
 			 *	both be zero (indicating that
@@ -197,34 +205,42 @@ Object		zco_create(	Sdr sdr,
 			 *	insert the first source data extent
 			 *	later) or else both be non-zero.
 			 *	Returns SDR location of a new ZCO
-			 *	object on success, 0 on any error.	*/
+			 *	object on success, 0 if there is
+			 *	currently too little available ZCO
+			 *	space to accommodate the proposed
+			 *	first extent, ((Object) -1) on any
+			 *	error.					*/
 
-int		zco_append_extent(Sdr sdr,
+extern vast	zco_append_extent(Sdr sdr,
 				Object zco,
 				ZcoMedium sourceMedium,
 				Object location,
-				unsigned int offset,
-				unsigned int length);
+				vast offset,
+				vast length);
 			/*	Both location and length must be non-
-			 *	zero.					*/
+			 *	zero.  Returns length on success, 0
+			 *	if there is currently too little
+			 *	available ZCO space to accommodate
+			 *	the proposed first extent, -1 on any
+			 *	error.					*/
 
-int		zco_prepend_header(Sdr sdr,
+extern int	zco_prepend_header(Sdr sdr,
 				Object zco,
 				char *header,
-				unsigned int length);
+				vast length);
 
-void		zco_discard_first_header(Sdr sdr,
+extern void	zco_discard_first_header(Sdr sdr,
 				Object zco);
 
-int		zco_append_trailer(Sdr sdr,
+extern int	zco_append_trailer(Sdr sdr,
 				Object zco,
 				char *trailer,
-				unsigned int length);
+				vast length);
 
-void		zco_discard_last_trailer(Sdr sdr,
+extern void	zco_discard_last_trailer(Sdr sdr,
 				Object zco);
 
-void		zco_destroy(	Sdr sdr,
+extern void	zco_destroy(	Sdr sdr,
 				Object zco);
 			/*	Explicitly destroys the indicated ZCO.
 			 *	This reduces the reference counts for
@@ -234,10 +250,18 @@ void		zco_destroy(	Sdr sdr,
 			 *	the deletion of files as those
 			 *	reference counts drop to zero.		*/
 
-Object		zco_clone(	Sdr sdr,
+extern int	zco_bond(	Sdr sdr,
+				Object zco);
+			/*	Converts all headers and trailers to
+			 *	source data extents.  Use this function
+			 *	to prevent header and trailer data
+			 *	from being omitted when the ZCO is
+			 *	cloned.					*/
+
+extern Object	zco_clone(	Sdr sdr,
 				Object zco,
-				unsigned int offset,
-				unsigned int length);
+				vast offset,
+				vast length);
 			/*	Creates a new ZCO that is a copy of a
 			 *	subset of the indicated ZCO.  This
 			 *	procedure is required whenever it is
@@ -251,22 +275,33 @@ Object		zco_clone(	Sdr sdr,
 			 *	file and SDR source data objects
 			 *	referenced by those extents.  Returns
 			 *	the SDR location of the new ZCO on
-			 *	success, 0 on any error.		*/
+			 *	success, ((Object) -1) on any error.	*/
 
-unsigned int	zco_length(	Sdr sdr,
+extern vast	zco_clone_source_data(Sdr sdr,
+				Object toZco,
+				Object fromZco,
+				vast offset,
+				vast length);
+			/*	Same as zco_clone except that the
+			 *	cloned source data extents are appended
+			 *	to an existing ZCO ("toZco") rather
+			 *	than to a newly created ZCO.  Returns
+			 *	length on success, -1 on any error.	*/
+
+extern vast	zco_length(	Sdr sdr,
 				Object zco);
 			/*	Returns length of entire zero-copy
 			 *	object, including all headers and
 			 *	trailers and all source data extents.	*/
 
-unsigned int	zco_source_data_length(Sdr sdr,
+extern vast	zco_source_data_length(Sdr sdr,
 				Object zco);
 			/*	Returns current presumptive length of
 			 *	the ZCO's encapsulated source data.	*/
 
 /*	*	Functions for copying ZCO source data.	*	*	*/
 
-void		zco_start_transmitting(Object zco,
+extern void	zco_start_transmitting(Object zco,
 				ZcoReader *reader);
 			/*	Used by underlying protocol layer to
 			 *	start extraction of outbound ZCO bytes
@@ -288,13 +323,13 @@ void		zco_start_transmitting(Object zco,
 			 *	or different tasks, to advance through
 			 *	the ZCO independently.			*/
 
-void		zco_track_file_offset(ZcoReader *reader);
+extern void	zco_track_file_offset(ZcoReader *reader);
 			/*	Turn on file offset tracking for this
 			 *	reader.					*/
 
-int		zco_transmit(	Sdr sdr,
+extern vast	zco_transmit(	Sdr sdr,
 				ZcoReader *reader,
-				unsigned int length,
+				vast length,
 				char *buffer);
 			/*	Copies "length" as-yet-uncopied bytes
 			 *	of the total concatenated ZCO object
@@ -303,7 +338,7 @@ int		zco_transmit(	Sdr sdr,
 			 *	this ZCO.  Returns the number of bytes
 			 *	copied, or -1 on any error.		*/
 
-void		zco_start_receiving(Object zco,
+extern void	zco_start_receiving(Object zco,
 				ZcoReader *reader);
 			/*	Used by overlying protocol layer to
 			 *	start extraction of inbound ZCO bytes
@@ -319,9 +354,9 @@ void		zco_start_receiving(Object zco,
 			 *	Populates "reader" object, which is
 			 *	required.				*/
 
-int		zco_receive_headers(Sdr sdr,
+extern vast	zco_receive_headers(Sdr sdr,
 				ZcoReader *reader,
-				unsigned int length,
+				vast length,
 				char *buffer);
 			/*	Copies "length" as-yet-uncopied bytes
 			 *	of presumptive protocol header text
@@ -329,10 +364,10 @@ int		zco_receive_headers(Sdr sdr,
 			 *	"buffer".  Returns number of bytes
 			 *	copied, or -1 on any error.		*/
 
-void		zco_delimit_source(Sdr sdr,
+extern void	zco_delimit_source(Sdr sdr,
 				Object zco,
-				unsigned int offset,
-				unsigned int length);
+				vast offset,
+				vast length);
 			/*	Sets the computed offset and length
 			 *	of actual source data in the ZCO,
 			 *	thereby implicitly establishing the
@@ -345,9 +380,9 @@ void		zco_delimit_source(Sdr sdr,
 			 *	the information carried in received
 			 *	presumptive protocol header text.	*/
 
-int		zco_receive_source(Sdr sdr,
+extern vast	zco_receive_source(Sdr sdr,
 				ZcoReader *reader,
-				unsigned int length,
+				vast length,
 				char *buffer);
 			/*	Copies "length" as-yet-uncopied bytes
 			 *	of source data from ZCO extents into
@@ -356,17 +391,17 @@ int		zco_receive_source(Sdr sdr,
 			 *	source data.  Returns number of bytes
 			 *	copied, or -1 on any error.		*/
 
-int		zco_receive_trailers(Sdr sdr,
+extern vast	zco_receive_trailers(Sdr sdr,
 				ZcoReader *reader,
-				unsigned int length,
+				vast length,
 				char *buffer);
 			/*	Copies "length" as-yet-uncopied bytes
 			 *	of trailer data from ZCO extents into
 			 *	"buffer".  Returns number of bytes
 			 *	copied, or -1 on any error.		*/
 
-void		zco_strip(	Sdr sdr,
-				Object zcoRef);
+extern void	zco_strip(	Sdr sdr,
+				Object zco);
 			/*	Deletes all source data extents that
 			 *	contain only header or trailer data,
 			 *	adjusts offsets and/or lengths of
@@ -382,19 +417,6 @@ void		zco_strip(	Sdr sdr,
 			 *	by an overlying application or
 			 *	protocol layer.				*/
 
-/*		ZCO functions for future use.				*/
-#if 0
-
-void		zco_concatenate(Sdr sdr,
-				Object aggregateZco,
-				Object atomicZco);
-			/*	Appends all source data extents of the
-			 *	atomic ZCO to the source data of the
-			 *	aggregate ZCO.  Destroys the atomic
-			 *	ZCO.  Fails if either Zco contains any
-			 *	identified header or trailer data.	*/
-
-#endif
 #ifdef __cplusplus
 }
 #endif

@@ -37,8 +37,8 @@ static int	checkElision(Object recordsList)
 	Object		nextElt;
 	Object		obj;
 	PayloadRecord	item;
-	unsigned long	firstLength;
-	unsigned long	length;
+	uvast		firstLength;
+	uvast		length;
 
 	CHKZERO(sdr_begin_xn(sdr));
 	firstLength = 0;
@@ -97,8 +97,8 @@ dtpcsend";
 	float		sleepSecs;
 	time_t		startTime;
 	time_t		endTime;
-	long		interval;
-	long		bytesSent = 0;
+	int		interval;
+	int		bytesSent = 0;
 	char		totalbytes[21];
 	DtpcSAP		sap;
 	Sdr		sdr;

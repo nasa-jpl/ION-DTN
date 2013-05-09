@@ -105,14 +105,15 @@ Returns 1 if the local CFDP entity has been started and not yet stopped,
 
 Terminates all access to CFDP functionality on the local computer.
 
-=item void cfdp_compress_number(CfdpNumber *toNbr, unsigned long from)
+=item void cfdp_compress_number(CfdpNumber *toNbr, uvast from)
 
-Converts a number in native unsigned long integer form into a CfdpNumber
-structure, e.g., for use when invoking the cfdp_put() function.
+Converts an unsigned B<vast> number into a CfdpNumber structure, e.g., for
+use when invoking the cfdp_put() function.
 
-=item void cfdp_decompress_number(unsigned long toNbr, CfdpNumber *from)
+=item void cfdp_decompress_number(uvast toNbr, CfdpNumber *from)
 
-Converts a numeric value in a CfdpNumber structure to an unsigned long integer.
+Converts a numeric value in a CfdpNumber structure to an unsigned B<vast>
+integer.
 
 =item void cfdp_update_checksum(unsigned char octet, unsigned int *offset, unsigned int *checksum)
 

@@ -17,47 +17,53 @@
 #define	CYCLE_TRACE
 #endif
 
-static BpSAP	_bpsap(BpSAP *newSap)
+typedef struct
 {
-	void	*value;
 	BpSAP	sap;
-	
-	if (newSap)			/*	Add task variable.	*/
+	int	running;
+} BptestState;
+
+static BptestState	*_bptestState(BptestState *newState)
+{
+	void		*value;
+	BptestState	*state;
+
+	if (newState)			/*	Add task variable.	*/
 	{
-		value = (void *) (*newSap);
-		sap = (BpSAP) sm_TaskVar(&value);
+		value = (void *) (newState);
+		state = (BptestState *) sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		sap = (BpSAP) sm_TaskVar(NULL);
+		state = (BptestState *) sm_TaskVar(NULL);
 	}
 
-	return sap;
+	return state;
 }
 
-static int	_running(int *newState)
+static void	_zcoControl(int *controlPtr)
 {
-	void	*value = NULL;
-	BpSAP	sap;
+	static int	*ptr = NULL;
 
-	if (newState)			/*	Only used for Stop.	*/
+	if (controlPtr)	/*	Initializing ZCO request cancellation.	*/
 	{
-		sap = (BpSAP) sm_TaskVar(&value);
+		ptr = controlPtr;
 	}
-	else				/*	Retrieve task variable.	*/
+	else		/*	Canceling ZCO request.			*/
 	{
-		sap = (BpSAP) sm_TaskVar(NULL);
+		ionCancelZcoSpaceRequest(ptr);
 	}
-
-	return (sap == NULL ? 0 : 1);
 }
 
 static void	handleQuit()
 {
-	int	stop = 0;
+	BptestState	*state;
 
-	bp_interrupt(_bpsap(NULL));
-	oK(_running(&stop));
+	isignal(SIGINT, handleQuit);
+	PUTS("BP reception interrupted.");
+	state = _bptestState(NULL);
+	bp_interrupt(state->sap);
+	state->running = 0;
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -75,14 +81,14 @@ int	main(int argc, char **argv)
  				"!" for BpReceptionInterrupted (3).
 				"X" for BpEndpointStopped (4).	*/
 	static char	dlvmarks[] = "?.*!X";
-	BpSAP		sap;
+	BptestState	state = { NULL, 1 };
 	Sdr		sdr;
 	char		dataToSend[ADU_LEN];
 	Object		bundleZco;
+	int		controlZco;
 	Object		newBundle;
 	Object		extent;
 	BpDelivery	dlv;
-	int		stop = 0;
 	ZcoReader	reader;
  	char		sourceEid[1024];
 	int		bytesToEcho = 0;
@@ -100,24 +106,25 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	if (bp_open(ownEid, &sap) < 0)
+	if (bp_open(ownEid, &state.sap) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", NULL);
 		return 0;
 	}
 
-	oK(_bpsap(&sap));
+	oK(_bptestState(&state));
 	sdr = bp_get_sdr();
+	_zcoControl(&controlZco);
 	isignal(SIGINT, handleQuit);
 	while (1)
 	{
 		/*	Wait for a bundle from the driver.		*/
 
-		while (_running(NULL))
+		while (state.running)
 		{
-			if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
+			if (bp_receive(state.sap, &dlv, BP_BLOCKING) < 0)
 			{
-				bp_close(sap);
+				bp_close(state.sap);
 				putErrmsg("bpecho bundle reception failed.",
 						NULL);
 				return 1;
@@ -127,9 +134,9 @@ putchar(dlvmarks[dlv.result]);
 fflush(stdout);
 			if (dlv.result == BpEndpointStopped
 			|| (dlv.result == BpReceptionInterrupted
-					&& _running(NULL) == 0))
+					&& state.running == 0))
 			{
-				oK(_running(&stop));
+				state.running = 0;
 				continue;
 			}
 
@@ -147,7 +154,7 @@ fflush(stdout);
 				{
 					putErrmsg("Can't receive payload.",
 							NULL);
-					oK(_running(&stop));
+					state.running = 0;
 					continue;
 				}
 
@@ -158,7 +165,7 @@ fflush(stdout);
 			bp_release_delivery(&dlv, 1);
 		}
 
-		if (_running(NULL) == 0)
+		if (state.running == 0)
 		{
 			/*	Benchmark run terminated.		*/
 
@@ -166,35 +173,38 @@ fflush(stdout);
 		}
 
 		/*	Now send acknowledgment bundle.			*/
-		if(strcmp(sourceEid, "dtn:none") == 0) continue;
+		if (strcmp(sourceEid, "dtn:none") == 0) continue;
 		CHKZERO(sdr_begin_xn(sdr));
 		extent = sdr_malloc(sdr, bytesToEcho);
-		if (extent == 0)
+		if (extent)
 		{
-			sdr_cancel_xn(sdr);
+			sdr_write(sdr, extent, dataToSend, bytesToEcho);
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
 			putErrmsg("No space for ZCO extent.", NULL);
 			break;		/*	Out of main loop.	*/
 		}
 
-		sdr_write(sdr, extent, dataToSend, bytesToEcho);
-		bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0,
-				bytesToEcho);
-		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0,
+				bytesToEcho, &controlZco);
+		if (bundleZco == 0)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
 			break;		/*	Out of main loop.	*/
 		}
 
-		if (bp_send(sap, BP_BLOCKING, sourceEid, NULL, 300,
-				BP_STD_PRIORITY, NoCustodyRequested,
-				0, 0, NULL, bundleZco, &newBundle) < 1)
+		if (bp_send(state.sap, sourceEid, NULL, 300, BP_STD_PRIORITY,
+				NoCustodyRequested, 0, 0, NULL, bundleZco,
+				&newBundle) < 1)
 		{
 			putErrmsg("bpecho can't send echo bundle.", NULL);
 			break;		/*	Out of main loop.	*/
 		}
 	}
 
-	bp_close(sap);
+	bp_close(state.sap);
 	writeErrmsgMemos();
 	bp_detach();
 	return 0;

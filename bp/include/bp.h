@@ -27,7 +27,7 @@
 extern "C" {
 #endif
 
-/*	bp_send and bp_receive timeout values				*/
+/*	bp_receive timeout values					*/
 #define	BP_POLL			(0)	/*	Return immediately.	*/
 #define	BP_NONBLOCKING		(0)	/*	Return immediately.	*/
 #define BP_BLOCKING		(-1)	/*	Wait forever.		*/
@@ -53,7 +53,7 @@ typedef enum
 
 typedef struct
 {
-	unsigned long	flowLabel;	/*	Optional.		*/
+	unsigned int	flowLabel;	/*	Optional.		*/
 	unsigned char	flags;		/*	See below.		*/
 	unsigned char	ordinal;	/*	0 to 254 (most urgent).	*/
 } BpExtendedCOS;
@@ -67,8 +67,8 @@ typedef struct bpsap_st		*BpSAP;
 
 typedef struct
 {
-	unsigned long	seconds;
-	unsigned long	count;
+	unsigned int	seconds;
+	unsigned int	count;
 } BpTimestamp;
 
 typedef enum
@@ -147,7 +147,6 @@ extern int		bp_parse_class_of_service(	const char *token,
 			 *  On failure, no arguments have been modified.*/
 
 extern int		bp_send(	BpSAP sap,
-					int mode,
 					char *destEid,
 					char *reportToEid,
 					int lifespan,
@@ -158,11 +157,7 @@ extern int		bp_send(	BpSAP sap,
 					BpExtendedCOS *extendedCOS,
 					Object adu,
 					Object *newBundle);
-			/*	mode must be either BP_BLOCKING or
-			 *	BP_NONBLOCKING.  bp_send does not
-			 *	support timeout intervals.
-			 *
-			 *	Class of service is simply priority
+			/*	Class of service is simply priority
 			 *	for now.  If class-of-service flags
 			 *	are defined in a future version of
 			 *	Bundle Protocol, those flags would
@@ -179,23 +174,12 @@ extern int		bp_send(	BpSAP sap,
 			 *	adu must be a "zero-copy object"
 			 *	reference as returned by zco_create().
 			 *
-			 *	Returns 1 on success, 0 on transient
-			 *	failure, -1 on any other (i.e., system
-			 *	or application; permanent) error.  If
-			 *	1 is returned, then the ADU has been
-			 *	accepted and queued for transmission
-			 *	in a bundle.  If 0 is returned, then
-			 *	either there is not currently enough
-			 *	space for acceptance and queuing of
-			 *	this ADU or else the destination or
-			 *	report-to endpoint ID is malformed.
-			 *	In the former case (which is possible
-			 *	only when the "blocking" flag passed
-			 *	to bp_send is zero), errno has been
-			 *	set to EWOULDBLOCK; the application
-			 *	may abandon this transmission attempt
-			 *	or may instead wait briefly and then
-			 *	try again.				*/
+			 *	Returns 1 on success, 0 on user error
+			 *	(an invalid argument value), -1 on
+			 *	system error.  If 1 is returned, then
+			 *	the ADU has been accepted and queued
+			 *	for transmission in a bundle and its
+			 *	ID has been placed in newBundle.	*/
 
 extern int		bp_track(	Object bundleObj,
 					Object trackingElt);

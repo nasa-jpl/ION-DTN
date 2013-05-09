@@ -54,83 +54,124 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0
 
-echo "Starting channel simulator (owltsim)..."
-owltsim owlt.rc &
+ITERCOUNT=1
+GAVEUP=1
+while [ $ITERCOUNT -le 4 ] && [ $GAVEUP -eq 1 ]
+do
+	echo "Starting channel simulator (owltsim)..."
+	owltsim owlt.rc &
 
-# Start nodes.
-cd 3.ipn.ltp
-./ionstart
-cd ../2.ipn.ltp
-./ionstart
+	# Start nodes.
+	cd 3.ipn.ltp
+	./ionstart
+	cd ../2.ipn.ltp
+	./ionstart > output
 
-# Start file receiver on node 3.
-cd ../3.ipn.ltp
-echo "Starting bprecvfile..."
-bprecvfile ipn:3.1 &
-sleep 1
+	#Load contacts
+	cd ../2.ipn.ltp
+	ionadmin global.ionrc
+	cd ../3.ipn.ltp
+	ionadmin global.ionrc
+	sleep 1
 
-# Send files from node 2.
-cd ../2.ipn.ltp
-echo "Sending four files from node 2 to node 3:"
-echo "  shakespeare1"
-bpsendfile ipn:2.1 ipn:3.1 shakespeare1
-echo "  shakespeare2"
-bpsendfile ipn:2.1 ipn:3.1 shakespeare2
-echo "  shakespeare3"
-bpsendfile ipn:2.1 ipn:3.1 shakespeare3
-echo "  shakespeare4"
-bpsendfile ipn:2.1 ipn:3.1 shakespeare4
+	# Start file receiver on node 3.
+	echo "Starting bprecvfile..."
+	bprecvfile ipn:3.1 &
+	RCVPID=$!
+	sleep 1
 
-sleep 420
-cd ../3.ipn.ltp
+	# Send files from node 2.
+	cd ../2.ipn.ltp
+	echo "Sending four files from node 2 to node 3:"
+	echo "  shakespeare1"
+	bpsendfile ipn:2.1 ipn:3.1 shakespeare1
+	echo "  shakespeare2"
+	bpsendfile ipn:2.1 ipn:3.1 shakespeare2
+	echo "  shakespeare3"
+	bpsendfile ipn:2.1 ipn:3.1 shakespeare3
+	echo "  shakespeare4"
+	bpsendfile ipn:2.1 ipn:3.1 shakespeare4
 
-# Verify that all four files arrived.
-COUNT=`ls -l testfile4 | wc -l`
-if [ $COUNT -eq 1 ]
-then
+	sleep 420
+	cd ../3.ipn.ltp
+
+	# Verify that all four files arrived.
+	COUNT=`ls -l testfile4 | wc -l`
+	if [ $COUNT -eq 1 ]
+	then
+		echo ""
+		echo "Okay: 4 files received."
+		RETVAL=0
+	else
+		echo ""
+		echo "Error: files not received."
+		RETVAL=1
+	fi
+
 	echo ""
-	echo "Okay: 4 files received."
-else
+
+	# Verify that no leftover files remain.
+	COUNT=`ls -l *ltpblock* | wc -l`
+	if [ $COUNT -eq 0 ]
+	then
+		echo ""
+		echo "Okay: no leftover acquisition files."
+	else
+		echo ""
+		echo "Error: acquisition files left over."
+		RETVAL=1
+	fi
+
+	#Kill file receiver
+	kill -2 $RCVPID
+	sleep 2
+	kill -9 $RCVPID
+	sleep 2
+	rm testfile*
+
+	#adjust loop condition
+	cd ../2.ipn.ltp
+	let  ITERCOUNT++
+	COUNT=`grep "!" output | wc -l`
+	if [ $RETVAL -eq 1 ]; then
+		if [ $COUNT -eq 0 ]
+		then
+			echo ""
+			echo "No Bundles Expired"
+			GAVEUP=0
+		else
+			echo ""
+			echo "Bundles Expired. Retry"
+			GAVEUP=1
+		fi
+	else
+		GAVEUP=0		
+	fi
+
 	echo ""
-	echo "Error: files not received."
-	RETVAL=1
-fi
 
-echo ""
+	# Shut down channel simulator.
+	OSNAME=`uname`
+	if [ "$OSNAME" == "SunOS" ]; then
+	    killcmd="pkill"
+	else
+	    killcmd="killall"
+	fi
 
-# Verify that no leftover files remain.
-COUNT=`ls -l *ltpblock* | wc -l`
-if [ $COUNT -eq 0 ]
-then
-	echo ""
-	echo "Okay: no leftover acquisition files."
-else
-	echo ""
-	echo "Error: acquisition files left over."
-	RETVAL=1
-fi
+	$killcmd -KILL "owltsim" &> /dev/null
 
-echo ""
+	# Shut down ION processes.
+	echo "Stopping ION..."
+	cd ../2.ipn.ltp
+	./ionstop &
+	cd ../3.ipn.ltp
+	./ionstop &
+	cd ..
 
-# Shut down channel simulator.
-OSNAME=`uname`
-if [ "$OSNAME" == "SunOS" ]; then
-    killcmd="pkill"
-else
-    killcmd="killall"
-fi
+	# Give both nodes time to shut down, then clean up.
+	sleep 5
+	killm
+done
 
-$killcmd -KILL "owltsim" &> /dev/null
-
-# Shut down ION processes.
-echo "Stopping ION..."
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
-
-# Give both nodes time to shut down, then clean up.
-sleep 5
-killm
 echo "issue-324-ltp-files test completed."
 exit $RETVAL

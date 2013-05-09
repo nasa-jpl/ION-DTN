@@ -287,7 +287,7 @@ int bsp_pcbCheck(AcqExtBlock *blk, AcqWorkArea *wk)
     BspPayloadReplaceKit *bprk;
     unsigned char *ltKeyValue = NULL, *sessionKeyValue = NULL;
     unsigned char *decryptedData = NULL;
-    unsigned long ltKeyLen = 0, sessionKeyLen = 0;
+    unsigned int ltKeyLen = 0, sessionKeyLen = 0;
     char *srcNode, *destNode;
     Sdr bpSdr = getIonsdr();
     Bundle *bundle = &(wk->bundle);
@@ -466,8 +466,8 @@ int bsp_pcbProcessOnDequeue(ExtensionBlock *blk,
    unsigned char *sessionKeyValue = NULL;
    unsigned char *encryptedData = NULL;
    char *srcNode = NULL, *destNode = NULL;
-   unsigned long ltKeyLen = 0;
-   unsigned long sessionKeyLen = 0;
+   unsigned int ltKeyLen = 0;
+   unsigned int sessionKeyLen = 0;
    Sdnv sessionKeySdnv;
    int result = 0;
 
@@ -656,7 +656,7 @@ as expected.", NULL);
     }
 
     // Store the updated ASB for this block
-    sdr_write(bpSdr, blk->object, (char *)&(bundle->payload.content), sizeof(unsigned long));
+    sdr_write(bpSdr, blk->object, (char *)&(bundle->payload.content), sizeof(unsigned int));
     if (sdr_end_xn(bpSdr) < 0)
     {
 	    putErrmsg("Transaction failed.", NULL);
@@ -737,8 +737,8 @@ void    bsp_pcbRelease(ExtensionBlock *blk)
  *  09/13/11  R. Brown        Initial Implementation. 
  *****************************************************************************/
 
-BspPayloadReplaceKit *bsp_pcbPrepReplaceKit(Object bundle, unsigned long payloadLen, 
-                                        unsigned long headerLen, unsigned long trailerLen) 
+BspPayloadReplaceKit *bsp_pcbPrepReplaceKit(Object bundle, unsigned int payloadLen, 
+                                        unsigned int headerLen, unsigned int trailerLen) 
 {
     BspPayloadReplaceKit *bprk = MTAKE(sizeof(BspPayloadReplaceKit));
     CHKNULL(bprk);
@@ -773,11 +773,11 @@ BspPayloadReplaceKit *bsp_pcbPrepReplaceKit(Object bundle, unsigned long payload
  *****************************************************************************/
 
 int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
-                                     unsigned char *sessionKeyValue, unsigned long sessionKeyLen)   
+                                     unsigned char *sessionKeyValue, unsigned int sessionKeyLen)   
 {
     Object newSdrAddr = 0;
     int temp = 0;
-    unsigned long bundleLen = bprk->payloadLen +  
+    unsigned int bundleLen = bprk->payloadLen +  
                               bprk->headerLen + bprk->trailerLen;
     CHKERR(sdr_begin_xn(bpSdr));
     // Put the header onto a new payload object, though it is actually
@@ -800,7 +800,8 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
         bprk->newBundle = zco_create(bpSdr, ZcoSdrSource, 0, 0, 0);
     }
 
-    if (sdr_end_xn(bpSdr) < 0)
+    if (sdr_end_xn(bpSdr) < 0 || bprk->newBundle == (Object) ERROR
+    || bprk->newBundle == 0)
     {
 	    putErrmsg("Transaction failed.", NULL);
     }
@@ -826,14 +827,23 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
         if((newSdrAddr = sdr_malloc(bpSdr, bprk->trailerLen)) == 0)
         {
             zco_destroy(bpSdr, bprk->newBundle);
-            PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: unable to allocate more\
-                          sdr memory for trailer, len %d", bprk->trailerLen);
+            PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: unable to \
+allocate more sdr memory for trailer, len %d", bprk->trailerLen);
             oK(sdr_end_xn(bpSdr));
             return -1;
         }
-        sdr_write(bpSdr, newSdrAddr, (char *)bprk->trailerBuff, bprk->trailerLen);
-        zco_append_extent(bpSdr, bprk->newBundle, ZcoSdrSource,
-                          newSdrAddr, 0, bprk->trailerLen);
+
+        sdr_write(bpSdr, newSdrAddr, (char *) bprk->trailerBuff,
+			bprk->trailerLen);
+        if (zco_append_extent(bpSdr, bprk->newBundle, ZcoSdrSource,
+                          newSdrAddr, 0, bprk->trailerLen) <= 0)
+	{
+            zco_destroy(bpSdr, bprk->newBundle);
+            PCB_DEBUG_ERR("x bsp_pcbConstructDecryptedPayload: unable to \
+append extent to trailer ZCO, len %d", bprk->trailerLen);
+            oK(sdr_end_xn(bpSdr));
+            return -1;
+	}
     }
 
     // Now our new object should have the whole bundle in the source portion
@@ -970,9 +980,9 @@ int bsp_pcbIsolatePayload(Sdr bpSdr, BspPayloadReplaceKit *bprk)
  *****************************************************************************/
 
 int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,  
-                        unsigned long payloadLen,
+                        unsigned int payloadLen,
                         unsigned char *keyValue,
-                        unsigned long keyLen)
+                        unsigned int keyLen)
                   
 {
    Sdr bpSdr = getIonsdr();
@@ -980,9 +990,9 @@ int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,
    Object fileRef = 0;
    ZcoReader dataReader;
    arc4_context arcContext;
-   unsigned long bytesRemaining = 0;
-   unsigned long chunkSize = PCB_ENCRYPTION_CHUNK_SIZE;
-   unsigned long bytesRetrieved = 0;
+   unsigned int bytesRemaining = 0;
+   unsigned int chunkSize = PCB_ENCRYPTION_CHUNK_SIZE;
+   unsigned int bytesRetrieved = 0;
 
    PCB_DEBUG_INFO("+ bsp_pcbCryptPayload(0x%x, %ld, %s %d)",
                   (unsigned long) payloadData,
@@ -1090,9 +1100,9 @@ int bsp_pcbCryptPayload(Object *resultZco, Object payloadData, char *fname,
  *****************************************************************************/
 
 unsigned char *bsp_pcbCryptSessionKey(unsigned char *sessionKey, 
-                                      unsigned long sessionKeyLen, 
+                                      unsigned int sessionKeyLen, 
                                       unsigned char *ltKeyValue,
-                                      unsigned long ltKeyLen) 
+                                      unsigned int ltKeyLen) 
 {
     unsigned char *encryptedKey = MTAKE(sessionKeyLen); 
     CHKNULL(encryptedKey);
@@ -1127,7 +1137,7 @@ unsigned char *bsp_pcbCryptSessionKey(unsigned char *sessionKey,
  *  08/1/11  R. Brown        Initial Implementation.
  *****************************************************************************/
 
-unsigned char *bsp_pcbGenSessionKey(unsigned long *sessionKeyLen) 
+unsigned char *bsp_pcbGenSessionKey(unsigned int *sessionKeyLen) 
 {
     int i = 0;
     char possibleChar[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";//-_+=[]{};:\\|'\",.<>?/!@#$%^&*()~`";

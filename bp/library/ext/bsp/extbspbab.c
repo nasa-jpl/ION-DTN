@@ -290,7 +290,7 @@ int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
    LystElt collabBlkAddr;
    int retval = 0;
    unsigned char   *digest;
-   unsigned long   digestLen;
+   unsigned int   digestLen;
    int         cmpResult;
 
    BAB_DEBUG_PROC("+ bsp_babPostCheck(%x, %x)",
@@ -615,7 +615,7 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
    BspAbstractSecurityBlock asb;
    BspBabCollaborationBlock collabBlk;
    unsigned char   *digest;
-   unsigned long   digestLen;
+   unsigned int   digestLen;
    unsigned char *raw_asb = NULL;
    int result = 0;
    Object collabAddr = 0;
@@ -623,7 +623,7 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
    char *keyValue = NULL;
    int keyLen = 0;
    Sdnv digestSdnv;
-   unsigned long digestOffset = 0;
+   unsigned int digestOffset = 0;
 
    BAB_DEBUG_PROC("+ bsp_babPostProcessOnTransmit: %x, %x, %x",
    (unsigned long) blk, (unsigned long) bundle,(unsigned long) ctxt);
@@ -830,14 +830,14 @@ int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
 
    Sdr         bpSdr = getIonsdr();
    int         resultLen = BAB_HMAC_SHA1_RESULT_LEN + 2;   /*   Item.   */
-   unsigned long   rawBundleLen;
+   unsigned int   rawBundleLen;
    int         lengthToHash;
    char         *keyValueBuffer;
    int         keyLen;
    int retval = 0;
    char *srcNode, *destNode;
    unsigned char *digest;
-   unsigned long digestLen;
+   unsigned int digestLen;
 
    BAB_DEBUG_PROC("+ bsp_babPreCheck(%x,%x)",
                   (unsigned long) pre_blk, (unsigned long) wk);
@@ -1142,8 +1142,12 @@ ASB. blk->dataLength = %d", blk->dataLength);
          collab.hmacLen = 0;
          collab.expectedResult[0] = '\0';
 
-         addCollaborationBlock(bundle, (CollabBlockHdr *) &collab);
-
+         if (addCollaborationBlock(bundle, (CollabBlockHdr *) &collab) < 0)
+	 {
+         	BAB_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Can't add \
+collaboration block.");
+         	result = -1;
+	 }
      }
    }
 
@@ -1226,10 +1230,10 @@ void    bsp_babRelease(ExtensionBlock *blk)
  *****************************************************************************/
 
 unsigned char *bsp_babGetSecResult(Object dataObj,
-                                   unsigned long dataLen,
+                                   unsigned int dataLen,
                                    char *keyValue,
-                    unsigned long keyLen,
-                                   unsigned long *hashLen)
+                    unsigned int keyLen,
+                                   unsigned int *hashLen)
 {
    Sdr bpSdr = getIonsdr();
    unsigned char *hashData = NULL;
@@ -1238,9 +1242,9 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
    ZcoReader dataReader;
    char *authContext;
    int authCtxLen = 0;
-   unsigned long bytesRemaining = 0;
-   unsigned long chunkSize = BSP_BAB_BLOCKING_SIZE;
-   unsigned long bytesRetrieved = 0;
+   unsigned int bytesRemaining = 0;
+   unsigned int chunkSize = BSP_BAB_BLOCKING_SIZE;
+   unsigned int bytesRetrieved = 0;
 
    BAB_DEBUG_INFO("+ bsp_babGetSecResult(0x%x, %ld, %s %d, 0x%x)",
                   (unsigned long) dataObj,

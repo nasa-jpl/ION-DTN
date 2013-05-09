@@ -24,11 +24,26 @@ static int	_running(int *newState)
 	return state;
 }
 
+static void	_zcoControl(int *controlPtr)
+{
+	static int	*ptr = NULL;
+
+	if (controlPtr)	/*	Initializing ZCO request cancellation.	*/
+	{
+		ptr = controlPtr;
+	}
+	else		/*	Canceling ZCO request.			*/
+	{
+		ionCancelZcoSpaceRequest(ptr);
+	}
+}
+
 static void	handleQuit()
 {
 	int	stop = 0;
 
 	oK(_running(&stop));
+	_zcoControl(NULL);
 }
 
 #if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
@@ -37,7 +52,7 @@ int	bpsource(int a1, int a2, int a3, int a4, int a5,
 {
 	char	*destEid = (char *) a1;
 	char	*text = (char *) a2;
-	int ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
+	int 	ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
 #else
 int	main(int argc, char **argv)
 {
@@ -79,6 +94,7 @@ int	main(int argc, char **argv)
 	int	lineLength;
 	Object	extent;
 	Object	bundleZco;
+	int	controlZco = 0;
 	Object	newBundle;
 	int	fd;
 
@@ -88,9 +104,10 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	if(ttl <= 0)
+	if (ttl <= 0)
 	{
-		PUTS("Usage: bpsource <destination endpoint ID> ['<text>'] [-t<Bundle TTL>]");
+		PUTS("Usage: bpsource <destination endpoint ID> ['<text>'] \
+[-t<Bundle TTL>]");
 		return 0;
 	}
 
@@ -113,27 +130,30 @@ int	main(int argc, char **argv)
 
 		CHKZERO(sdr_begin_xn(sdr));
 		extent = sdr_malloc(sdr, lineLength);
-		if (extent == 0)
+		if (extent)
 		{
-			sdr_cancel_xn(sdr);
+			sdr_write(sdr, extent, text, lineLength);
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
 			putErrmsg("No space for ZCO extent.", NULL);
 			bp_detach();
 			return 0;
 		}
 
-		sdr_write(sdr, extent, text, lineLength);
-		bundleZco = zco_create(sdr, ZcoSdrSource, extent,
-				0, lineLength);
-		if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, lineLength,
+				&controlZco);
+		if (bundleZco == 0)
 		{
 			putErrmsg("Can't create ZCO extent.", NULL);
 			bp_detach();
 			return 0;
 		}
 
-		if (bp_send(NULL, BP_BLOCKING, destEid, NULL, ttl,
-				BP_STD_PRIORITY, NoCustodyRequested,
-				0, 0, NULL, bundleZco, &newBundle) < 1)
+		if (bp_send(NULL, destEid, NULL, ttl, BP_STD_PRIORITY,
+				NoCustodyRequested, 0, 0, NULL, bundleZco,
+				&newBundle) < 1)
 		{
 			putErrmsg("bpsource can't send ADU.", NULL);
 		}
@@ -144,6 +164,7 @@ int	main(int argc, char **argv)
 
 #ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
 	fd = fileno(stdin);
+	_zcoControl(&controlZco);
 	isignal(SIGINT, handleQuit);
 	while (_running(NULL))
 	{
@@ -171,25 +192,28 @@ int	main(int argc, char **argv)
 		default:
 			CHKZERO(sdr_begin_xn(sdr));
 			extent = sdr_malloc(sdr, lineLength);
-			if (extent == 0)
+			if (extent)
 			{
-				sdr_cancel_xn(sdr);
+				sdr_write(sdr, extent, line, lineLength);
+			}
+
+			if (sdr_end_xn(sdr) < 0)
+			{
 				putErrmsg("No space for ZCO extent.", NULL);
 				break;
 			}
 
-			sdr_write(sdr, extent, line, lineLength);
-			bundleZco = zco_create(sdr, ZcoSdrSource, extent,
-					0, lineLength);
-			if (sdr_end_xn(sdr) < 0 || bundleZco == 0)
+			bundleZco = ionCreateZco(ZcoSdrSource, extent,
+					0, lineLength, &controlZco);
+			if (bundleZco == 0)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				break;
 			}
 
-			if (bp_send(NULL, BP_BLOCKING, destEid, NULL, ttl,
-					BP_STD_PRIORITY, NoCustodyRequested,
-					0, 0, NULL, bundleZco, &newBundle) < 1)
+			if (bp_send(NULL, destEid, NULL, ttl, BP_STD_PRIORITY,
+					NoCustodyRequested, 0, 0, NULL,
+					bundleZco, &newBundle) < 1)
 			{
 				putErrmsg("bpsource can't send ADU.", NULL);
 				break;

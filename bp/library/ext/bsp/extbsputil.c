@@ -237,8 +237,8 @@ int bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 		cursor = ((unsigned char*)(blk->bytes)) + (blk->length - blk->dataLength);
 
 		/* Extract block specifics, using cipherFlags as necessary. */
-		extractSdnv(&(asb->cipher),      &cursor, &unparsedBytes);
-		extractSdnv(&(asb->cipherFlags), &cursor, &unparsedBytes);
+		extractSmallSdnv(&(asb->cipher),      &cursor, &unparsedBytes);
+		extractSmallSdnv(&(asb->cipherFlags), &cursor, &unparsedBytes);
 
 		BSP_DEBUG_INFO("i bsp_deserializeASB: cipher %ld, flags %ld, length %d",
 				asb->cipher, asb->cipherFlags, blk->dataLength);
@@ -251,7 +251,8 @@ int bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 
 		if(asb->cipherFlags & BSP_ASB_CORR)
 		{
-			extractSdnv(&(asb->correlator), &cursor, &unparsedBytes);
+			extractSmallSdnv(&(asb->correlator), &cursor,
+					&unparsedBytes);
 			BSP_DEBUG_INFO("i bsp_deserializeASB: corr. = %ld", asb->correlator);
 		}
 
@@ -262,7 +263,8 @@ int bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk, int blockType)
 
 		if(asb->cipherFlags & BSP_ASB_RES)
 		{
-			extractSdnv(&(asb->resultLen), &cursor, &unparsedBytes);
+			extractSmallSdnv(&(asb->resultLen), &cursor,
+					&unparsedBytes);
 			if(asb->resultLen == 0)
 			{
 				BSP_DEBUG_ERR("x bsp_deserializeASB: ResultLen is 0 with flags %ld",
@@ -620,13 +622,14 @@ unsigned char *bsp_serializeASB(unsigned int *length, BspAbstractSecurityBlock *
  *****************************************************************************/
 
 void	getBspItem(int itemNeeded, unsigned char *bspBuf,
-		unsigned long bspLen, unsigned char **val,
-		unsigned long *len)
+		unsigned int bspLen, unsigned char **val,
+		unsigned int *len)
 {
 	unsigned char	*cursor = bspBuf;
 	unsigned char	itemType;
 	int		sdnvLength;
-	unsigned long	itemLength;
+	uvast		longNumber;
+	unsigned int	itemLength;
 
 	CHKVOID(bspBuf);
 	CHKVOID(val);
@@ -648,14 +651,13 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
 			return;		/*	Malformed result data.	*/
 		}
 
-                itemLength = *cursor;
-
-		sdnvLength = decodeSdnv(&itemLength, cursor);
+		sdnvLength = decodeSdnv(&longNumber, cursor);
 		if (sdnvLength == 0 || sdnvLength > bspLen)
 		{
 			return;		/*	Malformed result data.	*/
 		}
 
+		itemLength = longNumber;
 		cursor += sdnvLength;
 		bspLen -= sdnvLength;
 
@@ -670,7 +672,6 @@ void	getBspItem(int itemNeeded, unsigned char *bspBuf,
 			*len = itemLength;
 			return;
 		}
-
 
 		/*	Look at next item in result data.		*/
 		cursor += itemLength;
@@ -1150,11 +1151,11 @@ int setSecPointsTrans(ExtensionBlock *blk, Bundle *bundle, BspAbstractSecurityBl
 int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, char *fname, 
                                 char *bytes, int length)
 {
-        static unsigned long    acqCount = 0;
+        static unsigned int    acqCount = 0;
         char                    cwd[200];
         char                    fileName[SDRSTRING_BUFSZ];
         int                     fd;
-        long                    fileLength;
+        int                    fileLength;
 
         CHKERR(bytes);
         CHKERR(length >= 0);
@@ -1163,7 +1164,7 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
         if (*resultZco == 0)     /*      First extent of acquisition.    */
         {
                 *resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
-                if (*resultZco == 0)
+                if (*resultZco == (Object) ERROR)
                 {
                         putErrmsg("extbsputil: Can't start file source ZCO.", NULL);
                         sdr_cancel_xn(sdr);
@@ -1184,7 +1185,7 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
                 }
 
                 acqCount++;
-                isprintf(fileName, sizeof fileName, "%s%c%s.%lu", cwd,
+                isprintf(fileName, sizeof fileName, "%s%c%s.%u", cwd,
                                 ION_PATH_DELIMITER, fname, acqCount);
                 fd = open(fileName, O_WRONLY | O_CREAT, 0666);
                 if (fd < 0)
@@ -1219,8 +1220,13 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
         }
 
         close(fd);
-        oK(zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
-                        fileLength, length));
+        if (zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
+                        fileLength, length) <= 0)
+	{
+		putErrmsg("extbsputil: Can't append extent to ZCO.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
 
         /*      Flag file reference for deletion as soon as the last
          *      ZCO extent that references it is deleted.               */

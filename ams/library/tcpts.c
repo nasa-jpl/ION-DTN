@@ -498,7 +498,7 @@ static void	*tcpAmsAccess(void *parm)
 
 		/*	Animate the new receiver.			*/
 
-		if (pthread_create(&(rcvr->thread), NULL, tcpAmsReceiver, rcvr)
+		if (pthread_begin(&(rcvr->thread), NULL, tcpAmsReceiver, rcvr)
 				< 0)
 		{
 			putSysErrmsg("tcpts can't start Mams receiver thread",

@@ -26,6 +26,18 @@ the platform library functions rather than native O/S system
 calls may forego some O/S-specific capability, but they gain portability 
 at little if any cost in performance.
 
+Differences in word size among platforms are implemented by values
+of the I<SPACE_ORDER> macro.  "Space order" is the base 2 log of the
+number of octets in a word: for 32-bit machines the space order is
+2 (2^2 = 4 octets per word), for 64-bit machines it is 3 (2^3 = 8
+octets per word).
+
+A consistent platform-independent representation of large integers is
+useful for some applications.  For this purpose, I<platform> defines
+new types B<vast> and B<uvast> (unsigned vast) which are consistently
+defined to be 64-bit integers regardless of the platform's native word
+size.
+
 The platform.h header file #includes many of the most frequently
 needed header files: sys/types.h, errno.h, string.h, stdio.h,
 sys/socket.h, signal.h, dirent.h, netinet/in.h, unistd.h,
@@ -201,6 +213,16 @@ iputs() writes to I<fd> the NULL-terminated character string at I<string>.  No
 terminating newline character is appended to I<string> by iputs().  On error
 the function returns -1; otherwise the function returns the length of the
 character string written to I<fd>, as if from strlen(3).
+
+=item vast strtovast(char *string)
+
+Converts the leading characters of I<string>, skipping leading white space
+and ending at the first subsequent character that can't be interpreted as
+contributing to a numeric value, to a B<vast> integer and returns that integer.
+
+=item uvast strtouvast(char *string)
+
+Same as strtovast() except the result is an unsigned B<vast> integer value.
 
 =item void findToken(char **cursorPtr, char **token)
 
@@ -534,23 +556,23 @@ file name and line number for that stack frame.
 
 The functions in this section encode and decode SDNVs, portable variable-length
 numeric variables that expand to whatever size is necessary to contain the
-values they contain.  SDNVs are used extensively in the LTP and ION libraries.
+values they contain.  SDNVs are used extensively in the BP and LTP libraries.
 
 =over 4
 
-=item void encodeSdnv(Sdnv *sdnvBuffer, unsigned long value)
+=item void encodeSdnv(Sdnv *sdnvBuffer, uvast value)
 
 Determines the number of octets of SDNV text needed to contain the value,
 places that number in the I<length> field of the SDNV buffer, and encodes
 the value in SDNV format into the first I<length> octets of the I<text> field
 of the SDNV buffer.
 
-=item int decodeSdnv(unsigned long *value, unsigned char *sdnvText)
+=item int decodeSdnv(uvast *value, unsigned char *sdnvText)
 
 Determines the length of the SDNV located at I<sdnvText> and returns this
 number after extracting the SDNV's value from those octets and storing it
 in I<value>.  Returns 0 if the encoded number value will not fit into an
-unsigned long.
+unsigned vast integer.
 
 =back
 

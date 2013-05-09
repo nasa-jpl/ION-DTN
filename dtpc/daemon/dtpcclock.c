@@ -10,19 +10,19 @@
 
 #include "dtpcP.h"
 
-static long	_running(long *newValue)
+static int	_running(int *newValue)
 {
 	void	*value;
-	long	state;
+	int	state;
 	
 	if (newValue)		/*	Changing state.			*/
 	{
 		value = (void *) (*newValue);
-		state = (long) sm_TaskVar(&value);
+		state = (int) sm_TaskVar(&value);
 	}
 	else			/*	Just check.			*/
 	{
-		state = (long) sm_TaskVar(NULL);
+		state = (int) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -30,7 +30,7 @@ static long	_running(long *newValue)
 
 static void	shutDown()	/*	Commands dtpcclock termination.	*/
 {
-	long	stop = 0;
+	int	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates dtpcclock.		*/
 }
@@ -192,7 +192,7 @@ int	main(int argc, char *argv[])
 {
 #endif
 	Sdr	sdr;
-	long	state = 1;
+	int	state = 1;
 	time_t	currentTime;
 
 	if (dtpcInit() < 0)

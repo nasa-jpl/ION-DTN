@@ -21,8 +21,8 @@
 typedef struct
 {
 	time_t	time;
-	long	prevXmitRate;
-	long	xmitRate;
+	int	prevXmitRate;
+	int	xmitRate;
 	int	fromNeighbor;		/*	Boolean.		*/
 } RateChange;
 
@@ -31,7 +31,7 @@ static char	*_cannotForecast()
 	return "Can't complete congestion forecast.";
 }
 
-static IonNeighbor	*retrieveNeighbor(unsigned long nodeNbr, Lyst neighbors)
+static IonNeighbor	*retrieveNeighbor(uvast nodeNbr, Lyst neighbors)
 {
 	LystElt		elt3;
 	IonNeighbor	*np = NULL;
@@ -66,8 +66,8 @@ static IonNeighbor	*retrieveNeighbor(unsigned long nodeNbr, Lyst neighbors)
 	return np;
 }
 
-static int	insertRateChange(time_t time, unsigned long xmitRate,
-			int fromNeighbor, unsigned long prevXmitRate,
+static int	insertRateChange(time_t time, unsigned int xmitRate,
+			int fromNeighbor, unsigned int prevXmitRate,
 			Lyst changes)
 {
 	RateChange	*newChange;
@@ -122,8 +122,8 @@ int	checkForCongestion()
 	int		ionMemIdx;
 	Lyst		neighbors;
 	Lyst		changes;
-	Scalar		fileOccupancy;
-	Scalar		heapOccupancy;
+	vast		fileOccupancy;
+	vast		heapOccupancy;
 	double		currentOccupancy;
 	double		maxOccupancy;
 	double		forecastOccupancy;
@@ -176,23 +176,22 @@ int	checkForCongestion()
 
 	/*	First get current occupancy (both file space and heap).	*/
 
-	zco_get_file_occupancy(sdr, &fileOccupancy);
-	zco_get_heap_occupancy(sdr, &heapOccupancy);
-	currentOccupancy = fileOccupancy.gigs + heapOccupancy.gigs;
-	currentOccupancy *= ONE_GIG;
-	currentOccupancy += (fileOccupancy.units + heapOccupancy.units);
+	fileOccupancy = zco_get_file_occupancy(sdr);
+	heapOccupancy = zco_get_heap_occupancy(sdr);
+	currentOccupancy = fileOccupancy + heapOccupancy;
  	forecastOccupancy = maxOccupancy = currentOccupancy;
 
 	/*	Get net domestic contribution to congestion.		*/
 
-	if (iondb.productionRate < 0)	/*	Unlimited.		*/
+	netDomesticGrowth = 0;		/*	Default: no activity.	*/
+	if (iondb.productionRate > 0)
 	{
-		netDomesticGrowth = 0;	/*	Ignore local activity.	*/
+		netDomesticGrowth += iondb.productionRate;
 	}
-	else
+
+	if (iondb.consumptionRate > 0)
 	{
-		netDomesticGrowth = iondb.productionRate
-				- iondb.consumptionRate;
+		netDomesticGrowth -= iondb.consumptionRate;
 	}
 
 	/*	Get current net in-transit contribution to congestion.	*/

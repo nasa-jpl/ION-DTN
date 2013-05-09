@@ -2399,7 +2399,8 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 		authNameLen = strlen(authName);
 		CHKERR(authNameLen > 0);
 		CHKERR(authNameLen <= (AUTHENTICAT_LEN - 9));
-		if (authenticatorLength != authNameLen + 8)
+		if (authenticatorLength != authNameLen + 8
+		|| authenticator == NULL)
 		{
 			writeMemo("[?] MAMS msg discarded; bad authenticator.");
 			return -1;

@@ -18,33 +18,39 @@
 #include "bp.h"
 #include "bsstest.h"
 
-static int 	running = 1;
-
-static BpSAP	_bpsap(BpSAP *newSAP)
+typedef struct
 {
-	void	*value;
 	BpSAP	sap;
+	int	running;
+} BptestState;
 
-	if (newSAP)			/*	Add task variable.	*/
+static BptestState	*_bptestState(BptestState *newState)
+{
+	void		*value;
+	BptestState	*state;
+
+	if (newState)			/*	Add task variable.	*/
 	{
-		value = (void *) (*newSAP);
-		sap = (BpSAP) sm_TaskVar(&value);
+		value = (void *) (newState);
+		state = (BptestState *) sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		sap = (BpSAP) sm_TaskVar(NULL);
+		state = (BptestState *) sm_TaskVar(NULL);
 	}
 
-	return sap;
+	return state;
 }
 
 static void	handleQuit()
 {
-	void	*erase = NULL;
+	BptestState	*state;
 
-	bp_interrupt(_bpsap(NULL));
-	oK(sm_TaskVar(&erase));
-	running = 0;
+	isignal(SIGINT, handleQuit);
+	PUTS("BP reception interrupted.");
+	state = _bptestState(NULL);
+	bp_interrupt(state->sap);
+	state->running = 0;
 }
 
 static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
@@ -58,7 +64,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
          * ******************************************************
 	 */ 
 	BpCustodySwitch	custodySwitch = SourceCustodyRequired;
-	BpSAP		sap;
+	BptestState	state;
 	Sdr		sdr;
 	Object		bundlePayload;
 	Object		bundleZco;
@@ -91,18 +97,18 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		return 0;
 	}
 
-	if (bp_open(ownEid, &sap) < 0)
+	if (bp_open(ownEid, &state.sap) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
 		return 0;
 	}
 
-	oK(_bpsap(&sap));
+	oK(_bptestState(&state));
 
 	sdr = bp_get_sdr();
 	if (sdr_heap_depleted(sdr))
 	{
-		bp_close(sap);
+		bp_close(state.sap);
 		putErrmsg("Low on heap space, can't initiate streaming.", NULL);
 		return 0;
 	}
@@ -111,7 +117,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 
 	writeMemo("[i] bssStreamingApp is running.");
 
-	while(running) {
+	while(state.running) {
 
 		i++;
 		istrcpy(framePayload, itoa(i), sizeof(framePayload));
@@ -120,25 +126,32 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		bundlePayload = sdr_malloc(sdr, sizeof(framePayload));
 		if(bundlePayload == 0) {
 			sdr_cancel_xn(sdr);
-			bp_close(sap);
+			bp_close(state.sap);
 			putErrmsg("No space for frame payload.", NULL);
 			break;
 		}
 		
-		sdr_write(sdr, bundlePayload, framePayload, sizeof(framePayload));
+		sdr_write(sdr, bundlePayload, framePayload,
+				sizeof(framePayload));
+
+		/*	Note: we don't use ionCreateZco here because
+		 *	we don't want to block in admission control.
+		 *	The transmission loop is metered by time.	*/
+
 		bundleZco = zco_create(sdr, ZcoSdrSource, bundlePayload, 0, 
 				sizeof(framePayload));
-		if(sdr_end_xn(sdr) < 0 || bundleZco == 0)
+		if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
+		|| bundleZco == 0)
 		{
-			bp_close(sap);
-			putErrmsg("bssStreamingApp can't create bundle ZCO.", NULL);
+			bp_close(state.sap);
+			putErrmsg("bssStreamingApp can't create bundle ZCO.",
+					NULL);
 			break;
 		}
 
 		/* Send the bundle payload. */
-		if(bp_send(sap, BP_BLOCKING, destEid, NULL, 86400,
-		   priority, custodySwitch, 0, 0, &extendedCOS, bundleZco, 
-		   &newBundle) <= 0)
+		if(bp_send(state.sap, destEid, NULL, 86400, priority, custodySwitch,
+				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bssStreamingApp can't send frame.", NULL);
 			break;
@@ -150,7 +163,7 @@ size: %d has been sent\n", framePayload, sizeof(framePayload));
 		microsnooze(SNOOZE_INTERVAL);
 	}
 
-	bp_close(sap);
+	bp_close(state.sap);
 	writeErrmsgMemos();
 	PUTS("Stopping bssStreamingApp.");
 	bp_detach();

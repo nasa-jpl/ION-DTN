@@ -15,7 +15,7 @@ static Sdr		acsSdr = NULL;
 
 static int appendToSdrAcsFills(Object fills, const CtebScratchpad *cteb)
 {
-	unsigned long id = cteb->id;
+	unsigned int id = cteb->id;
 
 	Object   curFillLElt;
 	Object   curFillAddr;
@@ -25,7 +25,7 @@ static int appendToSdrAcsFills(Object fills, const CtebScratchpad *cteb)
 	AcsFill  nextFill;
 	Object   newFillAddr;
 	AcsFill  newFill;
-	unsigned long curFillUntil;	/* Last sequence number covered by curId. */
+	unsigned int curFillUntil;	/* Last sequence number covered by curId. */
 
 	ASSERT_ACSSDR_XN;
 
@@ -38,7 +38,7 @@ static int appendToSdrAcsFills(Object fills, const CtebScratchpad *cteb)
 		newFillAddr = sdr_malloc(acsSdr, sizeof(newFill));
 		if (newFillAddr == 0)
 		{
-			ACSLOG_WARN("Couldn't sdr_malloc() new fill %lu (%s)",
+			ACSLOG_WARN("Couldn't sdr_malloc() new fill %u (%s)",
 				id, strerror(errno));
 			return -1;			/* Error */
 		}
@@ -46,7 +46,7 @@ static int appendToSdrAcsFills(Object fills, const CtebScratchpad *cteb)
 
 		if (sdr_list_insert_first(acsSdr, fills, newFillAddr) == 0)
 		{
-			ACSLOG_WARN("Couldn't insert new fill %lu into list (%s)",
+			ACSLOG_WARN("Couldn't insert new fill %u into list (%s)",
 				id, strerror(errno));
 			/* Stale newFill object will be backed out of SDR on
 			 * sdr_end_xn() */
@@ -124,7 +124,7 @@ static int appendToSdrAcsFills(Object fills, const CtebScratchpad *cteb)
 				newFillAddr = sdr_malloc(acsSdr, sizeof(newFill));
 				if (newFillAddr == 0)
 				{
-					ACSLOG_WARN("Couldn't sdr_malloc() new fill %lu (%s)",
+					ACSLOG_WARN("Couldn't sdr_malloc() new fill %u (%s)",
 							id, strerror(errno));
 					return -1;			/* Error */
 				}
@@ -132,7 +132,7 @@ static int appendToSdrAcsFills(Object fills, const CtebScratchpad *cteb)
 
 				if (sdr_list_insert_after(acsSdr, curFillLElt, newFillAddr) == 0)
 				{
-					ACSLOG_WARN("Couldn't insert new fill %lu into list (%s)",
+					ACSLOG_WARN("Couldn't insert new fill %u into list (%s)",
 							id, strerror(errno));
 					/* Stale newFill object will be backed out of SDR on
 					 * sdr_end_xn() */
@@ -160,7 +160,7 @@ static int appendToSdrAcsFills(Object fills, const CtebScratchpad *cteb)
 			newFillAddr = sdr_malloc(acsSdr, sizeof(newFill));
 			if (newFillAddr == 0)
 			{
-				ACSLOG_WARN("Couldn't sdr_malloc() new fill %lu (%s)",
+				ACSLOG_WARN("Couldn't sdr_malloc() new fill %u (%s)",
 						id, strerror(errno));
 				return -1;			/* Error */
 			}
@@ -168,7 +168,7 @@ static int appendToSdrAcsFills(Object fills, const CtebScratchpad *cteb)
 
 			if (sdr_list_insert_first(acsSdr, fills, newFillAddr) == 0)
 			{
-				ACSLOG_WARN("Couldn't insert new fill %lu into list (%s)",
+				ACSLOG_WARN("Couldn't insert new fill %u into list (%s)",
 						id, strerror(errno));
 				/* Stale newFill object will be backed out of SDR on
 				 * sdr_end_xn() */
@@ -178,7 +178,7 @@ static int appendToSdrAcsFills(Object fills, const CtebScratchpad *cteb)
 		}
 	}
 
-	ACSLOG_ERROR("Hit bottom of appendToAcsFills for %lu", id);
+	ACSLOG_ERROR("Hit bottom of appendToAcsFills for %u", id);
 	return -1;
 }
 
@@ -298,7 +298,7 @@ static char *printSdrAcs(Object acsSignalAddr, const char *custodianEid)
 		}
 		sdr_peek(acsSdr, fill, fillsAddr);
 
-		rc = snprintf(cursor, reprAcsLeft, "%s%lu(%lu)", first ? "" : " +",
+		rc = snprintf(cursor, reprAcsLeft, "%s%u(%u)", first ? "" : " +",
 					fill.start, fill.length);
 		if (rc < 0 || rc >= reprAcsLeft) {
 			sprintf(cursor, "...");
@@ -320,16 +320,14 @@ static void printSdrAcsSignal(int loglevel, Object acsSignals, BpCtReason reason
 
 	CHKVOID(sdr_begin_xn(acsSdr));
 	if (findSdrAcsSignal(acsSignals, reasonCode, succeeded,
-				&signalAddr) == 0)
+				&signalAddr))
 	{
-		return;
+		reprAcsSignal = printSdrAcs(signalAddr, custodianEid);
+		ACSLOG(loglevel, reprAcsSignal, NULL);
+		MRELEASE(reprAcsSignal);
 	}
 
-	reprAcsSignal = printSdrAcs(signalAddr, custodianEid);
 	sdr_exit_xn(acsSdr);
-
-	ACSLOG(loglevel, reprAcsSignal, NULL);
-	MRELEASE(reprAcsSignal);
 }
 
 static void printAcsInformation(int loglevel, const char *note, Bundle *bundle,
@@ -352,13 +350,13 @@ static void printAcsInformation(int loglevel, const char *note, Bundle *bundle,
 
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
-		ACSLOG(loglevel, "%s: %s,%lu.%lu(%lu:%lu) (reason: %d, current custodian: %s)",
+		ACSLOG(loglevel, "%s: %s,%u.%u(%u:%u) (reason: %d, current custodian: %s)",
 			succeeded ? "SACK" : "SNACK", sourceEid, 
 			bundle->id.creationTime.seconds, bundle->id.creationTime.count,
 			bundle->id.fragmentOffset, bundle->payload.length,
 			reasonCode, currentCustodianEid);
 	} else {
-		ACSLOG(loglevel, "%s: %s,%lu.%lu (reason: %d, current custodian: %s)",
+		ACSLOG(loglevel, "%s: %s,%u.%u (reason: %d, current custodian: %s)",
 			succeeded ? "SACK" : "SNACK", sourceEid, 
 			bundle->id.creationTime.seconds, bundle->id.creationTime.count,
 			reasonCode, currentCustodianEid);

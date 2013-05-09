@@ -9,48 +9,39 @@
 
 #include <bp.h>
 
-static BpSAP	_bpsap(BpSAP *newSap)
+typedef struct
 {
-	void	*value;
 	BpSAP	sap;
+	int	running;
+} BptestState;
 
-	if (newSap)			/*	Add task variable.	*/
+static BptestState	*_bptestState(BptestState *newState)
+{
+	void		*value;
+	BptestState	*state;
+
+	if (newState)			/*	Add task variable.	*/
 	{
-		value = (void *) (*newSap);
-		sap = (BpSAP) sm_TaskVar(&value);
+		value = (void *) (newState);
+		state = (BptestState *) sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		sap = (BpSAP) sm_TaskVar(NULL);
+		state = (BptestState *) sm_TaskVar(NULL);
 	}
 
-	return sap;
-}
-
-static int	_running(int *newState)
-{
-	void	*value = NULL;
-	BpSAP	sap;
-
-	if (newState)			/*	Only used for Stop.	*/
-	{
-		sap = (BpSAP) sm_TaskVar(&value);
-	}
-	else				/*	Retrieve task variable.	*/
-	{
-		sap = (BpSAP) sm_TaskVar(NULL);
-	}
-
-	return (sap == NULL ? 0 : 1);
+	return state;
 }
 
 static void	handleQuit()
 {
-	int	stop = 0;
+	BptestState	*state;
 
+	isignal(SIGINT, handleQuit);
 	PUTS("BP reception interrupted.");
-	bp_interrupt(_bpsap(NULL));
-	oK(_running(&stop));
+	state = _bptestState(NULL);
+	bp_interrupt(state->sap);
+	state->running = 0;
 }
 
 #if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
@@ -69,10 +60,9 @@ int	main(int argc, char **argv)
 				"Reception interrupted.",
 				"Endpoint stopped."
 						};
-	BpSAP		sap;
+	BptestState	state = { NULL, 1 };
 	Sdr		sdr;
 	BpDelivery	dlv;
-	int		stop = 0;
 	int		contentLength;
 	ZcoReader	reader;
 	int		len;
@@ -94,21 +84,21 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	if (bp_open(ownEid, &sap) < 0)
+	if (bp_open(ownEid, &state.sap) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
 		return 0;
 	}
 
-	oK(_bpsap(&sap));
+	oK(_bptestState(&state));
 	sdr = bp_get_sdr();
 	isignal(SIGINT, handleQuit);
-	while (_running(NULL))
+	while (state.running)
 	{
-		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
+		if (bp_receive(state.sap, &dlv, BP_BLOCKING) < 0)
 		{
 			putErrmsg("bpsink bundle reception failed.", NULL);
-			oK(_running(&stop));
+			state.running = 0;
 			continue;
 		}
 
@@ -120,13 +110,15 @@ int	main(int argc, char **argv)
 
 		if (dlv.result == BpEndpointStopped)
 		{
-			oK(_running(&stop));
+			state.running = 0;
 			continue;
 		}
 
 		if (dlv.result == BpPayloadPresent)
 		{
+			CHKZERO(sdr_begin_xn(sdr));
 			contentLength = zco_source_data_length(sdr, dlv.adu);
+			sdr_exit_xn(sdr);
 			isprintf(line, sizeof line, "\tpayload length is %d.",
 					contentLength);
 			PUTS(line);
@@ -140,7 +132,7 @@ int	main(int argc, char **argv)
 				{
 					putErrmsg("Can't handle delivery.",
 							NULL);
-					oK(_running(&stop));
+					state.running = 0;
 					continue;
 				}
 
@@ -153,7 +145,7 @@ int	main(int argc, char **argv)
 		bp_release_delivery(&dlv, 1);
 	}
 
-	bp_close(sap);
+	bp_close(state.sap);
 	writeErrmsgMemos();
 	PUTS("Stopping bpsink.");
 	bp_detach();

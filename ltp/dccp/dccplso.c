@@ -208,15 +208,13 @@ return bytesSent;
 int	dccplso(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char			*endpointSpec = (char *) a1;
-	unsigned long		remoteEngineId =
-							a2 != 0 ? strtoul((char *) a2, NULL, 0) : 0;
+	char	*endpointSpec = (char *) a1;
+	uvast	remoteEngineId = a2 != 0 ? strtouvast((char *) a2) : 0;
 #else
 int	main(int argc, char *argv[])
 {
-	char				*endpointSpec = argc > 1 ? argv[1] : NULL;
-	unsigned long		remoteEngineId =
-							argc > 2 ? strtoul(argv[2], NULL, 0) : 0;
+	char	*endpointSpec = argc > 1 ? argv[1] : NULL;
+	uvast	remoteEngineId = argc > 2 ? strtouvast(argv[2]) : 0;
 #endif
 	Sdr					sdr;
 	LtpVspan			*vspan;
@@ -298,7 +296,7 @@ int	main(int argc, char *argv[])
 	itp.done=0;
 	itp.data=0;
 	pthread_mutex_init(&itp.mutex, NULL);
-	if (pthread_create(&idle_thread, NULL, idle_wait, (void*)&itp))
+	if (pthread_begin(&idle_thread, NULL, idle_wait, (void*)&itp))
 	{
 		putSysErrmsg("LSO can't create idle thread.", NULL);
 		pthread_mutex_destroy(&itp.mutex);
@@ -362,7 +360,7 @@ int	main(int argc, char *argv[])
 
 
 #include "ltpP.h"
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	dccplso(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

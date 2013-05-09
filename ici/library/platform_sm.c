@@ -34,7 +34,7 @@ int	sm_GetUniqueKey()
 
 	takeIpcLock();
 	ipcUniqueKey++;
-	result = (int) ipcUniqueKey;
+	result = ipcUniqueKey;		/*	Truncates as necessary.	*/
 	giveIpcLock();
 	return result;
 }
@@ -459,7 +459,7 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 	 *	calling sm_ShmAttach, to let shmat determine the
 	 *	attachment point for the memory segment.		*/
 
-	if ((long) (mem = shmat(*id, *shmPtr, 0)) == -1)
+	if ((mem = (char *) shmat(*id, *shmPtr, 0)) == ((char *) -1))
 	{
 		putSysErrmsg("Can't attach shared memory segment", itoa(key));
 		return -1;
@@ -616,7 +616,7 @@ static void	tagArgBuffers(int tid)
 	oK(_argBuffersAvbl(&avbl));
 }
 
-#endif			/*	End of #if defined (VXWORKS, RTEMS)	*/
+#endif		/*	End of #if defined (VXWORKS, RTEMS, bionic)	*/
 
 /****************** Semaphore services **********************************/
 
@@ -1927,10 +1927,13 @@ int	sm_SemTake(sm_SemId i)
 
 	semset = sembase->semSets + sem->semSetIdx;
 	sem_op[0].sem_num = sem_op[1].sem_num = sem->semNbr;
-	if (semop(semset->semid, sem_op, 2) < 0)
+	while (semop(semset->semid, sem_op, 2) < 0)
 	{
-		if (errno != EINTR)
+		if (errno == EINTR)
 		{
+			/*Retry on Interruption by signal*/
+			continue;
+		} else {
 			putSysErrmsg("Can't take semaphore", itoa(i));
 			return -1;
 		}
@@ -2045,6 +2048,8 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 			putSysErrmsg("Can't take semaphore", itoa(i));
 			return -1;
 		}
+		/*Intentionally don't retry if EINTR... That means the
+		 *alarm we just set went off... We're going to proceed anyway.*/
 	}
 
 	oK(alarm(0));
@@ -2220,7 +2225,65 @@ void	sm_Abort()
 
 #endif			/*	End of #ifdef VXWORKS			*/
 
-#if (defined(RTEMS) || defined(bionic))
+#if defined (bionic) || defined (uClibc)
+
+typedef struct
+{
+	void	*(*function)(void *);
+	void	*arg;
+} IonPthreadParm;
+
+static void	posixTaskExit(int sig)
+{
+	pthread_exit(0);
+}
+
+static void	sm_ArmPthread()
+{
+	struct sigaction	actions;
+
+	memset((char *) &actions, 0, sizeof actions);
+	sigemptyset(&actions.sa_mask);
+	actions.sa_flags = 0;
+	actions.sa_handler = posixTaskExit;
+	oK(sigaction(SIGUSR2, &actions, NULL));
+}
+
+void	sm_EndPthread(pthread_t threadId)
+{
+	/*	NOTE that this is NOT a faithful implementation of
+	 *	pthread_cancel(); there is no support for deferred
+	 *	thread cancellation in Bionic (the Android subset
+	 *	of Linux).  It's just a code simplification, solely
+	 *	for the express, limited purpose of shutting down a
+	 *	task immediately, under the highly constrained
+	 *	circumstances defined by sm_TaskSpawn, sm_TaskDelete,
+	 *	and sm_Abort, below.					*/
+
+	oK(pthread_kill(threadId, SIGUSR2));
+}
+
+static void	*posixTaskEntrance(void *arg)
+{
+	IonPthreadParm	*parm = (IonPthreadParm *) arg;
+
+	sm_ArmPthread();
+	return (parm->function)(parm->arg);
+}
+
+int	sm_BeginPthread(pthread_t *threadId, const pthread_attr_t *attr,
+		void *(*function)(void *), void *arg)
+{
+	IonPthreadParm	parm;
+
+	parm.function = function;
+	parm.arg = arg;
+	return pthread_create(threadId, attr, posixTaskEntrance, &parm);
+}
+
+#endif			/*	End of #if defined bionic || uClibc	*/
+
+#if defined (RTEMS) || defined (bionic)
 
 /*	Note: the RTEMS API is UNIX-like except that it omits all SVR4
  *	features.  RTEMS uses POSIX semaphores, and its shared-memory
@@ -2506,27 +2569,6 @@ typedef struct
 	int	arg10;
 } SpawnParms;
 
-#ifdef bionic
-static void	posixTaskExit(int sig)
-{
-	pthread_exit(0);
-}
-
-void	pthread_cancel(pthread_t threadId)
-{
-	/*	NOTE that this is NOT a faithful implementation of
-	 *	pthread_cancel(); there is no support for deferred
-	 *	thread cancellation in Bionic (the Android subset
-	 *	of Linux).  It's just a code simplification, solely
-	 *	for the express, limited purpose of shutting down a
-	 *	task immediately, under the highly constrained
-	 *	circumstances defined by sm_TaskSpawn, sm_TaskDelete,
-	 *	and sm_Abort, below.					*/
-
-	oK(pthread_kill(threadId, SIGUSR2));
-}
-#endif
-
 static void	*posixDriverThread(void *parm)
 {
 	SpawnParms	parms;
@@ -2539,16 +2581,10 @@ static void	*posixDriverThread(void *parm)
 
 	memset((char *) parm, 0, sizeof(SpawnParms));
 
-#ifdef bionic
-	/*	Set up SIGUSR2 handler to enable shutdown.		*/
+#if defined (bionic)
+	/*	Set up SIGUSR2 handler to enable clean task shutdown.	*/
 
-	struct sigaction	actions;
-
-	memset((char *) &actions, 0, sizeof actions);
-	sigemptyset(&actions.sa_mask);
-	actions.sa_flags = 0;
-	actions.sa_handler = posixTaskExit;
-	oK(sigaction(SIGUSR2, &actions, NULL));
+	sm_ArmPthread();
 #endif
 	/*	Run main function of thread.				*/
 
@@ -2628,7 +2664,7 @@ private symbol table; must be added to mysymtab.c.", name);
 	{
 		if (pthread_kill(threadId, SIGTERM) == 0)
 		{
-			oK(pthread_cancel(threadId));
+			oK(pthread_end(threadId));
 		}
 
 		return -1;
@@ -2667,7 +2703,7 @@ void	sm_TaskDelete(int taskId)
 
 	if (pthread_kill(threadId, SIGTERM) == 0)
 	{
-		oK(pthread_cancel(threadId));
+		oK(pthread_end(threadId));
 	}
 
 	oK(_posixTasks(&taskId, NULL, NULL));
@@ -2685,7 +2721,7 @@ void	sm_Abort()
 		threadId = pthread_self();
 		if (pthread_kill(threadId, SIGTERM) == 0)
 		{
-			oK(pthread_cancel(threadId));
+			oK(pthread_end(threadId));
 		}
 
 		return;
@@ -2941,7 +2977,8 @@ void	sm_Wakeup(DWORD processId)
 }
 #endif			/*	End of #ifdef mingw			*/
 
-#if (!defined(VXWORKS) && !defined(RTEMS) && !defined(mingw) && !defined(bionic))
+#if defined (VXWORKS) || defined (RTEMS) || defined (mingw) || defined (bionic)
+#else
 
 	/* ---- IPC services access control (Unix) -------------------- */
 
@@ -3084,7 +3121,7 @@ void	sm_Abort()
 	abort();
 }
 
-#endif		/*	End of #if !defined (VXWORKS, RTEMS, mingw)	*/
+#endif		/*	End of #ifdef (VXWORKS, RTEMS, mingw, bionic)	*/
 
 /******************* platform-independent functions ***********************/
 

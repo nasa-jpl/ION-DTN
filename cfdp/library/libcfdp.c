@@ -70,7 +70,7 @@ void	 cfdp_detach()
 	ionDetach();
 }
 
-void	cfdp_compress_number(CfdpNumber *nbr, unsigned long val)
+void	cfdp_compress_number(CfdpNumber *nbr, uvast val)
 {
 	unsigned char	*octet;
 	unsigned char	text[8];	/*	Reverse-ordered bytes.	*/
@@ -121,7 +121,7 @@ void	cfdp_compress_number(CfdpNumber *nbr, unsigned long val)
 	}
 }
 
-void	cfdp_decompress_number(unsigned long *val, CfdpNumber *nbr)
+void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 {
 	int		i;
 	unsigned char	*octet;
@@ -1021,7 +1021,8 @@ static int	constructMetadataPdu(OutFdu *fdu,
 	obj = sdr_malloc(sdr, mpduLength);
 	if (obj == 0
 	|| (fdu->metadataPdu = zco_create(sdr, ZcoSdrSource, obj, 0,
-			mpduLength)) == 0)
+			mpduLength)) == (Object) ERROR
+	|| fdu->metadataPdu == 0)
 	{
 		putErrmsg("Can't construct EOF PDU.", NULL);
 		return -1;
@@ -1047,7 +1048,8 @@ static int	constructEofPdu(OutFdu *fdu, unsigned int checksum)
 	obj = sdr_malloc(sdr, sizeof eofBuf);
 	if (obj == 0
 	|| (fdu->eofPdu = zco_create(sdr, ZcoSdrSource, obj, 0,
-			sizeof eofBuf)) == 0)
+			sizeof eofBuf)) == (Object) ERROR
+	|| fdu->eofPdu == 0)
 	{
 		putErrmsg("Can't construct EOF PDU.", NULL);
 		return -1;
@@ -1093,6 +1095,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	else
 	{
 		CHKZERO(utParms);
+		CHKZERO(utParmsLength <= sizeof(BpUtParms));
 	}
 
 	CHKZERO(flowLabelLength >= 0 && flowLabelLength < 256);
@@ -1661,7 +1664,6 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		CfdpTransactionId *originatingTransactionId,
 		char *statusReportBuf, MetadataList *filestoreResponses)
 {
-	CfdpDB		*cfdpConstants = getCfdpConstants();
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*vdb = getCfdpVdb();
 	CfdpDB		*db = getCfdpConstants();
@@ -1747,18 +1749,7 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		*destFileNameBuf = '\0';
 	}
 
-	if (event.messagesToUser)
-	{
-		elt = sdr_list_insert_last(sdr, cfdpConstants->usrmsgLists,
-				event.messagesToUser);
-		sdr_list_user_data_set(sdr, event.messagesToUser, elt);
-		*messagesToUser = event.messagesToUser;
-	}
-	else
-	{
-		*messagesToUser = 0;
-	}
-
+	*messagesToUser = event.messagesToUser;
 	*fileSize = event.fileSize;
 	*offset = event.offset;
 	*length = event.length;
@@ -1779,18 +1770,7 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		*statusReportBuf = '\0';
 	}
 
-	if (event.filestoreResponses)
-	{
-		elt = sdr_list_insert_last(sdr, cfdpConstants->fsrespLists,
-				event.filestoreResponses);
-		sdr_list_user_data_set(sdr, event.filestoreResponses, elt);
-		*filestoreResponses = event.filestoreResponses;
-	}
-	else
-	{
-		*filestoreResponses = 0;
-	}
-
+	*filestoreResponses = event.filestoreResponses;
 	if (event.messagesToUser == 0)	/*	Can't be std User Ops.	*/
 	{
 		return sdr_end_xn(sdr);

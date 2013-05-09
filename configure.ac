@@ -8,7 +8,7 @@
 #is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
 # fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.1.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.1.2, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -270,12 +270,12 @@ case $host_os in
 		if test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AC_SUBST([ION_LINK_FLAGS],"-lrt -lsocket -lnsl")
-			AC_SUBST([ION_CFLAGS]," -Dsol -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin")
+			AC_SUBST([ION_CFLAGS]," -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3 -m64")
 			echo "Build Solaris/SPARC specific platform code."
 		else
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AC_SUBST([ION_LINK_FLAGS],"-lrt -lsocket -lnsl")
-			AC_SUBST([ION_CFLAGS]," -Dsol -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing")
+			AC_SUBST([ION_CFLAGS]," -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -DSPACE_ORDER=3 -m64")
 			echo "Build Solaris specific platform code."
 		fi
 		;;

@@ -240,7 +240,7 @@ static void	*receiveBundles(void *parm)
 		 * Creating a thread to send out keep alives, which
 		 * makes the TCPCL bi directional
 		 */
-		if (pthread_create(&kthread, NULL, sendKeepalives, kparms))
+		if (pthread_begin(&kthread, NULL, sendKeepalives, kparms))
 		{
 			putSysErrmsg("tcpcli can't create new thread for \
 keepalives", NULL);
@@ -409,7 +409,7 @@ thread", NULL);
 		parms->cloSocketName = cloSocketName;
 		parms->cliRunning = &(atp->running);
                 parms->receiveRunning = 1;
-		if (pthread_create(&(parms->thread), NULL, receiveBundles,
+		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{
 			putSysErrmsg("tcpcli can't create new thread", NULL);
@@ -523,7 +523,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
-	sdr_end_xn(sdr);
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vduct->acqThrottle.nominalRate = DEFAULT_TCP_RATE;
@@ -603,13 +603,13 @@ int	main(int argc, char *argv[])
 	ionNoteMainThread("tcpcli");
 	isignal(SIGTERM, interruptThread);
 #ifndef mingw
-        isignal(SIGPIPE, SIG_IGN); //Ignore pipe break and handle it gracefully
+	isignal(SIGPIPE, SIG_IGN);
 #endif
 
 	/*	Start the access thread.				*/
 
 	atp.running = 1;
-	if (pthread_create(&accessThread, NULL, spawnReceivers, &atp))
+	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
 	{
 		closesocket(atp.ductSocket);
 		putSysErrmsg("tcpcli can't create access thread", NULL);

@@ -67,8 +67,10 @@ static void	*sendBundles(void *parm)
 	}
 
 	sdr = getIonsdr();
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			parms->vduct->outductElt), sizeof(Outduct));
+	sdr_exit_xn(sdr);
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = outduct.bulkQueue;
 	outflows[1].outboundBundles = outduct.stdQueue;
@@ -88,7 +90,7 @@ static void	*sendBundles(void *parm)
 		}
 
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-			&extendedCOS, destDuctName, DGRCLA_BUFSZ, -1) < 0)
+				&extendedCOS, destDuctName, 64000, -1) < 0)
 		{
 			threadRunning = 0;
 			writeMemo("[?] dgrcla failed de-queueing bundle.");
@@ -251,12 +253,22 @@ static void	*receiveBundles(void *parm)
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, length);
-					if (sdr_end_xn(sdr) < 0)
+					if (sdr_end_xn(sdr) < 0
+					|| bundleZco == (Object) ERROR)
 					{
 						putErrmsg("Failed creating \
 temporary ZCO.", NULL);
 						threadRunning = 0;
 						break;	/*	Switch.	*/
+					}
+
+					if (bundleZco == 0)
+					{
+						/*	No ZCO space;
+						 *	in effect,
+						 *	datagram lost.	*/
+
+						continue;
 					}
 
 					if (bpHandleXmitSuccess(bundleZco, 0))
@@ -287,12 +299,22 @@ bundle ZCO.", NULL);
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, length);
-					if (sdr_end_xn(sdr) < 0)
+					if (sdr_end_xn(sdr) < 0
+					|| bundleZco == (Object) ERROR)
 					{
 						putErrmsg("Failed creating \
 temporary ZCO.", NULL);
 						threadRunning = 0;
 						break;	/*	Switch.	*/
+					}
+
+					if (bundleZco == 0)
+					{
+						/*	No ZCO space;
+						 *	in effect,
+						 *	datagram lost.	*/
+
+						continue;
 					}
 
 					if (bpHandleXmitFailure(bundleZco))
@@ -436,7 +458,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	findOutduct("dgr", ductName, &voutduct, &vductElt);
+	findOutduct("dgr", "*", &voutduct, &vductElt);
 	if (vductElt == 0)
 	{
 		putErrmsg("No such dgr outduct.", ductName);
@@ -446,9 +468,11 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr, vinduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_DGR_RATE;
@@ -494,7 +518,7 @@ int	main(int argc, char *argv[])
 	senderParms.vduct = voutduct;
 	senderParms.running = &running;
 	senderParms.dgrSap = dgrSap;
-	if (pthread_create(&senderThread, NULL, sendBundles, &senderParms))
+	if (pthread_begin(&senderThread, NULL, sendBundles, &senderParms))
 	{
 		dgr_close(dgrSap);
 		putSysErrmsg("dgrcla can't create sender thread", NULL);
@@ -506,7 +530,7 @@ int	main(int argc, char *argv[])
 	rtp.vduct = vinduct;
 	rtp.running = &running;
 	rtp.dgrSap = dgrSap;
-	if (pthread_create(&receiverThread, NULL, receiveBundles, &rtp))
+	if (pthread_begin(&receiverThread, NULL, receiveBundles, &rtp))
 	{
 		sm_SemEnd(voutduct->semaphore);
 		pthread_join(senderThread, NULL);

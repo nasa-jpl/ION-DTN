@@ -2,7 +2,7 @@ INCL = ../include
 API = ../library
 TEST = ../test
 
-OPT = -g -Wall -Werror -Dlinux -fPIC
+OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

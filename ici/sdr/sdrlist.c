@@ -110,7 +110,7 @@ void	Sdr_list_destroy(char *file, int line, Sdr sdrv, Object list,
 		next = eltBuffer.next;
 		if (deleteFn)
 		{
-			deleteFn(sdrv, eltBuffer.data, arg);
+			deleteFn(sdrv, elt, arg);
 		}
 
 		/* just in case user mistakenly accesses later... */
@@ -129,7 +129,6 @@ Address	sdr_list_user_data(Sdr sdrv, Object list)
 {
 	SdrList		listBuffer;
 
-	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(list);
 	sdrFetch(listBuffer, list);
 	return listBuffer.userData;
@@ -162,7 +161,6 @@ long	sdr_list_length(Sdr sdrv, Object list)
 {
 	SdrList		listBuffer;
 
-	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(list);
 	sdrFetch(listBuffer, list);
 	return listBuffer.length;
@@ -493,7 +491,7 @@ void	Sdr_list_delete(char *file, int line, Sdr sdrv, Object elt,
 	prev = eltBuffer.prev;
 	if (deleteFn)
 	{
-		deleteFn(sdrv, eltBuffer.data, arg);
+		deleteFn(sdrv, elt, arg);
 	}
 
 	/* just in case user accesses later... */
@@ -647,7 +645,6 @@ Object	sdr_list_list(Sdr sdrv, Object elt)
 {
 	SdrListElt	eltBuffer;
 
-	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
 	sdrFetch(eltBuffer, (Address) elt);
 	return eltBuffer.list;
@@ -657,7 +654,6 @@ Address	sdr_list_data(Sdr sdrv, Object elt)
 {
 	SdrListElt	eltBuffer;
 
-	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(elt);
 	sdrFetch(eltBuffer, (Address) elt);
 	return eltBuffer.data;

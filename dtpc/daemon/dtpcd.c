@@ -26,7 +26,7 @@ static void	*getBundles(void *parm)
 	char			ownEid[64];
 	Sdr			sdr = getIonsdr();
 	BpDelivery		dlv;
-	unsigned long		profNum;
+	uvast			profNum;
 	Scalar			seqNum;
 	char			type;
 	unsigned int		aduLength;
@@ -37,8 +37,8 @@ static void	*getBundles(void *parm)
 	int			sdnvLength;
 	unsigned char		*cursor;
 
-	isprintf(ownEid, sizeof ownEid, "ipn:%lu.%d", getOwnNodeNbr(),
-			DTPC_RECV_SVC_NBR);
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
+			getOwnNodeNbr(), DTPC_RECV_SVC_NBR);
 	if (bp_open(ownEid, &(parms->rxSap)) < 0)
 	{
 		putErrmsg("DTPC can't open own 'recv' endpoint.", ownEid);
@@ -222,8 +222,8 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:%lu.%d", getOwnNodeNbr(),
-			DTPC_SEND_SVC_NBR);
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
+			getOwnNodeNbr(), DTPC_SEND_SVC_NBR);
 	if (bp_open(ownEid, &txSap) < 0)
 	{
 		putErrmsg("DTPC can't open own 'send' endpoint.", ownEid);

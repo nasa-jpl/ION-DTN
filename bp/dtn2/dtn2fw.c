@@ -20,22 +20,22 @@ static sm_SemId	_dtn2fwSemaphore(sm_SemId *newValue)
 	{
 		temp = *newValue;
 		value = (void *) temp;
-		sem = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		sem = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	sem = temp;
 	return sem;
 }
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_dtn2fwSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 static int	parseDtn2Nss(char *nss, char *nodeName, char *demux)
@@ -201,7 +201,7 @@ int	main(int argc, char *argv[])
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 			vscheme->schemeElt), sizeof(Scheme));
-	sdr_end_xn(sdr);
+	sdr_exit_xn(sdr);
 	oK(_dtn2fwSemaphore(&vscheme->semaphore));
 	isignal(SIGTERM, shutDown);
 

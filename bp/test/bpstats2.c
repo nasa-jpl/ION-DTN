@@ -19,6 +19,7 @@ static BpCustodySwitch custodySwitch = NoCustodyRequested;
 char   theBuffer[2048];
 static int needSendDefault = 0;
 static int needShutdown = 0;
+static int controlZco;
 
 const char usage[] = 
 "Usage: bpstats2 <source EID> [<default dest EID>] [ct]\n\n"
@@ -38,6 +39,7 @@ void sendDefault(int sig)
 {
 	needSendDefault = 1;
 	bp_interrupt(sap);
+	ionCancelZcoSpaceRequest(&controlZco);
 }
 
 /* This is basically libbpP.c's "reportStateStats()" except to a buffer. */
@@ -155,8 +157,9 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 	}
 
 	sdr_exit_xn(sdr);
-	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) %u %lu \
-(1) %u %lu (2) %u %lu (+) %u %lu\n", classnames[stateIdx],
+	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) \
+%u " UVAST_FIELDSPEC " (1) %u " UVAST_FIELDSPEC " (2) \
+%u " UVAST_FIELDSPEC " (+) %u " UVAST_FIELDSPEC "\n", classnames[stateIdx],
 			(unsigned int) startTime,
 			(unsigned int) currentTime,
 			tallies[0].currentCount, tallies[0].currentBytes,
@@ -191,23 +194,26 @@ int sendStats(char *destEid, char *buffer, size_t len)
 	/* Wrap bundleZco around the stats buffer. */
 	CHKERR(sdr_begin_xn(sdr));
 	extent = sdr_malloc(sdr, bytesWritten);
-	if(extent == 0) {
-		sdr_cancel_xn(sdr);
+	if(extent) {
+		sdr_write(sdr, extent, buffer, bytesWritten);
+	}
+
+	if(sdr_end_xn(sdr) < 0) {
 		putSysErrmsg("No space for ZCO extent", NULL);
 		return -1;
 	}
 
-	sdr_write(sdr, extent, buffer, bytesWritten);
-	bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0, bytesWritten);
-	if(sdr_end_xn(sdr) < 0 || bundleZco == 0)
+	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, bytesWritten,
+			&controlZco);
+	if(bundleZco == 0)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
 		return -1;
 	}
 
 	/* Send bundleZco, the stats bundle. */
-	if(bp_send(sap, BP_BLOCKING, destEid, NULL, 86400, BP_STD_PRIORITY,
-				custodySwitch, 0, 0, NULL, bundleZco, &newBundle) < 0)
+	if(bp_send(sap, destEid, NULL, 86400, BP_STD_PRIORITY, custodySwitch,
+			0, 0, NULL, bundleZco, &newBundle) <= 0)
 	{
 		putSysErrmsg("bpstats2 can't send stats bundle.", NULL);
 		return -1;
