@@ -386,7 +386,8 @@ iciinclude = \
 	ici/include/sdrtable.h \
 	ici/include/sdrhash.h \
 	ici/include/sdr.h \
-	ici/include/smrbt.h
+	ici/include/smrbt.h \
+	ici/library/icinm.h
 
 icinoinst = \
 	ici/library/lystP.h \
@@ -476,6 +477,7 @@ $(top_builddir)/ici/doc/%.5: ici/doc/pod5/%.pod
 # -- Libraries --- #
 
 libici_la_SOURCES =	ici/library/llcv.c \
+			ici/library/libicinm.c \
 			ici/library/platform.c \
 			ici/library/platform_sm.c \
 			ici/library/memmgr.c \
@@ -666,7 +668,8 @@ $(top_builddir)/ltp/doc/%.5: ltp/doc/pod5/%.pod
 
 libltp_la_SOURCES = \
 	ltp/library/libltp.c \
-	ltp/library/libltpP.c
+	ltp/library/libltpP.c \
+	ltp/library/libltpnm.c
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libltp_la_LIBADD = libici.la
@@ -1106,6 +1109,7 @@ libudpcla_la_LIBADD = libbp.la libici.la
 libbp_la_SOURCES = \
 	bp/library/libbp.c \
 	bp/library/libbpP.c \
+	bp/library/libbpnm.c \
 	bp/library/ext/phn/phn.c \
 	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \

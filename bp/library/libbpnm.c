@@ -84,7 +84,7 @@ static void memset_IncFillPat (char * destPtr, char basePattern, int numBytes)
      
    The routine below will modify each of these 3 parameters.
 */   
-void	bpnm_endpointNamesGet(char * nameBuffer, char * nameArray [], int * numStrings)
+void	bpnm_endpointNames_get(char * nameBuffer, char * nameArray [], int * numStrings)
 {
     PsmPartition    ionwm = getIonwm();
     VScheme       * vscheme;
@@ -133,7 +133,7 @@ void	bpnm_endpointNamesGet(char * nameBuffer, char * nameArray [], int * numStri
             (*numStrings)++;
         }
     }
-}   /* end of bpnm_endpointNamesGet */
+}   /* end of bpnm_endpointNames_get */
 
 
 /*****************************************************************************/
@@ -141,7 +141,7 @@ void	bpnm_endpointNamesGet(char * nameBuffer, char * nameArray [], int * numStri
    for the endpoint requested.  The calling routine should provide:
      1) a string containing the name of the endpoint to be found.  It is 
         assumed that this name would have been returned to the caller via a  
-        previous call to the function bpnm_endpointNamesGet (above).
+        previous call to the function bpnm_endpointNames_get (above).
      2) A buffer large enough to hold a pointer to the VEndpoint.
      3) an integer flag indicating whether the buffer contains data when returned.
         (0 = data not updated, 1 = data has been updated
@@ -235,7 +235,7 @@ void bpnm_endpoint_get (char * targetName, NmbpEndpoint * results, int * success
    The calling routine should provide:
      1) a string containing the name of the endpoint to be searched.  It is 
         assumed that this name would have been returned to the caller via a  
-        previous call to the function bpnm_endpointNamesGet (above).
+        previous call to the function bpnm_endpointNames_get (above).
      2) an integer flag indicating whether the counters have been zeroed.
         (0 = data not zeroed, 1 = data successfully zeroed
 */   
