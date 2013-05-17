@@ -13,6 +13,28 @@
 #include "ltpnm.h"
 
 /****************************************************************************/
+/* This routine will report current LTP heapBytesReserved and heapBytesOccupied
+   at the local ION node.
+   The calling routine should provide:
+     1) a long integer to hold heapBytesReserved
+     1) a long integer to hold heapBytesOccupied
+     
+   The routine below will modify each of these 2 parameters.
+*/
+void ltpnm_resources (unsigned long *heapBytesReserved,
+		unsigned long *heapBytesOccupied)
+{
+    Sdr             sdr = getIonsdr();
+    LtpDB           db;
+
+    CHKVOID(heapBytesReserved);
+    CHKVOID(heapBytesOccupied);
+    sdr_read(sdr, (char *) &db, getLtpDbObject(), sizeof(LtpDB));
+    *heapBytesReserved = db.heapSpaceBytesReserved;
+    *heapBytesOccupied = db.heapSpaceBytesOccupied;
+}
+
+/****************************************************************************/
 /* This routine will examine the current ION node and return the names of all 
    of the Span Neighboring Engine IDs currently defined.  
    The calling routine should provide:
