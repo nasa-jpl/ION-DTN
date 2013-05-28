@@ -538,7 +538,7 @@ int	ltpInit(int estMaxExportSessions)
 		encodeSdnv(&(ltpdbBuf.ownEngineIdSdnv), ltpdbBuf.ownEngineId);
 		ltpdbBuf.estMaxExportSessions = estMaxExportSessions;
 		ltpdbBuf.ownQtime = 1;		/*	Default.	*/
-		ltpdbBuf.enforceSchedule = 1;	/*	Default.	*/
+		ltpdbBuf.enforceSchedule = 0;	/*	Default.	*/
 		for (i = 0; i < LTP_MAX_NBR_OF_CLIENTS; i++)
 		{
 			ltpdbBuf.clients[i].notices = sdr_list_create(ltpSdr);

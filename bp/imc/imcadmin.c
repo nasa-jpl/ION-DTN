@@ -121,6 +121,7 @@ static void	printKin(uvast kin, uvast parent)
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	ImcDB	imcdb;
 
 	if (tokenCount != 2)
@@ -129,8 +130,10 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(getIonsdr(), (char *) &imcdb, getImcDbObject(), sizeof(ImcDB));
 	printKin(strtouvast(tokens[1]), imcdb.parent);
+	sdr_exit_xn(sdr);
 }
 
 static void	executeList(int tokenCount, char **tokens)

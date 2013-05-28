@@ -3068,6 +3068,8 @@ static void	closeAllFileDescriptors()
 	{
 		oK(close(i));
 	}
+
+	writeMemo("");	/*	Tell logger that log file is closed.	*/
 }
 
 int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,

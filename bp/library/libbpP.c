@@ -6016,9 +6016,11 @@ static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
 static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 			Object bundleObj, Bundle *bundle)
 {
-	Sdr		bpSdr = getIonsdr();
-	Object		elt;
-			OBJ_POINTER(Bundle, fragment);
+	Sdr	bpSdr = getIonsdr();
+	Object	elt;
+		OBJ_POINTER(Bundle, fragment);
+
+	bundle->incompleteElt = incElt;
 
 	/*	First look for fragment insertion point and insert
 	 *	the new bundle at this point.				*/
