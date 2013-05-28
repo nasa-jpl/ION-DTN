@@ -23,7 +23,7 @@ Sdr getAcssdr(void)
 {
 	static int haveTriedAcsSdr = 0;
 
-	if(acsSdr || haveTriedAcsSdr)
+	if (acsSdr || haveTriedAcsSdr)
 	{
 		return acsSdr;
 	}
@@ -35,12 +35,12 @@ Sdr getAcssdr(void)
 	}
 
 	haveTriedAcsSdr = 1;
-
 	acsSdr = sdr_start_using(acssdrName);
 	if (acsSdr == NULL)
 	{
-		//Can't start using SDR for ACS.
-		return NULL;
+		writeMemoNote("[i] This task is unable to exercise ACS \
+because the ACS SDR is not initialized, as noted in message above",
+			itoa(sm_TaskIdSelf()));
 	}
 
 	return acsSdr;

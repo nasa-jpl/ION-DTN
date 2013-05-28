@@ -274,6 +274,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	time_t		refTime;
@@ -309,6 +310,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		arg1.fromNode = fromNode;
 		arg1.toNode = toNode;
 		arg1.fromTime = timestamp;
+		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->contactIndex,
 				rfx_order_contacts, &arg1, &nextElt);
 		if (elt)
@@ -316,10 +318,13 @@ static void	executeInfo(int tokenCount, char **tokens)
 			addr = sm_rbt_data(ionwm, elt);
 			oK(rfx_print_contact(addr, buffer));
 			printText(buffer);
-			return;
+		}
+		else
+		{
+			printText("Contact not found in database.");
 		}
 
-		printText("Contact not found in database.");
+		sdr_exit_xn(sdr);
 		return;
 	}
 
@@ -329,6 +334,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		arg2.fromNode = fromNode;
 		arg2.toNode = toNode;
 		arg2.fromTime = timestamp;
+		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->rangeIndex,
 				rfx_order_ranges, &arg2, &nextElt);
 		if (elt)
@@ -336,10 +342,13 @@ static void	executeInfo(int tokenCount, char **tokens)
 			addr = sm_rbt_data(ionwm, elt);
 			oK(rfx_print_range(addr, buffer));
 			printText(buffer);
-			return;
+		}
+		else
+		{
+			printText("Range not found in database.");
 		}
 
-		printText("Range not found in database.");
+		sdr_exit_xn(sdr);
 		return;
 	}
 
@@ -348,6 +357,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	executeList(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	PsmAddress	elt;
@@ -362,6 +372,7 @@ static void	executeList(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "contact") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sm_rbt_first(ionwm, vdb->contactIndex); elt;
 				elt = sm_rbt_next(ionwm, elt))
 		{
@@ -370,11 +381,13 @@ static void	executeList(int tokenCount, char **tokens)
 			printText(buffer);
 		}
 
+		sdr_exit_xn(sdr);
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sm_rbt_first(ionwm, vdb->rangeIndex); elt;
 				elt = sm_rbt_next(ionwm, elt))
 		{
@@ -383,6 +396,7 @@ static void	executeList(int tokenCount, char **tokens)
 			printText(buffer);
 		}
 
+		sdr_exit_xn(sdr);
 		return;
 	}
 
