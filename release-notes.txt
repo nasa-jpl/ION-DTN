@@ -60,6 +60,18 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.1.3 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Patch #3: Fixed various bugs introduced by Bug #16 (duplicate checkpoint
+  serial numbers).
+
+- Patch #4: Fixed various bugs introduced by Feature Request #6 (disabling LTP
+  screening by default) and Bugs #17-#20 (broken admin functions, alarming
+  message from ACS, fragment construction error, child process can't write to
+  log file).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.1.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 

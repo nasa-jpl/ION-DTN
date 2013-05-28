@@ -8,7 +8,7 @@
 #is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
 # fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.1.2, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.1.3, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
