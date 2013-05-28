@@ -247,6 +247,7 @@ typedef struct
 	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
 	Object		claims;		/*	reception claims list	*/
 	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
+	unsigned int	lastCkptSerialNbr;
 
 	/*	Segments are retained in these lists only up to the
 	 *	time of initial transmission, and only to support
@@ -552,7 +553,8 @@ extern int		startExportSession(Sdr sdr, Object spanObj,
 				LtpVspan *vspan);
 extern int		issueSegments(Sdr sdr, LtpSpan *span, LtpVspan *vspan,
 				ExportSession *session, Object sessionObj,
-				Lyst extents, unsigned int reportSerialNbr);
+				Lyst extents, unsigned int reportSerialNbr,
+				unsigned int checkpointSerialNbr);
 
 extern int		ltpAttachClient(unsigned int clientSvcId);
 extern void		ltpDetachClient(unsigned int clientSvcId);
