@@ -564,11 +564,11 @@ sdr2file_LDADD = libici.la $(LIBOBJS)
 sdr2file_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 owltsim_SOURCES = ici/test/owltsim.c
-owltsim_LDADD = libici.la $(LIBOBJS)
+owltsim_LDADD = libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 owltsim_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 owlttb_SOURCES = ici/test/owlttb.c
-owlttb_LDADD = libici.la $(LIBOBJS)
+owlttb_LDADD = libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 owlttb_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
@@ -670,7 +670,7 @@ libltp_la_SOURCES = \
 	ltp/library/libltpP.c
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LDFLAGS = $(ION_LINK_FLAGS)
-libltp_la_LIBADD = libici.la
+libltp_la_LIBADD = libici.la $(PTHREAD_LIBS)
 
 #libltpP_la_SOURCES = ltp/library/libltpP.c
 #libltpP_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
@@ -705,29 +705,29 @@ ltpmeter_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 # --- UDP Executables --- #
 
 udplsi_SOURCES = ltp/udp/udplsi.c
-udplsi_LDADD = libltp.la libici.la $(LIBOBJS) 
+udplsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 udplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 udplso_SOURCES = ltp/udp/udplso.c
-udplso_LDADD = libltp.la libici.la $(LIBOBJS) 
+udplso_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 udplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- AOS Executables --- #
 
 aoslsi_SOURCES = ltp/aos/aoslsi.c
-aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) 
+aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 aoslso_SOURCES = ltp/aos/aoslso.c
-aoslso_LDADD = libltp.la libici.la $(LIBOBJS) 
+aoslso_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 dccplsi_SOURCES = ltp/dccp/dccplsi.c
-dccplsi_LDADD = libltp.la libici.la $(LIBOBJS) 
+dccplsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dccplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 dccplso_SOURCES = ltp/dccp/dccplso.c
-dccplso_LDADD = libltp.la libici.la $(LIBOBJS) 
+dccplso_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dccplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 
@@ -1259,7 +1259,7 @@ dtn2adminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- LTP Executables --- #
 
 ltpcli_SOURCES = bp/ltp/ltpcli.c
-ltpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libltp.la libici.la $(LIBOBJS) 
+ltpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 ltpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ltpclo_SOURCES = bp/ltp/ltpclo.c
@@ -1269,27 +1269,27 @@ ltpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- TCP Executables --- #
 
 tcpcli_SOURCES = bp/tcp/tcpcli.c
-tcpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) 
+tcpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 tcpclo_SOURCES = bp/tcp/tcpclo.c
-tcpclo_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) 
+tcpclo_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- STCP Executables --- #
 
 stcpcli_SOURCES = bp/tcp/stcpcli.c
-stcpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) 
+stcpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 stcpclo_SOURCES = bp/tcp/stcpclo.c
-stcpclo_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) 
+stcpclo_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
 udpcli_SOURCES = bp/udp/udpcli.c
-udpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libudpcla.la libici.la $(LIBOBJS) 
+udpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libudpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 udpclo_SOURCES = bp/udp/udpclo.c
@@ -1299,27 +1299,27 @@ udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- DCCP Executables --- #
 
 dccpcli_SOURCES = bp/dccp/dccpcli.c
-dccpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libici.la $(LIBOBJS) 
+dccpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dccpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 dccpclo_SOURCES = bp/dccp/dccpclo.c
-dccpclo_LDADD = libbp.la libici.la $(LIBOBJS) 
+dccpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 
 dgrcla_SOURCES = bp/dgr/dgrcla.c
-dgrcla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libdgr.la libici.la $(LIBOBJS) 
+dgrcla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dgrcla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BRS executables --- #
 
 brsscla_SOURCES = bp/brs/brsscla.c
-brsscla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) 
+brsscla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsscla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 brsccla_SOURCES = bp/brs/brsccla.c
-brsccla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) 
+brsccla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsccla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
@@ -1353,7 +1353,7 @@ bprecvfile_LDADD = libbp.la libici.la $(LIBOBJS)
 bprecvfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bping_SOURCES = bp/test/bping.c
-bping_LDADD = libbp.la libici.la $(LIBOBJS)
+bping_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats2_SOURCES = bp/test/bpstats2.c
@@ -1361,7 +1361,7 @@ bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpchat_SOURCES = bp/test/bpchat.c
-bpchat_LDADD = libbp.la libici.la $(LIBOBJS)
+bpchat_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bpchat_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
@@ -1568,7 +1568,7 @@ cfdpadmin_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 cfdpadmin_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 bpcp_SOURCES = cfdp/utils/bpcp.c
-bpcp_LDADD = libcfdp.la libici.la $(LIBOBJS)
+bpcp_LDADD = libcfdp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bpcp_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 bpcpd_SOURCES = cfdp/utils/bpcpd.c
@@ -1578,13 +1578,13 @@ bpcpd_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 # --- BP Programs --- #
 
 bputa_SOURCES = cfdp/bp/bputa.c
-bputa_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
+bputa_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
 bputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Test Programs --- #
 
 cfdptest_SOURCES = cfdp/test/cfdptest.c
-cfdptest_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
+cfdptest_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
 cfdptest_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
