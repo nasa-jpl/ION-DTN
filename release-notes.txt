@@ -63,6 +63,9 @@ Features included:
 = NOTES ON RELEASE 3.1.3 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
+- Bug #23: Updated build configuration to fix build problems due to problems
+  linking various pthread libraries when using bleeding-edge automake tools.
+
 - Patch #3: Fixed various bugs introduced by Bug #16 (duplicate checkpoint
   serial numbers).
 
