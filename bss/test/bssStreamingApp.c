@@ -106,13 +106,16 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 	oK(_bptestState(&state));
 
 	sdr = bp_get_sdr();
+	CHKZERO(sdr_begin_xn(sdr));
 	if (sdr_heap_depleted(sdr))
 	{
+		sdr_exit_xn(sdr);
 		bp_close(state.sap);
 		putErrmsg("Low on heap space, can't initiate streaming.", NULL);
 		return 0;
 	}
 
+	sdr_exit_xn(sdr);
 	isignal(SIGINT, handleQuit);
 
 	writeMemo("[i] bssStreamingApp is running.");

@@ -137,13 +137,15 @@ the link service input task for the local engine.
 
 The B<manage screening> command.  This command enables or disables the
 screening of received LTP segments per the periods of scheduled reception
-in the node's contact graph.  By default, screening is enabled -- that is,
-LTP segments from a given remote LTP engine (ION node) are silently
-discarded whenever they arrive during an interval when the contact graph
-says the data rate from that engine to the local LTP engine is zero.  Note
+in the node's contact graph.  By default, screening is disabled -- that is,
+LTP segments from a given remote LTP engine (ION node) may be accepted
+even when they arrive during an interval when the contact graph says the
+data rate from that engine to the local LTP engine is zero.  When
+screening is enabled, such segments are silently discarded.  Note
 that when screening is enabled the ranges declared in the contact graph
-must be accurate; otherwise, segments will be arriving at times other than
-the scheduled contact intervals and will be discarded.
+must be accurate and clocks must be synchronized; otherwise, segments
+will be arriving at times other than the scheduled contact intervals
+and will be discarded.
 
 =item B<m ownqtime> I<own_queuing_latency>
 
