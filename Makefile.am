@@ -1832,8 +1832,7 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/1500.loopback-brs/dotest \
 	tests/issue-188-common-cos-syntax/dotest \
 	tests/issue-260-teach-valgrind-mtake/domtake \
-	tests/issue-279-bpMemo-timeline/driver \
-	tests/bug-0015-tcpclo-bpcp-sig-handling/test
+	tests/issue-279-bpMemo-timeline/driver
 
 if !ION_NASA_B
 check_PROGRAMS+= \
@@ -1869,10 +1868,6 @@ tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) 
 tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline/driver.c
 tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-
-tests_bug_0015_tcpclo_bpcp_sig_handling_test_SOURCES=tests/bug-0015-tcpclo-bpcp-sig-handling/test.c
-tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD=libbp.la libici.la $(LIBOBJS)
-tests_bug_0015_tcpclo_bpcp_sig_handling_test_CFLAGS=$(bpcflags) $(icicflags) $(AM_CFLAGS)
 
 if !ION_NASA_B
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
