@@ -484,6 +484,10 @@ typedef struct
 	Object		deadExports;	/*	SDR list: ExportSession	*/
 	Object		spans;		/*	SDR list: LtpSpan	*/
 	Object		timeline;	/*	SDR list: LtpEvent	*/
+	unsigned long	heapBytesReserved;
+	unsigned long	heapBytesOccupied;
+	unsigned long	heapSpaceBytesReserved;
+	unsigned long	heapSpaceBytesOccupied;
 } LtpDB;
 
 /* The volatile database object encapsulates the current volatile state
