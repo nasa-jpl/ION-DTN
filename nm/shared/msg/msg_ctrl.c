@@ -244,7 +244,7 @@ rule_time_prod_t *ctrl_deserialize_time_prod_entry(uint8_t *cursor,
 
 
 	/* Step 2: Deserialize the message. */
-	unsigned long val;
+	uvast val;
     bytes = decodeSdnv(&val, cursor);
     result->time = val;
     cursor += bytes;
@@ -328,7 +328,7 @@ ctrl_exec_t *ctrl_deserialize_exec(uint8_t *cursor,
 
 
 	/* Step 2: Deserialize the message. */
-	unsigned long val;
+	uvast val;
     bytes = decodeSdnv(&val, cursor);
     result->time = val;
     cursor += bytes;

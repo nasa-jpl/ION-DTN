@@ -369,7 +369,6 @@ uint8_t iif_send(iif_t *iif, pdu_bundle_t *bundle, char *recipient)
     /* Step 4 - Pass on to the BPA to send.*/
     if(bp_send(
 				iif->sap, 				// BpSAP reference
-				BP_BLOCKING, 			// blocking or nonblocking send
 				recipient,              // recipient
 				NULL,					// report-to
 				300,					// lifespan (?)

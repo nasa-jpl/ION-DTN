@@ -204,10 +204,6 @@ int ldc_fill_custom(def_gen_t *rpt_def, rpt_data_entry_t *rpt)
  */
 int ldc_fill_atomic(adm_entry_t *adm_def, mid_t *id, rpt_data_entry_t *rpt)
 {
-    int i = 0;
-    char *msg = NULL;
-    mid_t *mid = NULL;
-    uint32_t temp = 0;
 
     DTNMP_DEBUG_ENTRY("ldc_fill_atomic","(0x%x, 0x%x)",
     			      (unsigned long) adm_def, (unsigned long) rpt);

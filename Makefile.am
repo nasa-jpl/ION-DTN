@@ -148,7 +148,8 @@ bin_PROGRAMS = \
 	$(dgrbin) \
 	$(bpbin) \
 	$(bssbin) \
-	$(restartbin)
+	$(restartbin) \
+	$(nmbin)
 #	$(usercontribbin)
 
 if !ION_NASA_B
@@ -1693,6 +1694,36 @@ ionrestart_SOURCES = restart/utils/ionrestart.c
 ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
 ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
 endif
+
+
+##########################
+#
+# NETWORK MANAGEMENT SECTION
+#
+##########################
+
+nmbin= nm_agent nm_mgr
+
+nm_agent_SOURCES = nm/agent/ingest.c nm/agent/lcc.c nm/agent/ldc.c nm/agent/nmagent.c nm/agent/rda.c \
+					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
+					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
+					nm/shared/msg/pdu.c \
+					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
+					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
+					nm/shared/utils/ion_if.c nm/shared/utils/utils.c
+nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS)
+nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/agent $(AM_CFLAGS) -DMAXPATHLEN=2048
+					
+					
+nm_mgr_SOURCES = nm/mgr/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
+					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
+					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
+					nm/shared/msg/pdu.c \
+					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
+					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
+					nm/shared/utils/ion_if.c nm/shared/utils/utils.c
+nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS)
+nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -DMAXPATHLEN=2048
 
 
 ##############

@@ -159,7 +159,7 @@ nm_custom_report* createCustomReport(pdu *rcv_pdu);
 nm_report *createDataReport(pdu* cur_pdu);
 
 
-/* Functions to bild PDUs * /
+/ * Functions to bild PDUs * /
 uint8_t *buildProdRulePDU(int offset, int period, int evals, Lyst mids, int mid_size, int* msg_len);
 
 

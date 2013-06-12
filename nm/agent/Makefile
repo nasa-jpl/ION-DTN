@@ -2,7 +2,7 @@ SOURCES = ../shared/adm/*.c ../shared/msg/*.c ../shared/utils/*.c ../shared/prim
 IONDIR = ../../
 
 all:
-	g++ -Wno-write-strings -arch i386 -g \
+	gcc -Wno-write-strings -m64 -g \
 	-I. -I.. \
 	-I${IONDIR}/ici/include \
 	-I${IONDIR}/ltp/include \

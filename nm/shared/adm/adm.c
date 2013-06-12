@@ -310,7 +310,7 @@ adm_entry_t *adm_find(mid_t *mid)
 		}
 		else
 		{
-			unsigned long tmp;
+			uvast tmp;
 			unsigned char *cursor = (unsigned char*) &(adus[i].mid[1]);
 			/* Grab size less paramaters. Which is SDNV at [1]. */
 			/* \todo: We need a more refined compare here.  For example, the
@@ -393,7 +393,7 @@ adm_ctrl_t*  adm_find_ctrl(mid_t *mid)
 		}
 		else
 		{
-			unsigned long tmp;
+			uvast tmp;
 			unsigned char *cursor = (unsigned char*) &(ctrls[i].mid[1]);
 			/* Grab size less paramaters. Which is SDNV at [1]. */
 			/* \todo: We need a more refined compare here.  For example, the
@@ -546,8 +546,9 @@ char *adm_print_string_list(uint8_t* buffer, uint64_t buffer_len, uint64_t data_
 	char *result = NULL;
 	char *cursor = NULL;
 	uint8_t *buf_ptr = NULL;
-	unsigned long num = 0;
+	uvast num = 0;
 	int len = 0;
+	int i;
 
 	DTNMP_DEBUG_ENTRY("adm_print_string_list", "(%#llx, %ull, %ull, %#llx)", buffer, buffer_len, data_len, str_len);
 
@@ -582,10 +583,10 @@ char *adm_print_string_list(uint8_t* buffer, uint64_t buffer_len, uint64_t data_
 	/* Step 3 - Accumulate the result. */
 	cursor = result;
 
-	cursor += sprintf(cursor,"(%ld): ",num);
+	cursor += sprintf(cursor,"(UVAST_FIELDSPEC): ",num);
 
 	/* Add stirngs to result. */
-	for(int i = 0; i < num; i++)
+	for(i = 0; i < num; i++)
 	{
 		cursor += sprintf(cursor, "%s, ",buf_ptr);
 		buf_ptr += strlen((char*)buf_ptr) + 1;
@@ -700,9 +701,10 @@ char *adm_print_unsigned_long_list(uint8_t* buffer, uint64_t buffer_len, uint64_
 	char *result = NULL;
 	char *cursor = NULL;
 	uint8_t *buf_ptr = NULL;
-	unsigned long num = 0;
+	uvast num = 0;
 	unsigned long val = 0;
 	int len = 0;
+	int i;
 
 	DTNMP_DEBUG_ENTRY("adm_print_unsigned_long_list", "(%#llx, %ull, %ull, %#llx)", buffer, buffer_len, data_len, str_len);
 
@@ -737,9 +739,9 @@ char *adm_print_unsigned_long_list(uint8_t* buffer, uint64_t buffer_len, uint64_
 	/* Step 3 - Accumulate string result. */
 	cursor = result;
 
-	cursor += sprintf(cursor,"(%ld): ",num);
+	cursor += sprintf(cursor,"(UVAST_FIELDSPEC): ",num);
 
-	for(int i = 0; i < num; i++)
+	for(i = 0; i < num; i++)
 	{
 		memcpy(&val, buf_ptr, sizeof(val));
 		buf_ptr += sizeof(val);
@@ -821,9 +823,10 @@ uint32_t adm_size_string(uint8_t* buffer, uint64_t buffer_len)
 uint32_t adm_size_string_list(uint8_t* buffer, uint64_t buffer_len)
 {
 	uint32_t result = 0;
-	unsigned long num = 0;
+	uvast num = 0;
 	uint8_t *cursor = NULL;
 	int tmp = 0;
+	int i;
 
 	DTNMP_DEBUG_ENTRY("adm_size_string_list","(%#llx, %ull)", buffer, buffer_len);
 
@@ -840,7 +843,7 @@ uint32_t adm_size_string_list(uint8_t* buffer, uint64_t buffer_len)
 	cursor = buffer + result;
 
 	/* Add up the strings to calculate length. */
-	for(int i = 0; i < num; i++)
+	for(i = 0; i < num; i++)
 	{
 		tmp = strlen((char *)cursor) + 1;
 		result += tmp;
@@ -912,7 +915,7 @@ uint32_t adm_size_unsigned_long(uint8_t* buffer, uint64_t buffer_len)
 uint32_t adm_size_unsigned_long_list(uint8_t* buffer, uint64_t buffer_len)
 {
 	uint32_t result = 0;
-	unsigned long num = 0;
+	uvast num = 0;
 
 	DTNMP_DEBUG_ENTRY("adm_size_unsigned_long","(%#llx, %ull)", buffer, buffer_len);
 

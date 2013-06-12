@@ -9,7 +9,7 @@
 #define NM_TYPES_H
 
 #include <stdint.h>
-#include <string>
+#include <string.h>
 
 
 #include "debug.h"

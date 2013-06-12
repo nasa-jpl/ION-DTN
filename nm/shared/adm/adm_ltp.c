@@ -165,6 +165,7 @@ uint8_t *ltp_get_engines(Lyst params, uint64_t *length)
 	int num = 0;
 	unsigned long val = 0;
 	Sdnv num_sdnv;
+	int i;
 
 	ltpnm_spanEngineIds_get(ids, &num);
 	if(num > 32)
@@ -184,7 +185,7 @@ uint8_t *ltp_get_engines(Lyst params, uint64_t *length)
 	memcpy(cursor,num_sdnv.text, num_sdnv.length);
 	cursor += num_sdnv.length;
 
-	for(int i = 0; i < num; i++)
+	for(i = 0; i < num; i++)
 	{
 		val = ids[i];
 		memcpy(cursor,&val, sizeof(val));

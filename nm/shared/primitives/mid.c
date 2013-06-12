@@ -1384,7 +1384,8 @@ Lyst midcol_deserialize(unsigned char *buffer,
 	}
 
 	/* Step 3: Grab Mids. */
-	for(uint32_t i = 0; i < num; i++)
+	uint32_t i;
+	for(i = 0; i < num; i++)
 	{
 		/* Deserialize ith MID. */
 		if((cur_mid = mid_deserialize(cursor, buffer_size, &bytes)) == NULL)

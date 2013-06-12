@@ -287,10 +287,10 @@ uint8_t *rpt_serialize_data(rpt_data_t *msg, uint32_t *len)
 	if(success == 0)
 	{
 		DTNMP_DEBUG_ERR("rpt_serialize_data","Can't serialize reports.",NULL);
-
-		for(int i = 0; i < num_rpts; i++)
+		int j;
+		for(j = 0; j < num_rpts; j++)
 		{
-			MRELEASE(temp_space[i]);
+			MRELEASE(temp_space[j]);
 		}
 		MRELEASE(temp_space);
 		MRELEASE(temp_len);
@@ -309,10 +309,10 @@ uint8_t *rpt_serialize_data(rpt_data_t *msg, uint32_t *len)
 	{
 		DTNMP_DEBUG_ERR("rpt_serialize_data","Can't alloc %d bytes.",
 				        *len);
-
-		for(int i = 0; i < num_rpts; i++)
+		int j;
+		for(j = 0; j < num_rpts; j++)
 		{
-			MRELEASE(temp_space[i]);
+			MRELEASE(temp_space[j]);
 		}
 		MRELEASE(temp_space);
 		MRELEASE(temp_len);
@@ -335,11 +335,12 @@ uint8_t *rpt_serialize_data(rpt_data_t *msg, uint32_t *len)
 	memcpy(cursor, num_rpts_sdnv.text, num_rpts_sdnv.length);
 	cursor += num_rpts_sdnv.length;
 
-	for(int i = 0; i < num_rpts; i++)
+	int j;
+	for(j = 0; j < num_rpts; j++)
 	{
-		memcpy(cursor,temp_space[i], temp_len[i]);
-		cursor += temp_len[i];
-		MRELEASE(temp_space[i]);
+		memcpy(cursor,temp_space[j], temp_len[j]);
+		cursor += temp_len[j];
+		MRELEASE(temp_space[j]);
 	}
 	MRELEASE(temp_space);
 	MRELEASE(temp_len);
@@ -525,7 +526,8 @@ rpt_data_t *rpt_deserialize_data(uint8_t *cursor,
 //	fprintf(stderr,"\nEJB: Received # rpts of %lld\n", num_rpts);
 
 	/* For each report, deserialize and add it to the lyst. */
-	for(int i = 0; i < num_rpts; i++)
+	int i;
+	for(i = 0; i < num_rpts; i++)
 	{
 		/* Allocate new entry type. */
 		if((cur_entry = (rpt_data_entry_t*)MTAKE(sizeof(rpt_data_entry_t))) == NULL)

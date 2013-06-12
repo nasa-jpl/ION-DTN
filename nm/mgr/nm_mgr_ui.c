@@ -635,7 +635,8 @@ void ui_define_mid_params(char *name, int num_parms, mid_t *mid)
 
 	printf("MID %s needs %d parameters.\n", name, num_parms);
 
-	for(int i = 0; i < num_parms; i++)
+	int i;
+	for(i = 0; i < num_parms; i++)
 	{
 		printf("Enter Parm %d:\n",i);
 	    if (igets(cmdFile, (char *)line, (int) sizeof(line), &len) == NULL)

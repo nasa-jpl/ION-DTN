@@ -344,12 +344,12 @@ adm_reg_agent_t *msg_deserialize_reg_agent(uint8_t *cursor,
 
 	/* Grab and check the size, as an SDNV */
 	int sdnv_len = 0;
-	unsigned long sdnv_tmp = 0;
+	uvast sdnv_tmp = 0;
 
 	sdnv_len = decodeSdnv(&(sdnv_tmp), cursor);
 	if(sdnv_len > MAX_EID_LEN)
 	{
-		DTNMP_DEBUG_ERR("msg_deserialize_reg_agent", "EID size %d > max %d.",
+		DTNMP_DEBUG_ERR("msg_deserialize_reg_agent", "EID size UVAST_FIELDSPEC > max %d.",
 				        sdnv_tmp, MAX_EID_LEN);
 
 		msg_release_reg_agent(result);

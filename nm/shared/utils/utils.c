@@ -363,7 +363,8 @@ Lyst utils_datacol_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *
 	}
 
 	/* Step 3: Grab entries. */
-	for(uint32_t i = 0; i < num; i++)
+	uint32_t i;
+	for(i = 0; i < num; i++)
 	{
 		datacol_entry_t *entry = NULL;
 
@@ -671,6 +672,7 @@ uint32_t utils_grab_sdnv(unsigned char *cursor,
 		                 uint64_t *result)
 {
 	int result_len = 0;
+	uvast tmp;
 
 	DTNMP_DEBUG_ENTRY("utils_grab_sdnv","(%x,%d,%x)",
 			          (unsigned long) cursor,
@@ -679,12 +681,13 @@ uint32_t utils_grab_sdnv(unsigned char *cursor,
 
 	*result = 0;
 
-    if((result_len = decodeSdnv((unsigned long *)result, cursor)) == 0)
+    if((result_len = decodeSdnv(&tmp, cursor)) == 0)
     {
         DTNMP_DEBUG_ERR("utils_grab_sdnv","Bad SDNV extract.", NULL);
 		DTNMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
         return 0;
     }
+    *result=tmp;
 
     /* Did we go too far? */
 	if((size-result_len) < 0)
@@ -863,7 +866,8 @@ uint8_t *utils_string_to_hex(unsigned char *value, uint32_t *size)
 
 	/* Step 2 - For each byte, copy in the nibbles. */
 	tmp_s[2] = '\0';
-	for(int i = 0; i < len; i+=2)
+	int i;
+	for(i = 0; i < len; i+=2)
 	{
 		memcpy(tmp_s, &(value[i]), 2);
 		result[i/2] = utils_atox(tmp_s, &success);

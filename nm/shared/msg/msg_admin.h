@@ -35,7 +35,7 @@
 
 #include "stdint.h"
 
-#include "Lyst.h"
+#include "lyst.h"
 
 #include "shared/utils/nm_types.h"
 

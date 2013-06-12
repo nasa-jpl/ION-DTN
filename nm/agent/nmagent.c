@@ -313,7 +313,7 @@ void addControl(ctrl_exec_t *ctrl)
 }
 
 
-int appendReport(rule_time_prod_t rule, unsigned char* report_buf, int offset)
+int appendReport(rule_time_prod_t *rule, unsigned char* report_buf, int offset)
 {
    // TODO:This function will need to be implemented at a later time.
    // Consider pulling this logic into another function because the
