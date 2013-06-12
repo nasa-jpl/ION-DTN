@@ -1715,7 +1715,7 @@ nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS)
 nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/agent $(AM_CFLAGS) -DMAXPATHLEN=2048
 					
 					
-nm_mgr_SOURCES = nm/mgr/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
+nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
 					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
 					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
 					nm/shared/msg/pdu.c \
