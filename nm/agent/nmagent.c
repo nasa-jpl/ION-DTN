@@ -108,12 +108,12 @@ int main(int argc, char *argv[])
     if (iif_is_registered(&ion_ptr))
     {
         DTNMP_DEBUG_INFO("agent_main","Agent registered with ION, EID: %s",
-        		          (char *) &iif_get_local_eid(&ion_ptr).name[0]);
+        		          (const char *) &(iif_get_local_eid(&ion_ptr).name[0]));
     }
     else
     {
         DTNMP_DEBUG_ERR("agent_main","Failed to register agent with ION, EID %s",
-        		        (char *) &iif_get_local_eid(&ion_ptr).name[0]);
+        		        (const char *) &(iif_get_local_eid(&ion_ptr).name[0]));
         //MRELEASE(ion_ptr);
     	DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
     	return -1;
