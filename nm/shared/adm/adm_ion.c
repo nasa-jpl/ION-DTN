@@ -110,9 +110,9 @@ char *iciPrintSdrStateAll(uint8_t* buffer, uint64_t buffer_len, uint64_t data_le
 	memset(result, '\0', *str_len);
 
 	sprintf(result,
-			"\nsmallPoolSize = %ld\nsmallPoolFree = %ld\nsmallPoolAllocated = %ld\n \
-largePoolSize = %ld\nlargePoolFree = %ld\nlargePoolAllocated = %ld\n \
-unusedSize = %ld\n",state.smallPoolSize, state.smallPoolFree, state.smallPoolAllocated,
+			"\nsmallPoolSize = %u\nsmallPoolFree = %u\nsmallPoolAllocated = %u\n \
+largePoolSize = %u\nlargePoolFree = %unlargePoolAllocated = %u\n \
+unusedSize = %u\n",state.smallPoolSize, state.smallPoolFree, state.smallPoolAllocated,
 			state.largePoolSize, state.largePoolFree, state.largePoolAllocated, state.unusedSize);
 
 	return result;
@@ -144,9 +144,9 @@ char *ion_induct_print_all(uint8_t* buffer, uint64_t buffer_len, uint64_t data_l
 	memset(result, '\0', *str_len);
 
 	sprintf(result,
-			"\ninductName = %s\nlastResetTime = %ld\nbundleRecvCount = %ld\n\
+			"\ninductName = %s\nlastResetTime = %ld\nbundleRecvCount = %ld\nbundleRecvBytes = %ld\n\
 bundleMalformedCount = %ld\nbundleMalformedBytes = %ld\nbundleInauthenticCount = %ld\n\
-bundleInauthenticBytes = %ld\nbundleOverflowCount = %ld\nbundleOverflowBytes\n",
+bundleInauthenticBytes = %ld\nbundleOverflowCount = %ld\nbundleOverflowBytes = %ld\n",
             induct.inductName, induct.lastResetTime, induct.bundleRecvCount,
             induct.bundleRecvBytes, induct.bundleMalformedCount, induct.bundleMalformedBytes,
             induct.bundleInauthenticCount, induct.bundleInauthenticBytes,
@@ -286,6 +286,7 @@ uint8_t *ion_induct_get_all(Lyst params, uint64_t *length)
 	result = (uint8_t*) MTAKE(*length);
 	memset(result,0,*length);
 	memcpy(result, &induct, *length);
+	return result;
 }
 
 uint8_t *ion_induct_get_name(Lyst params, uint64_t *length)
@@ -592,7 +593,7 @@ uint8_t *ion_outduct_get_all(Lyst params, uint64_t *length)
 	result = (uint8_t*) MTAKE(*length);
 	memset(result,0,*length);
 	memcpy(result, &outduct, *length);
-
+	return result;
 }
 
 uint8_t *ion_outduct_get_name(Lyst params, uint64_t *length)

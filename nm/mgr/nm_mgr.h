@@ -31,8 +31,8 @@
 #include "shared/msg/msg_ctrl.h"
 
 /* Constants */
+#define MSG_TYPE_SIZE 1 /*Change this*/
 static const int32_t NM_RECEIVE_TIMEOUT_MILLIS = 3600;
-static const int32_t MSG_TYPE_SIZE             = 1; // Change this
 static const int32_t TIMESTAMP_SIZE            = 4; // Change this too?
 static const int32_t PENDING_LIST_LEN_SIZE     = 2; // Change this too.
 static const char	 MGR_SDR_PROFILE_NAME[]	   = "NM_MGR";

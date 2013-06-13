@@ -898,7 +898,7 @@ char *mid_pretty_print(mid_t *mid)
 
 	if(MID_GET_FLAG_PRI(mid->flags))
 	{
-		cursor += sprintf(cursor,"#llx\n",mid->priority);
+		cursor += sprintf(cursor,"%llx\n",(long long unsigned int)mid->priority);
 	}
 	else
 	{
@@ -907,7 +907,7 @@ char *mid_pretty_print(mid_t *mid)
 
 	if(MID_GET_FLAG_CAT(mid->flags) != MID_CAT_ATOMIC)
 	{
-		cursor += sprintf(cursor,"#llx\n",mid->issuer);
+		cursor += sprintf(cursor,"%llx\n",(long long unsigned int)mid->issuer);
 	}
 	else
 	{
@@ -919,7 +919,7 @@ char *mid_pretty_print(mid_t *mid)
 
 	if(MID_GET_FLAG_TAG(mid->flags))
 	{
-		cursor += sprintf(cursor,"#llx\n",mid->tag);
+		cursor += sprintf(cursor,"%llx\n",(long long unsigned int)mid->tag);
 	}
 	else
 	{

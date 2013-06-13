@@ -112,7 +112,7 @@ typedef struct
 
 
 pdu_bundle_t *pdu_create_bundle();
-pdu_bundle_t *pdu_create_bundle(pdu_msg_t *msg);
+pdu_bundle_t *pdu_create_bundle_arg(pdu_msg_t *msg);
 
 pdu_header_t *pdu_create_hdr(uint8_t id, uint8_t ack, uint8_t nack, uint8_t acl);
 

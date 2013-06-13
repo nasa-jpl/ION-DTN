@@ -84,7 +84,7 @@ typedef struct {
  * +--------------------------------------------------------------------------+
  */
 
-unsigned long utils_atox(char *s);
+unsigned long utils_atox(char *s, int *success);
 
 int      utils_datacol_compare(Lyst col1, Lyst col2);
 Lyst     utils_datacol_copy(Lyst col);

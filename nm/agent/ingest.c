@@ -219,7 +219,7 @@ void *rx_thread(void *threadId) {
     uint32_t bytes = 0;
     uint32_t i = 0;
     pdu_header_t *hdr = NULL;
-    pdu_acl_t *acl = NULL;
+    //pdu_acl_t *acl = NULL;
     uint32_t size = 0;
     pdu_metadata_t meta;
     uint64_t val;

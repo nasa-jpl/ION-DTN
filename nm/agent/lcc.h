@@ -33,9 +33,9 @@
 #include "shared/adm/adm.h"
 
 
-int lcc_run_ctrl(mid_t *id);
+int lcc_run_ctrl_mid_t(mid_t *id);
 
-int lcc_run_ctrl(ctrl_exec_t *id);
+int lcc_run_ctrl_ctrl_exec_t(ctrl_exec_t *id);
 
 
 

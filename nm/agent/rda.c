@@ -228,7 +228,7 @@ int rda_scan_ctrls(Lyst exec_defs)
         {
         	if(ctrl_p->countdown_ticks <= 0)
         	{
-        		lcc_run_ctrl(ctrl_p);
+        		lcc_run_ctrl_ctrl_exec_t(ctrl_p);
         		/* controls disable after they fire.*/
         		ctrl_p->state = CONTROL_INACTIVE;
         	}
@@ -248,7 +248,6 @@ int rda_scan_ctrls(Lyst exec_defs)
 rpt_data_entry_t *rda_build_report_entry(mid_t *mid)
 {
 	rpt_data_entry_t *entry = NULL;
-    int result = 0;
     
     DTNMP_DEBUG_ENTRY("rda_build_report_entry","(0x%x)", (unsigned long) mid);
     
@@ -285,7 +284,6 @@ int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
     LystElt elt;
     mid_t *cur_mid = NULL;
     int result = 0;
-    Sdnv tmp;
     
     DTNMP_DEBUG_ENTRY("rda_eval_rule","(0x%x 0x%x)",
     		           (unsigned long) rule_p, (unsigned long) report_p);
@@ -425,10 +423,8 @@ int rda_send_reports(Lyst built_reports)
         raw_report = rpt_serialize_data(report, &raw_report_len);
 
         pdu_msg = pdu_create_msg(MSG_TYPE_RPT_DATA_RPT, raw_report, raw_report_len, NULL);
-        pdu_bundle = pdu_create_bundle(pdu_msg);
+        pdu_bundle = pdu_create_bundle_arg(pdu_msg);
 
-        unsigned char *msg;
-        uint32_t msg_len;
         iif_send(&ion_ptr, pdu_bundle, report->recipient.name);
         pdu_release_bundle(pdu_bundle);
     }

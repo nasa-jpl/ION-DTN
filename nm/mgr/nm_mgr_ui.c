@@ -299,7 +299,7 @@ void ui_construct_ctrl_by_idx(eid_t* agent_eid)
 	/* Step 3: Construct a PDU to hold the primitive. */
 	uint8_t *data = ctrl_serialize_exec(entry, &size);
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL);
-	pdu_bundle_t *pdu_bundle = pdu_create_bundle(pdu_msg);
+	pdu_bundle_t *pdu_bundle = pdu_create_bundle_arg(pdu_msg);
 
 	/* Step 4: Send the PDU. */
 	iif_send(&ion_ptr, pdu_bundle, agent_eid->name);
@@ -366,7 +366,7 @@ void ui_construct_time_rule_by_idx(eid_t* agent_eid)
 	/* Step 3: Construct a PDU to hold the primitive. */
 	uint8_t *data = ctrl_serialize_time_prod_entry(entry, &size);
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_PERIOD_PROD, data, size, NULL);
-	pdu_bundle_t *pdu_bundle = pdu_create_bundle(pdu_msg);
+	pdu_bundle_t *pdu_bundle = pdu_create_bundle_arg(pdu_msg);
 
 	/* Step 4: Send the PDU. */
 	iif_send(&ion_ptr, pdu_bundle, agent_eid->name);
@@ -440,7 +440,7 @@ void ui_construct_time_rule_by_mid(eid_t *agent_eid)
 	/* Step 3: Construct a PDU to hold the primitive. */
 	uint8_t *data = ctrl_serialize_time_prod_entry(entry, &size);
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_PERIOD_PROD, data, size, NULL);
-	pdu_bundle_t *pdu_bundle = pdu_create_bundle(pdu_msg);
+	pdu_bundle_t *pdu_bundle = pdu_create_bundle_arg(pdu_msg);
 
 	/* Step 4: Send the PDU. */
 	iif_send(&ion_ptr, pdu_bundle, agent_eid->name);
@@ -521,7 +521,7 @@ void ui_define_report(eid_t *agent_eid)
 	/* Step 4: Construct a PDU to hold the primitive. */
 	uint8_t *data = def_serialize_gen(rpt_def, &size);
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_DEF_CUST_RPT, data, size, NULL);
-	pdu_bundle_t *pdu_bundle = pdu_create_bundle(pdu_msg);
+	pdu_bundle_t *pdu_bundle = pdu_create_bundle_arg(pdu_msg);
 
 	/* Step 5: Send the PDU. */
 	iif_send(&ion_ptr, pdu_bundle, agent_eid->name);
@@ -583,7 +583,7 @@ void ui_define_macro(eid_t *agent_eid)
 	/* Step 4: Construct a PDU to hold the primitive. */
 	uint8_t *data = def_serialize_gen(macro_def, &size);
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_DEF_MACRO, data, size, NULL);
-	pdu_bundle_t *pdu_bundle = pdu_create_bundle(pdu_msg);
+	pdu_bundle_t *pdu_bundle = pdu_create_bundle_arg(pdu_msg);
 
 	/* Step 5: Send the PDU. */
 	iif_send(&ion_ptr, pdu_bundle, agent_eid->name);

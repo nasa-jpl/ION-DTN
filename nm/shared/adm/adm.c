@@ -583,7 +583,7 @@ char *adm_print_string_list(uint8_t* buffer, uint64_t buffer_len, uint64_t data_
 	/* Step 3 - Accumulate the result. */
 	cursor = result;
 
-	cursor += sprintf(cursor,"(UVAST_FIELDSPEC): ",num);
+	cursor += sprintf(cursor,"(" UVAST_FIELDSPEC "): ",num);
 
 	/* Add stirngs to result. */
 	for(i = 0; i < num; i++)
@@ -739,7 +739,7 @@ char *adm_print_unsigned_long_list(uint8_t* buffer, uint64_t buffer_len, uint64_
 	/* Step 3 - Accumulate string result. */
 	cursor = result;
 
-	cursor += sprintf(cursor,"(UVAST_FIELDSPEC): ",num);
+	cursor += sprintf(cursor,"(" UVAST_FIELDSPEC "): ",num);
 
 	for(i = 0; i < num; i++)
 	{
@@ -876,8 +876,6 @@ uint32_t adm_size_string_list(uint8_t* buffer, uint64_t buffer_len)
  *****************************************************************************/
 uint32_t adm_size_unsigned_long(uint8_t* buffer, uint64_t buffer_len)
 {
-	uint32_t len = 0;
-
 	DTNMP_DEBUG_ENTRY("adm_size_unsigned_long","(%#llx, %ull)", buffer, buffer_len);
 
 	/* Step 0 - Sanity Check. */

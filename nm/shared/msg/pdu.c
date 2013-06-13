@@ -48,7 +48,7 @@ pdu_bundle_t *pdu_create_bundle()
 }
 
 
-pdu_bundle_t *pdu_create_bundle(pdu_msg_t *msg)
+pdu_bundle_t *pdu_create_bundle_arg(pdu_msg_t *msg)
 {
 	pdu_bundle_t *result = NULL;
 

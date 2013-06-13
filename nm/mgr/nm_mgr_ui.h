@@ -78,7 +78,7 @@ Lyst ui_parse_mid_str(char *mid_str, int max_idx, int type);
 
 void ui_print_ctrls();
 int ui_print_agents();
-void ui_print_custom_rpt(rpt_data_t *entry, def_gen_t *report);
+void ui_print_custom_rpt(rpt_data_entry_t *rpt_entry, def_gen_t *rpt_def);
 void ui_print_menu_admin();
 void ui_print_menu_ctrl();
 void ui_print_menu_def();

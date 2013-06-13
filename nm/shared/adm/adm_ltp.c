@@ -73,9 +73,7 @@ char *ltpPrintNodeResourcesAll(uint8_t* buffer, uint64_t buffer_len, uint64_t da
 	unsigned long bytes_reserved;
 	unsigned long bytes_used;
 	char *result;
-	uint32_t temp_size = 0;
 
-	temp_size = 2 * sizeof(unsigned long);
 	memcpy(&bytes_reserved, buffer, sizeof(bytes_reserved));
 	memcpy(&bytes_used, &(buffer[sizeof(bytes_reserved)]), sizeof(bytes_used));
 
@@ -102,7 +100,8 @@ char *ltpPrintNodeResourcesAll(uint8_t* buffer, uint64_t buffer_len, uint64_t da
 
 char *ltp_engine_print_all(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len)
 {
-
+	/*TODO: Is this a bug?*/
+	return NULL;
 }
 
 /* Get Functions */
