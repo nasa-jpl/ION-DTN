@@ -100,7 +100,7 @@ uint8_t iif_deregister_node(iif_t *iif)
  *  08/10/11  V.Ramachandran Initial implementation,
  *****************************************************************************/
 
-const eid_t iif_get_local_eid(iif_t *iif)
+eid_t iif_get_local_eid(iif_t *iif)
 {
 	DTNMP_DEBUG_ENTRY("iif_get_local_eid","(%#llx)", iif);
 
