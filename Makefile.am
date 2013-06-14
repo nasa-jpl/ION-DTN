@@ -1,14 +1,9 @@
 # Makefile.am
-#
-# David Young
-# July 7, 2008
-#
-# Makefile.am
-# SUBDIRS lead to recursion, which leads to slow building.
-# we will now continue with the MONOLITHIC makefile.am
+# Samuel Jero
+# June 14, 2013
+# Adapted from work by David Young
 
-AM_CFLAGS = \
-	$(ION_CFLAGS) \
+AM_CFLAGS += \
 	-Wall -Werror -g \
 	-include config.h \
 	-I$(srcdir)/ici/include \
@@ -23,15 +18,14 @@ AM_CFLAGS+= \
 	-I$(srcdir)/cfdp/include
 endif
 
+#Recommended by Automake 1.12
+ACLOCAL_AMFLAGS = -Im4
+
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
 # and gcc (see configure.ac and issue #298 for details).  If valgrind
 # support is not present, this variable is empty.
 AM_CFLAGS += $(VALGRIND_COMPAT_CFLAGS)
-
-# don't use AM_LDFLAGS because autoconf sets it INCORRECTLY and it will
-# segfault anything using libraries... which is everything.
-#AM_LDFLAGS = $(ION_LINK_FLAGS) 
 
 # EXTRA_DIST gets sent in the tarball, but isn't really a program
 # anything NOT compiled: scripts, readmes, tar files, config files.
@@ -58,11 +52,9 @@ EXTRA_DIST = 	\
 	$(dgrextra) \
 	$(bpextra) \
 	$(bssextra)
-#	$(icixextra) 
-#	$(usercontribextra)
+#	$(usercontribextra) \
 #	$(twonodestcp_DATA) \
-#$(threenodestcpltp_DATA) \
-#$(srcdir)/makefile.tar.gz
+#	$(threenodestcpltp_DATA)
 
 if !ION_NASA_B
 EXTRA_DIST+= \
@@ -79,16 +71,6 @@ install-data-hook:
 	@echo
 	@echo "You should now run 'sudo ldconfig' if available."
 	@echo
-
-# create the makefile.tar.gz
-# this script, makefile-tar.sh, doesn't get distributed.
-#makefile.tar.gz:
-#	$(srcdir)/makefile-tar.sh $(srcdir)
-
-# create tutorial.pdf on-the-fly 
-#tutorial.pdf: 
-#	cd $(srcdir)/unreleased-doc && pdflatex tutorial.tex && pdflatex tutorial.tex 
-#	mv $(srcdir)/unreleased-doc/tutorial.pdf ./tutorial.pdf
 
 if ENABLE_GCOV
 cov-clean:
@@ -339,9 +321,6 @@ node10_DATA = \
 iciPODM1 = pod2man -s 1 -c "ICI executables"
 iciPODM3 = pod2man -s 3 -c "ICI library functions"
 iciPODM5 = pod2man -s 5 -c "ICI configuration files"
-# can we use pod2html in the release? or should we just
-# compile these for the website use only?
-# iciPODH = pod2html --noindex
 
 icicflags = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr 
 
@@ -499,12 +478,6 @@ libici_la_SOURCES =	ici/library/llcv.c \
 
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
-libici_la_LDFLAGS = $(ION_LINK_FLAGS)
-libici_la_LIBADD = $(PTHREAD_LIBS)
-
-#librfx_la_SOURCES = ici/library/rfx.c
-#librfx_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
-#librfx_la_LDFLAGS = $(ION_LINK_FLAGS)
 
 # --- Utility Programs --- #
 
@@ -555,7 +528,6 @@ sm2file_LDADD = libici.la $(LIBOBJS)
 sm2file_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 file2sdr_SOURCES = ici/test/file2sdr.c 
-#file2sdr_SOURCES = ici/test/file2sdr.c ici/test/file2sdr.h
 file2sdr_LDADD = libici.la $(LIBOBJS)
 file2sdr_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
@@ -564,17 +536,16 @@ sdr2file_LDADD = libici.la $(LIBOBJS)
 sdr2file_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 owltsim_SOURCES = ici/test/owltsim.c
-owltsim_LDADD = libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+owltsim_LDADD = libici.la $(LIBOBJS)
 owltsim_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 owlttb_SOURCES = ici/test/owlttb.c
-owlttb_LDADD = libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+owlttb_LDADD = libici.la $(LIBOBJS) 
 owlttb_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
 rfxclock_SOURCES = ici/daemon/rfxclock.c
-#rfxclock_LDADD = libici.la librfx.la $(LIBOBJS)
 rfxclock_LDADD = libici.la $(LIBOBJS)
 rfxclock_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
@@ -588,9 +559,6 @@ rfxclock_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ltpPODM1 = pod2man -s 1 -c "LTP executables"
 ltpPODM3 = pod2man -s 3 -c "LTP library functions"
 ltpPODM5 = pod2man -s 5 -c "LTP configuration files"
-# can we use pod2html in the release? or should we just
-# compile these for the website use only?
-#ltpPODH = pod2html --noindex
 
 ltpmandir = $(top_builddir)/ltp/doc
 
@@ -611,7 +579,6 @@ ltpbin = \
 
 ltplib = \
 	libltp.la
-#	libltpP.la
 
 ltpinclude = \
 	ltp/include/ltp.h
@@ -669,12 +636,7 @@ libltp_la_SOURCES = \
 	ltp/library/libltp.c \
 	ltp/library/libltpP.c
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
-libltp_la_LDFLAGS = $(ION_LINK_FLAGS)
-libltp_la_LIBADD = libici.la $(PTHREAD_LIBS)
-
-#libltpP_la_SOURCES = ltp/library/libltpP.c
-#libltpP_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
-#libltpP_la_LDFLAGS = $(ION_LINK_FLAGS)
+libltp_la_LIBADD = libici.la 
 
 # --- Utility Programs --- #
 
@@ -705,29 +667,29 @@ ltpmeter_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 # --- UDP Executables --- #
 
 udplsi_SOURCES = ltp/udp/udplsi.c
-udplsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+udplsi_LDADD = libltp.la libici.la $(LIBOBJS) 
 udplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 udplso_SOURCES = ltp/udp/udplso.c
-udplso_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+udplso_LDADD = libltp.la libici.la $(LIBOBJS) 
 udplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- AOS Executables --- #
 
 aoslsi_SOURCES = ltp/aos/aoslsi.c
-aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) 
 aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 aoslso_SOURCES = ltp/aos/aoslso.c
-aoslso_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+aoslso_LDADD = libltp.la libici.la $(LIBOBJS) 
 aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 dccplsi_SOURCES = ltp/dccp/dccplsi.c
-dccplsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dccplsi_LDADD = libltp.la libici.la $(LIBOBJS) 
 dccplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 dccplso_SOURCES = ltp/dccp/dccplso.c
-dccplso_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dccplso_LDADD = libltp.la libici.la $(LIBOBJS) 
 dccplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 
@@ -740,9 +702,6 @@ dccplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 # Define pod2man stuff
 dgrPODM1 = pod2man -s 1 -c "DGR executables"
 dgrPODM3 = pod2man -s 3 -c "DGR library functions"
-# can we use pod2html in the release? or should we just
-# compile these for the website use only?
-#dgrPODH = pod2html --noindex
 
 dgrcflags = -I$(srcdir)/dgr/library -I$(srcdir)/dgr/test
 
@@ -790,37 +749,30 @@ $(top_builddir)/dgr/doc/%.3: dgr/doc/pod3/%.pod
 
 libdgr_la_SOURCES = dgr/library/libdgr.c
 libdgr_la_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
-libdgr_la_LDFLAGS = $(ION_LINK_FLAGS)
-libdgr_la_LIBADD = libici.la $(PTHREAD_LIBS)
+libdgr_la_LIBADD = libici.la 
 
 # --- Test Executables --- #
 
-file2dgr_SOURCES = dgr/test/file2dgr.c 
-#file2dgr_SOURCES = dgr/test/file2dgr.c dgr/test/file2dgr.h
+file2dgr_SOURCES = dgr/test/file2dgr.c
 file2dgr_LDADD = libdgr.la libici.la $(LIBOBJS)
 file2dgr_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 dgr2file_SOURCES = dgr/test/dgr2file.c
-#dgr2file_SOURCES = dgr/test/dgr2file.c dgr/test/file2dgr.h
 dgr2file_LDADD = libdgr.la libici.la $(LIBOBJS)
 dgr2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 file2udp_SOURCES = dgr/test/file2udp.c
-#file2udp_SOURCES = dgr/test/file2udp.c dgr/test/file2udp.h
 file2udp_LDADD = libici.la $(LIBOBJS)
 file2udp_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 udp2file_SOURCES = dgr/test/udp2file.c
-#udp2file_SOURCES = dgr/test/udp2file.c dgr/test/file2udp.h
 udp2file_LDADD = libici.la $(LIBOBJS)
 udp2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
-#file2tcp_SOURCES = dgr/test/file2tcp.c dgr/test/file2tcp.h
 file2tcp_SOURCES = dgr/test/file2tcp.c
 file2tcp_LDADD = libici.la $(LIBOBJS)
 file2tcp_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
-#tcp2file_SOURCES = dgr/test/tcp2file.c dgr/test/file2tcp.h
 tcp2file_SOURCES = dgr/test/tcp2file.c
 tcp2file_LDADD = libici.la $(LIBOBJS)
 tcp2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
@@ -835,9 +787,6 @@ tcp2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
-# can we use pod2html in the release? or should we just
-# compile these for the website use only?
-#bpPODH = pod2html --noindex
 
 bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
 
@@ -1078,32 +1027,26 @@ $(top_builddir)/bp/doc/%.5: bp/doc/pod5/%.pod
 
 libipnfw_la_SOURCES = bp/ipn/libipnfw.c 
 libipnfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libipnfw_la_LDFLAGS = $(ION_LINK_FLAGS)
 libipnfw_la_LIBADD = libbp.la libici.la
 
 libbssfw_la_SOURCES = bp/bss/libbssfw.c 
 libbssfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libbssfw_la_LDFLAGS = $(ION_LINK_FLAGS)
 libbssfw_la_LIBADD = libbp.la libici.la
 
 libdtn2fw_la_SOURCES = bp/dtn2/libdtn2fw.c
 libdtn2fw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libdtn2fw_la_LDFLAGS = $(ION_LINK_FLAGS)
 libdtn2fw_la_LIBADD = libbp.la libici.la
 
 libtcpcla_la_SOURCES = bp/tcp/libtcpcla.c
 libtcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libtcpcla_la_LDFLAGS = $(ION_LINK_FLAGS)
 libtcpcla_la_LIBADD = libbp.la libici.la
 
 libudpcla_la_SOURCES = bp/udp/libudpcla.c
 libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libudpcla_la_LDFLAGS = $(ION_LINK_FLAGS)
 libudpcla_la_LIBADD = libbp.la libici.la
 
 
 
-##bvb (added bei.c), does bsp.c remain?
 libbp_la_SOURCES = \
 	bp/library/libbp.c \
 	bp/library/libbpP.c \
@@ -1124,18 +1067,7 @@ libbp_la_SOURCES+= \
 	bp/library/crypto/NULL_SUITES/crypto.c
 endif
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libbp_la_LDFLAGS = $(ION_LINK_FLAGS)
-libbp_la_LIBADD = libici.la $(PTHREAD_LIBS)
-
-# ecos, phn, and bpP had a circular dependency;
-# now they are one.
-#libecos_la_SOURCES = bp/library/ecos.c
-#libecos_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-#libecos_la_LDFLAGS = $(ION_LINK_FLAGS)
-#
-#libphn_la_SOURCES = bp/library/phn.c
-#libphn_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-#libphn_la_LDFLAGS = $(ION_LINK_FLAGS)
+libbp_la_LIBADD = libici.la 
 
 if ENABLE_BPACS
 libbp_la_SOURCES += \
@@ -1156,7 +1088,6 @@ endif
 
 libcgr_la_SOURCES = bp/cgr/libcgr.c
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libcgr_la_LDFLAGS = $(ION_LINK_FLAGS)
 libcgr_la_LIBADD = libbp.la libici.la
 
 # --- Utility Programs --- #
@@ -1259,7 +1190,7 @@ dtn2adminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- LTP Executables --- #
 
 ltpcli_SOURCES = bp/ltp/ltpcli.c
-ltpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+ltpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libltp.la libici.la $(LIBOBJS) 
 ltpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ltpclo_SOURCES = bp/ltp/ltpclo.c
@@ -1269,27 +1200,27 @@ ltpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- TCP Executables --- #
 
 tcpcli_SOURCES = bp/tcp/tcpcli.c
-tcpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) 
 tcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 tcpclo_SOURCES = bp/tcp/tcpclo.c
-tcpclo_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpclo_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) 
 tcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- STCP Executables --- #
 
 stcpcli_SOURCES = bp/tcp/stcpcli.c
-stcpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+stcpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) 
 stcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 stcpclo_SOURCES = bp/tcp/stcpclo.c
-stcpclo_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+stcpclo_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) 
 stcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
 udpcli_SOURCES = bp/udp/udpcli.c
-udpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libudpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+udpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libudpcla.la libici.la $(LIBOBJS) 
 udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 udpclo_SOURCES = bp/udp/udpclo.c
@@ -1299,27 +1230,27 @@ udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- DCCP Executables --- #
 
 dccpcli_SOURCES = bp/dccp/dccpcli.c
-dccpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dccpcli_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libici.la $(LIBOBJS) 
 dccpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 dccpclo_SOURCES = bp/dccp/dccpclo.c
-dccpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dccpclo_LDADD = libbp.la libici.la $(LIBOBJS) 
 dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 
 dgrcla_SOURCES = bp/dgr/dgrcla.c
-dgrcla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dgrcla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libdgr.la libici.la $(LIBOBJS) 
 dgrcla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BRS executables --- #
 
 brsscla_SOURCES = bp/brs/brsscla.c
-brsscla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+brsscla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) 
 brsscla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 brsccla_SOURCES = bp/brs/brsccla.c
-brsccla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+brsccla_LDADD = libipnfw.la libbssfw.la libdtn2fw.la libbp.la libtcpcla.la libici.la $(LIBOBJS) 
 brsccla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
@@ -1353,7 +1284,7 @@ bprecvfile_LDADD = libbp.la libici.la $(LIBOBJS)
 bprecvfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bping_SOURCES = bp/test/bping.c
-bping_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bping_LDADD = libbp.la libici.la $(LIBOBJS) 
 bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats2_SOURCES = bp/test/bpstats2.c
@@ -1361,7 +1292,7 @@ bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpchat_SOURCES = bp/test/bpchat.c
-bpchat_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bpchat_LDADD = libbp.la libici.la $(LIBOBJS) 
 bpchat_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
@@ -1421,7 +1352,7 @@ libams_la_SOURCES = \
 	ams/library/dgrts.c \
 	ams/library/udpts.c \
 	ams/library/tcpts.c
-libams_la_LDFLAGS = $(ION_LINK_FLAGS) -static
+libams_la_LDFLAGS = -static
 libams_la_CFLAGS = $(amscflags) $(AM_CFLAGS)
 libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la
 
@@ -1493,7 +1424,6 @@ if !ION_NASA_B
 cfdpPODM1 = pod2man -s 1 -c "CFDP executables"
 cfdpPODM3 = pod2man -s 3 -c "CFDP library functions"
 cfdpPODM5 = pod2man -s 5 -c "CFDP configuration files"
-#cfdpPODH = pod2html --noindex
 
 cfdpcflags = -I$(srcdir)/cfdp/library -I$(srcdir)/cfdp/include 
 
@@ -1558,7 +1488,6 @@ libcfdp_la_SOURCES = \
 	cfdp/library/libcfdpops.c \
 	cfdp/library/libcfdpP.c
 libcfdp_la_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-libcfdp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libcfdp_la_LIBADD = libici.la
 
 # --- Utility Programs --- #
@@ -1568,7 +1497,7 @@ cfdpadmin_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 cfdpadmin_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 bpcp_SOURCES = cfdp/utils/bpcp.c
-bpcp_LDADD = libcfdp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bpcp_LDADD = libcfdp.la libici.la $(LIBOBJS) 
 bpcp_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 bpcpd_SOURCES = cfdp/utils/bpcpd.c
@@ -1578,13 +1507,13 @@ bpcpd_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 # --- BP Programs --- #
 
 bputa_SOURCES = cfdp/bp/bputa.c
-bputa_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
+bputa_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS) 
 bputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Test Programs --- #
 
 cfdptest_SOURCES = cfdp/test/cfdptest.c
-cfdptest_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
+cfdptest_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS) 
 cfdptest_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
@@ -1649,8 +1578,7 @@ libbss_la_SOURCES = \
 	bss/library/libbss.c \
 	bss/library/libbssP.c
 libbss_la_CFLAGS = $(bsscflags) $(AM_CFLAGS)
-libbss_la_LDFLAGS = $(ION_LINK_FLAGS)
-libbss_la_LIBADD = libici.la libbp.la $(PTHREAD_LIBS)
+libbss_la_LIBADD = libici.la libbp.la 
 
 # --- Test Programs --- #
 
@@ -1689,88 +1617,6 @@ ionrestart_SOURCES = restart/utils/ionrestart.c
 ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
 ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
 endif
-
-
-##############
-#
-# ICIX SECTION
-#
-##############
-
-# Define pod2man stuff
-#icixPODM3 = pod2man -s 3 -c "ICIX library functions"
-# can we use pod2html in the release? or should we just
-# compile these for the website use only?
-#icixPODH = pod2html --noindex
-
-
-#icixcflags = -I$(srcdir)/icix/library -I$(srcdir)/icix/test
-
-#icixbin = \
-#	sdrpiper \
-#	sdrpipew \
-#	sdrpiped
-
-#icixlib = \
-#	libicix.la \
-#	libipcx.la
-
-#icixinclude = \
-#	icix/include/vf.h \
-#	icix/include/search.h \
-#	icix/include/ipcx.h
-
-#icixnoinst = \
-#	icix/include/sdrpipe.h \
-#	icix/include/chute.h \
-#	icix/include/sdrcv.h 
-
-#icixextra = \
-#	icix/README.txt \
-#	icix/doc/search.pod \
-#	icix/doc/vf.pod \
-#	icix/library/chute.c \
-#	icix/library/sdrcv.c \
-#	icix/library/sdrpipe.c \
-#	icix/library/sdrpiped.c \
-#	icix/test/sdrpiper.c \
-#	icix/test/sdrpipew.c
-
-#icixmans = \
-#	$(top_builddir)/icix/doc/search.3 \
-#	$(top_builddir)/icix/doc/vf.3
-
-#icixclean-local:
-#	rm -f $(top_builddir)/icix/doc/*.3
-
-#$(top_builddir)/icix/doc/%.3: icix/doc/%.pod
-#	$(icixPODM3) $< $@
-
-# -- Libraries --- #
-
-#libicix_la_SOURCES = \
-#	icix/library/vf.c \
-#	icix/library/search.c
-#libicix_la_CFLAGS = $(icixcflags) $(AM_CFLAGS)
-#libicix_la_LDFLAGS = $(ION_LINK_FLAGS)
-
-#libipcx_la_SOURCES = icix/library/ipcx.c
-#libipcx_la_CFLAGS = $(icixcflags) $(AM_CFLAGS)
-#libipcx_la_LDFLAGS = $(ION_LINK_FLAGS)
-
-# --- Test Executables --- #
-
-#sdrpipew_SOURCES = icix/test/sdrpipew.c
-#sdrpipew_LDADD = libicix.la libici.la $(LIBOBJS)
-#sdrpipew_CFLAGS = $(icixcflags) $(AM_CFLAGS)
-
-#sdrpiper_SOURCES = icix/test/sdrpiper.c
-#sdrpiper_LDADD = libicix.la libici.la $(LIBOBJS)
-#sdrpiper_CFLAGS = $(icixcflags) $(AM_CFLAGS)
-
-#sdrpiped_SOURCES = icix/library/sdrpiped.c
-#sdrpiped_LDADD = libicix.la libici.la $(LIBOBJS)
-#sdrpiped_CFLAGS = $(icixcflags) $(AM_CFLAGS)
 
 
 ##########################
@@ -1834,7 +1680,6 @@ tests_library_libtestutil_la_SOURCES = \
 	tests/library/ionstart.c \
 	tests/library/ionstop.c
 tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-tests_library_libtestutil_la_LDFLAGS = $(ION_LINK_FLAGS) 
 
 # TEST AUTHORS: README
 # If a test does not require compilation, it should not be listed here.  Just make a
