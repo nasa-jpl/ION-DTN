@@ -152,9 +152,17 @@ if test "$IS_NASA_B" = "1"; then
 	
 	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
 
+	if test x$crypto = xtrue; then
+		echo ""
+		#DoStuff
+	else
+		AC_SUBST( [CRYPTO_LIBS], [""] )
+	fi
+
 	AC_DEFINE([NASA_PROTECTED_FLIGHT_CODE],[1],[Build ION NASA protected flight code])
 else
 	AM_CONDITIONAL([CRYPTO], [false])
+	AC_SUBST( [CRYPTO_LIBS], [""] )
 fi
 
 #

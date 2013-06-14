@@ -18,9 +18,6 @@ AM_CFLAGS+= \
 	-I$(srcdir)/cfdp/include
 endif
 
-#Recommended by Automake 1.12
-ACLOCAL_AMFLAGS = -Im4
-
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
 # and gcc (see configure.ac and issue #298 for details).  If valgrind
@@ -1067,7 +1064,7 @@ libbp_la_SOURCES+= \
 	bp/library/crypto/NULL_SUITES/crypto.c
 endif
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libbp_la_LIBADD = libici.la 
+libbp_la_LIBADD = libici.la $(CRYPTO_LIBS)
 
 if ENABLE_BPACS
 libbp_la_SOURCES += \
