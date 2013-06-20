@@ -31,6 +31,7 @@ int	main(int argc, char *argv[])
 	ExportSession	session;
 	Lyst		extents;
 	ExportExtent	*extent;
+	unsigned int	ckptSerialNbr;
 	int		segmentsIssued;
 
 	if (remoteEngineId == 0)
@@ -143,8 +144,13 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 
 		extent->offset = 0;
 		extent->length = session.totalLength;
+		do
+		{
+			ckptSerialNbr = rand();
+		} while (ckptSerialNbr == 0);
 		segmentsIssued = issueSegments(sdr, &span, vspan, &session,
-				span.currentExportSessionObj, extents, 0);
+				span.currentExportSessionObj, extents, 0,
+				ckptSerialNbr);
 		MRELEASE(extent);
 		lyst_destroy(extents);
 		switch (segmentsIssued)

@@ -538,7 +538,7 @@ int	ltpInit(int estMaxExportSessions)
 		encodeSdnv(&(ltpdbBuf.ownEngineIdSdnv), ltpdbBuf.ownEngineId);
 		ltpdbBuf.estMaxExportSessions = estMaxExportSessions;
 		ltpdbBuf.ownQtime = 1;		/*	Default.	*/
-		ltpdbBuf.enforceSchedule = 1;	/*	Default.	*/
+		ltpdbBuf.enforceSchedule = 0;	/*	Default.	*/
 		for (i = 0; i < LTP_MAX_NBR_OF_CLIENTS; i++)
 		{
 			ltpdbBuf.clients[i].notices = sdr_list_create(ltpSdr);
@@ -2196,19 +2196,18 @@ static void	findCheckpoint(ExportSession *session,
 			continue;
 		}
 
-		break;		/*	Equal, or not in list.		*/
+		if (cp->serialNbr == ckptSerialNbr)
+		{
+			*dsElt = cp->sessionListElt;
+			*dsObj = sdr_list_data(ltpSdr, cp->sessionListElt);
+			return;
+		}
+
+		break;		/*	Not in list.			*/
 	}
 
-	if (elt)		/*	Found the checkpoint.		*/
-	{
-		*dsElt = cp->sessionListElt;
-		*dsObj = sdr_list_data(ltpSdr, cp->sessionListElt);
-	}
-	else
-	{
-		*dsElt = 0;
-		*dsObj = 0;
-	}
+	*dsElt = 0;
+	*dsObj = 0;
 }
 
 /*	*	*	Segment issuance functions	*	*	*/
@@ -3377,6 +3376,24 @@ char		buf[256];
 #endif
 
 	CHKERR(ionLocked());
+	if (session->lastRptSerialNbr == 0)	/*	Need 1st nbr.	*/
+	{
+		do
+		{
+			session->lastRptSerialNbr = rand();
+		} while (session->lastRptSerialNbr == 0);
+	}
+	else					/*	Just add 1.	*/
+	{
+		session->lastRptSerialNbr++;
+	}
+
+	if (session->lastRptSerialNbr == 0)	/*	Rollover.	*/
+	{
+		return cancelSessionByReceiver(session, sessionObj,
+				LtpRetransmitLimitExceeded);
+	}
+
 	if (session->reportsCount >= MAX_NBR_OF_REPORTS)
 	{
 		/*	We can send one more report if it's the
@@ -3429,21 +3446,6 @@ putErrmsg("Too many reports, canceling session.", itoa(session->sessionNbr));
 
 	/*	Initialize the first report segment and start adding
 	 *	reception claims.					*/
-
-	if (session->lastRptSerialNbr == 0)	/*	Need 1st nbr.	*/
-	{
-		do
-		{
-			session->lastRptSerialNbr = rand();
-		} while (session->lastRptSerialNbr == 0);
-	}
-	else					/*	Just add 1.	*/
-	{
-		do
-		{
-			session->lastRptSerialNbr++;
-		} while (session->lastRptSerialNbr == 0);
-	}
 
 	if (initializeRs(&rsBuf, baseOhdLength, session->lastRptSerialNbr,
 			checkpointSerialNbrSdnv.length, lowerBound) < 0)
@@ -3504,10 +3506,12 @@ putErrmsg("Too many reports, canceling session.", itoa(session->sessionNbr));
 
 		/*	We know the session now has a lastRptSerialNbr.	*/
 
-		do
+		session->lastRptSerialNbr++;
+		if (session->lastRptSerialNbr == 0)
 		{
-			session->lastRptSerialNbr++;
-		} while (session->lastRptSerialNbr == 0);
+			return cancelSessionByReceiver(session, sessionObj,
+					LtpRetransmitLimitExceeded);
+		}
 
 		if (initializeRs(&rsBuf, baseOhdLength,
 				session->lastRptSerialNbr,
@@ -4561,32 +4565,8 @@ static int	insertClaim(ExportSession *session, LtpReceptionClaim *claim)
 static Object	insertCheckpoint(ExportSession *session, LtpXmitSeg *segment)
 {
 	Sdr	ltpSdr = getIonsdr();
-	Object	elt;
-	Object	obj;
-		OBJ_POINTER(LtpCkpt, cp);
 	LtpCkpt	checkpoint;
-
-	for (elt = sdr_list_first(ltpSdr, session->checkpoints); elt;
-			elt = sdr_list_next(ltpSdr, elt))
-	{
-		obj = sdr_list_data(ltpSdr, elt);
-		GET_OBJ_POINTER(ltpSdr, LtpCkpt, cp, obj);
-		if (cp->serialNbr < segment->pdu.ckptSerialNbr)
-		{
-			continue;
-		}
-
-		if (cp->serialNbr == segment->pdu.ckptSerialNbr)
-		{
-			putErrmsg("Duplicate checkpoint serial numbers.",
-					utoa(segment->pdu.ckptSerialNbr));
-			return 0;
-		}
-
-		/*	Insert before this checkpoint.			*/
-
-		break;
-	}
+	Object	obj;
 
 	checkpoint.serialNbr = segment->pdu.ckptSerialNbr;
 	checkpoint.sessionListElt = segment->sessionListElt;
@@ -4598,19 +4578,13 @@ static Object	insertCheckpoint(ExportSession *session, LtpXmitSeg *segment)
 	}
 
 	sdr_write(ltpSdr, obj, (char *) &checkpoint, sizeof(LtpCkpt));
-	if (elt)
-	{
-		return sdr_list_insert_before(ltpSdr, elt, obj);
-	}
-	else
-	{
-		return sdr_list_insert_last(ltpSdr, session->checkpoints, obj);
-	}
+	return sdr_list_insert_last(ltpSdr, session->checkpoints, obj);
 }
 
 static int	constructDataSegment(Sdr sdr, ExportSession *session,
 			Object sessionObj, unsigned int reportSerialNbr,
-			LtpVspan *vspan, LtpSpan *span, LystElt extentElt)
+			unsigned int checkpointSerialNbr, LtpVspan *vspan,
+			LtpSpan *span, LystElt extentElt)
 {
 	Sdr		ltpSdr = getIonsdr();
 	int		lastExtent = (lyst_next(extentElt) == NULL);
@@ -4625,7 +4599,6 @@ static int	constructDataSegment(Sdr sdr, ExportSession *session,
 	int		checkpointOverhead;
 	int		worstCaseSegmentSize;
 	Sdnv		rsnSdnv;
-	unsigned int	checkpointSerialNbr = 0;
 	Sdnv		cpsnSdnv;
 	int		isCheckpoint = 0;
 	int		isEor = 0;		/*	End of red part.*/
@@ -4705,8 +4678,6 @@ char		buf[256];
 		{
 			encodeSdnv(&rsnSdnv, reportSerialNbr);
 			checkpointOverhead += rsnSdnv.length;
-			do checkpointSerialNbr = rand();
-				while (checkpointSerialNbr == 0);
 			encodeSdnv(&cpsnSdnv, checkpointSerialNbr);
 			checkpointOverhead += cpsnSdnv.length;
 		}
@@ -4866,6 +4837,10 @@ char		buf[256];
 		{
 			return -1;
 		}
+
+		session->lastCkptSerialNbr = checkpointSerialNbr;
+		sdr_write(ltpSdr, sessionObj, (char *) session,
+				sizeof(ExportSession));
 	}
 
 	segment.pdu.clientSvcId = session->clientSvcId;
@@ -4898,7 +4873,7 @@ putErrmsg(buf, itoa(session->sessionNbr));
 
 int	issueSegments(Sdr sdr, LtpSpan *span, LtpVspan *vspan,
 		ExportSession *session, Object sessionObj, Lyst extents,
-		unsigned int reportSerialNbr)
+		unsigned int reportSerialNbr, unsigned int checkpointSerialNbr)
 {
 	Sdr		ltpSdr = getIonsdr();
 	LystElt		extentElt;
@@ -4926,7 +4901,8 @@ int	issueSegments(Sdr sdr, LtpSpan *span, LtpVspan *vspan,
 		while (extent->length > 0)
 		{
 			if (constructDataSegment(ltpSdr, session, sessionObj,
-				reportSerialNbr, vspan, span, extentElt) < 0)
+					reportSerialNbr, checkpointSerialNbr,
+					vspan, span, extentElt) < 0)
 			{
 				putErrmsg("Can't segment block.",
 						itoa(vspan->meterPid));
@@ -5316,7 +5292,9 @@ putErrmsg("Discarding report.", NULL);
 	/*	Not all data in the block has yet been received.	*/
 
 	ltpSpanTally(vspan, NEG_RPT_RECV, 0);
-	if (sdr_list_length(ltpSdr, sessionBuf.checkpoints)
+	ckptSerialNbr = sessionBuf.lastCkptSerialNbr + 1;
+	if (ckptSerialNbr == 0	/*	Rollover.			*/
+	|| sdr_list_length(ltpSdr, sessionBuf.checkpoints)
 			== MAX_NBR_OF_CHECKPOINTS)
 	{
 		/*	Limit reached, can't retransmit any more.
@@ -5433,7 +5411,7 @@ putErrmsg(buf, itoa(sessionBuf.sessionNbr));
 	 *	retransmit data as needed.  				*/
 
 	if (issueSegments(ltpSdr, &spanBuf, vspan, &sessionBuf, sessionObj,
-			extents, rptSerialNbr) < 0)
+			extents, rptSerialNbr, ckptSerialNbr) < 0)
 	{
 		putErrmsg("Can't retransmit data.", itoa(vspan->meterPid));
 		sdr_cancel_xn(ltpSdr);

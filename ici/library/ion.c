@@ -313,6 +313,16 @@ static void	writeMemoToIonLog(char *text)
 	static char		msgbuf[256];
 
 	if (text == NULL) return;
+	if (*text == '\0')	/*	Claims that log file is closed.	*/
+	{
+		if (ionLogFile != -1)
+		{
+			close(ionLogFile);	/*	To be sure.	*/
+			ionLogFile = -1;
+		}
+
+		return;		/*	Ignore zero-length memo.	*/
+	}
 
 	/*	The log file is shared, so access to it must be
 	 *	mutexed.						*/
