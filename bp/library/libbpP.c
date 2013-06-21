@@ -5721,7 +5721,7 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 	char		*custodianEid;
 	unsigned int	ttl;	/*	Original bundle's TTL.		*/
 	BpExtendedCOS	ecos = { 0, 0, 255 };
-	Object		payloadZco;
+	Object		payloadZco=0;
 	Object		bundleObj;
 	int		result;
 
@@ -5833,7 +5833,7 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 	unsigned int	ttl;	/*	Original bundle's TTL.		*/
 	BpExtendedCOS	ecos = { 0, 0, bundle->extendedCOS.ordinal };
-	Object		payloadZco;
+	Object		payloadZco=0;
 	char		*reportToEid;
 	Object		bundleObj;
 	int		result;
