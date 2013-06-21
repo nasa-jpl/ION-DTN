@@ -184,8 +184,8 @@ AC_ARG_WITH([gcov],
 [])
 if test "x$gcov" = "xyes" ; then
 	echo "Instrument code for gcov coverage analysis... yes"
-	AM_CFLAGS="$AM_CFLAGS -g -O0 -fprofile-arcs -ftest-coverage"
-	AM_LDFLAGS="$AM_LDFLAGS -fprofile-arcs -ftest-coverage -lgcov"
+	CFLAGS="$CFLAGS -g -O0 -fprofile-arcs -ftest-coverage"
+	LDFLAGS="$LDFLAGS -fprofile-arcs -ftest-coverage -lgcov"
 else
 	echo "Instrument code for gcov coverage analysis... no"
 fi
