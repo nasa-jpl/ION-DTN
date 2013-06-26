@@ -8,6 +8,8 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 									*/
+#include <stdarg.h>
+
 #include "ipnfw.h"
 
 #ifndef CGR_DEBUG
@@ -16,46 +18,18 @@
 
 #if CGR_DEBUG == 1
 static void	printCgrTraceLine(unsigned int lineNbr,
-			unsigned int tracepointNbr,
-			uvast argA, uvast argB, uvast argC, uvast argD)
+			unsigned int tracepointNbr, ...)
 {
-	char	*spec = UVAST_FIELDSPEC;
-	int	specLen = istrlen(spec, 5);
-	char	*text;
-	char	*reader;
-	char	buffer[512];
-	char	*writer = buffer;
-	int	bufferAvbl = sizeof buffer - (specLen + 2);
+	va_list args;
+	const char *text;
+
+	va_start(args, tracepointNbr);
 
 	text = cgr_tracepoint_text(tracepointNbr);
-	CHKVOID(text);
-	reader = text;
-	while (*reader)
-	{
-		if (bufferAvbl <= 0)
-		{
-			break;
-		}
+	vprintf(text, args);
+	putchar('\n');
 
-		if (*reader == '$')
-		{
-			memcpy(writer, spec, specLen);
-			reader += 2;
-			writer += specLen;
-			bufferAvbl -= specLen;
-			continue;
-		}
-
-		*writer = *reader;
-		reader++;
-		writer++;
-		bufferAvbl--;
-	}
-
-	*writer = '\n';
-	writer++;
-	*writer = '\0';
-	printf(buffer, argA, argB, argC, argD);
+	va_end(args);
 }
 #endif
 
@@ -104,7 +78,7 @@ static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
 		{
 			continue;
 		}
-		
+
 		if (plan.nodeNbr > nodeNbr)
 		{
 			return 0;	/*	Same as end of list.	*/
@@ -129,7 +103,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	PsmAddress	snubElt;
 	IonSnub		*snub;
 
-	if (ipn_lookupPlanDirective(nodeNbr, bundle->id.source.c.serviceNbr, 
+	if (ipn_lookupPlanDirective(nodeNbr, bundle->id.source.c.serviceNbr,
 			bundle->id.source.c.nodeNbr, &directive) == 0)
 	{
 		return 0;
@@ -285,7 +259,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	 *	prescribed "via" endpoint for that group.		*/
 
 	if (ipn_lookupGroupDirective(metaEid.nodeNbr,
-			bundle->id.source.c.serviceNbr, 
+			bundle->id.source.c.serviceNbr,
 			bundle->id.source.c.nodeNbr, &directive) == 1)
 	{
 		/*	Found directive; forward via the indicated
