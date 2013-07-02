@@ -25,6 +25,8 @@
 extern "C" {
 #endif
 
+#define	BP_VERSION			6
+
 /*	"Watch" switches for bundle protocol operation.			*/
 #define	WATCH_a				(1)
 #define	WATCH_b				(2)
@@ -339,6 +341,7 @@ typedef struct
 	char		accepted;	/*	Boolean.		*/
 	char		corrupt;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
+	char		fragmented;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
@@ -606,15 +609,24 @@ typedef struct
 	int		maxAcqInHeap;
 	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
+
+	/*	Network management instrumentation			*/
+
 	time_t		resetTime;	/*	Stats reset time.	*/
+	time_t		startTime;	/*	Node restart time.	*/
+	int		regCount;	/*	Since node restart.	*/
+	int		updateStats;	/*	Boolean.		*/
+	vast		currentBundlesFragmented;
+	vast		totalBundlesFragmented;
+	vast		currentFragmentsProduced;
+	vast		totalFragmentsProduced;
 	Object		sourceStats;	/*	BpCosStats address.	*/
 	Object		recvStats;	/*	BpCosStats address.	*/
 	Object		discardStats;	/*	BpCosStats address.	*/
 	Object		xmitStats;	/*	BpCosStats address.	*/
-	Object		rptStats;	/*	BpRptStats address.	*/
+	Object		delStats;	/*	BpDelStats address.	*/
 	Object		ctStats;	/*	BpCtStats address.	*/
 	Object		dbStats;	/*	BpDbStats address.	*/
-	int		updateStats;	/*	Boolean.		*/
 } BpDB;
 
 /*  CT database encapsulates custody transfer configuration. */
@@ -660,7 +672,9 @@ typedef struct
 #define	BP_DB_TO_LIMBO		4
 #define	BP_DB_FROM_LIMBO	5
 #define	BP_DB_EXPIRED		6
-#define	BP_DB_STATS		7
+#define	BP_DB_ABANDON		7
+#define	BP_DB_DISCARD		8
+#define	BP_DB_STATS		9
 
 typedef struct
 {
@@ -669,11 +683,9 @@ typedef struct
 
 typedef struct
 {
-	unsigned int	totalRptByStatus[BP_STATUS_STATS];
-	unsigned int	currentRptByStatus[BP_STATUS_STATS];
-	unsigned int	totalRptByReason[BP_REASON_STATS];
-	unsigned int	currentRptByReason[BP_REASON_STATS];
-} BpRptStats;
+	unsigned int	totalDelByReason[BP_REASON_STATS];
+	unsigned int	currentDelByReason[BP_REASON_STATS];
+} BpDelStats;
 
 typedef struct
 {
@@ -694,7 +706,7 @@ typedef struct
 	Object		recvStats;	/*	BpCosStats address.	*/
 	Object		discardStats;	/*	BpCosStats address.	*/
 	Object		xmitStats;	/*	BpCosStats address.	*/
-	Object		rptStats;	/*	BpRptStats address.	*/
+	Object		delStats;	/*	BpDelStats address.	*/
 	Object		ctStats;	/*	BpCtStats address.	*/
 	Object		dbStats;	/*	BpDbStats address.	*/
 	int		updateStats;	/*	Boolean.		*/

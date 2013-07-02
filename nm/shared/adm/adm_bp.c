@@ -1097,7 +1097,7 @@ uint8_t *bp_endpoint_get_names(Lyst params, uint64_t *length)
 	uint8_t *cursor = NULL;
 
 
-	bpnm_endpointNames_get((char *) names, ptrs, &num);
+	bpnm_endpointNames_get((char *) names, sizeof names, ptrs, &num);
 
 	encodeSdnv(&nm_sdnv, num);
 

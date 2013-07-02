@@ -22,8 +22,6 @@
 #include "sdrhash.h"
 #include "smrbt.h"
 
-#define	BP_VERSION		6
-
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
@@ -521,55 +519,24 @@ void	bpXmitTally(unsigned int priority, unsigned int size)
 	sdr_write(sdr, vdb->xmitStats + offset, (char *) tally, sizeof(Tally));
 }
 
-void	bpRptTally(unsigned char status, unsigned int reason)
+void	bpDelTally(unsigned int reason)
 {
 	Sdr		sdr = getIonsdr();
 	BpVdb		*vdb = getBpVdb();
-	BpRptStats	stats;
+	BpDelStats	stats;
 
-	CHKVOID(vdb && vdb->rptStats);
+	CHKVOID(vdb && vdb->delStats);
 	if (!(vdb->updateStats))
 	{
 		return;
 	}
 
 	CHKVOID(ionLocked());
-	CHKVOID(status < 32);
 	CHKVOID(reason < BP_REASON_STATS);
-	sdr_stage(sdr, (char *) &stats, vdb->rptStats, sizeof(BpRptStats));
-	if (status & BP_RECEIVED_RPT)
-	{
-		stats.totalRptByStatus[BP_STATUS_RECEIVE] += 1;
-		stats.currentRptByStatus[BP_STATUS_RECEIVE] += 1;
-	}
-
-	if (status & BP_CUSTODY_RPT)
-	{
-		stats.totalRptByStatus[BP_STATUS_ACCEPT] += 1;
-		stats.currentRptByStatus[BP_STATUS_ACCEPT] += 1;
-	}
-
-	if (status & BP_FORWARDED_RPT)
-	{
-		stats.totalRptByStatus[BP_STATUS_FORWARD] += 1;
-		stats.currentRptByStatus[BP_STATUS_FORWARD] += 1;
-	}
-
-	if (status & BP_DELIVERED_RPT)
-	{
-		stats.totalRptByStatus[BP_STATUS_DELIVER] += 1;
-		stats.currentRptByStatus[BP_STATUS_DELIVER] += 1;
-	}
-
-	if (status & BP_DELETED_RPT)
-	{
-		stats.totalRptByStatus[BP_STATUS_DELETE] += 1;
-		stats.currentRptByStatus[BP_STATUS_DELETE] += 1;
-	}
-
-	stats.totalRptByReason[reason] += 1;
-	stats.currentRptByReason[reason] += 1;
-	sdr_write(sdr, vdb->rptStats, (char *) &stats, sizeof(BpRptStats));
+	sdr_stage(sdr, (char *) &stats, vdb->delStats, sizeof(BpDelStats));
+	stats.totalDelByReason[reason] += 1;
+	stats.currentDelByReason[reason] += 1;
+	sdr_write(sdr, vdb->delStats, (char *) &stats, sizeof(BpDelStats));
 }
 
 void	bpCtTally(unsigned int reason, unsigned int size)
@@ -1357,7 +1324,7 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->recvStats = db->recvStats;
 		vdb->discardStats = db->discardStats;
 		vdb->xmitStats = db->xmitStats;
-		vdb->rptStats = db->rptStats;
+		vdb->delStats = db->delStats;
 		vdb->ctStats = db->ctStats;
 		vdb->dbStats = db->dbStats;
 		vdb->updateStats = db->updateStats;
@@ -1436,7 +1403,7 @@ int	bpInit()
 	Object		bpdbObject;
 	BpDB		bpdbBuf;
 	BpCosStats	cosStatsInit;
-	BpRptStats	rptStatsInit;
+	BpDelStats	delStatsInit;
 	BpCtStats	ctStatsInit;
 	BpDbStats	dbStatsInit;
 	char		*bpvdbName = _bpvdbName();
@@ -1486,12 +1453,12 @@ int	bpInit()
 		bpdbBuf.recvStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.discardStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.xmitStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
-		bpdbBuf.rptStats = sdr_malloc(bpSdr, sizeof(BpRptStats));
+		bpdbBuf.delStats = sdr_malloc(bpSdr, sizeof(BpDelStats));
 		bpdbBuf.ctStats = sdr_malloc(bpSdr, sizeof(BpCtStats));
 		bpdbBuf.dbStats = sdr_malloc(bpSdr, sizeof(BpDbStats));
 		if (bpdbBuf.sourceStats && bpdbBuf.recvStats
 		&& bpdbBuf.discardStats && bpdbBuf.xmitStats
-		&& bpdbBuf.rptStats && bpdbBuf.ctStats && bpdbBuf.dbStats)
+		&& bpdbBuf.delStats && bpdbBuf.ctStats && bpdbBuf.dbStats)
 		{
 			memset((char *) &cosStatsInit, 0,
 					sizeof(BpCosStats));
@@ -1507,11 +1474,11 @@ int	bpInit()
 			sdr_write(bpSdr, bpdbBuf.xmitStats,
 					(char *) &cosStatsInit,
 					sizeof(BpCosStats));
-			memset((char *) &rptStatsInit, 0,
-					sizeof(BpRptStats));
-			sdr_write(bpSdr, bpdbBuf.rptStats,
-					(char *) &rptStatsInit,
-					sizeof(BpRptStats));
+			memset((char *) &delStatsInit, 0,
+					sizeof(BpDelStats));
+			sdr_write(bpSdr, bpdbBuf.delStats,
+					(char *) &delStatsInit,
+					sizeof(BpDelStats));
 			memset((char *) &ctStatsInit, 0,
 					sizeof(BpCtStats));
 			sdr_write(bpSdr, bpdbBuf.ctStats,
@@ -1524,6 +1491,7 @@ int	bpInit()
 					sizeof(BpDbStats));
 		}
 
+		bpdbBuf.startTime = getUTCTime();
 		bpdbBuf.updateStats = 1;	/*	Default.	*/
 		sdr_write(bpSdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
 		sdr_catlg(bpSdr, _bpdbName(), 0, bpdbObject);
@@ -1536,7 +1504,14 @@ int	bpInit()
 		break;
 
 	default:		/*	Found DB in the SDR.		*/
-		sdr_exit_xn(bpSdr);
+		sdr_stage(bpSdr, (char *) &bpdbBuf, bpdbObject, sizeof(BpDB));
+		bpdbBuf.startTime = getUTCTime();
+		sdr_write(bpSdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
+		if (sdr_end_xn(bpSdr))
+		{
+			putErrmsg("Can't reload BP database.", NULL);
+			return -1;
+		}
 	}
 
 	oK(_bpdbObject(&bpdbObject));	/*	Save database location.	*/
@@ -2798,6 +2773,7 @@ incomplete bundle.", NULL);
 		}
 
 		bundle.custodyTaken = 0;
+		bpDelTally(SrLifetimeExpired);
 	}
 
 	/*	Check for any remaining constraints on deletion.	*/
@@ -2919,6 +2895,7 @@ incomplete bundle.", NULL);
 	sdr_free(bpSdr, bundleObj);
 	bpDiscardTally(COS_FLAGS(bundle.bundleProcFlags) & 0x03,
 			bundle.payload.length);
+	bpDbTally(BP_DB_DISCARD, bundle.payload.length);
 	noteBundleRemoved(&bundle);
 	return 0;
 }
@@ -3375,6 +3352,8 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	EndpointStats	statsInit;
 	Object		addr;
 	Object		endpointElt = 0;	/*	To hush gcc.	*/
+	Object		dbObject;
+	BpDB		db;
 
 	CHKERR(eid);
 	if (parseEidString(eid, &metaEid, &vscheme, &elt) == 0)
@@ -3433,6 +3412,10 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 		sdr_write(bpSdr, addr, (char *) &endpointBuf, sizeof(Endpoint));
 	}
 
+	dbObject = getBpDbObject();
+	sdr_stage(bpSdr, (char *) &db, dbObject, sizeof(BpDB));
+	db.regCount++;
+	sdr_write(bpSdr, dbObject, (char *) &db, sizeof(BpDB));
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't add endpoint.", eid);
@@ -5033,7 +5016,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 }
 
 static void	loadCbheEids(Bundle *bundle, MetaEid *destMetaEid,
-		MetaEid *sourceMetaEid, MetaEid *reportToMetaEid)
+			MetaEid *sourceMetaEid, MetaEid *reportToMetaEid)
 {
 	/*	Destination.						*/
 
@@ -5902,8 +5885,6 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 		break;
 	}
 
-	bpRptTally(bundle->statusRpt.flags, bundle->statusRpt.reasonCode);
-
 	/*	Erase flags and times in case another status report for
 	 *	the same bundle needs to be sent later.			*/
 
@@ -5987,6 +5968,7 @@ static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
 					sizeof(Bundle));
 			bpEndpointTally(vpoint, BP_ENDPOINT_ABANDONED,
 					bundle->payload.length);
+			bpDbTally(BP_DB_ABANDON, bundle->payload.length);
 			return 0;
 		}
 	}
@@ -7440,6 +7422,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 		}
 	}
 
+	bpDelTally(srReason);
 	return abortBundleAcq(work);
 }
 
@@ -9755,6 +9738,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	}
 
 	releaseDictionary(dictionary);
+	bpDelTally(SrNoKnownRoute);
 
 	/*	Must record updated state of bundle in case
 	 *	bpDestroyBundle doesn't erase it.			*/
@@ -9914,6 +9898,26 @@ static void	selectNextBundleForTransmission(Outflow *flows,
 }
 #endif
 
+static void	noteFragmentation(Bundle *bundle)
+{
+	Sdr	sdr = getIonsdr();
+	Object	dbObject;
+	BpDB	db;
+
+	dbObject = getBpDbObject();
+	sdr_stage(sdr, (char *) &db, dbObject, sizeof(BpDB));
+	db.currentFragmentsProduced++;
+	db.totalFragmentsProduced++;
+	if (!(bundle->fragmented))
+	{
+		bundle->fragmented = 1;
+		db.currentBundlesFragmented++;
+		db.totalBundlesFragmented++;
+	}
+
+	sdr_write(sdr, dbObject, (char *) &db, sizeof(BpDB));
+}
+
 static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 			Outduct *outduct, Object outductObj,
 			ClProtocol *protocol, unsigned int maxPayloadLength,
@@ -10059,6 +10063,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 				return -1;
 			}
 
+			noteFragmentation(&secondBundle);
 			secondBundle.ductXmitElt = sdr_list_insert_first(bpSdr,
 				sourceFlow->outboundBundles, secondBundleObj);
 			sdr_write(bpSdr, secondBundleObj,
