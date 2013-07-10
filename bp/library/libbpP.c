@@ -4928,11 +4928,11 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	}
 
 	/*	Count as queued for forwarding, but only when the
-	 *	station stack depth is 1.  Forwarders handing the
+	 *	station stack depth is 0.  Forwarders handing the
 	 *	bundle off to one another doesn't count as queuing
 	 *	a bundle for forwarding.				*/
 
-	if (sdr_list_length(bpSdr, bundle->stations) == 1)
+	if (sdr_list_length(bpSdr, bundle->stations) == 0)
 	{
 		bpDbTally(BP_DB_QUEUED_FOR_FWD, bundle->payload.length);
 	}
@@ -11150,6 +11150,12 @@ int	bpReforwardBundle(Object bundleAddr)
 	{
 		destroyBpTimelineEvent(bundle.ctDueElt);
 		bundle.ctDueElt = 0;
+	}
+
+	if (bundle.fwdQueueElt)
+	{
+		sdr_list_delete(bpSdr, bundle.fwdQueueElt, NULL, NULL);
+		bundle.fwdQueueElt = 0;
 	}
 
 	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
