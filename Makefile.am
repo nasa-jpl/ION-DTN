@@ -3,6 +3,15 @@
 # June 14, 2013
 # Adapted from work by David Young
 
+#Control building of Contrib as determined by ./configure flags
+if BUILD_CONTRIB
+SUBDIRS= . contrib
+else
+SUBDIRS= .
+endif
+
+DIST_SUBDIRS= . contrib
+
 AM_CFLAGS += \
 	-Wall -Werror -g \
 	-include config.h \
@@ -49,7 +58,6 @@ EXTRA_DIST = 	\
 	$(dgrextra) \
 	$(bpextra) \
 	$(bssextra)
-#	$(usercontribextra) \
 #	$(twonodestcp_DATA) \
 #	$(threenodestcpltp_DATA)
 
@@ -128,7 +136,6 @@ bin_PROGRAMS = \
 	$(bpbin) \
 	$(bssbin) \
 	$(restartbin)
-#	$(usercontribbin)
 
 if !ION_NASA_B
 bin_PROGRAMS+= \
@@ -169,7 +176,6 @@ noinst_HEADERS = \
 	$(dgrnoinst) \
 	$(bpnoinst) \
 	$(bssnoinst)
-#	$(usercontribnoinst)
 
 if !ION_NASA_B
 noinst_HEADERS+= \
@@ -1828,72 +1834,3 @@ ION.pdf: doc/ION-beginning.pdf
 	cp $^ $@
 
 endif #ENABLE_AUTODOC
-
-
-##########################
-#
-# USER-CONTRIB SECTION
-#
-##########################
-
-# Define pod2man stuff
-#bpPODM1 = pod2man -s 1 -c "BP executables"
-#bpPODM3 = pod2man -s 3 -c "BP library functions"
-#bpPODM5 = pod2man -s 5 -c "BP configuration files"
-# can we use pod2html in the release? or should we just
-# compile these for the website use only?
-#bpPODH = pod2html --noindex
-
-
-#sbpapiinclude = -Iuser-contrib/sbp_api -Ibp/dtn2 -DSBP_USE_ION
-#sbpapifiles = user-contrib/sbp_api/sbp_socket.c user-contrib/sbp_api/sbp_ion.c
-
-#usercontribbin = \
-	#bpalive \
-	#bpmon_server \
-	#bpmon_query \
-	#bpmon_client \
-	#bping \
-	#bpong 
-#
-#usercontribnoinst = \
-	#user-contrib/sbp_api/sbp_api.h \
-	#user-contrib/sbp_api/sbp_ion.h \
-	#user-contrib/sbp_api/sbp_socket.h \
-	#user-contrib/bpmon/bpmon_server.h \
-	#user-contrib/bpmon/termutil.h \
-	#user-contrib/bpmon/debug.h
-#
-#usercontribextra = \
-	#$(srcdir)/user-contrib/README.txt 
-
-# --- bpalive --- #
-
-#bpalive_SOURCES = user-contrib/bpalive/bpalive.c
-#bpalive_LDADD = libecos.la libbp.la libici.la $(LIBOBJS)
-#bpalive_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-
-# --- bpmon --- #
-
-#bpmon_client_SOURCES = user-contrib/bpmon/bpmon_client.c user-contrib/bpmon/termutil.c $(sbpapifiles)
-#bpmon_client_LDADD = libecos.la libdtn2fw.la libbp.la libici.la $(LIBOBJS)
-#bpmon_client_CFLAGS = $(bpcflags) $(sbpapiinclude) $(AM_CFLAGS)
-
-#bpmon_query_SOURCES = user-contrib/bpmon/bpmon_query.c $(sbpapifiles)
-#bpmon_query_LDADD = libecos.la libdtn2fw.la libbp.la libici.la $(LIBOBJS)
-#bpmon_query_CFLAGS = $(bpcflags) $(sbpapiinclude) $(AM_CFLAGS)
-
-#bpmon_server_SOURCES = user-contrib/bpmon/bpmon_server.c user-contrib/bpmon/debug.c user-contrib/bpmon/bpmon_callback.c $(sbpapifiles)
-#bpmon_server_LDADD = libecos.la libdtn2fw.la libbp.la libici.la $(LIBOBJS)
-#bpmon_server_CFLAGS = $(bpcflags) $(sbpapiinclude) $(AM_CFLAGS)
-
-# --- bping --- #
-
-#bping_SOURCES = user-contrib/bping/bping.c $(sbpapifiles)
-#bping_LDADD = libecos.la libdtn2fw.la libbp.la libici.la $(LIBOBJS)
-#bping_CFLAGS = $(bpcflags) $(sbpapiinclude) $(AM_CFLAGS)
-
-#bpong_SOURCES = user-contrib/bping/bpong.c $(sbpapifiles)
-#bpong_LDADD = libecos.la libdtn2fw.la libbp.la libici.la $(LIBOBJS)
-#bpong_CFLAGS = $(bpcflags) $(sbpapiinclude) $(AM_CFLAGS)
-

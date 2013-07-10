@@ -138,6 +138,20 @@ AC_ARG_ENABLE(
     [])
 
 #
+# Control building /contrib utlities
+#
+AC_ARG_ENABLE(
+	contrib,
+	[AC_HELP_STRING([--disable-contrib],[Disable building third-party contributed utilities])],
+	[case "${enableval}" in
+		yes) BUILD_CONTRIB=yes;;
+		no)  BUILD_CONTRIB=no;;
+		*) AC_MSG_ERROR([bad value ${enableval} for --enable-contrib]);;
+	esac],
+	[BUILD_CONTRIB=yes])
+AM_CONDITIONAL(BUILD_CONTRIB, test "x$BUILD_CONTRIB" = "xyes")
+
+#
 # Allow user to disable crypto... if crypto is even enabled
 #
 if test "$IS_NASA_B" = "1"; then
@@ -341,4 +355,5 @@ AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 
 #Output!
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([contrib/Makefile])
 AC_OUTPUT
