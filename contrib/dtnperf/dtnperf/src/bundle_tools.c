@@ -381,7 +381,7 @@ int get_bundle_header_and_options(al_bp_bundle_object_t * bundle, HEADER_TYPE * 
 	if (header != NULL)
 	{
 		// read header
-		fread(header, HEADER_SIZE, 1, pl_stream);
+		if(fread(header, HEADER_SIZE, 1, pl_stream)<0){ return  BP_EINVAL;}
 	}
 	else
 	{
@@ -399,7 +399,7 @@ int get_bundle_header_and_options(al_bp_bundle_object_t * bundle, HEADER_TYPE * 
 		options->crc_enabled = FALSE;
 
 		// read options
-		fread(&opt, BUNDLE_OPT_SIZE, 1, pl_stream);
+		if(fread(&opt, BUNDLE_OPT_SIZE, 1, pl_stream)<0){ return  BP_EINVAL;}
 
 		// ack to client
 		if ((opt & BO_ACK_CLIENT_MASK) == BO_ACK_CLIENT_YES)
@@ -439,16 +439,16 @@ int get_bundle_header_and_options(al_bp_bundle_object_t * bundle, HEADER_TYPE * 
 			options->crc_enabled=TRUE;
 
 		// lifetime
-		fread(&ack_lifetime,sizeof(al_bp_timeval_t), 1, pl_stream);
+		if(fread(&ack_lifetime,sizeof(al_bp_timeval_t), 1, pl_stream)<0){ return  BP_EINVAL;}
 		options->ack_expiration = ack_lifetime;
 
 		// crc
 		bundle->payload->buf.buf_crc=0;
-		fread(&bundle->payload->buf.buf_crc, BUNDLE_CRC_SIZE, 1, pl_stream);
+		if(fread(&bundle->payload->buf.buf_crc, BUNDLE_CRC_SIZE, 1, pl_stream)<0){ return  BP_EINVAL;}
 
 		// monitor
-		fread(&eid_len, sizeof(eid_len), 1, pl_stream);
-		fread(bundle->spec->replyto.uri, eid_len, 1, pl_stream);
+		if(fread(&eid_len, sizeof(eid_len), 1, pl_stream)<0){ return  BP_EINVAL;}
+		if(fread(bundle->spec->replyto.uri, eid_len, 1, pl_stream)<0){ return  BP_EINVAL;}
 		bundle->spec->replyto.uri[eid_len] = '\0';
 
 
@@ -565,7 +565,7 @@ al_bp_error_t get_info_from_stop(al_bp_bundle_object_t * stop, int * sent_bundle
 	fseek(stop_stream, HEADER_SIZE, SEEK_SET);
 
 	// read sent bundles num
-	fread(&buf, sizeof(buf), 1, stop_stream);
+	if(fread(&buf, sizeof(buf), 1, stop_stream)<0){ return  BP_EINVAL;}
 
 	* sent_bundles = (int) ntohl(buf);
 
@@ -619,13 +619,13 @@ al_bp_error_t get_info_from_ack(al_bp_bundle_object_t * ack, al_bp_endpoint_id_t
 	uint32_t timestamp_secs, timestamp_seqno;
 
 	open_payload_stream_read(*ack, &pl_stream);
-	fread(&header, HEADER_SIZE, 1, pl_stream);
+	if(fread(&header, HEADER_SIZE, 1, pl_stream)<0){ return  BP_EINVAL;}
 	if (header == DSA_HEADER)
 	{
-		fread(&eid_len, sizeof(eid_len), 1, pl_stream);
+		if(fread(&eid_len, sizeof(eid_len), 1, pl_stream)<0){ return  BP_EINVAL;}
 		if (reported_eid != NULL)
 		{
-			fread(reported_eid->uri, eid_len, 1, pl_stream);
+			if(fread(reported_eid->uri, eid_len, 1, pl_stream)<0){ return  BP_EINVAL;}
 			reported_eid->uri[eid_len] = '\0';
 
 		}
@@ -634,14 +634,16 @@ al_bp_error_t get_info_from_ack(al_bp_bundle_object_t * ack, al_bp_endpoint_id_t
 
 		if (reported_timestamp != NULL)
 		{
-			fread(&timestamp_secs, sizeof(uint32_t), 1, pl_stream);
-			fread(&timestamp_seqno, sizeof(uint32_t), 1, pl_stream);
+			if(fread(&timestamp_secs, sizeof(uint32_t), 1, pl_stream)<0){ return  BP_EINVAL;}
+			if(fread(&timestamp_seqno, sizeof(uint32_t), 1, pl_stream)<0){ return  BP_EINVAL;}
 			reported_timestamp->secs = (u32_t) timestamp_secs;
 			reported_timestamp->seqno = (u32_t) timestamp_seqno;
 		}
 
 		if (feof(pl_stream)==0)
-			fread(extension_ack, sizeof(uint32_t), 1, pl_stream);
+		{
+			if(fread(extension_ack, sizeof(uint32_t), 1, pl_stream)<0){ return  BP_EINVAL;}
+		}
 		else
 			*extension_ack = 0;
 

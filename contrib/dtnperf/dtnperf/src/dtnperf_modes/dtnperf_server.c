@@ -699,7 +699,11 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 						fprintf(stderr, "[DTNperf fatal error] in creating the payload of the bundle ack: %s\n", al_bp_strerror(error));
 						server_clean_exit(1);
 					}
-					write(fd_ack, pl_buffer, pl_buffer_size);
+					if(write(fd_ack, pl_buffer, pl_buffer_size)<0){
+						fflush(stdout);
+						fprintf(stderr, "[DTNperf fatal error] in writing the payload of the bundle ack: %s\n", al_bp_strerror(error));
+						server_clean_exit(1);
+					}
 					close(fd_ack);
 					if (debug && debug_level > 0)
 					{
