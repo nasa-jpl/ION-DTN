@@ -69,8 +69,8 @@ int main(int argc, char ** argv)
 				{
 					close(1);
 					close(2);
-					dup(fd);
-					dup(fd);
+					dup2(fd,1);
+					dup2(fd,2);
 					run_dtnperf_server(&global_options);
 					close(1);
 					close(2);
@@ -116,8 +116,8 @@ int main(int argc, char ** argv)
 						{
 							close(1);
 							close(2);
-							dup(fd);
-							dup(fd);
+							dup2(fd,1);
+							dup2(fd,2);
 							run_dtnperf_monitor(&mon_params);
 							close(1);
 							close(2);
