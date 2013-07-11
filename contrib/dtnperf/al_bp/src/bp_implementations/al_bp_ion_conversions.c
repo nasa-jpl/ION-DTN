@@ -113,6 +113,7 @@ int al_ion_bundle_priority(al_bp_bundle_priority_t bundle_priority){
 }
 al_bp_bundle_priority_t ion_al_bunlde_priority(int bundle_priority){
 	al_bp_bundle_priority_t bp_priority;
+	bp_priority.ordinal=0;
 	switch(bundle_priority)
 	{
 		case BP_BULK_PRIORITY: bp_priority.priority = BP_PRIORITY_BULK; break;
@@ -278,7 +279,9 @@ al_bp_bundle_payload_t ion_al_bundle_payload(Payload bundle_payload,
 	else
 	{
 		int fd = open(filename,O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
-		write(fd,buffer,bundle_payload.length);
+		if(write(fd,buffer,bundle_payload.length)<0){
+			printf("\nAL-BP: Error writing bundle payload data to file\n");
+		}
 		close(fd);
 		payload.filename.filename_len = strlen(filename)+1;
 		payload.filename.filename_val = (char *)malloc(sizeof(char)*(strlen(filename)+1));
