@@ -62,6 +62,15 @@ typedef struct
 	int		hopCount;	/*	# hops from dest. node.	*/
 } ProximateNode;
 
+// Perform a trace if a trace callback exists.
+#define TRACE(...) do \
+{ \
+	if (trace) \
+	{ \
+		trace->fn(trace->data, __LINE__, __VA_ARGS__); \
+	} \
+} while (0)
+
 #define	PAYLOAD_CLASSES	3
 
 static uvast	_minCapacity(int payloadClass)
@@ -226,7 +235,7 @@ static CgrVdb	*_cgrvdb(char **name)
 
 static int	computeDistanceToStation(IonCXref *rootContact,
 			CgrContactNote *rootWork, IonNode *stationNode,
-			int payloadClass, CgrRoute *route, CgrTraceFn trace)
+			int payloadClass, CgrRoute *route, CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -254,11 +263,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 
 	/*	This is an implementation of Dijkstra's Algorithm.	*/
 
-	if (trace)
-	{
-		trace(__LINE__, 0, payloadClass, rootContact->toNode,
-				(unsigned int) (rootWork->arrivalTime));
-	}
+	TRACE(CgrBeginRoute, payloadClass);
 
 	current = rootContact;
 	currentWork = rootWork;
@@ -270,10 +275,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 		 *	hop contacts) of the current contact.		*/
 
 		arg.fromNode = current->toNode;
-		if (trace)
-		{
-			trace(__LINE__, 1, arg.fromNode);
-		}
+		TRACE(CgrConsiderRoot, current->fromNode, current->toNode);
 
 		for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex,
 				rfx_order_contacts, &arg, &elt));
@@ -281,31 +283,19 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 		{
 			contact = (IonCXref *) psp(ionwm,
 					sm_rbt_data(ionwm, elt));
-			if (trace)
-			{
-				trace(__LINE__, 2, contact->fromNode,
-					contact->toNode, (unsigned int)
-					(contact->fromTime));
-			}
-
 			if (contact->fromNode > arg.fromNode)
 			{
-				if (trace)
-				{
-					trace(__LINE__, 3, arg.fromNode);
-				}
-
 				/*	No more relevant contacts.	*/
 
 				break;
 			}
 
+			TRACE(CgrConsiderContact, contact->fromNode,
+				contact->toNode);
+
 			if (contact->toTime <= currentWork->arrivalTime)
 			{
-				if (trace)
-				{
-					trace(__LINE__, 4);
-				}
+				TRACE(CgrIgnoreContact, CgrContactEndsEarly);
 
 				/*	Can't be a next-hop contact:
 				 *	transmission has stopped by
@@ -318,12 +308,17 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 			work = (CgrContactNote *) psp(ionwm,
 					contact->routingObject);
 			CHKERR(work);
-			if (work->suppressed || work->visited)
+
+			if (work->suppressed)
 			{
-				if (trace)
-				{
-					trace(__LINE__, 5, contact->toNode);
-				}
+				TRACE(CgrIgnoreContact, CgrSuppressed);
+
+				continue;
+			}
+
+			if (work->visited)
+			{
+				TRACE(CgrIgnoreContact, CgrVisited);
 
 				continue;
 			}
@@ -340,10 +335,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 
 			if (work->capacity < capacityFloor)
 			{
-				if (trace)
-				{
-					trace(__LINE__, 6, work->capacity);
-				}
+				TRACE(CgrIgnoreContact, CgrCapacityTooSmall);
 
 				continue;
 			}
@@ -382,10 +374,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 
 			if (elt2 == 0)
 			{
-				if (trace)
-				{
-					trace(__LINE__, 7);
-				}
+				TRACE(CgrIgnoreContact, CgrNoRange);
 
 				/*	Don't know the OWLT between
 				 *	these BP nodes at this time,
@@ -406,12 +395,6 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 			/*	Compute cost of choosing this edge:
 			 *	earliest bundle arrival time.		*/
 
-			if (trace)
-			{
-				trace(__LINE__, 8, (unsigned int)(currentWork->arrivalTime),
-						(unsigned int)(contact->fromTime), owlt);
-			}
-
 			if (contact->fromTime < currentWork->arrivalTime)
 			{
 				transmitTime = currentWork->arrivalTime;
@@ -422,12 +405,9 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 			}
 
 			arrivalTime = transmitTime + owlt;
-			if (trace)
-			{
-				trace(__LINE__, 9, (unsigned int)(arrivalTime),
-						(unsigned int)(work->arrivalTime),
-						(unsigned int)(earliestDeliveryTime));
-			}
+
+			TRACE(CgrCost, (unsigned int)(transmitTime), owlt,
+				(unsigned int)(arrivalTime));
 
 			if (arrivalTime < work->arrivalTime)
 			{
@@ -444,10 +424,9 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 						earliestDeliveryTime
 							= work->arrivalTime;
 						finalContact = contact;
-						if (trace)
-						{
-							trace(__LINE__, 10);
-						}
+
+						TRACE(CgrFinal,
+							(unsigned int)(work->arrivalTime));
 					}
 				}
 			}
@@ -492,22 +471,12 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 
 		if (nextContact == NULL)
 		{
-			if (trace)
-			{
-				trace(__LINE__, 11);
-			}
-
 			/*	End of search.				*/
 
 			break;
 		}
 
 		current = nextContact;
-		if (trace)
-		{
-			trace(__LINE__, 12, current->toNode);
-		}
-
 		currentWork = (CgrContactNote *)
 				psp(ionwm, nextContact->routingObject);
 	}
@@ -541,6 +510,9 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 			}
 
 			addr = psa(ionwm, contact);
+
+			TRACE(CgrHop, contact->fromNode, contact->toNode);
+
 			if (sm_list_insert_first(ionwm, route->hops, addr) == 0)
 			{
 				putErrmsg("Can't insert contact into route.",
@@ -567,7 +539,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 static int	findNextBestRoute(PsmPartition ionwm, IonCXref *rootContact,
 			CgrContactNote *rootWork, IonNode *stationNode,
 			int payloadClass, PsmAddress *routeAddr,
-			CgrTraceFn trace)
+			CgrTrace *trace)
 {
 	PsmAddress	addr;
 	CgrRoute	*route;
@@ -601,10 +573,7 @@ static int	findNextBestRoute(PsmPartition ionwm, IonCXref *rootContact,
 
 	if (route->toNodeNbr == 0)
 	{
-		if (trace)
-		{
-			trace(__LINE__, 13, payloadClass, stationNode->nodeNbr);
-		}
+		TRACE(CgrDiscardRoute);
 
 		/*	No more routes found in graph.			*/
 
@@ -614,12 +583,10 @@ static int	findNextBestRoute(PsmPartition ionwm, IonCXref *rootContact,
 	}
 	else
 	{
-		if (trace)
-		{
-			trace(__LINE__, 14, payloadClass, route->toNodeNbr,
-					(unsigned int)(route->fromTime),
-					(unsigned int)(route->deliveryTime));
-		}
+		TRACE(CgrAcceptRoute, route->toNodeNbr,
+			(unsigned int)(route->fromTime),
+			(unsigned int)(route->deliveryTime),
+			route->maxCapacity, route->payloadClass);
 
 		/*	Found best route, given current exclusions.	*/
 
@@ -630,7 +597,7 @@ static int	findNextBestRoute(PsmPartition ionwm, IonCXref *rootContact,
 }
 
 static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime,
-				CgrTraceFn trace)
+				CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -664,11 +631,6 @@ static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime,
 	{
 		putErrmsg("Can't note CGR route list.", NULL);
 		return 0;
-	}
-
-	if (trace)
-	{
-		trace(__LINE__, 15, getOwnNodeNbr(), stationNode->nodeNbr);
 	}
 
 	/*	Now note the best routes (transmission sequences,
@@ -767,11 +729,6 @@ static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime,
 		}
 	}
 
-	if (trace)
-	{
-		trace(__LINE__, 16, getOwnNodeNbr(), stationNode->nodeNbr);
-	}
-
 	return stationNode->routingObject;
 }
 
@@ -779,7 +736,7 @@ static PsmAddress	loadRouteList(IonNode *stationNode, time_t currentTime,
 
 static int	recomputeRouteForContact(uvast contactToNodeNbr,
 			time_t contactFromTime, IonNode *stationNode,
-			time_t currentTime, int payloadClass, CgrTraceFn trace)
+			time_t currentTime, int payloadClass, CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
@@ -795,6 +752,8 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 	CgrContactNote	rootWork;
 	PsmAddress	routeAddr;
 	CgrRoute	*newRoute;
+
+	TRACE(CgrRecomputeRoute);
 
 	routes = stationNode->routingObject;
 	arg.fromNode = getOwnNodeNbr();
@@ -933,7 +892,7 @@ static int	isExcluded(uvast nodeNbr, Lyst excludedNodes)
 
 static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 			Object plans, CgrLookupFn getDirective,
-			CgrTraceFn trace, Lyst proximateNodes)
+			CgrTrace *trace, Lyst proximateNodes)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -956,19 +915,9 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	int		hopCount;
 	ProximateNode	*proxNode;
 
-	if (trace)
-	{
-		trace(__LINE__, 17, route->payloadClass, route->toNodeNbr,
-				(unsigned int)(route->fromTime),
-				(unsigned int)(route->deliveryTime));
-	}
-
 	if (getDirective(route->toNodeNbr, plans, bundle, &directive) == 0)
 	{
-		if (trace)
-		{
-			trace(__LINE__, 18);
-		}
+		TRACE(CgrIgnoreRoute, CgrNoApplicableDirective);
 
 		return 0;		/*	No applicable directive.*/
 	}
@@ -983,10 +932,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 			directive.outductElt), sizeof(Outduct));
 	if (outduct.blocked)
 	{
-		if (trace)
-		{
-			trace(__LINE__, 19);
-		}
+		TRACE(CgrIgnoreRoute, CgrBlockedOutduct);
 
 		return 0;		/*	Outduct is unusable.	*/
 	}
@@ -1000,6 +946,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	{
 		if (bundle->payload.length > outduct.maxPayloadLen)
 		{
+			TRACE(CgrIgnoreRoute, CgrMaxPayloadTooSmall);
 			return 0;	/*	Bundle can't be sent.	*/
 		}
 	}
@@ -1086,10 +1033,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 		/*	Contacts with this neighbor are already fully
 		 *	subscribed; no available residual capacity.	*/
 
-		if (trace)
-		{
-			trace(__LINE__, 20);
-		}
+		TRACE(CgrIgnoreRoute, CgrNoResidualCapacity);
 
 		return 0;
 	}
@@ -1102,10 +1046,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 		/*	Available residual capacity is not enough
 		 *	to get all of this bundle transmitted.		*/
 
-		if (trace)
-		{
-			trace(__LINE__, 21);
-		}
+		TRACE(CgrIgnoreRoute, CgrResidualCapacityTooSmall);
 
 		return 0;
 	}
@@ -1164,12 +1105,8 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 				}
 			}
 
-			if (trace)
-			{
-				trace(__LINE__, 22, route->toNodeNbr,
-						hopCount,
-						(unsigned int)(route->deliveryTime));
-			}
+			TRACE(CgrUpdateProximateNode, route->toNodeNbr,
+				hopCount, (unsigned int)(route->deliveryTime));
 
 			return 0;
 		}
@@ -1191,23 +1128,20 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	proxNode->deliveryTime = route->deliveryTime;
 	proxNode->hopCount = hopCount;
 	proxNode->forfeitTime = route->toTime;
-	if (trace)
-	{
-		trace(__LINE__, 23, route->toNodeNbr, hopCount,
-				(unsigned int)(route->deliveryTime));
-	}
+
+	TRACE(CgrAddProximateNode, route->toNodeNbr, hopCount,
+		(unsigned int)(route->deliveryTime));
 
 	return 0;
 }
 
 static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 			Object bundleObj, Lyst excludedNodes, Object plans,
-			CgrLookupFn getDirective, CgrTraceFn trace,
-			Lyst proximateNodes)
+			CgrLookupFn getDirective, CgrTrace *trace,
+			Lyst proximateNodes, time_t currentTime)
 {
 	PsmPartition	ionwm = getIonwm();
 	unsigned int	deadline;
-	time_t		currentTime;
 	PsmAddress	routes;		/*	SmList of CgrRoutes.	*/
 	PsmAddress	elt;
 	PsmAddress	nextElt;
@@ -1229,12 +1163,6 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 	 *	for which the final delivery time would be after
 	 *	the bundle's expiration time (deadline).		*/
 
-	if (trace)
-	{
-		trace(__LINE__, 24, stationNode->nodeNbr, deadline);
-	}
-
-	currentTime = getUTCTime();
 	routes = stationNode->routingObject;
 	if (routes == 0)
 	{
@@ -1247,18 +1175,16 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 		}
 	}
 
+	TRACE(CgrIdentifyProximateNodes, deadline);
+
 	for (elt = sm_list_first(ionwm, routes); elt; elt = nextElt)
 	{
 		nextElt = sm_list_next(ionwm, elt);
 		addr = sm_list_data(ionwm, elt);
 		route = (CgrRoute *) psp(ionwm, addr);
-		if (trace)
-		{
-			trace(__LINE__, 25, route->payloadClass,
-					route->toNodeNbr,
-					(unsigned int)(route->fromTime),
-					(unsigned int)(route->deliveryTime));
-		}
+		TRACE(CgrCheckRoute, route->payloadClass, route->toNodeNbr,
+			(unsigned int)(route->fromTime),
+			(unsigned int)(route->deliveryTime));
 
 		if (route->toTime < currentTime)
 		{
@@ -1316,10 +1242,7 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 			{
 				/*	Never route via self -- a loop.	*/
 
-				if (trace)
-				{
-					trace(__LINE__, 26);
-				}
+				TRACE(CgrIgnoreRoute, CgrRouteViaSelf);
 
 				continue;
 			}
@@ -1334,10 +1257,7 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 
 		if (bundle->payload.length > route->maxCapacity)
 		{
-			if (trace)
-			{
-				trace(__LINE__, 27);
-			}
+			TRACE(CgrIgnoreRoute, CgrRouteCapacityTooSmall);
 
 			continue;
 		}
@@ -1348,10 +1268,7 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 
 		if (isExcluded(route->toNodeNbr, excludedNodes))
 		{
-			if (trace)
-			{
-				trace(__LINE__, 28);
-			}
+			TRACE(CgrIgnoreRoute, CgrInitialContactExcluded);
 
 			continue;
 		}
@@ -1378,10 +1295,7 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 			 *	delivery to occur before bundle
 			 *	expiration.  Try another route.		*/
 
-			if (trace)
-			{
-				trace(__LINE__, 29);
-			}
+			TRACE(CgrIgnoreRoute, CgrRouteTooSlow);
 
 			continue;
 		}
@@ -1528,27 +1442,29 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	return 0;
 }
 
-int	cgr_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
-		Object plans, CgrLookupFn getDirective, CgrTraceFn trace)
+static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
+		Object plans, CgrLookupFn getDirective, time_t atTime,
+		IonNode **stationNodePtr, Lyst *proximateNodesPtr,
+		CgrTrace *trace)
 {
 	IonVdb		*ionvdb = getIonVdb();
 	CgrVdb		*cgrvdb = _cgrvdb(NULL);
-	IonNode		*stationNode;
+	PsmPartition	ionwm = getIonwm();
+
 	PsmAddress	nextNode;
+	PsmAddress	snubElt;
+	IonSnub		*snub;
+
+	IonNode		*stationNode;
 	int		ionMemIdx;
 	Lyst		proximateNodes;
 	Lyst		excludedNodes;
-	PsmPartition	ionwm = getIonwm();
-	PsmAddress	snubElt;
-	IonSnub		*snub;
+
+	ProximateNode	*proxNode;
+	ProximateNode	*selectedNeighbor;
 	LystElt		elt;
 	LystElt		nextElt;
-	ProximateNode	*proxNode;
-	Bundle		newBundle;
-	Object		newBundleObj;
-	ProximateNode	*selectedNeighbor;
-	time_t		earliestDeliveryTime = 0;
-	int		smallestHopCount = 0;
+	LystElt		selectedNeighborElt;
 
 	/*	Determine whether or not the contact graph for this
 	 *	node identifies one or more proximate nodes to
@@ -1564,11 +1480,11 @@ int	cgr_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	 *	the simplest case, the bundle's destination is the
 	 *	only "station" selected for the bundle.			*/
 
-	CHKERR(bundle && bundleObj && stationNodeNbr && plans && getDirective);
-	if (trace)
-	{
-		trace(__LINE__, 30, stationNodeNbr, bundle->payload.length);
-	}
+	CHKERR(bundle && bundleObj && stationNodeNbr && plans && getDirective &&
+	       stationNodePtr && proximateNodesPtr);
+
+	TRACE(CgrBuildRoutes, stationNodeNbr, bundle->payload.length,
+		(unsigned int)(atTime));
 
 	if (ionvdb->lastEditTime > cgrvdb->lastLoadTime)
 	{
@@ -1582,10 +1498,10 @@ int	cgr_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	stationNode = findNode(ionvdb, stationNodeNbr, &nextNode);
 	if (stationNode == NULL)
 	{
-		if (trace)
-		{
-			trace(__LINE__, 31, stationNodeNbr);
-		}
+		TRACE(CgrInvalidStationNode);
+
+		*stationNodePtr = NULL;
+		*proximateNodesPtr = NULL;
 
 		return 0;	/*	Can't apply CGR.		*/
 	}
@@ -1649,7 +1565,8 @@ int	cgr_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	 *	node(s) to forward the bundle to.			*/
 
 	if (identifyProximateNodes(stationNode, bundle, bundleObj,
-		excludedNodes, plans, getDirective, trace, proximateNodes) < 0)
+		excludedNodes, plans, getDirective, trace, proximateNodes,
+		atTime) < 0)
 	{
 		putErrmsg("Can't identify proximate nodes for bundle.", NULL);
 		lyst_destroy(excludedNodes);
@@ -1666,44 +1583,20 @@ int	cgr_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	 *	the earliest worst-case delivery time.			*/
 
 	lyst_destroy(excludedNodes);
+
+	TRACE(CgrSelectProximateNodes);
+
 	if (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
 		/*	Critical bundle; send on all paths.		*/
 
-		for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
-		{
-			nextElt = lyst_next(elt);
-			proxNode = (ProximateNode *) lyst_data(elt);
-			lyst_delete(elt);
-			if (enqueueToNeighbor(proxNode, bundle, bundleObj,
-					stationNode))
-			{
-				putErrmsg("Can't queue for neighbor.", NULL);
-			lyst_destroy(proximateNodes);
-				return -1;
-			}
+		TRACE(CgrUseAllProximateNodes);
 
-			MRELEASE(proxNode);
-			if (nextElt)
-			{
-				/*	Every transmission after the
-				 *	first must operate on a new
-				 *	clone of the original bundle.	*/
+		/*	Don't remove any proximate nodes.		*/
 
-				if (bpClone(bundle, &newBundle, &newBundleObj,
-							0, 0) < 0)
-				{
-					putErrmsg("Can't clone bundle.", NULL);
-					lyst_destroy(proximateNodes);
-					return -1;
-				}
+		*stationNodePtr = stationNode;
+		*proximateNodesPtr = proximateNodes;
 
-				bundle = &newBundle;
-				bundleObj = newBundleObj;
-			}
-		}
-
-		lyst_destroy(proximateNodes);
 		return 0;
 	}
 
@@ -1715,78 +1608,150 @@ int	cgr_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
 	{
 		nextElt = lyst_next(elt);
-		proxNode = (ProximateNode *) lyst_data_set(elt, NULL);
-		lyst_delete(elt);
+		proxNode = (ProximateNode *) lyst_data(elt);
+
+		TRACE(CgrConsiderProximateNode, proxNode->neighborNodeNbr);
+
 		if (selectedNeighbor == NULL)
 		{
-			earliestDeliveryTime = proxNode->deliveryTime;
-			smallestHopCount = proxNode->hopCount;
-			selectedNeighbor = proxNode;
+			TRACE(CgrSelectProximateNode);
+			selectedNeighborElt = elt;
 		}
-		else if (proxNode->deliveryTime < earliestDeliveryTime)
+		else if (proxNode->deliveryTime <
+			selectedNeighbor->deliveryTime)
 		{
-			earliestDeliveryTime = proxNode->deliveryTime;
-			smallestHopCount = proxNode->hopCount;
-			MRELEASE(selectedNeighbor);
-			selectedNeighbor = proxNode;
+			TRACE(CgrSelectProximateNode);
+			lyst_delete(selectedNeighborElt);
+			selectedNeighborElt = elt;
 		}
-		else if (proxNode->deliveryTime == earliestDeliveryTime)
+		else if (proxNode->deliveryTime ==
+			selectedNeighbor->deliveryTime)
 		{
-			if (proxNode->hopCount < smallestHopCount)
+			if (proxNode->hopCount < selectedNeighbor->hopCount)
 			{
-				smallestHopCount = proxNode->hopCount;
-				MRELEASE(selectedNeighbor);
-				selectedNeighbor = proxNode;
+				TRACE(CgrSelectProximateNode);
+				lyst_delete(selectedNeighborElt);
+				selectedNeighborElt = elt;
 			}
-			else if (proxNode->hopCount == smallestHopCount)
+			else if (proxNode->hopCount ==
+					selectedNeighbor->hopCount)
 			{
 				if (proxNode->neighborNodeNbr <
-					selectedNeighbor-> neighborNodeNbr)
+					selectedNeighbor->neighborNodeNbr)
 				{
-					MRELEASE(selectedNeighbor);
-					selectedNeighbor = proxNode;
+					TRACE(CgrSelectProximateNode);
+					lyst_delete(selectedNeighborElt);
+					selectedNeighborElt = elt;
 				}
 				else	/*	Larger node#; ignore.	*/
 				{
-					MRELEASE(proxNode);
+					TRACE(CgrIgnoreProximateNode,
+						CgrLargerNodeNbr);
+					lyst_delete(elt);
 				}
 			}
 			else	/*	More hops; ignore.		*/
 			{
-				MRELEASE(proxNode);
+				TRACE(CgrIgnoreProximateNode,
+					CgrMoreHops);
+				lyst_delete(elt);
 			}
 		}
 		else	/*	Later delivery time; ignore.		*/
 		{
-			MRELEASE(proxNode);
+			TRACE(CgrIgnoreProximateNode, CgrLaterDelivery);
+			lyst_delete(elt);
+		}
+
+		selectedNeighbor = lyst_data(selectedNeighborElt);
+	}
+
+	if (selectedNeighbor)
+	{
+		TRACE(CgrUseProximateNode, selectedNeighbor->neighborNodeNbr);
+	}
+	else
+	{
+		TRACE(CgrNoProximateNode);
+	}
+
+	*stationNodePtr = stationNode;
+	*proximateNodesPtr = proximateNodes;
+
+	return 0;
+}
+
+int	cgr_preview_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
+		Object plans, CgrLookupFn getDirective, time_t atTime,
+		CgrTrace *trace)
+{
+	IonNode		*stationNode;
+	Lyst		proximateNodes;
+
+	if (buildRoutes(bundle, bundleObj, stationNodeNbr, plans, getDirective,
+		atTime, &stationNode, &proximateNodes, trace) < 0)
+	{
+		putErrmsg("Can't build routes.", NULL);
+		return -1;
+	}
+
+	lyst_destroy(proximateNodes);
+
+	return 0;
+}
+
+int	cgr_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
+		Object plans, CgrLookupFn getDirective, CgrTrace *trace)
+{
+	IonNode		*stationNode;
+	Lyst		proximateNodes;
+
+	LystElt		elt;
+	LystElt		nextElt;
+	ProximateNode	*proxNode;
+	Bundle		newBundle;
+	Object		newBundleObj;
+
+	if (buildRoutes(bundle, bundleObj, stationNodeNbr, plans, getDirective,
+		getUTCTime(), &stationNode, &proximateNodes, trace) < 0)
+	{
+		putErrmsg("Can't build routes.", NULL);
+		return -1;
+	}
+
+	for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
+	{
+		nextElt = lyst_next(elt);
+		proxNode = (ProximateNode *) lyst_data(elt);
+
+		if (enqueueToNeighbor(proxNode, bundle, bundleObj,
+				stationNode))
+		{
+			putErrmsg("Can't queue for neighbor.", NULL);
+			lyst_destroy(proximateNodes);
+			return -1;
+		}
+
+		if (nextElt)
+		{
+			/*	Every transmission after the
+			 *	first must operate on a new
+			 *	clone of the original bundle.	*/
+
+			if (bpClone(bundle, &newBundle, &newBundleObj,
+						0, 0) < 0)
+			{
+				putErrmsg("Can't clone bundle.", NULL);
+				lyst_destroy(proximateNodes);
+				return -1;
+			}
+
+			bundle = &newBundle;
+			bundleObj = newBundleObj;
 		}
 	}
 
 	lyst_destroy(proximateNodes);
-	if (selectedNeighbor)
-	{
-		if (trace)
-		{
-			trace(__LINE__, 32, selectedNeighbor->neighborNodeNbr);
-		}
-
-		if (enqueueToNeighbor(selectedNeighbor, bundle, bundleObj,
-				stationNode))
-		{
-			putErrmsg("Can't queue for neighbor.", NULL);
-			return -1;
-		}
-
-		MRELEASE(selectedNeighbor);
-	}
-	else
-	{
-		if (trace)
-		{
-			trace(__LINE__, 33);
-		}
-	}
-
 	return 0;
 }
 
@@ -1797,64 +1762,90 @@ void	cgr_start()
 	oK(_cgrvdb(&name));
 }
 
-const char	*cgr_tracepoint_text(unsigned int tracepointNbr)
+const char	*cgr_tracepoint_text(CgrTraceType traceType)
 {
 	static const char	*tracepointText[] =
 	{
-	"Seeking a class-%d route via contact to node "
-		UVAST_FIELDSPEC ", arrival time %u.",
-	"Considering contacts from node " UVAST_FIELDSPEC ".",
-	"Examining contact from node " UVAST_FIELDSPEC " to node "
-		UVAST_FIELDSPEC " starting at time %u.",
-	"Contact is not from the node we're routing from (" UVAST_FIELDSPEC ").",
-	"Contact ends before current contact arrival time.",
-	"Contact to node " UVAST_FIELDSPEC " is suppressed or visited.",
-	"Contact capacity " UVAST_FIELDSPEC " too low for payload class.",
-	"Don't have range for this contact.",
-	"currentWork->arrival time %u, contact->fromTime %u, owlt %u.",
-	"Computed arrival %u, work->arrivalTime %u, earliest delivery %u.",
-	"Updated earliest delivery time.",
-	"Dijkstra search has ended.",
-	"Now continuing from node " UVAST_FIELDSPEC ".",
-	"No more class-%d routes to node " UVAST_FIELDSPEC ".",
-	"Found class-%d route via node " UVAST_FIELDSPEC
-		": start at %u, deliver at %u.",
-	"Computing all routes from node " UVAST_FIELDSPEC " to node "
-		UVAST_FIELDSPEC ".",
-	"Computed all routes from node " UVAST_FIELDSPEC " to node "
-		UVAST_FIELDSPEC ".",
-	"Trying class-%d route via node " UVAST_FIELDSPEC
-		": start at %u, deliver at %u.",
-	"No applicable directive.",
-	"Outduct is blocked.",
-	"Contact with this neighbor is already fully subscribed.",
-	"Too little residual aggregate capacity for this bundle.",
-	"Additional opportunity via node " UVAST_FIELDSPEC
-		": %d hop(s), delivery at %u.",
-	"Proposing proximate node " UVAST_FIELDSPEC
-		": %d hop(s), delivery at %u.",
-	"In identifyProximateNodes for node " UVAST_FIELDSPEC ", deadline %u.",
-	"Checking class-%d route via node " UVAST_FIELDSPEC
-		": start at %u, deliver at %u.",
-	"Route is via self; ignored.",
-	"Route includes a contact that's too small for this bundle.",
-	"First node on route is an excluded neighbor.",
-	"Route is too slow; radiation latency delays delivery time too much.",
-	"CGR looking for a route to node " UVAST_FIELDSPEC
-		" for bundle of length %u.",
-	"No routing information for node " UVAST_FIELDSPEC ".",
-	"CGR selected node " UVAST_FIELDSPEC " for next hop.",
-	"CGR found no route."
-	};
-	static int	maxTracepointNbr = (sizeof tracepointText
-				/ sizeof(char *)) - 1;
+	[CgrBuildRoutes] = "BUILD stationNode:" UVAST_FIELDSPEC " payloadLength:%u"
+		" atTime:%u",
+	[CgrInvalidStationNode] = "    INVALID station node",
 
-	if (tracepointNbr > maxTracepointNbr)
+	[CgrBeginRoute] = "  ROUTE payloadClass:%d",
+	[CgrConsiderRoot] = "    ROOT fromNode:" UVAST_FIELDSPEC
+		" toNode:" UVAST_FIELDSPEC,
+	[CgrConsiderContact] = "      CONTACT fromNode:" UVAST_FIELDSPEC
+		" toNode:" UVAST_FIELDSPEC,
+	[CgrIgnoreContact] = "        IGNORE",
+
+	[CgrCost] = "        COST transmitTime:%u owlt:%u arrivalTime:%u",
+        [CgrFinal] = "        FINAL arrivalTime:%u",
+	[CgrHop] = "    HOP fromNode:" UVAST_FIELDSPEC " toNode:"
+		UVAST_FIELDSPEC,
+
+	[CgrAcceptRoute] = "    ACCEPT firstHop:" UVAST_FIELDSPEC
+		" fromTime:%u deliveryTime:%u maxCapacity:" UVAST_FIELDSPEC
+		" payloadClass:%d",
+	[CgrDiscardRoute] = "    DISCARD route",
+
+	[CgrIdentifyProximateNodes] = "IDENTIFY deadline:%u",
+	[CgrCheckRoute] = "  CHECK payloadClass:%d firstHop:" UVAST_FIELDSPEC
+		" fromTime:%u deliveryTime:%u",
+	[CgrRecomputeRoute] = "  RECOMPUTE",
+	[CgrIgnoreRoute] = "    IGNORE",
+
+	[CgrAddProximateNode] = "    ADD proximateNode:" UVAST_FIELDSPEC
+		" hopCount:%d deliveryTime:%u",
+	[CgrUpdateProximateNode] = "    UPDATE proximateNode:" UVAST_FIELDSPEC
+		" hopCount:%d deliveryTime:%u",
+
+	[CgrSelectProximateNodes] = "SELECT",
+	[CgrUseAllProximateNodes] = "  USE all proximate nodes",
+	[CgrConsiderProximateNode] = "  CONSIDER " UVAST_FIELDSPEC,
+	[CgrSelectProximateNode] = "    SELECT",
+	[CgrIgnoreProximateNode] = "    IGNORE",
+	[CgrUseProximateNode] = "  USE " UVAST_FIELDSPEC,
+	[CgrNoProximateNode] = "  NO proximate node",
+	};
+
+	if (traceType < 0 || traceType >= CgrTraceTypeMax)
 	{
 		return "";
 	}
 
-	return tracepointText[tracepointNbr];
+	return tracepointText[traceType];
+}
+
+const char	*cgr_reason_text(CgrReason reason)
+{
+	static const char *reasonText[] =
+	{
+	[CgrContactEndsEarly] = "contact ends before data arrives",
+	[CgrSuppressed] = "contact is suppressed",
+	[CgrVisited] = "contact has been visited",
+	[CgrCapacityTooSmall] = "contact capacity is too low for payload class",
+	[CgrNoRange] = "no range for contact",
+
+	[CgrRouteViaSelf] = "route is via self",
+	[CgrRouteCapacityTooSmall] = "route includes a contact that's too small for this bundle",
+	[CgrInitialContactExcluded] = "first node on route is an excluded neighbor",
+	[CgrRouteTooSlow] = "route is too slow; radiation latency delays delivery time too much",
+	[CgrNoApplicableDirective] = "no applicable directive",
+	[CgrBlockedOutduct] = "outduct is blocked",
+	[CgrMaxPayloadTooSmall] = "max payload too small",
+	[CgrNoResidualCapacity] = "contact with this neighbor is already fully subscribed",
+	[CgrResidualCapacityTooSmall] = "too little residual aggregate capacity for this bundle",
+
+	[CgrLargerNodeNbr] = "initial hop has larger node number",
+	[CgrMoreHops] = "route uses more hops",
+	[CgrLaterDelivery] = "route has later delivery time",
+	};
+
+	if (reason < 0 || reason >= CgrReasonMax)
+	{
+		return "";
+	}
+
+	return reasonText[reason];
 }
 
 void	cgr_stop()

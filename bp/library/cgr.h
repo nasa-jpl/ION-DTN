@@ -21,16 +21,125 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// A CGR tracepoint
+typedef enum {
+	// CgrBuildRoutes(uvast stationNode, unsigned int payloadLength,
+	//                unsigned int atTime)
+	CgrBuildRoutes,
+	// CgrInvalidStationNode(void)
+	CgrInvalidStationNode,
+
+	// CgrBeginRoute(int payloadClass)
+	CgrBeginRoute,
+	// CgrConsiderRoot(uvast fromNode, uvast toNode)
+	CgrConsiderRoot,
+	// CgrConsiderContact(uvast fromNode, uvast toNode)
+	CgrConsiderContact,
+	// CgrIgnoreContact(CgrReason reason)
+	CgrIgnoreContact,
+
+	// CgrCost(unsigned int transmitTime, unsigned int owlt,
+	//         unsigned int arrivalTime)
+	CgrCost,
+	// CgrFinal(unsigned int arrivalTime)
+	CgrFinal,
+	// CgrHop(uvast fromNode, uvast toNode)
+	CgrHop,
+
+	// CgrAcceptRoute(uvast firstHop, unsigned int fromTime,
+	//                unsigned int deliveryTime, uvast maxCapacity,
+	//                int payloadClass)
+	CgrAcceptRoute,
+	// CgrDiscardRoute(void)
+	CgrDiscardRoute,
+
+	// CgrIdentifyProximateNodes(unsigned int deadline)
+	CgrIdentifyProximateNodes,
+	// CgrCheckRoute(int payloadClass, uvast firstHop, unsigned int fromTime,
+	//               unsigned int deliveryTime)
+	CgrCheckRoute,
+	// CgrRecomputeRoute(void)
+	CgrRecomputeRoute,
+	// CgrIgnoreRoute(CgrReason reason)
+	CgrIgnoreRoute,
+
+	// CgrAddProximateNode(uvast proximateNode, int hopCount,
+	//                     unsigned int deliveryTime)
+	CgrAddProximateNode,
+	// CgrUpdateProximateNode(uvast proximateNode, int hopCount,
+	//                        unsigned int deliveryTime)
+	CgrUpdateProximateNode,
+
+	// CgrSelectProximateNodes(void)
+	CgrSelectProximateNodes,
+	// CgrUseAllProximateNodes(void)
+	CgrUseAllProximateNodes,
+	// CgrConsiderProximateNode(uvast proxNode)
+	CgrConsiderProximateNode,
+	// CgrSelectProximateNode(void)
+	CgrSelectProximateNode,
+	// CgrIgnoreProximateNode(CgrReason reason)
+	CgrIgnoreProximateNode,
+	// CgrUseProximateNode(uvast proxNode)
+	CgrUseProximateNode,
+	// CgrNoProximateNode(void)
+	CgrNoProximateNode,
+
+	// End of valid trace types
+	CgrTraceTypeMax,
+} CgrTraceType;
+
+// Describes the reason CGR made a certain decision
+typedef enum {
+	// Reasons to ignore a contact (CgrIgnoreContact)
+	CgrContactEndsEarly,
+	CgrSuppressed,
+	CgrVisited,
+	CgrCapacityTooSmall,
+	CgrNoRange,
+
+	// Reasons to ignore a route (CgrIgnoreRoute)
+	CgrRouteViaSelf,
+	CgrRouteCapacityTooSmall,
+	CgrInitialContactExcluded,
+	CgrRouteTooSlow,
+	CgrNoApplicableDirective,
+	CgrBlockedOutduct,
+	CgrMaxPayloadTooSmall,
+	CgrNoResidualCapacity,
+	CgrResidualCapacityTooSmall,
+
+	// Reasons to ignore a proximate node (CgrIgnoreProximateNode)
+	CgrLargerNodeNbr,
+	CgrMoreHops,
+	CgrLaterDelivery,
+
+	CgrReasonMax,
+} CgrReason;
+
 typedef int		(*CgrLookupFn)(uvast nodeNbr, Object plans,
 				Bundle *bundle, FwdDirective *directive);
-typedef void		(*CgrTraceFn)(unsigned int lineNbr,
-				unsigned int tracepointNbr, ...);
+typedef void		(*CgrTraceFn)(void *data, unsigned int lineNbr,
+				CgrTraceType traceType, ...);
+
+typedef struct {
+  // Callback function to call at tracepoints
+  CgrTraceFn fn;
+  // Data to pass into the callback function
+  void *data;
+} CgrTrace;
 
 extern void		cgr_start();
 extern int		cgr_forward(Bundle *bundle, Object bundleObj,
 				uvast stationNodeNbr, Object plans,
-				CgrLookupFn getDirective, CgrTraceFn trace);
-extern const char	*cgr_tracepoint_text(unsigned int tracepointNbr);
+				CgrLookupFn getDirective, CgrTrace *trace);
+extern int		cgr_preview_forward(Bundle *bundle, Object bundleObj,
+				uvast stationNodeNbr, Object plans,
+				CgrLookupFn getDirective, time_t atTime,
+				CgrTrace *trace);
+extern const char	*cgr_tracepoint_text(CgrTraceType traceType);
+extern const char	*cgr_reason_text(CgrReason reason);
 extern void		cgr_stop();
 #ifdef __cplusplus
 }

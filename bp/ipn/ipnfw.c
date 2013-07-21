@@ -17,15 +17,15 @@
 #endif
 
 #if CGR_DEBUG == 1
-static void	printCgrTraceLine(unsigned int lineNbr,
-			unsigned int tracepointNbr, ...)
+static void	printCgrTraceLine(void *data, unsigned int lineNbr,
+			CgrTraceType traceType, ...)
 {
 	va_list args;
 	const char *text;
 
-	va_start(args, tracepointNbr);
+	va_start(args, traceType);
 
-	text = cgr_tracepoint_text(tracepointNbr);
+	text = cgr_tracepoint_text(traceType);
 	vprintf(text, args);
 	putchar('\n');
 
@@ -192,9 +192,11 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	PsmAddress	vschemeElt;
 	FwdDirective	directive;
 #if CGR_DEBUG == 1
-	CgrTraceFn	trace = printCgrTraceLine;
+	CgrTrace	*trace = &(CgrTrace) {
+		.fn = printCgrTraceLine,
+	};
 #else
-	CgrTraceFn	trace = NULL;
+	CgrTrace	*trace = NULL;
 #endif
 
 	elt = sdr_list_first(sdr, bundle->stations);
