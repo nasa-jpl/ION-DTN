@@ -881,7 +881,8 @@ bpbin = \
 	bpstats \
 	bpstats2 \
 	bpchat \
-	hmackeys
+	hmackeys \
+	cgrfetch
 
 if ENABLE_BPACS
 bpbin += acsadmin \
@@ -1363,6 +1364,10 @@ bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpchat_SOURCES = bp/test/bpchat.c
 bpchat_LDADD = libbp.la libici.la $(LIBOBJS)
 bpchat_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+cgrfetch_SOURCES = bp/utils/cgrfetch.c
+cgrfetch_LDADD = libbp.la libici.la libcgr.la $(LIBOBJS)
+cgrfetch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 

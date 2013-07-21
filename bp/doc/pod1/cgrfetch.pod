@@ -1,0 +1,75 @@
+=head1 NAME
+
+cgrfetch - Visualize CGR simulations
+
+=head1 SYNOPSIS
+
+B<cgrfetch> I<destination-node> [I<time-offset>]
+
+=head1 DESCRIPTION
+
+B<cgrfetch> uses CGR to simulate sending a bundle from the local node to
+I<destination-node> at a relative I<time-offset>. It traces the execution of
+CGR to generate graphs of the routes that were considered and the routes that
+were ultimately chosen to forward along. No bundle is sent during the
+simulation.
+
+The generated graphs are represented in Graphviz format and written to the file
+I<routes.gv> in the working directory. A visualization can be generated from
+this file using the dot(1) utility from the Graphviz project (see B<EXAMPLES>.)
+dot(1) can generate pdf, png, and jpeg files, among others.
+
+=head1 OPTIONS
+
+=over 4
+
+=item destination-node
+
+The final destination to route to. To be useful, it should be a node that exists
+in the contact plan.
+
+=item time-offset
+
+A positive or negative number of seconds to add to the current time (when the
+command is run.) The default is 0. This time is then passed to CGR as the
+requested bundle dispatch time.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item cgrfetch 8
+
+Simulate CGR with destination node 8 and dispatch time equal to the current time.
+
+=item cgrfetch 8 60
+
+Do the same with a dispatch time 60 seconds in the future.
+
+=item dot -Tpdf:cairo:cairo -o routes.pdf routes.gv
+
+Generate a pdf I<routes.pdf> from the route graphs.
+
+=back
+
+=head1 KNOWN LIMITATIONS
+
+=over 4
+
+=item - Multiple routes with the same initial hop node are not handled correctly
+
+=item - The simulation bundle always has a payload length of zero
+
+=item - Routes ignored when selecting proximate nodes are displayed the same as routes selected as final candidates
+
+=item - CGR trace text is always shown
+
+=item - The output filename is hardcoded to I<routes.gv>
+
+=back
+
+=head1 SEE ALSO
+
+dot(1)
