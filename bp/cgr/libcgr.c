@@ -1464,7 +1464,7 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	ProximateNode	*selectedNeighbor;
 	LystElt		elt;
 	LystElt		nextElt;
-	LystElt		selectedNeighborElt;
+	LystElt		selectedNeighborElt = 0;
 
 	/*	Determine whether or not the contact graph for this
 	 *	node identifies one or more proximate nodes to
