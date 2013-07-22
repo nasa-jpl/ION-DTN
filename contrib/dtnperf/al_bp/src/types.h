@@ -21,7 +21,6 @@ typedef char char_t;
 typedef char * string_t;
 typedef const char* cstring_t;
 
-#ifndef B_FALSE /*Solaris includes a boolean_t*/
 #ifndef TRUE
 #define TRUE        (1 == 1)
 #endif
@@ -34,14 +33,8 @@ typedef const char* cstring_t;
 #ifndef false
 #define false       FALSE
 #endif
-#else	/*B_FALSE*/
-#define TRUE	B_TRUE
-#define FALSE	B_FALSE
-#endif /*B_FALSE*/
 
-#ifndef boolean_t /*Solaris includes a boolean_t*/
 typedef char boolean_t;
-#endif
 
 typedef signed char s8_t;
 

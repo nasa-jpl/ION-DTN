@@ -1,7 +1,7 @@
 # Makefile.am
 #
 # Samuel Jero
-# July 8, 2013
+# July 22, 2013
 #
 # Makefile.am
 
@@ -32,6 +32,7 @@ install-data-hook:
 	@echo "You should now run 'sudo ldconfig' if available."
 	@echo
 
+if LINUX_BUILD
 bin_PROGRAMS = \
 	$(dtnperf_bin)
 		
@@ -45,10 +46,12 @@ noinst_HEADERS = \
 	$(dtnperf_noinst)
 
 #man_MANS =
+endif
 
-##############
-## DTN Perf ##
-##############
+################
+## DTN Perf   ##
+## Linux Only ##
+################
 
 dtnperf_bin= \
 	dtnperf_vION

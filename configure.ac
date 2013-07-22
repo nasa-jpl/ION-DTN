@@ -36,10 +36,12 @@ m4_include([./dccp_macro.m4])
 AM_CFLAGS=""
 AM_LDFLAGS=""
 AM_LIBTOOLFLAGS=""
+PLATFORM=""
 case $host_os in
 	darwin*)
 		AC_DEFINE([darwin],[1],[Build Darwin specific platform code.])
 		AC_DEFINE([unix],[1],[Build Unix specific platform code.])
+		PLATFORM="darwin"
 		if test $host_cpu = "x86_64" ; then
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
 			echo "Build 64-bit Darwin specific platform code."
@@ -50,6 +52,7 @@ case $host_os in
 		fi
 		;;
 	linux*)
+		PLATFORM="linux"
 		if test $host_cpu = "x86_64" ; then
 			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.])
 			AM_CFLAGS="$AM_CFLAGS -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
@@ -63,10 +66,17 @@ case $host_os in
 		CHECK_DCCP()
 		;;
 
-	cygwin*)  AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.]) ;;
-	interix*) AC_DEFINE([interix],[1],[Build Interix specific platform code.]) ;;
-  *bsd*)    
+	cygwin*)  
+		AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.]) 
+		PLATFORM="cygwin"
+		;;
+	interix*) 
+		AC_DEFINE([interix],[1],[Build Interix specific platform code.])
+		PLATFORM="iterix"
+		;;
+  	*bsd*) 
 		AC_DEFINE([freebsd],[1],[Build Freebsd specific platform code.])
+		PLATFORM="bsd"
    		if test $host_cpu = "x86_64" ; then
    			AM_CFLAGS="$AM_CFLAGS -Dfreebsd -DSPACE_ORDER=3 -m64 "
 			echo "Build 64-bit Freebsd specific platform code."
@@ -77,6 +87,7 @@ case $host_os in
     	fi
     	;;
 	solaris*)
+		PLATFORM="solaris"
 		if test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
@@ -100,7 +111,10 @@ case $host_os in
       		echo "Build 32-bit code"
       	fi
 		;;
-	vxworks*) AC_DEFINE([vxworks],[1],[Build VXWorks specific platform code.]) ;;
+	vxworks*) 
+		AC_DEFINE([vxworks],[1],[Build VXWorks specific platform code.]) 
+		PLATFORM="vxworks"
+		;;
 esac
 
 
@@ -352,6 +366,7 @@ AC_SUBST([AM_LDFLAGS],"$AM_LDFLAGS")
 AC_SUBST([AM_CFLAGS],"$AM_CFLAGS")
 AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
 AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
+AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
 
 #Output!
 AC_CONFIG_FILES([Makefile])
