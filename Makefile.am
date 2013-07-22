@@ -1034,6 +1034,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/udpclo.1 \
 	$(top_builddir)/bp/doc/dccpcli.1 \
 	$(top_builddir)/bp/doc/dccpclo.1 \
+	$(top_builddir)/bp/doc/cgrfetch.1 \
 	$(top_builddir)/bp/doc/bping.1 \
 	$(top_builddir)/bp/doc/bpstats2.1 \
 	$(top_builddir)/bp/doc/bpchat.1 \
