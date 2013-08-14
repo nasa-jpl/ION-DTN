@@ -680,6 +680,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 
 	dlvBuffer->bundleCreationTime.seconds = bundle.id.creationTime.seconds;
 	dlvBuffer->bundleCreationTime.count = bundle.id.creationTime.count;
+	dlvBuffer->timeToLive = bundle.timeToLive;
 	dlvBuffer->adminRecord = bundle.bundleProcFlags & BDL_IS_ADMIN;
 	dlvBuffer->adu = bundle.payload.content;
 	dlvBuffer->ackRequested = bundle.bundleProcFlags & BDL_APP_ACK_REQUEST;
