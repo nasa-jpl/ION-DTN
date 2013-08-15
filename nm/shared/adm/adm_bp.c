@@ -35,58 +35,58 @@ void adm_bp_init()
 	/* Bundle State Information */
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 6, mid_str);
-	adm_add_datadef("BP_BUNDLE_CUR_FWD_PEND_CNT",        mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_CUR_FWD_PEND_CNT",        mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 7, mid_str);
-	adm_add_datadef("BP_BUNDLE_CUR_DISPATCH_PEND_CNT",   mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_CUR_DISPATCH_PEND_CNT",   mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 8, mid_str);
-	adm_add_datadef("BP_BUNDLE_CUR_IN_CUSTODY_CNT",      mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_CUR_IN_CUSTODY_CNT",      mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 9, mid_str);
-	adm_add_datadef("BP_BUNDLE_CUR_REASSEMBLE_PEND_CNT", mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_CUR_REASSMBL_PEND_CNT", mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 10, mid_str);
-	adm_add_datadef("BP_BUNDLE_CUR_BULK_RES_CNT",       mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_CUR_BULK_RES_CNT",       mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 11, mid_str);
-	adm_add_datadef("BP_BUNDLE_CUR_NORM_RES_CNT",       mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_CUR_NORM_RES_CNT",       mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 12, mid_str);
-	adm_add_datadef("BP_BUNDLE_CUR_EXP_RES_CNT",        mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_CUR_EXP_RES_CNT",        mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 13, mid_str);
-	adm_add_datadef("BP_BUNDLE_CUR_BULK_RES_BYTES",     mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_CUR_BULK_RES_BYTES",     mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 14, mid_str);
-	adm_add_datadef("BP_BUNDLE_CUR_NORM_BYTES",         mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_CUR_NORM_BYTES",         mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 15, mid_str);
-	adm_add_datadef("BP_BUNDLE_CUR_EXP_BYTES",          mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_CUR_EXP_BYTES",          mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 16, mid_str);
-	adm_add_datadef("BP_BUNDLE_BULK_SRC_CNT",           mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_BULK_SRC_CNT",           mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 17, mid_str);
-	adm_add_datadef("BP_BUNDLE_NORM_SRC_CNT",           mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_NORM_SRC_CNT",           mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 18, mid_str);
-	adm_add_datadef("BP_BUNDLE_EXP_SRC_CNT",           mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_EXP_SRC_CNT",           mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 19, mid_str);
-	adm_add_datadef("BP_BUNDLE_BULK_SRC_BYTES",         mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_BULK_SRC_BYTES",         mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 20, mid_str);
-	adm_add_datadef("BP_BUNDLE_NORM_SRC_BYTES",         mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_NORM_SRC_BYTES",         mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 21, mid_str);
-	adm_add_datadef("BP_BUNDLE_EXP_SRC_BYTES",         mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_EXP_SRC_BYTES",         mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 22, mid_str);
-	adm_add_datadef("BP_BUNDLE_FRAGMENTED_CNT",        mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_FRAGMENTED_CNT",        mid_str, 0,  NULL, NULL);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 23, mid_str);
-	adm_add_datadef("BP_BUNDLE_FRAG_PRODUCED",         mid_str, 0,  NULL, NULL);
+	adm_add_datadef("BP_BNDL_FRAG_PRODUCED",         mid_str, 0,  NULL, NULL);
 
 
 	/* Error and Reporting Information */

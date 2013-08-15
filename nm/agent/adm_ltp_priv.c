@@ -256,7 +256,7 @@ expr_result_t ltp_get_engines(Lyst params)
 	ltpnm_spanEngineIds_get(ids, &num);
 	if(num > 32)
 	{
-		fprintf(stderr,"Uh oh!\n");
+		fprintf(stderr,"We do not support more than 32 engines. Aborting.\n");
 		exit(1);
 	}
 

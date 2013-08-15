@@ -100,12 +100,6 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
 
         char *mid_str = mid_to_string(cur_mid);
 
-        /**EJBDEBUG
-        char *temp = mid_pretty_print(cur_mid);
-        fprintf(stderr,"EJB %s", temp);
-        MRELEASE(temp);
-         **/
-
         /* Is this a valid MID? */
         if(mid_sanity_check(cur_mid) == 0)
         {
@@ -241,10 +235,6 @@ void *rx_thread(void *threadId) {
         {
             DTNMP_DEBUG_INFO("rx_thread","Received buf (%x) of size %d",
             		         (unsigned long) buf, size);
-
-            // EJB
-            utils_print_hex(buf, size);
-
 
             /* Grab # messages and timestamp for this group. */
             cursor = buf;

@@ -12,7 +12,7 @@
 
 /*****************************************************************************
  **
- ** File Name: lcc.h
+ ** File Name: lcc.c
  **
  ** Description: This implements the NM Agent Local Command and Control (LDC).
  **

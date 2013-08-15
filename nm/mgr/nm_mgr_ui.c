@@ -347,9 +347,6 @@ void ui_construct_time_rule_by_idx(agent_t* agent)
 	}
 	DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_idx","(%s)", agent->agent_eid.name);
 
-
-DTNMP_DEBUG_ERR("EJB","AGENT IS %s",agent->agent_eid.name);
-
 	/* Step 1: Read and parse the rule. */
 	if(ui_get_user_input("Enter rule as follows: Offset Period #Evals MID1,MID2,MID3,...,MIDn",
 			             (char **) &line, 256) == 0)
@@ -718,30 +715,29 @@ void ui_register_agent()
 void ui_deregister_agent(agent_t* agent)
 {
 	char line[MAX_EID_LEN];
+
+	DTNMP_DEBUG_ENTRY("ui_deregister_agent","(%llu)", (unsigned long)agent);
+
 	if(agent == NULL)
 	{
-		DTNMP_DEBUG_ENTRY("deregister_agent","(NULL)", NULL);
-		DTNMP_DEBUG_ERR("deregister_agent", "No agent specified.", NULL);
-		DTNMP_DEBUG_EXIT("deregister_agent","->.",NULL);
+		DTNMP_DEBUG_ERR("ui_deregister_agent", "No agent specified.", NULL);
+		DTNMP_DEBUG_EXIT("ui_deregister_agent","->.",NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("deregister_agent","(%s)",agent->agent_eid.name);
+	DTNMP_DEBUG_ENTRY("ui_deregister_agent","(%s)",agent->agent_eid.name);
 
 	lockResource(&agents_mutex);
 
 	if(remove_agent(&(agent->agent_eid)) != 0)
 	{
-		printf("No agent by that name is currently registered.\n");
+		DTNMP_DEBUG_WARN("ui_deregister_agent","No agent by that name is currently registered.\n", NULL);
 	}
 	else
 	{
-	/* EJBL Printf? */
-		printf("Successfully deregistered agent.\n");
+		DTNMP_DEBUG_ALWAYS("ui_deregister_agent","Successfully deregistered agent.\n", NULL);
 	}
 
 	unlockResource(&agents_mutex);
-
-/* EJB: agent pointer now dangerous.... */
 }
 
 /******************************************************************************
@@ -1249,16 +1245,11 @@ Lyst ui_parse_mid_str(char *mid_str, int max_idx, int type)
 			if(num_parms > 0)
 			{
 				ui_define_mid_params(name, num_parms, midp);
-				printf("EJB: Calling internal...\n");
 				mid_internal_serialize(midp);
 			}
 
 			mid_size += mid_len;
 			lyst_insert_last(mids, midp);
-
-			char *ed = mid_to_string(midp);
-			printf("EJB: mid is %s\n", ed);
-			MRELEASE(ed);
 		}
 		else
 		{

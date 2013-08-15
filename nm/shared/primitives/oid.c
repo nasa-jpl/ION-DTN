@@ -211,10 +211,9 @@ uint32_t oid_calc_size(oid_t *oid)
 	}
 
 	/* Step 2: Add the # bytes SDNV and the OID data size. */
-	encodeSdnv(&tmp, oid->value_size);
-	size += /*tmp.length + */ oid->value_size; // EJB value_size includes size for SDNV.
+	size += oid->value_size;
 
-	printf("EJB: val is %d tmp is %d\n", oid->value_size, tmp.length);
+	DTNMP_DEBUG_INFO("oid_calc_size","val is %d\n", oid->value_size);
 
 	/*
 	 * Step 3: If we have parameters, add them too. This is simple because we
@@ -628,7 +627,7 @@ oid_t *oid_deserialize_comp_param(unsigned char *buffer,
  *
  * 	\todo We currently assume that the length field is a single byte (0-127).
  * 	      We need to code this to follow BER rules for large definite data
- * 	      form. Like SDNV but not quite: if high-bit of firts byte set, bits
+ * 	      form. Like SDNV but not quite: if high-bit of first byte set, bits
  * 	      7-1 give # octets that comprise length. Then, concatenate, big-endian,
  * 	      those octets to build	length. Ex: length 435 = 0x8201B3
  *
@@ -683,7 +682,7 @@ oid_t *oid_deserialize_full(unsigned char *buffer,
 
 	/*
 	 * Step 1: Grab # SDNVs in the OID
-	 * \todo: EJB: Someone remind me why this is a byte and not an SDNV?
+	 * \todo: Check if this should be a byte or an SDNV.
 	 */
 	if((*bytes_used = utils_grab_byte(cursor, size, &val)) != 1)
 	{

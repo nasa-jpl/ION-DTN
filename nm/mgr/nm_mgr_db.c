@@ -698,7 +698,7 @@ oid_t *db_fetch_oid_parms(int mid_id, char* oid_root) {
 	/* Step 3: Allocate data to hold everything. */
 	size = strlen(oid_root) + parms_size;
 	if ((data = (uint8_t *) MTAKE(size)) == NULL) {
-		DTNMP_DEBUG_ALWAYS("EJB", "data --> %d", data);
+		DTNMP_DEBUG_ERR("db_fetch_oid_parms", "Can't allocate data of size %d", size);
 		MRELEASE(parms);
 		return NULL;
 	}
@@ -1623,7 +1623,7 @@ int db_process_outgoing(MYSQL_RES *sql_res)
 			/* Step 1.3: For each agent, send a message. */
 			for (elt = lyst_first(agents); elt; elt = lyst_next(elt)) {
 				agent_eid = (eid_t *) lyst_data(elt);
-				DTNMP_DEBUG_ALWAYS("EJB", "Sending to name %s", agent_eid->name);
+				DTNMP_DEBUG_INFO("db_process_outgoing", "Sending to name %s", agent_eid->name);
 				iif_send(&ion_ptr, msg_group, agent_eid->name);
 				MRELEASE(agent_eid);
 			}
@@ -1917,7 +1917,7 @@ Lyst db_process_outgoing_recipients(uint32_t outgoingId) {
 			cur_name = (eid_t*) MTAKE(sizeof(eid_t));
 			memcpy(cur_name->name, agentName->agent_id.name,
 					sizeof(agentName->agent_id.name));
-			DTNMP_DEBUG_ERR("EJB", "Adding agent name %s.", cur_name->name);
+			DTNMP_DEBUG_INFO("db_process_outgoing_recipients", "Adding agent name %s.", cur_name->name);
 			lyst_insert_last(result, cur_name);
 			elt = lyst_next(elt);
 

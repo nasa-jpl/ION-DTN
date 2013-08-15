@@ -79,7 +79,6 @@ int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry)
     {
     	DTNMP_DEBUG_INFO("ldc_fill_report_data","Filling pre-defined.", NULL);
     	result = ldc_fill_atomic(adm_def,id,entry);
-    //EJB	entry->id = mid_copy(id);
     }
     else if((rpt_def = def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), id)) != NULL)
     {
@@ -175,9 +174,6 @@ int ldc_fill_custom(def_gen_t *rpt_def, rpt_data_entry_t *rpt)
     {
     	temp = (rpt_data_entry_t *) lyst_data(elt);
 
-    	// EJB: Print.
-    	//rpt_print_data_entry(temp);
-
     	/* Copy into the contents area. */
     	memcpy(&(rpt->contents[idx]), temp->contents, temp->size);
         idx += temp->size;
@@ -220,7 +216,6 @@ int ldc_fill_atomic(adm_datadef_t *adm_def, mid_t *id, rpt_data_entry_t *rpt)
         return -1;
     }
 
-//    rpt->id = mid_copy(id);//EJBmid_deserialize(adm_def->mid, MAX_MID, &temp);
     if((rpt->id = mid_copy(id)) == NULL)
     {
         DTNMP_DEBUG_ERR("ldc_fill_atomic","Unable to copy MID.", NULL);
