@@ -328,13 +328,21 @@ int oid_compare(oid_t *oid1, oid_t *oid2, uint8_t use_parms)
 
     if(((oid1 == NULL) || (oid2 == NULL)) ||
        ((oid1->value_size != oid2->value_size)) ||
-       ((oid1->type != oid2->type)) ||
-       ((lyst_length(oid1->params) != lyst_length(oid2->params))))
+       ((oid1->type != oid2->type)))
     {
         DTNMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
         return -1;
     }
     
+    if(use_parms != 0)
+    {
+    	if(lyst_length(oid1->params) != lyst_length(oid2->params))
+    	{
+    		DTNMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
+    		return -1;
+    	}
+    }
+
     /* Step 1: Compare the value version of the oid */
     result = memcmp(oid1->value, oid2->value, oid1->value_size);
 
@@ -446,7 +454,7 @@ oid_t *oid_deserialize_comp(unsigned char *buffer,
 		                    uint32_t size,
 		                    uint32_t *bytes_used)
 {
-	uint64_t nn_id = 0;
+	uvast nn_id = 0;
 	uint32_t bytes = 0;
 	oid_t *new_oid = NULL;
 	unsigned char *cursor = NULL;
@@ -545,7 +553,7 @@ oid_t *oid_deserialize_comp_param(unsigned char *buffer,
     					         uint32_t size,
     					         uint32_t *bytes_used)
 {
-	uint64_t nn_id = 0;
+	uvast nn_id = 0;
 	uint32_t bytes = 0;
 	oid_t *new_oid = NULL;
 	unsigned char *cursor = NULL;
@@ -756,7 +764,7 @@ oid_t *oid_deserialize_full(unsigned char *buffer,
 
 /******************************************************************************
  *
- * \par Function Name: oid_deserialize_full
+ * \par Function Name: oid_deserialize_param
  *
  * \par Purpose: Extracts a parameterized OID from a buffer.
  *
@@ -790,7 +798,7 @@ oid_t *oid_deserialize_param(unsigned char *buffer,
 {
 	oid_t *new_oid;
 	uint32_t bytes = 0;
-	uint64_t value = 0;
+	uvast value = 0;
 	uint32_t idx = 0;
 	unsigned char *cursor = NULL;
 
@@ -1430,7 +1438,7 @@ void oid_nn_cleanup()
  *  --------  ------------   ---------------------------------------------
  *  10/14/12  E. Birrane     Initial implementation,
  *****************************************************************************/
-int oid_nn_delete(uint64_t nn_id)
+int oid_nn_delete(uvast nn_id)
 {
 	oid_nn_t *cur_nn = NULL;
 	LystElt tmp_elt;
@@ -1486,7 +1494,7 @@ int oid_nn_delete(uint64_t nn_id)
  *  --------  ------------   ---------------------------------------------
  *  10/14/12  E. Birrane     Initial implementation,
  *****************************************************************************/
-LystElt oid_nn_exists(uint64_t nn_id)
+LystElt oid_nn_exists(uvast nn_id)
 {
 	oid_nn_t *cur_nn = NULL;
 	LystElt tmp_elt = NULL;
@@ -1546,7 +1554,7 @@ LystElt oid_nn_exists(uint64_t nn_id)
  *  10/14/12  E. Birrane     Initial implementation,
  *****************************************************************************/
 
-oid_nn_t* oid_nn_find(uint64_t nn_id)
+oid_nn_t* oid_nn_find(uvast nn_id)
 {
 	LystElt tmpElt = NULL;
 	oid_nn_t *result = NULL;

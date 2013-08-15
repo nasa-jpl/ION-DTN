@@ -26,6 +26,8 @@
  **  --------  ------------   ---------------------------------------------
  **  09/24/12  E. Birrane     Initial Implementation
  **  11/01/12  E. Birrane     Redesign of messaging architecture.
+ **  06/25/13  E. Birrane     Renamed message "bundle" message "group".
+ **  06/26/13  E. Birrane     Added group timestamp
  *****************************************************************************/
 
 #include "platform.h"
@@ -34,26 +36,27 @@
 #include "shared/adm/adm.h"
 #include "shared/msg/pdu.h"
 #include "shared/primitives/mid.h"
+#include "shared/utils/utils.h"
 
-
-pdu_bundle_t *pdu_create_bundle()
+pdu_group_t *pdu_create_empty_group()
 {
-	pdu_bundle_t *result = NULL;
+	pdu_group_t *result = NULL;
 
-	result = (pdu_bundle_t*) MTAKE(sizeof(pdu_bundle_t));
+	result = (pdu_group_t*) MTAKE(sizeof(pdu_group_t));
 
 	result->msgs = lyst_create();
-
+	result->time = time(NULL);
 	return result;
 }
 
 
-pdu_bundle_t *pdu_create_bundle_arg(pdu_msg_t *msg)
+pdu_group_t *pdu_create_group(pdu_msg_t *msg)
 {
-	pdu_bundle_t *result = NULL;
+	pdu_group_t *result = NULL;
 
-	result = pdu_create_bundle();
+	result = pdu_create_empty_group();
 	lyst_insert_last(result->msgs, msg);
+	result->time = time(NULL);
 	return result;
 }
 
@@ -159,22 +162,22 @@ void pdu_release_msg(pdu_msg_t *pdu)
 	}
 }
 
-void pdu_release_bundle(pdu_bundle_t *bundle)
+void pdu_release_group(pdu_group_t *group)
 {
 	LystElt elt;
 
-	if(bundle == NULL)
+	if(group == NULL)
 	{
 		return;
 	}
 
-	for(elt = lyst_first(bundle->msgs); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(group->msgs); elt; elt = lyst_next(elt))
 	{
 		pdu_msg_t *cur_msg = (pdu_msg_t*) lyst_data(elt);
 		pdu_release_msg(cur_msg);
 	}
-	lyst_destroy(bundle->msgs);
-	MRELEASE(bundle);
+	lyst_destroy(group->msgs);
+	MRELEASE(group);
 }
 
 
@@ -367,7 +370,7 @@ uint8_t *pdu_serialize_msg(pdu_msg_t *msg, uint32_t *len)
 	return result;
 }
 
-uint8_t *pdu_serialize_bundle(pdu_bundle_t *bundle, uint32_t *len)
+uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 {
 	uint8_t *result = NULL;
 	uint8_t *cursor = NULL;
@@ -377,30 +380,31 @@ uint8_t *pdu_serialize_bundle(pdu_bundle_t *bundle, uint32_t *len)
 
 	uint32_t num_msgs = 0;
 	Sdnv num_msgs_sdnv;
+	Sdnv time_sdnv;
 
 	uint32_t i = 0;
 	uint32_t tot_size = 0;
 	LystElt elt;
 
-	DTNMP_DEBUG_ENTRY("pdu_serialize_bundle","(0x%x,0x%x)",
-			          (unsigned long) bundle, (unsigned long) len);
+	DTNMP_DEBUG_ENTRY("pdu_serialize_group","(0x%x,0x%x)",
+			          (unsigned long) group, (unsigned long) len);
 
 	/* Step 0: Sanity Checks. */
-	if((bundle == NULL) || (len == NULL))
+	if((group == NULL) || (len == NULL))
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_bundle","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("pdu_serialize_bundle","->NULL.", NULL);
+		DTNMP_DEBUG_ERR("pdu_serialize_group","Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
 
-	num_msgs = lyst_length(bundle->msgs);
+	num_msgs = lyst_length(group->msgs);
 
 	/* Step 1: Allocate space to store serialized msgs. */
 	if((tmp_data = (uint8_t **) MTAKE(num_msgs * sizeof(uint8_t *))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_bundle","Can't Alloc %d bytes.",
+		DTNMP_DEBUG_ERR("pdu_serialize_group","Can't Alloc %d bytes.",
 					    num_msgs * sizeof(uint8_t *));
-		DTNMP_DEBUG_EXIT("pdu_serialize_bundle","->NULL.", NULL);
+		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
 	else
@@ -410,10 +414,10 @@ uint8_t *pdu_serialize_bundle(pdu_bundle_t *bundle, uint32_t *len)
 
 	if((tmp_size = (uint32_t *) MTAKE(num_msgs * sizeof(uint32_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_bundle","Can't Alloc %d bytes.",
+		DTNMP_DEBUG_ERR("pdu_serialize_group","Can't Alloc %d bytes.",
 					    num_msgs * sizeof(uint32_t));
 		MRELEASE(tmp_data);
-		DTNMP_DEBUG_EXIT("pdu_serialize_bundle","->NULL.", NULL);
+		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
 	else
@@ -423,13 +427,13 @@ uint8_t *pdu_serialize_bundle(pdu_bundle_t *bundle, uint32_t *len)
 
 	/* Step 2: Serialize messages in turn. */
 	tot_size = 0;
-	for(elt = lyst_first(bundle->msgs); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(group->msgs); elt; elt = lyst_next(elt))
 	{
 		pdu_msg_t *cur_msg = (pdu_msg_t*) lyst_data(elt);
 
 		if(cur_msg == NULL)
 		{
-			DTNMP_DEBUG_WARN("pdu_serialize_bundle","Null %dth msg", i);
+			DTNMP_DEBUG_WARN("pdu_serialize_group","Null %dth msg", i);
 		}
 		else
 		{
@@ -440,7 +444,7 @@ uint8_t *pdu_serialize_bundle(pdu_bundle_t *bundle, uint32_t *len)
 			}
 			else
 			{
-				DTNMP_DEBUG_WARN("pdu_serialize_bundle",
+				DTNMP_DEBUG_WARN("pdu_serialize_group",
 						         "Can't serialize %dth msg", i);
 			}
 		}
@@ -449,7 +453,7 @@ uint8_t *pdu_serialize_bundle(pdu_bundle_t *bundle, uint32_t *len)
 	/* Step 3: If we had any problems, time to bail. */
 	if(i < num_msgs)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_bundle","Problems serializing.",NULL);
+		DTNMP_DEBUG_ERR("pdu_serialize_group","Problems serializing.",NULL);
 		int j = 0;
 		for(j = 0; j < i; j++)
 		{
@@ -458,18 +462,20 @@ uint8_t *pdu_serialize_bundle(pdu_bundle_t *bundle, uint32_t *len)
 		MRELEASE(tmp_data);
 		MRELEASE(tmp_size);
 
-		DTNMP_DEBUG_EXIT("pdu_serialize_bundle","->NULL.", NULL);
+		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
 
-	/* Step 4: Calculate size and allocate result. */
+	/* Step 4: Add size and time and allocate final result. */
 	encodeSdnv(&num_msgs_sdnv, num_msgs);
+	encodeSdnv(&time_sdnv, group->time);
 
-	*len = num_msgs_sdnv.length + tot_size;
+	*len = num_msgs_sdnv.length + time_sdnv.length + tot_size;
 
+	DTNMP_DEBUG_INFO("pdu_serialize_group", "msgs is %d, time is %d, total is %d", num_msgs_sdnv.length, time_sdnv.length, tot_size);
 	if((result = (uint8_t*) MTAKE(*len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_bundle","Can't alloc %d bytes.",*len);
+		DTNMP_DEBUG_ERR("pdu_serialize_group","Can't alloc %d bytes.",*len);
 		int j = 0;
 		for(j = 0; j < i; j++)
 		{
@@ -478,13 +484,18 @@ uint8_t *pdu_serialize_bundle(pdu_bundle_t *bundle, uint32_t *len)
 		MRELEASE(tmp_data);
 		MRELEASE(tmp_size);
 
-		DTNMP_DEBUG_EXIT("pdu_serialize_bundle","->NULL.", NULL);
+		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
 	cursor = result;
 
+	/* Step 5: Copy data into the serialize buffer. */
+
 	memcpy(cursor, num_msgs_sdnv.text, num_msgs_sdnv.length);
 	cursor += num_msgs_sdnv.length;
+
+	memcpy(cursor, time_sdnv.text, time_sdnv.length);
+	cursor += time_sdnv.length;
 
 	for(i = 0; i < num_msgs; i++)
 	{
@@ -496,7 +507,7 @@ uint8_t *pdu_serialize_bundle(pdu_bundle_t *bundle, uint32_t *len)
 	MRELEASE(tmp_data);
 	MRELEASE(tmp_size);
 
-	DTNMP_DEBUG_EXIT("pdu_serialize_bundle","->0x%x",(unsigned long) result);
+	DTNMP_DEBUG_EXIT("pdu_serialize_group","->0x%x",(unsigned long) result);
 	return result;
 }
 
@@ -549,6 +560,7 @@ pdu_header_t *pdu_deserialize_hdr(uint8_t *cursor,
 	result->nack    = (byte & 0x02) >> 1;
 	result->acl     = (byte & 0x01);
 	result->id = (result->context << 3) | result->type;
+	*bytes_used = 1;
 
 	DTNMP_DEBUG_EXIT("pdu_deserialize_hdr","->0x%x",result);
 	return result;
@@ -609,10 +621,10 @@ pdu_acl_t *pdu_deserialize_acl(uint8_t *cursor,
 }
 
 
-int pdu_add_msg_to_bundle(pdu_bundle_t *bundle, pdu_msg_t *msg)
+int pdu_add_msg_to_group(pdu_group_t *group, pdu_msg_t *msg)
 {
 	int result = 0;
-	lyst_insert_last(bundle->msgs, msg);
+	lyst_insert_last(group->msgs, msg);
 	return result;
 }
 

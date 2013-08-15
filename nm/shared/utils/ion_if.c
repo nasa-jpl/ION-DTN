@@ -28,6 +28,7 @@
  **  --------  ------------   ---------------------------------------------
  **  08/10/11  V.Ramachandran Initial Implementation
  **  11/13/12  E. Birrane     Technical review, comment updates.
+ **  06/25/13  E. Birrane     Renamed message "bundle" message "group".
  *****************************************************************************/
 
 #include "bp.h"
@@ -100,7 +101,7 @@ uint8_t iif_deregister_node(iif_t *iif)
  *  08/10/11  V.Ramachandran Initial implementation,
  *****************************************************************************/
 
-eid_t iif_get_local_eid(iif_t *iif)
+const eid_t iif_get_local_eid(iif_t *iif)
 {
 	DTNMP_DEBUG_ENTRY("iif_get_local_eid","(%#llx)", iif);
 
@@ -197,6 +198,7 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     pdu_msg_t *pdu = NULL;
     uint32_t bytes = 0;
     uint32_t buf_size = 0;
+    int result;
 
     DTNMP_DEBUG_ENTRY("iif_receive", "(0x%x, %d)",
     		         (unsigned long) iif, timeout);
@@ -204,14 +206,37 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     DTNMP_DEBUG_INFO("iif_rceive", "Received bundle.", NULL);
 
     /* Step 1: Receive the bundle.*/
-    bp_receive(iif->sap, &dlv, timeout);
+    if((result = bp_receive(iif->sap, &dlv, timeout)) < 0)
+    {
+    	DTNMP_DEBUG_ERR("iif_receive","bp_receive failed. Result: %d.", result);
+    	exit(0);
+    }
+    else
+    {
+    	switch(dlv.result)
+    	{
+    		case BpEndpointStopped:
+    			DTNMP_DEBUG_ERR("iif_receive","Endpoint stopped?", NULL);
+    			exit(0);
+
+    		case BpPayloadPresent:
+    			DTNMP_DEBUG_ERR("iif_receive", "Payload present.", NULL);
+    			break;
+
+    		default:
+    			DTNMP_DEBUG_ERR("iif_receive", "Unknown dlv state: %d", dlv.result);
+    			return NULL;
+    			break;
+    	}
+    }
     content_len = zco_source_data_length(sdr, dlv.adu);
 
     /* Step 2: Allocate result space. */
     *size = content_len;
     if((buffer = (uint8_t*) MTAKE(content_len)) == NULL)
     {
-    	DTNMP_DEBUG_ERR("iif_receive","Can;t alloc %d of msg.", content_len);
+    	DTNMP_DEBUG_ERR("iif_receive","Can't alloc %d of msg.", content_len);
+    	DTNMP_DEBUG_ERR("iif_receive","Timeout is %d.", timeout);
 
     	DTNMP_DEBUG_EXIT("iif_receive","->NULL",NULL);
     	return NULL;
@@ -320,22 +345,25 @@ uint8_t iif_register_node(iif_t *iif, eid_t eid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/10/11  V.Ramachandran Initial implementation,
+ *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
  *****************************************************************************/
 
-uint8_t iif_send(iif_t *iif, pdu_bundle_t *bundle, char *recipient)
+uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
 {
     BpExtendedCOS extendedCOS = {0, 0, 0};
+    Object extent;
 
     Object newBundle;
     int sdrDataLength; // Space allocated in SDR
+    int ctrlZco = 0;
 
     uint8_t *data = NULL;
     uint32_t len;
 
-    DTNMP_DEBUG_ENTRY("iif_send","(%#llx, %#llx, %#llx)", iif, bundle, recipient);
+    DTNMP_DEBUG_ENTRY("iif_send","(%#llx, %#llx, %#llx)", iif, group, recipient);
 
     /* Step 0 - Sanity checks. */
-    if((iif == NULL) || (bundle == NULL) || (recipient == NULL))
+    if((iif == NULL) || (group == NULL) || (recipient == NULL))
     {
     	DTNMP_DEBUG_ERR("iif_send","Bad Args.", NULL);
     	DTNMP_DEBUG_EXIT("iif_send", "->0.", NULL);
@@ -343,45 +371,69 @@ uint8_t iif_send(iif_t *iif, pdu_bundle_t *bundle, char *recipient)
     }
 
     /* Step 1 - Serialize the bundle. */
-    data = pdu_serialize_bundle(bundle, &len);
+    data = pdu_serialize_group(group, &len);
+
+    if(len == 0)
+    {
+    	MRELEASE(data);
+    	DTNMP_DEBUG_ERR("iif_send","Bad message of length 0.", NULL);
+    	DTNMP_DEBUG_EXIT("iif_send", "->0.", NULL);
+    	return 0;
+    }
+
+    /* Information on bitstream we are sending. */
+    DTNMP_DEBUG_INFO("iif_send","Sending following data of length %d",len);
+    utils_print_hex(data, len);
+
 
     /* Step 2 - Get the SDR, insert the message as an SDR transaction.*/
     Sdr sdr = bp_get_sdr();
 
-    sdr_begin_xn(sdr);
-    Object sdrObj = sdr_insert(sdr, (char *) data, len);
-    sdr_end_xn(sdr);
+    CHKZERO(sdr_begin_xn(sdr));
+    extent = sdr_malloc(sdr, len);
+    if(extent)
+    {
+       sdr_write(sdr, extent, (char *) data, len);
+    }
+    else
+    {
+    	DTNMP_DEBUG_ERR("iif_send","Can't write to NULL extent.", NULL);
+    }
+
+   // Object sdrObj = sdr_insert(sdr, (char *) data, len);
+    if (sdr_end_xn(sdr) < 0)
+    {
+    	DTNMP_DEBUG_ERR("iif_send","Can't close transaction?", NULL);
+    }
         
     /* Step 3 - Great ZCO in an SDR transaction.*/
-    sdr_begin_xn(sdr);
-    Object content = zco_create(sdr, ZcoSdrSource, sdrObj, 0, len);
+    Object content = ionCreateZco(ZcoSdrSource, extent, 0, len, &ctrlZco);
+
+    //Object content = zco_create(sdr, ZcoSdrSource, sdrObj, 0, len);
     if(!content)
     {
         DTNMP_DEBUG_ERR("iif_send","Zero-Copy Object creation failed.", NULL);
-    	sdr_end_xn(sdr);
-    	sdr_free(sdr, sdrObj);
-
         DTNMP_DEBUG_EXIT("iif_send", "->0.", NULL);
     	return 0;
     }
-    sdr_end_xn(sdr);
 
     /* Step 4 - Pass on to the BPA to send.*/
-    if(bp_send(
-				iif->sap, 				// BpSAP reference
+    int res = 0;
+    if((res = bp_send(
+				iif->sap, 		// BpSAP reference
 				recipient,              // recipient
-				NULL,					// report-to
-				300,					// lifespan (?)
-				0,						// Class-of-Service / Priority
-				NoCustodyRequested,		// Custody Switch
-				0,						// SRR Flags
-				0,						// ACK Requested
-				&extendedCOS,			// Extended COS
-				content,				// ADU
-				&newBundle				// New Bundle
-				) != 1)
+				NULL,			// report-to
+				300,			// lifespan (?)
+				BP_STD_PRIORITY,	// Class-of-Service / Priority
+				NoCustodyRequested,	// Custody Switch
+				0,			// SRR Flags
+				0,			// ACK Requested
+				&extendedCOS,		// Extended COS
+				content,		// ADU
+				&newBundle		// New Bundle
+				)) != 1)
     {
-        DTNMP_DEBUG_ERR("iif_send","Send failed.", NULL);
+        DTNMP_DEBUG_ERR("iif_send","Send failed (%d).", res);
         MRELEASE(data);
         DTNMP_DEBUG_EXIT("iif_send", "->0.", NULL);
     	return 0;

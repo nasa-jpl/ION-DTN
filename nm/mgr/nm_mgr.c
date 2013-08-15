@@ -19,6 +19,7 @@
 // Application headers.
 #include "nm_mgr.h"
 #include "nm_mgr_ui.h"
+#include "nm_mgr_db.h"
 #include "shared/primitives/rules.h"
 
 
@@ -154,14 +155,18 @@ int mgr_init(char *argv[])
 
 	adm_init();
 
+#ifdef HAVE_MYSQL
+	db_init("localhost", "root", "NetworkManagement", "dtnmp");
+#endif
+
 	DTNMP_DEBUG_EXIT("mgr_init","->0.",NULL);
     return 0;
 }
 
-Agent_rx* get_agent(eid_t* in_eid)
+agent_t* get_agent(eid_t* in_eid)
 {
 	Object 	 *entry 		= NULL;
-	Agent_rx *agent			= NULL;
+	agent_t *agent			= NULL;
 
 	if(in_eid == NULL)
 	{
@@ -184,7 +189,7 @@ Agent_rx* get_agent(eid_t* in_eid)
 	LystElt elt = lyst_first(known_agents);
 	while(elt != NULL)
 	{
-		agent = (Agent_rx *) lyst_data(elt);
+		agent = (agent_t *) lyst_data(elt);
 		if(strcmp(in_eid->name, agent->agent_eid.name) == 0)
 		{
 			break;
@@ -212,10 +217,57 @@ Agent_rx* get_agent(eid_t* in_eid)
 	return agent;
 }
 
-Agent_rx* create_agent(eid_t *in_eid)
+int add_agent(eid_t agent_eid)
+{
+	int result = 0;
+	agent_t *agent = NULL;
+
+	DTNMP_DEBUG_ENTRY("add_agent","(%s)", agent_eid.name);
+
+	lockResource(&agents_mutex);
+
+	/* Check if the agent is already known. */
+	if((agent = get_agent(&agent_eid)) != NULL)
+	{
+		unlockResource(&agents_mutex);
+
+		DTNMP_DEBUG_ERR("add_agent","Trying to add an already-known agent.", NULL);
+		DTNMP_DEBUG_EXIT("add_agent","->%d.", result);
+
+		return result;
+	}
+
+	/* Create and store the new agent. */
+	if((agent = create_agent(&agent_eid)) == NULL)
+	{
+		unlockResource(&agents_mutex);
+
+		DTNMP_DEBUG_ERR("add_agent","Failed to create agent.", NULL);
+		DTNMP_DEBUG_EXIT("add_agent","->%d.", result);
+
+		return result;
+	}
+
+	DTNMP_DEBUG_INFO("add_agent","Registered agent: %s", agent_eid.name);
+	unlockResource(&agents_mutex);
+
+	result = 1;
+	DTNMP_DEBUG_EXIT("add_agent","->%d.", result);
+	return result;
+}
+
+
+
+
+/*
+ * Note: We assume the agent mutex is already taken.
+ */
+agent_t* create_agent(eid_t *in_eid)
 {
 	Object 	 *entry 		= NULL;
-	Agent_rx *agent			= NULL;
+	agent_t *agent			= NULL;
+
+	DTNMP_DEBUG_ENTRY("create_agent", "(%s)", in_eid->name);
 
 	if(in_eid == NULL)
 	{
@@ -224,19 +276,16 @@ Agent_rx* create_agent(eid_t *in_eid)
 		return NULL;
 	}
 
-	DTNMP_DEBUG_ENTRY("create_agent", "(%s)", in_eid->name);
-
 	// Allocate new agent metadata
-	if((agent = (Agent_rx*)MTAKE(sizeof(Agent_rx))) == NULL)
+	if((agent = (agent_t*)MTAKE(sizeof(agent_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("create_agent","Unable to allocate %d bytes for new agent %s",
-				sizeof(Agent_rx), in_eid->name);
+				sizeof(agent_t), in_eid->name);
 		DTNMP_DEBUG_EXIT("create_agent", "->NULL", NULL);
-		unlockResource(&agents_mutex);
 		return NULL;
 	}
 
-	strcpy(agent->agent_eid.name, in_eid->name);
+	strncpy(agent->agent_eid.name, in_eid->name, MAX_EID_LEN);
 
 	if((agent->custom_defs = lyst_create()) == NULL)
 	{
@@ -244,7 +293,6 @@ Agent_rx* create_agent(eid_t *in_eid)
 				in_eid->name);
 		DTNMP_DEBUG_EXIT("create_agent","->NULL", NULL);
 		MRELEASE(agent);
-		unlockResource(&agents_mutex);
 		return NULL;
 	}
 
@@ -255,7 +303,6 @@ Agent_rx* create_agent(eid_t *in_eid)
 		DTNMP_DEBUG_EXIT("create_agent","->NULL", NULL);
 		lyst_destroy(agent->custom_defs);
 		MRELEASE(agent);
-		unlockResource(&agents_mutex);
 		return NULL;
 	}
 
@@ -279,6 +326,7 @@ Agent_rx* create_agent(eid_t *in_eid)
 
 	// Place the name of the agent in the known agents list.
 //	if(lyst_insert(known_agents, &(agent->agent_eid)) == NULL)
+
 	if(lyst_insert(known_agents, agent) == NULL)
 	{
 		DTNMP_DEBUG_ERR("create_agent","Unable to insert agent %s into known agents lyst",
@@ -288,20 +336,19 @@ Agent_rx* create_agent(eid_t *in_eid)
 		lyst_destroy(agent->reports);
 //		sdr_hash_delete_entry(g_sdr, *entry);
 		MRELEASE(agent);
-		unlockResource(&agents_mutex);
 		return NULL;
 	}
 
 	initResourceLock(&(agent->mutex));
-
 	unlockResource(&agents_mutex);
+
 	DTNMP_DEBUG_EXIT("create_agent", "->New Agent %s", agent->agent_eid.name);
 	return agent;
 }
 
 int remove_agent(eid_t* in_eid)
 {
-	Agent_rx 	*agent 		= NULL;
+	agent_t 	*agent 		= NULL;
 	Object 		*entry		= NULL;
 	LystElt		elt;
 
@@ -333,9 +380,9 @@ int remove_agent(eid_t* in_eid)
 	elt = lyst_first(known_agents);
 	while(elt != NULL)
 	{
-		if(strcmp(in_eid->name, ((Agent_rx *) lyst_data(elt))->agent_eid.name) == 0)
+		if(strcmp(in_eid->name, ((agent_t *) lyst_data(elt))->agent_eid.name) == 0)
 		{
-			agent = (Agent_rx *) lyst_data(elt);
+			agent = (agent_t *) lyst_data(elt);
 			break;
 		}
 		else
@@ -355,10 +402,9 @@ int remove_agent(eid_t* in_eid)
 	}
 	else
 	{
-		lockResource(&(agent->mutex));
-		rpt_clear_lyst(agent->reports);
-		clearDefsLyst(agent->custom_defs);
-		unlockResource(&(agent->mutex));
+		rpt_clear_lyst(&(agent->reports), &(agent->mutex), 1);
+		def_lyst_clear(&(agent->custom_defs), &(agent->mutex), 1);
+
 		killResourceLock(&(agent->mutex));
 		MRELEASE(agent);
 
@@ -371,7 +417,7 @@ int remove_agent(eid_t* in_eid)
 void _remove_agent(LystElt elt, void *nil)
 {
 	eid_t 		*agent_eid	= NULL;
-	Agent_rx	*agent		= NULL;
+	agent_t	*agent		= NULL;
 	Object		*entry		= NULL;
 
 	if(elt == NULL)
@@ -384,7 +430,7 @@ void _remove_agent(LystElt elt, void *nil)
 	lockResource(&agents_mutex);
 
 //	if((agent_eid = (eid_t *) lyst_data(elt)) == NULL)
-	if((agent = (Agent_rx *) lyst_data(elt)) == NULL)
+	if((agent = (agent_t *) lyst_data(elt)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("remove_agent","Specified Lyst data was null.", NULL);
 		DTNMP_DEBUG_EXIT("remove_agent","", NULL);
@@ -406,13 +452,11 @@ void _remove_agent(LystElt elt, void *nil)
 
 	unlockResource(&agents_mutex);
 
-	lockResource(&(agent->mutex));
-	rpt_clear_lyst(agent->reports);
-	clearDefsLyst(agent->custom_defs);
-	unlockResource(&(agent->mutex));
+	rpt_clear_lyst(&(agent->reports), &(agent->mutex), 1);
+	def_lyst_clear(&(agent->custom_defs), &(agent->mutex), 1);
+
 	killResourceLock(&(agent->mutex));
 	MRELEASE(agent);
-
 }
 
 int mgr_cleanup()
@@ -423,8 +467,7 @@ int mgr_cleanup()
 
 //	sdr_hash_destroy(g_sdr, agents_hashtable);
 
-	clearDefsLyst(macro_defs);
-	lyst_destroy(macro_defs);
+	def_lyst_clear(&(macro_defs), &(macro_defs_mutex), 1);
 	killResourceLock(&macro_defs_mutex);
 
 	return 0;
@@ -435,9 +478,11 @@ int main(int argc, char *argv[])
 {
     pthread_t rx_thr;
     pthread_t ui_thr;
+    pthread_t daemon_thr;
 
     char rx_thr_name[]  = "rx_thread";
     char ui_thr_name[] = "ui_thread";
+    char daemon_thr_name[] = "run_daemon";
 
     errno = 0;
     
@@ -472,6 +517,16 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+
+#ifdef HAVE_MYSQL
+    if(pthread_create(&daemon_thr, NULL, run_daemon, (void *)daemon_thr_name))
+        {
+            DTNMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
+            		        daemon_thr_name, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+#endif
+
     DTNMP_DEBUG_INFO("main","Spawning threads...", NULL);
 
     if (pthread_join(rx_thr, NULL))
@@ -486,6 +541,15 @@ int main(int argc, char *argv[])
         		         ui_thr_name, strerror(errno));
         exit(EXIT_FAILURE);
     }
+
+#ifdef HAVE_MYSQL
+    if (pthread_join(daemon_thr, NULL))
+        {
+            DTNMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
+            		         daemon_thr_name, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+#endif
 
     mgr_cleanup();
 

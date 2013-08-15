@@ -28,6 +28,7 @@
  **  --------  ------------   ---------------------------------------------
  **  08/10/11  V.Ramachandran Initial Implementation
  **  11/13/12  E. Birrane     Technical review, comment updates.
+ **  06/25/13  E. Birrane     Renamed message "bundle" message "group".
  *****************************************************************************/
 #ifndef ION_IF_H_
 #define ION_IF_H_
@@ -74,10 +75,10 @@ typedef struct
 
 
 uint8_t     iif_deregister_node(iif_t *iif);
-eid_t 		iif_get_local_eid(iif_t *iif);
+const eid_t iif_get_local_eid(iif_t *iif);
 uint8_t     iif_is_registered(iif_t *iif);
 uint8_t*    iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeout);
 uint8_t     iif_register_node(iif_t *iif, eid_t eid);
-uint8_t     iif_send(iif_t *iif, pdu_bundle_t *bundle, char *recipient);
+uint8_t     iif_send(iif_t *iif, pdu_group_t *group, char *recipient);
 
 #endif /* ION_IF_H_ */

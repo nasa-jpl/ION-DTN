@@ -37,7 +37,7 @@
 #include "shared/msg/msg_def.h"
 
 int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry);
-int ldc_fill_atomic(adm_entry_t *adm_def, mid_t *id, rpt_data_entry_t *rpt);
+int ldc_fill_atomic(adm_datadef_t *adm_def, mid_t *id, rpt_data_entry_t *rpt);
 int ldc_fill_custom(def_gen_t *rpt_def, rpt_data_entry_t *rpt);
 
 #endif // _LDC_H_

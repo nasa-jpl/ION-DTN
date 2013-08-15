@@ -186,15 +186,27 @@ def_gen_t *def_find_by_id(Lyst defs, ResourceLock *mutex, mid_t *id)
  * \param[in,out] defs  The lyst of definition messages to be cleared
  */
 
-void clearDefsLyst(Lyst defs)
+void def_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 {
 	 LystElt elt;
 	 def_gen_t *cur_def = NULL;
 
-	 DTNMP_DEBUG_ENTRY("clearDefsLyst","(0x%x)", (unsigned long) defs);
+	 DTNMP_DEBUG_ENTRY("def_lyst_clear","(0x%x, 0x%x, %d)",
+			          (unsigned long) list, (unsigned long) mutex, destroy);
+
+	 if((list == NULL) || (*list == NULL))
+	 {
+		 DTNMP_DEBUG_ERR("def_lyst_clear","Bad Params.", NULL);
+		 return;
+	 }
+
+	 if(mutex != NULL)
+	 {
+		 lockResource(mutex);
+	 }
 
 	 /* Free any reports left in the reports list. */
-	 for (elt = lyst_first(defs); elt; elt = lyst_next(elt))
+	 for (elt = lyst_first(*list); elt; elt = lyst_next(elt))
 	 {
 		 /* Grab the current report */
 		 if((cur_def = (def_gen_t *) lyst_data(elt)) == NULL)
@@ -206,7 +218,18 @@ void clearDefsLyst(Lyst defs)
 			 def_release_gen(cur_def);
 		 }
 	 }
-	 lyst_clear(defs);
+	 lyst_clear(*list);
+
+	 if(destroy != 0)
+	 {
+		 lyst_destroy(*list);
+		 *list = NULL;
+	 }
+
+	 if(mutex != NULL)
+	 {
+		 unlockResource(mutex);
+	 }
 	 DTNMP_DEBUG_EXIT("clearDefsLyst","->.",NULL);
 }
 

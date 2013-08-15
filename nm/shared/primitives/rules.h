@@ -27,6 +27,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  11/08/12  E. Birrane     Redesign of messaging architecture.
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
  *****************************************************************************/
 
 #ifndef _RULES_H_
@@ -38,9 +39,10 @@
 
 #include "shared/primitives/mid.h"
 
-#include "shared/msg/pdu.h"
+/*#include "shared/msg/pdu.h"
 #include "shared/msg/msg_def.h"
 #include "shared/msg/msg_reports.h"
+*/
 
 /*
  * +--------------------------------------------------------------------------+
@@ -67,33 +69,19 @@
 
 
 
-/**EJBREFAcTOR
-typedef struct {
+typedef struct
+{
+	Object itemObj;           /**> Serialized rule in an SDR. */
+	uint32_t size;       /**> Size of rule in ruleObj.   */
 
-    / * Number of times left to evaluate the rule. * /
-    int64_t num_evals;
+	/* Descriptor Information. */
+    int64_t  num_evals;       /**> # times left to eval rule. */
+    uint32_t interval_ticks;  /**> # 1Hz ticks between evals. */
+    eid_t    sender;          /**> Who sent this rule def.    */
 
-    / * Interval between rule evaluations in ticks. * /
-    uint32_t interval_ticks;
-
-    / * MIDs captured by this rule. * /
-    Lyst mids;
-
-    / * Decrementable time until next execution in ticks. * /
-    uint32_t countdown_ticks;
-
-    / *
-     * Who sent us the rule
-     * \todo: EJB Need to eventually associated rules to recipients
-     * /
-    eid_t sender;
-
-    / * When to actually start the rule evaluation (0 = now) * /
-    unsigned long offset;
-
-} prod_rule_t;
-**/
-
+    /* Below is not kept in the SDR. */
+	Object descObj;   /** > This descriptor in SDR. */
+} rule_time_prod_desc_t;
 
 
 /**
@@ -107,19 +95,31 @@ typedef struct {
  * +--------+------------+--------+---------+
  */
 typedef struct {
-    uint32_t time;     /**> The time to start the production.   */
-    uint64_t period;   /**> The delay between productions.      */
-    uint64_t count;    /**> The # times to produce the message. */
+    time_t time;     /**> The time to start the production.   */
+    uvast period;   /**> The delay between productions.      */
+    uvast count;    /**> The # times to produce the message. */
     Lyst     mids; /**> The MIDs to include in the report.  */
 
     /* Below is not serialized. */
+    uint32_t countdown_ticks; /**> # ticks before next eval.  */
+    rule_time_prod_desc_t desc; /**> SDR descriptor. */
+} rule_time_prod_t;
 
+
+
+typedef struct
+{
+	Object itemObj;           /**> Serialized rule in an SDR. */
+	uint32_t size;            /**> Size of rule in ruleObj.   */
+
+	/* Descriptor Information. */
     int64_t  num_evals;       /**> # times left to eval rule. */
     uint32_t interval_ticks;  /**> # 1Hz ticks between evals. */
-    uint32_t countdown_ticks; /**> # ticks before next eval.  */
     eid_t    sender;          /**> Who sent this rule def.    */
 
-} rule_time_prod_t;
+    /* Below is not kept in the SDR. */
+	Object descObj;           /** > This descriptor in SDR. */
+} rule_pred_prod_descr_t;
 
 
 /**
@@ -133,19 +133,30 @@ typedef struct {
  * +--------+-----------+--------+---------+
  */
 typedef struct {
-    uint32_t time;     /**> The time to start the production. */
+    time_t time;       /**> The time to start the production. */
     Lyst predicate;    /**> The predicate driving report production.*/
-    uint64_t count;    /**> The # times to produce the message. */
+    uvast count;       /**> The # times to produce the message. */
     Lyst contents;     /**> The MIDs to include in the report. */
 
     /* Below is not serialized. */
-
-    int64_t  num_evals;       /**> # times left to eval rule. */
-    uint32_t interval_ticks;  /**> # 1Hz ticks between evals. */
-    uint32_t countdown_ticks; /**> # ticks before next eval.  */
-    eid_t    sender;          /**> Who sent this rule def.    */
+    uint32_t countdown_ticks;       /**> # ticks before next eval.  */
+    rule_pred_prod_descr_t descObj; /**> SDR descriptor */
 } rule_pred_prod_t;
 
+
+
+typedef struct
+{
+	Object itemObj;           /**> Serialized ctrl in an SDR. */
+	uint32_t size;            /**> Size of ctrl in ctrlObj.   */
+
+	/* Descriptor Information. */
+    eid_t    sender;          /**> Who sent this ctrl def.    */
+    uint8_t  state;           /**> 0: INACTIVE, 1, ACTIVE     */
+
+    /* Below is not kept in the SDR. */
+	Object descObj;           /** > This descriptor in SDR. */
+} ctrl_exec_desc_t;
 
 /**
  * Associated Message Type(s): MSG_TYPE_CTRL_PERF_CTRL
@@ -158,13 +169,13 @@ typedef struct {
  * +-------+-----------+
  */
 typedef struct {
-    uint32_t time;     /**> The time to run the control. */
-    Lyst contents;     /**> The controls (macro) to run. */
+    time_t time;              /**> The time to run the control. */
+    Lyst contents;            /**> The controls (macro) to run. */
 
-    /* Below is no serialized. */
+    /* Below is not serialized. */
     uint32_t countdown_ticks; /**> # ticks before next eval.  */
-    eid_t    sender;          /**> Who sent this ctrl def.    */
-    uint8_t  state;           /**> 0: INACTIVE, 1, ACTIVE     */
+    ctrl_exec_desc_t desc; /**> SDR descriptor. */
+
 } ctrl_exec_t;
 
 
@@ -177,23 +188,29 @@ typedef struct {
 
 
 /* Create functions. */
-rule_time_prod_t *rule_create_time_prod_entry(uint32_t time,
-							   				  uint64_t count,
-											  uint64_t period,
+rule_time_prod_t *rule_create_time_prod_entry(time_t time,
+							   				  uvast count,
+											  uvast period,
 											  Lyst contents);
 
-rule_pred_prod_t *rule_create_pred_prod_entry(uint32_t time,
+rule_pred_prod_t *rule_create_pred_prod_entry(time_t time,
 		   	   	   	   	   	   	   	   	      Lyst predicate,
-		   	   	   	   	   	   	   	   	      uint64_t count,
+		   	   	   	   	   	   	   	   	      uvast count,
 		   	   	   	   	   	   	   	   	      Lyst contents);
 
-ctrl_exec_t *ctrl_create_exec(uint32_t time, Lyst contents);
+ctrl_exec_t *ctrl_create_exec(time_t time, Lyst contents);
 
 
 /* Release functions.*/
 void rule_release_time_prod_entry(rule_time_prod_t *msg);
 void rule_release_pred_prod_entry(rule_pred_prod_t *msg);
 void ctrl_release_exec(ctrl_exec_t *msg);
+
+
+/* Lyst functions. */
+void rule_time_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
+void rule_pred_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
+void ctrl_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
 
 
 

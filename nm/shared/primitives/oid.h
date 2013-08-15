@@ -102,7 +102,7 @@
  * of the nickname when re-constructing an OID from a protocol data unit.
  */
 typedef struct {
-	uint64_t id;				/**> The nickname identifier. */
+	uvast id;				/**> The nickname identifier. */
 	uint8_t raw[MAX_OID_SIZE];  /**> The OID representing the expansion*/
 	uint32_t raw_size;          /**> Size of the expansion OID. */
 } oid_nn_t;
@@ -147,7 +147,7 @@ typedef struct {
    // uint8_t raw_parms[MAX_OID_SIZE];  /**> Raw parms (including # parms) */
    // uint32_t parms_size;			  /**> Size of all parms (w/ # parms) */
 
-    uint64_t nn_id;                   /**> Optional nickname for this OID. */
+    uvast nn_id;                   /**> Optional nickname for this OID. */
 
     uint8_t value[MAX_OID_SIZE];      /**> OID, sans nickname & parms. */
     uint32_t value_size;		   	  /**> Length in bytes of OID value (incl. room for the size) */
@@ -214,11 +214,11 @@ int       oid_nn_add(oid_nn_t *nn);
 
 void      oid_nn_cleanup();
 
-int       oid_nn_delete(uint64_t nn_id);
+int       oid_nn_delete(uvast nn_id);
 
-LystElt   oid_nn_exists(uint64_t nn_id);
+LystElt   oid_nn_exists(uvast nn_id);
 
-oid_nn_t* oid_nn_find(uint64_t nn_id);
+oid_nn_t* oid_nn_find(uvast nn_id);
 
 int       oid_nn_init();
 

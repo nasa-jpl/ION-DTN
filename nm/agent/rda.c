@@ -37,6 +37,7 @@
  **  --------  ------------   ---------------------------------------------
  **  09/06/11  M. Reid        Initial Implementation
  **  10/21/11  E. Birrane     Code comments and functional updates.
+ **  06/27/13  E. Birrane     Support persisted rules.
  *****************************************************************************/
 
 #include "platform.h"
@@ -44,7 +45,10 @@
 
 #include "shared/utils/utils.h"
 #include "shared/primitives/mid.h"
+#include "shared/primitives/instr.h"
+
 #include "shared/msg/msg_reports.h"
+#include "shared/utils/db.h"
 
 #include "nmagent.h"
 #include "ldc.h"
@@ -76,7 +80,7 @@ void rda_cleanup(Lyst rules_pending, Lyst built_reports)
     /* rules_pending only holds pointers. Nothing to free. */
     lyst_destroy(rules_pending);
     
-    rpt_clear_lyst(built_reports);
+    rpt_clear_lyst(&built_reports, NULL, 0);
     lyst_destroy(built_reports);    
 }
 
@@ -167,7 +171,7 @@ int rda_scan_rules(Lyst rules_pending)
      * Walk through each defined rule and see if it should be included in
      * the current evaluation scan.
      */    
-    for (elt = lyst_first(rules_active); elt; elt = lyst_next(elt))
+    for (elt = lyst_first(gAgentVDB.rules); elt; elt = lyst_next(elt))
     {
         /* Grab the next rule...*/
         if((rule_p = (rule_time_prod_t *) lyst_data(elt)) == NULL)
@@ -182,8 +186,8 @@ int rda_scan_rules(Lyst rules_pending)
         {
             /* Determine if this rule has been evaluated more than its
              * maximum number of evaluations */
-            if((rule_p->num_evals > 0) ||
-               (rule_p->num_evals == DTNMP_RULE_EXEC_ALWAYS))
+            if((rule_p->desc.num_evals > 0) ||
+               (rule_p->desc.num_evals == DTNMP_RULE_EXEC_ALWAYS))
             {
                 lyst_insert_first(rules_pending, rule_p);
                 DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
@@ -224,13 +228,13 @@ int rda_scan_ctrls(Lyst exec_defs)
         }
 
         /* Determine if this rule is ready for possible evaluation. */
-        if(ctrl_p->state == CONTROL_ACTIVE)
+        if(ctrl_p->desc.state == CONTROL_ACTIVE)
         {
         	if(ctrl_p->countdown_ticks <= 0)
         	{
-        		lcc_run_ctrl_ctrl_exec_t(ctrl_p);
+        		lcc_run_ctrl(ctrl_p);
         		/* controls disable after they fire.*/
-        		ctrl_p->state = CONTROL_INACTIVE;
+        		ctrl_p->desc.state = CONTROL_INACTIVE;
         	}
         	else
         	{
@@ -248,6 +252,7 @@ int rda_scan_ctrls(Lyst exec_defs)
 rpt_data_entry_t *rda_build_report_entry(mid_t *mid)
 {
 	rpt_data_entry_t *entry = NULL;
+    int result = 0;
     
     DTNMP_DEBUG_ENTRY("rda_build_report_entry","(0x%x)", (unsigned long) mid);
     
@@ -284,11 +289,13 @@ int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
     LystElt elt;
     mid_t *cur_mid = NULL;
     int result = 0;
+    Sdnv tmp;
     
     DTNMP_DEBUG_ENTRY("rda_eval_rule","(0x%x 0x%x)",
     		           (unsigned long) rule_p, (unsigned long) report_p);
     
-    
+	gAgentInstr.num_time_rules_run++;
+
     /* For each MID listed in the evaluating report...*/
     for (elt = lyst_first(rule_p->mids); elt; elt = lyst_next(elt))
     {
@@ -368,17 +375,17 @@ int rda_eval_pending_rules(Lyst rules_pending, Lyst built_reports)
         }
         
         /* Evaluate the rule */
-        rpt_data_t *rpt = rda_find_report(built_reports, rule_p->sender.name);
+        rpt_data_t *rpt = rda_find_report(built_reports, rule_p->desc.sender.name);
 
         rda_eval_rule(rule_p, rpt);
         
         /* Note that the rule has been evaluated */        
-        if(rule_p->num_evals > 0)
+        if(rule_p->desc.num_evals > 0)
         {
         	DTNMP_DEBUG_INFO("rda_eval_pending_rules",
         			         "Decrementing rule eval count from %d.",
-        			         rule_p->num_evals);
-            rule_p->num_evals--;
+        			         rule_p->desc.num_evals);
+            rule_p->desc.num_evals--;
         }
     }
     
@@ -417,16 +424,20 @@ int rda_send_reports(Lyst built_reports)
 
         /* Send the report to the report recipient.*/
        	pdu_msg_t *pdu_msg = NULL;
-       	pdu_bundle_t *pdu_bundle = NULL;
+       	pdu_group_t *pdu_group = NULL;
 
         /* Serialize the payload. */
         raw_report = rpt_serialize_data(report, &raw_report_len);
 
         pdu_msg = pdu_create_msg(MSG_TYPE_RPT_DATA_RPT, raw_report, raw_report_len, NULL);
-        pdu_bundle = pdu_create_bundle_arg(pdu_msg);
+        pdu_group = pdu_create_group(pdu_msg);
 
-        iif_send(&ion_ptr, pdu_bundle, report->recipient.name);
-        pdu_release_bundle(pdu_bundle);
+        unsigned char *msg;
+        uint32_t msg_len;
+        iif_send(&ion_ptr, pdu_group, report->recipient.name);
+        pdu_release_group(pdu_group);
+    	gAgentInstr.num_sent_rpts++;
+
     }
     
     DTNMP_DEBUG_EXIT("rda_send_reports","->0", NULL);
@@ -454,7 +465,7 @@ int rda_eval_cleanup(Lyst rules_pending)
         /* Perform post-evaluation cleanup on the rule */
         
         /* If the rule should no longer execute, expire it */
-        if(rule_p->num_evals == 0)
+        if(rule_p->desc.num_evals == 0)
         {
             // Remove this rule from the active list and place it in the
             // expired list.
@@ -462,7 +473,7 @@ int rda_eval_cleanup(Lyst rules_pending)
             
             // \todo maybe put active ELT in the pending list?
             LystElt tmp_elt;
-            for(tmp_elt = lyst_first(rules_active); tmp_elt; tmp_elt = lyst_next(tmp_elt))
+            for(tmp_elt = lyst_first(gAgentVDB.rules); tmp_elt; tmp_elt = lyst_next(tmp_elt))
             {
             	rule_time_prod_t *tmp_rule = (rule_time_prod_t*) lyst_data(tmp_elt);
             	if(tmp_rule == rule_p)
@@ -471,13 +482,23 @@ int rda_eval_cleanup(Lyst rules_pending)
             	}
             }
 
-            lyst_insert_first(rules_expired, rule_p);            
+            /* Free the expired rule. */
+            /* \todo: Consider storing expired rules in some persistent storage? */
+            db_forget(&(rule_p->desc.itemObj),
+         	          &(rule_p->desc.descObj),
+                      gAgentDB.rules);
+
+            rule_release_time_prod_entry(rule_p);
+            rule_p = NULL;
         }
         
         /* Otherwise, reset its countdown timer. */
         else
         {
-            rule_p->countdown_ticks = rule_p->interval_ticks;   
+            rule_p->countdown_ticks = rule_p->desc.interval_ticks;
+
+            /* Re-persist the rule to update its status in the SDR. */
+            agent_db_rule_persist(rule_p);
         }
     }
 
@@ -533,22 +554,22 @@ void* rda_thread(void* threadId)
         start_time = getUTCTime();
 
         DTNMP_DEBUG_INFO("rda_thread","Processing %u ctrls.",
-        		        (unsigned long) lyst_length(rules_active));
+        		        (unsigned long) lyst_length(gAgentVDB.rules));
 
-        lockResource(&exec_defs_mutex);
-        if(rda_scan_ctrls(exec_defs) == -1)
+        lockResource(&(gAgentVDB.ctrls_mutex));
+        if(rda_scan_ctrls(gAgentVDB.ctrls) == -1)
         {
             DTNMP_DEBUG_ERR("rda_thread","Problem scanning ctrls.", NULL);
             pthread_exit(NULL);
         }
-        unlockResource(&exec_defs_mutex);
+        unlockResource(&(gAgentVDB.ctrls_mutex));
 
 
         DTNMP_DEBUG_INFO("rda_thread","Processing %u rules.",
-        		        (unsigned long) lyst_length(rules_active));
+        		        (unsigned long) lyst_length(gAgentVDB.rules));
                 
         /* Lock the rule list while we are scanning and processinf rules */
-        lockResource(&rules_active_mutex);
+        lockResource(&(gAgentVDB.rules_mutex));
 
         /* Step 1: Collect set of rules to be processed */
         if(rda_scan_rules(rules_pending) == -1)
@@ -582,9 +603,10 @@ void* rda_thread(void* threadId)
             rda_cleanup(rules_pending, built_reports);
             pthread_exit(NULL);            
         }
-        rpt_clear_lyst(built_reports);
 
-        unlockResource(&rules_active_mutex);
+        rpt_clear_lyst(&built_reports, NULL, 0);
+
+        unlockResource(&(gAgentVDB.rules_mutex));
                 
         // Sleep for 1 second (10^6 microsec) subtracting the processing time.
         microsnooze((unsigned int)(1000000 - (getUTCTime() - start_time)));

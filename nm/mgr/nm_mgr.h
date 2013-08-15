@@ -31,8 +31,8 @@
 #include "shared/msg/msg_ctrl.h"
 
 /* Constants */
-#define MSG_TYPE_SIZE 1 /*Change this*/
 static const int32_t NM_RECEIVE_TIMEOUT_MILLIS = 3600;
+static const int32_t MSG_TYPE_SIZE             = 1; // Change this
 static const int32_t TIMESTAMP_SIZE            = 4; // Change this too?
 static const int32_t PENDING_LIST_LEN_SIZE     = 2; // Change this too.
 static const char	 MGR_SDR_PROFILE_NAME[]	   = "NM_MGR";
@@ -43,7 +43,7 @@ static const int32_t MGR_SDR_HEAP_SIZE		   = 131072; // Do this intelligently?
 
 // Indicates the allowable types of messages that an agent can send to
 // the manager.
-static const unsigned char MSG_TYPE_REPORT[MSG_TYPE_SIZE] = {MSG_TYPE_RPT_DATA_RPT};
+//static const unsigned char MSG_TYPE_REPORT[MSG_TYPE_SIZE] = {MSG_TYPE_RPT_DATA_RPT};
 
 
 /**
@@ -69,15 +69,18 @@ typedef struct {
 	 * Mutex controlling read/write access to this structure.
 	 **/
 	ResourceLock mutex;
-} Agent_rx;
+} agent_t;
 
 /**
- * Retrieve an Agent_rx from the agents_hashtable collection.
+ * Retrieve an Agent from the agents_hashtable collection.
  *
  * @param agent_eid Endpoint identifier of desired agent
  * @return Reference to agent information, or NULL if not found.
  */
-Agent_rx* get_agent(eid_t* agent_eid);
+agent_t* get_agent(eid_t* agent_eid);
+
+int add_agent(eid_t agent_eid);
+
 
 /**
  * Create and store a metadata object for information about a new agent.
@@ -85,7 +88,7 @@ Agent_rx* get_agent(eid_t* agent_eid);
  * @param agent_eid Endpoint identifier of agent
  * @return Reference to new agent, or NULL on error.
  */
-Agent_rx* create_agent(eid_t* agent_eid);
+agent_t* create_agent(eid_t* agent_eid);
 
 /**
  * Remove and deallocate the agent identified by agent_eid from the collection
@@ -108,6 +111,10 @@ int remove_agent(eid_t* agent_eid);
  **/
 void* mgr_rx_thread(void* threadId);
 
+/**
+ * Back-end daemon that checks the database and builds messages from it.
+ */
+void *run_daemon(void *threadId);
 
 /**
  * Returns the Endpoint Identifier (EID) of the network node responsible for

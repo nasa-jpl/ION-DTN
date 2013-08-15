@@ -26,6 +26,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  01/11/13  E. Birrane     Redesign of primitives architecture.
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
  *****************************************************************************/
 
 #include "platform.h"
@@ -150,7 +151,7 @@ rpt_defs_t* rpt_create_defs(Lyst defs)
  * \param[in] time     The time when the report was created.
  * \param[in[ reports  The data reports.
  */
-rpt_data_t *rpt_create_data(uint32_t time,
+rpt_data_t *rpt_create_data(time_t time,
 		                    Lyst reports,
 		                    eid_t recipient)
 {
@@ -338,10 +339,6 @@ void rpt_release_prod(rpt_prod_t *msg)
 }
 
 
-
-
-
-
 void rpt_print_data_entry(rpt_data_entry_t *entry)
 {
 	char *id_str = NULL;
@@ -351,14 +348,12 @@ void rpt_print_data_entry(rpt_data_entry_t *entry)
 		fprintf(stderr,"NULL ENTRY.\n");
 	}
 
-	/***EJBDEBUG
 	id_str = mid_pretty_print(entry->id);
 	fprintf(stderr,"DATA ENTRY:\n%s\n", id_str);
 	MRELEASE(id_str);
 
 	fprintf(stderr,"SIZE: %d\n", (uint32_t)entry->size);
 	utils_print_hex(entry->contents, entry->size);
-	**/
 }
 
 
@@ -369,20 +364,27 @@ void rpt_print_data_entry(rpt_data_entry_t *entry)
  *
  * \param[in,out] reportLyst  THe lyst to be cleared.
  */
-void rpt_clear_lyst(Lyst reportLyst)
+void rpt_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
 {
     LystElt elt;
     rpt_data_t *cur_rpt = NULL;
 
-    DTNMP_DEBUG_ENTRY("rpt_clear_lyst","(0x%x)", (unsigned long) reportLyst);
+    DTNMP_DEBUG_ENTRY("rpt_clear_lyst","(0x%x, 0x%x, %d)",
+			          (unsigned long) list, (unsigned long) mutex, destroy);
 
-    if(reportLyst == NULL)
+    if((list == NULL) || (*list == NULL))
     {
+    	DTNMP_DEBUG_ERR("rpt_clear_lyst","Bad Params.", NULL);
     	return;
     }
 
+    if(mutex != NULL)
+    {
+    	lockResource(mutex);
+    }
+
     /* Free any reports left in the reports list. */
-    for (elt = lyst_first(reportLyst); elt; elt = lyst_next(elt))
+    for (elt = lyst_first(*list); elt; elt = lyst_next(elt))
     {
         /* Grab the current report */
         if((cur_rpt = (rpt_data_t*) lyst_data(elt)) == NULL)
@@ -395,6 +397,18 @@ void rpt_clear_lyst(Lyst reportLyst)
         }
     }
 
-    lyst_clear(reportLyst);
+    lyst_clear(*list);
+
+    if(destroy != 0)
+    {
+    	lyst_destroy(*list);
+    	*list = NULL;
+    }
+
+    if(mutex != NULL)
+    {
+    	unlockResource(mutex);
+    }
+
     DTNMP_DEBUG_EXIT("rpt_clear_lyst","->.", NULL);
 }

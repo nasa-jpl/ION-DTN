@@ -38,6 +38,7 @@
  **  --------  ------------   ---------------------------------------------
  **  10/21/11  E. Birrane     Code comments and functional updates.
  **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup.
+ **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs
  *****************************************************************************/
 
 #include "platform.h"
@@ -164,6 +165,7 @@ void mid_clear(mid_t *mid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/22/12  E. Birrane     Initial implementation,
+ *  06/25/13  E. Birrane     Removed references to priority field.
  *****************************************************************************/
 
 int mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms)
@@ -179,18 +181,20 @@ int mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms)
         return -1;
     }
 
+    /* \todo: Cleanup */
+    if(use_parms != 0)
+    {
     if(mid1->raw_size != mid2->raw_size)
     {
         return -1;
     }
-
+    }
     
     /* For now, we can just compare the raw version of the mid */
     /*result = memcmp(mid1->raw, mid2->raw, mid1->raw_size);*/
     /* Step 3: Check if flag and MID length bytes match. */
     if((mid1->flags == mid2->flags) &&
        (mid1->issuer == mid2->issuer) &&
-       (mid1->priority == mid2->priority) &&
        (mid1->tag == mid2->tag))
     {
     	result = oid_compare(mid1->oid, mid2->oid, use_parms);
@@ -213,7 +217,6 @@ int mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms)
  *
  * \param[in] type     The type of MID
  * \param[in] cat      The MID category
- * \param[in] priority The MID priority, or NULL for no priority.
  * \param[in] issuer   The MID issuer, or NULL for no issuer.
  * \param[in] tag      The MID tag, or NULL for no tag.
  * \param[in] oid      The OID encapsulated in the MID.
@@ -227,14 +230,16 @@ int mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/22/12  E. Birrane     Initial implementation,
+ *  06/17/13  E. Birrane     Updated to ION 3.1.3, switched to uvast
+ *  06/25/13  E. Birrane     Removed references to priority field.
  *****************************************************************************/
 
-mid_t *mid_construct(uint8_t type, uint8_t cat, uint64_t *priority,
-		             uint64_t *issuer, uint64_t *tag, oid_t *oid)
+mid_t *mid_construct(uint8_t type, uint8_t cat,
+		             uvast *issuer, uvast *tag, oid_t *oid)
 {
 	mid_t *mid = NULL;
-	DTNMP_DEBUG_ENTRY("mid_construct","(%#llx, %#llx, %#llx, %#llx, %#llx, %#llx",
-			         type, cat, (unsigned long) priority,
+	DTNMP_DEBUG_ENTRY("mid_construct","(%#llx, %#llx, %#llx, %#llx, %#llx",
+			         type, cat,
 			         (unsigned long) issuer, (unsigned long) tag,
 			         (unsigned long) oid);
 
@@ -261,14 +266,13 @@ mid_t *mid_construct(uint8_t type, uint8_t cat, uint64_t *priority,
 	/* Flag */
 	mid->flags =  (oid->type & 0x03) << 6;
 	mid->flags |= (tag != NULL) ? 0x20 : 0x00;
-	mid->flags |= (priority != NULL) ? 0x10 : 0x00;
+	mid->flags |= (issuer != NULL) ? 0x10 : 0x00;
 	mid->flags |= (cat & 0x03) << 2;
 	mid->flags |= (type & 0x03);
 
 	/* Shallow copies */
 	mid->type     = type;
 	mid->category = cat;
-	mid->priority = (priority != NULL) ? *priority : 0;
 	mid->issuer   = (issuer != NULL) ? *issuer : 0;
 	mid->tag      = (tag != NULL) ? *tag : 0;
 
@@ -381,11 +385,14 @@ mid_t *mid_copy(mid_t *src_mid)
  * \param[out] bytes_used   The # of bytes consumed in the deserialization.
  *
  * \par Notes:
+ * \todo: Allow a NULL bytes_used for cases where we are not deserializing
+ *        from a larger stream.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/22/12  E. Birrane     Initial implementation,
+ *  06/25/13  E. Birrane     Removed references to priority field.
  *****************************************************************************/
 mid_t *mid_deserialize(unsigned char *buffer,
 		               uint32_t  buffer_size,
@@ -451,29 +458,8 @@ mid_t *mid_deserialize(unsigned char *buffer,
     result->type = MID_GET_FLAG_TYPE(result->flags);
     result->category = MID_GET_FLAG_CAT(result->flags);
 
-    /* Step 5: Grab priority, if present. */
-    if(MID_GET_FLAG_PRI(result->flags))
-    {
-
-    	cur_bytes = utils_grab_sdnv(cursor, bytes_left, &(result->priority));
-        if(cur_bytes == 0)
-        {
-        	DTNMP_DEBUG_ERR("mid_deserialize","Can't grab priority.", NULL);
-        	mid_release(result);
-
-            DTNMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
-            return NULL;
-        }
-        else
-        {
-        	cursor += cur_bytes;
-        	bytes_left -= cur_bytes;
-        	*bytes_used += cur_bytes;
-        }
-    }
-
-    /* Step 6: Grab issuer, if present. Issuers MUST exist for non-atomic.*/
-    if(MID_GET_FLAG_CAT(result->flags) != MID_CAT_ATOMIC)
+    /* Step 5: Grab issuer, if present. Issuers MUST exist for non-atomic.*/
+    if(MID_GET_FLAG_ISS(result->flags))
     {
     	cur_bytes = utils_grab_sdnv(cursor, bytes_left, &(result->issuer));
         if( cur_bytes == 0)
@@ -592,11 +578,12 @@ mid_t *mid_deserialize(unsigned char *buffer,
  * software generates the MID initially, the serialized representation must
  * be created.
  *
- * \par +--------+----------+--------+--------+--------+
- *  | Flags  | Priority | Issuer |   OID  |   Tag  |
- *  | [BYTE] |  [SDNV]  | [SDNV] | [SDNV] | [SDNV] |
- *  |        |  (opt.)  | (opt.) |        | (opt)  |
- *  +--------+----------+--------+--------+--------+
+ * \par
+ *  +--------+--------+--------+--------+
+ *  | Flags  | Issuer |   OID  |   Tag  |
+ *  | [BYTE] | [SDNV] | [SDNV] | [SDNV] |
+ *  |        | (opt.) |        | (opt)  |
+ *  +--------+--------+--------+--------+
  *
  * \retval 0 - Failure
  *         !0 - Success serializing the MID.
@@ -613,11 +600,11 @@ mid_t *mid_deserialize(unsigned char *buffer,
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/22/12  E. Birrane     Initial implementation,
+ *  06/25/13  E. Birrane     Removed references to priority field.
  *****************************************************************************/
 
 int mid_internal_serialize(mid_t *mid)
 {
-	Sdnv pri;
 	Sdnv iss;
 	Sdnv tag;
 	uint32_t oid_size = 0;
@@ -642,9 +629,6 @@ int mid_internal_serialize(mid_t *mid)
 		return 0;
 	}
 
-
-	printf("EJB: OID size is %d.\n", oid_size);
-
 	/* Step 2: If there is a serialized version of the MID already, wipe it.*/
 	if(mid->raw != NULL)
 	{
@@ -654,7 +638,6 @@ int mid_internal_serialize(mid_t *mid)
 	mid->raw_size = 0;
 
 	/* Step 3: Build the SDNVs. */
-	encodeSdnv(&pri, mid->priority);
 	encodeSdnv(&iss, mid->issuer);
 	encodeSdnv(&tag, mid->tag);
 
@@ -662,13 +645,8 @@ int mid_internal_serialize(mid_t *mid)
 	/* Step 4: Figure out the size of the serialized MID. */
 	mid->raw_size = 1 + oid_size;
 
-	if(MID_GET_FLAG_PRI(mid->flags))
-	{
-		mid->raw_size += pri.length;
-	}
-
-	/* Non-atomic types need issuers...*/
-	if(MID_GET_FLAG_CAT(mid->flags) != MID_CAT_ATOMIC)
+	/* Add issuer if present. */
+	if(MID_GET_FLAG_ISS(mid->flags))
 	{
 		mid->raw_size += iss.length;
 	}
@@ -698,15 +676,8 @@ int mid_internal_serialize(mid_t *mid)
 	*cursor = mid->flags;
 	cursor++;
 
-	/* Add priority if present. */
-	if(MID_GET_FLAG_PRI(mid->flags))
-	{
-		memcpy(cursor, pri.text, pri.length);
-		cursor += pri.length;
-	}
-
-	/* Non-atomic types need issuers...*/
-	if(MID_GET_FLAG_CAT(mid->flags) != MID_CAT_ATOMIC)
+	/* Add issuer if present. */
+	if(MID_GET_FLAG_ISS(mid->flags))
 	{
 		memcpy(cursor, iss.text, iss.length);
 		cursor += iss.length;
@@ -765,6 +736,7 @@ int mid_internal_serialize(mid_t *mid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  11/14/12  E. Birrane     Initial implementation,
+ *  06/25/13  E. Birrane     Removed references to priority field.
  *****************************************************************************/
 
 char *mid_pretty_print(mid_t *mid)
@@ -850,7 +822,6 @@ char *mid_pretty_print(mid_t *mid)
 		   14 +   			/* Flag : <...> */
 		   18 +   			/* Type : <...> */
 		   17 +   			/* Cat : <...>  */
-		   17 +        		/* PRI : <...>  */
 		   17 +        		/* ISS : <...>  */
 		   7 + oid_size +   /* OID : <...>  */
 		   17 +             /* Tag : <...>  */
@@ -896,18 +867,9 @@ char *mid_pretty_print(mid_t *mid)
 	default: cursor += sprintf(cursor,"UNKNOWN\n"); break;
 	}
 
-	if(MID_GET_FLAG_PRI(mid->flags))
+	if(MID_GET_FLAG_ISS(mid->flags))
 	{
-		cursor += sprintf(cursor,"%llx\n",(long long unsigned int)mid->priority);
-	}
-	else
-	{
-		cursor += sprintf(cursor,"None.\n");
-	}
-
-	if(MID_GET_FLAG_CAT(mid->flags) != MID_CAT_ATOMIC)
-	{
-		cursor += sprintf(cursor,"%llx\n",(long long unsigned int)mid->issuer);
+		cursor += sprintf(cursor,UVAST_FIELDSPEC"\n",mid->issuer);
 	}
 	else
 	{
@@ -919,7 +881,7 @@ char *mid_pretty_print(mid_t *mid)
 
 	if(MID_GET_FLAG_TAG(mid->flags))
 	{
-		cursor += sprintf(cursor,"%llx\n",(long long unsigned int)mid->tag);
+		cursor += sprintf(cursor,UVAST_FIELDSPEC"\n",mid->tag);
 	}
 	else
 	{
@@ -1000,6 +962,8 @@ void mid_release(mid_t *mid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  11/14/12  E. Birrane     Initial implementation,
+ *  06/25/13  E. Birrane     Removed references to priority field. Removed
+ *                           type/cat checks as spec allows many new combos.
  *****************************************************************************/
 
 int mid_sanity_check(mid_t *mid)
@@ -1011,7 +975,7 @@ int mid_sanity_check(mid_t *mid)
 	if(mid == NULL)
 	{
         DTNMP_DEBUG_ERR("mid_sanity_check","NULL mid.", NULL);
-        result = 0;
+        return 0;
 	}
 
 	/* Range Checks */
@@ -1051,25 +1015,6 @@ int mid_sanity_check(mid_t *mid)
 	{
         DTNMP_DEBUG_ERR("mid_sanity_check","Bad type(%d)/cat.(%d) combo.",
         		        mid->type, mid->category);
-        result = 0;
-	}
-
-	/* Fields based on type/cat */
-
-	if (MID_GET_FLAG_PRI(mid->flags) &&
-		 ((mid->category == MID_CAT_ATOMIC) ||
-		  (mid->type == MID_TYPE_LITERAL) ||
-		  (mid->type == MID_TYPE_OPERATOR)))
-	{
-        DTNMP_DEBUG_ERR("mid_sanity_check","Pri set with type(%d)/cat(%d).",
-        		        mid->type, mid->category);
-        result = 0;
-	}
-
-	if ((mid->category == MID_CAT_ATOMIC) && MID_GET_FLAG_TAG(mid->flags))
-	{
-        DTNMP_DEBUG_ERR("mid_sanity_check","Tag flag set on atomic MID.",
-        		        NULL);
         result = 0;
 	}
 
@@ -1333,6 +1278,7 @@ void midcol_destroy(Lyst *mids)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  11/14/12  E. Birrane     Initial implementation,
+ *  06/17/13  E. Birrane     Updated to ION 3.1.3, moved to uvast
  *****************************************************************************/
 Lyst midcol_deserialize(unsigned char *buffer,
 		                uint32_t buffer_size,
@@ -1341,8 +1287,9 @@ Lyst midcol_deserialize(unsigned char *buffer,
 	unsigned char *cursor = NULL;
 	Lyst result = NULL;
 	uint32_t bytes = 0;
-	uint64_t num = 0;
+	uvast num = 0;
 	mid_t *cur_mid = NULL;
+	uint32_t i = 0;
 
 	DTNMP_DEBUG_ENTRY("midcol_deserialize","(%#llx,%d,%#llx)",
 			          (unsigned long) buffer, buffer_size,
@@ -1384,7 +1331,6 @@ Lyst midcol_deserialize(unsigned char *buffer,
 	}
 
 	/* Step 3: Grab Mids. */
-	uint32_t i;
 	for(i = 0; i < num; i++)
 	{
 		/* Deserialize ith MID. */

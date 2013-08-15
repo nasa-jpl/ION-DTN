@@ -1,8 +1,9 @@
 SOURCES = ../shared/adm/*.c ../shared/msg/*.c ../shared/utils/*.c ../shared/primitives/*.c ./*.c 
-IONDIR = ../../
+IONDIR = /home/apluser/ion/ion-2013-08-02/ion-open-source/
+OPTS = -Wno-write-strings -g 
 
 all:
-	gcc -Wno-write-strings -m64 -g \
+	g++ ${OPTS} \
 	-I. -I.. \
 	-I${IONDIR}/ici/include \
 	-I${IONDIR}/ltp/include \
@@ -11,8 +12,11 @@ all:
 	-I${IONDIR}/bp/library \
 	-I${IONDIR}/ici/library \
 	-I/usr/local/include \
+	-L${IONDIR}/ \
 	-L/usr/local/lib \
 	-lbp -lici -lltp \
 	-DMAXPATHLEN=2048 \
-	${SOURCES} \
-	-o nm_agent
+	-c ${SOURCES} 
+
+	g++ -o nm_agent *.o -lltp -lbp -lici
+
