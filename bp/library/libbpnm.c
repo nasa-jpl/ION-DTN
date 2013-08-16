@@ -291,7 +291,7 @@ void    bpnm_disposition_get(NmbpDisposition * results)
 	    for (elt2 = sdr_list_first(sdr, protocol.outducts); elt2;
                     elt2 = sdr_list_next(sdr, elt2))
 	    {
-	        sdr_read(sdr, (char *) & duct, sdr_list_data(sdr, elt),
+	        sdr_read(sdr, (char *) & duct, sdr_list_data(sdr, elt2),
                         sizeof(Outduct));
                 results->currentForwardPending
 		        += sdr_list_length(sdr, duct.urgentQueue);
@@ -320,7 +320,7 @@ void    bpnm_disposition_get(NmbpDisposition * results)
 	    for (elt2 = sdr_list_first(sdr, scheme.endpoints); elt2;
                     elt2 = sdr_list_next(sdr, elt2))
 	    {
-	        sdr_read(sdr, (char *) & endpoint, sdr_list_data(sdr, elt),
+	        sdr_read(sdr, (char *) & endpoint, sdr_list_data(sdr, elt2),
                         sizeof(Endpoint));
                 results->currentReassemblyPending
 		        += sdr_list_length(sdr, endpoint.incompletes);

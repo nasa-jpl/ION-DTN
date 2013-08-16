@@ -715,7 +715,6 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	sdr_list_delete(sdr, dlvElt, (SdrListDeleteFn) NULL, NULL);
 	bundle.dlvQueueElt = 0;
 	bundle.payload.content = 0;
-	bundle.payload.length = 0;
 	sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 	bpEndpointTally(vpoint, BP_ENDPOINT_DELIVERED, bundle.payload.length);
 	if (bpDestroyBundle(bundleAddr, 0) < 0)

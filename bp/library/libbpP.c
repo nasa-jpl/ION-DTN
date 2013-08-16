@@ -4705,6 +4705,12 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	CHKERR(oldBundle);
 	CHKERR(newBundle);
 	CHKERR(newBundleObj);
+	if (oldBundle->payload.content == 0)
+	{
+		putErrmsg("Nothing to clone.", utoa(oldBundle->payload.length));
+		return -1;
+	}
+
 	if (length == 0)	/*	"Clone entire payload."		*/
 	{
 		length = oldBundle->payload.length;
