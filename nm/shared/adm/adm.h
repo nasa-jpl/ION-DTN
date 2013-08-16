@@ -177,11 +177,13 @@ char*        adm_print_string(uint8_t* buffer, uint64_t buffer_len, uint64_t dat
 char*        adm_print_string_list(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
 char*        adm_print_unsigned_long(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
 char*        adm_print_unsigned_long_list(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
+char*        adm_print_uvast(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
 
 uint32_t     adm_size_string(uint8_t* buffer, uint64_t buffer_len);
 uint32_t     adm_size_string_list(uint8_t* buffer, uint64_t buffer_len);
 uint32_t     adm_size_unsigned_long(uint8_t* buffer, uint64_t buffer_len);
 uint32_t     adm_size_unsigned_long_list(uint8_t* buffer, uint64_t buffer_len);
+uint32_t     adm_size_uvast(uint8_t* buffer, uint64_t buffer_len);
 
 
 #endif /* ADM_H_*/

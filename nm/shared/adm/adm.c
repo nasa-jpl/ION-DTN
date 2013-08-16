@@ -125,8 +125,8 @@ void adm_add_datadef(char *name,
 
 	new_entry->num_parms = num_parms;
 	new_entry->collect = NULL;
-	new_entry->to_string = (to_string == NULL) ? adm_print_unsigned_long : to_string;
-	new_entry->get_size = (get_size == NULL) ? adm_size_unsigned_long : get_size;
+	new_entry->to_string = (to_string == NULL) ? adm_print_uvast : to_string;
+	new_entry->get_size = (get_size == NULL) ? adm_size_uvast : get_size;
 
 	/* Step 4 - Add the new entry. */
 	lyst_insert_last(gAdmData, new_entry);
@@ -1234,6 +1234,79 @@ char *adm_print_unsigned_long_list(uint8_t* buffer, uint64_t buffer_len, uint64_
 
 /******************************************************************************
  *
+ * \par Function Name: adm_print_uvast
+ *
+ * \par Generates a single string representation of a uvast.
+ *
+ * \retval NULL Failure
+ *         !NULL The string representation of the ADM entry value.
+ *
+ * \param[in]  buffer      The start of the ADM entry value.
+ * \param[in]  buffer_len  Length of the given buffer.
+ * \param[in]  data_len    Length of data item at head of the buffer.
+ * \param[out] str_len     Length of returned string from print function.
+ *
+ * \par Notes:
+ *		1. The string representation is allocated on the heap and must be
+ *		   freed when no longer necessary.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/16/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
+char *adm_print_uvast(uint8_t* buffer, uint64_t buffer_len,
+		              uint64_t data_len, uint32_t *str_len)
+{
+  char *result;
+  uint64_t temp = 0;
+
+  DTNMP_DEBUG_ENTRY("adm_print_uvast", "(%#llx, %ull, %ull, %#llx)", buffer, buffer_len, data_len, str_len);
+
+  /* Step 0 - Sanity Checks. */
+  if((buffer == NULL) || (str_len == NULL))
+  {
+	  DTNMP_DEBUG_ERR("adm_print_uvast", "Bad Args.", NULL);
+	  DTNMP_DEBUG_EXIT("adm_print_uvast", "->NULL.", NULL);
+	  return NULL;
+  }
+
+  /* Step 1 - Make sure we have buffer space. */
+  if(data_len > buffer_len)
+  {
+	 DTNMP_DEBUG_ERR("adm_print_uvast","Data Len %d > buf len %d.",
+			         data_len, buffer_len);
+	 *str_len = 0;
+
+	 DTNMP_DEBUG_EXIT("adm_print_uvast", "->NULL.", NULL);
+	 return NULL;
+  }
+
+  /* Step 2 - Size the string and allocate it.
+   * \todo: A better estimate should go here. */
+  *str_len = 32;
+
+  if((result = (char *) MTAKE(*str_len)) == NULL)
+  {
+		 DTNMP_DEBUG_ERR("adm_print_uvast","Can't alloc %d bytes.",
+				         *str_len);
+		 *str_len = 0;
+
+		 DTNMP_DEBUG_EXIT("adm_print_uvast", "->NULL.", NULL);
+		 return NULL;
+  }
+
+  /* Step 3 - Copy data and return. */
+  memcpy(&temp, buffer, data_len);
+  isprintf(result,*str_len,UVAST_FIELDSPEC, temp);
+
+  DTNMP_DEBUG_EXIT("adm_print_uvast", "->%#llx.", result);
+  return result;
+}
+
+
+/******************************************************************************
+ *
  * \par Function Name: adm_size_string
  *
  * \par Calculates size of a string, as an ADM sizing callback.
@@ -1414,4 +1487,43 @@ uint32_t adm_size_unsigned_long_list(uint8_t* buffer, uint64_t buffer_len)
 	DTNMP_DEBUG_EXIT("adm_size_string","->%ul", result);
 	return result;
 }
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_size_uvast
+ *
+ * \par Calculates size of a uvast, as an ADM sizing callback.
+ *
+ * \retval Size of the ADM value entry.
+ *
+ * \param[in]  buffer      The start of the ADM entry value.
+ * \param[in]  buffer_len  Length of the given buffer.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/16/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
+uint32_t adm_size_uvast(uint8_t* buffer, uint64_t buffer_len)
+{
+	uint32_t len = 0;
+
+	DTNMP_DEBUG_ENTRY("adm_size_uvast","(%#llx, %ull)", buffer, buffer_len);
+
+	/* Step 0 - Sanity Check. */
+	if(buffer == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_size_uvast","Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("adm_size_uvast","->0.", NULL);
+		return 0;
+	}
+
+	DTNMP_DEBUG_EXIT("adm_size_uvast","->%ul", sizeof(uvast));
+	return sizeof(uvast);
+}
+
 

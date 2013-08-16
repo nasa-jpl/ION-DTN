@@ -17,10 +17,10 @@ void adm_bp_init()
 
 	/* Node State Information */
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 1, mid_str);
-	adm_add_datadef("BP NODE ID",                  mid_str, 0,  NULL, bp_size_node_id);
+	adm_add_datadef("BP NODE ID",                  mid_str, 0,  adm_print_string, adm_size_string/*bp_size_node_id*/);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 2, mid_str);
-	adm_add_datadef("BP_NODE_VER",                 mid_str, 0,  NULL, bp_size_node_version);
+	adm_add_datadef("BP_NODE_VER",                 mid_str, 0,  adm_print_string, adm_size_string/*bp_size_node_version*/);
 
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 3, mid_str);
 	adm_add_datadef("BP_NODE_AVAIL_STOR",          mid_str, 0,  NULL, NULL);

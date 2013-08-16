@@ -1725,9 +1725,16 @@ nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
 					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
 					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
 					nm/shared/utils/ion_if.c nm/shared/utils/utils.c \
-nm/shared/adm/adm_agent.c
+nm/shared/adm/adm_agent.c nm/mgr/nm_mgr_db.c
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -Wno-unused-variable -g
+
+
+# Use this to build the DTNMP Manager WITHOUT DB Support. 
+nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -Wno-unused-variable 
+
+# Use this to build the DTNMP Manager WITH DB Support.
+#nm_mgr_LDFLAGS = -lmysqlclient
+#nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
 
 
 ##############
