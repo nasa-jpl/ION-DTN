@@ -26,6 +26,7 @@
  **  --------  ------------    ---------------------------------------------
  **  08/31/11  V. Ramachandran Initial Implementation
  **  01/10/13  E. Birrane      Updates to lastest version of DTNMP spec.
+ **  06/27/13  E. Birrane      Support persisted rules.
  *****************************************************************************/
 
 #include "pthread.h"
@@ -44,6 +45,8 @@
 #include "shared/msg/msg_def.h"
 #include "shared/msg/msg_ctrl.h"
 #include "shared/primitives/rules.h"
+#include "shared/primitives/instr.h"
+
 #include "shared/utils/utils.h"
 
 #include "ingest.h"
@@ -97,12 +100,6 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
 
         char *mid_str = mid_to_string(cur_mid);
 
-        /**EJBDEBUG
-        char *temp = mid_pretty_print(cur_mid);
-        fprintf(stderr,"EJB %s", temp);
-        MRELEASE(temp);
-         **/
-
         /* Is this a valid MID? */
         if(mid_sanity_check(cur_mid) == 0)
         {
@@ -113,8 +110,8 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
         }
 
         /* Do we know this MID? */
-        if((adm_find(cur_mid) == NULL) &&
-           (def_find_by_id(custom_defs, &custom_defs_mutex, cur_mid) == NULL))
+        if((adm_find_datadef(cur_mid) == NULL) &&
+           (def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), cur_mid) == NULL))
         {
             DTNMP_DEBUG_ERR("rx_validate_mid_mc","Unknown MID %s.", mid_str);
             DTNMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
@@ -165,7 +162,7 @@ int rx_validate_rule(rule_time_prod_t *rule)
     }
 
     /* Is the interval correct? */
-    if(rule->interval_ticks == 0)
+    if(rule->desc.interval_ticks == 0)
     {
     	DTNMP_DEBUG_ERR("rx_validate_rule","Bad interval ticks: 0.", NULL);
     	DTNMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
@@ -173,9 +170,9 @@ int rx_validate_rule(rule_time_prod_t *rule)
     }
 
     /* Do we understand the sender EID? */
-    if(memcmp(&(rule->sender), &(manager_eid), MAX_EID_LEN) != 0)
+    if(memcmp(&(rule->desc.sender), &(manager_eid), MAX_EID_LEN) != 0)
     {
-    	DTNMP_DEBUG_ERR("rx_validate_rule","Unknown EID: %s.", rule->sender.name);
+    	DTNMP_DEBUG_ERR("rx_validate_rule","Unknown EID: %s.", rule->desc.sender.name);
     	DTNMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
     	return 0;
     }
@@ -219,10 +216,11 @@ void *rx_thread(void *threadId) {
     uint32_t bytes = 0;
     uint32_t i = 0;
     pdu_header_t *hdr = NULL;
-    //pdu_acl_t *acl = NULL;
+    pdu_acl_t *acl = NULL;
     uint32_t size = 0;
     pdu_metadata_t meta;
-    uint64_t val;
+    uvast val;
+    time_t group_timestamp = 0;
 
     /* 
      * g_running controls the overall execution of threads in the
@@ -238,16 +236,21 @@ void *rx_thread(void *threadId) {
             DTNMP_DEBUG_INFO("rx_thread","Received buf (%x) of size %d",
             		         (unsigned long) buf, size);
 
-            //print_hex(buf,size);
-
-            /* Grab # messages in this bundle. */
+            /* Grab # messages and timestamp for this group. */
             cursor = buf;
+
             bytes = utils_grab_sdnv(cursor, size, &val);
             num_msgs = val;
             cursor += bytes;
             size -= bytes;
 
-            DTNMP_DEBUG_INFO("rx_thread","Bundle had %d msgs", num_msgs);
+            bytes = utils_grab_sdnv(cursor, size, &val);
+            group_timestamp = val;
+            cursor += bytes;
+            size -= bytes;
+
+            DTNMP_DEBUG_INFO("rx_thread","Group had %d msgs", num_msgs);
+            DTNMP_DEBUG_INFO("rx_thread","Group time stamp %lu", (unsigned long) group_timestamp);
 
             /* For each message in the bundle. */
             for(i = 0; i < num_msgs; i++)
@@ -332,7 +335,14 @@ void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uin
 
 //    def_print_gen(rpt_def);
 	DTNMP_DEBUG_INFO("rx_handle_rpt_def","Adding new report definition.", NULL);
-	addCustomReportDefinition(rpt_def);
+
+	agent_db_report_persist(rpt_def);
+
+	agent_vdb_reports_init(getIonsdr());
+	ADD_REPORT(rpt_def);
+	gAgentInstr.num_rpt_defs++;
+
+
 }
 
 void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
@@ -359,14 +369,16 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
 
     /* \todo: Handle relative and absolute times */
 	ctrl->countdown_ticks = ctrl->time;
-	ctrl->state = CONTROL_ACTIVE;
-	strcpy(ctrl->sender.name, meta->senderEid.name);
+	ctrl->desc.state = CONTROL_ACTIVE;
+	strcpy(ctrl->desc.sender.name, meta->senderEid.name);
 
 
     *bytes_used = bytes;
 
 	DTNMP_DEBUG_INFO("rx_handle_exec","Performing control.", NULL);
-	addControl(ctrl);
+	ADD_CTRL(ctrl);
+	gAgentInstr.num_ctrls++;
+
 }
 
 void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
@@ -380,15 +392,15 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
 
     if((new_rule = ctrl_deserialize_time_prod_entry(cursor, size, &bytes)) != NULL)
     {
-    	new_rule->num_evals = new_rule->count;
-    	new_rule->interval_ticks = new_rule->period;
-    	new_rule->countdown_ticks = new_rule->interval_ticks;
+    	new_rule->desc.num_evals = new_rule->count;
+    	new_rule->desc.interval_ticks = new_rule->period;
+    	new_rule->countdown_ticks = new_rule->desc.interval_ticks;
 
-    	strcpy(new_rule->sender.name, meta->senderEid.name);
+    	strcpy(new_rule->desc.sender.name, meta->senderEid.name);
 
-        if(new_rule->num_evals == 0)
+        if(new_rule->desc.num_evals == 0)
         {
-            new_rule->num_evals = DTNMP_RULE_EXEC_ALWAYS;
+            new_rule->desc.num_evals = DTNMP_RULE_EXEC_ALWAYS;
         }
 
         *bytes_used = bytes;
@@ -403,7 +415,12 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
     {
     	DTNMP_DEBUG_INFO("rx_handle_time_prod",
     			         "Adding new production rule.", NULL);
-    	addRule(new_rule);
+
+    	agent_db_rule_persist(new_rule);
+
+    	ADD_RULE(new_rule);
+    	gAgentInstr.num_time_rules++;
+
     }
 
 }
@@ -430,6 +447,11 @@ void rx_handle_macro_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
     *bytes_used = bytes;
 
 	DTNMP_DEBUG_INFO("rx_handle_macro_def","Adding new report definition.", NULL);
-	add_macro_definition(macro_def);
+
+	agent_db_macro_persist(macro_def);
+	ADD_MACRO(macro_def);
+	gAgentInstr.num_macros++;
+
+
 }
 

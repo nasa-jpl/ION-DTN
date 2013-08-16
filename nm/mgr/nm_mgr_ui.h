@@ -52,16 +52,16 @@ extern int gContext;
 
 mid_t *ui_build_mid(char *mid_str);
 
-void ui_clear_reports(eid_t *agent_eid);
+void ui_clear_reports(agent_t* agent);
 
-eid_t *ui_select_agent();
+agent_t *ui_select_agent();
 
-void ui_construct_ctrl_by_idx(eid_t *agent_eid);
-void ui_construct_time_rule_by_idx(eid_t *agent_eid);
-void ui_construct_time_rule_by_mid(eid_t *agent_eid);
+void ui_construct_ctrl_by_idx(agent_t* agent);
+void ui_construct_time_rule_by_idx(agent_t* agent);
+void ui_construct_time_rule_by_mid(agent_t* agent);
 
-void ui_define_macro(eid_t *agent_eid);
-void ui_define_report(eid_t *agent_eid);
+void ui_define_macro(agent_t* agent);
+void ui_define_report(agent_t* agent);
 void ui_define_mid_params(char *name, int num_parms, mid_t *mid);
 
 void ui_register_agent();
@@ -85,8 +85,8 @@ void ui_print_menu_def();
 void ui_print_menu_main();
 void ui_print_menu_rpt();
 void ui_print_mids();
-void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint64_t *data_used, adm_entry_t *adu);
-void ui_print_reports(eid_t *agent_eid);
+void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint64_t *data_used, adm_datadef_t *adu);
+void ui_print_reports(agent_t *agent);
 
 void ui_run_tests();
 

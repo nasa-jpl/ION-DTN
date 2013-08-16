@@ -32,6 +32,7 @@
  **  --------  ------------   ---------------------------------------------
  **  10/21/11  E. Birrane     Code comments and functional updates.
  **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup.
+ **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs
  *****************************************************************************/
 
 #ifndef MID_H_
@@ -55,14 +56,14 @@
  *
  * Bits 0-1:  The type of component identified by the MID
  * Bits 2-3:  The category of component identified by the MID
- * Bit 4: The priority flag associated with the MID
+ * Bit 4: The issuer flag associated with the MID
  * Bit 5: The tag flag associated with the MID
  * Bits 6-7: The OID type encapsulated within the MID
  *
  */
 #define MID_FLAG_TYPE       (0x03)
 #define MID_FLAG_CAT        (0x0C)
-#define MID_FLAG_PRIORITY   (0x10)
+#define MID_FLAG_ISS        (0x10)
 #define MID_FLAG_TAG        (0x20)
 #define MID_FLAG_OID        (0xC0)
 
@@ -111,7 +112,7 @@
 
 #define MID_GET_FLAG_TYPE(flag) (flag & MID_FLAG_TYPE)
 #define MID_GET_FLAG_CAT(flag)  ((flag & MID_FLAG_CAT) >> 2)
-#define MID_GET_FLAG_PRI(flag)  ((flag & MID_FLAG_PRIORITY) >> 4)
+#define MID_GET_FLAG_ISS(flag)  ((flag & MID_FLAG_ISS) >> 4)
 #define MID_GET_FLAG_TAG(flag)  ((flag & MID_FLAG_TAG) >> 5)
 #define MID_GET_FLAG_OID(flag)  ((flag & MID_FLAG_OID) >> 6)
 
@@ -144,18 +145,15 @@ typedef struct {
 
     /** Category of the MID, one of MID_CAT_[ATOMIC|COMPUTED|COLLECTION]. */
     uint8_t category;
-
-    /** Priority, capped to 64 bits */
-    uint64_t priority;    
     
-    /** Issuer, capped to 64 bits */
-    uint64_t issuer;    
+    /** Issuer, capped to largest atomic data type allowed by architecture */
+    uvast issuer;    
     
     /** OID */
     oid_t *oid;
     
-    /** Tag, capped at 64 bits */
-    uint64_t tag;
+    /** Tag, capped to largest atomic data type allowed by architecture */
+    uvast tag;
         
     /** The complete SDNV-encoded serialized MID. */
     uint8_t* raw;
@@ -179,8 +177,8 @@ void     mid_clear(mid_t *mid);
 
 int      mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms);
 
-mid_t*   mid_construct(uint8_t type, uint8_t cat, uint64_t *priority,
-		               uint64_t *issuer, uint64_t *tag, oid_t *oid);
+mid_t*   mid_construct(uint8_t type, uint8_t cat,
+		               uvast *issuer, uvast *tag, oid_t *oid);
 
 mid_t*   mid_copy(mid_t *src_mid);
 

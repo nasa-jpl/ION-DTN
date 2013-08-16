@@ -313,6 +313,7 @@ Lyst utils_datacol_copy(Lyst col)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/22/12  E. Birrane     Initial implementation,
+ *  06/17/13  E. Birrane     Updated to ION 3.1.3, moved to uvast data type.
  *****************************************************************************/
 
 Lyst utils_datacol_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_used)
@@ -320,8 +321,9 @@ Lyst utils_datacol_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *
 	unsigned char *cursor = NULL;
 	Lyst result = NULL;
 	uint32_t bytes = 0;
-	uint64_t num = 0;
-	uint64_t len = 0;
+	uvast num = 0;
+	uvast len = 0;
+	uint32_t i = 0;
 
 	DTNMP_DEBUG_ENTRY("utils_datacol_deserialize","(%#llx,%d,%#llx)",
 			          (unsigned long) buffer, buffer_size,
@@ -363,7 +365,6 @@ Lyst utils_datacol_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *
 	}
 
 	/* Step 3: Grab entries. */
-	uint32_t i;
 	for(i = 0; i < num; i++)
 	{
 		datacol_entry_t *entry = NULL;
@@ -657,7 +658,7 @@ int8_t utils_grab_byte(unsigned char *cursor,
  *
  * \param[in,out]  cursor      Pointer into current buffer.
  * \param[in]      size        Remaining size of the buffer.
- * \param[out]     result      The extracted byte.
+ * \param[out]     result      The extracted value.
  *
  * \par Notes:
  *
@@ -665,29 +666,26 @@ int8_t utils_grab_byte(unsigned char *cursor,
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/14/12  E. Birrane     Initial implementation,
+ *  06/17/13  E. Birrane     Updated to ION 3.1.3, added uvast type.
  *****************************************************************************/
 
 uint32_t utils_grab_sdnv(unsigned char *cursor,
 		                 uint32_t size,
-		                 uint64_t *result)
+		                 uvast *result)
 {
 	int result_len = 0;
-	uvast tmp;
 
 	DTNMP_DEBUG_ENTRY("utils_grab_sdnv","(%x,%d,%x)",
 			          (unsigned long) cursor,
 			          (unsigned long) size,
 			          (unsigned long) result);
 
-	*result = 0;
-
-    if((result_len = decodeSdnv(&tmp, cursor)) == 0)
+    if((result_len = decodeSdnv(result, cursor)) == 0)
     {
         DTNMP_DEBUG_ERR("utils_grab_sdnv","Bad SDNV extract.", NULL);
 		DTNMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
         return 0;
     }
-    *result=tmp;
 
     /* Did we go too far? */
 	if((size-result_len) < 0)
@@ -829,6 +827,7 @@ uint8_t *utils_string_to_hex(unsigned char *value, uint32_t *size)
 	char tmp_s[3];
 	int len = 0;
 	int success = 0;
+	int pad = 0; 
 
 	DTNMP_DEBUG_ENTRY("utils_string_to_hex","(%#llx, %#llx)", value, size);
 
@@ -852,7 +851,8 @@ uint8_t *utils_string_to_hex(unsigned char *value, uint32_t *size)
 	}
 	else
 	{
-		*size = (len/2) + 1;
+  	*size = (len/2) + 1;
+       pad = 1;
 	}
 
 	if((result = (uint8_t *) MTAKE(*size)) == NULL)
@@ -866,12 +866,29 @@ uint8_t *utils_string_to_hex(unsigned char *value, uint32_t *size)
 
 	/* Step 2 - For each byte, copy in the nibbles. */
 	tmp_s[2] = '\0';
-	int i;
-	for(i = 0; i < len; i+=2)
-	{
-		memcpy(tmp_s, &(value[i]), 2);
-		result[i/2] = utils_atox(tmp_s, &success);
+	int incr = 1;
+    int base = 0;
+    int i = 0;
 
+	for(i = 0; i < len;)
+	{
+		if(pad == 1)
+		{
+			tmp_s[0] = '0';
+			tmp_s[1] = value[i];
+			pad = 0;
+			incr = 1;
+			base = 1;
+		}
+		else
+		{
+			memcpy(tmp_s, &(value[i]), 2);
+			incr = 2;
+		}
+
+		result[(i+base)/2] = utils_atox(tmp_s, &success);
+	
+		i += incr;
 		if(success == 0)
 		{
 			DTNMP_DEBUG_ERR("utils_string_to_hex","Can't AtoX %s.", tmp_s);

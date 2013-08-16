@@ -55,7 +55,7 @@
 int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry)
 {
     int result = 0;
-    adm_entry_t *adm_def = NULL;
+    adm_datadef_t *adm_def = NULL;
     def_gen_t *rpt_def = NULL;
     char *msg = NULL;
 
@@ -75,13 +75,12 @@ int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry)
     DTNMP_DEBUG_INFO("ldc_fill_report_data","Gathering report data for MID: %s",
     		         msg);
 
-    if((adm_def = adm_find(id)) != NULL)
+    if((adm_def = adm_find_datadef(id)) != NULL)
     {
     	DTNMP_DEBUG_INFO("ldc_fill_report_data","Filling pre-defined.", NULL);
     	result = ldc_fill_atomic(adm_def,id,entry);
-    //EJB	entry->id = mid_copy(id);
     }
-    else if((rpt_def = def_find_by_id(custom_defs, &custom_defs_mutex, id)) != NULL)
+    else if((rpt_def = def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), id)) != NULL)
     {
        	DTNMP_DEBUG_INFO("ldc_fill_report_data","Filling custom.", NULL);
        	result = ldc_fill_custom(rpt_def, entry);
@@ -175,9 +174,6 @@ int ldc_fill_custom(def_gen_t *rpt_def, rpt_data_entry_t *rpt)
     {
     	temp = (rpt_data_entry_t *) lyst_data(elt);
 
-    	// EJB: Print.
-    	//rpt_print_data_entry(temp);
-
     	/* Copy into the contents area. */
     	memcpy(&(rpt->contents[idx]), temp->contents, temp->size);
         idx += temp->size;
@@ -202,8 +198,12 @@ int ldc_fill_custom(def_gen_t *rpt_def, rpt_data_entry_t *rpt)
  * \param[in]  id       Full ID (for OID parameters).
  * \param[out] rpt      The filled-in report.
  */
-int ldc_fill_atomic(adm_entry_t *adm_def, mid_t *id, rpt_data_entry_t *rpt)
+int ldc_fill_atomic(adm_datadef_t *adm_def, mid_t *id, rpt_data_entry_t *rpt)
 {
+    int i = 0;
+    char *msg = NULL;
+    mid_t *mid = NULL;
+    uint32_t temp = 0;
 
     DTNMP_DEBUG_ENTRY("ldc_fill_atomic","(0x%x, 0x%x)",
     			      (unsigned long) adm_def, (unsigned long) rpt);
@@ -216,7 +216,6 @@ int ldc_fill_atomic(adm_entry_t *adm_def, mid_t *id, rpt_data_entry_t *rpt)
         return -1;
     }
 
-//    rpt->id = mid_copy(id);//EJBmid_deserialize(adm_def->mid, MAX_MID, &temp);
     if((rpt->id = mid_copy(id)) == NULL)
     {
         DTNMP_DEBUG_ERR("ldc_fill_atomic","Unable to copy MID.", NULL);
@@ -225,7 +224,9 @@ int ldc_fill_atomic(adm_entry_t *adm_def, mid_t *id, rpt_data_entry_t *rpt)
         return -1;
     }
 
-    rpt->contents = adm_def->collect(id->oid->params, &(rpt->size));
+    expr_result_t result = adm_def->collect(id->oid->params);
+    rpt->contents = result.value;
+    rpt->size = result.length;
 
     if((rpt->size == 0) || (rpt->contents == NULL))
     {

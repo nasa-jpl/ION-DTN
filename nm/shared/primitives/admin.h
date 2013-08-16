@@ -25,6 +25,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  01/17/13  E. Birrane     Redesign of messaging architecture.
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
  *****************************************************************************/
 
 
@@ -95,7 +96,7 @@ typedef struct {
  */
 typedef struct {
     mid_t *code;          /**> Status Code. */
-	uint32_t time;        /**> Time when code occurred. */
+	time_t time;          /**> Time when code occurred. */
 	Lyst generators;      /**> MID list of generators. */
 } adm_stat_msg_t;
 
@@ -113,7 +114,7 @@ adm_reg_agent_t *msg_create_reg_agent(eid_t eid);
 adm_rpt_policy_t *msg_create_rpt_policy(uint8_t mask);
 
 adm_stat_msg_t *msg_create_stat_msg(mid_t *code,
-								    uint32_t time,
+								    time_t time,
 									Lyst generators);
 
 /* Release functions.*/

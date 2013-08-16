@@ -287,10 +287,10 @@ uint8_t *rpt_serialize_data(rpt_data_t *msg, uint32_t *len)
 	if(success == 0)
 	{
 		DTNMP_DEBUG_ERR("rpt_serialize_data","Can't serialize reports.",NULL);
-		int j;
-		for(j = 0; j < num_rpts; j++)
+
+		for(i = 0; i < num_rpts; i++)
 		{
-			MRELEASE(temp_space[j]);
+			MRELEASE(temp_space[i]);
 		}
 		MRELEASE(temp_space);
 		MRELEASE(temp_len);
@@ -309,10 +309,10 @@ uint8_t *rpt_serialize_data(rpt_data_t *msg, uint32_t *len)
 	{
 		DTNMP_DEBUG_ERR("rpt_serialize_data","Can't alloc %d bytes.",
 				        *len);
-		int j;
-		for(j = 0; j < num_rpts; j++)
+
+		for(i = 0; i < num_rpts; i++)
 		{
-			MRELEASE(temp_space[j]);
+			MRELEASE(temp_space[i]);
 		}
 		MRELEASE(temp_space);
 		MRELEASE(temp_len);
@@ -335,12 +335,11 @@ uint8_t *rpt_serialize_data(rpt_data_t *msg, uint32_t *len)
 	memcpy(cursor, num_rpts_sdnv.text, num_rpts_sdnv.length);
 	cursor += num_rpts_sdnv.length;
 
-	int j;
-	for(j = 0; j < num_rpts; j++)
+	for(i = 0; i < num_rpts; i++)
 	{
-		memcpy(cursor,temp_space[j], temp_len[j]);
-		cursor += temp_len[j];
-		MRELEASE(temp_space[j]);
+		memcpy(cursor,temp_space[i], temp_len[i]);
+		cursor += temp_len[i];
+		MRELEASE(temp_space[i]);
 	}
 	MRELEASE(temp_space);
 	MRELEASE(temp_len);
@@ -443,9 +442,10 @@ rpt_data_t *rpt_deserialize_data(uint8_t *cursor,
 		                       	 uint32_t *bytes_used)
 {
 	rpt_data_t *result = NULL;
+	int i = 0;
 	uint32_t bytes = 0;
-	uint64_t num_rpts = 0;
-	uint64_t tmp_val;
+	uvast num_rpts = 0;
+	uvast tmp_val;
 	rpt_data_entry_t *cur_entry = NULL;
 
 
@@ -502,8 +502,6 @@ rpt_data_t *rpt_deserialize_data(uint8_t *cursor,
 		result->time = tmp_val;
 	}
 
-//	fprintf(stderr,"\nEJB: Received time of %d\n", result->time);
-
 	/* Grab the # reports. */
 	if((bytes = utils_grab_sdnv(cursor, size, &tmp_val)) == 0)
 	{
@@ -523,10 +521,7 @@ rpt_data_t *rpt_deserialize_data(uint8_t *cursor,
 		num_rpts = tmp_val;
 	}
 
-//	fprintf(stderr,"\nEJB: Received # rpts of %lld\n", num_rpts);
-
 	/* For each report, deserialize and add it to the lyst. */
-	int i;
 	for(i = 0; i < num_rpts; i++)
 	{
 		/* Allocate new entry type. */
@@ -560,12 +555,6 @@ rpt_data_t *rpt_deserialize_data(uint8_t *cursor,
 			*bytes_used += bytes;
 		}
 
-		/**EJBDEBUG
-		char *ed_mp = mid_pretty_print(cur_entry->id);
-		fprintf(stderr,"\n: EJB: GRabbed MID %s\n", ed_mp);
-		MRELEASE(ed_mp);
-		 **/
-
 		/* Grab the size. */
 		if((bytes = utils_grab_sdnv(cursor, size, &tmp_val)) == 0)
 		{
@@ -585,8 +574,6 @@ rpt_data_t *rpt_deserialize_data(uint8_t *cursor,
 			*bytes_used += bytes;
 			cur_entry->size = tmp_val;
 		}
-
-//		fprintf(stderr,"\nEJB: size is %lld\n",cur_entry->size);
 
 		/* Allocate the size. */
 		if((cur_entry->contents = (uint8_t*)MTAKE(cur_entry->size)) == NULL)
@@ -609,8 +596,6 @@ rpt_data_t *rpt_deserialize_data(uint8_t *cursor,
 
 		lyst_insert_last(result->reports, cur_entry);
 	}
-
-//	fprintf(stderr,"\nEJB: total size used is %d\n",*bytes_used);
 
 	result->size = *bytes_used;
 

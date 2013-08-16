@@ -25,6 +25,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  01/17/13  E. Birrane     Redesign of messaging architecture.
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
  *****************************************************************************/
 
 #include "platform.h"
@@ -135,8 +136,8 @@ adm_rpt_policy_t *msg_create_rpt_policy(uint8_t mask)
  * \param[in] generators The MIDs causing the status.
  */
 adm_stat_msg_t *msg_create_stat_msg(mid_t *code,
-										uint32_t time,
-										Lyst generators)
+									time_t time,
+									Lyst generators)
 {
 	adm_stat_msg_t *result = NULL;
 

@@ -85,7 +85,7 @@ uint8_t *ctrl_serialize_time_prod_entry(rule_time_prod_t *msg, uint32_t *len)
 	/* Step 2: Figure out the length. */
 	*len = time_sdnv.length + period_sdnv.length + count_sdnv.length + contents_len;
 
-	/* STEP 6: Allocate the serialized message. */
+	/* STEP 3: Allocate the serialized message. */
 	if((result = (uint8_t*)MTAKE(*len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("ctrl_serialize_time_prod_entry","Can't alloc %d bytes", *len);
@@ -96,7 +96,7 @@ uint8_t *ctrl_serialize_time_prod_entry(rule_time_prod_t *msg, uint32_t *len)
 		return NULL;
 	}
 
-	/* Step 7: Populate the serialized message. */
+	/* Step 4: Populate the serialized message. */
 	cursor = result;
 
 	memcpy(cursor,time_sdnv.text,time_sdnv.length);
@@ -112,7 +112,7 @@ uint8_t *ctrl_serialize_time_prod_entry(rule_time_prod_t *msg, uint32_t *len)
 	cursor += contents_len;
 	MRELEASE(contents);
 
-	/* Step 6: Last sanity check. */
+	/* Step 5: Last sanity check. */
 	if((cursor - result) != *len)
 	{
 		DTNMP_DEBUG_ERR("ctrl_serialize_time_prod_entry","Wrote %d bytes but allcated %d",
@@ -170,7 +170,7 @@ uint8_t *ctrl_serialize_exec(ctrl_exec_t *msg, uint32_t *len)
 	/* Step 2: Figure out the length. */
 	*len = time_sdnv.length + contents_len;
 
-	/* STEP 6: Allocate the serialized message. */
+	/* STEP 3: Allocate the serialized message. */
 	if((result = (uint8_t*)MTAKE(*len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("ctrl_serialize_exec","Can't alloc %d bytes", *len);
@@ -181,7 +181,7 @@ uint8_t *ctrl_serialize_exec(ctrl_exec_t *msg, uint32_t *len)
 		return NULL;
 	}
 
-	/* Step 7: Populate the serialized message. */
+	/* Step 4: Populate the serialized message. */
 	cursor = result;
 
 	memcpy(cursor,time_sdnv.text,time_sdnv.length);
@@ -191,7 +191,7 @@ uint8_t *ctrl_serialize_exec(ctrl_exec_t *msg, uint32_t *len)
 	cursor += contents_len;
 	MRELEASE(contents);
 
-	/* Step 6: Last sanity check. */
+	/* Step 5: Last sanity check. */
 	if((cursor - result) != *len)
 	{
 		DTNMP_DEBUG_ERR("ctrl_serialize_exec","Wrote %d bytes but allcated %d",

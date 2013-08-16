@@ -54,6 +54,16 @@
  */
 
 
+
+typedef struct
+{
+	Object itemObj;     /**> Location of definition in SDR. */
+	uint32_t size; /**> Size of definition in the SDR */
+
+	Object descObj;    /**> Location of this descr in SDR. */
+
+} def_gen_desc_t;
+
 /*
  * Associated Message Type(s): MSG_TYPE_DEF_CUST_RPT
  *                             MSG_TYPE_DEF_COMP_DATA
@@ -69,8 +79,12 @@
  * +-------+------------+
  */
 typedef struct {
-    mid_t *id;            /**> The identifier (name) of the report. */
-    Lyst contents;        /**> The ordered MIDs comprising the definition. */
+    mid_t *id;             /**> The identifier (name) of the report. */
+    Lyst contents;         /**> The ordered MIDs comprising the definition. */
+
+    /* Below items are not serialized with this structure. */
+
+    def_gen_desc_t desc; /**> Descriptor of def in the SDR. */
 } def_gen_t;
 
 
@@ -92,7 +106,7 @@ def_gen_t *def_find_by_id(Lyst defs, ResourceLock *mutex, mid_t *id);
 void def_release_gen(def_gen_t *def);
 
 
-void clearDefsLyst(Lyst defLyst);
+void def_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy);
 
 void def_print_gen(def_gen_t *def);
 

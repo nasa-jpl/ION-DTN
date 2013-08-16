@@ -349,7 +349,7 @@ adm_reg_agent_t *msg_deserialize_reg_agent(uint8_t *cursor,
 	sdnv_len = decodeSdnv(&(sdnv_tmp), cursor);
 	if(sdnv_len > MAX_EID_LEN)
 	{
-		DTNMP_DEBUG_ERR("msg_deserialize_reg_agent", "EID size UVAST_FIELDSPEC > max %d.",
+		DTNMP_DEBUG_ERR("msg_deserialize_reg_agent", "EID size %d > max %d.",
 				        sdnv_tmp, MAX_EID_LEN);
 
 		msg_release_reg_agent(result);
@@ -510,7 +510,7 @@ adm_stat_msg_t   *msg_deserialize_stat_msg(uint8_t *cursor,
 	}
 
 	/* Grab the timestamp */
-	uint64_t val = 0;
+	uvast val = 0;
 	if((bytes = utils_grab_sdnv(cursor, size, &val)) == 0)
 	{
 		DTNMP_DEBUG_ERR("msg_deserialize_stat_msg","Can't get timestamp.",NULL);

@@ -211,10 +211,9 @@ uint32_t oid_calc_size(oid_t *oid)
 	}
 
 	/* Step 2: Add the # bytes SDNV and the OID data size. */
-	encodeSdnv(&tmp, oid->value_size);
-	size += /*tmp.length + */ oid->value_size; // EJB value_size includes size for SDNV.
+	size += oid->value_size;
 
-	printf("EJB: val is %d tmp is %d\n", oid->value_size, tmp.length);
+	DTNMP_DEBUG_INFO("oid_calc_size","val is %d\n", oid->value_size);
 
 	/*
 	 * Step 3: If we have parameters, add them too. This is simple because we
@@ -328,13 +327,21 @@ int oid_compare(oid_t *oid1, oid_t *oid2, uint8_t use_parms)
 
     if(((oid1 == NULL) || (oid2 == NULL)) ||
        ((oid1->value_size != oid2->value_size)) ||
-       ((oid1->type != oid2->type)) ||
-       ((lyst_length(oid1->params) != lyst_length(oid2->params))))
+       ((oid1->type != oid2->type)))
     {
         DTNMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
         return -1;
     }
     
+    if(use_parms != 0)
+    {
+    	if(lyst_length(oid1->params) != lyst_length(oid2->params))
+    	{
+    		DTNMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
+    		return -1;
+    	}
+    }
+
     /* Step 1: Compare the value version of the oid */
     result = memcmp(oid1->value, oid2->value, oid1->value_size);
 
@@ -446,7 +453,7 @@ oid_t *oid_deserialize_comp(unsigned char *buffer,
 		                    uint32_t size,
 		                    uint32_t *bytes_used)
 {
-	uint64_t nn_id = 0;
+	uvast nn_id = 0;
 	uint32_t bytes = 0;
 	oid_t *new_oid = NULL;
 	unsigned char *cursor = NULL;
@@ -545,7 +552,7 @@ oid_t *oid_deserialize_comp_param(unsigned char *buffer,
     					         uint32_t size,
     					         uint32_t *bytes_used)
 {
-	uint64_t nn_id = 0;
+	uvast nn_id = 0;
 	uint32_t bytes = 0;
 	oid_t *new_oid = NULL;
 	unsigned char *cursor = NULL;
@@ -620,7 +627,7 @@ oid_t *oid_deserialize_comp_param(unsigned char *buffer,
  *
  * 	\todo We currently assume that the length field is a single byte (0-127).
  * 	      We need to code this to follow BER rules for large definite data
- * 	      form. Like SDNV but not quite: if high-bit of firts byte set, bits
+ * 	      form. Like SDNV but not quite: if high-bit of first byte set, bits
  * 	      7-1 give # octets that comprise length. Then, concatenate, big-endian,
  * 	      those octets to build	length. Ex: length 435 = 0x8201B3
  *
@@ -675,7 +682,7 @@ oid_t *oid_deserialize_full(unsigned char *buffer,
 
 	/*
 	 * Step 1: Grab # SDNVs in the OID
-	 * \todo: EJB: Someone remind me why this is a byte and not an SDNV?
+	 * \todo: Check if this should be a byte or an SDNV.
 	 */
 	if((*bytes_used = utils_grab_byte(cursor, size, &val)) != 1)
 	{
@@ -756,7 +763,7 @@ oid_t *oid_deserialize_full(unsigned char *buffer,
 
 /******************************************************************************
  *
- * \par Function Name: oid_deserialize_full
+ * \par Function Name: oid_deserialize_param
  *
  * \par Purpose: Extracts a parameterized OID from a buffer.
  *
@@ -790,7 +797,7 @@ oid_t *oid_deserialize_param(unsigned char *buffer,
 {
 	oid_t *new_oid;
 	uint32_t bytes = 0;
-	uint64_t value = 0;
+	uvast value = 0;
 	uint32_t idx = 0;
 	unsigned char *cursor = NULL;
 
@@ -1430,7 +1437,7 @@ void oid_nn_cleanup()
  *  --------  ------------   ---------------------------------------------
  *  10/14/12  E. Birrane     Initial implementation,
  *****************************************************************************/
-int oid_nn_delete(uint64_t nn_id)
+int oid_nn_delete(uvast nn_id)
 {
 	oid_nn_t *cur_nn = NULL;
 	LystElt tmp_elt;
@@ -1486,7 +1493,7 @@ int oid_nn_delete(uint64_t nn_id)
  *  --------  ------------   ---------------------------------------------
  *  10/14/12  E. Birrane     Initial implementation,
  *****************************************************************************/
-LystElt oid_nn_exists(uint64_t nn_id)
+LystElt oid_nn_exists(uvast nn_id)
 {
 	oid_nn_t *cur_nn = NULL;
 	LystElt tmp_elt = NULL;
@@ -1546,7 +1553,7 @@ LystElt oid_nn_exists(uint64_t nn_id)
  *  10/14/12  E. Birrane     Initial implementation,
  *****************************************************************************/
 
-oid_nn_t* oid_nn_find(uint64_t nn_id)
+oid_nn_t* oid_nn_find(uvast nn_id)
 {
 	LystElt tmpElt = NULL;
 	oid_nn_t *result = NULL;

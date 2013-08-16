@@ -26,6 +26,8 @@
  **  --------  ------------   ---------------------------------------------
  **  09/24/12  E. Birrane     Initial Implementation
  **  11/01/12  E. Birrane     Redesign of messaging architecture.
+ **  06/25/13  E. Birrane     Renamed message "bundle" message "group".
+ **  06/26/13  E. Birrane     Added group timestamp
  *****************************************************************************/
 
 #ifndef DTNMPDU_H_
@@ -87,32 +89,12 @@ typedef struct
 typedef struct
 {
 	Lyst msgs;
-} pdu_bundle_t;
-
-/*
- * DTNMP PDU Structure
- * /
-typedef struct
-{
-    
-    / ** Meta-data associated with this message * /
-    pdu_metadata_t meta;
-    
-    / ** Message Header * /
-    pdu_header_t hdr;
-    
-	/ ** The received data buffer. * /
-	uint8_t *content;
-    
-    / ** Number of bytes in the data buffer. * /
-    uint32_t data_size;
-  
-} pdu;
-*/
+	time_t time;
+} pdu_group_t;
 
 
-pdu_bundle_t *pdu_create_bundle();
-pdu_bundle_t *pdu_create_bundle_arg(pdu_msg_t *msg);
+pdu_group_t *pdu_create_empty_group();
+pdu_group_t *pdu_create_group(pdu_msg_t *msg);
 
 pdu_header_t *pdu_create_hdr(uint8_t id, uint8_t ack, uint8_t nack, uint8_t acl);
 
@@ -127,14 +109,14 @@ void pdu_release_hdr(pdu_header_t *hdr);
 void pdu_release_meta(pdu_metadata_t *meta);
 void pdu_release_acl(pdu_acl_t *acl);
 void pdu_release_msg(pdu_msg_t *pdu);
-void pdu_release_bundle(pdu_bundle_t *bundle);
+void pdu_release_group(pdu_group_t *group);
 
 
 uint8_t *pdu_serialize_hdr(pdu_header_t *hdr, uint32_t *len);
 uint8_t *pdu_serialize_acl(pdu_acl_t *acl, uint32_t *len);
 
 uint8_t *pdu_serialize_msg(pdu_msg_t *msg, uint32_t *len);
-uint8_t *pdu_serialize_bundle(pdu_bundle_t *bundle, uint32_t *len);
+uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len);
 
 
 pdu_header_t *pdu_deserialize_hdr(uint8_t *cursor,
@@ -146,25 +128,7 @@ pdu_acl_t *pdu_deserialize_acl(uint8_t *cursor,
 		                       uint32_t *bytes_used);
 
 
-int pdu_add_msg_to_bundle(pdu_bundle_t *bundle, pdu_msg_t *msg);
+int pdu_add_msg_to_group(pdu_group_t *group, pdu_msg_t *msg);
 
-
-/***
-/ * Functions to unmarshall PDU values * /
-prod_rule *createProdRule(pdu* cur_pdu);
-
-
-nm_custom_report* createCustomReport(pdu *rcv_pdu);
-
-nm_report *createDataReport(pdu* cur_pdu);
-
-
-/ * Functions to bild PDUs * /
-uint8_t *buildProdRulePDU(int offset, int period, int evals, Lyst mids, int mid_size, int* msg_len);
-
-
-uint8_t *buildReportDefPDU(mid_t *report_id, Lyst mids, uint32_t mid_size, int *msg_len);
-
-****/
 
 #endif /* DTNMPDU_H_ */

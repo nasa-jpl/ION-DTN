@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 #include <string.h>
-
+#include "platform.h"
 
 #include "debug.h"
 

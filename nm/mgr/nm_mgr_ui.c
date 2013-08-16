@@ -28,9 +28,13 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  01/18/13  E. Birrane     Code comments and cleanup
+ **  06/25/13  E. Birrane     Removed references to priority field. Add ISS flag.
+ **  06/25/13  E. Birrane     Renamed message "bundle" message "group".
  *****************************************************************************/
 
 #include "ctype.h"
+
+#include "platform.h"
 
 #include "shared/utils/utils.h"
 #include "shared/adm/adm.h"
@@ -76,7 +80,7 @@ mid_t *ui_build_mid(char *mid_str)
 	uint8_t *tmp = NULL;
 	uint32_t len = 0;
 	uint32_t bytes = 0;
-	adm_entry_t adu;
+	adm_datadef_t adu;
 
 	DTNMP_DEBUG_ENTRY("ui_build_mid","(0x%x)", mid_str);
 
@@ -124,13 +128,14 @@ mid_t *ui_build_mid(char *mid_str)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  04/18/13  V.Ramachandran Initial implementation
+ *  06/17/13  E. Birrane     Working implementation
  *****************************************************************************/
-eid_t* ui_select_agent()
+agent_t* ui_select_agent()
 {
 	char line[10];
 	int idx = -1;
 	int total;
-	Agent_rx *agent = NULL;
+	agent_t *agent = NULL;
 	eid_t *agent_eid;
 	LystElt elt;
 
@@ -188,15 +193,16 @@ eid_t* ui_select_agent()
 		}
 	}
 
-	if((agent_eid = (eid_t *) lyst_data(elt)) == NULL)
+	if((agent = (agent_t *) lyst_data(elt)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("ui_select_agent","Null EID in known_agents lyst.", NULL);
 		DTNMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("ui_select_agent","->%s", agent_eid->name);
-	return agent_eid;
+	DTNMP_DEBUG_EXIT("ui_select_agent","->%s", agent->agent_eid.name);
+
+	return agent;
 }
 
 /******************************************************************************
@@ -216,28 +222,19 @@ eid_t* ui_select_agent()
  *  01/18/13  E. Birrane     Debug updates.
  *  04/18/13  V.Ramachandran Multiple-agent support (added param)
  *****************************************************************************/
-void ui_clear_reports(eid_t* agent_eid)
+void ui_clear_reports(agent_t* agent)
 {
-    Agent_rx *agent = NULL;
-
-    if(agent_eid == NULL)
+    if(agent == NULL)
     {
     	DTNMP_DEBUG_ENTRY("ui_clear_reports","(NULL)", NULL);
     	DTNMP_DEBUG_ERR("ui_clear_reports", "No agent specified.", NULL);
         DTNMP_DEBUG_EXIT("ui_clear_reports","->.",NULL);
         return;
     }
-    DTNMP_DEBUG_ENTRY("ui_clear_reports","(%s)",agent_eid->name);
-
-    if((agent = get_agent(agent_eid)) == NULL)
-    {
-    	DTNMP_DEBUG_ERR("ui_clear_reports", "Unrecognized agent: %s", agent_eid->name);
-        DTNMP_DEBUG_EXIT("ui_clear_reports","->.",NULL);
-        return;
-    }
+    DTNMP_DEBUG_ENTRY("ui_clear_reports","(%s)",agent->agent_eid.name);
 
 	int num = lyst_length(agent->reports);
-	rpt_clear_lyst(agent->reports);
+	rpt_clear_lyst(&(agent->reports), NULL, 0);
 	g_reports_total -= num;
 
 	DTNMP_DEBUG_ALWAYS("ui_clear_reports","Cleared %d reports.", num);
@@ -261,9 +258,10 @@ void ui_clear_reports(eid_t* agent_eid)
  *  --------  ------------   ---------------------------------------------
  *  01/18/13  E. Birrane     Initial Implementation
  *  04/18/13  V.Ramachandran Multiple-agent support (added param)
+ *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
  *****************************************************************************/
 
-void ui_construct_ctrl_by_idx(eid_t* agent_eid)
+void ui_construct_ctrl_by_idx(agent_t* agent)
 {
 	char line[256];
 	uint32_t offset;
@@ -271,14 +269,14 @@ void ui_construct_ctrl_by_idx(eid_t* agent_eid)
 	Lyst mids = lyst_create();
 	uint32_t size = 0;
 
-	if(agent_eid == NULL)
+	if(agent == NULL)
 	{
 		DTNMP_DEBUG_ENTRY("ui_construct_ctrl_by_idx","(NULL)", NULL);
 		DTNMP_DEBUG_ERR("ui_construct_ctrl_by_idx", "No agent specified.", NULL);
 		DTNMP_DEBUG_EXIT("ui_construct_ctrl_by_idx","->.",NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("ui_construct_ctrl_by_idx","(%s)", agent_eid->name);
+	DTNMP_DEBUG_ENTRY("ui_construct_ctrl_by_idx","(%s)", agent->agent_eid.name);
 
 	/* Step 0: Read the user input. */
 	if(ui_get_user_input("Enter ctrl as follows: Offset <Ctrl Idx>",
@@ -291,7 +289,7 @@ void ui_construct_ctrl_by_idx(eid_t* agent_eid)
 
 	/* Step 1: Parse the user input. */
 	sscanf(line,"%d %s", &offset, mid_str);
-	mids = ui_parse_mid_str(mid_str, gNumAduCtrls-1, MID_TYPE_CONTROL);
+	mids = ui_parse_mid_str(mid_str, lyst_length(gAdmCtrls)-1, MID_TYPE_CONTROL);
 
 	/* Step 2: Construct the control primitive. */
 	ctrl_exec_t *entry = ctrl_create_exec(offset, mids);
@@ -299,13 +297,13 @@ void ui_construct_ctrl_by_idx(eid_t* agent_eid)
 	/* Step 3: Construct a PDU to hold the primitive. */
 	uint8_t *data = ctrl_serialize_exec(entry, &size);
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL);
-	pdu_bundle_t *pdu_bundle = pdu_create_bundle_arg(pdu_msg);
+	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
 
 	/* Step 4: Send the PDU. */
-	iif_send(&ion_ptr, pdu_bundle, agent_eid->name);
+	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
 
 	/* Step 5: Release remaining resources. */
-	pdu_release_bundle(pdu_bundle);
+	pdu_release_group(pdu_group);
 	ctrl_release_exec(entry);
 
 	DTNMP_DEBUG_EXIT("ui_construct_ctrl_by_idx","->.", NULL);
@@ -327,26 +325,27 @@ void ui_construct_ctrl_by_idx(eid_t* agent_eid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/18/13  E. Birrane     Initial Implementation
+ *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
  *****************************************************************************/
 
-void ui_construct_time_rule_by_idx(eid_t* agent_eid)
+void ui_construct_time_rule_by_idx(agent_t* agent)
 {
 	char line[256];
-	uint32_t offset = 0;
+	time_t offset = 0;
 	uint32_t period = 0;
 	uint32_t evals = 0;
 	char mid_str[256];
 	Lyst mids = lyst_create();
 	uint32_t size = 0;
 
-	if(agent_eid == NULL)
+	if(agent == NULL)
 	{
 		DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_idx","(NULL)", NULL);
 		DTNMP_DEBUG_ERR("ui_construct_time_rule_by_idx", "Null EID", NULL);
 		DTNMP_DEBUG_EXIT("ui_construct_time_rule_by_idx","->.", NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_idx","(%s)", agent_eid->name);
+	DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_idx","(%s)", agent->agent_eid.name);
 
 	/* Step 1: Read and parse the rule. */
 	if(ui_get_user_input("Enter rule as follows: Offset Period #Evals MID1,MID2,MID3,...,MIDn",
@@ -357,8 +356,8 @@ void ui_construct_time_rule_by_idx(eid_t* agent_eid)
 		return;
 	}
 
-	sscanf(line,"%d %d %d %s", &offset, &period, &evals, mid_str);
-	mids = ui_parse_mid_str(mid_str, gNumAduData-1, MID_TYPE_DATA);
+	sscanf(line,"%ld %d %d %s", &offset, &period, &evals, mid_str);
+	mids = ui_parse_mid_str(mid_str, lyst_length(gAdmData)-1, MID_TYPE_DATA);
 
 	/* Step 2: Construct the control primitive. */
 	rule_time_prod_t *entry = rule_create_time_prod_entry(offset, evals, period, mids);
@@ -366,13 +365,13 @@ void ui_construct_time_rule_by_idx(eid_t* agent_eid)
 	/* Step 3: Construct a PDU to hold the primitive. */
 	uint8_t *data = ctrl_serialize_time_prod_entry(entry, &size);
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_PERIOD_PROD, data, size, NULL);
-	pdu_bundle_t *pdu_bundle = pdu_create_bundle_arg(pdu_msg);
+	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
 
 	/* Step 4: Send the PDU. */
-	iif_send(&ion_ptr, pdu_bundle, agent_eid->name);
+	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
 
 	/* Step 5: Release remaining resources. */
-	pdu_release_bundle(pdu_bundle);
+	pdu_release_group(pdu_group);
 	rule_release_time_prod_entry(entry);
 
 	DTNMP_DEBUG_EXIT("ui_construct_time_rule_by_idx","->.", NULL);
@@ -394,11 +393,12 @@ void ui_construct_time_rule_by_idx(eid_t* agent_eid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/18/13  E. Birrane     Initial Implementation
+ *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
  *****************************************************************************/
-void ui_construct_time_rule_by_mid(eid_t *agent_eid)
+void ui_construct_time_rule_by_mid(agent_t* agent)
 {
 	char line[256];
-	uint32_t offset = 0;
+	time_t offset = 0;
 	uint32_t period = 0;
 	uint32_t evals = 0;
 	char mid_str[256];
@@ -406,14 +406,14 @@ void ui_construct_time_rule_by_mid(eid_t *agent_eid)
 	mid_t *midp = NULL;
 	uint32_t size = 0;
 
-	if(agent_eid == NULL)
+	if(agent == NULL)
 	{
 		DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_mid","(NULL)", NULL);
 		DTNMP_DEBUG_ERR("ui_construct_time_rule_by_mid", "Null EID", NULL);
 		DTNMP_DEBUG_EXIT("ui_construct_time_rule_by_mid","->.", NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_mid","(%s)", agent_eid->name);
+	DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_mid","(%s)", agent->agent_eid.name);
 
 	/* Step 0: Read the user input. */
 	if(ui_get_user_input("Enter rule as follows: Offset Period #Evals MID",
@@ -425,7 +425,7 @@ void ui_construct_time_rule_by_mid(eid_t *agent_eid)
 	}
 
 	/* Step 1: Parse the user input. */
-	sscanf(line,"%d %d %d %s", &offset, &period, &evals, mid_str);
+	sscanf(line,"%ld %d %d %s", &offset, &period, &evals, mid_str);
 	midp = ui_build_mid(mid_str);
 
 	char *str = mid_to_string(midp);
@@ -440,13 +440,13 @@ void ui_construct_time_rule_by_mid(eid_t *agent_eid)
 	/* Step 3: Construct a PDU to hold the primitive. */
 	uint8_t *data = ctrl_serialize_time_prod_entry(entry, &size);
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_PERIOD_PROD, data, size, NULL);
-	pdu_bundle_t *pdu_bundle = pdu_create_bundle_arg(pdu_msg);
+	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
 
 	/* Step 4: Send the PDU. */
-	iif_send(&ion_ptr, pdu_bundle, agent_eid->name);
+	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
 
 	/* Step 5: Release remaining resources. */
-	pdu_release_bundle(pdu_bundle);
+	pdu_release_group(pdu_group);
 	rule_release_time_prod_entry(entry);
 
 	DTNMP_DEBUG_EXIT("ui_construct_time_rule_by_mid","->.", NULL);
@@ -466,9 +466,10 @@ void ui_construct_time_rule_by_mid(eid_t *agent_eid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/18/13  E. Birrane     Initial Implementation
+ *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
  *****************************************************************************/
 
-void ui_define_report(eid_t *agent_eid)
+void ui_define_report(agent_t* agent)
 {
 	mid_t *new_id = NULL;
 	char line[256];
@@ -476,23 +477,15 @@ void ui_define_report(eid_t *agent_eid)
 	Lyst mids;
 	def_gen_t *rpt_def = NULL;
 	uint32_t size = 0;
-	Agent_rx *agent;
 
-	if(agent_eid == NULL)
+	if(agent == NULL)
 	{
 		DTNMP_DEBUG_ENTRY("ui_define_report","(NULL)", NULL);
 		DTNMP_DEBUG_ERR("ui_define_report", "Null EID", NULL);
 		DTNMP_DEBUG_EXIT("ui_define_report","->.", NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("ui_define_report","(%s)", agent_eid->name);
-
-	if((agent = get_agent(agent_eid)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("ui_define_report", "Unknown agent", NULL);
-		DTNMP_DEBUG_EXIT("ui_define_report","->.", NULL);
-		return;
-	}
+	DTNMP_DEBUG_ENTRY("ui_define_report","(%s)", agent->agent_eid.name);
 
 	/* Step 0: Grab the identifier for the new report. */
 	new_id = ui_input_mid();
@@ -508,7 +501,7 @@ void ui_define_report(eid_t *agent_eid)
 
 	/* Step 1: Parse the user input. */
 	sscanf(line,"%s", mid_str);
-	mids = ui_parse_mid_str(mid_str, gNumAduData-1, MID_TYPE_DATA);
+	mids = ui_parse_mid_str(mid_str, lyst_length(gAdmData)-1, MID_TYPE_DATA);
 
 	/* Step 2: Construct the control primitive. */
 	rpt_def = def_create_gen(new_id, mids);
@@ -521,13 +514,18 @@ void ui_define_report(eid_t *agent_eid)
 	/* Step 4: Construct a PDU to hold the primitive. */
 	uint8_t *data = def_serialize_gen(rpt_def, &size);
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_DEF_CUST_RPT, data, size, NULL);
-	pdu_bundle_t *pdu_bundle = pdu_create_bundle_arg(pdu_msg);
+	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
 
 	/* Step 5: Send the PDU. */
-	iif_send(&ion_ptr, pdu_bundle, agent_eid->name);
+	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
 
 	/* Step 6: Release remaining resources. */
-	pdu_release_bundle(pdu_bundle);
+	pdu_release_group(pdu_group);
+
+	/*
+	 * Remember, we do not free the report definition because we added it
+	 * to the list of local custom definitions for this agent.
+	 */
 
 	DTNMP_DEBUG_EXIT("ui_define_report","->.", NULL);
 }
@@ -545,9 +543,10 @@ void ui_define_report(eid_t *agent_eid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/22/13  E. Birrane     Initial Implementation
+ *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
  *****************************************************************************/
 
-void ui_define_macro(eid_t *agent_eid)
+void ui_define_macro(agent_t* agent)
 {
 	mid_t *new_id = NULL;
 	char line[256];
@@ -570,7 +569,7 @@ void ui_define_macro(eid_t *agent_eid)
 
 	/* Step 1: Parse the user input. */
 	sscanf(line,"%s", mid_str);
-	mids = ui_parse_mid_str(mid_str, gNumAduCtrls-1, MID_TYPE_DATA);
+	mids = ui_parse_mid_str(mid_str, lyst_length(gAdmCtrls)-1, MID_TYPE_DATA);
 
 	/* Step 2: Construct the control primitive. */
 	macro_def = def_create_gen(new_id, mids);
@@ -583,13 +582,13 @@ void ui_define_macro(eid_t *agent_eid)
 	/* Step 4: Construct a PDU to hold the primitive. */
 	uint8_t *data = def_serialize_gen(macro_def, &size);
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_DEF_MACRO, data, size, NULL);
-	pdu_bundle_t *pdu_bundle = pdu_create_bundle_arg(pdu_msg);
+	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
 
 	/* Step 5: Send the PDU. */
-	iif_send(&ion_ptr, pdu_bundle, agent_eid->name);
+	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
 
 	/* Step 6: Release remaining resources. */
-	pdu_release_bundle(pdu_bundle);
+	pdu_release_group(pdu_group);
 
 	DTNMP_DEBUG_EXIT("ui_define_report","->.", NULL);
 }
@@ -620,7 +619,8 @@ void ui_define_mid_params(char *name, int num_parms, mid_t *mid)
 	char mid_str[256];
 	char line[256];
 	int cmdFile = fileno(stdin);
-	int len;
+	int len = 0;
+	int i = 0;
 	uint32_t size = 0;
 
 	DTNMP_DEBUG_ENTRY("ui_define_mid_params", "(0x%x, %d, 0x%x)",
@@ -635,7 +635,6 @@ void ui_define_mid_params(char *name, int num_parms, mid_t *mid)
 
 	printf("MID %s needs %d parameters.\n", name, num_parms);
 
-	int i;
 	for(i = 0; i < num_parms; i++)
 	{
 		printf("Enter Parm %d:\n",i);
@@ -677,7 +676,7 @@ void ui_register_agent()
 {
 	char line[MAX_EID_LEN];
 	eid_t agent_eid;
-	Agent_rx *agent;
+	agent_t *agent;
 
 	DTNMP_DEBUG_ENTRY("register_agent", "()", NULL);
 
@@ -692,32 +691,11 @@ void ui_register_agent()
 	else
 		DTNMP_DEBUG_INFO("register_agent", "User entered agent EID name %s", line);
 
-	lockResource(&agents_mutex);
 
 	/* Check if the agent is already known. */
 	sscanf(line, "%s", agent_eid.name);
-	if((agent = get_agent(&agent_eid)) != NULL)
-	{
-		printf("That agent is already registered.\n");
-		DTNMP_DEBUG_ERR("register_agent","User selected an already-known agent.", NULL);
-		DTNMP_DEBUG_EXIT("register_agent","->.", NULL);
-		unlockResource(&agents_mutex);
-		return;
-	}
+	add_agent(agent_eid);
 
-	/* Create and store the new agent. */
-	if((agent = create_agent(&agent_eid)) == NULL)
-	{
-		printf("Unable to register agent.\n");
-		DTNMP_DEBUG_ERR("register_agent","Failed to create agent.", NULL);
-		DTNMP_DEBUG_EXIT("register_agent","->.", NULL);
-		unlockResource(&agents_mutex);
-		return;
-	}
-
-	printf("Registered new agent %s.  You can now send messages to this endpoint.\n", agent->agent_eid.name);
-
-	unlockResource(&agents_mutex);
 	DTNMP_DEBUG_EXIT("register_agent", "->.", NULL);
 }
 
@@ -734,27 +712,29 @@ void ui_register_agent()
  *  --------  ------------   ---------------------------------------------
  *  04/23/13  V.Ramachandran Initial Implementation
  *****************************************************************************/
-void ui_deregister_agent(eid_t* agent_eid)
+void ui_deregister_agent(agent_t* agent)
 {
 	char line[MAX_EID_LEN];
-	if(agent_eid == NULL)
+
+	DTNMP_DEBUG_ENTRY("ui_deregister_agent","(%llu)", (unsigned long)agent);
+
+	if(agent == NULL)
 	{
-		DTNMP_DEBUG_ENTRY("deregister_agent","(NULL)", NULL);
-		DTNMP_DEBUG_ERR("deregister_agent", "No agent specified.", NULL);
-		DTNMP_DEBUG_EXIT("deregister_agent","->.",NULL);
+		DTNMP_DEBUG_ERR("ui_deregister_agent", "No agent specified.", NULL);
+		DTNMP_DEBUG_EXIT("ui_deregister_agent","->.",NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("deregister_agent","(%s)",agent_eid->name);
+	DTNMP_DEBUG_ENTRY("ui_deregister_agent","(%s)",agent->agent_eid.name);
 
 	lockResource(&agents_mutex);
 
-	if(remove_agent(agent_eid) != 0)
+	if(remove_agent(&(agent->agent_eid)) != 0)
 	{
-		printf("No agent by that name is currently registered.\n");
+		DTNMP_DEBUG_WARN("ui_deregister_agent","No agent by that name is currently registered.\n", NULL);
 	}
 	else
 	{
-		printf("Successfully deregistered agent.\n");
+		DTNMP_DEBUG_ALWAYS("ui_deregister_agent","Successfully deregistered agent.\n", NULL);
 	}
 
 	unlockResource(&agents_mutex);
@@ -980,6 +960,7 @@ int ui_get_user_input(char *prompt, char **line, int max_len)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/18/13  E. Birrane     Initial Implementation
+ *  06/25/13  E. Birrane     Removed references to priority field. Add ISS flag.
  *****************************************************************************/
 
 mid_t *ui_input_mid()
@@ -1009,7 +990,7 @@ mid_t *ui_input_mid()
 	result->category = MID_GET_FLAG_CAT(result->flags);
 
 	/* Step 2: Grab Issuer, if necessary. */
-	if(MID_GET_FLAG_TYPE(result->flags) != MID_CAT_ATOMIC)
+	if(MID_GET_FLAG_ISS(result->flags))
 	{
 		ui_get_user_input("Issuer (up to 18 hex): 0x", (char**)&line, 256);
 		data = utils_string_to_hex((unsigned char*)line, &size);
@@ -1025,29 +1006,10 @@ mid_t *ui_input_mid()
 		}
 	}
 
-	/* Step 3: Grab a priority, if one exists. */
-	if(MID_GET_FLAG_PRI(result->flags))
-	{
-		ui_get_user_input("Priority (up to 18 hex): 0x", (char**)&line, 256);
-		data = utils_string_to_hex((unsigned char*)line, &size);
-		memcpy(&(result->priority), data, 4);
-		MRELEASE(data);
-
-		if(size > 4)
-		{
-			DTNMP_DEBUG_ERR("ui_input_mid", "Priority too big: %d.", size);
-			DTNMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
-			mid_release(result);
-			return NULL;
-		}
-	}
-
-	/* Step 4: Grab the OID. */
+	/* Step 3: Grab the OID. */
 	ui_get_user_input("OID: 0x", (char**)&line, 256);
 	data = utils_string_to_hex((unsigned char *)line, &size);
 	result->oid = NULL;
-
-	printf("size is %d\n",size);
 
 	switch(MID_GET_FLAG_OID(result->flags))
 	{
@@ -1081,7 +1043,7 @@ mid_t *ui_input_mid()
 		return NULL;
 	}
 
-	/* Step 5: Grab a tag, if one exists. */
+	/* Step 4: Grab a tag, if one exists. */
 	if(MID_GET_FLAG_TAG(result->flags))
 	{
 		ui_get_user_input("Tag (up to 18 hex): 0x", (char**)&line, 256);
@@ -1100,7 +1062,7 @@ mid_t *ui_input_mid()
 
 	mid_internal_serialize(result);
 
-	/* Step 6: Sanity check this mid. */
+	/* Step 5: Sanity check this mid. */
 	if(mid_sanity_check(result) == 0)
 	{
 		DTNMP_DEBUG_ERR("ui_input_mid", "Sanity check failed.", size);
@@ -1136,6 +1098,7 @@ mid_t *ui_input_mid()
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/18/13  E. Birrane     Initial Implementation
+ *  06/25/13  E. Birrane     Removed references to priority field.Add ISS Flag.
  *****************************************************************************/
 
 int ui_input_mid_flag(uint8_t *flag)
@@ -1156,7 +1119,7 @@ int ui_input_mid_flag(uint8_t *flag)
 	sscanf(line,"%d",&tmp);
 	*flag |= (tmp & 0x3) << 2;
 
-	ui_get_user_input("Priority Field Present? Yes (1)  No (0):",
+	ui_get_user_input("Issuer Field Present? Yes (1)  No (0):",
 			          (char**)&line, 256);
 	sscanf(line,"%d",&tmp);
 	*flag |= (tmp & 0x1) << 4;
@@ -1240,21 +1203,37 @@ Lyst ui_parse_mid_str(char *mid_str, int max_idx, int type)
 			switch(type)
 			{
 			case MID_TYPE_DATA:
-				name = adus[cur_mid_idx].name;
-				num_parms = adus[cur_mid_idx].num_parms;
-				mid_len = adus[cur_mid_idx].mid_len;
-				midp = mid_deserialize((unsigned char*)&(adus[cur_mid_idx].mid),
+				{
+					adm_datadef_t *cur = adm_find_datadef_by_idx(cur_mid_idx);
+					midp = mid_copy(cur->mid);
+					num_parms = cur->num_parms;
+					/***
+					name = adus[cur_mid_idx].name;
+					num_parms = adus[cur_mid_idx].num_parms;
+					mid_len = adus[cur_mid_idx].mid_len;
+					midp = mid_deserialize((unsigned char*)&(adus[cur_mid_idx].mid),
 						                adus[cur_mid_idx].mid_len,&bytes);
+					 */
+				}
 				break;
 			case MID_TYPE_CONTROL:
-				name = ctrls[cur_mid_idx].name;
-				num_parms = ctrls[cur_mid_idx].num_parms;
-				mid_len = ctrls[cur_mid_idx].mid_len;
-				midp = mid_deserialize((unsigned char*)&(ctrls[cur_mid_idx].mid),
+				{
+					adm_ctrl_t *cur = adm_find_ctrl_by_idx(cur_mid_idx);
+					midp = mid_copy(cur->mid);
+					num_parms = cur->num_parms;
+					/**
+					name = ctrls[cur_mid_idx].name;
+					num_parms = ctrls[cur_mid_idx].num_parms;
+					mid_len = ctrls[cur_mid_idx].mid_len;
+					midp = mid_deserialize((unsigned char*)&(ctrls[cur_mid_idx].mid),
 						               ctrls[cur_mid_idx].mid_len,&bytes);
+					 **/
+				}
 				break;
 			case MID_TYPE_LITERAL:
+				/* \todo: Write this. */
 			case MID_TYPE_OPERATOR:
+				/* \todo: Write this. */
 			default:
 				DTNMP_DEBUG_ERR("ui_parse_mid_str","Unknown type %d", type);
 				DTNMP_DEBUG_EXIT("ui_parse_mid_str","->NULL.",NULL);
@@ -1266,16 +1245,11 @@ Lyst ui_parse_mid_str(char *mid_str, int max_idx, int type)
 			if(num_parms > 0)
 			{
 				ui_define_mid_params(name, num_parms, midp);
-				printf("EJB: Calling internal...\n");
 				mid_internal_serialize(midp);
 			}
 
 			mid_size += mid_len;
 			lyst_insert_last(mids, midp);
-
-			char *ed = mid_to_string(midp);
-			printf("EJB: mid is %s\n", ed);
-			MRELEASE(ed);
 		}
 		else
 		{
@@ -1353,25 +1327,35 @@ int ui_print_agents()
 
 void ui_print_ctrls()
 {
-  int i;
+  int i = 0;
   int num_full_rows = 0;
   int num_rows = 0;
+  LystElt elt = 0;
+  adm_ctrl_t *cur = NULL;
 
   DTNMP_DEBUG_ENTRY("ui_print_ctrls","()",NULL);
 
-  num_full_rows = (int) (gNumAduCtrls / 2);
+  num_full_rows = (int) (lyst_length(gAdmCtrls) / 2);
 
-  for(i = 0, num_rows = 0; num_rows < num_full_rows; num_rows++, i += 2)
+  for(elt = lyst_first(gAdmCtrls); elt; elt = lyst_next(elt))
   {
-	  printf("%3d) %-35s %3d) %-35s\n",
-			 i, ctrls[i].name, (i+1), ctrls[i+1].name);
-  }
+	  cur = (adm_ctrl_t*) lyst_data(elt);
+	  printf("%3d) %-35s ", i, cur->name);
+	  i++;
 
-  for(; i < gNumAduCtrls; i++)
-  {
-	  printf("%3d) %-35s ", i, ctrls[i].name);
+	  if(num_rows < num_full_rows)
+	  {
+		  elt = lyst_next(elt);
+		  cur = (adm_ctrl_t*) lyst_data(elt);
+		  printf("%3d) %-35s\n", i, cur->name);
+		  i++;
+	  }
+	  else
+	  {
+		  printf("\n\n\n");
+	  }
+	  num_rows++;
   }
-  printf("\n\n");
 
   DTNMP_DEBUG_EXIT("ui_print_ctrls","->.", NULL);
 }
@@ -1401,7 +1385,7 @@ void ui_print_custom_rpt(rpt_data_entry_t *rpt_entry, def_gen_t *rpt_def)
 	LystElt elt;
 	uint64_t idx = 0;
 	mid_t *cur_mid = NULL;
-	adm_entry_t *adu = NULL;
+	adm_datadef_t *adu = NULL;
 	uint64_t data_used;
 
 	for(elt = lyst_first(rpt_def->contents); elt; elt = lyst_next(elt))
@@ -1409,7 +1393,7 @@ void ui_print_custom_rpt(rpt_data_entry_t *rpt_entry, def_gen_t *rpt_def)
 		char *mid_str;
 		cur_mid = (mid_t*)lyst_data(elt);
 		mid_str = mid_to_string(cur_mid);
-		if((adu = adm_find(cur_mid)) != NULL)
+		if((adu = adm_find_datadef(cur_mid)) != NULL)
 		{
 			DTNMP_DEBUG_INFO("ui_print_custom_rpt","Printing MID %s", mid_str);
 			ui_print_predefined_rpt(cur_mid, (uint8_t*)&(rpt_entry->contents[idx]),
@@ -1453,10 +1437,10 @@ void ui_print_menu_ctrl()
 
 	printf("\n------------- ADM Information --------------\n");
 	printf("1) List supported ADMs.\n");
-	printf("2) List Data MIDs by Index.     (%d MIDs)\n", gNumAduData);
-	printf("3) List Control MIDs by Index.  (%d MIDs)\n", gNumAduCtrls);
-	printf("4) List Literal MIDs by Index.  (%d MIDs)\n", gNumAduLiterals);
-	printf("5) List Operator MIDs by Index. (%d MIDs)\n", gNumAduOperators);
+	printf("2) List Data MIDs by Index.     (%ld MIDs)\n", lyst_length(gAdmData));
+	printf("3) List Control MIDs by Index.  (%ld MIDs)\n", lyst_length(gAdmCtrls));
+	printf("4) List Literal MIDs by Index.  (%ld MIDs)\n", lyst_length(gAdmLiterals));
+	printf("5) List Operator MIDs by Index. (%ld MIDs)\n", lyst_length(gAdmOps));
 
 	printf("\n---------- Time-Based Production -----------\n");
 	printf("6) Construct from indices.\n");
@@ -1580,27 +1564,38 @@ void ui_print_menu_rpt()
 
 void ui_print_mids()
 {
-  int i;
-  int num_full_rows = 0;
-  int num_rows = 0;
+	int i = 0;
+	int num_full_rows = 0;
+	int num_rows = 0;
+	LystElt elt = 0;
+	adm_datadef_t *cur = NULL;
 
-  DTNMP_DEBUG_ENTRY("ui_print_mids","()",NULL);
+	DTNMP_DEBUG_ENTRY("ui_print_mids","()",NULL);
 
-  num_full_rows = (int) (gNumAduData / 2);
 
-  for(i = 0, num_rows = 0; num_rows < num_full_rows; num_rows++, i += 2)
-  {
-	  printf("%3d) %-35s %3d) %-35s\n",
-			 i, adus[i].name, (i+1), adus[i+1].name);
-  }
+	num_full_rows = (int) (lyst_length(gAdmData) / 2);
 
-  for(; i < gNumAduData; i++)
-  {
-	  printf("%3d) %-35s ", i, adus[i].name);
-  }
-  printf("\n\n");
+	for(elt = lyst_first(gAdmData); elt; elt = lyst_next(elt))
+	{
+		cur = (adm_datadef_t*) lyst_data(elt);
+		printf("%3d) %-35s ", i, cur->name);
+		i++;
 
-  DTNMP_DEBUG_EXIT("ui_print_mids","->.", NULL);
+		if(num_rows < num_full_rows)
+		{
+			elt = lyst_next(elt);
+			cur = (adm_datadef_t*) lyst_data(elt);
+			printf("%3d) %-35s\n", i, cur->name);
+			i++;
+		}
+		else
+		{
+			printf("\n\n\n");
+		}
+		num_rows++;
+	}
+
+	DTNMP_DEBUG_EXIT("ui_print_mids","->.", NULL);
 }
 
 
@@ -1626,7 +1621,7 @@ void ui_print_mids()
  *  01/18/13  E. Birrane     Initial Implementation
  *****************************************************************************/
 
-void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint64_t *data_used, adm_entry_t *adu)
+void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint64_t *data_used, adm_datadef_t *adu)
 {
 	uint64_t len;
 	char *mid_str = NULL;
@@ -1668,15 +1663,14 @@ void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint
  *  01/18/13  E. Birrane     Initial Implementation
  *****************************************************************************/
 
-void ui_print_reports(eid_t *agent_eid)
+void ui_print_reports(agent_t* agent)
 {
-	 Agent_rx *agent;
 	 LystElt report_elt;
 	 LystElt entry_elt;
 	 rpt_data_t *cur_report = NULL;
 	 rpt_data_entry_t *cur_entry = NULL;
 
-	 if(agent_eid == NULL)
+	 if(agent == NULL)
 	 {
 		 DTNMP_DEBUG_ENTRY("ui_print_reports","(NULL)", NULL);
 		 DTNMP_DEBUG_ERR("ui_print_reports", "No agent specified", NULL);
@@ -1684,18 +1678,11 @@ void ui_print_reports(eid_t *agent_eid)
 		 return;
 
 	 }
-	 DTNMP_DEBUG_ENTRY("ui_print_reports","(%s)", agent_eid->name);
-
-	 if((agent = get_agent(agent_eid)) == NULL)
-	 {
-		 DTNMP_DEBUG_ERR("ui_print_reports", "Invalid agent specified", NULL);
-		 DTNMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
-		 return;
-	 }
+	 DTNMP_DEBUG_ENTRY("ui_print_reports","(%s)", agent->agent_eid.name);
 
 	 if(lyst_length(agent->reports) == 0)
 	 {
-		 printf("[No reports received from this agent.]\n");
+		 DTNMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
 		 DTNMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
 		 return;
 	 }
@@ -1712,14 +1699,14 @@ void ui_print_reports(eid_t *agent_eid)
 	     {
 	    	 unsigned long mid_sizes = 0;
 	    	 unsigned long data_sizes = 0;
-	    	 adm_entry_t *adu = NULL;
+	    	 adm_datadef_t *adu = NULL;
 	    	 def_gen_t *report = NULL;
 
 	    	 /* Print the Report Header */
 	    	 printf("\n-----------------\nDTNMP DATA REPORT\n-----------------\n");
 	    	 printf("Sent to  : %s\n", cur_report->recipient.name);
 	    	 printf("Rpt. Size: %d\n", cur_report->size);
-	    	 printf("Timestamp: %d\n", cur_report->time);
+	    	 printf("Timestamp: %ld\n", cur_report->time);
 	    	 printf("Num Mids : %ld\n", lyst_length(cur_report->reports));
 	    	 printf("Value(s)\n---------------------------------\n");
 
@@ -1734,7 +1721,7 @@ void ui_print_reports(eid_t *agent_eid)
 
 	    		 /* See if this is a pre-defined report, or a custom report. */
 	    		 /* Find ADM associated with this entry. */
-	    		 if((adu = adm_find(cur_entry->id)) != NULL)
+	    		 if((adu = adm_find_datadef(cur_entry->id)) != NULL)
 	    		 {
 	    			 uint64_t used;
 	    			 ui_print_predefined_rpt(cur_entry->id, cur_entry->contents, cur_entry->size, &used, adu);
@@ -1775,6 +1762,7 @@ void ui_print_reports(eid_t *agent_eid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/18/13  E. Birrane     Initial Implementation
+ *  06/25/13  E. Birrane     Removed references to priority field.
  *****************************************************************************/
 
 void ui_run_tests()
@@ -1807,10 +1795,9 @@ void ui_run_tests()
 
 	/* Test 2: Construct a MID and serialize/deserialize it. */
 	fprintf(stderr,"MID TEST 1\n");
-	uint64_t priority = 0, issuer = 0, tag = 0;
-//	mid_t *mid = mid_construct(0,0, &priority, &issuer, &tag, oid);
+	uvast issuer = 0, tag = 0;
 
-	mid_t *mid = mid_construct(0,0, NULL, NULL, NULL, oid);
+	mid_t *mid = mid_construct(0,0, NULL, NULL, oid);
 	msg = (unsigned char*)mid_to_string(mid);
 	fprintf(stderr,"Constructed mid: %s\n", msg);
 	MRELEASE(msg);

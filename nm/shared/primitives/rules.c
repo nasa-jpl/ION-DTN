@@ -27,6 +27,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  11/04/12  E. Birrane     Redesign of messaging architecture.
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
  *****************************************************************************/
 #include "platform.h"
 
@@ -44,9 +45,9 @@
 
 
 /* Create functions. */
-rule_time_prod_t *rule_create_time_prod_entry(uint32_t time,
-											  uint64_t count,
-											  uint64_t period,
+rule_time_prod_t *rule_create_time_prod_entry(time_t time,
+											  uvast count,
+											  uvast period,
 											  Lyst contents)
 {
 	rule_time_prod_t *result = NULL;
@@ -82,16 +83,16 @@ rule_time_prod_t *rule_create_time_prod_entry(uint32_t time,
 }
 
 
-rule_pred_prod_t *rule_create_pred_prod_entry(uint32_t time,
+rule_pred_prod_t *rule_create_pred_prod_entry(time_t time,
 		   	   	   	   	   	   	   	   	      Lyst predicate,
-		   	   	   	   	   	   	   	   	      uint64_t count,
+		   	   	   	   	   	   	   	   	      uvast count,
 		   	   	   	   	   	   	   	   	      Lyst contents)
 {
 	/* \todo Implement this. */
 	return NULL;
 }
 
-ctrl_exec_t *ctrl_create_exec(uint32_t time, Lyst contents)
+ctrl_exec_t *ctrl_create_exec(time_t time, Lyst contents)
 {
 	ctrl_exec_t *result = NULL;
 
@@ -153,4 +154,149 @@ void ctrl_release_exec(ctrl_exec_t *msg)
 }
 
 
+
+void rule_time_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
+{
+	LystElt elt;
+	rule_time_prod_t *entry = NULL;
+
+	DTNMP_DEBUG_ENTRY("rule_time_clear_lyst","(0x%x, 0x%x, %d)",
+			          (unsigned long) list, (unsigned long) mutex, destroy);
+
+    if((list == NULL) || (*list == NULL))
+    {
+    	DTNMP_DEBUG_ERR("rule_time_clear_lyst","Bad Params.", NULL);
+    	return;
+    }
+
+	if(mutex != NULL)
+	{
+		lockResource(mutex);
+	}
+
+	/* Free any reports left in the reports list. */
+	for (elt = lyst_first(*list); elt; elt = lyst_next(elt))
+	{
+		/* Grab the current item */
+		if((entry = (rule_time_prod_t *) lyst_data(elt)) == NULL)
+		{
+			DTNMP_DEBUG_ERR("rule_time_clear_lyst","Can't get report from lyst!", NULL);
+		}
+		else
+		{
+			rule_release_time_prod_entry(entry);
+		}
+	}
+	lyst_clear(*list);
+
+	if(destroy != 0)
+	{
+		lyst_destroy(*list);
+		*list = NULL;
+	}
+
+	if(mutex != NULL)
+	{
+		unlockResource(mutex);
+	}
+
+	DTNMP_DEBUG_EXIT("rule_time_clear_lyst","->.",NULL);
+}
+
+void rule_pred_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
+{
+	LystElt elt;
+	rule_pred_prod_t *entry = NULL;
+
+	DTNMP_DEBUG_ENTRY("rule_pred_clear_lyst","(0x%x, 0x%x, %d)",
+			          (unsigned long) list, (unsigned long) mutex, destroy);
+
+    if((list == NULL) || (*list == NULL))
+    {
+    	DTNMP_DEBUG_ERR("rule_pred_clear_lyst","Bad Params.", NULL);
+    	return;
+    }
+
+	if(mutex != NULL)
+	{
+		lockResource(mutex);
+	}
+
+	/* Free any reports left in the reports list. */
+	for (elt = lyst_first(*list); elt; elt = lyst_next(elt))
+	{
+		/* Grab the current item */
+		if((entry = (rule_pred_prod_t *) lyst_data(elt)) == NULL)
+		{
+			DTNMP_DEBUG_ERR("rule_pred_clear_lyst","Can't get report from lyst!", NULL);
+		}
+		else
+		{
+			rule_release_pred_prod_entry(entry);
+		}
+	}
+	lyst_clear(*list);
+
+	if(destroy != 0)
+	{
+		lyst_destroy(*list);
+		*list = NULL;
+	}
+
+	if(mutex != NULL)
+	{
+		unlockResource(mutex);
+	}
+
+	DTNMP_DEBUG_EXIT("rule_pred_clear_lyst","->.",NULL);
+}
+
+void ctrl_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
+{
+	LystElt elt;
+	ctrl_exec_t *entry = NULL;
+
+	DTNMP_DEBUG_ENTRY("ctrl_clear_lyst","(0x%x, 0x%x, %d)",
+			          (unsigned long) list, (unsigned long) mutex, destroy);
+
+    if((list == NULL) || (*list == NULL))
+    {
+    	DTNMP_DEBUG_ERR("ctrl_clear_lyst","Bad Params.", NULL);
+    	return;
+    }
+
+	if(mutex != NULL)
+	{
+		lockResource(mutex);
+	}
+
+	/* Free any reports left in the reports list. */
+	for (elt = lyst_first(*list); elt; elt = lyst_next(elt))
+	{
+		/* Grab the current item */
+		if((entry = (ctrl_exec_t *) lyst_data(elt)) == NULL)
+		{
+			DTNMP_DEBUG_ERR("ctrl_clear_lyst","Can't get report from lyst!", NULL);
+		}
+		else
+		{
+			ctrl_release_exec(entry);
+		}
+	}
+
+	lyst_clear(*list);
+
+	if(destroy != 0)
+	{
+		lyst_destroy(*list);
+		*list = NULL;
+	}
+
+	if(mutex != NULL)
+	{
+		unlockResource(mutex);
+	}
+
+	DTNMP_DEBUG_EXIT("ctrl_clear_lyst","->.",NULL);
+}
 

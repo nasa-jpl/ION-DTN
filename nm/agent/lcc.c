@@ -12,7 +12,7 @@
 
 /*****************************************************************************
  **
- ** File Name: lcc.h
+ ** File Name: lcc.c
  **
  ** Description: This implements the NM Agent Local Command and Control (LDC).
  **
@@ -30,6 +30,7 @@
 #include "shared/adm/adm.h"
 #include "shared/primitives/mid.h"
 #include "shared/primitives/rules.h"
+#include "shared/primitives/instr.h"
 
 #include "nmagent.h"
 #include "lcc.h"
@@ -45,13 +46,14 @@
  *
  * \param[in]  id   The ID of the control to be executed.
  */
-int lcc_run_ctrl_mid_t(mid_t *id)
+int lcc_run_ctrl_mid(mid_t *id)
 {
     int result = 0;
     adm_ctrl_t *adm_ctrl = NULL;
     def_gen_t *macro_def = NULL;
 
     char *msg = NULL;
+    Lyst parms = NULL;
 
     DTNMP_DEBUG_ENTRY("lcc_run_ctrl","(0x%x)", (unsigned long) id);
 
@@ -71,10 +73,12 @@ int lcc_run_ctrl_mid_t(mid_t *id)
     {
     	DTNMP_DEBUG_INFO("lcc_run_ctrl","Found control.", NULL);
     	result = adm_ctrl->run(id->oid->params);
+    	gAgentInstr.num_ctrls_run++;
+
     }
 
     /* Step 2: Otherwise, see if this identifies a pre-defined macro. */
-    else if((macro_def = def_find_by_id(macro_defs, &macro_defs_mutex, id)) != NULL)
+    else if((macro_def = def_find_by_id(gAgentVDB.macros, &(gAgentVDB.macros_mutex), id)) != NULL)
     {
     	LystElt elt;
     	mid_t *mid;
@@ -83,7 +87,7 @@ int lcc_run_ctrl_mid_t(mid_t *id)
     	{
     		mid = (mid_t *)lyst_data(elt);
     		/* \todo watch infinite recursion */
-    		lcc_run_ctrl_mid_t(mid);
+    		lcc_run_ctrl_mid(mid);
     	}
     }
 
@@ -102,9 +106,11 @@ int lcc_run_ctrl_mid_t(mid_t *id)
 }
 
 
-int lcc_run_ctrl_ctrl_exec_t(ctrl_exec_t *ctrl_p)
+int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
 {
 	int result = 0;
+	char *msg = NULL;
+	Lyst parms = NULL;
     LystElt elt;
     mid_t *cur_ctrl = NULL;
 
@@ -135,11 +141,7 @@ int lcc_run_ctrl_ctrl_exec_t(ctrl_exec_t *ctrl_p)
             return -1;
         }
 
-        str = mid_pretty_print(cur_ctrl);
-        printf("EJB: trying to run MID %s.\n",str);
-        MRELEASE(str);
-
-    	result = lcc_run_ctrl_mid_t(cur_ctrl);
+    	result = lcc_run_ctrl_mid(cur_ctrl);
     }
 
 

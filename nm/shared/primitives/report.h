@@ -28,6 +28,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  01/11/13  E. Birrane     Redesign of primitives architecture.
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
  *****************************************************************************/
 
 
@@ -38,9 +39,12 @@
 
 #include "shared/utils/nm_types.h"
 
+#include "shared/primitives/def.h"
+/*
 #include "shared/msg/pdu.h"
 #include "shared/msg/msg_def.h"
 #include "shared/msg/msg_reports.h"
+*/
 
 /*
  * +--------------------------------------------------------------------------+
@@ -102,7 +106,8 @@ typedef struct {
 typedef struct
 {
 	mid_t *id;		   /**> The report ID. */
-	uint64_t size;     /**> The number of bytes of report data. */
+
+	uvast size;     /**> The number of bytes of report data. */
 	uint8_t *contents; /**> The report data. */
 } rpt_data_entry_t;
 
@@ -120,7 +125,7 @@ typedef struct
  */
 typedef struct {
 
-	uint32_t time;        /**> Time the reports were generated. */
+	time_t time;        /**> Time the reports were generated. */
     Lyst reports;         /**> The reports (lyst of rpt_data_entry_t */
 
 
@@ -138,7 +143,7 @@ typedef struct {
  *
  * +---------+--------+     +--------+
  * | # Rules | Rule 1 | ... | Rule N |
- * |  (BYTE) | (VAR)  |     |  (VAR) |
+ * |  (SDNV) | (VAR)  |     |  (VAR) |
  * +---------+--------+     +--------+
  */
 typedef struct {
@@ -153,11 +158,11 @@ typedef struct {
  * +--------------------------------------------------------------------------+
  */
 
-void         rpt_clear_lyst(Lyst reportLyst);
+void         rpt_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
 
 rpt_items_t* rpt_create_lst(Lyst contents);
 rpt_defs_t*  rpt_create_defs(Lyst defs);
-rpt_data_t*  rpt_create_data(uint32_t time, Lyst reports, eid_t recipient);
+rpt_data_t*  rpt_create_data(time_t time, Lyst reports, eid_t recipient);
 rpt_prod_t*  rpt_create_prod(Lyst defs);
 
 def_gen_t*   rpt_find_custom(Lyst reportLyst, ResourceLock *mutex, mid_t *mid);

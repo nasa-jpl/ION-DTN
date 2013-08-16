@@ -22,7 +22,7 @@
 #define DTNMP_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define DTNMP_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define DTNMP_DEBUG_LVL	DTNMP_DEBUG_LVL_INFO
+#define DTNMP_DEBUG_LVL	DTNMP_DEBUG_LVL_WARN
 
 #define	GMSG_BUFLEN	512
 #if DTNMP_DEBUGGING == 1
