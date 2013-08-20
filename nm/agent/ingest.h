@@ -31,19 +31,10 @@
 #define _INGEST_H_
 
 
-/* Validation function prototypes */
+/* Validation function */
 int rx_validate_mid_mc(Lyst mids, int passEmpty);
 int rx_validate_rule(rule_time_prod_t *rule);
 
-/**
- * The DTN Network Management Agent receive loop function.
- * This function is intended to be run from within a Posix thread.
- * Awaits and receives production rules and report definitions
- * from the network managemer, interprets them, and adds them to
- * the rules list and reports list.
- *
- * @param threadId the Posix thread ID
- **/
 
 void *rx_thread(void *threadId);
 

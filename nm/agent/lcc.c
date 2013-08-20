@@ -36,42 +36,64 @@
 #include "lcc.h"
 
 
-/**
- * \brief Perform the control given by the MID value.
+/******************************************************************************
  *
- * \author Ed Birrane
+ * \par Function Name: lcc_run_ctrl_mid
  *
- * \return 0 - Success
- *        !0 - Failure
+ * \par Run a control given the MID associated with that control.
  *
- * \param[in]  id   The ID of the control to be executed.
- */
+ * \param[in]  id   The MID identifying the control
+ *
+ * \par Notes:
+ *
+ * \return -1 - Error
+ *         !(-1) - Value returned from the run control.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/22/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
 int lcc_run_ctrl_mid(mid_t *id)
 {
     int result = 0;
     adm_ctrl_t *adm_ctrl = NULL;
     def_gen_t *macro_def = NULL;
-
+    static int nesting = 0;
     char *msg = NULL;
     Lyst parms = NULL;
 
-    DTNMP_DEBUG_ENTRY("lcc_run_ctrl","(0x%x)", (unsigned long) id);
+
+    nesting++;
+
+    DTNMP_DEBUG_ENTRY("lcc_run_ctrl_mid","(0x%#llx)", (unsigned long) id);
+
 
     /* Step 0: Sanity Check */
     if((id == NULL) || (id->oid == NULL))
     {
-    	DTNMP_DEBUG_ERR("lcc_run_ctrl","Bad Args.",NULL);
-    	DTNMP_DEBUG_EXIT("lcc_run_ctrl","-> -1",NULL);
+    	DTNMP_DEBUG_ERR("lcc_run_ctrl_mid","Bad Args.",NULL);
+    	DTNMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> -1",NULL);
+    	nesting--;
+    	return -1;
+    }
+
+    if(nesting > 5)
+    {
+    	DTNMP_DEBUG_ERR("lcc_run_ctrl_mid","Too many nesting levels (%d).",nesting);
+    	DTNMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> -1",NULL);
+    	nesting--;
     	return -1;
     }
 
     msg = mid_to_string(id);
-    DTNMP_DEBUG_INFO("lcc_run_ctrl","Running control: %s", msg);
+    DTNMP_DEBUG_INFO("lcc_run_ctrl_mid","Running control: %s", msg);
 
     /* Step 1: See if this identifies an atomic control. */
     if((adm_ctrl = adm_find_ctrl(id)) != NULL)
     {
-    	DTNMP_DEBUG_INFO("lcc_run_ctrl","Found control.", NULL);
+    	DTNMP_DEBUG_INFO("lcc_run_ctrl_mid","Found control.", NULL);
     	result = adm_ctrl->run(id->oid->params);
     	gAgentInstr.num_ctrls_run++;
 
@@ -83,28 +105,57 @@ int lcc_run_ctrl_mid(mid_t *id)
     	LystElt elt;
     	mid_t *mid;
 
+    	/*
+    	 * Step 2.1: This is a macro. Walk through each control running
+    	 *           the controls as we go.
+    	 */
     	for(elt = lyst_first(macro_def->contents); elt; elt = lyst_next(elt))
     	{
     		mid = (mid_t *)lyst_data(elt);
-    		/* \todo watch infinite recursion */
-    		lcc_run_ctrl_mid(mid);
+    		result = lcc_run_ctrl_mid(mid);
+    		if(result != 0)
+    		{
+    			DTNMP_DEBUG_WARN("lcc_run_ctrl_mid","Running MID %s returned %d",
+    					         msg, result);
+    		}
     	}
     }
 
     /* Step 3: Otherwise, give up. */
     else
     {
-    	DTNMP_DEBUG_ERR("lcc_run_ctrl","Could not find control for MID %s",
+    	DTNMP_DEBUG_ERR("lcc_run_ctrl_mid","Could not find control for MID %s",
     			        msg);
     	result = -1;
     }
 
     MRELEASE(msg);
 
-    DTNMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", result);
+    nesting--;
+    DTNMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> %d", result);
     return result;
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: lcc_run_ctrl
+ *
+ * \par Run a control given a control execution structure.
+ *
+ * \param[in]  ctrl_p  The control execution structure.
+ *
+ * \par Notes:
+ *
+ * \return -1 - Error
+ *         !(-1) - Value returned from the run control.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/22/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
 {
@@ -113,6 +164,7 @@ int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
 	Lyst parms = NULL;
     LystElt elt;
     mid_t *cur_ctrl = NULL;
+    char *str = NULL;
 
 	DTNMP_DEBUG_ENTRY("lcc_run_ctrl","(0x%x)", (unsigned long) ctrl_p);
 
@@ -124,16 +176,11 @@ int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
 		return -1;
 	}
 
-	DTNMP_DEBUG_INFO("lcc_run_ctrl","Found control.", NULL);
 
-    char *str = NULL;
-
-    /*
-     * Walk through the macro, running controls as we go.
-     */
+    /* Step 1: Walk through the macro, running controls as we go. */
     for (elt = lyst_first(ctrl_p->contents); elt; elt = lyst_next(elt))
     {
-        /* Grab the next ctrl...*/
+        /* Step 1.1: Grab the next ctrl...*/
         if((cur_ctrl = (mid_t *) lyst_data(elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("lcc_run_ctrl","Found NULL ctrl. Exiting", NULL);
@@ -142,9 +189,11 @@ int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
         }
 
     	result = lcc_run_ctrl_mid(cur_ctrl);
+    	if(result != 0)
+    	{
+    		DTNMP_DEBUG_WARN("lcc_run_ctrl","Error running control.", NULL);
+    	}
     }
-
-
 
 	DTNMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", result);
 	return result;

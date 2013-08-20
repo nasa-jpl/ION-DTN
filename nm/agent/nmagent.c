@@ -12,7 +12,7 @@
 
 /*****************************************************************************
  **
- ** File Name: nmagent.h
+ ** File Name: nmagent.c
  **
  ** Description: This implements NM Agent main processing.
  **
@@ -26,6 +26,7 @@
  **  --------  ------------    ---------------------------------------------
  **  09/01/11  V. Ramachandran Initial Implementation
  **  01/10/13  E. Birrane      Update to lasted DTNMP Spec.
+ **  06/10/13  E. Birrane      Added SDR data persistence.
  *****************************************************************************/
 
 // System headers.
@@ -49,9 +50,8 @@
 #include "adm_ion_priv.h"
 
 
+static void agent_signal_handler();
 
-// System signal handler.
-void signalHandler(int signum);
 
 // Definitions of global data.
 iif_t        ion_ptr;
@@ -84,6 +84,28 @@ int  agent_db_const_persist(ctrl_exec_t* ctrl)
 	/* \todo Implement. */
 	return -1;
 }
+
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_db_ctrl_persist
+ *
+ * \par Persist a control to the agent SDR database.
+ *
+ * \param[in]  item  The control to persist.
+ *
+ * \par Notes:
+ *
+ * \return 1 - Success
+ *        -1 - Failure
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 int  agent_db_ctrl_persist(ctrl_exec_t* item)
 {
@@ -127,6 +149,8 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 			DTNMP_DEBUG_ERR("agent_db_ctrl_persist","Unable to persist def.",NULL);
 			return -1;
 		}
+
+		DTNMP_DEBUG_INFO("agent_db_ctrl_persist","Persisted new ctrl", NULL);
 	}
 	else
 	{
@@ -138,19 +162,37 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 		temp = item->desc;
 		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(ctrl_exec_desc_t));
 
+		DTNMP_DEBUG_INFO("agent_db_ctrl_persist","Updated ctrl", NULL);
+
 		sdr_end_xn(sdr);
 	}
 
-
 	return 1;
 }
+
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_db_init
+ *
+ * \par Initialize items from the agent SDR database.
+ *
+ * \par Notes:
+ *
+ * \return 1 - Success
+ *        -1 - Failure
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 int  agent_db_init()
 {
 	Sdr sdr;
 
 	sdr = getIonsdr();
-
 
 	// * Initialize the non-volatile database. * /
 	memset((char*) &gAgentDB, 0, sizeof(AgentDB));
@@ -190,8 +232,8 @@ int  agent_db_init()
 
 			break;
 
-		default:  // Found DB in the SDR * /
-			// Read in the Database. * /
+		default:  /* Found DB in the SDR */
+			/* Read in the Database. */
 			sdr_read(sdr, (char *) &gAgentDB, gAgentDB.descObj, sizeof(AgentDB));
 
 			DTNMP_DEBUG_ALWAYS("agent_db_init", "Found DB", NULL);
@@ -218,6 +260,26 @@ int  agent_db_op_persist(def_gen_t* ctrl)
 	return -1;
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_db_report_persist
+ *
+ * \par Persist a custom report definition to the agent SDR database.
+ *
+ * \param[in]  item  The definition to persist.
+ *
+ * \par Notes:
+ *
+ * \return 1 - Success
+ *        -1 - Failure
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 int  agent_db_report_persist(def_gen_t* item)
 {
@@ -278,6 +340,27 @@ int  agent_db_report_persist(def_gen_t* item)
 
 	return 1;
 }
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_db_rule_persist
+ *
+ * \par Persist a time-based rule to the agent SDR database.
+ *
+ * \param[in]  item  The rule to persist.
+ *
+ * \par Notes:
+ *
+ * \return 1 - Success
+ *        -1 - Failure
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 int  agent_db_rule_persist(rule_time_prod_t *item)
 {
@@ -343,6 +426,28 @@ int  agent_db_rule_persist(rule_time_prod_t *item)
 	return 1;
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_vdb_add
+ *
+ * \par Add an item to a mutex-locked list.
+ *
+ * \param[in]  item  The item to add
+ * \param[in]  list  The list to hold the item.
+ * \param[in]  mutex The mute protecting the list.
+ *
+ * \par Notes:
+ *		- This is a helper function used to add items to various agent
+ *		  lists.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
 void agent_vdb_add(void *item, Lyst list, ResourceLock *mutex)
 {
 	lockResource(mutex);
@@ -361,6 +466,24 @@ void agent_vdb_consts_init(Sdr sdr)
 	/* \todo: Implement. */
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_vdb_ctrls_init
+ *
+ * \par Read controls from the SDR database into memory lists.
+ *
+ * \param[in]  sdr   The SDR containing the controls information.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
 void agent_vdb_ctrls_init(Sdr sdr)
 {
 	Object elt;
@@ -368,47 +491,77 @@ void agent_vdb_ctrls_init(Sdr sdr)
 	Object descObj;
 	ctrl_exec_desc_t cur_desc;
 	ctrl_exec_t *cur_item;
-	uint8_t *data;
+	uint8_t *data = NULL;
 	uint32_t bytes_used = 0;
 	int num = 0;
 
 	sdr_begin_xn(sdr);
 
-	/* Read through SDR list.... */
+	/* Step 1: Read through SDR list.... */
 	for (elt = sdr_list_first(sdr, gAgentDB.ctrls); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		/* Step 1: Grab the descriptor. */
+		/* Step 1.1: Grab the descriptor. */
 		descObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &cur_desc, descObj, sizeof(cur_desc));
 
+		/* Step 1.2: Save the descriptor. */
 		cur_desc.descObj = descObj;
 
-		/* Step 2: Allocate space for the item. */
-		data = (uint8_t*) MTAKE(cur_desc.size);
+		/* Step 1.3: Allocate space for the item. */
+		if((data = (uint8_t*) MTAKE(cur_desc.size)) == NULL)
+		{
+			DTNMP_DEBUG_ERR("agent_vdb_ctrls_init","Can't allocate %d bytes.",
+					        cur_desc.size);
+		}
+		else
+		{
+			/* Step 1.4: Grab the serialized item */
+			sdr_read(sdr, (char *) data, cur_desc.itemObj, cur_desc.size);
 
-		/* Step 3: Grab the serialized item */
-		sdr_read(sdr, (char *) data, cur_desc.itemObj, cur_desc.size);
+			/* Step 1.5: Deserialize the item. */
+			if((cur_item = ctrl_deserialize_exec(data,cur_desc.size, &bytes_used)) == NULL)
+			{
+				DTNMP_DEBUG_ERR("agent_vdb_ctrls_init","Failed to deserialize ctrl.",NULL);
+			}
+			else
+			{
+				/* Step 1.6: Copy current descriptor to cur_rule. */
+				cur_item->desc = cur_desc;
 
-		/* Step 4: Deserialize the item. */
-		cur_item = ctrl_deserialize_exec(data,cur_desc.size, &bytes_used);
+				/* Step 1.7: Add rule to list of active rules. */
+				ADD_CTRL(cur_item);
+			}
 
-		/* Step 5: Copy current descriptor to cur_rule. */
-		cur_item->desc = cur_desc;
+			/* Step 1.8: Release the serialized item. */
+			MRELEASE(data);
 
-		/* Step 6: Add rule to list of active rules. */
-		ADD_CTRL(cur_item);
-
-		num++;
+			/* Step 1.9: Note that we have another control. */
+			num++;
+		}
 	}
 
 	sdr_end_xn(sdr);
 
+	/* Step 2: Note to use number of controls read in. */
 	DTNMP_DEBUG_ALWAYS("", "Added %d Controls from DB.", num);
-
 }
 
 
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_register
+ *
+ * \par Send a broadcast registration message for this agent.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 void agent_register()
 {
@@ -418,16 +571,66 @@ void agent_register()
 	pdu_msg_t *pdu_msg = NULL;
 	pdu_group_t *pdu_group = NULL;
 
-	reg = msg_create_reg_agent(agent_eid);
-	data = msg_serialize_reg_agent(reg, &len);
-    pdu_msg = pdu_create_msg(MSG_TYPE_ADMIN_REG_AGENT, data, len, NULL);
-    pdu_group = pdu_create_group(pdu_msg);
+	/* Step 0: Build an agent registration message. */
+	if((reg = msg_create_reg_agent(agent_eid)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("agent_register","Unable to create agent registration.",NULL);
+		return;
+	}
 
+	/* Step 1: Serialize the message. */
+	if((data = msg_serialize_reg_agent(reg, &len)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("agent_register","Unable to serialize message.", NULL);
+		msg_release_reg_agent(reg);
+		return;
+	}
+
+	/* Step 2: Create the DTNMP message. */
+    if((pdu_msg = pdu_create_msg(MSG_TYPE_ADMIN_REG_AGENT, data, len, NULL)) == NULL)
+    {
+    	DTNMP_DEBUG_ERR("agent_register","Unable to create PDU message.", NULL);
+    	msg_release_reg_agent(reg);
+    	MRELEASE(data);
+    	return;
+    }
+
+    /* Step 3: Create a group for this message. */
+    if((pdu_group = pdu_create_group(pdu_msg)) == NULL)
+    {
+    	DTNMP_DEBUG_ERR("agent_register","Unable to create PDU message.", NULL);
+    	msg_release_reg_agent(reg);
+    	MRELEASE(data);
+    	pdu_release_msg(pdu_msg);
+    	return;
+    }
+
+    /* Step 4: Send the message. */
     iif_send(&ion_ptr, pdu_group, manager_eid.name);
+
+    /*
+     * Step 5: Release resources.  Releasing the group releases both the
+     *         PDU message as well as the data (which is shallow-copied
+     *         into the pdu_msg.
+     */
     pdu_release_group(pdu_group);
     msg_release_reg_agent(reg);
 }
 
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_vdb_destroy
+ *
+ * \par Cleans up agent memory lists.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 void agent_vdb_destroy()
 {
@@ -449,48 +652,70 @@ void agent_vdb_destroy()
     killResourceLock(&(gAgentVDB.ops_mutex));
     killResourceLock(&(gAgentVDB.reports_mutex));
     killResourceLock(&(gAgentVDB.rules_mutex));
-
 }
+
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_vdb_init
+ *
+ * \par Initializes agent memory lists.
+ *
+ * \par Notes:
+ *
+ * \return 1 - Success.
+ *        -1 - Failure.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 /* Initialize all of the VDB items. */
 int  agent_vdb_init()
 {
 	Sdr sdr = getIonsdr();
+	int result = 1;
+
+	DTNMP_DEBUG_ENTRY("agent_vdb_init","()",NULL);
 
 	/* Step 0: Clean the memory. */
 	memset(&gAgentVDB, 0, sizeof(gAgentVDB));
 
 	/* Step 1: Create lysts and associated resource locks. */
 
-	if((gAgentVDB.compdata = lyst_create()) == NULL) return -1;
-    if(initResourceLock(&(gAgentVDB.compdata_mutex))) return -1;
+	if((gAgentVDB.compdata = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gAgentVDB.compdata_mutex))) result = -1;
     agent_vdb_compdata_init(sdr);
 
-	if((gAgentVDB.consts = lyst_create()) == NULL) return -1;
-    if(initResourceLock(&(gAgentVDB.consts_mutex))) return -1;
+	if((gAgentVDB.consts = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gAgentVDB.consts_mutex))) result = -1;
     agent_vdb_consts_init(sdr);
 
-	if((gAgentVDB.ctrls = lyst_create()) == NULL) return -1;
-    if(initResourceLock(&(gAgentVDB.ctrls_mutex))) return -1;
+	if((gAgentVDB.ctrls = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gAgentVDB.ctrls_mutex))) result = -1;
     agent_vdb_ctrls_init(sdr);
 
-	if((gAgentVDB.macros = lyst_create()) == NULL) return -1;
-    if(initResourceLock(&(gAgentVDB.macros_mutex))) return -1;
+	if((gAgentVDB.macros = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gAgentVDB.macros_mutex))) result = -1;
     agent_vdb_macros_init(sdr);
 
-	if((gAgentVDB.ops = lyst_create()) == NULL) return -1;
-    if(initResourceLock(&(gAgentVDB.ops_mutex))) return -1;
+	if((gAgentVDB.ops = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gAgentVDB.ops_mutex))) result = -1;
     agent_vdb_ops_init(sdr);
 
-	if((gAgentVDB.reports = lyst_create()) == NULL) return -1;
-    if(initResourceLock(&(gAgentVDB.reports_mutex))) return -1;
+	if((gAgentVDB.reports = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gAgentVDB.reports_mutex))) result = -1;
     agent_vdb_reports_init(sdr);
 
-	if((gAgentVDB.rules = lyst_create()) == NULL) return -1;
-    if(initResourceLock(&(gAgentVDB.rules_mutex))) return -1;
+	if((gAgentVDB.rules = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gAgentVDB.rules_mutex))) result = -1;
     agent_vdb_rules_init(sdr);
 
-    return 1;
+    DTNMP_DEBUG_EXIT("agent_vdb_init","-->%d",result);
+
+    return result;
 }
 
 
@@ -504,6 +729,24 @@ void agent_vdb_ops_init(Sdr sdr)
 	/* \todo: implement. */
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_vdb_reports_init
+ *
+ * \par Read report definitions from the SDR database into memory lists.
+ *
+ * \param[in]  sdr   The SDR containing the report information.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
 void agent_vdb_reports_init(Sdr sdr)
 {
 	Object elt;
@@ -515,43 +758,76 @@ void agent_vdb_reports_init(Sdr sdr)
 	uint32_t bytes_used = 0;
 	int num = 0;
 
-	/* Read in active rules. */
-
 	sdr_begin_xn(sdr);
 
+	/* Step 1: Walk through report definitions. */
 	for (elt = sdr_list_first(sdr, gAgentDB.reports); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 
-		/* Step 1: Grab the descriptor. */
+		/* Step 1.1: Grab the descriptor. */
 		descObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &cur_desc, descObj, sizeof(cur_desc));
 
 		cur_desc.descObj = descObj;
 
-		/* Step 2: Allocate space for the def. */
-		data = (uint8_t*) MTAKE(cur_desc.size);
+		/* Step 1.2: Allocate space for the def. */
+		if((data = (uint8_t*) MTAKE(cur_desc.size)) == NULL)
+		{
+			DTNMP_DEBUG_ERR("agent_vdb_reports_init","Can't allocate %d bytes.",
+					        cur_desc.size);
+		}
+		else
+		{
+			/* Step 1.3: Grab the serialized rule */
+			sdr_read(sdr, (char *) data, cur_desc.itemObj, cur_desc.size);
 
-		/* Step 3: Grab the serialized rule */
-		sdr_read(sdr, (char *) data, cur_desc.itemObj, cur_desc.size);
-
-		/* Step 4: Deserialize into a rule object. */
-		cur_item = def_deserialize_gen(data,
+			/* Step 1.4: Deserialize into a rule object. */
+			if((cur_item = def_deserialize_gen(data,
 									  cur_desc.size,
-									  &bytes_used);
+									  &bytes_used)) == NULL)
+			{
+				DTNMP_DEBUG_ERR("agent_vdb_reports_init","Can't deserialize rpt.", NULL);
+			}
+			else
+			{
+				/* Step 1.5: Copy current descriptor to cur_rule. */
+				cur_item->desc = cur_desc;
 
-		/* Step 5: Copy current descriptor to cur_rule. */
-		cur_item->desc = cur_desc;
+				/* Step 1.6: Add report def to list of report defs. */
+				ADD_REPORT(cur_item);
 
-		/* Step 6: Add report def to list of report defs. */
-		ADD_REPORT(cur_item);
+				/* Step 1.7: Note that we have read a new report.*/
+				num++;
+			}
 
-		num++;
+			/* Step 1.8: Release serialized rpt, we don't need it. */
+			MRELEASE(data);
+		}
 	}
 	sdr_end_xn(sdr);
 
+	/* Step 2: Print to user total number of reports read.*/
 	DTNMP_DEBUG_ALWAYS("", "Added %d Reports from DB.", num);
 }
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: agent_vdb_rules_init
+ *
+ * \par Read time-based rule definitions from the SDR database into memory lists.
+ *
+ * \param[in]  sdr   The SDR containing the rule information.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 void agent_vdb_rules_init(Sdr sdr)
 {
@@ -560,48 +836,83 @@ void agent_vdb_rules_init(Sdr sdr)
 	Object descObj;
 	rule_time_prod_desc_t cur_descr;
 	rule_time_prod_t *cur_item;
-	uint8_t *data;
+	uint8_t *data = NULL;
 	uint32_t bytes_used = 0;
 	int num = 0;
 
 	sdr_begin_xn(sdr);
 
-	/* Read in active rules. */
+	/* Step 1: Read in active rules. */
 	for (elt = sdr_list_first(sdr, gAgentDB.rules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		/* Step 1: Grab the descriptor. */
+		/* Step 1.1: Grab the descriptor. */
 		descObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &cur_descr, descObj, sizeof(cur_descr));
 
 		cur_descr.descObj = descObj;
 
-		/* Step 2: Allocate space for the rule. */
-		data = (uint8_t*) MTAKE(cur_descr.size);
+		/* Step 1.2: Allocate space for the rule. */
+		if((data = (uint8_t*) MTAKE(cur_descr.size)) == NULL)
+		{
+			DTNMP_DEBUG_ERR("agent_vdb_reports_init","Can't allocate %d bytes.",
+					        cur_descr.size);
+		}
+		else
+		{
+			/* Step 1.3: Grab the serialized rule */
+			sdr_read(sdr, (char *) data, cur_descr.itemObj, cur_descr.size);
 
-		/* Step 3: Grab the serialized rule */
-		sdr_read(sdr, (char *) data, cur_descr.itemObj, cur_descr.size);
-
-		/* Step 4: Deserialize into a rule object. */
-		cur_item = ctrl_deserialize_time_prod_entry(data,
+			/* Step 1.4: Deserialize into a rule object. */
+			if((cur_item = ctrl_deserialize_time_prod_entry(data,
 				                                    cur_descr.size,
-				                                    &bytes_used);
+				                                    &bytes_used)) == NULL)
+			{
+				DTNMP_DEBUG_ERR("agent_vdb_reports_init","Can't deserialize rule.", NULL);
+			}
+			else
+			{
+				/* Step 1.5: Copy current descriptor to cur_rule. */
+				cur_item->desc = cur_descr;
 
-		/* Step 5: Copy current descriptor to cur_rule. */
-		cur_item->desc = cur_descr;
+				/* Step 1.6: Add rule to list of active rules. */
+				ADD_RULE(cur_item);
 
-		/* Step 6: Add rule to list of active rules. */
-		ADD_RULE(cur_item);
+				/* Step 1.7: Note that another rule has been read. */
+				num++;
+			}
 
-		num++;
+			/* Step 1.8: Release serialized rule, we don't need it. */
+			MRELEASE(data);
+		}
 	}
 
 	sdr_end_xn(sdr);
 
+	/* Step 2: Print to user total number of rules read.*/
 	DTNMP_DEBUG_ALWAYS("", "Added %d Rules from DB.", num);
 }
 
 
+
+/******************************************************************************
+ *
+ * \par Function Name: main
+ *
+ * \par Main agent processing function.
+ *
+ * \param[in]  argc    # command line arguments.
+ * \param[in]  argv[]  Command-line arguments.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  01/10/13  E. Birrane      Update to lasted DTNMP Spec.
+ **  06/10/13  E. Birrane      Added SDR data persistence.
+ *****************************************************************************/
 
 int main(int argc, char *argv[])
 {
@@ -613,31 +924,25 @@ int main(int argc, char *argv[])
     int rc;
     errno = 0;
 
-    DTNMP_DEBUG_ENTRY("agent_main","(%d, 0x%x)", argc, (unsigned long)argv);
+    DTNMP_DEBUG_ENTRY("agent_main","(%d, 0x%#llx)", argc, (unsigned long)argv);
     
+    /* Step 0: Sanity check. */
     if(argc != 3) {
-        fprintf(stderr,"Usage: nmagent <agent eid> <manager eid>\n");
+        DTNMP_DEBUG_ALWAYS("main","Usage: nmagent <agent eid> <manager eid>\n", NULL);
         return 1;
     }
     
     DTNMP_DEBUG_INFO("agent main","Agent EID: %s, Mgr EID: %s", argv[1], argv[2]);
     
 
-    // Indicate that the threads should run once started.
+    /* Step 1: Indicate that the threads should run once started. */
     g_running = 1;
 
-    // Setup the ION interface.
-    /*
-    if((ion_ptr = (iif_t *)MTAKE(sizeof(iif_t))) == NULL)
-    {
-    	DTNMP_DEBUG_ERR("agent_main","Can;'t alloc %d bytes.", sizeof(iif_t));
-    	DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
-    	return -1;
-    }
-*/
+    /* Step 2: Note command-line arguments. */
     strcpy((char *) manager_eid.name, argv[2]);
     strcpy((char *) agent_eid.name, argv[1]);
    
+    /* Step 3: Attach to ION and register. */
 	if (ionAttach() < 0)
 	{
 		DTNMP_DEBUG_ERR("agentDbInit", "Agent can't attach to ION.", NULL);
@@ -648,7 +953,6 @@ int main(int argc, char *argv[])
     {
         DTNMP_DEBUG_ERR("agent_main","Unable to regster BP Node. Exiting.",
         		         NULL);
-       // MRELEASE(ion_ptr);
     	DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
         return -1;
     }
@@ -662,12 +966,11 @@ int main(int argc, char *argv[])
     {
         DTNMP_DEBUG_ERR("agent_main","Failed to register agent with ION, EID %s",
         		         iif_get_local_eid(&ion_ptr).name);
-        //MRELEASE(ion_ptr);
     	DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
     	return -1;
     }
    
-
+    /* Step 4: Read information from SDR and initialize memory lists.*/
     agent_db_init();
 
     if(agent_vdb_init() == -1)
@@ -681,6 +984,8 @@ int main(int argc, char *argv[])
     	return -1;
     }
 
+
+    /* Step 5: Initialize ADM support. */
     adm_init();
 
     agent_adm_init_bp();
@@ -694,198 +999,99 @@ int main(int argc, char *argv[])
 
     agent_adm_init_agent();
 
-    // Start the receive thread. This thread will run continuously until the
-    // g_running variable defined in nmagent.h is set to false.
-    rc = pthread_create(&ingest_thr, NULL, rx_thread,
-                        (void *)ingest_thr_name);
+    /* Step 6: Register signal handlers. */
+    isignal(SIGINT, agent_signal_handler);
+    isignal(SIGTERM, agent_signal_handler);
+
+    /* Step 7: Start agent threads. */
+    rc = pthread_create(&ingest_thr, NULL, rx_thread, (void *)ingest_thr_name);
     if (rc)
     {
         DTNMP_DEBUG_ERR("agent_main","Unable to create pthread %s, errno = %s",
         		ingest_thr_name, strerror(errno));
-       // MRELEASE(ion_ptr);
+        adm_destroy();
+        agent_vdb_destroy();
+
     	DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
     	return -1;
     }
    
-    // Start the production thread. This thread will run continuously until the
-    // g_running variable defined in nmagent.h is set to false.
-    rc = pthread_create(&rda_thr, NULL,
-                        rda_thread,
-                        (void *)rda_thr_name);
+    rc = pthread_create(&rda_thr, NULL, rda_thread, (void *)rda_thr_name);
     if (rc)
     {
        DTNMP_DEBUG_ERR("agent_main","Unable to create pthread %s, errno = %s",
     		           rda_thr_name, strerror(errno));
-      // MRELEASE(ion_ptr);
+       adm_destroy();
+       agent_vdb_destroy();
+
        DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
        return -1;
     }
    
     DTNMP_DEBUG_ALWAYS("agent_main","Threads started...", NULL);
-   
-    DTNMP_DEBUG_ALWAYS("agent_main","Registering with Manager,", NULL);
+
+
+    /* Step 8: Send out agent broadcast message. */
     agent_register();
 
-
-
-    // Program will wait until its child threads complete.
+    /* Step 9: Join threads and wait for them to complete. */
     if (pthread_join(ingest_thr, NULL))
     {
         DTNMP_DEBUG_ERR("agent_main","Unable to join pthread %s, errno = %s",
      		           ingest_thr_name, strerror(errno));
-        //MRELEASE(ion_ptr);
+        adm_destroy();
+        agent_vdb_destroy();
+
         DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
         return -1;
     }
-       
+
     if (pthread_join(rda_thr, NULL))
     {
         DTNMP_DEBUG_ERR("agent_main","Unable to join pthread %s, errno = %s",
      		           rda_thr_name, strerror(errno));
-        //MRELEASE(ion_ptr);
+        adm_destroy();
+        agent_vdb_destroy();
+
         DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
         return -1;
     }
    
-
+    /* Step 10: Cleanup. */
+    DTNMP_DEBUG_ALWAYS("agent_main","Cleaning Agent Resources.",NULL);
     adm_destroy();
     agent_vdb_destroy();
 
-    DTNMP_DEBUG_INFO("agent_main","Exiting Agent after cleanup.", NULL);
 
+    DTNMP_DEBUG_ALWAYS("agent_main","Stopping Agent.",NULL);
+
+    DTNMP_DEBUG_INFO("agent_main","Exiting Agent after cleanup.", NULL);
     return 0;
 }
 
 
-/**
- * Signal handler for the nmagent main program.
+
+/******************************************************************************
  *
- * @param signum The received system signal number.
- **/
-void signalHandler(int signum)
+ * \par Function Name: agent_signal_handler
+ *
+ * \par Catches kill signals and gracefully shuts down the agent.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  08/18/13  E. Birrane    Initial Implementation
+ *****************************************************************************/
+
+static void agent_signal_handler()
 {
-   if (signum == SIGINT || signum == SIGKILL || signum == SIGTERM)
-      {
-      g_running = 0;
-      sleep(1); // Give threads a moment to terminate.
-      fprintf(stderr,"nmagent terminated by user. Done.\n");
-      exit(EXIT_SUCCESS);
-      }
-   else
-      {
-      perror("ERROR");
-      fprintf(stderr,"nmagent terminated abnormally.\n");
-      exit(EXIT_FAILURE);
-      }
+	isignal(SIGINT,agent_signal_handler);
+	isignal(SIGTERM, agent_signal_handler);
+
+	g_running = 0;
 }
-
-
-
-
-
-/***OLD
-/ *
-  * Create a rule descriptor. Serialize the rule. Populate descriptor.
- * If rule already in SDR, just over-write the descriptor portion in the SDR.
- * /
-int persistDefinition(def_gen_t* def)
-{
-	Sdr sdr = getIonsdr();
-	uint8_t *data;
-
-	/ * Step 0: Sanity Checks. * /
-	if((def == NULL) ||
-	   ((def->desc.defObj == 0) && (def->desc.descObj != 0)) ||
-	   ((def->desc.defObj != 0) && (def->desc.descObj == 0)))
-	{
-		DTNMP_DEBUG_ERR("persistDefinition","bad params.",NULL);
-		return -1;
-	}
-
-	sdr_begin_xn(sdr);
-
-	/ *
-	 * Step 1: Determine if this def is already in the SDR. We will assume
-	 *         the def is in the SDR already if its Object fields are nonzero.
-	 * /
-
-	if(def->desc.defObj == 0)
-	{
-	   DTNMP_DEBUG_INFO("persistDefinition","Adding new definition to SDR.",NULL);
-
-	   / * Step 1.1: Allocate a descriptor object for this def in the SDR. * /
-	   if((def->desc.descObj = sdr_malloc(sdr, sizeof(def_gen_desc_t))) == 0)
-	   {
-		   sdr_cancel_xn(sdr);
-
-		   DTNMP_DEBUG_ERR("persistDefinition","Can't allocate def descriptor of size %d.",
-			  	           sizeof(def_gen_desc_t));
-		   return -1;
-	   }
-
-	   / * Step 1.2: Serialize the def to go into the SDR.. * /
-	   if((data = def_serialize_gen(def, &(def->desc.def_size))) == NULL)
-	   {
-
-		   sdr_free(sdr, def->desc.descObj);
-		   sdr_cancel_xn(sdr);
-
-		   DTNMP_DEBUG_ERR("persistDefinition", "Unable to serialize new def.", NULL);
-		   return -1;
-	   }
-
-	   / *  Step 1.3: Allocate space for the serialized rule in the SDR. * /
-	   if((def->desc.defObj = sdr_malloc(sdr, def->desc.def_size)) == 0)
-	   {
-		   MRELEASE(data);
-		   sdr_free(sdr, def->desc.descObj);
-		   sdr_cancel_xn(sdr);
-		   DTNMP_DEBUG_ERR("persistDefinition", "Unable to allocate Def in SDR. Size %d.",
-				           def->desc.def_size);
-		   return -1;
-	   }
-
-	   / * Step 1.4: Write the rule to the SDR. * /
-	   sdr_write(sdr, def->desc.defObj, (char *) data, def->desc.def_size);
-	   MRELEASE(data);
-
-	   / * Step 1.5: Write the rule descriptor to the SDR. * /
-		sdr_write(sdr, def->desc.descObj, (char *) &(def->desc),
-				  sizeof(def_gen_desc_t));
-
-		/ * Step 1.6: Save the descriptor in the AgentDB custom defs list. * /
-		if (sdr_list_insert_last(sdr, gAgentDB.custom_defs, def->desc.descObj) == 0)
-		{
-			sdr_free(sdr, def->desc.defObj);
-			sdr_free(sdr, def->desc.descObj);
-			sdr_cancel_xn(sdr);
-			DTNMP_DEBUG_ERR("persistDefinition", "Unable to insert Def Descr. in SDR.", NULL);
-			return -1;
-		}
-	}
-	else
-	{
-		def_gen_desc_t temp;
-
-	    DTNMP_DEBUG_INFO("persistDefinition","Updating definition in SDR.",NULL);
-
-		sdr_stage(sdr, (char*) &temp, def->desc.descObj, sizeof(def_gen_desc_t));
-		temp = def->desc;
-		sdr_write(sdr, def->desc.descObj, (char *) &temp, sizeof(def_gen_desc_t));
-	}
-
-	sdr_end_xn(sdr);
-
-	return 1;
-}
-
-
-
-
-
-***/
-
-
 
 
 

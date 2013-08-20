@@ -40,15 +40,6 @@ int               rda_eval_pending_rules(Lyst rules_pending, Lyst built_reports)
 int               rda_send_reports(Lyst built_reports);
 int               rda_eval_cleanup(Lyst rules_pending);
 
-/**
- * The DTN Network Management Agent production loop function.
- * This function is intended to be run from within a Posix thread.
- * It periodically constructs DTN network management reports from
- * rules defined in the rule list.
- *
- * @param threadId the Posix thread ID
- **/
-
 void*             rda_thread(void* threadId);
 
 

@@ -85,35 +85,69 @@ void rda_cleanup(Lyst rules_pending, Lyst built_reports)
 }
 
 
+
+/******************************************************************************
+ *
+ * \par Function Name: rda_find_report
+ *
+ * \par Purpose: Find the data report intended for a given recipient. The
+ *               agent will, when possible, combine reports for a single
+ *               recipient.
+ *
+ * \param[in]  built_reports - List of reports built during an RDA run.
+ * \param[in]  recipient     - The recipient for which we are searching for
+ *                             a report.
+ *
+ * \par Notes:
+ *
+ * \return !NULL - Report for this recipient.
+ *         NULL  - Error.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  10/21/11  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
 rpt_data_t *rda_find_report(Lyst built_reports, char *recipient)
 {
     LystElt elt;
     rpt_data_t *cur_report = NULL;
     rpt_data_t *result = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_find_report","(0x%x, %s)",
+    DTNMP_DEBUG_ENTRY("rda_find_report","(0x%#llx, %s)",
     		         (unsigned long) built_reports, recipient);
     
-    /* Search the list of reports identified so far. */
+    /* Step 0: Sanity check. */
+    if(recipient == NULL)
+    {
+    	DTNMP_DEBUG_ERR("rda_find_report","Bad parms.",NULL);
+    	return NULL;
+    }
+
+    /* Step 1: Search the list of reports identified so far. */
     for (elt = lyst_first(built_reports); elt; elt = lyst_next(elt))
     {
-        /* Grab the current report */
+        /* Step 1.1: Grab the current report */
         cur_report = (rpt_data_t*) lyst_data(elt);
         
-        /* Currently, just match on single recipient. */
-
+        /* Step 1.2: Check if this report is destined for our recipient. */
         if(strcmp(cur_report->recipient.name, recipient) == 0)
         {
             DTNMP_DEBUG_INFO("rda_find_report",
             		         "Found existing report for recipient %s", recipient);
+
+            /* Step 1.2.1: Remeber report if it is a match. */
             result = cur_report;
+
+            /* Step 1.2.3: Currently, we only match on 1 recipient, so, break.*/
             break;
         }
     }
     
     /* 
-     * If there is no report, we will need to create one for this
-     * recipient.
+     * Step 2: If there is no matching report, we will need to create a new
+     *         one for this recipient.
      */
     if(result == NULL)
     {
@@ -132,9 +166,10 @@ rpt_data_t *rda_find_report(Lyst built_reports, char *recipient)
 }
 
 
+
 /******************************************************************************
  *
- * \par Function Name: rda_scanRules
+ * \par Function Name: rda_scan_rules
  *
  * \par Purpose: Walks the list of rules defined by this agent, determines
  *               which rules are to be executed, and updates housekeeping
@@ -145,8 +180,6 @@ rpt_data_t *rda_find_report(Lyst built_reports, char *recipient)
  *
  * \param[in,out]  rules_pending - List of rules that should be executed during
  *                                 this execution period.
- * \param[in,out]  pending_bufsize - Estimated # bytes taken by all rule MIDs. 
- *
  * \par Notes:
  *
  * Modification History:
@@ -160,20 +193,20 @@ int rda_scan_rules(Lyst rules_pending)
     LystElt elt;
     rule_time_prod_t *rule_p = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_scan_rules","(0x%x)", (unsigned long)rules_pending);
+    DTNMP_DEBUG_ENTRY("rda_scan_rules","(0x%#llx)", (unsigned long)rules_pending);
 
     
-    /* Start with a fresh list for pending rules */
+    /* Step 0: Start with a fresh list for pending rules */
     lyst_clear(rules_pending);
     
     
     /* 
-     * Walk through each defined rule and see if it should be included in
-     * the current evaluation scan.
+     * Step 1: Walk through each defined rule and see if it should be
+     *         included in the current evaluation scan.
      */    
     for (elt = lyst_first(gAgentVDB.rules); elt; elt = lyst_next(elt))
     {
-        /* Grab the next rule...*/
+        /* Step 1.1: Grab the next rule...*/
         if((rule_p = (rule_time_prod_t *) lyst_data(elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_scan_rules","Found NULL rule. Exiting", NULL);
@@ -181,14 +214,19 @@ int rda_scan_rules(Lyst rules_pending)
             return -1;
         }
                 
-        /* Determine if this rule is ready for possible evaluation. */
+        /* Step 1.2: Determine if this rule is ready for possible evaluation. */
         if(rule_p->countdown_ticks == 0)
         {
-            /* Determine if this rule has been evaluated more than its
-             * maximum number of evaluations */
+            /*
+             * Step 1.2.1: Determine if this rule has been evaluated more than
+             *             its maximum number of evaluations
+             */
             if((rule_p->desc.num_evals > 0) ||
                (rule_p->desc.num_evals == DTNMP_RULE_EXEC_ALWAYS))
             {
+            	/* Step 1.2.2: If ready, add rule to list of rules pending
+            	 *             evaluation in this current tick.
+            	 */
                 lyst_insert_first(rules_pending, rule_p);
                 DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
                 		         NULL);
@@ -196,6 +234,7 @@ int rda_scan_rules(Lyst rules_pending)
         }
         else
         {
+        	/* Step 1.2.2: If not ready, note that another tick has elapsed. */
             rule_p->countdown_ticks--;
         }                
     }
@@ -206,20 +245,40 @@ int rda_scan_rules(Lyst rules_pending)
  
 
 
+/******************************************************************************
+ *
+ * \par Function Name: rda_scan_ctrls
+ *
+ * \par Purpose: Walks the list of ctrls defined by this agent, determines
+ *               which ctrls are to be executed, and updates housekeeping
+ *               information for each ctrl.
+ *
+ * \retval int -  0 : Success
+ *               -1 : Failure
+ *
+ * \param[in,out]  exec_defs - List of ctrls that should be executed during
+ *                             this execution period.
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  10/21/11  E. Birrane     Initial implementation,
+ *****************************************************************************/
 int rda_scan_ctrls(Lyst exec_defs)
 {
     LystElt elt;
     ctrl_exec_t *ctrl_p = NULL;
 
-    DTNMP_DEBUG_ENTRY("rda_scan_ctrls","(0x%x)", (unsigned long)exec_defs);
+    DTNMP_DEBUG_ENTRY("rda_scan_ctrls","(0x%#llx)", (unsigned long)exec_defs);
 
     /*
-     * Walk through each defined ctrl and see if it should be included in
-     * the current evaluation scan.
+     * Step 1: Walk through each defined ctrl and see if it should be included
+     *         in the current evaluation scan.
      */
     for (elt = lyst_first(exec_defs); elt; elt = lyst_next(elt))
     {
-        /* Grab the next ctrl...*/
+        /* Step 1.1: Grab the next ctrl...*/
         if((ctrl_p = (ctrl_exec_t *) lyst_data(elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_scan_ctrls","Found NULL ctrl. Exiting", NULL);
@@ -227,15 +286,18 @@ int rda_scan_ctrls(Lyst exec_defs)
             return -1;
         }
 
-        /* Determine if this rule is ready for possible evaluation. */
+        /* Step 1.2: Determine if this rule is ready for possible evaluation. */
         if(ctrl_p->desc.state == CONTROL_ACTIVE)
         {
+        	/* Step 1.3: If the control is ready to execute, run it. */
         	if(ctrl_p->countdown_ticks <= 0)
         	{
         		lcc_run_ctrl(ctrl_p);
-        		/* controls disable after they fire.*/
+
+        		/* Step 1.3.1: controls disable after they fire.*/
         		ctrl_p->desc.state = CONTROL_INACTIVE;
         	}
+        	/* Step 1.4: If the control is not ready, note a tick elapsed. */
         	else
         	{
         		ctrl_p->countdown_ticks--;
@@ -248,7 +310,27 @@ int rda_scan_ctrls(Lyst exec_defs)
 }
 
 
-/* \todo: Does this really need to be a function? */
+
+/******************************************************************************
+ *
+ * \par Function Name: rda_build_report_entry
+ *
+ * \par Purpose: Create a report entry containing data for a given report MID
+ *               and filled from the agent Local Data Collector.
+ *
+ * \return  NULL - Error
+ *         !NULL - Constructed report.
+ *
+ * \param[in]  mid  - The MID identifying the report to populate.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  10/21/11  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
 rpt_data_entry_t *rda_build_report_entry(mid_t *mid)
 {
 	rpt_data_entry_t *entry = NULL;
@@ -283,6 +365,28 @@ rpt_data_entry_t *rda_build_report_entry(mid_t *mid)
 /*
  * Returns # rules processed.
  */
+
+/******************************************************************************
+ *
+ * \par Function Name: rda_eval_rule
+ *
+ * \par Purpose: Generate a data report by evaluating a time-based production
+ *               rule.
+ *
+ * \return -1   - Error
+ *         >= 0 - # rules processed.
+ *
+ * \param[in]  rule_p   - The MID identifying the report to populate.
+ * \param[out] report_p - The constructed report.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  10/21/11  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
 int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
 {
 	rpt_data_entry_t *entry = NULL;
@@ -291,12 +395,20 @@ int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
     int result = 0;
     Sdnv tmp;
     
-    DTNMP_DEBUG_ENTRY("rda_eval_rule","(0x%x 0x%x)",
+    DTNMP_DEBUG_ENTRY("rda_eval_rule","(0x%#llx 0x%#llx)",
     		           (unsigned long) rule_p, (unsigned long) report_p);
     
+    /* Step 0: Sanity check.*/
+    if((rule_p == NULL) || (report_p == NULL))
+    {
+    	DTNMP_DEBUG_ERR("rda_eval_rule","Bad parms.", NULL);
+    	return -1;
+    }
+
+    /* Step 1: Update statistics. */
 	gAgentInstr.num_time_rules_run++;
 
-    /* For each MID listed in the evaluating report...*/
+    /* Step 2: For each MID listed in the evaluating report...*/
     for (elt = lyst_first(rule_p->mids); elt; elt = lyst_next(elt))
     {
 
@@ -307,7 +419,7 @@ int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
             return -1;
         }
     
-        /* Step 2: Construct The data entry for this MID. */
+        /* Step 2.1: Construct The data entry for this MID. */
         if((entry = rda_build_report_entry(cur_mid)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_eval_rule","Can't build report entry.", NULL);
@@ -315,7 +427,7 @@ int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
             return -1;            
         }
         
-        /* Step 3: Add new entry to the report. */
+        /* Step 2.2: Add new entry to the report. */
         lyst_insert_last(report_p->reports,entry);
         
         result++;
@@ -329,7 +441,7 @@ int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
 
 /******************************************************************************
  *
- * \par Function Name: rda_evalPendingRules
+ * \par Function Name: rda_eval_pending_rules
  *
  * \par Purpose: Walks the list of rules flagged for evaluation and evaluates
  *               them, taking the appropriate action for each rule.
@@ -389,11 +501,36 @@ int rda_eval_pending_rules(Lyst rules_pending, Lyst built_reports)
         }
     }
     
-    
     DTNMP_DEBUG_EXIT("rda_eval_pending_rules","-> 0", NULL);
     return 0;
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rda_send_reports
+ *
+ * \par Purpose: For each report constructed during this evaluation period,
+ *               create a message and send it.
+ *
+ * \retval int -  0 : Success
+ *               -1 : Failure
+ *
+ * \param[in,out]  built_reports - List of reports generated by the rda.
+ *
+ * \par Notes:
+ *		- When we construct the reports, we build one compound report
+ *		  per recipient. By the time we get to this function, we should have
+ *		  one report per recipient, so making one message per report should
+ *		  not result in multiple messages to the same recipient.
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  10/21/11  E. Birrane     Initial implementation,
+ *****************************************************************************/
 
 int rda_send_reports(Lyst built_reports)
 {
@@ -402,15 +539,21 @@ int rda_send_reports(Lyst built_reports)
     uint8_t *raw_report = NULL;
     uint32_t raw_report_len = 0;
     
-    DTNMP_DEBUG_ENTRY("rda_send_reports","(0x%x)",
-    		          (unsigned long) built_reports);
+    DTNMP_DEBUG_ENTRY("rda_send_reports","(0x%#llx)",
+    		         (unsigned long) built_reports);
     
     DTNMP_DEBUG_INFO("rda_send_reports","Preparing to send %d reports.",
     		         lyst_length(built_reports));
     
+
+    /* Step 1: For each report that has been built... */
     for (report_elt = lyst_first(built_reports); report_elt; report_elt = lyst_next(report_elt))
     {
-        /* Grab the report */
+        /*
+         * Step 1.1: Grab the report. Bail if the report is bad. It is better to
+         * send no reports than to send potentially garbled reports. If the
+         * report here is NULL, something has clearly gone wrong on the system.
+         */
         if((report = (rpt_data_t*) lyst_data(report_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_send_reports","Can't find report from elt %x.",
@@ -419,25 +562,50 @@ int rda_send_reports(Lyst built_reports)
             return -1;
         }
 
-
-
-
-        /* Send the report to the report recipient.*/
+        /* Step 1.2: Construct a message for the report. */
        	pdu_msg_t *pdu_msg = NULL;
        	pdu_group_t *pdu_group = NULL;
 
-        /* Serialize the payload. */
-        raw_report = rpt_serialize_data(report, &raw_report_len);
+        /* Step 1.3: Serialize the payload. */
+        if((raw_report = rpt_serialize_data(report, &raw_report_len)) == NULL)
+        {
+        	DTNMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
+            DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
+            return -1;
+        }
 
-        pdu_msg = pdu_create_msg(MSG_TYPE_RPT_DATA_RPT, raw_report, raw_report_len, NULL);
-        pdu_group = pdu_create_group(pdu_msg);
+        /* Step 1.4: Construct the containers. */
+        if((pdu_msg = pdu_create_msg(MSG_TYPE_RPT_DATA_RPT,
+        		                 raw_report, raw_report_len, NULL)) == NULL)
+        {
+        	DTNMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
+        	MRELEASE(raw_report);
+            DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
+            return -1;
+        }
 
-        unsigned char *msg;
-        uint32_t msg_len;
+        if((pdu_group = pdu_create_group(pdu_msg)) == NULL)
+        {
+        	DTNMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
+
+        	/* This will also release the associated raw_report which was
+        	 * shallow-copied into the message. */
+        	pdu_release_msg(pdu_msg);
+            DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
+            return -1;
+        }
+
+        /* Step 1.5: Send the message. */
         iif_send(&ion_ptr, pdu_group, report->recipient.name);
-        pdu_release_group(pdu_group);
-    	gAgentInstr.num_sent_rpts++;
 
+        /*
+         * Step 1.6: This will also release the raw_report, which is
+         *           shallow-copied by the call to pdu_create_msg.
+         */
+        pdu_release_group(pdu_group);
+
+        /* Step 1.7: Update statistics. */
+        gAgentInstr.num_sent_rpts++;
     }
     
     DTNMP_DEBUG_EXIT("rda_send_reports","->0", NULL);
@@ -445,16 +613,42 @@ int rda_send_reports(Lyst built_reports)
 }
 
 
+
+/******************************************************************************
+ *
+ * \par Function Name: rda_eval_cleanup
+ *
+ * \par Purpose: Clean up lists and associated structures after an
+ *               evaluation period.
+ *
+ * \retval int -  0 : Success
+ *               -1 : Failure
+ *
+ * \param[in,out]  rules_pending - The list of rules that were pending for
+ *                                 evaluation during this period.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  10/21/11  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
 int rda_eval_cleanup(Lyst rules_pending)
 {
     LystElt pending_elt;
     rule_time_prod_t *rule_p = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_eval_cleanup","(0x%x)", rules_pending);
+    DTNMP_DEBUG_ENTRY("rda_eval_cleanup","(0x%#llx)", rules_pending);
         
+    /* Step 1: For each pending rule...*/
     for (pending_elt = lyst_first(rules_pending); pending_elt; pending_elt = lyst_next(pending_elt))
     {
-        /* Grab the next rule...*/
+        /*
+         * Step 1.1: Grab the next rule. If it is NULL, we stop processing
+         *           as the system is in a potentially unknown state.
+         */
         if((rule_p = (rule_time_prod_t*) lyst_data(pending_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't find pending rule from elt %x.", pending_elt);
@@ -462,16 +656,12 @@ int rda_eval_cleanup(Lyst rules_pending)
             return -1;
         }
         
-        /* Perform post-evaluation cleanup on the rule */
-        
-        /* If the rule should no longer execute, expire it */
+        /* Step 1.2: If the rule should no longer execute, delete it */
         if(rule_p->desc.num_evals == 0)
         {
-            // Remove this rule from the active list and place it in the
-            // expired list.
             DTNMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
-            
-            // \todo maybe put active ELT in the pending list?
+
+        	/* Step 1.2.1: Find and remove the rule in the memory list. */
             LystElt tmp_elt;
             for(tmp_elt = lyst_first(gAgentVDB.rules); tmp_elt; tmp_elt = lyst_next(tmp_elt))
             {
@@ -482,22 +672,25 @@ int rda_eval_cleanup(Lyst rules_pending)
             	}
             }
 
-            /* Free the expired rule. */
-            /* \todo: Consider storing expired rules in some persistent storage? */
+            /* Step 1.2.2: Remove the rule from the SDR storage.. */
             db_forget(&(rule_p->desc.itemObj),
          	          &(rule_p->desc.descObj),
                       gAgentDB.rules);
 
+            /* Step 1.2.3: Release the rule. */
             rule_release_time_prod_entry(rule_p);
             rule_p = NULL;
+
+            /* Step 1.2.4: Correct counters. */
+        	gAgentInstr.num_time_rules--;
         }
         
-        /* Otherwise, reset its countdown timer. */
+        /* Step 1.3: If the rule should run again, reset its timer. */
         else
         {
             rule_p->countdown_ticks = rule_p->desc.interval_ticks;
 
-            /* Re-persist the rule to update its status in the SDR. */
+            /* Step 1.3.1: Re-persist the rule to update its status in the SDR. */
             agent_db_rule_persist(rule_p);
         }
     }
@@ -512,7 +705,7 @@ int rda_eval_cleanup(Lyst rules_pending)
  * \par Function Name: rda_thread
  *
  * \par Purpose: "Main" function for the remote data aggregator.  This thread
- *               performs the fllowing functions:
+ *               performs the following functions:
  *               1) Collect set of rules that are to be processed
  *               2) Process the rules (data collection, cmd execution)
  *               3) Update statistics and capture outgoing reports
@@ -533,25 +726,23 @@ int rda_eval_cleanup(Lyst rules_pending)
 
 void* rda_thread(void* threadId)
 {
-    time_t  start_time = 0;
+    struct timeval start_time;
+    vast delta = 0;
 
     Lyst rules_pending;
     Lyst built_reports;
-    
-    
     
     DTNMP_DEBUG_ENTRY("rda_thread","(0x%x)", threadId);
     
     rules_pending = lyst_create();
     built_reports = lyst_create();
     
-    
     DTNMP_DEBUG_INFO("rda_thread","Running Remote Data Aggregator Thread.", NULL);
    
     /* While the DTNMP Agent is running...*/
     while(g_running)
     {
-        start_time = getUTCTime();
+    	getCurrentTime(&start_time);
 
         DTNMP_DEBUG_INFO("rda_thread","Processing %u ctrls.",
         		        (unsigned long) lyst_length(gAgentVDB.rules));
@@ -608,12 +799,19 @@ void* rda_thread(void* threadId)
 
         unlockResource(&(gAgentVDB.rules_mutex));
                 
+        delta = utils_time_cur_delta(&start_time);
+
         // Sleep for 1 second (10^6 microsec) subtracting the processing time.
-        microsnooze((unsigned int)(1000000 - (getUTCTime() - start_time)));
+        if((delta < 1000000) && (delta > 0))
+        {
+        	microsnooze((unsigned int)(1000000 - delta));
+        }
         
     } // end while
     
     rda_cleanup(rules_pending, built_reports);
+
+    DTNMP_DEBUG_ALWAYS("rda_thread","Shutting Down Agent Data Aggregator Thread.",NULL);
 
     DTNMP_DEBUG_EXIT("rda_thread","->NULL.", NULL);
     

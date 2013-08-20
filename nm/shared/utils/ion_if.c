@@ -101,7 +101,7 @@ uint8_t iif_deregister_node(iif_t *iif)
  *  08/10/11  V.Ramachandran Initial implementation,
  *****************************************************************************/
 
-const eid_t iif_get_local_eid(iif_t *iif)
+eid_t iif_get_local_eid(iif_t *iif)
 {
 	DTNMP_DEBUG_ENTRY("iif_get_local_eid","(%#llx)", iif);
 
@@ -216,15 +216,17 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     	switch(dlv.result)
     	{
     		case BpEndpointStopped:
-    			DTNMP_DEBUG_ERR("iif_receive","Endpoint stopped?", NULL);
+    			/* The endpoint stopped? Panic.*/
+    			DTNMP_DEBUG_ERR("iif_receive","Endpoint stopped.", NULL);
     			exit(0);
 
     		case BpPayloadPresent:
+    			/* Clear to process the payload. */
     			DTNMP_DEBUG_ERR("iif_receive", "Payload present.", NULL);
     			break;
 
     		default:
-    			DTNMP_DEBUG_ERR("iif_receive", "Unknown dlv state: %d", dlv.result);
+    			/* No message. Return NULL. */
     			return NULL;
     			break;
     	}

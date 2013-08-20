@@ -37,21 +37,30 @@
 #include "ldc.h"
 
 
-/**
- * \brief Populate the contents of a single report data entry.
+/******************************************************************************
  *
- * \author Ed Birrane
+ * \par Function Name: ldc_fill_report_data
  *
- * \note We assume that the passed-in report is pre-allocated.
- * \note We do NOT fill in the report ID. This is because we call this function
- *       recursively on nest report definitions.
+ * \par Populate the contents of a single report data entry.
+ *
+ * \param[in]  id     The ID of the generated report.
+ * \param[out] entry  The filled-in report.
+ *
+ * \par Notes:
+ *		- We assume that the passed-in report is pre-allocated.
+ * 		- We do NOT fill in the report ID. This is because we call this function
+ *        recursively on nested report definitions.
  *
  * \return 0 - Success
  *        !0 - Failure
  *
- * \param[in]  id   The ID of the generated report.
- * \param[out] rpt  The filled-in report.
- */
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  10/22/11  E. Birrane     Initial implementation.
+ *  08/18/13  E. Birrane     Added nesting levels to limit recursion.
+ *****************************************************************************/
+
 int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry)
 {
     int result = 0;
@@ -70,22 +79,30 @@ int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry)
     	return -1;
     }
 
-
     msg = mid_to_string(id);
     DTNMP_DEBUG_INFO("ldc_fill_report_data","Gathering report data for MID: %s",
     		         msg);
 
+    /* Step 1: Search for this MID... */
+
+    /* Step 1.1: If this is an atomic data definition...*/
     if((adm_def = adm_find_datadef(id)) != NULL)
     {
     	DTNMP_DEBUG_INFO("ldc_fill_report_data","Filling pre-defined.", NULL);
     	result = ldc_fill_atomic(adm_def,id,entry);
     }
+
+    /* Step 1.2: If this is a data report...*/
     else if((rpt_def = def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), id)) != NULL)
     {
        	DTNMP_DEBUG_INFO("ldc_fill_report_data","Filling custom.", NULL);
        	result = ldc_fill_custom(rpt_def, entry);
+
+       	/* \todo: Do we need this? */
        	entry->id = mid_copy(id);
     }
+
+    /* Step 1.3: If this is an unknown data MID. */
     else
     {
     	DTNMP_DEBUG_ERR("ldc_fill_report_data","Could not find def for MID %s",
@@ -100,76 +117,153 @@ int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry)
 
 
 
-/**
- * \brief Populate a data entry from a custom definition.
+/******************************************************************************
  *
- * \author Ed Birrane
+ * \par Function Name: ldc_fill_custom
+ *
+ * \par Populate a data entry from a custom definition. This is somewhat
+ *      tricky because a custom definition may, itself, contain other
+ *      custom definitions.
+ *
+ * \param[in]  rpt_def  The custom definition
+ * \param[out] rpt      The filled-in report.
+ *
+ * \par Notes:
+ *		- We impose a maximum nesting level of 5. A custom definition may
+ *		  contain no more than 5 other custom definitions.
  *
  * \return 0 - Success
  *        !0 - Failure
  *
- * \param[in]  rpt_def  The custom definition
- * \param[out] rpt      The filled-in report.
- */
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  10/22/11  E. Birrane     Initial implementation.
+ *  08/18/13  E. Birrane     Added nesting levels to limit recursion.
+ *****************************************************************************/
 
 int ldc_fill_custom(def_gen_t *rpt_def, rpt_data_entry_t *rpt)
 {
-	Lyst entries = lyst_create();
+	Lyst entries;
 	uint64_t total_size = 0;
 	uint64_t idx = 0;
 	LystElt elt;
-	mid_t *cur_mid;
-	rpt_data_entry_t *temp;
+	mid_t *cur_mid = NULL;
+	rpt_data_entry_t *temp = NULL;
 	int result = 0;
+	static int nesting = 0;
 
 	DTNMP_DEBUG_ENTRY("ldc_fill_custom","(0x%x,0x%x)",
 			          (unsigned long) rpt_def, (unsigned long) rpt);
 
-    /* Step 1: For each MID in the definition...*/
+	nesting++;
+
+	/* Step 0: Sanity Checks. */
+	if((rpt_def == NULL) || (rpt == NULL))
+	{
+		DTNMP_DEBUG_ERR("ldc_fill_custom","Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("ldc_fill_custom","-->-1", NULL);
+		nesting--;
+		return -1;
+	}
+
+	/* Step 1: Check for too much recursion. */
+	if(nesting > 5)
+	{
+		DTNMP_DEBUG_ERR("ldc_fill_custom","Too many nesting levels %d.", nesting);
+		DTNMP_DEBUG_EXIT("ldc_fill_custom","-->-1", NULL);
+		nesting--;
+		return -1;
+	}
+
+	/*
+	 * Step 2: Allocate a lyst to hold individual reports from each MID
+	 *         in this custom definition.
+	 */
+	if((entries = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("ldc_fill_custom","Can't allocate lyst.", NULL);
+		DTNMP_DEBUG_EXIT("ldc_fill_custom","-->-1", NULL);
+		nesting--;
+		return -1;
+	}
+
+    /*
+     * Step 3: For each MID in the definition build the data for the
+     *         report and store the result in a temporary area.
+     */
     for (elt = lyst_first(rpt_def->contents); elt; elt = lyst_next(elt))
     {
-        /* Step 1.1 Grab the mid */
+        /* Step 3.1 Grab the mid */
         if((cur_mid = (mid_t*)lyst_data(elt)) == NULL)
         {
         	DTNMP_DEBUG_ERR("ldc_fill_custom","Can't get mid from lyst!", NULL);
         	result = -1;
         	break;
         }
+    	/* Step 3.2: Grab the report for this MID. */
         else
         {
-        	/* Step 1.1.1: Allocate an entry. */
-        	temp = (rpt_data_entry_t*)MTAKE(sizeof(rpt_data_entry_t));
-        	if(temp == NULL)
+        	/* Step 3.2.1: Allocate space for this report. */
+        	if((temp = (rpt_data_entry_t*)MTAKE(sizeof(rpt_data_entry_t))) == NULL)
         	{
-            	DTNMP_DEBUG_ERR("ldc_fill_custom","Can't get mid from lyst!", NULL);
+            	DTNMP_DEBUG_ERR("ldc_fill_custom","Can't allocate %d bytes!",
+            			        sizeof(rpt_data_entry_t));
             	result = -1;
             	break;
         	}
-        	/* \todo We have no mechanism to catch infinite recursion. */
-        	ldc_fill_report_data(cur_mid,temp);
+
+        	/* Step 3.2.2: Populate the report. */
+        	if(ldc_fill_report_data(cur_mid,temp) != 0)
+        	{
+            	DTNMP_DEBUG_ERR("ldc_fill_custom","Can't get mid from lyst!", NULL);
+            	rpt_release_data_entry(temp);
+            	result = -1;
+            	break;
+        	}
+
+        	/* Step 3.2.3: Add this report to the report list. */
         	lyst_insert_last(entries, temp);
+
+        	/* Step 3.2.4: Remember the total size of this report. */
         	total_size += temp->size;
         }
     }
 
-    /* If we failed, free up the entries. */
+    /* Step 4: Allocate total space for the resultant report. */
+    rpt->size = total_size;
+
+    if((rpt->contents = (uint8_t *) MTAKE(rpt->size)) == NULL)
+    {
+    	DTNMP_DEBUG_ERR("ldc_fill_custom","Can't allocate %d bytes!", rpt->size);
+    	rpt->size = 0;
+    	result = -1;
+    }
+
+    /*
+     * Step 5: If any of the report generation failed, or the allocation of the
+     *         consolidated report from step 4 failed, clean up.
+     */
     if(result == -1)
     {
-    	/* Walk the list and delete the entries. */
+    	/* Step 4.1: Walk the list and delete the entries. */
         for (elt = lyst_first(entries); elt; elt = lyst_next(elt))
         {
         	temp = (rpt_data_entry_t *) lyst_data(elt);
         	rpt_release_data_entry(temp);
         }
         lyst_destroy(entries);
+
     	DTNMP_DEBUG_EXIT("ldc_fill_custom","->-1",NULL);
+
+    	nesting--;
     	return -1;
     }
 
-    /* Allocate space for the data entry. */
-    rpt->size = total_size;
-    rpt->contents = (uint8_t *) MTAKE(total_size);
-
+    /*
+     * Step 6: Copy all the comprising reports into the single, consolidated
+     *         report. Note that we destroy the comprising reports as we go.
+     */
     for (elt = lyst_first(entries); elt; elt = lyst_next(elt))
     {
     	temp = (rpt_data_entry_t *) lyst_data(elt);
@@ -180,24 +274,37 @@ int ldc_fill_custom(def_gen_t *rpt_def, rpt_data_entry_t *rpt)
     	rpt_release_data_entry(temp);
     }
 
+    /* Step 7: Destroy the entries list. We destroyed list contents above. */
 	lyst_destroy(entries);
+
+	nesting--;
 	return 0;
 }
 
 
-
-/**
- * \brief Populate a data entry from a custom definition.
+/******************************************************************************
  *
- * \author Ed Birrane
+ * \par Function Name: ldc_fill_atomic
  *
- * \return 0 - Success
- *        !0 - Failure
+ * \par Populate a data entry from a custom definition.
  *
  * \param[in]  adm_def  The atomic definition
  * \param[in]  id       Full ID (for OID parameters).
  * \param[out] rpt      The filled-in report.
- */
+ *
+ * \par Notes:
+ *		- We impose a maximum nesting level of 5. A custom definition may
+ *		  contain no more than 5 other custom definitions.
+ *
+ * \return 0 - Success
+ *        !0 - Failure
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  10/22/11  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
 int ldc_fill_atomic(adm_datadef_t *adm_def, mid_t *id, rpt_data_entry_t *rpt)
 {
     int i = 0;
@@ -209,25 +316,27 @@ int ldc_fill_atomic(adm_datadef_t *adm_def, mid_t *id, rpt_data_entry_t *rpt)
     			      (unsigned long) adm_def, (unsigned long) rpt);
 
     /* Step 0: Sanity Checks. */
-    if((adm_def == NULL) || (rpt == NULL))
+    if((adm_def == NULL) || (id == NULL) || (rpt == NULL))
     {
         DTNMP_DEBUG_ERR("ldc_fill_atomic","Bad Args", NULL);
         DTNMP_DEBUG_EXIT("ldc_fill_atomic","-> -1.", NULL);
         return -1;
     }
 
+    /* Step 1: Populate the report MID. */
     if((rpt->id = mid_copy(id)) == NULL)
     {
         DTNMP_DEBUG_ERR("ldc_fill_atomic","Unable to copy MID.", NULL);
-        MRELEASE(rpt->id);
         DTNMP_DEBUG_EXIT("ldc_fill_atomic","-> -1.", NULL);
         return -1;
     }
 
+    /* Step 2: Collect the information for this datum. */
     expr_result_t result = adm_def->collect(id->oid->params);
     rpt->contents = result.value;
     rpt->size = result.length;
 
+    /* Step 3: If there was a problem collecting information, bail. */
     if((rpt->size == 0) || (rpt->contents == NULL))
     {
         DTNMP_DEBUG_ERR("ldc_fill_atomic","Unable to collect data.", NULL);

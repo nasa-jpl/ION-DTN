@@ -53,20 +53,26 @@
 
 extern eid_t manager_eid;
 
-/*
- * \brief Determine whether a lyst contains valid, recognized MIDs.
+/******************************************************************************
  *
- * \author Ed Birrane
+ * \par Function Name: rx_validate_mid_mc
  *
- * \note
+ * \par Determine whether a lyst contains valid, recognized MIDs.
+ *
+ * \param[in]  mids       The list of mids to validate.
+ * \param[in]  passEmpty  Whether an empty list is OK (1) or not (0)
+ *
+ * \par Notes:
  *   - A NULL list is always bad.
  *
  * \return 0 - Lyst failed to validate.
  *         !0 - Valid lyst.
  *
- * \param[in]  mids       The list of mids to validate.
- * \param[in]  passEmpty  Whether an empty list of OK (1) or not (0)
- */
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 int rx_validate_mid_mc(Lyst mids, int passEmpty)
 {
@@ -74,7 +80,7 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
     mid_t *cur_mid = NULL;
     int i = 0;
 
-    DTNMP_DEBUG_ENTRY("rx_validate_mid_mc","(0x%x, %d",
+    DTNMP_DEBUG_ENTRY("rx_validate_mid_mc","(0x%#llx, %d)",
     		         (unsigned long) mids, passEmpty);
 
     /* Step 0 : Sanity Check. */
@@ -114,6 +120,7 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
            (def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), cur_mid) == NULL))
         {
             DTNMP_DEBUG_ERR("rx_validate_mid_mc","Unknown MID %s.", mid_str);
+            MRELEASE(mid_str);
             DTNMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
             return 0;
         }
@@ -136,20 +143,27 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
 }
 
 
-/**
- * \brief Determines whether a production rule is correct.
+
+/******************************************************************************
  *
- * \author Ed Birrane
+ * \par Function Name: rx_validate_rule
+ *
+ * \par Determines whether a production rule is correct.
+ *
+ * \param[in] rule  The rule being evaluated.
  *
  * \return 0 - Bad rule.
  * 		   1 - Good rule.
  *
- * \param[in] rule  The rule being evaluated.
- */
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 int rx_validate_rule(rule_time_prod_t *rule)
 {
-    int result = 1; /* Optimisim...*/
+    int result = 1;
     
     DTNMP_DEBUG_ENTRY("rx_validate_rule","(0x%x)", (unsigned long) rule);
 
@@ -192,16 +206,22 @@ int rx_validate_rule(rule_time_prod_t *rule)
 
 
 
-/**
- * \brief Receives and processes a DTNMP message.
+/******************************************************************************
  *
- * \author Ed Birrane
+ * \par Function Name: rx_thread
+ *
+ * \par Receives and processes a DTNMP message.
+ *
+ * \param[in] threadId The thread identifier.
  *
  * \return NULL - Error
  *         !NULL - Some thread thing.
  *
- * \param[in] threadId The thread identifier.
- */
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 void *rx_thread(void *threadId) {
    
@@ -209,7 +229,6 @@ void *rx_thread(void *threadId) {
     
     DTNMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
     
-    /* \todo: Grab initial # msgs header first. */
     uint32_t num_msgs = 0;
     uint8_t *buf = NULL;
     uint8_t *cursor = NULL;
@@ -219,7 +238,7 @@ void *rx_thread(void *threadId) {
     pdu_acl_t *acl = NULL;
     uint32_t size = 0;
     pdu_metadata_t meta;
-    uvast val;
+    uvast val = 0;
     time_t group_timestamp = 0;
 
     /* 
@@ -229,7 +248,7 @@ void *rx_thread(void *threadId) {
     while(g_running) {
         
         /* Step 1: Receive a message from the Bundle Protocol Agent. */
-        buf = iif_receive(&ion_ptr, &size, &meta, NM_RECEIVE_TIMEOUT_MILLIS);
+        buf = iif_receive(&ion_ptr, &size, &meta, NM_RECEIVE_TIMEOUT_SEC);
 
         if(buf != NULL)
         {
@@ -259,43 +278,40 @@ void *rx_thread(void *threadId) {
             	cursor += bytes;
             	size -= bytes;
 
-                DTNMP_DEBUG_INFO("rx_thread","Hdr took up %d", bytes);
-
             	switch (hdr->id)
             	{
                 	case MSG_TYPE_CTRL_PERIOD_PROD:
                 	{
-                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Periodic Production Message.", NULL);
+                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Periodic Production Message.\n", NULL);
                 		rx_handle_time_prod(&meta, cursor,size,&bytes);
                 	}
                 	break;
                 
                 	case MSG_TYPE_DEF_CUST_RPT:
                 	{
-                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Custom Report Definition.", NULL);
+                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Custom Report Definition.\n", NULL);
                 		rx_handle_rpt_def(&meta, cursor,size,&bytes);
                 	}
                 	break;
 
                 	case MSG_TYPE_CTRL_EXEC:
                 	{
-                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Perform Control Message.", NULL);
+                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Perform Control Message.\n", NULL);
                 		rx_handle_exec(&meta, cursor,size,&bytes);
                 	}
                 	break;
 
                 	case MSG_TYPE_DEF_MACRO:
                 	{
-                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Macro Definition.", NULL);
+                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Macro Definition.\n", NULL);
                 		rx_handle_macro_def(&meta, cursor,size,&bytes);
                 	}
                 	break;
 
                 	default:
                 	{
-                		DTNMP_DEBUG_INFO("rx_thread","Unknown type: %d",
-                				         hdr->type);
-                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Unsupported message of type 0x%x", hdr->id);
+                		DTNMP_DEBUG_WARN("rx_thread","Received unknown type: %d.\n", hdr->type);
+                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Unsupported message of type 0x%x.\n", hdr->id);
 
                 	}
                 	break;
@@ -304,60 +320,127 @@ void *rx_thread(void *threadId) {
         }
     }
    
+    DTNMP_DEBUG_ALWAYS("rx_thread","Shutting Down Agent Receive Thread.",NULL);
     DTNMP_DEBUG_EXIT("rx_thread","->.", NULL);
     pthread_exit(NULL);
 }
 
+
+/******************************************************************************
+ *
+ * \par Function Name: rx_handle_rpt_def
+ *
+ * \par Process a received custom report definition message. This function
+ *      accepts a portion of a serialized message group, with the
+ *      understanding that the custom report definition message is at the
+ *      head of the serialized data stream.  This function extracts the
+ *      current message, and returns the number of bytes consumed so that
+ *      the called may then know where the next message in the serialized
+ *      message group begins.
+ *
+ * \param[in] meta        The metadata associated with the message.
+ * \param[in] cursor      Pointer to the start of the serialized message.
+ * \param[in] size        The size of the remaining serialized message group
+ * \param[out] bytes_used The number of bytes consumed in processing this msg.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 {
 	def_gen_t* rpt_def = NULL;
 	uint32_t bytes = 0;
 
-	DTNMP_DEBUG_ENTRY("rx_handle_rpt_def","(0x%x, %d, 0x%x)",
+	DTNMP_DEBUG_ENTRY("rx_handle_rpt_def","(0x%#llx, %d, 0x%#llx)",
 			          (unsigned long)cursor, size, (unsigned long) bytes_used);
 
-    DTNMP_DEBUG_INFO("nm_receive_thread",
-    		        "Processing a report definition.", NULL);
+	/* Step 0: Sanity checks. */
+	if((meta == NULL) || (cursor == NULL) || (bytes_used == NULL))
+	{
+    	DTNMP_DEBUG_ERR("rx_handle_rpt_def","Bad args.",NULL);
+    	DTNMP_DEBUG_EXIT("rx_handle_rpt_def","->.",NULL);
+    	return;
+	}
 
+	/* Step 1: Attempt to deserialize the message. */
     rpt_def = def_deserialize_gen(cursor, size, &bytes);
 
+    /* Step 2: If the deserialization failed, complain. */
     if((rpt_def == NULL) || (bytes == 0))
     {
-    	DTNMP_DEBUG_ERR("rx_handle_rpt_def","Can;t deserialize.",NULL);
+    	DTNMP_DEBUG_ERR("rx_handle_rpt_def","Can't deserialize.",NULL);
     	def_release_gen(rpt_def);
     	*bytes_used = 0;
     	DTNMP_DEBUG_EXIT("rx_handle_rpt_def","->.",NULL);
     	return;
     }
 
+    /* Step 3: Otherwise, note how many bytes were consumed. */
     *bytes_used = bytes;
 
-//    def_print_gen(rpt_def);
 	DTNMP_DEBUG_INFO("rx_handle_rpt_def","Adding new report definition.", NULL);
 
-	agent_db_report_persist(rpt_def);
 
-	agent_vdb_reports_init(getIonsdr());
+    /* Step 4: Persist this definition to our SDR. */
+    agent_db_report_persist(rpt_def);
+
+    /* Step 5: Persist this definition to our memory lists. */
+//	agent_vdb_reports_init(getIonsdr());
 	ADD_REPORT(rpt_def);
+
+	/* Step 6: Update instrumentation counters. */
 	gAgentInstr.num_rpt_defs++;
-
-
 }
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rx_handle_exec
+ *
+ * \par Process a received control exec  message. This function
+ *      accepts a portion of a serialized message group, with the
+ *      understanding that the control exec message is at the
+ *      head of the serialized data stream.  This function extracts the
+ *      current message, and returns the number of bytes consumed so that
+ *      the called may then know where the next message in the serialized
+ *      message group begins.
+ *
+ * \param[in] meta        The metadata associated with the message.
+ * \param[in] cursor      Pointer to the start of the serialized message.
+ * \param[in] size        The size of the remaining serialized message group
+ * \param[out] bytes_used The number of bytes consumed in processing this msg.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 
 void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 {
 	ctrl_exec_t* ctrl = NULL;
 	uint32_t bytes = 0;
 
-	DTNMP_DEBUG_ENTRY("rx_handle_exec","(0x%x, %d, 0x%x)",
+	DTNMP_DEBUG_ENTRY("rx_handle_exec","(0x%#llx, %d, 0x%#llx)",
 			          (unsigned long)cursor, size, (unsigned long) bytes_used);
 
-    DTNMP_DEBUG_INFO("rx_handle_exec",
-    		        "Processing a control.", NULL);
 
-    ctrl = ctrl_deserialize_exec(cursor, size, &bytes);
+	/* Step 0: Sanity checks. */
+	if((meta == NULL) || (cursor == NULL) || (bytes_used == NULL))
+	{
+    	DTNMP_DEBUG_ERR("rx_handle_exec","Bad args.",NULL);
+    	DTNMP_DEBUG_EXIT("rx_handle_exec","->.",NULL);
+    	return;
+	}
 
+	/* Step 1: Attempt to deserialize the message. */
+	ctrl = ctrl_deserialize_exec(cursor, size, &bytes);
+
+	/* Step 2: If the deserialization failed, complain. */
     if((ctrl == NULL) || (bytes == 0))
     {
     	DTNMP_DEBUG_ERR("rx_handle_exec","Can't deserialize.",NULL);
@@ -367,64 +450,162 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
     	return;
     }
 
-    /* \todo: Handle relative and absolute times */
-	ctrl->countdown_ticks = ctrl->time;
+    /* Step 3: Otherwise, note how many bytes were consumed. */
+    *bytes_used = bytes;
+
+
+    /*
+     * Step 4: Adjust the countdown ticks based on whether
+     *         we are given a relative or absolute time.
+     */
+
+    if(ctrl->time <= DTNMP_RELATIVE_TIME_EPOCH)
+    {
+    	/* Step 4a: If relative time, that is # seconds. */
+    	ctrl->countdown_ticks = ctrl->time;
+    }
+    else
+    {
+    	/*
+    	 * Step 4b: If absolute time, # seconds if difference
+    	 * from now until then.
+    	 */
+    	ctrl->countdown_ticks = (ctrl->time - getUTCTime());
+    }
+
+    /* Step 5: Populate dynamic parts of the control. */
 	ctrl->desc.state = CONTROL_ACTIVE;
 	strcpy(ctrl->desc.sender.name, meta->senderEid.name);
 
+    /* Step 6: Persist this definition to our SDR. */
+    agent_db_ctrl_persist(ctrl);
 
-    *bytes_used = bytes;
-
+    /* Step 7: Persist this definition to our memory lists. */
 	DTNMP_DEBUG_INFO("rx_handle_exec","Performing control.", NULL);
 	ADD_CTRL(ctrl);
+
+	/* Step 8: Update instrumentation counters. */
 	gAgentInstr.num_ctrls++;
 
 }
 
+
+/******************************************************************************
+ *
+ * \par Function Name: rx_handle_time_prod
+ *
+ * \par Process a received time-based prod message. This function
+ *      accepts a portion of a serialized message group, with the
+ *      understanding that the time-based prod message is at the
+ *      head of the serialized data stream.  This function extracts the
+ *      current message, and returns the number of bytes consumed so that
+ *      the called may then know where the next message in the serialized
+ *      message group begins.
+ *
+ * \param[in] meta        The metadata associated with the message.
+ * \param[in] cursor      Pointer to the start of the serialized message.
+ * \param[in] size        The size of the remaining serialized message group
+ * \param[out] bytes_used The number of bytes consumed in processing this msg.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
 void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 {
-    /* Grab the production rule object. */
 	rule_time_prod_t *new_rule = NULL;
     uint32_t bytes = 0;
 
     DTNMP_DEBUG_INFO("rx_handle_time_prod",
     		         "Processing a production rule.", NULL);
 
-    if((new_rule = ctrl_deserialize_time_prod_entry(cursor, size, &bytes)) != NULL)
-    {
-    	new_rule->desc.num_evals = new_rule->count;
-    	new_rule->desc.interval_ticks = new_rule->period;
-    	new_rule->countdown_ticks = new_rule->desc.interval_ticks;
-
-    	strcpy(new_rule->desc.sender.name, meta->senderEid.name);
-
-        if(new_rule->desc.num_evals == 0)
-        {
-            new_rule->desc.num_evals = DTNMP_RULE_EXEC_ALWAYS;
-        }
-
-        *bytes_used = bytes;
-    }
-    else
-    {
-    	DTNMP_DEBUG_ERR("rx_handle_time_prod","Can't deserialize!",NULL);
+	/* Step 0: Sanity checks. */
+	if((meta == NULL) || (cursor == NULL) || (bytes_used == NULL))
+	{
+    	DTNMP_DEBUG_ERR("rx_handle_time_prod","Bad args.",NULL);
+    	DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
     	return;
+	}
+
+	/* Step 1: Attempt to deserialize the message. */
+	new_rule = ctrl_deserialize_time_prod_entry(cursor, size, &bytes);
+
+	/* Step 2: If the deserialization failed, complain. */
+	if((new_rule == NULL) || (bytes == 0))
+	{
+		DTNMP_DEBUG_ERR("rx_handle_time_prod","Can't deserialize.",NULL);
+		rule_release_time_prod_entry(new_rule);
+		*bytes_used = 0;
+		DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
+		return;
+	}
+
+    /* Step 3: Otherwise, note how many bytes were consumed. */
+    *bytes_used = bytes;
+
+    /* Step 4: Populate dynamic parts of the control. */
+    /* \todo: Consider single-fire absolute-time rules. */
+    new_rule->desc.num_evals = new_rule->count;
+    new_rule->desc.interval_ticks = new_rule->period;
+    new_rule->countdown_ticks = new_rule->desc.interval_ticks;
+
+    strcpy(new_rule->desc.sender.name, meta->senderEid.name);
+
+    if(new_rule->desc.num_evals == 0)
+    {
+    	new_rule->desc.num_evals = DTNMP_RULE_EXEC_ALWAYS;
     }
 
-    if(rx_validate_rule(new_rule) == 1)
+    /* Step 5: Validate the new rule. */
+    if(rx_validate_rule(new_rule) == 0)
     {
-    	DTNMP_DEBUG_INFO("rx_handle_time_prod",
+		DTNMP_DEBUG_ERR("rx_handle_time_prod","New rule failed validation.",NULL);
+		rule_release_time_prod_entry(new_rule);
+		*bytes_used = 0;
+		DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
+		return;
+    }
+
+    DTNMP_DEBUG_INFO("rx_handle_time_prod",
     			         "Adding new production rule.", NULL);
 
-    	agent_db_rule_persist(new_rule);
+    /* Step 6: Persist this definition to our SDR. */
+    agent_db_rule_persist(new_rule);
 
-    	ADD_RULE(new_rule);
-    	gAgentInstr.num_time_rules++;
+    /* Step 7: Persist this definition to our memory lists. */
+	ADD_RULE(new_rule);
 
-    }
-
+	/* Step 8: Update instrumentation counters. */
+	gAgentInstr.num_time_rules++;
 }
 
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rx_handle_macro_def
+ *
+ * \par Process a received macro def message. This function
+ *      accepts a portion of a serialized message group, with the
+ *      understanding that the macro def message is at the
+ *      head of the serialized data stream.  This function extracts the
+ *      current message, and returns the number of bytes consumed so that
+ *      the called may then know where the next message in the serialized
+ *      message group begins.
+ *
+ * \param[in] meta        The metadata associated with the message.
+ * \param[in] cursor      Pointer to the start of the serialized message.
+ * \param[in] size        The size of the remaining serialized message group
+ * \param[out] bytes_used The number of bytes consumed in processing this msg.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/10/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 void rx_handle_macro_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 {
 	def_gen_t* macro_def = NULL;
@@ -433,8 +614,19 @@ void rx_handle_macro_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
 	DTNMP_DEBUG_ENTRY("rx_handle_macro_def","(0x%x, %d, 0x%x)",
 			          (unsigned long)cursor, size, (unsigned long) bytes_used);
 
+
+	/* Step 0: Sanity checks. */
+	if((meta == NULL) || (cursor == NULL) || (bytes_used == NULL))
+	{
+    	DTNMP_DEBUG_ERR("rx_handle_time_prod","Bad args.",NULL);
+    	DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
+    	return;
+	}
+
+	/* Step 1: Attempt to deserialize the message. */
     macro_def = def_deserialize_gen(cursor, size, &bytes);
 
+	/* Step 2: If the deserialization failed, complain. */
     if((macro_def == NULL) || (bytes == 0))
     {
     	DTNMP_DEBUG_ERR("rx_handle_macro_def","Can;t deserialize.",NULL);
@@ -444,14 +636,18 @@ void rx_handle_macro_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
     	return;
     }
 
+    /* Step 3: Otherwise, note how many bytes were consumed. */
     *bytes_used = bytes;
 
 	DTNMP_DEBUG_INFO("rx_handle_macro_def","Adding new report definition.", NULL);
 
+    /* Step 4: Persist this definition to our SDR. */
 	agent_db_macro_persist(macro_def);
+
+    /* Step 5: Persist this definition to our memory lists. */
 	ADD_MACRO(macro_def);
+
+	/* Step 6: Update instrumentation counters. */
 	gAgentInstr.num_macros++;
-
-
 }
 

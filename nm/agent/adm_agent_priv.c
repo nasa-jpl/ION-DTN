@@ -33,7 +33,26 @@
 #include "adm_agent_priv.h"
 
 
-
+/******************************************************************************
+ *
+ * \par Function Name: agent_adm_init_agent
+ *
+ * \par Initializes the collect/run functions for agent ADM support. Both the
+ *      manager and agent share functions for sizing and printing items. However,
+ *      only the agent needs to implement the functions for collecting data and
+ *      running controls.
+ *
+ * \par Notes:
+ *
+ *  - We build a string representation of the MID rather than storing one
+ *    statically to save on static space.  Please see the DTNMP AGENT ADM
+ *    for specifics on the information added here.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation.
+ *****************************************************************************/
 void agent_adm_init_agent()
 {
 	/* Register Nicknames */
@@ -241,6 +260,7 @@ expr_result_t agent_get_num_ctrls_run(Lyst params)
 
 
 /* Control Functions */
+/* \todo: Controls for the AGENT are not yet implemented. */
 uint32_t agent_list_rpt_defs(Lyst params)
 {
 	return 0;
@@ -272,6 +292,12 @@ uint32_t agent_list_macros(Lyst params)
 }
 
 uint32_t agent_list_ctrls(Lyst params)
+{
+	return 0;
+}
+
+
+uint32_t agent_remove_item(Lyst params)
 {
 	return 0;
 }

@@ -600,6 +600,7 @@ uint8_t *utils_datacol_serialize(Lyst datacol, uint32_t *size)
 
 
 
+
 /******************************************************************************
  *
  * \par Function Name: utils_grab_byte
@@ -904,4 +905,58 @@ uint8_t *utils_string_to_hex(unsigned char *value, uint32_t *size)
 	return result;
 }
 
+
+
+
+/*
+ * THis software adapted from:
+ * http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
+ *
+ * performs: result = t1 - t2.
+ */
+int utils_time_delta(struct timeval *result, struct timeval *t1, struct timeval *t2)
+{
+	/* Perform the carry for the later subtraction by updating t2. */
+	if (t1->tv_usec < t2->tv_usec) {
+		int nsec = (t2->tv_usec - t1->tv_usec) / 1000000 + 1;
+		t2->tv_usec -= 1000000 * nsec;
+		t2->tv_sec += nsec;
+	}
+	if (t1->tv_usec - t2->tv_usec > 1000000) {
+		int nsec = (t1->tv_usec - t2->tv_usec) / 1000000;
+		t2->tv_usec += 1000000 * nsec;
+		t2->tv_sec -= nsec;
+	}
+
+	/* Compute the time remaining to wait.
+	          tv_usec is certainly positive. */
+	result->tv_sec = t1->tv_sec - t2->tv_sec;
+	result->tv_usec = t1->tv_usec - t2->tv_usec;
+
+	/* Return 1 if result is negative. */
+	return t1->tv_sec < t2->tv_sec;
+}
+
+/* Return number of micro-seconds that have elapsed since the passed-in time.*/
+vast    utils_time_cur_delta(struct timeval *t1)
+{
+	vast result = 0;
+
+	struct timeval cur;
+	struct timeval delta;
+	int neg = 0;
+
+	getCurrentTime(&cur);
+	neg = utils_time_delta(&delta, &cur, t1);
+
+	result = delta.tv_usec;
+	result += delta.tv_sec * 1000000;
+
+	if(neg)
+	{
+		result *= -1;
+	}
+
+	return result;
+}
 

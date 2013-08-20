@@ -482,7 +482,7 @@ uint8_t* adm_copy_string(char *value, uint64_t *length)
 		return NULL;
 	}
 
-	size = strlen(value);
+	size = strlen(value) + 1;
 	/* Step 1 - Alloc new space. */
 	if((result = (uint8_t *) MTAKE(size)) == NULL)
 	{

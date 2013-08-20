@@ -75,7 +75,7 @@ typedef struct
 
 
 uint8_t     iif_deregister_node(iif_t *iif);
-const eid_t iif_get_local_eid(iif_t *iif);
+eid_t       iif_get_local_eid(iif_t *iif);
 uint8_t     iif_is_registered(iif_t *iif);
 uint8_t*    iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeout);
 uint8_t     iif_register_node(iif_t *iif, eid_t eid);

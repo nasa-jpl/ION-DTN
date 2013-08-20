@@ -73,6 +73,7 @@ uint32_t agent_list_consts(Lyst params);
 uint32_t agent_list_data_defs(Lyst params);
 uint32_t agent_list_macros(Lyst params);
 uint32_t agent_list_ctrls(Lyst params);
+uint32_t agent_remove_item(Lyst params);
 
 #endif // ADM_AGENT_PRIV_H_
 

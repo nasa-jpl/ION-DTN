@@ -75,8 +75,6 @@ void agent_adm_init_bp()
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 9, mid_str);
 	adm_add_datadef_collect(mid_str, bp_node_get_reassembly_pend);
 
-
-
 	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 10, mid_str);
 	adm_add_datadef_collect(mid_str, bp_node_get_blk_src_cnt);
 
@@ -215,8 +213,6 @@ expr_result_t bp_node_get_all(Lyst params)
 
 	bpnm_node_get(&node_state);
 	bpnm_disposition_get(&state);
-
-	fprintf(stderr,"# registrations is %d\n", node_state.nbrOfRegistrations);
 
 	result.type = EXPR_TYPE_BLOB;
 	result.value = (uint8_t*) MTAKE(sizeof(node_state) + sizeof(state));

@@ -156,7 +156,7 @@ int mgr_init(char *argv[])
 	adm_init();
 
 #ifdef HAVE_MYSQL
-	db_init("localhost", "root", "NetworkManagement", "dtnmp");
+	db_mgt_init("localhost", "root", "NetworkManagement", "dtnmp", 1);
 #endif
 
 	DTNMP_DEBUG_EXIT("mgr_init","->0.",NULL);

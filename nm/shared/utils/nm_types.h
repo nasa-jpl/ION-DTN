@@ -20,6 +20,11 @@
 // seconds of the Posix (1970) epoch.
 #define BEGIN_J2000 (946727936)
 
+/* The DTNMP relative time cut-off, set as the first second of
+ * September 9th, 2012.
+ */
+#define DTNMP_RELATIVE_TIME_EPOCH (1348025776)
+
 typedef struct
 {
     char name[MAX_EID_LEN];
