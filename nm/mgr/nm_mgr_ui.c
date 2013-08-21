@@ -769,7 +769,7 @@ void ui_eventLoop()
 	int gContext = UI_MAIN_MENU;
 
 
-	while(1)
+	while(g_running)
 	{
 		switch(gContext)
 		{

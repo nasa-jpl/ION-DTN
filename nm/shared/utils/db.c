@@ -45,13 +45,11 @@ int  db_forget(Object *primitiveObj, Object *descObj, Object list)
 
 	sdr_begin_xn(sdr);
 
-	/* Free the rule object from the SDR. */
 	if(*primitiveObj != 0)
 	{
 	  sdr_free(sdr, *primitiveObj);
 	}
 
-    /* Remove the descriptor object from the active_rules list. */
 	if(*descObj != 0)
 	{
 	   elt = sdr_list_first(sdr, list);

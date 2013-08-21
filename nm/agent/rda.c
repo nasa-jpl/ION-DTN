@@ -310,6 +310,69 @@ int rda_scan_ctrls(Lyst exec_defs)
 }
 
 
+/******************************************************************************
+ *
+ * \par Function Name: rda_clean_ctrls
+ *
+ * \par Purpose: Walks the list of ctrls defined by this agent, determines
+ *               which ctrls are to be removed based on active status, and
+ *               forgets them from the database.
+ *
+ * \retval int -  0 : Success
+ *               -1 : Failure
+ *
+ * \param[in,out]  exec_defs - List of ctrls
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/22/13  E. Birrane     Initial implementation,
+ *****************************************************************************/
+int rda_clean_ctrls(Lyst exec_defs)
+{
+    LystElt elt;
+    LystElt del_elt;
+    ctrl_exec_t *ctrl_p = NULL;
+
+    DTNMP_DEBUG_ENTRY("rda_clean_ctrls","(0x%#llx)", (unsigned long)exec_defs);
+
+    /*
+     * Step 1: Walk through each defined ctrl and see if it should be included
+     *         in the current evaluation scan.
+     */
+    for (elt = lyst_first(exec_defs); elt; elt = lyst_next(elt))
+    {
+        /* Step 1.1: Grab the next ctrl...*/
+        if((ctrl_p = (ctrl_exec_t *) lyst_data(elt)) == NULL)
+        {
+            DTNMP_DEBUG_ERR("rda_clean_ctrls","Found NULL ctrl. Exiting", NULL);
+            DTNMP_DEBUG_EXIT("rda_clean_ctrls","->-1.", NULL);
+            return -1;
+        }
+
+        /* Step 1.2: Determine if this rule should be removed. */
+        if(ctrl_p->desc.state != CONTROL_ACTIVE)
+        {
+        	/* Step 1.2.1: Remove control from the memory list. */
+        	del_elt = elt;
+        	elt = lyst_prev(elt);
+        	lyst_delete(del_elt);
+
+        	/* Step 1.2.2: Remove control from the persistent store. */
+        	db_forget(&(ctrl_p->desc.itemObj),
+        			  &(ctrl_p->desc.descObj),
+        			  gAgentDB.ctrls);
+
+        	/* Step 1.2.3: Release the control object. */
+        	ctrl_release_exec(ctrl_p);
+        }
+    }
+
+    DTNMP_DEBUG_EXIT("rda_clean_ctrls","->0.", NULL);
+    return 0;
+}
+
 
 /******************************************************************************
  *
@@ -756,6 +819,10 @@ void* rda_thread(void* threadId)
             DTNMP_DEBUG_ERR("rda_thread","Problem scanning ctrls.", NULL);
             pthread_exit(NULL);
         }
+
+        /* For now, remove/forget inactive controls. */
+        /* \todo: Update this later to keep them in storage for re-enable. */
+        rda_clean_ctrls(gAgentVDB.ctrls);
         unlockResource(&(gAgentVDB.ctrls_mutex));
 
 

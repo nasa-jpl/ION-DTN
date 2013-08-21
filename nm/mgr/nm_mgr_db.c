@@ -149,16 +149,16 @@ uint32_t db_add_mid(int attr, uint8_t flag, uvast issuer, char *OID, uvast tag,
 	sprintf(query,
 			"INSERT INTO dbtMIDs \
 (Attributes,Type,Category,IssuerFlag,TagFlag,OIDType,IssuerID,OIDValue,TagValue) \
-VALUES (%d,b'%d',b'%d',b'%d',b'%d',%d,%llu,'%s',%llu)",
+VALUES (%d,b'%d',b'%d',b'%d',b'%d',%d,"UVAST_FIELDSPEC",'%s',"UVAST_FIELDSPEC")",
 			attr,
 			MID_GET_FLAG_TYPE(flag),
 			MID_GET_FLAG_CAT(flag),
 			(MID_GET_FLAG_ISS(flag)) ? 1 : 0,
 			(MID_GET_FLAG_TAG(flag)) ? 1 : 0,
 			MID_GET_FLAG_OID(flag),
-			(uint64_t) issuer,
+			issuer,
 			(OID == NULL) ? "0" : OID,
-			(uint64_t) tag);
+			tag);
 
 	if (mysql_query(gConn, query))
 	{
@@ -835,17 +835,17 @@ int db_fetch_mid_idx(int attr, uint8_t flag, uvast issuer, char *OID, uvast tag)
 	sprintf(query,
 			"SELECT * FROM dbtMIDs WHERE \
 Attributes=%d AND Type=%d AND Category=%d AND IssuerFlag=%d \
-AND TagFlag=%d AND OIDType=%d AND IssuerID=%llu AND OIDValue='%s' \
-AND TagValue=%llu",
+AND TagFlag=%d AND OIDType=%d AND IssuerID="UVAST_FIELDSPEC" AND OIDValue='%s' \
+AND TagValue="UVAST_FIELDSPEC,
 			attr,
 			MID_GET_FLAG_TYPE(flag),
 			MID_GET_FLAG_CAT(flag),
 			(MID_GET_FLAG_ISS(flag)) ? 1 : 0,
 			(MID_GET_FLAG_TAG(flag)) ? 1 : 0,
 			MID_GET_FLAG_OID(flag),
-			(uint64_t) issuer,
+			issuer,
 			(OID == NULL) ? "0" : OID,
-			(uint64_t) tag);
+			tag);
 
 	if (mysql_query(gConn, query))
 	{
@@ -864,7 +864,7 @@ AND TagValue=%llu",
 	}
 	else
 	{
-		DTNMP_DEBUG_ERR("db_fetch_mid_idx", "Can't find MID.", NULL);
+		DTNMP_DEBUG_INFO("db_fetch_mid_idx", "Can't find MID.", NULL);
 	}
 
 	mysql_free_result(res);
@@ -1939,7 +1939,7 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 	adm_reg_agent_t *agent_reg = NULL;
 	char query[128];
 
-	DTMP_DEBUG_ENTRY("db_outgoing_process","(0x%#llx)",(unsigned long) sql_res);
+	DTNMP_DEBUG_ENTRY("db_outgoing_process","(0x%#llx)",(unsigned long) sql_res);
 
 	/* Step 1: For each message group that is ready to go... */
 	while ((row = mysql_fetch_row(sql_res)) != NULL)
@@ -2121,10 +2121,10 @@ int db_outgoing_process_one_message(uint32_t table_idx, uint32_t entry_idx,
 			if((entry = db_fetch_time_rule(entry_idx)) != NULL)
 			{
 
-				if((data = ctrl_serialize_time_prod_entry(entry, &size)) == NULL)
+				if((data = ctrl_serialize_time_prod_entry(entry, &size)) != NULL)
 				{
 					if((pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_PERIOD_PROD, data,
-														size, NULL)) == NULL)
+														size, NULL)) != NULL)
 					{
 						pdu_add_msg_to_group(msg_group, pdu_msg);
 						result = 1;
@@ -2204,7 +2204,7 @@ int db_outgoing_process_one_message(uint32_t table_idx, uint32_t entry_idx,
 			{
 				if((data = ctrl_serialize_exec(entry, &size)) != NULL)
 				{
-					if((pdu_msg = = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size,
+					if((pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size,
 														NULL)) != NULL)
 					{
 						pdu_add_msg_to_group(msg_group, pdu_msg);

@@ -950,7 +950,7 @@ expr_result_t bp_endpoint_get_abandon(Lyst params)
 uint32_t bp_ctrl_reset(Lyst params)
 {
 	bpnm_disposition_reset();
-	return 1;
+	return 0;
 }
 
 

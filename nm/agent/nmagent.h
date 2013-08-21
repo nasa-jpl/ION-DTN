@@ -169,7 +169,6 @@ typedef struct
  */
 
 
-// Write a rule into the SDR, or update if one is already there.
 int  agent_db_compdata_persist(ctrl_exec_t* item);
 int  agent_db_const_persist(ctrl_exec_t* item);
 int  agent_db_ctrl_persist(ctrl_exec_t* item);
@@ -178,15 +177,6 @@ int  agent_db_macro_persist(def_gen_t* item);
 int  agent_db_op_persist(def_gen_t* item);
 int  agent_db_report_persist(def_gen_t* item);
 int  agent_db_rule_persist(rule_time_prod_t* item);
-
-
-/**
- * Returns the Endpoint Identifier (EID) of the network node responsible for
- * network management.
- *
- * @return the EID of the Network Manager
- **/
-//eid_t agent_mgr_get();
 
 
 void agent_register();

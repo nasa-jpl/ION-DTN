@@ -109,8 +109,9 @@ int main(int argc, char *argv[])
     DTNMP_DEBUG_INFO("main","Manager EID: %s", argv[1]);
 
     /* Register signal handlers. */
-	isignal(SIGINT, mgr_signal_handler);
-	isignal(SIGTERM, mgr_signal_handler);
+    /* DOn't use signal handlers until we deprecate the UI thread... */
+/*	isignal(SIGINT, mgr_signal_handler);
+	isignal(SIGTERM, mgr_signal_handler);*/
 
     /* Spawn threads for receiving msgs, user interface, and db connection. */
     if(pthread_create(&rx_thr, NULL, mgr_rx_thread, (void *)rx_thr_name))
