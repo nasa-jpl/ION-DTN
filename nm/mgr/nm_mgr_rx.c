@@ -1,11 +1,37 @@
-//
-//  nm_receive_thread.cpp
-//  DTN NM Agent
-//
-//  Created by Ramachandran, Vignesh R. (Vinny) on 8/31/11.
-//  Copyright 2011 __MyCompanyName__. All rights reserved.
-//
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ **     This material may only be used, modified, or reproduced by or for the
+ **       U.S. Government pursuant to the license rights granted under
+ **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
+ **
+ **     For any other permissions, please contact the Legal Office at JHU/APL.
+ ******************************************************************************/
 
+/*****************************************************************************
+ ** \file nm_mgr_rx.c
+ **
+ ** File Name: nm_mgr_rx.c
+ **
+ **
+ ** Subsystem:
+ **          Network Manager Daemon: Receive Thread
+ **
+ ** Description: This file implements the management receive thread that
+ ** 		     accepts information from DTNMP agents.
+ **
+ ** Notes:
+ **
+ ** Assumptions:
+ **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR          DESCRIPTION
+ **  --------  ------------    ---------------------------------------------
+ **  08/31/11  V. Ramachandran Initial Implementation
+ **  08/19/13  E. Birrane      Documentation clean up and code review comments.
+ *****************************************************************************/
 #include "pthread.h"
 
 #include "nm_mgr.h"
@@ -26,17 +52,108 @@
 #include "nm_mgr_db.h"
 #endif
 
-int validate_msg()
-{
-    int result = 0;
-    
-    DTNMP_DEBUG_ENTRY("validate_msg","()", NULL);
 
-    DTNMP_DEBUG_EXIT("validate_msg","->%d.", result);
-    return result;
+
+
+/******************************************************************************
+ *
+ * \par Function Name: msg_rx_data_rpt
+ *
+ * \par Process incoming data report message.
+ *
+ * \return 0 - Success
+ *        -1 - Failure
+ *
+ * \param[in]  sender_eid  - The agent providing the report.
+ * \param[in]  cursor      - Start of the serialized message.
+ * \param[in]  size        - The size of the serialized stream holding the msg
+ * \param[out] bytes_used  - Bytes used in deserializing the report.
+ *
+ * \par Notes:
+ *		- \todo: We do not process Access Control Lists (ACLs) at this time.
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/20/13  E. Birrane     Initial Implementation.
+ *****************************************************************************/
+
+int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
+{
+    agent_t *agent = NULL;
+    int result = -1;
+
+	DTNMP_DEBUG_ENTRY("msg_rx_data_rpt","()",NULL);
+
+
+	/* Step 0: Sanity Check */
+	if((sender_eid == NULL) || (cursor == NULL) || (bytes_used == NULL))
+	{
+		DTNMP_DEBUG_ERR("msg_rx_data_rpt","Bad Parms", NULL);
+		DTNMP_DEBUG_EXIT("msg_rx_data_rpt","-->-1",NULL);
+		return -1;
+	}
+
+	DTNMP_DEBUG_ALWAYS("msg_rx_data_rpt", "Processing a data report.\n", NULL);
+
+	/* Step 1: Retrieve stored information about this agent. */
+	if((agent = mgr_agent_get(sender_eid)) == NULL)
+	{
+		DTNMP_DEBUG_WARN("msg_rx_data_rpt",
+				         "Received group is from an unknown sender (%s); ignoring it.",
+				         sender_eid->name);
+	}
+	else
+	{
+		rpt_data_t *report = NULL;
+
+		if((report = rpt_deserialize_data(cursor, size, bytes_used)) == NULL)
+		{
+			DTNMP_DEBUG_ERR("msg_rx_data_rpt","Can't deserialize rpt",NULL);
+		}
+		else
+		{
+			/* Step 1.1: Add the report. */
+			lockResource(&(agent->mutex));
+			lyst_insert_last(agent->reports, report);
+			unlockResource(&(agent->mutex));
+
+			result = 0;
+
+			/* Step 1.2: Update statistics. */
+			g_reports_total++;
+		}
+	}
+
+	DTNMP_DEBUG_EXIT("msg_rx_data_rpt","-->%d", result);
+	return result;
 }
 
-void *mgr_rx_thread(void * threadId) {
+
+
+/******************************************************************************
+ *
+ * \par Function Name: mgr_rx_thread
+ *
+ * \par Process incoming messages from the DTNMP agent.
+ *
+ * \return POSIC thread info...
+ *
+ * \param[in]  threadId - Thread identifier...
+ *
+ * \par Notes:
+ *		- \todo: We do not process Access Control Lists (ACLs) at this time.
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/20/13  E. Birrane     Code cleanup and documentation.
+ *****************************************************************************/
+
+void *mgr_rx_thread(void * threadId)
+{
    
     DTNMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (unsigned long) threadId);
     
@@ -92,7 +209,7 @@ void *mgr_rx_thread(void * threadId) {
 
 #ifdef HAVE_MYSQL
             /* Copy the message group to the database tables */
-            incoming_idx = db_insert_incoming_initialize(group_timestamp);
+            incoming_idx = db_incoming_initialize(group_timestamp);
 #endif
 
             /* For each message in the group. */
@@ -111,27 +228,10 @@ void *mgr_rx_thread(void * threadId) {
                 		DTNMP_DEBUG_ALWAYS("mgr_rx_thread",
                 				         "Processing a data report.\n\n", NULL);
 
-                        /* Retrieve stored information about this agent. */
-                        if((agent = get_agent(sender_eid)) == NULL)
-                        {
-                        	DTNMP_DEBUG_WARN("mgr_rx_thread","Received group is from an unknown sender (%s); ignoring it.",
-                        		sender_eid->name);
-                        }
-                        else
-                        {
-                           rpt_data_t *report = NULL;
-                		   report = rpt_deserialize_data(cursor, size, &bytes);
-                		   cursor += bytes;
-                		   size -= bytes;
+                		msg_rx_data_rpt(sender_eid, cursor, size, &bytes);
 
-                		   /* \todo Ignoring ACL right now! */
-                		   DTNMP_DEBUG_INFO("mgr_rx_thread",
-                			   	            "Adding new data report.", NULL);
-                		   lockResource(&(agent->mutex));
-                		   lyst_insert_last(agent->reports, report);
-                		   unlockResource(&(agent->mutex));
-                		   g_reports_total++;
-                        }
+                		cursor += bytes;
+                		size -= bytes;
                 	}
                 	break;
                 
@@ -140,12 +240,13 @@ void *mgr_rx_thread(void * threadId) {
                 		DTNMP_DEBUG_ALWAYS("mgr_rx_thread",
                 						   "Processing Agent Registration.\n\n",
                 						   NULL);
+
                 		adm_reg_agent_t *reg = NULL;
                 		reg = msg_deserialize_reg_agent(cursor, size, &bytes);
                 		cursor += bytes;
                 		size -= bytes;
 
-                		add_agent(reg->agent_id);
+                		mgr_agent_add(reg->agent_id);
 
                 		msg_release_reg_agent(reg);
 
@@ -165,13 +266,13 @@ void *mgr_rx_thread(void * threadId) {
 #ifdef HAVE_MYSQL
             	if(bytes > 0)
             	{
-            		db_insert_incoming_message(incoming_idx, cursor - (hdr_len + bytes), hdr_len + bytes);
+            		db_incoming_process_message(incoming_idx, cursor - (hdr_len + bytes), hdr_len + bytes);
             	}
 #endif
 
             }
 #ifdef HAVE_MYSQL
-            db_finalize_incoming(incoming_idx);
+            db_incoming_finalize(incoming_idx);
 #endif
         }
     }

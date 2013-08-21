@@ -694,7 +694,7 @@ void ui_register_agent()
 
 	/* Check if the agent is already known. */
 	sscanf(line, "%s", agent_eid.name);
-	add_agent(agent_eid);
+	mgr_agent_add(agent_eid);
 
 	DTNMP_DEBUG_EXIT("register_agent", "->.", NULL);
 }
@@ -728,7 +728,7 @@ void ui_deregister_agent(agent_t* agent)
 
 	lockResource(&agents_mutex);
 
-	if(remove_agent(&(agent->agent_eid)) != 0)
+	if(mgr_agent_remove(&(agent->agent_eid)) != 0)
 	{
 		DTNMP_DEBUG_WARN("ui_deregister_agent","No agent by that name is currently registered.\n", NULL);
 	}

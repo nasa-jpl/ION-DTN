@@ -1,7 +1,35 @@
-//
-//  nmagent.h
-//  DTN NM Agent
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ **     This material may only be used, modified, or reproduced by or for the
+ **       U.S. Government pursuant to the license rights granted under
+ **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
+ **
+ **     For any other permissions, please contact the Legal Office at JHU/APL.
+ ******************************************************************************/
 
+/*****************************************************************************
+ ** \file nm_mgr.h
+ **
+ ** File Name: nm_mgr.h
+ **
+ ** Subsystem:
+ **          Network Manager Application
+ **
+ ** Description: This file implements the DTNMP Manager user interface
+ **
+ ** Notes:
+ **
+ ** Assumptions:
+ **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR          DESCRIPTION
+ **  --------  ------------    ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  08/19/13  E. Birrane      Documentation clean up and code review comments.
+ *****************************************************************************/
 
 #ifndef NM_MGR_H
 #define NM_MGR_H
@@ -9,6 +37,7 @@
 // Standard includes
 #include "stdint.h"
 #include "pthread.h"
+#include "unistd.h"
 
 // ION includes
 #include "platform.h"
@@ -41,6 +70,8 @@ static const int32_t MGR_SDR_HEAP_SIZE		   = 131072; // Do this intelligently?
 // Likely number of managed agents.  Used to initialize the hashtable of agents.
 #define EST_NUM_AGENTS (5)
 
+
+
 // Indicates the allowable types of messages that an agent can send to
 // the manager.
 //static const unsigned char MSG_TYPE_REPORT[MSG_TYPE_SIZE] = {MSG_TYPE_RPT_DATA_RPT};
@@ -71,58 +102,7 @@ typedef struct {
 	ResourceLock mutex;
 } agent_t;
 
-/**
- * Retrieve an Agent from the agents_hashtable collection.
- *
- * @param agent_eid Endpoint identifier of desired agent
- * @return Reference to agent information, or NULL if not found.
- */
-agent_t* get_agent(eid_t* agent_eid);
 
-int add_agent(eid_t agent_eid);
-
-
-/**
- * Create and store a metadata object for information about a new agent.
- *
- * @param agent_eid Endpoint identifier of agent
- * @return Reference to new agent, or NULL on error.
- */
-agent_t* create_agent(eid_t* agent_eid);
-
-/**
- * Remove and deallocate the agent identified by agent_eid from the collection
- * of known agents.
- *
- * @param agent_eid Endpoint identifier of agent.
- * @return 1 if the agent was successfully removed, 0 if no such agent found,
- * -1 on any error.
- */
-int remove_agent(eid_t* agent_eid);
-
-/**
- * The DTN Network Management Agent receive loop function.
- * This function is intended to be run from within a Posix thread.
- * Awaits and receives production rules and report definitions
- * from the network managemer, interprets them, and adds them to
- * the rules list and reports list.
- *
- * @param threadId the Posix thread ID
- **/
-void* mgr_rx_thread(void* threadId);
-
-/**
- * Back-end daemon that checks the database and builds messages from it.
- */
-void *run_daemon(void *threadId);
-
-/**
- * Returns the Endpoint Identifier (EID) of the network node responsible for
- * network management.
- *
- * @return the EID of the Network Manager
- **/
-eid_t get_network_mgr_eid();
 
 
 // ============================= Global Data ===============================
@@ -160,5 +140,21 @@ extern eid_t manager_eid;
  * The interface object the ION system.
  **/
 extern iif_t ion_ptr;
+
+
+
+/* Function Prototypes */
+int      main(int argc, char *argv[]);
+
+agent_t* mgr_agent_get(eid_t* agent_eid);
+int      mgr_agent_add(eid_t agent_eid);
+agent_t* mgr_agent_create(eid_t* agent_eid);
+int      mgr_agent_remove(eid_t* agent_eid);
+void     mgr_agent_remove_cb(LystElt elt, void *nil);
+
+int      mgr_cleanup();
+int      mgr_init(char *argv[]);
+void*    mgr_rx_thread(void* threadId);
+
 
 #endif // NM_MGR_H

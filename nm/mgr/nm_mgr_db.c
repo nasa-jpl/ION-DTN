@@ -1673,6 +1673,67 @@ int db_incoming_process_message(int id, uint8_t *cursor, uint32_t size)
 
 /******************************************************************************
  *
+ * \par Function Name: db_mgt_daemon
+ *
+ * \par Returns number of outgoing message groups ready to be sent.
+ *
+ * \return Thread Information...
+ *
+ * \param[in] threadId - The POSIX thread.
+ *
+ * \par Notes:
+ *  - We are being very inefficient here, as we grab the full result and
+ *    then ignore it, presumably to query it again later. We should
+ *    optimize this.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/13/13  S. Jacobs      Initial implementation,
+ *****************************************************************************/
+
+void *db_mgt_daemon(void * threadId)
+{
+	MYSQL_RES *sql_res;
+	struct timeval start_time;
+	vast delta = 0;
+
+	DTNMP_DEBUG_ENTRY("db_mgt_daemon","(0x%#llx)", threadId);
+
+	DTNMP_DEBUG_ALWAYS("db_mgt_daemon","Starting Manager Database Daemon",NULL);
+
+	while (g_running)
+	{
+    	getCurrentTime(&start_time);
+
+		if (db_outgoing_ready(&sql_res))
+		{
+			db_outgoing_process(sql_res);
+			mysql_free_result(sql_res);
+			sql_res = NULL;
+		}
+
+        delta = utils_time_cur_delta(&start_time);
+
+        // Sleep for 1 second (10^6 microsec) subtracting the processing time.
+        if((delta < 2000000) && (delta > 0))
+        {
+        	microsnooze((unsigned int)(2000000 - delta));
+        }
+	}
+
+	DTNMP_DEBUG_ALWAYS("db_mgt_daemon","Cleaning up Manager Database Daemon", NULL);
+
+	db_mgt_close();
+
+	DTNMP_DEBUG_ALWAYS("db_mgt_daemon","Manager Database Daemon Finished.",NULL);
+	pthread_exit(NULL);
+}
+
+
+
+/******************************************************************************
+ *
  * \par Function Name: db_mgt_init
  *
  * \par Initializes the gConnection to the database.
@@ -1850,61 +1911,6 @@ void db_mgt_verify_mids()
 
 /******************************************************************************
  *
- * \par Function Name: db_outgoing_ready
- *
- * \par Returns number of outgoing message groups ready to be sent.
- *
- * \retval 0 no message groups ready.
- *        !0 There are message groups ready to be sent.
- *
- * \param[out] sql_res - The outgoing messages.
- *
- * \par Notes:
- *  - We are being very inefficient here, as we grab the full result and
- *    then ignore it, presumably to query it again later. We should
- *    optimize this.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/13/13  E. Birrane      Initial implementation,
- *****************************************************************************/
-int db_outgoing_ready(MYSQL_RES **sql_res) {
-	int result = 0;
-	char query[1024];
-
-	*sql_res = NULL;
-
-	/* Step 1: Build and execute query. */
-	sprintf(query, "SELECT * FROM dbtOutgoing WHERE State=%d", TX_READY);
-	if (mysql_query(gConn, query))
-	{
-		DTNMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
-		return result;
-	}
-
-	/* Step 2: Parse the row and populate the structure. */
-	if ((*sql_res = mysql_store_result(gConn)) != NULL)
-	{
-		result = mysql_num_rows(*sql_res);
-	}
-	else
-	{
-		DTNMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
-	}
-
-	/* Step 3: Return whether we have results waiting. */
-
-	return result;
-}
-
-
-/******************************************************************************
- *
  * \par Function Name: db_outgoing_process
  *
  * \par Returns 1 if the message is ready to be sent
@@ -1920,6 +1926,7 @@ int db_outgoing_ready(MYSQL_RES **sql_res) {
  *  07/13/13  E. Birrane      Initial implementation,
  *  07/18/13  S. Jacobs       Added outgoing agents
  *****************************************************************************/
+
 int db_outgoing_process(MYSQL_RES *sql_res)
 {
 	MYSQL_ROW row;
@@ -1929,15 +1936,23 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 	mid_t *id;
 	def_gen_t *debugPrint;
 	LystElt elt;
-	eid_t *agent_eid = NULL;
+	adm_reg_agent_t *agent_reg = NULL;
 	char query[128];
+
+	DTMP_DEBUG_ENTRY("db_outgoing_process","(0x%#llx)",(unsigned long) sql_res);
 
 	/* Step 1: For each message group that is ready to go... */
 	while ((row = mysql_fetch_row(sql_res)) != NULL)
 	{
 		/* Step 1.1 Create and populate the message group. */
 		idx = atoi(row[0]);
-		msg_group = pdu_create_empty_group();
+
+		if((msg_group = pdu_create_empty_group()) == NULL)
+		{
+			DTNMP_DEBUG_ERR("db_outgoing_process","Cannot create group.", NULL);
+			return 0;
+		}
+
 		int result = db_outgoing_process_messages(idx, msg_group);
 
 		if(result != 0)
@@ -1947,16 +1962,17 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 			if(agents == NULL)
 			{
 				DTNMP_DEBUG_ERR("db_outgoing_process","Cannot process outgoing recipients",NULL);
-				lyst_destroy(agents);
+				pdu_release_group(msg_group);
 				return 0;
 			}
 
 			/* Step 1.3: For each agent, send a message. */
-			for (elt = lyst_first(agents); elt; elt = lyst_next(elt)) {
-				agent_eid = (eid_t *) lyst_data(elt);
-				DTNMP_DEBUG_INFO("db_outgoing_process", "Sending to name %s", agent_eid->name);
-				iif_send(&ion_ptr, msg_group, agent_eid->name);
-				MRELEASE(agent_eid);
+			for (elt = lyst_first(agents); elt; elt = lyst_next(elt))
+			{
+				agent_reg = (adm_reg_agent_t *) lyst_data(elt);
+				DTNMP_DEBUG_INFO("db_outgoing_process", "Sending to name %s", agent_reg->agent_id.name);
+				iif_send(&ion_ptr, msg_group, agent_reg->agent_id.name);
+				msg_release_reg_agent(agent_reg);
 			}
 
 			lyst_destroy(agents);
@@ -1965,6 +1981,7 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 		else
 		{
 			DTNMP_DEBUG_ERR("db_outgoing_process","Cannot process out going message",NULL);
+			pdu_release_group(msg_group);
 			return 0;
 		}
 
@@ -1983,8 +2000,12 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 
 	}
 
+	DTNMP_DEBUG_EXIT("db_outgoing_process", "-->1", NULL);
+
 	return 1;
 }
+
+
 
 /******************************************************************************
  *
@@ -2004,11 +2025,16 @@ int db_outgoing_process(MYSQL_RES *sql_res)
  *  --------  ------------   ---------------------------------------------
  *  07/13/13  E. Birrane      Initial implementation,
  *****************************************************************************/
-int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group) {
+
+int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group)
+{
 	int result = 0;
 	char query[1024];
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
+
+	DTNMP_DEBUG_ENTRY("db_outgoing_process_messages","(%d, 0x%#llx)",
+			          idx, (unsigned long) msg_group);
 
 	/* Step 1: Find all messages for this outgoing group. */
 	sprintf(query, "SELECT * FROM dbtOutgoingMessages WHERE OutgoingID=%d",
@@ -2046,6 +2072,8 @@ int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group) {
 	return result;
 }
 
+
+
 /******************************************************************************
  *
  * \par Function Name: db_outgoing_process_one_message
@@ -2065,126 +2093,156 @@ int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group) {
  *  07/15/13  S. Jacobs		  Initial implementation,
  *  07/16/13  S. Jacobs       Added custom report case,
  *****************************************************************************/
+
 int db_outgoing_process_one_message(uint32_t table_idx, uint32_t entry_idx,
-		pdu_group_t *msg_group, MYSQL_ROW row)
+			                        pdu_group_t *msg_group, MYSQL_ROW row)
 {
 	int result = 1;
 
-	/* Step 1: Find out what kind of message we have based on the
+	DTNMP_DEBUG_ENTRY("db_outgoing_process_one_message","(%d, %d, 0x%#llx, 0x%#llx)",
+			           table_idx, entry_idx, (unsigned long) msg_group,
+			           (unsigned long) row);
+
+	/*
+	 * Step 1: Find out what kind of message we have based on the
 	 *         table that is holding it.
 	 */
-	switch (db_fetch_table_type(table_idx, entry_idx)) {
-	case TIME_PROD_MSG: {
-		rule_time_prod_t *entry = NULL;
-		entry = db_fetch_time_rule(entry_idx);
-
-		if(entry == NULL)
+	switch (db_fetch_table_type(table_idx, entry_idx))
+	{
+		case TIME_PROD_MSG:
 		{
-			DTNMP_DEBUG_ERR("db_outgoing_process_one_message","cannot fetch time rule",NULL);
-			return 0;
-		}
+			rule_time_prod_t *entry = NULL;
+			uint32_t size = 0;
+			uint8_t *data = NULL;
+			pdu_msg_t *pdu_msg = NULL;
 
-		uint32_t size = 0;
-		uint8_t *data = ctrl_serialize_time_prod_entry(entry, &size);
-
-		if(data == NULL)
-		{
-			DTNMP_DEBUG_ERR("db_outgoing_process_one_message","Cannot serialize time_prod_entry",NULL);
-			return 0;
-		}
-
-		pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_PERIOD_PROD, data,
-				size, NULL);
-
-		if(pdu_msg == NULL)
-		{
-			DTNMP_DEBUG_ERR("db_outgoing_process_one_message","Cannot create msg", NULL);
-			return 0;
-		}
-
-		pdu_add_msg_to_group(msg_group, pdu_msg);
-		rule_release_time_prod_entry(entry);
-	}
-		break;
-	case CUST_RPT: {
-		def_gen_t *entry = NULL;
-		entry = db_fetch_def(entry_idx);
-
-		if(entry == NULL)
-		{
-			DTNMP_DEBUG_ERR("db_outgoing_process_one_message","Cannot fetch definition",NULL);
-			return 0;
-		}
-
-		uint32_t size = 0;
-		uint8_t *data = def_serialize_gen(entry, &size);
-
-		if(data == NULL)
-		{
-			DTNMP_DEBUG_ERR("db_outgoing_process_one_message","Cannot serialize def_gen_t",NULL);
-			return 0;
-		}
-		pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_DEF_CUST_RPT, data, size,
-				NULL);
-
-		if(pdu_msg == NULL)
-		{
-			DTNMP_DEBUG_ERR("db_outgoing_process_one_message","Cannot create msg", NULL);
-			return 0;
-		}
-
-		pdu_add_msg_to_group(msg_group, pdu_msg);
-		def_release_gen(entry);
-
-	}
-		break;
-	case EXEC_CTRL_MSG: {
-		ctrl_exec_t *entry = NULL;
-		entry = db_fetch_ctrl(entry_idx);
-		uint32_t size = 0;
-
-		if (entry != NULL) {
-
-			uint8_t *data = ctrl_serialize_exec(entry, &size);
-
-			if(data == NULL)
-			{
-				DTNMP_DEBUG_ERR("db_outgoing_process_one_message","Cannot serialize control",NULL);
-				return 0;
-			}
-
-			pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size,
-					NULL);
-
-			if(pdu_msg == NULL)
-			{
-				DTNMP_DEBUG_ERR("db_outgoing_process_one_message","Cannot create msg", NULL);
-				return 0;
-			}
-
-			pdu_add_msg_to_group(msg_group, pdu_msg);
-
-
-			ctrl_release_exec(entry);
-		}
-		else
-		{
-			DTNMP_DEBUG_ERR("db_outgoing_process_one_message", "Can't construct control.", NULL);
 			result = 0;
+
+			if((entry = db_fetch_time_rule(entry_idx)) != NULL)
+			{
+
+				if((data = ctrl_serialize_time_prod_entry(entry, &size)) == NULL)
+				{
+					if((pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_PERIOD_PROD, data,
+														size, NULL)) == NULL)
+					{
+						pdu_add_msg_to_group(msg_group, pdu_msg);
+						result = 1;
+					}
+					else
+					{
+						DTNMP_DEBUG_ERR("db_outgoing_process_one_message",
+								        "Cannot create msg", NULL);
+					}
+				}
+				else
+				{
+					DTNMP_DEBUG_ERR("db_outgoing_process_one_message",
+							        "Cannot serialize time_prod_entry",NULL);
+				}
+
+				rule_release_time_prod_entry(entry);
+			}
+			else
+			{
+				DTNMP_DEBUG_ERR("db_outgoing_process_one_message","cannot fetch time rule",NULL);
+			}
 		}
-	}
 		break;
 
-	default: {
-		DTNMP_DEBUG_ERR("db_outgoing_process_one_message",
-				"Unknown table type (%d) entry_idx (%d)", table_idx, entry_idx);
-	}
+		case CUST_RPT:
+		{
+			def_gen_t *entry = NULL;
+			uint32_t size = 0;
+			uint8_t *data = NULL;
+			pdu_msg_t *pdu_msg = NULL;
+
+			result = 0;
+
+			if((entry = db_fetch_def(entry_idx)) != NULL)
+			{
+				if((data = def_serialize_gen(entry, &size)) != NULL)
+				{
+					if((pdu_msg = pdu_create_msg(MSG_TYPE_DEF_CUST_RPT, data, size,
+							NULL)) != NULL)
+					{
+						pdu_add_msg_to_group(msg_group, pdu_msg);
+						result = 1;
+					}
+					else
+					{
+						DTNMP_DEBUG_ERR("db_outgoing_process_one_message",
+								        "Cannot create msg", NULL);
+					}
+				}
+				else
+				{
+					DTNMP_DEBUG_ERR("db_outgoing_process_one_message",
+							        "Cannot serialize def_gen_t",NULL);
+				}
+
+				def_release_gen(entry);
+			}
+			else
+			{
+				DTNMP_DEBUG_ERR("db_outgoing_process_one_message",
+						        "Cannot fetch definition",NULL);
+			}
+		}
+		break;
+
+		case EXEC_CTRL_MSG:
+		{
+			ctrl_exec_t *entry = NULL;
+			uint32_t size = 0;
+			uint8_t *data = NULL;
+			pdu_msg_t *pdu_msg = NULL;
+
+			result = 0;
+
+			if((entry = db_fetch_ctrl(entry_idx)) != NULL)
+			{
+				if((data = ctrl_serialize_exec(entry, &size)) != NULL)
+				{
+					if((pdu_msg = = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size,
+														NULL)) != NULL)
+					{
+						pdu_add_msg_to_group(msg_group, pdu_msg);
+						result = 1;
+					}
+					else
+					{
+						DTNMP_DEBUG_ERR("db_outgoing_process_one_message","Cannot create msg", NULL);
+					}
+				}
+				else
+				{
+					DTNMP_DEBUG_ERR("db_outgoing_process_one_message","Cannot serialize control",NULL);
+				}
+
+				ctrl_release_exec(entry);
+			}
+			else
+			{
+				DTNMP_DEBUG_ERR("db_outgoing_process_one_message", "Can't construct control.", NULL);
+			}
+		}
+		break;
+
+		default:
+		{
+			DTNMP_DEBUG_ERR("db_outgoing_process_one_message",
+							"Unknown table type (%d) entry_idx (%d)",
+							table_idx, entry_idx);
+		}
 	}
 
 	DTNMP_DEBUG_EXIT("db_outgoing_process_one_message", "-->%d", result);
 
 	return result;
 }
+
+
 
 /******************************************************************************
  *
@@ -2203,15 +2261,20 @@ int db_outgoing_process_one_message(uint32_t table_idx, uint32_t entry_idx,
  *  --------  ------------   ---------------------------------------------
  *  07/18/13  S. Jacobs       Initial Implementation
  *****************************************************************************/
-Lyst db_outgoing_process_recipients(uint32_t outgoingId) {
-	Lyst result = lyst_create();
-	LystElt elt;
-	agent_t *agent;
-	eid_t *cur_name;
+
+Lyst db_outgoing_process_recipients(uint32_t outgoingId)
+{
+	Lyst result;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
-	adm_reg_agent_t *agentName;
+	adm_reg_agent_t *reg_agent = NULL;
 	char query[1024];
+	int cur_row = 0;
+	int max_row = 0;
+
+	DTNMP_DEBUG_ENTRY("db_outgoing_process_recipients","(%d)", outgoingId);
+
+	result = lyst_create();
 
 	/* Step 1: Query the database */
 	sprintf(query, "SELECT AgentID FROM dbtOutgoingRecipients "
@@ -2226,63 +2289,112 @@ Lyst db_outgoing_process_recipients(uint32_t outgoingId) {
 	}
 
 	/* Step 2: Parse the results and fetch agent */
-	res = mysql_store_result(gConn);
-	int i;
-
-	if ((row = mysql_fetch_row(res)) != NULL)
+	if((res = mysql_store_result(gConn)) == NULL)
 	{
-		elt = lyst_first(result);
-		for (i = 0; i < mysql_num_rows(res); i++)
-		{
-			/* Step 3: Fetch agent and create lyst */
-			agentName = db_fetch_reg_agent(atoi(row[0]));
-
-			if(agentName == NULL)
-			{
-				DTNMP_DEBUG_ERR("db_outgoing_process_recipients","Cannot fetch registered agent",NULL);
-				lyst_destroy(result);
-				return NULL;
-			}
-
-			/* Step 4: create lyst */
-			cur_name = (eid_t*) MTAKE(sizeof(eid_t));
-			memcpy(cur_name->name, agentName->agent_id.name,
-					sizeof(agentName->agent_id.name));
-			DTNMP_DEBUG_INFO("db_outgoing_process_recipients", "Adding agent name %s.", cur_name->name);
-			lyst_insert_last(result, cur_name);
-			elt = lyst_next(elt);
-
-			msg_release_reg_agent(agentName);
-		}
-
+		DTNMP_DEBUG_ERR("db_outgoing_process_recipients", "Database Error: %s",
+				mysql_error(gConn));
+		DTNMP_DEBUG_EXIT("db_outgoing_process_recipients", "-->", NULL);
+		return NULL;
 	}
+
+	/* Step 3: For each row returned.... */
+	max_row = mysql_num_rows(res);
+	for(cur_row = 0; cur_row < max_row; cur_row++)
+	{
+		if ((row = mysql_fetch_row(res)) != NULL)
+		{
+			/* Step 3.1: Grab the agent information.. */
+			if((reg_agent = db_fetch_reg_agent(atoi(row[0]))) != NULL)
+			{
+				DTNMP_DEBUG_INFO("db_outgoing_process_recipients",
+						         "Adding agent name %s.",
+						         reg_agent->agent_id.name);
+
+				lyst_insert_last(result, reg_agent);
+			}
+			else
+			{
+				DTNMP_DEBUG_ERR("db_outgoing_process_recipients",
+						        "Cannot fetch registered agent",NULL);
+			}
+		}
+	}
+
+	mysql_free_result(res);
+
+	DTNMP_DEBUG_EXIT("db_outgoing_process_recipients","-->0x%#llx",
+			         (unsigned long) result);
 
 	return result;
 }
 
 
-void * run_daemon(void * threadId) {
-	time_t start_time = 0;
-	MYSQL_RES *sql_res;
-	char *server = "localhost";
-	char *user = "root"; //user must be the root
-	char *password = "NetworkManagement";
-	char *database = "dtnmp";
 
-	while (g_running) {
-		start_time = getUTCTime();
+/******************************************************************************
+ *
+ * \par Function Name: db_outgoing_ready
+ *
+ * \par Returns number of outgoing message groups ready to be sent.
+ *
+ * \retval 0 no message groups ready.
+ *        !0 There are message groups ready to be sent.
+ *
+ * \param[out] sql_res - The outgoing messages.
+ *
+ * \par Notes:
+ *  - We are being very inefficient here, as we grab the full result and
+ *    then ignore it, presumably to query it again later. We should
+ *    optimize this.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/13/13  E. Birrane      Initial implementation,
+ *****************************************************************************/
 
-		if (db_outgoing_ready(&sql_res)) {
-			db_outgoing_process(sql_res);
-			mysql_free_result(sql_res);
-			sql_res = NULL;
-		}
+int db_outgoing_ready(MYSQL_RES **sql_res)
+{
+	int result = 0;
+	char query[1024];
 
-		microsnooze((unsigned int) (2000000 - (getUTCTime() - start_time)));
+	*sql_res = NULL;
+
+	DTNMP_DEBUG_ENTRY("db_outgoing_ready","(0x%#llx)", (unsigned long) sql_res);
+
+	/* Step 0: Sanity check. */
+	if(sql_res == NULL)
+	{
+		DTNMP_DEBUG_ERR("db_outgoing_ready", "Bad Parms.", NULL);
+		DTNMP_DEBUG_EXIT("db_outgoing_ready","-->0",NULL);
+		return 0;
 	}
 
-	db_mgt_close();
-	pthread_exit(NULL);
+	/* Step 1: Build and execute query. */
+	sprintf(query, "SELECT * FROM dbtOutgoing WHERE State=%d", TX_READY);
+	if (mysql_query(gConn, query))
+	{
+		DTNMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
+				mysql_error(gConn));
+		DTNMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
+		return result;
+	}
+
+	/* Step 2: Parse the row and populate the structure. */
+	if ((*sql_res = mysql_store_result(gConn)) != NULL)
+	{
+		result = mysql_num_rows(*sql_res);
+	}
+	else
+	{
+		DTNMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
+				mysql_error(gConn));
+	}
+
+	/* Step 3: Return whether we have results waiting. */
+	DTNMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
+	return result;
 }
+
+
 
 #endif // HAVE_MYSQL

@@ -663,12 +663,15 @@ int rda_eval_cleanup(Lyst rules_pending)
 
         	/* Step 1.2.1: Find and remove the rule in the memory list. */
             LystElt tmp_elt;
+            LystElt del_elt;
             for(tmp_elt = lyst_first(gAgentVDB.rules); tmp_elt; tmp_elt = lyst_next(tmp_elt))
             {
             	rule_time_prod_t *tmp_rule = (rule_time_prod_t*) lyst_data(tmp_elt);
             	if(tmp_rule == rule_p)
             	{
-            		lyst_delete(tmp_elt);
+            		del_elt = tmp_elt;
+            		tmp_elt = lyst_prev(tmp_elt);
+            		lyst_delete(del_elt);
             	}
             }
 

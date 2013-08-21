@@ -103,6 +103,7 @@ uint32_t db_add_rpt_defs(rpt_defs_t *defs);
 uint32_t db_add_rpt_items(rpt_items_t *items);
 uint32_t db_add_rpt_sched(rpt_prod_t *sched);
 
+
 /* Functions to fetch primitives from associated database tables. */
 ctrl_exec_t      *db_fetch_ctrl(int id);
 Lyst              db_fetch_data_col(int dc_id);
@@ -127,10 +128,11 @@ int db_incoming_finalize(uint32_t incomingID);
 int db_incoming_process_message(int incomingID, uint8_t *cursor, uint32_t size);
 
 /* Database Management Functions. */
-int  db_mgt_init(char *server, char *user, char *pwd, char *database, int clear);
-int  db_mgt_clear();
-void db_mgt_close();
-void db_mgt_verify_mids();
+void *db_mgt_daemon(void *threadId);
+int   db_mgt_init(char *server, char *user, char *pwd, char *database, int clear);
+int   db_mgt_clear();
+void  db_mgt_close();
+void  db_mgt_verify_mids();
 
 /* Functions to process outgoing message tables. */
 int  db_outgoing_process(MYSQL_RES *sql_res);
@@ -138,7 +140,6 @@ int  db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group);
 int  db_outgoing_process_one_message(uint32_t idx, uint32_t entry_idx, pdu_group_t *msg_group, MYSQL_ROW row);
 Lyst db_outgoing_process_recipients(uint32_t id);
 int  db_outgoing_ready(MYSQL_RES **sql_res);
-
 
 
 #endif

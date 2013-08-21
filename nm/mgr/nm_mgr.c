@@ -1,20 +1,35 @@
-//
-//  nmagent.cpp
-//  DTN NM Agent
-//
-//  Created by Ramachandran, Vignesh R. (Vinny) on 9/1/11.
-//  Copyright 2011 __MyCompanyName__. All rights reserved.
-//
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ **     This material may only be used, modified, or reproduced by or for the
+ **       U.S. Government pursuant to the license rights granted under
+ **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
+ **
+ **     For any other permissions, please contact the Legal Office at JHU/APL.
+ ******************************************************************************/
 
-// System headers.
-
-#include "unistd.h"
-
-// ION headers.
-#include "platform.h"
-#include "lyst.h"
-#include "sdr.h"
-#include "sdrhash.h"
+/*****************************************************************************
+ ** \file nm_mgr.c
+ **
+ ** File Name: nm_mgr.c
+ **
+ ** Subsystem:
+ **          Network Manager Application
+ **
+ ** Description: This file implements the DTNMP Manager user interface
+ **
+ ** Notes:
+ **
+ ** Assumptions:
+ **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR          DESCRIPTION
+ **  --------  ------------    ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  08/19/13  E. Birrane      Documentation clean up and code review comments.
+ *****************************************************************************/
 
 // Application headers.
 #include "nm_mgr.h"
@@ -22,9 +37,6 @@
 #include "nm_mgr_db.h"
 #include "shared/primitives/rules.h"
 
-
-// System signal handler.
-void signal_handler(int signum);
 
 // Definitions of global data.
 iif_t ion_ptr;
@@ -45,21 +57,530 @@ uint32_t	 g_reports_total = 0;
 
 Sdr 		 g_sdr;
 
+static void     mgr_signal_handler();
+
+
+/******************************************************************************
+ *
+ * \par Function Name: main
+ *
+ * \par Main agent processing function.
+ *
+ * \param[in]  argc    # command line arguments.
+ * \param[in]  argv[]  Command-line arguments.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  08/20/13  E. Birrane      Code Review Updates
+ *****************************************************************************/
+
+int main(int argc, char *argv[])
+{
+    pthread_t rx_thr;
+    pthread_t ui_thr;
+    pthread_t daemon_thr;
+
+    char rx_thr_name[]     = "rx_thread";
+    char ui_thr_name[]     = "ui_thread";
+    char daemon_thr_name[] = "run_daemon";
+
+    errno = 0;
+
+    if(argc != 2)
+    {
+    	fprintf(stderr,"Usage: nm_mgr <manager eid>\n");
+        return 1;
+    }
+
+    /* Indicate that the threads should run once started. */
+    g_running = 1;
+
+    /* Initialize the DTNMP Manager. */
+    if(mgr_init(argv) != 0)
+    {
+    	DTNMP_DEBUG_ERR("main","Can't init DTNMP Manager.", NULL);
+    	exit(EXIT_FAILURE);
+    }
+
+    DTNMP_DEBUG_INFO("main","Manager EID: %s", argv[1]);
+
+    /* Register signal handlers. */
+	isignal(SIGINT, mgr_signal_handler);
+	isignal(SIGTERM, mgr_signal_handler);
+
+    /* Spawn threads for receiving msgs, user interface, and db connection. */
+    if(pthread_create(&rx_thr, NULL, mgr_rx_thread, (void *)rx_thr_name))
+    {
+        DTNMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
+        		        rx_thr_name, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    if(pthread_create(&ui_thr, NULL, ui_thread, (void *)ui_thr_name))
+    {
+        DTNMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
+        		        ui_thr_name, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+#ifdef HAVE_MYSQL
+    if(pthread_create(&daemon_thr, NULL, db_mgt_daemon, (void *)daemon_thr_name))
+    {
+    	DTNMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
+    			daemon_thr_name, strerror(errno));
+    	exit(EXIT_FAILURE);
+    }
+#endif
+
+    if (pthread_join(rx_thr, NULL))
+    {
+        DTNMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
+        		        rx_thr_name, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    if (pthread_join(ui_thr, NULL))
+    {
+        DTNMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
+        		         ui_thr_name, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+#ifdef HAVE_MYSQL
+    if (pthread_join(daemon_thr, NULL))
+    {
+    	DTNMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
+    			        daemon_thr_name, strerror(errno));
+    	exit(EXIT_FAILURE);
+    }
+#endif
+
+    DTNMP_DEBUG_ALWAYS("main","Shutting down manager.", NULL);
+    mgr_cleanup();
+
+    DTNMP_DEBUG_INFO("main","Exiting Manager after cleanup.", NULL);
+    exit(0);
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: mgr_agent_get
+ *
+ * \par Retrieve an agent from the manager list of known agents.
+ *
+ * \param[in]  in_eid  - The endpoint identifier for the agent.
+ *
+ * \return NULL - Error
+ *        !NULL - The retrieved agent.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  08/20/13  E. Birrane      Code Review Updates
+ *****************************************************************************/
+
+agent_t* mgr_agent_get(eid_t* in_eid)
+{
+	Object 	 *entry 		= NULL;
+	agent_t *agent			= NULL;
+
+	DTNMP_DEBUG_ENTRY("mgr_agent_get","(0x%#llx)", (unsigned long) in_eid);
+
+	/* Step 0: Sanity Check. */
+	if(in_eid == NULL)
+	{
+		DTNMP_DEBUG_ERR("mgr_agent_get","Null argument", NULL);
+		DTNMP_DEBUG_EXIT("mgr_agent_get", "->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 1: Lock agent mutex, walk list looking for match. */
+	lockResource(&agents_mutex);
+
+	LystElt elt = lyst_first(known_agents);
+	while(elt != NULL)
+	{
+		agent = (agent_t *) lyst_data(elt);
+		if(strcmp(in_eid->name, agent->agent_eid.name) == 0)
+		{
+			break;
+		}
+		else
+		{
+			agent = NULL;
+			elt = lyst_next(elt);
+		}
+	}
+
+	unlockResource(&agents_mutex);
+
+	if(agent == NULL)
+	{
+		DTNMP_DEBUG_EXIT("mgr_agent_get", "->NULL", NULL);
+	}
+	else
+	{
+		DTNMP_DEBUG_EXIT("mgr_agent_get","->Agent %s", agent->agent_eid.name);
+	}
+
+	return agent;
+}
+
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: mgr_agent_add
+ *
+ * \par Add an agent to the manager list of known agents.
+ *
+ * \param[in]  in_eid  - The endpoint identifier for the new agent.
+ *
+ * \return -1 - Error
+ *          0 - Duplicate, agent not added.
+ *          1 - Success.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  08/20/13  E. Birrane      Code Review Updates
+ *****************************************************************************/
+
+int mgr_agent_add(eid_t agent_eid)
+{
+	int result = -1;
+	agent_t *agent = NULL;
+
+	DTNMP_DEBUG_ENTRY("mgr_agent_add","(%s)", agent_eid.name);
+
+	lockResource(&agents_mutex);
+
+	/* Check if the agent is already known. */
+	if((agent = mgr_agent_get(&agent_eid)) != NULL)
+	{
+		unlockResource(&agents_mutex);
+		result = 0;
+		DTNMP_DEBUG_ERR("mgr_agent_add","Trying to add an already-known agent.", NULL);
+		DTNMP_DEBUG_EXIT("mgr_agent_add","->%d.", result);
+
+		return result;
+	}
+
+	/* Create and store the new agent. */
+	if((agent = mgr_agent_create(&agent_eid)) == NULL)
+	{
+		unlockResource(&agents_mutex);
+
+		DTNMP_DEBUG_ERR("mgr_agent_add","Failed to create agent.", NULL);
+		DTNMP_DEBUG_EXIT("mgr_agent_add","->%d.", result);
+
+		return result;
+	}
+
+	DTNMP_DEBUG_INFO("mgr_agent_add","Registered agent: %s", agent_eid.name);
+	unlockResource(&agents_mutex);
+
+	result = 1;
+	DTNMP_DEBUG_EXIT("mgr_agent_add","->%d.", result);
+	return result;
+}
+
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: mgr_agent_create
+ *
+ * \par Allocate and initialize a new agent structure.
+ *
+ * \param[in]  in_eid  - The endpoint identifier for the new agent.
+ *
+ * \return NULL - Error
+ *         !NULL - Allocated, initialized agent structure.
+ *
+ * \par Notes:
+ *		- We assume the agent mutex is already taken when this function is
+ *		  called.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  08/20/13  E. Birrane      Code Review Updates
+ *****************************************************************************/
+
+agent_t* mgr_agent_create(eid_t *in_eid)
+{
+	Object  *entry = NULL;
+	agent_t *agent	= NULL;
+
+	DTNMP_DEBUG_ENTRY("mgr_agent_create", "(%s)", in_eid->name);
+
+	/* Step 0: Sanity Check. */
+	if(in_eid == NULL)
+	{
+		DTNMP_DEBUG_ENTRY("mgr_agent_create", "(NULL)", NULL);
+		DTNMP_DEBUG_EXIT("mgr_agent_create", "->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 1:  Allocate space for the new agent. */
+	if((agent = (agent_t*)MTAKE(sizeof(agent_t))) == NULL)
+	{
+		DTNMP_DEBUG_ERR("mgr_agent_create",
+				        "Unable to allocate %d bytes for new agent %s",
+				        sizeof(agent_t), in_eid->name);
+		DTNMP_DEBUG_EXIT("mgr_agent_create", "->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 2: Copy over the name. */
+	strncpy(agent->agent_eid.name, in_eid->name, MAX_EID_LEN);
+
+	/* Step 3: Create associated lists. */
+	if((agent->custom_defs = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("mgr_agent_create","Unable to create custom definition lyst for agent %s",
+				in_eid->name);
+		MRELEASE(agent);
+
+		DTNMP_DEBUG_EXIT("mgr_agent_create","->NULL", NULL);
+		return NULL;
+	}
+
+	if((agent->reports = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("mgr_agent_create","Unable to create report lyst for agent %s",
+				in_eid->name);
+		lyst_destroy(agent->custom_defs);
+		MRELEASE(agent);
+
+		DTNMP_DEBUG_EXIT("mgr_agent_create","->NULL", NULL);
+		return NULL;
+	}
+
+	if(lyst_insert(known_agents, agent) == NULL)
+	{
+		DTNMP_DEBUG_ERR("mgr_agent_create","Unable to insert agent %s into known agents lyst",
+				in_eid->name);
+		lyst_destroy(agent->custom_defs);
+		lyst_destroy(agent->reports);
+		MRELEASE(agent);
+
+		DTNMP_DEBUG_EXIT("mgr_agent_create","->NULL", NULL);
+		return NULL;
+	}
+
+	initResourceLock(&(agent->mutex));
+
+	DTNMP_DEBUG_EXIT("mgr_agent_create", "->New Agent %s", agent->agent_eid.name);
+	return agent;
+}
+
+
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: mgr_agent_remove
+ *
+ * \par Remove and deallocate the agent identified by the given EID from the
+ *      collection of known agents.
+ *
+ * \param[in]  in_eid  - The endpoint identifier for the agent.
+ *
+ * \return -1 - Error
+ *         0  - Agent not found.
+ *         1  - Success.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  08/20/13  E. Birrane      Code Review Updates
+ *****************************************************************************/
+
+int mgr_agent_remove(eid_t* in_eid)
+{
+	agent_t 	*agent 		= NULL;
+	Object 		*entry		= NULL;
+	LystElt		elt;
+
+	DTNMP_DEBUG_ENTRY("mgr_agent_remove","(0x%#llx)", (unsigned long) in_eid);
+
+	/* Step 0: Sanity Checks. */
+	if(in_eid == NULL)
+	{
+		DTNMP_DEBUG_ERR("remove_agent","Specified EID was null.", NULL);
+		DTNMP_DEBUG_EXIT("remove_agent","", NULL);
+		return -1;
+	}
+
+	lockResource(&agents_mutex);
+
+	elt = lyst_first(known_agents);
+	while(elt != NULL)
+	{
+		if(strcmp(in_eid->name, ((agent_t *) lyst_data(elt))->agent_eid.name) == 0)
+		{
+			agent = (agent_t *) lyst_data(elt);
+			lyst_delete(elt);
+			break;
+		}
+		else
+		{
+			elt = lyst_next(elt);
+		}
+	}
+
+	unlockResource(&agents_mutex);
+
+	if(agent == NULL)
+	{
+		DTNMP_DEBUG_ERR("remove_agent", "No agent %s found in hashtable", in_eid->name);
+		DTNMP_DEBUG_EXIT("remove_agent", "->0", NULL);
+		return 0;
+	}
+
+	rpt_clear_lyst(&(agent->reports), &(agent->mutex), 1);
+	def_lyst_clear(&(agent->custom_defs), &(agent->mutex), 1);
+
+	killResourceLock(&(agent->mutex));
+	MRELEASE(agent);
+
+	DTNMP_DEBUG_EXIT("remove_agent", "->1", NULL);
+	return 1;
+}
+
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: mgr_agent_remove_cb
+ *
+ * \par Lyst callback to remove/delete agents in a lyst.
+ *
+ * \param[in]  elt - The lyst element holding the agent.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  08/20/13  E. Birrane      Code Review Updates
+ *****************************************************************************/
+
+void mgr_agent_remove_cb(LystElt elt, void *nil)
+{
+	eid_t   *agent_eid	= NULL;
+	agent_t	*agent		= NULL;
+	Object	*entry		= NULL;
+
+	if(elt == NULL)
+	{
+		DTNMP_DEBUG_ERR("mgr_agent_remove_cb",
+				        "Specified Lyst element was null.", NULL);
+		DTNMP_DEBUG_EXIT("mgr_agent_remove_cb","", NULL);
+		return;
+	}
+
+	lockResource(&agents_mutex);
+
+	if((agent = (agent_t *) lyst_data(elt)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("mgr_agent_remove_cb",
+				        "Specified Lyst data was null.", NULL);
+	}
+	else
+	{
+		rpt_clear_lyst(&(agent->reports), &(agent->mutex), 1);
+		def_lyst_clear(&(agent->custom_defs), &(agent->mutex), 1);
+
+		killResourceLock(&(agent->mutex));
+		MRELEASE(agent);
+	}
+
+	unlockResource(&agents_mutex);
+
+	DTNMP_DEBUG_EXIT("mgr_agent_remove_cb","", NULL);
+
+	return;
+}
+
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: mgr_cleanup
+ *
+ * \par Clesn resources before exiting the manager.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  08/20/13  E. Birrane      Code Review Updates
+ *****************************************************************************/
+
+int mgr_cleanup()
+{
+	lyst_apply(known_agents, mgr_agent_remove_cb, NULL);
+	lyst_destroy(known_agents);
+	killResourceLock(&agents_mutex);
+
+	def_lyst_clear(&(macro_defs), &(macro_defs_mutex), 1);
+	killResourceLock(&macro_defs_mutex);
+
+	return 0;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: mgr_init
+ *
+ * \par Initialize the manager...
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  09/01/11  V. Ramachandran Initial Implementation
+ **  08/20/13  E. Birrane      Code Review Updates
+ *****************************************************************************/
 int mgr_init(char *argv[])
 {
 
 	DTNMP_DEBUG_ENTRY("mgr_init","(0x%x)",(unsigned long) argv);
 
-    // Setup the ION interface.
-  //  ion_ptr = (iif_t*) MTAKE(sizeof(iif_t));
-
     strcpy((char *) manager_eid.name, argv[1]);
-//    strcpy((char *) agent_eid.name, argv[2]);
 
     if(iif_register_node(&ion_ptr, manager_eid) == 0)
     {
         DTNMP_DEBUG_ERR("mgr_init","Unable to register BP Node. Exiting.", NULL);
-    	//MRELEASE(ion_ptr);
         DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
         return -1;
     }
@@ -73,50 +594,11 @@ int mgr_init(char *argv[])
     {
         DTNMP_DEBUG_ERR("mgr_init","Failed to register mgr with ION, EID %s",
         				 iif_get_local_eid(&ion_ptr).name);
-        //MRELEASE(ion_ptr);
         DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
         return -1;
     }
 
-//	if(sdr_load_profile(
-//			(char *) MGR_SDR_PROFILE_NAME,
-//			SDR_IN_DRAM,
-//			MGR_SDR_HEAP_SIZE,
-//			SM_NO_KEY,
-//			(char *) MGR_SDR_PROFILE_NAME) != 0)
-//	{
-//		DTNMP_DEBUG_ERR("mgr_init","Unable to initialize SDR profile. Exiting.", NULL);
-//		//MRELEASE(ion_ptr);
-//		DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
-//		return -1;
-//	}
-//
-//	if((g_sdr = sdr_start_using((char *) MGR_SDR_PROFILE_NAME)) == NULL)
-//	{
-//		DTNMP_DEBUG_ERR("mgr_init","Unable to start using SDR profile. Exiting.", NULL);
-//		//MRELEASE(ion_ptr);
-//		DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
-//		return -1;
-//	}
-
     g_sdr = getIonsdr();
-
-//    sdr_begin_xn(g_sdr);
-//    printf("Sdr in transaction: %d\n", sdr_in_xn(g_sdr));
-//    if((agents_hashtable = sdr_hash_create(
-//    		g_sdr,
-//    		MAX_EID_LEN,
-//    		EST_NUM_AGENTS,
-//    		2
-//    	)) == 0)
-//    {
-//        DTNMP_DEBUG_ERR("mgr_init","Failed to create agents hash table.",NULL);
-//        //MRELEASE(ion_ptr);
-//        sdr_cancel_xn(g_sdr);
-//        DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
-//        return -1;
-//    }
-//    sdr_end_xn(g_sdr);
 
     if((known_agents = lyst_create()) == NULL)
         {
@@ -163,421 +645,30 @@ int mgr_init(char *argv[])
     return 0;
 }
 
-agent_t* get_agent(eid_t* in_eid)
-{
-	Object 	 *entry 		= NULL;
-	agent_t *agent			= NULL;
 
-	if(in_eid == NULL)
-	{
-		DTNMP_DEBUG_ERR("get_agent","Null argument", NULL);
-		DTNMP_DEBUG_EXIT("get_agent", "->NULL", NULL);
-		return NULL;
-	}
-	else
-		DTNMP_DEBUG_ENTRY("get_agent", "(%s)", in_eid->name);
 
-	lockResource(&agents_mutex);
 
-	// Try to find existing entry
-//	if(sdr_hash_retrieve(
-//			g_sdr,
-//			agents_hashtable,
-//			in_eid->name,
-//			(Address *)agent,
-//			entry) != 1)
-	LystElt elt = lyst_first(known_agents);
-	while(elt != NULL)
-	{
-		agent = (agent_t *) lyst_data(elt);
-		if(strcmp(in_eid->name, agent->agent_eid.name) == 0)
-		{
-			break;
-		}
-		else
-		{
-			agent = NULL;
-			elt = lyst_next(elt);
-		}
-	}
-	if(agent == NULL)
-	{
-		DTNMP_DEBUG_ERR("get_agent", "Unable to retrieve agent %s from hashtable", in_eid->name);
-		DTNMP_DEBUG_EXIT("get_agent", "->NULL", NULL);
-		unlockResource(&agents_mutex);
-		return NULL;
-	}
-	else
-	{
-		DTNMP_DEBUG_EXIT("get_agent","->Agent %s", agent->agent_eid.name);
-	}
 
-	unlockResource(&agents_mutex);
-
-	return agent;
-}
-
-int add_agent(eid_t agent_eid)
-{
-	int result = 0;
-	agent_t *agent = NULL;
-
-	DTNMP_DEBUG_ENTRY("add_agent","(%s)", agent_eid.name);
-
-	lockResource(&agents_mutex);
-
-	/* Check if the agent is already known. */
-	if((agent = get_agent(&agent_eid)) != NULL)
-	{
-		unlockResource(&agents_mutex);
-
-		DTNMP_DEBUG_ERR("add_agent","Trying to add an already-known agent.", NULL);
-		DTNMP_DEBUG_EXIT("add_agent","->%d.", result);
-
-		return result;
-	}
-
-	/* Create and store the new agent. */
-	if((agent = create_agent(&agent_eid)) == NULL)
-	{
-		unlockResource(&agents_mutex);
-
-		DTNMP_DEBUG_ERR("add_agent","Failed to create agent.", NULL);
-		DTNMP_DEBUG_EXIT("add_agent","->%d.", result);
-
-		return result;
-	}
-
-	DTNMP_DEBUG_INFO("add_agent","Registered agent: %s", agent_eid.name);
-	unlockResource(&agents_mutex);
-
-	result = 1;
-	DTNMP_DEBUG_EXIT("add_agent","->%d.", result);
-	return result;
-}
-
-
-
-
-/*
- * Note: We assume the agent mutex is already taken.
- */
-agent_t* create_agent(eid_t *in_eid)
-{
-	Object 	 *entry 		= NULL;
-	agent_t *agent			= NULL;
-
-	DTNMP_DEBUG_ENTRY("create_agent", "(%s)", in_eid->name);
-
-	if(in_eid == NULL)
-	{
-		DTNMP_DEBUG_ENTRY("create_agent", "(NULL)", NULL);
-		DTNMP_DEBUG_EXIT("create_agent", "->NULL", NULL);
-		return NULL;
-	}
-
-	// Allocate new agent metadata
-	if((agent = (agent_t*)MTAKE(sizeof(agent_t))) == NULL)
-	{
-		DTNMP_DEBUG_ERR("create_agent","Unable to allocate %d bytes for new agent %s",
-				sizeof(agent_t), in_eid->name);
-		DTNMP_DEBUG_EXIT("create_agent", "->NULL", NULL);
-		return NULL;
-	}
-
-	strncpy(agent->agent_eid.name, in_eid->name, MAX_EID_LEN);
-
-	if((agent->custom_defs = lyst_create()) == NULL)
-	{
-		DTNMP_DEBUG_ERR("create_agent","Unable to create custom definition lyst for agent %s",
-				in_eid->name);
-		DTNMP_DEBUG_EXIT("create_agent","->NULL", NULL);
-		MRELEASE(agent);
-		return NULL;
-	}
-
-	if((agent->reports = lyst_create()) == NULL)
-	{
-		DTNMP_DEBUG_ERR("create_agent","Unable to create report lyst for agent %s",
-				in_eid->name);
-		DTNMP_DEBUG_EXIT("create_agent","->NULL", NULL);
-		lyst_destroy(agent->custom_defs);
-		MRELEASE(agent);
-		return NULL;
-	}
-
-	// Place the new agent in the hashtable.
-//	if(sdr_hash_insert(
-//			g_sdr,
-//			agents_hashtable,
-//			agent->agent_eid.name,
-//			(Address) agent,
-//			entry) != 0)
-//	{
-//		DTNMP_DEBUG_ERR("create_agent","Unable to insert agent %s into hashtable",
-//				in_eid->name);
-//		DTNMP_DEBUG_EXIT("create_agent","->NULL", NULL);
-//		lyst_destroy(agent->custom_defs);
-//		lyst_destroy(agent->reports);
-//		MRELEASE(agent);
-//		unlockResource(&agents_mutex);
-//		return NULL;
-//	}
-
-	// Place the name of the agent in the known agents list.
-//	if(lyst_insert(known_agents, &(agent->agent_eid)) == NULL)
-
-	if(lyst_insert(known_agents, agent) == NULL)
-	{
-		DTNMP_DEBUG_ERR("create_agent","Unable to insert agent %s into known agents lyst",
-				in_eid->name);
-		DTNMP_DEBUG_EXIT("create_agent","->NULL", NULL);
-		lyst_destroy(agent->custom_defs);
-		lyst_destroy(agent->reports);
-//		sdr_hash_delete_entry(g_sdr, *entry);
-		MRELEASE(agent);
-		return NULL;
-	}
-
-	initResourceLock(&(agent->mutex));
-	unlockResource(&agents_mutex);
-
-	DTNMP_DEBUG_EXIT("create_agent", "->New Agent %s", agent->agent_eid.name);
-	return agent;
-}
-
-int remove_agent(eid_t* in_eid)
-{
-	agent_t 	*agent 		= NULL;
-	Object 		*entry		= NULL;
-	LystElt		elt;
-
-	if(in_eid == NULL)
-	{
-		DTNMP_DEBUG_ENTRY("remove_agent","(NULL)", NULL);
-		DTNMP_DEBUG_ERR("remove_agent","Specified EID was null.", NULL);
-		DTNMP_DEBUG_EXIT("remove_agent","", NULL);
-		return -1;
-	}
-
-	DTNMP_DEBUG_ENTRY("remove_agent","(%s)", in_eid->name);
-
-	lockResource(&agents_mutex);
-
-
-//	if(sdr_hash_remove(
-//			g_sdr,
-//			agents_hashtable,
-//			agent_eid->name,
-//			(Address *)agent) != 1)
-//	{
-//		DTNMP_DEBUG_ERR("remove_agent","Unable to retrieve specified agent from hashtable.", NULL);
-//		DTNMP_DEBUG_EXIT("remove_agent","", NULL);
-//		unlockResource(&agents_mutex);
-//		return 0;
-//	}
-
-	elt = lyst_first(known_agents);
-	while(elt != NULL)
-	{
-		if(strcmp(in_eid->name, ((agent_t *) lyst_data(elt))->agent_eid.name) == 0)
-		{
-			agent = (agent_t *) lyst_data(elt);
-			break;
-		}
-		else
-		{
-			elt = lyst_next(elt);
-		}
-	}
-
-	unlockResource(&agents_mutex);
-
-	if(agent == NULL)
-	{
-		DTNMP_DEBUG_ERR("remove_agent", "No agent %s found in hashtable", in_eid->name);
-
-		DTNMP_DEBUG_EXIT("remove_agent", "->0", NULL);
-		return 0;
-	}
-	else
-	{
-		rpt_clear_lyst(&(agent->reports), &(agent->mutex), 1);
-		def_lyst_clear(&(agent->custom_defs), &(agent->mutex), 1);
-
-		killResourceLock(&(agent->mutex));
-		MRELEASE(agent);
-
-		DTNMP_DEBUG_EXIT("remove_agent", "->1", NULL);
-		return 1;
-	}
-
-}
-
-void _remove_agent(LystElt elt, void *nil)
-{
-	eid_t 		*agent_eid	= NULL;
-	agent_t	*agent		= NULL;
-	Object		*entry		= NULL;
-
-	if(elt == NULL)
-	{
-		DTNMP_DEBUG_ERR("remove_agent","Specified Lyst element was null.", NULL);
-		DTNMP_DEBUG_EXIT("remove_agent","", NULL);
-		return;
-	}
-
-	lockResource(&agents_mutex);
-
-//	if((agent_eid = (eid_t *) lyst_data(elt)) == NULL)
-	if((agent = (agent_t *) lyst_data(elt)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("remove_agent","Specified Lyst data was null.", NULL);
-		DTNMP_DEBUG_EXIT("remove_agent","", NULL);
-		unlockResource(&agents_mutex);
-		return;
-	}
-
-//	if(sdr_hash_remove(
-//			g_sdr,
-//			agents_hashtable,
-//			agent_eid->name,
-//			(Address *)agent) != 1)
-//	{
-//		DTNMP_DEBUG_ERR("remove_agent","Unable to retrieve specified agent from hashtable.", NULL);
-//		DTNMP_DEBUG_EXIT("remove_agent","", NULL);
-//		unlockResource(&agents_mutex);
-//		return;
-//	}
-
-	unlockResource(&agents_mutex);
-
-	rpt_clear_lyst(&(agent->reports), &(agent->mutex), 1);
-	def_lyst_clear(&(agent->custom_defs), &(agent->mutex), 1);
-
-	killResourceLock(&(agent->mutex));
-	MRELEASE(agent);
-}
-
-int mgr_cleanup()
-{
-	lyst_apply(known_agents, _remove_agent, NULL);
-	lyst_destroy(known_agents);
-	killResourceLock(&agents_mutex);
-
-//	sdr_hash_destroy(g_sdr, agents_hashtable);
-
-	def_lyst_clear(&(macro_defs), &(macro_defs_mutex), 1);
-	killResourceLock(&macro_defs_mutex);
-
-	return 0;
-}
-
-
-int main(int argc, char *argv[])
-{
-    pthread_t rx_thr;
-    pthread_t ui_thr;
-    pthread_t daemon_thr;
-
-    char rx_thr_name[]  = "rx_thread";
-    char ui_thr_name[] = "ui_thread";
-    char daemon_thr_name[] = "run_daemon";
-
-    errno = 0;
-    
-    if(argc != 2) {
-    	fprintf(stderr,"Usage: nm_mgr <manager eid>\n");
-        return 1;
-    }
-    
-    DTNMP_DEBUG_INFO("main","Manager EID: %s", argv[1]);
-    
-    // Indicate that the threads should run once started.
-    g_running = 1;
-   
-    /* Initialize the DTNMP Manager. */
-    if(mgr_init(argv) != 0)
-    {
-    	DTNMP_DEBUG_ERR("main","Can't init DTNMP Manager.", NULL);
-    	exit(EXIT_FAILURE);
-    }
-
-    /* Spawn a thread to asynchronously receive reports */
-    if(pthread_create(&rx_thr, NULL, mgr_rx_thread, (void *)rx_thr_name))
-    {
-        DTNMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
-        		        rx_thr_name, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    if(pthread_create(&ui_thr, NULL, ui_thread, (void *)ui_thr_name))
-    {
-        DTNMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
-        		        ui_thr_name, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-
-#ifdef HAVE_MYSQL
-    if(pthread_create(&daemon_thr, NULL, run_daemon, (void *)daemon_thr_name))
-        {
-            DTNMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
-            		        daemon_thr_name, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-#endif
-
-    DTNMP_DEBUG_INFO("main","Spawning threads...", NULL);
-
-    if (pthread_join(rx_thr, NULL))
-    {
-        DTNMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
-        		        rx_thr_name, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    if (pthread_join(ui_thr, NULL))
-    {
-        DTNMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
-        		         ui_thr_name, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-#ifdef HAVE_MYSQL
-    if (pthread_join(daemon_thr, NULL))
-        {
-            DTNMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
-            		         daemon_thr_name, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-#endif
-
-    mgr_cleanup();
-
-    DTNMP_DEBUG_INFO("main","Exiting Manager after cleanup.", NULL);
-
-    exit(0);
-}
-
-
-/**
- * Signal handler for the nmmgr main program.
+/******************************************************************************
  *
- * @param signum The received system signal number.
- **/
-void signal_handler(int signum)
+ * \par Function Name: mgr_signal_handler
+ *
+ * \par Catches kill signals and gracefully shuts down the manager.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ **  08/18/13  E. Birrane    Initial Implementation
+ *****************************************************************************/
+
+static void mgr_signal_handler()
 {
-   if (signum == SIGINT || signum == SIGKILL || signum == SIGTERM)
-      {
-      g_running = 0;
-      sleep(1); // Give threads a moment to terminate.
-      DTNMP_DEBUG_INFO("sig_handler","mgr terminated by user. Done.", NULL);
-      exit(EXIT_SUCCESS);
-      }
-   else
-      {
-      perror("ERROR");
-      DTNMP_DEBUG_ERR("sig_handler","mgr terminated abnormally.", NULL);
-      exit(EXIT_FAILURE);
-      }
+	isignal(SIGINT, mgr_signal_handler);
+	isignal(SIGTERM, mgr_signal_handler);
+
+	g_running = 0;
 }
+
 
