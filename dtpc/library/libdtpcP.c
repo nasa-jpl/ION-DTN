@@ -893,10 +893,10 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 
 	/*		Construct Header				*/
 
+	type = 0x00;	/*	Top 2 bits are version number 00.	*/
 	encodeSdnv(&profNum, profile->profileID);
 	scalarToSdnv(&seqNum, &outAdu.seqNum);
-	type = 0x00;
-	extentLength = profNum.length + seqNum.length + 1;
+	extentLength = 1 + profNum.length + seqNum.length;
 	addr = sdr_malloc(sdr, extentLength);
 	if (addr == 0)
 	{
@@ -912,11 +912,11 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 	}
 
 	cursor = buffer;
+	*cursor = type;
+	cursor++;
 	memcpy(cursor, profNum.text, profNum.length);
 	cursor += profNum.length;
 	memcpy(cursor, seqNum.text, seqNum.length);
-	cursor += seqNum.length;
-	*cursor = type;		/*	Header is ready			*/
 	sdr_write(sdr, addr, (char *) buffer, extentLength);
 	MRELEASE(buffer);
 
@@ -2821,10 +2821,10 @@ send ACK.");
 
 	/*		Construct DTPC acknowledgment.			*/
 
+	type = 0x01;	/*	Top 2 bits are version number 00.	*/
 	encodeSdnv(&profileIdSdnv, profileID);
 	scalarToSdnv(&seqNumSdnv, &seqNum);
-	type = 0x01;
-	extentLength = profileIdSdnv.length + seqNumSdnv.length + 1;
+	extentLength = 1 + profileIdSdnv.length + seqNumSdnv.length;
 	addr = sdr_malloc(sdr, extentLength);
 	if (addr == 0)
 	{
@@ -2842,11 +2842,11 @@ send ACK.");
 	}
 
 	cursor = buffer;
+	*cursor = type;
+	cursor++;
 	memcpy(cursor, profileIdSdnv.text, profileIdSdnv.length);
 	cursor += profileIdSdnv.length;
 	memcpy(cursor, seqNumSdnv.text, seqNumSdnv.length);
-	cursor += seqNumSdnv.length;
-	*cursor = type;		/*	Ack construction completed.	*/
 	sdr_write(sdr, addr, (char *) buffer, extentLength);
 	MRELEASE(buffer);
 

@@ -102,15 +102,15 @@ static void	*getBundles(void *parm)
 				continue;
 			}
 
+			type = *cursor;		/* Get the type byte.	*/
+			cursor++;
+			bytesRemaining--;
 			sdnvLength = decodeSdnv(&profNum, cursor);
 			cursor += sdnvLength;
 			bytesRemaining -= sdnvLength;
 			sdnvLength = sdnvToScalar(&seqNum, cursor);
 			cursor += sdnvLength;
 			bytesRemaining -= sdnvLength;
-			type = *cursor;		/* Get the type byte.	*/
-			cursor++;
-			bytesRemaining--;
 
 			/*	Mark remaining bytes as source data.	*/
 
