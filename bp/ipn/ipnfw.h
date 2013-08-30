@@ -127,6 +127,7 @@ extern int		ipn_removePlanRule(uvast nodeNbr,
 extern int		ipn_lookupPlanDirective(uvast nodeNbr, 
 				unsigned int sourceServiceNbr,
 				uvast sourceNodeNbr,
+				Bundle *bundle,
 				FwdDirective *directive);
 
 extern void		ipn_findGroup(uvast firstNodeNbr,

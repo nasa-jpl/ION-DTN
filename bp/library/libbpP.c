@@ -3606,7 +3606,7 @@ void	fetchProtocol(char *protocolName, ClProtocol *clp, Object *clpElt)
 }
 
 int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
-		int nominalRate)
+		int nominalRate, int protocolClass)
 {
 	Sdr		bpSdr = getIonsdr();
 	ClProtocol	clpbuf;
@@ -3649,6 +3649,23 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 	}
 
 	clpbuf.nominalRate = nominalRate;
+	if (protocolClass == 1 || strcmp(protocolName, "bssp") == 0)
+	{
+		clpbuf.protocolClass = BP_PROTOCOL_STREAMING;
+	}
+	else if (protocolClass == 2 || strcmp(protocolName, "udp") == 0)
+	{
+		clpbuf.protocolClass = BP_PROTOCOL_UNRELIABLE;
+	}
+	else if (protocolClass == 10 || strcmp(protocolName, "ltp") == 0)
+	{
+		clpbuf.protocolClass = BP_PROTOCOL_BOTH;
+	}
+	else	/*	Default: most CL protocols do retransmission.	*/
+	{
+		clpbuf.protocolClass = BP_PROTOCOL_RELIABLE;
+	}
+
 	clpbuf.inducts = sdr_list_create(bpSdr);
 	clpbuf.outducts = sdr_list_create(bpSdr);
 	addr = sdr_malloc(bpSdr, sizeof(ClProtocol));

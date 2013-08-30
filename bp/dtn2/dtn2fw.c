@@ -126,7 +126,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return bpAbandon(bundleObj, bundle);
 	}
 
-	if (dtn2_lookupDirective(nodeName, demux, &directive) == 0)
+	if (dtn2_lookupDirective(nodeName, demux, bundle, &directive) == 0)
 	{
 		putErrmsg("Can't find forwarding directive for EID.",
 				eidString);
