@@ -57,7 +57,14 @@ uint32_t	 g_reports_total = 0;
 
 Sdr 		 g_sdr;
 
-static void     mgr_signal_handler();
+// This function looks to be completely unused at this time.
+// To prevent compilation warnings, Josh Schendel commented it out on
+//    Aug 22, 2013.
+// Per comments regarding it's signal registerer, I suspect it should be
+// uncommented once the UI thread is deprecated and signal handler routines
+// are reactivated.
+//
+//static void     mgr_signal_handler();
 
 
 /******************************************************************************
@@ -664,12 +671,19 @@ int mgr_init(char *argv[])
  **  08/18/13  E. Birrane    Initial Implementation
  *****************************************************************************/
 
-static void mgr_signal_handler()
-{
-	isignal(SIGINT, mgr_signal_handler);
-	isignal(SIGTERM, mgr_signal_handler);
-
-	g_running = 0;
-}
+// This function looks to be completely unused at this time.
+// To prevent compilation warnings, Josh Schendel commented it out on
+//    Aug 22, 2013.
+// Per comments regarding it's signal registerer, I suspect it should be
+// uncommented once the UI thread is deprecated and signal handler routines
+// are reactivated.
+//
+// static void mgr_signal_handler()
+// {
+// 	isignal(SIGINT, mgr_signal_handler);
+// 	isignal(SIGTERM, mgr_signal_handler);
+// 
+// 	g_running = 0;
+// }
 
 
