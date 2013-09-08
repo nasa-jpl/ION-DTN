@@ -424,9 +424,6 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 						earliestDeliveryTime
 							= work->arrivalTime;
 						finalContact = contact;
-
-						TRACE(CgrFinal,
-							(unsigned int)(work->arrivalTime));
 					}
 				}
 			}
@@ -1778,7 +1775,6 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrIgnoreContact] = "        IGNORE",
 
 	[CgrCost] = "        COST transmitTime:%u owlt:%u arrivalTime:%u",
-        [CgrFinal] = "        FINAL arrivalTime:%u",
 	[CgrHop] = "    HOP fromNode:" UVAST_FIELDSPEC " toNode:"
 		UVAST_FIELDSPEC,
 

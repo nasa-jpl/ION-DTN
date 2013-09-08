@@ -42,8 +42,6 @@ typedef enum {
 	// CgrCost(unsigned int transmitTime, unsigned int owlt,
 	//         unsigned int arrivalTime)
 	CgrCost,
-	// CgrFinal(unsigned int arrivalTime)
-	CgrFinal,
 	// CgrHop(uvast fromNode, uvast toNode)
 	CgrHop,
 
