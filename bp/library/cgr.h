@@ -14,8 +14,6 @@
 #ifndef _CGR_H_
 #define _CGR_H_
 
-#include <stdarg.h>
-
 #include "bpP.h"
 
 #ifdef __cplusplus
