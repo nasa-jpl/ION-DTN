@@ -1446,22 +1446,21 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 {
 	IonVdb		*ionvdb = getIonVdb();
 	CgrVdb		*cgrvdb = _cgrvdb(NULL);
-	PsmPartition	ionwm = getIonwm();
-
-	PsmAddress	nextNode;
-	PsmAddress	snubElt;
-	IonSnub		*snub;
 
 	IonNode		*stationNode;
+	PsmAddress	nextNode;
 	int		ionMemIdx;
 	Lyst		proximateNodes;
 	Lyst		excludedNodes;
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	snubElt;
+	IonSnub		*snub;
 
-	ProximateNode	*proxNode;
-	ProximateNode	*selectedNeighbor;
 	LystElt		elt;
 	LystElt		nextElt;
 	LystElt		selectedNeighborElt = 0;
+	ProximateNode	*proxNode;
+	ProximateNode	*selectedNeighbor;
 
 	/*	Determine whether or not the contact graph for this
 	 *	node identifies one or more proximate nodes to
