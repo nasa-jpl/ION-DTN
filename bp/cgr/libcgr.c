@@ -1087,6 +1087,9 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 				proxNode->deliveryTime = route->deliveryTime;
 				proxNode->hopCount = hopCount;
 				proxNode->forfeitTime = route->toTime;
+
+				TRACE(CgrUpdateProximateNode,
+					CgrLaterDeliveryTime);
 			}
 			else
 			{
@@ -1098,12 +1101,28 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 						proxNode->hopCount = hopCount;
 						proxNode->forfeitTime =
 							route->toTime;
+
+						TRACE(CgrUpdateProximateNode,
+								CgrMoreHops);
 					}
+					else if (hopCount > proxNode->hopCount)
+					{
+						TRACE(CgrIgnoreRoute,
+							CgrMoreHops);
+					}
+					else
+					{
+						TRACE(CgrIgnoreRoute,
+							CgrIdentical);
+					}
+				}
+				else
+				{
+					TRACE(CgrIgnoreRoute,
+						CgrLaterDeliveryTime);
 				}
 			}
 
-			TRACE(CgrUpdateProximateNode, route->toNodeNbr,
-				hopCount, (unsigned int)(route->deliveryTime));
 
 			return 0;
 		}
@@ -1126,8 +1145,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	proxNode->hopCount = hopCount;
 	proxNode->forfeitTime = route->toTime;
 
-	TRACE(CgrAddProximateNode, route->toNodeNbr, hopCount,
-		(unsigned int)(route->deliveryTime));
+	TRACE(CgrAddProximateNode);
 
 	return 0;
 }
@@ -1655,7 +1673,7 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 		}
 		else	/*	Later delivery time; ignore.		*/
 		{
-			TRACE(CgrIgnoreProximateNode, CgrLaterDelivery);
+			TRACE(CgrIgnoreProximateNode, CgrLaterDeliveryTime);
 			lyst_delete(elt);
 		}
 
@@ -1788,10 +1806,8 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrRecomputeRoute] = "  RECOMPUTE",
 	[CgrIgnoreRoute] = "    IGNORE",
 
-	[CgrAddProximateNode] = "    ADD proximateNode:" UVAST_FIELDSPEC
-		" hopCount:%d deliveryTime:%u",
-	[CgrUpdateProximateNode] = "    UPDATE proximateNode:" UVAST_FIELDSPEC
-		" hopCount:%d deliveryTime:%u",
+	[CgrAddProximateNode] = "    ADD",
+	[CgrUpdateProximateNode] = "    UPDATE",
 
 	[CgrSelectProximateNodes] = "SELECT",
 	[CgrUseAllProximateNodes] = "  USE all proximate nodes",
@@ -1817,7 +1833,7 @@ const char	*cgr_reason_text(CgrReason reason)
 	[CgrContactEndsEarly] = "contact ends before data arrives",
 	[CgrSuppressed] = "contact is suppressed",
 	[CgrVisited] = "contact has been visited",
-	[CgrCapacityTooSmall] = "contact capacity is too low for payload class",
+	[CgrCapacityTooSmall] = "capacity is too low for payload class",
 	[CgrNoRange] = "no range for contact",
 
 	[CgrRouteViaSelf] = "route is via self",
@@ -1830,9 +1846,10 @@ const char	*cgr_reason_text(CgrReason reason)
 	[CgrNoResidualCapacity] = "contact with this neighbor is already fully subscribed",
 	[CgrResidualCapacityTooSmall] = "too little residual aggregate capacity for this bundle",
 
+	[CgrMoreHops] = "more hops",
+	[CgrIdentical] = "identical to a previous route",
+	[CgrLaterDeliveryTime] = "later delivery time",
 	[CgrLargerNodeNbr] = "initial hop has larger node number",
-	[CgrMoreHops] = "route uses more hops",
-	[CgrLaterDelivery] = "route has later delivery time",
 	};
 
 	if (reason < 0 || reason >= CgrReasonMax)

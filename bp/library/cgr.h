@@ -59,12 +59,9 @@ typedef enum {
 	CgrRecomputeRoute,
 	// CgrIgnoreRoute(CgrReason reason)
 	CgrIgnoreRoute,
-
-	// CgrAddProximateNode(uvast proximateNode, int hopCount,
-	//                     unsigned int deliveryTime)
+	// CgrAddProximateNode(void)
 	CgrAddProximateNode,
-	// CgrUpdateProximateNode(uvast proximateNode, int hopCount,
-	//                        unsigned int deliveryTime)
+	// CgrUpdateProximateNode(CgrReason reason)
 	CgrUpdateProximateNode,
 
 	// CgrSelectProximateNodes(void)
@@ -106,10 +103,13 @@ typedef enum {
 	CgrNoResidualCapacity,
 	CgrResidualCapacityTooSmall,
 
-	// Reasons to ignore a proximate node (CgrIgnoreProximateNode)
-	CgrLargerNodeNbr,
+	// Reasons to ignore a proximate node (CgrIgnoreRoute,
+	// CgrIgnoreProximateNode) or reasons a previously-selected proximate
+	// node was ignored (CgrUpdateProximateNode)
 	CgrMoreHops,
-	CgrLaterDelivery,
+	CgrIdentical,
+	CgrLaterDeliveryTime,
+	CgrLargerNodeNbr,
 
 	CgrReasonMax,
 } CgrReason;
