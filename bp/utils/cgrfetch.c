@@ -12,27 +12,50 @@
 #include "cgr.h"
 #include "lyst.h"
 
-// A hop in a route
+#define DARK      "\"#444444\""
+#define LIGHT     "\"#F8F8F8\""
+#define HILIGHT   "\"#EC1C24\""
+#define DISABLED  "\"#DDDDDD\""
+
+#define GRAPHVIZ_FILENAME "route.gv"
+#define IMAGE_FILENAME    "route.svg.base64"
+
 typedef struct {
 	uvast fromNode;
 	uvast toNode;
 } Hop;
 
-// A route considered by CGR
 typedef struct {
-	// Whether CGR has decided to use the route
-	bool selected;
+	enum {
+		// Route wasn't identified as a proximate node
+		DEFAULT,
+		// Route was identified as a proximate node but another route
+		// with the same first hop was chosen instead
+		IDENTIFIED,
+		// Route was identified as a proximate node and the best route
+		// for the first hop
+		CONSIDERED,
+		// Route was selected by CGR to forward along
+		SELECTED,
+	} flag;
+
+	// Why the route was ignored or not selected
+	CgrReason ignoreReason;
+
+	// First hop neighbor in the route
+	uvast firstHop;
 	// Time when route becomes available
 	time_t fromTime;
 	// Time when bundle will be delivered
 	time_t deliveryTime;
 	// Minimum capacity of all hops in the route
 	uvast maxCapacity;
+	// Capacity payload class
+	int payloadClass;
 	// Hops taken in the route, from local node to destination node
 	Lyst hops;
 } Route;
 
-// State of a CGR trace
 typedef struct {
 	// Current routes built by CGR, ordered from earliest to latest delivery
 	// time
@@ -46,12 +69,43 @@ typedef struct {
 	bool recomputing;
 } TraceState;
 
-static void hopDestroy(Hop *hop) {
-	MRELEASE(hop);
-}
+// Command line arguments
+static enum {
+	OUTPUT_NOTHING   = 0,
+	OUTPUT_JSON      = 1 << 0,
+	OUTPUT_TRACE_MSG = 1 << 1,
+} outputs = OUTPUT_JSON | OUTPUT_TRACE_MSG;
 
-static void hopDeleteFn(LystElt elt, void *data) {
-	hopDestroy(lyst_data(elt));
+static uvast destNode;
+static time_t dispatchOffset = 0;
+static time_t expirationOffset = 3600;
+static unsigned int bundleSize = 0;
+static bool minLatency = false;
+static FILE *outputFile = NULL;
+static char *outductProto = "udp";
+static char *outductName = "*";
+
+// Chosen outduct
+static PsmAddress vductElt;
+static VOutduct *vduct;
+
+// Print a string and exit.
+#define DIES(str) do \
+{ \
+	fputs("cgrfetch: " str "\n", stderr); \
+	exit(EXIT_FAILURE); \
+} while (0)
+
+// Print a formatted string and exit.
+#define DIEF(fmt, ...) do \
+{ \
+	fprintf(stderr, "cgrfetch: " fmt "\n", __VA_ARGS__); \
+	exit(EXIT_FAILURE); \
+} while (0)
+
+static void hopDeleteFn(LystElt elt, void *data)
+{
+	MRELEASE(lyst_data(elt));
 }
 
 static void routeDestroy(Route *route)
@@ -60,8 +114,29 @@ static void routeDestroy(Route *route)
 	MRELEASE(route);
 }
 
-static void routeDeleteFn(LystElt elt, void *data) {
+static void routeDeleteFn(LystElt elt, void *data)
+{
 	routeDestroy(lyst_data(elt));
+}
+
+// Walk routes until a considered route is found.
+static LystElt nextConsidered(LystElt routeElt)
+{
+	Route *route;
+
+	while (routeElt)
+	{
+		route = lyst_data(routeElt);
+
+		if (route->flag == CONSIDERED)
+		{
+			break;
+		}
+
+		routeElt = lyst_next(routeElt);
+	}
+
+	return routeElt;
 }
 
 // Find where to insert a route so the list remains sorted. (copied from libcgr)
@@ -84,45 +159,46 @@ static LystElt findSpotForRoute(Lyst routes, Route *newRoute)
 	return 0;
 }
 
-static void traceFn(void *data, unsigned int lineNbr,
-                    unsigned int traceType, ...)
+static void outputTraceMsg(void *data, unsigned int lineNbr,
+		           CgrTraceType traceType, va_list args)
+{
+	vfprintf(stderr, cgr_tracepoint_text(traceType), args);
+
+	switch (traceType) {
+	case CgrUpdateProximateNode:
+		fputs("other route has", stderr);
+		// fallthrough
+	case CgrIgnoreContact:
+	case CgrIgnoreRoute:
+	case CgrIgnoreProximateNode:
+		fputc(' ', stderr);
+		fputs(cgr_reason_text(va_arg(args, CgrReason)), stderr);
+	default:
+	break;
+	}
+
+	fputc('\n', stderr);
+}
+
+static void handleTraceState(void *data, unsigned int lineNbr,
+		             CgrTraceType traceType, va_list args)
 {
 	TraceState *traceState = data;
-
 	LystElt routeElt, nextElt;
 	Route *route;
 	Hop *hop;
 
-	va_list args;
-	const char *text;
-
-	va_start(args, traceType);
-
-	text = cgr_tracepoint_text(traceType);
-	vprintf(text, args);
-
-	switch (traceType) {
-	case CgrIgnoreContact:
-	case CgrIgnoreRoute:
-	case CgrIgnoreProximateNode:
-		printf(" %s",
-			cgr_reason_text(va_arg(args, CgrReason)));
-	}
-
-	putchar('\n');
-
-	va_end(args);
-	va_start(args, traceType);
-
 	switch (traceType) {
 	case CgrBeginRoute:
 		traceState->route = MTAKE(sizeof(Route));
-		traceState->route->selected = false;
+		traceState->route->flag = DEFAULT;
+		traceState->route->ignoreReason = CgrReasonMax;
 		traceState->route->hops = lyst_create();
 		lyst_delete_set(traceState->route->hops, hopDeleteFn, NULL);
 	break;
 
 	case CgrHop:
+		// Create a new hop and add to the current route.
 		hop = MTAKE(sizeof(Hop));
 		hop->fromNode = va_arg(args, uvast);
 		hop->toNode = va_arg(args, uvast);
@@ -135,11 +211,11 @@ static void traceFn(void *data, unsigned int lineNbr,
 	case CgrAcceptRoute:
 		route = traceState->route;
 
-		// Discard firstHop.
-		va_arg(args, uvast);
+		route->firstHop = va_arg(args, uvast);
 		route->fromTime = va_arg(args, unsigned int);
 		route->deliveryTime = va_arg(args, unsigned int);
 		route->maxCapacity = va_arg(args, uvast);
+		route->payloadClass = va_arg(args, int);
 
 		if (traceState->recomputing)
 		{
@@ -185,70 +261,131 @@ static void traceFn(void *data, unsigned int lineNbr,
 		}
 	break;
 
+	case CgrIdentifyProximateNodes:
+		// Start walking from the first route.
+		traceState->routeElt = lyst_first(traceState->routes);
+	break;
+
+	case CgrCheckRoute:
+		traceState->route = lyst_data(traceState->routeElt);
+	break;
+
 	case CgrRecomputeRoute:
 		// CGR is going to be recomputing a route.
 		traceState->recomputing = true;
 	break;
 
 	case CgrIgnoreRoute:
-		// TODO: show route as disabled.
+		// Mark why the current route was ignored and move on to the
+		// next.
+		traceState->route->ignoreReason = va_arg(args, CgrReason);
+		traceState->routeElt = lyst_next(traceState->routeElt);
 	break;
 
-	case CgrIdentifyProximateNodes:
+	case CgrUpdateProximateNode:
+		// Find the proximate node being replaced and mark it as no
+		// longer considered.
+		for (routeElt = nextConsidered(lyst_first(traceState->routes));
+		     routeElt; routeElt = nextConsidered(lyst_next(routeElt)))
+		{
+			route = lyst_data(routeElt);
+
+			if (route->firstHop == traceState->route->firstHop)
+			{
+				route->flag = IDENTIFIED;
+				route->ignoreReason = va_arg(args, CgrReason);
+
+				break;
+			}
+		}
+
+		// Fallthrough
+	case CgrAddProximateNode:
+		// Mark the current route as considered and continue the walk.
+		traceState->route->flag = CONSIDERED;
+		traceState->routeElt = lyst_next(traceState->routeElt);
+	break;
+
 	case CgrSelectProximateNodes:
-		// Start walking from the first route when identifying and
-		// selecting proximate nodes.
-		traceState->routeElt = lyst_first(traceState->routes);
+		// Set that no route has been selected and start walking from
+		// the first considered route.
 		traceState->route = NULL;
+		traceState->routeElt =
+			nextConsidered(lyst_first(traceState->routes));
 	break;
 
 	case CgrSelectProximateNode:
-		// CGR has selected the current route in the walk.
+		// Mark the current route as selected and move to the next
+		// considered one.
 		traceState->route = lyst_data(traceState->routeElt);
-		// fallthrough
-	case CgrAddProximateNode:
-	case CgrUpdateProximateNode:
-		// TODO: handle multiple routes with same proximate node.
+		traceState->routeElt =
+			nextConsidered(lyst_next(traceState->routeElt));
+	break;
+
 	case CgrIgnoreProximateNode:
-		// Move on to the next route in the walk.
-		traceState->routeElt = lyst_next(traceState->routeElt);
+		// Mark why the current route was ignored as a proximate node.
+		route = lyst_data(traceState->routeElt);
+		route->ignoreReason = va_arg(args, CgrReason);
+
+		traceState->routeElt =
+			nextConsidered(lyst_next(traceState->routeElt));
 	break;
 
 	case CgrUseProximateNode:
 		// CGR is done walking proximate nodes, so mark the current
 		// selected route (if there is one) as the final selected route..
 		if (traceState->route)
-			traceState->route->selected = true;
+		{
+			traceState->route->flag = SELECTED;
+		}
 	break;
 
 	case CgrUseAllProximateNodes:
-		// CGR decided to use all proximate nodes, so mark all routes as
-		// selected.
-		for (routeElt = lyst_first(traceState->routes); routeElt;
-		     routeElt = lyst_next(routeElt))
+		// CGR decided to use all proximate nodes, so mark all
+		// considered routes as selected.
+		for (routeElt = nextConsidered(lyst_first(traceState->routes));
+		     routeElt; routeElt = nextConsidered(lyst_next(routeElt)))
 		{
 			route = lyst_data(routeElt);
-			route->selected = true;
+			route->flag = SELECTED;
 		}
 	break;
-	}
 
+	default:
+	break;
+	}
+}
+
+// Build the routes list and output trace messages.
+static void traceFnDefault(void *data, unsigned int lineNbr,
+		           CgrTraceType traceType, ...)
+{
+	va_list args;
+
+	va_start(args, traceType);
+	outputTraceMsg(data, lineNbr, traceType, args);
+	va_end(args);
+
+	va_start(args, traceType);
+	handleTraceState(data, lineNbr, traceType, args);
 	va_end(args);
 }
 
+// Build the routes list but don't output trace messages.
+static void traceFnQuiet(void *data, unsigned int lineNbr,
+		         CgrTraceType traceType, ...)
+{
+	va_list args;
+
+	va_start(args, traceType);
+	handleTraceState(data, lineNbr, traceType, args);
+	va_end(args);
+}
+
+// Callback function used by cgr
 static int getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
                         FwdDirective *directive)
 {
-	PsmAddress vductElt;
-	VOutduct *vduct;
-
-	findOutduct("udp", "*", &vduct, &vductElt);
-
-	if (vductElt == 0) {
-		putErrmsg("Can't find outduct.", NULL);
-		return 0;
-	}
-
 	*directive = (FwdDirective) {
 		.outductElt = vduct->outductElt,
 	};
@@ -257,7 +394,7 @@ static int getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
 }
 
 // Check if the contact exists in the route's hops.
-static int checkContactIsHop(const IonCXref *contact, Route *route)
+static bool contactIsHop(const IonCXref *contact, Route *route)
 {
 	LystElt hopElt;
 	const Hop *hop;
@@ -269,10 +406,12 @@ static int checkContactIsHop(const IonCXref *contact, Route *route)
 
 		if (contact->fromNode == hop->fromNode &&
 		    contact->toNode == hop->toNode)
-			return 1;
+		{
+			return true;
+		}
 	}
 
-	return 0;
+	return false;
 }
 
 // Try to find a range for the contact. (copied from libcgr)
@@ -317,22 +456,23 @@ static IonRXref *findRange(const IonCXref *contact)
 	return NULL;
 }
 
-static int run_cgrfetch(uvast nodeNumber, time_t atTime)
+static inline const char *boolToStr(bool b)
 {
-	if (bp_attach() < 0) {
-		putErrmsg("cgrfetch can't attach to BP.", NULL);
-		return 0;
-	}
+	return b ? "true" : "false";
+}
 
-	// Flush the cached routing tables.
-	cgr_stop();
-	cgr_start();
+static void run_cgrfetch(void)
+{
+	PsmPartition ionwm;
+	IonVdb *ionvdb;
+	uvast localNode;
 
-	PsmPartition ionwm = getIonwm();
-	IonVdb *ionvdb = getIonVdb();
-	uvast localNode = getOwnNodeNbr();
+	time_t nowTime;
+	time_t dispatchTime;
+	time_t expirationTime;
 
 	Lyst routes;
+	size_t r;
 	LystElt routeElt;
 	Route *route;
 
@@ -340,38 +480,54 @@ static int run_cgrfetch(uvast nodeNumber, time_t atTime)
 	IonCXref *contact;
 	IonRXref *range;
 
-	size_t r;
 	FILE *f;
+	int ret;
 
-	enum { TIME_BUF_SIZE = 32 };
-	char timeBuf[TIME_BUF_SIZE];
+	char buf[BUFSIZ];
+	size_t nBytes;
 
 	Object plans;
 
+	ionwm = getIonwm();
+	ionvdb = getIonVdb();
+	localNode = getOwnNodeNbr();
+
+	nowTime = time(NULL);
+	dispatchTime = nowTime + dispatchOffset;
+	expirationTime = nowTime + expirationOffset;
+
 	Bundle bundle = {
-		/* .extendedCOS = { */
-		/* 	.flags = BP_MINIMUM_LATENCY, */
-		/* }, */
+		.extendedCOS = {
+			.flags = minLatency ? BP_MINIMUM_LATENCY
+			                    : BP_BEST_EFFORT,
+		},
 		.payload = {
-			.length = 0,
+			.length = bundleSize,
 		},
 		.returnToSender = 0,
 		.clDossier = {
 			.senderNodeNbr = localNode,
 		},
-		.expirationTime = atTime + 3600,
+		.expirationTime = expirationTime,
 		.dictionaryLength = 0,
 		.extensionsLength = {0, 0},
 	};
 
 	routes = lyst_create();
 
-	if (routes == NULL) {
-		putErrmsg("Unable to create routes list", NULL);
-		return 0;
+	if (!routes)
+	{
+		DIES("unable to create routes list");
 	}
 
 	lyst_delete_set(routes, routeDeleteFn, NULL);
+
+	CgrTraceFn traceFn = traceFnDefault;
+
+	if (!(outputs & OUTPUT_TRACE_MSG))
+	{
+		traceFn = traceFnQuiet;
+	}
 
 	CgrTrace trace = {
 		.fn = traceFn,
@@ -381,95 +537,74 @@ static int run_cgrfetch(uvast nodeNumber, time_t atTime)
 		},
 	};
 
-	if (cgr_preview_forward(&bundle, (Object) &bundle, nodeNumber,
-	      (Object) &plans, getDirective, atTime, &trace) < 0)
+	// Flush the cached routing tables.
+	cgr_stop();
+	cgr_start();
+
+	if (cgr_preview_forward(&bundle, (Object)(&bundle), destNode,
+		(Object)(&plans), getDirective, dispatchTime, &trace) < 0)
 	{
-		putErrmsg("Can't preview cgr.", NULL);
-		return 0;
+		DIES("unable to simulate cgr");
 	}
 
-#define DARK    "\"#444444\""
-#define LIGHT   "\"#f1f1f1\""
-#define HILITE  "\"#ff0000\""
-#define INFO    "\"#546092\""
-#define DISABLE "\"#dddddd\""
+	if (!(outputs & OUTPUT_JSON))
+	{
+		goto done;
+	}
 
-	f = fopen("routes.gv", "w");
+	fprintf(outputFile,
+		"{"
+		  "\"constants\": {"
+		    "\"DEFAULT\": %u,"
+		    "\"IDENTIFIED\": %u,"
+		    "\"CONSIDERED\": %u,"
+		    "\"SELECTED\": %u"
+		  "},"
+		  "\"params\": {"
+		    "\"localNode\": " UVAST_FIELDSPEC ","
+		    "\"destNode\": " UVAST_FIELDSPEC ","
+		    "\"dispatchTime\": %u,"
+		    "\"expirationTime\": %u,"
+		    "\"bundleSize\": %d,"
+		    "\"minLatency\": %s"
+		  "},"
+		  "\"routes\": ["
+		,
+		DEFAULT, IDENTIFIED, CONSIDERED, SELECTED,
 
-	fputs("digraph {\n"
-              "dpi = 300\n"
-	      "fontname = Monospace\n"
-	      "fontcolor = " DARK "\n"
-	      "node [fontname = \"Monospace Bold\", style = filled,\n"
-	      "      fillcolor = " LIGHT ", color = " DARK ",\n"
-	      "      fontcolor = " DARK "]\n"
-	      "edge [fontname = Monospace, arrowhead = vee,\n"
-	      "      color = " DARK "]\n", f);
+		localNode, destNode, (unsigned int)(dispatchTime),
+		(unsigned int)(expirationTime), bundleSize,
+		boolToStr(minLatency)
+	);
 
 	for (routeElt = lyst_first(routes), r = 0; routeElt;
 	     routeElt = lyst_next(routeElt), r += 1)
 	{
 		route = lyst_data(routeElt);
 
-		// Output subgraph heading.
-		fprintf(f,
-			"subgraph cluster%zu {\n"
-			"color = " DARK "\n"
-			"margin = 20\n"
-			"penwidth = %d\n"
-			"labeljust = l\n",
-			r,
-			route->selected);
+		f = fopen(GRAPHVIZ_FILENAME, "w");
 
-		// Output route title.
-		fprintf(f,
-			"label = <<table border=\"0\" cellborder=\"0\" cellspacing=\"0\">"
-			"<tr><td align=\"left\"><b>ROUTE %zu</b></td></tr>"
-			"<hr/>"
-			"<tr><td></td></tr>",
-			r + 1);
-
-		strftime(timeBuf, TIME_BUF_SIZE, "%c", localtime(
-			route->fromTime > atTime
-				? &route->fromTime
-				: &atTime));
-
-		// Output dispatch time.
-		fprintf(f,
-			"<tr>"
-			"  <td align=\"left\">dispatch </td>"
-			"  <td align=\"left\"><font color=" INFO ">%s</font></td>"
-			"</tr>",
-			timeBuf);
-
-		strftime(timeBuf, TIME_BUF_SIZE, "%c", localtime(
-			&route->deliveryTime));
-
-		// Output delivery time.
-		fprintf(f,
-			"<tr>"
-			"  <td align=\"left\">deliver </td>"
-			"  <td align=\"left\"><font color=" INFO ">%s</font></td>"
-			"</tr>",
-			timeBuf);
-
-		// Output capacity.
-		fprintf(f,
-			"<tr>"
-			"  <td align=\"left\">capacity </td>"
-			"  <td align=\"left\"><font color=" INFO ">"
-				UVAST_FIELDSPEC " bytes</font></td>"
-			"</tr>",
-			route->maxCapacity);
+		if (!f)
+		{
+			DIES("unable to open '" GRAPHVIZ_FILENAME "'");
+		}
 
 		fprintf(f,
-			"</table>>"
-			"node [shape = doublecircle]\n"
-			"r%zun" UVAST_FIELDSPEC " r%zun" UVAST_FIELDSPEC "\n"
-			"node [shape = circle]\n",
-
-			r, localNode,
-			r, nodeNumber);
+			"digraph {\n"
+			"bgcolor = transparent\n"
+			"node [fontname = Monospace, style = filled,\n"
+			"      fillcolor = " LIGHT ", color = " DARK ",\n"
+			"      fontcolor = " DARK "]\n"
+			"edge [fontname = Monospace, arrowhead = vee,\n"
+			"      color = " DARK "]\n"
+			"node [shape = trapezium, orientation = 180]\n"
+			UVAST_FIELDSPEC "\n"
+			"node [shape = trapezium, orientation = 0]\n"
+			UVAST_FIELDSPEC "\n"
+			"node [shape = circle]\n"
+			,
+			localNode,
+			destNode);
 
 		for (contactElt = sm_rbt_first(ionwm, ionvdb->contactIndex);
 		     contactElt; contactElt = sm_rbt_next(ionwm, contactElt))
@@ -477,28 +612,20 @@ static int run_cgrfetch(uvast nodeNumber, time_t atTime)
 			contact = psp(ionwm, sm_rbt_data(ionwm, contactElt));
 
 			fprintf(f,
-				"r%zun" UVAST_FIELDSPEC " [label = \""
-					UVAST_FIELDSPEC "\"]\n"
-				"r%zun" UVAST_FIELDSPEC " [label = \""
-					UVAST_FIELDSPEC "\"]\n"
-				"r%zun" UVAST_FIELDSPEC " -> r%zun"
-					UVAST_FIELDSPEC,
-
-				r, contact->fromNode, contact->fromNode,
-				r, contact->toNode, contact->toNode,
-				r, contact->fromNode,
-				r, contact->toNode);
+				UVAST_FIELDSPEC " -> " UVAST_FIELDSPEC
+				,
+				contact->fromNode, contact->toNode);
 
 			if (contact->fromTime > route->deliveryTime ||
 			    contact->toTime < route->fromTime)
 			{
-				fputs(" [color = " DISABLE ", fontcolor = "
-					DISABLE "]", f);
+				fputs(" [color = " DISABLED ", fontcolor = "
+					DISABLED "]", f);
 			}
-			else if (checkContactIsHop(contact, route))
+			else if (contactIsHop(contact, route))
 			{
-				fputs(" [color = " HILITE ", fontcolor = "
-					HILITE "]", f);
+				fputs(" [color = " HILIGHT ", fontcolor = "
+					HILIGHT "]", f);
 			}
 
 			range = findRange(contact);
@@ -511,67 +638,294 @@ static int run_cgrfetch(uvast nodeNumber, time_t atTime)
 			fputc('\n', f);
 		}
 
-		fputs("}\n", f);
+		fputs("}", f);
+		fclose(f);
+
+		if (r)
+		{
+			fputc(',', outputFile);
+		}
+
+		fprintf(outputFile,
+			"{"
+			  "\"flag\": %u,"
+			  "\"fromTime\": %u,"
+			  "\"deliveryTime\": %u,"
+			  "\"maxCapacity\": " UVAST_FIELDSPEC ","
+			  "\"payloadClass\": %d,"
+			  "\"ignoreReason\": \"%s\","
+			  "\"graph\": \"data:image/svg+xml;base64,"
+			,
+			route->flag, (unsigned int)(route->fromTime),
+			(unsigned int)(route->deliveryTime), route->maxCapacity,
+			route->payloadClass, cgr_reason_text(route->ignoreReason)
+		);
+
+		ret = system("dot -Tsvg '" GRAPHVIZ_FILENAME "' | base64 -w 0 "
+		             ">'" IMAGE_FILENAME "'");
+
+		if (ret != EXIT_SUCCESS)
+		{
+			DIES("unable to call dot/base64");
+		}
+
+		f = fopen(IMAGE_FILENAME, "r");
+
+		if (!f)
+		{
+			DIES("unable to open '" IMAGE_FILENAME "'");
+		}
+
+		do {
+			nBytes = fread(buf, sizeof(char), BUFSIZ, f);
+			fwrite(buf, sizeof(char), nBytes, outputFile);
+		} while (nBytes == BUFSIZ);
+
+		fclose(f);
+		fputs("\"}", outputFile);
 	}
 
-	fputs("}\n", f);
-	fclose(f);
+	fputs("]}", outputFile);
+	fclose(outputFile);
 
+done:
 	lyst_destroy(routes);
-
 	bp_detach();
-
-	return 0;
 }
 
-/* Main function defining cgrfetch utility startup */
+static void usage(const char *name)
+{
+	fprintf(stderr,
+		"Usage: %s DEST-NODE [-q] [-j] [-m] [-t DISPATCH-OFFSET]\n"
+		"       [-e EXPIRATION-OFFSET] [-s BUNDLE-SIZE]\n"
+		"       [-o OUTPUT-FILE] [-p OUTDUCT-PROTO]\n"
+		"       [-n OUTDUCT-NAME]\n"
+		"\n"
+		"Run a CGR simulation from the local node to DEST-NODE. Output\n"
+		"trace messages to stderr (unless -q) and JSON to stdout (unless -j).\n"
+		"\n"
+		"Options:\n"
+		"  -q                    disable trace message output\n"
+		"  -j                    disable JSON output\n"
+		"  -m                    use a minimum-latency extended COS\n"
+		"                        for the bundle\n"
+		"  -t DISPATCH-OFFSET    request a dispatch time of DISPATCH-\n"
+		"                        OFFSET seconds from now (default: %u)\n"
+		"  -e EXPIRATION-OFFSET  set the bundle expiration time to\n"
+		"                        EXPIRATION-OFFSET seconds from now\n"
+		"                        (default: %u)\n"
+		"  -s BUNDLE-SIZE        set the bundle payload size to BUNDLE-\n"
+		"                        SIZE bytes (default: %u)\n"
+		"  -o OUTPUT-FILE        send JSON to OUTPUT-FILE (default: stdout)\n"
+		"  -p OUTDUCT-PROTO      use OUTDUCT-PROTO as the outduct proto-\n"
+		"                        col (default: %s)\n"
+		"  -n OUTDUCT-NAME       use OUTDUCT-NAME as the outduct name\n"
+		"                        (default: %s)\n"
+		,
+		name,
+		(unsigned int)(dispatchOffset),
+		(unsigned int)(expirationOffset),
+		bundleSize,
+		outductProto,
+		outductName
+	);
+}
 
 #if defined (VXWORKS) || defined (RTEMS)
 int	cgrfetch(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char *n = (char *) a2;
-	char *t = (char *) a3;
-	uvast nodeNumber = 0;
-	time_t atTime;
-
 #else
 int	main(int argc, char **argv)
 {
-	char *n = NULL;
-	char *t = NULL;
-	uvast nodeNumber = 0;
-	time_t atTime;
+#endif
+	char *end;
 
-	if (argc > 3)
+#if defined (VXWORKS) || defined (RTEMS)
+	if (!a2)
 	{
-		argc = 3;
+		DIES("a destination node is required");
 	}
 
-	switch (argc)
+	destNode = strtoul((char *)(a2), &end, 10);
+
+	if (end == (char *)(a2))
 	{
-		case 3:
-			t = argv[2];
-		case 2:
-			n = argv[1];
+		DIES("invalid destination node");
 	}
 
+	if (a3)
+	{
+		dispatchOffset = strtoul((char *)(a3), &end, 10);
+
+		if (end == (char *)(a3))
+		{
+			DIES("invalid dispatch offset");
+		}
+	}
+
+	if (a4)
+	{
+		expirationOffset = strtoul((char *)(a4), &end, 10);
+
+		if (end == (char *)(a4))
+		{
+			DIES("invalid expiration offset");
+		}
+	}
+
+	if (a5)
+	{
+		bundleSize = strtoul((char *)(a5), &end, 10);
+
+		if (end == (char *)(a5))
+		{
+			DIES("invalid bundle size");
+		}
+	}
+
+	if (a6)
+	{
+		minLatency = ((char *)(a6))[0] == '1';
+	}
+
+	if (a7)
+	{
+		outputFile = fopen(a7, "w");
+
+		if (!outputFile)
+		{
+			DIEF("unable to open '%s'", a7);
+		}
+	}
+	else
+	{
+		outputFile = stdout;
+	}
+
+	if (a8)
+	{
+		outductProto = (char *)(a8);
+	}
+
+	if (a9)
+	{
+		outductName = (char *)(a9);
+	}
+#else
+	int opt;
+	char **args;
+
+	opterr = 0;
+
+	while ((opt = getopt(argc, argv, "hqjt:e:s:mo:p:n:")) >= 0)
+	{
+		switch (opt)
+		{
+		case 'q':
+			outputs &= ~OUTPUT_TRACE_MSG;
+		break;
+
+		case 'j':
+			outputs &= ~OUTPUT_JSON;
+		break;
+
+		case 't':
+			dispatchOffset = strtoul(optarg, &end, 10);
+
+			if (end == optarg)
+			{
+				DIEF("invalid dispatch offset '%s'", optarg);
+			}
+		break;
+
+		case 'e':
+			expirationOffset = strtoul(optarg, &end, 10);
+
+			if (end == optarg)
+			{
+				DIEF("invalid expiration offset '%s'", optarg);
+			}
+		break;
+
+		case 's':
+			bundleSize = strtoul(optarg, &end, 10);
+
+			if (end == optarg)
+			{
+				DIEF("invalid bundle size '%s'", optarg);
+			}
+		break;
+
+		case 'm':
+			minLatency = true;
+		break;
+
+		case 'o':
+			outputFile = fopen(optarg, "w");
+
+			if (!outputFile)
+			{
+				DIEF("unable to open '%s'", optarg);
+			}
+		break;
+
+		case 'p':
+			outductProto = optarg;
+		break;
+
+		case 'n':
+			outductName = optarg;
+		break;
+
+		case 'h':
+			usage(argv[0]);
+			exit(EXIT_SUCCESS);
+		break;
+
+		case ':':
+			DIEF("option '-%c' takes an argument", optopt);
+		break;
+
+		case '?':
+			fprintf(stderr, "unknown option '-%c'\n", optopt);
+		break;
+		}
+	}
+
+	args = &argv[optind];
+
+	if (!args[0])
+	{
+		DIES("a destination node is required");
+	}
+
+	destNode = strtoul(args[0], &end, 10);
+
+	if (end == args[0])
+	{
+		DIEF("invalid destination node '%s'", args[0]);
+	}
+
+	if (!outputFile)
+	{
+		outputFile = stdout;
+	}
 #endif
 
-	if (n == NULL)
+	if (bp_attach() < 0)
 	{
-		PUTS("Usage: cgrfetch destination-node [time-offset]");
-		return 0;
+		DIES("unable to attach to bp");
 	}
 
-	nodeNumber = strtoul(n, NULL, 10);
+	findOutduct(outductProto, outductName, &vduct, &vductElt);
 
-	time(&atTime);
-
-	if (t)
+	if (!vductElt)
 	{
-		atTime += strtol(t, NULL, 10);
+		DIEF("invalid outduct proto:%s name:%s", outductProto,
+			outductName);
 	}
 
-	return run_cgrfetch(nodeNumber, atTime);
+	run_cgrfetch();
+	exit(EXIT_SUCCESS);
 }
