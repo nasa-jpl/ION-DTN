@@ -34,13 +34,13 @@ outbound FDU whose transmission is completed.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<cfdpclock> terminated, for reasons noted in the B<ion.log> file.  If this
 termination was not commanded, investigate and solve the problem identified
 in the log file and use B<cfdpadmin> to restart B<cfdpclock>.
 
-=item 1
+=item "1"
 
 B<cfdpclock> was unable to attach to CFDP protocol operations, probably because
 B<cfdpadmin> has not yet been run.

@@ -178,7 +178,7 @@ B<cfdptest> tasks are run in the foreground.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<cfdptest> has terminated.  Any problems encountered during operation
 will be noted in the B<ion.log> log file.

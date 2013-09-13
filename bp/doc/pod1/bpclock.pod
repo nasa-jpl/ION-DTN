@@ -61,13 +61,13 @@ capacity of the duct) by the associated convergence layer output task.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bpclock> terminated, for reasons noted in the B<ion.log> file.  If this
 termination was not commanded, investigate and solve the problem identified
 in the log file and use B<bpadmin> to restart B<bpclock>.
 
-=item 1
+=item "1"
 
 B<bpclock> was unable to attach to Bundle Protocol operations, probably because
 B<bpadmin> has not yet been run.

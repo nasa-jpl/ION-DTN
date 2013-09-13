@@ -36,11 +36,11 @@ defaults to 86400 seconds (one day) if omitted.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<ramsgate> terminated normally.
 
-=item 1
+=item "1"
 
 B<ramsgate> failed, for reasons noted in the ion.log file; the task
 terminated.

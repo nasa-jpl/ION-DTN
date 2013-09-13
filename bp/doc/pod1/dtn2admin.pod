@@ -33,10 +33,10 @@ dtn2rc(5).
 
 =over 4
 
-=item 0
+=item "0"
 Successful completion of "dtn" scheme administration.
 
-=item 1
+=item "1"
 Unsuccessful completion of "dtn" scheme administration, due to inability to
 attach to the Bundle Protocol system or to initialize the "dtn" scheme.
 

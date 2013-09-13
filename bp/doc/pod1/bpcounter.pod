@@ -18,7 +18,7 @@ limit is 2 billion application data units.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bpcounter> has terminated.  Any problems encountered during operation
 will be noted in the B<ion.log> log file.

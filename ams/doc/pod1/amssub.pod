@@ -27,7 +27,7 @@ B<amsd> daemon task) must be running in order for B<amssub> to run.
 
 B<amssub> terminated with an error as noted in the ion.log file.
 
-=item 0
+=item "0"
 
 B<amssub> terminated normally.
 

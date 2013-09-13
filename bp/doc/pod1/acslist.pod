@@ -31,11 +31,11 @@ the ION log.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<acslist> terminated after verifying the consistency of the custody ID database.
 
-=item 1
+=item "1"
 
 B<acslist> was unable to attach to the ACS database, or it detected an
 inconsistency.

@@ -31,11 +31,11 @@ or B<cfdptest>.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bpcpd> terminated normally.
 
-=item 1
+=item "1"
 
 B<bpcpd> terminated abnormally. Check console and the B<ion.log> file for error messages.
 
