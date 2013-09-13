@@ -461,17 +461,13 @@ static inline const char *boolToStr(bool b)
 	return b ? "true" : "false";
 }
 
-static void run_cgrfetch(void)
+static void output_json(Lyst routes, time_t dispatchTime,
+		        time_t expirationTime)
 {
 	PsmPartition ionwm;
 	IonVdb *ionvdb;
 	uvast localNode;
 
-	time_t nowTime;
-	time_t dispatchTime;
-	time_t expirationTime;
-
-	Lyst routes;
 	size_t r;
 	LystElt routeElt;
 	Route *route;
@@ -486,71 +482,9 @@ static void run_cgrfetch(void)
 	char buf[BUFSIZ];
 	size_t nBytes;
 
-	Object plans;
-
 	ionwm = getIonwm();
 	ionvdb = getIonVdb();
 	localNode = getOwnNodeNbr();
-
-	nowTime = time(NULL);
-	dispatchTime = nowTime + dispatchOffset;
-	expirationTime = nowTime + expirationOffset;
-
-	Bundle bundle = {
-		.extendedCOS = {
-			.flags = minLatency ? BP_MINIMUM_LATENCY
-			                    : BP_BEST_EFFORT,
-		},
-		.payload = {
-			.length = bundleSize,
-		},
-		.returnToSender = 0,
-		.clDossier = {
-			.senderNodeNbr = localNode,
-		},
-		.expirationTime = expirationTime,
-		.dictionaryLength = 0,
-		.extensionsLength = {0, 0},
-	};
-
-	routes = lyst_create();
-
-	if (!routes)
-	{
-		DIES("unable to create routes list");
-	}
-
-	lyst_delete_set(routes, routeDeleteFn, NULL);
-
-	CgrTraceFn traceFn = traceFnDefault;
-
-	if (!(outputs & OUTPUT_TRACE_MSG))
-	{
-		traceFn = traceFnQuiet;
-	}
-
-	CgrTrace trace = {
-		.fn = traceFn,
-		.data = &(TraceState) {
-			.routes = routes,
-			.recomputing = false,
-		},
-	};
-
-	// Flush the cached routing tables.
-	cgr_stop();
-	cgr_start();
-
-	if (cgr_preview_forward(&bundle, (Object)(&bundle), destNode,
-		(Object)(&plans), getDirective, dispatchTime, &trace) < 0)
-	{
-		DIES("unable to simulate cgr");
-	}
-
-	if (!(outputs & OUTPUT_JSON))
-	{
-		goto done;
-	}
 
 	fprintf(outputFile,
 		"{"
@@ -687,8 +621,81 @@ static void run_cgrfetch(void)
 
 	fputs("]}", outputFile);
 	fclose(outputFile);
+}
 
-done:
+static void run_cgrfetch(void)
+{
+	uvast localNode;
+
+	time_t nowTime;
+	time_t dispatchTime;
+	time_t expirationTime;
+
+	Lyst routes;
+	Object plans;
+
+	localNode = getOwnNodeNbr();
+
+	nowTime = time(NULL);
+	dispatchTime = nowTime + dispatchOffset;
+	expirationTime = nowTime + expirationOffset;
+
+	Bundle bundle = {
+		.extendedCOS = {
+			.flags = minLatency ? BP_MINIMUM_LATENCY
+			                    : BP_BEST_EFFORT,
+		},
+		.payload = {
+			.length = bundleSize,
+		},
+		.returnToSender = 0,
+		.clDossier = {
+			.senderNodeNbr = localNode,
+		},
+		.expirationTime = expirationTime,
+		.dictionaryLength = 0,
+		.extensionsLength = {0, 0},
+	};
+
+	routes = lyst_create();
+
+	if (!routes)
+	{
+		DIES("unable to create routes list");
+	}
+
+	lyst_delete_set(routes, routeDeleteFn, NULL);
+
+	CgrTraceFn traceFn = traceFnDefault;
+
+	if (!(outputs & OUTPUT_TRACE_MSG))
+	{
+		traceFn = traceFnQuiet;
+	}
+
+	CgrTrace trace = {
+		.fn = traceFn,
+		.data = &(TraceState) {
+			.routes = routes,
+			.recomputing = false,
+		},
+	};
+
+	// Flush the cached routing tables.
+	cgr_stop();
+	cgr_start();
+
+	if (cgr_preview_forward(&bundle, (Object)(&bundle), destNode,
+		(Object)(&plans), getDirective, dispatchTime, &trace) < 0)
+	{
+		DIES("unable to simulate cgr");
+	}
+
+	if (outputs & OUTPUT_JSON)
+	{
+		output_json(routes, dispatchTime, expirationTime);
+	}
+
 	lyst_destroy(routes);
 	bp_detach();
 }
