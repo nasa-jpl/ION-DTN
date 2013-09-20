@@ -876,6 +876,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 	Object			payloadRecElt;
 	Object 			addr;
 	Object			zco;
+	Object			extent;
 	Object			fileRef;
 	ZcoReader		reader;
 	char			template[] = "outAdu_XXXXXX";
@@ -922,8 +923,8 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 
 	/*		Create ZCO and append header			*/
 
-	zco = zco_create(sdr, ZcoSdrSource, addr, 0, extentLength);
-	if (zco == 0)
+	zco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, NULL);
+	if (zco == 0 || zco == (Object) -1)
 	{
 		putErrmsg("Can't create aggregated ZCO.", NULL);
 		return -1;
@@ -965,8 +966,13 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 		memcpy(cursor, recordsCounter.text, recordsCounter.length);
 		sdr_write(sdr, addr, (char *) buffer, extentLength);
 		MRELEASE(buffer);
-		zco_append_extent(sdr, zco, ZcoSdrSource, addr, 0,
-				extentLength);
+		extent = ionAppendZcoExtent(zco, ZcoSdrSource, addr, 0,
+				extentLength, NULL);
+		if (extent == 0 || extent == (Object) -1)
+		{
+			putErrmsg("Can't create ZCO extent.", NULL);
+			return -1;
+		}
 
 		for (payloadRecElt = sdr_list_first(sdr, topic->payloadRecords);
 				payloadRecElt; payloadRecElt =
@@ -993,10 +999,22 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 			 * containing the length sdnv and one
 			 * containing the payload itself.		*/
 
-			zco_append_extent(sdr, zco, ZcoSdrSource, addr,
-						0, payloadRec->length.length);
-			zco_append_extent(sdr, zco, ZcoSdrSource,
-				payloadRec->payload, 0, payloadDataLength);
+			extent = ionAppendZcoExtent(zco, ZcoSdrSource, addr,
+					0, payloadRec->length.length, NULL);
+			if (extent == 0 || extent == (Object) -1)
+			{
+				putErrmsg("Can't create ZCO extent.", NULL);
+				return -1;
+			}
+
+			extent = ionAppendZcoExtent(zco, ZcoSdrSource,
+					payloadRec->payload, 0,
+					payloadDataLength, NULL);
+			if (extent == 0 || extent == (Object) -1)
+			{
+				putErrmsg("Can't create ZCO extent.", NULL);
+				return -1;
+			}
 		}
 	}
 
@@ -1057,9 +1075,9 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 		return -1;
 	}
 
-	outAdu.aggregatedZCO = zco_create(sdr, ZcoFileSource, fileRef, 0,
-			extentLength);
-	if (outAdu.aggregatedZCO == 0)
+	outAdu.aggregatedZCO = ionCreateZco(ZcoFileSource, fileRef, 0,
+			extentLength, NULL);
+	if (outAdu.aggregatedZCO == 0 || outAdu.aggregatedZCO == (Object) -1)
 	{
 		putErrmsg("Can't create new ZCO.", NULL);
 		return -1;
@@ -2852,15 +2870,15 @@ send ACK.");
 
 	/*		Create ZCO and send ACK.			*/
 
-	ackZco = zco_create(sdr, ZcoSdrSource, addr, 0, extentLength);
-	if (ackZco == 0)
+	ackZco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, NULL);
+	if (ackZco == 0 || ackZco == (Object) -1)
 	{
 		putErrmsg("Can't create ack ZCO.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
-	while(1)
+	while (1)
 	{
 		switch (bp_send(sap, dstEid, NULL, lifetime, priority,
 			custodySwitch, 0, 0, &extendedCOS, ackZco, &newBundle)) 
@@ -2879,7 +2897,7 @@ send ACK.");
 				continue;
 			}
 
-		case -1:
+		case -1:	/*	Intentional fall-through.	*/
 			sdr_exit_xn(sdr);
 			putErrmsg("DTPC can't send ack.", NULL);
 			return -1;
