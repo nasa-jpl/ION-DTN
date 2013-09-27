@@ -4,7 +4,6 @@
 
 */
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -66,7 +65,7 @@ typedef struct {
 	// Current route selected by CGR when selecting proximate nodes
 	Route *route;
 	// Whether CGR is recomputing a route
-	bool recomputing;
+	int recomputing;
 } TraceState;
 
 // Command line arguments
@@ -80,7 +79,7 @@ static uvast destNode;
 static time_t dispatchOffset = 0;
 static time_t expirationOffset = 3600;
 static unsigned int bundleSize = 0;
-static bool minLatency = false;
+static int minLatency = 0;
 static FILE *outputFile = NULL;
 static char *outductProto = "udp";
 static char *outductName = "*";
@@ -235,7 +234,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 			}
 
 			traceState->routeElt = lyst_first(traceState->routes);
-			traceState->recomputing = false;
+			traceState->recomputing = 0;
 		}
 		else
 		{
@@ -257,7 +256,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 			nextElt = lyst_next(traceState->routeElt);
 			lyst_delete(traceState->routeElt);
 			traceState->routeElt = nextElt;
-			traceState->recomputing = false;
+			traceState->recomputing = 0;
 		}
 	break;
 
@@ -272,7 +271,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 
 	case CgrRecomputeRoute:
 		// CGR is going to be recomputing a route.
-		traceState->recomputing = true;
+		traceState->recomputing = 1;
 	break;
 
 	case CgrIgnoreRoute:
@@ -394,7 +393,7 @@ static int getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
 }
 
 // Check if the contact exists in the route's hops.
-static bool contactIsHop(const IonCXref *contact, Route *route)
+static int contactIsHop(const IonCXref *contact, Route *route)
 {
 	LystElt hopElt;
 	const Hop *hop;
@@ -407,11 +406,11 @@ static bool contactIsHop(const IonCXref *contact, Route *route)
 		if (contact->fromNode == hop->fromNode &&
 		    contact->toNode == hop->toNode)
 		{
-			return true;
+			return 1;
 		}
 	}
 
-	return false;
+	return 0;
 }
 
 // Try to find a range for the contact. (copied from libcgr)
@@ -456,7 +455,7 @@ static IonRXref *findRange(const IonCXref *contact)
 	return NULL;
 }
 
-static inline const char *boolToStr(bool b)
+static inline const char *boolToStr(int b)
 {
 	return b ? "true" : "false";
 }
@@ -677,7 +676,7 @@ static void run_cgrfetch(void)
 		.fn = traceFn,
 		.data = &(TraceState) {
 			.routes = routes,
-			.recomputing = false,
+			.recomputing = 0,
 		},
 	};
 
@@ -865,7 +864,7 @@ int	main(int argc, char **argv)
 		break;
 
 		case 'm':
-			minLatency = true;
+			minLatency = 1;
 		break;
 
 		case 'o':
