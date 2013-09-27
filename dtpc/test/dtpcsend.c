@@ -57,6 +57,7 @@ static int	checkElision(Object recordsList)
 		if (length == firstLength)	/*	Duplicate.	*/
 		{
 			sdr_list_delete(sdr, elt, NULL, NULL);
+			sdr_free(sdr, item.payload);
 			sdr_free(sdr, obj);
 		}
 	}

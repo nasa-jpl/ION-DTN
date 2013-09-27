@@ -1342,6 +1342,7 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent,
 		{
 			sdr_free(sdr, sdrRef.location);
 			sdr_free(sdr, extent->location);
+			zco_reduce_heap_occupancy(sdr, sizeof(SdrRef));
 		}
 		else	/*	Just update the SDR reference count.	*/
 		{
@@ -2005,8 +2006,10 @@ void	zco_strip(Sdr sdr, Object zco)
 	Object		nextExtent;
 	SourceExtent	extent;
 	int		extentModified;
+	vast		extentOrigLength;
 	vast		headerTextLength;
 	vast		trailerTextLength;
+	vast		delta;
 
 	CHKVOID(sdr);
 	CHKVOID(zco);
@@ -2017,6 +2020,7 @@ void	zco_strip(Sdr sdr, Object zco)
 		sdr_stage(sdr, (char *) &extent, obj, sizeof(SourceExtent));
 		nextExtent = extent.nextExtent;
 		extentModified = 0;
+		extentOrigLength = extent.length;
 		headerTextLength = 0;
 
 		/*	First strip off any identified header text.	*/
@@ -2085,6 +2089,19 @@ void	zco_strip(Sdr sdr, Object zco)
 		}
 
 		/*	Extent and Zco must both be rewritten.		*/
+
+		delta = extentOrigLength - extent.length;
+		if (delta > 0)
+		{
+			if (extent.sourceMedium == ZcoSdrSource)
+			{
+				zco_reduce_heap_occupancy(sdr, delta);
+			}
+			else if (extent.sourceMedium == ZcoFileSource)
+			{
+				zco_reduce_file_occupancy(sdr, delta);
+			}
+		}
 
 		if (extent.length == 0)
 		{

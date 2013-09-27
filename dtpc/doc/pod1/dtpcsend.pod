@@ -18,6 +18,13 @@ I<payload_size> must be between 2 and 1 million bytes.  To use application data
 item sizes chosen at random from the range 1 to 65536, specify I<payload_size>
 = 1.
 
+B<NOTE> that B<dtpcsend> invokes an elision function that removes from
+the outbound DTPC aggregate ADU all records that are of the same size as
+the first record in that aggregation.  This means that specifying any
+payload size other than 1 that is less than the configured DTPC aggregation
+size limit will cause DTPC to issue ADUs only when the aggregation time
+limit is exceeded, and each such ADU will always contain only a single record.
+
 Use CTRL-C to terminate the program.
 
 =head1 FILES

@@ -877,13 +877,6 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 	Object 			addr;
 	Object			zco;
 	Object			extent;
-	Object			fileRef;
-	ZcoReader		reader;
-	char			template[] = "outAdu_XXXXXX";
-	int			fd;
-	int			bytesRemaining;
-	int			buflen;
-	int			bytesRead;
 				OBJ_POINTER(Topic, topic);
 				OBJ_POINTER(PayloadRecord, payloadRec);
 
@@ -1018,75 +1011,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 		}
 	}
 
-	/*	The ZCO is ready, now read it to a file and create a
-	 *	new ZCO from the file. The reason for this is that
-	 *	bp alters the ZCO, adding its own header, so a copy of
-	 *	the original ZCO is needed for retransmissions.		*/
-
-	fd = mkstemp(template);
-	if (fd < 0)
-	{
-		putSysErrmsg("Can't create adu file.", NULL);
-		return -1;
-	}
-
-	extentLength = zco_length(sdr, zco);
-	if (extentLength > BUFMAXSIZE)
-	{
-		buflen = BUFMAXSIZE;
-	}
-	else
-	{
-		buflen = extentLength;
-	}
-
-	buffer = MTAKE(buflen);
-	if (buffer == NULL)
-	{
-		putErrmsg("Can't allocate memory to read the ZCO.", NULL);
-		return -1;
-	}
-
-	bytesRemaining = extentLength;
-	zco_start_transmitting(zco, &reader);
-	while (bytesRemaining)
-	{
-		bytesRead = zco_transmit(sdr, &reader, buflen, (char *) buffer);
-		if (write(fd, buffer, bytesRead) < 0)
-		{
-			close(fd);
-			remove(template);
-			MRELEASE(buffer);
-			putErrmsg("Can't write to file.", NULL);
-			return -1;
-		}
-
-		bytesRemaining -= bytesRead;
-	}
-
-	MRELEASE(buffer);
-	close(fd);
-	zco_destroy(sdr, zco);
-	fileRef = zco_create_file_ref(sdr, template, "");
-	if (fileRef == 0)
-	{
-		putErrmsg("Can't create file reference.", NULL);
-		remove(template);
-		return -1;
-	}
-
-	outAdu.aggregatedZCO = ionCreateZco(ZcoFileSource, fileRef, 0,
-			extentLength, NULL);
-	if (outAdu.aggregatedZCO == 0 || outAdu.aggregatedZCO == (Object) -1)
-	{
-		putErrmsg("Can't create new ZCO.", NULL);
-		return -1;
-	}
-
-	/*		Flag the file reference object for destruction
-	 *		when it is no longer needed.			*/
-
-	zco_destroy_file_ref(sdr, fileRef);
+	outAdu.aggregatedZCO = zco;
 	CHKERR(sdr_list_insert_last(sdr, (_dtpcConstants())->outboundAdus,
 			outAduObj));
 	sdr_write(sdr, outAduObj, (char *) &outAdu, sizeof(OutAdu));
