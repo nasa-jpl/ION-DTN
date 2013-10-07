@@ -4,35 +4,71 @@ cgrfetch - Visualize CGR simulations
 
 =head1 SYNOPSIS
 
-B<cgrfetch> I<destination-node> [I<time-offset>]
+B<cgrfetch> [I<OPTIONS>] I<DEST-NODE>
 
 =head1 DESCRIPTION
 
 B<cgrfetch> uses CGR to simulate sending a bundle from the local node to
-I<destination-node> at a relative I<time-offset>. It traces the execution of
-CGR to generate graphs of the routes that were considered and the routes that
-were ultimately chosen to forward along. No bundle is sent during the
-simulation.
+I<DEST-NODE>. It traces the execution of CGR to generate graphs of the routes
+that were considered and the routes that were ultimately chosen to forward
+along. No bundle is sent during the simulation.
 
-The generated graphs are represented in Graphviz format and written to the file
-I<routes.gv> in the working directory. A visualization can be generated from
-this file using the dot(1) utility from the Graphviz project (see B<EXAMPLES>.)
-dot(1) can generate pdf, png, and jpeg files, among others.
+A JSON representation of the simulation is output to I<OUTPUT-FILE>. The
+representation includes parameters of the simulation and a structure for each
+considered route, which in turn includes calculated parameters for the route and
+an image of the contact graph.
+
+The dot(1) tool from the Graphviz package is used to generate the contact graph
+images and is required for cgrfetch(1). The base64(1) tool from coreutils is
+used to embed the images in the JSON and is also required.
 
 =head1 OPTIONS
 
 =over 4
 
-=item destination-node
+=item B<DEST-NODE>
 
 The final destination to route to. To be useful, it should be a node that exists
 in the contact plan.
 
-=item time-offset
+=item B<-q>
 
-A positive or negative number of seconds to add to the current time (when the
-command is run.) The default is 0. This time is then passed to CGR as the
-requested bundle dispatch time.
+Disable trace message output.
+
+=item B<-j>
+
+Disable JSON output.
+
+=item B<-m>
+
+Use a minimum-latency extended COS for the bundle. This ends up sending the
+bundle to all proximate nodes.
+
+=item B<-t DISPATCH-OFFSET>
+
+Request a dispatch time of I<DISPATCH-OFFSET> seconds from the time the command
+is run (default: 0).
+
+=item B<-e EXPIRATION-OFFSET>
+
+Set the bundle expiration time to I<EXPIRATION-OFFSET> seconds from the time the
+command is run (default: 3600).
+
+=item B<-s BUNDLE-SIZE>
+
+Set the bundle payload size to I<BUNDLE-SIZE> bytes (default: 0).
+
+=item B<-o OUTPUT-FILE>
+
+Send JSON to I<OUTPUT-FILE> (default: stdout).
+
+=item B<-p OUTDUCT-PROTO>
+
+Use I<OUTDUCT-PROTO> as the outduct protocol (default: udp).
+
+=item B<-n OUTDUCT-NAME>
+
+Use I<OUTDUCT-NAME> as the outduct name (default: *).
 
 =back
 
@@ -44,32 +80,12 @@ requested bundle dispatch time.
 
 Simulate CGR with destination node 8 and dispatch time equal to the current time.
 
-=item cgrfetch 8 60
+=item cgrfetch 8 -t 60
 
 Do the same with a dispatch time 60 seconds in the future.
-
-=item dot -Tpdf:cairo:cairo -o routes.pdf routes.gv
-
-Generate a pdf I<routes.pdf> from the route graphs.
-
-=back
-
-=head1 KNOWN LIMITATIONS
-
-=over 4
-
-=item - Multiple routes with the same initial hop node are not handled correctly
-
-=item - The simulation bundle always has a payload length of zero
-
-=item - Routes ignored when selecting proximate nodes are displayed the same as routes selected as final candidates
-
-=item - CGR trace text is always shown
-
-=item - The output filename is hardcoded to I<routes.gv>
 
 =back
 
 =head1 SEE ALSO
 
-dot(1)
+dot(1), base64(1)
