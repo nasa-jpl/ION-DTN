@@ -1692,7 +1692,7 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	*stationNodePtr = stationNode;
 	*proximateNodesPtr = proximateNodes;
 
-	return 0;
+	return 1;
 }
 
 int	cgr_preview_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
@@ -1702,9 +1702,10 @@ int	cgr_preview_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	IonNode		*stationNode;
 	Lyst		proximateNodes;
 
-	if (buildRoutes(bundle, bundleObj, stationNodeNbr, plans, getDirective,
-		atTime, &stationNode, &proximateNodes, trace) < 0)
+	switch (buildRoutes(bundle, bundleObj, stationNodeNbr, plans,
+	        getDirective, atTime, &stationNode, &proximateNodes, trace))
 	{
+	case -1:
 		putErrmsg("Can't build routes.", NULL);
 		return -1;
 	}
@@ -1726,11 +1727,17 @@ int	cgr_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	Bundle		newBundle;
 	Object		newBundleObj;
 
-	if (buildRoutes(bundle, bundleObj, stationNodeNbr, plans, getDirective,
-		getUTCTime(), &stationNode, &proximateNodes, trace) < 0)
+	switch (buildRoutes(bundle, bundleObj, stationNodeNbr, plans,
+		getDirective, getUTCTime(), &stationNode, &proximateNodes,
+		trace))
 	{
+	case -1:
 		putErrmsg("Can't build routes.", NULL);
 		return -1;
+
+	case 0:
+		lyst_destroy(proximateNodes);
+		return 0;
 	}
 
 	for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
