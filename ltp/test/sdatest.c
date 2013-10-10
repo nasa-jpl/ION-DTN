@@ -61,7 +61,7 @@ static void	*sendItems(void *parm)
 	char			buffer[MAX_LINE_LEN + 1];
 	int			length;
 	Object			extent;
-	Object			item;
+	Object			item = 0;
 
 	snooze(3);	/*	Let sda_run get started.		*/
 	sdr = getIonsdr();
