@@ -192,9 +192,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	PsmAddress	vschemeElt;
 	FwdDirective	directive;
 #if CGR_DEBUG == 1
-	CgrTrace	*trace = &(CgrTrace) {
-		.fn = printCgrTraceLine,
-	};
+	CgrTrace	*trace = &(CgrTrace) { .fn = printCgrTraceLine };
 #else
 	CgrTrace	*trace = NULL;
 #endif

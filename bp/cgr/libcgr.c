@@ -1123,7 +1123,6 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 				}
 			}
 
-
 			return 0;
 		}
 	}
@@ -1457,14 +1456,13 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	return 0;
 }
 
-static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
-		Object plans, CgrLookupFn getDirective, time_t atTime,
-		IonNode **stationNodePtr, Lyst *proximateNodesPtr,
-		CgrTrace *trace)
+static int 	cgrForward(Bundle *bundle, Object bundleObj,
+			uvast stationNodeNbr, Object plans,
+			CgrLookupFn getDirective, time_t atTime,
+			CgrTrace *trace, int preview)
 {
 	IonVdb		*ionvdb = getIonVdb();
 	CgrVdb		*cgrvdb = _cgrvdb(NULL);
-
 	IonNode		*stationNode;
 	PsmAddress	nextNode;
 	int		ionMemIdx;
@@ -1473,11 +1471,11 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	snubElt;
 	IonSnub		*snub;
-
 	LystElt		elt;
 	LystElt		nextElt;
-	LystElt		selectedNeighborElt = 0;
 	ProximateNode	*proxNode;
+	Bundle		newBundle;
+	Object		newBundleObj;
 	ProximateNode	*selectedNeighbor;
 
 	/*	Determine whether or not the contact graph for this
@@ -1494,8 +1492,7 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	 *	the simplest case, the bundle's destination is the
 	 *	only "station" selected for the bundle.			*/
 
-	CHKERR(bundle && bundleObj && stationNodeNbr && plans && getDirective &&
-	       stationNodePtr && proximateNodesPtr);
+	CHKERR(bundle && bundleObj && stationNodeNbr && plans && getDirective);
 
 	TRACE(CgrBuildRoutes, stationNodeNbr, bundle->payload.length,
 		(unsigned int)(atTime));
@@ -1513,9 +1510,6 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	if (stationNode == NULL)
 	{
 		TRACE(CgrInvalidStationNode);
-
-		*stationNodePtr = NULL;
-		*proximateNodesPtr = NULL;
 
 		return 0;	/*	Can't apply CGR.		*/
 	}
@@ -1579,8 +1573,8 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	 *	node(s) to forward the bundle to.			*/
 
 	if (identifyProximateNodes(stationNode, bundle, bundleObj,
-		excludedNodes, plans, getDirective, trace, proximateNodes,
-		atTime) < 0)
+			excludedNodes, plans, getDirective, trace,
+			proximateNodes, atTime) < 0)
 	{
 		putErrmsg("Can't identify proximate nodes for bundle.", NULL);
 		lyst_destroy(excludedNodes);
@@ -1605,12 +1599,44 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 		/*	Critical bundle; send on all paths.		*/
 
 		TRACE(CgrUseAllProximateNodes);
+		for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
+		{
+			nextElt = lyst_next(elt);
+			proxNode = (ProximateNode *) lyst_data_set(elt, NULL);
+			lyst_delete(elt);
+			if (!preview)
+			{
+				if (enqueueToNeighbor(proxNode, bundle,
+						bundleObj, stationNode))
+				{
+					putErrmsg("Can't queue for neighbor.",
+							NULL);
+					lyst_destroy(proximateNodes);
+					return -1;
+				}
+			}
 
-		/*	Don't remove any proximate nodes.		*/
+			MRELEASE(proxNode);
+			if (nextElt)
+			{
+				/*	Every transmission after the
+			 	*	first must operate on a new
+			 	*	clone of the original bundle.	*/
 
-		*stationNodePtr = stationNode;
-		*proximateNodesPtr = proximateNodes;
+				if (bpClone(bundle, &newBundle, &newBundleObj,
+						0, 0) < 0)
+				{
+					putErrmsg("Can't clone bundle.", NULL);
+					lyst_destroy(proximateNodes);
+					return -1;
+				}
 
+				bundle = &newBundle;
+				bundleObj = newBundleObj;
+			}
+		}
+
+		lyst_destroy(proximateNodes);
 		return 0;
 	}
 
@@ -1622,30 +1648,31 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 	for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
 	{
 		nextElt = lyst_next(elt);
-		proxNode = (ProximateNode *) lyst_data(elt);
+		proxNode = (ProximateNode *) lyst_data_set(elt, NULL);
+		lyst_delete(elt);
 
 		TRACE(CgrConsiderProximateNode, proxNode->neighborNodeNbr);
 
 		if (selectedNeighbor == NULL)
 		{
 			TRACE(CgrSelectProximateNode);
-			selectedNeighborElt = elt;
+			selectedNeighbor = proxNode;
 		}
 		else if (proxNode->deliveryTime <
-			selectedNeighbor->deliveryTime)
+				selectedNeighbor->deliveryTime)
 		{
 			TRACE(CgrSelectProximateNode);
-			lyst_delete(selectedNeighborElt);
-			selectedNeighborElt = elt;
+			MRELEASE(selectedNeighbor);
+			selectedNeighbor = proxNode;
 		}
 		else if (proxNode->deliveryTime ==
-			selectedNeighbor->deliveryTime)
+				selectedNeighbor->deliveryTime)
 		{
 			if (proxNode->hopCount < selectedNeighbor->hopCount)
 			{
 				TRACE(CgrSelectProximateNode);
-				lyst_delete(selectedNeighborElt);
-				selectedNeighborElt = elt;
+				MRELEASE(selectedNeighbor);
+				selectedNeighbor = proxNode;
 			}
 			else if (proxNode->hopCount ==
 					selectedNeighbor->hopCount)
@@ -1654,63 +1681,64 @@ static int buildRoutes(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 					selectedNeighbor->neighborNodeNbr)
 				{
 					TRACE(CgrSelectProximateNode);
-					lyst_delete(selectedNeighborElt);
-					selectedNeighborElt = elt;
+					MRELEASE(selectedNeighbor);
+					selectedNeighbor = proxNode;
 				}
 				else	/*	Larger node#; ignore.	*/
 				{
 					TRACE(CgrIgnoreProximateNode,
 						CgrLargerNodeNbr);
-					lyst_delete(elt);
+					MRELEASE(proxNode);
 				}
 			}
 			else	/*	More hops; ignore.		*/
 			{
-				TRACE(CgrIgnoreProximateNode,
-					CgrMoreHops);
-				lyst_delete(elt);
+				TRACE(CgrIgnoreProximateNode, CgrMoreHops);
+				MRELEASE(proxNode);
 			}
 		}
 		else	/*	Later delivery time; ignore.		*/
 		{
 			TRACE(CgrIgnoreProximateNode, CgrLaterDeliveryTime);
-			lyst_delete(elt);
+			MRELEASE(proxNode);
 		}
-
-		selectedNeighbor = lyst_data(selectedNeighborElt);
 	}
 
+	lyst_destroy(proximateNodes);
 	if (selectedNeighbor)
 	{
 		TRACE(CgrUseProximateNode, selectedNeighbor->neighborNodeNbr);
+
+		if (!preview)
+		{
+			if (enqueueToNeighbor(selectedNeighbor, bundle,
+					bundleObj, stationNode))
+			{
+				putErrmsg("Can't queue for neighbor.", NULL);
+				return -1;
+			}
+		}
+
+		MRELEASE(selectedNeighbor);
 	}
 	else
 	{
 		TRACE(CgrNoProximateNode);
 	}
 
-	*stationNodePtr = stationNode;
-	*proximateNodesPtr = proximateNodes;
-
-	return 1;
+	return 0;
 }
 
-int	cgr_preview_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
-		Object plans, CgrLookupFn getDirective, time_t atTime,
-		CgrTrace *trace)
+int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
+		uvast stationNodeNbr, Object plans, CgrLookupFn getDirective,
+		time_t atTime, CgrTrace *trace)
 {
-	IonNode		*stationNode;
-	Lyst		proximateNodes;
-
-	switch (buildRoutes(bundle, bundleObj, stationNodeNbr, plans,
-	        getDirective, atTime, &stationNode, &proximateNodes, trace))
+	if (cgrForward(bundle, bundleObj, stationNodeNbr, plans,
+	        	getDirective, atTime, trace, 1) < 0)
 	{
-	case -1:
-		putErrmsg("Can't build routes.", NULL);
+		putErrmsg("Can't compute route.", NULL);
 		return -1;
 	}
-
-	lyst_destroy(proximateNodes);
 
 	return 0;
 }
@@ -1718,61 +1746,13 @@ int	cgr_preview_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 int	cgr_forward(Bundle *bundle, Object bundleObj, uvast stationNodeNbr,
 		Object plans, CgrLookupFn getDirective, CgrTrace *trace)
 {
-	IonNode		*stationNode;
-	Lyst		proximateNodes;
-
-	LystElt		elt;
-	LystElt		nextElt;
-	ProximateNode	*proxNode;
-	Bundle		newBundle;
-	Object		newBundleObj;
-
-	switch (buildRoutes(bundle, bundleObj, stationNodeNbr, plans,
-		getDirective, getUTCTime(), &stationNode, &proximateNodes,
-		trace))
+	if (cgrForward(bundle, bundleObj, stationNodeNbr, plans,
+	        	getDirective, getUTCTime(), trace, 0) < 0)
 	{
-	case -1:
-		putErrmsg("Can't build routes.", NULL);
+		putErrmsg("Can't compute route.", NULL);
 		return -1;
-
-	case 0:
-		lyst_destroy(proximateNodes);
-		return 0;
 	}
 
-	for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
-	{
-		nextElt = lyst_next(elt);
-		proxNode = (ProximateNode *) lyst_data(elt);
-
-		if (enqueueToNeighbor(proxNode, bundle, bundleObj,
-				stationNode))
-		{
-			putErrmsg("Can't queue for neighbor.", NULL);
-			lyst_destroy(proximateNodes);
-			return -1;
-		}
-
-		if (nextElt)
-		{
-			/*	Every transmission after the
-			 *	first must operate on a new
-			 *	clone of the original bundle.	*/
-
-			if (bpClone(bundle, &newBundle, &newBundleObj,
-						0, 0) < 0)
-			{
-				putErrmsg("Can't clone bundle.", NULL);
-				lyst_destroy(proximateNodes);
-				return -1;
-			}
-
-			bundle = &newBundle;
-			bundleObj = newBundleObj;
-		}
-	}
-
-	lyst_destroy(proximateNodes);
 	return 0;
 }
 
@@ -1787,8 +1767,8 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 {
 	static const char	*tracepointText[] =
 	{
-	[CgrBuildRoutes] = "BUILD stationNode:" UVAST_FIELDSPEC " payloadLength:%u"
-		" atTime:%u",
+	[CgrBuildRoutes] = "BUILD stationNode:" UVAST_FIELDSPEC
+		" payloadLength:%u atTime:%u",
 	[CgrInvalidStationNode] = "    INVALID station node",
 
 	[CgrBeginRoute] = "  ROUTE payloadClass:%d",
@@ -1844,14 +1824,19 @@ const char	*cgr_reason_text(CgrReason reason)
 	[CgrNoRange] = "no range for contact",
 
 	[CgrRouteViaSelf] = "route is via self",
-	[CgrRouteCapacityTooSmall] = "route includes a contact that's too small for this bundle",
-	[CgrInitialContactExcluded] = "first node on route is an excluded neighbor",
-	[CgrRouteTooSlow] = "route is too slow; radiation latency delays delivery time too much",
+	[CgrRouteCapacityTooSmall] = "route includes a contact that's too \
+small for this bundle",
+	[CgrInitialContactExcluded] = "first node on route is an excluded \
+neighbor",
+	[CgrRouteTooSlow] = "route is too slow; radiation latency delays \
+delivery time too much",
 	[CgrNoApplicableDirective] = "no applicable directive",
 	[CgrBlockedOutduct] = "outduct is blocked",
 	[CgrMaxPayloadTooSmall] = "max payload too small",
-	[CgrNoResidualCapacity] = "contact with this neighbor is already fully subscribed",
-	[CgrResidualCapacityTooSmall] = "too little residual aggregate capacity for this bundle",
+	[CgrNoResidualCapacity] = "contact with this neighbor is already \
+fully subscribed",
+	[CgrResidualCapacityTooSmall] = "too little residual aggregate \
+capacity for this bundle",
 
 	[CgrMoreHops] = "more hops",
 	[CgrIdentical] = "identical to a previous route",
