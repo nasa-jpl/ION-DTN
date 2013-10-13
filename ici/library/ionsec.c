@@ -20,6 +20,11 @@ static char	*_secDbName()
 	return "secdb";
 }
 
+static char	*_secVdbName()
+{
+	return "secvdb";
+}
+
 static Object	_secdbObject(Object *newDbObj)
 {
 	static Object	obj = 0;
@@ -66,11 +71,195 @@ static SecDB	*_secConstants()
 	return db;
 }
 
+static int	orderKeyRefs(PsmPartition wm, PsmAddress refData,
+			void *dataBuffer)
+{
+	PubKeyRef	*ref;
+	PubKeyRef	*argRef;
+
+	ref = (PubKeyRef *) psp(wm, refData);
+	argRef = (PubKeyRef *) dataBuffer;
+	if (ref->nodeNbr < argRef->nodeNbr)
+	{
+		return -1;
+	}
+
+	if (ref->nodeNbr > argRef->nodeNbr)
+	{
+		return 1;
+	}
+
+	/*	Matching node number.					*/
+
+	if (ref->effectiveTime.seconds < argRef->effectiveTime.seconds)
+	{
+		return -1;
+	}
+
+	if (ref->effectiveTime.seconds > argRef->effectiveTime.seconds)
+	{
+		return 1;
+	}
+
+	if (ref->effectiveTime.count < argRef->effectiveTime.count)
+	{
+		return -1;
+	}
+
+	if (ref->effectiveTime.count > argRef->effectiveTime.count)
+	{
+		return 1;
+	}
+
+	/*	Matching effective time.				*/
+
+	return 0;
+}
+
+static void	eraseKeyRef(PsmPartition wm, PsmAddress refData, void *arg)
+{
+	psm_free(wm, refData);
+}
+
+static int	loadPublicKey(PsmPartition wm, PsmAddress rbt, PublicKey *key,
+			Object elt)
+{
+	PsmAddress	refAddr;
+	PubKeyRef	*ref;
+
+	refAddr = psm_zalloc(wm, sizeof(PubKeyRef));
+	if (refAddr == 0)
+	{
+		return -1;
+	}
+
+	ref = (PubKeyRef *) psp(wm, refAddr);
+	CHKERR(ref);
+	ref->nodeNbr = key->nodeNbr;
+	memcpy((char *) &(ref->effectiveTime), (char *) &(key->effectiveTime),
+			sizeof(BpTime));
+	ref->publicKeyElt = elt;
+	if (sm_rbt_insert(wm, rbt, refAddr, orderKeyRefs, ref) == 0)
+	{
+		psm_free(wm, refAddr);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	loadPublicKeys(PsmAddress rbt)
+{
+	PsmPartition	wm = getIonwm();
+	Sdr		sdr = getIonsdr();
+	SecDB		db;
+	Object		elt;
+			OBJ_POINTER(PublicKey, nodeKey);
+
+	sdr_read(sdr, (char *) &db, _secdbObject(NULL), sizeof(SecDB));
+	for (elt = sdr_list_first(sdr, db.publicKeys); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, PublicKey, nodeKey,
+				sdr_list_data(sdr, elt));
+		if (loadPublicKey(wm, rbt, nodeKey, elt) < 0)
+		{
+			putErrmsg("Can't add public key reference.", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+static SecVdb	*_secvdb(char **name)
+{
+	static SecVdb	*vdb = NULL;
+	PsmPartition	wm;
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	Sdr		sdr;
+
+	if (name)
+	{
+		if (*name == NULL)	/*	Terminating.		*/
+		{
+			vdb = NULL;
+			return vdb;
+		}
+
+		/*	Attaching to volatile database.			*/
+
+		wm = getIonwm();
+		if (psm_locate(wm, *name, &vdbAddress, &elt) < 0)
+		{
+			putErrmsg("Failed searching for vdb.", NULL);
+			return vdb;
+		}
+
+		if (elt)
+		{
+			vdb = (SecVdb *) psp(wm, vdbAddress);
+			return vdb;
+		}
+
+		/*	Security volatile database doesn't exist yet.	*/
+
+		sdr = getIonsdr();
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
+
+		/*	Create and catalogue the SecVdb object.	*/
+
+		vdbAddress = psm_zalloc(wm, sizeof(SecVdb));
+		if (vdbAddress == 0)
+		{
+			putErrmsg("No space for volatile database.", NULL);
+			sdr_exit_xn(sdr);
+			return NULL;
+		}
+
+		if (psm_catlg(wm, *name, vdbAddress) < 0)
+		{
+			putErrmsg("Can't catalogue volatile database.", NULL);
+			psm_free(wm, vdbAddress);
+			sdr_exit_xn(sdr);
+			return NULL;
+		}
+
+		vdb = (SecVdb *) psp(wm, vdbAddress);
+		vdb->publicKeys = sm_rbt_create(wm);
+		if (vdb->publicKeys == 0)
+		{
+			putErrmsg("Can't initialize volatile database.", NULL);
+			vdb = NULL;
+			oK(psm_uncatlg(wm, *name));
+			psm_free(wm, vdbAddress);
+			sdr_exit_xn(sdr);
+			return NULL;
+		}
+
+		if (loadPublicKeys(vdb->publicKeys) < 0)
+		{
+			putErrmsg("Can't load volatile database.", NULL);
+			oK(sm_rbt_destroy(wm, vdb->publicKeys, eraseKeyRef,
+					NULL));
+			vdb = NULL;
+			oK(psm_uncatlg(wm, *name));
+			psm_free(wm, vdbAddress);
+		}
+
+		sdr_exit_xn(sdr);	/*	Unlock memory.		*/
+	}
+
+	return vdb;
+}
+
 int	secInitialize()
 {
 	Sdr	ionsdr;
 	Object	secdbObject;
 	SecDB	secdbBuf;
+	char	*secvdbName = _secVdbName();
 
 	if (ionAttach() < 0)
 	{
@@ -90,6 +279,9 @@ int	secInitialize()
 
 	case 0:			/*	Not found must create new DB.	*/
 		memset((char *) &secdbBuf, 0, sizeof(SecDB));
+		secdbBuf.publicKeys = sdr_list_create(ionsdr);
+		secdbBuf.ownPublicKeys = sdr_list_create(ionsdr);
+		secdbBuf.privateKeys = sdr_list_create(ionsdr);
 		secdbBuf.keys = sdr_list_create(ionsdr);
 		secdbBuf.bspBabRules = sdr_list_create(ionsdr);
 		secdbBuf.bspPibRules = sdr_list_create(ionsdr);
@@ -120,6 +312,12 @@ int	secInitialize()
 
 	oK(_secdbObject(&secdbObject));
 	oK(_secConstants());
+	if (_secvdb(&secvdbName) == NULL)
+	{
+		putErrmsg("Can't initialize ION security vdb.", NULL);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -127,6 +325,8 @@ int	secAttach()
 {
 	Sdr	ionsdr;
 	Object	secdbObject;
+	SecVdb	*secvdb = _secvdb(NULL);
+	char	*secvdbName = _secVdbName();
 
 	if (ionAttach() < 0)
 	{
@@ -151,6 +351,15 @@ int	secAttach()
 	}
 
 	oK(_secConstants());
+	if (secvdb == NULL)
+	{
+		if (_secvdb(&secvdbName) == NULL)
+		{
+			putErrmsg("Can't initialize ION security vdb.", NULL);
+			return -1;
+		}
+	}
+
 	return 0;
 
 }
@@ -158,6 +367,642 @@ int	secAttach()
 Object	getSecDbObject()
 {
 	return _secdbObject(NULL);
+}
+
+SecVdb	*getSecVdb()
+{
+	return _secvdb(NULL);
+}
+
+int	sec_addPublicKey(uvast nodeNbr, BpTime *effectiveTime, int keyLen,
+		char *keyValue)
+{
+	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
+	PsmPartition	wm = getIonwm();
+	uvast		localNodeNbr = getOwnNodeNbr();
+	SecVdb		*vdb = getSecVdb();
+	char		keyId[32];
+	PubKeyRef	argRef;
+	PsmAddress	rbtNode;
+	PsmAddress	successor;
+	Object		keyObj;
+	PublicKey	newPublicKey;
+	PsmAddress	successorRefAddr;
+	PubKeyRef	*successorRef;
+
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
+	CHKERR(vdb);
+	CHKERR(nodeNbr > 0);
+	CHKERR(nodeNbr != localNodeNbr);
+	CHKERR(effectiveTime);
+	CHKERR(keyLen > 0);
+	CHKERR(keyValue);
+	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lu.%lu", nodeNbr,
+			effectiveTime->seconds, effectiveTime->count);
+	argRef.nodeNbr = nodeNbr;
+	memcpy((char *) &(argRef.effectiveTime), (char *) effectiveTime,
+			sizeof(BpTime));
+	CHKERR(sdr_begin_xn(sdr));
+	rbtNode = sm_rbt_search(wm, vdb->publicKeys, orderKeyRefs, &argRef,
+			&successor);
+	if (rbtNode)
+	{
+		writeMemoNote("[?] This key is already defined", keyId);
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	/*	New key may be added.					*/
+
+	newPublicKey.nodeNbr = nodeNbr;
+	memcpy((char *) &(newPublicKey.effectiveTime), (char *) effectiveTime,
+			sizeof(BpTime));
+	newPublicKey.length = keyLen;
+	newPublicKey.value = sdr_malloc(sdr, keyLen);
+	keyObj = sdr_malloc(sdr, sizeof(PublicKey));
+	if (keyObj == 0 || newPublicKey.value == 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't add public key.", keyId);
+		return -1;
+	}
+
+	sdr_write(sdr, newPublicKey.value, keyValue, keyLen);
+	sdr_write(sdr, keyObj, (char *) &newPublicKey, sizeof(PublicKey));
+	if (successor)
+	{
+		successorRefAddr = sm_rbt_data(wm, successor);
+		successorRef = (PubKeyRef *) psp(wm, successorRefAddr);
+		oK(sdr_list_insert_before(sdr, successorRef->publicKeyElt,
+					keyObj));
+	}
+	else
+	{
+		oK(sdr_list_insert_last(sdr, secdb->publicKeys, keyObj));
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't add public key.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	sec_removePublicKey(uvast nodeNbr, BpTime *effectiveTime)
+{
+	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
+	PsmPartition	wm = getIonwm();
+	SecVdb		*vdb = getSecVdb();
+	char		keyId[32];
+	PubKeyRef	argRef;
+	PsmAddress	rbtNode;
+	PsmAddress	successor;
+	PsmAddress	refAddr;
+	PubKeyRef	*ref;
+	Object		keyObj;
+	PublicKey	publicKey;
+
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
+	CHKERR(vdb);
+	CHKERR(effectiveTime);
+	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lu.%lu", nodeNbr,
+			effectiveTime->seconds, effectiveTime->count);
+	argRef.nodeNbr = nodeNbr;
+	memcpy((char *) &(argRef.effectiveTime), (char *) effectiveTime,
+			sizeof(BpTime));
+	CHKERR(sdr_begin_xn(sdr));
+	rbtNode = sm_rbt_search(wm, vdb->publicKeys, orderKeyRefs, &argRef,
+			&successor);
+	if (rbtNode == 0)
+	{
+		writeMemoNote("[?] This key is not defined", keyId);
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	/*	Key may be removed.					*/
+
+	refAddr = sm_rbt_data(wm, rbtNode);
+	ref = (PubKeyRef *) psp(wm, refAddr);
+	keyObj = sdr_list_data(sdr, ref->publicKeyElt);
+	sdr_read(sdr, (char *) &publicKey, keyObj, sizeof(PublicKey));
+	sdr_free(sdr, publicKey.value);
+	sdr_free(sdr, keyObj);
+	sdr_list_delete(sdr, ref->publicKeyElt, NULL, NULL);
+	sm_rbt_delete(wm, vdb->publicKeys, orderKeyRefs, &argRef, NULL, NULL);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't remove public key.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static Object	locateOwnPublicKey(BpTime *effectiveTime, Object *nextKey)
+{
+	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
+	Object	elt;
+		OBJ_POINTER(OwnPublicKey, key);
+
+	/*	This function locates the OwnPublicKey identified
+	 *	by effectiveTime, if any.  If none, notes the location
+	 *	within the list of own public keys at which such
+	 *	a key should be inserted.				*/
+
+	CHKZERO(ionLocked());
+	if (nextKey) *nextKey = 0;	/*	Default.		*/
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
+	for (elt = sdr_list_first(sdr, secdb->ownPublicKeys); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, OwnPublicKey, key,
+				sdr_list_data(sdr, elt));
+		if (key->effectiveTime.seconds < effectiveTime->seconds)
+		{
+			continue;
+		}
+
+		if (key->effectiveTime.seconds > effectiveTime->seconds)
+		{
+			if (nextKey) *nextKey = elt;
+			break;		/*	Same as end of list.	*/
+		}
+
+		if (key->effectiveTime.count < effectiveTime->count)
+		{
+			continue;
+		}
+
+		if (key->effectiveTime.count > effectiveTime->count)
+		{
+			if (nextKey) *nextKey = elt;
+			break;		/*	Same as end of list.	*/
+		}
+
+		return elt;
+	}
+
+	return 0;
+}
+
+int	sec_addOwnPublicKey(BpTime *effectiveTime, int keyLen, char *keyValue)
+{
+	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
+	char		keyId[32];
+	Object		nextKey;
+	Object		keyObj;
+	OwnPublicKey	newOwnPublicKey;
+
+	CHKERR(secdb);
+	CHKERR(effectiveTime);
+	CHKERR(keyLen > 0);
+	CHKERR(keyValue);
+	isprintf(keyId, sizeof keyId, ":%lu.%lu", effectiveTime->seconds,
+			effectiveTime->count);
+	CHKERR(sdr_begin_xn(sdr));
+	if (locateOwnPublicKey(effectiveTime, &nextKey) != 0)
+	{
+		writeMemoNote("[?] This public key is already defined", keyId);
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	/*	New key may be added.					*/
+
+	memcpy((char *) &(newOwnPublicKey.effectiveTime),
+			(char *) effectiveTime, sizeof(BpTime));
+	newOwnPublicKey.length = keyLen;
+	newOwnPublicKey.value = sdr_malloc(sdr, keyLen);
+	keyObj = sdr_malloc(sdr, sizeof(OwnPublicKey));
+	if (keyObj == 0 || newOwnPublicKey.value == 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't add own public key.", keyId);
+		return -1;
+	}
+
+	sdr_write(sdr, newOwnPublicKey.value, keyValue, keyLen);
+	sdr_write(sdr, keyObj, (char *) &newOwnPublicKey, sizeof(OwnPublicKey));
+	if (nextKey)
+	{
+		oK(sdr_list_insert_before(sdr, nextKey, keyObj));
+	}
+	else
+	{
+		oK(sdr_list_insert_last(sdr, secdb->ownPublicKeys, keyObj));
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't add own public key.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	sec_removeOwnPublicKey(BpTime *effectiveTime)
+{
+	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
+	char		keyId[32];
+	Object		keyElt;
+	Object		keyObj;
+	OwnPublicKey	ownPublicKey;
+
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
+	CHKERR(effectiveTime);
+	isprintf(keyId, sizeof keyId, ":%lu.%lu", effectiveTime->seconds,
+			effectiveTime->count);
+	CHKERR(sdr_begin_xn(sdr));
+	keyElt = locateOwnPublicKey(effectiveTime, NULL);
+	if (keyElt == 0)
+	{
+		writeMemoNote("[?] This public key is not defined", keyId);
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	/*	Key may be removed.					*/
+
+	keyObj = sdr_list_data(sdr, keyElt);
+	sdr_read(sdr, (char *) &ownPublicKey, keyObj, sizeof(OwnPublicKey));
+	sdr_free(sdr, ownPublicKey.value);
+	sdr_free(sdr, keyObj);
+	sdr_list_delete(sdr, keyElt, NULL, NULL);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't remove own public key.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static Object	locatePrivateKey(BpTime *effectiveTime, Object *nextKey)
+{
+	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
+	Object	elt;
+		OBJ_POINTER(PrivateKey, key);
+
+	/*	This function locates the PrivateKey identified by
+	 *	effectiveTime, if any.  If none, notes the location
+	 *	within the list of private keys at which such
+	 *	a key should be inserted.				*/
+
+	CHKZERO(ionLocked());
+	if (nextKey) *nextKey = 0;	/*	Default.		*/
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
+	for (elt = sdr_list_first(sdr, secdb->privateKeys); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, PrivateKey, key, sdr_list_data(sdr, elt));
+		if (key->effectiveTime.seconds < effectiveTime->seconds)
+		{
+			continue;
+		}
+
+		if (key->effectiveTime.seconds > effectiveTime->seconds)
+		{
+			if (nextKey) *nextKey = elt;
+			break;		/*	Same as end of list.	*/
+		}
+
+		if (key->effectiveTime.count < effectiveTime->count)
+		{
+			continue;
+		}
+
+		if (key->effectiveTime.count > effectiveTime->count)
+		{
+			if (nextKey) *nextKey = elt;
+			break;		/*	Same as end of list.	*/
+		}
+
+		return elt;
+	}
+
+	return 0;
+}
+
+int	sec_addPrivateKey(BpTime *effectiveTime, int keyLen, char *keyValue)
+{
+	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
+	char		keyId[32];
+	Object		nextKey;
+	Object		keyObj;
+	OwnPublicKey	newPrivateKey;
+
+	CHKERR(secdb);
+	CHKERR(effectiveTime);
+	CHKERR(keyLen > 0);
+	CHKERR(keyValue);
+	isprintf(keyId, sizeof keyId, ":%lu.%lu", effectiveTime->seconds,
+			effectiveTime->count);
+	CHKERR(sdr_begin_xn(sdr));
+	if (locatePrivateKey(effectiveTime, &nextKey) != 0)
+	{
+		writeMemoNote("[?] This private key is already defined", keyId);
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	/*	New key may be added.					*/
+
+	memcpy((char *) &(newPrivateKey.effectiveTime), (char *) effectiveTime,
+			sizeof(BpTime));
+	newPrivateKey.length = keyLen;
+	newPrivateKey.value = sdr_malloc(sdr, keyLen);
+	keyObj = sdr_malloc(sdr, sizeof(PrivateKey));
+	if (keyObj == 0 || newPrivateKey.value == 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't add private key.", keyId);
+		return -1;
+	}
+
+	sdr_write(sdr, newPrivateKey.value, keyValue, keyLen);
+	sdr_write(sdr, keyObj, (char *) &newPrivateKey, sizeof(PrivateKey));
+	if (nextKey)
+	{
+		oK(sdr_list_insert_before(sdr, nextKey, keyObj));
+	}
+	else
+	{
+		oK(sdr_list_insert_last(sdr, secdb->privateKeys, keyObj));
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't add private key.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	sec_removePrivateKey(BpTime *effectiveTime)
+{
+	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
+	char		keyId[32];
+	Object		keyElt;
+	Object		keyObj;
+	PrivateKey	privateKey;
+
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
+	CHKERR(effectiveTime);
+	isprintf(keyId, sizeof keyId, ":%lu.%lu", effectiveTime->seconds,
+			effectiveTime->count);
+	CHKERR(sdr_begin_xn(sdr));
+	keyElt = locatePrivateKey(effectiveTime, NULL);
+	if (keyElt == 0)
+	{
+		writeMemoNote("[?] This private key is not defined", keyId);
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	/*	Key may be removed.					*/
+
+	keyObj = sdr_list_data(sdr, keyElt);
+	sdr_read(sdr, (char *) &privateKey, keyObj, sizeof(PrivateKey));
+	sdr_free(sdr, privateKey.value);
+	sdr_free(sdr, keyObj);
+	sdr_list_delete(sdr, keyElt, NULL, NULL);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't remove private key.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	sec_get_public_key(uvast nodeNbr, BpTime *effectiveTime,
+		int *keyBufferLen, char *keyValueBuffer)
+{
+	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
+	PsmPartition	wm = getIonwm();
+	SecVdb		*vdb = getSecVdb();
+	PubKeyRef	argRef;
+	PsmAddress	rbtNode;
+	PsmAddress	successor;
+	PsmAddress	refAddr;
+	PubKeyRef	*ref;
+	Object		keyObj;
+	PublicKey	publicKey;
+
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
+	CHKERR(vdb);
+	CHKERR(effectiveTime);
+	CHKERR(keyBufferLen);
+	CHKERR(*keyBufferLen > 0);
+	CHKERR(keyValueBuffer);
+	argRef.nodeNbr = nodeNbr;
+	memcpy((char *) &(argRef.effectiveTime), (char *) effectiveTime,
+			sizeof(BpTime));
+	CHKERR(sdr_begin_xn(sdr));
+	rbtNode = sm_rbt_search(wm, vdb->publicKeys, orderKeyRefs, &argRef,
+			&successor);
+	if (rbtNode == 0)	/*	No exact match (normal).	*/
+	{
+		if (successor == 0)
+		{
+			rbtNode = sm_rbt_last(wm, vdb->publicKeys);
+		}
+		else
+		{
+			rbtNode = sm_rbt_prev(wm, successor);
+		}
+
+		if (rbtNode == 0)
+		{
+			sdr_exit_xn(sdr);
+			return 0;	/*	No such key.		*/
+		}
+	}
+
+	refAddr = sm_rbt_data(wm, rbtNode);
+	ref = (PubKeyRef *) psp(wm, refAddr);
+	if (ref->nodeNbr != nodeNbr)
+	{
+		sdr_exit_xn(sdr);
+		return 0;		/*	No such key.		*/
+	}
+
+	/*	Ref now points to the last-effective public key for
+	 *	this node that was in effect at a time at or before
+	 *	the indicated effective time.				*/
+
+	keyObj = sdr_list_data(sdr, ref->publicKeyElt);
+	sdr_read(sdr, (char *) &publicKey, keyObj, sizeof(PublicKey));
+	if (publicKey.length > *keyBufferLen)
+	{
+		/*	Buffer is too small for this key value.		*/
+
+		sdr_exit_xn(sdr);
+		*keyBufferLen = publicKey.length;
+		return 0;
+	}
+
+	sdr_read(sdr, keyValueBuffer, publicKey.value, publicKey.length);
+	sdr_exit_xn(sdr);
+	return publicKey.length;
+}
+
+int	sec_get_own_public_key(BpTime *effectiveTime, int *keyBufferLen,
+		char *keyValueBuffer)
+{
+	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
+	Object		keyElt;
+	Object		nextKey;
+	Object		keyObj;
+	OwnPublicKey	ownPublicKey;
+
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
+	CHKERR(effectiveTime);
+	CHKERR(keyBufferLen);
+	CHKERR(*keyBufferLen > 0);
+	CHKERR(keyValueBuffer);
+	keyElt = locateOwnPublicKey(effectiveTime, &nextKey);
+	if (keyElt == 0)	/*	No exact match (normal).	*/
+	{
+		if (nextKey == 0)
+		{
+			keyElt = sdr_list_last(sdr, secdb->ownPublicKeys);
+		}
+		else
+		{
+			keyElt = sdr_list_prev(sdr, nextKey);
+		}
+
+		if (keyElt == 0)
+		{
+			sdr_exit_xn(sdr);
+			return 0;	/*	No such key.		*/
+		}
+	}
+
+	/*	keyElt now points to the last-effective public key
+	 *	for the local node that was in effect at a time at
+	 *	or before the indicated effective time.			*/
+
+	keyObj = sdr_list_data(sdr, keyElt);
+	sdr_read(sdr, (char *) &ownPublicKey, keyObj, sizeof(OwnPublicKey));
+	if (ownPublicKey.length > *keyBufferLen)
+	{
+		/*	Buffer is too small for this key value.		*/
+
+		sdr_exit_xn(sdr);
+		*keyBufferLen = ownPublicKey.length;
+		return 0;
+	}
+
+	sdr_read(sdr, keyValueBuffer, ownPublicKey.value, ownPublicKey.length);
+	sdr_exit_xn(sdr);
+	return ownPublicKey.length;
+}
+
+int	sec_get_private_key(BpTime *effectiveTime, int *keyBufferLen,
+		char *keyValueBuffer)
+{
+	Sdr		sdr = getIonsdr();
+	SecDB		*secdb = _secConstants();
+	Object		keyElt;
+	Object		nextKey;
+	Object		keyObj;
+	PrivateKey	privateKey;
+
+	if (secdb == NULL)	/*	No security database declared.	*/
+	{
+		return 0;
+	}
+
+	CHKERR(effectiveTime);
+	CHKERR(keyBufferLen);
+	CHKERR(*keyBufferLen > 0);
+	CHKERR(keyValueBuffer);
+	keyElt = locatePrivateKey(effectiveTime, &nextKey);
+	if (keyElt == 0)	/*	No exact match (normal).	*/
+	{
+		if (nextKey == 0)
+		{
+			keyElt = sdr_list_last(sdr, secdb->privateKeys);
+		}
+		else
+		{
+			keyElt = sdr_list_prev(sdr, nextKey);
+		}
+
+		if (keyElt == 0)
+		{
+			sdr_exit_xn(sdr);
+			return 0;	/*	No such key.		*/
+		}
+	}
+
+	/*	keyElt now points to the last-effective private key
+	 *	for the local node that was in effect at a time at
+	 *	or before the indicated effective time.			*/
+
+	keyObj = sdr_list_data(sdr, keyElt);
+	sdr_read(sdr, (char *) &privateKey, keyObj, sizeof(PrivateKey));
+	if (privateKey.length > *keyBufferLen)
+	{
+		/*	Buffer is too small for this key value.		*/
+
+		sdr_exit_xn(sdr);
+		*keyBufferLen = privateKey.length;
+		return 0;
+	}
+
+	sdr_read(sdr, keyValueBuffer, privateKey.value, privateKey.length);
+	sdr_exit_xn(sdr);
+	return privateKey.length;
 }
 
 int	bspTypeToString(int bspType, char *s, int buflen)
@@ -380,6 +1225,7 @@ void	ionClear(char *srcEid, char *destEid, char *blockType)
 
 	return;
 }
+
 
 static Object	locateKey(char *keyName, Object *nextKey)
 {

@@ -15,6 +15,20 @@
 
 #include "ion.h"
 
+/*	The "BpTime" structure defined here is the same as the
+ *	BpTimestamp structure in bp.h, but we don't want ionsec to be
+ *	dependent on BP.  At some point we might move this definition
+ *	structure to a common header file, probably ion.h, but for now
+ *	we just replicate it.						*/
+
+typedef struct
+{
+	unsigned int	seconds;
+	unsigned int	count;
+} BpTime;
+
+#define	EPOCH_2000_SEC	946684800
+
 /**
  * BAB Block Type Fields
  * TODO: Link this back to header files within BP to avoid code duplication.
@@ -33,7 +47,37 @@ typedef struct
 	char	name[32];		/*	NULL-terminated.	*/
 	int	length;
 	Object	value;
-} SecKey;
+} SecKey;				/*	Symmetric keys.		*/
+
+typedef struct
+{
+	BpTime	effectiveTime;
+	int	length;
+	Object	value;
+} OwnPublicKey;
+
+typedef struct
+{
+	BpTime	effectiveTime;
+	int	length;
+	Object	value;
+} PrivateKey;
+
+typedef struct
+{
+	uvast	nodeNbr;
+	BpTime	effectiveTime;
+	time_t	assertionTime;
+	int	length;
+	Object	value;
+} PublicKey;				/*	Not used for Own keys.	*/
+
+typedef struct
+{
+	uvast	nodeNbr;
+	BpTime	effectiveTime;
+	Object	publicKeyElt;		/*	public keys list elt	*/ 
+} PubKeyRef;				/*	Not used for Own keys.	*/
 
 typedef struct
 {
@@ -77,9 +121,12 @@ typedef struct
 	char	keyName[32];		/*	NULL-terminated.	*/
 } BspEsbRule;
 
-
 typedef struct
 {
+	Object	publicKeys;		/*	SdrList PublicKey	*/
+	Object	ownPublicKeys;		/*	SdrList OwnPublicKey	*/
+	Object	privateKeys;		/*	SdrList PrivateKey	*/
+	time_t	nextRekeyTime;		/*	UTC			*/
 	Object	keys;			/*	SdrList of SecKey	*/
 	Object	bspBabRules;		/*	SdrList of BspBabRule	*/
 	Object	bspPibRules;		/*	SdrList of BspPibRule	*/
@@ -87,12 +134,83 @@ typedef struct
 	Object	bspEsbRules;		/*	SdrList of BspEsbRule	*/
 } SecDB;
 
+typedef struct
+{
+	PsmAddress	publicKeys;	/*	SM RB tree of PubKeyRef	*/
+} SecVdb;
+
 extern int	secInitialize();
 extern int	secAttach();
 extern Object	getSecDbObject();
+extern SecVdb	*getSecVdb();
 extern int	bspTypeToString(int bspType, char *retVal, int retValSize);
 extern int	bspTypeToInt(char *bspType);
 extern void	ionClear(char *srcEid, char *destEid, char *blockType);
+
+/*	*	Functions for managing public keys.			*/
+
+extern int	sec_addPublicKey(uvast nodeNbr, BpTime *effectiveTime,
+			int keyLen, char *keyValue);
+extern int	sec_removePublicKey(uvast nodeNbr, BpTime *effectiveTime);
+extern int	sec_addOwnPublicKey(BpTime *effectiveTime, int keyLen,
+			char *keyValue);
+extern int	sec_removeOwnPublicKey(BpTime *effectiveTime);
+extern int	sec_addOwnPrivateKey(BpTime *effectiveTime, int keyLen,
+			char *keyValue);
+extern int	sec_removeOwnPrivateKey(BpTime *effectiveTime);
+
+extern int	sec_get_public_key(uvast nodeNbr, BpTime *effectiveTime,
+			int *keyBufferLen, char *keyValueBuffer);
+		/*	Retrieves the value of the public key that
+		 *	was valid at "effectiveTime" for the node
+		 *	identified by "nodeNbr" (which must not be
+		 *	the local node).  The value is written into
+		 *	keyValueBuffer unless its length exceeds
+		 *	the length of the buffer, which must be
+		 *	supplied in *keyBufferLen.
+		 *
+		 *	On success, returns the actual length of the
+		 *	key.  If *keyBufferLen is less than the
+		 *	actual length of the key, returns 0 and
+		 *	replaces buffer length in *keyBufferLen with
+		 *	the actual key length.  If the requested
+		 *	key is not found, returns 0 and leaves the
+		 *	value in *keyBufferLen unchanged.  On
+		 *	system failure returns -1.			*/
+
+extern int	sec_get_own_public_key(BpTime *effectiveTime,
+			int *keyBufferLen, char *keyValueBuffer);
+		/*	Retrieves the value of the public key that was
+		 *	valid at "effectiveTime" for the local node.
+		 *	The value is written into keyValueBuffer unless
+		 *	its length exceeds the length of the buffer,
+		 *	which must be supplied in *keyBufferLen.
+		 *
+		 *	On success, returns the actual length of the
+		 *	key.  If *keyBufferLen is less than the
+		 *	actual length of the key, returns 0 and
+		 *	replaces buffer length in *keyBufferLen with
+		 *	the actual key length.  If the requested
+		 *	key is not found, returns 0 and leaves the
+		 *	value in *keyBufferLen unchanged.  On
+		 *	system failure returns -1.			*/
+
+extern int	sec_get_private_key(BpTime *effectiveTime, int *keyBufferLen,
+			char *keyValueBuffer);
+		/*	Retrieves the value of the private key that was
+		 *	valid at "effectiveTime" for the local node.
+		 *	The value is written into keyValueBuffer unless
+		 *	its length exceeds the length of the buffer,
+		 *	which must be supplied in *keyBufferLen.
+		 *
+		 *	On success, returns the actual length of the
+		 *	key.  If *keyBufferLen is less than the
+		 *	actual length of the key, returns 0 and
+		 *	replaces buffer length in *keyBufferLen
+		 *	with the actual key length.  If the
+		 *	key is not found, returns 0 and leaves the
+		 *	value in *keyBufferLen unchanged.  On
+		 *	system failure returns -1.			*/
 
 /*	*	Functions for managing security information.		*/
 
@@ -135,8 +253,9 @@ extern int	sec_get_key(char *keyName,
 		 *	actual length of the key, returns 0 and
 		 *	replaces buffer length in *keyBufferLength
 		 *	with the actual key length.  If the named
-		 *	key is not found, returns 0.  On system
-		 *	failure returns -1.				*/
+		 *	key is not found, returns 0 and leaves the
+		 *	value in *keyBufferLength unchanged.  On
+		 *	system failure returns -1.			*/
 
 
 extern int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr, Object *eltp);
