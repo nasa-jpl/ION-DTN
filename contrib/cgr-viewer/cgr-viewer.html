@@ -1,0 +1,127 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <title>CGR Viewer</title>
+
+    <link rel="stylesheet" href="css/normalize.css" />
+    <link rel="stylesheet" href="css/cgr-viewer.css" />
+  </head>
+  <body>
+    <div id="cover"></div>
+
+    <input id="fileChooser" type="file" />
+
+    <div id="bigButtonWrapper">
+      <div id="bigButtonBacking">
+        <a id="bigButton" tabindex="0" href="#select">Choose JSON</a>
+      </div>
+    </div>
+
+    <main>
+      <div id="stars"></div>
+      <section id="pulldown">
+        <div id="pulldownWrapper" class="isHidden">
+          <!-- <a id="closePulldown" href="#close">×</a> -->
+          <div id="params" class="pulldownDisplay">
+            <h1>Parameters</h1>
+            <table class="defs">
+              <tr>
+                <td>Route Path</td>
+                <td id="paramRoute"></td>
+              </tr>
+              <tr>
+                <td>Dispatch Time</td>
+                <td id="paramDispatchTime"></td>
+              </tr>
+              <tr>
+                <td>Expiration Time</td>
+                <td id="paramExpTime"></td>
+              </tr>
+              <tr>
+                <td>Bundle Size</td>
+                <td id="paramBundleSize"></td>
+              </tr>
+              <tr>
+                <td>Bundle Class</td>
+                <td id="paramBundleClass"></td>
+              </tr>
+            </table>
+          </div>
+          <div id="legend" class="pulldownDisplay">
+            <h1>Legend</h1>
+            <table>
+              <tr>
+                <td><img src="img/node.svg" alt="Circle" /></td>
+                <td><img src="img/sink.svg" alt="Trapezium" /></td>
+                <td><img src="img/source.svg" alt="Upside-down Trapezium" /></td>
+                <td><img src="img/hop.svg" alt="Red Arrow"/></td>
+                <td><img src="img/active.svg" alt="Black Arrow" /></td>
+                <td><img src="img/inactive.svg" alt="Grey Arrow" /></td>
+              </tr>
+              <tr>
+                <td>Node</td>
+                <td>Local</td>
+                <td>Destination</td>
+                <td>Hop</td>
+                <td>Active</td>
+                <td>Inactive</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        <nav>
+          <ul id="navTabs">
+            <li id="paramsTab"><a href="#params">Parameters</a></li>
+            <li id="legendTab"><a href="#legend">Legend</a></li>
+            <li id="selectTab"><a href="#select">Choose JSON</a></li>
+          </ul>
+          <div class="clear"></div>
+        </nav>
+      </section>
+      <section id="board">
+        <div id="boxes"></div>
+        <div class="clear"></div>
+      </section>
+    </main>
+
+    <div id="templates">
+      <div id="routeTemplate" class="box">
+        <div class="frame">
+          <header>
+            <h1></h1>
+            <p></p>
+          </header>
+          <div class="data">
+            <table class="defs">
+              <tr>
+                <td>Dispatch Time</td>
+                <td class="dispatchTime"></td>
+              </tr>
+              <tr>
+                <td>Delivery Time</td>
+                <td class="deliveryTime"></td>
+              </tr>
+              <tr>
+                <td>Max Capacity</td>
+                <td class="maxCapacity"></td>
+              </tr>
+            </table>
+          </div>
+          <div class="graphWrapper">
+            <div class="overlay"></div>
+            <div class="graph">
+              <img alt="Route Graph" src="about:blank" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/moment.js"></script>
+    <script src="js/jquery.js"></script>
+    <script src="js/cgr-viewer.js"></script>
+
+  </body>
+</html>

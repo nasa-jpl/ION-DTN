@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <filter id="blur">
+    <feGaussianBlur stdDeviation="1.0"/>
+  </filter>
+</svg>
