@@ -70,6 +70,7 @@ static void	printUsage()
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a key <key name> <name of file containing key value>");
+	PUTS("\t   a pubkey <node nbr> <eff. time sec> <key len> <key>");
 	PUTS("\t   a bspbabrule <sender eid expression> <receiver eid \
 expression> { '' |  <ciphersuite name> <key name> }");
 	PUTS("\t\tAn eid expression may be either an EID or a wild card, \
@@ -89,6 +90,7 @@ expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} key <key name>");
+	PUTS("\t   {d|i} pubkey <node nbr> <eff. time sec>");
 	PUTS("\t   {d|i} bspbabrule <sender eid expression> <receiver eid \
 expression>");
 	PUTS("\t   {d|i} bsppibrule <sender eid expression> <receiver eid \
@@ -97,6 +99,7 @@ expression> <block type number>");
 expression> <block type number>");
 	PUTS("\tl\tList");
 	PUTS("\t   l key");
+	PUTS("\t   l pubkey");
 	PUTS("\t   l bspbabrule");
 	PUTS("\t   l bsppibrule");
 	PUTS("\t   l bsppcbrule");
@@ -125,7 +128,16 @@ static void	initializeIonSecurity(int tokenCount, char **tokens)
 
 static void	executeAdd(int tokenCount, char **tokens)
 {
-	char	*keyName;
+	uvast		nodeNbr;
+	BpTime		effectiveTime;
+	time_t		assertionTime;
+	unsigned short	keyLen;
+	unsigned char	keyValue[512];
+	char		*cursor;
+	int		i;
+	char		buf[3];
+	int		val;
+	char		*keyName;
 
 	if (tokenCount < 2)
 	{
@@ -142,6 +154,40 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		sec_addKey(tokens[2], tokens[3]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "pubkey") == 0)
+	{
+		if (tokenCount != 7)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		nodeNbr = strtouvast(tokens[2]);
+		effectiveTime.seconds = strtoul(tokens[3], NULL, 0);
+		effectiveTime.count = 0;
+		assertionTime = strtoul(tokens[4], NULL, 0);
+		keyLen = atoi(tokens[5]);
+		cursor = tokens[6];
+		if (strlen(cursor) != (keyLen * 2))
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		for (i = 0; i < keyLen; i++)
+		{
+			memcpy(buf, cursor, 2);
+			buf[2] = '\0';
+			sscanf(buf, "%x", &val);
+			keyValue[i] = val;
+			cursor += 2;
+		}
+
+		sec_addPublicKey(nodeNbr, &effectiveTime, assertionTime,
+				keyLen, keyValue);
 		return;
 	}
 
@@ -306,6 +352,9 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
+	uvast	nodeNbr;
+	BpTime	effectiveTime;
+
 	if (tokenCount < 3)
 	{
 		printText("Delete what?");
@@ -321,6 +370,21 @@ static void	executeDelete(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "key") == 0)
 	{
 		sec_removeKey(tokens[2]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "pubkey") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		nodeNbr = strtouvast(tokens[2]);
+		effectiveTime.seconds = strtoul(tokens[3], NULL, 0);
+		effectiveTime.count = 0;
+		sec_removePublicKey(nodeNbr, &effectiveTime);
 		return;
 	}
 
@@ -360,6 +424,50 @@ static void	printKey(Object keyAddr)
 	GET_OBJ_POINTER(sdr, SecKey, key, keyAddr);
 	isprintf(buf, sizeof buf, "key name '%.31s' length %d", key->name,
 			key->length);
+	printText(buf);
+}
+
+static void	printPubKey(Object keyAddr)
+{
+	Sdr		sdr = getIonsdr();
+			OBJ_POINTER(PublicKey, key);
+	char		effectiveTime[TIMESTAMPBUFSZ];
+	char		assertionTime[TIMESTAMPBUFSZ];
+	int		len;
+	unsigned char	keyValue[512];
+	char		keyValueDisplay[(sizeof keyValue * 2)];
+	char		*cursor = keyValueDisplay;
+	int		bytesRemaining = sizeof keyValueDisplay;
+	int		i;
+	char		buf[(sizeof keyValueDisplay) * 2];
+
+	GET_OBJ_POINTER(sdr, PublicKey, key, keyAddr);
+	writeTimestampUTC(key->effectiveTime.seconds, effectiveTime);
+	writeTimestampUTC(key->assertionTime, assertionTime);
+	len = key->length;
+	if (len < 0)
+	{
+		len = 0;
+	}
+	else
+	{
+		if (len > sizeof keyValue)
+		{
+			len = sizeof keyValue;
+		}
+	}
+
+	sdr_read(sdr, (char *) keyValue, key->value, len);
+	for (i = 0; i < len; i++)
+	{
+		isprintf(cursor, bytesRemaining, "%02x", keyValue[i]);
+		cursor += 2;
+		bytesRemaining -= 2;
+	}
+
+	isprintf(buf, sizeof buf, "node " UVAST_FIELDSPEC " effective %s \
+asserted %s data length %d data %s", key->nodeNbr, effectiveTime, assertionTime,
+			key->length, keyValueDisplay);
 	printText(buf);
 }
 
@@ -416,6 +524,8 @@ static void	executeInfo(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 	Object	addr;
 	Object	elt;
+	uvast	nodeNbr;
+	BpTime	effectiveTime;
 
 	if (tokenCount < 2)
 	{
@@ -440,6 +550,32 @@ static void	executeInfo(int tokenCount, char **tokens)
 		else
 		{
 			printKey(addr);
+		}
+
+		sdr_exit_xn(sdr);
+		return;
+	}
+
+	if (strcmp(tokens[1], "pubkey") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		CHKVOID(sdr_begin_xn(sdr));
+		nodeNbr = strtouvast(tokens[2]);
+		effectiveTime.seconds = strtoul(tokens[3], NULL, 0);
+		effectiveTime.count = 0;
+		sec_findPublicKey(nodeNbr, &effectiveTime, &addr, &elt);
+		if (elt == 0)
+		{
+			printText("Public key not found.");
+		}
+		else
+		{
+			printPubKey(addr);
 		}
 
 		sdr_exit_xn(sdr);
@@ -530,6 +666,20 @@ static void	executeList(int tokenCount, char **tokens)
 		{
 			obj = sdr_list_data(sdr, elt);
 			printKey(obj);
+		}
+
+		sdr_exit_xn(sdr);
+		return;
+	}
+
+	if (strcmp(tokens[1], "pubkey") == 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		for (elt = sdr_list_first(sdr, db->publicKeys); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			obj = sdr_list_data(sdr, elt);
+			printPubKey(obj);
 		}
 
 		sdr_exit_xn(sdr);
@@ -767,7 +917,7 @@ int	main(int argc, char **argv)
 	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
 #endif
 	int	cmdFile;
-	char	line[256];
+	char	line[1024];
 	int	len;
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/

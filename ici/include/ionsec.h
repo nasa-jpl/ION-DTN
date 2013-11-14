@@ -149,67 +149,69 @@ extern void	ionClear(char *srcEid, char *destEid, char *blockType);
 
 /*	*	Functions for managing public keys.			*/
 
+extern void	sec_findPublicKey(uvast nodeNbr, BpTime *effectiveTime,
+			Object *keyAddr, Object *eltp);
 extern int	sec_addPublicKey(uvast nodeNbr, BpTime *effectiveTime,
-			int keyLen, char *keyValue);
+			time_t assertionTime, int datLen, unsigned char *data);
 extern int	sec_removePublicKey(uvast nodeNbr, BpTime *effectiveTime);
-extern int	sec_addOwnPublicKey(BpTime *effectiveTime, int keyLen,
-			char *keyValue);
+extern int	sec_addOwnPublicKey(BpTime *effectiveTime, int datLen,
+			unsigned char *data);
 extern int	sec_removeOwnPublicKey(BpTime *effectiveTime);
-extern int	sec_addOwnPrivateKey(BpTime *effectiveTime, int keyLen,
-			char *keyValue);
-extern int	sec_removeOwnPrivateKey(BpTime *effectiveTime);
+extern int	sec_addPrivateKey(BpTime *effectiveTime, int datLen,
+			unsigned char *data);
+extern int	sec_removePrivateKey(BpTime *effectiveTime);
 
 extern int	sec_get_public_key(uvast nodeNbr, BpTime *effectiveTime,
-			int *keyBufferLen, char *keyValueBuffer);
+			int *datBufferLen, unsigned char *datBuffer);
 		/*	Retrieves the value of the public key that
 		 *	was valid at "effectiveTime" for the node
 		 *	identified by "nodeNbr" (which must not be
 		 *	the local node).  The value is written into
-		 *	keyValueBuffer unless its length exceeds
-		 *	the length of the buffer, which must be
-		 *	supplied in *keyBufferLen.
+		 *	datBuffer unless its length exceeds the length
+		 *	of the buffer, which must be supplied in
+		 *	*datBufferLen.
 		 *
 		 *	On success, returns the actual length of the
-		 *	key.  If *keyBufferLen is less than the
+		 *	key.  If *datBufferLen is less than the
 		 *	actual length of the key, returns 0 and
-		 *	replaces buffer length in *keyBufferLen with
+		 *	replaces buffer length in *datBufferLen with
 		 *	the actual key length.  If the requested
 		 *	key is not found, returns 0 and leaves the
-		 *	value in *keyBufferLen unchanged.  On
+		 *	value in *datBufferLen unchanged.  On
 		 *	system failure returns -1.			*/
 
 extern int	sec_get_own_public_key(BpTime *effectiveTime,
-			int *keyBufferLen, char *keyValueBuffer);
+			int *datBufferLen, unsigned char *datBuffer);
 		/*	Retrieves the value of the public key that was
 		 *	valid at "effectiveTime" for the local node.
-		 *	The value is written into keyValueBuffer unless
+		 *	The value is written into datBuffer unless
 		 *	its length exceeds the length of the buffer,
-		 *	which must be supplied in *keyBufferLen.
+		 *	which must be supplied in *datBufferLen.
 		 *
 		 *	On success, returns the actual length of the
-		 *	key.  If *keyBufferLen is less than the
+		 *	key.  If *datBufferLen is less than the
 		 *	actual length of the key, returns 0 and
-		 *	replaces buffer length in *keyBufferLen with
+		 *	replaces buffer length in *datBufferLen with
 		 *	the actual key length.  If the requested
 		 *	key is not found, returns 0 and leaves the
-		 *	value in *keyBufferLen unchanged.  On
+		 *	value in *datBufferLen unchanged.  On
 		 *	system failure returns -1.			*/
 
-extern int	sec_get_private_key(BpTime *effectiveTime, int *keyBufferLen,
-			char *keyValueBuffer);
+extern int	sec_get_private_key(BpTime *effectiveTime,
+			int *datBufferLen, unsigned char *datBuffer);
 		/*	Retrieves the value of the private key that was
 		 *	valid at "effectiveTime" for the local node.
-		 *	The value is written into keyValueBuffer unless
+		 *	The value is written into datBuffer unless
 		 *	its length exceeds the length of the buffer,
-		 *	which must be supplied in *keyBufferLen.
+		 *	which must be supplied in *datBufferLen.
 		 *
 		 *	On success, returns the actual length of the
-		 *	key.  If *keyBufferLen is less than the
+		 *	key.  If *datBufferLen is less than the
 		 *	actual length of the key, returns 0 and
-		 *	replaces buffer length in *keyBufferLen
+		 *	replaces buffer length in *datBufferLen
 		 *	with the actual key length.  If the
 		 *	key is not found, returns 0 and leaves the
-		 *	value in *keyBufferLen unchanged.  On
+		 *	value in *datBufferLen unchanged.  On
 		 *	system failure returns -1.			*/
 
 /*	*	Functions for managing security information.		*/
