@@ -123,14 +123,13 @@ cov:
 endif
 
 
-# clean-local refers to existing documents. there are no manpages for ams
+# clean-local refers to existing documents.
 if !ION_NASA_B
-clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local cfdpclean-local
+clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local amsclean-local cfdpclean-local
 else
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local
 endif
 
-# ams has no man pages
 build-man-directories:
 	mkdir -p $(top_builddir)/ici/doc
 	mkdir -p $(top_builddir)/ltp/doc
@@ -138,6 +137,7 @@ build-man-directories:
 	mkdir -p $(top_builddir)/bp/doc
 	mkdir -p $(top_builddir)/bss/doc
 if !ION_NASA_B
+	mkdir -p $(top_builddir)/ams/doc
 	mkdir -p $(top_builddir)/cfdp/doc
 endif
 
@@ -208,6 +208,7 @@ man_MANS = \
 
 if !ION_NASA_B
 man_MANS+= \
+	$(amsmans) \
 	$(cfdpmans)
 endif
 
@@ -1378,6 +1379,12 @@ bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 if !ION_NASA_B
 
+# Define pod2man stuff
+amsPODM1 = pod2man -s 1 -c "AMS executables"
+amsPODM3 = pod2man -s 3 -c "AMS library functions"
+amsPODM5 = pod2man -s 5 -c "AMS configuration files"
+#amsPODH = pod2html --noindex
+
 amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -DUDPTS -DTCPTS -DDGRTS
 
 amsbin = \
@@ -1410,6 +1417,37 @@ amsextra = \
 	ams/README.txt \
 	ams/library/vmqts.c \
 	ams/test/amspubsub.c
+
+amsmans = \
+	$(top_builddir)/ams/doc/amshello.1 \
+	$(top_builddir)/ams/doc/amsstop.1 \
+	$(top_builddir)/ams/doc/amslogprt.1 \
+	$(top_builddir)/ams/doc/amsbenchs.1 \
+	$(top_builddir)/ams/doc/amsmib.1 \
+	$(top_builddir)/ams/doc/amsbenchr.1 \
+	$(top_builddir)/ams/doc/amspub.1 \
+	$(top_builddir)/ams/doc/amsd.1 \
+	$(top_builddir)/ams/doc/amssub.1 \
+	$(top_builddir)/ams/doc/ramsgate.1 \
+	$(top_builddir)/ams/doc/amsshell.1 \
+	$(top_builddir)/ams/doc/amslog.1 \
+	$(top_builddir)/ams/doc/amsrc.5 \
+	$(top_builddir)/ams/doc/amsxml.5 \
+	$(top_builddir)/ams/doc/ams.3
+
+amsclean-local:
+	rm -f $(top_builddir)/ams/doc/*.1
+	rm -f $(top_builddir)/ams/doc/*.3
+	rm -f $(top_builddir)/ams/doc/*.5
+
+$(top_builddir)/ams/doc/%.1: ams/doc/pod1/%.pod
+	$(amsPODM1) $< $@
+
+$(top_builddir)/ams/doc/%.3: ams/doc/pod3/%.pod
+	$(amsPODM3) $< $@
+
+$(top_builddir)/ams/doc/%.5: ams/doc/pod5/%.pod
+	$(amsPODM5) $< $@
 
 # -- Libraries --- #
 
