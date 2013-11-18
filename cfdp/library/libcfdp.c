@@ -73,18 +73,21 @@ void	 cfdp_detach()
 void	cfdp_compress_number(CfdpNumber *nbr, uvast val)
 {
 	unsigned char	*octet;
-	unsigned char	text[8];	/*	Reverse-ordered bytes.	*/
-	int		i, j;
 
 	CHKVOID(nbr);
 	nbr->length = 0;
 	memset(nbr->buffer, 0, 8);
-	octet = text;
+	octet = nbr->buffer + 7;	/*	Last byte of buffer.	*/
 	while (val > 0)
 	{
-		nbr->length++;
 		*octet = val & 0xff;	/*	Copy lowest-order byte.	*/
-		octet++;
+		nbr->length++;
+		if (nbr->length == 8)
+		{
+			return;		/*	Can't copy any more.	*/
+		}
+
+		octet--;		/*	Next-lowest-order byte.	*/
 
 		/*	Can't just shift val 8 bits to the right
 		 *	because we have no guarantee that the new
@@ -106,38 +109,20 @@ void	cfdp_compress_number(CfdpNumber *nbr, uvast val)
 	{
 		nbr->length = 1;	/*	Minimum value length.	*/
 	}
-	else	/*	Copy value to leading bytes of nbr->buffer.	*/
-	{
-		i = 0;			/*	High-order octet.	*/
-		octet = nbr->buffer;
-		j = nbr->length - 1;	/*	High-order octet.	*/
-		while (i < nbr->length)
-		{
-			*octet = text[j];
-			octet++;
-			i++;
-			j--;
-		}
-	}
 }
 
 void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 {
-	int		i;
 	unsigned char	*octet;
-	unsigned long	result = 0;
+	int		i;
 
 	CHKVOID(val);
 	CHKVOID(nbr);
-	i = nbr->length;
-	CHKVOID(i >= 0 && i < 9);
 	*val = 0;
-	for (octet = nbr->buffer; i > 0; i--, octet++)
+	for (i = 0, octet = nbr->buffer + 7; i < nbr->length; i++, octet--)
 	{
-		result = (result << 8) + *octet;
+		*val = ((*val) << 8) + *octet;
 	}
-
-	*val = result;
 }
 
 void	cfdp_update_checksum(unsigned char octet, unsigned int *offset,
@@ -673,6 +658,8 @@ static int	constructOriginatingXnIdMsg(CfdpTransactionId *transactionId,
 			unsigned char *textBuffer)
 {
 	int	length;
+	int	sourceEntityNbrPad;
+	int	transactionNbrPad;
 
 	/*	Construct the message.					*/
 
@@ -682,7 +669,9 @@ static int	constructOriginatingXnIdMsg(CfdpTransactionId *transactionId,
 	*textBuffer = (unsigned char) CfdpOriginatingTransactionId;
 	textBuffer++;
 	length += transactionId->sourceEntityNbr.length;
+	sourceEntityNbrPad = 8 - transactionId->sourceEntityNbr.length;
 	length += transactionId->transactionNbr.length;
+	transactionNbrPad = 8 - transactionId->transactionNbr.length;
 
 	/*	Insert lengths byte value.				*/
 
@@ -692,11 +681,11 @@ static int	constructOriginatingXnIdMsg(CfdpTransactionId *transactionId,
 
 	/*	Insert both transaction ID parameters.			*/
 
-	memcpy(textBuffer, transactionId->sourceEntityNbr.buffer,
-			transactionId->sourceEntityNbr.length);
+	memcpy(textBuffer, transactionId->sourceEntityNbr.buffer
+		+ sourceEntityNbrPad, transactionId->sourceEntityNbr.length);
 	textBuffer += transactionId->sourceEntityNbr.length;
-	memcpy(textBuffer, transactionId->transactionNbr.buffer,
-			transactionId->transactionNbr.length);
+	memcpy(textBuffer, transactionId->transactionNbr.buffer
+		+ transactionNbrPad, transactionId->transactionNbr.length);
 	return length;
 }
 
@@ -1413,8 +1402,8 @@ int	cfdp_cancel(CfdpTransactionId *transactionId)
 	CHKERR(transactionId->sourceEntityNbr.length);
 	CHKERR(transactionId->transactionNbr.length);
 	CHKERR(sdr_begin_xn(sdr));
-	if (memcmp((char *) &transactionId->sourceEntityNbr,
-			(char *) &db->ownEntityNbr, sizeof(CfdpNumber)) == 0)
+	if (memcmp(transactionId->sourceEntityNbr.buffer,
+			db->ownEntityNbr.buffer, 8) == 0)
 	{
 		reqNbr = getReqNbr();
 		if (cancelOutFdu(transactionId, CfdpCancelRequested,
@@ -1465,8 +1454,8 @@ int	cfdp_suspend(CfdpTransactionId *transactionId)
 	CHKERR(transactionId);
 	CHKERR(transactionId->sourceEntityNbr.length);
 	CHKERR(transactionId->transactionNbr.length);
-	if (memcmp((char *) &transactionId->sourceEntityNbr,
-			(char *) &db->ownEntityNbr, sizeof(CfdpNumber)) == 0)
+	if (memcmp(transactionId->sourceEntityNbr.buffer,
+			db->ownEntityNbr.buffer, 8) == 0)
 	{
 		CHKERR(sdr_begin_xn(sdr));
 		reqNbr = getReqNbr();
@@ -1543,8 +1532,8 @@ int	cfdp_resume(CfdpTransactionId *transactionId)
 	CHKERR(transactionId);
 	CHKERR(transactionId->sourceEntityNbr.length);
 	CHKERR(transactionId->transactionNbr.length);
-	if (memcmp((char *) &transactionId->sourceEntityNbr,
-			(char *) &db->ownEntityNbr, sizeof(CfdpNumber)) == 0)
+	if (memcmp(transactionId->sourceEntityNbr.buffer,
+			db->ownEntityNbr.buffer, 8) == 0)
 	{
 		return resumeOutFdu(transactionId);
 	}
@@ -1643,8 +1632,8 @@ int	cfdp_report(CfdpTransactionId *transactionId)
 	CHKERR(transactionId);
 	CHKERR(transactionId->sourceEntityNbr.length);
 	CHKERR(transactionId->transactionNbr.length);
-	if (memcmp((char *) &transactionId->sourceEntityNbr,
-			(char *) &db->ownEntityNbr, sizeof(CfdpNumber)) == 0)
+	if (memcmp(transactionId->sourceEntityNbr.buffer,
+			db->ownEntityNbr.buffer, 8) == 0)
 	{
 		return reportOnOutFdu(transactionId);
 	}
@@ -1936,8 +1925,8 @@ int	cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset,
 	CHKERR(transactionId->transactionNbr.length);
 	CHKERR(buffer);
 	CHKERR(length > 0);
-	if (memcmp((char *) &transactionId->sourceEntityNbr,
-		(char *) &cfdpdb->ownEntityNbr, sizeof(CfdpNumber)) == 0)
+	if (memcmp(transactionId->sourceEntityNbr.buffer,
+			cfdpdb->ownEntityNbr.buffer, 8) == 0)
 	{
 		writeMemo("[?] Previewing outbound transaction.");
 		return 0;
@@ -2000,8 +1989,8 @@ int	cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount,
 	CHKERR(transactionId->transactionNbr.length > 0);
 	i = *extentCount;	/*	Limit on size of map.		*/
 	*extentCount = 0;	/*	Default; nothing mapped.	*/
-	if (memcmp((char *) &transactionId->sourceEntityNbr,
-		(char *) &cfdpdb->ownEntityNbr, sizeof(CfdpNumber)) == 0)
+	if (memcmp(transactionId->sourceEntityNbr.buffer,
+			cfdpdb->ownEntityNbr.buffer, 8) == 0)
 	{
 		writeMemo("[?] Mapping outbound transaction.");
 		return 0;
