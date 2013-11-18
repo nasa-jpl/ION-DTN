@@ -131,8 +131,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 	uvast		nodeNbr;
 	BpTime		effectiveTime;
 	time_t		assertionTime;
-	unsigned short	keyLen;
-	unsigned char	keyValue[512];
+	unsigned short	datLen;
+	unsigned char	datValue[1024];
 	char		*cursor;
 	int		i;
 	char		buf[3];
@@ -169,25 +169,25 @@ static void	executeAdd(int tokenCount, char **tokens)
 		effectiveTime.seconds = strtoul(tokens[3], NULL, 0);
 		effectiveTime.count = 0;
 		assertionTime = strtoul(tokens[4], NULL, 0);
-		keyLen = atoi(tokens[5]);
+		datLen = atoi(tokens[5]);
 		cursor = tokens[6];
-		if (strlen(cursor) != (keyLen * 2))
+		if (strlen(cursor) != (datLen * 2))
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		for (i = 0; i < keyLen; i++)
+		for (i = 0; i < datLen; i++)
 		{
 			memcpy(buf, cursor, 2);
 			buf[2] = '\0';
 			sscanf(buf, "%x", &val);
-			keyValue[i] = val;
+			datValue[i] = val;
 			cursor += 2;
 		}
 
 		sec_addPublicKey(nodeNbr, &effectiveTime, assertionTime,
-				keyLen, keyValue);
+				datLen, datValue);
 		return;
 	}
 
@@ -434,12 +434,12 @@ static void	printPubKey(Object keyAddr)
 	char		effectiveTime[TIMESTAMPBUFSZ];
 	char		assertionTime[TIMESTAMPBUFSZ];
 	int		len;
-	unsigned char	keyValue[512];
-	char		keyValueDisplay[(sizeof keyValue * 2)];
-	char		*cursor = keyValueDisplay;
-	int		bytesRemaining = sizeof keyValueDisplay;
+	unsigned char	datValue[1024];
+	char		datValueDisplay[(sizeof datValue * 2)];
+	char		*cursor = datValueDisplay;
+	int		bytesRemaining = sizeof datValueDisplay;
 	int		i;
-	char		buf[(sizeof keyValueDisplay) * 2];
+	char		buf[(sizeof datValueDisplay) * 2];
 
 	GET_OBJ_POINTER(sdr, PublicKey, key, keyAddr);
 	writeTimestampUTC(key->effectiveTime.seconds, effectiveTime);
@@ -451,23 +451,23 @@ static void	printPubKey(Object keyAddr)
 	}
 	else
 	{
-		if (len > sizeof keyValue)
+		if (len > sizeof datValue)
 		{
-			len = sizeof keyValue;
+			len = sizeof datValue;
 		}
 	}
 
-	sdr_read(sdr, (char *) keyValue, key->value, len);
+	sdr_read(sdr, (char *) datValue, key->value, len);
 	for (i = 0; i < len; i++)
 	{
-		isprintf(cursor, bytesRemaining, "%02x", keyValue[i]);
+		isprintf(cursor, bytesRemaining, "%02x", datValue[i]);
 		cursor += 2;
 		bytesRemaining -= 2;
 	}
 
 	isprintf(buf, sizeof buf, "node " UVAST_FIELDSPEC " effective %s \
 asserted %s data length %d data %s", key->nodeNbr, effectiveTime, assertionTime,
-			key->length, keyValueDisplay);
+			key->length, datValueDisplay);
 	printText(buf);
 }
 

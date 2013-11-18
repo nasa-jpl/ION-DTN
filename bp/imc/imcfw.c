@@ -39,6 +39,44 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 	sm_SemEnd(_imcfwSemaphore(NULL));
 }
 
+static int	deliverAtSource(Object bundleObj, Bundle *bundle)
+{
+	char		nss[64];
+	VEndpoint	*vpoint;
+	PsmAddress	vpointElt;
+	Bundle		newBundle;
+	Object		newBundleObj;
+
+	isprintf(nss, sizeof nss, UVAST_FIELDSPEC ".%d",
+			bundle->destination.c.nodeNbr,
+			bundle->destination.c.serviceNbr);
+	findEndpoint("imc", nss, NULL, &vpoint, &vpointElt);
+	if (vpoint == NULL)
+	{
+		return 0;
+	}
+
+	if (bpClone(bundle, &newBundle, &newBundleObj, 0, 0) < 0)
+	{
+		putErrmsg("Failed on clone.", NULL);
+		return -1;
+	}
+
+	if (deliverBundle(newBundleObj, &newBundle, vpoint) < 0)
+	{
+		putErrmsg("Bundle delivery failed.", NULL);
+		return -1;
+	}
+
+	if ((getBpVdb())->watching & WATCH_z)
+	{
+		putchar('z');
+		fflush(stdout);
+	}
+
+	return 0;
+}
+
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
 {
@@ -249,6 +287,21 @@ int	main(int argc, char *argv[])
 			{
 				sdr_read(sdr, (char *) &group, groupAddr,
 						sizeof(ImcGroup));
+				if (group.isMember
+				&& bundle.clDossier.senderNodeNbr == 0
+				&& bundle.id.source.c.nodeNbr == ownNodeNbr)
+				{
+					/*	Must deliver locally.	*/
+					if (deliverAtSource(bundleAddr,
+							&bundle) < 0)
+					{
+						putErrmsg("Source delivery NG.",
+								NULL);
+						running = 0;
+						break;	/*	Loop.	*/
+					}
+				}
+
 				for (elt3 = sdr_list_first(sdr, group.members);
 					elt3; elt3 = sdr_list_next(sdr, elt3))
 				{
@@ -259,7 +312,7 @@ int	main(int argc, char *argv[])
 					{
 						continue;
 					}
-	
+
 					if (bpClone(&bundle, &newBundle,
 						&newBundleObj, 0, 0) < 0)
 					{
