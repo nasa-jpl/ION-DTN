@@ -840,8 +840,9 @@ char	*rfx_print_contact(PsmAddress cxaddr, char *buffer)
 	writeTimestampUTC(contact->fromTime, fromTimeBuffer);
 	writeTimestampUTC(contact->toTime, toTimeBuffer);
 	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the xmit rate from \
-node %10lu to node %10lu is %10lu bytes/sec.", fromTimeBuffer, toTimeBuffer,
-			contact->fromNode, contact->toNode, contact->xmitRate);
+node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec.", \
+			fromTimeBuffer, toTimeBuffer, contact->fromNode,
+			contact->toNode, contact->xmitRate);
 	return buffer;
 }
 
@@ -1405,9 +1406,10 @@ char	*rfx_print_range(PsmAddress rxaddr, char *buffer)
 	range = (IonRXref *) psp(getIonwm(), rxaddr);
 	writeTimestampUTC(range->fromTime, fromTimeBuffer);
 	writeTimestampUTC(range->toTime, toTimeBuffer);
-	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the OWLT from node \
-%10lu to node %10lu is %10u seconds.", fromTimeBuffer, toTimeBuffer,
-			range->fromNode, range->toNode, range->owlt);
+	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the OWLT from \
+node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10u seconds.",
+			fromTimeBuffer, toTimeBuffer, range->fromNode,
+			range->toNode, range->owlt);
 	return buffer;
 }
 

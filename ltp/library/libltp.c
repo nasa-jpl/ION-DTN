@@ -304,6 +304,7 @@ int	ltp_get_notice(unsigned int clientSvcId, LtpNoticeType *type,
 	CHKERR(dataLength);
 	CHKERR(data);
 	*type = LtpNoNotice;	/*	Default.			*/
+	*data = 0;		/*	Default.			*/
 	CHKERR(sdr_begin_xn(sdr));
 	client = vdb->clients + clientSvcId;
 	if (client->pid != sm_TaskIdSelf())
