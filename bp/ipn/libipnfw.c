@@ -218,8 +218,17 @@ void	ipn_findPlan(uvast nodeNbr, Object *planAddr, Object *eltp)
 static void	createXmitDirective(FwdDirective *directive,
 			DuctExpression *parms)
 {
+	Sdr	sdr = getIonsdr();
+	Object	outductAddr;
+		OBJ_POINTER(Outduct, outduct);
+		OBJ_POINTER(ClProtocol, protocol);
+
 	directive->action = xmit;
 	directive->outductElt = parms->outductElt;
+	outductAddr = sdr_list_data(sdr, directive->outductElt);
+	GET_OBJ_POINTER(sdr, Outduct, outduct, outductAddr);
+	GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
+	directive->protocolClass = protocol->protocolClass;
 	if (parms->destDuctName == NULL)
 	{
 		directive->destDuctName = 0;
@@ -617,7 +626,8 @@ int	ipn_removePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr)
 }
 
 static int	lookupRule(Object rules, unsigned int sourceServiceNbr,
-			uvast sourceNodeNbr, FwdDirective *dirbuf)
+			uvast sourceNodeNbr, int protClassReqd,
+			FwdDirective *dirbuf)
 {
 	Sdr	sdr = getIonsdr();
 	Object	addr;
@@ -633,6 +643,11 @@ static int	lookupRule(Object rules, unsigned int sourceServiceNbr,
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, IpnRule, rule, addr);
+		if ((rule->directive.protocolClass &protClassReqd) == 0)
+		{
+			continue;	/*	Can't use this rule.	*/
+		}
+
 		if (rule->srcServiceNbr < sourceServiceNbr)
 		{
 			continue;
@@ -671,9 +686,10 @@ static int	lookupRule(Object rules, unsigned int sourceServiceNbr,
 }
 
 int	ipn_lookupPlanDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
-		uvast sourceNodeNbr, FwdDirective *dirbuf)
+		uvast sourceNodeNbr, Bundle *bundle, FwdDirective *dirbuf)
 {
 	Sdr	sdr = getIonsdr();
+	int	protClassReqd;
 	Object	addr;
 	Object	elt;
 		OBJ_POINTER(IpnPlan, plan);
@@ -683,6 +699,18 @@ int	ipn_lookupPlanDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 
 	CHKERR(ionLocked());
 	CHKERR(nodeNbr && dirbuf);
+
+	/*	Determine constraints on directive usability.		*/
+
+	protClassReqd = bundle->extendedCOS.flags & BP_PROTOCOL_BOTH;
+	if (protClassReqd == 0)		/*	Don't care.		*/
+	{
+		protClassReqd = -1;	/*	Matches any.		*/
+	}
+	else if (protClassReqd == 10)	/*	Need BSS.		*/
+	{
+		protClassReqd = BP_PROTOCOL_STREAMING;
+	}
 
 	/*	Find the matching plan.					*/
 
@@ -697,8 +725,13 @@ int	ipn_lookupPlanDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 	/*	Find best matching rule.				*/
 
 	if (lookupRule(plan->rules, sourceServiceNbr, sourceNodeNbr,
-			dirbuf) == 0)	/*	No rule found.		*/
+			protClassReqd, dirbuf) == 0)	/*	None.	*/
 	{
+		if ((plan->defaultDirective.protocolClass & protClassReqd) == 0)
+		{
+			return 0;	/*	Matching plan unusable.	*/
+		}
+
 		memcpy((char *) dirbuf, (char *) &plan->defaultDirective,
 				sizeof(FwdDirective));
 	}
@@ -994,6 +1027,7 @@ int	ipn_addGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	memset((char *) &ruleBuf, 0, sizeof(IpnRule));
 	ruleBuf.srcServiceNbr = srcServiceNbr;
 	ruleBuf.srcNodeNbr = srcNodeNbr;
+	ruleBuf.directive.action = fwd;
 	ruleBuf.directive.eid = sdr_string_create(sdr, viaEid);
 	addr = sdr_malloc(sdr, sizeof(IpnRule));
 	if (addr)
@@ -1158,7 +1192,7 @@ int	ipn_lookupGroupDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 	/*	Find best matching rule.				*/
 
 	if (lookupRule(group.rules, sourceServiceNbr, sourceNodeNbr,
-			dirbuf) == 0)	/*	No rule found.		*/
+			-1, dirbuf) == 0)		/*	None.	*/
 	{
 		memcpy((char *) dirbuf, (char *) &group.defaultDirective,
 				sizeof(FwdDirective));

@@ -231,9 +231,11 @@ void	dtn2_destroyDirective(FwdDirective *directive)
 	}
 }
 
-int	dtn2_lookupDirective(char *nodeName, char *demux, FwdDirective *dirbuf)
+int	dtn2_lookupDirective(char *nodeName, char *demux, Bundle *bundle,
+		FwdDirective *dirbuf)
 {
 	Sdr	sdr = getIonsdr();
+	int	protClassReqd;
 	Object	elt;
 	Object	addr;
 		OBJ_POINTER(Dtn2Plan, plan);
@@ -248,6 +250,18 @@ int	dtn2_lookupDirective(char *nodeName, char *demux, FwdDirective *dirbuf)
 
 	CHKERR(ionLocked());
 	CHKERR(nodeName && demux && dirbuf);
+
+	/*	Determine constraints on directive usability.		*/
+
+	protClassReqd = bundle->extendedCOS.flags & BP_PROTOCOL_BOTH;
+	if (protClassReqd == 0)			/*	Don't care.	*/
+	{
+		protClassReqd = -1;		/*	Matches any.	*/
+	}
+	else if (protClassReqd == 10)		/*	Need BSS.	*/
+	{
+		protClassReqd = BP_PROTOCOL_STREAMING;
+	}
 
 	/*	Find best matching plan.  Universal wild-card match,
 	 *	if any, is at the end of the list, so there's no way
@@ -264,7 +278,7 @@ int	dtn2_lookupDirective(char *nodeName, char *demux, FwdDirective *dirbuf)
 		{
 			continue;
 		}
-		
+
 		if (result == 0)	/*	Exact match.		*/
 		{
 			break;		/*	Stop searching.		*/
@@ -293,6 +307,11 @@ int	dtn2_lookupDirective(char *nodeName, char *demux, FwdDirective *dirbuf)
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, Dtn2Rule, rule, addr);
+		if ((rule->directive.protocolClass & protClassReqd) == 0)
+		{
+			continue;	/*	Can't use this rule.	*/
+		}
+		
 		stringLen = sdr_string_read(sdr, stringBuffer, rule->demux);
 		result = strcmp(stringBuffer, demux);
 		if (result < 0)
@@ -318,6 +337,11 @@ int	dtn2_lookupDirective(char *nodeName, char *demux, FwdDirective *dirbuf)
 
 	if (elt == 0)			/*	End of list.		*/
 	{
+		if ((plan->defaultDirective.protocolClass & protClassReqd) == 0)
+		{
+			return 0;	/*	Matching plan unusable.	*/
+		}
+		
 		memcpy((char *) dirbuf, (char *) &plan->defaultDirective,
 				sizeof(FwdDirective));
 		return 1;

@@ -42,9 +42,20 @@ static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
 			FwdDirective *directive)
 {
 	Sdr	sdr = getIonsdr();
+	int	protClassReqd;
 	Object	elt;
 	Object	planAddr;
 	IpnPlan plan;
+
+	protClassReqd = bundle->extendedCOS.flags & BP_PROTOCOL_BOTH;
+	if (protClassReqd == 0)			/*	Don't care.	*/
+	{
+		protClassReqd = -1;		/*	Matches any.	*/
+	}
+	else if (protClassReqd == 10)		/*	Need BSS.	*/
+	{
+		protClassReqd = BP_PROTOCOL_STREAMING;
+	}
 
 	for (elt = sdr_list_first(sdr, plans); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -59,6 +70,11 @@ static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
 		if (plan.nodeNbr > nodeNbr)
 		{
 			return 0;	/*	Same as end of list.	*/
+		}
+
+		if ((plan.defaultDirective.protocolClass & protClassReqd) == 0)
+		{
+			continue;	/*	Can't use this plan.	*/
 		}
 
 		memcpy((char *) directive, (char *) &plan.defaultDirective,
@@ -81,7 +97,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	IonSnub		*snub;
 
 	if (ipn_lookupPlanDirective(nodeNbr, bundle->id.source.c.serviceNbr, 
-			bundle->id.source.c.nodeNbr, &directive) == 0)
+			bundle->id.source.c.nodeNbr, bundle, &directive) == 0)
 	{
 		return 0;
 	}
