@@ -74,6 +74,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	psmwatch lt-psmwatch \
 	ramsgate lt-ramsgate \
 	rfxclock lt-rfxclock \
+	sdatest lt-sdatest \
 	sdr2file lt-sdr2file \
 	sdrmend lt-sdrmend \
 	sdrwatch lt-sdrwatch \

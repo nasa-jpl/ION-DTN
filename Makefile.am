@@ -578,6 +578,7 @@ ltpbin = \
 	aoslso \
 	ltpdriver \
 	ltpcounter \
+	sdatest \
 	dccplsi	 \
 	dccplso
 
@@ -585,7 +586,8 @@ ltplib = \
 	libltp.la
 
 ltpinclude = \
-	ltp/include/ltp.h
+	ltp/include/ltp.h \
+	ltp/include/sda.h
 
 ltpnoinst = \
 	ltp/library/ltpP.h \
@@ -638,7 +640,8 @@ $(top_builddir)/ltp/doc/%.5: ltp/doc/pod5/%.pod
 
 libltp_la_SOURCES = \
 	ltp/library/libltp.c \
-	ltp/library/libltpP.c
+	ltp/library/libltpP.c \
+	ltp/sda/libsda.c
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LIBADD = libici.la 
 
@@ -657,6 +660,10 @@ ltpdriver_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 ltpcounter_SOURCES = ltp/test/ltpcounter.c
 ltpcounter_LDADD = libltp.la libici.la $(LIBOBJS)
 ltpcounter_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+sdatest_SOURCES = ltp/test/sdatest.c
+sdatest_LDADD = libltp.la libici.la $(LIBOBJS)
+sdatest_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
