@@ -44,11 +44,11 @@ provided to the sdr_load_profile() function invoked in ION initialization
 
 =over 4
 
-=item 0
+=item "0"
 
 B<ionrestart> terminated normally.
 
-=item 1
+=item "1"
 
 B<ionrestart> failed, for reasons noted in the ion.log file; the task
 terminated.

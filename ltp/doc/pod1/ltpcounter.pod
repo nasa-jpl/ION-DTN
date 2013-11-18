@@ -22,12 +22,12 @@ to indicate that it is still alive.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<ltpcounter> has terminated.  Any problems encountered during operation
 will be noted in the B<ion.log> log file.
 
-=item 1
+=item "1"
 
 B<ltpcounter> was unable to start, because it could not attach to the LTP
 protocol on the local node or could not open access to client service

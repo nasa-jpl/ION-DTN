@@ -38,7 +38,7 @@ processing a prior file capsule in the same source file.
 
 =over 4
 
-=item 0
+=item "0"
 
 Load/Go remote agent processing has terminated.
 

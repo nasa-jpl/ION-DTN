@@ -27,7 +27,7 @@ B<amsd> daemon task) must be running in order for B<amspub> to run.
 
 B<amspub> terminated with an error as noted in the ion.log file.
 
-=item 0
+=item "0"
 
 B<amspub> terminated normally.
 

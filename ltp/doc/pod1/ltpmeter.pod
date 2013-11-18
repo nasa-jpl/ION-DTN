@@ -47,13 +47,13 @@ a session is completed or canceled.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<ltpmeter> terminated normally, for reasons noted in the B<ion.log> file.  If
 this termination was not commanded, investigate and solve the problem identified
 in the log file and use B<ltpadmin> to restart B<ltpmeter>.
 
-=item 1
+=item "1"
 
 B<ltpmeter> terminated abnormally, for reasons noted in the B<ion.log> file.
 Investigate and solve the problem identified in the log file, then use

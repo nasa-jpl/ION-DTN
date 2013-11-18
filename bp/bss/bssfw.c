@@ -229,7 +229,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj,
 	}
 	
 	if (cgr_forward(bundle, bundleObj, metaEid.nodeNbr,
-			(getBssConstants())->plans, getDirective) < 0)
+			(getBssConstants())->plans, getDirective, NULL) < 0)
 	{
 		putErrmsg("CGR failed.", NULL);
 		return -1;

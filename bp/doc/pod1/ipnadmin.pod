@@ -28,10 +28,10 @@ ipnrc(5).
 
 =over 4
 
-=item 0
+=item "0"
 Successful completion of IPN scheme administration.
 
-=item 1
+=item "1"
 Unsuccessful completion of IPN scheme administration, due to inability to
 attach to the Bundle Protocol system or to initialize the IPN scheme.
 

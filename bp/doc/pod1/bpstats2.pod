@@ -31,12 +31,12 @@ statistics bundle is generated and sent to I<default destEID>.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bpstats2> has terminated. Any problems encountered during operation will be
 noted in the B<ion.log> log file.
 
-=item 1
+=item "1"
 
 B<bpstats2> failed to start up or receive bundles.  Diagnose the issue 
 reported in the B<ion.log> file and try again.

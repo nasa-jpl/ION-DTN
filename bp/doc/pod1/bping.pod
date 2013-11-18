@@ -24,17 +24,17 @@ These exit statuses are taken from L<ping>.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bping> has terminated normally, and received responses to all the packets it
 sent.
 
-=item 1
+=item "1"
 
 B<bping> has terminated normally, but it did not receive responses to all the
 packets it sent.
 
-=item 2
+=item "2"
 
 B<bping> has terminated due to an error.  Details should be noted in the
 B<ion.log> log file.

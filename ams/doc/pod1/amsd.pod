@@ -42,7 +42,7 @@ of a venture is the zero-length string "".
 
 =over 4
 
-=item 0
+=item "0"
 
 B<amsd> terminated without error.
 
