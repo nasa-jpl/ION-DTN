@@ -193,6 +193,9 @@ I<dlvBuffer>->I<result> will be set to BpReceptionInterrupted in the event
 that the calling process received and handled some signal other than SIGALRM
 while waiting for a bundle.
 
+I<dlvBuffer>->I<result> will be set to BpEndpointStopped in the event
+that the operation of the indicated endpoint has been terminated.
+
 The application data unit delivered in the data delivery structure, if
 any, will be a "zero-copy object" reference.  Use zco reception functions
 (see zco(3)) to read the content of the application data unit.

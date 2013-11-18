@@ -19,7 +19,8 @@ AM_CFLAGS += \
 	-I$(srcdir)/ltp/include \
 	-I$(srcdir)/dgr/include \
 	-I$(srcdir)/bp/include \
-	-I$(srcdir)/bss/include
+	-I$(srcdir)/bss/include \
+	-I$(srcdir)/dtpc/include
 
 if !ION_NASA_B
 AM_CFLAGS+= \
@@ -57,7 +58,8 @@ EXTRA_DIST = 	\
 	$(ltpextra) \
 	$(dgrextra) \
 	$(bpextra) \
-	$(bssextra)
+	$(bssextra) \
+	$(dtpcextra)
 #	$(twonodestcp_DATA) \
 #	$(threenodestcpltp_DATA)
 
@@ -123,6 +125,7 @@ build-man-directories:
 	mkdir -p $(top_builddir)/dgr/doc
 	mkdir -p $(top_builddir)/bp/doc
 	mkdir -p $(top_builddir)/bss/doc
+	mkdir -p $(top_builddir)/dtpc/doc
 if !ION_NASA_B
 	mkdir -p $(top_builddir)/ams/doc
 	mkdir -p $(top_builddir)/cfdp/doc
@@ -135,6 +138,7 @@ bin_PROGRAMS = \
 	$(dgrbin) \
 	$(bpbin) \
 	$(bssbin) \
+	$(dtpcbin) \
 	$(restartbin)
 
 if !ION_NASA_B
@@ -149,7 +153,8 @@ lib_LTLIBRARIES = \
 	$(ltplib) \
 	$(dgrlib) \
 	$(bplib) \
-	$(bsslib)
+	$(bsslib) \
+	$(dtpclib)
 
 if !ION_NASA_B
 lib_LTLIBRARIES+= \
@@ -162,7 +167,8 @@ include_HEADERS = \
 	$(ltpinclude) \
 	$(dgrinclude) \
 	$(bpinclude) \
-	$(bssinclude)
+	$(bssinclude) \
+	$(dtpcinclude)
 
 if !ION_NASA_B
 include_HEADERS+= \
@@ -175,7 +181,8 @@ noinst_HEADERS = \
 	$(ltpnoinst) \
 	$(dgrnoinst) \
 	$(bpnoinst) \
-	$(bssnoinst)
+	$(bssnoinst) \
+	$(dtpcnoinst)
 
 if !ION_NASA_B
 noinst_HEADERS+= \
@@ -189,7 +196,8 @@ man_MANS = \
 	$(ltpmans) \
 	$(dgrmans) \
 	$(bpmans) \
-	$(bssmans)
+	$(bssmans) \
+	$(dtpcmans)
 
 if !ION_NASA_B
 man_MANS+= \
@@ -1578,6 +1586,7 @@ cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 endif
 
+
 ##############
 #
 # BSS SECTION
@@ -1652,6 +1661,90 @@ bssdriver_SOURCES = bss/test/bssdriver.c
 bssdriver_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bssdriver_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
+
+##############
+#
+# DTPC SECTION
+#
+##############
+
+# Define pod2man stuff
+dtpcPODM1 = pod2man -s 1 -c "DTPC executables"
+dtpcPODM3 = pod2man -s 3 -c "DTPC library functions"
+dtpcPODM5 = pod2man -s 5 -c "DTPC configuration files"
+
+dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include 
+
+dtpcbin = \
+	dtpcreceive \
+	dtpcsend \
+	dtpcadmin
+
+dtpclib = \
+	libdtpc.la
+
+dtpcinclude = \
+	dtpc/include/dtpc.h
+
+dtpcnoinst = \
+	dtpc/library/dtpcP.h
+
+dtpcextra = \
+	dtpc/doc/pod1/dtpcclock.pod \
+	dtpc/doc/pod1/dtpcadmin.pod \
+	dtpc/doc/pod1/dtpcsend.pod \
+	dtpc/doc/pod1/dtpcreceive.pod \
+	dtpc/doc/pod1/dtpcd.pod \
+	dtpc/doc/pod3/dtpc.pod \
+	dtpc/doc/pod5/dtpcrc.pod
+
+dtpcmans = \
+	$(top_builddir)/dtpc/doc/dtpcclock.1 \
+	$(top_builddir)/dtpc/doc/dtpcadmin.1 \
+	$(top_builddir)/dtpc/doc/dtpcsend.1 \
+	$(top_builddir)/dtpc/doc/dtpcreceive.1 \
+	$(top_builddir)/dtpc/doc/dtpcd.1 \
+	$(top_builddir)/dtpc/doc/dtpc.3 \
+	$(top_builddir)/dtpc/doc/dtpcrc.5
+
+dtpcclean-local:
+	rm -f $(top_builddir)/dtpc/doc/*.1
+	rm -f $(top_builddir)/dtpc/doc/*.3
+	rm -f $(top_builddir)/dtpc/doc/*.5
+
+$(top_builddir)/dtpc/doc/%.1: dtpc/doc/pod1/%.pod
+	$(dtpcPODM1) $< $@
+
+$(top_builddir)/dtpc/doc/%.3: dtpc/doc/pod3/%.pod
+	$(dtpcPODM3) $< $@
+
+$(top_builddir)/dtpc/doc/%.5: dtpc/doc/pod5/%.pod
+	$(dtpcPODM5) $< $@
+
+# --- Libraries --- #
+
+libdtpc_la_SOURCES = \
+	dtpc/library/libdtpc.c \
+	dtpc/library/libdtpcP.c
+libdtpc_la_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
+libdtpc_la_LDFLAGS = $(ION_LINK_FLAGS)
+libdtpc_la_LIBADD = libici.la libbp.la $(PTHREAD_LIBS)
+
+# --- Utility Programs --- #
+
+dtpcadmin_SOURCES = dtpc/utils/dtpcadmin.c
+dtpcadmin_LDADD = libdtpc.la libici.la libbp.la $(LIBOBJS)
+dtpcadmin_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
+
+# --- Test Programs --- #
+
+dtpcreceive_SOURCES = dtpc/test/dtpcreceive.c
+dtpcreceive_LDADD = libdtpc.la libici.la libbp.la $(LIBOBJS)
+dtpcreceive_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
+
+dtpcsend_SOURCES = dtpc/test/dtpcreceive.c
+dtpcsend_LDADD = libdtpc.la libici.la libbp.la $(LIBOBJS)
+dtpcsend_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 ##########################
 #
