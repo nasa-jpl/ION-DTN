@@ -76,7 +76,7 @@ typedef struct
 {
 	uvast	nodeNbr;
 	BpTime	effectiveTime;
-	Object	publicKeyElt;		/*	public keys list elt	*/ 
+	Object	publicKeyElt;		/*	Ref. to PublicKey.	*/
 } PubKeyRef;				/*	Not used for Own keys.	*/
 
 typedef struct
