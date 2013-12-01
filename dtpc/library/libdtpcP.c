@@ -1401,7 +1401,7 @@ unsigned int     getProfile(unsigned int maxRtx, unsigned int aggrSizeLimit,
 	Sdr		sdr = getIonsdr();
 	DtpcVdb		*vdb = getDtpcVdb();
 	PsmPartition	wm = getIonwm();
-	Profile		*profile;
+	Profile		*profile = NULL;
 	Object		elt;
 	char		repToEid[SDRSTRING_BUFSZ];
 
