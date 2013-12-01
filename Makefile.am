@@ -1678,7 +1678,9 @@ dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 dtpcbin = \
 	dtpcreceive \
 	dtpcsend \
-	dtpcadmin
+	dtpcadmin \
+	dtpcclock \
+	dtpcd
 
 dtpclib = \
 	libdtpc.la
@@ -1742,9 +1744,19 @@ dtpcreceive_SOURCES = dtpc/test/dtpcreceive.c
 dtpcreceive_LDADD = libdtpc.la libici.la libbp.la $(LIBOBJS)
 dtpcreceive_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
-dtpcsend_SOURCES = dtpc/test/dtpcreceive.c
+dtpcsend_SOURCES = dtpc/test/dtpcsend.c
 dtpcsend_LDADD = libdtpc.la libici.la libbp.la $(LIBOBJS)
 dtpcsend_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
+
+# --- Daemon Executables --- #
+
+dtpcclock_SOURCES = dtpc/daemon/dtpcclock.c
+dtpcclock_LDADD = libdtpc.la libici.la libbp.la $(LIBOBJS)
+dtpcclock_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
+
+dtpcd_SOURCES = dtpc/daemon/dtpcd.c
+dtpcd_LDADD = libdtpc.la libici.la libbp.la $(LIBOBJS)
+dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 ##########################
 #
