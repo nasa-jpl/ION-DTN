@@ -139,7 +139,8 @@ bin_PROGRAMS = \
 	$(bpbin) \
 	$(bssbin) \
 	$(dtpcbin) \
-	$(restartbin)
+	$(restartbin) \
+	$(nmbin)
 
 if !ION_NASA_B
 bin_PROGRAMS+= \
@@ -378,7 +379,8 @@ iciinclude = \
 	ici/include/sdrtable.h \
 	ici/include/sdrhash.h \
 	ici/include/sdr.h \
-	ici/include/smrbt.h
+	ici/include/smrbt.h \
+	ici/library/icinm.h
 
 icinoinst = \
 	ici/library/lystP.h \
@@ -468,6 +470,7 @@ $(top_builddir)/ici/doc/%.5: ici/doc/pod5/%.pod
 # -- Libraries --- #
 
 libici_la_SOURCES =	ici/library/llcv.c \
+			ici/library/libicinm.c \
 			ici/library/platform.c \
 			ici/library/platform_sm.c \
 			ici/library/memmgr.c \
@@ -649,7 +652,8 @@ $(top_builddir)/ltp/doc/%.5: ltp/doc/pod5/%.pod
 libltp_la_SOURCES = \
 	ltp/library/libltp.c \
 	ltp/library/libltpP.c \
-	ltp/sda/libsda.c
+	ltp/sda/libsda.c \
+	ltp/library/libltpnm.c
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LIBADD = libici.la 
 
@@ -1071,6 +1075,7 @@ libudpcla_la_LIBADD = libbp.la libici.la
 libbp_la_SOURCES = \
 	bp/library/libbp.c \
 	bp/library/libbpP.c \
+	bp/library/libbpnm.c \
 	bp/library/ext/phn/phn.c \
 	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
@@ -1674,6 +1679,47 @@ dtpcPODM3 = pod2man -s 3 -c "DTPC library functions"
 dtpcPODM5 = pod2man -s 5 -c "DTPC configuration files"
 
 dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include 
+
+
+##########################
+#
+# NETWORK MANAGEMENT SECTION
+#
+##########################
+
+nmbin= nm_agent nm_mgr
+
+nm_agent_SOURCES = nm/agent/ingest.c nm/agent/lcc.c nm/agent/ldc.c nm/agent/nmagent.c nm/agent/rda.c \
+					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
+					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
+					nm/shared/msg/pdu.c \
+					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
+					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
+					nm/shared/utils/ion_if.c nm/shared/utils/utils.c nm/shared/utils/db.c \
+nm/agent/adm_agent_priv.c nm/agent/adm_bp_priv.c nm/agent/adm_ion_priv.c \
+nm/agent/adm_ltp_priv.c nm/shared/primitives/instr.c \
+nm/shared/adm/adm_agent.c
+nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable
+					
+					
+nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
+					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
+					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
+					nm/shared/msg/pdu.c \
+					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
+					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
+					nm/shared/utils/ion_if.c nm/shared/utils/utils.c \
+nm/shared/adm/adm_agent.c nm/mgr/nm_mgr_db.c
+nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+
+
+# Use this to build the DTNMP Manager WITHOUT DB Support. 
+nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -Wno-unused-variable 
+
+# Use this to build the DTNMP Manager WITH DB Support.
+#nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient
+#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
 
 dtpcbin = \
 	dtpcreceive \

@@ -69,6 +69,8 @@ typedef struct
     unsigned long       inputCompleteCount;
 } NmltpSpan;
 
+extern void	ltpnm_resources(unsigned long *heapBytesReserved, 
+			unsigned long *heapBytesOccupied);
 extern void	ltpnm_spanEngineIds_get(unsigned int engineIds[], int *numIds);
 extern void	ltpnm_span_get(unsigned int engineId, NmltpSpan *stats,
 			int *success);

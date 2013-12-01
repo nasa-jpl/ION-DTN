@@ -65,6 +65,7 @@ Features included:
 
 - Issue #364: <Add DTPC>
 - Feature Request # 5: <DCCP LSA/​CLA Improvements>
+- Feature Request # 9: <DTNMP Data Monitoring Reference Implementation>
 - Feature Request #11: <Note TTL of received bundle>
 - Feature Request #12: <Add DTNperf>
 - Bug #22: <ECOS support>
