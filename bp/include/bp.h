@@ -65,12 +65,6 @@ typedef struct
 
 typedef struct bpsap_st		*BpSAP;
 
-typedef struct
-{
-	unsigned int	seconds;
-	unsigned int	count;
-} BpTimestamp;
-
 typedef enum
 {
 	BpPayloadPresent = 1,

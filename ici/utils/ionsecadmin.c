@@ -129,7 +129,7 @@ static void	initializeIonSecurity(int tokenCount, char **tokens)
 static void	executeAdd(int tokenCount, char **tokens)
 {
 	uvast		nodeNbr;
-	BpTime		effectiveTime;
+	BpTimestamp	effectiveTime;
 	time_t		assertionTime;
 	unsigned short	datLen;
 	unsigned char	datValue[1024];
@@ -352,8 +352,8 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
-	uvast	nodeNbr;
-	BpTime	effectiveTime;
+	uvast		nodeNbr;
+	BpTimestamp	effectiveTime;
 
 	if (tokenCount < 3)
 	{
@@ -521,11 +521,11 @@ type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	Object	addr;
-	Object	elt;
-	uvast	nodeNbr;
-	BpTime	effectiveTime;
+	Sdr		sdr = getIonsdr();
+	Object		addr;
+	Object		elt;
+	uvast		nodeNbr;
+	BpTimestamp	effectiveTime;
 
 	if (tokenCount < 2)
 	{

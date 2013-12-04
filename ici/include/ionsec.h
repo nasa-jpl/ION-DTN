@@ -15,18 +15,6 @@
 
 #include "ion.h"
 
-/*	The "BpTime" structure defined here is the same as the
- *	BpTimestamp structure in bp.h, but we don't want ionsec to be
- *	dependent on BP.  At some point we might move this definition
- *	structure to a common header file, probably ion.h, but for now
- *	we just replicate it.						*/
-
-typedef struct
-{
-	unsigned int	seconds;
-	unsigned int	count;
-} BpTime;
-
 #define	EPOCH_2000_SEC	946684800
 
 /**
@@ -44,39 +32,39 @@ extern "C" {
 
 typedef struct
 {
-	char	name[32];		/*	NULL-terminated.	*/
-	int	length;
-	Object	value;
+	char		name[32];	/*	NULL-terminated.	*/
+	int		length;
+	Object		value;
 } SecKey;				/*	Symmetric keys.		*/
 
 typedef struct
 {
-	BpTime	effectiveTime;
-	int	length;
-	Object	value;
+	BpTimestamp	effectiveTime;
+	int		length;
+	Object		value;
 } OwnPublicKey;
 
 typedef struct
 {
-	BpTime	effectiveTime;
-	int	length;
-	Object	value;
+	BpTimestamp	effectiveTime;
+	int		length;
+	Object		value;
 } PrivateKey;
 
 typedef struct
 {
-	uvast	nodeNbr;
-	BpTime	effectiveTime;
-	time_t	assertionTime;
-	int	length;
-	Object	value;
+	uvast		nodeNbr;
+	BpTimestamp	effectiveTime;
+	time_t		assertionTime;
+	int		length;
+	Object		value;
 } PublicKey;				/*	Not used for Own keys.	*/
 
 typedef struct
 {
-	uvast	nodeNbr;
-	BpTime	effectiveTime;
-	Object	publicKeyElt;		/*	Ref. to PublicKey.	*/
+	uvast		nodeNbr;
+	BpTimestamp	effectiveTime;
+	Object		publicKeyElt;	/*	Ref. to PublicKey.	*/
 } PubKeyRef;				/*	Not used for Own keys.	*/
 
 typedef struct
@@ -149,19 +137,19 @@ extern void	ionClear(char *srcEid, char *destEid, char *blockType);
 
 /*	*	Functions for managing public keys.			*/
 
-extern void	sec_findPublicKey(uvast nodeNbr, BpTime *effectiveTime,
+extern void	sec_findPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 			Object *keyAddr, Object *eltp);
-extern int	sec_addPublicKey(uvast nodeNbr, BpTime *effectiveTime,
+extern int	sec_addPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 			time_t assertionTime, int datLen, unsigned char *data);
-extern int	sec_removePublicKey(uvast nodeNbr, BpTime *effectiveTime);
-extern int	sec_addOwnPublicKey(BpTime *effectiveTime, int datLen,
+extern int	sec_removePublicKey(uvast nodeNbr, BpTimestamp *effectiveTime);
+extern int	sec_addOwnPublicKey(BpTimestamp *effectiveTime, int datLen,
 			unsigned char *data);
-extern int	sec_removeOwnPublicKey(BpTime *effectiveTime);
-extern int	sec_addPrivateKey(BpTime *effectiveTime, int datLen,
+extern int	sec_removeOwnPublicKey(BpTimestamp *effectiveTime);
+extern int	sec_addPrivateKey(BpTimestamp *effectiveTime, int datLen,
 			unsigned char *data);
-extern int	sec_removePrivateKey(BpTime *effectiveTime);
+extern int	sec_removePrivateKey(BpTimestamp *effectiveTime);
 
-extern int	sec_get_public_key(uvast nodeNbr, BpTime *effectiveTime,
+extern int	sec_get_public_key(uvast nodeNbr, BpTimestamp *effectiveTime,
 			int *datBufferLen, unsigned char *datBuffer);
 		/*	Retrieves the value of the public key that
 		 *	was valid at "effectiveTime" for the node
@@ -180,7 +168,7 @@ extern int	sec_get_public_key(uvast nodeNbr, BpTime *effectiveTime,
 		 *	value in *datBufferLen unchanged.  On
 		 *	system failure returns -1.			*/
 
-extern int	sec_get_own_public_key(BpTime *effectiveTime,
+extern int	sec_get_own_public_key(BpTimestamp *effectiveTime,
 			int *datBufferLen, unsigned char *datBuffer);
 		/*	Retrieves the value of the public key that was
 		 *	valid at "effectiveTime" for the local node.
@@ -197,7 +185,7 @@ extern int	sec_get_own_public_key(BpTime *effectiveTime,
 		 *	value in *datBufferLen unchanged.  On
 		 *	system failure returns -1.			*/
 
-extern int	sec_get_private_key(BpTime *effectiveTime,
+extern int	sec_get_private_key(BpTimestamp *effectiveTime,
 			int *datBufferLen, unsigned char *datBuffer);
 		/*	Retrieves the value of the private key that was
 		 *	valid at "effectiveTime" for the local node.

@@ -1,0 +1,8 @@
+# shell script to remove all of my IPC keys
+#!/bin/bash
+knadmin		.
+bpadmin		.
+sleep 1
+ltpadmin	.
+sleep 1
+ionadmin	.

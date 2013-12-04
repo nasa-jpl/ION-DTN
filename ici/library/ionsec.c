@@ -373,7 +373,7 @@ SecVdb	*getSecVdb()
 	return _secvdb(NULL);
 }
 
-static Object	locatePublicKey(uvast nodeNbr, BpTime *effectiveTime,
+static Object	locatePublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 			PubKeyRef *argRef)
 {
 	SecDB		*secdb = _secConstants();
@@ -411,7 +411,7 @@ static Object	locatePublicKey(uvast nodeNbr, BpTime *effectiveTime,
 	return ref->publicKeyElt;
 }
 
-void	sec_findPublicKey(uvast nodeNbr, BpTime *effectiveTime,
+void	sec_findPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 		Object *keyAddr, Object *eltp)
 {
 	Sdr		sdr = getIonsdr();
@@ -438,7 +438,7 @@ void	sec_findPublicKey(uvast nodeNbr, BpTime *effectiveTime,
 	*eltp = elt;
 }
 
-int	sec_addPublicKey(uvast nodeNbr, BpTime *effectiveTime,
+int	sec_addPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 		time_t assertionTime, int keyLen, unsigned char *keyValue)
 {
 	Sdr		sdr = getIonsdr();
@@ -536,7 +536,7 @@ int	sec_addPublicKey(uvast nodeNbr, BpTime *effectiveTime,
 	return 1;
 }
 
-int	sec_removePublicKey(uvast nodeNbr, BpTime *effectiveTime)
+int	sec_removePublicKey(uvast nodeNbr, BpTimestamp *effectiveTime)
 {
 	Sdr		sdr = getIonsdr();
 	SecVdb		*vdb = getSecVdb();
@@ -570,7 +570,7 @@ int	sec_removePublicKey(uvast nodeNbr, BpTime *effectiveTime)
 	return 0;
 }
 
-static Object	locateOwnPublicKey(BpTime *effectiveTime, Object *nextKey)
+static Object	locateOwnPublicKey(BpTimestamp *effectiveTime, Object *nextKey)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
@@ -622,7 +622,7 @@ static Object	locateOwnPublicKey(BpTime *effectiveTime, Object *nextKey)
 	return 0;
 }
 
-int	sec_addOwnPublicKey(BpTime *effectiveTime, int keyLen, 
+int	sec_addOwnPublicKey(BpTimestamp *effectiveTime, int keyLen, 
 		unsigned char *keyValue)
 {
 	Sdr		sdr = getIonsdr();
@@ -680,7 +680,7 @@ int	sec_addOwnPublicKey(BpTime *effectiveTime, int keyLen,
 	return 1;
 }
 
-int	sec_removeOwnPublicKey(BpTime *effectiveTime)
+int	sec_removeOwnPublicKey(BpTimestamp *effectiveTime)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
@@ -722,7 +722,7 @@ int	sec_removeOwnPublicKey(BpTime *effectiveTime)
 	return 0;
 }
 
-static Object	locatePrivateKey(BpTime *effectiveTime, Object *nextKey)
+static Object	locatePrivateKey(BpTimestamp *effectiveTime, Object *nextKey)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
@@ -773,7 +773,7 @@ static Object	locatePrivateKey(BpTime *effectiveTime, Object *nextKey)
 	return 0;
 }
 
-int	sec_addPrivateKey(BpTime *effectiveTime, int keyLen,
+int	sec_addPrivateKey(BpTimestamp *effectiveTime, int keyLen,
 		unsigned char *keyValue)
 {
 	Sdr		sdr = getIonsdr();
@@ -831,7 +831,7 @@ int	sec_addPrivateKey(BpTime *effectiveTime, int keyLen,
 	return 1;
 }
 
-int	sec_removePrivateKey(BpTime *effectiveTime)
+int	sec_removePrivateKey(BpTimestamp *effectiveTime)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
@@ -873,7 +873,7 @@ int	sec_removePrivateKey(BpTime *effectiveTime)
 	return 0;
 }
 
-int	sec_get_public_key(uvast nodeNbr, BpTime *effectiveTime,
+int	sec_get_public_key(uvast nodeNbr, BpTimestamp *effectiveTime,
 		int *keyBufferLen, unsigned char *keyValueBuffer)
 {
 	Sdr		sdr = getIonsdr();
@@ -951,7 +951,7 @@ int	sec_get_public_key(uvast nodeNbr, BpTime *effectiveTime,
 	return publicKey.length;
 }
 
-int	sec_get_own_public_key(BpTime *effectiveTime, int *keyBufferLen,
+int	sec_get_own_public_key(BpTimestamp *effectiveTime, int *keyBufferLen,
 		unsigned char *keyValueBuffer)
 {
 	Sdr		sdr = getIonsdr();
@@ -1010,7 +1010,7 @@ int	sec_get_own_public_key(BpTime *effectiveTime, int *keyBufferLen,
 	return ownPublicKey.length;
 }
 
-int	sec_get_private_key(BpTime *effectiveTime, int *keyBufferLen,
+int	sec_get_private_key(BpTimestamp *effectiveTime, int *keyBufferLen,
 		unsigned char *keyValueBuffer)
 {
 	Sdr		sdr = getIonsdr();
