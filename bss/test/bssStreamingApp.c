@@ -57,13 +57,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 {
 	int		priority = 0;
 	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
-
-	/*
-         * ******************************************************
-	 * BSS traffic bundles must always be marked as custodial
-         * ******************************************************
-	 */ 
-	BpCustodySwitch	custodySwitch = SourceCustodyRequired;
+	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BptestState	state;
 	Sdr		sdr;
 	Object		bundlePayload;
@@ -153,8 +147,9 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		}
 
 		/* Send the bundle payload. */
-		if(bp_send(state.sap, destEid, NULL, 86400, priority, custodySwitch,
-				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
+		if(bp_send(state.sap, destEid, NULL, 86400, priority,
+				custodySwitch, 0, 0, &extendedCOS, bundleZco,
+				&newBundle) <= 0)
 		{
 			putErrmsg("bssStreamingApp can't send frame.", NULL);
 			break;
