@@ -34,8 +34,7 @@ int	bssp_engine_is_started()
 }
 
 int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
-		Object clientServiceData, BsspSessionId *sessionId,
-		BundleInfo info)
+		Object clientServiceData, int inOrder, BsspSessionId *sessionId)
 {
 	BsspVdb		*vdb = getBsspVdb();
 	Sdr		sdr = getIonsdr();
@@ -46,8 +45,11 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	BsspSpan	span;
 	ExportSession   session;
 	int		blockIssued;
+
 	CHKERR(clientSvcId <= MAX_BSSP_CLIENT_NBR);
 	CHKERR(clientServiceData);
+	CHKERR(inOrder == 0 || inOrder == 1);
+	CHKERR(sessionId);
 	CHKERR(sdr_begin_xn(sdr));
 	findSpan(destinationEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
@@ -119,7 +121,7 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	session.totalLength = span.lengthOfBufferedBlock;
 
 	blockIssued = issueXmitBlock(sdr, &span, vspan, &session,
-				span.currentExportSessionObj, info);
+				span.currentExportSessionObj, inOrder);
 	switch (blockIssued)
 	{
 	case -1:		/*	System error.		*/

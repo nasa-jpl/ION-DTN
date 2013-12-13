@@ -545,7 +545,6 @@ int	bsspInit(int estMaxExportSessions)
 				BSSP_MEAN_SEARCH_LENGTH);
 		bsspdbBuf.spans = sdr_list_create(bsspSdr);
 		bsspdbBuf.timeline = sdr_list_create(bsspSdr);
-		bsspdbBuf.loggedStreamsList = sdr_list_create(bsspSdr);
 		
 		/*	Initialize sessionCount with a random value, 	*
 		 *	to minimize the risk of DoS attacks since	*
@@ -2306,7 +2305,6 @@ utoa(pdu->length));
 #endif
 		return 0;
 	}
-	
 
 	if (enqueueNotice(client, sourceEngineId, sessionNbr, pdu->length,
 			BsspRecvSuccess, 0, clientSvcData) < 0)
@@ -2330,163 +2328,9 @@ utoa(pdu->length));
 
 	return 0;	/*	 Data block handled okay.		*/
 }
-
-static int locateStream (BundleInfo info, Object *nextStream)
-{	
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-		OBJ_POINTER(stream, strm);
-
-	/*	
-	 *  This function locates the BSS stream identified by the 
-	 *  specified bundle arguments (pair of node-service numbers
-	 *  both  for source and destination), if any. If none, notes the 
-	 *  location within the loggedStreams list at which such an entry 
-	 *  should be inserted.					      
-	 */
-
-	if (nextStream) *nextStream = 0;    /*      Default. */
-
-	for (elt = sdr_list_first(sdr, (_bsspConstants())->loggedStreamsList);
-			elt; elt = sdr_list_next(sdr, elt))
-	{
-		GET_OBJ_POINTER(sdr, stream, strm, sdr_list_data(sdr, elt));
-		
-		/*	    Matched entry's src node number.		*/
-		if (strm->srcNodeNbr < info.srcNodeNbr)
-		{
-			continue;
-		}
-
-		if (strm->srcNodeNbr  > info.srcNodeNbr)
-		{
-			if (nextStream) *nextStream = elt;			
-			break;		/*	Same as end of list.	*/
-		}
-
-		/*	   Matched entry's src service number.		*/
-		if (strm->srcServiceNbr < info.srcServiceNbr)
-		{
-			continue;
-		}
-
-		if (strm->srcServiceNbr  > info.srcServiceNbr)
-		{
-			if (nextStream) *nextStream = elt;			
-			break;		/*	Same as end of list.	*/
-		}
-
-		/*	    Matched entry's dst node number.		*/
-		if (strm->dstNodeNbr < info.dstNodeNbr)
-		{
-			continue;
-		}
-
-		if (strm->dstNodeNbr  > info.dstNodeNbr)
-		{
-			if (nextStream) *nextStream = elt;			
-			break;		/*	Same as end of list.	*/
-		}
-		
-		/*	   Matched entry's dst service number.		*/
-		if (strm->dstServiceNbr < info.dstServiceNbr)
-		{
-			continue;
-		}
-
-		if (strm->dstServiceNbr  > info.dstServiceNbr)
-		{
-			if (nextStream) *nextStream = elt;			
-			break;		/*	Same as end of list.	*/
-		}
-
-		/*	Exact match.					*/
-		return elt;
-	}
-
-	return 0;
-}
-
-static int bss_addNewStream (BundleInfo info, Object nextStream) 
-{	
-	Sdr	bsspSdr = getIonsdr();
-	stream	strm;
-	Object	strmObj;
-
-	strm.srcNodeNbr = info.srcNodeNbr;
-	strm.srcServiceNbr = info.srcServiceNbr;
-	strm.dstNodeNbr = info.dstNodeNbr;
-	strm.dstServiceNbr = info.dstServiceNbr;
-	strm.latestTimeLogged = info.creationTime;
-
-	strmObj = sdr_malloc(bsspSdr, sizeof(stream));
-
-	if (nextStream)
-	{
-		oK(sdr_list_insert_before(bsspSdr, nextStream, strmObj));
-	}
-	else
-	{
-		oK(sdr_list_insert_last(bsspSdr, 
-			(_bsspConstants())->loggedStreamsList, strmObj));
-	}
-
-	sdr_write(bsspSdr, strmObj, (char *) &strm, sizeof(stream));
-
-	return 0;
-}
-
-static int bssp_monitorStream(BundleInfo info) 
-{	
-	Sdr	bsspSdr = getIonsdr();	
-	stream	strm;
-	Object	streamElt;
-	Object	streamAddr;
-	Object	nextStream;
-		
-	BpTimestamp loggedTime = info.creationTime;
-		
-	streamElt = locateStream(info, &nextStream);
-	if (streamElt == 0)
-	{
-		if (bss_addNewStream(info, nextStream) < 0)
-		{
-			putErrmsg("Failed to add new stream", NULL);
-			return -1;
-		}
-
-		return 1; 	/* Just logged it as a new stream. 
-			   	 * Enqueue it in the beBlocks list. 
-			   	 */	
-	}
-	else
-	{			
-		/*	Update current stream		*/			
-		streamAddr = sdr_list_data(bsspSdr, streamElt);
-		sdr_stage(bsspSdr, (char *) &strm, streamAddr, sizeof(stream));
-			
-		if(loggedTime.seconds > strm.latestTimeLogged.seconds || 
-		  (loggedTime.seconds == strm.latestTimeLogged.seconds && 
-		   loggedTime.count > strm.latestTimeLogged.count))
-		{	
-			strm.latestTimeLogged = loggedTime;
-			sdr_write(bsspSdr, streamAddr, (char *) &strm, 
-				sizeof(stream));
-
-			return 1; 	/* This is the latest time 
-					 * logged for this stream
-			   		 * so block must be enqueued 
-					 * in the beBlocks list 
-					 */	
-		}	
-	}
-
-	return 0;
-}
-
 static int	constructDataBlock(Sdr sdr, ExportSession *session,
 			Object sessionObj, BsspVspan *vspan, 
-			BsspSpan *span, BundleInfo info)
+			BsspSpan *span, int inOrder)
 {
 	Sdr		bsspSdr = getIonsdr();
 	Object		blockObj;
@@ -2495,7 +2339,6 @@ static int	constructDataBlock(Sdr sdr, ExportSession *session,
 	int		dataBlockOverhead;
 	int		worstCaseDataPDUSize;
 	Sdnv		lengthSdnv;
-	int		xmitRslt;
 
 #if BSSPDEBUG
 char		buf[256];
@@ -2508,24 +2351,15 @@ char		buf[256];
 	}
 
 	memset((char *) &block, 0, sizeof(BsspXmitBlock));
-
-	xmitRslt = bssp_monitorStream(info);
-	switch (xmitRslt)
+	if (inOrder)
 	{
-		case -1:		
-			putErrmsg("BSSP monitoring failed", NULL);
-			return -1;
-			break;
-
-		case 1:		/*	Best-Effort block	*/
-			block.queueListElt = sdr_list_insert_last(bsspSdr, 
-						span->beBlocks, blockObj);
-			break;
-
-		default:	/*	Reliable block	*/
-			block.queueListElt = sdr_list_insert_last(bsspSdr, 
-						span->rlBlocks, blockObj);
-			break;
+		block.queueListElt = sdr_list_insert_last(bsspSdr,
+				span->beBlocks, blockObj);
+	}
+	else
+	{
+		block.queueListElt = sdr_list_insert_last(bsspSdr, 
+				span->rlBlocks, blockObj);
 	}
 
 	if (block.queueListElt == 0)
@@ -2540,7 +2374,6 @@ char		buf[256];
 	block.ohdLength += session->clientSvcIdSdnv.length;
 
 	/*	Determine length of block. 	*/
-
 
 	/*	Compute worst-case block size.		*/
 	
@@ -2572,7 +2405,7 @@ char		buf[256];
 
 	sdr_write(bsspSdr, blockObj, (char *) &block, sizeof(BsspXmitBlock));
 
-	if(xmitRslt == 1)
+	if (inOrder)
 	{
 		signalBeBso(span->engineId);
 	}
@@ -2592,14 +2425,14 @@ putErrmsg(buf, itoa(session->sessionNbr));
 		putchar('e');
 		fflush(stdout);
 	}
+
 	return 0;
 }
 
 int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
-			ExportSession *session, Object sessionObj, 
-			BundleInfo info)
+			ExportSession *session, Object sessionObj, int inOrder)
 {
-	Sdr		bsspSdr = getIonsdr();
+	Sdr	bsspSdr = getIonsdr();
 
 	CHKERR(session);
 	if (session->svcDataObject == 0)	/*	Canceled.	*/
@@ -2612,7 +2445,7 @@ int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
 	CHKERR(vspan);
 	
 	if (constructDataBlock(bsspSdr, session, sessionObj, 
-			vspan, span, info) < 0)
+			vspan, span, inOrder) < 0)
 	{
 		putErrmsg("Can't construct data xmit block.", NULL);
 		return -1;

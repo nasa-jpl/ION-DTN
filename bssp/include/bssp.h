@@ -28,15 +28,6 @@ typedef struct
 	unsigned int	sessionNbr;	/*	Assigned by source.	*/
 } BsspSessionId;
 
-typedef struct
-{
-	uvast		srcNodeNbr;
-	unsigned int	srcServiceNbr;
-	uvast		dstNodeNbr;
-	unsigned int	dstServiceNbr;
-	BpTimestamp	creationTime;
-} BundleInfo;
-
 /*	*	*	BSSP initialization	*	*	*	*/
 
 extern int	bssp_attach();
@@ -52,16 +43,24 @@ extern int	bssp_engine_is_started();
 extern int	bssp_send(uvast destinationEngineId,
 			unsigned int clientId,
 			Object clientServiceData,
-			BsspSessionId *sessionId,
-			BundleInfo info);
+			int inOrder,
+			BsspSessionId *sessionId);
 
 		/*	clientServiceData must be a "zero-copy object"
 	 	 *	reference as returned by zco_create().  Note
 		 *	that BSSP will privately make and destroy its
 		 *	own reference to the client service data; the
 		 *	application is free to destroy its reference
-		 *	at any time.   If the entire client service
-		 *	data unit is to be sent reliably.
+		 *	at any time.  The outOfOrder parameter is a
+		 *	Boolean variable indicating whether or not
+		 *	the service data item that is being sent is
+		 *	"in order", i.e., was originally transmitted
+		 *	after all items that have previously been
+		 *	sent to this destination by this local BSSP
+		 *	engine: 0 if no (meaning that the item must
+		 *	be transmitted using the "reliable" channel),
+		 *	1 if yes (meaning that the item must be
+		 *	transmitted using the "best-efforts" channel).
 	         */
 
 /*	*	*	BSSP data reception	*	*	*	*/

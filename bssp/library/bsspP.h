@@ -240,26 +240,6 @@ typedef struct
 
 /* Database structure */
 
-/*  
- *  Each BSS stream is recorded in loggedStreams lyst. Stream structure    
- *  provides monitoring assistance by storing crucial information for 
- *  each stream. Each entry in loggedStreams list has the following format:  
- *  +--------------------+-----------------------+-------------------------+  
- *  | source node number | source service number | destination node number |  
- *  +--------------------+-----------------------+-------------------------+  
- *  |     destination service number     |        higher logged time       |  
- *  +------------------------------------+---------------------------------+  
- */
-
-typedef struct
-{
-	uvast		srcNodeNbr;
-	unsigned int	srcServiceNbr;
-	uvast		dstNodeNbr;
-	unsigned int	dstServiceNbr;
-	BpTimestamp	latestTimeLogged;
-} stream;
-
 typedef struct
 {
 	uvast		ownEngineId;
@@ -272,7 +252,6 @@ typedef struct
 	
 	Object		spans;		/*	SDR list: BsspSpan	*/
 	Object		timeline;	/*	SDR list: BsspEvent	*/
-	Object		loggedStreamsList;
 			/*	A catalogue that logs all the pairs of
 			 *	node-service numbers and the latest
 			 *	creation of each pair forwarded by
@@ -339,7 +318,7 @@ extern int		startExportSession(Sdr sdr, Object spanObj,
 
 extern int		issueXmitBlock(Sdr sdr, BsspSpan *span,
 				BsspVspan *vspan, ExportSession *session,
-				Object sessionObj, BundleInfo info);
+				Object sessionObj, int inOrder);
 
 extern int		bsspAttachClient(unsigned int clientSvcId);
 extern void		bsspDetachClient(unsigned int clientSvcId);

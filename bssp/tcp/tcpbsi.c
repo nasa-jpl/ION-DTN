@@ -1,5 +1,5 @@
 /*
- *	tcpbsi.c:	BSSP TCP-based link service daemon..
+ *	tcpbsi.c:	BSSP TCP-based link service daemon.
  *
  *	Authors: Sotirios-Angelos Lenas, SPICE
  *		 Scott Burleigh, JPL
@@ -46,6 +46,86 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 	MRELEASE(parms);
 }
 
+static int	receiveBytesByTCP(int bundleSocket, char *into, int length)
+{
+	int	bytesRead;
+
+	bytesRead = irecv(bundleSocket, into, length, 0);
+	switch (bytesRead)
+	{
+	case -1:
+		/*	The recv() call may have been interrupted by
+		 *	arrival of SIGTERM, in which case reception
+		 *	should report that it's time to shut down.	*/
+
+		if (errno == EINTR)	/*	Shutdown.		*/
+		{
+			return 0;
+		}
+
+		putSysErrmsg("TCPCL read() error on socket", NULL);
+		return -1;
+
+	case 0:				/*	Connection closed.	*/
+		return 0;
+
+	default:
+		return bytesRead;
+	}
+}
+
+static int	receiveBlockByTCP(int bsiSocket, char *buffer)
+{
+	unsigned int	blockLength = 0;
+	int		bytesToReceive;
+	char		*into;
+	unsigned int	preamble;
+	int		bytesReceived;
+
+	while (blockLength == 0)	/*	length 0 is keep-alive	*/
+	{
+		bytesToReceive = 4;
+		into = (char *) &preamble;
+		while (bytesToReceive > 0)
+		{
+			bytesReceived = receiveBytesByTCP(bsiSocket, into,
+					bytesToReceive);
+			if (bytesReceived < 1)
+			{
+				return bytesReceived;
+			}
+
+			into += bytesReceived;
+			bytesToReceive -= bytesReceived;
+		}
+
+		blockLength = ntohl(preamble);
+		if (blockLength > TCPBSA_BUFSZ)
+		{
+			writeMemoNote("[?] tcpbsi block length > buffer size",
+					utoa(blockLength));
+			blockLength = 0;	/*	Ignore.		*/
+		}
+	}
+
+	bytesToReceive = blockLength;
+	into = buffer;
+	while (bytesToReceive > 0)
+	{
+		bytesReceived = receiveBytesByTCP(bsiSocket, into,
+				bytesToReceive);
+		if (bytesReceived < 1)
+		{
+			return bytesReceived;
+		}
+
+		bytesToReceive -= bytesReceived;
+		into += bytesReceived;
+	}
+
+	return blockLength;
+}
+
 static void	*receiveBlocks(void *parm)
 {
 	/*	Main loop for bundle reception thread on one
@@ -55,10 +135,7 @@ static void	*receiveBlocks(void *parm)
 	char			*procName = "tcpbsi";
 	int			threadRunning = 1;
 	char			*buffer;
-	int			bytesRemaining;
-	char			*into;
 	int			blockLength;
-	int			bytesReceived;
 
 	buffer = MTAKE(TCPBSA_BUFSZ);
 	if (buffer == NULL)
@@ -73,77 +150,20 @@ static void	*receiveBlocks(void *parm)
 
 	while (threadRunning && *(parms->running))
 	{
-		bytesRemaining = 4;
-		into = (char *) &blockLength;
-		while (bytesRemaining > 0)
+		blockLength = receiveBlockByTCP(parms->blockSocket, buffer);
+		switch (blockLength)
 		{
-			bytesReceived = irecv(parms->blockSocket, into,
-					bytesRemaining, 0);
-			switch(bytesReceived)
-			{
-			case -1:
-				if (errno != EINTR)	/*	Shutdown.*/
-				{	
-					putErrmsg("tcpbsi read() error on \
-socket.  TCP-BSI can't acquire block.", NULL);
-				}
+		case -1:
+			putErrmsg("Can't receive block.", NULL);
 
-				/*	Intentional fall-through.	*/
-			case 0:	
-				ionKillMainThread(procName);
-				threadRunning = 0;
-				continue;
+			/*	Intentional fall-through to next case.	*/
 
-			default:
-				break;
-			}
-
-			bytesRemaining -= bytesReceived;
-			into += bytesReceived;
-		}
-
-		blockLength = ntohl(blockLength);
-		if (blockLength == 0)	/*	Just a keep-alive.	*/
-		{
-			continue;
-		}
-
-		if (blockLength > TCPBSA_BUFSZ)
-		{
-			putErrmsg("tcpbsi block length exceeds buffer size.",
-					itoa(blockLength));
-			ionKillMainThread(procName);
+		case 0:				/*	Normal stop.	*/
 			threadRunning = 0;
 			continue;
-		}
 
-		bytesRemaining = blockLength;
-		into = buffer;
-		while (bytesRemaining > 0)
-		{
-			bytesReceived = irecv(parms->blockSocket, into,
-					bytesRemaining, 0);
-			switch (bytesReceived)
-			{
-			case -1:
-				if (errno != EINTR)	/*	Shutdown.*/
-				{	
-					putErrmsg("tcpbsi read() error on \
-socket.  TCP-BSI can't acquire block.", NULL);
-				}
-
-				/*	Intentional fall-through.	*/
-			case 0:	
-				ionKillMainThread(procName);
-				threadRunning = 0;
-				continue;
-
-			default:
-				break;
-			}
-
-			bytesRemaining -= bytesReceived;
-			into += bytesReceived;
+		default:
+			break;			/*	Out of switch.	*/
 		}
 
 		if (bsspHandleInboundBlock(buffer, blockLength) < 0)
@@ -172,7 +192,7 @@ typedef struct
 {
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
-	int			ductSocket;
+	int			bsiSocket;
 	int			running;
 } AccessThreadParms;
 
@@ -191,8 +211,6 @@ static void	*spawnReceivers(void *parm)
 	ReceiverThreadParms	*parms;
 	LystElt			elt;
 	struct sockaddr_in	*fromAddr;
-	unsigned int		hostNbr;
-	char			hostName[MAXHOSTNAMELEN + 1];
 	pthread_t		thread;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -212,7 +230,7 @@ static void	*spawnReceivers(void *parm)
 	while (atp->running)
 	{
 		nameLength = sizeof(struct sockaddr);
-		newSocket = accept(atp->ductSocket, &bsoSocketName,
+		newSocket = accept(atp->bsiSocket, &bsoSocketName,
 				&nameLength);
 		if (newSocket < 0)
 		{
@@ -252,10 +270,6 @@ static void	*spawnReceivers(void *parm)
 		parms->mutex = &mutex;
 		parms->blockSocket = newSocket;
        		fromAddr = (struct sockaddr_in *) &bsoSocketName;
-		memcpy((char *) &hostNbr,
-				(char *) &(fromAddr->sin_addr.s_addr), 4);
-		hostNbr = ntohl(hostNbr);
-		printDottedString(hostNbr, hostName);
 		parms->running = &(atp->running);
 		if (pthread_begin(&(parms->thread), NULL, receiveBlocks,
 					parms))
@@ -272,7 +286,7 @@ static void	*spawnReceivers(void *parm)
 		sm_TaskYield();
 	}
 
-	closesocket(atp->ductSocket);
+	closesocket(atp->bsiSocket);
 	writeErrmsgMemos();
 
 	/*	Shut down all current BSI threads cleanly.		*/
@@ -313,11 +327,11 @@ static void	*spawnReceivers(void *parm)
 int	tcpbsi(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char	*ductName = (char *) a1;
+	char	*socketSpec = (char *) a1;
 #else
 int	main(int argc, char *argv[])
 {
-	char	*ductName = (argc > 1 ? argv[1] : NULL);
+	char	*socketSpec = (argc > 1 ? argv[1] : NULL);
 #endif
 	
 	BsspVdb			*vdb;
@@ -330,7 +344,7 @@ int	main(int argc, char *argv[])
 	pthread_t		accessThread;
 	int			fd;
 
-	if (ductName == NULL)
+	if (socketSpec == NULL)
 	{
 		PUTS("Usage: tcpbsi <local host name>[:<port number>]");
 		return 0;
@@ -345,14 +359,15 @@ int	main(int argc, char *argv[])
 	vdb = getBsspVdb();
 	if (vdb->rlBsiPid != ERROR && vdb->rlBsiPid != sm_TaskIdSelf())
 	{
-		putErrmsg("TCP-BSI task is already started.", itoa(vdb->rlBsiPid));
+		putErrmsg("TCP-BSI task is already started.",
+				itoa(vdb->rlBsiPid));
 		return 1;
 	}
 
 	/*	All command-line arguments are now validated.		*/
 
-	hostName = ductName;
-	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	hostName = socketSpec;
+	if (parseSocketSpec(socketSpec, &portNbr, &hostNbr) != 0)
 	{
 		putErrmsg("TCP-BSI can't get IP/port for host.", hostName);
 		return -1;
@@ -370,20 +385,20 @@ int	main(int argc, char *argv[])
 	atp.inetName->sin_family = AF_INET;
 	atp.inetName->sin_port = portNbr;
 	memcpy((char *) &(atp.inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-	atp.ductSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (atp.ductSocket < 0)
+	atp.bsiSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (atp.bsiSocket < 0)
 	{
 		putSysErrmsg("TCP-BSI can't open TCP socket", NULL);
 		return 1;
 	}
 
 	nameLength = sizeof(struct sockaddr);
-	if (reUseAddress(atp.ductSocket)
-	|| bind(atp.ductSocket, &(atp.socketName), nameLength) < 0
-	|| listen(atp.ductSocket, 5) < 0
-	|| getsockname(atp.ductSocket, &(atp.socketName), &nameLength) < 0)
+	if (reUseAddress(atp.bsiSocket)
+	|| bind(atp.bsiSocket, &(atp.socketName), nameLength) < 0
+	|| listen(atp.bsiSocket, 5) < 0
+	|| getsockname(atp.bsiSocket, &(atp.socketName), &nameLength) < 0)
 	{
-		closesocket(atp.ductSocket);
+		closesocket(atp.bsiSocket);
 		putSysErrmsg("TCP-BSI can't initialize socket", NULL);
 		return 1;
 	}
@@ -414,13 +429,13 @@ int	main(int argc, char *argv[])
 	atp.running = 1;
 	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
 	{
-		closesocket(atp.ductSocket);
+		closesocket(atp.bsiSocket);
 		putSysErrmsg("tcpbsi can't create access thread", NULL);
 		return 1;
 	}
 
 	/*	Now sleep until interrupted by SIGTERM, at which point
-	 *	it's time to stop the induct.				*/
+	 *	it's time to stop tcpbsi.				*/
 
 	{
 		char	txt[500];
@@ -451,7 +466,7 @@ int	main(int argc, char *argv[])
 
 	pthread_join(accessThread, NULL);
 	writeErrmsgMemos();
-	writeMemo("[i] tcpbsi duct has ended.");
+	writeMemo("[i] tcpbsi has ended.");
 	ionDetach();
 	return 0;
 }

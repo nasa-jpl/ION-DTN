@@ -45,6 +45,117 @@ static void	shutDownClo()	/*	Commands CLO termination.	*/
 
 /*	*	*	Main thread functions	*	*	*	*/
 
+typedef struct
+{
+	CbheEid		source;
+	CbheEid		dest;
+	BpTimestamp	lastBundle;
+} BundleStream;
+
+static int	isInOrder(Lyst streams, Bundle *bundle)
+{
+	LystElt		elt;
+	BundleStream	*stream;
+
+	for (elt = lyst_first(streams); elt; elt = lyst_next(elt))
+	{
+		stream = lyst_data(elt);
+		if (stream->source.nodeNbr < bundle->id.source.c.nodeNbr)
+		{
+			continue;
+		}
+
+		if (stream->source.nodeNbr > bundle->id.source.c.nodeNbr)
+		{
+			break;
+		}
+
+		if (stream->source.serviceNbr < bundle->id.source.c.serviceNbr)
+		{
+			continue;
+		}
+
+		if (stream->source.serviceNbr > bundle->id.source.c.serviceNbr)
+		{
+			break;
+		}
+
+		if (stream->dest.nodeNbr < bundle->destination.c.nodeNbr)
+		{
+			continue;
+		}
+
+		if (stream->dest.nodeNbr > bundle->destination.c.nodeNbr)
+		{
+			break;
+		}
+
+		if (stream->dest.serviceNbr < bundle->destination.c.serviceNbr)
+		{
+			continue;
+		}
+
+		if (stream->dest.serviceNbr > bundle->destination.c.serviceNbr)
+		{
+			break;
+		}
+
+		/*	Found matching stream.				*/
+
+		if (bundle->id.creationTime.seconds
+				> stream->lastBundle.seconds
+		|| (bundle->id.creationTime.seconds
+				== stream->lastBundle.seconds
+			&& bundle->id.creationTime.count
+				> stream->lastBundle.count))
+		{
+			stream->lastBundle.seconds =
+					bundle->id.creationTime.seconds;
+			stream->lastBundle.count =
+					bundle->id.creationTime.count;
+			return 1;
+		}
+
+		return 0;
+	}
+
+	stream = (BundleStream *) MTAKE(sizeof(BundleStream));
+	if (stream == NULL)
+	{
+		return 0;
+	}
+
+	if (elt)
+	{
+		elt = lyst_insert_before(elt, stream);
+	}
+	else
+	{
+		elt = lyst_insert_last(streams, stream);
+	}
+
+	if (elt == NULL)
+	{
+		MRELEASE(stream);
+		return 0;
+	}
+
+	stream->source.nodeNbr = bundle->id.source.c.nodeNbr;
+	stream->source.serviceNbr = bundle->id.source.c.serviceNbr;
+	stream->dest.nodeNbr = bundle->destination.c.nodeNbr;
+	stream->dest.serviceNbr = bundle->destination.c.serviceNbr;
+	stream->lastBundle.seconds = bundle->id.creationTime.seconds;
+	stream->lastBundle.count = bundle->id.creationTime.count;
+	return 1;
+}
+
+static void	eraseStream(LystElt elt, void *userData)
+{
+	BundleStream	*stream = lyst_data(elt);
+
+	MRELEASE(stream);
+}
+
 #if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	bsspclo(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
@@ -68,9 +179,11 @@ int	main(int argc, char *argv[])
 	BpExtendedCOS	extendedCOS;
 	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
 	BsspSessionId	sessionId;
-	BundleInfo	info;
-	Object		bundleAddr;
-	Bundle		bundle;
+	unsigned char	*buffer;
+	Lyst		streams;
+	Bundle		bundleImage;
+	char		*dictionary = 0;
+	unsigned int	bundleLength;
 
 	if (ductName == NULL)
 	{
@@ -101,6 +214,22 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
+	buffer = (unsigned char *) MTAKE(BP_MAX_BLOCK_SIZE);
+	if (buffer == NULL)
+	{
+		putErrmsg("Can't get buffer for decoding bundle ZCOs.", NULL);
+		return -1;
+	}
+
+	streams = lyst_create_using(getIonMemoryMgr());
+	if (streams == NULL)
+	{
+		putErrmsg("Can't create lyst of streams.", NULL);
+		MRELEASE(buffer);
+		return -1;
+	}
+
+	lyst_delete_set(streams, eraseStream, NULL);
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
@@ -129,6 +258,8 @@ int	main(int argc, char *argv[])
 	if (bssp_attach() < 0)
 	{
 		putErrmsg("bsspclo can't initialize BSSP.", NULL);
+		lyst_destroy(streams);
+		MRELEASE(buffer);
 		return -1;
 	}
 
@@ -154,17 +285,11 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		CHKERR(sdr_begin_xn(sdr));
-		if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
+		if (decodeBundle(sdr, bundleZco, buffer, &bundleImage,
+				&dictionary, &bundleLength) < 0)
 		{
-			putErrmsg("Can't locate in transit bundle.", NULL);
-			sdr_cancel_xn(sdr);
-			continue;
-		}
-
-		if (bundleAddr == 0) /* 	Highly unlikely 	*/
-		{
-			/*	Bundle not found, so we discard the ADU.   */
+			putErrmsg("Can't decode bundle ZCO.", NULL);
+			CHKERR(sdr_begin_xn(sdr));
 			zco_destroy(sdr, bundleZco);
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -174,26 +299,9 @@ int	main(int argc, char *argv[])
 
 			continue;
 		}
-		else
-		{
-			sdr_read(sdr, (char *) &bundle, bundleAddr,
-					sizeof(Bundle));
-
-			/*  Copy bundle information for later processing by	* 
-			 *  Bundle Streaming Service Protocol that implements	*
-			 *  the BSS-CL.  					*
-			 */
-			info.srcNodeNbr = bundle.id.source.c.nodeNbr;
-			info.srcServiceNbr = bundle.id.source.c.serviceNbr;
-			info.dstNodeNbr = bundle.destination.c.nodeNbr;
-			info.dstServiceNbr =  bundle.destination.c.serviceNbr;
-			info.creationTime = bundle.id.creationTime;
-
-			sdr_exit_xn(sdr);
-		}
 
 		switch (bssp_send(destEngineNbr, BpBsspClientId, bundleZco,
-				&sessionId, info))
+				isInOrder(streams, &bundleImage), &sessionId))
 		{
 		case 0:
 			putErrmsg("Unable to send this bundle via BSSP.", NULL);
@@ -215,6 +323,8 @@ int	main(int argc, char *argv[])
 
 	writeErrmsgMemos();
 	writeMemo("[i] bsspclo duct has ended.");
+	lyst_destroy(streams);
+	MRELEASE(buffer);
 	ionDetach();
 	return 0;
 }
