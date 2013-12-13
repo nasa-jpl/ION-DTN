@@ -2,7 +2,7 @@
 #!/bin/bash
 ionadmin	amroc.ionrc
 sleep 1
-ionadmin	global.ionrc
+ionadmin	../global.ionrc
 sleep 1
 ionsecadmin	amroc.ionsecrc
 sleep 1

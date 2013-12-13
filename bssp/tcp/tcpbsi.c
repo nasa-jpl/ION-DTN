@@ -53,9 +53,12 @@ static void	*receiveBlocks(void *parm)
 
 	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
 	char			*procName = "tcpbsi";
-	int			blockLength;
-	char			*buffer;
 	int			threadRunning = 1;
+	char			*buffer;
+	int			bytesRemaining;
+	char			*into;
+	int			blockLength;
+	int			bytesReceived;
 
 	buffer = MTAKE(TCPBSA_BUFSZ);
 	if (buffer == NULL)
@@ -70,45 +73,77 @@ static void	*receiveBlocks(void *parm)
 
 	while (threadRunning && *(parms->running))
 	{
-		switch (irecv(parms->blockSocket, (char *) &blockLength, 4, 0))
+		bytesRemaining = 4;
+		into = (char *) &blockLength;
+		while (bytesRemaining > 0)
 		{
-		case -1:
-			if (errno != EINTR)	/*	Shutdown.	*/
-			{	
-				putErrmsg("tcpbsi read() error on socket. \
-					TCP-BSI can't acquire block.", NULL);
+			bytesReceived = irecv(parms->blockSocket, into,
+					bytesRemaining, 0);
+			switch(bytesReceived)
+			{
+			case -1:
+				if (errno != EINTR)	/*	Shutdown.*/
+				{	
+					putErrmsg("tcpbsi read() error on \
+socket.  TCP-BSI can't acquire block.", NULL);
+				}
+
+				/*	Intentional fall-through.	*/
+			case 0:	
+				ionKillMainThread(procName);
+				threadRunning = 0;
+				continue;
+
+			default:
+				break;
 			}
 
-			/*	Intentional fall-through to next case.	*/
-		case 0:	
-			threadRunning = 0;
-			continue;
-
-		default:
-			break;
+			bytesRemaining -= bytesReceived;
+			into += bytesReceived;
 		}
 
+		blockLength = ntohl(blockLength);
 		if (blockLength == 0)	/*	Just a keep-alive.	*/
 		{
 			continue;
 		}
 
-		switch (irecv(parms->blockSocket, buffer, blockLength, 0))
+		if (blockLength > TCPBSA_BUFSZ)
 		{
-		case -1:
-			if (errno != EINTR)	/*	Shutdown.	*/
-			{	
-				putErrmsg("tcpbsi read() error on socket. \
-					TCP-BSI can't acquire block.", NULL);
-			}
-
-			/*	Intentional fall-through to next case.	*/
-		case 0:	
+			putErrmsg("tcpbsi block length exceeds buffer size.",
+					itoa(blockLength));
+			ionKillMainThread(procName);
 			threadRunning = 0;
 			continue;
+		}
 
-		default:
-			break;
+		bytesRemaining = blockLength;
+		into = buffer;
+		while (bytesRemaining > 0)
+		{
+			bytesReceived = irecv(parms->blockSocket, into,
+					bytesRemaining, 0);
+			switch (bytesReceived)
+			{
+			case -1:
+				if (errno != EINTR)	/*	Shutdown.*/
+				{	
+					putErrmsg("tcpbsi read() error on \
+socket.  TCP-BSI can't acquire block.", NULL);
+				}
+
+				/*	Intentional fall-through.	*/
+			case 0:	
+				ionKillMainThread(procName);
+				threadRunning = 0;
+				continue;
+
+			default:
+				break;
+			}
+
+			bytesRemaining -= bytesReceived;
+			into += bytesReceived;
 		}
 
 		if (bsspHandleInboundBlock(buffer, blockLength) < 0)

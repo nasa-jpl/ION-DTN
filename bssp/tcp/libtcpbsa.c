@@ -86,7 +86,11 @@ int	sendBytesByTCP(int *blockSocket, char *from, int length,
 int	sendBlockByTCP(struct sockaddr *socketName, int *blockSocket,
 		int blockLength, char *block)
 {
-	int		bytesSent;
+	int	totalBytesSent = 0;
+	int	header = htonl(blockLength);
+	int	bytesRemaining;
+	char	*from;
+	int	bytesSent;
 
 	/*	Connect to BSI as necessary.				*/
 
@@ -100,50 +104,67 @@ int	sendBlockByTCP(struct sockaddr *socketName, int *blockSocket,
 		}
 	}
 
-	bytesSent = sendBytesByTCP(blockSocket, (char *) &blockLength, 4,
-			socketName);
-	if (bytesSent < 0)
+	bytesRemaining = 4;
+	from = (char *) &header;
+	while (bytesRemaining > 0)
 	{
-		/*	Big problem; shut down.				*/
+		bytesSent = sendBytesByTCP(blockSocket, from, bytesRemaining,
+				socketName);
+		if (bytesSent < 0)
+		{
+			/*	Big problem; shut down.			*/
 
-		putErrmsg("Failed to send preamble by TCP.", NULL);
-		return -1;
+			putErrmsg("Failed to send preamble by TCP.", NULL);
+			return -1;
+		}
+
+		if (*blockSocket == -1)
+		{
+			/*	Just lost connection; treat as a
+			 *	transient anomaly, note incomplete
+			 *	transmission.				*/
+
+			writeMemo("[?] Lost connection to TCP BSI.");
+			return 0;
+		}
+
+		bytesRemaining -= bytesSent;
+		from += bytesSent;
 	}
-
-	if (*blockSocket == -1)
-	{
-		/*	Just lost connection; treat as a transient
-		 *	anomaly, note incomplete transmission.		*/
-
-		writeMemo("[?] Lost connection to TCP BSI.");
-		return 0;
-	}
-
 
 	if (blockLength == 0)		/*	Just a keep-alive.	*/
 	{
 		return 1;	/*	Impossible length; means "OK".	*/
 	}
 
-	bytesSent = sendBytesByTCP(blockSocket, block, blockLength,
-			socketName);
-	if (bytesSent < 0)
+	bytesRemaining = blockLength;
+	from = block;
+	while (bytesRemaining > 0)
 	{
-		/*	Big problem; shut down.				*/
+		bytesSent = sendBytesByTCP(blockSocket, from, bytesRemaining,
+				socketName);
+		if (bytesSent < 0)
+		{
+			/*	Big problem; shut down.			*/
 
-		putErrmsg("Failed to send block by TCP.", NULL);
-		return -1;
+			putErrmsg("Failed to send block by TCP.", NULL);
+			return -1;
+		}
+
+		if (*blockSocket == -1)
+		{
+			/*	Just lost connection; treat as a
+			 *	transient anomaly, note incomplete
+			 *	transmission.				*/
+
+			writeMemo("[?] Lost connection to TCP BSI.");
+			return 0;
+		}
+
+		totalBytesSent += bytesSent;
+		from += bytesSent;
+		bytesRemaining -= bytesSent;
 	}
 
-	if (*blockSocket == -1)
-	{
-		/*	Just lost connection; treat as a transient
-		 *	anomaly, note incomplete transmission.		*/
-
-		writeMemo("[?] Lost connection to TCP BSI.");
-		return 0;
-	}
-
-	return bytesSent;
+	return totalBytesSent;
 }
-
