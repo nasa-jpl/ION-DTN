@@ -130,7 +130,7 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #include <sys/stat.h>
 
 #ifdef mingw			/****   Windows vs all others	*********/
-#include <windows.h>
+#include <winsock2.h>
 #include <process.h>
 #include <Winbase.h>
 #include <sys/time.h>

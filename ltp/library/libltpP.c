@@ -3381,6 +3381,10 @@ char		buf[256];
 		do
 		{
 			session->lastRptSerialNbr = rand();
+
+			/*	Limit serial number SDNV length.	*/
+
+			session->lastRptSerialNbr %= LTP_SERIAL_NBR_LIMIT;
 		} while (session->lastRptSerialNbr == 0);
 	}
 	else					/*	Just add 1.	*/

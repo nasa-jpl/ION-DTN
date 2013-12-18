@@ -51,6 +51,7 @@ typedef struct
 	long	wmSize;
 	char	*wmAddress;
 	char	sdrName[MAX_SDR_NAME + 1];
+	long	sdrWmSize;
 	int	configFlags;
 	long	heapWords;
 	int	heapKey;
