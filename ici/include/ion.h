@@ -23,8 +23,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2013-05-25 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.1.3"
+/* As of 2013-11-17 the sourceforge version number is this: */
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.2.0"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -51,6 +51,7 @@ typedef struct
 	long	wmSize;
 	char	*wmAddress;
 	char	sdrName[MAX_SDR_NAME + 1];
+	long	sdrWmSize;
 	int	configFlags;
 	long	heapWords;
 	int	heapKey;

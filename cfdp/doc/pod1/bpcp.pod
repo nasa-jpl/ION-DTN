@@ -69,11 +69,11 @@ be run simultaneously with B<bpcpd> or B<cfdptest>.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bpcp> terminated normally.
 
-=item 1
+=item "1"
 
 B<bpcp> terminated abnormally. Check console and the B<ion.log> file for error messages.
 

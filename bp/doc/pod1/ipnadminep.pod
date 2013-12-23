@@ -26,13 +26,13 @@ by logging ASCII text messages describing the reported activity.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<ipnadminep> terminated, for reasons noted in the B<ion.log> file.  If this
 termination was not commanded, investigate and solve the problem identified
 in the log file and use B<bpadmin> to restart B<ipnadminep>.
 
-=item 1
+=item "1"
 
 B<ipnadminep> was unable to attach to Bundle Protocol operations or was
 unable to load the IPN scheme database, probably because B<bpadmin> has

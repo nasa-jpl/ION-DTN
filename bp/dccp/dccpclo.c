@@ -36,107 +36,77 @@ static sm_SemId	dccpcloSemaphore(sm_SemId *semid)
 /* Commands LSO termination 						*/
 static void	shutDownClo()
 {
+	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(dccpcloSemaphore(NULL));
 }
 
-
-/*	*	*	Idle thread functions	*	*	*	*/
-
-
-typedef struct {
-	int 				active;
-	int					data;
-	int					linksocket;
-	struct sockaddr		socketName;
-	int					MPS;
-	int 				done;
-	pthread_mutex_t		mutex;
-	char*				ductname;
-} clo_state;
-
-
-void* idle_wait(void* param)
+#ifndef mingw
+void	handleConnectionLoss()
 {
-	/* Disconnect after a certain amount of idle time 		*/
-	clo_state 	*itp = (clo_state*)param;
-	long 		count=0;
-
-	iblock(SIGTERM);
-	while(!itp->done)
-		{
-		snooze(1);
-		count++;
-		if (count < DCCP_IDLE_TIME)
-		{
-			continue;
-		}
-		count=0;
-
-		pthread_mutex_lock(&itp->mutex);
-		if(itp->active==1 && itp->data==0)
-		{
-			/*Link has been idle 				*/
-			close(itp->linksocket);	/*shut it down 		*/
-			itp->active=0;
-		}
-		else
-		{
-			itp->data=0;
-		}
-		pthread_mutex_unlock(&itp->mutex);
-	}
-return NULL;
+	isignal(SIGPIPE, handleConnectionLoss);
 }
+#endif
 
 
-/*	*	*	Main thread functions	*	*	*	*/
+/*	*	*	General Functions	*	*	*	*/
 
 
 int connectDCCPsock(int* sock, struct sockaddr* socketName, int* MPS)
 {
 	int on;
 	unsigned int is;
-	int time;
+	unsigned char ccid;
 
-	if(sock==NULL || socketName==NULL)
+	if (sock == NULL || socketName == NULL)
 	{
 		return -1;
 	}
 
 	if ((*sock = socket(AF_INET, SOCK_DCCP, IPPROTO_DCCP)) < 0 )
 	{
-		putSysErrmsg("CLO can't open DCCP socket. This probably means DCCP is not supported on your system.", NULL);
+		putSysErrmsg("DCCPCLO can't open DCCP socket. This probably means DCCP is not supported on your system.", NULL);
 		return -1;
 	}
 
-	time=START_BACKOFF;
-	while(connect(*sock, socketName, sizeof(struct sockaddr_in)) < 0)
+	if (connect(*sock, socketName, sizeof(struct sockaddr_in)) < 0)
 	{
-		putSysErrmsg("[i] Lost DCCP connection to CLI; attempting to reconnect.", NULL);
-		snooze(time);
-		if(time <= MAX_BACKOFF)
+		writeMemo("[i] DCCP connection to CLI could not be established. Retrying.");
+		return -1;
+	}
+
+	on = 1;
+	if (setsockopt(*sock, SOL_DCCP, SO_REUSEADDR, (const char *) &on, sizeof(on)) < 0)
+	{
+		putSysErrmsg("DCCPCLO can't initialize socket.", "SO_REUSEADDR");
+		return -1;
+	}
+
+	if (DCCP_CCID > 0)
+	{
+		ccid = DCCP_CCID;
+		if (setsockopt(*sock, SOL_DCCP, DCCP_SOCKOPT_CCID, (unsigned char*)&ccid, sizeof (ccid)) < 0)
 		{
-			time=time*2;
-		}else{
-			putSysErrmsg("[i] Lost DCCP connection to CLI; restart CLO \
-												when connectivity is restored.", NULL);
+			putSysErrmsg("DCCP Socket Option Error.", NULL);
 			return -1;
 		}
 	}
 
-	on=1;
-	if(setsockopt(*sock, SOL_DCCP, SO_REUSEADDR, (const char *) &on, sizeof(on)) < 0)
+	if (DCCP_Q_LEN > 0)
 	{
-		putSysErrmsg("CLO can't initialize socket.", "SO_REUSEADDR");
-		return -1;
+		on = DCCP_Q_LEN;
+		if (setsockopt(*sock, SOL_DCCP, DCCP_SOCKOPT_QPOLICY_TXQLEN, (void *)&on, sizeof(on)) < 0)
+		{
+			putSysErrmsg("DCCP Socket Option Error.", NULL);
+			return -1;
+		}
 	}
 
-	is=sizeof(int);
-	if(getsockopt(*sock, SOL_DCCP, DCCP_SOCKOPT_GET_CUR_MPS, (int *) MPS, &is) < 0)
+	is = sizeof(int);
+	if (getsockopt(*sock, SOL_DCCP, DCCP_SOCKOPT_GET_CUR_MPS, (int *) MPS, &is) < 0)
 	{
-			putSysErrmsg("CLO can't initialize socket.", "GET_CUR_MPS");
-			*MPS=1400;
-			return -1;
+		putSysErrmsg("DCCPCLO can't initialize socket.", "GET_CUR_MPS");
+		*MPS = 1400;
+		return -1;
 	}
 return 0;
 }
@@ -144,19 +114,24 @@ return 0;
 int	sendBytesByDCCP(int linkSocket, char *from, int length)
 {
 	int	bytesWritten;
-	long 	count=0;
+	long 	count = 0;
+
+	if (linkSocket < 0)
+	{
+		return -2;
+	}
 
 	while (1)	/*	Continue until not interrupted.		*/
 	{
-		bytesWritten = send(linkSocket, from, length, 0);
+		bytesWritten = isend(linkSocket, from, length, 0);
 		if (bytesWritten < 0)
 		{
 			/*Interrupted.					*/
-			if (errno == EINTR || errno==EAGAIN)
+			if (errno == EINTR || errno == EAGAIN)
 			{
 				microsnooze(EAGAIN_WAIT);
 				count++;
-				if(MAX_DCCP_RETRIES > 0 && count > MAX_DCCP_RETRIES)
+				if (MAX_DCCP_RETRIES > 0 && count > MAX_DCCP_RETRIES)
 				{
 					close(linkSocket);
 					snooze(2); /* Let things settle down */
@@ -166,23 +141,99 @@ int	sendBytesByDCCP(int linkSocket, char *from, int length)
 			}
 
 			/* Connection Reset 				*/
-			if(errno==ENOTCONN || errno==ECONNRESET)
-			{
-				return -2;
-			}
-
-			/* CLI closed connection 			*/
-			if(errno==EPIPE)
+			if (errno == ENOTCONN || errno == ECONNRESET || errno == ECONNREFUSED)
 			{
 				close(linkSocket);
 				return -2;
 			}
-			putSysErrmsg("CLO send() error on socket.", NULL);
+
+			/* CLI closed connection 			*/
+			if (errno == EPIPE)
+			{
+				close(linkSocket);
+				return -2;
+			}
+			putSysErrmsg("DCCPCLO send() error on socket.", NULL);
 		}
-		count=0;
+		count = 0;
 		return bytesWritten;
 	}
+	return 0;
 }
+
+
+/*	*	*	Keep Alive functions	*	*	*	*/
+
+
+typedef struct {
+	int 				active;
+	int					linksocket;
+	struct sockaddr		socketName;
+	int					MPS;
+	int 				done;
+	pthread_mutex_t		mutex;
+	char*				ductname;
+} clo_state;
+
+
+void* send_keepalives(void* param)
+{
+	/* send keepalives 		*/
+	clo_state 	*itp = (clo_state*)param;
+	long 		count = 0;
+	char 		keepalive[4];
+	int 		time;
+
+	iblock(SIGTERM);
+#ifndef mingw
+	isignal(SIGPIPE, handleConnectionLoss);
+#endif
+
+	memset(keepalive,0,4);
+	while (!itp->done)
+	{
+		snooze(1);
+		count++;
+		if (count < KEEPALIVE_PERIOD)
+		{
+			continue;
+		}
+		count = 0;
+
+		pthread_mutex_lock(&itp->mutex);
+		time = KEEPALIVE_PERIOD;
+		while (!itp->done && sendBytesByDCCP(itp->linksocket, keepalive,4) < 0)
+		{
+			if (!itp->done && connectDCCPsock(&itp->linksocket, &itp->socketName, &itp->MPS) < 0)
+			{
+				pthread_mutex_unlock(&itp->mutex);
+				snooze(time);
+				pthread_mutex_lock(&itp->mutex);
+				if (time <= MAX_BACKOFF)
+				{
+					time = time*2;
+				}
+			}
+			else
+			{
+				itp->active = 1;
+				pthread_mutex_unlock(&itp->mutex);
+				if (bpUnblockOutduct("dccp", itp->ductname) < 0)
+				{
+					putErrmsg("DCCPCLO connected but didn't unblock outduct.",
+								NULL);
+				}
+				pthread_mutex_lock(&itp->mutex);
+			}
+		}
+		pthread_mutex_unlock(&itp->mutex);
+	}
+return NULL;
+}
+
+
+/*	*	*	Main thread functions	*	*	*	*/
+
 
 int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 {
@@ -219,90 +270,86 @@ int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedCOS,
 			char* dest, char* buffer)
 {
-			Sdr			sdr;
-			ZcoReader	reader;
-			int			bytesSent;
-			int			bytesToSend;
-			int			bundleLength;
+	Sdr			sdr;
+	ZcoReader	reader;
+	int			bytesSent;
+	int			bytesToSend;
+	int			bundleLength;
 
-			/* Connect socket				*/
-			if(!itp->active)
+	/* Connect socket				*/
+	if (!itp->active)
+	{
+		if (connectDCCPsock(&itp->linksocket, &itp->socketName, &itp->MPS) < 0)
+		{
+			itp->active = 0;
+			return handleDccpFailure(itp->ductname, &itp->socketName, bundleZco);
+		}
+		itp->active = 1;
+	}
+
+	/*check if we can send this size of bundle	*/
+	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
+	bundleLength = zco_length(sdr, *bundleZco);
+	if (bundleLength > itp->MPS)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("Bundle is too big for DCCPCLO.", itoa(bundleLength));
+		return -1;
+	}
+
+	/*Get Data to Send from ZCO			*/
+	zco_start_transmitting(*bundleZco, &reader);
+	bytesToSend = zco_transmit(sdr, &reader, DCCPCLA_BUFSZ, buffer);
+	if (sdr_end_xn(sdr) < 0 || bytesToSend < 0)
+	{
+		putErrmsg("Can't issue from ZCO.", NULL);
+		return -1;
+	}
+
+	/*Send Data
+	 * retry until success or fatal error 		*/
+	do{
+		bytesSent = sendBytesByDCCP(itp->linksocket, buffer, bundleLength);
+		if (bytesSent < bundleLength)
+		{
+			if (bytesSent==-2)
 			{
-				if(connectDCCPsock(&itp->linksocket, &itp->socketName, &itp->MPS)<0)
+				/*There is no connection. Attempt to reestablish it. */
+				if (connectDCCPsock(&itp->linksocket, &itp->socketName, &itp->MPS)<0)
 				{
-					itp->active=0;
 					return handleDccpFailure(itp->ductname, &itp->socketName, bundleZco);
 				}
-				itp->active=1;
-			}
-
-			/*check if we can send this size of bundle	*/
-			sdr = getIonsdr();
-			CHKERR(sdr_begin_xn(sdr));
-			bundleLength = zco_length(sdr, *bundleZco);
-			if(bundleLength > itp->MPS)
-			{
-				sdr_exit_xn(sdr);
-				putErrmsg("Bundle is too big for DCCP CLO.", itoa(bundleLength));
-				return -1;
-			}
-
-			/*Get Data to Send from ZCO			*/
-			zco_start_transmitting(*bundleZco, &reader);
-			bytesToSend = zco_transmit(sdr, &reader, DCCPCLA_BUFSZ, buffer);
-			if (sdr_end_xn(sdr) < 0 || bytesToSend < 0)
-			{
-				putErrmsg("Can't issue from ZCO.", NULL);
-				return -1;
-			}
-
-			/*Send Data
-			 * retry until success or fatal error 		*/
-			do{
-				bytesSent = sendBytesByDCCP(itp->linksocket, buffer, bundleLength);
-				if (bytesSent < bundleLength)
+				else
 				{
-					if(bytesSent==-2)
-					{
-						/*There is no connection. Attempt to reestablish it. */
-						if(connectDCCPsock(&itp->linksocket, &itp->socketName, &itp->MPS)<0)
-						{
-
-							writeMemo("[i] Lost DCCP connection to CLI; restart CLO \
-							when connectivity is restored.");
-							return handleDccpFailure(itp->ductname, &itp->socketName, bundleZco);
-						}
-						else
-						{
-							continue; /*retry sending */
-						}
-					}
-					else
-					{
-						return handleDccpFailure(itp->ductname, &itp->socketName, bundleZco);
-					}
+					continue; /*retry sending */
 				}
-				itp->data=1;
-				itp->active=1;
-				break; /*sent successfully		*/
-			}while(1);
-
-			/* Notify BP of success transmitting		*/
-			if (bpHandleXmitSuccess(*bundleZco, 0) < 0)
-			{
-				putErrmsg("Can't handle xmit success.", NULL);
-				bytesSent=-1;
 			}
-
-			/* Cleanup ZCO					*/
-			CHKERR(sdr_begin_xn(sdr));
-			zco_destroy(sdr, *bundleZco);
-			if (sdr_end_xn(sdr) < 0)
+			else
 			{
-				putErrmsg("Can't destroy bundle ZCO.", NULL);
-				bytesSent=-1;
+				return handleDccpFailure(itp->ductname, &itp->socketName, bundleZco);
 			}
-return bytesSent;
+		}
+		itp->active = 1;
+		break; /*sent successfully		*/
+	}while(1);
+
+	/* Notify BP of success transmitting		*/
+	if (bpHandleXmitSuccess(*bundleZco, 0) < 0)
+	{
+		putErrmsg("Can't handle xmit success.", NULL);
+		bytesSent=-1;
+	}
+
+	/* Cleanup ZCO					*/
+	CHKERR(sdr_begin_xn(sdr));
+	zco_destroy(sdr, *bundleZco);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't destroy bundle ZCO.", NULL);
+		bytesSent=-1;
+	}
+	return bytesSent;
 }
 
 #if defined (VXWORKS) || defined (RTEMS)
@@ -325,7 +372,7 @@ int	main(int argc, char *argv[])
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
 	struct sockaddr_in	*inetName;
-	pthread_t			idle_thread;
+	pthread_t			keepalive_thread;
 	clo_state			itp;
 	Object				bundleZco;
 	BpExtendedCOS		extendedCOS;
@@ -367,7 +414,7 @@ int	main(int argc, char *argv[])
 
 	if (vduct->cloPid != ERROR && vduct->cloPid != sm_TaskIdSelf())
 	{
-		putErrmsg("CLO task is already started for this duct.",
+		putErrmsg("DCCPCLO task is already started for this duct.",
 				itoa(vduct->cloPid));
 		MRELEASE(buffer);
 		return 1;
@@ -403,16 +450,14 @@ int	main(int argc, char *argv[])
 
 	/* get host to connect to from outduct				*/
 	hostName = ductName;
-	parseSocketSpec(hostName, &portNbr, &ipAddress);
+	if (parseSocketSpec(hostName, &portNbr, &ipAddress) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", hostName);
+		return 1;
+	}
 	if (portNbr == 0)
 	{
 		portNbr = BpDccpDefaultPortNbr;
-	}
-	if (ipAddress == 0)
-	{
-		putSysErrmsg("dccpclo can't get IP address for host.", hostName);
-		MRELEASE(buffer);
-		return 1;
 	}
 
 	portNbr = htons(portNbr);
@@ -425,16 +470,18 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling. SIGTERM is shutdown signal.	*/
 	oK(dccpcloSemaphore(&(vduct->semaphore)));
-	signal(SIGTERM, shutDownClo);
+	isignal(SIGTERM, shutDownClo);
+#ifndef mingw
+	isignal(SIGPIPE, handleConnectionLoss);
+#endif
 
 
 	/*	Set up idle thread 					*/
-	itp.active=0;
-	itp.done=0;
-	itp.data=0;
-	itp.ductname=ductName;
+	itp.active = 0;
+	itp.done = 0;
+	itp.ductname = ductName;
 	pthread_mutex_init(&itp.mutex, NULL);
-	if (pthread_begin(&idle_thread, NULL, idle_wait, (void*)&itp))
+	if (pthread_begin(&keepalive_thread, NULL, send_keepalives, (void*)&itp))
 	{
 		putSysErrmsg("dccpclo can't create thread.", NULL);
 		pthread_mutex_destroy(&itp.mutex);
@@ -465,21 +512,22 @@ int	main(int argc, char *argv[])
 
 		if (bundleLength > DCCPCLA_BUFSZ)
 		{
-			/*Segment Way Too Big--Terminate CLO 		*/
-			putErrmsg("Bundle is too big for DCCP CLO.", itoa(bundleLength));
+			/*Bundle Way Too Big--Terminate CLO 	*/
+			putErrmsg("Bundle is too big for DCCPCLO.", itoa(bundleLength));
 			sm_SemEnd(dccpcloSemaphore(NULL));
 			running = 0;
 			continue;
+			/*	Take Down CLO				*/
 		}
 
 		/* send bundle 						*/
 		pthread_mutex_lock(&itp.mutex);
-		sentLength=sendBundleByDCCP(&itp, &bundleZco, &extendedCOS, destDuctName, buffer);
+		sentLength = sendBundleByDCCP(&itp, &bundleZco, &extendedCOS, destDuctName, buffer);
 		pthread_mutex_unlock(&itp.mutex);
-		if(sentLength < bundleLength)
+		if (sentLength < bundleLength)
 		{
 			sm_SemEnd(dccpcloSemaphore(NULL));
-			running=0;
+			running = 0;
 			continue;
 			/*	Take Down CLO				*/
 		}
@@ -489,10 +537,11 @@ int	main(int argc, char *argv[])
 	}
 
 	/* CLO is exiting						*/
+	writeMemo("[i] dccpclo done sending.");
 	pthread_mutex_lock(&itp.mutex);
-	itp.done=1;
+	itp.done = 1;
 	pthread_mutex_unlock(&itp.mutex);
-	pthread_join(idle_thread, NULL);
+	pthread_join(keepalive_thread, NULL);
 	pthread_mutex_destroy(&itp.mutex);
 	close(itp.linksocket);
 	writeErrmsgMemos();

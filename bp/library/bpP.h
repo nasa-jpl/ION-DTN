@@ -25,6 +25,8 @@
 extern "C" {
 #endif
 
+#define	BP_VERSION			6
+
 /*	"Watch" switches for bundle protocol operation.			*/
 #define	WATCH_a				(1)
 #define	WATCH_b				(2)
@@ -339,6 +341,7 @@ typedef struct
 	char		accepted;	/*	Boolean.		*/
 	char		corrupt;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
+	char		fragmented;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
@@ -559,12 +562,19 @@ typedef struct
 
 /*	*	*	Protocol structures	*	*	*	*/
 
+/*	Protocol Classes		*/
+#define	BP_PROTOCOL_STREAMING		1
+#define	BP_PROTOCOL_UNRELIABLE		2
+#define	BP_PROTOCOL_RELIABLE		8
+#define	BP_PROTOCOL_BOTH		10
+
 typedef struct
 {
 	char		name[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	int		payloadBytesPerFrame;
 	int		overheadPerFrame;
 	int		nominalRate;	/*	Bytes per second.	*/
+	int		protocolClass;
 	Object		inducts;	/*	SDR list of Inducts	*/
 	Object		outducts;	/*	SDR list of Outducts	*/
 } ClProtocol;
@@ -606,15 +616,24 @@ typedef struct
 	int		maxAcqInHeap;
 	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
+
+	/*	Network management instrumentation			*/
+
 	time_t		resetTime;	/*	Stats reset time.	*/
+	time_t		startTime;	/*	Node restart time.	*/
+	int		regCount;	/*	Since node restart.	*/
+	int		updateStats;	/*	Boolean.		*/
+	vast		currentBundlesFragmented;
+	vast		totalBundlesFragmented;
+	vast		currentFragmentsProduced;
+	vast		totalFragmentsProduced;
 	Object		sourceStats;	/*	BpCosStats address.	*/
 	Object		recvStats;	/*	BpCosStats address.	*/
 	Object		discardStats;	/*	BpCosStats address.	*/
 	Object		xmitStats;	/*	BpCosStats address.	*/
-	Object		rptStats;	/*	BpRptStats address.	*/
+	Object		delStats;	/*	BpDelStats address.	*/
 	Object		ctStats;	/*	BpCtStats address.	*/
 	Object		dbStats;	/*	BpDbStats address.	*/
-	int		updateStats;	/*	Boolean.		*/
 } BpDB;
 
 /*  CT database encapsulates custody transfer configuration. */
@@ -660,7 +679,9 @@ typedef struct
 #define	BP_DB_TO_LIMBO		4
 #define	BP_DB_FROM_LIMBO	5
 #define	BP_DB_EXPIRED		6
-#define	BP_DB_STATS		7
+#define	BP_DB_ABANDON		7
+#define	BP_DB_DISCARD		8
+#define	BP_DB_STATS		9
 
 typedef struct
 {
@@ -669,11 +690,9 @@ typedef struct
 
 typedef struct
 {
-	unsigned int	totalRptByStatus[BP_STATUS_STATS];
-	unsigned int	currentRptByStatus[BP_STATUS_STATS];
-	unsigned int	totalRptByReason[BP_REASON_STATS];
-	unsigned int	currentRptByReason[BP_REASON_STATS];
-} BpRptStats;
+	unsigned int	totalDelByReason[BP_REASON_STATS];
+	unsigned int	currentDelByReason[BP_REASON_STATS];
+} BpDelStats;
 
 typedef struct
 {
@@ -694,7 +713,7 @@ typedef struct
 	Object		recvStats;	/*	BpCosStats address.	*/
 	Object		discardStats;	/*	BpCosStats address.	*/
 	Object		xmitStats;	/*	BpCosStats address.	*/
-	Object		rptStats;	/*	BpRptStats address.	*/
+	Object		delStats;	/*	BpDelStats address.	*/
 	Object		ctStats;	/*	BpCtStats address.	*/
 	Object		dbStats;	/*	BpDbStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
@@ -766,6 +785,7 @@ typedef enum
 typedef struct
 {
 	FwdAction	action;
+	int		protocolClass;
 	Object		outductElt;	/*	sdrlist elt for xmit	*/
 	Object		destDuctName;	/*	sdrstring for xmit	*/
 	Object		eid;		/*	sdrstring for fwd	*/
@@ -1290,7 +1310,8 @@ extern int		removeEndpoint(char *endpointName);
 
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
 extern int		addProtocol(char *name, int payloadBytesPerFrame,
-				int overheadPerFrame, int nominalRate);
+				int overheadPerFrame, int nominalRate,
+				int protocolClass);
 extern int		removeProtocol(char *name);
 extern int		bpStartProtocol(char *name);
 extern void		bpStopProtocol(char *name);

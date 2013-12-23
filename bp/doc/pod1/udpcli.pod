@@ -28,13 +28,13 @@ to the UDP convergence layer protocol.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<udpcli> terminated normally, for reasons noted in the B<ion.log> file.  If
 this termination was not commanded, investigate and solve the problem identified
 in the log file and use B<bpadmin> to restart B<udpcli>.
 
-=item 1
+=item "1"
 
 B<udpcli> terminated abnormally, for reasons noted in the B<ion.log> file.
 Investigate and solve the problem identified in the log file, then use

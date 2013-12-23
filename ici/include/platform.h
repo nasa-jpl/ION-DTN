@@ -57,7 +57,7 @@ extern "C" {
  *	compilation.							*/
 typedef long			vast;
 typedef unsigned long		uvast;
-#define	VAST_FIELDSPEC		"%l"
+#define	VAST_FIELDSPEC		"%ld"
 #define	UVAST_FIELDSPEC		"%lu"
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
@@ -68,7 +68,7 @@ typedef unsigned long long	uvast;
 #define	VAST_FIELDSPEC		"%I64d"
 #define	UVAST_FIELDSPEC		"%I64u"
 #else
-#define	VAST_FIELDSPEC		"%ll"
+#define	VAST_FIELDSPEC		"%lld"
 #define	UVAST_FIELDSPEC		"%llu"
 #endif
 #define	strtovast(x)		strtoll(x, NULL, 0)
@@ -76,7 +76,7 @@ typedef unsigned long long	uvast;
 #else			/*	64-bit machines.			*/
 typedef long			vast;
 typedef unsigned long		uvast;
-#define	VAST_FIELDSPEC		"%l"
+#define	VAST_FIELDSPEC		"%ld"
 #define	UVAST_FIELDSPEC		"%lu"
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
@@ -130,7 +130,7 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #include <sys/stat.h>
 
 #ifdef mingw			/****   Windows vs all others	*********/
-#include <windows.h>
+#include <winsock2.h>
 #include <process.h>
 #include <Winbase.h>
 #include <sys/time.h>

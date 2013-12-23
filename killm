@@ -45,6 +45,9 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	dtn2admin lt-dtn2admin \
 	dtn2adminep lt-dtn2adminep \
 	dtn2fw lt-dtn2fw \
+	dtpcreceive lt-dtpcreceive \
+	dtpcsend lt-dtpcsend \
+	dtpcadmin lt-dtpcadmin \
 	file2dgr lt-file2dgr \
 	file2sdr lt-file2sdr \
 	file2sm lt-file2sm \
@@ -74,6 +77,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	psmwatch lt-psmwatch \
 	ramsgate lt-ramsgate \
 	rfxclock lt-rfxclock \
+	sdatest lt-sdatest \
 	sdr2file lt-sdr2file \
 	sdrmend lt-sdrmend \
 	sdrwatch lt-sdrwatch \

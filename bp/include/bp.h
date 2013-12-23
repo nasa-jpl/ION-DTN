@@ -60,8 +60,10 @@ typedef struct
 
 /*	Extended class-of-service flags.				*/
 #define	BP_MINIMUM_LATENCY	(1)	/*	Forward on all routes.	*/
-#define	BP_BEST_EFFORT		(2)	/*	Unreliable CL is okay.	*/
+#define	BP_BEST_EFFORT		(2)	/*	Unreliable CL needed.	*/
 #define	BP_FLOW_LABEL_PRESENT	(4)	/*	Ignore flow label if 0.	*/
+#define	BP_RELIABLE		(8)	/*	Reliable CL needed.	*/
+#define	BP_RELIABLE_STREAMING	(BP_BEST_EFFORT | BP_RELIABLE)
 
 typedef struct bpsap_st		*BpSAP;
 
@@ -84,6 +86,7 @@ typedef struct
 	BpIndResult	result;
 	char		*bundleSourceEid;
 	BpTimestamp	bundleCreationTime;
+	unsigned int	timeToLive;
 	int		ackRequested;	/*	(By app.)  Boolean.	*/
 	int		adminRecord;	/*	Boolean: 0 = non-admin.	*/
 	Object		adu;		/*	Zero-copy object ref.	*/

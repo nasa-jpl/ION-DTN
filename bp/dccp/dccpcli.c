@@ -31,6 +31,13 @@ static void siguser_thread(){
 	isignal(SIGUSR1, siguser_thread);
 }
 
+#ifndef mingw
+void	handleConnectionLoss()
+{
+	isignal(SIGPIPE, handleConnectionLoss);
+}
+#endif
+
 /*	*	*	Reciever thread functions	*	*	*/
 
 typedef struct
@@ -49,12 +56,12 @@ ReceiverThreadParms* create_new_thread_data(Lyst *list)
 {
 	ReceiverThreadParms *tmp;
 
-	tmp=MTAKE(sizeof(ReceiverThreadParms));
-	if(tmp==NULL)
+	tmp = MTAKE(sizeof(ReceiverThreadParms));
+	if (tmp == NULL)
 	{
 		return NULL;
 	}
-	if(lyst_insert(*list, (void*)tmp)==NULL)
+	if (lyst_insert(*list, (void*)tmp) == NULL)
 	{
 		return NULL;
 	}
@@ -66,15 +73,15 @@ int remove_thread(Lyst *list, ReceiverThreadParms *rtp)
 	LystElt elmt;
 	ReceiverThreadParms *r;
 
-	if(lyst_length(*list)<=0)
+	if (lyst_length(*list) <= 0)
 	{
 		return 0;
 	}
 
-	 for(elmt=lyst_first(*list); elmt; lyst_next(elmt))
+	 for (elmt = lyst_first(*list); elmt; lyst_next(elmt))
 	 {
-		r=(ReceiverThreadParms*)lyst_data(elmt);
-		if(r->sock==rtp->sock && pthread_equal(r->me,rtp->me))
+		r = (ReceiverThreadParms*)lyst_data(elmt);
+		if (r->sock == rtp->sock && pthread_equal(r->me,rtp->me))
 		{
 			MRELEASE(r);
 			lyst_delete(elmt);
@@ -86,7 +93,7 @@ return 0;
 
 int no_threads(Lyst *list)
 {
-return (lyst_length(*list)==0);
+return (lyst_length(*list) == 0);
 }
 
 ReceiverThreadParms* get_first_thread(Lyst *list)
@@ -98,33 +105,33 @@ int bindDCCPsock(int* sock, struct sockaddr* socketName)
 {
 	socklen_t nameLength;
 
-	if(sock==NULL || socketName==NULL)
+	if (sock == NULL || socketName == NULL)
 	{
 		return -1;
 	}
 
 	if ((*sock = socket(AF_INET, SOCK_DCCP, IPPROTO_DCCP)) < 0 )
 	{
-		putSysErrmsg("CLI can't open DCCP socket. This probably means DCCP is not supported on your system.", NULL);
+		putSysErrmsg("dccpcli can't open DCCP socket. This probably means DCCP is not supported on your system.", NULL);
 		return -1;
 	}
 
-	if(reUseAddress(*sock)<0)
+	if (reUseAddress(*sock) < 0)
 	{
-		putSysErrmsg("CLI can't initialize socket.", "reuse");
+		putSysErrmsg("dccpcli can't initialize socket.", "reuse");
 		return -1;
 	}
 
 	nameLength = sizeof(struct sockaddr);
-	if(bind(*sock, socketName, nameLength) <0)
+	if (bind(*sock, socketName, nameLength) < 0)
 	{
-		putSysErrmsg("CLI can't initialize socket.", "bind()");
+		putSysErrmsg("dccpcli can't initialize socket.", "bind()");
 		return -1;
 	}
 
-	if(listen(*sock, DCCP_MAX_CON) < 0)
+	if (listen(*sock, DCCP_MAX_CON) < 0)
 	{
-		putSysErrmsg("CLI can't initialize socket.", "listen()");
+		putSysErrmsg("dccpcli can't initialize socket.", "listen()");
 		return -1;
 	}
 return 0;
@@ -134,7 +141,7 @@ static void *Recieve_DCCP(void *param)
 {
 	/*	Main loop for bundle reception thread on one
 	 *	connection, terminating when connection is lost.	*/
-	ReceiverThreadParms 	*rtp= (ReceiverThreadParms*)param;
+	ReceiverThreadParms 	*rtp = (ReceiverThreadParms*)param;
 	unsigned int			hostNbr;
 	char					hostName[MAXHOSTNAMELEN + 1];
 	char					senderEidBuffer[SDRSTRING_BUFSZ];
@@ -145,10 +152,13 @@ static void *Recieve_DCCP(void *param)
 	
 	iblock(SIGTERM);
 	isignal(SIGUSR1, siguser_thread);
+#ifndef mingw
+	isignal(SIGPIPE, handleConnectionLoss);
+#endif
 
 	/* Determine what the sender's EID is given it's IP		*/
 	memcpy((char *) &hostNbr, (char *) &(rtp->fromAddr.sin_addr.s_addr), 4);
-	hostNbr=ntohl(hostNbr);
+	hostNbr = ntohl(hostNbr);
 	if (getInternetHostName(hostNbr, hostName))
 	{
 		senderEid = senderEidBuffer;
@@ -177,31 +187,40 @@ static void *Recieve_DCCP(void *param)
 	}
 
 	/*	Can now start receiving bundles.  On failure, take
-	 *	down the CLI.						*/
-	while(rtp->running)
+	 *	down just this thread					*/
+	while (rtp->running)
 	{
-		bundleLength=recv(rtp->sock, buffer, DCCPCLA_BUFSZ, 0);
-		if(bundleLength<0)
+		bundleLength = irecv(rtp->sock, buffer, DCCPCLA_BUFSZ, 0);
+		if (bundleLength < 0)
 		{
-			if(errno==EAGAIN ||errno==EINTR)
+			if (errno == EAGAIN ||errno == EINTR)
 			{
 				continue;
 			}
 			
 			putErrmsg("dccpcli recv() call failed.", NULL);
-			pthread_kill(rtp->mainThread, SIGTERM);
-			rtp->running=0;
+			rtp->running = 0;
 			continue;
-			/* Take down CLI				*/
+			/* Take down this thread			*/
 		}
 
-		if(bundleLength==0) /*EOF 				*/
+		if (bundleLength == 0) /*EOF 			*/
 		{
-			rtp->running=0;
+			rtp->running = 0;
 			continue;
+			/* Take down this thread			*/
 		}
 
-		if(rtp->running==0){
+		if (rtp->running == 0)
+		{
+			 /* shutdown from accept thread */
+			continue;
+			/* Take down this thread			*/
+		}
+
+		if (bundleLength == 4)
+		{
+			/*Keepalive*/
 			continue;
 		}
 
@@ -212,10 +231,9 @@ static void *Recieve_DCCP(void *param)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);
 			pthread_mutex_unlock(rtp->elk);
-			pthread_kill(rtp->mainThread, SIGTERM);
-			rtp->running=0;
+			rtp->running = 0;
 			continue;
-			/* Take down CLI				*/
+			/* Take down this thread			*/
 		}
 		pthread_mutex_unlock(rtp->elk);
 
@@ -224,7 +242,10 @@ static void *Recieve_DCCP(void *param)
 		
 	}
 
+	close(rtp->sock);
+	pthread_mutex_lock(rtp->elk);
 	remove_thread(rtp->list,rtp);
+	pthread_mutex_unlock(rtp->elk);
 	writeErrmsgMemos();
 	MRELEASE(buffer);
 	bpReleaseAcqArea(work);
@@ -252,49 +273,58 @@ static void	*Listen_for_connections(void *parm)
 	socklen_t				solen;
 	ReceiverThreadParms		*rp;
 
-	list=lyst_create_using(getIonMemoryMgr());
+	list = lyst_create_using(getIonMemoryMgr());
 	lyst_clear(list);
 	pthread_mutex_init(&elk, NULL);
 	
 	iblock(SIGTERM);
+#ifndef mingw
+	iblock(SIGPIPE);
+#endif
 	isignal(SIGUSR1, siguser_thread);
 
 	/*	Can now begin accepting connections from remote
 	 *	contacts.  On failure, take down the whole CLI.		*/
 	while (rtp->running)
 	{	
-		solen=sizeof(fromAddr);
-		consock=accept(rtp->linkSocket, &fromAddr, &solen);
-		if(consock<0){
-			if(errno==EINTR){
+		solen = sizeof(fromAddr);
+		consock = accept(rtp->linkSocket, &fromAddr, &solen);
+		if (consock < 0)
+		{
+			if (errno == EINTR)
+			{
 				continue;
 			}
 			putSysErrmsg("dccpcli accept() failed.", NULL);
 			pthread_kill(rtp->mainThread, SIGTERM);
 			rtp->running = 0;
 			continue;
-			/*	Take Down CLI				*/
+			/*	Take Down CLI */
 		}
 
-		if(rtp->running==0){
+		if (rtp->running == 0)
+		{
 			continue;
 		}
 
 		/* start new thread to handle new connection 		*/
-		rp=create_new_thread_data(&list);
-		if(rp==NULL){
+		pthread_mutex_lock(&elk);
+		rp = create_new_thread_data(&list);
+		pthread_mutex_unlock(&elk);
+		if (rp == NULL)
+		{
 			putSysErrmsg("dccpcli can't allocate memory for new thread.", NULL);
 			pthread_kill(rtp->mainThread, SIGTERM);
 			rtp->running = 0;
 			continue;
 		}
-		rp->sock=consock;
+		rp->sock = consock;
 		memcpy(&rp->fromAddr, &fromAddr, sizeof(struct sockaddr));
-		rp->mainThread=rtp->mainThread;
-		rp->running=1;
-		rp->elk=&elk;
-		rp->list=&list;
-		rp->vduct=rtp->vduct;
+		rp->mainThread = rtp->mainThread;
+		rp->running = 1;
+		rp->elk = &elk;
+		rp->list = &list;
+		rp->vduct = rtp->vduct;
 		if (pthread_begin(&rp->me, NULL, Recieve_DCCP, rp))
 		{
 			putSysErrmsg("dccpcli can't create new thread.", NULL);
@@ -309,16 +339,16 @@ static void	*Listen_for_connections(void *parm)
 	}
 
 	/* Exit. End All Receiver Threads Properly.			*/
-	while(!no_threads(&list)){
-		rp=get_first_thread(&list);
-		if(rp==NULL){
+	while (!no_threads(&list)){
+		rp = get_first_thread(&list);
+		if (rp == NULL)
+		{
 			putSysErrmsg("dccpcli can't terminate all threads nicely.", NULL);
 			return NULL;
 		}
-		rp->running=0;
+		rp->running = 0;
 		pthread_kill(rp->me, SIGUSR1);
 		pthread_join(rp->me, NULL);
-		close(rp->sock);
 	}
 	pthread_mutex_destroy(&elk);
 	lyst_destroy(list);
@@ -375,7 +405,7 @@ int	main(int argc, char *argv[])
 
 	if (vduct->cliPid != ERROR && vduct->cliPid != sm_TaskIdSelf())
 	{
-		putErrmsg("CLI task is already started for this duct.",
+		putErrmsg("dccpcli task is already started for this duct.",
 					itoa(vduct->cliPid));
 		return 1;
 	}
@@ -399,7 +429,11 @@ int	main(int argc, char *argv[])
 
 	/* get my host and port						*/
 	hostName = ductName;
-	parseSocketSpec(hostName, &portNbr, &ipAddress);
+	if (parseSocketSpec(ductName, &portNbr, &ipAddress) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", hostName);
+		return 1;
+	}
 	if (portNbr == 0)
 	{
 		portNbr = BpDccpDefaultPortNbr;
@@ -408,18 +442,13 @@ int	main(int argc, char *argv[])
 	portNbr = htons(portNbr);
 	memset((char *) &socketName, 0, sizeof socketName);
 	inetName = (struct sockaddr_in *) &socketName;
-	if (ipAddress == 0)
-	{
-		putErrmsg("dccpcli can't get IP address for host.", hostName);
-		return 1;
-	}
 	ipAddress = htonl(ipAddress);
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &ipAddress, 4);
 
 	rtp.vduct=vduct;
-	if(bindDCCPsock(&rtp.linkSocket, &socketName)<0)
+	if (bindDCCPsock(&rtp.linkSocket, &socketName) < 0)
 	{
 		close(rtp.linkSocket);
 		return 1;
@@ -431,6 +460,9 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 	isignal(SIGTERM, interruptThread);
+#ifndef mingw
+	iblock(SIGPIPE);
+#endif
 
 	/*	Start the receiver thread.				*/
 	rtp.running = 1;
@@ -445,10 +477,10 @@ int	main(int argc, char *argv[])
 	/*	Now sleep until interrupted by SIGTERM, at which point
 	 *	it's time to stop the link service.			*/
 	writeMemo("[i] dccpcli is running.");
-	snooze(2000000000);
+	ionPauseMainThread(-1);
 
 	/*	Time to shut down.					*/
-	rtp.running=0;
+	rtp.running = 0;
 
 	/*	Wake up the receiver thread and exit			*/
 	pthread_kill(listenerThread, SIGUSR1);

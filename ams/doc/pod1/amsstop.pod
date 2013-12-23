@@ -26,11 +26,11 @@ is defined in the MIBs of all modules in the message spaces.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<amsstop> terminated normally.
 
-=item 1
+=item "1"
 
 An anomalous exit status, indicating that B<amsstop> was unable to register
 and therefore failed to shut down its message space, for reasons noted in the

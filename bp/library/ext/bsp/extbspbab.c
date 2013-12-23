@@ -12,8 +12,27 @@
 extern char		gMsg[];		/*	Debug message buffer.	*/
 #endif
 
-#include "crypto.h"
+/**
+ *  \struct BspBabCollaborationBlock
+ *  \brief Collaboration object used to carry data shared between BAB instances.
+ *
+ *  The BAB collaboration block carries meta-data associated with BAB block
+ *  processing and is used to facilitate communication between BAB blocks in
+ *  the BSP module.
+ */
 
+typedef struct
+{
+	CollabBlockHdr hdr;
+	unsigned int correlator;
+	unsigned int cipher;
+	char cipherKeyName[BSP_KEY_NAME_LEN]; /** Cipherkey name used by this block.*/
+	unsigned int rxFlags;        /** RX-side processing flags for this block. */
+	int hmacLen;
+	char expectedResult[BAB_HMAC_SHA1_RESULT_LEN];
+} BspBabCollaborationBlock;
+
+#include "crypto.h"
 
 /*****************************************************************************
  *                     BAB EXTENSIONS INTERFACE FUNCTIONS                    *
@@ -1062,6 +1081,7 @@ expected.", NULL);
    if(setSecPointsTrans(blk, bundle, &asb, &eidRefs, BSP_BAB_TYPE, ctxt, srcNode, destNode) != 0)
    {
        MRELEASE(srcNode); MRELEASE(destNode);
+       if (eidRefs != NULL) lyst_destroy(eidRefs);
        BAB_DEBUG_ERR("x bsp_babPreProcessOnDequeue: setSecPointsTrans failed.", NULL);
        BAB_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", -1);
        return -1; 
@@ -1069,6 +1089,7 @@ expected.", NULL);
    else if(srcNode == NULL || destNode == NULL)
    {
        MRELEASE(srcNode); MRELEASE(destNode);
+       if (eidRefs != NULL) lyst_destroy(eidRefs);
        BAB_DEBUG_ERR("x bsp_babPreProcessOnDequeue: a node address is unexpectedly null! \
                       srcNode:%s, destNode:%s", srcNode, destNode);
        BAB_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", -1);
@@ -1088,6 +1109,7 @@ expected.", NULL);
      BAB_DEBUG_INFO("i bsp_babPreProcessOnDequeue: No key found for BAB. Not \
  using BAB blocks for this bundle.", NULL);
 
+     if (eidRefs != NULL) lyst_destroy(eidRefs);
      scratchExtensionBlock(blk);
      BAB_DEBUG_PROC("- bsp_babPreProcessOnDequeue --> %d", 0);
      return 0;

@@ -95,6 +95,9 @@ static int	parseDirective(char *actionToken, char *parmToken,
 	char		*destDuctName;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
+	Object		outductAddr;
+			OBJ_POINTER(Outduct, outduct);
+			OBJ_POINTER(ClProtocol, protocol);
 
 	switch (*actionToken)
 	{
@@ -158,6 +161,10 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		}
 
 		dir->outductElt = vduct->outductElt;
+		outductAddr = sdr_list_data(sdr, dir->outductElt);
+		GET_OBJ_POINTER(sdr, Outduct, outduct, outductAddr);
+		GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
+		dir->protocolClass = protocol->protocolClass;
 		if (destDuctName)
 		{
 			CHKZERO(sdr_begin_xn(sdr));

@@ -78,7 +78,7 @@ marks and followed by a period.
 
 B<amslog> terminated with an error as noted in the ion.log file.
 
-=item 0
+=item "0"
 
 B<amslog> terminated normally.
 

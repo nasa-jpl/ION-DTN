@@ -29,6 +29,10 @@ extern "C" {
 #define	LTP_MEAN_SEARCH_LENGTH	4
 #endif
 
+#ifndef LTP_SERIAL_NBR_LIMIT
+#define	LTP_SERIAL_NBR_LIMIT	(16384)
+#endif
+
 #define	MAX_LTP_CLIENT_NBR	(LTP_MAX_NBR_OF_CLIENTS - 1)
 #define	MAX_RETRANSMISSIONS	9
 #define MAX_NBR_OF_CHECKPOINTS	(1 + MAX_RETRANSMISSIONS)
@@ -484,6 +488,10 @@ typedef struct
 	Object		deadExports;	/*	SDR list: ExportSession	*/
 	Object		spans;		/*	SDR list: LtpSpan	*/
 	Object		timeline;	/*	SDR list: LtpEvent	*/
+	unsigned long	heapBytesReserved;
+	unsigned long	heapBytesOccupied;
+	unsigned long	heapSpaceBytesReserved;
+	unsigned long	heapSpaceBytesOccupied;
 } LtpDB;
 
 /* The volatile database object encapsulates the current volatile state

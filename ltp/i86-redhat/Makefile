@@ -4,6 +4,7 @@ UTILS = ../utils
 DAEMON = ../daemon
 UDP = ../udp
 DCCP = ../dccp
+SDA = ../sda
 TEST = ../test
 
 # OPT = -O -Dlinux
@@ -13,17 +14,18 @@ LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
 
 PUBINCLS = \
-	$(INCL)/ltp.h
+	$(INCL)/ltp.h \
+	$(INCL)/sda.h
 
 LTPINCLS = \
 	$(API)/ltpP.h \
 	$(UDP)/udplsa.h \
 	$(DCCP)/dccplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter
+RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
 #dccplsi dccplso
 
-ALL = check libltpP.so libltp.so libltpnm.so $(RUNTIMES)
+ALL = check libltpP.so libltp.so libltpnm.so libsda.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -68,6 +70,10 @@ ltpcounter:	ltpcounter.o libltpP.so libltp.so
 		$(CC) -o ltpcounter ltpcounter.o -L./lib -L$(ROOT)/lib -lltp -lltpP -lici -lpthread
 		cp ltpcounter ./bin
 
+sdatest:	sdatest.o libltpP.so libltp.so libsda.so
+		$(CC) -o sdatest sdatest.o -L./lib -L$(ROOT)/lib -lsda -lltp -lltpP -lici -lpthread
+		cp sdatest ./bin
+
 #	-	-	UDP executables	-	-	-	-	-
 
 udplsi:		udplsi.o libltpP.so
@@ -101,6 +107,10 @@ libltpnm.so:	libltpnm.o $(API)/ltpnm.h
 		$(LD) -o libltpnm.so libltpnm.o
 		cp libltpnm.so ./lib
 
+libsda.so:	libsda.o $(INCL)/sda.h
+		$(LD) -o libsda.so libsda.o
+		cp libsda.so ./lib
+
 #	-	-	Object modules	-	-	-	-	-
 
 %.o:		$(API)/%.c
@@ -116,6 +126,9 @@ libltpnm.so:	libltpnm.o $(API)/ltpnm.h
 		$(CC) -c $<
 
 %.o:		$(UDP)/%.c
+		$(CC) -c $<
+
+%.o:		$(SDA)/%.c
 		$(CC) -c $<
 
 #%.o:		$(DCCP)/%.c

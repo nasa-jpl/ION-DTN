@@ -213,6 +213,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	char		*script;
 	BpRecvRule	rule;
 	int		nominalRate = 0;
+	int		protocolClass = 0;
 	unsigned int	maxPayloadLength;
 
 	if (tokenCount < 2)
@@ -265,10 +266,15 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "protocol") == 0)
 	{
-		if (tokenCount < 5 || tokenCount > 6)
+		if (tokenCount < 5 || tokenCount > 7)
 		{
 			SYNTAX_ERROR;
 			return;
+		}
+
+		if (tokenCount == 7)
+		{
+			protocolClass = atol(tokens[6]);
 		}
 
 		if (tokenCount == 6)
@@ -277,7 +283,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		addProtocol(tokens[2], atoi(tokens[3]), atoi(tokens[4]),
-				nominalRate);
+				nominalRate, protocolClass);
 		return;
 	}
 

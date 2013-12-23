@@ -32,85 +32,76 @@ static sm_SemId	dccplsoSemaphore(sm_SemId *semid)
 /* Commands LSO termination 						*/
 static void	shutDownLso()
 {
+	isignal(SIGTERM, shutDownLso);
 	sm_SemEnd(dccplsoSemaphore(NULL));
 }
 
-
-/*	*	*	Idle thread functions	*	*	*	*/
-
-
-typedef struct {
-	int 			active;
-	int				data;
-	int				linksocket;
-	struct sockaddr	socketName;
-	int 			done;
-	pthread_mutex_t	mutex;
-} lso_state;
-
-
-void* idle_wait(void* param)
+#ifndef mingw
+void	handleConnectionLoss()
 {
-	/* Disconnect after a certain amount of idle time 		*/
-	lso_state 	*itp = (lso_state*)param;
-	long 	count=0;
-
-	iblock(SIGTERM);
-	while(!itp->done)
-		{
-		snooze(1);
-		count++;
-		if (count < DCCP_IDLE_TIME)
-		{
-			continue;
-		}
-		count=0;
-
-		pthread_mutex_lock(&itp->mutex);
-		if(itp->active==1 && itp->data==0)
-		{
-			/*Link has been idle				*/
-			close(itp->linksocket);	/*shut it down 		*/
-			itp->active=0;
-		}
-		else
-		{
-			itp->data=0;
-		}
-		pthread_mutex_unlock(&itp->mutex);
-	}
-return NULL;
+	isignal(SIGPIPE, handleConnectionLoss);
 }
+#endif
 
 
-/*	*	*	Main thread functions	*	*	*	*/
+/*	*	*	General Functions	*	*	*	*/
 
 
-int connectDCCPsock(int* sock, struct sockaddr* socketName)
+int connectDCCPsock(int* sock, struct sockaddr* socketName, int* MPS)
 {
 	int on;
+	unsigned int is;
+	unsigned char ccid;
 
-	if(sock==NULL || socketName==NULL)
+	if (sock == NULL || socketName == NULL)
 	{
 		return -1;
 	}
 
 	if ((*sock = socket(AF_INET, SOCK_DCCP, IPPROTO_DCCP)) < 0 )
 	{
-		putSysErrmsg("LSO can't open DCCP socket. This probably means DCCP is not supported on your system.", NULL);
+		putSysErrmsg("DCCPLSO can't open DCCP socket. This probably means DCCP is not supported on your system.", NULL);
 		return -1;
 	}
 
-	if(connect(*sock, socketName, sizeof(struct sockaddr_in)) < 0)
+	if (connect(*sock, socketName, sizeof(struct sockaddr_in)) < 0)
 	{
-		putSysErrmsg("LSO can't connect DCCP socket.", strerror(errno));
+		writeMemo("[i] DCCP connection to LSI could not be established. Retrying.");
 		return -1;
 	}
 
-	on=1;
-	if(setsockopt(*sock, SOL_DCCP, SO_REUSEADDR, (const char *) &on, sizeof(on)) < 0)
+	on = 1;
+	if (setsockopt(*sock, SOL_DCCP, SO_REUSEADDR, (const char *) &on, sizeof(on)) < 0)
 	{
 		putSysErrmsg("DCCP Socket Option Error.", NULL);
+		return -1;
+	}
+
+	if (DCCP_CCID > 0)
+	{
+		ccid = DCCP_CCID;
+		if (setsockopt(*sock, SOL_DCCP, DCCP_SOCKOPT_CCID, (unsigned char*)&ccid, sizeof (ccid)) < 0)
+		{
+			putSysErrmsg("DCCP Socket Option Error.", NULL);
+			return -1;
+		}
+	}
+
+	if (DCCP_Q_LEN > 0)
+	{
+		on = DCCP_Q_LEN;
+		if (setsockopt(*sock, SOL_DCCP, DCCP_SOCKOPT_QPOLICY_TXQLEN, (void *)&on, sizeof(on)) < 0)
+		{
+			putSysErrmsg("DCCP Socket Option Error.", NULL);
+			return -1;
+		}
+	}
+
+	is = sizeof(int);
+	if (getsockopt(*sock, SOL_DCCP, DCCP_SOCKOPT_GET_CUR_MPS, (int *) MPS, &is) < 0)
+	{
+		putSysErrmsg("DCCPLSO can't initialize socket.", "GET_CUR_MPS");
+		*MPS=1400;
 		return -1;
 	}
 return 0;
@@ -121,17 +112,23 @@ int	sendDataByDCCP(int linkSocket, char *from, int length)
 	int		bytesWritten;
 	long 	count=0;
 
+	if (linkSocket < 0)
+	{
+		return -2;
+	}
+
 	while (1)	/*	Continue until not interrupted.		*/
 	{
-		bytesWritten = send(linkSocket, from, length, 0);
+		bytesWritten = isend(linkSocket, from, length, 0);
 		if (bytesWritten < 0)
 		{
 			/*	Interrupted.				*/
-			if (errno == EINTR || errno==EAGAIN)
+			if (errno == EINTR || errno == EAGAIN)
 			{
 				microsnooze(EAGAIN_WAIT);
 				count++;
-				if(MAX_DCCP_RETRIES > 0 && count > MAX_DCCP_RETRIES){
+				if (MAX_DCCP_RETRIES > 0 && count > MAX_DCCP_RETRIES)
+				{
 					close(linkSocket);
 					snooze(2); /*Let things settle down*/
 					return -2;
@@ -140,51 +137,129 @@ int	sendDataByDCCP(int linkSocket, char *from, int length)
 			}
 
 			/* Connection Reset 				*/
-			if(errno==ENOTCONN || errno==ECONNRESET)
-			{
-				return -2;
-			}
-
-			/* LSI closed connection 			*/
-			if(errno==EPIPE)
+			if (errno == ENOTCONN || errno == ECONNRESET || errno == ECONNREFUSED)
 			{
 				close(linkSocket);
 				return -2;
 			}
-			putSysErrmsg("LSO send() error on socket.", NULL);
+
+			/* LSI closed connection 			*/
+			if (errno == EPIPE)
+			{
+				close(linkSocket);
+				return -2;
+			}
+			putSysErrmsg("DCCPLSO send() error on socket.", NULL);
 		}
-		count=0;
+		count = 0;
 		return bytesWritten;
 	}
+	return 0;
 }
+
+
+/*	*	*	Keep Alive functions	*	*	*	*/
+
+
+typedef struct {
+	int 			active;
+	int				linksocket;
+	struct sockaddr	socketName;
+	int				MPS;
+	int 			done;
+	pthread_mutex_t	mutex;
+} lso_state;
+
+
+void* send_keepalives(void* param)
+{
+	/* send keepalives 		*/
+	lso_state 	*itp = (lso_state*)param;
+	long 	count = 0;
+	char 	keepalive[4];
+	int 	time;
+
+	iblock(SIGTERM);
+#ifndef mingw
+	isignal(SIGPIPE, handleConnectionLoss);
+#endif
+
+	memset(keepalive,0,4);
+	while (!itp->done)
+	{
+		snooze(1);
+		count++;
+		if (count < KEEPALIVE_PERIOD)
+		{
+			continue;
+		}
+		count = 0;
+
+		pthread_mutex_lock(&itp->mutex);
+		time = KEEPALIVE_PERIOD;
+		while (!itp->done && sendDataByDCCP(itp->linksocket, keepalive,4) < 0)
+		{
+			if (!itp->done && connectDCCPsock(&itp->linksocket, &itp->socketName, &itp->MPS) < 0)
+			{
+				pthread_mutex_unlock(&itp->mutex);
+				snooze(time);
+				pthread_mutex_lock(&itp->mutex);
+				if (time <= MAX_BACKOFF)
+				{
+					time = time*2;
+				}
+			}
+			else
+			{
+				itp->active = 1;
+			}
+		}
+		pthread_mutex_unlock(&itp->mutex);
+	}
+return NULL;
+}
+
+
+/*	*	*	Main thread functions	*	*	*	*/
+
 
 int sendSegmentByDCCP(lso_state* itp, char* segment, int segmentLength)
 {
 	int bytesSent;
 
 	/* 	connect the socket					*/
-	if(!itp->active)
+	if (!itp->active)
 	{
 
-		if(connectDCCPsock(&itp->linksocket, &itp->socketName)<0)
+		if (connectDCCPsock(&itp->linksocket, &itp->socketName, &itp->MPS)<0)
 		{
-			return -1;
+			/* Throw this LTP segment away. LTP will ensure it is reliably
+			 * retransmitted.*/
+			return 0;
 		}
-		itp->active=1;
+		itp->active = 1;
+	}
+
+	if(segmentLength > itp->MPS)
+	{
+		putErrmsg("Segment is too big for DCCPLSO.", itoa(segmentLength));
+		return -1;
 	}
 
 	/*Send Data
 	 * retry until success or fatal error 				*/
-	do{
+	do {
 		bytesSent = sendDataByDCCP(itp->linksocket, segment, segmentLength);
 		if (bytesSent < segmentLength)
 		{
-			if(bytesSent==-2)
+			if (bytesSent == -2)
 			{
 				/*There is no connection. Attempt to reestablish it.*/
-				if(connectDCCPsock(&itp->linksocket, &itp->socketName)<0)
+				if (connectDCCPsock(&itp->linksocket, &itp->socketName, &itp->MPS) < 0)
 				{
-					return -1;
+					/* Throw this LTP segment away. LTP will ensure it is reliably
+					 * retransmitted.*/
+					return 0;
 				}
 				else
 				{
@@ -197,10 +272,9 @@ int sendSegmentByDCCP(lso_state* itp, char* segment, int segmentLength)
 			}
 
 		}
-		itp->data=1;
-		itp->active=1;
+		itp->active = 1;
 		break; /* sent successfully				*/
-	}while(1);
+	} while(1);
 return bytesSent;
 }
 
@@ -221,13 +295,12 @@ int	main(int argc, char *argv[])
 	PsmAddress			vspanElt;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
-	char				ownHostName[MAXHOSTNAMELEN];
 	int					running = 1;
 	int					segmentLength;
 	char				*segment;
 	struct sockaddr_in	*inetName;
 	int					bytesSent;
-	pthread_t			idle_thread;
+	pthread_t			keepalive_thread;
 	lso_state			itp;
 
 	if (remoteEngineId == 0 || endpointSpec == NULL)
@@ -260,7 +333,7 @@ int	main(int argc, char *argv[])
 	if (vspan->lsoPid != ERROR && vspan->lsoPid != sm_TaskIdSelf())
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("LSO task is already started for this span.",
+		putErrmsg("DCCPLSO task is already started for this span.",
 				itoa(vspan->lsoPid));
 		return 1;
 	}
@@ -268,15 +341,14 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 	sdr_exit_xn(sdr);
-	parseSocketSpec(endpointSpec, &portNbr, &ipAddress);
+	if (parseSocketSpec(endpointSpec, &portNbr, &ipAddress) != 0)
+	{
+		putErrmsg("Can't get IP/port for host.", endpointSpec);
+		return 1;
+	}
 	if (portNbr == 0)
 	{
 		portNbr = LtpDccpDefaultPortNbr;
-	}
-	if (ipAddress == 0)		/*	Default to local host.	*/
-	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		ipAddress = getInternetAddress(ownHostName);
 	}
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
@@ -289,16 +361,19 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 	oK(dccplsoSemaphore(&(vspan->segSemaphore)));
-	signal(SIGTERM, shutDownLso);
+	isignal(SIGTERM, shutDownLso);
+#ifndef mingw
+	isignal(SIGPIPE, handleConnectionLoss);
+#endif
 
 	/*	Set up idle thread 					*/
-	itp.active=0;
-	itp.done=0;
-	itp.data=0;
+	itp.active = 0;
+	itp.done = 0;
+	itp.linksocket = -1;
 	pthread_mutex_init(&itp.mutex, NULL);
-	if (pthread_begin(&idle_thread, NULL, idle_wait, (void*)&itp))
+	if (pthread_begin(&keepalive_thread, NULL, send_keepalives, (void*)&itp))
 	{
-		putSysErrmsg("LSO can't create idle thread.", NULL);
+		putSysErrmsg("DCCPLSO can't create idle thread.", NULL);
 		pthread_mutex_destroy(&itp.mutex);
 		return 1;
 	}
@@ -316,15 +391,16 @@ int	main(int argc, char *argv[])
 			/*	Take down LSO				*/
 		}
 
-		if (segmentLength == 0)/*	Interrupted.		*/
+		if (segmentLength == 0)
 		{
+			/*	Interrupted.				*/
 			continue;
 		}
 
 		if (segmentLength > DCCPLSA_BUFSZ)
 		{
-			/*Segment Too Big				*/
-			putErrmsg("Segment is too big for DCCP LSO.",
+			/* Segment Too Big				*/
+			putErrmsg("Segment is too big for DCCPLSO.",
 					itoa(segmentLength));
 			running = 0;
 			continue;
@@ -332,12 +408,13 @@ int	main(int argc, char *argv[])
 		}
 
 		pthread_mutex_lock(&itp.mutex);
-		bytesSent=sendSegmentByDCCP(&itp, segment, segmentLength);
+		bytesSent = sendSegmentByDCCP(&itp, segment, segmentLength);
 		pthread_mutex_unlock(&itp.mutex);
-		if(bytesSent < segmentLength)
+		if (bytesSent < 0)
 		{
-			running=0;
+			running = 0;
 			continue;
+			/* Take down LSO				*/
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/
@@ -345,10 +422,11 @@ int	main(int argc, char *argv[])
 	}
 
 	/* LSO is exiting						*/
+	writeMemo("[i] dccplso duct done sending.");
 	pthread_mutex_lock(&itp.mutex);
-	itp.done=1;
+	itp.done = 1;
 	pthread_mutex_unlock(&itp.mutex);
-	pthread_join(idle_thread, NULL);
+	pthread_join(keepalive_thread, NULL);
 	pthread_mutex_destroy(&itp.mutex);
 	close(itp.linksocket);
 	writeErrmsgMemos();

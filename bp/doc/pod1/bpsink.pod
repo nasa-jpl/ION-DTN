@@ -20,7 +20,7 @@ keyboard.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bpsink> has terminated.  Any problems encountered during operation
 will be noted in the B<ion.log> log file.

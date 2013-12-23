@@ -22,11 +22,11 @@ the data store without requiring all ION software to terminate and restart.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<sdrmend> has terminated successfully.
 
-=item 1
+=item "1"
 
 B<sdrmend> has terminated unsuccessfully.  See diagnostic messages in the
 B<ion.log> log file for details.

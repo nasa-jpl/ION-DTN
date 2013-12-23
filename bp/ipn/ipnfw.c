@@ -8,7 +8,30 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 									*/
+#include <stdarg.h>
+
 #include "ipnfw.h"
+
+#ifndef CGR_DEBUG
+#define CGR_DEBUG	0
+#endif
+
+#if CGR_DEBUG == 1
+static void	printCgrTraceLine(void *data, unsigned int lineNbr,
+			CgrTraceType traceType, ...)
+{
+	va_list args;
+	const char *text;
+
+	va_start(args, traceType);
+
+	text = cgr_tracepoint_text(traceType);
+	vprintf(text, args);
+	putchar('\n');
+
+	va_end(args);
+}
+#endif
 
 static sm_SemId		_ipnfwSemaphore(sm_SemId *newValue)
 {
@@ -42,9 +65,20 @@ static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
 			FwdDirective *directive)
 {
 	Sdr	sdr = getIonsdr();
+	int	protClassReqd;
 	Object	elt;
 	Object	planAddr;
 	IpnPlan plan;
+
+	protClassReqd = bundle->extendedCOS.flags & BP_PROTOCOL_BOTH;
+	if (protClassReqd == 0)			/*	Don't care.	*/
+	{
+		protClassReqd = -1;		/*	Matches any.	*/
+	}
+	else if (protClassReqd == 10)		/*	Need BSS.	*/
+	{
+		protClassReqd = BP_PROTOCOL_STREAMING;
+	}
 
 	for (elt = sdr_list_first(sdr, plans); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -55,10 +89,15 @@ static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
 		{
 			continue;
 		}
-		
+
 		if (plan.nodeNbr > nodeNbr)
 		{
 			return 0;	/*	Same as end of list.	*/
+		}
+
+		if ((plan.defaultDirective.protocolClass & protClassReqd) == 0)
+		{
+			continue;	/*	Can't use this plan.	*/
 		}
 
 		memcpy((char *) directive, (char *) &plan.defaultDirective,
@@ -80,8 +119,8 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	PsmAddress	snubElt;
 	IonSnub		*snub;
 
-	if (ipn_lookupPlanDirective(nodeNbr, bundle->id.source.c.serviceNbr, 
-			bundle->id.source.c.nodeNbr, &directive) == 0)
+	if (ipn_lookupPlanDirective(nodeNbr, bundle->id.source.c.serviceNbr,
+			bundle->id.source.c.nodeNbr, bundle, &directive) == 0)
 	{
 		return 0;
 	}
@@ -168,6 +207,11 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	FwdDirective	directive;
+#if CGR_DEBUG == 1
+	CgrTrace	*trace = &(CgrTrace) { .fn = printCgrTraceLine };
+#else
+	CgrTrace	*trace = NULL;
+#endif
 
 	elt = sdr_list_first(sdr, bundle->stations);
 	if (elt == 0)
@@ -191,7 +235,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	}
 
 	if (cgr_forward(bundle, bundleObj, metaEid.nodeNbr,
-			(getIpnConstants())->plans, getDirective) < 0)
+			(getIpnConstants())->plans, getDirective, trace) < 0)
 	{
 		putErrmsg("CGR failed.", NULL);
 		return -1;
@@ -231,7 +275,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	 *	prescribed "via" endpoint for that group.		*/
 
 	if (ipn_lookupGroupDirective(metaEid.nodeNbr,
-			bundle->id.source.c.serviceNbr, 
+			bundle->id.source.c.serviceNbr,
 			bundle->id.source.c.nodeNbr, &directive) == 1)
 	{
 		/*	Found directive; forward via the indicated
