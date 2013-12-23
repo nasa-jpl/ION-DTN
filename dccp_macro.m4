@@ -8,6 +8,7 @@ AC_DEFUN([CHECK_DCCP],
 					#include <sys/socket.h>
 					#include <string.h>
 					#include <stdlib.h>
+					//#include <stdio.h>
 					#ifndef SOCK_DCCP
 					#define SOCK_DCCP 6  
 					#endif
@@ -17,15 +18,21 @@ AC_DEFUN([CHECK_DCCP],
 
 					int main()
 					{
-						int major, minor, rev;
+						int major=0, minor=0, rev=0;
 						struct utsname buf;
+						char* tmp;
 						if(uname(&buf)<0){
 							return 1;
 						}
-
-						major=atoi((strtok(buf.release,".")));
-						minor=atoi((strtok(NULL,".")));
-						rev=atoi((strtok(NULL,".-")));
+						
+						//printf("%s\n",buf.release);
+						tmp=strtok(buf.release,".");
+						if(tmp!=NULL){major=atoi(tmp);}
+						tmp=strtok(NULL,".-");
+						if(tmp!=NULL){minor=atoi(tmp);}
+						tmp=strtok(NULL,".-");
+						if(tmp!=NULL){rev=atoi(tmp);}
+						//printf("%i.%i.%i\n", major, minor, rev);
 
 						if (major >  MIN_REQUIRED_VERSION_MAJOR)
 						{
@@ -72,7 +79,8 @@ AC_DEFUN([CHECK_DCCP],
 					}],
 			[ AC_MSG_RESULT(yes) 
 			  AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >=3.2.0])],
-			[AC_MSG_RESULT(no)] )
+			[AC_MSG_RESULT(no)],
+			[AC_MSG_RESULT(cross-compiling... disabled)] )
 		]
 	)
 		

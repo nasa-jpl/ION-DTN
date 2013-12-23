@@ -161,7 +161,7 @@ static void	initializeNode(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (ionInitialize(&parms, strtol(ownNodeNbrString, NULL, 0)) < 0)
+	if (ionInitialize(&parms, strtouvast(ownNodeNbrString)) < 0)
 	{
 		putErrmsg("ionadmin can't initialize ION.", NULL);
 	}
@@ -172,9 +172,9 @@ static void	executeAdd(int tokenCount, char **tokens)
 	time_t		refTime;
 	time_t		fromTime;
 	time_t		toTime;
-	unsigned long	fromNodeNbr;
-	unsigned long	toNodeNbr;
-	unsigned long	xmitRate;
+	uvast		fromNodeNbr;
+	uvast		toNodeNbr;
+	unsigned int	xmitRate;
 	unsigned int	owlt;
 
 	if (tokenCount < 2)
@@ -198,8 +198,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	fromNodeNbr = strtol(tokens[4], NULL, 0);
-	toNodeNbr = strtol(tokens[5], NULL, 0);
+	fromNodeNbr = strtouvast(tokens[4]);
+	toNodeNbr = strtouvast(tokens[5]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		xmitRate = strtol(tokens[6], NULL, 0);
@@ -222,10 +222,10 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
-	time_t		refTime;
-	time_t		timestamp;
-	unsigned long	fromNodeNbr;
-	unsigned long	toNodeNbr;
+	time_t	refTime;
+	time_t	timestamp;
+	uvast	fromNodeNbr;
+	uvast	toNodeNbr;
 
 	if (tokenCount < 2)
 	{
@@ -254,8 +254,8 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 	}
 
-	fromNodeNbr = strtol(tokens[3], NULL, 0);
-	toNodeNbr = strtol(tokens[4], NULL, 0);
+	fromNodeNbr = strtouvast(tokens[3]);
+	toNodeNbr = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		oK(rfx_remove_contact(timestamp, fromNodeNbr, toNodeNbr));
@@ -274,12 +274,13 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	time_t		refTime;
 	time_t		timestamp;
-	unsigned long	fromNode;
-	unsigned long	toNode;
+	uvast		fromNode;
+	uvast		toNode;
 	IonCXref	arg1;
 	PsmAddress	elt;
 	PsmAddress	addr;
@@ -301,14 +302,15 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 	refTime = _referenceTime(NULL);
 	timestamp = readTimestampUTC(tokens[2], refTime);
-	fromNode = strtol(tokens[3], NULL, 0);
-	toNode = strtol(tokens[4], NULL, 0);
+	fromNode = strtouvast(tokens[3]);
+	toNode = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		memset((char *) &arg1, 0, sizeof(IonCXref));
 		arg1.fromNode = fromNode;
 		arg1.toNode = toNode;
 		arg1.fromTime = timestamp;
+		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->contactIndex,
 				rfx_order_contacts, &arg1, &nextElt);
 		if (elt)
@@ -316,10 +318,13 @@ static void	executeInfo(int tokenCount, char **tokens)
 			addr = sm_rbt_data(ionwm, elt);
 			oK(rfx_print_contact(addr, buffer));
 			printText(buffer);
-			return;
+		}
+		else
+		{
+			printText("Contact not found in database.");
 		}
 
-		printText("Contact not found in database.");
+		sdr_exit_xn(sdr);
 		return;
 	}
 
@@ -329,6 +334,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		arg2.fromNode = fromNode;
 		arg2.toNode = toNode;
 		arg2.fromTime = timestamp;
+		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->rangeIndex,
 				rfx_order_ranges, &arg2, &nextElt);
 		if (elt)
@@ -336,10 +342,13 @@ static void	executeInfo(int tokenCount, char **tokens)
 			addr = sm_rbt_data(ionwm, elt);
 			oK(rfx_print_range(addr, buffer));
 			printText(buffer);
-			return;
+		}
+		else
+		{
+			printText("Range not found in database.");
 		}
 
-		printText("Range not found in database.");
+		sdr_exit_xn(sdr);
 		return;
 	}
 
@@ -348,6 +357,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	executeList(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	PsmAddress	elt;
@@ -362,6 +372,7 @@ static void	executeList(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "contact") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sm_rbt_first(ionwm, vdb->contactIndex); elt;
 				elt = sm_rbt_next(ionwm, elt))
 		{
@@ -370,11 +381,13 @@ static void	executeList(int tokenCount, char **tokens)
 			printText(buffer);
 		}
 
+		sdr_exit_xn(sdr);
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sm_rbt_first(ionwm, vdb->rangeIndex); elt;
 				elt = sm_rbt_next(ionwm, elt))
 		{
@@ -383,6 +396,7 @@ static void	executeList(int tokenCount, char **tokens)
 			printText(buffer);
 		}
 
+		sdr_exit_xn(sdr);
 		return;
 	}
 
@@ -423,7 +437,7 @@ static void	manageClockError(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	iondb.maxClockError = newMaxClockError;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -452,7 +466,7 @@ static void	manageClockSync(int tokenCount, char **tokens)
 		newSyncVal = atoi(tokens[2]);
 		sdr = getIonsdr();
 		iondbObj = getIonDbObject();
-		sdr_begin_xn(sdr);
+		CHKVOID(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 		iondb.clockIsSynchronized = (!(newSyncVal == 0));
 		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -486,7 +500,7 @@ static void	manageProduction(int tokenCount, char **tokens)
 		newRate = -1;			/*	Not metered.	*/
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	iondb.productionRate = newRate;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -517,7 +531,7 @@ static void	manageConsumption(int tokenCount, char **tokens)
 		newRate = -1;			/*	Not metered.	*/
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	iondb.consumptionRate = newRate;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -534,21 +548,21 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
-	long	newFileLimit = -1;	/*	-1 = "unchanged"	*/
-	long	newHeapLimit = -1;	/*	-1 = "unchanged"	*/
-	Scalar	fileLimit;
-	long	maxHeapLimit;
-	Scalar	heapLimit;
+	vast	newFileLimit = -1;	/*	-1 = "unchanged"	*/
+	vast	newHeapLimit = -1;	/*	-1 = "unchanged"	*/
+	vast	fileLimit;
+	vast	maxHeapLimit;
+	vast	heapLimit;
 
 	switch (tokenCount)
 	{
 	case 4:
-		newFileLimit = strtol(tokens[3], NULL, 0);
+		newFileLimit = strtovast(tokens[3]);
 
 		/*	Intentional fall-through to next case.		*/
 
 	case 3:
-		newHeapLimit = strtol(tokens[2], NULL, 0);
+		newHeapLimit = strtovast(tokens[2]);
 		break;
 
 	default:
@@ -568,16 +582,14 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	if (newFileLimit != -1)	/*	Overriding current value.	*/
 	{
-		fileLimit.gigs = newFileLimit / ONE_GIG;
-		fileLimit.units = newFileLimit % ONE_GIG;
+		fileLimit = newFileLimit * 1000000;
 
 		/*	Convert from MB to bytes.			*/
 
-		multiplyScalar(&fileLimit, 1000000);
-		zco_set_max_file_occupancy(sdr, &fileLimit);
+		zco_set_max_file_occupancy(sdr, fileLimit);
 		writeMemo("[i] ZCO max file space changed.");
 	}
 
@@ -591,25 +603,21 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 		}
 		else
 		{
-			heapLimit.gigs = newHeapLimit / ONE_GIG;
-			heapLimit.units = newHeapLimit % ONE_GIG;
+			heapLimit = newHeapLimit * 1000000;
 
 			/*	Convert from MB to bytes.		*/
 
-			multiplyScalar(&heapLimit, 1000000);
-			zco_set_max_heap_occupancy(sdr, &heapLimit);
+			zco_set_max_heap_occupancy(sdr, heapLimit);
 			writeMemo("[i] ZCO max heap changed.");
 		}
 	}
 
 	/*	Revise occupancy ceiling and reserve as needed.		*/
 
-	zco_get_max_heap_occupancy(sdr, &heapLimit);
-	zco_get_max_file_occupancy(sdr, &fileLimit);
+	fileLimit = zco_get_max_file_occupancy(sdr);
+	heapLimit = zco_get_max_heap_occupancy(sdr);
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	iondb.occupancyCeiling = fileLimit.gigs + heapLimit.gigs;
-	iondb.occupancyCeiling *= ONE_GIG;
-	iondb.occupancyCeiling += (fileLimit.units + heapLimit.units);
+	iondb.occupancyCeiling = fileLimit + heapLimit;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -645,7 +653,7 @@ static void	manageHorizon(int tokenCount, char **tokens)
 		horizon = readTimestampUTC(horizonString, refTime);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	iondb.horizon = horizon;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -678,7 +686,7 @@ static void	manageAlarm(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (iondb.alarmScript != 0)
 	{
@@ -698,9 +706,9 @@ static void	manageUsage(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(IonDB, iondb);
 	char	buffer[128];
-	Scalar	heapOccupancy;
+	vast	heapOccupancy;
 	double	heapSpaceMBInUse;
-	Scalar	fileOccupancy;
+	vast	fileOccupancy;
 	double	fileSpaceMBInUse;
 	double	occupancyCeiling;	/*	In MBytes.		*/
 	double	maxForecastOccupancy;	/*	In MBytes.		*/
@@ -711,17 +719,15 @@ static void	manageUsage(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
-	zco_get_heap_occupancy(sdr, &heapOccupancy);
-	zco_get_file_occupancy(sdr, &fileOccupancy);
-	oK(sdr_end_xn(sdr));
-	heapSpaceMBInUse = (heapOccupancy.units
-			+ (ONE_GIG * heapOccupancy.gigs)) / 1000000;
-	fileSpaceMBInUse = (fileOccupancy.units
-			+ (ONE_GIG * fileOccupancy.gigs)) / 1000000;
+	CHKVOID(sdr_begin_xn(sdr));
+	heapOccupancy = zco_get_heap_occupancy(sdr);
+	fileOccupancy = zco_get_file_occupancy(sdr);
+	heapSpaceMBInUse = heapOccupancy / 1000000;
+	fileSpaceMBInUse = fileOccupancy / 1000000;
 	GET_OBJ_POINTER(sdr, IonDB, iondb, getIonDbObject());
 	occupancyCeiling = iondb->occupancyCeiling / 1000000;
 	maxForecastOccupancy = iondb->maxForecastOccupancy / 1000000;
+	sdr_exit_xn(sdr);
 	isprintf(buffer, sizeof buffer, "current heap %.2f MB, \
 current file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
 			heapSpaceMBInUse, fileSpaceMBInUse, occupancyCeiling,

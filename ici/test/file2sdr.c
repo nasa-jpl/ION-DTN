@@ -28,7 +28,7 @@ static Object	newCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
 {
 	Object	cycleObj;
 
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	currentCycle->cycleNbr++;
 	currentCycle->lineCount = 0;
 	currentCycle->lines = sdr_list_create(sdr);
@@ -50,7 +50,7 @@ static Object	newCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
 static Object	endCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
 			sm_SemId file2sdr_semaphore)
 {
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	sdr_list_insert_last(sdr, currentCycle->lines,
 			sdr_string_create(sdr, EOF_LINE_TEXT));
 	if (sdr_end_xn(sdr))
@@ -93,7 +93,7 @@ static int	run_file2sdr(int configFlags, char *fileName)
 	isprintf(sdrName, sizeof sdrName, "%s%d", TEST_SDR_NAME, configFlags);
 	sdr_initialize(TEST_WM_SIZE, NULL, SM_NO_KEY, NULL);
 	sdr_load_profile(sdrName, configFlags, TEST_HEAP_WORDS, SM_NO_KEY,
-			TEST_PATH_NAME);
+			TEST_PATH_NAME, NULL);
 	sdr = sdr_start_using(sdrName);
 	if (sdr == NULL)
 	{
@@ -116,7 +116,7 @@ static int	run_file2sdr(int configFlags, char *fileName)
 	cycleList = sdr_find(sdr, CYCLE_LIST_NAME, 0);
 	if (cycleList == 0)
 	{
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		cycleList = sdr_list_create(sdr);
 		sdr_catlg(sdr, CYCLE_LIST_NAME, 0, cycleList);
 		if (sdr_end_xn(sdr))
@@ -250,7 +250,7 @@ microsnooze(10000);
 
 		/*	Append line to list in SDR.			*/
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		sdr_list_insert_last(sdr, currentCycle.lines,
 				sdr_string_create(sdr, line));
 		sdr_stage(sdr, (char *) &currentCycle, cycleObj, sizeof(Cycle));

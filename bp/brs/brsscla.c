@@ -66,8 +66,10 @@ static void	*sendBundles(void *parm)
 	}
 
 	sdr = getIonsdr();
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			parms->vduct->outductElt), sizeof(Outduct));
+	sdr_exit_xn(sdr);
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = outduct.bulkQueue;
 	outflows[1].outboundBundles = outduct.stdQueue;
@@ -92,7 +94,9 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
+		CHKNULL(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 		ductNbr = atoi(destDuctName);
 		if (ductNbr >= parms->baseDuctNbr
 		&& ductNbr <= parms->lastDuctNbr
@@ -126,7 +130,7 @@ static void	*sendBundles(void *parm)
 			 *	-- except that if bundle has already
 			 *	been destroyed then just lose the ADU.	*/
 
-			sdr_begin_xn(sdr);
+			CHKNULL(sdr_begin_xn(sdr));
 			if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
 			{
 				putErrmsg("Can't locate unsent bundle.", NULL);
@@ -194,7 +198,7 @@ static int	reforwardStrandedBundles()
 	Object	elt;
 	Object	nextElt;
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, bpConstants->limboQueue); elt;
 			elt = nextElt)
 	{
@@ -226,7 +230,7 @@ typedef struct
 	int		bundleSocket;
 	pthread_t	thread;
 	int		*running;
-	unsigned long	ductNbr;
+	unsigned int	ductNbr;
 	int		*authenticated;
 	int		baseDuctNbr;
 	int		lastDuctNbr;
@@ -243,7 +247,7 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 	if (parms->bundleSocket != -1)
 	{
 		closesocket(parms->bundleSocket);
-		if (parms->ductNbr != (unsigned long) -1)
+		if (parms->ductNbr != (unsigned int) -1)
 		{
 			senderSocket = parms->ductNbr - parms->baseDuctNbr;
 			if (parms->brsSockets[senderSocket] ==
@@ -275,7 +279,8 @@ static void	*receiveBundles(void *parm)
 	time_t			currentTime;
 	unsigned char		sdnvText[10];
 	int			sdnvLength = 0;
-	unsigned long		ductNbr;
+	unsigned int		ductNbr;
+	uvast			val;
 	int			senderSocket;
 	char			registration[24];
 	time_t			timeTag;
@@ -330,7 +335,8 @@ static void	*receiveBundles(void *parm)
 		return NULL;
 	}
 
-	oK(decodeSdnv(&ductNbr, sdnvText));
+	oK(decodeSdnv(&val, sdnvText));
+	ductNbr = val;
 	if (ductNbr < parms->baseDuctNbr || ductNbr > parms->lastDuctNbr)
 	{
 		putErrmsg("Duct number is too large.", utoa(ductNbr));
@@ -451,7 +457,7 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 
 	parms->senderEid = parms->senderEidBuffer;
 	isprintf(parms->senderEidBuffer, sizeof parms->senderEidBuffer,
-			"ipn:%lu.0", ductNbr);
+			"ipn:%u.0", ductNbr);
 
 	/*	Now start receiving bundles.				*/
 
@@ -592,12 +598,12 @@ static void	*spawnReceivers(void *parm)
 		receiverParms->bundleSocket = newSocket;
 		authenticated = 0;		/*	Unknown.	*/
 		receiverParms->authenticated = &authenticated;
-		receiverParms->ductNbr = (unsigned long) -1;
+		receiverParms->ductNbr = (unsigned int) -1;
 		receiverParms->baseDuctNbr = atp->baseDuctNbr;
 		receiverParms->lastDuctNbr = atp->lastDuctNbr;
 		receiverParms->brsSockets = atp->brsSockets;
 		receiverParms->running = &(atp->running);
-		if (pthread_create(&(receiverParms->thread), NULL,
+		if (pthread_begin(&(receiverParms->thread), NULL,
 				receiveBundles, receiverParms))
 		{
 			putSysErrmsg("brsscla can't create new thread", NULL);
@@ -613,7 +619,7 @@ static void	*spawnReceivers(void *parm)
 			/*	Assume hung on DOS attack.  Bail out.	*/
 
 			thread = receiverParms->thread;
-			pthread_cancel(thread);
+			pthread_end(thread);
 			pthread_join(thread, NULL);
 			terminateReceiverThread(receiverParms);
 		}
@@ -699,9 +705,11 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr, vinduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_BRS_RATE;
@@ -774,7 +782,7 @@ port 80)", NULL);
 	senderParms.baseDuctNbr = baseDuctNbr;
 	senderParms.lastDuctNbr = lastDuctNbr;
 	senderParms.brsSockets = brsSockets;
-	if (pthread_create(&senderThread, NULL, sendBundles, &senderParms))
+	if (pthread_begin(&senderThread, NULL, sendBundles, &senderParms))
 	{
 		closesocket(atp.ductSocket);
 		putSysErrmsg("brsscla can't create sender thread", NULL);
@@ -787,7 +795,7 @@ port 80)", NULL);
 	atp.baseDuctNbr = baseDuctNbr;
 	atp.lastDuctNbr = lastDuctNbr;
 	atp.brsSockets = brsSockets;
-	if (pthread_create(&accessThread, NULL, spawnReceivers, &atp))
+	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
 	{
 		sm_SemEnd(voutduct->semaphore);
 		pthread_join(senderThread, NULL);

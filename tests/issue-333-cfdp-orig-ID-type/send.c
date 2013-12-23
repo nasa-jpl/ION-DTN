@@ -34,7 +34,7 @@ int main()
 {
 	CfdpReqParms	parms;
 
-	if (cfdp_init() < 0)
+	if (cfdp_attach() < 0)
 	{
 		printf("Error: Can't initialize CFDP\n");
 		return -1;

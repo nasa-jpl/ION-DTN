@@ -70,8 +70,8 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	start;		/* first sequence in a range we're SACKing. */
-	unsigned long	length;		/* number of contiguous sequences. */
+	unsigned int	start;		/* first sequence in a range we're SACKing. */
+	unsigned int	length;		/* number of contiguous sequences. */
 } AcsFill;
 
 /* SdrAcs... versions keep references in SDR memory */
@@ -134,7 +134,7 @@ extern AcsDB	*acsConstants;
  * custody IDs and bundles. */
 typedef struct
 {
-	unsigned long   id;
+	unsigned int   id;
 } AcsCustodyId;
 
 /* The information required to uniquely identify a bundle.
@@ -143,8 +143,8 @@ typedef struct
 {
 	char                sourceEid[MAX_EID_LEN];
 	BpTimestamp         creationTime;
-	unsigned long       fragmentOffset;
-	unsigned long       fragmentLength;
+	unsigned int       fragmentOffset;
+	unsigned int       fragmentLength;
 } __attribute__((packed)) AcsBundleId;
 
 typedef struct
@@ -176,8 +176,8 @@ extern int trySendAcs(SdrAcsPendingCust *custodian, BpCtReason reasonCode,
 		unsigned char succeeded, const CtebScratchpad *cteb);
 
 extern int get_or_make_custody_id(const char *sourceEid,
-		const BpTimestamp *creationTime, unsigned long fragmentOffset,
-		unsigned long fragmentLength, AcsCustodyId *cid);
+		const BpTimestamp *creationTime, unsigned int fragmentOffset,
+		unsigned int fragmentLength, AcsCustodyId *cid);
 
 extern Object getOrMakeCustodianByEid(Object custodians, const char *eid);
 

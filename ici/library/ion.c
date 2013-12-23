@@ -76,6 +76,8 @@ static IonDB	*_ionConstants()
 {
 	static IonDB	buf;
 	static IonDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
@@ -84,9 +86,26 @@ static IonDB	*_ionConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(_ionsdr(NULL), (char *) &buf, _iondbObject(NULL),
-				sizeof(IonDB));
-		db = &buf;
+		sdr = _ionsdr(NULL);
+		CHKNULL(sdr);
+		dbObject = _iondbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(IonDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(IonDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -232,7 +251,7 @@ static IonVdb	*_ionvdb(char **name)
 		/*	ION volatile database doesn't exist yet.	*/
 
 		sdr = _ionsdr(NULL);
-		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
 		vdbAddress = psm_zalloc(ionwm, sizeof(IonVdb));
 		if (vdbAddress == 0)
 		{
@@ -243,6 +262,15 @@ static IonVdb	*_ionvdb(char **name)
 
 		vdb = (IonVdb *) psp(ionwm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(IonVdb));
+		vdb->zcoSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+		if (vdb->zcoSemaphore == SM_SEM_NONE)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("Can't initialize volatile database.", *name);
+			return NULL;
+		}
+
+		sm_SemTake(vdb->zcoSemaphore);	/*	Lock it.	*/
 		if ((vdb->nodes = sm_rbt_create(ionwm)) == 0
 		|| (vdb->neighbors = sm_rbt_create(ionwm)) == 0
 		|| (vdb->contactIndex = sm_rbt_create(ionwm)) == 0
@@ -285,6 +313,16 @@ static void	writeMemoToIonLog(char *text)
 	static char		msgbuf[256];
 
 	if (text == NULL) return;
+	if (*text == '\0')	/*	Claims that log file is closed.	*/
+	{
+		if (ionLogFile != -1)
+		{
+			close(ionLogFile);	/*	To be sure.	*/
+			ionLogFile = -1;
+		}
+
+		return;		/*	Ignore zero-length memo.	*/
+	}
 
 	/*	The log file is shared, so access to it must be
 	 *	mutexed.						*/
@@ -335,8 +373,7 @@ static void	ionRedirectMemos()
 }
 #endif
 
-static int	checkNodeListParms(IonParms *parms, char *wdName,
-			unsigned long nodeNbr)
+static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 {
 	char		*nodeListDir;
 	sm_SemId	nodeListMutex;
@@ -345,7 +382,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 	int		lineNbr = 0;
 	int		lineLen;
 	char		lineBuf[256];
-	unsigned long	lineNodeNbr;
+	uvast		lineNodeNbr;
 	int		lineWmKey;
 	char		lineSdrName[MAX_SDR_NAME + 1];
 	char		lineWdName[256];
@@ -429,8 +466,8 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 		}
 
 		lineNbr++;
-		if (sscanf(lineBuf, "%lu %d %31s %255s", &lineNodeNbr,
-				&lineWmKey, lineSdrName, lineWdName) < 4)
+		if (sscanf(lineBuf, UVAST_FIELDSPEC " %d %31s %255s",
+			&lineNodeNbr, &lineWmKey, lineSdrName, lineWdName) < 4)
 		{
 			close(nodeListFile);
 			sm_SemGive(nodeListMutex);
@@ -542,7 +579,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName,
 				sizeof parms->sdrName);
 	}
 
-	isprintf(lineBuf, sizeof lineBuf, "%lu %d %.31s %.255s\n",
+	isprintf(lineBuf, sizeof lineBuf, UVAST_FIELDSPEC " %d %.31s %.255s\n",
 			nodeNbr, parms->wmKey, parms->sdrName, wdName);
 	result = iputs(nodeListFile, lineBuf);
 	close(nodeListFile);
@@ -579,16 +616,193 @@ static DWORD WINAPI	waitForSigterm(LPVOID parm)
 }
 #endif
 
-int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
+static int	ionWaitForZcoSpace(IonVdb *vdb)
+{
+	int	result;
+
+	vdb->zcoClaimants += 1;
+	result = sm_SemTake(vdb->zcoSemaphore);
+	if (result == 0)
+	{
+		if (sm_SemEnded(vdb->zcoSemaphore))
+		{
+			writeMemo("[i] ZCO space semaphore ended.");
+		}
+		else
+		{
+			vdb->zcoClaims -= 1;
+			result = 1;
+		}
+	}
+
+	return result;
+}
+
+static void	ionReleaseZcoSpace(IonVdb *vdb)
+{
+	/*	If there are any remaining claims then let the
+	 *	next claimant in the queue (possibly this claimant,
+	 *	now re-appended to semaphore's FIFO) take a shot.	*/
+
+	if (vdb->zcoClaims > 0)
+	{
+		oK(sm_SemGive(vdb->zcoSemaphore));
+	}
+}
+
+Object	ionCreateZco(ZcoMedium source, Object location, vast offset, vast size,
+		int *cancel)
+{
+	Sdr	sdr = getIonsdr();
+	IonVdb	*vdb = _ionvdb(NULL);
+	Object	zco;
+	int	admissionDelayed = 0;
+
+	CHKZERO(vdb);
+	if (cancel)
+	{
+		*cancel = 0;		/*	Initialize.		*/
+	}
+
+	CHKZERO(sdr_begin_xn(sdr));
+	while (1)
+	{
+		zco = zco_create(sdr, source, location, offset, size);
+		if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR)
+		{
+			putErrmsg("Can't create ZCO.", NULL);
+			return 0;
+		}
+
+		if (zco == 0)	/*	Not enough ZCO space.		*/
+		{
+			if (admissionDelayed)
+			{
+				ionReleaseZcoSpace(vdb);
+			}
+
+			admissionDelayed = 1;
+			if (ionWaitForZcoSpace(vdb) == 1)
+			{
+				if (cancel && *cancel)
+				{
+					return 0;
+				}
+
+				CHKZERO(sdr_begin_xn(sdr));
+				continue;
+			}
+
+			return 0;
+		}
+
+		/*	ZCO was created.				*/
+
+		if (admissionDelayed)
+		{
+			ionReleaseZcoSpace(vdb);
+		}
+
+		return zco;
+	}
+}
+
+vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
+		vast offset, vast size, int *cancel)
+{
+	Sdr	sdr = getIonsdr();
+	IonVdb	*vdb = _ionvdb(NULL);
+	Object	length;
+	int	admissionDelayed = 0;
+
+	CHKZERO(vdb);
+	if (cancel)
+	{
+		*cancel = 0;		/*	Initialize.		*/
+	}
+
+	CHKZERO(sdr_begin_xn(sdr));
+	while (1)
+	{
+		length = zco_append_extent(sdr, zco, source, location, offset,
+				size);
+		if (sdr_end_xn(sdr) < 0 || length == ERROR)
+		{
+			putErrmsg("Can't create ZCO.", NULL);
+			return ERROR;
+		}
+
+		if (length == 0)	/*	Not enough ZCO space.	*/
+		{
+			if (admissionDelayed)
+			{
+				ionReleaseZcoSpace(vdb);
+			}
+
+			admissionDelayed = 1;
+			if (ionWaitForZcoSpace(vdb) == 1)
+			{
+				if (cancel && *cancel)
+				{
+					return 0;
+				}
+
+				CHKZERO(sdr_begin_xn(sdr));
+				continue;
+			}
+
+			return ERROR;
+		}
+
+		/*	ZCO extent was appended.			*/
+
+		if (admissionDelayed)
+		{
+			ionReleaseZcoSpace(vdb);
+		}
+
+		return length;
+	}
+}
+
+static void	ionOfferZcoSpace()
+{
+	IonVdb	*vdb = _ionvdb(NULL);
+
+	if (vdb)
+	{
+		/*	Give all tasks currently waiting for ZCO
+		 *	space a shot at claiming the space that
+		 *	has now been made available.			*/
+
+		vdb->zcoClaims += vdb->zcoClaimants;
+		vdb->zcoClaimants = 0;
+		if (vdb->zcoClaims > 0)
+		{
+			sm_SemGive(vdb->zcoSemaphore);
+		}
+	}
+}
+
+void	ionCancelZcoSpaceRequest(int *cancel)
+{
+	if (cancel)
+	{
+		*cancel = 1;			/*	Cancel.		*/
+		ionOfferZcoSpace();
+	}
+}
+
+int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 {
 	char		wdname[256];
 	Sdr		ionsdr;
 	Object		iondbObject;
 	IonDB		iondbBuf;
-	long		heapLimit;
-	Scalar		limit;
+	vast		limit;
 	sm_WmParms	ionwmParms;
 	char		*ionvdbName = _ionvdbName();
+	ZcoCallback	notify = ionOfferZcoSpace;
 
 	CHKERR(parms);
 	CHKERR(ownNodeNbr);
@@ -598,16 +812,15 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		return -1;
 	}
 #endif
-	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
-	{
-		putErrmsg("Can't initialize the SDR system.", NULL);
-		return -1;
-	}
-
 	if (igetcwd(wdname, 256) == NULL)
 	{
 		putErrmsg("Can't get cwd name.", NULL);
 		return -1;
+	}
+
+	if (parms->sdrWmSize < 0)
+	{
+		parms->sdrWmSize = 0;		/*	Default.	*/
 	}
 
 	if (checkNodeListParms(parms, wdname, ownNodeNbr) < 0)
@@ -616,8 +829,15 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		return -1;
 	}
 
+	if (sdr_initialize(parms->sdrWmSize, NULL, SM_NO_KEY, NULL) < 0)
+	{
+		putErrmsg("Can't initialize the SDR system.", NULL);
+		return -1;
+	}
+
 	if (sdr_load_profile(parms->sdrName, parms->configFlags,
-			parms->heapWords, parms->heapKey, parms->pathName) < 0)
+			parms->heapWords, parms->heapKey, parms->pathName,
+			"ionrestart") < 0)
 	{
 		putErrmsg("Unable to load SDR profile for ION.", NULL);
 		return -1;
@@ -634,7 +854,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 
 	/*	Recover the ION database, creating it if necessary.	*/
 
-	sdr_begin_xn(ionsdr);
+	CHKERR(sdr_begin_xn(ionsdr));
 	iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
 	switch (iondbObject)
 	{
@@ -654,23 +874,17 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
-		iondbBuf.productionRate = -1;	/*	Not metered.	*/
-		iondbBuf.consumptionRate = -1;	/*	Not metered.	*/
-		heapLimit = (sdr_heap_size(ionsdr) / 100)
-			 	* (100 - ION_SEQUESTERED);
-		limit.units = heapLimit % ONE_GIG;
-		limit.gigs = heapLimit / ONE_GIG;
-		zco_set_max_heap_occupancy(ionsdr, &limit);
-		zco_get_max_file_occupancy(ionsdr, &limit);
-		iondbBuf.occupancyCeiling = limit.gigs;
-		iondbBuf.occupancyCeiling *= ONE_GIG;
-		iondbBuf.occupancyCeiling += limit.units;
-		iondbBuf.occupancyCeiling += heapLimit;
+		iondbBuf.productionRate = -1;	/*	Unknown.	*/
+		iondbBuf.consumptionRate = -1;	/*	Unknown.	*/
+		limit = (sdr_heap_size(ionsdr) / 100) * (100 - ION_SEQUESTERED);
+		zco_set_max_heap_occupancy(ionsdr, limit);
+		iondbBuf.occupancyCeiling = zco_get_max_file_occupancy(ionsdr);
+		iondbBuf.occupancyCeiling += limit;
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
 		iondbBuf.clockIsSynchronized = 1;
-                memcpy( &iondbBuf.parmcopy, parms, sizeof(IonParms));
+                memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
 		{
@@ -715,6 +929,7 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 		return -1;
 	}
 
+	zco_register_callback(notify);
 	ionRedirectMemos();
 #ifdef mingw
 	DWORD	threadId;
@@ -732,6 +947,85 @@ int	ionInitialize(IonParms *parms, unsigned long ownNodeNbr)
 	return 0;
 }
 
+static void	destroyIonNode(PsmPartition partition, PsmAddress eltData,
+			void *argument)
+{
+	IonNode	*node = (IonNode *) psp(partition, eltData);
+
+	sm_list_destroy(partition, node->snubs, rfx_erase_data, NULL);
+	psm_free(partition, eltData);
+}
+
+static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
+{
+	IonVdb		*vdb;
+
+	vdb = (IonVdb *) psp(wm, vdbAddress);
+
+	/*	Time-ordered list of probes can simply be destroyed.	*/
+
+	sm_list_destroy(wm, vdb->probes, rfx_erase_data, NULL);
+
+	/*	Three of the red-black tables in the Vdb are
+	 *	emptied and recreated by rfx_stop().  Destroy them.	*/
+
+	sm_rbt_destroy(wm, vdb->contactIndex, NULL, NULL);
+	sm_rbt_destroy(wm, vdb->rangeIndex, NULL, NULL);
+	sm_rbt_destroy(wm, vdb->timeline, NULL, NULL);
+
+	/*	cgr_stop clears all routing objects, so nodes and
+	 *	neighbors themselves can now be deleted.		*/
+
+	sm_rbt_destroy(wm, vdb->nodes, destroyIonNode, NULL);
+	sm_rbt_destroy(wm, vdb->neighbors, rfx_erase_data, NULL);
+
+	/*	Safely delete the ZCO availability semaphore.		*/
+
+	sm_SemEnd(vdb->zcoSemaphore);
+	sm_SemDelete(vdb->zcoSemaphore);
+	vdb->zcoSemaphore = SM_SEM_NONE;
+	vdb->zcoClaimants = 0;
+	vdb->zcoClaims = 0;
+	zco_unregister_callback();
+}
+
+void	ionDropVdb()
+{
+	PsmPartition	wm = getIonwm();
+	char		*ionvdbName = _ionvdbName();
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*stop = NULL;
+
+	if (psm_locate(wm, ionvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if (elt)
+	{
+		dropVdb(wm, vdbAddress);	/*	Destroy Vdb.	*/
+		psm_free(wm, vdbAddress);
+		if (psm_uncatlg(wm, ionvdbName) < 0)
+		{
+			putErrmsg("Failed uncataloging vdb.", NULL);
+		}
+	}
+
+	oK(_ionvdb(&stop));			/*	Forget old Vdb.	*/
+}
+
+void	ionRaiseVdb()
+{
+	char	*ionvdbName = _ionvdbName();
+
+	if(_ionvdb(&ionvdbName) == NULL)	/*	Create new Vdb.	*/
+	{
+		putErrmsg("ION can't reinitialize vdb.", NULL);
+	}
+}
+
 int	ionAttach()
 {
 	Sdr		ionsdr = _ionsdr(NULL);
@@ -743,6 +1037,7 @@ int	ionAttach()
 	IonParms	parms;
 	sm_WmParms	ionwmParms;
 	char		*ionvdbName = _ionvdbName();
+	ZcoCallback	notify = ionOfferZcoSpace;
 
 	if (ionsdr && iondbObject && ionwm && ionvdb)
 	{
@@ -757,6 +1052,7 @@ int	ionAttach()
 
 	signal(SIGINT, SIG_IGN);
 #endif
+
 	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
@@ -796,9 +1092,17 @@ int	ionAttach()
 
 	if (iondbObject == 0)
 	{
-		sdr_begin_xn(ionsdr);	/*	Lock database.		*/
-		iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
-		sdr_exit_xn(ionsdr);	/*	Unlock database.	*/
+		if (sdr_heap_is_halted(ionsdr))
+		{
+			iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
+		}
+		else
+		{
+			CHKERR(sdr_begin_xn(ionsdr));
+			iondbObject = sdr_find(ionsdr, _iondbName(), NULL);
+			sdr_exit_xn(ionsdr);
+		}
+
 		if (iondbObject == 0)
 		{
 			putErrmsg("ION database not found.", NULL);
@@ -835,6 +1139,7 @@ int	ionAttach()
 		}
 	}
 
+	zco_register_callback(notify);
 	ionRedirectMemos();
 #ifdef mingw
 	DWORD	threadId;
@@ -854,7 +1159,7 @@ int	ionAttach()
 
 void	ionDetach()
 {
-#if defined (VXWORKS)
+#if defined (VXWORKS) || defined (bionic)
 	return;
 #elif defined (RTEMS)
 	sm_TaskForget(sm_TaskIdSelf());
@@ -873,8 +1178,8 @@ void	ionDetach()
 #endif
 }
 
-void	ionProd(unsigned long fromNode, unsigned long toNode,
-		unsigned long xmitRate, unsigned int owlt)
+void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
+		unsigned int owlt)
 {
 	Sdr	ionsdr = _ionsdr(NULL);
 	time_t	fromTime;
@@ -979,7 +1284,7 @@ char	*getIonWorkingDirectory()
 	return snapshot->workingDirectoryName;
 }
 
-unsigned long	getOwnNodeNbr()
+uvast	getOwnNodeNbr()
 {
 	IonDB	*snapshot = _ionConstants();
 
@@ -1032,7 +1337,7 @@ int	setDeltaFromUTC(int newDelta)
 	IonVdb	*ionvdb = _ionvdb(NULL);
 	IonDB	iondb;
 
-	sdr_begin_xn(ionsdr);
+	CHKERR(sdr_begin_xn(ionsdr));
 	sdr_stage(ionsdr, (char *) &iondb, iondbObject, sizeof(IonDB));
 	iondb.deltaFromUTC = newDelta;
 	sdr_write(ionsdr, iondbObject, (char *) &iondb, sizeof(IonDB));
@@ -1151,7 +1456,7 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 
 /*	*	*	Parsing 	*	*	*	*	*/
 
-int	_extractSdnv(unsigned long *into, unsigned char **from, int *remnant,
+int	_extractSdnv(uvast *into, unsigned char **from, int *remnant,
 		int lineNbr)
 {
 	int	sdnvLength;
@@ -1170,6 +1475,32 @@ int	_extractSdnv(unsigned long *into, unsigned char **from, int *remnant,
 		return 0;
 	}
 
+	(*from) += sdnvLength;
+	(*remnant) -= sdnvLength;
+	return sdnvLength;
+}
+
+int	_extractSmallSdnv(unsigned int *into, unsigned char **from,
+		int *remnant, int lineNbr)
+{
+	int	sdnvLength;
+	uvast	val;
+
+	CHKZERO(into && from && remnant);
+	if (*remnant < 1)
+	{
+		writeMemoNote("[?] Missing SDNV at line...", itoa(lineNbr));
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(&val, *from);
+	if (sdnvLength < 1)
+	{
+		writeMemoNote("[?] Invalid SDNV at line...", itoa(lineNbr));
+		return 0;
+	}
+
+	*into = val;				/*	Truncate.	*/
 	(*from) += sdnvLength;
 	(*remnant) -= sdnvLength;
 	return sdnvLength;
@@ -1336,6 +1667,12 @@ configuration file line (%d).", lineNbr);
 			continue;
 		}
 
+		if (strcmp(tokens[0], "sdrWmSize") == 0)
+		{
+			parms->sdrWmSize = atoi(tokens[1]);
+			continue;
+		}
+
 		if (strcmp(tokens[0], "configFlags") == 0)
 		{
 			parms->configFlags = atoi(tokens[1]);
@@ -1389,6 +1726,9 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "sdrName:        '%s'",
 			parms->sdrName);
 	writeMemo(buffer);
+	isprintf(buffer, sizeof buffer, "sdrWmSize:       %ld",
+			parms->sdrWmSize);
+	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "configFlags:     %d",
 		       parms->configFlags);
 	writeMemo(buffer);
@@ -1405,6 +1745,7 @@ void	printIonParms(IonParms *parms)
 
 /*	*	*	Portable alarm functions	*	*	*/
 
+#ifndef uClibc
 static void	*alarmMain(void *parm)
 {
 	IonAlarm	*alarm = (IonAlarm *) parm;
@@ -1459,19 +1800,24 @@ static void	*alarmMain(void *parm)
 	pthread_cond_destroy(&cv);
 	return NULL;
 }
+#endif
 
 void	ionSetAlarm(IonAlarm *alarm, pthread_t *alarmThread)
 {
-	if (pthread_create(alarmThread, NULL, alarmMain, alarm) < 0)
+#ifndef uClibc
+	if (pthread_begin(alarmThread, NULL, alarmMain, alarm) < 0)
 	{
 		putSysErrmsg("Can't set alarm", NULL);
 	}
+#endif
 }
 
 void	ionCancelAlarm(pthread_t alarmThread)
 {
-	pthread_cancel(alarmThread);
+#ifndef uClibc
+	pthread_end(alarmThread);
 	pthread_join(alarmThread, NULL);
+#endif
 }
 
 #ifdef mingw

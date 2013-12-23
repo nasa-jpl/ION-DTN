@@ -1,0 +1,6 @@
+# Samuel Jero <sj323707@ohio.edu>
+# bug-0009-tcpclo-fixes configuration
+1 2 config.ionconfig
+s
+a contact +0 +1200 1 2 1000
+a range +0 +1200 1 2 1

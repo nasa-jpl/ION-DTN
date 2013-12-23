@@ -146,7 +146,7 @@ typedef struct
 
 typedef struct
 {
-	unsigned long		entityId;
+	uvast			entityId;
 	Object			inboundFdus;	/*	sdrlist: InFdu	*/
 } Entity;
 
@@ -176,11 +176,11 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	ownEntityId;
+	uvast		ownEntityId;
 	CfdpNumber	ownEntityNbr;
 	int		requestCounter;
-	unsigned long	transactionCounter;
-	unsigned long	maxTransactionNbr;
+	unsigned int	transactionCounter;
+	unsigned int	maxTransactionNbr;
 	unsigned char	fillCharacter;
 	unsigned short	discardIncompleteFile;		/*	Boolean	*/
 	unsigned short	crcRequired;			/*	Boolean	*/
@@ -250,11 +250,14 @@ typedef struct
 } CfdpVdb;
 
 extern int		cfdpInit();
+extern void		cfdpDropVdb();
+extern void		cfdpRaiseVdb();
 #define cfdpStart(cmd)	_cfdpStart(cmd)
 extern int		_cfdpStart(char *utiCmd);
 #define cfdpStop()	_cfdpStop()
 extern void		_cfdpStop();
 extern int		cfdpAttach();
+extern void		cfdpDetach();
 
 extern void		cfdpScrub();
 

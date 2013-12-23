@@ -99,7 +99,7 @@ B<bssrecv> terminates.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bssrecv> has terminated.
 

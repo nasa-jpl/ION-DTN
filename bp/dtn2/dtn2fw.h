@@ -54,7 +54,7 @@ extern DtnDB		*getDtnConstants();
 extern void		dtn2_destroyDirective(FwdDirective *directive);
 
 extern int		dtn2_lookupDirective(char *nodeName, char *demux,
-				FwdDirective *directive);
+				Bundle *bundle, FwdDirective *directive);
 
 extern void		dtn2_findPlan(char *nodeName, Object *planAddr,
 				Object *elt);

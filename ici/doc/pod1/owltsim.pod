@@ -25,6 +25,9 @@ Each configuration line must be of the following form:
 
 I<to> I<from> I<my_port#> I<dest_host> I<dest_port#> I<owlt> I<modulus>
 
+=back
+
+=over 4
 
 =item I<to> identifies the receiving node.
 
@@ -70,10 +73,10 @@ use control-C to kill it.
 
 =over 4
 
-=item 0
+=item "0"
 Nominal termination.
 
-=item 1
+=item "1"
 Termination due to an error condition, as noted in printed messages.
 
 =back

@@ -46,6 +46,7 @@ static void	eraseTree(SmRbt *rbt)
 	rbt->userData = 0;
 	rbt->root = 0;
 	rbt->length = 0;
+	rbt->lock = 0;
 }
 
 static void	eraseTreeNode(SmRbtNode *node)
@@ -127,19 +128,18 @@ void	sm_rbt_unwedge(PsmPartition partition, PsmAddress rbt, int interval)
 	sm_SemUnwedge(rbtPtr->lock, interval);
 }
 
-void	Sm_rbt_destroy(char *file, int line, PsmPartition partition,
-		PsmAddress rbt, SmRbtDeleteFn deleteFn, void *arg)
+static void	destroyRbtNodes(char *file, int line, PsmPartition partition,
+			SmRbt *rbtPtr, SmRbtDeleteFn deleteFn, void *arg)
 {
-	SmRbt		*rbtPtr;
 	PsmAddress	node;
 	SmRbtNode	*nodePtr;
 	PsmAddress	parentNode;
 
-	CHKVOID(partition);
-	CHKVOID(rbt);
-	rbtPtr = (SmRbt *) psp(partition, rbt);
 	node = rbtPtr->root;
 	nodePtr = (SmRbtNode *) psp(partition, node);
+
+	/*	Destroy all nodes of the tree.				*/
+
 	while (node)
 	{
 		/*	If node has a left subtree, descend into it.	*/
@@ -176,6 +176,7 @@ void	Sm_rbt_destroy(char *file, int line, PsmPartition partition,
 
 		if (parentNode == 0)
 		{
+			rbtPtr->root = 0;
 			break;	/*	Have deleted the root node.	*/
 		}
 
@@ -196,6 +197,35 @@ void	Sm_rbt_destroy(char *file, int line, PsmPartition partition,
 
 		node = parentNode;
 	}
+}
+
+void	Sm_rbt_clear(char *file, int line, PsmPartition partition,
+		PsmAddress rbt, SmRbtDeleteFn deleteFn, void *arg)
+{
+	SmRbt	*rbtPtr;
+
+	CHKVOID(partition);
+	CHKVOID(rbt);
+	rbtPtr = (SmRbt *) psp(partition, rbt);
+	oK(lockSmrbt(rbtPtr));
+	destroyRbtNodes(file, line, partition, rbtPtr, deleteFn, arg);
+	unlockSmrbt(rbtPtr);
+}
+
+void	Sm_rbt_destroy(char *file, int line, PsmPartition partition,
+		PsmAddress rbt, SmRbtDeleteFn deleteFn, void *arg)
+{
+	SmRbt	*rbtPtr;
+
+	CHKVOID(partition);
+	CHKVOID(rbt);
+	rbtPtr = (SmRbt *) psp(partition, rbt);
+	oK(lockSmrbt(rbtPtr));
+	destroyRbtNodes(file, line, partition, rbtPtr, deleteFn, arg);
+
+	/*	Now destroy the tree itself.				*/
+
+	sm_SemDelete(rbtPtr->lock);
 
 	/*	just in case user mistakenly accesses later...		*/
 	eraseTree(rbtPtr);

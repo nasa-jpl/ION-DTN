@@ -33,9 +33,8 @@ int main(int argc, char **argv)
 	sdr_write(sdr, txExtent, testLine, payloadSize);
 	txBundleZco = zco_create(sdr, ZcoSdrSource, txExtent, 0, payloadSize);
 	fail_unless(sdr_end_xn(sdr) == 0 && txBundleZco != 0);
-	fail_unless(bp_send(sap, BP_BLOCKING, testEid, NULL, 60,
-			BP_STD_PRIORITY, SourceCustodyRequired, 0, 0, NULL,
-			txBundleZco, &txNewBundle) == 1);
+	fail_unless(bp_send(sap, testEid, NULL, 60, BP_STD_PRIORITY,
+		SourceCustodyRequired, 0, 0, NULL, txBundleZco, &txNewBundle) == 1);
 
 	/* Post a custody acceptance timeout event for this bundle */
 	fail_unless(bpMemo(txNewBundle, 4) == 0);

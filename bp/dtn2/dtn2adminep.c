@@ -14,7 +14,7 @@ static int	handleStatusRpt(BpDelivery *dlv, BpStatusRpt *rpt)
 {
 	char	memobuf[1024];
 
-	isprintf(memobuf, sizeof memobuf, "[i] bundle (%s), %lu:%lu, %lu \
+	isprintf(memobuf, sizeof memobuf, "[i] bundle (%s), %u:%u, %u \
 status is %d", rpt->sourceEid, rpt->creationTime.seconds,
 		rpt->creationTime.count, rpt->fragmentOffset, rpt->reasonCode);
 	writeMemo(memobuf);

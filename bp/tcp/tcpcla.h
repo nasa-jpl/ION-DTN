@@ -56,7 +56,7 @@ extern "C" {
 #define SHUT_DN_BUSY		3
 #define SHUT_DN_BUSY_HEX	0x02
 #define BACKOFF_TIMER_START	30
-#define BACKOFF_TIMER_LIMIT	86400
+#define BACKOFF_TIMER_LIMIT	3600
 
 #ifndef KEEPALIVE_PERIOD
 #define KEEPALIVE_PERIOD	(15)
@@ -83,7 +83,7 @@ extern int	receiveBytesByTCP(int bundleSocket, char *into, int length);
 extern int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work,
 			char *buffer);
 extern int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer);
-extern int 	receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,unsigned long *segmentLength,int *flags);
+extern int 	receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer, uvast *segmentLength,int *flags);
 extern int 	sendContactHeader(int *bundleSocket, unsigned char *buffer,
 			struct sockaddr *socketName);
 extern int	receiveContactHeader(int *bundleSocket, unsigned char *buffer,

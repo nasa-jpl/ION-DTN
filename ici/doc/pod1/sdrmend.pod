@@ -4,7 +4,7 @@ sdrmend - SDR corruption repair utility
 
 =head1 SYNOPSIS
 
-B<sdrmend> I<sdr_name> I<config_flags> I<heap_words> I<heap_key> I<path_name>
+B<sdrmend> I<sdr_name> I<config_flags> I<heap_words> I<heap_key> I<path_name> [I<restartCmd> I<restartLatency>]
 
 =head1 DESCRIPTION
 
@@ -22,11 +22,11 @@ the data store without requiring all ION software to terminate and restart.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<sdrmend> has terminated successfully.
 
-=item 1
+=item "1"
 
 B<sdrmend> has terminated unsuccessfully.  See diagnostic messages in the
 B<ion.log> log file for details.

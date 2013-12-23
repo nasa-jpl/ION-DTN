@@ -29,6 +29,10 @@ extern "C" {
 #define	LTP_MEAN_SEARCH_LENGTH	4
 #endif
 
+#ifndef LTP_SERIAL_NBR_LIMIT
+#define	LTP_SERIAL_NBR_LIMIT	(16384)
+#endif
+
 #define	MAX_LTP_CLIENT_NBR	(LTP_MAX_NBR_OF_CLIENTS - 1)
 #define	MAX_RETRANSMISSIONS	9
 #define MAX_NBR_OF_CHECKPOINTS	(1 + MAX_RETRANSMISSIONS)
@@ -40,8 +44,8 @@ extern "C" {
 
 typedef struct
 {
-	unsigned long	offset;
-	unsigned long	length;
+	unsigned int	offset;
+	unsigned int	length;
 } LtpReceptionClaim;
 
 #define	LTP_CTRL_FLAG		0x08
@@ -96,21 +100,21 @@ typedef struct
 
 	/*	Fields used for multiple segment classes.		*/
 
-	unsigned long		ckptSerialNbr;
-	unsigned long		rptSerialNbr;
+	unsigned int		ckptSerialNbr;
+	unsigned int		rptSerialNbr;
 	LtpTimer		timer;	/*	Checkpoint or report.	*/
 
 	/*	Fields for data segments.				*/
 
-	unsigned long		clientSvcId;	/*	Destination.	*/
-	unsigned long		offset;		/*	Within block.	*/
-	unsigned long		length;
+	unsigned int		clientSvcId;	/*	Destination.	*/
+	unsigned int		offset;		/*	Within block.	*/
+	unsigned int		length;
 	Object			block;	/*	Session svcDataObjects.	*/
 
 	/*	Fields for report segments.				*/
 
-	unsigned long		upperBound;
-	unsigned long		lowerBound;
+	unsigned int		upperBound;
+	unsigned int		lowerBound;
 	Object			receptionClaims;/*	SDR list.	*/
 
 	/*	Fields for management segments.				*/
@@ -141,7 +145,7 @@ typedef enum
 
 typedef struct
 {
-	unsigned long	acqOffset;	/*	Within acquisition ZCO.	*/
+	unsigned int	acqOffset;	/*	Within acquisition ZCO.	*/
 	Object		sessionObj;
 	Object		sessionListElt;
 	LtpSegmentClass	segmentClass;
@@ -164,8 +168,8 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	sessionNbr;
-	unsigned long	remoteEngineId;
+	unsigned int	sessionNbr;
+	uvast		remoteEngineId;
 	short		ohdLength;
 	Object		queueListElt;
 	Object		ckptListElt;	/*	For checkpoints only.	*/
@@ -179,16 +183,16 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	offset;
-	unsigned long	length;
+	unsigned int	offset;
+	unsigned int	length;
 	Object		sessionListElt;
 } LtpSegmentRef;
 
 typedef struct
 {
-	unsigned long	sessionNbr;	/*	Assigned by source.	*/
+	unsigned int	sessionNbr;	/*	Assigned by source.	*/
 	Sdnv		sessionNbrSdnv;
-	unsigned long	clientSvcId;
+	unsigned int	clientSvcId;
 	int		redPartLength;
 	int		redPartReceived;
 	unsigned char	endOfBlockRecd;	/*	Boolean.		*/
@@ -196,10 +200,11 @@ typedef struct
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
-	unsigned long	lastRptSerialNbr;
+	unsigned int	lastRptSerialNbr;
 	int		reportsCount;
 	Object		blockFileRef;	/*	A ZCO File Ref object.	*/
 	Object		svcData;	/*	The acquisition ZCO.	*/
+	int		congestive;	/*	Boolean: no ZCO space.	*/
 
 	/*	Backward reference.					*/
 
@@ -215,7 +220,7 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	sessionNbr;	/*	ID of ImportSession.	*/
+	unsigned int	sessionNbr;	/*	ID of ImportSession.	*/
 	Object		sessionElt;	/*	Ref. to ImportSession.	*/
 	PsmAddress	redSegmentsIdx;	/*	RBT of LtpSegmentRefs	*/
 } VImportSession;
@@ -228,16 +233,16 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	serialNbr;
+	unsigned int	serialNbr;
 	Object		sessionListElt;
 } LtpCkpt;
 
 typedef struct
 {
 	Object		span;		/*	Transmission span.	*/
-	unsigned long	sessionNbr;	/*	Assigned by self.	*/
+	unsigned int	sessionNbr;	/*	Assigned by self.	*/
 	Sdnv		sessionNbrSdnv;
-	unsigned long	clientSvcId;
+	unsigned int	clientSvcId;
 	Sdnv		clientSvcIdSdnv;
 	int		totalLength;
 	int		redPartLength;
@@ -246,6 +251,7 @@ typedef struct
 	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
 	Object		claims;		/*	reception claims list	*/
 	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
+	unsigned int	lastCkptSerialNbr;
 
 	/*	Segments are retained in these lists only up to the
 	 *	time of initial transmission, and only to support
@@ -275,9 +281,9 @@ typedef enum
 
 typedef struct
 {
-	unsigned long	refNbr1;	/*	Engine ID.		*/
-	unsigned long	refNbr2;	/*	Session number.		*/
-	unsigned long	refNbr3;	/*	Serial number.		*/
+	uvast		refNbr1;	/*	Engine ID.		*/
+	unsigned int	refNbr2;	/*	Session number.		*/
+	unsigned int	refNbr3;	/*	Serial number.		*/
 	Object		parm;		/*	Non-specific use.	*/
 	time_t		scheduledTime;	/*	Seconds since Jan 1970.	*/
 	LtpEventType	type;
@@ -290,7 +296,7 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	engineId;	/*	ID of remote engine.	*/
+	uvast		engineId;	/*	ID of remote engine.	*/
 	Sdnv		engineIdSdnv;
 	unsigned int	remoteQtime;	/*	In seconds.		*/
 	int		purge;		/*	Boolean.		*/
@@ -307,7 +313,7 @@ typedef struct
 	unsigned int	ageOfBufferedBlock;
 	unsigned int	lengthOfBufferedBlock;
 	unsigned int	redLengthOfBufferedBlock;
-	unsigned long	clientSvcIdOfBufferedBlock;
+	unsigned int	clientSvcIdOfBufferedBlock;
 
 	Object		exportSessions;	/*	SDR list: ExportSession	*/
 	Object		segments;	/*	SDR list: LtpXmitSeg	*/
@@ -360,20 +366,21 @@ typedef struct
 	Object		spanElt;	/*	Reference to LtpSpan.	*/
 	Object		stats;		/*	LtpSpanStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
-	unsigned long	engineId;	/*	ID of remote engine.	*/
-	unsigned long	localXmitRate;	/*	Bytes per second.	*/
-	unsigned long	remoteXmitRate;	/*	Bytes per second.	*/
-	unsigned long	receptionRate;	/*	Bytes per second.	*/
+	uvast		engineId;	/*	ID of remote engine.	*/
+	unsigned int	localXmitRate;	/*	Bytes per second.	*/
+	unsigned int	remoteXmitRate;	/*	Bytes per second.	*/
+	unsigned int	receptionRate;	/*	Bytes per second.	*/
 	unsigned int	owltInbound;	/*	In seconds.		*/
 	unsigned int	owltOutbound;	/*	In seconds.		*/
 	int		meterPid;	/*	For stopping ltpmeter.	*/
 	int		lsoPid;		/*	For stopping the LSO.	*/
 	PsmAddress	importSessions;	/*	RBT of VImportSessions	*/
+	PsmAddress	avblIdxRbts;	/*	SmList of empty RBTs	*/
 
 	/*	For detecting miscolored segments.			*/
 
-	unsigned long	greenSessionNbr;
-	unsigned long	greenOffset;
+	unsigned int	greenSessionNbr;
+	unsigned int	greenOffset;
 
 	/*	*	*	Work area	*	*	*	*/
 
@@ -436,8 +443,8 @@ typedef struct
 typedef struct
 {
 	LtpSessionId	sessionId;
-	unsigned long	dataOffset;
-	unsigned long	dataLength;
+	unsigned int	dataOffset;
+	unsigned int	dataLength;
 	LtpNoticeType	type;
 	unsigned char	reasonCode;
 	unsigned char	endOfBlock;	/*	Boolean.		*/
@@ -463,7 +470,7 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	ownEngineId;
+	uvast		ownEngineId;
 	Sdnv		ownEngineIdSdnv;
 
 	/*	estMaxExportSessions is used to compute the number
@@ -476,11 +483,15 @@ typedef struct
 	unsigned int	ownQtime;
 	unsigned int	enforceSchedule;/*	Boolean.		*/
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
-	unsigned long	sessionCount;
+	unsigned int	sessionCount;
 	Object		exportSessionsHash;
 	Object		deadExports;	/*	SDR list: ExportSession	*/
 	Object		spans;		/*	SDR list: LtpSpan	*/
 	Object		timeline;	/*	SDR list: LtpEvent	*/
+	unsigned long	heapBytesReserved;
+	unsigned long	heapBytesOccupied;
+	unsigned long	heapSpaceBytesReserved;
+	unsigned long	heapSpaceBytesOccupied;
 } LtpDB;
 
 /* The volatile database object encapsulates the current volatile state
@@ -504,7 +515,7 @@ typedef struct
 
 typedef struct
 {
-	unsigned long	ownEngineId;
+	uvast		ownEngineId;
 	int		lsiPid;		/*	For stopping the LSI.	*/
 	int		clockPid;	/*	For stopping ltpclock.	*/
 	int		watching;	/*	Boolean activity watch.	*/
@@ -513,50 +524,54 @@ typedef struct
 } LtpVdb;
 
 extern int		ltpInit(int estMaxExportSessions);
+extern void		ltpDropVdb();
+extern void		ltpRaiseVdb();
 extern int		ltpStart();
 extern void		ltpStop();
 extern int		ltpAttach();
+extern void		ltpDetach();
 
 extern Object		getLtpDbObject();
 extern LtpDB		*getLtpConstants();
 extern LtpVdb		*getLtpVdb();
 
-extern void		findSpan(unsigned long engineId, LtpVspan **vspan,
+extern void		findSpan(uvast engineId, LtpVspan **vspan,
 				PsmAddress *vspanElt);
-extern int		addSpan(unsigned long engineId,
+extern int		addSpan(uvast engineId,
 				unsigned int maxExportSessions,
 				unsigned int maxImportSessions,
 				unsigned int maxSegmentSize,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,
 				char *lsoCmd, unsigned int qTime, int purge);
-extern int		updateSpan(unsigned long engineId,
+extern int		updateSpan(uvast engineId,
 	       			unsigned int maxExportSessions,
 				unsigned int maxImportSessions,
 				unsigned int maxSegmentSize,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,
 				char *lsoCmd, unsigned int qTime, int purge);
-extern int		removeSpan(unsigned long engineId);
+extern int		removeSpan(uvast engineId);
 extern void		checkReservationLimit();
 
-extern int		ltpStartSpan(unsigned long engineId);
-extern void		ltpStopSpan(unsigned long engineId);
+extern int		ltpStartSpan(uvast engineId);
+extern void		ltpStopSpan(uvast engineId);
 
 extern int		startExportSession(Sdr sdr, Object spanObj,
 				LtpVspan *vspan);
 extern int		issueSegments(Sdr sdr, LtpSpan *span, LtpVspan *vspan,
 				ExportSession *session, Object sessionObj,
-				Lyst extents, unsigned long reportSerialNbr);
+				Lyst extents, unsigned int reportSerialNbr,
+				unsigned int checkpointSerialNbr);
 
-extern int		ltpAttachClient(unsigned long clientSvcId);
-extern void		ltpDetachClient(unsigned long clientSvcId);
+extern int		ltpAttachClient(unsigned int clientSvcId);
+extern void		ltpDetachClient(unsigned int clientSvcId);
 
 extern int		enqueueNotice(LtpVclient *client,
-				unsigned long sourceEngineId,
-				unsigned long sessionNbr,
-				unsigned long dataOffset,
-				unsigned long dataLength,
+				uvast sourceEngineId,
+				unsigned int sessionNbr,
+				unsigned int dataOffset,
+				unsigned int dataLength,
 				LtpNoticeType type,
 				unsigned char reasonCode,
 				unsigned char endOfBlock,
@@ -568,18 +583,18 @@ extern int		ltpHandleInboundSegment(char *buf, int length);
 extern void		ltpStartXmit(LtpVspan *vspan);
 extern void		ltpStopXmit(LtpVspan *vspan);
 extern int		ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
-				time_t suspendTime, unsigned long xmitRate);
+				time_t suspendTime, unsigned int xmitRate);
 extern int		ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt,
-				time_t resumeTime, unsigned long xmitRate);
+				time_t resumeTime, unsigned int xmitRate);
 
-extern int		ltpResendCheckpoint(unsigned long sessionNbr,
-				unsigned long checkpoint_serial_number);
-extern int		ltpResendXmitCancel(unsigned long sessionNbr);
-extern int		ltpResendReport(unsigned long engineId,
-				unsigned long sessionNbr,
-				unsigned long report_serial_number);
-extern int		ltpResendRecvCancel(unsigned long engineId,
-				unsigned long sessionNbr);
+extern int		ltpResendCheckpoint(unsigned int sessionNbr,
+				unsigned int checkpoint_serial_number);
+extern int		ltpResendXmitCancel(unsigned int sessionNbr);
+extern int		ltpResendReport(uvast engineId,
+				unsigned int sessionNbr,
+				unsigned int report_serial_number);
+extern int		ltpResendRecvCancel(uvast engineId,
+				unsigned int sessionNbr);
 
 extern void		ltpSpanTally(LtpVspan *vspan, unsigned int idx,
 				unsigned int size);

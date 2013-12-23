@@ -69,11 +69,11 @@ receive the message if subject "amsmib" is not defined in that module's MIB.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<amsmib> terminated normally.
 
-=item 1
+=item "1"
 
 An anomalous exit status, indicating that B<amsmib> failed to register.
 

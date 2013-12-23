@@ -85,7 +85,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	imc_addKin(atoi(tokens[1]), atoi(tokens[2]));
+	imc_addKin(strtouvast(tokens[1]), atoi(tokens[2]));
 }
 
 static void	executeChange(int tokenCount, char **tokens)
@@ -96,7 +96,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
-	imc_updateKin(atoi(tokens[1]), atoi(tokens[2]));
+	imc_updateKin(strtouvast(tokens[1]), atoi(tokens[2]));
 }
 
 static void	executeDelete(int tokenCount, char **tokens)
@@ -107,20 +107,21 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	imc_removeKin(atoi(tokens[1]));
+	imc_removeKin(strtouvast(tokens[1]));
 }
 
-static void	printKin(unsigned long kin, unsigned long parent)
+static void	printKin(uvast kin, uvast parent)
 {
 	char	buffer[32];
 
-	isprintf(buffer, sizeof buffer, "%lu %s", kin,
+	isprintf(buffer, sizeof buffer, UVAST_FIELDSPEC " %s", kin,
 			kin == parent ? "parent" : "");
 	printText(buffer);
 }
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	ImcDB	imcdb;
 
 	if (tokenCount != 2)
@@ -129,16 +130,18 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(getIonsdr(), (char *) &imcdb, getImcDbObject(), sizeof(ImcDB));
-	printKin(atoi(tokens[1]), imcdb.parent);
+	printKin(strtouvast(tokens[1]), imcdb.parent);
+	sdr_exit_xn(sdr);
 }
 
 static void	executeList(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	ImcDB		imcdb;
-	Object		elt;
-	unsigned long	nodeNbr;
+	Sdr	sdr = getIonsdr();
+	ImcDB	imcdb;
+	Object	elt;
+		OBJ_POINTER(NodeId, node);
 
 	if (tokenCount != 1)
 	{
@@ -146,13 +149,13 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(getIonsdr(), (char *) &imcdb, getImcDbObject(), sizeof(ImcDB));
 	for (elt = sdr_list_first(sdr, imcdb.kin); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		nodeNbr = (unsigned long) sdr_list_data(sdr, elt);
-		printKin(nodeNbr, imcdb.parent);
+		GET_OBJ_POINTER(sdr, NodeId, node, sdr_list_data(sdr, elt));
+		printKin(node->nbr, imcdb.parent);
 	}
 
 	sdr_exit_xn(sdr);

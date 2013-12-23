@@ -22,8 +22,8 @@ extern "C" {
 
 typedef struct
 {
-	unsigned long	parent;		/*	node number		*/
-	Object		kin;		/*	SDR list of node nbrs	*/
+	uvast		parent;		/*	node number		*/
+	Object		kin;		/*	SDR list of NodeIds	*/
 	Object		groups;		/*	SDR list of ImcGroups	*/
 } ImcDB;
 
@@ -31,9 +31,9 @@ extern int		imcInit();
 extern Object		getImcDbObject();
 extern ImcDB		*getImcConstants();
 
-extern int		imc_addKin(unsigned long nodeNbr, int isParent);
-extern int		imc_updateKin(unsigned long nodeNbr, int isParent);
-extern void		imc_removeKin(unsigned long nodeNbr);
+extern int		imc_addKin(uvast nodeNbr, int isParent);
+extern int		imc_updateKin(uvast nodeNbr, int isParent);
+extern void		imc_removeKin(uvast nodeNbr);
 #ifdef __cplusplus
 }
 #endif

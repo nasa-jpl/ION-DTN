@@ -34,7 +34,7 @@ int	sm_GetUniqueKey()
 
 	takeIpcLock();
 	ipcUniqueKey++;
-	result = (int) ipcUniqueKey;
+	result = ipcUniqueKey;		/*	Truncates as necessary.	*/
 	giveIpcLock();
 	return result;
 }
@@ -459,7 +459,7 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 	 *	calling sm_ShmAttach, to let shmat determine the
 	 *	attachment point for the memory segment.		*/
 
-	if ((long) (mem = shmat(*id, *shmPtr, 0)) == -1)
+	if ((mem = (char *) shmat(*id, *shmPtr, 0)) == ((char *) -1))
 	{
 		putSysErrmsg("Can't attach shared memory segment", itoa(key));
 		return -1;
@@ -616,7 +616,7 @@ static void	tagArgBuffers(int tid)
 	oK(_argBuffersAvbl(&avbl));
 }
 
-#endif			/*	End of #if defined (VXWORKS, RTEMS)	*/
+#endif		/*	End of #if defined (VXWORKS, RTEMS, bionic)	*/
 
 /****************** Semaphore services **********************************/
 
@@ -1592,7 +1592,6 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 typedef struct
 {
 	int		semid;
-	int		setSize;
 	int		createCount;
 	int		destroyCount;
 } IciSemaphoreSet;
@@ -1625,6 +1624,7 @@ static SemaphoreBase	*_sembase(int stop)
 	static int		sembaseId = 0;
 	int			semSetIdx;
 	IciSemaphoreSet		*semset;
+	int			i;
 
 	if (stop)
 	{
@@ -1635,7 +1635,7 @@ static SemaphoreBase	*_sembase(int stop)
 			{
 				semset = semaphoreBase->semSets + semSetIdx;
 				oK(semctl(semset->semid, 0, IPC_RMID, NULL));
-            semSetIdx++;
+            			semSetIdx++;
 			}
 
 			sm_ShmDestroy(sembaseId);
@@ -1660,6 +1660,10 @@ static SemaphoreBase	*_sembase(int stop)
 		default:		/*	New SemaphoreBase.	*/
 			semaphoreBase->semaphoresCount = 0;
 			semaphoreBase->currSemSet = 0;
+			for (i = 0; i < SEMMNI; i++)
+			{
+				semaphoreBase->semSets[i].semid = -1;
+			}
 
 			/*	Acquire initial semaphore set.		*/
 
@@ -1676,7 +1680,6 @@ static SemaphoreBase	*_sembase(int stop)
 				break;
 			}
 
-			semset->setSize = SEMMSL;
 			semset->createCount = 0;
 			semset->destroyCount = 0;
 		}
@@ -1798,6 +1801,13 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	/*	No existing semaphore for this key; allocate new one
 	 *	from next semaphore in current semaphore set.		*/
 
+	if (!(i < SEMMNS))
+	{
+		giveIpcLock();
+		putErrmsg("Can't add any more semaphores; table full.", NULL);
+		return SM_SEM_NONE;
+	}
+
 	sembase->semaphores[i].key = key;
 	sembase->semaphores[i].ended = 0;
 	sembase->semaphores[i].semSetIdx = sembase->currSemSet;
@@ -1808,7 +1818,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	/*	Now roll over to next semaphore set if necessary.	*/
 
 	semset->createCount++;
-	if (semset->createCount == semset->setSize)
+	if (semset->createCount == SEMMSL)
 	{
 		/*	Must acquire another semaphore set.		*/
 
@@ -1824,12 +1834,12 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		 *	managing this semaphore set.			*/
 
 		semSetIdx = sembase->currSemSet;
-		while (semset->setSize != 0)
+		while (1)
 		{
 			semSetIdx++;
 			if (semSetIdx == SEMMNI)
 			{
-				semSetIdx = 0;
+				semSetIdx = 0;	/*	Roll over.	*/
 			}
 
 			if (semSetIdx == sembase->currSemSet)
@@ -1841,11 +1851,14 @@ manage the new one.", NULL);
 			}
 
 			semset = sembase->semSets + semSetIdx;
+			if (semset->semid == -1)
+			{
+				break;	/*	Found unused row.	*/
+			}
 		}
 
 		sembase->currSemSet = semSetIdx;
 		semset->semid = semid;
-		semset->setSize = SEMMSL;
 		semset->createCount = 0;
 		semset->destroyCount = 0;
 	}
@@ -1875,7 +1888,7 @@ void	sm_SemDelete(sm_SemId i)
 
 	semset = sembase->semSets + sem->semSetIdx;
 	semset->destroyCount++;
-	if (semset->destroyCount == semset->setSize)
+	if (semset->destroyCount == SEMMSL)
 	{
 		/*	All semaphores in this set have been deleted,
 		 *	so we can release the entire semaphore set
@@ -1887,8 +1900,7 @@ void	sm_SemDelete(sm_SemId i)
 					itoa(semset->semid));
 		}
 
-		semset->semid = 0;
-		semset->setSize = 0;
+		semset->semid = -1;
 		semset->createCount = 0;
 		semset->destroyCount = 0;
 	}
@@ -1915,10 +1927,13 @@ int	sm_SemTake(sm_SemId i)
 
 	semset = sembase->semSets + sem->semSetIdx;
 	sem_op[0].sem_num = sem_op[1].sem_num = sem->semNbr;
-	if (semop(semset->semid, sem_op, 2) < 0)
+	while (semop(semset->semid, sem_op, 2) < 0)
 	{
-		if (errno != EINTR)
+		if (errno == EINTR)
 		{
+			/*Retry on Interruption by signal*/
+			continue;
+		} else {
 			putSysErrmsg("Can't take semaphore", itoa(i));
 			return -1;
 		}
@@ -2033,6 +2048,8 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 			putSysErrmsg("Can't take semaphore", itoa(i));
 			return -1;
 		}
+		/*Intentionally don't retry if EINTR... That means the
+		 *alarm we just set went off... We're going to proceed anyway.*/
 	}
 
 	oK(alarm(0));
@@ -2208,7 +2225,65 @@ void	sm_Abort()
 
 #endif			/*	End of #ifdef VXWORKS			*/
 
-#if (defined(RTEMS) || defined(bionic))
+#if defined (bionic) || defined (uClibc)
+
+typedef struct
+{
+	void	*(*function)(void *);
+	void	*arg;
+} IonPthreadParm;
+
+static void	posixTaskExit(int sig)
+{
+	pthread_exit(0);
+}
+
+static void	sm_ArmPthread()
+{
+	struct sigaction	actions;
+
+	memset((char *) &actions, 0, sizeof actions);
+	sigemptyset(&actions.sa_mask);
+	actions.sa_flags = 0;
+	actions.sa_handler = posixTaskExit;
+	oK(sigaction(SIGUSR2, &actions, NULL));
+}
+
+void	sm_EndPthread(pthread_t threadId)
+{
+	/*	NOTE that this is NOT a faithful implementation of
+	 *	pthread_cancel(); there is no support for deferred
+	 *	thread cancellation in Bionic (the Android subset
+	 *	of Linux).  It's just a code simplification, solely
+	 *	for the express, limited purpose of shutting down a
+	 *	task immediately, under the highly constrained
+	 *	circumstances defined by sm_TaskSpawn, sm_TaskDelete,
+	 *	and sm_Abort, below.					*/
+
+	oK(pthread_kill(threadId, SIGUSR2));
+}
+
+static void	*posixTaskEntrance(void *arg)
+{
+	IonPthreadParm	*parm = (IonPthreadParm *) arg;
+
+	sm_ArmPthread();
+	return (parm->function)(parm->arg);
+}
+
+int	sm_BeginPthread(pthread_t *threadId, const pthread_attr_t *attr,
+		void *(*function)(void *), void *arg)
+{
+	IonPthreadParm	parm;
+
+	parm.function = function;
+	parm.arg = arg;
+	return pthread_create(threadId, attr, posixTaskEntrance, &parm);
+}
+
+#endif			/*	End of #if defined bionic || uClibc	*/
+
+#if defined (RTEMS) || defined (bionic)
 
 /*	Note: the RTEMS API is UNIX-like except that it omits all SVR4
  *	features.  RTEMS uses POSIX semaphores, and its shared-memory
@@ -2494,27 +2569,6 @@ typedef struct
 	int	arg10;
 } SpawnParms;
 
-#ifdef bionic
-static void	posixTaskExit(int sig)
-{
-	pthread_exit(0);
-}
-
-void	pthread_cancel(pthread_t threadId)
-{
-	/*	NOTE that this is NOT a faithful implementation of
-	 *	pthread_cancel(); there is no support for deferred
-	 *	thread cancellation in Bionic (the Android subset
-	 *	of Linux).  It's just a code simplification, solely
-	 *	for the express, limited purpose of shutting down a
-	 *	task immediately, under the highly constrained
-	 *	circumstances defined by sm_TaskSpawn, sm_TaskDelete,
-	 *	and sm_Abort, below.					*/
-
-	oK(pthread_kill(threadId, SIGUSR2));
-}
-#endif
-
 static void	*posixDriverThread(void *parm)
 {
 	SpawnParms	parms;
@@ -2527,16 +2581,10 @@ static void	*posixDriverThread(void *parm)
 
 	memset((char *) parm, 0, sizeof(SpawnParms));
 
-#ifdef bionic
-	/*	Set up SIGUSR2 handler to enable shutdown.		*/
+#if defined (bionic)
+	/*	Set up SIGUSR2 handler to enable clean task shutdown.	*/
 
-	struct sigaction	actions;
-
-	memset((char *) &actions, 0, sizeof actions);
-	sigemptyset(&actions.sa_mask);
-	actions.sa_flags = 0;
-	actions.sa_handler = posixTaskExit;
-	oK(sigaction(SIGUSR2, &actions, NULL));
+	sm_ArmPthread();
 #endif
 	/*	Run main function of thread.				*/
 
@@ -2616,7 +2664,7 @@ private symbol table; must be added to mysymtab.c.", name);
 	{
 		if (pthread_kill(threadId, SIGTERM) == 0)
 		{
-			oK(pthread_cancel(threadId));
+			oK(pthread_end(threadId));
 		}
 
 		return -1;
@@ -2655,7 +2703,7 @@ void	sm_TaskDelete(int taskId)
 
 	if (pthread_kill(threadId, SIGTERM) == 0)
 	{
-		oK(pthread_cancel(threadId));
+		oK(pthread_end(threadId));
 	}
 
 	oK(_posixTasks(&taskId, NULL, NULL));
@@ -2673,7 +2721,7 @@ void	sm_Abort()
 		threadId = pthread_self();
 		if (pthread_kill(threadId, SIGTERM) == 0)
 		{
-			oK(pthread_cancel(threadId));
+			oK(pthread_end(threadId));
 		}
 
 		return;
@@ -2929,7 +2977,8 @@ void	sm_Wakeup(DWORD processId)
 }
 #endif			/*	End of #ifdef mingw			*/
 
-#if (!defined(VXWORKS) && !defined(RTEMS) && !defined(mingw) && !defined(bionic))
+#if defined (VXWORKS) || defined (RTEMS) || defined (mingw) || defined (bionic)
+#else
 
 	/* ---- IPC services access control (Unix) -------------------- */
 
@@ -3009,6 +3058,20 @@ void	sm_TaskYield()
 	sched_yield();
 }
 
+static void	closeAllFileDescriptors()
+{
+	struct rlimit	limit;
+	int		i;
+
+	oK(getrlimit(RLIMIT_NOFILE, &limit));
+	for (i = 3; i < limit.rlim_cur; i++)
+	{
+		oK(close(i));
+	}
+
+	writeMemo("");	/*	Tell logger that log file is closed.	*/
+}
+
 int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		char *arg4, char *arg5, char *arg6, char *arg7, char *arg8,
 		char *arg9, char *arg10, int priority, int stackSize)
@@ -3023,6 +3086,7 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		return -1;
 
 	case 0:			/*	This is the child process.	*/
+		closeAllFileDescriptors();
 		execlp(name, name, arg1, arg2, arg3, arg4, arg5, arg6,
 				arg7, arg8, arg9, arg10, NULL);
 
@@ -3059,7 +3123,7 @@ void	sm_Abort()
 	abort();
 }
 
-#endif		/*	End of #if !defined (VXWORKS, RTEMS, mingw)	*/
+#endif		/*	End of #ifdef (VXWORKS, RTEMS, mingw, bionic)	*/
 
 /******************* platform-independent functions ***********************/
 

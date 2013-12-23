@@ -18,6 +18,9 @@ int	ltp_attach()
 
 void	ltp_detach()
 {
+#if (!(defined (VXWORKS) || defined (RTEMS) || defined (bionic)))
+	ltpDetach();
+#endif
 	ionDetach();
 }
 
@@ -29,7 +32,7 @@ int	ltp_engine_is_started()
 }
 
 static int	sduCanBeAppendedToBlock(LtpSpan *span,
-			unsigned long clientSvcId,
+			unsigned int clientSvcId,
 			unsigned int redPartLength)
 {
 	Sdr	sdr = getIonsdr();
@@ -134,7 +137,7 @@ static int	sduCanBeAppendedToBlock(LtpSpan *span,
 	return 1;
 }
 
-int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
+int	ltp_send(uvast destinationEngineId, unsigned int clientSvcId,
 		Object clientServiceData, unsigned int redPartLength,
 		LtpSessionId *sessionId)
 {
@@ -149,7 +152,7 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 
 	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
 	CHKERR(clientServiceData);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	findSpan(destinationEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -235,7 +238,7 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 			}
 		}
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	}
 
@@ -275,15 +278,15 @@ int	ltp_send(unsigned long destinationEngineId, unsigned long clientSvcId,
 	return 1;
 }
 
-int	ltp_open(unsigned long clientSvcId)
+int	ltp_open(unsigned int clientSvcId)
 {
 	return ltpAttachClient(clientSvcId);
 }
 
-int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
+int	ltp_get_notice(unsigned int clientSvcId, LtpNoticeType *type,
 		LtpSessionId *sessionId, unsigned char *reasonCode,
-		unsigned char *endOfBlock, unsigned long *dataOffset,
-		unsigned long *dataLength, Object *data)
+		unsigned char *endOfBlock, unsigned int *dataOffset,
+		unsigned int *dataLength, Object *data)
 {
 	Sdr		sdr = getIonsdr();
 	LtpVdb		*vdb = getLtpVdb();
@@ -301,7 +304,8 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 	CHKERR(dataLength);
 	CHKERR(data);
 	*type = LtpNoNotice;	/*	Default.			*/
-	sdr_begin_xn(sdr);
+	*data = 0;		/*	Default.			*/
+	CHKERR(sdr_begin_xn(sdr));
 	client = vdb->clients + clientSvcId;
 	if (client->pid != sm_TaskIdSelf())
 	{
@@ -334,7 +338,7 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 			return -1;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, client->notices);
 		if (elt == 0)	/*	Function was interrupted.	*/
 		{
@@ -378,7 +382,7 @@ int	ltp_get_notice(unsigned long clientSvcId, LtpNoticeType *type,
 	return 0;
 }
 
-void	ltp_interrupt(unsigned long clientSvcId)
+void	ltp_interrupt(unsigned int clientSvcId)
 {
 	LtpVdb		*vdb;
 	LtpVclient	*client;
@@ -400,7 +404,7 @@ void	ltp_release_data(Object data)
 
 	if (data)
 	{
-		sdr_begin_xn(ltpSdr);
+		CHKVOID(sdr_begin_xn(ltpSdr));
 		zco_destroy(ltpSdr, data);
 		if (sdr_end_xn(ltpSdr) < 0)
 		{
@@ -409,7 +413,7 @@ void	ltp_release_data(Object data)
 	}
 }
 
-void	ltp_close(unsigned long clientSvcId)
+void	ltp_close(unsigned int clientSvcId)
 {
 	ltpDetachClient(clientSvcId);
 }

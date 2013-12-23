@@ -30,7 +30,7 @@ to the linked list again.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<file2sm> has terminated.
 

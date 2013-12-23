@@ -42,10 +42,8 @@ static sm_SemId		stcpcloSemaphore(sm_SemId *semid)
 
 static void	shutDownClo()	/*	Commands CLO termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(stcpcloSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 /*	*	*	Keepalive thread functions	*	*	*/
@@ -170,9 +168,11 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vduct->xmitThrottle.nominalRate = DEFAULT_TCP_RATE;
@@ -234,7 +234,7 @@ int	main(int argc, char *argv[])
 	parms.mutex = &mutex;
 	parms.socketName = &socketName;
 	parms.ductSocket = &ductSocket;
-	if (pthread_create(&keepaliveThread, NULL, sendKeepalives, &parms))
+	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms))
 	{
 		putSysErrmsg("stcpclo can't create keepalive thread", NULL);
 		MRELEASE(buffer);
@@ -268,7 +268,9 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
+		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
 		bytesSent = sendBundleByTCP(&socketName, &ductSocket,
 				bundleLength, bundleZco, buffer);

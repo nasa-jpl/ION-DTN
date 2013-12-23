@@ -1,0 +1,12 @@
+1
+a protocol ltp 1400 100
+a induct ltp 4 ltpcli
+a outduct ltp 2 ltpclo
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:4.1 x
+a endpoint ipn:4.2 x
+a endpoint ipn:4.128 x
+a endpoint ipn:4.129 x
+r 'ipnadmin node.ipnrc'
+w 1
+s

@@ -413,6 +413,7 @@ type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	addr;
 	Object	elt;
 
@@ -430,55 +431,71 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "key") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		sec_findKey(tokens[2], &addr, &elt);
 		if (elt == 0)
 		{
 			printText("Key not found.");
-			return;
+		}
+		else
+		{
+			printKey(addr);
 		}
 
-		printKey(addr);
+		sdr_exit_xn(sdr);
 		return;
 	}
 
 	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		sec_findBspBabRule(tokens[2], tokens[3], &addr, &elt);
 		if (elt == 0)
 		{
 			printText("BAB rule not found.");
-			return;
+		}
+		else
+		{
+			printBspBabRule(addr);
 		}
 
-		printBspBabRule(addr);
+		sdr_exit_xn(sdr);
 		return;
 	}
 
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		sec_findBspPibRule(tokens[2], tokens[3], atoi(tokens[4]),
 				&addr, &elt);
 		if (elt == 0)
 		{
 			printText("PIB rule not found.");
-			return;
+		}
+		else
+		{
+			printBspPibRule(addr);
 		}
 
-		printBspPibRule(addr);
+		sdr_exit_xn(sdr);
 		return;
 	}
 
         if (strcmp(tokens[1], "bsppcbrule") == 0)
         {
+		CHKVOID(sdr_begin_xn(sdr));
                 sec_findBspPcbRule(tokens[2], tokens[3], atoi(tokens[4]),
                                 &addr, &elt);
                 if (elt == 0)
                 {
                         printText("PCB rule not found.");
-                        return;
                 }
+		else
+		{
+                	printBspPcbRule(addr);
+		}
 
-                printBspPcbRule(addr);
+		sdr_exit_xn(sdr);
                 return;
         }
 
@@ -507,6 +524,7 @@ static void	executeList(int tokenCount, char **tokens)
 	GET_OBJ_POINTER(sdr, SecDB, db, getSecDbObject());
 	if (strcmp(tokens[1], "key") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sdr_list_first(sdr, db->keys); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
@@ -514,11 +532,13 @@ static void	executeList(int tokenCount, char **tokens)
 			printKey(obj);
 		}
 
+		sdr_exit_xn(sdr);
 		return;
 	}
 
 	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sdr_list_first(sdr, db->bspBabRules); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
@@ -526,11 +546,13 @@ static void	executeList(int tokenCount, char **tokens)
 			printBspBabRule(obj);
 		}
 
+		sdr_exit_xn(sdr);
 		return;
 	}
 
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sdr_list_first(sdr, db->bspPibRules); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
@@ -538,11 +560,13 @@ static void	executeList(int tokenCount, char **tokens)
 			printBspPibRule(obj);
 		}
 
+		sdr_exit_xn(sdr);
 		return;
 	}
 
 	if (strcmp(tokens[1], "bsppcbrule") == 0)
 	{
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sdr_list_first(sdr, db->bspPcbRules); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
@@ -550,6 +574,7 @@ static void	executeList(int tokenCount, char **tokens)
 			printBspPcbRule(obj);
 		}
 
+		sdr_exit_xn(sdr);
 		return;
         }
 

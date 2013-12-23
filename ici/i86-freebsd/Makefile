@@ -5,7 +5,7 @@ UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
 
-# OPT = -O -Dlinux
+# OPT = -O -Dfreebsd
 OPT = -g -Wall -Werror -Dfreebsd
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -fPIC -shared

@@ -26,6 +26,18 @@ the platform library functions rather than native O/S system
 calls may forego some O/S-specific capability, but they gain portability 
 at little if any cost in performance.
 
+Differences in word size among platforms are implemented by values
+of the I<SPACE_ORDER> macro.  "Space order" is the base 2 log of the
+number of octets in a word: for 32-bit machines the space order is
+2 (2^2 = 4 octets per word), for 64-bit machines it is 3 (2^3 = 8
+octets per word).
+
+A consistent platform-independent representation of large integers is
+useful for some applications.  For this purpose, I<platform> defines
+new types B<vast> and B<uvast> (unsigned vast) which are consistently
+defined to be 64-bit integers regardless of the platform's native word
+size.
+
 The platform.h header file #includes many of the most frequently
 needed header files: sys/types.h, errno.h, string.h, stdio.h,
 sys/socket.h, signal.h, dirent.h, netinet/in.h, unistd.h,
@@ -201,6 +213,16 @@ iputs() writes to I<fd> the NULL-terminated character string at I<string>.  No
 terminating newline character is appended to I<string> by iputs().  On error
 the function returns -1; otherwise the function returns the length of the
 character string written to I<fd>, as if from strlen(3).
+
+=item vast strtovast(char *string)
+
+Converts the leading characters of I<string>, skipping leading white space
+and ending at the first subsequent character that can't be interpreted as
+contributing to a numeric value, to a B<vast> integer and returns that integer.
+
+=item uvast strtouvast(char *string)
+
+Same as strtovast() except the result is an unsigned B<vast> integer value.
 
 =item void findToken(char **cursorPtr, char **token)
 
@@ -502,29 +524,55 @@ writeErrmsgMemos().
 Calls getErrmsg() repeatedly until the message pool is empty, discarding all
 of the messages.
 
+=item void printStackTrace( )
+
+On Linux machines only, uses writeMemo() to print a trace of the process's
+current execution stack, starting with the lowest level of the stack and
+proceeding to the main() function of the executable.
+
+Note that (a) printStackTrace() is B<only> implemented for Linux platforms
+at this time; (b) symbolic names of functions can only be printed if the
+I<-rdynamic> flag was enabled when the executable was linked; (c) only the
+names of non-static functions will appear in the stack trace.
+
+For more complete information about the state of the executable at the time
+the stack trace snapshot was taken, use the Linux I<addr2line> tool. To do
+this, cd into a directory in which the executable file resides (such as
+/opt/bin) and submit an addr2line command as follows:
+
+=over 4
+
+addr2line -e I<name_of_executable> I<stack_frame_address>
+
+=back
+
+where both I<name_of_executable> and I<stack_frame_address> are taken from
+one of the lines of the printed stack trace.  addr2line will print the source
+file name and line number for that stack frame.
+
 =back
 
 =head2 SELF-DELIMITING NUMERIC VALUES (SDNV)
 
 The functions in this section encode and decode SDNVs, portable variable-length
 numeric variables that expand to whatever size is necessary to contain the
-values they contain.  SDNVs are used extensively in the LTP and ION libraries.
+values they contain.  SDNVs are used extensively in the BP and LTP libraries.
 
 =over 4
 
-=item void encodeSdnv(Sdnv *sdnvBuffer, unsigned long value)
+=item void encodeSdnv(Sdnv *sdnvBuffer, uvast value)
 
 Determines the number of octets of SDNV text needed to contain the value,
 places that number in the I<length> field of the SDNV buffer, and encodes
 the value in SDNV format into the first I<length> octets of the I<text> field
 of the SDNV buffer.
 
-=item int decodeSdnv(unsigned long *value, unsigned char *sdnvText)
+=item int decodeSdnv(uvast *value, unsigned char *sdnvText)
 
 Determines the length of the SDNV located at I<sdnvText> and returns this
 number after extracting the SDNV's value from those octets and storing it
 in I<value>.  Returns 0 if the encoded number value will not fit into an
-unsigned long.
+unsigned vast integer.
 
 =back
 
@@ -803,7 +851,7 @@ Returns the unique identifying number of the invoking task or process.
 Returns non-zero if a task or process identified by
 I<taskId> is currently running on the local processor, zero otherwise.
 
-=item void *sm_TaskVar(void *arg)
+=item void *sm_TaskVar(void **arg)
 
 Posts or retrieves the value of the "task variable" belonging to the
 invoking task.  Each task has access to a single task variable, initialized

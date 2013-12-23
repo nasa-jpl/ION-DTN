@@ -49,6 +49,12 @@ extern PsmAddress	Sm_rbt_create(char *file, int line,
 extern void		sm_rbt_unwedge(PsmPartition partition, PsmAddress rbt,
 				int interval);
 
+#define sm_rbt_clear(partition, rbt, deleteFn, argument) \
+Sm_rbt_clear(__FILE__, __LINE__, partition, rbt, deleteFn, argument)
+extern void		Sm_rbt_clear(char *file, int line,
+				PsmPartition partition, PsmAddress rbt,
+				SmRbtDeleteFn deleteFn, void *argument);
+
 #define sm_rbt_destroy(partition, rbt, deleteFn, argument) \
 Sm_rbt_destroy(__FILE__, __LINE__, partition, rbt, deleteFn, argument)
 extern void		Sm_rbt_destroy(char *file, int line,

@@ -212,8 +212,9 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	char		*script;
 	BpRecvRule	rule;
-	long		nominalRate = 0;
-	unsigned long	maxPayloadLength;
+	int		nominalRate = 0;
+	int		protocolClass = 0;
+	unsigned int	maxPayloadLength;
 
 	if (tokenCount < 2)
 	{
@@ -265,10 +266,15 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "protocol") == 0)
 	{
-		if (tokenCount < 5 || tokenCount > 6)
+		if (tokenCount < 5 || tokenCount > 7)
 		{
 			SYNTAX_ERROR;
 			return;
+		}
+
+		if (tokenCount == 7)
+		{
+			protocolClass = atol(tokens[6]);
 		}
 
 		if (tokenCount == 6)
@@ -277,7 +283,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		addProtocol(tokens[2], atoi(tokens[3]), atoi(tokens[4]),
-				nominalRate);
+				nominalRate, protocolClass);
 		return;
 	}
 
@@ -321,7 +327,7 @@ static void	executeChange(int tokenCount, char **tokens)
 {
 	char		*script;
 	BpRecvRule	rule;
-	unsigned long	maxPayloadLen;
+	unsigned int	maxPayloadLen;
 
 	if (tokenCount < 2)
 	{
@@ -516,6 +522,7 @@ admpid: %d cmd %.256s", scheme->name, vscheme->fwdPid, fwdCmd,
 
 static void	infoScheme(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	VScheme		*vscheme;
 	PsmAddress	elt;
 
@@ -525,19 +532,23 @@ static void	infoScheme(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	findScheme(tokens[2], &vscheme, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown scheme.");
-		return;
+	}
+	else
+	{
+		printScheme(vscheme);
 	}
 
-	printScheme(vscheme);
+	sdr_exit_xn(sdr);
 }
 
 static void	printEndpoint(VEndpoint *vpoint)
 {
-	Sdr	sdr = getIonsdr();
+	Sdr		sdr = getIonsdr();
 		OBJ_POINTER(Endpoint, endpoint);
 		OBJ_POINTER(Scheme, scheme);
 	char	buffer[512];
@@ -577,6 +588,7 @@ static void	printEndpoint(VEndpoint *vpoint)
 
 static void	infoEndpoint(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	VEndpoint	*vpoint;
 	PsmAddress	elt;
 
@@ -586,14 +598,18 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	findEndpoint(tokens[2], tokens[3], NULL, &vpoint, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown endpoint.");
-		return;
+	}
+	else
+	{
+		printEndpoint(vpoint);
 	}
 
-	printEndpoint(vpoint);
+	sdr_exit_xn(sdr);
 }
 
 static void	printProtocol(ClProtocol *protocol)
@@ -603,6 +619,7 @@ static void	printProtocol(ClProtocol *protocol)
 
 static void	infoProtocol(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	Object		elt;
 	ClProtocol	clpbuf;
 
@@ -612,19 +629,23 @@ static void	infoProtocol(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	fetchProtocol(tokens[2], &clpbuf, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown protocol.");
-		return;
+	}
+	else
+	{
+		printProtocol(&clpbuf);
 	}
 
-	printProtocol(&clpbuf);
+	sdr_exit_xn(sdr);
 }
 
 static void	printInduct(VInduct *vduct)
 {
-	Sdr	sdr = getIonsdr();
+	Sdr		sdr = getIonsdr();
 		OBJ_POINTER(Induct, duct);
 		OBJ_POINTER(ClProtocol, clp);
 	char	cliCmdBuffer[SDRSTRING_BUFSZ];
@@ -650,6 +671,7 @@ static void	printInduct(VInduct *vduct)
 
 static void	infoInduct(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	VInduct		*vduct;
 	PsmAddress	elt;
 
@@ -659,19 +681,23 @@ static void	infoInduct(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	findInduct(tokens[2], tokens[3], &vduct, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown induct.");
-		return;
+	}
+	else
+	{
+		printInduct(vduct);
 	}
 
-	printInduct(vduct);
+	sdr_exit_xn(sdr);
 }
 
 static void	printOutduct(VOutduct *vduct)
 {
-	Sdr	sdr = getIonsdr();
+	Sdr		sdr = getIonsdr();
 		OBJ_POINTER(Outduct, duct);
 		OBJ_POINTER(ClProtocol, clp);
 	char	cloCmdBuffer[SDRSTRING_BUFSZ];
@@ -681,6 +707,7 @@ static void	printOutduct(VOutduct *vduct)
 	GET_OBJ_POINTER(sdr, Outduct, duct, sdr_list_data(sdr,
 			vduct->outductElt));
 	GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
+
 	if (duct->cloCmd == 0)
 	{
 		cloCmd = "?";
@@ -701,6 +728,7 @@ max: %lu", clp->name, duct->name, vduct->cloPid, cloCmd, duct->maxPayloadLen);
 
 static void	infoOutduct(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	VOutduct	*vduct;
 	PsmAddress	elt;
 
@@ -710,14 +738,18 @@ static void	infoOutduct(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	findOutduct(tokens[2], tokens[3], &vduct, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown outduct.");
-		return;
+	}
+	else
+	{
+		printOutduct(vduct);
 	}
 
-	printOutduct(vduct);
+	sdr_exit_xn(sdr);
 }
 
 static void	executeInfo(int tokenCount, char **tokens)
@@ -763,6 +795,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	listSchemes(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
 	VScheme		*vscheme;
@@ -773,12 +806,15 @@ static void	listSchemes(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sm_list_first(ionwm, (getBpVdb())->schemes); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		vscheme = (VScheme *) psp(ionwm, sm_list_data(ionwm, elt));
 		printScheme(vscheme);
 	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	listEndpointsForScheme(VScheme *vscheme)
@@ -797,6 +833,7 @@ static void	listEndpointsForScheme(VScheme *vscheme)
 
 static void	listEndpoints(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	VScheme		*vscheme;
 	PsmAddress	elt;
@@ -804,6 +841,7 @@ static void	listEndpoints(int tokenCount, char **tokens)
 	switch (tokenCount)
 	{
 	case 2:
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sm_list_first(ionwm, (getBpVdb())->schemes); elt;
 				elt = sm_list_next(ionwm, elt))
 		{
@@ -812,17 +850,22 @@ static void	listEndpoints(int tokenCount, char **tokens)
 			listEndpointsForScheme(vscheme);
 		}
 
+		sdr_exit_xn(sdr);
 		break;
 
 	case 3:
+		CHKVOID(sdr_begin_xn(sdr));
 		findScheme(tokens[2], &vscheme, &elt);
 		if (elt == 0)
 		{
 			printText("Unknown scheme.");
-			return;
+		}
+		else
+		{
+			listEndpointsForScheme(vscheme);
 		}
 
-		listEndpointsForScheme(vscheme);
+		sdr_exit_xn(sdr);
 		break;
 
 	default:
@@ -842,12 +885,15 @@ static void	listProtocols(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getBpConstants())->protocols); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, ClProtocol, clp, sdr_list_data(sdr, elt));
 		printProtocol(clp);
 	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	listInductsForProtocol(char *protocolName)
@@ -876,6 +922,7 @@ static void	listInducts(int tokenCount, char **tokens)
 	switch (tokenCount)
 	{
 	case 2:
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sdr_list_first(sdr, (getBpConstants())->protocols);
 				elt; elt = sdr_list_next(sdr, elt))
 		{
@@ -884,17 +931,22 @@ static void	listInducts(int tokenCount, char **tokens)
 			listInductsForProtocol(clpbuf.name);
 		}
 
+		sdr_exit_xn(sdr);
 		break;
 
 	case 3:
+		CHKVOID(sdr_begin_xn(sdr));
 		fetchProtocol(tokens[2], &clpbuf, &elt);
 		if (elt == 0)
 		{
 			printText("Unknown protocol.");
-			return;
+		}
+		else
+		{
+			listInductsForProtocol(clpbuf.name);
 		}
 
-		listInductsForProtocol(clpbuf.name);
+		sdr_exit_xn(sdr);
 		break;
 
 	default:
@@ -928,6 +980,7 @@ static void	listOutducts(int tokenCount, char **tokens)
 	switch (tokenCount)
 	{
 	case 2:
+		CHKVOID(sdr_begin_xn(sdr));
 		for (elt = sdr_list_first(sdr, (getBpConstants())->protocols);
 				elt; elt = sdr_list_next(sdr, elt))
 		{
@@ -936,17 +989,22 @@ static void	listOutducts(int tokenCount, char **tokens)
 			listOutductsForProtocol(clpbuf.name);
 		}
 
+		sdr_exit_xn(sdr);
 		break;
 
 	case 3:
+		CHKVOID(sdr_begin_xn(sdr));
 		fetchProtocol(tokens[2], &clpbuf, &elt);
 		if (elt == 0)
 		{
 			printText("Unknown protocol.");
-			return;
+		}
+		else
+		{
+			listOutductsForProtocol(clpbuf.name);
 		}
 
-		listOutductsForProtocol(clpbuf.name);
+		sdr_exit_xn(sdr);
 		break;
 
 	default:
@@ -1061,7 +1119,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
 	bpdb.maxAcqInHeap = heapmax;
 	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
@@ -1103,6 +1161,23 @@ static void	executeRun(int tokenCount, char **tokens)
 	else
 	{
 		snooze(1);	/*	Give script time to finish.	*/
+	}
+}
+
+static void	noteWatchValue()
+{
+	BpVdb	*vdb = getBpVdb();
+	Sdr	sdr = getIonsdr();
+	Object	dbObj = getBpDbObject();
+	BpDB	db;
+
+	if (vdb != NULL && dbObj != 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &db, dbObj, sizeof(BpDB));
+		db.watching = vdb->watching;
+		sdr_write(sdr, dbObj, (char *) &db, sizeof(BpDB));
+		oK(sdr_end_xn(sdr));
 	}
 }
 
@@ -1421,6 +1496,7 @@ static int	processLine(char *line, int lineLength)
 			if (attachToBp() == 0)
 			{
 				switchWatch(tokenCount, tokens);
+				noteWatchValue();
 			}
 
 			return 0;

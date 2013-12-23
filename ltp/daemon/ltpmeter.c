@@ -14,13 +14,11 @@
 int	ltpmeter(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	unsigned long	remoteEngineId =
-				a1 == 0 ? 0 : strtoul((char *) a1, NULL, 0);
+	uvast	remoteEngineId = a1 == 0 ? 0 : strtouvast((char *) a1);
 #else
 int	main(int argc, char *argv[])
 {
-	unsigned long	remoteEngineId =
-				argc > 1 ? strtoul(argv[1], NULL, 0) : 0;
+	uvast	remoteEngineId = argc > 1 ? strtouvast(argv[1]) : 0;
 #endif
 	Sdr		sdr;
 	LtpVdb		*vdb;
@@ -33,6 +31,7 @@ int	main(int argc, char *argv[])
 	ExportSession	session;
 	Lyst		extents;
 	ExportExtent	*extent;
+	unsigned int	ckptSerialNbr;
 	int		segmentsIssued;
 
 	if (remoteEngineId == 0)
@@ -50,7 +49,7 @@ int	main(int argc, char *argv[])
 
 	sdr = getIonsdr();
 	vdb = getLtpVdb();
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	findSpan(remoteEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -83,7 +82,7 @@ int	main(int argc, char *argv[])
 			return 1;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	}
 
@@ -107,12 +106,12 @@ int	main(int argc, char *argv[])
 			if (sm_SemEnded(vspan->bufClosedSemaphore))
 			{
 				isprintf(memo, sizeof memo, "[i] LTP meter to \
-engine %lu is stopped.", remoteEngineId);
+engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 				writeMemo(memo);
 				break;		/*	Outer loop.	*/
 			}
 
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			sdr_stage(sdr, (char *) &span, spanObj,
 					sizeof(LtpSpan));
 		}
@@ -145,8 +144,17 @@ engine %lu is stopped.", remoteEngineId);
 
 		extent->offset = 0;
 		extent->length = session.totalLength;
+		do
+		{
+			ckptSerialNbr = rand();
+
+			/*	Limit serial number SDNV length.	*/
+
+			ckptSerialNbr %= LTP_SERIAL_NBR_LIMIT;
+		} while (ckptSerialNbr == 0);
 		segmentsIssued = issueSegments(sdr, &span, vspan, &session,
-				span.currentExportSessionObj, extents, 0);
+				span.currentExportSessionObj, extents, 0,
+				ckptSerialNbr);
 		MRELEASE(extent);
 		lyst_destroy(extents);
 		switch (segmentsIssued)
@@ -163,7 +171,7 @@ engine %lu is stopped.", remoteEngineId);
 			/*	Wait one second and try again.		*/
 
 			snooze(1);
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			sdr_stage(sdr, (char *) &span, spanObj,
 					sizeof(LtpSpan));
 			continue;
@@ -215,7 +223,7 @@ engine %lu is stopped.", remoteEngineId);
 		/*	Now start next cycle of main loop, waiting
 		 *	for the new session's buffer to be closed.	*/
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	}
 

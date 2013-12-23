@@ -22,26 +22,26 @@ static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 	{
 		temp = *semid;
 		value = (void *) temp;
-		semaphore = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		semaphore = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	semaphore = temp;
 	return semaphore;
 }
 
 static void	killMainThread()
 {
-	void	*erase = NULL;
-
 	sm_SemEnd(brscclaSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 static void	interruptThread()	/*	Commands termination.	*/
 {
+	isignal(SIGTERM, killMainThread);
 	killMainThread();
 }
 
@@ -303,11 +303,13 @@ number>");
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr,
 			vinduct->inductElt), sizeof(Induct));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			voutduct->outductElt), sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vinduct->acqThrottle.nominalRate = DEFAULT_BRS_RATE;
@@ -442,7 +444,7 @@ number>");
 	receiverParms.running = &running;
 	receiverParms.senderEid = receiverParms.senderEidBuffer;
 	getSenderEid(&(receiverParms.senderEid), hostName);
-        if (pthread_create(&receiverThread, NULL, receiveBundles,
+        if (pthread_begin(&receiverThread, NULL, receiveBundles,
 			&receiverParms))
 	{
 		putSysErrmsg("brsccla can't create receiver thread", NULL);
@@ -460,7 +462,7 @@ number>");
 	ktparms.socketName = &socketName;
 	ktparms.ductSocket = &ductSocket;
 	ktparms.running = &running;
-	if (pthread_create(&keepaliveThread, NULL, sendKeepalives, &ktparms))
+	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &ktparms))
 	{
 		putSysErrmsg("brsccla can't create keepalive thread", NULL);
 		MRELEASE(buffer);
@@ -493,7 +495,9 @@ number>");
 			continue;
 		}
 
+		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
 		bytesSent = sendBundleByTCP(&socketName, &ductSocket,
 				bundleLength, bundleZco, buffer);

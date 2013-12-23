@@ -20,6 +20,26 @@
 
 static void	destroyGroup(Object groupElt);
 
+static Object	createNodeId(Sdr sdr, uvast nodeNbr)
+{
+	NodeId	node;
+	Object	obj;
+
+	node.nbr = nodeNbr;
+	obj = sdr_malloc(sdr, sizeof(NodeId));
+	if (obj)
+	{
+		sdr_write(sdr, obj, (char *) &node, sizeof(NodeId));
+	}
+
+	return obj;
+}
+
+static void	destroyNodeId(Sdr sdr, Object elt, void *arg)
+{
+	sdr_free(sdr, sdr_list_data(sdr, elt));
+}
+
 /*	*	*	Globals used for IMC scheme service.	*	*/
 
 static Object	_imcdbObject(Object *newDbObj)
@@ -38,12 +58,31 @@ static ImcDB	*_imcConstants()
 {
 	static ImcDB	buf;
 	static ImcDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
-		sdr_read(getIonsdr(), (char *) &buf, _imcdbObject(NULL),
-				sizeof(ImcDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _imcdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(ImcDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(ImcDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -51,7 +90,7 @@ static ImcDB	*_imcConstants()
 
 /*	*	*	Petition exchange functions	*	*	*/
 
-static int	sendPetition(unsigned long nodeNbr, char *buffer, int length)
+static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 {
 	char		sourceEid[32];
 	MetaEid		sourceMetaEid;
@@ -67,24 +106,25 @@ static int	sendPetition(unsigned long nodeNbr, char *buffer, int length)
 
 	isprintf(sourceEid, sizeof sourceEid, "ipn:%u.0", getOwnNodeNbr());
 	oK(parseEidString(sourceEid, &sourceMetaEid, &vscheme, &vschemeElt));
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sourceData = sdr_malloc(sdr, length);
 	if (sourceData == 0)
 	{
 		putErrmsg("No space for source data.", NULL);
 		sdr_exit_xn(sdr);
-		return-1;
+		return -1;
 	}
 
 	sdr_write(sdr, sourceData, buffer, length);
 	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, length);
-	if (sdr_end_xn(sdr) < 0 || payloadZco == 0)
+	if (sdr_end_xn(sdr) < 0 || payloadZco == (Object) ERROR
+	|| payloadZco == 0)
 	{
 		putErrmsg("Can't create IMC petition.", NULL);
 		return -1;
 	}
 
-	isprintf(destEid, sizeof destEid, "ipn:%lu.0", nodeNbr);
+	isprintf(destEid, sizeof destEid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
 	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0, &ecos,
 			payloadZco, &bundleObj, BP_MULTICAST_PETITION))
@@ -104,7 +144,7 @@ static int	sendPetition(unsigned long nodeNbr, char *buffer, int length)
 }
 
 static int	forwardPetition(ImcGroup *group, int isMember,
-			unsigned long senderNodeNbr)
+			uvast senderNodeNbr)
 {
 	Sdr		sdr = getIonsdr();
 	unsigned char	adminRecordFlag = (BP_MULTICAST_PETITION << 4);
@@ -114,7 +154,7 @@ static int	forwardPetition(ImcGroup *group, int isMember,
 	char		*cursor;
 	int		result = 0;
 	Object		elt;
-	unsigned long	nodeNbr;
+			OBJ_POINTER(NodeId, node);
 
 	encodeSdnv(&groupNbrSdnv, group->groupNbr);
 	petitionLength = 1 + groupNbrSdnv.length + 1;
@@ -139,13 +179,13 @@ static int	forwardPetition(ImcGroup *group, int isMember,
 	for (elt = sdr_list_first(sdr, (_imcConstants())->kin); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		nodeNbr = (unsigned long) sdr_list_data(sdr, elt);
-		if (nodeNbr == senderNodeNbr)
+		GET_OBJ_POINTER(sdr, NodeId, node, sdr_list_data(sdr, elt));
+		if (node->nbr == senderNodeNbr)
 		{
 			continue;	/*	Would be an echo.	*/
 		}
 
-		if (sendPetition(nodeNbr, buffer, petitionLength) < 0)
+		if (sendPetition(node->nbr, buffer, petitionLength) < 0)
 		{
 			result = -1;
 			break;
@@ -191,7 +231,7 @@ int	imcInit()
 
 	/*	Recover the IMC database, creating it if necessary.	*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	imcdbObject = sdr_find(sdr, IMC_DBNAME, NULL);
 	switch (imcdbObject)
 	{
@@ -243,23 +283,23 @@ ImcDB	*getImcConstants()
 
 /*	*	*	Multicast tree mgt functions	*	*	*/
 
-static Object	locateRelative(unsigned long nodeNbr, Object *nextRelative)
+static Object	locateRelative(uvast nodeNbr, Object *nextRelative)
 {
-	Sdr		sdr = getIonsdr();
-	Object		elt;
-	unsigned long	relative;
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+		OBJ_POINTER(NodeId, node);
 
 	if (nextRelative) *nextRelative = 0;	/*	Default.	*/
 	for (elt = sdr_list_first(sdr, (_imcConstants())->kin); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		relative = (unsigned long) sdr_list_data(sdr, elt);
-		if (relative < nodeNbr)
+		GET_OBJ_POINTER(sdr, NodeId, node, sdr_list_data(sdr, elt));
+		if (node->nbr < nodeNbr)
 		{
 			continue;
 		}
 
-		if (relative > nodeNbr)
+		if (node->nbr > nodeNbr)
 		{
 			if (nextRelative) *nextRelative = elt;
 			break;		/*	Same as end of list.	*/
@@ -271,12 +311,13 @@ static Object	locateRelative(unsigned long nodeNbr, Object *nextRelative)
 	return 0;
 }
 
-int	imc_addKin(unsigned long nodeNbr, int isParent)
+int	imc_addKin(uvast nodeNbr, int isParent)
 {
 	Sdr		sdr = getIonsdr();
 	Object		dbObj = getImcDbObject();
 	ImcDB		db;
 	Object		nextRelative;
+	Object		addr;
 	Object		elt;
 			OBJ_POINTER(ImcGroup, group);
 	unsigned char	adminRecordFlag = (BP_MULTICAST_PETITION << 4);
@@ -286,7 +327,7 @@ int	imc_addKin(unsigned long nodeNbr, int isParent)
 	char		*cursor;
 
 	CHKERR(nodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(ImcDB));
 	if (locateRelative(nodeNbr, &nextRelative) != 0)
 	{
@@ -297,13 +338,14 @@ int	imc_addKin(unsigned long nodeNbr, int isParent)
 
 	/*	Okay to add this relative to the database.		*/
 
+	addr = createNodeId(sdr, nodeNbr);
 	if (nextRelative)
 	{
-		oK(sdr_list_insert_before(sdr, nextRelative, nodeNbr));
+		oK(sdr_list_insert_before(sdr, nextRelative, addr));
 	}
 	else
 	{
-		oK(sdr_list_insert_last(sdr, db.kin, nodeNbr));
+		oK(sdr_list_insert_last(sdr, db.kin, addr));
 	}
 
 	if (isParent)
@@ -364,14 +406,14 @@ int	imc_addKin(unsigned long nodeNbr, int isParent)
 	return 1;
 }
 
-int	imc_updateKin(unsigned long nodeNbr, int isParent)
+int	imc_updateKin(uvast nodeNbr, int isParent)
 {
 	Sdr	sdr = getIonsdr();
 	Object	dbObj = getImcDbObject();
 	ImcDB	db;
 
 	CHKERR(nodeNbr);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(ImcDB));
 	if (locateRelative(nodeNbr, NULL) == 0)
 	{
@@ -405,20 +447,21 @@ int	imc_updateKin(unsigned long nodeNbr, int isParent)
 	return 1;
 }
 
-void	imc_removeKin(unsigned long nodeNbr)
+void	imc_removeKin(uvast nodeNbr)
 {
-	Sdr		sdr = getIonsdr();
-	Object		dbObj = getImcDbObject();
-	unsigned long	ownNodeNbr = getOwnNodeNbr();
-	ImcDB		db;
-	Object		elt;
-	Object		elt2;
-	Object		nextElt;
-			OBJ_POINTER(ImcGroup, group);
-	Object		elt3;
+	Sdr	sdr = getIonsdr();
+	Object	dbObj = getImcDbObject();
+	uvast	ownNodeNbr = getOwnNodeNbr();
+	ImcDB	db;
+	Object	elt;
+	Object	elt2;
+	Object	nextElt;
+		OBJ_POINTER(ImcGroup, group);
+	Object	elt3;
+		OBJ_POINTER(NodeId, node);
 
 	CHKVOID(nodeNbr);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(ImcDB));
 	elt = locateRelative(nodeNbr, NULL);
 	if (elt == 0)
@@ -447,7 +490,9 @@ void	imc_removeKin(unsigned long nodeNbr)
 		for (elt3 = sdr_list_first(sdr, group->members); elt3;
 				elt3 = sdr_list_next(sdr, elt3))
 		{
-			if (nodeNbr == (unsigned long) sdr_list_data(sdr, elt3))
+			GET_OBJ_POINTER(sdr, NodeId, node,
+					sdr_list_data(sdr, elt3));
+			if (node->nbr == nodeNbr)
 			{
 				break;
 			}
@@ -482,7 +527,7 @@ void	imc_removeKin(unsigned long nodeNbr)
 
 /*	*	*	Multicast group mgt functions	*	*	*/
 
-static Object	locateGroup(unsigned long groupNbr, Object *nextGroup)
+static Object	locateGroup(uvast groupNbr, Object *nextGroup)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -510,7 +555,7 @@ static Object	locateGroup(unsigned long groupNbr, Object *nextGroup)
 	return 0;
 }
 
-void	imcFindGroup(unsigned long groupNbr, Object *addr, Object *eltp)
+void	imcFindGroup(uvast groupNbr, Object *addr, Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -529,7 +574,7 @@ void	imcFindGroup(unsigned long groupNbr, Object *addr, Object *eltp)
 	*eltp = elt;
 }
 
-static Object	createGroup(unsigned long groupNbr, Object nextGroup)
+static Object	createGroup(uvast groupNbr, Object nextGroup)
 {
 	Sdr		sdr = getIonsdr();
 	ImcDB		*db = _imcConstants();
@@ -567,7 +612,7 @@ static void	destroyGroup(Object groupElt)
 
 	groupAddr = sdr_list_data(sdr, groupElt);
 	GET_OBJ_POINTER(sdr, ImcGroup, group, groupAddr);
-	sdr_list_destroy(sdr, group->members, NULL, NULL);
+	sdr_list_destroy(sdr, group->members, destroyNodeId, NULL);
 	sdr_free(sdr, groupAddr);
 	sdr_list_delete(sdr, groupElt, NULL, NULL);
 }
@@ -576,7 +621,7 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 {
 	Sdr		sdr = getIonsdr();
 	ImcPetition	*petition = (ImcPetition *) arg;
-	unsigned long	groupNbr;
+	uvast		groupNbr;
 	int		isMember;	/*	Boolean.		*/
 	MetaEid		metaEid;
 	VScheme		*vscheme;
@@ -586,7 +631,8 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 	Object		nextGroup;
 			OBJ_POINTER(ImcGroup, group);
 	Object		elt;
-	unsigned long	nodeNbr;
+			OBJ_POINTER(NodeId, node);
+	Object		addr;
 
 	groupNbr = petition->groupNbr;
 	isMember = petition->isMember;
@@ -603,10 +649,10 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 	}
 
 #if IMCDEBUG
-printf("Handling type-%d petition from %lu at node %lu.\n", isMember,
-metaEid.nodeNbr, getOwnNodeNbr());
+printf("Handling type-%d petition from " UVAST_FIELDSPEC " at \
+node " UVAST_FIELDSPEC ".\n", isMember, metaEid.nodeNbr, getOwnNodeNbr());
 #endif
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (locateRelative(metaEid.nodeNbr, &nextRelative) == 0)
 	{
 		sdr_exit_xn(sdr);
@@ -653,13 +699,14 @@ puts("Silently ignoring non-current petition.");
 		for (elt = sdr_list_first(sdr, group->members); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
-			nodeNbr = (unsigned long) sdr_list_data(sdr, elt);
-			if (nodeNbr < metaEid.nodeNbr)
+			GET_OBJ_POINTER(sdr, NodeId, node,
+					sdr_list_data(sdr, elt));
+			if (node->nbr < metaEid.nodeNbr)
 			{
 				continue;
 			}
 
-			if (nodeNbr == metaEid.nodeNbr)
+			if (node->nbr == metaEid.nodeNbr)
 			{
 #if IMCDEBUG
 puts("Ignoring assertion.");
@@ -674,16 +721,16 @@ puts("Ignoring assertion.");
 
 		/*	Must add new member of group at this point.	*/
 #if IMCDEBUG
-printf("Adding member %lu.\n", metaEid.nodeNbr);
+printf("Adding member " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr);
 #endif
+		addr = createNodeId(sdr, metaEid.nodeNbr);
 		if (elt)
 		{
-			oK(sdr_list_insert_before(sdr, elt, metaEid.nodeNbr));
+			oK(sdr_list_insert_before(sdr, elt, addr));
 		}
 		else
 		{
-			oK(sdr_list_insert_last(sdr, group->members,
-					metaEid.nodeNbr));
+			oK(sdr_list_insert_last(sdr, group->members, addr));
 		}
 
 		/*	Assert interest (perhaps redundant) to every
@@ -708,8 +755,8 @@ printf("Adding member %lu.\n", metaEid.nodeNbr);
 	for (elt = sdr_list_first(sdr, group->members); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		nodeNbr = (unsigned long) sdr_list_data(sdr, elt);
-		if (nodeNbr < metaEid.nodeNbr)
+		GET_OBJ_POINTER(sdr, NodeId, node, sdr_list_data(sdr, elt));
+		if (node->nbr < metaEid.nodeNbr)
 		{
 			continue;
 		}
@@ -729,7 +776,7 @@ puts("Ignoring cancellation by non-member.");
 	}
 
 #if IMCDEBUG
-printf("Deleting member %lu.\n", metaEid.nodeNbr);
+printf("Deleting member " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr);
 #endif
 	sdr_list_delete(sdr, elt, NULL, NULL);
 
@@ -740,7 +787,8 @@ printf("Deleting member %lu.\n", metaEid.nodeNbr);
 	if (sdr_list_length(sdr, group->members) == 0 && group->isMember == 0)
 	{
 #if IMCDEBUG
-printf("Canceling own membership in group (%lu).\n", getOwnNodeNbr());
+printf("Canceling own membership in group (" UVAST_FIELDSPEC ").\n",
+getOwnNodeNbr());
 #endif
 		if (forwardPetition(group, 0, getOwnNodeNbr()) < 0)
 		{
@@ -764,21 +812,21 @@ puts("Destroying group.");
 	return 0;
 }
 
-int	imcJoin(unsigned long groupNbr)
+int	imcJoin(uvast groupNbr)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	ownNodeNbr = getOwnNodeNbr();
+	uvast		ownNodeNbr = getOwnNodeNbr();
 	Object		groupElt;
 	Object		nextGroup;
 	Object		groupAddr;
 	ImcGroup	group;
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	groupElt = locateGroup(groupNbr, &nextGroup);
 	if (groupElt == 0)
 	{
 #if IMCDEBUG
-printf("Creating group (%lu).\n", getOwnNodeNbr());
+printf("Creating group (" UVAST_FIELDSPEC ").\n", getOwnNodeNbr());
 #endif
 		groupElt = createGroup(groupNbr, nextGroup);
 		if (groupElt == 0)
@@ -797,7 +845,8 @@ printf("Creating group (%lu).\n", getOwnNodeNbr());
 	 *	may be redundant.)					*/
 
 #if IMCDEBUG
-printf("Asserting own membership in group (%lu).\n", getOwnNodeNbr());
+printf("Asserting own membership in group (" UVAST_FIELDSPEC ").\n",
+getOwnNodeNbr());
 #endif
 	if (forwardPetition(&group, 1, ownNodeNbr) < 0)
 	{
@@ -813,16 +862,16 @@ printf("Asserting own membership in group (%lu).\n", getOwnNodeNbr());
 	return 0;
 }
 
-int	imcLeave(unsigned long groupNbr)
+int	imcLeave(uvast groupNbr)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned long	ownNodeNbr = getOwnNodeNbr();
+	uvast		ownNodeNbr = getOwnNodeNbr();
 	Object		groupElt;
 	Object		nextGroup;
 	Object		groupAddr;
 	ImcGroup	group;
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	groupElt = locateGroup(groupNbr, &nextGroup);
 	if (groupElt == 0)
 	{
@@ -842,7 +891,8 @@ int	imcLeave(unsigned long groupNbr)
 	if (sdr_list_length(sdr, group.members) == 0)
 	{
 #if IMCDEBUG
-printf("Cancelling own membership in group (%lu).\n", getOwnNodeNbr());
+printf("Cancelling own membership in group (" UVAST_FIELDSPEC ").\n",
+getOwnNodeNbr());
 #endif
 		if (forwardPetition(&group, 0, ownNodeNbr) < 0)
 		{
@@ -851,7 +901,7 @@ printf("Cancelling own membership in group (%lu).\n", getOwnNodeNbr());
 		else
 		{
 #if IMCDEBUG
-printf("Destroying group (%lu).\n", getOwnNodeNbr());
+printf("Destroying group (" UVAST_FIELDSPEC ").\n", getOwnNodeNbr());
 #endif
 			destroyGroup(groupElt);
 		}

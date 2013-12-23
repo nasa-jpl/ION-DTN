@@ -76,6 +76,7 @@ ln -s ../ltp/library/ltpP.h
 ln -s ../ltp/daemon/ltpclock.c
 ln -s ../ltp/daemon/ltpmeter.c
 ln -s ../ltp/utils/ltpadmin.c
+ln -s ../restart/utils/ionrestart.c
 if [ "$ION_OPEN_SOURCE" == "1" ];then
 ln -s ../cfdp/library/libcfdp.c
 ln -s ../cfdp/library/libcfdpops.c

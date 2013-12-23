@@ -1,0 +1,6 @@
+wmKey 66236
+sdrName ion2
+wmSize 60000000
+configFlags 1
+heapWords 20000000
+pathName /usr/ion

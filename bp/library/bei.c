@@ -96,17 +96,28 @@ int 	addCollaborationBlock(Bundle *bundle, CollabBlockHdr *blkHdr)
 	 *	with this identifier in the bundle...
 	 */
 
-	Sdr	bpSdr = getIonsdr();
-	Object	addr;
-	Object	newBlkAddr;
+	Sdr		bpSdr = getIonsdr();
+	Object		addr;
+	CollabBlockHdr	oldHdr;
+	Object		newBlkAddr;
 
 	CHKERR(bundle);
 	CHKERR(blkHdr);
 	addr = findCollaborationBlock(bundle, blkHdr->type, blkHdr->id);
 	if (addr != 0)
 	{
-		putErrmsg("Collab block already exists in bundle.", NULL);
-		return -1;
+		sdr_read(bpSdr, (char *) &oldHdr, addr, sizeof(CollabBlockHdr));
+		if (oldHdr.size != blkHdr->size)
+		{
+			putErrmsg("Collab block size mismatch.",
+					itoa(oldHdr.size));
+			return -1;
+		}
+
+		/*	Re-use existing collaboration block.		*/
+
+		sdr_write(bpSdr, addr, (char *) blkHdr, blkHdr->size);
+		return 0;
 	}
 
 	/*
@@ -603,7 +614,6 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 	unsigned int		oldLength;
 	unsigned int		oldSize;
 	unsigned int		wasSuppressed;
-	Scalar			delta;
 
 	CHKERR(bundle);
 	oldDbOverhead = bundle->dbOverhead;
@@ -695,10 +705,8 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 
 	if (bundle->dbOverhead != oldDbOverhead)
 	{
-		loadScalar(&delta, oldDbOverhead);
-		zco_reduce_heap_occupancy(bpSdr, &delta);
-		loadScalar(&delta, bundle->dbOverhead);
-		zco_increase_heap_occupancy(bpSdr, &delta);
+		zco_reduce_heap_occupancy(bpSdr, oldDbOverhead);
+		zco_increase_heap_occupancy(bpSdr, bundle->dbOverhead);
 	}
 
 	return 0;
@@ -726,15 +734,15 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 		char *blockData)
 {
 	Sdr		bpSdr = getIonsdr();
-	unsigned long	blkProcFlags;
+	unsigned int	blkProcFlags;
 	Sdnv		blkProcFlagsSdnv;
-	unsigned long	dataLength;
+	unsigned int	dataLength;
 	Sdnv		dataLengthSdnv;
 	int		listLength;
 	LystElt		elt;
-	unsigned long	offset;
+	unsigned int	offset;
 	Sdnv		offsetSdnv;
-	unsigned long	referenceCount;
+	unsigned int	referenceCount;
 	Sdnv		referenceCountSdnv;
 	char		*blkBuffer;
 	char		*cursor;
@@ -854,9 +862,9 @@ int 	updateCollaborationBlock(Object collabAddr, CollabBlockHdr *blkHdr)
  ******************************************************************************/
 
 int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
-		unsigned char *startOfBlock, unsigned long blockLength,
-		unsigned char blkType, unsigned long blkProcFlags,
-		Lyst *eidReferences, unsigned long dataLength)
+		unsigned char *startOfBlock, unsigned int blockLength,
+		unsigned char blkType, unsigned int blkProcFlags,
+		Lyst *eidReferences, unsigned int dataLength)
 {
 	Bundle		*bundle = &(work->bundle);
 	int		blkSize;
@@ -996,7 +1004,7 @@ int	checkExtensionBlocks(AcqWorkArea *work)
 	LystElt		nextElt;
 	AcqExtBlock	*blk;
 	ExtensionDef	*def;
-	unsigned long	oldLength;
+	unsigned int	oldLength;
 
 	CHKERR(work);
 	bundle->clDossier.authentic = work->authentic;

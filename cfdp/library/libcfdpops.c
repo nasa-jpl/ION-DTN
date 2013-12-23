@@ -28,6 +28,7 @@ void	parseProxyPutRequest(char *text, int bytesRemaining,
 		CfdpUserOpsData *opsData)
 {
 	int	length;
+	int	pad;
 
 	if (bytesRemaining < 1)
 	{
@@ -44,8 +45,10 @@ void	parseProxyPutRequest(char *text, int bytesRemaining,
 		return;
 	}
 
+	pad = 8 - length;
 	opsData->proxyDestinationEntityNbr.length = length;
-	memcpy(opsData->proxyDestinationEntityNbr.buffer, text, length);
+	memset(opsData->proxyDestinationEntityNbr.buffer, 0, pad);
+	memcpy(opsData->proxyDestinationEntityNbr.buffer + pad, text, length);
 	text += length;
 	bytesRemaining -= length;
 
@@ -454,7 +457,9 @@ void	parseOriginatingTransactionId(char *text, int bytesRemaining,
 {
 	unsigned int	lengths;
 	int		sourceEntityNbrLength;
+	int		sourceEntityNbrPad;
 	int		transactionNbrLength;
+	int		transactionNbrPad;
 
 	if (bytesRemaining < 1)
 	{
@@ -463,7 +468,9 @@ void	parseOriginatingTransactionId(char *text, int bytesRemaining,
 
 	lengths = (unsigned char) *text;
 	sourceEntityNbrLength = 1 + ((lengths >> 4) & 0x07);
+	sourceEntityNbrPad = 8 - sourceEntityNbrLength;
 	transactionNbrLength = 1 + (lengths & 0x07);
+	transactionNbrPad = 8 - transactionNbrLength;
 	text++;
 	bytesRemaining--;
 
@@ -476,14 +483,18 @@ void	parseOriginatingTransactionId(char *text, int bytesRemaining,
 
 	opsData->originatingTransactionId.sourceEntityNbr.length
 			= sourceEntityNbrLength;
-	memcpy(opsData->originatingTransactionId.sourceEntityNbr.buffer, text,
-			sourceEntityNbrLength);
+	memset(opsData->originatingTransactionId.sourceEntityNbr.buffer, 0,
+			sourceEntityNbrPad);
+	memcpy(opsData->originatingTransactionId.sourceEntityNbr.buffer
+			+ sourceEntityNbrPad, text, sourceEntityNbrLength);
 	text += sourceEntityNbrLength;
 	bytesRemaining -= sourceEntityNbrLength;
 	opsData->originatingTransactionId.transactionNbr.length
 			= transactionNbrLength;
-	memcpy(opsData->originatingTransactionId.transactionNbr.buffer, text,
-			transactionNbrLength);
+	memset(opsData->originatingTransactionId.transactionNbr.buffer, 0,
+			transactionNbrPad);
+	memcpy(opsData->originatingTransactionId.transactionNbr.buffer
+			+ transactionNbrPad, text, transactionNbrLength);
 }
 
 #ifndef NO_PROXY
@@ -607,6 +618,7 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	Object		nextElt;
 	Object		obj;
 	int		length;
+	int		pad;
 			OBJ_POINTER(MsgToUser, proxyMsg);
 			OBJ_POINTER(FilestoreRequest, req);
 	int		i;
@@ -615,6 +627,7 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	CHKERR(respondentEntityNbr);
 	CHKERR(beneficiaryEntityNbr);
 	CHKERR(transactionId);
+	CHKERR(task);
 	if (task->sourceFileName == NULL)
 	{
 		CHKERR(task->destFileName == NULL);
@@ -646,7 +659,7 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 		CHKERR(task->flowLabelLength == 0);
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Append proxy messages to messagesToUser if provided,
 	 *	else create new sdrlist for messages to user.		*/
@@ -673,7 +686,8 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	length = 5;
 	textBuffer[length] = beneficiaryEntityNbr->length;
 	length++;
-	memcpy(textBuffer + length, beneficiaryEntityNbr->buffer,
+	pad = 8 - beneficiaryEntityNbr->length;
+	memcpy(textBuffer + length, beneficiaryEntityNbr->buffer + pad,
 			beneficiaryEntityNbr->length);
 	length += beneficiaryEntityNbr->length;
 	textBuffer[length] = sourceFileNameLen;
@@ -932,7 +946,7 @@ int	cfdp_rput_cancel(CfdpNumber *respondentEntityNbr,
 	CHKERR(respondentEntityNbr);
 	CHKERR(rputTransactionId);
 	CHKERR(transactionId);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Append cancel messages to messagesToUser if provided,
 	 *	else create new sdrlist for messages to user.		*/
@@ -1139,8 +1153,8 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 	sdr_write(sdr, msg.text, (char *) textBuffer, msg.length);
 	sdr_write(sdr, msgObj, (char *) &msg, sizeof(MsgToUser));
 	return createFDU(&opsData->originatingTransactionId.sourceEntityNbr, 0,
-			NULL, listingFileName,
-			(listingFileName!=NULL ? opsData->directoryDestFileName : NULL),
+			NULL, listingFileName, (listingFileName != NULL ?
+			opsData->directoryDestFileName : NULL),
 			NULL, NULL, 0, NULL, msgs, 0,
 			&opsData->originatingTransactionId, &transactionId);
 }
@@ -1225,7 +1239,7 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	destFileNameLen = strlen(task->destFileName);
 	CHKERR(destFileNameLen > 0 && destFileNameLen < 256);
 	CHKERR(transactionId);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Append proxy messages to messagesToUser if provided,
 	 *	else create new sdrlist for messages to user.		*/

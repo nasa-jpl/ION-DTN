@@ -97,26 +97,6 @@
 
 #endif
 
-/**
- *  \struct BspBabCollaborationBlock
- *  \brief Collaboration object used to carry data shared between BAB instances.
- *
- *  The BAB collaboration block carries meta-data associated with BAB block
- *  processing and is used to facilitate communication between BAB blocks in
- *  the BSP module.
- */
-
-typedef struct
-{
-	CollabBlockHdr hdr;
-	unsigned long correlator;
-	unsigned long cipher;
-	char cipherKeyName[BSP_KEY_NAME_LEN]; /** Cipherkey name used by this block.*/
-	unsigned long rxFlags;        /** RX-side processing flags for this block. */
-	int hmacLen;
-	char expectedResult[BAB_HMAC_SHA1_RESULT_LEN];
-} BspBabCollaborationBlock;
-
 
 
 /*****************************************************************************
@@ -462,10 +442,10 @@ void bsp_babRelease(ExtensionBlock *blk);
 
 
 unsigned char *bsp_babGetSecResult(Object dataObj,
-                                   unsigned long dataLen,
+                                   unsigned int dataLen,
                                    char *cipherKeyName,
-				   unsigned long keyLen,
-                                   unsigned long *hashLen);
+				   unsigned int keyLen,
+                                   unsigned int *hashLen);
 
 
 

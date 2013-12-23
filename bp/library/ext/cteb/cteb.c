@@ -223,7 +223,7 @@ int cteb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/* Parse into a scratchpad on the stack. */
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	extractSdnv(&cteb.id, &cursor, &bytesRemaining);
+	extractSmallSdnv(&cteb.id, &cursor, &bytesRemaining);
 
 	/* FIXME: Handle fragments by continuing to acquire here. */
 
@@ -353,7 +353,7 @@ int loadCtebScratchpad(Sdr sdr, Bundle *bundle, AcqWorkArea *work,
 {
 	int rc = 0;
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	/* If the bundle hasn't been recorded, the CTEB is in the acquisition 
 	 * working memory. */

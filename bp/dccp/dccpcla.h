@@ -26,9 +26,6 @@
 extern "C" {
 #endif
 
-/*DCCP IDLE PERIOD */
-#define DCCP_IDLE_TIME	120	/*seconds 					*/
-
 /* MAX DCCP RETRIES*/
 #define MAX_DCCP_RETRIES 100000 /*number of times to try to send a packet
 				 with a full congestion window before closing
@@ -39,9 +36,15 @@ extern "C" {
 				 returns EAGAIN (full congestion window/buffer)
 				 before retrying				 */
 
-/* Connection Attempt Settings*/
-#define	START_BACKOFF	2		/* number of seconds to start exponential backoff*/
-#define MAX_BACKOFF		1024	/* number of seconds to end exponential backoff*/
+/*The CCID to use. Zero means default.*/
+#define DCCP_CCID 	0
+
+/*The Sending Queue length to request. Zero means default*/
+#define DCCP_Q_LEN	100
+
+/* Keepalive Settings*/
+#define KEEPALIVE_PERIOD 15
+#define MAX_BACKOFF		 1024
 
 /*DCCP Defines */
 #ifndef SOCK_DCCP
@@ -52,6 +55,15 @@ extern "C" {
 #endif
 #ifndef SOL_DCCP
 #define SOL_DCCP 269
+#endif
+#ifndef DCCP_SOCKOPT_QPOLICY_TXQLEN
+#define DCCP_SOCKOPT_QPOLICY_TXQLEN     17
+#endif
+#ifndef DCCP_SOCKOPT_CCID
+#define DCCP_SOCKOPT_CCID  13
+#endif
+#ifndef DCCP_SOCKOPT_GET_CUR_MPS
+#define DCCP_SOCKOPT_GET_CUR_MPS 5
 #endif
 
 

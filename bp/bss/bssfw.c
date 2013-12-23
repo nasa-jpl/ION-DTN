@@ -64,14 +64,12 @@ static sm_SemId		_bssfwSemaphore(sm_SemId *newValue)
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_bssfwSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
-static int	getDirective(unsigned long nodeNbr, Object plans,
-			Bundle *bundle, FwdDirective *directive)
+static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
+			FwdDirective *directive)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -109,7 +107,7 @@ static int	getDirective(unsigned long nodeNbr, Object plans,
 }
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
-			unsigned long nodeNbr, unsigned long serviceNbr, 
+			uvast nodeNbr, unsigned long serviceNbr, 
 			Lyst loggedStreams)
 {
 	FwdDirective	directive;
@@ -128,8 +126,8 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	}
 
 	/*	The station node is a neighbor.				*/
-	isprintf(stationEid, sizeof stationEid, "ipn:%lu.%lu", nodeNbr, 
-			serviceNbr);
+	isprintf(stationEid, sizeof stationEid, "ipn:" UVAST_FIELDSPEC ".%u",
+			nodeNbr, serviceNbr);
 
 	/*	Is neighbor refusing to be a station for bundles?	*/
 
@@ -231,7 +229,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj,
 	}
 	
 	if (cgr_forward(bundle, bundleObj, metaEid.nodeNbr,
-			(getBssConstants())->plans, getDirective) < 0)
+			(getBssConstants())->plans, getDirective, NULL) < 0)
 	{
 		putErrmsg("CGR failed.", NULL);
 		return -1;
@@ -346,8 +344,10 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 			vscheme->schemeElt), sizeof(Scheme));
+	sdr_exit_xn(sdr);
 	oK(_bssfwSemaphore(&vscheme->semaphore));
 	if (_loggedStreamsList(1) == NULL)
 	{
@@ -367,7 +367,7 @@ int	main(int argc, char *argv[])
 		 *	prevents race condition with bpclock (which
 		 *	is destroying bundles as their TTLs expire).	*/
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, scheme.forwardQueue);
 		if (elt == 0)	/*	Wait for forwarding notice.	*/
 		{

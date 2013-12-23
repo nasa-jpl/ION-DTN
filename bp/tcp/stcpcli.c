@@ -220,7 +220,7 @@ static void	*spawnReceivers(void *parm)
 		parms->senderEid = parms->senderEidBuffer;
 		getSenderEid(&(parms->senderEid), hostName);
 		parms->running = &(atp->running);
-		if (pthread_create(&(parms->thread), NULL, receiveBundles,
+		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{
 			putSysErrmsg("stcpcli can't create new thread", NULL);
@@ -325,9 +325,11 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vduct->acqThrottle.nominalRate = DEFAULT_TCP_RATE;
@@ -404,7 +406,7 @@ int	main(int argc, char *argv[])
 	/*	Start the access thread.				*/
 
 	atp.running = 1;
-	if (pthread_create(&accessThread, NULL, spawnReceivers, &atp))
+	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
 	{
 		closesocket(atp.ductSocket);
 		putSysErrmsg("stcpcli can't create access thread", NULL);

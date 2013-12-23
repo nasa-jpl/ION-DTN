@@ -20,22 +20,22 @@ static sm_SemId	_dtn2fwSemaphore(sm_SemId *newValue)
 	{
 		temp = *newValue;
 		value = (void *) temp;
-		sem = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		sem = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	sem = temp;
 	return sem;
 }
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_dtn2fwSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 static int	parseDtn2Nss(char *nss, char *nodeName, char *demux)
@@ -126,7 +126,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return bpAbandon(bundleObj, bundle);
 	}
 
-	if (dtn2_lookupDirective(nodeName, demux, &directive) == 0)
+	if (dtn2_lookupDirective(nodeName, demux, bundle, &directive) == 0)
 	{
 		putErrmsg("Can't find forwarding directive for EID.",
 				eidString);
@@ -198,8 +198,10 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 			vscheme->schemeElt), sizeof(Scheme));
+	sdr_exit_xn(sdr);
 	oK(_dtn2fwSemaphore(&vscheme->semaphore));
 	isignal(SIGTERM, shutDown);
 
@@ -213,7 +215,7 @@ int	main(int argc, char *argv[])
 		 *	prevent race condition with bpclock (which
 		 *	is destroying bundles as their TTLs expire).	*/
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, scheme.forwardQueue);
 		if (elt == 0)	/*	Wait for forwarding notice.	*/
 		{

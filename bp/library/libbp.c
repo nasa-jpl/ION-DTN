@@ -44,6 +44,9 @@ Sdr	bp_get_sdr()
 
 void	bp_detach()
 {
+#if (!(defined (VXWORKS) || defined (RTEMS) || defined (bionic)))
+	bpDetach();
+#endif
 	ionDetach();
 }
 
@@ -60,7 +63,7 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 	CHKERR(eidString && *eidString && bpsapPtr);
 	*bpsapPtr = NULL;	/*	Default, in case of failure.	*/
 	sdr = getIonsdr();
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 
 	/*	First validate the endpoint ID.				*/
 
@@ -234,7 +237,8 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 		return 0;		/*	Invalid format.		*/
 	}
 
-	/* Syntax and bounds-checking passed; assign to outputs */
+	/*	Syntax and bounds-checking passed; assign to outputs.	*/
+
 	extendedCOS->flags = 0;
 	if (count >= 6)
 	{
@@ -267,17 +271,13 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 	return 1;
 }
 
-int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
-		int lifespan, int classOfService, BpCustodySwitch custodySwitch,
+int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
+		int classOfService, BpCustodySwitch custodySwitch,
 		unsigned char srrFlags, int ackRequested, BpExtendedCOS *ecos,
 		Object adu, Object *bundleObj)
 {
-	Sdr		sdr = getIonsdr();
-	BpVdb		*vdb = getBpVdb();
 	BpExtendedCOS	defaultECOS = { 0, 0, 0 };
-	int		aduLength;
 	MetaEid		*sourceMetaEid;
-	Throttle	*throttle;
 
 	CHKERR(bundleObj);
 	*bundleObj = 0;
@@ -303,41 +303,6 @@ int	bp_send(BpSAP sap, int mode, char *destEid, char *reportToEid,
 		sourceMetaEid = NULL;
 	}
 
-	/*	Admission control (bundle production throttling)
-	 *	happens here.						*/
-
-	throttle = &(vdb->productionThrottle);
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
-	aduLength = zco_length(sdr, adu);
-	while (aduLength > throttle->capacity)
-	{
-		sdr_exit_xn(sdr);
-		if (mode == BP_NONBLOCKING)
-		{
-			errno = EWOULDBLOCK;
-			return 0;
-		}
-
-		if (sm_SemTake(throttle->semaphore) < 0)
-		{
-			putErrmsg("Can't take throttle semaphore.", NULL);
-			return -1;
-		}
-
-		if (sm_SemEnded(throttle->semaphore))
-		{
-			putErrmsg("Bundle agent has been stopped.", NULL);
-			return -1;
-		}
-
-		sdr_begin_xn(sdr);
-	}
-
-	throttle->capacity -= aduLength;
-	sdr_exit_xn(sdr);	/*	Release memory.			*/
-
-	/*	Now go ahead and send the bundle.			*/
-
 	return bpSend(sourceMetaEid, destEid, reportToEid, lifespan,
 			classOfService, custodySwitch, srrFlags, ackRequested,
 			ecos, adu, bundleObj, 0);
@@ -349,7 +314,7 @@ int	bp_track(Object bundleObj, Object trackingElt)
 		OBJ_POINTER(Bundle, bundle);
 
 	CHKERR(bundleObj && trackingElt);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, Bundle, bundle, bundleObj);
 	if (bundle->trackingElts == 0)
 	{
@@ -375,7 +340,7 @@ void	bp_untrack(Object bundleObj, Object trackingElt)
 	Object	elt;
 
 	CHKVOID(bundleObj && trackingElt);
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, Bundle, bundle, bundleObj);
 	if (bundle->trackingElts == 0)
 	{
@@ -415,7 +380,7 @@ int	bp_suspend(Object bundleObj)
 	ClProtocol	protocol;
 
 	CHKERR(bundleObj);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
@@ -472,7 +437,7 @@ int	bp_resume(Object bundleObj)
 	Bundle	bundle;
 
 	CHKERR(bundleObj);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	if (bundle.suspended == 0)
 	{
@@ -488,7 +453,7 @@ int	bp_cancel(Object bundleObj)
 	Sdr	sdr = getIonsdr();
 
 	CHKERR(bundleObj);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (bpDestroyBundle(bundleObj, 1) < 0)
 	{
 		sdr_cancel_xn(sdr);
@@ -577,7 +542,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	}
 
 	vpoint = sap->vpoint;
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	if (vpoint->appPid != sm_TaskIdSelf())
 	{
 		sdr_exit_xn(sdr);
@@ -623,7 +588,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		{
 			timerParms.interval = timeoutSeconds;
 			timerParms.semaphore = vpoint->semaphore;
-			if (pthread_create(&timerThread, NULL, timerMain,
+			if (pthread_begin(&timerThread, NULL, timerMain,
 					&timerParms) < 0)
 			{
 				putSysErrmsg("Can't enable interval timer",
@@ -652,7 +617,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 
 		/*	Have taken the semaphore, one way or another.	*/
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		dlvElt = sdr_list_first(sdr, endpoint->deliveryQueue);
 		if (dlvElt == 0)	/*	Still nothing.		*/
 		{
@@ -672,7 +637,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 				dlvBuffer->result = BpReceptionInterrupted;
 				if (timerParms.interval != -1)
 				{
-					pthread_cancel(timerThread);
+					pthread_end(timerThread);
 					pthread_join(timerThread, NULL);
 				}
 			}
@@ -683,7 +648,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		{
 			if (timerParms.interval != -1)
 			{
-				pthread_cancel(timerThread);
+				pthread_end(timerThread);
 				pthread_join(timerThread, NULL);
 			}
 		}
@@ -715,6 +680,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 
 	dlvBuffer->bundleCreationTime.seconds = bundle.id.creationTime.seconds;
 	dlvBuffer->bundleCreationTime.count = bundle.id.creationTime.count;
+	dlvBuffer->timeToLive = bundle.timeToLive;
 	dlvBuffer->adminRecord = bundle.bundleProcFlags & BDL_IS_ADMIN;
 	dlvBuffer->adu = bundle.payload.content;
 	dlvBuffer->ackRequested = bundle.bundleProcFlags & BDL_APP_ACK_REQUEST;
@@ -750,7 +716,6 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	sdr_list_delete(sdr, dlvElt, (SdrListDeleteFn) NULL, NULL);
 	bundle.dlvQueueElt = 0;
 	bundle.payload.content = 0;
-	bundle.payload.length = 0;
 	sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 	bpEndpointTally(vpoint, BP_ENDPOINT_DELIVERED, bundle.payload.length);
 	if (bpDestroyBundle(bundleAddr, 0) < 0)
@@ -796,7 +761,7 @@ void	bp_release_delivery(BpDelivery *dlvBuffer, int releasePayload)
 		{
 			if (dlvBuffer->adu)
 			{
-				sdr_begin_xn(sdr);
+				CHKVOID(sdr_begin_xn(sdr));
 				zco_destroy(sdr, dlvBuffer->adu);
 				if (sdr_end_xn(sdr) < 0)
 				{

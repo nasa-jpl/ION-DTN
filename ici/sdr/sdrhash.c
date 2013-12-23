@@ -268,21 +268,18 @@ Address	sdr_hash_entry_value(Sdr sdrv, Object hash, Object entry)
 	Object	kvpairAddr;
 	KvPair	kvpair;
 
-	CHKERR(sdrv);
+	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(entry);
-	CHKERR(takeSdr(sdrv->sdr) == 0);
 	keyLength = sdr_table_user_data(sdrv, hash);
 	kvpairLength = sizeof(Address) + keyLength;
 	kvpairAddr = sdr_list_data(sdrv, entry);
 	sdr_read(sdrv, (char *) &kvpair, kvpairAddr, kvpairLength);
-	releaseSdr(sdrv->sdr);
 	return kvpair.value;
 }
 
 int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value,
 		Object *entry)
 {
-	SdrState	*sdr;
 	int		keyLength;
 	int		kvpairLength;
 	int		rowSize;
@@ -300,12 +297,10 @@ int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value,
 		*entry = 0;	/*	Default result.			*/
 	}
 
-	CHKERR(sdrv);
+	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(hash);
 	CHKERR(key);
 	CHKERR(value);
-	sdr = sdrv->sdr;
-	CHKERR(takeSdr(sdr) == 0);
 	keyLength = sdr_table_user_data(sdrv, hash);
 	kvpairLength = sizeof(Address) + keyLength;
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
@@ -334,11 +329,9 @@ int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value,
 			*entry = elt;
 		}
 
-		releaseSdr(sdr);
 		return 1;	/*	Got it.				*/
 	}
 
-	releaseSdr(sdr);
 	return 0;		/*	Unable to retrieve value.	*/
 }
 
@@ -367,7 +360,6 @@ int	sdr_hash_count(Sdr sdrv, Object hash)
 int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
 		void *args)
 {
-	SdrState	*sdr;
 	int		keyLength;
 	int		kvpairLength;
 	int		rowSize;
@@ -379,12 +371,10 @@ int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
 	Object		kvpairAddr;
 	KvPair		kvpair;
 
-	CHKERR(sdrv);
+	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(hash);
 	CHKERR(callback);
 	//Passing NULL args is OK (passed through to callback)
-	sdr = sdrv->sdr;
-	CHKERR(takeSdr(sdr) == 0);
 	keyLength = sdr_table_user_data(sdrv, hash);
 	kvpairLength = sizeof(Address) + keyLength;
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
@@ -413,7 +403,6 @@ int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
 		}
 	}
 
-	releaseSdr(sdr);
 	return 0;
 }
 

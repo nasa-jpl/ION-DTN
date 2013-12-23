@@ -5,7 +5,7 @@ UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
 
-# OPT = -O -Dlinux
+# OPT = -O -Dunix -Ddarwin
 OPT = -g -Wall -Werror -Dunix -Ddarwin
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -dynamiclib -undefined dynamic_lookup
@@ -60,7 +60,7 @@ ICIINCLS = \
 	$(SDR)/sdrP.h
 
 UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend
-
+ 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh owltsim owlttb
 
 ALL = check libici.so rfxclock $(UTILITIES) $(TESTPGMS)

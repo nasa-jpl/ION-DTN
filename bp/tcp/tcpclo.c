@@ -31,22 +31,22 @@ static sm_SemId		tcpcloSemaphore(sm_SemId *semid)
 	{
 		temp = *semid;
 		value = (void *) temp;
-		semaphore = (sm_SemId) sm_TaskVar(&value);
+		value = sm_TaskVar(&value);
 	}
 	else				/*	Retreive task variable.	*/
 	{
-		semaphore = (sm_SemId) sm_TaskVar(NULL);
+		value = sm_TaskVar(NULL);
 	}
 
+	temp = (long) value;
+	semaphore = temp;
 	return semaphore;
 }
 
 static void	shutDownClo()	/*	Commands CLO termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(tcpcloSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 /*	*	*	Keepalive thread functions	*	*	*/
@@ -185,7 +185,7 @@ static void	*receiveBundles(void *parm)
 		snooze(1);
 		if(*(parms->bundleSocket) < 0)
 		{
-			threadRunning = 0;
+			/*Retry later*/
 			continue;
 		}
 
@@ -201,7 +201,11 @@ static void	*receiveBundles(void *parm)
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
-			/*	Intentional fall-through to next case.	*/
+			pthread_mutex_lock(parms->mutex);
+			closesocket(*(parms->bundleSocket));
+			*(parms->bundleSocket) = -1;
+			pthread_mutex_unlock(parms->mutex);
+			continue;
 
 		case 0:			/*	Shutdown message	*/	
 			/*	Go back to the start of the while loop	*/
@@ -312,9 +316,11 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.		*/
 
 	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
+	sdr_exit_xn(sdr);
 	if (protocol.nominalRate == 0)
 	{
 		vduct->xmitThrottle.nominalRate = DEFAULT_TCP_RATE;
@@ -378,7 +384,7 @@ int	main(int argc, char *argv[])
 	parms.socketName = &socketName;
 	parms.ductSocket = &ductSocket;
 	parms.keepalivePeriod = &keepalivePeriod;
-	if (pthread_create(&keepaliveThread, NULL, sendKeepalives, &parms))
+	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms))
 	{
 		putSysErrmsg("tcpclo can't create keepalive thread", NULL);
 		MRELEASE(buffer);
@@ -407,7 +413,7 @@ int	main(int argc, char *argv[])
 	rparms.bundleSocket = &ductSocket;
 	rparms.mutex = &mutex;
 	rparms.cloRunning = &running;
-	if (pthread_create(&receiverThread, NULL, receiveBundles, &rparms))
+	if (pthread_begin(&receiverThread, NULL, receiveBundles, &rparms))
 	{
 		putSysErrmsg("tcpclo can't create receive thread", NULL);
 		MRELEASE(buffer);
@@ -441,7 +447,9 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
+		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
 		bytesSent = sendBundleByTCPCL(&socketName, &ductSocket,
 			bundleLength, bundleZco, buffer, &keepalivePeriod);
@@ -455,6 +463,7 @@ int	main(int argc, char *argv[])
 
 		sm_TaskYield();
 	}
+	writeMemo("[i] tcpclo done sending");
 
 	if (sendShutDownMessage(&ductSocket, SHUT_DN_NO, -1, &socketName) < 0)
 	{
@@ -464,14 +473,15 @@ int	main(int argc, char *argv[])
 	if (ductSocket != -1)
 	{
 		closesocket(ductSocket);
+		ductSocket=-1;
 	}
 
-	pthread_join(keepaliveThread, NULL);
-	writeMemo("tcpclo keep alive thread killed");
 	running = 0;
-	
+	pthread_join(keepaliveThread, NULL);
+	writeMemo("[i] tcpclo keepalive thread killed");
+
 	pthread_join(receiverThread, NULL);
-	writeMemo("tcpclo receiver thread killed");
+	writeMemo("[i] tcpclo receiver thread killed");
 
 	writeErrmsgMemos();
 	writeMemo("[i] tcpclo duct has ended.");

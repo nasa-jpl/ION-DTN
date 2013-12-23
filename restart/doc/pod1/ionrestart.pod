@@ -1,0 +1,73 @@
+=head1 NAME
+
+ionrestart - ION node restart utility
+
+=head1 SYNOPSIS
+
+B<ionrestart> [I<CFDP_UTA_command>]
+
+=head1 DESCRIPTION
+
+B<ionrestart> is a utility task that is executed automatically when an ION
+transaction fails, provided transaction reversibility is enabled (see
+ionconfig(5)).  It should never need to be executed from the command line.
+
+When an ION transaction is reversed, all changes made to the SDR non-volatile
+heap in the course of the transaction are backed out but changes made to ION's
+working memory are not.  (Forward logging of these changes to enable
+automatic reversal on these relatively rare occasions is judged to impose
+too much continuous processing overhead to be cost-justified.)  Because the
+state of working memory is thereupon in conflict with information in the heap,
+B<ionrestart> is automatically invoked to reload all of working memory;
+because this would obviously threaten the stability of all running ION tasks,
+B<ionrestart> gracefully terminates all tasks of the node (not only all ION
+daemons but also all applications), then reloads working memory from the
+recovered heap, and finally restarts the ION daemons.  Applications that
+receive termination indications from B<ionrestart> may choose to sleep for
+a few seconds and then automatically re-initialize their own operations.
+
+B<ionrestart> will attempt to restart all ION protocols including LTP, BP,
+and CFDP, but any protocols which were not operating at the time of the
+transaction reversal are not restarted.
+
+Most operating parameters of B<ionrestart> are hard-coded, but the name of
+the CFDP UT-layer adapter task may be provided as a command-line parameter;
+this option is supported because that name is currently not provided in
+the cfdprc(5) configuration file.  (Similar expedients are not needed for
+LTP and BP, because their configuration files already provide the names of
+all executables that need to be restarted.)  The default UTA command is
+"bputa".  To override this, change the text of the B<ionrestart> command
+provided to the sdr_load_profile() function invoked in ION initialization
+(in the ion.c source file).
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ionrestart> terminated normally.
+
+=item "1"
+
+B<ionrestart> failed, for reasons noted in the ion.log file; the task
+terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are used beyond those required for normal ION
+node initialization.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+ionadmin(1), ltpadmin(1), bpadmin(1), cfdpadmin(1)

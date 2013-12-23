@@ -9,6 +9,7 @@
 
 
 int debug = 0;	/*Set to non-zero to enable debug output. */
+int running=1;
 
 
 
@@ -17,12 +18,12 @@ void dbgprintf(int level, const char *fmt, ...);
 void usage(void);
 void version();
 #ifdef CLEAN_ON_EXIT
-void exit_cleanup();
+void sig_handler();
 #endif
 
 /*Start Here*/
-#if defined (VXWORKS) || defined (RTEMS)
-int	bpcp(int a1, int a2, int a3, int a4, int a5,
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+int	bpcpd(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 /*a1 is the debug flag*/
@@ -35,7 +36,6 @@ if(atoi((char*)a2)==1)
 	return 0;
 }
 
-{
 #else
 int main(int argc, char **argv)
 {
@@ -60,14 +60,33 @@ int main(int argc, char **argv)
 #endif
 
 	/*Initialize CFDP*/
-	if (cfdp_init() < 0)
+	if (cfdp_attach() < 0)
 	{
 		dbgprintf(0, "Error: Can't initialize CFDP. Is ION running?\n");
 		exit(1);
 	}
+	running=1;
+
+#ifdef SIG_HANDLER
+	/*Set SIGTERM and SIGINT handlers*/
+	isignal(SIGTERM, sig_handler);
+	isignal(SIGINT, sig_handler);
+#endif
 
 	poll_cfdp_messages();
 
+#ifdef CLEAN_ON_EXIT
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+	/*DO NOTHING. VXWORKS doesn't implement system()!*/
+#else
+
+	/*Cleanup all directory listing files*/
+	if (system("rm dirlist_* >/dev/null 2>/dev/null")<0)
+	{
+		dbgprintf(0, "Error running cleanup\n");
+	}
+#endif
+#endif
 	exit(0);
 }
 
@@ -106,17 +125,11 @@ void poll_cfdp_messages()
 	char				statusReportBuf[256];
 	unsigned char		usrmsgBuf[256];
 	MetadataList		filestoreResponses;
-	unsigned long 		TID11;
-	unsigned long		TID12;
-
-#ifdef CLEAN_ON_EXIT
-	/*Set SIGTERM and SIGINT handlers*/
-	isignal(SIGTERM, exit_cleanup);
-	isignal(SIGINT, exit_cleanup);
-#endif
+	uvast 		TID11;
+	uvast		TID12;
 
 	/*Main Event loop*/
-	while (1) {
+	while (running) {
 
 		/*Grab a CFDP event*/
 		if (cfdp_get_event(&type, &time, &reqNbr, &transactionId,
@@ -140,7 +153,7 @@ void poll_cfdp_messages()
 		cfdp_decompress_number(&TID12,&transactionId.transactionNbr);
 
 		/*Print Event type if debugging*/
-		dbgprintf(1,"\nEvent: type %d, '%s', From Node: %d, Transaction ID: %d.%d.\n", type,
+		dbgprintf(1,"\nEvent: type %d, '%s', From Node: %ull, Transaction ID: %ull.%ull.\n", type,
 				(type > 0 && type < 12) ? eventTypes[type]
 				: "(unknown)",TID11, TID11, TID12);
 
@@ -194,27 +207,15 @@ void version()
 	exit(1);
 }
 
-#ifdef CLEAN_ON_EXIT
-void exit_cleanup()
+void sig_handler()
 {
 	/*Reset signal handlers for portability*/
-	isignal(SIGTERM, exit_cleanup);
-	isignal(SIGINT, exit_cleanup);
+	isignal(SIGTERM, sig_handler);
+	isignal(SIGINT, sig_handler);
 
-#if defined (VXWORKS) || defined (RTEMS)
-	/*DO NOTHING. VXWORKS doesn't implement system()!*/
-#else
+	/*Shutdown event polling loop*/
+	running=0;
 
-	/*Cleanup all directory listing files*/
-	if (system("rm dirlist_* >/dev/null 2>/dev/null")<0)
-	{
-		dbgprintf(0, "Error running cleanup\n");
-	}
-#endif
-
-	/*Drop to new line*/
-	printf("\n");
-
-	exit(0);
+	/*Interrupt cfdp_get_event()*/
+	cfdp_interrupt();
 }
-#endif

@@ -34,6 +34,8 @@ static CfdpDB	*_cfdpConstants()
 {
 	static CfdpDB	buf;
 	static CfdpDB	*db = NULL;
+	Sdr		sdr;
+	Object		dbObject;
 
 	if (db == NULL)
 	{
@@ -42,9 +44,26 @@ static CfdpDB	*_cfdpConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-		sdr_read(getIonsdr(), (char *) &buf, _cfdpdbObject(NULL),
-				sizeof(CfdpDB));
-		db = &buf;
+		sdr = getIonsdr();
+		CHKNULL(sdr);
+		dbObject = _cfdpdbObject(NULL);
+		if (dbObject)
+		{
+			if (sdr_heap_is_halted(sdr))
+			{
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(CfdpDB));
+			}
+			else
+			{
+				CHKNULL(sdr_begin_xn(sdr));
+				sdr_read(sdr, (char *) &buf, dbObject,
+						sizeof(CfdpDB));
+				sdr_exit_xn(sdr);
+			}
+
+			db = &buf;
+		}
 	}
 
 	return db;
@@ -129,7 +148,7 @@ int	checkFile(char *fileName)
 	/*	Spawn a separate thread that hangs on opening the file
 	 *	if there's an error in the file system.			*/
 
-	if (pthread_create(&statThread, &attr, checkFileExists, &parms))
+	if (pthread_begin(&statThread, &attr, checkFileExists, &parms))
 	{
 		oK(pthread_mutex_destroy(&mutex));
 		oK(pthread_cond_destroy(&cv));
@@ -164,7 +183,7 @@ int	checkFile(char *fileName)
 
 			/*	Timeout: child stuck, file undefined.	*/
 
-			pthread_cancel(statThread);
+			pthread_end(statThread);
 			parms.fileExists = 0;
 		}
 	}
@@ -310,7 +329,7 @@ static CfdpVdb	*_cfdpvdb(char **name)
 		/*	CFDP volatile database doesn't exist yet.	*/
 
 		sdr = getIonsdr();
-		sdr_begin_xn(sdr);	/*	Just to lock memory.	*/
+		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
 		vdbAddress = psm_zalloc(wm, sizeof(CfdpVdb));
 		if (vdbAddress == 0)
 		{
@@ -376,7 +395,7 @@ int	cfdpInit()
 
 	/*	Recover the CFDP database, creating it if necessary.	*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	cfdpdbObject = sdr_find(sdr, _cfdpdbName(), NULL);
 	switch (cfdpdbObject)
 	{
@@ -458,6 +477,64 @@ int	cfdpInit()
 	return 0;		/*	CFDP service is available.	*/
 }
 
+static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
+{
+	CfdpVdb		*vdb;
+
+	vdb = (CfdpVdb *) psp(wm, vdbAddress);
+	if (vdb->eventSemaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vdb->eventSemaphore);
+	}
+
+	if (vdb->fduSemaphore != SM_SEM_NONE)
+	{
+		sm_SemDelete(vdb->fduSemaphore);
+	}
+
+	if (vdb->currentFile != -1)
+	{
+		close(vdb->currentFile);
+	}
+}
+
+void	cfdpDropVdb()
+{
+	PsmPartition	wm = getIonwm();
+	char		*cfdpvdbName = _cfdpvdbName();
+	PsmAddress	vdbAddress;
+	PsmAddress	elt;
+	char		*stop = NULL;
+
+	if (psm_locate(wm, cfdpvdbName, &vdbAddress, &elt) < 0)
+	{
+		putErrmsg("Failed searching for vdb.", NULL);
+		return;
+	}
+
+	if (elt)
+	{
+		dropVdb(wm, vdbAddress);	/*	Destroy Vdb.	*/
+		psm_free(wm,vdbAddress);
+		if(psm_uncatlg(wm, cfdpvdbName) < 0)
+		{
+			putErrmsg("Failed uncataloging vdb.",NULL);
+		}
+	}
+
+	oK(_cfdpvdb(&stop));			/*	Forget old Vdb.	*/
+}
+
+void	cfdpRaiseVdb()
+{
+	char	*cfdpvdbName = _cfdpvdbName();
+
+	if (_cfdpvdb(&cfdpvdbName) == NULL)	/*	Create new Vdb.	*/
+	{
+		putErrmsg("CFDP can't reinitialize vdb.", NULL);
+	}
+}
+
 Object	getCfdpDbObject()
 {
 	return _cfdpdbObject(NULL);
@@ -484,7 +561,7 @@ int	_cfdpStart(char *utaCmd)
 		return -1;
 	}
 
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 
 	/*	Start the CFDP events clock if necessary.		*/
 
@@ -511,7 +588,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Tell all CFDP processes to stop.			*/
 
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 
 	/*	Stop user application input thread.			*/
 
@@ -556,7 +633,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
-	sdr_begin_xn(sdr);	/*	Just to lock memory.		*/
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	cfdpvdb->utaPid = ERROR;
 	cfdpvdb->clockPid = ERROR;
 	if (cfdpvdb->eventSemaphore == SM_SEM_NONE)
@@ -606,7 +683,7 @@ int	cfdpAttach()
 
 	if (cfdpdbObject == 0)
 	{
-		sdr_begin_xn(sdr);	/*	Lock database.		*/
+		CHKERR(sdr_begin_xn(sdr));	/*	Lock database.	*/
 		cfdpdbObject = sdr_find(sdr, _cfdpdbName(), NULL);
 		sdr_exit_xn(sdr);	/*	Unlock database.	*/
 		if (cfdpdbObject == 0)
@@ -634,6 +711,12 @@ int	cfdpAttach()
 	return 0;		/*	CFDP service is available.	*/
 }
 
+void cfdpDetach(){
+	char *stop=NULL;
+	oK(_cfdpvdb(&stop));
+	return;
+}
+
 MetadataList	createMetadataList(Object log)
 {
 	Sdr	sdr = getIonsdr();
@@ -644,7 +727,7 @@ MetadataList	createMetadataList(Object log)
 	 *	in the new list's user data.				*/
 
 	CHKZERO(log);
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 	list = sdr_list_create(sdr);
 	if (list)
 	{
@@ -824,7 +907,7 @@ int	addFsResp(Object list, CfdpAction action, int status,
 	CHKERR(message == NULL || strlen(secondFileName) < 256);
 	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
 			== cfdpConstants->fsreqLists);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fsresp.action = action;
 	fsresp.status = status;
 	if (firstFileName)
@@ -880,9 +963,8 @@ Object	findOutFdu(CfdpTransactionId *transactionId, OutFdu *fduBuf,
 	{
 		fduObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) fduBuf, fduObj, sizeof(OutFdu));
-		if (memcmp((char *) &fduBuf->transactionId.transactionNbr,
-				(char *) &transactionId->transactionNbr,
-				sizeof(CfdpNumber)) == 0)
+		if (memcmp(fduBuf->transactionId.transactionNbr.buffer,
+				transactionId->transactionNbr.buffer, 8) == 0)
 		{
 			*fduElt = elt;
 			return fduObj;
@@ -924,14 +1006,14 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 		Object *fduElt, int createIfNotFound)
 {
-	unsigned long	sourceEntityId;
-	Sdr		sdr = getIonsdr();
-	CfdpDB		*cfdpConstants = _cfdpConstants();
-	Object		elt;
-	Object		entityObj;
-	Entity		entity;
-	int		foundIt = 0;
-	Object		fduObj;
+	uvast	sourceEntityId;
+	Sdr	sdr = getIonsdr();
+	CfdpDB	*cfdpConstants = _cfdpConstants();
+	Object	elt;
+	Object	entityObj;
+	Entity	entity;
+	int	foundIt = 0;
+	Object	fduObj;
 
 	CHKZERO(transactionId);
 	CHKZERO(fduBuf);
@@ -2099,8 +2181,8 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 	CHKERR(handler);
 	*handler = CfdpNoHandler;
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	if (memcmp((char *) &transactionId->sourceEntityNbr,
-			(char *) &cfdpdb.ownEntityNbr, sizeof(CfdpNumber)) == 0)
+	if (memcmp(transactionId->sourceEntityNbr.buffer,
+			cfdpdb.ownEntityNbr.buffer, 8) == 0)
 	{
 		memset((char *) &outFdu, 0, sizeof(OutFdu));
 		fduObj = findOutFdu(transactionId, &outFdu, &fduElt);
@@ -2132,9 +2214,8 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 			return 0;
 		}
 
-		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpdb.ownEntityNbr,
-				sizeof(CfdpNumber)) == 0)
+		if (memcmp(transactionId->sourceEntityNbr.buffer,
+				cfdpdb.ownEntityNbr.buffer, 8) == 0)
 		{
 			return cancelOutFdu(transactionId, fault, 0);
 		}
@@ -2147,9 +2228,8 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 			return 0;
 		}
 
-		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpdb.ownEntityNbr,
-				sizeof(CfdpNumber)) == 0)
+		if (memcmp(transactionId->sourceEntityNbr.buffer,
+				cfdpdb.ownEntityNbr.buffer, 8) == 0)
 		{
 			return suspendOutFdu(transactionId, fault, 0);
 		}
@@ -2162,9 +2242,8 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		memcpy((char *) &event.transactionId, (char *) transactionId,
 				sizeof(CfdpTransactionId));
 		event.condition = fault;
-		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpdb.ownEntityNbr,
-				sizeof(CfdpNumber)) == 0)
+		if (memcmp(transactionId->sourceEntityNbr.buffer,
+				cfdpdb.ownEntityNbr.buffer, 8) == 0)
 		{
 			event.progress = outFdu.progress;
 		}
@@ -2188,9 +2267,8 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 			return 0;
 		}
 
-		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpdb.ownEntityNbr,
-				sizeof(CfdpNumber)) == 0)
+		if (memcmp(transactionId->sourceEntityNbr.buffer,
+				cfdpdb.ownEntityNbr.buffer, 8) == 0)
 		{
 			return abandonOutFdu(transactionId, fault);
 		}
@@ -2262,14 +2340,14 @@ static Object	selectOutPdu(OutFdu *fdu, int *pduIsFileData)
 
 			sdr_write(sdr, header, (char *) &offset, 4);
 			pdu = zco_create(sdr, ZcoSdrSource, header, 0, 4);
-			if (pdu == 0)
+			if (pdu == (Object) ERROR || pdu == 0)
 			{
 				putErrmsg("No space for file PDU.", NULL);
 				return 0;
 			}
 
 			if (zco_append_extent(sdr, pdu, ZcoFileSource,
-				fdu->fileRef, fdu->progress, length) < 0)
+				fdu->fileRef, fdu->progress, length) <= 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
 				return 0;
@@ -2299,6 +2377,8 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 	unsigned int	octet;
 	int		pduSourceDataLength;
 	int		entityNbrLength;
+	int		entityNbrPad;
+	int		transactionNbrPad;
 	unsigned char	pduHeader[28];
 	unsigned int	pduHeaderLength = 4;
 	unsigned int	proposedLength;
@@ -2308,7 +2388,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 	CHKERR(pdu);
 	CHKERR(fduBuffer);
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fduObj = selectOutFdu(fduBuffer);
 	while (fduObj == 0)
 	{
@@ -2329,7 +2409,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 			return -1;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		fduObj = selectOutFdu(fduBuffer);
 	}
 
@@ -2365,6 +2445,8 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 		entityNbrLength = fduBuffer->destinationEntityNbr.length;
 	}
 
+	entityNbrPad = 8 - entityNbrLength;
+	transactionNbrPad = 8 - fduBuffer->transactionId.transactionNbr.length;
 	octet = ((entityNbrLength - 1) << 4)
 			+ (fduBuffer->transactionId.transactionNbr.length - 1);
 	pduHeader[3] = octet;
@@ -2381,15 +2463,16 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 		return -1;
 	}
 
-	memcpy(pduHeader + pduHeaderLength, cfdpdb.ownEntityNbr.buffer,
-			entityNbrLength);
+	memcpy(pduHeader + pduHeaderLength, cfdpdb.ownEntityNbr.buffer
+			+ entityNbrPad, entityNbrLength);
 	pduHeaderLength += entityNbrLength;
 	memcpy(pduHeader + pduHeaderLength,
-			fduBuffer->transactionId.transactionNbr.buffer,
+			fduBuffer->transactionId.transactionNbr.buffer
+				+ transactionNbrPad,
 			fduBuffer->transactionId.transactionNbr.length);
 	pduHeaderLength += fduBuffer->transactionId.transactionNbr.length;
 	memcpy(pduHeader + pduHeaderLength,
-			fduBuffer->destinationEntityNbr.buffer,
+			fduBuffer->destinationEntityNbr.buffer + entityNbrPad,
 			entityNbrLength);
 	pduHeaderLength += entityNbrLength;
 
@@ -2486,9 +2569,9 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 
 static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 {
-	Sdr		sdr = getIonsdr();
-	unsigned long	sourceEntityId;
-	unsigned long	transactionNbr;
+	Sdr	sdr = getIonsdr();
+	uvast	sourceEntityId;
+	uvast	transactionNbr;
 
 	if (fdu->workingFileName == 0)
 	{
@@ -2496,7 +2579,8 @@ static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 				&fdu->transactionId.sourceEntityNbr);
 		cfdp_decompress_number(&transactionNbr,
 				&fdu->transactionId.transactionNbr);
-		isprintf(stringBuf, bufLen, "%s%ccfdp.%lu.%lu",
+		isprintf(stringBuf, bufLen,
+				"%s%ccfdp." UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
 				getIonWorkingDirectory(), ION_PATH_DELIMITER,
 				sourceEntityId, transactionNbr);
 		fdu->workingFileName = sdr_string_create(sdr, stringBuf);
@@ -3104,13 +3188,17 @@ static int	parseFlowLabelTLV(InFdu *fdu, unsigned char **cursor,
 static int	parseEntityIdTLV(InFdu *fdu, unsigned char **cursor,
 			int length, int *bytesRemaining)
 {
+	int	padLength;
+
 	if (length > 8)		/*	Invalid fault location.		*/
 	{
 		return 0;	/*	Malformed.			*/
 	}
 
 	fdu->eofFaultLocation.length = length;
-	memcpy(fdu->eofFaultLocation.buffer, cursor, length);
+	padLength = 8 - length;
+	memset(fdu->eofFaultLocation.buffer, 0, padLength);
+	memcpy(fdu->eofFaultLocation.buffer + padLength, *cursor, length);
 	*cursor += length;
 	*bytesRemaining -= length;
 	return 0;
@@ -3400,6 +3488,17 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 
 	event.fileSize = fileSize;	/*	Projected, not actual.	*/
 	event.messagesToUser = fdu->messagesToUser;
+
+	/*	Must transform the messagesToUser list into a
+	 *	MetadataList for delivery to application.		*/
+
+	sdr_list_user_data_set(sdr, event.messagesToUser,
+		sdr_list_insert_last(sdr, (getCfdpConstants())->usrmsgLists,
+		event.messagesToUser));
+
+	/*	Detach messagesToUser list from FDU so it won't be
+	 *	deleted twice.						*/
+
 	fdu->messagesToUser = 0;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
@@ -3451,7 +3550,9 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 	int			crcIsPresent;
 	int			dataFieldLength;
 	int			entityNbrLength;
+	int			entityNbrPad;
 	int			transactionNbrLength;
+	int			transactionNbrPad;
 	CfdpNumber		sourceEntityNbr;
 	CfdpNumber		transactionNbr;
 	CfdpNumber		destinationEntityNbr;
@@ -3496,7 +3597,9 @@ printf("...in cfdpHandleInboundPdu...\n");
 	cursor++;
 	bytesRemaining--;
 	entityNbrLength += 1;		/*	De-adjust.		*/
+	entityNbrPad = 8 - entityNbrLength;
 	transactionNbrLength += 1;	/*	De-adjust.		*/
+	transactionNbrPad = 8 - transactionNbrLength;
 	if (bytesRemaining < (entityNbrLength << 1) + transactionNbrLength)
 	{
 #if CFDPDEBUG
@@ -3507,15 +3610,17 @@ printf("...malformed PDU (missing %d bytes)...\n",
 	}
 
 	sourceEntityNbr.length = entityNbrLength;
-	memcpy(sourceEntityNbr.buffer, cursor, entityNbrLength);
+	memcpy(sourceEntityNbr.buffer + entityNbrPad, cursor, entityNbrLength);
 	cursor += entityNbrLength;
 	bytesRemaining -= entityNbrLength;
 	transactionNbr.length = transactionNbrLength;
-	memcpy(transactionNbr.buffer, cursor, transactionNbrLength);
+	memcpy(transactionNbr.buffer + transactionNbrPad, cursor,
+			transactionNbrLength);
 	cursor += transactionNbrLength;
 	bytesRemaining -= transactionNbrLength;
 	destinationEntityNbr.length = entityNbrLength;
-	memcpy(destinationEntityNbr.buffer, cursor, entityNbrLength);
+	memcpy(destinationEntityNbr.buffer + entityNbrPad, cursor,
+			entityNbrLength);
 	cursor += entityNbrLength;
 	bytesRemaining -= entityNbrLength;
 #if CFDPDEBUG
@@ -3558,9 +3663,8 @@ printf("...CRC validation failed...\n");
 #if CFDPDEBUG
 printf("...PDU known not to be corrupt...\n"); 
 #endif
-	if (memcmp((char *) &destinationEntityNbr,
-			(char *) &cfdpConstants->ownEntityNbr,
-			sizeof(CfdpNumber)) != 0)
+	if (memcmp(destinationEntityNbr.buffer,
+			cfdpConstants->ownEntityNbr.buffer, 8) != 0)
 	{
 #if CFDPDEBUG
 printf("...PDU is misdirected...\n"); 
@@ -3589,7 +3693,7 @@ printf("...wrong CFDP transmission mode...\n");
 
 	/*	Get FDU, creating as necessary.				*/
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	fduObj = findInFdu(&transactionId, &fduBuf, &fduElt, 1);
 	if (fduObj == 0)
 	{

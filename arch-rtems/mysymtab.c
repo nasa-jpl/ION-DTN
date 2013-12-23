@@ -15,6 +15,7 @@ extern int	ionexit(int, int, int, int, int, int, int, int, int, int);
 extern int	rfxclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ionsecadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ionwarn(int, int, int, int, int, int, int, int, int, int);
+extern int	ionrestart(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpmeter(int, int, int, int, int, int, int, int, int, int);
@@ -58,6 +59,7 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "rfxclock",	(FUNCPTR) rfxclock,	ICI_PRIORITY,	32768 },
 		{ "ionsecadmin",(FUNCPTR) ionsecadmin,	ICI_PRIORITY,	32768 },
 		{ "ionwarn",	(FUNCPTR) ionwarn,	ICI_PRIORITY,	32768 },
+		{ "ionrestart",	(FUNCPTR) ionrestart,	ICI_PRIORITY,	32768 },
 		{ "ltpadmin",	(FUNCPTR) ltpadmin,	ICI_PRIORITY,	32768 },
 		{ "ltpclock",	(FUNCPTR) ltpclock,	ICI_PRIORITY,	32768 },
 		{ "ltpmeter",	(FUNCPTR) ltpmeter,	ICI_PRIORITY,	32768 },

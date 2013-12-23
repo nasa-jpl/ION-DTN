@@ -86,7 +86,13 @@ fi
                 # Since it isn't a "real" library, for now I think it's safe to exclude it from unused dependency concerns.
                 #
                 # Exception added by Josh Schendel on 5/3/2012 for IOS 3.0.1 release.
-                if [[ "$UNUSED_LINK" != *linux-gate* ]]; then
+				#
+				#
+                #Ignore libpthread here because we need it for nearly all of our libraries/executables and not including it where
+				#its strictly unneeded would complicate the autotools build system.
+				# 
+				# Exception added by Samuel Jero on 6/27/2013
+                if [[ "$UNUSED_LINK" != *linux-gate* ]] && [[ "$UNUSED_LINK" != *pthread* ]]; then
                     echo "$LIB_NAME->$UNUSED_LINK [color=purple] ;"
                 fi
             done

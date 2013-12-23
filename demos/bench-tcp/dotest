@@ -403,7 +403,7 @@ cd ../2.bench.tcp
 ./ionstop &
 cd ../3.bench.tcp
 ./ionstop &
-sleep 5
+sleep 8
 killm
 echo "...benchmarking terminated."
 exit $RETVAL

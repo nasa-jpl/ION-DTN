@@ -27,7 +27,7 @@ ltprc(5).
 
 =over 4
 
-=item 0
+=item "0"
 Successful completion of LTP administration.
 
 =back

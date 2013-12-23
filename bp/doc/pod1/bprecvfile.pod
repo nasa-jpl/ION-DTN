@@ -21,7 +21,7 @@ it will run indefinitely; use ^C to terminate the program.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bprecvfile> has terminated.
 

@@ -35,14 +35,12 @@ static sm_SemId		_imcfwSemaphore(sm_SemId *newValue)
 
 static void	shutDown()	/*	Commands forwarder termination.	*/
 {
-	void	*erase = NULL;
-
+	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_imcfwSemaphore(NULL));
-	oK(sm_TaskVar(&erase));
 }
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
-			unsigned long nodeNbr)
+			uvast nodeNbr)
 {
 	FwdDirective	directive;
 	char		stationEid[64];
@@ -52,14 +50,15 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	PsmAddress	snubElt;
 	IonSnub		*snub;
 
-	if (ipn_lookupPlanDirective(nodeNbr, 0, 0, &directive) == 0)
+	if (ipn_lookupPlanDirective(nodeNbr, 0, 0, bundle, &directive) == 0)
 	{
 		return 0;
 	}
 
 	/*	The station node is a neighbor.				*/
 
-	isprintf(stationEid, sizeof stationEid, "ipn:%lu.0", nodeNbr);
+	isprintf(stationEid, sizeof stationEid, "ipn:" UVAST_FIELDSPEC ".0",
+			nodeNbr);
 
 	/*	Is neighbor refusing to be a station for bundles?	*/
 
@@ -99,8 +98,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	return 0;
 }
 
-static int	enqueueBundle(Bundle *bundle, Object bundleObj,
-			unsigned long nodeNbr)
+static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
 {
 	/*	Note that the only way we can prevent multicast
 	 *	forwarding loops is by knowing exactly which
@@ -142,7 +140,7 @@ int	main(int argc, char *argv[])
 #endif
 	int		running = 1;
 	Sdr		sdr;
-	unsigned long	ownNodeNbr;
+	uvast		ownNodeNbr;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
@@ -154,7 +152,7 @@ int	main(int argc, char *argv[])
 	Object		elt3;
 	Object		groupAddr;
 	ImcGroup	group;
-	unsigned long	member;
+			OBJ_POINTER(NodeId, member);
 	Bundle		newBundle;
 	Object		newBundleObj;
 
@@ -185,8 +183,10 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 			vscheme->schemeElt), sizeof(Scheme));
+	sdr_exit_xn(sdr);
 	oK(_imcfwSemaphore(&vscheme->semaphore));
 	isignal(SIGTERM, shutDown);
 
@@ -200,7 +200,7 @@ int	main(int argc, char *argv[])
 		 *	prevents race condition with bpclock (which
 		 *	is destroying bundles as their TTLs expire).	*/
 
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, scheme.forwardQueue);
 		if (elt == 0)	/*	Wait for forwarding notice.	*/
 		{
@@ -252,9 +252,9 @@ int	main(int argc, char *argv[])
 				for (elt3 = sdr_list_first(sdr, group.members);
 					elt3; elt3 = sdr_list_next(sdr, elt3))
 				{
-					member = (unsigned long)
-						sdr_list_data(sdr, elt3);
-					if (member ==
+					GET_OBJ_POINTER(sdr, NodeId, member,
+						sdr_list_data(sdr, elt3));
+					if (member->nbr ==
 						bundle.clDossier.senderNodeNbr)
 					{
 						continue;
@@ -270,7 +270,7 @@ int	main(int argc, char *argv[])
 					}
 
 					if (enqueueBundle(&newBundle,
-						newBundleObj, member) < 0)
+						newBundleObj, member->nbr) < 0)
 					{
 						sdr_cancel_xn(sdr);
 						putErrmsg("Failed on enqueue.",

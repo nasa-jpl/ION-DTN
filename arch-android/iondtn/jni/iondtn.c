@@ -13,7 +13,7 @@
 
 static void	createIonConfigFiles()
 {
-	int	nodenbr = ION_NODE_NBR;
+	uvast	nodenbr = ION_NODE_NBR;
 	char	filenamebuf[80];
 	int	fd;
 	char	*ionconfigLines[] =	{
@@ -73,8 +73,8 @@ static void	createIonConfigFiles()
 
 	/*	Create ionconfig file.					*/
 
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.ionconfig",
-			nodenbr);
+	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
+			".ionconfig", nodenbr);
 	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
@@ -91,7 +91,8 @@ static void	createIonConfigFiles()
 
 	/*	Create ionrc file.					*/
 
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.ionrc", nodenbr);
+	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
+			".ionrc", nodenbr);
 	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
@@ -99,15 +100,14 @@ static void	createIonConfigFiles()
 		return;
 	}
 
-	isprintf(linebuf, sizeof linebuf, "1 %d /ion/node%d.ionconfig\ns\n",
-			nodenbr, nodenbr);
+	isprintf(linebuf, sizeof linebuf, "1 " UVAST_FIELDSPEC " /ion/node"
+			UVAST_FIELDSPEC ".ionconfig\ns\n", nodenbr, nodenbr);
 	oK(iputs(fd, linebuf));
 	close(fd);
 
 	/*	Create global.ionrc file.				*/
 
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/global.ionrc",
-			nodenbr);
+	istrcpy(filenamebuf, "/ion/global.ionrc", sizeof filenamebuf);
 	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
@@ -124,8 +124,8 @@ static void	createIonConfigFiles()
 
 	/*	Create ionsecrc file.					*/
 
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.ionsecrc",
-			nodenbr);
+	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
+			".ionsecrc", nodenbr);
 	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
@@ -142,8 +142,8 @@ static void	createIonConfigFiles()
 
 	/*	Create ltprc file.					*/
 
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.ltprc",
-			nodenbr);
+	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
+			".ltprc", nodenbr);
 	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
@@ -160,8 +160,8 @@ static void	createIonConfigFiles()
 
 	/*	Create ipnrc file.					*/
 
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.ipnrc",
-			nodenbr);
+	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
+			".ipnrc", nodenbr);
 	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
@@ -178,8 +178,8 @@ static void	createIonConfigFiles()
 
 	/*	Create bprc file.					*/
 
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.bprc",
-			nodenbr);
+	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
+			".bprc", nodenbr);
 	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
@@ -192,16 +192,16 @@ static void	createIonConfigFiles()
 		oK(iputs(fd, *line));
 	}
 
-	isprintf(linebuf, sizeof linebuf, "r 'ipnadmin /ion/node%d.ipnrc'\ns\n",
-			nodenbr);
+	isprintf(linebuf, sizeof linebuf, "r 'ipnadmin /ion/node"
+			UVAST_FIELDSPEC ".ipnrc'\ns\n", nodenbr);
 	oK(iputs(fd, linebuf));
 	close(fd);
 
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Create cfdprc file.					*/
 
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node%d.cfdprc",
-			nodenbr);
+	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node"
+			UVAST_FIELDSPEC ".cfdprc", nodenbr);
 	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
@@ -216,14 +216,15 @@ static void	createIonConfigFiles()
 
 JNIEXPORT jstring JNICALL Java_gov_nasa_jpl_iondtn_NodeAdministrator_init(JNIEnv *env, jobject this)
 {
-	int	nodenbr = ION_NODE_NBR;
+	uvast	nodenbr = ION_NODE_NBR;
 	char	cmd[80];
 	int	count;
 	char	*result = "ION node started.";
 
 	sm_ipc_init();
 	createIonConfigFiles();
-	isprintf(cmd, sizeof cmd, "ionadmin /ion/node%d.ionrc", nodenbr);
+	isprintf(cmd, sizeof cmd, "ionadmin /ion/node" UVAST_FIELDSPEC
+			".ionrc", nodenbr);
 	pseudoshell(cmd);
 	count = 5;
 	while (rfx_system_is_started() == 0)
@@ -240,13 +241,15 @@ abandoned.";
 
 	pseudoshell("ionadmin /ion/global.ionrc");
 	snooze(1);
-	isprintf(cmd, sizeof cmd, "ionsecadmin /ion/node%d.ionsecrc", nodenbr);
+	isprintf(cmd, sizeof cmd, "ionsecadmin /ion/node" UVAST_FIELDSPEC
+			".ionsecrc", nodenbr);
 	pseudoshell(cmd);
 	snooze(1);
 
 	/*	Now start the Bundle Protocol agent.			*/
 
-	isprintf(cmd, sizeof cmd, "bpadmin /ion/node%d.bprc", nodenbr);
+	isprintf(cmd, sizeof cmd, "bpadmin /ion/node" UVAST_FIELDSPEC
+			".bprc", nodenbr);
 	pseudoshell(cmd);
 	count = 5;
 	while (bp_agent_is_started() == 0)
@@ -261,7 +264,8 @@ abandoned.";
 		}
 	}
 
-	isprintf(cmd, sizeof cmd, "lgagent ipn:%d.127", nodenbr);
+	isprintf(cmd, sizeof cmd, "lgagent ipn:" UVAST_FIELDSPEC ".127",
+			nodenbr);
 	pseudoshell(cmd);
 	snooze(1);
 	return (*env)->NewStringUTF(env, result);

@@ -238,9 +238,9 @@ static void	executeAdd(int tokenCount, char **tokens)
 	DuctExpression	rtExpression;
 	DuctExpression	pbExpression;
 	int		sourceServiceNbr;
-	int		sourceNodeNbr;
+	vast		sourceNodeNbr;
 	int		dstServiceNbr;
-	int		dstNodeNbr;
+	vast		dstNodeNbr;
 	int		rtt; 		/* BSS - Custody expiration interval */
 
 	if (tokenCount < 2)
@@ -264,14 +264,14 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		
 		
-		rtt = atoi(tokens[6]);
+		rtt = strtol(tokens[6], NULL, 0);
 		if (rtt==0 || rtt<0)
 		{
 			rtt = 63072000; 	/*	2 years		*/
 		}
 
-		bss_addPlan(atoi(tokens[2]), &defaultExpression, &rtExpression, 
-			    &pbExpression, rtt);
+		bss_addPlan(strtouvast(tokens[2]), &defaultExpression,
+			&rtExpression, &pbExpression, rtt);
 		return;
 	}
 
@@ -289,7 +289,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[3]);
+			sourceServiceNbr = strtol(tokens[3], NULL, 0);
 		}
 
 		if (strcmp(tokens[4], "*") == 0)
@@ -298,7 +298,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[4]);
+			sourceNodeNbr = strtovast(tokens[4]);
 		}
 
 		if (parseDuctExpressions(tokens[5], tokens[6], tokens[7], 
@@ -307,9 +307,9 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
  
-		bss_addPlanRule(atoi(tokens[2]), sourceServiceNbr,
-				sourceNodeNbr, &defaultExpression, 
-				&rtExpression, &pbExpression);
+		bss_addPlanRule(strtouvast(tokens[2]), sourceServiceNbr,
+			sourceNodeNbr, &defaultExpression, &rtExpression,
+			&pbExpression);
 		return;
 	}
 
@@ -321,7 +321,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		bss_addGroup(atoi(tokens[2]), atoi(tokens[3]), tokens[4]);
+		bss_addGroup(strtouvast(tokens[2]), strtouvast(tokens[3]),
+				tokens[4]);
 		return;
 	}
 
@@ -339,7 +340,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[4]);
+			sourceServiceNbr = strtol(tokens[4], NULL, 0);
 		}
 
 		if (strcmp(tokens[5], "*") == 0)
@@ -348,10 +349,10 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[5]);
+			sourceNodeNbr = strtovast(tokens[5]);
 		}
 
-		bss_addGroupRule(atoi(tokens[2]), atoi(tokens[3]),
+		bss_addGroupRule(strtouvast(tokens[2]), strtouvast(tokens[3]),
 				sourceServiceNbr, sourceNodeNbr, tokens[6]);
 		return;
 	}
@@ -370,7 +371,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			dstServiceNbr = atoi(tokens[2]);
+			dstServiceNbr = strtol(tokens[2], NULL, 0);
 		}
 
 		if (strcmp(tokens[3], "*") == 0)
@@ -379,7 +380,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 		else
 		{
-			dstNodeNbr = atoi(tokens[3]);
+			dstNodeNbr = strtovast(tokens[3]);
 		}
 
 		bss_addBssEntry(dstServiceNbr,dstNodeNbr);				
@@ -395,7 +396,7 @@ static void	executeChange(int tokenCount, char **tokens)
 	DuctExpression	rtExpression;
 	DuctExpression	pbExpression;
 	int		sourceServiceNbr;
-	int		sourceNodeNbr;
+	vast		sourceNodeNbr;
 	int		rtt; 		/* BSS - Custody expiration interval */
 
 	if (tokenCount < 2)
@@ -418,14 +419,14 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 		
-		rtt = atoi(tokens[6]);
-		if (atoi(tokens[6]) < 0 || atoi(tokens[6]) == 0 )
+		rtt = strtol(tokens[6], NULL, 0);
+		if (rtt < 0 || rtt == 0)
 		{
 			rtt = 63072000; 	/*	2 years		*/
 		}
 
-		bss_updatePlan(atoi(tokens[2]), &defaultExpression, 
-			       &rtExpression, &pbExpression, rtt);
+		bss_updatePlan(strtouvast(tokens[2]), &defaultExpression,
+				&rtExpression, &pbExpression, rtt);
 		return;
 	}
 
@@ -443,7 +444,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[3]);
+			sourceServiceNbr = strtol(tokens[3], NULL, 0);
 		}
 
 		if (strcmp(tokens[4], "*") == 0)
@@ -452,7 +453,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[4]);
+			sourceNodeNbr = strtovast(tokens[4]);
 		}
 
 		if (parseDuctExpressions(tokens[5], tokens[6], tokens[7], 
@@ -461,8 +462,8 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		bss_updatePlanRule(atoi(tokens[2]), sourceServiceNbr,
-				sourceNodeNbr, &defaultExpression, 
+		bss_updatePlanRule(strtouvast(tokens[2]), sourceServiceNbr,
+				sourceNodeNbr, &defaultExpression,
 				&rtExpression, &pbExpression);
 		return;
 	}
@@ -475,7 +476,8 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		bss_updateGroup(atoi(tokens[2]), atoi(tokens[3]), tokens[4]);
+		bss_updateGroup(strtouvast(tokens[2]), strtouvast(tokens[3]),
+				tokens[4]);
 		return;
 	}
 
@@ -493,7 +495,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[4]);
+			sourceServiceNbr = strtol(tokens[4], NULL, 0);
 		}
 
 		if (strcmp(tokens[5], "*") == 0)
@@ -502,11 +504,12 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[5]);
+			sourceNodeNbr = strtovast(tokens[5]);
 		}
 
-		bss_updateGroupRule(atoi(tokens[2]), atoi(tokens[3]),
-				sourceServiceNbr, sourceNodeNbr, tokens[6]);
+		bss_updateGroupRule(strtouvast(tokens[2]),
+				strtouvast(tokens[3]), sourceServiceNbr,
+				sourceNodeNbr, tokens[6]);
 		return;
 	}
 
@@ -516,9 +519,9 @@ static void	executeChange(int tokenCount, char **tokens)
 static void	executeDelete(int tokenCount, char **tokens)
 {
 	int	sourceServiceNbr;
-	int	sourceNodeNbr;
+	vast	sourceNodeNbr;
 	int	dstServiceNbr;
-	int	dstNodeNbr;
+	vast	dstNodeNbr;
 
 	if (tokenCount < 2)
 	{
@@ -534,7 +537,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		bss_removePlan(atoi(tokens[2]));
+		bss_removePlan(strtouvast(tokens[2]));
 		return;
 	}
 
@@ -552,7 +555,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[3]);
+			sourceServiceNbr = strtol(tokens[3], NULL, 0);
 		}
 
 		if (strcmp(tokens[4], "*") == 0)
@@ -561,10 +564,10 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[4]);
+			sourceNodeNbr = strtovast(tokens[4]);
 		}
 
-		bss_removePlanRule(atoi(tokens[2]), sourceServiceNbr,
+		bss_removePlanRule(strtouvast(tokens[2]), sourceServiceNbr,
 				sourceNodeNbr);
 		return;
 	}
@@ -577,7 +580,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		bss_removeGroup(atoi(tokens[2]), atoi(tokens[3]));
+		bss_removeGroup(strtouvast(tokens[2]), strtouvast(tokens[3]));
 		return;
 	}
 
@@ -595,7 +598,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceServiceNbr = atoi(tokens[4]);
+			sourceServiceNbr = strtol(tokens[4], NULL, 0);
 		}
 
 		if (strcmp(tokens[5], "*") == 0)
@@ -604,11 +607,12 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			sourceNodeNbr = atoi(tokens[5]);
+			sourceNodeNbr = strtouvast(tokens[5]);
 		}
 
-		bss_removeGroupRule(atoi(tokens[2]), atoi(tokens[3]),
-				sourceServiceNbr, sourceNodeNbr);
+		bss_removeGroupRule(strtouvast(tokens[2]),
+			strtouvast(tokens[3]), sourceServiceNbr,
+			sourceNodeNbr);
 		return;
 	}
 
@@ -626,7 +630,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			dstServiceNbr = atoi(tokens[2]);
+			dstServiceNbr = strtol(tokens[2], NULL, 0);
 		}
 
 		if (strcmp(tokens[3], "*") == 0)
@@ -635,7 +639,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 		else
 		{
-			dstNodeNbr = atoi(tokens[3]);
+			dstNodeNbr = strtovast(tokens[3]);
 		}
 
 		bss_removeBssEntry(dstServiceNbr, dstNodeNbr);
@@ -647,7 +651,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 static void	printDirectives(char *context, FwdDirective *dir1, 
 			       FwdDirective *dir2, FwdDirective *dir3, 
-			       unsigned long rtt)
+			       unsigned int rtt)
 {
 	Sdr		sdr = getIonsdr();
 	Object		ductObj;
@@ -721,7 +725,7 @@ static void	printDirectives(char *context, FwdDirective *dir1,
 
 	if (rtt != 0)
 	{
-		isprintf(buffer, sizeof buffer, "%.80s %.900s %lu", 
+		isprintf(buffer, sizeof buffer, "%.80s %.900s %u", 
 			 context, totalBuffer, rtt);
 	}
 	else
@@ -737,7 +741,7 @@ static void	printPlan(BssPlan *plan)
 {
 	char	context[32];
 
-	isprintf(context, sizeof context, "%lu", plan->nodeNbr);
+	isprintf(context, sizeof context, UVAST_FIELDSPEC, plan->nodeNbr);
 	printDirectives(context, &plan->defaultDirective, &plan->rtDirective, 
 		&plan->pbDirective, plan->expectedRTT);
 }
@@ -756,18 +760,20 @@ static void	infoPlan(int tokenCount, char **tokens)
 		return;
 	}
 	
-	sdr_begin_xn(sdr);		
+	CHKVOID(sdr_begin_xn(sdr));		
 	nodeNbr = strtol(tokens[2], NULL, 0);
 	bss_findPlan(nodeNbr, &planAddr, &elt);
-	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
-		return;
+	}
+	else
+	{
+		GET_OBJ_POINTER(getIonsdr(), BssPlan, plan, planAddr);
+		printPlan(plan);
 	}
 	
-	GET_OBJ_POINTER(getIonsdr(), BssPlan, plan, planAddr);
-	printPlan(plan);
+	sdr_exit_xn(sdr);
 }
 
 static void	printRule(BssRule *rule)
@@ -804,15 +810,15 @@ static void	printRule(BssRule *rule)
 
 static void	infoPlanRule(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	unsigned long	nodeNbr;
-	Object		planAddr;
-	Object		elt;
-			OBJ_POINTER(BssPlan, plan);
-	long		sourceServiceNbr;
-	long		sourceNodeNbr;
-	Object		ruleAddr;
-			OBJ_POINTER(BssRule, rule);
+	Sdr	sdr = getIonsdr();
+	uvast	nodeNbr;
+	Object	planAddr;
+	Object	elt;
+		OBJ_POINTER(BssPlan, plan);
+	int	sourceServiceNbr;
+	vast	sourceNodeNbr;
+	Object	ruleAddr;
+		OBJ_POINTER(BssRule, rule);
 
 	if (tokenCount != 5)
 	{
@@ -820,48 +826,49 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 		return;
 	}
 
-	nodeNbr = atoi(tokens[2]);
-	sdr_begin_xn(sdr);
+	nodeNbr = strtouvast(tokens[2]);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findPlan(nodeNbr, &planAddr, &elt);
-	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, BssPlan, plan, planAddr);
-	printPlan(plan);
-	if (strcmp(tokens[3], "*") == 0)
-	{
-		sourceServiceNbr = -1;
 	}
 	else
 	{
-		sourceServiceNbr = atoi(tokens[3]);
+		GET_OBJ_POINTER(sdr, BssPlan, plan, planAddr);
+		printPlan(plan);
+		if (strcmp(tokens[3], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = strtol(tokens[3], NULL, 0);
+		}
+
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = strtovast(tokens[4]);
+		}
+
+		bss_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
+				&ruleAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown rule.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, BssRule, rule, ruleAddr);
+			printRule(rule);
+		}
 	}
 
-	if (strcmp(tokens[4], "*") == 0)
-	{
-		sourceNodeNbr = -1;
-	}
-	else
-	{
-		sourceNodeNbr = atoi(tokens[4]);
-	}
-
-	sdr_begin_xn(sdr);
-	bss_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
-			&ruleAddr, &elt);
 	sdr_exit_xn(sdr);
-	if (elt == 0)
-	{
-		printText("Unknown rule.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, BssRule, rule, ruleAddr);
-	printRule(rule);
 }
 
 static void	printGroup(IpnGroup *group)
@@ -870,18 +877,19 @@ static void	printGroup(IpnGroup *group)
 	char	buffer[384];
 
 	sdr_string_read(getIonsdr(), eidString, group->defaultDirective.eid);
-	isprintf(buffer, sizeof buffer, "From %lu through %lu, forward via \
-%.256s.", group->firstNodeNbr, group->lastNodeNbr, eidString);
+	isprintf(buffer, sizeof buffer, "From " UVAST_FIELDSPEC " \
+through " UVAST_FIELDSPEC ", forward via %.256s.",
+			group->firstNodeNbr, group->lastNodeNbr, eidString);
 	printText(buffer);
 }
 
 static void	infoGroup(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	unsigned long	firstNodeNbr;
-	unsigned long	lastNodeNbr;
-	Object		elt;
-			OBJ_POINTER(IpnGroup, group);
+	Sdr	sdr = getIonsdr();
+	uvast	firstNodeNbr;
+	uvast	lastNodeNbr;
+	Object	elt;
+		OBJ_POINTER(IpnGroup, group);
 
 	if (tokenCount != 4)
 	{
@@ -889,14 +897,15 @@ static void	infoGroup(int tokenCount, char **tokens)
 		return;
 	}
 
-	firstNodeNbr = atoi(tokens[2]);
-	lastNodeNbr = atoi(tokens[3]);
+	firstNodeNbr = strtouvast(tokens[2]);
+	lastNodeNbr = strtouvast(tokens[3]);
 	if (lastNodeNbr < firstNodeNbr)
 	{
 		printText("Unknown group.");
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getBssConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -905,25 +914,30 @@ static void	infoGroup(int tokenCount, char **tokens)
 		&& group->lastNodeNbr == lastNodeNbr)
 		{
 			printGroup(group);
-			return;
+			break;
 		}
 	}
 
-	printText("Unknown group.");
+	if (elt == 0)
+	{
+		printText("Unknown group.");
+	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	infoGroupRule(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	unsigned long	firstNodeNbr;
-	unsigned long	lastNodeNbr;
-	Object		groupAddr;
-	Object		elt;
-			OBJ_POINTER(IpnGroup, group);
-	long		sourceServiceNbr;
-	long		sourceNodeNbr;
-	Object		ruleAddr;
-			OBJ_POINTER(BssRule, rule);
+	Sdr	sdr = getIonsdr();
+	uvast	firstNodeNbr;
+	uvast	lastNodeNbr;
+	Object	groupAddr;
+	Object	elt;
+		OBJ_POINTER(IpnGroup, group);
+	int	sourceServiceNbr;
+	vast	sourceNodeNbr;
+	Object	ruleAddr;
+		OBJ_POINTER(BssRule, rule);
 
 	if (tokenCount != 6)
 	{
@@ -931,58 +945,50 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 		return;
 	}
 
-	firstNodeNbr = atoi(tokens[2]);
-	lastNodeNbr = atoi(tokens[3]);
-	sdr_begin_xn(sdr);
+	firstNodeNbr = strtouvast(tokens[2]);
+	lastNodeNbr = strtouvast(tokens[3]);
+	CHKVOID(sdr_begin_xn(sdr));
 	bss_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
-	sdr_exit_xn(sdr);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, IpnGroup, group, groupAddr);
-	printGroup(group);
-	if (strcmp(tokens[4], "*") == 0)
-	{
-		sourceServiceNbr = -1;
 	}
 	else
 	{
-		sourceServiceNbr = atoi(tokens[4]);
+		GET_OBJ_POINTER(sdr, IpnGroup, group, groupAddr);
+		printGroup(group);
+		if (strcmp(tokens[4], "*") == 0)
+		{
+			sourceServiceNbr = -1;
+		}
+		else
+		{
+			sourceServiceNbr = strtol(tokens[4], NULL, 0);
+		}
+
+		if (strcmp(tokens[5], "*") == 0)
+		{
+			sourceNodeNbr = -1;
+		}
+		else
+		{
+			sourceNodeNbr = strtovast(tokens[5]);
+		}
+
+		bss_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
+				sourceNodeNbr, group, &ruleAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown rule.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, BssRule, rule, ruleAddr);
+			printRule(rule);
+		}
 	}
 
-	if (strcmp(tokens[5], "*") == 0)
-	{
-		sourceNodeNbr = -1;
-	}
-	else
-	{
-		sourceNodeNbr = atoi(tokens[5]);
-	}
-
-	sdr_begin_xn(sdr);
-	bss_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
-			sourceNodeNbr, group, &ruleAddr, &elt);
 	sdr_exit_xn(sdr);
-	if (elt == 0)
-	{
-		printText("Unknown rule.");
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, BssRule, rule, ruleAddr);
-	printRule(rule);
-}
-
-static void	printEntry(int count, bssEntry *entry)
-{
-	char	context[64];
-
-	isprintf(context, sizeof context, "   %d:     %lu	  -    	 %lu", 
-		count, entry->dstServiceNbr, entry->dstNodeNbr);
-	printText(context);
 }
 
 static void	executeInfo(int tokenCount, char **tokens)
@@ -1026,12 +1032,15 @@ static void	listPlans()
 	Object	elt;
 		OBJ_POINTER(BssPlan, plan);
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getBssConstants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, BssPlan, plan, sdr_list_data(sdr, elt));
 		printPlan(plan);
 	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	listRules(Object rules)
@@ -1054,12 +1063,25 @@ static void	listGroups()
 	Object	elt;
 		OBJ_POINTER(IpnGroup, group);
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getBssConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
 		printGroup(group);
 	}
+
+	sdr_exit_xn(sdr);
+}
+
+static void	printEntry(int count, bssEntry *entry)
+{
+	char	context[64];
+
+	isprintf(context, sizeof context,
+			"   %d:     %u	  -    	 " UVAST_FIELDSPEC, 
+			count, entry->dstServiceNbr, entry->dstNodeNbr);
+	printText(context);
 }
 
 void	listBssEntries()
@@ -1070,6 +1092,7 @@ void	listBssEntries()
 	int	i = 1;
 
 	printText("Entry: <destination Service nbr> - <destination Node nbr>");
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getBssConstants())->bssList); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -1077,15 +1100,21 @@ void	listBssEntries()
 		printEntry(i, entry);
 		i++;
 	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	executeList(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();	
-	unsigned long	nodeNbr;
-	Object		planAddr;
-	Object		elt;
-			OBJ_POINTER(BssPlan, plan);
+	Sdr	sdr = getIonsdr();	
+	uvast	nodeNbr;
+	Object	planAddr;
+	Object	elt;
+		OBJ_POINTER(BssPlan, plan);
+	uvast	firstNodeNbr;
+	uvast	lastNodeNbr;
+	Object	groupAddr;
+		OBJ_POINTER(IpnGroup, group);
 
 	if (tokenCount < 2)
 	{
@@ -1103,29 +1132,58 @@ static void	executeList(int tokenCount, char **tokens)
 	{
 		if (tokenCount < 3)
 		{
-			printText("Must specify node nbr for rules list.");
+			printText("Must specify plan node nbr.");
 			return;
 		}
 
-		nodeNbr = atoi(tokens[2]);
-		sdr_begin_xn(sdr);
+		nodeNbr = strtouvast(tokens[2]);
+		CHKVOID(sdr_begin_xn(sdr));
 		bss_findPlan(nodeNbr, &planAddr, &elt);
-		sdr_exit_xn(sdr);
 		if (elt == 0)
 		{
-			printText("Unknown node.");
-			return;
+			printText("Unknown plan.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, BssPlan, plan, planAddr);
+			printPlan(plan);
+			listRules(plan->rules);
 		}
 
-		GET_OBJ_POINTER(getIonsdr(), BssPlan, plan, planAddr);
-		printPlan(plan);
-		listRules(plan->rules);
+		sdr_exit_xn(sdr);
 		return;
 	}
 
 	if (strcmp(tokens[1], "group") == 0)
 	{
 		listGroups();
+		return;
+	}
+
+	if (strcmp(tokens[1], "grouprule") == 0)
+	{
+		if (tokenCount < 4)
+		{
+			printText("Must specify group first & last node nbrs.");
+			return;
+		}
+
+		firstNodeNbr = strtouvast(tokens[2]);
+		lastNodeNbr = strtouvast(tokens[3]);
+		CHKVOID(sdr_begin_xn(sdr));
+		bss_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown group.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, BssPlan, group, groupAddr);
+			printGroup(group);
+			listRules(group->rules);
+		}
+
+		sdr_exit_xn(sdr);
 		return;
 	}
 

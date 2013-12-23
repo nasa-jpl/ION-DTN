@@ -95,6 +95,9 @@ static int	parseDirective(char *actionToken, char *parmToken,
 	char		*destDuctName;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
+	Object		outductAddr;
+			OBJ_POINTER(Outduct, outduct);
+			OBJ_POINTER(ClProtocol, protocol);
 
 	switch (*actionToken)
 	{
@@ -106,7 +109,7 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		}
 
 		dir->action = fwd;
-		sdr_begin_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
 		dir->eid = sdr_string_create(sdr, parmToken);
 		if (sdr_end_xn(sdr))
 		{
@@ -158,9 +161,13 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		}
 
 		dir->outductElt = vduct->outductElt;
+		outductAddr = sdr_list_data(sdr, dir->outductElt);
+		GET_OBJ_POINTER(sdr, Outduct, outduct, outductAddr);
+		GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
+		dir->protocolClass = protocol->protocolClass;
 		if (destDuctName)
 		{
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			dir->destDuctName = sdr_string_create(sdr,
 					destDuctName);
 			if (sdr_end_xn(sdr))
@@ -397,6 +404,7 @@ static void	printPlan(Dtn2Plan *plan)
 
 static void	infoPlan(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	planAddr;
 		OBJ_POINTER(Dtn2Plan, plan);
 	Object	elt;
@@ -407,15 +415,19 @@ static void	infoPlan(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	dtn2_findPlan(tokens[2], &planAddr, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown plan.");
-		return;
+	}
+	else
+	{
+		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planAddr);
+		printPlan(plan);
 	}
 
-	GET_OBJ_POINTER(getIonsdr(), Dtn2Plan, plan, planAddr);
-	printPlan(plan);
+	sdr_exit_xn(sdr);
 }
 
 static void	printRule(Dtn2Plan *plan, Dtn2Rule *rule)
@@ -455,23 +467,28 @@ static void	infoRule(int tokenCount, char **tokens)
 		return;
 	}
 
+	CHKVOID(sdr_begin_xn(sdr));
 	dtn2_findPlan(tokens[2], &planAddr, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown plan.");
-		return;
 	}
-
-	GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planAddr);
-	dtn2_findRule(tokens[2], tokens[3], plan, &ruleAddr, &elt);
-	if (elt == 0)
+	else
 	{
-		printText("Unknown rule.");
-		return;
+		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planAddr);
+		dtn2_findRule(tokens[2], tokens[3], plan, &ruleAddr, &elt);
+		if (elt == 0)
+		{
+			printText("Unknown rule.");
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, Dtn2Rule, rule, ruleAddr);
+			printRule(plan, rule);
+		}
 	}
 
-	GET_OBJ_POINTER(sdr, Dtn2Rule, rule, ruleAddr);
-	printRule(plan, rule);
+	sdr_exit_xn(sdr);
 }
 
 static void	executeInfo(int tokenCount, char **tokens)
@@ -503,12 +520,15 @@ static void	listPlans()
 	Object	elt;
 		OBJ_POINTER(Dtn2Plan, plan);
 
+	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getDtnConstants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, sdr_list_data(sdr, elt));
 		printPlan(plan);
 	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	listRules(Dtn2Plan *plan)
@@ -527,6 +547,7 @@ static void	listRules(Dtn2Plan *plan)
 
 static void	executeList(int tokenCount, char **tokens)
 {
+	Sdr	sdr = getIonsdr();
 	Object	planAddr;
 		OBJ_POINTER(Dtn2Plan, plan);
 	Object	elt;
@@ -551,15 +572,20 @@ static void	executeList(int tokenCount, char **tokens)
 			return;
 		}
 
+		CHKVOID(sdr_begin_xn(sdr));
 		dtn2_findPlan(tokens[2], &planAddr, &elt);
 		if (elt == 0)
 		{
 			printText("Unknown plan.");
-			return;
+		}
+		else
+		{
+			GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planAddr);
+			printPlan(plan);
+			listRules(plan);
 		}
 
-		GET_OBJ_POINTER(getIonsdr(), Dtn2Plan, plan, planAddr);
-		listRules(plan);
+		sdr_exit_xn(sdr);
 		return;
 	}
 

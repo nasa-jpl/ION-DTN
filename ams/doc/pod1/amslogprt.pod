@@ -19,7 +19,7 @@ B<amslogprt> terminates at the end of input.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<amslogprt> terminated normally.
 

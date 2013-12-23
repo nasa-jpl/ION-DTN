@@ -283,7 +283,7 @@ int	main(int argc, char **argv)
 	Object		addr;
 			OBJ_POINTER(BpEvent, event);
 			OBJ_POINTER(Bundle, bundle);
-	long		bundlesCount = 0;
+	int		bundlesCount = 0;
 			OBJ_POINTER(Outduct, duct);
 
 	if (bp_attach() < 0)
@@ -339,7 +339,7 @@ in outduct '%.64s' of protocol '%.16s', priority %d.", ductName, protocolName,
 	}
 
 	sdr = bp_get_sdr();
-	sdr_begin_xn(sdr);	/*	Lock database for duration.	*/
+	CHKZERO(sdr_begin_xn(sdr));	/*	Lock db for duration.	*/
 	isignal(SIGINT, handleQuit);
 	if (protocolName == NULL)	/*	All bundles.		*/
 	{

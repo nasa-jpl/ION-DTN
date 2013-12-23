@@ -219,7 +219,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 			bytesToLoad = bytesRemaining;
 		}
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 		bytesLoaded = zco_transmit(sdr, &reader, bytesToLoad,
 				(char *) buffer + bytesBuffered);
 		if (sdr_end_xn(sdr) < 0 || bytesLoaded != bytesToLoad)
@@ -300,7 +300,7 @@ static int	handleTcpFailure(struct sockaddr *sn, Object bundleZco)
 		return -1;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -395,7 +395,7 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 		result = -1;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -414,6 +414,7 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 {
 	int		bytesToSend;
 	int		bytesSent;
+	uvast		val = bundleLength;
 	Sdnv 		lengthField;
 	int		tempBundleSocket;
 	Sdr		sdr = getIonsdr();
@@ -426,7 +427,9 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 		if (connectToCLI(socketName, &tempBundleSocket) < 0)
 		{
 			/*	Treat I/O error as a transient anomaly.	*/
-
+			if(*keepalivePeriod==0){
+				*keepalivePeriod=KEEPALIVE_PERIOD;
+			}
 			return handleTcpFailure(socketName, bundleZco);
 		}
 		else
@@ -490,7 +493,7 @@ not sent.");
 	 *      there is only one segment (assuming
 	 *	all the data is sent in one segment).	*/
 
-	encodeSdnv(&lengthField,bundleLength);
+	encodeSdnv(&lengthField,val);
 	memcpy(buffer + 1,lengthField.text,lengthField.length);
 	bytesToSend = 1 + lengthField.length ;
 	
@@ -516,7 +519,7 @@ not sent.");
 		result = -1;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -546,7 +549,7 @@ int	receiveBytesByTCP(int bundleSocket, char *into, int length)
 			return 0;
 		}
 
-		putSysErrmsg("CLI read() error on socket", NULL);
+		putSysErrmsg("TCPCL read() error on socket", NULL);
 		return -1;
 
 	case 0:				/*	Connection closed.	*/
@@ -636,11 +639,11 @@ int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer)
 
 int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer)
 {
-	int		flags;
-	unsigned long	segmentLength;
-	long		totalSegmentLength = 0;
-	int 		segmentType;
-	int 		startSegment = 0;
+	int	flags;
+	uvast	segmentLength;
+	long	totalSegmentLength = 0;
+	int 	segmentType;
+	int 	startSegment = 0;
 
 	
 	while(1)
@@ -684,7 +687,7 @@ int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer)
 			case 4:		/*Keep Alive */
 				break;
 			case 5:
-				putErrmsg("Received Shutdown message.",NULL);
+				writeMemo("[i] TCPCL Received Shutdown message.");
 				return 0;
 			default:
 				return -1;
@@ -693,7 +696,7 @@ int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer)
 }
 
 
-int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,unsigned long *segmentLength,int *flags)
+int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,uvast *segmentLength,int *flags)
 {
 	int 		segmentType;
 	int 		length = 0;
@@ -706,7 +709,7 @@ int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,unsign
 	/* Read first byte from received segment */
 	if(receiveBytesByTCP(bundleSocket,buffer,1) < 1)
 	{
-		putErrmsg("Couldnt receive segment header.",NULL);
+		putErrmsg("Couldn't receive segment header.",NULL);
 		return -1;
 	}
 	segmentType = (buffer[0] & 0xF0) >> 4;
@@ -735,7 +738,7 @@ int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,unsign
 		}
 		if(decodeSdnv(segmentLength,(unsigned char*)buffer) == 0)
 		{
-			putErrmsg("The Sdnv doesn't fit into a long variable.",NULL);
+			putErrmsg("The Sdnv doesn't fit into a 64-bit variable.",NULL);
 			return -1;
 		}
 		totalBytesToReceive = *segmentLength;
@@ -784,6 +787,7 @@ int	sendContactHeader(int *bundleSocket, unsigned char *buffer,
 	int bytesToSend = 0;
 	int bytesSent;
 	uint16_t keepaliveIntervalNBO = htons(tcpDesiredKeepAlivePeriod);
+	uvast	val;
 	Sdnv eidLength;
 	int	adminEidStringLen;
 	char    *adminEidString;
@@ -814,7 +818,8 @@ int	sendContactHeader(int *bundleSocket, unsigned char *buffer,
 	bytesToSend +=2;
 	//encode local EID length into Sdnv
 
-	encodeSdnv(&eidLength,adminEidLength);
+	val = adminEidLength;
+	encodeSdnv(&eidLength,val);
 	memcpy(buffer + bytesToSend, eidLength.text, eidLength.length);
 	bytesToSend += eidLength.length;
 
@@ -854,7 +859,7 @@ connectivity is restored.", NULL);
 int receiveContactHeader(int *bundleSocket, unsigned char *buffer, int *keepalivePeriod)
 {
 	uint16_t requestedKeepAlive;
-	unsigned long remoteEidLength;
+	uvast remoteEidLength;
 	int remoteEidLengthLength = 0; /* Length of SDNV */
 	unsigned char * cursor = buffer;
 	
