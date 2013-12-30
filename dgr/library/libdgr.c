@@ -836,8 +836,7 @@ static int	sendMessage(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 
 	if (_watching())
 	{
-		putchar('g');
-		fflush(stdout);
+		iwatch('g');
 	}
 
 	/*	Update record's transmission counter for ARQ control.	*/
@@ -962,8 +961,7 @@ appliedAcks++;
 #endif
 	if (_watching())
 	{
-		putchar('h');
-		fflush(stdout);
+		iwatch('h');
 	}
 
 	dest->bytesAcknowledged += rec->contentLength;
@@ -1127,8 +1125,7 @@ tracePredictedResends = dest->predictedResends;
 		removeRecord(sap, rec, arqElt);
 		if (_watching())
 		{
-			putchar('{');
-			fflush(stdout);
+			iwatch('{');
 		}
 
 		/*	If application doesn't want to be notified
@@ -1159,8 +1156,7 @@ tracePredictedResends = dest->predictedResends;
 
 	if (_watching())
 	{
-		putchar('=');
-		fflush(stdout);
+		iwatch('=');
 	}
 
 	dest->serviceLoad += rec->contentLength;
@@ -2073,8 +2069,7 @@ recvfrom");
 
 		if (_watching())
 		{
-			putchar('s');
-			fflush(stdout);
+			iwatch('s');
 		}
 
 		/*	Now send acknowledgment (report).		*/
@@ -2112,8 +2107,7 @@ content arrival event");
 
 		if (_watching())
 		{
-			putchar('t');
-			fflush(stdout);
+			iwatch('t');
 		}
 	}
 
@@ -2598,9 +2592,8 @@ rcSnoozes++;
 
 	if (_watching())
 	{
-		putchar('e');
-		putchar('f');
-		fflush(stdout);
+		iwatch('e');
+		iwatch('f');
 	}
 
 	*rc = DgrDatagramSent;

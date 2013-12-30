@@ -2745,8 +2745,7 @@ incomplete bundle.", NULL);
 
 		if ((_bpvdb(NULL))->watching & WATCH_expire)
 		{
-			putchar('!');
-			fflush(stdout);
+			iwatch('!');
 		}
 
 		if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
@@ -5706,8 +5705,7 @@ when asking for custody transfer and/or status reports.");
 	bpSourceTally(classOfService, bundle.payload.length);
 	if (bpvdb->watching & WATCH_a)
 	{
-		putchar('a');
-		fflush(stdout);
+		iwatch('a');
 	}
 
 	if (sdr_end_xn(bpSdr) < 0)
@@ -6231,8 +6229,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 
 			if ((_bpvdb(NULL))->watching & WATCH_z)
 			{
-				putchar('z');
-				fflush(stdout);
+				iwatch('z');
 			}
 
 			if (bundle->bundleProcFlags & BDL_DEST_IS_SINGLETON)
@@ -7423,8 +7420,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 
 		if ((_bpvdb(NULL))->watching & WATCH_x)
 		{
-			putchar('x');
-			fflush(stdout);
+			iwatch('x');
 		}
 	}
 
@@ -7778,8 +7774,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 			bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
-		putchar('y');
-		fflush(stdout);
+		iwatch('y');
 	}
 
 	/*	Other decisions and reporting are left to the
@@ -9032,8 +9027,7 @@ static int	takeCustody(Bundle *bundle)
 
 	if ((_bpvdb(NULL))->watching & WATCH_w)
 	{
-		putchar('w');
-		fflush(stdout);
+		iwatch('w');
 	}
 
 	/*	Insert Endpoint ID of custodial endpoint.		*/
@@ -9365,8 +9359,7 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	if ((_bpvdb(NULL))->watching & WATCH_b)
 	{
-		putchar('b');
-		fflush(stdout);
+		iwatch('b');
 	}
 
 	/*	Finally, if outduct is started then wake up CLO.	*/
@@ -9437,8 +9430,7 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	bpDbTally(BP_DB_TO_LIMBO, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_limbo)
 	{
-		putchar('j');
-		fflush(stdout);
+		iwatch('j');
 	}
 
 	return 0;
@@ -9621,8 +9613,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 	bpDbTally(BP_DB_FROM_LIMBO, bundle.payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_delimbo)
 	{
-		putchar('k');
-		fflush(stdout);
+		iwatch('k');
 	}
 
 	/*	Now see if the bundle can finally be transmitted.	*/
@@ -9775,8 +9766,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 
 	if ((_bpvdb(NULL))->watching & WATCH_abandon)
 	{
-		putchar('~');
-		fflush(stdout);
+		iwatch('~');
 	}
 
 	return ((result1 + result2) == 0 ? 0 : -1);
@@ -10417,8 +10407,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 			bundle.payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_c)
 	{
-		putchar('c');
-		fflush(stdout);
+		iwatch('c');
 	}
 
 	/*	Consume estimated transmission capacity.		*/
@@ -11077,8 +11066,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 
 	if ((_bpvdb(NULL))->watching & WATCH_timeout)
 	{
-		putchar('#');
-		fflush(stdout);
+		iwatch('#');
 	}
 
 	if (bpReforwardBundle(bundleAddr) < 0)
@@ -11389,8 +11377,7 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 	{
 		if (bpvdb->watching & WATCH_m)
 		{
-			putchar('m');
-                        fflush(stdout);
+			iwatch('m');
 		}
 
 		forgetSnub(bundle, bundleAddr, bundleSourceEid);
@@ -11433,8 +11420,7 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 
 		if (bpvdb->watching & WATCH_refusal)
 		{
-			putchar('&');
-                        fflush(stdout);
+			iwatch('&');
 		}
 	}
 

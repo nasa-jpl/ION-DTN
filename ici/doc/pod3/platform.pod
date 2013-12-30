@@ -552,6 +552,32 @@ file name and line number for that stack frame.
 
 =back
 
+=head2 WATCH CHARACTERS
+
+The functions in this section offer platform-independent capabilities
+for recording "watch" characters indicating the occurrence of protocol
+events.  See bprc(5), ltprc(5), cfdprc(5), etc. for details of the
+watch character production options provided by the protocol packages.
+
+=over 4
+
+=item void setWatcher(Watcher usersWatcherName)
+
+Sets the user function to be used for recording watch characters to a
+user-defined "watch" medium.  The watcher function's calling sequence
+must match the following prototype:
+
+	void	usersWatcherName(char token);
+
+The default Watcher function simply writes the token to standard output.
+
+=item void iwatch(char token)
+
+Records one "watch" character, using the currently defined watch character
+recording function.
+
+=back
+
 =head2 SELF-DELIMITING NUMERIC VALUES (SDNV)
 
 The functions in this section encode and decode SDNVs, portable variable-length

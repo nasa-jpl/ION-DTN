@@ -2512,8 +2512,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 
 	if (cfdpvdb->watching & WATCH_p)
 	{
-		putchar('p');
-		fflush(stdout);
+		iwatch('p');
 	}
 
 	return 0;
@@ -3674,8 +3673,7 @@ printf("...PDU is misdirected...\n");
 
 	if (cfdpvdb->watching & WATCH_q)
 	{
-		putchar('q');
-		fflush(stdout);
+		iwatch('q');
 	}
 
 	memcpy((char *) &transactionId.sourceEntityNbr,

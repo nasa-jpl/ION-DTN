@@ -1275,6 +1275,37 @@ void	*acquireSystemMemory(size_t size)
 	return block;
 }
 
+static void	watchToStdout(char token)
+{
+	oK(putchar(token));
+	oK(fflush(stdout));
+}
+
+static Watcher	_watchOneEvent(Watcher *watchFunction)
+{
+	static Watcher	watcher = watchToStdout;
+
+	if (watchFunction)
+	{
+		watcher = *watchFunction;
+	}
+
+	return watcher;
+}
+
+void	setWatcher(Watcher watchFunction)
+{
+	if (watchFunction)
+	{
+		oK(_watchOneEvent(&watchFunction));
+	}
+}
+
+void	iwatch(char token)
+{
+	(_watchOneEvent(NULL))(token);
+}
+
 static void	logToStdout(char *text)
 {
 	if (text)

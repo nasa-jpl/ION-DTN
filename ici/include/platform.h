@@ -534,6 +534,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 /*	Prototypes for standard ION platform functions.			*/
 
 typedef void			(* Logger)(char *);
+typedef void			(* Watcher)(char);
 
 extern void			*acquireSystemMemory(size_t);
 extern int			createFile(const char*, int);
@@ -542,6 +543,8 @@ extern void			setLogger(Logger);
 extern void			writeMemo(char *);
 extern void			writeErrMemo(char *);
 extern void			writeMemoNote(char *, char *);
+extern void			setWatcher(Watcher);
+extern void			iwatch(char);
 extern void			snooze(unsigned int);
 extern void			microsnooze(unsigned int);
 extern void			getCurrentTime(struct timeval *);
