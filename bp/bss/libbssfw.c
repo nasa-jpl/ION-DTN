@@ -77,40 +77,6 @@ static BssDB	*_bssConstants()
 
 /*	*	*	Routing information mgt functions	*	*/
 
-static int	lookupBssEid(char *uriBuffer, char *neighborClId)
-{
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-		OBJ_POINTER(BssPlan, plan);
-
-	for (elt = sdr_list_first(sdr, (_bssConstants())->plans); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		GET_OBJ_POINTER(sdr, BssPlan, plan, sdr_list_data(sdr, elt));
-		switch (clIdMatches(neighborClId, &plan->defaultDirective))
-		{
-		case -1:
-			putErrmsg("Failed looking up BSS EID.", NULL);
-			return -1;
-
-		case 0:
-			continue;	/*	No match.		*/
-
-		default:
-
-			/*	Found the plan for transmission to
-			 *	this neighbor, so now we know the
-			 *	neighbor's EID.				*/
-
-			isprintf(uriBuffer, SDRSTRING_BUFSZ,
-				"ipn:" UVAST_FIELDSPEC ".0", plan->nodeNbr);
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
 int	ipnInit()
 {
 	/*	BSS is a plug-compatible replacement for IPN, which
@@ -129,7 +95,6 @@ int	ipnInit()
 	/*	Recover the BSS database, creating it if necessary.	*/
 
 	CHKERR(sdr_begin_xn(sdr));
-	oK(senderEidLookupFunctions(lookupBssEid));
 	bssdbObject = sdr_find(sdr, BSS_DBNAME, NULL);
 	switch (bssdbObject)
 	{

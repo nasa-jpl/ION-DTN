@@ -13,6 +13,7 @@
 
 /*	Add external function declarations between here...		*/
 
+#include "snid.h"
 #include "ecos.h"
 #include "bae.h"
 #include "extbspbab.h"
@@ -40,6 +41,20 @@ static ExtensionDef	extensions[] =
 				0,
 				0,
 				bsp_babPreProcessOnDequeue,
+				0}
+		},
+		{ "snid", EXTENSION_TYPE_SNID, 0,
+				snid_offer,
+				snid_release,
+				snid_acquire,
+				snid_check,
+				snid_record,
+				snid_clear,
+				snid_copy,
+				{snid_processOnFwd,
+				snid_processOnAccept,
+				snid_processOnEnqueue,
+				snid_processOnDequeue,
 				0}
 		},
 		{ "ecos", EXTENSION_TYPE_ECOS, 0,

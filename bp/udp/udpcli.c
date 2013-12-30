@@ -42,8 +42,6 @@ static void	*handleDatagrams(void *parm)
 	struct sockaddr_in	fromAddr;
 	unsigned int		hostNbr;
 	char			hostName[MAXHOSTNAMELEN + 1];
-	char			senderEidBuffer[SDRSTRING_BUFSZ];
-	char			*senderEid;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
 	work = bpGetAcqArea(rtp->vduct);
@@ -90,9 +88,7 @@ static void	*handleDatagrams(void *parm)
 				(char *) &(fromAddr.sin_addr.s_addr), 4);
 		hostNbr = ntohl(hostNbr);
 		printDottedString(hostNbr, hostName);
-		senderEid = senderEidBuffer;
-		getSenderEid(&senderEid, hostName);
-		if (bpBeginAcq(work, 0, senderEid) < 0
+		if (bpBeginAcq(work, 0, NULL) < 0
 		|| bpContinueAcq(work, buffer, bundleLength) < 0
 		|| bpEndAcq(work) < 0)
 		{
@@ -224,11 +220,6 @@ int	main(int argc, char *argv[])
 		putSysErrmsg("Can't initialize socket", NULL);
 		return -1;
 	}
-
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 

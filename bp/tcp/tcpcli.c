@@ -110,8 +110,6 @@ static void	*sendKeepalives(void *parm)
 
 typedef struct
 {
-	char		senderEidBuffer[SDRSTRING_BUFSZ];
-	char		*senderEid;
 	VInduct		*vduct;
 	LystElt		elt;
 	struct sockaddr	cloSocketName;
@@ -173,6 +171,7 @@ static void	*receiveBundles(void *parm)
 	}
 	
 	/*	Set up parameters for the keepalive thread	*/
+
 	kparms = (KeepaliveThreadParms *)
 			MTAKE(sizeof(KeepaliveThreadParms));
 	if (kparms == NULL)
@@ -257,7 +256,7 @@ keepalives", NULL);
 
 	while (threadRunning && *(parms->cliRunning) && parms->receiveRunning)
 	{
-		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("Can't begin acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
@@ -336,9 +335,6 @@ static void	*spawnReceivers(void *parm)
 	socklen_t		nameLength;
 	ReceiverThreadParms	*parms;
 	LystElt			elt;
-	struct sockaddr_in	*fromAddr;
-	unsigned int		hostNbr;
-	char			hostName[MAXHOSTNAMELEN + 1];
 	pthread_t		thread;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -399,13 +395,6 @@ thread", NULL);
 
 		parms->mutex = &mutex;
 		parms->bundleSocket = newSocket;
-		fromAddr = (struct sockaddr_in *) &cloSocketName;
-		memcpy((char *) &hostNbr,
-				(char *) &(fromAddr->sin_addr.s_addr), 4);
-		hostNbr = ntohl(hostNbr);
-		printDottedString(hostNbr, hostName);
-		parms->senderEid = parms->senderEidBuffer;
-		getSenderEid(&(parms->senderEid), hostName);
 		parms->cloSocketName = cloSocketName;
 		parms->cliRunning = &(atp->running);
                 parms->receiveRunning = 1;
@@ -592,11 +581,6 @@ int	main(int argc, char *argv[])
 			tcpDelayNsecPerByte = 0;
 		}
 	}
-
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
 
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
