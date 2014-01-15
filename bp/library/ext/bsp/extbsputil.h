@@ -230,12 +230,6 @@ typedef struct {
 	char cipherKeyName[BSP_KEY_NAME_LEN];
 } BspSecurityInfo;
 
-typedef struct {
-	char *header;
-	char *payload;
-	char *trailer;
-} BundleParts;
-
 /** 
  *  \struct BspAbstractSecurityBlock
  *  \brief Canonical Abstract Security Block as defined in the Bundle Security

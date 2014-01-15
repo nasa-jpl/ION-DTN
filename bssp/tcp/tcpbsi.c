@@ -210,7 +210,6 @@ static void	*spawnReceivers(void *parm)
 	socklen_t		nameLength;
 	ReceiverThreadParms	*parms;
 	LystElt			elt;
-	struct sockaddr_in	*fromAddr;
 	pthread_t		thread;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -269,7 +268,6 @@ static void	*spawnReceivers(void *parm)
 
 		parms->mutex = &mutex;
 		parms->blockSocket = newSocket;
-       		fromAddr = (struct sockaddr_in *) &bsoSocketName;
 		parms->running = &(atp->running);
 		if (pthread_begin(&(parms->thread), NULL, receiveBlocks,
 					parms))

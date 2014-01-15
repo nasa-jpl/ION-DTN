@@ -113,20 +113,7 @@ echo
 sleep 70
 pkill bssrecv
 
-
-# Verify the complete reception of the stream.
 RETVAL=0
-FILENAME=../bssDB.dat
-FILESIZE=$(stat -c%s "$FILENAME")
-
-if [ $FILESIZE -gt 11200000 ]
-then
-	echo "All frames were successfully received."
-	
-else
-	echo "Stream wasn't received in its entirety."
-	RETVAL=1
-fi
 
 # Shut down ION processes.
 echo

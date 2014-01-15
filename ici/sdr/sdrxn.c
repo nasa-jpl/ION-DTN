@@ -940,7 +940,7 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 		return -1;
 	}
 
-	memset(buffer, 0 , sizeof buffer);
+	memset(buffer, 0 , bufsize);
 	dbfile = iopen(dbfilename, O_RDWR | O_CREAT, 0777);
 	if (dbfile == -1)
 	{

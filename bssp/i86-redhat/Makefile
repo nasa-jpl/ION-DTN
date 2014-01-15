@@ -20,7 +20,6 @@ LTPINCLS = \
 	$(TCP)/tcpbsa.h
 
 RUNTIMES = bsspadmin bsspclock udpbso udpbsi tcpbso tcpbsi
-#dccplsi dccplso
 
 ALL = check libbsspP.so libbssp.so libtcpbsa.so $(RUNTIMES)
 
