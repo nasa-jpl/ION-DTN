@@ -2823,26 +2823,37 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 					sizeof(LtpSpan));
 		}
 
-		/*	If entire block is green, close the session
-		 *	(since normal session closure on red-part
-		 *	completion or cancellation won't happen).	*/
+		/*	If entire block is green or all red-part data
+		 *	have already been acknowledged, close the
+		 *	session (since normal session closure on red-
+		 *	part completion or cancellation won't happen).	*/
 
 		if (segment.pdu.segTypeCode == LtpDsGreenEOB)
 		{
 			getExportSession(segment.sessionNbr, &sessionObj);
 			if (sessionObj)
 			{
-				sdr_read(ltpSdr, (char *) &xsessionBuf,
+				sdr_stage(ltpSdr, (char *) &xsessionBuf,
 					sessionObj, sizeof(ExportSession));
 				if (xsessionBuf.totalLength != 0)
 				{
 					/*	Found the session.	*/
 
-					if (xsessionBuf.redPartLength == 0)
+					if (xsessionBuf.redPartLength == 0
+					|| xsessionBuf.stateFlags
+							& LTP_FINAL_ACK)
 					{
 						closeExportSession(sessionObj);
 						ltpSpanTally(vspan,
 							EXPORT_COMPLETE, 0);
+					}
+					else
+					{
+						xsessionBuf.stateFlags |=
+							LTP_EOB_SENT;
+						sdr_write(ltpSdr, sessionObj,
+							(char *) &xsessionBuf, 
+							sizeof(ExportSession));
 					}
 				}
 			}
@@ -4175,13 +4186,14 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		return sdr_end_xn(ltpSdr);
 	}
 
-	if (sessionIsClosed(vspan, sessionNbr))
+	if (((pdu->segTypeCode & LTP_EXC_FLAG) == 0)	/*	Red.	*/
+	&& sessionIsClosed(vspan, sessionNbr))
 	{
 #if LTPDEBUG
-putErrmsg("Discarding late segment.", itoa(sessionNbr));
+putErrmsg("Discarding late Red segment.", itoa(sessionNbr));
 #endif
-		/*	Segment is for a session that is already
-		 *	closed, so we don't care about it.		*/
+		/*	Segment is for red data of a session that is
+		 *	already closed, so we don't care about it.	*/
 
 		ltpSpanTally(vspan, IN_SEG_REDUNDANT, pdu->length);
 		return sdr_end_xn(ltpSdr);
@@ -4238,6 +4250,10 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		 *	immediately to client service.			*/
 
 		ltpSpanTally(vspan, IN_SEG_RECV_GREEN, pdu->length);
+
+		/*	Update segment sequencing information, to
+		 *	enable check for miscolored segments.		*/
+
 		if (sessionNbr == vspan->greenSessionNbr)
 		{
 			if (pdu->offset < vspan->greenOffset)
@@ -5268,16 +5284,28 @@ putErrmsg("Discarding report.", NULL);
 	/*	If reception of all data in the block is claimed (i.e,
 	 *	there is now only one claim in the list and that claim
 	 *	-- the first -- encompasses the entire red part of the
-	 *	block), end the export session.				*/
+	 *	block), and either the block is all Red data or else
+	 *	the last Green segment is known to have been sent,
+	 *	end the export session.					*/
 
 	if (claim->offset == 0 && claim->length == sessionBuf.redPartLength)
 	{
 		ltpSpanTally(vspan, POS_RPT_RECV, 0);
 		MRELEASE(claim);	/*	(Sole claim in list.)	*/
 		lyst_destroy(claims);
-		stopExportSession(&sessionBuf);
-		closeExportSession(sessionObj);
-		ltpSpanTally(vspan, EXPORT_COMPLETE, 0);
+		if (sessionBuf.redPartLength == sessionBuf.totalLength
+		|| sessionBuf.stateFlags & LTP_EOB_SENT)
+		{
+			closeExportSession(sessionObj);
+			ltpSpanTally(vspan, EXPORT_COMPLETE, 0);
+		}
+		else
+		{
+			sessionBuf.stateFlags |= LTP_FINAL_ACK;
+			sdr_write(ltpSdr, sessionObj, (char *) &sessionBuf,
+					sizeof(ExportSession));
+		}
+
 		if (sdr_end_xn(ltpSdr) < 0)
 		{
 			putErrmsg("Can't handle report segment.", NULL);

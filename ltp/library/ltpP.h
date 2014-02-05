@@ -237,6 +237,11 @@ typedef struct
 	Object		sessionListElt;
 } LtpCkpt;
 
+/*	Export session state flag values.				*/
+
+#define	LTP_EOB_SENT	1
+#define	LTP_FINAL_ACK	2
+
 typedef struct
 {
 	Object		span;		/*	Transmission span.	*/
@@ -246,6 +251,7 @@ typedef struct
 	Sdnv		clientSvcIdSdnv;
 	int		totalLength;
 	int		redPartLength;
+	int		stateFlags;
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
