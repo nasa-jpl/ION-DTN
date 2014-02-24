@@ -4050,13 +4050,11 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 }
 
 static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
-			unsigned int sessionNbr, LtpVspan *vspan,
-			Object *clientSvcData)
+			unsigned int sessionNbr, Object sessionObj,
+			LtpSpan *span, LtpVspan *vspan, Object *clientSvcData)
 {
 	Sdr		ltpSdr = getIonsdr();
-	Object		segmentElt;
-	Object		segmentObj;
-			OBJ_POINTER(LtpRecvSeg, seg);
+	ImportSession	sessionBuf;
 	Object		pduObj;
 
 	ltpSpanTally(vspan, IN_SEG_RECV_GREEN, pdu->length);
@@ -4064,7 +4062,7 @@ static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 	/*	Check for out-of-order segments.			*/
 
 	if (sessionNbr == vspan->redSessionNbr
-	&& pdu->offset < vspan->redOffset)
+	&& pdu->offset < vspan->endOfRed)
 	{
 		/*	Miscolored segment: green before end of red.	*/
 
@@ -4090,45 +4088,24 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 				return -1;
 			}
 		}
+
+		return 0;
 	}
-#if 0
-	if (sessionObj)
-	{
-		sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
-				sizeof(ImportSession));
-		if (sessionBuf.redSegments != 0 && (segmentElt =
-			sdr_list_last(ltpSdr, sessionBuf.redSegments)) != 0)
-		{
-			segmentObj = sdr_list_data(ltpSdr, segmentElt);
-			GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, seg, segmentObj);
-			if (pdu->offset < (seg->pdu.offset + seg->pdu.length))
-			{
-				/*	Miscolored segment: green data
-				 *	before end of red.		*/
-#if LTPDEBUG
-putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
-#endif
-				cancelSessionByReceiver(&sessionBuf, sessionObj,
-						LtpMiscoloredSegment);
-				return 0;
-			}
-		}
-	}
-#endif
+
 	/*	Update segment sequencing information, to enable
-	 *	Red-side check for miscolored segments.			*/
+	 *	Green-side check for miscolored segments.		*/
 
 	if (sessionNbr == vspan->greenSessionNbr)
 	{
-		if (pdu->offset < vspan->greenOffset)
+		if (pdu->offset < vspan->startOfGreen)
 		{
-			vspan->greenOffset = pdu->offset;
+			vspan->startOfGreen = pdu->offset;
 		}
 	}
 	else
 	{
 		vspan->greenSessionNbr = sessionNbr;
-		vspan->greenOffset = pdu->offset;
+		vspan->startOfGreen = pdu->offset;
 	}
 
 	/*	Deliver the client service data.			*/
@@ -4156,7 +4133,7 @@ utoa(pdu->length));
 		break;
 	}
 
-	return 0;
+	return 1;
 }
 
 static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
@@ -4177,6 +4154,7 @@ static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 			OBJ_POINTER(LtpSpan, span);
 	LtpVclient	*client;
 	int		result;
+	unsigned int	endOfRed;
 	Object		clientSvcData = 0;
 	unsigned int	segUpperBound;
 	Object		segmentObj = 0;
@@ -4301,7 +4279,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		 *	deliver immediately to client service.		*/
 
 		result = handleGreenDataSegment(pdu, *cursor, sessionNbr,
-				vspan, &clientSvcData);
+				sessionObj, span, vspan, &clientSvcData);
 		if (result < 0)
 		{
 			sdr_cancel_xn(ltpSdr);
@@ -4323,13 +4301,14 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 			return -1;
 		}
 
-		return 1;	/*	Green-part data handled okay.	*/
+		return result;	/*	Green-part data handled okay.	*/
 	}
 
 	/*	This is a red-part data segment.			*/
 
+	endOfRed = pdu->offset + pdu->length;
 	if (sessionNbr == vspan->greenSessionNbr
-	&& (pdu->offset + pdu->length) > vspan->greenOffset)
+	&& endOfRed > vspan->startOfGreen)
 	{
 		/*	Miscolored segment: red after start of green.	*/
 
@@ -4373,15 +4352,15 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 
 	if (sessionNbr == vspan->redSessionNbr)
 	{
-		if (pdu->offset > vspan->redOffset)
+		if (endOfRed > vspan->endOfRed)
 		{
-			vspan->redOffset = pdu->offset;
+			vspan->endOfRed = endOfRed;
 		}
 	}
 	else
 	{
 		vspan->redSessionNbr = sessionNbr;
-		vspan->redOffset = pdu->offset;
+		vspan->endOfRed = endOfRed;
 	}
 
 	/*	Data segment must be accepted into an import session,

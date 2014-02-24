@@ -386,9 +386,9 @@ typedef struct
 	/*	For detecting miscolored segments.			*/
 
 	unsigned int	redSessionNbr;
-	unsigned int	redOffset;
+	unsigned int	endOfRed;
 	unsigned int	greenSessionNbr;
-	unsigned int	greenOffset;
+	unsigned int	startOfGreen;
 
 	/*	*	*	Work area	*	*	*	*/
 
