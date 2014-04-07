@@ -813,7 +813,7 @@ static int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
 	return (result == 0);
 }
 
-int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
+void	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 		Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
@@ -822,7 +822,6 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 		OBJ_POINTER(BspBabRule, rule);
 	int	eidLen;
 	char	eidBuffer[SDRSTRING_BUFSZ];
-	int	result = 0;
 
 	/*	This function determines the relevant BspBabRule for
 	 *	the specified receiving endpoint, if any.  Wild card
@@ -832,10 +831,10 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 	CHKERR(destEid);
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
-	*eltp = 0;
+	*eltp = 0;		/*	Default: rule not found.	*/
 	if (secdb == NULL)	/*	No security database declared.	*/
 	{
-		return 0;
+		return;
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
@@ -854,17 +853,13 @@ int	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 			if (eidsMatch(eidBuffer, eidLen, srcEid,
 					strlen(srcEid)))
 			{
-				result = 1;
 				*eltp = elt;	/*	Exact match.	*/
 				break;		/*	Stop searching.	*/
 			}
 		}
-
-		*ruleAddr = 0;
 	}
 
 	sdr_exit_xn(sdr);
-	return result;
 }
 
 /* 1 if found. 0 if not. and -1 on error. */

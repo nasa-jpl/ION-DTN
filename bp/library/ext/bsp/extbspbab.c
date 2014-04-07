@@ -1,5 +1,5 @@
 /*
- * bspbab.c
+ * extbspbab.c
  *
  *  Created on: Jul 5, 2010
  *      Author: birraej1
@@ -43,14 +43,15 @@ typedef struct
  *                                                                           *
  *   bsp_babOffer (Pre)                                                      *
  *   bsp_babOffer (Post)                                                     *
- *   bsp_babPreProcessOnDequeue (Pre)                                        *
- *   bsp_babPostProcessOnDequeue (Post)                                      *
- *   bsp_babPostProcessOnTransmit (Post)                                     *
+ *   bsp_babProcessOnDequeue (Pre)                                           *
+ *   bsp_babProcessOnDequeue (Post)                                          *
+ *   bsp_babProcessOnTransmit (Post)                                         *
  *   bsp_babRelease (Pre)                                                    *
  *   bsp_babRelease (Post)                                                   *
- *                                                  bsp_babAcquire           *
- *                                                  bsp_babPreCheck          *
- *                                                  bsp_babPostCheck         *
+ *                                                  bsp_babAcquire (Pre)     *
+ *                                                  bsp_babAcquire (Post)    *
+ *                                                  bsp_babCheck (Pre)       *
+ *                                                  bsp_babCheck (Post)      *
  *                                                  bsp_babClear (Pre)       *
  *                                                  bsp_babClear (Post)      *
  *                                                                           *
@@ -302,7 +303,7 @@ int bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
  * \par Notes:
  *****************************************************************************/
 
-int bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
+static int	bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 {
    BspAbstractSecurityBlock *asb = NULL;
    BspBabCollaborationBlock *collabBlk;
@@ -398,7 +399,6 @@ result len %lu data %x", asb->resultLen, (unsigned long) asb->resultData);
    return retval;
 }
 
-
 /******************************************************************************
  *
  * \par Function Name: bsp_babPostProcessOnDequeue
@@ -419,9 +419,8 @@ result len %lu data %x", asb->resultLen, (unsigned long) asb->resultData);
  *         in the bundle will be modified.  This must be the last block
  *         modification performed on the bundle before it is transmitted.
  *****************************************************************************/
-int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
-                                Bundle *bundle,
-                                void *parm)
+static int	bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
+			Bundle *bundle, void *parm)
 {
    DequeueContext   *ctxt = (DequeueContext *) parm;
    BspAbstractSecurityBlock asb;
@@ -627,7 +626,8 @@ raw_asb = %x", (unsigned long) raw_asb);
  *         bundle.
  *****************************************************************************/
 
-int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
+static int	bsp_babPostProcessOnTransmit(ExtensionBlock *blk,
+			Bundle *bundle, void *ctxt)
 {
    Sdr bpSdr = getIonsdr();
    unsigned int rawBundleLength = 0;
@@ -685,7 +685,6 @@ int bsp_babPostProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,void *ctxt)
         BAB_DEBUG_PROC("- bsp_babPostProcessOnTransmit --> %d", -1);
         return -1;
    }
-
 
    /*
     * Grab the serialized bundle. It lives in bundle.payload.
@@ -814,6 +813,14 @@ Allocation of %d bytes failed.", blk->length);
    return result;
 }
 
+int	bsp_babProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,
+		void *ctxt)
+{
+	if (blk->occurrence == 1)
+	{
+		return bsp_babPostProcessOnTransmit(blk, bundle ctxt);
+	}
+}
 
 /******************************************************************************
  *
@@ -841,7 +848,7 @@ Allocation of %d bytes failed.", blk->length);
  *      1. We assume that there is only 1 BAB block pair in a bundle.
  *****************************************************************************/
 
-int bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
+static int	bsp_babPreCheck(AcqExtBlock *pre_blk, AcqWorkArea *wk)
 {
    BspAbstractSecurityBlock *pre_asb = NULL;
    BspBabCollaborationBlock collabBlk;
@@ -1020,6 +1027,15 @@ BAB block! %c",  ' ');
    return retval;
 }
 
+int bsp_babCheck(AcqExtBlock *blk, AcqWorkArea *wk)
+{
+	if (blk->occurrence == 1)
+	{
+		return bsp_babPostCheck(blk, wk);
+	}
+
+	returne bsp_babPreCheck(blk, wk);
+}
 
 /******************************************************************************
  *
@@ -1041,7 +1057,8 @@ BAB block! %c",  ' ');
  * \par Notes:
  *****************************************************************************/
 
-int bsp_babPreProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
+static int	bsp_babPreProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
+			void *parm)
 {
    DequeueContext   *ctxt = (DequeueContext *) parm;
    Lyst eidRefs = NULL;
@@ -1184,6 +1201,15 @@ collaboration block.");
    return result;
 }
 
+int bsp_babProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
+{
+	if (blk->occurrence == 1)
+	{
+		return bsp_babPostProcessOnDequeue(blk, bundle parm);
+	}
+
+	return bsp_bab_PreProcessOnDequeue(blk, bundle, parm);
+}
 
 /******************************************************************************
  *

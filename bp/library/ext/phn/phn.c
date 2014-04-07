@@ -134,7 +134,7 @@ static int	getSenderEidFromDictionary(AcqExtBlock *blk, AcqWorkArea *wk)
 	return 1;
 }
 
-int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
+int	phn_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	int	schemeLength;
 	char	*lastByte;

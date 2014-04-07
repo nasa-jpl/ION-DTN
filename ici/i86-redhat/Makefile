@@ -4,6 +4,7 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
+CRYPTO = ../crypto/NULL_SUITES
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
@@ -25,6 +26,7 @@ LIBICIOBJS = \
 	rfx.o \
 	ionsec.o \
 	zco.o \
+	crypto.o \
 	sdrxn.o \
 	sdrmgt.o \
 	sdrstring.o \
@@ -47,6 +49,7 @@ PUBINCLS = \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
 	$(INCL)/zco.h \
+	$(INCL)/crypto.h \
 	$(INCL)/sdrxn.h \
 	$(INCL)/sdrmgt.h \
 	$(INCL)/sdrstring.h \
@@ -168,6 +171,9 @@ libicinm.so:	libicinm.o $(INCL)/icinm.h
 		$(CC) -c $<
 
 %.o:		$(SDR)/%.c
+		$(CC) -c $<
+
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c

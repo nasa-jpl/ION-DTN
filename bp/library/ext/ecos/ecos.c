@@ -79,7 +79,7 @@ int	ecos_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	return 0;
 }
 
-int	ecos_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
+int	ecos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle = &wk->bundle;
 	unsigned char	*cursor;

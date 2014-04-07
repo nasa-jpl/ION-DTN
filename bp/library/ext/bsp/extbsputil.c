@@ -730,9 +730,9 @@ void bsp_getSecurityInfo(Bundle *bundle,
 			OBJ_POINTER(BspBabRule, babRule);
 			int result;
 
-			result = sec_get_bspBabRule(eidSourceString, eidDestString, &ruleAddr, &eltp);
+			sec_get_bspBabRule(eidSourceString, eidDestString, &ruleAddr, &eltp);
 
-			if((result == -1) || (eltp == 0))
+			if (eltp == 0)
 			{
 				BSP_DEBUG_INFO("i bsp_getSecurityInfo: No TX/RX entry for EID %s.", eidSourceString);
 			}

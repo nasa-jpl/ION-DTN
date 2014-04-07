@@ -12,7 +12,7 @@
  
 /*****************************************************************************
  **
- ** File Name: extbsputil.h
+ ** File Name: bsputil.h
  **
  **		Note: name changed from "bsp.h", which conflicts with the
  **		name of the Board Support Package header file generated on
@@ -23,12 +23,12 @@
  **
  ** Description: This file provides all structures, variables, and function 
  **              definitions necessary for a full implementation of the 
- **              Bundle Security Protocol (BSP) Specification, Version 8. This
- **              implementation utilizes the ION Extension Interface to
+ **              "Streamlined" Bundle Security Protocol (SBSP) Specification.
+ **		 This implementation utilizes the ION Extension Interface to
  **              manage the creation, modification, evaluation, and removal
  **              of BSP blocks from Bundle Protocol (RFC 5050) bundles.
  **
- ** Notes:  The current implementation of this file (6/2009) only supports
+ ** Notes:  The original implementation of this file (6/2009) only supported
  **         the Bundle Authentication Block (BAB) with the following
  **         constraints:
  **         - Bundle fragmentation is not considered
@@ -47,6 +47,7 @@
  **  06/08/09  E. Birrane           Initial Implementation of BAB blocks.
  **  06/15/09  E. Birrane           Completed BAB Unit Testing & Documentation
  **  06/20/09  E. Birrane           Doc. updates for initial release.
+ **  01/14/14  S. Burleigh          Revised for "streamlined BSP.
  *****************************************************************************/
 
 #ifndef _IONBSP_H_
@@ -66,13 +67,14 @@
  * to any BSP block (such as the case where a bundle-wide hash must be
  * calculated.
  */
+
 #include "bpP.h"
 #include "bei.h"
 #include "ionsec.h"
 
-int extensionBlockTypeToInt(char *blockType);
-int extensionBlockTypeToString(unsigned char blockType, char *retVal,
-		unsigned int retValLength);
+extern int	extensionBlockTypeToInt(char *blockType);
+extern int	extensionBlockTypeToString(unsigned char blockType,
+			char *retVal, unsigned int retValLength);
 
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *
@@ -153,47 +155,42 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
 
 #endif
 
-
 /*****************************************************************************
  *                        BSP SPEC VARIABLE DEFINITIONS                      *
  *****************************************************************************/
 /** BSP rule type enumerations */
-#define BSP_TX 0
-#define BSP_RX 1
+#define BSP_TX			0
+#define BSP_RX			1
 
 /** 
  * BAB Block Type Fields 
  */
-#define BLOCK_TYPE_PAYLOAD	0x01 /*		Payload block type.	*/
-#define BSP_BAB_TYPE		0x02 /*		BSP BAB block type.	*/
-#define BSP_PIB_TYPE		0x03 /*		BSP PIB block type.	*/
-#define BSP_PCB_TYPE		0x04 /*		BSP PCB block type.	*/
+#define BLOCK_TYPE_PRIMARY	0x00	/*	Primary block type.	*/
+#define BLOCK_TYPE_PAYLOAD	0x01	/*	Payload block type.	*/
+#define EXTENSION_TYPE_BAB	0x02	/*	BSP BAB block type.	*/
+#define EXTENSION_TYPE_BIB	0x03	/*	BSP BIB block type.	*/
+#define EXTENSION_TYPE_BCB	0x04	/*	BSP BCB block type.	*/
 
-/** Ciphersuite types - From BSP Spec. Version 8. */
-#define BSP_CSTYPE_BAB_HMAC 					0x001
-#define BSP_CSTYPE_PIB_RSA_SHA256 				0x002
-#define BSP_CSTYPE_PCB_RSA_AES128_PAYLOAD_PIB_PCB		0x003
-#define BSP_CSTYPE_ESB_RSA_AES128_EXT				0x004
-#define BSP_CSTYPE_PIB_HMAC_SHA256 				0x005
-#define BSP_CSTYPE_PCB_ARC4 					0x006
-#define BSP_CSTYPE_PCB_AES128 					0x007
+/** Ciphersuite types - From RFC 6257. */
+#define BSP_CSTYPE_BAB_HMAC_SHA1	0x001
+#define BSP_CSTYPE_BIB_HMAC_SHA256 	0x005
+#define BSP_CSTYPE_BCB_ARC4		0x006
 
-/** Ciphersuite Flags - From BSP Spec. Version 8. */
-#define BSP_ASB_SEC_SRC   0x10 /** ASB contains a security source EID      */
-#define BSP_ASB_SEC_DEST  0x08 /** ASB contains a security destination EID */
-#define BSP_ASB_HAVE_PARM 0x04 /** ASB has ciphersuite parameters.         */
-#define BSP_ASB_CORR      0x02 /** ASB has a correlator field.             */
-#define BSP_ASB_RES       0x01 /** ASB contains a result length and data.  */
+/** Ciphersuite Flags - From SBSP Spec. */
+#define BSP_ASB_SEC_SRC		0x04
+			/*	Block contains a security source EID	*/
+#define BSP_ASB_PARM		0x02
+			/*	Block contains ciphersuite parameters.	*/
+#define BSP_ASB_RES		0x01
+			/*	Block contains security result.		*/
 
-/** Ciphersuite Parameter Types - RFC6257 Section 2.6. */
+/** Ciphersuite and Security Result Item Types - SBSP spec Section 2.7.	*/
 #define BSP_CSPARM_IV           0x01
 #define BSP_CSPARM_KEY_INFO     0x03
-#define BSP_CSPARM_FRAG_RNG     0x04
+#define BSP_CSPARM_CONTENT_RNG	0x04
 #define BSP_CSPARM_INT_SIG      0x05
 #define BSP_CSPARM_SALT         0x07
 #define BSP_CSPARM_ICV          0x08
-#define BSP_CSPARM_ENC_BLK      0x0A
-#define BSP_CSPARM_ENV_BLK_TYPE 0x0B
 
 #define BSP_KEY_NAME_LEN	32
 
@@ -201,85 +198,60 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
 #define BSP_ZCO_TRANSFER_BUF_SIZE 4096
 
 /*****************************************************************************
- *                        BSP MODULE VARIABLE DEFINITIONS                    *
- *****************************************************************************/
-
-/*
- * At times it is useful to identify which block types manage correlation
- * information.  For BSP we set up specific enumerations for these so as to
- * not confuse them with the block types themselves and, thus, imply a
- * correlation.
- */
-#define COR_BAB_TYPE 0
-#define COR_PIB_TYPE 1
-#define COR_PCB_TYPE 2
-#define COR_ESB_TYPE 3
-
-
-/*****************************************************************************
  *                                DATA STRUCTURES                            *
  *****************************************************************************/
 
-typedef struct
-{
-	char	cipherKeyName[BSP_KEY_NAME_LEN];
-} BspSecurityInfo;
-
 /** 
- *  \struct BspAbstractSecurityBlock
- *  \brief Canonical Abstract Security Block as defined in the Bundle Security
- *  Specification, version 8.
+ *  \struct BspInboundBlock
+ *  \brief The block-type-specific data of an inbound BSP extension block.
  * 
- * The Abstract Security Block (ASB) structure encapsulates the security-
- * specific part of the canonical ASB structure as defined in the BSP
- * Specification, version 8. 
+ * The BspInboundBlock structure encapsulates the block-type-specific
+ * data of an inbound BSP extension block.
  */
 typedef struct
 {
-	EndpointId    secSrc;         /** Optional security source            */
-	EndpointId    secDest;        /** Optional security destination       */
-	unsigned int cipher;         /** Ciphersuite Type Field              */
-	unsigned int cipherFlags;    /** Ciphersuite Flags Field             */
-	unsigned int correlator;     /** IFF cipherFlags & BSP_ASB_CORR      */
-	unsigned int cipherParmsLen; /** IFF cipherFlags & BSP_ASB_HAVE_PARM */
-	char *cipherParmsData;        /** IFF cipherFlags & BSP_ASB_HAVE_PARM */
-	unsigned int resultLen;      /** IFF cipherFlags & BSP_ASB_RES       */
-	unsigned char *resultData;    /** IFF cipherFlags & BSP_ASB_RES       */
-} BspAbstractSecurityBlock;
+	EndpointId	securitySource;
+	unsigned char	targetBlockType;
+	unsigned char	targetBlockTargetBlockType;
+	unsigned char	targetBlockOccurrence;
+	unsigned char	ciphersuiteType;
+	char		keyName[BSP_KEY_NAME_LEN];
+	unsigned int	ciphersuiteFlags;
+	unsigned int	parmsLen;	/** IFF flags & BSP_ASB_PARM	*/
+	unsigned char	*parmsData;	/** IFF flags & BSP_ASB_PARM	*/
+	unsigned int	resultsLen;	/** IFF flags & BSP_ASB_RES	*/
+	unsigned char	*resultsData;	/** IFF flags & BSP_ASB_RES	*/
 
+	/*	Internally significant data for block acquisition.	*/
+
+	unsigned char	occurrence;
+} BspInboundBlock;
+
+/** 
+ *  \struct BspOutboundBlock
+ *  \brief The block-type-specific data of an outbound BSP extension block.
+ * 
+ * The BspOutboundBlock structure encapsulates the block-type-specific
+ * data of an outbound BSP extension block.
+ */
+typedef struct
+{
+	EndpointId	securitySource;
+	unsigned char	targetBlockType;
+	unsigned char	targetBlockTargetBlockType;
+	unsigned char	targetBlockOccurrence;
+	unsigned char	ciphersuiteType;
+	char		keyName[BSP_KEY_NAME_LEN];
+	unsigned int	ciphersuiteFlags;
+	unsigned int	parmsLen;	/** IFF flags & BSP_ASB_PARM	*/
+	Object		parmsData;	/** IFF flags & BSP_ASB_PARM	*/
+	unsigned int	resultsLen;	/** IFF flags & BSP_ASB_RES	*/
+	Object		resultsData;	/** IFF flags & BSP_ASB_RES	*/
+} BspOutboundBlock;
 
 /*****************************************************************************
  *                             FUNCTION DEFINITIONS                          *
  *****************************************************************************/
-
-
-/*****************************************************************************
- *
- * \par Function Name: getCustodianEid
- *
- * \par Purpose: This utility function returns the custodian node number
- *               for the peer ID given. The EID is used to identify a scheme,
- *               and the custodian EID for the scheme is returned.  Note: The
- *               peer ID may actually refer to a different node than
- *               the current node.  For example, if we are communicating
- *               with a "far" node in scheme "A", we may pass in the far
- *               node's EID to determine our own, local custodian EID
- *               for scheme "A".
- *
- * \par Date Written: 2/28/2011
- *
- * \retval char * -- Custodian EID (e.g., ipn:1.0)
- *
- * \param[in] peerEid - EID string of the destination(?) endpoint.
- *
- * \par Revision History:
- *
- * MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
- * --------  ------------  ------------------------------------------------
- * 02/28/11  E. Birrane            Initial implementation
- * **************************************************************************/
-char * getCustodianEid(char *peerEid);
-
 
 /*****************************************************************************
  *                           GENERAL BSP FUNCTIONS                           *
@@ -297,7 +269,7 @@ char * getCustodianEid(char *peerEid);
  * \retval unsigned char * -- The updated stream pointer.
  *
  * \param[in]  stream  The current position of the stream pointer.
- * \param[in]  value   The SDNV value to add to the stream.
+ * \param[in]  val     The SDNV value to add to the stream.
  *
  * \par Notes: 
  *      1. Input parameters are passed as pointers to prevent wasted copies.
@@ -315,8 +287,7 @@ char * getCustodianEid(char *peerEid);
  *  06/20/09  E. Birrane           Added Debugging Stmt, cmts for initial rel.
  *****************************************************************************/
 
-unsigned char *bsp_addSdnvToStream(unsigned char *stream, Sdnv* value);
-
+extern unsigned char	*bsp_addSdnvToStream(unsigned char *stream, Sdnv* val);
 
 /******************************************************************************
  *
@@ -324,7 +295,7 @@ unsigned char *bsp_addSdnvToStream(unsigned char *stream, Sdnv* value);
  *
  * \par Purpose: This utility function accepts a serialized Abstract Security
  *               Block from a bundle during acquisition and places it in a
- *               AbstractSecurityBlock structure stored in the Acquisition
+ *               BspInboundBlock structure stored in the Acquisition Extension
  *               Block's scratchpad area.
  *
  * \par Date Written:  5/30/09
@@ -356,8 +327,8 @@ unsigned char *bsp_addSdnvToStream(unsigned char *stream, Sdnv* value);
  *  07/26/11  E. Birrane           Added useCbhe and EID ref/deref
  *****************************************************************************/
 
-int bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk, int blockType);
-
+extern int	bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk,
+			int blockType);
 
 /******************************************************************************
  *
@@ -385,39 +356,7 @@ int bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk, int blockType);
  *  06/20/09  E. Birrane           Cmt/Debug updates for initial release.
  *****************************************************************************/
 
-int bsp_eidNil(EndpointId *eid);
-
-
-
-/******************************************************************************
- *
- * \par Function Name: bsp_findAcqExtBlk
- *
- * \par Purpose: This utility function finds an acquisition extension block
- *               from within the work area.
- *
- * \par Date Written:  6/13/09
- *
- * \retval AcqExtBlock * -- The found block, or NULL.
- *
- * \param[in]  wk      - The work area holding the blocks.
- * \param[in]  listIdx - Whether we want to look in the pre- or post- payload
- *                       area for the block.
- * \param[in[  type    - The block type.
- * 
- * \par Notes: 
- *      1. This function should be moved into libbpP.c
- *  
- * \par Revision History:
- * 
- *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
- *  --------  ------------  -----------------------------------------------
- *  06/13/09  E. Birrane           Initial Implementation.
- *  06/20/09  E. Birrane           Cmt/Debug updates for initial release.
- *****************************************************************************/
-
-AcqExtBlock *bsp_findAcqExtBlk(AcqWorkArea *wk, int listIdx, int type);
-
+extern int	bsp_eidNil(EndpointId *eid);
 
 /******************************************************************************
  *
@@ -447,26 +386,25 @@ AcqExtBlock *bsp_findAcqExtBlk(AcqWorkArea *wk, int listIdx, int type);
  *                                 initial release.
  *****************************************************************************/
 
-unsigned char *bsp_retrieveKey(int *keyLen, char *keyName);
-
+extern unsigned char	*bsp_retrieveKey(int *keyLen, char *keyName);
 
 /******************************************************************************
  *
  * \par Function Name: bsp_serializeASB
  *
- * \par Purpose: Serializes an abstract security block and returns the 
+ * \par Purpose: Serializes an outbound bundle security block and returns the 
  *               serialized representation.
  *
  * \par Date Written:  6/03/09
  *
- * \retval unsigned char * - the serialized Abstract Security Block.
+ * \retval unsigned char * - the serialized outbound bundle Security Block.
  *
  * \param[out] length The length of the serialized block.
- * \param[in]  asb The BspAbstractSecurityBlock to serialize.
+ * \param[in]  asb    The BspOutboundBlock to serialize.
  *
  * \par Notes: 
- *      1. This function uses MTAKE to allocate space for the result. This
- *         result (if not NULL) must be freed using MRELEASE. 
+ *      1. This function uses MTAKE to allocate space for the serialized ASB.
+ *         This serialized ASB (if not NULL) must be freed using MRELEASE. 
  *      2. This function only serializes the "security specific" ASB, not the
  *         canonical header information of the encapsulating BP extension block.
  *  
@@ -481,9 +419,8 @@ unsigned char *bsp_retrieveKey(int *keyLen, char *keyName);
  *  06/20/09  E. Birrane           Fixed Debug stmts, pre for initial release.
  *****************************************************************************/
 
-unsigned char *bsp_serializeASB(unsigned int *length,      
-                                BspAbstractSecurityBlock *asb);
-
+extern unsigned char	*bsp_serializeASB(unsigned int *length,
+				BspOutboundBlock *blk);
 
 /*****************************************************************************
  *                            BAB UTILITY FUNCTIONS                          *
@@ -520,7 +457,7 @@ unsigned char *bsp_serializeASB(unsigned int *length,
  *  07/27/11  E. Birrane           Updated for PIB.
  *****************************************************************************/
 
-void bsp_getSecurityInfo(Bundle * bundle,
+extern void	bsp_getSecurityInfo(Bundle * bundle,
 			int bspType,
 			int blockType,
 			char * eidSourceString,
@@ -529,17 +466,17 @@ void bsp_getSecurityInfo(Bundle * bundle,
 
 /******************************************************************************
  *
- * \par Function Name: getBspItem
+ * \par Function Name: getInboundBspItem
  *
- * \par Purpose: This function searches within a BSP buffer (a ciphersuite
- *               parameters field or a security result field) for an
- *               information item of specified type.
+ * \par Purpose: This function searches within a buffer (a ciphersuite
+ *               parameters field or a security results field) of an
+ *               inbound BSP block for an information item of specified type.
  *
  * \retval void
  *
  * \param[in]  itemNeeded  The code number of the type of item to search
- *                         for.  Valid item type codes are defined in bsp.h
- *                         as BSP_CSPARM_xxx macros.
+ *                         for.  Valid item type codes are defined in
+ *                         bsputil.h as BSP_CSPARM_xxx macros.
  * \param[in]  bspBuf      The data buffer in which to search for the item.
  * \param[in]  bspLen      The length of the data buffer.
  * \param[in]  val         A pointer to a variable in which the function
@@ -556,44 +493,65 @@ void bsp_getSecurityInfo(Bundle * bundle,
  * \par Notes: 
  *****************************************************************************/
 
-void getBspItem(int itemNeeded, unsigned char *bspBuf,
-		unsigned int bspLen, unsigned char **val,
-		unsigned int *len);
-
-char *getLocalCustodianEid(DequeueContext *ctxt);
-
-int setSecPointsRecv(AcqExtBlock *blk, AcqWorkArea *wk, int blockType);
-
-int setSecPointsTrans(ExtensionBlock *blk, Bundle *bundle, BspAbstractSecurityBlock *asb,
-                      Lyst *eidRefs, int blockType, DequeueContext *ctxt, char *srcNode, char *destNode);
+extern void	bsp_getInboundBspItem(int itemNeeded, unsigned char *bspBuf,
+			unsigned int bspBufLen, unsigned char **val,
+			unsigned int *len);
 
 /******************************************************************************
  *
- * \par Function Name: transferToZcoFileSource
+ * \par Function Name: getOutboundBspItem
  *
- * \par Purpose: This utility function attains a zco object, a file reference, a 
- *               character string and appends the string to a file. A file
- *               reference to the new data is appended to the zco object. If given
- *               an empty zco object- it will create a new one on the empty pointer.
- *               If given an empty file reference, it will create a new file.
+ * \par Purpose: This function searches within a buffer (a ciphersuite
+ *               parameters field or a security result field) of an outbound
+ *               BSP block for an information item of specified type.
  *
- * \par Date Written:  8/15/11
+ * \retval void
  *
- * \retval int - 0 indicates success, -1 is an error
+ * \param[in]  itemNeeded  The code number of the type of item to search
+ *                         for.  Valid item type codes are defined in 
+ *                         bsputil.h as BSP_CSPARM_xxx macros.
+ * \param[in]  bspBuf      The data buffer in which to search for the item.
+ * \param[in]  bspLen      The length of the data buffer.
+ * \param[in]  val         A pointer to a variable in which the function
+ *                         should place the location (within the buffer)
+ *                         of the first item of specified type that is
+ *                         found within the buffer.  On return, this
+ *                         variable contains NULL if no such item was found.
+ * \param[in]  len         A pointer to a variable in which the function
+ *                         should place the length of the first item of
+ *                         specified type that is found within the buffer.
+ *                         On return, this variable contains 0 if no such
+ *                         item was found.
  *
- * \param[in]  sdr        ion sdr
- * \param]in]  resultZco  Object where the file references will go
- * \param[in]  acqFileRef A file references pointing to the file
- * \param[in]  fname      A string to be used as the base of the filename
- * \param[in]  bytes      The string data to write in the file
- * \param[in]  length     Length of the string data
- * \par Revision History:
- * 
- *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
- *  --------  ------------  -----------------------------------------------
- *  08/20/11  R. Brown           Initial Implementation.
+ * \par Notes: 
  *****************************************************************************/
 
-int transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
-                            char *fname, char *bytes, int length); 
+extern void	bsp_getOutboundBspItem(int itemNeeded, Object bspBuf,
+			unsigned int bspBufLen, Address *val,
+			unsigned int *len);
+
+extern Object	bsp_findBspBlock(Bundle *bundle, unsigned char type,
+			unsigned char targetBlockType,
+			unsigned char targetBlockTargetBlockType,
+			unsigned char targetBlockOccurrence,
+			unsigned char occurrence);
+
+extern Object	bsp_findAcqBspBlock(AcqWorkArea *wk, unsigned char type,
+			unsigned char targetBlockType,
+			unsigned char targetBlockTargetBlockType,
+			unsigned char targetBlockOccurrence,
+			unsigned char occurrence);
+
+extern char	*bsp_getLocalAdminEid(char *peerEid);
+
+extern int	bsp_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
+			char **fromEid, char **toEid);
+
+extern int	bsp_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
+			char **fromEid, char **toEid);
+
+extern int	bsp_destinationIsLocal(Bundle *bundle);
+
+#endif
+
 #endif /* _IONBSP_H_ */

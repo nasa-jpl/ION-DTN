@@ -1308,6 +1308,11 @@ extern int		updateEndpoint(char *endpointName,
 /*	Removing an endpoint is also called "unregistering".		*/
 extern int		removeEndpoint(char *endpointName);
 
+extern void		lookUpEidScheme(EndpointId eid, char *dictionary,
+				VScheme **vscheme);
+extern void		lookUpEndpoint(EndpointId eid, char *dictionary,
+				VScheme *vscheme, VEndpoint **vpoint);
+
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
 extern int		addProtocol(char *name, int payloadBytesPerFrame,
 				int overheadPerFrame, int nominalRate,
