@@ -1,17 +1,38 @@
 /*
-
 	ionsecadmin.c:	security database adminstration interface.
 
-									*/
-/*	Copyright (c) 2009, California Institute of Technology.		*/
-/*	All rights reserved.						*/
-/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 
+	Copyright (c) 2009, California Institute of Technology.	
+	All rights reserved.
+	Author: Scott Burleigh, Jet Propulsion Laboratory
+	Modifications: TCSASSEMBLER, TopCoder
+
+	Modification History:
+	Date       Who     What
+	9-24-13    TC      Added atouc helper function to convert char* to
+			   unsigned char
+			   Updated printUsage function to print usage for
+			   newly added ltp authentication rules
+			   Updated executeAdd, executeChange, executeDelete,
+			   executeInfo, and executeList functions to process
+			   newly added ltp authentication rules
+			   Added printLtpRecvAuthRule and
+			   printXmitRecvAuthRule functions to print ltp
+			   authentication rules
+									*/
 #include "ionsec.h"
 
 static char	*_omitted()
 {
 	return "";
+}
+
+static unsigned char	atouc(char *input)
+{
+	unsigned char	result;
+
+	result = strtol(input, NULL, 0);
+	return result;
 }
 
 static int	_echo(int *newValue)
@@ -79,6 +100,14 @@ i.e., a partial eid expression ending in '*'.");
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   a bsppcbrule <sender eid expression> <receiver eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
+	PUTS("\t   a ltprecvauthrule <ltp engine id> <ciphersuite_nbr> \
+[<key name>]");
+	PUTS("\t\tValid ciphersuite numbers:");
+	PUTS("\t\t\t  0: HMAC-SHA1-80");
+	PUTS("\t\t\t  1: RSA-SHA256");
+	PUTS("\t\t\t255: NULL");
+	PUTS("\t   a ltpxmitauthrule <ltp engine id> <ciphersuite_nbr> \
+[<key name>]");
 	PUTS("\tc\tChange");
 	PUTS("\t   c key <key name> <name of file containing key value>");
 	PUTS("\t   c bspbabrule <sender eid expression> <receiver eid \
@@ -87,6 +116,10 @@ expression> { '' | <ciphersuite name> <key name> }");
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   c bsppcbrule <sender eid expression> <receiver eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
+	PUTS("\t   c ltprecvauthrule <ltp engine id> <ciphersuite_nbr> \
+[<key name>]");
+	PUTS("\t   c ltpxmitauthrule <ltp engine id> <ciphersuite_nbr> \
+[<key name>]");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} key <key name>");
@@ -97,12 +130,16 @@ expression>");
 expression> <block type number>");
 	PUTS("\t   {d|i} bsppcbrule <sender eid expression> <receiver eid \
 expression> <block type number>");
+	PUTS("\t   {d|i} ltprecvauthrule <ltp engine id> ");
+	PUTS("\t   {d|i} ltpxmitauthrule <ltp engine id> ");
 	PUTS("\tl\tList");
 	PUTS("\t   l key");
 	PUTS("\t   l pubkey");
 	PUTS("\t   l bspbabrule");
 	PUTS("\t   l bsppibrule");
 	PUTS("\t   l bsppcbrule");
+	PUTS("\t   l ltprecvauthrule");
+	PUTS("\t   l ltpxmitauthrule");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\tx\tClear BSP security rules.");
@@ -255,7 +292,51 @@ static void	executeAdd(int tokenCount, char **tokens)
                                 tokens[5], keyName);
                 return;
         }
-			
+
+	if (strcmp(tokens[1], "ltprecvauthrule") == 0)
+	{
+		switch (tokenCount)
+		{
+		case 5:
+                        keyName = tokens[4];
+                        break;
+
+                case 4:
+                        keyName = _omitted();
+                        break;
+
+                default:
+                        SYNTAX_ERROR;
+                        return;
+		}
+
+		sec_addLtpRecvAuthRule(atoi(tokens[2]), atouc(tokens[3]),
+				keyName);
+		return;
+	}
+
+	if (strcmp(tokens[1], "ltpxmitauthrule") == 0)
+	{
+		switch (tokenCount)
+		{
+		case 5:
+                        keyName = tokens[4];
+                        break;
+
+                case 4:
+                        keyName = _omitted();
+                        break;
+
+                default:
+                        SYNTAX_ERROR;
+                        return;
+		}
+
+		sec_addLtpXmitAuthRule(atoi(tokens[2]), atouc(tokens[3]),
+				keyName);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
@@ -346,6 +427,49 @@ static void	executeChange(int tokenCount, char **tokens)
                 return;
         }
 
+	if (strcmp(tokens[1], "ltprecvauthrule") == 0)
+	{
+		switch (tokenCount)
+		{
+		case 5:
+                        keyName = tokens[4];
+                        break;
+
+                case 4:
+                        keyName = _omitted();
+                        break;
+
+                default:
+                        SYNTAX_ERROR;
+                        return;
+		}
+
+		sec_updateLtpRecvAuthRule(atoi(tokens[2]), atouc(tokens[3]),
+				keyName);
+		return;
+	}
+
+	if (strcmp(tokens[1], "ltpxmitauthrule") == 0)
+	{
+		switch (tokenCount)
+		{
+		case 5:
+                        keyName = tokens[4];
+                        break;
+
+                case 4:
+                        keyName = _omitted();
+                        break;
+
+                default:
+                        SYNTAX_ERROR;
+                        return;
+		}
+
+		sec_updateLtpXmitAuthRule(atoi(tokens[2]), atouc(tokens[3]),
+				keyName);
+		return;
+	}
 			
 	SYNTAX_ERROR;
 }
@@ -369,7 +493,37 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "key") == 0)
 	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		sec_removeKey(tokens[2]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "ltprecvauthrule") == 0)
+	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		sec_removeLtpRecvAuthRule(atoi(tokens[2]));
+		return;
+	}
+
+	if (strcmp(tokens[1], "ltpxmitauthrule") == 0)
+	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		sec_removeLtpXmitAuthRule(atoi(tokens[2]));
 		return;
 	}
 
@@ -390,11 +544,17 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		sec_removeBspBabRule(tokens[2], tokens[3]);
 		return;
 	}
 
-        if(tokenCount != 5)
+        if (tokenCount != 5)
 	{
 		SYNTAX_ERROR;
 		return;
@@ -481,7 +641,7 @@ static void	printBspBabRule(Object ruleAddr)
 	GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleAddr);
 	sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
 	sdr_string_read(sdr, destEidBuf, rule->securityDestEid);
-	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.2555s' \
+	isprintf(buf, sizeof buf, "BAB rule src eid '%.255s' dest eid '%.255s' \
 ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
 		rule->ciphersuiteName, rule->keyName);
 	printText(buf);
@@ -497,9 +657,9 @@ static void	printBspPibRule(Object ruleAddr)
 	GET_OBJ_POINTER(sdr, BspPibRule, rule, ruleAddr);
 	sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
 	sdr_string_read(sdr, destEidBuf, rule->securityDestEid);
-	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
+	isprintf(buf, sizeof buf, "PIB rule src eid '%.255s' dest eid '%.255s' \
 type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
-              rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
+		rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
 	printText(buf);
 }
 
@@ -513,10 +673,46 @@ static void     printBspPcbRule(Object ruleAddr)
         GET_OBJ_POINTER(sdr, BspPcbRule, rule, ruleAddr);
         sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
         sdr_string_read(sdr, destEidBuf, rule->securityDestEid);
-        isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
+        isprintf(buf, sizeof buf, "PCB rule src eid '%.255s' dest eid '%.255s' \
 type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
-                rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
+		rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
         printText(buf);
+}
+
+static void	printLtpRecvAuthRule(Object ruleAddr)
+{
+	Sdr	sdr = getIonsdr();
+		OBJ_POINTER(LtpRecvAuthRule, rule);
+	char	buf[512];
+	int	temp;
+
+	GET_OBJ_POINTER(sdr, LtpRecvAuthRule, rule, ruleAddr);	
+	temp = rule->ciphersuiteNbr;
+	isprintf(buf, sizeof buf, "LTPrecv rule: engine id " UVAST_FIELDSPEC,
+			rule->ltpEngineId);
+	isprintf(buf + strlen(buf), sizeof buf - strlen(buf),
+			" ciphersuite_nbr %d", temp);
+	isprintf(buf + strlen(buf), sizeof buf - strlen(buf),
+			" key name '%.31s'", rule->keyName);
+	printText(buf);
+}
+
+static void	printLtpXmitAuthRule(Object ruleAddr)
+{
+	Sdr	sdr = getIonsdr();
+		OBJ_POINTER(LtpXmitAuthRule, rule);
+	char	buf[512];
+	int	temp;
+
+	GET_OBJ_POINTER(sdr, LtpXmitAuthRule, rule, ruleAddr);	
+	temp = rule->ciphersuiteNbr;
+	isprintf(buf, sizeof buf, "LTPxmit rule: engine id " UVAST_FIELDSPEC,
+			rule->ltpEngineId);
+	isprintf(buf + strlen(buf), sizeof buf - strlen(buf),
+			" ciphersuite_nbr %d", temp);
+	isprintf(buf + strlen(buf), sizeof buf - strlen(buf),
+			" key name '%.31s'", rule->keyName);
+	printText(buf);
 }
 
 static void	executeInfo(int tokenCount, char **tokens)
@@ -635,6 +831,40 @@ static void	executeInfo(int tokenCount, char **tokens)
                 return;
         }
 
+	if (strcmp(tokens[1], "ltprecvauthrule") == 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		sec_findLtpRecvAuthRule(atoi(tokens[2]), &addr, &elt);
+		if (elt == 0)
+		{
+			printText("LTP segment authentication rule not found.");
+		}
+		else
+		{
+			printLtpRecvAuthRule(addr);
+		}
+
+		sdr_exit_xn(sdr);
+		return;
+	}
+
+	if (strcmp(tokens[1], "ltpxmitauthrule") == 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		sec_findLtpXmitAuthRule(atoi(tokens[2]), &addr, &elt);
+		if (elt == 0)
+		{
+			printText("LTP segment signing rule not found.");
+		}
+		else
+		{
+			printLtpXmitAuthRule(addr);
+		}
+
+		sdr_exit_xn(sdr);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
@@ -727,6 +957,34 @@ static void	executeList(int tokenCount, char **tokens)
 		sdr_exit_xn(sdr);
 		return;
         }
+
+	if (strcmp(tokens[1], "ltprecvauthrule") == 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		for (elt = sdr_list_first(sdr, db->ltpRecvAuthRules); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			obj = sdr_list_data(sdr, elt);
+			printLtpRecvAuthRule(obj);
+		}
+
+		sdr_exit_xn(sdr);
+		return;
+	}
+
+	if (strcmp(tokens[1], "ltpxmitauthrule") == 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		for (elt = sdr_list_first(sdr, db->ltpXmitAuthRules); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			obj = sdr_list_data(sdr, elt);
+			printLtpXmitAuthRule(obj);
+		}
+
+		sdr_exit_xn(sdr);
+		return;
+	}
 
 	SYNTAX_ERROR;
 }

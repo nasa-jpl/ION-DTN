@@ -5,11 +5,28 @@
  *	Copyright (c) 2007, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
  *
- *	Author: Scott Burleigh, JPL
+ *	Author:		Scott Burleigh, JPL
+ *	Modifications:	TCSASSEMBLER, TopCoder
  *
+ *	Modification History:
+ *	Date       Who   What
+ *	09-24-13    TC   Added NULL_KEY constant variable.
+ *	10-08-13    TC   Added Outbound Authentication Support
+ *	10-28-13    TC   Added Inbound Authentication Support
+ *	12-29-13    TC   Fix incorrect procedure for ignoring unknown
+ *			 extensions.
+ *	12-29-13    TC   Key IDs are names that should be used to look up
+ *			 key values in the ionsec database.
+ *	01-07-14    TC   Move cryto code to ici.
+ *	01-12-14    TC   Merge of all fixes.
+ *	02-06-14    TC   Fix the RSA public/private issues, but move the
+ *			 implementation into ext/auth/auth.c.
+ *	02-19-14    TC   Modify ltp outbound and inbound to authenticate
+ *			 from generalized extensions.
  */
 
 #include "ltpP.h"
+#include "ltpei.h"
 
 #define	EST_LINK_OHD	16
 
@@ -1565,6 +1582,18 @@ static void	destroyDataXmitSeg(Object dsElt, Object dsObj, LtpXmitSeg *ds)
 		sdr_list_delete(ltpSdr, ds->queueListElt, NULL, NULL);
 	}
 
+	if (ds->pdu.headerExtensions)
+	{
+		sdr_list_destroy(ltpSdr, ds->pdu.headerExtensions,
+				ltpei_destroy_extension, NULL);
+	}
+
+	if (ds->pdu.trailerExtensions)
+	{
+		sdr_list_destroy(ltpSdr, ds->pdu.trailerExtensions,
+				ltpei_destroy_extension, NULL);
+	}
+
 	sdr_free(ltpSdr, dsObj);
 	sdr_list_delete(ltpSdr, dsElt, NULL, NULL);
 }
@@ -1983,6 +2012,18 @@ static void	destroyRsXmitSeg(Object rsElt, Object rsObj, LtpXmitSeg *rs)
 		sdr_list_delete(ltpSdr, rs->queueListElt, NULL, NULL);
 	}
 
+	if (rs->pdu.headerExtensions)
+	{
+		sdr_list_destroy(ltpSdr, rs->pdu.headerExtensions,
+				ltpei_destroy_extension, NULL);
+	}
+
+	if (rs->pdu.trailerExtensions)
+	{
+		sdr_list_destroy(ltpSdr, rs->pdu.trailerExtensions,
+				ltpei_destroy_extension, NULL);
+	}
+
 	sdr_free(ltpSdr, rsObj);
 	sdr_list_delete(ltpSdr, rsElt, NULL, NULL);
 }
@@ -2014,6 +2055,7 @@ static void	stopImportSession(ImportSession *session)
 	Object	elt;
 	Object	segObj;
 		OBJ_POINTER(LtpXmitSeg, rs);
+		OBJ_POINTER(LtpRecvSeg, ds);
 
 	CHKVOID(ionLocked());
 	while ((elt = sdr_list_first(ltpSdr, session->rsSegments)) != 0)
@@ -2034,6 +2076,21 @@ static void	stopImportSession(ImportSession *session)
 		while ((elt = sdr_list_first(ltpSdr, session->redSegments)))
 		{
 			segObj = sdr_list_data(ltpSdr, elt);
+			GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, ds, segObj);
+			if (ds->pdu.headerExtensions)
+			{
+				sdr_list_destroy(ltpSdr,
+						ds->pdu.headerExtensions,
+						ltpei_destroy_extension, NULL);
+			}
+
+			if (ds->pdu.trailerExtensions)
+			{
+				sdr_list_destroy(ltpSdr,
+						ds->pdu.trailerExtensions,
+						ltpei_destroy_extension, NULL);
+			}
+
 			sdr_free(ltpSdr, segObj);
 			sdr_list_delete(ltpSdr, elt, NULL, NULL);
 		}
@@ -2212,26 +2269,84 @@ static void	findCheckpoint(ExportSession *session,
 
 /*	*	*	Segment issuance functions	*	*	*/
 
-static void	serializeHeader(LtpXmitSeg *segment, Sdnv *engineIdSdnv,
+static void	serializeLtpExtensionField(LtpExtensionOutbound *extensionField,
 			char **cursor)
 {
-	char	firstByte = LTP_VERSION;
-	Sdnv	sessionNbrSdnv;
+	Sdr	sdr = getIonsdr();
+	Sdnv	sdnv;
+
+	**cursor = extensionField->tag;
+	(*cursor)++;
+
+	encodeSdnv(&sdnv, extensionField->length);
+	memcpy((*cursor), sdnv.text, sdnv.length);
+	(*cursor) += sdnv.length;
+
+	sdr_read(sdr, (*cursor), extensionField->value, extensionField->length);
+	(*cursor) += extensionField->length;
+}
+
+static int	serializeHeader(LtpXmitSeg *segment, char *segmentBuffer,
+			Sdnv *engineIdSdnv)
+{
+	char		firstByte = LTP_VERSION;
+	char		*cursor = segmentBuffer;
+	Sdnv		sessionNbrSdnv;
+	char		extensionCounts;
+	Sdr		ltpSdr;
+	Object		elt;
+	Object		extAddr;
+			OBJ_POINTER(LtpExtensionOutbound, headerExt);
+	ExtensionDef	*def;
 
 	firstByte <<= 4;
 	firstByte += segment->pdu.segTypeCode;
-	**cursor = firstByte;
-	(*cursor)++;
+	*cursor = firstByte;
+	cursor++;
 
-	memcpy((*cursor), engineIdSdnv->text, engineIdSdnv->length);
-	(*cursor) += engineIdSdnv->length;
+	memcpy(cursor, engineIdSdnv->text, engineIdSdnv->length);
+	cursor += engineIdSdnv->length;
 
 	encodeSdnv(&sessionNbrSdnv, segment->sessionNbr);
-	memcpy((*cursor), sessionNbrSdnv.text, sessionNbrSdnv.length);
-	(*cursor) += sessionNbrSdnv.length;
+	memcpy(cursor, sessionNbrSdnv.text, sessionNbrSdnv.length);
+	cursor += sessionNbrSdnv.length;
 
-	**cursor = 0;		/*	Both extension counts = 0.	*/
-	(*cursor)++;
+	extensionCounts = segment->pdu.headerExtensionsCount;
+	extensionCounts <<= 4;
+	extensionCounts += segment->pdu.trailerExtensionsCount;
+	*cursor = extensionCounts;
+	cursor++;
+
+	if (segment->pdu.headerExtensions == 0)
+	{
+		return 0;
+	}
+
+	/*	Serialize all segment header extensions.		*/
+
+	ltpSdr = getIonsdr();
+	for (elt = sdr_list_first(ltpSdr, segment->pdu.headerExtensions); elt;
+			elt = sdr_list_next(ltpSdr, elt))
+	{
+		extAddr = sdr_list_data(ltpSdr, elt);
+		GET_OBJ_POINTER(ltpSdr, LtpExtensionOutbound, headerExt,
+				extAddr);
+		def = findExtensionDef(headerExt->tag);
+		if (def && def->outboundOnHeaderExtensionSerialization)
+		{
+			if (def->outboundOnHeaderExtensionSerialization
+					(extAddr, segment, &cursor) < 0)
+			{
+				return -1;
+			}
+			else
+			{
+				serializeLtpExtensionField(headerExt, &cursor);
+			}
+		}
+	}
+
+	return 0;
 }
 
 static void	serializeDataSegment(LtpXmitSeg *segment, char *buf)
@@ -2241,8 +2356,8 @@ static void	serializeDataSegment(LtpXmitSeg *segment, char *buf)
 
 	/*	Origin is the local engine.				*/
 
-	serializeHeader(segment, &((_ltpConstants())->ownEngineIdSdnv),
-			&cursor);
+	serializeHeader(segment, cursor, &(_ltpConstants()->ownEngineIdSdnv));
+	cursor += segment->pdu.headerLength;
 
 	/*	Append client service number.				*/
 
@@ -2297,7 +2412,8 @@ static void	serializeReportSegment(LtpXmitSeg *segment, char *buf)
 	 *	engine.							*/
 
 	encodeSdnv(&sdnv, segment->remoteEngineId);
-	serializeHeader(segment, &sdnv, &cursor);
+	serializeHeader(segment, cursor, &sdnv);
+	cursor += segment->pdu.headerLength;
 
 	/*	Append report serial number.				*/
 
@@ -2354,8 +2470,8 @@ static void	serializeReportAckSegment(LtpXmitSeg *segment, char *buf)
 	/*	Report is from remote engine, so origin is the local
 	 *	engine.							*/
 
-	serializeHeader(segment, &((_ltpConstants())->ownEngineIdSdnv),
-			&cursor);
+	serializeHeader(segment, cursor, &(_ltpConstants()->ownEngineIdSdnv));
+	cursor += segment->pdu.headerLength;
 
 	/*	Append report serial number.				*/
 
@@ -2373,14 +2489,16 @@ static void	serializeCancelSegment(LtpXmitSeg *segment, char *buf)
 		/*	Cancellation by sender, so origin is the
 		 *	local engine.					*/
 
-		serializeHeader(segment, &((_ltpConstants())->ownEngineIdSdnv),
-				&cursor);
+		serializeHeader(segment, cursor,
+				&(_ltpConstants()->ownEngineIdSdnv));
 	}
 	else
 	{
 		encodeSdnv(&engineIdSdnv, segment->remoteEngineId);
-		serializeHeader(segment, &engineIdSdnv, &cursor);
+		serializeHeader(segment, cursor, &engineIdSdnv);
 	}
+
+	cursor += segment->pdu.headerLength;
 
 	/*	Append reason code.					*/
 
@@ -2397,13 +2515,13 @@ static void	serializeCancelAckSegment(LtpXmitSeg *segment, char *buf)
 		/*	Acknowledging cancel by receiver, so origin
 		 *	is the local engine.				*/
 
-		serializeHeader(segment, &((_ltpConstants())->ownEngineIdSdnv),
-				&cursor);
+		serializeHeader(segment, cursor,
+				&(_ltpConstants()->ownEngineIdSdnv));
 	}
 	else
 	{
 		encodeSdnv(&engineIdSdnv, segment->remoteEngineId);
-		serializeHeader(segment, &engineIdSdnv, &cursor);
+		serializeHeader(segment, cursor, &engineIdSdnv);
 	}
 
 	/*	No content for cancel acknowledgment, just header.	*/
@@ -2543,6 +2661,48 @@ static int	readFromExportBlock(char *buffer, Object svcDataObjects,
 	return totalBytesRead;
 }
 
+static int	serializeTrailer(LtpXmitSeg *segment, char *segmentBuffer)
+{
+	char		*cursor = segmentBuffer + (segment->pdu.headerLength
+					+ segment->pdu.contentLength);
+	Sdr		ltpSdr;
+	Object  	elt;
+	Object		extAddr;
+			OBJ_POINTER(LtpExtensionOutbound, trailerExt);
+	ExtensionDef	*def;
+
+	if (segment->pdu.trailerExtensions == 0)
+	{
+		return 0;
+	}
+
+	/*	Serialize all segment trailer extensions.		*/
+
+	ltpSdr = getIonsdr();
+	for (elt = sdr_list_first(ltpSdr, segment->pdu.trailerExtensions); elt;
+			elt = sdr_list_next(ltpSdr, elt))
+	{
+		extAddr = sdr_list_data(ltpSdr, elt);
+		GET_OBJ_POINTER(ltpSdr, LtpExtensionOutbound, trailerExt,
+				extAddr);
+		def = findExtensionDef(trailerExt->tag);
+		if (def && def->outboundOnTrailerExtensionSerialization)
+		{
+			if (def->outboundOnTrailerExtensionSerialization
+					(extAddr, segment, &cursor) < 0)
+			{
+				return -1;
+			}
+		}
+		else
+		{
+			serializeLtpExtensionField(trailerExt, &cursor);
+		}
+	}
+
+	return 0;
+}
+
 int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 {
 	Sdr		ltpSdr = getIonsdr();
@@ -2623,17 +2783,16 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 	/*	Copy segment's content into buffer.			*/
 
-	segmentLength = segment.ohdLength;
+	segmentLength = segment.pdu.headerLength + segment.pdu.contentLength
+			+ segment.pdu.trailerLength;
 	if (segment.segmentClass == LtpDataSeg)
 	{
-		segmentLength += segment.pdu.length;
-
 		/*	Load client service data at the end of the
 		 *	segment first, before filling in the header.	*/
 
-		if (readFromExportBlock((*buf) + segment.ohdLength,
-				segment.pdu.block, segment.pdu.offset,
-				segment.pdu.length) < 0)
+		if (readFromExportBlock((*buf) + segment.pdu.headerLength
+				+ segment.pdu.ohdLength, segment.pdu.block,
+				segment.pdu.offset, segment.pdu.length) < 0)
 		{
 			putErrmsg("Can't read data from export block.", NULL);
 			sdr_cancel_xn(ltpSdr);
@@ -2656,6 +2815,18 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		break;
 
 	default:	/*	No need to retain this segment.		*/
+		if (segment.pdu.headerExtensions)
+		{
+			sdr_list_destroy(ltpSdr, segment.pdu.headerExtensions,
+					ltpei_destroy_extension, NULL);
+		}
+
+		if (segment.pdu.trailerExtensions)
+		{
+			sdr_list_destroy(ltpSdr, segment.pdu.trailerExtensions,
+					ltpei_destroy_extension, NULL);
+		}
+
 		sdr_free(ltpSdr, segAddr);
 	}
 
@@ -2885,6 +3056,13 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		}
 	}
 
+	if (serializeTrailer(&segment, *buf) < 0)
+	{
+		putErrmsg("Can't serialize segment trailer.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+	}
+
 	if (sdr_end_xn(ltpSdr))
 	{
 		putErrmsg("Can't get outbound segment for span.", NULL);
@@ -2929,11 +3107,12 @@ static Object	enqueueCancelReqSegment(LtpXmitSeg *segment,
 	segment->sessionNbr = sessionNbr;
 	segment->remoteEngineId = span->engineId;
 	encodeSdnv(&sdnv, sessionNbr);
-	segment->ohdLength = 1 + sourceEngineSdnv->length + sdnv.length + 1 + 1;
+	segment->pdu.headerLength =
+			1 + sourceEngineSdnv->length + sdnv.length + 1;
+	segment->pdu.contentLength = 1;
+	segment->pdu.trailerLength = 0;
 	segment->sessionListElt = 0;
 	segment->segmentClass = LtpMgtSeg;
-	segment->pdu.headerExtensionsCount = 0;
-	segment->pdu.trailerExtensionsCount = 0;
 	segment->pdu.reasonCode = reasonCode;
 	segmentObj = sdr_malloc(ltpSdr, sizeof(LtpXmitSeg));
 	if (segmentObj == 0)
@@ -2944,6 +3123,16 @@ static Object	enqueueCancelReqSegment(LtpXmitSeg *segment,
 	segment->queueListElt = sdr_list_insert_last(ltpSdr, span->segments,
 			segmentObj);
 	if (segment->queueListElt == 0)
+	{
+		return 0;
+	}
+
+	if (invokeOutboundOnHeaderExtensionGenerationCallbacks(segment) < 0)
+	{
+		return 0;
+	}
+
+	if (invokeOutboundOnTrailerExtensionGenerationCallbacks(segment) < 0)
 	{
 		return 0;
 	}
@@ -3209,11 +3398,12 @@ static int	constructCancelAckSegment(LtpXmitSeg *segment, Object spanObj,
 	segment->sessionNbr = sessionNbr;
 	segment->remoteEngineId = span->engineId;
 	encodeSdnv(&sdnv, sessionNbr);
-	segment->ohdLength = 1 + sourceEngineSdnv->length + sdnv.length + 1;
+	segment->pdu.headerLength =
+			1 + sourceEngineSdnv->length + sdnv.length + 1;
+	segment->pdu.contentLength = 0;
+	segment->pdu.trailerLength = 0;
 	segment->sessionListElt = 0;
 	segment->segmentClass = LtpMgtSeg;
-	segment->pdu.headerExtensionsCount = 0;
-	segment->pdu.trailerExtensionsCount = 0;
 	segmentObj = sdr_malloc(ltpSdr, sizeof(LtpXmitSeg));
 	if (segmentObj == 0)
 	{
@@ -3222,6 +3412,16 @@ static int	constructCancelAckSegment(LtpXmitSeg *segment, Object spanObj,
 
 	segment->queueListElt = enqueueAckSegment(spanObj, segmentObj);
 	if (segment->queueListElt == 0)
+	{
+		return -1;
+	}
+
+	if (invokeOutboundOnHeaderExtensionGenerationCallbacks(segment) < 0)
+	{
+		return -1;
+	}
+
+	if (invokeOutboundOnTrailerExtensionGenerationCallbacks(segment) < 0)
 	{
 		return -1;
 	}
@@ -3259,21 +3459,21 @@ static int	constructDestCancelAckSegment(Object spanObj,
 			sessionNbr);
 }
 
-static int	initializeRs(LtpXmitSeg *rs, int baseOhdLength,
-			unsigned int rptSerialNbr,
+static int	initializeRs(LtpXmitSeg *rs, unsigned int rptSerialNbr,
 			int checkpointSerialNbrSdnvLength,
 			unsigned int rsLowerBound)
 {
 	Sdnv	sdnv;
 
-	rs->ohdLength = baseOhdLength;
+	rs->pdu.contentLength = 0;
+	rs->pdu.trailerLength = 0;
 	rs->pdu.rptSerialNbr = rptSerialNbr;
 	encodeSdnv(&sdnv, rs->pdu.rptSerialNbr);
-	rs->ohdLength += sdnv.length;
-	rs->ohdLength += checkpointSerialNbrSdnvLength;
+	rs->pdu.contentLength += sdnv.length;
+	rs->pdu.contentLength += checkpointSerialNbrSdnvLength;
 	rs->pdu.lowerBound = rsLowerBound;
 	encodeSdnv(&sdnv, rs->pdu.lowerBound);
-	rs->ohdLength += sdnv.length;
+	rs->pdu.contentLength += sdnv.length;
 	rs->pdu.receptionClaims = sdr_list_create(getIonsdr());
 	if (rs->pdu.receptionClaims == 0)
 	{
@@ -3300,10 +3500,10 @@ static int	constructReceptionClaim(LtpXmitSeg *rs, int lowerBound,
 
 	claim.offset = lowerBound;
 	encodeSdnv(&sdnv, claim.offset);
-	rs->ohdLength += sdnv.length;
+	rs->pdu.contentLength += sdnv.length;
 	claim.length = upperBound - lowerBound;
 	encodeSdnv(&sdnv, claim.length);
-	rs->ohdLength += sdnv.length;
+	rs->pdu.contentLength += sdnv.length;
 	sdr_write(ltpSdr, claimObj, (char *) &claim, sizeof(LtpReceptionClaim));
 	if (sdr_list_insert_last(ltpSdr, rs->pdu.receptionClaims, claimObj)
 			== 0)
@@ -3324,9 +3524,10 @@ static int	constructRs(LtpXmitSeg *rs, int claimCount,
 
 	CHKERR(ionLocked());
 	encodeSdnv(&sdnv, rs->pdu.upperBound);
-	rs->ohdLength += sdnv.length;
+	rs->pdu.contentLength += sdnv.length;
 	encodeSdnv(&sdnv, claimCount);
-	rs->ohdLength += sdnv.length;
+	rs->pdu.contentLength += sdnv.length;
+	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, session->span);
 	rsObj = sdr_malloc(ltpSdr, sizeof(LtpXmitSeg));
 	if (rsObj == 0)
 	{
@@ -3341,8 +3542,17 @@ static int	constructRs(LtpXmitSeg *rs, int claimCount,
 		return -1;
 	}
 
+	if (invokeOutboundOnHeaderExtensionGenerationCallbacks(rs) < 0)
+	{
+		return -1;
+	}
+
+	if (invokeOutboundOnTrailerExtensionGenerationCallbacks(rs) < 0)
+	{
+		return -1;
+	}
+
 	sdr_write(ltpSdr, rsObj, (char *) rs, sizeof(LtpXmitSeg));
-	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, session->span);
 	signalLso(span->engineId);
 #if LTPDEBUG
 char	buf[256];
@@ -3363,7 +3573,6 @@ static int	sendReport(ImportSession *session, Object sessionObj,
 	Object		obj;
 			OBJ_POINTER(LtpXmitSeg, oldRpt);
 			OBJ_POINTER(LtpSpan, span);
-	int		baseOhdLength;
 	LtpXmitSeg	rsBuf;
 	Sdnv		checkpointSerialNbrSdnv;
 	unsigned int	lowerBound;
@@ -3430,8 +3639,6 @@ putErrmsg("Too many reports, canceling session.", itoa(session->sessionNbr));
 
 	upperBound = lowerBound = reportLowerBound;
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, session->span);
-	baseOhdLength = 1 + span->engineIdSdnv.length
-			+ session->sessionNbrSdnv.length + 1;
 
 	/*	Set all values that will be common to all report
 	 *	segments of this report.				*/
@@ -3442,12 +3649,14 @@ putErrmsg("Too many reports, canceling session.", itoa(session->sessionNbr));
 	rsBuf.segmentClass = LtpReportSeg;
 	rsBuf.pdu.segTypeCode = LtpRS;
 	rsBuf.pdu.ckptSerialNbr = checkpointSerialNbr;
+	rsBuf.pdu.headerLength = 1 + span->engineIdSdnv.length
+			+ session->sessionNbrSdnv.length + 1;
 	encodeSdnv(&checkpointSerialNbrSdnv, checkpointSerialNbr);
 
 	/*	Initialize the first report segment and start adding
 	 *	reception claims.					*/
 
-	if (initializeRs(&rsBuf, baseOhdLength, session->lastRptSerialNbr,
+	if (initializeRs(&rsBuf, session->lastRptSerialNbr,
 			checkpointSerialNbrSdnv.length, lowerBound) < 0)
 	{
 		return -1;
@@ -3513,8 +3722,7 @@ putErrmsg("Too many reports, canceling session.", itoa(session->sessionNbr));
 					LtpRetransmitLimitExceeded);
 		}
 
-		if (initializeRs(&rsBuf, baseOhdLength,
-				session->lastRptSerialNbr,
+		if (initializeRs(&rsBuf, session->lastRptSerialNbr,
 				checkpointSerialNbrSdnv.length, lowerBound) < 0)
 		{
 			return -1;
@@ -3581,13 +3789,13 @@ static int	constructReportAckSegment(LtpSpan *span, Object spanObj,
 	sessionNbrLength = sdnv.length;
 	encodeSdnv(&sdnv, reportSerialNbr);
 	serialNbrLength = sdnv.length;
-	segment.ohdLength = 1 + (_ltpConstants())->ownEngineIdSdnv.length
-			+ sessionNbrLength + 1 + serialNbrLength;
+	segment.pdu.headerLength = 1 + (_ltpConstants())->ownEngineIdSdnv.length
+			+ sessionNbrLength + 1;
+	segment.pdu.contentLength = serialNbrLength;
+	segment.pdu.trailerLength = 0;
 	segment.sessionListElt = 0;
 	segment.segmentClass = LtpMgtSeg;
 	segment.pdu.segTypeCode = LtpRAS;
-	segment.pdu.headerExtensionsCount = 0;
-	segment.pdu.trailerExtensionsCount = 0;
 	segment.pdu.rptSerialNbr = reportSerialNbr;
 	segmentObj = sdr_malloc(ltpSdr, sizeof(LtpXmitSeg));
 	if (segmentObj == 0)
@@ -3601,12 +3809,47 @@ static int	constructReportAckSegment(LtpSpan *span, Object spanObj,
 		return -1;
 	}
 
+	if (invokeOutboundOnHeaderExtensionGenerationCallbacks(&segment) < 0)
+	{
+		return -1;
+	}
+
+	if (invokeOutboundOnTrailerExtensionGenerationCallbacks(&segment) < 0)
+	{
+		return -1;
+	}
+
 	sdr_write(ltpSdr, segmentObj, (char *) &segment, sizeof(LtpXmitSeg));
 	signalLso(span->engineId);
 	return 0;
 }
 
 /*	*	*	Segment handling functions	*	*	*/
+
+static int	parseTrailerExtensions(char *endOfHeader, LtpPdu *pdu,
+			Lyst trailerExtensions)
+{
+	char		*cursor;
+	int		bytesRemaining;
+	unsigned int	extensionOffset;
+	int		i;
+	int		result;
+
+	cursor = endOfHeader + pdu->contentLength;
+	bytesRemaining = pdu->trailerLength;
+	extensionOffset = pdu->headerLength + pdu->contentLength;
+	for (i = 0; i < pdu->trailerExtensionsCount; i++)
+	{
+		result = ltpei_parse_extension(&cursor, &bytesRemaining,
+				trailerExtensions, &extensionOffset);
+		if (result != 1)
+		{
+			return result;
+		}
+        }
+
+	return 1;
+}
 
 static int	startImportSession(Object spanObj, unsigned int sessionNbr,
 			ImportSession *sessionBuf, Object *sessionObj,
@@ -4005,6 +4248,18 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 		}
 
 		sdr_list_delete(ltpSdr, elt, NULL, NULL);
+		if (segment->pdu.headerExtensions)
+		{
+			sdr_list_destroy(ltpSdr, segment->pdu.headerExtensions,
+					ltpei_destroy_extension, NULL);
+		}
+
+		if (segment->pdu.trailerExtensions)
+		{
+			sdr_list_destroy(ltpSdr, segment->pdu.trailerExtensions,
+					ltpei_destroy_extension, NULL);
+		}
+
 		sdr_free(ltpSdr, segObj);
 	}
 
@@ -4095,10 +4350,13 @@ utoa(pdu->length));
 
 static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 			unsigned int sessionNbr, LtpRecvSeg *segment,
-			LtpPdu *pdu, char **cursor, int *bytesRemaining)
+			char **cursor, int *bytesRemaining,
+			Lyst headerExtensions, Lyst trailerExtensions)
 {
 	Sdr		ltpSdr = getIonsdr();
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
+	LtpPdu		*pdu = &(segment->pdu);
+	char		*endOfHeader;
 	unsigned int	ckptSerialNbr;
 	unsigned int	rptSerialNbr;
 	LtpVspan	*vspan;
@@ -4117,6 +4375,7 @@ static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 
 	/*	First finish parsing the segment.			*/
 
+	endOfHeader = *cursor;
 	extractSmallSdnv(&(pdu->clientSvcId), cursor, bytesRemaining);
 	extractSmallSdnv(&(pdu->offset), cursor, bytesRemaining);
 	extractSmallSdnv(&(pdu->length), cursor, bytesRemaining);
@@ -4128,15 +4387,15 @@ static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 		extractSmallSdnv(&rptSerialNbr, cursor, bytesRemaining);
 	}
 
-	/*	At this point, the remaining bytes should all be
-	 *	client service data.					*/
+	/*	Now we can determine whether or not the data segment
+	 *	is usable.						*/
 
 	CHKERR(sdr_begin_xn(ltpSdr));
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
 #if LTPDEBUG
-putErrmsg("Discarded data segment.", itoa(sessionNbr));
+putErrmsg("Discarded mystery data segment.", itoa(sessionNbr));
 #endif
 		/*	Segment is from an unknown engine, so we
 		 *	can't process it.				*/
@@ -4144,24 +4403,10 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		return sdr_end_xn(ltpSdr);
 	}
 
-	if (pdu->length > *bytesRemaining)
-	{
-#if LTPDEBUG
-putErrmsg("Discarded data segment.", itoa(sessionNbr));
-#endif
-		/*	Malformed segment: data length is overstated.
-		 *	Segment must be discarded.			*/
-
-		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
-		return sdr_end_xn(ltpSdr);
-	}
-
-	/*	Now process the data.					*/
-
 	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
-putErrmsg("Discarding stray segment.", itoa(sessionNbr));
+putErrmsg("Discarding stray data segment.", itoa(sessionNbr));
 #endif
 		/*	Segment is from an engine that is not supposed
 		 *	to be sending at this time, so we treat it as
@@ -4171,10 +4416,40 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		return sdr_end_xn(ltpSdr);
 	}
 
+	if (pdu->length > *bytesRemaining)
+	{
+#if LTPDEBUG
+putErrmsg("Discarded malformed data segment.", itoa(sessionNbr));
+#endif
+		/*	Malformed segment: data length is overstated.
+		 *	Segment must be discarded.			*/
+
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
+	}
+
+	/*	At this point, the remaining bytes should all be
+	 *	client service data and trailer extensions.  So
+	 *	next we parse the trailer extensions.			*/
+
+	pdu->contentLength = (*cursor - endOfHeader) + pdu->length;
+	pdu->trailerLength = *bytesRemaining - pdu->length;
+	switch (parseTrailerExtensions(endOfHeader, pdu, trailerExtensions))
+	{
+	case -1:	/*	No available memory.			*/
+		putErrmsg("Can't handle data segment.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Parsing error.				*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
+	}
+
 	if (sessionIsClosed(vspan, sessionNbr))
 	{
 #if LTPDEBUG
-putErrmsg("Discarding late segment.", itoa(sessionNbr));
+putErrmsg("Discarding late data segment.", itoa(sessionNbr));
 #endif
 		/*	Segment is for a session that is already
 		 *	closed, so we don't care about it.		*/
@@ -4182,6 +4457,22 @@ putErrmsg("Discarding late segment.", itoa(sessionNbr));
 		ltpSpanTally(vspan, IN_SEG_REDUNDANT, pdu->length);
 		return sdr_end_xn(ltpSdr);
 	}
+
+	switch (invokeInboundBeforeContentProcessingCallbacks(segment,
+			headerExtensions, trailerExtensions,
+			endOfHeader - pdu->headerLength, vspan))
+	{
+	case -1:	/*	System failure.				*/
+		putErrmsg("LTP extension callback failed.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Callback rejects the segment.		*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
+	}
+
+	/*	Now process the data.					*/
 
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
 	GET_OBJ_POINTER(ltpSdr, LtpSpan, span, spanObj);
@@ -4356,6 +4647,7 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 				putErrmsg("Can't handle data segment.", NULL);
 				return -1;
 			}
+
 			return 0;
 		}
 
@@ -4625,11 +4917,11 @@ char		buf[256];
 
 	/*	Compute length of segment's known overhead.		*/
 
-	segment.ohdLength = 1 + (_ltpConstants())->ownEngineIdSdnv.length
+	segment.pdu.headerLength = 1 + (_ltpConstants())->ownEngineIdSdnv.length
 			+ session->sessionNbrSdnv.length + 1;
-	segment.ohdLength += session->clientSvcIdSdnv.length;
+	segment.pdu.ohdLength = session->clientSvcIdSdnv.length;
 	encodeSdnv(&offsetSdnv, extent->offset);
-	segment.ohdLength += offsetSdnv.length;
+	segment.pdu.ohdLength += offsetSdnv.length;
 
 	/*	Determine length of segment.   Note that any single
 	 *	segmentation extent might encompass red data only,
@@ -4665,7 +4957,8 @@ char		buf[256];
 		/*	Compute worst-case segment size.		*/
 
 		encodeSdnv(&lengthSdnv, length);
-		dataSegmentOverhead = segment.ohdLength + lengthSdnv.length;
+		dataSegmentOverhead = segment.pdu.headerLength
+				+ segment.pdu.ohdLength + lengthSdnv.length;
 		checkpointOverhead = 0;
 
 		/*	In the worst case, this segment will be the
@@ -4750,7 +5043,8 @@ char		buf[256];
 
 		length = extent->length;
 		encodeSdnv(&lengthSdnv, length);
-		dataSegmentOverhead = segment.ohdLength + lengthSdnv.length;
+		dataSegmentOverhead = segment.pdu.headerLength +
+				segment.pdu.ohdLength + lengthSdnv.length;
 		worstCaseSegmentSize = length + dataSegmentOverhead;
 		if (worstCaseSegmentSize > span->maxSegmentSize)
 		{
@@ -4824,14 +5118,12 @@ char		buf[256];
 		}
 	}
 
-	segment.pdu.headerExtensionsCount = 0;
-	segment.pdu.trailerExtensionsCount = 0;
 	if (isCheckpoint)
 	{
 		segment.pdu.ckptSerialNbr = checkpointSerialNbr;
-		segment.ohdLength += cpsnSdnv.length;
+		segment.pdu.ohdLength += cpsnSdnv.length;
 		segment.pdu.rptSerialNbr = reportSerialNbr;
-		segment.ohdLength += rsnSdnv.length;
+		segment.pdu.ohdLength += rsnSdnv.length;
 		segment.ckptListElt = insertCheckpoint(session, &segment);
 		if (segment.ckptListElt == 0)
 		{
@@ -4847,8 +5139,20 @@ char		buf[256];
 	segment.pdu.offset = extent->offset;
 	segment.pdu.length = length;
 	encodeSdnv(&lengthSdnv, segment.pdu.length);
-	segment.ohdLength += lengthSdnv.length;
+	segment.pdu.ohdLength += lengthSdnv.length;
+	segment.pdu.contentLength = segment.pdu.ohdLength + segment.pdu.length;
+	segment.pdu.trailerLength = 0;
 	segment.pdu.block = session->svcDataObjects;
+	if (invokeOutboundOnHeaderExtensionGenerationCallbacks(&segment) < 0)
+	{
+		return -1;
+	}
+
+	if (invokeOutboundOnTrailerExtensionGenerationCallbacks(&segment) < 0)
+	{
+		return -1;
+	}
+
 	sdr_write(ltpSdr, segmentObj, (char *) &segment, sizeof(LtpXmitSeg));
 	signalLso(span->engineId);
 #if LTPDEBUG
@@ -4958,12 +5262,13 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 }
 
 static int	handleRS(LtpDB *ltpdb, unsigned int sessionNbr,
-			LtpRecvSeg *segment, LtpPdu *pdu, char **cursor,
-			int *bytesRemaining)
+			LtpRecvSeg *segment, char **cursor, int *bytesRemaining,			Lyst headerExtensions, Lyst trailerExtensions)
 {
 	Sdr			ltpSdr = getIonsdr();
 	LtpVdb			*ltpvdb = _ltpvdb(NULL);
+	LtpPdu			*pdu = &(segment->pdu);
 	int			ltpMemIdx = getIonMemoryMgr();
+	char			*endOfHeader;
 	unsigned int		rptSerialNbr;
 	unsigned int		ckptSerialNbr;
 	unsigned int		rptUpperBound;
@@ -5001,6 +5306,7 @@ putErrmsg("Handling report.", utoa(sessionNbr));
 	 *	reception claims in the report into an array of new
 	 *	claims.							*/
 
+	endOfHeader = *cursor;
 	extractSmallSdnv(&rptSerialNbr, cursor, bytesRemaining);
 	extractSmallSdnv(&ckptSerialNbr, cursor, bytesRemaining);
 	extractSmallSdnv(&rptUpperBound, cursor, bytesRemaining);
@@ -5027,16 +5333,35 @@ putErrmsg("Discarding report.", NULL);
 		return 0;		/*	Ignore report.		*/
 	}
 
-	/*	Acknowledge the report if possible.			*/
+	/*	Now determine whether or not the RS is usable.		*/
 
 	CHKERR(sdr_begin_xn(ltpSdr));
 	getSessionContext(ltpdb, sessionNbr, &sessionObj,
 			&sessionBuf, &spanObj, &spanBuf, &vspan, &vspanElt);
 	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
 	{
-		sdr_exit_xn(ltpSdr);
 		MRELEASE(newClaims);
+		sdr_exit_xn(ltpSdr);
 		return 0;
+	}
+
+	/*	At this point, the remaining bytes should all be
+	 *	trailer extensions.  We now parse them.			*/
+
+	pdu->contentLength = (*cursor - endOfHeader);
+	pdu->trailerLength = *bytesRemaining;
+	switch (parseTrailerExtensions(endOfHeader, pdu, trailerExtensions))
+	{
+	case -1:	/*	No available memory.			*/
+		putErrmsg("Can't handle report segment.", NULL);
+		MRELEASE(newClaims);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Parsing error.				*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		MRELEASE(newClaims);
+		return sdr_end_xn(ltpSdr);
 	}
 
 	if (sessionObj == 0)
@@ -5052,17 +5377,35 @@ putErrmsg("Discarding report.", NULL);
 		 *	cause the session to fail and be canceled
 		 *	by receiver -- exactly the correct result.	*/
 
-		sdr_exit_xn(ltpSdr);
 		MRELEASE(newClaims);
+		sdr_exit_xn(ltpSdr);
 		return 0;
 	}
+
+	switch (invokeInboundBeforeContentProcessingCallbacks(segment,
+			headerExtensions, trailerExtensions,
+			endOfHeader - pdu->headerLength, vspan))
+	{
+	case -1:	/*	System failure.				*/
+		putErrmsg("LTP extension callback failed.", NULL);
+		MRELEASE(newClaims);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Callback rejects the segment.		*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		MRELEASE(newClaims);
+		return sdr_end_xn(ltpSdr);
+	}
+
+	/*	Acknowledge the report if possible.			*/
 
 	if (constructReportAckSegment(&spanBuf, spanObj, sessionNbr,
 			rptSerialNbr))
 	{
 		putErrmsg("Can't send RA segment.", NULL);
-		sdr_cancel_xn(ltpSdr);
 		MRELEASE(newClaims);
+		sdr_cancel_xn(ltpSdr);
 		return -1;
 	}
 
@@ -5444,9 +5787,12 @@ putErrmsg(buf, itoa(sessionBuf.sessionNbr));
 
 static int	handleRA(uvast sourceEngineId, LtpDB *ltpdb,
 			unsigned int sessionNbr, LtpRecvSeg *segment,
-			LtpPdu *pdu, char **cursor, int *bytesRemaining)
+			char **cursor, int *bytesRemaining,
+			Lyst headerExtensions, Lyst trailerExtensions)
 {
 	Sdr		ltpSdr = getIonsdr();
+	LtpPdu		*pdu = &(segment->pdu);
+	char		*endOfHeader;
 	unsigned int	rptSerialNbr;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
@@ -5459,8 +5805,10 @@ static int	handleRA(uvast sourceEngineId, LtpDB *ltpdb,
 #if LTPDEBUG
 putErrmsg("Handling report ack.", utoa(sessionNbr));
 #endif
+
 	/*	First finish parsing the segment.			*/
 
+	endOfHeader = *cursor;
 	extractSmallSdnv(&rptSerialNbr, cursor, bytesRemaining);
 
 	/*	Report is being acknowledged.				*/
@@ -5486,9 +5834,40 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		return 0;
 	}
 
+	/*	At this point, the remaining bytes should all be
+	 *	trailer extensions.  We now parse them.			*/
+
+	pdu->contentLength = (*cursor - endOfHeader);
+	pdu->trailerLength = *bytesRemaining;
+	switch (parseTrailerExtensions(endOfHeader, pdu, trailerExtensions))
+	{
+	case -1:	/*	No available memory.			*/
+		putErrmsg("Can't handle report ack.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Parsing error.				*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
+	}
+
 	getImportSession(vspan, sessionNbr, NULL, &sessionObj);
 	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
 	{
+		return sdr_end_xn(ltpSdr);
+	}
+
+	switch (invokeInboundBeforeContentProcessingCallbacks(segment,
+			headerExtensions, trailerExtensions,
+			endOfHeader - pdu->headerLength, vspan))
+	{
+	case -1:	/*	System failure.				*/
+		putErrmsg("LTP extension callback failed.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Callback rejects the segment.		*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
 		return sdr_end_xn(ltpSdr);
 	}
 
@@ -5538,10 +5917,13 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 
 static int	handleCS(uvast sourceEngineId, LtpDB *ltpdb,
 			unsigned int sessionNbr, LtpRecvSeg *segment,
-			LtpPdu *pdu, char **cursor, int *bytesRemaining)
+			char **cursor, int *bytesRemaining,
+			Lyst headerExtensions, Lyst trailerExtensions)
 {
 	Sdr		ltpSdr = getIonsdr();
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
+	LtpPdu		*pdu = &(segment->pdu);
+	char		*endOfHeader;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	Object		spanObj;
@@ -5549,9 +5931,12 @@ static int	handleCS(uvast sourceEngineId, LtpDB *ltpdb,
 	Object		sessionObj;
 			OBJ_POINTER(ImportSession, session);
 
+	endOfHeader = *cursor;
+
 #if LTPDEBUG
 putErrmsg("Handling cancel by sender.", utoa(sessionNbr));
 #endif
+
 	/*	Source of block is requesting cancellation of session.	*/
 
 	CHKERR(sdr_begin_xn(ltpSdr));
@@ -5576,6 +5961,37 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 
 		sdr_exit_xn(ltpSdr);
 		return 0;
+	}
+
+	/*	At this point, the remaining bytes should all be
+	 *	trailer extensions.  We now parse them.			*/
+
+	pdu->contentLength = (*cursor - endOfHeader);
+	pdu->trailerLength = *bytesRemaining;
+	switch (parseTrailerExtensions(endOfHeader, pdu, trailerExtensions))
+	{
+	case -1:	/*	No available memory.			*/
+		putErrmsg("Can't handle cancel by sender.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Parsing error.				*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
+	}
+
+	switch (invokeInboundBeforeContentProcessingCallbacks(segment,
+			headerExtensions, trailerExtensions,
+			endOfHeader - pdu->headerLength, vspan))
+	{
+	case -1:	/*	System failure.				*/
+		putErrmsg("LTP extension callback failed.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Callback rejects the segment.		*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
 	}
 
 	spanObj = sdr_list_data(ltpSdr, vspan->spanElt);
@@ -5628,25 +6044,74 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 }
 
 static int	handleCAS(LtpDB *ltpdb, unsigned int sessionNbr,
-			LtpRecvSeg *segment, LtpPdu *pdu, char **cursor,
-			int *bytesRemaining)
+			LtpRecvSeg *segment, char **cursor, int *bytesRemaining,
+			Lyst headerExtensions, Lyst trailerExtensions)
 {
 	Sdr		ltpSdr = getIonsdr();
+	LtpPdu		*pdu = &(segment->pdu);
+	char		*endOfHeader;
 	Object		sessionObj;
+	ExportSession	sessionBuf;
+	Object		spanObj;
+	LtpSpan		spanBuf;
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
 	Object		sessionElt;
+
+	endOfHeader = *cursor;
 
 #if LTPDEBUG
 putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 #endif
+
 	/*	Destination of block is acknowledging source's
 	 *	cancellation of session.				*/
 
 	CHKERR(sdr_begin_xn(ltpSdr));
+	getSessionContext(ltpdb, sessionNbr, &sessionObj, &sessionBuf,
+			&spanObj, &spanBuf, &vspan, &vspanElt);
+	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
+	{
+		sdr_exit_xn(ltpSdr);
+		return 0;
+	}
+
+	/*	At this point, the remaining bytes should all be
+	 *	trailer extensions.  We now parse them.			*/
+
+	pdu->contentLength = (*cursor - endOfHeader);
+	pdu->trailerLength = *bytesRemaining;
+	switch (parseTrailerExtensions(endOfHeader, pdu, trailerExtensions))
+	{
+	case -1:	/*	No available memory.			*/
+		putErrmsg("Can't handle sender cancel ack.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Parsing error.				*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
+	}
+
 	getCanceledExport(sessionNbr, &sessionObj, &sessionElt);
 	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
 	{
 		sdr_exit_xn(ltpSdr);
 		return 0;
+	}
+
+	switch (invokeInboundBeforeContentProcessingCallbacks(segment,
+			headerExtensions, trailerExtensions,
+			endOfHeader - pdu->headerLength, vspan))
+	{
+	case -1:	/*	System failure.				*/
+		putErrmsg("LTP extension callback failed.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Callback rejects the segment.		*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
 	}
 
 	cancelEvent(LtpResendXmitCancel, 0, sessionNbr, 0);
@@ -5666,12 +6131,14 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 }
 
 static int	handleCR(LtpDB *ltpdb, unsigned int sessionNbr,
-			LtpRecvSeg *segment, LtpPdu *pdu, char **cursor,
-			int *bytesRemaining)
+			LtpRecvSeg *segment, char **cursor, int *bytesRemaining,
+			Lyst headerExtensions, Lyst trailerExtensions)
 {
 	Sdr		ltpSdr = getIonsdr();
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
 	Object		dbobj = getLtpDbObject();
+	LtpPdu		*pdu = &(segment->pdu);
+	char		*endOfHeader;
 	LtpDB		db;
 	Object		sessionObj;
 	ExportSession	sessionBuf;
@@ -5682,9 +6149,12 @@ static int	handleCR(LtpDB *ltpdb, unsigned int sessionNbr,
 	Object		elt;
 	Object		sdu;	/*	A ZcoRef object.		*/
 
+	endOfHeader = *cursor;
+
 #if LTPDEBUG
 putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 #endif
+
 	/*	Destination of block is requesting cancellation of
 	 *	session.						*/
 
@@ -5695,6 +6165,37 @@ putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 	{
 		sdr_exit_xn(ltpSdr);
 		return 0;
+	}
+
+	/*	At this point, the remaining bytes should all be
+	 *	trailer extensions.  We now parse them.			*/
+
+	pdu->contentLength = (*cursor - endOfHeader);
+	pdu->trailerLength = *bytesRemaining;
+	switch (parseTrailerExtensions(endOfHeader, pdu, trailerExtensions))
+	{
+	case -1:	/*	No available memory.			*/
+		putErrmsg("Can't handle cancel by receiver.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Parsing error.				*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
+	}
+
+	switch (invokeInboundBeforeContentProcessingCallbacks(segment,
+			headerExtensions, trailerExtensions,
+			endOfHeader - pdu->headerLength, vspan))
+	{
+	case -1:	/*	System failure.				*/
+		putErrmsg("LTP extension callback failed.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Callback rejects the segment.		*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
 	}
 
 	/*	Acknowledge the cancellation request.			*/
@@ -5766,9 +6267,12 @@ notice.", NULL);
 
 static int	handleCAR(uvast sourceEngineId, LtpDB *ltpdb,
 			unsigned int sessionNbr, LtpRecvSeg *segment,
-			LtpPdu *pdu, char **cursor, int *bytesRemaining)
+			char **cursor, int *bytesRemaining,
+			Lyst headerExtensions, Lyst trailerExtensions)
 {
 	Sdr		ltpSdr = getIonsdr();
+	LtpPdu		*pdu = &(segment->pdu);
+	char		*endOfHeader;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	Object		sessionObj;
@@ -5776,9 +6280,12 @@ static int	handleCAR(uvast sourceEngineId, LtpDB *ltpdb,
 			OBJ_POINTER(LtpSpan, span);
 			OBJ_POINTER(ImportSession, session);
 
+	endOfHeader = *cursor;
+
 #if LTPDEBUG
 putErrmsg("Handling ack of cancel by receiver.", utoa(sessionNbr));
 #endif
+
 	/*	Source of block is acknowledging destination's
 	 *	cancellation of session.				*/
 
@@ -5803,9 +6310,40 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		return 0;
 	}
 
+	/*	At this point, the remaining bytes should all be
+	 *	trailer extensions.  We now parse them.			*/
+
+	pdu->contentLength = (*cursor - endOfHeader);
+	pdu->trailerLength = *bytesRemaining;
+	switch (parseTrailerExtensions(endOfHeader, pdu, trailerExtensions))
+	{
+	case -1:	/*	No available memory.			*/
+		putErrmsg("Can't handle receiver cancel ack.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Parsing error.				*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
+		return sdr_end_xn(ltpSdr);
+	}
+
 	getCanceledImport(vspan, sessionNbr, &sessionObj, &sessionElt);
 	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
 	{
+		return sdr_end_xn(ltpSdr);
+	}
+
+	switch (invokeInboundBeforeContentProcessingCallbacks(segment,
+			headerExtensions, trailerExtensions,
+			endOfHeader - pdu->headerLength, vspan))
+	{
+	case -1:	/*	System failure.				*/
+		putErrmsg("LTP extension callback failed.", NULL);
+		sdr_cancel_xn(ltpSdr);
+		return -1;
+
+	case 0:		/*	Callback rejects the segment.		*/
+		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
 		return sdr_end_xn(ltpSdr);
 	}
 
@@ -5829,56 +6367,22 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	return 1;
 }
 
-static int	ignoreHeaderExtensions(int extensionsCount, char **cursor,
-			int *bytesRemaining)
-{
-	unsigned int	extensionLength;
-
-	while (extensionsCount > 0)
-	{
-		/*	Skip over extension's tag.			*/
-
-		if (*bytesRemaining < 1)
-		{
-			return -1;
-		}
-
-		(*cursor)++;
-		(*bytesRemaining)--;
-
-		/*	Get extension's length.				*/
-
-		extractSmallSdnv(&extensionLength, cursor, bytesRemaining);
-
-		/*	Skip over extension's value.			*/
-
-		if (*bytesRemaining < extensionLength)
-		{
-			return -1;
-		}
-
-		(*cursor) += extensionLength;
-		(*bytesRemaining) -= extensionLength;
-
-		/*	Have successfully ignored this extension.	*/
-
-		extensionsCount--;
-	}
-
-	return 0;
-}
-
 int	ltpHandleInboundSegment(char *buf, int length)
 {
+	Sdr		sdr;
 	LtpRecvSeg	segment;
 	LtpPdu		*pdu = &segment.pdu;
 	char		*cursor = buf;
 	int		bytesRemaining = length;
 	uvast		sourceEngineId;
 	unsigned int	sessionNbr;
-	unsigned int	extensionLengths;
-	Sdr		sdr;
+	unsigned int	extensionCounts;
+	Lyst		headerExtensions;
+	Lyst		trailerExtensions;
+	unsigned int	extensionOffset;
+	int		i;
 			OBJ_POINTER(LtpDB, ltpdb);
+	int		result = 0;
 
 	CHKERR(buf);
 	CHKERR(length > 0);
@@ -5895,30 +6399,43 @@ int	ltpHandleInboundSegment(char *buf, int length)
 	extractSdnv(&sourceEngineId, &cursor, &bytesRemaining);
 	extractSmallSdnv(&sessionNbr, &cursor, &bytesRemaining);
 
-	/*	Get lengths of header and trailer extensions.		*/
+	/*	Get counts of header and trailer extensions.		*/
 
-	extensionLengths = *cursor;
+	extensionCounts = *cursor;
+	pdu->headerExtensionsCount = (extensionCounts >> 4) & 0x0f;
+	pdu->trailerExtensionsCount = extensionCounts & 0x0f;
 	cursor++;
 	bytesRemaining--;
-	if (extensionLengths != 0)
+	if ((headerExtensions = lyst_create_using(getIonMemoryMgr())) == NULL)
 	{
-		if (ignoreHeaderExtensions((extensionLengths >> 4) & 0x0f,
-				&cursor, &bytesRemaining) < 0)
-		{
-#if LTPDEBUG
-			writeMemoNote("[?] LTP segment extensions malformed, \
-segment discarded", itoa(extensionLengths));
-#endif
-			return 0;	/*	Ignore the segment.	*/
-		}
-#if LTPDEBUG
-		else
-		{
-			writeMemoNote("[?] LTP segment extensions ignored",
-					itoa(extensionLengths));
-		}
-#endif
+		return -1;
 	}
+
+	if ((trailerExtensions = lyst_create_using(getIonMemoryMgr())) == NULL)
+	{
+		lyst_destroy(headerExtensions);
+		return -1;
+	}
+
+	extensionOffset = cursor - buf;
+	for (i = 0; i < pdu->headerExtensionsCount; i++)
+	{
+		switch (ltpei_parse_extension(&cursor, &bytesRemaining,
+				headerExtensions, &extensionOffset))
+		{
+		case -1:
+			ltpei_discard_extensions(headerExtensions);
+			ltpei_discard_extensions(trailerExtensions);
+			return -1;	/*	System failure.		*/
+
+		case 0:
+			ltpei_discard_extensions(headerExtensions);
+			ltpei_discard_extensions(trailerExtensions);
+			return 0;	/*	Ignore segment.		*/
+		}
+        }
+
+	pdu->headerLength = cursor - buf;
 
 	/*	Handle segment according to its segment type code.	*/
 
@@ -5928,48 +6445,65 @@ segment discarded", itoa(extensionLengths));
 		fflush(stdout);
 	}
 
-	sdr = getIonsdr();
-	CHKERR(sdr_begin_xn(sdr));
-	GET_OBJ_POINTER(getIonsdr(), LtpDB, ltpdb, _ltpdbObject(NULL));
+	sdr_begin_xn((sdr = getIonsdr()));
+	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, _ltpdbObject(NULL));
 	sdr_exit_xn(sdr);
 	if ((pdu->segTypeCode & LTP_CTRL_FLAG) == 0)	/*	Data.	*/
 	{
-		return handleDataSegment(sourceEngineId, ltpdb, sessionNbr,
-				&segment, pdu, &cursor, &bytesRemaining);
+		result = handleDataSegment(sourceEngineId, ltpdb, sessionNbr,
+				&segment, &cursor, &bytesRemaining,
+				headerExtensions, trailerExtensions);
 	}
-
-	/*	Segment is a control segment.				*/
- 
-	switch (pdu->segTypeCode)
+	else
 	{
-	case LtpRS:
-		return handleRS(ltpdb, sessionNbr,
-				&segment, pdu, &cursor, &bytesRemaining);
+		/*	Segment is a control segment.			*/
+ 
+		switch (pdu->segTypeCode)
+		{
+		case LtpRS:
+			result = handleRS(ltpdb, sessionNbr,
+					&segment, &cursor, &bytesRemaining,
+					headerExtensions, trailerExtensions);
+			break;
 
-	case LtpRAS:
-		return handleRA(sourceEngineId, ltpdb, sessionNbr,
-				&segment, pdu, &cursor, &bytesRemaining);
+		case LtpRAS:
+			result = handleRA(sourceEngineId, ltpdb, sessionNbr,
+					&segment, &cursor, &bytesRemaining,
+					headerExtensions, trailerExtensions);
+			break;
 
-	case LtpCS:
-		return handleCS(sourceEngineId, ltpdb, sessionNbr,
-				&segment, pdu, &cursor, &bytesRemaining);
+		case LtpCS:
+			result = handleCS(sourceEngineId, ltpdb, sessionNbr,
+					&segment, &cursor, &bytesRemaining,
+					headerExtensions, trailerExtensions);
+			break;
 
-	case LtpCAS:
-		return handleCAS(ltpdb, sessionNbr,
-				&segment, pdu, &cursor, &bytesRemaining);
+		case LtpCAS:
+			result = handleCAS(ltpdb, sessionNbr,
+					&segment, &cursor, &bytesRemaining,
+					headerExtensions, trailerExtensions);
+			break;
 
-	case LtpCR:
-		return handleCR(ltpdb, sessionNbr,
-				&segment, pdu, &cursor, &bytesRemaining);
+		case LtpCR:
+			result = handleCR(ltpdb, sessionNbr,
+					&segment, &cursor, &bytesRemaining,
+					headerExtensions, trailerExtensions);
+			break;
 
-	case LtpCAR:
-		return handleCAR(sourceEngineId, ltpdb, sessionNbr,
-				&segment, pdu, &cursor, &bytesRemaining);
-	default:
-		break;
+		case LtpCAR:
+			result = handleCAR(sourceEngineId, ltpdb, sessionNbr,
+					&segment, &cursor, &bytesRemaining,
+					headerExtensions, trailerExtensions);
+			break;
+
+		default:
+			break;
+		}
 	}
 
-	return 0;		/*	Ignore the segment.		*/
+	ltpei_discard_extensions(headerExtensions);
+	ltpei_discard_extensions(trailerExtensions);
+	return result;		/*	Ignore the segment.		*/
 }
 
 /*	*	*	Functions that respond to events	*	*/
