@@ -707,20 +707,32 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	pthread_mutex_lock(&tcpSap->sendPoolMutex);
 	if (tcpSap->firstInSendPool != tsep)
 	{
-		tsep->prev->next = tsep->next;
-		if (tsep->next)
+		if (tsep->prev == NULL)
 		{
-			tsep->next->prev = tsep->prev;
+			/*	Apparently this can happen; don't
+			 *	know how.  A race condition, somewhere,
+			 *	that is not yet tracked down.		*/
+
+			putErrmsg("tcpts sender pool corrupted; continuing.",
+					NULL);
 		}
 		else
 		{
-			tcpSap->lastInSendPool = tsep->prev;
-		}
+			tsep->prev->next = tsep->next;
+			if (tsep->next)
+			{
+				tsep->next->prev = tsep->prev;
+			}
+			else
+			{
+				tcpSap->lastInSendPool = tsep->prev;
+			}
 
-		tsep->next = tcpSap->firstInSendPool;
-		tsep->prev = NULL;
-		tcpSap->firstInSendPool->prev = tsep;
-		tcpSap->firstInSendPool = tsep;
+			tsep->next = tcpSap->firstInSendPool;
+			tsep->prev = NULL;
+			tcpSap->firstInSendPool->prev = tsep;
+			tcpSap->firstInSendPool = tsep;
+		}
 	}
 
 	pthread_mutex_unlock(&tcpSap->sendPoolMutex);
