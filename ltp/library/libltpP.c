@@ -5875,6 +5875,7 @@ static int	ignoreHeaderExtensions(int extensionsCount, char **cursor,
 int	ltpHandleInboundSegment(char *buf, int length)
 {
 	LtpRecvSeg	segment;
+	char		versionNbr;
 	LtpPdu		*pdu = &segment.pdu;
 	char		*cursor = buf;
 	int		bytesRemaining = length;
@@ -5888,7 +5889,13 @@ int	ltpHandleInboundSegment(char *buf, int length)
 	CHKERR(length > 0);
 	memset((char *) &segment, 0, sizeof(LtpRecvSeg));
 
-	/*	Get segment type (flags).  Ignore version number.	*/
+	/*	Get version number and segment type.			*/
+
+	versionNbr = ((*cursor) >> 4) & 0x0f;
+	if (versionNbr != 0)
+	{
+		return 0;		/*	Ignore the segment.	*/
+	}
 
 	pdu->segTypeCode = (*cursor) & 0x0f;
 	cursor++;
