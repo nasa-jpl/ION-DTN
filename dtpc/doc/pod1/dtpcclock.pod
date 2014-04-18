@@ -39,13 +39,13 @@ its aggregation time limit.
 
 =over 4
 
-=item 0
+=item C<0>
 
 B<dtpcclock> terminated, for reasons noted in the B<ion.log> file.  If this
 termination was not commanded, investigate and solve the problem identified
 in the log file and use B<dtpcadmin> to restart B<dtpcclock>.
 
-=item 1
+=item C<1>
 
 B<dtpcclock> was unable to attach to DTPC protocol operations, probably because
 B<dtpcadmin> has not yet been run.
