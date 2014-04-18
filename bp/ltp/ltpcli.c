@@ -127,8 +127,16 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 
 	if (offset > currentOffset)
 	{
-		/*	Must insert fill data -- partial loss of
-		 *	bundle payload, for example, may be okay.	*/
+		/*	Convergence layer must not deliver incomplete
+		 *	bundles to BP.  Practically speaking, this
+		 *	gap in segment sequence must be treated as
+		 *	malformation of the bundle.			*/
+
+		work->malformed = 1;
+
+		/*	But continue bundle acquisition anyway, in
+		 *	case the incomplete bundle is useful for some
+		 *	diagnostic purpose.				*/
 
 		fillLength = offset - currentOffset;
 		if (fillLength > *buflen)
