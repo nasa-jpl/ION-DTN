@@ -55,7 +55,7 @@ extern int	sda_run(SdaDelimiterFn delimiter, SdaHandlerFn handler);
 		/*	sda_run executes an infinite loop that receives
 		 *	client service data blocks, calls "delimiter"
 		 *	to determine the length of each client service
-		 *	data item in each lock, and passes those client
+		 *	data item in each block, and passes those client
 		 *	service data items to the handler function.  To
 		 *	terminate the loop, call sda_interrupt().  Note
 		 *	that sda_send() can only be executed while the

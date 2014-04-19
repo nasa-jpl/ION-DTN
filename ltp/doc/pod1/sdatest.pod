@@ -1,0 +1,60 @@
+=head1 NAME
+
+sdatest - LTP service data aggreggation test program
+
+=head1 SYNOPSIS
+
+B<sdatest> [I<remoteEngineNbr>]
+
+=head1 DESCRIPTION
+
+B<sdatest> tests LTP service data aggregation (SDA).
+
+Each instance of the program can run either as a sender and receiver or as a
+receiver only.  For sending, B<sdatest> starts a background thread that offers
+a command-line prompt and accepts strings of text for transmission.  It uses
+SDA to aggregate the strings into LTP service data items for LTP client ID 2,
+which is SDA.  The strings (SDA data units) are delimited by terminating NULLs,
+and they are all identified by SDA client ID number 135.
+
+For reception, B<sdatest> listens for LTP traffic for client 2.  When it
+receives an LTP Service data item (in an LTP block), it parses out all of
+the SDA data units aggregated in that data item and prints them to stdout.
+
+Use ^C to terminate B<sdatest>.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<sdatest> has terminated.  Any problems encountered during operation
+will be noted in the B<ion.log> log file.
+
+=item "1"
+
+B<sdatest> was unable to start.  See the B<ion.log> file for details.
+
+=back
+
+=head1 FILES
+
+No files are used by sdatest.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<sdatest> are written to the ION log
+file I<ion.log>.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+sda(3)

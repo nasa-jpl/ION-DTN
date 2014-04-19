@@ -159,12 +159,11 @@ static int	run_sdatest(uvast destEngineId)
 int	sdatest(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	unsigned int	sdaItemLength = a1;
-	uvast		destEngineId = (uvast) a2;
+	uvast	destEngineId = (uvast) a1;
 #else
 int	main(int argc, char **argv)
 {
-	uvast		destEngineId = 0;
+	uvast	destEngineId = 0;
 
 	if (argc > 2) argc = 2;
 	switch (argc)
