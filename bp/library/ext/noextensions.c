@@ -68,5 +68,5 @@ static ExtensionDef	extensionDefs[] =
 
 static ExtensionSpec	extensionSpecs[] =
 			{
-				{ 0,0,0,0,0,0 }
+				{ 0,0,0,0,0 }
 			};

@@ -71,6 +71,7 @@
 typedef struct
 {
 	unsigned char	type;		/**	Per definitions array.	*/
+	unsigned char	occurrence;	/**	Sequential count.	*/
 	unsigned short	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
@@ -81,10 +82,9 @@ typedef struct
 
 	/*	Internally significant data for block production.	*/
 
-	unsigned char	tag1;		/**	Subtype			*/
-	unsigned char	tag2;		/**	Sub-subtype		*/
-	unsigned char	tag3;		/**	Sub-sub-subtype		*/
-	unsigned char	occurrence;	/**	0: first, 1: last	*/
+	unsigned char	tag1;		/**	Extension-specific.	*/
+	unsigned char	tag2;		/**	Extension-specific.	*/
+	unsigned char	tag3;		/**	Extension-specific.	*/
 	unsigned short	rank;		/**	Order within spec array.*/
 	int		suppressed;	/**	If suppressed.          */
 } ExtensionBlock;
@@ -103,6 +103,7 @@ typedef struct
 typedef struct
 {
 	unsigned char	type;		/**	Per definitions array.	*/
+	unsigned char	occurrence;	/**	Sequential count.	*/
 	unsigned short	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
@@ -164,18 +165,15 @@ typedef struct
  * ExtensionSpec provides the specification for producing an outbound
  * extension block: block definition (identified by block type number),
  * three discriminator tags whose semantics are block-type-specific,
- * block occurrence number (0 for First or Only occurrence of this
- * type of block, 1 for Last occurrence), and list index, indicating
- * whether the extension block is to be inserted before or after the
- * Payload block.
+ * and list index, indicating whether the extension block is to be
+ * inserted before or after the Payload block.
  */
 typedef struct
 {
 	unsigned char		type;		/** Block type		*/
-	unsigned char		tag1;		/** Subtype		*/
-	unsigned char		tag2;		/** Sub-subtype		*/
-	unsigned char		tag3;		/** Sub-sub-subtype	*/
-	unsigned char		occurrence;	/** 0: first, 1: last	*/
+	unsigned char		tag1;		/** Extension-specific	*/
+	unsigned char		tag2;		/** Extension-specific	*/
+	unsigned char		tag3;		/** Extension-specific	*/
 	unsigned char		listIdx;	/** Location in bundle	*/
 } ExtensionSpec;
 
@@ -201,7 +199,7 @@ extern int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
  */
 
 extern int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle);
-void		deleteExtensionBlock(Object elt, unsigned int listIdx);
+void		deleteExtensionBlock(Object elt, int *lengthsTotal);
 void		destroyExtensionBlocks(Bundle *bundle);
 
 /**
@@ -210,7 +208,9 @@ void		destroyExtensionBlocks(Bundle *bundle);
  * \retval Object - The discovered block.
  * \param[in]  bundle  - The bundle holding the desired block.
  * \param[in]  type    - The block identifier desired.
- * \param[in]  idx 	   - Search before or after the payload.
+ * \param[in]  tag1    - A discriminator indicating the role of the block.
+ * \param[in]  tag2    - A discriminator indicating the role of the block.
+ * \param[in]  tag3    - A discriminator indicating the role of the block.
  * \par Notes:
  * \par Revision History:
  *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
@@ -218,8 +218,8 @@ void		destroyExtensionBlocks(Bundle *bundle);
  *            S. Burleigh		   Initial Implementation
  */
 extern Object	findExtensionBlock(Bundle *bundle, unsigned int type,
-			unsigned int tag1, unsigned int tag2,
-			unsigned int tag3, unsigned int occurrence);
+			unsigned char tag1, unsigned char tag2,
+			unsigned char tag3);
 
 extern int	insertExtensionBlock(ExtensionSpec *spec,
 			ExtensionBlock *newBlk, Object blkAddr,
@@ -292,7 +292,7 @@ extern int	acquireExtensionBlock(AcqWorkArea *wk, ExtensionDef *def,
 extern int	decryptPerExtensionBlocks(AcqWorkArea *wk);
 extern int	parseExtensionBlocks(AcqWorkArea *wk);
 extern int	checkPerExtensionBlocks(AcqWorkArea *wk);
-extern void	deleteAcqExtBlock(LystElt elt, unsigned int listIdx);
+extern void	deleteAcqExtBlock(LystElt elt);
 
 /**
  * \par Function Name: discardExtensionBlock
@@ -307,8 +307,7 @@ extern void	deleteAcqExtBlock(LystElt elt, unsigned int listIdx);
  */
 extern void	discardExtensionBlock(AcqExtBlock *blk);
 extern LystElt	findAcqExtensionBlock(AcqWorkArea *wk, unsigned int type,
-			unsigned int tag1, unsigned int tag2,
-			unsigned int tag3, unsigned int occurrence);
+			unsigned int occurrence);
 extern int	recordExtensionBlocks(AcqWorkArea *wk);
 
 /*	Functions that operate on extension block definitions		*/
@@ -322,8 +321,7 @@ ExtensionDef	*findExtensionDef(unsigned char type);
 extern void	getExtensionSpecs(ExtensionSpec **array, int *count);
 extern
 ExtensionSpec	*findExtensionSpec(unsigned char type, unsigned char tag1,
-			unsigned char tag2, unsigned char tag3,
-			unsigned char occurrence);
+			unsigned char tag2, unsigned char tag3);
 
 /*	Functions that operate on collaboration blocks			*/
 

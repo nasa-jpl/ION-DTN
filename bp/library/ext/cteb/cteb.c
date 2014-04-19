@@ -310,20 +310,14 @@ static int loadCtebScratchpadFromWm(Bundle *bundle, AcqWorkArea *work,
 static int loadCtebScratchpadFromSdr(Sdr sdr, Bundle *bundle, AcqWorkArea *work,
 			CtebScratchpad *cteb)
 {
-	int				beforeOrAfter;
 	Object          extElt = 0;
-	Object			blkAddr;
+	Object		blkAddr;
 	ExtensionBlock  blk;
 
 	assert(sdr_in_xn(sdr) != 0);
 
 	/* Find the first CTEB in the bundle. */
-	for (beforeOrAfter = 0; beforeOrAfter < 2 && extElt == 0;
-			beforeOrAfter++)
-	{
-		extElt = findExtensionBlock(bundle, EXTENSION_TYPE_CTEB,
-				beforeOrAfter);
-	}
+	extElt = findExtensionBlock(bundle, EXTENSION_TYPE_CTEB, 0, 0, 0);
 
 	if (extElt == 0)
 	{

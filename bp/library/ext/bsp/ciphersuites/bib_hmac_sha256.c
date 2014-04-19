@@ -17,19 +17,18 @@
 
 int	bib_hmac_sha256_construct(ExtensionBlock *blk, BspOutboundBlock *asb)
 {
-	asb->ciphersuiteType = BSP_CTYPE_BIB_HMAC_SHA256;
-	asb.ciphersuiteFlags = BSP_ASB_RES;
+	asb->ciphersuiteType = BSP_CSTYPE_BIB_HMAC_SHA256;
+	asb->ciphersuiteFlags = BSP_ASB_RES;
 
-	/*	Result length 34 is the length of a
-	 *	type/length/value triplet: length of result
-	 *	information item type (1) plus length of the
-	 *	length of the security result (the length of
-	 *	an SDNV large enough to contain the length of
- 	*	the result, i.e., 1) plus the length of the
-	*	result itself (BIB_HMAC_SHA256_RESULT_LEN = 32).	*/
+	/*	Result length 34 is the length of a type/length/value
+	 *	triplet: length of result information item type (1)
+	 *	plus length of the length of the security result (the
+	 *	length of an SDNV large enough to contain the length
+	 *	of the result, i.e., 1) plus the length of the result
+	 *	itself (BIB_HMAC_SHA256_RESULT_LEN = 32).		*/
 
-	asb->resultsLength = 34; 
-	asb->parmsLength = 0;
+	asb->resultsLen = 34; 
+	asb->parmsLen = 0;
 	asb->parmsData = 0;
 	asb->resultsData = 0;
 	return 0;
@@ -52,8 +51,9 @@ int	bib_hmac_sha256_construct(ExtensionBlock *blk, BspOutboundBlock *asb)
  * \par Notes:
  *****************************************************************************/
 
-static unsigned char	*computePayloadDigest(Object dataObj, char *keyValue,
-				unsigned int keyLen, unsigned int *hashLen)
+static unsigned char	*computePayloadDigest(Object dataObj,
+				unsigned char *keyValue, unsigned int keyLen,
+				unsigned int *hashLen)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned char	*hashData = NULL;
@@ -173,9 +173,8 @@ int	bib_hmac_sha256_sign(Bundle *bundle, ExtensionBlock *blk,
 	int		keyLen;
 	unsigned char	*digest;
 	unsigned int	digestLen;
-	int		outcome;
 	Sdnv		digestSdnv;
-	int		resultsLength;
+	int		resultsLen;
 	unsigned char	*temp;
 
 	keyValue = bsp_retrieveKey(&keyLen, asb->keyName);
@@ -209,21 +208,21 @@ for block type %d: canonicalization not implemented.", asb->targetBlockType);
 			MRELEASE(digest);
 		}
 
-		BAB_DEBUG_ERR("x bib_hmac_sha256_sign: Bad hash. hashData \
+		BIB_DEBUG_ERR("x bib_hmac_sha256_sign: Bad hash. hashData \
 is 0x%x and length is %d.", digest, digestLen);
-		BAB_DEBUG_PROC("- bib_hmac_sha256_sign--> 0", NULL);
+		BIB_DEBUG_PROC("- bib_hmac_sha256_sign--> 0", NULL);
 		return 0;
 	}
 
 	encodeSdnv(&digestSdnv, digestLen); 
-	resultsLength = 1 + digestSdnv.length + digestLen;
-	temp = (unsigned char *) MTAKE(resultsLength);
+	resultsLen = 1 + digestSdnv.length + digestLen;
+	temp = (unsigned char *) MTAKE(resultsLen);
 	if (temp == NULL)
 	{
-		BAB_DEBUG_ERR("x bib_hmac_sha256_sign: Can't allocate \
-memory for ASB result, len %ld.", resultsLength);
+		BIB_DEBUG_ERR("x bib_hmac_sha256_sign: Can't allocate \
+memory for ASB result, len %ld.", resultsLen);
 		MRELEASE(digest);
-		BAB_DEBUG_PROC("- bib_hmac_sha256_sign --> %d", -1);
+		BIB_DEBUG_PROC("- bib_hmac_sha256_sign --> %d", -1);
 		return -1;
 	}
 
@@ -231,18 +230,18 @@ memory for ASB result, len %ld.", resultsLength);
 	memcpy(temp + 1, digestSdnv.text, digestSdnv.length);
 	memcpy(temp + 1 + digestSdnv.length, digest, digestLen);
 	MRELEASE(digest);
-	asb.resultsLen = resultsLength;
-	asb.resultsData = sdr_malloc(bpSdr, resultsLength);
-	if (asb.resultsData == 0)
+	asb->resultsLen = resultsLen;
+	asb->resultsData = sdr_malloc(bpSdr, resultsLen);
+	if (asb->resultsData == 0)
 	{
-		BAB_DEBUG_ERR("x bib_hmac_sha256_sign: Can't allocate heap \
-space for ASB result, len %ld.", resultsLength);
+		BIB_DEBUG_ERR("x bib_hmac_sha256_sign: Can't allocate heap \
+space for ASB result, len %ld.", resultsLen);
 		MRELEASE(temp);
-		BAB_DEBUG_PROC("- bib_hmac_sha256_sign --> %d", -1);
+		BIB_DEBUG_PROC("- bib_hmac_sha256_sign --> %d", -1);
 		return -1;
 	}
 
-	sdr_write(bpSdr, asb.resultsData, temp, resultsLength);
+	sdr_write(bpSdr, asb->resultsData, (char *) temp, resultsLen);
 	MRELEASE(temp);
 	return 0;
 }
@@ -317,17 +316,17 @@ for block type %d: canonicalization not implemented.", asb->targetBlockType);
 			MRELEASE(digest);
 		}
 
-		BAB_DEBUG_ERR("x bib_hmac_sha256_sign: Bad hash. hashData is \
+		BIB_DEBUG_ERR("x bib_hmac_sha256_sign: Bad hash. hashData is \
 0x%x and length is %d.", digest, digestLen);
-		BAB_DEBUG_PROC("- bib_hmac_sha256_sign--> 0", NULL);
+		BIB_DEBUG_PROC("- bib_hmac_sha256_sign--> 0", NULL);
 		return -1;
 	}
 
-	getInboundBspItem(BSP_CSPARM_INT_SIG, asb->resultsData,
+	bsp_getInboundBspItem(BSP_CSPARM_INT_SIG, asb->resultsData,
 			asb->resultsLen, &assertedDigest, &assertedDigestLen);
 	if (assertedDigestLen != BIB_HMAC_SHA256_RESULT_LEN)
 	{
-		BAB_DEBUG_ERR("x bib_hmac_sha256_verify: Wrong length digest \
+		BIB_DEBUG_ERR("x bib_hmac_sha256_verify: Wrong length digest \
 in BIB: %d.", assertedDigestLen);
 		MRELEASE(digest);
 		return 0;
@@ -341,7 +340,7 @@ in BIB: %d.", assertedDigestLen);
 	}
 	else
 	{
-		BAB_DEBUG_WARN("x bsp_hmac_verify: digests don't match.");
+		BIB_DEBUG_WARN("x bsp_hmac_verify: digests don't match.");
 		outcome = 0;
 	}
 

@@ -73,6 +73,8 @@
 int extensionBlockTypeToInt(char *blockType);
 int extensionBlockTypeToString(unsigned char blockType, char *retVal,
 		unsigned int retValLength);
+int bspTypeToString(int bspType, char *s, int buflen);
+int bspTypeToInt(char *bspType);
 
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *

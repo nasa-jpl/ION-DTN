@@ -2887,7 +2887,9 @@ incomplete bundle.", NULL);
 	}
 
 	destroyExtensionBlocks(&bundle);
+#ifdef ORIGINAL_BSP
 	destroyCollaborationBlocks(&bundle);
+#endif
 	purgeStationsStack(&bundle);
 	if (bundle.stations)
 	{
@@ -5665,7 +5667,6 @@ when asking for custody transfer and/or status reports.");
 			blk.tag1 = spec->tag1;
 			blk.tag2 = spec->tag2;
 			blk.tag3 = spec->tag3;
-			blk.occurrence = spec->occurrence;
 			if (def->offer(&blk, &bundle) < 0)
 			{
 				putErrmsg("Failed offering extension block.",
@@ -5937,9 +5938,9 @@ void	lookUpEndpoint(EndpointId eid, char *dictionary, VScheme *vscheme,
 	char		*nss;
 	PsmAddress	elt;
 
-	CHKNULL(dictionary);
-	CHKNULL(vscheme);
-	CHKNULL(vpoint);
+	CHKVOID(dictionary);
+	CHKVOID(vscheme);
+	CHKVOID(vpoint);
 	if (dictionary == NULL)
 	{
 		isprintf(nssBuf, sizeof nssBuf, UVAST_FIELDSPEC ".%u",
@@ -6437,12 +6438,14 @@ static void	clearAcqArea(AcqWorkArea *work)
 				break;
 			}
 
-			deleteAcqExtBlock(elt, i);
+			deleteAcqExtBlock(elt);
 		}
 	}
 
         /* Destroy collaboration blocks */
+#ifdef ORIGINAL_BSP
         destroyAcqCollabBlocks(work);
+#endif
 
 	/*	Reset all other per-bundle parameters.			*/
 

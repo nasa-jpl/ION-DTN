@@ -35,8 +35,6 @@
 #include "bpP.h"
 #include "bei.h"
 
-#define	EXTENSION_TYPE_BCB	(0x04)
-
 /******************************************************************************
  *               OPERATIONS ON THE EXTENSION DEFINITIONS ARRAY                *
  ******************************************************************************/
@@ -52,7 +50,7 @@ static void	getExtInfo(ExtensionDef **definitions, int *definitionCount,
 	static int	nbrOfDefinitions = sizeof extensionDefs
 				/ sizeof(ExtensionDef);
 	static int	nbrOfSpecs = sizeof extensionSpecs
-				/ sizeof(extensionSpec);
+				/ sizeof(ExtensionSpec);
 
 	*definitions = extensionDefs;
 	*definitionCount = nbrOfDefinitions;
@@ -97,8 +95,7 @@ void	getExtensionSpecs(ExtensionSpec **array, int *count)
 }
 
 ExtensionSpec	*findExtensionSpec(unsigned char type, unsigned char tag1,
-			unsigned char tag2, unsigned char tag3,
-			unsigned char occurrence)
+			unsigned char tag2, unsigned char tag3)
 {
 	ExtensionSpec	*extensions;
 	int		extensionsCt;
@@ -111,8 +108,7 @@ ExtensionSpec	*findExtensionSpec(unsigned char type, unsigned char tag1,
 	{
 		if (spec->type == type && spec->tag1 == tag1
 				&& spec->tag2 == tag2
-				&& spec->tag3 == tag3
-				&& spec->occurrence == occurrence)
+				&& spec->tag3 == tag3)
 		{
 			return spec;
 		}
@@ -128,7 +124,7 @@ static unsigned int	getExtensionRank(ExtensionSpec *spec)
 
 	getExtensionSpecs(&extensions, &extensionsCt);
 	return ((unsigned long) spec - (unsigned long) extensions)
-			/ sizeof(Extensionspec);
+			/ sizeof(ExtensionSpec);
 }
 
 /******************************************************************************
@@ -141,7 +137,7 @@ int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
 	Object	blkAddr;
 	int	additionalOverhead;
 
-	CHKERR(def);
+	CHKERR(spec);
 	CHKERR(blk);
 	CHKERR(bundle);
 	blk->type = spec->type;
@@ -176,7 +172,9 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 
 	CHKERR(newBundle);
 	CHKERR(oldBundle);
+#ifdef ORIGINAL_BSP
 	copyCollaborationBlocks(newBundle, oldBundle);
+#endif
 	for (i = 0; i < 2; i++)
 	{
 		newBundle->extensions[i] = sdr_list_create(bpSdr);
@@ -263,12 +261,11 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 				}
 			}
 
-			newBlk->tag1 = oldBlk->tag1;
-			newBlk->tag2 = oldBlk->tag2;
-			newBlk->tag3 = oldBlk->tag3;
-			newBlk->occurrence = oldBlk->occurrence;
-			spec = findExtensionSpec(newBlk->type, newBlk->tag1,
-				newBlk->tag2, newBlk->tag3, newBlk->occurrence);
+			newBlk.tag1 = oldBlk->tag1;
+			newBlk.tag2 = oldBlk->tag2;
+			newBlk.tag3 = oldBlk->tag3;
+			spec = findExtensionSpec(newBlk.type, newBlk.tag1,
+					newBlk.tag2, newBlk.tag3);
 			newBlkAddr = sdr_malloc(bpSdr, sizeof(ExtensionBlock));
 			CHKERR(newBlkAddr);
 			if (insertExtensionBlock(spec, &newBlk, newBlkAddr,
@@ -290,7 +287,7 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 	return 0;
 }
 
-void	deleteExtensionBlock(Object elt)
+void	deleteExtensionBlock(Object elt, int *lengthsTotal)
 {
 	Sdr		bpSdr = getIonsdr();
 	Object		blkAddr;
@@ -301,6 +298,7 @@ void	deleteExtensionBlock(Object elt)
 	blkAddr = sdr_list_data(bpSdr, elt);
 	sdr_list_delete(bpSdr, elt, NULL, NULL);
 	GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk, blkAddr);
+	*lengthsTotal -= blk->length;
 	def = findExtensionDef(blk->type);
 	if (def && def->release)
 	{
@@ -342,14 +340,15 @@ void	destroyExtensionBlocks(Bundle *bundle)
 				break;
 			}
 
-			deleteExtensionBlock(elt, i);
+			deleteExtensionBlock(elt, &bundle->extensionsLength[i]);
 		}
 
 		sdr_list_destroy(bpSdr, bundle->extensions[i], NULL, NULL);
 	}
 }
 
-Object	findExtensionBlock(Bundle *bundle, unsigned int type, unsigned int tag1,		unsigned int tag2, unsigned int tag3, unsigned int occurrence)
+Object	findExtensionBlock(Bundle *bundle, unsigned int type, 
+		unsigned char tag1, unsigned char tag2, unsigned char tag3)
 {
 	Sdr	bpSdr = getIonsdr();
 	int	idx;
@@ -365,11 +364,8 @@ Object	findExtensionBlock(Bundle *bundle, unsigned int type, unsigned int tag1,	
 		{
 			addr = sdr_list_data(bpSdr, elt);
 			GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk, addr);
-			if (blk->type == type 
-			&& blk->tag1 == tag1
-			&& blk->tag2 == tag2
-			&& blk->tag3 == tag3
-			&& blk->occurrence == occurrence)
+			if (blk->type == type && blk->tag1 == tag1
+			&& blk->tag2 == tag2 && blk->tag3 == tag3)
 			{
 				return elt;
 			}
@@ -467,7 +463,7 @@ int	patchExtensionBlocks(Bundle *bundle)
 
 		if (def->offer != NULL
 		&& findExtensionBlock(bundle, spec->type, spec->tag1,
-				spec->tag2, spec->tag3, spec->occurrence) == 0)
+				spec->tag2, spec->tag3) == 0)
 		{
 			/*	This is a type of extension block that
 			 *	the local node normally offers, which
@@ -480,7 +476,6 @@ int	patchExtensionBlocks(Bundle *bundle)
 			blk.tag1 = spec->tag1;
 			blk.tag2 = spec->tag2;
 			blk.tag3 = spec->tag3;
-			blk.occurrence = spec->occurrence;
 			if (def->offer(&blk, bundle) < 0)
 			{
 				putErrmsg("Failed offering patch block.",
@@ -568,7 +563,8 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 				bundle->extensionsLength[i] -= oldLength;
 				adjustDbOverhead(bundle, oldLength, 0,
 						oldSize, 0);
-				deleteExtensionBlock(elt, i);
+				deleteExtensionBlock(elt,
+						&bundle->extensionsLength[i]);
 				continue;
 			}
 
@@ -754,6 +750,44 @@ void	suppressExtensionBlock(ExtensionBlock *blk)
  *                  OPERATIONS ON INBOUND EXTENSION BLOCKS                    *
  ******************************************************************************/
 
+static int	determineOccurrenceNbr(Lyst eidReferences)
+{
+	int		listLength;
+	LystElt		elt;
+	unsigned int	schemeOffset;
+	unsigned int	sspOffset;
+
+	/*	Occurrence number is encoded in an EID reference for
+	 *	which SSP offset is zero; scheme offset of this
+	 *	EID reference is the occurrence number.			*/
+
+	listLength = lyst_length(eidReferences);
+
+	/*	Each EID reference is a pair of dictionary offsets,
+	 *	i.e., two list elements.				*/ 
+
+	if (listLength & 0x00000001)	/*	Not pairs.		*/
+	{
+		return 0;	/*	No valid occurrence nbr.	*/
+	}
+
+	for (elt = lyst_first(eidReferences); elt; elt = lyst_next(elt))
+	{
+		schemeOffset = (unsigned long) lyst_data(elt);
+		elt = lyst_next(elt);
+		sspOffset = (unsigned long) lyst_data(elt);
+		if (sspOffset == 0)
+		{
+			return schemeOffset;
+		}
+	}
+
+	/*	No occurrence number encoded in block, so occurrence
+	 *	number is zero.						*/
+
+	return 0;
+}
+
 int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 		unsigned char *startOfBlock, unsigned int blockLength,
 		unsigned char blkType, unsigned int blkProcFlags,
@@ -782,6 +816,7 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 
 	memset((char *) blk, 0, sizeof(AcqExtBlock));
 	blk->type = blkType;
+	blk->occurrence = determineOccurrenceNbr(*eidReferences);
 	blk->blkProcFlags = blkProcFlags;
 	blk->eidReferences = *eidReferences;
 	*eidReferences = NULL;
@@ -827,7 +862,7 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 
 		if (blk->length == 0)	/*	Discarded.		*/
 		{
-			deleteAcqExtBlock(elt, i);
+			deleteAcqExtBlock(elt);
 			return 0;
 		}
 	}
@@ -895,7 +930,7 @@ int	decryptPerExtensionBlocks(AcqWorkArea *work)
 			if (blk->length == 0)	/*	Discarded.	*/
 			{
 				bundle->extensionsLength[i] -= oldLength;
-				deleteAcqExtBlock(elt, i);
+				deleteAcqExtBlock(elt);
 				return 0;
 			}
 
@@ -960,7 +995,7 @@ int	parseExtensionBlocks(AcqWorkArea *work)
 			if (blk->length == 0)	/*	Discarded.	*/
 			{
 				bundle->extensionsLength[i] -= oldLength;
-				deleteAcqExtBlock(elt, i);
+				deleteAcqExtBlock(elt);
 				return 0;
 			}
 
@@ -1031,7 +1066,7 @@ int	checkPerExtensionBlocks(AcqWorkArea *work)
 			if (blk->length == 0)	/*	Discarded.	*/
 			{
 				bundle->extensionsLength[i] -= oldLength;
-				deleteAcqExtBlock(elt, i);
+				deleteAcqExtBlock(elt);
 				continue;
 			}
 
@@ -1077,8 +1112,8 @@ void	discardExtensionBlock(AcqExtBlock *blk)
 	blk->length = 0;
 }
 
-LystElt	findAcqExtBlock(AcqWorkArea *work, unsigned int type, unsigned int tag1,
-		unsigned int tag2, unsigned int tag3, unsigned int occurrence)
+LystElt	findAcqExtensionBlock(AcqWorkArea *work, unsigned int type, 
+		unsigned int occurrence)
 {
 	int		idx;
 	LystElt		elt;
@@ -1088,15 +1123,11 @@ LystElt	findAcqExtBlock(AcqWorkArea *work, unsigned int type, unsigned int tag1,
 	CHKNULL(type > 0);
 	for (idx = 0; idx < 2; idx++)
 	{
-		for (elt = lyst_first(work->extBlocks[listIdx]); elt;
+		for (elt = lyst_first(work->extBlocks[idx]); elt;
 				elt = lyst_next(elt))
 		{
 			blk = (AcqExtBlock *) lyst_data(elt);
-			if (blk->type == type
-			&& blk->tag1 == tag1
-			&& blk->tag2 == tag2
-			&& blk->tag3 == tag3
-			&& blk->occurrence == occurrence)
+			if (blk->type == type && blk->occurrence == occurrence)
 			{
 				return elt;
 			}
@@ -1136,6 +1167,7 @@ int	recordExtensionBlocks(AcqWorkArea *work)
 			oldBlk = (AcqExtBlock *) lyst_data(elt);
 			memset((char *) &newBlk, 0, sizeof(ExtensionBlock));
 			newBlk.type = oldBlk->type;
+			newBlk.occurrence = oldBlk->occurrence;
 			newBlk.blkProcFlags = oldBlk->blkProcFlags;
 			newBlk.dataLength = oldBlk->dataLength;
 			headerLength = oldBlk->length - oldBlk->dataLength;
@@ -1155,7 +1187,7 @@ int	recordExtensionBlocks(AcqWorkArea *work)
 			}
 
 			spec = findExtensionSpec(newBlk.type, newBlk.tag1,
-				newBlk.tag2, newBlk.tag3, newBlk.occurrence);
+					newBlk.tag2, newBlk.tag3);
 			newBlkAddr = sdr_malloc(bpSdr, sizeof(ExtensionBlock));
 			CHKERR(newBlkAddr);
 			if (insertExtensionBlock(spec, &newBlk, newBlkAddr,

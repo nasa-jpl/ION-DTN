@@ -9,6 +9,7 @@
 #define BSPBAB_H_
 
 #include "bsputil.h"
+#include "ciphersuites.h"
 
 /** BAB Scratchpad Receive Flags */
 #define BSP_BABSCRATCH_RXFLAG_CORR 1 /** Block's correlated block was found */
@@ -192,7 +193,7 @@ int	bsp_babProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
  *  06/20/09  E. Birrane           Comment/Debug updated for initial release.
  *****************************************************************************/
 
-int	bsp_bab_1_ProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,
+int	bsp_babProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,
 		void *ctxt);
 
 /******************************************************************************
@@ -285,26 +286,6 @@ int	bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk);
  *****************************************************************************/
 
 int	bsp_babCheck(AcqExtBlock *blk, AcqWorkArea *wk);
-
-/******************************************************************************
- *
- * \par Function Name: bsp_babRecord
- *
- * \par Purpose: This callback records a checked BAB into heap storage
- * 		 so that it may be processed on output when the bundle
- * 		 is forwarded.
- *
- * \retval int 0 - The block was recorded.
- * 	      -1 - There was a system error.
- *
- * \param[out]  newBlk  The block being saved into heap storage.
- * \param[in]   blk	The acquired checked block.
- *
- * \par Notes:
- *      1.
- *****************************************************************************/
-
-int	bsp_babRecord(ExtensionBlock *newBlk, AcqExtBlock *blk);
 
 /******************************************************************************
  *

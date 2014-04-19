@@ -21,6 +21,6 @@ extern int	bae_processOnFwd(ExtensionBlock *, Bundle *, void *);
 extern int	bae_processOnAccept(ExtensionBlock *, Bundle *, void *);
 extern int	bae_processOnEnqueue(ExtensionBlock *, Bundle *, void *);
 extern int	bae_processOnDequeue(ExtensionBlock *, Bundle *, void *);
-extern int	bae_acquire(AcqExtBlock *, AcqWorkArea *);
+extern int	bae_parse(AcqExtBlock *, AcqWorkArea *);
 extern int	bae_check(AcqExtBlock *, AcqWorkArea *);
 extern void	bae_clear(AcqExtBlock *);

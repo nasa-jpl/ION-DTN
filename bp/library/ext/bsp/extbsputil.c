@@ -73,6 +73,57 @@
  */
 char	gMsg[GMSG_BUFLEN];
 
+int	bspTypeToString(int bspType, char *s, int buflen)
+{
+	CHKERR(s);
+	switch (bspType)
+	{
+	case BSP_BAB_TYPE:
+		istrcat(s, "BAB", buflen);
+		break;
+
+	case BSP_PIB_TYPE:
+		istrcat(s, "PIB", buflen);
+		break;
+
+	case BSP_PCB_TYPE:
+		istrcat(s, "PCB", buflen);
+		break;
+
+	case BSP_ESB_TYPE:
+		istrcat(s, "ESB", buflen);
+		break;
+
+	default:
+		istrcat(s, " ", buflen);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	bspTypeToInt(char *bspType)
+{
+	CHKERR(bspType);
+	if (strncmp(bspType, "BAB", 3) == 0)
+		return BSP_BAB_TYPE;
+	else if (strncmp(bspType, "bab", 3) == 0)
+		return BSP_BAB_TYPE;
+	else if (strncmp(bspType, "PIB", 3) == 0)
+		return BSP_PIB_TYPE;
+	else if (strncmp(bspType, "pib", 3) == 0)
+		return BSP_PIB_TYPE;
+	else if (strncmp(bspType, "PCB", 3) == 0)
+		return BSP_PCB_TYPE;
+	else if (strncmp(bspType, "pcb", 3) == 0)
+		return BSP_PCB_TYPE;
+	else if (strncmp(bspType, "ESB", 3) == 0)
+		return BSP_ESB_TYPE;
+	else if (strncmp(bspType, "esb", 3) == 0)
+		return BSP_ESB_TYPE;
+	return -1;
+}
+
 int	extensionBlockTypeToInt(char *blockType)
 {
 	ExtensionDef	*extensions;

@@ -12,6 +12,7 @@
 #ifndef BAB_HMAC_SHA1_H_
 #define BAB_HMAC_SHA1_H_
 
+#include "bspbab.h"
 #include "ciphersuites.h" 
 
 extern int	bab_hmac_sha1_construct(ExtensionBlock *, BspOutboundBlock *);

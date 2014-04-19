@@ -62,8 +62,6 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
 
 int	bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
 {
-	Sdr	bpSdr = getIonsdr();
-
 	BAB_DEBUG_PROC("+ bsp_babOffer(%x, %x)", (unsigned long) blk,
 			(unsigned long) bundle);
 
@@ -94,13 +92,12 @@ static void	babGetCiphersuite(char *fromEid, char *toEid,
 	Sdr	bpSdr = getIonsdr();
 	Object	ruleAddr;
 	Object	ruleElt;
-		OBJ_POINTER(BspBabRule, babRule);
 
 	*cs = NULL;		/*	Default: no ciphersuite.	*/
 	sec_get_bspBabRule(fromEid, toEid, &ruleAddr, &ruleElt);
 	if (ruleElt == 0)	/*	No matching rule.		*/
 	{
-		BAB_DEBUG_INFO("i bsp_bab_getCiphersuite: No rule found \
+		BAB_DEBUG_INFO("i babGetCiphersuite: No rule found \
 for BABs. No BAB processing for this bundle.", NULL);
 		return;
 	}
@@ -108,12 +105,12 @@ for BABs. No BAB processing for this bundle.", NULL);
 	/*	Given the applicable BAB rule, get the ciphersuite.	*/
 
 	sdr_read(bpSdr, (char *) babRule, ruleAddr, sizeof(BspBabRule));
-	*cs = get_bab_cs_by_name(babRule.ciphersuiteName);
+	*cs = get_bab_cs_by_name(babRule->ciphersuiteName);
 	if (*cs == NULL)
 	{
-		BAB_DEBUG_INFO("i bsp_bab_getCiphersuite: Ciphersuite \
+		BAB_DEBUG_INFO("i babGetCiphersuite: Ciphersuite \
 of BAB rule is unknown '%s'.  No BAB processing for this bundle.",
-				babRule.ciphersuiteName);
+				babRule->ciphersuiteName);
 	}
 }
 
@@ -139,7 +136,7 @@ static int	babProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
 	 *	topologically adjacent (neighboring) node to which the
 	 *	bundle is being sent.					*/
 
-	fromEid = getLocalAdminEid(ctxt->proxNodeEid);
+	fromEid = bsp_getLocalAdminEid(ctxt->proxNodeEid);
 	if (fromEid == NULL)
 	{
 		fromEid = "";
@@ -149,7 +146,7 @@ static int	babProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
 
 	/*	Have now got BAB security source and destination.	*/
 
-	bab_getCiphersuite(fromEid, toEid, &babRule, &cs);
+	babGetCiphersuite(fromEid, toEid, &babRule, &cs);
 	if (cs == NULL)
 	{
 		scratchExtensionBlock(blk);
@@ -176,7 +173,6 @@ single BAB for ciphersuite '%s'.", babRule.ciphersuiteName);
 
 	memset((char *) &asb, 0, sizeof(BspOutboundBlock));
 	asb.targetBlockType = 0;	/*	Entire bundle.		*/
-	asb.targetBlockTargetBlockType = 0;
 	asb.targetBlockOccurrence = 0;
 	memcpy(asb.keyName, babRule.keyName, BSP_KEY_NAME_LEN);
 	if (cs->construct(blk, &asb) < 0)
@@ -192,7 +188,7 @@ single BAB for ciphersuite '%s'.", babRule.ciphersuiteName);
 		return -1;
 	}
 
-	sdr_write(bsSdr, blk->object, (char *) &asb, sizeof(BspOutboundBlock));
+	sdr_write(bpSdr, blk->object, (char *) &asb, sizeof(BspOutboundBlock));
 	blk->size = sizeof(BspOutboundBlock) + asb.parmsLen + asb.resultsLen;
 
 	/*	Now generate serialized ASB from the scratchpad.	*/
@@ -207,7 +203,7 @@ serialize ASB. blk->dataLength = %d", blk->dataLength);
 
 	/*	Serialized ASB is the block-specific data for the BAB.	*/
 
-	result = serializeExtBlk(blk, NULL, serializedAsb);
+	result = serializeExtBlk(blk, NULL, (char *) serializedAsb);
 	MRELEASE(serializedAsb);
 	return result;
 }
@@ -253,7 +249,7 @@ int	bsp_babProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	BAB_DEBUG_PROC("+ bsp_bab_%d_ProcessOnDequeue(%x, %x, %x)",
 			blk->occurrence, (unsigned long) blk,
 			(unsigned long) bundle, (unsigned long) ctxt);
-	result = babProcessOnDequeue(blk, bundle, parm);
+	result = babProcessOnDequeue(blk, bundle, ctxt);
 	BAB_DEBUG_PROC("- bsp_bab_%d_ProcessOnDequeue(%d)", blk->occurrence,
 			result);
 	return result;
@@ -288,7 +284,7 @@ int	bsp_babProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 int	bsp_babProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,
 		void *ctxt)
 {
-	Sdr			bpSdr = getIonsdr();
+	Sdr			sdr = getIonsdr();
 	BspOutboundBlock	asb;
 	BabCiphersuite		*cs;
 	int			result;
@@ -303,13 +299,14 @@ int	bsp_babProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,
 
 	if (blk->object == 0)
 	{
-		BAB_DEBUG_ERR("x bsp_bab_1_ProcessOnTransmit: No ASB, can't
-				process the BAB.");
+		BAB_DEBUG_ERR("x bsp_bab_1_ProcessOnTransmit: No ASB, can't \
+process the BAB.");
 		result = 0;
 	}
 	else
 	{
-		sdr_read((char *) &asb, blk->object, sizeof(BspOutboundBlock));
+		sdr_read(sdr, (char *) &asb, blk->object,
+				sizeof(BspOutboundBlock));
 		cs = get_bab_cs_by_number(asb.ciphersuiteType);
 		result = cs->sign(bundle, blk, &asb);
 	}
@@ -346,7 +343,7 @@ void    bsp_babRelease(ExtensionBlock *blk)
 	CHKVOID(blk);
 	if (blk->object)
 	{
-		sdr_read((char *) &asb, blk->object, blk->size);
+		sdr_read(sdr, (char *) &asb, blk->object, blk->size);
 		if (asb.parmsData)
 		{
 			sdr_free(sdr, asb.parmsData);
@@ -406,7 +403,7 @@ static int	babCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	char		*toEid;
 	BspBabRule	babRule;
 	BabCiphersuite	*cs;
-	AcqExtBlock	*lastBab;
+	LystElt		lastBab;
 	BspInboundBlock	*asb;
 
 	CHKERR(blk);
@@ -417,7 +414,7 @@ static int	babCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	 *	topologically adjacent (neighboring) node from which
 	 *	the bundle was sent.					*/
 
-	toEid = getLocalAdminEid(wk->senderEid);
+	toEid = bsp_getLocalAdminEid(wk->senderEid);
 	if (toEid == NULL)
 	{
 		toEid = "";
@@ -431,7 +428,7 @@ static int	babCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/*	Given sender & receiver EIDs, get applicable BAB rule.	*/
 
-	bab_getCiphersuite(fromEid, toEid, &babRule, &cs);
+	babGetCiphersuite(fromEid, toEid, &babRule, &cs);
 	if (cs == NULL)
 	{
 		discardExtensionBlock(blk);
@@ -452,9 +449,8 @@ for ciphersuite '%s'.  Discarding the BAB block.", babRule->ciphersuiteName);
 		 *	is valid.  Make sure this BAB is the only
 		 *	'Last' BAB for the bundle.			*/ 
 
-		lastBab = bsp_find_AcqExtBlk(wk, POST_PAYLOAD,
-				EXTENSION_TYPE_BAB);
-		if (lastBab != blk)
+		lastBab = findAcqExtensionBlock(wk, EXTENSION_TYPE_BAB, 1);
+		if ((AcqExtBlock *) (lyst_data(lastBab)) != blk)
 		{
 			BAB_DEBUG_INFO("i bsp_bab_check: Multiple 'Last' BABs \
 in the bundle.  Discarding this one.");
@@ -466,7 +462,7 @@ in the bundle.  Discarding this one.");
 	/*	Fill in missing information in the scratchpad area. 	*/
 
 	asb = (BspInboundBlock *) (blk->object);
-	memcpy((char *) (asb->keyName), babRule->keyName, BSP_KEY_NAME_LEN);
+	memcpy((char *) (asb->keyName), babRule.keyName, BSP_KEY_NAME_LEN);
 
 	/*	Invoke ciphersuite-specific check procedure.  For the
 	 *	initial BAB of paired-BAB ciphersuite, this may be a
@@ -527,50 +523,6 @@ int	bsp_babCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 			(unsigned long) blk, (unsigned long) wk);
 	result = babCheck(blk, wk);
 	BAB_DEBUG_PROC("- bsp_bab_%d_Check --> %d", blk->occurrence, result);
-	return result;
-}
-
-/******************************************************************************
- *
- * \par Function Name: bsp_babRecord
- *
- * \par Purpose: This callback records a checked BAB into heap storage
- * 		 so that it may be processed on output when the bundle
- * 		 is forwarded.
- *
- * \retval int 0 - The block was recorded.
- * 	      -1 - There was a system error.
- *
- * \param[out]  newBlk  The block being saved into heap storage.
- * \param[in]   blk	The acquired checked block.
- *
- * \par Notes:
- *      1.
- *****************************************************************************/
-
-int	bsp_babRecord(ExtensionBlock *newBlk, AcqExtBlock *blk)
-{
-	BspInboundBlock	*asb;
-
-	BAB_DEBUG_PROC("+ bsp_bab_%d_Record(%x, %x)", blk->occurrence,
-			(unsigned long) newBlk, (unsigned long) blk);
-
-	CHKVOID(newBlk);
-	CHKVOID(blk);
-	newBlk->tag1 = 0;
-	newBlk->tag2 = 0;
-	newBlk->tag3 = 0;
-	if (blk->object)
-	{
-       		asb = (BspInboundBlock *) (blk->object);
-		newBlk->occurrence = asb->occurrence;
-	}
-	else
-	{
-		newBlk->occurrence = 0;
-	}
-
-	BAB_DEBUG_PROC("- bsp_bab_%d_Record --> %d", blk->occurrence, result);
 	return result;
 }
 

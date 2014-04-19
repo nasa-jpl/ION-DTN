@@ -26,15 +26,15 @@ typedef struct
 	Object	value;
 } SecKey;
 
+#ifdef ORIGINAL_BSP
 typedef struct
 {
-	Object  senderEid;		/* 	An sdrstring.	        */
-	Object	receiverEid;		/*	An sdrstring.		*/
+	Object  securitySrcEid;		/* 	An sdrstring.	        */
+	Object	securityDestEid;	/*	An sdrstring.		*/
 	char	ciphersuiteName[32];	/*	NULL-terminated.	*/
 	char	keyName[32];		/*	NULL-terminated.	*/
 } BspBabRule;
 
-#ifdef ORIGINAL_BSP
 typedef struct
 {
 	Object  securitySrcEid;		/* 	An sdrstring.	        */
@@ -53,6 +53,14 @@ typedef struct
 	char	keyName[32];		/*	NULL-terminated.	*/
 } BspPcbRule;
 #else
+typedef struct
+{
+	Object  senderEid;		/* 	An sdrstring.	        */
+	Object	receiverEid;		/*	An sdrstring.		*/
+	char	ciphersuiteName[32];	/*	NULL-terminated.	*/
+	char	keyName[32];		/*	NULL-terminated.	*/
+} BspBabRule;
+
 typedef struct
 {
 	Object  securitySrcEid;		/* 	An sdrstring.	        */
@@ -88,9 +96,7 @@ typedef struct
 extern int	secInitialize();
 extern int	secAttach();
 extern Object	getSecDbObject();
-extern int	bspTypeToString(int bspType, char *retVal, int retValSize);
-extern int	bspTypeToInt(char *bspType);
-extern void	ionClear(char *srcEid, char *destEid, char *blockType);
+extern void	sec_clearBspRules(char *fromNode, char *toNode, char *blkType);
 
 /*	*	Functions for managing security information.		*/
 
@@ -172,6 +178,24 @@ extern void	sec_get_bspBabRule(char *senderEid, char *receiverEid,
 		 *	receiverEid.  If an applicable rule is found,
 		 *	populates ruleAddr and eltp; otherwise, sets
 		 *	*eltp to 0.					*/
+
+extern void	sec_get_bspBibRule(char *srcEid, char *destEid,
+			int type, Object *ruleAddr, Object *eltp);
+		/*	Finds the BIB rule that most narrowly applies
+		 *	to the nodes identified by srcEid and destEid,
+		 *	for blocks of the indicated type.  (Type zero
+		 *	indicates "all block types".)  If applicable
+		 *	rule is found, populates ruleAddr and eltp;
+		 *	otherwise, sets *eltp to 0.			*/
+
+extern void	sec_get_bspBcbRule(char *srcEid, char *destEid,
+			int type, Object *ruleAddr, Object *eltp);
+		/*	Finds the BCB rule that most narrowly applies
+		 *	to the nodes identified by srcEid and destEid,
+		 *	for blocks of the indicated type.  (Type zero
+		 *	indicates "all block types".)  If applicable
+		 *	rule is found, populates ruleAddr and eltp;
+		 *	otherwise, sets *eltp to 0.			*/
 
 #ifdef ORIGINAL_BSP
 extern int	sec_get_bspPibTxRule(char *destEid, int blockTypeNbr,

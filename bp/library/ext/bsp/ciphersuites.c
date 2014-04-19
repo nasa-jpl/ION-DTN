@@ -12,6 +12,8 @@
 
 #include "ciphersuites.h"
 #include "bab_hmac_sha1.h"
+#include "bib_hmac_sha256.h"
+#include "bcb_arc4.h"
 
 /*		Bundle Authentication Block ciphersuites		*/
 
@@ -19,10 +21,10 @@ static BabCiphersuite	*_bab_ciphersuites(int *count)
 {
 	static BabCiphersuite	suites[] =
 	{
-		1, "BAB-HMAC-SHA1", 1,
-			bab_hmac_construct,
-			bab_hmac_sign,
-			bab_hmac_verify
+		{	1, "BAB-HMAC-SHA1", 1,
+			bab_hmac_sha1_construct,
+			bab_hmac_sha1_sign,
+			bab_hmac_sha1_verify				}
 	};
 
 	*count = sizeof suites / sizeof(BabCiphersuite);
@@ -31,11 +33,11 @@ static BabCiphersuite	*_bab_ciphersuites(int *count)
 
 BabCiphersuite	*get_bab_cs_by_name(char *csName)
 {
-	BabCiphersuite	*cs = _bab_ciphersuites(&suiteCount);
 	int		suiteCount;
+	BabCiphersuite	*cs = _bab_ciphersuites(&suiteCount);
 	int		i;
 
-	CHECKNULL(csName);
+	CHKNULL(csName);
 	for (i = 0; i < suiteCount; i++, cs++)
 	{
 		if (strcmp(cs->csName, csName) == 0)
@@ -49,11 +51,11 @@ BabCiphersuite	*get_bab_cs_by_name(char *csName)
 
 BabCiphersuite	*get_bab_cs_by_number(int csNbr)
 {
-	BabCiphersuite	*cs = _bab_ciphersuites(&suiteCount);
 	int		suiteCount;
+	BabCiphersuite	*cs = _bab_ciphersuites(&suiteCount);
 	int		i;
 
-	CHECKNULL(csNbr > 0);
+	CHKNULL(csNbr > 0);
 	for (i = 0; i < suiteCount; i++, cs++)
 	{
 		if (cs->csNbr == csNbr)
@@ -71,10 +73,10 @@ static BibCiphersuite	*_bib_ciphersuites(int *count)
 {
 	static BibCiphersuite	suites[] =
 	{
-		2, "BIB-HMAC-SHA256", 0,
+		{	2, "BIB-HMAC-SHA256", 0,
 			bib_hmac_sha256_construct,
 			bib_hmac_sha256_sign,
-			bib_hmac_sha256_verify
+			bib_hmac_sha256_verify				}
 	};
 
 	*count = sizeof suites / sizeof(BibCiphersuite);
@@ -83,11 +85,11 @@ static BibCiphersuite	*_bib_ciphersuites(int *count)
 
 BibCiphersuite	*get_bib_cs_by_name(char *csName)
 {
-	BibCiphersuite	*cs = _bib_ciphersuites(&suiteCount);
 	int		suiteCount;
+	BibCiphersuite	*cs = _bib_ciphersuites(&suiteCount);
 	int		i;
 
-	CHECKNULL(csName);
+	CHKNULL(csName);
 	for (i = 0; i < suiteCount; i++, cs++)
 	{
 		if (strcmp(cs->csName, csName) == 0)
@@ -101,11 +103,11 @@ BibCiphersuite	*get_bib_cs_by_name(char *csName)
 
 BibCiphersuite	*get_bib_cs_by_number(int csNbr)
 {
-	BibCiphersuite	*cs = _bib_ciphersuites(&suiteCount);
 	int		suiteCount;
+	BibCiphersuite	*cs = _bib_ciphersuites(&suiteCount);
 	int		i;
 
-	CHECKNULL(csNbr > 0);
+	CHKNULL(csNbr > 0);
 	for (i = 0; i < suiteCount; i++, cs++)
 	{
 		if (cs->csNbr == csNbr)
@@ -123,10 +125,10 @@ static BcbCiphersuite	*_bcb_ciphersuites(int *count)
 {
 	static BcbCiphersuite	suites[] =
 	{
-		3, "BCB-ARC4-AES128", 0,
+		{	3, "BCB-ARC4-AES128", 0,
 			bcb_arc4_construct,
 			bcb_arc4_encrypt,
-			bcb_arc4_decrypt
+			bcb_arc4_decrypt				}
 	};
 
 	*count = sizeof suites / sizeof(BcbCiphersuite);
@@ -135,11 +137,11 @@ static BcbCiphersuite	*_bcb_ciphersuites(int *count)
 
 BcbCiphersuite	*get_bcb_cs_by_name(char *csName)
 {
-	BcbCiphersuite	*cs = _bcb_ciphersuites(&suiteCount);
 	int		suiteCount;
+	BcbCiphersuite	*cs = _bcb_ciphersuites(&suiteCount);
 	int		i;
 
-	CHECKNULL(csName);
+	CHKNULL(csName);
 	for (i = 0; i < suiteCount; i++, cs++)
 	{
 		if (strcmp(cs->csName, csName) == 0)
@@ -153,11 +155,11 @@ BcbCiphersuite	*get_bcb_cs_by_name(char *csName)
 
 BcbCiphersuite	*get_bcb_cs_by_number(int csNbr)
 {
-	BcbCiphersuite	*cs = _bcb_ciphersuites(&suiteCount);
 	int		suiteCount;
+	BcbCiphersuite	*cs = _bcb_ciphersuites(&suiteCount);
 	int		i;
 
-	CHECKNULL(csNbr > 0);
+	CHKNULL(csNbr > 0);
 	for (i = 0; i < suiteCount; i++, cs++)
 	{
 		if (cs->csNbr == csNbr)

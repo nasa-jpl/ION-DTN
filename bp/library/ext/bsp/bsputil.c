@@ -95,57 +95,6 @@
  */
 char	gMsg[GMSG_BUFLEN];
 
-int	bsp_extensionBlockTypeToInt(char *blockType)
-{
-	ExtensionDef	*extensions;
-	int		extensionsCt;
-	int		i;
-	ExtensionDef	*def;
-
-	CHKERR(blockType);
-	if (strcmp("payload", blockType) == 0)
-		return PAYLOAD_BLOCK_TYPE;
-	getExtensionDefs(&extensions, &extensionsCt);
-	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
-	{
-		if (strcmp(def->name, blockType) == 0)
-		{
-			return def->type;
-		}
-	}
-
-	return -1;
-}
-
-int	bsp_extensionBlockTypeToString(unsigned char blockType, char *s,
-		unsigned int buflen)
-{
-	ExtensionDef	*extensions;
-	int		extensionsCt;
-	int		i;
-	ExtensionDef	*def;
-
-	if (blockType == 0) return -1;
-	CHKERR(s);
-	if (blockType == PAYLOAD_BLOCK_TYPE)
-	{
-		istrcat(s, "payload", buflen);
-		return 0;
-	}
-
-	getExtensionDefs(&extensions, &extensionsCt);
-	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
-	{
-		if (def->type == blockType)
-		{
-			istrcat(s, def->name, buflen);
-			return 0;
-		}
-	}
-
-	return -1;
-}
-
 /*****************************************************************************
  *                           GENERAL BSP FUNCTIONS                           *
  *****************************************************************************/
@@ -248,46 +197,38 @@ int	bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	cursor = ((unsigned char *)(blk->bytes))
 			+ (blk->length - blk->dataLength);
 
-	/* Extract block specifics, using cipherFlags as necessary. */
+	/* Extract block specifics, using ciphersuiteFlags as necessary. */
 
 	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
 	asb.targetBlockType = itemp;
 
-	/*	Pending an update to the SBSP specification, we
-	 *	interpret the "subscript" portion of the compound
-	 *	security-target field of the inbound BSP block
-	 *	as the target block type of the target block itself.
-	 *	We have no way of determining from the transmitted
-	 *	BSP block contents the target block occurrence of
-	 *	the target block, so for now we assume a value of 0.	*/
+	/*	The "subscript" portion of the compound security-
+	 *	target field of the inbound BSP block is the
+	 *	occurrence number of the target block.			*/
 
 	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
-	asb.targetBlockTargetBlockType = itemp;
-	asb.targetBlockOccurrence = 0;
-	elt = findAcqExtBlk(wk, blk->type, asb.targetBlockType,
-			asb.targetBlockTargetBlockType,
-			asb.targetBlockOccurrence, 0);
-	if (elt == NULL)
+	asb.targetBlockOccurrence = itemp;
+
+	/*	For now, ION does not recognize any multi-block
+	 *	security operations except BAB.  For BABs, if payload
+	 *	has already been acquired at the time this BAB is
+	 *	being deserialized then the BAB instance is 1; else
+	 *	it is 0.						*/
+
+	if (blk->type == EXTENSION_TYPE_BAB)
 	{
-		asb.occurrence = 0;	/*	Lone or first.		*/
+		if (wk->bundle.payload.length > 0)
+		{
+			asb.instance = 1;	/*	Last.		*/
+		}
+		else
+		{
+			asb.instance = 0;	/*	Lone or 1st.	*/
+		}
 	}
 	else
 	{
-		elt = findAcqExtBlk(wk, blk->type, asb.targetBlockType,
-				asb.targetBlockTargetBlockType,
-				asb.targetBlockOccurrence, 1);
-		if (elt == NULL)
-		{
-			asb.occurrence = 1;	/*	Last.		*/
-		}
-		else	/*	Too many occurrences of this extension.	*/
-		{
-			BSP_DEBUG_WARN("x bsp_deserializeASB: more than 2 \
-occurrences of %u.%u.%u.%u.", blk->type, asb.targetBlockType,
-					asb.targetBlockTargetBlockType,
-					asb.targetBlockOccurrence);
-			return 0;
-		}
+		asb.instance = 0;
 	}
 
 	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
@@ -298,7 +239,7 @@ occurrences of %u.%u.%u.%u.", blk->type, asb.targetBlockType,
 	BSP_DEBUG_INFO("i bsp_deserializeASB: cipher %ld, flags %ld, length %d",
 		asb.ciphersuiteType, asb.ciphersuiteFlags, blk->dataLength);
 
-	if (asb->cipherFlags & BSP_ASB_PARM)
+	if (asb.ciphersuiteFlags & BSP_ASB_PARM)
 	{
 		extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
 		asb.parmsLen = itemp;
@@ -327,7 +268,7 @@ parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
 		}
 	}
 
-	if (asb->cipherFlags & BSP_ASB_RES)
+	if (asb.ciphersuiteFlags & BSP_ASB_RES)
 	{
 		extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
 		asb.resultsLen = itemp;
@@ -378,14 +319,13 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 
 void	bsp_insertSecuritySource(Bundle *bundle, BspOutboundBlock *asb)
 {
-	Sdr		sdr = getIonsdr();
 	char		*dictionary;
-	Vscheme		vscheme;
+	VScheme		vscheme;
 	VEndpoint	*vpoint;
 	PsmAddress	elt;
 
-	CHKERR(bundle);
-	CHKERR(asb);
+	CHKVOID(bundle);
+	CHKVOID(asb);
 	if (bundle->destination.cbhe)
 	{
 		/*	Can't add EID references to extension blocks
@@ -422,54 +362,6 @@ void	bsp_insertSecuritySource(Bundle *bundle, BspOutboundBlock *asb)
 	writeMemo("[!] Insertion of local node as security source in outbound \
 BSP block is not yet implemented.");
 	releaseDictionary(dictionary);
-}
-
-/******************************************************************************
- *
- * \par Function Name: bsp_eidNil
- *
- * \par Purpose: This utility function determines whether a given EID is
- *               "nil".  Nil in this case means that the EID is uninitialized
- *               or will otherwise resolve to the default null EID. 
- *
- * \retval int - Whether the EID is nil (1) or not (0).
- *
- * \param[in]  eid - The EndpointID being checked.
- *
- * \par Notes: 
- *      1. Nil check is pulled from whether the ION library printEid function
- *         will use the default null EID when given this EID. 
- *****************************************************************************/
-
-int	bsp_eidNil(EndpointId *eid)
-{
-	int result = 0;
-
-	BSP_DEBUG_PROC("+ bsp_eidNil(%x)", (unsigned long) eid);
-
-	/*
-	 * EIDs have two mutually exclusive representations, so pick right
-	 * one to check.
-	 */
-	if (eid->cbhe == 0)
-	{
-		BSP_DEBUG_INFO("i bsp_eidNil: scheme %d, nss %d",
-				eid->d.schemeNameOffset, eid->d.nssOffset);
-
-		result = (eid->d.schemeNameOffset == 0) &&
-				(eid->d.nssOffset == 0);
-	}
-	else
-	{
-		BSP_DEBUG_INFO("i bsp_eidNil: node %ld, service %ld",
-				eid->c.nodeNbr, eid->c.serviceNbr);
-
-		result = (eid->c.nodeNbr == 0);
-	}
-
-	BSP_DEBUG_PROC("- bsp_eidNil --> %d", result);
-
-	return result;
 }
 
 /******************************************************************************
@@ -588,12 +480,12 @@ unsigned char	*bsp_retrieveKey(int *keyLen, char *keyName)
 unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 {
 	Sdnv		targetBlockType;
-	Sdnv		targetBlockTargetBlockType;
+	Sdnv		targetBlockOccurrence;
 	Sdnv		ciphersuiteType;
 	Sdnv		ciphersuiteFlags;
 	Sdnv		parmsLen;
 	Sdnv		resultsLen;
-	unsigned char	*serializedASB;
+	unsigned char	*serializedAsb;
 	unsigned char	*cursor;
 
 	BSP_DEBUG_PROC("+ bsp_serializeASB(%x, %x)",
@@ -613,22 +505,13 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 
 	encodeSdnv(&targetBlockType, asb->targetBlockType);
 	*length = targetBlockType.length;
-
-	/*	Pending an update to the SBSP specification, we
-	 *	populate the "subscript" portion of the compound
-	 *	security-target field of the outbound BSP block
-	 *	with the target block type of the target block itself.
-	 *	For now, we have no way of indicating the target block
-	 *	occurrence of the target block.				*/
-
-	encodeSdnv(&targetBlockTargetBlockType,
-			asb->targetBlockTargetBlockType);
-	*length += targetBlockTargetBlockType.length;
+	encodeSdnv(&targetBlockOccurrence, asb->targetBlockOccurrence);
+	*length += targetBlockOccurrence.length;
 	encodeSdnv(&ciphersuiteType, asb->ciphersuiteType);
 	*length += ciphersuiteType.length;
 	encodeSdnv(&ciphersuiteFlags, asb->ciphersuiteFlags);
 	*length += ciphersuiteFlags.length;
-	if (asb->cipherFlags & BSP_ASB_PARM)
+	if (asb->ciphersuiteFlags & BSP_ASB_PARM)
 	{
 		encodeSdnv(&parmsLen, asb->parmsLen);
 		*length += parmsLen.length;
@@ -638,7 +521,7 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 	BSP_DEBUG_PROC("+ bsp_serializeASB RESULT LENGTH IS CURRENTLY (%d)",
 			asb->resultsLen);
 
-	if (asb->cipherFlags & BSP_ASB_RES)
+	if (asb->ciphersuiteFlags & BSP_ASB_RES)
 	{
 		encodeSdnv(&resultsLen, asb->resultsLen);
 		*length += resultsLen.length;
@@ -661,16 +544,15 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 	if ((serializedAsb = MTAKE(*length)) == NULL)
 	{
 		putErrmsg("No space for serialized ASB.", utoa(*length));
-		return -1;
+		return NULL;
 	}
 
 	cursor = serializedAsb;
 	cursor = bsp_addSdnvToStream(cursor, &targetBlockType);
-	cursor = bsp_addSdnvToStream(cursor, &targetBlockTargetBlockType);
 	cursor = bsp_addSdnvToStream(cursor, &ciphersuiteType);
 	cursor = bsp_addSdnvToStream(cursor, &ciphersuiteFlags);
 
-	if (asb->cipherFlags & BSP_ASB_PARM)
+	if (asb->ciphersuiteFlags & BSP_ASB_PARM)
 	{
 		cursor = bsp_addSdnvToStream(cursor, &parmsLen);
 		BSP_DEBUG_INFO("i bsp_serializeASB: cursor %x, parms data \
@@ -689,17 +571,17 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 		cursor += asb->parmsLen;
 	}
 
-	if (asb->cipherFlags & BSP_ASB_RES)
+	if (asb->ciphersuiteFlags & BSP_ASB_RES)
 	{
 		cursor = bsp_addSdnvToStream(cursor, &resultsLen);
 		BSP_DEBUG_INFO("i bsp_serializeASB: cursor %x, results data \
 %x, length %ld", (unsigned long) cursor, (unsigned long) asb->resultsData,
 				asb->resultsLen);
-		if (asb->resultData != 0)
+		if (asb->resultsData != 0)
 		{
-			memcpy(cursor, (char *) (asb->resultData),
-					asb->resultLen);
-			cursor += asb->resultLen;
+			memcpy(cursor, (char *) (asb->resultsData),
+					asb->resultsLen);
+			cursor += asb->resultsLen;
 		}
 	}
 
@@ -839,8 +721,8 @@ void	bsp_getOutboundBspItem(int itemNeeded, Object bspBuf,
 	CHKVOID(bspBuf);
 	CHKVOID(val);
 	CHKVOID(len);
-	*val = NULL;		/*	Default.			*/
-	*len = 0;		/*	Default.			*/
+	*val = 0;			/*	Default.		*/
+	*len = 0;			/*	Default.		*/
 
 	/*	Walk through all items in the buffer (either a
 	 *	security parameters field or a security results
@@ -855,7 +737,7 @@ void	bsp_getOutboundBspItem(int itemNeeded, Object bspBuf,
 	}
 
 	memset(temp, 0, bspBufLen);
-	sdr_read(getIonSdr(), temp, bspBuf, bspBufLen);
+	sdr_read(getIonsdr(), (char *) temp, bspBuf, bspBufLen);
 	cursor = temp;
 	while (bspBufLen > 0)
 	{
@@ -906,26 +788,23 @@ void	bsp_getOutboundBspItem(int itemNeeded, Object bspBuf,
  * \par Purpose: This function searches the lists of extension blocks in
  * 		 a bundle looking for a BSP block of the indicated type
  * 		 and ordinality whose target is the block of indicated
- * 		 type and -- if applicable -- target block type and
- * 		 ordinality.
+ * 		 type and ordinality.
  *
  * \retval Object
  *
  * \param[in]  bundle      		The bundle within which to search.
  * \param[in]  type        		The type of BSP block to look for.
  * \param[in]  targetBlockType		Identifies target of the BSP block.
- * \param[in]  targetBlockTargetBlockType
- * \param[in]  targetBlockOccurrence
- * \param[in]  occurrenc		The BSP block occurrence to look for.
+ * \param[in]  targetBlockOccurrence		"
+ * \param[in]  instance			The BSP block instance to look for.
  *
  * \par Notes: 
  *****************************************************************************/
 
 Object	bsp_findBspBlock(Bundle *bundle, unsigned char type,
 		unsigned char targetBlockType,
-		unsigned char targetBlockTargetBlockType,
 		unsigned char targetBlockOccurrence,
-		unsigned char occurrence)
+		unsigned char instance)
 {
 	Sdr	sdr = getIonsdr();
 	int	idx;
@@ -950,10 +829,8 @@ Object	bsp_findBspBlock(Bundle *bundle, unsigned char type,
 			GET_OBJ_POINTER(sdr, BspOutboundBlock, asb,
 					blk->object);
 			if (asb->targetBlockType == targetBlockType
-			&& asb->targetBlockTargetBlockType
-					== targetBlockTargetBlockType
 			&& asb->targetBlockOccurrence == targetBlockOccurrence
-			&& blk->occurrence == occurrence)
+			&& asb->instance == instance)
 			{
 				return elt;
 			}
@@ -970,26 +847,23 @@ Object	bsp_findBspBlock(Bundle *bundle, unsigned char type,
  * \par Purpose: This function searches the lists of extension blocks in
  * 		 an acquisition work area looking for a BSP block of the
  * 		 indicated type and ordinality whose target is the block
- * 		 of indicated type and -- as applicable -- target block
- * 		 type and ordinality.
+ * 		 of indicated type and ordinality.
  *
  * \retval Object
  *
  * \param[in]  bundle      		The bundle within which to search.
  * \param[in]  type        		The type of BSP block to look for.
  * \param[in]  targetBlockType		Identifies target of the BSP block.
- * \param[in]  targetBlockTargetBlockType
- * \param[in]  targetBlockOccurrence
- * \param[in]  occurrenc		The BSP block occurrence to look for.
+ * \param[in]  targetBlockOccurrence		"
+ * \param[in]  instance			The BSP block instance to look for.
  *
  * \par Notes: 
  *****************************************************************************/
 
-Object	bsp_findAcqBspBlock(AcqWorkArea *wk, unsigned char type,
+LystElt	bsp_findAcqBspBlock(AcqWorkArea *wk, unsigned char type,
 		unsigned char targetBlockType,
-		unsigned char targetBlockTargetBlockType,
 		unsigned char targetBlockOccurrence,
-		unsigned char occurrence)
+		unsigned char instance)
 {
 	int		idx;
 	LystElt		elt;
@@ -999,8 +873,8 @@ Object	bsp_findAcqBspBlock(AcqWorkArea *wk, unsigned char type,
 	CHKZERO(wk);
 	for (idx = 0; idx < 2; idx++)
 	{
-		for (elt = lyst_first(sdr, wk->extBlocks[idx]); elt;
-				elt = lyst_next(sdr, elt))
+		for (elt = lyst_first(wk->extBlocks[idx]); elt;
+				elt = lyst_next(elt))
 		{
 			blk = (AcqExtBlock *) lyst_data(elt);
 			if (blk->type != type)
@@ -1010,10 +884,8 @@ Object	bsp_findAcqBspBlock(AcqWorkArea *wk, unsigned char type,
 
 			asb = (BspInboundBlock *) (blk->object);
 			if (asb->targetBlockType == targetBlockType
-			&& asb->targetBlockTargetBlockType
-					== targetBlockTargetBlockType
 			&& asb->targetBlockOccurrence == targetBlockOccurrence
-			&& asb->occurrence == occurrence)
+			&& asb->instance == instance)
 			{
 				return elt;
 			}
@@ -1056,16 +928,16 @@ static int	getInboundSecuritySource(AcqExtBlock *blk, char *dictionary,
 	LystElt		elt2;
 
 	if (dictionary == NULL
-	|| elt1 = lyst_first(blk->eidReferences) == NULL
-	|| elt2 = lyst_next(elt1) == NULL)
+	|| (elt1 = lyst_first(blk->eidReferences)) == NULL
+	|| (elt2 = lyst_next(elt1)) == NULL)
 	{
 		return 0;
 	}
 
 	securitySource.cbhe = 0;
 	securitySource.unicast = 1;
-	securitySource.d.schemeNameOffset = lyst_data(elt1);
-	securitySource.d.nssOffset = lyst_data(elt2);
+	securitySource.d.schemeNameOffset = (long) lyst_data(elt1);
+	securitySource.d.nssOffset = (long) lyst_data(elt2);
 	if (printEid(&securitySource, dictionary, fromEid) < 0)
 	{
 		return -1;
@@ -1103,7 +975,7 @@ int	bsp_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 		return -1;
 	}
 
-	if (asb->cipherFlags & BSP_ASB_SEC_SRC)
+	if (asb->ciphersuiteFlags & BSP_ASB_SEC_SRC)
 	{
 		result = getInboundSecuritySource(blk, dictionary, fromEid);
 	}
@@ -1129,8 +1001,8 @@ static int	getOutboundSecuritySource(ExtensionBlock *blk, char *dictionary,
 	Object		elt2;
 
 	if (dictionary == NULL
-	|| elt1 = sdr_list_first(sdr, blk->eidReferences) == 0
-	|| elt2 = sdr_list_next(sdr, elt1) == 0)
+	|| (elt1 = sdr_list_first(sdr, blk->eidReferences)) == 0
+	|| (elt2 = sdr_list_next(sdr, elt1)) == 0)
 	{
 		return 0;
 	}
@@ -1147,7 +1019,7 @@ static int	getOutboundSecuritySource(ExtensionBlock *blk, char *dictionary,
 	return 0;
 }
 
-int	bsp_getOutboundSecurityEids(Bundle *bundle, Extension *blk,
+int	bsp_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 		BspOutboundBlock *asb, char **fromEid, char **toEid)
 {
 	char	*dictionary;
@@ -1176,7 +1048,7 @@ int	bsp_getOutboundSecurityEids(Bundle *bundle, Extension *blk,
 		return -1;
 	}
 
-	if (asb->cipherFlags & BSP_ASB_SEC_SRC)
+	if (asb->ciphersuiteFlags & BSP_ASB_SEC_SRC)
 	{
 		result = getOutboundSecuritySource(blk, dictionary, fromEid);
 	}
@@ -1222,114 +1094,25 @@ int	bsp_destinationIsLocal(Bundle *bundle)
 	return result;
 }
 
-/******************************************************************************
- *
- * \par Function Name: transferToZcoFileSource
- *
- * \par Purpose: This utility function attains a zco object, a file reference, a 
- *               character string and appends the string to a file. A file
- *               reference to the new data is appended to the zco object. If given
- *               an empty zco object- it will create a new one on the empty pointer.
- *               If given an empty file reference, it will create a new file.
- *
- * \retval int - 0 indicates success, -1 is an error
- *
- * \param[in]  sdr        ion sdr
- * \param]in]  resultZco  Object where the file references will go
- * \param[in]  acqFileRef A file references pointing to the file
- * \param[in]  fname      A string to be used as the base of the filename
- * \param[in]  bytes      The string data to write in the file
- * \param[in]  length     Length of the string data
- *****************************************************************************/
-
-int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, char *fname, 
-                                char *bytes, int length)
+char	*bsp_getLocalAdminEid(char *eid)
 {
-        static unsigned int    acqCount = 0;
-        char                    cwd[200];
-        char                    fileName[SDRSTRING_BUFSZ];
-        int                     fd;
-        int                    fileLength;
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
 
-        CHKERR(bytes);
-        CHKERR(length >= 0);
+	/*
+	 * Look at EID scheme we are working in: that will be the
+	 * scheme of our local admin EID, as we don't cross schemes
+	 * in transmit.
+	 */
 
-        CHKERR(sdr_begin_xn(sdr));
-        if (*resultZco == 0)     /*      First extent of acquisition.    */
-        {
-                *resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
-                if (*resultZco == (Object) ERROR)
-                {
-                        putErrmsg("extbsputil: Can't start file source ZCO.", NULL);
-                        sdr_cancel_xn(sdr);
-                        return -1;
-                }
-        }
-
-        /*      This extent of this acquisition must be acquired into
-         *      a file.                                                 */
-
-        if (*acqFileRef == 0)      /*      First file extent.      */
-        {
-                if (igetcwd(cwd, sizeof cwd) == NULL)
-                {
-                        putErrmsg("extbsputil: Can't get CWD for acq file name.", NULL);
-                        sdr_cancel_xn(sdr);
-                        return -1;
-                }
-
-                acqCount++;
-                isprintf(fileName, sizeof fileName, "%s%c%s.%u", cwd,
-                                ION_PATH_DELIMITER, fname, acqCount);
-                fd = open(fileName, O_WRONLY | O_CREAT, 0666);
-                if (fd < 0)
-                {
-                        putSysErrmsg("extbsputil: Can't create acq file", fileName);
-                        sdr_cancel_xn(sdr);
-                        return -1;
-                }
-
-                fileLength = 0;
-                *acqFileRef = zco_create_file_ref(sdr, fileName, "");
-        }
-        else                            /*      Writing more to file.   */
-        {
-                oK(zco_file_ref_path(sdr, *acqFileRef, fileName,
-                                sizeof fileName));
-                fd = open(fileName, O_WRONLY, 0666);
-                if (fd < 0 || (fileLength = lseek(fd, 0, SEEK_END)) < 0)
-                {
-                        putSysErrmsg("extbsputil: Can't reopen acq file", fileName);
-                        sdr_cancel_xn(sdr);
-                        return -1;
-                }
-        }
-
-        // Write the data to the file
-        if (write(fd, bytes, length) < 0)
-        {
-                putSysErrmsg("extbsputil: Can't append to acq file", fileName);
-                sdr_cancel_xn(sdr);
-                return -1;
-        }
-
-        close(fd);
-        if (zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
-                        fileLength, length) <= 0)
+	if (parseEidString(eid, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
-		putErrmsg("extbsputil: Can't append extent to ZCO.", NULL);
-		sdr_cancel_xn(sdr);
-		return -1;
+		/*	Can't know which admin EID to use.		*/
+
+		return NULL;
 	}
 
-        /*      Flag file reference for deletion as soon as the last
-         *      ZCO extent that references it is deleted.               */
-        zco_destroy_file_ref(sdr, *acqFileRef);
-        if (sdr_end_xn(sdr) < 0)
-        {
-                putErrmsg("extbsputil: Can't acquire extent into file.", NULL);
-                return -1;
-        }
-
-        return 0;
+	restoreEidString(&metaEid);
+   	return vscheme->adminEid;
 }

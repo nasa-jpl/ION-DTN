@@ -12,6 +12,7 @@
 #ifndef BCB_ARC4_H_
 #define BCB_ARC4_H_
 
+#include "bspbcb.h"
 #include "ciphersuites.h" 
 
 extern int	bcb_arc4_construct(ExtensionBlock *, BspOutboundBlock *);

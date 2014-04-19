@@ -17,27 +17,27 @@
 
 int	bab_hmac_sha1_construct(ExtensionBlock *blk, BspOutboundBlock *asb)
 {
-	asb->ciphersuiteType = BSP_CTYPE_BAB_HMAC;
+	asb->ciphersuiteType = BSP_CSTYPE_BAB_HMAC_SHA1;
 	if (blk->occurrence == 0)
 	{
-		asb.ciphersuiteFlags = 0;
+		asb->ciphersuiteFlags = 0;
 	}
 	else
 	{
-		asb.ciphersuiteFlags = BSP_ASB_RES;
+		asb->ciphersuiteFlags = BSP_ASB_RES;
 
 		/*	Result length 22 is the length of a
 		 *	type/length/value triplet: length of result
 		 *	information item type (1) plus length of the
 		 *	length of the security result (the length of
 		 *	an SDNV large enough to contain the length of
-	 	*	the result, i.e., 1) plus the length of the
-		*	result itself (BAB_HMAC_SHA1_RESULT_LEN = 20).	*/
+		 *	the result, i.e., 1) plus the length of the
+		 *	result itself (BAB_HMAC_SHA1_RESULT_LEN = 20).	*/
 
-		asb->resultsLength = 22; 
+		asb->resultsLen = 22; 
 	}
 
-	asb->parmsLength = 0;
+	asb->parmsLen = 0;
 	asb->parmsData = 0;
 	asb->resultsData = 0;
 	return 0;
@@ -60,13 +60,12 @@ int	bab_hmac_sha1_construct(ExtensionBlock *blk, BspOutboundBlock *asb)
  *      1. 
  *****************************************************************************/
 
-static unsigned char	*computeDigest(Object dataObj, char *keyValue,
+static unsigned char	*computeDigest(Object dataObj, unsigned char *keyValue,
 				unsigned int keyLen, unsigned int *hashLen)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned char	*hashData = NULL;
 	char		*dataBuffer;
-	int		i = 0;
 	ZcoReader	dataReader;
 	char		*authContext;
 	int		authCtxLen;
@@ -180,11 +179,10 @@ int	bab_hmac_sha1_sign(Bundle *bundle, ExtensionBlock *blk,
 	Sdr		bpSdr = getIonsdr();
 	unsigned char	*keyValue;
 	int		keyLen;
-	unsigned int	serializedBundleLength;
 	unsigned char	*digest;
 	unsigned int	digestLen;
 	Sdnv		digestSdnv;
-	int		resultsLength;
+	int		resultsLen;
 	unsigned char	*temp;
 	int		outcome;
 
@@ -233,12 +231,12 @@ int	bab_hmac_sha1_sign(Bundle *bundle, ExtensionBlock *blk,
 	}
 
 	encodeSdnv(&digestSdnv, digestLen); 
-	resultsLength = 1 + digestSdnv.length + digestLen;
-	temp = (unsigned char *) MTAKE(resultsLength);
+	resultsLen = 1 + digestSdnv.length + digestLen;
+	temp = (unsigned char *) MTAKE(resultsLen);
 	if (temp == NULL)
 	{
 		BAB_DEBUG_ERR("x bab_shmac_sha1_sign: Can't allocate memory \
-for ASB result, len %ld.", resultsLength);
+for ASB result, len %ld.", resultsLen);
 		MRELEASE(digest);
 		BAB_DEBUG_PROC("- bab_shmac_sha1_sign --> %d", -1);
 		return -1;
@@ -249,12 +247,12 @@ for ASB result, len %ld.", resultsLength);
 	memcpy(temp + 1 + digestSdnv.length, digest, digestLen);
 	MRELEASE(digest);
 	outcome = zco_append_trailer(bpSdr, bundle->payload.content,
-			(char *) temp, resultsLength);
+			(char *) temp, resultsLen);
 	MRELEASE(temp);
 	if (outcome < 0)
 	{
 		BAB_DEBUG_ERR("x bab_shmac_sha1_sign: Can't allocate heap \
-space for ASB result, len %ld.", resultsLength);
+space for ASB result, len %ld.", resultsLen);
 		BAB_DEBUG_PROC("- bab_shmac_sha1_sign --> %d", -1);
 		return -1;
 	}
@@ -264,25 +262,25 @@ space for ASB result, len %ld.", resultsLength);
 
 int	bab_hmac_sha1_verify(AcqWorkArea *wk, AcqExtBlock *blk)
 {
+	int		outcome = 0;	/*	Default: fails.		*/
 	BspInboundBlock	*asb;
 	LystElt		elt;
 	AcqExtBlock	*otherBab;
 	unsigned char	*keyValue;
 	int		keyLen;
-	unsigned int	serializedBundleLength;
 	unsigned char	*digest;
 	unsigned int	digestLen;
 	Sdnv		digestSdnv;
-	int		resultsLength;
+	int		resultsLen;
 	unsigned char	*temp;
 	BspInboundBlock	*firstAsb;
 	unsigned char	*assertedDigest;
 	unsigned int	assertedDigestLen;
 
 	asb = (BspInboundBlock *) (blk->object);
-	if (asb->occurrence == 0)
+	if (asb->instance == 0)
 	{
-		elt = findAcqExtBlk(wk, EXTENSION_TYPE_BAB, 0, 0, 0, 1);
+		elt = findAcqExtensionBlock(wk, EXTENSION_TYPE_BAB, 1);
 		if (elt == NULL)
 		{
 			BAB_DEBUG_ERR("x bab_hmac_sha1_verify: no Last BAB.");
@@ -317,12 +315,12 @@ hashData is 0x%x and length is %d.", digest, digestLen);
 		 *	used for any other purpose.)			*/
 
 		encodeSdnv(&digestSdnv, digestLen); 
-		resultsLength = 1 + digestSdnv.length + digestLen;
-		temp = (unsigned char *) MTAKE(resultsLength);
+		resultsLen = 1 + digestSdnv.length + digestLen;
+		temp = (unsigned char *) MTAKE(resultsLen);
 		if (temp == NULL)
 		{
 			BAB_DEBUG_ERR("x bab_hmac_sha1_verify: Can't allocate \
-memory for ASB result, len %ld.", resultsLength);
+memory for ASB result, len %ld.", resultsLen);
 			MRELEASE(digest);
 			discardExtensionBlock(blk);
 			return -1;
@@ -337,7 +335,7 @@ memory for ASB result, len %ld.", resultsLength);
 			MRELEASE(asb->resultsData);
 		}
 
-		asb->resultsLen = resultsLength;
+		asb->resultsLen = resultsLen;
 		asb->resultsData = temp;
 		return 0;
 	}
@@ -352,7 +350,7 @@ last BAB.");
 		return 1;
 	}
 
-	getInboundBspItem(BSP_CSPARM_INT_SIG, asb->resultData,
+	bsp_getInboundBspItem(BSP_CSPARM_INT_SIG, asb->resultsData,
 			asb->resultsLen, &assertedDigest, &assertedDigestLen);
 	if (assertedDigestLen != BAB_HMAC_SHA1_RESULT_LEN)
 	{
@@ -364,7 +362,7 @@ last BAB: %d.", assertedDigestLen);
 
 	/*	Asserted digest seems okay.  Retrieve computed digest.	*/
 
-	elt = findAcqExtBlk(wk, EXTENSION_TYPE_BAB, 0, 0, 0, 0);
+	elt = findAcqExtensionBlock(wk, EXTENSION_TYPE_BAB, 0);
 	if (elt == NULL)
 	{
 		BAB_DEBUG_ERR("x bsp_hmac_sha1_verify: no First BAB.");
@@ -374,7 +372,7 @@ last BAB: %d.", assertedDigestLen);
 
 	otherBab = (AcqExtBlock *) lyst_data(elt);
 	firstAsb = (BspInboundBlock *) (otherBab->object);
-	getInboundBspItem(BSP_CSPARM_INT_SIG, firstAsb->resultData,
+	bsp_getInboundBspItem(BSP_CSPARM_INT_SIG, firstAsb->resultsData,
 			firstAsb->resultsLen, &digest, &digestLen);
 
 	/*	Compare the digests to verify bundle authenticity.	*/
@@ -391,7 +389,7 @@ last BAB: %d.", assertedDigestLen);
 
 	/*	Now delete both the First and Last BABs and return.	*/
 
-	deleteAcqExtBlock(elt, PRE_PAYLOAD);
+	deleteAcqExtBlock(elt);
 	discardExtensionBlock(blk);
 	return outcome;
 }

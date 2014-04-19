@@ -31,10 +31,10 @@ static void	bcbGetCiphersuite(char *securitySource, char *securityDest,
 	Sdr	bpSdr = getIonsdr();
 	Object	ruleAddr;
 	Object	ruleElt;
-		OBJ_POINTER(BspBcbRule, bcbRule);
 
 	*cs = NULL;		/*	Default: no ciphersuite.	*/
-	sec_get_bspBcbRule(fromEid, toEid, targetBlkType, &ruleAddr, &ruleElt);
+	sec_get_bspBcbRule(securitySource, securityDest, targetBlkType,
+			&ruleAddr, &ruleElt);
 	if (ruleElt == 0)	/*	No matching rule.		*/
 	{
 		memset((char *) bcbRule, 0, sizeof(BspBcbRule));
@@ -46,7 +46,7 @@ for BCBs. No BCB processing for this bundle.", NULL);
 	/*	Given the applicable BCB rule, get the ciphersuite.	*/
 
 	sdr_read(bpSdr, (char *) bcbRule, ruleAddr, sizeof(BspBcbRule));
-	*cs = get_bcb_cs_by_name(bcbRule.ciphersuiteName);
+	*cs = get_bcb_cs_by_name(bcbRule->ciphersuiteName);
 	if (*cs == NULL)
 	{
 		BCB_DEBUG_INFO("i bsp_bcbGetCiphersuite: Ciphersuite \
@@ -114,7 +114,7 @@ serialize ASB.  blk->dataLength = %d", blk->dataLength);
 
 	/*	Serialized ASB is the block-specific data for the BCB.	*/
 
-	result = serializeExtBlk(blk, NULL, serializedAsb);
+	result = serializeExtBlk(blk, NULL, (char *) serializedAsb);
 	MRELEASE(serializedAsb);
 	BCB_DEBUG_PROC("- bcbConstruct --> %d", -1);
 	return result;
@@ -165,8 +165,8 @@ int	bsp_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	blk->length = 0;	/*	Default.			*/
 	blk->bytes = 0;		/*	Default.			*/
 	if (blk->tag1 == BLOCK_TYPE_PRIMARY
-	|| blk->tag1 == BLOCK_TYPE_BAB
-	|| blk->tag1 == BLOCK_TYPE_BCB)
+	|| blk->tag1 == EXTENSION_TYPE_BAB
+	|| blk->tag1 == EXTENSION_TYPE_BCB)
 	{
 		/*	Can't have a BCB for these types of block.	*/
 
@@ -176,8 +176,8 @@ int	bsp_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 		return result;
 	}
 
-	existingBcb = findBspBlock(bundle, EXTENSION_TYPE_BCB, blk->tag1, 
-			blk->tag2, blk->tag3, 0);
+	existingBcb = bsp_findBspBlock(bundle, EXTENSION_TYPE_BCB, blk->tag1, 
+			blk->tag2, blk->tag3);
 	if (existingBcb)	/*	Bundle already has this BCB.	*/
 	{
 		/*	Don't create a placeholder BCB for this block.	*/
@@ -191,8 +191,6 @@ int	bsp_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	memset((char *) &asb, 0, sizeof(BspOutboundBlock));
 	bsp_insertSecuritySource(bundle, &asb);
 	asb.targetBlockType = blk->tag1;
-	asb.targetBlockTargetBlockType = blk->tag2;
-	asb.targetBlockTargetBlockOccurrence = blk->tag3;
 	blk->size = sizeof(BspOutboundBlock);
 	blk->object = sdr_malloc(bpSdr, blk->size);
 	if (blk->object == 0)
@@ -282,7 +280,7 @@ blk %d, blk->size %d", bundle, parm, blk, blk->size);
 		return 0;
 	} 
 
-	sdr_read(bpSdr, (char *) &asb, blk->object, blk->size);
+	sdr_read(getIonsdr(), (char *) &asb, blk->object, blk->size);
 	if (asb.targetBlockType == BLOCK_TYPE_PAYLOAD)
 	{
 		/*	Do nothing; the block's bytes are correct
@@ -369,57 +367,55 @@ int	bsp_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	}
 
 	sdr_read(bpSdr, (char *) &asb, oldBlk->object, sizeof asb);
+	if (asb.parmsData)
+	{
+		buffer = MTAKE(asb.parmsLen);
+		if (buffer == NULL)
+		{
+			BCB_DEBUG_ERR("x bsp_bcbCopy: Failed to allocate: %d",
+					asb.parmsLen);
+			return -1;
+		}
+
+		sdr_read(bpSdr, buffer, asb.parmsData, asb.parmsLen);
+		asb.parmsData = sdr_malloc(bpSdr, asb.parmsLen);
+		if (asb.parmsData == 0)
+		{
+			BCB_DEBUG_ERR("x bsp_bcbCopy: Failed to allocate: %d",
+					asb.parmsLen);
+			MRELEASE(buffer);
+			return -1;
+		}
+
+		sdr_write(bpSdr, asb.parmsData, buffer, asb.parmsLen);
+		MRELEASE(buffer);
+	}
+
+	if (asb.resultsData)
+	{
+		buffer = MTAKE(asb.resultsLen);
+		if (buffer == NULL)
+		{
+			BCB_DEBUG_ERR("x bsp_bcbCopy: Failed to allocate: %d",
+					asb.resultsLen);
+			return -1;
+		}
+
+		sdr_read(bpSdr, buffer, asb.resultsData, asb.resultsLen);
+		asb.resultsData = sdr_malloc(bpSdr, asb.resultsLen);
+		if (asb.resultsData == 0)
+		{
+			BCB_DEBUG_ERR("x bsp_bcbCopy: Failed to allocate: %d",
+					asb.resultsLen);
+			MRELEASE(buffer);
+			return -1;
+		}
+
+		sdr_write(bpSdr, asb.resultsData, buffer, asb.resultsLen);
+		MRELEASE(buffer);
+	}
+
 	sdr_write(bpSdr, newBlk->object, (char *) &asb, sizeof asb);
-	if (oldBlk->parmsData)
-	{
-		buffer = MTAKE(oldBlk->parmsLen);
-		if (buffer == NULL)
-		{
-			BCB_DEBUG_ERR("x bsp_bcbCopy: Failed to allocate: %d",
-					oldBlk->parmsLen);
-			return -1;
-		}
-
-		sdr_read(bpSdr, buffer, oldBlk->parmsData, oldBlk->parmsLen);
-		newBlk->parmsData = sdr_malloc(bpSdr, oldBlk->parmsLen);
-		if (newBlk->parmsData == 0)
-		{
-			BCB_DEBUG_ERR("x bsp_bcbCopy: Failed to allocate: %d",
-					oldBlk->parmsLen);
-			MRELEASE(buffer);
-			return -1;
-		}
-
-		sdr_write(bpSdr, newBlk->parmsData, buffer, oldBlk->parmsLen);
-		MRELEASE(buffer);
-	}
-
-	if (oldBlk->resultsData)
-	{
-		buffer = MTAKE(oldBlk->resultsLen);
-		if (buffer == NULL)
-		{
-			BCB_DEBUG_ERR("x bsp_bcbCopy: Failed to allocate: %d",
-					oldBlk->resultsLen);
-			return -1;
-		}
-
-		sdr_read(bpSdr, buffer, oldBlk->resultsData,
-				oldBlk->resultsLen);
-		newBlk->resultsData = sdr_malloc(bpSdr, oldBlk->resultsLen);
-		if (newBlk->resultsData == 0)
-		{
-			BCB_DEBUG_ERR("x bsp_bcbCopy: Failed to allocate: %d",
-					oldBlk->resultsLen);
-			MRELEASE(buffer);
-			return -1;
-		}
-
-		sdr_write(bpSdr, newBlk->resultsData, buffer,
-				oldBlk->resultsLen);
-		MRELEASE(buffer);
-	}
-
 	BCB_DEBUG_PROC("- bsp_bcbCopy -> %d", result);
 
 	return result;
@@ -525,14 +521,14 @@ int	bsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 	else
 	{
-		if (printEid(bundle->id.source, dictionary, &fromEid) < 0)
+		if (printEid(&(bundle->id.source), dictionary, &fromEid) < 0)
 		{
 			releaseDictionary(dictionary);
 			return -1;
 		}
 	}
 
-	if (printEid(bundle->destination, dictionary, &toEid) < 0)
+	if (printEid(&(bundle->destination), dictionary, &toEid) < 0)
 	{
 		MRELEASE(fromEid);
 		releaseDictionary(dictionary);
@@ -621,12 +617,14 @@ int	bsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 void	bsp_bcbClear(AcqExtBlock *blk)
 {
+	BspInboundBlock	*asb;
+
 	BCB_DEBUG_PROC("+ bsp_bcbClear(%x)", (unsigned long) blk);
 
 	CHKVOID(blk);
 	if (blk->size > 0)
 	{
-		BspOutboundBlock *asb = (BspOutboundBlock *) blk->object;
+		asb = (BspInboundBlock *) (blk->object);
 		if (asb->parmsLen > 0)
 		{
 			BCB_DEBUG_INFO("i bsp_bcbClear: Release result len %ld",

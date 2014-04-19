@@ -94,7 +94,7 @@ static ExtensionDef	extensionDefs[] =
 				0,
 				0,
 				bsp_babCheck,
-				bsp_babRecord,
+				0,
 				bsp_babClear
 		},
 		{ "bcb", EXTENSION_TYPE_BCB,
@@ -110,7 +110,7 @@ static ExtensionDef	extensionDefs[] =
 				bsp_bcbDecrypt,
 				0,
 				0,
-                                bsp_bcbRecord,
+                                0,
 				bsp_bcbClear
 		},
 		{ "bib", EXTENSION_TYPE_BIB,
@@ -126,7 +126,7 @@ static ExtensionDef	extensionDefs[] =
 				0,
 				bsp_bibParse,
 				bsp_bibCheck,
-				bsp_bibRecord,
+				0,
 				bsp_bibClear
 		},
 #endif /* ORIGINAL_BSP */
@@ -192,19 +192,19 @@ static ExtensionDef	extensionDefs[] =
 
 static ExtensionSpec	extensionSpecs[] =
 			{
-				{ EXTENSION_TYPE_BAB, 0, 0, 0, 0, 0 },
-				{ EXTENSION_TYPE_ECOS, 0, 0, 0, 0, 0 },
-				{ EXTENSION_TYPE_BAE, 0, 0, 0, 0, 0 },
+				{ EXTENSION_TYPE_BAB, 0, 0, 0, 0 },
+				{ EXTENSION_TYPE_ECOS, 0, 0, 0, 0 },
+				{ EXTENSION_TYPE_BAE, 0, 0, 0, 0 },
 #ifdef ENABLE_BPACS
-        			{ EXTENSION_TYPE_CTEB, 0, 0, 0, 0, 0 },
+        			{ EXTENSION_TYPE_CTEB, 0, 0, 0, 0 },
 #endif /* ENABLE_BPACS */
 #ifdef ORIGINAL_BSP
-				{ EXTENSION_TYPE_PIB, 0, 0, 0, 0, 0 },
-				{ EXTENSION_TYPE_PCB, 0, 0, 0, 0, 0 },
+				{ EXTENSION_TYPE_PIB, 0, 0, 0, 0 },
+				{ EXTENSION_TYPE_PCB, 0, 0, 0, 0 },
 #else
-				{ EXTENSION_TYPE_BIB, 1, 0, 0, 0, 0 },
-				{ EXTENSION_TYPE_BCB, 1, 0, 0, 0, 0 },
+				{ EXTENSION_TYPE_BIB, 1, 0, 0, 0 },
+				{ EXTENSION_TYPE_BCB, 1, 0, 0, 0 },
 #endif /* ORIGINAL_BSP */
-				{ EXTENSION_TYPE_BAB, 0, 0, 0, 1, 1 }
+				{ EXTENSION_TYPE_BAB, 0, 0, 1, 1 },
 				{ 0,0,0,0,0 }
 			};

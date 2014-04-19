@@ -31,10 +31,10 @@ static void	bibGetCiphersuite(char *securitySource, char *securityDest,
 	Sdr	bpSdr = getIonsdr();
 	Object	ruleAddr;
 	Object	ruleElt;
-		OBJ_POINTER(BspBibRule, bibRule);
 
 	*cs = NULL;		/*	Default: no ciphersuite.	*/
-	sec_get_bspBibRule(fromEid, toEid, targetBlkType, &ruleAddr, &ruleElt);
+	sec_get_bspBibRule(securitySource, securityDest, targetBlkType,
+			&ruleAddr, &ruleElt);
 	if (ruleElt == 0)	/*	No matching rule.		*/
 	{
 		memset((char *) bibRule, 0, sizeof(BspBibRule));
@@ -46,7 +46,7 @@ for BIBs. No BIB processing for this bundle.", NULL);
 	/*	Given the applicable BIB rule, get the ciphersuite.	*/
 
 	sdr_read(bpSdr, (char *) bibRule, ruleAddr, sizeof(BspBibRule));
-	*cs = get_bib_cs_by_name(bibRule.ciphersuiteName);
+	*cs = get_bib_cs_by_name(bibRule->ciphersuiteName);
 	if (*cs == NULL)
 	{
 		BIB_DEBUG_INFO("i bspGetCiphersuite: Ciphersuite \
@@ -114,7 +114,7 @@ serialize ASB.  blk->dataLength = %d", blk->dataLength);
 
 	/*	Serialized ASB is the block-specific data for the BIB.	*/
 
-	result = serializeExtBlk(blk, NULL, serializedAsb);
+	result = serializeExtBlk(blk, NULL, (char *) serializedAsb);
 	MRELEASE(serializedAsb);
 	BIB_DEBUG_PROC("- bibConstruct --> %d", -1);
 	return result;
@@ -170,9 +170,9 @@ int	bsp_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	CHKERR(bundle);
 	blk->length = 0;	/*	Default.			*/
 	blk->bytes = 0;		/*	Default.			*/
-	if (blk->tag1 == BLOCK_TYPE_BAB
-	|| blk->tag1 == BLOCK_TYPE_BIB
-	|| blk->tag1 == BLOCK_TYPE_BCB)
+	if (blk->tag1 == EXTENSION_TYPE_BAB
+	|| blk->tag1 == EXTENSION_TYPE_BIB
+	|| blk->tag1 == EXTENSION_TYPE_BCB)
 	{
 		/*	Can't have a BIB for these types of block.	*/
 
@@ -182,8 +182,8 @@ int	bsp_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 		return result;
 	}
 
-	existingBib = findBspBlock(bundle, EXTENSION_TYPE_BIB, blk->tag1, 
-			0, 0, 0);
+	existingBib = bsp_findBspBlock(bundle, EXTENSION_TYPE_BIB, blk->tag1, 
+			0, 0);
 	if (existingBib)	/*	Bundle already has this BIB.	*/
 	{
 		/*	Don't create a placeholder BIB for this block.	*/
@@ -293,7 +293,7 @@ blk %d, blk->size %d", bundle, parm, blk, blk->size);
 		return 0;
 	} 
 
-	sdr_read(bpSdr, (char *) &asb, blk->object, blk->size);
+	sdr_read(getIonsdr(), (char *) &asb, blk->object, blk->size);
 	if (asb.targetBlockType == BLOCK_TYPE_PAYLOAD)
 	{
 		/*	Do nothing; the block's bytes are correct
@@ -380,57 +380,55 @@ int	bsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	}
 
 	sdr_read(bpSdr, (char *) &asb, oldBlk->object, sizeof asb);
+	if (asb.parmsData)
+	{
+		buffer = MTAKE(asb.parmsLen);
+		if (buffer == NULL)
+		{
+			BIB_DEBUG_ERR("x bsp_bibCopy: Failed to allocate: %d",
+					asb.parmsLen);
+			return -1;
+		}
+
+		sdr_read(bpSdr, buffer, asb.parmsData, asb.parmsLen);
+		asb.parmsData = sdr_malloc(bpSdr, asb.parmsLen);
+		if (asb.parmsData == 0)
+		{
+			BIB_DEBUG_ERR("x bsp_bibCopy: Failed to allocate: %d",
+					asb.parmsLen);
+			MRELEASE(buffer);
+			return -1;
+		}
+
+		sdr_write(bpSdr, asb.parmsData, buffer, asb.parmsLen);
+		MRELEASE(buffer);
+	}
+
+	if (asb.resultsData)
+	{
+		buffer = MTAKE(asb.resultsLen);
+		if (buffer == NULL)
+		{
+			BIB_DEBUG_ERR("x bsp_bibCopy: Failed to allocate: %d",
+					asb.resultsLen);
+			return -1;
+		}
+
+		sdr_read(bpSdr, buffer, asb.resultsData, asb.resultsLen);
+		asb.resultsData = sdr_malloc(bpSdr, asb.resultsLen);
+		if (asb.resultsData == 0)
+		{
+			BIB_DEBUG_ERR("x bsp_bibCopy: Failed to allocate: %d",
+					asb.resultsLen);
+			MRELEASE(buffer);
+			return -1;
+		}
+
+		sdr_write(bpSdr, asb.resultsData, buffer, asb.resultsLen);
+		MRELEASE(buffer);
+	}
+
 	sdr_write(bpSdr, newBlk->object, (char *) &asb, sizeof asb);
-	if (oldBlk->parmsData)
-	{
-		buffer = MTAKE(oldBlk->parmsLen);
-		if (buffer == NULL)
-		{
-			BIB_DEBUG_ERR("x bsp_bibCopy: Failed to allocate: %d",
-					oldBlk->parmsLen);
-			return -1;
-		}
-
-		sdr_read(bpSdr, buffer, oldBlk->parmsData, oldBlk->parmsLen);
-		newBlk->parmsData = sdr_malloc(bpSdr, oldBlk->parmsLen);
-		if (newBlk->parmsData == 0)
-		{
-			BIB_DEBUG_ERR("x bsp_bibCopy: Failed to allocate: %d",
-					oldBlk->parmsLen);
-			MRELEASE(buffer);
-			return -1;
-		}
-
-		sdr_write(bpSdr, newBlk->parmsData, buffer, oldBlk->parmsLen);
-		MRELEASE(buffer);
-	}
-
-	if (oldBlk->resultsData)
-	{
-		buffer = MTAKE(oldBlk->resultsLen);
-		if (buffer == NULL)
-		{
-			BIB_DEBUG_ERR("x bsp_bibCopy: Failed to allocate: %d",
-					oldBlk->resultsLen);
-			return -1;
-		}
-
-		sdr_read(bpSdr, buffer, oldBlk->resultsData,
-				oldBlk->resultsLen);
-		newBlk->resultsData = sdr_malloc(bpSdr, oldBlk->resultsLen);
-		if (newBlk->resultsData == 0)
-		{
-			BIB_DEBUG_ERR("x bsp_bibCopy: Failed to allocate: %d",
-					oldBlk->resultsLen);
-			MRELEASE(buffer);
-			return -1;
-		}
-
-		sdr_write(bpSdr, newBlk->resultsData, buffer,
-				oldBlk->resultsLen);
-		MRELEASE(buffer);
-	}
-
 	BIB_DEBUG_PROC("- bsp_bibCopy -> %d", result);
 
 	return result;
@@ -540,14 +538,14 @@ int	bsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 	else
 	{
-		if (printEid(bundle->id.source, dictionary, &fromEid) < 0)
+		if (printEid(&(bundle->id.source), dictionary, &fromEid) < 0)
 		{
 			releaseDictionary(dictionary);
 			return -1;
 		}
 	}
 
-	if (printEid(bundle->destination, dictionary, &toEid) < 0)
+	if (printEid(&(bundle->destination), dictionary, &toEid) < 0)
 	{
 		MRELEASE(fromEid);
 		releaseDictionary(dictionary);
@@ -636,12 +634,14 @@ int	bsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 void	bsp_bibClear(AcqExtBlock *blk)
 {
+	BspInboundBlock *asb;
+
 	BIB_DEBUG_PROC("+ bsp_bibClear(%x)", (unsigned long) blk);
 
 	CHKVOID(blk);
 	if (blk->size > 0)
 	{
-		BspOutboundBlock *asb = (BspOutboundBlock *) blk->object;
+		asb = (BspInboundBlock *) (blk->object);
 		if (asb->parmsLen > 0)
 		{
 			BIB_DEBUG_INFO("i bsp_bibClear: Release result len %ld",

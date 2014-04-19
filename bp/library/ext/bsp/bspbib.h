@@ -6,6 +6,7 @@
 #define BSPBIB_H_
 
 #include "bsputil.h"
+#include "ciphersuites.h"
 
 // If bsp debugging is turned on, then turn on bib debugging.
 #if BSP_DEBUGGING == 1
@@ -201,7 +202,7 @@ void	bsp_bibRelease(ExtensionBlock *blk);
  *  04/02/12  S. Burleigh           Initial Implementation.
  *****************************************************************************/
 
-extern int bsp_payloadBibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
+extern int bsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
 
 /******************************************************************************
  *

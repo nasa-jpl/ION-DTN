@@ -72,29 +72,52 @@ static void	printUsage()
 	PUTS("\t   a key <key name> <name of file containing key value>");
 	PUTS("\t   a bspbabrule <sender eid expression> <receiver eid \
 expression> { '' |  <ciphersuite name> <key name> }");
+#ifdef ORIGINAL_BSP
 	PUTS("\t\tAn eid expression may be either an EID or a wild card, \
 i.e., a partial eid expression ending in '*'.");
 	PUTS("\t   a bsppibrule <sender eid expression> <receiver eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   a bsppcbrule <sender eid expression> <receiver eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
+#else
+	PUTS("\t\tEvery eid expression must be a node identification \
+expression, i.e., a partial eid expression ending in '*' or '~'.");
+	PUTS("\t   a bspbibrule <source eid expression> <destination eid \
+expression> <block type number> { '' | <ciphersuite name> <key name> }");
+	PUTS("\t   a bspbcbrule <source eid expression> <destination eid \
+expression> <block type number> { '' | <ciphersuite name> <key name> }");
+#endif
 	PUTS("\tc\tChange");
 	PUTS("\t   c key <key name> <name of file containing key value>");
 	PUTS("\t   c bspbabrule <sender eid expression> <receiver eid \
 expression> { '' | <ciphersuite name> <key name> }");
+#ifdef ORIGINAL_BSP
 	PUTS("\t   c bsppibrule <sender eid expression> <receiver eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   c bsppcbrule <sender eid expression> <receiver eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
+#else
+	PUTS("\t   c bspbibrule <source eid expression> <destination eid \
+expression> <block type number> { '' | <ciphersuite name> <key name> }");
+	PUTS("\t   c bspbcbrule <source eid expression> <destination eid \
+expression> <block type number> { '' | <ciphersuite name> <key name> }");
+#endif
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} key <key name>");
 	PUTS("\t   {d|i} bspbabrule <sender eid expression> <receiver eid \
 expression>");
+#ifdef ORIGINAL_BSP
 	PUTS("\t   {d|i} bsppibrule <sender eid expression> <receiver eid \
 expression> <block type number>");
 	PUTS("\t   {d|i} bsppcbrule <sender eid expression> <receiver eid \
 expression> <block type number>");
+#else
+	PUTS("\t   {d|i} bspbibrule <source eid expression> <destination eid \
+expression> <block type number>");
+	PUTS("\t   {d|i} bspbcbrule <source eid expression> <destination eid \
+expression> <block type number>");
+#endif
 	PUTS("\tl\tList");
 	PUTS("\t   l key");
 	PUTS("\t   l bspbabrule");
@@ -104,7 +127,7 @@ expression> <block type number>");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\tx\tClear BSP security rules.");
 	PUTS("\t   x <security source eid> <security destination eid> \
-{ bab | pib | pcb | esb | ~ }");
+{ 2 | 3 | 4 | ~ }");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
 }
@@ -166,6 +189,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		switch (tokenCount)
@@ -209,7 +233,51 @@ static void	executeAdd(int tokenCount, char **tokens)
                                 tokens[5], keyName);
                 return;
         }
-			
+#else
+	if (strcmp(tokens[1], "bspbibrule") == 0)
+	{
+		switch (tokenCount)
+		{
+		case 7:
+			keyName = tokens[6];
+			break;
+
+		case 6:
+			keyName = _omitted();
+			break;
+
+		default:
+			SYNTAX_ERROR;
+			return;
+		}
+
+		sec_addBspBibRule(tokens[2], tokens[3], atoi(tokens[4]),
+				tokens[5], keyName);
+		return;
+	}
+
+        if (strcmp(tokens[1], "bspbcbrule") == 0)
+        {
+                switch (tokenCount)
+                {
+                case 7:
+                        keyName = tokens[6];
+                        break;
+
+                case 6:
+                        keyName = _omitted();
+                        break;
+
+                default:
+                        SYNTAX_ERROR;
+                        return;
+                }
+
+                sec_addBspBcbRule(tokens[2], tokens[3], atoi(tokens[4]),
+                                tokens[5], keyName);
+                return;
+        }
+#endif
 	SYNTAX_ERROR;
 }
 
@@ -256,6 +324,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		switch (tokenCount)
@@ -299,8 +368,51 @@ static void	executeChange(int tokenCount, char **tokens)
                                 tokens[5], keyName);
                 return;
         }
+#else
+	if (strcmp(tokens[1], "bspbibrule") == 0)
+	{
+		switch (tokenCount)
+		{
+		case 7:
+			keyName = tokens[6];
+			break;
 
-			
+		case 6:
+			keyName = _omitted();
+			break;
+
+		default:
+			SYNTAX_ERROR;
+			return;
+		}
+
+		sec_updateBspBibRule(tokens[2], tokens[3], atoi(tokens[4]),
+				tokens[5], keyName);
+		return;
+	}
+
+        if (strcmp(tokens[1], "bspbcbrule") == 0)
+        {
+                switch (tokenCount)
+                {
+                case 7:
+                        keyName = tokens[6];
+                        break;
+
+                case 6:
+                        keyName = _omitted();
+                        break;
+
+                default:
+                        SYNTAX_ERROR;
+                        return;
+                }
+
+                sec_updateBspBcbRule(tokens[2], tokens[3], atoi(tokens[4]),
+                                tokens[5], keyName);
+                return;
+        }
+#endif
 	SYNTAX_ERROR;
 }
 
@@ -336,6 +448,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		sec_removeBspPibRule(tokens[2], tokens[3], atoi(tokens[4]));
@@ -347,7 +460,19 @@ static void	executeDelete(int tokenCount, char **tokens)
                 sec_removeBspPcbRule(tokens[2], tokens[3], atoi(tokens[4]));
                 return;
         }
+#else
+	if (strcmp(tokens[1], "bspbibrule") == 0)
+	{
+		sec_removeBspBibRule(tokens[2], tokens[3], atoi(tokens[4]));
+		return;
+	}
 
+        if (strcmp(tokens[1], "bspbcbrule") == 0)
+        {
+                sec_removeBspBcbRule(tokens[2], tokens[3], atoi(tokens[4]));
+                return;
+        }
+#endif
 	SYNTAX_ERROR;
 }
 
@@ -363,6 +488,7 @@ static void	printKey(Object keyAddr)
 	printText(buf);
 }
 
+#ifdef ORIGINAL_BSP
 static void	printBspBabRule(Object ruleAddr)
 {
 	Sdr	sdr = getIonsdr();
@@ -373,7 +499,7 @@ static void	printBspBabRule(Object ruleAddr)
 	GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleAddr);
 	sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
 	sdr_string_read(sdr, destEidBuf, rule->securityDestEid);
-	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.2555s' \
+	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
 ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
 		rule->ciphersuiteName, rule->keyName);
 	printText(buf);
@@ -410,6 +536,55 @@ type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
                 rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
         printText(buf);
 }
+#else
+static void	printBspBabRule(Object ruleAddr)
+{
+	Sdr	sdr = getIonsdr();
+		OBJ_POINTER(BspBabRule, rule);
+	char	srcEidBuf[SDRSTRING_BUFSZ], destEidBuf[SDRSTRING_BUFSZ];
+	char	buf[512];
+
+	GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleAddr);
+	sdr_string_read(sdr, srcEidBuf, rule->senderEid);
+	sdr_string_read(sdr, destEidBuf, rule->receiverEid);
+	isprintf(buf, sizeof buf, "rule sender eid '%.255s' receiver eid \
+'%.255s' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
+		rule->ciphersuiteName, rule->keyName);
+	printText(buf);
+}
+
+static void	printBspBibRule(Object ruleAddr)
+{
+	Sdr	sdr = getIonsdr();
+		OBJ_POINTER(BspBibRule, rule);
+	char	srcEidBuf[SDRSTRING_BUFSZ], destEidBuf[SDRSTRING_BUFSZ];
+	char	buf[512];
+
+	GET_OBJ_POINTER(sdr, BspBibRule, rule, ruleAddr);
+	sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
+	sdr_string_read(sdr, destEidBuf, rule->destEid);
+	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
+type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
+		rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
+	printText(buf);
+}
+
+static void     printBspBcbRule(Object ruleAddr)
+{
+        Sdr     sdr = getIonsdr();
+                OBJ_POINTER(BspBcbRule, rule);
+        char    srcEidBuf[SDRSTRING_BUFSZ], destEidBuf[SDRSTRING_BUFSZ];
+        char    buf[512];
+
+        GET_OBJ_POINTER(sdr, BspBcbRule, rule, ruleAddr);
+        sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
+        sdr_string_read(sdr, destEidBuf, rule->destEid);
+        isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
+type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
+		rule->blockTypeNbr, rule->ciphersuiteName, rule->keyName);
+        printText(buf);
+}
+#endif
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
@@ -462,7 +637,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		sdr_exit_xn(sdr);
 		return;
 	}
-
+#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		CHKVOID(sdr_begin_xn(sdr));
@@ -498,6 +673,43 @@ static void	executeInfo(int tokenCount, char **tokens)
 		sdr_exit_xn(sdr);
                 return;
         }
+#else
+	if (strcmp(tokens[1], "bspbibrule") == 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		sec_findBspBibRule(tokens[2], tokens[3], atoi(tokens[4]),
+				&addr, &elt);
+		if (elt == 0)
+		{
+			printText("BIB rule not found.");
+		}
+		else
+		{
+			printBspBibRule(addr);
+		}
+
+		sdr_exit_xn(sdr);
+		return;
+	}
+
+        if (strcmp(tokens[1], "bspbcbrule") == 0)
+        {
+		CHKVOID(sdr_begin_xn(sdr));
+                sec_findBspBcbRule(tokens[2], tokens[3], atoi(tokens[4]),
+                                &addr, &elt);
+                if (elt == 0)
+                {
+                        printText("BCB rule not found.");
+                }
+		else
+		{
+                	printBspBcbRule(addr);
+		}
+
+		sdr_exit_xn(sdr);
+                return;
+        }
+#endif
 
 	SYNTAX_ERROR;
 }
@@ -549,7 +761,7 @@ static void	executeList(int tokenCount, char **tokens)
 		sdr_exit_xn(sdr);
 		return;
 	}
-
+#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		CHKVOID(sdr_begin_xn(sdr));
@@ -577,6 +789,35 @@ static void	executeList(int tokenCount, char **tokens)
 		sdr_exit_xn(sdr);
 		return;
         }
+#else
+	if (strcmp(tokens[1], "bspbibrule") == 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		for (elt = sdr_list_first(sdr, db->bspBibRules); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			obj = sdr_list_data(sdr, elt);
+			printBspBibRule(obj);
+		}
+
+		sdr_exit_xn(sdr);
+		return;
+	}
+
+	if (strcmp(tokens[1], "bspbcbrule") == 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		for (elt = sdr_list_first(sdr, db->bspBcbRules); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			obj = sdr_list_data(sdr, elt);
+			printBspBcbRule(obj);
+		}
+
+		sdr_exit_xn(sdr);
+		return;
+        }
+#endif
 
 	SYNTAX_ERROR;
 }
@@ -718,7 +959,6 @@ static int	processLine(char *line, int lineLength)
 			switchEcho(tokenCount, tokens);
 			return 0;
 
-		/* Call for ionClear() to clear all security rules */
 		case 'x':
 			if (secAttach() == 0)
 			{
@@ -728,20 +968,21 @@ static int	processLine(char *line, int lineLength)
 				}
 				else if (tokenCount == 4)
 				{
-					ionClear(tokens[1], tokens[2],
+					sec_clearBspRules(tokens[1], tokens[2],
 							tokens[3]);
 				}
 				else if (tokenCount == 3)
 				{
-					ionClear(tokens[1], tokens[2], "~");
+					sec_clearBspRules(tokens[1], tokens[2],
+							"~");
 				}
 				else if (tokenCount == 2)
 				{
-					ionClear(tokens[1], "~", "~");
+					sec_clearBspRules(tokens[1], "~", "~");
 				}
 				else
 				{
-					ionClear("~", "~", "~");
+					sec_clearBspRules("~", "~", "~");
 				}
 			}
 

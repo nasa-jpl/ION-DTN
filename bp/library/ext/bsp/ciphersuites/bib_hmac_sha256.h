@@ -12,9 +12,11 @@
 #ifndef BIB_HMAC_SHA256_H_
 #define BIB_HMAC_SHA256_H_
 
+#include "bspbib.h"
 #include "ciphersuites.h" 
 
-extern int	bib_hmac_sha256_construct(ExtensionBlock *, BspOutboundBlock *);
+extern int	bib_hmac_sha256_construct(ExtensionBlock *,
+			BspOutboundBlock *);
 extern int	bib_hmac_sha256_sign(Bundle *, ExtensionBlock *,
 			BspOutboundBlock *);
 extern int	bib_hmac_sha256_verify(AcqWorkArea *wk, AcqExtBlock *blk);

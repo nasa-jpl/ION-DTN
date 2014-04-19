@@ -19,7 +19,7 @@
  **		installation of RTEMS.
  **
  ** Subsystem:
- **          Extensions: BSP
+ **             Extensions: BSP
  **
  ** Description: This file provides all structures, variables, and function 
  **              definitions necessary for a full implementation of the 
@@ -31,8 +31,8 @@
  ** Notes:  The original implementation of this file (6/2009) only supported
  **         the Bundle Authentication Block (BAB) with the following
  **         constraints:
- **         - Bundle fragmentation is not considered
- **         - Only the HMAC-SHA1 ciphersuite for BAB is considered
+ **         - Bundle fragmentation is not considered.
+ **         - Only the HMAC-SHA1 ciphersuite for BAB is considered.
  **         - No ciphersuite parameters are utilized or supported.
  **         - All BAB blocks will utilize both the pre- and post-payload block.
  **
@@ -47,7 +47,7 @@
  **  06/08/09  E. Birrane           Initial Implementation of BAB blocks.
  **  06/15/09  E. Birrane           Completed BAB Unit Testing & Documentation
  **  06/20/09  E. Birrane           Doc. updates for initial release.
- **  01/14/14  S. Burleigh          Revised for "streamlined BSP.
+ **  01/14/14  S. Burleigh          Revised for "streamlined BSP".
  *****************************************************************************/
 
 #ifndef _IONBSP_H_
@@ -71,10 +71,6 @@
 #include "bpP.h"
 #include "bei.h"
 #include "ionsec.h"
-
-extern int	extensionBlockTypeToInt(char *blockType);
-extern int	extensionBlockTypeToString(unsigned char blockType,
-			char *retVal, unsigned int retValLength);
 
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *
@@ -212,19 +208,15 @@ typedef struct
 {
 	EndpointId	securitySource;
 	unsigned char	targetBlockType;
-	unsigned char	targetBlockTargetBlockType;
 	unsigned char	targetBlockOccurrence;
+	unsigned char	instance;	/*  0: 1st, lone.  1: last.	*/
 	unsigned char	ciphersuiteType;
 	char		keyName[BSP_KEY_NAME_LEN];
 	unsigned int	ciphersuiteFlags;
-	unsigned int	parmsLen;	/** IFF flags & BSP_ASB_PARM	*/
-	unsigned char	*parmsData;	/** IFF flags & BSP_ASB_PARM	*/
-	unsigned int	resultsLen;	/** IFF flags & BSP_ASB_RES	*/
-	unsigned char	*resultsData;	/** IFF flags & BSP_ASB_RES	*/
-
-	/*	Internally significant data for block acquisition.	*/
-
-	unsigned char	occurrence;
+	unsigned int	parmsLen;	/*  IFF flags & BSP_ASB_PARM	*/
+	unsigned char	*parmsData;	/*  IFF flags & BSP_ASB_PARM	*/
+	unsigned int	resultsLen;	/*  IFF flags & BSP_ASB_RES	*/
+	unsigned char	*resultsData;	/*  IFF flags & BSP_ASB_RES	*/
 } BspInboundBlock;
 
 /** 
@@ -238,8 +230,8 @@ typedef struct
 {
 	EndpointId	securitySource;
 	unsigned char	targetBlockType;
-	unsigned char	targetBlockTargetBlockType;
 	unsigned char	targetBlockOccurrence;
+	unsigned char	instance;	/*  0: 1st, lone.  1: last.	*/
 	unsigned char	ciphersuiteType;
 	char		keyName[BSP_KEY_NAME_LEN];
 	unsigned int	ciphersuiteFlags;
@@ -327,36 +319,9 @@ extern unsigned char	*bsp_addSdnvToStream(unsigned char *stream, Sdnv* val);
  *  07/26/11  E. Birrane           Added useCbhe and EID ref/deref
  *****************************************************************************/
 
-extern int	bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk,
-			int blockType);
+extern int	bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk);
 
-/******************************************************************************
- *
- * \par Function Name: bsp_eidNil
- *
- * \par Purpose: This utility function determines whether a given EID is
- *               "nil".  Nil in this case means that the EID is uninitialized
- *               or will otherwise resolve to the default nullEID. 
- *
- * \par Date Written:  6/18/09
- *
- * \retval int - Whether the EID is nil (1) or not (0).
- *
- * \param[in]  eid - The EndpointID being checked.
- *
- * \par Notes: 
- *      1. Nil check is pulled from whether the ION library printEid function
- *         will use the default nullEID when given this EID. 
- *
- * \par Revision History:
- * 
- *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
- *  --------  ------------  -----------------------------------------------
- *  06/18/09  E. Birrane           Initial Implementation.
- *  06/20/09  E. Birrane           Cmt/Debug updates for initial release.
- *****************************************************************************/
-
-extern int	bsp_eidNil(EndpointId *eid);
+extern void	bsp_insertSecuritySource(Bundle *bundle, BspOutboundBlock *asb);
 
 /******************************************************************************
  *
@@ -428,45 +393,7 @@ extern unsigned char	*bsp_serializeASB(unsigned int *length,
 
 /******************************************************************************
  *
- * \par Function Name: bsp_getSecurityInfo
- *
- * \par Purpose: This utility function retrieves security information for a
- *               given BAB block from the ION security manager.
- *
- * \par Date Written:  6/02/09
- *
- * \retval void 
- *
- * \param[in]  bundle    The bundle that holding the block whose security
- *                       information is being requested.
- * \param]in]  blockType The block whose key information is being requested.
- * \param[in]  bspType   The type of BSP block whose key is being requested.
- * \param[in]  blockType The type of block affected by the BSP. 0 = whole bundle
- * \param[in]  eidSourceString The name of the source endpoint.
- * \param[in]  eidDestString The name of the destination endpoint.
- * \param[out] secInfo   The block scratchpad holding security information for
- *                       this block.
- * 
- * \par Revision History:
- * 
- *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
- *  --------  ------------  -----------------------------------------------
- *  06/02/09  E. Birrane           Initial Implementation.
- *  06/18/09  E. Birrane           Re-write to incorporate Other BSP blocks
- *  02/10/11  E. Birrane           Updated based on ionsecadmin changes.
- *  07/27/11  E. Birrane           Updated for PIB.
- *****************************************************************************/
-
-extern void	bsp_getSecurityInfo(Bundle * bundle,
-			int bspType,
-			int blockType,
-			char * eidSourceString,
-			char * eidDestString,
-			BspSecurityInfo * secInfo);
-
-/******************************************************************************
- *
- * \par Function Name: getInboundBspItem
+ * \par Function Name: bsp_getInboundBspItem
  *
  * \par Purpose: This function searches within a buffer (a ciphersuite
  *               parameters field or a security results field) of an
@@ -499,7 +426,7 @@ extern void	bsp_getInboundBspItem(int itemNeeded, unsigned char *bspBuf,
 
 /******************************************************************************
  *
- * \par Function Name: getOutboundBspItem
+ * \par Function Name: bsp_getOutboundBspItem
  *
  * \par Purpose: This function searches within a buffer (a ciphersuite
  *               parameters field or a security result field) of an outbound
@@ -532,26 +459,22 @@ extern void	bsp_getOutboundBspItem(int itemNeeded, Object bspBuf,
 
 extern Object	bsp_findBspBlock(Bundle *bundle, unsigned char type,
 			unsigned char targetBlockType,
-			unsigned char targetBlockTargetBlockType,
 			unsigned char targetBlockOccurrence,
-			unsigned char occurrence);
+			unsigned char instance);
 
-extern Object	bsp_findAcqBspBlock(AcqWorkArea *wk, unsigned char type,
+extern LystElt	bsp_findAcqBspBlock(AcqWorkArea *wk, unsigned char type,
 			unsigned char targetBlockType,
-			unsigned char targetBlockTargetBlockType,
 			unsigned char targetBlockOccurrence,
-			unsigned char occurrence);
-
-extern char	*bsp_getLocalAdminEid(char *peerEid);
+			unsigned char instance);
 
 extern int	bsp_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
-			char **fromEid, char **toEid);
+			BspInboundBlock *asb, char **fromEid, char **toEid);
 
 extern int	bsp_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
-			char **fromEid, char **toEid);
+			BspOutboundBlock *asb, char **fromEid, char **toEid);
 
 extern int	bsp_destinationIsLocal(Bundle *bundle);
 
-#endif
+extern char	*bsp_getLocalAdminEid(char *eid);
 
 #endif /* _IONBSP_H_ */
