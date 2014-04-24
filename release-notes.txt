@@ -1,6 +1,6 @@
-= Release Notes for ION 3.1.3 =
+= Release Notes for ION 3.2.0 =
 
-May 31, 2013
+December 23, 2013
 
 %%%%%%%%%%%
 = GENERAL =
@@ -47,7 +47,6 @@ distribution are the following packages:
   display of the most recent data while storing all bundle payloads
   received into a database for user-directed playback.
 
-
 Features included:
 
 - cgr - Contract graph routing: a method of dynamic routing designed for
@@ -58,6 +57,85 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.2.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Issue #364: Added support for Delay Tolerant Payload Conditioning (DTPC).
+    - DTPC adds (optional) end-to-end functionality similar to terrestrial
+      transport-layer protocols on top of the Bundle Protocol.
+    - DTPC offers the following additional enhancements:
+        - Application data record aggregation into large ADUs.
+          This reduces the BP overhead by preventing the proliferation of large
+          numbers of small bundles.
+        - Elision of redundant application data records.
+          This optimizes the utilization of low-capacity communication links.
+
+- Feature Request #5: Several bugfixes and performance enhancements have been
+  applied to the DCCP convergence layer.
+    - Proper handling for the SIGPIPE signal.
+    - Usage of keepalives (rather than terminating idle connections) and
+      improved retry capability with an exponential backoff.
+    - CCID and Transmission Queue Length are now configurable within ION.
+    - Support added for the 0.0.0.0 (any) IP address.
+    - Various other refinements to standardize the DCCP CL with the other
+      ION convergence layers.
+
+- Feature Request #9: Added support for the DTN Network Monitoring reference
+  implementation (DTNMP).  DTNMP is an API added to ION that is used to produce
+  and monitor BP, LTP, and ICI instrumentation data.
+
+- Feature Request #11: ION now provides the TTL of each received bundle in order
+  to accomodate a CCSDS Blue Book service requirement.
+
+- Feature Request #12: Added support for DTNperf.
+  DTNperf is a utility provided in ION's "contrib" directory that can be used
+  to invoke performance testing between BP nodes.
+
+- Bug #22: Improved support for the Extended Class Of Service block (ECOS).
+  ION now uses the "best effort" / "streaming" flag in ECOS to decide between
+  UDP and TCP transmission.
+
+- Bug #24: Fixed a bug in CFDP where the destination entity ID could become
+  malformed when the length of the compressed destination entity ID was smaller
+  than the length of the compressed source entity ID.
+
+- Bug #25: Updated ION to be conformant with several new build warnings
+  introduced in GCC 4.8.
+
+- Bug #26: Increased the default stack size for the tcpcli and tcpclo processes
+  to prevent crashes under RTEMS and VxWorks.
+
+- Bug #27: Fixed a memory leak that could arise when sending anonymous bundles
+  (bundles with a source EID of "dtn:none") while BSP was enabled.
+
+- Bug #28: Fixed bug where reforwarded bundles were sometimes not being
+  properly purged from the forwarding queue.
+
+- Bug #29: Fixed bug where the ltp_get_notice() operation could return a bad
+  value in its "data" value if the operation was interrupted.
+  ltp_get_notice() now properly sets the "data" to zero if interrupted.
+
+- Bug #29: Errors in production of notices in LTP have been corrected.
+
+- An option to limit the length of checkpoint and report serial numbers in LTP
+  has been added.  The default limit is 2 bytes.
+
+- Added generalized service data aggregation to LTP.
+
+- Added controls to help understand and debug CGR routing decisions.
+     - The CGR routing engine can now dynamically log diagnostic trace messages
+       by enabling its "trace" flag.
+     - A new "cgrfetch" utility can used to invoke the creation of JSON
+       input files that describe the CGR routes that were considered.
+       These JSON input files can be used in conjunction with the CGR Viewer
+       web application to produced PDF files that provides illustrated graphs
+       for all considered routes.
+
+       See /contrib/cgr-viewer/Readme.md for more information.
+
+- Added man pages for the Asynchronous Message Service (AMS) subsystem.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.1.3 =
@@ -330,7 +408,7 @@ Features included:
         <http://bioserve.colorado.edu/bp-acs/draft-kuzminsky-aggregate-custody-signals-02.txt>
   
 - Issue #342: Changed several invocations of lyst_create() to
-  lyst_create_using(), to ensure that ION’s private memory management is always
+  lyst_create_using(), to ensure that ION's private memory management is always
   used.
 
 - Issue #343: Fixed bugs in LTP that could cause crashes at high data loss rates
@@ -554,11 +632,11 @@ Features included:
 
 - Fixed memory leaks in AMS shutdown.
 
-- Added ability to update AMS modules’ management information bases while the
+- Added ability to update AMS modules' management information bases while the
   modules are running, by using the new amsmib utility.  Modified amsstop to
   use a similar mechanism.
 
-- Added AMS Programmer’s Guide to distribution.
+- Added AMS Programmer's Guide to distribution.
 
 - Various minor bug fixes.
 

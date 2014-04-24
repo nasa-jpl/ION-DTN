@@ -1,0 +1,198 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# January 4, 2013
+#
+# Tests delay-tolerant payload conditioning.  Four nodes are arranged in a
+# 'Y' topology 1->2->{3,4}.  A DTPC sending application at node 1 sends
+# a series of application data items to DTPC receiving applications at
+# nodes 3 and 4; the items are aggregated into DTPC application data units,
+# which are presented to BP for transmission in bundles via node 2.
+#
+# The application data items are sent using two different transmission
+# profiles to the two different destination nodes, and they are for three
+# different topics, one of which has an elision function.  Transmission
+# is by the UDP convergence-layer adapter, and simulated 20% packet (bundle)
+# loss is implemented by forwarding from node 1 to node 2 via owltsim.
+#
+# A total of 27 application data items are transmitted in this order:
+#
+#	To node 3 (using profile 21):
+#		10 items on topic 11, sizes from 601 to 610 bytes
+#		1 item on topic 12, 600 bytes
+#
+#	To node 4 (using profile 22):
+#		1 item on topic 11, 601 bytes
+#		1 item on topic 12, 602 bytes
+#
+#	To node 3 (using profile 22):
+#		3 items on topic 12, sizes from 601 to 603 bytes
+#
+#	To node 3 (using profile 21):
+#		10 items on topic 13 (7 of them duplicates), sizes 600 to 602
+#
+# The aggregation size limit for each profile is 1000 bytes; each aggregation
+# time limit is 10 seconds.  So the following 11 bundles should be sent, of
+# which at least 2 will be dropped by owltsim and require retransmission:
+#
+#	5 bundles on topic 11 to node 3, of which 1 will be lost and
+#	require end-to-end retransmission
+#
+#	1 bundle on topics 11 and 12 to node 4
+#
+#	1 bundle on topic 12 to node 3 (initiated by time limit expiration)
+#
+#	2 bundles on topic 12 to node 3 (the 2nd per time limit expiration)
+#
+#	2 bundles on topic 13 to node 3 (the 2nd per time limit expiration)
+#
+# The receiving application at node 3 should acquire 10 items on topic 11
+# (in order), 4 items on topic 12 (in order), and 3 items on topic 13 (in
+# order).
+#
+# The receiving application at node 4 should acquire 1 item on topic 11 and
+# 1 item on topic 12.
+#
+# The test thereby exercises data item elision, data item aggregation, and
+# in-order reliable transmission without gaps or duplicates.
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 1.ipn.ltp
+./ionstart >& node1.stdout &
+sleep 1
+cd ../2.ipn.ltp
+./ionstart >& node2.stdout &
+sleep 1
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout &
+sleep 1
+cd ../4.ipn.ltp
+./ionstart >& node4.stdout &
+
+sleep 30
+echo "Starting dtpcreceive on nodes 3 and 4..."
+cd ../3.ipn.ltp
+dtpcreceive 11  >& node3.11.stdout &
+dtpcreceive 12  >& node3.12.stdout &
+dtpcreceive 13  >& node3.13.stdout &
+cd ../4.ipn.ltp
+dtpcreceive 11  >& node4.11.stdout &
+dtpcreceive 12  >& node4.12.stdout &
+
+sleep 2
+cd ../1.ipn.ltp
+echo ""
+echo "Sending 10 different items on topic 11 to node 3, profile 21...."
+echo ""
+dtpcsend 1 100000 601 11 21 ipn:3.129
+dtpcsend 1 100000 602 11 21 ipn:3.129
+dtpcsend 1 100000 603 11 21 ipn:3.129
+dtpcsend 1 100000 604 11 21 ipn:3.129
+dtpcsend 1 100000 605 11 21 ipn:3.129
+dtpcsend 1 100000 606 11 21 ipn:3.129
+dtpcsend 1 100000 607 11 21 ipn:3.129
+dtpcsend 1 100000 608 11 21 ipn:3.129
+dtpcsend 1 100000 609 11 21 ipn:3.129
+dtpcsend 1 100000 610 11 21 ipn:3.129
+
+echo ""
+echo "Sending 1 item on topic 12 to node 3, profile 21...."
+echo ""
+dtpcsend 1 100000 600 12 21 ipn:3.129
+
+echo ""
+echo "Sending 1 item on topic 11 to node 4, profile 22...."
+echo ""
+dtpcsend 1 100000 601 11 22 ipn:4.129
+
+echo ""
+echo "Sending 1 item on topic 12 to node 4, profile 22...."
+echo ""
+dtpcsend 1 100000 602 12 22 ipn:4.129
+
+echo ""
+echo "Waiting for aggregation time limits to expire...."
+echo ""
+sleep 10
+
+echo ""
+echo "Sending 3 different items on topic 12 to node 3, profile 22...."
+echo ""
+dtpcsend 1 100000 601 12 22 ipn:3.129
+dtpcsend 1 100000 602 12 22 ipn:3.129
+dtpcsend 1 100000 603 12 22 ipn:3.129
+
+echo ""
+echo "Sending 10 items (7 duplicates) on topic 13 to node 3, profile 21...."
+echo ""
+dtpcsend 8 100000 600 13 21 ipn:3.129
+dtpcsend 1 100000 601 13 21 ipn:3.129
+dtpcsend 1 100000 602 13 21 ipn:3.129
+
+echo ""
+echo "Waiting for aggregation time limits to expire...."
+sleep 10
+echo ""
+echo "Waiting for transmission of final bundles to complete...."
+sleep 10
+echo ""
+echo "Stopping ION, including all test programs..."
+echo ""
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../4.ipn.ltp
+./ionstop &
+sleep 10
+
+echo ""
+echo "Checking for correct counts of received application data items...."
+RETVAL=0
+
+cd ../3.ipn.ltp
+COUNT=`grep Final node3.11.stdout | egrep 10 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 3 did not receive 10 items on topic 11."
+	RETVAL=1
+fi
+
+COUNT=`grep Final node3.12.stdout | egrep 4 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 3 did not receive 4 items on topic 12."
+	RETVAL=1
+fi
+
+COUNT=`grep Final node3.13.stdout | egrep 3 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 3 did not receive 3 items on topic 13."
+	RETVAL=1
+fi
+
+cd ../4.ipn.ltp
+COUNT=`grep Final node4.11.stdout | egrep 1 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 4 did not receive 1 item on topic 11."
+	RETVAL=1
+fi
+
+COUNT=`grep Final node4.12.stdout | egrep 1 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 4 did not receive 1 item on topic 12."
+	RETVAL=1
+fi
+
+echo ""
+echo "DTPC test completed."
+exit $RETVAL

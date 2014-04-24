@@ -27,18 +27,18 @@ fixes have just been merged into Linux Kernel 3.2.0. Because of the seriousness
 of these bugs, we have chosen to disable DCCP on systems with Kernels older than
 3.2.0.
 
-At the time of this writing, 3.2.0 is still in the Release Candidate stage, and
-no major distro is packaging it. This should change within a few months, so my
-first recommendation to those desiring to use DCCP is to update to the most
-recent version of your favorite distro.
+Ubuntu 12.04 and Fedora 17 both come with kernel version 3.2.0 or above by default.
+Hence, my first recommendation to those desiring to use DCCP is to update to the
+most recent version of your favorite distro.
 
-If for some reason that doesn't work, you will need to build a more recent
-kernel from source. The following article does a very good job at describing the
-process: http://www.cyberciti.biz/tips/compiling-linux-kernel-26.html
+If for some reason you can't do that, you will need to build a recent kernel from
+source. The following article does a very good job at describing the process: 
+http://www.cyberciti.biz/tips/compiling-linux-kernel-26.html
 
 
 Samuel Jero
-Internetworking Research Group, Ohio University
+Internetworking Research Group
+Ohio University
 sj323707@ohio.edu
 
-Last Updated: November 30, 2011
+Last Updated: March 20, 2013

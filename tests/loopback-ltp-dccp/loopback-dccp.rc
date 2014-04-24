@@ -37,7 +37,11 @@ a range +1 +3600 1 1 1
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
+
+## begin ionsecadmin
+1
+## end ionsecadmin
 
 ## begin ltpadmin 
 # ltprc configuration file for the loopback-dccp test.

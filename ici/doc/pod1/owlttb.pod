@@ -46,10 +46,10 @@ use control-C to kill it or enter "q" at the prompt.
 
 =over 4
 
-=item 0
+=item "0"
 Nominal termination.
 
-=item 1
+=item "1"
 Termination due to an error condition, as noted in printed messages.
 
 =back

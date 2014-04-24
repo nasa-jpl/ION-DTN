@@ -19,7 +19,7 @@ I<class_of_service> parameter, see bptrace(1).
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bpsendfile> has terminated.
 

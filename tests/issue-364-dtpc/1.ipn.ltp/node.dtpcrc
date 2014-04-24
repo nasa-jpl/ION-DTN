@@ -1,0 +1,5 @@
+1
+w 1
+a profile 21 5 1000 10 600 0.1 dtn:none
+a profile 22 5 1000 10 600 0.2 dtn:none
+s

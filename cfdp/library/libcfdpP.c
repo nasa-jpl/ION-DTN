@@ -963,9 +963,8 @@ Object	findOutFdu(CfdpTransactionId *transactionId, OutFdu *fduBuf,
 	{
 		fduObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) fduBuf, fduObj, sizeof(OutFdu));
-		if (memcmp((char *) &fduBuf->transactionId.transactionNbr,
-				(char *) &transactionId->transactionNbr,
-				sizeof(CfdpNumber)) == 0)
+		if (memcmp(fduBuf->transactionId.transactionNbr.buffer,
+				transactionId->transactionNbr.buffer, 8) == 0)
 		{
 			*fduElt = elt;
 			return fduObj;
@@ -2182,8 +2181,8 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 	CHKERR(handler);
 	*handler = CfdpNoHandler;
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	if (memcmp((char *) &transactionId->sourceEntityNbr,
-			(char *) &cfdpdb.ownEntityNbr, sizeof(CfdpNumber)) == 0)
+	if (memcmp(transactionId->sourceEntityNbr.buffer,
+			cfdpdb.ownEntityNbr.buffer, 8) == 0)
 	{
 		memset((char *) &outFdu, 0, sizeof(OutFdu));
 		fduObj = findOutFdu(transactionId, &outFdu, &fduElt);
@@ -2215,9 +2214,8 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 			return 0;
 		}
 
-		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpdb.ownEntityNbr,
-				sizeof(CfdpNumber)) == 0)
+		if (memcmp(transactionId->sourceEntityNbr.buffer,
+				cfdpdb.ownEntityNbr.buffer, 8) == 0)
 		{
 			return cancelOutFdu(transactionId, fault, 0);
 		}
@@ -2230,9 +2228,8 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 			return 0;
 		}
 
-		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpdb.ownEntityNbr,
-				sizeof(CfdpNumber)) == 0)
+		if (memcmp(transactionId->sourceEntityNbr.buffer,
+				cfdpdb.ownEntityNbr.buffer, 8) == 0)
 		{
 			return suspendOutFdu(transactionId, fault, 0);
 		}
@@ -2245,9 +2242,8 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		memcpy((char *) &event.transactionId, (char *) transactionId,
 				sizeof(CfdpTransactionId));
 		event.condition = fault;
-		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpdb.ownEntityNbr,
-				sizeof(CfdpNumber)) == 0)
+		if (memcmp(transactionId->sourceEntityNbr.buffer,
+				cfdpdb.ownEntityNbr.buffer, 8) == 0)
 		{
 			event.progress = outFdu.progress;
 		}
@@ -2271,9 +2267,8 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 			return 0;
 		}
 
-		if (memcmp((char *) &transactionId->sourceEntityNbr,
-				(char *) &cfdpdb.ownEntityNbr,
-				sizeof(CfdpNumber)) == 0)
+		if (memcmp(transactionId->sourceEntityNbr.buffer,
+				cfdpdb.ownEntityNbr.buffer, 8) == 0)
 		{
 			return abandonOutFdu(transactionId, fault);
 		}
@@ -2382,6 +2377,8 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 	unsigned int	octet;
 	int		pduSourceDataLength;
 	int		entityNbrLength;
+	int		entityNbrPad;
+	int		transactionNbrPad;
 	unsigned char	pduHeader[28];
 	unsigned int	pduHeaderLength = 4;
 	unsigned int	proposedLength;
@@ -2448,6 +2445,8 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 		entityNbrLength = fduBuffer->destinationEntityNbr.length;
 	}
 
+	entityNbrPad = 8 - entityNbrLength;
+	transactionNbrPad = 8 - fduBuffer->transactionId.transactionNbr.length;
 	octet = ((entityNbrLength - 1) << 4)
 			+ (fduBuffer->transactionId.transactionNbr.length - 1);
 	pduHeader[3] = octet;
@@ -2464,15 +2463,16 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer)
 		return -1;
 	}
 
-	memcpy(pduHeader + pduHeaderLength, cfdpdb.ownEntityNbr.buffer,
-			entityNbrLength);
+	memcpy(pduHeader + pduHeaderLength, cfdpdb.ownEntityNbr.buffer
+			+ entityNbrPad, entityNbrLength);
 	pduHeaderLength += entityNbrLength;
 	memcpy(pduHeader + pduHeaderLength,
-			fduBuffer->transactionId.transactionNbr.buffer,
+			fduBuffer->transactionId.transactionNbr.buffer
+				+ transactionNbrPad,
 			fduBuffer->transactionId.transactionNbr.length);
 	pduHeaderLength += fduBuffer->transactionId.transactionNbr.length;
 	memcpy(pduHeader + pduHeaderLength,
-			fduBuffer->destinationEntityNbr.buffer,
+			fduBuffer->destinationEntityNbr.buffer + entityNbrPad,
 			entityNbrLength);
 	pduHeaderLength += entityNbrLength;
 
@@ -3188,13 +3188,17 @@ static int	parseFlowLabelTLV(InFdu *fdu, unsigned char **cursor,
 static int	parseEntityIdTLV(InFdu *fdu, unsigned char **cursor,
 			int length, int *bytesRemaining)
 {
+	int	padLength;
+
 	if (length > 8)		/*	Invalid fault location.		*/
 	{
 		return 0;	/*	Malformed.			*/
 	}
 
 	fdu->eofFaultLocation.length = length;
-	memcpy(fdu->eofFaultLocation.buffer, cursor, length);
+	padLength = 8 - length;
+	memset(fdu->eofFaultLocation.buffer, 0, padLength);
+	memcpy(fdu->eofFaultLocation.buffer + padLength, *cursor, length);
 	*cursor += length;
 	*bytesRemaining -= length;
 	return 0;
@@ -3546,7 +3550,9 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 	int			crcIsPresent;
 	int			dataFieldLength;
 	int			entityNbrLength;
+	int			entityNbrPad;
 	int			transactionNbrLength;
+	int			transactionNbrPad;
 	CfdpNumber		sourceEntityNbr;
 	CfdpNumber		transactionNbr;
 	CfdpNumber		destinationEntityNbr;
@@ -3591,7 +3597,9 @@ printf("...in cfdpHandleInboundPdu...\n");
 	cursor++;
 	bytesRemaining--;
 	entityNbrLength += 1;		/*	De-adjust.		*/
+	entityNbrPad = 8 - entityNbrLength;
 	transactionNbrLength += 1;	/*	De-adjust.		*/
+	transactionNbrPad = 8 - transactionNbrLength;
 	if (bytesRemaining < (entityNbrLength << 1) + transactionNbrLength)
 	{
 #if CFDPDEBUG
@@ -3602,15 +3610,17 @@ printf("...malformed PDU (missing %d bytes)...\n",
 	}
 
 	sourceEntityNbr.length = entityNbrLength;
-	memcpy(sourceEntityNbr.buffer, cursor, entityNbrLength);
+	memcpy(sourceEntityNbr.buffer + entityNbrPad, cursor, entityNbrLength);
 	cursor += entityNbrLength;
 	bytesRemaining -= entityNbrLength;
 	transactionNbr.length = transactionNbrLength;
-	memcpy(transactionNbr.buffer, cursor, transactionNbrLength);
+	memcpy(transactionNbr.buffer + transactionNbrPad, cursor,
+			transactionNbrLength);
 	cursor += transactionNbrLength;
 	bytesRemaining -= transactionNbrLength;
 	destinationEntityNbr.length = entityNbrLength;
-	memcpy(destinationEntityNbr.buffer, cursor, entityNbrLength);
+	memcpy(destinationEntityNbr.buffer + entityNbrPad, cursor,
+			entityNbrLength);
 	cursor += entityNbrLength;
 	bytesRemaining -= entityNbrLength;
 #if CFDPDEBUG
@@ -3653,9 +3663,8 @@ printf("...CRC validation failed...\n");
 #if CFDPDEBUG
 printf("...PDU known not to be corrupt...\n"); 
 #endif
-	if (memcmp((char *) &destinationEntityNbr,
-			(char *) &cfdpConstants->ownEntityNbr,
-			sizeof(CfdpNumber)) != 0)
+	if (memcmp(destinationEntityNbr.buffer,
+			cfdpConstants->ownEntityNbr.buffer, 8) != 0)
 	{
 #if CFDPDEBUG
 printf("...PDU is misdirected...\n"); 

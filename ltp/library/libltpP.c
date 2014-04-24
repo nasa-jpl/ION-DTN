@@ -517,7 +517,7 @@ int	ltpInit(int estMaxExportSessions)
 	}
 
 	ltpSdr = getIonsdr();
-	srand(time(NULL));
+	srand(time(NULL) * sm_TaskIdSelf());
 
 	/*	Recover the LTP database, creating it if necessary.	*/
 
@@ -802,7 +802,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		resetSpan(vspan);
 	}
 
-	sdr_exit_xn(ltpSdr);	/*	Unlock memory.			*/
+	sdr_exit_xn(ltpSdr);		/*	Unlock memory.		*/
 }
 
 int	ltpAttach()
@@ -824,7 +824,7 @@ int	ltpAttach()
 	}
 
 	ltpSdr = getIonsdr();
-	srand(time(NULL));
+	srand(time(NULL) * sm_TaskIdSelf());
 
 	/*	Locate the LTP database.				*/
 
@@ -2994,26 +2994,37 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 					sizeof(LtpSpan));
 		}
 
-		/*	If entire block is green, close the session
-		 *	(since normal session closure on red-part
-		 *	completion or cancellation won't happen).	*/
+		/*	If entire block is green or all red-part data
+		 *	have already been acknowledged, close the
+		 *	session (since normal session closure on red-
+		 *	part completion or cancellation won't happen).	*/
 
 		if (segment.pdu.segTypeCode == LtpDsGreenEOB)
 		{
 			getExportSession(segment.sessionNbr, &sessionObj);
 			if (sessionObj)
 			{
-				sdr_read(ltpSdr, (char *) &xsessionBuf,
+				sdr_stage(ltpSdr, (char *) &xsessionBuf,
 					sessionObj, sizeof(ExportSession));
 				if (xsessionBuf.totalLength != 0)
 				{
 					/*	Found the session.	*/
 
-					if (xsessionBuf.redPartLength == 0)
+					if (xsessionBuf.redPartLength == 0
+					|| xsessionBuf.stateFlags
+							& LTP_FINAL_ACK)
 					{
 						closeExportSession(sessionObj);
 						ltpSpanTally(vspan,
 							EXPORT_COMPLETE, 0);
+					}
+					else
+					{
+						xsessionBuf.stateFlags |=
+							LTP_EOB_SENT;
+						sdr_write(ltpSdr, sessionObj,
+							(char *) &xsessionBuf, 
+							sizeof(ExportSession));
 					}
 				}
 			}
@@ -3590,6 +3601,10 @@ char		buf[256];
 		do
 		{
 			session->lastRptSerialNbr = rand();
+
+			/*	Limit serial number SDNV length.	*/
+
+			session->lastRptSerialNbr %= LTP_SERIAL_NBR_LIMIT;
 		} while (session->lastRptSerialNbr == 0);
 	}
 	else					/*	Just add 1.	*/
@@ -4290,37 +4305,65 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 }
 
 static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
-			Object sessionObj, Object *clientSvcData)
+			unsigned int sessionNbr, Object sessionObj,
+			LtpSpan *span, LtpVspan *vspan, Object *clientSvcData)
 {
 	Sdr		ltpSdr = getIonsdr();
 	ImportSession	sessionBuf;
-	Object		segmentElt;
-	Object		segmentObj;
-			OBJ_POINTER(LtpRecvSeg, seg);
 	Object		pduObj;
 
-	if (sessionObj)
+	ltpSpanTally(vspan, IN_SEG_RECV_GREEN, pdu->length);
+
+	/*	Check for out-of-order segments.			*/
+
+	if (sessionNbr == vspan->redSessionNbr
+	&& pdu->offset < vspan->endOfRed)
 	{
-		sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
-				sizeof(ImportSession));
-		if (sessionBuf.redSegments != 0 && (segmentElt =
-			sdr_list_last(ltpSdr, sessionBuf.redSegments)) != 0)
+		/*	Miscolored segment: green before end of red.	*/
+
+		ltpSpanTally(vspan, IN_SEG_MISCOLORED, pdu->length);
+		if (sessionObj)		/*	Session exists.		*/
 		{
-			segmentObj = sdr_list_data(ltpSdr, segmentElt);
-			GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, seg, segmentObj);
-			if (pdu->offset < (seg->pdu.offset + seg->pdu.length))
-			{
-				/*	Miscolored segment: green data
-				 *	before end of red.		*/
+			sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
+					sizeof(ImportSession));
 #if LTPDEBUG
 putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 #endif
-				cancelSessionByReceiver(&sessionBuf, sessionObj,
-						LtpMiscoloredSegment);
-				return 0;
+			cancelSessionByReceiver(&sessionBuf, sessionObj,
+					LtpMiscoloredSegment);
+		}
+		else	/*	Just send cancel segment to sender.	*/
+		{
+			if (constructDestCancelReqSegment(span,
+					&(span->engineIdSdnv), sessionNbr,
+					0, LtpMiscoloredSegment) < 0)
+			{
+				putErrmsg("Can't send CR segment.", NULL);
+				sdr_cancel_xn(ltpSdr);
+				return -1;
 			}
 		}
+
+		return 0;
 	}
+
+	/*	Update segment sequencing information, to enable
+	 *	Green-side check for miscolored segments.		*/
+
+	if (sessionNbr == vspan->greenSessionNbr)
+	{
+		if (pdu->offset < vspan->startOfGreen)
+		{
+			vspan->startOfGreen = pdu->offset;
+		}
+	}
+	else
+	{
+		vspan->greenSessionNbr = sessionNbr;
+		vspan->startOfGreen = pdu->offset;
+	}
+
+	/*	Deliver the client service data.			*/
 
 	pduObj = sdr_insert(ltpSdr, cursor, pdu->length);
 	if (pduObj == 0)
@@ -4345,7 +4388,7 @@ utoa(pdu->length));
 		break;
 	}
 
-	return 0;
+	return 1;
 }
 
 static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
@@ -4369,6 +4412,7 @@ static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 			OBJ_POINTER(LtpSpan, span);
 	LtpVclient	*client;
 	int		result;
+	unsigned int	endOfRed;
 	Object		clientSvcData = 0;
 	unsigned int	segUpperBound;
 	Object		segmentObj = 0;
@@ -4446,13 +4490,14 @@ putErrmsg("Discarded malformed data segment.", itoa(sessionNbr));
 		return sdr_end_xn(ltpSdr);
 	}
 
-	if (sessionIsClosed(vspan, sessionNbr))
+	if (((pdu->segTypeCode & LTP_EXC_FLAG) == 0)	/*	Red.	*/
+	&& sessionIsClosed(vspan, sessionNbr))
 	{
 #if LTPDEBUG
-putErrmsg("Discarding late data segment.", itoa(sessionNbr));
+putErrmsg("Discarding late Red segment.", itoa(sessionNbr));
 #endif
-		/*	Segment is for a session that is already
-		 *	closed, so we don't care about it.		*/
+		/*	Segment is for red data of a session that is
+		 *	already closed, so we don't care about it.	*/
 
 		ltpSpanTally(vspan, IN_SEG_REDUNDANT, pdu->length);
 		return sdr_end_xn(ltpSdr);
@@ -4521,25 +4566,11 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 
 	if (pdu->segTypeCode & LTP_EXC_FLAG)
 	{
-		/*	This is a green-part data segment; deliver
-		 *	immediately to client service.			*/
+		/*	This is a green-part data segment; if valid,
+		 *	deliver immediately to client service.		*/
 
-		ltpSpanTally(vspan, IN_SEG_RECV_GREEN, pdu->length);
-		if (sessionNbr == vspan->greenSessionNbr)
-		{
-			if (pdu->offset < vspan->greenOffset)
-			{
-				vspan->greenOffset = pdu->offset;
-			}
-		}
-		else
-		{
-			vspan->greenSessionNbr = sessionNbr;
-			vspan->greenOffset = pdu->offset;
-		}
-
-		result = handleGreenDataSegment(pdu, *cursor, sessionObj,
-				&clientSvcData);
+		result = handleGreenDataSegment(pdu, *cursor, sessionNbr,
+				sessionObj, span, vspan, &clientSvcData);
 		if (result < 0)
 		{
 			sdr_cancel_xn(ltpSdr);
@@ -4561,13 +4592,14 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 			return -1;
 		}
 
-		return 1;	/*	Green-part data handled okay.	*/
+		return result;	/*	Green-part data handled okay.	*/
 	}
 
 	/*	This is a red-part data segment.			*/
 
+	endOfRed = pdu->offset + pdu->length;
 	if (sessionNbr == vspan->greenSessionNbr
-	&& (pdu->offset + pdu->length) > vspan->greenOffset)
+	&& endOfRed > vspan->startOfGreen)
 	{
 		/*	Miscolored segment: red after start of green.	*/
 
@@ -4604,6 +4636,22 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 putErrmsg("Discarded data segment.", itoa(sessionNbr));
 #endif
 		return 0;
+	}
+
+	/*	Update segment sequencing information, to enable
+	 *	Red-side check for miscolored segments.			*/
+
+	if (sessionNbr == vspan->redSessionNbr)
+	{
+		if (endOfRed > vspan->endOfRed)
+		{
+			vspan->endOfRed = endOfRed;
+		}
+	}
+	else
+	{
+		vspan->redSessionNbr = sessionNbr;
+		vspan->endOfRed = endOfRed;
 	}
 
 	/*	Data segment must be accepted into an import session,
@@ -5607,16 +5655,28 @@ putErrmsg("Discarding report.", NULL);
 	/*	If reception of all data in the block is claimed (i.e,
 	 *	there is now only one claim in the list and that claim
 	 *	-- the first -- encompasses the entire red part of the
-	 *	block), end the export session.				*/
+	 *	block), and either the block is all Red data or else
+	 *	the last Green segment is known to have been sent,
+	 *	end the export session.					*/
 
 	if (claim->offset == 0 && claim->length == sessionBuf.redPartLength)
 	{
 		ltpSpanTally(vspan, POS_RPT_RECV, 0);
 		MRELEASE(claim);	/*	(Sole claim in list.)	*/
 		lyst_destroy(claims);
-		stopExportSession(&sessionBuf);
-		closeExportSession(sessionObj);
-		ltpSpanTally(vspan, EXPORT_COMPLETE, 0);
+		if (sessionBuf.redPartLength == sessionBuf.totalLength
+		|| sessionBuf.stateFlags & LTP_EOB_SENT)
+		{
+			closeExportSession(sessionObj);
+			ltpSpanTally(vspan, EXPORT_COMPLETE, 0);
+		}
+		else
+		{
+			sessionBuf.stateFlags |= LTP_FINAL_ACK;
+			sdr_write(ltpSdr, sessionObj, (char *) &sessionBuf,
+					sizeof(ExportSession));
+		}
+
 		if (sdr_end_xn(ltpSdr) < 0)
 		{
 			putErrmsg("Can't handle report segment.", NULL);

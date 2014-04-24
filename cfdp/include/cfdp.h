@@ -47,8 +47,8 @@ typedef Object		MetadataList;	/*	SDR list		*/
 
 typedef struct
 {
-	int		length;
-	unsigned char	buffer[8];
+	unsigned int	length;
+	unsigned char	buffer[8];	/*	Right-justified value.	*/
 } CfdpNumber;
 
 typedef struct

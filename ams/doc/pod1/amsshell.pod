@@ -106,7 +106,7 @@ continuum numbers.
 
 B<amsshell> terminated with an error as noted in the ion.log file.
 
-=item 0
+=item "0"
 
 B<amsshell> terminated normally.
 

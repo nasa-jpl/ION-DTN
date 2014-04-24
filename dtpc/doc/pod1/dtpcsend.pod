@@ -1,0 +1,44 @@
+=head1 NAME
+
+dtpcsend - Delay-Tolerant Payload Conditioning transmission test program
+
+=head1 SYNOPSIS
+
+B<dtpcsend> I<nbr_of_cycles> I<rate> I<payload_size> I<topic_ID> I<profile_ID> I<destination_endpoint>
+
+=head1 DESCRIPTION
+
+B<dtpcsend> uses DTPC to send I<nbr_of_cycles> application data items of 
+I<payload_size> bytes each on topic I<topic_ID> to I<destination_endpoint>
+using transmission profile I<profile_ID> at I<rate> bits per second.
+
+I<rate> must be between 1000 and 200 million bits per second.
+
+I<payload_size> must be between 2 and 1 million bytes.  To use application data
+item sizes chosen at random from the range 1 to 65536, specify I<payload_size>
+= 1.
+
+B<NOTE> that B<dtpcsend> invokes an elision function that removes from
+the outbound DTPC aggregate ADU all records that are of the same size as
+the first record in that aggregation.  This means that specifying any
+payload size other than 1 that is less than the configured DTPC aggregation
+size limit will cause DTPC to issue ADUs only when the aggregation time
+limit is exceeded, and each such ADU will always contain only a single record.
+
+Use CTRL-C to terminate the program.
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+dtpcreceive(1), dtpc(3)

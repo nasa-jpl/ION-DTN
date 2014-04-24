@@ -74,8 +74,8 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "aoslso",	(FUNCPTR) aoslso,	ICI_PRIORITY,	32768 },
 		{ "udpcli",	(FUNCPTR) udpcli,	ICI_PRIORITY,	32768 },
 		{ "udpclo",	(FUNCPTR) udpclo,	ICI_PRIORITY,	32768 },
-		{ "tcpcli",	(FUNCPTR) tcpcli,	ICI_PRIORITY,	4096  },
-		{ "tcpclo",	(FUNCPTR) tcpclo,	ICI_PRIORITY,	4096  },
+		{ "tcpcli",	(FUNCPTR) tcpcli,	ICI_PRIORITY,	32768 },
+		{ "tcpclo",	(FUNCPTR) tcpclo,	ICI_PRIORITY,	32768 },
 		{ "brsccla",	(FUNCPTR) brsccla,	ICI_PRIORITY,	32768 },
 		{ "brsscla",	(FUNCPTR) brsscla,	ICI_PRIORITY,	32768 },
 		{ "ipnadminep",	(FUNCPTR) ipnadminep,	ICI_PRIORITY,	24576 }

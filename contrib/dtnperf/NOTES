@@ -1,0 +1,11 @@
+The dtnperf server listens on the hardcoded EIDs "ipn:x.2000" or "dtn://x/dtnperf:/dest".
+The dtnperf client sends data from EIDs "ipn:x.<rand>" (process id ?) or "dtn://x/dtnperf:/src".
+
+Hence the following are the commands for an IPN dtnperf 10 second test over the local node:
+dtnperf_vION --server
+./dtnperf_vION --client -d ipn:1.2000 -T 10s -m ipn:1.2
+
+Samuel Jero
+Ohio University
+sj323707@ohio.edu
+July 8, 2013

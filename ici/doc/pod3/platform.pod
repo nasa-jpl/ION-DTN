@@ -851,7 +851,7 @@ Returns the unique identifying number of the invoking task or process.
 Returns non-zero if a task or process identified by
 I<taskId> is currently running on the local processor, zero otherwise.
 
-=item void *sm_TaskVar(void *arg)
+=item void *sm_TaskVar(void **arg)
 
 Posts or retrieves the value of the "task variable" belonging to the
 invoking task.  Each task has access to a single task variable, initialized

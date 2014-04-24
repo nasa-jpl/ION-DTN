@@ -37,13 +37,13 @@ START and STOP commands that pertain specifically to the IPN scheme.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bssfw> terminated, for reasons noted in the B<ion.log> log file.  If this
 termination was not commanded, investigate and solve the problem identified
 in the log file and use B<bpadmin> to restart B<bssfw>.
 
-=item 1
+=item "1"
 
 B<bssfw> could not commence operations, for reasons noted in the B<ion.log>
 log file.  Investigate and solve the problem identified in the log file, then

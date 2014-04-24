@@ -38,7 +38,9 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	int	i;
 	int	restart_bp = 1;
 	int	restart_ltp = 1;
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	int	restart_cfdp = 1;
+#endif
 	time_t	prevRestartTime;
 
 	/*	Stop all tasks.						*/

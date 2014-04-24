@@ -43,7 +43,7 @@ of the following: rcv, ct, fwd, dlv, del.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bptrace> has terminated.
 

@@ -28,7 +28,7 @@ terminate.
 
 =over 4
 
-=item 0
+=item "0"
 Completion of key generation.
 
 =back

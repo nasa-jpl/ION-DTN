@@ -15,7 +15,7 @@ processing statistics accumulators, then terminates.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bpstats> has terminated.
 

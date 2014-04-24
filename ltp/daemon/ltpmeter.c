@@ -147,6 +147,10 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 		do
 		{
 			ckptSerialNbr = rand();
+
+			/*	Limit serial number SDNV length.	*/
+
+			ckptSerialNbr %= LTP_SERIAL_NBR_LIMIT;
 		} while (ckptSerialNbr == 0);
 		segmentsIssued = issueSegments(sdr, &span, vspan, &session,
 				span.currentExportSessionObj, extents, 0,

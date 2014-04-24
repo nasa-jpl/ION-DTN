@@ -812,21 +812,26 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		return -1;
 	}
 #endif
-	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
-	{
-		putErrmsg("Can't initialize the SDR system.", NULL);
-		return -1;
-	}
-
 	if (igetcwd(wdname, 256) == NULL)
 	{
 		putErrmsg("Can't get cwd name.", NULL);
 		return -1;
 	}
 
+	if (parms->sdrWmSize < 0)
+	{
+		parms->sdrWmSize = 0;		/*	Default.	*/
+	}
+
 	if (checkNodeListParms(parms, wdname, ownNodeNbr) < 0)
 	{
 		putErrmsg("Failed checking node list parms.", NULL);
+		return -1;
+	}
+
+	if (sdr_initialize(parms->sdrWmSize, NULL, SM_NO_KEY, NULL) < 0)
+	{
+		putErrmsg("Can't initialize the SDR system.", NULL);
 		return -1;
 	}
 
@@ -1662,6 +1667,12 @@ configuration file line (%d).", lineNbr);
 			continue;
 		}
 
+		if (strcmp(tokens[0], "sdrWmSize") == 0)
+		{
+			parms->sdrWmSize = atoi(tokens[1]);
+			continue;
+		}
+
 		if (strcmp(tokens[0], "configFlags") == 0)
 		{
 			parms->configFlags = atoi(tokens[1]);
@@ -1714,6 +1725,9 @@ void	printIonParms(IonParms *parms)
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "sdrName:        '%s'",
 			parms->sdrName);
+	writeMemo(buffer);
+	isprintf(buffer, sizeof buffer, "sdrWmSize:       %ld",
+			parms->sdrWmSize);
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "configFlags:     %d",
 		       parms->configFlags);

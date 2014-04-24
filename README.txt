@@ -45,6 +45,10 @@ see the instructions in the README text file.
 
 To build ION for Windows, see the instructions in the winion.pdf document.
 
+To build ION for the ARM-based AT91SAM9G20 board, cd into
+ion-open-source/arch-uClibc and see the instructions in the
+"ARM build.pdf" file. 
+
 It's also possible to build the individual packages of ION, using
 platform-specific Makefiles in the package subdirectories.  If you choose
 this option, be aware of the dependencies among the packages:

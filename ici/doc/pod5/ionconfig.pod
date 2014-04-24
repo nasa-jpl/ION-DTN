@@ -30,6 +30,14 @@ identified.  (Note that the SDR database infrastructure enables multiple
 databases to be constructed on a single host computer.)  The default value is
 "ion".
 
+=item sdrWmSize
+
+This is the size of the block of dynamic memory that will be reserved as
+private working memory for the SDR system itself.  A block of system memory
+of this size will be allocated (e.g., by malloc()) at the time the SDR system
+is initialized on the host computer.  The default value is 1000000 (1 million
+bytes).
+
 =item configFlags
 
 This is the bitwise "OR" (i.e., the sum) of the flag values that characterize

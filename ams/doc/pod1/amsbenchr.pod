@@ -29,7 +29,7 @@ commence operations.
 
 B<amsbenchr> failed, for reasons noted in the ion.log file.
 
-=item 0
+=item "0"
 
 B<amsbenchr> terminated normally.
 

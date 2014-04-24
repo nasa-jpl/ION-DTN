@@ -45,6 +45,10 @@ extern "C" {
 #define	LTP_MEAN_SEARCH_LENGTH	4
 #endif
 
+#ifndef LTP_SERIAL_NBR_LIMIT
+#define	LTP_SERIAL_NBR_LIMIT	(16384)
+#endif
+
 #define	MAX_LTP_CLIENT_NBR	(LTP_MAX_NBR_OF_CLIENTS - 1)
 #define	MAX_RETRANSMISSIONS	9
 #define MAX_NBR_OF_CHECKPOINTS	(1 + MAX_RETRANSMISSIONS)
@@ -261,6 +265,11 @@ typedef struct
 	Object		sessionListElt;
 } LtpCkpt;
 
+/*	Export session state flag values.				*/
+
+#define	LTP_EOB_SENT	1
+#define	LTP_FINAL_ACK	2
+
 typedef struct
 {
 	Object		span;		/*	Transmission span.	*/
@@ -270,6 +279,7 @@ typedef struct
 	Sdnv		clientSvcIdSdnv;
 	int		totalLength;
 	int		redPartLength;
+	int		stateFlags;
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
@@ -403,8 +413,10 @@ typedef struct
 
 	/*	For detecting miscolored segments.			*/
 
+	unsigned int	redSessionNbr;
+	unsigned int	endOfRed;
 	unsigned int	greenSessionNbr;
-	unsigned int	greenOffset;
+	unsigned int	startOfGreen;
 
 	/*	*	*	Work area	*	*	*	*/
 
@@ -512,6 +524,10 @@ typedef struct
 	Object		deadExports;	/*	SDR list: ExportSession	*/
 	Object		spans;		/*	SDR list: LtpSpan	*/
 	Object		timeline;	/*	SDR list: LtpEvent	*/
+	unsigned long	heapBytesReserved;
+	unsigned long	heapBytesOccupied;
+	unsigned long	heapSpaceBytesReserved;
+	unsigned long	heapSpaceBytesOccupied;
 } LtpDB;
 
 /* The volatile database object encapsulates the current volatile state

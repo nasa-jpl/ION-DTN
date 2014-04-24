@@ -88,7 +88,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	PsmAddress	snubElt;
 	IonSnub		*snub;
 
-	if (ipn_lookupPlanDirective(nodeNbr, 0, 0, &directive) == 0)
+	if (ipn_lookupPlanDirective(nodeNbr, 0, 0, bundle, &directive) == 0)
 	{
 		return 0;
 	}

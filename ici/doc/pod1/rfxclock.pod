@@ -38,13 +38,13 @@ before the current time and whose stop times are in the future.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<rfxclock> terminated, for reasons noted in the B<ion.log> file.  If this
 termination was not commanded, investigate and solve the problem identified
 in the log file and use B<ionadmin> to restart B<rfxclock>.
 
-=item 1
+=item "1"
 
 B<rfxclock> was unable to attach to the local ION node, probably because
 B<ionadmin> has not yet been run.

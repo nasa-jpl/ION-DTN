@@ -1,14 +1,10 @@
 # configure.ac for ION
-#
-# David Young
-# Feb 12, 2008
-#                                               -*- Autoconf -*-
+# Samuel Jero
+# June 14, 2013
 # Process this file with autoconf to produce a configure script.
 
-#is this high a version ok? it was 2.61 in ubuntu, but that was unavailable to
-# fink, so we dropped it down
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.1.3, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.2.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -17,24 +13,121 @@ IS_NASA_B=0
 #AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
 AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
 
-# shall we put extra scripts in a special directory?
-# AC_CONFIG_AUX_DIR(build-aux)
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
 AC_CONFIG_HEADER([config.h])
-
-# More issue #355 changes
 AC_CONFIG_MACRO_DIR([m4])
+
+
+# Checks for programs.
+AC_PROG_CC
+AM_PROG_CC_C_O
+#Automake v1.12 wants AM_PROG_AR, but it doesn't exist <v1.12 so do this
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+AC_PROG_LIBTOOL
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
 LT_INIT
+
+
+
+# Check Platform and Architecture
+m4_include([./dccp_macro.m4])
+AM_CFLAGS=""
+AM_LDFLAGS=""
+AM_LIBTOOLFLAGS=""
+PLATFORM=""
+case $host_os in
+	darwin*)
+		AC_DEFINE([darwin],[1],[Build Darwin specific platform code.])
+		AC_DEFINE([unix],[1],[Build Unix specific platform code.])
+		PLATFORM="darwin"
+		if test $host_cpu = "x86_64" ; then
+			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
+			echo "Build 64-bit Darwin specific platform code."
+		else
+			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=2 -m32 "
+			echo "Build 32-bit Darwin specific platform code."
+
+		fi
+		;;
+	linux*)
+		PLATFORM="linux"
+		if test $host_cpu = "x86_64" ; then
+			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.])
+			AM_CFLAGS="$AM_CFLAGS -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
+			echo "Build 64-bit Linux specific platform code."
+		else
+			AC_DEFINE([linux],[1],[Build 32-bit Linux specific platform code.])
+			AM_CFLAGS="$AM_CFLAGS -Dlinux -fno-strict-aliasing"
+			echo "Build 32-bit Linux specific platform code."
+		fi
+		#check for DCCP support
+		CHECK_DCCP()
+		;;
+
+	cygwin*)  
+		AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.]) 
+		PLATFORM="cygwin"
+		;;
+	interix*) 
+		AC_DEFINE([interix],[1],[Build Interix specific platform code.])
+		PLATFORM="iterix"
+		;;
+  	*bsd*) 
+		AC_DEFINE([freebsd],[1],[Build Freebsd specific platform code.])
+		PLATFORM="bsd"
+   		if test $host_cpu = "x86_64" ; then
+   			AM_CFLAGS="$AM_CFLAGS -Dfreebsd -DSPACE_ORDER=3 -m64 "
+			echo "Build 64-bit Freebsd specific platform code."
+			
+    	else
+    		AM_CFLAGS="$AM_CFLAGS  -Dfreebsd -DSPACE_ORDER=2 -m32 "
+			echo "Build 32-bit Freebsd specific platform code."
+    	fi
+    	;;
+	solaris*)
+		PLATFORM="solaris"
+		if test $host_cpu = "sparc" ; then
+			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
+			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
+			AM_CFLAGS="$AM_CFLAGS  -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3"
+			echo "Build Solaris/SPARC specific platform code."
+		else
+			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
+			AM_LDFLAGS="$AM_LDFLAGS  -lrt -lsocket -lnsl"
+			AM_CFLAGS="$AM_CFLAGS  -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -DSPACE_ORDER=3"
+			echo "Build Solaris specific platform code."
+		fi
+		# Do bitness check
+		AS_IF([test "x$ISAINFO" != "xno"],
+      		[isainfo_b=`isainfo -b`],
+      		[isainfo_b="x"])
+      	if test "$isainfo_b" = "64"; then
+      		AM_CFLAGS="$AM_CFLAGS -m64"
+      		echo "Build 64-bit code"
+      	else
+      		AM_CFLAGS="$AM_CFLAGS -m32"
+      		echo "Build 32-bit code"
+      	fi
+		;;
+	vxworks*) 
+		AC_DEFINE([vxworks],[1],[Build VXWorks specific platform code.]) 
+		PLATFORM="vxworks"
+		;;
+esac
+
+
+##Process user flags
 
 #
 # allow the user running configure to disable ACS
 #
 AC_ARG_ENABLE(
     acs,
-    AC_HELP_STRING([--disable-acs], [disable Aggregate Custody Signals]),
+    [AC_HELP_STRING([--disable-acs], [disable Aggregate Custody Signals])],
     [],
-    [CFLAGS="-DENABLE_BPACS $CFLAGS"
+    [AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS"
      ENABLE_BPACS=yes])
 AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 
@@ -43,50 +136,88 @@ AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 #
 AC_ARG_ENABLE(
     imc,
-    AC_HELP_STRING([--disable-imc], [disable Interplanetary Multicast]),
+    [AC_HELP_STRING([--disable-imc], [disable Interplanetary Multicast])],
     [],
-    [CFLAGS="-DENABLE_IMC $CFLAGS"
+    [AM_CFLAGS="$AM_CFLAGS -DENABLE_IMC"
      ENABLE_IMC=yes])
 AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
 
+#
+# Try to enable DCCP support
+#
+AC_ARG_ENABLE(
+    dccp,
+    [AC_HELP_STRING([--enable-dccp], [Enable Support for DCCP as a convergence layer])],
+    [AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >=3.2.0])],
+    [])
 
+#
+# Control building /contrib utlities
+#
+AC_ARG_ENABLE(
+	contrib,
+	[AC_HELP_STRING([--disable-contrib],[Disable building third-party contributed utilities])],
+	[case "${enableval}" in
+		yes) BUILD_CONTRIB=yes;;
+		no)  BUILD_CONTRIB=no;;
+		*) AC_MSG_ERROR([bad value ${enableval} for --enable-contrib]);;
+	esac],
+	[BUILD_CONTRIB=yes])
+AM_CONDITIONAL(BUILD_CONTRIB, test "x$BUILD_CONTRIB" = "xyes")
 
-# Checks for programs.
-AC_PROG_CC
-AC_PROG_LIBTOOL
-AC_PROG_INSTALL
-AC_PROG_MAKE_SET
-# it should set pod_documentation to 1 if pod2man exists. 
-# you could then build documentation or not.
-AC_CHECK_PROGS([POD_DOCUMENTATION], [pod2man pod2html], [1] )
-if test "$POD_DOCUMENTATION" = 1; then
-#	echo "------------------- WARNING -------------------"
-	echo "ERROR: You need to have pod2man for documentation."
-#	echo "-----------------------------------------------"
-#	sleep 3
-	exit -1
-#else
-#	AC_SUBST([MAKE_POD_MANS],'doc')
-# if pod2man is present, then this 'doc' variable is used in ici's makefile as a
-# subdir (otherwise ici/doc is ignored)
+#
+# Allow user to disable crypto... if crypto is even enabled
+#
+if test "$IS_NASA_B" = "1"; then
+	# To Disable crypto, use "./configure --disable-crypto"
+	AC_ARG_ENABLE([crypto],
+		[  --disable-crypto    Turn off cryptography],
+		[case "${enableval}" in
+			yes) crypto=true ;;
+			no)  crypto=false ;;
+		*) AC_MSG_ERROR([bad value ${enableval} for --disable-crypto]) ;;
+		esac],[crypto=true])
+	
+	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
+
+	if test x$crypto = xtrue; then
+		echo ""
+		#DoStuff
+	else
+		AC_SUBST( [CRYPTO_LIBS], [""] )
+	fi
+
+	AC_DEFINE([NASA_PROTECTED_FLIGHT_CODE],[1],[Build ION NASA protected flight code])
+else
+	AM_CONDITIONAL([CRYPTO], [false])
+	AC_SUBST( [CRYPTO_LIBS], [""] )
 fi
 
-# Checks for libraries.
-# these are libraries that ALREADY EXIST BEFORE BUILDING
-AC_CHECK_LIB(
-	[expat], 
-	[XML_GetCurrentLineNumber], 
-	[ AC_SUBST( [EXPAT_LIBS], ["-lexpat"] ) ],
-	[AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])]
-)
+#
+# Control whether AMS debugging info is printed.
+#
+if test "$IS_NASA_B" = "0"; then
+	AC_ARG_ENABLE([ams-debug],
+		[  --enable-ams-debug    Enable AMS debugging info],
+		[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
+fi
 
-AC_CHECK_LIB(
-	[pthread], 
-	[pthread_create], 
-	[ AC_SUBST( [PTHREAD_LIBS], ["-lpthread"] ) ],
-	[AC_MSG_ERROR([You need pthread library.]) ]
-)
-
+#
+# Dynamically choose whether or not to instrument code for gcov code coverage
+# Default is not to instrument the code for gcov code coverage.
+# 
+AC_ARG_WITH([gcov],
+[AS_HELP_STRING([--with-gcov], [Turn on code coverage instrumentation])],
+[gcov=yes;],
+[])
+if test "x$gcov" = "xyes" ; then
+	echo "Instrument code for gcov coverage analysis... yes"
+	CFLAGS="$CFLAGS -g -O0 -fprofile-arcs -ftest-coverage"
+	LDFLAGS="$LDFLAGS -fprofile-arcs -ftest-coverage -lgcov"
+else
+	echo "Instrument code for gcov coverage analysis... no"
+fi
+AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
 
 #
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
@@ -128,52 +259,38 @@ if test "x$enable_valgrind" != xno; then
   fi
 fi
 
-if test "$IS_NASA_B" = "0"; then
-	# Control whether AMS debugging info is printed.
-	# Default is that the AMS debugging info is not printed.
-	# To enable AMS debugging info, use "./configure --enable-ams-debug"
-	AC_ARG_ENABLE([ams-debug],
-		[  --enable-ams-debug    Enable AMS debugging info],
-		[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
+
+
+
+# Check for libraries.
+ORIGCFLAGS="$CFLAGS"
+CFLAGS="$AM_CFLAGS $CFLAGS"
+AC_CHECK_LIB(
+	[expat], 
+	[XML_GetCurrentLineNumber], 
+	[ AC_SUBST( [EXPAT_LIBS], ["-lexpat"] ) ],
+	[AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])]
+)
+
+AC_CHECK_LIB(
+	[pthread], 
+	[pthread_create], 
+	[ AM_LDFLAGS="$AM_LDFLAGS -lpthread" ],
+	[AC_MSG_ERROR([You need pthread library.]) ]
+)
+CFLAGS="$ORIGCFLAGS"
+
+
+# Check for programs to build documentation
+AC_CHECK_PROGS([POD_DOCUMENTATION], [pod2man pod2html], [1] )
+if test "$POD_DOCUMENTATION" = 1; then
+	echo "ERROR: You need to have pod2man for documentation."
+	exit -1
 fi
 
-if test "$IS_NASA_B" = "1"; then
-	# To Disable crypto, use "./configure --disable-crypto"
-	AC_ARG_ENABLE([crypto],
-		[  --disable-crypto    Turn off cryptography],
-		[case "${enableval}" in
-			yes) crypto=true ;;
-			no)  crypto=false ;;
-		*) AC_MSG_ERROR([bad value ${enableval} for --disable-crypto]) ;;
-		esac],[crypto=true])
-	
-	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
-
-	AC_DEFINE([NASA_PROTECTED_FLIGHT_CODE],[1],[Build ION NASA protected flight code])
-else
-	AM_CONDITIONAL([CRYPTO], [false])
-fi
-
-AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
-
-# Dynamically choose whether or not to instrument code for gcov code coverage
-# Default is not to instrument the code for gcov code coverage.
-# To use gcov code coverage instrumentation, use "./configure --enable-gcov"
-AC_ARG_WITH([gcov],
-[AS_HELP_STRING([--with-gcov], [Turn on code coverage instrumentation])],
-[gcov=yes;],
-[])
-if test "x$gcov" = "xyes" ; then
-	echo "Instrument code for gcov coverage analysis... yes"
-	CFLAGS="${CFLAGS} -g -O0 -fprofile-arcs -ftest-coverage"
-	LDFLAGS="${LDFLAGS} -fprofile-arcs -ftest-coverage -lgcov"
-else
-	echo "Instrument code for gcov coverage analysis... no"
-fi
-AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
 
 
-# Find tools for compiling documentation.
+# Check for tools to compile documentation into ION.pdf
 AC_PATH_PROG([PS2PDF], [ps2pdf])
 AC_PATH_PROG([PDF2PS], [pdf2ps])
 AC_PATH_PROG([PSJOIN], [psjoin])
@@ -216,71 +333,13 @@ else
 fi
 AM_CONDITIONAL([ENABLE_AUTODOC], [ test "$buildautodoc" ]) 
 
+
+
 # Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([fcntl.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
-
-m4_include([./dccp_macro.m4])
-
-# Checks for typedefs, structures, and compiler characteristics.
-case $host_os in
-	darwin*)
-		AC_DEFINE([darwin],[1],[Build Darwin specific platform code.])
-		AC_DEFINE([unix],[1],[Build Unix specific platform code.]) 
-		AC_SUBST([ION_LINK_FLAGS]," -dynamiclib -undefined dynamic_lookup")
-		if test $host_cpu = "x86_64" ; then
-			AC_SUBST([ION_CFLAGS]," -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 ")
-			echo "Build 64-bit Darwin specific platform code."
-		else
-			AC_SUBST([ION_CFLAGS]," -Dunix -Ddarwin -DSPACE_ORDER=2 -m32 ")
-			echo "Build 32-bit Darwin specific platform code."
-		fi
-		;;
-	linux*) 
-		#check for DCCP support
-		CHECK_DCCP()
-
-		if test $host_cpu = "x86_64" ; then
-			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.]) 
-			AC_SUBST([ION_CFLAGS]," -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing")
-			echo "Build 64-bit Linux specific platform code."
-		else
-			AC_DEFINE([linux],[1],[Build 32-bit Linux specific platform code.]) 
-			AC_SUBST([ION_CFLAGS]," -Dlinux -fno-strict-aliasing")
-			echo "Build 32-bit Linux specific platform code."
-		fi
-		;;
-
-	cygwin*)  AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.]) ;;
-	interix*) AC_DEFINE([interix],[1],[Build Interix specific platform code.]) ;;
-  *bsd*)    
-    AC_DEFINE([freebsd],[1],[Build Freebsd specific platform code.])
-    if test $host_cpu = "x86_64" ; then
-      AC_SUBST([ION_CFLAGS]," -Dfreebsd -DSPACE_ORDER=3 -m64 ")
-      echo "Build 64-bit Freebsd specific platform code."
-    else
-      AC_SUBST([ION_CFLAGS]," -Dfreebsd -DSPACE_ORDER=2 -m32 ")
-      echo "Build 32-bit Freebsd specific platform code."
-    fi
-
-    ;;
-	solaris*) 
-		if test $host_cpu = "sparc" ; then
-			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
-			AC_SUBST([ION_LINK_FLAGS],"-lrt -lsocket -lnsl")
-			AC_SUBST([ION_CFLAGS]," -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3 -m64")
-			echo "Build Solaris/SPARC specific platform code."
-		else
-			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
-			AC_SUBST([ION_LINK_FLAGS],"-lrt -lsocket -lnsl")
-			AC_SUBST([ION_CFLAGS]," -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -DSPACE_ORDER=3 -m64")
-			echo "Build Solaris specific platform code."
-		fi
-		;;
-	vxworks*) AC_DEFINE([vxworks],[1],[Build VXWorks specific platform code.]) ;;
-esac
 
 AC_C_CONST
 AC_TYPE_SIZE_T
@@ -302,21 +361,14 @@ AC_TYPE_SIGNAL
 #AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([alarm ftruncate getcwd gethostbyaddr gethostbyname gethostname gettimeofday memset mkdir mkfifo rmdir select socket strcasecmp strchr strerror strncasecmp strstr strtoul uname])
 
-#ALL_INCLUDES a huge list of all includable directories.  It helps you from
-# having to type too much in the individual makefile.am's
-#AC_SUBST([ALL_INCLUDES],'-include config.h -I$(srcdir)/ici/include -I$(srcdir)/ltp/include -I$(srcdir)/dgr/include -I$(srcdir)/bp/include -I$(srcdir)/ams/include -I$(srcdir)/icix/include')
-#AC_SUBST([ALL_LIB_PATHS],'-L$(srcdir)/ici -L$(srcdir)/dgr -L$(srcdir)/ltp -L$(srcdir)/bp')
-# add in the locations for future makefiles (you must have one Makefile.am in each location)
+#Write AM_* flag variables
+AC_SUBST([AM_LDFLAGS],"$AM_LDFLAGS")
+AC_SUBST([AM_CFLAGS],"$AM_CFLAGS")
+AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
+AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
+AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
+
+#Output!
 AC_CONFIG_FILES([Makefile])
-	#	ici/Makefile
-	#	ici/doc/Makefile
-	#	ltp/Makefile
-	#	ltp/doc/Makefile
-#		dgr/Makefile
-#		dgr/doc/Makefile
-#		bp/Makefile
-#		bp/doc/Makefile
-#		ams/Makefile
-#		icix/Makefile
-#		icix/doc/Makefile
+AC_CONFIG_FILES([contrib/Makefile])
 AC_OUTPUT

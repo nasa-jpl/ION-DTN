@@ -36,11 +36,11 @@ defaults to 86400 seconds (one day) if omitted.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<ramsgate> terminated normally.
 
-=item 1
+=item "1"
 
 B<ramsgate> failed, for reasons noted in the ion.log file; the task
 terminated.
@@ -51,6 +51,16 @@ terminated.
 
 A MIB initialization file with the applicable default name (see amsrc(5))
 must be present.
+
+B<ramsgate> records all "petitions" (requests for data on behalf of AMS
+modules in other continua) in a file named "petition.log".  At startup,
+the B<ramsgate> daemon automatically reads and processes all petitions
+in the petition.log file just as if they were received in real time.  B<Note>
+that this means that you can cause petitions to be, in effect, "pre-received"
+by simply editing this file prior to startup.  This can be an especially
+effective way to configure a RAMS network in which long signal propagation
+times would otherwise retard real-time petitioning and thus delay the onset
+of fully functional message exchange.
 
 =head1 ENVIRONMENT
 

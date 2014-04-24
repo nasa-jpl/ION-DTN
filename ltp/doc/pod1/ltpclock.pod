@@ -60,13 +60,13 @@ intervals have expired.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<ltpclock> terminated, for reasons noted in the B<ion.log> file.  If this
 termination was not commanded, investigate and solve the problem identified
 in the log file and use B<ltpadmin> to restart B<ltpclock>.
 
-=item 1
+=item "1"
 
 B<ltpclock> was unable to attach to LTP protocol operations, probably because
 B<ltpadmin> has not yet been run.
