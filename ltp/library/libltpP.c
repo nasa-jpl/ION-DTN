@@ -2402,11 +2402,12 @@ static void	serializeDataSegment(LtpXmitSeg *segment, char *buf)
 
 static void	serializeReportSegment(LtpXmitSeg *segment, char *buf)
 {
-	Sdr	ltpSdr = getIonsdr();
-	char	*cursor = buf;
-	Sdnv	sdnv;
-	Object	elt;
-		OBJ_POINTER(LtpReceptionClaim, claim);
+	Sdr		ltpSdr = getIonsdr();
+	char		*cursor = buf;
+	Sdnv		sdnv;
+	Object		elt;
+			OBJ_POINTER(LtpReceptionClaim, claim);
+	unsigned int	offset;
 
 	/*	Report is from local engine, so origin is the remote
 	 *	engine.							*/
@@ -2453,7 +2454,14 @@ static void	serializeReportSegment(LtpXmitSeg *segment, char *buf)
 	{
 		GET_OBJ_POINTER(ltpSdr, LtpReceptionClaim, claim,
 				sdr_list_data(ltpSdr, elt));
-		encodeSdnv(&sdnv, claim->offset);
+
+		/*	For transmission ONLY (never in processing
+		 *	within the LTP engine), claim->offset is
+		 *	compressed to offset from report segment's
+		 *	lower bound rather than from start of block.	*/
+
+		offset = claim->offset - segment->pdu.lowerBound;
+		encodeSdnv(&sdnv, offset);
 		memcpy(cursor, sdnv.text, sdnv.length);
 		cursor += sdnv.length;
 		encodeSdnv(&sdnv, claim->length);
@@ -4854,16 +4862,18 @@ static int	loadClaimsArray(char **cursor, int *bytesRemaining,
 {
 	int			i;
 	LtpReceptionClaim	*claim;
-	unsigned int		dataEnd = lowerBound;
+	unsigned int		offset;
+	unsigned int		dataEnd;
 
 	for (i = 0, claim = claims; i < claimCount; i++, claim++)
 	{
-		extractSmallSdnv(&(claim->offset), cursor, bytesRemaining);
-		if (claim->offset < dataEnd)
-		{
-			return 0;
-		}
+		/*	For transmission ONLY (never in processing
+		 *	within the LTP engine), claim->offset is
+		 *	compressed to offset from report segment's
+		 *	lower bound rather than from start of block.	*/
 
+		extractSmallSdnv(&offset, cursor, bytesRemaining);
+		claim->offset = offset + lowerBound;
 		extractSmallSdnv(&(claim->length), cursor, bytesRemaining);
 		if (claim->length == 0)
 		{
