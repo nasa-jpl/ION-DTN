@@ -6468,6 +6468,10 @@ int	ltpHandleInboundSegment(char *buf, int length)
 
 	extractSdnv(&sourceEngineId, &cursor, &bytesRemaining);
 	extractSmallSdnv(&sessionNbr, &cursor, &bytesRemaining);
+	if (sessionNbr == 0)
+	{
+		return 0;		/*	Ignore the segment.	*/
+	}
 
 	/*	Get counts of header and trailer extensions.		*/
 
