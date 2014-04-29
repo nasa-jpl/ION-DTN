@@ -86,9 +86,8 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 		/*	currentExportSessionObj not initialiazed 	* 
 		 *	yet or this is an overlimit export session.	* 
 		 *	Must wait for one to be released.		*/
-		sdr_exit_xn(sdr);
-	
 
+		sdr_exit_xn(sdr);
 		if (sm_SemTake(vspan->bufOpenSemaphore) < 0)
 		{
 			putErrmsg("Can't take buffer open semaphore.",

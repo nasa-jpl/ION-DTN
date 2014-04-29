@@ -67,9 +67,10 @@ static void	printUsage()
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 	PUTS("\t1\tInitialize");
+	PUTS("\t   1 <est. max number of sessions>");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a span <engine ID#> <max export sessions> <max-block-size> \
-'<BE-BSO command>' '<RL-BSO command>' [queuing latency, in seconds]");
+	PUTS("\t   a span <engine ID#> <max number of sessions> <max-block-\
+size> '<BE-BSO command>' '<RL-BSO command>' [queuing latency, in seconds]");
 	PUTS("\t\tIf queuing latency is negative, the absolute value of this \
 number is used as the actual queuing latency and session purging is enabled.  \
 See man(5) for bssprc.");

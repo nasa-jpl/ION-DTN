@@ -63,7 +63,7 @@ static int	receiveBytesByTCP(int bundleSocket, char *into, int length)
 			return 0;
 		}
 
-		putSysErrmsg("TCPCL read() error on socket", NULL);
+		putSysErrmsg("RL-BSI read() error on socket", NULL);
 		return -1;
 
 	case 0:				/*	Connection closed.	*/
@@ -357,7 +357,7 @@ int	main(int argc, char *argv[])
 	vdb = getBsspVdb();
 	if (vdb->rlBsiPid != ERROR && vdb->rlBsiPid != sm_TaskIdSelf())
 	{
-		putErrmsg("TCP-BSI task is already started.",
+		putErrmsg("RL-BSI task is already started.",
 				itoa(vdb->rlBsiPid));
 		return 1;
 	}
@@ -367,7 +367,7 @@ int	main(int argc, char *argv[])
 	hostName = socketSpec;
 	if (parseSocketSpec(socketSpec, &portNbr, &hostNbr) != 0)
 	{
-		putErrmsg("TCP-BSI can't get IP/port for host.", hostName);
+		putErrmsg("RL-BSI can't get IP/port for host.", hostName);
 		return -1;
 	}
 
@@ -386,7 +386,7 @@ int	main(int argc, char *argv[])
 	atp.bsiSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (atp.bsiSocket < 0)
 	{
-		putSysErrmsg("TCP-BSI can't open TCP socket", NULL);
+		putSysErrmsg("RL-BSI can't open TCP socket", NULL);
 		return 1;
 	}
 
@@ -397,7 +397,7 @@ int	main(int argc, char *argv[])
 	|| getsockname(atp.bsiSocket, &(atp.socketName), &nameLength) < 0)
 	{
 		closesocket(atp.bsiSocket);
-		putSysErrmsg("TCP-BSI can't initialize socket", NULL);
+		putSysErrmsg("RL-BSI can't initialize socket", NULL);
 		return 1;
 	}
 

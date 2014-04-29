@@ -278,7 +278,7 @@ int	main(int argc, char *argv[])
 	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (rtp.linkSocket < 0)
 	{
-		putSysErrmsg("BS-BSO can't open UDP socket", NULL);
+		putSysErrmsg("BE-BSO can't open UDP socket", NULL);
 		return 1;
 	}
 

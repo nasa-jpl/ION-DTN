@@ -124,7 +124,8 @@ int	main(int argc, char *argv[])
 
 	if (remoteEngineId == 0 || ductName == NULL)
 	{
-		PUTS("Usage: tcpbso <remote host name>[:<port number>]");
+		PUTS("Usage: tcpbso <remote host name>[:<port number>] <remote \
+engine number>");
 		return 0;
 	}
 

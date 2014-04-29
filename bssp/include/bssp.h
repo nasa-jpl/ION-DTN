@@ -51,7 +51,7 @@ extern int	bssp_send(uvast destinationEngineId,
 		 *	that BSSP will privately make and destroy its
 		 *	own reference to the client service data; the
 		 *	application is free to destroy its reference
-		 *	at any time.  The outOfOrder parameter is a
+		 *	at any time.  The inOrder parameter is a
 		 *	Boolean variable indicating whether or not
 		 *	the service data item that is being sent is
 		 *	"in order", i.e., was originally transmitted
@@ -91,10 +91,10 @@ extern int	bssp_get_notice(unsigned int clientId,
 		 *	single BSSP block.
 		 *
 		 *	The cancellation of an export session results
-		 *	in delivery of a single BsspXmitFailure notice,
-		 *	The ZCO returned in *data for each such notice
-		 *	is a service data unit ZCO that had previously
-		 *	been passed to the bssp_send function.		*/
+		 *	in delivery of a BsspXmitFailure notice.  In
+		 *	this case, the ZCO returned in *data is a
+		 *	service data unit that had previously beenx
+		 *	passed to the bssp_send function.		*/
 
 extern void	bssp_interrupt(unsigned int clientId);
 

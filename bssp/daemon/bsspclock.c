@@ -110,7 +110,7 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 		vspan = (BsspVspan *) psp(ionwm, sm_list_data(ionwm, elt));
 
 		/*	Find Neighbor object encapsulating the current
-		 *	known state of this BSSP engine.			*/
+		 *	known state of this BSSP engine.		*/
 
 		neighbor = findNeighbor(ionvdb, vspan->engineId, &nextElt);
 		if (neighbor == NULL)

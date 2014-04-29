@@ -29,8 +29,8 @@ Networking Research Group of the Internet Research Task Force.
 
 The LTP notion of B<engine ID> corresponds closely to the Internet notion of
 a host, and in ION engine IDs are normally indistinguishable from node numbers
-(and from the "element numbers" in Bundle Protocol endpoint IDs conforming to
-the "ipn" scheme).
+including the node numbers in Bundle Protocol endpoint IDs conforming to
+the "ipn" scheme.
 
 The LTP notion of B<client ID> corresponds closely to the Internet notion of
 "protocol number" as used in the Internet Protocol.  It enables data from
@@ -48,6 +48,11 @@ Attaches the application to LTP functionality on the lcoal computer.  Returns
 =item void ltp_detach()
 
 Terminates all access to LTP functionality on the local computer.
+
+=item int ltp_engine_is_started()
+
+Returns 1 if the local LTP engine has been started and not yet stopped,
+0 otherwise.
 
 =item int ltp_send(uvast destinationEngineId, unsigned int clientId, Object clientServiceData, unsigned int redLength, LtpSessionId *sessionId)
 

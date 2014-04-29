@@ -1721,7 +1721,7 @@ int	bsspDequeueBEOutboundBlock(BsspVspan *vspan, char **buf)
 	Sdr		bsspSdr = getIonsdr();
 	BsspVdb		*bsspvdb = _bsspvdb(NULL);
 	Object		spanObj;
-	BsspSpan		spanBuf;
+	BsspSpan	spanBuf;
 	Object		elt;
 	char		memo[64];
 	Object		blkAddr;
@@ -1763,8 +1763,8 @@ UVAST_FIELDSPEC " is stopped.", vspan->engineId);
 		}
 
 		CHKERR(sdr_begin_xn(bsspSdr));
-		sdr_stage(bsspSdr, (char *) &spanBuf, spanObj, sizeof(BsspSpan));
-
+		sdr_stage(bsspSdr, (char *) &spanBuf, spanObj,
+				sizeof(BsspSpan));
 		elt = sdr_list_first(bsspSdr, spanBuf.beBlocks);
 	}
 

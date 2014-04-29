@@ -6,14 +6,20 @@ PODH = pod2html --noindex
 MANFILES = \
 	./man/man1/bsspadmin.1 \
 	./man/man1/bsspclock.1 \
+	./man/man1/udpbsi.1 \
 	./man/man1/udpbso.1 \
+	./man/man1/tcpbsi.1 \
+	./man/man1/tcpbso.1 \
 	./man/man5/bssprc.5 \
 	./man/man3/bssp.3
 
 HTMLFILES = \
 	./html/man1/bsspadmin.html \
 	./html/man1/bsspclock.html \
+	./html/man1/udpbsi.html \
 	./html/man1/udpbso.html \
+	./html/man1/tcpbsi.html \
+	./html/man1/tcpbso.html \
 	./html/man5/bssprc.html \
 	./html/man3/bssp.html
 
