@@ -33,13 +33,13 @@ START and STOP commands that pertain specifically to the IMC scheme.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<imcfw> terminated, for reasons noted in the B<ion.log> log file.  If this
 termination was not commanded, investigate and solve the problem identified
 in the log file and use B<bpadmin> to restart B<imcfw>.
 
-=item 1
+=item "1"
 
 B<imcfw> could not commence operations, for reasons noted in the B<ion.log>
 log file.  Investigate and solve the problem identified in the log file, then

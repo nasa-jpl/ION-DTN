@@ -58,13 +58,13 @@ that pertain specifically to the BRSC convergence layer protocol.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<brsccla> terminated normally, for reasons noted in the B<ion.log> file.  If
 this termination was not commanded, investigate and solve the problem identified
 in the log file and use B<bpadmin> to restart the BRSC protocol.
 
-=item 1
+=item "1"
 
 B<brsccla> terminated abnormally, for reasons noted in the B<ion.log> file.
 Investigate and solve the problem identified in the log file, then use
