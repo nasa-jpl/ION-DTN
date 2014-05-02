@@ -509,7 +509,7 @@ void ui_define_report(agent_t* agent)
 	/* Step 3a: Record this definition in the agent def lyst. */
 	lockResource(&(agent->mutex));
 	lyst_insert_last(agent->custom_defs, rpt_def);
-	lockResource(&(agent->mutex));
+	unlockResource(&(agent->mutex));
 
 	/* Step 4: Construct a PDU to hold the primitive. */
 	uint8_t *data = def_serialize_gen(rpt_def, &size);
@@ -1639,7 +1639,7 @@ void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint
 		return;
 	}
 
-	*data_used = val_size;
+	*data_used = str_size;
 	printf("Data Name: %s\n", adu->name);
 	printf("MID      : %s\n", mid_str);
 	printf("Value    : %s\n", mid_val);

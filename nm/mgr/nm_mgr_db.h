@@ -136,8 +136,8 @@ void  db_mgt_verify_mids();
 
 /* Functions to process outgoing message tables. */
 int  db_outgoing_process(MYSQL_RES *sql_res);
-int  db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group);
-int  db_outgoing_process_one_message(uint32_t idx, uint32_t entry_idx, pdu_group_t *msg_group, MYSQL_ROW row);
+int  db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group, Lyst defs);
+int  db_outgoing_process_one_message(uint32_t idx, uint32_t entry_idx, pdu_group_t *msg_group, MYSQL_ROW row, Lyst defs);
 Lyst db_outgoing_process_recipients(uint32_t id);
 int  db_outgoing_ready(MYSQL_RES **sql_res);
 
