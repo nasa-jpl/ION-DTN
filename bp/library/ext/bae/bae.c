@@ -120,7 +120,7 @@ int	bae_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	bae_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	return 0;
+	return 1;
 }
 
 void	bae_clear(AcqExtBlock *blk)

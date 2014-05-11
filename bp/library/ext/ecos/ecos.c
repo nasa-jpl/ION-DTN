@@ -122,7 +122,7 @@ int	ecos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	ecos_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	return 0;
+	return 1;
 }
 
 void	ecos_clear(AcqExtBlock *blk)

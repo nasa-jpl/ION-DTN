@@ -7,6 +7,7 @@ SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 
 # OPT = -O -Dlinux
+# OPT = -g -Wall -Werror -Dlinux -DCORE_FILE_NEEDED=1
 OPT = -g -Wall -Werror -Dlinux
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -fPIC -shared -rdynamic

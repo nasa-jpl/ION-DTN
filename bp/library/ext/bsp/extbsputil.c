@@ -133,7 +133,7 @@ int	extensionBlockTypeToInt(char *blockType)
 
 	CHKERR(blockType);
 	if (strcmp("payload", blockType) == 0)
-		return PAYLOAD_BLOCK_TYPE;
+		return BLOCK_TYPE_PAYLOAD;
 	getExtensionDefs(&extensions, &extensionsCt);
 	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
 	{
@@ -156,7 +156,7 @@ int	extensionBlockTypeToString(unsigned char blockType, char *s,
 
 	if (blockType == 0) return -1;
 	CHKERR(s);
-	if (blockType == PAYLOAD_BLOCK_TYPE)
+	if (blockType == BLOCK_TYPE_PAYLOAD)
 	{
 		istrcat(s, "payload", buflen);
 		return 0;
@@ -779,7 +779,6 @@ void bsp_getSecurityInfo(Bundle *bundle,
 		if(bspType == BSP_BAB_TYPE)
 		{
 			OBJ_POINTER(BspBabRule, babRule);
-			int result;
 
 			sec_get_bspBabRule(eidSourceString, eidDestString, &ruleAddr, &eltp);
 

@@ -2356,15 +2356,13 @@ int	startBpTask(Object cmd, Object cmdParms, int *pid)
 	return 0;
 }
 
-void	lookUpEidScheme(EndpointId eid, char *dictionary,
-			VScheme **vscheme)
+void	lookUpEidScheme(EndpointId eid, char *dictionary, VScheme **vscheme)
 {
 	PsmPartition	bpwm = getIonwm();
 	BpVdb		*bpvdb = _bpvdb(NULL);
 	char		*schemeName;
 	PsmAddress	elt;
 
-	CHKVOID(dictionary);
 	CHKVOID(vscheme);
 	if (dictionary == NULL)
 	{
@@ -5660,7 +5658,7 @@ when asking for custody transfer and/or status reports.");
 	for (i = 0, spec = extensions; i < extensionsCt; i++, spec++)
 	{
 		def = findExtensionDef(spec->type);
-		if (def->offer != NULL)
+		if (def != NULL && def->offer != NULL)
 		{
 			memset((char *) &blk, 0, sizeof(ExtensionBlock));
 			blk.type = spec->type;
@@ -5938,7 +5936,6 @@ void	lookUpEndpoint(EndpointId eid, char *dictionary, VScheme *vscheme,
 	char		*nss;
 	PsmAddress	elt;
 
-	CHKVOID(dictionary);
 	CHKVOID(vscheme);
 	CHKVOID(vpoint);
 	if (dictionary == NULL)

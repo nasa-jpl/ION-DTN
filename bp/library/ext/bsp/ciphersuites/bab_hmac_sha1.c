@@ -337,7 +337,7 @@ memory for ASB result, len %ld.", resultsLen);
 
 		asb->resultsLen = resultsLen;
 		asb->resultsData = temp;
-		return 0;
+		return 1;
 	}
 
 	/*	This is the last BAB; check its security result.	*/
@@ -347,7 +347,7 @@ memory for ASB result, len %ld.", resultsLen);
 		BAB_DEBUG_ERR("x bab_hmac_sha1_verify: No security result in \
 last BAB.");
 		discardExtensionBlock(blk);
-		return 1;
+		return 0;
 	}
 
 	bsp_getInboundBspItem(BSP_CSPARM_INT_SIG, asb->resultsData,
@@ -357,7 +357,7 @@ last BAB.");
 		BAB_DEBUG_ERR("x bab_hmac_sha1_verify: Wrong length digest in \
 last BAB: %d.", assertedDigestLen);
 		discardExtensionBlock(blk);
-		return 1;
+		return 0;
 	}
 
 	/*	Asserted digest seems okay.  Retrieve computed digest.	*/
@@ -379,12 +379,12 @@ last BAB: %d.", assertedDigestLen);
 
 	if (memcmp(digest, assertedDigest, BAB_HMAC_SHA1_RESULT_LEN) == 0)
 	{
-		outcome = 2;
+		outcome = 3;
 	}
 	else
 	{
 		BAB_DEBUG_ERR("x bsp_hmac_sha1_verify: digests don't match.");
-		outcome = 1;
+		outcome = 2;
 	}
 
 	/*	Now delete both the First and Last BABs and return.	*/

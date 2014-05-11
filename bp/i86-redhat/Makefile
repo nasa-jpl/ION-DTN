@@ -41,9 +41,8 @@ BPINCLS = \
 BPLIBS = \
 	libbp.so
 
-BPPOBJS = libbpP.o ecos.o bae.o bei.o bsputil.o bspbab.o bspbib.o bspbcb.o ciphersuites.o bab_hmac_sha1.o bib_hmac_sha256.o bcb_arc4.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o libimcfw.o
-#extbsputil.o extbspbab.o extbsppcb.o extbsppib.o
-# phn.o
+BPPOBJS = libbpP.o ecos.o bae.o phn.o bei.o libimcfw.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o bsputil.o bspbab.o bspbib.o bspbcb.o ciphersuites.o bab_hmac_sha1.o bib_hmac_sha256.o bcb_arc4.o 
+# extbsputil.o extbspbab.o extbsppcb.o extbsppib.o
 
 LFW = -lbssfw -ldtn2fw
 # -lipnfw
@@ -332,8 +331,8 @@ libudpcla.so:	libudpcla.o
 %.o:		$(API)/ext/bsp/ciphersuites/%.c
 		$(CC) -c $<
 
-#%.o:		$(API)/ext/phn/%.c
-#		$(CC) -c $<
+%.o:		$(API)/ext/phn/%.c
+		$(CC) -c $<
 
 %.o:		$(TEST)/%.c
 		$(CC) -c $<

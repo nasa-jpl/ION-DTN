@@ -97,8 +97,6 @@
 
 #endif
 
-
-
 /*****************************************************************************
  *                     BAB EXTENSIONS INTERFACE FUNCTIONS                    *
  *****************************************************************************/
@@ -259,7 +257,10 @@ int  bsp_babOffer(ExtensionBlock *blk, Bundle *bundle);
  *  06/20/09  E. Birrane           Comment updated for initial release.
  *****************************************************************************/
 
-int  bsp_babPostCheck(AcqExtBlock *post_blk, AcqWorkArea *wk);
+/*	int  bsp_babPostCheck(AcqExtBlock *post_blk, AcqWorkArea *wk);	*/
+
+int	bsp_babCheck(AcqExtBlock *post_blk, AcqWorkArea *wk);
+
 
 /******************************************************************************
  *
@@ -293,9 +294,12 @@ int  bsp_babPostCheck(AcqExtBlock *post_blk, AcqWorkArea *wk);
  *  06/20/09  E. Birrane           Comment/Debug updated for initial release.
  *****************************************************************************/
 
-int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
+/*	int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
                                 Bundle *bundle,
-                                void *ctxt);
+                                void *ctxt);				*/
+
+int	bsp_babProcessOnDequeue(ExtensionBlock *post_blk, Bundle *bundle,
+		void *ctxt);
 
 
 /*****************************************************************************
@@ -335,9 +339,12 @@ int bsp_babPostProcessOnDequeue(ExtensionBlock *post_blk,
  *  06/20/09  E. Birrane           Comment/Debug updated for initial release.
  *****************************************************************************/
 
-int  bsp_babPostProcessOnTransmit(ExtensionBlock *blk,
+/*	int  bsp_babPostProcessOnTransmit(ExtensionBlock *blk,
                                   Bundle *bundle,
-                                  void *ctxt);
+                                  void *ctxt);				*/
+
+int	bsp_babProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,
+		void *ctxt);
 
 
 /******************************************************************************
@@ -372,7 +379,8 @@ int  bsp_babPostProcessOnTransmit(ExtensionBlock *blk,
  *  06/20/09  E. Birrane           Cmt/Debug for initial release.
  *****************************************************************************/
 
-int  bsp_babPreCheck(AcqExtBlock *blk, AcqWorkArea *wk);
+/*	int  bsp_babPreCheck(AcqExtBlock *blk, AcqWorkArea *wk);	*/
+
 
 /******************************************************************************
  *
@@ -407,11 +415,10 @@ int  bsp_babPreCheck(AcqExtBlock *blk, AcqWorkArea *wk);
  *  06/06/09  E. Birrane           Documentation Pass.
  *  06/20/09  E. Birrane           Debug/Cmt update for initial release.
  *****************************************************************************/
-int  bsp_babPreProcessOnDequeue(ExtensionBlock *blk,
+
+/*	int  bsp_babPreProcessOnDequeue(ExtensionBlock *blk,
                                 Bundle *bundle,
-                                void *ctxt);
-
-
+                                void *ctxt);				*/
 
 /******************************************************************************
  *
@@ -438,6 +445,7 @@ int  bsp_babPreProcessOnDequeue(ExtensionBlock *blk,
  *  06/06/09  E. Birrane           Documentation Pass.
  *  06/20/09  E. Birrane           Debug/Cmt update for initial release.
  *****************************************************************************/
+
 void bsp_babRelease(ExtensionBlock *blk);
 
 
@@ -446,8 +454,5 @@ unsigned char *bsp_babGetSecResult(Object dataObj,
                                    char *cipherKeyName,
 				   unsigned int keyLen,
                                    unsigned int *hashLen);
-
-
-
 
 #endif /* EXTBSPBAB_H_ */

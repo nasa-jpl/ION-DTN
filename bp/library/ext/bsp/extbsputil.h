@@ -170,6 +170,7 @@ int bspTypeToInt(char *bspType);
 #define BSP_BAB_TYPE		0x02 /*		BSP BAB block type.	*/
 #define BSP_PIB_TYPE		0x03 /*		BSP PIB block type.	*/
 #define BSP_PCB_TYPE		0x04 /*		BSP PCB block type.	*/
+#define BSP_ESB_TYPE		0x05 /*		BSP ESB block type.	*/
 
 /** Ciphersuite types - From BSP Spec. Version 8. */
 #define BSP_CSTYPE_BAB_HMAC 					0x001

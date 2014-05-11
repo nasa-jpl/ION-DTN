@@ -15,8 +15,8 @@
 #include "bae.h"
 #ifdef ORIGINAL_BSP
 #include "extbspbab.h"
-#include "extbspbcb.h"
-#include "extbspbib.h"
+#include "extbsppcb.h"
+#include "extbsppib.h"
 #else
 #include "bspbab.h"
 #include "bspbib.h"
@@ -32,7 +32,7 @@
 static ExtensionDef	extensionDefs[] =
 			{
 #ifdef ORIGINAL_BSP
-		{ "bsp_bab", EXTENSION_TYPE_BAB,
+		{ "bsp_bab", BSP_BAB_TYPE,
 				bsp_babOffer,
 				{0,
 				0,
@@ -48,7 +48,7 @@ static ExtensionDef	extensionDefs[] =
 				0,
 				bsp_babClear
 		},
-		{ "bsp_pib", EXTENSION_TYPE_PIB,
+		{ "bsp_pib", BSP_PIB_TYPE,
 				bsp_pibOffer,
 				{0,
 				0,
@@ -64,7 +64,7 @@ static ExtensionDef	extensionDefs[] =
 				0,
 				bsp_pibClear
 		},
-		{ "bsp_pcb", EXTENSION_TYPE_PCB,
+		{ "bsp_pcb", BSP_PCB_TYPE,
 				bsp_pcbOffer,
 				{0,
 				0,
@@ -192,19 +192,24 @@ static ExtensionDef	extensionDefs[] =
 
 static ExtensionSpec	extensionSpecs[] =
 			{
+#ifdef ORIGINAL_BSP
+				{ BSP_BAB_TYPE, 0, 0, 0, 0 },
+#else
 				{ EXTENSION_TYPE_BAB, 0, 0, 0, 0 },
+#endif /* ORIGINAL_BSP */
 				{ EXTENSION_TYPE_ECOS, 0, 0, 0, 0 },
 				{ EXTENSION_TYPE_BAE, 0, 0, 0, 0 },
 #ifdef ENABLE_BPACS
         			{ EXTENSION_TYPE_CTEB, 0, 0, 0, 0 },
 #endif /* ENABLE_BPACS */
 #ifdef ORIGINAL_BSP
-				{ EXTENSION_TYPE_PIB, 0, 0, 0, 0 },
-				{ EXTENSION_TYPE_PCB, 0, 0, 0, 0 },
+				{ BSP_PIB_TYPE, 0, 0, 0, 0 },
+				{ BSP_PCB_TYPE, 0, 0, 0, 0 },
+				{ BSP_BAB_TYPE, 0, 0, 1, 1 },
 #else
 				{ EXTENSION_TYPE_BIB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BCB, 1, 0, 0, 0 },
-#endif /* ORIGINAL_BSP */
 				{ EXTENSION_TYPE_BAB, 0, 0, 1, 1 },
+#endif /* ORIGINAL_BSP */
 				{ 0,0,0,0,0 }
 			};

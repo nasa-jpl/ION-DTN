@@ -131,6 +131,74 @@ static unsigned int	getExtensionRank(ExtensionSpec *spec)
  *                OPERATIONS ON OUTBOUND EXTENSION BLOCKS                     *
  ******************************************************************************/
 
+static int	insertExtensionBlock(ExtensionSpec *spec,
+			ExtensionBlock *newBlk, Object blkAddr, Bundle *bundle,
+			unsigned char listIdx)
+{
+	Sdr	bpSdr = getIonsdr();
+	int	result;
+	Object	elt;
+		OBJ_POINTER(ExtensionBlock, blk);
+
+	CHKERR(newBlk);
+	CHKERR(bundle);
+	if (spec == NULL)	/*	Don't care where this goes.	*/
+	{
+		if (listIdx == 0)	/*	Pre-payload block.	*/
+		{
+			/*	Insert after all pre-payload blocks
+			 *	inserted by the local node and after
+			 *	all preceding pre-payload blocks
+			 *	inserted by upstream nodes.		*/
+
+			newBlk->rank = 255;
+		}
+		else			/*	Post-payload block.	*/
+		{
+			/*	Insert *before* all post-payload blocks
+			 *	inserted by the local node and after
+			 *	all preceding post-payload blocks
+			 *	inserted by upstream nodes.		*/
+
+			newBlk->rank = 0;
+		}
+	}
+	else			/*	Order in list is important.	*/
+	{
+		newBlk->rank = getExtensionRank(spec);
+	}
+
+	for (elt = sdr_list_first(bpSdr, bundle->extensions[listIdx]);
+			elt; elt = sdr_list_next(bpSdr, elt))
+	{
+		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk,
+				sdr_list_data(bpSdr, elt));
+		if (blk->rank > newBlk->rank)
+		{
+			break;	/*	Found a higher-ranking block.	*/
+		}
+	}
+
+	if (elt)	/*	Add before first higher-ranking block.	*/
+	{
+		result = sdr_list_insert_before(bpSdr, elt, blkAddr);
+	}
+	else		/*	There is no higher-ranking block.	*/
+	{
+		result = sdr_list_insert_last(bpSdr,
+				bundle->extensions[listIdx], blkAddr);
+	}
+
+	if (result == 0)
+	{
+		putErrmsg("Failed inserting extension block.", NULL);
+		return -1;
+	}
+
+	sdr_write(bpSdr, blkAddr, (char *) newBlk, sizeof(ExtensionBlock));
+	return 0;
+}
+
 int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
 		Bundle *bundle)
 {
@@ -141,6 +209,37 @@ int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
 	CHKERR(blk);
 	CHKERR(bundle);
 	blk->type = spec->type;
+#ifdef ORIGINAL_BSP
+	if (blk->type == BSP_BAB_TYPE)
+#else
+	if (blk->type == EXTENSION_TYPE_BAB)
+#endif
+	{
+		blk->occurrence = spec->listIdx;	/*	0 or 1.	*/
+	}
+	else
+	{
+		blk->occurrence = 0;
+	}
+
+	/*	If we ever devise any extension blocks that occur
+	 *	multiple times in a single bundle -- other than
+	 *	the BAB -- then we need to insert here a procedure
+	 *	that determines the maximum occurrence number among
+	 *	all blocks of this type that are currently in the
+	 *	bundle, adds 1 to that number, and inserts into the
+	 *	block a bogus EID reference that documents this
+	 *	assigned occurrence number.  (For that bogus EID
+	 *	reference number, the scheme offset is the occurrence
+	 *	number and the SSP offset is set to zero to indicate
+	 *	that the EID reference is bogus).
+	 *
+	 *	For now, though, there are no such blocks and the
+	 *	absence of a bogus EID reference is interpreted
+	 *	as an indication that the occurrence number of
+	 *	the block is zero, i.e., it is the first and only
+	 *	block of its type in this bundle.			*/
+
 	blkAddr = sdr_malloc(getIonsdr(), sizeof(ExtensionBlock));
 	CHKERR(blkAddr);
 	if (insertExtensionBlock(spec, blk, blkAddr, bundle, spec->listIdx) < 0)
@@ -372,73 +471,6 @@ Object	findExtensionBlock(Bundle *bundle, unsigned int type,
 		}
 	}
 
-	return 0;
-}
-
-int	insertExtensionBlock(ExtensionSpec *spec, ExtensionBlock *newBlk,
-		Object blkAddr, Bundle *bundle, unsigned char listIdx)
-{
-	Sdr	bpSdr = getIonsdr();
-	int	result;
-	Object	elt;
-		OBJ_POINTER(ExtensionBlock, blk);
-
-	CHKERR(newBlk);
-	CHKERR(bundle);
-	if (spec == NULL)	/*	Don't care where this goes.	*/
-	{
-		if (listIdx == 0)	/*	Pre-payload block.	*/
-		{
-			/*	Insert after all pre-payload blocks
-			 *	inserted by the local node and after
-			 *	all preceding pre-payload blocks
-			 *	inserted by upstream nodes.		*/
-
-			newBlk->rank = 255;
-		}
-		else			/*	Post-payload block.	*/
-		{
-			/*	Insert *before* all post-payload blocks
-			 *	inserted by the local node and after
-			 *	all preceding post-payload blocks
-			 *	inserted by upstream nodes.		*/
-
-			newBlk->rank = 0;
-		}
-	}
-	else			/*	Order in list is important.	*/
-	{
-		newBlk->rank = getExtensionRank(spec);
-	}
-
-	for (elt = sdr_list_first(bpSdr, bundle->extensions[listIdx]);
-			elt; elt = sdr_list_next(bpSdr, elt))
-	{
-		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk,
-				sdr_list_data(bpSdr, elt));
-		if (blk->rank > newBlk->rank)
-		{
-			break;	/*	Found a higher-ranking block.	*/
-		}
-	}
-
-	if (elt)	/*	Add before first higher-ranking block.	*/
-	{
-		result = sdr_list_insert_before(bpSdr, elt, blkAddr);
-	}
-	else		/*	There is no higher-ranking block.	*/
-	{
-		result = sdr_list_insert_last(bpSdr,
-				bundle->extensions[listIdx], blkAddr);
-	}
-
-	if (result == 0)
-	{
-		putErrmsg("Failed inserting extension block.", NULL);
-		return -1;
-	}
-
-	sdr_write(bpSdr, blkAddr, (char *) newBlk, sizeof(ExtensionBlock));
 	return 0;
 }
 
@@ -757,6 +789,11 @@ static int	determineOccurrenceNbr(Lyst eidReferences)
 	unsigned int	schemeOffset;
 	unsigned int	sspOffset;
 
+	if (eidReferences == NULL)
+	{
+		return 0;	/*	No eidReferences, so no number.	*/
+	}
+
 	/*	Occurrence number is encoded in an EID reference for
 	 *	which SSP offset is zero; scheme offset of this
 	 *	EID reference is the occurrence number.			*/
@@ -816,7 +853,19 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 
 	memset((char *) blk, 0, sizeof(AcqExtBlock));
 	blk->type = blkType;
-	blk->occurrence = determineOccurrenceNbr(*eidReferences);
+#ifdef ORIGINAL_BSP
+	if (blkType == BSP_BAB_TYPE)
+#else
+	if (blkType == EXTENSION_TYPE_BAB)
+#endif
+	{
+		blk->occurrence = work->currentExtBlocksList;
+	}
+	else
+	{
+		blk->occurrence = determineOccurrenceNbr(*eidReferences);
+	}
+
 	blk->blkProcFlags = blkProcFlags;
 	blk->eidReferences = *eidReferences;
 	*eidReferences = NULL;

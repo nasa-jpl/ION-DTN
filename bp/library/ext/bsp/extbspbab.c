@@ -291,9 +291,10 @@ int bsp_babOffer(ExtensionBlock *blk, Bundle *bundle)
  *               For a BAB, this implies that the security result encoded in
  *               this block is the correct hash for the bundle.
  *
- * \retval int 0 - The block check was inconclusive
- *             1 - The block check failed.
- *             2 - The block check succeeed.
+ * \retval int 0 - The block is corrupt.
+ *             1 - The block check was inconclusive.
+ *             2 - The block check failed.
+ *             3 - The block check succeeed.
  *            -1 - There was a system error.
  *
  * \param[in]  blk  The acquisition block being checked.
@@ -333,7 +334,7 @@ static int	bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
       BAB_DEBUG_INFO("i Authenticity asserted. Accept on faith.", NULL);
       discardExtensionBlock(blk);
       BAB_DEBUG_PROC("- bsp_babPostCheck --> %d", 0);
-      return 0;    /*   Authenticity asserted; bail.   */
+      return 1;    /*   Authenticity asserted; bail.   */
    }
 
    /* Grab ASB and collab block. */
@@ -346,14 +347,14 @@ static int	bsp_babPostCheck(AcqExtBlock *blk, AcqWorkArea *wk)
                   asb->correlator);
       discardExtensionBlock(blk);
       BAB_DEBUG_PROC("- bsp_babPostCheck --> %d", 0);
-      return 0;		/*	No valid pre-payload BAB: ignore.	*/
+      return 1;		/*	No valid pre-payload BAB: ignore.	*/
    }
    collabBlk = (BspBabCollaborationBlock *) lyst_data(collabBlkAddr);
 
    getBspItem(BSP_CSPARM_INT_SIG, asb->resultData, asb->resultLen, &digest,
              &digestLen);
 
-   retval = 1;
+   retval = 2;
    /* The post-payload BAB block *must* have a security result. */
    if((asb->cipherFlags & BSP_ASB_RES) == 0)
    {
@@ -383,12 +384,12 @@ result len %lu data %x", asb->resultLen, (unsigned long) asb->resultData);
       cmpResult = memcmp(collabBlk->expectedResult, digest, digestLen);
       if(cmpResult == 0)
       {
-         retval = 2;
+         retval = 3;
       }
       else
       {
          BAB_DEBUG_ERR("x bsp_babPostCheck: memcmp failed: %d", cmpResult);
-         retval = 1;
+         retval = 2;
       }
    }
 
@@ -818,8 +819,10 @@ int	bsp_babProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,
 {
 	if (blk->occurrence == 1)
 	{
-		return bsp_babPostProcessOnTransmit(blk, bundle ctxt);
+		return bsp_babPostProcessOnTransmit(blk, bundle, ctxt);
 	}
+
+	return 0;
 }
 
 /******************************************************************************
@@ -1034,7 +1037,7 @@ int bsp_babCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 		return bsp_babPostCheck(blk, wk);
 	}
 
-	returne bsp_babPreCheck(blk, wk);
+	return bsp_babPreCheck(blk, wk);
 }
 
 /******************************************************************************
@@ -1205,10 +1208,10 @@ int bsp_babProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 {
 	if (blk->occurrence == 1)
 	{
-		return bsp_babPostProcessOnDequeue(blk, bundle parm);
+		return bsp_babPostProcessOnDequeue(blk, bundle, parm);
 	}
 
-	return bsp_bab_PreProcessOnDequeue(blk, bundle, parm);
+	return bsp_babPreProcessOnDequeue(blk, bundle, parm);
 }
 
 /******************************************************************************

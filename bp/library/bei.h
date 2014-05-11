@@ -221,9 +221,6 @@ extern Object	findExtensionBlock(Bundle *bundle, unsigned int type,
 			unsigned char tag1, unsigned char tag2,
 			unsigned char tag3);
 
-extern int	insertExtensionBlock(ExtensionSpec *spec,
-			ExtensionBlock *newBlk, Object blkAddr,
-			Bundle *bundle, unsigned char listIdx);
 extern int	patchExtensionBlocks(Bundle *bundle);
 extern int	processExtensionBlocks(Bundle *bundle, int fnIdx,
 			void *context);

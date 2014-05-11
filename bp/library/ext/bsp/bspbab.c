@@ -432,7 +432,7 @@ static int	babCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	if (cs == NULL)
 	{
 		discardExtensionBlock(blk);
-		return 0;
+		return 1;
 	}
 
 	if (blk->occurrence == 1) /*	Not inital BAB for the bundle.	*/
@@ -502,9 +502,10 @@ in the bundle.  Discarding this one.");
  * 		 BAB, the transmitted security result is compared with
  * 		 the computed security result from the first BAB.
  *
- * \retval int 0 - The block check was inconclusive.
- *             1 - The block check failed: inauthentic.
- *             2 - The block check succeeded: authentic.
+ * \retval int 0 - The block is corrupt.
+ *             1 - The block check was inconclusive.
+ *             2 - The block check failed: inauthentic.
+ *             3 - The block check succeeded: authentic.
  *            -1 - There was a system error.
  *
  * \param[in]  blk  The acquisition block being checked.

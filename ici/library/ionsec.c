@@ -742,7 +742,7 @@ int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 	return key->length;
 }
 
-static int	filterEid(char *outputEid, char *inputEid)
+static int	filterEid(char *outputEid, char *inputEid, int eidIsInRule)
 {
 	int	eidLength = istrlen(inputEid, MAX_SDRSTRING + 1);
 	int	last = eidLength - 1;
@@ -767,7 +767,7 @@ static int	filterEid(char *outputEid, char *inputEid)
 	}
 
 #ifndef ORIGINAL_BSP
-	if (outputEid[last] != '~')
+	if (eidIsInRule && outputEid[last] != '~')
 	{
 		writeMemoNote("[?] Security rule not for entire node, rejected",
 				outputEid);
@@ -916,8 +916,8 @@ int	sec_findBspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
-	if ((filterEid(srcEid, srcEid) == 0)
-	|| (filterEid(destEid, destEid) == 0))
+	if ((filterEid(srcEid, srcEid, 0) == 0)
+	|| (filterEid(destEid, destEid, 0) == 0))
 	{
 		return -1;
 	}
@@ -954,8 +954,8 @@ int	sec_addBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 		return 0;
 	}
 
-	if ((filterEid(srcEid, srcEid) == 0)
-	|| (filterEid(destEid, destEid) == 0))
+	if ((filterEid(srcEid, srcEid, 1) == 0)
+	|| (filterEid(destEid, destEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -1038,8 +1038,8 @@ int	sec_updateBspBabRule(char *srcEid, char *destEid, char *ciphersuiteName,
 		return 0;
 	}
 
-	if ((filterEid(srcEid, srcEid) == 0)
-	|| (filterEid(destEid, destEid) == 0))
+	if ((filterEid(srcEid, srcEid, 1) == 0)
+	|| (filterEid(destEid, destEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -1076,8 +1076,8 @@ int	sec_removeBspBabRule(char *srcEid, char *destEid)
 
 	CHKERR(srcEid);
 	CHKERR(destEid);
-	if ((filterEid(srcEid, srcEid) == 0)
-	|| (filterEid(destEid, destEid) == 0))
+	if ((filterEid(srcEid, srcEid, 1) == 0)
+	|| (filterEid(destEid, destEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -1189,8 +1189,8 @@ int	sec_findBspPibRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr,
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
-	if ((filterEid(secSrcEid, secSrcEid) == 0)
-	|| (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid, 0) == 0)
+	|| (filterEid(secDestEid, secDestEid, 0) == 0))
 	{
 		return -1;
 	}
@@ -1225,8 +1225,8 @@ int	sec_addBspPibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 		return 0;
 	}
 
-	if ((filterEid(secSrcEid, secSrcEid) == 0)
-	|| (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+	|| (filterEid(secDestEid, secDestEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -1293,8 +1293,8 @@ int	sec_updateBspPibRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	if ((filterEid(secSrcEid, secSrcEid) == 0)
-	|| (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+	|| (filterEid(secDestEid, secDestEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -1333,8 +1333,8 @@ int	sec_removeBspPibRule(char *secSrcEid, char *secDestEid,
 
 	CHKERR(secSrcEid);
 	CHKERR(secDestEid);
-	if ((filterEid(secSrcEid, secSrcEid) == 0)
-	|| (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+	|| (filterEid(secDestEid, secDestEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -1432,8 +1432,8 @@ int     sec_findBspPcbRule(char *secSrcEid, char *secDestEid, int BlockTypeNbr,
         CHKERR(ruleAddr);
         CHKERR(eltp);
         *eltp = 0;
-        if ((filterEid(secSrcEid, secSrcEid) == 0)
-        || (filterEid(secDestEid, secDestEid) == 0))
+        if ((filterEid(secSrcEid, secSrcEid, 0) == 0)
+        || (filterEid(secDestEid, secDestEid, 0) == 0))
         {
                 return -1;
         }
@@ -1468,8 +1468,8 @@ int     sec_addBspPcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
                 return 0;
         }
 
-        if ((filterEid(secSrcEid, secSrcEid) == 0)
-        || (filterEid(secDestEid, secDestEid) == 0))
+        if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+        || (filterEid(secDestEid, secDestEid, 1) == 0))
         {
                 return 0;
         }
@@ -1536,8 +1536,8 @@ int     sec_updateBspPcbRule(char *secSrcEid, char *secDestEid,
                 return 0;
         }
 
-        if ((filterEid(secSrcEid, secSrcEid) == 0)
-        || (filterEid(secDestEid, secDestEid) == 0))
+        if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+        || (filterEid(secDestEid, secDestEid, 1) == 0))
         {
                 return 0;
         }
@@ -1576,8 +1576,8 @@ int     sec_removeBspPcbRule(char *secSrcEid, char *secDestEid,
 
         CHKERR(secSrcEid);
         CHKERR(secDestEid);
-        if ((filterEid(secSrcEid, secSrcEid) == 0)
-        || (filterEid(secDestEid, secDestEid) == 0))
+        if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+        || (filterEid(secDestEid, secDestEid, 1) == 0))
         {
                 return 0;
         }
@@ -1666,8 +1666,8 @@ int	sec_findBspBabRule(char *senderEid, char *receiverEid, Object *ruleAddr,
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
-	if ((filterEid(senderEid, senderEid) == 0)
-	|| (filterEid(receiverEid, receiverEid) == 0))
+	if ((filterEid(senderEid, senderEid, 0) == 0)
+	|| (filterEid(receiverEid, receiverEid, 0) == 0))
 	{
 		return -1;
 	}
@@ -1703,8 +1703,8 @@ int	sec_addBspBabRule(char *senderEid, char *receiverEid,
 		return 0;
 	}
 
-	if ((filterEid(senderEid, senderEid) == 0)
-	|| (filterEid(receiverEid, receiverEid) == 0))
+	if ((filterEid(senderEid, senderEid, 1) == 0)
+	|| (filterEid(receiverEid, receiverEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -1772,8 +1772,8 @@ int	sec_updateBspBabRule(char *senderEid, char *receiverEid,
 		return 0;
 	}
 
-	if ((filterEid(senderEid, senderEid) == 0)
-	|| (filterEid(receiverEid, receiverEid) == 0))
+	if ((filterEid(senderEid, senderEid, 1) == 0)
+	|| (filterEid(receiverEid, receiverEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -1809,8 +1809,8 @@ int	sec_removeBspBabRule(char *senderEid, char *receiverEid)
 
 	CHKERR(senderEid);
 	CHKERR(receiverEid);
-	if ((filterEid(senderEid, senderEid) == 0)
-	|| (filterEid(receiverEid, receiverEid) == 0))
+	if ((filterEid(senderEid, senderEid, 1) == 0)
+	|| (filterEid(receiverEid, receiverEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -1906,8 +1906,8 @@ int	sec_findBspBibRule(char *secSrcEid, char *secDestEid, int blkType,
 	CHKERR(ruleAddr);
 	CHKERR(eltp);
 	*eltp = 0;
-	if ((filterEid(secSrcEid, secSrcEid) == 0)
-	|| (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid, 0) == 0)
+	|| (filterEid(secDestEid, secDestEid, 0) == 0))
 	{
 		return -1;
 	}
@@ -1942,8 +1942,8 @@ int	sec_addBspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 		return 0;
 	}
 
-	if ((filterEid(secSrcEid, secSrcEid) == 0)
-	|| (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+	|| (filterEid(secDestEid, secDestEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -2008,8 +2008,8 @@ int	sec_updateBspBibRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	if ((filterEid(secSrcEid, secSrcEid) == 0)
-	|| (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+	|| (filterEid(secDestEid, secDestEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -2047,8 +2047,8 @@ int	sec_removeBspBibRule(char *secSrcEid, char *secDestEid,
 
 	CHKERR(secSrcEid);
 	CHKERR(secDestEid);
-	if ((filterEid(secSrcEid, secSrcEid) == 0)
-	|| (filterEid(secDestEid, secDestEid) == 0))
+	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+	|| (filterEid(secDestEid, secDestEid, 1) == 0))
 	{
 		return 0;
 	}
@@ -2145,8 +2145,8 @@ int     sec_findBspBcbRule(char *secSrcEid, char *secDestEid, int blkType,
         CHKERR(ruleAddr);
         CHKERR(eltp);
         *eltp = 0;
-        if ((filterEid(secSrcEid, secSrcEid) == 0)
-        || (filterEid(secDestEid, secDestEid) == 0))
+        if ((filterEid(secSrcEid, secSrcEid, 0) == 0)
+        || (filterEid(secDestEid, secDestEid, 0) == 0))
         {
                 return -1;
         }
@@ -2181,8 +2181,8 @@ int     sec_addBspBcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
                 return 0;
         }
 
-        if ((filterEid(secSrcEid, secSrcEid) == 0)
-        || (filterEid(secDestEid, secDestEid) == 0))
+        if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+        || (filterEid(secDestEid, secDestEid, 1) == 0))
         {
                 return 0;
         }
@@ -2249,8 +2249,8 @@ int     sec_updateBspBcbRule(char *secSrcEid, char *secDestEid,
                 return 0;
         }
 
-        if ((filterEid(secSrcEid, secSrcEid) == 0)
-        || (filterEid(secDestEid, secDestEid) == 0))
+        if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+        || (filterEid(secDestEid, secDestEid, 1) == 0))
         {
                 return 0;
         }
@@ -2289,8 +2289,8 @@ int     sec_removeBspBcbRule(char *secSrcEid, char *secDestEid,
 
         CHKERR(secSrcEid);
         CHKERR(secDestEid);
-        if ((filterEid(secSrcEid, secSrcEid) == 0)
-        || (filterEid(secDestEid, secDestEid) == 0))
+        if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
+        || (filterEid(secDestEid, secDestEid, 1) == 0))
         {
                 return 0;
         }
