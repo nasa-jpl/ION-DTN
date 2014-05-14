@@ -73,6 +73,7 @@ static enum {
 	FLAGS_DEFAULT    = 0,
 	OUTPUT_JSON      = 1 << 0,
 	OUTPUT_TRACE_MSG = 1 << 1,
+	LIST_OUTDUCTS    = 1 << 2,
 } flags = OUTPUT_JSON | OUTPUT_TRACE_MSG;
 
 static uvast destNode;
@@ -698,16 +699,37 @@ static void run_cgrfetch(void)
 	lyst_destroy(routes);
 }
 
+static void listOutducts(void) {
+	PsmPartition bpwm = getIonwm();
+	PsmAddress elt;
+	VOutduct *vduct;
+
+	for (elt = sm_list_first(bpwm, getBpVdb()->outducts); elt;
+	     elt = sm_list_next(bpwm, elt))
+	{
+		vduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		printf("%s:%s\n", vduct->protocolName, vduct->ductName);
+	}
+}
+
 static void usage(const char *name)
 {
 	fprintf(stderr,
-		"Usage: %s DEST-NODE [-q] [-j] [-m] [-t DISPATCH-OFFSET]\n"
+		"Usage: %1$s DEST-NODE [-q] [-j] [-m] [-t DISPATCH-OFFSET]\n"
 		"       [-e EXPIRATION-OFFSET] [-s BUNDLE-SIZE]\n"
 		"       [-o OUTPUT-FILE] [-p OUTDUCT-PROTO]\n"
 		"       [-n OUTDUCT-NAME]\n"
+		"   or: %1$s -l\n"
 		"\n"
-		"Run a CGR simulation from the local node to DEST-NODE. Output\n"
-		"trace messages to stderr (unless -q) and JSON to stdout (unless -j).\n"
+		"In the first case, run a CGR simulation from the local node to\n"
+		"DEST-NODE. Output trace messages to stderr (unless -q) and JSON\n"
+		"to stdout (unless -j).\n"
+		"In the second case, list all available outducts.\n"
+		,
+		name
+	);
+
+	fprintf(stderr,
 		"\n"
 		"Options:\n"
 		"  -q                    disable trace message output\n"
@@ -727,7 +749,6 @@ static void usage(const char *name)
 		"  -n OUTDUCT-NAME       use OUTDUCT-NAME as the outduct name\n"
 		"                        (default: %s)\n"
 		,
-		name,
 		(unsigned int)(dispatchOffset),
 		(unsigned int)(expirationOffset),
 		bundleSize,
@@ -754,18 +775,6 @@ int	main(int argc, char **argv)
 	atexit(teardown);
 
 #if defined (VXWORKS) || defined (RTEMS)
-	if (!a2)
-	{
-		DIES("a destination node is required");
-	}
-
-	destNode = strtoul((char *)(a2), &end, 10);
-
-	if (end == (char *)(a2))
-	{
-		DIES("invalid destination node");
-	}
-
 	if (a3)
 	{
 		dispatchOffset = strtoul((char *)(a3), &end, 10);
@@ -810,10 +819,6 @@ int	main(int argc, char **argv)
 			DIEF("unable to open '%s'", a7);
 		}
 	}
-	else
-	{
-		outputFile = stdout;
-	}
 
 	if (a8)
 	{
@@ -830,7 +835,7 @@ int	main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((opt = getopt(argc, argv, ":hqjt:e:s:mo:p:n:")) >= 0)
+	while ((opt = getopt(argc, argv, ":hqjlt:e:s:mo:p:n:")) >= 0)
 	{
 		switch (opt)
 		{
@@ -840,6 +845,10 @@ int	main(int argc, char **argv)
 
 		case 'j':
 			flags &= ~OUTPUT_JSON;
+		break;
+
+		case 'l':
+			flags |= LIST_OUTDUCTS;
 		break;
 
 		case 't':
@@ -904,7 +913,32 @@ int	main(int argc, char **argv)
 		break;
 		}
 	}
+#endif
 
+	if (bp_attach() < 0)
+	{
+		DIES("unable to attach to bp");
+	}
+
+	if (flags & LIST_OUTDUCTS)
+	{
+		listOutducts();
+		exit(EXIT_SUCCESS);
+	}
+
+#if defined (VXWORKS) || defined (RTEMS)
+	if (!a2)
+	{
+		DIES("a destination node is required");
+	}
+
+	destNode = strtoul((char *)(a2), &end, 10);
+
+	if (end == (char *)(a2))
+	{
+		DIES("invalid destination node");
+	}
+#else
 	args = &argv[optind];
 
 	if (!args[0])
@@ -918,16 +952,11 @@ int	main(int argc, char **argv)
 	{
 		DIEF("invalid destination node '%s'", args[0]);
 	}
+#endif
 
 	if (!outputFile)
 	{
 		outputFile = stdout;
-	}
-#endif
-
-	if (bp_attach() < 0)
-	{
-		DIES("unable to attach to bp");
 	}
 
 	findOutduct(outductProto, outductName, &vduct, &vductElt);
