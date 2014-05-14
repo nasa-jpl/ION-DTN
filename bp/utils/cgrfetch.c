@@ -699,6 +699,30 @@ static void run_cgrfetch(void)
 	lyst_destroy(routes);
 }
 
+// Try to parse the given string into the form PROTO:NAME and assign PROTO to outductProto
+// and NAME to outductName. Return 1 on success and 0 otherwise.
+static int parseOutduct(char *str)
+{
+	char *sep = strchr(str, ':');
+
+	if (!sep || sep == str)
+		return 0;
+
+	outductProto = str;
+	outductName = sep + 1;
+
+	// Check this before splitting the string so the original string can be
+	// used in the error message.
+	if (!outductName[0])
+	{
+		return 0;
+	}
+
+	*sep = '\0';
+
+	return 1;
+}
+
 static void listOutducts(void) {
 	PsmPartition bpwm = getIonwm();
 	PsmAddress elt;
@@ -744,10 +768,8 @@ static void usage(const char *name)
 		"  -s BUNDLE-SIZE        set the bundle payload size to BUNDLE-\n"
 		"                        SIZE bytes (default: %u)\n"
 		"  -o OUTPUT-FILE        send JSON to OUTPUT-FILE (default: stdout)\n"
-		"  -p OUTDUCT-PROTO      use OUTDUCT-PROTO as the outduct proto-\n"
-		"                        col (default: %s)\n"
-		"  -n OUTDUCT-NAME       use OUTDUCT-NAME as the outduct name\n"
-		"                        (default: %s)\n"
+		"  -d PROTO:NAME         use the outduct with protocol PROTO and\n"
+		"                        name NAME (default: %s:%s)\n"
 		,
 		(unsigned int)(dispatchOffset),
 		(unsigned int)(expirationOffset),
@@ -822,12 +844,10 @@ int	main(int argc, char **argv)
 
 	if (a8)
 	{
-		outductProto = (char *)(a8);
-	}
-
-	if (a9)
-	{
-		outductName = (char *)(a9);
+		if (!parseOutduct((char *)(a8)))
+		{
+			DIEF("invalid outduct '%s'", a8);
+		}
 	}
 #else
 	int opt;
@@ -835,7 +855,7 @@ int	main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((opt = getopt(argc, argv, ":hqjlt:e:s:mo:p:n:")) >= 0)
+	while ((opt = getopt(argc, argv, ":hqjlt:e:s:mo:d:")) >= 0)
 	{
 		switch (opt)
 		{
@@ -891,12 +911,11 @@ int	main(int argc, char **argv)
 			}
 		break;
 
-		case 'p':
-			outductProto = optarg;
-		break;
-
-		case 'n':
-			outductName = optarg;
+		case 'd':
+			if (!parseOutduct(optarg))
+			{
+				DIEF("invalid outduct '%s'", optarg);
+			}
 		break;
 
 		case 'h':
@@ -963,8 +982,7 @@ int	main(int argc, char **argv)
 
 	if (!vductElt)
 	{
-		DIEF("invalid outduct %s:%s", outductProto,
-			outductName);
+		DIEF("unable to find outduct %s:%s", outductProto, outductName);
 	}
 
 	run_cgrfetch();
