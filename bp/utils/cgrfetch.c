@@ -859,6 +859,11 @@ int	main(int argc, char **argv)
 	{
 		switch (opt)
 		{
+		case 'h':
+			usage(argv[0]);
+			exit(EXIT_SUCCESS);
+		break;
+
 		case 'q':
 			flags &= ~OUTPUT_TRACE_MSG;
 		break;
@@ -916,11 +921,6 @@ int	main(int argc, char **argv)
 			{
 				DIEF("invalid outduct '%s'", optarg);
 			}
-		break;
-
-		case 'h':
-			usage(argv[0]);
-			exit(EXIT_SUCCESS);
 		break;
 
 		case ':':
