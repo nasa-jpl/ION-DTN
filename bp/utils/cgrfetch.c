@@ -824,7 +824,7 @@ int	main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((opt = getopt(argc, argv, "hqjt:e:s:mo:p:n:")) >= 0)
+	while ((opt = getopt(argc, argv, ":hqjt:e:s:mo:p:n:")) >= 0)
 	{
 		switch (opt)
 		{
