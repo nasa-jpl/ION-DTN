@@ -934,7 +934,7 @@ int	main(int argc, char **argv)
 
 	if (!vductElt)
 	{
-		DIEF("invalid outduct proto:%s name:%s", outductProto,
+		DIEF("invalid outduct %s:%s", outductProto,
 			outductName);
 	}
 
