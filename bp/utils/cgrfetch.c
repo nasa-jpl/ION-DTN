@@ -70,10 +70,10 @@ typedef struct {
 
 // Command line arguments
 static enum {
-	OUTPUT_NOTHING   = 0,
+	FLAGS_DEFAULT    = 0,
 	OUTPUT_JSON      = 1 << 0,
 	OUTPUT_TRACE_MSG = 1 << 1,
-} outputs = OUTPUT_JSON | OUTPUT_TRACE_MSG;
+} flags = OUTPUT_JSON | OUTPUT_TRACE_MSG;
 
 static uvast destNode;
 static time_t dispatchOffset = 0;
@@ -667,7 +667,7 @@ static void run_cgrfetch(void)
 
 	CgrTraceFn traceFn = traceFnDefault;
 
-	if (!(outputs & OUTPUT_TRACE_MSG))
+	if (!(flags & OUTPUT_TRACE_MSG))
 	{
 		traceFn = traceFnQuiet;
 	}
@@ -690,7 +690,7 @@ static void run_cgrfetch(void)
 		DIES("unable to simulate cgr");
 	}
 
-	if (outputs & OUTPUT_JSON)
+	if (flags & OUTPUT_JSON)
 	{
 		output_json(routes, dispatchTime, expirationTime);
 	}
@@ -829,11 +829,11 @@ int	main(int argc, char **argv)
 		switch (opt)
 		{
 		case 'q':
-			outputs &= ~OUTPUT_TRACE_MSG;
+			flags &= ~OUTPUT_TRACE_MSG;
 		break;
 
 		case 'j':
-			outputs &= ~OUTPUT_JSON;
+			flags &= ~OUTPUT_JSON;
 		break;
 
 		case 't':
