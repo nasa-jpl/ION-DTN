@@ -373,6 +373,17 @@ static void	ionRedirectMemos()
 }
 #endif
 
+#if defined (FSWWATCHER)
+#include "fswwatcher.c"
+#elif defined (GDSWATCHER)
+#include "gdswatcher.c"
+#else
+static void	ionRedirectWatchCharacters()
+{
+	setWatcher(NULL);		/*	Defaults to stdout.	*/
+}
+#endif
+
 static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 {
 	char		*nodeListDir;
@@ -931,6 +942,7 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 
 	zco_register_callback(notify);
 	ionRedirectMemos();
+	ionRedirectWatchCharacters();
 #ifdef mingw
 	DWORD	threadId;
 	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm, NULL, 0,
@@ -1141,6 +1153,7 @@ int	ionAttach()
 
 	zco_register_callback(notify);
 	ionRedirectMemos();
+	ionRedirectWatchCharacters();
 #ifdef mingw
 	DWORD	threadId;
 	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm, NULL, 0,

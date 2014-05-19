@@ -181,8 +181,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 
 		if (vdb->watching & WATCH_f)
 		{
-			putchar('f');
-			fflush(stdout);
+			iwatch('f');
 		}
 
 		if (enqueueNotice(vdb->clients + session.clientSvcId,

@@ -3090,8 +3090,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 	if (ltpvdb->watching & WATCH_g)
 	{
-		putchar('g');
-		fflush(stdout);
+		iwatch('g');
 	}
 
 	return segmentLength;
@@ -3218,8 +3217,7 @@ static int	cancelSessionBySender(ExportSession *session,
 
 	if (ltpvdb->watching & WATCH_CS)
 	{
-		putchar('{');
-		fflush(stdout);
+		iwatch('{');
 	}
 
 	sdr_stage(ltpSdr, (char *) &db, dbobj, sizeof(LtpDB));
@@ -3338,8 +3336,7 @@ static int	cancelSessionByReceiver(ImportSession *session,
 
 	if (ltpvdb->watching & WATCH_CR)
 	{
-		putchar('[');
-		fflush(stdout);
+		iwatch('[');
 	}
 
 	stopImportSession(session);
@@ -4305,8 +4302,7 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 
 	if (ltpvdb->watching & WATCH_t)
 	{
-		putchar('t');
-		fflush(stdout);
+		iwatch('t');
 	}
 
 	return 0;
@@ -5225,8 +5221,7 @@ putErrmsg(buf, itoa(session->sessionNbr));
 	extent->length -= length;
 	if ((_ltpvdb(NULL))->watching & WATCH_e)
 	{
-		putchar('e');
-		fflush(stdout);
+		iwatch('e');
 	}
 
 	ltpSpanTally(vspan, OUT_SEG_QUEUED, length);
@@ -5695,8 +5690,7 @@ putErrmsg("Discarding report.", NULL);
 
 		if (ltpvdb->watching & WATCH_h)
 		{
-			putchar('h');
-			fflush(stdout);
+			iwatch('h');
 		}
 
 		return 1;	/*	Complete, successful export.	*/
@@ -5848,8 +5842,7 @@ putErrmsg(buf, itoa(sessionBuf.sessionNbr));
 
 	if (ltpvdb->watching & WATCH_nak)
 	{
-		putchar('@');
-		fflush(stdout);
+		iwatch('@');
 	}
 
 	return 1;	/*	Report handled successfully.		*/
@@ -6094,8 +6087,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 
 		if (ltpvdb->watching & WATCH_handleCS)
 		{
-			putchar('}');
-			fflush(stdout);
+			iwatch('}');
 		}
 
 		stopImportSession(session);
@@ -6285,8 +6277,7 @@ putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 		sessionBuf.reasonCode = **cursor;
 		if (ltpvdb->watching & WATCH_handleCR)
 		{
-			putchar(']');
-			fflush(stdout);
+			iwatch(']');
 		}
 
 		stopExportSession(&sessionBuf);
@@ -6522,8 +6513,7 @@ int	ltpHandleInboundSegment(char *buf, int length)
 
 	if ((_ltpvdb(NULL))->watching & WATCH_s)
 	{
-		putchar('s');
-		fflush(stdout);
+		iwatch('s');
 	}
 
 	sdr_begin_xn((sdr = getIonsdr()));
@@ -7091,8 +7081,7 @@ putErrmsg("Cancel by sender.", itoa(sessionNbr));
 		signalLso(span->engineId);
 		if ((_ltpvdb(NULL))->watching & WATCH_resendCP)
 		{
-			putchar('=');
-			fflush(stdout);
+			iwatch('=');
 		}
 	}
 
@@ -7225,8 +7214,7 @@ putErrmsg("Cancel by receiver.", itoa(sessionNbr));
 		signalLso(span->engineId);
 		if ((_ltpvdb(NULL))->watching & WATCH_resendRS)
 		{
-			putchar('+');
-			fflush(stdout);
+			iwatch('+');
 		}
 	}
 
