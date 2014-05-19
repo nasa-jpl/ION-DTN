@@ -142,7 +142,7 @@ static int	wipeList(char *fileName, int lineNbr, PsmPartition partition,
 		next = eltBuffer->next;
 		if (deleteFn)
 		{
-			deleteFn(partition, eltBuffer->data, arg);
+			deleteFn(partition, elt, arg);
 		}
 
 		/* clear in case user mistakenly accesses later... */
@@ -570,7 +570,7 @@ int	Sm_list_delete(char *fileName, int lineNbr, PsmPartition partition,
 	prev = eltBuffer->prev;
 	if (deleteFn)
 	{
-		deleteFn(partition, eltBuffer->data, arg);
+		deleteFn(partition, elt, arg);
 	}
 
 	/* clear in case user accesses later... */
