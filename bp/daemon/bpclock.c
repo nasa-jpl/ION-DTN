@@ -296,9 +296,10 @@ static void	applyRateControl(Sdr sdr)
 			continue;	/*	Not rate-controlled.	*/
 		}
 
-		if (throttle->capacity <= throttle->nominalRate)
+		throttle->capacity += throttle->nominalRate;
+		if (throttle->capacity > throttle->nominalRate)
 		{
-			throttle->capacity += throttle->nominalRate;
+			throttle->capacity = throttle->nominalRate;
 		}
 
 		if (throttle->capacity > 0)
@@ -319,9 +320,10 @@ static void	applyRateControl(Sdr sdr)
 			continue;	/*	Not rate-controlled.	*/
 		}
 
-		if (throttle->capacity <= throttle->nominalRate)
+		throttle->capacity += throttle->nominalRate;
+		if (throttle->capacity > throttle->nominalRate)
 		{
-			throttle->capacity += throttle->nominalRate;
+			throttle->capacity = throttle->nominalRate;
 		}
 
 		if (throttle->capacity > 0)
