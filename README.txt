@@ -37,6 +37,11 @@ just cd into ion-open-source and enter two commands:
 	./configure
 	./make
 
+NOTE: if you want to set overriding compile-time switches for a build, 
+the place to do this is in the ./configure command.  For details,
+
+	./configure -h
+
 To build ION for Android, cd into ion-open-source/arch-android and
 see the instructions in the README.bionic text file.
 
