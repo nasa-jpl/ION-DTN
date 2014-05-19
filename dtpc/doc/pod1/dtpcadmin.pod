@@ -27,7 +27,7 @@ documented in dtpcrc(5).
 
 =over 4
 
-=item 0
+=item C<0>
 
 Successful completion of DTPC administration.
 

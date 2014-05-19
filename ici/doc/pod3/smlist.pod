@@ -160,19 +160,19 @@ A user normally creates an element and adds it to a list by doing the following:
 
 =over 4
 
-=item 1 
+=item C<1>
 
 obtaining a shared memory block to contain the element's data;
 
-=item 2 
+=item C<2>
 
 converting the shared memory block's PsmAddress to a character pointer;
 
-=item 3 
+=item C<3>
 
 using that pointer to write the data into the shared memory block;
 
-=item 4 
+=item C<4>
 
 calling one of the I<sm_list_insert> functions to create the element 
 structure (which will include the shared memory block's PsmAddress) 
