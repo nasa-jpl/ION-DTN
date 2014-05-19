@@ -577,7 +577,7 @@ ltpPODM5 = pod2man -s 5 -c "LTP configuration files"
 
 ltpmandir = $(top_builddir)/ltp/doc
 
-ltpcflags = -I$(srcdir)/ltp/library 
+ltpcflags = -I$(srcdir)/ltp/library -I$(srcdir)/ltp/library/ext
 
 ltpbin = \
 	ltpadmin \
@@ -652,6 +652,7 @@ $(top_builddir)/ltp/doc/%.5: ltp/doc/pod5/%.pod
 libltp_la_SOURCES = \
 	ltp/library/libltp.c \
 	ltp/library/libltpP.c \
+	ltp/library/ltpei.c \
 	ltp/sda/libsda.c \
 	ltp/library/libltpnm.c
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
@@ -811,7 +812,7 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
+bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/ici/include/ -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
@@ -961,7 +962,7 @@ bpextra = \
 	bp/library/ext/bsp/extbsppcb.c \
 	bp/library/ext/bsp/extbsppib.h \
 	bp/library/ext/bsp/extbsppib.c \
-	bp/library/crypto/crypto.h 
+	ici/include/crypto.h
 
 # noextensions.c is C code, but it isn't explicitly compiled.
 # instead, the whole file is #included into libbpP.c
@@ -1087,10 +1088,10 @@ libbp_la_SOURCES = \
 
 if CRYPTO
 libbp_la_SOURCES+= \
-	bp/library/crypto/NULL_SUITES/crypto.c
+	ici/crypto/NULL_SUITES/crypto.c
 else
 libbp_la_SOURCES+= \
-	bp/library/crypto/NULL_SUITES/crypto.c
+	ici/crypto/NULL_SUITES/crypto.c
 endif
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libbp_la_LIBADD = libici.la $(CRYPTO_LIBS)

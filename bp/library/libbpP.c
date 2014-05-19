@@ -6128,8 +6128,7 @@ static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
 	return 0;
 }
 
-static int	deliverBundle(Object bundleObj, Bundle *bundle,
-			VEndpoint *vpoint)
+int	deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
 {
 	char	*dictionary;
 	int	result;

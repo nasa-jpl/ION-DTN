@@ -582,6 +582,10 @@ static Object	createGroup(uvast groupNbr, Object nextGroup)
 	Object		addr;
 	Object		elt = 0;	/*	Default.		*/
 
+#if IMCDEBUG
+printf("Creating group (" UVAST_FIELDSPEC ").\n", groupNbr);
+fflush(stdout);
+#endif
 	group.groupNbr = groupNbr;
 	group.isMember = 0;
 	group.timestamp.seconds = 0;
@@ -651,6 +655,7 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 #if IMCDEBUG
 printf("Handling type-%d petition from " UVAST_FIELDSPEC " at \
 node " UVAST_FIELDSPEC ".\n", isMember, metaEid.nodeNbr, getOwnNodeNbr());
+fflush(stdout);
 #endif
 	CHKERR(sdr_begin_xn(sdr));
 	if (locateRelative(metaEid.nodeNbr, &nextRelative) == 0)
@@ -668,6 +673,7 @@ node " UVAST_FIELDSPEC ".\n", isMember, metaEid.nodeNbr, getOwnNodeNbr());
 		{
 #if IMCDEBUG
 puts("Ignoring cancellation of membership in nonexistent group.");
+fflush(stdout);
 #endif
 			sdr_exit_xn(sdr);
 			return 0;
@@ -688,6 +694,7 @@ puts("Ignoring cancellation of membership in nonexistent group.");
 	{
 #if IMCDEBUG
 puts("Silently ignoring non-current petition.");
+fflush(stdout);
 #endif
 		return sdr_end_xn(sdr);	/*	Not a current petition.	*/
 	}
@@ -710,6 +717,7 @@ puts("Silently ignoring non-current petition.");
 			{
 #if IMCDEBUG
 puts("Ignoring assertion.");
+fflush(stdout);
 #endif
 				/*	Nothing to do: current member.	*/
 
@@ -721,7 +729,8 @@ puts("Ignoring assertion.");
 
 		/*	Must add new member of group at this point.	*/
 #if IMCDEBUG
-printf("Adding member " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr);
+printf("Adding member " UVAST_FIELDSPEC " to group " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr, groupNbr);
+fflush(stdout);
 #endif
 		addr = createNodeId(sdr, metaEid.nodeNbr);
 		if (elt)
@@ -771,12 +780,14 @@ printf("Adding member " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr);
 		/*	Nothing to do: not a current member.		*/
 #if IMCDEBUG
 puts("Ignoring cancellation by non-member.");
+fflush(stdout);
 #endif
 		return sdr_end_xn(sdr);
 	}
 
 #if IMCDEBUG
 printf("Deleting member " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr);
+fflush(stdout);
 #endif
 	sdr_list_delete(sdr, elt, NULL, NULL);
 
@@ -789,6 +800,7 @@ printf("Deleting member " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr);
 #if IMCDEBUG
 printf("Canceling own membership in group (" UVAST_FIELDSPEC ").\n",
 getOwnNodeNbr());
+fflush(stdout);
 #endif
 		if (forwardPetition(group, 0, getOwnNodeNbr()) < 0)
 		{
@@ -798,6 +810,7 @@ getOwnNodeNbr());
 		{
 #if IMCDEBUG
 puts("Destroying group.");
+fflush(stdout);
 #endif
 			destroyGroup(groupElt);
 		}
@@ -825,9 +838,6 @@ int	imcJoin(uvast groupNbr)
 	groupElt = locateGroup(groupNbr, &nextGroup);
 	if (groupElt == 0)
 	{
-#if IMCDEBUG
-printf("Creating group (" UVAST_FIELDSPEC ").\n", getOwnNodeNbr());
-#endif
 		groupElt = createGroup(groupNbr, nextGroup);
 		if (groupElt == 0)
 		{
@@ -845,8 +855,8 @@ printf("Creating group (" UVAST_FIELDSPEC ").\n", getOwnNodeNbr());
 	 *	may be redundant.)					*/
 
 #if IMCDEBUG
-printf("Asserting own membership in group (" UVAST_FIELDSPEC ").\n",
-getOwnNodeNbr());
+printf("Node " UVAST_FIELDSPEC " asserting own membership in group " UVAST_FIELDSPEC ".\n", getOwnNodeNbr(), groupNbr);
+fflush(stdout);
 #endif
 	if (forwardPetition(&group, 1, ownNodeNbr) < 0)
 	{
@@ -893,6 +903,7 @@ int	imcLeave(uvast groupNbr)
 #if IMCDEBUG
 printf("Cancelling own membership in group (" UVAST_FIELDSPEC ").\n",
 getOwnNodeNbr());
+fflush(stdout);
 #endif
 		if (forwardPetition(&group, 0, ownNodeNbr) < 0)
 		{
@@ -902,6 +913,7 @@ getOwnNodeNbr());
 		{
 #if IMCDEBUG
 printf("Destroying group (" UVAST_FIELDSPEC ").\n", getOwnNodeNbr());
+fflush(stdout);
 #endif
 			destroyGroup(groupElt);
 		}

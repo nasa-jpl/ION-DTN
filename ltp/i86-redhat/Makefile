@@ -9,7 +9,7 @@ TEST = ../test
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
-CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
+CC = gcc $(OPT) -I$(API) -I$(API)/ext -I$(API)/ext/auth -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
 
@@ -95,12 +95,12 @@ dccpplso:	dccplso.o libltpP.so
 
 #	-	-	Libraries	-	-	-	-	-
 
-libltpP.so:	libltpP.o
-		$(LD) -o libltpP.so libltpP.o
+libltpP.so:	libltpP.o ltpei.o auth.o
+		$(LD) -o libltpP.so libltpP.o ltpei.o auth.o
 		cp libltpP.so ./lib
 
-libltp.so:	libltp.o
-		$(LD) -o libltp.so libltp.o
+libltp.so:	libltp.o ltpei.o auth.o
+		$(LD) -o libltp.so libltp.o ltpei.o auth.o
 		cp libltp.so ./lib
 
 libltpnm.so:	libltpnm.o $(API)/ltpnm.h
@@ -114,6 +114,9 @@ libsda.so:	libsda.o $(INCL)/sda.h
 #	-	-	Object modules	-	-	-	-	-
 
 %.o:		$(API)/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/auth/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c

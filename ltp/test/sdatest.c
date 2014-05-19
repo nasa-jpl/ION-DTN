@@ -28,7 +28,8 @@ static void	interruptThread()
 	sda_interrupt();
 }
 
-static vast	getLengthOfItem(unsigned char *buffer, vast bufferLength)
+static vast	getLengthOfItem(unsigned int clientId, unsigned char *buffer,
+			vast bufferLength)
 {
 	return 1 + istrlen((char *) buffer, bufferLength);
 }

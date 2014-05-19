@@ -98,7 +98,11 @@ static int	receiveSdaItems(SdaDelimiterFn delimiter, SdaHandlerFn handler,
 
 	zco_start_receiving(zco, &reader);
 	while (1)
-	{
+	{ 
+		/*	Get the first (up to) 2048 bytes of the
+		 *	unprocessed remainder of the LTP service
+		 *	data item.					*/
+
 		bytesReceived = zco_receive_source(sdr, &reader, sizeof buffer,
 				(char *) buffer);
 		switch (bytesReceived)
@@ -111,6 +115,9 @@ static int	receiveSdaItems(SdaDelimiterFn delimiter, SdaHandlerFn handler,
 			return 0;	/*	No more to acquire.	*/
 		}
 
+		/*	Get the client ID of the client data unit at
+		 *	the start of the buffer.			*/
+
 		offset = decodeSdnv(&clientId, buffer);
 		if (offset == 0)
 		{
@@ -118,8 +125,13 @@ static int	receiveSdaItems(SdaDelimiterFn delimiter, SdaHandlerFn handler,
 			return 0;	/*	No more to acquire.	*/
 		}
 
+		/*	Skip over the client ID, then call a user
+		 *	function to get the length of the client data
+		 *	unit.						*/
+
 		bytesHandled += offset;
-		itemLength = delimiter(buffer + offset, bytesReceived - offset);
+		itemLength = delimiter(clientId, buffer + offset,
+				bytesReceived - offset);
 		switch (itemLength)
 		{
 		case -1:
@@ -131,12 +143,18 @@ static int	receiveSdaItems(SdaDelimiterFn delimiter, SdaHandlerFn handler,
 			return 0;	/*	No more to acquire.	*/
 		}
 
+		/*	Clone the client data unit from the LTP
+		 *	service data item.				*/
+
 		itemZco = zco_clone(sdr, zco, bytesHandled, itemLength);
 		if (itemZco == 0)
 		{
 			putErrmsg("Failure extracting SDA item.", NULL);
 			return -1;
 		}
+
+		/*	Call a user function to handle the client
+		 *	data unit.					*/
 
 		if (handler(senderEngineNbr, clientId, itemZco) < 0)
 		{
@@ -147,8 +165,9 @@ static int	receiveSdaItems(SdaDelimiterFn delimiter, SdaHandlerFn handler,
 		zco_destroy(sdr, itemZco);
 		bytesHandled += itemLength;
 
-		/*	To extract next item, skip over the bytes
-		 *	that have already been handled.			*/
+		/*	To extract next item, first skip over all
+		 *	bytes of the LTP service data item that have
+		 *	already been handled.				*/
 
 		zco_start_receiving(zco, &reader);
 		switch (zco_receive_source(sdr, &reader, bytesHandled, NULL))

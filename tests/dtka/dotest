@@ -1,0 +1,230 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 20, 2013
+#
+# Tests security key distribution.  Six nodes (1-6) form a distributed
+# key authority; three additional nodes are subscribers to that key
+# authority.  The network has star topology: all nodes connect directly
+# to node 6 (a key authority), the root of the multicast tree.
+#
+# At startup, all 9 nodes are notionally co-located: they are all started
+# at the same time, and they all compute initial asymmetric key pairs and
+# share their initial public keys by means of a file that is accessible to
+# all.  After that, all of the nodes execute two re-keying cycles.
+# For each re-keying cycle, the subscriber waits 60 seconds and then
+# computes a new key pair with effective time 20 seconds in the future
+# and multicasts its new public key to the key authority nodes.
+#
+# The key authority daemons on each key authority node are started 5 seconds
+# after any subscriber nodes.  Every 60 seconds, all six authority nodes
+# initiate publication of proposed public key announcement bulletins
+# announcing the most recently declared public keys; they allow one
+# another 5 seconds "grace" time to issue bulletin proposals, then
+# compute consensus bulletins and publish them to all 9 nodes (themselves
+# and their subscribers).  All nodes receive the published bulletins and
+# process the distributed public key information.
+#
+# The difference between the two cycles is this: 95 seconds after the
+# start of the test, authority node 4 is terminated and authority
+# nodes 1 and 6 are notionally compromised ("hijack" flag is set to
+# 1 to trigger simulated adversarial operation).  Notice that nodes
+# 1, 4, and 6 are out of service is provided to nodes 2, 3, and 5.
+#
+# The test succeeds if all subscriber nodes receive their peers' new
+# public keys without error in each re-keying cycle.			*/
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start all nodes.
+
+kaboot 20
+cd 1.ipn.ltp
+./ionstart >& node1.stdout &
+cd ../2.ipn.ltp
+./ionstart >& node2.stdout &
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout &
+cd ../4.ipn.ltp
+./ionstart >& node4.stdout &
+cd ../5.ipn.ltp
+./ionstart >& node5.stdout &
+cd ../6.ipn.ltp
+./ionstart >& node6.stdout &
+cd ../7.ipn.ltp
+./ionstart >& node7.stdout &
+cd ../8.ipn.ltp
+./ionstart >& node8.stdout &
+cd ../9.ipn.ltp
+./ionstart >& node9.stdout &
+
+# Sleep 17 seconds and then load all nodes' public keys to each node.
+
+cd ..
+sleep 17
+cat 1.ipn.ltp/kn.ionsecrc 2.ipn.ltp/kn.ionsecrc 3.ipn.ltp/kn.ionsecrc 4.ipn.ltp/kn.ionsecrc 5.ipn.ltp/kn.ionsecrc 6.ipn.ltp/kn.ionsecrc 7.ipn.ltp/kn.ionsecrc 8.ipn.ltp/kn.ionsecrc 9.ipn.ltp/kn.ionsecrc > kn.ionsecrc
+cd 1.ipn.ltp
+ionsecadmin ../kn.ionsecrc
+cd ../2.ipn.ltp
+ionsecadmin ../kn.ionsecrc
+cd ../3.ipn.ltp
+ionsecadmin ../kn.ionsecrc
+cd ../4.ipn.ltp
+ionsecadmin ../kn.ionsecrc
+cd ../5.ipn.ltp
+ionsecadmin ../kn.ionsecrc
+cd ../6.ipn.ltp
+ionsecadmin ../kn.ionsecrc
+cd ../7.ipn.ltp
+ionsecadmin ../kn.ionsecrc
+ionsecadmin list.ionsecrc > initial.keys
+cd ../8.ipn.ltp
+ionsecadmin ../kn.ionsecrc
+ionsecadmin list.ionsecrc > initial.keys
+cd ../9.ipn.ltp
+ionsecadmin ../kn.ionsecrc
+ionsecadmin list.ionsecrc > initial.keys
+
+# Sleep 83 seconds, note that first re-keying cycle should have completed.
+sleep 83
+echo "First re-keying cycle should have completed by now."
+cd ../7.ipn.ltp
+ionsecadmin list.ionsecrc > revised.keys
+cd ../8.ipn.ltp
+ionsecadmin list.ionsecrc > revised.keys
+cd ../9.ipn.ltp
+ionsecadmin list.ionsecrc > revised.keys
+
+# Sleep another 5 seconds (i.e., after completion of first re-keying
+# cycle), then shut down node 4 and compromise nodes 1 and 6.
+
+sleep 5
+echo "Taking three key authority nodes out of service..."
+cd ../1.ipn.ltp
+kaadmin < hijack.karc
+cd ../4.ipn.ltp
+./ionstop &
+cd ../6.ipn.ltp
+kaadmin < hijack.karc
+cd ../2.ipn.ltp
+kaadmin < recover.karc
+cd ../3.ipn.ltp
+kaadmin < recover.karc
+cd ../5.ipn.ltp
+kaadmin < recover.karc
+
+# Sleep another 55 seconds, note that second re-keying cycle should be done.
+sleep 55
+echo "Second re-keying cycle should have completed by now."
+cd ../7.ipn.ltp
+ionsecadmin list.ionsecrc > final.keys
+cd ../8.ipn.ltp
+ionsecadmin list.ionsecrc > final.keys
+cd ../9.ipn.ltp
+ionsecadmin list.ionsecrc > final.keys
+
+# Check results
+RETVAL=0
+
+# Verify at node 7
+
+cd ../7.ipn.ltp
+COUNT=`cat revised.keys | wc -l`
+if [ $COUNT -eq 17 ]
+then
+	echo ""
+	echo "Node 7 got first key distribution."
+else
+	echo ""
+	echo "Error: node 7 didn't get first key distribution."
+	RETVAL=1
+fi
+
+COUNT=`cat final.keys | wc -l`
+if [ $COUNT -eq 24 ]
+then
+	echo ""
+	echo "Node 7 got second key distribution."
+else
+	echo ""
+	echo "Error: node 7 didn't get second key distribution."
+	RETVAL=1
+fi
+
+# Verify at node 8
+
+cd ../8.ipn.ltp
+COUNT=`cat revised.keys | wc -l`
+if [ $COUNT -eq 17 ]
+then
+	echo ""
+	echo "Node 8 got first key distribution."
+else
+	echo ""
+	echo "Error: node 8 didn't get first key distribution."
+	RETVAL=1
+fi
+
+COUNT=`cat final.keys | wc -l`
+if [ $COUNT -eq 24 ]
+then
+	echo ""
+	echo "Node 8 got second key distribution."
+else
+	echo ""
+	echo "Error: node 8 didn't get second key distribution."
+	RETVAL=1
+fi
+
+# Verify at node 9
+
+cd ../9.ipn.ltp
+COUNT=`cat revised.keys | wc -l`
+if [ $COUNT -eq 17 ]
+then
+	echo ""
+	echo "Node 9 got first key distribution."
+else
+	echo ""
+	echo "Error: node 9 didn't get first key distribution."
+	RETVAL=1
+fi
+
+COUNT=`cat final.keys | wc -l`
+if [ $COUNT -eq 24 ]
+then
+	echo ""
+	echo "Node 9 got second key distribution."
+else
+	echo ""
+	echo "Error: node 9 didn't get second key distribution."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+sleep 10
+echo "Stopping ION..."
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../5.ipn.ltp
+./ionstop &
+cd ../6.ipn.ltp
+./ionstop &
+cd ../7.ipn.ltp
+./ionstop &
+cd ../8.ipn.ltp
+./ionstop &
+cd ../9.ipn.ltp
+./ionstop &
+
+# Give all nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "Key distribution test completed."
+exit $RETVAL
