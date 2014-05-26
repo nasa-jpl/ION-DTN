@@ -739,9 +739,9 @@ static void listOutducts(void) {
 static void usage(const char *name)
 {
 	fprintf(stderr,
-		"Usage: %s DEST-NODE [-q] [-j] [-m] [-t DISPATCH-OFFSET]\n"
+		"Usage: %s [-q] [-j] [-m] [-t DISPATCH-OFFSET]\n"
 		"       [-e EXPIRATION-OFFSET] [-s BUNDLE-SIZE]\n"
-		"       [-o OUTPUT-FILE] [-d PROTO:NAME]\n"
+		"       [-o OUTPUT-FILE] [-d PROTO:NAME] DEST-NODE\n"
 		"\n"
 		"In the first case, run a CGR simulation from the local node to\n"
 		"DEST-NODE. Output trace messages to stderr (unless -q) and JSON\n"
