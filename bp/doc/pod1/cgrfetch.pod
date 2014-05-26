@@ -4,7 +4,7 @@ cgrfetch - Visualize CGR simulations
 
 =head1 SYNOPSIS
 
-B<cgrfetch> { [I<OPTIONS>] I<DEST-NODE> } | -l
+B<cgrfetch> [I<OPTIONS>] I<DEST-NODE>
 
 =head1 DESCRIPTION
 
@@ -21,8 +21,6 @@ an image of the contact graph.
 The dot(1) tool from the Graphviz package is used to generate the contact graph
 images and is required for cgrfetch(1). The base64(1) tool from coreutils is
 used to embed the images in the JSON and is also required.
-
-The second form of the command can be used to list all valid outducts.
 
 =head1 OPTIONS
 
@@ -67,11 +65,7 @@ Send JSON to I<OUTPUT-FILE> (default: stdout).
 =item B<-d PROTO:NAME>
 
 Use I<PROTO> as the outduct protocol and I<NAME> as the outduct name (default:
-udp:*).
-
-=item B<-l>
-
-List all valid outducts instead of performing CGR simulation.
+udp:*). Use B<list> to list all available outducts.
 
 =back
 
@@ -87,9 +81,9 @@ Simulate CGR with destination node 8 and dispatch time equal to the current time
 
 Do the same with a dispatch time 60 seconds in the future.
 
-=item cgrfetch -l
+=item cgrfetch -d list
 
-List all valid outducts.
+List all available outducts.
 
 =back
 

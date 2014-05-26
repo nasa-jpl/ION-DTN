@@ -739,21 +739,13 @@ static void listOutducts(void) {
 static void usage(const char *name)
 {
 	fprintf(stderr,
-		"Usage: %1$s DEST-NODE [-q] [-j] [-m] [-t DISPATCH-OFFSET]\n"
+		"Usage: %s DEST-NODE [-q] [-j] [-m] [-t DISPATCH-OFFSET]\n"
 		"       [-e EXPIRATION-OFFSET] [-s BUNDLE-SIZE]\n"
-		"       [-o OUTPUT-FILE] [-p OUTDUCT-PROTO]\n"
-		"       [-n OUTDUCT-NAME]\n"
-		"   or: %1$s -l\n"
+		"       [-o OUTPUT-FILE] [-d PROTO:NAME]\n"
 		"\n"
 		"In the first case, run a CGR simulation from the local node to\n"
 		"DEST-NODE. Output trace messages to stderr (unless -q) and JSON\n"
 		"to stdout (unless -j).\n"
-		"In the second case, list all available outducts.\n"
-		,
-		name
-	);
-
-	fprintf(stderr,
 		"\n"
 		"Options:\n"
 		"  -q                    disable trace message output\n"
@@ -770,7 +762,9 @@ static void usage(const char *name)
 		"  -o OUTPUT-FILE        send JSON to OUTPUT-FILE (default: stdout)\n"
 		"  -d PROTO:NAME         use the outduct with protocol PROTO and\n"
 		"                        name NAME (default: %s:%s)\n"
+		"                        list available outducts with -d list\n"
 		,
+		name,
 		(unsigned int)(dispatchOffset),
 		(unsigned int)(expirationOffset),
 		bundleSize,
@@ -855,7 +849,7 @@ int	main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((opt = getopt(argc, argv, ":hqjlt:e:s:mo:d:")) >= 0)
+	while ((opt = getopt(argc, argv, ":hqjt:e:s:mo:d:")) >= 0)
 	{
 		switch (opt)
 		{
@@ -870,10 +864,6 @@ int	main(int argc, char **argv)
 
 		case 'j':
 			flags &= ~OUTPUT_JSON;
-		break;
-
-		case 'l':
-			flags |= LIST_OUTDUCTS;
 		break;
 
 		case 't':
@@ -917,6 +907,12 @@ int	main(int argc, char **argv)
 		break;
 
 		case 'd':
+			if (strcmp(optarg, "list") == 0)
+			{
+				flags |= LIST_OUTDUCTS;
+				break;
+			}
+
 			if (!parseOutduct(optarg))
 			{
 				DIEF("invalid outduct '%s'", optarg);
