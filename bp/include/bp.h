@@ -89,7 +89,7 @@ typedef struct
 	unsigned int	timeToLive;
 	int		ackRequested;	/*	(By app.)  Boolean.	*/
 	int		adminRecord;	/*	Boolean: 0 = non-admin.	*/
-	Object		adu;		/*	Zero-copy object ref.	*/
+	Object		adu;		/*	Zero-copy object.	*/
 } BpDelivery;
 
 extern int		bp_attach();

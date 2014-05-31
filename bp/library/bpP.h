@@ -197,6 +197,7 @@ typedef struct
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
+#define	BP_ENCAPSULATED_BUNDLE	(7)
 
 /*	Administrative record flags	*/
 #define BP_BDL_IS_A_FRAGMENT	(1)	/*	00000001		*/
@@ -1345,6 +1346,9 @@ extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned int fragmentOffset,
 				unsigned int fragmentLength,
 				Object *bundleAddr);
+extern int		decodeBundle(Object bundleZco, unsigned char *buffer,
+				Bundle *image, char **dictionary,
+				unsigned int *bundleLength);
 extern int		retrieveInTransitBundle(Object bundleZco, Object *obj);
 
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,

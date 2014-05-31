@@ -1,0 +1,4 @@
+a plan 1 ltp/1
+a plan 3 ltp/3
+a planrule 3 1 * bibe/*,ipn:4.0
+a planrule 3 2 * bibe/*,ipn:3.0

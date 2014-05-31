@@ -3819,8 +3819,8 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 	Object		addr;
 	Object		elt = 0;
 
-	CHKERR(protocolName && ductName && cliCmd);
-	if (*protocolName == 0 || *ductName == 0 || *cliCmd == 0)
+	CHKERR(protocolName && ductName);
+	if (*protocolName == 0 || *ductName == 0)
 	{
 		writeMemoNote("[?] Zero-length Induct parm(s)", ductName);
 		return 0;
@@ -3832,10 +3832,21 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 		return 0;
 	}
 
-	if (strlen(cliCmd) > MAX_SDRSTRING)
+	if (cliCmd)
 	{
-		writeMemoNote("[?] CLI command string is too long", cliCmd);
-		return 0;
+		if (*cliCmd == '\0')
+		{
+			cliCmd = NULL;
+		}
+		else
+		{
+			if (strlen(cliCmd) > MAX_SDRSTRING)
+			{
+				writeMemoNote("[?] CLI command string too long",
+						cliCmd);
+				return 0;
+			}
+		}
 	}
 
 	CHKERR(sdr_begin_xn(bpSdr));
@@ -3859,7 +3870,11 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 
 	memset((char *) &ductBuf, 0, sizeof(Induct));
 	istrcpy(ductBuf.name, ductName, sizeof ductBuf.name);
-	ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
+	if (cliCmd)
+	{
+		ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
+	}
+
 	ductBuf.protocol = (Object) sdr_list_data(bpSdr, clpElt);
 	ductBuf.stats = sdr_malloc(bpSdr, sizeof(InductStats));
 	if (ductBuf.stats)
@@ -3903,17 +3918,28 @@ int	updateInduct(char *protocolName, char *ductName, char *cliCmd)
 	Object		addr;
 	Induct		ductBuf;
 
-	CHKERR(protocolName && ductName && cliCmd);
-	if (*protocolName == 0 || *ductName == 0 || *cliCmd == 0)
+	CHKERR(protocolName && ductName);
+	if (*protocolName == 0 || *ductName == 0)
 	{
 		writeMemoNote("[?] Zero-length Induct parm(s)", ductName);
 		return 0;
 	}
 
-	if (strlen(cliCmd) > MAX_SDRSTRING)
+	if (cliCmd)
 	{
-		writeMemoNote("[?] CLI command string is too long", cliCmd);
-		return 0;
+		if (*cliCmd == '\0')
+		{
+			cliCmd = NULL;
+		}
+		else
+		{
+			if (strlen(cliCmd) > MAX_SDRSTRING)
+			{
+				writeMemoNote("[?] CLI command string too long",
+						cliCmd);
+				return 0;
+			}
+		}
 	}
 
 	CHKERR(sdr_begin_xn(bpSdr));
@@ -3936,7 +3962,11 @@ int	updateInduct(char *protocolName, char *ductName, char *cliCmd)
 		ductBuf.cliCmd = 0;
 	}
 
-	ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
+	if (cliCmd)
+	{
+		ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
+	}
+
 	sdr_write(bpSdr, addr, (char *) &ductBuf, sizeof(Induct));
 	if (sdr_end_xn(bpSdr) < 0)
 	{
@@ -5727,7 +5757,7 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 	char		*custodianEid;
 	unsigned int	ttl;	/*	Original bundle's TTL.		*/
 	BpExtendedCOS	ecos = { 0, 0, 255 };
-	Object		payloadZco=0;
+	Object		payloadZco = 0;
 	Object		bundleObj;
 	int		result;
 
@@ -8561,6 +8591,11 @@ static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 				unparsedBytes, bundleIsFragment);
 		break;
 
+	case BP_ENCAPSULATED_BUNDLE:	/*	No more to parse.	*/
+		*otherPtr = NULL;
+		result = 1;
+		break;
+
 	default:	/*	Unknown or non-standard admin record.	*/
 		result = parseACS(*adminRecordType, otherPtr,
 				(unsigned char *) cursor, unparsedBytes,
@@ -10604,9 +10639,10 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		return 0;
 	}
 
-	/*	Skip over lifetime.					*/
+	/*	Get lifetime.						*/
 
 	sdnvLength = decodeSdnv(&longNumber, cursor);
+	image->timeToLive = longNumber;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -10776,10 +10812,10 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	}
 }
 
-static int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer,
-			Bundle *image, char **dictionary,
-			unsigned int *bundleLength)
+int	decodeBundle(Object zco, unsigned char *buffer, Bundle *image,
+	       	char **dictionary, unsigned int *bundleLength)
 {
+	Sdr		sdr = getIonsdr();
 	ZcoReader	reader;
 	int		bytesBuffered;
 
@@ -10831,8 +10867,8 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 		return -1;
 	}
 
-	if (decodeBundle(bpSdr, bundleZco, buffer, &image, &dictionary,
-			&bundleLength) < 0)
+	if (decodeBundle(bundleZco, buffer, &image, &dictionary, &bundleLength)
+			< 0)
 	{
 		MRELEASE(buffer);
 		putErrmsg("Can't extract bundle ID.", NULL);
@@ -10903,7 +10939,6 @@ int	bpMemo(Object bundleObj, unsigned int interval)
 
 int	retrieveInTransitBundle(Object bundleZco, Object *bundleObj)
 {
-	Sdr		bpSdr = getIonsdr();
 	unsigned char	*buffer;
 	Bundle		image;
 	char		*dictionary = 0;	/*	To hush gcc.	*/
@@ -10922,8 +10957,8 @@ int	retrieveInTransitBundle(Object bundleZco, Object *bundleObj)
 		return -1;
 	}
 
-	if (decodeBundle(bpSdr, bundleZco, buffer, &image, &dictionary,
-			&bundleLength) < 0)
+	if (decodeBundle(bundleZco, buffer, &image, &dictionary, &bundleLength)
+			< 0)
 	{
 		MRELEASE(buffer);
 		putErrmsg("Can't extract bundle ID.", NULL);
@@ -11447,6 +11482,64 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 	return 0;
 }
 
+static int	handleEncapsulatedBundle(BpDelivery *dlv)
+{
+	Sdr		sdr = getIonsdr();
+	vast		encapsulatedBundleLength;
+	VInduct		*vduct;
+	PsmAddress	vductElt;
+	AcqWorkArea	*work;
+
+	/*	Strip off the admin record header (1 byte), process
+	 *	the rest as a newly received bundle.			*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	encapsulatedBundleLength = zco_length(sdr, dlv->adu) - 1;
+	zco_delimit_source(sdr, dlv->adu, 1, encapsulatedBundleLength);
+	zco_strip(sdr, dlv->adu);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("bibecli can't extract encapsulated bundle.", NULL);
+		return -1;
+	}
+
+	findInduct("bibe", "*", &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		putErrmsg("No such bibe duct.", "0");
+		return -1;
+	}
+
+	vduct->acqThrottle.nominalRate = -1;	/*	No rate control.*/
+	work = bpGetAcqArea(vduct);
+	if (work == NULL)
+	{
+		putErrmsg("bibecli can't get acquisition work area", NULL);
+		return -1;
+	}
+
+	if (bpBeginAcq(work, 0, NULL) < 0)
+	{
+		putErrmsg("bibecli can't begin bundle acquisition.", NULL);
+		return -1;
+	}
+
+	if (bpLoadAcq(work, dlv->adu) < 0)
+	{
+		putErrmsg("bibecli can't continue bundle acquisition.", NULL);
+		return -1;
+	}
+
+	if (bpEndAcq(work) < 0)
+	{
+		putErrmsg("bibecli can't complete bundle acquisition.", NULL);
+		return -1;
+	}
+
+	bpReleaseAcqArea(work);
+	return 0;
+}
+
 int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 		CtSignalCB handleCtSignal)
 {
@@ -11527,7 +11620,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 
 		switch (adminRecType)
 		{
-		case 1:		/*	Status report.			*/
+		case BP_STATUS_REPORT:
 			if (handleStatusRpt(&dlv, &rpt) < 0)
 			{
 				putErrmsg("Status report handler failed.",
@@ -11538,7 +11631,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 			bpEraseStatusRpt(&rpt);
 			break;			/*	Out of switch.	*/
 
-		case 2:		/*	Custody signal.			*/
+		case BP_CUSTODY_SIGNAL:
 
 			/*	Node-defined handler is given a
 			 *	chance to respond to the custody signal
@@ -11567,6 +11660,20 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 
 			bpEraseCtSignal(&cts);
 			break;			/*	Out of switch.	*/
+
+		case BP_ENCAPSULATED_BUNDLE:
+			if (handleEncapsulatedBundle(&dlv) < 0)
+			{
+				putErrmsg("bibecli failed.", NULL);
+				running = 0;
+			}
+
+			/*	Handling of encapsulated bundle has
+			 *	disposed of the bundle's ADU.		*/
+
+			bp_release_delivery(&dlv, 0);
+			sm_TaskYield();
+			continue;
 
 		default:	/*	Unknown or non-standard.	*/
 			result = applyACS(adminRecType, other, &dlv,

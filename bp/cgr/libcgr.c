@@ -264,7 +264,6 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 	/*	This is an implementation of Dijkstra's Algorithm.	*/
 
 	TRACE(CgrBeginRoute, payloadClass);
-
 	current = rootContact;
 	currentWork = rootWork;
 	memset((char *) &arg, 0, sizeof(IonCXref));
@@ -276,7 +275,6 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 
 		arg.fromNode = current->toNode;
 		TRACE(CgrConsiderRoot, current->fromNode, current->toNode);
-
 		for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex,
 				rfx_order_contacts, &arg, &elt));
 				elt; elt = sm_rbt_next(ionwm, elt))
@@ -291,8 +289,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 			}
 
 			TRACE(CgrConsiderContact, contact->fromNode,
-				contact->toNode);
-
+					contact->toNode);
 			if (contact->toTime <= currentWork->arrivalTime)
 			{
 				TRACE(CgrIgnoreContact, CgrContactEndsEarly);
@@ -308,18 +305,15 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 			work = (CgrContactNote *) psp(ionwm,
 					contact->routingObject);
 			CHKERR(work);
-
 			if (work->suppressed)
 			{
 				TRACE(CgrIgnoreContact, CgrSuppressed);
-
 				continue;
 			}
 
 			if (work->visited)
 			{
 				TRACE(CgrIgnoreContact, CgrVisited);
-
 				continue;
 			}
 
@@ -336,7 +330,6 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 			if (work->capacity < capacityFloor)
 			{
 				TRACE(CgrIgnoreContact, CgrCapacityTooSmall);
-
 				continue;
 			}
 
@@ -407,7 +400,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 			arrivalTime = transmitTime + owlt;
 
 			TRACE(CgrCost, (unsigned int)(transmitTime), owlt,
-				(unsigned int)(arrivalTime));
+					(unsigned int)(arrivalTime));
 
 			if (arrivalTime < work->arrivalTime)
 			{
@@ -507,9 +500,7 @@ static int	computeDistanceToStation(IonCXref *rootContact,
 			}
 
 			addr = psa(ionwm, contact);
-
 			TRACE(CgrHop, contact->fromNode, contact->toNode);
-
 			if (sm_list_insert_first(ionwm, route->hops, addr) == 0)
 			{
 				putErrmsg("Can't insert contact into route.",
@@ -581,9 +572,9 @@ static int	findNextBestRoute(PsmPartition ionwm, IonCXref *rootContact,
 	else
 	{
 		TRACE(CgrAcceptRoute, route->toNodeNbr,
-			(unsigned int)(route->fromTime),
-			(unsigned int)(route->deliveryTime),
-			route->maxCapacity, route->payloadClass);
+				(unsigned int)(route->fromTime),
+				(unsigned int)(route->deliveryTime),
+				route->maxCapacity, route->payloadClass);
 
 		/*	Found best route, given current exclusions.	*/
 
@@ -751,7 +742,6 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 	CgrRoute	*newRoute;
 
 	TRACE(CgrRecomputeRoute);
-
 	routes = stationNode->routingObject;
 	arg.fromNode = getOwnNodeNbr();
 	arg.toNode = contactToNodeNbr;
@@ -911,11 +901,9 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	LystElt		elt2;
 	int		hopCount;
 	ProximateNode	*proxNode;
-
 	if (getDirective(route->toNodeNbr, plans, bundle, &directive) == 0)
 	{
 		TRACE(CgrIgnoreRoute, CgrNoApplicableDirective);
-
 		return 0;		/*	No applicable directive.*/
 	}
 
@@ -930,7 +918,6 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	if (outduct.blocked)
 	{
 		TRACE(CgrIgnoreRoute, CgrBlockedOutduct);
-
 		return 0;		/*	Outduct is unusable.	*/
 	}
 
@@ -1031,7 +1018,6 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 		 *	subscribed; no available residual capacity.	*/
 
 		TRACE(CgrIgnoreRoute, CgrNoResidualCapacity);
-
 		return 0;
 	}
 
@@ -1044,7 +1030,6 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 		 *	to get all of this bundle transmitted.		*/
 
 		TRACE(CgrIgnoreRoute, CgrResidualCapacityTooSmall);
-
 		return 0;
 	}
 
@@ -1087,9 +1072,8 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 				proxNode->deliveryTime = route->deliveryTime;
 				proxNode->hopCount = hopCount;
 				proxNode->forfeitTime = route->toTime;
-
 				TRACE(CgrUpdateProximateNode,
-					CgrLaterDeliveryTime);
+						CgrLaterDeliveryTime);
 			}
 			else
 			{
@@ -1101,25 +1085,24 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 						proxNode->hopCount = hopCount;
 						proxNode->forfeitTime =
 							route->toTime;
-
 						TRACE(CgrUpdateProximateNode,
 								CgrMoreHops);
 					}
 					else if (hopCount > proxNode->hopCount)
 					{
 						TRACE(CgrIgnoreRoute,
-							CgrMoreHops);
+								CgrMoreHops);
 					}
 					else
 					{
 						TRACE(CgrIgnoreRoute,
-							CgrIdentical);
+								CgrIdentical);
 					}
 				}
 				else
 				{
 					TRACE(CgrIgnoreRoute,
-						CgrLaterDeliveryTime);
+							CgrLaterDeliveryTime);
 				}
 			}
 
@@ -1143,9 +1126,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	proxNode->deliveryTime = route->deliveryTime;
 	proxNode->hopCount = hopCount;
 	proxNode->forfeitTime = route->toTime;
-
 	TRACE(CgrAddProximateNode);
-
 	return 0;
 }
 
@@ -1190,7 +1171,6 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 	}
 
 	TRACE(CgrIdentifyProximateNodes, deadline);
-
 	for (elt = sm_list_first(ionwm, routes); elt; elt = nextElt)
 	{
 		nextElt = sm_list_next(ionwm, elt);
@@ -1199,7 +1179,6 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 		TRACE(CgrCheckRoute, route->payloadClass, route->toNodeNbr,
 			(unsigned int)(route->fromTime),
 			(unsigned int)(route->deliveryTime));
-
 		if (route->toTime < currentTime)
 		{
 			/*	This route leads off with a contact
@@ -1257,7 +1236,6 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 				/*	Never route via self -- a loop.	*/
 
 				TRACE(CgrIgnoreRoute, CgrRouteViaSelf);
-
 				continue;
 			}
 
@@ -1272,7 +1250,6 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 		if (bundle->payload.length > route->maxCapacity)
 		{
 			TRACE(CgrIgnoreRoute, CgrRouteCapacityTooSmall);
-
 			continue;
 		}
 
@@ -1283,7 +1260,6 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 		if (isExcluded(route->toNodeNbr, excludedNodes))
 		{
 			TRACE(CgrIgnoreRoute, CgrInitialContactExcluded);
-
 			continue;
 		}
 
@@ -1310,7 +1286,6 @@ static int	identifyProximateNodes(IonNode *stationNode, Bundle *bundle,
 			 *	expiration.  Try another route.		*/
 
 			TRACE(CgrIgnoreRoute, CgrRouteTooSlow);
-
 			continue;
 		}
 
@@ -1493,10 +1468,8 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	 *	only "station" selected for the bundle.			*/
 
 	CHKERR(bundle && bundleObj && stationNodeNbr && plans && getDirective);
-
 	TRACE(CgrBuildRoutes, stationNodeNbr, bundle->payload.length,
-		(unsigned int)(atTime));
-
+			(unsigned int)(atTime));
 	if (ionvdb->lastEditTime > cgrvdb->lastLoadTime)
 	{
 		/*	Contact plan has been modified, so must discard
@@ -1510,7 +1483,6 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	if (stationNode == NULL)
 	{
 		TRACE(CgrInvalidStationNode);
-
 		return 0;	/*	Can't apply CGR.		*/
 	}
 
@@ -1591,9 +1563,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	 *	the earliest worst-case delivery time.			*/
 
 	lyst_destroy(excludedNodes);
-
 	TRACE(CgrSelectProximateNodes);
-
 	if (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
 		/*	Critical bundle; send on all paths.		*/
@@ -1650,9 +1620,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		nextElt = lyst_next(elt);
 		proxNode = (ProximateNode *) lyst_data_set(elt, NULL);
 		lyst_delete(elt);
-
 		TRACE(CgrConsiderProximateNode, proxNode->neighborNodeNbr);
-
 		if (selectedNeighbor == NULL)
 		{
 			TRACE(CgrSelectProximateNode);
@@ -1687,7 +1655,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 				else	/*	Larger node#; ignore.	*/
 				{
 					TRACE(CgrIgnoreProximateNode,
-						CgrLargerNodeNbr);
+							CgrLargerNodeNbr);
 					MRELEASE(proxNode);
 				}
 			}
@@ -1708,7 +1676,6 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	if (selectedNeighbor)
 	{
 		TRACE(CgrUseProximateNode, selectedNeighbor->neighborNodeNbr);
-
 		if (!preview)
 		{
 			if (enqueueToNeighbor(selectedNeighbor, bundle,

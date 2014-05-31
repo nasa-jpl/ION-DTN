@@ -14,6 +14,7 @@ DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
 DCCP = ../dccp
+BIBE = ../bibe
 CRYPTO = $(API)/crypto/NULL_SUITES
 
 # OPT = -O -Dlinux
@@ -50,8 +51,7 @@ LFW = -lbssfw -ldtn2fw
 
 LBP = -lbp
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep bssadmin bssfw dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw \
-bpnmtest
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep bssadmin bssfw dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bibeclo bpnmtest
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libbssfw.so libtcpcla.so libudpcla.so $(RUNTIMES)
@@ -247,6 +247,12 @@ brsccla:	brsccla.o $(BPLIBS) libtcpcla.so
 		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib $(LFW) -ltcpcla $(LBP) -lici -lpthread
 		cp brsccla ./bin
 
+#	-	-	BIBE executable	-	-	-	-	-
+
+bibeclo:	bibeclo.o $(BPLIBS)
+		$(CC) -o bibeclo bibeclo.o -L./lib -L$(ROOT)/lib $(LFW) $(LBP) -lici -lpthread
+		cp bibeclo ./bin
+
 #	-	-	Test executables	-	-	-	-
 
 bpsource:	bpsource.o libbp.so $(BPLIBS)
@@ -375,6 +381,9 @@ libudpcla.so:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(DGR)/%.c
+		$(CC) -c $<
+
+%.o:		$(BIBE)/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/acs/%.c
