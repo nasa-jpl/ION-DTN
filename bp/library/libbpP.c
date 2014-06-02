@@ -10612,9 +10612,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	}
 }
 
-static int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer,
-			Bundle *image, char **dictionary,
-			unsigned int *bundleLength)
+int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image,
+		char **dictionary, unsigned int *bundleLength)
 {
 	ZcoReader	reader;
 	int		bytesBuffered;
