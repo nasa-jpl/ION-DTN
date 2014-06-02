@@ -100,6 +100,8 @@ typedef struct {
 def_gen_t *def_create_gen(mid_t *id,
 					      Lyst contents);
 
+def_gen_t *def_duplicate(def_gen_t *);
+
 def_gen_t *def_find_by_id(Lyst defs, ResourceLock *mutex, mid_t *id);
 
 /* Release functions.*/

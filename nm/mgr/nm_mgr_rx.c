@@ -96,6 +96,7 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
 	}
 
 	DTNMP_DEBUG_ALWAYS("msg_rx_data_rpt", "Processing a data report.\n", NULL);
+	*bytes_used = 0;
 
 	/* Step 1: Retrieve stored information about this agent. */
 	if((agent = mgr_agent_get(sender_eid)) == NULL)
@@ -248,6 +249,11 @@ void *mgr_rx_thread(void * threadId)
 
                 		mgr_agent_add(reg->agent_id);
 
+#ifdef HAVE_MYSQL
+                		/* Add agent to agent database. */
+                		db_add_agent(reg->agent_id);
+#endif
+
                 		msg_release_reg_agent(reg);
 
                 	}
@@ -262,7 +268,6 @@ void *mgr_rx_thread(void * threadId)
                 	break;
             	}
 
-
 #ifdef HAVE_MYSQL
             	if(bytes > 0)
             	{
@@ -274,6 +279,7 @@ void *mgr_rx_thread(void * threadId)
 #ifdef HAVE_MYSQL
             db_incoming_finalize(incoming_idx);
 #endif
+
         }
     }
    
