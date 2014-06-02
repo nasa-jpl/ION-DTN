@@ -222,8 +222,6 @@ static int	reforwardStrandedBundles()
 
 typedef struct
 {
-	char		senderEidBuffer[SDRSTRING_BUFSZ];
-	char		*senderEid;
 	VInduct		*vduct;
 	LystElt		elt;
 	pthread_mutex_t	*mutex;
@@ -455,15 +453,11 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		return NULL;
 	}
 
-	parms->senderEid = parms->senderEidBuffer;
-	isprintf(parms->senderEidBuffer, sizeof parms->senderEidBuffer,
-			"ipn:%u.0", ductNbr);
-
 	/*	Now start receiving bundles.				*/
 
 	while (*(parms->running))
 	{
-		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("can't begin acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
@@ -761,11 +755,6 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 port 80)", NULL);
 		return 1;
 	}
-
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 

@@ -149,7 +149,7 @@ int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	blk->size = 0;
 	blk->object = NULL;
-	if (wk->senderEid != NULL)	/*	Provided by CL.		*/
+	if (wk->senderEid)		/*	Provided another way.	*/
 	{
 		return 1;		/*	Ignore PHN block.	*/
 	}

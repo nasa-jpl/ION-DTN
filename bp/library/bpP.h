@@ -791,16 +791,6 @@ typedef struct
 	Object		eid;		/*	sdrstring for fwd	*/
 } FwdDirective;
 
-/*	Definitions supporting determination of sender endpoint ID.	*/
-
-typedef int		(*BpEidLookupFn)(char *uriBuffer, char *neighborClId);
-
-extern BpEidLookupFn	*senderEidLookupFunctions(BpEidLookupFn fn);
-extern void		getSenderEid(char **eidBuffer, char *neighborClId);
-extern int		clIdMatches(char *neighborClId, FwdDirective *dir);
-
-extern void		getSenderEid(char **eidBuffer, char *neighborClId);
-
 /*	Definitions supporting the use of QoS-sensitive bandwidth
  *	management.							*/
 

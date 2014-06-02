@@ -17,7 +17,7 @@ DCCP = ../dccp
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -DENABLE_BPACS -DENABLE_IMC
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/cteb -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/crypto -I$(API)/acs -I$(API)/ext -I$(API)/ext/snid -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/cteb -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
 
@@ -41,7 +41,7 @@ BPINCLS = \
 BPLIBS = \
 	libbp.so
 
-BPPOBJS = libbpP.o ecos.o bae.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o libimcfw.o
+BPPOBJS = libbpP.o snid.o ecos.o bae.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o crypto.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o libimcfw.o
 # phn.o
 
 LFW = -lbssfw -ldtn2fw
@@ -319,6 +319,9 @@ libudpcla.so:	libudpcla.o
 %.o:		$(API)/%.c
 		$(CC) -c $<
 
+		$(CC) -c $<
+
+%.o:		$(API)/ext/snid/%.c
 %.o:		$(API)/ext/ecos/%.c
 		$(CC) -c $<
 
