@@ -161,19 +161,23 @@ fi
 # split into component parts to be put into -a -b -B -c -d -i -l -m -p -s
 
 # fill in the default base filenames
+# note that BSSRC and IPNRC are initialized to empty here so that we can detect
+# if the user specifies both, which is not valid as these modules are mutually
+# exclusive.
 if [[ -n "${TAG}" ]] ; then
 	DEFAULTBASEFILE="${DEFAULTBASEFILE}.${TAG}"
 fi
 ACSRC="${DEFAULTBASEFILE}.acsrc"
 BPRC="${DEFAULTBASEFILE}.bprc"
-BSSRC="${DEFAULTBASEFILE}.bssrc"
 DTN2RC="${DEFAULTBASEFILE}.dtn2rc"
 IONRC="${DEFAULTBASEFILE}.ionrc"
 LTPRC="${DEFAULTBASEFILE}.ltprc"
 IMCRC="${DEFAULTBASEFILE}.imcrc"
-IPNRC="${DEFAULTBASEFILE}.ipnrc"
 IONSECRC="${DEFAULTBASEFILE}.ionsecrc"
 CFDPRC="${DEFAULTBASEFILE}.cfdprc"
+# these variables are initialized later
+BSSRC=""
+IPNRC=""
 
 # reset options index to reuse getopts
 OPTIND=1
@@ -208,10 +212,17 @@ while getopts ":i:d:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
 	esac
 done
 
+# Detect if both IPN and BSS filenames are specified and reject this case, as
+# IPN and BSS are mutually exclusive modules.
 if [[ ! -z "${BSSRC}" ]] && [[ ! -z "${IPNRC}" ]] ; then
 	echo "Error: bss and ipn are mutually exclusive!"
 	exit 1
 fi
+
+# Fill in the default base filenames here instead of above so we have a way to
+# detect if both were specified by the user, which is not allowed.
+BSSRC="${DEFAULTBASEFILE}.bssrc"
+IPNRC="${DEFAULTBASEFILE}.ipnrc"
 
 # if there is an input file, we will convert INPUTFILE -> ionrc, dtn2rc, ipnrc, etc
 if [[ -n "${INPUTFILE}" ]] ; then
