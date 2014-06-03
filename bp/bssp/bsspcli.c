@@ -35,14 +35,11 @@ int	acquireBundle(AcqWorkArea *work, BsspSessionId *sessionId,
 			unsigned int length, Object zco, 
 			unsigned int *buflen, char **buffer)
 {
-	Sdr			sdr = getIonsdr();
-	char			engineNbrString[21];
-	char			senderEidBuffer[SDRSTRING_BUFSZ];
-	char			*senderEid;
-	ZcoReader		reader;
-	int			result;
+	Sdr		sdr = getIonsdr();
+	ZcoReader	reader;
+	int		result;
 
-	if (zco == 0)	/*	Session canceled.	*/
+	if (zco == 0)		/*	Session canceled.		*/
 	{
 		bpCancelAcq(work);
 		return 0;
@@ -53,12 +50,9 @@ int	acquireBundle(AcqWorkArea *work, BsspSessionId *sessionId,
 		return 0;	/* 	Just discard the block.		*/
 	}
 
-	/*	Start new bundle acquisition.		*/
-	isprintf(engineNbrString, sizeof engineNbrString,
-			UVAST_FIELDSPEC, sessionId->sourceEngineId);
-	senderEid = senderEidBuffer;
-	getSenderEid(&senderEid, engineNbrString);
-	if (bpBeginAcq(work, 0, senderEid) < 0)
+	/*	Start new bundle acquisition.				*/
+
+	if (bpBeginAcq(work, 0, NULL) < 0)
 	{
 		putErrmsg("Can't begin acquisition of bundle.", NULL);
 		return -1;
@@ -66,7 +60,7 @@ int	acquireBundle(AcqWorkArea *work, BsspSessionId *sessionId,
 
 	if (length > *buflen)
 	{
-		/*	Make buffer big enough.	*/
+		/*	Make buffer big enough.				*/
 
 		if (*buffer)
 		{
