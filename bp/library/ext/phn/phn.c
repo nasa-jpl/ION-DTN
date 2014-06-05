@@ -63,19 +63,11 @@ int	phn_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	int		result;
 
 	suppressExtensionBlock(blk);	/*	Default.		*/
-	if (strcmp(context->protocolName, "ltp") == 0)
-	{
-		/*	The phn block isn't needed; ltpcli can compute
-		 *	the previous-hop node EID from engine number.	*/
 
-		return 0;
-	}
-
-	/*	The phn block is needed.  To figure out which
-	 *	admin EID to use as the previous-hop node EID,
-	 *	look at the EID scheme of the proximate node EID;
-	 *	use the same scheme, since you know the receiver
-	 *	understands that scheme.				*/
+	/*	To figure out which admin EID to use as the previous-
+	 *	hop node EID, look at the EID scheme of the proximate
+	 *	node EID; use the same scheme, since you know the
+	 *	receiver understands that scheme.			*/
 
 	result = parseEidString(context->proxNodeEid, &metaEid, &vscheme,
 			&vschemeElt);
@@ -136,12 +128,9 @@ static int	getSenderEidFromDictionary(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	int	schemeLength;
 	char	*lastByte;
-	char	*scheme;
-	int	nssLength;
-	char	*nss;
 	int	eidLen;
+	char	*eid;
 
 	/*	Data parsed out of the phn byte array go directly into
 	 *	the work area structure, not into a block-specific
@@ -165,16 +154,8 @@ int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 		return 0;		/*	Malformed.		*/
 	}
 
-	scheme = ((char *) (blk->bytes)) + (blk->length - blk->dataLength);
-	schemeLength = strlen(scheme);
-	nss = scheme + (schemeLength + 1);
-	if (nss > lastByte)		/*	No NSS in EID.		*/
-	{
-		return 0;		/*	Malformed.		*/
-	}
-
-	nssLength = strlen(nss);
-	eidLen = schemeLength + 1 + nssLength + 1;
+	eid = ((char *) (blk->bytes)) + (blk->length - blk->dataLength);
+	eidLen = blk->dataLength;
 	wk->senderEid = MTAKE(eidLen);
 	if (wk->senderEid == NULL)
 	{
@@ -182,7 +163,7 @@ int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 		return -1;
 	}
 
-	isprintf(wk->senderEid, eidLen, "%s:%s", scheme, nss);
+	istrcpy(wk->senderEid, eid, eidLen);
 	return 1;
 }
 
