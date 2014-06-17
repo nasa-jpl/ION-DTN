@@ -171,6 +171,10 @@ Features included:
      implementation has been updated to the version that was used for testing
      and demonstration earlier in the year.
 
+- ION no longer requires libexpat by default in order to build.
+     Expat is still required in order to use XML configuration files for AMS.
+     To build against libexpat, use "./configure --with-expat".
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.2.0 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -704,7 +708,7 @@ Features included:
   switch from being set.
 
 - Issue #275: ION now has support for code coverage analysis via lcov/gcov.
-  To enable this feature, use "--configure --with-gcov".
+  To enable this feature, use "./configure --with-gcov".
   Building with code coverage support enables the following new directives:
      make cov: creates a "coverage" subfolder from the top of the ION
                directory where HTML coverage results are stored
