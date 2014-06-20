@@ -62,6 +62,38 @@ Features included:
 = NOTES ON RELEASE 3.2.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
+- Feature Request #8: Improvements have been made in how ION infers the node
+     number of the sending node.
+     ION now implements the Sending Node ID (SNID) extension block, which just
+     contains the CBHE node number of the sending node.
+     Previously, ION utilized mechanisms for inferring the node number from
+     convergence-layer EIDs, which could generate false information, especially
+     when multiple nodes were resident on the same machine.
+
+- Feature Request #14: The stream of "watch" characters that ION generates when
+     significant bundle events occur can now be redirected in a manner
+     similar to how log messages are currently handled.
+
+- Feature Request #15: Per specification, ION's LTP implementation now supports
+     LTP Authentication as described in RFC 5327.
+
+- Feature Request #16: In preparation for the deployment of delay-tolerant
+     security key administration (DTKA), ION now includes several new features
+     dealing with public/private key management in the ION security database.
+     DTKA itself has been prototyped but is still pending approval for open
+     source release.
+
+- Feature Request #17: A significant overhaul of the Bundle Streaming Service
+     (BSS) has been implemented to resolve a fundamental incompatibility with
+     implementing BSS with multicast.
+     The new BSS forwarding implementation resides at the convergence layer
+     directly under BP so BSS channel acknowledgments can be disambiguated.
+     Previously, the BSS forwarder design relied on BP custody transfer to
+     control BSS data forwarding over reliable and unreliable channels, which
+     was incompatible with multicast because custody transfer can't distinguish
+     among the multiple identical copies of a bundle that are forwarded at a
+     multicast branch point.
+
 - Bug #21: The interface for the internal smlist "deletion" callback has been
      modified to be more consistent with the interfaces for the "lyst" and
      "sdrlist" modules.  The API now accepts the address of the element to
@@ -134,38 +166,6 @@ Features included:
      is the initial contact on any remaining route.
      Due to the recent inclusion of CGR Payload Classes, it is no longer
      correct to exclude such routes from consideration.
-
-- Feature Request #8: Improvements have been made in how ION infers the node
-     number of the sending node.
-     ION now implements the Sending Node ID (SNID) extension block, which just
-     contains the CBHE node number of the sending node.
-     Previously, ION utilized mechanisms for inferring the node number from
-     convergence-layer EIDs, which could generate false information, especially
-     when multiple nodes were resident on the same machine.
-
-- Feature Request #14: The stream of "watch" characters that ION generates when
-     significant bundle events occur can now be redirected in a manner
-     similar to how log messages are currently handled.
-
-- Feature Request #15: Per specification, ION's LTP implementation now supports
-     LTP Authentication as described in RFC 5327.
-
-- Feature Request #16: In preparation for the deployment of delay-tolerant
-     security key administration (DTKA), ION now includes several new features
-     dealing with public/private key management in the ION security database.
-     DTKA itself has been prototyped but is still pending approval for open
-     source release.
-
-- Feature Request #17: A significant overhaul of the Bundle Streaming Service
-     (BSS) has been implemented to resolve a fundamental incompatibility with
-     implementing BSS with multicast.
-     The new BSS forwarding implementation resides at the convergence layer
-     directly under BP so BSS channel acknowledgments can be disambiguated.
-     Previously, the BSS forwarder design relied on BP custody transfer to
-     control BSS data forwarding over reliable and unreliable channels, which
-     was incompatible with multicast because custody transfer can't distinguish
-     among the multiple identical copies of a bundle that are forwarded at a
-     multicast branch point.
 
 - Patch #5: The Delay Tolerant Network Management Protocol (DTNMP) reference
      implementation has been updated to the version that was used for testing
