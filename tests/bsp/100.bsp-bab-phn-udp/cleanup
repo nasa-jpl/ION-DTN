@@ -1,2 +1,2 @@
 #!/bin/bash
-rm -f ion.log ionreceivefile.txt ionexpectedfile.txt
+rm -f ion.log ionreceivefile.txt ionexpectedfile.txt diffs

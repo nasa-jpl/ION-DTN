@@ -60,7 +60,7 @@ killm
 sleep 1
 
 # Prepare for loop start
-rm -f $IONRECEIVEFILE $IONEXPECTEDFILE ion.log
+rm -f $IONRECEIVEFILE $IONEXPECTEDFILE ion.log diffs
 PASS=1
 
 echo "Starting ION..."

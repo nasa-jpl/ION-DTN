@@ -1,6 +1,6 @@
 *ams_mib_init continuum_nbr=9 ptsname=dgr
 +ams_mib_add
-*continuum nbr=3 name=ion3 desc=ION node 3
+*continuum nbr=3 name=ion3 desc='ION node 3'
 *csendpoint epspec=@:2357
 *application name=amsdemo
 +venture nbr=19 appname=amsdemo authname=test net_config=tree 
