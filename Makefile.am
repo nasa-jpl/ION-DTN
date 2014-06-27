@@ -1057,11 +1057,11 @@ $(top_builddir)/bp/doc/%.5: bp/doc/pod5/%.pod
 
 libipnfw_la_SOURCES = bp/ipn/libipnfw.c 
 libipnfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libipnfw_la_LIBADD = libbp.la libici.la
+libipnfw_la_LIBADD = libici.la
 
 libdtn2fw_la_SOURCES = bp/dtn2/libdtn2fw.c
 libdtn2fw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libdtn2fw_la_LIBADD = libbp.la libici.la
+libdtn2fw_la_LIBADD = libici.la
 
 libtcpcla_la_SOURCES = bp/tcp/libtcpcla.c
 libtcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1729,20 +1729,20 @@ libbsspP_la_SOURCES = \
 	bssp/library/libbsspP.c
 libbsspP_la_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 libbsspP_la_LDFLAGS = $(ION_LINK_FLAGS)
-libbsspP_la_LIBADD = libici.la libbp.la $(PTHREAD_LIBS)
+libbsspP_la_LIBADD = libici.la $(PTHREAD_LIBS)
 
 libbssp_la_SOURCES = \
 	bssp/library/libbssp.c \
 	bssp/library/libbsspP.c
 libbssp_la_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 libbssp_la_LDFLAGS = $(ION_LINK_FLAGS)
-libbssp_la_LIBADD = libici.la libbp.la $(PTHREAD_LIBS)
+libbssp_la_LIBADD = libici.la $(PTHREAD_LIBS)
 
 libtcpbsa_la_SOURCES = \
 	bssp/tcp/libtcpbsa.c
 libtcpbsa_la_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 libtcpbsa_la_LDFLAGS = $(ION_LINK_FLAGS)
-libtcpbsa_la_LIBADD = libici.la libbp.la $(PTHREAD_LIBS)
+libtcpbsa_la_LIBADD = libici.la $(PTHREAD_LIBS)
 
 # --- Daemon Executables --- #
 
