@@ -12,8 +12,9 @@
  *
  */
 
+#include "platform.h"
+#include "ion.h"
 #include "sdr.h"
-#include "bp.h"
 
 #ifndef _BSSP_H_
 #define _BSSP_H_

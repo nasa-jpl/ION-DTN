@@ -314,8 +314,6 @@ libudpcla.so:	libudpcla.o
 %.o:		$(API)/%.c
 		$(CC) -c $<
 
-		$(CC) -c $<
-
 #%.o:		$(API)/ext/snid/%.c
 #		$(CC) -c $<
 
