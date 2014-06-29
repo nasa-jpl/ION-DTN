@@ -9,7 +9,8 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "../../bpP.h"
+#include "bpP.h"
+#include "bei.h"
 #include "phn.h"
 
 int	phn_offer(ExtensionBlock *blk, Bundle *bundle)

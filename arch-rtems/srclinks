@@ -13,6 +13,8 @@ ln -s ../ici/library/smlist.c
 ln -s ../ici/library/smrbt.c
 ln -s ../ici/library/ion.c
 ln -s ../ici/library/ionsec.c
+ln -s ../ici/crypto/sample_crypto.h
+ln -s ../ici/crypto/$CRYPTO/crypto.c
 ln -s ../ici/library/rfx.c
 ln -s ../ici/library/zco.c
 ln -s ../ici/sdr/sdrtable.c
@@ -40,6 +42,8 @@ ln -s ../bp/library/ext/ecos/ecos.c
 ln -s ../bp/library/ext/ecos/ecos.h
 ln -s ../bp/library/ext/bae/bae.c
 ln -s ../bp/library/ext/bae/bae.h
+ln -s ../bp/library/ext/phn/phn.c
+ln -s ../bp/library/ext/phn/phn.h
 ln -s ../bp/library/ext/bsp/extbspbab.c
 ln -s ../bp/library/ext/bsp/extbspbab.h
 ln -s ../bp/library/ext/bsp/extbsppib.c
@@ -48,9 +52,6 @@ ln -s ../bp/library/ext/bsp/extbsppcb.c
 ln -s ../bp/library/ext/bsp/extbsppcb.h
 ln -s ../bp/library/ext/bsp/extbsputil.c
 ln -s ../bp/library/ext/bsp/extbsputil.h
-ln -s ../bp/library/crypto/crypto.h
-ln -s ../bp/library/crypto/sample_crypto.h
-ln -s ../bp/library/crypto/$CRYPTO/crypto.c
 ln -s ../bp/daemon/bpclock.c
 ln -s ../bp/utils/bpadmin.c
 ln -s ../bp/utils/bpstats.c
@@ -72,10 +73,22 @@ ln -s ../bp/ltp/ltpclo.c
 ln -s ../bp/ltp/ltpcla.h
 ln -s ../ltp/library/libltp.c
 ln -s ../ltp/library/libltpP.c
+ln -s ../ltp/library/libltpnm.c
+ln -s ../ltp/library/ltpei.c
+ln -s ../ltp/library/ext/ltpextensions.c
 ln -s ../ltp/library/ltpP.h
+ln -s ../ltp/library/ltpnm.h
+ln -s ../ltp/library/ltpei.h
 ln -s ../ltp/daemon/ltpclock.c
-ln -s ../ltp/daemon/ltpmeter.c
 ln -s ../ltp/utils/ltpadmin.c
+ln -s ../bssp/library/libbssp.c
+ln -s ../bssp/library/libbsspP.c
+ln -s ../bssp/library/bsspP.h
+ln -s ../bssp/daemon/bsspclock.c
+ln -s ../bssp/utils/bsspadmin.c
+ln -s ../bss/library/libbss.c
+ln -s ../bss/library/libbssP.c
+ln -s ../bss/library/bssP.h
 ln -s ../restart/utils/ionrestart.c
 if [ "$ION_OPEN_SOURCE" == "1" ];then
 ln -s ../cfdp/library/libcfdp.c
@@ -107,8 +120,8 @@ fi
 # ln -s ../bp/library/ext/cteb/cteb.c
 # ln -s ../bp/library/ext/cteb/cteb.h
 #
-# ln -s ../bp/library/ext/phn/phn.c
-# ln -s ../bp/library/ext/phn/phn.h
+# ln -s ../bp/library/ext/snid/snid.c
+# ln -s ../bp/library/ext/snid/snid.h
 
 # Optional extra stuff for testing.
 #

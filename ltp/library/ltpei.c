@@ -23,7 +23,7 @@
 /* The number of LTP extensions. */
 static int	extensionsCount = sizeof extensions / sizeof(ExtensionDef);
 
-ExtensionDef	*findExtensionDef(char tag)
+ExtensionDef	*findLtpExtensionDef(char tag)
 {
 	int		count = extensionsCount;
 	int		i;

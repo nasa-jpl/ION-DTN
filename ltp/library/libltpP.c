@@ -2331,7 +2331,7 @@ static int	serializeHeader(LtpXmitSeg *segment, char *segmentBuffer,
 		extAddr = sdr_list_data(ltpSdr, elt);
 		GET_OBJ_POINTER(ltpSdr, LtpExtensionOutbound, headerExt,
 				extAddr);
-		def = findExtensionDef(headerExt->tag);
+		def = findLtpExtensionDef(headerExt->tag);
 		if (def && def->outboundOnHeaderExtensionSerialization)
 		{
 			if (def->outboundOnHeaderExtensionSerialization
@@ -2693,7 +2693,7 @@ static int	serializeTrailer(LtpXmitSeg *segment, char *segmentBuffer)
 		extAddr = sdr_list_data(ltpSdr, elt);
 		GET_OBJ_POINTER(ltpSdr, LtpExtensionOutbound, trailerExt,
 				extAddr);
-		def = findExtensionDef(trailerExt->tag);
+		def = findLtpExtensionDef(trailerExt->tag);
 		if (def && def->outboundOnTrailerExtensionSerialization)
 		{
 			if (def->outboundOnTrailerExtensionSerialization

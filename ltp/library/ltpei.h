@@ -193,7 +193,7 @@ Parameters:
 Returns:
 the ExtensionDef
 */
-extern ExtensionDef	*findExtensionDef(char tag);
+extern ExtensionDef	*findLtpExtensionDef(char tag);
 
 /*****************************************************************************
  *                           FUNCTION PROTOTYPES                             *
