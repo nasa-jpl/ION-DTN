@@ -14,8 +14,6 @@
  *
  */
 #include "bsspcla.h"
-#include "ipnfw.h"
-#include "dtn2fw.h"
 
 static void	interruptThread()
 {
@@ -322,11 +320,6 @@ int	main(int argc, char *argv[])
 		putErrmsg("bsspcli can't initialize BSSP.", NULL);
 		return -1;
 	}
-
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 
