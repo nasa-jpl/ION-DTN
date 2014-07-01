@@ -57,6 +57,8 @@ all:		$(ALL)
 check:		$(BPINCLS) $(PUBINCLS)
 		rm -f *.o
 		touch check
+		mkdir -p lib
+		mkdir -p bin
 
 clean:
 		rm -f *.o

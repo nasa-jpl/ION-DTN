@@ -513,7 +513,6 @@ static void	sign_using_sha256(char *keyValue, int keyLength, char *buf,
 			int lengthToSign, unsigned char *authVal)
 {
 	void		*ctx = NULL;
-	int		ctxLen;
 	unsigned char	hashValue[32];
 
 	if (rsa_sha256_sign_init(&ctx, keyValue, keyLength))
@@ -522,7 +521,7 @@ static void	sign_using_sha256(char *keyValue, int keyLength, char *buf,
 	}
 	else
 	{
-		ctxLen = rsa_sha256_sign_context_length(ctx);
+		oK(rsa_sha256_sign_context_length(ctx));
 
 		/*	First calculate the SHA256 hash value.		*/
 

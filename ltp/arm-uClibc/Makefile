@@ -4,26 +4,28 @@ UTILS = ../utils
 DAEMON = ../daemon
 UDP = ../udp
 DCCP = ../dccp
+SDA = ../sda
 TEST = ../test
 
 # OPT = -O -DuClibc
 OPT = -g -fPIC -Wall -Werror -DuClibc
-CC = $(TCC) $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
+CC = $(TCC) $(OPT) -I$(API) -I$(API)/ext -I$(API)/ext/auth -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = $(TLD) $(LDFLAGS)
 
 PUBINCLS = \
-	$(INCL)/ltp.h
+	$(INCL)/ltp.h \
+	$(INCL)/sda.h
 
 LTPINCLS = \
 	$(API)/ltpP.h \
 	$(UDP)/udplsa.h \
 	$(DCCP)/dccplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter
+RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
 #dccplsi dccplso
 
-ALL = check libltpP.so libltp.so libltpnm.so $(RUNTIMES)
+ALL = check libltpP.so libltp.so libltpnm.so libsda.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -70,6 +72,10 @@ ltpcounter:	ltpcounter.o libltpP.so libltp.so
 		$(CC) -o ltpcounter ltpcounter.o -L./lib -L$(ROOT)/lib -lltp -lltpP -lici -lpthread
 		cp ltpcounter ./bin
 
+sdatest:	sdatest.o libltpP.so libltp.so libsda.so
+		$(CC) -o sdatest sdatest.o -L./lib -L$(ROOT)/lib -lsda -lltp -lltpP -lici -lpthread
+		cp sdatest ./bin
+
 #	-	-	UDP executables	-	-	-	-	-
 
 udplsi:		udplsi.o libltpP.so
@@ -91,21 +97,28 @@ dccpplso:	dccplso.o libltpP.so
 
 #	-	-	Libraries	-	-	-	-	-
 
-libltpP.so:	libltpP.o
-		$(LD) -o libltpP.so libltpP.o
+libltpP.so:	libltpP.o ltpei.o auth.o
+		$(LD) -o libltpP.so libltpP.o ltpei.o auth.o
 		cp libltpP.so ./lib
 
-libltp.so:	libltp.o
-		$(LD) -o libltp.so libltp.o
+libltp.so:	libltp.o ltpei.o auth.o
+		$(LD) -o libltp.so libltp.o ltpei.o auth.o
 		cp libltp.so ./lib
 
 libltpnm.so:	libltpnm.o $(API)/ltpnm.h
 		$(LD) -o libltpnm.so libltpnm.o
 		cp libltpnm.so ./lib
 
+libsda.so:	libsda.o $(INCL)/sda.h
+		$(LD) -o libsda.so libsda.o
+		cp libsda.so ./lib
+
 #	-	-	Object modules	-	-	-	-	-
 
 %.o:		$(API)/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/auth/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c
@@ -118,6 +131,9 @@ libltpnm.so:	libltpnm.o $(API)/ltpnm.h
 		$(CC) -c $<
 
 %.o:		$(UDP)/%.c
+		$(CC) -c $<
+
+%.o:		$(SDA)/%.c
 		$(CC) -c $<
 
 #%.o:		$(DCCP)/%.c
