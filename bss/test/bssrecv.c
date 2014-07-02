@@ -182,14 +182,13 @@ static int userInput(int fd, char* bssName, char* path, char* eid )
 	PUTS("Please enter DB name, path and eid separated by whitespace.");
 	PUTS("e.g.: bssDB /home/user/experiments/bss ipn:2.71");
 	fflush(stdout);
-
-	if(igets(fd, parameters, sizeof parameters, &paramLen) == NULL)
+	if (igets(fd, parameters, sizeof parameters, &paramLen) == NULL)
 	{
    		PUTS("Error in reading arguments");
 		return -1;
   	}
 	
-	if(sscanf (parameters, "%63s %255s %31s", bssName, path, eid) != 3)
+	if (sscanf(parameters, "%63s %255s %31s", bssName, path, eid) != 3)
 	{
 		PUTS("Wrong number of arguments");
 		return -1;
@@ -372,14 +371,13 @@ int	main(int argc, char **argv)
 				{			
 					PUTS("Pls provide replay period: fromTime toTime ");
 					PUTS("fromTime and toTime format: yyyy/mm/dd-hh:mm:ss");
-					if(igets(cmdFile, menuNav, sizeof(menuNav), 
-						&navLen) == NULL)
+					if (igets(cmdFile, menuNav, sizeof(menuNav), &navLen) == NULL)
 					{
    						PUTS("Error in reading arguments");
 						break;
   					}
       				
-					if(sscanf (menuNav, "%19s %19s", fromTime, toTime) != 2)
+					if (sscanf(menuNav, "%19s %19s", fromTime, toTime) != 2)
 					{
 						PUTS("Wrong number of arguments");
 						break;

@@ -189,8 +189,9 @@ static int	tryAuthHeader(LtpRecvSeg* segment, Lyst trailerExtensions,
 		{
 			keyLength = sizeof null_key;
 			keyValue = null_key;
-			if  (verify_sha1(trailerExt, segmentRawData,
-					keyLength, keyValue) == 0)
+			result = verify_sha1(trailerExt, segmentRawData,
+					keyLength, keyValue);
+			if (result == 0)
 			{
 				continue;
 			}

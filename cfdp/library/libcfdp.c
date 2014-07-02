@@ -122,7 +122,8 @@ void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 	*val = 0;
 	for (i = 0, octet = nbr->buffer + 7; i < nbr->length; i++, octet--)
 	{
-		digit = (*octet) << (i << 3);
+		digit = *octet;
+		digit <<= (i << 3);
 		*val += digit;
 	}
 }

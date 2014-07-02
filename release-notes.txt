@@ -1,6 +1,6 @@
 = Release Notes for ION 3.2.1 =
 
-June 15, 2014
+July 2, 2014
 
 %%%%%%%%%%%
 = GENERAL =
@@ -27,14 +27,17 @@ distribution are the following packages:
 - bp (bundle protocol), an implementation of the Delay-Tolerant
   Networking (DTN) architecture's Bundle Protocol.
 
-- ltp (licklider transmission protocol), a DTN convergence layer for
-  reliable transmission over links characterized by long or highly
+- ltp (licklider transmission protocol), a DTN convergence layer protocol
+  for reliable transmission over links characterized by long or highly
   variable delay.
 
 - dgr (datagram retransmission), an alternative implementation of ltp
   that is designed for use over the Internet protocol stack.  dgr
   implements congestion control and is designed for relatively high
   performance.
+
+- bssp (bundle streaming service protocol), a DTN convergence layer protocol
+  for reliable transmission of streaming data.
 
 - ams - an implementation of the CCSDS Asynchronous Message Service.
 
@@ -46,6 +49,10 @@ distribution are the following packages:
   passing the bundle payloads to the associated application for immediate
   display of the most recent data while storing all bundle payloads
   received into a database for user-directed playback.
+
+- dtpc (delay-tolerant payload conditioning), an application framework
+  providing TCP-like support for end-to-end retransmission and data delivery
+  in transmission order without duplication or omission.
 
 Features included:
 
@@ -64,15 +71,16 @@ Features included:
 
 - Feature Request #8: Improvements have been made in how ION infers the node
      number of the sending node.
-     ION now implements the Sending Node ID (SNID) extension block, which just
-     contains the CBHE node number of the sending node.
-     Previously, ION utilized mechanisms for inferring the node number from
-     convergence-layer EIDs, which could generate false information, especially
-     when multiple nodes were resident on the same machine.
+     ION now implements the Previous Hop Insertion Block (here called
+     Previous Hop Node, phn) extension block, which contains the identifying
+     singleton endpoint of the sending node.  Previously, ION utilized
+     mechanisms for inferring the node number from convergence-layer EIDs,
+     which could generate false information, especially when multiple nodes
+     were resident on the same machine.
 
 - Feature Request #14: The stream of "watch" characters that ION generates when
      significant bundle events occur can now be redirected in a manner
-     similar to how log messages are currently handled.
+     similar to the way log messages may be redirected.
 
 - Feature Request #15: Per specification, ION's LTP implementation now supports
      LTP Authentication as described in RFC 5327.
@@ -85,14 +93,13 @@ Features included:
 
 - Feature Request #17: A significant overhaul of the Bundle Streaming Service
      (BSS) has been implemented to resolve a fundamental incompatibility with
-     implementing BSS with multicast.
-     The new BSS forwarding implementation resides at the convergence layer
-     directly under BP so BSS channel acknowledgments can be disambiguated.
-     Previously, the BSS forwarder design relied on BP custody transfer to
-     control BSS data forwarding over reliable and unreliable channels, which
-     was incompatible with multicast because custody transfer can't distinguish
-     among the multiple identical copies of a bundle that are forwarded at a
-     multicast branch point.
+     implementing BSS with multicast.  The new BSS forwarding implementation
+     (BSSP) resides at the convergence layer directly under BP so BSS channel
+     acknowledgments can be disambiguated.  Previously, the BSS forwarder
+     design relied on BP custody transfer to control BSS data forwarding over
+     reliable and unreliable channels, which was incompatible with multicast
+     because custody transfer can't distinguish among the multiple identical
+     copies of a bundle that are forwarded at a multicast branch point.
 
 - Bug #21: The interface for the internal smlist "deletion" callback has been
      modified to be more consistent with the interfaces for the "lyst" and
@@ -122,9 +129,8 @@ Features included:
           the EOB has also been sent.
 
 - Bug #34: The Service Data Aggregation (SDA) in LTP has been updated to be
-     more compliant with the latest specifications.  The SDA now properly
-     passes the client ID to the client data unit length determination
-     callback.
+     compliant with the latest specifications.  The SDA now properly passes
+     the client ID to the client data unit length determination callback.
 
 - Bug #36: Fixed specific compilation problems with dtnperf under the
      Scientific Linux 5.5 (gcc 4.1.2) operating system.

@@ -2014,7 +2014,7 @@ PrintGatewayState(gWay);
 		 *	is unaffected by this cancellation, so
 		 *	there's no need to cancel anything else.	*/
 
-		if (!PetitionIsAssertable(gWay, pet) < 0)
+		if (!PetitionIsAssertable(gWay, pet))
 		{
 			if (CancelPetition(gWay, pet) < 0)
 			{
@@ -2102,7 +2102,7 @@ role = %d sub = %d\n", continuumNbr, unitNbr, sourceId, subjectNbr);
 #endif
 		/*	May now be able to cancel petition altogether.	*/
 
-		if (!PetitionIsAssertable(gWay, aPet) < 0)
+		if (!PetitionIsAssertable(gWay, aPet))
 		{
 			if (CancelPetition(gWay, aPet) < 0)
 			{

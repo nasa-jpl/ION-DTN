@@ -1835,8 +1835,10 @@ int	bpAttach()
 	return 0;		/*	BP service is now available.	*/
 }
 
-void bpDetach(){
-	char *stop=NULL;
+void	bpDetach()
+{
+	char	*stop = NULL;
+
 	oK(_bpvdb(&stop));
 	return;
 }
@@ -6535,6 +6537,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		{
 			putErrmsg("Can't create file ref.", NULL);
 			sdr_cancel_xn(sdr);
+			close(fd);
 			return -1;
 		}
 	}
@@ -6543,10 +6546,18 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		oK(zco_file_ref_path(sdr, work->acqFileRef, fileName,
 				sizeof fileName));
 		fd = iopen(fileName, O_WRONLY, 0666);
-		if (fd < 0 || (fileLength = lseek(fd, 0, SEEK_END)) < 0)
+		if (fd < 0)
 		{
 			putSysErrmsg("Can't reopen acq file", fileName);
 			sdr_cancel_xn(sdr);
+			return -1;
+		}
+		
+		if ((fileLength = lseek(fd, 0, SEEK_END)) < 0)
+		{
+			putSysErrmsg("Can't get acq file length", fileName);
+			sdr_cancel_xn(sdr);
+			close(fd);
 			return -1;
 		}
 	}
@@ -6555,6 +6566,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	{
 		putSysErrmsg("Can't append to acq file", fileName);
 		sdr_cancel_xn(sdr);
+		close(fd);
 		return -1;
 	}
 

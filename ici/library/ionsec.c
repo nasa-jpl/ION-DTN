@@ -1403,6 +1403,7 @@ static int	loadKeyValue(SecKey *key, char *fileName)
 	if (keybuf == NULL || key->value == 0)
 	{
 		putErrmsg("Failed loading key value.", key->name);
+		close(keyfd);
 		return -1;
 	}
 

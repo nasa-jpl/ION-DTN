@@ -61,15 +61,14 @@ int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
 
 	if (profileID == 0)	
 	{
-		profileID = getProfile(maxRtx, aggrSizeLimit, aggrTimeLimit,
+		profileID = dtpcGetProfile(maxRtx, aggrSizeLimit, aggrTimeLimit,
 				lifespan, extendedCOS, srrFlags, custodySwitch,
 				reportToEid, classOfService);
-	}
-
-	if (profileID < 0)
-	{
-		writeMemo("[?] No profile found.");
-		return 0;
+		if (profileID == 0)
+		{
+			writeMemo("[?] No profile found.");
+			return 0;
+		}
 	}
 	
 	return insertRecord(sap, dstEid, profileID, topicID, item, length);

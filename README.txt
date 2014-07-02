@@ -61,21 +61,22 @@ this option, be aware of the dependencies among the packages:
 	The "ici" package must be built ("make" and "make install")
 	before any other package.
 
-	The "bp" package is dependent on "dgr" and "ltp" as well as
-	"ici".
+	The "bp" package is dependent on "dgr" and "ltp" and "bssp"
+	as well as "ici".
 
-	The "cfdp", "ams", and "bss" packages are dependent on "bp".
+	The "cfdp", "ams", "bss", and "dtpc" packages are dependent on "bp".
 
 	The "restart" package is dependent on "cfdp", "bp", "ltp",
 	and "ici".
 
+Also, be aware that these Makefiles install everything into subdirectories
+of /opt.  To override this behavior, change the value of OPT in the top-level
+Makefile of each package.
+
 Additional details are provided in the README.txt files in the root
 directories of some of the subsystems.
 
-Note that the default individual build of the ams package requires that
-the "expat" library be installed; this can be overridden at compile time.
-
-Also note that all Makefiles are for gmake; on a freebsd platform, be sure
+Note that all Makefiles are for gmake; on a freebsd platform, be sure
 to install gmake before trying to build ION.
 
 Scott Burleigh, JPL

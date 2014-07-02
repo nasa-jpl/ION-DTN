@@ -302,12 +302,13 @@ static void	startSpan(BsspVspan *vspan)
 	char		engineIdString[11];
 	char		bsoCmdString[SDRSTRING_BUFSZ + 64];
 
-	sdr_begin_xn(bsspSdr);
+	CHKVOID(sdr_begin_xn(bsspSdr));
 	if (vspan->spanElt == 0)
 	{
 		putErrmsg("No such engine in database.", NULL);
 		return ;
 	}
+
 	spanObj = sdr_list_data(bsspSdr, vspan->spanElt);
 	sdr_read(bsspSdr, (char *) &span, spanObj, sizeof(BsspSpan));
 	
@@ -320,7 +321,8 @@ static void	startSpan(BsspVspan *vspan)
 			putErrmsg("Failed to initialize export session object.",
 					NULL);
 		}
-		sdr_begin_xn(bsspSdr);
+
+		CHKVOID(sdr_begin_xn(bsspSdr));
 	}
 
 	sdr_string_read(bsspSdr, cmd, span.bsoBECmd);

@@ -510,7 +510,7 @@ char	*getNameOfUser(char *buffer)
 void	closeOnExec(int fd)
 {
 #ifndef mingw
-	fcntl(fd, F_SETFD, FD_CLOEXEC);
+	oK(fcntl(fd, F_SETFD, FD_CLOEXEC));
 #endif
 }
 
@@ -1261,7 +1261,7 @@ void	*acquireSystemMemory(size_t size)
 #if defined (RTEMS)
 	block = malloc(size);	/*	try posix_memalign?		*/
 #else
-	block = memalign(sizeof(void *), size);
+	block = memalign((size_t) (sizeof(void *)), size);
 #endif
 	if (block)
 	{

@@ -1670,6 +1670,8 @@ static void	*resender(void *parm)
 			pthread_mutex_unlock(&sap->pendingResendsMutex);
 			break;		/*	No more for now.	*/
 		}
+
+		cycleNbr++;
 	}
 }
 

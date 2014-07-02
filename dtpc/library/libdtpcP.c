@@ -1156,7 +1156,7 @@ queued outAdu.", NULL);
 				continue;
 			}
 
-		case -1:
+		case -1:	/*	Intentional fall-through.	*/
 			sdr_exit_xn(sdr);
 			putErrmsg("DTPC can't send adu.", NULL);
 			return -1;
@@ -1392,7 +1392,7 @@ event.", NULL);
 	return 0;
 }
 
-unsigned int     getProfile(unsigned int maxRtx, unsigned int aggrSizeLimit,
+unsigned int     dtpcGetProfile(unsigned int maxRtx, unsigned int aggrSizeLimit,
 			unsigned int aggrTimeLimit, unsigned int lifespan,
 			BpExtendedCOS *extendedCOS, unsigned char srrFlags,
 			BpCustodySwitch custodySwitch, char *reportToEid,
@@ -1557,12 +1557,12 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
                 return 0;
         }
 
-	if(flags)
+	if (flags)
 	{	
         	setFlags(&srrFlags, flags);
 	}
 
-	if (getProfile(maxRtx, aggrSizeLimit, aggrTimeLimit, lifespan,
+	if (dtpcGetProfile(maxRtx, aggrSizeLimit, aggrTimeLimit, lifespan,
 			&extendedCOS, srrFlags, custodySwitch, reportToEid,
 			priority) > 0)
 	{
@@ -2712,7 +2712,7 @@ int	sendAck (BpSAP sap, unsigned int profileID, Scalar seqNum,
 	Profile		*profile;
 	PsmAddress	elt;
 	time_t		currentTime;
-	unsigned int	lifetime;
+	int		lifetime;
 	int		priority = 0;
 	char		dstEid[64];
 	uvast		nodeNbr;

@@ -1096,7 +1096,7 @@ static int	skipDeliveryVector(int *bytesRemaining, char **cursor)
 
 	(*cursor)++;
 	(*bytesRemaining)--;
-	if (parseString(cursor, bytesRemaining, &len) < 0)
+	if (parseString(cursor, bytesRemaining, &len) == NULL)
 	{
 		return -1;
 	}

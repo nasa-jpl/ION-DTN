@@ -5672,6 +5672,7 @@ putErrmsg("Discarding report.", NULL);
 		if (sessionBuf.redPartLength == sessionBuf.totalLength
 		|| sessionBuf.stateFlags & LTP_EOB_SENT)
 		{
+			stopExportSession(&sessionBuf);
 			closeExportSession(sessionObj);
 			ltpSpanTally(vspan, EXPORT_COMPLETE, 0);
 		}
@@ -6516,7 +6517,7 @@ int	ltpHandleInboundSegment(char *buf, int length)
 		iwatch('s');
 	}
 
-	sdr_begin_xn((sdr = getIonsdr()));
+	CHKERR(sdr_begin_xn((sdr = getIonsdr())));
 	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, _ltpdbObject(NULL));
 	sdr_exit_xn(sdr);
 	if ((pdu->segTypeCode & LTP_CTRL_FLAG) == 0)	/*	Data.	*/
