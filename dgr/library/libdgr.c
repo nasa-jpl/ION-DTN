@@ -1308,6 +1308,7 @@ static void	resetDestActivity(DgrSAP *sap)
 	/*	Time to clean house.  First, find the most active dest.	*/
 
 	maxActivity = -1;
+	mostActive = -1;
 	for (i = 0; i < DGR_MAX_DESTS; i++)
 	{
 		dest = sap->dests + i;
