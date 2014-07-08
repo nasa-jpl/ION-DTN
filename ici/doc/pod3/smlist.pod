@@ -9,7 +9,7 @@ smlist - shared memory list management library
     typedef int (*SmListCompareFn)
 	(PsmPartition partition, PsmAddress eltData, void *argData);
     typedef void (*SmListDeleteFn)
-	(PsmPartition partition, PsmAddress eltData, void *argument);
+	(PsmPartition partition, PsmAddress elt, void *argument);
 
     [see description for available functions]
 
@@ -45,7 +45,7 @@ function in platform(3).
 
 Empty a list.  Frees each element of the list.  If the I<delete> function 
 is non-NULL, that function is called once for each freed element; when
-called, that function is passed the PsmAddress that is the element's data
+called, that function is passed the PsmAddress of the list element
 and the I<argument> pointer passed to sm_list_clear().  Returns 0 on success,
 -1 on any error.
 
@@ -101,7 +101,7 @@ on any error.  Disregards any established sort order in the list.
 
 Delete an element from a list.  If the I<delete> function is non-NULL, that
 function is called upon deletion of I<elt>; when called, that function is
-passed the PsmAddress that is the element's data value and the I<argument>
+passed the PsmAddress of the list element and the I<argument>
 pointer passed to sm_list_delete().  Returns 0 on success, -1 on any error.
 
 =item PsmAddress sm_list_first(PsmPartition partition, PsmAddress list);
@@ -160,19 +160,19 @@ A user normally creates an element and adds it to a list by doing the following:
 
 =over 4
 
-=item 1 
+=item C<1>
 
 obtaining a shared memory block to contain the element's data;
 
-=item 2 
+=item C<2>
 
 converting the shared memory block's PsmAddress to a character pointer;
 
-=item 3 
+=item C<3>
 
 using that pointer to write the data into the shared memory block;
 
-=item 4 
+=item C<4>
 
 calling one of the I<sm_list_insert> functions to create the element 
 structure (which will include the shared memory block's PsmAddress) 
@@ -202,13 +202,12 @@ order, the function must reverse the signs of these return values.
 When deleting an element or destroying a list, the user may
 optionally provide a delete function of the form:
 
-    void user_delete_name(PsmPartition partition, PsmAddress eltData, 
-                          void *argData)
+    void user_delete_name(PsmPartition partition, PsmAddress elt, void *argData)
 
 When provided, this function is automatically called by the smlist function
-being invoked; when the function is called it is passed the content of a
-list element (I<eltData>, nominally the PsmAddress of an item in shared
-memory) and an argument, I<argData>, which if non-NULL is normally the address
+being invoked; when the function is called it is passed the address of a
+list element (I<elt> and an argument, I<argData>, which if non-NULL is
+normally the address
 in local memory of a data item providing context for the list element deletion.
 The user-supplied function performs any application-specific cleanup
 associated with deleting the element, such as freeing the element's content

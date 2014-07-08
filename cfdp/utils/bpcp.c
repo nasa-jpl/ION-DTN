@@ -402,16 +402,18 @@ int open_remote_dir(char *host, char *dir)
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 
 	/*Pick a temp file name*/
-	for (hndl=0; strlen(tmp_files[hndl])>0 && hndl < NUM_TMP_FILES; hndl++)
+	for (hndl=0; hndl < NUM_TMP_FILES && strlen(tmp_files[hndl]); hndl++)
 	{
 		/*empty*/
 	}
-	if(strlen(tmp_files[hndl])!=0 || hndl > TMP_MAX)
+
+	if (hndl > TMP_MAX || hndl >= NUM_TMP_FILES || strlen(tmp_files[hndl]))
 	{
 		dbgprintf(0, "Error: Too Many Directories Open\n");
 		exit_nicely(1);
 	}
 
+	oK(umask(S_IWGRP | S_IWOTH));
 	tempfd = mkstemp(template);
 	if (tempfd < 0)
 	{

@@ -17,24 +17,30 @@
 extern "C" {
 #endif
 
-typedef vast	(*SdaDelimiterFn)(unsigned char *buffer, vast bufferLength);
+typedef vast	(*SdaDelimiterFn)(unsigned int clientId,
+			unsigned char *buffer,
+			vast bufferLength);
 		/*	An SDA delimiter function inspects the client
-		 *	service data bytes in "buffer" - the initial
-		 *	"bufferLength" bytes of an LTP service data
-		 *	block - to determine the length of the client
-		 *	service data item at the start of the block.
-		 *	It returns that length if the determination
-		 *	was successful, zero if there is no valid
-		 *	client service data item at the start of the
-		 *	block, -1 on any other failure.			*/
+		 *	service data bytes in "buffer" - the first
+		 *	"bufferLength" bytes of the as-yet unprocessed
+		 *	remnant of an LTP service data block - to
+		 *	determine the length of the client data unit
+		 *	at the start of the buffer; the "clientID" of
+		 *	the client data unit is provided to aid in
+		 *	this determination.  It returns that length
+		 *	if the determination was successful, zero if
+		 *	there is no valid client service data unit
+		 *	at the start of the buffer, -1 on any other
+		 *	failure.					*/
 
 typedef int	(*SdaHandlerFn)(uvast sourceEngineId,
 			unsigned int clientId,
 			Object clientServiceData);	/*	ZCO	*/
 		/*	An SDA handler function applies application
-		 *	processing to the client service data item
-		 *	(a ZCO) identified by clientServiceData.  It
-		 *	returns -1 on any system error, otherwise zero.	*/
+		 *	processing to the client service data unit
+		 *	for client "clientID" that is identified by
+		 *	clientServiceData.  It returns -1 on any
+		 *	system error, otherwise zero.			*/
 
 /*	*	*	SDA data transmission	*	*	*	*/
 
@@ -55,7 +61,7 @@ extern int	sda_run(SdaDelimiterFn delimiter, SdaHandlerFn handler);
 		/*	sda_run executes an infinite loop that receives
 		 *	client service data blocks, calls "delimiter"
 		 *	to determine the length of each client service
-		 *	data item in each lock, and passes those client
+		 *	data item in each block, and passes those client
 		 *	service data items to the handler function.  To
 		 *	terminate the loop, call sda_interrupt().  Note
 		 *	that sda_send() can only be executed while the

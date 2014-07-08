@@ -1166,7 +1166,8 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
                 *resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
                 if (*resultZco == (Object) ERROR)
                 {
-                        putErrmsg("extbsputil: Can't start file source ZCO.", NULL);
+                        putErrmsg("extbsputil: Can't start file source ZCO.",
+					NULL);
                         sdr_cancel_xn(sdr);
                         return -1;
                 }
@@ -1179,7 +1180,8 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
         {
                 if (igetcwd(cwd, sizeof cwd) == NULL)
                 {
-                        putErrmsg("extbsputil: Can't get CWD for acq file name.", NULL);
+                        putErrmsg("extbsputil: Can't get CWD for acq file \
+name.", NULL);
                         sdr_cancel_xn(sdr);
                         return -1;
                 }
@@ -1190,7 +1192,8 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
                 fd = open(fileName, O_WRONLY | O_CREAT, 0666);
                 if (fd < 0)
                 {
-                        putSysErrmsg("extbsputil: Can't create acq file", fileName);
+                        putSysErrmsg("extbsputil: Can't create acq file",
+					fileName);
                         sdr_cancel_xn(sdr);
                         return -1;
                 }
@@ -1198,24 +1201,35 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
                 fileLength = 0;
                 *acqFileRef = zco_create_file_ref(sdr, fileName, "");
         }
-        else                            /*      Writing more to file.   */
-        {
-                oK(zco_file_ref_path(sdr, *acqFileRef, fileName,
-                                sizeof fileName));
-                fd = open(fileName, O_WRONLY, 0666);
-                if (fd < 0 || (fileLength = lseek(fd, 0, SEEK_END)) < 0)
-                {
-                        putSysErrmsg("extbsputil: Can't reopen acq file", fileName);
+	else				/*	Writing more to file.	*/
+	{
+		oK(zco_file_ref_path(sdr, *acqFileRef, fileName,
+				sizeof fileName));
+		fd = open(fileName, O_WRONLY, 0666);
+		if (fd < 0)
+		{
+			putSysErrmsg("extbsputil: Can't reopen acq file",
+					fileName);
                         sdr_cancel_xn(sdr);
                         return -1;
-                }
-        }
+		}
+
+		if ((fileLength = lseek(fd, 0, SEEK_END)) < 0)
+		{
+			putSysErrmsg("extbsputil: Can't get acq file length",
+					fileName);
+			sdr_cancel_xn(sdr);
+			close(fd);
+			return -1;
+		}
+	}
 
         // Write the data to the file
         if (write(fd, bytes, length) < 0)
         {
                 putSysErrmsg("extbsputil: Can't append to acq file", fileName);
                 sdr_cancel_xn(sdr);
+		close(fd);
                 return -1;
         }
 

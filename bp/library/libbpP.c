@@ -1835,8 +1835,10 @@ int	bpAttach()
 	return 0;		/*	BP service is now available.	*/
 }
 
-void bpDetach(){
-	char *stop=NULL;
+void	bpDetach()
+{
+	char	*stop = NULL;
+
 	oK(_bpvdb(&stop));
 	return;
 }
@@ -2163,158 +2165,6 @@ int	printEid(EndpointId *eid, char *dictionary, char **result)
 	{
 		return printDtnEid(&(eid->d), dictionary, result);
 	}
-}
-
-BpEidLookupFn	*senderEidLookupFunctions(BpEidLookupFn fn)
-{
-	static BpEidLookupFn	fns[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-	int			i;
-
-	if (fn == NULL)		/*	Requesting pointer to table.	*/
-	{
-		return fns;
-	}
-
-	for (i = 0; i < 16; i++)
-	{
-		if (fns[i] == fn)
-		{
-			break;		/*	Already in table.	*/
-		}
-
-		if (fns[i] == NULL)
-		{
-			fns[i] = fn;	/*	Add to table.		*/
-			break;
-		}
-	}
-
-	if (i == 16)
-	{
-		writeMemo("[?] EID lookup functions table is full.");
-	}
-
-	return NULL;
-}
-
-void	getSenderEid(char **eidBuffer, char *neighborClEid)
-{
-	BpEidLookupFn	*lookupFns;
-	int		i;
-	BpEidLookupFn	lookupEid;
-	Sdr		sdr = getIonsdr();
-	int		result;
-
-	CHKVOID(eidBuffer);
-	CHKVOID(*eidBuffer);
-	CHKVOID(*neighborClEid);
-	lookupFns = senderEidLookupFunctions(NULL);
-	for (i = 0; i < 16; i++)
-	{
-		lookupEid = lookupFns[i];
-		if (lookupEid == NULL)
-		{
-			break;		/*	Reached end of table.	*/
-		}
-
-		CHKVOID(sdr_begin_xn(sdr));
-		result = lookupEid(*eidBuffer, neighborClEid);
-		sdr_exit_xn(sdr);
-		switch (result)
-		{
-		case -1:
-			putErrmsg("Failed getting sender EID.", NULL);
-			sm_Abort();
-			break;
-
-		case 0:
-			continue;	/*	No match yet.		*/
-
-		default:
-			return;		/*	Figured out sender EID.	*/
-		}
-	}
-
-	*eidBuffer = NULL;	/*	Sender EID not found.		*/
-}
-
-int	clIdMatches(char *neighborClId, FwdDirective *dir)
-{
-	Sdr	sdr = getIonsdr();
-	char	*firstNonNumeric;
-	char	ductNameBuffer[SDRSTRING_BUFSZ];
-	char	*ductClId;
-	Object	ductObj;
-		OBJ_POINTER(Outduct, duct);
-	int	neighborIdLen;
-	int	ductIdLen;
-	int	idLen;
-	int	digitCount UNUSED;
-
-	if (dir->action == fwd)
-	{
-		return 0;
-	}
-
-	/*	This is a directive for transmission to a neighbor.	*/
-
-	neighborIdLen = strlen(neighborClId);
-	if (dir->destDuctName)
-	{
-		if (sdr_string_read(sdr, ductNameBuffer, dir->destDuctName) < 0)
-		{
-			putErrmsg("Missing dest duct name.", NULL);
-			return -1;		/*	DB error.	*/
-		}
-
-		ductClId = ductNameBuffer;
-	}
-	else
-	{
-		ductObj = sdr_list_data(sdr, dir->outductElt);
-		GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
-		ductClId = duct->name;
-	}
-
-	if (strcmp(ductClId, "localhost") == 0)
-	{
-		/*	Convert to dotted-string representation for
-		 *	match with canonical form of the IPv4 address
-		 *	that the neighbor CL ID must be.		*/
-
-		ductClId = "127.0.0.1";
-	}
-
-	ductIdLen = strlen(ductClId);
-	digitCount = strtol(ductClId, &firstNonNumeric, 0);
-	if (*firstNonNumeric == '\0')
-	{
-		/*	Neighbor CL ID is a number, e.g., an LTP
-		 *	engine number.  IDs must be the same length
-		 *	in order to match.				*/
-
-		 if (ductIdLen != neighborIdLen)
-		 {
-			 return 0;	/*	Different numbers.	*/
-		 }
-
-		 idLen = ductIdLen;
-	}
-	else
-	{
-		/*	IDs are character strings, e.g., hostnames.
-		 *	Matches if shorter string matches the leading
-		 *	characters of longer string.			*/
-
-		idLen = neighborIdLen < ductIdLen ? neighborIdLen : ductIdLen;
-	}
-
-	if (strncmp(neighborClId, ductClId, idLen) == 0)
-	{
-		return 1;		/*	Found neighbor's duct.	*/
-	}
-
-	return 0;			/*	A different neighbor.	*/
 }
 
 int	startBpTask(Object cmd, Object cmdParms, int *pid)
@@ -2745,8 +2595,7 @@ incomplete bundle.", NULL);
 
 		if ((_bpvdb(NULL))->watching & WATCH_expire)
 		{
-			putchar('!');
-			fflush(stdout);
+			iwatch('!');
 		}
 
 		if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
@@ -5706,8 +5555,7 @@ when asking for custody transfer and/or status reports.");
 	bpSourceTally(classOfService, bundle.payload.length);
 	if (bpvdb->watching & WATCH_a)
 	{
-		putchar('a');
-		fflush(stdout);
+		iwatch('a');
 	}
 
 	if (sdr_end_xn(bpSdr) < 0)
@@ -6128,8 +5976,7 @@ static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
 	return 0;
 }
 
-static int	deliverBundle(Object bundleObj, Bundle *bundle,
-			VEndpoint *vpoint)
+int	deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
 {
 	char	*dictionary;
 	int	result;
@@ -6231,8 +6078,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 
 			if ((_bpvdb(NULL))->watching & WATCH_z)
 			{
-				putchar('z');
-				fflush(stdout);
+				iwatch('z');
 			}
 
 			if (bundle->bundleProcFlags & BDL_DEST_IS_SINGLETON)
@@ -6691,6 +6537,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		{
 			putErrmsg("Can't create file ref.", NULL);
 			sdr_cancel_xn(sdr);
+			close(fd);
 			return -1;
 		}
 	}
@@ -6699,10 +6546,18 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		oK(zco_file_ref_path(sdr, work->acqFileRef, fileName,
 				sizeof fileName));
 		fd = iopen(fileName, O_WRONLY, 0666);
-		if (fd < 0 || (fileLength = lseek(fd, 0, SEEK_END)) < 0)
+		if (fd < 0)
 		{
 			putSysErrmsg("Can't reopen acq file", fileName);
 			sdr_cancel_xn(sdr);
+			return -1;
+		}
+		
+		if ((fileLength = lseek(fd, 0, SEEK_END)) < 0)
+		{
+			putSysErrmsg("Can't get acq file length", fileName);
+			sdr_cancel_xn(sdr);
+			close(fd);
 			return -1;
 		}
 	}
@@ -6711,6 +6566,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	{
 		putSysErrmsg("Can't append to acq file", fileName);
 		sdr_cancel_xn(sdr);
+		close(fd);
 		return -1;
 	}
 
@@ -7423,8 +7279,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 
 		if ((_bpvdb(NULL))->watching & WATCH_x)
 		{
-			putchar('x');
-			fflush(stdout);
+			iwatch('x');
 		}
 	}
 
@@ -7778,8 +7633,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 			bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
-		putchar('y');
-		fflush(stdout);
+		iwatch('y');
 	}
 
 	/*	Other decisions and reporting are left to the
@@ -9032,8 +8886,7 @@ static int	takeCustody(Bundle *bundle)
 
 	if ((_bpvdb(NULL))->watching & WATCH_w)
 	{
-		putchar('w');
-		fflush(stdout);
+		iwatch('w');
 	}
 
 	/*	Insert Endpoint ID of custodial endpoint.		*/
@@ -9365,8 +9218,7 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	if ((_bpvdb(NULL))->watching & WATCH_b)
 	{
-		putchar('b');
-		fflush(stdout);
+		iwatch('b');
 	}
 
 	/*	Finally, if outduct is started then wake up CLO.	*/
@@ -9437,8 +9289,7 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	bpDbTally(BP_DB_TO_LIMBO, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_limbo)
 	{
-		putchar('j');
-		fflush(stdout);
+		iwatch('j');
 	}
 
 	return 0;
@@ -9621,8 +9472,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 	bpDbTally(BP_DB_FROM_LIMBO, bundle.payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_delimbo)
 	{
-		putchar('k');
-		fflush(stdout);
+		iwatch('k');
 	}
 
 	/*	Now see if the bundle can finally be transmitted.	*/
@@ -9775,8 +9625,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 
 	if ((_bpvdb(NULL))->watching & WATCH_abandon)
 	{
-		putchar('~');
-		fflush(stdout);
+		iwatch('~');
 	}
 
 	return ((result1 + result2) == 0 ? 0 : -1);
@@ -10417,8 +10266,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 			bundle.payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_c)
 	{
-		putchar('c');
-		fflush(stdout);
+		iwatch('c');
 	}
 
 	/*	Consume estimated transmission capacity.		*/
@@ -10776,9 +10624,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	}
 }
 
-static int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer,
-			Bundle *image, char **dictionary,
-			unsigned int *bundleLength)
+int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image,
+		char **dictionary, unsigned int *bundleLength)
 {
 	ZcoReader	reader;
 	int		bytesBuffered;
@@ -11077,8 +10924,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 
 	if ((_bpvdb(NULL))->watching & WATCH_timeout)
 	{
-		putchar('#');
-		fflush(stdout);
+		iwatch('#');
 	}
 
 	if (bpReforwardBundle(bundleAddr) < 0)
@@ -11389,8 +11235,7 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 	{
 		if (bpvdb->watching & WATCH_m)
 		{
-			putchar('m');
-                        fflush(stdout);
+			iwatch('m');
 		}
 
 		forgetSnub(bundle, bundleAddr, bundleSourceEid);
@@ -11433,8 +11278,7 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 
 		if (bpvdb->watching & WATCH_refusal)
 		{
-			putchar('&');
-                        fflush(stdout);
+			iwatch('&');
 		}
 	}
 

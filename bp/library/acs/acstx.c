@@ -101,7 +101,7 @@ int acsInitialize(long heapWords, int logLevel)
 	}
 
 
-	if (getAcssdr() < 0)
+	if (getAcssdr() == NULL)
 	{
 		putErrmsg("ACS can't find ACS SDR.", NULL);
 		return -1;

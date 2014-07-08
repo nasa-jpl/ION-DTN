@@ -24,13 +24,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 {
 	int		priority = 0;
 	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
-
-	/*
-         * ******************************************************
-	 * BSS traffic bundles must always be marked as custodial
-         * ******************************************************
-	 */ 
-	BpCustodySwitch	custodySwitch = SourceCustodyRequired;
+	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap;
 	Sdr		sdr;
 	unsigned int	i = 0;

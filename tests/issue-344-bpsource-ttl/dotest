@@ -114,7 +114,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c14 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
+RESULTS=`cat response.cap | tail  -c25 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
 echo "Expected value: 822c"
 echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "822c" ]; then
@@ -168,7 +168,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c14 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
+RESULTS=`cat response.cap | tail  -c25 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
 echo "Expected value: 9738"
 echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "9738" ]; then
@@ -222,7 +222,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c13 | xxd -p -c 256 | cut -c 1-2 | tr -d '\n'`
+RESULTS=`cat response.cap | tail  -c24 | xxd -p -c 256 | cut -c 1-2 | tr -d '\n'`
 echo "Expected value: 1e"
 echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "1e" ]; then

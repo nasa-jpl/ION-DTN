@@ -7,6 +7,22 @@
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
  *
  *	Author: Scott Burleigh, JPL
+ *	Modifications: TCSASSEMBLER, TopCoder
+ *
+ *	Modification History:
+ *	Date       Who   What
+ *	09-24-13    TC   Added LtpAuthHeaderExtension and
+ *			 LtpAuthTrailerExtension structures.
+ *                  	 Added authHeaderExtensions and authTrailerExtensions 
+ *                       attributes to LtpPdu structure.
+ *                  	 Added firstSegmentLength and firstSegmentOffset 
+ *                       attributes to ExportSession structure.
+ *	02-06-14    TC   Added headerExtensions and trailerExtensions
+ *                       attributes to LtpPdu structure.
+ *	02-19-14    TC   Removed authHeaderExtensions and authTailerExtensions
+ *                       attributes from LtpPdu structure.
+ *                       Removed LtpAuthHeaderExtension and
+ *                       LtpAuthTrailerExtension structures.
  */
 
 #include "rfx.h"
@@ -95,8 +111,20 @@ typedef enum
 typedef struct
 {
 	LtpSegmentTypeCode	segTypeCode;
+	unsigned int		headerLength;
+	unsigned int		contentLength;
+	unsigned int		trailerLength;
 	unsigned char		headerExtensionsCount;
 	unsigned char		trailerExtensionsCount;
+
+	/*	Note that Extensions lists are populated only for
+	 *	PDUs that are queued for output; they are used in
+	 *	serializing the PDUs.  Extensions of incoming PDUs
+	 *	are simply processed in the course of handling the
+	 *	PDUs and are immediately discarded.			*/
+	
+	Object			headerExtensions;/*	SDR list.	*/
+	Object			trailerExtensions;/*	SDR list.	*/
 
 	/*	Fields used for multiple segment classes.		*/
 
@@ -106,9 +134,10 @@ typedef struct
 
 	/*	Fields for data segments.				*/
 
+	unsigned int		ohdLength;	/*	Data seg ohd.	*/
 	unsigned int		clientSvcId;	/*	Destination.	*/
 	unsigned int		offset;		/*	Within block.	*/
-	unsigned int		length;
+	unsigned int		length;		/*	Of block data.	*/
 	Object			block;	/*	Session svcDataObjects.	*/
 
 	/*	Fields for report segments.				*/
@@ -170,7 +199,6 @@ typedef struct
 {
 	unsigned int	sessionNbr;
 	uvast		remoteEngineId;
-	short		ohdLength;
 	Object		queueListElt;
 	Object		ckptListElt;	/*	For checkpoints only.	*/
 	Object		sessionObj;	/*	For codes 1-3, 14 only.	*/
@@ -237,6 +265,11 @@ typedef struct
 	Object		sessionListElt;
 } LtpCkpt;
 
+/*	Export session state flag values.				*/
+
+#define	LTP_EOB_SENT	1
+#define	LTP_FINAL_ACK	2
+
 typedef struct
 {
 	Object		span;		/*	Transmission span.	*/
@@ -246,6 +279,7 @@ typedef struct
 	Sdnv		clientSvcIdSdnv;
 	int		totalLength;
 	int		redPartLength;
+	int		stateFlags;
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
@@ -379,8 +413,10 @@ typedef struct
 
 	/*	For detecting miscolored segments.			*/
 
+	unsigned int	redSessionNbr;
+	unsigned int	endOfRed;
 	unsigned int	greenSessionNbr;
-	unsigned int	greenOffset;
+	unsigned int	startOfGreen;
 
 	/*	*	*	Work area	*	*	*	*/
 

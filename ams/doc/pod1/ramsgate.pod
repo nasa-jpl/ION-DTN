@@ -98,4 +98,4 @@ Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
 
 =head1 SEE ALSO
 
-amsrc(5)
+amsrc(5), petition_log(5)

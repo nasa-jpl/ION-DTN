@@ -791,16 +791,6 @@ typedef struct
 	Object		eid;		/*	sdrstring for fwd	*/
 } FwdDirective;
 
-/*	Definitions supporting determination of sender endpoint ID.	*/
-
-typedef int		(*BpEidLookupFn)(char *uriBuffer, char *neighborClId);
-
-extern BpEidLookupFn	*senderEidLookupFunctions(BpEidLookupFn fn);
-extern void		getSenderEid(char **eidBuffer, char *neighborClId);
-extern int		clIdMatches(char *neighborClId, FwdDirective *dir);
-
-extern void		getSenderEid(char **eidBuffer, char *neighborClId);
-
 /*	Definitions supporting the use of QoS-sensitive bandwidth
  *	management.							*/
 
@@ -1341,12 +1331,17 @@ extern int		bpUnblockOutduct(char *protocolName, char *ductName);
 extern Object		insertBpTimelineEvent(BpEvent *newEvent);
 extern void		destroyBpTimelineEvent(Object timelineElt);
 
+extern int		decodeBundle(Sdr sdr, Object zco, unsigned char *buf,
+				Bundle *image, char **dictionary,
+				unsigned int *bundleLength);
 extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned int fragmentOffset,
 				unsigned int fragmentLength,
 				Object *bundleAddr);
 extern int		retrieveInTransitBundle(Object bundleZco, Object *obj);
 
+extern int		deliverBundle(Object bundleObj, Bundle *bundle,
+				VEndpoint *vpoint);
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 

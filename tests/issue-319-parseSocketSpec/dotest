@@ -11,8 +11,9 @@ CONFIGFILES=" \
 ./amroc.ionconfig \
 ./amroc.ionsecrc \
 ./amroc.ipnrc \
-./amsmib.xml
+./mib.amsrc
 "
+#./amsmib.xml
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "

@@ -34,6 +34,7 @@ ICISOURCES =     \
    sdrmend.c     \
    ionsec.c      \
    ionsecadmin.c \
+   crypto.c      \
    ionwarn.c     \
    ionrestart.c  \
    ionexit.c
@@ -41,6 +42,8 @@ ICISOURCES =     \
 LTPSOURCES =     \
 	libltp.c     \
 	libltpP.c    \
+	libltpnm.c   \
+	ltpei.c      \
 	ltpclock.c   \
 	ltpmeter.c   \
 	pmqlsi.c     \
@@ -64,6 +67,7 @@ BPSOURCES =      \
 	ltpcli.c     \
 	ltpclo.c     \
 	bei.c        \
+	phn.c        \
 	ecos.c       \
 	bae.c
 
@@ -78,17 +82,19 @@ BPSOURCES =      \
 #	acsserialize.c \
 #	acsadmin.c   \
 #	acslist.c    \
-#	phn.c        \
 
 BSPSOURCES =     \
 	extbsputil.c \
 	extbspbab.c  \
 	extbsppib.c  \
-	extbsppcb.c  \
-	crypto.c          
+	extbsppcb.c
 
 DTN2SOURCES =        \
 	libdtn2fw.c 
+
+BSSSOURCES =      \
+	libbss.c     \
+	libbssP.c    \
 
 CFDPSOURCES =      \
 	bputa.c      \
@@ -130,7 +136,7 @@ include $(PROJECT_ROOT)/make/leaf.cfg
 
 OBJS = $(COBJS) $(CXXOBJS) $(ASOBJS)
 
-INCLUDES_T= -I. -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include
+INCLUDES_T= -I. -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include -I../bss/include -I../bssp/include
 
 ifeq "$(ION_OPEN_SOURCE)" "1"
 INCLUDES = $(INCLUDES_T) -I../cfdp/include -I../ams/include

@@ -30,8 +30,10 @@ MY_ICISOURCES := \
 	$(MY_ICI)/library/smlist.c      \
 	$(MY_ICI)/library/smrbt.c       \
 	$(MY_ICI)/library/ion.c         \
+	$(MY_ICI)/library/ionsec.c      \
 	$(MY_ICI)/library/rfx.c         \
 	$(MY_ICI)/library/zco.c         \
+	$(MY_ICI)/crypto/NULL_SUITES/crypto.c	\
 	$(MY_ICI)/sdr/sdrtable.c        \
 	$(MY_ICI)/sdr/sdrhash.c         \
 	$(MY_ICI)/sdr/sdrxn.c           \
@@ -42,9 +44,8 @@ MY_ICISOURCES := \
 	$(MY_ICI)/daemon/rfxclock.c     \
 	$(MY_ICI)/utils/ionadmin.c      \
 	$(MY_ICI)/utils/sdrmend.c       \
-	$(MY_ICI)/library/ionsec.c      \
 	$(MY_ICI)/utils/ionsecadmin.c 	\
-	$(MY_ICI)/utils/ionwarn.c 
+	$(MY_ICI)/utils/ionwarn.c
 
 #	$(MY_ICI)/utils/ionexit.c      \
 
@@ -68,6 +69,24 @@ MY_DGRSOURCES :=     \
 #		$(MY_LTP)/udp/udplsi.c        \
 #		$(MY_LTP)/udp/udplso.c        \
 #		$(MY_LTP)/utils/ltpadmin.c
+
+#	NOTE: can't include BSSP in bionic build until duplication
+#	of function and variable names between bp/tcp/libtcpcla.c
+#	and bssp/tcp/libtcpbsa.c is resolve.  Best approach is to
+#	abstract this common TCP stuff out of BP and move it to ici.
+
+#	MY_BSSP		:= ../../../bssp
+
+#	MY_BSSPSOURCES :=     \
+#		$(MY_BSSP)/library/libbssp.c    \
+#		$(MY_BSSP)/library/libbsspP.c   \
+#		$(MY_BSSP)/daemon/bsspclock.c   \
+#		$(MY_BSSP)/udp/udpbsi.c         \
+#		$(MY_BSSP)/udp/udpbso.c         \
+#		$(MY_BSSP)/tcp/tcpbsi.c         \
+#		$(MY_BSSP)/tcp/tcpbso.c         \
+#		$(MY_BSSP)/tcp/libtcpbsa.c      \
+#		$(MY_BSSP)/utils/bsspadmin.c
 
 MY_BP		:= ../../../bp
 
@@ -96,11 +115,12 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/tcp/libtcpcla.c      \
 	$(MY_BP)/dgr/dgrcla.c         \
 	$(MY_BP)/library/bei.c        \
+	$(MY_BP)/library/ext/phn/phn.c \
 	$(MY_BP)/library/ext/ecos/ecos.c \
 	$(MY_BP)/library/ext/bae/bae.c
 
-#		$(MY_BP)/ltp/ltpcli.c         \
-#		$(MY_BP)/ltp/ltpclo.c         \
+#	$(MY_BP)/ltp/ltpcli.c         \
+#	$(MY_BP)/ltp/ltpclo.c         \
 
 MY_BSP		:= $(MY_BP)/library/ext/bsp
 
@@ -108,16 +128,21 @@ MY_BSPSOURCES :=                      \
 	$(MY_BSP)/extbsputil.c        \
 	$(MY_BSP)/extbspbab.c         \
 	$(MY_BSP)/extbsppib.c         \
-	$(MY_BSP)/extbsppcb.c         \
-	$(MY_BP)/library/crypto/NULL_SUITES/crypto.c          
+	$(MY_BSP)/extbsppcb.c
 
 MY_DTN2		:= $(MY_BP)/dtn2
 
 MY_DTN2SOURCES :=    \
-	$(MY_DTN2)/dtn2admin.c       \
-	$(MY_DTN2)/dtn2fw.c          \
-	$(MY_DTN2)/dtn2adminep.c     \
+	$(MY_DTN2)/dtn2admin.c        \
+	$(MY_DTN2)/dtn2fw.c           \
+	$(MY_DTN2)/dtn2adminep.c      \
 	$(MY_DTN2)/libdtn2fw.c
+
+MY_BSS		:= ../../../bss
+
+MY_BSSSOURCES :=    \
+	$(MY_BSS)/library/libbss.c    \
+	$(MY_BSS)/library/libbssP.c
 
 #	MY_TEST		:= $(MY_BP)/test
 
@@ -135,15 +160,16 @@ MY_DTN2SOURCES :=    \
 #		$(MY_CFDP)/daemon/cfdpclock.c   \
 #		$(MY_CFDP)/utils/cfdpadmin.c    \
 
-LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/library/crypto $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/bae
+LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/bae $(MY_BP)/library/ext/phn $(MY_BSS)/include $(MY_BSS)/library
 
+#	$(MY_BSSP)/include $(MY_BSSP)/library $(MY_BSSP)/udp $(MY_BSSP)/tcp
 #	$(MY_LTP)/include $(MY_LTP)/library $(MY_LTP)/udp 
 #	$(MY_CFDP)/include $(MY_CFDP)/library
 
 LOCAL_CFLAGS = -g -Wall -Werror -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE -DENABLE_IMC
 #	-DENABLE_ACS -DNO_PROXY -DNO_DIRLIST
 
-LOCAL_SRC_FILES := iondtn.c $(MY_ICISOURCES) $(MY_DGRSOURCES) $(MY_BPSOURCES) $(MY_BSPSOURCES) $(MY_DTN2SOURCES)
+LOCAL_SRC_FILES := iondtn.c $(MY_ICISOURCES) $(MY_DGRSOURCES) $(MY_BPSOURCES) $(MY_BSPSOURCES) $(MY_DTN2SOURCES) $(MY_BSSSOURCES)
 
 #	$(MY_RESTARTSOURCE) $(MY_LTPSOURCES) $(MY_TESTSOURCES) $(MY_CFDPSOURCES)
 

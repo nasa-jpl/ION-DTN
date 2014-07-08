@@ -68,51 +68,6 @@ static DtnDB	*_dtn2Constants()
 
 /*	*	*	Routing information mgt functions	*	*/
 
-static int	lookupDtn2Eid(char *uriBuffer, char *neighborClId)
-{
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-		OBJ_POINTER(Dtn2Plan, plan);
-	char	nodeName[SDRSTRING_BUFSZ];
-	int	nodeNameLen;
-	char	*lastChar;
-
-	for (elt = sdr_list_first(sdr, (_dtn2Constants())->plans); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, sdr_list_data(sdr, elt));
-		switch (clIdMatches(neighborClId, &plan->defaultDirective))
-		{
-		case -1:
-			putErrmsg("Failed looking up DTN2 EID.", NULL);
-			return -1;
-
-		case 0:
-			continue;	/*	No match.		*/
-
-		default:
-
-			/*	Found the plan for transmission to
-			 *	this neighbor, so now we know the
-			 *	neighbor's EID.				*/
-
-			nodeNameLen = sdr_string_read(sdr, nodeName,
-					plan->nodeName);
-			lastChar = nodeName + (nodeNameLen - 1);
-			if (*lastChar == '~')
-			{
-				*lastChar = '\0';
-			}
-
-			isprintf(uriBuffer, SDRSTRING_BUFSZ, "dtn:%.62s",
-					nodeName);
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
 int	dtn2Init()
 {
 	Sdr	sdr = getIonsdr();
@@ -122,7 +77,6 @@ int	dtn2Init()
 	/*	Recover the DTN database, creating it if necessary.	*/
 
 	CHKERR(sdr_begin_xn(sdr));
-	oK(senderEidLookupFunctions(lookupDtn2Eid));
 	dtn2dbObject = sdr_find(sdr, DTN_DBNAME, NULL);
 	switch (dtn2dbObject)
 	{

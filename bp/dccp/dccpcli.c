@@ -42,14 +42,14 @@ void	handleConnectionLoss()
 
 typedef struct
 {
-	int					sock;
-	pthread_t			mainThread;
-	pthread_t			me;
-	int					running;
+	int			sock;
+	pthread_t		mainThread;
+	pthread_t		me;
+	int			running;
 	struct sockaddr_in 	fromAddr;
-	VInduct				*vduct;
+	VInduct			*vduct;
 	pthread_mutex_t 	*elk;
-	Lyst				*list;
+	Lyst			*list;
 } ReceiverThreadParms;
 
 ReceiverThreadParms* create_new_thread_data(Lyst *list)
@@ -142,32 +142,15 @@ static void *Recieve_DCCP(void *param)
 	/*	Main loop for bundle reception thread on one
 	 *	connection, terminating when connection is lost.	*/
 	ReceiverThreadParms 	*rtp = (ReceiverThreadParms*)param;
-	unsigned int			hostNbr;
-	char					hostName[MAXHOSTNAMELEN + 1];
-	char					senderEidBuffer[SDRSTRING_BUFSZ];
-	char					*senderEid;
-	char					*buffer;
-	AcqWorkArea				*work;
-	int 					bundleLength;
+	char			*buffer;
+	AcqWorkArea		*work;
+	int 			bundleLength;
 	
 	iblock(SIGTERM);
 	isignal(SIGUSR1, siguser_thread);
 #ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
 #endif
-
-	/* Determine what the sender's EID is given it's IP		*/
-	memcpy((char *) &hostNbr, (char *) &(rtp->fromAddr.sin_addr.s_addr), 4);
-	hostNbr = ntohl(hostNbr);
-	if (getInternetHostName(hostNbr, hostName))
-	{
-		senderEid = senderEidBuffer;
-		getSenderEid(&senderEid, hostName);
-	}
-	else
-	{
-		senderEid = NULL;
-	}
 
 	/* Get buffers							*/
 	writeErrmsgMemos();
@@ -225,7 +208,7 @@ static void *Recieve_DCCP(void *param)
 		}
 
 		pthread_mutex_lock(rtp->elk);
-		if (bpBeginAcq(work, 0, senderEid) < 0 
+		if (bpBeginAcq(work, 0, NULL) < 0 
 				|| bpContinueAcq(work, buffer, bundleLength) < 0
 				|| bpEndAcq(work) < 0)
 		{
@@ -249,29 +232,29 @@ static void *Recieve_DCCP(void *param)
 	writeErrmsgMemos();
 	MRELEASE(buffer);
 	bpReleaseAcqArea(work);
-return NULL;
+	return NULL;
 }
 
 /*	*	*	Listener thread functions	*	*	*/
 typedef struct
 {
-	int			linkSocket;
+	int		linkSocket;
 	VInduct		*vduct;
 	pthread_t	mainThread;
-	int			running;
+	int		running;
 } ListenerThreadParms;
 
 
 static void	*Listen_for_connections(void *parm)
 {
 	/*	Main loop for DCCP connection handling			*/
-	ListenerThreadParms		*rtp = (ListenerThreadParms *) parm;
-	Lyst					list;
-	pthread_mutex_t 		elk;
-	struct sockaddr			fromAddr;
-	int						consock;
-	socklen_t				solen;
-	ReceiverThreadParms		*rp;
+	ListenerThreadParms	*rtp = (ListenerThreadParms *) parm;
+	Lyst			list;
+	pthread_mutex_t 	elk;
+	struct sockaddr		fromAddr;
+	int			consock;
+	socklen_t		solen;
+	ReceiverThreadParms	*rp;
 
 	list = lyst_create_using(getIonMemoryMgr());
 	lyst_clear(list);
@@ -369,20 +352,18 @@ int	main(int argc, char *argv[])
 {
 	char	*ductName = (argc > 1 ? argv[1] : NULL);
 #endif
-	Sdr					sdr;
-	VInduct				*vduct;
-	PsmAddress			vductElt;
-	Induct				duct;
-	ClProtocol			protocol;
-	char				*hostName;
+	Sdr			sdr;
+	VInduct			*vduct;
+	PsmAddress		vductElt;
+	Induct			duct;
+	ClProtocol		protocol;
+	char			*hostName;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
 	ListenerThreadParms	rtp;
-	pthread_t			listenerThread;
-
-
+	pthread_t		listenerThread;
 
 	if (ductName == NULL)
 	{
@@ -454,10 +435,6 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	/*	Initialize sender endpoint ID lookup.			*/
-	ipnInit();
-	dtn2Init();
-
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 	isignal(SIGTERM, interruptThread);
 #ifndef mingw
@@ -494,7 +471,6 @@ int	main(int argc, char *argv[])
 
 #else /*build_dccp*/
 
-
 #include "bpP.h"
 #if defined (VXWORKS) || defined (RTEMS)
 int	dccpcli(int a1, int a2, int a3, int a4, int a5,
@@ -508,6 +484,5 @@ putErrmsg("dccpcli (and the DCCP protocol) are only available under Linux (>=3.2
 writeErrmsgMemos();
 return 0;
 }
-
 
 #endif /*build_dccp*/

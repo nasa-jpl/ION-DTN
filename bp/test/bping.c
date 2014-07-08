@@ -148,7 +148,7 @@ void *receiveResponses(void *x)
 
 		/* ReceptionInterrupted means this process received a signal but not
 		 * a bundle.  Try receiving again... */
-		if(dlv.result == BpReceptionInterrupted) {
+		if(dlv.result == BpReceptionInterrupted || dlv.adu == 0) {
 			if(verbosity) fprintf(stderr, "Reception interrupted.\n");
 			bp_release_delivery(&dlv, 1);
 			continue;
@@ -164,7 +164,7 @@ void *receiveResponses(void *x)
 		contentLength = zco_source_data_length(sdr, dlv.adu);
 		bytesToRead = MIN(contentLength, sizeof(buffer)-1); 
 		zco_start_receiving(dlv.adu, &reader);
-		CHKNULL(sdr_begin_xn(sdr));
+		oK(sdr_begin_xn(sdr));
 		result = zco_receive_source(sdr, &reader, bytesToRead, buffer);
 		if (sdr_end_xn(sdr) < 0 || result < 0)
 		{

@@ -114,6 +114,7 @@ void	cfdp_compress_number(CfdpNumber *nbr, uvast val)
 void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 {
 	unsigned char	*octet;
+	vast		digit;
 	int		i;
 
 	CHKVOID(val);
@@ -121,7 +122,9 @@ void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 	*val = 0;
 	for (i = 0, octet = nbr->buffer + 7; i < nbr->length; i++, octet--)
 	{
-		*val = ((*val) << 8) + *octet;
+		digit = *octet;
+		digit <<= (i << 3);
+		*val += digit;
 	}
 }
 

@@ -796,14 +796,23 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 		work->arrivalTime = MAX_TIME;
 	}
 
-	/*	Now suppress from consideration as lead contact
-	 *	every contact that is already the leading contact of
+	/*	Now suppress from consideration as lead contact every
+	 *	other contact that is already the leading contact of
 	 *	any remaining route in stationNode's list of routes.	*/
 
 	for (elt = sm_list_first(ionwm, routes); elt; elt =
 			sm_list_next(ionwm, elt))
 	{
 		route = (CgrRoute *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (route->toNodeNbr == contactToNodeNbr
+		&& route->fromTime == contactFromTime)
+		{
+			/*	Don't suppress the contact we are
+			 *	trying to compute a new route through.	*/
+
+			continue;
+		}
+
 		arg.fromNode = getOwnNodeNbr();
 		arg.toNode = route->toNodeNbr;
 		arg.fromTime = route->fromTime;

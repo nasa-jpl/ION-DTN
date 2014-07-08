@@ -316,6 +316,10 @@ void *rx_thread(void *threadId) {
                 	}
                 	break;
             	}
+
+            	cursor += bytes;
+            	size -= bytes;
+
             }
         }
     }

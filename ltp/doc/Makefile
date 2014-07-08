@@ -9,12 +9,14 @@ MANFILES = \
 	./man/man1/ltpcounter.1 \
 	./man/man1/ltpdriver.1 \
 	./man/man1/ltpmeter.1 \
+	./man/man1/sdatest.1 \
 	./man/man1/udplsi.1 \
 	./man/man1/udplso.1 \
 	./man/man1/dccplsi.1 \
 	./man/man1/dccplso.1 \
 	./man/man5/ltprc.5 \
-	./man/man3/ltp.3
+	./man/man3/ltp.3 \
+	./man/man3/sda.3
 
 HTMLFILES = \
 	./html/man1/ltpadmin.html \
@@ -22,12 +24,14 @@ HTMLFILES = \
 	./html/man1/ltpcounter.html \
 	./html/man1/ltpdriver.html \
 	./html/man1/ltpmeter.html \
+	./html/man1/sdatest.html \
 	./html/man1/udplsi.html \
 	./html/man1/udplso.html \
 	./html/man1/dccplsi.html \
 	./html/man1/dccplso.html \
 	./html/man5/ltprc.html \
-	./html/man3/ltp.html
+	./html/man3/ltp.html \
+	./html/man3/sda.html
 
 ALL = $(MANFILES) $(HTMLFILES)
 

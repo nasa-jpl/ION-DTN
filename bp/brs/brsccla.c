@@ -103,8 +103,6 @@ static void	*sendKeepalives(void *parm)
 
 typedef struct
 {
-	char		senderEidBuffer[SDRSTRING_BUFSZ];
-	char		*senderEid;
 	VInduct		*vduct;
 	int		*ductSocket;
 	int		*running;
@@ -137,7 +135,7 @@ static void	*receiveBundles(void *parm)
 
 	while (*(parms->running))
 	{
-		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("can't begin acquisition of bundle.", NULL);
 			killMainThread();
@@ -423,11 +421,7 @@ number>");
 	}
 
 	/*	Server is now known to be authentic; proceed with
-	 *	thread instantiation.  First initialize the sender
-	 *	endpoint ID lookup.					*/
-
-	ipnInit();
-	dtn2Init();
+	 *	thread instantiation.					*/
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
@@ -442,8 +436,6 @@ number>");
 	receiverParms.vduct = vinduct;
 	receiverParms.ductSocket = &ductSocket;
 	receiverParms.running = &running;
-	receiverParms.senderEid = receiverParms.senderEidBuffer;
-	getSenderEid(&(receiverParms.senderEid), hostName);
         if (pthread_begin(&receiverThread, NULL, receiveBundles,
 			&receiverParms))
 	{

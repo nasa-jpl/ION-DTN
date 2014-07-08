@@ -22,8 +22,6 @@ static void	interruptThread()
 
 typedef struct
 {
-	char		senderEidBuffer[SDRSTRING_BUFSZ];
-	char		*senderEid;
 	VInduct		*vduct;
 	LystElt		elt;
 	pthread_mutex_t	*mutex;
@@ -81,7 +79,7 @@ static void	*receiveBundles(void *parm)
 
 	while (threadRunning && *(parms->running))
 	{
-		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("Can't begin acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
@@ -150,9 +148,6 @@ static void	*spawnReceivers(void *parm)
 	socklen_t		nameLength;
 	ReceiverThreadParms	*parms;
 	LystElt			elt;
-	struct sockaddr_in	*fromAddr;
-	unsigned int		hostNbr;
-	char			hostName[MAXHOSTNAMELEN + 1];
 	pthread_t		thread;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -212,13 +207,6 @@ static void	*spawnReceivers(void *parm)
 
 		parms->mutex = &mutex;
 		parms->bundleSocket = newSocket;
-       		fromAddr = (struct sockaddr_in *) &cloSocketName;
-		memcpy((char *) &hostNbr,
-				(char *) &(fromAddr->sin_addr.s_addr), 4);
-		hostNbr = ntohl(hostNbr);
-		printDottedString(hostNbr, hostName);
-		parms->senderEid = parms->senderEidBuffer;
-		getSenderEid(&(parms->senderEid), hostName);
 		parms->running = &(atp->running);
 		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
 					parms))
@@ -392,11 +380,6 @@ int	main(int argc, char *argv[])
 			tcpDelayNsecPerByte = 0;
 		}
 	}
-
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
 
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 

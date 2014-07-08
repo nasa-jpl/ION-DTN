@@ -57,14 +57,8 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 {
 	int		priority = 0;
 	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
-
-	/*
-         * ******************************************************
-	 * BSS traffic bundles must always be marked as custodial
-         * ******************************************************
-	 */ 
-	BpCustodySwitch	custodySwitch = SourceCustodyRequired;
-	BptestState	state;
+	BpCustodySwitch	custodySwitch = NoCustodyRequested;
+	BptestState	state = { NULL, 1 };
 	Sdr		sdr;
 	Object		bundlePayload;
 	Object		bundleZco;
@@ -127,9 +121,9 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 
 		CHKZERO(sdr_begin_xn(sdr));
 		bundlePayload = sdr_malloc(sdr, sizeof(framePayload));
-		if(bundlePayload == 0) {
+		if (bundlePayload == 0)
+		{
 			sdr_cancel_xn(sdr);
-			bp_close(state.sap);
 			putErrmsg("No space for frame payload.", NULL);
 			break;
 		}
@@ -143,26 +137,43 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 
 		bundleZco = zco_create(sdr, ZcoSdrSource, bundlePayload, 0, 
 				sizeof(framePayload));
-		if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
-		|| bundleZco == 0)
+		switch (bundleZco)
 		{
-			bp_close(state.sap);
+		case 0:
+			writeMemoNote("[?] Not enough ZCO space for BSS \
+payload", itoa(i));
+			sdr_free(sdr, bundlePayload);
+			break;
+
+		case (Object) ERROR:
+			bundleZco = 0;
+			sdr_free(sdr, bundlePayload);
+		}
+
+		if (sdr_end_xn(sdr))
+		{
 			putErrmsg("bssStreamingApp can't create bundle ZCO.",
 					NULL);
 			break;
 		}
 
 		/* Send the bundle payload. */
-		if(bp_send(state.sap, destEid, NULL, 86400, priority, custodySwitch,
-				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
+		if (bundleZco)
 		{
-			putErrmsg("bssStreamingApp can't send frame.", NULL);
-			break;
+			if (bp_send(state.sap, destEid, NULL, 86400, priority,
+				custodySwitch, 0, 0, &extendedCOS, bundleZco,
+				&newBundle) <= 0)
+			{
+				putErrmsg("bssStreamingApp can't send frame.",
+						NULL);
+				break;
+			}
+
+			isprintf(info, sizeof info, "A frame with payload: %s \
+and size: %d has been sent\n", framePayload, sizeof(framePayload));
+			PUTS(info);
 		}
 
-		isprintf(info, sizeof info, "A frame with payload: %s and \
-size: %d has been sent\n", framePayload, sizeof(framePayload));
-		PUTS(info);
 		microsnooze(SNOOZE_INTERVAL);
 	}
 

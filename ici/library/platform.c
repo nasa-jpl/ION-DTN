@@ -510,7 +510,7 @@ char	*getNameOfUser(char *buffer)
 void	closeOnExec(int fd)
 {
 #ifndef mingw
-	fcntl(fd, F_SETFD, FD_CLOEXEC);
+	oK(fcntl(fd, F_SETFD, FD_CLOEXEC));
 #endif
 }
 
@@ -1261,7 +1261,7 @@ void	*acquireSystemMemory(size_t size)
 #if defined (RTEMS)
 	block = malloc(size);	/*	try posix_memalign?		*/
 #else
-	block = memalign(sizeof(void *), size);
+	block = memalign((size_t) (sizeof(void *)), size);
 #endif
 	if (block)
 	{
@@ -1273,6 +1273,37 @@ void	*acquireSystemMemory(size_t size)
 	}
 
 	return block;
+}
+
+static void	watchToStdout(char token)
+{
+	oK(putchar(token));
+	oK(fflush(stdout));
+}
+
+static Watcher	_watchOneEvent(Watcher *watchFunction)
+{
+	static Watcher	watcher = watchToStdout;
+
+	if (watchFunction)
+	{
+		watcher = *watchFunction;
+	}
+
+	return watcher;
+}
+
+void	setWatcher(Watcher watchFunction)
+{
+	if (watchFunction)
+	{
+		oK(_watchOneEvent(&watchFunction));
+	}
+}
+
+void	iwatch(char token)
+{
+	(_watchOneEvent(NULL))(token);
 }
 
 static void	logToStdout(char *text)

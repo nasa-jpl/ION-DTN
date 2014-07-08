@@ -12,6 +12,7 @@
  * dtnperf_client.c
  */
 
+#define _GNU_SOURCE
 
 #include "dtnperf_client.h"
 #include "dtnperf_monitor.h"

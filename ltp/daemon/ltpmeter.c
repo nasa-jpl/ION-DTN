@@ -87,7 +87,7 @@ int	main(int argc, char *argv[])
 	}
 
 	writeMemo("[i] ltpmeter is running.");
-	while (1)
+	while (returnCode == 0)
 	{
 		/*	First wait until block aggregation buffer for
 		 *	this span is closed.				*/
@@ -100,7 +100,7 @@ int	main(int argc, char *argv[])
 				putErrmsg("Can't take bufClosedSemaphore.",
 						itoa(remoteEngineId));
 				returnCode = 1;
-				break;		/*	Outer loop.	*/
+				continue;	/*	Failure.	*/
 			}
 
 			if (sm_SemEnded(vspan->bufClosedSemaphore))
@@ -139,7 +139,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 			putErrmsg("Can't create extents list.", NULL);
 			sdr_cancel_xn(sdr);
 			returnCode = 1;
-			break;			/*	Outer loop.	*/
+			continue;	/*	Failure.		*/
 		}
 
 		extent->offset = 0;
@@ -163,7 +163,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 			putErrmsg("Can't segment block.", NULL);
 			sdr_cancel_xn(sdr);
 			returnCode = 1;
-			break;			/*	Outer loop.	*/
+			continue;	/*	Failure.		*/
 
 		case 0:			/*	Database too full.	*/
 			sdr_cancel_xn(sdr);
@@ -174,15 +174,25 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 			CHKZERO(sdr_begin_xn(sdr));
 			sdr_stage(sdr, (char *) &span, spanObj,
 					sizeof(LtpSpan));
-			continue;
+			continue;	/*	Trying again.		*/
 		}
 
 		/*	Segment issuance succeeded.			*/
 
 		if (vdb->watching & WATCH_f)
 		{
-			putchar('f');
-			fflush(stdout);
+			iwatch('f');
+		}
+
+		if (enqueueNotice(vdb->clients + session.clientSvcId,
+				vdb->ownEngineId, session.sessionNbr,
+				0, 0, LtpExportSessionStart, 0, 0, 0) < 0)
+		{
+			putErrmsg("Can't post ExportSessionStart notice.",
+					NULL);
+			sdr_cancel_xn(sdr);
+			returnCode = 1;
+			continue;	/*	Failure.		*/
 		}
 
 		/*	Commit changes to current session to the
@@ -203,7 +213,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 		{
 			putErrmsg("Can't finish session.", NULL);
 			returnCode = 1;
-			break;			/*	Outer loop.	*/
+			continue;	/*	Failure.		*/
 		}
 
 		/*	Start an export session for the next block.	*/
@@ -213,7 +223,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 			putErrmsg("ltpmeter can't start new session.",
 					utoa(remoteEngineId));
 			returnCode = 1;
-			break;			/*	Outer loop.	*/
+			continue;	/*	Failure.		*/
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/

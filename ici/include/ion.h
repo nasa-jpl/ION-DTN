@@ -23,8 +23,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2013-11-17 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.2.0"
+/* As of 2014-06-05 the sourceforge version number is this: */
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.2.1"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -263,6 +263,12 @@ typedef struct
 	unsigned int	currentCount;
 	uvast		currentBytes;
 } Tally;
+
+typedef struct
+{
+	unsigned int	seconds;
+	unsigned int	count;
+} BpTimestamp;
 
 #ifndef MTAKE
 #define MTAKE(size)	allocFromIonMemory(__FILE__, __LINE__, size)

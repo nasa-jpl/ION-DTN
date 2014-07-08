@@ -31,15 +31,7 @@ typedef struct
 static int	acquireRedBundles(AcqWorkArea *work, Object zco,
 			uvast senderEngineNbr)
 {
-	char	engineNbrString[21];
-	char	senderEidBuffer[SDRSTRING_BUFSZ];
-	char	*senderEid;
-
-	isprintf(engineNbrString, sizeof engineNbrString, UVAST_FIELDSPEC,
-			senderEngineNbr);
-	senderEid = senderEidBuffer;
-	getSenderEid(&senderEid, engineNbrString);
-	if (bpBeginAcq(work, 0, senderEid) < 0)
+	if (bpBeginAcq(work, 0, NULL) < 0)
 	{
 		putErrmsg("Can't begin acquisition of bundle(s).", NULL);
 		return -1;
@@ -68,9 +60,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	static LtpSessionId	currentSessionId = { 0, 0 };
 	static unsigned int	currentOffset = 0;
 	unsigned int		fillLength;
-	char			engineNbrString[21];
-	char			senderEidBuffer[SDRSTRING_BUFSZ];
-	char			*senderEid;
 	ZcoReader		reader;
 	int			result;
 
@@ -106,11 +95,7 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	{
 		/*	Start new green bundle acquisition.		*/
 
-		isprintf(engineNbrString, sizeof engineNbrString,
-				UVAST_FIELDSPEC, sessionId->sourceEngineId);
-		senderEid = senderEidBuffer;
-		getSenderEid(&senderEid, engineNbrString);
-		if (bpBeginAcq(work, 0, senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("Can't begin acquisition of bundle.", NULL);
 			return -1;
@@ -127,8 +112,16 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 
 	if (offset > currentOffset)
 	{
-		/*	Must insert fill data -- partial loss of
-		 *	bundle payload, for example, may be okay.	*/
+		/*	Convergence layer must not deliver incomplete
+		 *	bundles to BP.  Practically speaking, this
+		 *	gap in segment sequence must be treated as
+		 *	malformation of the bundle.			*/
+
+		work->malformed = 1;
+
+		/*	But continue bundle acquisition anyway, in
+		 *	case the incomplete bundle is useful for some
+		 *	diagnostic purpose.				*/
 
 		fillLength = offset - currentOffset;
 		if (fillLength > *buflen)
@@ -485,11 +478,6 @@ int	main(int argc, char *argv[])
 		putErrmsg("ltpcli can't initialize LTP.", NULL);
 		return -1;
 	}
-
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 

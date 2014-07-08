@@ -178,7 +178,7 @@ extern int		_dtpcStart();
 #define dtpcStop()	_dtpcStop();
 extern void		dtpcStop();
 extern int		dtpcAttach();
-extern unsigned int 	getProfile(unsigned int maxRtx,
+extern unsigned int 	dtpcGetProfile(unsigned int maxRtx,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,
 				unsigned int lifespan,

@@ -51,30 +51,6 @@ predictreceived () {
     echo "	'${1}'"
 }
 
-# Try 10 times to see if the bundle has been received.
-tryreceive () {
-    X=0
-
-    while [ $X -lt 200 ]
-    do
-        # sleep and kill process in case it didn't end properly
-        sleep 0.04 
-
-        # Check if bpsink got the file.
-        if ! cmp $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
-        then
-            X=`expr $X + 1`
-        else
-            # We received it.  Hooray.
-            return 1 
-        fi
-    done
-    # We didn't receive it, even after 10 tries; bummer.
-    diff $IONRECEIVEFILE $IONEXPECTEDFILE
-    return 0 
-}
-
-
 # message sent over ion
 IONRECEIVEFILE=./ionreceivefile.txt
 IONEXPECTEDFILE=./ionexpectedfile.txt
@@ -84,7 +60,7 @@ killm
 sleep 1
 
 # Prepare for loop start
-rm -f $IONRECEIVEFILE $IONEXPECTEDFILE ion.log
+rm -f $IONRECEIVEFILE $IONEXPECTEDFILE ion.log diffs
 PASS=1
 
 echo "Starting ION..."
@@ -111,26 +87,16 @@ echo "" >> $IONEXPECTEDFILE
 bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) no BAB"
 # Don't predictreceived this one; it shouldn't be received. 
 sleep ${TIMETOWAITFORTESTFINISH}
-if tryreceive
+
+diff $IONRECEIVEFILE $IONEXPECTEDFILE > diffs
+count=`cat diffs | wc -l`
+if [ $count -eq 0 ]
 then
+    echo "OK: Payload delivery absence matched expected output."
+else
     echo "ERROR: Payload was possibly delivered, didn't match expected output."
     PASS=0
-else
-    echo "OK: Payload delivery absence matched expected output."
 fi
-
-# RPB: not sure if this test possible on loopback anymore
-# with recent changes to bsp rules..
-
-# Send one bundle with the wrong BAB; it shouldn't get through.
-#echo "Sending a bundle with the wrong BAB... it should fail."
-#ionsecadmin <<ENDOFIONSECADMINCOMMANDS
-#a babtxrule ipn:1.* 'HMAC-SHA1' testkey2
-#a bspbabrule ipn:1.2 'HMAC-SHA1' testkey2
-
-#q
-#ENDOFIONSECADMINCOMMANDS
-#bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) wrong BAB"
 
 # Send one bundle with fixed security; it should get through.
 
@@ -147,7 +113,9 @@ bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE"
 predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
 sleep ${TIMETOWAITFORTESTFINISH}
 
-if tryreceive 
+diff $IONRECEIVEFILE $IONEXPECTEDFILE > diffs
+count=`cat diffs | wc -l`
+if [ $count -eq 0 ]
 then
     echo "OK: Bundle authentication matched expected output."
 else
@@ -170,7 +138,10 @@ IONMESSAGE3="$( date ) From an anonymous source!"
 bpsource ipn:1.1 "$IONMESSAGE3"
 predictreceived "$IONMESSAGE3" "bpsource" >> $IONEXPECTEDFILE
 sleep ${TIMETOWAITFORTESTFINISH}
-if tryreceive
+
+diff $IONRECEIVEFILE $IONEXPECTEDFILE > diffs
+count=`cat diffs | wc -l`
+if [ $count -eq 0 ]
 then
     echo "OK: Payload authentication matched expected output."
 else

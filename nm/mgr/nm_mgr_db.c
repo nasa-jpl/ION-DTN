@@ -71,8 +71,8 @@ uint32_t db_add_agent(eid_t agent_eid)
 	char query[1024];
 
 	/* Step 1: Create Query */
-	sprintf(query, "INSERT INTO dbtRegisteredAgents(AgentIdSDNV) "
-			"VALUES(%s)", agent_eid.name);
+	sprintf(query, "INSERT INTO dbtRegisteredAgents(AgentId) "
+			"VALUES('%s')", agent_eid.name);
 
 	if (mysql_query(gConn, query)) {
 		DTNMP_DEBUG_ERR("db_add_agent", "Database error: %s",
@@ -81,7 +81,7 @@ uint32_t db_add_agent(eid_t agent_eid)
 		return 0;
 	}
 
-	DTNMP_DEBUG_ERR("db_add_agent", "-->1", NULL);
+	DTNMP_DEBUG_EXIT("db_add_agent", "-->1", NULL);
 	return 1;
 }
 
@@ -1364,7 +1364,21 @@ int db_fetch_table_type(int table_idx, int entry_idx)
 			if ((entry_res = mysql_store_result(gConn)) != NULL)
 			{
 				entry_row = mysql_fetch_row(entry_res);
-				int type = atoi(entry_row[0]);
+				int type = 0;
+
+				if(entry_row == NULL)
+				{
+					DTNMP_DEBUG_ERR("db_fetch_table_type", "No row.",
+							mysql_error(gConn));
+
+					mysql_free_result(entry_res);
+					mysql_free_result(res);
+
+					DTNMP_DEBUG_EXIT("db_fetch_table_type", "-->%d", result);
+					return result;
+				}
+
+				type = atoi(entry_row[0]);
 
 				switch (type) {
 					case 1:
@@ -1540,7 +1554,6 @@ int db_incoming_initialize(time_t timestamp)
 		DTNMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", result);
 		return 0;
 	}
-
     /* Step 3: Store the result*/
     if((res = mysql_store_result(gConn)) == NULL)
     {
@@ -1553,18 +1566,6 @@ int db_incoming_initialize(time_t timestamp)
     if ((row = mysql_fetch_row(res)) != NULL)
     {
     	result = atoi(row[0]);
-
-    	/* Step 3.1: Update State to ready */
-        sprintf(query,"UPDATE dbtIncoming SET State = State + 1 WHERE ID = %d",result);
-        if (mysql_query(gConn, query))
-        {
-        	DTNMP_DEBUG_ERR("db_incoming_initialize", "Database Error: %s",
-        		    	    mysql_error(gConn));
-            mysql_free_result(res);
-
-        	DTNMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", result);
-        	return 0;
-        }
     }
 
     mysql_free_result(res);
@@ -1630,42 +1631,50 @@ int db_incoming_finalize(uint32_t id)
  *****************************************************************************/
 int db_incoming_process_message(int id, uint8_t *cursor, uint32_t size)
 {
-	char *query;
+	char *query = NULL;
 	char *result_data = NULL;
+	int result_size = 0;
 
-	if((query = (char *) MTAKE(size * 2 + 256)) == NULL)
+
+	if((result_data = utils_hex_to_string(cursor, size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_incoming_process_message","Can't alloc %d bytes.",
-				        size * 2 + 256);
+		DTNMP_DEBUG_ERR("db_incoming_process_message","Can't cvt %d bytes to hex str.",
+				        size);
 		DTNMP_DEBUG_EXIT("db_incoming_process_message", "-->0", NULL);
 		return 0;
 	}
 
-	if((result_data = (char *) MTAKE(size * 2 + 1)) == NULL)
+	result_size = strlen(result_data);
+	if((query = (char *) MTAKE(result_size + 256)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("db_incoming_process_message","Can't alloc %d bytes.",
-				        size * 2 + 1);
-		MRELEASE(query);
+				        result_size + 256);
+		MRELEASE(result_data);
+
 		DTNMP_DEBUG_EXIT("db_incoming_process_message", "-->0", NULL);
 		return 0;
 	}
 
-	mysql_real_escape_string(gConn, result_data, (char *) cursor, size);
-
+	/*
+	 * result_data starts with "0x" which we do not want in the DB
+	 * so we skip over the first 2 characters when making the query.
+	 */
 	sprintf(query,"INSERT INTO dbtIncomingMessages(IncomingID,Content)"
-			       "VALUES(%d,'%s')",id, result_data);
+			       "VALUES(%d,'%s')",id, result_data+2);
 	MRELEASE(result_data);
 
 	if (mysql_query(gConn, query))
 	{
 		DTNMP_DEBUG_ERR("db_incoming_process_message", "Database Error: %s",
 				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_incoming_process_message", "-->0", NULL);
 		MRELEASE(query);
+
+		DTNMP_DEBUG_EXIT("db_incoming_process_message", "-->0", NULL);
 		return 0;
 	}
 
 	MRELEASE(query);
+	DTNMP_DEBUG_EXIT("db_incoming_process_message", "-->1", NULL);
 	return 1;
 }
 
@@ -1893,7 +1902,7 @@ void db_mgt_verify_mids()
 
 		if(oid_str != NULL)
 		{
-			uint32_t idx = db_add_mid(attr,flags,issuer,&(oid_str[2]),tag,0,0,0,0);
+			uint32_t idx = db_add_mid(attr,flags,issuer,&(oid_str[2]),tag,0,0,admData->name,0);
 			MRELEASE(oid_str);
 		}
 		else
@@ -1925,6 +1934,7 @@ void db_mgt_verify_mids()
  *  --------  ------------   ---------------------------------------------
  *  07/13/13  E. Birrane      Initial implementation,
  *  07/18/13  S. Jacobs       Added outgoing agents
+ *  09/27/13  E. Birrane      Configure each agent with custom rpt, if applicable.
  *****************************************************************************/
 
 int db_outgoing_process(MYSQL_RES *sql_res)
@@ -1936,6 +1946,10 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 	mid_t *id;
 	def_gen_t *debugPrint;
 	LystElt elt;
+	LystElt def_elt;
+	def_gen_t *cur_entry = NULL;
+	def_gen_t *new_entry = NULL;
+	agent_t *agent = NULL;
 	adm_reg_agent_t *agent_reg = NULL;
 	char query[128];
 
@@ -1953,7 +1967,8 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 			return 0;
 		}
 
-		int result = db_outgoing_process_messages(idx, msg_group);
+		Lyst defs = lyst_create();
+		int result = db_outgoing_process_messages(idx, msg_group, defs);
 
 		if(result != 0)
 		{
@@ -1963,6 +1978,7 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 			{
 				DTNMP_DEBUG_ERR("db_outgoing_process","Cannot process outgoing recipients",NULL);
 				pdu_release_group(msg_group);
+				def_lyst_clear(&defs, NULL, 1);
 				return 0;
 			}
 
@@ -1973,6 +1989,55 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 				DTNMP_DEBUG_INFO("db_outgoing_process", "Sending to name %s", agent_reg->agent_id.name);
 				iif_send(&ion_ptr, msg_group, agent_reg->agent_id.name);
 				msg_release_reg_agent(agent_reg);
+
+				/* Step 1.3.2: Make sure the manager knows about this agent. */
+				if((agent = mgr_agent_get(&(agent_reg->agent_id))) == NULL)
+				{
+					DTNMP_DEBUG_WARN("db_outgoing_process","DB Agent not known to Mgr. Adding.", NULL);
+
+					if(mgr_agent_add(agent_reg->agent_id) != 1)
+					{
+						DTNMP_DEBUG_WARN("db_outgoing_process","Sending to unknown agent.", NULL);
+					}
+					else
+					{
+						agent = mgr_agent_get(&(agent_reg->agent_id));
+
+						if(agent != NULL)
+						{
+							DTNMP_DEBUG_WARN("db_outgoing_process","Added DB agent to Mgr.", NULL);
+						}
+						else
+						{
+							DTNMP_DEBUG_ERR("db_outgoing_process","Failed to add DB agent to Mgr.", NULL);
+						}
+					}
+				}
+
+
+				/*
+				 * Step 1.3.3: Configure this agent with any report definitions
+				 * that may have been defined in this outgoing message group.
+				 */
+				if(agent != NULL)
+				{
+					for(def_elt = lyst_first(defs); def_elt; def_elt = lyst_next(def_elt))
+					{
+						cur_entry = (def_gen_t*) lyst_data(def_elt);
+						/*
+						 * We need to duplicate the definition as it will live on in each agent that
+						 * receives it.
+						 */
+						new_entry = def_duplicate(cur_entry);
+						if(new_entry != NULL)
+						{
+							lockResource(&(agent->mutex));
+							lyst_insert_last(agent->custom_defs, new_entry);
+							DTNMP_DEBUG_ALWAYS("db_outgoing_process","Adding def to %s",agent->agent_eid.name);
+							unlockResource(&(agent->mutex));
+						}
+					}
+				}
 			}
 
 			lyst_destroy(agents);
@@ -1982,8 +2047,11 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 		{
 			DTNMP_DEBUG_ERR("db_outgoing_process","Cannot process out going message",NULL);
 			pdu_release_group(msg_group);
+			def_lyst_clear(&defs, NULL, 1);
 			return 0;
 		}
+
+		def_lyst_clear(&defs, NULL, 1);
 
 		/* Step 1.4: Release the message group. */
 		pdu_release_group(msg_group);
@@ -2016,17 +2084,19 @@ int db_outgoing_process(MYSQL_RES *sql_res)
  * \retval 0 no message groups ready.
  *        !0 There are message groups ready to be sent.
  *
- * \param[in] idx - the index of the message that corresponds to outgoing and
- * 			   outgoing messages
+ * \param[in] idx -       the index of the message that corresponds to
+ * 			              outgoing messages
  * \param[in] msg_group - the group that the message is in.
+ * \param[out] defs     - Any definitions generated by this message.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  07/13/13  E. Birrane      Initial implementation,
+ *  09/27/13  E. Birrane      Collect any rpt defs from this message.
  *****************************************************************************/
 
-int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group)
+int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group, Lyst defs)
 {
 	int result = 0;
 	char query[1024];
@@ -2049,14 +2119,15 @@ int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group)
 	}
 
 	/* Step 2: Parse the row and populate the structure. */
-	while ((res = mysql_store_result(gConn)) != NULL)
-	{
-		row = mysql_fetch_row(res);
+    res = mysql_store_result(gConn);
+
+    while((row = mysql_fetch_row(res)) != NULL)
+    {
 		int table_idx = atoi(row[2]);
 		int entry_idx = atoi(row[3]);
 
 		if (db_outgoing_process_one_message(table_idx, entry_idx, msg_group,
-				row) == 0)
+				row, defs) == 0)
 		{
 			DTNMP_DEBUG_ERR("db_outgoing_process_messages",
 					"Error processing message.", NULL);
@@ -2084,7 +2155,9 @@ int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group)
  * \param[in] table_idx - the index of the table used
  * \param[in] entry_idx - the row in the table needed
  * \param[in] message_group - the group name
- * \param[in] row - a result from a query
+ * \param[in] row       - a result from a query
+ * \param[out] defs     - Any definitions generated by this message.
+ *
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -2092,10 +2165,11 @@ int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group)
  *  07/15/13  E. Birrane      Initial implementation,
  *  07/15/13  S. Jacobs		  Initial implementation,
  *  07/16/13  S. Jacobs       Added custom report case,
+ *  09/27/13  E. Birrane      Collect any rpt defs from this message.
  *****************************************************************************/
 
 int db_outgoing_process_one_message(uint32_t table_idx, uint32_t entry_idx,
-			                        pdu_group_t *msg_group, MYSQL_ROW row)
+			                        pdu_group_t *msg_group, MYSQL_ROW row, Lyst defs)
 {
 	int result = 1;
 
@@ -2181,7 +2255,11 @@ int db_outgoing_process_one_message(uint32_t table_idx, uint32_t entry_idx,
 							        "Cannot serialize def_gen_t",NULL);
 				}
 
-				def_release_gen(entry);
+				/*
+				 * Save the definition, the agents will need to understand it
+				 * to process returns.
+				 */
+				lyst_insert_last(defs, entry);
 			}
 			else
 			{

@@ -263,8 +263,7 @@ int	ltp_send(uvast destinationEngineId, unsigned int clientSvcId,
 
 	if (vdb->watching & WATCH_d)
 	{
-		putchar('d');
-		fflush(stdout);
+		iwatch('d');
 	}
 
 	if (sdr_end_xn(sdr))

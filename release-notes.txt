@@ -1,6 +1,6 @@
-= Release Notes for ION 3.2.0 =
+= Release Notes for ION 3.2.1 =
 
-December 23, 2013
+July 2, 2014
 
 %%%%%%%%%%%
 = GENERAL =
@@ -27,14 +27,17 @@ distribution are the following packages:
 - bp (bundle protocol), an implementation of the Delay-Tolerant
   Networking (DTN) architecture's Bundle Protocol.
 
-- ltp (licklider transmission protocol), a DTN convergence layer for
-  reliable transmission over links characterized by long or highly
+- ltp (licklider transmission protocol), a DTN convergence layer protocol
+  for reliable transmission over links characterized by long or highly
   variable delay.
 
 - dgr (datagram retransmission), an alternative implementation of ltp
   that is designed for use over the Internet protocol stack.  dgr
   implements congestion control and is designed for relatively high
   performance.
+
+- bssp (bundle streaming service protocol), a DTN convergence layer protocol
+  for reliable transmission of streaming data.
 
 - ams - an implementation of the CCSDS Asynchronous Message Service.
 
@@ -47,6 +50,10 @@ distribution are the following packages:
   display of the most recent data while storing all bundle payloads
   received into a database for user-directed playback.
 
+- dtpc (delay-tolerant payload conditioning), an application framework
+  providing TCP-like support for end-to-end retransmission and data delivery
+  in transmission order without duplication or omission.
+
 Features included:
 
 - cgr - Contract graph routing: a method of dynamic routing designed for
@@ -57,6 +64,122 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.2.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- Feature Request #8: Improvements have been made in how ION infers the node
+     number of the sending node.
+     ION now implements the Previous Hop Insertion Block (here called
+     Previous Hop Node, phn) extension block, which contains the identifying
+     singleton endpoint of the sending node.  Previously, ION utilized
+     mechanisms for inferring the node number from convergence-layer EIDs,
+     which could generate false information, especially when multiple nodes
+     were resident on the same machine.
+
+- Feature Request #14: The stream of "watch" characters that ION generates when
+     significant bundle events occur can now be redirected in a manner
+     similar to the way log messages may be redirected.
+
+- Feature Request #15: Per specification, ION's LTP implementation now supports
+     LTP Authentication as described in RFC 5327.
+
+- Feature Request #16: In preparation for the deployment of delay-tolerant
+     security key administration (DTKA), ION now includes several new features
+     dealing with public/private key management in the ION security database.
+     DTKA itself has been prototyped but is still pending approval for open
+     source release.
+
+- Feature Request #17: A significant overhaul of the Bundle Streaming Service
+     (BSS) has been implemented to resolve a fundamental incompatibility with
+     implementing BSS with multicast.  The new BSS forwarding implementation
+     (BSSP) resides at the convergence layer directly under BP so BSS channel
+     acknowledgments can be disambiguated.  Previously, the BSS forwarder
+     design relied on BP custody transfer to control BSS data forwarding over
+     reliable and unreliable channels, which was incompatible with multicast
+     because custody transfer can't distinguish among the multiple identical
+     copies of a bundle that are forwarded at a multicast branch point.
+
+- Bug #21: The interface for the internal smlist "deletion" callback has been
+     modified to be more consistent with the interfaces for the "lyst" and
+     "sdrlist" modules.  The API now accepts the address of the element to
+     delete rather than its content.
+
+- Bug #24: Fixed an error in the implementation of previously-released bugfix
+     where source or destination CFDP entity IDs could become malformed when
+     their entityNbrLengths differ.
+
+- Bug #30: Applied various updates to LTP notices to be more compliant with the
+     RFC 5326 specification.
+     - LtpExportSessionStart notice is now delivered properly.
+     - Reception claims in on-the-wire segments now have offsets that are
+       relative to the report segment lower bound rather than relative to the
+       start of the block.
+
+- Bug #33: LTP Green segment traffic is no longer terminated prematurely when a
+     partly-red partly-green block is sent.
+     - As a Receiver:
+          Previously, closure of an import session (on reception of report-ACK)
+          could incorrectly suppress the processing of subsequently received
+          Green segments for the same session.
+     - As a Sender:
+          Previously, processing of an "all-received" Report segment could
+          incorrectly closes the export session, which should not occur until
+          the EOB has also been sent.
+
+- Bug #34: The Service Data Aggregation (SDA) in LTP has been updated to be
+     compliant with the latest specifications.  The SDA now properly passes
+     the client ID to the client data unit length determination callback.
+
+- Bug #36: Fixed specific compilation problems with dtnperf under the
+     Scientific Linux 5.5 (gcc 4.1.2) operating system.
+
+- Bug #39: Per specification, ION's LTP implementation now rejects LTP
+   segments that do not contain the proper version number identifier (0b0000).
+   Previously, ION would process segments regardless of version number.
+
+- Bug #40: Per specification, ION's LTP implementation now rejects LTP blocks
+     with a session number of 0, as the specifications requires session numbers
+     chosen by LTP senders to be in the range [1, 2^32-1].
+     Previously, ION would process such blocks with a cancel segment code 3.
+
+- Bug #41: Added checks in the AMS TCP connection pool implementation to help
+     detect and guard against data corruption.
+
+- Bug #42: Improvements have been made to the rate control implementation of BP
+     to better handle cases where the available residual capacity on the
+     channel to a neighboring node is overstated.
+
+- Bug #43: Per specification, ION's LTP implementation now marks bundles as
+     "malformed" when there are gaps in the  sequence of green data segments.
+     Previously, ION inserted fill data to saturate the gaps, which could
+     result in the delivery of a damaged bundle.
+
+- Bug #44: Various man pages have been updated to be more compliant with the
+     man page specification.
+
+- Bug #45: Added/updated man pages for various parts of the AMS subsystem.
+
+- Bug #46: Fixed bug in ionscript where a bss/ipn mutual exclusion error was
+     presented when creating a monolithic configuration file and not specifying
+     existing bss and ipn configuration files as input.
+     Ionscript now properly outputs a monolithic configuration file that
+     contains neither a BSS nor an IPN subsection.
+
+- Bug #48: Fixed a contact graph routing bug when recomputing routes wherein
+     ION could exclude the potentially-optimal route from consideration if it
+     is the initial contact on any remaining route.
+     Due to the recent inclusion of CGR Payload Classes, it is no longer
+     correct to exclude such routes from consideration.
+
+- Patch #5: The Delay Tolerant Network Management Protocol (DTNMP) reference
+     implementation has been updated to the version that was used for testing
+     and demonstration earlier in the year.
+
+- ION no longer requires libexpat by default in order to build.
+     Expat is still required in order to use XML configuration files for AMS.
+     To build against libexpat, use "./configure --with-expat".
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.2.0 =
@@ -591,7 +714,7 @@ Features included:
   switch from being set.
 
 - Issue #275: ION now has support for code coverage analysis via lcov/gcov.
-  To enable this feature, use "--configure --with-gcov".
+  To enable this feature, use "./configure --with-gcov".
   Building with code coverage support enables the following new directives:
      make cov: creates a "coverage" subfolder from the top of the ION
                directory where HTML coverage results are stored

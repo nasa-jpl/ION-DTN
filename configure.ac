@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.2.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.2.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -220,6 +220,24 @@ fi
 AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
 
 #
+# Dynamically choose whether or not to build against expat libraries.
+# Expat is needed by AMS if XML configuration files are used.
+# Default is not to build against libexpat.
+#
+AC_ARG_WITH([expat],
+[AS_HELP_STRING([--with-expat], [Turn on libexpat requirements])],
+[expat=yes;],
+[])
+if test "x$expat" = "xyes" ; then
+	echo "Build against libexpat... yes"
+else
+	echo "Build against libexpat... no"
+	CFLAGS="$CFLAGS -DNOEXPAT"
+fi
+AM_CONDITIONAL([ENABLE_EXPAT], [test "x$expat" = "xyes"])
+
+
+#
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
 #
 AC_ARG_ENABLE([valgrind], AC_HELP_STRING([--disable-valgrind],[Do not enable valgrind debugging [default=check]]),
@@ -269,7 +287,7 @@ AC_CHECK_LIB(
 	[expat], 
 	[XML_GetCurrentLineNumber], 
 	[ AC_SUBST( [EXPAT_LIBS], ["-lexpat"] ) ],
-	[AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])]
+	[ AM_COND_IF([ENABLE_EXPAT], AC_MSG_ERROR([You need to install the libexpat1-dev library to build with expat.]), AC_MSG_WARN([If you wish to use XML configuration files for AMS you will need to compile against the Expat XML development libraries.  To do this install the libexpat1-dev library then recompile ION using the "./configure --with-expat" flag.]) )]
 )
 
 AC_CHECK_LIB(
