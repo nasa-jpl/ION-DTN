@@ -132,6 +132,8 @@ int	main(int argc, char **argv)
 	int		haveRxThread = 0;
 	Object		pduZco;
 	OutFdu		fduBuffer;
+	FinishPdu	fpdu;
+	int		direction;
 	BpUtParms	utParms;
 	uvast		destinationNodeNbr;
 	char		destEid[64];
@@ -183,7 +185,8 @@ int	main(int argc, char **argv)
 	{
 		/*	Get an outbound CFDP PDU for transmission.	*/
 
-		if (cfdpDequeueOutboundPdu(&pduZco, &fduBuffer) < 0)
+		if (cfdpDequeueOutboundPdu(&pduZco, &fduBuffer, &fpdu,
+					&direction) < 0)
 		{
 			writeMemo("[?] bputa can't dequeue outbound CFDP PDU; \
 terminating.");
@@ -193,7 +196,8 @@ terminating.");
 
 		/*	Determine quality of service for transmission.	*/
 
-		if (fduBuffer.utParmsLength == sizeof(BpUtParms))
+		if (direction == 0	/*	Toward file receiver.	*/
+		&& fduBuffer.utParmsLength == sizeof(BpUtParms))
 		{
 			memcpy((char *) &utParms, (char *) &fduBuffer.utParms,
 					sizeof(BpUtParms));
@@ -212,8 +216,17 @@ terminating.");
 			utParms.extendedCOS.ordinal = 0;
 		}
 
-		cfdp_decompress_number(&destinationNodeNbr,
-				&fduBuffer.destinationEntityNbr);
+		if (direction == 0)
+		{
+			cfdp_decompress_number(&destinationNodeNbr,
+					&fduBuffer.destinationEntityNbr);
+		}
+		else
+		{
+			cfdp_decompress_number(&destinationNodeNbr,
+					&fpdu.transactionId.sourceEntityNbr);
+		}
+
 		if (destinationNodeNbr == 0)
 		{
 			writeMemo("[?] bputa declining to send to node 0.");
@@ -253,25 +266,29 @@ terminating.");
 			continue;	/*	Must have stopped.	*/
 		}
 
-		/*	Enable cancellation of this PDU.		*/
-
-		if (sdr_begin_xn(sdr) == 0)
+		if (direction == 0)	/*	Toward file receiver.	*/
 		{
-			parms.running = 0;
-			continue;
-		}
+			/*	Enable cancellation of this PDU.	*/
 
-		pduElt = sdr_list_insert_last(sdr, fduBuffer.extantPdus,
-				newBundle);
-		if (pduElt)
-		{
-			bp_track(newBundle, pduElt);
-		}
+			if (sdr_begin_xn(sdr) == 0)
+			{
+				parms.running = 0;
+				continue;
+			}
 
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("bputa can't track PDU; terminated.", NULL);
-			parms.running = 0;
+			pduElt = sdr_list_insert_last(sdr, fduBuffer.extantPdus,
+					newBundle);
+			if (pduElt)
+			{
+				bp_track(newBundle, pduElt);
+			}
+
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("bputa can't track PDU; terminated.",
+						NULL);
+				parms.running = 0;
+			}
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/

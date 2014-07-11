@@ -77,7 +77,34 @@ typedef struct
  *	reader function simply returns CFDP_MAX_FILE_DATA or the
  *	total remaining length of the file, whichever is less.		*/
 
-typedef int		(*CfdpReaderFn)(int fd, unsigned int *checksum);
+typedef int	(*CfdpReaderFn)(int fd, unsigned int *checksum);
+
+/*	File data segment continuation state provides information
+ *	about the record structure of the file.				*/
+
+typedef enum
+{
+	CfdpNoBoundary = 0,
+	CfdpStartOfRecord = 1,
+	CfdpEndOfRecord = 2,
+	CfdpEntireRecord = 3
+} CfdpContinuationState;
+
+/*	Per-segment metadata may be provided by the user application.
+ *	To enable this, upon formation of each file data segment, CFDP
+ *	will invoke the user-provided per-segment metadata composition
+ *	callback function (if any).  The callback will be passed the
+ *	offset of the segment within the file, the segment's offset
+ *	within the current record (as applicable), the length of the
+ *	segment, an open file descriptor for the source file (in case
+ *	the data must be read in order to construct the metadata), and
+ *	a 63-byte buffer in which to place the new metadata.  The
+ *	callback function must return the length of metadata to attach
+ *	to the file data segment PDU (may be zero) or -1 in the event
+ *	of a general system failure.					*/
+
+typedef int	(*CfdpMetadataFn)(uvast fileOffset, unsigned int recordOffset,
+			unsigned int length, int sourceFileFD, char *buffer);
 
 typedef enum
 {
@@ -167,7 +194,7 @@ typedef enum
 
 typedef struct
 {
-	unsigned int	offset;
+	uvast		offset;
 	unsigned int	length;
 } CfdpExtent;
 
@@ -197,7 +224,7 @@ extern void	cfdp_compress_number(CfdpNumber *toNbr, uvast from);
 extern void	cfdp_decompress_number(uvast *toNbr, CfdpNumber *from);
 
 extern void	cfdp_update_checksum(unsigned char octet,
-			unsigned int	*offset,
+			uvast		*offset,
 			unsigned int	*checksum);
 extern
 MetadataList	cfdp_create_usrmsg_list();
@@ -241,9 +268,11 @@ extern int	cfdp_put(CfdpNumber	*destinationEntityNbr,
 			char		*sourceFileName,
 			char		*destFileName,
 			CfdpReaderFn	readerFn,
+			CfdpMetadataFn	metadataFn,
 			CfdpHandler	*faultHandlers,	/*	array	*/
 			unsigned int	flowLabelLength,
 			unsigned char	*flowLabel,
+			unsigned int	closureRequested,
 			MetadataList	messagesToUser,
 			MetadataList	filestoreRequests,
 			CfdpTransactionId *transactionId);
@@ -279,12 +308,16 @@ extern int	cfdp_get_event(CfdpEventType	*type,
 			CfdpTransactionId	*transactionId,
 			char			*sourceFileNameBuf,
 			char			*destFileNameBuf,
-			unsigned int		*fileSize,
+			uvast			*fileSize,
 			MetadataList		*messagesToUser,
-			unsigned int		*offset,
+			uvast			*offset,
 			unsigned int		*length,
+			unsigned int		*recordBoundsRespected,
+			CfdpContinuationState	*continuationState,
+			unsigned int		*segMetadataLength,
+			char			*segMetadataBuffer,
 			CfdpCondition		*condition,
-			unsigned int		*progress,
+			uvast			*progress,
 			CfdpFileStatus		*fileStatus,
 			CfdpDeliveryCode	*deliveryCode,
 			CfdpTransactionId	*originatingTransactionId,
@@ -305,8 +338,8 @@ extern void	cfdp_interrupt();
 		 *	call cfdp_interrupt.				*/
 
 extern int	cfdp_preview(CfdpTransactionId	*transactionId,
-			unsigned int		offset,
-			int			length,
+			uvast			offset,
+			unsigned int		length,
 			char			*buffer);
 		/*	Reads "length" bytes starting at "offset"
 		 *	bytes from the start of the file that is

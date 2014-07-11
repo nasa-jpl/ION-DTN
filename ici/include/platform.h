@@ -624,6 +624,9 @@ extern void			addToScalar(Scalar *, Scalar *);
 extern void			subtractFromScalar(Scalar *, Scalar *);
 extern int			scalarIsValid(Scalar *);
 
+extern uvast			htonv(uvast hostvast);
+extern uvast			ntohv(uvast netvast);
+
 extern int			_isprintf(char *, int, char *, ...);
 extern size_t			istrlen(char *, size_t);
 extern char			*istrcpy(char *, char *, size_t);

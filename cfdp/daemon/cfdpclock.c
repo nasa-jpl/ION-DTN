@@ -156,14 +156,22 @@ static int	enqueueIndications(Sdr sdr, OutFdu *fdu)
 		return -1;
 	}
 
+	if (fdu->closureRequested)
+	{
+		/*	Transaction-Finished.ind event will be posted
+		 *	when Finished PDU arrives.			*/
+
+		return 0;
+	}
+
 	/*	Post Transaction-Finished.ind event.  (Unacknowledged)	*/
 
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpTransactionFinishedInd;
 	event.condition = CfdpNoError;
-	event.fileStatus = CfdpFileStatusUnreported;
 	event.deliveryCode = bestEfforts ? CfdpDataComplete
 			: CfdpDataIncomplete;
+	event.fileStatus = CfdpFileStatusUnreported;
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
 	event.reqNbr = fdu->reqNbr;
@@ -267,6 +275,7 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 		 *	to expiration of bundle TTL), destroy the FDU.	*/
 
 		if (fdu.transmitted == 1
+		&& (fdu.closureRequested == 0 || fdu.finishReceived)
 		&& sdr_list_length(sdr, fdu.extantPdus) == 0)
 		{
 			destroyOutFdu(&fdu, fduObj, elt);

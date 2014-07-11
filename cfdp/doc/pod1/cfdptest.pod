@@ -83,6 +83,16 @@ provided by a reliable DTN convergence layer protocol), 1 (best-effort,
 unreliable), and 2 (assured, reliable, but with reliability provided by BP
 custody transfer).  If not specified, transmission mode is 0.
 
+=item B<a> { 1 | 0 }
+
+The B<closure control> command.  This command establishes the transaction
+closure mode for all subsequent file transmission operations.  When it is
+set to zero, the file transmission is "open loop" and the CFDP transaction
+at the sending entity finishes when the EOF is sent.  When it set to 1, a
+"Finished" PDU will be sent back to the sending CFDP entity when the
+transaction finishes at the receiving entity; the transaction finishes at
+the sending entity only when that "Finished" PDU is received.
+
 =item B<g> <srrflags>
 
 The B<srrflags> command.  This command establishes the BP status reporting
