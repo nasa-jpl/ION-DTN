@@ -20,7 +20,7 @@ int	bssp_attach()
 
 void	bssp_detach()
 {
-#if (!(defined (VXWORKS) || defined (RTEMS) || defined (bionic)))
+#if (!(defined (ION_LWT)))
 	bsspDetach();
 #endif
 	ionDetach();

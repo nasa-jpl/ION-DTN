@@ -711,8 +711,10 @@ int	cfdpAttach()
 	return 0;		/*	CFDP service is available.	*/
 }
 
-void cfdpDetach(){
-	char *stop=NULL;
+void	cfdpDetach()
+{
+	char	*stop = NULL;
+
 	oK(_cfdpvdb(&stop));
 	return;
 }

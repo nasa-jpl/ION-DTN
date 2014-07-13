@@ -1172,10 +1172,11 @@ int	ionAttach()
 
 void	ionDetach()
 {
-#if defined (VXWORKS) || defined (bionic)
-	return;
-#elif defined (RTEMS)
+#if defined (ION_LWT)
+#ifdef RTEMS
 	sm_TaskForget(sm_TaskIdSelf());
+#endif
+	return;
 #else
 	Sdr	ionsdr = _ionsdr(NULL);
 

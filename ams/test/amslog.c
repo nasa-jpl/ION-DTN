@@ -97,7 +97,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 		fprintf(stderr, "Unknown subject number: %d.\n", subjectNbr);
 		return;
 	}
-#if defined (VXWORKS) || defined (RTEMS)
+#ifndef unix
 	if (fprintf(stdout, "subject %d (%s), %d bytes of content: '%s'\n",
 			subjectNbr, subjectName, contentLength, content) < 0)
 	{
@@ -109,7 +109,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 		killMainThread();
 		return;
 	}
-#else
+#else		/*	Assume message is piped, possibly to amslogprt.	*/
 	subjectNameLength = strlen(subjectName);
 	if (fwrite((char *) &subjectNameLength, sizeof subjectNameLength,
 				1, stdout) == 0)
@@ -182,7 +182,7 @@ static void	interruptAmslog(void *userData, AmsEvent *event)
 	killMainThread();
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	amslog(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

@@ -154,7 +154,7 @@ nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(saddr->sin_addr),
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	udpbso(int a1, int a2, int a3, int a4, int a5,
 	       int a6, int a7, int a8, int a9, int a10)
 {
