@@ -16,6 +16,13 @@
 #define	CFDPDEBUG	0
 #endif
 
+static int	*_zcoControl()
+{
+	static int	controlValue;
+
+	return &controlValue;
+}
+
 /*	*	*	Helpful utility functions	*	*	*/
 
 static Object	_cfdpdbObject(Object *newDbObj)
@@ -602,6 +609,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	if (cfdpvdb->fduSemaphore != SM_SEM_NONE)
 	{
+		ionCancelZcoSpaceRequest(_zcoControl());
 		sm_SemEnd(cfdpvdb->fduSemaphore);
 	}
 
@@ -2200,17 +2208,15 @@ static int	constructFinishPdu(InFdu *fdu, CfdpEvent *event)
 #endif
 	/*	Record the Finish PDU to the database for transmission.	*/
 
-	obj = sdr_malloc(sdr, fpduLength);
-	if (obj == 0
-	|| (fpdu.pdu = zco_create(sdr, ZcoSdrSource, obj, 0,
-			fpduLength)) == (Object) ERROR
-	|| fpdu.pdu == 0)
+	fpdu.pdu = sdr_malloc(sdr, fpduLength);
+	if (fpdu.pdu == 0)
 	{
 		putErrmsg("Can't construct Finish PDU.", NULL);
 		return -1;
 	}
 
-	sdr_write(sdr, obj, (char *) fpduBuf, fpduLength);
+	sdr_write(sdr, fpdu.pdu, (char *) fpduBuf, fpduLength);
+	fpdu.length = fpduLength;
 
 	/*	Post the FinishPdu object for transmission.		*/
 
@@ -2532,9 +2538,9 @@ static Object	selectOutFdu(CfdpDB *cfdpdb, OutFdu *buffer)
 	return 0;
 }
 
-static Object	selectFduPdu(OutFdu *fdu, int *pduIsFileData, int *haveMetadata)
+static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
+			int *haveMetadata)
 {
-	Object		pdu;
 	Sdr		sdr = getIonsdr();
 	Object		elt;
 	Object		pduObj;
@@ -2548,14 +2554,37 @@ static Object	selectFduPdu(OutFdu *fdu, int *pduIsFileData, int *haveMetadata)
 
 	if (fdu->metadataPdu)
 	{
-		pdu = fdu->metadataPdu;
+		*pdu = ionCreateZco(ZcoSdrSource, fdu->metadataPdu, 0,
+				fdu->mpduLength, _zcoControl());
+		if (*pdu == (Object) ERROR)
+		{
+			putErrmsg("Can't create Metadata PDU ZCO.", NULL);
+			return -1;
+		}
+
+		if (*pdu == 0)		/*	No ZCO space for PDU.	*/
+		{
+			return 0;
+		}
+
 		fdu->metadataPdu = 0;
 		*pduIsFileData = 0;
-		return pdu;
+		return 0;
 	}
 
 	if (fdu->fileSize > 0)
 	{
+		if (fdu->fileRef == 0)
+		{
+			fdu->fileRef = zco_create_file_ref(sdr,
+					fdu->sourceFileName, NULL);
+			if (fdu->fileRef == 0)
+			{
+				putErrmsg("No space for file ZCO ref.", NULL);
+				return -1;
+			}
+		}
+
 		elt = sdr_list_first(sdr, fdu->fileDataPdus);
 		if (elt)
 		{
@@ -2605,71 +2634,102 @@ static Object	selectFduPdu(OutFdu *fdu, int *pduIsFileData, int *haveMetadata)
 			if (header == 0)
 			{
 				putErrmsg("No space for file PDU hdr.", NULL);
-				return 0;
+				return -1;
 			}
 
 			sdr_write(sdr, header, (char *) headerBuf,
 					headerLength);
-			pdu = zco_create(sdr, ZcoSdrSource, header, 0,
-					headerLength);
-			if (pdu == (Object) ERROR || pdu == 0)
+			*pdu = ionCreateZco(ZcoSdrSource, header, 0,
+					headerLength, _zcoControl());
+			if (*pdu == (Object) ERROR)
 			{
-				putErrmsg("No space for file PDU.", NULL);
+				putErrmsg("Can't create file PDU ZCO.", NULL);
+				return -1;
+			}
+
+			if (*pdu == 0)	/*	No ZCO space for PDU.	*/
+			{
 				return 0;
 			}
 
-			if (zco_append_extent(sdr, pdu, ZcoFileSource,
-				fdu->fileRef, seg->offset, seg->length) <= 0)
+			if (ionAppendZcoExtent(*pdu, ZcoFileSource,
+					fdu->fileRef, seg->offset, seg->length,
+					_zcoControl()) <= 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
-				return 0;
+				return -1;
 			}
 
 			fdu->progress += seg->length;
+			sdr_free(sdr, pduObj);
 			sdr_list_delete(sdr, elt, NULL, NULL);
 			*pduIsFileData = 1;
-			return pdu;
+			return 0;
 		}
 	}
 
-	pdu = fdu->eofPdu;
+	*pdu = ionCreateZco(ZcoSdrSource, fdu->eofPdu, 0, fdu->epduLength,
+			_zcoControl());
+	if (*pdu == (Object) ERROR)
+	{
+		putErrmsg("Can't create EOF PDU ZCO.", NULL);
+		return -1;
+	}
+
+	if (*pdu == 0)			/*	No ZCO space for PDU.	*/
+	{
+		return 0;
+	}
+
 	fdu->eofPdu = 0;
 	*pduIsFileData = 0;
-	return pdu;
+	return 0;
 }
 
-static int	selectOutPdu(CfdpDB *db, Object *pdu, OutFdu *fduBuffer,
-			FinishPdu *fpdu, int *direction, int *pduIsFileData,
-			int *haveMetadata)
+static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
+			OutFdu *fduBuffer, FinishPdu *fpdu, int *direction,
+		       	int *pduIsFileData, int *haveMetadata)
 {
-	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		fduObj;
+	Sdr	sdr = getIonsdr();
+	Object	elt;
 
 	elt = sdr_list_first(sdr, db->finishPdus);
 	if (elt)	/*	Have got a Finished PDU to send.	*/
 	{
 		sdr_read(sdr, (char *) fpdu, sdr_list_data(sdr, elt),
 				sizeof(FinishPdu));
-		*pdu = fpdu->pdu;
+		*pdu = ionCreateZco(ZcoSdrSource, fpdu->pdu, 0, fpdu->length,
+				_zcoControl());
+		if (*pdu == (Object) ERROR)
+		{
+			putErrmsg("Can't create Finish PDU ZCO.", NULL);
+			return -1;
+		}
+
+		if (*pdu == 0)		/*	No ZCO space for PDU.	*/
+		{
+			return 0;
+		}
+
+		sdr_free(sdr, fpdu->pdu);
+		sdr_list_delete(sdr, elt, NULL, NULL);
 		*direction = 1;		/*	Toward source.		*/
 		return 0;
 	}
 
 	/*	Look for a forward PDU.					*/
 
-	fduObj = selectOutFdu(db, fduBuffer);
-	if (fduObj)
+	*direction = 0;			/*	Toward destination.	*/
+	*fdu = selectOutFdu(db, fduBuffer);
+	if (*fdu)
 	{
-		sdr_stage(sdr, NULL, fduObj, 0);
-		*pdu = selectFduPdu(fduBuffer, pduIsFileData, haveMetadata);
-		if (*pdu == 0)
+		sdr_stage(sdr, NULL, *fdu, 0);
+		if (selectFduPdu(fduBuffer, pdu, pduIsFileData, haveMetadata))
 		{
-			putErrmsg("UTO can't get outbound PDU.", NULL);
+			putErrmsg("UTO failed getting getting outbound PDU.",
+					NULL);
 			return -1;
 		}
-
-		*direction = 0;		/*	Toward destination.	*/
 	}
 
 	return 0;
@@ -2681,7 +2741,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	Sdr			sdr = getIonsdr();
 	CfdpVdb			*cfdpvdb = _cfdpvdb(NULL);
 	CfdpDB			cfdpdb;
-	Object			fduObj;
+	Object			fdu = 0;
 	int			pduIsFileData = 0;	/*	Boolean.*/
 	int			haveMetadata = 0;	/*	Boolean.*/
 	int			recordStructure = 0;	/*	Boolean.*/
@@ -2709,7 +2769,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	crcRequired = cfdpdb.crcRequired;
 	CHKERR(sdr_begin_xn(sdr));
-	if (selectOutPdu(&cfdpdb, pdu, fduBuffer, fpdu, direction,
+	if (selectOutPdu(&cfdpdb, pdu, &fdu, fduBuffer, fpdu, direction,
 			&pduIsFileData, &haveMetadata) < 0)
 	{
 		putErrmsg("UTO can't get outbound PDU.", NULL);
@@ -2738,7 +2798,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 		}
 
 		CHKERR(sdr_begin_xn(sdr));
-		if (selectOutPdu(&cfdpdb, pdu, fduBuffer, fpdu, direction,
+		if (selectOutPdu(&cfdpdb, pdu, &fdu, fduBuffer, fpdu, direction,
 				&pduIsFileData, &haveMetadata) < 0)
 		{
 			putErrmsg("UTO can't get outbound PDU.", NULL);
@@ -2762,7 +2822,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	}
 	else			/*	A forward PDU.			*/
 	{
-		sdr_write(sdr, fduObj, (char *) fduBuffer, sizeof(OutFdu));
+		sdr_write(sdr, fdu, (char *) fduBuffer, sizeof(OutFdu));
 		largeFile = fduBuffer->largeFile;
 		entityNbrLength = cfdpdb.ownEntityNbr.length;
 		if (fduBuffer->destinationEntityNbr.length > entityNbrLength)

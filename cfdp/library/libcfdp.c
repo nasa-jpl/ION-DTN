@@ -1021,17 +1021,15 @@ static int	constructMetadataPdu(OutFdu *fdu, char *sourceFileName,
 		}
 	}
 
-	obj = sdr_malloc(sdr, mpduLength);
-	if (obj == 0
-	|| (fdu->metadataPdu = zco_create(sdr, ZcoSdrSource, obj, 0,
-			mpduLength)) == (Object) ERROR
-	|| fdu->metadataPdu == 0)
+	fdu->metadataPdu = sdr_malloc(sdr, mpduLength);
+	if (fdu->metadataPdu == 0)
 	{
 		putErrmsg("Can't construct EOF PDU.", NULL);
 		return -1;
 	}
 
-	sdr_write(sdr, obj, (char *) mpduBuf, mpduLength);
+	sdr_write(sdr, fdu->metadataPdu, (char *) mpduBuf, mpduLength);
+	fdu->mpduLength = mpduLength;
 	return 0;
 }
 
@@ -1044,7 +1042,6 @@ static int	constructEofPdu(OutFdu *fdu, CfdpDB *db, unsigned int checksum)
 	unsigned char	condition = CfdpNoError;
 	unsigned int	u4;
 	uvast		u8;
-	Object		obj;
 
 	cursor = eofBuf;
 	*cursor = 4;		/*	Directive code: EOF PDU.	*/
@@ -1085,17 +1082,15 @@ static int	constructEofPdu(OutFdu *fdu, CfdpDB *db, unsigned int checksum)
 		epduLength += 4;
 	}
 
-	obj = sdr_malloc(sdr, epduLength);
-	if (obj == 0
-	|| (fdu->eofPdu = zco_create(sdr, ZcoSdrSource, obj, 0, epduLength))
-			== (Object) ERROR
-	|| fdu->eofPdu == 0)
+	fdu->eofPdu = sdr_malloc(sdr, epduLength);
+	if (fdu->eofPdu == 0)
 	{
 		putErrmsg("Can't construct EOF PDU.", NULL);
 		return -1;
 	}
 
-	sdr_write(sdr, obj, (char *) eofBuf, epduLength);
+	sdr_write(sdr, fdu->eofPdu, (char *) eofBuf, epduLength);
+	fdu->epduLength = epduLength;
 	return 0;
 }
 
@@ -1215,6 +1210,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			return 0;
 		}
 
+		istrcpy(fdu.sourceFileName, sourceFileName,
+				sizeof(fdu.sourceFileName));
 		if (readerFn == NULL)
 		{
 			fdu.recordBoundsRespected = 0;
@@ -1252,15 +1249,6 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		else
 		{
 			fdu.largeFile = 1;
-		}
-
-		fdu.fileRef = zco_create_file_ref(sdr, sourceFileName, NULL);
-		if (fdu.fileRef == 0)
-		{
-			close(sourceFile);
-			sdr_cancel_xn(sdr);
-			putErrmsg("CFDP can't create file ref.", NULL);
-			return -1;
 		}
 
 		fdu.fileDataPdus = sdr_list_create(sdr);

@@ -77,7 +77,8 @@ typedef struct
 
 typedef struct
 {
-	Object			pdu;		/*	ZCO		*/
+	Object			pdu;		/*	bytes		*/
+	unsigned int		length;		/*	in bytes	*/
 	int			largeFile;
 	int			entityNbrLength;
 	int			transactionNbrLength;
@@ -108,6 +109,7 @@ typedef struct
 	int			utParmsLength;
 	int			reqNbr;		/*	Creation req.	*/
 	CfdpTransactionId	originatingTransactionId;
+	char			sourceFileName[256];
 	unsigned int		recordBoundsRespected;	/*	Boolean	*/
 	unsigned int		closureRequested;	/*	Boolean.*/
 	unsigned int		finishReceived;		/*	Boolean.*/
@@ -116,14 +118,16 @@ typedef struct
 
 	FduState		state;
 	CfdpHandler		faultHandlers[16];
-	Object			metadataPdu;	/*	ZCO		*/
+	Object			metadataPdu;	/*	bytes		*/
+	unsigned int		mpduLength;	/*	in bytes	*/
 	uvast			fileSize;	/*	in bytes	*/
 	unsigned int		largeFile;	/*	Boolean		*/
 	uvast			progress;	/*	bytes issued	*/
 	unsigned int		transmitted;	/*	Boolean		*/
 	Object			fileRef;	/*	ZCO file ref	*/
 	Object			fileDataPdus;	/*	sdrlist		*/
-	Object			eofPdu;		/*	ZCO		*/
+	Object			eofPdu;		/*	bytes		*/
+	unsigned int		epduLength;	/*	in bytes	*/
 	Object			extantPdus;	/*	sdrlist		*/
 } OutFdu;
 
