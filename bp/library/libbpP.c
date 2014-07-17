@@ -7242,7 +7242,7 @@ static int	abortBundleAcq(AcqWorkArea *work)
 }
 
 static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
-			BpSrReason srReason, char *dictionary)
+			BpSrReason srReason)
 {
 	Bundle	*bundle = &(work->bundle);
 	Sdr	bpSdr;
@@ -7293,7 +7293,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 
 	if (bundle->statusRpt.flags)
 	{
-		if (sendStatusRpt(bundle, dictionary) < 0)
+		if (sendStatusRpt(bundle, work->dictionary) < 0)
 		{
 			putErrmsg("Can't send status report.", NULL);
 			return -1;
@@ -7439,7 +7439,8 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		writeMemo("[?] ZCO space is congested; discarding bundle.");
 		bpInductTally(work->vduct, BP_INDUCT_CONGESTIVE,
 				bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, CtDepletedStorage,
+				SrDepletedStorage);
 	}
 
 	initAuthenticity(work);	/*	Set default.			*/
@@ -7475,7 +7476,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 				bundle->payload.length);
 		return discardReceivedBundle(work, CtBlockUnintelligible,
-				SrBlockUnintelligible, work->dictionary);
+				SrBlockUnintelligible);
 	}
 
 	/*	Redundant reception of a custodial bundle after
@@ -7538,8 +7539,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 			default:	/*	Entry found; redundant.	*/
 				return discardReceivedBundle(work,
-					CtRedundantReception, 0,
-					work->dictionary);
+						CtRedundantReception, 0);
 			}
 		}
 	}
