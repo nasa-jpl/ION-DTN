@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS)
 #define ION_LWT
 #else
 #undef ION_LWT
