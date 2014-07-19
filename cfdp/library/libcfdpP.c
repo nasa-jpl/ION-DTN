@@ -456,6 +456,7 @@ int	cfdpInit()
 		cfdpdbBuf.events = sdr_list_create(sdr);
 		cfdpdbBuf.entities = sdr_list_create(sdr);
 		cfdpdbBuf.finishPdus = sdr_list_create(sdr);
+		cfdpdbBuf.finsPending = sdr_list_create(sdr);
 		sdr_write(sdr, cfdpdbObject, (char *) &cfdpdbBuf,
 				sizeof(CfdpDB));
 		sdr_catlg(sdr, _cfdpdbName(), 0, cfdpdbObject);
@@ -2137,7 +2138,7 @@ static int	constructFinishPdu(InFdu *fdu, CfdpEvent *event)
 
 			/*		Type.				*/
 
-			*cursor = 0x00;
+			*cursor = 0x01;
 			cursor++;
 			fpduLength++;
 
@@ -2711,7 +2712,6 @@ static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 			return 0;
 		}
 
-		sdr_free(sdr, fpdu->pdu);
 		sdr_list_delete(sdr, elt, NULL, NULL);
 		*direction = 1;		/*	Toward source.		*/
 		return 0;
@@ -2958,18 +2958,30 @@ static int	parseFilestoreResponseTLV(CfdpEvent *event,
 	int			firstNameLength;
 	char			secondNameBuf[256];
 	int			secondNameLength;
+	char			filestoreMsgBuf[256];
+	int			filestoreMsgLength;
 	Object			respObj;
 
-	if (length < 2)				/*	Malformed.	*/
+	if (length < 1)				/*	Malformed.	*/
 	{
 		*bytesRemaining = 0;		/*	End TLV loop.	*/
 		return 0;			/*	End TLV loop.	*/
 	}
 
 	resp.action = (**cursor >> 4) & 0x0f;
+	resp.status = (**cursor) & 0x0f;
 	(*cursor)++;
 	(*bytesRemaining)--;
 	length--;
+
+	/*	First name cited in request.				*/
+
+	if (length < 1)				/*	Malformed.	*/
+	{
+		*bytesRemaining = 0;		/*	End TLV loop.	*/
+		return 0;			/*	End TLV loop.	*/
+	}
+
 	firstNameLength = **cursor;
 	(*cursor)++;
 	(*bytesRemaining)--;
@@ -2985,17 +2997,20 @@ static int	parseFilestoreResponseTLV(CfdpEvent *event,
 	*cursor += firstNameLength;
 	*bytesRemaining -= firstNameLength;
 	length -= firstNameLength;
-	if (length < 1)		/*	No length for 2nd file name.	*/
+
+	/*	Second name cited in request.				*/
+
+	if (length < 1)				/*	Malformed.	*/
 	{
 		*bytesRemaining = 0;		/*	End TLV loop.	*/
-		return 0;
+		return 0;			/*	End TLV loop.	*/
 	}
 
 	secondNameLength = **cursor;
 	(*cursor)++;
 	(*bytesRemaining)--;
 	length--;
-	if (secondNameLength != length)		/*	Malformed.	*/
+	if (secondNameLength > length)		/*	Malformed.	*/
 	{
 		*bytesRemaining = 0;		/*	End TLV loop.	*/
 		return 0;
@@ -3007,7 +3022,37 @@ static int	parseFilestoreResponseTLV(CfdpEvent *event,
 		secondNameBuf[secondNameLength] = 0;
 		*cursor += secondNameLength;
 		*bytesRemaining -= secondNameLength;
+		length -= secondNameLength;
 	}
+
+	/*	Filestore message in response.				*/
+
+	if (length < 1)				/*	Malformed.	*/
+	{
+		*bytesRemaining = 0;		/*	End TLV loop.	*/
+		return 0;			/*	End TLV loop.	*/
+	}
+
+	filestoreMsgLength = **cursor;
+	(*cursor)++;
+	(*bytesRemaining)--;
+	length--;
+	if (filestoreMsgLength > length)	/*	Malformed.	*/
+	{
+		*bytesRemaining = 0;		/*	End TLV loop.	*/
+		return 0;
+	}
+
+	if (filestoreMsgLength > 0)
+	{
+		memcpy(filestoreMsgBuf, *cursor, filestoreMsgLength);
+		filestoreMsgBuf[filestoreMsgLength] = 0;
+		*cursor += filestoreMsgLength;
+		*bytesRemaining -= filestoreMsgLength;
+		length -= filestoreMsgLength;
+	}
+
+	/*	Build filestore response object.			*/
 
 	switch (resp.action)
 	{
@@ -3052,6 +3097,20 @@ static int	parseFilestoreResponseTLV(CfdpEvent *event,
 		if (resp.secondFileName == 0)
 		{
 			putErrmsg("Can't retain second file name.", NULL);
+			return -1;
+		}
+	}
+
+	if (filestoreMsgLength == 0)
+	{
+		resp.message = 0;
+	}
+	else
+	{
+		resp.message = sdr_string_create(sdr, filestoreMsgBuf);
+		if (resp.message == 0)
+		{
+			putErrmsg("Can't retain filestore message.", NULL);
 			return -1;
 		}
 	}
@@ -3108,7 +3167,7 @@ static int	parseFinishPduTLV(CfdpEvent *event, unsigned char **cursor,
 }
 
 static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
-			OutFdu *fdu, Object fduObj, Object fduElt)
+			OutFdu *fdu, Object fduObj)
 {
 	Sdr		sdr = getIonsdr();
 	CfdpEvent	event;
@@ -3124,6 +3183,13 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	fdu->finishReceived = 1;
+	if (fdu->closureElt)
+	{
+		sdr_free(sdr,  sdr_list_data(sdr, fdu->closureElt));
+		sdr_list_delete(sdr, fdu->closureElt, NULL, NULL);
+		fdu->closureElt = 0;
+	}
+
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
@@ -4416,7 +4482,7 @@ printf("...PDU type is invalid (must be Finish)...\n");
 		CHKERR(sdr_begin_xn(sdr));
 		fduObj = findOutFdu(&transactionId, &outFduBuf, &fduElt);
 		if (fduObj == 0
-		|| outFduBuf.closureRequested == 0
+		|| outFduBuf.closureLatency == 0
 		|| outFduBuf.transmitted == 0)
 		{
 #if CFDPDEBUG
@@ -4427,7 +4493,7 @@ printf("...spurious Finish PDU...\n");
 		}
 
 		result = handleFinishPdu(cursor, bytesRemaining, &outFduBuf,
-				fduObj, fduElt);
+				fduObj);
 		if (result < 0)
 		{
 			putErrmsg("UTI can't handle Finish PDU.", NULL);

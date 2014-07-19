@@ -181,7 +181,7 @@ single file data segment.
 This is a standard "reader" function that segments a source file of text lines
 on line boundaries.
 
-=item int cfdp_put(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpTransactionId *transactionId)
+=item int cfdp_put(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpMetadataFn metadataFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpTransactionId *transactionId)
 
 Sends the file identified by I<sourceFileName> to the CFDP entity identified by
 I<destinationEntityNbr>.  I<destinationFileName> is used to indicate the name
@@ -201,6 +201,10 @@ transmission control information that is to be passed on to the UT layer.  The
 nominal UT layer for ION's CFDP being Bundle Protocol, the I<utParms> array is
 normally a pointer to a structure of type BpUtParms; see the I<bp> man page
 for a discussion of the parameters in that structure. 
+
+I<closureLatency> is the length of time following transmission of the EOF PDU
+within which a responding Transaction Finish PDU is expected.  If no Finish
+PDU is requested, this parameter value should be zero.
 
 I<messagesToUser> and I<filestoreRequests>, where non-zero, must be the
 addresses of non-volatile linked lists (that is, linked lists in ION's

@@ -272,7 +272,7 @@ extern int	cfdp_put(CfdpNumber	*destinationEntityNbr,
 			CfdpHandler	*faultHandlers,	/*	array	*/
 			unsigned int	flowLabelLength,
 			unsigned char	*flowLabel,
-			unsigned int	closureRequested,
+			unsigned int	closureLatency,
 			MetadataList	messagesToUser,
 			MetadataList	filestoreRequests,
 			CfdpTransactionId *transactionId);

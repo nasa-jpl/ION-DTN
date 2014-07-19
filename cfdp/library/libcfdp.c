@@ -729,7 +729,7 @@ static int	constructMetadataPdu(OutFdu *fdu, char *sourceFileName,
 
 	/*	Note closure request.					*/
 
-	*cursor = (fdu->closureRequested > 0) << 6;
+	*cursor = (fdu->closureLatency > 0) << 6;
 	cursor++;
 	mpduLength++;
 
@@ -1099,7 +1099,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		char *destFileName, CfdpReaderFn readerFn,
 		CfdpMetadataFn metadataFn, CfdpHandler *faultHandlers,
 		int flowLabelLength, unsigned char *flowLabel,
-		unsigned int closureRequested, MetadataList messagesToUser,
+		unsigned int closureLatency, MetadataList messagesToUser,
 		MetadataList filestoreRequests,
 		CfdpTransactionId *originatingTransactionId,
 		CfdpTransactionId *transactionId)
@@ -1160,7 +1160,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		fdu.utParmsLength = 0;
 	}
 
-	fdu.closureRequested = closureRequested;
+	fdu.closureLatency = closureLatency;
 	CHKZERO(sdr_begin_xn(sdr));
 	if (sdr_heap_depleted(sdr))
 	{
@@ -1361,26 +1361,30 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 					}
 				}
 
-				pdu.metadataLength = metadataFn(progress,
+				if (metadataFn)
+				{
+					pdu.metadataLength =
+						metadataFn(progress,
 						recordLength - lengthRemaining,
 						pdu.length, sourceFile,
 						metadataBuffer);
-				if (pdu.metadataLength < 0)
-				{
-					close(sourceFile);
-					sdr_cancel_xn(sdr);
-					putErrmsg("CFDP metadataFn failed.",
-							sourceFileName);
-					return -1;
-				}
+					if (pdu.metadataLength < 0)
+					{
+						close(sourceFile);
+						sdr_cancel_xn(sdr);
+						putErrmsg("CFDP metadataFn \
+failed.", sourceFileName);
+						return -1;
+					}
 
-				if (pdu.metadataLength > 63)
-				{
-					close(sourceFile);
-					sdr_cancel_xn(sdr);
-					putErrmsg("CFDP seg metadata too long.",
-							sourceFileName);
-					return -1;
+					if (pdu.metadataLength > 63)
+					{
+						close(sourceFile);
+						sdr_cancel_xn(sdr);
+						putErrmsg("CFDP seg metadata \
+too long.", sourceFileName);
+						return -1;
+					}
 				}
 
 				if (pdu.metadataLength == 0)
@@ -1415,6 +1419,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 					return -1;
 				}
 
+				sdr_write(sdr, pduObj, (char *) &pdu,
+						sizeof(FileDataPdu));
 				progress += pdu.length;
 				lengthRemaining -= pdu.length;
 			}
@@ -1541,13 +1547,13 @@ int	cfdp_put(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		char *destFileName, CfdpReaderFn readerFn,
 		CfdpMetadataFn metadataFn, CfdpHandler *faultHandlers,
 		unsigned int flowLabelLength, unsigned char *flowLabel,
-		unsigned int closureRequested, Object messagesToUser,
+		unsigned int closureLatency, Object messagesToUser,
 		Object filestoreRequests, CfdpTransactionId *transactionId)
 {
 	return createFDU(destinationEntityNbr, utParmsLength, utParms,
 			sourceFileName, destFileName, readerFn, metadataFn,
 			faultHandlers, flowLabelLength, flowLabel,
-			closureRequested, messagesToUser, filestoreRequests,
+			closureLatency, messagesToUser, filestoreRequests,
 			NULL, transactionId);
 }
 

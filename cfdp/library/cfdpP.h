@@ -75,16 +75,6 @@ typedef struct
 	Object			filestoreResponses;	/*	MdList	*/
 } CfdpEvent;
 
-typedef struct
-{
-	Object			pdu;		/*	bytes		*/
-	unsigned int		length;		/*	in bytes	*/
-	int			largeFile;
-	int			entityNbrLength;
-	int			transactionNbrLength;
-	CfdpTransactionId	transactionId;
-} FinishPdu;
-
 typedef enum
 {
 	FduActive = 0,
@@ -103,6 +93,12 @@ typedef struct
 
 typedef struct
 {
+	time_t			deadline;
+	Object			fdu;	
+} FinishPending;
+
+typedef struct
+{
 	CfdpTransactionId	transactionId;
 	CfdpNumber		destinationEntityNbr;
 	unsigned char		utParms[sizeof(BpUtParms)];
@@ -111,7 +107,7 @@ typedef struct
 	CfdpTransactionId	originatingTransactionId;
 	char			sourceFileName[256];
 	unsigned int		recordBoundsRespected;	/*	Boolean	*/
-	unsigned int		closureRequested;	/*	Boolean.*/
+	unsigned int		closureLatency;		/*	Seconds.*/
 	unsigned int		finishReceived;		/*	Boolean.*/
 
 	/*	File Delivery Unit transmission status			*/
@@ -129,6 +125,7 @@ typedef struct
 	Object			eofPdu;		/*	bytes		*/
 	unsigned int		epduLength;	/*	in bytes	*/
 	Object			extantPdus;	/*	sdrlist		*/
+	Object			closureElt;	/*	in sdrlist	*/
 } OutFdu;
 
 /*	Each CfdpExtent in "extents" indicates a range of bytes of file
@@ -144,6 +141,16 @@ typedef struct
  *	the sum of the offset and length of the later extent.  The
  *	"progress" of an InFdu is the sum of the offset and length
  *	of the last extent in the list.					*/
+
+typedef struct
+{
+	Object			pdu;		/*	bytes		*/
+	unsigned int		length;		/*	in bytes	*/
+	int			largeFile;
+	int			entityNbrLength;
+	int			transactionNbrLength;
+	CfdpTransactionId	transactionId;
+} FinishPdu;
 
 typedef struct
 {
@@ -200,7 +207,7 @@ typedef struct
 	int			proxyFlowLabelLength;
 	unsigned char		proxyFlowLabel[256];
 	unsigned int		proxyRecordBoundsRespected;/*	Boolean	*/
-	unsigned int		proxyClosureRequested;/*	Boolean	*/
+	unsigned int		proxyClosureLatency;	/*	Boolean	*/
 	CfdpCondition		proxyCondition;
 	CfdpDeliveryCode	proxyDeliveryCode;
 	CfdpFileStatus		proxyFileStatus;
@@ -239,6 +246,7 @@ typedef struct
 	Object		events;		/*	SDR list: CfdpEvent	*/
 	Object		entities;	/*	SDR list: Entity	*/
 	Object		finishPdus;	/*	SDR list: FinishPdu	*/
+	Object		finsPending;	/*	SDR list: FinishPending	*/
 } CfdpDB;
 
 /*	The volatile database object encapsulates the current volatile

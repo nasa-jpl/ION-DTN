@@ -18,7 +18,7 @@ typedef struct
 	char			destFileNameBuf[256];
 	char			*destFileName;
 	BpUtParms		utParms;
-	unsigned int		closureRequested;
+	unsigned int		closureLatency;
 	CfdpMetadataFn		segMetadataFn;
 	MetadataList		msgsToUser;
 	MetadataList		fsRequests;
@@ -59,8 +59,8 @@ static void	printUsage()
 	PUTS("\t   m <0 = CL reliability (the default), 1 = unreliable, 2 = \
 custody transfer>");
 	PUTS("\ta\tControl CFDP transaction closure");
-	PUTS("\t   a { 1 | 0 }");
-	PUTS("\t\t1 = acknowledgment requested, 0 = no acknowledgment");
+	PUTS("\t   a <expected round trip latency>");
+	PUTS("\t\t0 = no acknowledgment expected");
 	PUTS("\tn\tControl insertion of segment metadata");
 	PUTS("\t   n { 1 | 0 }");
 	PUTS("\t\t1 = time-tag each segment, 0 = no segment metadata");
@@ -226,16 +226,16 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 
 static void	setClosure(int tokenCount, char **tokens, CfdpReqParms *parms)
 {
-	unsigned long	setting;
+	unsigned long	latency;
 
 	if (tokenCount != 2)
 	{
-		PUTS("What's the transaction closure mode?");
+		PUTS("What's the transaction closure latency?");
 		return;
 	}
 
-	setting = strtoul(tokens[1], NULL, 0);
-	parms->closureRequested = (setting == 0) ? 0 : 1;
+	latency = strtoul(tokens[1], NULL, 0);
+	parms->closureLatency = latency;
 }
 
 static void	setSegMd(int tokenCount, char **tokens, CfdpReqParms *parms)
@@ -525,7 +525,7 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 					parms->destFileName, NULL,
 					parms->segMetadataFn,
 					parms->faultHandlers, 0, NULL,
-					parms->closureRequested,
+					parms->closureLatency,
 					parms->msgsToUser,
 					parms->fsRequests,
 					&(parms->transactionId)) < 0)
@@ -654,6 +654,14 @@ static void	*handleEvents(void *parm)
 		if (type == CfdpReportInd)
 		{
 			printf("Report '%s'\n", statusReportBuf);
+		}
+
+		if (type == CfdpFileSegmentRecvInd)
+		{
+			if (segMetadataLength > 0)
+			{
+				printf("Seg metadata '%s'\n", segMetadata);
+			}
 		}
 
 		while (messagesToUser)
