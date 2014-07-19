@@ -1246,6 +1246,12 @@ void	destroyOutFdu(OutFdu *fdu, Object fduObj, Object fduElt)
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
+	if (fdu->closureElt)
+	{
+		sdr_free(sdr,  sdr_list_data(sdr, fdu->closureElt));
+		sdr_list_delete(sdr, fdu->closureElt, NULL, NULL);
+	}
+
 	if (fdu->fileRef)
 	{
 		zco_destroy_file_ref(sdr, fdu->fileRef);
