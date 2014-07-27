@@ -1449,6 +1449,7 @@ int	bpInit()
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
+		bpdbBuf.maxAcqInHeap = 560;
 		bpdbBuf.sourceStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.recvStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.discardStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
@@ -6404,10 +6405,8 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 {
 	static unsigned int	acqCount = 0;
-	static int		maxAcqInHeap = 0;
 	Sdr			sdr = getIonsdr();
-	BpDB			*bpConstants = _bpConstants();
-	BpDB			bpdb;
+				OBJ_POINTER(BpDB, bpdb);
 	Object			extentObj;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
@@ -6423,23 +6422,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	if (maxAcqInHeap == 0)
-	{
-		/*	Initialize threshold for acquiring bundle
-		 *	into a file rather than directly into the
-		 *	heap.  Minimum threshold is the amount of
-		 *	heap space that would be occupied by a ZCO
-		 *	file reference object anyway, even if the
-		 *	bundle were entirely acquired into a file.	*/
-
-		maxAcqInHeap = 560;
-		sdr_read(sdr, (char *) &bpdb, getBpDbObject(), sizeof(BpDB));
-		if (bpdb.maxAcqInHeap > maxAcqInHeap)
-		{
-			maxAcqInHeap = bpdb.maxAcqInHeap;
-		}
-	}
-
+	GET_OBJ_POINTER(sdr, BpDB, bpdb, getBpDbObject());
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
 		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
@@ -6452,11 +6435,12 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 		case 0:
 			work->congestive = 1;
+			sdr_cancel_xn(sdr);
 			return 0;	/*	Out of ZCO space.	*/
 		}
 
-		work->zcoElt = sdr_list_insert_last(sdr,
-				bpConstants->inboundBundles, work->zco);
+		work->zcoElt = sdr_list_insert_last(sdr, bpdb->inboundBundles,
+				work->zco);
 		if (work->zcoElt == 0)
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
@@ -6480,7 +6464,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	 *	of increasing offset because the CL itself enforces
 	 *	data ordering (as in TCP).				*/
 
-	if ((length + zco_length(sdr, work->zco)) <= maxAcqInHeap)
+	if ((length + zco_length(sdr, work->zco)) <= bpdb->maxAcqInHeap)
 	{
 		extentObj = sdr_insert(sdr, bytes, length);
 		if (extentObj)
@@ -6496,6 +6480,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 			case 0:
 				sdr_free(sdr, extentObj);
 				work->congestive = 1;
+				sdr_cancel_xn(sdr);
+				return 0;/*	Out of ZCO space.	*/
 			}
 		}
 
@@ -6581,7 +6567,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 	case 0:
 		work->congestive = 1;
-		break;
+		sdr_cancel_xn(sdr);
+		return 0;		/*	Out of ZCO space.	*/
 
 	default:
 		/*	Flag file reference for deletion as soon as

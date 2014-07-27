@@ -1101,10 +1101,10 @@ static void	executeUnblock(int tokenCount, char **tokens)
 
 static void	manageHeapmax(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	Object	bpdbObj = getBpDbObject();
-	BpDB	bpdb;
-	int	heapmax;
+	Sdr		sdr = getIonsdr();
+	Object		bpdbObj = getBpDbObject();
+	BpDB		bpdb;
+	unsigned int	heapmax;
 
 	if (tokenCount != 3)
 	{
@@ -1112,10 +1112,10 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 		return;
 	}
 
-	heapmax = strtol(tokens[2], NULL, 0);
-	if (heapmax < 0)
+	heapmax = strtoul(tokens[2], NULL, 0);
+	if (heapmax < 560)
 	{
-		writeMemoNote("[?] heapmax is invalid", tokens[2]);
+		writeMemoNote("[?] heapmax must be at least 560", tokens[2]);
 		return;
 	}
 

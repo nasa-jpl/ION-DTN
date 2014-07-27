@@ -613,7 +613,7 @@ typedef struct
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
 	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting clock.	*/
-	int		maxAcqInHeap;
+	unsigned int	maxAcqInHeap;
 	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
 
