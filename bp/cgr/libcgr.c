@@ -1774,6 +1774,7 @@ void	cgr_start()
 
 const char	*cgr_tracepoint_text(CgrTraceType traceType)
 {
+	int			i = traceType;
 	static const char	*tracepointText[] =
 	{
 	[CgrBuildRoutes] = "BUILD stationNode:" UVAST_FIELDSPEC
@@ -1814,17 +1815,18 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrNoProximateNode] = "  NO proximate node",
 	};
 
-	if (traceType < 0 || traceType >= CgrTraceTypeMax)
+	if (i < 0 || i >= CgrTraceTypeMax)
 	{
 		return "";
 	}
 
-	return tracepointText[traceType];
+	return tracepointText[i];
 }
 
 const char	*cgr_reason_text(CgrReason reason)
 {
-	static const char *reasonText[] =
+	int			i = reason;
+	static const char	*reasonText[] =
 	{
 	[CgrContactEndsEarly] = "contact ends before data arrives",
 	[CgrSuppressed] = "contact is suppressed",
@@ -1853,12 +1855,12 @@ capacity for this bundle",
 	[CgrLargerNodeNbr] = "initial hop has larger node number",
 	};
 
-	if (reason < 0 || reason >= CgrReasonMax)
+	if (i < 0 || i >= CgrReasonMax)
 	{
 		return "";
 	}
 
-	return reasonText[reason];
+	return reasonText[i];
 }
 
 void	cgr_stop()

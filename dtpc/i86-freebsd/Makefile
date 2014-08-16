@@ -4,10 +4,10 @@ TEST = ../test
 DAEMON = ../daemon
 UTILS = ../utils
 
-OPT = -g -Wall -Werror -Dlinux
-CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
+OPT = -g -Wall -Werror -Dfreebsd
+CC = cc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
-LD = gcc $(LDFLAGS)
+LD = ld $(LDFLAGS)
 
 LIBDTPCOBJS = \
 	libdtpc.o \

@@ -689,7 +689,7 @@ uint32_t utils_grab_sdnv(unsigned char *cursor,
     }
 
     /* Did we go too far? */
-	if((size-result_len) < 0)
+	if (result_len > size)
 	{
 		DTNMP_DEBUG_ERR("utils_grab_sdnv","Bounds overrun. Size %d Used %d.",
 						size, result_len);
