@@ -73,7 +73,7 @@ typedef struct sdr_str
 	char		name[32];
 	PsmAddress	sdrsElt;		/*	In sch->sdrs.	*/
 	int		configFlags;
-	unsigned long	initHeapWords;		/*	in FULL WORDS	*/
+	unsigned long	initHeapWords;		/*	In FULL WORDS.	*/
 	long		heapSize;		/*	dsSize - map	*/
 	long		dsSize;			/*	heap + map	*/
 	int		dsKey;			/*	RAM DS shmKey	*/
@@ -83,10 +83,12 @@ typedef struct sdr_str
 		/*	Parameters of current transaction.	*/
 
 	sm_SemId	sdrSemaphore;
-	int		sdrOwnerTask;		/*	task ID		*/
-	pthread_t	sdrOwnerThread;		/*	thread ID	*/
+	int		sdrOwnerTask;		/*	Task ID.	*/
+	pthread_t	sdrOwnerThread;		/*	Thread ID.	*/
 	int		xnDepth;
-	int		xnCanceled;		/*	boolean		*/
+	int		xnCanceled;		/*	Boolean.	*/
+	int		logLength;		/*	All entries.	*/
+	PsmAddress	logEntries;		/*	Offsets in log.	*/
 
 		/*	SDR trace data access.			*/
 
@@ -151,8 +153,7 @@ typedef struct sdrv_str
 	int		logfile;	/*	Xn log file (fd).	*/
 	char		*logsm;		/*	Log in shared memory.	*/
 	int		logsmId;	/*	Log shmId if applicable.*/
-	int		logLength;	/*	Sum of entry lengths.	*/
-	Lyst		logEntries;	/*	Offsets in log.		*/
+
 	Lyst		knownObjects;	/*	ObjectExtents.		*/
 	int		modified;	/*	Boolean.		*/
 
