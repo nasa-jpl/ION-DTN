@@ -5496,6 +5496,18 @@ when asking for custody transfer and/or status reports.");
 		bundle.extendedCOS.flowLabel = extendedCOS->flowLabel;
 		bundle.extendedCOS.flags = extendedCOS->flags;
 		bundle.extendedCOS.ordinal = extendedCOS->ordinal;
+
+		/*	RFC 6258 data isn't part of ECOS but for now
+		 *	it is managed within the ECOS block structure
+		 *	to avoid having to revise the BP API in order
+		 *	to accommodate metadata.  The BpExtendedCOS
+		 *	structure should be renamed to BpAncillaryData
+		 *	in the next major ION release.			*/
+
+		bundle.extendedCOS.metadataType = extendedCOS->metadataType;
+		bundle.extendedCOS.metadataLen = extendedCOS->metadataLen;
+		memcpy(bundle.extendedCOS.metadata, extendedCOS->metadata,
+				sizeof bundle.extendedCOS.metadata);
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/

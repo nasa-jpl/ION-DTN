@@ -51,11 +51,17 @@ typedef enum
 #define BP_DELIVERED_RPT	(8)	/*	00001000		*/
 #define BP_DELETED_RPT		(16)	/*	00010000		*/
 
+#define	BP_MAX_METADATA_LEN	(30)
+
 typedef struct
 {
 	unsigned int	flowLabel;	/*	Optional.		*/
 	unsigned char	flags;		/*	See below.		*/
 	unsigned char	ordinal;	/*	0 to 254 (most urgent).	*/
+
+	unsigned char	metadataType;	/*	See RFC 6258.		*/
+	unsigned char	metadataLen;
+	unsigned char	metadata[BP_MAX_METADATA_LEN];
 } BpExtendedCOS;
 
 /*	Extended class-of-service flags.				*/
@@ -84,6 +90,10 @@ typedef struct
 	int		ackRequested;	/*	(By app.)  Boolean.	*/
 	int		adminRecord;	/*	Boolean: 0 = non-admin.	*/
 	Object		adu;		/*	Zero-copy object ref.	*/
+
+	unsigned char	metadataType;	/*	See RFC 6258.		*/
+	unsigned char	metadataLen;
+	unsigned char	metadata[BP_MAX_METADATA_LEN];
 } BpDelivery;
 
 extern int		bp_attach();
@@ -168,8 +178,8 @@ extern int		bp_send(	BpSAP sap,
 			 *	values are 0 and there is no flow
 			 *	label.
 			 *
-			 *	adu must be a "zero-copy object"
-			 *	reference as returned by zco_create().
+			 *	adu must be a "zero-copy object" as
+			 *	returned by zco_create().
 			 *
 			 *	Returns 1 on success, 0 on user error
 			 *	(an invalid argument value), -1 on
@@ -248,10 +258,10 @@ extern int		bp_receive(	BpSAP sap,
 			 *
 			 *	The application data unit delivered
 			 *	in the data delivery structure, if
-			 *	any, will be a "zero-copy object"
-			 *	reference; use the zco_receive_XXX
-			 *	functions to read the content of the
-			 *	application data unit.
+			 *	any, will be a "zero-copy object";
+			 *	use the zco_receive_XXX functions to
+			 *	read the content of the application
+			 *	data unit.
 			 *
 			 *	Be sure to call bp_release_delivery()
 			 *	after every successful invocation of
@@ -260,7 +270,7 @@ extern int		bp_receive(	BpSAP sap,
 			 *	Returns 0 on success, -1 on any error.	*/
 
 extern void		bp_interrupt(BpSAP);
-			/*	Interrupts an bp_receive invocation
+			/*	Interrupts a bp_receive invocation
 			 *	that is currently blocked.  Designed
 			 *	to be called from a signal handler;
 			 *	for this purpose, the BpSAP may need
