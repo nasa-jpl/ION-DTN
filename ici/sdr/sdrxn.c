@@ -1014,7 +1014,14 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 				itoa(configFlags));
 		return -1;
 	}
-
+#if (HEAP_PTRS)
+	if (!(configFlags & SDR_IN_DRAM))
+	{
+		putErrmsg("When ION is compiled to use pointers to retrieve \
+SDR heap data, the heap MUST be resident in memory.", itoa(configFlags));
+		return -1;
+	}
+#endif
 	if (lock == SM_SEM_NONE || sm_SemTake(lock) < 0)
 	{
 		putErrmsg("Can't lock SDR control header.", NULL);

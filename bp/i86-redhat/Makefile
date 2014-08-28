@@ -16,7 +16,7 @@ UDP = ../udp
 DCCP = ../dccp
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -DENABLE_BPACS -DENABLE_IMC
+OPT = -g -Wall -Werror -Dlinux -DENABLE_BPACS -DENABLE_IMC -DHEAP_PTRS=$(PTRS)
 CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/cteb -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared -rdynamic
