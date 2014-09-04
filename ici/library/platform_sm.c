@@ -153,6 +153,7 @@ sm_ShmDestroy(int i)
 	shm = _shmTbl() + i;
 	if (shm->freeNeeded)
 	{
+		TRACK_FREE(shm->ptr);
 		free(shm->ptr);
 		shm->freeNeeded = 0;
 	}
@@ -2188,13 +2189,21 @@ VxWorks symbol table", name);
 	}
 #endif
 
+#ifdef FSWSCHEDULER
+#include "fswspawn.c"
+#else
 	result = taskSpawn(name, priority, VX_FP_TASK, stackSize, entryPoint,
 			(int) arg1, (int) arg2, (int) arg3, (int) arg4,
 			(int) arg5, (int) arg6, (int) arg7, (int) arg8,
 			(int) arg9, (int) arg10);
+#endif
 	if (result == ERROR)
 	{
 		putSysErrmsg("Failed spawning task", name);
+	}
+	else
+	{
+		TRACK_SPAWN(result);
 	}
 
 	return result;
@@ -2207,19 +2216,21 @@ void	sm_TaskKill(int task, int sigNbr)
 
 void	sm_TaskDelete(int task)
 {
-	if (taskIdVerify(task) == OK)
+	if (taskIdVerify(task) != OK)
 	{
-		if (taskDelete(task) == ERROR)
-		{
-			putSysErrmsg("Failed deleting task", itoa(task));
-		}
+		writeMemoNote("[?] Can't delete nonexistent task", itoa(task));
+		return;
 	}
+
+	TRACK_DIED(task);
+	oK(taskDelete(task));
 }
 
 void	sm_Abort()
 {
 	oK(tt(taskIdSelf()));
 	snooze(2);
+	TRACK_DIED(task);
 	oK(taskDelete(taskIdSelf()));
 }
 
@@ -3096,6 +3107,7 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		exit(1);
 
 	default:		/*	This is the parent process.	*/
+		TRACK_BORN(pid);
 		return pid;
 	}
 }
@@ -3114,12 +3126,14 @@ void	sm_TaskDelete(int task)
 		return;
 	}
 
+	TRACK_DIED(task);
 	oK(kill(task, SIGTERM));
 	oK(waitpid(task, NULL, 0));
 }
 
 void	sm_Abort()
 {
+	TRACK_DIED(getpid());
 	abort();
 }
 

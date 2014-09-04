@@ -179,7 +179,7 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define ERROR			(-1)
 
 #ifdef __GNUC__
-#define UNUSED  __attribute__((unused))
+#define UNUSED			__attribute__((unused))
 #else
 #define UNUSED
 #endif
@@ -194,13 +194,13 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #ifndef LONG_MAX
 
 #if defined (_ILP32)
-#define LONG_MAX 0x7fffffffL
+#define LONG_MAX		(0x7fffffffL)
 #elif defined (_LP64)
-#define LONG_MAX 0x7fffffffffffffffL
+#define LONG_MAX		(0x7fffffffffffffffL)
 #elif (SIZEOF_LONG == 4)
-#define LONG_MAX 0x7fffffffL
+#define LONG_MAX		(0x7fffffffL)
 #elif (SIZEOF_LONG == 8)
-#define LONG_MAX 0x7fffffffffffffffL
+#define LONG_MAX		(0x7fffffffffffffffL)
 #endif
 
 #endif				/****	End of #ifndef LONG_MAX   *******/
@@ -531,6 +531,37 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include "valgrind/valgrind.h"
 #endif
 
+#if (defined(AESCFS))
+#define	FSWLOGGER
+#define	FSWWATCHER
+#define	FSWTIME
+#define	FSWCLOCK
+#define FSWLAN
+#define FSWSCHEDULER
+#define	FSWUSER
+#include "ioncfs.h"
+#endif
+
+#ifndef	TRACK_MALLOC
+#define	TRACK_MALLOC(x)
+#endif
+
+#ifndef	TRACK_FREE
+#define	TRACK_FREE(x)
+#endif
+
+#ifndef	TRACK_BORN
+#define	TRACK_BORN(x)
+#endif
+
+#ifndef	TRACK_DIED
+#define	TRACK_DIED(x)
+#endif
+
+#ifndef	MAX_SRC_FILE_NAME
+#define MAX_SRC_FILE_NAME	255
+#endif
+
 /*	Prototypes for standard ION platform functions.			*/
 
 typedef void			(* Logger)(char *);
@@ -538,7 +569,7 @@ typedef void			(* Watcher)(char);
 
 extern void			*acquireSystemMemory(size_t);
 extern int			createFile(const char*, int);
-extern char *			system_error_msg();
+extern char			*system_error_msg();
 extern void			setLogger(Logger);
 extern void			writeMemo(char *);
 extern void			writeErrMemo(char *);
@@ -549,12 +580,11 @@ extern void			snooze(unsigned int);
 extern void			microsnooze(unsigned int);
 extern void			getCurrentTime(struct timeval *);
 extern unsigned long		getClockResolution();	/*	usec	*/
-#ifndef ION_NO_DNS
+#if (defined(FSWLAN) || !(defined(ION_NO_DNS)))
 extern unsigned int		getInternetAddress(char *);
-extern char *			getInternetHostName(unsigned int, char *);
+extern char			*getInternetHostName(unsigned int, char *);
 extern int			getNameOfHost(char *, int);
-extern unsigned int		getAddressOfHost();
-extern char *			getNameOfUser(char *);
+extern char			*getNameOfUser(char *);
 extern int			reUseAddress(int);
 extern int			watchSocket(int);
 #endif
@@ -635,6 +665,8 @@ extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 
 extern void			findToken(char **cursorPtr, char **token);
+extern unsigned int		getAddressOfHost();
+extern char			*addressToString(struct in_addr, char *buf);
 extern int			parseSocketSpec(char *socketSpec,
 					unsigned short *portNbr,
 					unsigned int *ipAddress);

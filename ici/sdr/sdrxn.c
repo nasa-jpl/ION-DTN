@@ -945,7 +945,7 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 	if (dbfile == -1)
 	{
 		MRELEASE(buffer);
-		putSysErrmsg("Can't create database file", dbfilename);
+		putSysErrmsg("Can't create datastore file", dbfilename);
 		return -1;
 	}
 
@@ -963,7 +963,7 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 			close(dbfile);
 			unlink(dbfilename);
 			MRELEASE(buffer);
-			putSysErrmsg("Can't extend database file", dbfilename);
+			putSysErrmsg("Can't extend datastore file", dbfilename);
 			return -1;
 		}
 	
@@ -978,10 +978,12 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 	{
 		close(dbfile);
 		unlink(dbfilename);
-		putSysErrmsg("Can't initialize database file", dbfilename);
+		putSysErrmsg("Can't initialize datastore file", dbfilename);
 		return -1;
 	}
 
+	writeMemoNote("[i] Created SDR datastore file", dbfilename);
+	writeMemoNote("[i] SDR datastore file length", itoa(sdr->sdrSize));
 	return dbfile;
 }
 
@@ -1001,8 +1003,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	Lyst			logEntries = NULL;
 	char			dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
 	int			dbfile = -1;
-	char			*dbsm;
-	int			dbsmId;
+	char			*dbsm = NULL;
+	int			dbsmId = 0;
 
 	CHKERR(sdrwm);
 	CHKERR(sch);
@@ -1127,6 +1129,7 @@ in file and transaction reversibility", sdr->pathName);
 			return -1;
 		}
 
+		writeMemoNote("[i] Created SDR log file", logfilename);
 		logEntries = lyst_create_using(_sdrMemory(NULL));
 		if (logEntries == 0)
 		{

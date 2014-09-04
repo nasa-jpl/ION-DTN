@@ -1372,7 +1372,6 @@ time_t	getUTCTime()
 #if defined(FSWCLOCK)
 #include "fswutc.c"
 #else
-
 	clocktime = time(NULL);
 #endif
 	return clocktime - delta;
