@@ -21,12 +21,13 @@ extern "C" {
 #endif
 
 // A CGR tracepoint
-typedef enum {
+typedef enum
+{
 	// CgrBuildRoutes(uvast stationNode, unsigned int payloadLength,
 	//                unsigned int atTime)
 	CgrBuildRoutes,
-	// CgrInvalidStationNode(void)
-	CgrInvalidStationNode,
+	// CgrInvalidTerminusNode(void)
+	CgrInvalidTerminusNode,
 
 	// CgrBeginRoute(int payloadClass)
 	CgrBeginRoute,
@@ -38,22 +39,22 @@ typedef enum {
 	CgrIgnoreContact,
 
 	// CgrCost(unsigned int transmitTime, unsigned int owlt,
-	//         unsigned int arrivalTime)
+	//		unsigned int arrivalTime)
 	CgrCost,
 	// CgrHop(uvast fromNode, uvast toNode)
 	CgrHop,
 
 	// CgrAcceptRoute(uvast firstHop, unsigned int fromTime,
-	//                unsigned int deliveryTime, uvast maxCapacity,
-	//                int payloadClass)
+	//		unsigned int deliveryTime, uvast maxCapacity,
+	//		int payloadClass)
 	CgrAcceptRoute,
 	// CgrDiscardRoute(void)
 	CgrDiscardRoute,
 
 	// CgrIdentifyProximateNodes(unsigned int deadline)
 	CgrIdentifyProximateNodes,
-	// CgrCheckRoute(int payloadClass, uvast firstHop, unsigned int fromTime,
-	//               unsigned int deliveryTime)
+	// CgrCheckRoute(int payloadClass, uvast firstHop,
+	// 		unsigned int fromTime, unsigned int deliveryTime)
 	CgrCheckRoute,
 	// CgrRecomputeRoute(void)
 	CgrRecomputeRoute,
@@ -78,13 +79,18 @@ typedef enum {
 	CgrUseProximateNode,
 	// CgrNoProximateNode(void)
 	CgrNoProximateNode,
+	// CgrFullOverbooking(double overbooking)
+	CgrFullOverbooking,
+	// CgrPartialOverbooking(double overbooking)
+	CgrPartialOverbooking,
 
 	// End of valid trace types
 	CgrTraceTypeMax,
 } CgrTraceType;
 
 // Describes the reason CGR made a certain decision
-typedef enum {
+typedef enum
+{
 	// Reasons to ignore a contact (CgrIgnoreContact)
 	CgrContactEndsEarly,
 	CgrSuppressed,
@@ -108,7 +114,7 @@ typedef enum {
 	// node was ignored (CgrUpdateProximateNode)
 	CgrMoreHops,
 	CgrIdentical,
-	CgrLaterDeliveryTime,
+	CgrLaterArrivalTime,
 	CgrLargerNodeNbr,
 
 	CgrReasonMax,
@@ -119,11 +125,10 @@ typedef int		(*CgrLookupFn)(uvast nodeNbr, Object plans,
 typedef void		(*CgrTraceFn)(void *data, unsigned int lineNbr,
 				CgrTraceType traceType, ...);
 
-typedef struct {
-  // Callback function to call at tracepoints
-  CgrTraceFn fn;
-  // Data to pass into the callback function
-  void *data;
+typedef struct
+{
+	CgrTraceFn	fn;	/*	Function to call at tracepoint.	*/
+	void		*data;	/*	Data to pass to the function.	*/
 } CgrTrace;
 
 extern void		cgr_start();

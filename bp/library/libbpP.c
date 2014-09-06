@@ -1866,7 +1866,8 @@ void	getCurrentDtnTime(DtnTime *dt)
 	dt->nanosec = 0;
 }
 
-void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
+void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
+		Scalar *totalBacklog)
 {
 	int	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 #ifdef ION_BANDWIDTH_RESERVED
@@ -1875,20 +1876,21 @@ void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
 #endif
 	int	i;
 
+	copyScalar(totalBacklog, &(duct->urgentBacklog));
+	addToScalar(totalBacklog, &(duct->stdBacklog));
+	addToScalar(totalBacklog, &(duct->bulkBacklog));
 	if (priority == 0)
 	{
-		copyScalar(backlog, &(duct->urgentBacklog));
-		addToScalar(backlog, &(duct->stdBacklog));
-		addToScalar(backlog, &(duct->bulkBacklog));
+		copyScalar(priorClaims, totalBacklog);
 		return;
 	}
 
 	if (priority == 1)
 	{
-		copyScalar(backlog, &(duct->urgentBacklog));
-		addToScalar(backlog, &(duct->stdBacklog));
+		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->stdBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
-		/*	Additional backlog is the applicable bulk
+		/*	Additional priorClaims is the applicable bulk
 		 *	backlog, which is the entire bulk backlog
 		 *	or 1/2 of the std backlog, whichever is less.	*/
 
@@ -1904,7 +1906,7 @@ void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
 			copyScalar(&bulkBacklog, &(duct->bulkBacklog));
 		}
 
-		addToScalar(backlog, &bulkBacklog);
+		addToScalar(priorClaims, &bulkBacklog);
 #endif
 		return;
 	}
@@ -1913,7 +1915,7 @@ void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
 
 	if ((i = bundle->extendedCOS.ordinal) == 0)
 	{
-		copyScalar(backlog, &(duct->urgentBacklog));
+		copyScalar(priorClaims, &(duct->urgentBacklog));
 		return;
 	}
 
@@ -1921,10 +1923,10 @@ void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
 	 *	some other urgent bundles.  Compute sum of backlogs
 	 *	for this and all higher ordinals.			*/
 
-	loadScalar(backlog, 0);
+	loadScalar(priorClaims, 0);
 	while (i < 256)
 	{
-		addToScalar(backlog, &(duct->ordinals[i].backlog));
+		addToScalar(priorClaims, &(duct->ordinals[i].backlog));
 		i++;
 	}
 }
@@ -2418,9 +2420,8 @@ static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
 	return 0;
 }
 
-static void	removeBundleFromQueue(Bundle *bundle, Object bundleObj,
-			ClProtocol *protocol, Object outductObj,
-			Outduct *outduct)
+void	removeBundleFromQueue(Bundle *bundle, Object bundleObj,
+		ClProtocol *protocol, Object outductObj, Outduct *outduct)
 {
 	Sdr		bpSdr = getIonsdr();
 	int		backlogDecrement;
@@ -6552,7 +6553,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
-		
+
 		if ((fileLength = lseek(fd, 0, SEEK_END)) < 0)
 		{
 			putSysErrmsg("Can't get acq file length", fileName);
