@@ -1871,8 +1871,8 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 {
 	int	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 #ifdef ION_BANDWIDTH_RESERVED
-	Scalar	maxBulkBacklog;
-	Scalar	bulkBacklog;
+	Scalar	limit;
+	Scalar	increment;
 #endif
 	int	i;
 
@@ -1881,7 +1881,30 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 	addToScalar(totalBacklog, &(duct->bulkBacklog));
 	if (priority == 0)
 	{
-		copyScalar(priorClaims, totalBacklog);
+		copyScalar(priorClaims, &(duct->urgentBacklog));
+#ifdef ION_BANDWIDTH_RESERVED
+		/*	priorClaims increment is the standard
+		 *	backlog's prior claims, which is the entire
+		 *	standard backlog or twice the bulk backlog,
+		 *	whichever is less.				*/
+
+		copyScalar(&limit, &(duct->bulkBacklog));
+		multiplyScalar(&limit, 2);
+		copyScalar(&increment, &limit);
+		subtractFromScalar(&limit, &(duct->stdBacklog));
+		if (scalarIsValid(&limit))
+		{
+			/*	Current standard backlog is less than
+			 *	twice the current bulk backlog.		*/
+
+			copyScalar(&increment, &(duct->stdBacklog));
+		}
+
+		addToScalar(priorClaims, &increment);
+#else
+		addToScalar(priorClaims, &(duct->stdBacklog));
+#endif
+		addToScalar(priorClaims, &(duct->bulkBacklog));
 		return;
 	}
 
@@ -1890,23 +1913,24 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 		copyScalar(priorClaims, &(duct->urgentBacklog));
 		addToScalar(priorClaims, &(duct->stdBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
-		/*	Additional priorClaims is the applicable bulk
-		 *	backlog, which is the entire bulk backlog
-		 *	or 1/2 of the std backlog, whichever is less.	*/
+		/*	priorClaims increment is the bulk backlog's
+		 *	prior claims, which is the entire bulk backlog
+		 *	or half of the standard backlog, whichever is
+		 *	less.						*/
 
-		copyScalar(&maxBulkBacklog, &(duct->stdBacklog));
-		divideScalar(&maxBulkBacklog, 2);
-		copyScalar(&bulkBacklog, &maxBulkBacklog);
-		subtractFromScalar(&maxBulkBacklog, &(duct->bulkBacklog));
-		if (scalarIsValid(&maxBulkBacklog))
+		copyScalar(&limit, &(duct->stdBacklog));
+		divideScalar(&limit, 2);
+		copyScalar(&increment, &limit);
+		subtractFromScalar(&limit, &(duct->bulkBacklog));
+		if (scalarIsValid(&limit))
 		{
 			/*	Current bulk backlog is less than half
 			 *	of the current std backlog.		*/
 
-			copyScalar(&bulkBacklog, &(duct->bulkBacklog));
+			copyScalar(&increment, &(duct->bulkBacklog));
 		}
 
-		addToScalar(priorClaims, &bulkBacklog);
+		addToScalar(priorClaims, &increment);
 #endif
 		return;
 	}

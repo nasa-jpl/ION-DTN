@@ -6,6 +6,13 @@
 	Adaptation to use Dijkstra's Algorithm developed by John
 	Segui, 2011.
 
+	Adaptation for Earliest Transmission Opportunity developed
+	by N. Bezirgiannidis and V. Tsaoussidis, Democritus University
+	of Thrace, 2014.
+
+	Adaptation for Overbooking management developed by C. Caini,
+	D. Padalino, and M. Ruggieri, University of Bologna, 2014.
+
 	Copyright (c) 2008, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
@@ -13,10 +20,6 @@
 #include "cgr.h"
 
 #define	MAX_TIME	((unsigned int) ((1U << 31) - 1))
-
-#ifdef	ION_BANDWIDTH_RESERVED
-#define	MANAGE_OVERBOOKING	0
-#endif
 
 #ifndef	MANAGE_OVERBOOKING
 #define	MANAGE_OVERBOOKING	1
@@ -245,7 +248,7 @@ static CgrVdb	*_cgrvdb(char **name)
 	return vdb;
 }
 
-/*		Functions for loading the routing table.		*/
+/*		Functions for populating the routing table.		*/
 
 static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 {
@@ -758,7 +761,8 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 	return terminusNode->routingObject;
 }
 
-/*		Functions for identifying viable proximate nodes.	*/
+/*		Functions for identifying viable proximate nodes
+ *		for forward transmission of a given bundle.		*/
 
 static int	recomputeRouteForContact(uvast contactToNodeNbr,
 			time_t contactFromTime, IonNode *terminusNode,
@@ -1375,10 +1379,14 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 	 *	the terminus node.  Walk the list in ascending final
 	 *	arrival time order, stopping at the first route
 	 *	for which the final arrival time would be after
-	 *	the bundle's expiration time (deadline).		*/
+	 *	the bundle's expiration time (deadline).  This
+	 *	ensures that we consider every route that might
+	 *	possibly be the best route to the node, possibly
+	 *	including some routes that are unsuitable for one
+	 *	reason or another.					*/
 
 	routes = terminusNode->routingObject;
-	if (routes == 0)
+	if (routes == 0)	/*	No current routes to this node.	*/
 	{
 		if ((routes = loadRouteList(terminusNode, currentTime, trace))
 				== 0)
@@ -1505,7 +1513,7 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 	return 0;
 }
 
-/*		Functions for routing bundle to appropriate neighbor.	*/
+/*		Functions for forwarding bundle to selected neighbor.	*/
 
 static void	deleteObject(LystElt elt, void *userdata)
 {
