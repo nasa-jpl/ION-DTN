@@ -23,7 +23,9 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 			char *svcClass)
 {
 	int		priority = 0;
-	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
+	BpExtendedCOS	extendedCOS = { 0, 10, 0 };
+			/*	Note: flag value 10 directs BP to send
+			 *	bundles using a streaming protocol.	*/
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap;
 	Sdr		sdr;
