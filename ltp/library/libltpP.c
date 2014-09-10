@@ -4717,21 +4717,6 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 			sdr_cancel_xn(ltpSdr);
 			return -1;
 		}
-
-		if (pdu->offset != 0	/*	Not segment #1.		*/
-		|| (pdu->segTypeCode != LtpDsRedEORP
-				&& pdu->segTypeCode != LtpDsRedEOB))
-		{
-			/*	This is a large (i.e., multi-segment)
-			 *	block; must receive it into a file.	*/
-		
-			if (createBlockFile(span, &sessionBuf) < 0)
-			{
-				putErrmsg("Can't receive large block.", NULL);
-				sdr_cancel_xn(ltpSdr);
-				return -1;
-			}
-		}
 	}
 
 	segment->sessionObj = sessionObj;
@@ -4766,6 +4751,16 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 	}
 	else					/*	Store in file.	*/
 	{
+		if (sessionBuf.blockFileRef == 0)
+		{
+			if (createBlockFile(span, &sessionBuf) < 0)
+			{
+				putErrmsg("Can't receive large block.", NULL);
+				sdr_cancel_xn(ltpSdr);
+				return -1;
+			}
+		}
+
 		if (writeBlockExtentToFile(&sessionBuf, segment, *cursor,
 				pdu->length) < 0)
 		{
