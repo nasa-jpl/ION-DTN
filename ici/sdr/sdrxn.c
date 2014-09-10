@@ -574,7 +574,7 @@ int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv)
 	each log entry being written back into the indicated start
 	address.							*/
 
-static int	reverseTransaction(Lyst logEntries, int logfile, int dbfile,
+static int	reverseTransaction(Lyst logEntries, int logfile, int dsfile,
 			char *dbsm, SdrState *sdr)
 {
 	LystElt		elt;
@@ -613,13 +613,13 @@ static int	reverseTransaction(Lyst logEntries, int logfile, int dbfile,
 
 			/*	If database is also on file, recover.	*/
 
-			if (dbfile != -1)
+			if (dsfile != -1)
 			{
 				/*	Use the sm database as buffer.	*/
 
-				if (lseek(dbfile, logEntryControl[0], SEEK_SET)
+				if (lseek(dsfile, logEntryControl[0], SEEK_SET)
 						< 0
-				|| write(dbfile, dbsm + logEntryControl[0],
+				|| write(dsfile, dbsm + logEntryControl[0],
 						length) < length)
 				{
 					putSysErrmsg("Can't reverse log entry",
@@ -630,7 +630,7 @@ static int	reverseTransaction(Lyst logEntries, int logfile, int dbfile,
 		}
 		else	/*	Must create buffer for recovered data.	*/
 		{
-			if (dbfile != -1)
+			if (dsfile != -1)
 			{
 				buf = MTAKE(length);
 				if (buf == NULL)
@@ -648,9 +648,9 @@ static int	reverseTransaction(Lyst logEntries, int logfile, int dbfile,
 					return -1;
 				}
 
-				if (lseek(dbfile, logEntryControl[0], SEEK_SET)
+				if (lseek(dsfile, logEntryControl[0], SEEK_SET)
 						< 0
-				|| write(dbfile, buf, length) < length)
+				|| write(dsfile, buf, length) < length)
 				{
 					putSysErrmsg("Can't reverse log entry",
 							NULL);
@@ -748,7 +748,7 @@ static void	terminateXn(Sdr sdrv)
 
 	/*	Transaction must be reversed as necessary.		*/
 
-	if (reverseTransaction(sdrv->logEntries, sdrv->logfile, sdrv->dbfile,
+	if (reverseTransaction(sdrv->logEntries, sdrv->logfile, sdrv->dsfile,
 			sdrv->dbsm, sdr) < 0)
 	{
 		handleUnrecoverableError(sdrv);
@@ -913,22 +913,22 @@ static void	initSdrMap(SdrMap *map, SdrState *sdr)
 {
 	map->catalogue = 0;
 	map->status = INITIALIZED;
-	map->sdrSize = sdr->sdrSize;
+	map->dsSize = sdr->dsSize;
 	map->heapSize = sdr->heapSize;
 	map->startOfSmallPool = sizeof(SdrMap);
 	map->endOfSmallPool = map->startOfSmallPool;
 	memset(map->firstSmallFree, 0, sizeof map->firstSmallFree);
-	map->endOfLargePool = sdr->sdrSize;
+	map->endOfLargePool = sdr->dsSize;
 	map->startOfLargePool = map->endOfLargePool;
 	memset(map->firstLargeFree, 0, sizeof map->firstLargeFree);
 	map->unassignedSpace = map->startOfLargePool - map->endOfSmallPool;
 }
 
-static int	createDbFile(SdrState *sdr, char *dbfilename)
+static int	createDbFile(SdrState *sdr, char *dsfilename)
 {
 	long	bufsize;
 	char	*buffer;
-	int	dbfile;
+	int	dsfile;
 	long	lengthRemaining;
 	size_t	lengthToWrite;
 	SdrMap	map;
@@ -941,15 +941,15 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 	}
 
 	memset(buffer, 0 , bufsize);
-	dbfile = iopen(dbfilename, O_RDWR | O_CREAT, 0777);
-	if (dbfile == -1)
+	dsfile = iopen(dsfilename, O_RDWR | O_CREAT, 0777);
+	if (dsfile == -1)
 	{
 		MRELEASE(buffer);
-		putSysErrmsg("Can't create datastore file", dbfilename);
+		putSysErrmsg("Can't create dataspace file", dsfilename);
 		return -1;
 	}
 
-	lengthRemaining = sdr->sdrSize;
+	lengthRemaining = sdr->dsSize;
 	while (lengthRemaining > 0)
 	{
 		lengthToWrite = lengthRemaining;
@@ -958,12 +958,12 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 			lengthToWrite = bufsize;
 		}
 
-		if (write(dbfile, buffer, lengthToWrite) < lengthToWrite)
+		if (write(dsfile, buffer, lengthToWrite) < lengthToWrite)
 		{
-			close(dbfile);
-			unlink(dbfilename);
+			close(dsfile);
+			unlink(dsfilename);
 			MRELEASE(buffer);
-			putSysErrmsg("Can't extend datastore file", dbfilename);
+			putSysErrmsg("Can't extend dataspace file", dsfilename);
 			return -1;
 		}
 	
@@ -972,19 +972,19 @@ static int	createDbFile(SdrState *sdr, char *dbfilename)
 
 	MRELEASE(buffer);
 	initSdrMap(&map, sdr);
-	if (lseek(dbfile, 0, SEEK_SET) < 0
-	|| write(dbfile, (char *) &map, sizeof map) < sizeof map
-	|| lseek(dbfile, 0, SEEK_SET) < 0)
+	if (lseek(dsfile, 0, SEEK_SET) < 0
+	|| write(dsfile, (char *) &map, sizeof map) < sizeof map
+	|| lseek(dsfile, 0, SEEK_SET) < 0)
 	{
-		close(dbfile);
-		unlink(dbfilename);
-		putSysErrmsg("Can't initialize datastore file", dbfilename);
+		close(dsfile);
+		unlink(dsfilename);
+		putSysErrmsg("Can't initialize dataspace file", dsfilename);
 		return -1;
 	}
 
-	writeMemoNote("[i] Created SDR datastore file", dbfilename);
-	writeMemoNote("[i] SDR datastore file length", itoa(sdr->sdrSize));
-	return dbfile;
+	writeMemoNote("[i] Created SDR dataspace file", dsfilename);
+	writeMemoNote("[i] SDR dataspace file length", itoa(sdr->dsSize));
+	return dsfile;
 }
 
 int	sdr_load_profile(char *name, int configFlags, long heapWords,
@@ -1001,8 +1001,8 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
 	int			logfile = -1;
 	Lyst			logEntries = NULL;
-	char			dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
-	int			dbfile = -1;
+	char			dsfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
+	int			dsfile = -1;
 	char			*dbsm = NULL;
 	int			dbsmId = 0;
 
@@ -1062,7 +1062,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	sdr->configFlags = configFlags;
 	sdr->initHeapWords = heapWords;
 	sdr->heapSize = heapWords * WORD_SIZE;
-	sdr->sdrSize = sdr->heapSize + sizeof(SdrMap);
+	sdr->dsSize = sdr->heapSize + sizeof(SdrMap);
 	if (memKey == SM_NO_KEY)
 	{
 		memKey = sm_GetUniqueKey();
@@ -1153,13 +1153,13 @@ in file and transaction reversibility", sdr->pathName);
 
 	if (sdr->configFlags & SDR_IN_FILE)
 	{
-		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
+		isprintf(dsfilename, sizeof dsfilename, "%s%c%s.sdr",
 				sdr->pathName, ION_PATH_DELIMITER, name);
-		dbfile = iopen(dbfilename, O_RDWR, 0777);
-		if (dbfile == -1)
+		dsfile = iopen(dsfilename, O_RDWR, 0777);
+		if (dsfile == -1)
 		{
-			dbfile = createDbFile(sdr, dbfilename);
-			if (dbfile == -1)
+			dsfile = createDbFile(sdr, dsfilename);
+			if (dsfile == -1)
 			{
 				if (logfile != -1) close(logfile);
 				if (logEntries) lyst_destroy(logEntries);
@@ -1172,10 +1172,10 @@ in file and transaction reversibility", sdr->pathName);
 		}
 		else	/*	Database file exists.			*/
 		{
-			if (reverseTransaction(logEntries, logfile, dbfile,
+			if (reverseTransaction(logEntries, logfile, dsfile,
 					NULL, sdr) < 0)
 			{
-				close(dbfile);
+				close(dsfile);
 				if (logfile != -1) close(logfile);
 				if (logEntries) lyst_destroy(logEntries);
 				psm_free(sdrwm, newSdrAddress);
@@ -1189,10 +1189,10 @@ in file and transaction reversibility", sdr->pathName);
 	if (sdr->configFlags & SDR_IN_DRAM)
 	{
 		dbsm = NULL;
-		switch (sm_ShmAttach(sdr->sdrKey, sdr->sdrSize, &dbsm, &dbsmId))
+		switch (sm_ShmAttach(sdr->sdrKey, sdr->dsSize, &dbsm, &dbsmId))
 		{
 		case -1:	/*	Error.				*/
-			if (dbfile != -1) close(dbfile);
+			if (dsfile != -1) close(dsfile);
 			if (logfile != -1) close(logfile);
 			if (logEntries) lyst_destroy(logEntries);
 			psm_free(sdrwm, newSdrAddress);
@@ -1201,14 +1201,14 @@ in file and transaction reversibility", sdr->pathName);
 			return -1;
 	
 		case 0:		/*	Reattaching to existing SDR.	*/
-			if (dbfile != -1)
+			if (dsfile != -1)
 			{
 				/*	File is authoritative.		*/
 
-				if (read(dbfile, dbsm, sdr->sdrSize)
-						< sdr->sdrSize)
+				if (read(dsfile, dbsm, sdr->dsSize)
+						< sdr->dsSize)
 				{
-					close(dbfile);
+					close(dsfile);
 					if (logfile != -1) close(logfile);
 					if (logEntries)
 						lyst_destroy(logEntries);
@@ -1238,14 +1238,14 @@ in file and transaction reversibility", sdr->pathName);
 			break;
 
 		default:	/*	Newly allocated partition.	*/
-			if (dbfile != -1)
+			if (dsfile != -1)
 			{
 				/*	File is authoritative.		*/
 
-				if (read(dbfile, dbsm, sdr->sdrSize)
-						< sdr->sdrSize)
+				if (read(dsfile, dbsm, sdr->dsSize)
+						< sdr->dsSize)
 				{
-					close(dbfile);
+					close(dsfile);
 					if (logfile != -1) close(logfile);
 					if (logEntries)
 						lyst_destroy(logEntries);
@@ -1275,9 +1275,9 @@ in file and transaction reversibility", sdr->pathName);
 		lyst_destroy(logEntries);
 	}
 
-	if (dbfile != -1)
+	if (dsfile != -1)
 	{
-		close(dbfile);
+		close(dsfile);
 	}
 
 	sm_SemGive(lock);
@@ -1359,7 +1359,7 @@ Sdr	Sdr_start_using(char *name)
 	SdrState		*sdr;
 	PsmAddress		sdrViewAddress;
 	SdrView			*sdrv;
-	char			dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
+	char			dsfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
 	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
 
 	CHKNULL(sdrwm);
@@ -1403,25 +1403,25 @@ Sdr	Sdr_start_using(char *name)
 	sdrv->sdr = sdr;
 	if (sdr->configFlags & SDR_IN_FILE)
 	{
-		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
+		isprintf(dsfilename, sizeof dsfilename, "%s%c%s.sdr",
 				sdr->pathName, ION_PATH_DELIMITER, name);
-		sdrv->dbfile = iopen(dbfilename, O_RDWR, 0777);
-		if (sdrv->dbfile == -1)
+		sdrv->dsfile = iopen(dsfilename, O_RDWR, 0777);
+		if (sdrv->dsfile == -1)
 		{
 			sm_SemGive(lock);
-			putSysErrmsg("Can't open database file", dbfilename);
+			putSysErrmsg("Can't open database file", dsfilename);
 			return NULL;
 		}
 	}
 	else
 	{
-		sdrv->dbfile = -1;
+		sdrv->dsfile = -1;
 	}
 
 	if (sdr->configFlags & SDR_IN_DRAM)
 	{
 		sdrv->dbsm = NULL;
-		if (sm_ShmAttach(sdr->sdrKey, sdr->sdrSize, &(sdrv->dbsm),
+		if (sm_ShmAttach(sdr->sdrKey, sdr->dsSize, &(sdrv->dbsm),
 					&(sdrv->dbsmId)) < 0)
 		{
 			sm_SemGive(lock);
@@ -1506,9 +1506,9 @@ void	sdr_stop_using(Sdr sdrv)
 
 	/*	Terminate all local SDR state and destroy the Sdr.	*/
 
-	if (sdrv->dbfile != -1)
+	if (sdrv->dsfile != -1)
 	{
-		close(sdrv->dbfile);
+		close(sdrv->dsfile);
 	}
 
 	if (sdrv->dbsm)
@@ -1553,7 +1553,7 @@ void	sdr_destroy(Sdr sdrv)
 	sm_SemId		lock = _sdrlock(0);
 	PsmPartition		sdrwm = _sdrwm(NULL);
 	SdrState		*sdr;
-	char			dbfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
+	char			dsfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
 	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
 	char			*dbsm = NULL;
 	int			dbsmId = 0;
@@ -1588,16 +1588,16 @@ void	sdr_destroy(Sdr sdrv)
 
 	if (sdr->configFlags & SDR_IN_FILE)
 	{
-		isprintf(dbfilename, sizeof dbfilename, "%s%c%s.sdr",
+		isprintf(dsfilename, sizeof dsfilename, "%s%c%s.sdr",
 				sdr->pathName, ION_PATH_DELIMITER, sdr->name);
-		unlink(dbfilename);
+		unlink(dsfilename);
 	}
 
 	/*	Destroy memory copy of heap if any.			*/
 
 	if (sdr->configFlags & SDR_IN_DRAM)
 	{
-		switch (sm_ShmAttach(sdr->sdrKey, sdr->sdrSize, &dbsm, &dbsmId))
+		switch (sm_ShmAttach(sdr->sdrKey, sdr->dsSize, &dbsm, &dbsmId))
 		{
 		case -1:
 			break;
@@ -1811,7 +1811,7 @@ void	_sdrput(char *file, int line, Sdr sdrv, Address into, char *from,
 	CHKVOID(into >= 0);
 	sdr = sdrv->sdr;
 	to = into + length;
-	if (to > sdr->sdrSize)
+	if (to > sdr->dsSize)
 	{
 		_putErrmsg(file, line, _violationMsg(), "write");
 		crashXn(sdrv);
@@ -1865,8 +1865,8 @@ log entry.", itoa(length));
 
 			if (sdr->configFlags & SDR_IN_FILE)
 			{
-				if (lseek(sdrv->dbfile, into, SEEK_SET) < 0
-				|| read(sdrv->dbfile, buffer, length) < length)
+				if (lseek(sdrv->dsfile, into, SEEK_SET) < 0
+				|| read(sdrv->dsfile, buffer, length) < length)
 				{
 					MRELEASE(buffer);
 					_putSysErrmsg(file, line, "Can't read \
@@ -1903,8 +1903,8 @@ entry.", NULL);
 
 	if (sdr->configFlags & SDR_IN_FILE)
 	{
-		if (lseek(sdrv->dbfile, into, SEEK_SET) < 0
-		|| write(sdrv->dbfile, from, length) < length)
+		if (lseek(sdrv->dsfile, into, SEEK_SET) < 0
+		|| write(sdrv->dsfile, from, length) < length)
 		{
 			_putSysErrmsg(file, line, "Can't write to database",
 					itoa(length));
@@ -1952,7 +1952,7 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
 	sdr = sdrv->sdr;
 	CHKVOID(sdr);
 	to = from + length;
-	if (to > sdr->sdrSize)
+	if (to > sdr->dsSize)
 	{
 		putErrmsg(_violationMsg(), "read");
 		crashXn(sdrv);			/*	Releases SDR.	*/
@@ -1967,8 +1967,8 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
 	{
 		if (sdr->configFlags & SDR_IN_FILE)
 		{
-			if (lseek(sdrv->dbfile, from, SEEK_SET) < 0
-			|| read(sdrv->dbfile, into, length) < length)
+			if (lseek(sdrv->dsfile, from, SEEK_SET) < 0
+			|| read(sdrv->dsfile, into, length) < length)
 			{
 				putSysErrmsg("Database read failed",
 						itoa(length));

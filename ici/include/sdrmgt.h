@@ -26,7 +26,7 @@ extern "C" {
 typedef struct
 {
 	char		sdrName[MAX_SDR_NAME + 1];
-	long		sdrSize;
+	long		dsSize;
 	long		smallPoolSize;
 	long		smallPoolFreeBlockCount[SMALL_SIZES];
 	long		smallPoolFree;

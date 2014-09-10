@@ -74,8 +74,8 @@ typedef struct sdr_str
 	PsmAddress	sdrsElt;		/*	In sch->sdrs.	*/
 	int		configFlags;
 	unsigned long	initHeapWords;		/*	in FULL WORDS	*/
-	long		sdrSize;		/*	heap + map	*/
-	long		heapSize;		/*	sdrSize - map	*/
+	long		dsSize;			/*	heap + map	*/
+	long		heapSize;		/*	dsSize - map	*/
 	int		sdrKey;			/*	DRAM db shmKey	*/
 
 		/*	Parameters of current transaction.	*/
@@ -112,13 +112,13 @@ typedef struct sdr_str
  *	list of the SDR control header, we can to some small extent
  *	assure that the SDR being added is the one we think we're
  *	adding; to do this, we check the SDR size declared in
- *	sdr_load_profile() against the sdrSize in the SDR's map.		*/
+ *	sdr_load_profile() against the dsSize in the SDR's map.		*/
 
 typedef struct	/*	Non-volatile state at front of SDR.		*/
 {
 	Object		catalogue;		/*	partition root	*/
 	unsigned long	status;			/*	INITIALIZED?	*/
-	long		sdrSize;		/*	Map + heap.	*/
+	long		dsSize;			/*	Map + heap.	*/
 	long		heapSize;
 
 		/*	For dynamic management of heap space.	*/
@@ -141,7 +141,7 @@ typedef struct	/*	Non-volatile state at front of SDR.		*/
 typedef struct sdrv_str
 {
 	SdrState	*sdr;		/*	local SDR state access	*/
-	int		dbfile;		/*	SDR in file (fd).	*/
+	int		dsfile;		/*	SDR in file (fd).	*/
 	char		*dbsm;		/*	SDR in shared memory.	*/
 	int		dbsmId;		/*	DRAM database shmId	*/
 
