@@ -27,6 +27,7 @@ check:		$(PUBINCLS)
 clean:
 		rm -f *.o
 		rm -f *.exe
+		rm -f *.def
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -49,7 +50,7 @@ bssStreamingApp:	bssStreamingApp.o libbss.dll
 #	-	-	Libraries	-	-	-	-	-
 
 libbss.dll:	$(LIBBSSOBJS) $(API)/bssP.h
-		$(LD) -o libbss.dll $(LIBBSSOBJS) -L$(ROOT)/lib -lbp -lici -lpthread -lws2_32
+		$(LD) -o libbss.dll $(LIBBSSOBJS) -Wl,--output-def,libbss.def -L$(ROOT)/lib -lbp -lici -lpthread -lws2_32
 		cp libbss.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

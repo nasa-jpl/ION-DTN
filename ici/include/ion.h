@@ -352,8 +352,10 @@ extern int		readIonParms(	char *configFileName,
 					IonParms *parms);
 extern void		printIonParms(	IonParms *parms);
 
+#ifndef ION4WIN		/*	No pthreads in Visual Studio		*/
 extern void		ionSetAlarm(	IonAlarm *alarm, pthread_t *thread);
 extern void		ionCancelAlarm(	pthread_t thread);
+#endif			/*	end of #ifndef ION4WIN			*/
 
 extern void		ionNoteMainThread(char *procName);
 extern void		ionPauseMainThread(int seconds);

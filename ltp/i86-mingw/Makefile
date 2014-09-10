@@ -32,6 +32,7 @@ check:		$(LTPINCLS) $(PUBINCLS)
 clean:
 		rm -f *.o
 		rm -f *.exe
+		rm -f *.def
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -84,7 +85,7 @@ udplso:		udplso.o libltp.dll
 #	-	-	Libraries	-	-	-	-	-
 
 libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o
-		$(LD) -o libltp.dll libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o -L$(ROOT)/lib -lici -lpthread
+		$(LD) -o libltp.dll libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o -Wl,--output-def,libltp.def -L$(ROOT)/lib -lici -lpthread
 		cp libltp.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
