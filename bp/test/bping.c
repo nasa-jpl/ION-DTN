@@ -392,6 +392,30 @@ static void parse_report_flags(int *srrFlags, const char *flags) {
 	}
 }
 
+#if defined (ION_LWT)
+int	bping(	int a1, int a2, int a3, int a4, int a5,
+		int a6, int a7, int a8, int a9, int a10)
+{
+	count = a1 ? strtol((char *) a1, NULL, 0) : -1;
+	interval = a2 ? strtol((char *) a2, NULL, 0) : 1;
+	priority = a3 ? strtol((char *) a3, NULL, 0) : 0;
+	waitdelay = a4 ? strtol((char *) a4, NULL, 0) : 10;
+	if (a5)
+	{
+		parse_report_flags(&rrFlags, (char *) a5);
+	}
+
+	ttl = a6 ? strtol((char *) a6, NULL, 0) : 3600;
+	verbosity = a7 ? strtol((char *) a7, NULL, 0) : 0;
+	srcEid = a8 ? ((char *) a8) : NULL;
+	dstEid = a9 ? ((char *) a9) : NULL;
+	rptEid = a10 ? ((char *) a10) : NULL;
+	if (srcEid == NULL || dstEid == NULL)
+	{
+		PUTS("Missing argument(s) for bping.  Ignored.");
+		return BPING_EXIT_ERROR;
+	}
+#else
 int main(int argc, char **argv)
 {
 	int ch;
@@ -446,6 +470,7 @@ int main(int argc, char **argv)
 	srcEid = argv[optind];
 	dstEid = argv[optind + 1];
 	rptEid = (argc - optind > 2) ? argv[optind + 2] : NULL;
+#endif
 
 	if(pthread_mutex_init(&sdrmutex, NULL) != 0)
 	{
