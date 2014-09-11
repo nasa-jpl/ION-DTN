@@ -8,8 +8,12 @@ B<bpcancel> I<source_EID> I<creation_seconds> [I<creation_count> [I<fragment_off
 
 =head1 DESCRIPTION
 
-B<bpcancel> locates the bundle identified by the command-line parameter
-values and destroys it, by simulating an immediate time-to-live expiration.
+B<bpcancel> attempts to locate the bundle identified by the command-line
+parameter values and cancel transmission of this bundle.  Bundles for which
+multiple copies have been queued for transmission can't be canceled, because
+one or more of those copies might already have been transmitted.  Transmission
+of a bundle that has never been cloned and that is still in local bundle
+storage is cancelled by simulation of an immediate time-to-live expiration.
 
 =head1 EXIT STATUS
 
@@ -41,8 +45,9 @@ B<bpadmin> has not yet initialized BP operations.
 
 =item bpcancel failed finding bundle.
 
-No bundle identified by the command-line parameter values is present in the
-"timeline" list for the local bundle agent.
+The attempt to locate the subject bundle failed due to some serious system
+error.  It will probably be necessary to terminate and re-initialize the
+local ION node.
 
 =item bpcancel failed destroying bundle.
 

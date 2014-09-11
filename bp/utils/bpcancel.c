@@ -66,6 +66,12 @@ int	main(int argc, char **argv)
 			putErrmsg("bpcancel failed destroying bundle.", NULL);
 			return 0;
 		}
+
+		PUTS("Bundle transmission has been canceled.");
+	}
+	else
+	{
+		PUTS("Unable to cancel transmission of this bundle.");
 	}
 
 	if (sdr_end_xn(sdr) < 0)
