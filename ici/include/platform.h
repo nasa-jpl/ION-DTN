@@ -141,9 +141,11 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #include <sys/stat.h>
 #endif				/*	end of #ifndef ION4WIN		*/
 
-#ifdef mingw			/****   Windows vs all others	*********/
+#ifdef ION4WIN			/*	Visual Studio provides most.	*/
 
-#ifndef ION4WIN			/*	Visual Studio overrides mingw	*/
+#include <sys/types.h>
+
+#elif defined(mingw)		/****   Windows vs all others	*********/
 
 #include <winsock2.h>
 #include <process.h>
@@ -159,8 +161,6 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define ECONNRESET		WSAECONNRESET
 #define EWOULDBLOCK		WSAEWOULDBLOCK
 #define	O_LARGEFILE		0
-
-#endif				/*	end of #ifndef ION4WIN		*/
 
 #else				/****	not Windows		*********/
 
@@ -183,7 +183,7 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
 #define irecvfrom(a,b,c,d,e,f)	recvfrom(a,b,c,d,e,f)
 
-#endif				/****   End of #ifdef mingw	*********/
+#endif				/*	end of #ifdef ION4WIN		*/
 
 /*
 ** End of Standard Headers

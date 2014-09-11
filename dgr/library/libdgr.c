@@ -11,6 +11,7 @@
 									*/
 #include "dgr.h"
 #include "memmgr.h"
+#include "llcv.h"
 
 #ifndef DGRDEBUG
 #define DGRDEBUG	0
