@@ -1557,7 +1557,14 @@ int	readIonParms(char *configFileName, IonParms *parms)
 
 	/*	Determine name of config file.				*/
 
-	if (configFileName == NULL)
+	if (configFileName == NULL || *configFileName == 0)
+	{
+		writeMemo("[i] admin pgm using default SDR parms.");
+		printIonParms(parms);
+		return 0;
+	}
+
+	if (strcmp(configFileName, ".") == 0)
 	{
 #ifdef ION_NO_DNS
 		ownHostName[0] = '\0';
@@ -1585,13 +1592,6 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	configFile = iopen(configFileName, O_RDONLY, 0777);
 	if (configFile < 0)
 	{
-		if (errno == ENOENT)	/*	No overrides apply.	*/
-		{
-			writeMemo("[i] admin pgm using default SDR parms.");
-			printIonParms(parms);
-			return 0;
-		}
-
 		isprintf(buffer, sizeof buffer, "[?] admin pgm can't open SDR \
 config file '%.255s': %.64s", configFileName, system_error_msg());
 		writeMemo(buffer);
