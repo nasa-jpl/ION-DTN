@@ -116,6 +116,19 @@ static void	*receivePdus(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
+static int	deletePdu(Object pduZco)
+{
+	Sdr	sdr = getIonsdr();
+
+	if (sdr_begin_xn(sdr) == 0)
+	{
+		return -1;
+	}
+
+	zco_destroy(sdr, pduZco);
+	return sdr_end_xn(sdr);
+}
+
 #if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
 int	bputa(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
@@ -230,6 +243,13 @@ terminating.");
 		if (destinationNodeNbr == 0)
 		{
 			writeMemo("[?] bputa declining to send to node 0.");
+			if (deletePdu(pduZco) < 0)
+			{
+				putErrmsg("bputa can't ditch PDU; terminated.",
+						NULL);
+				parms.running = 0;
+			}
+
 			continue;
 		}
 
@@ -263,6 +283,13 @@ terminating.");
 
 		if (newBundle == 0)
 		{
+			if (deletePdu(pduZco) < 0)
+			{
+				putErrmsg("bputa can't ditch PDU; terminated.",
+						NULL);
+				parms.running = 0;
+			}
+
 			continue;	/*	Must have stopped.	*/
 		}
 
