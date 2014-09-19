@@ -644,6 +644,65 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
+static int ltp_is_up(int tokenCount, char** tokens)
+{
+	if (strcmp(tokens[1], "p") == 0) //poll
+	{
+	  if(tokenCount < 3) //use default timeout
+	  {
+	    int count = 1;
+	    while(count <= 120 && !ltp_engine_is_started())
+	    {
+	      microsnooze(250000);
+	      count++;
+	    }
+	    if(count > 120) //ltp engine is not started
+	    {
+	      printText("LTP engine is not started");
+	      return(0);
+	    }
+	    else //ltp engine is started
+	    {
+	      printText("LTP engine is started");
+	      return(1);
+	    }
+	  }
+	  else //use user supplied timeout
+	  {
+	    int max = atoi(tokens[2]) * 4;
+	    int count = 1;
+	    while(count <= max && !ltp_engine_is_started())
+	    {
+	      microsnooze(250000);
+	      count++;
+	    }
+	    if(count > max) //ltp engine is not started
+	    {
+	      printText("LTP engine is not started");
+	      return(0);
+	    }
+	    else //ltp engine is started
+	    {
+	      printText("LTP engine is started");
+	      return(1);
+	    }
+	  }
+	}
+	else //check once
+	{
+	  if(ltp_engine_is_started())
+	  {
+	    printText("LTP engine is started");
+	    return(1);
+	  }
+	  else
+	  {
+	    printText("LTP engine is not started");
+	    return(0);
+	  }
+	}
+}
+
 static int	processLine(char *line, int lineLength, int *checkNeeded)
 {
 	int		tokenCount;
@@ -821,6 +880,12 @@ command.");
 		case 'e':
 			switchEcho(tokenCount, tokens);
 			return 0;
+
+		case 't':
+			if (attachToLtp() == 0)
+			{
+				return ltp_is_up(tokenCount, tokens);
+			}
 
 		case 'q':
 			return -1;	/*	End program.		*/

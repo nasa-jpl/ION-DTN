@@ -1,0 +1,105 @@
+#!/bin/bash
+#
+# system_up
+# Patricia Lindner
+# Aug 4, 2014
+#
+# This program can be used to determine whether the entire ION system is up or individual
+# subsections.
+
+ION_OPEN_SOURCE=1
+
+function USAGE {
+	echo
+	echo    "System_Up: Interplanetary Overlay Network system started script"
+	echo    "USAGE:"
+	echo    "	system_up [-A] [-i \"{p|w} ion\"] [-b \"{p|w} bp\"] [-l \"{p|w} ltp\'] [-D \"{p|w} dtpc\"]"
+if [ "$ION_OPEN_SOURCE" == "1" ]; then
+	echo    "	[-c \"{p|w} cfdp\"]"
+else
+	echo    ""
+fi
+	echo
+	echo "	-A			Run all checks without polling"
+	echo "	-W [time]		Run all checks with polling. Optional timeout time." 
+	echo
+	echo "	-i {p|w} [ion]		Determine if ion subsystem is running. Optional timeout ion."
+	echo "	-b {p|w} [bp]		Determine if bp subsystem is running. Optional timeout bp."
+	echo "	-l {p|w} [ltp]		Determine if ltp subsystem is running. Optional timeout ltp."
+	echo "	-D {p|w} [dtpc]		Determine if dtpc subsystem is running. Optional timeout dtpc."
+if [ "$ION_OPEN_SOURCE" == "1" ]; then
+	echo "	-c {p|w} [cfdp]		Determine if cfdp subsystem is running. Optional timeout cfdp"
+fi
+#       echo "	-a {p|w} [acs]      	Determine if acs subsystem is running. Optional timeout acs."
+#	echo "	-m {p|w} [imc]		Determine if imc subsystem is running. Optional timeout imc."
+#	echo "	-p {p|w} [ipn]		Determine if ipn subsystem is running. Optional timeout ipn."
+#	echo "	-B {p|w} [bss]		Determine if bss subsystem is running. Optional timeout bss."
+#	echo "	-d {p|w} [dtn2]		Determine if dtn2 subsystem is running. Optional timeout dtn2."
+#	echo "	-s {p|w} [ionsec]	Determine if ionsec subsystem is running. Optional timeout ionsec."
+}
+
+# check for all the options
+
+while getopts ":AW:i:b:l:D:c:h" options; do
+	case $options in
+		A ) 	echo "Now checking ion"
+			echo "t w" | ionadmin
+			echo "Now checking bp"
+			echo "t w" | bpadmin
+			echo "Now checking ltp"
+			echo "t w" | ltpadmin
+			echo "Now checking dtpc"
+			echo "t w" | dtpcadmin
+			if [ "$ION_OPEN_SOURCE" == "1" ]; then
+				echo "Now checking cfdp"
+				echo "t w" | cfdpadmin
+			fi;;
+		W ) 	echo "Now checking ion"
+			echo "t p ${OPTARG}" | ionadmin
+		 	echo "Now checking bp"
+			echo "t p ${OPTARG}" | bpadmin
+		 	echo "Now checking ltp"
+			echo "t p ${OPTARG}" | ltpadmin
+		 	echo "Now checking dtpc"
+			echo "t p ${OPTARG}" | dtpcadmin
+			if [ "$ION_OPEN_SOURCE" == "1" ]; then
+				echo "Now checking cfdp"
+				echo "t p ${OPTARG}" | cfdpadmin
+			fi;;
+		i ) 	echo "Now checking ion"
+			echo "t ${OPTARG}" | ionadmin;;
+		b ) 	echo "Now checking bp"
+			echo "t ${OPTARG}" | bpadmin;;
+		l ) 	echo "Now checking ltp"
+			echo "t ${OPTARG}" | ltpadmin;;
+		D ) 	echo "Now checking dtpc"
+			echo "t ${OPTARG}" | dtpcadmin;;
+		c )	if [ "$ION_OPEN_SOURCE" == "1" ]; then
+				echo "Now checking cfdp"
+				echo "t ${OPTARG}" | cfdpadmin
+			fi
+			;;
+#		a )     echo "Now checking acs"
+#        		echo "t ${ACS}" | acsadmin;;
+#		m ) 	echo "Now checking imc"
+#        		echo "t ${IMC}" | imcadmin";;
+#		p ) 	echo "Now checking ipn"
+#			echo "t ${IPN}" | ipnadmin;;
+#		B ) 	echo "Now checking bss"
+#        		echo "t ${BSS}" | bssadmin;;
+#		d ) 	echo "Now checking dtn2"
+#			echo "t ${DTN2}" | dtn2admin ${DTN2NODE};;
+#		s ) 	echo "Now checking ionsec"
+#			echo "t ${IONSEC}" | ionsecadmin;;
+		h ) USAGE
+			exit 1;;
+		\? ) USAGE
+			exit 1;;
+		* ) USAGE
+			exit 1;;
+	esac
+done
+
+echo
+echo "ION system started script completed."
+

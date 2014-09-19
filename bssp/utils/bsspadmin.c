@@ -517,6 +517,65 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
+static int bssp_is_up(int tokenCount, char** tokens)
+{
+	if (strcmp(tokens[1], "p") == 0) //poll
+	{
+	  if(tokenCount < 3) //use default timeout
+	  {
+	    int count = 1;
+	    while(count <= 120 && !bssp_engine_is_started())
+	    {
+	      microsnooze(250000);
+	      count++;
+	    }
+	    if(count > 120) //bssp engine is not started
+	    {
+	      printText("BSSP engine is not started");
+	      return(0);
+	    }
+	    else //bssp engine is started
+	    {
+	      printText("BSSP engine is started");
+	      return(1);
+	    }
+	  }
+	  else //use user supplied timeout
+	  {
+	    int max = atoi(tokens[2]) * 4;
+	    int count = 1;
+	    while(count <= max && !bssp_engine_is_started())
+	    {
+	      microsnooze(250000);
+	      count++;
+	    }
+	    if(count > max) //bssp engine is not started
+	    {
+	      printText("BSSP engine is not started");
+	      return(0);
+	    }
+	    else //bssp engine is started
+	    {
+	      printText("BSSP engine is started");
+	      return(1);
+	    }
+	  }
+	}
+	else //check once
+	{
+	  if(bssp_engine_is_started())
+	  {
+	    printText("BSSP engine is started");
+	    return(1);
+	  }
+	  else
+	  {
+	    printText("BSSP engine is not started");
+	    return(0);
+	  }
+	}
+}
+
 static int	processLine(char *line, int lineLength)
 {
 	int		tokenCount;
@@ -689,6 +748,12 @@ best-effort or reliable BSI command.");
 		case 'e':
 			switchEcho(tokenCount, tokens);
 			return 0;
+
+		case 't':
+			if (attachToBssp() == 0)
+			{
+				return bssp_is_up(tokenCount, tokens);
+			}
 
 		case 'q':
 			return -1;	/*	End program.		*/
