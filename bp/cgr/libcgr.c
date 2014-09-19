@@ -944,7 +944,6 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	IonCXref	*contact;
 	Scalar		capacity;
 	Scalar		allotment;
-	Scalar		confirmed;
 	ClProtocol	protocol;
 	int		eccc;	/*	Estimated capacity consumption.	*/
 	time_t		startTime;
@@ -1009,15 +1008,21 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 		subtractFromScalar(&allotment, protected);
 		if (!scalarIsValid(&allotment))
 		{
-			/*	Last of the backlog will be served
-			 *	by this contact, with leftover
-			 *	capacity.				*/
+			/*	Capacity is less than remaining
+			 *	backlog, so the contact is fully
+			 *	subscribed.				*/
+
+			copyScalar(&allotment, &capacity);
+		}
+		else
+		{
+			/*	Capacity is greater than or equal to
+			 *	the remaining backlog, so the last of
+			 *	the backlog will be served by this
+			 *	contact, possibly with some capacity
+			 *	left over.				*/
 
 			copyScalar(&allotment, protected);
-		}
-		else	/*	Contact is fully subscribed.		*/
-		{
-			copyScalar(&allotment, &capacity);
 		}
 
 		/*	Determine how much of the total backlog has
@@ -1050,21 +1055,13 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 		 *	the route's first contact will be served by
 		 *	this contact.					*/
 
-		copyScalar(&confirmed, &priorClaims);
-		subtractFromScalar(&confirmed, &capacity);
-		if (!scalarIsValid(&confirmed))
+		subtractFromScalar(&priorClaims, &capacity);
+		if (!scalarIsValid(&priorClaims))
 		{
 			/*	Last of the prior claims will be
 			 *	served by this contact.			*/
 
 			loadScalar(&priorClaims, 0);
-		}
-		else
-		{
-			/*	Reduce prior claims by entire capacity
-			 *	of contact.				*/
-
-			copyScalar(&priorClaims, &confirmed);
 		}
 	}
 
@@ -1130,7 +1127,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 		{
 			/*	Can't determine owlt for this contact,
 			 *	so arrival time can't be computed.
-			 *	Rout is not usable.			*/
+			 *	Route is not usable.			*/
 
 			return 0;
 		}
