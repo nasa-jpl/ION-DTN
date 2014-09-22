@@ -2183,7 +2183,7 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrPartialOverbooking] = " Partial OVERBOOKING (amount in bytes):%f",
 	};
 
-	if (traceType < 0 || traceType >= CgrTraceTypeMax)
+	if (((int) traceType) < 0 || traceType >= CgrTraceTypeMax)
 	{
 		return "";
 	}
@@ -2222,7 +2222,7 @@ capacity for this bundle",
 	[CgrLargerNodeNbr] = "initial hop has larger node number",
 	};
 
-	if (reason < 0 || reason >= CgrReasonMax)
+	if (((int) reason) < 0 || reason >= CgrReasonMax)
 	{
 		return "";
 	}
