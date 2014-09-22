@@ -1066,7 +1066,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	}
 
 	/*	Now considering the initial contact on the route.
-	 *	First, check for overbooking.				*/
+	 *	First, check for potential overbooking.			*/
 
 	sdr_read(sdr, (char *) &protocol, outduct->protocol,
 			sizeof(ClProtocol));
@@ -1113,7 +1113,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 
 	while (1)
 	{
-		if (transmitTime > contact->toTime)
+		if (transmitTime >= contact->toTime)
 		{
 			/*	Due to the volume of transmission
 			 *	that must precede it, this bundle
