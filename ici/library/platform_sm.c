@@ -25,25 +25,6 @@ static void	giveIpcLock();
 
 #ifdef RTOS_SHM
 
-	/* ----- Unique IPC key system for "task" architecture --------- */
-
-int	sm_GetUniqueKey()
-{
-	static unsigned long	ipcUniqueKey = 0x80000000;
-	int			result;
-
-	takeIpcLock();
-	ipcUniqueKey++;
-	result = ipcUniqueKey;		/*	Truncates as necessary.	*/
-	giveIpcLock();
-	return result;
-}
-
-sm_SemId	sm_GetTaskSemaphore(int taskId)
-{
-	return sm_SemCreate(taskId, SM_SEM_FIFO);
-}
-
 	/* ---- Shared Memory services (RTOS) ------------------------- */
 
 #define nShmIds	50
@@ -497,7 +478,7 @@ sm_ShmDestroy(int id)
 
 /****************** Argument buffer services **********************************/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#ifdef ION_LWT
 
 #define	ARG_BUFFER_CT	256
 #define	MAX_ARG_LENGTH	63
@@ -517,7 +498,23 @@ static ArgBuffer	*_argBuffers()
 
 static int	_argBuffersAvbl(int *val)
 {
-	static int	argBufsAvbl = 0;
+	static int	argBufsAvbl = -1;
+	ArgBuffer	*argBuffer;
+	int		i;
+
+	if (argBufsAvbl < 0)	/*	Not initialized yet.		*/
+	{
+		/*	Initialize argument copying.			*/
+
+		argBuffer = _argBuffers();
+		for (i = 0; i < ARG_BUFFER_CT; i++)
+		{
+			argBuffer->ownerTid = 0;
+			argBuffer++;
+		}
+
+		argBufsAvbl = ARG_BUFFER_CT;
+	}
 
 	if (val == NULL)
 	{
@@ -602,7 +599,7 @@ static void	tagArgBuffers(int tid)
 				avbl--;
 			}
 		}
-#if defined (RTEMS)
+#if !(defined (VXWORKS))
 		else	/*	An opportunity to release arg buffers.	*/
 		{
 			if (buf->ownerTid != 0 && !sm_TaskExists(buf->ownerTid))
@@ -617,7 +614,7 @@ static void	tagArgBuffers(int tid)
 	oK(_argBuffersAvbl(&avbl));
 }
 
-#endif		/*	End of #if defined (VXWORKS, RTEMS, bionic)	*/
+#endif		/*	End of #ifdef ION_LWT				*/
 
 /****************** Semaphore services **********************************/
 
@@ -678,8 +675,6 @@ static int	initializeIpc()
 	int		i;
 	SmShm		*shmTbl = _shmTbl();
 	SmShm		*shm;
-	ArgBuffer	*argBuffer = _argBuffers();
-	int 		argBufCount = ARG_BUFFER_CT;
 
 	for (i = 0, sem = semTbl; i < nSemIds; i++, sem++)
 	{
@@ -695,14 +690,6 @@ static int	initializeIpc()
 		shm->freeNeeded = 0;
 		shm->nUsers = 0;
 	}
-
-	for (i = 0; i < ARG_BUFFER_CT; i++)
-	{
-		argBuffer->ownerTid = 0;
-		argBuffer++;
-	}
-
-	oK(_argBuffersAvbl(&argBufCount));
 
 	/*	Note: we are abundantly aware that the
 	 *	prototype for the function that must be
@@ -1329,9 +1316,6 @@ static sem_t	*_ipcSemaphore(int stop)
 {
 	static sem_t	ipcSem;
 	static int	ipcSemInitialized = 0;
-	ArgBuffer	*argBuffer = _argBuffers();
-	int		argBufCount = ARG_BUFFER_CT;
-	int		i;
 
 	if (stop)
 	{
@@ -1357,16 +1341,6 @@ static sem_t	*_ipcSemaphore(int stop)
 		oK(_semTbl());
 		ipcSemInitialized = 1;
 		giveIpcLock();
-
-		/*	Initialize argument copying.			*/
-
-		for (i = 0; i < ARG_BUFFER_CT; i++)
-		{
-			argBuffer->ownerTid = 0;
-			argBuffer++;
-		}
-
-		oK(_argBuffersAvbl(&argBufCount));
 	}
 
 	return &ipcSem;
@@ -2292,14 +2266,15 @@ int	sm_BeginPthread(pthread_t *threadId, const pthread_attr_t *attr,
 	return pthread_create(threadId, attr, posixTaskEntrance, &parm);
 }
 
-#endif			/*	End of #if defined bionic || uClibc	*/
+#endif	/*	End of #if defined bionic || uClibc			*/
 
-#if defined (RTEMS) || defined (bionic)
+#if defined (RTEMS) || defined (bionic) || defined (AESCFS)
 
 /*	Note: the RTEMS API is UNIX-like except that it omits all SVR4
  *	features.  RTEMS uses POSIX semaphores, and its shared-memory
  *	mechanism is the same as the one we use for VxWorks.  The same
- *	is true of Bionic.						*/
+ *	is true of Bionic.  CFS may be either UNIX or VXWORKS, but its
+ *	task model is always threads just like RTEMS and bionic.	*/
 
 #include <sys/stat.h>
 #include <sched.h>
@@ -2741,30 +2716,9 @@ void	sm_Abort()
 	sm_TaskDelete(taskId);
 }
 
-#endif			/*	End of #ifdef RTEMS || bionic		*/
+#endif	/*	End of #ifdef RTEMS || bionic || AESCFS			*/
 
 #ifdef mingw
-
-	/* ---- Unique IPC key system for "process" architecture ------ */
-
-int	sm_GetUniqueKey()
-{
-	static int	ipcUniqueKey = 0;
-	int		result;
-
-	/*	Compose unique key: low-order 16 bits of process ID
-		followed by low-order 16 bits of process-specific
-		sequence count.						*/
-
-	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
-	result = (_getpid() << 16) + ipcUniqueKey;
-	return result;
-}
-
-sm_SemId	sm_GetTaskSemaphore(int taskId)
-{
-	return sm_SemCreate((taskId << 16), SM_SEM_FIFO);
-}
 
 	/* ---- Task Control services (mingw) ----------------------- */
 
@@ -2988,35 +2942,13 @@ void	sm_Wakeup(DWORD processId)
 }
 #endif			/*	End of #ifdef mingw			*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (mingw) || defined (bionic)
-#else
+#if (!(defined (ION_LWT) || defined (mingw)))
 
 	/* ---- IPC services access control (Unix) -------------------- */
 
 #include <sys/stat.h>
 #include <sys/ipc.h>
 #include <sched.h>
-
-	/* ---- Unique IPC key system for "process" architecture ------ */
-
-int	sm_GetUniqueKey()
-{
-	static int	ipcUniqueKey = 0;
-	int		result;
-
-	/*	Compose unique key: low-order 16 bits of process ID
-		followed by low-order 16 bits of process-specific
-		sequence count.						*/
-
-	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
-	result = (getpid() << 16) + ipcUniqueKey;
-	return result;
-}
-
-sm_SemId	sm_GetTaskSemaphore(int taskId)
-{
-	return sm_SemCreate((taskId << 16), SM_SEM_FIFO);
-}
 
 	/* ---- Task Control services (Unix) -------------------------- */
 
@@ -3137,9 +3069,61 @@ void	sm_Abort()
 	abort();
 }
 
-#endif		/*	End of #ifdef (VXWORKS, RTEMS, mingw, bionic)	*/
+#endif	/*	End of #ifdef (ION_LWT, mingw)				*/
 
-/******************* platform-independent functions ***********************/
+/************************ Unique IPC key services *****************************/
+
+#ifdef RTOS_SHM
+
+	/* ----- Unique IPC key system for "task" architecture --------- */
+
+int	sm_GetUniqueKey()
+{
+	static unsigned long	ipcUniqueKey = 0x80000000;
+	int			result;
+
+	takeIpcLock();
+	ipcUniqueKey++;
+	result = ipcUniqueKey;		/*	Truncates as necessary.	*/
+	giveIpcLock();
+	return result;
+}
+
+sm_SemId	sm_GetTaskSemaphore(int taskId)
+{
+	return sm_SemCreate(taskId, SM_SEM_FIFO);
+}
+
+#else
+
+	/* ---- Unique IPC key system for "process" architecture ------ */
+
+int	sm_GetUniqueKey()
+{
+	static int	ipcUniqueKey = 0;
+	int		result;
+
+	/*	Compose unique key: low-order 16 bits of process ID
+		followed by low-order 16 bits of process-specific
+		sequence count.						*/
+
+	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
+#ifdef mingw
+	result = (_getpid() << 16) + ipcUniqueKey;
+#else
+	result = (getpid() << 16) + ipcUniqueKey;
+#endif
+	return result;
+}
+
+sm_SemId	sm_GetTaskSemaphore(int taskId)
+{
+	return sm_SemCreate((taskId << 16), SM_SEM_FIFO);
+}
+
+#endif
+
+/******************* platform-independent functions ***************************/
 
 void	sm_ConfigurePthread(pthread_attr_t *attr, size_t stackSize)
 {
@@ -3208,7 +3192,7 @@ int	pseudoshell(char *commandLine)
 		putErrmsg("More than 11 args in command.", commandLine);
 		return -1;
 	}
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#ifdef ION_LWT
 	takeIpcLock();
 	if (copyArgs(argc, argv) < 0)
 	{
@@ -3220,7 +3204,7 @@ int	pseudoshell(char *commandLine)
 	pid = sm_TaskSpawn(argv[0], argv[1], argv[2], argv[3],
 			argv[4], argv[5], argv[6], argv[7], argv[8],
 			argv[9], argv[10], 0, 0);
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#ifdef ION_LWT
 	if (pid == -1)
 	{
 		tagArgBuffers(0);
