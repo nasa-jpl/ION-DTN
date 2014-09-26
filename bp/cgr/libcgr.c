@@ -269,7 +269,7 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 		if (range->fromNode > arg.fromNode
 		|| range->toNode > arg.toNode)
 		{
-			return -1;	/*	No applicable range.	*/
+			break;
 		}
 
 		if (range->toTime < contact->fromTime)
@@ -279,14 +279,19 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 
 		if (range->fromTime > contact->fromTime)
 		{
-			return -1;	/*	No applicable range.	*/
+			break;
 		}
 
-		break;			/*	Found applicable range.	*/
+		/*	Found applicable range.				*/
+
+		*owlt = range->owlt;
+		return 0;
 	}
 
-	*owlt = range->owlt;
-	return 0;
+	/*	No applicable range.					*/
+
+	*owlt = 0;
+	return -1;
 }
 
 static int	computeDistanceToTerminus(IonCXref *rootContact,
@@ -1118,7 +1123,16 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 			/*	Due to the volume of transmission
 			 *	that must precede it, this bundle
 			 *	can't be fully transmitted during this
-			 *	contact.  So the route is unusable.	*/
+			 *	contact.  So the route is unusable.
+			 *
+			 *	Note that transmit time is computed
+			 *	using integer arithmetic, which will
+			 *	truncate any fractional seconds of
+			 *	total transmission time.  To account
+			 *	for this rounding error, we require
+			 *	that the computed transmit time be
+			 *	less than the contact end time,
+			 *	rather than merely not greater.		*/
 
 			return 0;
 		}
