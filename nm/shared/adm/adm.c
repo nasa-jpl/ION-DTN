@@ -967,7 +967,7 @@ char *adm_print_string(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, 
 	/* Step 1 - Data at head of buffer should be a string. Grab len & check. */
 	len = strlen((char*) buffer);
 
-	if((len < 0) || (len > buffer_len) || (len != data_len))
+	if((len > buffer_len) || (len != data_len))
 	{
 		DTNMP_DEBUG_ERR("adm_print_string", "Bad len %d. Expected %d.",
 				        len, data_len);
