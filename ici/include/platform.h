@@ -260,6 +260,7 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 
 #define SVR4_SEMAPHORES		/****	default			*********/
 #define SVR4_SHM		/****	default			*********/
+#define	UNIX_TASKS		/****	default			*********/
 
 #ifdef VXWORKS			/****	VxWorks			*********/
 
@@ -268,6 +269,9 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 
 #undef	SVR4_SEMAPHORES
 #define VXWORKS_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define VXWORKS_TASKS
 
 #include <vxWorks.h>
 #include <sockLib.h>
@@ -300,7 +304,10 @@ typedef int			socklen_t;
 #define RTOS_SHM
 
 #undef	SVR4_SEMAPHORES
-#define POSIX1B_SEMAPHORES
+#define POSIX_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define POSIX_TASKS
 
 typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
@@ -328,6 +335,9 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #undef	SVR4_SEMAPHORES
 #define MINGW_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define MINGW_TASKS
 
 #include <pthread.h>
 
@@ -374,6 +384,11 @@ extern int	irecvfrom(int sockfd, char *buf, int len, int flags,
 /*
 ** End of *NIX Headers
 */
+
+#ifdef AESCFS
+#undef	UNIX_TASKS
+#define POSIX_TASKS
+#endif				/*	End of #ifdef AESCFS	     ****/
 
 #ifdef __SVR4			/****	All Sys 5 Rev 4 UNIX systems ****/
 
@@ -424,7 +439,10 @@ extern int getpriority(int, id_t);
 #define RTOS_SHM
 
 #undef	SVR4_SEMAPHORES
-#define POSIX1B_SEMAPHORES
+#define POSIX_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define POSIX_TASKS
 
 #include <sys/param.h>		/****	...to get MAXPATHLEN         ****/
 
@@ -437,7 +455,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #define PRIVATE_SYMTAB
 
 #else				/****	Not bionic		     ****/
-#ifdef uClibc
+#ifdef uClibc			/****	uClibc subset of Linux	     ****/
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
 #else				/****	Not bionic and not uClibc    ****/
@@ -479,11 +497,12 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #endif				/****	End of #ifdef (unix)         ****/
 
-#if defined (SVR4_SHM)		/****	SVR4_SHM		     ****/
+#if defined (SVR4_SHM)
 #include <sys/shm.h>
-#elif defined (POSIX1B_SHM)
-#include <sys/mman.h>
-#endif				/****	End of #ifdef SVR4-SHM	     ****/
+#endif
+
+/*	Note: if we ever need POSIX shared-memory services, we
+ *	need to #include <sys/mman.h>.					*/
 
 #if defined (SVR4_SEMAPHORES)	/****	SVR4_SEMAPHORES		     ****/
 
@@ -521,7 +540,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #endif
 #endif				/****	End of #ifndef SEMMNS	     ****/
 
-#elif defined (POSIX1B_SEMAPHORES)
+#elif defined (POSIX_SEMAPHORES)
 
 #include <semaphore.h>
 

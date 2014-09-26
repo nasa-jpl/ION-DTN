@@ -1286,9 +1286,9 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 
 #endif			/*	End of #ifdef MINGW_SEMAPHORES		*/
 
-#ifdef POSIX1B_SEMAPHORES
+#ifdef POSIX_SEMAPHORES
 
-	/* ---- Semaphore services (POSIX1B, including RTEMS) ---------	*/
+	/* ---- Semaphore services (POSIX, including RTEMS) ---------	*/
 
 typedef struct
 {
@@ -1551,7 +1551,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 	return 0;
 }
 
-#endif			/*	End of #ifdef POSIX1B_SEMAPHORES	*/
+#endif			/*	End of #ifdef POSIX_SEMAPHORES		*/
 
 #ifdef SVR4_SEMAPHORES
 
@@ -2059,7 +2059,7 @@ extern FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize);
 
 /****************** Task control services *************************************/
 
-#ifdef VXWORKS
+#ifdef VXWORKS_TASKS
 
 	/* ---- Task Control services (VxWorks) ----------------------- */
 
@@ -2177,7 +2177,7 @@ VxWorks symbol table", name);
 	}
 	else
 	{
-		TRACK_SPAWN(result);
+		TRACK_BORN(result);
 	}
 
 	return result;
@@ -2208,7 +2208,10 @@ void	sm_Abort()
 	oK(taskDelete(taskIdSelf()));
 }
 
-#endif			/*	End of #ifdef VXWORKS			*/
+#endif			/*	End of #ifdef VXWORKS_TASKS		*/
+
+/*	Thread management machinery for bionic and uClibc, both of
+ *	which lack pthread_cancel.					*/
 
 #if defined (bionic) || defined (uClibc)
 
@@ -2268,7 +2271,7 @@ int	sm_BeginPthread(pthread_t *threadId, const pthread_attr_t *attr,
 
 #endif	/*	End of #if defined bionic || uClibc			*/
 
-#if defined (RTEMS) || defined (bionic) || defined (AESCFS)
+#ifdef POSIX_TASKS
 
 /*	Note: the RTEMS API is UNIX-like except that it omits all SVR4
  *	features.  RTEMS uses POSIX semaphores, and its shared-memory
@@ -2651,11 +2654,13 @@ private symbol table; must be added to mysymtab.c.", name);
 		if (pthread_kill(threadId, SIGTERM) == 0)
 		{
 			oK(pthread_end(threadId));
+			pthread_join(threadId, NULL);
 		}
 
 		return -1;
 	}
 
+	TRACK_BORN(taskId);
 	return taskId;
 }
 
@@ -2675,6 +2680,7 @@ void	sm_TaskKill(int taskId, int sigNbr)
 	}
 
 	oK(pthread_kill(threadId, sigNbr));
+	pthread_join(threadId, NULL);
 }
 
 void	sm_TaskDelete(int taskId)
@@ -2687,9 +2693,11 @@ void	sm_TaskDelete(int taskId)
 		return;		/*	No such task.			*/
 	}
 
+	TRACK_DIED(taskId);
 	if (pthread_kill(threadId, SIGTERM) == 0)
 	{
 		oK(pthread_end(threadId));
+		pthread_join(threadId, NULL);
 	}
 
 	oK(_posixTasks(&taskId, NULL, NULL));
@@ -2708,6 +2716,7 @@ void	sm_Abort()
 		if (pthread_kill(threadId, SIGTERM) == 0)
 		{
 			oK(pthread_end(threadId));
+			pthread_join(threadId, NULL);
 		}
 
 		return;
@@ -2716,9 +2725,9 @@ void	sm_Abort()
 	sm_TaskDelete(taskId);
 }
 
-#endif	/*	End of #ifdef RTEMS || bionic || AESCFS			*/
+#endif	/*	End of #ifdef POSIX_TASKS				*/
 
-#ifdef mingw
+#ifdef MINGW_TASKS
 
 	/* ---- Task Control services (mingw) ----------------------- */
 
@@ -2940,9 +2949,10 @@ void	sm_Wakeup(DWORD processId)
 		putErrmsg("Can't open wakeup event.", utoa(GetLastError()));
 	}
 }
-#endif			/*	End of #ifdef mingw			*/
 
-#if (!(defined (ION_LWT) || defined (mingw)))
+#endif			/*	End of #ifdef MINGW_TASKS		*/
+
+#ifdef UNIX_TASKS
 
 	/* ---- IPC services access control (Unix) -------------------- */
 
@@ -3069,7 +3079,7 @@ void	sm_Abort()
 	abort();
 }
 
-#endif	/*	End of #ifdef (ION_LWT, mingw)				*/
+#endif	/*	End of #ifdef UNIX_TASKS				*/
 
 /************************ Unique IPC key services *****************************/
 
@@ -3121,7 +3131,7 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 	return sm_SemCreate((taskId << 16), SM_SEM_FIFO);
 }
 
-#endif
+#endif	/*	End of #ifdef RTOS_SHM					*/
 
 /******************* platform-independent functions ***************************/
 

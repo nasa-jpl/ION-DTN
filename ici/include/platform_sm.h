@@ -43,7 +43,7 @@ extern void		sm_EndPthread(pthread_t threadId);
 #else
 #define pthread_begin(w,x,y,z)	pthread_create(w, x, y, z)
 #define pthread_end(x)		pthread_cancel(x)
-#endif
+#endif	/*	end of #ifdef bionic || uClibc				*/
 
 /*      IPC services access control */
 extern int		sm_ipc_init();
