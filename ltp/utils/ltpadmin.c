@@ -884,7 +884,7 @@ command.");
 		case 't':
 			if (attachToLtp() == 0)
 			{
-				return ltp_is_up(tokenCount, tokens);
+				exit(ltp_is_up(tokenCount, tokens));
 			}
 
 		case 'q':

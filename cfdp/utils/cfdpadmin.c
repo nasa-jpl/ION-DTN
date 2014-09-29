@@ -709,7 +709,7 @@ command.");
 		case 't':
 			if (attachToCfdp() == 0)
 			{
-				return cfdp_is_up(tokenCount, tokens);
+				exit(cfdp_is_up(tokenCount, tokens));
 			}
 
 		case 'q':

@@ -1105,7 +1105,7 @@ no time.");
 		case 't':
 			if (ionAttach() == 0)
 			{
-				return ion_is_up(tokenCount, tokens);
+				exit(ion_is_up(tokenCount, tokens));
 			}
 
 		case 'q':

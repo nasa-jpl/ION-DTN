@@ -1567,7 +1567,7 @@ static int	processLine(char *line, int lineLength)
 		case 't':
 			if (attachToBp() == 0)
 			{
-				return bp_is_up(tokenCount, tokens);
+				exit(bp_is_up(tokenCount, tokens));
 			}
 
 		case 'q':

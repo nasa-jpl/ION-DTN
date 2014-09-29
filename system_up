@@ -39,44 +39,60 @@ fi
 }
 
 # check for all the options
+ret_val=0
 
 while getopts ":AW:i:b:l:D:c:h" options; do
 	case $options in
 		A ) 	echo "Now checking ion"
 			echo "t w" | ionadmin
+			ret_val=$((ret_val+=$?))
 			echo "Now checking bp"
 			echo "t w" | bpadmin
+			ret_val=$((ret_val+=$?))
 			echo "Now checking ltp"
 			echo "t w" | ltpadmin
+			ret_val=$((ret_val+=$?))
 			echo "Now checking dtpc"
 			echo "t w" | dtpcadmin
+			ret_val=$((ret_val+=$?))
 			if [ "$ION_OPEN_SOURCE" == "1" ]; then
 				echo "Now checking cfdp"
 				echo "t w" | cfdpadmin
+				ret_val=$((ret_val+=$?))
 			fi;;
 		W ) 	echo "Now checking ion"
 			echo "t p ${OPTARG}" | ionadmin
+			ret_val=$((ret_val+=$?))
 		 	echo "Now checking bp"
 			echo "t p ${OPTARG}" | bpadmin
+			ret_val=$((ret_val+=$?))
 		 	echo "Now checking ltp"
 			echo "t p ${OPTARG}" | ltpadmin
+			ret_val=$((ret_val+=$?))
 		 	echo "Now checking dtpc"
 			echo "t p ${OPTARG}" | dtpcadmin
+			ret_val=$((ret_val+=$?))
 			if [ "$ION_OPEN_SOURCE" == "1" ]; then
 				echo "Now checking cfdp"
 				echo "t p ${OPTARG}" | cfdpadmin
+				ret_val=$((ret_val+=$?))
 			fi;;
 		i ) 	echo "Now checking ion"
-			echo "t ${OPTARG}" | ionadmin;;
+			echo "t ${OPTARG}" | ionadmin
+			ret_val=$((ret_val+=$?));;
 		b ) 	echo "Now checking bp"
-			echo "t ${OPTARG}" | bpadmin;;
+			echo "t ${OPTARG}" | bpadmin
+			ret_val=$((ret_val+=$?));;
 		l ) 	echo "Now checking ltp"
-			echo "t ${OPTARG}" | ltpadmin;;
+			echo "t ${OPTARG}" | ltpadmin
+			ret_val=$((ret_val+=$?));;
 		D ) 	echo "Now checking dtpc"
-			echo "t ${OPTARG}" | dtpcadmin;;
+			echo "t ${OPTARG}" | dtpcadmin
+			ret_val=$((ret_val+=$?));;
 		c )	if [ "$ION_OPEN_SOURCE" == "1" ]; then
 				echo "Now checking cfdp"
 				echo "t ${OPTARG}" | cfdpadmin
+				ret_val=$((ret_val+=$?))
 			fi
 			;;
 #		a )     echo "Now checking acs"
@@ -102,4 +118,5 @@ done
 
 echo
 echo "ION system started script completed."
+exit $ret_val
 

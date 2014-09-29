@@ -635,7 +635,7 @@ command.");
 		case 't':
 			if (attachToDtpc() == 0)
 			{
-				return dtpc_is_up(tokenCount, tokens);
+				exit(dtpc_is_up(tokenCount, tokens));
 			}
 
 		case 'q':
