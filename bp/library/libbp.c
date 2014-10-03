@@ -16,7 +16,7 @@
 
 #include "bpP.h"
 
-extern int	bpEndpointTally(VEndpoint *vpoint, unsigned int idx,
+extern void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx,
 			unsigned int size);
 
 typedef struct
