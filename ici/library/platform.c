@@ -521,7 +521,7 @@ char	*getNameOfUser(char *buffer)
 #endif
 }
 
-#endif	/*	end #if (!defined(linux, darwin, RTEMS, mingw))		*/
+#endif	/*	end #if (!defined(linux, freebsd, darwin, RTEMS, mingw))*/
 
 void	closeOnExec(int fd)
 {
@@ -2920,7 +2920,7 @@ char	*igetcwd(char *buf, size_t size)
 #endif
 }
 
-#ifdef RTEMS
+#ifdef POSIX_TASKS
 
 #ifndef SIGNAL_RULE_CT
 #define SIGNAL_RULE_CT	100
@@ -3032,7 +3032,7 @@ static void	threadSignalHandler(int signbr)
 		handler(signbr);
 	}
 }
-#endif	/*	end of #ifdef RTEMS					*/
+#endif	/*	end of #ifdef POSIX_TASKS				*/
 
 #ifdef mingw
 void	isignal(int signbr, void (*handler)(int))
@@ -3050,7 +3050,7 @@ void	iblock(int signbr)
 void	isignal(int signbr, void (*handler)(int))
 {
 	struct sigaction	action;
-#ifdef RTEMS
+#ifdef POSIX_TASKS
 	sigset_t		signals;
 
 	oK(sigemptyset(&signals));
@@ -3058,7 +3058,7 @@ void	isignal(int signbr, void (*handler)(int))
 	oK(pthread_sigmask(SIG_UNBLOCK, &signals, NULL));
 	oK(_signalRules(signbr, handler));
 	handler = threadSignalHandler;
-#endif
+#endif	/*	end of #ifdef POSIX_TASKS				*/
 	memset((char *) &action, 0, sizeof(struct sigaction));
 	action.sa_handler = handler;
 	oK(sigaction(signbr, &action, NULL));
@@ -3075,7 +3075,7 @@ void	iblock(int signbr)
 	oK(sigaddset(&signals, signbr));
 	oK(pthread_sigmask(SIG_BLOCK, &signals, NULL));
 }
-#endif
+#endif	/*	end of #ifdef mingw					*/
 
 char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 {

@@ -1172,11 +1172,13 @@ int	ionAttach()
 
 void	ionDetach()
 {
-#if defined (VXWORKS) || defined (bionic)
-	return;
-#elif defined (RTEMS)
+#ifdef ION_LWT
+#ifdef RTEMS
 	sm_TaskForget(sm_TaskIdSelf());
 #else
+	return;
+#endif	/*	end of #ifdef RTEMS					*/
+#else	/*	Not ION_LWT, so can detach entire process.		*/
 	Sdr	ionsdr = _ionsdr(NULL);
 
 	if (ionsdr)
@@ -1188,7 +1190,7 @@ void	ionDetach()
 #ifdef mingw
 	oK(_winsock(1));
 #endif
-#endif
+#endif	/*	end of #ifdef ION_LWT					*/
 }
 
 void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,

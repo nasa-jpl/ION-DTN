@@ -17,6 +17,12 @@
 extern "C" {
 #endif
 
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS)
+#define ION_LWT
+#else
+#undef ION_LWT
+#endif
+
 #ifdef uClibc
 #ifndef linux
 #define linux
@@ -388,6 +394,8 @@ extern int	irecvfrom(int sockfd, char *buf, int len, int flags,
 #ifdef AESCFS
 #undef	UNIX_TASKS
 #define POSIX_TASKS
+
+typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #endif				/*	End of #ifdef AESCFS	     ****/
 
 #ifdef __SVR4			/****	All Sys 5 Rev 4 UNIX systems ****/
@@ -444,13 +452,13 @@ extern int getpriority(int, id_t);
 #undef	UNIX_TASKS
 #define POSIX_TASKS
 
+typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
+
 #include <sys/param.h>		/****	...to get MAXPATHLEN         ****/
 
 #ifndef SEM_NSEMS_MAX
 #define	SEM_NSEMS_MAX		256
 #endif
-
-typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define PRIVATE_SYMTAB
 

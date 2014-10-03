@@ -505,15 +505,7 @@ void	sdr_wm_usage(PsmUsageSummary *usage)
 
 void	sdr_shutdown()		/*	Ends SDR service on machine.	*/
 {
-	sm_SemId	lock;
 	sm_WmParms	wmparms;
-
-	lock = _sdrlock(0);
-	if (lock == SM_SEM_NONE || sm_SemTake(lock) < 0)
-	{
-		putErrmsg("SDR system not initialized, can't shut down.", NULL);
-		return;	/*	Crash if can't lock sdr.	*/
-	}
 
 	if (_sdrwm(NULL) != NULL)
 	{
