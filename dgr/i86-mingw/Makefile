@@ -28,6 +28,7 @@ check:		$(PUBINCLS)
 clean:
 		rm -f *.o
 		rm -f *.exe
+		rm -f *.def
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -66,7 +67,7 @@ file2udp:	file2udp.o $(TEST)/file2udp.h
 #	-	-	Libraries	-	-	-	-	-
 
 libdgr.dll:	$(LIBDGROBJS)
-		$(LD) -o libdgr.dll $(LIBDGROBJS) -L$(ROOT)/lib -lici -lpthread -lws2_32
+		$(LD) -o libdgr.dll $(LIBDGROBJS) -Wl,--output-def,libdgr.def -L$(ROOT)/lib -lici -lpthread -lws2_32
 		cp libdgr.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

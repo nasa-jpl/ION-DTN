@@ -17,6 +17,16 @@
 extern "C" {
 #endif
 
+/*	NOTE: the -DION4WIN compiler switch is used to indicate that
+ *	header code must be rendered suitable for compilation of ION-
+ *	based Windows executables in a Visual Studio build environment.
+ *	It usually overrides the "-Dmingw" compiler switch, which is
+ *	otherwise required when building ION and ION-based software
+ *	for Windows.  In some cases the effect of -Dmingw and -DION4WIN
+ *	is the same: the affected code is suitable for Windows develop-
+ *	ment (and only Windows development), whether within Visual
+ *	Studio or not.							*/
+
 #ifdef uClibc
 #ifndef linux
 #define linux
@@ -64,13 +74,13 @@ typedef unsigned long		uvast;
 #elif (SPACE_ORDER < 3)	/*	32-bit machines.			*/
 typedef long long		vast;
 typedef unsigned long long	uvast;
-#ifdef mingw
+#if (defined(mingw) || defined(ION4WIN))
 #define	VAST_FIELDSPEC		"%I64d"
 #define	UVAST_FIELDSPEC		"%I64u"
-#else
+#else				/*	Not Windows.			*/
 #define	VAST_FIELDSPEC		"%lld"
 #define	UVAST_FIELDSPEC		"%llu"
-#endif
+#endif				/*	end #ifdef mingw || ION4WIN	*/
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
 #else			/*	64-bit machines.			*/
@@ -124,12 +134,19 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #include <errno.h>
 #include <stdarg.h>
 			/* POSIX.1 */
+#ifndef ION4WIN			/*	No POSIX in Visual Studio.	*/
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#endif				/*	end of #ifndef ION4WIN		*/
 
-#ifdef mingw			/****   Windows vs all others	*********/
+#ifdef ION4WIN			/*	Visual Studio provides most.	*/
+
+#include <sys/types.h>
+
+#elif defined(mingw)		/****   Windows vs all others	*********/
+
 #include <winsock2.h>
 #include <process.h>
 #include <Winbase.h>
@@ -144,7 +161,9 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define ECONNRESET		WSAECONNRESET
 #define EWOULDBLOCK		WSAEWOULDBLOCK
 #define	O_LARGEFILE		0
+
 #else				/****	not Windows		*********/
+
 #include <sys/times.h>
 #include <limits.h>
 #include <sys/wait.h>
@@ -163,7 +182,9 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define irecv(a,b,c,d)		recv(a,b,c,d)
 #define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
 #define irecvfrom(a,b,c,d,e,f)	recvfrom(a,b,c,d,e,f)
-#endif				/****   End of #ifdef mingw	*********/
+
+#endif				/*	end of #ifdef ION4WIN		*/
+
 /*
 ** End of Standard Headers
 */
@@ -256,7 +277,19 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 #define PUTMEMO(text, memo)	printf("%s: %s\n", text, memo)
 #endif
 
+/*	Need MAXPATHLEN defined for Visual Studio compile.		*/
+
+#ifdef ION4WIN
+#ifdef PATH_MAX
+#define MAXPATHLEN PATH_MAX
+#else
+#define MAXPATHLEN 260
+#endif
+#endif				/*	end of #ifdef ION4WIN		*/
+
 /*	Configure for platform-specific headers and IPC services.	*/
+
+#ifndef ION4WIN			/*	None of these apply in VS.	*/
 
 #define SVR4_SEMAPHORES		/****	default			*********/
 #define SVR4_SHM		/****	default			*********/
@@ -526,6 +559,8 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include <semaphore.h>
 
 #endif				/****	End #if defined SVR4_SEMAPHORES */
+
+#endif				/****	End of #ifdef ION4WIN        ****/
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include "valgrind/valgrind.h"
