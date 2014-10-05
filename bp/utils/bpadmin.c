@@ -1303,6 +1303,65 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
+static int bp_is_up(int tokenCount, char** tokens)
+{
+	if (strcmp(tokens[1], "p") == 0) //poll
+	{
+		if (tokenCount < 3) //use default timeout
+		{
+			int count = 1;
+			while (count <= 120 && !bp_agent_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > 120) //bp agent is not started
+			{
+				printText("BP agent is not started");
+				return 0;
+			}
+			else //bp agent is started
+			{
+				printText("BP agent is started");
+				return 1;
+			}
+		}
+		else //use user supplied timeout
+		{
+			int max = atoi(tokens[2]) * 4;
+			int count = 1;
+			while (count <= max && !bp_agent_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > max) //bp agent is not started
+			{
+				printText("BP agent is not started");
+				return 0;
+			}
+			else //bp agent is started
+			{
+				printText("BP agent is started");
+				return 1;
+			}
+		}
+	}
+	else //check once
+	{
+		if (bp_agent_is_started())
+		{
+			printText("BP agent is started");
+			return 1;
+		}
+		else
+		{
+			printText("BP agent is not started");
+			return 0;
+		}
+	}
+}
+
 static int	processLine(char *line, int lineLength)
 {
 	int		tokenCount;
@@ -1504,6 +1563,12 @@ static int	processLine(char *line, int lineLength)
 		case 'e':
 			switchEcho(tokenCount, tokens);
 			return 0;
+
+		case 't':
+			if (attachToBp() == 0)
+			{
+				exit(bp_is_up(tokenCount, tokens));
+			}
 
 		case 'q':
 			return -1;	/*	End program.		*/

@@ -849,7 +849,66 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
-int	ionadmin_processLine(char *line, int lineLength)
+static int ion_is_up(int tokenCount, char** tokens)
+{
+	if (strcmp(tokens[1], "p") == 0) //poll
+	{
+		if (tokenCount < 3) //use default timeout
+		{
+			int count = 1;
+			while (count <= 120 && !rfx_system_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > 120) //ion system is not started
+			{
+				printText("ION system is not started");
+				return 0;
+			}
+			else //ion system is started
+			{
+				printText("ION system is started");
+				return 1;
+			}
+		}
+		else //use user supplied timeout
+		{
+			int max = atoi(tokens[2]) * 4;
+			int count = 1;
+			while (count <= max && !rfx_system_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > max) //ion system is not started
+			{
+				printText("ION system is not started");
+				return 0;
+			}
+			else //ion system is started
+			{
+				printText("ION system is started");
+				return 1;
+			}
+		}
+	}
+	else //check once
+	{
+		if (rfx_system_is_started())
+		{
+			printText("ION system is started");
+			return 1;
+		}
+		else
+		{
+			printText("ION system is not started");
+			return 0;
+		}
+	}
+}
+
+static int	processLine(char *line, int lineLength)
 {
 	int		tokenCount;
 	char		*cursor;
@@ -1043,6 +1102,12 @@ no time.");
 			switchEcho(tokenCount, tokens);
 			return 0;
 
+		case 't':
+			if (ionAttach() == 0)
+			{
+				exit(ion_is_up(tokenCount, tokens));
+			}
+
 		case 'q':
 			return -1;	/*	End program.		*/
 
@@ -1088,7 +1153,7 @@ static int	runIonadmin(char *cmdFileName)
 				continue;
 			}
 
-			if (ionadmin_processLine(line, len))
+			if (processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -1131,7 +1196,7 @@ static int	runIonadmin(char *cmdFileName)
 					continue;
 				}
 
-				if (ionadmin_processLine(line, len))
+				if (processLine(line, len))
 				{
 					break;	/*	Out of loop.	*/
 				}
