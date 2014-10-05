@@ -849,7 +849,7 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
-static int	processLine(char *line, int lineLength)
+int	ionadmin_processLine(char *line, int lineLength)
 {
 	int		tokenCount;
 	char		*cursor;
@@ -1088,7 +1088,7 @@ static int	runIonadmin(char *cmdFileName)
 				continue;
 			}
 
-			if (processLine(line, len))
+			if (ionadmin_processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -1131,7 +1131,7 @@ static int	runIonadmin(char *cmdFileName)
 					continue;
 				}
 
-				if (processLine(line, len))
+				if (ionadmin_processLine(line, len))
 				{
 					break;	/*	Out of loop.	*/
 				}

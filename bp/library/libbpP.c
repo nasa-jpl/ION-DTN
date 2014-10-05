@@ -892,11 +892,6 @@ static void	stopScheme(VScheme *vscheme)
 		sm_SemEnd(vscheme->semaphore);	/*	Stop fwd.	*/
 	}
 
-	if (vscheme->admAppPid != ERROR)
-	{
-		sm_TaskKill(vscheme->admAppPid, SIGTERM);
-	}
-
 	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -906,6 +901,15 @@ static void	stopScheme(VScheme *vscheme)
 		{
 			sm_SemEnd(vpoint->semaphore);
 		}
+	}
+
+	/*	Don't try to stop the adminep daemon until AFTER
+	 *	all endpoint semaphores are ended, because it is
+	 *	almost always pended on one of those semaphores.	*/
+
+	if (vscheme->admAppPid != ERROR)
+	{
+		sm_TaskKill(vscheme->admAppPid, SIGTERM);
 	}
 }
 

@@ -17,6 +17,12 @@
 extern "C" {
 #endif
 
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS)
+#define ION_LWT
+#else
+#undef ION_LWT
+#endif
+
 /*	NOTE: the -DION4WIN compiler switch is used to indicate that
  *	header code must be rendered suitable for compilation of ION-
  *	based Windows executables in a Visual Studio build environment.
@@ -200,7 +206,7 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define ERROR			(-1)
 
 #ifdef __GNUC__
-#define UNUSED  __attribute__((unused))
+#define UNUSED			__attribute__((unused))
 #else
 #define UNUSED
 #endif
@@ -215,13 +221,13 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #ifndef LONG_MAX
 
 #if defined (_ILP32)
-#define LONG_MAX 0x7fffffffL
+#define LONG_MAX		(0x7fffffffL)
 #elif defined (_LP64)
-#define LONG_MAX 0x7fffffffffffffffL
+#define LONG_MAX		(0x7fffffffffffffffL)
 #elif (SIZEOF_LONG == 4)
-#define LONG_MAX 0x7fffffffL
+#define LONG_MAX		(0x7fffffffL)
 #elif (SIZEOF_LONG == 8)
-#define LONG_MAX 0x7fffffffffffffffL
+#define LONG_MAX		(0x7fffffffffffffffL)
 #endif
 
 #endif				/****	End of #ifndef LONG_MAX   *******/
@@ -293,6 +299,7 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 
 #define SVR4_SEMAPHORES		/****	default			*********/
 #define SVR4_SHM		/****	default			*********/
+#define	UNIX_TASKS		/****	default			*********/
 
 #ifdef VXWORKS			/****	VxWorks			*********/
 
@@ -301,6 +308,9 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 
 #undef	SVR4_SEMAPHORES
 #define VXWORKS_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define VXWORKS_TASKS
 
 #include <vxWorks.h>
 #include <sockLib.h>
@@ -333,7 +343,10 @@ typedef int			socklen_t;
 #define RTOS_SHM
 
 #undef	SVR4_SEMAPHORES
-#define POSIX1B_SEMAPHORES
+#define POSIX_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define POSIX_TASKS
 
 typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
@@ -361,6 +374,9 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #undef	SVR4_SEMAPHORES
 #define MINGW_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define MINGW_TASKS
 
 #include <pthread.h>
 
@@ -407,6 +423,13 @@ extern int	irecvfrom(int sockfd, char *buf, int len, int flags,
 /*
 ** End of *NIX Headers
 */
+
+#ifdef AESCFS
+#undef	UNIX_TASKS
+#define POSIX_TASKS
+
+typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
+#endif				/*	End of #ifdef AESCFS	     ****/
 
 #ifdef __SVR4			/****	All Sys 5 Rev 4 UNIX systems ****/
 
@@ -457,7 +480,12 @@ extern int getpriority(int, id_t);
 #define RTOS_SHM
 
 #undef	SVR4_SEMAPHORES
-#define POSIX1B_SEMAPHORES
+#define POSIX_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define POSIX_TASKS
+
+typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #include <sys/param.h>		/****	...to get MAXPATHLEN         ****/
 
@@ -465,12 +493,10 @@ extern int getpriority(int, id_t);
 #define	SEM_NSEMS_MAX		256
 #endif
 
-typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
-
 #define PRIVATE_SYMTAB
 
 #else				/****	Not bionic		     ****/
-#ifdef uClibc
+#ifdef uClibc			/****	uClibc subset of Linux	     ****/
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
 #else				/****	Not bionic and not uClibc    ****/
@@ -512,11 +538,12 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #endif				/****	End of #ifdef (unix)         ****/
 
-#if defined (SVR4_SHM)		/****	SVR4_SHM		     ****/
+#if defined (SVR4_SHM)
 #include <sys/shm.h>
-#elif defined (POSIX1B_SHM)
-#include <sys/mman.h>
-#endif				/****	End of #ifdef SVR4-SHM	     ****/
+#endif
+
+/*	Note: if we ever need POSIX shared-memory services, we
+ *	need to #include <sys/mman.h>.					*/
 
 #if defined (SVR4_SEMAPHORES)	/****	SVR4_SEMAPHORES		     ****/
 
@@ -554,7 +581,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #endif
 #endif				/****	End of #ifndef SEMMNS	     ****/
 
-#elif defined (POSIX1B_SEMAPHORES)
+#elif defined (POSIX_SEMAPHORES)
 
 #include <semaphore.h>
 
@@ -566,6 +593,37 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include "valgrind/valgrind.h"
 #endif
 
+#if (defined(AESCFS))
+#define	FSWLOGGER
+#define	FSWWATCHER
+#define	FSWTIME
+#define	FSWCLOCK
+#define FSWLAN
+#define FSWSCHEDULER
+#define	FSWUSER
+#include "ioncfs.h"
+#endif
+
+#ifndef	TRACK_MALLOC
+#define	TRACK_MALLOC(x)
+#endif
+
+#ifndef	TRACK_FREE
+#define	TRACK_FREE(x)
+#endif
+
+#ifndef	TRACK_BORN
+#define	TRACK_BORN(x)
+#endif
+
+#ifndef	TRACK_DIED
+#define	TRACK_DIED(x)
+#endif
+
+#ifndef	MAX_SRC_FILE_NAME
+#define MAX_SRC_FILE_NAME	255
+#endif
+
 /*	Prototypes for standard ION platform functions.			*/
 
 typedef void			(* Logger)(char *);
@@ -573,7 +631,7 @@ typedef void			(* Watcher)(char);
 
 extern void			*acquireSystemMemory(size_t);
 extern int			createFile(const char*, int);
-extern char *			system_error_msg();
+extern char			*system_error_msg();
 extern void			setLogger(Logger);
 extern void			writeMemo(char *);
 extern void			writeErrMemo(char *);
@@ -584,12 +642,11 @@ extern void			snooze(unsigned int);
 extern void			microsnooze(unsigned int);
 extern void			getCurrentTime(struct timeval *);
 extern unsigned long		getClockResolution();	/*	usec	*/
-#ifndef ION_NO_DNS
+#if (defined(FSWLAN) || !(defined(ION_NO_DNS)))
 extern unsigned int		getInternetAddress(char *);
-extern char *			getInternetHostName(unsigned int, char *);
+extern char			*getInternetHostName(unsigned int, char *);
 extern int			getNameOfHost(char *, int);
-extern unsigned int		getAddressOfHost();
-extern char *			getNameOfUser(char *);
+extern char			*getNameOfUser(char *);
 extern int			reUseAddress(int);
 extern int			watchSocket(int);
 #endif
@@ -670,6 +727,8 @@ extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 
 extern void			findToken(char **cursorPtr, char **token);
+extern unsigned int		getAddressOfHost();
+extern char			*addressToString(struct in_addr, char *buf);
 extern int			parseSocketSpec(char *socketSpec,
 					unsigned short *portNbr,
 					unsigned int *ipAddress);

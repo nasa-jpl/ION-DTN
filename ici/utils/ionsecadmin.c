@@ -1017,7 +1017,7 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
-static int	processLine(char *line, int lineLength)
+int	ionsecadmin_processLine(char *line, int lineLength)
 {
 	int	tokenCount;
 	char	*cursor;
@@ -1205,7 +1205,7 @@ int	main(int argc, char **argv)
 				continue;
 			}
 
-			if (processLine(line, len))
+			if (ionsecadmin_processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -1241,7 +1241,7 @@ int	main(int argc, char **argv)
 					continue;
 				}
 
-				if (processLine(line, len))
+				if (ionsecadmin_processLine(line, len))
 				{
 					break;	/*	Out of loop.	*/
 				}
