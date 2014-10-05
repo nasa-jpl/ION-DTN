@@ -524,6 +524,7 @@ typedef struct
 	Object		deadExports;	/*	SDR list: ExportSession	*/
 	Object		spans;		/*	SDR list: LtpSpan	*/
 	Object		timeline;	/*	SDR list: LtpEvent	*/
+	unsigned int	maxAcqInHeap;
 	unsigned long	heapBytesReserved;
 	unsigned long	heapBytesOccupied;
 	unsigned long	heapSpaceBytesReserved;

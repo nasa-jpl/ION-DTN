@@ -58,8 +58,9 @@ single bundle acquisition activity (nominally the acquisition of a single
 bundle, but this is at the discretion of the convergence-layer input task).
 All data acquired in excess of this limit will be written to a temporary file
 pending extraction and dispatching of the acquired bundle or bundles.  Default
-is the size of a ZCO file reference object, the minimum SDR heap space
-occupancy in the event that all acquisition is into a file.
+is the minimum allowed value (560 bytes), which is the approximate size of a
+ZCO file reference object; this is the minimum SDR heap space occupancy in the
+event that all acquisition is into a file.
 
 =item B<x>
 
