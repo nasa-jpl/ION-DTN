@@ -2,9 +2,9 @@ UTILS = ../utils
 
 # OPT = -O -Dfreebsd
 OPT = -g -Wall -Werror -Dfreebsd
-CC = gcc $(OPT)
+CC = cc $(OPT)
 LDFLAGS = -fPIC -shared
-LD = gcc $(LDFLAGS)
+LD = ld $(LDFLAGS)
 
 UTILITIES = ionrestart
 

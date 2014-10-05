@@ -5,10 +5,10 @@ UTILS = ../utils
 RAMS = ../rams
 
 # OPT = -O -Dfreebsd
-OPT = -g -Wall -Werror -Dfreebsd -DUDPTS -DTCPTS -DDGRTS -L/usr/local/lib
-CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include -I/usr/local/include
+OPT = -g -Wall -Werror -Dfreebsd -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT
+CC = cc $(OPT) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
-LD = gcc $(LDFLAGS)
+LD = ld $(LDFLAGS)
 
 LIBAMSOBJS = \
 	libams.o \
@@ -37,7 +37,7 @@ RAMSTESTOBJS = \
 PUBINCLS = \
 	$(INCL)/ams.h
 
-LBP = -lbp -lbpP
+LBP = -lbp
 
 RUNTIMES = amsd amshello amsshell amslog amslogprt amsbenchs amsbenchr ramsgate amsstop amsmib
 
@@ -63,31 +63,31 @@ install:
 #	-	-	Daemon executable	-	-	-	-
 
 amsd:		$(AMSDOBJS) $(API)/amscommon.h
-		$(CC) -o amsd $(AMSDOBJS) -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread -lexpat
+		$(CC) -o amsd $(AMSDOBJS) -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread
 		cp amsd ./bin
 
 #	-	-	Test executables	-	-	-	-
 
 amshello:	amshello.o libams.so $(INCL)/ams.h
-		$(CC) -o amshello amshello.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lexpat
+		$(CC) -o amshello amshello.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
 		cp amshello ./bin
 
 amsbenchs:	amsbenchs.o libams.so $(INCL)/ams.h
-		$(CC) -o amsbenchs amsbenchs.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lexpat
+		$(CC) -o amsbenchs amsbenchs.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
 		cp amsbenchs ./bin
 
 amsbenchr:	amsbenchr.o libams.so $(INCL)/ams.h
-		$(CC) -o amsbenchr amsbenchr.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lexpat
+		$(CC) -o amsbenchr amsbenchr.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
 		cp amsbenchr ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 amsshell:	amsshell.o libams.so $(INCL)/ams.h
-		$(CC) -o amsshell amsshell.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lexpat
+		$(CC) -o amsshell amsshell.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
 		cp amsshell ./bin
 
 amslog:		amslog.o libams.so $(INCL)/ams.h
-		$(CC) -o amslog amslog.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lexpat
+		$(CC) -o amslog amslog.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
 		cp amslog ./bin
 
 amslogprt:	amslogprt.o
@@ -95,17 +95,17 @@ amslogprt:	amslogprt.o
 		cp amslogprt ./bin
 
 amsstop:	amsstop.o libams.so $(INCL)/ams.h
-		$(CC) -o amsstop amsstop.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lexpat
+		$(CC) -o amsstop amsstop.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
 		cp amsstop ./bin
 
 amsmib:		amsmib.o libams.so $(INCL)/ams.h
-		$(CC) -o amsmib amsmib.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lexpat
+		$(CC) -o amsmib amsmib.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
 		cp amsmib ./bin
 
 #	-	-	RAMS executable		-	-	-	-
 
 ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommon.h libams.so $(INCL)/ams.h
-		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lexpat
+		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread
 		cp ramsgate ./bin
 
 #	-	-	Libraries	-	-	-	-	-

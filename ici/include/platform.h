@@ -516,6 +516,8 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define	_MULTITHREADED
 
+#define	O_LARGEFILE	0
+
 #endif				/****	End of #ifdef freebsd	     ****/
 
 #ifdef darwin			/****	Mac OS X		     ****/

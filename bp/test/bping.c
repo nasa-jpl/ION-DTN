@@ -240,12 +240,14 @@ void *receiveResponses(void *x)
 		}
 
 		if(diff_in_us < 0) {
-			printf("%d bytes from %s  seq=%lu time=-%lu.%06lu s(future!)\n",
-					contentLength, respSrcEid, respcount, tvDiff.tv_sec, 
+			printf("%d bytes from %s  seq=%lu time=-%lu.%06lu \
+s(future!)\n", contentLength, respSrcEid, respcount,
+					(unsigned long)tvDiff.tv_sec, 
 					(unsigned long)tvDiff.tv_usec);
 		} else {
 			printf("%d bytes from %s  seq=%lu time=%lu.%06lu s\n",
-					contentLength, respSrcEid, respcount, tvDiff.tv_sec, 
+					contentLength, respSrcEid, respcount,
+					(unsigned long)tvDiff.tv_sec, 
 					(unsigned long)tvDiff.tv_usec);
 		}
 
@@ -279,7 +281,8 @@ static Object bping_new_ping(void)
 
 	/* Construct the bundle payload */
 	pingPayloadLen = snprintf(pingPayload, sizeof(pingPayload), 
-			"%d %lu %lu bping payload", totalsent, tvNow.tv_sec, 
+			"%d %lu %lu bping payload", totalsent,
+			(unsigned long) tvNow.tv_sec, 
 			(unsigned long)tvNow.tv_usec);
 	if(pingPayloadLen < 0) {
 		bp_close(sap);
@@ -513,7 +516,8 @@ int main(int argc, char **argv)
 	printf("%d bundles transmitted, %d bundles received, %.2f%% bundle"
 			" loss, time %lu.%06lu s\n", totalsent, totalreceived,
 			100.0*(1 - ((double)totalreceived)/((double)totalsent)),
-			tvDiff.tv_sec, (unsigned long)tvDiff.tv_usec);
+			(unsigned long)tvDiff.tv_sec,
+			(unsigned long)tvDiff.tv_usec);
 
 	if(totalreceived > 0) {
 		sum  /= totalreceived;
