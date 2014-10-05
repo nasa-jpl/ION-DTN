@@ -55,6 +55,8 @@ typedef struct
 	int	configFlags;
 	long	heapWords;
 	int	heapKey;
+	int	logSize;
+	int	logKey;
 	char	pathName[MAXPATHLEN + 1];
 } IonParms;
 

@@ -26,7 +26,7 @@ extern "C" {
 typedef struct
 {
 	char		sdrName[MAX_SDR_NAME + 1];
-	long		sdrSize;
+	long		dsSize;
 	long		smallPoolSize;
 	long		smallPoolFreeBlockCount[SMALL_SIZES];
 	long		smallPoolFree;
@@ -76,11 +76,12 @@ extern void		sdr_report(SdrUsageSummary *);
 				SDR's usage status.			*/
 
 extern int		sdr_heap_depleted(Sdr sdrv);
-			/*	A Boolean function: returns 1 if
-			 *	total available space in the SDR
+			/*	A Boolean function: returns 1 if total
+			 *	available space in the SDR's data space
 			 *	(small pool free, large pool free,
 			 *	and unused) is less than 1/16 of
-			 *	the total size of the SDR, 0 otherwise.	*/
+			 *	the total size of the data space, 0
+			 *	otherwise.				*/
 
 extern int		sdr_start_trace(Sdr sdr, long size, char *shm);
 			/*	Begins an episode of SDR space usage

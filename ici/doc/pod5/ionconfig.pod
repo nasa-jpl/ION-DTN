@@ -93,6 +93,20 @@ the directory identified by I<pathName>, then a file of this name and size
 will be created in this directory and initialized to all binary zeroes.  The
 default value is 250000 words (1 million bytes on a 32-bit computer).
 
+=item logSize
+
+This is the number of bytes of shared memory to use for ION's SDR transaction
+log.  If zero (the default), the transaction log is written to a file rather
+than to memory.  If the log is to be implemented in shared memory and no
+I<logKey> is specified, a block of shared memory of this size will be allocated
+(e.g., by malloc()) at the time the node is created.
+
+=item logKey
+
+This is the shared-memory key by which the pre-allocated block of shared
+dynamic memory to be used for the transaction log for this SDR can be located,
+if applicable.  The default value is -1, i.e., not specified and not applicable.
+
 =item wmKey
 
 This is the shared-memory key by which this ION node's working memory will
@@ -123,7 +137,7 @@ heapWords 2500000
 
 heapKey -1
 
-pathName 'usr/ion'
+pathName '/usr/ion'
 
 wmSize 5000000
 

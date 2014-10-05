@@ -93,7 +93,7 @@ static int	run_file2sdr(int configFlags, char *fileName)
 	isprintf(sdrName, sizeof sdrName, "%s%d", TEST_SDR_NAME, configFlags);
 	sdr_initialize(TEST_WM_SIZE, NULL, SM_NO_KEY, NULL);
 	sdr_load_profile(sdrName, configFlags, TEST_HEAP_WORDS, SM_NO_KEY,
-			TEST_PATH_NAME, NULL);
+			0, SM_NO_KEY, TEST_PATH_NAME, NULL);
 	sdr = sdr_start_using(sdrName);
 	if (sdr == NULL)
 	{
