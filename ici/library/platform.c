@@ -2123,6 +2123,34 @@ int	sdnvToScalar(Scalar *scalar, unsigned char *sdnvText)
 	return sdnvLength;
 }
 
+uvast	htonv(uvast hostvast)
+{
+	static int	length = sizeof(uvast);
+	uvast		result;
+	unsigned char	*cursor;
+	int		i;
+
+	if (1 != htonl(1))	/*	Must reverse the digits.	*/
+	{
+		cursor = ((unsigned char *) &hostvast) + length;
+		result = 0;
+		for (i = 0; i < length; i++)
+		{
+			cursor--;
+			result = (result << 8) + (*cursor);
+		}
+
+		return result;
+	}
+
+	return hostvast;
+}
+
+uvast	ntohv(uvast netvast)
+{
+	return htonv(netvast);
+}
+
 void	findToken(char **cursorPtr, char **token)
 {
 	char	*cursor;
