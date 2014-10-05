@@ -62,13 +62,10 @@ Set the bundle payload size to I<BUNDLE-SIZE> bytes (default: 0).
 
 Send JSON to I<OUTPUT-FILE> (default: stdout).
 
-=item B<-p OUTDUCT-PROTO>
+=item B<-d PROTO:NAME>
 
-Use I<OUTDUCT-PROTO> as the outduct protocol (default: udp).
-
-=item B<-n OUTDUCT-NAME>
-
-Use I<OUTDUCT-NAME> as the outduct name (default: *).
+Use I<PROTO> as the outduct protocol and I<NAME> as the outduct name (default:
+udp:*). Use B<list> to list all available outducts.
 
 =back
 
@@ -83,6 +80,10 @@ Simulate CGR with destination node 8 and dispatch time equal to the current time
 =item cgrfetch 8 -t 60
 
 Do the same with a dispatch time 60 seconds in the future.
+
+=item cgrfetch -d list
+
+List all available outducts.
 
 =back
 
