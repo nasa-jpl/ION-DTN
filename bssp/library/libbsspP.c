@@ -865,8 +865,10 @@ int	bsspAttach()
 	return 0;		/*	BSSP service is available.	*/
 }
 
-void bsspDetach(){
-	char *stop=NULL;
+void	bsspDetach()
+{
+	char	*stop = NULL;
+
 	oK(_bsspvdb(&stop));
 	return;
 }

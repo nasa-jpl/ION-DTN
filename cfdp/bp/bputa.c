@@ -114,8 +114,6 @@ static void	*receivePdus(void *parm)
 	return NULL;
 }
 
-/*	*	*	Main thread functions	*	*	*	*/
-
 static int	deletePdu(Object pduZco)
 {
 	Sdr	sdr = getIonsdr();
@@ -129,7 +127,9 @@ static int	deletePdu(Object pduZco)
 	return sdr_end_xn(sdr);
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+/*	*	*	Main thread functions	*	*	*	*/
+
+#if defined (ION_LWT)
 int	bputa(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

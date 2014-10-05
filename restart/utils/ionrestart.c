@@ -317,7 +317,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 #endif
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	ionrestart(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

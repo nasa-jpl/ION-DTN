@@ -1172,12 +1172,11 @@ int	ionAttach()
 
 void	ionDetach()
 {
-#ifdef ION_LWT
+#if defined (ION_LWT)
 #ifdef RTEMS
 	sm_TaskForget(sm_TaskIdSelf());
-#else
+#endif
 	return;
-#endif	/*	end of #ifdef RTEMS					*/
 #else	/*	Not ION_LWT, so can detach entire process.		*/
 	Sdr	ionsdr = _ionsdr(NULL);
 

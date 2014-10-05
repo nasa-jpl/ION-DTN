@@ -773,12 +773,12 @@ static void usage(const char *name)
 	);
 }
 
+#if defined (ION_LWT)
 static void teardown(void)
 {
 	bp_detach();
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
 int	cgrfetch(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -787,10 +787,8 @@ int	main(int argc, char **argv)
 {
 #endif
 	char *end;
+#if defined (ION_LWT)
 
-	atexit(teardown);
-
-#if defined (VXWORKS) || defined (RTEMS)
 	if (a3)
 	{
 		dispatchOffset = strtoul((char *)(a3), &end, 10);

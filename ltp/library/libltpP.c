@@ -859,8 +859,10 @@ int	ltpAttach()
 	return 0;		/*	LTP service is available.	*/
 }
 
-void ltpDetach(){
-	char *stop=NULL;
+void	ltpDetach()
+{
+	char	*stop = NULL;
+
 	oK(_ltpvdb(&stop));
 	return;
 }

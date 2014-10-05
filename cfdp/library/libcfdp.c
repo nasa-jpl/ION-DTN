@@ -64,7 +64,7 @@ int	cfdp_entity_is_started()
 
 void	 cfdp_detach()
 {
-#if (!(defined (VXWORKS) || defined (RTEMS) || defined (bionic)))
+#if (!(defined (ION_LWT)))
 	cfdpDetach();
 #endif
 	ionDetach();

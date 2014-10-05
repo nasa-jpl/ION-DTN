@@ -64,7 +64,7 @@ int recv_running;		/*Thread running flag*/
 pthread_t rcv_thread;		/*Pthread variable*/
 
 /*Start Here*/
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	bpcp(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

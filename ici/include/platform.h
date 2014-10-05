@@ -53,7 +53,11 @@ extern "C" {
 #define SPACE_ORDER	2
 #endif
 
-#if (defined(RTEMS) || defined(uClibc))
+/*	We define new data types "vast" and "uvast", which are always
+ *	64-bit numbers regardless of the native machine architecture
+ *	(except as noted below).					*/
+
+#if (defined (RTEMS) || defined (uClibc))
 /*	In RTEMS 4.9, defining the first field of a struct as
  *	"long long" apparently doesn't cause the struct (nor that
  *	first field) to be aligned on a "long long" boundary, so

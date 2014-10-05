@@ -22,7 +22,7 @@ void sig_handler();
 #endif
 
 /*Start Here*/
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	bpcpd(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -76,10 +76,7 @@ int main(int argc, char **argv)
 	poll_cfdp_messages();
 
 #ifdef CLEAN_ON_EXIT
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
-	/*DO NOTHING. VXWORKS doesn't implement system()!*/
-#else
-
+#if defined (unix)
 	/*Cleanup all directory listing files*/
 	if (system("rm dirlist_* >/dev/null 2>/dev/null")<0)
 	{
