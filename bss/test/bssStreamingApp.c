@@ -56,7 +56,9 @@ static void	handleQuit()
 static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 {
 	int		priority = 0;
-	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
+	BpExtendedCOS	extendedCOS = { 0, 10, 0 };
+			/*	Note: flag value 10 directs BP to send
+			 *	bundles using a streaming protocol.	*/
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BptestState	state = { NULL, 1 };
 	Sdr		sdr;

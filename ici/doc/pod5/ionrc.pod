@@ -55,24 +55,28 @@ be logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 Version number.  Prints out the version of ION currently installed.  HINT:
 combine with B<e 1> command to log the version number at startup.
 
-=item B<1> I<node_number> { I<ion_config_filename> | '' }
+=item B<1> I<node_number> [ { I<ion_config_filename> | '.' | '' } ]
 
 The B<initialize> command.  Until this command is executed, the local ION
 node does not exist and most I<ionadmin> commands will fail.
 
 The command configures the local node to be identified by I<node_number>, a
 CBHE node number which uniquely identifies the node in the delay-tolerant
-network.  It also configures ION's data store (SDR) and shared working-memory
-region using either the settings found in the I<ion_config_filename> file
-or, if '' is supplied as the I<ion_config_filename>, a set of default
-settings.  Please see ionconfig(5) for details.
+network.  It also configures ION's data space (SDR) and shared working-memory
+region.  For this purpose it uses a set of default settings if no argument
+follows I<node_number> or if the argument following I<node_number> is '';
+otherwise it uses the configuration settings found in a configuration
+file.  If configuration file name '.' is provided, then the configuration
+file's name is implicitly "I<hostname>.ionconfig"; otherwise,
+I<ion_config_filename> is taken to be the explicit configuration file name.
+Please see ionconfig(5) for details of the configuration settings.
 
 For example:
 
 	1 19 ''
 
 would initialize ION on the local computer, assigning the local ION node the
-node number 19 and using default values to configure the data store and
+node number 19 and using default values to configure the data space and
 shared working-memory region.
 
 =item B<@> I<time>
@@ -186,7 +190,7 @@ This management command sets the maximum number of megabytes of storage space
 in ION's SDR non-volatile heap, and/or in the local file system, that can be
 used for the storage of zero-copy objects.  A value of -1 for either limit
 signifies "leave unchanged".  The default heap limit is 60% of the SDR data
-store's total heap size.  The default file system limit is 1 Terabyte.
+space's total heap size.  The default file system limit is 1 Terabyte.
 
 =item B<m horizon> { 0 | I<end_time_for_congestion_forecasts> }
 
@@ -205,7 +209,7 @@ at some future time.  By default, there is no alarm command.
 
 =item B<m usage>
 
-This management command simply prints ION's current data store occupancy
+This management command simply prints ION's current data space occupancy
 (the number of megabytes of space in the SDR non-volatile heap and file system
 that are occupied by bundles), the limit on occupancy, and the maximum level
 of occupancy predicted by the most recent I<ionadmin> congestion forecast

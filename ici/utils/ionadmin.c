@@ -150,11 +150,6 @@ static void	initializeNode(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (tokenCount < 3 || *configFileName == '\0')
-	{
-		configFileName = NULL;	/*	Use built-in defaults.	*/
-	}
-
 	if (readIonParms(configFileName, &parms) < 0)
 	{
 		putErrmsg("ionadmin can't get SDR parms.", NULL);
