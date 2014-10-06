@@ -94,6 +94,7 @@ dtnperf_vION_CFLAGS =  -I$(srcdir)/dtnperf/al_bp/src/bp_implementations \
 			-I$(srcdir)/../bp/library \
 			-fmessage-length=0 $(AM_CFLAGS)
 
+libal_bp_vION_la_LIBADD = ../libici.la ../libbp.la $(LIBSOBJS)
 libal_bp_vION_la_SOURCES = dtnperf/al_bp/src/al_bp_api.c \
 			   dtnperf/al_bp/src/bp_implementations/al_bp_dtn.c \
 			   dtnperf/al_bp/src/bp_implementations/al_bp_dtn_conversions.c \
