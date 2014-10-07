@@ -7,7 +7,7 @@ TCP = ../tcp
 TEST = ../test
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux
+OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
 # -DNO_PROXY -DNO_DIRLIST
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared -rdynamic

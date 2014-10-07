@@ -238,11 +238,11 @@ typedef unsigned long	SdrObject;
 extern void		*sdr_pointer(Sdr sdr, Address address);
 extern Address		sdr_address(Sdr sdr, void *pointer);
 
-#ifndef USING_SDR_POINTERS
-#define	USING_SDR_POINTERS	0
+#ifndef HEAP_PTRS
+#define	HEAP_PTRS	0
 #endif
 
-#if (USING_SDR_POINTERS)
+#if (HEAP_PTRS)
 #define OBJ_POINTER(typenm, varnm)\
 	typenm	*varnm
 #define	GET_OBJ_POINTER(sdrp, typenm, varnm, addr)\

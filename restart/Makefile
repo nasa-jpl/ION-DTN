@@ -1,4 +1,5 @@
 OPT = /opt
+HEAP_PTRS = 0
 PLATFORMS = i86-redhat
 # i86_64-fedora
 # sparc-sol9
@@ -16,7 +17,7 @@ all:
 			do \
 				cd $$PF; \
 				mkdir -p bin; \
-				gmake all ROOT=$(OPT); \
+				gmake all ROOT=$(OPT) PTRS=$(HEAP_PTRS); \
 				cd ..; \
 			done
 

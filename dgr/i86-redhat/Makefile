@@ -4,7 +4,7 @@ TEST = ../test
 
 # OPT = -O -Dlinux
 # OPT = -g -Wall -Dlinux -DINITIAL_RETARD=2
-OPT = -g -Wall -Werror -Dlinux
+OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
 CC = gcc $(OPT) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)

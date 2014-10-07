@@ -6,7 +6,7 @@ UDP = ../udp
 TCP = ../tcp
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux
+OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(UDP) -I$(TCP) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)

@@ -7,7 +7,7 @@ SDR = ../sdr
 CRYPTO = ../crypto
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux
+OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO)
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
