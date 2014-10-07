@@ -58,23 +58,38 @@ extern "C" {
  *	(except as noted below).					*/
 
 #if (defined (RTEMS) || defined (uClibc))
-/*	In RTEMS 4.9, defining the first field of a struct as
- *	"long long" apparently doesn't cause the struct (nor that
- *	first field) to be aligned on a "long long" boundary, so
- *	we get alignment errors.  For now, we get around this by
- *	simply defining "vast" as "long"; node numbers larger than
- *	4G won't be processed properly on an RTEMS platform.  At
- *	some point somebody may figure out a workaround in the
- *	compiler so that we can fix this.
+/*	In the RTEMS 4.9 development environment for Linux (for
+ *	target sparc-rtems4.9), defining the first field of a struct
+ *	as "long long" apparently doesn't cause the struct (nor that
+ *	first field) to be aligned on a "long long" boundary, so in
+ *	JPL's ION RTEMS development environment we get alignment
+ *	errors.  For now, we get around this by simply defining "vast"
+ *	as "long"; node numbers larger than 4G won't be processed
+ *	properly on an RTEMS platform.  The solution seems to be that
+ *	RTEMS needs to be built with the CPU_ALIGNMENT macro set to 8
+ *	rather than 4.  ION/RTEMS system integrators who can build
+ *	RTEMS in this configuration should set the -DLONG_LONG_OKAY
+ *	compiler flag to 1 when building ION.
  *
  *	In uClibc, support for "long long" integers apparently
- *	requires that libgcc_s.so.1 be installed.  Because our
- *	test environment doesn't include this library, we have
- *	to define "vast" as "long"; node numbers larger than 4G
- *	won't be processed properly on a uClibc platform.  System
- *	integrators who can provide libgcc_s.so.1 should be able
- *	to restore this functionality by revising this conditional
- *	compilation.							*/
+ *	requires that libgcc_s.so.1 be installed.  Because JPL's
+ *	ION uClibc development environment doesn't include this
+ *	library, we have to define "vast" as "long"; node numbers
+ *	larger than 4G won't be processed properly on a uClibc
+ *	platform.  ION/uClibc system integrators who can provide
+ *	libgcc_s.so.1 should set the -DLONG_LONG_OKAY compiler flag
+ *	to 1 when building ION.						*/
+
+#ifndef LONG_LONG_OKAY
+#define	LONG_LONG_OKAY		0	/*	Default value.		*/
+#endif
+
+#else
+
+#define	LONG_LONG_OKAY		1
+#endif	/*	RTEMS or uClibc						*/
+
+#if (!LONG_LONG_OKAY)
 typedef long			vast;
 typedef unsigned long		uvast;
 #define	VAST_FIELDSPEC		"%ld"

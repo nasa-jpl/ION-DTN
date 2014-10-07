@@ -840,7 +840,7 @@ char	*rfx_print_contact(PsmAddress cxaddr, char *buffer)
 	writeTimestampUTC(contact->fromTime, fromTimeBuffer);
 	writeTimestampUTC(contact->toTime, toTimeBuffer);
 	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the xmit rate from \
-node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec.", \
+node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec.",
 			fromTimeBuffer, toTimeBuffer, contact->fromNode,
 			contact->toNode, contact->xmitRate);
 	return buffer;

@@ -1871,45 +1871,71 @@ void	getCurrentDtnTime(DtnTime *dt)
 	dt->nanosec = 0;
 }
 
-void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
+void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
+		Scalar *totalBacklog)
 {
 	int	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 #ifdef ION_BANDWIDTH_RESERVED
-	Scalar	maxBulkBacklog;
-	Scalar	bulkBacklog;
+	Scalar	limit;
+	Scalar	increment;
 #endif
 	int	i;
 
+	copyScalar(totalBacklog, &(duct->urgentBacklog));
+	addToScalar(totalBacklog, &(duct->stdBacklog));
+	addToScalar(totalBacklog, &(duct->bulkBacklog));
 	if (priority == 0)
 	{
-		copyScalar(backlog, &(duct->urgentBacklog));
-		addToScalar(backlog, &(duct->stdBacklog));
-		addToScalar(backlog, &(duct->bulkBacklog));
+		copyScalar(priorClaims, &(duct->urgentBacklog));
+#ifdef ION_BANDWIDTH_RESERVED
+		/*	priorClaims increment is the standard
+		 *	backlog's prior claims, which is the entire
+		 *	standard backlog or twice the bulk backlog,
+		 *	whichever is less.				*/
+
+		copyScalar(&limit, &(duct->bulkBacklog));
+		multiplyScalar(&limit, 2);
+		copyScalar(&increment, &limit);
+		subtractFromScalar(&limit, &(duct->stdBacklog));
+		if (scalarIsValid(&limit))
+		{
+			/*	Current standard backlog is less than
+			 *	twice the current bulk backlog.		*/
+
+			copyScalar(&increment, &(duct->stdBacklog));
+		}
+
+		addToScalar(priorClaims, &increment);
+#else
+		addToScalar(priorClaims, &(duct->stdBacklog));
+#endif
+		addToScalar(priorClaims, &(duct->bulkBacklog));
 		return;
 	}
 
 	if (priority == 1)
 	{
-		copyScalar(backlog, &(duct->urgentBacklog));
-		addToScalar(backlog, &(duct->stdBacklog));
+		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->stdBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
-		/*	Additional backlog is the applicable bulk
-		 *	backlog, which is the entire bulk backlog
-		 *	or 1/2 of the std backlog, whichever is less.	*/
+		/*	priorClaims increment is the bulk backlog's
+		 *	prior claims, which is the entire bulk backlog
+		 *	or half of the standard backlog, whichever is
+		 *	less.						*/
 
-		copyScalar(&maxBulkBacklog, &(duct->stdBacklog));
-		divideScalar(&maxBulkBacklog, 2);
-		copyScalar(&bulkBacklog, &maxBulkBacklog);
-		subtractFromScalar(&maxBulkBacklog, &(duct->bulkBacklog));
-		if (scalarIsValid(&maxBulkBacklog))
+		copyScalar(&limit, &(duct->stdBacklog));
+		divideScalar(&limit, 2);
+		copyScalar(&increment, &limit);
+		subtractFromScalar(&limit, &(duct->bulkBacklog));
+		if (scalarIsValid(&limit))
 		{
 			/*	Current bulk backlog is less than half
 			 *	of the current std backlog.		*/
 
-			copyScalar(&bulkBacklog, &(duct->bulkBacklog));
+			copyScalar(&increment, &(duct->bulkBacklog));
 		}
 
-		addToScalar(backlog, &bulkBacklog);
+		addToScalar(priorClaims, &increment);
 #endif
 		return;
 	}
@@ -1918,7 +1944,7 @@ void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
 
 	if ((i = bundle->extendedCOS.ordinal) == 0)
 	{
-		copyScalar(backlog, &(duct->urgentBacklog));
+		copyScalar(priorClaims, &(duct->urgentBacklog));
 		return;
 	}
 
@@ -1926,10 +1952,10 @@ void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
 	 *	some other urgent bundles.  Compute sum of backlogs
 	 *	for this and all higher ordinals.			*/
 
-	loadScalar(backlog, 0);
+	loadScalar(priorClaims, 0);
 	while (i < 256)
 	{
-		addToScalar(backlog, &(duct->ordinals[i].backlog));
+		addToScalar(priorClaims, &(duct->ordinals[i].backlog));
 		i++;
 	}
 }
@@ -2423,9 +2449,8 @@ static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
 	return 0;
 }
 
-static void	removeBundleFromQueue(Bundle *bundle, Object bundleObj,
-			ClProtocol *protocol, Object outductObj,
-			Outduct *outduct)
+void	removeBundleFromQueue(Bundle *bundle, Object bundleObj,
+		ClProtocol *protocol, Object outductObj, Outduct *outduct)
 {
 	Sdr		bpSdr = getIonsdr();
 	int		backlogDecrement;
@@ -6554,7 +6579,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
-		
+
 		if ((fileLength = lseek(fd, 0, SEEK_END)) < 0)
 		{
 			putSysErrmsg("Can't get acq file length", fileName);
