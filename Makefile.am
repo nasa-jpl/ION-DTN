@@ -387,7 +387,7 @@ iciinclude = \
 	ici/include/sdrhash.h \
 	ici/include/sdr.h \
 	ici/include/smrbt.h \
-	ici/library/icinm.h
+	ici/include/icinm.h
 
 icinoinst = \
 	ici/library/lystP.h \
