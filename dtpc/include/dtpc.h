@@ -10,7 +10,14 @@
 	Democritus University of Thrace. ALL RIGHTS RESERVED.
 */
 
+#ifndef _DTPC_H
+#define _DTPC_H
+
 #include "bp.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define DTPC_POLL		(0)	/*      Return immediately.	*/
 #define DTPC_NONBLOCKING	(0)	/*      Return immediately.	*/
@@ -80,3 +87,9 @@ extern void	dtpc_interrupt(DtpcSAP sap);
 extern void	dtpc_release_delivery(DtpcDelivery *dlvBuffer);
 
 extern void     dtpc_close(DtpcSAP sap);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif	/* _DTPC_H */
