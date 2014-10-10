@@ -70,7 +70,6 @@ void poll_cfdp_messages()
 	uvast 			TID11;
 	uvast			TID12;
 
-
 	/*Main Event loop*/
 	while (1) {
 
