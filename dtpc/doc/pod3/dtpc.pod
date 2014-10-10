@@ -108,7 +108,7 @@ outcome of the data reception activity.
 
 If at least one application data item on the topic associated with I<sap>
 has not yet been delivered to the SAP, then the payload of the oldest such
-item will be returned in I<dlvBuffer>->I<adu> and I<dlvBuffer>->I<result>
+item will be returned in I<dlvBuffer>->I<item> and I<dlvBuffer>->I<result>
 will be set to PayloadPresent.  If there is no such item, dtpc_receive()
 blocks for up to I<timeoutSeconds> while waiting for one to arrive.
 

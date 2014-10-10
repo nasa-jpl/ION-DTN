@@ -20,7 +20,6 @@ typedef struct
 {
         Object          	payload;
         Sdnv            	length;
-	Object          topicElt;	/*	Ref. to Topic, not used	*/
 } PayloadRecord;
 
 typedef int			(*DtpcElisionFn) (Object recordsList);
@@ -40,7 +39,7 @@ typedef struct
         DtpcIndResult   result;
 	char		*srcEid;
 	unsigned int	length;
-        Object          adu;		/*	A zero-copy object	*/
+        Object          item;
 } DtpcDelivery;
 
 /*      *       *       DTPC initilization       *       *       *	*/

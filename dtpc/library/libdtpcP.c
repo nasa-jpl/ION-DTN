@@ -784,9 +784,8 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 	}
 
 	sdr_write(sdr, recordObj, (char *) &record, sizeof(PayloadRecord));
-	record.topicElt = insertToTopic(topicID, outAduObj, outAduElt,
-			recordObj, vprofile->lifespan, &record, sap);
-	if (record.topicElt == 0)
+	if (insertToTopic(topicID, outAduObj, outAduElt, recordObj,
+			vprofile->lifespan, &record, sap) == 0)
 	{
 		sdr_cancel_xn(sdr);
 		return -1;
@@ -1521,8 +1520,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 		return 0;
 	}
 
-	if (profileID == 0 || maxRtx == 0 || lifespan ==0 
-	|| aggrSizeLimit == 0 || aggrTimeLimit == 0)
+	if (profileID == 0 || lifespan == 0)
 	{
 		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Missing profile parameter(s).",
