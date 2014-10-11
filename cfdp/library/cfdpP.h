@@ -22,12 +22,6 @@ extern "C" {
 
 #define	CFDP_MAX_PDU_SIZE	65535
 
-typedef enum
-{
-	ModularChecksum = 0,
-	CRC32 = 1
-} CfdpCksumType;
-
 typedef struct
 {
 	Object		text;
@@ -101,6 +95,7 @@ typedef struct
 {
 	CfdpTransactionId	transactionId;
 	CfdpNumber		destinationEntityNbr;
+	CfdpCksumType		ckType;
 	unsigned char		utParms[sizeof(BpUtParms)];
 	int			utParmsLength;
 	int			reqNbr;		/*	Creation req.	*/
@@ -175,7 +170,7 @@ typedef struct
 	CfdpCondition		eofCondition;
 	CfdpNumber		eofFaultLocation;
 	unsigned int		eofChecksum;
-	CfdpCksumType		eofChecksumType;
+	CfdpCksumType		ckType;
 	unsigned int		computedChecksum;
 	int			checksumVerified;
 	uvast			fileSize;
@@ -191,6 +186,7 @@ typedef struct
 typedef struct
 {
 	uvast			entityId;
+	CfdpCksumType		ckType;
 	Object			inboundFdus;	/*	sdrlist: InFdu	*/
 } Entity;
 
@@ -233,7 +229,6 @@ typedef struct
 	unsigned int	transactionInactivityLimit;
 	unsigned int	checkTimerPeriod;
 	unsigned int	checkTimeoutLimit;
-	CfdpCksumType	checksumType;
 	CfdpHandler	faultHandlers[16];
 
 	/*	Fault handlers table is indexed by transaction
@@ -321,7 +316,7 @@ extern CfdpVdb		*getCfdpVdb();
 extern int		checkFile(char *);
 
 extern void		addToChecksum(unsigned char octet, uvast *offset,
-				unsigned int *checksum);
+				unsigned int *checksum, CfdpCksumType ckType);
 
 extern int		getReqNbr();	/*	Returns next req nbr.	*/
 

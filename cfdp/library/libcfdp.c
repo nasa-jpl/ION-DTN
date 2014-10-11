@@ -129,12 +129,13 @@ void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 }
 
 void	cfdp_update_checksum(unsigned char octet, uvast *offset,
-		unsigned int *checksum)
+		unsigned int *checksum, CfdpCksumType ckType)
 {
-	addToChecksum(octet, offset, checksum);
+	addToChecksum(octet, offset, checksum, ckType);
 }
 
-static int	defaultReader(int fd, unsigned int *checksum)
+static int	defaultReader(int fd, unsigned int *checksum,
+			CfdpCksumType ckType)
 {
 	static char	defaultReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
@@ -159,13 +160,15 @@ static int	defaultReader(int fd, unsigned int *checksum)
 
 	for (i = 0, octet = defaultReaderBuf; i < length; i++, octet++)
 	{
-		addToChecksum((unsigned char) *octet, &offset, checksum);
+		addToChecksum((unsigned char) *octet, &offset, checksum,
+				ckType);
 	}
 
 	return length;
 }
 
-int	cfdp_read_space_packets(int fd, unsigned int *checksum)
+int	cfdp_read_space_packets(int fd, unsigned int *checksum,
+		CfdpCksumType ckType)
 {
 	static char	pktReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
@@ -249,13 +252,15 @@ int	cfdp_read_space_packets(int fd, unsigned int *checksum)
 
 	for (i = 0, octet = pktReaderBuf; i < length; i++, octet++)
 	{
-		addToChecksum((unsigned char) *octet, &offset, checksum);
+		addToChecksum((unsigned char) *octet, &offset, checksum,
+				ckType);
 	}
 
 	return length;
 }
 
-int	cfdp_read_text_lines(int fd, unsigned int *checksum)
+int	cfdp_read_text_lines(int fd, unsigned int *checksum,
+		CfdpCksumType ckType)
 {
 	static char	textReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
@@ -313,7 +318,8 @@ int	cfdp_read_text_lines(int fd, unsigned int *checksum)
 
 	for (i = 0, octet = textReaderBuf; i < length; i++, octet++)
 	{
-		addToChecksum((unsigned char) *octet, &offset, checksum);
+		addToChecksum((unsigned char) *octet, &offset, checksum,
+				ckType);
 	}
 
 	return length;
@@ -1055,7 +1061,7 @@ static int	constructEofPdu(OutFdu *fdu, CfdpDB *db, unsigned int checksum)
 	 *	other than No Error are useful only for Acknowledged-
 	 *	mode FDUs.						*/
 
-	*cursor = (condition << 4) + db->checksumType;
+	*cursor = (condition << 4) + fdu->ckType;
 	cursor++;
 	epduLength++;
 	u4 = htonl(checksum);
@@ -1108,7 +1114,10 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	Sdr		sdr = getIonsdr();
 	Object		dbObj = getCfdpDbObject();
 	OutFdu		fdu;
+	uvast		destinationEntityId;
 	CfdpDB		db;
+	Object		elt;
+			OBJ_POINTER(Entity, entity);
 	int		sourceFile;
 	vast		fileSize;
 	unsigned int	truncatedFileSize;
@@ -1149,6 +1158,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		CHKZERO(flowLabel);
 	}
 
+	cfdp_decompress_number(&destinationEntityId, destinationEntityNbr);
 	memset((char *) &fdu, 0, sizeof(OutFdu));
 	if (utParms)
 	{
@@ -1169,7 +1179,19 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		return 0;
 	}
 
+	fdu.ckType = CksumTypeUnknown;
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(CfdpDB));
+	for (elt = sdr_list_first(sdr, db.entities); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, Entity, entity, sdr_list_data(sdr, elt));
+		if (entity->entityId == destinationEntityId)
+		{
+			fdu.ckType = entity->ckType;
+			break;
+		}
+	}
+
 	if (sourceFileName == NULL)
 	{
 		if (destFileName != NULL)
@@ -1245,10 +1267,18 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		if (truncatedFileSize == fileSize)
 		{
 			fdu.largeFile = 0;
+			if (fdu.ckType == CksumTypeUnknown)
+			{
+				fdu.ckType = ModularChecksum;
+			}
 		}
 		else
 		{
 			fdu.largeFile = 1;
+			if (fdu.ckType == CksumTypeUnknown)
+			{
+				fdu.ckType = CRC32;
+			}
 		}
 
 		fdu.fileDataPdus = sdr_list_create(sdr);
@@ -1263,7 +1293,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		progress = 0;
 		while (1)
 		{
-			recordLength = readerFn(sourceFile, &checksum);
+			recordLength = readerFn(sourceFile, &checksum,
+					fdu.ckType);
 			if (recordLength < 0)
 			{
 				close(sourceFile);

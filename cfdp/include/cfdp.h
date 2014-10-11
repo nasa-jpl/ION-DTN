@@ -22,6 +22,13 @@ extern "C" {
 #define CFDP_STD_READER	NULL
 #endif
 
+typedef enum
+{
+	CksumTypeUnknown = -1,
+	ModularChecksum = 0,
+	CRC32 = 1
+} CfdpCksumType;
+
 typedef Object		MetadataList;	/*	SDR list		*/
 
 /*	A MetadataList is an SDR list (of user messages, filestore
@@ -71,13 +78,15 @@ typedef struct
  *	in the file (and beyond it as necessary) and return the length
  *	of the current record.  It is also required to update the
  *	computed checksum for the file by passing each octet of the
- *	current record to the cfdp_update_checksum() function.
+ *	current record to the cfdp_update_checksum() function, along
+ *	with the checksum type that is passed to the reader function.
  *
  *	In the absence of a specified reader function, the default
  *	reader function simply returns CFDP_MAX_FILE_DATA or the
  *	total remaining length of the file, whichever is less.		*/
 
-typedef int	(*CfdpReaderFn)(int fd, unsigned int *checksum);
+typedef int	(*CfdpReaderFn)(int fd, unsigned int *checksum,
+			CfdpCksumType ckType);
 
 /*	File data segment continuation state provides information
  *	about the record structure of the file.				*/
@@ -225,7 +234,8 @@ extern void	cfdp_decompress_number(uvast *toNbr, CfdpNumber *from);
 
 extern void	cfdp_update_checksum(unsigned char octet,
 			uvast		*offset,
-			unsigned int	*checksum);
+			unsigned int	*checksum,
+			CfdpCksumType	ckType);
 extern
 MetadataList	cfdp_create_usrmsg_list();
 extern int	cfdp_add_usrmsg(MetadataList list,
@@ -259,8 +269,10 @@ extern char	*cfdp_working_directory();
 /*	*	*	CFDP local services	*	*	*	*/
 
 /*	Here are two standard CfdpReader functions.			*/
-extern int	cfdp_read_space_packets(int fd, unsigned int *checksum);
-extern int	cfdp_read_text_lines(int fd, unsigned int *checksum);
+extern int	cfdp_read_space_packets(int fd, unsigned int *checksum,
+			CfdpCksumType ckType);
+extern int	cfdp_read_text_lines(int fd, unsigned int *checksum,
+			CfdpCksumType ckType);
 
 extern int	cfdp_put(CfdpNumber	*destinationEntityNbr,
 			unsigned int	utParmsLength,
