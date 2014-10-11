@@ -1,6 +1,6 @@
-= Release Notes for ION 3.2.1 =
+= Release Notes for ION 3.2.2 =
 
-July 2, 2014
+October 11, 2014
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,48 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.2.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- SourceForge Bug #32:
+
+- SourceForge Bug #49:
+
+- SourceForge Bug #50:
+
+- SourceForge Bug #51:
+
+- SourceForge Bug #52:
+
+- SourceForge Bug #53:
+
+- SourceForge Bug #55:
+
+- SourceForge Bug #56:
+
+- SourceForge Bug #59: 
+
+- SourceForge Feature Request #18:
+
+- SourceForge Feature Request #20:
+
+- SourceForge Feature Request #21:
+
+- SourceForge Feature Request #22:
+
+- SourceForge Feature Request #23:
+
+- SourceForge Feature Request #24:
+
+- SourceForge Feature Request #26:
+
+- SourceForge Feature Request #27:
+
+- SourceForge Feature Request #29:
+
+- FreeBSD Fixes
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.2.1 =
