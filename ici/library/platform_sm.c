@@ -2680,9 +2680,6 @@ void	sm_TaskKill(int taskId, int sigNbr)
 	}
 
 	oK(pthread_kill(threadId, sigNbr));
-#if 0
-	pthread_join(threadId, NULL);
-#endif
 }
 
 void	sm_TaskDelete(int taskId)
@@ -2699,9 +2696,6 @@ void	sm_TaskDelete(int taskId)
 	if (pthread_kill(threadId, SIGTERM) == 0)
 	{
 		oK(pthread_end(threadId));
-#if 0
-		pthread_join(threadId, NULL);
-#endif
 	}
 
 	oK(_posixTasks(&taskId, NULL, NULL));
@@ -2720,9 +2714,6 @@ void	sm_Abort()
 		if (pthread_kill(threadId, SIGTERM) == 0)
 		{
 			oK(pthread_end(threadId));
-#if 0
-			pthread_join(threadId, NULL);
-#endif
 		}
 
 		return;
