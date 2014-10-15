@@ -1395,7 +1395,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 
 				if (metadataFn)
 				{
-                                    metadataFnRet = metadataFn(progress,
+					metadataFnRet =
+						metadataFn(progress,
 						recordLength - lengthRemaining,
 						pdu.length, sourceFile,
 						metadataBuffer);
@@ -1417,8 +1418,8 @@ too long.", sourceFileName);
 						return -1;
 					}
 
-                                        pdu.metadataLength =
-                                            (unsigned int) metadataFnRet;
+					pdu.metadataLength =
+						(unsigned int) metadataFnRet;
 				}
 
 				if (pdu.metadataLength == 0)
