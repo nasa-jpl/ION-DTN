@@ -2154,6 +2154,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 	char		fileName[256];
 	int		fd;
 	unsigned int	truncatedOffset;
+	ssize_t		ret;
 
 	CHKERR(transactionId);
 	CHKERR(transactionId->sourceEntityNbr.length);
@@ -2193,8 +2194,8 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 		return -1;
 	}
 
-	length = read(fd, buffer, length);
-	if (length < 0)
+	ret = read(fd, buffer, length);
+	if (ret < 0)
 	{
 		close(fd);
 		putSysErrmsg("Can't read from working file", fileName);
@@ -2202,7 +2203,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 	}
 
 	close(fd);
-	return length;
+	return (int) ret;
 }
 
 int	cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount,
