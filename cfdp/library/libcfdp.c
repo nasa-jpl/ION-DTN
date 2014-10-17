@@ -1131,6 +1131,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	char		metadataBuffer[255];
 	Object		fduObj;
 	CfdpEvent	event;
+	int		metadataFnRet;
 
 	CHKZERO(transactionId);
 	memset((char *) transactionId, 0, sizeof(CfdpTransactionId));
@@ -1394,12 +1395,12 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 
 				if (metadataFn)
 				{
-					pdu.metadataLength =
+					metadataFnRet =
 						metadataFn(progress,
 						recordLength - lengthRemaining,
 						pdu.length, sourceFile,
 						metadataBuffer);
-					if (pdu.metadataLength < 0)
+					if (metadataFnRet < 0)
 					{
 						close(sourceFile);
 						sdr_cancel_xn(sdr);
@@ -1408,7 +1409,7 @@ failed.", sourceFileName);
 						return -1;
 					}
 
-					if (pdu.metadataLength > 63)
+					if (metadataFnRet > 63)
 					{
 						close(sourceFile);
 						sdr_cancel_xn(sdr);
@@ -1416,6 +1417,9 @@ failed.", sourceFileName);
 too long.", sourceFileName);
 						return -1;
 					}
+
+					pdu.metadataLength =
+						(unsigned int) metadataFnRet;
 				}
 
 				if (pdu.metadataLength == 0)
@@ -2115,17 +2119,17 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 
 	if (result < 0)
 	{
-		putErrmsg("CFDP failed handling std user operation.", NULL); 
+		putErrmsg("CFDP failed handling std user operation.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
-		
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("CFDP failed getting event.", NULL);
 		return -1;
 	}
-	
+
 	return 0;
 }
 
@@ -2151,6 +2155,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 	char		fileName[256];
 	int		fd;
 	unsigned int	truncatedOffset;
+	ssize_t		ret;
 
 	CHKERR(transactionId);
 	CHKERR(transactionId->sourceEntityNbr.length);
@@ -2190,8 +2195,8 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 		return -1;
 	}
 
-	length = read(fd, buffer, length);
-	if (length < 0)
+	ret = read(fd, buffer, length);
+	if (ret < 0)
 	{
 		close(fd);
 		putSysErrmsg("Can't read from working file", fileName);
@@ -2199,7 +2204,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 	}
 
 	close(fd);
-	return length;
+	return (int) ret;
 }
 
 int	cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount,
