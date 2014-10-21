@@ -1421,6 +1421,10 @@ too long.", sourceFileName);
 					pdu.metadataLength =
 						(unsigned int) metadataFnRet;
 				}
+				else
+				{
+					pdu.metadataLength = 0;
+				}
 
 				if (pdu.metadataLength == 0)
 				{
