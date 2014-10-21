@@ -51,7 +51,28 @@ cd 2.ipn.ltp
 cd ../3.ipn.ltp
 ./ionstart >& node3.stdout
 
-sleep 10
+cd ../2.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 0
+fi
+
+cd ../3.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 0
+fi
+
 echo "Starting bprecvfile on node 3..."
 bprecvfile ipn:3.1 &
 cd ../2.ipn.ltp

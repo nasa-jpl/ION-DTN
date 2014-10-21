@@ -23,8 +23,6 @@ ION_LOG="ion.log" "ionstart" -I "host1.rc"
 
 echo "l\nq" | acsadmin
 
-# give ION some time to start up
-sleep 1
 
 # Run the test manifest.
 ../test-acs manifest

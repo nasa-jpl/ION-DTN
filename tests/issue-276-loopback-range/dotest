@@ -40,6 +40,15 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Start node 9, with 20-second loopback range.
 ./ionstart
+../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
 
 # Send a loopback bundle with lifetime = 300.
 echo "Sending 10-byte bundle with 5-minute lifetime from ipn:9.1 to ipn:9.2."

@@ -66,7 +66,16 @@ rm -f ./ion_nodes
 cd 1.ipn.bp.ltp.udp
 ./ionstart > node.stdout
 
-sleep 10
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
+
 
 echo ""
 echo "Test 1---Use bpdriver and bpcounter to send a bunch of bundles and check log for error messages"
