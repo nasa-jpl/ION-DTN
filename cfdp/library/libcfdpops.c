@@ -1285,9 +1285,10 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	/*	Send the directory listing request FDU.			*/
 
 	if (createFDU(respondentEntityNbr, utParmsLength, utParms,
-			sourceFileName, destFileName, readerFn, faultHandlers,
-			flowLabelLength, flowLabel, messagesToUser,
-			filestoreRequests, NULL, transactionId) < 0)
+			sourceFileName, destFileName, readerFn, NULL,
+			faultHandlers, flowLabelLength, flowLabel, 0,
+			messagesToUser, filestoreRequests, NULL, transactionId)
+			< 0)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Can't send directory listing request.", NULL);
