@@ -146,7 +146,7 @@ cd ../2.ipn.bssp
 ./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 5
+sleep 10
 killm
 echo "BSS test completed."
 exit $RETVAL
