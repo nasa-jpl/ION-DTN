@@ -566,8 +566,17 @@ terminating.");
 			continue;
 		}
 
-		cfdp_decompress_number(&destinationEntityNbr,
-				&fduBuffer.destinationEntityNbr);
+		if (direction == 0)	/*	Forward.		*/
+		{
+			cfdp_decompress_number(&destinationEntityNbr,
+					&fduBuffer.destinationEntityNbr);
+		}
+		else			/*	Return (Finished).	*/
+		{
+			cfdp_decompress_number(&destinationEntityNbr,
+					&fpdu.transactionId.sourceEntityNbr);
+		}
+
 		if (destinationEntityNbr == 0)
 		{
 			writeMemo("[?] tcputa declining to send to entity 0.");

@@ -624,7 +624,7 @@ void	cfdpDropVdb()
 	{
 		dropVdb(wm, vdbAddress);	/*	Destroy Vdb.	*/
 		psm_free(wm,vdbAddress);
-		if(psm_uncatlg(wm, cfdpvdbName) < 0)
+		if (psm_uncatlg(wm, cfdpvdbName) < 0)
 		{
 			putErrmsg("Failed uncataloging vdb.",NULL);
 		}
@@ -765,6 +765,13 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	}
 
 	sm_SemTake(cfdpvdb->fduSemaphore);		/*	Lock.	*/
+	if (cfdpvdb->currentFile != -1)
+	{
+		close(cfdpvdb->currentFile);
+		cfdpvdb->currentFile = -1;
+	}
+
+	cfdpvdb->currentFdu = 0;
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 }
 
@@ -3681,7 +3688,7 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 			cfdpvdb->currentFile = -1;
 		}
 
-		cfdpvdb->currentFdu = fduObj;
+		cfdpvdb->currentFdu = 0;
 		cfdpvdb->currentFile = iopen(workingNameBuffer,
 				O_RDWR | O_CREAT, 0777);
 		if (cfdpvdb->currentFile < 0)
@@ -3690,6 +3697,8 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 					workingNameBuffer);
 			return handleFilestoreRejection(fdu, 0, &handler);
 		}
+
+		cfdpvdb->currentFdu = fduObj;
 	}
 
 	/*	Write leading fill characters as necessary.		*/
