@@ -182,9 +182,9 @@ static void	*receiveBundles(void *parm)
 	iblock(SIGTERM);
 	while (threadRunning && *(parms->cloRunning))
 	{
-		snooze(1);
 		if(*(parms->bundleSocket) < 0)
 		{
+			snooze(1);
 			/*Retry later*/
 			continue;
 		}
@@ -213,7 +213,6 @@ static void	*receiveBundles(void *parm)
 			closesocket(*(parms->bundleSocket));
 			*(parms->bundleSocket) = -1;
 			pthread_mutex_unlock(parms->mutex);			
-			threadRunning = 0;
 			continue;
 
 		default:
