@@ -69,6 +69,7 @@ BPSOURCES =      \
 	bei.c        \
 	phn.c        \
 	ecos.c       \
+	meb.c        \
 	bae.c
 
 #	imcadmin.c   \

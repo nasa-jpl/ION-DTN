@@ -40,6 +40,8 @@ ln -s ../bp/library/bei.h
 ln -s ../bp/library/ext/bpextensions.c
 ln -s ../bp/library/ext/ecos/ecos.c
 ln -s ../bp/library/ext/ecos/ecos.h
+ln -s ../bp/library/ext/meb/meb.c
+ln -s ../bp/library/ext/meb/meb.h
 ln -s ../bp/library/ext/bae/bae.c
 ln -s ../bp/library/ext/bae/bae.h
 ln -s ../bp/library/ext/phn/phn.c
@@ -80,6 +82,7 @@ ln -s ../ltp/library/ltpP.h
 ln -s ../ltp/library/ltpnm.h
 ln -s ../ltp/library/ltpei.h
 ln -s ../ltp/daemon/ltpclock.c
+ln -s ../ltp/daemon/ltpmeter.c
 ln -s ../ltp/utils/ltpadmin.c
 ln -s ../bssp/library/libbssp.c
 ln -s ../bssp/library/libbsspP.c

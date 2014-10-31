@@ -403,5 +403,6 @@ int	main(int argc, char *argv[])
 	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udplso has ended.");
+	ionDetach();
 	return 0;
 }
