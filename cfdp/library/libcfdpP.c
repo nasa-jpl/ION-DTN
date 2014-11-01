@@ -2808,12 +2808,13 @@ static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
+	Object	obj;
 
 	elt = sdr_list_first(sdr, db->finishPdus);
 	if (elt)	/*	Have got a Finished PDU to send.	*/
 	{
-		sdr_read(sdr, (char *) fpdu, sdr_list_data(sdr, elt),
-				sizeof(FinishPdu));
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) fpdu, obj, sizeof(FinishPdu));
 		*pdu = ionCreateZco(ZcoSdrSource, fpdu->pdu, 0, fpdu->length,
 				_zcoControl());
 		if (*pdu == (Object) ERROR)
@@ -2827,6 +2828,7 @@ static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 			return 0;
 		}
 
+		sdr_free(sdr, obj);
 		sdr_list_delete(sdr, elt, NULL, NULL);
 		*direction = 1;		/*	Toward source.		*/
 		return 0;
@@ -3289,12 +3291,12 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 
 	if (fdu->finishReceived)
 	{
-		return 0;	/*	Ignore redundant metadata.	*/
+		return 0;	/*	Ignore redundant Finish.	*/
 	}
 
 	if (bytesRemaining < 1)
 	{
-		return 0;		/*	Malformed.		*/
+		return 0;			/*	Malformed.	*/
 	}
 
 	fdu->finishReceived = 1;
@@ -3333,7 +3335,7 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 		return -1;
 	}
 
-	sdr_write(sdr, fduObj, (char *) fdu, sizeof(InFdu));
+	sdr_write(sdr, fduObj, (char *) fdu, sizeof(OutFdu));
 	return 0;
 }
 
@@ -4599,7 +4601,7 @@ printf("...PDU type is invalid (must be Finish)...\n");
 		fduObj = findOutFdu(&transactionId, &outFduBuf, &fduElt);
 		if (fduObj == 0
 		|| outFduBuf.closureLatency == 0
-		|| outFduBuf.transmitted == 0)
+		|| outFduBuf.eofPdu != 0)
 		{
 #if CFDPDEBUG
 printf("...spurious Finish PDU...\n"); 
