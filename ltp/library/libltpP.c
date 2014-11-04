@@ -2408,6 +2408,7 @@ static void	serializeReportSegment(LtpXmitSeg *segment, char *buf)
 	Sdr		ltpSdr = getIonsdr();
 	char		*cursor = buf;
 	Sdnv		sdnv;
+	int		count;
 	Object		elt;
 			OBJ_POINTER(LtpReceptionClaim, claim);
 	unsigned int	offset;
@@ -2445,8 +2446,9 @@ static void	serializeReportSegment(LtpXmitSeg *segment, char *buf)
 
 	/*	Append count of reception claims.			*/
 
-	encodeSdnv(&sdnv, sdr_list_length(ltpSdr,
-			segment->pdu.receptionClaims));
+	count = sdr_list_length(ltpSdr, segment->pdu.receptionClaims);
+	CHKVOID(count >= 0);
+	encodeSdnv(&sdnv, count);
 	memcpy(cursor, sdnv.text, sdnv.length);
 	cursor += sdnv.length;
 

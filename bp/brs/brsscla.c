@@ -562,6 +562,7 @@ static void	*spawnReceivers(void *parm)
 
 		if (atp->running == 0)
 		{
+			closesocket(newSocket);
 			break;	/*	Main thread has shut down.	*/
 		}
 
@@ -570,6 +571,7 @@ static void	*spawnReceivers(void *parm)
 		if (receiverParms == NULL)
 		{
 			putErrmsg("brsscla can't allocate for thread", NULL);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -583,6 +585,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putErrmsg("brsscla can't allocate for thread", NULL);
 			MRELEASE(receiverParms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -602,6 +605,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putSysErrmsg("brsscla can't create new thread", NULL);
 			MRELEASE(receiverParms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -825,7 +829,7 @@ port 80)", NULL);
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd >= 0)
 	{
-		connect(fd, &(atp.socketName), sizeof(struct sockaddr));
+		oK(connect(fd, &(atp.socketName), sizeof(struct sockaddr)));
 
 		/*	Immediately discard the connected socket.	*/
 

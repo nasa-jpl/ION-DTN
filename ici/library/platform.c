@@ -569,7 +569,7 @@ void	microsnooze(unsigned int usec)
 void	getCurrentTime(struct timeval *tvp)
 {
 	CHKVOID(tvp);
-	gettimeofday(tvp, NULL);
+	oK(gettimeofday(tvp, NULL));
 }
 
 unsigned long	getClockResolution()

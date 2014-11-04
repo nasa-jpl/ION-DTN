@@ -787,6 +787,7 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 	CgrContactNote	rootWork;
 	PsmAddress	routeAddr;
 	CgrRoute	*newRoute;
+	PsmAddress	elt2;
 
 	TRACE(CgrRecomputeRoute);
 
@@ -907,11 +908,17 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 
 	if (elt)
 	{
-		sm_list_insert_before(ionwm, elt, routeAddr);
+		elt2 = sm_list_insert_before(ionwm, elt, routeAddr);
 	}
 	else
 	{
-		sm_list_insert_last(ionwm, routes, routeAddr);
+		elt2 = sm_list_insert_last(ionwm, routes, routeAddr);
+	}
+
+	if (elt2 == 0)
+	{
+		putErrmsg("Can't insert recomputed route.", NULL);
+		return -1;
 	}
 
 	return 1;
@@ -967,6 +974,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	 *	be performed during contacts that precede this contact.	*/
 
 	loadScalar(&allotment, 0);
+	loadScalar(&capacity, 0);
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.fromNode = ownNodeNbr;
 	arg.toNode = route->toNodeNbr;

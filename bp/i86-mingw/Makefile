@@ -17,7 +17,7 @@ UDP = ../udp
 OPT = -g -Wall -Dmingw -DENABLE_IMC
 # -Werror
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/meb -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -41,7 +41,7 @@ BPINCLS = \
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o phn.o ecos.o bae.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o libimcfw.o
+BPPOBJS = libbpP.o phn.o ecos.o bae.o meb.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o libimcfw.o
 # snid.o
 # acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
@@ -312,6 +312,9 @@ libudpcla.dll:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(API)/ext/bae/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/meb/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/bsp/%.c

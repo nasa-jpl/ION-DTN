@@ -241,6 +241,7 @@ static void	*spawnReceivers(void *parm)
 
 		if (atp->running == 0)
 		{
+			closesocket(newSocket);
 			break;	/*	Main thread has shut down.	*/
 		}
 
@@ -249,6 +250,7 @@ static void	*spawnReceivers(void *parm)
 		if (parms == NULL)
 		{
 			putErrmsg("tcpbsi can't allocate for thread.", NULL);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -261,6 +263,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putErrmsg("tcpbsi can't allocate for thread.", NULL);
 			MRELEASE(parms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -274,6 +277,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putSysErrmsg("tcpbsi can't create new thread", NULL);
 			MRELEASE(parms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;

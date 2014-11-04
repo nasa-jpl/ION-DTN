@@ -1105,6 +1105,7 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 	fdubuf->messagesToUser = sdr_list_create(sdr);
 	fdubuf->filestoreRequests = sdr_list_create(sdr);
 	fdubuf->extents = sdr_list_create(sdr);
+	fdubuf->ckType = ModularChecksum;
 	fduObj = sdr_malloc(sdr, sizeof(InFdu));
 	if (fduObj == 0 || fdubuf->messagesToUser == 0
 	|| fdubuf->filestoreRequests == 0 || fdubuf->extents == 0
@@ -1204,7 +1205,7 @@ Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 
 	cfdp_decompress_number(&entity.entityId,
 			&transactionId->sourceEntityNbr);
-	entity.ckType = fduBuf->ckType;
+	entity.ckType = ModularChecksum;
 	entity.inboundFdus = sdr_list_create(sdr);
 	entityObj = sdr_malloc(sdr, sizeof(Entity));
 	if (entity.inboundFdus == 0 || entityObj == 0

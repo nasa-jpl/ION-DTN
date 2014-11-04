@@ -42,7 +42,8 @@ static int	handleItem(uvast sourceEngineId, unsigned int clientId,
 	char		buffer[MAX_LINE_LEN + 1];
 
 	zco_start_receiving(clientServiceData, &reader);
-	zco_receive_source(sdr, &reader, sizeof buffer, buffer);
+	memset(buffer, 0, sizeof buffer);
+	zco_receive_source(sdr, &reader, MAX_LINE_LEN, buffer);
 	printf("%s", buffer);
 	return 0;
 }

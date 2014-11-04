@@ -100,6 +100,7 @@ static Lyst	loadEntitiesList(char *addrFileName)
 				{
 					putErrmsg("tcputa can't get own IP \
 adress.", NULL);
+					fclose(stream);
 					lyst_destroy(entities);
 					return NULL;
 				}
@@ -109,6 +110,7 @@ adress.", NULL);
 			if (addr == NULL)
 			{
 				putErrmsg("No space for entity address.", NULL);
+				fclose(stream);
 				lyst_destroy(entities);
 				return NULL;
 			}
@@ -118,8 +120,9 @@ adress.", NULL);
 				putErrmsg("No space for entity address list \
 element.", NULL);
 				MRELEASE(addr);
+				fclose(stream);
 				lyst_destroy(entities);
-				entities = NULL;
+				return NULL;
 			}
 
 			memcpy(addr, (char *) &entity, sizeof(EntityAddr));
@@ -512,7 +515,7 @@ int	main(int argc, char **argv)
 	int			direction;
 	uvast			currentPeerEntity = 0;
 	uvast			destinationEntityNbr = 0;
-	int			xmitSocket;
+	int			xmitSocket = -1;
 	vast			pduLength;
 	ZcoReader		reader;
 	int			result;
