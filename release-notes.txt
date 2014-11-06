@@ -75,11 +75,11 @@ Features included:
        "winimplib.bat" batch script which creates import libraries suitable for
        linking ION DLLs.
      - See "BuildingIONonWindowsForUseWithVisualStudio.pdf" for documentation
-       on how to build ION-ased applications in Visual Studio.
+       on how to build ION-based applications in Visual Studio.
 
 - SourceForge Bug #49: ION now sends a "Depleted Storage" custody refusal
      signal back to the current custodian when an ION node lacks sufficient
-     ZCO space to contain the bundle.
+     ZCO space to contain a bundle.
 
 - SourceForge Bug #50: ION now behaves more consistently across platforms
      when ionadmin is unable to open its designated configuration file.
@@ -90,7 +90,7 @@ Features included:
        must resolve to resume normal ION operation.
      - Previously, ionadmin would load a default configuration if it was unable
        to open its configuration file EXCEPT under vxWorks 6.3 PowerPC where
-       ionadmin would cease with a	 "can't open SDR config file" message.
+       ionadmin would cease with a "can't open SDR config file" message.
 
 - SourceForge Bug #51: The "ionconfig" man page has been updated.
      Some examples of entries that were obsolete are as follows:
@@ -101,14 +101,13 @@ Features included:
        Previously, the documentation gave an incorrect default config flag of 1.
      - The default wmKey is 65281.  Previously, this was reported to be 65537.
 
-
 - SourceForge Bug #52: The "bping" application has been updated for better
      compatibility under VxWorks.  This was made possible by adding an option
      to run bping as a lightweight task with positional runtime arguments.
 
 - SourceForge Bug #53: Fixed bug in command argument parsing in the
-     "bprecvfile" application under VxWorks.  Previously the "a1" was reused
-     for both the "EID" and "maxFiles" arguments.
+     "bprecvfile" application under VxWorks.  Previously the "a1" argument was
+     reused for both the "EID" and "maxFiles" fields.
 
 - SourceForge Bug #55: Fixed bugs in the "bpcancel" application.
      - The bpcancel application now prints a message when it is unable to
@@ -116,9 +115,9 @@ Features included:
      - The man page for the bpcancel application has been updated to clarify
        that the application attempts to cancel the transmission of a specified
        bundle rather than destroy the specified bundle.
-     - Note that it is always possible to cancel the transmission of a bundle
-       for which multiple internal copies exist due to being transmitted at
-       different times or to different nodes.
+     - Note that it is not always possible to cancel the transmission of a
+       bundle for which multiple internal copies exist due to being transmitted
+       at different times or to different nodes.
 
 - SourceForge Bug #56: ION now builds properly under OSX 10.9.5.
 
@@ -152,13 +151,13 @@ Features included:
 - SourceForge Feature Request #22: ION now has an option to support handling
      database reversibility mechanisms in memory rather than files.
 
-- SourceForge Feature Request #23: As a performance optimization, ION now uses
-     pointer de-references rather than memcpy() when executing read-only
-     database operations.
+- SourceForge Feature Request #23: As a performance optimization, ION now has
+     better documented support for using pointer de-references rather than
+     memcpy() when executing read-only database operations.
 
-- SourceForge Feature Request #24: ION now uses LOCALAPI #defines and other
-     modifications to help prevent resource leaks when ION is killed and
-     restarted rather than shut down cleanly.  Note that this problem occurs
+- SourceForge Feature Request #24: ION’s mechanisms to prevent resource leaks
+     when ION is killed and restarted rather than shut down cleanly have been
+     modified to support the CFS environment.  Note that this problem occurs
      most commonly when transaction reversibility is disabled because task
      termination locks the datastore until all tasks are killed. If utilizing
      a file on disk for transaction reversibility would be too slow, consider
@@ -167,7 +166,9 @@ Features included:
      disabling transaction reversibility entirely.
 
 - SourceForge Feature Request #26: The CFDP implementation has been updated to
-     conform to the CFDP V1 specification.
+     conform to the proposed CFDP V1 specification. Further updates will be
+     required when the specification revisions are completed and approved by
+     CCSDS.
 
      The interface changes are as follows:
      - The function prototypes for the CFDP functions cfdp_put() and
