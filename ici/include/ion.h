@@ -23,8 +23,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2014-06-05 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.2.1"
+/* As of 2014-10-11 the sourceforge version number is this: */
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.2.2"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -55,6 +55,8 @@ typedef struct
 	int	configFlags;
 	long	heapWords;
 	int	heapKey;
+	int	logSize;
+	int	logKey;
 	char	pathName[MAXPATHLEN + 1];
 } IonParms;
 
@@ -352,8 +354,10 @@ extern int		readIonParms(	char *configFileName,
 					IonParms *parms);
 extern void		printIonParms(	IonParms *parms);
 
+#ifndef ION4WIN		/*	No pthreads in Visual Studio		*/
 extern void		ionSetAlarm(	IonAlarm *alarm, pthread_t *thread);
 extern void		ionCancelAlarm(	pthread_t thread);
+#endif			/*	end of #ifndef ION4WIN			*/
 
 extern void		ionNoteMainThread(char *procName);
 extern void		ionPauseMainThread(int seconds);

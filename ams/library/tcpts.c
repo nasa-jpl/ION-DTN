@@ -752,7 +752,7 @@ static void	tcpShutdown(void *abstract_sap)
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd >= 0)
 	{
-		connect(fd, &(tcpSap->addrbuf), sizeof(struct sockaddr));
+		oK(connect(fd, &(tcpSap->addrbuf), sizeof(struct sockaddr)));
 
 		/*	Immediately discard the connected socket.	*/
 

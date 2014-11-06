@@ -115,7 +115,7 @@ static void	*handleDatagrams(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	udpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -260,7 +260,8 @@ int	main(int argc, char *argv[])
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		isendto(fd, &quit, 1, 0, &socketName, sizeof(struct sockaddr));
+		oK(isendto(fd, &quit, 1, 0, &socketName,
+				sizeof(struct sockaddr)));
 		closesocket(fd);
 	}
 

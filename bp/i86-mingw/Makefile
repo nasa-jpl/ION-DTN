@@ -17,7 +17,7 @@ UDP = ../udp
 OPT = -g -Wall -Dmingw -DENABLE_IMC
 # -Werror
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/meb -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -41,7 +41,7 @@ BPINCLS = \
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o phn.o ecos.o bae.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o libimcfw.o
+BPPOBJS = libbpP.o phn.o ecos.o bae.o meb.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o libimcfw.o
 # snid.o
 # acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
@@ -62,6 +62,7 @@ check:		$(BPINCLS) $(PUBINCLS)
 clean:
 		rm -f *.o
 		rm -f *.exe
+		rm -f *.def
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -272,31 +273,31 @@ bpnmtest:	bpnmtest.o libbp.dll $(BPLIBS)
 #	-	-	Libraries	-	-	-	-	-
 
 libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o
-		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o -L$(ROOT)/lib -lici -lpthread
+		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread
 		cp libbp.dll ./lib
 
 libcgr.dll:	libcgr.o
-		$(LD) -o libcgr.dll libcgr.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libcgr.dll libcgr.o -Wl,--output-def,libcgr.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp libcgr.dll ./lib
 
 libipnfw.dll:	libipnfw.o
-		$(LD) -o libipnfw.dll libipnfw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libipnfw.dll libipnfw.o -Wl,--output-def,libipnfw.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp libipnfw.dll ./lib
 
 libimcfw.dll:	libimcfw.o
-		$(LD) -o libimcfw.dll libimcfw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libimcfw.dll libimcfw.o -Wl,--output-def,libimcfw.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp libimcfw.dll ./lib
 
 libdtn2fw.dll:	libdtn2fw.o
-		$(LD) -o libdtn2fw.dll libdtn2fw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libdtn2fw.dll libdtn2fw.o -Wl,--output-def,libdtn2fw.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp libdtn2fw.dll ./lib
 
 libtcpcla.dll:	libtcpcla.o
-		$(LD) -o libtcpcla.dll libtcpcla.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
+		$(LD) -o libtcpcla.dll libtcpcla.o -Wl,--output-def,libtcpcla.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
 		cp libtcpcla.dll ./lib
 
 libudpcla.dll:	libudpcla.o
-		$(LD) -o libudpcla.dll libudpcla.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
+		$(LD) -o libudpcla.dll libudpcla.o -Wl,--output-def,libudpcla.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
 		cp libudpcla.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
@@ -311,6 +312,9 @@ libudpcla.dll:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(API)/ext/bae/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/meb/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/bsp/%.c

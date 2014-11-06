@@ -89,7 +89,12 @@ int	bssOpen(char* bssName, char* path)
 	 *  playback functionality.				
 	 */
 
-	ionAttach();
+	if (ionAttach() < 0)
+	{
+		writeMemo("[?] bssOpen: node not initialized yet.");
+		return -1;
+	}
+
 	if (_datFile(0,0) == -1 && _lstFile(0,0) == -1 && _tblFile(0,0) == -1)
 	{
 		if (loadRDonlyDB(bssName, path)!=0)
@@ -135,7 +140,12 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
 	 *  real-time mode.					
          */
 
-	ionAttach();
+	if (ionAttach() < 0)
+	{
+		writeMemo("[?] bssStart: node not initialized yet.");
+		return -1;
+	}
+
 	if (_recvThreadId(NULL, 0) == 0)/*	No receiver thread.	*/
 	{
 		if (loadRDWRDB(bssName, path, &dat, &lst, &tbl) != 0)

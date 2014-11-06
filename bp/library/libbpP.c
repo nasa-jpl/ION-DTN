@@ -892,11 +892,6 @@ static void	stopScheme(VScheme *vscheme)
 		sm_SemEnd(vscheme->semaphore);	/*	Stop fwd.	*/
 	}
 
-	if (vscheme->admAppPid != ERROR)
-	{
-		sm_TaskKill(vscheme->admAppPid, SIGTERM);
-	}
-
 	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -906,6 +901,15 @@ static void	stopScheme(VScheme *vscheme)
 		{
 			sm_SemEnd(vpoint->semaphore);
 		}
+	}
+
+	/*	Don't try to stop the adminep daemon until AFTER
+	 *	all endpoint semaphores are ended, because it is
+	 *	almost always pended on one of those semaphores.	*/
+
+	if (vscheme->admAppPid != ERROR)
+	{
+		sm_TaskKill(vscheme->admAppPid, SIGTERM);
 	}
 }
 
@@ -1449,6 +1453,7 @@ int	bpInit()
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
+		bpdbBuf.maxAcqInHeap = 560;
 		bpdbBuf.sourceStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.recvStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.discardStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
@@ -1866,45 +1871,71 @@ void	getCurrentDtnTime(DtnTime *dt)
 	dt->nanosec = 0;
 }
 
-void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
+void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
+		Scalar *totalBacklog)
 {
 	int	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 #ifdef ION_BANDWIDTH_RESERVED
-	Scalar	maxBulkBacklog;
-	Scalar	bulkBacklog;
+	Scalar	limit;
+	Scalar	increment;
 #endif
 	int	i;
 
+	copyScalar(totalBacklog, &(duct->urgentBacklog));
+	addToScalar(totalBacklog, &(duct->stdBacklog));
+	addToScalar(totalBacklog, &(duct->bulkBacklog));
 	if (priority == 0)
 	{
-		copyScalar(backlog, &(duct->urgentBacklog));
-		addToScalar(backlog, &(duct->stdBacklog));
-		addToScalar(backlog, &(duct->bulkBacklog));
+		copyScalar(priorClaims, &(duct->urgentBacklog));
+#ifdef ION_BANDWIDTH_RESERVED
+		/*	priorClaims increment is the standard
+		 *	backlog's prior claims, which is the entire
+		 *	standard backlog or twice the bulk backlog,
+		 *	whichever is less.				*/
+
+		copyScalar(&limit, &(duct->bulkBacklog));
+		multiplyScalar(&limit, 2);
+		copyScalar(&increment, &limit);
+		subtractFromScalar(&limit, &(duct->stdBacklog));
+		if (scalarIsValid(&limit))
+		{
+			/*	Current standard backlog is less than
+			 *	twice the current bulk backlog.		*/
+
+			copyScalar(&increment, &(duct->stdBacklog));
+		}
+
+		addToScalar(priorClaims, &increment);
+#else
+		addToScalar(priorClaims, &(duct->stdBacklog));
+#endif
+		addToScalar(priorClaims, &(duct->bulkBacklog));
 		return;
 	}
 
 	if (priority == 1)
 	{
-		copyScalar(backlog, &(duct->urgentBacklog));
-		addToScalar(backlog, &(duct->stdBacklog));
+		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->stdBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
-		/*	Additional backlog is the applicable bulk
-		 *	backlog, which is the entire bulk backlog
-		 *	or 1/2 of the std backlog, whichever is less.	*/
+		/*	priorClaims increment is the bulk backlog's
+		 *	prior claims, which is the entire bulk backlog
+		 *	or half of the standard backlog, whichever is
+		 *	less.						*/
 
-		copyScalar(&maxBulkBacklog, &(duct->stdBacklog));
-		divideScalar(&maxBulkBacklog, 2);
-		copyScalar(&bulkBacklog, &maxBulkBacklog);
-		subtractFromScalar(&maxBulkBacklog, &(duct->bulkBacklog));
-		if (scalarIsValid(&maxBulkBacklog))
+		copyScalar(&limit, &(duct->stdBacklog));
+		divideScalar(&limit, 2);
+		copyScalar(&increment, &limit);
+		subtractFromScalar(&limit, &(duct->bulkBacklog));
+		if (scalarIsValid(&limit))
 		{
 			/*	Current bulk backlog is less than half
 			 *	of the current std backlog.		*/
 
-			copyScalar(&bulkBacklog, &(duct->bulkBacklog));
+			copyScalar(&increment, &(duct->bulkBacklog));
 		}
 
-		addToScalar(backlog, &bulkBacklog);
+		addToScalar(priorClaims, &increment);
 #endif
 		return;
 	}
@@ -1913,7 +1944,7 @@ void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
 
 	if ((i = bundle->extendedCOS.ordinal) == 0)
 	{
-		copyScalar(backlog, &(duct->urgentBacklog));
+		copyScalar(priorClaims, &(duct->urgentBacklog));
 		return;
 	}
 
@@ -1921,10 +1952,10 @@ void	computeApplicableBacklog(Outduct *duct, Bundle *bundle, Scalar *backlog)
 	 *	some other urgent bundles.  Compute sum of backlogs
 	 *	for this and all higher ordinals.			*/
 
-	loadScalar(backlog, 0);
+	loadScalar(priorClaims, 0);
 	while (i < 256)
 	{
-		addToScalar(backlog, &(duct->ordinals[i].backlog));
+		addToScalar(priorClaims, &(duct->ordinals[i].backlog));
 		i++;
 	}
 }
@@ -2418,9 +2449,8 @@ static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
 	return 0;
 }
 
-static void	removeBundleFromQueue(Bundle *bundle, Object bundleObj,
-			ClProtocol *protocol, Object outductObj,
-			Outduct *outduct)
+void	removeBundleFromQueue(Bundle *bundle, Object bundleObj,
+		ClProtocol *protocol, Object outductObj, Outduct *outduct)
 {
 	Sdr		bpSdr = getIonsdr();
 	int		backlogDecrement;
@@ -5496,6 +5526,18 @@ when asking for custody transfer and/or status reports.");
 		bundle.extendedCOS.flowLabel = extendedCOS->flowLabel;
 		bundle.extendedCOS.flags = extendedCOS->flags;
 		bundle.extendedCOS.ordinal = extendedCOS->ordinal;
+
+		/*	RFC 6258 data isn't part of ECOS but for now
+		 *	it is managed within the ECOS block structure
+		 *	to avoid having to revise the BP API in order
+		 *	to accommodate metadata.  The BpExtendedCOS
+		 *	structure should be renamed to BpAncillaryData
+		 *	in the next major ION release.			*/
+
+		bundle.extendedCOS.metadataType = extendedCOS->metadataType;
+		bundle.extendedCOS.metadataLen = extendedCOS->metadataLen;
+		memcpy(bundle.extendedCOS.metadata, extendedCOS->metadata,
+				sizeof bundle.extendedCOS.metadata);
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
@@ -6404,10 +6446,8 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 {
 	static unsigned int	acqCount = 0;
-	static int		maxAcqInHeap = 0;
 	Sdr			sdr = getIonsdr();
-	BpDB			*bpConstants = _bpConstants();
-	BpDB			bpdb;
+				OBJ_POINTER(BpDB, bpdb);
 	Object			extentObj;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
@@ -6423,23 +6463,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	if (maxAcqInHeap == 0)
-	{
-		/*	Initialize threshold for acquiring bundle
-		 *	into a file rather than directly into the
-		 *	heap.  Minimum threshold is the amount of
-		 *	heap space that would be occupied by a ZCO
-		 *	file reference object anyway, even if the
-		 *	bundle were entirely acquired into a file.	*/
-
-		maxAcqInHeap = 560;
-		sdr_read(sdr, (char *) &bpdb, getBpDbObject(), sizeof(BpDB));
-		if (bpdb.maxAcqInHeap > maxAcqInHeap)
-		{
-			maxAcqInHeap = bpdb.maxAcqInHeap;
-		}
-	}
-
+	GET_OBJ_POINTER(sdr, BpDB, bpdb, getBpDbObject());
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
 		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
@@ -6452,11 +6476,12 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 		case 0:
 			work->congestive = 1;
+			sdr_cancel_xn(sdr);
 			return 0;	/*	Out of ZCO space.	*/
 		}
 
-		work->zcoElt = sdr_list_insert_last(sdr,
-				bpConstants->inboundBundles, work->zco);
+		work->zcoElt = sdr_list_insert_last(sdr, bpdb->inboundBundles,
+				work->zco);
 		if (work->zcoElt == 0)
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
@@ -6480,7 +6505,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	 *	of increasing offset because the CL itself enforces
 	 *	data ordering (as in TCP).				*/
 
-	if ((length + zco_length(sdr, work->zco)) <= maxAcqInHeap)
+	if ((length + zco_length(sdr, work->zco)) <= bpdb->maxAcqInHeap)
 	{
 		extentObj = sdr_insert(sdr, bytes, length);
 		if (extentObj)
@@ -6496,6 +6521,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 			case 0:
 				sdr_free(sdr, extentObj);
 				work->congestive = 1;
+				sdr_cancel_xn(sdr);
+				return 0;/*	Out of ZCO space.	*/
 			}
 		}
 
@@ -6552,7 +6579,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
-		
+
 		if ((fileLength = lseek(fd, 0, SEEK_END)) < 0)
 		{
 			putSysErrmsg("Can't get acq file length", fileName);
@@ -6581,7 +6608,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 	case 0:
 		work->congestive = 1;
-		break;
+		sdr_cancel_xn(sdr);
+		return 0;		/*	Out of ZCO space.	*/
 
 	default:
 		/*	Flag file reference for deletion as soon as
@@ -7242,7 +7270,7 @@ static int	abortBundleAcq(AcqWorkArea *work)
 }
 
 static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
-			BpSrReason srReason, char *dictionary)
+			BpSrReason srReason)
 {
 	Bundle	*bundle = &(work->bundle);
 	Sdr	bpSdr;
@@ -7293,7 +7321,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 
 	if (bundle->statusRpt.flags)
 	{
-		if (sendStatusRpt(bundle, dictionary) < 0)
+		if (sendStatusRpt(bundle, work->dictionary) < 0)
 		{
 			putErrmsg("Can't send status report.", NULL);
 			return -1;
@@ -7439,7 +7467,8 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		writeMemo("[?] ZCO space is congested; discarding bundle.");
 		bpInductTally(work->vduct, BP_INDUCT_CONGESTIVE,
 				bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, CtDepletedStorage,
+				SrDepletedStorage);
 	}
 
 	initAuthenticity(work);	/*	Set default.			*/
@@ -7475,7 +7504,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 				bundle->payload.length);
 		return discardReceivedBundle(work, CtBlockUnintelligible,
-				SrBlockUnintelligible, work->dictionary);
+				SrBlockUnintelligible);
 	}
 
 	/*	Redundant reception of a custodial bundle after
@@ -7538,8 +7567,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 			default:	/*	Entry found; redundant.	*/
 				return discardReceivedBundle(work,
-					CtRedundantReception, 0,
-					work->dictionary);
+						CtRedundantReception, 0);
 			}
 		}
 	}

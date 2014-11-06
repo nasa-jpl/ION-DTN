@@ -1,6 +1,6 @@
-= Release Notes for ION 3.2.1 =
+= Release Notes for ION 3.2.2 =
 
-July 2, 2014
+Nov 5, 2014
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,152 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.2.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- SourceForge Bug #32: Improved Windows support
+     - MinGW makefiles now build a wider array of ION applications.
+     - ION-based applications can now be developed in Visual Studio via the new
+       "winimplib.bat" batch script which creates import libraries suitable for
+       linking ION DLLs.
+     - See "BuildingIONonWindowsForUseWithVisualStudio.pdf" for documentation
+       on how to build ION-based applications in Visual Studio.
+
+- SourceForge Bug #49: ION now sends a "Depleted Storage" custody refusal
+     signal back to the current custodian when an ION node lacks sufficient
+     ZCO space to contain a bundle.
+
+- SourceForge Bug #50: ION now behaves more consistently across platforms
+     when ionadmin is unable to open its designated configuration file.
+     - The ionadmin application now considers being unable to open its
+       configuration file to be a serious error and will stop the ION
+       initialization routines at this point.  This gives clearer and more
+       immediate feedback to the user that an error was encountered that they
+       must resolve to resume normal ION operation.
+     - Previously, ionadmin would load a default configuration if it was unable
+       to open its configuration file EXCEPT under vxWorks 6.3 PowerPC where
+       ionadmin would cease with a "can't open SDR config file" message.
+
+- SourceForge Bug #51: The "ionconfig" man page has been updated.
+     Some examples of entries that were obsolete are as follows:
+     - The pathName parameter should not be encased in quotes.  Previously, the
+       example showed a pathName that was encased in quotes.
+     - The default config flag is 13, which corresponds to
+             SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED
+       Previously, the documentation gave an incorrect default config flag of 1.
+     - The default wmKey is 65281.  Previously, this was reported to be 65537.
+
+- SourceForge Bug #52: The "bping" application has been updated for better
+     compatibility under VxWorks.  This was made possible by adding an option
+     to run bping as a lightweight task with positional runtime arguments.
+
+- SourceForge Bug #53: Fixed bug in command argument parsing in the
+     "bprecvfile" application under VxWorks.  Previously the "a1" argument was
+     reused for both the "EID" and "maxFiles" fields.
+
+- SourceForge Bug #55: Fixed bugs in the "bpcancel" application.
+     - The bpcancel application now prints a message when it is unable to
+       cancel the transmission of a bundle.
+     - The man page for the bpcancel application has been updated to clarify
+       that the application attempts to cancel the transmission of a specified
+       bundle rather than destroy the specified bundle.
+     - Note that it is not always possible to cancel the transmission of a
+       bundle for which multiple internal copies exist due to being transmitted
+       at different times or to different nodes.
+
+- SourceForge Bug #56: ION now builds properly under OSX 10.9.5.
+
+- SourceForge Bug #57: ION now has PARTIAL support for FreeBSD.
+     - ION now builds properly under FreeBSD 10.
+     - IMPORTANT NOTE: Several key ION applications have not yet been updated
+                       to run properly in a FreeBSD environment.  These
+                       applications will be updated in a later ION release.
+                       These updates may also become available in the short
+                       term in the form of an official ION patch.
+
+- SourceForge Bug #59: Fixed bug in the "dtpcadmin" application where it failed
+     to accept a valid parameter of zero in the "maxRtx", "aggrSizeLimit", and
+     "aggrTimeLimit" fields.
+
+- SourceForge Feature Request #18: The "cgrfetch" application now has an option
+     to list all valid outducts.  This should simplify usage by making it
+     easier to identify an outduct to run the application against.
+
+- SourceForge Feature Request #20: ION has been updated to better support the
+     CFS environment.  CFS can now leverage many standalone ION executables via
+     an alternative API where the application's "main()" is replaced with a
+     callable function.
+
+- SourceForge Feature Request #21: ION now allows users to adjust the maximum
+     block size that LTP will receive directly into the SDR heap rather than a
+     temporary file.  This allows users to ensure that a bundle's receive-
+     generate-forward chain can be handled entirely in memory.  This often
+     improves efficiency by alleviating the need to write to a disk medium.
+
+- SourceForge Feature Request #22: ION now has an option to support handling
+     database reversibility mechanisms in memory rather than files.
+
+- SourceForge Feature Request #23: As a performance optimization, ION now has
+     better documented support for using pointer de-references rather than
+     memcpy() when executing read-only database operations.
+
+- SourceForge Feature Request #24: ION’s mechanisms to prevent resource leaks
+     when ION is killed and restarted rather than shut down cleanly have been
+     modified to support the CFS environment.  Note that this problem occurs
+     most commonly when transaction reversibility is disabled because task
+     termination locks the datastore until all tasks are killed. If utilizing
+     a file on disk for transaction reversibility would be too slow, consider
+     utilizing the new functionality to support database reversibility
+     mechanisms in memory (SourceForge Feature Request #22) rather than
+     disabling transaction reversibility entirely.
+
+- SourceForge Feature Request #26: The CFDP implementation has been updated to
+     conform to the proposed CFDP V1 specification. Further updates will be
+     required when the specification revisions are completed and approved by
+     CCSDS.
+
+     The interface changes are as follows:
+     - The function prototypes for the CFDP functions cfdp_put() and
+       cfdp_preview() have changed to accommodate proposed updates to the CFDP
+       specification. File offsets and lengths in all CFDP function calls are
+       now of type uvast (rather than unsigned int), because CFDP can now be
+       used to send files larger than 4 GB.
+
+           See the cfdp(3) man page for details.
+
+     - The cfdptest test program has been updated to enable specification of
+       closure latency and segment metadata.
+
+           See the cfdptest(1) man page for details.
+
+- SourceForge Feature Request #27: ION now provides support for the DTN
+     Metadata Extension Block as specified in RFC 6258.
+
+- SourceForge Feature Request #29: The ION test suite has been revamped to
+     dynamically detect when ION applications are initialized rather than wait
+     preset amounts of time for them to initialize.  This provides faster
+     execution of the test suite when applications initialize faster than these
+     preset times and more reliable execution of the test suite when
+     applications initialize slower than the preset times.
+
+- The "DTNperf" application now builds properly under sparc architectures.
+     DTNperf is an external utility that is included with ION in "/contrib".
+
+- Several compilation issues with the "icinm.h" header file implementation have
+     been resolved.
+
+- Improvements have been made to the TCPCLO.
+     - The receiveBundles() thread no longer terminates prematurely under
+       some circumstances when a connection is broken.
+     - The sending rate is no longer artifically capped at 1 bundle/sec.
+
+- The "ionscript" application has been updated to support dtpcadmin
+     configuration files.
+
+- ION's collection of man pages was previously included in "ION.pdf" but is now
+     available as a separate document, "ION-manpages.pdf".
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.2.1 =

@@ -113,12 +113,12 @@ created '%s', size %d.", fileName, contentLength);
 	return 0;
 }
 
-#ifdef VXWORKS
+#if defined (ION_LWT)
 int	bprecvfile(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char		*ownEid = (char *) a1;
-	int		maxFiles = strtol((char *) a1, NULL, 0);
+	int		maxFiles = strtol((char *) a2, NULL, 0);
 #else
 int	main(int argc, char **argv)
 {

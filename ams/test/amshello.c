@@ -1,6 +1,6 @@
 /*
 	amshello.c:	A distributed "Hello, world" implemented
-			using AMS on a Unix platform.
+			using AMS on a Unix platform (only).
 									*/
 /*	Copyright (c) 2005, California Institute of Technology.		*/
 /*	All rights reserved.						*/

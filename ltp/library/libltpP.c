@@ -567,6 +567,7 @@ int	ltpInit(int estMaxExportSessions)
 		ltpdbBuf.deadExports = sdr_list_create(ltpSdr);
 		ltpdbBuf.spans = sdr_list_create(ltpSdr);
 		ltpdbBuf.timeline = sdr_list_create(ltpSdr);
+		ltpdbBuf.maxAcqInHeap = 560;
 		sdr_write(ltpSdr, ltpdbObject, (char *) &ltpdbBuf,
 				sizeof(LtpDB));
 		sdr_catlg(ltpSdr, _ltpdbName(), 0, ltpdbObject);
@@ -858,8 +859,10 @@ int	ltpAttach()
 	return 0;		/*	LTP service is available.	*/
 }
 
-void ltpDetach(){
-	char *stop=NULL;
+void	ltpDetach()
+{
+	char	*stop = NULL;
+
 	oK(_ltpvdb(&stop));
 	return;
 }
@@ -2405,6 +2408,7 @@ static void	serializeReportSegment(LtpXmitSeg *segment, char *buf)
 	Sdr		ltpSdr = getIonsdr();
 	char		*cursor = buf;
 	Sdnv		sdnv;
+	int		count;
 	Object		elt;
 			OBJ_POINTER(LtpReceptionClaim, claim);
 	unsigned int	offset;
@@ -2442,8 +2446,9 @@ static void	serializeReportSegment(LtpXmitSeg *segment, char *buf)
 
 	/*	Append count of reception claims.			*/
 
-	encodeSdnv(&sdnv, sdr_list_length(ltpSdr,
-			segment->pdu.receptionClaims));
+	count = sdr_list_length(ltpSdr, segment->pdu.receptionClaims);
+	CHKVOID(count >= 0);
+	encodeSdnv(&sdnv, count);
 	memcpy(cursor, sdnv.text, sdnv.length);
 	cursor += sdnv.length;
 
@@ -3926,7 +3931,8 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	sessionBuf->span = spanObj;
 	if (sessionBuf->redSegments == 0
 	|| sessionBuf->rsSegments == 0
-	|| sessionBuf->svcData == (Object) ERROR)
+	|| sessionBuf->svcData == (Object) ERROR
+	|| sessionBuf->svcData == 0)	/*	Out of ZCO space.	*/
 	{
 		putErrmsg("Can't create import session.", NULL);
 		return -1;
@@ -4249,8 +4255,10 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 	 *	acquisition ZCO.					*/
 
 	svcDataObject = zco_create(ltpSdr, 0, 0, 0, 0);
-	if (svcDataObject == (Object) ERROR)
+	switch (svcDataObject)
 	{
+	case (Object) ERROR:
+	case 0:				/*	Out of ZCO space.	*/
 		putErrmsg("Can't create service data object.", NULL);
 		return -1;
 	}
@@ -4713,21 +4721,6 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 			sdr_cancel_xn(ltpSdr);
 			return -1;
 		}
-
-		if (pdu->offset != 0	/*	Not segment #1.		*/
-		|| (pdu->segTypeCode != LtpDsRedEORP
-				&& pdu->segTypeCode != LtpDsRedEOB))
-		{
-			/*	This is a large (i.e., multi-segment)
-			 *	block; must receive it into a file.	*/
-		
-			if (createBlockFile(span, &sessionBuf) < 0)
-			{
-				putErrmsg("Can't receive large block.", NULL);
-				sdr_cancel_xn(ltpSdr);
-				return -1;
-			}
-		}
 	}
 
 	segment->sessionObj = sessionObj;
@@ -4750,7 +4743,7 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 	/*	Write the red-part reception segment to the database.	*/
 
 	ltpSpanTally(vspan, IN_SEG_RECV_RED, pdu->length);
-	if (sessionBuf.blockFileRef == 0)	/*	Store in heap.	*/
+	if ((pdu->offset + pdu->length) <= ltpdb->maxAcqInHeap)
 	{
 		if (writeBlockExtentToHeap(&sessionBuf, segment, *cursor,
 				pdu->length) < 0)
@@ -4762,6 +4755,16 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 	}
 	else					/*	Store in file.	*/
 	{
+		if (sessionBuf.blockFileRef == 0)
+		{
+			if (createBlockFile(span, &sessionBuf) < 0)
+			{
+				putErrmsg("Can't receive large block.", NULL);
+				sdr_cancel_xn(ltpSdr);
+				return -1;
+			}
+		}
+
 		if (writeBlockExtentToFile(&sessionBuf, segment, *cursor,
 				pdu->length) < 0)
 		{

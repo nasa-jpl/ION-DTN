@@ -1017,7 +1017,7 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
-static int	processLine(char *line, int lineLength)
+int	ionsecadmin_processLine(char *line, int lineLength)
 {
 	int	tokenCount;
 	char	*cursor;
@@ -1164,7 +1164,7 @@ static int	processLine(char *line, int lineLength)
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	ionsecadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -1205,7 +1205,7 @@ int	main(int argc, char **argv)
 				continue;
 			}
 
-			if (processLine(line, len))
+			if (ionsecadmin_processLine(line, len))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -1241,7 +1241,7 @@ int	main(int argc, char **argv)
 					continue;
 				}
 
-				if (processLine(line, len))
+				if (ionsecadmin_processLine(line, len))
 				{
 					break;	/*	Out of loop.	*/
 				}

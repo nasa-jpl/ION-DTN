@@ -20,6 +20,8 @@ typedef struct
 	char			destFileNameBuf[256];
 	char			*destFileName;
 	BpUtParms		utParms;
+	unsigned int		closureLatency;
+	CfdpMetadataFn		segMetadataFn;
 	MetadataList		msgsToUser;
 	MetadataList		fsRequests;
 	CfdpTransactionId	transactionId;
@@ -63,7 +65,9 @@ int main(int argc, char **argv)
 						(unsigned char *) &(parms.utParms),
 						parms.sourceFileName,
 						parms.destFileName, NULL,
+						parms.segMetadataFn,
 						parms.faultHandlers, 0, NULL,
+						parms.closureLatency,
 						parms.msgsToUser,
 						parms.fsRequests,
 						&(parms.transactionId)) >= 0);

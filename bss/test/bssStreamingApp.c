@@ -56,7 +56,9 @@ static void	handleQuit()
 static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 {
 	int		priority = 0;
-	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
+	BpExtendedCOS	extendedCOS = { 0, 10, 0 };
+			/*	Note: flag value 10 directs BP to send
+			 *	bundles using a streaming protocol.	*/
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BptestState	state = { NULL, 1 };
 	Sdr		sdr;
@@ -184,7 +186,7 @@ and size: %d has been sent\n", framePayload, sizeof(framePayload));
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	bssStreamingApp(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

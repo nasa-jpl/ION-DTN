@@ -342,7 +342,7 @@ static void	*Listen_for_connections(void *parm)
 
 
 /*	*	*	Main thread functions	*	*	*	*/
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	dccpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -472,7 +472,7 @@ int	main(int argc, char *argv[])
 #else /*build_dccp*/
 
 #include "bpP.h"
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	dccpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

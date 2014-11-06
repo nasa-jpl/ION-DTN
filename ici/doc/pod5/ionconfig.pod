@@ -41,8 +41,9 @@ bytes).
 =item configFlags
 
 This is the bitwise "OR" (i.e., the sum) of the flag values that characterize
-the SDR database to use for this ION node.  The default value is 1.  The SDR
-configuration flags are documented in detail in sdr(3).  To recap:
+the SDR database to use for this ION node.  The default value is 13 (that is,
+SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED).  The SDR configuration flags are
+documented in detail in sdr(3).  To recap:
 
 =over 4
 
@@ -79,7 +80,7 @@ This is the fully qualified path name of the directory in which are located
 it doesn't already exist), in the event that the SDR is to be implemented in
 a file, and (b) the file to be used to log the database updates of each
 SDR transaction, in the event that transactions in this SDR are to be
-reversible.  The default value is B</usr/ion>.
+reversible.  The default value is B</tmp>.
 
 =item heapWords
 
@@ -93,10 +94,24 @@ the directory identified by I<pathName>, then a file of this name and size
 will be created in this directory and initialized to all binary zeroes.  The
 default value is 250000 words (1 million bytes on a 32-bit computer).
 
+=item logSize
+
+This is the number of bytes of shared memory to use for ION's SDR transaction
+log.  If zero (the default), the transaction log is written to a file rather
+than to memory.  If the log is to be implemented in shared memory and no
+I<logKey> is specified, a block of shared memory of this size will be allocated
+(e.g., by malloc()) at the time the node is created.
+
+=item logKey
+
+This is the shared-memory key by which the pre-allocated block of shared
+dynamic memory to be used for the transaction log for this SDR can be located,
+if applicable.  The default value is -1, i.e., not specified and not applicable.
+
 =item wmKey
 
 This is the shared-memory key by which this ION node's working memory will
-be identified.  The default value is 65537.
+be identified.  The default value is 65281.
 
 =item wmAddress
 
@@ -123,7 +138,7 @@ heapWords 2500000
 
 heapKey -1
 
-pathName 'usr/ion'
+pathName /usr/ion
 
 wmSize 5000000
 

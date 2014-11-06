@@ -847,8 +847,8 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 	}
 
 	if (sdr_load_profile(parms->sdrName, parms->configFlags,
-			parms->heapWords, parms->heapKey, parms->pathName,
-			"ionrestart") < 0)
+			parms->heapWords, parms->heapKey, parms->logSize,
+			parms->logKey, parms->pathName, "ionrestart") < 0)
 	{
 		putErrmsg("Unable to load SDR profile for ION.", NULL);
 		return -1;
@@ -1172,11 +1172,12 @@ int	ionAttach()
 
 void	ionDetach()
 {
-#if defined (VXWORKS) || defined (bionic)
-	return;
-#elif defined (RTEMS)
+#if defined (ION_LWT)
+#ifdef RTEMS
 	sm_TaskForget(sm_TaskIdSelf());
-#else
+#endif
+	return;
+#else	/*	Not ION_LWT, so can detach entire process.		*/
 	Sdr	ionsdr = _ionsdr(NULL);
 
 	if (ionsdr)
@@ -1188,7 +1189,7 @@ void	ionDetach()
 #ifdef mingw
 	oK(_winsock(1));
 #endif
-#endif
+#endif	/*	end of #ifdef ION_LWT					*/
 }
 
 void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
@@ -1372,7 +1373,6 @@ time_t	getUTCTime()
 #if defined(FSWCLOCK)
 #include "fswutc.c"
 #else
-
 	clocktime = time(NULL);
 #endif
 	return clocktime - delta;
@@ -1553,11 +1553,20 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	parms->configFlags = SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED;
 	parms->heapWords = 250000;
 	parms->heapKey = SM_NO_KEY;
+	parms->logSize = 0;		/*	Log is in file.		*/
+	parms->logKey = SM_NO_KEY;
 	istrcpy(parms->pathName, "/tmp", sizeof parms->pathName);
 
 	/*	Determine name of config file.				*/
 
-	if (configFileName == NULL)
+	if (configFileName == NULL || *configFileName == 0)
+	{
+		writeMemo("[i] admin pgm using default SDR parms.");
+		printIonParms(parms);
+		return 0;
+	}
+
+	if (strcmp(configFileName, ".") == 0)
 	{
 #ifdef ION_NO_DNS
 		ownHostName[0] = '\0';
@@ -1585,13 +1594,6 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	configFile = iopen(configFileName, O_RDONLY, 0777);
 	if (configFile < 0)
 	{
-		if (errno == ENOENT)	/*	No overrides apply.	*/
-		{
-			writeMemo("[i] admin pgm using default SDR parms.");
-			printIonParms(parms);
-			return 0;
-		}
-
 		isprintf(buffer, sizeof buffer, "[?] admin pgm can't open SDR \
 config file '%.255s': %.64s", configFileName, system_error_msg());
 		writeMemo(buffer);
@@ -1704,6 +1706,18 @@ configuration file line (%d).", lineNbr);
 			continue;
 		}
 
+		if (strcmp(tokens[0], "logSize") == 0)
+		{
+			parms->logSize = atoi(tokens[1]);
+			continue;
+		}
+
+		if (strcmp(tokens[0], "logKey") == 0)
+		{
+			parms->logKey = atoi(tokens[1]);
+			continue;
+		}
+
 		if (strcmp(tokens[0], "pathName") == 0)
 		{
 			istrcpy(parms->pathName, tokens[1],
@@ -1750,6 +1764,12 @@ void	printIonParms(IonParms *parms)
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "heapKey:         %d",
 			parms->heapKey);
+	writeMemo(buffer);
+	isprintf(buffer, sizeof buffer, "logSize:         %d",
+			parms->logSize);
+	writeMemo(buffer);
+	isprintf(buffer, sizeof buffer, "logKey:          %d",
+			parms->logKey);
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "pathName:       '%.256s'",
 			parms->pathName);

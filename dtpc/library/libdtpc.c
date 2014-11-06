@@ -403,7 +403,7 @@ been stopped", itoa(vsap->topicID));
 	/*	Now fill in the data indication structure.	*/
 
 	dlvBuffer->result = PayloadPresent;
-	dlvBuffer->adu = payload->content;
+	dlvBuffer->item = payload->content;
 	dlvBuffer->length = payload->length;
 	dlvBuffer->srcEid = MTAKE(SDRSTRING_BUFSZ);
 	if (dlvBuffer->srcEid == NULL)
@@ -412,6 +412,7 @@ been stopped", itoa(vsap->topicID));
 		putErrmsg("Can't create source EID string.", NULL);
 		return -1;
 	}
+
 	memcpy((char *) dlvBuffer->srcEid, (char *) srcEid, SDRSTRING_BUFSZ);
 
 	/*	Finally delete the delivery list element and destroy
@@ -454,12 +455,12 @@ void	dtpc_release_delivery(DtpcDelivery *dlvBuffer)
 		}	
 
 		CHKVOID(sdr_begin_xn(sdr));
-		sdr_free(sdr, dlvBuffer->adu);
+		sdr_free(sdr, dlvBuffer->item);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Failed releasing delivery.", NULL);
 		}
 
-		dlvBuffer->adu = 0;
+		dlvBuffer->item = 0;
 	}
 }

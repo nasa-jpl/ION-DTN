@@ -12,7 +12,7 @@
 #include "platform.h"
 #include "sdr.h"
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	sdrmend(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -20,8 +20,10 @@ int	sdrmend(int a1, int a2, int a3, int a4, int a5,
 	int		configFlags = a2;
 	long		heapWords = a3;
 	int		heapKey = a4;
-	char		*pathName = (char *) a5;
-	char		*restartCmd = (char *) a6;
+	int		logSize = a5;
+	int		logKey = a6;
+	char		*pathName = (char *) a7;
+	char		*restartCmd = (char *) a8;
 
 #else
 int	main(int argc, char **argv)
@@ -30,6 +32,8 @@ int	main(int argc, char **argv)
 	int		configFlags;
 	long		heapWords;
 	int		heapKey;
+	int		logSize;
+	int		logKey;
 	char		*pathName;
 	char		*restartCmd = NULL;
 
@@ -44,10 +48,12 @@ int	main(int argc, char **argv)
 	configFlags = strtol(argv[2], NULL, 0);
 	heapWords = strtol(argv[3], NULL, 0);
 	heapKey = strtol(argv[4], NULL, 0);
-	pathName = argv[5];
-	if (argc == 7)
+	logSize = strtol(argv[5], NULL, 0);
+	logKey = strtol(argv[6], NULL, 0);
+	pathName = argv[7];
+	if (argc == 9)
 	{
-		restartCmd = argv[6];
+		restartCmd = argv[8];
 	}
 #endif
 
@@ -58,7 +64,7 @@ int	main(int argc, char **argv)
 	}
 
 	if (sdr_reload_profile(sdrName, configFlags, heapWords, heapKey,
-			pathName, restartCmd) < 0)
+			logSize, logKey, pathName, restartCmd) < 0)
 	{
 		putErrmsg("Can't reload profile for SDR.", sdrName);
 		return 1;

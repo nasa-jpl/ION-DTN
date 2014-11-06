@@ -323,7 +323,7 @@ int bindDCCPsock(int* sock, struct sockaddr* socketName)
 return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	dccplsi(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -418,9 +418,8 @@ int	main(int argc, char *argv[])
 
 #else /*build_dccp*/
 
-
 #include "ltpP.h"
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	dccplsi(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -432,6 +431,5 @@ putErrmsg("dccplsi (and the DCCP protocol) are only available under Linux (>=3.2
 writeErrmsgMemos();
 return 0;
 }
-
 
 #endif /*build_dccp*/

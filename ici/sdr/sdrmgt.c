@@ -154,7 +154,7 @@ static ObjectScale	scaleOf(Sdr sdrv, Address addr, Ohd *ohd)
 		sdrFetch(ohd->leading, leader);
 		trailer = addr + ohd->leading.userDataSize;
 		if (trailer > addr
-		&& trailer + LG_OHD_SIZE <= sdrv->sdr->sdrSize)
+		&& trailer + LG_OHD_SIZE <= sdrv->sdr->dsSize)
 		{
 			sdrFetch(trailing, trailer);
 			if (trailing.start == leader)
@@ -209,7 +209,7 @@ void	sdr_stage(Sdr sdrv, char *into, Object from, long length)
 
 	to = addr + length;
 	if (addr < 0 || to < addr || (to == addr && length != 0)
-			|| to > sdr->sdrSize)
+			|| to > sdr->dsSize)
 	{
 		putErrmsg(_violationMsg(), "stage");
 		crashXn(sdrv);
@@ -1003,7 +1003,7 @@ long	sdr_unused(Sdr sdrv)
 
 	CHKZERO(sdrFetchSafe(sdrv));
 	map = _mapImage(sdrv);
-	unused = map->sdrSize - sizeof(SdrMap);
+	unused = map->dsSize - sizeof(SdrMap);
 	smallPoolSize = map->endOfSmallPool - map->startOfSmallPool;
 	largePoolSize = map->endOfLargePool - map->startOfLargePool;
        	unused -= (smallPoolSize + largePoolSize);
@@ -1029,7 +1029,7 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 	CHKVOID(usage);
 	sdr = sdrv->sdr;
 	istrcpy(usage->sdrName, sdr->name, sizeof usage->sdrName);
-	usage->sdrSize = sdr->sdrSize;
+	usage->dsSize = sdr->dsSize;
 	map = _mapImage(sdrv);
 	usage->smallPoolSize = map->endOfSmallPool - map->startOfSmallPool;
 	freeTotal = 0;
@@ -1072,7 +1072,7 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 
 	usage->largePoolFree = freeTotal;
 	usage->largePoolAllocated = usage->largePoolSize - freeTotal;
-	usage->unusedSize = usage->sdrSize - (sizeof(SdrMap) +
+	usage->unusedSize = usage->dsSize - (sizeof(SdrMap) +
 			 usage->smallPoolSize + usage->largePoolSize);
 	return;
 }
@@ -1137,7 +1137,7 @@ void	sdr_report(SdrUsageSummary *usage)
 		       	usage->largePoolSize);
         writeMemo(buf);
 	isprintf(buf, sizeof buf, "total sdr:         %10ld",
-		       	usage->sdrSize);
+		       	usage->dsSize);
         writeMemo(buf);
 	isprintf(buf, sizeof buf, "total unused:      %10ld",
 		       	usage->unusedSize);
@@ -1152,5 +1152,5 @@ int	sdr_heap_depleted(Sdr sdrv)
 	CHKERR(sdrFetchSafe(sdrv));
 	sdr_usage(sdrv, &summary);
 	return ((summary.smallPoolFree + summary.largePoolFree
-			+ summary.unusedSize) < (summary.sdrSize / 16));
+			+ summary.unusedSize) < (summary.dsSize / 16));
 }

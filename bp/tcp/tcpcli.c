@@ -366,6 +366,7 @@ static void	*spawnReceivers(void *parm)
 
 		if (atp->running == 0)
 		{
+			closesocket(newSocket);
 			break;	/*	Main thread has shut down.	*/
 		}
 
@@ -374,6 +375,7 @@ static void	*spawnReceivers(void *parm)
 		if (parms == NULL)
 		{
 			putErrmsg("tcpcli can't allocate for new thread", NULL);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -388,6 +390,7 @@ static void	*spawnReceivers(void *parm)
 			putErrmsg("tcpcli can't allocate lyst element for new \
 thread", NULL);
 			MRELEASE(parms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -403,6 +406,7 @@ thread", NULL);
 		{
 			putSysErrmsg("tcpcli can't create new thread", NULL);
 			MRELEASE(parms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -455,7 +459,7 @@ thread", NULL);
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	tcpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -625,7 +629,7 @@ int	main(int argc, char *argv[])
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd >= 0)
 	{
-		connect(fd, &(atp.socketName), sizeof(struct sockaddr));
+		oK(connect(fd, &(atp.socketName), sizeof(struct sockaddr)));
 
 		/*	Immediately discard the connected socket.	*/
 

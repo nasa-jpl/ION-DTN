@@ -33,6 +33,7 @@ check:		$(CFDPINCLS) $(PUBINCLS)
 clean:
 		rm -f *.o
 		rm -f *.exe
+		rm -f *.def
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -78,7 +79,7 @@ bpcpd: bpcpd.o
 #	-	-	Libraries	-	-	-	-	-
 
 libcfdp.dll:	libcfdpP.o libcfdp.o libcfdpops.o
-		$(LD) -o libcfdp.dll libcfdpP.o libcfdp.o libcfdpops.o -L$(ROOT)/lib -lici -lpthread -lws2_32
+		$(LD) -o libcfdp.dll libcfdpP.o libcfdp.o libcfdpops.o -Wl,--output-def,libcfdp.def -L$(ROOT)/lib -lici -lpthread -lws2_32
 		cp libcfdp.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

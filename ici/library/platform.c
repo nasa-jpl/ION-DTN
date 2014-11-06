@@ -166,11 +166,15 @@ int	gettimeofday(struct timeval *tvp, void *tzp)
 
 	CHKERR(tvp);
 
+#ifdef FSWTIME
+#include "fswtime.c"
+#else
 	/*	Use the internal POSIX timer.				*/
 
 	clock_gettime(CLOCK_REALTIME, &cur_time);
 	tvp->tv_sec = cur_time.tv_sec;
 	tvp->tv_usec = cur_time.tv_nsec / 1000;
+#endif
 	return 0;
 }
 
@@ -187,7 +191,11 @@ unsigned long	getClockResolution()
 	return ts.tv_nsec / 1000;
 }
 
-#ifndef ION_NO_DNS
+#ifdef ION_NO_DNS
+#ifdef FSWLAN
+#include "fswlan.c"
+#endif
+#else
 unsigned int	getInternetAddress(char *hostName)
 {
 	int	hostNbr;
@@ -232,8 +240,12 @@ int	getNameOfHost(char *buffer, int bufferLength)
 char	*getNameOfUser(char *buffer)
 {
 	CHKNULL(buffer);
+#ifdef FSWUSER
+#include "fswuser.c"
+#else
 	remCurIdGet(buffer, NULL);
 	return buffer;
+#endif
 }
 
 int	reUseAddress(int fd)
@@ -274,7 +286,7 @@ int	watchSocket(int fd)
 
 	return result;
 }
-#endif
+#endif	/*	ION_NO_DNS						*/
 
 int	makeIoNonBlocking(int fd)
 {
@@ -330,7 +342,7 @@ int	strncasecmp(const char *s1, const char *s2, size_t n)
 	return 0;
 }
 
-#endif				/*	End of #if defined VXWORKS	*/
+#endif	/*	End of #if defined VXWORKS				*/
 
 #if defined (darwin) || defined (freebsd) || defined (mingw)
 
@@ -474,7 +486,7 @@ void	unlockResource(ResourceLock *rl)
 	return;
 }
 
-#endif				/*	end #ifdef _MULTITHREADED	*/
+#endif	/*	end #ifdef _MULTITHREADED				*/
 
 #if (!defined (linux) && !defined (freebsd) && !defined (darwin) && !defined (RTEMS) && !defined (mingw))
 /*	These things are defined elsewhere for Linux-like op systems.	*/
@@ -497,15 +509,19 @@ char	*system_error_msg()
 
 	return sys_errlist[errno];
 }
-#endif				/*	end #ifdef solaris		*/
+#endif	/*	end #ifdef solaris					*/
 
 char	*getNameOfUser(char *buffer)
 {
 	CHKNULL(buffer);
+#ifdef FSWUSER
+#include "fswuser.c"
+#else
 	return cuserid(buffer);
+#endif
 }
 
-#endif	/*	end #if (!defined(linux, darwin, RTEMS, mingw))		*/
+#endif	/*	end #if (!defined(linux, freebsd, darwin, RTEMS, mingw))*/
 
 void	closeOnExec(int fd)
 {
@@ -526,7 +542,7 @@ void	microsnooze(unsigned int usec)
 	Sleep(usec / 1000);
 }
 
-#endif					/*	end #ifdef mingw	*/
+#endif	/*	end #ifdef mingw					*/
 
 #if (!defined (mingw))			/*	nanosleep is defined.	*/
 
@@ -553,7 +569,7 @@ void	microsnooze(unsigned int usec)
 void	getCurrentTime(struct timeval *tvp)
 {
 	CHKVOID(tvp);
-	gettimeofday(tvp, NULL);
+	oK(gettimeofday(tvp, NULL));
 }
 
 unsigned long	getClockResolution()
@@ -568,7 +584,7 @@ unsigned long	getClockResolution()
 	return 10000;
 }
 
-#endif				/*	End of #ifndef VXWORKS		*/
+#endif	/*	End of #ifndef VXWORKS					*/
 
 #if defined (__SVR4)
 
@@ -605,6 +621,11 @@ int	makeIoNonBlocking(int fd)
 
 #if defined (_REENTRANT)	/*	SVR4 multithreaded.		*/
 
+#ifdef ION_NO_DNS
+#ifdef FSWLAN
+#include "fswlan.c"
+#endif
+#else
 unsigned int	getInternetAddress(char *hostName)
 {
 	struct hostent	hostInfoBuffer;
@@ -696,9 +717,15 @@ int	watchSocket(int fd)
 
 	return result;
 }
+#endif	/*	ION_NO_DNS						*/
 
-#else				/*	SVR4 but not multithreaded.	*/
+#else	/*	SVR4 but not multithreaded.				*/
 
+#ifdef ION_NO_DNS
+#ifdef FSWLAN
+#include "fswlan.c"
+#endif
+#else
 unsigned int	getInternetAddress(char *hostName)
 {
 	struct hostent	*hostInfo;
@@ -779,10 +806,11 @@ int	watchSocket(int fd)
 
 	return result;
 }
+#endif	/*	ION_NO_DNS						*/
 
-#endif			/*	end of #if defined _REENTRANT		*/
+#endif	/*	end of #if defined _REENTRANT				*/
 
-#endif			/*	end of #if defined _SVR4		*/
+#endif	/*	end of #if defined _SVR4				*/
 
 #if (defined mingw)
 
@@ -978,7 +1006,7 @@ int	watchSocket(int fd)
 	return result;
 }
 
-#endif			/*	end of #if defined (mingw)		*/
+#endif	/*	end of #if defined (mingw)				*/
 
 #if (defined (linux) || defined (freebsd) || defined (darwin) || defined (RTEMS))
 
@@ -989,6 +1017,10 @@ char	*system_error_msg()
 
 char	*getNameOfUser(char *buffer)
 {
+	CHKNULL(buffer);
+#ifdef FSWUSER
+#include "fswuser.c"
+#else
 	uid_t		euid;
 	struct passwd	*pwd;
 
@@ -1003,8 +1035,14 @@ char	*getNameOfUser(char *buffer)
 	}
 
 	return "";
+#endif
 }
 
+#ifdef ION_NO_DNS
+#ifdef FSWLAN
+#include "fswlan.c"
+#endif
+#else
 unsigned int	getInternetAddress(char *hostName)
 {
 	struct hostent	*hostInfo;
@@ -1078,6 +1116,7 @@ int	reUseAddress(int fd)
 
 	return result;
 }
+#endif	/*	ION_NO_DNS						*/
  
 int	makeIoNonBlocking(int fd)
 {
@@ -1265,6 +1304,7 @@ void	*acquireSystemMemory(size_t size)
 #endif
 	if (block)
 	{
+		TRACK_MALLOC(block);
 		memset((char *) block, 0, size);
 	}
 	else
@@ -1377,8 +1417,28 @@ char	*uToa(unsigned int arg)
 	return utoa_str;
 }
 
-static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
-			const char *arg, char *buffer)
+static int	clipFileName(const char *qualifiedFileName, char **fileName)
+{
+	int	fileNameLength;
+	int	excessLength;
+
+	fileNameLength = strlen(qualifiedFileName);
+	excessLength = fileNameLength - MAX_SRC_FILE_NAME;
+	if (excessLength < 0)
+	{
+		excessLength = 0;
+	}
+
+	/*	Clip excessLength bytes off the front of the file
+	 *	name by adding excessLength to the string pointer.	*/
+
+	(*fileName) = ((char *) qualifiedFileName) + excessLength;
+	fileNameLength -= excessLength;
+	return fileNameLength;
+}
+
+static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
+			const char *text, const char *arg, char *buffer)
 {
 	static char		errmsgs[ERRMSGS_BUFSIZE];
 	static int		errmsgsLength = 0;
@@ -1386,6 +1446,8 @@ static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
 	static int		errmsgsLockInit = 0;
 	int			msgLength;
 	int			spaceFreed;
+	int			fileNameLength;
+	char			*fileName;
 	char			lineNbrBuffer[32];
 	int			spaceAvbl;
 	int			spaceForText;
@@ -1432,15 +1494,16 @@ static int	_errmsgs(int lineNbr, const char *fileName, const char *text,
 
 	/*	Posting an errmsg.					*/
 
-	if (fileName == NULL || text == NULL || *text == '\0')
+	if (qualifiedFileName == NULL || text == NULL || *text == '\0')
 	{
 		return 0;	/*	Ignored.			*/
 	}
 
+	fileNameLength = clipFileName(qualifiedFileName, &fileName);
 	lockResource(&errmsgsLock);
 	isprintf(lineNbrBuffer, sizeof lineNbrBuffer, "%d", lineNbr);
 	spaceAvbl = ERRMSGS_BUFSIZE - errmsgsLength;
-	spaceForText = 8 + strlen(lineNbrBuffer) + 4 + strlen(fileName)
+	spaceForText = 8 + strlen(lineNbrBuffer) + 4 + fileNameLength
 			+ 2 + strlen(text);
 	spaceNeeded = spaceForText + 1;
 	if (arg)
@@ -2060,6 +2123,34 @@ int	sdnvToScalar(Scalar *scalar, unsigned char *sdnvText)
 	return sdnvLength;
 }
 
+uvast	htonv(uvast hostvast)
+{
+	static int	length = sizeof(uvast);
+	uvast		result;
+	unsigned char	*cursor;
+	int		i;
+
+	if (1 != htonl(1))	/*	Must reverse the digits.	*/
+	{
+		cursor = ((unsigned char *) &hostvast) + length;
+		result = 0;
+		for (i = 0; i < length; i++)
+		{
+			cursor--;
+			result = (result << 8) + (*cursor);
+		}
+
+		return result;
+	}
+
+	return hostvast;
+}
+
+uvast	ntohv(uvast netvast)
+{
+	return htonv(netvast);
+}
+
 void	findToken(char **cursorPtr, char **token)
 {
 	char	*cursor;
@@ -2170,7 +2261,18 @@ unsigned int	getAddressOfHost()
 {
 	return 0;
 }
+
+char	*addressToString(struct in_addr address, char *buffer)
+{
+	CHKNULL(buffer);
+
+	*buffer = 0;
+	putErrmsg("Can't convert IP address to string.", NULL);
+	return buffer;
+}
+
 #else
+
 unsigned int	getAddressOfHost()
 {
 	char	hostnameBuf[MAXHOSTNAMELEN + 1];
@@ -2178,15 +2280,31 @@ unsigned int	getAddressOfHost()
 	getNameOfHost(hostnameBuf, sizeof hostnameBuf);
 	return getInternetAddress(hostnameBuf);
 }
-#endif
 
-#ifdef ION_NO_DNS
-int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
-		unsigned int *ipAddress)
+char	*addressToString(struct in_addr address, char *buffer)
 {
-	return 0;
-}
+	char	*result;
+
+	CHKNULL(buffer);
+	*buffer = 0;
+#if defined (VXWORKS)
+	inet_ntoa_b(address, buffer);
 #else
+	result = inet_ntoa(address);
+	if (result == NULL)
+	{
+		putSysErrmsg("inet_ntoa() returned NULL", NULL);
+	}
+	else
+	{
+		istrcpy(buffer, result, 16);
+	}
+#endif
+	return buffer;
+}
+#endif	/*	ION_NO_DNS						*/
+
+#if (defined(FSWLAN) || !(defined(ION_NO_DNS)))
 int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		unsigned int *ipAddress)
 {
@@ -2268,11 +2386,8 @@ use a dotted string IP address than a possibly aliased host name", hostname);
 	{
 		return 0;		/*	All done.		*/
 	}
-	else
-	{
-		*delimiter = ':';	/* Nondestructive parse. */
-	}
 
+	*delimiter = ':';		/*	Nondestructive parse.	*/
 	i4 = atoi(delimiter + 1);	/*	Get port number.	*/
 	if (i4 != 0)
 	{
@@ -2289,7 +2404,13 @@ use a dotted string IP address than a possibly aliased host name", hostname);
 
 	return 0;
 }
-#endif
+#else
+int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
+		unsigned int *ipAddress)
+{
+	return 0;
+}
+#endif	/*	defined(FSWLAN || !(defined(ION_NO_DNS)))		*/
 
 void	printDottedString(unsigned int hostNbr, char *buffer)
 {
@@ -2827,7 +2948,7 @@ char	*igetcwd(char *buf, size_t size)
 #endif
 }
 
-#ifdef RTEMS
+#ifdef POSIX_TASKS
 
 #ifndef SIGNAL_RULE_CT
 #define SIGNAL_RULE_CT	100
@@ -2939,7 +3060,7 @@ static void	threadSignalHandler(int signbr)
 		handler(signbr);
 	}
 }
-#endif					/*	end of #ifdef RTEMS	*/
+#endif	/*	end of #ifdef POSIX_TASKS				*/
 
 #ifdef mingw
 void	isignal(int signbr, void (*handler)(int))
@@ -2957,7 +3078,7 @@ void	iblock(int signbr)
 void	isignal(int signbr, void (*handler)(int))
 {
 	struct sigaction	action;
-#ifdef RTEMS
+#ifdef POSIX_TASKS
 	sigset_t		signals;
 
 	oK(sigemptyset(&signals));
@@ -2965,7 +3086,7 @@ void	isignal(int signbr, void (*handler)(int))
 	oK(pthread_sigmask(SIG_UNBLOCK, &signals, NULL));
 	oK(_signalRules(signbr, handler));
 	handler = threadSignalHandler;
-#endif
+#endif	/*	end of #ifdef POSIX_TASKS				*/
 	memset((char *) &action, 0, sizeof(struct sigaction));
 	action.sa_handler = handler;
 	oK(sigaction(signbr, &action, NULL));
@@ -2982,7 +3103,7 @@ void	iblock(int signbr)
 	oK(sigaddset(&signals, signbr));
 	oK(pthread_sigmask(SIG_BLOCK, &signals, NULL));
 }
-#endif
+#endif	/*	end of #ifdef mingw					*/
 
 char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 {

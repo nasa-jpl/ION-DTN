@@ -240,12 +240,14 @@ void *receiveResponses(void *x)
 		}
 
 		if(diff_in_us < 0) {
-			printf("%d bytes from %s  seq=%lu time=-%lu.%06lu s(future!)\n",
-					contentLength, respSrcEid, respcount, tvDiff.tv_sec, 
+			printf("%d bytes from %s  seq=%lu time=-%lu.%06lu \
+s(future!)\n", contentLength, respSrcEid, respcount,
+					(unsigned long)tvDiff.tv_sec, 
 					(unsigned long)tvDiff.tv_usec);
 		} else {
 			printf("%d bytes from %s  seq=%lu time=%lu.%06lu s\n",
-					contentLength, respSrcEid, respcount, tvDiff.tv_sec, 
+					contentLength, respSrcEid, respcount,
+					(unsigned long)tvDiff.tv_sec, 
 					(unsigned long)tvDiff.tv_usec);
 		}
 
@@ -279,7 +281,8 @@ static Object bping_new_ping(void)
 
 	/* Construct the bundle payload */
 	pingPayloadLen = snprintf(pingPayload, sizeof(pingPayload), 
-			"%d %lu %lu bping payload", totalsent, tvNow.tv_sec, 
+			"%d %lu %lu bping payload", totalsent,
+			(unsigned long) tvNow.tv_sec, 
 			(unsigned long)tvNow.tv_usec);
 	if(pingPayloadLen < 0) {
 		bp_close(sap);
@@ -392,6 +395,30 @@ static void parse_report_flags(int *srrFlags, const char *flags) {
 	}
 }
 
+#if defined (ION_LWT)
+int	bping(	int a1, int a2, int a3, int a4, int a5,
+		int a6, int a7, int a8, int a9, int a10)
+{
+	count = a1 ? strtol((char *) a1, NULL, 0) : -1;
+	interval = a2 ? strtol((char *) a2, NULL, 0) : 1;
+	priority = a3 ? strtol((char *) a3, NULL, 0) : 0;
+	waitdelay = a4 ? strtol((char *) a4, NULL, 0) : 10;
+	if (a5)
+	{
+		parse_report_flags(&rrFlags, (char *) a5);
+	}
+
+	ttl = a6 ? strtol((char *) a6, NULL, 0) : 3600;
+	verbosity = a7 ? strtol((char *) a7, NULL, 0) : 0;
+	srcEid = a8 ? ((char *) a8) : NULL;
+	dstEid = a9 ? ((char *) a9) : NULL;
+	rptEid = a10 ? ((char *) a10) : NULL;
+	if (srcEid == NULL || dstEid == NULL)
+	{
+		PUTS("Missing argument(s) for bping.  Ignored.");
+		return BPING_EXIT_ERROR;
+	}
+#else
 int main(int argc, char **argv)
 {
 	int ch;
@@ -446,6 +473,7 @@ int main(int argc, char **argv)
 	srcEid = argv[optind];
 	dstEid = argv[optind + 1];
 	rptEid = (argc - optind > 2) ? argv[optind + 2] : NULL;
+#endif
 
 	if(pthread_mutex_init(&sdrmutex, NULL) != 0)
 	{
@@ -513,7 +541,8 @@ int main(int argc, char **argv)
 	printf("%d bundles transmitted, %d bundles received, %.2f%% bundle"
 			" loss, time %lu.%06lu s\n", totalsent, totalreceived,
 			100.0*(1 - ((double)totalreceived)/((double)totalsent)),
-			tvDiff.tv_sec, (unsigned long)tvDiff.tv_usec);
+			(unsigned long)tvDiff.tv_sec,
+			(unsigned long)tvDiff.tv_usec);
 
 	if(totalreceived > 0) {
 		sum  /= totalreceived;

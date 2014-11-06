@@ -23,7 +23,9 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 			char *svcClass)
 {
 	int		priority = 0;
-	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
+	BpExtendedCOS	extendedCOS = { 0, 10, 0 };
+			/*	Note: flag value 10 directs BP to send
+			 *	bundles using a streaming protocol.	*/
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap;
 	Sdr		sdr;
@@ -128,7 +130,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	bssdriver(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

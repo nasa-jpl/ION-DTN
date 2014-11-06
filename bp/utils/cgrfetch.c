@@ -70,10 +70,11 @@ typedef struct {
 
 // Command line arguments
 static enum {
-	OUTPUT_NOTHING   = 0,
+	FLAGS_DEFAULT    = 0,
 	OUTPUT_JSON      = 1 << 0,
 	OUTPUT_TRACE_MSG = 1 << 1,
-} outputs = OUTPUT_JSON | OUTPUT_TRACE_MSG;
+	LIST_OUTDUCTS    = 1 << 2,
+} flags = OUTPUT_JSON | OUTPUT_TRACE_MSG;
 
 static uvast destNode;
 static time_t dispatchOffset = 0;
@@ -667,7 +668,7 @@ static void run_cgrfetch(void)
 
 	CgrTraceFn traceFn = traceFnDefault;
 
-	if (!(outputs & OUTPUT_TRACE_MSG))
+	if (!(flags & OUTPUT_TRACE_MSG))
 	{
 		traceFn = traceFnQuiet;
 	}
@@ -690,25 +691,61 @@ static void run_cgrfetch(void)
 		DIES("unable to simulate cgr");
 	}
 
-	if (outputs & OUTPUT_JSON)
+	if (flags & OUTPUT_JSON)
 	{
 		output_json(routes, dispatchTime, expirationTime);
 	}
 
 	lyst_destroy(routes);
-	bp_detach();
+}
+
+// Try to parse the given string into the form PROTO:NAME and assign PROTO to outductProto
+// and NAME to outductName. Return 1 on success and 0 otherwise.
+static int parseOutduct(char *str)
+{
+	char *sep = strchr(str, ':');
+
+	if (!sep || sep == str)
+		return 0;
+
+	outductProto = str;
+	outductName = sep + 1;
+
+	// Check this before splitting the string so the original string can be
+	// used in the error message.
+	if (!outductName[0])
+	{
+		return 0;
+	}
+
+	*sep = '\0';
+
+	return 1;
+}
+
+static void listOutducts(void) {
+	PsmPartition bpwm = getIonwm();
+	PsmAddress elt;
+	VOutduct *vduct;
+
+	for (elt = sm_list_first(bpwm, getBpVdb()->outducts); elt;
+	     elt = sm_list_next(bpwm, elt))
+	{
+		vduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		printf("%s:%s\n", vduct->protocolName, vduct->ductName);
+	}
 }
 
 static void usage(const char *name)
 {
 	fprintf(stderr,
-		"Usage: %s DEST-NODE [-q] [-j] [-m] [-t DISPATCH-OFFSET]\n"
+		"Usage: %s [-q] [-j] [-m] [-t DISPATCH-OFFSET]\n"
 		"       [-e EXPIRATION-OFFSET] [-s BUNDLE-SIZE]\n"
-		"       [-o OUTPUT-FILE] [-p OUTDUCT-PROTO]\n"
-		"       [-n OUTDUCT-NAME]\n"
+		"       [-o OUTPUT-FILE] [-d PROTO:NAME] DEST-NODE\n"
 		"\n"
-		"Run a CGR simulation from the local node to DEST-NODE. Output\n"
-		"trace messages to stderr (unless -q) and JSON to stdout (unless -j).\n"
+		"In the first case, run a CGR simulation from the local node to\n"
+		"DEST-NODE. Output trace messages to stderr (unless -q) and JSON\n"
+		"to stdout (unless -j).\n"
 		"\n"
 		"Options:\n"
 		"  -q                    disable trace message output\n"
@@ -723,10 +760,9 @@ static void usage(const char *name)
 		"  -s BUNDLE-SIZE        set the bundle payload size to BUNDLE-\n"
 		"                        SIZE bytes (default: %u)\n"
 		"  -o OUTPUT-FILE        send JSON to OUTPUT-FILE (default: stdout)\n"
-		"  -p OUTDUCT-PROTO      use OUTDUCT-PROTO as the outduct proto-\n"
-		"                        col (default: %s)\n"
-		"  -n OUTDUCT-NAME       use OUTDUCT-NAME as the outduct name\n"
-		"                        (default: %s)\n"
+		"  -d PROTO:NAME         use the outduct with protocol PROTO and\n"
+		"                        name NAME (default: %s:%s)\n"
+		"                        list available outducts with -d list\n"
 		,
 		name,
 		(unsigned int)(dispatchOffset),
@@ -737,7 +773,12 @@ static void usage(const char *name)
 	);
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
+static void teardown(void)
+{
+	bp_detach();
+}
+
 int	cgrfetch(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -746,19 +787,7 @@ int	main(int argc, char **argv)
 {
 #endif
 	char *end;
-
-#if defined (VXWORKS) || defined (RTEMS)
-	if (!a2)
-	{
-		DIES("a destination node is required");
-	}
-
-	destNode = strtoul((char *)(a2), &end, 10);
-
-	if (end == (char *)(a2))
-	{
-		DIES("invalid destination node");
-	}
+#if defined (ION_LWT)
 
 	if (a3)
 	{
@@ -804,19 +833,13 @@ int	main(int argc, char **argv)
 			DIEF("unable to open '%s'", a7);
 		}
 	}
-	else
-	{
-		outputFile = stdout;
-	}
 
 	if (a8)
 	{
-		outductProto = (char *)(a8);
-	}
-
-	if (a9)
-	{
-		outductName = (char *)(a9);
+		if (!parseOutduct((char *)(a8)))
+		{
+			DIEF("invalid outduct '%s'", a8);
+		}
 	}
 #else
 	int opt;
@@ -824,16 +847,21 @@ int	main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((opt = getopt(argc, argv, "hqjt:e:s:mo:p:n:")) >= 0)
+	while ((opt = getopt(argc, argv, ":hqjt:e:s:mo:d:")) >= 0)
 	{
 		switch (opt)
 		{
+		case 'h':
+			usage(argv[0]);
+			exit(EXIT_SUCCESS);
+		break;
+
 		case 'q':
-			outputs &= ~OUTPUT_TRACE_MSG;
+			flags &= ~OUTPUT_TRACE_MSG;
 		break;
 
 		case 'j':
-			outputs &= ~OUTPUT_JSON;
+			flags &= ~OUTPUT_JSON;
 		break;
 
 		case 't':
@@ -876,17 +904,17 @@ int	main(int argc, char **argv)
 			}
 		break;
 
-		case 'p':
-			outductProto = optarg;
-		break;
+		case 'd':
+			if (strcmp(optarg, "list") == 0)
+			{
+				flags |= LIST_OUTDUCTS;
+				break;
+			}
 
-		case 'n':
-			outductName = optarg;
-		break;
-
-		case 'h':
-			usage(argv[0]);
-			exit(EXIT_SUCCESS);
+			if (!parseOutduct(optarg))
+			{
+				DIEF("invalid outduct '%s'", optarg);
+			}
 		break;
 
 		case ':':
@@ -898,7 +926,32 @@ int	main(int argc, char **argv)
 		break;
 		}
 	}
+#endif
 
+	if (bp_attach() < 0)
+	{
+		DIES("unable to attach to bp");
+	}
+
+	if (flags & LIST_OUTDUCTS)
+	{
+		listOutducts();
+		exit(EXIT_SUCCESS);
+	}
+
+#if defined (VXWORKS) || defined (RTEMS)
+	if (!a2)
+	{
+		DIES("a destination node is required");
+	}
+
+	destNode = strtoul((char *)(a2), &end, 10);
+
+	if (end == (char *)(a2))
+	{
+		DIES("invalid destination node");
+	}
+#else
 	args = &argv[optind];
 
 	if (!args[0])
@@ -912,26 +965,22 @@ int	main(int argc, char **argv)
 	{
 		DIEF("invalid destination node '%s'", args[0]);
 	}
+#endif
 
 	if (!outputFile)
 	{
 		outputFile = stdout;
-	}
-#endif
-
-	if (bp_attach() < 0)
-	{
-		DIES("unable to attach to bp");
 	}
 
 	findOutduct(outductProto, outductName, &vduct, &vductElt);
 
 	if (!vductElt)
 	{
-		DIEF("invalid outduct proto:%s name:%s", outductProto,
-			outductName);
+		DIEF("unable to find outduct %s:%s", outductProto, outductName);
 	}
 
 	run_cgrfetch();
 	exit(EXIT_SUCCESS);
 }
+
+// vim: sw=8 noexpandtab

@@ -562,6 +562,7 @@ static void	*spawnReceivers(void *parm)
 
 		if (atp->running == 0)
 		{
+			closesocket(newSocket);
 			break;	/*	Main thread has shut down.	*/
 		}
 
@@ -570,6 +571,7 @@ static void	*spawnReceivers(void *parm)
 		if (receiverParms == NULL)
 		{
 			putErrmsg("brsscla can't allocate for thread", NULL);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -583,6 +585,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putErrmsg("brsscla can't allocate for thread", NULL);
 			MRELEASE(receiverParms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -602,6 +605,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putSysErrmsg("brsscla can't create new thread", NULL);
 			MRELEASE(receiverParms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -825,7 +829,7 @@ port 80)", NULL);
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd >= 0)
 	{
-		connect(fd, &(atp.socketName), sizeof(struct sockaddr));
+		oK(connect(fd, &(atp.socketName), sizeof(struct sockaddr)));
 
 		/*	Immediately discard the connected socket.	*/
 
@@ -847,7 +851,7 @@ port 80)", NULL);
  *	communicating with the BRS client identified by BRS duct
  *	number 20.							*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	brsscla(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

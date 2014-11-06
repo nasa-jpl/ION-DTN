@@ -18,6 +18,7 @@
 #endif
 #include "phn.h"
 #include "ecos.h"
+#include "meb.h"
 #include "bae.h"
 #include "extbspbab.h"
 #include "extbsppcb.h"
@@ -73,6 +74,20 @@ static ExtensionDef	extensions[] =
 				ecos_processOnAccept,
 				ecos_processOnEnqueue,
 				ecos_processOnDequeue,
+				0}
+		},
+		{ "meb", EXTENSION_TYPE_MEB, 0,
+				meb_offer,
+				meb_release,
+				meb_acquire,
+				meb_check,
+				meb_record,
+				meb_clear,
+				meb_copy,
+				{meb_processOnFwd,
+				meb_processOnAccept,
+				meb_processOnEnqueue,
+				meb_processOnDequeue,
 				0}
 		},
 		{ "bae", EXTENSION_TYPE_BAE, 0,

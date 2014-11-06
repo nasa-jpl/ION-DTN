@@ -25,7 +25,7 @@ static void	createIonConfigFiles()
 	char	filenamebuf[80];
 	int	fd;
 	char	*ionconfigLines[] =	{
-"wmSize 300000\n",
+"wmSize 100000\n",
 "configFlags 1\n",
 "heapWords 75000\n",
 "pathName /ion\n",

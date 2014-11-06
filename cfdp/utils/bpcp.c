@@ -41,12 +41,10 @@ void parseDirectoryListingResponse(unsigned char *text, int bytesRemaining,
 static void handle_sigterm();
 #endif
 
-
-
 /*Command line flags*/
-int showprogress = 1;				/* Set to zero to disable progress meter */
-int debug = 0;						/*Set to non-zero to enable debug output. */
-int iamrecursive;					/*Copy Recursively*/
+int showprogress = 1;		/* Set to zero to disable progress meter */
+int debug = 0;			/*Set to non-zero to enable debug output. */
+int iamrecursive;		/*Copy Recursively*/
 
 /*Set to 1 if Target is a Directory*/
 int targetshouldbedirectory = 0;
@@ -55,26 +53,24 @@ int targetshouldbedirectory = 0;
 CfdpReqParms	parms;
 
 /*Event waiting stuff*/
-sm_SemId			events_sem;							/*Semaphore to wait for events on*/
-enum wait_status 	current_wait_status;				/*Wait Status*/
-CfdpTransactionId* 	event_wait_id;						/*Pointer to transaction ID to wait for*/
-CfdpDirListTask 	dirlst;								/*Directory Listing info*/
-char 				tmp_files[NUM_TMP_FILES][255];		/*tmp filename array*/
+sm_SemId	events_sem;	/*Semaphore to wait for events on*/
+enum wait_status 	current_wait_status;	/*Wait Status*/
+CfdpTransactionId* 	event_wait_id;	/*Pointer to transaction ID to wait for*/
+CfdpDirListTask 	dirlst;		/*Directory Listing info*/
+char 		tmp_files[NUM_TMP_FILES][255];		/*tmp filename array*/
 
 /*Receiver Thread variables*/
-int recv_running;										/*Thread running flag*/
-pthread_t rcv_thread;									/*Pthread variable*/
-
-
+int recv_running;		/*Thread running flag*/
+pthread_t rcv_thread;		/*Pthread variable*/
 
 /*Start Here*/
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	bpcp(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	int t;
-	char* argv[5];
-	int		argc;
+	int	t;
+	char*	argv[5];
+	int	argc;
 
 	/*Initialize CFDP*/
 	ion_cfdp_init();
@@ -194,7 +190,8 @@ int main(int argc, char **argv)
 				}
 				else
 				{
-					dbgprintf(0, "Error: Invalid BP Lifetime\n");
+					dbgprintf(0,
+						"Error: Invalid BP Lifetime\n");
 					exit_nicely(1);
 				}
 				break;
@@ -209,26 +206,30 @@ int main(int argc, char **argv)
 					strcmp(optarg, "on")==0 ||
 					strcmp(optarg, "1")==0)
 				{
-						parms.utParms.custodySwitch = SourceCustodyRequired;
+					parms.utParms.custodySwitch
+						= SourceCustodyRequired;
 				}
 				else
 				{
-						if (strcmp(optarg, "No")==0 ||
-							strcmp(optarg, "NO")==0 ||
-							strcmp(optarg, "yes")==0 ||
-							strcmp(optarg, "n")==0 ||
-							strcmp(optarg, "Off")==0 ||
-							strcmp(optarg, "OFF")==0 ||
-							strcmp(optarg, "off")==0 ||
-							strcmp(optarg, "0")==0)
-						{
-							parms.utParms.custodySwitch = NoCustodyRequested;
-						}
-						else
-						{
-							dbgprintf(0, "Error: Invalid Custody Transfer Setting\n");
-						}
+					if (strcmp(optarg, "No")==0 ||
+						strcmp(optarg, "NO")==0 ||
+						strcmp(optarg, "yes")==0 ||
+						strcmp(optarg, "n")==0 ||
+						strcmp(optarg, "Off")==0 ||
+						strcmp(optarg, "OFF")==0 ||
+						strcmp(optarg, "off")==0 ||
+						strcmp(optarg, "0")==0)
+					{
+						parms.utParms.custodySwitch
+							= NoCustodyRequested;
 					}
+					else
+					{
+						dbgprintf(0, "Error: Invalid \
+Custody Transfer Setting\n");
+					}
+				}
+
 				break;
 			case 'S':
 				/*Class of Service*/
@@ -237,8 +238,11 @@ int main(int argc, char **argv)
 				if (tmpoption>=0 && tmpoption <= 2)
 				{
 					parms.utParms.classOfService=tmpoption;
-				} else {
-					dbgprintf(0, "Error: Invalid BP Class of Service\n");
+				}
+				else
+				{
+					dbgprintf(0, "Error: Invalid BP Class \
+of Service\n");
 					exit_nicely(1);
 				}
 				break;
@@ -246,6 +250,7 @@ int main(int argc, char **argv)
 				usage();
 		}
 	}
+
 	argc -= optind;
 	argv += optind;
 #endif
@@ -270,9 +275,12 @@ int main(int argc, char **argv)
 	{
 		usage();
 	}
+
 	if (argc > 2)
 	{
-		/*We are moving multiple files, destination must be a directory*/
+		/*	We are moving multiple files, destination must
+		 *	be a directory.					*/
+
 		targetshouldbedirectory = 1;
 	}
 
@@ -290,8 +298,10 @@ int main(int argc, char **argv)
 		dbgprintf(0, "Error: Can't create semaphore\n");
 		exit(1);
 	}
+
 	recv_running=1;
-	if (pthread_begin(&rcv_thread, NULL, &rcv_msg_thread, (void*)&recv_running))
+	if (pthread_begin(&rcv_thread, NULL, &rcv_msg_thread,
+				(void*) &recv_running))
 	{
 		dbgprintf(0, "Error: Can't start message thread\n");
 		sm_SemDelete(events_sem);
@@ -310,15 +320,17 @@ int main(int argc, char **argv)
 		/*Destination is localhost*/
 		if (targetshouldbedirectory)
 		{
-			/*If we are moving multiple files, check that destination
-			 * is directory*/
+			/*	If we are moving multiple files, check
+			 *	that destination is directory.		*/
+
 			if (is_dir(argv[argc - 1]))
 			{
 				tolocal(argc, argv);
 			}
 			else
 			{
-				dbgprintf(0, "Error: Destination is not a directory\n");
+				dbgprintf(0, "Error: Destination is not a \
+directory\n");
 				exit_nicely(1);
 			}
 		}
@@ -338,7 +350,6 @@ int main(int argc, char **argv)
  * path isn't remote (no colon). */
 char* remote_path(char *cp)
 {
-
 	if (*cp == ':')
 	{
 		/* Leading colon might be part of filename. */
@@ -352,12 +363,14 @@ char* remote_path(char *cp)
 			/* Found colon*/
 			return (cp);
 		}
+
 		if (*cp == '/')
 		{
 			/*Path separator. definitely filename*/
 			return NULL;
 		}
 	}
+
 	return NULL;
 }
 
@@ -374,6 +387,7 @@ int is_dir(char *cp)
 			return 1;
 		}
 	}
+
 	return 0;
 }
 
@@ -458,6 +472,7 @@ int open_remote_dir(char *host, char *dir)
 		dbgprintf(0, "Error: CFDP error on %s\n",dir);
 		exit_nicely(1);
 	}
+
 	dbgprintf(1, "Requested Dir listing for: %s\n", dir);
 
 	/*Cleanup*/
@@ -484,7 +499,8 @@ int open_remote_dir(char *host, char *dir)
 		current_wait_status=no_req;
 		return hndl;
 	}
-return -2;
+
+	return -2;
 }
 
 /*Takes a given directory handle and returns the index(th) directory entry
@@ -610,17 +626,21 @@ void toremote(char *targ, int argc, char **argv)
 	{
 		src = remote_path(argv[i]);
 		if (src) {
-			/*If first argument is a remote path,
-			 * this is a remote to remote copy*/
+			/*	If first argument is a remote path,
+			 *	this is a remote to remote copy.	*/
 
-			/*Skip colon character. If no directory specified, use local directory*/
+			/*	Skip colon character. If no directory
+			 *	specified, use local directory.		*/
+
 			*src++ = 0;
 			if (*src == 0)
 			{
 				src = ".";
 			}
 
-			/*Host is the beginning of this argument (part prior to colon)*/
+			/*	Host is the beginning of this argument
+			 *	(part prior to colon).			*/
+
 			host = argv[i];
 
 			/*Do copy*/
@@ -676,20 +696,25 @@ void tolocal(int argc, char **argv)
 		{
 			/*Remote to Local copy*/
 
-			/*Skip colon character. If no directory specified, use local directory*/
+			/*	Skip colon character. If no directory
+			 *	specified, use local directory.		*/
 			*src++ = 0;
 			if (*src == 0)
 			{
 				src = ".";
 			}
 
-			/*Host is the beginning of this argument (part prior to colon)*/
+			/*	Host is the beginning of this argument
+			 *	(part prior to colon).			*/
+
 			host = argv[i];
 
 			/*Target is the last argument, a local file*/
+
 			targ=*(argv + argc - 1);
 
 			/*Do Copy*/
+
 			t.type=Remote_Local;
 			snprintf(t.sfile, 255, "%.255s", src);
 			snprintf(t.shost, 255, "%.255s", host);
@@ -759,8 +784,8 @@ int ion_cfdp_put(struct transfer* t)
 					sizeof(BpUtParms),
 					(unsigned char *) &(parms.utParms),
 					parms.sourceFileName,
-					parms.destFileName, NULL,
-					parms.faultHandlers, 0, NULL,
+					parms.destFileName, NULL, NULL,
+					parms.faultHandlers, 0, NULL, 0,
 					parms.msgsToUser,
 					parms.fsRequests,
 					&(parms.transactionId));
@@ -803,7 +828,7 @@ int ion_cfdp_put(struct transfer* t)
 	parms.msgsToUser = 0;
 	parms.fsRequests = 0;
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
-return 0;
+	return 0;
 }
 
 /*Copies a remote file to a local file. Takes a remote host,
@@ -825,7 +850,8 @@ int ion_cfdp_get(struct transfer* t)
 	/*Length checks*/
 	if(strlen(t->sfile) + strlen(t->dfile) +strlen("cfdp")+ 10 >= 255)
 	{
-			dbgprintf(0, "Error: Can't copy, filename too long: %s\n", t->sfile);
+			dbgprintf(0, "Error: Can't copy, filename too long: \
+%s\n", t->sfile);
 			return -1;
 	}
 
@@ -898,7 +924,7 @@ int ion_cfdp_get(struct transfer* t)
 	parms.msgsToUser = 0;
 	parms.fsRequests = 0;
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
-return 0;
+	return 0;
 }
 
 /*Copies a remote file to another host. Takes a source host and file
@@ -922,7 +948,8 @@ int ion_cfdp_rput(struct transfer* t)
 	/*Length checks*/
 	if(strlen(t->sfile) + strlen(t->dfile) + strlen("cfdp")+ 10 >= 255)
 	{
-			dbgprintf(0, "Error: Can't copy, filename too long: %s\n", t->sfile);
+			dbgprintf(0, "Error: Can't copy, filename too long: \
+%s\n", t->sfile);
 			return -1;
 	}
 
@@ -951,15 +978,14 @@ int ion_cfdp_rput(struct transfer* t)
 	event_wait_id=&parms.transactionId;
 	current_wait_status=snd_wait;
 #endif
-	res = cfdp_rput(&src,
-				sizeof(BpUtParms),
-				(unsigned char *) &(parms.utParms),
-				NULL, NULL, 0,
-				parms.faultHandlers,
-				0, NULL,
-				parms.msgsToUser,
-				0, &(parms.destinationEntityNbr), &parms.proxytask,
-				&(parms.transactionId));
+	res = cfdp_rput(&src, sizeof(BpUtParms),
+			(unsigned char *) &(parms.utParms),
+			NULL, NULL, 0,
+			parms.faultHandlers,
+			0, NULL,
+			parms.msgsToUser,
+			0, &(parms.destinationEntityNbr), &parms.proxytask,
+			&(parms.transactionId));
 
 	/*Handle Error*/
 	if (res<0) {
@@ -996,7 +1022,7 @@ int ion_cfdp_rput(struct transfer* t)
 	parms.msgsToUser = 0;
 	parms.fsRequests = 0;
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
-return 0;
+	return 0;
 }
 
 /*Copy files locally using cp. Let's cp handle recursion.
@@ -1063,7 +1089,8 @@ static int do_local_cmd(char *cmdln)
 	{
 		if (errno != EINTR)
 		{
-			dbgprintf(0,"do_local_cmd: waitpid: %s\n", system_error_msg());
+			dbgprintf(0,"do_local_cmd: waitpid: %s\n",
+					system_error_msg());
 			exit_nicely(1);
 		}
 	}
@@ -1126,7 +1153,8 @@ void manage_src(struct transfer *t)
 			{
 				if (!(dirp = opendir(t->sfile)))
 				{
-					dbgprintf(0, "bpcp: %s:%s\n", t->sfile, system_error_msg());
+					dbgprintf(0, "bpcp: %s:%s\n", t->sfile,
+							system_error_msg());
 					return;
 				}
 
@@ -1330,7 +1358,7 @@ void transfer(struct transfer *t)
  * Exits when param becomes 0.*/
 void* rcv_msg_thread(void* param)
 {
-	int* running=(int*)param;
+	int			*running=(int*)param;
 	char			*eventTypes[] =	{
 					"no event",
 					"transaction started",
@@ -1346,39 +1374,45 @@ void* rcv_msg_thread(void* param)
 					"abandoned"
 						};
 	CfdpEventType		type;
-	time_t				time;
-	int					reqNbr;
+	time_t			time;
+	int			reqNbr;
 	CfdpTransactionId	transactionId;
-	char				sourceFileNameBuf[256];
-	char				destFileNameBuf[256];
-	unsigned int		fileSize;
+	char			sourceFileNameBuf[256];
+	char			destFileNameBuf[256];
+	uvast			fileSize;
 	MetadataList		messagesToUser;
-	unsigned int		offset;
+	uvast			offset;
 	unsigned int		length;
+	unsigned int		recordBoundsRespected;
+	CfdpContinuationState	continuationState;
+	unsigned int		segMetadataLength;
+	char			segMetadata[63];
 	CfdpCondition		condition;
-	unsigned int		progress;
+	uvast			progress;
 	CfdpFileStatus		fileStatus;
 	CfdpDeliveryCode	deliveryCode;
 	CfdpTransactionId	originatingTransactionId;
-	char				statusReportBuf[256];
+	char			statusReportBuf[256];
 	MetadataList		filestoreResponses;
 	unsigned char		usrmsgBuf[256];
 	CfdpDirListingResponse	dir_list_rsp;
-	uvast 		TID11;
-	uvast		TID12;
-	uvast		TID21=0;
-	uvast		TID22=0;
+	uvast 			TID11;
+	uvast			TID12;
+	uvast			TID21=0;
+	uvast			TID22=0;
 
 	/*Main Event loop*/
 	while (*running)
 	{
 		/*Grab a CFDP event*/
 		if (cfdp_get_event(&type, &time, &reqNbr, &transactionId,
-						sourceFileNameBuf, destFileNameBuf,
-						&fileSize, &messagesToUser, &offset, &length,
-						&condition, &progress, &fileStatus,
-						&deliveryCode, &originatingTransactionId,
-						statusReportBuf, &filestoreResponses) < 0)
+				sourceFileNameBuf, destFileNameBuf,
+				&fileSize, &messagesToUser, &offset, &length,
+				&recordBoundsRespected, &continuationState,
+				&segMetadataLength, segMetadata,
+				&condition, &progress, &fileStatus,
+				&deliveryCode, &originatingTransactionId,
+				statusReportBuf, &filestoreResponses) < 0)
 		{
 			dbgprintf(0, "Error: Failed getting CFDP event.", NULL);
 			exit(1);

@@ -17,6 +17,22 @@
 extern "C" {
 #endif
 
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS)
+#define ION_LWT
+#else
+#undef ION_LWT
+#endif
+
+/*	NOTE: the -DION4WIN compiler switch is used to indicate that
+ *	header code must be rendered suitable for compilation of ION-
+ *	based Windows executables in a Visual Studio build environment.
+ *	It usually overrides the "-Dmingw" compiler switch, which is
+ *	otherwise required when building ION and ION-based software
+ *	for Windows.  In some cases the effect of -Dmingw and -DION4WIN
+ *	is the same: the affected code is suitable for Windows develop-
+ *	ment (and only Windows development), whether within Visual
+ *	Studio or not.							*/
+
 #ifdef uClibc
 #ifndef linux
 #define linux
@@ -37,24 +53,43 @@ extern "C" {
 #define SPACE_ORDER	2
 #endif
 
-#if (defined(RTEMS) || defined(uClibc))
-/*	In RTEMS 4.9, defining the first field of a struct as
- *	"long long" apparently doesn't cause the struct (nor that
- *	first field) to be aligned on a "long long" boundary, so
- *	we get alignment errors.  For now, we get around this by
- *	simply defining "vast" as "long"; node numbers larger than
- *	4G won't be processed properly on an RTEMS platform.  At
- *	some point somebody may figure out a workaround in the
- *	compiler so that we can fix this.
+/*	We define new data types "vast" and "uvast", which are always
+ *	64-bit numbers regardless of the native machine architecture
+ *	(except as noted below).					*/
+
+#if (defined (RTEMS) || defined (uClibc))
+/*	In the RTEMS 4.9 development environment for Linux (for
+ *	target sparc-rtems4.9), defining the first field of a struct
+ *	as "long long" apparently doesn't cause the struct (nor that
+ *	first field) to be aligned on a "long long" boundary, so in
+ *	JPL's ION RTEMS development environment we get alignment
+ *	errors.  For now, we get around this by simply defining "vast"
+ *	as "long"; node numbers larger than 4G won't be processed
+ *	properly on an RTEMS platform.  The solution seems to be that
+ *	RTEMS needs to be built with the CPU_ALIGNMENT macro set to 8
+ *	rather than 4.  ION/RTEMS system integrators who can build
+ *	RTEMS in this configuration should set the -DLONG_LONG_OKAY
+ *	compiler flag to 1 when building ION.
  *
  *	In uClibc, support for "long long" integers apparently
- *	requires that libgcc_s.so.1 be installed.  Because our
- *	test environment doesn't include this library, we have
- *	to define "vast" as "long"; node numbers larger than 4G
- *	won't be processed properly on a uClibc platform.  System
- *	integrators who can provide libgcc_s.so.1 should be able
- *	to restore this functionality by revising this conditional
- *	compilation.							*/
+ *	requires that libgcc_s.so.1 be installed.  Because JPL's
+ *	ION uClibc development environment doesn't include this
+ *	library, we have to define "vast" as "long"; node numbers
+ *	larger than 4G won't be processed properly on a uClibc
+ *	platform.  ION/uClibc system integrators who can provide
+ *	libgcc_s.so.1 should set the -DLONG_LONG_OKAY compiler flag
+ *	to 1 when building ION.						*/
+
+#ifndef LONG_LONG_OKAY
+#define	LONG_LONG_OKAY		0	/*	Default value.		*/
+#endif
+
+#else
+
+#define	LONG_LONG_OKAY		1
+#endif	/*	RTEMS or uClibc						*/
+
+#if (!LONG_LONG_OKAY)
 typedef long			vast;
 typedef unsigned long		uvast;
 #define	VAST_FIELDSPEC		"%ld"
@@ -64,13 +99,13 @@ typedef unsigned long		uvast;
 #elif (SPACE_ORDER < 3)	/*	32-bit machines.			*/
 typedef long long		vast;
 typedef unsigned long long	uvast;
-#ifdef mingw
+#if (defined(mingw) || defined(ION4WIN))
 #define	VAST_FIELDSPEC		"%I64d"
 #define	UVAST_FIELDSPEC		"%I64u"
-#else
+#else				/*	Not Windows.			*/
 #define	VAST_FIELDSPEC		"%lld"
 #define	UVAST_FIELDSPEC		"%llu"
-#endif
+#endif				/*	end #ifdef mingw || ION4WIN	*/
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
 #else			/*	64-bit machines.			*/
@@ -124,12 +159,19 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #include <errno.h>
 #include <stdarg.h>
 			/* POSIX.1 */
+#ifndef ION4WIN			/*	No POSIX in Visual Studio.	*/
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#endif				/*	end of #ifndef ION4WIN		*/
 
-#ifdef mingw			/****   Windows vs all others	*********/
+#ifdef ION4WIN			/*	Visual Studio provides most.	*/
+
+#include <sys/types.h>
+
+#elif defined(mingw)		/****   Windows vs all others	*********/
+
 #include <winsock2.h>
 #include <process.h>
 #include <Winbase.h>
@@ -144,7 +186,9 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define ECONNRESET		WSAECONNRESET
 #define EWOULDBLOCK		WSAEWOULDBLOCK
 #define	O_LARGEFILE		0
+
 #else				/****	not Windows		*********/
+
 #include <sys/times.h>
 #include <limits.h>
 #include <sys/wait.h>
@@ -163,7 +207,9 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define irecv(a,b,c,d)		recv(a,b,c,d)
 #define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
 #define irecvfrom(a,b,c,d,e,f)	recvfrom(a,b,c,d,e,f)
-#endif				/****   End of #ifdef mingw	*********/
+
+#endif				/*	end of #ifdef ION4WIN		*/
+
 /*
 ** End of Standard Headers
 */
@@ -179,7 +225,7 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define ERROR			(-1)
 
 #ifdef __GNUC__
-#define UNUSED  __attribute__((unused))
+#define UNUSED			__attribute__((unused))
 #else
 #define UNUSED
 #endif
@@ -194,13 +240,13 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #ifndef LONG_MAX
 
 #if defined (_ILP32)
-#define LONG_MAX 0x7fffffffL
+#define LONG_MAX		(0x7fffffffL)
 #elif defined (_LP64)
-#define LONG_MAX 0x7fffffffffffffffL
+#define LONG_MAX		(0x7fffffffffffffffL)
 #elif (SIZEOF_LONG == 4)
-#define LONG_MAX 0x7fffffffL
+#define LONG_MAX		(0x7fffffffL)
 #elif (SIZEOF_LONG == 8)
-#define LONG_MAX 0x7fffffffffffffffL
+#define LONG_MAX		(0x7fffffffffffffffL)
 #endif
 
 #endif				/****	End of #ifndef LONG_MAX   *******/
@@ -256,10 +302,23 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 #define PUTMEMO(text, memo)	printf("%s: %s\n", text, memo)
 #endif
 
+/*	Need MAXPATHLEN defined for Visual Studio compile.		*/
+
+#ifdef ION4WIN
+#ifdef PATH_MAX
+#define MAXPATHLEN PATH_MAX
+#else
+#define MAXPATHLEN 260
+#endif
+#endif				/*	end of #ifdef ION4WIN		*/
+
 /*	Configure for platform-specific headers and IPC services.	*/
+
+#ifndef ION4WIN			/*	None of these apply in VS.	*/
 
 #define SVR4_SEMAPHORES		/****	default			*********/
 #define SVR4_SHM		/****	default			*********/
+#define	UNIX_TASKS		/****	default			*********/
 
 #ifdef VXWORKS			/****	VxWorks			*********/
 
@@ -268,6 +327,9 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 
 #undef	SVR4_SEMAPHORES
 #define VXWORKS_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define VXWORKS_TASKS
 
 #include <vxWorks.h>
 #include <sockLib.h>
@@ -300,7 +362,10 @@ typedef int			socklen_t;
 #define RTOS_SHM
 
 #undef	SVR4_SEMAPHORES
-#define POSIX1B_SEMAPHORES
+#define POSIX_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define POSIX_TASKS
 
 typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
@@ -328,6 +393,9 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #undef	SVR4_SEMAPHORES
 #define MINGW_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define MINGW_TASKS
 
 #include <pthread.h>
 
@@ -374,6 +442,13 @@ extern int	irecvfrom(int sockfd, char *buf, int len, int flags,
 /*
 ** End of *NIX Headers
 */
+
+#ifdef AESCFS
+#undef	UNIX_TASKS
+#define POSIX_TASKS
+
+typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
+#endif				/*	End of #ifdef AESCFS	     ****/
 
 #ifdef __SVR4			/****	All Sys 5 Rev 4 UNIX systems ****/
 
@@ -424,7 +499,12 @@ extern int getpriority(int, id_t);
 #define RTOS_SHM
 
 #undef	SVR4_SEMAPHORES
-#define POSIX1B_SEMAPHORES
+#define POSIX_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define POSIX_TASKS
+
+typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #include <sys/param.h>		/****	...to get MAXPATHLEN         ****/
 
@@ -432,12 +512,10 @@ extern int getpriority(int, id_t);
 #define	SEM_NSEMS_MAX		256
 #endif
 
-typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
-
 #define PRIVATE_SYMTAB
 
 #else				/****	Not bionic		     ****/
-#ifdef uClibc
+#ifdef uClibc			/****	uClibc subset of Linux	     ****/
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
 #else				/****	Not bionic and not uClibc    ****/
@@ -456,6 +534,8 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include <pthread.h>
 
 #define	_MULTITHREADED
+
+#define	O_LARGEFILE	0
 
 #endif				/****	End of #ifdef freebsd	     ****/
 
@@ -479,11 +559,12 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #endif				/****	End of #ifdef (unix)         ****/
 
-#if defined (SVR4_SHM)		/****	SVR4_SHM		     ****/
+#if defined (SVR4_SHM)
 #include <sys/shm.h>
-#elif defined (POSIX1B_SHM)
-#include <sys/mman.h>
-#endif				/****	End of #ifdef SVR4-SHM	     ****/
+#endif
+
+/*	Note: if we ever need POSIX shared-memory services, we
+ *	need to #include <sys/mman.h>.					*/
 
 #if defined (SVR4_SEMAPHORES)	/****	SVR4_SEMAPHORES		     ****/
 
@@ -521,14 +602,47 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #endif
 #endif				/****	End of #ifndef SEMMNS	     ****/
 
-#elif defined (POSIX1B_SEMAPHORES)
+#elif defined (POSIX_SEMAPHORES)
 
 #include <semaphore.h>
 
 #endif				/****	End #if defined SVR4_SEMAPHORES */
 
+#endif				/****	End of #ifdef ION4WIN        ****/
+
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include "valgrind/valgrind.h"
+#endif
+
+#if (defined(AESCFS))
+#define	FSWLOGGER
+#define	FSWWATCHER
+#define	FSWTIME
+#define	FSWCLOCK
+#define FSWLAN
+#define FSWSCHEDULER
+#define	FSWUSER
+#include "ioncfs.h"
+#endif
+
+#ifndef	TRACK_MALLOC
+#define	TRACK_MALLOC(x)
+#endif
+
+#ifndef	TRACK_FREE
+#define	TRACK_FREE(x)
+#endif
+
+#ifndef	TRACK_BORN
+#define	TRACK_BORN(x)
+#endif
+
+#ifndef	TRACK_DIED
+#define	TRACK_DIED(x)
+#endif
+
+#ifndef	MAX_SRC_FILE_NAME
+#define MAX_SRC_FILE_NAME	255
 #endif
 
 /*	Prototypes for standard ION platform functions.			*/
@@ -538,7 +652,7 @@ typedef void			(* Watcher)(char);
 
 extern void			*acquireSystemMemory(size_t);
 extern int			createFile(const char*, int);
-extern char *			system_error_msg();
+extern char			*system_error_msg();
 extern void			setLogger(Logger);
 extern void			writeMemo(char *);
 extern void			writeErrMemo(char *);
@@ -549,12 +663,11 @@ extern void			snooze(unsigned int);
 extern void			microsnooze(unsigned int);
 extern void			getCurrentTime(struct timeval *);
 extern unsigned long		getClockResolution();	/*	usec	*/
-#ifndef ION_NO_DNS
+#if (defined(FSWLAN) || !(defined(ION_NO_DNS)))
 extern unsigned int		getInternetAddress(char *);
-extern char *			getInternetHostName(unsigned int, char *);
+extern char			*getInternetHostName(unsigned int, char *);
 extern int			getNameOfHost(char *, int);
-extern unsigned int		getAddressOfHost();
-extern char *			getNameOfUser(char *);
+extern char			*getNameOfUser(char *);
 extern int			reUseAddress(int);
 extern int			watchSocket(int);
 #endif
@@ -624,6 +737,9 @@ extern void			addToScalar(Scalar *, Scalar *);
 extern void			subtractFromScalar(Scalar *, Scalar *);
 extern int			scalarIsValid(Scalar *);
 
+extern uvast			htonv(uvast hostvast);
+extern uvast			ntohv(uvast netvast);
+
 extern int			_isprintf(char *, int, char *, ...);
 extern size_t			istrlen(char *, size_t);
 extern char			*istrcpy(char *, char *, size_t);
@@ -635,6 +751,8 @@ extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 
 extern void			findToken(char **cursorPtr, char **token);
+extern unsigned int		getAddressOfHost();
+extern char			*addressToString(struct in_addr, char *buf);
 extern int			parseSocketSpec(char *socketSpec,
 					unsigned short *portNbr,
 					unsigned int *ipAddress);

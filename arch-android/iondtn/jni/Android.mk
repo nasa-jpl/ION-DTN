@@ -117,6 +117,7 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/library/bei.c        \
 	$(MY_BP)/library/ext/phn/phn.c \
 	$(MY_BP)/library/ext/ecos/ecos.c \
+	$(MY_BP)/library/ext/meb/meb.c \
 	$(MY_BP)/library/ext/bae/bae.c
 
 #	$(MY_BP)/ltp/ltpcli.c         \
@@ -160,7 +161,7 @@ MY_BSSSOURCES :=    \
 #		$(MY_CFDP)/daemon/cfdpclock.c   \
 #		$(MY_CFDP)/utils/cfdpadmin.c    \
 
-LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/bae $(MY_BP)/library/ext/phn $(MY_BSS)/include $(MY_BSS)/library
+LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/meb $(MY_BP)/library/ext/bae $(MY_BP)/library/ext/phn $(MY_BSS)/include $(MY_BSS)/library
 
 #	$(MY_BSSP)/include $(MY_BSSP)/library $(MY_BSSP)/udp $(MY_BSSP)/tcp
 #	$(MY_LTP)/include $(MY_LTP)/library $(MY_LTP)/udp 

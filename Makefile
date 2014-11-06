@@ -5,23 +5,29 @@ all:
 	gmake -C ltp install
 	gmake -C dgr $@
 	gmake -C dgr install
-	gmake -C bss $@
-	gmake -C bss install
+	gmake -C bssp $@
+	gmake -C bssp install
 	gmake -C bp $@
 	gmake -C bp install
 	gmake -C ams $@
 	gmake -C ams install
 	gmake -C cfdp $@
 	gmake -C cfdp install
+	gmake -C bss $@
+	gmake -C bss install
+	gmake -C dtpc $@
+	gmake -C dtpc install
 
 clean:
 	gmake -C ici $@
 	gmake -C ltp $@
 	gmake -C dgr $@
-	gmake -C bss $@
+	gmake -C bssp $@
 	gmake -C bp $@
 	gmake -C ams $@
 	gmake -C cfdp $@
+	gmake -C bss $@
+	gmake -C dtpc $@
 
 test:
 	cd tests && ./runtestset normaltests

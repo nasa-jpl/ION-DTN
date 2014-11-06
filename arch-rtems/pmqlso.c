@@ -169,5 +169,6 @@ int	main(int argc, char *argv[])
 	mq_close(mq);
 	writeErrmsgMemos();
 	writeMemo("[i] pmqlso duct has ended.");
+	ionDetach();
 	return 0;
 }

@@ -1,0 +1,10 @@
+#!/bin/bash
+ionadmin	loopback.ionrc
+sleep 1
+ionsecadmin	loopback.ionsecrc
+sleep 1
+ltpadmin	loopback.ltprc
+sleep 1
+bpadmin		loopback.bprc
+sleep 1
+ipnadmin	loopback.ipnrc

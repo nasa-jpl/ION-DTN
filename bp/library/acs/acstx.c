@@ -84,7 +84,7 @@ int acsInitialize(long heapWords, int logLevel)
 #endif
            
            if (sdr_load_profile(acssdrName, SDR_IN_DRAM, heapWords,
-                                SM_NO_KEY, pathname, NULL) < 0)
+                                SM_NO_KEY, 0, SM_NO_KEY, pathname, NULL) < 0)
            {
               putErrmsg("Unable to load SDR profile for ACS.", NULL);
               return -1;
