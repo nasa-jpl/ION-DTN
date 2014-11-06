@@ -74,6 +74,8 @@ Features included:
      - ION-based applications can now be developed in Visual Studio via the new
        "winimplib.bat" batch script which creates import libraries suitable for
        linking ION DLLs.
+     - See "BuildingIONonWindowsForUseWithVisualStudio.pdf" for documentation
+       on how to build ION-ased applications in Visual Studio.
 
 - SourceForge Bug #49: ION now sends a "Depleted Storage" custody refusal
      signal back to the current custodian when an ION node lacks sufficient
@@ -201,6 +203,12 @@ Features included:
      - The receiveBundles() thread no longer terminates prematurely under
        some circumstances when a connection is broken.
      - The sending rate is no longer artifically capped at 1 bundle/sec.
+
+- The "ionscript" application has been updated to support dtpcadmin
+     configuration files.
+
+- ION's collection of man pages was previously included in "ION.pdf" but is now
+     available as a separate document, "ION-manpages.pdf".
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.2.1 =

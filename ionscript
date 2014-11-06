@@ -6,8 +6,8 @@
 #
 # The program will manage the various configuration files needed to start an
 # ion node.  It will take several specified rc files (man ionrc ionsecrc ltprc
-# bprc cfdprc ipnrc dtn2rc acsrc imcrc bssrc) and put them into a single large
-# configuration file with the appropriate section markers as needed by
+# bprc cfdprc ipnrc dtn2rc dtpcrc acsrc imcrc bssrc) and put them into a single
+# large configuration file with the appropriate section markers as needed by
 # ionstart.sh.
 # The program can also perform the opposite function: take a single large
 # formatted configuration file, as would be used by ionstart.sh, and split it
@@ -48,7 +48,7 @@ function USAGE {
 	echo    "IONSCRIPT: Interplanetary Overlay Network configuration creation script."
 	echo    "USAGE:"
 	echo    "	ionscript <-I input | -O output> [-A] [-t tag] [-a acsrc] [-b bprc]"
-	echo    "            [-B bssrc]  [-d dtn2rc]   [-i ionrc] [-l ltprc] [-m imcrc]"
+	echo    "            [-B bssrc]  [-d dtn2rc]   [-D dtpcrc] [-i ionrc] [-l ltprc] [-m imcrc]"
 	echo -n "            [-p ipnrc]  [-s ionsecrc]"
 if [ "$ION_OPEN_SOURCE" == "1" ]; then
 	echo " [-c cfdprc]"
@@ -87,6 +87,8 @@ fi
 	echo "			Default filename is input|output.tag.bssrc."
 	echo "	-d dtn2rc	Specifies file dtn2rc to be used with dtn2admin."
 	echo "			Default filename is input|output.tag.dtn2rc."
+	echo "	-D dtpcrc	Specifies file dtpcrc to be used with dtpcadmin."
+	echo "			Default filename is input|output.tag.dtpcrc."
 	echo "	-i ionrc	Specifies file ionrc to be used with ionadmin."
 	echo "			Default filename is input|output.tag.ionrc."
 	echo "	-l ltprc	Specifies file ltprc to be used with ltpadmin."
@@ -104,7 +106,7 @@ fi
 }
 
 # check for all the options
-while getopts ":i:d:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
+while getopts ":i:d:D:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
 	case $options in
 		I ) INPUTFILE="${OPTARG}"
 			DEFAULTBASEFILE="${OPTARG}"
@@ -135,6 +137,7 @@ while getopts ":i:d:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
 		b ) ;;
 		c ) ;;
 		d ) ;;
+		D ) ;;
 		i ) ;;
 		l ) ;;
 		m ) ;;
@@ -157,8 +160,8 @@ if [[ -z "${INPUTFILE}" && -z "${OUTPUTFILE}" ]] ; then
 fi
 
 # now the script is either going to fill an -O OUTPUT file with the contents of
-# -a -b -B -c -d -i -l -m -p -s OR the script will use the -I INPUT file and
-# split into component parts to be put into -a -b -B -c -d -i -l -m -p -s
+# -a -b -B -c -d -D -i -l -m -p -s OR the script will use the -I INPUT file and
+# split into component parts to be put into -a -b -B -c -d -D -i -l -m -p -s
 
 # fill in the default base filenames
 # note that BSSRC and IPNRC are initialized to empty here so that we can detect
@@ -170,6 +173,7 @@ fi
 ACSRC="${DEFAULTBASEFILE}.acsrc"
 BPRC="${DEFAULTBASEFILE}.bprc"
 DTN2RC="${DEFAULTBASEFILE}.dtn2rc"
+DTPCRC="${DEFAULTBASEFILE}.dtpcrc"
 IONRC="${DEFAULTBASEFILE}.ionrc"
 LTPRC="${DEFAULTBASEFILE}.ltprc"
 IMCRC="${DEFAULTBASEFILE}.imcrc"
@@ -182,10 +186,11 @@ IPNRC=""
 # reset options index to reuse getopts
 OPTIND=1
 options=""
-while getopts ":i:d:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
+while getopts ":i:d:D:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
 	case $options in
 		i ) IONRC="${OPTARG}";;
 		d ) DTN2RC="${OPTARG}";;
+		D ) DTPCRC="${OPTARG}";;
 		p ) IPNRC="${OPTARG}";;
 		a ) ACSRC="${OPTARG}";;
 		b ) BPRC="${OPTARG}";;
@@ -219,17 +224,21 @@ if [[ ! -z "${BSSRC}" ]] && [[ ! -z "${IPNRC}" ]] ; then
 	exit 1
 fi
 
-# Fill in the default base filenames here instead of above so we have a way to
-# detect if both were specified by the user, which is not allowed.
-BSSRC="${DEFAULTBASEFILE}.bssrc"
-IPNRC="${DEFAULTBASEFILE}.ipnrc"
+# Fill in the default base filenames here if necessary instead of above so we have a
+# way to detect if both were specified by the user, which is not allowed.
+if [[ -z "${BSSRC}" ]]  ; then
+	BSSRC="${DEFAULTBASEFILE}.bssrc"
+fi
+if [[ -z "${IPNRC}" ]]  ; then
+	IPNRC="${DEFAULTBASEFILE}.ipnrc"
+fi
 
 # if there is an input file, we will convert INPUTFILE -> ionrc, dtn2rc, ipnrc, etc
 if [[ -n "${INPUTFILE}" ]] ; then
 	echo
 	echo "I will now split the large input configuration file into its component parts."
 	echo
-	awk -f "${AWKSCRIPT}" -v configfile="${INPUTFILE}" -v tag="${TAG}" -v echo="cat" -v append="${append}" -v ionrc="${IONRC}" -v ltprc="${LTPRC}" -v bprc="${BPRC}" -v cfdprc="${CFDPRC}" -v ipnrc="${IPNRC}" -v dtn2rc="${DTN2RC}" -v ionsecrc="${IONSECRC}" -v acsrc="${ACSRC}" -v bssrc="${BSSRC}" -v imcrc="${IMCRC}" "${INPUTFILE}"
+	awk -f "${AWKSCRIPT}" -v configfile="${INPUTFILE}" -v tag="${TAG}" -v echo="cat" -v append="${append}" -v ionrc="${IONRC}" -v ltprc="${LTPRC}" -v bprc="${BPRC}" -v cfdprc="${CFDPRC}" -v ipnrc="${IPNRC}" -v dtn2rc="${DTN2RC}" -v dtpcrc="${DTPCRC}" -v ionsecrc="${IONSECRC}" -v acsrc="${ACSRC}" -v bssrc="${BSSRC}" -v imcrc="${IMCRC}" "${INPUTFILE}"
 else
 # there is an OUTPUTFILE, which will contain the contents of ionrc, dtn2rc, ipnrc etc.
 	datenow=`date`
@@ -304,6 +313,14 @@ else
 		echo "## begin dtn2admin ${TAG}" >>"${OUTPUTFILE}"
 		cat "${DTN2RC}" >>"${OUTPUTFILE}"
 		echo "## end dtn2admin ${TAG}" >>"${OUTPUTFILE}"
+	fi
+	if [[ -r "${DTPCRC}" ]] ; then
+		echo
+		echo "Appending ${DTPCRC} into ${OUTPUTFILE}."
+		echo >>"${OUTPUTFILE}"
+		echo "## begin dtpcadmin ${TAG}" >>"${OUTPUTFILE}"
+		cat "${DTPCRC}" >>"${OUTPUTFILE}"
+		echo "## end dtpcadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 	if [[ -r "${ACSRC}" ]] ; then
 		echo
