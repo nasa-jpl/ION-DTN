@@ -1871,22 +1871,58 @@ void	getCurrentDtnTime(DtnTime *dt)
 	dt->nanosec = 0;
 }
 
-void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
-		Scalar *totalBacklog)
+void	computePriorClaims(ClProtocol *protocol, Outduct *duct, Bundle *bundle,
+		Scalar *priorClaims, Scalar *totalBacklog)
 {
-	int	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+	vast		committed;
 #ifdef ION_BANDWIDTH_RESERVED
-	Scalar	limit;
-	Scalar	increment;
+	Scalar		limit;
+	Scalar		increment;
 #endif
-	int	i;
+	int		i;
 
-	copyScalar(totalBacklog, &(duct->urgentBacklog));
+	/*	If the outduct for the directive enabling the route
+	 *	under consideration is currently active and throttled,
+	 *	prior claims on the first contact along this route
+	 *	must include however much transmission the outduct
+	 *	itself has already committed to (as per bpDequeue)
+	 *	during the current second of operation, pending
+	 *	capacity replenishment through the rate control
+	 *	mechanism implemented by bpclock.  That commitment
+	 *	is given by the the duct's nominal xmit rate minus
+	 *	its current "capacity" (which may be negative).		*/
+
+	findOutduct(protocol->name, duct->name, &vduct, &vductElt);
+	CHKVOID(vductElt);
+	if (vduct->xmitThrottle.nominalRate > 0)
+	{
+		/*	Outduct is active and throttled.		*/
+
+		committed = vduct->xmitThrottle.nominalRate
+				- vduct->xmitThrottle.capacity;
+
+		/*	Since bpclock never increases capacity to
+		 *	a value in excess of the nominalRate,
+		 *	committed can never be negative.		*/
+
+		CHKVOID(committed >= 0);
+	}
+	else	/*	No capacity mgt, so can't compute commitment.	*/
+	{
+		committed = 0;
+	}
+
+	loadScalar(totalBacklog, committed);
+	addToScalar(totalBacklog, &(duct->urgentBacklog));
 	addToScalar(totalBacklog, &(duct->stdBacklog));
 	addToScalar(totalBacklog, &(duct->bulkBacklog));
+	loadScalar(priorClaims, committed);
 	if (priority == 0)
 	{
-		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->urgentBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
 		/*	priorClaims increment is the standard
 		 *	backlog's prior claims, which is the entire
@@ -1915,7 +1951,7 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 
 	if (priority == 1)
 	{
-		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->urgentBacklog));
 		addToScalar(priorClaims, &(duct->stdBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
 		/*	priorClaims increment is the bulk backlog's
@@ -1944,7 +1980,7 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 
 	if ((i = bundle->extendedCOS.ordinal) == 0)
 	{
-		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->urgentBacklog));
 		return;
 	}
 
@@ -1952,7 +1988,6 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 	 *	some other urgent bundles.  Compute sum of backlogs
 	 *	for this and all higher ordinals.			*/
 
-	loadScalar(priorClaims, 0);
 	while (i < 256)
 	{
 		addToScalar(priorClaims, &(duct->ordinals[i].backlog));

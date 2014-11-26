@@ -21,6 +21,10 @@
 
 #define	MAX_TIME	((unsigned int) ((1U << 31) - 1))
 
+#ifdef	ION_BANDWIDTH_RESERVED
+#define	MANAGE_OVERBOOKING	0
+#endif
+
 #ifndef	MANAGE_OVERBOOKING
 #define	MANAGE_OVERBOOKING	1
 #endif
@@ -949,6 +953,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	uvast		ownNodeNbr = getOwnNodeNbr();
+	ClProtocol	protocol;
 	Scalar		priorClaims;
 	Scalar		totalBacklog;
 	IonCXref	arg;
@@ -956,7 +961,6 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	IonCXref	*contact;
 	Scalar		capacity;
 	Scalar		allotment;
-	ClProtocol	protocol;
 	int		eccc;	/*	Estimated capacity consumption.	*/
 	time_t		startTime;
 	time_t		endTime;
@@ -966,7 +970,10 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	unsigned int	owlt;
 	time_t		arrivalTime;
 
-	computePriorClaims(outduct, bundle, &priorClaims, &totalBacklog);
+	sdr_read(sdr, (char *) &protocol, outduct->protocol,
+			sizeof(ClProtocol));
+	computePriorClaims(&protocol, outduct, bundle, &priorClaims,
+			&totalBacklog);
 	copyScalar(protected, &totalBacklog);
 
 	/*	Reduce prior claims on the first contact in this route
@@ -1081,8 +1088,6 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	/*	Now considering the initial contact on the route.
 	 *	First, check for potential overbooking.			*/
 
-	sdr_read(sdr, (char *) &protocol, outduct->protocol,
-			sizeof(ClProtocol));
 	eccc = computeECCC(guessBundleSize(bundle), &protocol);
 	copyScalar(overbooked, &allotment);
 	increaseScalar(overbooked, eccc);
@@ -1115,6 +1120,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	increaseScalar(&radiationLatency, eccc);
 	elt = sm_list_first(ionwm, route->hops);
 	contact = (IonCXref *) psp(ionwm, sm_list_data(ionwm, elt));
+	CHKERR(contact->xmitRate > 0);
 	divideScalar(&radiationLatency, contact->xmitRate);
 	transmitTime += ((ONE_GIG * radiationLatency.gigs)
 			+ radiationLatency.units);
