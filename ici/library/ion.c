@@ -964,7 +964,7 @@ static void	destroyIonNode(PsmPartition partition, PsmAddress eltData,
 {
 	IonNode	*node = (IonNode *) psp(partition, eltData);
 
-	sm_list_destroy(partition, node->snubs, rfx_erase_data, NULL);
+	sm_list_destroy(partition, node->embargoes, rfx_erase_data, NULL);
 	psm_free(partition, eltData);
 }
 

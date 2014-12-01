@@ -85,8 +85,8 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	IonNode		*stationNode;
 	PsmAddress	nextElt;
 	PsmPartition	ionwm;
-	PsmAddress	snubElt;
-	IonSnub		*snub;
+	PsmAddress	embElt;
+	Embargo		*embargo;
 
 	if (ipn_lookupPlanDirective(nodeNbr, 0, 0, bundle, &directive) == 0)
 	{
@@ -104,17 +104,17 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	if (stationNode)
 	{
 		ionwm = getIonwm();
-		for (snubElt = sm_list_first(ionwm, stationNode->snubs);
-				snubElt; snubElt = sm_list_next(ionwm, snubElt))
+		for (embElt = sm_list_first(ionwm, stationNode->embargoes);
+				embElt; embElt = sm_list_next(ionwm, embElt))
 		{
-			snub = (IonSnub *) psp(ionwm, sm_list_data(ionwm,
-					snubElt));
-			if (snub->nodeNbr < nodeNbr)
+			embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm,
+					embElt));
+			if (embargo->nodeNbr < nodeNbr)
 			{
 				continue;
 			}
 
-			if (snub->nodeNbr > nodeNbr)
+			if (embargo->nodeNbr > nodeNbr)
 			{
 				break;	/*	Not refusing bundles.	*/
 			}
