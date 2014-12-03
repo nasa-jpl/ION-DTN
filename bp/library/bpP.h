@@ -87,8 +87,8 @@ extern "C" {
  *	widespread, which is why these functions are declared
  *	privately here rather than publicly in the zco.h header.	*/
 
-extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta);
-extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta);
+extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
+extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
 
 /*	A BP "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
@@ -343,6 +343,7 @@ typedef struct
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
+	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/

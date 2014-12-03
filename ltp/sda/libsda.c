@@ -51,7 +51,7 @@ int	sda_send(uvast destinationEngineId, unsigned int clientSvcId,
 	CHKERR(sdr_begin_xn(sdr));
 	sdaZco = zco_clone(sdr, clientServiceData, 0,
 			zco_source_data_length(sdr, clientServiceData));
-	if (sdaZco)
+	if (sdaZco != (Object) ERROR && sdaZco != 0)
 	{
 		oK(zco_prepend_header(sdr, sdaZco, (char *) sdnvBuf.text,
 				sdnvBuf.length));

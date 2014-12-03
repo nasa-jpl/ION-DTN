@@ -176,8 +176,8 @@ int	checkForCongestion()
 
 	/*	First get current occupancy (both file space and heap).	*/
 
-	fileOccupancy = zco_get_file_occupancy(sdr);
-	heapOccupancy = zco_get_heap_occupancy(sdr);
+	fileOccupancy = zco_get_file_occupancy(sdr, ZcoOutbound);
+	heapOccupancy = zco_get_heap_occupancy(sdr, ZcoOutbound);
 	currentOccupancy = fileOccupancy + heapOccupancy;
  	forecastOccupancy = maxOccupancy = currentOccupancy;
 

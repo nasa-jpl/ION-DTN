@@ -3927,7 +3927,7 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	sessionBuf->clientSvcId = clientSvcId;
 	sessionBuf->redSegments = sdr_list_create(ltpSdr);
 	sessionBuf->rsSegments = sdr_list_create(ltpSdr);
-	sessionBuf->svcData = zco_create(ltpSdr, 0, 0, 0, 0);
+	sessionBuf->svcData = zco_create(ltpSdr, 0, 0, 0, 0, ZcoInbound);
 	sessionBuf->span = spanObj;
 	if (sessionBuf->redSegments == 0
 	|| sessionBuf->rsSegments == 0
@@ -3979,7 +3979,8 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 	}
 
 	close(fd);
-	session->blockFileRef = zco_create_file_ref(ltpSdr, name, "");
+	session->blockFileRef = zco_create_file_ref(ltpSdr, name, "",
+			ZcoInbound);
 	if (session->blockFileRef == 0)
 	{
 		putErrmsg("Can't create block file reference.", NULL);
@@ -4254,7 +4255,7 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 	 *	redSegments list to re-sort the extents of the
 	 *	acquisition ZCO.					*/
 
-	svcDataObject = zco_create(ltpSdr, 0, 0, 0, 0);
+	svcDataObject = zco_create(ltpSdr, 0, 0, 0, 0, ZcoInbound);
 	switch (svcDataObject)
 	{
 	case (Object) ERROR:
@@ -4385,7 +4386,7 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 	}
 
 	*clientSvcData = zco_create(ltpSdr, ZcoSdrSource, pduObj, 0,
-			pdu->length);
+			pdu->length, ZcoInbound);
 	switch (*clientSvcData)
 	{
 	case (Object) ERROR:

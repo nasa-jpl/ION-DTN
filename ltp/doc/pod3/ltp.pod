@@ -135,7 +135,8 @@ obtained from a static variable.
 
 =item void ltp_release_data(Object data)
 
-Releases the resources allocated to hold I<data>, a client service data ZCO.
+Releases the resources allocated to hold I<data>, which must be a B<received>
+client service data ZCO.
 
 =item void ltp_close(unsigned int clientId)
 

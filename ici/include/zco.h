@@ -64,6 +64,13 @@ extern "C" {
 
 typedef enum
 {
+	ZcoInbound = 0,
+	ZcoOutbound = 1,
+	ZcoUnknown = 2
+} ZcoAcct;
+
+typedef enum
+{
 	ZcoFileSource = 1,
 	ZcoSdrSource = 2,
 	ZcoZcoSource = 3
@@ -96,7 +103,8 @@ extern void	zco_unregister_callback();
 
 extern Object	zco_create_file_ref(Sdr sdr,
 				char *pathName,
-				char *cleanupScript);
+				char *cleanupScript,
+				ZcoAcct acct);
 			/*	cleanupScript, if not NULL, is invoked
 			 *	at the time that the last ZCO that
 			 *	cites this file reference is destroyed
@@ -149,46 +157,58 @@ extern void	zco_destroy_file_ref(Sdr sdr,
 			 *	it is flagged for destruction as soon
 			 *	as the last reference to it is removed.	*/
 
-extern vast	zco_get_file_occupancy(Sdr sdr);
+extern void	zco_status(Sdr sdr);
+			/*	Writes a report of the current contents
+ 			 *	of the ZCO database to ion.log.		*/
+
+extern vast	zco_get_file_occupancy(Sdr sdr,
+				ZcoAcct acct);
 			/*	Returns the total number of file
 			 *	system space bytes occupied by ZCOs
 			 *	in this SDR.				*/
 
 extern void	zco_set_max_file_occupancy(Sdr sdr,
-				vast occupancy);
+				vast occupancy,
+				ZcoAcct acct);
 			/*	Sets the maximum number of file
 			 *	system space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-extern vast	zco_get_max_file_occupancy(Sdr sdr);
+extern vast	zco_get_max_file_occupancy(Sdr sdr,
+				ZcoAcct acct);
 			/*	Returns the maximum number of file
 			 *	system space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
 extern int	zco_enough_file_space(Sdr sdr,
-				vast length);
+				vast length,
+				ZcoAcct acct);
 			/*	Returns 1 if the total remaining file
 			 *	system space available for ZCOs is
 			 *	greater than length, 0 otherwise.	*/
 
-extern vast	zco_get_heap_occupancy(Sdr sdr);
+extern vast	zco_get_heap_occupancy(Sdr sdr,
+				ZcoAcct acct);
 			/*	Returns the total number of SDR
 			 *	heap space bytes occupied by ZCOs
 			 *	in this SDR.				*/
 
 extern void	zco_set_max_heap_occupancy(Sdr sdr,
-				vast occupancy);
+				vast occupancy,
+				ZcoAcct acct);
 			/*	Sets the maximum number of SDR
 			 *	heap space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-extern vast	zco_get_max_heap_occupancy(Sdr sdr);
+extern vast	zco_get_max_heap_occupancy(Sdr sdr,
+				ZcoAcct acct);
 			/*	Returns the maximum number of SDR
 			 *	heap space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
 extern int	zco_enough_heap_space(Sdr sdr,
-				vast length);
+				vast length,
+				ZcoAcct acct);
 			/*	Returns 1 if the total remaining SDR
 			 *	heap space available for ZCOs is
 			 *	greater than length, 0 otherwise.	*/
@@ -197,7 +217,8 @@ extern Object	zco_create(	Sdr sdr,
 				ZcoMedium firstExtentSourceMedium,
 				Object firstExtentLocation,
 				vast firstExtentOffset,
-				vast firstExtentLength);
+				vast firstExtentLength,
+				ZcoAcct acct);
 			/*	The parameters "firstExtentLocation"
 			 *	and "firstExtentLength" must either
 			 *	both be zero (indicating that
@@ -258,6 +279,17 @@ extern int	zco_bond(	Sdr sdr,
 			 *	from being omitted when the ZCO is
 			 *	cloned.					*/
 
+extern Object	zco_transmute(	Sdr sdr,
+				Object zco);
+			/*	Converts an inbound ZCO to an outbound
+			 *	ZCO, revising all occupancy figures
+			 *	accordingly.  Returns SDR location of
+			 *	the ZCO object on success, 0 if there
+			 *	is currently too little outbound ZCO
+			 *	space to contain the ZCO (in which
+			 *	case the ZCO has been destroyed),
+			 *	((Object) -1) on any error.		*/
+
 extern Object	zco_clone(	Sdr sdr,
 				Object zco,
 				vast offset,
@@ -275,7 +307,9 @@ extern Object	zco_clone(	Sdr sdr,
 			 *	file and SDR source data objects
 			 *	referenced by those extents.  Returns
 			 *	the SDR location of the new ZCO on
-			 *	success, ((Object) -1) on any error.	*/
+			 *	success, 0 if there is currently too
+			 *	little ZCO space to contain the new
+			 *	ZCO, ((Object) -1) on any error.	*/
 
 extern vast	zco_clone_source_data(Sdr sdr,
 				Object toZco,
@@ -286,7 +320,14 @@ extern vast	zco_clone_source_data(Sdr sdr,
 			 *	cloned source data extents are appended
 			 *	to an existing ZCO ("toZco") rather
 			 *	than to a newly created ZCO.  Returns
-			 *	length on success, -1 on any error.	*/
+			 *	total data length cloned, or -1 on
+			 *	any error.  Note that the return length
+			 *	will be less than "length" in the event
+			 *	that there is currently too little ZCO
+			 *	space to contain the requested cloned
+			 *	source data; in this case, the clone
+			 *	ZCO ("toZco") should normally be
+			 *	destroyed.				*/
 
 extern vast	zco_length(	Sdr sdr,
 				Object zco);
@@ -297,7 +338,12 @@ extern vast	zco_length(	Sdr sdr,
 extern vast	zco_source_data_length(Sdr sdr,
 				Object zco);
 			/*	Returns current presumptive length of
-			 *	the ZCO's encapsulated source data.	*/
+			 *	this ZCO's encapsulated source data.	*/
+
+extern ZcoAcct	zco_acct(	Sdr sdr,
+				Object zco);
+			/*	Returns an indicator as to whether
+			 *	this ZCO is inbound or outbound.	*/
 
 /*	*	Functions for copying ZCO source data.	*	*	*/
 

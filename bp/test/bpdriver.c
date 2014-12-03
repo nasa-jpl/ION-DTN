@@ -191,7 +191,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 
 	close(aduFile);
 	CHKZERO(sdr_begin_xn(sdr));
-	fileRef = zco_create_file_ref(sdr, "bpdriverAduFile", NULL);
+	fileRef = zco_create_file_ref(sdr, "bpdriverAduFile", NULL,
+			ZcoOutbound);
 	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
 	{
 		putErrmsg("bpdriver can't create file ref.", NULL);
