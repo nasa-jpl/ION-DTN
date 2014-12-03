@@ -165,7 +165,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
 	/*	No plan for conveying bundle to this neighbor, so
 	 *	must give up on forwarding it.				*/
 
-	return bpAbandon(bundleObj, bundle);
+	return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 }
 
 #if defined (ION_LWT)
@@ -271,7 +271,7 @@ int	main(int argc, char *argv[])
 			/*	Nobody subscribes to bundles destined
 			 *	for this group.				*/
 
-			oK(bpAbandon(bundleAddr, &bundle));
+			oK(bpAbandon(bundleAddr, &bundle, BP_REASON_NO_ROUTE));
 		}
 		else
 		{
@@ -281,7 +281,8 @@ int	main(int argc, char *argv[])
 				/*	Received from unknown node,
 				 *	can't safely forward bundle.	*/
 
-				oK(bpAbandon(bundleAddr, &bundle));
+				oK(bpAbandon(bundleAddr, &bundle,
+						BP_REASON_NO_ROUTE));
 			}
 			else
 			{
@@ -337,7 +338,8 @@ int	main(int argc, char *argv[])
 
 				if (copiesForwarded == 0)
 				{
-					oK(bpAbandon(bundleAddr, &bundle));
+					oK(bpAbandon(bundleAddr, &bundle,
+							BP_REASON_NO_ROUTE));
 				}
 				else	/*	Destroy unused copy.	*/
 				{

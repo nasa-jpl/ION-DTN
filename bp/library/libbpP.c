@@ -4838,7 +4838,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	destroy it successfully.			*/
 
 		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	/*	Prevent routing loop: eid must not already be in the
@@ -4852,7 +4852,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		{
 			sdr_write(bpSdr, bundleObj, (char *) bundle,
 					sizeof(Bundle));
-			return bpAbandon(bundleObj, bundle);
+			return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 		}
 	}
 
@@ -4864,7 +4864,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		restoreEidString(&stationMetaEid);
 		writeMemoNote("[?] Can't parse neighbor EID", eid);
 		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	restoreEidString(&stationMetaEid);
@@ -4875,7 +4875,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	we must do so.					*/
 
 		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	/*	We're going to queue this bundle for processing by
@@ -6198,7 +6198,8 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 
 				bpDbTally(BP_DB_QUEUED_FOR_FWD,
 						bundle->payload.length);
-				return bpAbandon(bundleObj, bundle);
+				return bpAbandon(bundleObj, bundle,
+						BP_REASON_NO_ROUTE);
 			}
 		}
 	}
@@ -6260,7 +6261,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 		 *	bpAbandon will count it as "forwarding failed".	*/
 
 		bpDbTally(BP_DB_QUEUED_FOR_FWD, bundle->payload.length);
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_DEPLETION);
 	}
 
 	/*	Bundle is now ready to be forwarded.			*/
@@ -9644,13 +9645,26 @@ static void	releaseCustody(Object bundleAddr, Bundle *bundle)
 	bpCtTally(BP_CT_CUSTODY_RELEASED, bundle->payload.length);
 }
 
-int	bpAbandon(Object bundleObj, Bundle *bundle)
+int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 {
-	char 	*dictionary = NULL;
-	int	result1 = 0;
-	int	result2 = 0;
+	char 		*dictionary = NULL;
+	int		result1 = 0;
+	int		result2 = 0;
+	BpSrReason	srReason;
+	BpCtReason	ctReason;
 
 	CHKERR(bundleObj && bundle);
+	if (reason == BP_REASON_DEPLETION)
+	{
+		srReason = SrDepletedStorage;
+		ctReason = CtDepletedStorage;
+	}
+	else
+	{
+		srReason = SrNoKnownRoute;
+		ctReason = CtNoKnownRoute;
+	}
+
 	bpDbTally(BP_DB_FWD_FAILED, bundle->payload.length);
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
@@ -9662,7 +9676,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	if (SRR_FLAGS(bundle->bundleProcFlags) & BP_DELETED_RPT)
 	{
 		bundle->statusRpt.flags |= BP_DELETED_RPT;
-		bundle->statusRpt.reasonCode = SrNoKnownRoute;
+		bundle->statusRpt.reasonCode = srReason;
 		getCurrentDtnTime(&bundle->statusRpt.deletionTime);
 	}
 
@@ -9683,9 +9697,9 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	{
 		if (bundleIsCustodial(bundle))
 		{
-			bpCtTally(CtNoKnownRoute, bundle->payload.length);
+			bpCtTally(ctReason, bundle->payload.length);
 			result2 = noteCtEvent(bundle, NULL, dictionary, 0,
-					CtNoKnownRoute);
+					ctReason);
 			if (result2 < 0)
 			{
 				putErrmsg("Can't send custody signal.", NULL);
@@ -9694,7 +9708,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	}
 
 	releaseDictionary(dictionary);
-	bpDelTally(SrNoKnownRoute);
+	bpDelTally(srReason);
 
 	/*	Must record updated state of bundle in case
 	 *	bpDestroyBundle doesn't erase it.			*/

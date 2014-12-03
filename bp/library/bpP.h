@@ -853,13 +853,17 @@ extern int		bpSend(		MetaEid *sourceMetaEid,
 			 *	returns -1.				*/
 
 extern int		bpAbandon(	Object bundleObj,
-					Bundle *bundle);
+					Bundle *bundle,
+					int reason);
 			/*	This is the common processing for any
 			 *	bundle that a forwarder decides it
 			 *	cannot accept for forwarding.  It 
 			 *	sends any applicable status reports
 			 *	and then deletes the bundle from
 			 *	local storage.
+			 *
+			 *	Reason code s/b BP_REASON_DEPLETION
+			 *	or BP_REASON_NO_ROUTE.
 			 *
 			 *	Call this function at most once per
 			 *	bundle.	 Returns 0 on success, -1 on
