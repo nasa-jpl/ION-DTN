@@ -1222,7 +1222,8 @@ void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
 
 	writeMemo("ionProd: range inserted.");
 	writeMemo(rfx_print_range(sdr_list_data(ionsdr, elt), textbuf));
-	elt = rfx_insert_contact(fromTime, toTime, fromNode, toNode, xmitRate);
+	elt = rfx_insert_contact(fromTime, toTime, fromNode, toNode, xmitRate,
+			1.0);
 	if (elt == 0)
 	{
 		writeMemoNote("[?] ionProd: contact insertion failed.",

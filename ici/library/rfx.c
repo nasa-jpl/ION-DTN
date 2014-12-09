@@ -693,7 +693,8 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 		}
 	}
 
-	if (cxref->toTime > currentTime)	/*	Affects routes.	*/
+	if (cxref->toTime > currentTime		/*	Affects routes.	*/
+	&& cxref->fromTime != 0)		/*	Not discovered.	*/
 	{
 		vdb->lastEditTime = currentTime;
 	}
@@ -702,7 +703,8 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 }
 
 PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
-			uvast fromNode, uvast toNode, unsigned int xmitRate)
+			uvast fromNode, uvast toNode, unsigned int xmitRate,
+			float prob)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -720,10 +722,18 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	Object		obj;
 	Object		elt;
 
-	CHKZERO(fromTime);
-	CHKZERO(toTime > fromTime);
+	if (fromTime == 0)	/*	Must be a discovered contact.	*/
+	{
+		CHKZERO(toTime == MAX_POSIX_TIME);
+	}
+	else
+	{
+		CHKZERO(toTime > fromTime);
+	}
+
 	CHKZERO(fromNode);
 	CHKZERO(toNode);
+	CHKZERO(prob > 0.0 && prob <= 1.0);
 	CHKZERO(sdr_begin_xn(sdr));
 
 	/*	Make sure contact doesn't overlap with any pre-existing
@@ -801,6 +811,7 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	contact.fromNode = fromNode;
 	contact.toNode = toNode;
 	contact.xmitRate = xmitRate;
+	contact.prob = prob;
 	obj = sdr_malloc(sdr, sizeof(IonContact));
 	if (obj)
 	{
@@ -840,9 +851,10 @@ char	*rfx_print_contact(PsmAddress cxaddr, char *buffer)
 	writeTimestampUTC(contact->fromTime, fromTimeBuffer);
 	writeTimestampUTC(contact->toTime, toTimeBuffer);
 	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the xmit rate from \
-node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec.",
+node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec, \
+probability %f.",
 			fromTimeBuffer, toTimeBuffer, contact->fromNode,
-			contact->toNode, contact->xmitRate);
+			contact->toNode, contact->xmitRate, contact->prob);
 	return buffer;
 }
 
@@ -956,7 +968,8 @@ static void	deleteContact(PsmAddress cxaddr)
 
 	/*	Delete contact from index.				*/
 
-	if (cxref->toTime > currentTime)	/*	Affects routes.	*/
+	if (cxref->toTime > currentTime		/*	Affects routes.	*/
+	&& cxref->fromTime != 0)		/*	Not discovered.	*/
 	{
 		vdb->lastEditTime = currentTime;
 	}
@@ -1675,6 +1688,7 @@ static int	loadContact(Object elt)
 	cxref.fromTime = contact.fromTime;
 	cxref.toTime = contact.toTime;
 	cxref.xmitRate = contact.xmitRate;
+	cxref.prob = contact.prob;
 	cxref.contactElt = elt;
 	cxref.routingObject = 0;
 	if (insertCXref(&cxref) == 0)

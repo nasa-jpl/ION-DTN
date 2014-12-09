@@ -85,6 +85,7 @@ typedef struct
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	unsigned int	xmitRate;	/*	In bytes per second.	*/
+	float		prob;		/*	Contact probability.	*/
 } IonContact;
 
 typedef struct
@@ -208,6 +209,7 @@ typedef struct
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned int	xmitRate;	/*	In bytes per second.	*/
+	float		prob;		/*	Contact probability.	*/
 	time_t		startXmit;	/*	Computed when inserted.	*/
 	time_t		stopXmit;	/*	Computed when inserted.	*/
 	time_t		startFire;	/*	Computed when inserted.	*/
