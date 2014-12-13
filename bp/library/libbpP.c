@@ -6239,6 +6239,14 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 
 	noteBundleRemoved(bundle);
 	bundle->acct = ZcoOutbound;
+	if (patchExtensionBlocks(bundle) < 0)
+	{
+		putErrmsg("Can't insert missing extensions.", NULL);
+		releaseDictionary(dictionary);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
 	noteBundleInserted(bundle);
 
 	/*	Check to see if transmuting the bundle has caused the
@@ -6270,15 +6278,6 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	{
 		putErrmsg("Can't print destination EID.", NULL);
 		releaseDictionary(dictionary);
-		return -1;
-	}
-
-	if (patchExtensionBlocks(bundle) < 0)
-	{
-		putErrmsg("Can't insert missing extensions.", NULL);
-		MRELEASE(eidString);
-		releaseDictionary(dictionary);
-		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 

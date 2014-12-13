@@ -21,7 +21,12 @@ static void		destroyZco(Sdr sdr, Object zcoObj);
  *	are managed separately to ensure that reaching the occupancy
  *	limit for outbound ZCOs (due to a volume of offered traffic
  *	in excess of the available outbound buffer space) never
- *	inhibits data reception and vice versa.				*/
+ *	inhibits data reception and vice versa.  Reference-counting
+ *	objects (FileRef, ZcoLienRef, ZcoObjRef) may be referenced
+ *	by extents in both inbound and outbound ZCOs; they are
+ *	tracked in OUTBOUND ZCO space for simplicity, on the grounds
+ *	that even ZCOs that originally reside in INBOUND space may
+ *	migrate to OUTBOUND space in the course of Bundle forwarding.	*/
 
 typedef struct
 {
@@ -560,7 +565,7 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
 		return 0;
 	}
 
-	zco_increase_heap_occupancy(sdr, sizeof(FileRef), acct);
+	zco_increase_heap_occupancy(sdr, sizeof(FileRef), ZcoOutbound);
 	sdr_write(sdr, fileRefObj, (char *) &fileRef, sizeof(FileRef));
 	return fileRefObj;
 }
@@ -701,7 +706,7 @@ static void	destroyFileReference(Sdr sdr, FileRef *fileRef,
 	 *	script if provided.					*/
 
 	sdr_free(sdr, fileRefObj);
-	zco_reduce_heap_occupancy(sdr, sizeof(FileRef), fileRef->acct);
+	zco_reduce_heap_occupancy(sdr, sizeof(FileRef), ZcoOutbound);
 	if (fileRef->unlinkOnDestroy)
 	{
 		oK(unlink(fileRef->pathName));
@@ -894,7 +899,8 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 			fileRef.refCount++;
 			sdr_write(sdr, location, (char *) &fileRef,
 					sizeof(FileRef));
-			increment += sizeof(ZcoLienRef);
+			zco_increase_heap_occupancy(sdr, sizeof(ZcoLienRef),
+					ZcoOutbound);
 			extent.location = refObj;
 		}
 	}
@@ -931,7 +937,9 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 			objectRef.acct = zco->acct;
 			sdr_write(sdr, refObj, (char *) &objectRef,
 					sizeof(ZcoObjRef));
-			increment += (length + sizeof(ZcoObjRef));
+			increment += length;
+			zco_increase_heap_occupancy(sdr, sizeof(ZcoObjRef),
+					ZcoOutbound);
 			extent.location = refObj;
 		}
 	}
@@ -1291,9 +1299,11 @@ int	zco_bond(Sdr sdr, Object zco)
 		}
 
 		sdr_free(sdr, capsuleObj);
-		zco_increase_heap_occupancy(sdr, (sizeof(SourceExtent)
-				+ sizeof(ZcoObjRef)) - sizeof(Capsule),
+		zco_reduce_heap_occupancy(sdr, sizeof(Capsule), zcoBuf.acct);
+		zco_increase_heap_occupancy(sdr, sizeof(SourceExtent),
 				zcoBuf.acct);
+		zco_increase_heap_occupancy(sdr, sizeof(ZcoObjRef),
+				ZcoOutbound);
 	}
 
 	zcoBuf.firstHeader = 0;
@@ -1354,9 +1364,11 @@ int	zco_bond(Sdr sdr, Object zco)
 		}
 
 		sdr_free(sdr, capsuleObj);
-		zco_increase_heap_occupancy(sdr, (sizeof(SourceExtent)
-				+ sizeof(ZcoObjRef)) - sizeof(Capsule),
+		zco_reduce_heap_occupancy(sdr, sizeof(Capsule), zcoBuf.acct);
+		zco_increase_heap_occupancy(sdr, sizeof(SourceExtent),
 				zcoBuf.acct);
+		zco_increase_heap_occupancy(sdr, sizeof(ZcoObjRef),
+				ZcoOutbound);
 	}
 
 	if (zcoBuf.lastExtent)
@@ -1524,9 +1536,10 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent)
 		if (objRef.refCount == 0)
 		{
 			/*	Destroy the reference object.		*/
-
-			zco_reduce_heap_occupancy(sdr, objRef.length
-					+ sizeof(ZcoObjRef), objRef.acct);
+			zco_reduce_heap_occupancy(sdr, objRef.length,
+					objRef.acct);
+			zco_reduce_heap_occupancy(sdr, sizeof(ZcoObjRef),
+					ZcoOutbound);
 			sdr_free(sdr, refObj);
 
 			/*	Referenced data are no longer needed.	*/
@@ -1554,7 +1567,7 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent)
 			zco_reduce_file_occupancy(sdr, lienRef.length,
 					lienRef.acct);
 			zco_reduce_heap_occupancy(sdr, sizeof(ZcoLienRef),
-					lienRef.acct);
+					ZcoOutbound);
 			sdr_free(sdr, refObj);
 
 			/*	Referenced data may no longer be needed.*/
