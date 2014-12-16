@@ -32,7 +32,7 @@ int	main(int argc, char *argv[])
 	Lyst		extents;
 	ExportExtent	*extent;
 	unsigned int	ckptSerialNbr;
-	int		segmentsIssued;
+	int		result;
 
 	if (remoteEngineId == 0)
 	{
@@ -131,6 +131,16 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 		encodeSdnv(&(session.clientSvcIdSdnv), session.clientSvcId);
 		session.totalLength = span.lengthOfBufferedBlock;
 		session.redPartLength = span.redLengthOfBufferedBlock;
+
+		/*	We can now compute the upper limit on the number
+		 *	of checkpoints we will send in the course of
+		 *	this session.  We send one initial checkpoint
+		 *	plus one more checkpoint in response to every
+		 *	report except the last, which elicits only a
+		 *	report acknowledgment.				*/
+
+		session.maxCheckpoints = getMaxReports(session.redPartLength,
+				span.maxSegmentSize);
 		if ((extents = lyst_create_using(getIonMemoryMgr())) == NULL
 		|| (extent = (ExportExtent *) MTAKE(sizeof(ExportExtent)))
 				== NULL
@@ -152,29 +162,17 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 
 			ckptSerialNbr %= LTP_SERIAL_NBR_LIMIT;
 		} while (ckptSerialNbr == 0);
-		segmentsIssued = issueSegments(sdr, &span, vspan, &session,
+		result = issueSegments(sdr, &span, vspan, &session,
 				span.currentExportSessionObj, extents, 0,
 				ckptSerialNbr);
 		MRELEASE(extent);
 		lyst_destroy(extents);
-		switch (segmentsIssued)
+		if (result < 0)
 		{
-		case -1:		/*	System error.		*/
 			putErrmsg("Can't segment block.", NULL);
 			sdr_cancel_xn(sdr);
 			returnCode = 1;
 			continue;	/*	Failure.		*/
-
-		case 0:			/*	Database too full.	*/
-			sdr_cancel_xn(sdr);
-
-			/*	Wait one second and try again.		*/
-
-			snooze(1);
-			CHKZERO(sdr_begin_xn(sdr));
-			sdr_stage(sdr, (char *) &span, spanObj,
-					sizeof(LtpSpan));
-			continue;	/*	Trying again.		*/
 		}
 
 		/*	Segment issuance succeeded.			*/

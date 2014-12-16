@@ -556,6 +556,7 @@ int	ltpInit(int estMaxExportSessions)
 		ltpdbBuf.estMaxExportSessions = estMaxExportSessions;
 		ltpdbBuf.ownQtime = 1;		/*	Default.	*/
 		ltpdbBuf.enforceSchedule = 0;	/*	Default.	*/
+		ltpdbBuf.errorsPerByte = DEFAULT_MAX_BER * 8.0;
 		for (i = 0; i < LTP_MAX_NBR_OF_CLIENTS; i++)
 		{
 			ltpdbBuf.clients[i].notices = sdr_list_create(ltpSdr);
@@ -2164,7 +2165,7 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
 	}
 
 	/*	Schedule removal of this closed-session note from the
-	 *	list after (2 * MAX_RETRANSMISSIONS) times round-
+	 *	list after (2 * MAX_TIMEOUTS) times round-
 	 *	trip time (plus 10 seconds of margin to allow for
 	 *	processing delay).
 	 *
@@ -2176,7 +2177,7 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
 	 *	An additional checkpoint should never arrive after
 	 *	the removal event -- and thereby resurrect the import
 	 *	session -- unless the sender has a higher value for
-	 *	MAX_RETRANSMISSIONS (or RTT) than the local node.  In
+	 *	MAX_TIMEOUTS (or RTT) than the local node.  In
 	 *	that case the export session's timeout sequence will
 	 *	eventually result in re-closure of the reanimated
 	 *	import session; there will be erroneous duplicate
@@ -2186,7 +2187,7 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
 	event.parm = elt2;
 	currentTime = getUTCTime();
 	findSpan(span->engineId, &vspan, &vspanElt);
-	event.scheduledTime = currentTime + 10 + (2 * MAX_RETRANSMISSIONS
+	event.scheduledTime = currentTime + 10 + (2 * MAX_TIMEOUTS
 			* (vspan->owltOutbound + vspan->owltInbound));
 	event.type = LtpForgetSession;
 	oK(insertLtpTimelineEvent(&event));
@@ -3628,7 +3629,7 @@ char		buf[256];
 				LtpRetransmitLimitExceeded);
 	}
 
-	if (session->reportsCount >= MAX_NBR_OF_REPORTS)
+	if (session->reportsCount >= session->maxReports)
 	{
 		/*	We can send one more report if it's the
 		 *	one saying "got everything".  Otherwise,
@@ -4112,6 +4113,59 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 	return segUpperBound;
 }
 
+int	getMaxReports(int redPartLength, unsigned int maxSegmentSize)
+{
+	/*	The limit on reports is never less than 2: at least
+	 *	one negative report, plus the final positive report.
+	 *	Additional reports may be authorized depending on the
+	 *	size of the transmitted block, the anticipated maximum
+	 *	bit error rate, and the size of the data segments.	*/
+
+	int	maxReportSegments = 2;
+	int	dataGapsPerReport = MAX_CLAIMS_PER_RS - 1;
+	int	xmitBytes = redPartLength;	/*	Initial xmit.	*/
+		OBJ_POINTER(LtpDB, ltpdb);
+	float	errorsPerSegment;
+	int	xmitSegments;
+	float	lostSegments;
+	int	dataGaps;
+	int	reportsIssued;
+
+	GET_OBJ_POINTER(getIonsdr(), LtpDB, ltpdb, getLtpDbObject());
+	errorsPerSegment = ltpdb->errorsPerByte * maxSegmentSize;
+	while (1)
+	{
+		xmitSegments = xmitBytes / maxSegmentSize;
+		lostSegments = errorsPerSegment * xmitSegments;
+		if (lostSegments < 1.0)
+		{
+			break;
+		}
+
+		/*	Assume segment losses are uncorrelated, so
+		 *	each lost segment results in a gap in the
+		 *	report's list of claims.  The maximum number
+		 *	of lost segments that can be represented in
+		 *	a single report is therefore 1 less than the
+		 *	maximum number of claims per report segment.	*/
+
+		dataGaps = (int) lostSegments;
+		reportsIssued = dataGaps / dataGapsPerReport;
+		if (dataGaps % dataGapsPerReport > 0)
+		{
+			reportsIssued += 1;
+		}
+
+		maxReportSegments += reportsIssued;
+
+		/*	Compute next xmit: retransmission data volume.	*/
+
+		xmitBytes = (int) (lostSegments * maxSegmentSize);
+	}
+
+	return maxReportSegments;
+}
+
 static int	writeBlockExtentToHeap(ImportSession *session,
 			LtpRecvSeg *segment, char *from, unsigned int length)
 {
@@ -4428,6 +4482,7 @@ static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 	Object		clientSvcData = 0;
 	unsigned int	segUpperBound;
 	Object		segmentObj = 0;
+			OBJ_POINTER(LtpRecvSeg, firstSegment);
 
 	/*	First finish parsing the segment.			*/
 
@@ -4799,6 +4854,19 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 		 *	of the red part.				*/
 
 		sessionBuf.redPartLength = segUpperBound;
+
+		/*	We can now compute an upper limit on the
+		 *	number of report segments we can send back
+		 *	for this session, assuming that the size of
+		 *	the first red segment received for the session
+		 *	closely approximates the sending engine's
+		 *	maximum data segment size on its span to us.	*/
+
+		GET_OBJ_POINTER(ltpSdr, LtpRecvSeg, firstSegment,
+				sdr_list_data(ltpSdr, sdr_list_first(ltpSdr,
+				sessionBuf.redSegments)));
+		sessionBuf.maxReports = getMaxReports(sessionBuf.redPartLength,
+				 firstSegment->pdu.length);
 	}
 
 	if ((pdu->segTypeCode & LTP_FLAG_1)
@@ -5706,7 +5774,7 @@ putErrmsg("Discarding report.", NULL);
 	ckptSerialNbr = sessionBuf.lastCkptSerialNbr + 1;
 	if (ckptSerialNbr == 0	/*	Rollover.			*/
 	|| sdr_list_length(ltpSdr, sessionBuf.checkpoints)
-			== MAX_NBR_OF_CHECKPOINTS)
+			== sessionBuf.maxCheckpoints)
 	{
 		/*	Limit reached, can't retransmit any more.
 		 *	Just destroy the claims list and cancel. 	*/
@@ -7067,7 +7135,7 @@ putErrmsg("Checkpoint is already acknowledged.", itoa(sessionNbr));
 		return sdr_end_xn(ltpSdr);
 	}
 
-	if (dsBuf.pdu.timer.expirationCount == MAX_RETRANSMISSIONS)
+	if (dsBuf.pdu.timer.expirationCount == MAX_TIMEOUTS)
 	{
 #if LTPDEBUG
 putErrmsg("Cancel by sender.", itoa(sessionNbr));
@@ -7122,7 +7190,7 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 
 	sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
 			sizeof(ExportSession));
-	if (sessionBuf.timer.expirationCount == MAX_RETRANSMISSIONS)
+	if (sessionBuf.timer.expirationCount == MAX_TIMEOUTS)
 	{
 #if LTPDEBUG
 putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
@@ -7199,7 +7267,7 @@ putErrmsg("Report is gone.", itoa(sessionNbr));
 	}
 
 	sdr_stage(ltpSdr, (char *) &rsBuf, rsObj, sizeof(LtpXmitSeg));
-	if (rsBuf.pdu.timer.expirationCount == MAX_RETRANSMISSIONS)
+	if (rsBuf.pdu.timer.expirationCount == MAX_TIMEOUTS)
 	{
 #if LTPDEBUG
 putErrmsg("Cancel by receiver.", itoa(sessionNbr));
@@ -7264,7 +7332,7 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 			vspan->spanElt));
 	sdr_stage(ltpSdr, (char *) &sessionBuf, sessionObj,
 			sizeof(ImportSession));
-	if (sessionBuf.timer.expirationCount == MAX_RETRANSMISSIONS)
+	if (sessionBuf.timer.expirationCount == MAX_TIMEOUTS)
 	{
 #if LTPDEBUG
 putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
