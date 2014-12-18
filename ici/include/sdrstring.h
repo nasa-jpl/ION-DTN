@@ -33,7 +33,7 @@ Sdr_string_create(__FILE__, __LINE__, sdr, from)
 #define sdr_string_dup(sdr, from) \
 Sdr_string_dup(__FILE__, __LINE__, sdr, from)
 
-extern Object		Sdr_string_create(char *file, int line,
+extern Object		Sdr_string_create(const char *file, int line,
 				Sdr sdr, char *from);
 			/*	strlen of buffer must not exceed 255;
 				if it does, or if insufficient SDR
@@ -42,7 +42,7 @@ extern Object		Sdr_string_create(char *file, int line,
 				SDR string object.  To destroy, just
 				use sdr_free().				*/
 
-extern Object		Sdr_string_dup(char *file, int line,
+extern Object		Sdr_string_dup(const char *file, int line,
 				Sdr sdr, Object from);
 			/*	If insufficient SDR space is available,
 				0 is returned.  Else returns address

@@ -90,23 +90,23 @@
 
 static void lyst__clear(Lyst);
 static int lyst__inorder(Lyst,void *,void *);
-static LystElt lyst__elt_create(char *, int, Lyst, void *);
+static LystElt lyst__elt_create(const char *, int, Lyst, void *);
 static void lyst__elt_clear(LystElt);
-static char *lyst__alloc(char *, int, int, unsigned int);
-static void lyst__free(char *, int, int, char *);
+static char *lyst__alloc(const char *, int, int, unsigned int);
+static void lyst__free(const char *, int, int, char *);
 
 /*
  * public functions -- create and destroy list objects
  */
 
 Lyst
-Lyst_create(char *file, int line)
+Lyst_create(const char *file, int line)
 {
   return Lyst_create_using(file, line, 0);
 }
 
 Lyst
-Lyst_create_using(char *file, int line, int idx)
+Lyst_create_using(const char *file, int line, int idx)
 {
   Lyst list;
 
@@ -122,7 +122,7 @@ Lyst_create_using(char *file, int line, int idx)
 }
 
 static void
-wipe_lyst(char *file, int line, Lyst list, int destroy)
+wipe_lyst(const char *file, int line, Lyst list, int destroy)
 {
   LystElt cur;
   LystElt next;
@@ -156,13 +156,13 @@ wipe_lyst(char *file, int line, Lyst list, int destroy)
 }
 
 void
-Lyst_clear(char *file, int line, Lyst list)
+Lyst_clear(const char *file, int line, Lyst list)
 {
   wipe_lyst(file, line, list, 0);
 }
 
 void
-Lyst_destroy(char *file, int line, Lyst list)
+Lyst_destroy(const char *file, int line, Lyst list)
 {
   wipe_lyst(file, line, list, 1);
 }
@@ -244,7 +244,7 @@ lyst_length(Lyst list)
  */
 
 LystElt
-Lyst_insert(char *file, int line, Lyst list, void *data)
+Lyst_insert(const char *file, int line, Lyst list, void *data)
 {
   LystElt cur;
 
@@ -272,7 +272,7 @@ Lyst_insert(char *file, int line, Lyst list, void *data)
 }
 
 LystElt
-Lyst_insert_first(char *file, int line, Lyst list, void *data)
+Lyst_insert_first(const char *file, int line, Lyst list, void *data)
 {
   LystElt new_elt;
 
@@ -296,7 +296,7 @@ Lyst_insert_first(char *file, int line, Lyst list, void *data)
 }
 
 LystElt
-Lyst_insert_last(char *file, int line, Lyst list, void *data)
+Lyst_insert_last(const char *file, int line, Lyst list, void *data)
 {
   LystElt new_elt;
 
@@ -320,7 +320,7 @@ Lyst_insert_last(char *file, int line, Lyst list, void *data)
 }
 
 LystElt
-Lyst_insert_before(char *file, int line, LystElt elt, void *data)
+Lyst_insert_before(const char *file, int line, LystElt elt, void *data)
 {
   Lyst list;
   LystElt new_elt;
@@ -346,7 +346,7 @@ Lyst_insert_before(char *file, int line, LystElt elt, void *data)
 }
 
 LystElt
-Lyst_insert_after(char *file, int line, LystElt elt, void *data)
+Lyst_insert_after(const char *file, int line, LystElt elt, void *data)
 {
   Lyst list;
   LystElt new_elt;
@@ -374,7 +374,7 @@ Lyst_insert_after(char *file, int line, LystElt elt, void *data)
 }
 
 void
-Lyst_delete(char *file, int line, LystElt elt)
+Lyst_delete(const char *file, int line, LystElt elt)
 {
   Lyst list;
 
@@ -624,7 +624,7 @@ lyst__inorder(Lyst list, void *data1, void *data2)
 }
 
 static LystElt
-lyst__elt_create(char *file, int line, Lyst list, void *data)
+lyst__elt_create(const char *file, int line, Lyst list, void *data)
 {
   LystElt elt;
 
@@ -651,7 +651,8 @@ lyst__elt_clear(LystElt elt)
   elt->data = NULL;
 }
 
-static char *lyst__alloc(char *fileName, int lineNbr, int idx, unsigned size)
+static char *lyst__alloc(const char *fileName, int lineNbr, int idx,
+		unsigned size)
 {
   MemAllocator	take = memmgr_take(idx);
   char		*ptr;
@@ -666,7 +667,7 @@ static char *lyst__alloc(char *fileName, int lineNbr, int idx, unsigned size)
   return ptr;
 }
 
-static void lyst__free(char *fileName, int lineNbr, int idx, char *ptr)
+static void lyst__free(const char *fileName, int lineNbr, int idx, char *ptr)
 {
   MemDeallocator	release = memmgr_release(idx);
 

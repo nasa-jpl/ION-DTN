@@ -216,7 +216,7 @@ memory for trace, ignoring event.", sm_TaskIdSelf());
 }
 
 static PsmAddress	findFileName(PsmPartition trace, TraceHeader *trh,
-				char *sourceFileName)
+				const char *sourceFileName)
 {
 	PsmAddress	elt;
 	PsmAddress	filenameAddress;
@@ -257,7 +257,7 @@ static PsmAddress	findFileName(PsmPartition trace, TraceHeader *trh,
 }
 
 static void	logEvent(PsmPartition trace, int opType, unsigned long
-			addr, int objectSize, char *msg, char *fileName,
+			addr, int objectSize, char *msg, const char *fileName,
 			int lineNbr, PsmAddress *eltp)
 {
 	PsmAddress	traceHeaderAddress;
@@ -324,21 +324,21 @@ static void	logEvent(PsmPartition trace, int opType, unsigned long
 }
 
 void	sptrace_log_alloc(PsmPartition trace, unsigned long addr, int size,
-		char *fileName, int lineNbr)
+		const char *fileName, int lineNbr)
 {
 	if (!trace) return;
 	logEvent(trace, OP_ALLOCATE, addr, size, NULL, fileName, lineNbr, NULL);
 }
 
 void	sptrace_log_memo(PsmPartition trace, unsigned long addr, char *text,
-		char *fileName, int lineNbr)
+		const char *fileName, int lineNbr)
 {
 	if (!trace) return;
 	logEvent(trace, OP_MEMO, addr, -1, text, fileName, lineNbr, NULL);
 }
 
 void	sptrace_log_free(PsmPartition trace, unsigned long addr,
-		char *fileName, int lineNbr)
+		const char *fileName, int lineNbr)
 {
 	PsmAddress	elt;
 	TraceItem	*item;

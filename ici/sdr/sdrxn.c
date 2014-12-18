@@ -245,7 +245,7 @@ static SdrControlHeader	*_sch(SdrControlHeader **schp)
 	return sch;
 }
 
-void	*allocFromSdrMemory(char *fileName, int lineNbr, size_t length)
+void	*allocFromSdrMemory(const char *fileName, int lineNbr, size_t length)
 {
 	PsmPartition	sdrwm = _sdrwm(NULL);
 	PsmAddress	address;
@@ -263,7 +263,7 @@ void	*allocFromSdrMemory(char *fileName, int lineNbr, size_t length)
 	return block;
 }
 
-void	releaseToSdrMemory(char *fileName, int lineNbr, void *block)
+void	releaseToSdrMemory(const char *fileName, int lineNbr, void *block)
 {
 	PsmPartition	sdrwm = _sdrwm(NULL);
 
@@ -516,7 +516,8 @@ void	sdr_shutdown()		/*	Ends SDR service on machine.	*/
 	_sdrlock(1);		/*	Delete SDR system semaphore.	*/
 }
 
-int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv)
+int	_xniEnd(const const char *fileName, int lineNbr, const char *arg,
+		Sdr sdrv)
 {
 	_postErrmsg(fileName, lineNbr,
 			"Assertion failed, SDR transaction canceled.", arg);
@@ -1940,7 +1941,7 @@ int	sdrBoundaryViolated(SdrView *sdrv, Address offset, long length)
 
 #endif
 
-static int	writeToLog(char *file, int line, Sdr sdrv, char *from,
+static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
 			long length)
 {
 	SdrState	*sdr = sdrv->sdr;
@@ -1970,7 +1971,7 @@ static int	writeToLog(char *file, int line, Sdr sdrv, char *from,
 	return length;
 }
 
-void	_sdrput(char *file, int line, Sdr sdrv, Address into, char *from,
+void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 		long length, PutSrc src)
 {
 	SdrState	*sdr;
@@ -2097,8 +2098,8 @@ entry.", NULL);
 	sdrv->modified = 1;
 }
 
-void	Sdr_write(char *file, int line, Sdr sdrv, Address into, char *from,
-		long length)
+void	Sdr_write(const char *file, int line, Sdr sdrv, Address into,
+		char *from, long length)
 {
 	if (!(sdr_in_xn(sdrv)))
 	{

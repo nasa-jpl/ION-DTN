@@ -277,8 +277,8 @@ typedef struct
 #define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)
 #endif
 
-extern void		*allocFromIonMemory(char *, int, size_t);
-extern void		releaseToIonMemory(char *, int, void *);
+extern void		*allocFromIonMemory(const char *, int, size_t);
+extern void		releaseToIonMemory(const char *, int, void *);
 extern void		*ionMemAtoP(unsigned long);
 extern unsigned long	ionMemPtoA(void *);
 
