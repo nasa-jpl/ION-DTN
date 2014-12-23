@@ -60,7 +60,7 @@ extern "C" {
 #endif
 
 #ifndef MAX_TIMEOUTS
-#define	MAX_TIMEOUTS		2
+#define	MAX_TIMEOUTS		3
 #endif
 
 /*	LTP segment structure definitions.				*/
@@ -244,6 +244,7 @@ typedef struct
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
+	unsigned int	nextRptSerialNbr;
 	unsigned int	lastRptSerialNbr;
 	int		maxReports;	/*	Limits # of reports.	*/
 	int		reportsCount;
