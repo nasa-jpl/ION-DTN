@@ -4545,6 +4545,7 @@ static int	acceptRedContent(LtpDB *ltpdb, Object *sessionObj,
 	/*	Data segment must be accepted into an import session,
 	 *	unless that session is already canceled.		*/
 
+	*segUpperBound = 0;	/*	Default: discard segment.	*/
 	if (*sessionObj)	/*	Active import session found.	*/
 	{
 		sdr_stage(sdr, (char *) sessionBuf, *sessionObj,
@@ -4572,7 +4573,6 @@ putErrmsg("Discarded redundant data segment.", itoa(sessionNbr));
 putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 #endif
 			ltpSpanTally(vspan, IN_SEG_SES_CLOSED, pdu->length);
-			*sessionObj = 0;	/*	Or read it?	*/
 			return 0;
 		}
 
@@ -4632,13 +4632,6 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 			putErrmsg("Can't write block extent to heap.", NULL);
 			return -1;
 		}
-	}
-
-	if (segment->sessionObj == 0)		/*	Must discard.	*/
-	{
-		sdr_list_delete(sdr, segment->sessionListElt, NULL, NULL);
-		sdr_free(sdr, segmentObj);
-		return 0;
 	}
 
 	sdr_write(sdr, segmentObj, (char *) segment, sizeof(LtpRecvSeg));
@@ -4918,7 +4911,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		return -1;
 	}
 
-	if (sessionObj == 0)	/*	No session; nothing more to do.	*/
+	if (segUpperBound == 0)	/*	Segment discarded.		*/
 	{
 #if LTPDEBUG
 putErrmsg("Discarded data segment.", itoa(sessionNbr));
