@@ -182,6 +182,7 @@ int	sendBytesByTCP(int *bundleSocket, char *from, int length,
 			case EBADF:
 			case ETIMEDOUT:
 			case ECONNRESET:
+			case EHOSTUNREACH:
 				closesocket(*bundleSocket);
 				*bundleSocket = -1;
 				bytesWritten = 0;
