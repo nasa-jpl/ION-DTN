@@ -7310,6 +7310,21 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpCtReason ctReason,
 			iwatch('x');
 		}
 	}
+	else	/*	Bundle is not custodial.			*/
+	{
+		/*	Pending definition of another admin record
+		 *	that indicates "Don't send any more of these
+		 *	to me" regardless of custody setting, we
+		 *	send a bogus custody refusal to signal that
+		 *	the sender should embargo transmissions to
+		 *	this node.					*/
+
+		if (sendCtSignal(bundle, work->dictionary, 0, ctReason) < 0)
+		{
+			putErrmsg("Can't send custody signal.", NULL);
+			return -1;
+		}
+	}
 
 	if (srReason != 0
 	&& (SRR_FLAGS(bundle->bundleProcFlags) & BP_DELETED_RPT))
@@ -9636,6 +9651,23 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 				putErrmsg("Can't send custody signal.", NULL);
 			}
 		}
+		else	/*	Bundle is not custodial.		*/
+		{
+			/*	Pending definition of another admin
+			 *	record that indicates "Don't send
+			 *	any more of these to me" regardless
+			 *	of custody setting, we send a bogus
+			 *	custody refusal to signal that the
+			 *	sender should embargo transmissions
+			 *	to this node.				*/
+
+			result2 = sendCtSignal(bundle, dictionary, 0,
+					CtNoKnownRoute);
+			if (result2 < 0)
+			{
+				putErrmsg("Can't send custody signal.", NULL);
+			}
+		}
 	}
 
 	releaseDictionary(dictionary);
@@ -11022,8 +11054,10 @@ int	bpReforwardBundle(Object bundleAddr)
 	}
 
 	/*	Non-critical bundle, so let's compute another route
-	 *	for it.							*/
+	 *	for it.  This may entail back-tracking through the
+	 *	node from which we originally received the bundle.	*/
 
+	bundle.returnToSender = 1;
 	purgeStationsStack(&bundle);
 	if (bundle.ductXmitElt)
 	{
