@@ -16,6 +16,8 @@ LIBDTPCOBJS = \
 PUBINCLS = \
 	$(INCL)/dtpc.h
 
+LBP = -lbp -limcfw -lipnfw
+
 RUNTIMES = dtpcd dtpcclock dtpcsend dtpcreceive dtpcadmin
 
 ALL = check libdtpc.so $(RUNTIMES)
@@ -40,27 +42,27 @@ install:
 #	-	-	Daemon executables	-	-	-	-
 
 dtpcd:		dtpcd.o libdtpc.so
-		$(CC) -o dtpcd dtpcd.o -L./lib -L$(ROOT)/lib -ldtpc -lbp -lici -lpthread
+		$(CC) -o dtpcd dtpcd.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread
 		cp dtpcd ./bin
 
 dtpcclock:	dtpcclock.o libdtpc.so
-		$(CC) -o dtpcclock dtpcclock.o -L./lib -L$(ROOT)/lib -ldtpc -lbp -lici -lpthread
+		$(CC) -o dtpcclock dtpcclock.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread
 		cp dtpcclock ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 dtpcadmin:	dtpcadmin.o libdtpc.so
-		$(CC) -o dtpcadmin dtpcadmin.o -L./lib -L$(ROOT)/lib -ldtpc -lbp -lici -lpthread
+		$(CC) -o dtpcadmin dtpcadmin.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread
 		cp dtpcadmin ./bin
 
 #	-	-	Test executables	-	-	-	-
 
 dtpcsend:	dtpcsend.o libdtpc.so
-		$(CC) -o dtpcsend dtpcsend.o -L./lib -L$(ROOT)/lib -ldtpc -lbp -lici -lpthread
+		$(CC) -o dtpcsend dtpcsend.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread
 		cp dtpcsend ./bin
 
 dtpcreceive:	dtpcreceive.o libdtpc.so
-		$(CC) -o dtpcreceive dtpcreceive.o -L./lib -L$(ROOT)/lib -ldtpc -lbp -lici -lpthread
+		$(CC) -o dtpcreceive dtpcreceive.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread
 		cp dtpcreceive ./bin
 
 #	-	-	Libraries	-	-	-	-	-

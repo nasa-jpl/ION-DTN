@@ -29,6 +29,7 @@ int	bp_discover_contact_acquired(char *socketSpec, uvast neighborNodeNbr,
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 	DuctExpression	ductExpression;
+	time_t		currentTime;
 
 	CHKERR(socketSpec);
 	CHKERR(*socketSpec);
@@ -137,15 +138,16 @@ int	bp_discover_contact_acquired(char *socketSpec, uvast neighborNodeNbr,
 
 	/*	Insert contact into contact plan.			*/
 
-	if (rfx_insert_contact(0, MAX_POSIX_TIME, ownNodeNbr, neighborNodeNbr, 
-			xmitRate, 1.0) == 0)
+	currentTime = getUTCTime();
+	if (rfx_insert_contact(currentTime, MAX_POSIX_TIME, ownNodeNbr,
+			neighborNodeNbr, xmitRate, 1.0) == 0)
 	{
 		putErrmsg("Can't add transmission contact.", socketSpec);
 		return -1;
 	}
 
-	if (rfx_insert_contact(0, MAX_POSIX_TIME, neighborNodeNbr, ownNodeNbr,
-			recvRate, 1.0) == 0)
+	if (rfx_insert_contact(currentTime, MAX_POSIX_TIME, neighborNodeNbr,
+			ownNodeNbr, recvRate, 1.0) == 0)
 	{
 		putErrmsg("Can't add reception contact.", socketSpec);
 		return -1;

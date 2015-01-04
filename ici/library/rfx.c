@@ -693,8 +693,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 		}
 	}
 
-	if (cxref->toTime > currentTime		/*	Affects routes.	*/
-	&& cxref->fromTime != 0)		/*	Not discovered.	*/
+	if (cxref->toTime > currentTime)	/*	Affects routes.	*/
 	{
 		vdb->lastEditTime = currentTime;
 	}
@@ -722,15 +721,8 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	Object		obj;
 	Object		elt;
 
-	if (fromTime == 0)	/*	Must be a discovered contact.	*/
-	{
-		CHKZERO(toTime == MAX_POSIX_TIME);
-	}
-	else
-	{
-		CHKZERO(toTime > fromTime);
-	}
-
+	CHKZERO(fromTime);
+	CHKZERO(toTime > fromTime);
 	CHKZERO(fromNode);
 	CHKZERO(toNode);
 	CHKZERO(prob > 0.0 && prob <= 1.0);
@@ -968,8 +960,7 @@ static void	deleteContact(PsmAddress cxaddr)
 
 	/*	Delete contact from index.				*/
 
-	if (cxref->toTime > currentTime		/*	Affects routes.	*/
-	&& cxref->fromTime != 0)		/*	Not discovered.	*/
+	if (cxref->toTime > currentTime)	/*	Affects routes.	*/
 	{
 		vdb->lastEditTime = currentTime;
 	}
