@@ -55,8 +55,7 @@ int	main(int argc, char *argv[])
 	Sdr		sdr;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
-	int		allGreen = 0;		/*	Boolean		*/
-	vast		destEngineNbr;
+	uvast		destEngineNbr;
 	Outduct		outduct;
 	Outflow		outflows[3];
 	int		i;
@@ -69,7 +68,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		PUTS("Usage: ltpclo [-]<destination engine number>");
+		PUTS("Usage: ltpclo <destination engine number>");
 		return 0;
 	}
 
@@ -100,13 +99,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_exit_xn(sdr);
-	destEngineNbr = strtovast(ductName);
-	if (destEngineNbr < 0)
-	{
-		allGreen = 1;
-		destEngineNbr = 0 - destEngineNbr;
-	}
-
+	destEngineNbr = strtouvast(ductName);
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = outduct.bulkQueue;
 	outflows[1].outboundBundles = outduct.stdQueue;
@@ -144,20 +137,13 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		if (allGreen)
+		if (extendedCOS.flags & BP_BEST_EFFORT)
 		{
 			redPartLength = 0;
 		}
 		else
 		{
-			if (extendedCOS.flags & BP_BEST_EFFORT)
-			{
-				redPartLength = 0;
-			}
-			else
-			{
-				redPartLength = LTP_ALL_RED;
-			}
+			redPartLength = LTP_ALL_RED;
 		}
 
 		switch (ltp_send(destEngineNbr, BpLtpClientId, bundleZco,
