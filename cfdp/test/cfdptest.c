@@ -18,10 +18,19 @@ typedef struct
 	char			destFileNameBuf[256];
 	char			*destFileName;
 	BpUtParms		utParms;
+	unsigned int		closureLatency;
+	CfdpMetadataFn		segMetadataFn;
 	MetadataList		msgsToUser;
 	MetadataList		fsRequests;
 	CfdpTransactionId	transactionId;
 } CfdpReqParms;
+
+static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
+			unsigned int length, int sourceFileFd, char *buffer)
+{
+	writeTimestampLocal(getUTCTime(), buffer);
+	return strlen(buffer) + 1;
+}
 
 static void	handleQuit()
 {
@@ -49,6 +58,12 @@ static void	printUsage()
 	PUTS("\tm\tSet transmission mode");
 	PUTS("\t   m <0 = CL reliability (the default), 1 = unreliable, 2 = \
 custody transfer>");
+	PUTS("\ta\tControl CFDP transaction closure");
+	PUTS("\t   a <expected round trip latency>");
+	PUTS("\t\t0 = no acknowledgment expected");
+	PUTS("\tn\tControl insertion of segment metadata");
+	PUTS("\t   n { 1 | 0 }");
+	PUTS("\t\t1 = time-tag each segment, 0 = no segment metadata");
 	PUTS("\tg\tSet status reporting flags");
 	PUTS("\t   g <status report flag string>");
 	PUTS("\t   Status report flag string is a sequence of status report");
@@ -207,6 +222,34 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 			utParms->custodySwitch = NoCustodyRequested;
 		}
 	}
+}
+
+static void	setClosure(int tokenCount, char **tokens, CfdpReqParms *parms)
+{
+	unsigned long	latency;
+
+	if (tokenCount != 2)
+	{
+		PUTS("What's the transaction closure latency?");
+		return;
+	}
+
+	latency = strtoul(tokens[1], NULL, 0);
+	parms->closureLatency = latency;
+}
+
+static void	setSegMd(int tokenCount, char **tokens, CfdpReqParms *parms)
+{
+	unsigned long	setting;
+
+	if (tokenCount != 2)
+	{
+		PUTS("What's the segment metadata mode?");
+		return;
+	}
+
+	setting = strtoul(tokens[1], NULL, 0);
+	parms->segMetadataFn = (setting == 0) ? NULL : noteSegmentTime;
 }
 
 static void	setFlag(int *srrFlags, char *arg)
@@ -449,6 +492,14 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			setMode(tokenCount, tokens, &(parms->utParms));
 			return 0;
 
+		case 'a':
+			setClosure(tokenCount, tokens, parms);
+			return 0;
+
+		case 'n':
+			setSegMd(tokenCount, tokens, parms);
+			return 0;
+
 		case 'g':
 			setSrrFlags(tokenCount, tokens, &(parms->utParms));
 			return 0;
@@ -472,7 +523,9 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 					(unsigned char *) &(parms->utParms),
 					parms->sourceFileName,
 					parms->destFileName, NULL,
+					parms->segMetadataFn,
 					parms->faultHandlers, 0, NULL,
+					parms->closureLatency,
 					parms->msgsToUser,
 					parms->fsRequests,
 					&(parms->transactionId)) < 0)
@@ -553,12 +606,16 @@ static void	*handleEvents(void *parm)
 	CfdpTransactionId	transactionId;
 	char			sourceFileNameBuf[256];
 	char			destFileNameBuf[256];
-	unsigned int		fileSize;
+	uvast			fileSize;
 	MetadataList		messagesToUser;
-	unsigned int		offset;
+	uvast			offset;
 	unsigned int		length;
+	unsigned int		recordBoundsRespected;
+	CfdpContinuationState	continuationState;
+	unsigned int		segMetadataLength;
+	char			segMetadata[63];
 	CfdpCondition		condition;
-	unsigned int		progress;
+	uvast			progress;
 	CfdpFileStatus		fileStatus;
 	CfdpDeliveryCode	deliveryCode;
 	CfdpTransactionId	originatingTransactionId;
@@ -576,6 +633,8 @@ static void	*handleEvents(void *parm)
 		if (cfdp_get_event(&type, &time, &reqNbr, &transactionId,
 				sourceFileNameBuf, destFileNameBuf,
 				&fileSize, &messagesToUser, &offset, &length,
+				&recordBoundsRespected, &continuationState,
+				&segMetadataLength, segMetadata,
 				&condition, &progress, &fileStatus,
 				&deliveryCode, &originatingTransactionId,
 				statusReportBuf, &filestoreResponses) < 0)
@@ -595,6 +654,14 @@ static void	*handleEvents(void *parm)
 		if (type == CfdpReportInd)
 		{
 			printf("Report '%s'\n", statusReportBuf);
+		}
+
+		if (type == CfdpFileSegmentRecvInd)
+		{
+			if (segMetadataLength > 0)
+			{
+				printf("Seg metadata '%s'\n", segMetadata);
+			}
 		}
 
 		while (messagesToUser)
@@ -697,7 +764,7 @@ static int	runCfdptestInteractive()
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	cfdptest(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

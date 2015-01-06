@@ -437,6 +437,7 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript)
 	if (fstat(sourceFd, &statbuf) < 0)
 	{
 		putSysErrmsg("Can't stat source file", pathName);
+		close(sourceFd);
 		return 0;
 	}
 
@@ -551,6 +552,7 @@ int	zco_revise_file_ref(Sdr sdr, Object fileRefObj, char *pathName,
 	if (fstat(sourceFd, &statbuf) < 0)
 	{
 		putSysErrmsg("Can't stat source file", pathName);
+		close(sourceFd);
 		return 0;
 	}
 

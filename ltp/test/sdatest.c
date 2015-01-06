@@ -28,7 +28,8 @@ static void	interruptThread()
 	sda_interrupt();
 }
 
-static vast	getLengthOfItem(unsigned char *buffer, vast bufferLength)
+static vast	getLengthOfItem(unsigned int clientId, unsigned char *buffer,
+			vast bufferLength)
 {
 	return 1 + istrlen((char *) buffer, bufferLength);
 }
@@ -41,7 +42,8 @@ static int	handleItem(uvast sourceEngineId, unsigned int clientId,
 	char		buffer[MAX_LINE_LEN + 1];
 
 	zco_start_receiving(clientServiceData, &reader);
-	zco_receive_source(sdr, &reader, sizeof buffer, buffer);
+	memset(buffer, 0, sizeof buffer);
+	zco_receive_source(sdr, &reader, MAX_LINE_LEN, buffer);
 	printf("%s", buffer);
 	return 0;
 }
@@ -155,16 +157,15 @@ static int	run_sdatest(uvast destEngineId)
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	sdatest(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	unsigned int	sdaItemLength = a1;
-	uvast		destEngineId = (uvast) a2;
+	uvast	destEngineId = (uvast) a1;
 #else
 int	main(int argc, char **argv)
 {
-	uvast		destEngineId = 0;
+	uvast	destEngineId = 0;
 
 	if (argc > 2) argc = 2;
 	switch (argc)

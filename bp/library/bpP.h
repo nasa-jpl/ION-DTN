@@ -614,7 +614,7 @@ typedef struct
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
 	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting clock.	*/
-	int		maxAcqInHeap;
+	unsigned int	maxAcqInHeap;
 	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
 
@@ -791,16 +791,6 @@ typedef struct
 	Object		destDuctName;	/*	sdrstring for xmit	*/
 	Object		eid;		/*	sdrstring for fwd	*/
 } FwdDirective;
-
-/*	Definitions supporting determination of sender endpoint ID.	*/
-
-typedef int		(*BpEidLookupFn)(char *uriBuffer, char *neighborClId);
-
-extern BpEidLookupFn	*senderEidLookupFunctions(BpEidLookupFn fn);
-extern void		getSenderEid(char **eidBuffer, char *neighborClId);
-extern int		clIdMatches(char *neighborClId, FwdDirective *dir);
-
-extern void		getSenderEid(char **eidBuffer, char *neighborClId);
 
 /*	Definitions supporting the use of QoS-sensitive bandwidth
  *	management.							*/
@@ -1249,7 +1239,7 @@ extern int		bpDestroyBundle(Object bundleToDestroy,
 			 *	Boolean, set to 1 only by bpClock when
 			 *	it destroys a bundle whose TTL has
 			 *	expired or by bp_cancel on bundle
-			 *	cancellation.  Returns 1 if bundlex
+			 *	cancellation.  Returns 1 if bundle
 			 *	is actually destroyed, 0 if bundle is
 			 *	retained because not all constraints
 			 *	have been removed, -1 on any error.	*/
@@ -1271,7 +1261,8 @@ extern void		getCurrentDtnTime(DtnTime *dt);
 
 extern int		guessBundleSize(Bundle *bundle);
 extern int		computeECCC(int bundleSize, ClProtocol *protocol);
-extern void		computeApplicableBacklog(Outduct *, Bundle *, Scalar *);
+extern void		computePriorClaims(Outduct *, Bundle *, Scalar *,
+				Scalar *);
 
 extern int		putBpString(BpString *bpString, char *string);
 extern char		*getBpString(BpString *bpString);
@@ -1342,15 +1333,21 @@ extern int		bpUnblockOutduct(char *protocolName, char *ductName);
 extern Object		insertBpTimelineEvent(BpEvent *newEvent);
 extern void		destroyBpTimelineEvent(Object timelineElt);
 
+extern void	        removeBundleFromQueue(Bundle *bundle, Object bundleObj,
+			        ClProtocol *protocol, Object outductObj,
+			        Outduct *outduct);
+
+extern int		decodeBundle(Sdr sdr, Object zco, unsigned char *buf,
+				Bundle *image, char **dictionary,
+				unsigned int *bundleLength);
 extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned int fragmentOffset,
 				unsigned int fragmentLength,
 				Object *bundleAddr);
-extern int		decodeBundle(Object bundleZco, unsigned char *buffer,
-				Bundle *image, char **dictionary,
-				unsigned int *bundleLength);
 extern int		retrieveInTransitBundle(Object bundleZco, Object *obj);
 
+extern int		deliverBundle(Object bundleObj, Bundle *bundle,
+				VEndpoint *vpoint);
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 

@@ -71,11 +71,11 @@ extern void		sdr_shutdown();
 				releases all resources used by the
 				sdr system.				*/
 
-/*		SDR database administration functions.			*/
+/*		SDR data space administration functions.		*/
 
 extern int		sdr_load_profile(char *name, int configFlags,
-				long heapWords, int memKey, char *pathName,
-				char *restartCmd);
+				long heapWords, int heapKey, int logSize,
+				int logKey, char *pathName, char *restartCmd);
 			/*	Loads the profile for an SDR into the
 				sdrs list.  The profile of an SDR must
 				be reloaded (into shared memory) on a
@@ -86,51 +86,78 @@ extern int		sdr_load_profile(char *name, int configFlags,
 
 				At the time the profile is loaded,
 				we check to see whether or not the
-				named database already exists.  If
-				it does, then we automatically back
+				named SDR already exists.  If it
+				does, then we automatically back
 				out the current transaction (if the
-				database is configured for transaction
-				reversibility and the transaction log
-				file contains any log entries).  If
+				SDR is configured for transaction
+				reversibility and the transaction
+				log contains any log entries).  If
 				it does not, then we create and
-				initialize the database.
+				initialize the SDR.
 
 			 	"name" is the name of the SDR.
-				The configFlags value must be some
+				The "configFlags" value must be some
 				logical disjunction of configuration
-				flags as defined above.  heapWords
+				flags as defined above.  "heapWords"
 				is the size of the usable heap portion
-				of the SDR in "words" (long integers).
-				The total SDR size in bytes is given
-				by (heapWords * word size) + map size.
+				of the SDR's data space in "words"
+				(long integers).  The SDR's total data
+				space size in bytes is given by
+			       	(heapWords * word size) + map size.
 
 				On creation of the SDR, where the
 				SDR_IN_DRAM option is selected, if
-				memKey is SM_NO_KEY then a region of
-				shared memory of length equal to
-				total SDR size will automatically be
+				"heapKey" is SM_NO_KEY then a region of
+				shared memory of length equal to total
+				data space size will automatically be
 				allocated and shared using a dynamically
 				selected shared memory key; otherwise
-				memKey must be a shared memory key
+				"heapKey" must be a shared memory key
 				identifying a pre-allocated region
 				of shared memory of length equal to
-				the total SDR size, shared using the
+				the total data space size, shared
+				using the indicated key.
+
+				"logSize" is the amount of memory
+				that will be made available for the
+				transaction reversibility log.  If
+				SDR_REVERSIBLE is not set in the
+				"configFlags" then this value is
+				ignored; otherwise, if "logSize"
+				is zero then the transaction
+				reversibility log will be written
+				to a file rather than to memory.
+
+				On creation of the SDR, where the
+				SDR_REVERSIBLE option is selected
+				and logSize is greater than zero, if
+				"logKey" is SM_NO_KEY then a region of
+				shared memory of length equal to log
+				size will automatically be allocated
+				and shared using a dynamically
+				selected shared memory key; otherwise
+				"logKey" must be a shared memory key
+				identifying a pre-allocated region
+				of shared memory of length equal to
+				the log size, shared using the
 				indicated key.
 
-				If SDR_REVERSIBLE or SDR_IN_FILE is
-				selected, then the path name of the
-				directory into which the log file
-				and/or db file will be written must
-				be supplied in pathName.  The name
-				of the log file (if applicable)
-				will be "<sdrname>.sdrlog".  The
-				name of the db file (if applicable)
-				will be "<sdrname>.sdr".  On creation
+				If SDR_IN_FILE is selected, or if
+				SDR_REVERSIBLE is selected and
+				"logSize" is zero, then the path
+				name of the directory into which
+				the log file and/or db file will
+				be written must be supplied in
+				pathName.  The name of the log file
+				(if applicable) will be
+				"<sdrname>.sdrlog".  The name of the
+				db file (if applicable) will be
+				"<sdrname>.sdr".  On creation
 				of the SDR, where the SDR_IN_FILE
 				option is selected, a file of the
 				indicated name and of the size given
-				by total SDR size will be created and
-				filled with zeros.
+				by total data space size will be
+				created and filled with zeros.
 
 				If a cleanup task must be run whenever
 				a transaction is reversed, the command
@@ -140,8 +167,8 @@ extern int		sdr_load_profile(char *name, int configFlags,
 				transaction reversal.			*/
 
 extern int		sdr_reload_profile(char *name, int configFlags,
-				long heapWords, int memKey, char *pathName,
-				char *restartCmd);
+				long heapWords, int heapKey, int logSize,
+				int logKey, char *pathName, char *restartCmd);
 			/*	For use when the state of an SDR is
 			 *	thought to be inconsistent, perhaps
 			 *	due to crash of a program that had
@@ -196,14 +223,14 @@ extern int		sdr_end_xn(Sdr sdr);
 typedef long		SdrAddress;
 #define	Address		SdrAddress
 
-/*	Both SdrObjects and SdrAddresses are absolute offsets from the
-	start of an SDR heap; they are functionally equivalent
+/*	Both SdrObjects and SdrAddresses are absolute offsets from
+ 	the start of an SDR heap; they are functionally equivalent
 	to pointers in DRAM.  They are differentiated to enable
-	compile-time type checking to detect some possible SDR
-	access errors: an SdrObject is the address of some block of
-	SDR space allocated by sdr_malloc() in the sdrmgt library,
-	while an SdrAddress can point to any location in the SDR
-	(i.e., it can point anywhere inside an object).			*/
+	compile-time type checking to detect some possible SDR access
+	errors: an SdrObject is the address of some block of SDR
+	data space allocated by sdr_malloc() in the sdrmgt library,
+	while an SdrAddress can point to any location in the data
+	space (i.e., it can point anywhere inside an object).		*/
 
 typedef unsigned long	SdrObject;
 #define	Object		SdrObject
@@ -211,11 +238,11 @@ typedef unsigned long	SdrObject;
 extern void		*sdr_pointer(Sdr sdr, Address address);
 extern Address		sdr_address(Sdr sdr, void *pointer);
 
-#ifndef USING_SDR_POINTERS
-#define	USING_SDR_POINTERS	0
+#ifndef HEAP_PTRS
+#define	HEAP_PTRS	0
 #endif
 
-#if (USING_SDR_POINTERS)
+#if (HEAP_PTRS)
 #define OBJ_POINTER(typenm, varnm)\
 	typenm	*varnm
 #define	GET_OBJ_POINTER(sdrp, typenm, varnm, addr)\

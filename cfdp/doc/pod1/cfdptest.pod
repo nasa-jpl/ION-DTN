@@ -83,6 +83,26 @@ provided by a reliable DTN convergence layer protocol), 1 (best-effort,
 unreliable), and 2 (assured, reliable, but with reliability provided by BP
 custody transfer).  If not specified, transmission mode is 0.
 
+=item B<a> <latency in seconds>
+
+The B<closure latency> command.  This command establishes the transaction
+closure latency for all subsequent file transmission operations.  When it is
+set to zero, the file transmission is "open loop" and the CFDP transaction
+at the sending entity finishes when the EOF is sent.  Otherwise, the
+receiving CFDP entity is being asked to send a "Finished" PDU back to the
+sending CFDP entity when the transaction finishes at the receiving entity.
+Normally the transaction finishes at the sending entity only when that
+Finished PDU is received.  However, when I<closure latency> seconds elapse
+following transmission of the EOF PDU prior to receipt of the Finished PDU,
+the transaction finishes immediately with a Check Timer fault.
+
+=item B<n> { 0 | 1 }
+
+The B<segment metadata> command.  This command controls the insertion of
+sample segment metadata -- a string representation of the current time --
+in every file data segment PDU.  A value of 1 enables segment metadata
+insertion, while a value of 0 disables it.
+
 =item B<g> <srrflags>
 
 The B<srrflags> command.  This command establishes the BP status reporting

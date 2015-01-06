@@ -68,40 +68,6 @@ static IpnDB	*_ipnConstants()
 
 /*	*	*	Routing information mgt functions	*	*/
 
-static int	lookupIpnEid(char *uriBuffer, char *neighborClId)
-{
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-		OBJ_POINTER(IpnPlan, plan);
-
-	for (elt = sdr_list_first(sdr, (_ipnConstants())->plans); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		GET_OBJ_POINTER(sdr, IpnPlan, plan, sdr_list_data(sdr, elt));
-		switch (clIdMatches(neighborClId, &plan->defaultDirective))
-		{
-		case -1:
-			putErrmsg("Failed looking up IPN EID.", NULL);
-			return -1;
-
-		case 0:
-			continue;	/*	No match.		*/
-
-		default:
-
-			/*	Found the plan for transmission to
-			 *	this neighbor, so now we know the
-			 *	neighbor's EID.				*/
-
-			isprintf(uriBuffer, SDRSTRING_BUFSZ,
-				"ipn:" UVAST_FIELDSPEC ".0", plan->nodeNbr);
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
 int	ipnInit()
 {
 	Sdr	sdr = getIonsdr();
@@ -111,7 +77,6 @@ int	ipnInit()
 	/*	Recover the IPN database, creating it if necessary.	*/
 
 	CHKERR(sdr_begin_xn(sdr));
-	oK(senderEidLookupFunctions(lookupIpnEid));
 	ipndbObject = sdr_find(sdr, IPN_DBNAME, NULL);
 	switch (ipndbObject)
 	{

@@ -50,7 +50,7 @@ static void *       sendLines(void *args)
 			break;
 		}
 
-		CHKNULL(sdr_begin_xn(sdr));
+		oK(sdr_begin_xn(sdr));
 		bundlePayload = sdr_malloc(sdr, lineLength);
 		if(bundlePayload) {
 			sdr_write(sdr, bundlePayload, lineBuffer, lineLength);
@@ -102,7 +102,7 @@ static void *       recvBundles(void *args)
 			break;
 		}
 
-		if(dlv.result == BpReceptionInterrupted) {
+		if(dlv.result == BpReceptionInterrupted || dlv.adu == 0) {
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
@@ -113,7 +113,7 @@ static void *       recvBundles(void *args)
 			break;
 		}
 
-		CHKNULL(sdr_begin_xn(sdr));
+		oK(sdr_begin_xn(sdr));
 		bundleLenRemaining = zco_source_data_length(sdr, dlv.adu);
 		zco_start_receiving(dlv.adu, &reader);
 		while(bundleLenRemaining > 0) {

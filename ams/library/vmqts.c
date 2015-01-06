@@ -8,7 +8,7 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 									*/
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (VXWORKS)
 
 #include "amsP.h"
 

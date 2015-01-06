@@ -18,7 +18,7 @@ int	ltp_attach()
 
 void	ltp_detach()
 {
-#if (!(defined (VXWORKS) || defined (RTEMS) || defined (bionic)))
+#if (!(defined (ION_LWT)))
 	ltpDetach();
 #endif
 	ionDetach();
@@ -263,8 +263,7 @@ int	ltp_send(uvast destinationEngineId, unsigned int clientSvcId,
 
 	if (vdb->watching & WATCH_d)
 	{
-		putchar('d');
-		fflush(stdout);
+		iwatch('d');
 	}
 
 	if (sdr_end_xn(sdr))

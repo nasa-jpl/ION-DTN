@@ -51,12 +51,16 @@ void poll_cfdp_messages()
 	CfdpTransactionId	transactionId;
 	char				sourceFileNameBuf[256];
 	char				destFileNameBuf[256];
-	unsigned int		fileSize;
+	uvast			fileSize;
 	MetadataList		messagesToUser;
-	unsigned int		offset;
+	uvast			offset;
 	unsigned int		length;
+	unsigned int		recordBoundsRespected;
+	CfdpContinuationState	continuationState;
+	unsigned int		segMetadataLength;
+	char			segMetadata[63];
 	CfdpCondition		condition;
-	unsigned int		progress;
+	uvast			progress;
 	CfdpFileStatus		fileStatus;
 	CfdpDeliveryCode	deliveryCode;
 	CfdpTransactionId	originatingTransactionId;
@@ -73,9 +77,11 @@ void poll_cfdp_messages()
 		if (cfdp_get_event(&type, &time, &reqNbr, &transactionId,
 						sourceFileNameBuf, destFileNameBuf,
 						&fileSize, &messagesToUser, &offset, &length,
-						&condition, &progress, &fileStatus,
-						&deliveryCode, &originatingTransactionId,
-						statusReportBuf, &filestoreResponses) < 0){
+						&recordBoundsRespected, &continuationState,
+						&segMetadataLength, segMetadata, &condition,
+						&progress, &fileStatus, &deliveryCode,
+						&originatingTransactionId, statusReportBuf,
+						&filestoreResponses) < 0){
 					fprintf(stderr, "Error: Failed getting CFDP event.");
 					exit(1);
 				}

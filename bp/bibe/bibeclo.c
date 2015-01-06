@@ -131,7 +131,7 @@ int	main(int argc, char *argv[])
 		}
 
 		CHKZERO(sdr_begin_xn(sdr));
-		if (decodeBundle(bundleZco, buffer, &image, &dictionary,
+		if (decodeBundle(sdr, bundleZco, buffer, &image, &dictionary,
 				&bundleLength) < 0)
 		{
 			putErrmsg("Can't decode bundle; CLO stopping.", NULL);

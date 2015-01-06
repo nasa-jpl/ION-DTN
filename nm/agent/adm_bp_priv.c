@@ -241,6 +241,7 @@ expr_result_t bp_node_get_version(Lyst params)
 	bpnm_node_get(&node_state);
 
 	result.type = EXPR_TYPE_STRING;
+
 	result.value = adm_copy_string((char *) node_state.bpVersionNbr, &(result.length));
 
 	return result;

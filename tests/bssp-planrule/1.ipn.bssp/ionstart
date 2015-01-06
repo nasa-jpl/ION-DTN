@@ -1,0 +1,16 @@
+# shell script to get node running
+#!/bin/bash
+ionadmin	amroc.ionrc
+sleep 1
+ionadmin	../global.ionrc
+sleep 1
+ionsecadmin	amroc.ionsecrc
+sleep 1
+owltsim		amroc.owltsim &
+sleep 1
+bsspadmin	amroc.bssprc
+sleep 1
+ltpadmin	amroc.ltprc
+sleep 1
+bpadmin		amroc.bprc
+

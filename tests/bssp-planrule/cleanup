@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Sotirios-Angelos Lenas
+# October 3, 2011
+
+echo "Cleaning up old ION..."
+rm -f ion_nodes 1.ipn.bssp/ion.log 1.ipn.bssp/node1.stdout 1.ipn.bssp/ltpblock.* 1.ipn.bssp/bpacq.* 2.ipn.bssp/ion.log 2.ipn.bssp/node2.stdout 2.ipn.bssp/ltpblock.* 2.ipn.bssp/bpacq.* 2.ipn.bssp/bsscounter.output 1.ipn.bssp/bpdriver.output 1.ipn.bssp/bpdriverAduFile 2.ipn.bssp/bpcounter.output  bssDB*
+killm

@@ -1,7 +1,7 @@
 UTILS = ../utils
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux
+OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
 CC = gcc $(OPT)
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)

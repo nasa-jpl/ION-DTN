@@ -8,6 +8,8 @@
  **  All rights reserved.
  ********************************************************/
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include "bundle_tools.h"
 #include "definitions.h"

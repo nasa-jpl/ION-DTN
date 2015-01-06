@@ -19,7 +19,7 @@ Use CTRL-C to terminate the program.
 
 =over 4
 
-=item 0
+=item C<0>
 
 B<dtpcreceive> has terminated.
 

@@ -77,7 +77,7 @@ stdin, e.g. ASCII text ['%s']?\n", text);
 			break;
 		}
 
-		if (strlen((char *) buffer) == (contentLength - 1))
+		if (buffer[contentLength - 1] == 0)
 		{
 			printf("%32s %10d '%s'\n", subjectName, contentLength,
 					buffer);

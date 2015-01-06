@@ -3,21 +3,23 @@ INCL = ../include
 UTILS = ../utils
 DAEMON = ../daemon
 UDP = ../udp
+SDA = ../sda
 TEST = ../test
 
 OPT = -g -Wall -Dmingw
-CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
+CC = gcc $(OPT) -I$(API) -I$(API)/ext -I$(API)/ext/auth -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
 PUBINCLS = \
-	$(INCL)/ltp.h
+	$(INCL)/ltp.h \
+	$(INCL)/sda.h
 
 LTPINCLS = \
 	$(API)/ltpP.h \
 	$(UDP)/udplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter
+RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
 
 ALL = check libltp.dll $(RUNTIMES)
 
@@ -30,6 +32,7 @@ check:		$(LTPINCLS) $(PUBINCLS)
 clean:
 		rm -f *.o
 		rm -f *.exe
+		rm -f *.def
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -65,6 +68,10 @@ ltpcounter:	ltpcounter.o libltp.dll
 		$(CC) -o ltpcounter ltpcounter.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread
 		cp ltpcounter ./bin
 
+sdatest:	sdatest.o libltp.dll
+		$(CC) -o sdatest sdatest.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread
+		cp sdatest ./bin
+
 #	-	-	UDP executables	-	-	-	-	-
 
 udplsi:		udplsi.o libltp.dll
@@ -77,13 +84,16 @@ udplso:		udplso.o libltp.dll
 
 #	-	-	Libraries	-	-	-	-	-
 
-libltp.dll:	libltpP.o libltp.o libltpnm.o
-		$(LD) -o libltp.dll libltpP.o libltp.o libltpnm.o -L$(ROOT)/lib -lici -lpthread
+libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o
+		$(LD) -o libltp.dll libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o -Wl,--output-def,libltp.def -L$(ROOT)/lib -lici -lpthread
 		cp libltp.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
 %.o:		$(API)/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/auth/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c
@@ -96,4 +106,7 @@ libltp.dll:	libltpP.o libltp.o libltpnm.o
 		$(CC) -c $<
 
 %.o:		$(UDP)/%.c
+		$(CC) -c $<
+
+%.o:		$(SDA)/%.c
 		$(CC) -c $<

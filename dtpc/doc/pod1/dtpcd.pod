@@ -26,13 +26,13 @@ acknowledgment PDU is returned to the DTPC PDU sender.
 
 =over 4
 
-=item 0
+=item C<0>
 
 B<dtpcd> terminated normally, for reasons noted in the B<ion.log> file.  If
 this termination was not commanded, investigate and solve the problem identified
 in the log file and use B<dtpcadmin> to restart B<dtpcd>.
 
-=item 1
+=item C<1>
 
 B<dtpcd> terminated abnormally, for reasons noted in the B<ion.log> file.
 Investigate and solve the problem identified in the log file, then use

@@ -2,6 +2,6 @@
 #!/bin/bash
 bpadmin		.
 sleep 1
-ltpadmin	.
+bsspadmin	.
 sleep 1
 ionadmin	.

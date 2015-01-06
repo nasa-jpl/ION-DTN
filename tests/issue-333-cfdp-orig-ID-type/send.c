@@ -5,14 +5,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-extern int createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
-		unsigned char *utParms, char *sourceFileName,
-		char *destFileName, CfdpReaderFn readerFn,
-		CfdpHandler *faultHandlers, int flowLabelLength,
-		unsigned char *flowLabel, MetadataList messagesToUser,
-		MetadataList filestoreRequests,
-		CfdpTransactionId *originatingTransactionId,
-		CfdpTransactionId *transactionId);
+extern int		createFDU(CfdpNumber *destinationEntityNbr,
+				unsigned int utParmsLength,
+				unsigned char *utParms,
+				char *sourceFileName,
+				char *destFileName,
+				CfdpReaderFn readerFn,
+				CfdpMetadataFn metadataFn,
+				CfdpHandler *faultHandlers,
+				int flowLabelLength,
+				unsigned char *flowLabel,
+				unsigned int closureLatency,
+				MetadataList messagesToUser,
+				MetadataList filestoreRequests,
+				CfdpTransactionId *originatingTransactionId,
+				CfdpTransactionId *transactionId);
 
 typedef struct
 {
@@ -46,7 +53,7 @@ int main()
 	parms.utParms.classOfService = BP_STD_PRIORITY;
 	parms.utParms.custodySwitch = NoCustodyRequested;
 	strcpy(parms.destFileNameBuf, "../rcvfile");
-	parms.destFileName=parms.destFileNameBuf;
+	parms.destFileName = parms.destFileNameBuf;
 	strcpy(parms.sourceFileNameBuf, "../dotest");
 	parms.sourceFileName=parms.sourceFileNameBuf;
 	cfdp_compress_number(&parms.destinationEntityNbr, 1);
@@ -58,8 +65,13 @@ int main()
 			sizeof(BpUtParms),
 			(unsigned char *) &(parms.utParms),
 			parms.sourceFileName,
-			parms.destFileName, NULL,
-			parms.faultHandlers, 0, NULL,
+			parms.destFileName,
+			NULL,
+			NULL,
+			parms.faultHandlers,
+			0,
+			NULL,
+			0,
 			parms.msgsToUser,
 			parms.fsRequests,
 			&(parms.OrigtransactionId),

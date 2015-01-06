@@ -193,9 +193,9 @@ echo ""
 # Restore node 3's TCP socket.
 echo "Restoring STCP connectivity to node 3 to test automatic release."
 cd ../3.ipn.tcp
+rm testfile*
 ./ionstart
 sleep 1
-rm testfile*
 echo "Restarting bprecvfile..."
 bprecvfile ipn:3.1 &
 echo "Sleeping 30 sec to give keepalive thread time to detect open socket..."

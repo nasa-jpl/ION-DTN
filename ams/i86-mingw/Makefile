@@ -52,6 +52,7 @@ check:		$(PUBINCLS)
 clean:
 		rm -f *.o
 		rm -f *.exe
+		rm -f *.def
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -112,7 +113,7 @@ ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommon.h libams.dll $(INCL)
 #	-	-	Libraries	-	-	-	-	-
 
 libams.dll:	$(LIBAMSOBJS) $(API)/amsP.h
-		$(LD) -o libams.dll $(LIBAMSOBJS) -L$(ROOT)/lib -ldgr -lici -lpthread -lws2_32
+		$(LD) -o libams.dll $(LIBAMSOBJS) -Wl,--output-def,libams.def -L$(ROOT)/lib -ldgr -lici -lpthread -lws2_32
 		cp libams.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

@@ -13,7 +13,12 @@
 
 /*	Add external function declarations between here...		*/
 
+#if 0
+#include "snid.h"
+#endif
+#include "phn.h"
 #include "ecos.h"
+#include "meb.h"
 #include "bae.h"
 #include "extbspbab.h"
 #include "extbsppcb.h"
@@ -27,21 +32,36 @@
 
 static ExtensionDef	extensions[] =
 {
-		{ "bab", BSP_BAB_TYPE, 0,
-		//	NK changed the name from "bsp_bab_pre"	
-				bsp_babOffer,
-				bsp_babRelease,
-				bsp_babAcquire,
-				bsp_babPreCheck,
-				0,
-				bsp_babClear,
-				bsp_babCopy,
-				{0,
-				0,
-				0,
-				bsp_babPreProcessOnDequeue,
+		{ "phn", EXTENSION_TYPE_PHN, 0,
+				phn_offer,
+				phn_release,
+				phn_acquire,
+				phn_check,
+				phn_record,
+				phn_clear,
+				phn_copy,
+				{phn_processOnFwd,
+				phn_processOnAccept,
+				phn_processOnEnqueue,
+				phn_processOnDequeue,
 				0}
 		},
+#if 0
+		{ "snid", EXTENSION_TYPE_SNID, 0,
+				snid_offer,
+				snid_release,
+				snid_acquire,
+				snid_check,
+				snid_record,
+				snid_clear,
+				snid_copy,
+				{snid_processOnFwd,
+				snid_processOnAccept,
+				snid_processOnEnqueue,
+				snid_processOnDequeue,
+				0}
+		},
+#endif
 		{ "ecos", EXTENSION_TYPE_ECOS, 0,
 				ecos_offer,
 				ecos_release,
@@ -54,6 +74,20 @@ static ExtensionDef	extensions[] =
 				ecos_processOnAccept,
 				ecos_processOnEnqueue,
 				ecos_processOnDequeue,
+				0}
+		},
+		{ "meb", EXTENSION_TYPE_MEB, 0,
+				meb_offer,
+				meb_release,
+				meb_acquire,
+				meb_check,
+				meb_record,
+				meb_clear,
+				meb_copy,
+				{meb_processOnFwd,
+				meb_processOnAccept,
+				meb_processOnEnqueue,
+				meb_processOnDequeue,
 				0}
 		},
 		{ "bae", EXTENSION_TYPE_BAE, 0,
@@ -112,6 +146,21 @@ static ExtensionDef	extensions[] =
 				0,
 				0,
 				bsp_pcbProcessOnDequeue,
+				0}
+		},
+		{ "bab", BSP_BAB_TYPE, 0,
+		//	NK changed the name from "bsp_bab_pre"	
+				bsp_babOffer,
+				bsp_babRelease,
+				bsp_babAcquire,
+				bsp_babPreCheck,
+				0,
+				bsp_babClear,
+				bsp_babCopy,
+				{0,
+				0,
+				0,
+				bsp_babPreProcessOnDequeue,
 				0}
 		},
 		{ "bsp_bab_post", BSP_BAB_TYPE, 1,

@@ -10,8 +10,6 @@
 #include "cfdpops.h"
 #include <pthread.h>
 
-
-
 #define BPCP_VERSION_STRING "bpcp version 1.0\nApril 2012\nAuthor: Samuel Jero <sj323707@ohio.edu>\n"
 
 /*There are two possible modes of operation for bpcp:
@@ -33,7 +31,7 @@
 
 /*Currently CFDP's directory operations does not remove
  * temporary files. Define this in order to remove those files
- * when bpcpd exits. This provides a crapy work-around for
+ * when bpcpd exits. This provides a crappy work-around for
  * CFDP's brain damage by executing an "rm dirlist_*" on bpcpd's exit.
  * THIS WILL NOT WORK ON VXWORKS!!!!*/
 #define CLEAN_ON_EXIT 1

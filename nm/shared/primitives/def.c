@@ -82,6 +82,65 @@ def_gen_t *def_create_gen(mid_t *id,
 	return result;
 }
 
+
+/**
+ * \brief Duplicates a custom definition.
+ *
+ * \author Ed Birrane
+ *
+ * \note
+ *   - This is a deep copy.
+ *
+ * \return NULL - Failure
+ * 		   !NULL - Created definition
+ *
+ * \param[in] def  The custom definition to duplicate.
+ */
+
+def_gen_t *def_duplicate(def_gen_t *def)
+{
+	Lyst new_contents;
+	mid_t *new_id;
+	def_gen_t *result = NULL;
+	LystElt elt;
+
+	if(def == NULL)
+	{
+		DTNMP_DEBUG_ERR("def_duplicate","Bad Args.",NULL);
+		DTNMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
+		return NULL;
+	}
+
+	if((new_id = mid_copy(def->id)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("def_duplicate","Can't copy DEF ID.",NULL);
+		DTNMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
+		return NULL;
+	}
+
+	if((new_contents = midcol_copy(def->contents)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("def_duplicate","Can't copy DEF contents.", NULL);
+		mid_release(new_id);
+
+		DTNMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
+		return NULL;
+	}
+
+	if((result = def_create_gen(new_id, new_contents)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("def_duplicate","Can't duplicate DEF.", NULL);
+		mid_release(new_id);
+		midcol_destroy(&new_contents);
+		DTNMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
+		return NULL;
+	}
+
+	DTNMP_DEBUG_EXIT("def_duplicate","-->%x", (unsigned long) result);
+	return result;
+}
+
+
 /* Release functions.*/
 
 /**

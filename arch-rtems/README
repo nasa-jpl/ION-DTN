@@ -18,13 +18,13 @@ First construct the RTEMS development environment:
 to download and install the pre-built RTEMS development tools.  Install the
 appropriate rpm, then use yum install to install the tools.
 
-The ION RTEMS port was done on a 32-bit Fedora 10 host system using rtems
-branch 4.9.3, selecting the SPARC "sis" simulator as the target system; this
+This ION RTEMS port was done on a 32-bit Fedora 20 host system using rtems
+branch 4.10.2, selecting the SPARC "sis" simulator as the target system; this
 is similar to the approach taken in the Quick Start example at
 
 	http://www.rtems.com/wiki/index.php/Quick_Start
 
-For the balance of this README, SPARC "sis" for RTEMS 4.9.3 will be assumed;
+For the balance of this README, SPARC "sis" for RTEMS 4.10.2 will be assumed;
 substitute other version, system, or bsp as appropriate.
 
 2.	Make development directories:
@@ -41,33 +41,33 @@ the RTEMS source code and the examples into $(HOME)/rtems/archive.
 4.	Continue following the instructions in the on-line manual for
 installing the operating system.  This entails adding
 
-	export PATH=/opt/rtems-4.9/bin:${PATH}
+	export PATH=/opt/rtems-4.10/bin:${PATH}
 
 to ~/.bash_profile before doing anything.
 
-Test the tools as shown in section 5.4 of the online manual.
+Test the tools as explained in the online manual.
 
 Then, in rtems/tools/build, enter the following commands to build RTEMS:
 
-	../rtems-4.9.3/configure --target=sparc-rtems4.9 --enable-rtemsbsp=sis --prefix=/opt/rtems-4.9/
+	../rtems-4.10.2/configure --target=sparc-rtems4.10 --enable-rtemsbsp=sis --prefix=/opt/rtems-4.10/
 	make all install
 
 5.	Test the RTEMS development environment.  First add
 
-	export RTEMS_MAKEFILE_PATH=/opt/rtems-4.9/sparc-rtems4.9/sis
+	export RTEMS_MAKEFILE_PATH=/opt/rtems-4.10/sparc-rtems4.10/sis
 
 to ~/.bash_profile (and be sure (!) to source ~/.bash_profile in any window in
 which you plan to build any RTEMS application).
 
-Then unpack the sample applications and build hello_world_c described in 6.3
-of the online manual.  The compiled application can be run from the Linux
+Then unpack the sample applications and build hello_world_c described in
+the online manual.  The compiled application can be run from the Linux
 command line by entering
 
-	sparc-rtems4.9-run `find . -name hello.exe`
+	sparc-rtems4.10-run `find . -name hello.exe`
 
 Alternatively, to run and debug the application within gdb, enter
 
-	sparc-rtems4.9-gdb `find . -name hello.exe`
+	sparc-rtems4.10-gdb `find . -name hello.exe`
 
 and enter the following commands at the gdb prompt:
 
@@ -84,7 +84,7 @@ with symbolic links to the ION C source files and build the ion.exe executable:
 
 Then use the following command to run the demo.
 
-	sparc-rtems4.9-run `find . -name ion.exe`
+	sparc-rtems4.10-run `find . -name ion.exe`
 
 The ION daemons will start running and a test execution of bpsource will
 send a loopback bundle via LTP to bpsink, which will print the text in the
@@ -96,9 +96,9 @@ inserted by the compiler removed):
 
 $ cd o-optimize
 $ cp ion.exe stripped.ion.exe
-$ sparc-rtems4.9-strip stripped.ion.exe
+$ sparc-rtems4.10-strip stripped.ion.exe
 $ ls -l stripped.ion.exe
-$ sparc-rtems4.9-size stripped.ion.exe
+$ sparc-rtems4.10-size stripped.ion.exe
 
 Optimization can make source-level debugging more difficult, because key
 variables may be held in registers rather than in memory.  To disable

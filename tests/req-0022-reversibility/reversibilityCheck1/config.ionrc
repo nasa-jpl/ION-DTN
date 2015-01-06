@@ -1,0 +1,11 @@
+# ION configuration
+# Transaction Reversibility Test
+# Samuel Jero <sj323707@ohio.edu>
+# Ohio University
+1 1 config.ionconfig
+e 1
+m horizon +0
+s
+a contact +12000 +36000 1 2 1000
+a range +12000 +36000 1 2 1
+m production 100000

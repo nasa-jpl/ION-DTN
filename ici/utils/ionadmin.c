@@ -150,11 +150,6 @@ static void	initializeNode(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (tokenCount < 3 || *configFileName == '\0')
-	{
-		configFileName = NULL;	/*	Use built-in defaults.	*/
-	}
-
 	if (readIonParms(configFileName, &parms) < 0)
 	{
 		putErrmsg("ionadmin can't get SDR parms.", NULL);
@@ -849,6 +844,65 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
+static int ion_is_up(int tokenCount, char** tokens)
+{
+	if (strcmp(tokens[1], "p") == 0) //poll
+	{
+		if (tokenCount < 3) //use default timeout
+		{
+			int count = 1;
+			while (count <= 120 && !rfx_system_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > 120) //ion system is not started
+			{
+				printText("ION system is not started");
+				return 0;
+			}
+			else //ion system is started
+			{
+				printText("ION system is started");
+				return 1;
+			}
+		}
+		else //use user supplied timeout
+		{
+			int max = atoi(tokens[2]) * 4;
+			int count = 1;
+			while (count <= max && !rfx_system_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > max) //ion system is not started
+			{
+				printText("ION system is not started");
+				return 0;
+			}
+			else //ion system is started
+			{
+				printText("ION system is started");
+				return 1;
+			}
+		}
+	}
+	else //check once
+	{
+		if (rfx_system_is_started())
+		{
+			printText("ION system is started");
+			return 1;
+		}
+		else
+		{
+			printText("ION system is not started");
+			return 0;
+		}
+	}
+}
+
 static int	processLine(char *line, int lineLength)
 {
 	int		tokenCount;
@@ -1043,6 +1097,12 @@ no time.");
 			switchEcho(tokenCount, tokens);
 			return 0;
 
+		case 't':
+			if (ionAttach() == 0)
+			{
+				exit(ion_is_up(tokenCount, tokens));
+			}
+
 		case 'q':
 			return -1;	/*	End program.		*/
 
@@ -1155,7 +1215,7 @@ static int	runIonadmin(char *cmdFileName)
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	ionadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

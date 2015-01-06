@@ -7,9 +7,12 @@
 	acknowledged.
 
 	Author: Scott Burleigh, JPL
+	Adapted by Vinny Ramachandran, JHU/APL
  									*/
 #ifndef _ICINM_H_
 #define _ICINM_H_
+
+#include "ion.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,13 +20,13 @@ extern "C" {
 
 typedef struct
 {
-	unsigned long	smallPoolSize;
-	unsigned long	smallPoolFree;
-	unsigned long	smallPoolAllocated;
-	unsigned long	largePoolSize;
-	unsigned long	largePoolFree;
-	unsigned long	largePoolAllocated;
-	unsigned long	unusedSize;
+	unsigned int	smallPoolSize;
+	unsigned int	smallPoolFree;
+	unsigned int	smallPoolAllocated;
+	unsigned int	largePoolSize;
+	unsigned int	largePoolFree;
+	unsigned int	largePoolAllocated;
+	unsigned int	unusedSize;
 } SdrnmState;
 
 extern void	sdrnm_state_get(SdrnmState *state);

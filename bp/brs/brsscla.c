@@ -222,8 +222,6 @@ static int	reforwardStrandedBundles()
 
 typedef struct
 {
-	char		senderEidBuffer[SDRSTRING_BUFSZ];
-	char		*senderEid;
 	VInduct		*vduct;
 	LystElt		elt;
 	pthread_mutex_t	*mutex;
@@ -455,15 +453,11 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		return NULL;
 	}
 
-	parms->senderEid = parms->senderEidBuffer;
-	isprintf(parms->senderEidBuffer, sizeof parms->senderEidBuffer,
-			"ipn:%u.0", ductNbr);
-
 	/*	Now start receiving bundles.				*/
 
 	while (*(parms->running))
 	{
-		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("can't begin acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
@@ -568,6 +562,7 @@ static void	*spawnReceivers(void *parm)
 
 		if (atp->running == 0)
 		{
+			closesocket(newSocket);
 			break;	/*	Main thread has shut down.	*/
 		}
 
@@ -576,6 +571,7 @@ static void	*spawnReceivers(void *parm)
 		if (receiverParms == NULL)
 		{
 			putErrmsg("brsscla can't allocate for thread", NULL);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -589,6 +585,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putErrmsg("brsscla can't allocate for thread", NULL);
 			MRELEASE(receiverParms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -608,6 +605,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putSysErrmsg("brsscla can't create new thread", NULL);
 			MRELEASE(receiverParms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -762,11 +760,6 @@ port 80)", NULL);
 		return 1;
 	}
 
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
-
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("brsscla");
@@ -836,7 +829,7 @@ port 80)", NULL);
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd >= 0)
 	{
-		connect(fd, &(atp.socketName), sizeof(struct sockaddr));
+		oK(connect(fd, &(atp.socketName), sizeof(struct sockaddr)));
 
 		/*	Immediately discard the connected socket.	*/
 
@@ -858,7 +851,7 @@ port 80)", NULL);
  *	communicating with the BRS client identified by BRS duct
  *	number 20.							*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	brsscla(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

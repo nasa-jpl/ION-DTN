@@ -93,7 +93,7 @@ static int	run_file2sdr(int configFlags, char *fileName)
 	isprintf(sdrName, sizeof sdrName, "%s%d", TEST_SDR_NAME, configFlags);
 	sdr_initialize(TEST_WM_SIZE, NULL, SM_NO_KEY, NULL);
 	sdr_load_profile(sdrName, configFlags, TEST_HEAP_WORDS, SM_NO_KEY,
-			TEST_PATH_NAME, NULL);
+			0, SM_NO_KEY, TEST_PATH_NAME, NULL);
 	sdr = sdr_start_using(sdrName);
 	if (sdr == NULL)
 	{
@@ -275,7 +275,7 @@ microsnooze(10000);
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	file2sdr(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

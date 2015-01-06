@@ -22,7 +22,7 @@ void sig_handler();
 #endif
 
 /*Start Here*/
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	bpcpd(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -76,10 +76,7 @@ int main(int argc, char **argv)
 	poll_cfdp_messages();
 
 #ifdef CLEAN_ON_EXIT
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
-	/*DO NOTHING. VXWORKS doesn't implement system()!*/
-#else
-
+#if defined (unix)
 	/*Cleanup all directory listing files*/
 	if (system("rm dirlist_* >/dev/null 2>/dev/null")<0)
 	{
@@ -108,21 +105,25 @@ void poll_cfdp_messages()
 					"abandoned"
 				};
 	CfdpEventType		type;
-	time_t				time;
-	int					reqNbr;
+	time_t			time;
+	int			reqNbr;
 	CfdpTransactionId	transactionId;
-	char				sourceFileNameBuf[256];
-	char				destFileNameBuf[256];
-	unsigned int		fileSize;
+	char			sourceFileNameBuf[256];
+	char			destFileNameBuf[256];
+	uvast			fileSize;
 	MetadataList		messagesToUser;
-	unsigned int		offset;
+	uvast			offset;
 	unsigned int		length;
+	unsigned int 		recordBoundsRespected;
+	CfdpContinuationState	continuationState;
+	unsigned int		segMetadataLength;
+	char			segMetadata[63];
 	CfdpCondition		condition;
-	unsigned int		progress;
+	uvast			progress;
 	CfdpFileStatus		fileStatus;
 	CfdpDeliveryCode	deliveryCode;
 	CfdpTransactionId	originatingTransactionId;
-	char				statusReportBuf[256];
+	char			statusReportBuf[256];
 	unsigned char		usrmsgBuf[256];
 	MetadataList		filestoreResponses;
 	uvast 		TID11;
@@ -133,11 +134,13 @@ void poll_cfdp_messages()
 
 		/*Grab a CFDP event*/
 		if (cfdp_get_event(&type, &time, &reqNbr, &transactionId,
-						sourceFileNameBuf, destFileNameBuf,
-						&fileSize, &messagesToUser, &offset, &length,
-						&condition, &progress, &fileStatus,
-						&deliveryCode, &originatingTransactionId,
-						statusReportBuf, &filestoreResponses) < 0)
+				sourceFileNameBuf, destFileNameBuf,
+				&fileSize, &messagesToUser, &offset, &length,
+				&recordBoundsRespected, &continuationState,
+				&segMetadataLength, segMetadata,
+				&condition, &progress, &fileStatus,
+				&deliveryCode, &originatingTransactionId,
+				statusReportBuf, &filestoreResponses) < 0)
 		{
 			dbgprintf(0, "Error: Failed getting CFDP event.", NULL);
 			exit(1);

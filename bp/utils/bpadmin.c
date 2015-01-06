@@ -1101,10 +1101,10 @@ static void	executeUnblock(int tokenCount, char **tokens)
 
 static void	manageHeapmax(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	Object	bpdbObj = getBpDbObject();
-	BpDB	bpdb;
-	int	heapmax;
+	Sdr		sdr = getIonsdr();
+	Object		bpdbObj = getBpDbObject();
+	BpDB		bpdb;
+	unsigned int	heapmax;
 
 	if (tokenCount != 3)
 	{
@@ -1112,10 +1112,10 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 		return;
 	}
 
-	heapmax = strtol(tokens[2], NULL, 0);
-	if (heapmax < 0)
+	heapmax = strtoul(tokens[2], NULL, 0);
+	if (heapmax < 560)
 	{
-		writeMemoNote("[?] heapmax is invalid", tokens[2]);
+		writeMemoNote("[?] heapmax must be at least 560", tokens[2]);
 		return;
 	}
 
@@ -1300,6 +1300,65 @@ static void	switchEcho(int tokenCount, char **tokens)
 
 	default:
 		printText("Echo on or off?");
+	}
+}
+
+static int bp_is_up(int tokenCount, char** tokens)
+{
+	if (strcmp(tokens[1], "p") == 0) //poll
+	{
+		if (tokenCount < 3) //use default timeout
+		{
+			int count = 1;
+			while (count <= 120 && !bp_agent_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > 120) //bp agent is not started
+			{
+				printText("BP agent is not started");
+				return 0;
+			}
+			else //bp agent is started
+			{
+				printText("BP agent is started");
+				return 1;
+			}
+		}
+		else //use user supplied timeout
+		{
+			int max = atoi(tokens[2]) * 4;
+			int count = 1;
+			while (count <= max && !bp_agent_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > max) //bp agent is not started
+			{
+				printText("BP agent is not started");
+				return 0;
+			}
+			else //bp agent is started
+			{
+				printText("BP agent is started");
+				return 1;
+			}
+		}
+	}
+	else //check once
+	{
+		if (bp_agent_is_started())
+		{
+			printText("BP agent is started");
+			return 1;
+		}
+		else
+		{
+			printText("BP agent is not started");
+			return 0;
+		}
 	}
 }
 
@@ -1505,6 +1564,12 @@ static int	processLine(char *line, int lineLength)
 			switchEcho(tokenCount, tokens);
 			return 0;
 
+		case 't':
+			if (attachToBp() == 0)
+			{
+				exit(bp_is_up(tokenCount, tokens));
+			}
+
 		case 'q':
 			return -1;	/*	End program.		*/
 
@@ -1514,7 +1579,7 @@ static int	processLine(char *line, int lineLength)
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	bpadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

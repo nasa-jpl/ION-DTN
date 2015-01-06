@@ -1167,7 +1167,7 @@ ASB. blk->dataLength = %d", blk->dataLength);
          if (addCollaborationBlock(bundle, (CollabBlockHdr *) &collab) < 0)
 	 {
          	BAB_DEBUG_ERR("x bsp_babPreProcessOnDequeue: Can't add \
-collaboration block.");
+collaboration block.", NULL);
          	result = -1;
 	 }
      }

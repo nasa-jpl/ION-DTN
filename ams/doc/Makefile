@@ -17,6 +17,7 @@ MANFILES = \
 	./man/man1/amssub.1 \
 	./man/man1/ramsgate.1 \
 	./man/man3/ams.3 \
+	./man/man5/petition_log.5 \
 	./man/man5/amsrc.5 \
 	./man/man5/amsxml.5
 
@@ -34,6 +35,7 @@ HTMLFILES = \
 	./html/man1/amssub.html \
 	./html/man1/ramsgate.html \
 	./html/man3/ams.html \
+	./html/man5/petition_log.html \
 	./html/man5/amsrc.html \
 	./html/man5/amsxml.html
 
