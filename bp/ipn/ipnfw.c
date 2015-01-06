@@ -64,48 +64,8 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
 			FwdDirective *directive)
 {
-	Sdr	sdr = getIonsdr();
-	int	protClassReqd;
-	Object	elt;
-	Object	planAddr;
-	IpnPlan plan;
-
-	protClassReqd = bundle->extendedCOS.flags & BP_PROTOCOL_BOTH;
-	if (protClassReqd == 0)			/*	Don't care.	*/
-	{
-		protClassReqd = -1;		/*	Matches any.	*/
-	}
-	else if (protClassReqd == 10)		/*	Need BSS.	*/
-	{
-		protClassReqd = BP_PROTOCOL_STREAMING;
-	}
-
-	for (elt = sdr_list_first(sdr, plans); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		planAddr = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &plan, planAddr, sizeof(IpnPlan));
-		if (plan.nodeNbr < nodeNbr)
-		{
-			continue;
-		}
-
-		if (plan.nodeNbr > nodeNbr)
-		{
-			return 0;	/*	Same as end of list.	*/
-		}
-
-		if ((plan.defaultDirective.protocolClass & protClassReqd) == 0)
-		{
-			continue;	/*	Can't use this plan.	*/
-		}
-
-		memcpy((char *) directive, (char *) &plan.defaultDirective,
-				sizeof(FwdDirective));
-		return 1;
-	}
-
-	return 0;
+	return ipn_lookupPlanDirective(nodeNbr, bundle->id.source.c.serviceNbr,
+			bundle->id.source.c.nodeNbr, bundle, directive);
 }
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
@@ -312,7 +272,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	ipnfw(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

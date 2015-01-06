@@ -208,8 +208,6 @@ static void	*receiveBundles(void *parm)
 	int			errnbr;
 	Object			bundleZco;
 	char			hostName[MAXHOSTNAMELEN + 1];
-	char			senderEidBuffer[SDRSTRING_BUFSZ];
-	char			*senderEid;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
 	work = bpGetAcqArea(parms->vduct);
@@ -375,9 +373,7 @@ bundle ZCO.", NULL);
 		/*	Must have received a datagram.			*/
 
 		printDottedString(fromHostNbr, hostName);
-		senderEid = senderEidBuffer;
-		getSenderEid(&senderEid, hostName);
-		if (bpBeginAcq(work, 0, senderEid) < 0
+		if (bpBeginAcq(work, 0, NULL) < 0
 		|| bpContinueAcq(work, buffer, length) < 0
 		|| bpEndAcq(work) < 0)
 		{
@@ -405,7 +401,7 @@ bundle ZCO.", NULL);
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	dgrcla(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -501,11 +497,6 @@ int	main(int argc, char *argv[])
 		putErrmsg("dgrcla can't open DGR service access point.", NULL);
 		return 1;
 	}
-
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 

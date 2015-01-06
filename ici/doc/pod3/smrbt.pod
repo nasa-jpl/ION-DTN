@@ -49,10 +49,10 @@ called, that function is passed the PsmAddress that is the node's data
 and the I<argument> pointer passed to sm_rbt_clear().  Returns 0 on success,
 -1 on any error.
 
-=item int sm_rbt_destroy(PsmPartition partition, PsmAddress rbt, SmRbtDeleteFn delete, void *argument);
+=item void sm_rbt_destroy(PsmPartition partition, PsmAddress rbt, SmRbtDeleteFn delete, void *argument);
 
 Destroy an rbt.  Frees all nodes of the rbt as in sm_rbt_clear(), then
-frees the rbt structure itself.  Returns 0 on success, -1 on any error.
+frees the rbt structure itself.
 
 =item int sm_rbt_user_data_set(PsmPartition partition, PsmAddress rbt, PsmAddress userData);
 
@@ -87,7 +87,7 @@ any other path.  This makes searching the tree for a given data value
 quite rapid even if the number of nodes in the tree is very large.  Returns
 the PsmAddress of the new node, or 0 on any error.
 
-=item int sm_rbt_delete(PsmPartition partition, PsmAddress rbt, SmRbtCompareFn compare, void *dataBuffer, SmRbtDeleteFn delete, void *argument);
+=item void sm_rbt_delete(PsmPartition partition, PsmAddress rbt, SmRbtCompareFn compare, void *dataBuffer, SmRbtDeleteFn delete, void *argument);
 
 Delete a node from I<rbt>.  I<compare> must be the same function that was
 used to insert the node: the tree must be dynamically re-balanced upon node
@@ -111,8 +111,6 @@ calling sm_rbt_delete().  This is important: do not apply updates (no
 insertions, and especially no deletions) while you are traversing a
 red-black tree sequentially.  If you do, the result will not be what you
 expect.
-
-Returns 0 on success, -1 on any error.
 
 =item PsmAddress sm_rbt_first(PsmPartition partition, PsmAddress rbt);
 
@@ -165,19 +163,19 @@ A user normally creates an node and adds it to a rbt by doing the following:
 
 =over 4
 
-=item 1 
+=item C<1>
 
 obtaining a shared memory block to contain the node's data;
 
-=item 2 
+=item C<2>
 
 converting the shared memory block's PsmAddress to a character pointer;
 
-=item 3 
+=item C<3>
 
 using that pointer to write the data into the shared memory block;
 
-=item 4 
+=item C<4>
 
 calling the I<sm_rbt_insert> function to create the node structure (which
 will include the shared memory block's PsmAddress) and insert it into the rbt.

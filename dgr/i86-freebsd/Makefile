@@ -5,9 +5,9 @@ TEST = ../test
 # OPT = -O -Dfreebsd
 # OPT = -g -Wall -Dfreebsd -DINITIAL_RETARD=2
 OPT = -g -Wall -Werror -Dfreebsd
-CC = gcc $(OPT) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include
+CC = cc $(OPT) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
-LD = gcc $(LDFLAGS)
+LD = ld $(LDFLAGS)
 
 LIBDGROBJS = \
 	libdgr.o

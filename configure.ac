@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.2.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.2.2, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -66,26 +66,28 @@ case $host_os in
 		CHECK_DCCP()
 		;;
 
-	cygwin*)  
-		AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.]) 
+	cygwin*)
+		AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.])
 		PLATFORM="cygwin"
 		;;
-	interix*) 
+	interix*)
 		AC_DEFINE([interix],[1],[Build Interix specific platform code.])
 		PLATFORM="iterix"
 		;;
-  	*bsd*) 
+  	*bsd*)
 		AC_DEFINE([freebsd],[1],[Build Freebsd specific platform code.])
 		PLATFORM="bsd"
-   		if test $host_cpu = "x86_64" ; then
-   			AM_CFLAGS="$AM_CFLAGS -Dfreebsd -DSPACE_ORDER=3 -m64 "
-			echo "Build 64-bit Freebsd specific platform code."
-			
-    	else
-    		AM_CFLAGS="$AM_CFLAGS  -Dfreebsd -DSPACE_ORDER=2 -m32 "
-			echo "Build 32-bit Freebsd specific platform code."
-    	fi
-    	;;
+		case $host_cpu in
+			x86_64|amd64)
+				AM_CFLAGS="$AM_CFLAGS -Dfreebsd -DSPACE_ORDER=3 -m64 "
+				echo "Build 64-bit Freebsd specific platform code."
+				;;
+			*)
+				AM_CFLAGS="$AM_CFLAGS  -Dfreebsd -DSPACE_ORDER=2 -m32 "
+				echo "Build 32-bit Freebsd specific platform code."
+				;;
+		esac
+		;;
 	solaris*)
 		PLATFORM="solaris"
 		if test $host_cpu = "sparc" ; then
@@ -111,8 +113,8 @@ case $host_os in
       		echo "Build 32-bit code"
       	fi
 		;;
-	vxworks*) 
-		AC_DEFINE([vxworks],[1],[Build VXWorks specific platform code.]) 
+	vxworks*)
+		AC_DEFINE([vxworks],[1],[Build VXWorks specific platform code.])
 		PLATFORM="vxworks"
 		;;
 esac
@@ -177,7 +179,7 @@ if test "$IS_NASA_B" = "1"; then
 			no)  crypto=false ;;
 		*) AC_MSG_ERROR([bad value ${enableval} for --disable-crypto]) ;;
 		esac],[crypto=true])
-	
+
 	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
 
 	if test x$crypto = xtrue; then
@@ -205,7 +207,7 @@ fi
 #
 # Dynamically choose whether or not to instrument code for gcov code coverage
 # Default is not to instrument the code for gcov code coverage.
-# 
+#
 AC_ARG_WITH([gcov],
 [AS_HELP_STRING([--with-gcov], [Turn on code coverage instrumentation])],
 [gcov=yes;],
@@ -220,13 +222,31 @@ fi
 AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
 
 #
+# Dynamically choose whether or not to build against expat libraries.
+# Expat is needed by AMS if XML configuration files are used.
+# Default is not to build against libexpat.
+#
+AC_ARG_WITH([expat],
+[AS_HELP_STRING([--with-expat], [Turn on libexpat requirements])],
+[expat=yes;],
+[])
+if test "x$expat" = "xyes" ; then
+	echo "Build against libexpat... yes"
+else
+	echo "Build against libexpat... no"
+	CFLAGS="$CFLAGS -DNOEXPAT"
+fi
+AM_CONDITIONAL([ENABLE_EXPAT], [test "x$expat" = "xyes"])
+
+
+#
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
 #
 AC_ARG_ENABLE([valgrind], AC_HELP_STRING([--disable-valgrind],[Do not enable valgrind debugging [default=check]]),
               [ ], [ enable_valgrind=check ])
 
 if test "x$enable_valgrind" != xno; then
-  AC_CHECK_HEADER(valgrind/valgrind.h, 
+  AC_CHECK_HEADER(valgrind/valgrind.h,
                   [AC_DEFINE([HAVE_VALGRIND_VALGRIND_H], [1], [enable valgrind macros])
                    valgrind_present=yes],
                   [valgrind_present=no])
@@ -266,15 +286,15 @@ fi
 ORIGCFLAGS="$CFLAGS"
 CFLAGS="$AM_CFLAGS $CFLAGS"
 AC_CHECK_LIB(
-	[expat], 
-	[XML_GetCurrentLineNumber], 
+	[expat],
+	[XML_GetCurrentLineNumber],
 	[ AC_SUBST( [EXPAT_LIBS], ["-lexpat"] ) ],
-	[AC_MSG_ERROR([You need to have the Expat XML development library, libexpat1-dev])]
+	[ AM_COND_IF([ENABLE_EXPAT], AC_MSG_ERROR([You need to install the libexpat1-dev library to build with expat.]), AC_MSG_WARN([If you wish to use XML configuration files for AMS you will need to compile against the Expat XML development libraries.  To do this install the libexpat1-dev library then recompile ION using the "./configure --with-expat" flag.]) )]
 )
 
 AC_CHECK_LIB(
-	[pthread], 
-	[pthread_create], 
+	[pthread],
+	[pthread_create],
 	[ AM_LDFLAGS="$AM_LDFLAGS -lpthread" ],
 	[AC_MSG_ERROR([You need pthread library.]) ]
 )
@@ -331,7 +351,7 @@ else
     AC_MSG_RESULT([not found (skipping autodoc)])
     AC_MSG_NOTICE([Ensure the ghostscript, psutils, groff-base and groff packages are installed.])
 fi
-AM_CONDITIONAL([ENABLE_AUTODOC], [ test "$buildautodoc" ]) 
+AM_CONDITIONAL([ENABLE_AUTODOC], [ test "$buildautodoc" ])
 
 
 

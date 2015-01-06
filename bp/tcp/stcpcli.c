@@ -22,8 +22,6 @@ static void	interruptThread()
 
 typedef struct
 {
-	char		senderEidBuffer[SDRSTRING_BUFSZ];
-	char		*senderEid;
 	VInduct		*vduct;
 	LystElt		elt;
 	pthread_mutex_t	*mutex;
@@ -81,7 +79,7 @@ static void	*receiveBundles(void *parm)
 
 	while (threadRunning && *(parms->running))
 	{
-		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("Can't begin acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
@@ -150,9 +148,6 @@ static void	*spawnReceivers(void *parm)
 	socklen_t		nameLength;
 	ReceiverThreadParms	*parms;
 	LystElt			elt;
-	struct sockaddr_in	*fromAddr;
-	unsigned int		hostNbr;
-	char			hostName[MAXHOSTNAMELEN + 1];
 	pthread_t		thread;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -184,6 +179,7 @@ static void	*spawnReceivers(void *parm)
 
 		if (atp->running == 0)
 		{
+			closesocket(newSocket);
 			break;	/*	Main thread has shut down.	*/
 		}
 
@@ -192,6 +188,7 @@ static void	*spawnReceivers(void *parm)
 		if (parms == NULL)
 		{
 			putErrmsg("stcpcli can't allocate for thread.", NULL);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -205,6 +202,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putErrmsg("stcpcli can't allocate for thread.", NULL);
 			MRELEASE(parms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -212,19 +210,13 @@ static void	*spawnReceivers(void *parm)
 
 		parms->mutex = &mutex;
 		parms->bundleSocket = newSocket;
-       		fromAddr = (struct sockaddr_in *) &cloSocketName;
-		memcpy((char *) &hostNbr,
-				(char *) &(fromAddr->sin_addr.s_addr), 4);
-		hostNbr = ntohl(hostNbr);
-		printDottedString(hostNbr, hostName);
-		parms->senderEid = parms->senderEidBuffer;
-		getSenderEid(&(parms->senderEid), hostName);
 		parms->running = &(atp->running);
 		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{
 			putSysErrmsg("stcpcli can't create new thread", NULL);
 			MRELEASE(parms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -272,7 +264,7 @@ static void	*spawnReceivers(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	stcpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -393,11 +385,6 @@ int	main(int argc, char *argv[])
 		}
 	}
 
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
-
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("stcpcli");
@@ -436,7 +423,7 @@ int	main(int argc, char *argv[])
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd >= 0)
 	{
-		connect(fd, &(atp.socketName), sizeof(struct sockaddr));
+		oK(connect(fd, &(atp.socketName), sizeof(struct sockaddr)));
 
 		/*	Immediately discard the connected socket.	*/
 

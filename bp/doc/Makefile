@@ -19,6 +19,7 @@ MANFILES = \
 	./man/man1/bplist.1 \
 	./man/man1/bpcancel.1 \
 	./man/man1/bptrace.1 \
+	./man/man1/bping.1 \
 	./man/man1/brsccla.1 \
 	./man/man1/brsscla.1 \
 	./man/man1/dgrcla.1 \
@@ -72,6 +73,7 @@ HTMLFILES = \
 	./html/man1/bplist.html \
 	./html/man1/bpcancel.html \
 	./html/man1/bptrace.html \
+	./html/man1/bping.html \
 	./html/man1/brsccla.html \
 	./html/man1/brsscla.html \
 	./html/man1/dgrcla.html \

@@ -31,27 +31,38 @@ echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
-# Start nodes.
+# Start all nodes and build multicast spanning tree.
 cd 1.ipn.ltp
-./ionstart >& node1.stdout &
+./ionstart >& node1.stdout
 sleep 1
 cd ../2.ipn.ltp
-./ionstart >& node2.stdout &
+./ionstart >& node2.stdout
 sleep 1
 cd ../3.ipn.ltp
-./ionstart >& node3.stdout &
+./ionstart >& node3.stdout
 sleep 1
 cd ../4.ipn.ltp
-./ionstart >& node4.stdout &
+./ionstart >& node4.stdout
+sleep 1
 
-sleep 30
+# Now build multicast distribution tree.
+cd ../1.ipn.ltp
+./imcstart >& node1.stdout &
+cd ../2.ipn.ltp
+./imcstart >& node2.stdout &
+cd ../3.ipn.ltp
+./imcstart >& node3.stdout &
+cd ../4.ipn.ltp
+./imcstart >& node4.stdout &
+sleep 2
+
 echo "Starting bprecvfile, both unicast and multicast, on all nodes..."
 cd ../1.ipn.ltp
 bprecvfile ipn:1.1 &
 bprecvfile imc:19.0 &
 cd ../2.ipn.ltp
 bprecvfile ipn:2.1 &
-bprecvfile imc:19.0 2 &
+bprecvfile imc:19.0 3 &
 cd ../3.ipn.ltp
 bprecvfile ipn:3.1 &
 bprecvfile imc:19.0 &
@@ -59,7 +70,7 @@ cd ../4.ipn.ltp
 bprecvfile ipn:4.1 &
 bprecvfile imc:19.0 &
 
-sleep 1
+sleep 2
 cd ../1.ipn.ltp
 echo "Sending 150-byte file from ipn:1.2 to ipn:3.1 (unicast)...."
 bpsendfile ipn:1.2 ipn:3.1 file150
@@ -88,6 +99,7 @@ echo "Node 2 unregisters from imc:19.0."
 bpadmin unregister.bprc
 mv testfile1 testfile01
 mv testfile2 testfile02
+mv testfile3 testfile03
 
 sleep 1
 cd ../3.ipn.ltp

@@ -4,9 +4,10 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
+CRYPTO = ../crypto
 
 OPT = -g -Wall -Dmingw
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
+CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -23,6 +24,7 @@ LIBICIOBJS = \
 	ion.o \
 	rfx.o \
 	ionsec.o \
+	crypto.o \
 	zco.o \
 	sdrxn.o \
 	sdrmgt.o \
@@ -45,6 +47,7 @@ PUBINCLS = \
 	$(INCL)/ion.h \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
+	$(INCL)/crypto.h \
 	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \
 	$(INCL)/sdrmgt.h \
@@ -74,6 +77,7 @@ check:		$(ICIINCLS) $(PUBINCLS)
 clean:
 		rm -f *.o
 		rm -f *.exe
+		rm -f *.def
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -164,7 +168,7 @@ winion:		winion.o libici.dll
 #	-	-	Libraries	-	-	-	-	-
 
 libici.dll:	$(LIBICIOBJS) libicinm.o
-		$(LD) -o libici.dll $(LIBICIOBJS) libicinm.o -lpthread -lws2_32
+		$(LD) -o libici.dll $(LIBICIOBJS) libicinm.o -Wl,--output-def,libici.def -lpthread -lws2_32
 		cp libici.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
@@ -173,6 +177,9 @@ libici.dll:	$(LIBICIOBJS) libicinm.o
 		$(CC) -c $<
 
 %.o:		$(SDR)/%.c
+		$(CC) -c $<
+
+%.o:		$(CRYPTO)/NULL_SUITES/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c

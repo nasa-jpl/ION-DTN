@@ -7,8 +7,7 @@ SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 
 # OPT = -O -Dlinux
-# OPT = -g -Wall -Werror -Dlinux -DCORE_FILE_NEEDED=1
-OPT = -g -Wall -Werror -Dlinux
+OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
@@ -26,8 +25,8 @@ LIBICIOBJS = \
 	ion.o \
 	rfx.o \
 	ionsec.o \
-	zco.o \
 	crypto.o \
+	zco.o \
 	sdrxn.o \
 	sdrmgt.o \
 	sdrstring.o \
@@ -49,6 +48,7 @@ PUBINCLS = \
 	$(INCL)/ion.h \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
+	$(INCL)/crypto.h \
 	$(INCL)/zco.h \
 	$(INCL)/crypto.h \
 	$(INCL)/sdrxn.h \

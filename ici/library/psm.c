@@ -180,6 +180,15 @@ static void	unlockPartition(PartitionMap *map)
 	}
 }
 
+static void	discard(PsmPartition partition)
+{
+	if (partition->freeNeeded)
+	{
+		TRACK_FREE(partition);
+		free(partition);
+	}
+}
+
 int	psm_manage(char *start, u_long length, char *name, PsmPartition *psmp,
 		PsmMgtOutcome *outcome)
 {
@@ -229,7 +238,7 @@ int	psm_manage(char *start, u_long length, char *name, PsmPartition *psmp,
 
 	if (length % LG_OHD_SIZE)
 	{
-		if (partition->freeNeeded) free(partition);
+		discard(partition);
 		putErrmsg("Partition length is not an integral number of \
 double words.", utoa(length));
 		return -1;
@@ -237,7 +246,7 @@ double words.", utoa(length));
 
 	if (length < sizeof(PartitionMap))
 	{
-		if (partition->freeNeeded) free(partition);
+		discard(partition);
 		putErrmsg("Partition length is less than partition map size.",
 utoa(length));
 		return -1;	/*	Partition can't contain map.	*/
@@ -245,14 +254,14 @@ utoa(length));
 
 	if (name == NULL)
 	{
-		if (partition->freeNeeded) free(partition);
+		discard(partition);
 		putErrmsg("Partition name is NULL.", NULL);
 		return -1;
 	}
 
 	if (strlen(name) > 31)
 	{
-		if (partition->freeNeeded) free(partition);
+		discard(partition);
 		putErrmsg("Partition name length exceeds 31.", name);
 		return -1;
 	}
@@ -262,7 +271,7 @@ utoa(length));
 	case INITIALIZED:
 		if (map->partitionSize != length)
 		{
-			if (partition->freeNeeded) free(partition);
+			discard(partition);
 			putErrmsg("Asserted partition length doesn't match \
 actual length.", itoa(map->partitionSize));
 			return -1;	/*	Size mismatch.		*/
@@ -270,7 +279,7 @@ actual length.", itoa(map->partitionSize));
 
 		if (strcmp(map->name, name) != 0)
 		{
-			if (partition->freeNeeded) free(partition);
+			discard(partition);
 			putErrmsg("Asserted partition name doesn't match \
 actual name.", map->name);
 			return -1;	/*	Name mismatch.		*/
@@ -300,7 +309,7 @@ actual name.", map->name);
 	map->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	if (map->semaphore < 0)
 	{
-		if (partition->freeNeeded) free(partition);
+		discard(partition);
 		putErrmsg("Can't create semaphore for partition map.", NULL);
 		return -1;
 	}
@@ -345,10 +354,7 @@ void	psm_unmanage(PsmPartition partition)
 
 	/*	Destroy space management structure if necessary.	*/
 
-	if (partition->freeNeeded)
-	{
-		free(partition);
-	}
+	discard(partition);
 }
 
 void	psm_erase(PsmPartition partition)

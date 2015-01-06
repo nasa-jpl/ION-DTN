@@ -3,10 +3,11 @@ INCL = ../include
 UTILS = ../utils
 DAEMON = ../daemon
 BP = ../bp
+TCP = ../tcp
 TEST = ../test
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux
+OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
 # -DNO_PROXY -DNO_DIRLIST
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared -rdynamic
@@ -21,7 +22,7 @@ CFDPINCLS = \
 
 LBP = -lbp
 
-RUNTIMES = cfdpadmin cfdpclock bputa cfdptest bpcp bpcpd
+RUNTIMES = cfdpadmin cfdpclock bputa tcputa cfdptest bpcp bpcpd
 
 ALL = check libcfdp.so $(RUNTIMES)
 
@@ -65,6 +66,12 @@ cfdptest:	cfdptest.o libcfdp.so
 bputa:		bputa.o libcfdp.so
 		$(CC) -o bputa bputa.o -L./lib -L$(ROOT)/lib -lcfdp $(LBP) -lici -lpthread
 		cp bputa ./bin
+
+#	-	-	TCP executables	-	-	-	-	-
+
+tcputa:		tcputa.o libcfdp.so
+		$(CC) -o tcputa tcputa.o -L./lib -L$(ROOT)/lib -lcfdp -lici -lpthread
+		cp tcputa ./bin
 		
 #	-	-	BPCP executables	-	-	-	-	-
 bpcp: 		bpcp.o
@@ -96,4 +103,7 @@ libcfdp.so:	libcfdp.o libcfdpP.o libcfdpops.o
 		$(CC) -c $<
 
 %.o:		$(BP)/%.c
+		$(CC) -c $<
+
+%.o:		$(TCP)/%.c
 		$(CC) -c $<

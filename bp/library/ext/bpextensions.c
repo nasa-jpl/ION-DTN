@@ -11,7 +11,12 @@
 
 /*	Add external function declarations between here...		*/
 
+#if 0
+#include "snid.h"
+#endif
+#include "phn.h"
 #include "ecos.h"
+#include "meb.h"
 #include "bae.h"
 #ifdef ORIGINAL_BSP
 #include "extbspbab.h"
@@ -31,6 +36,40 @@
 
 static ExtensionDef	extensionDefs[] =
 			{
+		{ "phn", EXTENSION_TYPE_PHN,
+				phn_offer,
+				{phn_processOnFwd,
+				phn_processOnAccept,
+				phn_processOnEnqueue,
+				phn_processOnDequeue,
+				0},
+				phn_release,
+				phn_copy,
+				0,
+				0,
+				phn_parse,
+				phn_check,
+				phn_record,
+				phn_clear
+		},
+#if 0
+		{ "snid", EXTENSION_TYPE_SNID,
+				snid_offer,
+				{snid_processOnFwd,
+				snid_processOnAccept,
+				snid_processOnEnqueue,
+				snid_processOnDequeue,
+				0},
+				snid_release,
+				snid_copy,
+				snid_acquire,
+				0,
+				0
+				snid_check,
+				snid_record,
+				snid_clear
+		},
+#endif
 #ifdef ORIGINAL_BSP
 		{ "bsp_bab", BSP_BAB_TYPE,
 				bsp_babOffer,
@@ -146,6 +185,22 @@ static ExtensionDef	extensionDefs[] =
 				ecos_record,
 				ecos_clear
 		},
+		{ "meb", EXTENSION_TYPE_MEB,
+				meb_offer,
+				{meb_processOnFwd,
+				meb_processOnAccept,
+				meb_processOnEnqueue,
+				meb_processOnDequeue,
+				0},
+				meb_release,
+				meb_copy,
+				meb_acquire,
+				0,
+				0,
+				meb_check,
+				meb_record,
+				meb_clear
+		},
 		{ "bae", EXTENSION_TYPE_BAE,
 				bae_offer,
 				{bae_processOnFwd,
@@ -197,7 +252,9 @@ static ExtensionSpec	extensionSpecs[] =
 #else
 				{ EXTENSION_TYPE_BAB, 0, 0, 0, 0 },
 #endif /* ORIGINAL_BSP */
+				{ EXTENSION_TYPE_PHN, 0, 0, 0, 0 },
 				{ EXTENSION_TYPE_ECOS, 0, 0, 0, 0 },
+				{ EXTENSION_TYPE_MEB, 0, 0, 0, 0 },
 				{ EXTENSION_TYPE_BAE, 0, 0, 0, 0 },
 #ifdef ENABLE_BPACS
         			{ EXTENSION_TYPE_CTEB, 0, 0, 0, 0 },

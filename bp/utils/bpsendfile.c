@@ -105,14 +105,14 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	bpsendfile(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char	*ownEid = (char *) a2;
-	char	*destEid = (char *) a3;
-	char	*fileName = (char *) a4;
-	char	*classOfService = (char *) a5;
+	char	*ownEid = (char *) a1;
+	char	*destEid = (char *) a2;
+	char	*fileName = (char *) a3;
+	char	*classOfService = (char *) a4;
 #else
 int	main(int argc, char **argv)
 {

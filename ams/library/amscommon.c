@@ -1505,7 +1505,7 @@ static Unit	*initializeUnit(Venture *venture, int nbr, char *name,
 
 	for (i = 1; i <= MAX_MODULE_NBR; i++)
 	{
-		if (createModule(cell, i) < 0)
+		if (createModule(cell, i) == NULL)
 		{
 			eraseUnit(venture, unit);
 			return NULL;

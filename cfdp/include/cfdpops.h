@@ -12,6 +12,10 @@
 #ifndef _CFDPOPS_H_
 #define _CFDPOPS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*	*	*	CFDP remote services	*	*	*	*/
 
 #ifndef NO_PROXY
@@ -96,4 +100,8 @@ extern int	cfdp_rls(CfdpNumber	*respondentEntityNbr,
 			CfdpTransactionId *transactionId);
 #endif 
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif	/* _CFDPOPS_H */

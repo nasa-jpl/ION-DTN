@@ -128,8 +128,8 @@ If a log file exists at the time that the profile for an SDR is loaded
 being logged is automatically canceled and reversed.  This ensures that,
 for example, a power failure that occurs in the middle of a
 transaction will never wreck the SDR's data integrity: either all updates
-issued during a given transaction are reflected in the current
-database content or none are.
+issued during a given transaction are reflected in the current dataspace
+content or none are.
 
 As a further measure to protect SDR data integrity, an SDR may
 additionally be configured for I<object bounding>.  When an SDR is
@@ -238,7 +238,7 @@ before any call to any other SDR library function.
 
 =over 4
 
-=item int sdr_load_profile(char *name, int configFlags, long heapWords, int memKey, char *pathName, char *restartCmd, unsigned int restartLatency)
+=item int sdr_load_profile(char *name, int configFlags, long heapWords, int heapKey, int logSize, int logKey, char *pathName, char *restartCmd, unsigned int restartLatency)
 
 Loads the profile for an SDR into the system's private list of SDR profiles.
 Although SDRs themselves are persistent, SDR profiles are not: in order
@@ -255,11 +255,11 @@ SDR, the bitwise "or" of some combination of the following:
 
 =item SDR_IN_DRAM
 
-SDR is implemented as a region of shared memory.
+SDR dataspace is implemented as a region of shared memory.
 
 =item SDR_IN_FILE
 
-SDR is implemented as a file.
+SDR dataspace is implemented as a file.
 
 =item SDR_REVERSIBLE
 
@@ -274,21 +274,30 @@ Heap updates are not allowed to cross object boundaries.
 I<heapWords> specifies the size of the heap in words; word size depends on
 machine architecture, i.e., a word is 4 bytes on a 32-bit machine, 8 bytes on
 a 64-bit machine.  Note that each SDR prepends to the heap a "map" of
-predefined, fixed size.  The total amount of space occupied by an SDR in
-memory and/or in a file is the sum of the size of the map plus the product
-of word size and I<heapWords>.
+predefined, fixed size.  The total amount of space occupied by an SDR
+dataspace in memory and/or in a file is the sum of the size of the map
+plus the product of word size and I<heapWords>.
 
-I<memKey> is ignored if I<configFlags> does not include SDR_IN_DRAM.  It
+I<heapKey> is ignored if I<configFlags> does not include SDR_IN_DRAM.  It
 should normally be SM_NO_KEY, causing the shared memory region for the SDR
-to be allocated dynamically and shared using a dynamically selected shared
-memory key.  If specified, I<memKey> must be a shared memory key identifying
-a pre-allocated region of shared memory whose length is equal to the total
-SDR size, shared via the indicated key.
+dataspace to be allocated dynamically and shared using a dynamically selected
+shared memory key.  If specified, I<heapKey> must be a shared memory key
+identifying a pre-allocated region of shared memory whose length is equal
+to the total SDR dataspace size, shared via the indicated key.
+
+I<logSize> specifies the maximum size of the transaction log (in bytes) if
+and only if the log is to be written to memory rather than to a file; otherwise
+it must be zero.  I<logKey> is ignored if I<logSize> is zero.  It should
+normally be SM_NO_KEY, causing the shared memory region for the transaction
+log to be allocated dynamically and shared using a dynamically selected
+shared memory key.  If specified, I<logKey> must be a shared memory key
+identifying a pre-allocated region of shared memory whose length is equal
+to I<logSize>, shared via the indicated key.
 
 I<pathName> is ignored if I<configFlags> includes neither SDR_REVERSIBLE nor
 SDR_IN_FILE.  It is the fully qualified name of the directory into which the
-SDR's log file and/or database file will be written.  The name of the log
-file (if any) will be "<sdrname>.sdrlog".  The name of the database file
+SDR's log file and/or dataspace file will be written.  The name of the log
+file (if any) will be "<sdrname>.sdrlog".  The name of the dataspace file
 (if any) will be "<sdrname>.sdr"; this file will be automatically created
 and filled with zeros if it does not exist at the time the SDR's profile
 is loaded.
@@ -301,7 +310,7 @@ is zero then no cleanup task will be run upon transaction reversal.
 
 Returns 0 on success, -1 on any error.
 
-=item int sdr_reload_profile(char *name, int configFlags, long heapWords, int memKey, char *pathName, char *restartCmd, unsigned int restartLatency)
+=item int sdr_reload_profile(char *name, int configFlags, long heapWords, int heapKey, int logSize, int logKey, char *pathName, char *restartCmd, unsigned int restartLatency)
 
 For use when the state of an SDR is thought to be inconsistent, perhaps
 due to crash of a program that had a transaction open.  Unloads the
@@ -357,7 +366,7 @@ Returns 1 if called in the course of a transaction, 0 otherwise.
 =item void sdr_exit_xn(Sdr sdr)
 
 Simply abandons the current transaction, ceasing the calling task's lock on
-ION.  Must B<not> be used if any database modifications were performed
+ION.  Must B<not> be used if any dataspace modifications were performed
 during the transaction; sdr_end_xn() must be called instead, to commit
 those modifications.
 
@@ -390,7 +399,7 @@ otherwise they are read from the file in which the SDR resides.
 =item void sdr_peek(sdr, variable, from)
 
 sdr_peek() is a macro that uses sdr_read() to load I<variable> from
-the indicated address in the SDR database; the size of I<variable> is
+the indicated address in the SDR dataspace; the size of I<variable> is
 used as the number of bytes to copy.
 
 =item void sdr_write(Sdr sdr, Address into, char *from, int length)
@@ -407,7 +416,7 @@ resides, if any.
 =item void sdr_poke(sdr, into, variable)
 
 sdr_poke() is a macro that uses sdr_write() to store I<variable> at
-the indicated address in the SDR database; the size of I<variable> is
+the indicated address in the SDR dataspace; the size of I<variable> is
 used as the number of bytes to copy.
 
 =item char *sdr_pointer(Sdr sdr, Address address)
@@ -473,7 +482,7 @@ if successful, zero if block could not be allocated.
 =item Object sdr_stow(sdr, variable)
 
 sdr_stow() is a macro that uses sdr_insert() to insert a copy of I<variable>
-into the database.  The size of I<variable> is used as the number of bytes
+into the dataspace.  The size of I<variable> is used as the number of bytes
 to copy.
 
 =item int sdr_object_length(Sdr sdr, Object object)
@@ -514,7 +523,7 @@ usage status.  SdrUsageSummary is defined by:
     typedef struct
     {
        	    char            sdrName[MAX_SDR_NAME + 1];
-       	    unsigned int    sdrSize;
+       	    unsigned int    dsSize;
        	    unsigned int    smallPoolSize;
        	    unsigned int    smallPoolFreeBlockCount[SMALL_SIZES];
        	    unsigned int    smallPoolFree;

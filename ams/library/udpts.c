@@ -102,6 +102,7 @@ printf("parsed endpoint spec to port %hu address %u.\n", portNbr, ipAddress);
 	|| getsockname(fd, &socketName, &nameLength) < 0)
 	{
 		putSysErrmsg("udpts can't initialize AMS SAP", NULL);
+		closesocket(fd);
 		return -1;
 	}
 
@@ -241,6 +242,7 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	|| getsockname(fd, &socketName, &nameLength) < 0)
 	{
 		putSysErrmsg("udpts can't initialize AMS SAP", NULL);
+		closesocket(fd);
 		return -1;
 	}
 

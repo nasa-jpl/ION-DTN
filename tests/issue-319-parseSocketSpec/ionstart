@@ -10,7 +10,7 @@ ltpadmin	amroc.ltprc
 sleep 1
 bpadmin		amroc.bprc
 sleep 1
-amsd amsmib.xml @ amsdemo test "" &
+amsd mib.amsrc @ amsdemo test "" &
 echo "Waiting for AMS cell census (90 seconds left)..."
 sleep 30
 echo "Waiting for AMS cell census (60 seconds left)..."

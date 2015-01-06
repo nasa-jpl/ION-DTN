@@ -182,9 +182,9 @@ static void	*receiveBundles(void *parm)
 	iblock(SIGTERM);
 	while (threadRunning && *(parms->cloRunning))
 	{
-		snooze(1);
 		if(*(parms->bundleSocket) < 0)
 		{
+			snooze(1);
 			/*Retry later*/
 			continue;
 		}
@@ -213,7 +213,6 @@ static void	*receiveBundles(void *parm)
 			closesocket(*(parms->bundleSocket));
 			*(parms->bundleSocket) = -1;
 			pthread_mutex_unlock(parms->mutex);			
-			threadRunning = 0;
 			continue;
 
 		default:
@@ -240,7 +239,7 @@ static void	*receiveBundles(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	tcpclo(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

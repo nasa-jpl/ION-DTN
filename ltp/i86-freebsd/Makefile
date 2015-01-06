@@ -3,24 +3,29 @@ INCL = ../include
 UTILS = ../utils
 DAEMON = ../daemon
 UDP = ../udp
+DCCP = ../dccp
+SDA = ../sda
 TEST = ../test
 
 # OPT = -O -Dfreebsd
 OPT = -g -Wall -Werror -Dfreebsd
-CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
+CC = cc $(OPT) -I$(API) -I$(API)/ext -I$(API)/ext/auth -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
-LD = gcc $(LDFLAGS)
+LD = ld $(LDFLAGS)
 
 PUBINCLS = \
-	$(INCL)/ltp.h
+	$(INCL)/ltp.h \
+	$(INCL)/sda.h
 
 LTPINCLS = \
 	$(API)/ltpP.h \
-	$(UDP)/udplsa.h
+	$(UDP)/udplsa.h \
+	$(DCCP)/dccplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter
+RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
+#dccplsi dccplso
 
-ALL = check libltpP.so libltp.so $(RUNTIMES)
+ALL = check libltpP.so libltp.so libltpnm.so libsda.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -65,6 +70,10 @@ ltpcounter:	ltpcounter.o libltpP.so libltp.so
 		$(CC) -o ltpcounter ltpcounter.o -L./lib -L$(ROOT)/lib -lltp -lltpP -lici -lpthread
 		cp ltpcounter ./bin
 
+sdatest:	sdatest.o libltpP.so libltp.so libsda.so
+		$(CC) -o sdatest sdatest.o -L./lib -L$(ROOT)/lib -lsda -lltp -lltpP -lici -lpthread
+		cp sdatest ./bin
+
 #	-	-	UDP executables	-	-	-	-	-
 
 udplsi:		udplsi.o libltpP.so
@@ -75,19 +84,39 @@ udplso:		udplso.o libltpP.so
 		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
 		cp udplso ./bin
 
+#	-	-	DCCP executables-	-	-	-	-
+dccplsi:	dccplsi.o libltpP.so
+		$(CC) -o dccplsi dccplsi.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		cp dccplsi ./bin
+
+dccpplso:	dccplso.o libltpP.so
+		$(CC) -o dccplso dccplso.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		cp dccplso ./bin
+
 #	-	-	Libraries	-	-	-	-	-
 
-libltpP.so:	libltpP.o
-		$(LD) -o libltpP.so libltpP.o
+libltpP.so:	libltpP.o ltpei.o auth.o
+		$(LD) -o libltpP.so libltpP.o ltpei.o auth.o
 		cp libltpP.so ./lib
 
-libltp.so:	libltp.o
-		$(LD) -o libltp.so libltp.o
+libltp.so:	libltp.o ltpei.o auth.o
+		$(LD) -o libltp.so libltp.o ltpei.o auth.o
 		cp libltp.so ./lib
+
+libltpnm.so:	libltpnm.o $(API)/ltpnm.h
+		$(LD) -o libltpnm.so libltpnm.o
+		cp libltpnm.so ./lib
+
+libsda.so:	libsda.o $(INCL)/sda.h
+		$(LD) -o libsda.so libsda.o
+		cp libsda.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
 %.o:		$(API)/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/auth/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c
@@ -101,3 +130,9 @@ libltp.so:	libltp.o
 
 %.o:		$(UDP)/%.c
 		$(CC) -c $<
+
+%.o:		$(SDA)/%.c
+		$(CC) -c $<
+
+#%.o:		$(DCCP)/%.c
+#		$(CC) -c $<

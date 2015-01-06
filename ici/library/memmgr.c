@@ -45,6 +45,7 @@ static void	*memmgr_malloc(char *fileName, int lineNbr, size_t size)
 
 static void	memmgr_free(char *fileName, int lineNbr, void *address)
 {
+	TRACK_FREE(address);
 	free(address);
 }
 

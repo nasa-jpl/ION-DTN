@@ -10,7 +10,14 @@
 	Democritus University of Thrace. ALL RIGHTS RESERVED.
 */
 
+#ifndef _DTPC_H
+#define _DTPC_H
+
 #include "bp.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define DTPC_POLL		(0)	/*      Return immediately.	*/
 #define DTPC_NONBLOCKING	(0)	/*      Return immediately.	*/
@@ -20,7 +27,6 @@ typedef struct
 {
         Object          	payload;
         Sdnv            	length;
-	Object          topicElt;	/*	Ref. to Topic, not used	*/
 } PayloadRecord;
 
 typedef int			(*DtpcElisionFn) (Object recordsList);
@@ -40,7 +46,7 @@ typedef struct
         DtpcIndResult   result;
 	char		*srcEid;
 	unsigned int	length;
-        Object          adu;		/*	A zero-copy object	*/
+        Object          item;
 } DtpcDelivery;
 
 /*      *       *       DTPC initilization       *       *       *	*/
@@ -81,3 +87,9 @@ extern void	dtpc_interrupt(DtpcSAP sap);
 extern void	dtpc_release_delivery(DtpcDelivery *dlvBuffer);
 
 extern void     dtpc_close(DtpcSAP sap);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif	/* _DTPC_H */

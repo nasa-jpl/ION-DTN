@@ -19,6 +19,7 @@ static int	processLine(char *line, int lineLength)
 	int		i;
 	int		val;
 	unsigned char	key[20];
+	int		result = 0;
 
 	if (*line == '#')		/*	Comment.		*/
 	{
@@ -49,11 +50,11 @@ static int	processLine(char *line, int lineLength)
 	{
 		printf("Can't write key to %s: %s\n", fileName,
 				system_error_msg());
-		return -1;
+		result = -1;
 	}
 
 	close(fd);
-	return 0;
+	return result;
 }
 
 int	main(int argc, char **argv)

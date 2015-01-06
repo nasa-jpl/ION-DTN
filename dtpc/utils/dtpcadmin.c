@@ -408,6 +408,65 @@ static void 	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
+static int dtpc_is_up(int tokenCount, char** tokens)
+{
+	if (strcmp(tokens[1], "p") == 0) //poll
+	{
+		if (tokenCount < 3) //use default timeout
+		{
+			int count = 1;
+			while (count <= 120 && !dtpc_entity_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > 120) //dtpc entity is not started
+			{
+				printText("DTPC entity is not started");
+				return 0;
+			}
+			else //dtpc entity is started
+			{
+				printText("DTPC entity is started");
+				return 1;
+			}
+		}
+		else //use user supplied timeout
+		{
+			int max = atoi(tokens[2]) * 4;
+			int count = 1;
+			while (count <= max && !dtpc_entity_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > max) //dtpc entity is not started
+			{
+				printText("DTPC entity is not started");
+				return 0;
+			}
+			else //dtpc entity is started
+			{
+				printText("DTPC entity is started");
+				return 1;
+			}
+		}
+	}
+	else //check once
+	{
+		if (dtpc_entity_is_started())
+		{
+			printText("DTPC entity is started");
+			return 1;
+		}
+		else
+		{
+			printText("DTPC entity is not started");
+			return 0;
+		}
+	}
+}
+
 static int	processLine(char *line, int lineLength)
 {
 	int		tokenCount;
@@ -573,6 +632,12 @@ command.");
 			switchEcho(tokenCount, tokens);
 			return 0;
 
+		case 't':
+			if (attachToDtpc() == 0)
+			{
+				exit(dtpc_is_up(tokenCount, tokens));
+			}
+
 		case 'q':
 			return -1;	/*	End program.		*/
 
@@ -582,7 +647,7 @@ command.");
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	dtpcadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

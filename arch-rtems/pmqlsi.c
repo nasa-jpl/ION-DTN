@@ -148,5 +148,6 @@ int	main(int argc, char *argv[])
 	mq_close(rtp.mq);
 	writeErrmsgMemos();
 	writeMemo("[i] pmqlsi duct has ended.");
+	ionDetach();
 	return 0;
 }

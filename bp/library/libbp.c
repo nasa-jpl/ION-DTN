@@ -16,7 +16,7 @@
 
 #include "bpP.h"
 
-extern int	bpEndpointTally(VEndpoint *vpoint, unsigned int idx,
+extern void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx,
 			unsigned int size);
 
 typedef struct
@@ -44,7 +44,7 @@ Sdr	bp_get_sdr()
 
 void	bp_detach()
 {
-#if (!(defined (VXWORKS) || defined (RTEMS) || defined (bionic)))
+#if (!(defined (ION_LWT)))
 	bpDetach();
 #endif
 	ionDetach();
@@ -684,6 +684,11 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	dlvBuffer->adminRecord = bundle.bundleProcFlags & BDL_IS_ADMIN;
 	dlvBuffer->adu = bundle.payload.content;
 	dlvBuffer->ackRequested = bundle.bundleProcFlags & BDL_APP_ACK_REQUEST;
+
+	dlvBuffer->metadataType = bundle.extendedCOS.metadataType;
+	dlvBuffer->metadataLen = bundle.extendedCOS.metadataLen;
+	memcpy(dlvBuffer->metadata, bundle.extendedCOS.metadata,
+			BP_MAX_METADATA_LEN);
 
 	/*	Now before returning we send delivery status report
 	 *	if it is requested.					*/
