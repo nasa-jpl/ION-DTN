@@ -294,6 +294,7 @@ fi
 AC_PATH_PROG([PS2PDF], [ps2pdf])
 AC_PATH_PROG([PDF2PS], [pdf2ps])
 AC_PATH_PROG([PSJOIN], [psjoin])
+AC_PATH_PROG([PDFJOIN], [pdfjoin])
 AC_MSG_CHECKING([for fallback included psjoin])
 if test -x "$PWD/doc/psjoin"; then
     PSJOIN="$PWD/doc/psjoin"
