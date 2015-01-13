@@ -179,27 +179,39 @@ ZCOs (inbound or outbound) created in this Sdr.
 Returns 1 if the total remaining SDR heap space available for ZCOs (inbound or
 outbound) in this Sdr is greater than I<length>.  Returns 0 otherwise.
 
+=item int zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length, ZcoAcct acct)
+
+Returns 1 if the total remaining space available for ZCOs (inbound or
+outbound, both heap and file) is NOT enough to contain a new extent of
+the indicated length in the indicated source medium.  Returns 0 otherwise.
+
 =item Object zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium, Object firstExtentLocation, vast firstExtentOffset, vast firstExtentLength, ZcoAcct acct)
 
 Creates a new inbound or outbound ZCO.  I<firstExtentLocation> and
-I<firstExtentLength>
-must either both be zero (indicating that zco_append_extent() will be used to
-insert the first source data extent later) or else both be non-zero.
-If I<firstExtentLocation> is non-zero, then (a) I<firstExtentLocation> must
-be the SDR location of a file reference object if I<firstExtentSourceMedium> is
-ZcoFileSource and must otherwise be the SDR location of the source data itself,
-and (b) I<firstExtentOffset> indicates how many leading bytes of the source
-data object should be skipped over when adding the initial source data extent
-to the new ZCO.  On success, returns the SDR location of the new ZCO.  Returns
-0 if there is insufficient ZCO space for creation of the new ZCO; returns
-((Object) -1) on any error.
+I<firstExtentLength> must either both be zero (indicating that
+zco_append_extent() will be used to insert the first source data extent
+later) or else both be non-zero.  If I<firstExtentLocation> is non-zero,
+then (a) I<firstExtentLocation> must be the SDR location of a file
+reference object if I<firstExtentSourceMedium> is ZcoFileSource and must
+otherwise be the SDR location of the source data itself, and (b)
+I<firstExtentOffset> indicates how many leading bytes of the source data
+object should be skipped over when adding the initial source data extent
+to the new ZCO.  A negative value for I<firstExtentLength> indicates that the
+extent is already known not to be too large for the available ZCO space, and
+the actual length of the extent is the additive inverse of this value.  On
+success, returns the SDR location of the new ZCO.  Returns 0 if there is
+insufficient ZCO space for creation of the new ZCO; returns ((Object) -1)
+on any error.
 
 =item int zco_append_extent(Sdr sdr, Object zco, ZcoMedium sourceMedium, Object location, vast offset, vast length)
 
 Appends the indicated source data extent to the indicated ZCO, as described
 for zco_create().  Both the I<location> and I<length> of the source data
-must be non-zero.  Returns I<length> on success, 0 if there is insufficient
-ZCO space for creation of the new source data extent, -1 on any error.
+must be non-zero.  A negative value for I<length> indicates that the extent
+is already known not to be too large for the available ZCO space, and the
+actual length of the extent is the additive inverse of this value.  Returns
+I<length> on success, 0 if there is insufficient ZCO space for creation of
+the new source data extent, -1 on any error.
 
 =item int zco_prepend_header(Sdr sdr, Object zco, char *header, vast length)
 

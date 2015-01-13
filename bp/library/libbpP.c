@@ -6488,11 +6488,12 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 	return 0;
 }
 
-int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
+int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length, int blocking)
 {
 	static unsigned int	acqCount = 0;
 	Sdr			sdr = getIonsdr();
 				OBJ_POINTER(BpDB, bpdb);
+	int			extentLength;
 	Object			extentObj;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
@@ -6512,17 +6513,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
 		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound);
-		switch (work->zco)
+		if (work->zco == (Object) ERROR)
 		{
-		case (Object) ERROR:
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
-
-		case 0:
-			work->congestive = 1;
-			sdr_cancel_xn(sdr);
-			return 0;	/*	Out of ZCO space.	*/
 		}
 
 		work->zcoElt = sdr_list_insert_last(sdr, bpdb->inboundBundles,
@@ -6552,11 +6547,32 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 	if ((length + zco_length(sdr, work->zco)) <= bpdb->maxAcqInHeap)
 	{
+		if (blocking)	/*	Check size before writing.	*/
+		{
+			if (zco_extent_too_large(sdr, ZcoSdrSource, length,
+					ZcoInbound))
+			{
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Acquisition failed.", NULL);
+					return -1;
+				}
+
+				return 1;	/*	Retry later.	*/
+			}
+
+			extentLength = 0 - length;
+		}
+		else		/*	Let zco_append_extent decide.	*/
+		{
+			extentLength = length;
+		}
+
 		extentObj = sdr_insert(sdr, bytes, length);
 		if (extentObj)
 		{
 			switch (zco_append_extent(sdr, work->zco, ZcoSdrSource,
-					extentObj, 0, length))
+					extentObj, 0, extentLength))
 			{
 			case ERROR:
 				putErrmsg("Can't append heap extent.", NULL);
@@ -6582,6 +6598,27 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 	/*	This extent of this acquisition must be acquired into
 	 *	a file.							*/
+
+	if (blocking)		/*	Check size before writing.	*/
+	{
+		if (zco_extent_too_large(sdr, ZcoFileSource, length,
+				ZcoInbound))
+		{
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Acquisition failed.", NULL);
+				return -1;
+			}
+
+			return 1;		/*	Retry later.	*/
+		}
+
+		extentLength = 0 - length;
+	}
+	else			/*	Let zco_append_extent decide.	*/
+	{
+		extentLength = length;
+	}
 
 	if (work->acqFileRef == 0)	/*	First file extent.	*/
 	{
@@ -6645,7 +6682,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 	close(fd);
 	switch (zco_append_extent(sdr, work->zco, ZcoFileSource,
-			work->acqFileRef, fileLength, length))
+			work->acqFileRef, fileLength, extentLength))
 	{
 	case ERROR:
 		putErrmsg("Can't append file reference extent.", NULL);

@@ -213,6 +213,16 @@ extern int	zco_enough_heap_space(Sdr sdr,
 			 *	heap space available for ZCOs is
 			 *	greater than length, 0 otherwise.	*/
 
+extern int	zco_extent_too_large(Sdr sdr,
+				ZcoMedium sourceMedium,
+				vast length,
+				ZcoAcct acct);
+			/*	Returns 1 if the total remaining space
+			 *	(heap and file) available for ZCOs is
+			 *	NOT enough to contain a new extent of
+			 *	the indicated length in the indicated
+			 *	source medium.  Returns 0 otherwise.	*/
+
 extern Object	zco_create(	Sdr sdr,
 				ZcoMedium firstExtentSourceMedium,
 				Object firstExtentLocation,
@@ -225,6 +235,13 @@ extern Object	zco_create(	Sdr sdr,
 			 *	zco_append_extent will be used to
 			 *	insert the first source data extent
 			 *	later) or else both be non-zero.
+			 *	A negative value for firstExtentLength
+			 *	indicates that the extent is already
+			 *	known not to be too large for the
+			 *	available ZCO space, and the actual
+			 *	length of the extent is the additive
+			 *	inverse of this value.
+			 *
 			 *	Returns SDR location of a new ZCO
 			 *	object on success, 0 if there is
 			 *	currently too little available ZCO
@@ -239,11 +256,17 @@ extern vast	zco_append_extent(Sdr sdr,
 				vast offset,
 				vast length);
 			/*	Both location and length must be non-
-			 *	zero.  Returns length on success, 0
-			 *	if there is currently too little
-			 *	available ZCO space to accommodate
-			 *	the proposed first extent, -1 on any
-			 *	error.					*/
+			 *	zero.  A negative value for length
+			 *	indicates that the extent is already
+			 *	known not to be too large for the
+			 *	available ZCO space, and the actual
+			 *	length of the extent is the additive
+			 *	inverse of this value.
+			 *
+			 *	Returns length on success, 0 if there
+			 *	is currently too little available ZCO
+			 *	space to accommodate the proposed
+			 *	extent, -1 on any error.		*/
 
 extern int	zco_prepend_header(Sdr sdr,
 				Object zco,

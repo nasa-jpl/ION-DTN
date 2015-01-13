@@ -479,7 +479,6 @@ int	main(int argc, char *argv[])
 	unsigned int		hostNbr;
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
-	char			*tcpDelayString;
 	pthread_t		accessThread;
 	int			fd;
 
@@ -568,22 +567,6 @@ int	main(int argc, char *argv[])
 		closesocket(atp.ductSocket);
 		putSysErrmsg("Can't initialize socket", NULL);
 		return 1;
-	}
-
-	tcpDelayString = getenv("TCP_DELAY_NSEC_PER_BYTE");
-	if (tcpDelayString == NULL)
-	{
-		tcpDelayEnabled = 0;
-	}
-	else
-	{
-		tcpDelayEnabled = 1;
-		tcpDelayNsecPerByte = strtol(tcpDelayString, NULL, 0);
-		if (tcpDelayNsecPerByte < 0
-		|| tcpDelayNsecPerByte > 16384)
-		{
-			tcpDelayNsecPerByte = 0;
-		}
 	}
 
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/

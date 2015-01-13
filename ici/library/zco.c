@@ -746,8 +746,8 @@ void	zco_destroy_file_ref(Sdr sdr, Object fileRefObj)
 	sdr_write(sdr, fileRefObj, (char *) &fileRef, sizeof(FileRef));
 }
 
-static int	extentTooLarge(Sdr sdr, ZcoMedium source, vast length,
-			ZcoAcct acct)
+int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
+		ZcoAcct acct)
 {
 	vast	heapNeeded;
 	Object	obj;
@@ -979,17 +979,24 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 	CHKERR(sdr);
 	if (firstExtentLocation)	/*	First extent provided.	*/
 	{
-		if (firstExtentLength <= 0)
+		if (firstExtentLength == 0)
 		{
-			putErrmsg("First extent length <= zero.", NULL);
+			putErrmsg("First extent length is zero.", NULL);
 			printStackTrace();
 			return ((Object) ERROR);
 		}
 
-		if (extentTooLarge(sdr, firstExtentSourceMedium,
-				firstExtentLength, acct))
+		if (firstExtentLength < 0)/*	Already checked.	*/
 		{
-			return 0;	/*	No available ZCO space.	*/
+			firstExtentLength = 0 - firstExtentLength;
+		}
+		else
+		{
+			if (zco_extent_too_large(sdr, firstExtentSourceMedium,
+					firstExtentLength, acct))
+			{
+				return 0;/*	No available ZCO space.	*/
+			}
 		}
 	}
 	else				/*	No first extent.	*/
@@ -1035,11 +1042,18 @@ vast	zco_append_extent(Sdr sdr, Object zcoObj, ZcoMedium source,
 	CHKERR(sdr);
 	CHKERR(zcoObj);
 	CHKERR(location);
-	CHKERR(length > 0);
+	CHKERR(length != 0);
 	sdr_stage(sdr, (char *) &zco, zcoObj, sizeof(Zco));
-	if (extentTooLarge(sdr, source, length, zco.acct))
+	if (length < 0)			/*	Already checked.	*/
 	{
-		return 0;		/*	No available ZCO space.	*/
+		length = 0 - length;
+	}
+	else
+	{
+		if (zco_extent_too_large(sdr, source, length, zco.acct))
+		{
+			return 0;	/*	No available ZCO space.	*/
+		}
 	}
 
 	if (appendExtent(sdr, zcoObj, &zco, source, 0, location, offset, length)
@@ -1439,7 +1453,7 @@ static vast	cloneExtents(Sdr sdr, Object toZcoObj, Object fromZcoObj,
 		 *	no actual copying of data is required at all.
 		 *	Also, no additional ZCO space is consumed,
 		 *	apart from that needed for the SourceExtent
-		 *	object itself, so don't check extentTooLarge.	*/
+		 *	object itself, so no zco_extent_too_large().	*/
 
 		if (appendExtent(sdr, toZcoObj, &toZco, extent.sourceMedium, 1,
 				extent.location, extent.offset + bytesToSkip,

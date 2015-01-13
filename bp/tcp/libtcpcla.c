@@ -11,8 +11,6 @@
 									*/
 #include "tcpcla.h"
 
-int	tcpDelayEnabled = 0;
-int	tcpDelayNsecPerByte = 0;
 int 	tcpDesiredKeepAlivePeriod = 0;
 
 typedef struct
@@ -596,11 +594,6 @@ int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer)
 	 *	time.							*/
 
 	totalBytesToReceive = bundleLength;
-	if (tcpDelayEnabled)	/*	Congestion control testing.	*/
-	{
-		microsnooze((totalBytesToReceive * tcpDelayNsecPerByte) / 1000);
-	}
-
 	while (totalBytesToReceive > 0)
 	{
 		bytesToReceive = totalBytesToReceive;
@@ -628,9 +621,22 @@ int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer)
 
 		/*	Acquire the received data.			*/
 
-		if (bpContinueAcq(work, buffer, extentSize) < 0)
+		while (1)
 		{
-			return -1;
+			switch (bpContinueAcq(work, buffer, extentSize, 1))
+			{
+			case -1:	/*	Failure.		*/
+				return -1;
+
+			case 1:		/*	Not enough ZCO space.	*/
+				snooze(1);
+				continue;
+
+			default:	/*	Success.		*/
+				break;	/*	Out of switch.		*/
+			}
+
+			break;		/*	Out of loop.  Read on.	*/
 		}
 	}
 
@@ -767,9 +773,9 @@ int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,uvast 
 
 			totalBytesToReceive -= extentSize;
 
-			/*	Acquire the received data.			*/
+			/*	Acquire the received data.		*/
 
-			if (bpContinueAcq(work, buffer, extentSize) < 0)
+			if (bpContinueAcq(work, buffer, extentSize, 0) < 0)
 			{
 				return -1;
 			}

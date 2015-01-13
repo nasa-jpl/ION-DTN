@@ -376,7 +376,7 @@ bundle ZCO.", NULL);
 
 		printDottedString(fromHostNbr, hostName);
 		if (bpBeginAcq(work, 0, NULL) < 0
-		|| bpContinueAcq(work, buffer, length) < 0
+		|| bpContinueAcq(work, buffer, length, 0) < 0
 		|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);

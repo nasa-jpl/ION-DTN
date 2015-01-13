@@ -1170,7 +1170,8 @@ extern int		bpLoadAcq(	AcqWorkArea *workArea,
 
 extern int		bpContinueAcq(	AcqWorkArea *workArea,
 					char *bytes,
-					int length);
+					int length,
+					int blocking);
 			/*	This function continues acquisition
 			 *	of a bundle as initiated by an
 			 *	invocation of bpBeginAcq().  To
@@ -1190,9 +1191,23 @@ extern int		bpContinueAcq(	AcqWorkArea *workArea,
 			 *	does not already exist, and appends
 			 *	"bytes" to the source data of that
 			 *	ZCO.
+			 *
+			 *	If "blocking" is set to 1, then
+			 *	bpContinueAcq will return 1 if the
+			 *	currently available space for zero-
+			 *	copy objects is insufficient to
+			 *	contain this increment of bundle
+			 *	source data.  (In this case, the
+			 *	acquisition work area is NOT flagged
+			 *	for refusal -- the convergence-layer
+			 *	adapter is expected to retry this
+			 *	acquisition at a future time when it
+			 *	may succeed.)
 			 *	
-			 *	Returns 0 on success, -1 on any
-			 *	failure.				*/
+			 *	Otherwise, returns 0 on success (even
+			 *	if the acquisition work area is flagged
+			 *	for refusal due to congestion), -1 on
+			 *	any failure.				*/
 
 extern void		bpCancelAcq(	AcqWorkArea *workArea);
 			/*	Cancels acquisition of a new
