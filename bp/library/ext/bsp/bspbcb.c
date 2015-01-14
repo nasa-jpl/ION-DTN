@@ -51,7 +51,7 @@ for BCBs. No BCB processing for this bundle.", NULL);
 	{
 		BCB_DEBUG_INFO("i bsp_bcbGetCiphersuite: Ciphersuite \
 of BCB rule is unknown '%s'.  No BCB processing for this bundle.",
-				bcbRule.ciphersuiteName);
+				bcbRule->ciphersuiteName);
 	}
 }
 
@@ -65,11 +65,14 @@ static int	attachBcb(Bundle *bundle, ExtensionBlock *blk,
 	BcbCiphersuite	*cs;
 	unsigned char	*serializedAsb;
 
+	BCB_DEBUG_PROC("+ attachBcb (%x, %x, %x)", (unsigned long) bundle,
+			(unsigned long) blk, (unsigned long) asb);
+
 	if (bsp_getOutboundSecurityEids(bundle, blk, asb, &fromEid, &toEid))
 	{
-		BCB_DEBUG_ERR("x bcbConstruct: out of space.", NULL);
+		BCB_DEBUG_ERR("x attachBcb: out of space.", NULL);
 		result = -1;
-		BCB_DEBUG_PROC("- bcbConstruct -> %d", result);
+		BCB_DEBUG_PROC("- attachBcb -> %d", result);
 		return result;
 	}
 
@@ -81,42 +84,46 @@ static int	attachBcb(Bundle *bundle, ExtensionBlock *blk,
 		/*	No applicable valid construction rule.		*/
 
 		scratchExtensionBlock(blk);
-		BCB_DEBUG_PROC("- bcbConstruct -> %d", result);
+		BCB_DEBUG_PROC("- attachBcb -> %d", result);
 		return result;
 	}
 
 	memcpy(asb->keyName, bcbRule.keyName, BSP_KEY_NAME_LEN);
 	if (cs->construct(blk, asb) < 0)
 	{
-		BCB_DEBUG_ERR("x bcbConstruct: Can't construct ASB.");
-		BCB_DEBUG_PROC("- bcbConstruct --> %d", -1);
+		BCB_DEBUG_ERR("x attachBcb: Can't construct ASB.", NULL);
+		result = -1;
 		scratchExtensionBlock(blk);
-		return -1;
+		BCB_DEBUG_PROC("- attachBcb --> %d", result);
+		return result;
 	}
 
 	if (cs->encrypt(bundle, blk, asb) < 0)
 	{
-		BCB_DEBUG_ERR("x bcbConstruct: Can't encrypt target block.");
-		BCB_DEBUG_PROC("- bcbConstruct --> %d", -1);
+		BCB_DEBUG_ERR("x attachBcb: Can't encrypt target block.",
+				NULL);
+		result = -1;
 		scratchExtensionBlock(blk);
-		return -1;
+		BCB_DEBUG_PROC("- attachBcb --> %d", result);
+		return result;
 	}
 
 	serializedAsb = bsp_serializeASB(&(blk->dataLength), asb);
 	if (serializedAsb == NULL)
 	{
-		BCB_DEBUG_ERR("x bcbConstruct: Unable to \
+		BCB_DEBUG_ERR("x attachBcb: Unable to \
 serialize ASB.  blk->dataLength = %d", blk->dataLength);
-		BCB_DEBUG_PROC("- bcbConstruct --> %d", -1);
+		result = -1;
 		scratchExtensionBlock(blk);
-		return -1;
+		BCB_DEBUG_PROC("- attachBcb --> %d", result);
+		return result;
 	}
 
 	/*	Serialized ASB is the block-specific data for the BCB.	*/
 
 	result = serializeExtBlk(blk, NULL, (char *) serializedAsb);
 	MRELEASE(serializedAsb);
-	BCB_DEBUG_PROC("- bcbConstruct --> %d", -1);
+	BCB_DEBUG_PROC("- attachBcb --> %d", result);
 	return result;
 }
 
@@ -257,12 +264,12 @@ int	bsp_bcbProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 
 	BCB_DEBUG_PROC("+ bsp_bcbProcessOnDequeue(%x, %x, %x)",
 			(unsigned long) blk, (unsigned long) bundle,
-			(unsigned long) ctxt);
+			(unsigned long) parm);
 	if (bundle == NULL || parm == NULL || blk == NULL)
 	{
 		BCB_DEBUG_ERR("x bsp_bcbProcessOnDequeue: Bundle or ASB were \
 not as expected.", NULL);
-		BCB_DEBUG_PROC("- bsp_bcbProcessOnDequeue bundle %d, parm %d, \
+		BCB_DEBUG_INFO("i bsp_bcbProcessOnDequeue bundle %d, parm %d, \
 blk %d, blk->size %d", bundle, parm, blk, blk->size);
 		BCB_DEBUG_PROC("- bsp_bcbProcessOnDequeue --> %d", -1);
 		scratchExtensionBlock(blk);
@@ -277,6 +284,7 @@ blk %d, blk->size %d", bundle, parm, blk, blk->size);
 		 *	was serialized in the recordExtensionBlocks()
 		 *	function.					*/
 
+		BCB_DEBUG_PROC("- bsp_bcbProcessOnDequeue(%d)", result);
 		return 0;
 	} 
 
@@ -289,6 +297,7 @@ blk %d, blk->size %d", bundle, parm, blk, blk->size);
 		 *	the payload block content was already final
 		 *	at that time.					*/
 
+		BCB_DEBUG_PROC("- bsp_bcbProcessOnDequeue(%d)", result);
 		return 0;
 	}
 
@@ -301,12 +310,12 @@ blk %d, blk->size %d", bundle, parm, blk, blk->size);
  *
  * \par Function Name: bsp_bcbRelease
  *
- * \par Purpose: This callback removes memory allocated by the BSP module
- *               from a particular extension block.
+ * \par Purpose: This callback releases SDR heap space allocated to
+ *               a block confidentiality block.
  *
  * \retval void
  *
- * \param[in\out]  blk  The block whose allocated memory pools must be
+ * \param[in\out]  blk  The block whose allocated SDR heap space must be
  *                      released.
  *
  * \par Notes:
@@ -315,17 +324,30 @@ blk %d, blk->size %d", bundle, parm, blk, blk->size);
 
 void    bsp_bcbRelease(ExtensionBlock *blk)
 {
+	Sdr			sdr = getIonsdr();
+	BspOutboundBlock	asb;
+
 	BCB_DEBUG_PROC("+ bsp_bcbRelease(%x)", (unsigned long) blk);
 
 	CHKVOID(blk);
-	if (blk->size > 0)
+	if (blk->object)
 	{
-		sdr_free(getIonsdr(), blk->object);
+		sdr_read(sdr, (char *) &asb, blk->object,
+				sizeof(BspOutboundBlock));
+		if (asb.parmsData)
+		{
+			sdr_free(sdr, asb.parmsData);
+		}
+
+		if (asb.resultsData)
+		{
+			sdr_free(sdr, asb.resultsData);
+		}
+
+		sdr_free(sdr, blk->object);
 	}
 
 	BCB_DEBUG_PROC("- bsp_bcbRelease(%c)", ' ');
-
-	return;
 }
 
 /******************************************************************************
@@ -493,8 +515,9 @@ int	bsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	{
 		BCB_DEBUG_ERR("x bsp_bcbDecrypt:  Blocks are NULL. %x",
 				(unsigned long) blk);
-		BCB_DEBUG_PROC("- bsp_bcbDecrypt --> %d", -1);
-		return -1;
+		result = -1;
+		BCB_DEBUG_PROC("- bsp_bcbDecrypt --> %d", result);
+		return result;
 	}
 
 	/*	For BCBs, the security destination is always the final
@@ -554,9 +577,10 @@ int	bsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 			 *	else does.				*/
 
 			BCB_DEBUG_INFO("- bsp_bcbDecrypt - No rule.", NULL);
-			BCB_DEBUG_PROC("- bsp_bcbDecrypt(2)", NULL);
+			result = 1;
+			BCB_DEBUG_PROC("- bsp_bcbDecrypt --> %d", result);
 			blk->blkProcFlags |= BLK_FORWARDED_OPAQUE;
-			return 1;		/*	No information.	*/
+			return result;		/*	No information.	*/
 		}
 
 		/*	Rule is found, but we don't have this CS.
@@ -565,7 +589,8 @@ int	bsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 		discardExtensionBlock(blk);
 	 	BCB_DEBUG_ERR("- bsp_bcbDecrypt - Ciphersuite missing!", NULL);
-		BCB_DEBUG_PROC("- bsp_bcbDecrypt(2)", NULL);
+		result = 0;
+		BCB_DEBUG_PROC("- bsp_bcbDecrypt --> %d", result);
 		return 0;			/*	Block malformed.*/
 	}
 
@@ -591,7 +616,7 @@ int	bsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 		blk->blkProcFlags |= BLK_FORWARDED_OPAQUE;
 	}
 
-	BCB_DEBUG_PROC("- bsp_bcbProcessOnDequeue(%d)", result);
+	BCB_DEBUG_PROC("- bsp_bcbDecrypt --> %d", result);
 	return result;
 }
 
@@ -600,8 +625,7 @@ int	bsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
  * \par Function Name: bsp_bcbClear
  *
  * \par Purpose: This callback removes all memory allocated by the BSP module
- *               during the block's acquisition process. This function is the
- *               same for both PRE and POST payload blocks.
+ *               during the block's acquisition process.
  *
  * \retval void
  *
@@ -610,9 +634,6 @@ int	bsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
  * \par Notes:
  *      1. The block's memory pool objects have been allocated as specified
  *         by the BSP module.
- *      2. The length field associated with each pointer field is accurate
- *      3. A length of 0 implies no memory is allocated to the associated
- *         data field.
  *****************************************************************************/
 
 void	bsp_bcbClear(AcqExtBlock *blk)
@@ -622,25 +643,21 @@ void	bsp_bcbClear(AcqExtBlock *blk)
 	BCB_DEBUG_PROC("+ bsp_bcbClear(%x)", (unsigned long) blk);
 
 	CHKVOID(blk);
-	if (blk->size > 0)
+	if (blk->object)
 	{
 		asb = (BspInboundBlock *) (blk->object);
-		if (asb->parmsLen > 0)
+		if (asb->parmsData)
 		{
 			BCB_DEBUG_INFO("i bsp_bcbClear: Release result len %ld",
 					asb->parmsLen);
 			MRELEASE(asb->parmsData);
-			asb->parmsData = 0;
-			asb->parmsLen = 0;
 		}
 
-		if (asb->resultsLen > 0)
+		if (asb->resultsData)
 		{
 			BCB_DEBUG_INFO("i bsp_bcbClear: Release result len %ld",
 					asb->resultsLen);
 			MRELEASE(asb->resultsData);
-			asb->resultsData = 0;
-			asb->resultsLen = 0;
 		}
 
 		BCB_DEBUG_INFO("i bsp_bcbClear: Release ASB len %d", blk->size);
@@ -650,7 +667,5 @@ void	bsp_bcbClear(AcqExtBlock *blk)
 		blk->size = 0;
 	}
 
-	BCB_DEBUG_PROC("- bsp_bcbClear(%c)", ' ');
-
-	return;
+	BCB_DEBUG_PROC("- bsp_bcbClear", NULL);
 }

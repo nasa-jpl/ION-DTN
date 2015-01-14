@@ -12,6 +12,10 @@
 #include "bab_hmac_sha1.h"
 #include "crypto.h"
 
+#if (BAB_DEBUGGING == 1)
+extern char	gMsg[];			/*	Debug message buffer.	*/
+#endif
+
 #define BSP_BAB_BLOCKING_SIZE		4096
 #define BAB_HMAC_SHA1_RESULT_LEN	20
 
@@ -177,21 +181,30 @@ int	bab_hmac_sha1_sign(Bundle *bundle, ExtensionBlock *blk,
 		BspOutboundBlock *asb)
 {
 	Sdr		bpSdr = getIonsdr();
+	int		result = 0;
 	unsigned char	*keyValue;
 	int		keyLen;
 	unsigned char	*digest;
 	unsigned int	digestLen;
 	Sdnv		digestSdnv;
 	int		resultsLen;
-	unsigned char	*temp;
+//	unsigned char	*temp;
 	int		outcome;
+
+vast	bundleLen;
+Object	newContent;
+Object	temp;
+unsigned char	asbType;
+
+	BAB_DEBUG_INFO("+ bab_hmac_sha1_sign", NULL);
 
 	if (blk->occurrence == 0)	/*	First BAB.		*/
 	{
 		/*	For this BAB ciphersuite, only the last BAB
 		 *	block participates in signing the bundle.	*/
 
-		return 0;
+		BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
+		return result;
 	}
 
 	/*	For this BAB ciphersuite, the last BAB is required
@@ -226,20 +239,59 @@ int	bab_hmac_sha1_sign(Bundle *bundle, ExtensionBlock *blk,
 
 		BAB_DEBUG_ERR("x bab_hmac_sha1_sign: Bad hash. hashData is \
 0x%x and length is %d.", digest, digestLen);
-		BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> 0", NULL);
-		return 0;
+		BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
+		return result;
 	}
 
 	encodeSdnv(&digestSdnv, digestLen); 
 	resultsLen = 1 + digestSdnv.length + digestLen;
+
+
+bundleLen = zco_length(bpSdr, bundle->payload.content);
+bundleLen -= resultsLen;
+newContent = zco_clone(bpSdr, bundle->payload.content, 0, bundleLen);
+if (newContent == 0)
+{
+		BAB_DEBUG_ERR("x bab_shmac_sha1_sign: Can't clone payload ZCO.",
+				NULL);
+		MRELEASE(digest);
+		result = -1;
+		BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
+		return result;
+}
+
+zco_destroy(bpSdr, bundle->payload.content);
+bundle->payload.content = newContent;
+temp = sdr_malloc(bpSdr, resultsLen);
+if (temp == 0)
+{
+	BAB_DEBUG_ERR("x bab_shmac_sha1_sign: Can't allocate heap space \
+for ASB result, len %ld.", resultsLen);
+	MRELEASE(digest);
+	result = -1;
+	BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
+	return result;
+}
+
+asbType = BSP_CSPARM_INT_SIG;
+sdr_write(bpSdr, temp, (char *) &asbType, 1); 
+sdr_write(bpSdr, temp + 1, (char *) digestSdnv.text, digestSdnv.length);
+sdr_write(bpSdr, temp + 1 + digestSdnv.length, (char *) digest, digestLen);
+MRELEASE(digest);
+outcome = zco_append_extent(bpSdr, bundle->payload.content, ZcoSdrSource,
+			temp, 0, resultsLen);
+
+
+#if 0
 	temp = (unsigned char *) MTAKE(resultsLen);
 	if (temp == NULL)
 	{
 		BAB_DEBUG_ERR("x bab_shmac_sha1_sign: Can't allocate memory \
 for ASB result, len %ld.", resultsLen);
 		MRELEASE(digest);
-		BAB_DEBUG_PROC("- bab_shmac_sha1_sign --> %d", -1);
-		return -1;
+		result = -1;
+		BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
+		return result;
 	}
 
 	*temp = BSP_CSPARM_INT_SIG;
@@ -249,15 +301,18 @@ for ASB result, len %ld.", resultsLen);
 	outcome = zco_append_trailer(bpSdr, bundle->payload.content,
 			(char *) temp, resultsLen);
 	MRELEASE(temp);
+#endif
 	if (outcome < 0)
 	{
 		BAB_DEBUG_ERR("x bab_shmac_sha1_sign: Can't allocate heap \
 space for ASB result, len %ld.", resultsLen);
-		BAB_DEBUG_PROC("- bab_shmac_sha1_sign --> %d", -1);
-		return -1;
+		result = -1;
+		BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
+		return result;
 	}
 
-	return 0;
+	BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
+	return result;
 }
 
 int	bab_hmac_sha1_verify(AcqWorkArea *wk, AcqExtBlock *blk)
@@ -283,7 +338,8 @@ int	bab_hmac_sha1_verify(AcqWorkArea *wk, AcqExtBlock *blk)
 		elt = findAcqExtensionBlock(wk, EXTENSION_TYPE_BAB, 1);
 		if (elt == NULL)
 		{
-			BAB_DEBUG_ERR("x bab_hmac_sha1_verify: no Last BAB.");
+			BAB_DEBUG_ERR("x bab_hmac_sha1_verify: no Last BAB.",
+					NULL);
 			discardExtensionBlock(blk);
 			return 0;
 		}
@@ -345,7 +401,7 @@ memory for ASB result, len %ld.", resultsLen);
 	if ((asb->ciphersuiteFlags & BSP_ASB_RES) == 0)
 	{
 		BAB_DEBUG_ERR("x bab_hmac_sha1_verify: No security result in \
-last BAB.");
+last BAB.", NULL);
 		discardExtensionBlock(blk);
 		return 0;
 	}
@@ -365,7 +421,7 @@ last BAB: %d.", assertedDigestLen);
 	elt = findAcqExtensionBlock(wk, EXTENSION_TYPE_BAB, 0);
 	if (elt == NULL)
 	{
-		BAB_DEBUG_ERR("x bsp_hmac_sha1_verify: no First BAB.");
+		BAB_DEBUG_ERR("x bsp_hmac_sha1_verify: no First BAB.", NULL);
 		discardExtensionBlock(blk);
 		return 0;
 	}
@@ -383,7 +439,8 @@ last BAB: %d.", assertedDigestLen);
 	}
 	else
 	{
-		BAB_DEBUG_ERR("x bsp_hmac_sha1_verify: digests don't match.");
+		BAB_DEBUG_ERR("x bsp_hmac_sha1_verify: digests don't match.",
+				NULL);
 		outcome = 2;
 	}
 

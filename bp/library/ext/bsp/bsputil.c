@@ -174,6 +174,7 @@ int	bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	unsigned int	itemp;
 
 	BSP_DEBUG_PROC("+ bsp_deserializeASB(%x)", (unsigned long) blk);
+	BSP_DEBUG_INFO("i bsp_deserializeASB blk length %d", blk->length);
 
 	CHKERR(blk);
 	CHKERR(wk);
@@ -247,9 +248,12 @@ int	bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 		{
 			if (asb.parmsLen > unparsedBytes)
 			{
-				BSP_DEBUG_WARN("x bsp_deserializeASB: \
+				BSP_DEBUG_WARN("? bsp_deserializeASB: \
 parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
-				return 0;
+				result = 0;
+				BSP_DEBUG_PROC("- bsp_deserializeASB -> %d",
+						result);
+				return result;
 			}
 
 			asb.parmsData = MTAKE(asb.parmsLen);
@@ -264,7 +268,7 @@ parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
 			cursor += asb.parmsLen;
 			unparsedBytes -= asb.parmsLen;
 			BSP_DEBUG_INFO("i bsp_deserializeASB: parmsLen %ld",
-					asb->parmsLen);
+					asb.parmsLen);
 		}
 	}
 
@@ -276,14 +280,17 @@ parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
 		{
 			if (asb.resultsLen > unparsedBytes)
 			{
-				BSP_DEBUG_WARN("x bsp_deserializeASB: \
+				BSP_DEBUG_WARN("? bsp_deserializeASB: \
 resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 				if (asb.parmsData)
 				{
 					MRELEASE(asb.parmsData);
 				}
 
-				return 0;
+				result = 0;
+				BSP_DEBUG_PROC("- bsp_deserializeASB -> %d",
+						result);
+				return result;
 			}
 
 			asb.resultsData = MTAKE(asb.resultsLen);
@@ -298,7 +305,7 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 			cursor += asb.resultsLen;
 			unparsedBytes -= asb.resultsLen;
 			BSP_DEBUG_INFO("i bsp_deserializeASB: resultsLen %ld",
-					asb->resultsLen);
+					asb.resultsLen);
 		}
 	}
 
@@ -382,10 +389,11 @@ BSP block is not yet implemented.");
 unsigned char	*bsp_retrieveKey(int *keyLen, char *keyName)
 {
 	unsigned char	*keyValueBuffer = NULL;
+	int		keyBufferLength;
 	char		stdBuffer[100];
 	int		keyLength;
 
-	BSP_DEBUG_PROC("+ bsp_retrieveKey(%d, %s)", *keyLen, keyName);
+	BSP_DEBUG_PROC("+ bsp_retrieveKey(%s)", keyName);
 
 	/*
 	 * We first guess that the key will normally be no more than 100
@@ -399,8 +407,8 @@ unsigned char	*bsp_retrieveKey(int *keyLen, char *keyName)
 
 	CHKNULL(keyLen);
 	CHKNULL(keyName);
-	*keyLen = sizeof stdBuffer;
-	keyLength = sec_get_key(keyName, keyLen, stdBuffer);
+	keyBufferLength = sizeof stdBuffer;
+	keyLength = sec_get_key(keyName, &keyBufferLength, stdBuffer);
 	if (keyLength < 0)	/*	System failure.			*/
 	{
 		BSP_DEBUG_ERR("bsp_retrieveKey: Can't get length of key '%s'.",
@@ -410,51 +418,57 @@ unsigned char	*bsp_retrieveKey(int *keyLen, char *keyName)
 
 	if (keyLength > 0)	/*	Key has been retrieved.		*/
 	{
-		keyValueBuffer = (unsigned char *) MTAKE(*keyLen);
+		keyValueBuffer = (unsigned char *) MTAKE(keyLength);
 		if (keyValueBuffer == NULL)
 		{
-			putErrmsg("No space for key value.", itoa(*keyLen));
+			putErrmsg("No space for key value.", itoa(keyLength));
 		}
 		else
 		{
-			memcpy(keyValueBuffer, stdBuffer, *keyLen);
-			BSP_DEBUG_PROC("- bsp_retrieveKey - (begins with) %.*s",
-					MIN(128, *keyLen), keyValueBuffer);
+			memcpy(keyValueBuffer, stdBuffer, keyLength);
+			BSP_DEBUG_INFO("i bsp_retrieveKey - length %d, begins \
+with %.*s", keyLength, MIN(128, keyLength), keyValueBuffer);
+			BSP_DEBUG_PROC("- bsp_retrieveKey", NULL);
 		}
 
+		*keyLen = keyLength;
 		return keyValueBuffer;
 	}
 
 	/*	keyLength == 0; key has not yet been retrieved.		*/
 
-	if (*keyLen == sizeof stdBuffer)	/*	Key not found.	*/
+	if (keyBufferLength == sizeof stdBuffer)/*	Key not found.	*/
 	{
-		BSP_DEBUG_PROC("x bsp_retrieveKey: Unable to find key '%s'",
+		BSP_DEBUG_WARN("? bsp_retrieveKey: Unable to find key '%s'",
 				keyName);
+		BSP_DEBUG_PROC("- bsp_retrieveKey", NULL);
 		return NULL;
 	}
 
-	/*	Key is too long for stdBuffer; length is in &keyLen.	*/
+	/*	Keylen > stdBuffer len; length is in keyBufferLength.	*/
 
-	if ((keyValueBuffer = (unsigned char *) MTAKE(*keyLen)) == NULL)
+	if ((keyValueBuffer = (unsigned char *) MTAKE(keyBufferLength)) == NULL)
 	{
-		putErrmsg("No space for key value.", itoa(*keyLen));
+		putErrmsg("No space for key value.", itoa(keyBufferLength));
 		return NULL;
 	}
 
 	/*	Call sec_get_key again, this time providing a buffer
 	 *	of adequate size.					*/
 
-	if (sec_get_key(keyName, keyLen, (char *) keyValueBuffer) < 0)
+	if (sec_get_key(keyName, &keyBufferLength, (char *) keyValueBuffer) < 0)
 	{
 		MRELEASE(keyValueBuffer);
 		BSP_DEBUG_ERR("bsp_retrieveKey:  Can't get key '%s'", keyName);
 		return NULL;
 	}
 
-	BSP_DEBUG_PROC("- bsp_retrieveKey - (begins with) %.*s",
-			MIN(128, *keyLen), keyValueBuffer);
+	keyLength = keyBufferLength;
+	BSP_DEBUG_INFO("i bsp_retrieveKey - length %d, begins with %.*s",
+			keyLength, MIN(128, keyLength), keyValueBuffer);
+	BSP_DEBUG_PROC("- bsp_retrieveKey", NULL);
 
+	*keyLen = keyLength;
 	return keyValueBuffer;
 }
 
@@ -479,6 +493,7 @@ unsigned char	*bsp_retrieveKey(int *keyLen, char *keyName)
 
 unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 {
+	Sdr		sdr = getIonsdr();
 	Sdnv		targetBlockType;
 	Sdnv		targetBlockOccurrence;
 	Sdnv		ciphersuiteType;
@@ -488,7 +503,7 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 	unsigned char	*serializedAsb;
 	unsigned char	*cursor;
 
-	BSP_DEBUG_PROC("+ bsp_serializeASB(%x, %x)",
+	BSP_DEBUG_PROC("+ bsp_serializeASB (%x, %x)",
 			(unsigned long) length, (unsigned long) asb);
 
 	CHKNULL(length);
@@ -518,7 +533,7 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 		*length += asb->parmsLen;
 	} 
 
-	BSP_DEBUG_PROC("+ bsp_serializeASB RESULT LENGTH IS CURRENTLY (%d)",
+	BSP_DEBUG_INFO("i bsp_serializeASB RESULT LENGTH IS CURRENTLY (%d)",
 			asb->resultsLen);
 
 	if (asb->ciphersuiteFlags & BSP_ASB_RES)
@@ -527,14 +542,12 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 		*length += resultsLen.length;
 
 		/*	The resultsLen field may be hypothetical; the
-		 *	resultsData may not yet be present, in which
-		 *	case the block's serialized length must omit
-		 *	resultsLen.					*/
+		 *	resultsData may not yet be present.  But it
+		 *	will be provided eventually (even if only as
+		 *	filler bytes, so the block's serialized length
+		 *	must include resultsLen.			*/
 
-		if (asb->resultsData)
-		{
-			*length += asb->resultsLen;
-		}
+		*length += asb->resultsLen;
 	} 
 
 	/*********************************************************************
@@ -543,12 +556,14 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 
 	if ((serializedAsb = MTAKE(*length)) == NULL)
 	{
-		putErrmsg("No space for serialized ASB.", utoa(*length));
+		BSP_DEBUG_ERR("x bsp_serializeASB Need %d bytes.", *length);
+		BSP_DEBUG_PROC("- bsp_serializeASB", NULL);
 		return NULL;
 	}
 
 	cursor = serializedAsb;
 	cursor = bsp_addSdnvToStream(cursor, &targetBlockType);
+	cursor = bsp_addSdnvToStream(cursor, &targetBlockOccurrence);
 	cursor = bsp_addSdnvToStream(cursor, &ciphersuiteType);
 	cursor = bsp_addSdnvToStream(cursor, &ciphersuiteFlags);
 
@@ -556,7 +571,7 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 	{
 		cursor = bsp_addSdnvToStream(cursor, &parmsLen);
 		BSP_DEBUG_INFO("i bsp_serializeASB: cursor %x, parms data \
-%x, length %ld", (unsigned long) cursor, (unsigned long) asb->parmsData,
+%u, parms length %ld", (unsigned long) cursor, (unsigned long) asb->parmsData,
 				asb->parmsLen);
 		if (asb->parmsData == 0)
 		{
@@ -564,7 +579,7 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 		}
 		else
 		{
-			memcpy(cursor, (char *) (asb->parmsData),
+			sdr_read(sdr, (char *) cursor, asb->parmsData,
 					asb->parmsLen);
 		}
 
@@ -575,18 +590,19 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 	{
 		cursor = bsp_addSdnvToStream(cursor, &resultsLen);
 		BSP_DEBUG_INFO("i bsp_serializeASB: cursor %x, results data \
-%x, length %ld", (unsigned long) cursor, (unsigned long) asb->resultsData,
-				asb->resultsLen);
+%u, results length %ld", (unsigned long) cursor, (unsigned long)
+				asb->resultsData, asb->resultsLen);
 		if (asb->resultsData != 0)
 		{
-			memcpy(cursor, (char *) (asb->resultsData),
+			sdr_read(sdr, (char *) cursor, asb->resultsData,
 					asb->resultsLen);
 			cursor += asb->resultsLen;
 		}
 	}
 
-	BSP_DEBUG_PROC("- bsp_serializeASB -> data: %x, length %d",
+	BSP_DEBUG_INFO("i bsp_serializeASB -> data: %x, length %d",
 			(unsigned long) serializedAsb, *length);
+	BSP_DEBUG_PROC("- bsp_serializeASB", NULL);
 
 	return serializedAsb;
 }
@@ -646,26 +662,33 @@ void	bsp_getInboundBspItem(int itemNeeded, unsigned char *bspBuf,
 		bspBufLen--;
 		if (bspBufLen == 0)	/*	No item length.		*/
 		{
-			return;		/*	Malformed result data.	*/
+putErrmsg("Malformed buffer data: no item length.", NULL);
+			return;		/*	Malformed buffer data.	*/
 		}
 
 		sdnvLength = decodeSdnv(&longNumber, cursor);
 		if (sdnvLength == 0 || sdnvLength > bspBufLen)
 		{
+putErrmsg("Malformed buffer data: invalid SDNV length.", itoa(sdnvLength));
 			return;		/*	Malformed result data.	*/
 		}
 
 		itemLength = longNumber;
+putErrmsg("Item length:", itoa(itemLength));
 		cursor += sdnvLength;
 		bspBufLen -= sdnvLength;
 
 		if (itemLength == 0)	/*	Empty item.		*/
 		{
+putErrmsg("Length is zero; trying next one.", NULL);
 			continue;
 		}
 
+putErrmsg("Item type:", itoa(itemType));
+putErrmsg("Item needed:", itoa(itemNeeded));
 		if (itemType == itemNeeded)
 		{
+putErrmsg("Got it.", NULL);
 			*val = cursor;
 			*len = itemLength;
 			return;
@@ -673,6 +696,7 @@ void	bsp_getInboundBspItem(int itemNeeded, unsigned char *bspBuf,
 
 		/*	Look at next item in buffer.			*/
 
+putErrmsg("Wrong item, trying next one.", NULL);
 		cursor += itemLength;
 		bspBufLen -= itemLength;
 	}

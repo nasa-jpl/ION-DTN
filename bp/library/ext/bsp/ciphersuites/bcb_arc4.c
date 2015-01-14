@@ -17,6 +17,10 @@
 #include "bcb_arc4.h"
 #include "crypto.h"
 
+#if (BCB_DEBUGGING == 1)
+extern char	gMsg[];			/*	Debug message buffer.	*/
+#endif
+
 #define BCB_ENCRYPTION_CHUNK_SIZE	4096
 #define	BSP_BCB_SESSION_KEY_LENGTH	128
 
@@ -225,7 +229,7 @@ int	bcb_arc4_encrypt(Bundle *bundle, ExtensionBlock *blk,
 		if (cryptPayload(bundle, sessionKey, sessionKeyLen, "en") < 0)
 		{
 			BCB_DEBUG_ERR("x bcb_arc4_encrypt: Can't encrypt \
-payload.");
+payload.", NULL);
 			BCB_DEBUG_PROC("- bcb_arc4_encrypt--> NULL", NULL);
 			MRELEASE(sessionKey);
 			return 0;
@@ -328,7 +332,7 @@ int	bcb_arc4_decrypt(AcqWorkArea *wk, AcqExtBlock *blk)
 				< 0)
 		{
 			BCB_DEBUG_ERR("x bcb_arc4_decrypt: Can't decrypt \
-payload.");
+payload.", NULL);
 			BCB_DEBUG_PROC("- bcb_arc4_decrypt--> NULL", NULL);
 			MRELEASE(sessionKey);
 			return 0;

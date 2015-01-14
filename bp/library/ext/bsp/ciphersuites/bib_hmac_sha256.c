@@ -12,6 +12,10 @@
 #include "bib_hmac_sha256.h"
 #include "crypto.h"
 
+#if (BIB_DEBUGGING == 1)
+extern char	gMsg[];			/*	Debug message buffer.	*/
+#endif
+
 #define BSP_BIB_BLOCKING_SIZE		4096
 #define BIB_HMAC_SHA256_RESULT_LEN	32
 
@@ -77,21 +81,22 @@ static unsigned char	*computePayloadDigest(Object dataObj,
 
 	if ((authCtxLen = hmac_sha256_context_length()) <= 0)
 	{
-		BIB_DEBUG_ERR("x computeDigest: Bad context length (%d)",
+		BIB_DEBUG_ERR("x computePayloadDigest: Bad context length (%d)",
 				authCtxLen);
 		MRELEASE(dataBuffer);
-		BIB_DEBUG_PROC("- computeDigest--> NULL", NULL);
+		BIB_DEBUG_PROC("- computePayloadDigest--> NULL", NULL);
 		return NULL;
 	}
 
-	BIB_DEBUG_INFO("i computeDigest: context length is %d", authCtxLen);
+	BIB_DEBUG_INFO("i computePayloadDigest: context length is %d",
+			authCtxLen);
 
 	if ((authContext = MTAKE(authCtxLen)) == NULL)
 	{
-		BIB_DEBUG_ERR("x computeDigest: Can't allocate %ld bytes",
+		BIB_DEBUG_ERR("x computePayloadDigest: Can't allocate %d bytes",
 				authCtxLen);
 		MRELEASE(dataBuffer);
-		BIB_DEBUG_PROC("- computeDigest--> NULL", NULL);
+		BIB_DEBUG_PROC("- computePayloadDigest--> NULL", NULL);
 		return NULL;
 	}
 
@@ -102,8 +107,8 @@ static unsigned char	*computePayloadDigest(Object dataObj,
 	CHKNULL(sdr_begin_xn(bpSdr));
 	zco_start_transmitting(dataObj, &dataReader);
 
-	BIB_DEBUG_INFO("i computeDigest: size is %d", bytesRemaining);
-	BIB_DEBUG_INFO("i computeDigest: Key value = %s, key length = %d",
+	BIB_DEBUG_INFO("i computePayloadDigest: size is %d", bytesRemaining);
+	BIB_DEBUG_INFO("i computePayloadDigest: key value = %s, key len = %d",
 			keyValue, keyLen);
 
 	while (bytesRemaining > 0)
@@ -117,12 +122,12 @@ static unsigned char	*computePayloadDigest(Object dataObj,
 				dataBuffer);
 		if (bytesRetrieved != chunkSize)
 		{
-			BIB_DEBUG_ERR("x computeDigest: Read %d bytes, but \
-expected %d.", bytesRetrieved, chunkSize);
+			BIB_DEBUG_ERR("x computePayloadDigest: Read %d bytes, \
+but expected %d.", bytesRetrieved, chunkSize);
 			MRELEASE(authContext);
 			sdr_exit_xn(bpSdr);
 			MRELEASE(dataBuffer);
-			BIB_DEBUG_PROC("- computeDigest--> NULL", NULL);
+			BIB_DEBUG_PROC("- computePayloadDigest--> NULL", NULL);
 			return NULL;
 		}
 
@@ -142,7 +147,7 @@ expected %d.", bytesRetrieved, chunkSize);
 	{
 		putErrmsg("Failed allocating buffer for hash result.", NULL);
 		MRELEASE(authContext);
-		BIB_DEBUG_PROC("- computeDigest--> NULL", NULL);
+		BIB_DEBUG_PROC("- computePayloadDigest--> NULL", NULL);
 		return NULL;
 	}
 
@@ -151,7 +156,7 @@ expected %d.", bytesRetrieved, chunkSize);
 
 	memset(hashData, 0, BIB_HMAC_SHA256_RESULT_LEN);
 
-	BIB_DEBUG_INFO("i computeDigest: allocated hash data.",NULL);
+	BIB_DEBUG_INFO("i computePayloadDigest: allocated hash data.",NULL);
 
 	/*	Calculate the hash result.				*/
 
@@ -160,7 +165,7 @@ expected %d.", bytesRetrieved, chunkSize);
 	MRELEASE(authContext);
 	*hashLen = BIB_HMAC_SHA256_RESULT_LEN;
 
-	BIB_DEBUG_PROC("- computeDigest(%x)", (unsigned long) hashData);
+	BIB_DEBUG_PROC("- computePayloadDigest(%x)", (unsigned long) hashData);
 
 	return (unsigned char *) hashData;
 }
@@ -248,10 +253,8 @@ space for ASB result, len %ld.", resultsLen);
 
 int	bib_hmac_sha256_verify(AcqWorkArea *wk, AcqExtBlock *blk)
 {
-	Sdr		sdr = getIonsdr();
 	BspInboundBlock	*asb;
 	unsigned char	*keyValue;
-	Object		payloadObj;
 	int		keyLen;
 	unsigned char	*digest;
 	unsigned int	digestLen;
@@ -264,46 +267,21 @@ int	bib_hmac_sha256_verify(AcqWorkArea *wk, AcqExtBlock *blk)
 	switch (asb->targetBlockType)
 	{
 	case BLOCK_TYPE_PRIMARY:
-		BIB_DEBUG_ERR("x bib_hmac_sha256_sign: Can't compute digest \
+		BIB_DEBUG_ERR("x bib_hmac_sha256_verify: Can't compute digest \
 for primary block: canonicalization not implemented.", NULL);
-		BIB_DEBUG_PROC("- bib_hmac_sha256_sign--> NULL", NULL);
+		BIB_DEBUG_PROC("- bib_hmac_sha256_verify--> NULL", NULL);
 		MRELEASE(keyValue);
 		return 0;
 
 	case BLOCK_TYPE_PAYLOAD:
-		/*	Currently the wk->bundle.payload.content ZCO
-		 *	is the entire serialized bundle.  Snap off
-		 *	a clone of just the portion of that serialized
-		 *	bundle that is the payload content.		*/
-
-		CHKERR(sdr_begin_xn(sdr));
-		payloadObj = zco_clone(sdr, wk->bundle.payload.content,
-				wk->headerLength, wk->bundle.payload.length);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Transaction failed.", NULL);
-			return -1;
-		}
-
-		/*	Now compute the digest for just the payload,
-		 *	then discard the temporary payload content ZCO.	*/
-
-		digest = computePayloadDigest(payloadObj, keyValue, keyLen,
-				&digestLen);
-		CHKERR(sdr_begin_xn(sdr));
-		zco_destroy(sdr, payloadObj);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Transaction failed.", NULL);
-			return -1;
-		}
-
+		digest = computePayloadDigest(wk->bundle.payload.content,
+				keyValue, keyLen, &digestLen);
 		break;
 
 	default:
-		BIB_DEBUG_ERR("x bib_hmac_sha256_sign: Can't compute digest \
+		BIB_DEBUG_ERR("x bib_hmac_sha256_verify: Can't compute digest \
 for block type %d: canonicalization not implemented.", asb->targetBlockType);
-		BIB_DEBUG_PROC("- bib_hmac_sha256_sign--> NULL", NULL);
+		BIB_DEBUG_PROC("- bib_hmac_sha256_verify--> NULL", NULL);
 		MRELEASE(keyValue);
 		return 0;
 	}
@@ -316,9 +294,9 @@ for block type %d: canonicalization not implemented.", asb->targetBlockType);
 			MRELEASE(digest);
 		}
 
-		BIB_DEBUG_ERR("x bib_hmac_sha256_sign: Bad hash. hashData is \
+		BIB_DEBUG_ERR("x bib_hmac_sha256_verify: Bad hash. hashData is \
 0x%x and length is %d.", digest, digestLen);
-		BIB_DEBUG_PROC("- bib_hmac_sha256_sign--> 0", NULL);
+		BIB_DEBUG_PROC("- bib_hmac_sha256_verify--> 0", NULL);
 		return -1;
 	}
 
@@ -340,7 +318,7 @@ in BIB: %d.", assertedDigestLen);
 	}
 	else
 	{
-		BIB_DEBUG_WARN("x bsp_hmac_verify: digests don't match.");
+		BIB_DEBUG_WARN("x bsp_hmac_sha256_verify: digests don't match.", NULL);
 		outcome = 0;
 	}
 

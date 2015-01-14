@@ -56,7 +56,7 @@
  */
 
    #define BCB_DEBUG(level, format,...) if(level >= BCB_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
+{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); putErrmsg(gMsg, NULL);}
 
    #define BCB_DEBUG_PROC(format,...) \
            BCB_DEBUG(BCB_DEBUG_LVL_PROC,format, __VA_ARGS__)

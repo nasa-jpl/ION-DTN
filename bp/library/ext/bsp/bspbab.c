@@ -157,7 +157,7 @@ static int	babProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
 	{
 		if (!cs->blockPair)	/*	Lone-BAB ciphersuite.	*/
 		{
-			BAB_DEBUG_INFO("i bsp_bab_processOnDequeue: only a \
+			BAB_DEBUG_INFO("i babProcessOnDequeue: only a \
 single BAB for ciphersuite '%s'.", babRule.ciphersuiteName);
 			scratchExtensionBlock(blk);
 			return 0;
@@ -177,7 +177,8 @@ single BAB for ciphersuite '%s'.", babRule.ciphersuiteName);
 	memcpy(asb.keyName, babRule.keyName, BSP_KEY_NAME_LEN);
 	if (cs->construct(blk, &asb) < 0)
 	{
-        	BAB_DEBUG_ERR("x bsp_bab_processOnDequeue: Can't build ASB.");
+        	BAB_DEBUG_ERR("x babProcessOnDequeue: Can't build ASB.",
+				NULL);
 		return -1;
 	}
 
@@ -196,7 +197,7 @@ single BAB for ciphersuite '%s'.", babRule.ciphersuiteName);
 	serializedAsb = bsp_serializeASB(&(blk->dataLength), &asb);
 	if (serializedAsb == NULL)
 	{
-		BAB_DEBUG_ERR("x bsp_bab_processOnDequeue: Unable to \
+		BAB_DEBUG_ERR("x babProcessOnDequeue: Unable to \
 serialize ASB. blk->dataLength = %d", blk->dataLength);
 		return -1;
 	}
@@ -246,11 +247,11 @@ int	bsp_babProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
 	int	result;
 
-	BAB_DEBUG_PROC("+ bsp_bab_%d_ProcessOnDequeue(%x, %x, %x)",
+	BAB_DEBUG_PROC("+ bsp_babProcessOnDequeue(%d, %x, %x, %x)",
 			blk->occurrence, (unsigned long) blk,
 			(unsigned long) bundle, (unsigned long) ctxt);
 	result = babProcessOnDequeue(blk, bundle, ctxt);
-	BAB_DEBUG_PROC("- bsp_bab_%d_ProcessOnDequeue(%d)", blk->occurrence,
+	BAB_DEBUG_PROC("- bsp_babProcessOnDequeue(%d, %d)", blk->occurrence,
 			result);
 	return result;
 }
@@ -291,16 +292,15 @@ int	bsp_babProcessOnTransmit(ExtensionBlock *blk, Bundle *bundle,
 
 	CHKERR(blk);
 	CHKERR(bundle);
-	CHKERR(ctxt);
 
-	BAB_DEBUG_PROC("+ bsp_bab_%d_ProcessOnTransmit: %x, %x, %x)",
+	BAB_DEBUG_PROC("+ bsp_babProcessOnTransmit: %d, %x, %x, %x)",
 			blk->occurrence, (unsigned long) blk,
 			(unsigned long) bundle, (unsigned long) ctxt);
 
 	if (blk->object == 0)
 	{
-		BAB_DEBUG_ERR("x bsp_bab_1_ProcessOnTransmit: No ASB, can't \
-process the BAB.");
+		BAB_DEBUG_ERR("x bsp_babProcessOnTransmit: No ASB, can't \
+process the BAB.", NULL);
 		result = 0;
 	}
 	else
@@ -311,7 +311,7 @@ process the BAB.");
 		result = cs->sign(bundle, blk, &asb);
 	}
 
-	BAB_DEBUG_PROC("- bsp_bab_%d_ProcessOnTransmit--> %d", blk->occurrence,
+	BAB_DEBUG_PROC("- bsp_babProcessOnTransmit--> %d, %d", blk->occurrence,
 			result);
 	return result;
 }
@@ -321,7 +321,7 @@ process the BAB.");
  * \par Function Name: bsp_babRelease
  *
  * \par Purpose: This callback releases SDR heap space allocated to
- *               a BSP extension block.
+ *               a bundle authentication block.
  *
  * \retval void
  *
@@ -343,7 +343,8 @@ void    bsp_babRelease(ExtensionBlock *blk)
 	CHKVOID(blk);
 	if (blk->object)
 	{
-		sdr_read(sdr, (char *) &asb, blk->object, blk->size);
+		sdr_read(sdr, (char *) &asb, blk->object,
+				sizeof(BspOutboundBlock));
 		if (asb.parmsData)
 		{
 			sdr_free(sdr, asb.parmsData);
@@ -439,8 +440,8 @@ static int	babCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	{
 		if (!cs->blockPair)
 		{
-			BAB_DEBUG_INFO("i bsp_bab_check: 'Last' BAB is invalid \
-for ciphersuite '%s'.  Discarding the BAB block.", babRule->ciphersuiteName);
+			BAB_DEBUG_INFO("i babCheck: 'Last' BAB is invalid \
+for ciphersuite '%s'.  Discarding the BAB block.", babRule.ciphersuiteName);
 			discardExtensionBlock(blk);
 			return 0;
 		}
@@ -452,8 +453,8 @@ for ciphersuite '%s'.  Discarding the BAB block.", babRule->ciphersuiteName);
 		lastBab = findAcqExtensionBlock(wk, EXTENSION_TYPE_BAB, 1);
 		if ((AcqExtBlock *) (lyst_data(lastBab)) != blk)
 		{
-			BAB_DEBUG_INFO("i bsp_bab_check: Multiple 'Last' BABs \
-in the bundle.  Discarding this one.");
+			BAB_DEBUG_INFO("i babCheck: Multiple 'Last' BABs \
+in the bundle.  Discarding this one.", NULL);
 			discardExtensionBlock(blk);
 			return 0;
 		}
@@ -520,10 +521,10 @@ int	bsp_babCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	int	result;
 
-	BAB_DEBUG_PROC("+ bsp_bab_%d_Check(%x, %x)", blk->occurrence,
+	BAB_DEBUG_PROC("+ bsp_babCheck(%d, %x, %x)", blk->occurrence,
 			(unsigned long) blk, (unsigned long) wk);
 	result = babCheck(blk, wk);
-	BAB_DEBUG_PROC("- bsp_bab_%d_Check --> %d", blk->occurrence, result);
+	BAB_DEBUG_PROC("- bsp_babCheck --> %d, %d", blk->occurrence, result);
 	return result;
 }
 
@@ -548,7 +549,8 @@ void	bsp_babClear(AcqExtBlock *blk)
 {
 	BspInboundBlock	*asb;
 
-	BAB_DEBUG_PROC("+ bsp_babClear(%x)", (unsigned long) blk);
+	BAB_DEBUG_PROC("+ bsp_babClear(%d, %x)", blk->occurrence,
+			(unsigned long) blk);
 
 	CHKVOID(blk);
 	if (blk->object)
@@ -556,16 +558,22 @@ void	bsp_babClear(AcqExtBlock *blk)
        		asb = (BspInboundBlock *) (blk->object);
 		if (asb->parmsData)
 		{
+			BAB_DEBUG_INFO("i bsp_babClear: Release parms len %ld",
+					asb->parmsLen);
 			MRELEASE(asb->parmsData);
 		}
 
 		if (asb->resultsData)
 		{
+			BAB_DEBUG_INFO("i bsp_babClear: Release result len %ld",
+					asb->resultsLen);
 			MRELEASE(asb->resultsData);
 		}
 
 		MRELEASE(blk->object);
+		blk->object = NULL;
+		blk->size = 0;
 	}
 
-	BAB_DEBUG_PROC("- bsp_babClear(%c)", ' ');
+	BAB_DEBUG_PROC("- bsp_babClear %d", blk->occurrence, NULL);
 }

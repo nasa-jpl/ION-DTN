@@ -123,7 +123,7 @@ int bspTypeToInt(char *bspType);
  */
 
    #define BSP_DEBUG(level, format,...) if(level >= BSP_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
+{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
 
    #define BSP_DEBUG_PROC(format,...) \
            BSP_DEBUG(BSP_DEBUG_LVL_PROC,format, __VA_ARGS__)

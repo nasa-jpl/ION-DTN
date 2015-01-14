@@ -77,7 +77,7 @@
  *****************************************************************************/
 
 #ifndef BSP_DEBUGGING
-#define BSP_DEBUGGING	0  /** Whether to enable (1) or disable (0) debugging */
+#define BSP_DEBUGGING	1  /** Whether to enable (1) or disable (0) debugging */
 #endif
 
 #define BSP_DEBUG_LVL_PROC 1 /** Function entry/exit and above debugging */
@@ -119,7 +119,7 @@
  */
 
    #define BSP_DEBUG(level, format,...) if(level >= BSP_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
+{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); putErrmsg(gMsg, NULL);}
 
    #define BSP_DEBUG_PROC(format,...) \
            BSP_DEBUG(BSP_DEBUG_LVL_PROC,format, __VA_ARGS__)

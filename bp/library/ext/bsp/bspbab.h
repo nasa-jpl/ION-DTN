@@ -62,7 +62,7 @@
  */
 
    #define BAB_DEBUG(level, format,...) if(level >= BAB_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
+{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); putErrmsg(gMsg, NULL);}
 
    #define BAB_DEBUG_PROC(format,...) \
            BAB_DEBUG(BAB_DEBUG_LVL_PROC,format, __VA_ARGS__)

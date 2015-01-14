@@ -51,7 +51,7 @@ for BIBs. No BIB processing for this bundle.", NULL);
 	{
 		BIB_DEBUG_INFO("i bspGetCiphersuite: Ciphersuite \
 of BIB rule is unknown '%s'.  No BIB processing for this bundle.",
-				bibRule.ciphersuiteName);
+				bibRule->ciphersuiteName);
 	}
 }
 
@@ -65,11 +65,13 @@ static int	attachBib(Bundle *bundle, ExtensionBlock *blk,
 	BibCiphersuite	*cs;
 	unsigned char	*serializedAsb;
 
+	BIB_DEBUG_PROC("+ attachBib", NULL);
+
 	if (bsp_getOutboundSecurityEids(bundle, blk, asb, &fromEid, &toEid))
 	{
-		BIB_DEBUG_ERR("x bibConstruct: out of space.", NULL);
+		BIB_DEBUG_ERR("x attachBib: out of space.", NULL);
 		result = -1;
-		BIB_DEBUG_PROC("- bibConstruct -> %d", result);
+		BIB_DEBUG_PROC("- attachBib -> %d", result);
 		return result;
 	}
 
@@ -81,42 +83,45 @@ static int	attachBib(Bundle *bundle, ExtensionBlock *blk,
 		/*	No applicable valid construction rule.		*/
 
 		scratchExtensionBlock(blk);
-		BIB_DEBUG_PROC("- bibConstruct -> %d", result);
+		BIB_DEBUG_PROC("- attachBib -> %d", result);
 		return result;
 	}
 
 	memcpy(asb->keyName, bibRule.keyName, BSP_KEY_NAME_LEN);
 	if (cs->construct(blk, asb) < 0)
 	{
-		BIB_DEBUG_ERR("x bibConstruct: Can't construct ASB.");
-		BIB_DEBUG_PROC("- bibConstruct --> %d", -1);
+		BIB_DEBUG_ERR("x attachBib: Can't construct ASB.", NULL);
+		result = -1;
 		scratchExtensionBlock(blk);
-		return -1;
+		BIB_DEBUG_PROC("- attachBib --> %d", result);
+		return result;
 	}
 
 	if (cs->sign(bundle, blk, asb) < 0)
 	{
-		BIB_DEBUG_ERR("x bibConstruct: Can't sign target block.");
-		BIB_DEBUG_PROC("- bibConstruct --> %d", -1);
+		BIB_DEBUG_ERR("x attachBib: Can't sign target block.", NULL);
+		result = -1;
 		scratchExtensionBlock(blk);
-		return -1;
+		BIB_DEBUG_PROC("- attachBib --> %d", result);
+		return result;
 	}
 
 	serializedAsb = bsp_serializeASB(&(blk->dataLength), asb);
 	if (serializedAsb == NULL)
 	{
-		BIB_DEBUG_ERR("x bibConstruct: Unable to \
+		BIB_DEBUG_ERR("x attachBib: Unable to \
 serialize ASB.  blk->dataLength = %d", blk->dataLength);
-		BIB_DEBUG_PROC("- bibConstruct --> %d", -1);
+		result = -1;
 		scratchExtensionBlock(blk);
-		return -1;
+		BIB_DEBUG_PROC("- attachBib --> %d", result);
+		return result;
 	}
 
 	/*	Serialized ASB is the block-specific data for the BIB.	*/
 
 	result = serializeExtBlk(blk, NULL, (char *) serializedAsb);
 	MRELEASE(serializedAsb);
-	BIB_DEBUG_PROC("- bibConstruct --> %d", -1);
+	BIB_DEBUG_PROC("- attachBib --> %d", result);
 	return result;
 }
 
@@ -270,12 +275,12 @@ int	bsp_bibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 
 	BIB_DEBUG_PROC("+ bsp_bibProcessOnDequeue(%x, %x, %x)",
 			(unsigned long) blk, (unsigned long) bundle,
-			(unsigned long) ctxt);
+			(unsigned long) parm);
 	if (bundle == NULL || parm == NULL || blk == NULL)
 	{
 		BIB_DEBUG_ERR("x bsp_bibProcessOnDequeue: Bundle or ASB were \
 not as expected.", NULL);
-		BIB_DEBUG_PROC("- bsp_bibProcessOnDequeue bundle %d, parm %d, \
+		BIB_DEBUG_INFO("i bsp_bibProcessOnDequeue bundle %d, parm %d, \
 blk %d, blk->size %d", bundle, parm, blk, blk->size);
 		BIB_DEBUG_PROC("- bsp_bibProcessOnDequeue --> %d", -1);
 		scratchExtensionBlock(blk);
@@ -290,6 +295,7 @@ blk %d, blk->size %d", bundle, parm, blk, blk->size);
 		 *	was serialized in the recordExtensionBlocks()
 		 *	function.					*/
 
+		BIB_DEBUG_PROC("- bsp_bibProcessOnDequeue(%d)", result);
 		return 0;
 	} 
 
@@ -302,6 +308,7 @@ blk %d, blk->size %d", bundle, parm, blk, blk->size);
 		 *	the payload block content was already final
 		 *	at that time.					*/
 
+		BIB_DEBUG_PROC("- bsp_bibProcessOnDequeue(%d)", result);
 		return 0;
 	}
 
@@ -314,12 +321,12 @@ blk %d, blk->size %d", bundle, parm, blk, blk->size);
  *
  * \par Function Name: bsp_bibRelease
  *
- * \par Purpose: This callback removes memory allocated by the BSP module
- *               from a particular extension block.
+ * \par Purpose: This callback releases SDR heap space  allocated to
+ * 		 a block integrity block.
  *
  * \retval void
  *
- * \param[in\out]  blk  The block whose allocated memory pools must be
+ * \param[in\out]  blk  The block whose allocated SDR heap space must be
  *                      released.
  *
  * \par Notes:
@@ -328,17 +335,30 @@ blk %d, blk->size %d", bundle, parm, blk, blk->size);
 
 void    bsp_bibRelease(ExtensionBlock *blk)
 {
+	Sdr			sdr = getIonsdr();
+	BspOutboundBlock	asb;
+
 	BIB_DEBUG_PROC("+ bsp_bibRelease(%x)", (unsigned long) blk);
 
 	CHKVOID(blk);
-	if (blk->size > 0)
+	if (blk->object)
 	{
-		sdr_free(getIonsdr(), blk->object);
+		sdr_read(sdr, (char *) &asb, blk->object,
+				sizeof(BspOutboundBlock));
+		if (asb.parmsData)
+		{
+			sdr_free(sdr, asb.parmsData);
+		}
+
+		if (asb.resultsData)
+		{
+			sdr_free(sdr, asb.resultsData);
+		}
+
+		sdr_free(sdr, blk->object);
 	}
 
 	BIB_DEBUG_PROC("- bsp_bibRelease(%c)", ' ');
-
-	return;
 }
 
 /******************************************************************************
@@ -571,7 +591,7 @@ int	bsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 			 *	in case somebody else does.		*/
 
 			BIB_DEBUG_INFO("- bsp_bibCheck - No rule.", NULL);
-			BIB_DEBUG_PROC("- bsp_bibCheck(2)", NULL);
+			BIB_DEBUG_PROC("- bsp_bibCheck", NULL);
 			blk->blkProcFlags |= BLK_FORWARDED_OPAQUE;
 			return 1;		/*	No information.	*/
 		}
@@ -582,7 +602,7 @@ int	bsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 		discardExtensionBlock(blk);
 	 	BIB_DEBUG_ERR("- bsp_bibCheck - Ciphersuite missing!", NULL);
-		BIB_DEBUG_PROC("- bsp_bibCheck(2)", NULL);
+		BIB_DEBUG_PROC("- bsp_bibCheck", NULL);
 		return 0;			/*	Bundle corrupt.	*/
 	}
 
@@ -608,7 +628,7 @@ int	bsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 		blk->blkProcFlags |= BLK_FORWARDED_OPAQUE;
 	}
 
-	BIB_DEBUG_PROC("- bsp_bibProcessOnDequeue(%d)", result);
+	BIB_DEBUG_PROC("- bsp_bibCheck(%d)", result);
 	return result;
 }
 
@@ -617,8 +637,7 @@ int	bsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
  * \par Function Name: bsp_bibClear
  *
  * \par Purpose: This callback removes all memory allocated by the BSP module
- *               during the block's acquisition process. This function is the
- *               same for both PRE and POST payload blocks.
+ *               during the block's acquisition process.
  *
  * \retval void
  *
@@ -627,9 +646,6 @@ int	bsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
  * \par Notes:
  *      1. The block's memory pool objects have been allocated as specified
  *         by the BSP module.
- *      2. The length field associated with each pointer field is accurate
- *      3. A length of 0 implies no memory is allocated to the associated
- *         data field.
  *****************************************************************************/
 
 void	bsp_bibClear(AcqExtBlock *blk)
@@ -639,25 +655,21 @@ void	bsp_bibClear(AcqExtBlock *blk)
 	BIB_DEBUG_PROC("+ bsp_bibClear(%x)", (unsigned long) blk);
 
 	CHKVOID(blk);
-	if (blk->size > 0)
+	if (blk->object)
 	{
 		asb = (BspInboundBlock *) (blk->object);
-		if (asb->parmsLen > 0)
+		if (asb->parmsData)
 		{
-			BIB_DEBUG_INFO("i bsp_bibClear: Release result len %ld",
+			BIB_DEBUG_INFO("i bsp_bibClear: Release parms len %ld",
 					asb->parmsLen);
 			MRELEASE(asb->parmsData);
-			asb->parmsData = 0;
-			asb->parmsLen = 0;
 		}
 
-		if (asb->resultsLen > 0)
+		if (asb->resultsData)
 		{
 			BIB_DEBUG_INFO("i bsp_bibClear: Release result len %ld",
 					asb->resultsLen);
 			MRELEASE(asb->resultsData);
-			asb->resultsData = 0;
-			asb->resultsLen = 0;
 		}
 
 		BIB_DEBUG_INFO("i bsp_bibClear: Release ASB len %d", blk->size);
@@ -667,7 +679,7 @@ void	bsp_bibClear(AcqExtBlock *blk)
 		blk->size = 0;
 	}
 
-	BIB_DEBUG_PROC("- bsp_bibClear(%c)", ' ');
+	BIB_DEBUG_PROC("- bsp_bibClear", NULL);
 
 	return;
 }

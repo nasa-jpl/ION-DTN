@@ -56,7 +56,7 @@
  */
 
    #define BIB_DEBUG(level, format,...) if(level >= BIB_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
+{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); putErrmsg(gMsg, NULL);}
 
    #define BIB_DEBUG_PROC(format,...) \
            BIB_DEBUG(BIB_DEBUG_LVL_PROC,format, __VA_ARGS__)
