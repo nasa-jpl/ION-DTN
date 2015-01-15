@@ -744,6 +744,7 @@ typedef struct
 
 	/*	Per-bundle state variables.				*/
 
+	Object		rawBundle;
 	Bundle		bundle;
 	int		headerLength;
 	int		trailerLength;

@@ -240,6 +240,26 @@ extern int	zco_append_trailer(Sdr sdr,
 extern void	zco_discard_last_trailer(Sdr sdr,
 				Object zco);
 
+extern Object	zco_header_text(Sdr sdr,
+				Object zco,
+				int skip,
+				vast *length);
+			/*	Skips over the first "skip" headers
+			 *	of the indicated ZCO and returns the
+			 *	address of the text of the next one,
+			 *	placing the length of that text in
+			 *	*length.  Returns 0 on any error.	*/
+
+extern Object	zco_trailer_text(Sdr sdr,
+				Object zco,
+				int skip,
+				vast *length);
+			/*	Skips over the first "skip" trailers
+			 *	of the indicated ZCO and returns the
+			 *	address of the text of the next one,
+			 *	placing the length of that text in
+			 *	*length.  Returns 0 on any error.	*/
+
 extern void	zco_destroy(	Sdr sdr,
 				Object zco);
 			/*	Explicitly destroys the indicated ZCO.

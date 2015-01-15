@@ -7449,16 +7449,16 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		/*	Bundle has been parsed out of the work area's
 		 *	ZCO.  Split it off into a separate ZCO.		*/
 
-		bundle->payload.content = zco_clone(bpSdr, work->zco,
+		work->rawBundle = zco_clone(bpSdr, work->zco,
 				work->zcoBytesConsumed, work->bundleLength);
 		work->zcoBytesConsumed += work->bundleLength;
 	}
 	else
 	{
-		bundle->payload.content = 0;
+		work->rawBundle = 0;
 	}
 
-	if (bundle->payload.content == 0)
+	if (work->rawBundle == 0)
 	{
 		return 0;	/*	No bundle at front of work ZCO.	*/
 	}
@@ -7466,9 +7466,8 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 	/*	Reduce payload ZCO to just its source data, discarding
 	 *	BP header and trailer.  This simplifies decryption.	*/
 
-	zco_delimit_source(bpSdr, bundle->payload.content, work->headerLength,
-			bundle->payload.length);
-	zco_strip(bpSdr, bundle->payload.content);
+	bundle->payload.content = zco_clone(bpSdr, work->rawBundle,
+			work->headerLength, bundle->payload.length);
 
 	/*	Do all decryption indicated by extension blocks.	*/
 
@@ -7881,6 +7880,11 @@ int	bpEndAcq(AcqWorkArea *work)
 		vpoint = NULL;
 		CHKERR(sdr_begin_xn(bpSdr));
 		result = acquireBundle(bpSdr, work, &vpoint);
+		if (work->rawBundle)
+		{
+			zco_destroy(bpSdr, work->rawBundle);
+		}
+
 		if (sdr_end_xn(bpSdr) < 0 || result < 0)
 		{
 			putErrmsg("Bundle acquisition failed.", NULL);

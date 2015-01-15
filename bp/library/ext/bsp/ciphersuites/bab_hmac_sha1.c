@@ -18,10 +18,19 @@ extern char	gMsg[];			/*	Debug message buffer.	*/
 
 #define BSP_BAB_BLOCKING_SIZE		4096
 #define BAB_HMAC_SHA1_RESULT_LEN	20
+#define BAB_HMAC_SHA1_ASB_RESULTS_LEN	(BAB_HMAC_SHA1_RESULT_LEN + 2)
+	/*	ASB results field length 22 is the length of a
+	 *	type/length/value triplet: length of result information
+	 *	item type (1) plus length of the length of the security
+	 *	result (the length of an SDNV large enough to contain
+	 *	the length of the digest, i.e., 1) plus the length of
+	 *	the security result itself.				*/
 
 int	bab_hmac_sha1_construct(ExtensionBlock *blk, BspOutboundBlock *asb)
 {
 	asb->ciphersuiteType = BSP_CSTYPE_BAB_HMAC_SHA1;
+	asb->parmsLen = 0;
+	asb->parmsData = 0;
 	if (blk->occurrence == 0)
 	{
 		asb->ciphersuiteFlags = 0;
@@ -29,20 +38,9 @@ int	bab_hmac_sha1_construct(ExtensionBlock *blk, BspOutboundBlock *asb)
 	else
 	{
 		asb->ciphersuiteFlags = BSP_ASB_RES;
-
-		/*	Result length 22 is the length of a
-		 *	type/length/value triplet: length of result
-		 *	information item type (1) plus length of the
-		 *	length of the security result (the length of
-		 *	an SDNV large enough to contain the length of
-		 *	the result, i.e., 1) plus the length of the
-		 *	result itself (BAB_HMAC_SHA1_RESULT_LEN = 20).	*/
-
-		asb->resultsLen = 22; 
+		asb->resultsLen = BAB_HMAC_SHA1_ASB_RESULTS_LEN; 
 	}
 
-	asb->parmsLen = 0;
-	asb->parmsData = 0;
 	asb->resultsData = 0;
 	return 0;
 }
@@ -76,6 +74,7 @@ static unsigned char	*computeDigest(Object dataObj, unsigned char *keyValue,
 	unsigned int	bytesRemaining;
 	unsigned int	chunkSize = BSP_BAB_BLOCKING_SIZE;
 	unsigned int	bytesRetrieved = 0;
+	unsigned int	asbResultsLength = BAB_HMAC_SHA1_ASB_RESULTS_LEN;
 
 	BAB_DEBUG_INFO("+ computeDigest(0x%x, '%s', %d, 0x%x)",
 			(unsigned long) dataObj, keyValue, keyLen,
@@ -112,14 +111,16 @@ static unsigned char	*computeDigest(Object dataObj, unsigned char *keyValue,
 		return NULL;
 	}
 
-	/*	Initialize the digest computation.			*/
+	/*	Initialize the digest computation.  Compute over
+	 *	entire bundle except the results of the digest
+	 *	computation.						*/
 
 	hmac_sha1_init(authContext, (unsigned char *) keyValue, keyLen);
-	bytesRemaining = zco_length(bpSdr, dataObj);
+	bytesRemaining = zco_length(bpSdr, dataObj) - asbResultsLength;
 	CHKNULL(sdr_begin_xn(bpSdr));
 	zco_start_transmitting(dataObj, &dataReader);
 
-	BAB_DEBUG_INFO("i computeDigest: size is %d", bytesRemaining);
+	BAB_DEBUG_INFO("i computeDigest: bundle size is %d", bytesRemaining);
 	BAB_DEBUG_INFO("i computeDigest: Key value = %s, key length = %d",
 			keyValue, keyLen);
 
@@ -187,14 +188,12 @@ int	bab_hmac_sha1_sign(Bundle *bundle, ExtensionBlock *blk,
 	unsigned char	*digest;
 	unsigned int	digestLen;
 	Sdnv		digestSdnv;
-	int		resultsLen;
-//	unsigned char	*temp;
-	int		outcome;
-
-vast	bundleLen;
-Object	newContent;
-Object	temp;
-unsigned char	asbType;
+	Object		trailerAddr;
+	vast		trailerLength;
+	Object		babAddr;
+	vast		babLength;
+	Object		results;
+	unsigned char	asbType;
 
 	BAB_DEBUG_INFO("+ bab_hmac_sha1_sign", NULL);
 
@@ -210,23 +209,15 @@ unsigned char	asbType;
 	/*	For this BAB ciphersuite, the last BAB is required
 	 *	to be the last block of the bundle.  That block has
 	 *	previously been serialized with correct security
-	 *	result length but no security result data, and
+	 *	result length but only filler in result data, and
 	 *	the last bytes of the final serialized bundle are
 	 *	the bytes of that serialized last BAB.  Since
 	 *	the block's security result data is the last field
 	 *	of the last BAB (the last block of the bundle), we
 	 *	can insert the security result TLV into the serialized
-	 *	bundle by simply appending it to the bundle (and thus
-	 *	to the last BAB).					*/
+	 *	bundle by simply overwriting those last bytes.		*/
 
 	keyValue = bsp_retrieveKey(&keyLen, asb->keyName);
-
-	/*	Grab the serialized bundle. It lives in
-	 *	bundle->payload.content, which is a ZCO that
-	 *	originally contained only the payload but has now
-	 *	got all other serialized blocks of the bundle
-	 *	prepended/appended to it.				*/
-
 	digest = computeDigest(bundle->payload.content, keyValue, keyLen,
 			&digestLen);
 	MRELEASE(keyValue);
@@ -244,74 +235,39 @@ unsigned char	asbType;
 	}
 
 	encodeSdnv(&digestSdnv, digestLen); 
-	resultsLen = 1 + digestSdnv.length + digestLen;
 
+	/*	At this point the bundle has been serialized in the
+	 *	payload ZCO, with all pre-payload blocks concatenated
+	 *	into a single ZCO header and all post-payload blocks
+	 *	concatenated into a single ZCO trailer.  So we need
+	 *	to overwrite the final 22 bytes of that trailer.	*/
 
-bundleLen = zco_length(bpSdr, bundle->payload.content);
-bundleLen -= resultsLen;
-newContent = zco_clone(bpSdr, bundle->payload.content, 0, bundleLen);
-if (newContent == 0)
-{
-		BAB_DEBUG_ERR("x bab_shmac_sha1_sign: Can't clone payload ZCO.",
-				NULL);
-		MRELEASE(digest);
-		result = -1;
-		BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
-		return result;
-}
+	trailerAddr = zco_trailer_text(bpSdr, bundle->payload.content, 0,
+			&trailerLength);
+	sdr_stage(bpSdr, NULL, trailerAddr, 0);
 
-zco_destroy(bpSdr, bundle->payload.content);
-bundle->payload.content = newContent;
-temp = sdr_malloc(bpSdr, resultsLen);
-if (temp == 0)
-{
-	BAB_DEBUG_ERR("x bab_shmac_sha1_sign: Can't allocate heap space \
-for ASB result, len %ld.", resultsLen);
+	/*	NOTE (TODO): this function MUST be generalized to
+	 *	skip over all post-payload extension blocks that
+	 *	precede the final BAB in the ZCO trailer.  But at
+	 *	this time ION supports no post-payload extension
+	 *	blocks other than the final BAB, so this is left to
+	 *	a future update.					*/
+
+	babAddr = trailerAddr;
+	babLength = trailerLength;
+
+	/*	The BAB's results data field is the last 22 bytes of
+	 *	the serialized BAB.					*/
+
+	results = (babAddr + babLength) - BAB_HMAC_SHA1_ASB_RESULTS_LEN; 
+	asbType = BSP_CSPARM_INT_SIG;
+	sdr_write(bpSdr, results, (char *) &asbType, 1); 
+	sdr_write(bpSdr, results + 1, (char *) digestSdnv.text,
+			digestSdnv.length);
+	sdr_write(bpSdr, results + 1 + digestSdnv.length, (char *) digest,
+			digestLen);
 	MRELEASE(digest);
-	result = -1;
-	BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
-	return result;
-}
-
-asbType = BSP_CSPARM_INT_SIG;
-sdr_write(bpSdr, temp, (char *) &asbType, 1); 
-sdr_write(bpSdr, temp + 1, (char *) digestSdnv.text, digestSdnv.length);
-sdr_write(bpSdr, temp + 1 + digestSdnv.length, (char *) digest, digestLen);
-MRELEASE(digest);
-outcome = zco_append_extent(bpSdr, bundle->payload.content, ZcoSdrSource,
-			temp, 0, resultsLen);
-
-
-#if 0
-	temp = (unsigned char *) MTAKE(resultsLen);
-	if (temp == NULL)
-	{
-		BAB_DEBUG_ERR("x bab_shmac_sha1_sign: Can't allocate memory \
-for ASB result, len %ld.", resultsLen);
-		MRELEASE(digest);
-		result = -1;
-		BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
-		return result;
-	}
-
-	*temp = BSP_CSPARM_INT_SIG;
-	memcpy(temp + 1, digestSdnv.text, digestSdnv.length);
-	memcpy(temp + 1 + digestSdnv.length, digest, digestLen);
-	MRELEASE(digest);
-	outcome = zco_append_trailer(bpSdr, bundle->payload.content,
-			(char *) temp, resultsLen);
-	MRELEASE(temp);
-#endif
-	if (outcome < 0)
-	{
-		BAB_DEBUG_ERR("x bab_shmac_sha1_sign: Can't allocate heap \
-space for ASB result, len %ld.", resultsLen);
-		result = -1;
-		BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
-		return result;
-	}
-
-	BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", result);
+	BAB_DEBUG_PROC("- bab_hmac_sha1_sign--> %d", 1);
 	return result;
 }
 
@@ -349,8 +305,8 @@ int	bab_hmac_sha1_verify(AcqWorkArea *wk, AcqExtBlock *blk)
 		 *	resultsData for use when Last BAB is checked.	*/
 
 		keyValue = bsp_retrieveKey(&keyLen, asb->keyName);
-		digest = computeDigest(wk->bundle.payload.content, keyValue,
-				keyLen, &digestLen);
+		digest = computeDigest(wk->rawBundle, keyValue, keyLen,
+				&digestLen);
 		MRELEASE(keyValue);
 		if (digestLen != BAB_HMAC_SHA1_RESULT_LEN)   
 		{
@@ -393,6 +349,8 @@ memory for ASB result, len %ld.", resultsLen);
 
 		asb->resultsLen = resultsLen;
 		asb->resultsData = temp;
+		BAB_DEBUG_INFO("i bab_hmac_sha1_verify: computed signature \
+of length %d has been stored in first BAB.", digestLen);
 		return 1;
 	}
 

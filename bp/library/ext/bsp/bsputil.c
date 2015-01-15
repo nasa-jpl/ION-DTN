@@ -544,8 +544,8 @@ unsigned char	*bsp_serializeASB(unsigned int *length, BspOutboundBlock *asb)
 		/*	The resultsLen field may be hypothetical; the
 		 *	resultsData may not yet be present.  But it
 		 *	will be provided eventually (even if only as
-		 *	filler bytes, so the block's serialized length
-		 *	must include resultsLen.			*/
+		 *	filler bytes), so the block's serialized
+		 *	length must include resultsLen.			*/
 
 		*length += asb->resultsLen;
 	} 
@@ -662,33 +662,26 @@ void	bsp_getInboundBspItem(int itemNeeded, unsigned char *bspBuf,
 		bspBufLen--;
 		if (bspBufLen == 0)	/*	No item length.		*/
 		{
-putErrmsg("Malformed buffer data: no item length.", NULL);
 			return;		/*	Malformed buffer data.	*/
 		}
 
 		sdnvLength = decodeSdnv(&longNumber, cursor);
 		if (sdnvLength == 0 || sdnvLength > bspBufLen)
 		{
-putErrmsg("Malformed buffer data: invalid SDNV length.", itoa(sdnvLength));
 			return;		/*	Malformed result data.	*/
 		}
 
 		itemLength = longNumber;
-putErrmsg("Item length:", itoa(itemLength));
 		cursor += sdnvLength;
 		bspBufLen -= sdnvLength;
 
 		if (itemLength == 0)	/*	Empty item.		*/
 		{
-putErrmsg("Length is zero; trying next one.", NULL);
 			continue;
 		}
 
-putErrmsg("Item type:", itoa(itemType));
-putErrmsg("Item needed:", itoa(itemNeeded));
 		if (itemType == itemNeeded)
 		{
-putErrmsg("Got it.", NULL);
 			*val = cursor;
 			*len = itemLength;
 			return;
@@ -696,7 +689,6 @@ putErrmsg("Got it.", NULL);
 
 		/*	Look at next item in buffer.			*/
 
-putErrmsg("Wrong item, trying next one.", NULL);
 		cursor += itemLength;
 		bspBufLen -= itemLength;
 	}

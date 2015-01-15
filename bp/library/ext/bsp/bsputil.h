@@ -77,7 +77,7 @@
  *****************************************************************************/
 
 #ifndef BSP_DEBUGGING
-#define BSP_DEBUGGING	1  /** Whether to enable (1) or disable (0) debugging */
+#define BSP_DEBUGGING	0  /** Whether to enable (1) or disable (0) debugging */
 #endif
 
 #define BSP_DEBUG_LVL_PROC 1 /** Function entry/exit and above debugging */
