@@ -143,9 +143,21 @@ int	connectToCLI(struct sockaddr *sn, int *sock)
 
 	if (connect(*sock, sn, sizeof(struct sockaddr)) < 0)
 	{
+		struct sockaddr_in	*sockn;
+		unsigned int		hostNbr;
+		unsigned short		portNbr;
+		char			dottedString[16];
+		char			socketSpec[32];
+
 		closesocket(*sock);
 		*sock = -1;
-		putSysErrmsg("CLO can't connect to TCP socket", NULL);
+		sockn = (struct sockaddr_in *) sn;
+		hostNbr = ntohl(sockn->sin_addr.s_addr);
+		portNbr = ntohs(sockn->sin_port);
+		printDottedString(hostNbr, dottedString);
+		isprintf(socketSpec, sizeof socketSpec, "%s:%hu",
+				dottedString, portNbr);
+		putSysErrmsg("CLO can't connect to TCP socket", socketSpec);
 		return -1;
 	}
 
