@@ -197,6 +197,7 @@ typedef struct
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
+#define	BP_ENCAPSULATED_BUNDLE	(7)
 
 /*	Administrative record flags	*/
 #define BP_BDL_IS_A_FRAGMENT	(1)	/*	00000001		*/

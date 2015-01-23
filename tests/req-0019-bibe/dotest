@@ -1,0 +1,192 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# May 27, 2014
+#
+# This script tests BIBE encapsulation.  Four nodes (1, 2, 3, 4) are in
+# series.
+#
+# Node 1 is configured to send everything directly to node 2 via LTP.
+#
+# Node 2 is configured:
+#	To use bibe/*,ipn:4.0 for all bundles with destination 4, service 1.
+#	To use bibe/*,ipn:3.0 for all bundles with destination 4, service 2.
+#	To use ltp/4 for all other bundles with destination 4.
+#
+# Node 3 is configured:
+#	To use ltp/4 for all bundles with destination 4, service 3.
+#	To use ltp/4 for all bundles with destination 4, source node 2.
+#	To use udp/*,127.0.0.0.1:8888 for all other bundles destined for 4.
+#	(udp/*,127.0.0.1:8888 is the bit bucket.)
+#
+# That is, service-1 bundles are tunneled directly to 4, bypassing the
+# service filter at 3.  Service-3 bundles are simply forwarded by 2 and by 3.
+# Service-2 bundle are tunneled directly to 3, where they are unpacked and
+# are subject to the service filter.
+#
+# We send 4 bundles from 1 to 4; two are for service 1, one is for service 2,
+# one is for service 3.  The bundles for services 1 and 3 should arrive at
+# node 4 while the one for service 2 does not.
+
+TIMETODISPLAYTEXT=2
+TIMETOWAITFORTESTFINISH=2
+echo "Cleaning up old ION..."
+rm -f 1.ipn.ltp/ion.log 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log 
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+PASS=1
+
+# Start nodes.
+cd 1.ipn.ltp
+ionadmin amroc.ionrc
+cd ../2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../4.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../1.ipn.ltp
+ionadmin ../global.ionrc
+cd ../2.ipn.ltp
+ionadmin ../global.ionrc
+cd ../3.ipn.ltp
+ionadmin ../global.ionrc
+cd ../4.ipn.ltp
+ionadmin ../global.ionrc
+
+cd ../1.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../4.ipn.ltp
+ionsecadmin amroc.ionsecrc
+
+cd ../1.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../4.ipn.ltp
+ltpadmin amroc.ltprc
+
+cd ../1.ipn.ltp
+bpadmin amroc.bprc
+cd ../2.ipn.ltp
+bpadmin amroc.bprc
+cd ../3.ipn.ltp
+bpadmin amroc.bprc
+cd ../4.ipn.ltp
+bpadmin amroc.bprc
+
+cd ..
+
+rm -f 4.ipn.ltp/results.txt
+touch 4.ipn.ltp/results.txt
+
+echo "------------------"
+echo "Starting bpsink on node 4..."
+cd 4.ipn.ltp
+bpsink ipn:4.1 >> results.txt &
+
+sleep 1
+
+cd ../1.ipn.ltp
+
+##############################
+# Send two bundles for service 1 from node 1 to node 4.
+
+echo -e "\n\n***Sending two bundles for service 1 from node 1 to node 4.***"
+sleep ${TIMETODISPLAYTEXT}
+
+bptrace ipn:1.1 ipn:4.1 ipn:1.0 3600 0.1 "test_trace1a"
+bptrace ipn:1.1 ipn:4.1 ipn:1.0 3600 0.1 "test_trace1b"
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+##############################
+# Send one bundles for service 2 from node 1 to node 4.
+
+echo -e "\n\n***Sending one bundle for service 2 from node 1 to node 4.***"
+sleep ${TIMETODISPLAYTEXT}
+
+bptrace ipn:1.2 ipn:4.1 ipn:1.0 3600 0.1 "test_trace2"
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+##############################
+# Send one bundle for service 3 from node 1 to node 4.
+
+echo -e "\n\n***Sending one bundle for service 3 from node 1 to node 4.***"
+sleep ${TIMETODISPLAYTEXT}
+
+bptrace ipn:1.3 ipn:4.1 ipn:1.0 3600 0.1 "test_trace3"
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+echo ""
+
+cd ../4.ipn.ltp
+
+COUNT=`grep "test_trace1" results.txt | wc -l`
+if [ $COUNT -ne 2 ]
+then
+	echo "ERROR: service-1 bundles not both received."
+        PASS=0
+else
+	echo "Service-1 bundles both received."
+fi
+
+COUNT=`grep "test_trace2" results.txt | wc -l`
+if [ $COUNT -ne 0 ]
+then
+	echo "ERROR: service-2 bundle was received."
+        PASS=0
+else
+	echo "Service-2 bundle was not received."
+fi
+
+COUNT=`grep "test_trace3" results.txt | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "ERROR: service-3 bundle was not received."
+        PASS=0
+else
+	echo "Service-3 bundle was received."
+fi
+
+############################################################
+#   END OF TESTS                ........
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../4.ipn.ltp
+./ionstop &
+
+cd ..
+
+# Give all four nodes time to shut down, then clean up.
+sleep 7
+killm
+echo "Status reports test completed."
+
+if [ $PASS -eq 1 ]
+then
+	exit 0
+else
+	exit 1
+fi
