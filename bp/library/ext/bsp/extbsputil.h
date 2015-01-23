@@ -73,6 +73,8 @@
 int extensionBlockTypeToInt(char *blockType);
 int extensionBlockTypeToString(unsigned char blockType, char *retVal,
 		unsigned int retValLength);
+int bspTypeToString(int bspType, char *s, int buflen);
+int bspTypeToInt(char *bspType);
 
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *
@@ -121,7 +123,7 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
  */
 
    #define BSP_DEBUG(level, format,...) if(level >= BSP_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
+{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
 
    #define BSP_DEBUG_PROC(format,...) \
            BSP_DEBUG(BSP_DEBUG_LVL_PROC,format, __VA_ARGS__)
@@ -157,31 +159,27 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
 /*****************************************************************************
  *                        BSP SPEC VARIABLE DEFINITIONS                      *
  *****************************************************************************/
-
-
 /** BSP rule type enumerations */
 #define BSP_TX 0
 #define BSP_RX 1
 
-
 /** 
  * BAB Block Type Fields 
  */
-#define PAYLOAD_BLOCK_TYPE  0x01 /* The type of a payload block*/
-#define BSP_BAB_TYPE  0x02 /** pre-payload bab block type.  */
-#define BSP_PIB_TYPE  0x03 /** BSP PIB block type.          */
-#define BSP_PCB_TYPE  0x04 /** BSP PCB block type.          */
-#define BSP_ESB_TYPE  0x09 /** BSP ESB block type.          */
+#define BLOCK_TYPE_PAYLOAD	0x01 /*		Payload block type.	*/
+#define BSP_BAB_TYPE		0x02 /*		BSP BAB block type.	*/
+#define BSP_PIB_TYPE		0x03 /*		BSP PIB block type.	*/
+#define BSP_PCB_TYPE		0x04 /*		BSP PCB block type.	*/
+#define BSP_ESB_TYPE		0x05 /*		BSP ESB block type.	*/
 
 /** Ciphersuite types - From BSP Spec. Version 8. */
-#define BSP_CSTYPE_BAB_HMAC 					  0x001
-#define BSP_CSTYPE_PIB_RSA_SHA256 				  0x002
-#define BSP_CSTYPE_PCB_RSA_AES128_PAYLOAD_PIB_PCB 0x003
-#define BSP_CSTYPE_ESB_RSA_AES128_EXT 			  0x004
-#define BSP_CSTYPE_PIB_HMAC_SHA256 				  0x005
-#define BSP_CSTYPE_PCB_ARC4 					  0x006
-#define BSP_CSTYPE_PCB_AES128 					  0x007
-
+#define BSP_CSTYPE_BAB_HMAC 					0x001
+#define BSP_CSTYPE_PIB_RSA_SHA256 				0x002
+#define BSP_CSTYPE_PCB_RSA_AES128_PAYLOAD_PIB_PCB		0x003
+#define BSP_CSTYPE_ESB_RSA_AES128_EXT				0x004
+#define BSP_CSTYPE_PIB_HMAC_SHA256 				0x005
+#define BSP_CSTYPE_PCB_ARC4 					0x006
+#define BSP_CSTYPE_PCB_AES128 					0x007
 
 /** Ciphersuite Flags - From BSP Spec. Version 8. */
 #define BSP_ASB_SEC_SRC   0x10 /** ASB contains a security source EID      */
@@ -189,7 +187,6 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
 #define BSP_ASB_HAVE_PARM 0x04 /** ASB has ciphersuite parameters.         */
 #define BSP_ASB_CORR      0x02 /** ASB has a correlator field.             */
 #define BSP_ASB_RES       0x01 /** ASB contains a result length and data.  */
-
 
 /** Ciphersuite Parameter Types - RFC6257 Section 2.6. */
 #define BSP_CSPARM_IV           0x01
@@ -201,7 +198,7 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
 #define BSP_CSPARM_ENC_BLK      0x0A
 #define BSP_CSPARM_ENV_BLK_TYPE 0x0B
 
-#define BSP_KEY_NAME_LEN     32
+#define BSP_KEY_NAME_LEN	32
 
 /** Misc **/
 #define BSP_ZCO_TRANSFER_BUF_SIZE 4096
@@ -226,8 +223,9 @@ int extensionBlockTypeToString(unsigned char blockType, char *retVal,
  *                                DATA STRUCTURES                            *
  *****************************************************************************/
 
-typedef struct {
-	char cipherKeyName[BSP_KEY_NAME_LEN];
+typedef struct
+{
+	char	cipherKeyName[BSP_KEY_NAME_LEN];
 } BspSecurityInfo;
 
 /** 
@@ -239,7 +237,8 @@ typedef struct {
  * specific part of the canonical ASB structure as defined in the BSP
  * Specification, version 8. 
  */
-typedef struct {
+typedef struct
+{
 	EndpointId    secSrc;         /** Optional security source            */
 	EndpointId    secDest;        /** Optional security destination       */
 	unsigned int cipher;         /** Ciphersuite Type Field              */

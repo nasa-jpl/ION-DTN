@@ -21,6 +21,6 @@ extern int	phn_processOnFwd(ExtensionBlock *, Bundle *, void *);
 extern int	phn_processOnAccept(ExtensionBlock *, Bundle *, void *);
 extern int	phn_processOnEnqueue(ExtensionBlock *, Bundle *, void *);
 extern int	phn_processOnDequeue(ExtensionBlock *, Bundle *, void *);
-extern int	phn_acquire(AcqExtBlock *, AcqWorkArea *);
+extern int	phn_parse(AcqExtBlock *, AcqWorkArea *);
 extern int	phn_check(AcqExtBlock *, AcqWorkArea *);
 extern void	phn_clear(AcqExtBlock *);

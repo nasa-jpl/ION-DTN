@@ -28,7 +28,7 @@ extern int	cteb_processOnFwd(ExtensionBlock *, Bundle *, void *);
 extern int	cteb_processOnAccept(ExtensionBlock *, Bundle *, void *);
 extern int	cteb_processOnEnqueue(ExtensionBlock *, Bundle *, void *);
 extern int	cteb_processOnDequeue(ExtensionBlock *, Bundle *, void *);
-extern int	cteb_acquire(AcqExtBlock *, AcqWorkArea *);
+extern int	cteb_parse(AcqExtBlock *, AcqWorkArea *);
 extern int	cteb_check(AcqExtBlock *, AcqWorkArea *);
 extern void	cteb_clear(AcqExtBlock *);
 

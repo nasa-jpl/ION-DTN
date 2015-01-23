@@ -1087,6 +1087,74 @@ void	zco_discard_last_trailer(Sdr sdr, Object zco)
 	sdr_write(sdr, zco, (char *) &zcoBuf, sizeof(Zco));
 }
 
+Object	zco_header_text(Sdr sdr, Object zco, int skip, vast *length)
+{
+	Zco	zcoBuf;
+	Capsule	capsule;
+
+	CHKZERO(sdr);
+	CHKZERO(zco);
+	CHKZERO(skip >= 0);
+	CHKZERO(length);
+	sdr_read(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
+	if (zcoBuf.firstHeader == 0)
+	{
+		writeMemo("[?] No headers.");
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &capsule, zcoBuf.firstHeader, sizeof(Capsule));
+	while (skip > 0)
+	{
+		if (capsule.nextCapsule == 0)
+		{
+			writeMemo("[?] No such header.");
+			return 0;
+		}
+
+		sdr_read(sdr, (char *) &capsule, capsule.nextCapsule,
+				sizeof(Capsule));
+		skip--;
+	}
+
+	*length = capsule.length;
+	return capsule.text;
+}
+
+Object	zco_trailer_text(Sdr sdr, Object zco, int skip, vast *length)
+{
+	Zco	zcoBuf;
+	Capsule	capsule;
+
+	CHKZERO(sdr);
+	CHKZERO(zco);
+	CHKZERO(skip >= 0);
+	CHKZERO(length);
+	sdr_read(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
+	if (zcoBuf.firstTrailer == 0)
+	{
+		writeMemo("[?] No trailers.");
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &capsule, zcoBuf.firstTrailer, sizeof(Capsule));
+	while (skip > 0)
+	{
+		if (capsule.nextCapsule == 0)
+		{
+			writeMemo("[?] No such trailer.");
+			return 0;
+		}
+
+		sdr_read(sdr, (char *) &capsule, capsule.nextCapsule,
+				sizeof(Capsule));
+		skip--;
+	}
+
+	*length = capsule.length;
+	return capsule.text;
+}
+
 int	zco_bond(Sdr sdr, Object zco)
 {
 	Zco		zcoBuf;

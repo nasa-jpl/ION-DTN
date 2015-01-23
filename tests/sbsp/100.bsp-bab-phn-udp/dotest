@@ -1,0 +1,184 @@
+#!/bin/bash
+#
+# Copyright (c) 2009, Regents of the University of Colorado.
+#
+# Written by Andrew Jenkins, based on loopbacktest.sh by David Young
+# Modified by Ryan Brown (put in anonymous bundle test)
+
+TIMETODISPLAYTEXT=2
+TIMETOWAITFORTESTFINISH=3
+CONFIGFILES=" \
+config/host1.rc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To send bundles with various BSP authentication options and
+	verifies that some are rejected correctly and some are accepted 
+	correctly."
+echo
+echo "CONFIG: Custom: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: "
+echo
+echo "########################################"
+
+# Sends bundles with various BSP authentication options and verifies that
+# some are rejected correctly and some are accepted correctly.
+
+# Guess what ION will say if a bundle containing $1 is received.
+# The extra byte in the length is because bptrace adds a null terminator at 
+# the end (but bpsource does not).  How lame is that?
+predictreceived () {
+    # For some reason, bptrace adds an extra char to the sent msg 
+    # whereas bpsource does not
+    if [ "${2}" = "bpsource" ];
+    then
+        EXLENGTH=`expr ${#1}`
+    else
+        EXLENGTH=`expr ${#1} + 1`
+    fi
+    echo "ION event: Payload delivered."
+    echo "	payload length is ${EXLENGTH}."
+    echo "	'${1}'"
+}
+
+# Try 10 times to see if the bundle has been received.
+tryreceive () {
+    X=0
+
+    while [ $X -lt 200 ]
+    do
+        # sleep and kill process in case it didn't end properly
+        sleep 0.04 
+
+        # Check if bpsink got the file.
+        if ! cmp $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
+        then
+            X=`expr $X + 1`
+        else
+            # We received it.  Hooray.
+            return 1 
+        fi
+    done
+    # We didn't receive it, even after 10 tries; bummer.
+    diff $IONRECEIVEFILE $IONEXPECTEDFILE
+    return 0 
+}
+
+# message sent over ion
+IONRECEIVEFILE=./ionreceivefile.txt
+IONEXPECTEDFILE=./ionexpectedfile.txt
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+# Prepare for loop start
+rm -f $IONRECEIVEFILE $IONEXPECTEDFILE ion.log
+PASS=1
+
+echo "Starting ION..."
+srcdir=`pwd`
+CONFIGDIR="config"
+echo "ionstart -I ${CONFIGDIR}/host1.rc"
+"ionstart" -I "${CONFIGDIR}/host1.rc"
+
+echo -e "\n****Loopback Tests****\n"
+# Start the listener that will receive all the bundles.
+echo "Starting Message Listener..."
+echo "" >> $IONRECEIVEFILE
+bpsink ipn:1.1 >> $IONRECEIVEFILE &
+BPSINKPID=$!
+
+# give bpsink some time to start up
+sleep 2
+
+# Send one bundle that matches no BAB; it shouldn't get through.
+echo -e "\n\n\n\n*****TEST 1*****"
+echo -e "Sending a bundle over a hop for which there is no defined BAB rule.\nSince the node does have at least one BAB rule\n(i.e., BAB security policy is present), the bundle won't deliver."
+sleep ${TIMETODISPLAYTEXT}
+echo "" >> $IONEXPECTEDFILE
+bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$( date ) no BAB rule"
+# Don't predictreceived this one; it shouldn't be received. 
+sleep ${TIMETOWAITFORTESTFINISH}
+if tryreceive
+then
+    echo "ERROR: Payload was possibly delivered, didn't match expected output."
+    PASS=0
+else
+    echo "OK: Payload delivery absence matched expected output."
+fi
+
+# Send same bundle with applicable BAB rule added; it should get through.
+
+echo -e "\n\n\n\n*****TEST 2*****"
+echo "Now adding applicable BAB rule and trying again... it should pass."
+sleep ${TIMETODISPLAYTEXT}
+ionsecadmin <<ENDOFIONSECADMINCOMMANDS
+x
+a bspbabrule ipn:1.* ipn:1.* 'BAB-HMAC-SHA1' testkey
+q
+ENDOFIONSECADMINCOMMANDS
+IONMESSAGE="$( date ) BAB rule added"
+bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE"
+predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
+sleep ${TIMETOWAITFORTESTFINISH}
+
+if tryreceive 
+then
+    echo "OK: Bundle authentication matched expected output."
+else
+    echo "ERROR: Bundle authentication didn't match expected output."
+    PASS=0
+fi
+
+echo
+
+# Send one ANONYMOUS bundle with same security; it should get through.
+echo -e "\n\n\n\n*****TEST 3*****"
+echo "Now, sending an ANONYMOUS bundle (no defined source)... it should still pass."
+sleep ${TIMETODISPLAYTEXT}
+ionsecadmin <<ENDOFIONSECADMINCOMMANDS
+x
+a bspbabrule ipn:1.* ipn:1.* 'BAB-HMAC-SHA1' testkey
+q
+ENDOFIONSECADMINCOMMANDS
+IONMESSAGE3="$( date ) From an anonymous source!"
+bpsource ipn:1.1 "$IONMESSAGE3"
+predictreceived "$IONMESSAGE3" "bpsource" >> $IONEXPECTEDFILE
+sleep ${TIMETOWAITFORTESTFINISH}
+if tryreceive
+then
+    echo "OK: Payload authentication matched expected output."
+else
+    echo "ERROR: Payload authentication didn't match expected output."
+    PASS=0
+fi
+
+echo
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "Stopping bpsink"
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+if [ $PASS -eq 1 ]
+then
+    exit 0
+else
+    exit 1
+fi

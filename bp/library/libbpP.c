@@ -2237,14 +2237,14 @@ int	startBpTask(Object cmd, Object cmdParms, int *pid)
 	return 0;
 }
 
-static void	lookUpEidScheme(EndpointId eid, char *dictionary,
-			VScheme **vscheme)
+void	lookUpEidScheme(EndpointId eid, char *dictionary, VScheme **vscheme)
 {
 	PsmPartition	bpwm = getIonwm();
 	BpVdb		*bpvdb = _bpvdb(NULL);
 	char		*schemeName;
 	PsmAddress	elt;
 
+	CHKVOID(vscheme);
 	if (dictionary == NULL)
 	{
 		if (!eid.cbhe)		/*	Can't determine scheme.	*/
@@ -2764,7 +2764,9 @@ incomplete bundle.", NULL);
 	}
 
 	destroyExtensionBlocks(&bundle);
+#ifdef ORIGINAL_BSP
 	destroyCollaborationBlocks(&bundle);
+#endif
 	purgeStationsStack(&bundle);
 	if (bundle.stations)
 	{
@@ -5164,8 +5166,9 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	DtnTime		currentDtnTime;
 	char		*dictionary;
 	int		i;
-	ExtensionDef	*extensions;
+	ExtensionSpec	*extensions;
 	int		extensionsCt;
+	ExtensionSpec	*spec;
 	ExtensionDef	*def;
 	ExtensionBlock	blk;
 
@@ -5542,13 +5545,17 @@ when asking for custody transfer and/or status reports.");
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
 
-	getExtensionDefs(&extensions, &extensionsCt);
-	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
+	getExtensionSpecs(&extensions, &extensionsCt);
+	for (i = 0, spec = extensions; i < extensionsCt; i++, spec++)
 	{
-		if (def->type != 0 && def->offer != NULL)
+		def = findExtensionDef(spec->type);
+		if (def != NULL && def->offer != NULL)
 		{
 			memset((char *) &blk, 0, sizeof(ExtensionBlock));
-			blk.type = def->type;
+			blk.type = spec->type;
+			blk.tag1 = spec->tag1;
+			blk.tag2 = spec->tag2;
+			blk.tag3 = spec->tag3;
 			if (def->offer(&blk, &bundle) < 0)
 			{
 				putErrmsg("Failed offering extension block.",
@@ -5562,7 +5569,7 @@ when asking for custody transfer and/or status reports.");
 				continue;
 			}
 
-			if (attachExtensionBlock(def, &blk, &bundle) < 0)
+			if (attachExtensionBlock(spec, &blk, &bundle) < 0)
 			{
 				putErrmsg("Failed attaching extension block.",
 						NULL);
@@ -5811,14 +5818,16 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 	return 0;
 }
 
-static void	lookUpEndpoint(EndpointId eid, char *dictionary,
-			VScheme *vscheme, VEndpoint **vpoint)
+void	lookUpEndpoint(EndpointId eid, char *dictionary, VScheme *vscheme,
+		VEndpoint **vpoint)
 {
 	PsmPartition	bpwm = getIonwm();
 	char		nssBuf[42];
 	char		*nss;
 	PsmAddress	elt;
 
+	CHKVOID(vscheme);
+	CHKVOID(vpoint);
 	if (dictionary == NULL)
 	{
 		isprintf(nssBuf, sizeof nssBuf, UVAST_FIELDSPEC ".%u",
@@ -6314,12 +6323,14 @@ static void	clearAcqArea(AcqWorkArea *work)
 				break;
 			}
 
-			deleteAcqExtBlock(elt, i);
+			deleteAcqExtBlock(elt);
 		}
 	}
 
         /* Destroy collaboration blocks */
+#ifdef ORIGINAL_BSP
         destroyAcqCollabBlocks(work);
+#endif
 
 	/*	Reset all other per-bundle parameters.			*/
 
@@ -7001,7 +7012,7 @@ static int	acquireBlock(AcqWorkArea *work)
 			}
 
 			extractSmallSdnv(&nssOffset, &cursor, &unparsedBytes);
-			temp = schemeOffset;
+			temp = nssOffset;
 			if (lyst_insert_last(eidReferences, (void *) temp)
 					== NULL)
 			{
@@ -7049,7 +7060,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	}
 
 	lengthOfBlock = (cursor - startOfBlock) + dataLength;
-	def = findExtensionDef(blkType, work->currentExtBlocksList);
+	def = findExtensionDef(blkType);
 	if (def)
 	{
 		if (acquireExtensionBlock(work, def, startOfBlock,
@@ -7438,21 +7449,47 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		/*	Bundle has been parsed out of the work area's
 		 *	ZCO.  Split it off into a separate ZCO.		*/
 
-		bundle->payload.content = zco_clone(bpSdr, work->zco,
+		work->rawBundle = zco_clone(bpSdr, work->zco,
 				work->zcoBytesConsumed, work->bundleLength);
 		work->zcoBytesConsumed += work->bundleLength;
 	}
 	else
 	{
-		bundle->payload.content = 0;
+		work->rawBundle = 0;
 	}
 
-	if (bundle->payload.content == 0)
+	if (work->rawBundle == 0)
 	{
 		return 0;	/*	No bundle at front of work ZCO.	*/
 	}
 
-	/*	Check bundle for problems.				*/
+	/*	Reduce payload ZCO to just its source data, discarding
+	 *	BP header and trailer.  This simplifies decryption.	*/
+
+	bundle->payload.content = zco_clone(bpSdr, work->rawBundle,
+			work->headerLength, bundle->payload.length);
+
+	/*	Do all decryption indicated by extension blocks.	*/
+
+	if (decryptPerExtensionBlocks(work) < 0)
+	{
+		putErrmsg("Failed parsing extension blocks.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	/*	Can now finish block acquisition for any blocks
+	 *	that were originally encrypted.				*/
+
+	if (parseExtensionBlocks(work) < 0)
+	{
+		putErrmsg("Failed parsing extension blocks.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	/*	Now that acquisition is complete, check the bundle
+	 *	for problems.						*/
 
 	if (work->malformed || work->lastBlockParsed == 0)
 	{
@@ -7472,7 +7509,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 	}
 
 	initAuthenticity(work);	/*	Set default.			*/
-	if (checkExtensionBlocks(work) < 0)
+	if (checkPerExtensionBlocks(work) < 0)
 	{
 		putErrmsg("Can't check bundle authenticity.", NULL);
 		sdr_cancel_xn(bpSdr);
@@ -7580,13 +7617,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 	 *	extension block acquisition.				*/
 
 	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
-
-	/*	Reduce payload ZCO to just its source data, discarding
-	 *	BP header and trailer.					*/
-
-	zco_delimit_source(bpSdr, bundle->payload.content, work->headerLength,
-			bundle->payload.length);
-	zco_strip(bpSdr, bundle->payload.content);
 
 	/*	Record bundle's sender EID, if known.			*/
 
@@ -7850,6 +7880,11 @@ int	bpEndAcq(AcqWorkArea *work)
 		vpoint = NULL;
 		CHKERR(sdr_begin_xn(bpSdr));
 		result = acquireBundle(bpSdr, work, &vpoint);
+		if (work->rawBundle)
+		{
+			zco_destroy(bpSdr, work->rawBundle);
+		}
+
 		if (sdr_end_xn(bpSdr) < 0 || result < 0)
 		{
 			putErrmsg("Bundle acquisition failed.", NULL);
