@@ -166,6 +166,15 @@ within the local engine itself that should be included whenever LTP computes
 the nominal round-trip time for an exchange of data with any remote engine.
 The default value is 1.
 
+=item B<m maxber> I<max_expected_bit_error_rate>
+
+The B<manage max bit error rate> command.  This command sets the expected
+maximum bit error rate that LTP should provide for in computing the maximum
+number of transmission efforts to initiate in the transmission of a given
+block.  (Note that this computation is also sensitive to data segment size
+and to the size of the block that is to be transmitted.)  The default value
+is .000001 (10^-6).
+
 =item B<x>
 
 The B<stop> command.  This command stops all link service input and output
