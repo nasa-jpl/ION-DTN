@@ -1871,22 +1871,58 @@ void	getCurrentDtnTime(DtnTime *dt)
 	dt->nanosec = 0;
 }
 
-void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
-		Scalar *totalBacklog)
+void	computePriorClaims(ClProtocol *protocol, Outduct *duct, Bundle *bundle,
+		Scalar *priorClaims, Scalar *totalBacklog)
 {
-	int	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+	vast		committed;
 #ifdef ION_BANDWIDTH_RESERVED
-	Scalar	limit;
-	Scalar	increment;
+	Scalar		limit;
+	Scalar		increment;
 #endif
-	int	i;
+	int		i;
 
-	copyScalar(totalBacklog, &(duct->urgentBacklog));
+	/*	If the outduct for the directive enabling the route
+	 *	under consideration is currently active and throttled,
+	 *	prior claims on the first contact along this route
+	 *	must include however much transmission the outduct
+	 *	itself has already committed to (as per bpDequeue)
+	 *	during the current second of operation, pending
+	 *	capacity replenishment through the rate control
+	 *	mechanism implemented by bpclock.  That commitment
+	 *	is given by the the duct's nominal xmit rate minus
+	 *	its current "capacity" (which may be negative).		*/
+
+	findOutduct(protocol->name, duct->name, &vduct, &vductElt);
+	CHKVOID(vductElt);
+	if (vduct->xmitThrottle.nominalRate > 0)
+	{
+		/*	Outduct is active and throttled.		*/
+
+		committed = vduct->xmitThrottle.nominalRate
+				- vduct->xmitThrottle.capacity;
+
+		/*	Since bpclock never increases capacity to
+		 *	a value in excess of the nominalRate,
+		 *	committed can never be negative.		*/
+
+		CHKVOID(committed >= 0);
+	}
+	else	/*	No capacity mgt, so can't compute commitment.	*/
+	{
+		committed = 0;
+	}
+
+	loadScalar(totalBacklog, committed);
+	addToScalar(totalBacklog, &(duct->urgentBacklog));
 	addToScalar(totalBacklog, &(duct->stdBacklog));
 	addToScalar(totalBacklog, &(duct->bulkBacklog));
+	loadScalar(priorClaims, committed);
 	if (priority == 0)
 	{
-		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->urgentBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
 		/*	priorClaims increment is the standard
 		 *	backlog's prior claims, which is the entire
@@ -1915,7 +1951,7 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 
 	if (priority == 1)
 	{
-		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->urgentBacklog));
 		addToScalar(priorClaims, &(duct->stdBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
 		/*	priorClaims increment is the bulk backlog's
@@ -1944,7 +1980,7 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 
 	if ((i = bundle->extendedCOS.ordinal) == 0)
 	{
-		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->urgentBacklog));
 		return;
 	}
 
@@ -1952,7 +1988,6 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 	 *	some other urgent bundles.  Compute sum of backlogs
 	 *	for this and all higher ordinals.			*/
 
-	loadScalar(priorClaims, 0);
 	while (i < 256)
 	{
 		addToScalar(priorClaims, &(duct->ordinals[i].backlog));
@@ -9905,9 +9940,9 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 	unsigned int	neighborNodeNbr;
 	IonNode		*destNode;
 	PsmAddress	nextNode;
-	PsmAddress	snubElt;
-	PsmAddress	nextSnub;
-	IonSnub		*snub;
+	PsmAddress	embElt;
+	PsmAddress	nextEmbargo;
+	Embargo		*embargo;
 
 	sdr_stage(bpSdr, (char *) outduct, outductObj, 0);
 	while (1)	/*	Might do one or more reforwards.	*/
@@ -10055,11 +10090,11 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 				outduct);
 
 		/*	If the neighbor for this duct has begun
-		 *	snubbing bundles for the indicated destination
+		 *	refusing bundles for the indicated destination
 		 *	since this bundle was enqueued to this duct,
 		 *	re-forward the bundle on a different route
 		 *	(if possible).  Note that we can only track
-		 *	snubs that are issued by neighbors reached
+		 *	refusals that are issued by neighbors reached
 		 *	via LTP ducts and are for nodes identified by
 		 *	CBHE-conformant unicast endpoint IDs.		*/
 
@@ -10070,33 +10105,34 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 			neighborNodeNbr = strtoul(vduct->ductName, NULL, 0);
 			destNode = findNode(getIonVdb(),
 				bundle->destination.c.nodeNbr, &nextNode);
-			if (destNode)	/*	Node might have snubs.	*/
+			if (destNode)
 			{
 				/*	Check list of nodes that have
 				 *	been refusing bundles for this
 				 *	destination.			*/
 
-				for (snubElt = sm_list_first(bpwm,
-						destNode->snubs); snubElt;
-						snubElt = nextSnub)
+				for (embElt = sm_list_first(bpwm,
+						destNode->embargoes); embElt;
+						embElt = nextEmbargo)
 				{
-					nextSnub = sm_list_next(bpwm, snubElt);
-					snub = (IonSnub *) psp(bpwm,
-						sm_list_data(bpwm, snubElt));
-					if (snub->nodeNbr < neighborNodeNbr)
+					nextEmbargo = sm_list_next(bpwm,
+						embElt);
+					embargo = (Embargo *) psp(bpwm,
+						sm_list_data(bpwm, embElt));
+					if (embargo->nodeNbr < neighborNodeNbr)
 					{
 						continue;
 					}
 
-					if (snub->nodeNbr == neighborNodeNbr)
+					if (embargo->nodeNbr == neighborNodeNbr)
 					{
 						break;
 					}
 
-					nextSnub = 0;	/*	End.	*/
+					nextEmbargo = 0;/*	End.	*/
 				}
 
-				if (snubElt)
+				if (embElt)
 				{
 					/*	This neighbor has been
 					 *	refusing custody of
@@ -10105,7 +10141,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 
 					if (bpReforwardBundle(*bundleObj) < 0)
 					{
-						putErrmsg("Snub refwd failed.",
+						putErrmsg("Embargo refwd n/g.",
 								NULL);
 						return -1;
 					}
@@ -11191,7 +11227,8 @@ static int	defaultCsh(BpDelivery *dlv, BpCtSignal *cts)
 	return 0;
 }
 
-static void	noteSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
+static void	noteEmbargo(Bundle *bundle, Object bundleAddr,
+			char *neighborEid)
 {
 	IonVdb		*ionVdb;
 	IonNode		*node;
@@ -11205,10 +11242,10 @@ static void	noteSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 	|| (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
 	{
 		/*	For non-cbhe or multicast bundles we have no
-		 *	node number, so we can't manage routing snubs.
-		 *	If the bundle is critical then it was already
-		 *	sent on all possible routes, so there's no
-		 *	point in responding to the routing snub.	*/
+		 *	node number, so we can't impose routing
+		 *	embargoes.  If the bundle is critical then
+		 *	it was already sent on all possible routes,
+		 *	so there's no point in imposing an embargo.	*/
 
 		return;
 	}
@@ -11228,19 +11265,21 @@ static void	noteSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 		return;		/*	Weird, but let it go for now.	*/
 	}
 
-	/*	Figure out who the snubbing neighbor is and create a
-	 *	Snub object to prevent future routing to that neighbor.	*/
+	/*	Figure out who the refusing neighbor is and create a
+	 *	Embargo object to prevent future routing to that
+	 *	neighbor.						*/
 
 	if (parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt) == 0
 	|| !metaEid.cbhe)	/*	Non-CBHE, somehow.		*/
 	{
-		return;		/*	Can't construct a Snub.		*/
+		return;		/*	Can't construct an Embargo.	*/
 	}
 
-	oK(addSnub(node, metaEid.nodeNbr));
+	oK(addEmbargo(node, metaEid.nodeNbr));
 }
 
-static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
+static void	forgetEmbargo(Bundle *bundle, Object bundleAddr,
+			char *neighborEid)
 {
 	IonVdb		*ionVdb;
 	IonNode		*node;
@@ -11254,10 +11293,10 @@ static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 	|| (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
 	{
 		/*	For non-cbhe or multicast bundles we have no
-		 *	node number, so we can't manage routing snubs.
-		 *	If the bundle is critical then it was already
-		 *	sent on all possible routes, so there's no
-		 *	point in responding to the routing snub.	*/
+		 *	node number, so we don't have embargoes.  If
+		 *	the bundle is critical then it was already sent
+		 *	on all possible routes, so the transmission
+		 *	should have no effect on any embargo.		*/
 
 		return;
 	}
@@ -11271,24 +11310,24 @@ static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 		return;		/*	Weird, but let it go for now.	*/
 	}
 
-	/*	If there are no longer any snubs for this destination,
-	 *	don't bother to look for this one.			*/
+	/*	If there are no longer any embargoes affecting this
+	 *	destination, don't bother to look for this one.		*/
 
-	if (sm_list_length(getIonwm(), node->snubs) == 0)
+	if (sm_list_length(getIonwm(), node->embargoes) == 0)
 	{
 		return;
 	}
 
-	/*	Figure out who the non-snubbing neighbor is and remove
-	 *	any snub currently registered for that neighbor.	*/
+	/*	Figure out who the reinstated neighbor is and remove
+	 *	any embargo currently registered for that neighbor.	*/
 
 	if (parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt) == 0
 	|| !metaEid.cbhe)	/*	Non-CBHE, somehow.		*/
 	{
-		return;		/*	Can't locate any Snub.		*/
+		return;		/*	Can't locate any Embargo.	*/
 	}
 
-	removeSnub(node, metaEid.nodeNbr);
+	removeEmbargo(node, metaEid.nodeNbr);
 }
 
 int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
@@ -11337,7 +11376,7 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 			iwatch('m');
 		}
 
-		forgetSnub(bundle, bundleAddr, bundleSourceEid);
+		forgetEmbargo(bundle, bundleAddr, bundleSourceEid);
 		releaseCustody(bundleAddr, bundle);
 		if (bpDestroyBundle(bundleAddr, 0) < 0)
 		{
@@ -11348,7 +11387,7 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 	}
 	else	/*	Custody refused; try again.			*/
 	{
-		noteSnub(bundle, bundleAddr, bundleSourceEid);
+		noteEmbargo(bundle, bundleAddr, bundleSourceEid);
 		if ((dictionary = retrieveDictionary(bundle))
 				== (char *) bundle)
 		{

@@ -102,7 +102,7 @@ static void	printUsage()
 relative times (+ss) are computed.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
-<xmit rate in bytes per second>");
+<xmit rate in bytes per second> [probability of occurrence; default is 1.0]");
 	PUTS("\t   a range <from time> <until time> <from node#> <to node#> \
 <OWLT, i.e., range in light seconds>");
 	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
@@ -170,6 +170,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	uvast		fromNodeNbr;
 	uvast		toNodeNbr;
 	unsigned int	xmitRate;
+	float		prob;
 	unsigned int	owlt;
 
 	if (tokenCount < 2)
@@ -178,8 +179,17 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (tokenCount != 7)
+	switch (tokenCount)
 	{
+	case 8:
+		prob = atof(tokens[7]);
+		break;
+
+	case 7:
+		prob = 1.0;
+		break;
+
+	default:
 		SYNTAX_ERROR;
 		return;
 	}
@@ -199,7 +209,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	{
 		xmitRate = strtol(tokens[6], NULL, 0);
 		oK(rfx_insert_contact(fromTime, toTime, fromNodeNbr,
-				toNodeNbr, xmitRate));
+				toNodeNbr, xmitRate, prob));
 		oK(_forecastNeeded(1));
 		return;
 	}

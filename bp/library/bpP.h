@@ -1262,8 +1262,8 @@ extern void		getCurrentDtnTime(DtnTime *dt);
 
 extern int		guessBundleSize(Bundle *bundle);
 extern int		computeECCC(int bundleSize, ClProtocol *protocol);
-extern void		computePriorClaims(Outduct *, Bundle *, Scalar *,
-				Scalar *);
+extern void		computePriorClaims(ClProtocol *, Outduct *, Bundle *,
+				Scalar *, Scalar *);
 
 extern int		putBpString(BpString *bpString, char *string);
 extern char		*getBpString(BpString *bpString);

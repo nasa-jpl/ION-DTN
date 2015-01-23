@@ -21,6 +21,10 @@
 
 #define	MAX_TIME	((unsigned int) ((1U << 31) - 1))
 
+#ifdef	ION_BANDWIDTH_RESERVED
+#define	MANAGE_OVERBOOKING	0
+#endif
+
 #ifndef	MANAGE_OVERBOOKING
 #define	MANAGE_OVERBOOKING	1
 #endif
@@ -939,6 +943,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	uvast		ownNodeNbr = getOwnNodeNbr();
+	ClProtocol	protocol;
 	Scalar		priorClaims;
 	Scalar		totalBacklog;
 	IonCXref	arg;
@@ -946,7 +951,6 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	IonCXref	*contact;
 	Scalar		capacity;
 	Scalar		allotment;
-	ClProtocol	protocol;
 	int		eccc;	/*	Estimated capacity consumption.	*/
 	time_t		startTime;
 	time_t		endTime;
@@ -956,7 +960,10 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	unsigned int	owlt;
 	time_t		arrivalTime;
 
-	computePriorClaims(outduct, bundle, &priorClaims, &totalBacklog);
+	sdr_read(sdr, (char *) &protocol, outduct->protocol,
+			sizeof(ClProtocol));
+	computePriorClaims(&protocol, outduct, bundle, &priorClaims,
+			&totalBacklog);
 	copyScalar(protected, &totalBacklog);
 
 	/*	Reduce prior claims on the first contact in this route
@@ -1071,8 +1078,6 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	/*	Now considering the initial contact on the route.
 	 *	First, check for potential overbooking.			*/
 
-	sdr_read(sdr, (char *) &protocol, outduct->protocol,
-			sizeof(ClProtocol));
 	eccc = computeECCC(guessBundleSize(bundle), &protocol);
 	copyScalar(overbooked, &allotment);
 	increaseScalar(overbooked, eccc);
@@ -1105,6 +1110,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	increaseScalar(&radiationLatency, eccc);
 	elt = sm_list_first(ionwm, route->hops);
 	contact = (IonCXref *) psp(ionwm, sm_list_data(ionwm, elt));
+	CHKERR(contact->xmitRate > 0);
 	divideScalar(&radiationLatency, contact->xmitRate);
 	transmitTime += ((ONE_GIG * radiationLatency.gigs)
 			+ radiationLatency.units);
@@ -1547,8 +1553,8 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	unsigned int	serviceNbr;
 	char		terminusEid[64];
 	PsmPartition	ionwm;
-	PsmAddress	snubElt;
-	IonSnub		*snub;
+	PsmAddress	embElt;
+	Embargo		*embargo;
 	BpEvent		event;
 
 	if (proxNode->neighborNodeNbr == bundle->destination.c.nodeNbr)
@@ -1563,7 +1569,7 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	isprintf(terminusEid, sizeof terminusEid, "ipn:" UVAST_FIELDSPEC ".%u",
 			proxNode->neighborNodeNbr, serviceNbr);
 
-	/*	If this neighbor is a currently snubbing neighbor
+	/*	If this neighbor is a currently embargoed neighbor
 	 *	for this final destination (i.e., one that has been
 	 *	refusing bundles destined for this final destination
 	 *	node), then this bundle serves as a "probe" aimed at
@@ -1571,16 +1577,16 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	 *	next probe to this neighbor.				*/
 
 	ionwm = getIonwm();
-	for (snubElt = sm_list_first(ionwm, terminusNode->snubs); snubElt;
-			snubElt = sm_list_next(ionwm, snubElt))
+	for (embElt = sm_list_first(ionwm, terminusNode->embargoes);
+			embElt; embElt = sm_list_next(ionwm, embElt))
 	{
-		snub = (IonSnub *) psp(ionwm, sm_list_data(ionwm, snubElt));
-		if (snub->nodeNbr < proxNode->neighborNodeNbr)
+		embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm, embElt));
+		if (embargo->nodeNbr < proxNode->neighborNodeNbr)
 		{
 			continue;
 		}
 
-		if (snub->nodeNbr > proxNode->neighborNodeNbr)
+		if (embargo->nodeNbr > proxNode->neighborNodeNbr)
 		{
 			break;
 		}
@@ -1595,7 +1601,7 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 		 *	off the flag indicating that a probe to this
 		 *	node is due -- we're sending one now.		*/
 
-		snub->probeIsDue = 0;
+		embargo->probeIsDue = 0;
 		break;
 	}
 
@@ -1829,8 +1835,8 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	Lyst		proximateNodes;
 	Lyst		excludedNodes;
 	PsmPartition	ionwm = getIonwm();
-	PsmAddress	snubElt;
-	IonSnub		*snub;
+	PsmAddress	embElt;
+	Embargo		*embargo;
 	LystElt		elt;
 	LystElt		nextElt;
 	ProximateNode	*proxNode;
@@ -1912,21 +1918,21 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	 *	have been refusing custody of bundles destined for the
 	 *	destination node.					*/
 
-	for (snubElt = sm_list_first(ionwm, terminusNode->snubs); snubElt;
-			snubElt = sm_list_next(ionwm, snubElt))
+	for (embElt = sm_list_first(ionwm, terminusNode->embargoes);
+			embElt; embElt = sm_list_next(ionwm, embElt))
 	{
-		snub = (IonSnub *) psp(ionwm, sm_list_data(ionwm, snubElt));
-		if (!(snub->probeIsDue))
+		embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm, embElt));
+		if (!(embargo->probeIsDue))
 		{
-			/*	(Omit the snubbing node from the list
+			/*	(Omit the embargoed node from the list
 			 *	of excluded nodes if it's now time to
 			 *	probe that node for renewed acceptance
 			 *	of bundles destined for this destination
 			 *	node.)					*/
 
-			if (excludeNode(excludedNodes, snub->nodeNbr))
+			if (excludeNode(excludedNodes, embargo->nodeNbr))
 			{
-				putErrmsg("Can't note snub.", NULL);
+				putErrmsg("Can't note embargo.", NULL);
 				lyst_destroy(excludedNodes);
 				lyst_destroy(proximateNodes);
 				return -1;

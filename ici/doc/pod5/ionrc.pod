@@ -86,12 +86,17 @@ used for interpreting relative time values from now until the next revision
 of reference time.  Note that the new reference time can be a relative time,
 i.e., an offset beyond the current reference time.
 
-=item B<a contact> I<start_time> I<stop_time> I<source_node> I<dest_node> I<xmit_data_rate>
+=item B<a contact> I<start_time> I<stop_time> I<source_node> I<dest_node> I<xmit_data_rate> [I<probability>]
 
 The B<add contact> command.  This command schedules a period of data
 transmission from I<source_node> to I<dest_node>.  The period of
 transmission will begin at I<start_time> and end at I<stop_time>,
 and the rate of data transmission will be I<xmit_data_rate> bytes/second.
+The probability of the contact defaults to 1.0, indicating that the contact
+is scheduled - not that non-occurrence of the contact is impossible, just
+that occurrence of the contact is planned and scheduled rather than merely
+imputed from past node behavior.  In the latter case, I<probability>
+indicates our estimation of the likelihood of this potential contact.
 
 =item B<d contact> I<start_time> I<source_node> I<dest_node>
 
