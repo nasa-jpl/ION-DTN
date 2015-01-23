@@ -741,8 +741,8 @@ extern uvast			htonv(uvast hostvast);
 extern uvast			ntohv(uvast netvast);
 
 extern int			_isprintf(char *, int, char *, ...);
-extern size_t			istrlen(char *, size_t);
-extern char			*istrcpy(char *, char *, size_t);
+extern size_t			istrlen(const char *, size_t);
+extern char			*istrcpy(char *, const char *, size_t);
 extern char			*istrcat(char *, char *, size_t);
 extern char			*igetcwd(char *, size_t);
 extern void			isignal(int, void (*)(int));

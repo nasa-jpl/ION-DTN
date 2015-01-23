@@ -37,12 +37,12 @@ typedef void		(*SdrListDeleteFn)(Sdr sdr, Object eltData, void *arg);
 
 #define sdr_list_create(sdr) \
 Sdr_list_create(__FILE__, __LINE__, sdr)
-extern Object		Sdr_list_create(char *file, int line,
+extern Object		Sdr_list_create(const char *file, int line,
 				Sdr sdr);
 
 #define sdr_list_destroy(sdr, list, deleteFn, argument) \
 Sdr_list_destroy(__FILE__, __LINE__, sdr, list, deleteFn, argument)
-extern void		Sdr_list_destroy(char *file, int line,
+extern void		Sdr_list_destroy(const char *file, int line,
 				Sdr sdr, Object list, SdrListDeleteFn deleteFn,
 				void *argument);
 
@@ -50,40 +50,40 @@ extern Address		sdr_list_user_data(Sdr sdr, Object list);
 
 #define sdr_list_user_data_set(sdr, list, userData) \
 Sdr_list_user_data_set(__FILE__, __LINE__, sdr, list, userData)
-extern void		Sdr_list_user_data_set(char *file, int line,
+extern void		Sdr_list_user_data_set(const char *file, int line,
 				Sdr sdr, Object list, Address userData);
 
 extern long		sdr_list_length(Sdr sdr, Object list);
 
 #define sdr_list_insert(sdr, list, data, compare, arg) \
 Sdr_list_insert(__FILE__, __LINE__, sdr, list, data, compare, arg)
-extern Object		Sdr_list_insert(char *file, int line,
+extern Object		Sdr_list_insert(const char *file, int line,
 				Sdr sdr, Object list, Address data,
 				SdrListCompareFn compare, void *dataBuffer);
 
 #define sdr_list_insert_first(sdr, list, data) \
 Sdr_list_insert_first(__FILE__, __LINE__, sdr, list, data)
-extern Object		Sdr_list_insert_first(char *file, int line,
+extern Object		Sdr_list_insert_first(const char *file, int line,
 				Sdr sdr, Object list, Address data);
 
 #define sdr_list_insert_last(sdr, list, data) \
 Sdr_list_insert_last(__FILE__, __LINE__, sdr, list, data)
-extern Object		Sdr_list_insert_last(char *file, int line,
+extern Object		Sdr_list_insert_last(const char *file, int line,
 				Sdr sdr, Object list, Address data);
 
 #define sdr_list_insert_before(sdr, elt, data) \
 Sdr_list_insert_before(__FILE__, __LINE__, sdr, elt, data)
-extern Object		Sdr_list_insert_before(char *file, int line,
+extern Object		Sdr_list_insert_before(const char *file, int line,
 				Sdr sdr, Object elt, Address data);
 
 #define sdr_list_insert_after(sdr, elt, data) \
 Sdr_list_insert_after(__FILE__, __LINE__, sdr, elt, data)
-extern Object		Sdr_list_insert_after(char *file, int line,
+extern Object		Sdr_list_insert_after(const char *file, int line,
 				Sdr sdr, Object elt, Address data);
 
 #define sdr_list_delete(sdr, elt, deleteFn, argument) \
 Sdr_list_delete(__FILE__, __LINE__, sdr, elt, deleteFn, argument)
-extern void		Sdr_list_delete(char *file, int line,
+extern void		Sdr_list_delete(const char *file, int line,
 				Sdr sdr, Object elt, SdrListDeleteFn deleteFn,
 				void *argument);
 
@@ -100,7 +100,7 @@ extern Address		sdr_list_data(Sdr sdr, Object elt);
 
 #define sdr_list_data_set(sdr, elt, data) \
 Sdr_list_data_set(__FILE__, __LINE__, sdr, elt, data)
-extern Address		Sdr_list_data_set(char *file, int line,
+extern Address		Sdr_list_data_set(const char *file, int line,
 				Sdr sdr, Object elt, Address data);
 #ifdef __cplusplus
 }

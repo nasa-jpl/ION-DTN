@@ -175,7 +175,7 @@ static PsmPartition	_ionwm(sm_WmParms *parms)
 	return ionwm;
 }
 
-void	*allocFromIonMemory(char *fileName, int lineNbr, size_t length)
+void	*allocFromIonMemory(const char *fileName, int lineNbr, size_t length)
 {
 	PsmPartition	ionwm = _ionwm(NULL);
 	PsmAddress	address;
@@ -196,7 +196,7 @@ void	*allocFromIonMemory(char *fileName, int lineNbr, size_t length)
 	return block;
 }
 
-void	releaseToIonMemory(char *fileName, int lineNbr, void *block)
+void	releaseToIonMemory(const char *fileName, int lineNbr, void *block)
 {
 	PsmPartition	ionwm = _ionwm(NULL);
 

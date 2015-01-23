@@ -2862,10 +2862,10 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 
 /*	*	*	Other portability adaptations	*	*	*/
 
-size_t	istrlen(char *from, size_t maxlen)
+size_t	istrlen(const char *from, size_t maxlen)
 {
 	size_t	length;
-	char	*cursor;
+	const char	*cursor;
 
 	if (from == NULL)
 	{
@@ -2889,7 +2889,7 @@ size_t	istrlen(char *from, size_t maxlen)
 	return length;
 }
 
-char	*istrcpy(char *buffer, char *from, size_t bufSize)
+char	*istrcpy(char *buffer, const char *from, size_t bufSize)
 {
 	int	maxText;
 	int	copySize;

@@ -58,7 +58,7 @@ static void	sdr_list__elt_clear(SdrListElt *elt)
 	elt->data = 0;
 }
 
-Object	Sdr_list_create(char *file, int line, Sdr sdrv)
+Object	Sdr_list_create(const char *file, int line, Sdr sdrv)
 {
 	Object	list;
 	SdrList	listBuffer;
@@ -82,7 +82,7 @@ Object	Sdr_list_create(char *file, int line, Sdr sdrv)
 	return list;
 }
 
-void	Sdr_list_destroy(char *file, int line, Sdr sdrv, Object list,
+void	Sdr_list_destroy(const char *file, int line, Sdr sdrv, Object list,
 		SdrListDeleteFn deleteFn, void *arg)
 {
 	SdrList		listBuffer;
@@ -134,8 +134,8 @@ Address	sdr_list_user_data(Sdr sdrv, Object list)
 	return listBuffer.userData;
 }
 
-void	Sdr_list_user_data_set(char *file, int line, Sdr sdrv, Object list,
-		Address data)
+void	Sdr_list_user_data_set(const char *file, int line, Sdr sdrv,
+		Object list, Address data)
 {
 	SdrList	listBuffer;
 
@@ -166,7 +166,7 @@ long	sdr_list_length(Sdr sdrv, Object list)
 	return listBuffer.length;
 }
 
-Object	Sdr_list_insert_first(char *file, int line, Sdr sdrv, Object list,
+Object	Sdr_list_insert_first(const char *file, int line, Sdr sdrv, Object list,
 		Address data)
 {
 	SdrList		listBuffer;
@@ -220,7 +220,7 @@ Object	Sdr_list_insert_first(char *file, int line, Sdr sdrv, Object list,
 	return elt;
 }
 
-Object	Sdr_list_insert_last(char *file, int line, Sdr sdrv, Object list,
+Object	Sdr_list_insert_last(const char *file, int line, Sdr sdrv, Object list,
 		Address data)
 {
 	SdrList		listBuffer;
@@ -274,8 +274,8 @@ Object	Sdr_list_insert_last(char *file, int line, Sdr sdrv, Object list,
 	return elt;
 }
 
-Object	Sdr_list_insert_before(char *file, int line, Sdr sdrv, Object oldElt,
-		Address data)
+Object	Sdr_list_insert_before(const char *file, int line, Sdr sdrv,
+		Object oldElt, Address data)
 {
 	SdrListElt	oldEltBuffer;
 	Object		list;
@@ -338,8 +338,8 @@ Object	Sdr_list_insert_before(char *file, int line, Sdr sdrv, Object oldElt,
 	return elt;
 }
 
-Object	Sdr_list_insert_after(char *file, int line, Sdr sdrv, Object oldElt,
-		Address data)
+Object	Sdr_list_insert_after(const char *file, int line, Sdr sdrv,
+		Object oldElt, Address data)
 {
 	SdrListElt	oldEltBuffer;
 	Object		list;
@@ -402,7 +402,7 @@ Object	Sdr_list_insert_after(char *file, int line, Sdr sdrv, Object oldElt,
 	return elt;
 }
 
-Object	Sdr_list_insert(char *file, int line, Sdr sdrv, Object list,
+Object	Sdr_list_insert(const char *file, int line, Sdr sdrv, Object list,
 		Address data, SdrListCompareFn compare, void *dataBuffer)
 {
 	SdrList		listBuffer;
@@ -451,7 +451,7 @@ Object	Sdr_list_insert(char *file, int line, Sdr sdrv, Object list,
 	return Sdr_list_insert_after(file, line, sdrv, elt, data);
 }
 
-void	Sdr_list_delete(char *file, int line, Sdr sdrv, Object elt,
+void	Sdr_list_delete(const char *file, int line, Sdr sdrv, Object elt,
 		SdrListDeleteFn deleteFn, void *arg)
 {
 	SdrListElt	eltBuffer;
@@ -659,7 +659,7 @@ Address	sdr_list_data(Sdr sdrv, Object elt)
 	return eltBuffer.data;
 }
 
-Address	Sdr_list_data_set(char *file, int line, Sdr sdrv, Object elt,
+Address	Sdr_list_data_set(const char *file, int line, Sdr sdrv, Object elt,
 		Address new)
 {
 	SdrListElt	eltBuffer;

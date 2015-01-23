@@ -17,6 +17,8 @@ all:
 	gmake -C bss install
 	gmake -C dtpc $@
 	gmake -C dtpc install
+	gmake -C restart $@
+	gmake -C restart install
 
 clean:
 	gmake -C ici $@
@@ -28,6 +30,7 @@ clean:
 	gmake -C cfdp $@
 	gmake -C bss $@
 	gmake -C dtpc $@
+	gmake -C restart $@
 
 test:
 	cd tests && ./runtestset normaltests

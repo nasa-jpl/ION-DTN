@@ -81,7 +81,7 @@ static void	unlockSmlist(SmList *list)
 	sm_SemGive(list->lock);
 }
 
-PsmAddress	Sm_list_create(char *fileName, int lineNbr,
+PsmAddress	Sm_list_create(const char *fileName, int lineNbr,
 			PsmPartition partition)
 {
 	sm_SemId	lock;
@@ -119,9 +119,9 @@ void	sm_list_unwedge(PsmPartition partition, PsmAddress list, int interval)
 	sm_SemUnwedge(listBuffer->lock, interval);
 }
 
-static int	wipeList(char *fileName, int lineNbr, PsmPartition partition,
-			PsmAddress list, SmListDeleteFn deleteFn, void *arg,
-			int destroy)
+static int	wipeList(const char *fileName, int lineNbr,
+			PsmPartition partition, PsmAddress list,
+			SmListDeleteFn deleteFn, void *arg, int destroy)
 {
 	SmList		*listBuffer;
 	PsmAddress	elt;
@@ -165,7 +165,7 @@ static int	wipeList(char *fileName, int lineNbr, PsmPartition partition,
 	return 0;
 }
 
-int	Sm_list_clear(char *fileName, int lineNbr, PsmPartition partition,
+int	Sm_list_clear(const char *fileName, int lineNbr, PsmPartition partition,
 		PsmAddress list, SmListDeleteFn deleteFn, void *arg)
 {
 	CHKERR(partition);
@@ -173,8 +173,9 @@ int	Sm_list_clear(char *fileName, int lineNbr, PsmPartition partition,
 	return wipeList(fileName, lineNbr, partition, list, deleteFn, arg, 0);
 }
 
-int	Sm_list_destroy(char *fileName, int lineNbr, PsmPartition partition,
-		PsmAddress list, SmListDeleteFn deleteFn, void *arg)
+int	Sm_list_destroy(const char *fileName, int lineNbr,
+		PsmPartition partition, PsmAddress list,
+		SmListDeleteFn deleteFn, void *arg)
 {
 	CHKERR(partition);
 	CHKERR(list);
@@ -240,7 +241,7 @@ int	sm_list_length(PsmPartition partition, PsmAddress list)
 	return length;
 }
 
-static PsmAddress	finishInsertingFirst(char *fileName, int lineNbr,
+static PsmAddress	finishInsertingFirst(const char *fileName, int lineNbr,
 				PsmPartition partition, PsmAddress list,
 				SmList *listBuffer, PsmAddress data)
 {
@@ -278,7 +279,7 @@ static PsmAddress	finishInsertingFirst(char *fileName, int lineNbr,
 	return elt;
 }
 
-PsmAddress	Sm_list_insert_first(char *fileName, int lineNbr,
+PsmAddress	Sm_list_insert_first(const char *fileName, int lineNbr,
 			PsmPartition partition, PsmAddress list,
 			PsmAddress data)
 {
@@ -301,7 +302,7 @@ PsmAddress	Sm_list_insert_first(char *fileName, int lineNbr,
 			listBuffer, data);
 }
 
-PsmAddress	Sm_list_insert_last(char *fileName, int lineNbr,
+PsmAddress	Sm_list_insert_last(const char *fileName, int lineNbr,
 			PsmPartition partition, PsmAddress list,
 			PsmAddress data)
 {
@@ -349,7 +350,7 @@ PsmAddress	Sm_list_insert_last(char *fileName, int lineNbr,
 	return elt;
 }
 
-PsmAddress	Sm_list_insert_before(char *fileName, int lineNbr,
+PsmAddress	Sm_list_insert_before(const char *fileName, int lineNbr,
 			PsmPartition partition, PsmAddress oldElt,
 			PsmAddress data)
 {
@@ -407,7 +408,7 @@ PsmAddress	Sm_list_insert_before(char *fileName, int lineNbr,
 	return elt;
 }
 
-static PsmAddress	finishInsertingAfter(char *fileName, int lineNbr,
+static PsmAddress	finishInsertingAfter(const char *fileName, int lineNbr,
 				PsmPartition partition, PsmAddress oldElt,
 				SmListElt *oldEltBuffer, PsmAddress list,
 				SmList *listBuffer, PsmAddress data)
@@ -446,7 +447,7 @@ static PsmAddress	finishInsertingAfter(char *fileName, int lineNbr,
 	return elt;
 }
 
-PsmAddress	Sm_list_insert_after(char *fileName, int lineNbr,
+PsmAddress	Sm_list_insert_after(const char *fileName, int lineNbr,
 			PsmPartition partition, PsmAddress oldElt,
 			PsmAddress data)
 {
@@ -475,7 +476,7 @@ PsmAddress	Sm_list_insert_after(char *fileName, int lineNbr,
 			oldEltBuffer, list, listBuffer, data);
 }
 
-PsmAddress	Sm_list_insert(char *fileName, int lineNbr,
+PsmAddress	Sm_list_insert(const char *fileName, int lineNbr,
 			PsmPartition partition, PsmAddress list,
 			PsmAddress data, SmListCompareFn compare, void *argData)
 {
@@ -533,8 +534,9 @@ PsmAddress	Sm_list_insert(char *fileName, int lineNbr,
 			eltBuffer, list, listBuffer, data);
 }
 
-int	Sm_list_delete(char *fileName, int lineNbr, PsmPartition partition,
-		PsmAddress elt, SmListDeleteFn deleteFn, void *arg)
+int	Sm_list_delete(const char *fileName, int lineNbr,
+		PsmPartition partition, PsmAddress elt, SmListDeleteFn deleteFn,
+		void *arg)
 {
 	SmListElt	*eltBuffer;
 	PsmAddress	list;
