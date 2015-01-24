@@ -181,17 +181,33 @@ but expected %d.", bytesRetrieved, chunkSize);
 	/*	Now replace the bundle's current payload content with
 	 *	a new ZCO that points at the newly created file.	*/
 
-	fileRef = zco_create_file_ref(bpSdr, fileName, "");
-	if (fileRef)
+	fileRef = zco_create_file_ref(bpSdr, fileName, "", ZcoOutbound);
+	if (fileRef == 0)
 	{
-		newZco = zco_create(bpSdr, ZcoFileSource, fileRef, 0,
-				bundle->payload.length);
-		if (newZco)
-		{
-			zco_destroy(bpSdr, bundle->payload.content);
-			bundle->payload.content = newZco;
-			zco_destroy_file_ref(bpSdr, fileRef);
-		}
+		sdr_cancel_xn(bpSdr);
+		oK(unlink(fileName));
+		return -1;
+	}
+
+	newZco = zco_create(bpSdr, ZcoFileSource, fileRef, 0,
+			bundle->payload.length, ZcoOutbound);
+	switch (newZco)
+	{
+	case 0:
+		putErrmsg("Not enough ZCO space for encrypted ADU.",
+				itoa(bundle->payload.length));
+
+		/*	Intentional fall-through to next case.		*/
+
+	case ((Object) -1):		/*	Serious error.		*/
+		sdr_cancel_xn(bpSdr);
+		oK(unlink(fileName));
+		return -1;
+
+	default:			/*	New ZCO created.	*/
+		zco_destroy(bpSdr, bundle->payload.content);
+		bundle->payload.content = newZco;
+		zco_destroy_file_ref(bpSdr, fileRef);
 	}
 
 	if (sdr_end_xn(bpSdr) < 0)

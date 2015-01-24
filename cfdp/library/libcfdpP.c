@@ -2694,7 +2694,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 		if (fdu->fileRef == 0)
 		{
 			fdu->fileRef = zco_create_file_ref(sdr,
-					fdu->sourceFileName, NULL);
+					fdu->sourceFileName, NULL, ZcoOutbound);
 			if (fdu->fileRef == 0)
 			{
 				putErrmsg("No space for file ZCO ref.", NULL);

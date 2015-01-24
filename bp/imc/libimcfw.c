@@ -116,7 +116,8 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 	}
 
 	sdr_write(sdr, sourceData, buffer, length);
-	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, length);
+	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, length,
+			ZcoOutbound);
 	if (sdr_end_xn(sdr) < 0 || payloadZco == (Object) ERROR
 	|| payloadZco == 0)
 	{

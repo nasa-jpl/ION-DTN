@@ -203,8 +203,10 @@ void	bpnm_node_get(NmbpNode *buf)
 	isprintf(buf->bpVersionNbr, sizeof buf->bpVersionNbr, "%d", BP_VERSION);
 	CHKVOID(sdr_begin_xn(sdr));
 	buf->avblStorage =
-		(zco_get_max_file_occupancy(sdr) - zco_get_file_occupancy(sdr))+
-		(zco_get_max_heap_occupancy(sdr) - zco_get_heap_occupancy(sdr));
+		(zco_get_max_file_occupancy(sdr, ZcoOutbound)
+				- zco_get_file_occupancy(sdr, ZcoOutbound))
+		+ (zco_get_max_heap_occupancy(sdr, ZcoOutbound)
+				- zco_get_heap_occupancy(sdr, ZcoOutbound));
 	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 	buf->lastRestartTime = bpdb.startTime;
 	buf->nbrOfRegistrations = bpdb.regCount;

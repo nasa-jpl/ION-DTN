@@ -138,7 +138,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		 *	The transmission loop is metered by time.	*/
 
 		bundleZco = zco_create(sdr, ZcoSdrSource, bundlePayload, 0, 
-				sizeof(framePayload));
+				sizeof(framePayload), ZcoOutbound);
 		switch (bundleZco)
 		{
 		case 0:

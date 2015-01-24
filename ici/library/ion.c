@@ -678,7 +678,8 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset, vast size,
 	CHKZERO(sdr_begin_xn(sdr));
 	while (1)
 	{
-		zco = zco_create(sdr, source, location, offset, size);
+		zco = zco_create(sdr, source, location, offset, size,
+				ZcoOutbound);
 		if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
@@ -888,9 +889,20 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		iondbBuf.productionRate = -1;	/*	Unknown.	*/
 		iondbBuf.consumptionRate = -1;	/*	Unknown.	*/
 		limit = (sdr_heap_size(ionsdr) / 100) * (100 - ION_SEQUESTERED);
-		zco_set_max_heap_occupancy(ionsdr, limit);
-		iondbBuf.occupancyCeiling = zco_get_max_file_occupancy(ionsdr);
-		iondbBuf.occupancyCeiling += limit;
+
+		/*	By default, let outbound ZCOs occupy up to
+		 *	half of the available heap space, leaving
+		 *	the other half for inbound ZCO acquisition.	*/
+
+		zco_set_max_heap_occupancy(ionsdr, limit/2, ZcoInbound);
+		zco_set_max_heap_occupancy(ionsdr, limit/2, ZcoOutbound);
+
+		/*	By default, the occupancy ceiling is 50% more
+		 *	than the outbound ZCO allocation.		*/
+
+		iondbBuf.occupancyCeiling = zco_get_max_file_occupancy(ionsdr,
+				ZcoOutbound);
+		iondbBuf.occupancyCeiling += (limit/4);
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;

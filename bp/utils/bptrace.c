@@ -114,7 +114,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
             aduLength = statbuf.st_size;
             sdr = bp_get_sdr();
             CHKZERO(sdr_begin_xn(sdr));
-            fileRef = zco_create_file_ref(sdr, fileName, NULL);
+            fileRef = zco_create_file_ref(sdr, fileName, NULL, ZcoOutbound);
             if (sdr_end_xn(sdr) < 0 || fileRef == 0)
             {
                     bp_close(sap);

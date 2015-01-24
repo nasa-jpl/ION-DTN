@@ -84,7 +84,8 @@ static void	*sendItems(void *parm)
 		extent = sdr_insert(sdr, buffer, length);
 		if (extent)
 		{
-			item = zco_create(sdr, ZcoSdrSource, extent, 0, length);
+			item = zco_create(sdr, ZcoSdrSource, extent, 0, length,
+					ZcoOutbound);
 		}
 
 		if (sdr_end_xn(sdr) < 0 || item == 0)

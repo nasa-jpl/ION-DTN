@@ -184,7 +184,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	if (parseEidString(eidString, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
 		putErrmsg("Can't parse node EID string.", eidString);
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	if (strcmp(vscheme->name, "ipn") != 0)
@@ -268,7 +268,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	}
 	else
 	{
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 }
 

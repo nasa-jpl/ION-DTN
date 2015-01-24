@@ -91,7 +91,7 @@ int	acquireBundle(AcqWorkArea *work, BsspSessionId *sessionId,
 		return -1;
 	}
 
-	if (bpContinueAcq(work, *buffer, (int) length) < 0)
+	if (bpContinueAcq(work, *buffer, (int) length, 0) < 0)
 	{
 		putErrmsg("Can't continue bundle acquisition.", NULL);
 		return -1;

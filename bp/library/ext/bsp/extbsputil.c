@@ -1213,7 +1213,7 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
         CHKERR(sdr_begin_xn(sdr));
         if (*resultZco == 0)     /*      First extent of acquisition.    */
         {
-                *resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
+                *resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound);
                 if (*resultZco == (Object) ERROR)
                 {
                         putErrmsg("extbsputil: Can't start file source ZCO.",
@@ -1249,7 +1249,8 @@ name.", NULL);
                 }
 
                 fileLength = 0;
-                *acqFileRef = zco_create_file_ref(sdr, fileName, "");
+                *acqFileRef = zco_create_file_ref(sdr, fileName, "",
+				ZcoInbound);
         }
 	else				/*	Writing more to file.	*/
 	{

@@ -27,9 +27,6 @@ extern "C" {
 #define MIN(x, y)       ((x) < (y) ? (x) : (y))
 #endif
 
-#if 0
-#define TCPCLA_BUFSZ		(1024 * 1024)
-#endif
 #define TCPCLA_BUFSZ		(64 * 1024)
 #define BpTcpDefaultPortNbr	4556
 

@@ -101,7 +101,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 		 *	The transmission loop is metered by time.	*/
 
 		bundleZco = zco_create(sdr, ZcoSdrSource, bundlePayload, 0, 
-				sizeof(framePayload));
+				sizeof(framePayload), ZcoOutbound);
 		if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
 		|| bundleZco == 0)
 		{

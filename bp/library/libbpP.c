@@ -1852,12 +1852,14 @@ void	bpDetach()
 
 static void	noteBundleInserted(Bundle *bundle)
 {
-	zco_increase_heap_occupancy(getIonsdr(), bundle->dbOverhead);
+	zco_increase_heap_occupancy(getIonsdr(), bundle->dbOverhead,
+			bundle->acct);
 }
 
 static void	noteBundleRemoved(Bundle *bundle)
 {
-	zco_reduce_heap_occupancy(getIonsdr(), bundle->dbOverhead);
+	zco_reduce_heap_occupancy(getIonsdr(), bundle->dbOverhead,
+			bundle->acct);
 }
 
 /*	*	*	Useful utility functions	*	*	*/
@@ -4721,7 +4723,7 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 
 	newBundle->payload.content = zco_clone(bpSdr,
 			oldBundle->payload.content, offset, length);
-	if (newBundle->payload.content == 0)
+	if (newBundle->payload.content <= 0)
 	{
 		putErrmsg("Can't clone payload content", NULL);
 		return -1;
@@ -4903,7 +4905,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	destroy it successfully.			*/
 
 		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	/*	Prevent routing loop: eid must not already be in the
@@ -4917,7 +4919,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		{
 			sdr_write(bpSdr, bundleObj, (char *) bundle,
 					sizeof(Bundle));
-			return bpAbandon(bundleObj, bundle);
+			return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 		}
 	}
 
@@ -4929,7 +4931,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		restoreEidString(&stationMetaEid);
 		writeMemoNote("[?] Can't parse neighbor EID", eid);
 		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	restoreEidString(&stationMetaEid);
@@ -4940,7 +4942,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	we must do so.					*/
 
 		sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	/*	We're going to queue this bundle for processing by
@@ -5441,6 +5443,7 @@ when asking for custody transfer and/or status reports.");
 	}
 
 	bundle.dbOverhead = BASE_BUNDLE_OVERHEAD;
+	bundle.acct = ZcoOutbound;
 
 	/*	The bundle protocol specification authorizes the
 	 *	implementation to fragment an ADU.  In the ION
@@ -6260,18 +6263,17 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 					return -1;
 				}
 
-				/*	As above, must write the bundle
-				 *	to the SDR in order to destroy
-				 *	it successfully.  We count the
-				 *	bundle as "forwarded" because
-				 *	bpAbandon will count it as
-				 *	"forwarding failed".		*/
+				/*	Accepting the bundle wrote it
+				 *	to the SDR, so we can now
+				 *	destroy it successfully.  We
+				 *	count the bundle as "forwarded"
+				 *	because bpAbandon will count it
+				 *	as "forwarding failed".		*/
 
 				bpDbTally(BP_DB_QUEUED_FOR_FWD,
 						bundle->payload.length);
-				sdr_write(bpSdr, bundleObj, (char *) bundle,
-						sizeof(Bundle));
-				return bpAbandon(bundleObj, bundle);
+				return bpAbandon(bundleObj, bundle,
+						BP_REASON_NO_ROUTE);
 			}
 		}
 	}
@@ -6294,19 +6296,62 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 		bundleObj = newBundleObj;
 	}
 
+	/*	We now propose to forward "bundle" (original or
+	 *	clone).  As such, this bundle's payload must now
+	 *	occupy "outbound" ZCO space rather than "inbound"
+	 *	ZCO space.						*/
+
+	bundle->payload.content = zco_transmute(bpSdr, bundle->payload.content);
+	if (bundle->payload.content == 0)
+	{
+		putErrmsg("Failed transmuting bundle payload.", NULL);
+		return -1;
+	}
+
+	/*	Transmute bundle overhead to "outbound" ZCO space
+	 *	as well.						*/
+
+	noteBundleRemoved(bundle);
+	bundle->acct = ZcoOutbound;
+	if (patchExtensionBlocks(bundle) < 0)
+	{
+		putErrmsg("Can't insert missing extensions.", NULL);
+		releaseDictionary(dictionary);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	noteBundleInserted(bundle);
+
+	/*	Check to see if transmuting the bundle has caused the
+	 *	outbound ZCO space allocation to be exceeded.  If so,
+	 *	we must abandon attempts to forward the bundle.		*/
+
+	if (!zco_enough_heap_space(bpSdr, 0, ZcoOutbound)
+	|| !zco_enough_file_space(bpSdr, 0, ZcoOutbound))
+	{
+		releaseDictionary(dictionary);
+		if (bpAccept(bundleObj, bundle) < 0)
+		{
+			putErrmsg("Failed dispatching bundle.", NULL);
+			return -1;
+		}
+
+		/*	Accepting the bundle wrote it to the SDR, so
+		 *	we can now destroy it successfully.  We again
+		 *	count the bundle as "forwarded" because
+		 *	bpAbandon will count it as "forwarding failed".	*/
+
+		bpDbTally(BP_DB_QUEUED_FOR_FWD, bundle->payload.length);
+		return bpAbandon(bundleObj, bundle, BP_REASON_DEPLETION);
+	}
+
+	/*	Bundle is now ready to be forwarded.			*/
+
 	if (printEid(&bundle->destination, dictionary, &eidString) < 0)
 	{
 		putErrmsg("Can't print destination EID.", NULL);
 		releaseDictionary(dictionary);
-		return -1;
-	}
-
-	if (patchExtensionBlocks(bundle) < 0)
-	{
-		putErrmsg("Can't insert missing extensions.", NULL);
-		MRELEASE(eidString);
-		releaseDictionary(dictionary);
-		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
@@ -6519,11 +6564,12 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 	return 0;
 }
 
-int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
+int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length, int blocking)
 {
 	static unsigned int	acqCount = 0;
 	Sdr			sdr = getIonsdr();
 				OBJ_POINTER(BpDB, bpdb);
+	int			extentLength;
 	Object			extentObj;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
@@ -6542,18 +6588,12 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	GET_OBJ_POINTER(sdr, BpDB, bpdb, getBpDbObject());
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
-		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
-		switch (work->zco)
+		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound);
+		if (work->zco == (Object) ERROR)
 		{
-		case (Object) ERROR:
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
-
-		case 0:
-			work->congestive = 1;
-			sdr_cancel_xn(sdr);
-			return 0;	/*	Out of ZCO space.	*/
 		}
 
 		work->zcoElt = sdr_list_insert_last(sdr, bpdb->inboundBundles,
@@ -6583,11 +6623,32 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 	if ((length + zco_length(sdr, work->zco)) <= bpdb->maxAcqInHeap)
 	{
+		if (blocking)	/*	Check size before writing.	*/
+		{
+			if (zco_extent_too_large(sdr, ZcoSdrSource, length,
+					ZcoInbound))
+			{
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Acquisition failed.", NULL);
+					return -1;
+				}
+
+				return 1;	/*	Retry later.	*/
+			}
+
+			extentLength = 0 - length;
+		}
+		else		/*	Let zco_append_extent decide.	*/
+		{
+			extentLength = length;
+		}
+
 		extentObj = sdr_insert(sdr, bytes, length);
 		if (extentObj)
 		{
 			switch (zco_append_extent(sdr, work->zco, ZcoSdrSource,
-					extentObj, 0, length))
+					extentObj, 0, extentLength))
 			{
 			case ERROR:
 				putErrmsg("Can't append heap extent.", NULL);
@@ -6614,6 +6675,27 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 	/*	This extent of this acquisition must be acquired into
 	 *	a file.							*/
 
+	if (blocking)		/*	Check size before writing.	*/
+	{
+		if (zco_extent_too_large(sdr, ZcoFileSource, length,
+				ZcoInbound))
+		{
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Acquisition failed.", NULL);
+				return -1;
+			}
+
+			return 1;		/*	Retry later.	*/
+		}
+
+		extentLength = 0 - length;
+	}
+	else			/*	Let zco_append_extent decide.	*/
+	{
+		extentLength = length;
+	}
+
 	if (work->acqFileRef == 0)	/*	First file extent.	*/
 	{
 		if (igetcwd(cwd, sizeof cwd) == NULL)
@@ -6635,7 +6717,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 		}
 
 		fileLength = 0;
-		work->acqFileRef = zco_create_file_ref(sdr, fileName, "");
+		work->acqFileRef = zco_create_file_ref(sdr, fileName, "",
+				ZcoInbound);
 		if (work->acqFileRef == 0)
 		{
 			putErrmsg("Can't create file ref.", NULL);
@@ -6675,7 +6758,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length)
 
 	close(fd);
 	switch (zco_append_extent(sdr, work->zco, ZcoFileSource,
-				work->acqFileRef, fileLength, length))
+			work->acqFileRef, fileLength, extentLength))
 	{
 	case ERROR:
 		putErrmsg("Can't append file reference extent.", NULL);
@@ -7516,6 +7599,12 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 		work->rawBundle = zco_clone(bpSdr, work->zco,
 				work->zcoBytesConsumed, work->bundleLength);
+		if (work->rawBundle <= 0)
+		{
+			putErrmsg("Can't clone bundle out of work area", NULL);
+			return -1;
+		}
+
 		work->zcoBytesConsumed += work->bundleLength;
 	}
 	else
@@ -7682,6 +7771,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 	 *	extension block acquisition.				*/
 
 	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
+	bundle->acct = ZcoInbound;
 
 	/*	Record bundle's sender EID, if known.			*/
 
@@ -8104,7 +8194,8 @@ static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 
 	sdr_write(bpSdr, sourceData, buffer, ctSignalLength);
 	MRELEASE(buffer);
-	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, ctSignalLength);
+	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, ctSignalLength,
+			ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create CT signal.", NULL);
@@ -8378,7 +8469,8 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 
 	sdr_write(bpSdr, sourceData, buffer, rptLength);
 	MRELEASE(buffer);
-	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, rptLength);
+	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, rptLength,
+			ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create status report.", NULL);
@@ -9694,13 +9786,26 @@ static void	releaseCustody(Object bundleAddr, Bundle *bundle)
 	bpCtTally(BP_CT_CUSTODY_RELEASED, bundle->payload.length);
 }
 
-int	bpAbandon(Object bundleObj, Bundle *bundle)
+int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 {
-	char 	*dictionary = NULL;
-	int	result1 = 0;
-	int	result2 = 0;
+	char 		*dictionary = NULL;
+	int		result1 = 0;
+	int		result2 = 0;
+	BpSrReason	srReason;
+	BpCtReason	ctReason;
 
 	CHKERR(bundleObj && bundle);
+	if (reason == BP_REASON_DEPLETION)
+	{
+		srReason = SrDepletedStorage;
+		ctReason = CtDepletedStorage;
+	}
+	else
+	{
+		srReason = SrNoKnownRoute;
+		ctReason = CtNoKnownRoute;
+	}
+
 	bpDbTally(BP_DB_FWD_FAILED, bundle->payload.length);
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
@@ -9712,7 +9817,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	if (SRR_FLAGS(bundle->bundleProcFlags) & BP_DELETED_RPT)
 	{
 		bundle->statusRpt.flags |= BP_DELETED_RPT;
-		bundle->statusRpt.reasonCode = SrNoKnownRoute;
+		bundle->statusRpt.reasonCode = srReason;
 		getCurrentDtnTime(&bundle->statusRpt.deletionTime);
 	}
 
@@ -9733,9 +9838,9 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	{
 		if (bundleIsCustodial(bundle))
 		{
-			bpCtTally(CtNoKnownRoute, bundle->payload.length);
+			bpCtTally(ctReason, bundle->payload.length);
 			result2 = noteCtEvent(bundle, NULL, dictionary, 0,
-					CtNoKnownRoute);
+					ctReason);
 			if (result2 < 0)
 			{
 				putErrmsg("Can't send custody signal.", NULL);
@@ -9744,7 +9849,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle)
 	}
 
 	releaseDictionary(dictionary);
-	bpDelTally(SrNoKnownRoute);
+	bpDelTally(srReason);
 
 	/*	Must record updated state of bundle in case
 	 *	bpDestroyBundle doesn't erase it.			*/
@@ -10316,6 +10421,13 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	*bundleZco = bundle.payload.content;
 	bundle.payload.content = zco_clone(bpSdr, *bundleZco, 0,
 			zco_source_data_length(bpSdr, *bundleZco));
+	if (bundle.payload.content <= 0)
+	{
+		putErrmsg("Can't clone bundle.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
 	sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 
 	/*	At this point we check the stewardshipAccepted flag.

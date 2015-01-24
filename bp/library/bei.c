@@ -648,8 +648,9 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 
 	if (bundle->dbOverhead != oldDbOverhead)
 	{
-		zco_reduce_heap_occupancy(bpSdr, oldDbOverhead);
-		zco_increase_heap_occupancy(bpSdr, bundle->dbOverhead);
+		zco_reduce_heap_occupancy(bpSdr, oldDbOverhead, bundle->acct);
+		zco_increase_heap_occupancy(bpSdr, bundle->dbOverhead,
+				bundle->acct);
 	}
 
 	return 0;

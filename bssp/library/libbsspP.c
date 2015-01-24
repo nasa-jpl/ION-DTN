@@ -2293,8 +2293,7 @@ putErrmsg("Discarded data block.", itoa(sessionNbr));
 	}
 
 	clientSvcData = zco_create(bsspSdr, ZcoSdrSource, pduObj, 0,
-			pdu->length);
-	
+			pdu->length, ZcoInbound);
 	switch (clientSvcData)
 	{
 	case (Object) ERROR:

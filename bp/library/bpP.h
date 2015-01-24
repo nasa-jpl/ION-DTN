@@ -87,8 +87,8 @@ extern "C" {
  *	widespread, which is why these functions are declared
  *	privately here rather than publicly in the zco.h header.	*/
 
-extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta);
-extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta);
+extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
+extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
 
 /*	A BP "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
@@ -344,6 +344,7 @@ typedef struct
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
+	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
@@ -854,13 +855,17 @@ extern int		bpSend(		MetaEid *sourceMetaEid,
 			 *	returns -1.				*/
 
 extern int		bpAbandon(	Object bundleObj,
-					Bundle *bundle);
+					Bundle *bundle,
+					int reason);
 			/*	This is the common processing for any
 			 *	bundle that a forwarder decides it
 			 *	cannot accept for forwarding.  It 
 			 *	sends any applicable status reports
 			 *	and then deletes the bundle from
 			 *	local storage.
+			 *
+			 *	Reason code s/b BP_REASON_DEPLETION
+			 *	or BP_REASON_NO_ROUTE.
 			 *
 			 *	Call this function at most once per
 			 *	bundle.	 Returns 0 on success, -1 on
@@ -1167,7 +1172,8 @@ extern int		bpLoadAcq(	AcqWorkArea *workArea,
 
 extern int		bpContinueAcq(	AcqWorkArea *workArea,
 					char *bytes,
-					int length);
+					int length,
+					int blocking);
 			/*	This function continues acquisition
 			 *	of a bundle as initiated by an
 			 *	invocation of bpBeginAcq().  To
@@ -1187,9 +1193,23 @@ extern int		bpContinueAcq(	AcqWorkArea *workArea,
 			 *	does not already exist, and appends
 			 *	"bytes" to the source data of that
 			 *	ZCO.
+			 *
+			 *	If "blocking" is set to 1, then
+			 *	bpContinueAcq will return 1 if the
+			 *	currently available space for zero-
+			 *	copy objects is insufficient to
+			 *	contain this increment of bundle
+			 *	source data.  (In this case, the
+			 *	acquisition work area is NOT flagged
+			 *	for refusal -- the convergence-layer
+			 *	adapter is expected to retry this
+			 *	acquisition at a future time when it
+			 *	may succeed.)
 			 *	
-			 *	Returns 0 on success, -1 on any
-			 *	failure.				*/
+			 *	Otherwise, returns 0 on success (even
+			 *	if the acquisition work area is flagged
+			 *	for refusal due to congestion), -1 on
+			 *	any failure.				*/
 
 extern void		bpCancelAcq(	AcqWorkArea *workArea);
 			/*	Cancels acquisition of a new

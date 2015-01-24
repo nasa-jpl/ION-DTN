@@ -101,7 +101,8 @@ static int	run_ltpdriver(uvast destEngineId, int clientId,
 //sdr_start_trace(sdr, 10000000, NULL);
 	close(aduFile);
 	CHKZERO(sdr_begin_xn(sdr));
-	fileRef = zco_create_file_ref(sdr, "ltpdriverSduFile", NULL);
+	fileRef = zco_create_file_ref(sdr, "ltpdriverSduFile", NULL,
+			ZcoOutbound);
 	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
 	{
 		putErrmsg("ltpdriver can't create file ref.", NULL);
