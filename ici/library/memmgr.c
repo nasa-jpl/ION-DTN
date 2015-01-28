@@ -34,7 +34,7 @@ typedef struct
  *	private standard memory allocator -- allocates and initializes
  */
 
-static void	*memmgr_malloc(char *fileName, int lineNbr, size_t size)
+static void	*memmgr_malloc(const char *fileName, int lineNbr, size_t size)
 {
 	return acquireSystemMemory(size);
 }
@@ -43,7 +43,7 @@ static void	*memmgr_malloc(char *fileName, int lineNbr, size_t size)
  *	private standard memory deallocator
  */
 
-static void	memmgr_free(char *fileName, int lineNbr, void *address)
+static void	memmgr_free(const char *fileName, int lineNbr, void *address)
 {
 	TRACK_FREE(address);
 	free(address);
@@ -69,12 +69,12 @@ static unsigned long	memmgr_ptoa(void * address)
 
 /*	Default null memory management functions.			*/
 
-static void	*null_malloc(char *fileName, int lineNbr, size_t size)
+static void	*null_malloc(const char *fileName, int lineNbr, size_t size)
 {
 	return NULL;
 }
 
-static void	null_free(char *fileName, int lineNbr, void *address)
+static void	null_free(const char *fileName, int lineNbr, void *address)
 {
 	return;
 }

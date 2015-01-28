@@ -177,7 +177,7 @@ static PsmPartition	_ionwm(sm_WmParms *parms)
 	return ionwm;
 }
 
-void	*allocFromIonMemory(char *fileName, int lineNbr, size_t length)
+void	*allocFromIonMemory(const char *fileName, int lineNbr, size_t length)
 {
 	PsmPartition	ionwm = _ionwm(NULL);
 	PsmAddress	address;
@@ -198,7 +198,7 @@ void	*allocFromIonMemory(char *fileName, int lineNbr, size_t length)
 	return block;
 }
 
-void	releaseToIonMemory(char *fileName, int lineNbr, void *block)
+void	releaseToIonMemory(const char *fileName, int lineNbr, void *block)
 {
 	PsmPartition	ionwm = _ionwm(NULL);
 
@@ -793,7 +793,7 @@ static void	destroyIonNode(PsmPartition partition, PsmAddress eltData,
 {
 	IonNode	*node = (IonNode *) psp(partition, eltData);
 
-	sm_list_destroy(partition, node->snubs, rfx_erase_data, NULL);
+	sm_list_destroy(partition, node->embargoes, rfx_erase_data, NULL);
 	psm_free(partition, eltData);
 }
 
@@ -1055,7 +1055,8 @@ void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
 
 	writeMemo("ionProd: range inserted.");
 	writeMemo(rfx_print_range(sdr_list_data(ionsdr, elt), textbuf));
-	elt = rfx_insert_contact(fromTime, toTime, fromNode, toNode, xmitRate);
+	elt = rfx_insert_contact(fromTime, toTime, fromNode, toNode, xmitRate,
+			1.0);
 	if (elt == 0)
 	{
 		writeMemoNote("[?] ionProd: contact insertion failed.",

@@ -127,7 +127,7 @@ static int	getSenderEidFromDictionary(AcqExtBlock *blk, AcqWorkArea *wk)
 	return 1;
 }
 
-int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
+int	phn_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	char	*lastByte;
 	int	eidLen;
@@ -171,7 +171,7 @@ int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 int	phn_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	discardExtensionBlock(blk);
-	return 0;
+	return 1;
 }
 
 void	phn_clear(AcqExtBlock *blk)

@@ -42,20 +42,20 @@ extern "C" {
 #define sdr_hash_create(sdr, keyLength, estNbrOfEntries, meanSearchLength) \
 Sdr_hash_create(__FILE__, __LINE__, sdr, keyLength, estNbrOfEntries, \
 meanSearchLength)
-extern Object		Sdr_hash_create(char *file, int line, Sdr sdr,
+extern Object		Sdr_hash_create(const char *file, int line, Sdr sdr,
 				int keyLength, int estNbrOfEntries,
 				int meanSearchLength);
 
 #define sdr_hash_insert(sdr, hash, key, value, entry) \
 Sdr_hash_insert(__FILE__, __LINE__, sdr, hash, key, value, entry)
-extern int		Sdr_hash_insert(char *file, int line, Sdr sdr,
+extern int		Sdr_hash_insert(const char *file, int line, Sdr sdr,
 				Object hash, char *key, Address value,
 				Object *entry);
 
 #define sdr_hash_delete_entry(sdr, entry) \
 Sdr_hash_delete_entry(__FILE__, __LINE__, sdr, entry)
-extern int		Sdr_hash_delete_entry(char *file, int line, Sdr sdr,
-				Object entry);
+extern int		Sdr_hash_delete_entry(const char *file, int line,
+				Sdr sdr, Object entry);
 
 extern Address		sdr_hash_entry_value(Sdr sdr,
 				Object hash, Object entry);
@@ -75,17 +75,17 @@ extern int		sdr_hash_count(Sdr sdr,
 
 #define sdr_hash_revise(sdr, hash, key, value) \
 Sdr_hash_revise(__FILE__, __LINE__, sdr, hash, key, value)
-extern int		Sdr_hash_revise(char *file, int line, Sdr sdr,
+extern int		Sdr_hash_revise(const char *file, int line, Sdr sdr,
 				Object hash, char *key, Address value);
 
 #define sdr_hash_remove(sdr, hash, key, value) \
 Sdr_hash_remove(__FILE__, __LINE__, sdr, hash, key, value)
-extern int		Sdr_hash_remove(char *file, int line, Sdr sdr,
+extern int		Sdr_hash_remove(const char *file, int line, Sdr sdr,
 				Object hash, char *key, Address *value);
 
 #define sdr_hash_destroy(sdr, hash) \
 Sdr_hash_destroy(__FILE__, __LINE__, sdr, hash)
-extern void		Sdr_hash_destroy(char *file, int line, Sdr sdr,
+extern void		Sdr_hash_destroy(const char *file, int line, Sdr sdr,
 				Object hash);
 
 #ifdef __cplusplus

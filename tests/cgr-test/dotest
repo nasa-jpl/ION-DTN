@@ -49,7 +49,7 @@ rm -f ./ion_nodes
 
 sleep 5
 
-echo "Send a bundle from ipn:9.1 destined for (noexistent) node ipn:1.1..."
+echo "Send a bundle from ipn:9.1 destined for (nonexistent) node ipn:1.1..."
 bptrace ipn:9.1 ipn:1.1 ipn:9.0 200000 1.1 "Hi"
 
 # Route should be computed quickly.

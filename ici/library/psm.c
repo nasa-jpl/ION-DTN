@@ -454,7 +454,7 @@ PsmAddress	psm_get_root(PsmPartition partition)
 	return root;
 }
 
-int	Psm_add_catlg(char *file, int line, PsmPartition partition)
+int	Psm_add_catlg(const char *file, int line, PsmPartition partition)
 {
 	PartitionMap	*map;
 	PsmAddress	catlg;
@@ -488,8 +488,8 @@ erase it first.", NULL);
 	return 0;
 }
 
-int	Psm_catlg(char *file, int line, PsmPartition partition, char *name,
-		PsmAddress address)
+int	Psm_catlg(const char *file, int line, PsmPartition partition,
+		char *name, PsmAddress address)
 {
 	PartitionMap	*map;
 	PsmAddress	objAddress;
@@ -570,7 +570,8 @@ int	Psm_catlg(char *file, int line, PsmPartition partition, char *name,
 	return 0;
 }
 
-int	Psm_uncatlg(char *file, int line, PsmPartition partition, char *name)
+int	Psm_uncatlg(const char *file, int line, PsmPartition partition,
+		char *name)
 {
 	PartitionMap	*map;
 	PsmAddress	objAddress;
@@ -809,7 +810,7 @@ static int	traceInProgress(PsmPartition partition)
 	return 1;			/*	Trace the event.	*/
 }
 
-static void	traceAlloc(char *file, int line, PsmPartition partition,
+static void	traceAlloc(const char *file, int line, PsmPartition partition,
 			PsmAddress address, int size)
 {
 	if (traceInProgress(partition))
@@ -818,7 +819,7 @@ static void	traceAlloc(char *file, int line, PsmPartition partition,
 	}
 }
 
-static void	traceFree(char *file, int line, PsmPartition partition,
+static void	traceFree(const char *file, int line, PsmPartition partition,
 		PsmAddress address)
 {
 	if (traceInProgress(partition))
@@ -827,7 +828,7 @@ static void	traceFree(char *file, int line, PsmPartition partition,
 	}
 }
 
-static void	traceMemo(char *file, int line, PsmPartition partition,
+static void	traceMemo(const char *file, int line, PsmPartition partition,
 			PsmAddress address, char *msg)
 {
 	if (traceInProgress(partition))
@@ -837,7 +838,7 @@ static void	traceMemo(char *file, int line, PsmPartition partition,
 }
 #endif
 
-void	Psm_free(char *file, int line, PsmPartition partition,
+void	Psm_free(const char *file, int line, PsmPartition partition,
 		PsmAddress address)
 {
 	PartitionMap		*map;
@@ -1078,7 +1079,7 @@ static PsmAddress	mallocLarge(PartitionMap *map, register u_int nbytes)
 	return block + LG_OHD_SIZE;
 }
 
-PsmAddress	Psm_malloc(char *file, int line, PsmPartition partition,
+PsmAddress	Psm_malloc(const char *file, int line, PsmPartition partition,
 			register u_long nbytes)
 {
 	PartitionMap	*map;
@@ -1114,7 +1115,7 @@ block size %lu", nbytes);
 	return block;
 }
 
-PsmAddress	Psm_zalloc(char *file, int line, PsmPartition partition,
+PsmAddress	Psm_zalloc(const char *file, int line, PsmPartition partition,
 			register u_long nbytes)
 {
 	PartitionMap		*map;

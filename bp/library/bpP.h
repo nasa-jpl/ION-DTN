@@ -197,6 +197,7 @@ typedef struct
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
+#define	BP_ENCAPSULATED_BUNDLE	(7)
 
 /*	Administrative record flags	*/
 #define BP_BDL_IS_A_FRAGMENT	(1)	/*	00000001		*/
@@ -750,6 +751,7 @@ typedef struct
 
 	/*	Per-bundle state variables.				*/
 
+	Object		rawBundle;
 	Bundle		bundle;
 	int		headerLength;
 	int		trailerLength;
@@ -1285,8 +1287,8 @@ extern void		getCurrentDtnTime(DtnTime *dt);
 
 extern int		guessBundleSize(Bundle *bundle);
 extern int		computeECCC(int bundleSize, ClProtocol *protocol);
-extern void		computePriorClaims(Outduct *, Bundle *, Scalar *,
-				Scalar *);
+extern void		computePriorClaims(ClProtocol *, Outduct *, Bundle *,
+				Scalar *, Scalar *);
 
 extern int		putBpString(BpString *bpString, char *string);
 extern char		*getBpString(BpString *bpString);
@@ -1323,6 +1325,11 @@ extern int		updateEndpoint(char *endpointName,
 				BpRecvRule recvAction, char *recvScript);
 /*	Removing an endpoint is also called "unregistering".		*/
 extern int		removeEndpoint(char *endpointName);
+
+extern void		lookUpEidScheme(EndpointId eid, char *dictionary,
+				VScheme **vscheme);
+extern void		lookUpEndpoint(EndpointId eid, char *dictionary,
+				VScheme *vscheme, VEndpoint **vpoint);
 
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
 extern int		addProtocol(char *name, int payloadBytesPerFrame,

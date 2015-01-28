@@ -23,7 +23,7 @@ typedef struct
 
 /*	*	*	Table management functions	*	*	*/
 
-Object	Sdr_hash_create(char *file, int line, Sdr sdrv, int keyLength,
+Object	Sdr_hash_create(const char *file, int line, Sdr sdrv, int keyLength,
 		int estNbrOfEntries, int meanSearchLength)
 {
 	/*	Each row of an SDR hash table contains a linked list of 
@@ -143,8 +143,8 @@ static int	computeRowNbr(int rowCount, int keyLength, char *key)
 	return h % rowCount;
 }
 
-int	Sdr_hash_insert(char *file, int line, Sdr sdrv, Object hash, char *key,
-		Address value, Object *entry)
+int	Sdr_hash_insert(const char *file, int line, Sdr sdrv, Object hash,
+		char *key, Address value, Object *entry)
 {
 	int	keyLength;
 	int	kvpairLength;
@@ -238,7 +238,8 @@ int	Sdr_hash_insert(char *file, int line, Sdr sdrv, Object hash, char *key,
 	return 1;		/*	Succeeded.			*/
 }
 
-int	Sdr_hash_delete_entry(char *file, int line, Sdr sdrv, Object entry)
+int	Sdr_hash_delete_entry(const char *file, int line, Sdr sdrv,
+		Object entry)
 {
 	Object	kvpairAddr;
 
@@ -406,8 +407,8 @@ int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
 	return 0;
 }
 
-int	Sdr_hash_revise(char *file, int line, Sdr sdrv, Object hash, char *key,
-		Address value)
+int	Sdr_hash_revise(const char *file, int line, Sdr sdrv, Object hash,
+		char *key, Address value)
 {
 	int	keyLength;
 	int	kvpairLength;
@@ -465,8 +466,8 @@ int	Sdr_hash_revise(char *file, int line, Sdr sdrv, Object hash, char *key,
 	return 0;		/*	Unable to revise value.		*/
 }
 
-int	Sdr_hash_remove(char *file, int line, Sdr sdrv, Object hash, char *key,
-		Address *value)
+int	Sdr_hash_remove(const char *file, int line, Sdr sdrv, Object hash,
+		char *key, Address *value)
 {
 	int	keyLength;
 	int	kvpairLength;
@@ -533,7 +534,7 @@ static void	deleteHashEntry(Sdr sdrv, Object eltData, void *arg)
 	sdr_free(sdrv, eltData);
 }
 
-void	Sdr_hash_destroy(char *file, int line, Sdr sdrv, Object hash)
+void	Sdr_hash_destroy(const char *file, int line, Sdr sdrv, Object hash)
 {
 	int	rowSize;
 	int	rowCount;

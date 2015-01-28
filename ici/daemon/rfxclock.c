@@ -42,7 +42,7 @@ static int	setProbeIsDue(unsigned long destNodeNbr,
 	PsmAddress	nextElt;
 	PsmPartition	ionwm;
 	PsmAddress	elt;
-	IonSnub		*snub;
+	Embargo		*embargo;
 
 	node = findNode(getIonVdb(), destNodeNbr, &nextElt);
 	if (node == NULL)
@@ -51,15 +51,15 @@ static int	setProbeIsDue(unsigned long destNodeNbr,
 	}
 
 	ionwm = getIonwm();
-	for (elt = sm_list_first(ionwm, node->snubs); elt;
+	for (elt = sm_list_first(ionwm, node->embargoes); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
-		snub = (IonSnub *) psp(ionwm, sm_list_data(ionwm, elt));
-		CHKERR(snub);
-		if (snub->nodeNbr == neighborNodeNbr)
+		embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm, elt));
+		CHKERR(embargo);
+		if (embargo->nodeNbr == neighborNodeNbr)
 		{
-			snub->probeIsDue = 1;
-			if (postProbeEvent(node, snub) == 0)
+			embargo->probeIsDue = 1;
+			if (postProbeEvent(node, embargo) == 0)
 			{
 				putErrmsg("Failed setting probeIsDue.", NULL);
 				return -1;
@@ -69,7 +69,7 @@ static int	setProbeIsDue(unsigned long destNodeNbr,
 		}
 	}
 
-	return 0;	/*	Snub no longer exists; no problem.	*/
+	return 0;	/*	Embargo no longer exists; no problem.	*/
 }
 
 static IonNeighbor	*getNeighbor(IonVdb *vdb, unsigned long nodeNbr)

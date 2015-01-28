@@ -90,7 +90,8 @@ static void	unlockSmrbt(SmRbt *rbt)
 	sm_SemGive(rbt->lock);
 }
 
-PsmAddress	Sm_rbt_create(char *file, int line, PsmPartition partition)
+PsmAddress	Sm_rbt_create(const char *file, int line,
+			PsmPartition partition)
 {
 	sm_SemId	lock;
 	PsmAddress	rbt;
@@ -128,8 +129,9 @@ void	sm_rbt_unwedge(PsmPartition partition, PsmAddress rbt, int interval)
 	sm_SemUnwedge(rbtPtr->lock, interval);
 }
 
-static void	destroyRbtNodes(char *file, int line, PsmPartition partition,
-			SmRbt *rbtPtr, SmRbtDeleteFn deleteFn, void *arg)
+static void	destroyRbtNodes(const char *file, int line,
+			PsmPartition partition, SmRbt *rbtPtr,
+			SmRbtDeleteFn deleteFn, void *arg)
 {
 	PsmAddress	node;
 	SmRbtNode	*nodePtr;
@@ -199,7 +201,7 @@ static void	destroyRbtNodes(char *file, int line, PsmPartition partition,
 	}
 }
 
-void	Sm_rbt_clear(char *file, int line, PsmPartition partition,
+void	Sm_rbt_clear(const char *file, int line, PsmPartition partition,
 		PsmAddress rbt, SmRbtDeleteFn deleteFn, void *arg)
 {
 	SmRbt	*rbtPtr;
@@ -212,7 +214,7 @@ void	Sm_rbt_clear(char *file, int line, PsmPartition partition,
 	unlockSmrbt(rbtPtr);
 }
 
-void	Sm_rbt_destroy(char *file, int line, PsmPartition partition,
+void	Sm_rbt_destroy(const char *file, int line, PsmPartition partition,
 		PsmAddress rbt, SmRbtDeleteFn deleteFn, void *arg)
 {
 	SmRbt	*rbtPtr;
@@ -346,9 +348,10 @@ static PsmAddress	rotateTwice(PsmPartition partition, PsmAddress root,
 	return rotateOnce(partition, root, direction);
 }
 
-static PsmAddress	createNode(char *file, int line, PsmPartition partition,
-				PsmAddress rbt, PsmAddress parent,
-				PsmAddress data, SmRbtNode **buffer)
+static PsmAddress	createNode(const char *file, int line,
+				PsmPartition partition, PsmAddress rbt,
+				PsmAddress parent, PsmAddress data,
+				SmRbtNode **buffer)
 {
 	PsmAddress	node;
 	SmRbtNode	*nodePtr;
@@ -379,8 +382,8 @@ static PsmAddress	createNode(char *file, int line, PsmPartition partition,
 	return node;
 }
 
-PsmAddress	Sm_rbt_insert(char *file, int line, PsmPartition partition,
-			PsmAddress rbt, PsmAddress data,
+PsmAddress	Sm_rbt_insert(const char *file, int line,
+			PsmPartition partition, PsmAddress rbt, PsmAddress data,
 			SmRbtCompareFn compare, void *dataBuffer)
 {
 	SmRbtNode	dummyRootBuffer = { 0, 0, { 0, 0}, 0, 0 };
@@ -560,7 +563,7 @@ PsmAddress	Sm_rbt_insert(char *file, int line, PsmPartition partition,
 	return node;
 }
 
-void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
+void	Sm_rbt_delete(const char *file, int line, PsmPartition partition,
 		PsmAddress rbt, SmRbtCompareFn compare, void *dataBuffer,
 		SmRbtDeleteFn deleteFn, void *arg)
 {
@@ -626,7 +629,7 @@ void	Sm_rbt_delete(char *file, int line, PsmPartition partition,
 	node = 0;
 	nodePtr = &dummyRootBuffer;
 	nodePtr->child[RIGHT] = rbtPtr->root;
-	target = 0;				//	f
+	target = 0;				/*	f		*/
 	direction = RIGHT;
 	while (nodePtr->child[direction])
 	{

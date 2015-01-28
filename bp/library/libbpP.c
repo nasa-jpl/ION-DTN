@@ -1902,22 +1902,58 @@ void	getCurrentDtnTime(DtnTime *dt)
 	dt->nanosec = 0;
 }
 
-void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
-		Scalar *totalBacklog)
+void	computePriorClaims(ClProtocol *protocol, Outduct *duct, Bundle *bundle,
+		Scalar *priorClaims, Scalar *totalBacklog)
 {
-	int	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+	vast		committed;
 #ifdef ION_BANDWIDTH_RESERVED
-	Scalar	limit;
-	Scalar	increment;
+	Scalar		limit;
+	Scalar		increment;
 #endif
-	int	i;
+	int		i;
 
-	copyScalar(totalBacklog, &(duct->urgentBacklog));
+	/*	If the outduct for the directive enabling the route
+	 *	under consideration is currently active and throttled,
+	 *	prior claims on the first contact along this route
+	 *	must include however much transmission the outduct
+	 *	itself has already committed to (as per bpDequeue)
+	 *	during the current second of operation, pending
+	 *	capacity replenishment through the rate control
+	 *	mechanism implemented by bpclock.  That commitment
+	 *	is given by the the duct's nominal xmit rate minus
+	 *	its current "capacity" (which may be negative).		*/
+
+	findOutduct(protocol->name, duct->name, &vduct, &vductElt);
+	CHKVOID(vductElt);
+	if (vduct->xmitThrottle.nominalRate > 0)
+	{
+		/*	Outduct is active and throttled.		*/
+
+		committed = vduct->xmitThrottle.nominalRate
+				- vduct->xmitThrottle.capacity;
+
+		/*	Since bpclock never increases capacity to
+		 *	a value in excess of the nominalRate,
+		 *	committed can never be negative.		*/
+
+		CHKVOID(committed >= 0);
+	}
+	else	/*	No capacity mgt, so can't compute commitment.	*/
+	{
+		committed = 0;
+	}
+
+	loadScalar(totalBacklog, committed);
+	addToScalar(totalBacklog, &(duct->urgentBacklog));
 	addToScalar(totalBacklog, &(duct->stdBacklog));
 	addToScalar(totalBacklog, &(duct->bulkBacklog));
+	loadScalar(priorClaims, committed);
 	if (priority == 0)
 	{
-		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->urgentBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
 		/*	priorClaims increment is the standard
 		 *	backlog's prior claims, which is the entire
@@ -1946,7 +1982,7 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 
 	if (priority == 1)
 	{
-		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->urgentBacklog));
 		addToScalar(priorClaims, &(duct->stdBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
 		/*	priorClaims increment is the bulk backlog's
@@ -1975,7 +2011,7 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 
 	if ((i = bundle->extendedCOS.ordinal) == 0)
 	{
-		copyScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(duct->urgentBacklog));
 		return;
 	}
 
@@ -1983,7 +2019,6 @@ void	computePriorClaims(Outduct *duct, Bundle *bundle, Scalar *priorClaims,
 	 *	some other urgent bundles.  Compute sum of backlogs
 	 *	for this and all higher ordinals.			*/
 
-	loadScalar(priorClaims, 0);
 	while (i < 256)
 	{
 		addToScalar(priorClaims, &(duct->ordinals[i].backlog));
@@ -2268,14 +2303,14 @@ int	startBpTask(Object cmd, Object cmdParms, int *pid)
 	return 0;
 }
 
-static void	lookUpEidScheme(EndpointId eid, char *dictionary,
-			VScheme **vscheme)
+void	lookUpEidScheme(EndpointId eid, char *dictionary, VScheme **vscheme)
 {
 	PsmPartition	bpwm = getIonwm();
 	BpVdb		*bpvdb = _bpvdb(NULL);
 	char		*schemeName;
 	PsmAddress	elt;
 
+	CHKVOID(vscheme);
 	if (dictionary == NULL)
 	{
 		if (!eid.cbhe)		/*	Can't determine scheme.	*/
@@ -2801,7 +2836,9 @@ incomplete bundle.", NULL);
 	}
 
 	destroyExtensionBlocks(&bundle);
+#ifdef ORIGINAL_BSP
 	destroyCollaborationBlocks(&bundle);
+#endif
 	purgeStationsStack(&bundle);
 	if (bundle.stations)
 	{
@@ -3735,8 +3772,8 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 	Object		addr;
 	Object		elt = 0;
 
-	CHKERR(protocolName && ductName && cliCmd);
-	if (*protocolName == 0 || *ductName == 0 || *cliCmd == 0)
+	CHKERR(protocolName && ductName);
+	if (*protocolName == 0 || *ductName == 0)
 	{
 		writeMemoNote("[?] Zero-length Induct parm(s)", ductName);
 		return 0;
@@ -3748,10 +3785,21 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 		return 0;
 	}
 
-	if (strlen(cliCmd) > MAX_SDRSTRING)
+	if (cliCmd)
 	{
-		writeMemoNote("[?] CLI command string is too long", cliCmd);
-		return 0;
+		if (*cliCmd == '\0')
+		{
+			cliCmd = NULL;
+		}
+		else
+		{
+			if (strlen(cliCmd) > MAX_SDRSTRING)
+			{
+				writeMemoNote("[?] CLI command string too long",
+						cliCmd);
+				return 0;
+			}
+		}
 	}
 
 	CHKERR(sdr_begin_xn(bpSdr));
@@ -3775,7 +3823,11 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 
 	memset((char *) &ductBuf, 0, sizeof(Induct));
 	istrcpy(ductBuf.name, ductName, sizeof ductBuf.name);
-	ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
+	if (cliCmd)
+	{
+		ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
+	}
+
 	ductBuf.protocol = (Object) sdr_list_data(bpSdr, clpElt);
 	ductBuf.stats = sdr_malloc(bpSdr, sizeof(InductStats));
 	if (ductBuf.stats)
@@ -3819,17 +3871,28 @@ int	updateInduct(char *protocolName, char *ductName, char *cliCmd)
 	Object		addr;
 	Induct		ductBuf;
 
-	CHKERR(protocolName && ductName && cliCmd);
-	if (*protocolName == 0 || *ductName == 0 || *cliCmd == 0)
+	CHKERR(protocolName && ductName);
+	if (*protocolName == 0 || *ductName == 0)
 	{
 		writeMemoNote("[?] Zero-length Induct parm(s)", ductName);
 		return 0;
 	}
 
-	if (strlen(cliCmd) > MAX_SDRSTRING)
+	if (cliCmd)
 	{
-		writeMemoNote("[?] CLI command string is too long", cliCmd);
-		return 0;
+		if (*cliCmd == '\0')
+		{
+			cliCmd = NULL;
+		}
+		else
+		{
+			if (strlen(cliCmd) > MAX_SDRSTRING)
+			{
+				writeMemoNote("[?] CLI command string too long",
+						cliCmd);
+				return 0;
+			}
+		}
 	}
 
 	CHKERR(sdr_begin_xn(bpSdr));
@@ -3852,7 +3915,11 @@ int	updateInduct(char *protocolName, char *ductName, char *cliCmd)
 		ductBuf.cliCmd = 0;
 	}
 
-	ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
+	if (cliCmd)
+	{
+		ductBuf.cliCmd = sdr_string_create(bpSdr, cliCmd);
+	}
+
 	sdr_write(bpSdr, addr, (char *) &ductBuf, sizeof(Induct));
 	if (sdr_end_xn(bpSdr) < 0)
 	{
@@ -5201,8 +5268,9 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	DtnTime		currentDtnTime;
 	char		*dictionary;
 	int		i;
-	ExtensionDef	*extensions;
+	ExtensionSpec	*extensions;
 	int		extensionsCt;
+	ExtensionSpec	*spec;
 	ExtensionDef	*def;
 	ExtensionBlock	blk;
 
@@ -5580,13 +5648,17 @@ when asking for custody transfer and/or status reports.");
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
 
-	getExtensionDefs(&extensions, &extensionsCt);
-	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
+	getExtensionSpecs(&extensions, &extensionsCt);
+	for (i = 0, spec = extensions; i < extensionsCt; i++, spec++)
 	{
-		if (def->type != 0 && def->offer != NULL)
+		def = findExtensionDef(spec->type);
+		if (def != NULL && def->offer != NULL)
 		{
 			memset((char *) &blk, 0, sizeof(ExtensionBlock));
-			blk.type = def->type;
+			blk.type = spec->type;
+			blk.tag1 = spec->tag1;
+			blk.tag2 = spec->tag2;
+			blk.tag3 = spec->tag3;
 			if (def->offer(&blk, &bundle) < 0)
 			{
 				putErrmsg("Failed offering extension block.",
@@ -5600,7 +5672,7 @@ when asking for custody transfer and/or status reports.");
 				continue;
 			}
 
-			if (attachExtensionBlock(def, &blk, &bundle) < 0)
+			if (attachExtensionBlock(spec, &blk, &bundle) < 0)
 			{
 				putErrmsg("Failed attaching extension block.",
 						NULL);
@@ -5655,7 +5727,7 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 	char		*custodianEid;
 	unsigned int	ttl;	/*	Original bundle's TTL.		*/
 	BpExtendedCOS	ecos = { 0, 0, 255 };
-	Object		payloadZco=0;
+	Object		payloadZco = 0;
 	Object		bundleObj;
 	int		result;
 
@@ -5849,14 +5921,16 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 	return 0;
 }
 
-static void	lookUpEndpoint(EndpointId eid, char *dictionary,
-			VScheme *vscheme, VEndpoint **vpoint)
+void	lookUpEndpoint(EndpointId eid, char *dictionary, VScheme *vscheme,
+		VEndpoint **vpoint)
 {
 	PsmPartition	bpwm = getIonwm();
 	char		nssBuf[42];
 	char		*nss;
 	PsmAddress	elt;
 
+	CHKVOID(vscheme);
+	CHKVOID(vpoint);
 	if (dictionary == NULL)
 	{
 		isprintf(nssBuf, sizeof nssBuf, UVAST_FIELDSPEC ".%u",
@@ -6334,12 +6408,14 @@ static void	clearAcqArea(AcqWorkArea *work)
 				break;
 			}
 
-			deleteAcqExtBlock(elt, i);
+			deleteAcqExtBlock(elt);
 		}
 	}
 
         /* Destroy collaboration blocks */
+#ifdef ORIGINAL_BSP
         destroyAcqCollabBlocks(work);
+#endif
 
 	/*	Reset all other per-bundle parameters.			*/
 
@@ -7059,7 +7135,7 @@ static int	acquireBlock(AcqWorkArea *work)
 			}
 
 			extractSmallSdnv(&nssOffset, &cursor, &unparsedBytes);
-			temp = schemeOffset;
+			temp = nssOffset;
 			if (lyst_insert_last(eidReferences, (void *) temp)
 					== NULL)
 			{
@@ -7107,7 +7183,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	}
 
 	lengthOfBlock = (cursor - startOfBlock) + dataLength;
-	def = findExtensionDef(blkType, work->currentExtBlocksList);
+	def = findExtensionDef(blkType);
 	if (def)
 	{
 		if (acquireExtensionBlock(work, def, startOfBlock,
@@ -7496,9 +7572,9 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		/*	Bundle has been parsed out of the work area's
 		 *	ZCO.  Split it off into a separate ZCO.		*/
 
-		bundle->payload.content = zco_clone(bpSdr, work->zco,
+		work->rawBundle = zco_clone(bpSdr, work->zco,
 				work->zcoBytesConsumed, work->bundleLength);
-		if (bundle->payload.content <= 0)
+		if (work->rawBundle <= 0)
 		{
 			putErrmsg("Can't clone bundle out of work area", NULL);
 			return -1;
@@ -7508,15 +7584,41 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 	}
 	else
 	{
-		bundle->payload.content = 0;
+		work->rawBundle = 0;
 	}
 
-	if (bundle->payload.content == 0)
+	if (work->rawBundle == 0)
 	{
 		return 0;	/*	No bundle at front of work ZCO.	*/
 	}
 
-	/*	Check bundle for problems.				*/
+	/*	Reduce payload ZCO to just its source data, discarding
+	 *	BP header and trailer.  This simplifies decryption.	*/
+
+	bundle->payload.content = zco_clone(bpSdr, work->rawBundle,
+			work->headerLength, bundle->payload.length);
+
+	/*	Do all decryption indicated by extension blocks.	*/
+
+	if (decryptPerExtensionBlocks(work) < 0)
+	{
+		putErrmsg("Failed parsing extension blocks.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	/*	Can now finish block acquisition for any blocks
+	 *	that were originally encrypted.				*/
+
+	if (parseExtensionBlocks(work) < 0)
+	{
+		putErrmsg("Failed parsing extension blocks.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+	}
+
+	/*	Now that acquisition is complete, check the bundle
+	 *	for problems.						*/
 
 	if (work->malformed || work->lastBlockParsed == 0)
 	{
@@ -7536,7 +7638,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 	}
 
 	initAuthenticity(work);	/*	Set default.			*/
-	if (checkExtensionBlocks(work) < 0)
+	if (checkPerExtensionBlocks(work) < 0)
 	{
 		putErrmsg("Can't check bundle authenticity.", NULL);
 		sdr_cancel_xn(bpSdr);
@@ -7645,13 +7747,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
 	bundle->acct = ZcoInbound;
-
-	/*	Reduce payload ZCO to just its source data, discarding
-	 *	BP header and trailer.					*/
-
-	zco_delimit_source(bpSdr, bundle->payload.content, work->headerLength,
-			bundle->payload.length);
-	zco_strip(bpSdr, bundle->payload.content);
 
 	/*	Record bundle's sender EID, if known.			*/
 
@@ -7925,6 +8020,11 @@ int	bpEndAcq(AcqWorkArea *work)
 		vpoint = NULL;
 		CHKERR(sdr_begin_xn(bpSdr));
 		result = acquireBundle(bpSdr, work, &vpoint);
+		if (work->rawBundle)
+		{
+			zco_destroy(bpSdr, work->rawBundle);
+		}
+
 		if (sdr_end_xn(bpSdr) < 0 || result < 0)
 		{
 			putErrmsg("Bundle acquisition failed.", NULL);
@@ -8518,6 +8618,11 @@ static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	case BP_CUSTODY_SIGNAL:
 		result = parseCtSignal(csig, (unsigned char *) cursor,
 				unparsedBytes, bundleIsFragment);
+		break;
+
+	case BP_ENCAPSULATED_BUNDLE:	/*	No more to parse.	*/
+		*otherPtr = NULL;
+		result = 1;
 		break;
 
 	default:	/*	Unknown or non-standard admin record.	*/
@@ -9925,9 +10030,9 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 	unsigned int	neighborNodeNbr;
 	IonNode		*destNode;
 	PsmAddress	nextNode;
-	PsmAddress	snubElt;
-	PsmAddress	nextSnub;
-	IonSnub		*snub;
+	PsmAddress	embElt;
+	PsmAddress	nextEmbargo;
+	Embargo		*embargo;
 
 	sdr_stage(bpSdr, (char *) outduct, outductObj, 0);
 	while (1)	/*	Might do one or more reforwards.	*/
@@ -10075,11 +10180,11 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 				outduct);
 
 		/*	If the neighbor for this duct has begun
-		 *	snubbing bundles for the indicated destination
+		 *	refusing bundles for the indicated destination
 		 *	since this bundle was enqueued to this duct,
 		 *	re-forward the bundle on a different route
 		 *	(if possible).  Note that we can only track
-		 *	snubs that are issued by neighbors reached
+		 *	refusals that are issued by neighbors reached
 		 *	via LTP ducts and are for nodes identified by
 		 *	CBHE-conformant unicast endpoint IDs.		*/
 
@@ -10090,33 +10195,34 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 			neighborNodeNbr = strtoul(vduct->ductName, NULL, 0);
 			destNode = findNode(getIonVdb(),
 				bundle->destination.c.nodeNbr, &nextNode);
-			if (destNode)	/*	Node might have snubs.	*/
+			if (destNode)
 			{
 				/*	Check list of nodes that have
 				 *	been refusing bundles for this
 				 *	destination.			*/
 
-				for (snubElt = sm_list_first(bpwm,
-						destNode->snubs); snubElt;
-						snubElt = nextSnub)
+				for (embElt = sm_list_first(bpwm,
+						destNode->embargoes); embElt;
+						embElt = nextEmbargo)
 				{
-					nextSnub = sm_list_next(bpwm, snubElt);
-					snub = (IonSnub *) psp(bpwm,
-						sm_list_data(bpwm, snubElt));
-					if (snub->nodeNbr < neighborNodeNbr)
+					nextEmbargo = sm_list_next(bpwm,
+						embElt);
+					embargo = (Embargo *) psp(bpwm,
+						sm_list_data(bpwm, embElt));
+					if (embargo->nodeNbr < neighborNodeNbr)
 					{
 						continue;
 					}
 
-					if (snub->nodeNbr == neighborNodeNbr)
+					if (embargo->nodeNbr == neighborNodeNbr)
 					{
 						break;
 					}
 
-					nextSnub = 0;	/*	End.	*/
+					nextEmbargo = 0;/*	End.	*/
 				}
 
-				if (snubElt)
+				if (embElt)
 				{
 					/*	This neighbor has been
 					 *	refusing custody of
@@ -10125,7 +10231,7 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 
 					if (bpReforwardBundle(*bundleObj) < 0)
 					{
-						putErrmsg("Snub refwd failed.",
+						putErrmsg("Embargo refwd n/g.",
 								NULL);
 						return -1;
 					}
@@ -10577,9 +10683,10 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		return 0;
 	}
 
-	/*	Skip over lifetime.					*/
+	/*	Get lifetime.						*/
 
 	sdnvLength = decodeSdnv(&longNumber, cursor);
+	image->timeToLive = longNumber;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -11217,7 +11324,8 @@ static int	defaultCsh(BpDelivery *dlv, BpCtSignal *cts)
 	return 0;
 }
 
-static void	noteSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
+static void	noteEmbargo(Bundle *bundle, Object bundleAddr,
+			char *neighborEid)
 {
 	IonVdb		*ionVdb;
 	IonNode		*node;
@@ -11231,10 +11339,10 @@ static void	noteSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 	|| (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
 	{
 		/*	For non-cbhe or multicast bundles we have no
-		 *	node number, so we can't manage routing snubs.
-		 *	If the bundle is critical then it was already
-		 *	sent on all possible routes, so there's no
-		 *	point in responding to the routing snub.	*/
+		 *	node number, so we can't impose routing
+		 *	embargoes.  If the bundle is critical then
+		 *	it was already sent on all possible routes,
+		 *	so there's no point in imposing an embargo.	*/
 
 		return;
 	}
@@ -11254,19 +11362,21 @@ static void	noteSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 		return;		/*	Weird, but let it go for now.	*/
 	}
 
-	/*	Figure out who the snubbing neighbor is and create a
-	 *	Snub object to prevent future routing to that neighbor.	*/
+	/*	Figure out who the refusing neighbor is and create a
+	 *	Embargo object to prevent future routing to that
+	 *	neighbor.						*/
 
 	if (parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt) == 0
 	|| !metaEid.cbhe)	/*	Non-CBHE, somehow.		*/
 	{
-		return;		/*	Can't construct a Snub.		*/
+		return;		/*	Can't construct an Embargo.	*/
 	}
 
-	oK(addSnub(node, metaEid.nodeNbr));
+	oK(addEmbargo(node, metaEid.nodeNbr));
 }
 
-static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
+static void	forgetEmbargo(Bundle *bundle, Object bundleAddr,
+			char *neighborEid)
 {
 	IonVdb		*ionVdb;
 	IonNode		*node;
@@ -11280,10 +11390,10 @@ static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 	|| (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
 	{
 		/*	For non-cbhe or multicast bundles we have no
-		 *	node number, so we can't manage routing snubs.
-		 *	If the bundle is critical then it was already
-		 *	sent on all possible routes, so there's no
-		 *	point in responding to the routing snub.	*/
+		 *	node number, so we don't have embargoes.  If
+		 *	the bundle is critical then it was already sent
+		 *	on all possible routes, so the transmission
+		 *	should have no effect on any embargo.		*/
 
 		return;
 	}
@@ -11297,24 +11407,24 @@ static void	forgetSnub(Bundle *bundle, Object bundleAddr, char *neighborEid)
 		return;		/*	Weird, but let it go for now.	*/
 	}
 
-	/*	If there are no longer any snubs for this destination,
-	 *	don't bother to look for this one.			*/
+	/*	If there are no longer any embargoes affecting this
+	 *	destination, don't bother to look for this one.		*/
 
-	if (sm_list_length(getIonwm(), node->snubs) == 0)
+	if (sm_list_length(getIonwm(), node->embargoes) == 0)
 	{
 		return;
 	}
 
-	/*	Figure out who the non-snubbing neighbor is and remove
-	 *	any snub currently registered for that neighbor.	*/
+	/*	Figure out who the reinstated neighbor is and remove
+	 *	any embargo currently registered for that neighbor.	*/
 
 	if (parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt) == 0
 	|| !metaEid.cbhe)	/*	Non-CBHE, somehow.		*/
 	{
-		return;		/*	Can't locate any Snub.		*/
+		return;		/*	Can't locate any Embargo.	*/
 	}
 
-	removeSnub(node, metaEid.nodeNbr);
+	removeEmbargo(node, metaEid.nodeNbr);
 }
 
 int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
@@ -11363,7 +11473,7 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 			iwatch('m');
 		}
 
-		forgetSnub(bundle, bundleAddr, bundleSourceEid);
+		forgetEmbargo(bundle, bundleAddr, bundleSourceEid);
 		releaseCustody(bundleAddr, bundle);
 		if (bpDestroyBundle(bundleAddr, 0) < 0)
 		{
@@ -11374,7 +11484,7 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 	}
 	else	/*	Custody refused; try again.			*/
 	{
-		noteSnub(bundle, bundleAddr, bundleSourceEid);
+		noteEmbargo(bundle, bundleAddr, bundleSourceEid);
 		if ((dictionary = retrieveDictionary(bundle))
 				== (char *) bundle)
 		{
@@ -11413,6 +11523,64 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 		return -1;
 	}
 
+	return 0;
+}
+
+static int	handleEncapsulatedBundle(BpDelivery *dlv)
+{
+	Sdr		sdr = getIonsdr();
+	vast		encapsulatedBundleLength;
+	VInduct		*vduct;
+	PsmAddress	vductElt;
+	AcqWorkArea	*work;
+
+	/*	Strip off the admin record header (1 byte), process
+	 *	the rest as a newly received bundle.			*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	encapsulatedBundleLength = zco_length(sdr, dlv->adu) - 1;
+	zco_delimit_source(sdr, dlv->adu, 1, encapsulatedBundleLength);
+	zco_strip(sdr, dlv->adu);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("bibecli can't extract encapsulated bundle.", NULL);
+		return -1;
+	}
+
+	findInduct("bibe", "*", &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		putErrmsg("No such bibe duct.", "0");
+		return -1;
+	}
+
+	vduct->acqThrottle.nominalRate = -1;	/*	No rate control.*/
+	work = bpGetAcqArea(vduct);
+	if (work == NULL)
+	{
+		putErrmsg("bibecli can't get acquisition work area", NULL);
+		return -1;
+	}
+
+	if (bpBeginAcq(work, 0, NULL) < 0)
+	{
+		putErrmsg("bibecli can't begin bundle acquisition.", NULL);
+		return -1;
+	}
+
+	if (bpLoadAcq(work, dlv->adu) < 0)
+	{
+		putErrmsg("bibecli can't continue bundle acquisition.", NULL);
+		return -1;
+	}
+
+	if (bpEndAcq(work) < 0)
+	{
+		putErrmsg("bibecli can't complete bundle acquisition.", NULL);
+		return -1;
+	}
+
+	bpReleaseAcqArea(work);
 	return 0;
 }
 
@@ -11496,7 +11664,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 
 		switch (adminRecType)
 		{
-		case 1:		/*	Status report.			*/
+		case BP_STATUS_REPORT:
 			if (handleStatusRpt(&dlv, &rpt) < 0)
 			{
 				putErrmsg("Status report handler failed.",
@@ -11507,7 +11675,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 			bpEraseStatusRpt(&rpt);
 			break;			/*	Out of switch.	*/
 
-		case 2:		/*	Custody signal.			*/
+		case BP_CUSTODY_SIGNAL:
 
 			/*	Node-defined handler is given a
 			 *	chance to respond to the custody signal
@@ -11536,6 +11704,20 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 
 			bpEraseCtSignal(&cts);
 			break;			/*	Out of switch.	*/
+
+		case BP_ENCAPSULATED_BUNDLE:
+			if (handleEncapsulatedBundle(&dlv) < 0)
+			{
+				putErrmsg("bibecli failed.", NULL);
+				running = 0;
+			}
+
+			/*	Handling of encapsulated bundle has
+			 *	disposed of the bundle's ADU.		*/
+
+			bp_release_delivery(&dlv, 0);
+			sm_TaskYield();
+			continue;
 
 		default:	/*	Unknown or non-standard.	*/
 			result = applyACS(adminRecType, other, &dlv,

@@ -42,12 +42,12 @@ typedef struct
 
 #define sdr_malloc(sdr, size) \
 Sdr_malloc(__FILE__, __LINE__, sdr, size)
-extern Object		Sdr_malloc(char *file, int line,
+extern Object		Sdr_malloc(const char *file, int line,
 				Sdr sdr, unsigned long size);
 
 #define sdr_insert(sdr, from, size) \
 Sdr_insert(__FILE__, __LINE__, sdr, from, size)
-extern Object		Sdr_insert(char *file, int line,
+extern Object		Sdr_insert(const char *file, int line,
 				Sdr sdr, char *from, unsigned long size);
 
 #define sdr_stow(sdr, variable) \
@@ -57,7 +57,7 @@ extern long		sdr_object_length(Sdr sdr, Object object);
 
 #define sdr_free(sdr, object) \
 Sdr_free(__FILE__, __LINE__, sdr, object)
-extern void		Sdr_free(char *file, int line,
+extern void		Sdr_free(const char *file, int line,
 				Sdr sdr, Object object);
 
 extern void		sdr_stage(Sdr sdr, char *into, Object from, long size);

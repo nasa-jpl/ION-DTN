@@ -41,7 +41,8 @@ extern PsmAddress	rfx_insert_contact(time_t fromTime,
 				time_t toTime,
 				uvast fromNode,
 				uvast toNode,
-				unsigned int xmitRate);
+				unsigned int xmitRate,
+				float prob);
 			/*	Creates a new IonContact object,
 				inserts that object into the contacts
 				list in the ION database, and returns
@@ -109,11 +110,11 @@ extern IonNode		*findNode(IonVdb *ionvdb, uvast nodeNbr,
 
 extern IonNode		*addNode(IonVdb *ionvdb, uvast nodeNbr);
 
-extern int		addSnub(IonNode *node, uvast neighborNodeNbr);
+extern int		addEmbargo(IonNode *node, uvast neighborNodeNbr);
 
-extern void		removeSnub(IonNode *node, uvast neighborNodeNbr);
+extern void		removeEmbargo(IonNode *node, uvast neighborNodeNbr);
 
-extern PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub);
+extern PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo);
 
 #ifdef __cplusplus
 }

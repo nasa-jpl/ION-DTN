@@ -608,7 +608,7 @@ static int	lookupRule(Object rules, unsigned int sourceServiceNbr,
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, IpnRule, rule, addr);
-		if ((rule->directive.protocolClass &protClassReqd) == 0)
+		if ((rule->directive.protocolClass & protClassReqd) == 0)
 		{
 			continue;	/*	Can't use this rule.	*/
 		}

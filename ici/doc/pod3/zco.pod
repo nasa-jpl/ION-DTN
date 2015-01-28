@@ -226,6 +226,18 @@ and I<trailer> are assumed to be arrays of octets, not necessarily text.
 Attaching a header or trailer causes it to be written to the SDR.  The
 prepend and append functions return 0 on success, -1 on any error.
 
+=item Object zco_header_text(Sdr sdr, Object zco, int skip, vast *length)
+
+Skips over the first I<skip> headers of I<zco> and returns the address of
+the text of next header, placing the length of the header's text in
+I<*length>.  Returns 0 on any error.
+
+=item Object zco_trailer_text(Sdr sdr, Object zco, int skip, vast *length)
+
+Skips over the first I<skip> trailers of I<zco> and returns the address of
+the text of next trailer, placing the length of the trailer's text in
+I<*length>.  Returns 0 on any error.
+
 =item void zco_destroy(Sdr sdr, Object zco)
 
 Destroys the indicated Zco.  This reduces the reference counts for all
