@@ -356,6 +356,7 @@ typedef struct
 	Object		timelineElt;	/*	TTL expire list ref.	*/
 	Object		overdueElt;	/*	Xmit overdue ref.	*/
 	Object		ctDueElt;	/*	CT deadline ref.	*/
+	Object		transitElt;	/*	Transit queue ref.	*/
 	Object		fwdQueueElt;	/*	Scheme's queue ref.	*/
 	Object		fragmentElt;	/*	Incomplete's list ref.	*/
 	Object		dlvQueueElt;	/*	Endpoint's queue ref.	*/
@@ -612,8 +613,10 @@ typedef struct
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
+	Object		transitQueue;	/*	SDR list of Bundles	*/
 	Object		limboQueue;	/*	SDR list of Bundles	*/
-	Object		clockCmd; 	/*	For starting clock.	*/
+	Object		clockCmd; 	/*	For starting bpclock.	*/
+	Object		transitCmd; 	/*	For starting bptransit.	*/
 	unsigned int	maxAcqInHeap;
 	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
@@ -720,7 +723,9 @@ typedef struct
 	int		updateStats;	/*	Boolean.		*/
 	unsigned int	creationTimeSec;
 	int		bundleCounter;
-	int		clockPid;	/*	For stopping clock.	*/
+	int		clockPid;	/*	For stopping bpclock.	*/
+	int		transitPid;	/*	For stopping bptransit.	*/
+	sm_SemId	transitSemaphore;
 	int		watching;	/*	Activity watch switch.	*/
 
 	/*	For finding structures in database.			*/

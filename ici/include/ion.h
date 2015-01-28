@@ -239,6 +239,34 @@ typedef struct
 	PsmAddress	ref;		/*	A CXref or RXref addr.	*/
 } IonEvent;
 
+/*	These structures are used to implement flow-controlled ZCO
+ *	space management for ION.					*/
+
+typedef struct
+{
+	ZcoAcct		acct;
+	sm_SemId	semaphore;
+} ReqPermit;
+
+typedef PsmAddress	ReqTicket;
+
+typedef enum
+{
+	ReqOpen = 0,
+	ReqServiced = 1,
+	ReqExpired = 2
+} ReqStatus;
+
+typedef struct
+{
+	vast		fileSpaceNeeded;
+	vast		heapSpaceNeeded;
+	sm_SemId	semaphore;
+	ReqStatus	status;
+	unsigned char	coarsePriority;
+	unsigned char	finePriority;
+} Requisition;
+
 /*	The volatile database object encapsulates the current volatile
  *	state of the database.						*/
 
@@ -246,9 +274,6 @@ typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
-	sm_SemId	zcoSemaphore;	/*	Signals availability.	*/
-	int		zcoClaimants;	/*	# of waiting tasks.	*/
-	int		zcoClaims;	/*	# of demands on ZCO.	*/
 	time_t		lastEditTime;	/*	Add/del contacts/ranges	*/
 	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
 	PsmAddress	neighbors;	/*	SM RB tree: IonNeighbor	*/
@@ -256,6 +281,7 @@ typedef struct
 	PsmAddress	rangeIndex;	/*	SM RB tree: IonRXref	*/
 	PsmAddress	timeline;	/*	SM RB tree: IonEvent	*/
 	PsmAddress	probes;		/*	SM list: IonProbe	*/
+	PsmAddress	requisitions[2];/*	SM list: Requisition	*/
 } IonVdb;
 
 typedef struct
@@ -292,17 +318,30 @@ extern void		ionProd(	uvast fromNode,
 					unsigned int owlt);
 extern void		ionTerminate();
 
+int			ionOpenPermit(	ReqPermit *permit,
+					ZcoAcct acct);
+void			ionSuspendPermit(ReqPermit *permit);
+void			ionResumePermit(ReqPermit *permit);
+void			ionClosePermit(	ReqPermit *permit);
+void			ionShred(	ReqTicket ticket);
+
 extern Object		ionCreateZco(	ZcoMedium source,
 					Object location,
 					vast offset,
 					vast length,
-					int *control);
+					unsigned int coarsePriority,
+					unsigned int finePriority,
+					int blocking,
+					ReqPermit *permit);
 extern vast		ionAppendZcoExtent(Object zco,
 					ZcoMedium source,
 					Object location,
 					vast offset,
 					vast length,
-					int *control);
+					unsigned int coarsePriority,
+					unsigned int finePriority,
+					int blocking,
+					ReqPermit *permit);
 extern void		ionCancelZcoSpaceRequest(int *control);
 
 extern Sdr		getIonsdr();
