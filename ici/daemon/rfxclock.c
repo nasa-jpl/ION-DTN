@@ -10,6 +10,12 @@
 									*/
 #include "rfx.h"
 
+#ifndef	MAX_SECONDS_UNCLAIMED
+#define	MAX_SECONDS_UNCLAIMED	(3)
+#endif
+
+extern void	ionShred(ReqTicket ticket);
+
 static long	_running(long *newValue)
 {
 	void	*value;
@@ -320,6 +326,10 @@ int	main(int argc, char *argv[])
 	int		neighborNodeNbr;
 	int		forecastNeeded;
 	IonEvent	*event;
+	int		i;
+	PsmAddress	nextElt;
+	PsmAddress	reqAddr;
+	Requisition	*req;
 
 	if (ionAttach() < 0)
 	{
@@ -416,9 +426,48 @@ int	main(int argc, char *argv[])
 					event, NULL, NULL));
 		}
 
+		/*	Finally, clean up any ZCO space requisitions
+		 *	that have been serviced but that applicants
+		 *	have not yet claimed; let other applicants
+		 *	get access to ZCO space.			*/
+
+		for (i = 0; i < 2; i++)
+		{
+			for (elt = sm_list_first(ionwm, vdb->requisitions[i]);
+					elt; elt = nextElt)
+			{
+				nextElt = sm_list_next(ionwm, elt);
+				reqAddr = sm_list_data(ionwm, elt);
+				req = (Requisition *) psp(ionwm, reqAddr);
+				switch (req->secondsUnclaimed)
+				{
+				case -1:	/*	Not serviced.	*/
+					break;	/*	Out of switch.	*/
+
+				case MAX_SECONDS_UNCLAIMED:
+
+					/*	Requisition expired.	*/
+
+					sm_SemEnd(req->semaphore);
+					ionShred(elt);
+					continue;
+
+				default:	/*	Still waiting.	*/
+					req->secondsUnclaimed++;
+					continue;
+				}
+
+				/*	No more serviced requisitions.	*/
+
+				break;		/*	Out of loop.	*/
+			}
+		}
+
+		/*	Finished all ION 1Hz processing.		*/
+
 		if (sdr_end_xn(sdr) < 0)
 		{
-			putErrmsg("Can't set current topology.", NULL);
+			putErrmsg("Can't do ION 1Hz updates.", NULL);
 			return -1;
 		}
 

@@ -112,12 +112,12 @@ transmitted.
 =back
 
 I<adu> is the "application data unit" that will be conveyed as the payload
-of the new bundle.  I<adu> must be a "zero-copy object" (ZCO).  ZCOs are
-normally created by invoking ionCreateZco(), which will block so long as
-insufficient ZCO storage space is available for creation of the requested
-ZCO (admission control); if non-blocking behavior is preferred, ZCOs may
-instead be created by zco_create(), which fails immediately if insufficient
-ZCO storage space is available.
+of the new bundle.  I<adu> must be a "zero-copy object" (ZCO).  To ensure
+orderly access to transmission buffer space for all applications, I<adu>
+must be created by invoking ionCreateZco(), which may be configured either
+to block so long as insufficient ZCO storage space is available for creation
+of the requested ZCO or to fail immediately if insufficient ZCO storage space
+is available.
 
 The function returns 1 on success, 0 on user error, -1 on any system
 error.  If 0 is returned, then an invalid argument value was passed to

@@ -76,8 +76,9 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 		return 0;
 	}
 	
-	bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength, NULL);
-	if (bundleZco == 0)
+	bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
+			priority, extendedCOS.ordinal, ZcoOutbound, NULL);
+	if (bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
 		putErrmsg("bpsendfile can't create ZCO.", NULL);
 	}

@@ -42,6 +42,16 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
+/*	We hitchhike on the ZCO heap space management system to 
+ *	manage the space occupied by Bundle objects.  In effect,
+ *	the Bundle overhead objects compete with ZCOs for available
+ *	SDR heap space.  We don't want this practice to become
+ *	widespread, which is why these functions are declared
+ *	privately here rather than publicly in the zco.h header.	*/
+
+extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
+extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
+
 static BpVdb	*_bpvdb(char **);
 static int	constructCtSignal(BpCtSignal *csig, Object *zco);
 static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco);
@@ -1335,6 +1345,8 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->creationTimeSec = 0;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
+		vdb->transitSemaphore = SM_SEM_NONE;
+		vdb->transitPid = ERROR;
 		vdb->watching = db->watching;
 		if ((vdb->schemes = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
@@ -1452,7 +1464,9 @@ int	bpInit()
 				BUNDLES_HASH_SEARCH_LEN);
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
+		bpdbBuf.transitQueue = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
+		bpdbBuf.transitCmd = sdr_string_create(bpSdr, "bptransit");
 		bpdbBuf.maxAcqInHeap = 560;
 		bpdbBuf.sourceStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.recvStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
@@ -1645,6 +1659,16 @@ int	bpStart()
 		bpvdb->clockPid = pseudoshell(cmdString);
 	}
 
+	/*	Start the bundle transit daemon if necessary.		*/
+
+	if (bpvdb->transitPid == ERROR || sm_TaskExists(bpvdb->transitPid) == 0)
+	{
+		sdr_string_read(bpSdr, cmdString, (_bpConstants())->transitCmd);
+		bpvdb->transitPid = pseudoshell(cmdString);
+		bpvdb->transitSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+		sm_SemTake(bpvdb->transitSemaphore);	/*	Lock.	*/
+	}
+
 	/*	Start forwarders and admin endpoints for all schemes.	*/
 
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
@@ -1713,6 +1737,12 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
 	}
 
+	sm_SemEnd(bpvdb->transitSemaphore);
+	if (bpvdb->transitPid != ERROR)
+	{
+		sm_TaskKill(bpvdb->transitPid, SIGTERM);
+	}
+
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 
 	/*	Wait until all BP processes have stopped.		*/
@@ -1746,10 +1776,19 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		}
 	}
 
+	if (bpvdb->transitPid != ERROR)
+	{
+		while (sm_TaskExists(bpvdb->transitPid))
+		{
+			microsnooze(100000);
+		}
+	}
+
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	CHKVOID(sdr_begin_xn(bpSdr));
 	bpvdb->clockPid = ERROR;
+	bpvdb->transitPid = ERROR;
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -1850,13 +1889,13 @@ void	bpDetach()
 
 /*	*	*	Database occupancy functions	*	*	*/
 
-static void	noteBundleInserted(Bundle *bundle)
+void	noteBundleInserted(Bundle *bundle)
 {
 	zco_increase_heap_occupancy(getIonsdr(), bundle->dbOverhead,
 			bundle->acct);
 }
 
-static void	noteBundleRemoved(Bundle *bundle)
+void	noteBundleRemoved(Bundle *bundle)
 {
 	zco_reduce_heap_occupancy(getIonsdr(), bundle->dbOverhead,
 			bundle->acct);
@@ -2646,6 +2685,12 @@ incomplete bundle.", NULL);
 			bundle.dlvQueueElt = 0;
 		}
 
+		if (bundle.transitElt)
+		{
+			sdr_list_delete(bpSdr, bundle.transitElt, NULL, NULL);
+			bundle.transitElt = 0;
+		}
+
 		if (bundle.ductXmitElt)
 		{
 			purgeDuctXmitElt(&bundle, bundleObj);
@@ -2695,7 +2740,7 @@ incomplete bundle.", NULL);
 	/*	Check for any remaining constraints on deletion.	*/
 
 	if (bundle.fragmentElt || bundle.dlvQueueElt || bundle.fwdQueueElt
-	|| bundle.ductXmitElt || bundle.custodyTaken)
+	|| bundle.ductXmitElt || bundle.transitElt || bundle.custodyTaken)
 	{
 		return 0;	/*	Can't destroy bundle yet.	*/
 	}
@@ -6165,12 +6210,12 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 			VEndpoint **vpoint)
 {
 	Sdr		bpSdr = getIonsdr();
+	BpDB		*db = getBpConstants();
+	BpVdb		*vdb = getBpVdb();
 	char		*dictionary;
 	VScheme		*vscheme;
 	Bundle		newBundle;
 	Object		newBundleObj;
-	char		*eidString;
-	int		result;
 
 	CHKERR(ionLocked());
 	if ((dictionary = retrieveDictionary(bundle)) == (char *) bundle)
@@ -6296,74 +6341,14 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 		bundleObj = newBundleObj;
 	}
 
-	/*	We now propose to forward "bundle" (original or
-	 *	clone).  As such, this bundle's payload must now
-	 *	occupy "outbound" ZCO space rather than "inbound"
-	 *	ZCO space.						*/
+	/*	Queue the bundle for insertion into Outbound ZCO
+	 *	space.							*/
 
-	bundle->payload.content = zco_transmute(bpSdr, bundle->payload.content);
-	if (bundle->payload.content == 0)
-	{
-		putErrmsg("Failed transmuting bundle payload.", NULL);
-		return -1;
-	}
-
-	/*	Transmute bundle overhead to "outbound" ZCO space
-	 *	as well.						*/
-
-	noteBundleRemoved(bundle);
-	bundle->acct = ZcoOutbound;
-	if (patchExtensionBlocks(bundle) < 0)
-	{
-		putErrmsg("Can't insert missing extensions.", NULL);
-		releaseDictionary(dictionary);
-		sdr_cancel_xn(bpSdr);
-		return -1;
-	}
-
-	noteBundleInserted(bundle);
-
-	/*	Check to see if transmuting the bundle has caused the
-	 *	outbound ZCO space allocation to be exceeded.  If so,
-	 *	we must abandon attempts to forward the bundle.		*/
-
-	if (!zco_enough_heap_space(bpSdr, 0, ZcoOutbound)
-	|| !zco_enough_file_space(bpSdr, 0, ZcoOutbound))
-	{
-		releaseDictionary(dictionary);
-		if (bpAccept(bundleObj, bundle) < 0)
-		{
-			putErrmsg("Failed dispatching bundle.", NULL);
-			return -1;
-		}
-
-		/*	Accepting the bundle wrote it to the SDR, so
-		 *	we can now destroy it successfully.  We again
-		 *	count the bundle as "forwarded" because
-		 *	bpAbandon will count it as "forwarding failed".	*/
-
-		bpDbTally(BP_DB_QUEUED_FOR_FWD, bundle->payload.length);
-		return bpAbandon(bundleObj, bundle, BP_REASON_DEPLETION);
-	}
-
-	/*	Bundle is now ready to be forwarded.			*/
-
-	if (printEid(&bundle->destination, dictionary, &eidString) < 0)
-	{
-		putErrmsg("Can't print destination EID.", NULL);
-		releaseDictionary(dictionary);
-		return -1;
-	}
-
-	result = forwardBundle(bundleObj, bundle, eidString);
-	MRELEASE(eidString);
+	bundle->transitElt = sdr_list_insert_last(bpSdr, db->transitQueue,
+			bundleObj);
+	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	sm_SemGive(vdb->transitSemaphore);
 	releaseDictionary(dictionary);
-	if (result < 0)
-	{
-		putErrmsg("Can't enqueue bundle for forwarding.", NULL);
-		return -1;
-	}
-
 	return 0;
 }
 
@@ -6564,12 +6549,12 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 	return 0;
 }
 
-int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length, int blocking)
+int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
+		ReqAttendant *attendant)
 {
 	static unsigned int	acqCount = 0;
 	Sdr			sdr = getIonsdr();
 				OBJ_POINTER(BpDB, bpdb);
-	int			extentLength;
 	Object			extentObj;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
@@ -6623,32 +6608,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length, int blocking)
 
 	if ((length + zco_length(sdr, work->zco)) <= bpdb->maxAcqInHeap)
 	{
-		if (blocking)	/*	Check size before writing.	*/
-		{
-			if (zco_extent_too_large(sdr, ZcoSdrSource, length,
-					ZcoInbound))
-			{
-				if (sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("Acquisition failed.", NULL);
-					return -1;
-				}
-
-				return 1;	/*	Retry later.	*/
-			}
-
-			extentLength = 0 - length;
-		}
-		else		/*	Let zco_append_extent decide.	*/
-		{
-			extentLength = length;
-		}
-
 		extentObj = sdr_insert(sdr, bytes, length);
 		if (extentObj)
 		{
-			switch (zco_append_extent(sdr, work->zco, ZcoSdrSource,
-					extentObj, 0, extentLength))
+			switch (ionAppendZcoExtent(work->zco, ZcoSdrSource,
+					extentObj, 0, length, 0, 0, attendant))
 			{
 			case ERROR:
 				putErrmsg("Can't append heap extent.", NULL);
@@ -6674,27 +6638,6 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length, int blocking)
 
 	/*	This extent of this acquisition must be acquired into
 	 *	a file.							*/
-
-	if (blocking)		/*	Check size before writing.	*/
-	{
-		if (zco_extent_too_large(sdr, ZcoFileSource, length,
-				ZcoInbound))
-		{
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Acquisition failed.", NULL);
-				return -1;
-			}
-
-			return 1;		/*	Retry later.	*/
-		}
-
-		extentLength = 0 - length;
-	}
-	else			/*	Let zco_append_extent decide.	*/
-	{
-		extentLength = length;
-	}
 
 	if (work->acqFileRef == 0)	/*	First file extent.	*/
 	{
@@ -6757,8 +6700,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length, int blocking)
 	}
 
 	close(fd);
-	switch (zco_append_extent(sdr, work->zco, ZcoFileSource,
-			work->acqFileRef, fileLength, extentLength))
+	switch (ionAppendZcoExtent(work->zco, ZcoFileSource, work->acqFileRef,
+			fileLength, length, 0, 0, attendant))
 	{
 	case ERROR:
 		putErrmsg("Can't append file reference extent.", NULL);
@@ -7854,8 +7797,9 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 	 *
 	 *	Note that at this point we have NOT yet written
 	 *	the bundle structure itself into the SDR space we
-	 *	have allocated for it (bundleObj), because it may
-	 *	still change in the course of dispatching.		*/
+	 *	have allocated for it (bundleObj).  dispatchBundle()
+	 *	will do this, in enqueuing it for delivery and/or
+	 *	in enqueuing it for forwarding.				*/
 
 	if (dispatchBundle(bundleObj, bundle, vpoint) < 0)
 	{
@@ -7885,6 +7829,7 @@ static int	checkIncompleteBundle(Bundle *newFragment, VEndpoint *vpoint)
 	Bundle		fragBuf;
 	unsigned int	bytesToSkip;
 	unsigned int	bytesToCopy;
+	vast		extentLength;
 
 	/*	Check to see if entire ADU has been received.		*/
 
@@ -7959,10 +7904,20 @@ static int	checkIncompleteBundle(Bundle *newFragment, VEndpoint *vpoint)
 		if (bytesToSkip < fragBuf.payload.length)
 		{
 			bytesToCopy = fragBuf.payload.length - bytesToSkip;
+			extentLength = bytesToCopy;
+
+			/*	Providing a negative length to the
+			 *	zco_append_extent function suppresses
+			 *	the check for the extent being too
+			 *	large.  Since we are only cloning an
+			 *	existing extent in the ZcoInbound
+			 *	account, not occupying additional ZCO
+			 *	space, there is no need for this check.	*/
+
 			if (zco_append_extent(bpSdr,
 					aggregateBundle.payload.content,
 					ZcoZcoSource, fragBuf.payload.content,
-					bytesToSkip, bytesToCopy) < 0)
+					bytesToSkip, 0 - extentLength) < 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
 				return -1;
@@ -8194,8 +8149,14 @@ static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 
 	sdr_write(bpSdr, sourceData, buffer, ctSignalLength);
 	MRELEASE(buffer);
-	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, ctSignalLength,
-			ZcoOutbound);
+
+	/*	Pass additive inverse of length to zco_create to
+	 *	indicate that allocating this ZCO space is non-
+	 *	negotiable: for custody signals, allocation of
+	 *	ZCO space can never be denied or delayed.		*/
+
+	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0,
+			0 - ctSignalLength, ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create CT signal.", NULL);
@@ -8469,7 +8430,13 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 
 	sdr_write(bpSdr, sourceData, buffer, rptLength);
 	MRELEASE(buffer);
-	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, rptLength,
+
+	/*	Pass additive inverse of length to zco_create to
+	 *	indicate that allocating this ZCO space is non-
+	 *	negotiable: for status reports, allocation of
+	 *	ZCO space can never be denied or delayed.		*/
+
+	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, 0 - rptLength,
 			ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{

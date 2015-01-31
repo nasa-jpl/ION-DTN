@@ -243,6 +243,26 @@ typedef struct
 	PsmAddress	ref;		/*	A CXref or RXref addr.	*/
 } IonEvent;
 
+/*	These structures are used to implement flow-controlled ZCO
+ *	space management for ION.					*/
+
+typedef struct
+{
+	sm_SemId	semaphore;
+} ReqAttendant;
+
+typedef PsmAddress	ReqTicket;
+
+typedef struct
+{
+	vast		fileSpaceNeeded;
+	vast		heapSpaceNeeded;
+	sm_SemId	semaphore;
+	int		secondsUnclaimed;
+	unsigned char	coarsePriority;
+	unsigned char	finePriority;
+} Requisition;
+
 /*	The volatile database object encapsulates the current volatile
  *	state of the database.						*/
 
@@ -250,9 +270,6 @@ typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
-	sm_SemId	zcoSemaphore;	/*	Signals availability.	*/
-	int		zcoClaimants;	/*	# of waiting tasks.	*/
-	int		zcoClaims;	/*	# of demands on ZCO.	*/
 	time_t		lastEditTime;	/*	Add/del contacts/ranges	*/
 	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
 	PsmAddress	neighbors;	/*	SM RB tree: IonNeighbor	*/
@@ -260,6 +277,7 @@ typedef struct
 	PsmAddress	rangeIndex;	/*	SM RB tree: IonRXref	*/
 	PsmAddress	timeline;	/*	SM RB tree: IonEvent	*/
 	PsmAddress	probes;		/*	SM list: IonProbe	*/
+	PsmAddress	requisitions[2];/*	SM list: Requisition	*/
 } IonVdb;
 
 typedef struct
@@ -296,18 +314,26 @@ extern void		ionProd(	uvast fromNode,
 					unsigned int owlt);
 extern void		ionTerminate();
 
+int			ionStartAttendant(ReqAttendant *permit);
+void			ionPauseAttendant(ReqAttendant *permit);
+void			ionResumeAttendant(ReqAttendant *permit);
+void			ionStopAttendant(ReqAttendant *permit);
 extern Object		ionCreateZco(	ZcoMedium source,
 					Object location,
 					vast offset,
 					vast length,
-					int *control);
+					unsigned int coarsePriority,
+					unsigned int finePriority,
+					ZcoAcct acct,
+					ReqAttendant *attendant);
 extern vast		ionAppendZcoExtent(Object zco,
 					ZcoMedium source,
 					Object location,
 					vast offset,
 					vast length,
-					int *control);
-extern void		ionCancelZcoSpaceRequest(int *control);
+					unsigned int coarsePriority,
+					unsigned int finePriority,
+					ReqAttendant *attendant);
 
 extern Sdr		getIonsdr();
 extern Object		getIonDbObject();

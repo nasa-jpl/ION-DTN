@@ -24,18 +24,16 @@ static int	_running(int *newState)
 	return state;
 }
 
-static void	_zcoControl(int *controlPtr)
+static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 {
-	static int	*ptr = NULL;
+	static ReqAttendant	*attendant = NULL;
 
-	if (controlPtr)	/*	Initializing ZCO request cancellation.	*/
+	if (newAttendant)
 	{
-		ptr = controlPtr;
+		attendant = newAttendant;
 	}
-	else		/*	Canceling ZCO request.			*/
-	{
-		ionCancelZcoSpaceRequest(ptr);
-	}
+
+	return attendant;
 }
 
 static void	handleQuit()
@@ -43,22 +41,22 @@ static void	handleQuit()
 	int	stop = 0;
 
 	oK(_running(&stop));
-	_zcoControl(NULL);
+	ionPauseAttendant(_attendant(NULL));
 }
 
 #if defined (ION_LWT)
 int	bpsource(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char	*destEid = (char *) a1;
-	char	*text = (char *) a2;
-	int 	ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
+	char		*destEid = (char *) a1;
+	char		*text = (char *) a2;
+	int 		ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
 #else
 int	main(int argc, char **argv)
 {
-	char	*destEid = NULL;
-	char	*text = NULL;
-	int 	ttl = 300;
+	char		*destEid = NULL;
+	char		*text = NULL;
+	int 		ttl = 300;
 
 	if(argc > 4) argc=4;
 
@@ -86,17 +84,15 @@ int	main(int argc, char **argv)
 	default:
 		break;
 	}
-
-
 #endif
-	Sdr	sdr;
-	char	line[256];
-	int	lineLength;
-	Object	extent;
-	Object	bundleZco;
-	int	controlZco = 0;
-	Object	newBundle;
-	int	fd;
+	Sdr		sdr;
+	char		line[256];
+	int		lineLength;
+	Object		extent;
+	Object		bundleZco;
+	ReqAttendant	attendant;
+	Object		newBundle;
+	int		fd;
 
 	if (destEid == NULL)
 	{
@@ -117,6 +113,13 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
+	if (ionStartAttendant(&attendant))
+	{
+		putErrmsg("Can't initialize blocking transmission.", NULL);
+		return 0;
+	}
+
+	_attendant(&attendant);
 	sdr = bp_get_sdr();
 	if (text)
 	{
@@ -143,8 +146,8 @@ int	main(int argc, char **argv)
 		}
 
 		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, lineLength,
-				&controlZco);
-		if (bundleZco == 0)
+				BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
+		if (bundleZco == 0 || bundleZco == (Object) ERROR)
 		{
 			putErrmsg("Can't create ZCO extent.", NULL);
 			bp_detach();
@@ -158,13 +161,13 @@ int	main(int argc, char **argv)
 			putErrmsg("bpsource can't send ADU.", NULL);
 		}
 
+		ionStopAttendant(_attendant(NULL));
 		bp_detach();
 		return 0;
 	}
 
 #ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
 	fd = fileno(stdin);
-	_zcoControl(&controlZco);
 	isignal(SIGINT, handleQuit);
 	while (_running(NULL))
 	{
@@ -204,8 +207,9 @@ int	main(int argc, char **argv)
 			}
 
 			bundleZco = ionCreateZco(ZcoSdrSource, extent,
-					0, lineLength, &controlZco);
-			if (bundleZco == 0)
+					0, lineLength, BP_STD_PRIORITY, 0,
+					ZcoOutbound, &attendant);
+			if (bundleZco == 0 || bundleZco == (Object) ERROR)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				break;
@@ -224,9 +228,9 @@ int	main(int argc, char **argv)
 
 		break;
 	}
-
-	writeMemo("[i] Stopping bpsource.");
-	bp_detach();
 #endif
+	writeMemo("[i] Stopping bpsource.");
+	ionStopAttendant(_attendant(NULL));
+	bp_detach();
 	return 0;
 }

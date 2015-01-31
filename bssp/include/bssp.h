@@ -48,7 +48,7 @@ extern int	bssp_send(uvast destinationEngineId,
 			BsspSessionId *sessionId);
 
 		/*	clientServiceData must be a "zero-copy object"
-	 	 *	reference as returned by zco_create().  Note
+	 	 *	reference as returned by ionCreateZco().  Note
 		 *	that BSSP will privately make and destroy its
 		 *	own reference to the client service data; the
 		 *	application is free to destroy its reference

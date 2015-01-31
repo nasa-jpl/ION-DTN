@@ -251,15 +251,6 @@ Converts all headers and trailers of the indicated Zco to source data extents.
 Use this function to ensure that known header and trailer data are included
 when the ZCO is cloned.
 
-=item void zco_transmute(Sdr sdr, Object zco)
-
-Converts an inbound ZCO to an outbound ZCO, revising all occupancy figures
-accordingly.  This function is used, for example, when it is determined that
-a received BP bundle must be forwarded to another node. Returns SDR location
-of the ZCO object on success, 0 if there is currently too little outbound
-ZCO space to contain the ZCO (in which case the ZCO has already been destroyed),
-(Object) -1 on any error.
-
 =item Object zco_clone(Sdr sdr, Object zco, vast offset, vast length)
 
 Creates a new ZCO whose source data is a copy of a subset of the source

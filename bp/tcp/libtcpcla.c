@@ -558,7 +558,8 @@ int	receiveBytesByTCP(int bundleSocket, char *into, int length)
 	}
 }
 
-int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer)
+int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer,
+		ReqAttendant *attendant)
 {
 	unsigned int	preamble;
 	unsigned int	bundleLength = 0;
@@ -621,22 +622,9 @@ int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer)
 
 		/*	Acquire the received data.			*/
 
-		while (1)
+		if (bpContinueAcq(work, buffer, extentSize, attendant) < 0)
 		{
-			switch (bpContinueAcq(work, buffer, extentSize, 1))
-			{
-			case -1:	/*	Failure.		*/
-				return -1;
-
-			case 1:		/*	Not enough ZCO space.	*/
-				snooze(1);
-				continue;
-
-			default:	/*	Success.		*/
-				break;	/*	Out of switch.		*/
-			}
-
-			break;		/*	Out of loop.  Read on.	*/
+			return -1;
 		}
 	}
 
@@ -775,7 +763,7 @@ int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,uvast 
 
 			/*	Acquire the received data.		*/
 
-			if (bpContinueAcq(work, buffer, extentSize, 0) < 0)
+			if (bpContinueAcq(work, buffer, extentSize, NULL) < 0)
 			{
 				return -1;
 			}

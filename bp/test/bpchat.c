@@ -16,7 +16,6 @@ static char                 *destEid = NULL;
 static char                 *ownEid = NULL;
 static BpCustodySwitch      custodySwitch = NoCustodyRequested;
 static int                  running = 1;
-static int		    controlZco;
 
 const char usage[] =
 "Usage: bpchat.c <source EID> <dest EID> [ct]\n\n"
@@ -64,8 +63,8 @@ static void *       sendLines(void *args)
 		}
 
 		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0, 
-				lineLength, &controlZco);
-		if(bundleZco == 0) {
+			lineLength, BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
+		if(bundleZco == 0 || bundleZco == (Object) ERROR) {
 			pthread_mutex_unlock(&sdrmutex);
 			bp_close(sap);
 			putErrmsg("bpchat can't create bundle ZCO.", NULL);
@@ -141,7 +140,6 @@ void handleQuit(int sig)
 	running = 0;
 	pthread_end(sendLinesThread);
 	bp_interrupt(sap);
-	ionCancelZcoSpaceRequest(&controlZco);
 }
 
 int main(int argc, char **argv)

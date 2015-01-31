@@ -89,7 +89,7 @@ typedef struct
 /*	Commonly used functions for building, accessing, managing,
  	and destroying a ZCO.						*/
 
-typedef void	(*ZcoCallback)();
+typedef void	(*ZcoCallback)(ZcoAcct);
 
 extern void	zco_register_callback(ZcoCallback notify);
 			/*	Provides the callback function that
@@ -223,6 +223,22 @@ extern int	zco_extent_too_large(Sdr sdr,
 			 *	the indicated length in the indicated
 			 *	source medium.  Returns 0 otherwise.	*/
 
+extern void	zco_get_aggregate_length(Sdr sdr,
+				Object location,
+				vast offset,
+				vast length,
+				vast *fileSpaceOccupied,
+				vast *heapSpaceOccupied);
+			/*	Populates *fileSpaceOccupied and
+			 *	*heapSpaceOccupied with the total
+			 *	number of ZCO space bytes occupied by
+			 *	the extents of the zco at "location",
+			 *	from "offset" to offset + length.  If
+			 *	offset isn't the start of an extent
+			 *	or offset + length isn't the end of an
+			 *	extent, returns -1 in both "Occupied"
+			 *	fields.					*/
+
 extern Object	zco_create(	Sdr sdr,
 				ZcoMedium firstExtentSourceMedium,
 				Object firstExtentLocation,
@@ -321,17 +337,6 @@ extern int	zco_bond(	Sdr sdr,
 			 *	to prevent header and trailer data
 			 *	from being omitted when the ZCO is
 			 *	cloned.					*/
-
-extern Object	zco_transmute(	Sdr sdr,
-				Object zco);
-			/*	Converts an inbound ZCO to an outbound
-			 *	ZCO, revising all occupancy figures
-			 *	accordingly.  Returns SDR location of
-			 *	the ZCO object on success, 0 if there
-			 *	is currently too little outbound ZCO
-			 *	space to contain the ZCO (in which
-			 *	case the ZCO has been destroyed),
-			 *	((Object) -1) on any error.		*/
 
 extern Object	zco_clone(	Sdr sdr,
 				Object zco,

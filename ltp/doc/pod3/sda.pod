@@ -46,7 +46,7 @@ function must return -1 on any system error, zero otherwise.
 
 Sends a client service data unit to an application, identified by I<clientId>,
 at the LTP engine identified by I<destinationEngineId>.  clientServiceData must
-be a "zero-copy object" reference as returned by zco_create().  Note that SDA
+be a "zero-copy object" reference as returned by ionCreateZco().  Note that SDA
 will privately make and destroy its own reference to the client service data;
 the application is free to destroy its reference at any time.   Note that the
 client service data unit will always be sent reliably (i.e., "red").

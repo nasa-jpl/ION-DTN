@@ -35,6 +35,16 @@
 #include "bpP.h"
 #include "bei.h"
 
+/*	We hitchhike on the ZCO heap space management system to 
+ *	manage the space occupied by Bundle objects.  In effect,
+ *	the Bundle overhead objects compete with ZCOs for available
+ *	SDR heap space.  We don't want this practice to become
+ *	widespread, which is why these functions are declared
+ *	privately here rather than publicly in the zco.h header.	*/
+
+extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
+extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
+
 /******************************************************************************
  *               OPERATIONS ON THE EXTENSION DEFINITIONS ARRAY                *
  ******************************************************************************/

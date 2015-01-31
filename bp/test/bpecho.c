@@ -19,8 +19,9 @@
 
 typedef struct
 {
-	BpSAP	sap;
-	int	running;
+	BpSAP		sap;
+	int		running;
+	ReqAttendant	attendant;
 } BptestState;
 
 static BptestState	*_bptestState(BptestState *newState)
@@ -41,20 +42,6 @@ static BptestState	*_bptestState(BptestState *newState)
 	return state;
 }
 
-static void	_zcoControl(int *controlPtr)
-{
-	static int	*ptr = NULL;
-
-	if (controlPtr)	/*	Initializing ZCO request cancellation.	*/
-	{
-		ptr = controlPtr;
-	}
-	else		/*	Canceling ZCO request.			*/
-	{
-		ionCancelZcoSpaceRequest(ptr);
-	}
-}
-
 static void	handleQuit()
 {
 	BptestState	*state;
@@ -63,6 +50,7 @@ static void	handleQuit()
 	PUTS("BP reception interrupted.");
 	state = _bptestState(NULL);
 	bp_interrupt(state->sap);
+	ionPauseAttendant(&state->attendant);
 	state->running = 0;
 }
 
@@ -81,11 +69,10 @@ int	main(int argc, char **argv)
  				"!" for BpReceptionInterrupted (3).
 				"X" for BpEndpointStopped (4).	*/
 	static char	dlvmarks[] = "?.*!X";
-	BptestState	state = { NULL, 1 };
+	BptestState	state;
 	Sdr		sdr;
 	char		dataToSend[ADU_LEN];
 	Object		bundleZco;
-	int		controlZco;
 	Object		newBundle;
 	Object		extent;
 	BpDelivery	dlv;
@@ -103,18 +90,24 @@ int	main(int argc, char **argv)
 	if (bp_attach() < 0)
 	{
 		putErrmsg("Can't attach to BP.", NULL);
-		return 0;
+		return 1;
 	}
 
 	if (bp_open(ownEid, &state.sap) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", NULL);
-		return 0;
+		return 1;
+	}
+
+	state.running = 1;
+	if (ionStartAttendant(&state.attendant) < 0)
+	{
+		putErrmsg("Can't initialize blocking transmission.", NULL);
+		return 1;
 	}
 
 	oK(_bptestState(&state));
 	sdr = bp_get_sdr();
-	_zcoControl(&controlZco);
 	isignal(SIGINT, handleQuit);
 	while (1)
 	{
@@ -187,9 +180,9 @@ fflush(stdout);
 			break;		/*	Out of main loop.	*/
 		}
 
-		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0,
-				bytesToEcho, &controlZco);
-		if (bundleZco == 0)
+		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, bytesToEcho,
+			BP_STD_PRIORITY, 0, ZcoOutbound, &state.attendant);
+		if (bundleZco == 0 || bundleZco == (Object) ERROR)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
 			break;		/*	Out of main loop.	*/
@@ -205,6 +198,7 @@ fflush(stdout);
 	}
 
 	bp_close(state.sap);
+	ionStopAttendant(&state.attendant);
 	writeErrmsgMemos();
 	bp_detach();
 	return 0;

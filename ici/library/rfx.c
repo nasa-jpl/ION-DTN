@@ -1703,9 +1703,10 @@ int	rfx_start()
 	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 
-	/* Destroy and re-create volatile contact and range databases.
-	 * This prevents contact/range duplication as a result of adds
-	 * before starting ION. */
+	/*	Destroy and re-create volatile contact and range
+	 *	databases.  This prevents contact/range duplication
+	 *	as a result of adds before starting ION.		*/
+
 	sm_rbt_destroy(ionwm, vdb->contactIndex, rfx_erase_data, NULL);
 	sm_rbt_destroy(ionwm, vdb->rangeIndex, rfx_erase_data, NULL);
 	vdb->contactIndex = sm_rbt_create(ionwm);
@@ -1759,12 +1760,29 @@ void	rfx_stop()
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
+	int		i;
+	PsmAddress	elt;
+	PsmAddress	nextElt;
+	PsmAddress	addr;
+	Requisition	*req;
 
-	/*	Clear ZCO availability information.			*/
+	/*	Safely shut down the ZCO flow control system.		*/
 
-	sm_SemEnd(vdb->zcoSemaphore);
-	vdb->zcoClaimants = 0;
-	vdb->zcoClaims = 0;
+	for (i = 0; i < 1; i++)
+	{
+		for (elt = sm_list_first(ionwm, vdb->requisitions[i]); elt;
+				elt = nextElt)
+		{
+			nextElt = sm_list_next(ionwm, elt);
+			addr = sm_list_data(ionwm, elt);
+			req = (Requisition *) psp(ionwm, addr);
+			sm_SemEnd(req->semaphore);
+			psm_free(ionwm, addr);
+			sm_list_delete(ionwm, elt, NULL, NULL);
+		}
+	}
+
+	zco_unregister_callback();
 
 	/*	Stop the rfx clock if necessary.			*/
 

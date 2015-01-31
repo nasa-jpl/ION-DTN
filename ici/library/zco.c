@@ -13,6 +13,10 @@
 #include "platform.h"
 #include "zco.h"
 
+#ifndef ZCODEBUG
+#define ZCODEBUG	0
+#endif
+
 static const char	*bookNames[] = { "inbound", "outbound" };
 static void		destroyZco(Sdr sdr, Object zcoObj);
 
@@ -22,11 +26,9 @@ static void		destroyZco(Sdr sdr, Object zcoObj);
  *	limit for outbound ZCOs (due to a volume of offered traffic
  *	in excess of the available outbound buffer space) never
  *	inhibits data reception and vice versa.  Reference-counting
- *	objects (FileRef, ZcoLienRef, ZcoObjRef) may be referenced
- *	by extents in both inbound and outbound ZCOs; they are
- *	tracked in OUTBOUND ZCO space for simplicity, on the grounds
- *	that even ZCOs that originally reside in INBOUND space may
- *	migrate to OUTBOUND space in the course of Bundle forwarding.	*/
+ *	objects (FileRef, ZcoLienRef, ZcoObjRef) have counts for
+ *	both books because there may be references to them in ZCO
+ *	extents posted to both books.					*/
 
 typedef struct
 {
@@ -51,8 +53,7 @@ typedef struct
 
 typedef struct
 {
-	int		refCount;
-	ZcoAcct		acct;		/*	At time of creation.	*/
+	int		refCount[2];	/*	ZcoInbound, ZcoOutbound	*/
 	char		okayToDestroy;	/*	Boolean.		*/
 	char		unlinkOnDestroy;/*	Boolean.		*/
 	unsigned long	inode;		/*	For detecting change.	*/
@@ -64,16 +65,14 @@ typedef struct
 
 typedef struct
 {
-	int		refCount;
-	ZcoAcct		acct;		/*	At time of creation.	*/
+	int		refCount[2];	/*	ZcoInbound, ZcoOutbound	*/
 	Object		location;	/*	Heap address of FileRef.*/
 	vast		length;		/*	Length of lien on file.	*/
 } ZcoLienRef;
 
 typedef struct
 {
-	int		refCount;
-	ZcoAcct		acct;		/*	At time of creation.	*/
+	int		refCount[2];	/*	ZcoInbound, ZcoOutbound	*/
 	Object		location;	/*	Heap address of object.	*/
 	vast		length;		/*	Length of object.	*/
 } ZcoObjRef;
@@ -190,7 +189,7 @@ VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->fileOccupancy,
 	}
 }
 
-static void	_zcoCallback(ZcoCallback *newCallback)
+static void	_zcoCallback(ZcoCallback *newCallback, ZcoAcct acct)
 {
 	static ZcoCallback	notify = NULL;
 
@@ -202,21 +201,21 @@ static void	_zcoCallback(ZcoCallback *newCallback)
 	{
 		if (notify != NULL)
 		{
-			notify();
+			notify(acct);
 		}
 	}
 }
 
 void	zco_register_callback(ZcoCallback notify)
 {
-	_zcoCallback(&notify);
+	_zcoCallback(&notify, ZcoUnknown);
 }
 
 void	zco_unregister_callback()
 {
 	ZcoCallback	notify = NULL;
 
-	_zcoCallback(&notify);
+	_zcoCallback(&notify, ZcoUnknown);
 }
 
 void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
@@ -234,6 +233,12 @@ void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		book = &(db.books[((int) acct)]);
 		book->heapOccupancy += delta;
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+#if ZCODEBUG
+char	buf[128];
+sprintf(buf, "[i] %s heap occupancy increased to " VAST_FIELDSPEC ".",
+bookNames[((int) acct)], book->heapOccupancy);
+writeMemo(buf);
+#endif
 	}
 }
 
@@ -252,6 +257,12 @@ void	zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		book = &(db.books[((int) acct)]);
 		book->heapOccupancy -= delta;
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+#if ZCODEBUG
+char	buf[128];
+sprintf(buf, "[i] %s heap occupancy reduced to " VAST_FIELDSPEC ".",
+bookNames[((int) acct)], book->heapOccupancy);
+writeMemo(buf);
+#endif
 	}
 }
 
@@ -378,6 +389,12 @@ static void	zco_increase_file_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		book = &(db.books[((int) acct)]);
 		book->fileOccupancy += delta;
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+#if ZCODEBUG
+char	buf[128];
+sprintf(buf, "[i] %s file occupancy increased to " VAST_FIELDSPEC ".",
+bookNames[((int) acct)], book->fileOccupancy);
+writeMemo(buf);
+#endif
 	}
 }
 
@@ -394,6 +411,12 @@ static void	zco_reduce_file_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		book = &(db.books[((int) acct)]);
 		book->fileOccupancy -= delta;
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+#if ZCODEBUG
+char	buf[128];
+sprintf(buf, "[i] %s file occupancy reduced to " VAST_FIELDSPEC ".",
+bookNames[((int) acct)], book->fileOccupancy);
+writeMemo(buf);
+#endif
 	}
 }
 
@@ -536,13 +559,13 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
 
 	close(sourceFd);
 	memset((char *) &fileRef, 0, sizeof(FileRef));
-	fileRef.refCount = 0;
+	fileRef.refCount[0] = 0;
+	fileRef.refCount[1] = 0;
 	fileRef.okayToDestroy = 0;
 	fileRef.unlinkOnDestroy = 0;
 	fileRef.inode = statbuf.st_ino;
 	fileRef.fileLength = statbuf.st_size;
 	fileRef.xmitProgress = 0;
-	fileRef.acct = acct;
 	memcpy(fileRef.pathName, pathName, pathLen);
 	fileRef.pathName[pathLen] = '\0';
 	if (cleanupScript)
@@ -565,7 +588,6 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
 		return 0;
 	}
 
-	zco_increase_heap_occupancy(sdr, sizeof(FileRef), ZcoOutbound);
 	sdr_write(sdr, fileRefObj, (char *) &fileRef, sizeof(FileRef));
 	return fileRefObj;
 }
@@ -706,7 +728,6 @@ static void	destroyFileReference(Sdr sdr, FileRef *fileRef,
 	 *	script if provided.					*/
 
 	sdr_free(sdr, fileRefObj);
-	zco_reduce_heap_occupancy(sdr, sizeof(FileRef), ZcoOutbound);
 	if (fileRef->unlinkOnDestroy)
 	{
 		oK(unlink(fileRef->pathName));
@@ -722,11 +743,6 @@ cleanup script", fileRef->cleanupScript);
 			}
 		}
 	}
-
-	if (fileRef->acct == ZcoOutbound)
-	{
-		_zcoCallback(NULL);
-	}
 }
 
 void	zco_destroy_file_ref(Sdr sdr, Object fileRefObj)
@@ -736,7 +752,7 @@ void	zco_destroy_file_ref(Sdr sdr, Object fileRefObj)
 	CHKVOID(sdr);
 	CHKVOID(fileRefObj);
 	sdr_stage(sdr, (char *) &fileRef, fileRefObj, sizeof(FileRef));
-	if (fileRef.refCount == 0)
+	if (fileRef.refCount[0] == 0 && fileRef.refCount[1] == 0)
 	{
 		destroyFileReference(sdr, &fileRef, fileRefObj);
 		return;
@@ -749,19 +765,10 @@ void	zco_destroy_file_ref(Sdr sdr, Object fileRefObj)
 int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 		ZcoAcct acct)
 {
-	vast	heapNeeded;
+	vast	heapSpaceNeeded = sizeof(SourceExtent);
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
-
-	if (source == ZcoZcoSource)
-	{
-		/*	We don't regulate the cloning of existing
-		 *	ZCOs, only the creation of new reference 
-		 *	objects in heap or file space.			*/
-
-		return 0;
-	}
 
 	obj = getZcoDB(sdr);
 	if (obj == 0)
@@ -769,22 +776,50 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 		return 1;
 	}
 
-	heapNeeded = sizeof(SourceExtent);
 	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
 	book = &(db->books[((int) acct)]);
-	if (source == ZcoFileSource)
+	switch (source)
 	{
+	case ZcoFileSource:
 		if (book->fileOccupancy + length > book->maxFileOccupancy)
 		{
 			return 1;
 		}
-	}
-	else
-	{
-		heapNeeded += length;
+
+		break;
+
+	case ZcoSdrSource:
+		heapSpaceNeeded += length;
+		break;
+
+	default:
+		/*	Appending an extent whose source is another
+		 *	ZCO may be done in two circumstances:
+		 *
+		 *	1.  The new and old ZCOs are in the same
+		 *	    account.  zco_clone conforms to this
+		 *	    condition, and zcl_append_extent enforces
+		 *	    it.  In this case no new data item is
+		 *	    inserted into that common account, so
+		 *	    the new ZCO extent cannot be too large,
+		 *	    and therefore calling this function is
+		 *	    an error.
+		 *
+		 *	2.  The new and old ZCOs are in different
+		 *	    accounts.  This can ONLY be done by
+		 *	    zco_create (passed an initial extent
+		 *	    that references the old ZCO), which
+		 *	    does its own private extent size check.
+		 *	    So, again, calling this function is
+		 *	    an error.
+		 *
+		 *	So we reject this function invocation.		*/
+
+		putErrmsg("Invalid source medium.", itoa((int) source));
+		return 1;
 	}
 
-	if (book->heapOccupancy + heapNeeded > book->maxHeapOccupancy)
+	if (book->heapOccupancy + heapSpaceNeeded > book->maxHeapOccupancy)
 	{
 		return 1;
 	}
@@ -792,16 +827,277 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 	return 0;
 }
 
-static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
-			ZcoMedium sourceMedium, int cloning, Object location,
-			vast offset, vast length)
+void	zco_get_aggregate_length(Sdr sdr, Object sourceZcoObj, vast offset,
+		vast length, vast *fileSpaceNeeded, vast *heapSpaceNeeded)
 {
-	Object		extentObj;
-	vast		increment;
+	vast		endOfSource = offset + length;
 	Zco		sourceZco;
 	Object		obj;
 	SourceExtent	extent;
-	vast		cumulativeOffset;
+	vast		bytesToSkip;
+	vast		bytesToCount;
+
+	CHKVOID(sdr && sourceZcoObj && offset >= 0 && length >= 0
+		&& endOfSource >= 0 && fileSpaceNeeded && heapSpaceNeeded);
+	sdr_read(sdr, (char *) &sourceZco, sourceZcoObj, sizeof(Zco));
+	if (endOfSource > (sourceZco.totalLength
+			- sourceZco.aggregateCapsuleLength))
+	{
+		*fileSpaceNeeded = -1;
+		*heapSpaceNeeded = -1;
+		putErrmsg("Offset + length exceeds zco source data length.",
+				utoa(endOfSource));
+		return;
+	}
+
+	*fileSpaceNeeded = 0;
+	*heapSpaceNeeded = 0;
+	for (obj = sourceZco.firstExtent; obj; obj = extent.nextExtent)
+	{
+		if (length == 0)	/*	Done.			*/
+		{
+			return;
+		}
+
+		sdr_read(sdr, (char *) &extent, obj, sizeof(SourceExtent));
+		if (offset >= extent.length)
+		{
+			offset -= extent.length;
+			continue;	/*	Count none of this one.	*/
+		}
+
+		/*	Offset has now been reduced to the number of
+		 *	bytes to skip over in the first extent that
+		 *	contains some portion of the source data we
+		 *	want to count.					*/
+
+		bytesToSkip = offset;
+		bytesToCount = extent.length - bytesToSkip;
+		if (bytesToCount > length)
+		{
+			bytesToCount = length;
+		}
+
+		*heapSpaceNeeded += sizeof(SourceExtent);
+		if (extent.sourceMedium == ZcoFileSource)
+		{
+			*fileSpaceNeeded += bytesToCount;
+		}
+		else
+		{
+			*heapSpaceNeeded += bytesToCount;
+		}
+
+		/*	Note that all applicable content of this
+		 *	extent has been counted.			*/
+
+		offset -= bytesToSkip;
+		length -= bytesToCount;
+	}
+}
+
+static int	aggregateExtentTooLarge(Sdr sdr, Object location, vast offset,
+			vast length, ZcoAcct acct)
+{
+	vast		fileSpaceNeeded = 0;
+	vast		heapSpaceNeeded = 0;
+	Object		obj;
+			OBJ_POINTER(ZcoDB, db);
+	ZcoBook		*book;
+
+	zco_get_aggregate_length(sdr, location, offset, length, 
+			&fileSpaceNeeded, &heapSpaceNeeded);
+	obj = getZcoDB(sdr);
+	if (obj == 0)
+	{
+		return 1;
+	}
+
+	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
+	book = &(db->books[((int) acct)]);
+	if (book->fileOccupancy + fileSpaceNeeded > book->maxFileOccupancy)
+	{
+		return 1;
+	}
+
+	if (book->heapOccupancy + heapSpaceNeeded > book->maxHeapOccupancy)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+static int	appendExtentOfExistingZco(Sdr sdr, Object zcoObj, Zco *zco,
+			Zco *sourceZco, vast offset, vast length)
+{
+	ZcoAcct		acct = zco->acct;
+	vast		lengthAppended = 0;
+	Object		obj;
+	SourceExtent	oldExtent;
+	vast		bytesToSkip;
+	vast		bytesToCopy;
+	Object		extentObj;
+	vast		increment;
+	SourceExtent	newExtent;
+	ZcoObjRef	objectRef;
+	ZcoLienRef	lienRef;
+	FileRef		fileRef;
+	SourceExtent	prevExtent;
+
+	for (obj = sourceZco->firstExtent; obj; obj = oldExtent.nextExtent)
+	{
+		if (length == 0)	/*	Done.			*/
+		{
+			break;
+		}
+
+		sdr_read(sdr, (char *) &oldExtent, obj, sizeof(SourceExtent));
+		if (offset >= oldExtent.length)
+		{
+			offset -= oldExtent.length;
+			continue;	/*	Copy none of this one.	*/
+		}
+
+		/*	Offset has now been reduced to the number of
+		 *	bytes to skip over in the first extent that
+		 *	contains some portion of the source data
+		 *	we want to copy.				*/
+
+		bytesToSkip = offset;
+		bytesToCopy = oldExtent.length - bytesToSkip;
+		if (bytesToCopy > length)
+		{
+			bytesToCopy = length;
+		}
+
+		extentObj = sdr_malloc(sdr, sizeof(SourceExtent));
+		if (extentObj == 0)
+		{
+			putErrmsg("No space for extent.", NULL);
+			return -1;
+		}
+
+		increment = sizeof(SourceExtent);
+		newExtent.sourceMedium = oldExtent.sourceMedium;
+		newExtent.location = oldExtent.location;
+		newExtent.offset = oldExtent.offset + bytesToSkip;
+		newExtent.length = bytesToCopy;
+		newExtent.nextExtent = 0;
+		if (oldExtent.sourceMedium == ZcoFileSource)
+		{
+			/*	The source extent's location is a lien
+			 *	reference address.			*/
+
+			sdr_stage(sdr, (char *) &lienRef, oldExtent.location,
+					sizeof(ZcoLienRef));
+			lienRef.refCount[acct]++;
+			sdr_write(sdr, oldExtent.location, (char *) &lienRef,
+					sizeof(ZcoLienRef));
+			if (lienRef.refCount[acct] == 1)
+			{
+				/*	Initial insertion of this
+				 *	source data object into this
+				 *	account, so post it.		*/
+
+				if (newExtent.length != lienRef.length)
+				{
+					putErrmsg("Migrating partial lien ref!",
+							NULL);
+					return -1;
+				}
+
+				zco_increase_file_occupancy(sdr,
+						lienRef.length, acct);
+				increment += sizeof(ZcoLienRef);
+
+				/*	This is an additional
+				 *	citation of the lien's file
+				 *	reference object within this
+				 *	account, which must be counted.	*/
+
+				sdr_stage(sdr, (char *) &fileRef,
+						lienRef.location,
+						sizeof(FileRef));
+				fileRef.refCount[acct]++;
+				sdr_write(sdr, lienRef.location,
+						(char *) &fileRef,
+						sizeof(FileRef));
+				if (fileRef.refCount[acct] == 1)
+				{
+					/*	Initial insertion of
+					 *	this file reference
+					 *	into this account, so
+					 *	post it.		*/
+
+					increment += sizeof(FileRef);
+				}
+			}
+		}
+		else	/*	Source medium is SDR heap.		*/
+		{
+			/*	The source extent's location is an
+			 *	object reference address.		*/
+
+			sdr_stage(sdr, (char *) &objectRef, oldExtent.location,
+					sizeof(ZcoObjRef));
+			objectRef.refCount[acct]++;
+			sdr_write(sdr, oldExtent.location, (char *) &objectRef,
+					sizeof(ZcoObjRef));
+			if (objectRef.refCount[acct] == 1)
+			{
+				/*	Initial insertion of this
+				 *	source data item into this
+				 *	account, so post it.		*/
+
+				if (newExtent.length != objectRef.length)
+				{
+					putErrmsg("Migrating partial obj ref!",
+							NULL);
+					return -1;
+				}
+
+				increment += (objectRef.length
+						+ sizeof(ZcoObjRef));
+			}
+		}
+
+		zco_increase_heap_occupancy(sdr, increment, acct);
+		sdr_write(sdr, extentObj, (char *) &newExtent,
+				sizeof(SourceExtent));
+		if (zco->firstExtent == 0)
+		{
+			zco->firstExtent = extentObj;
+		}
+		else
+		{
+			sdr_stage(sdr, (char *) &prevExtent, zco->lastExtent,
+					sizeof(SourceExtent));
+			prevExtent.nextExtent = extentObj;
+			sdr_write(sdr, zco->lastExtent, (char *) &prevExtent,
+					sizeof(SourceExtent));
+		}
+
+		zco->lastExtent = extentObj;
+		zco->sourceLength += newExtent.length;
+		zco->totalLength += newExtent.length;
+		lengthAppended += newExtent.length;
+		offset -= bytesToSkip;
+		length -= bytesToCopy;
+	}
+
+	sdr_write(sdr, zcoObj, (char *) zco, sizeof(Zco));
+	return lengthAppended;
+}
+
+static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
+			ZcoMedium sourceMedium, Object location, vast offset,
+			vast length)
+{
+	ZcoAcct		acct = zco->acct;
+	Object		extentObj;
+	vast		increment;
+	SourceExtent	extent;
 	FileRef		fileRef;
 	Object		refObj;
 	ZcoObjRef	objectRef;
@@ -816,135 +1112,65 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 	}
 
 	increment = sizeof(SourceExtent);
-
-	/*	Adjust parameters if extent clone is requested.		*/
-
-	if (sourceMedium == ZcoZcoSource)
-	{
-		/*	The new extent is to be a clone of some extent
-			of the ZCO at "location".			*/
-
-		sdr_read(sdr, (char *) &sourceZco, location, sizeof(Zco));
-		cumulativeOffset = 0;
-		extent.length = 0;	/*	In case no extents.	*/
-		for (obj = sourceZco.firstExtent; obj; obj = extent.nextExtent)
-		{
-			sdr_read(sdr, (char *) &extent, obj,
-					sizeof(SourceExtent));
-			if (cumulativeOffset < offset)
-			{
-				cumulativeOffset += extent.length;
-				continue;
-			}
-
-			break;
-		}
-
-		/*	Offset and length must match exactly.		*/
-
-		if (cumulativeOffset != offset || extent.length != length)
-		{
-			putErrmsg("No extent to clone.", NULL);
-			return -1;
-		}
-
-		/*	Found existing extent to clone.			*/
-
-		cloning = 1;
-		sourceMedium = extent.sourceMedium;
-		location = extent.location;
-		offset = extent.offset;
-	}
-
 	extent.sourceMedium = sourceMedium;
 	if (sourceMedium == ZcoFileSource)
 	{
-		/*	FileRef object already exists, so its size
-		 *	is already counted in ZCO *heap* occupancy.	*/
+		/*	"location" is heap address of a file reference.
+		 *	Must create a new lien reference.		*/
 
-		if (cloning)	/*	Cloning from lien reference.	*/
+		refObj = sdr_malloc(sdr, sizeof(ZcoLienRef));
+		if (refObj == 0)
 		{
-			/*	"location" is source extent's location,
-			 *	a lien reference address.		*/
-
-			sdr_stage(sdr, (char *) &lienRef, location,
-					sizeof(ZcoLienRef));
-			lienRef.refCount++;
-			sdr_write(sdr, location, (char *) &lienRef,
-					sizeof(ZcoLienRef));
-			extent.location = location;
+			putErrmsg("No space for lien ref.", NULL);
+			return -1;
 		}
-		else	/*	Initial reference to a lien on a file.	*/
+
+		memset((char *) &lienRef, 0, sizeof(ZcoLienRef));
+		lienRef.length = length;
+		lienRef.location = location;
+		lienRef.refCount[acct] = 1;
+		sdr_write(sdr, refObj, (char *) &lienRef, sizeof(ZcoLienRef));
+		zco_increase_file_occupancy(sdr, length, acct);
+		increment += sizeof(ZcoLienRef);
+
+		/*	This is an additional citation of the lien's
+		 *	file reference object within this account,
+		 *	which must be counted.				*/
+
+		sdr_stage(sdr, (char *) &fileRef, location, sizeof(FileRef));
+		fileRef.refCount[acct]++;
+		sdr_write(sdr, location, (char *) &fileRef, sizeof(FileRef));
+		if (fileRef.refCount[acct] == 1)
 		{
-			/*	"location" is heap address of a file
-			 *	reference.  Must create a new lien
-			 *	reference.				*/
+			/*	Initial insertion of this file
+			 *	reference into this account, so
+			 *	post it.				*/
 
-			refObj = sdr_malloc(sdr, sizeof(ZcoLienRef));
-			if (refObj == 0)
-			{
-				putErrmsg("No space for lien ref.", NULL);
-				return -1;
-			}
-
-			lienRef.length = length;
-			lienRef.location = location;
-			lienRef.refCount = 1;
-			lienRef.acct = zco->acct;
-			sdr_write(sdr, refObj, (char *) &lienRef,
-					sizeof(ZcoLienRef));
-			zco_increase_file_occupancy(sdr, length, zco->acct);
-			sdr_stage(sdr, (char *) &fileRef, location,
-					sizeof(FileRef));
-			fileRef.refCount++;
-			sdr_write(sdr, location, (char *) &fileRef,
-					sizeof(FileRef));
-			zco_increase_heap_occupancy(sdr, sizeof(ZcoLienRef),
-					ZcoOutbound);
-			extent.location = refObj;
+			increment += sizeof(FileRef);
 		}
 	}
 	else	/*	Source medium is SDR heap.			*/
 	{
- 		if (cloning)	/*	Cloning from SDR heap object.	*/
+		/*	"location" is heap address of source data.
+		 *	Must create a new object reference.		*/
+
+		refObj = sdr_malloc(sdr, sizeof(ZcoObjRef));
+		if (refObj == 0)
 		{
-			/*	"location" is source extent's location,
-			 *	an object reference address.		*/
-
-			sdr_stage(sdr, (char *) &objectRef, location,
-					sizeof(ZcoObjRef));
-			objectRef.refCount++;
-			sdr_write(sdr, location, (char *) &objectRef,
-					sizeof(ZcoObjRef));
-			extent.location = location;
+			putErrmsg("No space for object ref.", NULL);
+			return -1;
 		}
-		else	/*	Initial reference to an SDR heap object.*/
-		{
-			/*	"location" is heap address of source
-			 *	data.  Must create a new object
-			 *	reference.				*/
 
-			refObj = sdr_malloc(sdr, sizeof(ZcoObjRef));
-			if (refObj == 0)
-			{
-				putErrmsg("No space for object ref.", NULL);
-				return -1;
-			}
-
-			objectRef.length = length;
-			objectRef.location = location;
-			objectRef.refCount = 1;
-			objectRef.acct = zco->acct;
-			sdr_write(sdr, refObj, (char *) &objectRef,
-					sizeof(ZcoObjRef));
-			increment += length;
-			zco_increase_heap_occupancy(sdr, sizeof(ZcoObjRef),
-					ZcoOutbound);
-			extent.location = refObj;
-		}
+		memset((char *) &objectRef, 0, sizeof(ZcoObjRef));
+		objectRef.length = length;
+		objectRef.location = location;
+		objectRef.refCount[acct] = 1;
+		sdr_write(sdr, refObj, (char *) &objectRef, sizeof(ZcoObjRef));
+		increment += (length + sizeof(ZcoObjRef));
 	}
 
-	zco_increase_heap_occupancy(sdr, increment, zco->acct);
+	extent.location = refObj;
+	zco_increase_heap_occupancy(sdr, increment, acct);
 	extent.offset = offset;
 	extent.length = length;
 	extent.nextExtent = 0;
@@ -966,7 +1192,7 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 	zco->sourceLength += length;
 	zco->totalLength += length;
 	sdr_write(sdr, zcoObj, (char *) zco, sizeof(Zco));
-	return 0;
+	return length;
 }
 
 Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
@@ -975,37 +1201,97 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 {
 	Object	zcoObj;
 	Zco	zco;
+	Zco	sourceZco;
+	int	lengthDeclared = 0;
+	int	result;
 
 	CHKERR(sdr);
-	if (firstExtentLocation)	/*	First extent provided.	*/
+	if (firstExtentSourceMedium == ZcoZcoSource)
 	{
-		if (firstExtentLength == 0)
+		if (firstExtentLocation == 0)
 		{
-			putErrmsg("First extent length is zero.", NULL);
+			putErrmsg("No source ZCO indicated.", NULL);
 			printStackTrace();
 			return ((Object) ERROR);
 		}
 
-		if (firstExtentLength < 0)/*	Already checked.	*/
+		sdr_read(sdr, (char *) &sourceZco, firstExtentLocation,
+				sizeof(Zco));
+		if (sourceZco.acct == acct)
 		{
-			firstExtentLength = 0 - firstExtentLength;
+			putErrmsg("Same account; use zco_clone here.", NULL);
+			printStackTrace();
+			return ((Object) ERROR);
 		}
-		else
+
+		/*	Negative firstExtentLength indicates that
+		 *	the length of the first extent is declared
+		 *	to be okay.					*/
+
+		if (firstExtentLength < 0)
 		{
-			if (zco_extent_too_large(sdr, firstExtentSourceMedium,
-					firstExtentLength, acct))
+			lengthDeclared = 1;
+		}
+
+		/*	Force first extent of new ZCO to be the
+		 *	concatenation of all SourceExtents of the
+		 *	source ZCO.					*/
+
+		firstExtentOffset = 0;
+		firstExtentLength = sourceZco.totalLength -
+				sourceZco.aggregateCapsuleLength;
+		if (!lengthDeclared)
+		{
+			/*	Must check length of first extent.	*/
+
+			if (aggregateExtentTooLarge(sdr, firstExtentLocation,
+				firstExtentOffset, firstExtentLength, acct))
 			{
-				return 0;/*	No available ZCO space.	*/
+				/*	Not enough available ZCO space.	*/
+
+				return 0;
 			}
 		}
 	}
-	else				/*	No first extent.	*/
+	else	/*	Not copying from another ZCO.			*/
 	{
-		if (firstExtentLength)
+		if (firstExtentLocation)
 		{
-			putErrmsg("First extent location is zero.", NULL);
-			printStackTrace();
-			return ((Object) ERROR);
+			if (firstExtentLength == 0)
+			{
+				putErrmsg("First extent length is zero.", NULL);
+				printStackTrace();
+				return ((Object) ERROR);
+			}
+
+			if (firstExtentLength < 0)
+			{
+				/*	Length is declared to be okay.	*/
+
+				firstExtentLength = 0 - firstExtentLength;
+			}
+			else	/*	Must check length of extent.	*/
+			{
+				if (zco_extent_too_large(sdr,
+						firstExtentSourceMedium,
+						firstExtentLength, acct))
+				{
+					/*	Not enough available
+					 *	ZCO space.		*/
+
+					return 0;
+				}
+			}
+		}
+		else		/*	No first extent.		*/
+		{
+			if (firstExtentLength)
+			{
+				putErrmsg("First extent location is zero.",
+						NULL);
+				printStackTrace();
+				return ((Object) ERROR);
+			}
 		}
 	}
 
@@ -1020,11 +1306,23 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 	memset((char *) &zco, 0, sizeof(Zco));
 	zco.acct = acct;
 	sdr_write(sdr, zcoObj, (char *) &zco, sizeof(Zco));
-	if (firstExtentLength)
+	if (firstExtentLocation)
 	{
-		if (appendExtent(sdr, zcoObj, &zco, firstExtentSourceMedium, 0,
-				firstExtentLocation, firstExtentOffset,
-				firstExtentLength) < 0)
+		if (firstExtentSourceMedium == ZcoZcoSource)
+		{
+			result = appendExtentOfExistingZco(sdr, zcoObj, &zco,
+					&sourceZco, firstExtentOffset,
+					firstExtentLength);
+		}
+		else
+		{
+			result = appendExtent(sdr, zcoObj, &zco,
+					firstExtentSourceMedium,
+					firstExtentLocation, firstExtentOffset,
+					firstExtentLength);
+		}
+		
+		if (result < 0)
 		{
 			putErrmsg("Can't append initial extent.", NULL);
 			return ((Object) ERROR);
@@ -1038,13 +1336,43 @@ vast	zco_append_extent(Sdr sdr, Object zcoObj, ZcoMedium source,
 		Object location, vast offset, vast length)
 {
 	Zco	zco;
+	Zco	sourceZco;
 
 	CHKERR(sdr);
 	CHKERR(zcoObj);
 	CHKERR(location);
 	CHKERR(length != 0);
 	sdr_stage(sdr, (char *) &zco, zcoObj, sizeof(Zco));
-	if (length < 0)			/*	Already checked.	*/
+	if (source == ZcoZcoSource)	/*	Cloning.		*/
+	{
+		CHKERR(length > 0);
+
+		/*	New and old ZCOs are in the same account,
+		 *	so no need to check the size of the extent:
+		 *	occupancy will only be increased by the
+		 *	size of the new SourceExtent object itself.	*/
+
+		sdr_read(sdr, (char *) &sourceZco, location, sizeof(Zco));
+		if (sourceZco.acct != zco.acct)
+		{
+			return ERROR;
+		}
+
+		if ((offset + length) > (sourceZco.totalLength
+				- sourceZco.aggregateCapsuleLength))
+		{
+			putErrmsg("Offset + length exceeds source data length.",
+					utoa(offset + length));
+			return ERROR;
+		}
+
+		return appendExtentOfExistingZco(sdr, zcoObj, &zco, &sourceZco,
+				offset, length);
+	}
+
+	/*	ZCO space occupancy will be increased; is there room?	*/
+
+	if (length < 0)		/*	Length is declared to be okay.	*/
 	{
 		length = 0 - length;
 	}
@@ -1056,13 +1384,8 @@ vast	zco_append_extent(Sdr sdr, Object zcoObj, ZcoMedium source,
 		}
 	}
 
-	if (appendExtent(sdr, zcoObj, &zco, source, 0, location, offset, length)
-			 < 0)
-	{
-		return ERROR;
-	}
-
-	return length;
+	return appendExtent(sdr, zcoObj, &zco, source, location, offset,
+			length);
 }
 
 int	zco_prepend_header(Sdr sdr, Object zco, char *text, vast length)
@@ -1324,6 +1647,7 @@ Object	zco_trailer_text(Sdr sdr, Object zco, int skip, vast *length)
 int	zco_bond(Sdr sdr, Object zco)
 {
 	Zco		zcoBuf;
+	ZcoAcct		acct;
 	Object		extentObj;
 	SourceExtent	extent;
 	Object		objRefObj;
@@ -1334,6 +1658,7 @@ int	zco_bond(Sdr sdr, Object zco)
 	CHKERR(sdr);
 	CHKERR(zco);
 	sdr_stage(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
+	acct = zcoBuf.acct;
 
 	/*	Convert all headers to source data extents.		*/
 
@@ -1346,6 +1671,7 @@ int	zco_bond(Sdr sdr, Object zco)
 			return -1;
 		}
 
+		memset((char *) &extent, 0, sizeof(SourceExtent));
 		extent.sourceMedium = ZcoSdrSource;
 		objRefObj = sdr_malloc(sdr, sizeof(ZcoObjRef));
 		if (objRefObj == 0)
@@ -1360,10 +1686,10 @@ int	zco_bond(Sdr sdr, Object zco)
 
 		/*	Create ZcoObjRef object for capsule content.	*/
 
-		objRef.refCount = 1;
+		memset((char *) &objRef, 0, sizeof(ZcoObjRef));
+		objRef.refCount[acct] = 1;
 		objRef.length = capsule.length;
 		objRef.location = capsule.text;
-		objRef.acct = zcoBuf.acct;
 		sdr_write(sdr, objRefObj, (char *) &objRef, sizeof(ZcoObjRef));
 
 		/*	Content of extent is the ZcoObjRef object.	*/
@@ -1381,17 +1707,23 @@ int	zco_bond(Sdr sdr, Object zco)
 		}
 
 		sdr_free(sdr, capsuleObj);
-		zco_reduce_heap_occupancy(sdr, sizeof(Capsule), zcoBuf.acct);
-		zco_increase_heap_occupancy(sdr, sizeof(SourceExtent),
-				zcoBuf.acct);
-		zco_increase_heap_occupancy(sdr, sizeof(ZcoObjRef),
-				ZcoOutbound);
+		zco_reduce_heap_occupancy(sdr, sizeof(Capsule), acct);
+
+		/*	No need to reduce heap occupancy by the
+		 *	length of the capsule's text, because we
+		 *	would immediately add it back into the
+		 *	heap occupancy of the same account as the
+		 *	new object reference's length.			*/
+
+		zco_increase_heap_occupancy(sdr, sizeof(SourceExtent)
+				+ sizeof(ZcoObjRef), acct);
 	}
 
 	zcoBuf.firstHeader = 0;
 
 	/*	Convert all trailers to source data extents.		*/
 
+	memset((char *) &extent, 0, sizeof(SourceExtent));
 	if (zcoBuf.lastExtent)
 	{
 		sdr_stage(sdr, (char *) &extent, zcoBuf.lastExtent,
@@ -1428,10 +1760,10 @@ int	zco_bond(Sdr sdr, Object zco)
 
 		/*	Create ZcoObjRef object for capsule content.	*/
 
-		objRef.refCount = 1;
+		memset((char *) &objRef, 0, sizeof(ZcoObjRef));
+		objRef.refCount[acct] = 1;
 		objRef.length = capsule.length;
 		objRef.location = capsule.text;
-		objRef.acct = zcoBuf.acct;
 		sdr_write(sdr, objRefObj, (char *) &objRef, sizeof(ZcoObjRef));
 
 		/*	Content of extent is the ZcoObjRef object.	*/
@@ -1447,10 +1779,15 @@ int	zco_bond(Sdr sdr, Object zco)
 
 		sdr_free(sdr, capsuleObj);
 		zco_reduce_heap_occupancy(sdr, sizeof(Capsule), zcoBuf.acct);
-		zco_increase_heap_occupancy(sdr, sizeof(SourceExtent),
-				zcoBuf.acct);
-		zco_increase_heap_occupancy(sdr, sizeof(ZcoObjRef),
-				ZcoOutbound);
+
+		/*	No need to reduce heap occupancy by the
+		 *	length of the capsule's text, because we
+		 *	would immediately add it back into the
+		 *	heap occupancy of the same account as the
+		 *	new object reference's length.			*/
+
+		zco_increase_heap_occupancy(sdr, sizeof(SourceExtent)
+				+ sizeof(ZcoObjRef), acct);
 	}
 
 	if (zcoBuf.lastExtent)
@@ -1467,89 +1804,16 @@ int	zco_bond(Sdr sdr, Object zco)
 	return 0;
 }
 
-static vast	cloneExtents(Sdr sdr, Object toZcoObj, Object fromZcoObj,
-			Zco *fromZco, vast offset, vast length)
-{
-	vast		lengthCloned = 0;
-	Zco		toZco;
-	Object		obj;
-	SourceExtent	extent;
-	vast		bytesToSkip;
-	vast		bytesToCopy;
-
-	/*	Check clone parameters.					*/
-
-	if ((offset + length) >
-		(fromZco->totalLength - fromZco->aggregateCapsuleLength))
-	{
-		putErrmsg("Offset + length exceeds zco source data length",
-				utoa(offset + length));
-		return -1;
-	}
-
-	/*	Copy subset of old ZCO's extents to new ZCO.		*/
-
-	sdr_stage(sdr, (char *) &toZco, toZcoObj, sizeof(Zco));
-	for (obj = fromZco->firstExtent; obj; obj = extent.nextExtent)
-	{
-		if (length == 0)	/*	Done.			*/
-		{
-			break;
-		}
-
-		sdr_read(sdr, (char *) &extent, obj, sizeof(SourceExtent));
-		if (offset >= extent.length)
-		{
-			offset -= extent.length;
-			continue;	/*	Use none of this one.	*/
-		}
-
-		/*	Offset has now been reduced to the number of
-		 *	bytes to skip over in the first extent that
-		 *	contains some portion of the source data we
-		 *	want to copy.					*/
-
-		bytesToSkip = offset;
-		bytesToCopy = extent.length - bytesToSkip;
-		if (bytesToCopy > length)
-		{
-			bytesToCopy = length;
-		}
-
-		/*	Because all extents point to reference objects
-		 *	(lien references or heap object references),
-		 *	no actual copying of data is required at all.
-		 *	Also, no additional ZCO space is consumed,
-		 *	apart from that needed for the SourceExtent
-		 *	object itself, so no zco_extent_too_large().	*/
-
-		if (appendExtent(sdr, toZcoObj, &toZco, extent.sourceMedium, 1,
-				extent.location, extent.offset + bytesToSkip,
-				bytesToCopy) < 0)
-		{
-			putErrmsg("Can't append cloned extent to ZCO.", NULL);
-			return -1;
-		}
-
-		/*	Note consumption of all applicable content
-		 *	of this extent.					*/
-
-		offset -= bytesToSkip;
-		length -= bytesToCopy;
-		lengthCloned += bytesToCopy;
-	}
-
-	return lengthCloned;
-}
-
 Object	zco_clone(Sdr sdr, Object fromZcoObj, vast offset, vast length)
 {
 	Zco	fromZco;
 	Object	toZcoObj;		/*	Cloned ZCO object.	*/
+	Zco	toZco;
 	vast	lengthCloned;
 
 	CHKZERO(sdr);
 	CHKZERO(fromZcoObj);
+	CHKZERO(offset >= 0);
 	CHKZERO(length > 0);
 	sdr_read(sdr, (char *) &fromZco, fromZcoObj, sizeof(Zco));
 	toZcoObj = zco_create(sdr, 0, 0, 0, 0, fromZco.acct);
@@ -1559,22 +1823,13 @@ Object	zco_clone(Sdr sdr, Object fromZcoObj, vast offset, vast length)
 		return (Object) ERROR;
 	}
 
-	lengthCloned = cloneExtents(sdr, toZcoObj, fromZcoObj, &fromZco, offset,
-			length);
+	sdr_stage(sdr, (char *) &toZco, toZcoObj, sizeof(Zco));
+	lengthCloned = appendExtentOfExistingZco(sdr, toZcoObj, &toZco,
+			&fromZco, offset, length);
 	if (lengthCloned < 0)
 	{
 		putErrmsg("Can't create clone ZCO.", NULL);
 		return (Object) ERROR;
-	}
-
-	if (lengthCloned < length)
-	{
-		/*	Cloning was terminated before completion
-		 *	due to insufficient available ZCO space.
-		 *	Must destroy the partial clone.			*/
-
-		destroyZco(sdr, toZcoObj);
-		toZcoObj = 0;
 	}
 
 	return toZcoObj;
@@ -1583,16 +1838,20 @@ Object	zco_clone(Sdr sdr, Object fromZcoObj, vast offset, vast length)
 vast	zco_clone_source_data(Sdr sdr, Object toZcoObj, Object fromZcoObj,
 		vast offset, vast length)
 {
+	Zco	toZco;
 	Zco	fromZco;
 	vast	lengthCloned;
 
-	CHKZERO(sdr);
-	CHKZERO(toZcoObj);
-	CHKZERO(fromZcoObj);
-	CHKZERO(length > 0);
+	CHKERR(sdr);
+	CHKERR(toZcoObj);
+	CHKERR(fromZcoObj);
+	CHKERR(offset >= 0);
+	CHKERR(length > 0);
+	sdr_stage(sdr, (char *) &toZco, toZcoObj, sizeof(Zco));
 	sdr_read(sdr, (char *) &fromZco, fromZcoObj, sizeof(Zco));
-	lengthCloned = cloneExtents(sdr, toZcoObj, fromZcoObj, &fromZco, offset,
-			length);
+	CHKERR(fromZco.acct == toZco.acct);
+	lengthCloned = appendExtentOfExistingZco(sdr, toZcoObj, &toZco,
+			&fromZco, offset, length);
 	if (lengthCloned < 0)
 	{
 		putErrmsg("Can't create clone ZCO extents.", NULL);
@@ -1602,7 +1861,7 @@ vast	zco_clone_source_data(Sdr sdr, Object toZcoObj, Object fromZcoObj,
 	return lengthCloned;
 }
 
-static void	destroyExtentText(Sdr sdr, SourceExtent *extent)
+static void	destroyExtentText(Sdr sdr, SourceExtent *extent, ZcoAcct acct)
 {
 	Object		refObj;
 	ZcoObjRef	objRef;
@@ -1614,14 +1873,17 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent)
 	{
 		refObj = extent->location;
 		sdr_stage(sdr, (char *) &objRef, refObj, sizeof(ZcoObjRef));
-		objRef.refCount--;
-		if (objRef.refCount == 0)
+		objRef.refCount[acct]--;
+		if (objRef.refCount[acct] == 0)
+		{
+			zco_reduce_heap_occupancy(sdr, objRef.length
+					+ sizeof(ZcoObjRef), acct);
+		}
+
+		if (objRef.refCount[0] == 0 && objRef.refCount[1] == 0)
 		{
 			/*	Destroy the reference object.		*/
-			zco_reduce_heap_occupancy(sdr, objRef.length,
-					objRef.acct);
-			zco_reduce_heap_occupancy(sdr, sizeof(ZcoObjRef),
-					ZcoOutbound);
+
 			sdr_free(sdr, refObj);
 
 			/*	Referenced data are no longer needed.	*/
@@ -1641,32 +1903,48 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent)
 	{
 		refObj = extent->location;
 		sdr_stage(sdr, (char *) &lienRef, refObj, sizeof(ZcoLienRef));
-		lienRef.refCount--;
-		if (lienRef.refCount == 0)
+		lienRef.refCount[acct]--;
+		if (lienRef.refCount[acct] == 0)
 		{
-			/*	Destroy the reference object.		*/
-
-			zco_reduce_file_occupancy(sdr, lienRef.length,
-					lienRef.acct);
+			zco_reduce_file_occupancy(sdr, lienRef.length, acct);
 			zco_reduce_heap_occupancy(sdr, sizeof(ZcoLienRef),
-					ZcoOutbound);
-			sdr_free(sdr, refObj);
+					acct);
 
-			/*	Referenced data may no longer be needed.*/
+			/*	In addition, the file reference count
+			 *	for this account is now reduced by 1.
+			 *	(There is now 1 less reference to this
+			 *	file reference object in this account.	*/
 
 			fileRefObj = lienRef.location;
 			sdr_stage(sdr, (char *) &fileRef, fileRefObj,
 					sizeof(FileRef));
-			fileRef.refCount--;
-			if (fileRef.refCount == 0 && fileRef.okayToDestroy)
+			fileRef.refCount[acct]--;
+			if (fileRef.refCount[acct] == 0)
+			{
+				zco_reduce_heap_occupancy(sdr, sizeof(FileRef),
+						acct);
+			}
+
+			/*	So now the file reference object may
+			 *	may no longer be needed.		*/
+
+			if (fileRef.refCount[0] == 0 && fileRef.refCount[1] == 0
+			&& fileRef.okayToDestroy)
 			{
 				destroyFileReference(sdr, &fileRef, fileRefObj);
 			}
-			else	/*	Update the file reference count.*/
+			else	/*	Just update reference count.	*/
 			{
 				sdr_write(sdr, fileRefObj, (char *) &fileRef,
 						sizeof(FileRef));
 			}
+		}
+
+		if (lienRef.refCount[0] == 0 && lienRef.refCount[1] == 0)
+		{
+			/*	Destroy the reference object.		*/
+
+			sdr_free(sdr, refObj);
 		}
 		else	/*	Just update the lien reference count.	*/
 		{
@@ -1688,7 +1966,7 @@ static void	destroyFirstExtent(Sdr sdr, Object zcoObj, Zco *zco)
 
 	/*	Release the extent's content text.			*/
 
-	destroyExtentText(sdr, &extent);
+	destroyExtentText(sdr, &extent, zco->acct);
 
 	/*	Destroy the extent itself.				*/
 
@@ -1777,10 +2055,7 @@ static void	destroyZco(Sdr sdr, Object zcoObj)
 
 	sdr_free(sdr, zcoObj);
 	zco_reduce_heap_occupancy(sdr, sizeof(Zco), zco.acct);
-	if (zco.acct == ZcoOutbound)
-	{
-		_zcoCallback(NULL);
-	}
+	_zcoCallback(NULL, zco.acct);
 }
 
 void	zco_destroy(Sdr sdr, Object zco)
@@ -1788,105 +2063,6 @@ void	zco_destroy(Sdr sdr, Object zco)
 	CHKVOID(sdr);
 	CHKVOID(zco);
 	destroyZco(sdr, zco);
-}
-
-Object	zco_transmute(Sdr sdr, Object zco)
-{
-	Zco		zcoBuf;
-	Object		obj;
-	Capsule		capsule;
-	vast		occupancy;
-	SourceExtent	extent;
-	ZcoObjRef	objectRef;
-	ZcoLienRef	lienRef;
-
-	CHKZERO(sdr);
-	CHKZERO(zco);
-	sdr_stage(sdr, (char *) &zcoBuf, zco, sizeof(Zco));
-	if (zcoBuf.acct != ZcoInbound)
-	{
-		putErrmsg("Trying to transmute an outbound Zco.", NULL);
-		return 0;
-	}
-
-	/*	Transmute all headers.					*/
-
-	for (obj = zcoBuf.firstHeader; obj; obj = capsule.nextCapsule)
-	{
-		sdr_read(sdr, (char *) &capsule, obj, sizeof(Capsule));
-		occupancy = sizeof(Capsule) + capsule.length;
-		zco_reduce_heap_occupancy(sdr, occupancy, ZcoInbound);
-		zco_increase_heap_occupancy(sdr, occupancy, ZcoOutbound);
-	}
-
-	/*	Transmute all extents.					*/
-
-	for (obj = zcoBuf.firstExtent; obj; obj = extent.nextExtent)
-	{
-		/*	To transmute an extent we first transmute
-		 *	the extent's object or lien reference as
-		 *	necessary.					*/
-
-		sdr_read(sdr, (char *) &extent, obj, sizeof(SourceExtent));
-		if (extent.sourceMedium == ZcoSdrSource)
-		{
-			sdr_stage(sdr, (char *) &objectRef, extent.location,
-					sizeof(ZcoObjRef));
-			if (objectRef.acct == ZcoInbound)
-			{
-				zco_reduce_heap_occupancy(sdr,
-						objectRef.length, ZcoInbound);
-				objectRef.acct = ZcoOutbound;
-				sdr_write(sdr, extent.location,
-						(char *) &objectRef, 
-						sizeof(ZcoObjRef));
-				zco_increase_heap_occupancy(sdr,
-						objectRef.length, ZcoOutbound);
-			}
-		}
-
-		if (extent.sourceMedium == ZcoFileSource)
-		{
-			sdr_stage(sdr, (char *) &lienRef, extent.location,
-					sizeof(ZcoLienRef));
-			if (lienRef.acct == ZcoInbound)
-			{
-				zco_reduce_file_occupancy(sdr,
-						lienRef.length, ZcoInbound);
-				lienRef.acct = ZcoOutbound;
-				sdr_write(sdr, extent.location,
-						(char *) &lienRef, 
-						sizeof(ZcoLienRef));
-				zco_increase_file_occupancy(sdr,
-						lienRef.length, ZcoOutbound);
-			}
-		}
-
-		/*	Then we transmute the extent object itself.	*/
-
-		zco_reduce_heap_occupancy(sdr, sizeof(SourceExtent),
-				ZcoInbound);
-		zco_increase_heap_occupancy(sdr, sizeof(SourceExtent),
-				ZcoOutbound);
-	}
-
-	/*	Transmute all trailers.					*/
-
-	for (obj = zcoBuf.firstTrailer; obj; obj = capsule.nextCapsule)
-	{
-		sdr_read(sdr, (char *) &capsule, obj, sizeof(Capsule));
-		occupancy = sizeof(Capsule) + capsule.length;
-		zco_reduce_heap_occupancy(sdr, occupancy, ZcoInbound);
-		zco_increase_heap_occupancy(sdr, occupancy, ZcoOutbound);
-	}
-
-	/*	Transmute the ZCO object itself.			*/
-
-	zco_reduce_heap_occupancy(sdr, sizeof(Zco), ZcoInbound);
-	zco_increase_heap_occupancy(sdr, sizeof(Zco), ZcoOutbound);
-	zcoBuf.acct = ZcoOutbound;
-	sdr_write(sdr, zco, (char *) &zcoBuf, sizeof(Zco));
-	return zco;
 }
 
 vast	zco_length(Sdr sdr, Object zcoObj)
@@ -2518,7 +2694,7 @@ void	zco_strip(Sdr sdr, Object zco)
 			 *	so the fact that extent.length is now
 			 *	zero doesn't mess up the accounting.	*/
 
-			destroyExtentText(sdr, &extent);
+			destroyExtentText(sdr, &extent, zcoBuf.acct);
 			sdr_free(sdr, obj);
 			zco_reduce_heap_occupancy(sdr, sizeof(SourceExtent),
 					zcoBuf.acct);
