@@ -915,8 +915,10 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 
 	/*		Create ZCO and append header			*/
 
-	zco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, NULL);
-	if (zco == 0 || zco == (Object) -1)
+	zco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength,
+			profile->classOfService, profile->extendedCOS.ordinal,
+			ZcoOutbound, NULL);
+	if (zco == 0 || zco == (Object) ERROR)
 	{
 		putErrmsg("Can't create aggregated ZCO.", NULL);
 		return -1;
@@ -959,8 +961,9 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 		sdr_write(sdr, addr, (char *) buffer, extentLength);
 		MRELEASE(buffer);
 		extent = ionAppendZcoExtent(zco, ZcoSdrSource, addr, 0,
-				extentLength, NULL);
-		if (extent == 0 || extent == (Object) -1)
+				extentLength, profile->classOfService,
+				profile->extendedCOS.ordinal, NULL);
+		if (extent == 0 || extent == (Object) ERROR)
 		{
 			putErrmsg("Can't create ZCO extent.", NULL);
 			return -1;
@@ -992,8 +995,10 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 			 * containing the payload itself.		*/
 
 			extent = ionAppendZcoExtent(zco, ZcoSdrSource, addr,
-					0, payloadRec->length.length, NULL);
-			if (extent == 0 || extent == (Object) -1)
+					0, payloadRec->length.length,
+					profile->classOfService,
+					profile->extendedCOS.ordinal, NULL);
+			if (extent == 0 || extent == (Object) ERROR)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				return -1;
@@ -1001,8 +1006,10 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 
 			extent = ionAppendZcoExtent(zco, ZcoSdrSource,
 					payloadRec->payload, 0,
-					payloadDataLength, NULL);
-			if (extent == 0 || extent == (Object) -1)
+					payloadDataLength,
+					profile->classOfService,
+					profile->extendedCOS.ordinal, NULL);
+			if (extent == 0 || extent == (Object) ERROR)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				return -1;
@@ -2793,8 +2800,9 @@ send ACK.");
 
 	/*		Create ZCO and send ACK.			*/
 
-	ackZco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, NULL);
-	if (ackZco == 0 || ackZco == (Object) -1)
+	ackZco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, priority,
+			extendedCOS.ordinal, ZcoOutbound, NULL);
+	if (ackZco == 0 || ackZco == (Object) ERROR)
 	{
 		putErrmsg("Can't create ack ZCO.", NULL);
 		sdr_cancel_xn(sdr);

@@ -179,7 +179,7 @@ extern int		bp_send(	BpSAP sap,
 			 *	label.
 			 *
 			 *	adu must be a "zero-copy object" as
-			 *	returned by zco_create().
+			 *	returned by ionCreateZco().
 			 *
 			 *	Returns 1 on success, 0 on user error
 			 *	(an invalid argument value), -1 on

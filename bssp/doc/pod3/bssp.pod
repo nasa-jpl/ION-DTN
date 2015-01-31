@@ -67,7 +67,7 @@ data tagged with the indicated I<clientId> as received at the remote BSSP
 engine identified by I<destinationEngineId>.
 
 I<clientServiceData> must be a "zero-copy object" reference as returned
-by zco_create().  Note that BSSP will privately make and destroy its own
+by ionCreateZco().  Note that BSSP will privately make and destroy its own
 reference to the client service data object; the application is free to
 destroy its reference at any time.
 

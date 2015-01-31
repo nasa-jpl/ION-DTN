@@ -248,25 +248,17 @@ typedef struct
 
 typedef struct
 {
-	ZcoAcct		acct;
 	sm_SemId	semaphore;
-} ReqPermit;
+} ReqAttendant;
 
 typedef PsmAddress	ReqTicket;
-
-typedef enum
-{
-	ReqOpen = 0,
-	ReqServiced = 1,
-	ReqExpired = 2
-} ReqStatus;
 
 typedef struct
 {
 	vast		fileSpaceNeeded;
 	vast		heapSpaceNeeded;
 	sm_SemId	semaphore;
-	ReqStatus	status;
+	int		secondsUnclaimed;
 	unsigned char	coarsePriority;
 	unsigned char	finePriority;
 } Requisition;
@@ -322,21 +314,18 @@ extern void		ionProd(	uvast fromNode,
 					unsigned int owlt);
 extern void		ionTerminate();
 
-int			ionOpenPermit(	ReqPermit *permit,
-					ZcoAcct acct);
-void			ionSuspendPermit(ReqPermit *permit);
-void			ionResumePermit(ReqPermit *permit);
-void			ionClosePermit(	ReqPermit *permit);
-void			ionShred(	ReqTicket ticket);
-
+int			ionStartAttendant(ReqAttendant *permit);
+void			ionPauseAttendant(ReqAttendant *permit);
+void			ionResumeAttendant(ReqAttendant *permit);
+void			ionStopAttendant(ReqAttendant *permit);
 extern Object		ionCreateZco(	ZcoMedium source,
 					Object location,
 					vast offset,
 					vast length,
 					unsigned int coarsePriority,
 					unsigned int finePriority,
-					int blocking,
-					ReqPermit *permit);
+					ZcoAcct acct,
+					ReqAttendant *attendant);
 extern vast		ionAppendZcoExtent(Object zco,
 					ZcoMedium source,
 					Object location,
@@ -344,9 +333,7 @@ extern vast		ionAppendZcoExtent(Object zco,
 					vast length,
 					unsigned int coarsePriority,
 					unsigned int finePriority,
-					int blocking,
-					ReqPermit *permit);
-extern void		ionCancelZcoSpaceRequest(int *control);
+					ReqAttendant *attendant);
 
 extern Sdr		getIonsdr();
 extern Object		getIonDbObject();

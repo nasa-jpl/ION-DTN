@@ -103,6 +103,7 @@ static int	cryptPayload(Bundle *bundle, unsigned char *sessionKey,
 	unsigned int	chunkSize = BCB_ENCRYPTION_CHUNK_SIZE;
 	unsigned int	bytesRetrieved = 0;
 	Object		fileRef;
+	vast		extentLength;
 	Object		newZco;
 
 	CHKERR(sessionKey);
@@ -189,8 +190,15 @@ but expected %d.", bytesRetrieved, chunkSize);
 		return -1;
 	}
 
-	newZco = zco_create(bpSdr, ZcoFileSource, fileRef, 0,
-			bundle->payload.length, ZcoOutbound);
+	/*	Pass additive inverse of length to zco_create to
+	 *	indicate that allocating this ZCO space to hold
+	 *	the encrypted payload is non-negotiable, since the
+	 *	exact same amount of space is going to be released
+	 *	immediately when the unencrypted payload is destroyed.	*/
+
+	extentLength = bundle->payload.length;
+	newZco = zco_create(bpSdr, ZcoFileSource, fileRef, 0, 0 - extentLength,
+			ZcoOutbound);
 	switch (newZco)
 	{
 	case 0:

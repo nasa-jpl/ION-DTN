@@ -48,7 +48,7 @@ BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsse
 
 LBP = -lbp -limcfw -lipnfw
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
@@ -77,6 +77,10 @@ install:
 bpclock:	bpclock.o $(BPLIBS)
 		$(CC) -o bpclock bpclock.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp bpclock ./bin
+
+bptransit:	bptransit.o $(BPLIBS)
+		$(CC) -o bptransit bptransit.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp bptransit ./bin
 
 #	-	-	Utility executables	-	-	-	-
 

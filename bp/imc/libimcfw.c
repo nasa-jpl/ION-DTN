@@ -116,7 +116,13 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 	}
 
 	sdr_write(sdr, sourceData, buffer, length);
-	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, length,
+
+	/*	Pass additive inverse of length to zco_create to
+	 *	indicate that allocating this ZCO space is non-
+	 *	negotiable: for IMC petitions, allocation of ZCO
+	 *	space can never be denied or delayed.			*/
+
+	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, 0 - length,
 			ZcoOutbound);
 	if (sdr_end_xn(sdr) < 0 || payloadZco == (Object) ERROR
 	|| payloadZco == 0)

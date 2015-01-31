@@ -1001,8 +1001,8 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 		return -1;
 	}
 
-	bundleZco = zco_create(sdr, ZcoSdrSource, extent, 0, envelopeLength,
-			ZcoOutbound);
+	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, envelopeLength,
+			classOfService, ecos.ordinal, ZcoOutbound, NULL);
 	if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
 	|| bundleZco == 0)
 	{

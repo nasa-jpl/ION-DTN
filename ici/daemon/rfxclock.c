@@ -10,6 +10,12 @@
 									*/
 #include "rfx.h"
 
+#ifndef	MAX_SECONDS_UNCLAIMED
+#define	MAX_SECONDS_UNCLAIMED	(3)
+#endif
+
+extern void	ionShred(ReqTicket ticket);
+
 static long	_running(long *newValue)
 {
 	void	*value;
@@ -422,7 +428,7 @@ int	main(int argc, char *argv[])
 
 		/*	Finally, clean up any ZCO space requisitions
 		 *	that have been serviced but that applicants
-		 *	have not yet cashed in; let other applicants
+		 *	have not yet claimed; let other applicants
 		 *	get access to ZCO space.			*/
 
 		for (i = 0; i < 2; i++)
@@ -433,20 +439,21 @@ int	main(int argc, char *argv[])
 				nextElt = sm_list_next(ionwm, elt);
 				reqAddr = sm_list_data(ionwm, elt);
 				req = (Requisition *) psp(ionwm, reqAddr);
-				switch (req->status)
+				switch (req->secondsUnclaimed)
 				{
-				case ReqOpen:
+				case -1:	/*	Not serviced.	*/
 					break;	/*	Out of switch.	*/
 
-				case ReqServiced:
-					/*	Give it one more sec.	*/
+				case MAX_SECONDS_UNCLAIMED:
 
-					req->status = ReqExpired;
-					continue;
+					/*	Requisition expired.	*/
 
-				default:	/*	Expired.	*/
 					sm_SemEnd(req->semaphore);
 					ionShred(elt);
+					continue;
+
+				default:	/*	Still waiting.	*/
+					req->secondsUnclaimed++;
 					continue;
 				}
 

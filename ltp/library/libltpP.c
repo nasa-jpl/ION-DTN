@@ -3992,7 +3992,7 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	sessionBuf->clientSvcId = clientSvcId;
 	sessionBuf->redSegments = sdr_list_create(sdr);
 	sessionBuf->rsSegments = sdr_list_create(sdr);
-	sessionBuf->svcData = zco_create(sdr, 0, 0, 0, 0, ZcoInbound);
+	sessionBuf->svcData = ionCreateZco(0, 0, 0, 0, 0, 0, ZcoInbound, NULL);
 	sessionBuf->span = spanObj;
 	if (sessionBuf->redSegments == 0
 	|| sessionBuf->rsSegments == 0
@@ -4259,8 +4259,8 @@ static int	writeBlockExtentToHeap(ImportSession *session,
 		return -1;
 	}
 
-	switch (zco_append_extent(sdr, session->svcData, ZcoSdrSource,
-			heapAddress, 0, length))
+	switch (ionAppendZcoExtent(session->svcData, ZcoSdrSource,
+			heapAddress, 0, length, 0, 0, NULL))
 	{
 	case ERROR:
 		putErrmsg("Can't append block extent.", NULL);
@@ -4343,8 +4343,8 @@ static int	writeBlockExtentToFile(ImportSession *session,
 	}
 
 	close(fd);
-	switch (zco_append_extent(sdr, session->svcData, ZcoFileSource,
-			session->blockFileRef, fileLength, length))
+	switch (ionAppendZcoExtent(session->svcData, ZcoFileSource,
+			session->blockFileRef, fileLength, length, 0, 0, NULL))
 	{
 	case ERROR:
 		putErrmsg("Can't append block extent.", NULL);
@@ -4370,6 +4370,7 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 	Object	elt;
 	Object	segObj;
 		OBJ_POINTER(LtpRecvSeg, segment);
+	vast	extentLength;
 
 	/*	Use the redSegments list to construct a ZCO that
 	 *	encapsulates the concatenated content of all data
@@ -4379,9 +4380,11 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 	 *	for this session.  Note that net ZCO space occupancy
 	 *	is unchanged: in effect, we're just using the
 	 *	redSegments list to re-sort the extents of the
-	 *	acquisition ZCO.					*/
+	 *	acquisition ZCO.  Since we are just cloning
+	 *	extents of the same ZCO within a single account,
+	 *	the length of the extent is not controlled.		*/
 
-	svcDataObject = zco_create(sdr, 0, 0, 0, 0, ZcoInbound);
+	svcDataObject = ionCreateZco(0, 0, 0, 0, 0, 0, ZcoInbound, NULL);
 	switch (svcDataObject)
 	{
 	case (Object) ERROR:
@@ -4394,9 +4397,10 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 	{
 		segObj = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, LtpRecvSeg, segment, segObj);
+		extentLength = segment->pdu.length;
 		if (zco_append_extent(sdr, svcDataObject, ZcoZcoSource,
 				session->svcData, segment->acqOffset,
-				segment->pdu.length) < 1)
+				extentLength) < 1)
 		{
 			putErrmsg("Can't deliver ZCO extent.", NULL);
 			return -1;
@@ -4514,8 +4518,8 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 		return -1;
 	}
 
-	*clientSvcData = zco_create(sdr, ZcoSdrSource, pduObj, 0,
-			pdu->length, ZcoInbound);
+	*clientSvcData = ionCreateZco(ZcoSdrSource, pduObj, 0, pdu->length,
+			0, 0, ZcoInbound, NULL);
 	switch (*clientSvcData)
 	{
 	case (Object) ERROR:

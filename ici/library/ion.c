@@ -871,6 +871,16 @@ void	ionDropVdb()
 	oK(_ionvdb(&stop));			/*	Forget old Vdb.	*/
 }
 
+void	ionRaiseVdb()				/*	For ionrestart.	*/
+{
+	char	*ionvdbName = _ionvdbName();
+
+	if (_ionvdb(&ionvdbName) == NULL)	/*	Create new Vdb.	*/
+	{
+		putErrmsg("ION can't reinitialize vdb.", NULL);
+	}
+}
+
 int	ionAttach()
 {
 	Sdr		ionsdr = _ionsdr(NULL);
@@ -1778,32 +1788,29 @@ void	ionKillMainThread(char *procName)
 
 /*	Functions for flow-controlled ZCO space management.		*/
 
-int	ionOpenPermit(ReqPermit *permit, ZcoAcct acct)
+int	ionStartAttendant(ReqAttendant *attendant)
 {
-	CHKERR(permit);
-	CHKERR(acct == ZcoInbound || acct == ZcoOutbound);
-	permit->acct = acct;
-	permit->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-	return (permit->semaphore == SM_SEM_NONE ? -1 : 0);
+	CHKERR(attendant);
+	attendant->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+	return (attendant->semaphore == SM_SEM_NONE ? -1 : 0);
 }
 
-void	ionSuspendPermit(ReqPermit *permit)
+void	ionPauseAttendant(ReqAttendant *attendant)
 {
-	CHKVOID(permit);
-	sm_SemEnd(permit->semaphore);
+	CHKVOID(attendant);
+	sm_SemEnd(attendant->semaphore);
 }
 
-void	ionResumePermit(ReqPermit *permit)
+void	ionResumeAttendant(ReqAttendant *attendant)
 {
-	CHKVOID(permit);
-	sm_SemUnend(permit->semaphore);
+	CHKVOID(attendant);
+	sm_SemUnend(attendant->semaphore);
 }
 
-void	ionClosePermit(ReqPermit *permit)
+void	ionStopAttendant(ReqAttendant *attendant)
 {
-	CHKVOID(permit);
-	permit->acct = ZcoUnknown;
-	sm_SemDelete(permit->semaphore);
+	CHKVOID(attendant);
+	sm_SemDelete(attendant->semaphore);
 }
 
 void	ionShred(ReqTicket ticket)
@@ -1818,9 +1825,10 @@ void	ionShred(ReqTicket ticket)
 	sm_list_delete(ionwm, ticket, NULL, NULL);
 }
 
-static int	ionRequest(ReqPermit *permit, vast fileSpaceNeeded,
+static int	ionRequest(ZcoAcct acct, vast fileSpaceNeeded,
 			vast heapSpaceNeeded, unsigned char coarsePriority,
-			unsigned char finePriority, ReqTicket *ticket)
+			unsigned char finePriority, ReqAttendant *attendant,
+			ReqTicket *ticket)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1831,13 +1839,7 @@ static int	ionRequest(ReqPermit *permit, vast fileSpaceNeeded,
 	PsmAddress	oldReqAddr;
 	Requisition	*oldReq;
 
-	CHKERR(permit);
-	CHKERR(fileSpaceNeeded >= 0);
-	CHKERR(heapSpaceNeeded >= 0);
-	CHKERR(ticket);
-	CHKERR(vdb);
 	*ticket = 0;			/*	Default: serviced.	*/
-	sm_SemGive(permit->semaphore);	/*	Ensure it's not locked.	*/
 	oK(sdr_begin_xn(sdr));		/*	Just to lock memory.	*/
 	reqAddr = psm_zalloc(ionwm, sizeof(Requisition));
 	if (reqAddr == 0)
@@ -1850,11 +1852,19 @@ static int	ionRequest(ReqPermit *permit, vast fileSpaceNeeded,
 	req = (Requisition *) psp(ionwm, reqAddr);
 	req->fileSpaceNeeded = fileSpaceNeeded;
 	req->heapSpaceNeeded = heapSpaceNeeded;
-	req->semaphore = permit->semaphore;
-	req->status = ReqOpen;
+	if (attendant)
+	{
+		req->semaphore = attendant->semaphore;
+	}
+	else
+	{
+		req->semaphore = SM_SEM_NONE;
+	}
+
+	req->secondsUnclaimed = -1;	/*	Not yet serviced.	*/
 	req->coarsePriority = coarsePriority;
 	req->finePriority = finePriority;
-	for (elt = sm_list_last(ionwm, vdb->requisitions[permit->acct]); elt;
+	for (elt = sm_list_last(ionwm, vdb->requisitions[acct]); elt;
 			elt = sm_list_prev(ionwm, elt))
 	{
 		oldReqAddr = sm_list_data(ionwm, elt);
@@ -1893,7 +1903,7 @@ static int	ionRequest(ReqPermit *permit, vast fileSpaceNeeded,
 	else	/*	Higher priority than all other requisitions.	*/
 	{
 		*ticket = sm_list_insert_first(ionwm,
-				vdb->requisitions[permit->acct], reqAddr);
+				vdb->requisitions[acct], reqAddr);
 	}
 
 	if (*ticket == 0)
@@ -1908,8 +1918,8 @@ static int	ionRequest(ReqPermit *permit, vast fileSpaceNeeded,
 
 	/*	See if request can be serviced immediately.		*/
 
-	ionProvideZcoSpace(permit->acct);
-	if (req->status == ReqServiced)	/*	Got it!			*/
+	ionProvideZcoSpace(acct);
+	if (req->secondsUnclaimed >= 0)	/*	Got it!			*/
 	{
 		ionShred(*ticket);
 		*ticket = 0;		/*	Nothing to wait for.	*/
@@ -1918,7 +1928,14 @@ static int	ionRequest(ReqPermit *permit, vast fileSpaceNeeded,
 
 	/*	Request can't be serviced yet.				*/
 
-	sm_SemTake(permit->semaphore);	/*	Enable blocking.	*/
+	if (attendant)
+	{
+		/*	Get attendant ready to wait for service.	*/
+
+		sm_SemGive(attendant->semaphore);	/*	Unlock.	*/
+		sm_SemTake(attendant->semaphore);	/*	Lock.	*/
+	}
+
 	return 0;
 }
 
@@ -1944,7 +1961,7 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	{
 		reqAddr = sm_list_data(ionwm, elt);
 		req = (Requisition *) psp(ionwm, reqAddr);
-		if (req->status != ReqOpen
+		if (req->secondsUnclaimed >= 0	/*	Reserved.	*/
 		|| fileSpaceAvbl < req->fileSpaceNeeded
 		|| heapSpaceAvbl < req->heapSpaceNeeded)
 		{
@@ -1956,10 +1973,14 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 
 		/*	Can close out this requisition.			*/
 
+		req->secondsUnclaimed = 0;
+		if (req->semaphore != SM_SEM_NONE)
+		{
+			sm_SemGive(req->semaphore);
+		}
+
 		fileSpaceAvbl -= req->fileSpaceNeeded;
 		heapSpaceAvbl -= req->heapSpaceNeeded;
-		req->status = ReqServiced;
-		sm_SemGive(req->semaphore);
 	}
 
 	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
@@ -1967,7 +1988,8 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 
 Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		vast length, unsigned int coarsePriority,
-		unsigned int finePriority, int blocking, ReqPermit *permit)
+		unsigned int finePriority, ZcoAcct acct,
+		ReqAttendant *attendant)
 {
 	Sdr		sdr = getIonsdr();
 	IonVdb		*vdb = getIonVdb();
@@ -1977,11 +1999,11 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 	Object		zco;
 
 	CHKERR(vdb);
-	CHKERR(permit);
+	CHKERR(acct == ZcoInbound || acct == ZcoOutbound);
 	if (location == 0)	/*	No initial extent to write.	*/
 	{
 		oK(sdr_begin_xn(sdr));
-		zco = zco_create(sdr, source, 0, 0, 0, permit->acct);
+		zco = zco_create(sdr, source, 0, 0, 0, acct);
 		if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
@@ -1990,6 +2012,9 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 
 		return zco;
 	}
+
+	CHKERR(offset >= 0);
+	CHKERR(length > 0);
 
 	/*	Creating ZCO with its initial extent.			*/
 
@@ -2015,8 +2040,8 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		return ((Object) ERROR);
 	}
 
-	if (ionRequest(permit, fileSpaceNeeded, heapSpaceNeeded,
-			coarsePriority, finePriority, &ticket) < 0)
+	if (ionRequest(acct, fileSpaceNeeded, heapSpaceNeeded,
+			coarsePriority, finePriority, attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed on ionRequest.", NULL);
 		return ((Object) ERROR);
@@ -2024,21 +2049,20 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 
 	if (ticket)	/*	Couldn't service request immediately.	*/
 	{
-		if (blocking == 0)
+		if (attendant == NULL)	/*	Non-blocking.		*/
 		{
 			return 0;	/*	No Zco created.		*/
 		}
 
 		/*	Ticket is req list element for the request.	*/
 
-		if (sm_SemTake(permit->semaphore) < 0)
+		if (sm_SemTake(attendant->semaphore) < 0)
 		{
-			putErrmsg("ionCreateZco can't take permit semaphore.",
-					NULL);
+			putErrmsg("ionCreateZco can't take semaphore.", NULL);
 			return ((Object) ERROR);
 		}
 
-		if (sm_SemEnded(permit->semaphore))
+		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO creation interrupted.");
 			return 0;
@@ -2053,8 +2077,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
  	*	indicate that space has already been awarded.		*/
 
 	oK(sdr_begin_xn(sdr));
-	zco = zco_create(sdr, source, location, offset, 0 - length,
-			permit->acct);
+	zco = zco_create(sdr, source, location, offset, 0 - length, acct);
 	if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR || zco == 0)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
@@ -2066,7 +2089,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 
 vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 		vast offset, vast length, unsigned int coarsePriority,
-		unsigned int finePriority, int blocking, ReqPermit *permit)
+		unsigned int finePriority, ReqAttendant *attendant)
 {
 	Sdr		sdr = getIonsdr();
 	IonVdb		*vdb = _ionvdb(NULL);
@@ -2076,7 +2099,9 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 	vast		result;
 
 	CHKERR(vdb);
-	CHKERR(permit);
+	CHKERR(location);
+	CHKERR(offset >= 0);
+	CHKERR(length > 0);
 	switch (source)
 	{
 	case ZcoFileSource:
@@ -2099,8 +2124,8 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 		return ERROR;
 	}
 
-	if (ionRequest(permit, fileSpaceNeeded, heapSpaceNeeded,
-			coarsePriority, finePriority, &ticket) < 0)
+	if (ionRequest(zco_acct(sdr, zco), fileSpaceNeeded, heapSpaceNeeded,
+			coarsePriority, finePriority, attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed on ionRequest.", NULL);
 		return ERROR;
@@ -2108,21 +2133,21 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 
 	if (ticket)	/*	Couldn't service request immediately.	*/
 	{
-		if (blocking == 0)
+		if (attendant == NULL)	/*	Non-blocking.		*/
 		{
 			return 0;	/*	No extent created.	*/
 		}
 
 		/*	Ticket is req list element for the request.	*/
 
-		if (sm_SemTake(permit->semaphore) < 0)
+		if (sm_SemTake(attendant->semaphore) < 0)
 		{
 			putErrmsg("ionAppendZcoExtent can't take semaphore.",
 					NULL);
 			return ERROR;
 		}
 
-		if (sm_SemEnded(permit->semaphore))
+		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO extent creation interrupted.");
 			return 0;

@@ -78,7 +78,7 @@ extern int	sendBundleByTCPCL(struct sockaddr *socketName,
 			int *keepalivePeriod);
 extern int	receiveBytesByTCP(int bundleSocket, char *into, int length);
 extern int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work,
-			char *buffer);
+			char *buffer, ReqAttendant *attendant);
 extern int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer);
 extern int 	receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer, uvast *segmentLength,int *flags);
 extern int 	sendContactHeader(int *bundleSocket, unsigned char *buffer,

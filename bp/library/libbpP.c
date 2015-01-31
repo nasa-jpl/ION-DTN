@@ -42,6 +42,16 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
+/*	We hitchhike on the ZCO heap space management system to 
+ *	manage the space occupied by Bundle objects.  In effect,
+ *	the Bundle overhead objects compete with ZCOs for available
+ *	SDR heap space.  We don't want this practice to become
+ *	widespread, which is why these functions are declared
+ *	privately here rather than publicly in the zco.h header.	*/
+
+extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
+extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
+
 static BpVdb	*_bpvdb(char **);
 static int	constructCtSignal(BpCtSignal *csig, Object *zco);
 static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco);
@@ -1655,8 +1665,8 @@ int	bpStart()
 	{
 		sdr_string_read(bpSdr, cmdString, (_bpConstants())->transitCmd);
 		bpvdb->transitPid = pseudoshell(cmdString);
-		vdb->transitSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-		sm_SemTake(vdb->transitSemaphore);	/*	Lock.	*/
+		bpvdb->transitSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+		sm_SemTake(bpvdb->transitSemaphore);	/*	Lock.	*/
 	}
 
 	/*	Start forwarders and admin endpoints for all schemes.	*/
@@ -1879,13 +1889,13 @@ void	bpDetach()
 
 /*	*	*	Database occupancy functions	*	*	*/
 
-static void	noteBundleInserted(Bundle *bundle)
+void	noteBundleInserted(Bundle *bundle)
 {
 	zco_increase_heap_occupancy(getIonsdr(), bundle->dbOverhead,
 			bundle->acct);
 }
 
-static void	noteBundleRemoved(Bundle *bundle)
+void	noteBundleRemoved(Bundle *bundle)
 {
 	zco_reduce_heap_occupancy(getIonsdr(), bundle->dbOverhead,
 			bundle->acct);
@@ -6539,12 +6549,12 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 	return 0;
 }
 
-int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length, int blocking)
+int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
+		ReqAttendant *attendant)
 {
 	static unsigned int	acqCount = 0;
 	Sdr			sdr = getIonsdr();
 				OBJ_POINTER(BpDB, bpdb);
-	int			extentLength;
 	Object			extentObj;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
@@ -6598,32 +6608,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length, int blocking)
 
 	if ((length + zco_length(sdr, work->zco)) <= bpdb->maxAcqInHeap)
 	{
-		if (blocking)	/*	Check size before writing.	*/
-		{
-			if (zco_extent_too_large(sdr, ZcoSdrSource, length,
-					ZcoInbound))
-			{
-				if (sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("Acquisition failed.", NULL);
-					return -1;
-				}
-
-				return 1;	/*	Retry later.	*/
-			}
-
-			extentLength = 0 - length;
-		}
-		else		/*	Let zco_append_extent decide.	*/
-		{
-			extentLength = length;
-		}
-
 		extentObj = sdr_insert(sdr, bytes, length);
 		if (extentObj)
 		{
-			switch (zco_append_extent(sdr, work->zco, ZcoSdrSource,
-					extentObj, 0, extentLength))
+			switch (ionAppendZcoExtent(work->zco, ZcoSdrSource,
+					extentObj, 0, length, 0, 0, attendant))
 			{
 			case ERROR:
 				putErrmsg("Can't append heap extent.", NULL);
@@ -6649,27 +6638,6 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length, int blocking)
 
 	/*	This extent of this acquisition must be acquired into
 	 *	a file.							*/
-
-	if (blocking)		/*	Check size before writing.	*/
-	{
-		if (zco_extent_too_large(sdr, ZcoFileSource, length,
-				ZcoInbound))
-		{
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Acquisition failed.", NULL);
-				return -1;
-			}
-
-			return 1;		/*	Retry later.	*/
-		}
-
-		extentLength = 0 - length;
-	}
-	else			/*	Let zco_append_extent decide.	*/
-	{
-		extentLength = length;
-	}
 
 	if (work->acqFileRef == 0)	/*	First file extent.	*/
 	{
@@ -6732,8 +6700,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length, int blocking)
 	}
 
 	close(fd);
-	switch (zco_append_extent(sdr, work->zco, ZcoFileSource,
-			work->acqFileRef, fileLength, extentLength))
+	switch (ionAppendZcoExtent(work->zco, ZcoFileSource, work->acqFileRef,
+			fileLength, length, 0, 0, attendant))
 	{
 	case ERROR:
 		putErrmsg("Can't append file reference extent.", NULL);
@@ -7861,6 +7829,7 @@ static int	checkIncompleteBundle(Bundle *newFragment, VEndpoint *vpoint)
 	Bundle		fragBuf;
 	unsigned int	bytesToSkip;
 	unsigned int	bytesToCopy;
+	vast		extentLength;
 
 	/*	Check to see if entire ADU has been received.		*/
 
@@ -7935,6 +7904,7 @@ static int	checkIncompleteBundle(Bundle *newFragment, VEndpoint *vpoint)
 		if (bytesToSkip < fragBuf.payload.length)
 		{
 			bytesToCopy = fragBuf.payload.length - bytesToSkip;
+			extentLength = bytesToCopy;
 
 			/*	Providing a negative length to the
 			 *	zco_append_extent function suppresses
@@ -7947,7 +7917,7 @@ static int	checkIncompleteBundle(Bundle *newFragment, VEndpoint *vpoint)
 			if (zco_append_extent(bpSdr,
 					aggregateBundle.payload.content,
 					ZcoZcoSource, fragBuf.payload.content,
-					bytesToSkip, (0 - bytesToCopy)) < 0)
+					bytesToSkip, 0 - extentLength) < 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
 				return -1;
@@ -8179,8 +8149,14 @@ static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 
 	sdr_write(bpSdr, sourceData, buffer, ctSignalLength);
 	MRELEASE(buffer);
-	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, ctSignalLength,
-			ZcoOutbound);
+
+	/*	Pass additive inverse of length to zco_create to
+	 *	indicate that allocating this ZCO space is non-
+	 *	negotiable: for custody signals, allocation of
+	 *	ZCO space can never be denied or delayed.		*/
+
+	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0,
+			0 - ctSignalLength, ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create CT signal.", NULL);
@@ -8454,7 +8430,13 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 
 	sdr_write(bpSdr, sourceData, buffer, rptLength);
 	MRELEASE(buffer);
-	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, rptLength,
+
+	/*	Pass additive inverse of length to zco_create to
+	 *	indicate that allocating this ZCO space is non-
+	 *	negotiable: for status reports, allocation of
+	 *	ZCO space can never be denied or delayed.		*/
+
+	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, 0 - rptLength,
 			ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{

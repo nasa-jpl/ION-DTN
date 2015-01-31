@@ -80,16 +80,6 @@ extern "C" {
 #define BP_MAX_BLOCK_SIZE		(2000)
 #endif
 
-/*	We hitchhike on the ZCO heap space management system to 
- *	manage the space occupied by Bundle objects.  In effect,
- *	the Bundle overhead objects compete with ZCOs for available
- *	SDR heap space.  We don't want this practice to become
- *	widespread, which is why these functions are declared
- *	privately here rather than publicly in the zco.h header.	*/
-
-extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
-extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
-
 /*	A BP "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR database, in a DTN-based network.
@@ -1178,7 +1168,7 @@ extern int		bpLoadAcq(	AcqWorkArea *workArea,
 extern int		bpContinueAcq(	AcqWorkArea *workArea,
 					char *bytes,
 					int length,
-					int blocking);
+					ReqAttendant *attendant);
 			/*	This function continues acquisition
 			 *	of a bundle as initiated by an
 			 *	invocation of bpBeginAcq().  To
@@ -1199,22 +1189,30 @@ extern int		bpContinueAcq(	AcqWorkArea *workArea,
 			 *	"bytes" to the source data of that
 			 *	ZCO.
 			 *
-			 *	If "blocking" is set to 1, then
-			 *	bpContinueAcq will return 1 if the
+			 * 	The behavior of bpContinueAcq when
 			 *	currently available space for zero-
 			 *	copy objects is insufficient to
 			 *	contain this increment of bundle
-			 *	source data.  (In this case, the
-			 *	acquisition work area is NOT flagged
-			 *	for refusal -- the convergence-layer
-			 *	adapter is expected to retry this
-			 *	acquisition at a future time when it
-			 *	may succeed.)
+			 *	source data depends on the value of
+			 *	"attendant".  If "attendant" is NULL,
+			 *	then bpContinueAcq will return 0 but
+			 *	will flag the acquisition work area
+			 *	for refusal of the bundle due to
+			 *	resource exhaustion (congestion).
+			 *	Otherwise, (i.e., "attendant" points
+			 *	to a ReqAttendant structure, which 
+			 *	MUST have already been initialized by
+			 *	ionStartAttendant()), bpContinueAcq
+			 *	will block until sufficient space
+			 *	is available or the attendant is
+			 *	paused or the function fails,
+			 *	whichever occurs first.
 			 *	
-			 *	Otherwise, returns 0 on success (even
-			 *	if the acquisition work area is flagged
-			 *	for refusal due to congestion), -1 on
-			 *	any failure.				*/
+			 *	Returns 0 on success (even if
+			 *	"attendant" was paused or the
+			 *	acquisition work area is flagged
+			 *	for refusal due to congestion), -1
+			 *	on any failure.				*/
 
 extern void		bpCancelAcq(	AcqWorkArea *workArea);
 			/*	Cancels acquisition of a new
