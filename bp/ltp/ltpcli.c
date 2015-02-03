@@ -189,7 +189,12 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	}
 
 	/*	Extract data from segment ZCO so that it can be
-	 *	appended to the bundle acquisition ZCO.			*/
+	 *	appended to the bundle acquisition ZCO.  Note
+	 *	that we're breaking the "zero-copy" model here;
+	 *	it would be better to have an alternate version
+	 *	of bpContinueAcq that uses zco_clone_source_data
+	 *	to append the segment ZCO's source data to the
+	 *	acquisition ZCO in the work area. (TODO)		*/
 
 	zco_start_receiving(zco, &reader);
 	CHKERR(sdr_begin_xn(sdr));

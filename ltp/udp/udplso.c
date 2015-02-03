@@ -33,6 +33,18 @@
 
 #endif
 
+static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
+{
+	static ReqAttendant	*attendant = NULL;
+
+	if (newAttendant)
+	{
+		attendant = newAttendant;
+	}
+
+	return attendant;
+}
+
 static sm_SemId		udplsoSemaphore(sm_SemId *semid)
 {
 	static sm_SemId	semaphore = -1;
@@ -98,7 +110,8 @@ static void	*handleDatagrams(void *parm)
 			continue;
 		}
 
-		if (ltpHandleInboundSegment(buffer, segmentLength) < 0)
+		if (ltpHandleInboundSegment(buffer, segmentLength,
+					_attendant(NULL)) < 0)
 		{
 			putErrmsg("Can't handle inbound segment.", NULL);
 			shutDownLso();
@@ -182,6 +195,7 @@ int	main(int argc, char *argv[])
 	struct sockaddr_in	*bindInetName;
 	struct sockaddr		peerSockName;
 	struct sockaddr_in	*peerInetName;
+	ReqAttendant		attendant;
 	socklen_t		nameLength;
 	ReceiverThreadParms	rtp;
 	pthread_t		receiverThread;
@@ -297,6 +311,15 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (ionStartAttendant(&attendant) < 0)
+	{
+		closesocket(rtp.linkSocket);
+		putSysErrmsg("LSO can't initialize blocking reception.", NULL);
+		return 1;
+	}
+
+	oK(_attendant(&attendant));
+
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
 	oK(udplsoSemaphore(&(vspan->segSemaphore)));
@@ -377,6 +400,8 @@ int	main(int argc, char *argv[])
 		sm_TaskYield();
 	}
 
+	ionPauseAttendant(&attendant);
+
 	/*	Create one-use socket for the closing quit byte.	*/
 
 	portNbr = bindInetName->sin_port;	/*	From binding.	*/
@@ -400,6 +425,7 @@ int	main(int argc, char *argv[])
 	}
 
 	pthread_join(receiverThread, NULL);
+	ionStopAttendant(&attendant);
 	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udplso has ended.");
