@@ -73,12 +73,13 @@ tcputa:		tcputa.o libcfdp.so
 		$(CC) -o tcputa tcputa.o -L./lib -L$(ROOT)/lib -lcfdp -lici -lpthread
 		cp tcputa ./bin
 		
-#	-	-	BPCP executables	-	-	-	-	-
-bpcp: 		bpcp.o
+#	-	-	BPCP executables	-	-	-	-
+
+bpcp:		bpcp.o
 		$(CC) -o bpcp bpcp.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
 		cp bpcp ./bin
 		
-bpcpd: 		bpcpd.o
+bpcpd:		bpcpd.o
 		$(CC) -o bpcpd bpcpd.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
 		cp bpcpd ./bin
 

@@ -4,11 +4,11 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
-CRYPTO = ../crypto
+CRYPTO = ../crypto/NULL_SUITES
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO)
+CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -155,7 +155,7 @@ rfxclock:	rfxclock.o libici.so
 		$(CC) -I. -o rfxclock rfxclock.o -L./lib -lici -lpthread
 		cp rfxclock ./bin
 
-#	-	-	Library		-	-	-	-	-
+#	-	-	Libraries	-	-	-	-	-
 
 libici.so:	$(LIBICIOBJS)
 		$(LD) -o libici.so $(LIBICIOBJS)
@@ -173,7 +173,7 @@ libicinm.so:	libicinm.o $(INCL)/icinm.h
 %.o:		$(SDR)/%.c
 		$(CC) -c $<
 
-%.o:		$(CRYPTO)/NULL_SUITES/%.c
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c

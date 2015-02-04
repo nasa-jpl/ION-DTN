@@ -50,7 +50,6 @@ PUBINCLS = \
 	$(INCL)/ionsec.h \
 	$(INCL)/crypto.h \
 	$(INCL)/zco.h \
-	$(INCL)/crypto.h \
 	$(INCL)/sdrxn.h \
 	$(INCL)/sdrmgt.h \
 	$(INCL)/sdrstring.h \

@@ -3,6 +3,7 @@ INCL = ../include
 UTILS = ../utils
 DAEMON = ../daemon
 BP = ../bp
+TCP = ../tcp
 TEST = ../test
 
 # OPT = -O -Dlinux
@@ -18,9 +19,9 @@ CFDPINCLS = \
 	$(API)/cfdpP.h \
 	$(UTILS)/bpcp.h
 
-LBP = -lbp
+LBP = -lbp -limcfw -lipnfw
 
-RUNTIMES = cfdpadmin cfdpclock bputa cfdptest bpcp bpcpd
+RUNTIMES = cfdpadmin cfdpclock bputa tcputa cfdptest bpcp bpcpd
 
 ALL = check libcfdp.so $(RUNTIMES)
 
@@ -55,7 +56,7 @@ cfdpadmin:	cfdpadmin.o libcfdp.so
 
 #	-	-	Test executables	-	-	-	-
 
-cfdptest:	cfdptest.o libcfdp.so libcfdp.so
+cfdptest:	cfdptest.o libcfdp.so
 		$(CC) -o cfdptest cfdptest.o -L./lib -L$(ROOT)/lib -lcfdp -lcfdp $(LBP) -lici -lpthread
 		cp cfdptest ./bin
 
@@ -64,8 +65,15 @@ cfdptest:	cfdptest.o libcfdp.so libcfdp.so
 bputa:		bputa.o libcfdp.so
 		$(CC) -o bputa bputa.o -L./lib -L$(ROOT)/lib -lcfdp $(LBP) -lici -lpthread
 		cp bputa ./bin
+
+#	-	-	TCP executables	-	-	-	-	-
+
+tcputa:		tcputa.o libcfdp.so
+		$(CC) -o tcputa tcputa.o -L./lib -L$(ROOT)/lib -lcfdp -lici -lpthread
+		cp tcputa ./bin
 		
-#	-	-	BPCP executables	-	-	-	-	-
+#	-	-	BPCP executables	-	-	-	-
+
 bpcp:		bpcp.o
 		$(CC) -o bpcp bpcp.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
 		cp bpcp ./bin
@@ -95,4 +103,7 @@ libcfdp.so:	libcfdp.o libcfdpP.o libcfdpops.o
 		$(CC) -c $<
 
 %.o:		$(BP)/%.c
+		$(CC) -c $<
+
+%.o:		$(TCP)/%.c
 		$(CC) -c $<

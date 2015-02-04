@@ -1961,17 +1961,28 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	{
 		reqAddr = sm_list_data(ionwm, elt);
 		req = (Requisition *) psp(ionwm, reqAddr);
-		if (req->secondsUnclaimed >= 0	/*	Reserved.	*/
-		|| fileSpaceAvbl < req->fileSpaceNeeded
-		|| heapSpaceAvbl < req->heapSpaceNeeded)
+		if (req->secondsUnclaimed >= 0)
 		{
-			/*	Can't provide ZCO space to any more
-			 *	requisitions at this time.		*/
+			/*	This request has already been serviced.
+			 *	The requested space has been reserved
+			 *	for it, so that space is not available
+			 *	for any other requests.			*/
 
-			break;
+			fileSpaceAvbl -= req->fileSpaceNeeded;
+			heapSpaceAvbl -= req->heapSpaceNeeded;
+			continue;	/*	Req already serviced.	*/
 		}
 
-		/*	Can close out this requisition.			*/
+		if (fileSpaceAvbl < req->fileSpaceNeeded
+		|| heapSpaceAvbl < req->heapSpaceNeeded)
+		{
+			/*	Can't provide ZCO space to this
+			 *	requisition at this time.		*/
+
+			continue;
+		}
+
+		/*	Can service this requisition.			*/
 
 		req->secondsUnclaimed = 0;
 		if (req->semaphore != SM_SEM_NONE)
