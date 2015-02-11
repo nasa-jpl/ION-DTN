@@ -198,7 +198,7 @@ but expected %d.", bytesRetrieved, chunkSize);
 
 	extentLength = bundle->payload.length;
 	newZco = zco_create(bpSdr, ZcoFileSource, fileRef, 0, 0 - extentLength,
-			ZcoOutbound);
+			ZcoOutbound, 0);
 	switch (newZco)
 	{
 	case 0:

@@ -19,7 +19,17 @@ an applicable endpoint ID "matches" the EID expression only when all characters
 of the EID and EID expression are identical.
 
 ION's security policy management encompasses both BP security and LTP
-authentication.
+authentication.  ION has begun supporting the proposed "streamlined" Bundle
+Security Protocol (Internet Draft draft-birrane-dtn-sbsp-00) in place of
+standard Bundle Security Protocol (RFC 6257).  Since SBSP is not yet a
+published RFC, ION's Bundle Protocol security mechanisms will not necessarily
+interoperate with those of other BP implementations.  This is unfortunate but
+(we hope) temporary, as SBSP represents a major improvement in bundle security.
+It is possible that the SBSP specification will change somewhat between now
+and the time SBSP is published as an RFC, and ION will be revised as necessary
+to conform to those changes, but in the meantime we believe that the advantages
+of SBSP make it more suitable than RFC 6257 as a foundation for the
+development and deployment of secure DTN applications.
 
 =head1 COMMANDS
 
@@ -127,48 +137,103 @@ BAB rule pertaining to I<sender_eid_expr> and I<receiver_eid_expr>.
 
 This command lists all BAB rules in the security policy database.
 
-=item B<a bsppibrule> I<sender_eid_expr> I<receiver_eid_expr> I<block type number> I<{ '' | ciphersuite_name key_name }>
+=item B<a bspbibrule> I<source_eid_expr> I<destination_eid_expr> I<block_type_number> I<{ '' | ciphersuite_name key_name }>
 
-The B<add bsppibrule> command.  This command adds a rule specifying the
-manner in which Payload Integrity Block (PIB) validation will be applied
-to all bundles sent from any node whose administrative endpoint ID matches
-I<sender_eid_expr> and received at any node whose administrative endpoint ID
-ID matches I<receiver_eid_expr>.
+The B<add bspbibrule> command.  This command adds a rule specifying the
+manner in which Block Integrity Block (BIB) validation will be applied
+to blocks of type I<block_type_number> for all bundles sourced at any node
+whose administrative endpoint ID matches I<source_eid_expr> and destined for
+any node whose administrative endpoint ID ID matches I<destination_eid_expr>.
 
-If a zero-length string ('') is indicated instead of a I<ciphersuite_name> then
-PIB validation is disabled for this sender/receiver EID expression pair: all
-bundles sent from nodes with matching administrative endpoint IDs to nodes
-with matching administrative endpoint IDs will be immediately deemed valid.
-Otherwise, a bundle from a node with matching administrative endpoint ID to a
-node with matching administrative endpoint ID will only be deemed valid
-if it contains a PIB computed via the ciphersuite named by I<ciphersuite_name>
-using a key value that is identical to the current value of the key named
-I<key_name> in the local security policy database.
+If a zero-length string ('') is indicated instead of a I<ciphersuite_name>
+then BIB validation is disabled for this source/destination EID expression
+pair: blocks of the type indicated by I<block_type_number> in all
+bundles sourced at nodes with matching administrative endpoint IDs and
+destined for nodes with matching administrative endpoint IDs will be
+immediately deemed valid.  Otherwise, a block of the indicated type that
+is attached to a bundle sourced at a node with matching administrative
+endpoint ID and destined for a node with matching administrative endpoint
+ID will only be deemed valid if the bundle contains a corresponding BIB
+computed via the ciphersuite named by I<ciphersuite_name> using a key
+value that is identical to the current value of the key named I<key_name>
+in the local security policy database.
 
-=item B<c bsppibrule> I<sender_eid_expr> I<receiver_eid_expr> I<block type number> I<{ '' | ciphersuite_name key_name }>
+=item B<c bspbibrule> I<source_eid_expr> I<destination_eid_expr> I<block_type_number> I<{ '' | ciphersuite_name key_name }>
 
-The B<change bsppibrule> command.  This command changes the ciphersuite
-name and/or key name for the PIB rule pertaining to the sender/receiver EID
-expression pair identified by I<sender_eid_expr> and I<receiver_eid_expr>.
+The B<change bspbibrule> command.  This command changes the ciphersuite
+name and/or key name for the BIB rule pertaining to the source/destination EID
+expression pair identified by I<source_eid_expr> and I<destination_eid_expr>
+and the block identified by I<block_type_number>.
 Note that the I<eid_expr>s must exactly match those of the rule that is to
 be modified, including any terminating wild-card character.  
 
-=item B<d bsppibrule> I<sender_eid_expr> I<receiver_eid_expr> I<block type number>
+=item B<d bspbibrule> I<source_eid_expr> I<destination_eid_expr> I<block_type_number>
 
-The B<delete bsppibrule> command.  This command deletes the PIB rule
-pertaining to the sender/receiver EID expression pair identified by
-I<sender_eid_expr> and I<receiver_eid_expr>.  Note that the I<eid_expr>s
+The B<delete bspbibrule> command.  This command deletes the BIB rule
+pertaining to the source/destination EID expression pair identified by
+I<sender_eid_expr> and I<receiver_eid_expr> and the block identified by
+I<block_type_number>.  Note that the I<eid_expr>s
 must exactly match those of the rule that is to be deleted, including any
 terminating wild-card character.
 
-=item B<i bsppibrule> I<sender_eid_expr> I<receiver_eid_expr> I<block type number>
+=item B<i bspbibrule> I<source_eid_expr> I<destination_eid_expr> I<block_type_number>
 
 This command will print information (the ciphersuite and key names) about the
-PIB rule pertaining to I<sender_eid_expr> and I<receiver_eid_expr>.
+BIB rule pertaining to I<source_eid_expr>, I<destination_eid_expr>, and
+I<block_type_number>.
 
-=item B<l bsppibrule>
+=item B<l bspbibrule>
 
-This command lists all PIB rules in the security policy database.
+This command lists all BIB rules in the security policy database.
+
+=item B<a bspbcbrule> I<source_eid_expr> I<destination_eid_expr> I<block_type_number> I<{ '' | ciphersuite_name key_name }>
+
+The B<add bspbcbrule> command.  This command adds a rule specifying the
+manner in which Block Confidentiality Block (BCB) encryption will be applied
+to blocks of type I<block_type_number> for all bundles sourced at any node
+whose administrative endpoint ID matches I<source_eid_expr> and destined for
+any node whose administrative endpoint ID ID matches I<destination_eid_expr>.
+
+If a zero-length string ('') is indicated instead of a I<ciphersuite_name>
+then BCB encryption is disabled for this source/destination EID expression
+pair: blocks of the type indicated by I<block_type_number> in all
+bundles sourced at nodes with matching administrative endpoint IDs and
+destined for nodes with matching administrative endpoint IDs will be
+sent in plain text.  Otherwise, a block of the indicated type that
+is attached to a bundle sourced at a node with matching administrative
+endpoint ID and destined for a node with matching administrative endpoint
+ID can only be deemed decrypted if the bundle contains a corresponding BCB
+computed via the ciphersuite named by I<ciphersuite_name> using a key
+value that is identical to the current value of the key named I<key_name>
+in the local security policy database.
+
+=item B<c bspbcbrule> I<source_eid_expr> I<destination_eid_expr> I<block_type_number> I<{ '' | ciphersuite_name key_name }>
+
+The B<change bspbcbrule> command.  This command changes the ciphersuite
+name and/or key name for the BCB rule pertaining to the source/destination EID
+expression pair identified by I<source_eid_expr> and I<destination_eid_expr>
+and the block identified by I<block_type_number>.
+Note that the I<eid_expr>s must exactly match those of the rule that is to
+be modified, including any terminating wild-card character.  
+
+=item B<d bspbcbrule> I<source_eid_expr> I<destination_eid_expr> I<block_type_number>
+
+The B<delete bspbcbrule> command.  This command deletes the BCB rule
+pertaining to the source/destination EID expression pair identified by
+I<sender_eid_expr> and I<receiver_eid_expr> and the block identified by
+I<block_type_number>.  Note that the I<eid_expr>s
+must exactly match those of the rule that is to be deleted, including any
+terminating wild-card character.
+
+=item B<i bspbcbrule> I<source_eid_expr> I<destination_eid_expr> I<block_type_number>
+
+This command will print information (the ciphersuite and key names) about the
+BCB rule pertaining to I<source_eid_expr>, I<destination_eid_expr>, and
+I<block_type_number>.
+
+=item B<l bspbcbrule>
+
+This command lists all BCB rules in the security policy database.
 
 =item B<a ltprecvauthrule> I<ltp_engine_id> I<ciphersuite_nbr> I<[key_name]>
 

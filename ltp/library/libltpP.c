@@ -3992,7 +3992,7 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	sessionBuf->clientSvcId = clientSvcId;
 	sessionBuf->redSegments = sdr_list_create(sdr);
 	sessionBuf->rsSegments = sdr_list_create(sdr);
-	sessionBuf->svcData = ionCreateZco(0, 0, 0, 0, 0, 0, ZcoInbound, NULL);
+	sessionBuf->svcData = zco_create(sdr, 0, 0, 0, 0, ZcoInbound, 0);
 	sessionBuf->span = spanObj;
 	if (sessionBuf->redSegments == 0
 	|| sessionBuf->rsSegments == 0
@@ -4240,17 +4240,11 @@ writeMemo(buf);
 }
 
 static int	writeBlockExtentToHeap(ImportSession *session,
-			LtpRecvSeg *segment, char *from, unsigned int length,
-			ReqAttendant *attendant)
+			LtpRecvSeg *segment, char *from, unsigned int length)
 {
 	Sdr	sdr = getIonsdr();
 	Object	heapAddress;
-
-	if (session->congestive)
-	{
-		segment->sessionObj = 0;	/*	"discard"	*/
-		return 0;	/*	Don't try to record segment.	*/
-	}
+	vast	extentLength = length;
 
 	segment->acqOffset = zco_length(sdr, session->svcData);
 	heapAddress = sdr_insert(sdr, from, length);
@@ -4260,42 +4254,34 @@ static int	writeBlockExtentToHeap(ImportSession *session,
 		return -1;
 	}
 
-	switch (ionAppendZcoExtent(session->svcData, ZcoSdrSource,
-			heapAddress, 0, length, 0, 0, attendant))
+	/*	Pass additive inverse of length to zco_append_extent
+	 *	to indicate that space is known to be available.	*/
+
+	switch (zco_append_extent(sdr, session->svcData, ZcoSdrSource,
+			heapAddress, 0, 0 - extentLength))
 	{
 	case ERROR:
+	case 0:
+		sdr_free(sdr, heapAddress);
 		putErrmsg("Can't append block extent.", NULL);
 		return -1;
 
-	case 0:
-#if LTPDEBUG
-putErrmsg("Can't handle red data, would exceed ZCO heap limit.", NULL);
-#endif
-		segment->sessionObj = 0;	/*	"discard"	*/
-		sdr_free(sdr, heapAddress);
-		session->congestive = 1;
+	default:
+		return 0;
 	}
-
-	return 0;
 }
 
 static int	writeBlockExtentToFile(ImportSession *session,
-			LtpRecvSeg *segment, char *from, unsigned int length,
-			ReqAttendant *attendant)
+			LtpRecvSeg *segment, char *from, unsigned int length)
 {
 	Sdr	sdr = getIonsdr();
 	char	fileName[SDRSTRING_BUFSZ];
 	int	fd;
 	int	fileLength;
-
-	if (session->congestive)
-	{
-		segment->sessionObj = 0;	/*	"discard"	*/
-		return 0;	/*	Don't try to record segment.	*/
-	}
+	vast	extentLength = length;
 
 	oK(zco_file_ref_path(sdr, session->blockFileRef, fileName,
-				sizeof fileName));
+			sizeof fileName));
 	fd = iopen(fileName, O_WRONLY, 0666);
 	if (fd < 0)
 	{
@@ -4318,9 +4304,9 @@ static int	writeBlockExtentToFile(ImportSession *session,
 		 *	would be destined for a file that no longer
 		 *	exists.  Since this data acquisition is not
 		 *	necessary (block has already been delivered),
-		 *	we simply ignore this retransmitted segment.	*/
+		 *	we simply decline to record this retransmitted
+		 *	segment.					*/
 
-			segment->sessionObj = 0;/*	"discard"	*/
 			return 0;
 		}
 
@@ -4345,22 +4331,21 @@ static int	writeBlockExtentToFile(ImportSession *session,
 	}
 
 	close(fd);
-	switch (ionAppendZcoExtent(session->svcData, ZcoFileSource,
-		session->blockFileRef, fileLength, length, 0, 0, attendant))
+
+	/*	Pass additive inverse of length to zco_append_extent
+	 *	to indicate that space is known to be available.	*/
+
+	switch (zco_append_extent(sdr, session->svcData, ZcoFileSource,
+			session->blockFileRef, fileLength, 0 - extentLength))
 	{
 	case ERROR:
+	case 0:
 		putErrmsg("Can't append block extent.", NULL);
 		return -1;
 
-	case 0:
-#if LTPDEBUG
-putErrmsg("Can't handle red data, would exceed ZCO file limit.", NULL);
-#endif
-		segment->sessionObj = 0;	/*	"discard"	*/
-		session->congestive = 1;
+	default:
+		return 0;
 	}
-
-	return 0;
 }
 
 static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
@@ -4384,9 +4369,16 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 	 *	redSegments list to re-sort the extents of the
 	 *	acquisition ZCO.  Since we are just cloning
 	 *	extents of the same ZCO within a single account,
-	 *	the length of the extent is not controlled.		*/
+	 *	the length of the extent is not controlled.
+	 *
+	 *	We mark this new ZCO "provisional" to indicate that
+	 *	the ZCO occupies non-Restricted Inbound ZCO space.
+	 *	The ZCO is therefore subject to destruction if it is
+	 *	to be forwarded by the client service (nominally BP)
+	 *	but no Outbound ZCO space is immediately available
+	 *	to contain it.						*/
 
-	svcDataObject = ionCreateZco(0, 0, 0, 0, 0, 0, ZcoInbound, NULL);
+	svcDataObject = zco_create(sdr, 0, 0, 0, 0, ZcoInbound, 1);
 	switch (svcDataObject)
 	{
 	case (Object) ERROR:
@@ -4454,8 +4446,7 @@ putErrmsg("Delivered service data.", itoa(session->redPartLength));
 
 static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 			unsigned int sessionNbr, Object sessionObj,
-			LtpSpan *span, LtpVspan *vspan, Object *clientSvcData,
-			ReqAttendant *attendant)
+			LtpSpan *span, LtpVspan *vspan, Object *clientSvcData)
 {
 	Sdr		sdr = getIonsdr();
 	ImportSession	sessionBuf;
@@ -4522,7 +4513,7 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 	}
 
 	*clientSvcData = ionCreateZco(ZcoSdrSource, pduObj, 0, pdu->length,
-			0, 0, ZcoInbound, attendant);
+			1, 0, ZcoInbound, NULL);
 	switch (*clientSvcData)
 	{
 	case (Object) ERROR:
@@ -4544,17 +4535,34 @@ static int	acceptRedContent(LtpDB *ltpdb, Object *sessionObj,
 			ImportSession *sessionBuf, unsigned int sessionNbr,
 			VImportSession *vsession, Object spanObj, LtpSpan *span,
 			LtpVspan *vspan, LtpRecvSeg *segment,
-			unsigned int *segUpperBound, LtpPdu *pdu, char **cursor,
-			ReqAttendant *attendant)
+			unsigned int *segUpperBound, LtpPdu *pdu, char **cursor)
 {
 	Sdr		sdr = getIonsdr();
+	ZcoMedium	source;
 	Object		sessionElt;
 	Object		segmentObj = 0;
 
-	/*	Data segment must be accepted into an import session,
+	*segUpperBound = 0;	/*	Default: discard segment.	*/
+	if ((pdu->offset + pdu->length) <= ltpdb->maxAcqInHeap)
+	{
+		source = ZcoSdrSource;
+	}
+	else
+	{
+		source = ZcoFileSource;
+	}
+
+	if (zco_extent_too_large(sdr, source, pdu->length, ZcoInbound))
+	{
+		return 0;	/*	Must discard the segment.	*/
+	}
+
+	/*	There is known to be enough ZCO space to accept this
+	 *	red data segment.
+	 *
+	 *	Data segment must be accepted into an import session,
 	 *	unless that session is already canceled.		*/
 
-	*segUpperBound = 0;	/*	Default: discard segment.	*/
 	if (*sessionObj)	/*	Active import session found.	*/
 	{
 		sdr_stage(sdr, (char *) sessionBuf, *sessionObj,
@@ -4615,10 +4623,10 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 	/*	Write the red-part reception segment to the database.	*/
 
 	ltpSpanTally(vspan, IN_SEG_RECV_RED, pdu->length);
-	if ((pdu->offset + pdu->length) <= ltpdb->maxAcqInHeap)
+	if (source == ZcoSdrSource)
 	{
 		if (writeBlockExtentToHeap(sessionBuf, segment, *cursor,
-				pdu->length, attendant) < 0)
+				pdu->length) < 0)
 		{
 			putErrmsg("Can't write block extent to heap.", NULL);
 			return -1;
@@ -4636,7 +4644,7 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 		}
 
 		if (writeBlockExtentToFile(sessionBuf, segment, *cursor,
-				pdu->length, attendant) < 0)
+				pdu->length) < 0)
 		{
 			putErrmsg("Can't write block extent to heap.", NULL);
 			return -1;
@@ -4650,8 +4658,7 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 			unsigned int sessionNbr, LtpRecvSeg *segment,
 			char **cursor, int *bytesRemaining,
-			Lyst headerExtensions, Lyst trailerExtensions,
-			ReqAttendant *attendant)
+			Lyst headerExtensions, Lyst trailerExtensions)
 {
 	Sdr		sdr = getIonsdr();
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
@@ -4826,8 +4833,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		 *	deliver immediately to client service.		*/
 
 		result = handleGreenDataSegment(pdu, *cursor, sessionNbr,
-				sessionObj, span, vspan, &clientSvcData,
-				attendant);
+				sessionObj, span, vspan, &clientSvcData);
 		if (result < 0)
 		{
 			sdr_cancel_xn(sdr);
@@ -4915,7 +4921,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 
 	if (acceptRedContent(ltpdb, &sessionObj, &sessionBuf, sessionNbr,
 			vsession, spanObj, span, vspan, segment,
-			&segUpperBound, pdu, cursor, attendant) < 0)
+			&segUpperBound, pdu, cursor) < 0)
 	{
 		putErrmsg("Can't accept data segment content.", NULL);
 		sdr_cancel_xn(sdr);
@@ -6637,7 +6643,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	return 1;
 }
 
-int	ltpHandleInboundSegment(char *buf, int length, ReqAttendant *attendant)
+int	ltpHandleInboundSegment(char *buf, int length)
 {
 	Sdr		sdr;
 	LtpRecvSeg	segment;
@@ -6732,7 +6738,7 @@ int	ltpHandleInboundSegment(char *buf, int length, ReqAttendant *attendant)
 	{
 		result = handleDataSegment(sourceEngineId, ltpdb, sessionNbr,
 				&segment, &cursor, &bytesRemaining,
-				headerExtensions, trailerExtensions, attendant);
+				headerExtensions, trailerExtensions);
 	}
 	else
 	{

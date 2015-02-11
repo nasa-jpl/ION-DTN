@@ -30,20 +30,26 @@ I<ltp> (Licklider Transmission Protocol), a core DTN protocol that provides
 transmission reliability based on delay-tolerant acknowledgments, timeouts,
 and retransmissions.
 
+I<dgr> (Datagram Retransmission), a library that enables data to be
+transmitted via UDP with reliability comparable to that provided by TCP.  DGR
+is an alternative implementation of LTP, designed for use within an internet.
+
+I<bssp> (Bundle Streaming Service Protocol), a protocol that supports
+delay-tolerant data streaming.  BSSP delivers data in transmission order
+with minimum latency but possibly with omissions, for immediate display,
+and at the same time it delivers the same data reliably in background so
+that the streamed data can be "rewound" for possibly improved presentation.
+
 I<bp> (Bundle Protocol), a core DTN protocol that provides delay-tolerant
 forwarding of data through a network in which continuous end-to-end
 connectivity is never assured, including support for delay-tolerant
 dynamic routing.  The Bundle Protocol (BP) specification is defined
 in Internet RFC 5050.
 
-I<dgr> (Datagram Retransmission), a library that enables data to be
-transmitted via UDP with reliability comparable to that provided by TCP.  DGR
-is an alternative implementation of LTP, designed for use within an internet.
-
 I<ams> (Asynchronous Message Service), I<cfdp> (CCSDS File Delivery
-Protocol), and I<bss> (Bundle Streaming Service), application-layer
-services that are not part of the DTN architecture but utilize
-underlying DTN protocols.
+Protocol), I<dtpc> (Delay-Tolerant Payload Conditioning), and I<bss>
+(Bundle Streaming Service), application-layer services that are not part
+of the DTN architecture but utilize underlying DTN protocols.
 
 =back
 
@@ -124,59 +130,76 @@ ION status message logging functions.
 B<NOTE> that the ionProd() function must be invoked twice in order
 to establish bidirectional communication.
 
-=item void ionClear(char *srcEid, char *destEid, char *blockType)
+=item void ionTerminate()
 
-This function is designed to be called from an operating environment command
-or a fault protection routine, to delete some or all of ION's Bundle Security
-Protocol rules when they are preventing nominal authorized operation of a node.
-If the first character of I<blockType> is '~' then the function applies to
-rules for all types of BSP block; otherwise it applies only to rules for the
-named BSP block type: "bab", "pib", "pcb", or "esb".  Only rules whose security
-source EIDs match I<srcEid> and whose security destination EIDs match
-I<destEid> are deleted.  A rule EID matches a "clearing" EID if (a) every
-character of the clearing EID prior to the first '~' in the clearing ID (if
-any) is equal to the corresponding character of the rule EID B<and> either the
-first '~' character in the clearing EID is the clearing EID's last character
-or else the rule EID and clearing EID are of equal length.
+Shuts down the entire ION node, terminating all daemons.  The state of 
+the node is retained in the node's SDR heap.
 
-=item Object ionCreateZco(ZcoMedium source, Object location, vast offset, vast length, int *control)
+=item int ionStartAttendant(ReqAttendant *attendant)
+
+Initializes the semaphore in I<attendant> so that it can be used for blocking
+ZCO space requisitions by ionRequestZcoSpace().  Returns 0 on success,
+-1 on any error.
+
+=item void ionPauseAttendant(ReqAttendant *attendant)
+
+"Ends" the semaphore in I<attendant> so that the task that is blocked on
+taking it is interrupted and may respond to an error or shutdown condition.
+
+=item void ionResumeAttendant(ReqAttendant *attendant)
+
+Reinitializes the semaphore in I<attendant> so that it can again be used
+for blocking ZCO space requisitions.
+
+=item void ionStopAttendant(ReqAttendant *attendant)
+
+Destroys the semaphore in I<attendant>, preventing a potential resource leak.
+
+=item int ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded, vast heapSpaceNeeded, unsigned char coarsePriority, unsigned char finePriority, ReqAttendant *attendant, ReqTicket *ticket)
+
+Lodges a request for space in the pool identified by I<acct>.  If the requested
+space can be provided immediately, it is reserved for use by the calling task
+and I<*ticket> is set to zero.  Otherwise, if I<attendant> is NULL, no space
+is reserved and again I<*ticket> is set to zero.  Otherwise, the request has
+been queued for service when space becomes available and I<*ticket> is set
+to the address of a ticket referencing this request; the calling task should
+pend on the semaphore in I<attendant>, and upon taking the semaphore it must
+ionShred() the ticket and may then consider the requested space reserved for
+its use.  Return 0 on success, -1 on any failure.
+
+=item void ionShred(ReqTicket *ticket)
+
+Acknowledges the reservation of ZCO space requested by the call to
+ionRequestZcoSpace() that returned I<ticket>.  Note that failure to
+acknowledge a serviced ticket promptly (within 3 seconds of receiving it)
+will be interpreted as refusal of the reserved ZCO space, resulting in that
+space being made available for use by other tasks.
+
+=item Object ionCreateZco(ZcoMedium source, Object location, vast offset, vast length, unsigned char coarsePriority, unsigned char finePriority, ZcoAcct acct, ReqAttendant *attendant)
 
 This function provides a "blocking" implementation of admission control in
 ION.  Like zco_create(), it constructs a zero-copy object (see zco(3)) that
 contains a single extent of source data residing at I<location> in I<source>,
 of which the first I<offset> bytes are omitted and the next I<length> bytes
-are included.  But unlike zco_create(), ionCreateZco() will block (rather
-than return an immediate error indication) so long as the total amount of
-space in I<source> that is available for new ZCO formation is less than
-I<length>.  ionCreateZco() returns when either (a) space has become
+are included.  But unlike zco_create(), ionCreateZco() can be configured to
+block (rather than return an immediate error indication) so long as the total
+amount of space in I<source> that is available for new ZCO formation is less
+than I<length>.  ionCreateZco() operates by calling ionRequestZcoSpace(),
+then pending on the semaphore in I<attendant> as necessary before creating
+the ZCO.  ionCreateZco() returns when either (a) space has become
 available and the ZCO has been created, in which case the location of
 the ZCO is returned, or (b) the function has failed (in which case
-((Object) -1) is returned), or (c) the function was interrupted by
-ionCancelZcoSpaceRequest() before space for the ZCO became available
-(in which case 0 is returned).
+((Object) -1) is returned), or (c) either I<attendant> was null and sufficient
+space for the first extent of the ZCO was not immediately available or else
+the function was interrupted by ionPauseAttendant() before space for the
+ZCO became available (in which case 0 is returned).
 
-ionCreateZco() is interruptible if and only if a non-NULL value of I<control>
-is passed to it; in that case, passing the B<same> value of I<control> to
-the ionCancelZcoSpaceRequest() function will interrupt ionCreateZco().  Note
-that the integer variable referenced by I<control> functions as a private ION
-work area; its content need not be initialized -- and must not be altered -- by
-the application.  Be careful when referencing a dynamic variable in I<control>;
-static variables are safer.  If I<control> is NULL then ionCreateZco() is not
-interruptible by the application.
-
-=item vast ionAppendZcoExtent(Object zco, ZcoMedium source, Object location, vast offset, vast length, int *control)
+=item vast ionAppendZcoExtent(Object zco, ZcoMedium source, Object location, vast offset, vast length, unsigned char coarsePriority, unsigned char finePriority, ReqAttendant *attendant)
 
 Similar to ionCreateZco() except that instead of creating a new ZCO it appends
-an additional extent to an existing ZCO. Returns -1 on failure, 0 on
-interruption by ionCancelZcoSpaceRequest(), I<length> on success.
-
-=item void ionCancelZcoSpaceRequest(int *control)
-
-This function simply interrupts the currently blocked invocation of
-ionCreateZco() or ionAppendZcoExtent() that cites the same I<control>
-value.  ionCancelZcoSpaceRequest() is intended to be called from a signal
-handler, so that a signal can be used to cleanly terminate a thread that
-is waiting for an opportunity to create a new ZCO source data extent.
+an additional extent to an existing ZCO.  Returns -1 on failure, 0 on
+interruption by ionPauseAttendant() or if I<attendant> was NULL and sufficient
+space for the extent was not immediately available, I<length> on success.
 
 =item Sdr getIonsdr()
 

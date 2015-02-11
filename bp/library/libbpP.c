@@ -1345,7 +1345,8 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->creationTimeSec = 0;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
-		vdb->transitSemaphore = SM_SEM_NONE;
+		vdb->confirmedTransitSemaphore = SM_SEM_NONE;
+		vdb->provisionalTransitSemaphore = SM_SEM_NONE;
 		vdb->transitPid = ERROR;
 		vdb->watching = db->watching;
 		if ((vdb->schemes = sm_list_create(wm)) == 0
@@ -1464,7 +1465,8 @@ int	bpInit()
 				BUNDLES_HASH_SEARCH_LEN);
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
-		bpdbBuf.transitQueue = sdr_list_create(bpSdr);
+		bpdbBuf.confirmedTransit = sdr_list_create(bpSdr);
+		bpdbBuf.provisionalTransit = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
 		bpdbBuf.transitCmd = sdr_string_create(bpSdr, "bptransit");
 		bpdbBuf.maxAcqInHeap = 560;
@@ -1665,8 +1667,15 @@ int	bpStart()
 	{
 		sdr_string_read(bpSdr, cmdString, (_bpConstants())->transitCmd);
 		bpvdb->transitPid = pseudoshell(cmdString);
-		bpvdb->transitSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-		sm_SemTake(bpvdb->transitSemaphore);	/*	Lock.	*/
+		bpvdb->confirmedTransitSemaphore = sm_SemCreate(SM_NO_KEY,
+				SM_SEM_FIFO);
+		bpvdb->provisionalTransitSemaphore = sm_SemCreate(SM_NO_KEY,
+				SM_SEM_FIFO);
+
+		/*	Lock both transit semaphores.			*/
+
+		sm_SemTake(bpvdb->confirmedTransitSemaphore);
+		sm_SemTake(bpvdb->provisionalTransitSemaphore);
 	}
 
 	/*	Start forwarders and admin endpoints for all schemes.	*/
@@ -1737,7 +1746,8 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
 	}
 
-	sm_SemEnd(bpvdb->transitSemaphore);
+	sm_SemEnd(bpvdb->confirmedTransitSemaphore);
+	sm_SemEnd(bpvdb->provisionalTransitSemaphore);
 	if (bpvdb->transitPid != ERROR)
 	{
 		sm_TaskKill(bpvdb->transitPid, SIGTERM);
@@ -6344,10 +6354,20 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	/*	Queue the bundle for insertion into Outbound ZCO
 	 *	space.							*/
 
-	bundle->transitElt = sdr_list_insert_last(bpSdr, db->transitQueue,
-			bundleObj);
+	if (zco_is_provisional(bpSdr, bundle->payload.content))
+	{
+		bundle->transitElt = sdr_list_insert_last(bpSdr,
+				db->provisionalTransit, bundleObj);
+		sm_SemGive(vdb->provisionalTransitSemaphore);
+	}
+	else
+	{
+		bundle->transitElt = sdr_list_insert_last(bpSdr,
+				db->confirmedTransit, bundleObj);
+		sm_SemGive(vdb->confirmedTransitSemaphore);
+	}
+
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
-	sm_SemGive(vdb->transitSemaphore);
 	releaseDictionary(dictionary);
 	return 0;
 }
@@ -6555,6 +6575,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	static unsigned int	acqCount = 0;
 	Sdr			sdr = getIonsdr();
 				OBJ_POINTER(BpDB, bpdb);
+	vast			currentZcoLength;
+	ZcoMedium		source;
+	vast			heapSpaceNeeded = 0;
+	vast			fileSpaceNeeded = 0;
+	ReqTicket		ticket;
 	Object			extentObj;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
@@ -6569,11 +6594,79 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		return 0;	/*	No ZCO space; append no more.	*/
 	}
 
-	CHKERR(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, BpDB, bpdb, getBpDbObject());
+
+	/*	Acquire extents of bundle into SDR heap up to the
+	 *	stated limit; after that, acquire all remaining
+	 *	extents into a file.					*/
+
+	if (work->zco)
+	{
+		currentZcoLength = zco_length(sdr, work->zco);
+	}
+	else
+	{
+		currentZcoLength = 0;
+	}
+
+	if ((length + currentZcoLength) <= bpdb->maxAcqInHeap)
+	{
+		source = ZcoSdrSource;
+		heapSpaceNeeded = length;
+	}
+	else
+	{
+		source = ZcoFileSource;
+		fileSpaceNeeded = length;
+	}
+
+	/*	Reserve space for new ZCO extent.			*/
+
+	if (ionRequestZcoSpace(ZcoInbound, fileSpaceNeeded, heapSpaceNeeded,
+			0, 0, attendant, &ticket) < 0)
+	{
+		putErrmsg("Failed trying to reserve ZCO space.", NULL);
+		return -1;
+	}
+
+	if (ticket)		/*	Space not currently available.	*/
+	{
+		if (attendant == NULL)	/*	Non-blocking.		*/
+		{
+			work->congestive = 1;
+			ionShred(ticket);
+			return 0;	/*	Out of ZCO space.	*/
+		}
+
+		/*	Ticket is req list element for the request.
+		 *	Wait until space is available.			*/
+
+		if (sm_SemTake(attendant->semaphore) < 0)
+		{
+			putErrmsg("Failed taking attendant semaphore.", NULL);
+			ionShred(ticket);
+			return -1;
+		}
+
+		if (sm_SemEnded(attendant->semaphore))
+		{
+			writeMemo("[i] ZCO space reservation interrupted.");
+			ionShred(ticket);
+			return 0;
+		}
+
+		/*	ZCO space has now been reserved.		*/
+
+		ionShred(ticket);
+	}
+
+	/*	At this point, ZCO space is known to be available.	*/
+
+	CHKERR(sdr_begin_xn(sdr));
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
-		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound);
+		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound,
+				0);
 		if (work->zco == (Object) ERROR)
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
@@ -6591,9 +6684,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		}
 	}
 
-	/*	Now add extent.  Acquire extents of bundle into
-	 *	database heap up to the stated limit; after that,
-	 *	acquire all remaining extents into a file.
+	/*	Now add extent.  
 	 *
 	 *	Note that this procedure assumes that bundle extents
 	 *	are acquired in increasing offset order, without gaps;
@@ -6606,24 +6697,26 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	 *	of increasing offset because the CL itself enforces
 	 *	data ordering (as in TCP).				*/
 
-	if ((length + zco_length(sdr, work->zco)) <= bpdb->maxAcqInHeap)
+	if (source == ZcoSdrSource)
 	{
 		extentObj = sdr_insert(sdr, bytes, length);
 		if (extentObj)
 		{
-			switch (ionAppendZcoExtent(work->zco, ZcoSdrSource,
-					extentObj, 0, length, 0, 0, attendant))
+			/*	Pass additive inverse of length to
+			 *	zco_append_extent to indicate that
+			 *	space has already been awarded.		*/
+
+			switch (zco_append_extent(sdr, work->zco, ZcoSdrSource,
+					extentObj, 0, 0 - length))
 			{
 			case ERROR:
+			case 0:
 				putErrmsg("Can't append heap extent.", NULL);
 				sdr_cancel_xn(sdr);
 				return -1;
 
-			case 0:
-				sdr_free(sdr, extentObj);
-				work->congestive = 1;
-				sdr_cancel_xn(sdr);
-				return 0;/*	Out of ZCO space.	*/
+			default:
+				break;		/*	Out of switch.	*/
 			}
 		}
 
@@ -6700,18 +6793,18 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	}
 
 	close(fd);
-	switch (ionAppendZcoExtent(work->zco, ZcoFileSource, work->acqFileRef,
-			fileLength, length, 0, 0, attendant))
+
+	/*	Pass additive inverse of length to zco_append_extent
+	 *	to indicate that space has already been awarded.	*/
+
+	switch (zco_append_extent(sdr, work->zco, ZcoFileSource,
+			work->acqFileRef, fileLength, 0 - length))
 	{
 	case ERROR:
-		putErrmsg("Can't append file reference extent.", NULL);
+	case 0:
+		putErrmsg("Can't append file extent.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
-
-	case 0:
-		work->congestive = 1;
-		sdr_cancel_xn(sdr);
-		return 0;		/*	Out of ZCO space.	*/
 
 	default:
 		/*	Flag file reference for deletion as soon as
@@ -8156,7 +8249,7 @@ static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 	 *	ZCO space can never be denied or delayed.		*/
 
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0,
-			0 - ctSignalLength, ZcoOutbound);
+			0 - ctSignalLength, ZcoOutbound, 0);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create CT signal.", NULL);
@@ -8437,7 +8530,7 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 	 *	ZCO space can never be denied or delayed.		*/
 
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, 0 - rptLength,
-			ZcoOutbound);
+			ZcoOutbound, 0);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create status report.", NULL);
@@ -10962,7 +11055,7 @@ int	bpMemo(Object bundleObj, unsigned int interval)
 	return 0;
 }
 
-int	retrieveInTransitBundle(Object bundleZco, Object *bundleObj)
+int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned char	*buffer;
@@ -11025,7 +11118,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 	int	result;
 
 	CHKERR(sdr_begin_xn(bpSdr));
-	if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
+	if (retrieveSerializedBundle(bundleZco, &bundleAddr) < 0)
 	{
 		putErrmsg("Can't locate bundle for okay transmission.", NULL);
 		sdr_cancel_xn(bpSdr);
@@ -11111,7 +11204,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 	Bundle	bundle;
 
 	CHKERR(sdr_begin_xn(bpSdr));
-	if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
+	if (retrieveSerializedBundle(bundleZco, &bundleAddr) < 0)
 	{
 		sdr_cancel_xn(bpSdr);
 		putErrmsg("Can't locate bundle for failed transmission.", NULL);

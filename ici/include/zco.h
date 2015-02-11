@@ -244,7 +244,8 @@ extern Object	zco_create(	Sdr sdr,
 				Object firstExtentLocation,
 				vast firstExtentOffset,
 				vast firstExtentLength,
-				ZcoAcct acct);
+				ZcoAcct acct,
+				unsigned char provisional);
 			/*	The parameters "firstExtentLocation"
 			 *	and "firstExtentLength" must either
 			 *	both be zero (indicating that
@@ -258,12 +259,21 @@ extern Object	zco_create(	Sdr sdr,
 			 *	length of the extent is the additive
 			 *	inverse of this value.
 			 *
+			 *	A non-zero value of "provisional"
+			 *	indicates that this ZCO will occupy
+			 *	non-Restricted Inbound ZCO space.
+			 *	This space is a critical resource,
+			 *	so provisional ZCOs are subject
+			 *	to defensive destruction if they
+			 *	cannot immediately be migrated
+			 *	into the Outbound ZCO space pool.
+			 *
 			 *	Returns SDR location of a new ZCO
 			 *	object on success, 0 if there is
 			 *	currently too little available ZCO
-			 *	space to accommodate the proposed
-			 *	first extent, ((Object) -1) on any
-			 *	error.					*/
+			 *	space in the indicated account to
+			 *	accommodate the proposed first
+			 *	extent, ((Object) -1) on any error.	*/
 
 extern vast	zco_append_extent(Sdr sdr,
 				Object zco,
@@ -355,9 +365,7 @@ extern Object	zco_clone(	Sdr sdr,
 			 *	file and SDR source data objects
 			 *	referenced by those extents.  Returns
 			 *	the SDR location of the new ZCO on
-			 *	success, 0 if there is currently too
-			 *	little ZCO space to contain the new
-			 *	ZCO, ((Object) -1) on any error.	*/
+			 *	success, ((Object) -1) on any error.	*/
 
 extern vast	zco_clone_source_data(Sdr sdr,
 				Object toZco,
@@ -369,13 +377,7 @@ extern vast	zco_clone_source_data(Sdr sdr,
 			 *	to an existing ZCO ("toZco") rather
 			 *	than to a newly created ZCO.  Returns
 			 *	total data length cloned, or -1 on
-			 *	any error.  Note that the return length
-			 *	will be less than "length" in the event
-			 *	that there is currently too little ZCO
-			 *	space to contain the requested cloned
-			 *	source data; in this case, the clone
-			 *	ZCO ("toZco") should normally be
-			 *	destroyed.				*/
+			 *	any error.				*/
 
 extern vast	zco_length(	Sdr sdr,
 				Object zco);
@@ -392,6 +394,12 @@ extern ZcoAcct	zco_acct(	Sdr sdr,
 				Object zco);
 			/*	Returns an indicator as to whether
 			 *	this ZCO is inbound or outbound.	*/
+
+extern int	zco_is_provisional(Sdr sdr,
+				Object zco);
+			/*	Returns 1 if this ZCO is "provisional"
+			 *	(occupies non-Restricted Inbound ZCO
+			 *	space), zero if it is not.		*/
 
 /*	*	Functions for copying ZCO source data.	*	*	*/
 

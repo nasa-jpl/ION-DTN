@@ -120,6 +120,14 @@ typedef struct
 	vast		totalLength;		/*	incl. capsules	*/
 
 	ZcoAcct		acct;
+
+	/*	A ZCO is flagged "provisional" if it occupies non-
+	 *	Restricted Inbound ZCO space.  This space is a critical
+	 *	resource, so the ZCO is subject to destruction if it
+	 *	cannot be immediately relocated to the Outbound space
+	 *	pool.							*/
+
+	unsigned char	provisional;		/*	Boolean		*/
 } Zco;
 
 static char	*_badArgsMemo()
@@ -769,6 +777,8 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
+	vast	heapSpaceAvbl;
+	vast	fileSpaceAvbl;
 
 	obj = getZcoDB(sdr);
 	if (obj == 0)
@@ -778,10 +788,22 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 
 	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
 	book = &(db->books[((int) acct)]);
+	heapSpaceAvbl = book->maxHeapOccupancy - book->heapOccupancy;
+	if (heapSpaceAvbl < 0)
+	{
+		heapSpaceAvbl = 0;
+	}
+
+	fileSpaceAvbl = book->maxFileOccupancy - book->fileOccupancy;
+	if (fileSpaceAvbl < 0)
+	{
+		fileSpaceAvbl = 0;
+	}
+
 	switch (source)
 	{
 	case ZcoFileSource:
-		if (book->fileOccupancy + length > book->maxFileOccupancy)
+		if (length > fileSpaceAvbl)
 		{
 			return 1;
 		}
@@ -798,7 +820,7 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 		 *
 		 *	1.  The new and old ZCOs are in the same
 		 *	    account.  zco_clone conforms to this
-		 *	    condition, and zcl_append_extent enforces
+		 *	    condition, and zco_append_extent enforces
 		 *	    it.  In this case no new data item is
 		 *	    inserted into that common account, so
 		 *	    the new ZCO extent cannot be too large,
@@ -819,7 +841,7 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 		return 1;
 	}
 
-	if (book->heapOccupancy + heapSpaceNeeded > book->maxHeapOccupancy)
+	if (heapSpaceNeeded > heapSpaceAvbl)
 	{
 		return 1;
 	}
@@ -904,6 +926,8 @@ static int	aggregateExtentTooLarge(Sdr sdr, Object location, vast offset,
 	Object		obj;
 			OBJ_POINTER(ZcoDB, db);
 	ZcoBook		*book;
+	vast		fileSpaceAvbl;
+	vast		heapSpaceAvbl;
 
 	zco_get_aggregate_length(sdr, location, offset, length, 
 			&fileSpaceNeeded, &heapSpaceNeeded);
@@ -915,12 +939,24 @@ static int	aggregateExtentTooLarge(Sdr sdr, Object location, vast offset,
 
 	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
 	book = &(db->books[((int) acct)]);
-	if (book->fileOccupancy + fileSpaceNeeded > book->maxFileOccupancy)
+	fileSpaceAvbl = book->maxFileOccupancy - book->fileOccupancy;
+	if (fileSpaceAvbl < 0)
+	{
+		fileSpaceAvbl = 0;
+	}
+
+	if (fileSpaceNeeded > fileSpaceAvbl)
 	{
 		return 1;
 	}
 
-	if (book->heapOccupancy + heapSpaceNeeded > book->maxHeapOccupancy)
+	heapSpaceAvbl = book->maxHeapOccupancy - book->heapOccupancy;
+	if (heapSpaceAvbl < 0)
+	{
+		heapSpaceAvbl = 0;
+	}
+
+	if (heapSpaceNeeded > heapSpaceAvbl)
 	{
 		return 1;
 	}
@@ -1000,13 +1036,6 @@ static int	appendExtentOfExistingZco(Sdr sdr, Object zcoObj, Zco *zco,
 				 *	source data object into this
 				 *	account, so post it.		*/
 
-				if (newExtent.length != lienRef.length)
-				{
-					putErrmsg("Migrating partial lien ref!",
-							NULL);
-					return -1;
-				}
-
 				zco_increase_file_occupancy(sdr,
 						lienRef.length, acct);
 				increment += sizeof(ZcoLienRef);
@@ -1049,13 +1078,6 @@ static int	appendExtentOfExistingZco(Sdr sdr, Object zcoObj, Zco *zco,
 				/*	Initial insertion of this
 				 *	source data item into this
 				 *	account, so post it.		*/
-
-				if (newExtent.length != objectRef.length)
-				{
-					putErrmsg("Migrating partial obj ref!",
-							NULL);
-					return -1;
-				}
 
 				increment += (objectRef.length
 						+ sizeof(ZcoObjRef));
@@ -1197,7 +1219,7 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 
 Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 		Object firstExtentLocation, vast firstExtentOffset,
-		vast firstExtentLength, ZcoAcct acct)
+		vast firstExtentLength, ZcoAcct acct, unsigned char provisional)
 {
 	Object	zcoObj;
 	Zco	zco;
@@ -1305,6 +1327,7 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 	zco_increase_heap_occupancy(sdr, sizeof(Zco), acct);
 	memset((char *) &zco, 0, sizeof(Zco));
 	zco.acct = acct;
+	zco.provisional = provisional;
 	sdr_write(sdr, zcoObj, (char *) &zco, sizeof(Zco));
 	if (firstExtentLocation)
 	{
@@ -1816,7 +1839,8 @@ Object	zco_clone(Sdr sdr, Object fromZcoObj, vast offset, vast length)
 	CHKZERO(offset >= 0);
 	CHKZERO(length > 0);
 	sdr_read(sdr, (char *) &fromZco, fromZcoObj, sizeof(Zco));
-	toZcoObj = zco_create(sdr, 0, 0, 0, 0, fromZco.acct);
+	toZcoObj = zco_create(sdr, 0, 0, 0, 0, fromZco.acct,
+			fromZco.provisional);
 	if (toZcoObj == (Object) ERROR)
 	{
 		putErrmsg("Can't create clone ZCO.", NULL);
@@ -2102,6 +2126,16 @@ ZcoAcct	zco_acct(Sdr sdr, Object zcoObj)
 	CHKZERO(zcoObj);
 	GET_OBJ_POINTER(sdr, Zco, zco, zcoObj);
 	return zco->acct;
+}
+
+int	zco_is_provisional(Sdr sdr, Object zcoObj)
+{
+		OBJ_POINTER(Zco, zco);
+
+	CHKZERO(sdr);
+	CHKZERO(zcoObj);
+	GET_OBJ_POINTER(sdr, Zco, zco, zcoObj);
+	return zco->provisional;
 }
 
 static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,

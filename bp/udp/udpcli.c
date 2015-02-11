@@ -43,7 +43,7 @@ static void	*handleDatagrams(void *parm)
 	unsigned int		hostNbr;
 	char			hostName[MAXHOSTNAMELEN + 1];
 
-	snooze(1);	/*	Let main thread become interruptable.	*/
+	snooze(1);	/*	Let main thread become interruptible.	*/
 	work = bpGetAcqArea(rtp->vduct);
 	if (work == NULL)
 	{

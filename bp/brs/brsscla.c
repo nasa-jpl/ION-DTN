@@ -143,7 +143,7 @@ static void	*sendBundles(void *parm)
 			 *	been destroyed then just lose the ADU.	*/
 
 			CHKNULL(sdr_begin_xn(sdr));
-			if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
+			if (retrieveSerializedBundle(bundleZco, &bundleAddr))
 			{
 				putErrmsg("Can't locate unsent bundle.", NULL);
 				sdr_cancel_xn(sdr);

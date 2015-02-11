@@ -20,7 +20,7 @@ zco - library for manipulating zero-copy objects
 	ZcoZcoSource = 3
     } ZcoMedium;
 
-    typedef void (*ZcoCallback);
+    typedef void (*ZcoCallback)(ZcoAcct);
 
     [see description for available functions]
 
@@ -139,10 +139,15 @@ destroys this file reference object immediately.  Otherwise, flags this
 file reference object for destruction as soon as the last reference to
 it is removed.
 
+=item void zco_status(Sdr sdr)
+
+Uses the ION logging function to write a report of the current contents of
+the ZCO space accounting database.
+
 =item vast zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
 
-Returns the total number of file system space bytes occupied by ZCOs (inbound or outbound) created
-in this Sdr.
+Returns the total number of file system space bytes occupied by ZCOs (inbound
+or outbound) created in this Sdr.
 
 =item void zco_set_max_file_occupancy(Sdr sdr, vast occupancy, ZcoAcct acct)
 
@@ -156,8 +161,8 @@ ZCOs (inbound or outbound) created in this Sdr.
 
 =item int zco_enough_file_space(Sdr sdr, vast length, ZcoAcct acct)
 
-Returns 1 if the total remaining file system space available for ZCOs in this
-Sdr is greater than I<length>.  Returns 0 otherwise.
+Returns 1 if the total remaining file system space available for ZCOs (inbound
+or outbound) in this Sdr is greater than I<length>.  Returns 0 otherwise.
 
 =item vast zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)
 
@@ -185,23 +190,34 @@ Returns 1 if the total remaining space available for ZCOs (inbound or
 outbound, both heap and file) is NOT enough to contain a new extent of
 the indicated length in the indicated source medium.  Returns 0 otherwise.
 
-=item Object zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium, Object firstExtentLocation, vast firstExtentOffset, vast firstExtentLength, ZcoAcct acct)
+=item int zco_get_aggregate_length(Sdr sdr, Object location, vast offset, vast length, vast *fileSpaceOccupied, vast *heapSpaceOccupied)
+
+Populates I<*fileSpaceOccupied> and I<*heapSpaceOccupied> with the total
+number of ZCO space bytes occupied by the extents of the zco at I<location>,
+from I<offset> to I<offset + length>.  If I<offset> isn't the start of an
+extent or I<offset + length> isn't the end of an extent, returns -1 in both
+fields.
+
+=item Object zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium, Object firstExtentLocation, vast firstExtentOffset, vast firstExtentLength, ZcoAcct acct, unsigned char provisional)
 
 Creates a new inbound or outbound ZCO.  I<firstExtentLocation> and
 I<firstExtentLength> must either both be zero (indicating that
 zco_append_extent() will be used to insert the first source data extent
 later) or else both be non-zero.  If I<firstExtentLocation> is non-zero,
 then (a) I<firstExtentLocation> must be the SDR location of a file
-reference object if I<firstExtentSourceMedium> is ZcoFileSource and must
-otherwise be the SDR location of the source data itself, and (b)
-I<firstExtentOffset> indicates how many leading bytes of the source data
-object should be skipped over when adding the initial source data extent
-to the new ZCO.  A negative value for I<firstExtentLength> indicates that the
-extent is already known not to be too large for the available ZCO space, and
-the actual length of the extent is the additive inverse of this value.  On
-success, returns the SDR location of the new ZCO.  Returns 0 if there is
-insufficient ZCO space for creation of the new ZCO; returns ((Object) -1)
-on any error.
+reference object, SDR heap object, or ZCO, depending on the value of
+I<firstExtentSourceMedium>, and (b) I<firstExtentOffset> indicates how manyx
+leading bytes of the source data object should be skipped over when adding
+the initial source data extent to the new ZCO.  A negative value for
+I<firstExtentLength> indicates that the extent is already known not to be
+too large for the available ZCO space, and the actual length of the extent
+is the additive inverse of this value.  A non-zero value for I<provisional>
+indicates that this ZCO will occupy non-Restricted Inbound ZCO space.  This
+space is a critical resource, so provisional ZCOs are subject to defensive
+destruction if they cannot immediately be migrated into the Outbound ZCO
+space pool.  On success, returns the SDR location of the new ZCO.  Returns
+0 if there is insufficient ZCO space for creation of the new ZCO; returns
+((Object) -1) on any error.
 
 =item int zco_append_extent(Sdr sdr, Object zco, ZcoMedium sourceMedium, Object location, vast offset, vast length)
 
@@ -254,23 +270,18 @@ when the ZCO is cloned.
 =item Object zco_clone(Sdr sdr, Object zco, vast offset, vast length)
 
 Creates a new ZCO whose source data is a copy of a subset of the source
-data of the referenced ZCO.  Portions of the source data extents of the
-original ZCO are copied as necessary, but no header or trailer capsules are
-copied.  Returns SDR location of the new ZCO on success, 0 if there is
-currently too little ZCO space to contain the new ZCO, (Object) -1 on any error.
+data of the referenced ZCO.  This procedure is required whenever it is
+necessary to process the ZCO's source data in multiple different ways, for
+different purposes, and therefore the ZCO must be in multiple states at the
+same time.  Portions of the source data extents of the original ZCO are
+copied as necessary, but no header or trailer capsules are copied.  Returns
+SDR location of the new ZCO on success, (Object) -1 on any error.
 
 =item vast zco_clone_source_data(Sdr sdr, Object toZco, Object fromZco, vast offset, vast length)
 
 Appends to I<toZco> a copy of a subset of the source data of I<fromZCO>.
 Portions of the source data extents of I<fromZCO> are copied as necessary.
-Returns total data length cloned, or -1 on any error.  Note that the return
-length will be less than I<length> in the event that there is currently too
-little ZCO space to contain the requested cloned source data; in this case,
-the clone ZCO (I<toZco>) should normally be destroyed.
-
-=item vast zco_acct(Sdr sdr, Object zco)
-
-Returns an indicator as to whether I<zco> is inbound or outbound.
+Returns total data length cloned, or -1 on any error.
 
 =item vast zco_length(Sdr sdr, Object zco)
 
@@ -286,6 +297,14 @@ trailer capsules.  This is the size of the object that would be formed by
 concatenating the text of all source data extents (including those that
 are presumed to contain header or trailer text attached elsewhere) into
 a single serialized object.
+
+=item ZcoAcct zco_acct(Sdr sdr, Object zco)
+
+Returns an indicator as to whether I<zco> is inbound or outbound.
+
+=item int zco_is_provisional(Sdr sdr, Object zco)
+
+Returns an indicator as to whether or not I<zco> is flagged as "provisional".
 
 =item void zco_start_transmitting(Object zco, ZcoReader *reader)
 

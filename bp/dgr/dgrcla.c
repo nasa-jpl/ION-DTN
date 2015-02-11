@@ -260,7 +260,7 @@ static void	*receiveBundles(void *parm)
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
-						ZcoOutbound);
+						ZcoOutbound, 0);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -307,7 +307,7 @@ bundle ZCO.", NULL);
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
-						ZcoOutbound);
+						ZcoOutbound, 0);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{

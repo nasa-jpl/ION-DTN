@@ -638,8 +638,7 @@ extern int		getMaxReports(int redPartLength,
 				unsigned int maxSegmentSize);
 
 extern int		ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf);
-extern int		ltpHandleInboundSegment(char *buf, int length,
-				ReqAttendant *attendant);
+extern int		ltpHandleInboundSegment(char *buf, int length);
 
 extern void		ltpStartXmit(LtpVspan *vspan);
 extern void		ltpStopXmit(LtpVspan *vspan);

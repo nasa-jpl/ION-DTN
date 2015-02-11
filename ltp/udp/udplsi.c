@@ -10,18 +10,6 @@
 									*/
 #include "udplsa.h"
 
-static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
-{
-	static ReqAttendant	*attendant = NULL;
-
-	if (newAttendant)
-	{
-		attendant = newAttendant;
-	}
-
-	return attendant;
-}
-
 static void	interruptThread()
 {
 	isignal(SIGTERM, interruptThread);
@@ -77,8 +65,7 @@ static void	*handleDatagrams(void *parm)
 			continue;
 		}
 
-		if (ltpHandleInboundSegment(buffer, segmentLength,
-				_attendant(NULL)) < 0)
+		if (ltpHandleInboundSegment(buffer, segmentLength) < 0)
 		{
 			putErrmsg("Can't handle inbound segment.", NULL);
 			ionKillMainThread(procName);
@@ -117,7 +104,6 @@ int	main(int argc, char *argv[])
 	unsigned int		ipAddress = INADDR_ANY;
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
-	ReqAttendant		attendant;
 	ReceiverThreadParms	rtp;
 	socklen_t		nameLength;
 	pthread_t		receiverThread;
@@ -182,15 +168,6 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (ionStartAttendant(&attendant) < 0)
-	{
-		closesocket(rtp.linkSocket);
-		putSysErrmsg("Can't initialize blocking reception.", NULL);
-		return 1;
-	}
-
-	oK(_attendant(&attendant));
-
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("udplsi");
@@ -223,7 +200,6 @@ int	main(int argc, char *argv[])
 	/*	Time to shut down.					*/
 
 	rtp.running = 0;
-	ionPauseAttendant(&attendant);
 
 	/*	Wake up the receiver thread by sending it a 1-byte
 	 *	datagram.						*/
@@ -236,7 +212,6 @@ int	main(int argc, char *argv[])
 	}
 
 	pthread_join(receiverThread, NULL);
-	ionStopAttendant(&attendant);
 	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udplsi has ended.");

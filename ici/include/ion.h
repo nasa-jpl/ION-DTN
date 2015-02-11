@@ -314,16 +314,24 @@ extern void		ionProd(	uvast fromNode,
 					unsigned int owlt);
 extern void		ionTerminate();
 
-int			ionStartAttendant(ReqAttendant *permit);
-void			ionPauseAttendant(ReqAttendant *permit);
-void			ionResumeAttendant(ReqAttendant *permit);
-void			ionStopAttendant(ReqAttendant *permit);
+extern int		ionStartAttendant(ReqAttendant *attendant);
+extern void		ionPauseAttendant(ReqAttendant *attendant);
+extern void		ionResumeAttendant(ReqAttendant *attendant);
+extern void		ionStopAttendant(ReqAttendant *attendant);
+extern int		ionRequestZcoSpace(ZcoAcct acct,
+					vast fileSpaceNeeded,
+					vast heapSpaceNeeded,
+					unsigned char coarsePriority,
+					unsigned char finePriority,
+					ReqAttendant *attendant,
+					ReqTicket *ticket);
+extern void		ionShred(	ReqTicket ticket);
 extern Object		ionCreateZco(	ZcoMedium source,
 					Object location,
 					vast offset,
 					vast length,
-					unsigned int coarsePriority,
-					unsigned int finePriority,
+					unsigned char coarsePriority,
+					unsigned char finePriority,
 					ZcoAcct acct,
 					ReqAttendant *attendant);
 extern vast		ionAppendZcoExtent(Object zco,
@@ -331,8 +339,8 @@ extern vast		ionAppendZcoExtent(Object zco,
 					Object location,
 					vast offset,
 					vast length,
-					unsigned int coarsePriority,
-					unsigned int finePriority,
+					unsigned char coarsePriority,
+					unsigned char finePriority,
 					ReqAttendant *attendant);
 
 extern Sdr		getIonsdr();

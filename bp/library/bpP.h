@@ -604,7 +604,13 @@ typedef struct
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
-	Object		transitQueue;	/*	SDR list of Bundles	*/
+
+	/*	The Transit queues are lists of received in-transit
+	 *	Bundles that are awaiting presentation to forwarder
+	 *	daemons, so that they can be enqueued for transmission.	*/
+
+	Object		confirmedTransit;
+	Object		provisionalTransit;
 	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting bpclock.	*/
 	Object		transitCmd; 	/*	For starting bptransit.	*/
@@ -716,7 +722,8 @@ typedef struct
 	int		bundleCounter;
 	int		clockPid;	/*	For stopping bpclock.	*/
 	int		transitPid;	/*	For stopping bptransit.	*/
-	sm_SemId	transitSemaphore;
+	sm_SemId	confirmedTransitSemaphore;
+	sm_SemId	provisionalTransitSemaphore;
 	int		watching;	/*	Activity watch switch.	*/
 
 	/*	For finding structures in database.			*/
@@ -1373,7 +1380,7 @@ extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned int fragmentOffset,
 				unsigned int fragmentLength,
 				Object *bundleAddr);
-extern int		retrieveInTransitBundle(Object bundleZco, Object *obj);
+extern int		retrieveSerializedBundle(Object bundleZco, Object *obj);
 
 extern int		deliverBundle(Object bundleObj, Bundle *bundle,
 				VEndpoint *vpoint);
