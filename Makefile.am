@@ -819,7 +819,7 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/ici/include/ -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
+bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/library/ext/bsp/ciphersuites -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/ici/include/ -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
@@ -961,15 +961,32 @@ bpextra = \
 	bp/library/bei.c \
 	bp/library/ext/bae/bae.h \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/bsp/extbsputil.h \
-	bp/library/ext/bsp/extbsputil.c \
-	bp/library/ext/bsp/extbspbab.h \
-	bp/library/ext/bsp/extbspbab.c \
-	bp/library/ext/bsp/extbsppcb.h \
-	bp/library/ext/bsp/extbsppcb.c \
-	bp/library/ext/bsp/extbsppib.h \
-	bp/library/ext/bsp/extbsppib.c \
+	bp/library/ext/bsp/bspbab.h \
+	bp/library/ext/bsp/bspbab.c \
+	bp/library/ext/bsp/bspbcb.h \
+	bp/library/ext/bsp/bspbcb.c \
+	bp/library/ext/bsp/bspbib.h \
+	bp/library/ext/bsp/bspbib.c \
+	bp/library/ext/bsp/bsputil.h \
+	bp/library/ext/bsp/bsputil.c \
+	bp/library/ext/bsp/ciphersuites.h \
+	bp/library/ext/bsp/ciphersuites.c \
+	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
+	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
+	bp/library/ext/bsp/ciphersuites/bcb_arc4.h \
+	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
+	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
+	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c \
 	ici/include/crypto.h
+# Removed in 3.3.0 per the new BSP rule structure
+#	bp/library/ext/bsp/extbsputil.h \
+#	bp/library/ext/bsp/extbsputil.c \
+#	bp/library/ext/bsp/extbspbab.h \
+#	bp/library/ext/bsp/extbspbab.c \
+#	bp/library/ext/bsp/extbsppcb.h \
+#	bp/library/ext/bsp/extbsppcb.c \
+#	bp/library/ext/bsp/extbsppib.h \
+#	bp/library/ext/bsp/extbsppib.c
 
 # noextensions.c is C code, but it isn't explicitly compiled.
 # instead, the whole file is #included into libbpP.c
@@ -1085,11 +1102,28 @@ libbp_la_SOURCES = \
 	bp/library/bei.c \
 	bp/library/ext/meb/meb.c \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/bsp/extbsputil.c \
-	bp/library/ext/bsp/extbspbab.c \
-	bp/library/ext/bsp/extbsppcb.c \
-	bp/library/ext/bsp/extbsppib.c \
+	bp/library/ext/bsp/bspbab.h \
+	bp/library/ext/bsp/bspbab.c \
+	bp/library/ext/bsp/bspbcb.h \
+	bp/library/ext/bsp/bspbcb.c \
+	bp/library/ext/bsp/bspbib.h \
+	bp/library/ext/bsp/bspbib.c \
+	bp/library/ext/bsp/bsputil.h \
+	bp/library/ext/bsp/bsputil.c \
+	bp/library/ext/bsp/ciphersuites.h \
+	bp/library/ext/bsp/ciphersuites.c \
+	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
+	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
+	bp/library/ext/bsp/ciphersuites/bcb_arc4.h \
+	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
+	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
+	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c \
 	bp/library/ext/snid/snid.c
+# Removed in 3.3.0 per the new BSP rule structure
+#	bp/library/ext/bsp/extbsputil.c \
+#	bp/library/ext/bsp/extbspbab.c \
+#	bp/library/ext/bsp/extbsppcb.c \
+#	bp/library/ext/bsp/extbsppib.c
 
 if CRYPTO
 libbp_la_SOURCES+= \

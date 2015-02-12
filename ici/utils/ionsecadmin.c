@@ -197,7 +197,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	int		i;
 	char		buf[3];
 	int		val;
-	char		*keyName;
+	char		*keyName = "";
 
 	if (tokenCount < 2)
 	{

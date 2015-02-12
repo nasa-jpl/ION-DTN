@@ -342,7 +342,7 @@ int	main(int argc, char *argv[])
 	unsigned int		hostNbr;
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
-	char			*tcpDelayString;
+//	char			*tcpDelayString; // Temporarily commented out to fix linking errors with tcpDelayEnable in ion-3.3.0
 	pthread_t		accessThread;
 	int			fd;
 
@@ -405,21 +405,23 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	tcpDelayString = getenv("TCP_DELAY_NSEC_PER_BYTE");
-	if (tcpDelayString == NULL)
-	{
-		tcpDelayEnabled = 0;
-	}
-	else	/*	Artificial TCP delay, for testing purposes.	*/
-	{
-		tcpDelayEnabled = 1;
-		tcpDelayNsecPerByte = strtol(tcpDelayString, NULL, 0);
-		if (tcpDelayNsecPerByte < 0
-		|| tcpDelayNsecPerByte > 16384)
-		{
-			tcpDelayNsecPerByte = 0;
-		}
-	}
+//      Temporarily commented out to fix linking errors with tcpDelayEnable in ion-3.3.0
+//
+//	tcpDelayString = getenv("TCP_DELAY_NSEC_PER_BYTE");
+//	if (tcpDelayString == NULL)
+//	{
+//		tcpDelayEnabled = 0;
+//	}
+//	else	/*	Artificial TCP delay, for testing purposes.	*/
+//	{
+//		tcpDelayEnabled = 1;
+//		tcpDelayNsecPerByte = strtol(tcpDelayString, NULL, 0);
+//		if (tcpDelayNsecPerByte < 0
+//		|| tcpDelayNsecPerByte > 16384)
+//		{
+//			tcpDelayNsecPerByte = 0;
+//		}
+//	}
 
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
