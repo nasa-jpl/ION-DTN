@@ -2115,8 +2115,9 @@ endif
 
 if ENABLE_AUTODOC
 
-ION.pdf: doc/ION-beginning.ps doc/ION-manpages.ps
-	$(PSJOIN) $^ | $(PS2PDF) - $@
+ION.pdf: doc/ION-beginning.pdf doc/ION-manpages.ps
+	$(PS2PDF) doc/ION-manpages.ps
+	$(PDFJOIN) doc/ION-beginning.pdf doc/ION-manpages.pdf --outfile ION.pdf
 
 # The targets in man_MANS that are actually manpages (and not phony targets
 # for making directories, etc.)
