@@ -66,6 +66,41 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.3.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- SourceForge Bug #47: [LTP retransmission limits]
+
+- SourceForge Bug #54: [vxworks pthread task IDs]
+
+- SourceForge Bug #62: [Residual bugs in CGR ETO and OB implementation]
+
+- SourceForge Bug #63: [CBHE Max Values]
+
+- SourceForge Bug #65: [Obsolete LTP-green control]
+
+- SourceForge Bug #67: [Non-compliant PHN blocks]
+
+- SourceForge Bug #68: [stcpclo suicide]
+
+- SourceForge Feature Request #13: [Improve reactive forwarding]
+
+- SourceForge Feature Request #19: [Add bundle-in-bundle encapsulation]
+
+- SourceForge Feature Request #29: [Fix testing errors caused by timing issues]
+
+- SourceForge Feature Request #31: [const correctness in public API]
+
+- SourceForge Feature Request #32: [Separate ZCO space pools for transmission and reception]
+
+- SourceForge Feature Request #33: [Extend Contact Graph Routing to address probabilistic contacts]
+
+- Fixes have been applied to the ION.pdf construction procedure to enable
+     proper formatting of the appended man pages.
+
+- sbsp
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.2.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
