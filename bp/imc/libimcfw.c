@@ -102,7 +102,6 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 	Object		sourceData;
 	Object		payloadZco;
 	char		destEid[32];
-	Object		bundleObj;
 
 	isprintf(sourceEid, sizeof sourceEid, "ipn:%u.0", getOwnNodeNbr());
 	oK(parseEidString(sourceEid, &sourceMetaEid, &vscheme, &vschemeElt));
@@ -134,7 +133,7 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 	isprintf(destEid, sizeof destEid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
 	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0, &ecos,
-			payloadZco, &bundleObj, BP_MULTICAST_PETITION))
+			payloadZco, NULL, BP_MULTICAST_PETITION))
 	{
 	case -1:
 		putErrmsg("Can't send IMC petition.", NULL);

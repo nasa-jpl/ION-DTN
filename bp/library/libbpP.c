@@ -2742,13 +2742,14 @@ incomplete bundle.", NULL);
 		}
 
 		bundle.custodyTaken = 0;
+		bundle.detained = 0;
 		bpDelTally(SrLifetimeExpired);
 	}
 
 	/*	Check for any remaining constraints on deletion.	*/
 
 	if (bundle.fragmentElt || bundle.dlvQueueElt || bundle.fwdQueueElt
-	|| bundle.ductXmitElt || bundle.transitElt || bundle.custodyTaken)
+	|| bundle.ductXmitElt || bundle.custodyTaken || bundle.detained)
 	{
 		return 0;	/*	Can't destroy bundle yet.	*/
 	}
@@ -5285,6 +5286,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	MetaEid		*reportToMetaEid;
 	DtnTime		currentDtnTime;
 	char		*dictionary;
+	Object		bundleAddr;
 	int		i;
 	ExtensionSpec	*extensions;
 	int		extensionsCt;
@@ -5292,7 +5294,6 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	ExtensionDef	*def;
 	ExtensionBlock	blk;
 
-	*bundleObj = 0;
 	if (lifespan <= 0)
 	{
 		writeMemoNote("[?] Invalid lifespan", itoa(lifespan));
@@ -5618,8 +5619,8 @@ when asking for custody transfer and/or status reports.");
 	bundle.collabBlocks = sdr_list_create(bpSdr);
 	bundle.stations = sdr_list_create(bpSdr);
 	bundle.trackingElts = sdr_list_create(bpSdr);
-	*bundleObj = sdr_malloc(bpSdr, sizeof(Bundle));
-	if (*bundleObj == 0
+	bundleAddr = sdr_malloc(bpSdr, sizeof(Bundle));
+	if (bundleAddr == 0
 	|| bundle.stations == 0
 	|| bundle.trackingElts == 0
 	|| bundle.extensions[0] == 0
@@ -5631,14 +5632,14 @@ when asking for custody transfer and/or status reports.");
 		return -1;
 	}
 
-	if (setBundleTTL(&bundle, *bundleObj) < 0)
+	if (setBundleTTL(&bundle, bundleAddr) < 0)
 	{
 		putErrmsg("Can't insert new bundle into timeline.", NULL);
 		sdr_cancel_xn(bpSdr);
 		return -1;
 	}
 
-	if (catalogueBundle(&bundle, *bundleObj) < 0)
+	if (catalogueBundle(&bundle, bundleAddr) < 0)
 	{
 		putErrmsg("Can't catalogue new bundle in hash table.", NULL);
 		sdr_cancel_xn(bpSdr);
@@ -5701,15 +5702,24 @@ when asking for custody transfer and/or status reports.");
 	}
 
 	noteBundleInserted(&bundle);
+	if (bundleObj)	/*	App. needs to reference the bundle.	*/
+	{
+		*bundleObj = bundleAddr;
+		bundle.detained = 1;
+	}
+	else
+	{
+		bundle.detained = 0;
+	}
 
 	/*	Here's where we finally write bundle to the database.	*/
 
-	sdr_write(bpSdr, *bundleObj, (char *) &bundle, sizeof(Bundle));
+	sdr_write(bpSdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 
 	/*	Note: custodial reporting, as requested, is perfomed
 	 *	by the destination scheme's forwarder.			*/
 
-	if (forwardBundle(*bundleObj, &bundle, destEidString) < 0)
+	if (forwardBundle(bundleAddr, &bundle, destEidString) < 0)
 	{
 		putErrmsg("Can't queue bundle for forwarding.", NULL);
 		sdr_cancel_xn(bpSdr);
@@ -5746,7 +5756,6 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 	unsigned int	ttl;	/*	Original bundle's TTL.		*/
 	BpExtendedCOS	ecos = { 0, 0, 255 };
 	Object		payloadZco = 0;
-	Object		bundleObj;
 	int		result;
 
 	if (printEid(&bundle->custodian, dictionary, &custodianEid) < 0)
@@ -5820,8 +5829,8 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 	}
 
 	result = bpSend(NULL, custodianEid, NULL, ttl, BP_EXPEDITED_PRIORITY,
-			NoCustodyRequested, 0, 0, &ecos, payloadZco,
-			&bundleObj, BP_CUSTODY_SIGNAL);
+			NoCustodyRequested, 0, 0, &ecos, payloadZco, NULL,
+			BP_CUSTODY_SIGNAL);
 	MRELEASE(custodianEid);
        	switch (result)
 	{
@@ -5859,7 +5868,6 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 	BpExtendedCOS	ecos = { 0, 0, bundle->extendedCOS.ordinal };
 	Object		payloadZco=0;
 	char		*reportToEid;
-	Object		bundleObj;
 	int		result;
 
 	if (bundle->statusRpt.creationTime.seconds == 0)
@@ -5908,8 +5916,8 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 	}
 
 	result = bpSend(NULL, reportToEid, NULL, ttl, priority,
-			NoCustodyRequested, 0, 0, &ecos, payloadZco,
-			&bundleObj, BP_STATUS_REPORT);
+			NoCustodyRequested, 0, 0, &ecos, payloadZco, NULL,
+			BP_STATUS_REPORT);
 	MRELEASE(reportToEid);
        	switch (result)
 	{
@@ -6963,6 +6971,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	bundle = &(work->bundle);
 	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
 	bundle->custodyTaken = 0;
+	bundle->detained = 0;
 	bytesToParse = work->bytesBuffered;
 	unparsedBytes = bytesToParse;
 	cursor = (unsigned char *) (work->buffer);

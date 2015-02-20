@@ -323,6 +323,7 @@ typedef struct
 
 	/*	Internal housekeeping stuff.				*/
 
+	char		detained;	/*	Boolean.		*/
 	char		custodyTaken;	/*	Boolean.		*/
 	char		delivered;	/*	Boolean.		*/
 	char		suspended;	/*	Boolean.		*/
@@ -1402,6 +1403,7 @@ typedef struct bpsap_st
 	VEndpoint	*vpoint;
 	MetaEid		endpointMetaEid;
 	sm_SemId	recvSemaphore;
+	int		detain;		/*	Boolean.		*/
 } Sap;
 
 extern int		_handleAdminBundles(char *adminEid,

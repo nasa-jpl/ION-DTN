@@ -343,7 +343,6 @@ int sendAcs(Object signalLElt)
 {
 	BpExtendedCOS		ecos = { 0, 0, 255 };
 	Object			signalAddr;
-	Object			acsBundleObj;	/* Unused write-out of bpSend */
 	SdrAcsSignal        	signal;
 	SdrAcsPendingCust	pendingCust;
 	int			result;
@@ -376,7 +375,7 @@ int sendAcs(Object signalLElt)
 	 * IDs covered by this serialized ZCO. */
 	result = bpSend(NULL, pendingCust.eid, NULL, ACS_TTL,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0, &ecos,
-			signal.serializedZco, &acsBundleObj, BP_CUSTODY_SIGNAL);
+			signal.serializedZco, NULL, BP_CUSTODY_SIGNAL);
 	switch (result)
 	{
 	/* All return codes from bpSend() still cause us to continue processing
