@@ -108,7 +108,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	/* ------------------------
 	 * variables
 	 * ------------------------ */
-	char * client_demux_string;
+	char * client_demux_string = "";
 	int pthread_status;
 
 	char temp1[256]; // buffer for various purpose

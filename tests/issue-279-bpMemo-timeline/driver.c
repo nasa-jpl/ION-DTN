@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 	txExtent = sdr_malloc(sdr, payloadSize);
 	fail_unless(txExtent != 0);
 	sdr_write(sdr, txExtent, testLine, payloadSize);
-	txBundleZco = zco_create(sdr, ZcoSdrSource, txExtent, 0, payloadSize);
+	txBundleZco = ionCreateZco(ZcoSdrSource, txExtent, 0, payloadSize, 0, 0, 0, NULL);
 	fail_unless(sdr_end_xn(sdr) == 0 && txBundleZco != 0);
 	fail_unless(bp_send(sap, testEid, NULL, 60, BP_STD_PRIORITY,
 		SourceCustodyRequired, 0, 0, NULL, txBundleZco, &txNewBundle) == 1);
