@@ -73,16 +73,14 @@ extern "C" {
 #define	MAX_SCHEME_NAME_LEN		(15)
 #define	MAX_NSS_LEN			(63)
 #define	MAX_EID_LEN			(MAX_SCHEME_NAME_LEN + MAX_NSS_LEN + 2)
-#define MAX_CBHE_NODE_NBR		(16777215)
-#define MAX_CBHE_SERVICE_NBR		(32767)
 
 #ifndef	BP_MAX_BLOCK_SIZE
 #define BP_MAX_BLOCK_SIZE		(2000)
 #endif
 
-/*	A BP "node" is a set of cooperating state machines that
+/*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
- *	residing in a single SDR database, in a DTN-based network.
+ *	residing in a single SDR heap, in a DTN-based network.
  *
  *	A single node may be equipped to send and receive bundles
  *	to and from endpoints whose IDs are formed under one or

@@ -2176,8 +2176,6 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 
 	if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%u", &(metaEid->nodeNbr),
 			&(metaEid->serviceNbr)) < 2
-	|| metaEid->nodeNbr > MAX_CBHE_NODE_NBR
-	|| metaEid->serviceNbr > MAX_CBHE_SERVICE_NBR
 	|| (metaEid->nodeNbr == 0 && metaEid->serviceNbr == 0))
 	{
 		*(metaEid->colon) = ':';
