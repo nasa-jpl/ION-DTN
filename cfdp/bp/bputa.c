@@ -199,7 +199,7 @@ int	main(int argc, char **argv)
 		/*	Get an outbound CFDP PDU for transmission.	*/
 
 		if (cfdpDequeueOutboundPdu(&pduZco, &fduBuffer, &fpdu,
-					&direction) < 0)
+				&direction) < 0 || pduZco == 0)
 		{
 			writeMemo("[?] bputa can't dequeue outbound CFDP PDU; \
 terminating.");

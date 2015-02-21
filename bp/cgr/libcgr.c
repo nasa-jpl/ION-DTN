@@ -983,8 +983,11 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 		|| contact->toNode > route->toNodeNbr
 		|| contact->fromTime > route->fromTime)
 		{
-			putErrmsg("Didn't find first contact on route.",
-					NULL);
+			/*	Initial contact on route has expired
+			 *	and has been removed (but the route
+			 *	itself has not yet been removed per
+			 *	the identifyProximateNodes procedure).	*/
+
 			return 0;
 		}
 
@@ -1210,6 +1213,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	Scalar		protected;
 	time_t		eto;
 	ProximateNode	*proxNode;
+
 	if (getDirective(route->toNodeNbr, plans, bundle, &directive) == 0)
 	{
 		TRACE(CgrIgnoreRoute, CgrNoApplicableDirective);
@@ -1417,7 +1421,7 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 				(unsigned int)(route->arrivalTime));
 		if (route->toTime < currentTime)
 		{
-			/*	This route include a contact that
+			/*	This route includes a contact that
 			 *	has already ended; delete it.		*/
 
 			contactToNodeNbr = route->toNodeNbr;

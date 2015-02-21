@@ -833,6 +833,7 @@ bpbin = \
 	bpsendfile \
 	bprecvfile \
 	bpclock \
+	bptransit \
 	ipnadmin \
 	ipnfw \
 	bsspcli \
@@ -905,6 +906,7 @@ bpnoinst = \
 bpextra = \
 	bp/doc/pod1/bpadmin.pod \
 	bp/doc/pod1/bpclock.pod \
+	bp/doc/pod1/bptransit.pod \
 	bp/doc/pod1/bpcounter.pod \
 	bp/doc/pod1/bpcancel.pod \
 	bp/doc/pod1/bplist.pod \
@@ -997,6 +999,7 @@ bpextra = \
 bpmans = \
 	$(top_builddir)/bp/doc/bpadmin.1 \
 	$(top_builddir)/bp/doc/bpclock.1 \
+	$(top_builddir)/bp/doc/bptransit.1 \
 	$(top_builddir)/bp/doc/bpcounter.1 \
 	$(top_builddir)/bp/doc/bpcancel.1 \
 	$(top_builddir)/bp/doc/bplist.1 \
@@ -1365,6 +1368,10 @@ cgrfetch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpclock_SOURCES = bp/daemon/bpclock.c
 bpclock_LDADD = libbp.la libici.la $(LIBOBJS)
 bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bptransit_SOURCES = bp/daemon/bptransit.c
+bptransit_LDADD = libbp.la libici.la $(LIBOBJS)
+bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ##########################
 #

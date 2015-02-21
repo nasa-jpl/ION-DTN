@@ -148,12 +148,14 @@ static void	*migrateBundles(void *parm)
 			continue;
 		}
 
+		/*	Note: still in transaction at this point.	*/
+
 		bundleAddr = (Object) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 		priority = COS_FLAGS(bundle.bundleProcFlags) & 0x03;
 
 		/*	Note: it's safe to call ionCreateZco here
-		 *	(while we're in a transaction because we
+		 *	(while we're in a transaction) because we
 		 *	don't pass it a pointer to an attendant, so
 		 *	it won't block.					*/
 
@@ -250,6 +252,8 @@ int	main(int argc, char *argv[])
 	vast			fileSpaceNeeded;
 	vast			heapSpaceNeeded;
 	Object			currentElt;
+	vast			currentFileSpaceNeeded;
+	vast			currentHeapSpaceNeeded;
 	ReqTicket		ticket;
 	vast			length;
 	Object			newPayload;
@@ -310,7 +314,6 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		currentElt = elt;
 		bundleAddr = (Object) sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 		priority = COS_FLAGS(bundle.bundleProcFlags) & 0x03;
@@ -318,6 +321,12 @@ int	main(int argc, char *argv[])
 				bundle.payload.length, &fileSpaceNeeded,
 				&heapSpaceNeeded);
 		sdr_exit_xn(sdr);		/*	Unlock.		*/
+
+		/*	Remember this candidate bundle.			*/
+
+		currentElt = elt;
+		currentFileSpaceNeeded = fileSpaceNeeded;
+		currentHeapSpaceNeeded = heapSpaceNeeded;
 
 		/*	Reserve space for new ZCO.			*/
 
@@ -372,11 +381,29 @@ int	main(int argc, char *argv[])
 		}
 
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-		length = bundle.payload.length;
+		zco_get_aggregate_length(sdr, bundle.payload.content, 0,
+				bundle.payload.length, &fileSpaceNeeded,
+				&heapSpaceNeeded);
+		if (fileSpaceNeeded != currentFileSpaceNeeded
+		|| heapSpaceNeeded != currentHeapSpaceNeeded)
+		{
+			/*	Very unlikely, but it's possible that
+			 *	the bundle we're expecting expired
+			 *	and a different bundle got appended
+			 *	to the list in a list element that
+			 *	is at the same address as the one
+			 *	we got last time (deleted and then
+			 *	recycled).  If the sizes don't match,
+			 *	start over again.			*/
+
+			sdr_exit_xn(sdr);
+			continue;
+		}
 
 		/*	Pass additive inverse of length to zco_create
 		 *	to note that space has already been awarded.	*/
 
+		length = bundle.payload.length;
 		newPayload = zco_create(sdr, ZcoZcoSource,
 				bundle.payload.content, 0, 0 - length,
 				ZcoOutbound, 0);

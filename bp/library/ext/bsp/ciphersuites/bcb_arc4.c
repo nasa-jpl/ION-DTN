@@ -138,7 +138,7 @@ static int	cryptPayload(Bundle *bundle, unsigned char *sessionKey,
 	 *	at a time, appending the results to the temporary
 	 *	file.							*/
 
-	CHKERR(sdr_begin_xn(bpSdr));
+	oK(sdr_begin_xn(bpSdr));
 	zco_start_transmitting(bundle->payload.content, &dataReader);
 	bytesRemaining = bundle->payload.length;
 	BCB_DEBUG_INFO("i encryptPayload: size is %d", bytesRemaining);
@@ -172,6 +172,7 @@ but expected %d.", bytesRetrieved, chunkSize);
 	}
 
 	MRELEASE(dataBuffer);
+	close(tempFile);
 	if (bytesRemaining != 0)	/*	Error encountered.	*/
 	{
 		sdr_cancel_xn(bpSdr);

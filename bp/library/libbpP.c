@@ -4809,7 +4809,6 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	newBundle->extensionsLength[1] = 0;
 	newBundle->extensions[1] = 0;
 	newBundle->extensionsLength[0] = 0;
-	newBundle->collabBlocks = 0;
 	if (copyExtensionBlocks(newBundle, oldBundle) < 0)
 	{
 		putErrmsg("Can't copy extensions.", NULL);
@@ -5616,7 +5615,6 @@ when asking for custody transfer and/or status reports.");
 	bundle.extensionsLength[0] = 0;
 	bundle.extensions[1] = sdr_list_create(bpSdr);
 	bundle.extensionsLength[1] = 0;
-	bundle.collabBlocks = sdr_list_create(bpSdr);
 	bundle.stations = sdr_list_create(bpSdr);
 	bundle.trackingElts = sdr_list_create(bpSdr);
 	bundleAddr = sdr_malloc(bpSdr, sizeof(Bundle));
@@ -5624,8 +5622,7 @@ when asking for custody transfer and/or status reports.");
 	|| bundle.stations == 0
 	|| bundle.trackingElts == 0
 	|| bundle.extensions[0] == 0
-	|| bundle.extensions[1] == 0
-	|| bundle.collabBlocks == 0)
+	|| bundle.extensions[1] == 0)
 	{
 		putErrmsg("No space for bundle object.", NULL);
 		sdr_cancel_xn(bpSdr);
@@ -6389,13 +6386,14 @@ AcqWorkArea	*bpGetAcqArea(VInduct *vduct)
 	work = (AcqWorkArea *) MTAKE(sizeof(AcqWorkArea));
 	if (work)
 	{
+#ifdef ORIGINAL_BSP
 		work->collabBlocks = lyst_create_using(memIdx);
 		if (work->collabBlocks == NULL)
 		{
 			MRELEASE(work);
 			return NULL;
 		}
-
+#endif
 		work->vduct = vduct;
 		for (i = 0; i < 2; i++)
 		{
@@ -6407,7 +6405,9 @@ AcqWorkArea	*bpGetAcqArea(VInduct *vduct)
 					lyst_destroy(work->extBlocks[0]);
 				}
 
+#ifdef ORIGINAL_BSP
 				lyst_destroy(work->collabBlocks);
+#endif
 				MRELEASE(work);
 				work = NULL;
 				break;

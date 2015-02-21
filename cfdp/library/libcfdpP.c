@@ -30,9 +30,14 @@ static ReqAttendant	*_attendant()
 			return NULL;
 		}
 
+		if (ionStartAttendant(attendant) < 0)
+		{
+			MRELEASE(attendant);
+			return NULL;
+		}
+
 		value = (void *) attendant;
 		attendant = (ReqAttendant *) sm_TaskVar(&value);
-		ionStartAttendant(attendant);
 	}
 
 	return attendant;
@@ -722,9 +727,9 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Stop UTA task.						*/
 
+	ionStopAttendant(_attendant());
 	if (cfdpvdb->fduSemaphore != SM_SEM_NONE)
 	{
-		ionStopAttendant(_attendant());
 		sm_SemEnd(cfdpvdb->fduSemaphore);
 	}
 

@@ -8,6 +8,7 @@ MANFILES = \
 	./man/man1/acslist.1 \
 	./man/man1/bpadmin.1 \
 	./man/man1/bpclock.1 \
+	./man/man1/bptransit.1 \
 	./man/man1/bpcounter.1 \
 	./man/man1/bpdriver.1 \
 	./man/man1/bpecho.1 \
@@ -62,6 +63,7 @@ HTMLFILES = \
 	./html/man1/acslist.html \
 	./html/man1/bpadmin.html \
 	./html/man1/bpclock.html \
+	./html/man1/bptransit.html \
 	./html/man1/bpcounter.html \
 	./html/man1/bpdriver.html \
 	./html/man1/bpecho.html \
