@@ -140,7 +140,6 @@ int	main(int argc, char **argv)
 	char		ownEid[64];
 	BpSAP		txSap;
 	RxThreadParms	parms;
-	Sdr		sdr;
 	pthread_t	rxThread;
 	int		haveRxThread = 0;
 	Object		pduZco;
@@ -153,6 +152,7 @@ int	main(int argc, char **argv)
 	char		reportToEidBuf[64];
 	char		*reportToEid;
 #if 0
+	Sdr		sdr;
 	Object		pduElt;
 #endif
 
@@ -192,7 +192,6 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	sdr = bp_get_sdr();
 	parms.mainThread = pthread_self();
 	parms.running = 1;
 	if (pthread_begin(&rxThread, NULL, receivePdus, &parms))
@@ -294,6 +293,7 @@ terminating.");
 		{
 			/*	Enable cancellation of this PDU.	*/
 
+			sdr = bp_get_sdr();
 			if (sdr_begin_xn(sdr) == 0)
 			{
 				parms.running = 0;

@@ -17,6 +17,7 @@ MANFILES = \
 	./man/man1/bpsink.1 \
 	./man/man1/bpsource.1 \
 	./man/man1/bpstats.1 \
+	./man/man1/bpnmtest.1 \
 	./man/man1/bplist.1 \
 	./man/man1/bpcancel.1 \
 	./man/man1/bptrace.1 \
@@ -45,6 +46,7 @@ MANFILES = \
 	./man/man1/tcpclo.1 \
 	./man/man1/udpcli.1 \
 	./man/man1/udpclo.1 \
+	./man/man1/bibeclo.1 \
 	./man/man1/dccpcli.1 \
 	./man/man1/dccpclo.1 \
 	./man/man1/cgrfetch.1 \
@@ -72,6 +74,7 @@ HTMLFILES = \
 	./html/man1/bpsink.html \
 	./html/man1/bpsource.html \
 	./html/man1/bpstats.html \
+	./html/man1/bpnmtest.html \
 	./html/man1/bplist.html \
 	./html/man1/bpcancel.html \
 	./html/man1/bptrace.html \
@@ -100,6 +103,7 @@ HTMLFILES = \
 	./html/man1/tcpclo.html \
 	./html/man1/udpcli.html \
 	./html/man1/udpclo.html \
+	./html/man1/bibeclo.html \
 	./html/man1/dccpcli.html \
 	./html/man1/dccpclo.html \
 	./html/man1/cgrfetch.html \

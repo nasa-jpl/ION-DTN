@@ -358,6 +358,7 @@ icibin = \
 	sdr2file \
 	psmshell \
 	smlistsh \
+	smrbtsh \
 	rfxclock \
 	owlttb \
 	owltsim
@@ -409,6 +410,7 @@ iciextra = \
 	ici/doc/pod1/sdr2file.pod \
 	ici/doc/pod1/sm2file.pod \
 	ici/doc/pod1/smlistsh.pod \
+	ici/doc/pod1/smrbtsh.pod \
 	ici/doc/pod1/owltsim.pod \
 	ici/doc/pod1/owlttb.pod \
 	ici/doc/pod5/ionconfig.pod \
@@ -441,6 +443,7 @@ icimans = \
 	$(top_builddir)/ici/doc/sdr2file.1 \
 	$(top_builddir)/ici/doc/sm2file.1 \
 	$(top_builddir)/ici/doc/smlistsh.1 \
+	$(top_builddir)/ici/doc/smrbtsh.1 \
 	$(top_builddir)/ici/doc/owltsim.1 \
 	$(top_builddir)/ici/doc/owlttb.1 \
 	$(top_builddir)/ici/doc/ionconfig.5 \
@@ -540,6 +543,10 @@ psmshell_CFLAGS = $(icicflags) $(AM_CFLAGS)
 smlistsh_SOURCES = ici/test/smlistsh.c
 smlistsh_LDADD = libici.la $(LIBOBJS)
 smlistsh_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+smrbtsh_SOURCES = ici/test/smrbtsh.c
+smrbtsh_LDADD = libici.la $(LIBOBJS)
+smrbtsh_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 file2sm_SOURCES = ici/test/file2sm.c
 file2sm_LDADD = libici.la $(LIBOBJS)
@@ -850,6 +857,7 @@ bpbin = \
 	brsccla \
 	udpcli \
 	udpclo \
+	bibeclo \
 	dccpcli \
 	dccpclo	\
 	dgrcla \
@@ -860,6 +868,7 @@ bpbin = \
 	bptrace \
 	bping \
 	bpstats \
+	bpnmtest \
 	bpstats2 \
 	bpchat \
 	hmackeys \
@@ -917,6 +926,7 @@ bpextra = \
 	bp/doc/pod1/bpsink.pod \
 	bp/doc/pod1/bpsource.pod \
 	bp/doc/pod1/bpstats.pod \
+	bp/doc/pod1/bpnmtest.pod \
 	bp/doc/pod1/bptrace.pod \
 	bp/doc/pod1/brsccla.pod \
 	bp/doc/pod1/brsscla.pod \
@@ -939,6 +949,7 @@ bpextra = \
 	bp/doc/pod1/tcpclo.pod \
 	bp/doc/pod1/udpcli.pod \
 	bp/doc/pod1/udpclo.pod \
+	bp/doc/pod1/bibeclo.pod \
 	bp/doc/pod1/dccpcli.pod \
 	bp/doc/pod1/dccpclo.pod \
 	bp/doc/pod1/bping.pod \
@@ -1010,6 +1021,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/bpsink.1 \
 	$(top_builddir)/bp/doc/bpsource.1 \
 	$(top_builddir)/bp/doc/bpstats.1 \
+	$(top_builddir)/bp/doc/bpnmtest.1 \
 	$(top_builddir)/bp/doc/bptrace.1 \
 	$(top_builddir)/bp/doc/brsccla.1 \
 	$(top_builddir)/bp/doc/brsscla.1 \
@@ -1032,6 +1044,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/tcpclo.1 \
 	$(top_builddir)/bp/doc/udpcli.1 \
 	$(top_builddir)/bp/doc/udpclo.1 \
+	$(top_builddir)/bp/doc/bibeclo.1 \
 	$(top_builddir)/bp/doc/dccpcli.1 \
 	$(top_builddir)/bp/doc/dccpclo.1 \
 	$(top_builddir)/bp/doc/cgrfetch.1 \
@@ -1205,6 +1218,10 @@ bpstats_SOURCES = bp/utils/bpstats.c
 bpstats_LDADD = libbp.la libici.la $(LIBOBJS) 
 bpstats_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+bpnmtest = bp/test/bpnmtest.c
+bpnmtest = libbp.la libici.la $(LIBOBJS) 
+bpnmtest = $(bpcflags) $(AM_CFLAGS)
+
 bptrace_SOURCES = bp/utils/bptrace.c
 bptrace_LDADD = libbp.la libici.la $(LIBOBJS) 
 bptrace_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1290,6 +1307,10 @@ udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 udpclo_SOURCES = bp/udp/udpclo.c
 udpclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) 
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bibeclo_SOURCES = bp/udp/bibeclo.c
+bibeclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) 
+bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 

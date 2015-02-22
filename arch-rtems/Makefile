@@ -54,6 +54,7 @@ BPSOURCES =      \
 	libbp.c      \
 	libbpP.c     \
 	bpclock.c    \
+	bptransit.c  \
 	bpadmin.c    \
 	bpstats.c    \
 	bptrace.c    \
@@ -66,6 +67,7 @@ BPSOURCES =      \
 	libipnfw.c   \
 	ltpcli.c     \
 	ltpclo.c     \
+	bibeclo.c    \
 	bei.c        \
 	phn.c        \
 	ecos.c       \
@@ -85,10 +87,14 @@ BPSOURCES =      \
 #	acslist.c    \
 
 BSPSOURCES =     \
-	extbsputil.c \
-	extbspbab.c  \
-	extbsppib.c  \
-	extbsppcb.c
+	ciphersuites.c \
+	bab_hmac_sha1.c \
+	bib_hmac_sha256.c \
+	bcb_arc4.c \
+	bsputil.c \
+	bspbab.c  \
+	bspbib.c  \
+	bspbcb.c
 
 DTN2SOURCES =        \
 	libdtn2fw.c 

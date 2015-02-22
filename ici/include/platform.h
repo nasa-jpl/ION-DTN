@@ -37,6 +37,9 @@ extern "C" {
 #ifndef linux
 #define linux
 #endif
+#ifndef __UCLIBC__
+#define __UCLIBC__
+#endif
 #endif
 
 #define	MAX_POSIX_TIME	2147483644
@@ -185,6 +188,7 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define	ECONNREFUSED		WSAECONNREFUSED
 #define ECONNRESET		WSAECONNRESET
 #define EWOULDBLOCK		WSAEWOULDBLOCK
+#define ENETUNREACH		WSAENETUNREACH
 #define	O_LARGEFILE		0
 
 #else				/****	not Windows		*********/

@@ -98,7 +98,6 @@ int	main(int argc, char *argv[])
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	vduct->xmitThrottle.nominalRate = -1;	/*	No rate control.*/
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = outduct.bulkQueue;
 	outflows[1].outboundBundles = outduct.stdQueue;
@@ -164,7 +163,7 @@ int	main(int argc, char *argv[])
 			continue;
 
 		case 0:		/*	Malformed request.		*/
-			writeMemo("Encapsulated bundle not sent.");
+			writeMemo("[!] Encapsulated bundle not sent.");
 		}	
 
 		/*	Make sure other tasks have a chance to run.	*/
