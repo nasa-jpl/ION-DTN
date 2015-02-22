@@ -10,13 +10,19 @@
 									*/
 #include "cfdpP.h"
 
-static int	_running(int *newValue)
+static long	_running(long *newValue)
 {
-	static int	state = 0;
+	void	*value;
+	long	state;
 	
 	if (newValue)			/*	Changing state.		*/
 	{
-		state = *newValue;
+		value = (void *) (*newValue);
+		state = (long) sm_TaskVar(&value);
+	}
+	else				/*	Just check.		*/
+	{
+		state = (long) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -24,7 +30,7 @@ static int	_running(int *newValue)
 
 static void	shutDown()	/*	Commands cfdpclock termination.	*/
 {
-	int	stop = 0;
+	long	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates cfdpclock.		*/
 }
@@ -423,7 +429,7 @@ int	main(int argc, char *argv[])
 {
 #endif
 	Sdr	sdr;
-	int	state = 1;
+	long	state = 1;
 	time_t	currentTime;
 
 	if (cfdpInit() < 0 || bp_attach() < 0)

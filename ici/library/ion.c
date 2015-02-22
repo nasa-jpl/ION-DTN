@@ -1815,14 +1815,17 @@ void	ionStopAttendant(ReqAttendant *attendant)
 
 void	ionShred(ReqTicket ticket)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 
 	/*	Ticket is address of an sm_list element in a shared
 	 *	memory list of requisitions in the IonVdb.		*/
 
 	CHKVOID(ticket);
+	sdr_begin_xn(sdr);	/*	This needs to be atomic.	*/
 	psm_free(ionwm, sm_list_data(ionwm, ticket));
 	sm_list_delete(ionwm, ticket, NULL, NULL);
+	sdr_exit_xn(sdr);	/*	End of critical section.	*/
 }
 
 int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,

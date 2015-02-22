@@ -711,12 +711,22 @@ int	_cfdpStart(char *utaCmd)
 
 void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 {
-	Sdr	sdr = getIonsdr();
-	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
+	Sdr		sdr = getIonsdr();
+	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
+	ReqAttendant	*attendant;
 
 	/*	Tell all CFDP processes to stop.			*/
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+
+	/*	Disable blocking ZCO buffer space access.		*/
+
+	attendant = _attendant();
+	if (attendant)
+	{
+		ionStopAttendant(attendant);
+		MRELEASE(attendant);
+	}
 
 	/*	Stop user application input thread.			*/
 
@@ -726,8 +736,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	}
 
 	/*	Stop UTA task.						*/
-
-	ionStopAttendant(_attendant());
+	
 	if (cfdpvdb->fduSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(cfdpvdb->fduSemaphore);
@@ -2694,15 +2703,15 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 		*pdu = ionCreateZco(ZcoSdrSource, fdu->metadataPdu, 0,
 				fdu->mpduLength, BP_STD_PRIORITY, 0,
 				ZcoOutbound, _attendant());
-		if (*pdu == (Object) ERROR)
+		switch (*pdu)
 		{
+		case (Object) ERROR:
+		case 0:
 			putErrmsg("Can't create Metadata PDU ZCO.", NULL);
 			return -1;
-		}
 
-		if (*pdu == 0)		/*	No ZCO space for PDU.	*/
-		{
-			return 0;
+		default:
+			break;
 		}
 
 		fdu->metadataPdu = 0;
@@ -2780,15 +2789,15 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 			*pdu = ionCreateZco(ZcoSdrSource, header, 0,
 					headerLength, BP_STD_PRIORITY, 0,
 					ZcoOutbound, _attendant());
-			if (*pdu == (Object) ERROR)
+			switch (*pdu)
 			{
-				putErrmsg("Can't create file PDU ZCO.", NULL);
+			case (Object) ERROR:
+			case 0:
+				putErrmsg("Can't create data PDU ZCO.", NULL);
 				return -1;
-			}
 
-			if (*pdu == 0)	/*	No ZCO space for PDU.	*/
-			{
-				return 0;
+			default:
+				break;
 			}
 
 			if (ionAppendZcoExtent(*pdu, ZcoFileSource,
@@ -2809,15 +2818,15 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 
 	*pdu = ionCreateZco(ZcoSdrSource, fdu->eofPdu, 0, fdu->epduLength,
 			BP_STD_PRIORITY, 0, ZcoOutbound, _attendant());
-	if (*pdu == (Object) ERROR)
+	switch (*pdu)
 	{
+	case (Object) ERROR:
+	case 0:
 		putErrmsg("Can't create EOF PDU ZCO.", NULL);
 		return -1;
-	}
 
-	if (*pdu == 0)			/*	No ZCO space for PDU.	*/
-	{
-		return 0;
+	default:
+		break;
 	}
 
 	fdu->eofPdu = 0;
@@ -2840,15 +2849,15 @@ static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 		sdr_read(sdr, (char *) fpdu, obj, sizeof(FinishPdu));
 		*pdu = ionCreateZco(ZcoSdrSource, fpdu->pdu, 0, fpdu->length,
 				BP_STD_PRIORITY, 0, ZcoOutbound, _attendant());
-		if (*pdu == (Object) ERROR)
+		switch (*pdu)
 		{
+		case (Object) ERROR:
+		case 0:
 			putErrmsg("Can't create Finish PDU ZCO.", NULL);
 			return -1;
-		}
 
-		if (*pdu == 0)		/*	No ZCO space for PDU.	*/
-		{
-			return 0;
+		default:
+			break;
 		}
 
 		sdr_free(sdr, obj);

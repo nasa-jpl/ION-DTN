@@ -152,8 +152,18 @@ int	main(int argc, char **argv)
 	char		destEid[64];
 	char		reportToEidBuf[64];
 	char		*reportToEid;
-	Object		newBundle;
+#if 0
 	Object		pduElt;
+#endif
+
+	/*	TODO: we need to retrofit the recording of bundles
+	 *	in the extantPdus list back into bputa.  This now
+	 *	has to be done by using bp_open_source with the
+	 *	"detain" switch set to 1, instead of bp_open.
+	 *	When we do this, bp_send will return the address
+	 *	of the new bundle - but we have to do this very
+	 *	carefully, making sure that we bp_release every
+	 *	bundle detained in the extantPdus list.			*/
 
 	if (bp_attach() < 0)
 	{
@@ -270,29 +280,16 @@ terminating.");
 
 		/*	Send PDU in a bundle.				*/
 
-		newBundle = 0;
 		if (bp_send(txSap, destEid, reportToEid, utParms.lifespan,
 				utParms.classOfService, utParms.custodySwitch,
 				utParms.srrFlags, utParms.ackRequested,
-				&utParms.extendedCOS, pduZco, &newBundle) <= 0)
+				&utParms.extendedCOS, pduZco, NULL) <= 0)
 		{
 			putErrmsg("bputa can't send PDU in bundle; terminated.",
 					NULL);
 			parms.running = 0;
 		}
-
-		if (newBundle == 0)
-		{
-			if (deletePdu(pduZco) < 0)
-			{
-				putErrmsg("bputa can't ditch PDU; terminated.",
-						NULL);
-				parms.running = 0;
-			}
-
-			continue;	/*	Must have stopped.	*/
-		}
-
+#if 0
 		if (direction == 0)	/*	Toward file receiver.	*/
 		{
 			/*	Enable cancellation of this PDU.	*/
@@ -317,7 +314,7 @@ terminating.");
 				parms.running = 0;
 			}
 		}
-
+#endif
 		/*	Make sure other tasks have a chance to run.	*/
 
 		sm_TaskYield();

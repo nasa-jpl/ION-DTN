@@ -18,7 +18,6 @@
 #endif
 
 static const char	*bookNames[] = { "inbound", "outbound" };
-static void		destroyZco(Sdr sdr, Object zcoObj);
 
 /*	The INBOUND and OUTBOUND "books" control ZCOs' occupancy of
  *	SDR heap and file system space.  Inbound and outbound ZCOs
