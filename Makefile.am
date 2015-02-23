@@ -90,8 +90,8 @@ cov-clean:
 
 cov-report:
 	@mkdir -p coverage
-	@lcov --compat-libtool --directory . -b . --capture --output-file coverage/app.info  
-	@genhtml -o coverage/ coverage/app.info 
+	@lcov --compat-libtool --directory . -b . --capture --output-file coverage/app.info
+	@genhtml -o coverage/ coverage/app.info
 
 cov:
 	@make cov-report
@@ -329,7 +329,7 @@ node10_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.bprc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ionrc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ipnrc \
-	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ltprc 
+	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ltprc
 
 #############
 #
@@ -645,7 +645,7 @@ ltpmans = \
 	$(top_builddir)/ltp/doc/dccplsi.1 \
 	$(top_builddir)/ltp/doc/dccplso.1 \
 	$(top_builddir)/ltp/doc/ltprc.5 \
-	$(top_builddir)/ltp/doc/ltp.3 
+	$(top_builddir)/ltp/doc/ltp.3
 
 ltpclean-local:
 	rm -f $(top_builddir)/ltp/doc/*.1
@@ -760,18 +760,18 @@ dgrinclude = \
 dgrnoinst = \
 	dgr/test/file2dgr.h \
 	dgr/test/file2tcp.h \
-	dgr/test/file2udp.h 
+	dgr/test/file2udp.h
 
 dgrextra = \
 	dgr/README.txt \
 	dgr/doc/pod1/dgr2file.pod \
 	dgr/doc/pod1/file2dgr.pod \
-	dgr/doc/pod3/dgr.pod 
+	dgr/doc/pod3/dgr.pod
 
 dgrmans = \
 	$(top_builddir)/dgr/doc/dgr2file.1 \
 	$(top_builddir)/dgr/doc/file2dgr.1 \
-	$(top_builddir)/dgr/doc/dgr.3 
+	$(top_builddir)/dgr/doc/dgr.3
 
 dgrclean-local:
 	rm -f $(top_builddir)/dgr/doc/*.1
@@ -867,8 +867,8 @@ bpbin = \
 	lgagent \
 	bptrace \
 	bping \
-	bpstats \
 	bpnmtest \
+	bpstats \
 	bpstats2 \
 	bpchat \
 	hmackeys \
@@ -910,7 +910,7 @@ bpnoinst = \
 	bp/ltp/ltpcla.h \
 	bp/tcp/tcpcla.h \
 	bp/dccp/dccpcla.h
-#	bp/library/ext/phn/phn.h 
+#	bp/library/ext/phn/phn.h
 
 bpextra = \
 	bp/doc/pod1/bpadmin.pod \
@@ -926,7 +926,6 @@ bpextra = \
 	bp/doc/pod1/bpsink.pod \
 	bp/doc/pod1/bpsource.pod \
 	bp/doc/pod1/bpstats.pod \
-	bp/doc/pod1/bpnmtest.pod \
 	bp/doc/pod1/bptrace.pod \
 	bp/doc/pod1/brsccla.pod \
 	bp/doc/pod1/brsscla.pod \
@@ -953,6 +952,7 @@ bpextra = \
 	bp/doc/pod1/dccpcli.pod \
 	bp/doc/pod1/dccpclo.pod \
 	bp/doc/pod1/bping.pod \
+	bp/doc/pod1/bpnmtest.pod \
 	bp/doc/pod1/bpstats2.pod \
 	bp/doc/pod1/bpchat.pod \
 	bp/doc/pod1/hmackeys.pod \
@@ -1021,7 +1021,6 @@ bpmans = \
 	$(top_builddir)/bp/doc/bpsink.1 \
 	$(top_builddir)/bp/doc/bpsource.1 \
 	$(top_builddir)/bp/doc/bpstats.1 \
-	$(top_builddir)/bp/doc/bpnmtest.1 \
 	$(top_builddir)/bp/doc/bptrace.1 \
 	$(top_builddir)/bp/doc/brsccla.1 \
 	$(top_builddir)/bp/doc/brsscla.1 \
@@ -1049,6 +1048,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/dccpclo.1 \
 	$(top_builddir)/bp/doc/cgrfetch.1 \
 	$(top_builddir)/bp/doc/bping.1 \
+	$(top_builddir)/bp/doc/bpnmtest.1 \
 	$(top_builddir)/bp/doc/bpstats2.1 \
 	$(top_builddir)/bp/doc/bpchat.1 \
 	$(top_builddir)/bp/doc/hmackeys.1 \
@@ -1218,10 +1218,6 @@ bpstats_SOURCES = bp/utils/bpstats.c
 bpstats_LDADD = libbp.la libici.la $(LIBOBJS) 
 bpstats_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpnmtest = bp/test/bpnmtest.c
-bpnmtest = libbp.la libici.la $(LIBOBJS) 
-bpnmtest = $(bpcflags) $(AM_CFLAGS)
-
 bptrace_SOURCES = bp/utils/bptrace.c
 bptrace_LDADD = libbp.la libici.la $(LIBOBJS) 
 bptrace_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1308,7 +1304,9 @@ udpclo_SOURCES = bp/udp/udpclo.c
 udpclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) 
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bibeclo_SOURCES = bp/udp/bibeclo.c
+# --- UDP Executables --- #
+
+bibeclo_SOURCES = bp/bibe/bibeclo.c
 bibeclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) 
 bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
@@ -1371,6 +1369,10 @@ bprecvfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bping_SOURCES = bp/test/bping.c
 bping_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpnmtest_SOURCES = bp/test/bpnmtest.c
+bpnmtest_LDADD = libbp.la libici.la $(LIBOBJS)
+bpnmtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats2_SOURCES = bp/test/bpstats2.c
 bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
@@ -2145,7 +2147,7 @@ if ENABLE_AUTODOC
 
 ION.pdf: doc/ION-beginning.pdf doc/ION-manpages.ps
 	$(PS2PDF) doc/ION-manpages.ps
-	$(PDFJOIN) doc/ION-beginning.pdf doc/ION-manpages.pdf --outfile ION.pdf
+	$(PDFJOIN) doc/ION-beginning.pdf ION-manpages.pdf --outfile ION.pdf
 
 # The targets in man_MANS that are actually manpages (and not phony targets
 # for making directories, etc.)
