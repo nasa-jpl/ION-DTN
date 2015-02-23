@@ -83,6 +83,8 @@ Features included:
 
 - SourceForge Bug #68: [stcpclo suicide]
 
+- SourceForge Bug #70: [Incorrect macro identifier used to check for uClibC]
+
 - SourceForge Feature Request #13: [Improve reactive forwarding]
 
 - SourceForge Feature Request #19: [Add bundle-in-bundle encapsulation]
