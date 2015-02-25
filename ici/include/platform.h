@@ -189,6 +189,7 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define ECONNRESET		WSAECONNRESET
 #define EWOULDBLOCK		WSAEWOULDBLOCK
 #define ENETUNREACH		WSAENETUNREACH
+#define EHOSTUNREACH		WSAEHOSTUNREACH
 #define	O_LARGEFILE		0
 
 #else				/****	not Windows		*********/
