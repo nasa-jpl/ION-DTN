@@ -31,6 +31,7 @@ check:		$(LTPINCLS) $(PUBINCLS)
 clean:
 		rm -f *.o
 		rm -f *.exe
+		rm -f *.def
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -75,11 +76,11 @@ tcpbso:		tcpbso.o libbssp.dll
 #	-	-	Libraries	-	-	-	-	-
 
 libbssp.dll:	libbsspP.o libbssp.o
-		$(LD) -o libbssp.dll libbsspP.o libbssp.o -L$(ROOT)/lib -lici -lpthread
+		$(LD) -o libbssp.dll libbsspP.o libbssp.o -Wl,--output-def,libbssp.def -L$(ROOT)/lib -lici -lpthread
 		cp libbssp.dll ./lib
 
 libtcpbsa.dll:	libtcpbsa.o
-		$(LD) -o libtcpbsa.dll libtcpbsa.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lws2_32
+		$(LD) -o libtcpbsa.dll libtcpbsa.o -Wl,--output-def,libtcpbsa.def -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lws2_32
 		cp libtcpbsa.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

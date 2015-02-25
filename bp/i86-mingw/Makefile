@@ -52,7 +52,7 @@ LBP = -lbp -limcfw -lipnfw
 
 RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest
 # dccpcli dccpclo
-# acsadmin acslist 
+# acsadmin acslist
 # bping bpstats2 bpchat
 
 ALL = check $(BPLIBS) libcgr.dll libipnfw.dll libimcfw.dll libdtn2fw.dll libtcpcla.dll libudpcla.dll $(RUNTIMES)
@@ -296,20 +296,20 @@ bpnmtest:	bpnmtest.o libbp.dll $(BPLIBS)
 
 #	-	-	Libraries	-	-	-	-	-
 
-libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o
-		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread
+libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o
+		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread
 		cp libbp.dll ./lib
 
 libcgr.dll:	libcgr.o
-		$(LD) -o libcgr.dll libcgr.o -Wl,--output-def,libcgr.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libcgr.dll libcgr.o -Wl,--output-def,libcgr.def -L./lib -L$(ROOT)/lib -lbp -lici -lpthread
 		cp libcgr.dll ./lib
 
 libipnfw.dll:	libipnfw.o
-		$(LD) -o libipnfw.dll libipnfw.o -Wl,--output-def,libipnfw.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libipnfw.dll libipnfw.o -Wl,--output-def,libipnfw.def -L./lib -L$(ROOT)/lib -lici -lpthread
 		cp libipnfw.dll ./lib
 
 libimcfw.dll:	libimcfw.o
-		$(LD) -o libimcfw.dll libimcfw.o -Wl,--output-def,libimcfw.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libimcfw.dll libimcfw.o -Wl,--output-def,libimcfw.def -L./lib -L$(ROOT)/lib -lbp -lici -lpthread
 		cp libimcfw.dll ./lib
 
 libdtn2fw.dll:	libdtn2fw.o

@@ -72,7 +72,7 @@ bputa:		bputa.o libcfdp.dll
 #	-	-	TCP executables	-	-	-	-	-
 
 tcputa:		tcputa.o libcfdp.dll
-		$(CC) -o tcputa tcputa.o -L./lib -L$(ROOT)/lib -lcfdp -lici -lpthread
+		$(CC) -o tcputa tcputa.o -L./lib -L$(ROOT)/lib -lcfdp -lici -lpthread -lws2_32
 		cp tcputa ./bin
 
 #	-	-	BPCP executables	-	-	-	-
@@ -80,7 +80,7 @@ tcputa:		tcputa.o libcfdp.dll
 bpcp:		bpcp.o
 		$(CC) -o bpcp bpcp.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
 		cp bpcp ./bin
-		
+
 bpcpd:		bpcpd.o
 		$(CC) -o bpcpd bpcpd.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
 		cp bpcpd ./bin
