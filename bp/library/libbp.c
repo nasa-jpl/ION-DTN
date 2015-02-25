@@ -176,14 +176,15 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 
 int	bp_open_source(char *eidString, BpSAP *bpsapPtr, int detain)
 {
-	Sdr	sdr;
-	int	result;
+	Sdr		sdr;
+	VEndpoint	*vpoint;	/*	createBpSAP work area.	*/
+	int		result;
 
 	CHKERR(eidString && *eidString && bpsapPtr);
 	*bpsapPtr = NULL;	/*	Default, in case of failure.	*/
 	sdr = getIonsdr();
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	result = createBpSAP(sdr, eidString, bpsapPtr, NULL);
+	result = createBpSAP(sdr, eidString, bpsapPtr, &vpoint);
 	if (result == 0)
 	{
 		(*bpsapPtr)->recvSemaphore = SM_SEM_NONE;
