@@ -2688,6 +2688,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 			int *haveMetadata)
 {
 	Sdr		sdr = getIonsdr();
+	vast		length;
 	Object		elt;
 	Object		pduObj;
 			OBJ_POINTER(FileDataPdu, seg);
@@ -2700,9 +2701,13 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 
 	if (fdu->metadataPdu)
 	{
-		*pdu = ionCreateZco(ZcoSdrSource, fdu->metadataPdu, 0,
-				fdu->mpduLength, BP_STD_PRIORITY, 0,
-				ZcoOutbound, _attendant());
+		length = fdu->mpduLength;
+
+		/*	Pass additive inverse of length to zco_create
+		 *	to note that space has already been awarded.	*/
+
+		*pdu = zco_create(sdr, ZcoSdrSource, fdu->metadataPdu, 0,
+				0 - length, ZcoOutbound, 0);
 		switch (*pdu)
 		{
 		case (Object) ERROR:
@@ -2786,9 +2791,14 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 
 			sdr_write(sdr, header, (char *) headerBuf,
 					headerLength);
-			*pdu = ionCreateZco(ZcoSdrSource, header, 0,
-					headerLength, BP_STD_PRIORITY, 0,
-					ZcoOutbound, _attendant());
+			length = headerLength;
+
+			/*	Pass additive inverse of length to
+			 *	zco_create to note that space has
+			 *	already been awarded.			*/
+
+			*pdu = zco_create(sdr, ZcoSdrSource, header, 0,
+					0 - length, ZcoOutbound, 0);
 			switch (*pdu)
 			{
 			case (Object) ERROR:
@@ -2800,9 +2810,14 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 				break;
 			}
 
-			if (ionAppendZcoExtent(*pdu, ZcoFileSource,
-					fdu->fileRef, seg->offset, seg->length,
-					BP_STD_PRIORITY, 0, _attendant()) <= 0)
+			length = seg->length;
+
+			/*	Pass additive inverse of length to
+			 *	zco_append_extent to note that space
+			 *	has already been awarded.		*/
+
+			if (zco_append_extent(sdr, *pdu, ZcoFileSource,
+				fdu->fileRef, seg->offset, 0 - length) < 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
 				return -1;
@@ -2816,8 +2831,13 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 		}
 	}
 
-	*pdu = ionCreateZco(ZcoSdrSource, fdu->eofPdu, 0, fdu->epduLength,
-			BP_STD_PRIORITY, 0, ZcoOutbound, _attendant());
+	length = fdu->epduLength;
+
+	/*	Pass additive inverse of length to zco_create to note
+	 *	that space has already been awarded.			*/
+
+	*pdu = zco_create(sdr, ZcoSdrSource, fdu->eofPdu, 0, 0 - length,
+			ZcoOutbound, 0);
 	switch (*pdu)
 	{
 	case (Object) ERROR:
@@ -2841,14 +2861,20 @@ static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 	Object	obj;
+	vast	length;
 
 	elt = sdr_list_first(sdr, db->finishPdus);
 	if (elt)	/*	Have got a Finished PDU to send.	*/
 	{
 		obj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) fpdu, obj, sizeof(FinishPdu));
-		*pdu = ionCreateZco(ZcoSdrSource, fpdu->pdu, 0, fpdu->length,
-				BP_STD_PRIORITY, 0, ZcoOutbound, _attendant());
+		length = fpdu->length;
+
+		/*	Pass additive inverse of length to zco_create
+		 *	to note that space has already been awarded.	*/
+
+		*pdu = zco_create(sdr, ZcoSdrSource, fpdu->pdu, 0,
+				0 - length, ZcoOutbound, 0);
 		switch (*pdu)
 		{
 		case (Object) ERROR:
@@ -2890,6 +2916,8 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	Sdr			sdr = getIonsdr();
 	CfdpVdb			*cfdpvdb = _cfdpvdb(NULL);
 	CfdpDB			cfdpdb;
+	ReqAttendant		*attendant = _attendant();
+	ReqTicket		ticket;
 	Object			fdu = 0;
 	int			pduIsFileData = 0;	/*	Boolean.*/
 	int			haveMetadata = 0;	/*	Boolean.*/
@@ -2917,6 +2945,47 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	*pdu = 0;
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	crcRequired = cfdpdb.crcRequired;
+
+	/*	Reserve one PDU's worth of ZCO space.  Assume file
+	 *	data segment size limit is maximum PDU size; reserve
+	 *	it in both file and heap, because we don't know which
+	 *	will be needed.  (Only one or the other will actually
+	 *	be allocated, when the ZCO is finally created.)		*/
+
+	if (ionRequestZcoSpace(ZcoOutbound, cfdpdb.maxFileDataLength,
+		cfdpdb.maxFileDataLength, 1, 0, attendant, &ticket) < 0)
+	{
+		putErrmsg("Failed trying to reserve ZCO space.", NULL);
+		return -1;
+	}
+
+	if (ticket)	/*	Space is not currently available.	*/
+	{
+		/*	Ticket is request list element for the request.
+		 *	Wait until space is available.			*/
+
+		if (sm_SemTake(attendant->semaphore) < 0)
+		{
+			putErrmsg("Failed taking semaphore.", NULL);
+			ionShred(ticket);
+			return -1;
+		}
+
+		if (sm_SemEnded(attendant->semaphore))
+		{
+			writeMemo("[i] CFDP UTO ZCO request interrupted.");
+			ionShred(ticket);
+			return -1;
+		}
+
+		/*	ZCO space has now been reserved.		*/
+	
+		ionShred(ticket);
+	}
+
+	/*	At this point it is known that there's sufficient
+	 *	ZCO space for the next outbound PDU, so create it.	*/
+
 	CHKERR(sdr_begin_xn(sdr));
 	if (selectOutPdu(&cfdpdb, pdu, &fdu, fduBuffer, fpdu, direction,
 			&pduIsFileData, &haveMetadata) < 0)
@@ -4185,7 +4254,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	fdu->inactivityDeadline = getUTCTime()
-					+ cfdpdb.transactionInactivityLimit;
+			+ cfdpdb.transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = ((*cursor) >> 4) & 0x0f;
 	fdu->ckType = (*cursor) & 0x01;
@@ -4302,7 +4371,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	fdu->inactivityDeadline = getUTCTime()
-					+ cfdpdb.transactionInactivityLimit;
+			+ cfdpdb.transactionInactivityLimit;
 	fdu->metadataReceived = 1;
 	fdu->closureRequested = ((*cursor) >> 6) & 0x01;
 	cursor++;
