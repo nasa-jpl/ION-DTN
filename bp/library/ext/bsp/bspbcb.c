@@ -371,7 +371,7 @@ int	bsp_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
 	Sdr			bpSdr = getIonsdr();
 	BspOutboundBlock	asb;
-	int			result = -1;
+	int			result = 0;
 	char			*buffer = NULL;
 
 	BCB_DEBUG_PROC("+ bsp_bcbCopy(%x, %x)", (unsigned long) newBlk,
@@ -465,7 +465,7 @@ int	bsp_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 int	bsp_bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	int	result = -1;
+	int	result;
 
 	BCB_DEBUG_PROC("+ bsp_bcbAcquire(%x, %x)", (unsigned long) blk,
 			(unsigned long) wk);

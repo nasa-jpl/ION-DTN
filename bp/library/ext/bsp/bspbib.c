@@ -382,7 +382,7 @@ int	bsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
 	Sdr			bpSdr = getIonsdr();
 	BspOutboundBlock	asb;
-	int			result = -1;
+	int			result = 0;
 	char			*buffer = NULL;
 
 	BIB_DEBUG_PROC("+ bsp_bibCopy(%x, %x)", (unsigned long) newBlk,
@@ -477,7 +477,7 @@ int	bsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 int	bsp_bibParse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	int	result = -1;
+	int	result;
 
 	BIB_DEBUG_PROC("+ bsp_bibParse(%x, %x)", (unsigned long) blk,
 			(unsigned long) wk);

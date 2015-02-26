@@ -383,7 +383,7 @@ void    bsp_babRelease(ExtensionBlock *blk)
 
 int	bsp_babAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	int		result = -1;
+	int	result;
 
 	BAB_DEBUG_PROC("+ bsp_babAcquire(%x, %x)", (unsigned long) blk,
 			(unsigned long) wk);
