@@ -302,6 +302,13 @@ if test -x "$PWD/doc/psjoin"; then
 else
     AC_MSG_RESULT([not found])
 fi
+AC_MSG_CHECKING([for fallback included pdfjoin])
+if test -x "$PWD/doc/pdfjoin"; then
+    PSJOIN="$PWD/doc/pdfjoin"
+    AC_MSG_RESULT($PDFJOIN)
+else
+    AC_MSG_RESULT([not found])
+fi
 AC_PATH_PROG([GROFF], [groff])
 AC_MSG_CHECKING([if groff suports -ms])
 if test "$GROFF" && echo | $GROFF -ms - >/dev/null 2>/dev/null; then
