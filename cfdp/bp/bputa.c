@@ -151,19 +151,9 @@ int	main(int argc, char **argv)
 	char		destEid[64];
 	char		reportToEidBuf[64];
 	char		*reportToEid;
-#if 0
+	Object		newBundle;
 	Sdr		sdr;
 	Object		pduElt;
-#endif
-
-	/*	TODO: we need to retrofit the recording of bundles
-	 *	in the extantPdus list back into bputa.  This now
-	 *	has to be done by using bp_open_source with the
-	 *	"detain" switch set to 1, instead of bp_open.
-	 *	When we do this, bp_send will return the address
-	 *	of the new bundle - but we have to do this very
-	 *	carefully, making sure that we bp_release every
-	 *	bundle detained in the extantPdus list.			*/
 
 	if (bp_attach() < 0)
 	{
@@ -173,7 +163,7 @@ int	main(int argc, char **argv)
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
 			getOwnNodeNbr(), CFDP_SEND_SVC_NBR);
-	if (bp_open(ownEid, &txSap) < 0)
+	if (bp_open_source(ownEid, &txSap, 1) < 0)
 	{
 		putErrmsg("CFDP can't open own 'send' endpoint.", ownEid);
 		return 0;
@@ -282,13 +272,14 @@ terminating.");
 		if (bp_send(txSap, destEid, reportToEid, utParms.lifespan,
 				utParms.classOfService, utParms.custodySwitch,
 				utParms.srrFlags, utParms.ackRequested,
-				&utParms.extendedCOS, pduZco, NULL) <= 0)
+				&utParms.extendedCOS, pduZco, &newBundle) <= 0)
 		{
 			putErrmsg("bputa can't send PDU in bundle; terminated.",
 					NULL);
 			parms.running = 0;
+			continue;
 		}
-#if 0
+
 		if (direction == 0)	/*	Toward file receiver.	*/
 		{
 			/*	Enable cancellation of this PDU.	*/
@@ -312,9 +303,16 @@ terminating.");
 				putErrmsg("bputa can't track PDU; terminated.",
 						NULL);
 				parms.running = 0;
+				continue;
 			}
 		}
-#endif
+
+		/*	Bundle has been detained long enough for us
+		 *	to track it if necessary, so we can now
+		 *	release it for normal processing.		*/
+
+		bp_release(newBundle);
+
 		/*	Make sure other tasks have a chance to run.	*/
 
 		sm_TaskYield();

@@ -224,7 +224,7 @@ int	main(int argc, char **argv)
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
 			getOwnNodeNbr(), DTPC_SEND_SVC_NBR);
-	if (bp_open(ownEid, &txSap) < 0)
+	if (bp_open_source(ownEid, &txSap, 1) < 0)
 	{
 		putErrmsg("DTPC can't open own 'send' endpoint.", ownEid);
 		return 0;

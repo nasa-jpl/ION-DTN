@@ -17,7 +17,7 @@ pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Verify that 'invincible' timeline events are no longer produced."
 echo
-echo "CONFIG: A contact graph with two nodes, only one of which runs:"
+echo "CONFIG: A contact plan with two nodes, only one of which runs:"
 echo
 for N in $CONFIGFILES
 do

@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 
 	/* Attach to ION */
 	fail_unless(bp_attach() == 0);
-	fail_unless(bp_open(myEid, &sap) == 0);
+	fail_unless(bp_open_source(myEid, &sap, 1) == 0);
 	sdr = bp_get_sdr();
 
 	/* Send the dummy bundle */
@@ -42,6 +42,7 @@ int main(int argc, char **argv)
 	/* Sleep for 2 sec, then post a second custody acceptance timeout */
 	snooze(2);
 	fail_unless(bpMemo(txNewBundle, 4) == 0);
+	bp_release(txNewBundle);
 
 	/* Detach from ION */
 	writeErrmsgMemos();
