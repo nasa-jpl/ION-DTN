@@ -5656,20 +5656,19 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 				= bundle->id.creationTime.seconds;
 		bundle->ctSignal.creationTime.count
 				= bundle->id.creationTime.count;
-		if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
-		{
-			bundle->ctSignal.isFragment = 1;
-			bundle->ctSignal.fragmentOffset =
-					bundle->id.fragmentOffset;
-			bundle->ctSignal.fragmentLength =
-					bundle->payload.length;
-		}
-		else
-		{
-			bundle->ctSignal.isFragment = 0;
-			bundle->ctSignal.fragmentOffset = 0;
-			bundle->ctSignal.fragmentLength = 0;
-		}
+	}
+
+	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+	{
+		bundle->ctSignal.isFragment = 1;
+		bundle->ctSignal.fragmentOffset = bundle->id.fragmentOffset;
+		bundle->ctSignal.fragmentLength = bundle->payload.length;
+	}
+	else
+	{
+		bundle->ctSignal.isFragment = 0;
+		bundle->ctSignal.fragmentOffset = 0;
+		bundle->ctSignal.fragmentLength = 0;
 	}
 
 	ttl = bundle->timeToLive;
@@ -5740,20 +5739,19 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 				= bundle->id.creationTime.seconds;
 		bundle->statusRpt.creationTime.count
 				= bundle->id.creationTime.count;
-		if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
-		{
-			bundle->statusRpt.isFragment = 1;
-			bundle->statusRpt.fragmentOffset =
-					bundle->id.fragmentOffset;
-			bundle->statusRpt.fragmentLength =
-					bundle->payload.length;
-		}
-		else
-		{
-			bundle->statusRpt.isFragment = 0;
-			bundle->statusRpt.fragmentOffset = 0;
-			bundle->statusRpt.fragmentLength = 0;
-		}
+	}
+
+	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+	{
+		bundle->statusRpt.isFragment = 1;
+		bundle->statusRpt.fragmentOffset = bundle->id.fragmentOffset;
+		bundle->statusRpt.fragmentLength = bundle->payload.length;
+	}
+	else
+	{
+		bundle->statusRpt.isFragment = 0;
+		bundle->statusRpt.fragmentOffset = 0;
+		bundle->statusRpt.fragmentLength = 0;
 	}
 
 	ttl = bundle->timeToLive;
@@ -5908,6 +5906,35 @@ static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
 	return 0;
 }
 
+static int	sendRequestedStatusReports(Bundle *bundle)
+{
+	char	*dictionary;
+	int	result;
+
+	/*	Send any applicable status report that has been
+	 *	requested, as previously noted.				*/
+
+	if (bundle->statusRpt.flags)
+	{
+		if ((dictionary = retrieveDictionary(bundle))
+				== (char *) bundle)
+		{
+			putErrmsg("Can't retrieve dictionary.", NULL);
+			return -1;
+		}
+
+		result = sendStatusRpt(bundle, dictionary);
+		releaseDictionary(dictionary);
+	       	if (result < 0)
+		{
+			putErrmsg("Can't send status report.", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 			Object bundleObj, Bundle *bundle)
 {
@@ -5955,6 +5982,12 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 	if (bundle->fragmentElt == 0)
 	{
 		putErrmsg("Can't insert bundle into fragments list.", NULL);
+		return -1;
+	}
+
+	if (sendRequestedStatusReports(bundle) < 0)
+	{
+		putErrmsg("Failed sending status reports.", NULL);
 		return -1;
 	}
 
@@ -6010,6 +6043,12 @@ static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
 	if (bundle->fragmentElt == 0)
 	{
 		putErrmsg("No space for fragment list elt.", NULL);
+		return -1;
+	}
+
+	if (sendRequestedStatusReports(bundle) < 0)
+	{
+		putErrmsg("Failed sending status reports.", NULL);
 		return -1;
 	}
 
@@ -8939,9 +8978,6 @@ static int	takeCustody(Bundle *bundle)
 
 static int	sendAcceptanceAdminRecords(Bundle *bundle)
 {
-	char	*dictionary;
-	int	result;
-
 	if (bundleIsCustodial(bundle))
 	{
 		if (takeCustody(bundle) < 0)
@@ -8951,26 +8987,10 @@ static int	sendAcceptanceAdminRecords(Bundle *bundle)
 		}
 	}
 
-	/*	Send any status report that is requested: custody
-	 *	acceptance, if applicable, and reception as previously
-	 *	noted, if applicable.					*/
-
-	if (bundle->statusRpt.flags)
+	if (sendRequestedStatusReports(bundle) < 0)
 	{
-		if ((dictionary = retrieveDictionary(bundle))
-				== (char *) bundle)
-		{
-			putErrmsg("Can't retrieve dictionary.", NULL);
-			return -1;
-		}
-
-		result = sendStatusRpt(bundle, dictionary);
-		releaseDictionary(dictionary);
-	       	if (result < 0)
-		{
-			putErrmsg("Can't send status report.", NULL);
-			return -1;
-		}
+		putErrmsg("Failed sending status reports.", NULL);
+		return -1;
 	}
 
 	return 0;
