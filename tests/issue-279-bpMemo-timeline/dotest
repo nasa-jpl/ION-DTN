@@ -44,6 +44,15 @@ rm -f ./ion_nodes
 
 # Start node 1.
 ./ionstart
+../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
 
 echo "Sending bundle with 60-second lifetime from ipn:1.1 to ipn:2.1.  Should
 be reforwarded upon expiration of 2nd timeout, 6 seconds after origination."

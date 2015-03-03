@@ -36,6 +36,15 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Start LTP engine 9.
 ./ionstart
+../../system_up -i "p 30" -l "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
 
 # Start ltpdriver sending 10 red blocks to nonexistent engine 5.
 # OWLT to 5 is 10 seconds, so session limit (8) should immediately be

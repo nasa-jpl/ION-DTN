@@ -29,32 +29,65 @@ cd ../4.ipn.ltp
 ionadmin amroc.ionrc
 
 cd ../2.ipn.ltp
-ionadmin global.ionrc
+ionadmin global.ionrc &
 cd ../3.ipn.ltp
-ionadmin global.ionrc
+ionadmin global.ionrc &
 cd ../4.ipn.ltp
-ionadmin global.ionrc
+ionadmin global.ionrc &
 
 cd ../2.ipn.ltp
-ionsecadmin amroc.ionsecrc
+ionsecadmin amroc.ionsecrc &
 cd ../3.ipn.ltp
-ionsecadmin amroc.ionsecrc
+ionsecadmin amroc.ionsecrc &
 cd ../4.ipn.ltp
-ionsecadmin amroc.ionsecrc
+ionsecadmin amroc.ionsecrc &
 
 cd ../2.ipn.ltp
-ltpadmin amroc.ltprc
+ltpadmin amroc.ltprc &
 cd ../3.ipn.ltp
-ltpadmin amroc.ltprc
+ltpadmin amroc.ltprc &
 cd ../4.ipn.ltp
-ltpadmin amroc.ltprc
+ltpadmin amroc.ltprc &
 
 cd ../2.ipn.ltp
-bpadmin amroc.bprc
+bpadmin amroc.bprc &
 cd ../3.ipn.ltp
-bpadmin amroc.bprc
+bpadmin amroc.bprc &
 cd ../4.ipn.ltp
-bpadmin amroc.bprc
+bpadmin amroc.bprc &
+
+cd ../2.ipn.ltp
+../../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 0
+fi
+
+cd ../3.ipn.ltp
+../../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 0
+fi
+
+cd ../4.ipn.ltp
+../../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 4 not started: Aborting Test"
+	exit 0
+fi
 
 cd ..
 

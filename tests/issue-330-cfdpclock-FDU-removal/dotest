@@ -56,7 +56,16 @@ echo "Starting ion node..."
 export ION_NODE_LIST_DIR=$PWD
 cd 1.cfdp.ipn.bp.ltp.udp
 ./ionstart
-sleep 10
+../../../system_up -i "p 30" -l "p 30" -b "p 30" -c "p 30"
+
+if [ $? -eq 4 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
+
 
 #Create large file to send
 echo "Creating test file..."

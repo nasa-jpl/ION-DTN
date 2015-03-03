@@ -41,6 +41,16 @@ echo "Starting ION..."
 # Start nodes
 cd ipn.cfdp.bp.tcp
 ./ionstart
+../../../system_up -i "p 30" -c "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
+
 cd ..
 
 #Create file
