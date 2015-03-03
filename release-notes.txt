@@ -1,6 +1,6 @@
-= Release Notes for ION 3.2.2 =
+= Release Notes for ION 3.3.0 =
 
-Nov 5, 2014
+Mar 3, 2015
 
 %%%%%%%%%%%
 = GENERAL =
@@ -69,35 +69,96 @@ Features included:
 = NOTES ON RELEASE 3.3.0 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-- SourceForge Bug #47: [LTP retransmission limits]
+- SourceForge Bug #47: ION's LTP implementation now supports overriding several
+     variables governing retransmission limits via compile-time switches.
+     This allows ION the flexibility to accomodate reports that may potentially
+     be comprised of multiple report segments.
 
-- SourceForge Bug #54: [vxworks pthread task IDs]
+     These variables are as follows:
 
-- SourceForge Bug #62: [Residual bugs in CGR ETO and OB implementation]
+     MAX_RETRANSMISSIONS
+        Maximum number of retransmission cycles for any single session
+        Default: 9
 
-- SourceForge Bug #63: [CBHE Max Values]
+     MAX_CLAIMS_PER_RS
+        Maximum number of claims per report segment
+        Default: 20
 
-- SourceForge Bug #65: [Obsolete LTP-green control]
+- SourceForge Bug #54: Fixed bug that could cause multithreaded applications
+     under VxWorks to refuse bundles with the error message:
+        "Can't receive: not owner of endpoint."
 
-- SourceForge Bug #67: [Non-compliant PHN blocks]
+     NOTE: This necessary change has the potential to BREAK APPLICATIONS.
+           If your application code currently makes any use of the bundle
+           address that is returned when bp_send() is called, then YOU MUST
+           MAKE BOTH OF THE FOLLOWING CHANGES IN YOUR CODE:
+           1.) Use bp_open_source() with the “detain” flag set to 1 INSTEAD OF
+               bp_open() to obtain the BpSAP handle that you pass to bp_send()
+           2.) Call bp_release() as soon as possible (for example, immediately
+               after passing the new bundle’s address to bp_track()) to end the
+               detention of any bundle created by passing that detaining BpSAP
+               handle to any invocation of bp_send(). 
+           If you need to receive bundles as well as send them, then the BpSAP
+           handle that you pass to bp_receive() must be a different handle that
+           is obtained by calling bp_open() in the usual way.
 
-- SourceForge Bug #68: [stcpclo suicide]
+- SourceForge Bug #62: Fixed several miscellaneous implementation bugs in the
+     Contact Graph Routing (CGR) engine dealing with Earliest Transmission
+     Opportunities (ETO) and Overbooking management (OB).
 
-- SourceForge Bug #70: [Incorrect macro identifier used to check for uClibC]
+- SourceForge Bug #63: Removed restrictions on possible CBHE node and
+     service numbers.
+     MAX_CBHE_NODE_NBR may now be any unsigned long number (2^64-1).
+     MAX_CBHE_SERVICE_NBR may now be any unsigned int number (2^32-1).
 
-- SourceForge Feature Request #13: [Improve reactive forwarding]
+- SourceForge Bug #65: Removed explicit support for LTP "green" transmission.
+     "Green" transmission is now selected on a bundle-by-bundle basis via the
+     bundle's extended class of service options.
 
-- SourceForge Feature Request #19: [Add bundle-in-bundle encapsulation]
+- SourceForge Bug #67: Updated the Previous Hop Node extension block (PHN)
+     implementation to be compliant with the specification in RFC 6259.
+     The sending node's EID is now represented by two distinct NULL-terminated
+     strings (Scheme Name and SSP) rather than one NULL-terminated EID.
 
-- SourceForge Feature Request #29: [Fix testing errors caused by timing issues]
+- SourceForge Bug #68: Fixed bug where the sockets of links utilizing STCP
+     could prematurely close if the other side did not respond for several
+     hours. ION now respects the EHOSTUNREACH errno value and periodically
+     attempts to reconnect rather than closes the socket.
 
-- SourceForge Feature Request #31: [const correctness in public API]
+- SourceForge Bug #70: Fixed bug with ION's uClibC macros that caused ION
+     compilation to fail in environments that use uClibC.
 
-- SourceForge Feature Request #32: [Separate ZCO space pools for transmission and reception]
+- SourceForge Feature Request #13: Optimizations have been made to improve
+     ION's reactive forwarding implementation:
+     - When a bundle is reforwarded due to expiration of its xmitOverdue timer
+       ION now considers the possibility that forwarding the bundle back to the
+       node it received the bundle from may now actually be the optimal route.
+     - ION now sends Custody Refused signals back to the sending nodes when
+       forwarding the bundle is not possible, even when custody transfer was
+       not requested.  This enables a mechanism for backtracking the bundle
+       through the network when forward progress through a route is blocked.
 
-- SourceForge Feature Request #33: [Extend Contact Graph Routing to address probabilistic contacts]
+- SourceForge Feature Request #19: ION now supports Bundle-in-Bundle
+     Encapsulation (bibe) per the draft-irtf-burleigh-bibe Internet Draft.
+     Bundle-in-Bundle Encapsulation enables the Streamlined Bundle Security
+     Protocol (SBSP), which omits security destinations from the security
+     extension blocks, to function in cross-domain solutions by encapsulating
+     bundles whose destination is the selected security destination.
 
-- sbsp
+- SourceForge Feature Request #29: Optimizations have been applied to the ION
+     test suite to reduce the amount of time needed to initialize each test.
+
+- SourceForge Feature Request #31: ION's public API is now more "const-correct"
+     which enables better interopability with C++ interfaces.
+
+- SourceForge Feature Request #32: <Scott can talk about the ZCO updates>
+
+- SourceForge Feature Request #33: ION now supports probabilistic contacts.
+     These are contacts with probabilities less than 1.0 that could potentially
+     be handled by the CGR algorithms to enable the possibility for more
+     efficient routing decisions to be made by the CGR engine.
+
+- ION now supports the Streamlined Bundle Security Protocol (SBSP).
 
 - Fixes have been applied to the ION.pdf construction procedure to enable
      proper formatting of the appended man pages.
