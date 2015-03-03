@@ -1,0 +1,3 @@
+at line 1120 of ici/library/ion.c, ION database not found.
+at line 1797 of bp/library/libbpP.c, BP can't attach to ION.
+at line 83 of bp/test/bpsink.c, Can't attach to BP.
