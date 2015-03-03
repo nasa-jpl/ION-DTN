@@ -327,7 +327,6 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 void	bsp_insertSecuritySource(Bundle *bundle, BspOutboundBlock *asb)
 {
 	char		*dictionary;
-	VScheme		vscheme;
 	VEndpoint	*vpoint;
 	PsmAddress	elt;
 
@@ -348,8 +347,8 @@ void	bsp_insertSecuritySource(Bundle *bundle, BspOutboundBlock *asb)
 	}
 
 	findEndpoint(dictionary + bundle->id.source.d.schemeNameOffset,
-			dictionary + bundle->id.source.d.nssOffset,
-			&vscheme, &vpoint, &elt);
+			dictionary + bundle->id.source.d.nssOffset, NULL,
+			&vpoint, &elt);
 	if (elt)
 	{
 		/*	The bundle source is the local node, so
