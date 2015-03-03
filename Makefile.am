@@ -197,6 +197,7 @@ noinst_HEADERS+= \
 	$(cfdpnoinst)
 endif
 
+if ENABLE_MANPAGES
 man_MANS = \
 	build-man-directories \
 	$(icimans) \
@@ -208,9 +209,10 @@ man_MANS = \
 	$(bsspmans)
 
 if !ION_NASA_B
-man_MANS+= \
+man_MANS += \
 	$(amsmans) \
 	$(cfdpmans)
+endif
 endif
 
 #################

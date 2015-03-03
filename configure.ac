@@ -154,6 +154,17 @@ AC_ARG_ENABLE(
     [])
 
 #
+# allow the user running configure to disable manpage creation
+#
+AC_ARG_ENABLE(
+    manpages,
+    [AC_HELP_STRING([--disable-manpages], [disable manpage creation])],
+    [],
+    [AM_CFLAGS="$AM_CFLAGS -DENABLE_MANPAGES"
+     ENABLE_MANPAGES=yes])
+AM_CONDITIONAL(ENABLE_MANPAGES, test "x$ENABLE_MANPAGES" = "xyes")
+
+#
 # Control building /contrib utlities
 #
 AC_ARG_ENABLE(

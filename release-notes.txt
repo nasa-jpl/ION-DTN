@@ -97,10 +97,14 @@ Features included:
 
 - SourceForge Feature Request #33: [Extend Contact Graph Routing to address probabilistic contacts]
 
+- sbsp
+
 - Fixes have been applied to the ION.pdf construction procedure to enable
      proper formatting of the appended man pages.
 
-- sbsp
+- Man page creation can now be disabled.
+     Man pages are still built by default.
+     To disable man page creation, use "./configure --disable-manpages".
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.2.2 =
