@@ -935,9 +935,7 @@ bpextra = \
 	bp/doc/pod1/dtn2fw.pod \
 	bp/doc/pod1/ipnadminep.pod \
 	bp/doc/pod1/ipnadmin.pod \
-	bp/doc/pod1/bssadmin.pod \
 	bp/doc/pod1/ipnfw.pod \
-	bp/doc/pod1/bssfw.pod \
 	bp/doc/pod1/lgagent.pod \
 	bp/doc/pod1/lgsend.pod \
 	bp/doc/pod1/ltpcli.pod \
@@ -1030,9 +1028,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/dtn2fw.1 \
 	$(top_builddir)/bp/doc/ipnadminep.1 \
 	$(top_builddir)/bp/doc/ipnadmin.1 \
-	$(top_builddir)/bp/doc/bssadmin.1 \
 	$(top_builddir)/bp/doc/ipnfw.1 \
-	$(top_builddir)/bp/doc/bssfw.1 \
 	$(top_builddir)/bp/doc/lgagent.1 \
 	$(top_builddir)/bp/doc/lgsend.1 \
 	$(top_builddir)/bp/doc/ltpcli.1 \
