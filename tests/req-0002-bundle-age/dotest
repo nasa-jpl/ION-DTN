@@ -55,8 +55,27 @@ rm -f ./ion_nodes
 # Start nodes.
 cd 2.bench.tcp
 ./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 0
+fi
+
 cd ../3.bench.tcp
 ./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 0
+fi
 
 sleep 3
 echo ""

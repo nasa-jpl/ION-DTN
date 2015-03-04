@@ -1138,6 +1138,7 @@ int	loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 	if (*lst < 0)
 	{
 		putSysErrmsg("BSS Library: can't open .lst file", fileName);
+		close(*dat);
 		return -1;
 	}
 
@@ -1146,6 +1147,8 @@ int	loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 	if (*tbl < 0)
 	{
 		putSysErrmsg("BSS Library: can't open .tbl file", fileName);
+		close(*lst);
+		close(*dat);
 		return -1;
 	}
 	
@@ -1234,6 +1237,7 @@ int	loadRDonlyDB(char* bssName, char* path)
 	if (lstRO < 0)
 	{
 		putSysErrmsg("BSS Library: can't open .lst file", fileName);
+		close(datRO);
 		return -1;
 	}
 
@@ -1242,6 +1246,8 @@ int	loadRDonlyDB(char* bssName, char* path)
 	if (tblRO < 0)
 	{
 		putSysErrmsg("BSS Library: can't open .tbl file", fileName);
+		close(lstRO);
+		close(datRO);
 		return -1;
 	}
 

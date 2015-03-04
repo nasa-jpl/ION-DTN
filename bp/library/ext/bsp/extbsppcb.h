@@ -69,7 +69,7 @@
  */
 
    #define PCB_DEBUG(level, format,...) if(level >= PCB_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
+{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
 
    #define PCB_DEBUG_PROC(format,...) \
            PCB_DEBUG(PCB_DEBUG_LVL_PROC,format, __VA_ARGS__)

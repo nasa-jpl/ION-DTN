@@ -793,11 +793,11 @@ int bsp_pcbConstructDecryptedPayload(Sdr bpSdr, BspPayloadReplaceKit *bprk,
         }
         sdr_write(bpSdr, newSdrAddr, (char *)bprk->headerBuff, bprk->headerLen);
         bprk->newBundle = zco_create(bpSdr, ZcoSdrSource, newSdrAddr,
-                                         0, bprk->headerLen);
+                                         0, bprk->headerLen, ZcoInbound);
     }
     else
     {
-        bprk->newBundle = zco_create(bpSdr, ZcoSdrSource, 0, 0, 0);
+        bprk->newBundle = zco_create(bpSdr, ZcoSdrSource, 0, 0, 0, ZcoInbound);
     }
 
     if (sdr_end_xn(bpSdr) < 0 || bprk->newBundle == (Object) ERROR

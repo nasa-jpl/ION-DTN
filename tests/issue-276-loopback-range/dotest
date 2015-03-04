@@ -40,24 +40,32 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Start node 9, with 20-second loopback range.
 ./ionstart
+../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
 
 # Send a loopback bundle with lifetime = 300.
 echo "Sending 10-byte bundle with 5-minute lifetime from ipn:9.1 to ipn:9.2."
 bptrace ipn:9.1 ipn:9.2 ipn:9.0 300 0.1 "Hello Bob"
-sleep 1
+sleep 2
+echo ""
 echo "Watch characters should be 'abcdefg'."
-sleep 1
 # Send a non-loopback bundle with lifetime = 300.
 echo "Sending 3-byte bundle with 5-minute lifetime from ipn:9.1 to ipn:5.2."
 bptrace ipn:9.1 ipn:5.2 ipn:9.0 300 0.1 "Hi"
-sleep 1
+sleep 2
+echo ""
 echo "Watch characters should be 'abcdefg'."
-sleep 1
 echo "Both should be forwarded to node 5: the loopback owlt is so long that CGR decides it will be faster to transmit to node 5 and then back again."
-sleep 1
 
 # Wait for all sessions to terminate.
-echo "Both bundles should be reforwarded on block transmission failure due to excessive ack timeouts (watch character '#'), because even the loopback bundle was sent to nonexistent node 5 due to the length of the loopback RTT."
+echo "Both bundles should be reforwarded three times on block transmission failure due to excessive ack timeouts (watch character '#'), because even the loopback bundle was sent to nonexistent node 5 due to the length of the loopback RTT."
 echo "Waiting for contact to terminate..."
 sleep 70
 echo "Contact has terminated.  Verifying results..."
@@ -75,21 +83,21 @@ else
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'fwd' message '(+) 4 26'..."
-COUNT=`grep fwd ion.log | grep "(+) 4 26" | wc -l`
+echo "Checking ion.log for 'fwd' message '(+) 8 52'..."
+COUNT=`grep fwd ion.log | grep "(+) 8 52" | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: All bundles forwarded."
+	echo "OK: Both bundles forwarded four times altogether."
 else
 	echo "ERROR: Bundles not forwarded."
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'rfw' message '(+) 2 13'..."
-COUNT=`grep rfw ion.log | grep "(+) 2 13" | wc -l`
+echo "Checking ion.log for 'rfw' message '(+) 6 39'..."
+COUNT=`grep rfw ion.log | grep "(+) 6 39" | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: Both bundles reforwarded."
+	echo "OK: Both bundles reforwarded three times."
 else
 	echo "ERROR: Bundles not reforwarded."
 	RETVAL=1

@@ -9,7 +9,7 @@
 
 #include <bpP.h>
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	bpcancel(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -66,6 +66,12 @@ int	main(int argc, char **argv)
 			putErrmsg("bpcancel failed destroying bundle.", NULL);
 			return 0;
 		}
+
+		PUTS("Bundle transmission has been canceled.");
+	}
+	else
+	{
+		PUTS("Unable to cancel transmission of this bundle.");
 	}
 
 	if (sdr_end_xn(sdr) < 0)

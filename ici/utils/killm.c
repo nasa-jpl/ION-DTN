@@ -14,10 +14,37 @@
 #include "ion.h"
 #include <tlhelp32.h>
 
-char *processes[] = { "bpadmin.exe", \
-"lt-bpadmin.exe", "bpchat.exe", "lt-bpchat.exe", \
-"bpclock.exe", "lt-bpclock.exe", "bpcounter.exe", \
-"lt-bpcounter.exe", "bpdriver.exe", "lt-bpdriver.exe", \
+char *processes[] = { "bsscounter.exe", "lt-bsscounter.exe", \
+"bssdriver.exe", "lt-bssdriver.exe", \
+"bssrecv.exe", "lt-bssrecv.exe", \
+"bssStreamingApp.exe", "lt-bssStreamingApp.exe", \
+"bsspadmin.exe", "lt-bsspadmin.exe", \
+"bsspadmin.exe", "lt-bsspadmin.exe", \
+"bsspcli.exe", "lt-bsspcli.exe", \
+"bsspclo.exe", "lt-bsspclo.exe", \
+"bsspclock.exe", "lt-bsspclock.exe", \
+"bsspclock.exe", "lt-bsspclock.exe", \
+"cgrfetch.exe", "lt-cgrfetch.exe", \
+"bibeclo.exe", "lt-bibeclo.exe", \
+"imdadmin.exe", "lt-imdadmin.exe", \
+"imcfw.exe", "lt-imcfw.exe", \
+"dtpcadmin.exe", "lt-dtpcadmin.exe", \
+"dtpcclock.exe", "lt-dtpcclock.exe", \
+"dtpcd.exe", "lt-dtpcd.exe", \
+"dtpcreceive.exe", "lt-dtpcreceive.exe", \
+"dtpcsend.exe", "lt-dtpcsend.exe", \
+"ionrestart.exe", "lt-ionrestart.exe", \
+"ionwarn.exe", "lt-ionwarn.exe", \
+"ionsecadmin.exe", "lt-ionsecadmin.exe", \
+"nm_agent.exe", "lt-nm_agent.exe", \
+"nm_mgr.exe", "lt-nm_mgr.exe", \
+"ramsgate.exe", "lt-ramsgate.exe", \
+"bpadmin.exe", "lt-bpadmin.exe", \
+"bpchat.exe", "lt-bpchat.exe", \
+"bpclock.exe", "lt-bpclock.exe", \
+"bptransit.exe", "lt-bptransit.exe", \
+"bpcounter.exe", "lt-bpcounter.exe", \
+"bpdriver.exe", "lt-bpdriver.exe", \
 "bpecho.exe", "lt-bpecho.exe", "bping.exe", \
 "lt-bping.exe", "bprecvfile.exe", "lt-bprecvfile.exe", \
 "bpsendfile.exe", "lt-bpsendfile.exe", "bpsink.exe", \

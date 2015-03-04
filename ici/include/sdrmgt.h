@@ -26,7 +26,7 @@ extern "C" {
 typedef struct
 {
 	char		sdrName[MAX_SDR_NAME + 1];
-	long		sdrSize;
+	long		dsSize;
 	long		smallPoolSize;
 	long		smallPoolFreeBlockCount[SMALL_SIZES];
 	long		smallPoolFree;
@@ -42,12 +42,12 @@ typedef struct
 
 #define sdr_malloc(sdr, size) \
 Sdr_malloc(__FILE__, __LINE__, sdr, size)
-extern Object		Sdr_malloc(char *file, int line,
+extern Object		Sdr_malloc(const char *file, int line,
 				Sdr sdr, unsigned long size);
 
 #define sdr_insert(sdr, from, size) \
 Sdr_insert(__FILE__, __LINE__, sdr, from, size)
-extern Object		Sdr_insert(char *file, int line,
+extern Object		Sdr_insert(const char *file, int line,
 				Sdr sdr, char *from, unsigned long size);
 
 #define sdr_stow(sdr, variable) \
@@ -57,7 +57,7 @@ extern long		sdr_object_length(Sdr sdr, Object object);
 
 #define sdr_free(sdr, object) \
 Sdr_free(__FILE__, __LINE__, sdr, object)
-extern void		Sdr_free(char *file, int line,
+extern void		Sdr_free(const char *file, int line,
 				Sdr sdr, Object object);
 
 extern void		sdr_stage(Sdr sdr, char *into, Object from, long size);
@@ -76,11 +76,12 @@ extern void		sdr_report(SdrUsageSummary *);
 				SDR's usage status.			*/
 
 extern int		sdr_heap_depleted(Sdr sdrv);
-			/*	A Boolean function: returns 1 if
-			 *	total available space in the SDR
+			/*	A Boolean function: returns 1 if total
+			 *	available space in the SDR's data space
 			 *	(small pool free, large pool free,
 			 *	and unused) is less than 1/16 of
-			 *	the total size of the SDR, 0 otherwise.	*/
+			 *	the total size of the data space, 0
+			 *	otherwise.				*/
 
 extern int		sdr_start_trace(Sdr sdr, long size, char *shm);
 			/*	Begins an episode of SDR space usage

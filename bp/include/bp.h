@@ -51,11 +51,17 @@ typedef enum
 #define BP_DELIVERED_RPT	(8)	/*	00001000		*/
 #define BP_DELETED_RPT		(16)	/*	00010000		*/
 
+#define	BP_MAX_METADATA_LEN	(30)
+
 typedef struct
 {
 	unsigned int	flowLabel;	/*	Optional.		*/
 	unsigned char	flags;		/*	See below.		*/
 	unsigned char	ordinal;	/*	0 to 254 (most urgent).	*/
+
+	unsigned char	metadataType;	/*	See RFC 6258.		*/
+	unsigned char	metadataLen;
+	unsigned char	metadata[BP_MAX_METADATA_LEN];
 } BpExtendedCOS;
 
 /*	Extended class-of-service flags.				*/
@@ -66,12 +72,6 @@ typedef struct
 #define	BP_RELIABLE_STREAMING	(BP_BEST_EFFORT | BP_RELIABLE)
 
 typedef struct bpsap_st		*BpSAP;
-
-typedef struct
-{
-	unsigned int	seconds;
-	unsigned int	count;
-} BpTimestamp;
 
 typedef enum
 {
@@ -89,7 +89,11 @@ typedef struct
 	unsigned int	timeToLive;
 	int		ackRequested;	/*	(By app.)  Boolean.	*/
 	int		adminRecord;	/*	Boolean: 0 = non-admin.	*/
-	Object		adu;		/*	Zero-copy object ref.	*/
+	Object		adu;		/*	Zero-copy object.	*/
+
+	unsigned char	metadataType;	/*	See RFC 6258.		*/
+	unsigned char	metadataLen;
+	unsigned char	metadata[BP_MAX_METADATA_LEN];
 } BpDelivery;
 
 extern int		bp_attach();
@@ -130,6 +134,35 @@ extern int		bp_open(	char *eid,
 			 *	of bundles destined for the indicated
 			 *	endpoint and to send bundles whose
 			 *	source is the indicated endpoint.
+			 *
+			 *	Returns 0 on success, -1 on any error.	*/
+
+extern int		bp_open_source(	char *eid,
+					BpSAP *ionsapPtr,
+					int detain);
+			/*	Arguments are:
+		 	 *  		name of the endpoint 
+			 *		pointer to variable in which
+			 *			address of BP service
+			 *			access point will be
+			 *			returned
+			 *		indicator as to whether or
+			 *			not bundles sourced
+			 *			using this BpSAP
+			 *			should be detained
+			 *			in storage until
+			 *			explicitly released
+			 *
+			 * 	Initiates ability to send bundles whose
+			 *	source is the indicated endpoint.  If
+			 *	"detain" is non-zero then each bundle
+			 *	address returned when this BpSAP is
+			 *	passed to bp_send will remain valid and
+			 *	usable (i.e., the bundle object will
+			 *	continue to occupy storage resources)
+			 *	until the bundle is explicitly released 
+			 *	by an invocation of bp_release OR
+			 *	the bundle's time to live expires.
 			 *
 			 *	Returns 0 on success, -1 on any error.	*/
 
@@ -174,15 +207,25 @@ extern int		bp_send(	BpSAP sap,
 			 *	values are 0 and there is no flow
 			 *	label.
 			 *
-			 *	adu must be a "zero-copy object"
-			 *	reference as returned by zco_create().
+			 *	adu must be a "zero-copy object" as
+			 *	returned by ionCreateZco().
 			 *
 			 *	Returns 1 on success, 0 on user error
 			 *	(an invalid argument value), -1 on
 			 *	system error.  If 1 is returned, then
-			 *	the ADU has been accepted and queued
-			 *	for transmission in a bundle and its
-			 *	ID has been placed in newBundle.	*/
+			 *	the ADU has been accepted.  If the
+			 *	destination EID is "dtn:none" then
+			 *	the ADU has been notionally encap-
+			 *	sulated in a bundle but the bundle
+			 *	has simply been discarded.  Otherwise
+			 *	the ADU has been encapsulated in a
+			 *	bundle that has been queued for
+			 *	forwarding and - if and only if
+			 *	"sap" was returned from a call to
+			 *	bp_open_source with the "detain"
+			 *	flag set to a non-zero value - the
+			 *	new bundle's address has been placed
+			 *	in newBundle.				*/
 
 extern int		bp_track(	Object bundleObj,
 					Object trackingElt);
@@ -221,6 +264,12 @@ extern int		bp_resume(	Object bundleObj);
 extern int		bp_cancel(	Object bundleObj);
 			/*	Cancels transmission of this bundle.	*/
 
+extern int		bp_release(	Object bundleObj);
+			/*	Terminates detention of this bundle,
+			 *	enabling it to be deleted from
+			 *	storage when all other retention
+			 *	constraints have been removed.		*/
+
 extern int		bp_receive(	BpSAP sap,
 					BpDelivery *dlvBuffer,
 					int timeoutSeconds);
@@ -254,10 +303,10 @@ extern int		bp_receive(	BpSAP sap,
 			 *
 			 *	The application data unit delivered
 			 *	in the data delivery structure, if
-			 *	any, will be a "zero-copy object"
-			 *	reference; use the zco_receive_XXX
-			 *	functions to read the content of the
-			 *	application data unit.
+			 *	any, will be a "zero-copy object";
+			 *	use the zco_receive_XXX functions to
+			 *	read the content of the application
+			 *	data unit.
 			 *
 			 *	Be sure to call bp_release_delivery()
 			 *	after every successful invocation of
@@ -266,7 +315,7 @@ extern int		bp_receive(	BpSAP sap,
 			 *	Returns 0 on success, -1 on any error.	*/
 
 extern void		bp_interrupt(BpSAP);
-			/*	Interrupts an bp_receive invocation
+			/*	Interrupts a bp_receive invocation
 			 *	that is currently blocked.  Designed
 			 *	to be called from a signal handler;
 			 *	for this purpose, the BpSAP may need

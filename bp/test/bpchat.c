@@ -16,7 +16,6 @@ static char                 *destEid = NULL;
 static char                 *ownEid = NULL;
 static BpCustodySwitch      custodySwitch = NoCustodyRequested;
 static int                  running = 1;
-static int		    controlZco;
 
 const char usage[] =
 "Usage: bpchat.c <source EID> <dest EID> [ct]\n\n"
@@ -50,7 +49,7 @@ static void *       sendLines(void *args)
 			break;
 		}
 
-		CHKNULL(sdr_begin_xn(sdr));
+		oK(sdr_begin_xn(sdr));
 		bundlePayload = sdr_malloc(sdr, lineLength);
 		if(bundlePayload) {
 			sdr_write(sdr, bundlePayload, lineBuffer, lineLength);
@@ -64,8 +63,8 @@ static void *       sendLines(void *args)
 		}
 
 		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0, 
-				lineLength, &controlZco);
-		if(bundleZco == 0) {
+			lineLength, BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
+		if(bundleZco == 0 || bundleZco == (Object) ERROR) {
 			pthread_mutex_unlock(&sdrmutex);
 			bp_close(sap);
 			putErrmsg("bpchat can't create bundle ZCO.", NULL);
@@ -102,7 +101,7 @@ static void *       recvBundles(void *args)
 			break;
 		}
 
-		if(dlv.result == BpReceptionInterrupted) {
+		if(dlv.result == BpReceptionInterrupted || dlv.adu == 0) {
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
@@ -113,7 +112,7 @@ static void *       recvBundles(void *args)
 			break;
 		}
 
-		CHKNULL(sdr_begin_xn(sdr));
+		oK(sdr_begin_xn(sdr));
 		bundleLenRemaining = zco_source_data_length(sdr, dlv.adu);
 		zco_start_receiving(dlv.adu, &reader);
 		while(bundleLenRemaining > 0) {
@@ -141,7 +140,6 @@ void handleQuit(int sig)
 	running = 0;
 	pthread_end(sendLinesThread);
 	bp_interrupt(sap);
-	ionCancelZcoSpaceRequest(&controlZco);
 }
 
 int main(int argc, char **argv)

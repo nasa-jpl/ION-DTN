@@ -3,8 +3,8 @@
 # September 10, 2011
 # Initialization command (command 1). 
 #	Set this node to be node 1 (as in ipn:1).
-#	Use default sdr configuration (empty configuration file name "").
-1 1 ""
+#	Use default sdr configuration (empty configuration file name '').
+1 1 ''
 
 # start ion node
 s

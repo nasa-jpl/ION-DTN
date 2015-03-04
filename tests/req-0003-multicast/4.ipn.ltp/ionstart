@@ -11,5 +11,3 @@ sleep 1
 bpadmin		amroc.bprc.1
 sleep 1
 imcadmin	amroc.imcrc
-sleep 2
-bpadmin		amroc.bprc.2

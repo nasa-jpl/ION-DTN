@@ -1,0 +1,32 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.1 q
+a endpoint ipn:2.2 q
+a endpoint ipn:2.3 q
+a endpoint ipn:2.5 q
+a endpoint ipn:2.10 q
+a endpoint ipn:2.68 q
+a endpoint ipn:2.69 q
+a endpoint ipn:2.70 q
+a endpoint ipn:2.71 q
+a endpoint ipn:2.72 q
+a endpoint ipn:2.73 q
+a endpoint ipn:2.74 q
+a endpoint ipn:2.75 q
+
+# Add a protocol. 
+a protocol bssp 1400 100
+a protocol ltp 1400 100
+
+# Add an induct. (listen)
+a induct bssp 2 bsspcli
+a induct ltp 2 ltpcli
+
+# Add outducts.
+a outduct bssp 1 bsspclo
+a outduct bssp 2 bsspclo
+a outduct ltp 1 ltpclo
+a outduct ltp 2 ltpclo
+
+r 'ipnadmin amroc.ipnrc'
+s

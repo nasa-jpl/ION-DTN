@@ -176,8 +176,8 @@ int	checkForCongestion()
 
 	/*	First get current occupancy (both file space and heap).	*/
 
-	fileOccupancy = zco_get_file_occupancy(sdr);
-	heapOccupancy = zco_get_heap_occupancy(sdr);
+	fileOccupancy = zco_get_file_occupancy(sdr, ZcoOutbound);
+	heapOccupancy = zco_get_heap_occupancy(sdr, ZcoOutbound);
 	currentOccupancy = fileOccupancy + heapOccupancy;
  	forecastOccupancy = maxOccupancy = currentOccupancy;
 
@@ -637,7 +637,7 @@ int	checkForCongestion()
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	ionwarn(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

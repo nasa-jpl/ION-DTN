@@ -68,8 +68,26 @@ RETVAL=0
 # Start nodes.
 cd 3.ipn.ltp
 ./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 0
+fi
 cd ../2.ipn.ltp
 ./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 0
+fi
 
 # Start file receiver on node 3.
 cd ../3.ipn.ltp

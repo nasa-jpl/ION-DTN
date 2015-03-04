@@ -44,20 +44,20 @@ typedef void		(*SmRbtDeleteFn)(PsmPartition partition,
 
 #define sm_rbt_create(partition) \
 Sm_rbt_create(__FILE__, __LINE__, partition)
-extern PsmAddress	Sm_rbt_create(char *file, int line,
+extern PsmAddress	Sm_rbt_create(const char *file, int line,
 				PsmPartition partition);
 extern void		sm_rbt_unwedge(PsmPartition partition, PsmAddress rbt,
 				int interval);
 
 #define sm_rbt_clear(partition, rbt, deleteFn, argument) \
 Sm_rbt_clear(__FILE__, __LINE__, partition, rbt, deleteFn, argument)
-extern void		Sm_rbt_clear(char *file, int line,
+extern void		Sm_rbt_clear(const char *file, int line,
 				PsmPartition partition, PsmAddress rbt,
 				SmRbtDeleteFn deleteFn, void *argument);
 
 #define sm_rbt_destroy(partition, rbt, deleteFn, argument) \
 Sm_rbt_destroy(__FILE__, __LINE__, partition, rbt, deleteFn, argument)
-extern void		Sm_rbt_destroy(char *file, int line,
+extern void		Sm_rbt_destroy(const char *file, int line,
 				PsmPartition partition, PsmAddress rbt,
 				SmRbtDeleteFn deleteFn, void *argument);
 
@@ -69,7 +69,7 @@ extern long		sm_rbt_length(PsmPartition partition, PsmAddress rbt);
 
 #define sm_rbt_insert(partition, rbt, data, compare, dataBuffer) \
 Sm_rbt_insert(__FILE__, __LINE__, partition, rbt, data, compare, dataBuffer)
-extern PsmAddress	Sm_rbt_insert(char *file, int line,
+extern PsmAddress	Sm_rbt_insert(const char *file, int line,
 				PsmPartition partition, PsmAddress rbt,
 				PsmAddress data, SmRbtCompareFn compare,
 				void *dataBuffer);
@@ -77,7 +77,7 @@ extern PsmAddress	Sm_rbt_insert(char *file, int line,
 #define sm_rbt_delete(partition, rbt, compare, dataBuffer, deleteFn, \
 argument) Sm_rbt_delete(__FILE__, __LINE__, partition, rbt, compare, \
 dataBuffer, deleteFn, argument)
-extern void		Sm_rbt_delete(char *file, int line,
+extern void		Sm_rbt_delete(const char *file, int line,
 				PsmPartition partition, PsmAddress rbt,
 				SmRbtCompareFn compare, void *dataBuffer,
 				SmRbtDeleteFn deleteFn, void *argument);

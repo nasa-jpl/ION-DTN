@@ -61,6 +61,10 @@ typedef struct session_list
 session_list_t * session_list_create();
 void session_list_destroy(session_list_t * list);
 
+/**
+ * Create an unique session. Used with --oneCSVonly option
+ */
+session_t * unique_session_create(char * full_filename, FILE * file, struct timeval start, u32_t bundle_timestamp_secs);
 session_t * session_create(al_bp_endpoint_id_t client_eid, char * full_filename, FILE * file, struct timeval start,
 		u32_t bundle_timestamp_secs, u32_t bundle_expiration_time);
 void session_destroy(session_t * session);

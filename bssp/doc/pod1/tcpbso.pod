@@ -1,0 +1,84 @@
+=head1 NAME
+
+tcpbso - TCP-based reliable link service output task for BSSP
+
+=head1 SYNOPSIS
+
+B<tcpbso> {I<remote_engine_hostname> | @}[:I<remote_port_nbr>] I<remote_engine_nbr>
+
+=head1 DESCRIPTION
+
+B<tcpbso> is a background "daemon" task that extracts BSSP segments from the
+queue of segments bound for the indicated remote BSSP engine and uses a TCP
+socket to send them to the indicated TCP port on the indicated host.  If not
+specified, port number defaults to 4556.
+
+Each "span" of BSSP data interchange between the local BSSP engine and a
+neighboring BSSP engine requires its own best-effort and reliable link service
+output tasks. All link service output tasks are spawned automatically by
+B<bsspadmin> in response to the 's' command that starts operation of the
+BSSP protocol, and they are all terminated by B<bsspadmin> in response to an
+'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<tcpbso> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bsspadmin> to restart B<tcpbso>.
+
+=item "1"
+
+B<tcpbso> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bsspadmin> to restart B<tcpbso>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item tcpbso can't initialize BSSP.
+
+B<bsspadmin> has not yet initialized BSSP protocol operations.
+
+=item No such engine in database.
+
+I<remote_engine_nbr> is invalid, or the applicable span has not yet
+been added to the BSSP database by B<bsspadmin>.
+
+=item RL-BSO task is already started for this engine.
+
+Redundant initiation of B<tcpbso>.
+
+=item RL-BSO can't open TCP socket
+
+Operating system error.  Check errtext, correct problem, and restart B<tcpbso>.
+
+=item RL-BSO can't bind TCP socket
+
+Operating system error.  Check errtext, correct problem, and restart B<tcpbso>.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ABSO
+
+bsspadmin(1), tcpbsi(1), udpbso(1)

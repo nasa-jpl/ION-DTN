@@ -180,6 +180,15 @@ static void	unlockPartition(PartitionMap *map)
 	}
 }
 
+static void	discard(PsmPartition partition)
+{
+	if (partition->freeNeeded)
+	{
+		TRACK_FREE(partition);
+		free(partition);
+	}
+}
+
 int	psm_manage(char *start, u_long length, char *name, PsmPartition *psmp,
 		PsmMgtOutcome *outcome)
 {
@@ -229,7 +238,7 @@ int	psm_manage(char *start, u_long length, char *name, PsmPartition *psmp,
 
 	if (length % LG_OHD_SIZE)
 	{
-		if (partition->freeNeeded) free(partition);
+		discard(partition);
 		putErrmsg("Partition length is not an integral number of \
 double words.", utoa(length));
 		return -1;
@@ -237,7 +246,7 @@ double words.", utoa(length));
 
 	if (length < sizeof(PartitionMap))
 	{
-		if (partition->freeNeeded) free(partition);
+		discard(partition);
 		putErrmsg("Partition length is less than partition map size.",
 utoa(length));
 		return -1;	/*	Partition can't contain map.	*/
@@ -245,14 +254,14 @@ utoa(length));
 
 	if (name == NULL)
 	{
-		if (partition->freeNeeded) free(partition);
+		discard(partition);
 		putErrmsg("Partition name is NULL.", NULL);
 		return -1;
 	}
 
 	if (strlen(name) > 31)
 	{
-		if (partition->freeNeeded) free(partition);
+		discard(partition);
 		putErrmsg("Partition name length exceeds 31.", name);
 		return -1;
 	}
@@ -262,7 +271,7 @@ utoa(length));
 	case INITIALIZED:
 		if (map->partitionSize != length)
 		{
-			if (partition->freeNeeded) free(partition);
+			discard(partition);
 			putErrmsg("Asserted partition length doesn't match \
 actual length.", itoa(map->partitionSize));
 			return -1;	/*	Size mismatch.		*/
@@ -270,7 +279,7 @@ actual length.", itoa(map->partitionSize));
 
 		if (strcmp(map->name, name) != 0)
 		{
-			if (partition->freeNeeded) free(partition);
+			discard(partition);
 			putErrmsg("Asserted partition name doesn't match \
 actual name.", map->name);
 			return -1;	/*	Name mismatch.		*/
@@ -300,7 +309,7 @@ actual name.", map->name);
 	map->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	if (map->semaphore < 0)
 	{
-		if (partition->freeNeeded) free(partition);
+		discard(partition);
 		putErrmsg("Can't create semaphore for partition map.", NULL);
 		return -1;
 	}
@@ -345,10 +354,7 @@ void	psm_unmanage(PsmPartition partition)
 
 	/*	Destroy space management structure if necessary.	*/
 
-	if (partition->freeNeeded)
-	{
-		free(partition);
-	}
+	discard(partition);
 }
 
 void	psm_erase(PsmPartition partition)
@@ -448,7 +454,7 @@ PsmAddress	psm_get_root(PsmPartition partition)
 	return root;
 }
 
-int	Psm_add_catlg(char *file, int line, PsmPartition partition)
+int	Psm_add_catlg(const char *file, int line, PsmPartition partition)
 {
 	PartitionMap	*map;
 	PsmAddress	catlg;
@@ -482,8 +488,8 @@ erase it first.", NULL);
 	return 0;
 }
 
-int	Psm_catlg(char *file, int line, PsmPartition partition, char *name,
-		PsmAddress address)
+int	Psm_catlg(const char *file, int line, PsmPartition partition,
+		char *name, PsmAddress address)
 {
 	PartitionMap	*map;
 	PsmAddress	objAddress;
@@ -564,7 +570,8 @@ int	Psm_catlg(char *file, int line, PsmPartition partition, char *name,
 	return 0;
 }
 
-int	Psm_uncatlg(char *file, int line, PsmPartition partition, char *name)
+int	Psm_uncatlg(const char *file, int line, PsmPartition partition,
+		char *name)
 {
 	PartitionMap	*map;
 	PsmAddress	objAddress;
@@ -803,7 +810,7 @@ static int	traceInProgress(PsmPartition partition)
 	return 1;			/*	Trace the event.	*/
 }
 
-static void	traceAlloc(char *file, int line, PsmPartition partition,
+static void	traceAlloc(const char *file, int line, PsmPartition partition,
 			PsmAddress address, int size)
 {
 	if (traceInProgress(partition))
@@ -812,7 +819,7 @@ static void	traceAlloc(char *file, int line, PsmPartition partition,
 	}
 }
 
-static void	traceFree(char *file, int line, PsmPartition partition,
+static void	traceFree(const char *file, int line, PsmPartition partition,
 		PsmAddress address)
 {
 	if (traceInProgress(partition))
@@ -821,7 +828,7 @@ static void	traceFree(char *file, int line, PsmPartition partition,
 	}
 }
 
-static void	traceMemo(char *file, int line, PsmPartition partition,
+static void	traceMemo(const char *file, int line, PsmPartition partition,
 			PsmAddress address, char *msg)
 {
 	if (traceInProgress(partition))
@@ -831,7 +838,7 @@ static void	traceMemo(char *file, int line, PsmPartition partition,
 }
 #endif
 
-void	Psm_free(char *file, int line, PsmPartition partition,
+void	Psm_free(const char *file, int line, PsmPartition partition,
 		PsmAddress address)
 {
 	PartitionMap		*map;
@@ -1072,7 +1079,7 @@ static PsmAddress	mallocLarge(PartitionMap *map, register u_int nbytes)
 	return block + LG_OHD_SIZE;
 }
 
-PsmAddress	Psm_malloc(char *file, int line, PsmPartition partition,
+PsmAddress	Psm_malloc(const char *file, int line, PsmPartition partition,
 			register u_long nbytes)
 {
 	PartitionMap	*map;
@@ -1108,7 +1115,7 @@ block size %lu", nbytes);
 	return block;
 }
 
-PsmAddress	Psm_zalloc(char *file, int line, PsmPartition partition,
+PsmAddress	Psm_zalloc(const char *file, int line, PsmPartition partition,
 			register u_long nbytes)
 {
 	PartitionMap		*map;

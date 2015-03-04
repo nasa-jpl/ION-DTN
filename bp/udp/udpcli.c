@@ -42,10 +42,8 @@ static void	*handleDatagrams(void *parm)
 	struct sockaddr_in	fromAddr;
 	unsigned int		hostNbr;
 	char			hostName[MAXHOSTNAMELEN + 1];
-	char			senderEidBuffer[SDRSTRING_BUFSZ];
-	char			*senderEid;
 
-	snooze(1);	/*	Let main thread become interruptable.	*/
+	snooze(1);	/*	Let main thread become interruptible.	*/
 	work = bpGetAcqArea(rtp->vduct);
 	if (work == NULL)
 	{
@@ -90,10 +88,8 @@ static void	*handleDatagrams(void *parm)
 				(char *) &(fromAddr.sin_addr.s_addr), 4);
 		hostNbr = ntohl(hostNbr);
 		printDottedString(hostNbr, hostName);
-		senderEid = senderEidBuffer;
-		getSenderEid(&senderEid, hostName);
-		if (bpBeginAcq(work, 0, senderEid) < 0
-		|| bpContinueAcq(work, buffer, bundleLength) < 0
+		if (bpBeginAcq(work, 0, NULL) < 0
+		|| bpContinueAcq(work, buffer, bundleLength, 0) < 0
 		|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);
@@ -119,7 +115,7 @@ static void	*handleDatagrams(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	udpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -225,11 +221,6 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
-
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("udpcli");
@@ -269,7 +260,8 @@ int	main(int argc, char *argv[])
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		isendto(fd, &quit, 1, 0, &socketName, sizeof(struct sockaddr));
+		oK(isendto(fd, &quit, 1, 0, &socketName,
+				sizeof(struct sockaddr)));
 		closesocket(fd);
 	}
 

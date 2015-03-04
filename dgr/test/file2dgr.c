@@ -23,7 +23,8 @@ static int		eofLineLen;
 static int		cyclesRequested = 1;
 static Dgr		dgr;
 
-static void	*allocFromDgrMemory(char *fileName, int lineNbr, size_t length)
+static void	*allocFromDgrMemory(const char *fileName, int lineNbr,
+			size_t length)
 {
 	PsmAddress	address;
 	void		*block;
@@ -39,7 +40,8 @@ static void	*allocFromDgrMemory(char *fileName, int lineNbr, size_t length)
 	return block;
 }
 
-static void	releaseToDgrMemory(char *fileName, int lineNbr, void *block)
+static void	releaseToDgrMemory(const char *fileName, int lineNbr,
+			void *block)
 {
 	Psm_free(fileName, lineNbr, dgrwm, psa(dgrwm, (char *) block));
 }
@@ -206,7 +208,7 @@ psm_stop_trace(dgrwm);
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	file2dgr(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

@@ -41,10 +41,29 @@ Terminates all access to BP functionality on the local computer.
 
 Opens the application's access to the BP endpoint identified by I<eid>,
 so that the application can take delivery of bundles destined for the
-indicated endpoint and can send bundles whose source is the indicated
-endpoint.  On success, places a value in I<*ionsapPtr> that can be
-supplied to future bp function invocations and returns 0.  Returns -1
-on any error.
+indicated endpoint.  This SAP can also be used for sending bundles whose
+source is the indicated endpoint; all bundles sent via this SAP will be
+subject to immediate destruction upon transmission, i.e., no bundle
+addresses will be returned by bp_send() for use in tracking,
+suspending/resuming, or cancelling transmission of these bundles.  On
+success, places a value in I<*ionsapPtr> that can be supplied to future
+bp function invocations and returns 0.  Returns -1 on any error.
+
+=item int bp_open_source(char *eid, BpSAP *ionsapPtr, detain)
+
+Opens the application's access to the BP endpoint identified by I<eid>,
+so that the application can send bundles whose source is the indicated
+endpoint.  If and only if the value of I<detain> is non-zero, citing this
+SAP in an invocation of bp_send() will cause the address of the newly
+issued bundle to be returned for use in tracking, suspending/resuming, or
+cancelling transmission of this bundle.  B<USE THIS FEATURE WITH GREAT CARE:>
+such a bundle will continue to occupy storage resources until it is
+explicitly released by an invocation of bp_release() or until its time to
+live expires, so bundle detention increases the risk of resource exhaustion.
+(If the value of I<detain> is zero, all bundles sent via this SAP will be
+subject to immediate destruction upon transmission.)  On success, places a
+value in I<*ionsapPtr> that can be supplied to future bp function invocations
+and returns 0.  Returns -1 on any error.
 
 =item int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan, int classOfService, BpCustodySwitch custodySwitch, unsigned char srrFlags, int ackRequested, BpExtendedCOS *extendedCOS, Object adu, Object *newBundle)
 
@@ -112,21 +131,24 @@ transmitted.
 =back
 
 I<adu> is the "application data unit" that will be conveyed as the payload
-of the new bundle.  I<adu> must be a "zero-copy object" (ZCO).  ZCOs are
-normally created by invoking ionCreateZco(), which will block so long as
-insufficient ZCO storage space is available for creation of the requested
-ZCO (admission control); if non-blocking behavior is preferred, ZCOs may
-instead be created by zco_create(), which fails immediately if insufficient
-ZCO storage space is available.
+of the new bundle.  I<adu> must be a "zero-copy object" (ZCO).  To ensure
+orderly access to transmission buffer space for all applications, I<adu>
+must be created by invoking ionCreateZco(), which may be configured either
+to block so long as insufficient ZCO storage space is available for creation
+of the requested ZCO or to fail immediately if insufficient ZCO storage space
+is available.
 
 The function returns 1 on success, 0 on user error, -1 on any system
 error.  If 0 is returned, then an invalid argument value was passed to
 bp_send(); a message to this effect will have been written to the log file.
 If 1 is returned, then either the destination of the bundle was
 "dtn:none" (the bit bucket) or the ADU has been accepted and queued for
-transmission in a bundle; in the latter case (and only in this case) the
-address of the newly created bundle within the ION database is placed
-in I<newBundle>, in case the bundle needs to be canceled in the future.
+transmission in a bundle.  In the latter case, if and only if I<sap> was
+a reference to a BpSAP returned by an invocation of bp_open_source() that
+had a non-zero value in the I<detain> parameter, then I<newBundle> must be
+non-NULL and the address of the newly created bundle within the ION database
+is placed in I<newBundle>.  This address can be used to track, suspend/resume,
+or cancel transmission of the bundle.
 
 =item int bp_track(Object bundle, Object trackingElt)
 
@@ -167,6 +189,13 @@ Cancels transmission of I<bundle>.  If the indicated bundle is currently
 queued for forwarding, transmission, or retransmission, it is removed
 from the relevant queue and destroyed exactly as if its Time To Live had
 expired.  Returns 0 on success, -1 on any error.
+
+=item int bp_release(Object bundle)
+
+Releases a detained bundle for destruction when all retention constraints
+have been removed.  After a detained bundle has been released, the application
+can no longer track, suspend/resume, or cancel its transmission.  Returns 0
+on success, -1 on any error.
 
 =item int bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 

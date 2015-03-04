@@ -19,6 +19,11 @@
 #include "al_bp_types.h"
 
 /**
+ * Get abstraction layer library version
+ */
+const char * get_al_bp_version();
+
+/**
  * Find the underlying implementation of bundle protocol
  */
 al_bp_implementation_t al_bp_get_implementation();
@@ -53,14 +58,14 @@ al_bp_error_t al_bp_errno(al_bp_handle_t handle);
  * Build an appropriate local endpoint id by appending the specified
  * service tag to the daemon's preferred administrative endpoint id.
  *
- * For more information on building of endpoint id for ION implementation
- * go to the specific file (bp_ion.h)
+ * @type scheme to use to create a local eid (DTN_SCHEME or CBHE_SCHEME)
+ * @service_tag service tag of the local eid. If type is CBHE_SCHEME on a DTN2 implementation
+ * 		service_tag must be in the form ipn_local_number.service_number because DTN2 (2.9 with patch) doesn't know his ipn number
  */
 al_bp_error_t al_bp_build_local_eid(al_bp_handle_t handle,
 									al_bp_endpoint_id_t* local_eid,
 									const char* service_tag,
-									char * type,
-									char * eid_destination);
+									al_bp_scheme_t type);
 
 
 /**

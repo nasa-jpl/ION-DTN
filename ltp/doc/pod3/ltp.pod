@@ -29,8 +29,8 @@ Networking Research Group of the Internet Research Task Force.
 
 The LTP notion of B<engine ID> corresponds closely to the Internet notion of
 a host, and in ION engine IDs are normally indistinguishable from node numbers
-(and from the "element numbers" in Bundle Protocol endpoint IDs conforming to
-the "ipn" scheme).
+including the node numbers in Bundle Protocol endpoint IDs conforming to
+the "ipn" scheme.
 
 The LTP notion of B<client ID> corresponds closely to the Internet notion of
 "protocol number" as used in the Internet Protocol.  It enables data from
@@ -49,6 +49,11 @@ Attaches the application to LTP functionality on the lcoal computer.  Returns
 
 Terminates all access to LTP functionality on the local computer.
 
+=item int ltp_engine_is_started()
+
+Returns 1 if the local LTP engine has been started and not yet stopped,
+0 otherwise.
+
 =item int ltp_send(uvast destinationEngineId, unsigned int clientId, Object clientServiceData, unsigned int redLength, LtpSessionId *sessionId)
 
 Sends a client service data unit to the application that is waiting for
@@ -56,7 +61,7 @@ data tagged with the indicated I<clientId> as received at the remote LTP
 engine identified by I<destinationEngineId>.
 
 I<clientServiceData> must be a "zero-copy object" reference as returned
-by zco_create().  Note that LTP will privately make and destroy its own
+by ionCreateZco().  Note that LTP will privately make and destroy its own
 reference to the client service data object; the application is free to
 destroy its reference at any time.
 
@@ -130,7 +135,8 @@ obtained from a static variable.
 
 =item void ltp_release_data(Object data)
 
-Releases the resources allocated to hold I<data>, a client service data ZCO.
+Releases the resources allocated to hold I<data>, which must be a B<received>
+client service data ZCO.
 
 =item void ltp_close(unsigned int clientId)
 

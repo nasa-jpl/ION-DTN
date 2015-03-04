@@ -79,8 +79,19 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 cd 1.ipn.bp.udp
 ./ionstart > node.stdout
+
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
+
 cd ../
-sleep 10
+
 
 
 #Test 1---default TTL (300sec)
@@ -119,7 +130,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c110 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
+RESULTS=`cat response.cap | tail  -c121 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
 echo "Expected value: 822c"
 echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "822c" ]; then
@@ -173,7 +184,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c110 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
+RESULTS=`cat response.cap | tail  -c121 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
 echo "Expected value: 9738"
 echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "9738" ]; then
@@ -228,7 +239,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c109 | xxd -p -c 256 | cut -c 1-2 | tr -d '\n'`
+RESULTS=`cat response.cap | tail  -c120 | xxd -p -c 256 | cut -c 1-2 | tr -d '\n'`
 echo "Expected value: 1e"
 echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "1e" ]; then

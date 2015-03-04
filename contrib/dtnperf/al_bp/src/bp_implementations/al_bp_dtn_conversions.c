@@ -233,7 +233,10 @@ dtn_bundle_spec_t al_dtn_bundle_spec(al_bp_bundle_spec_t bundle_spec)
 al_bp_bundle_spec_t dtn_al_bundle_spec(dtn_bundle_spec_t bundle_spec)
 {
 	al_bp_bundle_spec_t bp_bundle_spec;
+	int i;
+	dtn_extension_block_t bp_bundle_block;
 	memset(&bp_bundle_spec, 0, sizeof(bp_bundle_spec));
+	memset(&bp_bundle_block, 0, sizeof(bp_bundle_block));
 	bp_bundle_spec.source = dtn_al_endpoint_id(bundle_spec.source);
 	bp_bundle_spec.dest = dtn_al_endpoint_id(bundle_spec.dest);
 	bp_bundle_spec.replyto = dtn_al_endpoint_id(bundle_spec.replyto);
@@ -242,6 +245,65 @@ al_bp_bundle_spec_t dtn_al_bundle_spec(dtn_bundle_spec_t bundle_spec)
 	bp_bundle_spec.expiration = dtn_al_timeval(bundle_spec.expiration);
 	bp_bundle_spec.creation_ts = dtn_al_timestamp(bundle_spec.creation_ts);
 	bp_bundle_spec.delivery_regid = dtn_al_reg_id(bundle_spec.delivery_regid);
+	bp_bundle_spec.blocks.blocks_len = bundle_spec.blocks.blocks_len;
+	bp_bundle_spec.metadata.metadata_len = bundle_spec.metadata.metadata_len;
+	if(bp_bundle_spec.blocks.blocks_len == 0)
+		bp_bundle_spec.blocks.blocks_val = NULL;
+	else
+	{
+		bp_bundle_spec.blocks.blocks_val =
+//dz debug				(al_bp_extension_block_t*) malloc(bundle_spec.blocks.blocks_len);
+				(al_bp_extension_block_t*) malloc(bundle_spec.blocks.blocks_len * sizeof(al_bp_extension_block_t));
+	    for(i=0; i<bundle_spec.blocks.blocks_len; i++)
+	    {
+	    	bp_bundle_block = bundle_spec.blocks.blocks_val[i];
+	        bp_bundle_spec.blocks.blocks_val[i].type = bp_bundle_block.type;
+	        bp_bundle_spec.blocks.blocks_val[i].flags = bp_bundle_block.flags;
+	        bp_bundle_spec.blocks.blocks_val[i].data.data_len = bp_bundle_block.data.data_len;
+	        if(bp_bundle_block.data.data_len == 0)
+	        	bp_bundle_spec.blocks.blocks_val[i].data.data_val = NULL;
+	        else
+	        {
+//dz debug	        	bp_bundle_spec.blocks.blocks_val[i].data.data_val =
+//dz debug	        			(char*) malloc(bp_bundle_block.data.data_len + 1);
+//dz debug	            memcpy(bp_bundle_spec.blocks.blocks_val[i].data.data_val,
+//dz debug	            		bp_bundle_block.data.data_val, (bp_bundle_block.data.data_len) + 1);
+	        	bp_bundle_spec.blocks.blocks_val[i].data.data_val =
+	        			(char*) malloc(bp_bundle_block.data.data_len);
+	            memcpy(bp_bundle_spec.blocks.blocks_val[i].data.data_val,
+	            		bp_bundle_block.data.data_val, bp_bundle_block.data.data_len);
+
+//XXX/dz - Just copied the data above so this is not needed and would overwrite the data_val pointerr 
+//dz debug	            bp_bundle_spec.blocks.blocks_val[i].data.data_val =
+//dz debug	            		(char*)bp_bundle_block.data.data_val;
+	        }
+	    }
+	}
+	if (bp_bundle_spec.metadata.metadata_len == 0)
+		bp_bundle_spec.metadata.metadata_val = NULL;
+	else
+	{
+		bp_bundle_spec.metadata.metadata_val =
+				(al_bp_extension_block_t*) malloc(bundle_spec.metadata.metadata_len);
+	    for(i=0; i<bundle_spec.metadata.metadata_len; i++)
+	    {
+	    	bp_bundle_block = bundle_spec.metadata.metadata_val[i];
+	        bp_bundle_spec.metadata.metadata_val[i].type = bp_bundle_block.type;
+	        bp_bundle_spec.metadata.metadata_val[i].flags = bp_bundle_block.flags;
+	        bp_bundle_spec.metadata.metadata_val[i].data.data_len = bp_bundle_block.data.data_len;
+	        if(bp_bundle_block.data.data_len == 0)
+	        	bp_bundle_spec.metadata.metadata_val[i].data.data_val = NULL;
+	        else
+	        {
+	        	bp_bundle_spec.metadata.metadata_val[i].data.data_val =
+	        			(char*) malloc(bp_bundle_block.data.data_len + 1);
+	            memcpy(bp_bundle_spec.metadata.metadata_val[i].data.data_val,
+	            		bp_bundle_block.data.data_val, (bp_bundle_block.data.data_len) + 1);
+	            bp_bundle_spec.metadata.metadata_val[i].data.data_val =
+	            		(char*)bp_bundle_block.data.data_val;
+	        }
+	    }
+	}
 	return bp_bundle_spec;
 }
 
@@ -277,7 +339,10 @@ dtn_bundle_id_t al_dtn_bundle_id(al_bp_bundle_id_t bundle_id)
 	dtn_bundle_id_t dtn_bundle_id;
 	dtn_bundle_id.source = al_dtn_endpoint_id(bundle_id.source);
 	dtn_bundle_id.creation_ts = al_dtn_timestamp(bundle_id.creation_ts);
-	dtn_bundle_id.frag_offset = bundle_id.frag_offset;
+	if(bundle_id.frag_offset < 0)
+		dtn_bundle_id.frag_offset = -1;
+	else
+		dtn_bundle_id.frag_offset = bundle_id.frag_offset;
 	dtn_bundle_id.orig_length = bundle_id.orig_length;
 	return dtn_bundle_id;
 }
@@ -286,7 +351,10 @@ al_bp_bundle_id_t dtn_al_bundle_id(dtn_bundle_id_t bundle_id)
 	al_bp_bundle_id_t bp_bundle_id;
 	bp_bundle_id.source = dtn_al_endpoint_id(bundle_id.source);
 	bp_bundle_id.creation_ts = dtn_al_timestamp(bundle_id.creation_ts);
-	bp_bundle_id.frag_offset = bundle_id.frag_offset;
+	if(bundle_id.frag_offset < 0)
+		bp_bundle_id.frag_offset = -1;
+	else
+		bp_bundle_id.frag_offset = bundle_id.frag_offset;
 	bp_bundle_id.orig_length = bundle_id.orig_length;
 	return bp_bundle_id;
 }
@@ -310,7 +378,9 @@ al_bp_bundle_status_report_t dtn_al_bundle_status_report(dtn_bundle_status_repor
 {
 	al_bp_bundle_status_report_t bp_bundle_status_report;
 	memset(&bp_bundle_status_report, 0, sizeof(al_bp_bundle_status_report_t));
+	//printf("AL_BP: fragment offset dtn %d\n",bundle_status_report.bundle_id.frag_offset);
 	bp_bundle_status_report.bundle_id = dtn_al_bundle_id(bundle_status_report.bundle_id);
+	//printf("AL_BP: fragment offset al_bp %lu\n",bp_bundle_status_report.bundle_id.frag_offset);
 	bp_bundle_status_report.reason = dtn_al_status_report_reason(bundle_status_report.reason);
 	bp_bundle_status_report.flags = dtn_al_status_report_flags(bundle_status_report.flags);
 	bp_bundle_status_report.receipt_ts = dtn_al_timestamp(bundle_status_report.receipt_ts);

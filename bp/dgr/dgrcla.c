@@ -208,8 +208,6 @@ static void	*receiveBundles(void *parm)
 	int			errnbr;
 	Object			bundleZco;
 	char			hostName[MAXHOSTNAMELEN + 1];
-	char			senderEidBuffer[SDRSTRING_BUFSZ];
-	char			*senderEid;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
 	work = bpGetAcqArea(parms->vduct);
@@ -246,13 +244,23 @@ static void	*receiveBundles(void *parm)
 				break;		/*	Out of loop.	*/
 			}
 
+			/*	Note: we use zco_create to obtain ZCO
+			 *	space here, because we know that these
+			 *	allocations are strictly temporary; the
+			 *	ZCOs are destroyed immediately after
+			 *	creation.  We pass additive inverse of
+			 *	length to zco_create to indicate that
+			 *	this allocation is not subject to flow
+			 *	control and must always be honored.	*/
+
 			switch (rc)
 			{
 				case DgrDatagramAcknowledged:
 					CHKNULL(sdr_begin_xn(sdr));
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
-						buffer, length), 0, length);
+						buffer, length), 0, 0 - length,
+						ZcoOutbound, 0);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -298,7 +306,8 @@ bundle ZCO.", NULL);
 					CHKNULL(sdr_begin_xn(sdr));
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
-						buffer, length), 0, length);
+						buffer, length), 0, 0 - length,
+						ZcoOutbound, 0);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -375,10 +384,8 @@ bundle ZCO.", NULL);
 		/*	Must have received a datagram.			*/
 
 		printDottedString(fromHostNbr, hostName);
-		senderEid = senderEidBuffer;
-		getSenderEid(&senderEid, hostName);
-		if (bpBeginAcq(work, 0, senderEid) < 0
-		|| bpContinueAcq(work, buffer, length) < 0
+		if (bpBeginAcq(work, 0, NULL) < 0
+		|| bpContinueAcq(work, buffer, length, 0) < 0
 		|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);
@@ -405,7 +412,7 @@ bundle ZCO.", NULL);
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	dgrcla(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -501,11 +508,6 @@ int	main(int argc, char *argv[])
 		putErrmsg("dgrcla can't open DGR service access point.", NULL);
 		return 1;
 	}
-
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 

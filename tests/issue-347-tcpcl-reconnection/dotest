@@ -17,12 +17,28 @@ env >> ~/postscript
 # Setup node 1
 cd 1.ipn.tcp/
 ./ionstart
-sleep 5
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 1 not started: Aborting Test"
+	exit 0
+fi
 
 #Set up node 2
 cd ../2.ipn.tcp/
 ./ionstart
-sleep 5
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 0
+fi
 
 # Start file receiver on node 2.
 cd ../2.ipn.tcp/

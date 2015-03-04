@@ -1,0 +1,106 @@
+=head1 NAME
+
+bsspclock - BSSP daemon task for managing scheduled events
+
+=head1 SYNOPSIS
+
+B<bsspclock>
+
+=head1 DESCRIPTION
+
+B<bsspclock> is a background "daemon" task that periodically performs
+scheduled BSSP activities.  It is spawned automatically by B<bsspadmin> in
+response to the 's' command that starts operation of the BSSP protocol, and
+it is terminated by B<bsspadmin> in response to an 'x' (STOP) command.
+
+Once per second, B<bsspclock> takes the following action:
+
+=over 4
+
+First it manages the current state of all links ("spans").  Specifically,
+it infers link state changes ("link cues") from data rate changes as noted
+in the RFX database by B<rfxclock>:
+
+=over 4
+
+If the rate of transmission to a neighbor was zero but is now non-zero, then
+transmission to that neighbor resumes.  The applicable "buffer empty"
+semaphore is given (enabling start of a new transmission session) and
+the best-efforts and/or reliable "segments ready" semaphores are given if the
+corresponding outbound segment queues are non-empty (enabling transmission of
+segments by the link service output task).
+
+If the rate of transmission to a neighbor was non-zero but is now zero, then
+transmission to that neighbor is suspended -- i.e., the semaphores triggering
+transmission will no longer be given.
+
+If the imputed rate of transmission from a neighbor was non-zero but is now
+zero, then all best-efforts transmission acknowledgment timers affecting
+transmission to that neighbor are suspended.  This has the effect of extending
+the interval of each affected timer by the length of time that the timers
+remain suspended.
+
+If the imputed rate of transmission from a neighbor was zero but is now
+non-zero, then all best-efforts transmission acknowledgment timers affecting
+transmission to that neighbor are resumed.
+
+=back
+
+Then B<bsspclock> enqueues for reliable transmission all segments for which
+the best-efforts transmission acknowledgment timeout interval has now expired
+but no acknowledgment has yet been received.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bsspclock> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bsspadmin> to restart B<bsspclock>.
+
+=item "1"
+
+B<bsspclock> was unable to attach to BSSP protocol operations, probably because
+B<bsspadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item bsspclock can't initialize BSSP.
+
+B<bsspadmin> has not yet initialized BSSP protocol operations.
+
+=item Can't dispatch events.
+
+An unrecoverable database error was encountered.  B<bsspclock> terminates.
+
+=item Can't manage links.
+
+An unrecoverable database error was encountered.  B<bsspclock> terminates.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bsspadmin(1), rfxclock(1)

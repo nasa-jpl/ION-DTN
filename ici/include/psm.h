@@ -112,7 +112,8 @@ extern void		psm_relax(PsmPartition);
 #define psm_malloc(partition, size) \
 Psm_malloc(__FILE__, __LINE__, partition, size)
 
-extern PsmAddress	Psm_malloc(char *, int, PsmPartition, unsigned long);
+extern PsmAddress	Psm_malloc(const char *, int, PsmPartition,
+					unsigned long);
 			/*	Argument is size of block to allocate;
 				maximum size is 1/2 of the total
 				address space (i.e., 2G for a 32-bit
@@ -123,7 +124,8 @@ extern PsmAddress	Psm_malloc(char *, int, PsmPartition, unsigned long);
 #define psm_zalloc(partition, size) \
 Psm_zalloc(__FILE__, __LINE__, partition, size)
 
-extern PsmAddress	Psm_zalloc(char *, int, PsmPartition, unsigned long);
+extern PsmAddress	Psm_zalloc(const char *, int, PsmPartition,
+					unsigned long);
 			/*	Argument is size of block to allocate;
 				maximum size is 64 words (i.e., 256 for
 				a 32-bit machine).  Allocation is
@@ -137,7 +139,7 @@ extern PsmAddress	Psm_zalloc(char *, int, PsmPartition, unsigned long);
 #define psm_free(partition, address) \
 Psm_free(__FILE__, __LINE__, partition, address)
 
-extern void		Psm_free(char *, int, PsmPartition, PsmAddress);
+extern void		Psm_free(const char *, int, PsmPartition, PsmAddress);
 			/*	Argument is a block allocated by
 				psm_malloc or psm_zalloc.		*/
 
@@ -167,7 +169,7 @@ extern void		psm_erase_root(PsmPartition);
 #define psm_add_catlg(partition) \
 Psm_add_catlg(__FILE__, __LINE__, partition)
 
-extern int		Psm_add_catlg(char *, int, PsmPartition);
+extern int		Psm_add_catlg(const char *, int, PsmPartition);
 			/*	Allocates space for an object catalog
 			 	in the indicated partition, establishes
 			 	the new catalog as the partition's
@@ -178,7 +180,8 @@ extern int		Psm_add_catlg(char *, int, PsmPartition);
 #define psm_catlg(partition, name, address) \
 Psm_catlg(__FILE__, __LINE__, partition, name, address)
 
-extern int		Psm_catlg(char *, int, PsmPartition, char *objName,
+extern int		Psm_catlg(const char *, int, PsmPartition,
+					char *objName,
 					PsmAddress objLocation);
 			/*	Inserts an entry for the indicated
 			 	object into the catalog that is the
@@ -191,7 +194,8 @@ extern int		Psm_catlg(char *, int, PsmPartition, char *objName,
 #define psm_uncatlg(partition, name) \
 Psm_uncatlg(__FILE__, __LINE__, partition, name)
 
-extern int		Psm_uncatlg(char *, int, PsmPartition, char *objName);
+extern int		Psm_uncatlg(const char *, int, PsmPartition,
+					char *objName);
 			/*	Removes the entry for the indicated
 			 	object from the catalog that is the
 				root object for this partition, if it

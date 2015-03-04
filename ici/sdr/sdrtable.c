@@ -34,7 +34,7 @@ typedef struct
 
 /*	*	*	Table management functions	*	*	*/
 
-Object	Sdr_table_create(char *file, int line, Sdr sdrv, int rowSize,
+Object	Sdr_table_create(const char *file, int line, Sdr sdrv, int rowSize,
 		int rowCount)
 {
 	SdrTable	tableBuffer;
@@ -84,8 +84,8 @@ Address	sdr_table_user_data(Sdr sdrv, Object table)
 	return tableBuffer.userData;
 }
 
-void	Sdr_table_user_data_set(char *file, int line, Sdr sdrv, Object table,
-		Address data)
+void	Sdr_table_user_data_set(const char *file, int line, Sdr sdrv,
+		Object table, Address data)
 {
 	SdrTable	tableBuffer;
 
@@ -141,7 +141,7 @@ Address	sdr_table_row(Sdr sdrv, Object table, unsigned int rowNbr)
 	return addr;
 }
 
-void	Sdr_table_destroy(char *file, int line, Sdr sdrv, Object table)
+void	Sdr_table_destroy(const char *file, int line, Sdr sdrv, Object table)
 {
 	SdrTable	tableBuffer;
 

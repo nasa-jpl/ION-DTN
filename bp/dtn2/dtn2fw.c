@@ -107,7 +107,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	if (parseEidString(eidString, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
 		putErrmsg("Can't parse node EID string.", eidString);
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	if (strcmp(vscheme->name, "dtn") != 0)
@@ -123,14 +123,14 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	{
 		putErrmsg("Invalid nss in EID string, cannot forward.",
 				eidString);
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	if (dtn2_lookupDirective(nodeName, demux, bundle, &directive) == 0)
 	{
 		putErrmsg("Can't find forwarding directive for EID.",
 				eidString);
-		return bpAbandon(bundleObj, bundle);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	if (directive.action == xmit)
@@ -149,7 +149,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		}
 		else
 		{
-			return bpAbandon(bundleObj, bundle);
+			return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 		}
 	}
 
@@ -161,7 +161,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	return forwardBundle(bundleObj, bundle, eidString);
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	dtn2fw(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

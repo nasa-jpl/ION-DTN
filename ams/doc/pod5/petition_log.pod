@@ -1,0 +1,60 @@
+=head1 NAME
+
+petition.log - Remote AMS petition log
+
+=head1 DESCRIPTION
+
+The Remote AMS daemon B<ramsgate> records all "petitions" (requests for data
+on behalf of AMS modules in other continua) in a file named B<petition.log>.
+At startup, the B<ramsgate> daemon automatically reads and processes all
+petitions in the B<petition.log> file just as if they were received in real
+time, to re-establish the petition state that was in effect at the time the
+B<ramsgate> daemon shut down.  Note that this means that you can cause
+petitions to be, in effect, "pre-received" by simply editing this file
+prior to startup.  This can be an especially effective way to configure a
+RAMS network in which long signal propagation times would otherwise retard
+real-time petitioning and thus delay the onset of fully functional message
+exchange.
+
+Entries in B<petition.log> are simple ASCII text lines, with parameters
+separated by spaces. Each line of B<petition.log> has the following parameters:
+
+=over 4
+
+=item protocolId
+
+This is a number that identifies the RAMS network protocol characterizing
+the network on which the petition was received: 1 == DTN Bundle Protocol, 2 = UDP.
+
+=item gatewayID
+
+This is a string that identifies the remote RAMS gateway node that issued
+this petition.
+
+=item controlCode
+
+This is a number that indicates whether the petition described by this line
+is one that is being asserted (2) or canceled (3).
+
+=item subject
+
+A number that identifies the subject of the traffic to which the petition
+pertains.
+
+=item continuumNumber
+
+Identifies the continuum for the domain of the petition.
+
+=item unitNumber
+
+Identifies the unit for the domain of the petition.
+
+=item roleNumber
+
+Identifies the role for the domain of the petition.
+
+=back
+
+=head1 SEE ALSO
+
+ramsgate(1), ams(3)

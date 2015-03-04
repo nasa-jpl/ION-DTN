@@ -38,7 +38,7 @@ typedef struct
 typedef struct
 {
 	CfdpAction	action;
-	int		status;			/*	per table 5-18	*/
+	unsigned int	status;			/*	per table 5-18	*/
 	Object		firstFileName;		/*	sdrstring	*/
 	Object		secondFileName;		/*	sdrstring	*/
 	Object		message;		/*	sdrstring	*/
@@ -52,17 +52,21 @@ typedef struct
 	CfdpTransactionId	transactionId;
 	Object			sourceFileName;	/*	sdrstring	*/
 	Object			destFileName;	/*	sdrstring	*/
-	unsigned int		fileSize;
-	Object			messagesToUser;		/*	sdrlist	*/
-	unsigned int		offset;
+	uvast			fileSize;
+	Object			messagesToUser;		/*	MdList	*/
+	uvast			offset;
 	unsigned int		length;
+	unsigned int		recordBoundsRespected;
+	CfdpContinuationState	continuationState;
+	unsigned int		segMetadataLength;
+	char			segMetadata[63];
 	CfdpCondition		condition;
-	unsigned int		progress;
-	CfdpFileStatus		fileStatus;
+	uvast			progress;
 	CfdpDeliveryCode	deliveryCode;
+	CfdpFileStatus		fileStatus;
 	CfdpTransactionId	originatingTransactionId;
 	Object			statusReport;	/*	sdrstring	*/
-	Object			filestoreResponses;	/*	sdrlist	*/
+	Object			filestoreResponses;	/*	MdList	*/
 } CfdpEvent;
 
 typedef enum
@@ -74,25 +78,49 @@ typedef enum
 
 typedef struct
 {
+	uvast			offset;
+	unsigned int		length;
+	CfdpContinuationState	continuationState;
+	unsigned int		metadataLength;
+	Object			metadata;
+} FileDataPdu;
+
+typedef struct
+{
+	time_t			deadline;
+	Object			fdu;	
+} FinishPending;
+
+typedef struct
+{
 	CfdpTransactionId	transactionId;
 	CfdpNumber		destinationEntityNbr;
+	CfdpCksumType		ckType;
 	unsigned char		utParms[sizeof(BpUtParms)];
 	int			utParmsLength;
 	int			reqNbr;		/*	Creation req.	*/
 	CfdpTransactionId	originatingTransactionId;
+	char			sourceFileName[256];
+	unsigned int		recordBoundsRespected;	/*	Boolean	*/
+	unsigned int		closureLatency;		/*	Seconds.*/
+	unsigned int		finishReceived;		/*	Boolean.*/
 
 	/*	File Delivery Unit transmission status			*/
 
 	FduState		state;
 	CfdpHandler		faultHandlers[16];
-	Object			metadataPdu;	/*	ZCO reference	*/
-	unsigned int		fileSize;	/*	in bytes	*/
-	unsigned int		progress;	/*	bytes issued	*/
-	int			transmitted;	/*	Boolean		*/
+	Object			metadataPdu;	/*	bytes		*/
+	unsigned int		mpduLength;	/*	in bytes	*/
+	uvast			fileSize;	/*	in bytes	*/
+	unsigned int		largeFile;	/*	Boolean		*/
+	uvast			progress;	/*	bytes issued	*/
+	unsigned int		transmitted;	/*	Boolean		*/
 	Object			fileRef;	/*	ZCO file ref	*/
-	Object			recordLengths;	/*	sdrlist		*/
-	Object			eofPdu;		/*	ZCO reference	*/
+	Object			fileDataPdus;	/*	sdrlist		*/
+	Object			eofPdu;		/*	bytes		*/
+	unsigned int		epduLength;	/*	in bytes	*/
 	Object			extantPdus;	/*	sdrlist		*/
+	Object			closureElt;	/*	in sdrlist	*/
 } OutFdu;
 
 /*	Each CfdpExtent in "extents" indicates a range of bytes of file
@@ -111,13 +139,23 @@ typedef struct
 
 typedef struct
 {
+	Object			pdu;		/*	bytes		*/
+	unsigned int		length;		/*	in bytes	*/
+	int			largeFile;
+	int			entityNbrLength;
+	int			transactionNbrLength;
+	CfdpTransactionId	transactionId;
+} FinishPdu;
+
+typedef struct
+{
 	CfdpTransactionId	transactionId;
 
 	/*	File Delivery Unit metadata				*/
 
 	Object			sourceFileName;	/*	sdrstring	*/
 	Object			destFileName;	/*	sdrstring	*/
-	int			recordBoundsRespected;	/*	Boolean	*/
+	unsigned int		closureRequested;	/*	Boolean	*/
 	CfdpHandler		faultHandlers[16];
 	int			flowLabelLength;
 	Object			flowLabel;
@@ -127,19 +165,20 @@ typedef struct
 	/*	File reception status					*/
 
 	FduState		state;
-	int			metadataReceived;	/*	Boolean	*/
-	int			eofReceived;		/*	Boolean	*/
+	unsigned int		metadataReceived;	/*	Boolean	*/
+	unsigned int		eofReceived;		/*	Boolean	*/
 	CfdpCondition		eofCondition;
 	CfdpNumber		eofFaultLocation;
 	unsigned int		eofChecksum;
+	CfdpCksumType		ckType;
 	unsigned int		computedChecksum;
 	int			checksumVerified;
-	unsigned int		fileSize;
+	uvast			fileSize;
 	Object			workingFileName;/*	sdrstring	*/
-	unsigned int		progress;
+	uvast			progress;
 	time_t			checkTime;
 	int			checkTimeouts;
-	unsigned int		bytesReceived;
+	uvast			bytesReceived;
 	Object			extents;		/*	sdrlist	*/
 	time_t			inactivityDeadline;
 } InFdu;
@@ -147,6 +186,7 @@ typedef struct
 typedef struct
 {
 	uvast			entityId;
+	CfdpCksumType		ckType;
 	Object			inboundFdus;	/*	sdrlist: InFdu	*/
 } Entity;
 
@@ -159,10 +199,11 @@ typedef struct
 	Object			proxyMsgsToUser;	/*	sdrlist	*/
 	Object			proxyFilestoreRequests;	/*	sdrlist	*/
 	CfdpHandler		proxyFaultHandlers[16];
-	int			proxyUnacknowledged;	/*	Boolean	*/
+	unsigned int		proxyUnacknowledged;	/*	Boolean	*/
 	int			proxyFlowLabelLength;
 	unsigned char		proxyFlowLabel[256];
-	int			proxyRecordBoundsRespected;/*	Boolean	*/
+	unsigned int		proxyRecordBoundsRespected;/*	Boolean	*/
+	unsigned int		proxyClosureLatency;	/*	Boolean	*/
 	CfdpCondition		proxyCondition;
 	CfdpDeliveryCode	proxyDeliveryCode;
 	CfdpFileStatus		proxyFileStatus;
@@ -199,6 +240,8 @@ typedef struct
 	Object		outboundFdus;	/*	SDR list: OutFdu	*/
 	Object		events;		/*	SDR list: CfdpEvent	*/
 	Object		entities;	/*	SDR list: Entity	*/
+	Object		finishPdus;	/*	SDR list: FinishPdu	*/
+	Object		finsPending;	/*	SDR list: FinishPending	*/
 } CfdpDB;
 
 /*	The volatile database object encapsulates the current volatile
@@ -218,10 +261,13 @@ typedef struct
 
 	/*	The fduSemaphore of the CFDP entity is given whenever
 	 *	a new OutFdu is inserted or a suspended OutFdu is
-	 *	resumed.  The cfdpDequeueOutboundPDU function takes
-	 *	this semaphore when it detects that no OutFdu in the
-	 *	outboundFdus list is in Active state (i.e., all of the
-	 *	OutFdus in the list are either Suspended or Canceled).	*/
+	 *	resumed (or a Finished PDU is inserted upon completion
+	 *	of an FDU reception).  The cfdpDequeueOutboundPDU
+	 *	function takes this semaphore when it detects that
+	 *	no OutFdu in the outboundFdus list is in Active state
+	 *	(i.e., all of the OutFdus in the list are either
+	 *	Suspended or Canceled) and the queue of outbound
+	 *	Finished PDUs is empty.					*/
 
 	sm_SemId	fduSemaphore;
 
@@ -269,8 +315,8 @@ extern CfdpVdb		*getCfdpVdb();
 
 extern int		checkFile(char *);
 
-extern void		addToChecksum(unsigned char octet, unsigned int *offset,
-				unsigned int *checksum);
+extern void		addToChecksum(unsigned char octet, uvast *offset,
+				unsigned int *checksum, CfdpCksumType ckType);
 
 extern int		getReqNbr();	/*	Returns next req nbr.	*/
 
@@ -298,7 +344,8 @@ extern int		enqueueCfdpEvent(CfdpEvent *event);
 extern int		handleFault(CfdpTransactionId *id, CfdpCondition c,
 				CfdpHandler *handler);
 
-extern int		cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer);
+extern int		cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer,
+				FinishPdu *fpdu, int *direction);
 extern int		cfdpHandleInboundPdu(unsigned char *buf, int length);
 
 #ifdef __cplusplus

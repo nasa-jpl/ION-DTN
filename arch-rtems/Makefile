@@ -34,6 +34,7 @@ ICISOURCES =     \
    sdrmend.c     \
    ionsec.c      \
    ionsecadmin.c \
+   crypto.c      \
    ionwarn.c     \
    ionrestart.c  \
    ionexit.c
@@ -41,6 +42,8 @@ ICISOURCES =     \
 LTPSOURCES =     \
 	libltp.c     \
 	libltpP.c    \
+	libltpnm.c   \
+	ltpei.c      \
 	ltpclock.c   \
 	ltpmeter.c   \
 	pmqlsi.c     \
@@ -51,6 +54,7 @@ BPSOURCES =      \
 	libbp.c      \
 	libbpP.c     \
 	bpclock.c    \
+	bptransit.c  \
 	bpadmin.c    \
 	bpstats.c    \
 	bptrace.c    \
@@ -63,8 +67,11 @@ BPSOURCES =      \
 	libipnfw.c   \
 	ltpcli.c     \
 	ltpclo.c     \
+	bibeclo.c    \
 	bei.c        \
+	phn.c        \
 	ecos.c       \
+	meb.c        \
 	bae.c
 
 #	imcadmin.c   \
@@ -78,17 +85,23 @@ BPSOURCES =      \
 #	acsserialize.c \
 #	acsadmin.c   \
 #	acslist.c    \
-#	phn.c        \
 
 BSPSOURCES =     \
-	extbsputil.c \
-	extbspbab.c  \
-	extbsppib.c  \
-	extbsppcb.c  \
-	crypto.c          
+	ciphersuites.c \
+	bab_hmac_sha1.c \
+	bib_hmac_sha256.c \
+	bcb_arc4.c \
+	bsputil.c \
+	bspbab.c  \
+	bspbib.c  \
+	bspbcb.c
 
 DTN2SOURCES =        \
 	libdtn2fw.c 
+
+BSSSOURCES =      \
+	libbss.c     \
+	libbssP.c    \
 
 CFDPSOURCES =      \
 	bputa.c      \
@@ -130,7 +143,7 @@ include $(PROJECT_ROOT)/make/leaf.cfg
 
 OBJS = $(COBJS) $(CXXOBJS) $(ASOBJS)
 
-INCLUDES_T= -I. -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include
+INCLUDES_T= -I. -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include -I../bss/include -I../bssp/include
 
 ifeq "$(ION_OPEN_SOURCE)" "1"
 INCLUDES = $(INCLUDES_T) -I../cfdp/include -I../ams/include

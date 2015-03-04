@@ -26,7 +26,7 @@
 # information to both nodes with the same file.
 #
 # program names accepted are:
-# ionadmin ionsecadmin ltpadmin bpadmin cfdpadmin ipnadmin dtn2admin acsadmin imcadmin bssadmin
+# ionadmin ionsecadmin ltpadmin bpadmin cfdpadmin ipnadmin dtn2admin dtpcadmin acsadmin imcadmin bssadmin
 #
 # Program sections may not overlap.
 # Lines with unsupported program names will be ignored.
@@ -43,6 +43,7 @@
 # configfile.tag.cfdprc
 # configfile.tag.ipnrc
 # configfile.tag.dtn2rc
+# configfile.tag.dtpcrc
 # configfile.tag.acsrc
 # configfile.tag.imcrc
 # configfile.tag.bssrc
@@ -66,9 +67,10 @@ BEGIN {
 	programs[5]  = "cfdpadmin"
 	programs[6]  = "ipnadmin"
 	programs[7]  = "dtn2admin"
-	programs[8]  = "acsadmin"
-	programs[9]  = "imcadmin"
-	programs[10] = "bssadmin"
+	programs[8]  = "dtpcadmin"
+	programs[9]  = "acsadmin"
+	programs[10]  = "imcadmin"
+	programs[11] = "bssadmin"
 	# programoptions are special options for certain programs that take them
 	# rcname is the name of an rc file associated with the program
 	rcname["ionadmin"]    = ionrc
@@ -77,6 +79,7 @@ BEGIN {
 	rcname["cfdpadmin"]   = cfdprc
 	rcname["ipnadmin"]    = ipnrc
 	rcname["dtn2admin"]   = dtn2rc
+	rcname["dtpcadmin"]   = dtpcrc
 	rcname["ltpadmin"]    = ltprc
 	rcname["acsadmin"]    = acsrc
 	rcname["imcadmin"]    = imcrc

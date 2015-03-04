@@ -18,7 +18,7 @@
 #include <stdint.h>
 
 // dtnperf version
-#define DTNPERF_VERSION "3.0"
+#define DTNPERF_VERSION "3.3.3"
 
 // dtnperf server mode string
 #define SERVER_STRING "--server"
@@ -50,6 +50,9 @@
 // output file: stdin and stderr redirect here if daemon is TRUE;
 #define SERVER_OUTPUT_FILE "dtnperf_server.log"
 #define MONITOR_OUTPUT_FILE "dtnperf_monitor.log"
+
+// default filename of the unique csv logfile for the monitor with oneCSVonly option
+#define MONITOR_UNIQUE_CSV_FILENAME "monitor_unique_log.csv"
 
 /*
  * FIXED SIZE HEADERS
@@ -135,6 +138,12 @@
 
 // default value (in bytes) for bundle payload
 #define DEFAULT_PAYLOAD 50000
+
+// CBHE scheme
+#define CBHE_SCHEME_STRING "ipn"
+
+// DTN scheme
+#define DTN_SCHEME_STRING "dtn"
 
 // server endpoint demux string
 #define SERV_EP_STRING "/dtnperf:/dest"

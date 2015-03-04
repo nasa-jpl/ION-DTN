@@ -33,6 +33,9 @@ al_bp_handle_t handle;
 al_bp_reg_id_t regid;
 al_bp_endpoint_id_t local_eid;
 
+// oneCSVonly flag
+boolean_t oneCSVonly;
+
 // flags to exit cleanly
 boolean_t dedicated_monitor;
 boolean_t bp_handle_open;
@@ -79,6 +82,9 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 	boolean_t debug = perf_opt->debug;
 	int debug_level = perf_opt->debug_level;
 
+	oneCSVonly = perf_opt->oneCSVonly;
+
+	memset(&local_eid, 0, sizeof(local_eid));
 	dedicated_monitor = parameters->dedicated_monitor;
 	bp_handle_open = FALSE;
 
@@ -115,6 +121,9 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 	if(debug && debug_level > 0)
 		printf("done\n");
 
+	if(oneCSVonly)
+		printf("Opening monitor in Unique session mode. CTRL^C to exit\n");
+
 	// signal handlers
 	signal(SIGINT, monitor_handler);
 	signal(SIGUSR1, monitor_handler);
@@ -141,36 +150,43 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 		printf("done\n");
 
 	//build a local eid
-	if (parameters->dedicated_monitor)
-		sprintf(temp, "%s_%d", MON_EP_STRING, parameters->client_id);
-	else
-		sprintf(temp, "%s", MON_EP_STRING);
-
-	if( perf_opt->eid_format_forced == 'D' || perf_opt->eid_format_forced == 'I')
+	if(debug && debug_level > 0)
 	{
-		if(debug && debug_level > 0)
-		{
-			printf("[debug] building local eid in format ");
-			perf_opt->eid_format_forced == 'D' ? printf("DTN...") : printf("IPN...");
-		}
-		if(perf_opt->eid_format_forced == 'I')
-			al_bp_build_local_eid(handle, &local_eid, MON_EP_NUM_SERVICE,"Monitor-CBHE",NULL);
+		printf("[debug] building a local eid in format ");
+		if (perf_opt->eid_format_forced == 'D' && !perf_opt->bp_implementation == BP_DTN)
+			printf("forced DTN...");
+		else if (perf_opt->eid_format_forced == 'I' && !perf_opt->bp_implementation == BP_ION)
+			printf("forced IPN...");
 		else
-		{
-			if(parameters->dedicated_monitor)
-				al_bp_build_local_eid(handle, &local_eid, temp,"Monitor-DTN",NULL);
-			else
-				al_bp_build_local_eid(handle, &local_eid, MON_EP_STRING,"Monitor-DTN",NULL);
-		}
+			printf("standard...");
 	}
-	else
+	if(perf_opt->bp_implementation == BP_ION && (perf_opt->eid_format_forced == 'N' || perf_opt->eid_format_forced == 'I'))
+		// Use ION implementation with standard eid scheme
+		error = al_bp_build_local_eid(handle, &local_eid, MON_EP_NUM_SERVICE,CBHE_SCHEME);
+	else if(perf_opt->bp_implementation == BP_DTN && (perf_opt->eid_format_forced == 'N' || perf_opt->eid_format_forced == 'D'))
+		// Use DTN2 implementation with standard eid scheme
 	{
-		if(debug && debug_level > 0)
-			printf("[debug] building a local eid...");
-		if(perf_opt->bp_implementation == BP_ION)
-			al_bp_build_local_eid(handle, &local_eid, MON_EP_NUM_SERVICE,"Monitor-CBHE",NULL);
-		if(perf_opt->bp_implementation == BP_DTN)
-			al_bp_build_local_eid(handle, &local_eid, MON_EP_STRING,"Monitor-DTN",NULL);
+		if (parameters->dedicated_monitor)
+			sprintf(temp, "%s_%d", MON_EP_STRING, parameters->client_id);
+		else
+			sprintf(temp, "%s", MON_EP_STRING);
+		error = al_bp_build_local_eid(handle, &local_eid, temp,DTN_SCHEME);
+	}
+	else if(perf_opt->bp_implementation == BP_ION && perf_opt->eid_format_forced == 'D')
+		// Use ION implementation with forced DTN scheme
+	{
+		if (parameters->dedicated_monitor)
+			sprintf(temp, "%s_%d", MON_EP_STRING, parameters->client_id);
+		else
+			sprintf(temp, "%s", MON_EP_STRING);
+		error = al_bp_build_local_eid(handle, &local_eid, temp,DTN_SCHEME);
+	}
+	else if(perf_opt->bp_implementation == BP_DTN && perf_opt->eid_format_forced == 'I')
+		// Use DTN2 implementation with forced IPN scheme
+	{
+		//in this case the api al_bp_build_local_eid() wants ipn_local_number.service_number
+		sprintf(temp, "%d.%s", perf_opt->ipn_local_num, MON_EP_NUM_SERVICE);
+		error = al_bp_build_local_eid(handle, &local_eid, temp, CBHE_SCHEME);
 	}
 
 	if(debug && debug_level > 0)
@@ -178,6 +194,12 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 
 	if (debug)
 		printf("local_eid = %s\n", local_eid.uri);
+	if (error != BP_SUCCESS)
+	{
+		fflush(stdout);
+		fprintf(stderr, "[DTNperf fatal error] in building local EID: '%s'\n", al_bp_strerror(error));
+		monitor_clean_exit(1);
+	}
 
 	// checking if there is already a registration
 	if(debug && debug_level > 0)
@@ -215,8 +237,11 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 		printf("regid 0x%x\n", (unsigned int) regid);
 
 	// start expiration timer thread
-	pthread_mutex_init (&mutexdata, NULL);
-	pthread_create(&session_exp_timer, NULL, session_expiration_timer, (void *) parameters);
+	if (!oneCSVonly) //no need of timer in case of unique session
+	{
+		pthread_mutex_init (&mutexdata, NULL);
+		pthread_create(&session_exp_timer, NULL, session_expiration_timer, (void *) parameters);
+	}
 
 	// start infinite loop
 	while(1)
@@ -352,11 +377,23 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 			{
 				get_bundle_header_and_options(&bundle_object, & bundle_header, NULL);
 				if (bundle_header == FORCE_STOP_HEADER)
+				{
 					bundle_type = CLIENT_FORCE_STOP;
+					if ((debug) && (debug_level > 0))
+						printf("[debug] bundle force stop arrived \n");
+				}
 				else if (bundle_header == STOP_HEADER)
+				{
 					bundle_type = CLIENT_STOP;
+					if ((debug) && (debug_level > 0))
+						printf("[debug] bundle stop arrived\n");
+				}
 				else if (bundle_header == DSA_HEADER)
+				{
 					bundle_type = SERVER_ACK;
+					if ((debug) && (debug_level > 0))
+						printf("[debug] server ack arrived\n");
+				}
 				else // unknown bundle type
 				{
 					fprintf(stderr, "[DTNperf warning] unknown bundle type\n");
@@ -396,41 +433,55 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 			{
 				// mark start time
 				start = current;
-				//if source eid of Status Report is CBHE Format
-				if(strncmp(relative_source_addr.uri,"ipn",3) == 0)
+				//if oneCSVonly (unique session)
+				if (oneCSVonly)
 				{
-					filename_len = strlen(relative_source_addr.uri) - strlen("ipn:") + 15;
+					sprintf(temp, "%lu_%s", relative_creation_timestamp.secs, perf_opt->uniqueCSVfilename);
+					full_filename = (char *) malloc(strlen(perf_opt->logs_dir) + strlen(temp) + 2);
+					sprintf(full_filename, "%s/%s", perf_opt->logs_dir, temp);
 				}
-				else
-				{
-					filename_len = strlen(relative_source_addr.uri) - strlen("dtn://") + 15;
-				}
-				filename = (char *) malloc(filename_len);
-				memset(filename, 0, filename_len);
-				sprintf(filename, "%lu_", relative_creation_timestamp.secs);
-				strncpy(temp, relative_source_addr.uri, strlen(relative_source_addr.uri) + 1);
+				else //normal sessions behavior
+				{	//if source eid of Status Report is CBHE Format
+					if(strncmp(relative_source_addr.uri,"ipn",3) == 0)
+					{
+						filename_len = strlen(relative_source_addr.uri) - strlen("ipn:") + 15;
+					}
+					else
+					{
+						filename_len = strlen(relative_source_addr.uri) - strlen("dtn://") + 15;
+					}
+					filename = (char *) malloc(filename_len);
+					memset(filename, 0, filename_len);
+					sprintf(filename, "%lu_", relative_creation_timestamp.secs);
+					strncpy(temp, relative_source_addr.uri, strlen(relative_source_addr.uri) + 1);
 
-				if(strncmp(relative_source_addr.uri,"ipn",3) == 0)
-				{
-					strtok(temp, ":");
-					strcat(filename, strtok(NULL, "\0"));
+					if(strncmp(relative_source_addr.uri,"ipn",3) == 0)
+					{
+						strtok(temp, ":");
+						strcat(filename, strtok(NULL, "\0"));
+					}
+					else
+					{
+						char * ptr;
+						strtok(temp, "/");
+						strcat(filename, strtok(NULL, "/"));
+						// remove .dtn suffix from the filename
+						ptr = strstr(filename, ".dtn");
+						if (ptr != NULL)
+							ptr[0] = '\0';
+					}
+					strcat(filename, ".csv");
+					full_filename = (char *) malloc(strlen(perf_opt->logs_dir) + strlen(filename) + 2);
+					sprintf(full_filename, "%s/%s", perf_opt->logs_dir, filename);
 				}
-				else
-				{
-					char * ptr;
-					strtok(temp, "/");
-					strcat(filename, strtok(NULL, "/"));
-					// remove .dtn suffix from the filename
-					ptr = strstr(filename, ".dtn");
-					if (ptr != NULL)
-						ptr[0] = '\0';
-				}
-				strcat(filename, ".csv");
-				full_filename = (char *) malloc(strlen(perf_opt->logs_dir) + strlen(filename) + 2);
-				sprintf(full_filename, "%s/%s", perf_opt->logs_dir, filename);
 
-				file = fopen(full_filename, "w");
-				session = session_create(relative_source_addr, full_filename, file, start,
+				//open file in append mode
+				file = fopen(full_filename, "a");
+				if (oneCSVonly) //unique session, unique file
+					session = unique_session_create(full_filename, file, start,
+							relative_creation_timestamp.secs);
+				else // standard behavior
+					session = session_create(relative_source_addr, full_filename, file, start,
 						relative_creation_timestamp.secs, bundle_expiration);
 				session_put(session_list, session);
 
@@ -460,6 +511,8 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 				if(perf_opt->expiration_session > bundle_expiration)
 					session->expiration = bundle_expiration;
 			}
+			if ((debug) && (debug_level > 0))
+				printf("[debug] session expiration = %lu s\n", session->expiration);
 
 			file = session->file;
 			memcpy(&start, session->start, sizeof(struct timeval));
@@ -539,21 +592,23 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 			// end line in csv log
 			csv_end_line(file);
 
-			// close file
-			if (bundle_type == CLIENT_STOP)
+			// close file (only if monitor is not in unique session mode)
+			if (bundle_type == CLIENT_STOP && !oneCSVonly)
 			{
 				int total_to_receive;
 				get_info_from_stop(&bundle_object, &total_to_receive);
 				pthread_mutex_lock(&mutexdata);
 				session->total_to_receive = total_to_receive;
 				if(perf_opt->bp_implementation == BP_ION)
-					session->wait_after_stop = 60;
+					session->wait_after_stop = perf_opt->expiration_session;
 				else
 					session->wait_after_stop = bundle_expiration;
 				gettimeofday(session->stop_arrival_time, NULL);
+				if ((debug) && (debug_level > 0))
+					printf("[debug] bundle stop arrived: closing session in %lu s MAX\n", session->wait_after_stop);
 				pthread_mutex_unlock(&mutexdata);
 			}
-			else if (bundle_type == CLIENT_FORCE_STOP)
+			else if (bundle_type == CLIENT_FORCE_STOP && !oneCSVonly)
 			{
 				printf("DTNperf monitor: received forced end session bundle\n");
 				session_close(session_list, session);
@@ -581,6 +636,7 @@ void * session_expiration_timer(void * opt)
 	{
 		current_dtn_time = get_current_dtn_time();
 		gettimeofday(&current_time, NULL);
+		boolean_t close = FALSE;
 
 		pthread_mutex_lock(&mutexdata);
 
@@ -588,12 +644,14 @@ void * session_expiration_timer(void * opt)
 		{
 			next = session->next;
 			// all status reports has been received: close session
-			if (session->total_to_receive > 0 && session->delivered_count == session->total_to_receive)
+			if (session->total_to_receive > 0 && session->delivered_count == session->total_to_receive &&
+					// wait 3 seconds before closing the session
+					session->stop_arrival_time->tv_sec + 3 < current_time.tv_sec)
 			{
 				// close monitor if dedicated
 				if (dedicated_monitor)
 				{
-					kill(getpid(), SIGUSR2);
+					close = TRUE;
 				}
 				else
 				{
@@ -602,14 +660,15 @@ void * session_expiration_timer(void * opt)
 			}
 
 			// stop bundle arrived but not all the status reports have arrived and the timer has expired
-			else if (session->total_to_receive > 0 &&session->stop_arrival_time->tv_sec + session->wait_after_stop < current_time.tv_sec)
+			else if (session->stop_arrival_time->tv_sec != 0 &&
+					session->total_to_receive > 0 && session->stop_arrival_time->tv_sec + session->wait_after_stop < current_time.tv_sec)
 			{
 				fprintf(stdout, "DTNperf monitor: Session Expired: Bundle stop arrived, but not all the status reports did\n");
 
 				// close monitor if dedicated
 				if (dedicated_monitor)
 				{
-					kill(getpid(), SIGUSR2);
+					close = TRUE;
 				}
 				else
 				{
@@ -620,14 +679,15 @@ void * session_expiration_timer(void * opt)
 				}
 			}
 			// stop bundle is not yet arrived and the last bundle has expired
-			else if (session->last_bundle_time + session->expiration + 2 < current_dtn_time && (session->last_bundle_time + session->expiration != 0))
+			else if (session->stop_arrival_time->tv_sec == 0 &&
+					session->last_bundle_time + session->expiration + 2 < current_dtn_time && (session->last_bundle_time + session->expiration != 0))
 			{
 				fprintf(stdout, "DTNperf monitor: Session Expired: Bundle stop did not arrive\n");
 
 				// close monitor if dedicated
 				if (dedicated_monitor)
 				{
-					kill(getpid(), SIGUSR2);
+					close = TRUE;
 				}
 				else
 				{
@@ -640,6 +700,14 @@ void * session_expiration_timer(void * opt)
 		}
 		pthread_mutex_unlock(&mutexdata);
 		sched_yield();
+
+		// exit if dedicated monitor
+		if (close)
+		{
+			kill(getpid(), SIGUSR2);
+			break;
+		}
+		sleep(1);
 	}
 	pthread_exit(NULL);
 }
@@ -649,7 +717,8 @@ void monitor_clean_exit(int status)
 	session_t * session;
 
 	// terminate all child thread
-	pthread_cancel(session_exp_timer);
+	if (!oneCSVonly)
+		pthread_cancel(session_exp_timer);
 
 	// close all log files and delete all sessions
 	if (dedicated_monitor)
@@ -699,8 +768,10 @@ void print_monitor_usage(char * progname)
 			" -e, --session-expiration <s>  Max idle time of log files (s). Default: 120.\n"
 			"     --ip-addr <addr>          Ip address of the bp daemon api. Default: 127.0.0.1 (DTN2 only)\n"
 			"     --ip-port <port>          Ip port of the bp daemon api. Default: 5010 (DTN2 only)\n"
-			"     --force-eid <[DTN|IPN]    Force scheme of registration EID. (ION only)\n"
+			"     --force-eid <[DTN|IPN]    Force scheme of registration EID.\n"
+			"     --ipn-local <num>        Set ipn local number (Use only with --force-eid IPN on DTN2\n"
 			"     --ldir <dir>              Logs directory. Default: %s .\n"
+			"     --oneCSVonly              Generate an unique csv file\n"
 			"     --debug[=level]           Debug messages [0-1], if level is not indicated level = 1.\n"
 			" -v, --verbose                 Print some information message during the execution.\n"
 			" -h, --help                    This help.\n",
@@ -728,7 +799,9 @@ void parse_monitor_options(int argc, char ** argv, dtnperf_global_options_t * pe
 					{"ldir", required_argument, 0, 40},
 					{"ip-addr", required_argument, 0, 37},
 					{"ip-port", required_argument, 0, 38},
-					{"force-eid", required_argument, 0, 51},
+					{"force-eid", required_argument, 0, 50},
+					{"ipn-local", required_argument, 0, 51},
+					{"oneCSVonly", no_argument, 0, 52},
 					{"session-expiration", required_argument, 0,'e'},
 					{"daemon", no_argument, 0, 'a'},
 					{"output", required_argument, 0, 'o'},
@@ -737,7 +810,7 @@ void parse_monitor_options(int argc, char ** argv, dtnperf_global_options_t * pe
 
 			};
 			int option_index = 0;
-			c = getopt_long(argc, argv, "hvao:s", long_options, &option_index);
+			c = getopt_long(argc, argv, "hve:ao:s", long_options, &option_index);
 
 			switch (c)
 			{
@@ -796,13 +869,7 @@ void parse_monitor_options(int argc, char ** argv, dtnperf_global_options_t * pe
 				perf_opt->logs_dir = strdup(optarg);
 				break;
 
-			case 51:
-				if(perf_opt->bp_implementation != BP_ION)
-				{
-					fprintf(stderr, "[DTNperf error] --force-eid supported only in ION\n");
-					exit(1);
-					return;
-				}
+			case 50:
 				switch( find_forced_eid(strdup(optarg)) )
 				{
 					case 'D':
@@ -815,6 +882,19 @@ void parse_monitor_options(int argc, char ** argv, dtnperf_global_options_t * pe
 						fprintf(stderr, "[DTNperf syntax error] wrong --force-eid argument\n");
 						exit(1);
 				}
+				break;
+
+			case 51:
+				perf_opt->ipn_local_num = atoi(optarg);
+				if (perf_opt->ipn_local_num <= 0)
+				{
+					fprintf(stderr, "[DTNperf syntax error] wrong --ipn_local argument\n");
+					exit(1);
+				}
+				break;
+
+			case 52:
+				perf_opt->oneCSVonly = TRUE;
 				break;
 
 			case 'a':
@@ -884,6 +964,8 @@ session_t * session_create(al_bp_endpoint_id_t client_eid, char * full_filename,
 	session = (session_t *) malloc(sizeof(session_t));
 	session->start = (struct timeval *) malloc(sizeof(struct timeval));
 	session->stop_arrival_time = (struct timeval *) malloc(sizeof(struct timeval));
+	session->stop_arrival_time->tv_sec = 0;
+	session->stop_arrival_time->tv_usec = 0;
 	al_bp_copy_eid(&(session->client_eid), &client_eid);
 	session->full_filename = strdup(full_filename);
 	session->file = file;
@@ -897,6 +979,26 @@ session_t * session_create(al_bp_endpoint_id_t client_eid, char * full_filename,
 	session->prev = NULL;
 	return session;
 }
+
+session_t * unique_session_create(char * full_filename, FILE * file, struct timeval start, u32_t bundle_timestamp_secs)
+{
+	session_t * session;
+	session = (session_t *) malloc(sizeof(session_t));
+	session->start = (struct timeval *) malloc(sizeof(struct timeval));
+	session->stop_arrival_time = (struct timeval *) malloc(sizeof(struct timeval));
+	session->full_filename = strdup(full_filename);
+	session->file = file;
+	memcpy(session->start, &start, sizeof(struct timeval));
+	session->last_bundle_time = bundle_timestamp_secs;
+	session->expiration = 0; //unique session never expires
+	session->delivered_count = 0;
+	session->total_to_receive = 0; //this is useless
+	session->wait_after_stop = 0; //this is useless
+	session->next = NULL;
+	session->prev = NULL;
+	return session;
+}
+
 void session_destroy(session_t * session)
 {
 	free(session->start);
@@ -925,6 +1027,10 @@ void session_put(session_list_t * list, session_t * session)
 session_t *  session_get(session_list_t * list, al_bp_endpoint_id_t client)
 {
 	session_t * item = list->first;
+	// if oneCSVonly return the unique session (NULL if it isn't created yet)
+	if (oneCSVonly)
+		return item;
+
 	while (item != NULL)
 		{
 			if (strcmp(item->client_eid.uri, client.uri) == 0)

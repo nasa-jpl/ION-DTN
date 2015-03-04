@@ -6,7 +6,16 @@ cfdp - CCSDS File Delivery Protocol (CFDP) communications library
 
     #include "cfdp.h"
 
-    typedef int (*CfdpReaderFn)(int fd, unsigned int *checksum);
+    typedef enum
+    {
+	CksumTypeUnknown = -1,
+	ModularChecksum = 0,
+	CRC32 = 1
+    } CfdpCksumType;
+
+    typedef int (*CfdpReaderFn)(int fd, unsigned int *checksum, CfdpCksumType ckType);
+
+    typedef int (*CfdpMetadataFn)(uvast fileOffset, unsigned int recordOffset, unsigned int length, int sourceFileFD, char *buffer);
 
     typedef enum
     {
@@ -81,7 +90,22 @@ the "EOF" PDU to enable the receiver of the file to assure that it was not
 corrupted in transit.  When an application-specific file reader function
 is supplied, that function is responsible for updating the computed checksum
 as it reads each byte of the file; a CFDP library function is provided for
-this purpose.
+this purpose.  Two types of file checksums are supported: a simple modular
+checksum or a 32-bit CRC.  The checksum type must be passed through to the
+CFDP checksum computation function, so it must be provided by (and thus to)
+the file reader function.
+
+Per-segment metadata may be provided by the user application.  To enable
+this, upon formation of each file data segment, CFDP will invoke the
+user-provided per-segment metadata composition callback function (if
+any), a function conforming to the CfdpMetadataFn type definition.  The
+callback will be passed the offset of the segment within the file, the
+segment's offset within the current record (as applicable), the length
+of the segment, an open file descriptor for the source file (in case
+the data must be read in order to construct the metadata), and a 63-byte
+buffer in which to place the new metadata.  The callback function must
+return the length of metadata to attach to the file data segment PDU
+(may be zero) or -1 in the event of a general system failure.
 
 The return value for each CFDP "request" function (put, cancel, suspend,
 resume, report) is a reference number that enables "events" obtained by
@@ -115,7 +139,7 @@ use when invoking the cfdp_put() function.
 Converts a numeric value in a CfdpNumber structure to an unsigned B<vast>
 integer.
 
-=item void cfdp_update_checksum(unsigned char octet, unsigned int *offset, unsigned int *checksum)
+=item void cfdp_update_checksum(unsigned char octet, uvast *offset, unsigned int *checksum, CfdpCksumType ckType)
 
 For use by an application-specific file reader callback function, which must
 pass to cfdp_update_checksum() the value of each byte (octet) it reads.
@@ -181,7 +205,7 @@ single file data segment.
 This is a standard "reader" function that segments a source file of text lines
 on line boundaries.
 
-=item int cfdp_put(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpTransactionId *transactionId)
+=item int cfdp_put(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpMetadataFn metadataFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpTransactionId *transactionId)
 
 Sends the file identified by I<sourceFileName> to the CFDP entity identified by
 I<destinationEntityNbr>.  I<destinationFileName> is used to indicate the name
@@ -201,6 +225,10 @@ transmission control information that is to be passed on to the UT layer.  The
 nominal UT layer for ION's CFDP being Bundle Protocol, the I<utParms> array is
 normally a pointer to a structure of type BpUtParms; see the I<bp> man page
 for a discussion of the parameters in that structure. 
+
+I<closureLatency> is the length of time following transmission of the EOF PDU
+within which a responding Transaction Finish PDU is expected.  If no Finish
+PDU is requested, this parameter value should be zero.
 
 I<messagesToUser> and I<filestoreRequests>, where non-zero, must be the
 addresses of non-volatile linked lists (that is, linked lists in ION's
@@ -242,7 +270,7 @@ that is returned in a CfdpEvent structure; use cfdp_get_event() to receive
 the event (which may be matched to the request by request number).  Returns
 request number on success, 0 if transaction is unknown, -1 on any error.
 
-=item int cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr, CfdpTransactionId *transactionId, char *sourceFileNameBuf, char *destFileNameBuf, unsigned int *fileSize, MetadataList *messagesToUser, unsigned int *offset, unsigned int *length, CfdpCondition *condition, unsigned int *progress, CfdpFileStatus *fileStatus, CfdpDeliveryCode *deliveryCode, CfdpTransactionId *originatingTransactionId, char *statusReportBuf, MetadataList *filestoreResponses);
+=item int cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr, CfdpTransactionId *transactionId, char *sourceFileNameBuf, char *destFileNameBuf, uvast *fileSize, MetadataList *messagesToUser, uvast *offset, unsigned int *length, CfdpCondition *condition, uvast *progress, CfdpFileStatus *fileStatus, CfdpDeliveryCode *deliveryCode, CfdpTransactionId *originatingTransactionId, char *statusReportBuf, MetadataList *filestoreResponses);
 
 Populates return value fields with data from the oldest CFDP event not yet
 delivered to the application.  
@@ -259,7 +287,7 @@ system failure, zero otherwise.
 Interrupts an cfdp_get_event() invocation.  This function is designed to be
 called from a signal handler.
 
-=item int cfdp_preview(CfdpTransactionId *transactionId, unsigned int offset, int length, char *buffer);
+=item int cfdp_preview(CfdpTransactionId *transactionId, uvast offset, unsigned int length, char *buffer);
 
 This function is provided to enable the application to get an advance look
 at the content of a file that CFDP has not yet fully received.  Reads I<length>
@@ -285,4 +313,4 @@ returns -1.  Otherwise returns 0.
 
 =head1 SEE ALSO
 
-cfdpadmin(1), cfdprc(5)
+cfdpadmin(1), cfdpops(3), cfdprc(5)

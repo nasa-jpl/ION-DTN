@@ -19,7 +19,6 @@ static BpCustodySwitch custodySwitch = NoCustodyRequested;
 char   theBuffer[2048];
 static int needSendDefault = 0;
 static int needShutdown = 0;
-static int controlZco;
 
 const char usage[] = 
 "Usage: bpstats2 <source EID> [<default dest EID>] [ct]\n\n"
@@ -29,17 +28,30 @@ const char usage[] =
 "triggered to be sent to that EID by sending SIGUSR1 to bpstats2.\n"
 "If ct specified, the bundles are sent with custody transfer.\n";
 
+static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
+{
+	static ReqAttendant	*attendant = NULL;
+
+	if (newAttendant)
+	{
+		attendant = newAttendant;
+	}
+
+	return attendant;
+}
+
 void handleQuit(int sig)
 {
 	needShutdown = 1;
 	bp_interrupt(sap);
+	ionPauseAttendant(_attendant(NULL));
 }
 
 void sendDefault(int sig)
 {
 	needSendDefault = 1;
 	bp_interrupt(sap);
-	ionCancelZcoSpaceRequest(&controlZco);
+	ionPauseAttendant(_attendant(NULL));
 }
 
 /* This is basically libbpP.c's "reportStateStats()" except to a buffer. */
@@ -204,8 +216,8 @@ int sendStats(char *destEid, char *buffer, size_t len)
 	}
 
 	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, bytesWritten,
-			&controlZco);
-	if(bundleZco == 0)
+			BP_STD_PRIORITY, 0, ZcoOutbound, _attendant(NULL));
+	if(bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
 		return -1;
@@ -226,6 +238,7 @@ int main(int argc, char **argv)
 	ownEid          = (argc > 1 ? argv[1] : NULL);
 	defaultDestEid  = (argc > 2 ? argv[2] : NULL);
 	char *ctArg     = (argc > 3 ? argv[3] : NULL);
+	ReqAttendant	attendant;
 	BpDelivery      dlv;
 
 
@@ -259,6 +272,13 @@ int main(int argc, char **argv)
 	}
 
 	sdr = bp_get_sdr();
+	if (ionStartAttendant(&attendant) < 0)
+	{
+		putErrmsg("Can't initialize blocking transmission.", NULL);
+		exit(1);
+	}
+
+	oK(_attendant(&attendant));
 	signal(SIGINT, handleQuit); 
 	signal(SIGUSR1, sendDefault);
 
@@ -279,6 +299,7 @@ int main(int argc, char **argv)
 			if(needSendDefault) {
 				needSendDefault = 0;
 				sendStats(defaultDestEid, theBuffer, sizeof(theBuffer));
+				ionResumeAttendant(&attendant);
 			}
 			bp_release_delivery(&dlv, 1);
 		} else {
@@ -288,6 +309,7 @@ int main(int argc, char **argv)
 	}
 	bp_close(sap);
 	bp_detach();
+	ionStopAttendant(&attendant);
 	writeErrmsgMemos();
 	return 0;
 }

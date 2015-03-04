@@ -65,13 +65,20 @@ RETVAL=0
 echo ""
 echo "Starting ION..."
 ionadmin config.ionrc
-sleep 1
-ionsecadmin config.ionsecrc
-sleep 1
-bpadmin config.bprc
-sleep 1
-ipnadmin config.ipnrc
-sleep 1
+ionsecadmin config.ionsecrc &
+bpadmin config.bprc &
+ipnadmin config.ipnrc &
+
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
+
 
 #Send Bundles
 echo ""

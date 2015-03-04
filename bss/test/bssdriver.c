@@ -23,14 +23,10 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 			char *svcClass)
 {
 	int		priority = 0;
-	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
-
-	/*
-         * ******************************************************
-	 * BSS traffic bundles must always be marked as custodial
-         * ******************************************************
-	 */ 
-	BpCustodySwitch	custodySwitch = SourceCustodyRequired;
+	BpExtendedCOS	extendedCOS = { 0, 10, 0 };
+			/*	Note: flag value 10 directs BP to send
+			 *	bundles using a streaming protocol.	*/
+	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap;
 	Sdr		sdr;
 	unsigned int	i = 0;
@@ -100,12 +96,14 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 		sdr_write(sdr, bundlePayload, framePayload,
 				sizeof(framePayload));
 
-		/*	Note: we don't use ionCreateZco here because
-		 *	we don't want to block in admission control.
-		 *	The transmission loop is metered by time.	*/
+		/*	Note: we don't use blocking ionCreateZco here
+		 *	because we don't want to block in admission
+		 *	control.  The transmission loop is metered by
+		 *	time.						*/
 
-		bundleZco = zco_create(sdr, ZcoSdrSource, bundlePayload, 0, 
-				sizeof(framePayload));
+		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0, 
+				sizeof(framePayload), priority,
+				extendedCOS.ordinal, ZcoOutbound, NULL);
 		if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
 		|| bundleZco == 0)
 		{
@@ -134,7 +132,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	bssdriver(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

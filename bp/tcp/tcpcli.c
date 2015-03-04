@@ -110,8 +110,6 @@ static void	*sendKeepalives(void *parm)
 
 typedef struct
 {
-	char		senderEidBuffer[SDRSTRING_BUFSZ];
-	char		*senderEid;
 	VInduct		*vduct;
 	LystElt		elt;
 	struct sockaddr	cloSocketName;
@@ -173,6 +171,7 @@ static void	*receiveBundles(void *parm)
 	}
 	
 	/*	Set up parameters for the keepalive thread	*/
+
 	kparms = (KeepaliveThreadParms *)
 			MTAKE(sizeof(KeepaliveThreadParms));
 	if (kparms == NULL)
@@ -257,7 +256,7 @@ keepalives", NULL);
 
 	while (threadRunning && *(parms->cliRunning) && parms->receiveRunning)
 	{
-		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("Can't begin acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
@@ -336,9 +335,6 @@ static void	*spawnReceivers(void *parm)
 	socklen_t		nameLength;
 	ReceiverThreadParms	*parms;
 	LystElt			elt;
-	struct sockaddr_in	*fromAddr;
-	unsigned int		hostNbr;
-	char			hostName[MAXHOSTNAMELEN + 1];
 	pthread_t		thread;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -370,6 +366,7 @@ static void	*spawnReceivers(void *parm)
 
 		if (atp->running == 0)
 		{
+			closesocket(newSocket);
 			break;	/*	Main thread has shut down.	*/
 		}
 
@@ -378,6 +375,7 @@ static void	*spawnReceivers(void *parm)
 		if (parms == NULL)
 		{
 			putErrmsg("tcpcli can't allocate for new thread", NULL);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -392,6 +390,7 @@ static void	*spawnReceivers(void *parm)
 			putErrmsg("tcpcli can't allocate lyst element for new \
 thread", NULL);
 			MRELEASE(parms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -399,13 +398,6 @@ thread", NULL);
 
 		parms->mutex = &mutex;
 		parms->bundleSocket = newSocket;
-		fromAddr = (struct sockaddr_in *) &cloSocketName;
-		memcpy((char *) &hostNbr,
-				(char *) &(fromAddr->sin_addr.s_addr), 4);
-		hostNbr = ntohl(hostNbr);
-		printDottedString(hostNbr, hostName);
-		parms->senderEid = parms->senderEidBuffer;
-		getSenderEid(&(parms->senderEid), hostName);
 		parms->cloSocketName = cloSocketName;
 		parms->cliRunning = &(atp->running);
                 parms->receiveRunning = 1;
@@ -414,6 +406,7 @@ thread", NULL);
 		{
 			putSysErrmsg("tcpcli can't create new thread", NULL);
 			MRELEASE(parms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -466,7 +459,7 @@ thread", NULL);
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	tcpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -486,7 +479,6 @@ int	main(int argc, char *argv[])
 	unsigned int		hostNbr;
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
-	char			*tcpDelayString;
 	pthread_t		accessThread;
 	int			fd;
 
@@ -577,27 +569,6 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	tcpDelayString = getenv("TCP_DELAY_NSEC_PER_BYTE");
-	if (tcpDelayString == NULL)
-	{
-		tcpDelayEnabled = 0;
-	}
-	else
-	{
-		tcpDelayEnabled = 1;
-		tcpDelayNsecPerByte = strtol(tcpDelayString, NULL, 0);
-		if (tcpDelayNsecPerByte < 0
-		|| tcpDelayNsecPerByte > 16384)
-		{
-			tcpDelayNsecPerByte = 0;
-		}
-	}
-
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
-
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("tcpcli");
@@ -641,7 +612,7 @@ int	main(int argc, char *argv[])
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd >= 0)
 	{
-		connect(fd, &(atp.socketName), sizeof(struct sockaddr));
+		oK(connect(fd, &(atp.socketName), sizeof(struct sockaddr)));
 
 		/*	Immediately discard the connected socket.	*/
 

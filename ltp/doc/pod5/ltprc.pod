@@ -133,6 +133,17 @@ The B<start> command.  This command starts link service output tasks for
 all LTP spans (to remote engines) from the local LTP engine, and it starts
 the link service input task for the local engine.
 
+=item B<m heapmax> I<max_database_heap_per_block>
+
+The B<manage heap for block acquisition> command.  This command declares
+the maximum number of bytes of SDR heap space that will be occupied by the
+acquisition of any single LTP block.  All data acquired in excess of this
+limit will be written to a temporary file pending extraction and dispatching
+of the acquired block.  Default is the minimum allowed value (560 bytes),
+which is the approximate size of a ZCO file reference object; this is the
+minimum SDR heap space occupancy in the event that all acquisition is into
+a file.
+
 =item B<m screening> { y | n }
 
 The B<manage screening> command.  This command enables or disables the
@@ -154,6 +165,15 @@ seconds of predicted additional latency attributable to processing delay
 within the local engine itself that should be included whenever LTP computes
 the nominal round-trip time for an exchange of data with any remote engine.
 The default value is 1.
+
+=item B<m maxber> I<max_expected_bit_error_rate>
+
+The B<manage max bit error rate> command.  This command sets the expected
+maximum bit error rate that LTP should provide for in computing the maximum
+number of transmission efforts to initiate in the transmission of a given
+block.  (Note that this computation is also sensitive to data segment size
+and to the size of the block that is to be transmitted.)  The default value
+is .000001 (10^-6).
 
 =item B<x>
 

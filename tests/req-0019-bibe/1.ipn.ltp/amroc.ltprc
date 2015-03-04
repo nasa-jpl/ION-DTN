@@ -1,0 +1,5 @@
+1 5
+a span 2 2 10000 2 10000 1000 10000 1 'udplso localhost:2113' -1
+w 1
+m screening n
+s 'udplsi 127.0.0.1:5113'

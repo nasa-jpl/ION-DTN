@@ -31,15 +31,7 @@ typedef struct
 static int	acquireRedBundles(AcqWorkArea *work, Object zco,
 			uvast senderEngineNbr)
 {
-	char	engineNbrString[21];
-	char	senderEidBuffer[SDRSTRING_BUFSZ];
-	char	*senderEid;
-
-	isprintf(engineNbrString, sizeof engineNbrString, UVAST_FIELDSPEC,
-			senderEngineNbr);
-	senderEid = senderEidBuffer;
-	getSenderEid(&senderEid, engineNbrString);
-	if (bpBeginAcq(work, 0, senderEid) < 0)
+	if (bpBeginAcq(work, 0, NULL) < 0)
 	{
 		putErrmsg("Can't begin acquisition of bundle(s).", NULL);
 		return -1;
@@ -68,9 +60,6 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	static LtpSessionId	currentSessionId = { 0, 0 };
 	static unsigned int	currentOffset = 0;
 	unsigned int		fillLength;
-	char			engineNbrString[21];
-	char			senderEidBuffer[SDRSTRING_BUFSZ];
-	char			*senderEid;
 	ZcoReader		reader;
 	int			result;
 
@@ -106,11 +95,7 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	{
 		/*	Start new green bundle acquisition.		*/
 
-		isprintf(engineNbrString, sizeof engineNbrString,
-				UVAST_FIELDSPEC, sessionId->sourceEngineId);
-		senderEid = senderEidBuffer;
-		getSenderEid(&senderEid, engineNbrString);
-		if (bpBeginAcq(work, 0, senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("Can't begin acquisition of bundle.", NULL);
 			return -1;
@@ -127,8 +112,16 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 
 	if (offset > currentOffset)
 	{
-		/*	Must insert fill data -- partial loss of
-		 *	bundle payload, for example, may be okay.	*/
+		/*	Convergence layer must not deliver incomplete
+		 *	bundles to BP.  Practically speaking, this
+		 *	gap in segment sequence must be treated as
+		 *	malformation of the bundle.			*/
+
+		work->malformed = 1;
+
+		/*	But continue bundle acquisition anyway, in
+		 *	case the incomplete bundle is useful for some
+		 *	diagnostic purpose.				*/
 
 		fillLength = offset - currentOffset;
 		if (fillLength > *buflen)
@@ -160,7 +153,7 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		}
 
 		memset(*buffer, 0, fillLength);
-		if (bpContinueAcq(work, *buffer, (int) fillLength) < 0)
+		if (bpContinueAcq(work, *buffer, (int) fillLength, 0) < 0)
 		{
 			putErrmsg("Can't insert bundle fill data.", NULL);
 			return -1;
@@ -196,7 +189,12 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 	}
 
 	/*	Extract data from segment ZCO so that it can be
-	 *	appended to the bundle acquisition ZCO.			*/
+	 *	appended to the bundle acquisition ZCO.  Note
+	 *	that we're breaking the "zero-copy" model here;
+	 *	it would be better to have an alternate version
+	 *	of bpContinueAcq that uses zco_clone_source_data
+	 *	to append the segment ZCO's source data to the
+	 *	acquisition ZCO in the work area. (TODO)		*/
 
 	zco_start_receiving(zco, &reader);
 	CHKERR(sdr_begin_xn(sdr));
@@ -207,7 +205,7 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		return -1;
 	}
 
-	if (bpContinueAcq(work, *buffer, (int) length) < 0)
+	if (bpContinueAcq(work, *buffer, (int) length, 0) < 0)
 	{
 		putErrmsg("Can't continue bundle acquisition.", NULL);
 		return -1;
@@ -437,7 +435,7 @@ static void	*handleNotices(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	ltpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -485,11 +483,6 @@ int	main(int argc, char *argv[])
 		putErrmsg("ltpcli can't initialize LTP.", NULL);
 		return -1;
 	}
-
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 

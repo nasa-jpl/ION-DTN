@@ -7,6 +7,22 @@
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
  *
  *	Author: Scott Burleigh, JPL
+ *	Modifications: TCSASSEMBLER, TopCoder
+ *
+ *	Modification History:
+ *	Date       Who   What
+ *	09-24-13    TC   Added LtpAuthHeaderExtension and
+ *			 LtpAuthTrailerExtension structures.
+ *                  	 Added authHeaderExtensions and authTrailerExtensions 
+ *                       attributes to LtpPdu structure.
+ *                  	 Added firstSegmentLength and firstSegmentOffset 
+ *                       attributes to ExportSession structure.
+ *	02-06-14    TC   Added headerExtensions and trailerExtensions
+ *                       attributes to LtpPdu structure.
+ *	02-19-14    TC   Removed authHeaderExtensions and authTailerExtensions
+ *                       attributes from LtpPdu structure.
+ *                       Removed LtpAuthHeaderExtension and
+ *                       LtpAuthTrailerExtension structures.
  */
 
 #include "rfx.h"
@@ -25,6 +41,8 @@ extern "C" {
 
 #define LTP_MAX_NBR_OF_CLIENTS	8
 
+#define	MAX_LTP_CLIENT_NBR	(LTP_MAX_NBR_OF_CLIENTS - 1)
+
 #ifndef LTP_MEAN_SEARCH_LENGTH
 #define	LTP_MEAN_SEARCH_LENGTH	4
 #endif
@@ -33,12 +51,17 @@ extern "C" {
 #define	LTP_SERIAL_NBR_LIMIT	(16384)
 #endif
 
-#define	MAX_LTP_CLIENT_NBR	(LTP_MAX_NBR_OF_CLIENTS - 1)
-#define	MAX_RETRANSMISSIONS	9
-#define MAX_NBR_OF_CHECKPOINTS	(1 + MAX_RETRANSMISSIONS)
-#define MAX_NBR_OF_REPORTS	(MAX_NBR_OF_CHECKPOINTS)
+#ifndef DEFAULT_MAX_BER
+#define	DEFAULT_MAX_BER		(.000001)
+#endif
+
+#ifndef MAX_CLAIMS_PER_RS
 #define MAX_CLAIMS_PER_RS	20
-#define	MAX_TIMEOUTS		2
+#endif
+
+#ifndef MAX_TIMEOUTS
+#define	MAX_TIMEOUTS		3
+#endif
 
 /*	LTP segment structure definitions.				*/
 
@@ -95,8 +118,20 @@ typedef enum
 typedef struct
 {
 	LtpSegmentTypeCode	segTypeCode;
+	unsigned int		headerLength;
+	unsigned int		contentLength;
+	unsigned int		trailerLength;
 	unsigned char		headerExtensionsCount;
 	unsigned char		trailerExtensionsCount;
+
+	/*	Note that Extensions lists are populated only for
+	 *	PDUs that are queued for output; they are used in
+	 *	serializing the PDUs.  Extensions of incoming PDUs
+	 *	are simply processed in the course of handling the
+	 *	PDUs and are immediately discarded.			*/
+	
+	Object			headerExtensions;/*	SDR list.	*/
+	Object			trailerExtensions;/*	SDR list.	*/
 
 	/*	Fields used for multiple segment classes.		*/
 
@@ -106,9 +141,10 @@ typedef struct
 
 	/*	Fields for data segments.				*/
 
+	unsigned int		ohdLength;	/*	Data seg ohd.	*/
 	unsigned int		clientSvcId;	/*	Destination.	*/
 	unsigned int		offset;		/*	Within block.	*/
-	unsigned int		length;
+	unsigned int		length;		/*	Of block data.	*/
 	Object			block;	/*	Session svcDataObjects.	*/
 
 	/*	Fields for report segments.				*/
@@ -170,7 +206,6 @@ typedef struct
 {
 	unsigned int	sessionNbr;
 	uvast		remoteEngineId;
-	short		ohdLength;
 	Object		queueListElt;
 	Object		ckptListElt;	/*	For checkpoints only.	*/
 	Object		sessionObj;	/*	For codes 1-3, 14 only.	*/
@@ -188,6 +223,15 @@ typedef struct
 	Object		sessionListElt;
 } LtpSegmentRef;
 
+/*	While the LTP specification permits a single report to
+ *	comprise multiple report segments, it provides no mechanism
+ *	for matching a report acknowledgment to a particular report
+ *	segment (enabling that report segment's retransmission timer
+ *	to be disabled).  So instead we send (as necessary) multiple
+ *	reports in response to each checkpoint, each report comprising
+ *	only a single report segment.  The terms "report" and "report
+ *	segment" may therefore be used interchangeably.			*/
+
 typedef struct
 {
 	unsigned int	sessionNbr;	/*	Assigned by source.	*/
@@ -200,11 +244,12 @@ typedef struct
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
+	unsigned int	nextRptSerialNbr;
 	unsigned int	lastRptSerialNbr;
+	int		maxReports;	/*	Limits # of reports.	*/
 	int		reportsCount;
 	Object		blockFileRef;	/*	A ZCO File Ref object.	*/
 	Object		svcData;	/*	The acquisition ZCO.	*/
-	int		congestive;	/*	Boolean: no ZCO space.	*/
 
 	/*	Backward reference.					*/
 
@@ -237,6 +282,11 @@ typedef struct
 	Object		sessionListElt;
 } LtpCkpt;
 
+/*	Export session state flag values.				*/
+
+#define	LTP_EOB_SENT	1
+#define	LTP_FINAL_ACK	2
+
 typedef struct
 {
 	Object		span;		/*	Transmission span.	*/
@@ -246,10 +296,12 @@ typedef struct
 	Sdnv		clientSvcIdSdnv;
 	int		totalLength;
 	int		redPartLength;
+	int		stateFlags;
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
 	Object		claims;		/*	reception claims list	*/
+	int		maxCheckpoints;	/*	Limits # of ckpoints.	*/
 	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
 	unsigned int	lastCkptSerialNbr;
 
@@ -379,8 +431,10 @@ typedef struct
 
 	/*	For detecting miscolored segments.			*/
 
+	unsigned int	redSessionNbr;
+	unsigned int	endOfRed;
 	unsigned int	greenSessionNbr;
-	unsigned int	greenOffset;
+	unsigned int	startOfGreen;
 
 	/*	*	*	Work area	*	*	*	*/
 
@@ -482,12 +536,14 @@ typedef struct
 	int		estMaxExportSessions;
 	unsigned int	ownQtime;
 	unsigned int	enforceSchedule;/*	Boolean.		*/
+	float		errorsPerByte;	/*	Max. byte error rate.	*/
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
 	unsigned int	sessionCount;
 	Object		exportSessionsHash;
 	Object		deadExports;	/*	SDR list: ExportSession	*/
 	Object		spans;		/*	SDR list: LtpSpan	*/
 	Object		timeline;	/*	SDR list: LtpEvent	*/
+	unsigned int	maxAcqInHeap;
 	unsigned long	heapBytesReserved;
 	unsigned long	heapBytesOccupied;
 	unsigned long	heapSpaceBytesReserved;
@@ -576,6 +632,9 @@ extern int		enqueueNotice(LtpVclient *client,
 				unsigned char reasonCode,
 				unsigned char endOfBlock,
 				Object data);
+
+extern int		getMaxReports(int redPartLength,
+				unsigned int maxSegmentSize);
 
 extern int		ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf);
 extern int		ltpHandleInboundSegment(char *buf, int length);

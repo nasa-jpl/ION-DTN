@@ -10,7 +10,7 @@
 									*/
 #include "ltpP.h"
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	ltpmeter(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -32,7 +32,7 @@ int	main(int argc, char *argv[])
 	Lyst		extents;
 	ExportExtent	*extent;
 	unsigned int	ckptSerialNbr;
-	int		segmentsIssued;
+	int		result;
 
 	if (remoteEngineId == 0)
 	{
@@ -87,7 +87,7 @@ int	main(int argc, char *argv[])
 	}
 
 	writeMemo("[i] ltpmeter is running.");
-	while (1)
+	while (returnCode == 0)
 	{
 		/*	First wait until block aggregation buffer for
 		 *	this span is closed.				*/
@@ -100,7 +100,7 @@ int	main(int argc, char *argv[])
 				putErrmsg("Can't take bufClosedSemaphore.",
 						itoa(remoteEngineId));
 				returnCode = 1;
-				break;		/*	Outer loop.	*/
+				continue;	/*	Failure.	*/
 			}
 
 			if (sm_SemEnded(vspan->bufClosedSemaphore))
@@ -131,6 +131,16 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 		encodeSdnv(&(session.clientSvcIdSdnv), session.clientSvcId);
 		session.totalLength = span.lengthOfBufferedBlock;
 		session.redPartLength = span.redLengthOfBufferedBlock;
+
+		/*	We can now compute the upper limit on the number
+		 *	of checkpoints we will send in the course of
+		 *	this session.  We send one initial checkpoint
+		 *	plus one more checkpoint in response to every
+		 *	report except the last, which elicits only a
+		 *	report acknowledgment.				*/
+
+		session.maxCheckpoints = getMaxReports(session.redPartLength,
+				span.maxSegmentSize);
 		if ((extents = lyst_create_using(getIonMemoryMgr())) == NULL
 		|| (extent = (ExportExtent *) MTAKE(sizeof(ExportExtent)))
 				== NULL
@@ -139,7 +149,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 			putErrmsg("Can't create extents list.", NULL);
 			sdr_cancel_xn(sdr);
 			returnCode = 1;
-			break;			/*	Outer loop.	*/
+			continue;	/*	Failure.		*/
 		}
 
 		extent->offset = 0;
@@ -152,37 +162,35 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 
 			ckptSerialNbr %= LTP_SERIAL_NBR_LIMIT;
 		} while (ckptSerialNbr == 0);
-		segmentsIssued = issueSegments(sdr, &span, vspan, &session,
+		result = issueSegments(sdr, &span, vspan, &session,
 				span.currentExportSessionObj, extents, 0,
 				ckptSerialNbr);
 		MRELEASE(extent);
 		lyst_destroy(extents);
-		switch (segmentsIssued)
+		if (result < 0)
 		{
-		case -1:		/*	System error.		*/
 			putErrmsg("Can't segment block.", NULL);
 			sdr_cancel_xn(sdr);
 			returnCode = 1;
-			break;			/*	Outer loop.	*/
-
-		case 0:			/*	Database too full.	*/
-			sdr_cancel_xn(sdr);
-
-			/*	Wait one second and try again.		*/
-
-			snooze(1);
-			CHKZERO(sdr_begin_xn(sdr));
-			sdr_stage(sdr, (char *) &span, spanObj,
-					sizeof(LtpSpan));
-			continue;
+			continue;	/*	Failure.		*/
 		}
 
 		/*	Segment issuance succeeded.			*/
 
 		if (vdb->watching & WATCH_f)
 		{
-			putchar('f');
-			fflush(stdout);
+			iwatch('f');
+		}
+
+		if (enqueueNotice(vdb->clients + session.clientSvcId,
+				vdb->ownEngineId, session.sessionNbr,
+				0, 0, LtpExportSessionStart, 0, 0, 0) < 0)
+		{
+			putErrmsg("Can't post ExportSessionStart notice.",
+					NULL);
+			sdr_cancel_xn(sdr);
+			returnCode = 1;
+			continue;	/*	Failure.		*/
 		}
 
 		/*	Commit changes to current session to the
@@ -203,7 +211,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 		{
 			putErrmsg("Can't finish session.", NULL);
 			returnCode = 1;
-			break;			/*	Outer loop.	*/
+			continue;	/*	Failure.		*/
 		}
 
 		/*	Start an export session for the next block.	*/
@@ -213,7 +221,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 			putErrmsg("ltpmeter can't start new session.",
 					utoa(remoteEngineId));
 			returnCode = 1;
-			break;			/*	Outer loop.	*/
+			continue;	/*	Failure.		*/
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/

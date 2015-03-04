@@ -4,7 +4,7 @@ ltpclo - LTP-based BP convergence layer adapter output task
 
 =head1 SYNOPSIS
 
-B<ltpclo> [-]I<remote_node_nbr>
+B<ltpclo> I<remote_node_nbr>
 
 =head1 DESCRIPTION
 
@@ -12,9 +12,7 @@ B<ltpclo> is a background "daemon" task that extracts bundles from the
 queues of segments ready for transmission via LTP to the remote bundle
 protocol agent identified by I<remote_node_nbr> and passes them to the
 local LTP engine for aggregation, segmentation, and transmission to the
-remote node.  If I<remote_node_nbr> is preceded by a '-' character, then
-all LTP transmission performed by B<ltpclo> will be "green" (unreliable)
-transmission, without acknowledgment and retransmission.
+remote node.
 
 Note that B<ltpclo> is not a "promiscuous" convergence layer daemon: it
 can transmit bundles only to the node for which it is configured, so

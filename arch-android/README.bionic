@@ -13,7 +13,7 @@ fully functional standard ION node on an Android device.
 
 So far, we've only completed step 1.  The second step of the Android "port"
 will take a little longer, as it's actually the development of an entire
-new ION API in Java; we're aiming for the end of summer 2012.
+new ION API in Java; we were originally aiming for the end of summer 2012.
 
 Here is the procedure for building ION in bionic:
 

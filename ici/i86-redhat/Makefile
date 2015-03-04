@@ -4,9 +4,10 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
+CRYPTO = ../crypto/NULL_SUITES
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux
+OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
@@ -24,6 +25,7 @@ LIBICIOBJS = \
 	ion.o \
 	rfx.o \
 	ionsec.o \
+	crypto.o \
 	zco.o \
 	sdrxn.o \
 	sdrmgt.o \
@@ -46,6 +48,7 @@ PUBINCLS = \
 	$(INCL)/ion.h \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
+	$(INCL)/crypto.h \
 	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \
 	$(INCL)/sdrmgt.h \
@@ -168,6 +171,9 @@ libicinm.so:	libicinm.o $(INCL)/icinm.h
 		$(CC) -c $<
 
 %.o:		$(SDR)/%.c
+		$(CC) -c $<
+
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c

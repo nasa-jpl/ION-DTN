@@ -33,6 +33,8 @@ typedef int		sm_SemId;
 
 #define	ICI_PRIORITY	250
 
+#ifndef ION4WIN		/*	No pthreads in Visual Studio.		*/
+
 #if defined (bionic) || defined (uClibc)
 extern int		sm_BeginPthread(pthread_t *threadId,
 				const pthread_attr_t *attr,
@@ -40,10 +42,12 @@ extern int		sm_BeginPthread(pthread_t *threadId,
 #define pthread_begin(w,x,y,z) sm_BeginPthread(w, x, y, z)
 extern void		sm_EndPthread(pthread_t threadId);
 #define pthread_end(x)	sm_EndPthread(x)
-#else
+#else			/*	Standard pthread functions available.	*/
 #define pthread_begin(w,x,y,z)	pthread_create(w, x, y, z)
 #define pthread_end(x)		pthread_cancel(x)
-#endif
+#endif			/*	end of #ifdef bionic || uClibc		*/
+
+#endif			/*	end of #ifndef ION4WIN			*/
 
 /*      IPC services access control */
 extern int		sm_ipc_init();
@@ -86,12 +90,16 @@ extern void		sm_TaskForget();
 extern void		sm_TaskKill(int taskId, int sigNbr);
 extern void		sm_TaskDelete(int taskId);
 extern void		sm_Abort();
-#ifdef mingw
+#if (defined(mingw) || defined(ION4WIN))
 extern void		sm_WaitForWakeup(int seconds);
 extern void		sm_Wakeup(DWORD);
 #endif
+
+#ifndef ION4WIN		/*	No pthreads in Visual Studio.		*/
 extern void		sm_ConfigurePthread(pthread_attr_t *attr,
 				size_t stackSize);
+#endif			/*	end of #ifdef ION4WIN			*/
+
 extern int		pseudoshell(char *commandLine);
 
 #ifdef __cplusplus

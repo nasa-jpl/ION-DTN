@@ -39,6 +39,44 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 	sm_SemEnd(_imcfwSemaphore(NULL));
 }
 
+static int	deliverAtSource(Object bundleObj, Bundle *bundle)
+{
+	char		nss[64];
+	VEndpoint	*vpoint;
+	PsmAddress	vpointElt;
+	Bundle		newBundle;
+	Object		newBundleObj;
+
+	isprintf(nss, sizeof nss, UVAST_FIELDSPEC ".%d",
+			bundle->destination.c.nodeNbr,
+			bundle->destination.c.serviceNbr);
+	findEndpoint("imc", nss, NULL, &vpoint, &vpointElt);
+	if (vpoint == NULL)
+	{
+		return 0;
+	}
+
+	if (bpClone(bundle, &newBundle, &newBundleObj, 0, 0) < 0)
+	{
+		putErrmsg("Failed on clone.", NULL);
+		return -1;
+	}
+
+	if (deliverBundle(newBundleObj, &newBundle, vpoint) < 0)
+	{
+		putErrmsg("Bundle delivery failed.", NULL);
+		return -1;
+	}
+
+	if ((getBpVdb())->watching & WATCH_z)
+	{
+		putchar('z');
+		fflush(stdout);
+	}
+
+	return 0;
+}
+
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
 {
@@ -47,8 +85,8 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	IonNode		*stationNode;
 	PsmAddress	nextElt;
 	PsmPartition	ionwm;
-	PsmAddress	snubElt;
-	IonSnub		*snub;
+	PsmAddress	embElt;
+	Embargo		*embargo;
 
 	if (ipn_lookupPlanDirective(nodeNbr, 0, 0, bundle, &directive) == 0)
 	{
@@ -66,17 +104,17 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	if (stationNode)
 	{
 		ionwm = getIonwm();
-		for (snubElt = sm_list_first(ionwm, stationNode->snubs);
-				snubElt; snubElt = sm_list_next(ionwm, snubElt))
+		for (embElt = sm_list_first(ionwm, stationNode->embargoes);
+				embElt; embElt = sm_list_next(ionwm, embElt))
 		{
-			snub = (IonSnub *) psp(ionwm, sm_list_data(ionwm,
-					snubElt));
-			if (snub->nodeNbr < nodeNbr)
+			embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm,
+					embElt));
+			if (embargo->nodeNbr < nodeNbr)
 			{
 				continue;
 			}
 
-			if (snub->nodeNbr > nodeNbr)
+			if (embargo->nodeNbr > nodeNbr)
 			{
 				break;	/*	Not refusing bundles.	*/
 			}
@@ -127,10 +165,10 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
 	/*	No plan for conveying bundle to this neighbor, so
 	 *	must give up on forwarding it.				*/
 
-	return bpAbandon(bundleObj, bundle);
+	return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	imcfw(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -233,7 +271,7 @@ int	main(int argc, char *argv[])
 			/*	Nobody subscribes to bundles destined
 			 *	for this group.				*/
 
-			oK(bpAbandon(bundleAddr, &bundle));
+			oK(bpAbandon(bundleAddr, &bundle, BP_REASON_NO_ROUTE));
 		}
 		else
 		{
@@ -243,12 +281,28 @@ int	main(int argc, char *argv[])
 				/*	Received from unknown node,
 				 *	can't safely forward bundle.	*/
 
-				oK(bpAbandon(bundleAddr, &bundle));
+				oK(bpAbandon(bundleAddr, &bundle,
+						BP_REASON_NO_ROUTE));
 			}
 			else
 			{
 				sdr_read(sdr, (char *) &group, groupAddr,
 						sizeof(ImcGroup));
+				if (group.isMember
+				&& bundle.clDossier.senderNodeNbr == 0
+				&& bundle.id.source.c.nodeNbr == ownNodeNbr)
+				{
+					/*	Must deliver locally.	*/
+					if (deliverAtSource(bundleAddr,
+							&bundle) < 0)
+					{
+						putErrmsg("Source delivery NG.",
+								NULL);
+						running = 0;
+						break;	/*	Loop.	*/
+					}
+				}
+
 				for (elt3 = sdr_list_first(sdr, group.members);
 					elt3; elt3 = sdr_list_next(sdr, elt3))
 				{
@@ -259,7 +313,7 @@ int	main(int argc, char *argv[])
 					{
 						continue;
 					}
-	
+
 					if (bpClone(&bundle, &newBundle,
 						&newBundleObj, 0, 0) < 0)
 					{
@@ -284,7 +338,8 @@ int	main(int argc, char *argv[])
 
 				if (copiesForwarded == 0)
 				{
-					oK(bpAbandon(bundleAddr, &bundle));
+					oK(bpAbandon(bundleAddr, &bundle,
+							BP_REASON_NO_ROUTE));
 				}
 				else	/*	Destroy unused copy.	*/
 				{

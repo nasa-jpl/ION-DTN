@@ -114,9 +114,22 @@ static void	*receivePdus(void *parm)
 	return NULL;
 }
 
+static int	deletePdu(Object pduZco)
+{
+	Sdr	sdr = getIonsdr();
+
+	if (sdr_begin_xn(sdr) == 0)
+	{
+		return -1;
+	}
+
+	zco_destroy(sdr, pduZco);
+	return sdr_end_xn(sdr);
+}
+
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	bputa(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -127,17 +140,19 @@ int	main(int argc, char **argv)
 	char		ownEid[64];
 	BpSAP		txSap;
 	RxThreadParms	parms;
-	Sdr		sdr;
 	pthread_t	rxThread;
 	int		haveRxThread = 0;
 	Object		pduZco;
 	OutFdu		fduBuffer;
+	FinishPdu	fpdu;
+	int		direction;
 	BpUtParms	utParms;
 	uvast		destinationNodeNbr;
 	char		destEid[64];
 	char		reportToEidBuf[64];
 	char		*reportToEid;
 	Object		newBundle;
+	Sdr		sdr;
 	Object		pduElt;
 
 	if (bp_attach() < 0)
@@ -148,7 +163,7 @@ int	main(int argc, char **argv)
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
 			getOwnNodeNbr(), CFDP_SEND_SVC_NBR);
-	if (bp_open(ownEid, &txSap) < 0)
+	if (bp_open_source(ownEid, &txSap, 1) < 0)
 	{
 		putErrmsg("CFDP can't open own 'send' endpoint.", ownEid);
 		return 0;
@@ -167,7 +182,6 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	sdr = bp_get_sdr();
 	parms.mainThread = pthread_self();
 	parms.running = 1;
 	if (pthread_begin(&rxThread, NULL, receivePdus, &parms))
@@ -183,7 +197,8 @@ int	main(int argc, char **argv)
 	{
 		/*	Get an outbound CFDP PDU for transmission.	*/
 
-		if (cfdpDequeueOutboundPdu(&pduZco, &fduBuffer) < 0)
+		if (cfdpDequeueOutboundPdu(&pduZco, &fduBuffer, &fpdu,
+				&direction) < 0 || pduZco == 0)
 		{
 			writeMemo("[?] bputa can't dequeue outbound CFDP PDU; \
 terminating.");
@@ -193,7 +208,8 @@ terminating.");
 
 		/*	Determine quality of service for transmission.	*/
 
-		if (fduBuffer.utParmsLength == sizeof(BpUtParms))
+		if (direction == 0	/*	Toward file receiver.	*/
+		&& fduBuffer.utParmsLength == sizeof(BpUtParms))
 		{
 			memcpy((char *) &utParms, (char *) &fduBuffer.utParms,
 					sizeof(BpUtParms));
@@ -212,11 +228,27 @@ terminating.");
 			utParms.extendedCOS.ordinal = 0;
 		}
 
-		cfdp_decompress_number(&destinationNodeNbr,
-				&fduBuffer.destinationEntityNbr);
+		if (direction == 0)
+		{
+			cfdp_decompress_number(&destinationNodeNbr,
+					&fduBuffer.destinationEntityNbr);
+		}
+		else
+		{
+			cfdp_decompress_number(&destinationNodeNbr,
+					&fpdu.transactionId.sourceEntityNbr);
+		}
+
 		if (destinationNodeNbr == 0)
 		{
 			writeMemo("[?] bputa declining to send to node 0.");
+			if (deletePdu(pduZco) < 0)
+			{
+				putErrmsg("bputa can't ditch PDU; terminated.",
+						NULL);
+				parms.running = 0;
+			}
+
 			continue;
 		}
 
@@ -237,7 +269,6 @@ terminating.");
 
 		/*	Send PDU in a bundle.				*/
 
-		newBundle = 0;
 		if (bp_send(txSap, destEid, reportToEid, utParms.lifespan,
 				utParms.classOfService, utParms.custodySwitch,
 				utParms.srrFlags, utParms.ackRequested,
@@ -246,33 +277,41 @@ terminating.");
 			putErrmsg("bputa can't send PDU in bundle; terminated.",
 					NULL);
 			parms.running = 0;
-		}
-
-		if (newBundle == 0)
-		{
-			continue;	/*	Must have stopped.	*/
-		}
-
-		/*	Enable cancellation of this PDU.		*/
-
-		if (sdr_begin_xn(sdr) == 0)
-		{
-			parms.running = 0;
 			continue;
 		}
 
-		pduElt = sdr_list_insert_last(sdr, fduBuffer.extantPdus,
-				newBundle);
-		if (pduElt)
+		if (direction == 0)	/*	Toward file receiver.	*/
 		{
-			bp_track(newBundle, pduElt);
+			/*	Enable cancellation of this PDU.	*/
+
+			sdr = bp_get_sdr();
+			if (sdr_begin_xn(sdr) == 0)
+			{
+				parms.running = 0;
+				continue;
+			}
+
+			pduElt = sdr_list_insert_last(sdr, fduBuffer.extantPdus,
+					newBundle);
+			if (pduElt)
+			{
+				bp_track(newBundle, pduElt);
+			}
+
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("bputa can't track PDU; terminated.",
+						NULL);
+				parms.running = 0;
+				continue;
+			}
 		}
 
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("bputa can't track PDU; terminated.", NULL);
-			parms.running = 0;
-		}
+		/*	Bundle has been detained long enough for us
+		 *	to track it if necessary, so we can now
+		 *	release it for normal processing.		*/
+
+		bp_release(newBundle);
 
 		/*	Make sure other tasks have a chance to run.	*/
 

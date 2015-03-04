@@ -89,7 +89,7 @@ static void	*handleDatagrams(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	udplsi(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -138,13 +138,14 @@ int	main(int argc, char *argv[])
 			return -1;
 		}
 	}
+
 	if (portNbr == 0)
 	{
 		portNbr = LtpUdpDefaultPortNbr;
 	}
+
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
-
 	memset((char *) &socketName, 0, sizeof socketName);
 	inetName = (struct sockaddr_in *) &socketName;
 	inetName->sin_family = AF_INET;

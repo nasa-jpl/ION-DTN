@@ -4,6 +4,7 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
+CRYPTO = ../crypto/NULL_SUITES
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
@@ -24,6 +25,7 @@ LIBICIOBJS = \
 	ion.o \
 	rfx.o \
 	ionsec.o \
+	crypto.o \
 	zco.o \
 	sdrxn.o \
 	sdrmgt.o \
@@ -44,9 +46,10 @@ PUBINCLS = \
 	$(INCL)/smrbt.h \
 	$(INCL)/sptrace.h \
 	$(INCL)/ion.h \
-	$(INCL)/zco.h \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
+	$(INCL)/crypto.h \
+	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \
 	$(INCL)/sdrmgt.h \
 	$(INCL)/sdrstring.h \
@@ -152,7 +155,7 @@ rfxclock:	rfxclock.o libici.so
 		$(CC) -I. -o rfxclock rfxclock.o -L./lib -lici -lpthread
 		cp rfxclock ./bin
 
-#	-	-	Library		-	-	-	-	-
+#	-	-	Libraries	-	-	-	-	-
 
 libici.so:	$(LIBICIOBJS)
 		$(LD) -o libici.so $(LIBICIOBJS)
@@ -168,6 +171,9 @@ libicinm.so:	libicinm.o $(INCL)/icinm.h
 		$(CC) -c $<
 
 %.o:		$(SDR)/%.c
+		$(CC) -c $<
+
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c

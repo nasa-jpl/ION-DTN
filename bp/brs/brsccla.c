@@ -12,6 +12,18 @@
 									*/
 #include "brscla.h"
 
+static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
+{
+	static ReqAttendant	*attendant = NULL;
+
+	if (newAttendant)
+	{
+		attendant = newAttendant;
+	}
+
+	return attendant;
+}
+
 static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 {
 	long		temp;
@@ -42,6 +54,7 @@ static void	killMainThread()
 static void	interruptThread()	/*	Commands termination.	*/
 {
 	isignal(SIGTERM, killMainThread);
+	ionPauseAttendant(_attendant(NULL));
 	killMainThread();
 }
 
@@ -103,8 +116,6 @@ static void	*sendKeepalives(void *parm)
 
 typedef struct
 {
-	char		senderEidBuffer[SDRSTRING_BUFSZ];
-	char		*senderEid;
 	VInduct		*vduct;
 	int		*ductSocket;
 	int		*running;
@@ -116,9 +127,17 @@ static void	*receiveBundles(void *parm)
 	 *	terminating when connection is lost.			*/
 
 	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
+	ReqAttendant		attendant;
 	AcqWorkArea		*work;
 	char			*buffer;
 
+	if (ionStartAttendant(&attendant) < 0)
+	{
+		putErrmsg("Can't initialize blocking TCP reception.", NULL);
+		return NULL;
+	}
+
+	oK(_attendant(&attendant));
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
@@ -137,7 +156,7 @@ static void	*receiveBundles(void *parm)
 
 	while (*(parms->running))
 	{
-		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("can't begin acquisition of bundle.", NULL);
 			killMainThread();
@@ -145,7 +164,8 @@ static void	*receiveBundles(void *parm)
 			continue;
 		}
 
-		switch (receiveBundleByTcp(*(parms->ductSocket), work, buffer))
+		switch (receiveBundleByTcp(*(parms->ductSocket), work, buffer,
+				&attendant))
 		{
 		case -1:
 			putErrmsg("can't acquire bundle.", NULL);
@@ -178,6 +198,7 @@ static void	*receiveBundles(void *parm)
 
 	bpReleaseAcqArea(work);
 	MRELEASE(buffer);
+	ionStopAttendant(&attendant);
 	writeErrmsgMemos();
 	writeMemo("[i] brsccla receiver thread stopping.");
 	return NULL;
@@ -185,7 +206,7 @@ static void	*receiveBundles(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	brsccla(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -423,11 +444,7 @@ number>");
 	}
 
 	/*	Server is now known to be authentic; proceed with
-	 *	thread instantiation.  First initialize the sender
-	 *	endpoint ID lookup.					*/
-
-	ipnInit();
-	dtn2Init();
+	 *	thread instantiation.					*/
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
@@ -442,8 +459,6 @@ number>");
 	receiverParms.vduct = vinduct;
 	receiverParms.ductSocket = &ductSocket;
 	receiverParms.running = &running;
-	receiverParms.senderEid = receiverParms.senderEidBuffer;
-	getSenderEid(&(receiverParms.senderEid), hostName);
         if (pthread_begin(&receiverThread, NULL, receiveBundles,
 			&receiverParms))
 	{

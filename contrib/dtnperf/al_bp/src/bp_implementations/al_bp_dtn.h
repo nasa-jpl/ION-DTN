@@ -35,7 +35,8 @@ al_bp_error_t bp_dtn_errno(al_bp_handle_t handle);
 
 al_bp_error_t bp_dtn_build_local_eid(al_bp_handle_t handle,
 								al_bp_endpoint_id_t* local_eid,
-								const char* service_tag);
+								const char* service_tag,
+								al_bp_scheme_t type);
 
 
 al_bp_error_t bp_dtn_register(al_bp_handle_t handle,

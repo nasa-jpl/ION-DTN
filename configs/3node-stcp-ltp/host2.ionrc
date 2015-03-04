@@ -7,8 +7,8 @@
 
 # Initialization command (command 1). 
 #	Set this node to be node 2 (as in ipn:2).
-#	Use default sdr configuration (empty configuration file name "").
-1 2 ""
+#	Use default sdr configuration (empty configuration file name '').
+1 2 ''
 
 # start ion node
 s

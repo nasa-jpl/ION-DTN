@@ -27,9 +27,6 @@ extern "C" {
 #define MIN(x, y)       ((x) < (y) ? (x) : (y))
 #endif
 
-#if 0
-#define TCPCLA_BUFSZ		(1024 * 1024)
-#endif
 #define TCPCLA_BUFSZ		(64 * 1024)
 #define BpTcpDefaultPortNbr	4556
 
@@ -81,7 +78,7 @@ extern int	sendBundleByTCPCL(struct sockaddr *socketName,
 			int *keepalivePeriod);
 extern int	receiveBytesByTCP(int bundleSocket, char *into, int length);
 extern int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work,
-			char *buffer);
+			char *buffer, ReqAttendant *attendant);
 extern int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer);
 extern int 	receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer, uvast *segmentLength,int *flags);
 extern int 	sendContactHeader(int *bundleSocket, unsigned char *buffer,

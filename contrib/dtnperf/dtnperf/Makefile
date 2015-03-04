@@ -3,10 +3,17 @@
 # NAME OF BIN USED FOR INSTALL/UNINSTALL (NEVER LEAVE IT BLANK!!!)
 BIN_NAME_BASE=dtnperf
 CC=gcc
-LIB_PATHS=-L/usr/local/lib -L$(AL_BP_DIR)
-CFLAGS=-O0 -Wall -fmessage-length=0 -Werror
+LIB_PATHS=-L/usr/local/lib -L$(AL_BP_DIR) -L/opt/lib
+INSTALL_PATH=/usr/local/bin
+DEBUG=0
+ifeq ($(DEBUG),0)
+DEBUG_FLAG=
+else
+DEBUG_FLAG=-g -fno-inline
+endif
+CFLAGS= $(DEBUG_FLAG) -O0 -Wall -fmessage-length=0 -Werror
 
-INSTALLED=$(wildcard /usr/bin/$(BIN_NAME_BASE)*)
+INSTALLED=$(wildcard $(INSTALL_PATH)/$(BIN_NAME_BASE)*)
 
 ifeq ($(strip $(AL_BP_DIR)),)
 all: help
@@ -19,8 +26,8 @@ endif
 
 ifeq ($(strip $(DTN2_DIR)),)
 # ION
-INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(ION_DIR)/include -I$(ION_DIR)/library
-LIBS=$(AL_BP_DIR)/libal_bp_vION.a -lbp -lici -lpthread
+INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(ION_DIR)/bp/include -I$(ION_DIR)/bp/library -I$(ION_DIR)/ici/include -I$(ION_DIR)
+LIBS=$(AL_BP_DIR)/libal_bp_vION.a  -limcfw -lipnfw -lbp -lici -lpthread
 #LIBS=-lal_bp_vION -lbp -lici -lpthread
 BIN_NAME=$(BIN_NAME_BASE)_vION
 else ifeq ($(strip $(ION_DIR)),)
@@ -41,7 +48,7 @@ bin:
 	$(CC) $(INC) $(LIB_PATHS) $(CFLAGS) -o $(BIN_NAME) src/*.c src/dtnperf_modes/*.c $(LIBS)
 
 install: 
-	cp $(BIN_NAME_BASE)* /usr/bin/
+	cp $(BIN_NAME_BASE)* $(INSTALL_PATH)/
 
 uninstall:
 	@if test `echo $(INSTALLED) | wc -w` -eq 1 -a -f "$(INSTALLED)"; then rm -rf $(INSTALLED); else echo "MORE THAN 1 FILE, DELETE THEM MANUALLY: $(INSTALLED)"; fi
@@ -51,6 +58,7 @@ help:
 	@echo "For DTN2: 	make DTN2_DIR=<dtn2_dir> AL_BP_DIR=<al_bp_dir>"
 	@echo "For ION:	make ION_DIR=<ion_dir> AL_BP_DIR=<al_bp_dir>"
 	@echo "For both: 	make DTN2_DIR=<dtn2_dir> ION_DIR=<ion_dir> AL_BP_DIR=<al_bp_dir>"
+	@echo "To compile with debug symbols add DEBUG=1"
 
 clean:
 	@rm -rf $(BIN_NAME_BASE)*

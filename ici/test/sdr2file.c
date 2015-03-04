@@ -60,7 +60,7 @@ SdrUsageSummary	sdrsummary;
 	isprintf(sdrName, sizeof sdrName, "%s%d", TEST_SDR_NAME, configFlags);
 	sdr_initialize(TEST_WM_SIZE, NULL, SM_NO_KEY, NULL);
 	sdr_load_profile(sdrName, configFlags, TEST_HEAP_WORDS, SM_NO_KEY,
-			TEST_PATH_NAME, NULL);
+			0, SM_NO_KEY, TEST_PATH_NAME, NULL);
 	sdr = sdr_start_using(sdrName);
 	if (sdr == NULL)
 	{
@@ -259,7 +259,7 @@ sdr_stop_trace(sdr);
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	sdr2file(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

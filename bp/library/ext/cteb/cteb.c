@@ -202,12 +202,12 @@ int cteb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	return result;
 }
 
-/* Acquires a CTEB into a CtebScratchpad object at blk->object.
+/* Parses a CTEB into a CtebScratchpad object at blk->object.
  * 
  * Returns -1 on system error, 0 if the block isn't valid, 1 if a valid
- * CTEB is acquired per Extensions API.
+ * CTEB is parsed per Extensions API.
  */
-int cteb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
+int cteb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	CtebScratchpad 	cteb;
 	Bundle			*bundle = &wk->bundle;
@@ -225,12 +225,12 @@ int cteb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	cursor = blk->bytes + (blk->length - blk->dataLength);
 	extractSmallSdnv(&cteb.id, &cursor, &bytesRemaining);
 
-	/* FIXME: Handle fragments by continuing to acquire here. */
+	/* FIXME: Handle fragments by continuing to parse here. */
 
 	custodianEid = MTAKE(bytesRemaining + 1);
 	if(custodianEid == NULL)
 	{
-		putErrmsg("Can't acquire CTEB custodian EID.",
+		putErrmsg("Can't parse CTEB custodian EID.",
 				itoa(bytesRemaining));
 		return -1;		/* Error acquiring. */
 	}
@@ -310,20 +310,14 @@ static int loadCtebScratchpadFromWm(Bundle *bundle, AcqWorkArea *work,
 static int loadCtebScratchpadFromSdr(Sdr sdr, Bundle *bundle, AcqWorkArea *work,
 			CtebScratchpad *cteb)
 {
-	int				beforeOrAfter;
 	Object          extElt = 0;
-	Object			blkAddr;
+	Object		blkAddr;
 	ExtensionBlock  blk;
 
 	assert(sdr_in_xn(sdr) != 0);
 
 	/* Find the first CTEB in the bundle. */
-	for (beforeOrAfter = 0; beforeOrAfter < 2 && extElt == 0;
-			beforeOrAfter++)
-	{
-		extElt = findExtensionBlock(bundle, EXTENSION_TYPE_CTEB,
-				beforeOrAfter);
-	}
+	extElt = findExtensionBlock(bundle, EXTENSION_TYPE_CTEB, 0, 0, 0);
 
 	if (extElt == 0)
 	{

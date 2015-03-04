@@ -120,7 +120,6 @@ libtool --mode=execute                             \
     $IONDIR/ionstart                               \
         -I $CONFIGDIR/host1.rc                     \
 
-sleep 5
 
 # Send a bundle to an endpoint that hasn't been created.  This bundle
 # should be discarded.

@@ -84,7 +84,7 @@ int acsInitialize(long heapWords, int logLevel)
 #endif
            
            if (sdr_load_profile(acssdrName, SDR_IN_DRAM, heapWords,
-                                SM_NO_KEY, pathname, NULL) < 0)
+                                SM_NO_KEY, 0, SM_NO_KEY, pathname, NULL) < 0)
            {
               putErrmsg("Unable to load SDR profile for ACS.", NULL);
               return -1;
@@ -101,7 +101,7 @@ int acsInitialize(long heapWords, int logLevel)
 	}
 
 
-	if (getAcssdr() < 0)
+	if (getAcssdr() == NULL)
 	{
 		putErrmsg("ACS can't find ACS SDR.", NULL);
 		return -1;
@@ -343,7 +343,6 @@ int sendAcs(Object signalLElt)
 {
 	BpExtendedCOS		ecos = { 0, 0, 255 };
 	Object			signalAddr;
-	Object			acsBundleObj;	/* Unused write-out of bpSend */
 	SdrAcsSignal        	signal;
 	SdrAcsPendingCust	pendingCust;
 	int			result;
@@ -376,7 +375,7 @@ int sendAcs(Object signalLElt)
 	 * IDs covered by this serialized ZCO. */
 	result = bpSend(NULL, pendingCust.eid, NULL, ACS_TTL,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0, &ecos,
-			signal.serializedZco, &acsBundleObj, BP_CUSTODY_SIGNAL);
+			signal.serializedZco, NULL, BP_CUSTODY_SIGNAL);
 	switch (result)
 	{
 	/* All return codes from bpSend() still cause us to continue processing

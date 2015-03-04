@@ -159,7 +159,7 @@ int assemble_file(file_transfer_info_t * info, FILE * pl_stream,
 	u32_t transfer_len;
 	int fd;
 	uint32_t offset;
-	uint32_t local_crc=0;
+	//uint32_t local_crc=0;
 
 	// transfer length is total payload length without header,
 	// congestion control char and file fragment offset
@@ -174,12 +174,12 @@ int assemble_file(file_transfer_info_t * info, FILE * pl_stream,
 		return -1;
 
 	// calculate CRC
-	if (crc!=NULL)
-	{
-		local_crc = calc_crc32_d8(local_crc, (uint8_t*) transfer, transfer_len);
-		if (local_crc!=*crc)
-			return -2;
-	}
+	//if (crc!=NULL)
+	//{
+	//	local_crc = calc_crc32_d8(local_crc, (uint8_t*) transfer, transfer_len);
+	//	if (local_crc!=*crc)
+	//		return -2;
+	//}
 
 	// open or create destination file
 	char* filename = (char*) malloc(info->filename_len + strlen(info->full_dir) +1);

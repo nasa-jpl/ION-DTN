@@ -46,10 +46,10 @@ static pthread_mutex_t sdrmutex;
 static pthread_t receiveResponsesThread = 0;
 static pthread_t sendRequestsThread = 0;
 static BpCustodySwitch custodySwitch = NoCustodyRequested;
-static int controlZco;
 
 static Sdr      sdr;
-static BpSAP    sap;
+static BpSAP    xmitsap;
+static BpSAP    recvsap;
 static char     *srcEid, *dstEid, *rptEid;
 
 #define BPING_PAYLOAD_MAX_LEN 256
@@ -85,14 +85,12 @@ static long llsqrt(long long a)
 static void handleQuit()
 {
 	shutdownnow = 1;
-	bp_interrupt(sap);
+	bp_interrupt(recvsap);
 	if(sendRequestsThread
 	&& !pthread_equal(sendRequestsThread, pthread_self()))
 	{
 		pthread_kill(sendRequestsThread, SIGINT);
 	}
-
-	ionCancelZcoSpaceRequest(&controlZco);
 }
 
 /* Subtract the `struct timeval' values X and Y, storing the result in RESULT.
@@ -124,7 +122,7 @@ timeval_subtract (result, x, y)
 }
 
 
-void *receiveResponses(void *x)
+static void *receiveResponses(void *x)
 {
 	BpDelivery  dlv;
 	struct timeval tvNow, tvResp, tvDiff;
@@ -137,7 +135,7 @@ void *receiveResponses(void *x)
 	long        diff_in_us;
 
 	while((shutdownnow == 0) && (count == -1 || totalreceived < count) &&
-			bp_receive(sap, &dlv, BP_BLOCKING) >= 0)
+			bp_receive(recvsap, &dlv, BP_BLOCKING) >= 0)
 	{
 		/* Get the time the response was received */
 		if(gettimeofday(&tvNow, NULL) < 0) {
@@ -148,7 +146,7 @@ void *receiveResponses(void *x)
 
 		/* ReceptionInterrupted means this process received a signal but not
 		 * a bundle.  Try receiving again... */
-		if(dlv.result == BpReceptionInterrupted) {
+		if(dlv.result == BpReceptionInterrupted || dlv.adu == 0) {
 			if(verbosity) fprintf(stderr, "Reception interrupted.\n");
 			bp_release_delivery(&dlv, 1);
 			continue;
@@ -164,7 +162,7 @@ void *receiveResponses(void *x)
 		contentLength = zco_source_data_length(sdr, dlv.adu);
 		bytesToRead = MIN(contentLength, sizeof(buffer)-1); 
 		zco_start_receiving(dlv.adu, &reader);
-		CHKNULL(sdr_begin_xn(sdr));
+		oK(sdr_begin_xn(sdr));
 		result = zco_receive_source(sdr, &reader, bytesToRead, buffer);
 		if (sdr_end_xn(sdr) < 0 || result < 0)
 		{
@@ -240,12 +238,14 @@ void *receiveResponses(void *x)
 		}
 
 		if(diff_in_us < 0) {
-			printf("%d bytes from %s  seq=%lu time=-%lu.%06lu s(future!)\n",
-					contentLength, respSrcEid, respcount, tvDiff.tv_sec, 
+			printf("%d bytes from %s  seq=%lu time=-%lu.%06lu \
+s(future!)\n", contentLength, respSrcEid, respcount,
+					(unsigned long)tvDiff.tv_sec, 
 					(unsigned long)tvDiff.tv_usec);
 		} else {
 			printf("%d bytes from %s  seq=%lu time=%lu.%06lu s\n",
-					contentLength, respSrcEid, respcount, tvDiff.tv_sec, 
+					contentLength, respSrcEid, respcount,
+					(unsigned long)tvDiff.tv_sec, 
 					(unsigned long)tvDiff.tv_usec);
 		}
 
@@ -279,10 +279,10 @@ static Object bping_new_ping(void)
 
 	/* Construct the bundle payload */
 	pingPayloadLen = snprintf(pingPayload, sizeof(pingPayload), 
-			"%d %lu %lu bping payload", totalsent, tvNow.tv_sec, 
+			"%d %lu %lu bping payload", totalsent,
+			(unsigned long) tvNow.tv_sec, 
 			(unsigned long)tvNow.tv_usec);
 	if(pingPayloadLen < 0) {
-		bp_close(sap);
 		putErrmsg("Couldn't construct bping payload.", NULL);
 		fprintf(stderr, "Couldn't construct bping payload.");
 		return 0;
@@ -298,7 +298,6 @@ static Object bping_new_ping(void)
 	}
 
 	if(sdr_end_xn(sdr)) {
-		bp_close(sap);
 		putErrmsg("No space for bping text.", NULL);
 		fprintf(stderr, "No space for bping text.\n");
 		return 0;
@@ -306,10 +305,9 @@ static Object bping_new_ping(void)
 
 	/* Craft the bundle object */
 	bundleZco = ionCreateZco(ZcoSdrSource, bundleMessage, 0, 
-			pingPayloadLen, &controlZco);
-	if(bundleZco == 0)
+			pingPayloadLen, priority, 0, ZcoOutbound, NULL);
+	if(bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
-		bp_close(sap);
 		putErrmsg("bping can't create bundle ZCO", NULL);
 		fprintf(stderr, "bping can't create bundle ZCO.\n");
 		return 0;
@@ -320,7 +318,6 @@ static Object bping_new_ping(void)
 static void *sendRequests(void *x)
 {
 	Object  bundleZco;
-	Object  newBundle;  /* We never use, but bp_send requires this */
 
 	/* Send bundles until we are told to shutdownnow, or we've sent "count". */
 	while((shutdownnow == 0) && (count == -1 || totalsent < count)) {
@@ -328,26 +325,34 @@ static void *sendRequests(void *x)
 		{
 			putErrmsg("Couldn't take sdr mutex in sendRequests.", NULL);
 			fprintf(stderr, "Couldn't take sdr mutex in sendRequests.\n");
+			shutdownnow = 1;
+			bp_interrupt(recvsap);
 			pthread_exit(NULL);
 		}
 		bundleZco = bping_new_ping();
 		if(bundleZco == 0) {
 			putErrmsg("Couldn't make new ping bundle.", NULL);
 			fprintf(stderr, "Couldn't make new ping bundle.\n");
+			shutdownnow = 1;
+			bp_interrupt(recvsap);
 			pthread_exit(NULL);
 		}
 
-		if(bp_send(sap, dstEid, rptEid, ttl, priority, custodySwitch,
-				rrFlags, 0, NULL, bundleZco, &newBundle) <= 0)
+		if(bp_send(xmitsap, dstEid, rptEid, ttl, priority, custodySwitch,
+				rrFlags, 0, NULL, bundleZco, NULL) <= 0)
 		{
 			putErrmsg("bping can't send ping bundle.", NULL);
 			fprintf(stderr, "bping can't send ping bundle.\n");
+			shutdownnow = 1;
+			bp_interrupt(recvsap);
 			pthread_exit(NULL);
 		}
 		if(pthread_mutex_unlock(&sdrmutex) != 0)
 		{
 			putErrmsg("Couldn't give sdr mutex in sendRequests.", NULL);
 			fprintf(stderr, "Couldn't give sdr mutex in sendRequests.\n");
+			shutdownnow = 1;
+			bp_interrupt(recvsap);
 			pthread_exit(NULL);
 		}
 
@@ -392,6 +397,30 @@ static void parse_report_flags(int *srrFlags, const char *flags) {
 	}
 }
 
+#if defined (ION_LWT)
+int	bping(	int a1, int a2, int a3, int a4, int a5,
+		int a6, int a7, int a8, int a9, int a10)
+{
+	count = a1 ? strtol((char *) a1, NULL, 0) : -1;
+	interval = a2 ? strtol((char *) a2, NULL, 0) : 1;
+	priority = a3 ? strtol((char *) a3, NULL, 0) : 0;
+	waitdelay = a4 ? strtol((char *) a4, NULL, 0) : 10;
+	if (a5)
+	{
+		parse_report_flags(&rrFlags, (char *) a5);
+	}
+
+	ttl = a6 ? strtol((char *) a6, NULL, 0) : 3600;
+	verbosity = a7 ? strtol((char *) a7, NULL, 0) : 0;
+	srcEid = a8 ? ((char *) a8) : NULL;
+	dstEid = a9 ? ((char *) a9) : NULL;
+	rptEid = a10 ? ((char *) a10) : NULL;
+	if (srcEid == NULL || dstEid == NULL)
+	{
+		PUTS("Missing argument(s) for bping.  Ignored.");
+		return BPING_EXIT_ERROR;
+	}
+#else
 int main(int argc, char **argv)
 {
 	int ch;
@@ -446,6 +475,7 @@ int main(int argc, char **argv)
 	srcEid = argv[optind];
 	dstEid = argv[optind + 1];
 	rptEid = (argc - optind > 2) ? argv[optind + 2] : NULL;
+#endif
 
 	if(pthread_mutex_init(&sdrmutex, NULL) != 0)
 	{
@@ -467,9 +497,17 @@ int main(int argc, char **argv)
 		exit(BPING_EXIT_ERROR);
 	}
 
-	if (bp_open(srcEid, &sap) < 0) {
+	if (bp_open_source(srcEid, &xmitsap, 0) < 0) {
 		putErrmsg("Can't open source endpoint.", srcEid);
 		fprintf(stderr, "Can't open source endpoint (%s).\n", 
+				srcEid);
+		exit(BPING_EXIT_ERROR);
+	}
+
+	if (bp_open(srcEid, &recvsap) < 0) {
+		bp_close(xmitsap);
+		putErrmsg("Can't open reception endpoint.", srcEid);
+		fprintf(stderr, "Can't open reception endpoint (%s).\n", 
 				srcEid);
 		exit(BPING_EXIT_ERROR);
 	}
@@ -481,21 +519,26 @@ int main(int argc, char **argv)
 				NULL) < 0) {
 		putErrmsg("Can't make recvResponsesThread.", NULL);
 		fprintf(stderr, "Can't make recvResponsesThread.\n");
-		bp_interrupt(sap);
+		bp_close(xmitsap);
+		bp_close(recvsap);
 		exit(BPING_EXIT_ERROR);
 	}
 
 	if(pthread_begin(&sendRequestsThread, NULL, sendRequests, NULL) < 0) {
 		putErrmsg("Can't make sendRequestsThread.", NULL);
 		fprintf(stderr, "Can't make sendRequestsThread.\n");
-		bp_interrupt(sap);
+		shutdownnow = 1;
+		bp_interrupt(recvsap);
+		bp_close(xmitsap);
+		bp_close(recvsap);
 		exit(BPING_EXIT_ERROR);
 	}
 
 	pthread_join(sendRequestsThread, NULL);
 	pthread_join(receiveResponsesThread, NULL);
 
-	bp_close(sap);
+	bp_close(xmitsap);
+	bp_close(recvsap);
 	bp_detach();
 
 	/* Calculate statistics. */
@@ -513,7 +556,8 @@ int main(int argc, char **argv)
 	printf("%d bundles transmitted, %d bundles received, %.2f%% bundle"
 			" loss, time %lu.%06lu s\n", totalsent, totalreceived,
 			100.0*(1 - ((double)totalreceived)/((double)totalsent)),
-			tvDiff.tv_sec, (unsigned long)tvDiff.tv_usec);
+			(unsigned long)tvDiff.tv_sec,
+			(unsigned long)tvDiff.tv_usec);
 
 	if(totalreceived > 0) {
 		sum  /= totalreceived;

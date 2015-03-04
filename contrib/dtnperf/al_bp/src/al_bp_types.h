@@ -32,6 +32,15 @@ typedef enum
 } al_bp_implementation_t;
 
 /**
+ *	DTN eid Scheme type
+ */
+typedef enum
+{
+	CBHE_SCHEME = 0,
+	DTN_SCHEME,
+}al_bp_scheme_t;
+
+/**
  * Specification of a bp endpoint id, i.e. a URI, implemented as a
  * fixed-length char buffer. Note that for efficiency reasons, this
  * fixed length is relatively small (256 bytes).

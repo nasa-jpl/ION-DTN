@@ -46,16 +46,37 @@ al_bp_error_t bp_dtn_errno(al_bp_handle_t handle)
 	return bp_dtn_error(result);
 }
 
+/**
+ * Build a local eid for DTN2 implementation
+ * if type == CBHE_SCHEME, service_tag must be ipn_local_number.service_number
+ */
 al_bp_error_t bp_dtn_build_local_eid(al_bp_handle_t handle,
 								al_bp_endpoint_id_t* local_eid,
-								const char* service_tag)
+								const char* service_tag,
+								al_bp_scheme_t type)
 {
-	dtn_handle_t dtn_handle = al_dtn_handle(handle);
-	dtn_endpoint_id_t dtn_local_eid = al_dtn_endpoint_id(*local_eid);
-	int result = dtn_build_local_eid(dtn_handle, & dtn_local_eid, service_tag);
-	handle = dtn_al_handle(dtn_handle);
-	* local_eid = dtn_al_endpoint_id(dtn_local_eid);
-	return bp_dtn_error(result);
+	if (type == DTN_SCHEME)
+	{
+		dtn_handle_t dtn_handle = al_dtn_handle(handle);
+		dtn_endpoint_id_t dtn_local_eid = al_dtn_endpoint_id(*local_eid);
+		int result = dtn_build_local_eid(dtn_handle, & dtn_local_eid, service_tag);
+		handle = dtn_al_handle(dtn_handle);
+		* local_eid = dtn_al_endpoint_id(dtn_local_eid);
+		return bp_dtn_error(result);
+	}
+	else if (type == CBHE_SCHEME)
+	{
+		//check if string is correctly formatted (it must be ipn_local_number.service_number)
+		int ipn_local_number = -1, service_number = -1;
+		if (sscanf(service_tag, "%d.%d", &ipn_local_number, &service_number) != 2)
+			return BP_EPARSEEID;
+		if (ipn_local_number < 0 || service_number < 0)
+			return BP_EPARSEEID;
+		sprintf(local_eid->uri, "ipn:%s", service_tag);
+		return BP_SUCCESS;
+	}
+	else
+		return BP_EINVAL;
 
 }
 
@@ -184,7 +205,7 @@ void bp_dtn_free_extension_blocks(al_bp_bundle_spec_t* spec)
         int i;
         for ( i=0; i<spec->blocks.blocks_len; i++ ) {
             printf("Freeing extension block [%d].data at 0x%08X\n",
-                               i, spec->blocks.blocks_val[i].data.data_val);
+                               i, (unsigned int) *(spec->blocks.blocks_val[i].data.data_val));
             free(spec->blocks.blocks_val[i].data.data_val);
         }
         free(spec->blocks.blocks_val);
@@ -196,7 +217,7 @@ void bp_dtn_free_metadata_blocks(al_bp_bundle_spec_t* spec)
         int i;
         for ( i=0; i<spec->metadata.metadata_len; i++ ) {
             printf("Freeing metadata block [%d].data at 0x%08X\n",
-                               i, spec->metadata.metadata_val[i].data.data_val);
+                               i, (unsigned int) *(spec->metadata.metadata_val[i].data.data_val));
             free(spec->metadata.metadata_val[i].data.data_val);
         }
         free(spec->metadata.metadata_val);
@@ -242,7 +263,8 @@ al_bp_error_t bp_dtn_errno(al_bp_handle_t handle)
 
 al_bp_error_t bp_dtn_build_local_eid(al_bp_handle_t handle,
 								al_bp_endpoint_id_t* local_eid,
-								const char* service_tag)
+								const char* service_tag,
+								al_bp_scheme_t type)
 {
 	return BP_ENOTIMPL;
 

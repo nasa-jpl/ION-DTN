@@ -12,6 +12,18 @@
 									*/
 #include "tcpcla.h"
 
+static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
+{
+	static ReqAttendant	*attendant = NULL;
+
+	if (newAttendant)
+	{
+		attendant = newAttendant;
+	}
+
+	return attendant;
+}
+
 static void	interruptThread()
 {
 	isignal(SIGTERM, interruptThread);
@@ -22,8 +34,6 @@ static void	interruptThread()
 
 typedef struct
 {
-	char		senderEidBuffer[SDRSTRING_BUFSZ];
-	char		*senderEid;
 	VInduct		*vduct;
 	LystElt		elt;
 	pthread_mutex_t	*mutex;
@@ -81,7 +91,7 @@ static void	*receiveBundles(void *parm)
 
 	while (threadRunning && *(parms->running))
 	{
-		if (bpBeginAcq(work, 0, parms->senderEid) < 0)
+		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
 			putErrmsg("Can't begin acquisition of bundle.", NULL);
 			ionKillMainThread(procName);
@@ -89,7 +99,8 @@ static void	*receiveBundles(void *parm)
 			continue;
 		}
 
-		switch (receiveBundleByTcp(parms->bundleSocket, work, buffer))
+		switch (receiveBundleByTcp(parms->bundleSocket, work, buffer,
+					_attendant(NULL)))
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
@@ -150,9 +161,6 @@ static void	*spawnReceivers(void *parm)
 	socklen_t		nameLength;
 	ReceiverThreadParms	*parms;
 	LystElt			elt;
-	struct sockaddr_in	*fromAddr;
-	unsigned int		hostNbr;
-	char			hostName[MAXHOSTNAMELEN + 1];
 	pthread_t		thread;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -184,6 +192,7 @@ static void	*spawnReceivers(void *parm)
 
 		if (atp->running == 0)
 		{
+			closesocket(newSocket);
 			break;	/*	Main thread has shut down.	*/
 		}
 
@@ -192,6 +201,7 @@ static void	*spawnReceivers(void *parm)
 		if (parms == NULL)
 		{
 			putErrmsg("stcpcli can't allocate for thread.", NULL);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -205,6 +215,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putErrmsg("stcpcli can't allocate for thread.", NULL);
 			MRELEASE(parms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -212,19 +223,13 @@ static void	*spawnReceivers(void *parm)
 
 		parms->mutex = &mutex;
 		parms->bundleSocket = newSocket;
-       		fromAddr = (struct sockaddr_in *) &cloSocketName;
-		memcpy((char *) &hostNbr,
-				(char *) &(fromAddr->sin_addr.s_addr), 4);
-		hostNbr = ntohl(hostNbr);
-		printDottedString(hostNbr, hostName);
-		parms->senderEid = parms->senderEidBuffer;
-		getSenderEid(&(parms->senderEid), hostName);
 		parms->running = &(atp->running);
 		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{
 			putSysErrmsg("stcpcli can't create new thread", NULL);
 			MRELEASE(parms);
+			closesocket(newSocket);
 			ionKillMainThread(procName);
 			atp->running = 0;
 			continue;
@@ -272,7 +277,7 @@ static void	*spawnReceivers(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-#if defined (VXWORKS) || defined (RTEMS)
+#if defined (ION_LWT)
 int	stcpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -292,7 +297,7 @@ int	main(int argc, char *argv[])
 	unsigned int		hostNbr;
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
-	char			*tcpDelayString;
+	ReqAttendant		attendant;
 	pthread_t		accessThread;
 	int			fd;
 
@@ -377,26 +382,16 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	tcpDelayString = getenv("TCP_DELAY_NSEC_PER_BYTE");
-	if (tcpDelayString == NULL)
+	/*	Set up blocking acquisition of data via TCP.		*/
+
+	if (ionStartAttendant(&attendant) < 0)
 	{
-		tcpDelayEnabled = 0;
-	}
-	else	/*	Artificial TCP delay, for testing purposes.	*/
-	{
-		tcpDelayEnabled = 1;
-		tcpDelayNsecPerByte = strtol(tcpDelayString, NULL, 0);
-		if (tcpDelayNsecPerByte < 0
-		|| tcpDelayNsecPerByte > 16384)
-		{
-			tcpDelayNsecPerByte = 0;
-		}
+		closesocket(atp.ductSocket);
+		putErrmsg("Can't initialize blocking TCP reception.", NULL);
+		return 1;
 	}
 
-	/*	Initialize sender endpoint ID lookup.			*/
-
-	ipnInit();
-	dtn2Init();
+	oK(_attendant(&attendant));
 
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
@@ -430,13 +425,14 @@ int	main(int argc, char *argv[])
 	/*	Time to shut down.					*/
 
 	atp.running = 0;
+	ionPauseAttendant(&attendant);
 
 	/*	Wake up the access thread by connecting to it.		*/
 
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd >= 0)
 	{
-		connect(fd, &(atp.socketName), sizeof(struct sockaddr));
+		oK(connect(fd, &(atp.socketName), sizeof(struct sockaddr)));
 
 		/*	Immediately discard the connected socket.	*/
 
@@ -444,6 +440,7 @@ int	main(int argc, char *argv[])
 	}
 
 	pthread_join(accessThread, NULL);
+	ionStopAttendant(&attendant);
 	writeErrmsgMemos();
 	writeMemo("[i] stcpcli duct has ended.");
 	ionDetach();

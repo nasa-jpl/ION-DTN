@@ -9,7 +9,7 @@
 
 #include <bp.h>
 
-#ifdef VXWORKS
+#if defined (ION_LWT)
 int	lgsend(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -151,8 +151,9 @@ int	main(int argc, char **argv)
 		return -1;
 	}
 
-	bundleZco = ionCreateZco(ZcoSdrSource, adu, 0, fileSize, NULL);
-	if (bundleZco == 0)
+	bundleZco = ionCreateZco(ZcoSdrSource, adu, 0, fileSize,
+			BP_EXPEDITED_PRIORITY, 0, ZcoOutbound, NULL);
+	if (bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
 		putErrmsg("lgsend: can't create application data unit.", NULL);
 	}

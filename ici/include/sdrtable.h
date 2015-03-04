@@ -27,14 +27,14 @@ extern "C" {
 
 #define sdr_table_create(sdr, rowSize, rowCount) \
 Sdr_table_create(__FILE__, __LINE__, sdr, rowSize, rowCount)
-extern Object		Sdr_table_create(char *file, int line,
+extern Object		Sdr_table_create(const char *file, int line,
 				Sdr sdr, int rowSize, int rowCount);
 
 extern Address		sdr_table_user_data(Sdr sdr, Object table);
 
 #define sdr_table_user_data_set(sdr, table, userData) \
 Sdr_table_user_data_set(__FILE__, __LINE__, sdr, table, userData)
-extern void		Sdr_table_user_data_set(char *file, int line,
+extern void		Sdr_table_user_data_set(const char *file, int line,
 				Sdr sdr, Object table, Address userData);
 
 extern void		sdr_table_dimensions(Sdr sdr, Object table,
@@ -47,7 +47,7 @@ extern Address		sdr_table_row(Sdr sdr, Object table,
 
 #define sdr_table_destroy(sdr, table) \
 Sdr_table_destroy(__FILE__, __LINE__, sdr, table)
-extern void		Sdr_table_destroy(char *file, int line,
+extern void		Sdr_table_destroy(const char *file, int line,
 				Sdr sdr, Object table);
 #ifdef __cplusplus
 }

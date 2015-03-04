@@ -81,8 +81,10 @@ See man(5) for ltprc.");
 	PUTS("\tl\tList");
 	PUTS("\t   l span");
 	PUTS("\tm\tManage");
+	PUTS("\t   m heapmax <max database heap for any single inbound block>");
 	PUTS("\t   m screening { y | n }");
 	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
+	PUTS("\t   m maxber <max expected bit error rate; default is .000001>");
 	PUTS("\ts\tStart");
 	PUTS("\t   s '<LSI command>'");
 	PUTS("\tx\tStop");
@@ -427,6 +429,36 @@ static void	executeList(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+static void	manageHeapmax(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	LtpDB		ltpdb;
+	unsigned int	heapmax;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	heapmax = strtoul(tokens[2], NULL, 0);
+	if (heapmax < 560)
+	{
+		writeMemoNote("[?] heapmax must be at least 560", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.maxAcqInHeap = heapmax;
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change maxAcqInHeap.", NULL);
+	}
+}
+
 static void	manageScreening(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
@@ -455,7 +487,7 @@ static void	manageScreening(int tokenCount, char **tokens)
 		break;
 
 	default:
-		putErrmsg("Screening must be 'y' or 'n'.", tokens[2]);
+		writeMemoNote("Screening must be 'y' or 'n'", tokens[2]);
 		return;
 	}
 
@@ -485,7 +517,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 	newOwnQtime = strtol(tokens[2], NULL, 0);
 	if (newOwnQtime < 0)
 	{
-		putErrmsg("Own Q time invalid.", tokens[2]);
+		writeMemoNote("Own Q time invalid", tokens[2]);
 		return;
 	}
 
@@ -499,11 +531,47 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageMaxBER(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	Object	ltpdbObj = getLtpDbObject();
+	LtpDB	ltpdb;
+	double	newMaxBER;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newMaxBER = atof(tokens[2]);
+	if (newMaxBER < 0.0)
+	{
+		writeMemoNote("Max BER invalid", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.errorsPerByte = newMaxBER * 8;
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change maximum bit error rate.", NULL);
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
 	{
 		printText("Manage what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "heapmax") == 0)
+	{
+		manageHeapmax(tokenCount, tokens);
 		return;
 	}
 
@@ -516,6 +584,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "ownqtime") == 0)
 	{
 		manageOwnqtime(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxber") == 0)
+	{
+		manageMaxBER(tokenCount, tokens);
 		return;
 	}
 
@@ -641,6 +715,65 @@ static void	switchEcho(int tokenCount, char **tokens)
 
 	default:
 		printText("Echo on or off?");
+	}
+}
+
+static int ltp_is_up(int tokenCount, char** tokens)
+{
+	if (strcmp(tokens[1], "p") == 0) //poll
+	{
+		if (tokenCount < 3) //use default timeout
+		{
+			int count = 1;
+			while (count <= 120 && !ltp_engine_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > 120) //ltp engine is not started
+			{
+				printText("LTP engine is not started");
+				return 0;
+			}
+			else //ltp engine is started
+			{
+				printText("LTP engine is started");
+				return 1;
+			}
+		}
+		else //use user supplied timeout
+		{
+			int max = atoi(tokens[2]) * 4;
+			int count = 1;
+			while (count <= max && !ltp_engine_is_started())
+			{
+				microsnooze(250000);
+				count++;
+			}
+			if (count > max) //ltp engine is not started
+			{
+				printText("LTP engine is not started");
+				return 0;
+			}
+			else //ltp engine is started
+			{
+				printText("LTP engine is started");
+				return 1;
+			}
+		}
+	}
+	else //check once
+	{
+		if (ltp_engine_is_started())
+		{
+			printText("LTP engine is started");
+			return 1;
+		}
+		else
+		{
+			printText("LTP engine is not started");
+			return 0;
+		}
 	}
 }
 
@@ -822,6 +955,12 @@ command.");
 			switchEcho(tokenCount, tokens);
 			return 0;
 
+		case 't':
+			if (attachToLtp() == 0)
+			{
+				exit(ltp_is_up(tokenCount, tokens));
+			}
+
 		case 'q':
 			return -1;	/*	End program.		*/
 
@@ -831,7 +970,7 @@ command.");
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	ltpadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

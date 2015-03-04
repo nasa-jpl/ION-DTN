@@ -17,7 +17,6 @@
 
 #include "platform.h"
 #include "lyst.h"
-#include "llcv.h"
 
 #ifdef __cplusplus
 extern "C" {

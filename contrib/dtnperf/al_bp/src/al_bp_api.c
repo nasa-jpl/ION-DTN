@@ -15,12 +15,19 @@
 
 #include "includes.h"
 #include "al_bp_api.h"
+#include "al_bp_version.h"
 
 /* Implementations API */
 #include "al_bp_dtn.h"
 #include "al_bp_ion.h"
 
 static al_bp_implementation_t bp_implementation = BP_NONE;
+const char* al_bp_version = AL_BP_VERSION_STRING;
+
+const char * get_al_bp_version()
+{
+	return al_bp_version;
+}
 
 al_bp_implementation_t al_bp_get_implementation()
 {
@@ -90,8 +97,7 @@ al_bp_error_t al_bp_errno(al_bp_handle_t handle)
 al_bp_error_t al_bp_build_local_eid(al_bp_handle_t handle,
 									al_bp_endpoint_id_t* local_eid,
 									const char* service_tag,
-									char * type,
-									char * eid_destination)
+									al_bp_scheme_t type)
 {
 	if (local_eid == NULL)
 		return BP_ENULLPNTR;
@@ -99,10 +105,11 @@ al_bp_error_t al_bp_build_local_eid(al_bp_handle_t handle,
 	switch (al_bp_get_implementation())
 	{
 	case BP_DTN:
-		return bp_dtn_build_local_eid(handle, local_eid, service_tag);
+		//if type is CBHE, service_tag must be in the form ipn_local_number.service_number
+		return bp_dtn_build_local_eid(handle, local_eid, service_tag, type);
 
 	case BP_ION:
-		return bp_ion_build_local_eid(local_eid, service_tag,type,eid_destination);
+		return bp_ion_build_local_eid(local_eid, service_tag,type);
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;

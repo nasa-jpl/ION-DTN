@@ -53,10 +53,38 @@ rm -rf ./ion_nodes
 # Start nodes.
 cd 1.ipn.cfdp.bp.tcp
 ./ionstart
+../../../system_up -i "p 30" -c "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 1 not started: Aborting Test"
+	exit 0
+fi
 cd ../2.ipn.cfdp.bp.tcp
 ./ionstart
+../../../system_up -i "p 30" -c "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 0
+fi
 cd ../3.ipn.cfdp.bp.tcp
 ./ionstart
+../../../system_up -i "p 30" -c "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 0
+fi
+
 cd ..
 
 #Test 1 L2R
